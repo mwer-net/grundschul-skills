@@ -2,7 +2,7 @@
 
 Ziel: Jedes Material ist **übersichtlich**, hat **keine Darstellungsfehler** (abgeschnitten, überlappend, verrutscht) und lässt sich von der Lehrkraft **ohne Canva-Kenntnisse nachbearbeiten** (Text ändern, Aufgabe tauschen, Block verschieben).
 
-Standard ist der **Schwarz-Weiß-Druck** mit Aufgaben ohne Kasten (`grundschul-didaktik/references/druck-und-platz.md`). Die Werte unten gelten dafür; Flächen-Regeln nur, wo ausnahmsweise eine Fläche oder ein Rahmen mit Funktion vorkommt.
+In beiden Druckprofilen (Farbe oder s/w, `grundschul-didaktik/references/druck-und-platz.md`) stehen Aufgaben ohne Kasten. Die Werte unten gelten dafür; Flächen-Regeln nur, wo ausnahmsweise eine Fläche oder ein Rahmen mit Funktion vorkommt.
 
 Maße gelten für Canva-Pixel (96 px pro Zoll, 1 cm ≈ 38 px). A4 = 794 × 1123 px; Canva liefert oft US-Letter 816 × 1056 px.
 
@@ -17,7 +17,7 @@ Maße gelten für Canva-Pixel (96 px pro Zoll, 1 cm ≈ 38 px). A4 = 794 × 1123
 | Aufgaben | ohne Kasten, ohne Flächenfüllung | Kästen kosten Innenabstand und Toner; Nähe und Abstand gliedern genauso klar. |
 | Abstand zwischen Aufgaben | 24–32 px, überall gleich; optional dünne Trennlinie (1–1,5 px, `#808080`) mittig im Abstand | Aufgaben dürfen sich nie berühren. |
 | Nähe-Prinzip | Anweisung → ihre Arbeitsfläche: 8–16 px; Aufgabe → nächste Aufgabe: 24–32 px | Zusammengehöriges steht näher beieinander als Getrenntes. |
-| Nummernkreis | 32–36 px, schwarz gefüllt, weiße fette Ziffer; feste Spalte am linken Spaltenrand, Anweisung 12–16 px rechts davon, Arbeitsfläche bündig unter der Anweisung (hängende Nummer) | Kreis und Text dürfen sich nicht überschneiden; die Nummer ersetzt den Kasten. |
+| Nummernkreis | 32–36 px, gefüllt (s/w schwarz, Farbe Hauptfarbe), weiße fette Ziffer; feste Spalte am linken Spaltenrand, Anweisung 12–16 px rechts davon, Arbeitsfläche bündig unter der Anweisung (hängende Nummer) | Kreis und Text dürfen sich nicht überschneiden; die Nummer ersetzt den Kasten. |
 | Rahmen mit Funktion (Sprechblase, Wortspeicher, Antwortkasten) | Kontur 1,5–2 px, keine Füllung, Ecken 8–16 px gerundet, Innenabstand 8–12 px | Text klebt sonst am Rand; mehr Innenabstand kostet nur Platz. |
 | Zeilenlänge | höchstens ca. 60 Zeichen | Längere Zeilen verlieren Leseanfänger. |
 | Schriftgrößen | höchstens drei: Überschrift, Text, Beschriftung | Klare Hierarchie. |
@@ -48,7 +48,7 @@ Nach dem Erstellen und nach jeder größeren Korrektur:
 1. `read-design` mit `open_transaction: true` und `filter.fields: ["design_content"]` (nur so kommen Positionen und Locator-IDs).
 2. Antwort als Datei speichern und prüfen:
    `python3 scripts/layout_check.py design.json --klasse 2`
-3. Alle **FEHLER** beheben (abgeschnitten, Druckrand, überlappende Texte, Restelemente). **WARNUNGEN** prüfen und in der Regel beheben (Rand, Berührungen, fehlender Puffer, zu kleine Schrift, uneinheitliche Abstände). **HINWEISE** betreffen die Bearbeitbarkeit (Gruppen, Unterstrich-Linien, Layout per Leerzeichen) und den Platz (Aufgabenkästen, ungenutzte Streifen). Die **Druck-Prüfungen** für s/w (Hintergrundbild, Farb-/Grauflächen, farbige oder weiße Schrift, helle oder dünne Linien, geschätzte Flächendeckung, farbige Bilder) laufen standardmäßig; bei ausdrücklichem Farbdruck `--farbe` angeben.
+3. Alle **FEHLER** beheben (abgeschnitten, Druckrand, überlappende Texte, Restelemente). **WARNUNGEN** prüfen und in der Regel beheben (Rand, Berührungen, fehlender Puffer, zu kleine Schrift, uneinheitliche Abstände). **HINWEISE** betreffen die Bearbeitbarkeit (Gruppen, Unterstrich-Linien, Layout per Leerzeichen) und den Platz (Aufgabenkästen, ungenutzte Streifen). Die **Druck-Prüfungen** laufen nach Profil: ohne Option für s/w (Hintergrundbild, Farb-/Grauflächen, farbige oder weiße Schrift, helle oder dünne Linien, geschätzte Flächendeckung, farbige Bilder), mit `--farbe` für das Farbprofil (Hintergrundbild, Flächen hinter Aufgaben, zu helle Schrift).
 4. Die vom Skript ausgegebenen `group_elements`-Operationen direkt an `edit-design` geben.
 5. Erneut lesen und prüfen, bis keine FEHLER mehr bleiben. Dann die Vorschau (`thumbnails`) ansehen: Das Skript sieht Geometrie, nicht Optik.
 
@@ -67,7 +67,8 @@ Ohne Code-Ausführung dieselben Punkte von Hand an den Koordinaten aus `design_c
 | Überschrift ohne Abstand zum nächsten Element | Folgeelemente um 16–24 px nach unten |
 | Seitenhintergrund als Bild | Weißen Hintergrund lassen; Bild löschen (kostet in s/w Toner) |
 | Aufgabenflächen als farbige Kästen oder Rechtecke mit Bildfüllung | Löschen (`delete_element`); Aufgaben mit hängender Nummer neu stapeln, Abstand 24–32 px |
-| Farbige Schrift, farbige Nummernkreise, Pastellflächen in Kopf/Fuß | `format_text` `color` `#1D1D1B`, `recolor_element` Kreis `#1D1D1B`, Flächen löschen |
+| Pastellflächen in Kopf/Fuß | Flächen löschen, Abgrenzung durch Linie |
+| s/w-Profil: farbige Schrift oder Nummernkreise | `format_text` `color` `#1D1D1B`, `recolor_element` Kreis `#1D1D1B` |
 | px-Angaben im Brief (Rand, Abstand, Schriftgröße) ignoriert, Text umformuliert | Brief nur als Startpunkt nutzen; Layout mit `edit-design` auf das Raster setzen, Text mit `find_and_replace_text` korrigieren |
 | Letter-Format 816 × 1056, Inhalt passt nicht ins Platzbudget | `resize-design` auf A4 (neues Design, neue ID), danach Layout neu setzen |
 | Uhren als 100+ lose Einzelteile | je Uhr `group_elements` |
@@ -84,7 +85,7 @@ Ohne Code-Ausführung dieselben Punkte von Hand an den Koordinaten aus `design_c
 
 - [ ] Alle Elemente ≥ 60 px vom Seitenrand, nichts ragt über die Seite
 - [ ] Eine Spalte: Aufgaben bündig, ohne Kasten, Abstände einheitlich (8er-Skala)
-- [ ] S/W-tauglich: keine Farb- oder Grauflächen, Text schwarz, Linien ≥ 1,5 px nicht heller als `#808080`
+- [ ] Druckprofil: keine Flächen hinter Aufgaben, Text schwarz; s/w zusätzlich Linien ≥ 1,5 px nicht heller als `#808080`, Farbe nur als Akzent
 - [ ] Platz genutzt: Kopf ≤ 160 px, Fuß ≤ 110 px, Item-Reihen gefüllt, kein Leerstreifen
 - [ ] Keine Überlappung außer „Inhalt liegt mit Innenabstand in seiner Fläche"
 - [ ] Unter jedem Textfeld Puffer zum Wachsen

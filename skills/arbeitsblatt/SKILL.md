@@ -9,7 +9,7 @@ Laden zusammen mit: `grundschul-didaktik` (Pflicht), dem passenden `fach-*`-Skil
 
 ## Rückfragen (zusätzlich zu den Pflichtangaben)
 
-Nach dem Rückfrage-Protokoll, eine Frage pro Nachricht, jeweils mit Empfehlung:
+Zuerst die Start-Abfrage (`grundschul-didaktik/references/rueckfragen.md`): Materialart steht fest, Medium meist A4 hoch, Farbe oder s/w *(Empfehlung: s/w für Kopiervorlagen)*. Danach nach dem Rückfrage-Protokoll, eine Frage pro Nachricht, jeweils mit Empfehlung:
 
 1. **Funktion:** Einführung (mit Beispiel, viel Anschauung), Übung (viele gleichartige Items, Selbstkontrolle), Vertiefung/Transfer (offene Aufgaben) oder Wiederholung? *Empfehlung meist: Übung.*
 2. **Umfang:** 1 Seite oder Mappe? Bearbeitungszeit (10 / 20 / 45 min)? *Empfehlung: 1 Seite, ca. 20 min.*
@@ -26,8 +26,8 @@ Nach dem Rückfrage-Protokoll, eine Frage pro Nachricht, jeweils mit Empfehlung:
    - ●● Kern: Übung zum Lernziel, ggf. Anwendung / Sachsituation.
    - ●●● Herausforderung: offen, knobelnd, begründen, erfinden; gern „Willi hat sich vertan".
    - Willi oder Wilma gibt einen Strategietipp direkt bei der Aufgabe, zu der er gehört; Tipps und Rückmeldungen in „noch"-Sprache.
-4. Fußzeile, schlank und ohne Fläche: Ich-kann-Satz + Wachstums-Selbsteinschätzung zum Anmalen (Samen → Keimling → Pflanze → Blume, Strich-Version aus `kindgerecht-gestalten.md`) und Reflexionsfrage („Was hat dir geholfen?"; Kl. 1/2 zum Ankreuzen oder mündlich im Kreis, ab Kl. 3 schriftlich). Optional ein Rückmeldefeld für die Lehrkraft.
-5. Separates Lösungsblatt zur Selbstkontrolle (gleiches Layout, Lösungen fett und unterstrichen, s/w-tauglich).
+4. Fußzeile, schlank und ohne Fläche: Ich-kann-Satz + Wachstums-Selbsteinschätzung zum Anmalen (Samen → Keimling → Pflanze → Blume; s/w: Strich-Version, Farbe: farbige Grafik `MAHXV6P-UTw`, siehe `kindgerecht-gestalten.md`) und Reflexionsfrage („Was hat dir geholfen?"; Kl. 1/2 zum Ankreuzen oder mündlich im Kreis, ab Kl. 3 schriftlich). Optional ein Rückmeldefeld für die Lehrkraft.
+5. Separates Lösungsblatt zur Selbstkontrolle (gleiches Layout, Lösungen fett und unterstrichen, im Farbprofil zusätzlich in der Akzentfarbe).
 
 ## Bewährte Aufgabenformate
 
@@ -56,7 +56,7 @@ Zusätzlich zur Basis-Checkliste:
 - [ ] Erstes Item jeder neuen Aufgabenart vorgelöst
 - [ ] Aufgaben steigen im Anspruch
 - [ ] Platz reicht für Kinderschrift (Mindestgrößen eingehalten), aber keine Seite verschenkt: keine Kästen, volle Item-Reihen, schlanker Kopf und Fuß
-- [ ] Schwarz-Weiß-tauglich und tonersparend: keine Farb- oder Grauflächen, Text schwarz, Bilder als Strichzeichnung
+- [ ] Druckprofil aus der Start-Abfrage eingehalten: keine Flächen hinter Aufgaben, Text schwarz; s/w mit Strichzeichnungen, Farbe nur als Akzent
 - [ ] Lösungsblatt vollständig und korrekt
 - [ ] Niveau-Varianten optisch gleichwertig, Kennzeichnung nur mit Punkten
 

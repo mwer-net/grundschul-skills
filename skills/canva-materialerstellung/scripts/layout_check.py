@@ -12,9 +12,10 @@ der Bericht weist darauf hin.
 
 Ausgabe: Bericht mit FEHLER (muss behoben werden), WARNUNG (prüfen) und
 HINWEIS (Bearbeitbarkeit, Platz), danach Vorschläge für `group_elements`.
-Standard ist eine Kopiervorlage für Schwarz-Weiß-Druck: Farb- und Grauflächen,
+Ohne Option gilt das Druckprofil Schwarz-Weiß: Farb- und Grauflächen,
 Hintergrundbilder, farbige Schrift und helle oder dünne Linien werden gemeldet.
-Mit --farbe (ausdrücklicher Farbdruck) entfallen diese Druck-Prüfungen.
+Mit --farbe gilt das Farbprofil: gemeldet werden Hintergrundbilder, Flächen
+hinter Aufgaben, Text mit zu wenig Kontrast und farbiger Fließtext.
 Exit-Code 1, wenn FEHLER gefunden wurden.
 """
 import argparse
@@ -260,6 +261,52 @@ def pruefe_druck(seite, els, figuren, add):
             f"Textseite hat ca. 5 %). Flächen entfernen spart Toner.")
 
 
+def kontrast_zu_weiss(rgb):
+    """WCAG-Kontrastverhältnis einer Farbe zu Weiß."""
+    def kanal(c):
+        c /= 255
+        return c / 12.92 if c <= 0.03928 else ((c + 0.055) / 1.055) ** 2.4
+    lum = 0.2126 * kanal(rgb[0]) + 0.7152 * kanal(rgb[1]) + 0.0722 * kanal(rgb[2])
+    return 1.05 / (lum + 0.05)
+
+
+def pruefe_farbe(seite, els, add):
+    """Farbprofil: Farbe als Akzent, keine Flächen hinter Aufgaben, lesbare Schrift."""
+    W = seite["dimensions"]["width"]
+    hg = seite.get("background") or {}
+    if hg.get("media"):
+        add("WARNUNG", "Seitenhintergrund ist ein Bild: weiß lassen, Farbe nur als Akzent.")
+    alle = list(alle_elemente(els))
+    gefuellte = []
+    for e in alle:
+        if e["type"] != "shape" or not all(k in e for k in ("width", "height")):
+            continue
+        for fill, _, _, strichbild in fuellungen(e):
+            if not fill or grauwert(fill) >= 250 or strichbild or min(e["width"], e["height"]) <= 4:
+                continue
+            gefuellte.append((box(e), fill))
+            if e["width"] > 0.5 * W and e["height"] > 60:
+                add("WARNUNG", f"Fläche hinter Aufgabe/Kopf/Fuß: im Farbprofil nur Akzente. Fläche entfernen: {ref(e)}")
+            elif e["width"] * e["height"] > MAX_FLAECHE_PX2 and grauwert(fill) < 230:
+                add("HINWEIS", f"Kräftige Farbfläche ({round(e['width'] * e['height'] / PX_PRO_CM ** 2, 1)} cm²): "
+                               f"Farbe lieber als Kontur oder sehr heller Ton: {ref(e)}")
+    for t in (e for e in alle if e["type"] == "text"):
+        for r in t.get("textRegions", []):
+            rgb = hex_rgb(r.get("formatting", {}).get("color"))
+            if not rgb:
+                continue
+            unter = [f for bx, f in gefuellte if enthaelt(bx, box(t), tol=4)]
+            if unter:
+                continue  # Ziffer im Nummernkreis o. Ä.
+            if kontrast_zu_weiss(rgb) < 3:
+                add("WARNUNG", f"Schrift {r['formatting']['color']} hat zu wenig Kontrast zu Weiß "
+                               f"({kontrast_zu_weiss(rgb):.1f}:1, mind. 3:1): {ref(t)}")
+                break
+            if bunt(rgb) and len(text_von(t).split()) > 6:
+                add("HINWEIS", f"Längerer Text in Farbe: Anweisungen und Fließtext schwarz (#1D1D1B): {ref(t)}")
+                break
+
+
 def pruefe_platz(seite, els, rand_px, add):
     """Platz für Aufgaben statt für Kästen und Leerstreifen."""
     W, H = seite["dimensions"]["width"], seite["dimensions"]["height"]
@@ -440,7 +487,9 @@ def pruefe_seite(seite, klasse, rand_px, farbe=False):
             add("HINWEIS", f"Abstände zwischen Blöcken uneinheitlich ({luecken} px); einen Wert verwenden.")
 
     # 8. Druck (s/w) und Platz
-    if not farbe:
+    if farbe:
+        pruefe_farbe(seite, els, add)
+    else:
         pruefe_druck(seite, els, figuren, add)
     pruefe_platz(seite, els, rand_px, add)
 
@@ -469,7 +518,7 @@ def main():
     p.add_argument("--klasse", type=int, choices=[1, 2, 3, 4])
     p.add_argument("--rand-cm", type=float, default=1.5, help="Seitenrand für Inhalte (Standard 1,5 cm)")
     p.add_argument("--seite", type=int, help="nur diese Seite (1-basiert)")
-    p.add_argument("--farbe", action="store_true", help="Farbdruck: s/w-Druckprüfungen auslassen")
+    p.add_argument("--farbe", action="store_true", help="Druckprofil Farbe statt Schwarz-Weiß prüfen")
     a = p.parse_args()
 
     seiten, abgeschnitten = lade_seiten(lade_text(a.datei))

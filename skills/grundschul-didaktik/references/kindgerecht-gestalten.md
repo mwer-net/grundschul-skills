@@ -9,33 +9,37 @@ Zwei Befunde scheinen sich zu widersprechen, passen aber zusammen:
 
 **Daraus folgt die Grundregel: Das schön machen, was ohnehin da ist – nicht etwas dazustellen.** Form und Figuren kommen an Elemente mit Funktion (Aufgabennummer, Beispiel, Tipp, Lernobjekt), nicht als Füllung.
 
-**Rahmenbedingung Schwarz-Weiß-Druck:** Kopiervorlagen werden s/w gedruckt und sollen wenig Toner verbrauchen und viele Aufgaben tragen. Deshalb wirkt Emotional Design hier über **Form, Schrift und Figur**, nicht über Farbflächen. Regeln: `druck-und-platz.md` (hat Vorrang vor Farbangaben in dieser Datei).
+**Druckprofil:** Die Start-Abfrage legt fest, ob farbig oder schwarz-weiß gestaltet wird (`druck-und-platz.md`). Im **Farbprofil** wirkt Emotional Design über Farbe als Akzent, Form, Schrift und Figur; im **s/w-Profil** über Form, Schrift und Figur. In beiden gibt es keine Farbflächen hinter Aufgaben und keine Aufgabenkästen – das Blatt soll Platz für Übung haben.
 
 ## Die fünf Hebel
 
 ### 1. Freundliche Formen für die Struktur
 
 - Aufgaben **ohne Kasten und ohne Flächenfüllung**: hängende Nummer, Abstand zur nächsten Aufgabe (`druck-und-platz.md`, Abschnitt 3).
-- Aufgabennummern in **kleinen gefüllten Kreisen** (32–36 px, schwarz, weiße fette Ziffer): kaum Toner, starker Anker.
-- Die wenigen Rahmen mit Funktion (Sprechblase, Wortspeicher, Antwortkästchen) als dünne Kontur mit **gerundeten Ecken** (Rundung ca. 8–16 px), ohne Füllung.
+- Aufgabennummern in **kleinen gefüllten Kreisen** (32–36 px, weiße fette Ziffer; Farbprofil: Hauptfarbe, s/w: schwarz): starker Anker, kaum Fläche.
+- Die wenigen Rahmen mit Funktion (Sprechblase, Wortspeicher, Antwortkästchen) als dünne Kontur mit **gerundeten Ecken** (Rundung ca. 8–16 px); im Farbprofil Kontur in der Akzentfarbe und ggf. sehr helle Füllung, im s/w-Profil ohne Füllung.
 - Schreiblinien und Antwortkästen schlicht (schwarz/dunkelgrau, 1,5–2 px), damit Kinderschrift lesbar bleibt.
 
-### 2. Farbe nur bei Farbdruck
+### 2. Farbe als Akzent (Farbprofil)
 
-Standard ist Schwarz-Weiß. Farbe kommt nur hinzu, wenn die Lehrkraft Farbdruck nennt (Plakat, laminierte Karten, Spiele, Whiteboard). Dann:
+Wurde in der Start-Abfrage Farbe gewählt:
 
-- **1 Hauptfarbe + 1 Akzentfarbe** aus derselben Familie, warme, freundliche Töne; keine Neonfarben. Farbe auf Nummernkreise, Überschrift, Linien und Bildelemente, **keine großen Flächen hinter Text**.
+- **1 Hauptfarbe + 1 Akzentfarbe** aus derselben Familie, warme, freundliche Töne; keine Neonfarben. Farbe auf Nummernkreise, Überschrift, Trennlinien, Sprechblase, Leitfigur und Bilder, **keine Flächen hinter Aufgaben, Kopf oder Fuß**. Details: `druck-und-platz.md`, Abschnitt 3.
 - Farbe bedeutet überall dasselbe: z. B. jede Station eine Farbe; Klassenkonventionen (Wortarten, Stellenwerte) haben Vorrang. Niveaus bekommen keine eigene Farbe, nur Punkte ● / ●● / ●●●.
 - Farbe nie als einzige Information; Graustufen-Vorschau prüfen.
 
-Bewährte Paletten (Hex) für Farbdruck:
+Im **s/w-Profil** entfällt die Palette: Nummernkreise schwarz, Überschrift schwarz in runder Schrift, Leitfigur und Wachstumsgrafik als Strichzeichnung zum Anmalen.
 
-| Name | Hauptfarbe | Akzent |
-|---|---|---|
-| Sonnig | `#F28C28` Orange | `#2A9D8F` Petrol |
-| Himmel | `#3A86FF` Blau | `#FFBE0B` Gelb |
-| Wiese | `#43AA8B` Grün | `#F3722C` Orange |
-| Beere | `#E76F51` Koralle | `#6A4C93` Lila |
+Bewährte Paletten (Hex) für das Farbprofil:
+
+| Name | Hauptfarbe | Akzent | Überschrift + Nummernkreis (Kontrast ≥ 3:1) |
+|---|---|---|---|
+| Sonnig | `#F28C28` Orange | `#2A9D8F` Petrol | `#C4620A` |
+| Himmel | `#3A86FF` Blau | `#FFBE0B` Gelb | `#2F6FD6` |
+| Wiese | `#43AA8B` Grün | `#F3722C` Orange | `#2E7D63` |
+| Beere | `#E76F51` Koralle | `#6A4C93` Lila | `#C2462F` |
+
+Hauptfarbe und Akzent für Linien, Konturen, Bilder; für Schrift und Nummernkreise mit weißer Ziffer die dunkle Variante (sonst zu wenig Kontrast, `layout_check.py --farbe` meldet das). Gelb nie für Schrift oder Linien auf Weiß.
 
 Text bleibt schwarz (`#1D1D1B`).
 
@@ -50,7 +54,7 @@ Feste Vorgabe für alle Materialien: Die Leitfigur ist **Willi Waschbär** oder 
 | Wachstumsgrafik (Samen → Keimling → Pflanze → Blume) | vier Stufen nebeneinander, Pastell, für die Selbsteinschätzung | `MAHXV6P-UTw` | `MAHXVybUqpg` |
 | Willi, Wilma, Wachstumsgrafik **als Strichzeichnung (s/w)** | gleiche Figuren, nur schwarze Konturen, weiße Füllung, zum Anmalen | noch anlegen | – |
 
-**Für Kopiervorlagen die Strich-Versionen verwenden.** Die farbigen Versionen werden in s/w zu grauen Flächen (Toner, unruhig). Fehlt eine Strich-Version noch: mit `generate-image` aus dem Original (`imageReferences`) erzeugen, Prompt „gleiche Figur als Ausmalbild: nur klare schwarze Konturen, weiße Füllung, keine Grautöne, keine Schraffur, weißer Hintergrund", dann `remove-background`. Die neue ID in der Tabelle oben ergänzen.
+**Farbprofil: farbige Versionen. s/w-Profil: Strich-Versionen**, denn die farbigen werden in s/w zu grauen Flächen (Toner, unruhig). Fehlt eine Strich-Version noch: mit `generate-image` aus dem Original (`imageReferences`) erzeugen, Prompt „gleiche Figur als Ausmalbild: nur klare schwarze Konturen, weiße Füllung, keine Grautöne, keine Schraffur, weißer Hintergrund", dann `remove-background`. Die neue ID in der Tabelle oben ergänzen.
 
 - **Wiederverwenden statt neu erzeugen:** Die freigestellte ID direkt mit `insert_fill` einsetzen. Für eine andere Pose (zeigt nach links, freut sich, denkt nach) `generate-image` mit dem Original als `imageReferences` und der Aussehen-Beschreibung oben aufrufen, danach `remove-background`. Neue Posen mit ID hier ergänzen.
 - Die IDs liegen im Canva-Konto der Lehrkraft, die die Figuren erstellt hat. In einem anderen Konto die Figuren mit Stil-Satz und Aussehen-Beschreibung neu erzeugen.
@@ -84,11 +88,16 @@ Dosierung: Leitfigur plus nur die Bilder, die die Aufgaben brauchen. Für s/w al
 
 ## KI-Bilder in Canva (`generate-image`)
 
-**Stil-Satz einmal pro Material festlegen und für jedes Bild wörtlich wiederverwenden** – so bleibt der Stil einheitlich:
+**Stil-Satz einmal pro Material festlegen und für jedes Bild wörtlich wiederverwenden** – so bleibt der Stil einheitlich.
+
+Farbprofil:
+
+> Kindgerechte Illustration im flachen Vektorstil, runde, weiche Formen, klare dunkle Konturen, warme Pastellfarben ({Palette}), freundliche Gesichter, weißer Hintergrund, freigestellt, keine Schrift, keine Zahlen, keine Buchstaben im Bild, kein Hintergrundmuster.
+
+s/w-Profil:
 
 > Kindgerechte Strichzeichnung wie ein Ausmalbild, runde, weiche Formen, klare schwarze Konturen gleichmäßiger Stärke, weiße Füllung, keine Grautöne, keine Schraffur, freundliche Gesichter, weißer Hintergrund, freigestellt, keine Schrift, keine Zahlen, keine Buchstaben im Bild, kein Hintergrundmuster.
 
-Bei Farbdruck statt „weiße Füllung, keine Grautöne": „flacher Vektorstil, warme Pastellfarben ({Palette})".
 
 Danach Motiv konkret beschreiben: wer, was, Pose, Blickrichtung (zur Aufgabe hin), Bildausschnitt.
 
@@ -100,10 +109,10 @@ Regeln:
 
 ## Prüffragen „ansprechend, aber nicht überladen"
 
-- [ ] Würde ein Kind das Blatt gern in die Hand nehmen? (runde Überschrift, Nummernkreise, Willi oder Wilma mit Funktion)
+- [ ] Würde ein Kind das Blatt gern in die Hand nehmen? (runde Überschrift, Nummernkreise, Farbakzente im Farbprofil, Willi oder Wilma mit Funktion)
 - [ ] Jedes Bild besteht den Weglass-Test
-- [ ] Nur Bilder, die zum Lösen gebraucht werden, plus Leitfigur; als Strichzeichnung
-- [ ] Keine Farb- oder Grauflächen, Text schwarz, Information nie nur über Farbe
+- [ ] Nur Bilder, die zum Lösen gebraucht werden, plus Leitfigur; Version passend zum Druckprofil
+- [ ] Keine Flächen hinter Aufgaben, Text schwarz, Information nie nur über Farbe
 - [ ] Höchstens zwei Schriften, Fließtext in klarer Druckschrift
 - [ ] Nichts Dekoratives zwischen Anweisung und Arbeitsfläche
 - [ ] Aufgaben ohne Kasten, Platz für Übung statt für Rahmen (`druck-und-platz.md`)

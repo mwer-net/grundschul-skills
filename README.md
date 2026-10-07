@@ -14,7 +14,7 @@ skills/
 ├── canva-materialerstellung/   Technik: Ablauf mit dem Canva MCP (erstellen, prüfen, korrigieren, exportieren)
 │   ├── references/             layout-und-bearbeitbarkeit (Raster, Platzbudget, bearbeitbar bauen)
 │   └── scripts/                layout_check.py (findet Überlappungen, Randfehler, fehlende Gruppen,
-│                               Farbflächen und Leerraum für den s/w-Druck)
+│                               Flächen, Kontrast und Leerraum je Druckprofil)
 │
 ├── unterrichtsplanung/         ┐
 ├── arbeitsblatt/               │
@@ -53,7 +53,7 @@ Alle Materialien verkörpern zwei verbindliche Konzepte (`grundschul-didaktik/re
 
 Leitfigur aller Materialien ist Willi oder Wilma Waschbär (`grundschul-didaktik/references/kindgerecht-gestalten.md`).
 
-Kopiervorlagen sind für den Schwarz-Weiß-Druck gebaut: keine Farbflächen, wenig Toner, Aufgaben ohne Kästen, damit mehr Übung auf eine Seite passt (`grundschul-didaktik/references/druck-und-platz.md`).
+Zu Beginn fragen die Skills einzeln ab: Materialart, Medium/Format und Farbe oder Schwarz-Weiß (`grundschul-didaktik/references/rueckfragen.md`). Daraus folgt das Druckprofil: s/w tonersparend mit Strichzeichnungen oder Farbe als Akzent. In beiden Profilen stehen Aufgaben ohne Kästen, damit mehr Übung auf eine Seite passt (`grundschul-didaktik/references/druck-und-platz.md`).
 
 ## Didaktische Grundlage
 

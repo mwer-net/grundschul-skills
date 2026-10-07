@@ -18,7 +18,7 @@ Laden mit: `grundschul-didaktik`, passendem `fach-*`, ggf. `arbeitsblatt`/`lerns
 ## Bausteine
 
 ### Stationskarte (A5 oder A4, laminierbar)
-- Stationsnummer groß + Symbol (gleich auf Laufzettel und Lösungskarte); Stationsfarbe nur bei Farbdruck/Laminieren, sonst Symbol als Unterscheidung (s/w-Standard: `grundschul-didaktik/references/druck-und-platz.md`)
+- Stationsnummer groß + Symbol (gleich auf Laufzettel und Lösungskarte); Stationsfarbe im Farbprofil, im s/w-Profil Symbol als Unterscheidung (`grundschul-didaktik/references/druck-und-platz.md`)
 - Ich-kann-Ziel der Station
 - Titel (kindgerecht), Sozialform-Symbol (👤 👥 👨‍👩‍👧), ggf. „Pflicht" / „Wahl" als Wort (Punkte sind für Niveaus reserviert)
 - Material-Liste mit Bildern
@@ -48,7 +48,7 @@ Laden mit: `grundschul-didaktik`, passendem `fach-*`, ggf. `arbeitsblatt`/`lerns
 
 ## Wochenplan (Besonderheiten)
 
-- Fächer durch Symbol (bei Farbdruck zusätzlich Farbe) getrennt, Pflicht- und Wahlaufgaben klar markiert.
+- Fächer durch Symbol (im Farbprofil zusätzlich Farbe) getrennt, Pflicht- und Wahlaufgaben klar markiert.
 - Aufgaben mit Seiten-/Materialangabe ("AH S. 12, Nr. 1–3").
 - Abhakfeld pro Aufgabe, Unterschrift Lehrkraft/Eltern optional.
 - Plan auf 1 A4-Seite, Kl. 1 mit vielen Symbolen statt Text.

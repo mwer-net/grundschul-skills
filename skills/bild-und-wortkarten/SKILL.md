@@ -18,7 +18,7 @@ Laden mit: `grundschul-didaktik`, passendem `fach-*`, `canva-materialerstellung`
 ## Regeln
 
 - **Ein Begriff pro Karte**, Bild eindeutig und typisch (prototypischer Vertreter: "Vogel" = Spatz/Amsel, nicht Pinguin).
-- Nomen immer mit Artikel (DaZ: Artikel farbig – Klassenkonvention erfragen; im s/w-Druck Artikel fett und mit Symbol, Kinder malen die Farbe an).
+- Nomen immer mit Artikel (DaZ: Artikel farbig – Klassenkonvention erfragen; im s/w-Profil Artikel fett und mit Symbol, Kinder malen die Farbe an).
 - Schrift: Tafelkarten 72–120 pt, Tischkarten 24–36 pt; Druckschrift der Klasse.
 - Anlautkarten: Anlaut muss eindeutig hörbar sein (Igel für I, nicht Indianer; Ei nicht für E). Für Vokale langen und kurzen Laut beachten; mit der Anlauttabelle des Lehrwerks abgleichen.
 - Englisch-Flashcards: Bild vorne ohne Text (für Hör- und Sprechphase), Wort auf der Rückseite oder separate Wortkarte zum späteren Zuordnen.
@@ -28,7 +28,7 @@ Laden mit: `grundschul-didaktik`, passendem `fach-*`, `canva-materialerstellung`
 
 - **Wortspeicher-Plakat:** Bild + Wort + Artikel, thematisch gruppiert, Platz zum Ergänzen.
 - **Satzstreifen:** Satzanfänge und Satzmuster für Gespräche/Texte ("Ich sehe …", "Ich vermute, dass …").
-- **Wortartenkarten:** Nomen/Verben/Adjektive farbig umrandet (Farbdruck) bzw. mit unterschiedlicher Rahmenlinie und Wortart-Symbol (s/w).
+- **Wortartenkarten:** Nomen/Verben/Adjektive farbig umrandet (Farbprofil) bzw. mit unterschiedlicher Rahmenlinie und Wortart-Symbol (s/w-Profil).
 - **Zahl-/Mengenkarten:** Zahl, Punktbild in Fünferstruktur, Zahlwort.
 
 ## Qualitätscheck

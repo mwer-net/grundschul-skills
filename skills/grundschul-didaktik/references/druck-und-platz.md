@@ -1,6 +1,13 @@
-# Schwarz-Weiß-Druck und Platz
+# Druckprofile und Platz
 
-Grundannahme für alle Kopiervorlagen (Arbeitsblatt, Lernzielkontrolle, Lesetext, Stationsblatt, Laufzettel): **Die Schule druckt und kopiert schwarz-weiß.** Das Material muss in s/w vollständig funktionieren, wenig Toner verbrauchen und die Seite für Aufgaben nutzen statt für Rahmen. Farbe ist die Ausnahme und wird nur eingesetzt, wenn die Lehrkraft Farbdruck nennt (Plakat, laminierte Karten, Spiele, Whiteboard).
+Ob ein Material farbig oder schwarz-weiß gestaltet wird, fragt die **Start-Abfrage** (`rueckfragen.md`) zu Beginn ab. Daraus folgt eines von zwei Druckprofilen:
+
+| Profil | Wann | Kurz |
+|---|---|---|
+| **Schwarz-Weiß** (Abschnitt 2) | Kopiervorlagen, die s/w gedruckt oder kopiert werden | Weiß, schwarz, Strichzeichnungen, tonersparend |
+| **Farbe** (Abschnitt 3) | Farbdruck, Präsentation/Whiteboard, laminierte Karten, Plakate | Farbe als Akzent an Elementen mit Funktion, keine Farbflächen hinter Aufgaben |
+
+**In beiden Profilen gilt das kompakte Layout** (Abschnitt 4): Aufgaben ohne Kasten, schlanker Kopf und Fuß, volle Item-Reihen. Farbe macht ein Blatt ansprechend, Kästen mit Innenabstand kosten nur Platz.
 
 Diese Regeln haben Vorrang vor älteren Gestaltungshinweisen (farbige Flächen, Aufgabenblöcke als Pastellkästen mit Innenabstand).
 
@@ -14,9 +21,9 @@ Diese Regeln haben Vorrang vor älteren Gestaltungshinweisen (farbige Flächen, 
 | Kopierer lassen sehr helle Linien und Schrift wegfallen; jede Kopie einer Kopie und jede Verkleinerung (A4 → A5 halbiert die Linienstärke) verliert weiter. | Nur Schwarz und kräftiges Grau verwenden, keine Haarlinien. |
 | Eine umschließende Fläche oder ein Rahmen gruppiert stärker als Nähe (Gestalt: gemeinsame Region), aber zu viele Rahmen machen das Blatt unruhig. In den meisten Fällen reichen Weißraum und Nähe für eine klare Ordnung. | Aufgaben durch Abstand trennen, nicht durch Kästen. Rahmen nur, wo der Rahmen selbst eine Funktion hat. |
 | Jeder Kasten braucht Innenabstand oben und unten plus Abstand zum nächsten Kasten. Bei vier Aufgaben sind das schnell 150–200 px, also eine ganze Aufgabe. | Ohne Kästen passen bei gleicher Lesbarkeit mehr Items aufs Blatt. |
-| Stark dekorierte Umgebungen lenken junge Kinder ab (Fisher, Godwin & Seltman 2014). | Ein ruhiges s/w-Blatt ist kein Nachteil, solange es freundlich bleibt (Abschnitt 4). |
+| Warme Farben, runde Formen und freundliche Figuren an lernrelevanten Elementen steigern Motivation und Behalten (Emotional Design, `kindgerecht-gestalten.md`). Stark dekorierte Umgebungen lenken junge Kinder dagegen ab (Fisher, Godwin & Seltman 2014). | Farbe gezielt an Nummern, Überschrift, Figur und Lernobjekt; nicht als Fläche oder Deko. Ein s/w-Blatt braucht dafür Form und Figur (Abschnitt 5). |
 
-## 2. Schwarz-Weiß-Regeln
+## 2. Druckprofil Schwarz-Weiß
 
 1. **Weißer Seitenhintergrund**, kein Hintergrundbild, keine Flächenfüllung über Aufgaben, Kopf- oder Fußzeile.
 2. **Gefüllte Flächen nur klein und mit Funktion:** Nummernkreis, Ankreuzfeld, Wendeplättchen. Faustregel: keine gefüllte Fläche größer als ca. 2 cm² (≈ 3 000 px²) außer Abbildungen, die das Lernobjekt sind.
@@ -29,7 +36,26 @@ Diese Regeln haben Vorrang vor älteren Gestaltungshinweisen (farbige Flächen, 
 9. **Schrift:** normale Strichstärke für Fließtext; fett nur für Überschrift, Anweisung und Hervorhebung. Keine extra-fetten Display-Schriften für längere Texte.
 10. **Prüfen:** Vorschau in Graustufen ansehen bzw. `layout_check.py` (meldet Flächen, farbige Schrift, helle oder dünne Linien, Hintergrundbilder).
 
-## 3. Platzsparend gestalten
+## 3. Druckprofil Farbe
+
+Farbe als **Akzent**, das Layout bleibt kompakt wie im s/w-Profil:
+
+1. **Weißer Seitenhintergrund**, kein Hintergrundbild, **keine Farbflächen hinter Aufgaben, Kopf oder Fuß**, keine Aufgabenkästen.
+2. **Eine Palette** (Hauptfarbe + Akzent, Tabelle in `kindgerecht-gestalten.md`). Farbe bekommen:
+   - Nummernkreise: gefüllt in der dunklen Variante der Hauptfarbe, weiße fette Ziffer,
+   - Überschrift in der dunklen Variante der Hauptfarbe (Kontrast zu Weiß ≥ 3:1, Spalte in der Palettentabelle),
+   - Trennlinien zwischen Aufgaben, Kontur der Tipp-Sprechblase, Unterstreichung im Beispiel in der Akzentfarbe,
+   - Willi oder Wilma, Wachstumsgrafik und Abbildungen in der farbigen Version,
+   - Farbcodes der Klasse (Wortarten, Stellenwerte, Wendeplättchen) direkt farbig.
+3. **Text bleibt schwarz** (`#1D1D1B`). Farbige Schrift nur für die Überschrift und kurze Hervorhebungen, nie für Anweisungen oder Fließtext.
+4. **Kleine Tönungen nur mit Funktion:** Füllung der Tipp-Sprechblase oder eines Wortspeichers in sehr hellem Ton (Helligkeit ≥ 90 %) ist erlaubt; ganze Aufgaben werden nicht hinterlegt.
+5. **Farbe nie als einzige Information:** zusätzlich Symbol, Beschriftung oder Muster. Farbblätter werden oft später doch s/w kopiert; die Graustufen-Vorschau muss lesbar bleiben.
+6. **Lösungsblatt:** Lösungen fett, unterstrichen und in der Akzentfarbe.
+7. **Prüfen:** `layout_check.py --farbe` (meldet Hintergrundbilder, große Flächen, Aufgabenkästen, zu helle Schrift).
+
+**Präsentation/Whiteboard:** Farbe uneingeschränkt nach diesem Profil, aber auch hier keine vollflächigen Bilder hinter Text. **Plakat und laminierte Karten:** Farbprofil; Kartenrahmen dürfen farbig sein, weil sie Karten unterscheiden (Funktion).
+
+## 4. Platzsparend gestalten (beide Profile)
 
 Ziel: **mehr Übung pro Blatt, ohne gedrängt zu wirken.** Gespart wird an Rahmen, Innenabständen und Deko, nie an Schriftgröße, Schreibfläche oder dem Abstand zwischen Aufgaben.
 
@@ -43,16 +69,16 @@ Ziel: **mehr Übung pro Blatt, ohne gedrängt zu wirken.** Gespart wird an Rahme
  ❷  Zeichne die Zeiger ein.                                     ●●
 ```
 
-- **Hängende Nummer:** Nummernkreis (32–36 px) links, Anweisung 12–16 px rechts daneben, die Arbeitsfläche beginnt bündig unter der Anweisung. Die Nummer markiert den Aufgabenbeginn, ein Kasten ist nicht nötig.
+- **Hängende Nummer:** Nummernkreis (32–36 px; s/w schwarz, Farbe in der Hauptfarbe) links, Anweisung 12–16 px rechts daneben, die Arbeitsfläche beginnt bündig unter der Anweisung. Die Nummer markiert den Aufgabenbeginn, ein Kasten ist nicht nötig.
 - **Niveau-Punkte** rechtsbündig in der Anweisungszeile.
-- **Trennung durch Abstand:** 24–32 px zwischen Aufgaben, 8–16 px zwischen Anweisung und Arbeitsfläche. Optional eine dünne graue Trennlinie (1–1,5 px, `#808080`) über die Spaltenbreite. Einheitlich im ganzen Material.
+- **Trennung durch Abstand:** 24–32 px zwischen Aufgaben, 8–16 px zwischen Anweisung und Arbeitsfläche. Optional eine dünne Trennlinie (1–1,5 px; s/w `#808080`, Farbe in der Akzentfarbe) über die Spaltenbreite. Einheitlich im ganzen Material.
 - **Rahmen nur mit Funktion:** Wortspeicher, Tipp-Sprechblase der Leitfigur, Ergebnis- oder Antwortkästchen, Ausschneideteile (gestrichelt), Lösungsstreifen. Rahmen dann als dünne Kontur ohne Füllung, Ecken gerundet.
 
 ### Kopf und Fuß schlank
 
 - **Kopf** (Name/Datum, Überschrift, Ich-kann-Ziel, Wahlhilfe) zusammen höchstens ca. 160 px. Ich-kann-Ziel und Wahlhilfe in einer Zeile oder zwei kurzen Zeilen.
 - **Tipp der Leitfigur bei der Aufgabe, zu der er gehört** (rechts neben der Anweisung oder neben dem Beispiel), nicht als eigener Block im Kopf.
-- **Fuß** in einer Zeile bzw. einem schmalen Streifen (ca. 80–110 px): Ich-kann-Satz + Wachstumsgrafik zum Anmalen links/rechts, Reflexionsfrage mit Ankreuzfeldern darunter. Abgegrenzt durch eine Linie, nicht durch eine Fläche.
+- **Fuß** in einer Zeile bzw. einem schmalen Streifen (ca. 80–110 px): Ich-kann-Satz + Wachstumsgrafik zum Anmalen links/rechts, Reflexionsfrage mit Ankreuzfeldern darunter. Abgegrenzt durch eine Linie, nicht durch eine Fläche. Die Wachstumsgrafik passend zum Profil (farbig oder Strich-Version zum Anmalen).
 
 ### Mehr Items pro Aufgabe
 
@@ -90,7 +116,7 @@ Bei Kindern mit Konzentrationsschwierigkeiten statt weniger Aufgaben pro Blatt: 
 
 Passt eine weitere Aufgabe oder Item-Reihe hinein, wird sie ergänzt. Bleibt ein waagerechter Leerstreifen von mehr als ca. 64 px ungenutzt, Items ergänzen oder die Schreibfläche sinnvoll vergrößern.
 
-## 4. Freundlich bleiben in Schwarz-Weiß
+## 5. Freundlich bleiben in Schwarz-Weiß
 
 Ein rein sachliches s/w-Blatt wirkt schnell kalt. Kindgerecht wird es durch Form, nicht durch Farbfläche:
 
@@ -100,24 +126,26 @@ Ein rein sachliches s/w-Blatt wirkt schnell kalt. Kindgerecht wird es durch Form
 - Gerundete Ecken bei den wenigen Rahmen und Kästchen, freundliche Symbole als Linien-Icons.
 - Anmal-Anlässe mit Funktion: Wachstumsgrafik, Leitfigur, Ergebnisbild (Malen nach Ergebnis).
 
-## 5. Wenn doch farbig gedruckt wird
-
-Nur auf ausdrücklichen Wunsch (Plakat, laminierte Karten, Spiel, Whiteboard). Auch dann:
-- keine großen Farbflächen hinter Text; Farbe auf Linien, Nummernkreise, Überschrift und Bildelemente beschränken,
-- jede Farbinformation zusätzlich als Symbol, Muster oder Beschriftung,
-- Graustufen-Vorschau prüfen: Das Material muss auch dann noch funktionieren.
-
 ## 6. Checkliste
 
-- [ ] Weißer Hintergrund, keine großen Farb- oder Grauflächen, kein Hintergrundbild
-- [ ] Text schwarz, Linien schwarz/dunkelgrau ≥ 1,5 px, nichts heller als `#808080`
-- [ ] Keine Information nur über Farbe
-- [ ] Bilder als Strichzeichnung, Leitfigur und Wachstumsgrafik in der Strich-Version
+Beide Profile:
+- [ ] Profil aus der Start-Abfrage angewendet
+- [ ] Weißer Hintergrund, kein Hintergrundbild, keine Flächen hinter Aufgaben, Kopf oder Fuß
 - [ ] Aufgaben ohne Kasten, mit hängender Nummer und einheitlichem Abstand
-- [ ] Rahmen nur mit Funktion, als Kontur ohne Füllung
+- [ ] Rahmen nur mit Funktion
 - [ ] Kopf ≤ 160 px, Fuß ≤ 110 px, Tipp bei der Aufgabe
 - [ ] Reihen gefüllt, Mindestgrößen eingehalten, kein ungenutzter Leerstreifen
+- [ ] Keine Information nur über Farbe
+
+Schwarz-Weiß zusätzlich:
+- [ ] Text schwarz, Linien schwarz/dunkelgrau ≥ 1,5 px, nichts heller als `#808080`
+- [ ] Bilder als Strichzeichnung, Leitfigur und Wachstumsgrafik in der Strich-Version
 - [ ] `layout_check.py` ohne Druck-Warnungen
+
+Farbe zusätzlich:
+- [ ] Eine Palette, Farbe nur an Nummern, Überschrift, Linien, Figur, Bildern und Farbcodes
+- [ ] Fließtext und Anweisungen schwarz
+- [ ] Graustufen-Vorschau noch lesbar; `layout_check.py --farbe` ohne Warnungen
 
 ## Quellen
 

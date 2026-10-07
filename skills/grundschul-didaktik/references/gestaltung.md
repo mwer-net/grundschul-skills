@@ -2,7 +2,7 @@
 
 ## Seitenaufbau (A4 Hochformat als Standard)
 
-Standard ist der **Schwarz-Weiß-Druck** mit wenig Toner und möglichst vielen Aufgaben pro Seite. Regeln, Mindestgrößen und Platzbudget: `druck-und-platz.md`.
+Farbe oder Schwarz-Weiß legt die Start-Abfrage fest (`rueckfragen.md`). In beiden Druckprofilen ist das Layout kompakt mit möglichst vielen Aufgaben pro Seite. Profile, Mindestgrößen und Platzbudget: `druck-und-platz.md`.
 
 ```
 ┌──────────────────────────────────────────┐
@@ -52,18 +52,18 @@ Schreibfläche immer größer als gedacht: Kinderhandschrift braucht Platz.
 
 - Funktional: Das Bild trägt Information (Anlaut, Mengenbild, Sachabbildung), wird zum Lösen gebraucht oder gibt als Leitfigur (Willi/Wilma Waschbär) einen Tipp. Weglass-Test und Dosierung: `kindgerecht-gestalten.md`.
 - Eindeutig: Ein Bild, ein Begriff. Bei Anlautbildern Mehrdeutigkeiten vermeiden (Hund vs. Dackel, Auto vs. PKW).
-- Für Kopiervorlagen als **Strichzeichnung** (schwarze Konturen, weiße Füllung, keine Graustufenflächen); einheitlicher Stil im ganzen Material, nicht gemischt mit Fotos.
+- Stil nach Druckprofil: s/w als **Strichzeichnung** (schwarze Konturen, weiße Füllung, keine Graustufenflächen), Farbe als flache Illustration in der Palette. Einheitlicher Stil im ganzen Material, nicht gemischt mit Fotos.
 - Für Ausmalaufgaben: klare schwarze Konturen, keine Graustufenflächen.
-- Sachunterricht: Bei Tieren, Pflanzen, Körperteilen realistische Darstellung (für s/w als genaue Strichzeichnung); Fotos nur bei Farbdruck. Keine Comicverzerrung bei Fachinhalten.
+- Sachunterricht: Bei Tieren, Pflanzen, Körperteilen realistische Darstellung (im s/w-Profil als genaue Strichzeichnung); Fotos nur im Farbprofil. Keine Comicverzerrung bei Fachinhalten.
 - Alle Bilder brauchen Platz zur Beschriftung, wenn Kinder beschriften sollen.
 
 ## Farbe
 
-- **Standard ist Schwarz-Weiß:** Text schwarz, Linien schwarz/dunkelgrau, keine Farb- oder Grauflächen. Details: `druck-und-platz.md`.
+- **Druckprofil aus der Start-Abfrage:** s/w (Text schwarz, Linien schwarz/dunkelgrau, keine Flächen) oder Farbe (eine Palette als Akzent, Text schwarz, keine Flächen hinter Aufgaben). Details: `druck-und-platz.md`.
 - Information nie nur über Farbe: zusätzlich Symbol, Muster, Linienart oder Beschriftung.
 - Niveaus nie farblich unterscheiden, nur mit Punkten (gleiche Optik auf allen Niveaus).
 - Farbcodes der Klasse (Klassenkonvention prüfen): Wortarten (oft Nomen blau, Verben rot, Adjektive grün), Artikel (der blau, die rot, das grün, DaZ), Stellenwerte (oft Einer blau, Zehner rot, Hunderter grün). Auf s/w-Blättern malen die Kinder die Farbe selbst an, oder die Kategorie steht als Buchstabe/Wort dabei (E/Z/H, „Nomen").
-- Farbdruck nur auf ausdrücklichen Wunsch (Plakat, laminierte Karten, Whiteboard): Palette aus `kindgerecht-gestalten.md`, Farbe auf Linien, Nummern und Bildelemente, keine großen Flächen hinter Text.
+- Im Farbprofil werden Farbcodes direkt farbig gesetzt, im s/w-Profil wie oben ersetzt.
 
 ## Arbeitsanweisungs-Symbole (Vorschlag für einheitliches Set)
 

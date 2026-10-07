@@ -54,4 +54,4 @@ Laden mit: `grundschul-didaktik`, passendem `fach-*`, `canva-materialerstellung`
 
 - Test und Erwartungshorizont als getrennte Designs (Erwartungshorizont nicht versehentlich mitdrucken).
 - Bewertungsfelder rechts am Rand in einer Spalte.
-- S/W-Druck, Aufgaben ohne Kasten mit hängender Nummer (`grundschul-didaktik/references/druck-und-platz.md`); die gewonnene Höhe geht an die Schreibflächen, nicht an mehr Aufgaben.
+- Druckprofil aus der Start-Abfrage (meist s/w), Aufgaben ohne Kasten mit hängender Nummer (`grundschul-didaktik/references/druck-und-platz.md`); die gewonnene Höhe geht an die Schreibflächen, nicht an mehr Aufgaben.
