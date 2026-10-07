@@ -1,0 +1,54 @@
+{
+  "titel": "Uhrzeit volle und halbe Stunden",
+  "klasse": 2,
+  "profil": "sw",
+  "format": "a4-hoch",
+  "entwuerfe": [
+    {
+      "name": "A · Viel üben",
+      "idee": "Drei Aufgaben mit vollen Item-Reihen, Willi-Tipp bei Aufgabe 1",
+      "ueberschrift": "Wie spät ist es?",
+      "ziel": "Ich kann volle und halbe Stunden ablesen.",
+      "wahlhilfe": "Wähle deine Aufgaben.",
+      "aufgaben": [
+        {"anweisung": "Lies ab. Schreibe die Uhrzeit auf.", "niveau": 1,
+         "tipp": "Erst der kleine Zeiger: Er zeigt die Stunde.",
+         "items": ["", "", "", "", ""], "spalten": 5, "bild": "Uhr", "bildhoehe": 88, "linie": true},
+        {"anweisung": "Zeichne die Zeiger ein.", "niveau": 2,
+         "items": ["halb 4", "7 Uhr", "halb 10", "12 Uhr"], "bild": "Uhr leer", "bildhoehe": 100},
+        {"anweisung": "Willi hat sich vertan. Finde 2 Fehler.", "niveau": 3,
+         "items": ["", "", ""], "bild": "Uhr + Willis Antwort", "bildhoehe": 88, "linie": true}
+      ],
+      "fuss": true
+    },
+    {
+      "name": "B · Willis Tag",
+      "idee": "Geschichte als Rahmen: Willis Tagesablauf, Uhrzeiten zuordnen",
+      "ueberschrift": "Ein Tag mit Willi",
+      "ziel": "Ich kann volle und halbe Stunden ablesen.",
+      "wahlhilfe": "Wähle deine Aufgaben.",
+      "aufgaben": [
+        {"anweisung": "Wann macht Willi was? Verbinde.", "niveau": 1,
+         "items": ["aufstehen", "Schule", "Mittagessen", "Fußball"], "bild": "Uhr", "bildhoehe": 88},
+        {"anweisung": "Zeichne die Zeiger ein.", "niveau": 2,
+         "text": "Willi geht um halb 3 zum Schwimmen. Um 4 Uhr ist er zurück.",
+         "items": ["", ""], "spalten": 4, "bild": "Uhr leer", "bildhoehe": 100},
+        {"anweisung": "Wie lange war Willi schwimmen? Schreibe.", "niveau": 3, "zeilen": 2}
+      ],
+      "fuss": true
+    },
+    {
+      "name": "C · Ohne Fuß, mehr Items",
+      "idee": "Kein Fuß, dafür 4 Aufgaben und eine Sternchenaufgabe",
+      "ueberschrift": "Wie spät ist es?",
+      "ziel": "Ich kann volle und halbe Stunden ablesen.",
+      "aufgaben": [
+        {"anweisung": "Lies ab. Schreibe die Uhrzeit auf.", "items": ["", "", "", "", ""], "spalten": 5, "bild": "Uhr", "bildhoehe": 88, "linie": true},
+        {"anweisung": "Zeichne die Zeiger ein.", "items": ["halb 4", "7 Uhr", "halb 10", "12 Uhr", "halb 1"], "spalten": 5, "bild": "Uhr leer", "bildhoehe": 100},
+        {"anweisung": "Was passt zusammen? Verbinde.", "items": ["halb 8", "8 Uhr", "halb 9"], "bild": "Uhr", "bildhoehe": 80},
+        {"anweisung": "Sternchenaufgabe: Wer mag, knobelt hier. Wie spät ist es eine halbe Stunde später?", "stern": true, "zeilen": 2}
+      ],
+      "fuss": false
+    }
+  ]
+}

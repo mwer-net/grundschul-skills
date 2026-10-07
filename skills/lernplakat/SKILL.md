@@ -16,6 +16,13 @@ Ein Lernplakat sichert Wissen dauerhaft im Raum. Es wird im Unterricht gemeinsam
 3. **Kernaussage:** Welche eine Regel/Strategie soll hängen bleiben? Gibt es Lehrwerksformulierungen, die übernommen werden sollen?
 4. **Teilweise leer lassen?** Plakat mit Lücken zum gemeinsamen Ausfüllen im Unterricht?
 
+## Entwürfe und Aufgabenplan
+
+2–3 Entwürfe zeigen (`entwurf.py` mit Format `a3-hoch` bzw. `folie`), erst nach Freigabe des Aufgabenplans in Canva bauen (`grundschul-didaktik/references/entwurf-und-aufgabenplan.md`).
+
+- **Entwürfe unterscheiden sich** im Aufbau (Regel + Beispiele / Schrittfolge / Lückenplakat) und in der Anordnung.
+- **Aufgabenplan:** alle Texte wörtlich, Beispiele, Bildliste, Schriftgrößen für die Leseentfernung.
+
 ## Regeln
 
 - **Eine Kernaussage pro Plakat**, max. 3 Teilinformationen. Lesbar aus 5–6 m: Überschrift ≥ 100 pt, Text ≥ 48 pt (A3).

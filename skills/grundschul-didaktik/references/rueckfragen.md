@@ -106,10 +106,9 @@ Die Antworten gelten für die ganze Unterhaltung, bis die Lehrkraft etwas andere
    2. Fach, Thema, konkretes Lernziel
    3. Funktion in der Reihe (Einführung / Übung / Vertiefung / Überprüfung)
    4. Lerngruppe (Leistungsspanne, DaZ, Förderbedarfe)
-   5. Materialspezifisches (aus dem Material-Skill)
-   6. Fachspezifisches (aus dem Fach-Skill)
-   7. Klassenkonventionen (Schrift, Symbole, Farbcodes) – fest stehen und werden nicht gefragt: Leitfigur Willi/Wilma Waschbär, Kennzeichnung der Niveaus mit ● / ●● / ●●● und Selbsteinschätzung mit Wachstumsstufen (sofern in der Start-Abfrage gewählt)
-   8. Ausgabe (Anzahl Exemplare, Laminieren), falls für das Material relevant
+   5. Materialspezifisches und Fachspezifisches (aus Material- und Fach-Skill), aber nur, was die Entwürfe nicht zeigen können. Aufgabenformate, Rahmen/Geschichte, Differenzierungsform, Spielform oder Kartentyp werden nicht gefragt, sondern als Varianten in die Entwürfe gelegt (`entwurf-und-aufgabenplan.md`).
+   6. Klassenkonventionen (Schrift, Symbole, Farbcodes) – fest stehen und werden nicht gefragt: Leitfigur Willi/Wilma Waschbär, Kennzeichnung der Niveaus mit ● / ●● / ●●● und Selbsteinschätzung mit Wachstumsstufen (sofern in der Start-Abfrage gewählt)
+   7. Ausgabe (Anzahl Exemplare, Laminieren), falls für das Material relevant
 3. **Eine Frage pro Nachricht.** Ausnahme: Zwei eng verbundene Kleinigkeiten dürfen zusammen gefragt werden.
 4. **Jede Frage hat dieses Format:**
 
@@ -123,26 +122,14 @@ Die Antworten gelten für die ganze Unterhaltung, bis die Lehrkraft etwas andere
 
    Kurz halten. Keine Erklärungen, die nicht zur Entscheidung beitragen.
 5. **Widersprüche und Risiken direkt ansprechen**, z. B. "Brüche stehen nicht im Grundschullehrplan – meinst du Bruchteile wie Hälfte/Viertel bei Größen?"
-6. **Abbruchkriterium:** Sobald alle Pflichtangaben und die materialspezifischen Punkte klar sind, keine weiteren Fragen. Höchstens ca. 6 Fragen nach der Start-Abfrage; danach mit Empfehlungen ergänzen und Annahmen offenlegen.
-7. **Briefing zur Freigabe:**
-
-   ```
-   Ich erstelle:
-   - Arbeitsblatt "Die Uhr – volle und halbe Stunden", Klasse 2, A4 hoch, Schwarz-Weiß
-   - Ziel: Uhrzeiten (volle/halbe Stunde) ablesen und einzeichnen
-   - 3 Niveaus zur Selbstwahl (● ablesen mit Hilfsuhr, ●● ablesen + einzeichnen, ●●● Zeitspannen), keine Sternchenaufgabe
-   - Ich-kann-Ziel oben, Wachstums-Selbsteinschätzung und Reflexionsfrage unten
-   - Willi Waschbär gibt den Strategietipp
-   - Schrift: Grundschrift 18 pt, Symbole wie im Lehrwerk
-   - Plus Lösungsblatt
-   Passt das so?
-   ```
-
-8. **Nach der Erstellung:** Kurz nachfragen, ob etwas angepasst werden soll (Umfang, Schwierigkeit, Bilder) – eine Frage, keine Liste.
+6. **Abbruchkriterium:** Sobald Klasse, Thema, Ziel und Funktion klar sind, keine weiteren Fragen. Höchstens ca. 4 Fragen nach der Start-Abfrage; danach mit Empfehlungen ergänzen und Annahmen offenlegen.
+7. **Entwürfe statt Briefing:** 2–3 schnelle Entwürfe zeigen, die Lehrkraft wählt und sagt, was anders sein soll. Danach den **Aufgabenplan** mit allen Inhalten und Lösungen zur Freigabe vorlegen. Erst nach dem Ok in Canva umsetzen. Ablauf, Formate und Beispiele: `entwurf-und-aufgabenplan.md`.
+8. **Nach der Erstellung:** Kurz nachfragen, ob etwas angepasst werden soll – eine Frage, keine Liste.
 
 ## Was nicht passieren darf
 
 - Losgenerieren bei einer Ein-Satz-Anfrage ohne Klassenstufe oder Ziel.
+- Canva-Umsetzung ohne freigegebenen Aufgabenplan.
 - Fragebögen mit zehn Fragen auf einmal.
 - Fragen ohne Empfehlung ("Wie hättest du es gern?").
 - Fragen nach Dingen, die schon gesagt wurden oder die sich herleiten lassen.

@@ -17,6 +17,13 @@ Zuerst die Start-Abfrage (`grundschul-didaktik/references/rueckfragen.md`) inklu
 4. **Niveaus** (nur mit Churer Modell): 2 oder 3 Textfassungen mit gleichem Inhalt? *Empfehlung: 3, gekennzeichnet mit ● / ●● / ●●● zur Selbstwahl.* Ohne Churer Modell: eine Fassung.
 5. **Aufgaben zum Text:** Ja/nein, wie viele?
 
+## Entwürfe und Aufgabenplan
+
+Nach den Rückfragen 2–3 Entwürfe zeigen (jeweils Überschrift, die ersten 2–3 Sätze und die Aufgabenliste), erst nach Freigabe des Aufgabenplans in Canva bauen (`grundschul-didaktik/references/entwurf-und-aufgabenplan.md`).
+
+- **Entwürfe unterscheiden sich** in Textsorte bzw. Rahmen und in den Aufgabenformaten zum Text.
+- **Aufgabenplan:** ganzer Text je Fassung mit Wortzahl und Lesestufe, Aufgaben, Lösungen, Zeilennummern, Bildliste.
+
 ## Textnormen nach Lesestand
 
 | Stufe | Typisch | Wörter gesamt | Satzlänge | Wortmaterial |

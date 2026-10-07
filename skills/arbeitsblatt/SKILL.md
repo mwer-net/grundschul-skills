@@ -13,9 +13,16 @@ Zuerst die Start-Abfrage (`grundschul-didaktik/references/rueckfragen.md`): Mate
 
 1. **Funktion:** Einführung (mit Beispiel, viel Anschauung), Übung (viele gleichartige Items, Selbstkontrolle), Vertiefung/Transfer (offene Aufgaben) oder Wiederholung? *Empfehlung meist: Übung.*
 2. **Umfang:** 1 Seite oder Mappe? Bearbeitungszeit (10 / 20 / 45 min)? *Empfehlung: 1 Seite, ca. 20 min.*
-3. **Differenzierung** (nur mit Churer Modell): Ein Blatt mit 3 Bereichen, 3 Blätter in gleichem Layout oder ein Blatt + Tippkarten? *Empfehlung: 1 Blatt mit drei Bereichen ● / ●● / ●●● zur Selbstwahl; bei großer Spanne 3 Blätter in gleichem Layout.*
-4. **Sozialform:** frei wählbar (Standard), Einzel- oder Partnerarbeit?
-5. **Rahmen:** Gibt es eine Geschichte, die das Blatt tragen soll? (Leitfigur ist immer Willi oder Wilma Waschbär.)
+3. **Sozialform:** frei wählbar (Standard), Einzel- oder Partnerarbeit?
+
+Nicht fragen, sondern als Varianten in die Entwürfe legen: Differenzierungsform (Standard: 1 Blatt mit drei Bereichen ● / ●● / ●●●; bei großer Spanne 3 Blätter in gleichem Layout) und Rahmen/Geschichte (Leitfigur ist immer Willi oder Wilma Waschbär).
+
+## Entwürfe und Aufgabenplan
+
+Nach den Rückfragen 2–3 Entwürfe zeigen, erst nach Freigabe des Aufgabenplans in Canva bauen (`grundschul-didaktik/references/entwurf-und-aufgabenplan.md`).
+
+- **Entwürfe unterscheiden sich** im Zugang (kompakt üben / Geschichte als Rahmen / entdeckend), in den Aufgabenformaten und der Item-Dichte; mit Churer Modell ggf. auch in der Differenzierungsform (ein Blatt mit drei Bereichen oder drei Blätter).
+- **Aufgabenplan:** jede Aufgabe mit wörtlicher Anweisung, allen Items, vorgelöstem Beispiel, Willi-/Wilma-Tipp, Niveau bzw. ★; Selbstkontrolle; Lösungsblatt; Bildliste.
 
 ## Aufbau
 

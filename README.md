@@ -9,8 +9,10 @@ Die Skills sind in drei Ebenen gegliedert, die zusammenspielen:
 ```
 skills/
 ├── grundschul-didaktik/        Basis: Kernkonzepte, Leitlinien, Gestaltung, Differenzierung, Rückfrage-Protokoll
-│   └── references/             kernkonzepte · rueckfragen · gestaltung · kindgerecht-gestalten ·
-│                               druck-und-platz · differenzierung · sprachsensibel · quellen
+│   ├── references/             kernkonzepte · rueckfragen · entwurf-und-aufgabenplan · gestaltung ·
+│   │                           kindgerecht-gestalten · druck-und-platz · differenzierung ·
+│   │                           sprachsensibel · quellen
+│   └── scripts/                entwurf.py (schnelle Entwürfe als HTML-Vorschau)
 ├── canva-materialerstellung/   Technik: Ablauf mit dem Canva MCP (erstellen, prüfen, korrigieren, exportieren)
 │   ├── references/             layout-und-bearbeitbarkeit (Raster, Platzbudget, bearbeitbar bauen)
 │   └── scripts/                layout_check.py (findet Überlappungen, Randfehler, fehlende Gruppen,
@@ -42,7 +44,17 @@ Bei ungenauen Anfragen erstellen die Skills nicht sofort etwas, sondern fragen g
 - eine Frage pro Nachricht, in sinnvoller Reihenfolge (Klasse → Ziel → Lerngruppe → Form)
 - jede Frage mit Antwortoptionen und einer Empfehlung
 - Herleitbares wird nicht gefragt, sondern als Annahme genannt
-- vor der Erstellung ein kurzes Briefing zur Freigabe
+- statt Fragen zu Aufgabenformat oder Rahmen: 2–3 schnelle Entwürfe zur Auswahl
+
+## Erst Entwurf, dann Canva
+
+Die Umsetzung in Canva ist der zeit- und tokenintensivste Schritt. Deshalb läuft jedes Material in Phasen (`grundschul-didaktik/references/entwurf-und-aufgabenplan.md`):
+
+1. **Klären:** Start-Abfrage und wenige Rückfragen.
+2. **Entwürfe:** 2–3 schnelle, deutlich verschiedene Entwürfe als HTML-Vorschau im echten Format (`grundschul-didaktik/scripts/entwurf.py`, ohne Canva) oder als Textskizze.
+3. **Feedback:** Die Lehrkraft wählt einen Entwurf und sagt, was anders sein soll.
+4. **Aufgabenplan:** alle Inhalte, Items, Lösungen und Bilder je Materialart exakt festgelegt, zur Freigabe.
+5. **Canva:** baut nur den freigegebenen Plan, in einem Durchgang.
 
 ## Kernkonzepte
 

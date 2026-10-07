@@ -11,9 +11,16 @@ Laden mit: `grundschul-didaktik`, passendem `fach-*`, `canva-materialerstellung`
 
 1. **Einsatz:** Tafel/Whiteboard für die ganze Klasse (groß, A5 bis A4), Partner-/Freiarbeit (klein, ca. 7 × 10 cm, 8 pro A4) oder Wortspeicher an der Wand?
 2. **Inhalt:** Wortliste vorhanden oder soll ich sie aus Lehrplan/Thema erstellen? *Empfehlung: Ich schlage 12–16 Wörter vor, du streichst.*
-3. **Kartentyp:** Nur Bild, nur Wort, Bild + Wort, Vorder-/Rückseite (Bild vorne, Wort hinten)?
+3. **Kartentyp:** nicht fragen, sondern in den Entwürfen zeigen (nur Bild, nur Wort, Bild + Wort, Bild vorne/Wort hinten), außer die Lehrkraft hat ihn genannt.
 4. **Sprachliche Hilfen:** Artikel mit Farbcode? Pluralform? Silbenbögen?
 5. **Bildstil:** Illustration (einheitlich) oder Fotos? *Sachthemen: Fotos; Wortschatz/Englisch: Illustration.*
+
+## Entwürfe und Aufgabenplan
+
+2–3 Entwürfe mit je 4–8 Beispielkarten zeigen (`entwurf.py` mit `"karten"`), erst nach Freigabe des Aufgabenplans in Canva bauen (`grundschul-didaktik/references/entwurf-und-aufgabenplan.md`). Bilder erst danach erzeugen.
+
+- **Entwürfe unterscheiden sich** im Kartentyp (Bild + Wort / Bild vorn, Wort hinten / nur Wort) und in Größe und Raster.
+- **Aufgabenplan:** Wortliste mit Artikel (ggf. Plural, Silben), Bildmotiv je Karte, Bildstil, Rückseite.
 
 ## Regeln
 

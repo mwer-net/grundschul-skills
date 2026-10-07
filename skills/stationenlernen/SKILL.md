@@ -17,6 +17,13 @@ Zuerst die Start-Abfrage (`grundschul-didaktik/references/rueckfragen.md`) inklu
 4. **Raum und Material:** Welche Materialien (Wendeplättchen, Lupen, Tablets) sind da? Gibt es Platz für Gruppentische?
 5. **Erfahrung der Klasse mit offenen Formen:** Erste Stationenarbeit? (Dann weniger Stationen, sehr klare Rituale.)
 
+## Entwürfe und Aufgabenplan
+
+Nach den Rückfragen 2–3 Entwürfe zeigen (Stationsübersicht + eine Musterkarte je Entwurf), erst nach Freigabe des Aufgabenplans in Canva bauen (`grundschul-didaktik/references/entwurf-und-aufgabenplan.md`).
+
+- **Entwürfe unterscheiden sich** im Stationsmix (Zugänge, Pflicht/Wahl) und im Layout der Stationskarte.
+- **Aufgabenplan:** jede Station vollständig (Auftrag, Material, Niveaus, Tippkarte, Lösung), Laufzettel, Ritualkarte.
+
 ## Bausteine
 
 ### Stationskarte (A5 oder A4, laminierbar)
