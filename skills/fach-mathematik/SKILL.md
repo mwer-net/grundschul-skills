@@ -50,7 +50,7 @@ Prozessbezogene Kompetenzen in jedes Material einbauen: Problemlösen, Kommunizi
 - Hunderterfeld: 10 × 10, Fünferlinien hervorgehoben.
 - Stellenwerte: Farben der Klasse (häufig E blau, Z rot, H grün) – Konvention erfragen.
 - Zahlenstrahl: gleichmäßige Abstände, Zehner deutlich markiert.
-- Uhr: analoges Zifferblatt mit großen Ziffern, Stundenzeiger deutlich kürzer und dicker.
+- Uhr: analoges Zifferblatt mit großen Ziffern, Stundenzeiger deutlich kürzer und dicker. **Nie von der KI zeichnen lassen** – `scripts/uhr.py` erzeugt exakte Zifferblätter als PNG, `scripts/uhr_canva.py` dieselbe Uhr als Canva-Operationen (wenn kein Bild-Upload möglich ist).
 - Geld: Euro-Abbildungen sind erlaubt; maßstabsgetreu und eindeutig.
 - Rechenkästchen: 1 Ziffer pro Kästchen (schriftliche Verfahren!).
 
@@ -69,3 +69,11 @@ Prozessbezogene Kompetenzen in jedes Material einbauen: Problemlösen, Kommunizi
 - [ ] Darstellungen strukturiert und wie in der Klasse
 - [ ] Mindestens eine Aufgabe zum Entdecken/Erklären
 - [ ] Domino/Bingo: kein Ergebnis doppelt
+- [ ] Uhren, Zahlenstrahl und Felder berechnet statt generiert (siehe Skripte)
+
+## Skripte
+
+| Skript | Zweck |
+|---|---|
+| `scripts/uhr.py` | Exaktes Zifferblatt als PNG: `python3 uhr.py 2:30 uhr.png [--minuten] [--transparent]`, `leer` für ein Blatt ohne Zeiger |
+| `scripts/uhr_canva.py` | Dieselbe Uhr als JSON-Operationen für `edit-design`: `python3 uhr_canva.py PAGE_ID LEFT TOP GROESSE 7:00 leer ...`. Der Schlüssel `_format` jeder `add_text`-Operation muss vor dem Senden entfernt und als eigenes `format_text` geschickt werden. |

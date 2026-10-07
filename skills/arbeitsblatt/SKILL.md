@@ -61,5 +61,5 @@ Zusätzlich zur Basis-Checkliste:
 
 ## Canva-Hinweise
 
-- Format `"A4 Document (Portrait)"`. Alle Niveau-Varianten und das Lösungsblatt als Seiten im selben Design, damit das Layout identisch bleibt.
+- Format `"Worksheet (A4 Portrait)"` (feste Seite – `"A4 Document (Portrait)"` erzeugt ein responsives Doc ohne Formen und Positionierung). Alle Niveau-Varianten und das Lösungsblatt als Seiten im selben Design, damit das Layout identisch bleibt.
 - Dateiname/Titel: `Kl{K}_{Fach}_{Thema}_AB{Nr}`.
