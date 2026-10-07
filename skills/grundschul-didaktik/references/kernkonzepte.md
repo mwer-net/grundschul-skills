@@ -1,6 +1,14 @@
 # Kernkonzepte: Growth Mindset und Churer Modell
 
-Beide Konzepte sind **verbindlich** für jedes Material. Sie bestimmen, wie Aufgaben formuliert, angeboten und reflektiert werden. Alle anderen Regeln (Gestaltung, Differenzierung, Fachdidaktik) ordnen sich ihnen unter.
+Beide Konzepte prägen, wie Aufgaben formuliert, angeboten und reflektiert werden. Zwei Bausteine sind **wählbar** und werden in der Start-Abfrage geklärt (`rueckfragen.md`, Fragen 4–6):
+
+| Baustein | Frage | Bei „nein" |
+|---|---|---|
+| Wachstums-Selbsteinschätzung + Reflexionsfrage unten (A2, A6) | 4 | Fußbereich entfällt |
+| Niveaus ● / ●● / ●●● zur Selbstwahl (B1, B3) | 5 | eine Aufgabenfolge für alle, steigend im Anspruch, ohne Punkte und Wahlhilfe |
+| Sternchenaufgabe ★ | 6 | keine |
+
+Immer gelten, unabhängig von der Wahl: Ich-kann-Ziel oben, „noch"-Sprache, Strategietipps, lautes Denken der Leitfigur, Fehler als Lernchance, Herausforderung positiv rahmen, Selbstständigkeit (Beispiel, Tipps, Selbstkontrolle). Fragt die Start-Abfrage nicht (z. B. Karten, Plakat) oder sagt die Lehrkraft „mach einfach", gelten die Empfehlungen: Selbsteinschätzung ja, Niveaus ja, Sternchenaufgabe nein.
 
 ---
 
@@ -23,7 +31,7 @@ Nach Carol Dweck: Fähigkeiten wachsen durch Üben, gute Strategien und Hilfe �
 ### Umsetzung im Material
 
 1. **Ich-kann-Ziel oben auf jedem Blatt.** Das Lernziel als Ich-kann-Satz in Kindersprache, wo möglich mit Mini-Beispiel als Kriterium: „Ich kann volle und halbe Stunden auf der Uhr ablesen (z. B. 3 Uhr, halb 5)." Die Selbsteinschätzung bezieht sich genau darauf.
-2. **Wachstums-Selbsteinschätzung statt Smileys.** Vier Stufen von Samen bis Blume, das Kind kreuzt oder malt an, wo es gerade steht:
+2. **Wachstums-Selbsteinschätzung statt Smileys** (wählbar, Start-Abfrage Frage 4). Vier Stufen von Samen bis Blume, das Kind kreuzt oder malt an, wo es gerade steht:
 
    | Stufe | Bild | Kindersatz |
    |---|---|---|
@@ -36,8 +44,8 @@ Nach Carol Dweck: Fähigkeiten wachsen durch Üben, gute Strategien und Hilfe �
 3. **„Noch"-Sprache.** In Anweisungen, Tippkarten, Lösungsblättern und Rückmeldefeldern: „Das kannst du *noch nicht* – übe mit Tipp 1." Nie: „falsch", „schlecht", „zu schwer für dich".
 4. **Strategien sichtbar machen.** Tipps und Leitfigur nennen eine Strategie („Schau zuerst auf den kurzen Zeiger."), nicht nur „Streng dich an!". **Willi/Wilma denkt laut:** Im „So geht's"-Beispiel spricht die Leitfigur ihre Schritte aus – planen, tun, prüfen („Zuerst schaue ich … Dann … Zum Schluss prüfe ich, ob …"). Bei ●● weniger vorgemacht, bei ●●● nur noch die Prüffrage (Hilfe ausschleichen).
 5. **Fehler als Lernchance einbauen.** Wo passend eine Aufgabe „Finde den Fehler" oder „Willi hat sich vertan – erkläre ihm, was falsch ist" (Rechenfehler ab Kl. 2, Rechtschreibfehler erst ab Kl. 3, siehe `fach-deutsch`). Selbstkontrolle mit Lösung zum Nachschauen statt Rotstift.
-6. **Reflexionsfrage am Ende** (Klasse 1/2 mündlich oder mit Ankreuzen, ab Klasse 3 schriftlich), z. B.: „Was hat dir geholfen?", „Welche Strategie hast du benutzt?", „Was übst du als Nächstes?", „Welche Aufgabe war eine gute Herausforderung?"
-7. **Herausforderung positiv rahmen.** Die schwierigere Aufgabe heißt „Herausforderung" oder „Knobelaufgabe", nicht „Zusatz für die Schnellen".
+6. **Reflexionsfrage am Ende** (gehört zum Fußbereich, entfällt mit Frage 4 „nein"; Klasse 1/2 mündlich oder mit Ankreuzen, ab Klasse 3 schriftlich), z. B.: „Was hat dir geholfen?", „Welche Strategie hast du benutzt?", „Was übst du als Nächstes?", „Welche Aufgabe war eine gute Herausforderung?"
+7. **Herausforderung positiv rahmen.** Die schwierigere Aufgabe heißt „Herausforderung", „Knobelaufgabe" oder „Sternchenaufgabe ★", nie „Zusatz für die Schnellen". Die Sternchenaufgabe (wählbar, Frage 6) ist ein freiwilliges Angebot für alle.
 8. **Rückmeldefeld für die Lehrkraft** (Pflicht auf Laufzettel und Lernzielkontrolle, auf Arbeitsblättern optional) mit Prozess-Satzanfängen: „Du hast geschafft, …", „Deine Strategie …", „Als Nächstes kannst du …". Rückmeldung immer konkret (was genau gelungen ist, welcher nächste Schritt), nie pauschal.
 
 ### Vermeiden
@@ -72,7 +80,7 @@ Stufen der Öffnung: organisatorisch (Raum, Kreis, Platzwahl) → methodisch (Wa
 
 ### Umsetzung im Material
 
-1. **Lernaufgaben in drei Niveaus mit Selbstwahl.** Jedes Übungsmaterial (Arbeitsblatt, Lesetext-Aufgaben, Lernspiel, Station) bietet:
+1. **Lernaufgaben in drei Niveaus mit Selbstwahl** (wählbar, Start-Abfrage Frage 5). Ist das Churer Modell gewählt, bietet das Übungsmaterial (Arbeitsblatt, Lesetext-Aufgaben, Lernspiel, Station):
 
    | Kennzeichnung | Niveau | Inhalt |
    |---|---|---|
@@ -82,10 +90,10 @@ Stufen der Öffnung: organisatorisch (Raum, Kreis, Platzwahl) → methodisch (Wa
 
    Kennzeichnung neutral mit Punkten (s/w-tauglich), nie mit Wertungen, Buchstaben, Farben oder „leicht/schwer". Die Kinder wählen selbst und dürfen wechseln. Die Lehrkraft beobachtet die Wahl: Wer dauerhaft deutlich unter- oder überfordert wählt, bekommt im Gespräch eine Empfehlung (Wahl mit Beratung, keine Zuweisung). Optik und Figur sind auf allen Niveaus gleich. Ausnahme: In benoteten Lernzielkontrollen gibt es keine Niveau-Wahl (siehe `lernzielkontrolle`).
 2. **Selbstständig bearbeitbar.** Weil die Lehrkraft während der Lernaufgaben berät, muss jede Aufgabe ohne Rückfrage verständlich sein: „So geht's"-Beispiel, Arbeitsanweisungs-Symbole, gestufte Tippkarten, Lösung zur Selbstkontrolle.
-3. **Wahlhilfe für die Kinder.** Ein Satz oben oder eine kleine Wahlhilfe: „Wähle deine Aufgaben. Fang dort an, wo du sicher bist, und wage dann eine Herausforderung." Die Wachstums-Selbsteinschätzung hilft bei der Wahl.
+3. **Wahlhilfe für die Kinder** (nur mit Niveaus). Ein Satz oben oder eine kleine Wahlhilfe: „Wähle deine Aufgaben. Fang dort an, wo du sicher bist, und wage dann eine Herausforderung." Die Wachstums-Selbsteinschätzung hilft bei der Wahl.
 4. **Sozialform offen lassen** oder anbieten (👤 / 👥), außer die Aufgabe braucht zwingend einen Partner.
 5. **Input-Material passt in 10–12 Minuten:** ein Tafelbild/Plakat, ein Impuls, ein gemeinsames Beispiel – nicht mehr.
-6. **Lernaufgaben-Sets statt Einzelblatt** bei längeren Phasen: mehrere Karten oder Blätter zu einem Thema, gesammelt in einer Lernaufgaben-Übersicht (Laufzettel) mit Niveau-Punkten, Häkchen für erledigt und Wachstums-Selbsteinschätzung. Die Wahl überschaubar halten: pro Entscheidung etwa 2–4 Möglichkeiten; bei großen Sets die Wahl in Etappen gliedern.
+6. **Lernaufgaben-Sets statt Einzelblatt** bei längeren Phasen: mehrere Karten oder Blätter zu einem Thema, gesammelt in einer Lernaufgaben-Übersicht (Laufzettel) mit Häkchen für erledigt, Niveau-Punkten und Wachstums-Selbsteinschätzung (beides, soweit gewählt). Die Wahl überschaubar halten: pro Entscheidung etwa 2–4 Möglichkeiten; bei großen Sets die Wahl in Etappen gliedern.
 7. **Reflexion im Kreis am Ende:** Unterrichtsplanungen schließen mit einer kurzen Kreisrunde zur Reflexionsfrage (siehe Growth Mindset).
 
 ### Unterrichtsablauf nach Churer (für `unterrichtsplanung`)
@@ -100,7 +108,7 @@ Stufen der Öffnung: organisatorisch (Raum, Kreis, Platzwahl) → methodisch (Wa
 
 ## Zusammenspiel
 
-Growth Mindset liefert die **Haltung und Sprache**, das Churer Modell die **Struktur**. Selbstwahl der Niveaus funktioniert nur, wenn Kinder eine Herausforderung nicht als Risiko erleben – darum gehören „noch"-Sprache, Strategietipps und die Wachstums-Selbsteinschätzung zu jeder Lernaufgabe.
+Growth Mindset liefert die **Haltung und Sprache**, das Churer Modell die **Struktur**. Selbstwahl der Niveaus funktioniert nur, wenn Kinder eine Herausforderung nicht als Risiko erleben – darum gehören „noch"-Sprache und Strategietipps zu jeder Lernaufgabe. Die Wachstums-Selbsteinschätzung unterstützt die Wahl; wird mit Niveaus, aber ohne Selbsteinschätzung gearbeitet, trägt die Wahlhilfe allein („Fang dort an, wo du sicher bist").
 
 ## Wachstumsgrafik (Canva)
 

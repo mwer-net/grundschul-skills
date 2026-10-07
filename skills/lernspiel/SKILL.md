@@ -15,7 +15,7 @@ Lernspiele sind Übungsformate: Der Inhalt muss schon eingeführt sein. Das Spie
 2. **Spielform:** *Empfehlung abhängig vom Inhalt (Tabelle unten).*
 3. **Gruppengröße und Spielzeit:** Partner / 3–4 Kinder / ganze Klasse; 10 oder 20 Minuten.
 4. **Wiederverwendbarkeit:** Laminieren (robuste Karten) oder einmalig auf Papier? *Farbe oder s/w kommt aus der Start-Abfrage; laminierte Spiele meist farbig.*
-5. **Differenzierung:** Drei Kartensätze ● / ●● / ●●● zur Selbstwahl oder ein gemischter Satz? *Empfehlung: drei Sätze, Punkte in der Kartenecke.*
+5. **Differenzierung:** kommt aus der Start-Abfrage (Churer Modell ja/nein, `grundschul-didaktik/references/rueckfragen.md`). Ja: drei Kartensätze ● / ●● / ●●● zur Selbstwahl, Punkte in der Kartenecke *(Empfehlung)*. Nein: ein Satz für alle, Tippkarten als Hilfe.
 
 ## Spielformen
 
@@ -41,7 +41,7 @@ Lernspiele sind Übungsformate: Der Inhalt muss schon eingeführt sein. Das Spie
 ## Gestaltungsregeln
 
 - Karten mind. 6 × 6 cm (Kl. 1/2), ein Element pro Karte, Text groß (mind. 20 pt), Bild eindeutig.
-- Niveaus nur mit Punkten ● / ●● / ●●● in der Kartenecke, nicht mit Farbe; Farbe nur zur Unterscheidung verschiedener Spiele.
+- Niveaus (falls gewählt) nur mit Punkten ● / ●● / ●●● in der Kartenecke, nicht mit Farbe; Farbe nur zur Unterscheidung verschiedener Spiele.
 - Rückseiten gestalten (Muster + Spielname), damit Sets nicht vermischt werden.
 - Kein Gewinnen durch reines Glück: Inhalt entscheidet.
 - Wenn möglich eine kooperative Variante anbieten (gemeinsam gegen die Zeit, Klassenziel). Keine Ranglisten über mehrere Runden; wer eine Aufgabe nicht weiß, darf eine Tippkarte nehmen.

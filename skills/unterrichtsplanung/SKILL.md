@@ -23,7 +23,7 @@ Laden mit: `grundschul-didaktik` und dem passenden `fach-*`. Material danach mit
 | Lernaufgaben | 25–30 | Freie Wahl von Aufgabe, Platz und Partner; Lehrkraft begleitet, gibt Kleingruppen-Inputs | frei | AB, Karten, Spiel, Tippkarten, Lösungen |
 | Reflexion im Kreis | 5 | Wachstums-Selbsteinschätzung (nach der Selbstkontrolle), „Welche Strategie hat dir geholfen?", „Was übst du als Nächstes?" | Sitzkreis | Wachstumsgrafik |
 
-Erlaubt die Schule keine freie Platzwahl, bleibt die Struktur gleich: Kinder wählen die Lernaufgabe am eigenen Platz. Bei Einführungen neuer Inhalte darf der Kreisinput länger sein; dann eine kurze Zwischenrunde einplanen. Details: `grundschul-didaktik/references/kernkonzepte.md`.
+Erlaubt die Schule keine freie Platzwahl, bleibt die Struktur gleich: Kinder wählen die Lernaufgabe am eigenen Platz. Bei Einführungen neuer Inhalte darf der Kreisinput länger sein; dann eine kurze Zwischenrunde einplanen. Niveaus, Selbsteinschätzung und Sternchenaufgabe der Materialien werden erst bei den Materialien der Stunde abgefragt (`grundschul-didaktik/references/rueckfragen.md`); entscheidet sich die Lehrkraft dort gegen Niveaus, stellt der Kreisinput die Aufgabenfolge (und ggf. die Sternchenaufgabe ★) vor, gegen die Selbsteinschätzung, bleibt die Reflexion im Kreis mündlich ohne Wachstumsgrafik. Details: `grundschul-didaktik/references/kernkonzepte.md`.
 
 Grundsätze:
 - Kinder in Klasse 1/2 halten ca. 10–15 Minuten bei einer Tätigkeit konzentriert durch. In der Lernaufgaben-Phase wechseln sie deshalb die Aufgabe und den Zugang (handelnd, schriftlich, spielerisch); Bewegung einplanen.

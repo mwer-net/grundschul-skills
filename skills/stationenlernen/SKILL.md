@@ -9,6 +9,8 @@ Laden mit: `grundschul-didaktik`, passendem `fach-*`, ggf. `arbeitsblatt`/`lerns
 
 ## Rückfragen
 
+Zuerst die Start-Abfrage (`grundschul-didaktik/references/rueckfragen.md`) inklusive Selbsteinschätzung, Churer Modell und Sternchenaufgabe; die Antworten gelten für alle Stationen. Danach:
+
 1. **Form:** Stationen (alle Stationen für alle, freie Reihenfolge), Lerntheke (Kinder wählen nach Selbsteinschätzung, Lehrkraft berät), Werkstatt (längere Einheit) oder Wochenplan (Aufgaben für eine Woche)? *Empfehlung: Stationen für Üben eines eingeführten Themas.*
 2. **Zeitrahmen:** Anzahl Stunden/Tage? *Daraus folgt die Stationenzahl (Faustregel: 2–3 Stationen pro Schulstunde).*
 3. **Pflicht- und Wahlstationen:** Wie viele Pflichtstationen? *Empfehlung: ca. 60 % Pflicht, 40 % Wahl.*
@@ -23,11 +25,12 @@ Laden mit: `grundschul-didaktik`, passendem `fach-*`, ggf. `arbeitsblatt`/`lerns
 - Titel (kindgerecht), Sozialform-Symbol (👤 👥 👨‍👩‍👧), ggf. „Pflicht" / „Wahl" als Wort (Punkte sind für Niveaus reserviert)
 - Material-Liste mit Bildern
 - Arbeitsauftrag in max. 3 Schritten
-- Differenzierung: ● / ●● / ●●● zur Selbstwahl, gestufte Tippkarten
+- Differenzierung: mit Churer Modell ● / ●● / ●●● zur Selbstwahl, sonst eine Aufgabenfolge für alle; immer gestufte Tippkarten
+- Falls gewählt: Sternchenaufgabe ★ als letzter, freiwilliger Auftrag auf der Karte
 
 ### Laufzettel (A4, pro Kind)
 - Name, Zeitraum, Ich-kann-Ziel(e) der Einheit
-- Tabelle: Station | Pflicht/Wahl | erledigt ☐ | kontrolliert ☐ | Wie weit bin ich? Samen / Keimling / Pflanze / Blume
+- Tabelle: Station | Pflicht/Wahl | erledigt ☐ | kontrolliert ☐ | Wie weit bin ich? Samen / Keimling / Pflanze / Blume (letzte Spalte nur, wenn Selbsteinschätzung gewählt)
 - Platz für Rückmeldung der Lehrkraft mit Prozess-Satzanfängen („Deine Strategie …", „Als Nächstes kannst du …")
 
 ### Lösungskarten
@@ -37,14 +40,14 @@ Laden mit: `grundschul-didaktik`, passendem `fach-*`, ggf. `arbeitsblatt`/`lerns
 - Leise arbeiten, Station aufgeräumt verlassen, Hilfe: erst Tippkarte, dann ein anderes Kind, dann Lehrkraft.
 
 ### Abschluss / Reflexion
-- Reflexion im Kreis oder kurzer Bogen: Wachstums-Selbsteinschätzung je Ich-kann-Ziel, "Was hat dir geholfen?", "Welche Station war eine gute Herausforderung?", "Was übst du als Nächstes?".
+- Reflexion im Kreis oder kurzer Bogen: Wachstums-Selbsteinschätzung je Ich-kann-Ziel (falls gewählt), "Was hat dir geholfen?", "Welche Station war eine gute Herausforderung?", "Was übst du als Nächstes?".
 
 ## Stationen gestalten
 
 - Unterschiedliche Zugänge mischen: handelnd (Material legen), spielerisch (Spiel), schriftlich (AB), kreativ (Plakat, Zeichnen), digital (App/QR-Code), forschend.
 - Jede Station ca. 10–20 Minuten.
 - Stationen unabhängig voneinander (freie Reihenfolge), außer bewusst aufbauende Pflichtstationen ("erst Station 1").
-- Mindestens eine ●●● Knobelstation, die allen offensteht (nicht nur „den Schnellen").
+- Mindestens eine Knobelstation (●●● bzw. ohne Niveaus ★), die allen offensteht (nicht nur „den Schnellen").
 
 ## Wochenplan (Besonderheiten)
 

@@ -4,7 +4,7 @@ Ziel: Mit möglichst wenigen, gezielten Fragen ein vollständiges gemeinsames Ve
 
 ## Start-Abfrage (immer zuerst)
 
-Bevor es um Klasse, Thema oder Details geht, werden drei Grundentscheidungen geklärt. Sie bestimmen, welcher Material-Skill gilt, welches Format und welches Druckprofil. **Einzeln nacheinander**, eine Frage pro Nachricht, jede mit Optionen und Empfehlung. Was die Anfrage schon beantwortet, wird nicht gefragt, sondern kurz bestätigt („Arbeitsblatt, A4, in Farbe – richtig?" ist nicht nötig, wenn es wörtlich so dasteht).
+Bevor es um Klasse, Thema oder Details geht, werden die Grundentscheidungen geklärt: drei immer (Materialart, Medium, Farbe), drei weitere je nach Materialart (Selbsteinschätzung, Churer Modell, Sternchenaufgabe). Sie bestimmen, welcher Material-Skill gilt, welches Format, welches Druckprofil und welche Bausteine das Blatt hat. **Einzeln nacheinander**, eine Frage pro Nachricht, jede mit Optionen und Empfehlung. Was die Anfrage schon beantwortet, wird nicht gefragt, sondern kurz bestätigt („Arbeitsblatt, A4, in Farbe – richtig?" ist nicht nötig, wenn es wörtlich so dasteht).
 
 **1. Materialart**
 
@@ -53,7 +53,47 @@ b) Farbe
 
 Empfehlung je nach Medium: **s/w** für Kopiervorlagen (Arbeitsblatt, Lernzielkontrolle, Lesetext, Laufzettel); **Farbe** für Präsentation/Whiteboard, Plakat, laminierte Karten und Spiele. Bei Präsentation/Whiteboard nicht fragen, sondern Farbe annehmen. Die Antwort wählt das Druckprofil in `druck-und-platz.md` und den Aufruf von `layout_check.py` (`--farbe` bei Farbe).
 
-Die drei Antworten gelten für die ganze Unterhaltung, bis die Lehrkraft etwas anderes sagt. Beim nächsten Material derselben Art nur kurz bestätigen („Wieder A4, s/w?").
+**4.–6. Bausteine des Blatts**
+
+Welche dieser Fragen gestellt wird, hängt von der Materialart ab. Bei allen anderen Materialarten (Karten, Plakat, Präsentation) entfallen sie; bei `unterrichtsplanung` erst bei den Materialien der Stunde fragen.
+
+| Materialart | 4. Selbsteinschätzung | 5. Churer Modell | 6. Sternchenaufgabe |
+|---|---|---|---|
+| Arbeitsblatt, Lesetext, Stationenlernen | ja | ja | ja |
+| Lernspiel | – | ja | – |
+| Lernzielkontrolle | ja | – (benotet nie Niveau-Wahl) | – |
+
+**4. Selbsteinschätzung (Growth Mindset)**
+
+```
+Soll unten auf dem Blatt die Selbsteinschätzung stehen (Samen → Keimling → Pflanze → Blume + Reflexionsfrage)?
+a) Ja   ← Empfehlung
+b) Nein
+```
+
+Nein: Der Fußbereich mit Wachstumsgrafik und Reflexionsfrage entfällt, der Platz geht an Aufgaben. Ich-kann-Ziel oben, „noch"-Sprache, Strategietipps und lautes Denken der Leitfigur bleiben (das ist Qualität jeder Aufgabe, kein Baustein). Bei Stationenlernen entfällt die Wachstumsspalte auf dem Laufzettel, bei der Lernzielkontrolle der Selbsteinschätzungsteil am Ende.
+
+**5. Churer Modell (Niveaus zur Selbstwahl)**
+
+```
+Sollen die Kinder aus drei Schwierigkeitsstufen wählen (● Grundlage / ●● Kern / ●●● Herausforderung, Churer Modell)?
+a) Ja   ← Empfehlung
+b) Nein, alle bearbeiten dieselben Aufgaben
+```
+
+Nein: keine Niveau-Punkte, keine Wahlhilfe, keine getrennten Niveau-Blätter oder -Kartensätze. Die Aufgaben steigen trotzdem im Anspruch und beginnen mit einem vorgelösten Beispiel.
+
+**6. Sternchenaufgabe**
+
+```
+Soll es am Ende eine Sternchenaufgabe ★ geben (eine Knobelaufgabe für alle, die möchten)?
+a) Ja   ← Empfehlung, wenn Churer „nein"
+b) Nein ← Empfehlung, wenn Churer „ja" (●●● bietet schon die Herausforderung)
+```
+
+Ja: genau eine Aufgabe ★ als letzte Aufgabe, zusätzlich zu den übrigen (auch zu ●●●). Offen, knobelnd, begründen oder erfinden, keine „mehr vom Gleichen". Gerahmt als Angebot für alle („Sternchenaufgabe: Wer mag, knobelt hier."), nie als „für die Schnellen". Freiwillig, nicht Teil des Pflichtpensums.
+
+Die Antworten gelten für die ganze Unterhaltung, bis die Lehrkraft etwas anderes sagt. Beim nächsten Material derselben Art nur kurz bestätigen („Wieder A4, s/w, mit Selbsteinschätzung und Niveaus?").
 
 ## Ablauf
 
@@ -61,14 +101,14 @@ Die drei Antworten gelten für die ganze Unterhaltung, bis die Lehrkraft etwas a
    - Herleitbar (nicht fragen, als Annahme nennen): Zahlenraum aus Klassenstufe und Halbjahr, Schriftgröße aus Klassenstufe, Lineatur, übliche Bearbeitungszeit.
    - Nicht herleitbar (fragen): alles, was das Ergebnis sichtbar verändert und in der Anfrage fehlt.
 2. **Reihenfolge nach Abhängigkeit.** Frühere Antworten verändern spätere Fragen:
-   0. Start-Abfrage: Materialart → Medium/Format → Farbe oder s/w (siehe oben)
+   0. Start-Abfrage: Materialart → Medium/Format → Farbe oder s/w → je nach Materialart Selbsteinschätzung → Churer Modell → Sternchenaufgabe (siehe oben)
    1. Klassenstufe (und ggf. Halbjahr), Bundesland
    2. Fach, Thema, konkretes Lernziel
    3. Funktion in der Reihe (Einführung / Übung / Vertiefung / Überprüfung)
    4. Lerngruppe (Leistungsspanne, DaZ, Förderbedarfe)
    5. Materialspezifisches (aus dem Material-Skill)
    6. Fachspezifisches (aus dem Fach-Skill)
-   7. Klassenkonventionen (Schrift, Symbole, Farbcodes) – fest stehen und werden nicht gefragt: Leitfigur Willi/Wilma Waschbär, Niveaus ● / ●● / ●●●, Wachstums-Selbsteinschätzung
+   7. Klassenkonventionen (Schrift, Symbole, Farbcodes) – fest stehen und werden nicht gefragt: Leitfigur Willi/Wilma Waschbär, Kennzeichnung der Niveaus mit ● / ●● / ●●● und Selbsteinschätzung mit Wachstumsstufen (sofern in der Start-Abfrage gewählt)
    8. Ausgabe (Anzahl Exemplare, Laminieren), falls für das Material relevant
 3. **Eine Frage pro Nachricht.** Ausnahme: Zwei eng verbundene Kleinigkeiten dürfen zusammen gefragt werden.
 4. **Jede Frage hat dieses Format:**
@@ -90,7 +130,7 @@ Die drei Antworten gelten für die ganze Unterhaltung, bis die Lehrkraft etwas a
    Ich erstelle:
    - Arbeitsblatt "Die Uhr – volle und halbe Stunden", Klasse 2, A4 hoch, Schwarz-Weiß
    - Ziel: Uhrzeiten (volle/halbe Stunde) ablesen und einzeichnen
-   - 3 Niveaus zur Selbstwahl (● ablesen mit Hilfsuhr, ●● ablesen + einzeichnen, ●●● Zeitspannen)
+   - 3 Niveaus zur Selbstwahl (● ablesen mit Hilfsuhr, ●● ablesen + einzeichnen, ●●● Zeitspannen), keine Sternchenaufgabe
    - Ich-kann-Ziel oben, Wachstums-Selbsteinschätzung und Reflexionsfrage unten
    - Willi Waschbär gibt den Strategietipp
    - Schrift: Grundschrift 18 pt, Symbole wie im Lehrwerk
@@ -109,4 +149,4 @@ Die drei Antworten gelten für die ganze Unterhaltung, bis die Lehrkraft etwas a
 
 ## Wiederkehrende Nutzer
 
-Hat die Lehrkraft in derselben Unterhaltung schon Materialart, Medium, Farbe/s/w, Klasse, Bundesland, Schrift oder Symbolset genannt, gelten diese weiter. Kurz bestätigen statt neu fragen ("Wieder Klasse 2, Grundschrift?").
+Hat die Lehrkraft in derselben Unterhaltung schon Materialart, Medium, Farbe/s/w, Selbsteinschätzung, Niveaus, Sternchenaufgabe, Klasse, Bundesland, Schrift oder Symbolset genannt, gelten diese weiter. Kurz bestätigen statt neu fragen ("Wieder Klasse 2, Grundschrift?").

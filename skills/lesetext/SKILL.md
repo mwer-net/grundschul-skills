@@ -9,10 +9,12 @@ Laden mit: `grundschul-didaktik`, `fach-deutsch` (Lesedidaktik), ggf. Fach-Skill
 
 ## Rückfragen
 
+Zuerst die Start-Abfrage (`grundschul-didaktik/references/rueckfragen.md`) inklusive Selbsteinschätzung, Churer Modell und Sternchenaufgabe. Danach:
+
 1. **Textsorte:** Erzählung, Sachtext, Gedicht/Reim, Dialog/Lesetheater, Lesespur/Leserätsel? *Empfehlung abhängig vom Ziel; für Sachthemen Sachtext.*
 2. **Leseziel:** Leseflüssigkeit (Lautlesen, wiederholtes Lesen) oder Leseverstehen (Fragen, Strategien)? *Unterscheidet Textlänge und Aufgaben.*
 3. **Lesestand der Gruppe:** Wörter auf Silbenebene, kurze Sätze, flüssig? Gibt es Silbenfärbung/-bögen im Lehrwerk?
-4. **Niveaus:** 2 oder 3 Textfassungen mit gleichem Inhalt? *Empfehlung: 3, gekennzeichnet mit ● / ●● / ●●● zur Selbstwahl.*
+4. **Niveaus** (nur mit Churer Modell): 2 oder 3 Textfassungen mit gleichem Inhalt? *Empfehlung: 3, gekennzeichnet mit ● / ●● / ●●● zur Selbstwahl.* Ohne Churer Modell: eine Fassung.
 5. **Aufgaben zum Text:** Ja/nein, wie viele?
 
 ## Textnormen nach Lesestand
@@ -38,7 +40,7 @@ Regeln:
 2. **Zusammenhänge herstellen:** Reihenfolge ordnen, Warum-Fragen, Überschriften zu Absätzen.
 3. **Reflektieren und bewerten:** Meinung begründen, Ende weiterschreiben, Frage an den Text stellen.
 
-Die Aufgaben werden als ● / ●● / ●●● zur Selbstwahl angeboten (entspricht grob den drei Bereichen). Oben das Ich-kann-Ziel („Ich kann Informationen in einem Sachtext finden."), unten Wachstums-Selbsteinschätzung und Reflexionsfrage („Welche Lesestrategie hat dir geholfen?").
+Mit Churer Modell werden die Aufgaben als ● / ●● / ●●● zur Selbstwahl angeboten (entspricht grob den drei Bereichen), sonst in dieser Reihenfolge für alle. Falls gewählt, als letzte Aufgabe eine Sternchenaufgabe ★ (z. B. eigene Frage an den Text, Ende weiterschreiben). Oben das Ich-kann-Ziel („Ich kann Informationen in einem Sachtext finden."), unten – falls gewählt – Wachstums-Selbsteinschätzung und Reflexionsfrage („Welche Lesestrategie hat dir geholfen?").
 
 Lesestrategien sichtbar machen (ab Kl. 2): Vor dem Lesen Überschrift/Bild betrachten und vermuten, beim Lesen unbekannte Wörter markieren, nach dem Lesen Wichtiges unterstreichen.
 
@@ -63,4 +65,4 @@ Lesestrategien sichtbar machen (ab Kl. 2): Vor dem Lesen Überschrift/Bild betra
 - [ ] Fassungen inhaltsgleich
 - [ ] Fragen sind nur mit dem Text lösbar, nicht aus Weltwissen
 - [ ] Lösungen beigelegt
-- [ ] Ich-kann-Ziel, Niveau-Punkte, Wachstums-Selbsteinschätzung und Reflexionsfrage vorhanden
+- [ ] Ich-kann-Ziel vorhanden; Niveau-Punkte, Sternchenaufgabe, Wachstums-Selbsteinschätzung und Reflexionsfrage genau wie in der Start-Abfrage gewählt

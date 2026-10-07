@@ -70,7 +70,7 @@ Wenn ein Upload nicht möglich ist (abgeschottete Umgebung, blockierte Upload-UR
 - `read-design` lesen und gegen das Briefing abgleichen. Die Antwort wird schnell sehr groß; deshalb mit `filter.fields` gezielt anfordern (`thumbnails` für die Optik, `design_content` für Elementpositionen) und lange Ergebnisse als Datei mit `python3`/`jq` auswerten statt am Stück zu lesen.
   - Steht der Text wörtlich so da? Keine erfundenen Zusätze?
   - Schriftgrößen gemäß Klassenstufe (`grundschul-didaktik`)? Keine Schmuck- oder Großbuchstabenschrift für Fließtext?
-  - Ich-kann-Ziel oben, Niveau-Punkte an jeder Aufgabe, Wachstumsgrafik und Reflexionsfrage unten?
+  - Ich-kann-Ziel oben; Niveau-Punkte, Sternchenaufgabe ★, Wachstumsgrafik und Reflexionsfrage genau wie in der Start-Abfrage gewählt?
   - Genug Schreibfläche, Lineatur vorhanden?
   - Keine Deko-Elemente ohne Funktion, kein Text auf unruhigem Hintergrund?
   - Druckprofil eingehalten (s/w: keine Farbe/Flächen; Farbe: nur Akzente, keine Flächen hinter Aufgaben)? Seite gut genutzt (keine Kästen, volle Reihen)?
@@ -114,17 +114,19 @@ Schriften: Überschrift in {Fredoka/Baloo 2} (fett, {Überschriftfarbe}, {px}), 
 Zeilenabstand 1,5, linksbündig. Seitenrand rundum 60 px. Eine Spalte.
 Aufgaben OHNE Kasten, ohne Hintergrundfläche, ohne Innenabstand: Aufgabennummer als kleiner gefüllter Kreis (34 px) in {Kreisfarbe} mit weißer fetter Ziffer am linken Rand,
 Anweisung direkt rechts daneben, Arbeitsfläche direkt darunter bündig mit der Anweisung. Zwischen zwei Aufgaben 32 px Abstand und eine dünne Linie ({Linienfarbe}, 1 px).
-Niveau-Punkte (●, ●● oder ●●●) rechtsbündig in der Anweisungszeile. Alle Aufgaben sehen gleich aus.
-Kopf kompakt (höchstens 160 px): Name/Datum-Zeile, Überschrift, darunter Ich-kann-Ziel und Wahlhilfe in einer Zeile.
-Fuß kompakt (höchstens 110 px), oben durch eine dünne Linie abgetrennt, keine Fläche: Ich-kann-Satz und "Male an, wie weit du schon bist:", rechts Platz (ca. 200 × 90 px) für die Wachstumsgrafik, darunter die Reflexionsfrage mit Ankreuzkästchen.
+{NUR MIT NIVEAUS: Niveau-Punkte (●, ●● oder ●●●) rechtsbündig in der Anweisungszeile.} {NUR MIT STERNCHENAUFGABE: letzte Aufgabe mit ★ statt Nummernkreis, Anweisung beginnt mit "Sternchenaufgabe:".} Alle Aufgaben sehen gleich aus.
+Kopf kompakt (höchstens 160 px): Name/Datum-Zeile, Überschrift, darunter Ich-kann-Ziel {NUR MIT NIVEAUS: und Wahlhilfe} in einer Zeile.
+{NUR MIT SELBSTEINSCHÄTZUNG, sonst kein Fuß:} Fuß kompakt (höchstens 110 px), oben durch eine dünne Linie abgetrennt, keine Fläche: Ich-kann-Satz und "Male an, wie weit du schon bist:", rechts Platz (ca. 200 × 90 px) für die Wachstumsgrafik, darunter die Reflexionsfrage mit Ankreuzkästchen.
 Platz lassen für: {Willi/Wilma ca. 90 px mit Sprechblase rechts neben Aufgabe 1, Uhren/Felder in voller Reihe …}.
 KEINE Bilder, Icons oder Cliparts selbst einfügen – die werden später ergänzt.
 Keine Dekoration ohne Funktion, kein Text auf Bildern, keine Großbuchstaben-Texte.
 Verwende exakt folgenden Text, nichts umformulieren, nichts ergänzen:
 ---
-{vollständiger Text inkl. Kopfzeile "Name: ____  Datum: ____", Ich-kann-Ziel, Wahlhilfe, Niveau-Punkte an jeder Aufgabe, Fußzeilentext, Reflexionsfrage}
+{vollständiger Text inkl. Kopfzeile "Name: ____  Datum: ____", Ich-kann-Ziel und – soweit gewählt – Wahlhilfe, Niveau-Punkte, Sternchenaufgabe, Fußzeilentext, Reflexionsfrage}
 ---
 ```
+
+`{NUR MIT …}`-Teile je nach Start-Abfrage übernehmen (ohne die Klammer) oder streichen; nicht gewählte Bausteine nie in den Brief schreiben.
 
 Platzhalter nach Druckprofil:
 

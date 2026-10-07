@@ -48,7 +48,7 @@ Prozessbezogene Kompetenzen in jedes Material einbauen: Problemlösen, Kommunizi
 
 - Niveaus folgen den Darstellungsebenen: ● mit Material/Bild, ●● symbolisch, ●●● Muster erklären, Aufgaben erfinden, begründen.
 - Strategietipps nennen Rechenstrategien („Rechne erst bis zur 10."), nie „Zähl nach".
-- Offene Aufgaben (natürliche Differenzierung) sind die bevorzugte ●●●-Form.
+- Offene Aufgaben (natürliche Differenzierung) sind die bevorzugte ●●●-Form und die bevorzugte Sternchenaufgabe ★.
 - „Willi hat sich vertan" mit typischen Fehlvorstellungen (unten) als Lernchance.
 
 ## Darstellungskonventionen für Materialien

@@ -70,15 +70,15 @@ Ziel: **mehr Übung pro Blatt, ohne gedrängt zu wirken.** Gespart wird an Rahme
 ```
 
 - **Hängende Nummer:** Nummernkreis (32–36 px; s/w schwarz, Farbe in der Hauptfarbe) links, Anweisung 12–16 px rechts daneben, die Arbeitsfläche beginnt bündig unter der Anweisung. Die Nummer markiert den Aufgabenbeginn, ein Kasten ist nicht nötig.
-- **Niveau-Punkte** rechtsbündig in der Anweisungszeile.
+- **Niveau-Punkte** (falls gewählt) rechtsbündig in der Anweisungszeile. Die Sternchenaufgabe trägt ★ an der Stelle der Nummer.
 - **Trennung durch Abstand:** 24–32 px zwischen Aufgaben, 8–16 px zwischen Anweisung und Arbeitsfläche. Optional eine dünne Trennlinie (1–1,5 px; s/w `#808080`, Farbe in der Akzentfarbe) über die Spaltenbreite. Einheitlich im ganzen Material.
 - **Rahmen nur mit Funktion:** Wortspeicher, Tipp-Sprechblase der Leitfigur, Ergebnis- oder Antwortkästchen, Ausschneideteile (gestrichelt), Lösungsstreifen. Rahmen dann als dünne Kontur ohne Füllung, Ecken gerundet.
 
 ### Kopf und Fuß schlank
 
-- **Kopf** (Name/Datum, Überschrift, Ich-kann-Ziel, Wahlhilfe) zusammen höchstens ca. 160 px. Ich-kann-Ziel und Wahlhilfe in einer Zeile oder zwei kurzen Zeilen.
+- **Kopf** (Name/Datum, Überschrift, Ich-kann-Ziel, Wahlhilfe nur mit Niveaus) zusammen höchstens ca. 160 px. Ich-kann-Ziel und Wahlhilfe in einer Zeile oder zwei kurzen Zeilen.
 - **Tipp der Leitfigur bei der Aufgabe, zu der er gehört** (rechts neben der Anweisung oder neben dem Beispiel), nicht als eigener Block im Kopf.
-- **Fuß** in einer Zeile bzw. einem schmalen Streifen (ca. 80–110 px): Ich-kann-Satz + Wachstumsgrafik zum Anmalen links/rechts, Reflexionsfrage mit Ankreuzfeldern darunter. Abgegrenzt durch eine Linie, nicht durch eine Fläche. Die Wachstumsgrafik passend zum Profil (farbig oder Strich-Version zum Anmalen).
+- **Fuß** (nur wenn Selbsteinschätzung gewählt, sonst entfällt er und der Platz geht an Aufgaben) in einer Zeile bzw. einem schmalen Streifen (ca. 80–110 px): Ich-kann-Satz + Wachstumsgrafik zum Anmalen links/rechts, Reflexionsfrage mit Ankreuzfeldern darunter. Abgegrenzt durch eine Linie, nicht durch eine Fläche. Die Wachstumsgrafik passend zum Profil (farbig oder Strich-Version zum Anmalen).
 
 ### Mehr Items pro Aufgabe
 
