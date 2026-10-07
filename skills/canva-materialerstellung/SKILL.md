@@ -31,7 +31,7 @@ Canvas KI formuliert sonst eigene Texte, verwendet falsche Schriftgrößen oder 
 
 ### 2. Bilder
 
-- Was ein Bild bekommt und wie viel: `grundschul-didaktik/references/kindgerecht-gestalten.md` (Leitfigur mit Funktion, Sachbild zur Sachaufgabe, kleines Themenbild; Weglass-Test).
+- Was ein Bild bekommt und wie viel: `grundschul-didaktik/references/kindgerecht-gestalten.md` (Leitfigur Willi/Wilma Waschbär mit fertigen Media-IDs, Bilder nur mit Mehrwert; Weglass-Test).
 - Eigene Illustrationen: `generate-image` mit dem **Stil-Satz** aus `kindgerecht-gestalten.md`, für jedes Bild eines Materials wörtlich gleich, danach das Motiv konkret. Keine Schrift, Zahlen oder Uhren im KI-Bild. Für Ausmalbilder: "nur schwarze Umrisse, keine Füllung".
 - `generate-image` liefert eine `media_id` (z. B. `MAHX…`). Diese direkt mit `edit-design` → `insert_fill` (`asset_type: "image"`, `asset_id: <media_id>`, `alt_text`, Position und Größe) ins Design setzen – kein Upload nötig. Die Leitfigur einmal erzeugen und die `media_id` für alle Auftritte und Folgematerialien wiederverwenden (Titel und ID der Lehrkraft nennen).
 - KI-Bilder haben einen weißen Hintergrund. Auf weißer Seite unproblematisch; auf farbigen Flächen vorher `remove-background` oder das Bild außerhalb der Fläche platzieren.
@@ -93,7 +93,7 @@ Schriften: Überschrift in {Fredoka/Baloo 2} (fett, Hauptfarbe, {px}), aller üb
 Zeilenabstand 1,5, linksbündig. Großzügige Ränder und viel Weißraum.
 Jede Aufgabe ein eigener Block: helle Fläche mit stark abgerundeten Ecken, ohne Rahmenlinie.
 Aufgabennummer als ausgefüllter Kreis in der Hauptfarbe mit weißer, fetter Ziffer links neben der Anweisung.
-Platz lassen für: {Leitfigur oben rechts ca. 110 px, Sachbild in Aufgabe X ca. 180 × 135 px, Uhren/Felder …}.
+Platz lassen für: {Willi/Wilma oben rechts ca. 110 px mit Sprechblase, Uhren/Felder/benötigte Bilder …}.
 KEINE Bilder, Icons oder Cliparts selbst einfügen – die werden später ergänzt.
 Schreiblinien dunkelgrau und schlicht. Keine Dekoration ohne Funktion, kein Text auf Bildern, keine Großbuchstaben-Texte.
 Verwende exakt folgenden Text, nichts umformulieren, nichts ergänzen:

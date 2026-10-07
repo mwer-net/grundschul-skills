@@ -25,7 +25,7 @@ Pflichtangaben (fehlen sie, wird gefragt):
 | Bundesland | Lehrplan, Ausgangsschrift (Grundschrift / VA / SAS / LA), Begriffe |
 | Fach und Thema, Stelle in der Unterrichtsreihe | Einführung, Übung, Vertiefung oder Überprüfung |
 | Lerngruppe: Leistungsspanne, DaZ-Kinder, Förderbedarfe (LRS, Dyskalkulie, Sehen, ...) | Differenzierung, sprachliche Hilfen |
-| Eingeführte Symbole, Lehrwerk, Maskottchen, Farbsystem der Klasse | Material muss zur gewohnten Struktur passen |
+| Eingeführte Symbole, Lehrwerk, Farbsystem der Klasse | Material muss zur gewohnten Struktur passen |
 | Ausgabeform (Druck s/w oder farbig, Laminieren, Tafel/Whiteboard) | Kontraste, Farbcodierung, Format |
 
 Ist nur Kleines unklar (z. B. Farbe vs. s/w), triff eine sinnvolle Annahme und nenne sie.
@@ -39,7 +39,7 @@ Ist nur Kleines unklar (z. B. Farbe vs. s/w), triff eine sinnvolle Annahme und n
 5. **Differenzierung ist Standard, nicht Extra:** Mindestens zwei, besser drei Niveaus (siehe `references/differenzierung.md`). Gemeinsamer Lerngegenstand für alle, unterschiedliche Zugänge.
 6. **Sprachsensibel:** Kurze Sätze, bekannte Wörter, Wortspeicher und Satzanfänge als Hilfe. Siehe `references/sprachsensibel.md`.
 7. **Selbstständigkeit:** Klare, gleichbleibende Arbeitsanweisungen mit Symbolen; Selbstkontrolle wo möglich (Lösungskarte, Kontrollzahl, Bildpuzzle).
-8. **Altersgerecht ansprechend (Emotional Design):** Das schön machen, was ohnehin da ist – nicht etwas dazustellen. Warme Farbpalette, runde Formen, farbige Aufgabennummern, eine Leitfigur mit Funktion (zeigt das Beispiel, gibt Tipps), ein Sachbild zur Sachaufgabe, kindgerechte Überschriftenschrift, Geschichten-Rahmen ("Hilf Fuchs Fridolin …"). Das verbessert nachweislich Motivation und Behalten. Nicht: Deko ohne Funktion, mehr als ein großes Bild pro Seite. Details und Prüffragen: `references/kindgerecht-gestalten.md`.
+8. **Altersgerecht ansprechend (Emotional Design):** Das schön machen, was ohnehin da ist – nicht etwas dazustellen. Warme Farbpalette, runde Formen, farbige Aufgabennummern, als Leitfigur immer Willi oder Wilma Waschbär mit Funktion (zeigt das Beispiel, gibt Tipps), kindgerechte Überschriftenschrift, Geschichten-Rahmen ("Hilf Willi Waschbär …"). Das verbessert nachweislich Motivation und Behalten. Bilder nur, wenn das Kind sie zum Lösen braucht – unnütze Grafiken lenken ab. Details und Prüffragen: `references/kindgerecht-gestalten.md`.
 9. **Fachlich korrekt:** Rechtschreibung nach amtlichem Regelwerk, mathematisch saubere Sprache ("Ergebnis", nicht "Lösungszahl"), sachlich richtige Abbildungen (Tierteile, Pflanzen, Uhrzeiten).
 10. **Vielfalt und Inklusion:** Namen, Familien, Hautfarben und Lebenswelten divers und unaufgeregt darstellen. Keine Klischees.
 
@@ -69,7 +69,7 @@ Prüfe jedes Material gegen diese Liste und korrigiere, bevor du es der Lehrkraf
 - [ ] Klassenstufe: Schriftgröße, Textmenge, Zahlenraum, Wortschatz stimmen
 - [ ] Jede Aufgabe hat Nummer, Symbol und eine kurze Anweisung mit einem Verb
 - [ ] Mindestens zwei Niveaus oder ein Sternchen-/Zusatzangebot
-- [ ] Ansprechend: Palette, runde Formen, Leitfigur oder Sachbild vorhanden
+- [ ] Ansprechend: Palette, runde Formen, Willi oder Wilma Waschbär mit Funktion
 - [ ] Keine rein dekorativen Bilder (Weglass-Test); alle Bilder eindeutig erkennbar
 - [ ] Genug Platz zum Schreiben/Zeichnen
 - [ ] Rechtschreibung, Zeichensetzung, Rechnungen und Lösungen geprüft

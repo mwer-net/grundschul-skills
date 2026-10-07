@@ -15,7 +15,7 @@ Nach dem Rückfrage-Protokoll, eine Frage pro Nachricht, jeweils mit Empfehlung:
 2. **Umfang:** 1 Seite oder Mappe? Bearbeitungszeit (10 / 20 / 45 min)? *Empfehlung: 1 Seite, ca. 20 min.*
 3. **Differenzierung:** Ein Blatt mit 3 Bereichen, 3 Blätter in gleichem Layout oder ein Blatt + Tippkarten? *Empfehlung: 3 Blätter in gleichem Layout ab heterogener Gruppe, sonst 1 Blatt mit Sternchenaufgabe.*
 4. **Sozialform:** Einzel- oder Partnerarbeit? (Beeinflusst Anweisungen und Symbole)
-5. **Rahmen/Figur:** Gibt es ein Klassenmaskottchen oder eine Geschichte, die das Blatt tragen soll?
+5. **Rahmen:** Gibt es eine Geschichte, die das Blatt tragen soll? (Leitfigur ist immer Willi oder Wilma Waschbär.)
 
 ## Aufbau
 

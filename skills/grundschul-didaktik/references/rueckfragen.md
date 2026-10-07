@@ -14,7 +14,7 @@ Ziel: Mit möglichst wenigen, gezielten Fragen ein vollständiges gemeinsames Ve
    4. Lerngruppe (Leistungsspanne, DaZ, Förderbedarfe)
    5. Materialspezifisches (aus dem Material-Skill)
    6. Fachspezifisches (aus dem Fach-Skill)
-   7. Klassenkonventionen (Schrift, Symbole, Maskottchen, Farbcodes)
+   7. Klassenkonventionen (Schrift, Symbole, Farbcodes) – die Leitfigur steht fest (Willi/Wilma Waschbär)
    8. Ausgabe (Farbe/s-w, Anzahl Exemplare, Laminieren)
 3. **Eine Frage pro Nachricht.** Ausnahme: Zwei eng verbundene Kleinigkeiten dürfen zusammen gefragt werden.
 4. **Jede Frage hat dieses Format:**

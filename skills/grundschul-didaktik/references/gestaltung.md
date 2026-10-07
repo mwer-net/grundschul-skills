@@ -6,7 +6,7 @@
 ┌──────────────────────────────────────────┐
 │ Name: ________   Datum: ______   [Thema] │  ← Kopfzeile, klein, 1 Zeile
 │                                          │
-│  ÜBERSCHRIFT (groß, ggf. mit Maskottchen)│  ← 1 Zeile, max. 5 Wörter
+│  ÜBERSCHRIFT (groß)  [Willi/Wilma + Tipp] │  ← 1 Zeile, max. 5 Wörter
 │                                          │
 │ ① [✎] Anweisung in einem Satz.           │  ← Aufgabenblock 1
 │    ┌──────────────────────────────┐      │
@@ -49,7 +49,7 @@ Schreibfläche immer größer als gedacht: Kinderhandschrift braucht Platz.
 
 ## Bilder und Illustrationen
 
-- Funktional: Das Bild trägt Information (Anlaut, Mengenbild, Sachabbildung), erleichtert das Textverständnis oder gibt als Leitfigur einen Tipp. Weglass-Test und Dosierung: `kindgerecht-gestalten.md`.
+- Funktional: Das Bild trägt Information (Anlaut, Mengenbild, Sachabbildung), wird zum Lösen gebraucht oder gibt als Leitfigur (Willi/Wilma Waschbär) einen Tipp. Weglass-Test und Dosierung: `kindgerecht-gestalten.md`.
 - Eindeutig: Ein Bild, ein Begriff. Bei Anlautbildern Mehrdeutigkeiten vermeiden (Hund vs. Dackel, Auto vs. PKW).
 - Einheitlicher Stil innerhalb eines Materials (alles Linien-Illustration oder alles flach farbig; nicht gemischt mit Fotos).
 - Für Ausmalaufgaben: klare schwarze Konturen, keine Graustufenflächen.

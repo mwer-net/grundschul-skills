@@ -22,7 +22,7 @@ Ein Lernplakat sichert Wissen dauerhaft im Raum. Es wird im Unterricht gemeinsam
 - Beispiel-orientiert: Regel + 1–2 farbig markierte Beispiele ("Nomen schreibt man groß: der **H**und, die **S**onne").
 - Strategien als nummerierte Schritte mit Symbolen (z. B. Rechenweg "Erst zum Zehner, dann weiter").
 - Farbcodes konsistent mit Arbeitsblättern und Klassenkonvention.
-- Maskottchen oder Figur als Wiedererkennung erlaubt (eine Figur, nicht mehrere).
+- Leitfigur Willi oder Wilma Waschbär als Wiedererkennung (eine Figur pro Plakat).
 - Fachlich exakte Begriffe in Kindersprache, keine falschen Vereinfachungen ("Minus macht kleiner" stimmt später nicht – lieber "Wegnehmen").
 
 ## Tafelbild / Whiteboard-Folien

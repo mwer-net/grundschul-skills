@@ -56,7 +56,8 @@ Empfehlung: Immer alle Skills installieren, da sie aufeinander verweisen.
 
 - Canva for Education ist für Lehrkräfte kostenlos.
 - Schulschrift (z. B. Grundschrift) im Brand Kit hochladen, damit Materialien die Schrift der Klasse nutzen.
-- Eigene Vorlagen (Kopfzeile, Symbole, Maskottchen) in Canva anlegen – die Skills nutzen sie, wenn vorhanden.
+- Leitfigur aller Materialien: Willi oder Wilma Waschbär (siehe `grundschul-didaktik/references/kindgerecht-gestalten.md`).
+- Eigene Vorlagen (Kopfzeile, Symbole) in Canva anlegen – die Skills nutzen sie, wenn vorhanden.
 
 ## Erweitern
 
