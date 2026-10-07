@@ -22,6 +22,12 @@ Nach dem Rückfrage-Protokoll aus `grundschul-didaktik` (eine Frage pro Nachrich
 - **Aktives Hören:** Höraufträge mit konkreter Aufgabe (Instrumente erkennen, laut/leise, schnell/langsam, Mitmalen, Hörlandkarte).
 - **Kreativität:** Klanggeschichten, eigene Begleitung, Rhythmen erfinden.
 
+## Kernkonzepte im Fach
+
+- ● / ●● / ●●● z. B. bei Rhythmuskarten: ● Viertel und Achtel nachklatschen, ●● Rhythmus lesen und spielen, ●●● eigenen Rhythmus erfinden und notieren.
+- Ich-kann-Ziel als hörbare oder spielbare Handlung („Ich kann einen Rhythmus mit ta und ti-ti klatschen.").
+- Kein Pflicht-Vorsingen allein vor der Klasse; Rückmeldung zum Üben, nie zur „Musikalität".
+
 ## Materialtypen
 
 - **Liedblatt:** Text in großer Schrift, Strophen nummeriert, Refrain hervorgehoben; Bilder zu den Strophen für Leseanfänger; Noten nur wenn Ziel.

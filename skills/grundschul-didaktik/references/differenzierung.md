@@ -10,11 +10,11 @@
 
 | Niveau | Merkmal | Beispiel Mathe (Addition bis 20) | Beispiel Deutsch (Leseverständnis) |
 |---|---|---|---|
-| 1 – Basis / Reproduzieren | Mit Hilfen, kleiner Umfang, anschaulich | Aufgaben mit Zwanzigerfeld-Bild | Bild-Satz-Zuordnung, Ja/Nein-Fragen |
-| 2 – Standard / Zusammenhänge herstellen | Ohne Bildhilfe, Regelanwendung | Aufgaben ohne Bild, Tauschaufgaben | W-Fragen mit Satzanfang |
-| 3 – Erweitert / Verallgemeinern, Reflektieren | Offene oder Umkehraufgaben, Begründen | Platzhalteraufgaben, eigene Aufgaben erfinden, Muster erklären | Eigene Fragen zum Text, Text weiterschreiben |
+| ● Grundlage | Vorwissen sichern, mit Hilfen, kleiner Umfang, anschaulich | Aufgaben mit Zwanzigerfeld-Bild | Bild-Satz-Zuordnung, Ja/Nein-Fragen |
+| ●● Kern | Lernziel der Stunde, ohne Bildhilfe, Regelanwendung | Aufgaben ohne Bild, Tauschaufgaben | W-Fragen mit Satzanfang |
+| ●●● Herausforderung | Offene oder Umkehraufgaben, Begründen, Übertragen, Erfinden | Platzhalteraufgaben, eigene Aufgaben erfinden, Muster erklären | Eigene Fragen zum Text, Text weiterschreiben |
 
-Diese Stufen entsprechen den Anforderungsbereichen I–III der Bildungsstandards.
+Die Niveaus entsprechen grob den Anforderungsbereichen I–III der Bildungsstandards (Reproduzieren, Zusammenhänge herstellen, Verallgemeinern und Reflektieren).
 
 ## Differenzierungswege (kombinierbar)
 
@@ -36,5 +36,5 @@ Diese Stufen entsprechen den Anforderungsbereichen I–III der Bildungsstandards
 
 - **LRS:** Größere Schrift, mehr Zeilenabstand, kürzere Texte, Silbenhilfe falls eingeführt, Vorlesemöglichkeit.
 - **Rechenschwäche:** Strukturierte Anschauung (Fünfer-/Zehnerstruktur), kein zählendes Rechnen fördern, Darstellungswechsel.
-- **Hochbegabung / schnelle Lerner:** Offene, komplexe Aufgaben; Begründen, Forschen, Erfinden.
+- **Hochbegabung:** Offene, komplexe Aufgaben; Begründen, Forschen, Erfinden (●●● steht trotzdem allen offen).
 - **Konzentration / ADHS:** Wenige Aufgaben pro Seite, klare Abschnitte, Abhak-Kästchen.

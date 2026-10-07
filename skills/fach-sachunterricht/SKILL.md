@@ -36,6 +36,12 @@ Gute Themen vernetzen Perspektiven (z. B. "Wasser": Naturwissenschaft + Geograph
 - **Fachlich korrekt** und anschlussfähig: Vereinfachen ja, Falsches nein (z. B. nicht "Pflanzen essen Erde").
 - **Fachwortschatz** mit Wortspeicher, Bild und Artikel aufbauen.
 
+## Kernkonzepte im Fach
+
+- Forschender Kreislauf ist gelebtes Growth Mindset: Vermutungen dürfen falsch sein, „Ich habe herausgefunden, dass meine Vermutung nicht stimmte" ist ein Ergebnis.
+- Niveaus: ● beobachten und beschreiben (bildgestützt), ●● Versuch durchführen und dokumentieren, ●●● erklären, übertragen, eigene Forscherfrage.
+- Ich-kann-Ziel nennt Denk- und Arbeitsweise und Inhalt („Ich kann eine Vermutung aufschreiben und prüfen.").
+
 ## Forscherheft / Versuchsprotokoll (Vorlage nach Klassenstufe)
 
 Kl. 1/2 (bildgestützt):

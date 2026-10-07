@@ -44,7 +44,7 @@ Einheitlich nutzen und mit Symbol verknüpfen:
 | prüfe / kontrolliere | nachsehen, ob es stimmt |
 | erzähle | mündlich darstellen |
 
-Operatoren ab Klasse 3 schrittweise einführen ("beschreibe", "begründe"), in Klasse 1/2 vor allem handlungsnahe Verben.
+Operatoren ab Klasse 3 schriftlich schrittweise einführen ("beschreibe", "begründe"), in Klasse 1/2 vor allem handlungsnahe Verben. Erklären und Begründen (●●●, Reflexion) in Klasse 1/2 mündlich oder mit Satzanfang ("Ich weiß es, weil …").
 
 ## Mehrsprachigkeit als Ressource
 

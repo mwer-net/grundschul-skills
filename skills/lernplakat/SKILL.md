@@ -11,7 +11,7 @@ Ein Lernplakat sichert Wissen dauerhaft im Raum. Es wird im Unterricht gemeinsam
 
 ## Rückfragen
 
-1. **Zweck:** Merkplakat (Regel/Strategie), Anschauung (Zahlenstrahl, Uhr, Alphabet), Wortspeicher, Klassenregeln/Rituale oder Tafelbild für eine Stunde?
+1. **Zweck:** Merkplakat (Regel/Strategie), Anschauung (Zahlenstrahl, Uhr, Alphabet), Wortspeicher, Klassenregeln/Rituale, Lernkultur (Wachstumsstufen, „noch"-Sätze, Hilfe-Regel) oder Tafelbild für den Kreisinput?
 2. **Format:** A3, A2 (aus A4-Kacheln) oder digital (Whiteboard)? *Empfehlung: A3 für Merkplakate.*
 3. **Kernaussage:** Welche eine Regel/Strategie soll hängen bleiben? Gibt es Lehrwerksformulierungen, die übernommen werden sollen?
 4. **Teilweise leer lassen?** Plakat mit Lücken zum gemeinsamen Ausfüllen im Unterricht?
@@ -22,12 +22,13 @@ Ein Lernplakat sichert Wissen dauerhaft im Raum. Es wird im Unterricht gemeinsam
 - Beispiel-orientiert: Regel + 1–2 farbig markierte Beispiele ("Nomen schreibt man groß: der **H**und, die **S**onne").
 - Strategien als nummerierte Schritte mit Symbolen (z. B. Rechenweg "Erst zum Zehner, dann weiter").
 - Farbcodes konsistent mit Arbeitsblättern und Klassenkonvention.
-- Leitfigur Willi oder Wilma Waschbär als Wiedererkennung (eine Figur pro Plakat).
+- Willi oder Wilma Waschbär mit Funktion (spricht den Merksatz oder den Strategietipp in der Sprechblase), eine Figur pro Plakat.
 - Fachlich exakte Begriffe in Kindersprache, keine falschen Vereinfachungen ("Minus macht kleiner" stimmt später nicht – lieber "Wegnehmen").
 
 ## Tafelbild / Whiteboard-Folien
 
-- Struktur: Thema/Frage oben, Erarbeitung in der Mitte, Ergebnis/Merksatz unten gerahmt.
+- Für den Kreisinput (10–12 min): Ich-kann-Ziel oben, Erarbeitung in der Mitte, Ergebnis/Merksatz unten gerahmt, zum Schluss eine Folie mit den Lernaufgaben ● / ●● / ●●● zur Auswahl.
+- Für die Reflexion: Folie mit der Wachstumsgrafik und der Reflexionsfrage.
 - Pro Folie ein Schritt; max. 3 Folien pro Unterrichtsphase.
 - Bilder groß, Text minimal; das Tafelbild entsteht im Unterricht, nicht als fertiger Vortrag.
 - Kinder-Ergebnisse einplanen (leere Felder, Platz für Wortkarten).

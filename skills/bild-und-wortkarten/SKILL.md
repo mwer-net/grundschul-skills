@@ -9,7 +9,7 @@ Laden mit: `grundschul-didaktik`, passendem `fach-*`, `canva-materialerstellung`
 
 ## Rückfragen
 
-1. **Einsatz:** Tafel/Whiteboard für die ganze Klasse (groß, A5 bis A4), Partner-/Freiarbeit (klein, ca. 6 × 9 cm) oder Wortspeicher an der Wand?
+1. **Einsatz:** Tafel/Whiteboard für die ganze Klasse (groß, A5 bis A4), Partner-/Freiarbeit (klein, ca. 7 × 10 cm, 8 pro A4) oder Wortspeicher an der Wand?
 2. **Inhalt:** Wortliste vorhanden oder soll ich sie aus Lehrplan/Thema erstellen? *Empfehlung: Ich schlage 12–16 Wörter vor, du streichst.*
 3. **Kartentyp:** Nur Bild, nur Wort, Bild + Wort, Vorder-/Rückseite (Bild vorne, Wort hinten)?
 4. **Sprachliche Hilfen:** Artikel mit Farbcode? Pluralform? Silbenbögen?

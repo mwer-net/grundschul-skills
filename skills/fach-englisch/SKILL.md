@@ -14,7 +14,7 @@ Nach dem Rückfrage-Protokoll aus `grundschul-didaktik` (eine Frage pro Nachrich
 1. **Klasse und Lernjahr:** Ab wann wird Englisch unterrichtet, im wievielten Lernjahr ist die Klasse?
 2. **Topic:** z. B. colours, numbers, animals, food, clothes, weather, my body, school things, family, hobbies, seasons/festivals.
 3. **Schriftbild:** Wird schon gelesen/geschrieben oder nur mündlich gearbeitet? *Empfehlung im 1. Lernjahr: Schriftbild nur unterstützend.*
-4. **Lehrwerk und Rituale:** Lehrwerk, Handpuppe/Maskottchen, Begrüßungsritual, Classroom phrases?
+4. **Lehrwerk und Rituale:** Lehrwerk, Handpuppe im Unterricht, Begrüßungsritual, Classroom phrases? (Leitfigur auf dem Material bleibt Willi oder Wilma Waschbär.)
 5. **Phase:** Einführung neuer Wörter, Festigung, Anwendung (Dialog, Spiel) oder Story?
 
 ## Didaktische Leitlinien
@@ -35,9 +35,16 @@ Nach dem Rückfrage-Protokoll aus `grundschul-didaktik` (eine Frage pro Nachrich
 | Listening tasks | "Listen and colour / tick / number / draw" mit Bildern; Hörtext für die Lehrkraft beilegen |
 | Speaking cards | Dialogkarten mit Bildimpulsen, Redemittel als Sprechblasen |
 | Mini-Book | Faltbuch aus A4 (8 Seiten), Satzmuster wiederholt ("I can see a …") |
-| Picture dictionary | Bild + Wort + ggf. Lautschrift-frei, Kinder malen selbst |
+| Picture dictionary | Bild + Wort, ohne Lautschrift, Kinder malen selbst |
 | Games | Bingo, Memory, "I spy", Kim's game, Simon says (siehe `lernspiel`) |
 | Worksheets | Wenig Text, Arbeitsanweisungen in einfachem Englisch mit Symbol ("Colour.", "Match.", "Listen and tick.") |
+
+## Kernkonzepte im Fach
+
+- Ich-kann-Ziel auf Deutsch (Verständnis sichern), ab dem 2. Lernjahr zusätzlich auf Englisch („I can name colours.").
+- Wachstums-Selbsteinschätzung mit den deutschen Kindersätzen; Reflexion auf Deutsch erlaubt.
+- Niveaus: ● hören und zeigen/ankreuzen, ●● sprechen oder Wort zuordnen, ●●● eigene Sätze mit Chunks oder Dialog.
+- Fehler beim Sprechen nicht korrigierend unterbrechen, sondern richtig wiederholen (Recasting).
 
 ## Sprachliche Regeln
 

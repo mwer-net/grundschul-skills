@@ -12,7 +12,7 @@ Laden mit: `grundschul-didaktik`, `fach-deutsch` (Lesedidaktik), ggf. Fach-Skill
 1. **Textsorte:** Erzählung, Sachtext, Gedicht/Reim, Dialog/Lesetheater, Lesespur/Leserätsel? *Empfehlung abhängig vom Ziel; für Sachthemen Sachtext.*
 2. **Leseziel:** Leseflüssigkeit (Lautlesen, wiederholtes Lesen) oder Leseverstehen (Fragen, Strategien)? *Unterscheidet Textlänge und Aufgaben.*
 3. **Lesestand der Gruppe:** Wörter auf Silbenebene, kurze Sätze, flüssig? Gibt es Silbenfärbung/-bögen im Lehrwerk?
-4. **Niveaus:** 2 oder 3 Textfassungen mit gleichem Inhalt? *Empfehlung: 3.*
+4. **Niveaus:** 2 oder 3 Textfassungen mit gleichem Inhalt? *Empfehlung: 3, gekennzeichnet mit ● / ●● / ●●● zur Selbstwahl.*
 5. **Aufgaben zum Text:** Ja/nein, wie viele?
 
 ## Textnormen nach Lesestand
@@ -38,11 +38,13 @@ Regeln:
 2. **Zusammenhänge herstellen:** Reihenfolge ordnen, Warum-Fragen, Überschriften zu Absätzen.
 3. **Reflektieren und bewerten:** Meinung begründen, Ende weiterschreiben, Frage an den Text stellen.
 
+Die Aufgaben werden als ● / ●● / ●●● zur Selbstwahl angeboten (entspricht grob den drei Bereichen). Oben das Ich-kann-Ziel („Ich kann Informationen in einem Sachtext finden."), unten Wachstums-Selbsteinschätzung und Reflexionsfrage („Welche Lesestrategie hat dir geholfen?").
+
 Lesestrategien sichtbar machen (ab Kl. 2): Vor dem Lesen Überschrift/Bild betrachten und vermuten, beim Lesen unbekannte Wörter markieren, nach dem Lesen Wichtiges unterstreichen.
 
 ## Leseflüssigkeit
 
-- Lautlesetandem-Texte: kurz (Lesezeit ca. 1–2 Minuten), Wiederholungsbögen (Feld zum Abhaken nach jedem Lesedurchgang: ① ② ③ ④).
+- Lautlesetandem-Texte: kurz (Lesezeit ca. 1–2 Minuten), Wiederholungsbögen (Feld zum Abhaken nach jedem Lesedurchgang: ① ② ③ ④). Der eigene Fortschritt zählt, kein Vergleich zwischen Kindern.
 - Lesetheater/Dialoge mit Rollenfarben.
 - Blitzlesekarten mit häufigen Wörtern.
 
@@ -60,3 +62,4 @@ Lesestrategien sichtbar machen (ab Kl. 2): Vor dem Lesen Überschrift/Bild betra
 - [ ] Fassungen inhaltsgleich
 - [ ] Fragen sind nur mit dem Text lösbar, nicht aus Weltwissen
 - [ ] Lösungen beigelegt
+- [ ] Ich-kann-Ziel, Niveau-Punkte, Wachstums-Selbsteinschätzung und Reflexionsfrage vorhanden

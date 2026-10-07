@@ -25,7 +25,7 @@ Canvas KI formuliert sonst eigene Texte, verwendet falsche Schriftgrößen oder 
   - **Achtung Formatfalle:** `"A4 Document (Portrait)"` erzeugt ein *responsives* Canva-Doc. Darin sind nur Text-Operationen erlaubt (`replace_text`, `find_and_replace_text`, `update_fill`, `delete_element`) – keine Formen, keine Positionierung. Für Arbeitsblätter immer eine **feste Seite** (`"type": "fixed"` in `read-design`) verwenden, also `"Worksheet (A4 Portrait)"`.
   - Maße danach in `read-design` prüfen. Canva liefert bei „A4"-Formaten oft 816 × 1056 px (US Letter). Das ist für den Druck unkritisch, solange der Export mit `size: "a4"` erfolgt; sonst `resize-design` auf 794 × 1123 px.
   - Danach `get-create-design-async-job` abfragen, bis das Design fertig ist (nur wenn kein Widget es anzeigt).
-- **Mit Markenvorlage der Schule/Klasse** (Brand Kit mit Schulschrift, Farben, Maskottchen): stattdessen die Legacy-Werkzeuge mit `brand_kit_id` (`generate-design` → `create-design-from-candidate`). Vorher mit `list-brand-kits` anbieten.
+- **Mit Markenvorlage der Schule/Klasse** (Brand Kit mit Schulschrift, Farben, Willi/Wilma Waschbär): stattdessen die Legacy-Werkzeuge mit `brand_kit_id` (`generate-design` → `create-design-from-candidate`). Vorher mit `list-brand-kits` anbieten.
 - **Vorhandene Vorlage der Lehrkraft:** `search-designs` → `copy-design` → bearbeiten. So bleiben Kopfzeile, Symbole und Schrift der Klasse erhalten. Bei wiederkehrenden Formaten (Wochenplan, Laufzettel) ist das der bevorzugte Weg.
 - **Viele gleichartige Karten** (Domino, Memory, Wortkarten): wenn eine Brand-Template-Vorlage mit Feldern existiert, `get-brand-template-dataset` + `autofill-design`; sonst ein Design mit mehreren Seiten erzeugen und per `edit-design` befüllen.
 
@@ -33,7 +33,7 @@ Canvas KI formuliert sonst eigene Texte, verwendet falsche Schriftgrößen oder 
 
 - Was ein Bild bekommt und wie viel: `grundschul-didaktik/references/kindgerecht-gestalten.md` (Leitfigur Willi/Wilma Waschbär mit fertigen Media-IDs, Bilder nur mit Mehrwert; Weglass-Test).
 - Eigene Illustrationen: `generate-image` mit dem **Stil-Satz** aus `kindgerecht-gestalten.md`, für jedes Bild eines Materials wörtlich gleich, danach das Motiv konkret. Keine Schrift, Zahlen oder Uhren im KI-Bild. Für Ausmalbilder: "nur schwarze Umrisse, keine Füllung".
-- `generate-image` liefert eine `media_id` (z. B. `MAHX…`). Diese direkt mit `edit-design` → `insert_fill` (`asset_type: "image"`, `asset_id: <media_id>`, `alt_text`, Position und Größe) ins Design setzen – kein Upload nötig. Die Leitfigur einmal erzeugen und die `media_id` für alle Auftritte und Folgematerialien wiederverwenden (Titel und ID der Lehrkraft nennen).
+- `generate-image` liefert eine `media_id` (z. B. `MAHX…`). Diese direkt mit `edit-design` → `insert_fill` (`asset_type: "image"`, `asset_id: <media_id>`, `alt_text`, Position und Größe) ins Design setzen – kein Upload nötig. Leitfigur und Wachstumsgrafik nicht neu erzeugen, sondern die IDs aus `kindgerecht-gestalten.md` einsetzen; neue Posen dort mit ID ergänzen.
 - KI-Bilder haben einen weißen Hintergrund. Auf weißer Seite unproblematisch; auf farbigen Flächen vorher `remove-background` oder das Bild außerhalb der Fläche platzieren.
 - Sachabbildungen (Tiere, Pflanzen, Körper): realistisch, fachlich korrekt prüfen. Bei Zweifel Foto aus der Canva-Bibliothek statt KI-Bild.
 - Hochladen von Bildern der Lehrkraft: `upload-asset-from-url` bzw. `create-upload-url`; Freisteller: `remove-background`.
@@ -54,6 +54,7 @@ Wenn ein Upload nicht möglich ist (abgeschottete Umgebung, blockierte Upload-UR
 - `read-design` lesen und gegen das Briefing abgleichen. Die Antwort wird schnell sehr groß; deshalb mit `filter.fields` gezielt anfordern (`thumbnails` für die Optik, `design_content` für Elementpositionen) und lange Ergebnisse als Datei mit `python3`/`jq` auswerten statt am Stück zu lesen.
   - Steht der Text wörtlich so da? Keine erfundenen Zusätze?
   - Schriftgrößen gemäß Klassenstufe (`grundschul-didaktik`)? Keine Schmuck- oder Großbuchstabenschrift für Fließtext?
+  - Ich-kann-Ziel oben, Niveau-Punkte an jeder Aufgabe, Wachstumsgrafik und Reflexionsfrage unten?
   - Genug Schreibfläche, Lineatur vorhanden?
   - Keine Deko-Elemente ohne Funktion, kein Text auf unruhigem Hintergrund?
   - Funktioniert es in Schwarz-Weiß?
@@ -78,7 +79,7 @@ Wenn ein Upload nicht möglich ist (abgeschottete Umgebung, blockierte Upload-UR
 
 ### 6. Ablage
 
-- Ordner pro Fach/Thema anlegen (`create-folder`, `move-item-to-folder`), Titel nach Schema: `Kl2_Mathe_Uhrzeit_AB1_Niveau-A`.
+- Ordner pro Fach/Thema anlegen (`create-folder`, `move-item-to-folder`), Titel nach Schema: `Kl2_Mathe_Uhrzeit_AB1`. Niveau-Varianten und Lösungsblatt sind Seiten im selben Design.
 
 ## Brief-Vorlage für `create-design`
 
@@ -93,14 +94,14 @@ Schriften: Überschrift in {Fredoka/Baloo 2} (fett, Hauptfarbe, {px}), aller üb
 Zeilenabstand 1,5, linksbündig. Großzügige Ränder und viel Weißraum.
 Jede Aufgabe ein eigener Block: helle Fläche mit stark abgerundeten Ecken, ohne Rahmenlinie.
 Aufgabennummer als ausgefüllter Kreis in der Hauptfarbe mit weißer, fetter Ziffer links neben der Anweisung.
-Unter der Überschrift das Ich-kann-Ziel in einer schmalen hellen Zeile. Jeder Aufgabenblock trägt rechts oben seine Niveau-Punkte (●, ●● oder ●●●) in Dunkelgrau.
-Fußzeile als helle abgerundete Fläche, mindestens 80 px hoch: Ich-kann-Satz und "Male an, wie weit du schon bist:", rechts Platz (ca. 220 × 110 px) für die Wachstumsgrafik.
+Unter der Überschrift das Ich-kann-Ziel und die Wahlhilfe in einer schmalen hellen Zeile. Jeder Aufgabenblock trägt rechts oben seine Niveau-Punkte (●, ●● oder ●●●) in Dunkelgrau; alle Blöcke sehen gleich aus.
+Fußzeile als helle abgerundete Fläche, mindestens 80 px hoch: Ich-kann-Satz und "Male an, wie weit du schon bist:", rechts Platz (ca. 220 × 110 px) für die Wachstumsgrafik, darunter die Reflexionsfrage.
 Platz lassen für: {Willi/Wilma oben rechts ca. 110 px mit Sprechblase, Uhren/Felder/benötigte Bilder …}.
 KEINE Bilder, Icons oder Cliparts selbst einfügen – die werden später ergänzt.
 Schreiblinien dunkelgrau und schlicht. Keine Dekoration ohne Funktion, kein Text auf Bildern, keine Großbuchstaben-Texte.
 Verwende exakt folgenden Text, nichts umformulieren, nichts ergänzen:
 ---
-{vollständiger Text inkl. Kopfzeile "Name: ____  Datum: ____", Ich-kann-Ziel, Niveau-Punkte vor jeder Aufgabe, Fußzeilentext}
+{vollständiger Text inkl. Kopfzeile "Name: ____  Datum: ____", Ich-kann-Ziel, Wahlhilfe, Niveau-Punkte an jeder Aufgabe, Fußzeilentext, Reflexionsfrage}
 ---
 ```
 

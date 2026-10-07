@@ -55,6 +55,13 @@ Nach dem Rückfrage-Protokoll aus `grundschul-didaktik` (eine Frage pro Nachrich
 ### Sprechen und Zuhören
 - Gesprächsregeln, Erzählkreis, Hörverstehensaufgaben (Hörtext + Bildaufgaben), szenisches Spiel.
 
+## Kernkonzepte im Fach
+
+- Ich-kann-Ziele an Strategien knüpfen („Ich kann Wörter verlängern, um b/p am Ende richtig zu schreiben.").
+- Niveaus z. B. Rechtschreibung: ● Wörter mit Hilfe sortieren, ●● Strategie selbst anwenden, ●●● Regel erklären oder eigene Beispiele finden.
+- Strategietipps statt „Pass besser auf": Mitsprechen, Verlängern, Ableiten, Nachschlagen.
+- Schreibkonferenz mit Prozess-Rückmeldung („Dein Anfang macht neugierig, als Nächstes …").
+
 ## Wortmaterial-Regeln
 
 - Kl. 1: lautgetreue Wörter, 1–2 Silben, aus eingeführten Buchstaben (Liste erfragen).

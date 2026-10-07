@@ -7,29 +7,31 @@
 │ Name: ________   Datum: ______   [Thema] │  ← Kopfzeile, klein, 1 Zeile
 │                                          │
 │  ÜBERSCHRIFT (groß)  [Willi/Wilma + Tipp] │  ← 1 Zeile, max. 5 Wörter
+│  Ich kann …  · Wähle deine Aufgaben.     │  ← Ich-kann-Ziel + Wahlhilfe
 │                                          │
-│ ① [✎] Anweisung in einem Satz.           │  ← Aufgabenblock 1
+│ ① [✎] Anweisung in einem Satz.        ●  │  ← Grundlage, mit „So geht's"
 │    ┌──────────────────────────────┐      │
 │    │  Arbeitsfläche               │      │
 │    └──────────────────────────────┘      │
 │                                          │
-│ ② [✂] Anweisung …                        │  ← Aufgabenblock 2
+│ ② [✂] Anweisung …                    ●●  │  ← Kern
 │                                          │
-│ ●●● Herausforderung                      │  ← Knobelei, frei wählbar
+│ ③ [✎] Knobelaufgabe …               ●●● │  ← Herausforderung
 │                                          │
 │ Ich kann …  Samen→Keimling→Pflanze→Blume │  ← Wachstums-Selbsteinschätzung
+│ Was hat dir geholfen? ______________     │  ← Reflexionsfrage
 └──────────────────────────────────────────┘
 ```
 
 - Ränder: mindestens 1,5 cm, zum Abheften links 2 cm.
-- Pro A4-Seite: Klasse 1: 2–3 Aufgaben, Klasse 2: 3–4, Klasse 3/4: 4–5.
+- Pro A4-Seite: Klasse 1: 3 Aufgaben (je Niveau eine), Klasse 2: 3–4, Klasse 3/4: 4–5.
 - Lesefluss von oben nach unten, links nach rechts. Keine schräg platzierten Elemente, keine Zwei-Spalten-Texte in Klasse 1/2.
 - Weißraum ist ein Gestaltungsmittel. Mindestens 30 % der Seite frei.
 - Aufgabenblöcke durch Abstand oder dezente Rahmen trennen; einheitlich im ganzen Material.
 
 ## Schrift
 
-- Schulschrift oder kindgerechte Druckschrift: einstöckiges "a" und "g", "I" (groß i) und "l" (klein L) unterscheidbar, deutliche Ober- und Unterlängen. Bewährt: Grundschrift (Grundschulverband), Andika, Fibel Nord/Süd, Druckschrift des Bundeslandes. In Canva: Schulschrift über das Brand Kit hochladen (OTF/TTF/WOFF), sonst eine klare serifenlose Schrift wählen und das "a" prüfen.
+- Schulschrift oder kindgerechte Druckschrift: in Klasse 1/2 einstöckiges "a" und "g" (wie die Kinder schreiben), "I" (groß i) und "l" (klein L) unterscheidbar, deutliche Ober- und Unterlängen. Bewährt: Grundschrift (Grundschulverband), Andika, Fibel Nord/Süd, Druckschrift des Bundeslandes. In Canva: Schulschrift über das Brand Kit hochladen (OTF/TTF/WOFF), sonst eine klare serifenlose Schrift wählen und das "a" prüfen.
 - Maximal zwei Schriften: eine für Überschriften, eine für alles andere.
 - Keine Großbuchstaben-Texte, kein Kursivsatz, keine Schmuckschriften für Lesetext. Hervorhebung durch Fettdruck.
 - Größen siehe Tabelle im SKILL.md. Überschriften ca. 1,5-fach.
@@ -58,7 +60,7 @@ Schreibfläche immer größer als gedacht: Kinderhandschrift braucht Platz.
 
 ## Farbe
 
-- Eine Palette pro Material (Paletten und Regeln in `kindgerecht-gestalten.md`). Farbe hat Bedeutung: Aufgabennummern, Blockflächen, Farbcodes für Niveaus, Stationen, Wortarten.
+- Eine Palette pro Material (Paletten und Regeln in `kindgerecht-gestalten.md`). Farbe hat Bedeutung: Aufgabennummern, Blockflächen, Stationen, Wortarten. Niveaus nie farblich unterscheiden, nur mit Punkten (gleiche Optik auf allen Niveaus).
 - Wortarten (übliche Konvention, Klasse prüfen): Nomen blau, Verben rot, Adjektive grün. Artikel: der blau, die rot, das grün (DaZ-Konvention; Lehrwerk prüfen).
 - Mathe Stellenwerte: Einer blau, Zehner rot, Hunderter grün (Montessori-Farben) – Klassenkonvention prüfen.
 - Pastell-Hintergründe nur hell (Kontrast!). Kein Text auf Bildern.

@@ -8,13 +8,13 @@ Ziel: Mit möglichst wenigen, gezielten Fragen ein vollständiges gemeinsames Ve
    - Herleitbar (nicht fragen, als Annahme nennen): Zahlenraum aus Klassenstufe und Halbjahr, Schriftgröße aus Klassenstufe, Lineatur, übliche Bearbeitungszeit.
    - Nicht herleitbar (fragen): alles, was das Ergebnis sichtbar verändert und in der Anfrage fehlt.
 2. **Reihenfolge nach Abhängigkeit.** Frühere Antworten verändern spätere Fragen:
-   1. Klassenstufe (und ggf. Halbjahr)
+   1. Klassenstufe (und ggf. Halbjahr), Bundesland
    2. Fach, Thema, konkretes Lernziel
    3. Funktion in der Reihe (Einführung / Übung / Vertiefung / Überprüfung)
    4. Lerngruppe (Leistungsspanne, DaZ, Förderbedarfe)
    5. Materialspezifisches (aus dem Material-Skill)
    6. Fachspezifisches (aus dem Fach-Skill)
-   7. Klassenkonventionen (Schrift, Symbole, Farbcodes) – die Leitfigur steht fest (Willi/Wilma Waschbär)
+   7. Klassenkonventionen (Schrift, Symbole, Farbcodes) – fest stehen und werden nicht gefragt: Leitfigur Willi/Wilma Waschbär, Niveaus ● / ●● / ●●●, Wachstums-Selbsteinschätzung
    8. Ausgabe (Farbe/s-w, Anzahl Exemplare, Laminieren)
 3. **Eine Frage pro Nachricht.** Ausnahme: Zwei eng verbundene Kleinigkeiten dürfen zusammen gefragt werden.
 4. **Jede Frage hat dieses Format:**
@@ -37,7 +37,8 @@ Ziel: Mit möglichst wenigen, gezielten Fragen ein vollständiges gemeinsames Ve
    - Arbeitsblatt "Die Uhr – volle und halbe Stunden", Klasse 2, A4 hoch, s/w-tauglich
    - Ziel: Uhrzeiten (volle/halbe Stunde) ablesen und einzeichnen
    - 3 Niveaus zur Selbstwahl (● ablesen mit Hilfsuhr, ●● ablesen + einzeichnen, ●●● Zeitspannen)
-   - Ich-kann-Ziel oben, Wachstums-Selbsteinschätzung unten
+   - Ich-kann-Ziel oben, Wachstums-Selbsteinschätzung und Reflexionsfrage unten
+   - Willi Waschbär gibt den Strategietipp
    - Schrift: Grundschrift 18 pt, Symbole wie im Lehrwerk
    - Plus Lösungsblatt
    Passt das so?

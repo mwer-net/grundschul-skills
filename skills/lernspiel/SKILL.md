@@ -15,7 +15,7 @@ Lernspiele sind Übungsformate: Der Inhalt muss schon eingeführt sein. Das Spie
 2. **Spielform:** *Empfehlung abhängig vom Inhalt (Tabelle unten).*
 3. **Gruppengröße und Spielzeit:** Partner / 3–4 Kinder / ganze Klasse; 10 oder 20 Minuten.
 4. **Wiederverwendbarkeit:** Laminieren (dann Farbe, robuste Karten) oder einmalig auf Papier?
-5. **Differenzierung:** Zwei Kartensätze (leicht/schwer, farbig markiert) oder ein Satz?
+5. **Differenzierung:** Drei Kartensätze ● / ●● / ●●● zur Selbstwahl oder ein gemischter Satz? *Empfehlung: drei Sätze, Punkte in der Kartenecke.*
 
 ## Spielformen
 
@@ -33,16 +33,18 @@ Lernspiele sind Übungsformate: Der Inhalt muss schon eingeführt sein. Das Spie
 ## Pflichtbestandteile
 
 1. **Spielanleitung** für Kinder: max. 5 nummerierte Schritte mit Symbolen, Spieleranzahl, Material, Ziel. Anleitung als Karte zum Ausdrucken.
-2. **Kurzinfo für die Lehrkraft:** Lernziel, Vorbereitung (Ausschneiden, Laminieren), Varianten.
-3. **Selbstkontrolle:** Lösung auf der Rückseite, Kontrollbild, geschlossene Kette oder Lösungskarte.
-4. **Schneidelinien** gestrichelt, Karten gleich groß, Rückseite zum doppelseitigen Druck.
+2. **Kurzinfo für die Lehrkraft:** Ich-kann-Ziel, Vorbereitung (Ausschneiden, Laminieren), Varianten.
+3. **Ich-kann-Ziel und Reflexion** auf der Anleitungskarte: „Ich kann …" oben, unten eine Reflexionsfrage („Welche Aufgabe war eine gute Herausforderung?").
+4. **Selbstkontrolle:** Lösung auf der Rückseite, Kontrollbild, geschlossene Kette oder Lösungskarte.
+5. **Schneidelinien** gestrichelt, Karten gleich groß, Rückseite zum doppelseitigen Druck.
 
 ## Gestaltungsregeln
 
 - Karten mind. 6 × 6 cm (Kl. 1/2), ein Element pro Karte, Text groß (mind. 20 pt), Bild eindeutig.
-- Farbcode für Sets/Niveaus zusätzlich mit Symbol in der Kartenecke.
+- Niveaus nur mit Punkten ● / ●● / ●●● in der Kartenecke, nicht mit Farbe; Farbe nur zur Unterscheidung verschiedener Spiele.
 - Rückseiten gestalten (Muster + Spielname), damit Sets nicht vermischt werden.
 - Kein Gewinnen durch reines Glück: Inhalt entscheidet.
+- Wenn möglich eine kooperative Variante anbieten (gemeinsam gegen die Zeit, Klassenziel). Keine Ranglisten über mehrere Runden; wer eine Aufgabe nicht weiß, darf eine Tippkarte nehmen.
 
 ## Qualitätscheck
 
