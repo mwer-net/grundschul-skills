@@ -23,7 +23,7 @@ Laden mit: `grundschul-didaktik`, passendem `fach-*`, `canva-materialerstellung`
    - **AB II Zusammenhänge herstellen** ca. 30–40 %
    - **AB III Verallgemeinern und Reflektieren** ca. 10–20 %
 3. Jede Aufgabe: Punktzahl sichtbar, Aufgabenformate bekannt aus dem Unterricht (keine neuen Formate im Test!). Keine Niveau-Wahl im benoteten Test; die Anforderungsbereiche ersetzen die Punkte ● / ●● / ●●●.
-4. Abschluss: Selbsteinschätzung je Ich-kann-Ziel mit Wachstumsstufen (vor Abgabe ausfüllen) und Rückmeldefeld mit Prozess-Satzanfängen („Du hast geschafft, …", „Als Nächstes übst du …"). Nicht Erreichtes als „noch nicht" formulieren.
+4. Abschluss: Selbsteinschätzung je Ich-kann-Ziel mit Wachstumsstufen (vor Abgabe ausfüllen, fließt nie in die Note ein; nach der Rückgabe mit dem Ergebnis vergleichen: „Stimmt meine Einschätzung?") und Rückmeldefeld mit Prozess-Satzanfängen („Du hast geschafft, …", „Als Nächstes übst du …"). Nicht Erreichtes als „noch nicht" formulieren.
 
 ## Erwartungshorizont (immer mitliefern)
 
@@ -37,6 +37,7 @@ Laden mit: `grundschul-didaktik`, passendem `fach-*`, `canva-materialerstellung`
 
 - "Ich kann …"-Sätze aus Kindersicht, je Lernziel eine Zeile, mit Beispielaufgabe: "Ich kann Zahlen bis 100 am Hunderterfeld zeigen. (z. B. 47)".
 - Skala mit den Wachstumsstufen Samen / Keimling / Pflanze / Blume (siehe `grundschul-didaktik/references/kernkonzepte.md`), dazu Spalte für Lehrkraft-Einschätzung. Keine Smileys, keine Ampel.
+- Die Beispielaufgabe ist der Prüfstein: Das Kind löst sie und schätzt sich danach ein. Kinder in Klasse 1/2 überschätzen sich oft; der Vergleich mit der Lehrkraft-Spalte wird im Gespräch besprochen, nicht bewertet.
 - Lernlandkarte als Weg/Insel-Karte für Kl. 1/2 ansprechend gestalten, Stationen = Lernziele.
 
 ## Qualitätscheck

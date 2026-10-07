@@ -24,7 +24,8 @@ Quellen zu Growth Mindset und Churer Modell stehen in `kernkonzepte.md`.
 
 ## Deutschdidaktik
 
-- **Rechtschreibung:** Systematischer, regelgeleiteter Rechtschreibunterricht ist wirksamer als "Lesen durch Schreiben" ohne Korrektur (Bonner Studie: ca. 55 % mehr Fehler Ende Klasse 4 bei LdS; Ise/Engel/Schulte-Körne 2012). Anlauttabelle bleibt sinnvoll als Hilfe beim Lautieren, aber mit früher orthografischer Begleitung und Grundwortschatz.
+- **Rechtschreibung:** Systematischer, regelgeleiteter Rechtschreibunterricht ist wirksamer als "Lesen durch Schreiben" ohne Korrektur (Bonner Studie, Röhr-Sendlmeier & Kuhl 2018: ca. 55 % mehr Rechtschreibfehler Ende Klasse 4 bei LdS gegenüber Fibelunterricht). Anlauttabelle bleibt sinnvoll als Hilfe beim Lautieren, aber mit früher orthografischer Begleitung und Grundwortschatz.
+  - https://www.uni-bonn.de/de/universitaet/presse-kommunikation/presseservice/archiv-pressemitteilungen/2018/237-2018
   - https://www.phlu.ch/_Resources/Persistent/8/e/1/e/8e1e5a544faa50a9f419e03dbf518622b47b6f3a/AB_FW_DE_Grundsaetze-der-Rechtschreibung_20190521.docx.pdf
   - https://www.friedrich-verlag.de/bildung-plus/schulleben/rechtschreibung-lernen-mit-grundwortschatzlisten/
 - **Silbenmethode / Silbenfärbung:** in der Praxis verbreitet, Evidenz für generelle Wirksamkeit uneinheitlich; Silbentrainings für schwache Leser zeigen Effekte. Nur verwenden, wenn die Klasse damit arbeitet.

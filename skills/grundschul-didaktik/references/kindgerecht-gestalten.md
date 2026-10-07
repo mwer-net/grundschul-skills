@@ -48,7 +48,7 @@ Feste Vorgabe für alle Materialien: Die Leitfigur ist **Willi Waschbär** oder 
 - **Wiederverwenden statt neu erzeugen:** Die freigestellte ID direkt mit `insert_fill` einsetzen. Für eine andere Pose (zeigt nach links, freut sich, denkt nach) `generate-image` mit dem Original als `imageReferences` und der Aussehen-Beschreibung oben aufrufen, danach `remove-background`. Neue Posen mit ID hier ergänzen.
 - Die IDs liegen im Canva-Konto der Lehrkraft, die die Figuren erstellt hat. In einem anderen Konto die Figuren mit Stil-Satz und Aussehen-Beschreibung neu erzeugen.
 - **Wer wann:** Pro Material eine Figur, abwechselnd über die Materialien einer Reihe; bei Partner- oder Dialogaufgaben auch beide.
-- **Immer mit Funktion:** Die Figur gibt einen Strategietipp in einer Sprechblase, zeigt auf das Beispiel („So geht's"), stellt die Herausforderung ●●●, hat sich bei „Finde den Fehler" vertan oder stellt die Reflexionsfrage. Sie spricht in „noch"-Sprache und lobt Strategie und Ausdauer, nie Begabung. Ohne Funktion keine Figur.
+- **Immer mit Funktion:** Die Figur gibt einen Strategietipp in einer Sprechblase, zeigt auf das Beispiel und denkt dort laut vor („So geht's: Zuerst … dann … zum Schluss prüfe ich …"), stellt die Herausforderung ●●●, hat sich bei „Finde den Fehler" vertan oder stellt die Reflexionsfrage. Sie spricht in „noch"-Sprache und lobt Strategie und Ausdauer, nie Begabung. Ohne Funktion keine Figur.
 - Höchstens 1–2 Auftritte pro Seite, klein (ca. 15 % der Seitenbreite), am Rand, nie zwischen Anweisung und Arbeitsfläche.
 
 ### 4. Bilder nur mit Mehrwert
