@@ -24,10 +24,10 @@ Farbe oder Schwarz-Weiß sowie die Bausteine (Selbsteinschätzung, Niveaus, Ster
 ```
 
 - Ränder: mindestens 1,5 cm, zum Abheften links 2 cm.
-- Pro A4-Seite (Richtwert): Klasse 1: 3–4 Aufgaben, Klasse 2: 4–5, Klasse 3/4: 5–6. Übungsaufgaben mit vollen Item-Reihen (Tabelle in `druck-und-platz.md`).
+- Pro A4-Seite (Richtwert): Klasse 1: 2–3 Aufgaben, Klasse 2: 3–4, Klasse 3: 4–5, Klasse 4: 5–6. Übersicht vor Menge; Items je Aufgabe (Tabelle in `druck-und-platz.md`).
 - Lesefluss von oben nach unten, links nach rechts. Keine schräg platzierten Elemente, keine Zwei-Spalten-Texte in Klasse 1/2.
 - Aufgaben **ohne Kasten**: hängende Nummer, 24–32 px Abstand zur nächsten Aufgabe, optional eine dünne graue Trennlinie. Rahmen nur, wo er eine Funktion hat (Wortspeicher, Sprechblase, Antwortkästchen, Ausschneideteile). Einheitlich im ganzen Material.
-- Weißraum gezielt einsetzen: zwischen Aufgaben und als Schreibfläche, nicht als Innenabstand in Rahmen. Kein ungenutzter Leerstreifen auf der Seite.
+- Weißraum gezielt einsetzen: zwischen Aufgaben und als Schreibfläche, nicht als Innenabstand in Rahmen. In Kl. 1/2 ist sichtbare Luft gewollt; in Kl. 3/4 kein ungenutzter Leerstreifen.
 
 ## Schrift
 

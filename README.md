@@ -14,9 +14,12 @@ skills/
 │   │                           sprachsensibel · quellen
 │   └── scripts/                entwurf.py (schnelle Entwürfe als HTML-Vorschau)
 ├── canva-materialerstellung/   Technik: Ablauf mit dem Canva MCP (erstellen, prüfen, korrigieren, exportieren)
-│   ├── references/             layout-und-bearbeitbarkeit (Raster, Platzbudget, bearbeitbar bauen)
+│   ├── references/             layout-und-bearbeitbarkeit (Raster, Platzbudget, bearbeitbar bauen) ·
+│   │                           visuelle-endkontrolle (Pflichtprüfung des fertigen Blatts)
 │   └── scripts/                layout_check.py (findet Überlappungen, Randfehler, fehlende Gruppen,
-│                               Flächen, Kontrast und Leerraum je Druckprofil)
+│                               Flächen, Kontrast, Leerraum, zu volle oder gequetschte Seiten) ·
+│                               sichtpruefung.py (vergrößerte Ausschnitte je Aufgabe) ·
+│                               seite_kopieren.py (Seite nachbauen, z. B. Lösungsblatt)
 │
 ├── unterrichtsplanung/         ┐
 ├── arbeitsblatt/               │
@@ -66,7 +69,7 @@ Alle Materialien verkörpern zwei Konzepte (`grundschul-didaktik/references/kern
 
 Leitfigur aller Materialien ist Willi oder Wilma Waschbär (`grundschul-didaktik/references/kindgerecht-gestalten.md`).
 
-Zu Beginn fragen die Skills einzeln ab: Materialart, Medium/Format, Farbe oder Schwarz-Weiß und je nach Materialart Selbsteinschätzung, Churer Modell und Sternchenaufgabe (`grundschul-didaktik/references/rueckfragen.md`). Daraus folgt das Druckprofil: s/w tonersparend mit Strichzeichnungen oder Farbe als Akzent. In beiden Profilen stehen Aufgaben ohne Kästen, damit mehr Übung auf eine Seite passt (`grundschul-didaktik/references/druck-und-platz.md`).
+Zu Beginn fragen die Skills einzeln ab: Materialart, Medium/Format, Farbe oder Schwarz-Weiß und je nach Materialart Selbsteinschätzung, Churer Modell und Sternchenaufgabe (`grundschul-didaktik/references/rueckfragen.md`). Daraus folgt das Druckprofil: s/w tonersparend mit Strichzeichnungen oder Farbe als Akzent. In beiden Profilen stehen Aufgaben ohne Kästen, damit der Platz für Aufgaben und Luft bleibt; Richtwerte je Klasse halten die Blätter übersichtlich (`grundschul-didaktik/references/druck-und-platz.md`).
 
 ## Didaktische Grundlage
 

@@ -56,7 +56,7 @@ Prozessbezogene Kompetenzen in jedes Material einbauen: Problemlösen, Kommunizi
 - Zwanzigerfeld: 2 × 10 Kreise, nach 5 Spalten Lücke oder Farbwechsel; Wendeplättchen rot/blau. Im s/w-Profil: rot = gefüllter Kreis, blau = leerer Kreis (Legende angeben), oder Kinder malen selbst an.
 - Hunderterfeld: 10 × 10, Fünferlinien hervorgehoben.
 - Stellenwerte: Farben der Klasse (häufig E blau, Z rot, H grün) – Konvention erfragen. Im s/w-Profil Buchstaben E/Z/H über der Stelle; Kinder können die Farben anmalen.
-- Uhren, Felder, Zahlenstrahl in Schwarz auf Weiß (auch im Farbprofil, Farbe nur für Hervorhebungen wie den Fünferwechsel), Reihen gefüllt; Mindestgrößen in `grundschul-didaktik/references/druck-und-platz.md`.
+- Uhren, Felder, Zahlenstrahl in Schwarz auf Weiß (auch im Farbprofil, Farbe nur für Hervorhebungen wie den Fünferwechsel), Reihen gleichmäßig verteilt; Mindestgrößen in `grundschul-didaktik/references/druck-und-platz.md`.
 - Zahlenstrahl: gleichmäßige Abstände, Zehner deutlich markiert.
 - Uhr: analoges Zifferblatt mit großen Ziffern, Stundenzeiger deutlich kürzer und dicker. **Nie von der KI zeichnen lassen** – `scripts/uhr.py` erzeugt exakte Zifferblätter als PNG, `scripts/uhr_canva.py` dieselbe Uhr als Canva-Operationen (wenn kein Bild-Upload möglich ist).
 - Geld: Euro-Abbildungen sind erlaubt; maßstabsgetreu und eindeutig.
