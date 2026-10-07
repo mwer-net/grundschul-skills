@@ -31,7 +31,10 @@ Canvas KI formuliert sonst eigene Texte, verwendet falsche Schriftgrößen oder 
 
 ### 2. Bilder
 
-- Eigene Illustrationen: `generate-image` mit klarer Stilvorgabe ("einfache, freundliche Linienillustration, schwarze Konturen, weißer Hintergrund, kindgerecht, keine Schrift im Bild"). Für Ausmalbilder: "nur schwarze Umrisse, keine Füllung".
+- Was ein Bild bekommt und wie viel: `grundschul-didaktik/references/kindgerecht-gestalten.md` (Leitfigur mit Funktion, Sachbild zur Sachaufgabe, kleines Themenbild; Weglass-Test).
+- Eigene Illustrationen: `generate-image` mit dem **Stil-Satz** aus `kindgerecht-gestalten.md`, für jedes Bild eines Materials wörtlich gleich, danach das Motiv konkret. Keine Schrift, Zahlen oder Uhren im KI-Bild. Für Ausmalbilder: "nur schwarze Umrisse, keine Füllung".
+- `generate-image` liefert eine `media_id` (z. B. `MAHX…`). Diese direkt mit `edit-design` → `insert_fill` (`asset_type: "image"`, `asset_id: <media_id>`, `alt_text`, Position und Größe) ins Design setzen – kein Upload nötig. Die Leitfigur einmal erzeugen und die `media_id` für alle Auftritte und Folgematerialien wiederverwenden (Titel und ID der Lehrkraft nennen).
+- KI-Bilder haben einen weißen Hintergrund. Auf weißer Seite unproblematisch; auf farbigen Flächen vorher `remove-background` oder das Bild außerhalb der Fläche platzieren.
 - Sachabbildungen (Tiere, Pflanzen, Körper): realistisch, fachlich korrekt prüfen. Bei Zweifel Foto aus der Canva-Bibliothek statt KI-Bild.
 - Hochladen von Bildern der Lehrkraft: `upload-asset-from-url` bzw. `create-upload-url`; Freisteller: `remove-background`.
 - Einheitlicher Bildstil im ganzen Material.
@@ -79,15 +82,20 @@ Wenn ein Upload nicht möglich ist (abgeschottete Umgebung, blockierte Upload-UR
 
 ## Brief-Vorlage für `create-design`
 
+Schrift und Farben lassen sich nachträglich nur eingeschränkt ändern (`format_text` kennt **keine Schriftart**). Palette, runde Blöcke und farbige Nummernkreise setzt Canva aus dem Brief zuverlässig um; Schriftwünsche nur teilweise (im Test wurde eine runde Schrift für alles verwendet statt zwei getrennter). Wer eine bestimmte Schrift braucht, legt sie im Brand Kit an. Texte aus `add_text` erscheinen in Canvas Standardschrift – für längere Texte lieber Platz im Brief reservieren und den Text dort mitgeben. Deshalb Palette und Schriften schon im Brief festlegen; Bilder und exakte Abbildungen danach selbst einsetzen und im Brief nur Platz dafür reservieren.
+
 ```
 Arbeitsblatt für die Grundschule, Klasse {K}, Fach {Fach}, Thema "{Thema}".
-Format A4 hochkant, druckfreundlich, weißer Hintergrund.
-Gestaltung: ruhig, klar, kindgerecht. Schrift {Schrift}, Fließtext {pt} pt, Überschrift {pt×1,5} pt,
+Format A4 hochkant, druckfreundlich, weißer Seitenhintergrund.
+Gestaltung: kindgerecht, freundlich und fröhlich, aber ruhig und übersichtlich (Emotional Design ohne Deko).
+Farbpalette "{Name}": Hauptfarbe {Hex}, Akzent {Hex}, Flächen sehr hell {Hex} und {Hex}, Text dunkel #1D1D1B.
+Schriften: Überschrift in {Fredoka/Baloo 2} (fett, Hauptfarbe, {px}), aller übrige Text in {Andika/Schulschrift} ({px}, dunkel),
 Zeilenabstand 1,5, linksbündig. Großzügige Ränder und viel Weißraum.
-Aufgaben als nummerierte Blöcke mit Symbol links: {Symbolliste}.
-Bilder: nur {konkrete Bildliste}, Stil: einfache Linienillustration mit schwarzen Konturen.
-Keine Dekoration ohne Funktion, kein Text auf Bildern, keine Großbuchstaben-Texte.
-Schreiblinien bzw. Kästchen wie angegeben.
+Jede Aufgabe ein eigener Block: helle Fläche mit stark abgerundeten Ecken, ohne Rahmenlinie.
+Aufgabennummer als ausgefüllter Kreis in der Hauptfarbe mit weißer, fetter Ziffer links neben der Anweisung.
+Platz lassen für: {Leitfigur oben rechts ca. 110 px, Sachbild in Aufgabe X ca. 180 × 135 px, Uhren/Felder …}.
+KEINE Bilder, Icons oder Cliparts selbst einfügen – die werden später ergänzt.
+Schreiblinien dunkelgrau und schlicht. Keine Dekoration ohne Funktion, kein Text auf Bildern, keine Großbuchstaben-Texte.
 Verwende exakt folgenden Text, nichts umformulieren, nichts ergänzen:
 ---
 {vollständiger Text inkl. Kopfzeile "Name: ____  Datum: ____"}
@@ -107,4 +115,6 @@ Verwende exakt folgenden Text, nichts umformulieren, nichts ergänzen:
 | Canva erfindet doppelte Schreiblinien, Icons oder Platzhalter | Alle Elemente aus `design_content` durchgehen; Dubletten mit `delete_element`, Textdubletten mit `find_and_replace_text` entfernen |
 | Neu gesetzter Text ist zu klein/linksbündig | `format_text` nachziehen (siehe oben) |
 | Upload von Bildern blockiert | Abbildung als Vektorformen bauen (Abschnitt 2b) |
+| Canva setzt Platzhalter-Rahmen für Bilder/Uhren | Platzhalter mit `delete_element` entfernen; ein Bildrahmen kann mit `update_fill` direkt das KI-Bild aufnehmen (wird automatisch zugeschnitten) |
+| Leitfigur hat weißen Kasten | `remove-background` auf die `media_id`, dann die neue ID einsetzen |
 | Zu viele Seiten bei Karten | Kartenraster bewusst planen: 8 Karten pro A4-Seite (2 × 4) bei Memory/Wortkarten, 12 bei Domino (2 × 6) |

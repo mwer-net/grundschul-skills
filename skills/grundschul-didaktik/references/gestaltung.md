@@ -49,7 +49,7 @@ Schreibfläche immer größer als gedacht: Kinderhandschrift braucht Platz.
 
 ## Bilder und Illustrationen
 
-- Funktional: Das Bild trägt Information (Anlaut, Mengenbild, Sachabbildung) oder erleichtert das Textverständnis.
+- Funktional: Das Bild trägt Information (Anlaut, Mengenbild, Sachabbildung), erleichtert das Textverständnis oder gibt als Leitfigur einen Tipp. Weglass-Test und Dosierung: `kindgerecht-gestalten.md`.
 - Eindeutig: Ein Bild, ein Begriff. Bei Anlautbildern Mehrdeutigkeiten vermeiden (Hund vs. Dackel, Auto vs. PKW).
 - Einheitlicher Stil innerhalb eines Materials (alles Linien-Illustration oder alles flach farbig; nicht gemischt mit Fotos).
 - Für Ausmalaufgaben: klare schwarze Konturen, keine Graustufenflächen.
@@ -58,7 +58,7 @@ Schreibfläche immer größer als gedacht: Kinderhandschrift braucht Platz.
 
 ## Farbe
 
-- Farbe sparsam und mit Funktion: Farbcodes für Niveaus, Stationen, Wortarten.
+- Eine Palette pro Material (Paletten und Regeln in `kindgerecht-gestalten.md`). Farbe hat Bedeutung: Aufgabennummern, Blockflächen, Farbcodes für Niveaus, Stationen, Wortarten.
 - Wortarten (übliche Konvention, Klasse prüfen): Nomen blau, Verben rot, Adjektive grün. Artikel: der blau, die rot, das grün (DaZ-Konvention; Lehrwerk prüfen).
 - Mathe Stellenwerte: Einer blau, Zehner rot, Hunderter grün (Montessori-Farben) – Klassenkonvention prüfen.
 - Pastell-Hintergründe nur hell (Kontrast!). Kein Text auf Bildern.

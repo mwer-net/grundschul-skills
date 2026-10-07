@@ -50,6 +50,19 @@ Zusammenfassung der Recherche (Stand Oktober 2026), auf der die Skills beruhen. 
 - **Piktogramme für Arbeitsaufträge** unterstützen leseschwache Kinder, wenn sie eingeführt und einheitlich sind (z. B. Metacom).
   - https://www.lesen.bayern.de/fileadmin/user_upload/Lesen/Methoden/gesamter_Leseprozesse/Methode_Piktogramme.pdf
 
+- **Emotional Design:** Freundliche Gesichter an Lernobjekten und angenehme Farben verbessern Behalten, Verstehen und Motivation (Meta-Analyse Brom et al. 2018, d ≈ 0,3–0,4).
+  - https://artemis.ms.mff.cuni.cz/main/papers/emodesign_manuscript_1rev_180928_FINAL_norev.pdf
+  - https://link.springer.com/article/10.1186/s40561-024-00332-7
+- **Seductive Details bei Kindern:** Negativer Effekt v. a. bei geringer Impulskontrolle; bunte irrelevante Bilder neben dem Text stören Leseanfänger.
+  - https://en.wikipedia.org/wiki/Seductive_details
+  - https://www.learningscientists.org/blog/2019/6/20-1
+- **Visuelle Umgebung:** Stark dekorierte Lernräume senken Aufmerksamkeit und Lernzuwachs bei 5–6-Jährigen (Fisher, Godwin & Seltman 2014, Psychological Science).
+  - https://www.psychologicalscience.org/news/releases/heavily-decorated-classrooms-disrupt-attention-and-learning-in-young-children.html
+- **Schrift für Kinder:** Einstöckiges a/g bringt beim Lesen keinen messbaren Vorteil (Walker & Reynolds); Kinder bevorzugen klare, serifenlose Formen (Sassoon Primary). Andika wurde für Leseanfänger entwickelt.
+  - https://www.fonts.com/content/learning/fyti/situational-typography/typography-for-children
+  - https://booksforkeeps.co.uk/article/typography-in-childrens-books/
+  - https://www.bwillcreative.com/best-fonts-for-teachers-in-canva/
+
 ## Differenzierung, Sprachsensibilität, offene Formen
 
 - Drei Niveaus (Basis / Standard / Erweitert), farblich oder symbolisch gekennzeichnet.

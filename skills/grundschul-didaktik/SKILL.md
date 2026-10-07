@@ -34,12 +34,12 @@ Ist nur Kleines unklar (z. B. Farbe vs. s/w), triff eine sinnvolle Annahme und n
 
 1. **Kompetenzorientierung:** Jedes Material benennt sein Lernziel als beobachtbare Handlung ("Die Kinder können Zahlen bis 20 im Zwanzigerfeld darstellen."). Orientierung an den KMK-Bildungsstandards Primarbereich (Fassung 2022) und dem Lehrplan des Bundeslandes.
 2. **Ein Ziel pro Material:** Ein Arbeitsblatt, ein Spiel, ein Plakat übt genau eine Sache. Lieber zwei schlanke Blätter als ein überladenes.
-3. **Kognitive Belastung gering halten (Cognitive Load):** Nur Bilder, die zur Aufgabe gehören. Dekorative Bilder ("seductive details") lenken nachweislich ab. Ein kleines, wiederkehrendes Klassenmaskottchen als Orientierung ist ok, Cliparts als Füllmaterial nicht.
+3. **Kognitive Belastung gering halten (Cognitive Load):** Nur Bilder, die zur Aufgabe gehören. Dekorative Bilder ohne Bezug ("seductive details") lenken nachweislich ab. Cliparts als Füllmaterial nie.
 4. **Handeln – Bild – Symbol (EIS-Prinzip, Bruner) plus Sprache:** Inhalte möglichst enaktiv vorbereiten (Material, Handlung), ikonisch darstellen und dann symbolisch notieren. Darstellungswechsel ausdrücklich verlangen ("Lege – zeichne – schreibe").
 5. **Differenzierung ist Standard, nicht Extra:** Mindestens zwei, besser drei Niveaus (siehe `references/differenzierung.md`). Gemeinsamer Lerngegenstand für alle, unterschiedliche Zugänge.
 6. **Sprachsensibel:** Kurze Sätze, bekannte Wörter, Wortspeicher und Satzanfänge als Hilfe. Siehe `references/sprachsensibel.md`.
 7. **Selbstständigkeit:** Klare, gleichbleibende Arbeitsanweisungen mit Symbolen; Selbstkontrolle wo möglich (Lösungskarte, Kontrollzahl, Bildpuzzle).
-8. **Altersgerecht ansprechend:** Freundlich, klar, ruhig. Kinder mögen wiedererkennbare Figuren, Geschichten-Rahmen ("Hilf Fuchs Fridolin …"), Sammel- und Ausmalanteile. Aber: Ansprechend heißt nicht bunt und voll.
+8. **Altersgerecht ansprechend (Emotional Design):** Das schön machen, was ohnehin da ist – nicht etwas dazustellen. Warme Farbpalette, runde Formen, farbige Aufgabennummern, eine Leitfigur mit Funktion (zeigt das Beispiel, gibt Tipps), ein Sachbild zur Sachaufgabe, kindgerechte Überschriftenschrift, Geschichten-Rahmen ("Hilf Fuchs Fridolin …"). Das verbessert nachweislich Motivation und Behalten. Nicht: Deko ohne Funktion, mehr als ein großes Bild pro Seite. Details und Prüffragen: `references/kindgerecht-gestalten.md`.
 9. **Fachlich korrekt:** Rechtschreibung nach amtlichem Regelwerk, mathematisch saubere Sprache ("Ergebnis", nicht "Lösungszahl"), sachlich richtige Abbildungen (Tierteile, Pflanzen, Uhrzeiten).
 10. **Vielfalt und Inklusion:** Namen, Familien, Hautfarben und Lebenswelten divers und unaufgeregt darstellen. Keine Klischees.
 
@@ -54,7 +54,8 @@ Ausführlich in `references/gestaltung.md`. Die wichtigsten Werte:
 | 3 | 14–16 pt | 1,5 | 2–3 Sätze |
 | 4 | 12–14 pt | 1,3–1,5 | bis 4 Sätze |
 
-- Serifenlose, kindgerechte Schrift mit eindeutigen Formen (einstöckiges a, I/l unterscheidbar). Bevorzugt die Ausgangsschrift-nahe Druckschrift des Bundeslandes; sonst Andika, Grundschrift oder eine vergleichbare Schulschrift.
+- Fließtext: serifenlose, kindgerechte Schrift mit eindeutigen Formen (einstöckiges a, I/l unterscheidbar). Bevorzugt die Druckschrift des Bundeslandes; sonst Andika, Grundschrift oder eine vergleichbare Schulschrift. Überschriften: eine runde, freundliche Display-Schrift (z. B. Fredoka, Baloo 2).
+- Eine Farbpalette pro Material (Hauptfarbe, Akzent, sehr helle Flächen), Aufgabenblöcke als helle Flächen mit runden Ecken, Aufgabennummern in farbigen Kreisen.
 - Linksbündiger Flattersatz, keine Silbentrennung, Zeilenumbruch nach Sinneinheiten.
 - Großzügige Ränder und Schreibflächen; Lineatur passend zur Klassenstufe.
 - Klare Aufgabenblöcke mit Nummer und Arbeitsanweisungs-Symbol.
@@ -68,7 +69,8 @@ Prüfe jedes Material gegen diese Liste und korrigiere, bevor du es der Lehrkraf
 - [ ] Klassenstufe: Schriftgröße, Textmenge, Zahlenraum, Wortschatz stimmen
 - [ ] Jede Aufgabe hat Nummer, Symbol und eine kurze Anweisung mit einem Verb
 - [ ] Mindestens zwei Niveaus oder ein Sternchen-/Zusatzangebot
-- [ ] Keine rein dekorativen Bilder; alle Bilder eindeutig erkennbar
+- [ ] Ansprechend: Palette, runde Formen, Leitfigur oder Sachbild vorhanden
+- [ ] Keine rein dekorativen Bilder (Weglass-Test); alle Bilder eindeutig erkennbar
 - [ ] Genug Platz zum Schreiben/Zeichnen
 - [ ] Rechtschreibung, Zeichensetzung, Rechnungen und Lösungen geprüft
 - [ ] Funktioniert in Schwarz-Weiß
@@ -87,6 +89,7 @@ Liefere immer:
 
 - `references/rueckfragen.md` – Rückfrage-Protokoll bei ungenauen Anfragen
 - `references/gestaltung.md` – Layout, Schrift, Bilder, Farben, Symbole
+- `references/kindgerecht-gestalten.md` – Emotional Design: Farbpaletten, Leitfigur, Bildauswahl, Schriften, KI-Bild-Stil
 - `references/differenzierung.md` – Niveaustufen, Hilfekarten, offene Aufgaben
 - `references/sprachsensibel.md` – DaZ, Wortspeicher, Operatoren, Satzmuster
 - `references/quellen.md` – wissenschaftliche Grundlagen und Rechercheergebnisse
