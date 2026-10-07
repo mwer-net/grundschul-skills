@@ -1,0 +1,66 @@
+---
+name: stationenlernen
+description: Plant und erstellt offene Lernformen für Klasse 1–4 – Stationenlernen, Lerntheke, Werkstatt und Wochenplan – mit Stationskarten, Laufzettel, Lösungskarten und Reflexion. Verwenden, wenn eine Lehrkraft Stationen, Lernzirkel, Lerntheke, Werkstatt oder einen Wochenplan vorbereiten möchte.
+---
+
+# Stationenlernen, Lerntheke, Wochenplan
+
+Laden mit: `grundschul-didaktik`, passendem `fach-*`, ggf. `arbeitsblatt`/`lernspiel` für einzelne Stationen, `canva-materialerstellung`.
+
+## Rückfragen
+
+1. **Form:** Stationen (alle Stationen für alle, freie Reihenfolge), Lerntheke (Auswahl nach Diagnose/Niveau), Werkstatt (längere Einheit) oder Wochenplan (Aufgaben für eine Woche)? *Empfehlung: Stationen für Üben eines eingeführten Themas.*
+2. **Zeitrahmen:** Anzahl Stunden/Tage? *Daraus folgt die Stationenzahl (Faustregel: 2–3 Stationen pro Schulstunde).*
+3. **Pflicht- und Wahlstationen:** Wie viele Pflichtstationen? *Empfehlung: ca. 60 % Pflicht, 40 % Wahl.*
+4. **Raum und Material:** Welche Materialien (Wendeplättchen, Lupen, Tablets) sind da? Gibt es Platz für Gruppentische?
+5. **Erfahrung der Klasse mit offenen Formen:** Erste Stationenarbeit? (Dann weniger Stationen, sehr klare Rituale.)
+
+## Bausteine
+
+### Stationskarte (A5 oder A4, laminierbar)
+- Stationsnummer groß + Stationsfarbe + Symbol (gleich auf Laufzettel und Lösungskarte)
+- Titel (kindgerecht), Sozialform-Symbol (👤 👥 👨‍👩‍👧), ggf. Pflicht ● / Wahl ○
+- Material-Liste mit Bildern
+- Arbeitsauftrag in max. 3 Schritten
+- Differenzierung: 🌱 / 🌿 / 🌳 oder Sternchen-Zusatz
+
+### Laufzettel (A4, pro Kind)
+- Name, Zeitraum
+- Tabelle: Station | Pflicht/Wahl | erledigt ☐ | kontrolliert ☐ | Wie ging es? 😀 🙂 😐
+- Platz für Rückmeldung der Lehrkraft
+
+### Lösungskarten
+- Gleiche Nummer/Farbe wie Station, an der Kontrollstation ausgelegt
+
+### Regeln-Plakat / Ritualkarte
+- Leise arbeiten, Station aufgeräumt verlassen, Hilfe: erst Tippkarte, dann Kind, dann Lehrkraft ("Frag 3, dann mich").
+
+### Abschluss / Reflexion
+- Kurzer Reflexionsbogen: "Das habe ich gelernt …", "Das war schwer …", Lieblingsstation.
+
+## Stationen gestalten
+
+- Unterschiedliche Zugänge mischen: handelnd (Material legen), spielerisch (Spiel), schriftlich (AB), kreativ (Plakat, Zeichnen), digital (App/QR-Code), forschend.
+- Jede Station ca. 10–20 Minuten.
+- Stationen unabhängig voneinander (freie Reihenfolge), außer bewusst aufbauende Pflichtstationen ("erst Station 1").
+- Eine "Expertenstation" oder Knobelstation für schnelle Kinder.
+
+## Wochenplan (Besonderheiten)
+
+- Fächer farbig/symbolisch getrennt, Pflicht- und Wahlaufgaben klar markiert.
+- Aufgaben mit Seiten-/Materialangabe ("AH S. 12, Nr. 1–3").
+- Abhakfeld pro Aufgabe, Unterschrift Lehrkraft/Eltern optional.
+- Plan auf 1 A4-Seite, Kl. 1 mit vielen Symbolen statt Text.
+
+## Qualitätscheck
+
+- [ ] Stationsnummer, Farbe und Symbol stimmen auf Karte, Laufzettel und Lösung überein
+- [ ] Pflichtpensum in der Zeit realistisch für langsamere Kinder
+- [ ] Material pro Station genannt und vorhanden
+- [ ] Selbstkontrolle an jeder geeigneten Station
+- [ ] Wechsel der Zugänge (nicht nur Arbeitsblätter)
+
+## Canva-Hinweise
+
+- Ein Design pro Bestandteil-Typ (Stationskarten, Laufzettel, Lösungen), Stationen als Seiten.
+- Stationskarten A5: zwei pro A4 (Format A4 quer mit 2 Feldern) oder `"A5 Document (Portrait)"`.
