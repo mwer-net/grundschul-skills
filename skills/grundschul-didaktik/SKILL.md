@@ -11,8 +11,8 @@ Dieser Skill ist das Fundament aller anderen Skills im Repository. Er legt fest,
 
 Jedes Material folgt zwei Konzepten. Details, Forschung und Beispiele: `references/kernkonzepte.md`.
 
-- **Growth Mindset:** Ich-kann-Ziel oben auf dem Blatt; Wachstums-Selbsteinschätzung (Samen → Keimling → Pflanze → Blume) statt Smileys; „noch"-Sprache; Tipps nennen Strategien; Fehler als Lernchance; Reflexionsfrage am Ende; Rückmeldung zum Prozess, nie zur Begabung.
-- **Churer Modell:** Lernaufgaben in drei Niveaus ● Grundlage / ●● Kern / ●●● Herausforderung, die Kinder **wählen selbst**; jede Aufgabe ohne Lehrkraft bearbeitbar (Beispiel, Tippkarten, Selbstkontrolle); Sozialform offen; Stunden nach Kreisinput (10–12 min) → Lernaufgaben → Reflexion im Kreis.
+- **Growth Mindset:** Ich-kann-Ziel oben auf dem Blatt; Wachstums-Selbsteinschätzung (Samen → Keimling → Pflanze → Blume) statt Smileys, eingeschätzt nach der Selbstkontrolle; „noch"-Sprache; Tipps nennen Strategien, Willi/Wilma denkt im Beispiel laut vor (planen, tun, prüfen); Fehler als Lernchance; Reflexionsfrage am Ende; Rückmeldung konkret zum Prozess, nie zur Begabung. Wirkt nur eingebettet ins Fachlernen, nicht als eigene Mindset-Stunde.
+- **Churer Modell:** Lernaufgaben in drei Niveaus ● Grundlage / ●● Kern / ●●● Herausforderung, die Kinder **wählen selbst** (Lehrkraft berät die Wahl); jede Aufgabe ohne Lehrkraft bearbeitbar (Beispiel, Tippkarten, Selbstkontrolle); Sozialform offen; überschaubare Wahl (2–4 Möglichkeiten je Entscheidung); Stunden nach Kreisinput (10–12 min) → Lernaufgaben → Reflexion im Kreis.
 - Pflanzensymbole nur für die Selbsteinschätzung, Punkte nur für Niveaus. Material muss auch im klassischen Klassenraum funktionieren.
 
 ## 1. Vor dem Erstellen klären (Rückfrage-Protokoll)
@@ -78,7 +78,7 @@ Prüfe jedes Material gegen diese Liste und korrigiere, bevor du es der Lehrkraf
 - [ ] Jede Aufgabe hat Nummer, Symbol und eine kurze Anweisung mit einem Verb
 - [ ] Ich-kann-Ziel oben, Wachstums-Selbsteinschätzung bezieht sich genau darauf
 - [ ] Lernaufgaben/Übungsmaterial: drei Niveaus ● / ●● / ●●● zur Selbstwahl mit Wahlhilfe, gleiche Optik auf allen Niveaus
-- [ ] Ohne Lehrkraft bearbeitbar: Beispiel, Tipps mit Strategie, Selbstkontrolle
+- [ ] Ohne Lehrkraft bearbeitbar: Beispiel mit lautem Denken der Leitfigur, Tipps mit Strategie, Selbstkontrolle vor der Selbsteinschätzung
 - [ ] „Noch"-Sprache, keine Wertung von Begabung, keine Rankings, keine Smileys oder Ampeln
 - [ ] Reflexionsfrage am Ende (Kl. 1/2 mündlich oder zum Ankreuzen, ab Kl. 3 schriftlich)
 - [ ] Ansprechend: Palette, runde Formen, Willi oder Wilma Waschbär mit Funktion

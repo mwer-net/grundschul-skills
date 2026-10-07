@@ -21,14 +21,15 @@ Laden mit: `grundschul-didaktik` und dem passenden `fach-*`. Material danach mit
 |---|---|---|---|---|
 | Kreisinput | 10–12 | Impuls/Problem, gemeinsames Beispiel, Ich-kann-Ziel nennen, Lernaufgaben ● / ●● / ●●● vorstellen | Sitzkreis | Bild, Gegenstand, Plakat |
 | Lernaufgaben | 25–30 | Freie Wahl von Aufgabe, Platz und Partner; Lehrkraft begleitet, gibt Kleingruppen-Inputs | frei | AB, Karten, Spiel, Tippkarten, Lösungen |
-| Reflexion im Kreis | 5 | Wachstums-Selbsteinschätzung, „Was hat dir geholfen?", „Was übst du als Nächstes?" | Sitzkreis | Wachstumsgrafik |
+| Reflexion im Kreis | 5 | Wachstums-Selbsteinschätzung (nach der Selbstkontrolle), „Welche Strategie hat dir geholfen?", „Was übst du als Nächstes?" | Sitzkreis | Wachstumsgrafik |
 
 Erlaubt die Schule keine freie Platzwahl, bleibt die Struktur gleich: Kinder wählen die Lernaufgabe am eigenen Platz. Bei Einführungen neuer Inhalte darf der Kreisinput länger sein; dann eine kurze Zwischenrunde einplanen. Details: `grundschul-didaktik/references/kernkonzepte.md`.
 
 Grundsätze:
 - Kinder in Klasse 1/2 halten ca. 10–15 Minuten bei einer Tätigkeit konzentriert durch. In der Lernaufgaben-Phase wechseln sie deshalb die Aufgabe und den Zugang (handelnd, schriftlich, spielerisch); Bewegung einplanen.
 - Lernziel als Ich-kann-Satz an der Tafel: "Ich kann …". Selbsteinschätzung und Reflexion beziehen sich darauf.
-- Lehrkraft-Rückmeldungen zum Prozess formulieren (Strategie, Fortschritt, „noch nicht"), nie zur Begabung.
+- Lehrkraft-Rückmeldungen konkret zum Prozess formulieren (Strategie, Fortschritt, „noch nicht"), nie zur Begabung und nicht pauschal („Toll gestrengt").
+- Im Kreisinput denkt die Lehrkraft beim gemeinsamen Beispiel laut vor (planen, tun, prüfen); in der Lernaufgaben-Phase beobachtet sie die Niveau-Wahl und berät Kinder, die dauerhaft zu leicht oder zu schwer wählen.
 - Jede Phase mit Lehrkraft-Impuls (wörtlich formuliert) und erwarteter Schülerantwort.
 - Lernaufgaben konkret benennen: mindestens eine ● Grundlage (Wiederholung), ●● Kern, mindestens eine ●●● Herausforderung, dazu Wahlhilfe, Tippkarten mit Strategie und Selbstkontrolle.
 - Puffer und "Was, wenn die Zeit nicht reicht?" angeben.
