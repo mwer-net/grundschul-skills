@@ -28,7 +28,7 @@ Nach den Rückfragen 2–3 Entwürfe zeigen, erst nach Freigabe des Aufgabenplan
 
 1. Kopfzeile: `Name: ______  Datum: ______` (bei drei getrennten Niveau-Blättern zusätzlich die Niveau-Punkte). Unter der Überschrift das **Ich-kann-Ziel**, mit Churer Modell zusätzlich die Wahlhilfe („Wähle deine Aufgaben. Fang dort an, wo du sicher bist.").
 2. Überschrift (max. 5 Wörter, kindgerecht: "Wie spät ist es?" statt "Uhrzeiten ablesen").
-3. Aufgaben steigend im Anspruch (Richtwert Kl. 1: 3–4, Kl. 2: 4–5, Kl. 3/4: 5–6), mit Churer Modell jede mit Niveau-Punkten, **ohne Kasten** mit hängender Nummer und vollen Item-Reihen (`grundschul-didaktik/references/druck-und-platz.md`):
+3. Aufgaben steigend im Anspruch (Richtwert inkl. Sternchenaufgabe Kl. 1: 2–3, Kl. 2: 3–4, Kl. 3: 4–5, Kl. 4: 5–6), mit Churer Modell jede mit Niveau-Punkten, **ohne Kasten** mit hängender Nummer; jede Aufgabe auf einen Blick verständlich, Items in Kl. 1/2 mit Luft statt dicht gefüllt (`grundschul-didaktik/references/druck-und-platz.md`):
    - ● Grundlage: Einstieg mit vorgelöstem Beispiel ("So geht's"), Vorwissen mit Hilfen.
    - ●● Kern: Übung zum Lernziel, ggf. Anwendung / Sachsituation.
    - ●●● Herausforderung: offen, knobelnd, begründen, erfinden; gern „Willi hat sich vertan".
@@ -64,14 +64,17 @@ Nach den Rückfragen 2–3 Entwürfe zeigen, erst nach Freigabe des Aufgabenplan
 Zusätzlich zur Basis-Checkliste:
 - [ ] Erstes Item jeder neuen Aufgabenart vorgelöst
 - [ ] Aufgaben steigen im Anspruch
-- [ ] Platz reicht für Kinderschrift (Mindestgrößen eingehalten), aber keine Seite verschenkt: keine Kästen, volle Item-Reihen, schlanker Kopf und Fuß
+- [ ] Platz reicht für Kinderschrift (Mindestgrößen eingehalten), keine Kästen, schlanker Kopf und Fuß; Kl. 1/2 mit sichtbarer Luft, Kl. 3/4 ohne Leerstreifen
 - [ ] Druckprofil aus der Start-Abfrage eingehalten: keine Flächen hinter Aufgaben, Text schwarz; s/w mit Strichzeichnungen, Farbe nur als Akzent
 - [ ] Lösungsblatt vollständig und korrekt
+- [ ] Visuelle Endkontrolle bestanden: Abbildungen exakt, Beispiel nicht gequetscht, für ein Kind der Klasse auf einen Blick verständlich
 - [ ] Bausteine wie gewählt: Fuß mit Selbsteinschätzung, Niveau-Punkte, Sternchenaufgabe nur, wenn in der Start-Abfrage bestätigt
 - [ ] Niveau-Varianten (falls gewählt) optisch gleichwertig, Kennzeichnung nur mit Punkten
 
 ## Canva-Hinweise
 
 - Format `"Worksheet (A4 Portrait)"` (feste Seite – `"A4 Document (Portrait)"` erzeugt ein responsives Doc ohne Formen und Positionierung). Alle Niveau-Varianten (falls gewählt) und das Lösungsblatt als Seiten im selben Design, damit das Layout identisch bleibt.
-- Layout nach `canva-materialerstellung/references/layout-und-bearbeitbarkeit.md` (60 px Rand, eine Spalte, Aufgaben ohne Kasten, 24–32 px dazwischen, Platzbudget) und mit `layout_check.py` prüfen.
+- Layout nach `canva-materialerstellung/references/layout-und-bearbeitbarkeit.md` (60 px Rand, eine Spalte, Aufgaben ohne Kasten, 24–32 px dazwischen, Kl. 1/2: 32–48 px, Platzbudget) und mit `layout_check.py --klasse K` prüfen.
+- Danach **visuelle Endkontrolle** (`canva-materialerstellung/references/visuelle-endkontrolle.md`): jede Aufgabe als vergrößerten Ausschnitt ansehen, Abbildungen nachzählen, Beispiel und Verständlichkeit für die Klasse prüfen, Befunde selbst beheben. Erst dann die Vorschau zeigen.
+- Lösungsblatt: `add_page`, Seite 1 mit `seite_kopieren.py` nachbauen, Lösungen ergänzen.
 - Dateiname/Titel: `Kl{K}_{Fach}_{Thema}_AB{Nr}`.

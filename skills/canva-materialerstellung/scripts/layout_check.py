@@ -3,20 +3,27 @@
 
 Eingabe ist die gespeicherte Antwort von `read-design` mit
 `filter.fields: ["design_content"]` und `open_transaction: true` (nur dann
-liefert Canva Positionen und Locator-IDs). Die Datei darf auch das
+liefert Canva Positionen und Locator-IDs) oder die Antwort von `edit-design`
+(Seite unter "document"). Die Datei darf auch das
 Tool-Result-Format [{"type": "text", "text": "..."}] haben und abgeschnitten
 sein (Canva kürzt große Antworten): Ausgewertet wird alles bis zur Schnittstelle,
 der Bericht weist darauf hin.
 
-  python3 layout_check.py design.json [--klasse 2] [--rand-cm 1.5] [--seite 1] [--farbe]
+  python3 layout_check.py design.json [--klasse 2] [--rand-cm 1.5] [--seite 1] [--farbe] [--ohne-skalierung] [--alle]
 
 Ausgabe: Bericht mit FEHLER (muss behoben werden), WARNUNG (prüfen) und
-HINWEIS (Bearbeitbarkeit, Platz), danach Vorschläge für `group_elements`.
+HINWEIS (Bearbeitbarkeit, Platz, Übersicht), danach Vorschläge für `group_elements`.
+Alle Schwellen gelten für eine A4-Seite mit 794 px Breite. Liefert Canva ein
+A4/Letter-Blatt in anderer Auflösung (z. B. 1123×1587), werden Maße und
+Schriftgrößen vorher auf 794 px umgerechnet; --ohne-skalierung schaltet das ab
+(z. B. für echte A3-Plakate).
 Ohne Option gilt das Druckprofil Schwarz-Weiß: Farb- und Grauflächen,
 Hintergrundbilder, farbige Schrift und helle oder dünne Linien werden gemeldet.
 Mit --farbe gilt das Farbprofil: gemeldet werden Hintergrundbilder, Flächen
 hinter Aufgaben, Text mit zu wenig Kontrast und farbiger Fließtext.
 Exit-Code 1, wenn FEHLER gefunden wurden.
+
+Locator-IDs für edit-design: Seiten-ID + "-" + Element-ID (wie im Bericht).
 """
 import argparse
 import json
@@ -31,6 +38,11 @@ MAX_FLAECHE_PX2 = 3000         # ≈ 2 cm²: größere gefüllte Flächen kosten
 HELL_LINIE = 140               # Grauwert (0–255) heller als ca. #808080 fällt beim Kopieren weg
 DUNKEL_TEXT = 90               # Text heller als dieser Grauwert ist in s/w kontrastarm
 LEERSTREIFEN_PX = 64           # ungenutzte waagerechte Streifen ab dieser Höhe melden
+A4_BREITE = 794                # Bezugsbreite aller Schwellen (A4 hoch bei 96 px/Zoll)
+MAX_AUFGABEN = {1: 3, 2: 4, 3: 5, 4: 6}           # Richtwert pro A4-Seite (druck-und-platz.md)
+MAX_BELEGUNG = {1: 0.55, 2: 0.55, 3: 0.65, 4: 0.65}  # Anteil belegter Fläche im Satzspiegel
+VOLL = False                   # --alle: jede gequetschte Stelle einzeln ausgeben
+MIN_LUFT_PX = 12               # Mindestabstand zwischen Elementen nebeneinander in einer Reihe
 
 
 # ---------- Einlesen (auch abgeschnittene Antworten) ----------
@@ -50,12 +62,15 @@ def lade_seiten(text):
     """Liefert (seiten, abgeschnitten). Vollständiges JSON oder tolerant geparst."""
     try:
         obj = json.loads(text)
+        if "document" in obj:  # Antwort von edit-design: eine Seite
+            return [obj["document"]["page"]], False
         return obj["design_content"]["pages"], False
     except (json.JSONDecodeError, KeyError, TypeError):
         pass
     dec = json.JSONDecoder()
     seiten = []
-    for m in re.finditer(r'\{"type":"(fixed|responsive)","id":"([^"]+)","dimensions":(\{[^}]*\})', text):
+    for m in re.finditer(r'\{"type":"(fixed|responsive)","id":"([^"]+)",(?:"title":"(?:[^"\\]|\\.)*",)?'
+                         r'"dimensions":(\{[^}]*\})', text):
         seite = {"type": m.group(1), "id": m.group(2), "dimensions": json.loads(m.group(3)), "elements": []}
         start = text.find('"elements":[', m.end())
         if start < 0:
@@ -73,6 +88,33 @@ def lade_seiten(text):
                 break
         seiten.append(seite)
     return seiten, True
+
+
+# ---------- Maßstab ----------
+
+MASS_SCHLUESSEL = ("left", "top", "width", "height", "fontSize", "weight")
+
+
+def skaliere(obj, k):
+    """Rechnet Positionen, Größen, Schriftgrößen und Linienstärken mit Faktor k um."""
+    if isinstance(obj, dict):
+        for key, v in obj.items():
+            if key in MASS_SCHLUESSEL and isinstance(v, (int, float)) and not isinstance(v, bool):
+                obj[key] = v * k
+            elif key not in ("viewBox", "imageBox"):
+                skaliere(v, k)
+    elif isinstance(obj, list):
+        for v in obj:
+            skaliere(v, k)
+
+
+def massstab(seite):
+    """Faktor auf 794 px Breite, wenn die Seite ein A4-/Letter-Blatt in anderer Auflösung ist."""
+    W, H = seite["dimensions"]["width"], seite["dimensions"]["height"]
+    kurz, lang = min(W, H), max(W, H)
+    if abs(kurz - A4_BREITE) <= 2 or not 1.25 <= lang / kurz <= 1.45:
+        return 1.0
+    return A4_BREITE / kurz
 
 
 # ---------- Geometrie ----------
@@ -307,7 +349,7 @@ def pruefe_farbe(seite, els, add):
                 break
 
 
-def pruefe_platz(seite, els, rand_px, add):
+def pruefe_platz(seite, els, rand_px, klasse, add):
     """Platz für Aufgaben statt für Kästen und Leerstreifen."""
     W, H = seite["dimensions"]["width"], seite["dimensions"]["height"]
     kaesten = []
@@ -328,13 +370,87 @@ def pruefe_platz(seite, els, rand_px, add):
                     if e not in kaesten and e["width"] * e["height"] < 0.9 * W * H)
     oben, unten = rand_px, H - rand_px
     pos = oben
+    # Kl. 1/2: Luft ist gewollt, nur große Lücken melden und nicht zum Auffüllen raten
+    grenze = 3 * LEERSTREIFEN_PX if klasse in (1, 2) else LEERSTREIFEN_PX
+    rat = ("Abstände gleichmäßig verteilen oder Schreibfläche vergrößern, nicht mit Items auffüllen."
+           if klasse in (1, 2) else "Items ergänzen oder Schreibfläche sinnvoll vergrößern.")
     for a, b in belegt:
-        if a - pos > LEERSTREIFEN_PX and pos < unten:
+        if a - pos > grenze and pos < unten:
             add("HINWEIS", f"Ungenutzter Streifen von {round(min(a, unten) - pos)} px (y {round(pos)}–"
-                           f"{round(min(a, unten))}): Items ergänzen oder Schreibfläche sinnvoll vergrößern.")
+                           f"{round(min(a, unten))}): {rat}")
         pos = max(pos, b)
-    if unten - pos > LEERSTREIFEN_PX:
-        add("HINWEIS", f"Unten bleiben {round(unten - pos)} px frei: weitere Items oder eine Aufgabe ergänzen.")
+    if unten - pos > grenze:
+        add("HINWEIS", f"Unten bleiben {round(unten - pos)} px frei: {rat}")
+
+
+def nummernkreise(els):
+    """Aufgabennummern: kleine runde Formen (24–48 px) mit einer Ziffer oder ★ darin bzw. ★-Text."""
+    texte = [e for e in els if e["type"] == "text"]
+    kreise = []
+    for e in els:
+        if e["type"] == "shape" and 24 <= e["width"] <= 48 and abs(e["width"] - e["height"]) <= 4:
+            if any(re.fullmatch(r"\s*(\d{1,2}|★)\s*", text_von(t)) and enthaelt(box(e), box(t), tol=6)
+                   for t in texte):
+                kreise.append(e)
+    return kreise
+
+
+def pruefe_uebersicht(seite, els, figuren, klasse, rand_px, add):
+    """Übersicht für Kinder: Aufgabenzahl, Belegung des Satzspiegels, gequetschte Reihen."""
+    W, H = seite["dimensions"]["width"], seite["dimensions"]["height"]
+    inhalt = [e for e in els if e["width"] * e["height"] < 0.9 * W * H]
+
+    if klasse:
+        n = len(nummernkreise(inhalt))
+        if n > MAX_AUFGABEN[klasse]:
+            add("WARNUNG", f"{n} Aufgaben auf der Seite, Richtwert für Klasse {klasse} höchstens "
+                           f"{MAX_AUFGABEN[klasse]}. Aufgabe streichen oder auf zwei Seiten verteilen.")
+
+    # Belegung auf einem 4-px-Raster (Textfelder zählen mit ihrer ganzen Breite)
+    g = 4
+    x0, y0, x1, y1 = rand_px, rand_px, W - rand_px, H - rand_px
+    belegt = set()
+    for e in inhalt:
+        bx = box(e)
+        for x in range(int(max(x0, bx[0]) // g), int(min(x1, bx[2]) // g)):
+            for y in range(int(max(y0, bx[1]) // g), int(min(y1, bx[3]) // g)):
+                belegt.add((x, y))
+    gesamt = max(1, int((x1 - x0) // g) * int((y1 - y0) // g))
+    anteil = len(belegt) / gesamt
+    if klasse and anteil > MAX_BELEGUNG[klasse]:
+        add("WARNUNG", f"Seite wirkt voll: {round(100 * anteil)} % des Satzspiegels belegt (Klasse {klasse}: "
+                       f"höchstens ca. {round(100 * MAX_BELEGUNG[klasse])} %). Items oder Aufgaben streichen, "
+                       f"Abstände vergrößern.")
+
+    # Gequetscht: Elemente nebeneinander in derselben Reihe mit zu wenig Luft
+    def in_figur(e):
+        return any(enthaelt(bx, box(e)) for bx in figuren)
+
+    # Nummernkreis + Ziffer neben der Anweisung ist die gewollte hängende Nummer
+    nummern = nummernkreise(inhalt)
+    nummer_boxen = [box(k) for k in nummern]
+    kandidaten = [e for e in inhalt if not in_figur(e) and e["type"] != "group" and min(e["width"], e["height"]) > 4
+                  and not any(enthaelt(nb, box(e), tol=6) for nb in nummer_boxen)]
+    gemeldet = 0
+    for i, a in enumerate(kandidaten):
+        for b in kandidaten[i + 1:]:
+            ba, bb = box(a), box(b)
+            if enthaelt(ba, bb) or enthaelt(bb, ba):
+                continue
+            hoehe = min(ba[3], bb[3]) - max(ba[1], bb[1])
+            if hoehe < 0.5 * min(a["height"], b["height"]):
+                continue  # nicht in derselben Reihe
+            luecke = max(bb[0] - ba[2], ba[0] - bb[2])
+            typen = {a["type"], b["type"]}
+            # Text neben Text (Gleichung aus Einzelfeldern) ist mit Wortabstand gewollt; gemeldet wird
+            # Text, der an einer Abbildung, Tabelle oder Linie klebt
+            if TOL < luecke < MIN_LUFT_PX and "text" in typen and typen != {"text"}:
+                if gemeldet < 8 or VOLL:
+                    add("WARNUNG", f"Gequetscht: nur {round(luecke)} px Luft nebeneinander (mind. {MIN_LUFT_PX} px, "
+                                   f"zwischen Items 24–32 px): {ref(a)} / {ref(b)}")
+                gemeldet += 1
+    if gemeldet > 8 and not VOLL:
+        add("WARNUNG", f"… und {gemeldet - 8} weitere gequetschte Stellen.")
 
 
 # ---------- Prüfungen ----------
@@ -419,7 +535,9 @@ def pruefe_seite(seite, klasse, rand_px, farbe=False):
         bt = box(t)
         if any(enthaelt(bx, bt) for bx in figuren):
             continue  # Ziffern einer Uhr o. Ä. sitzen bewusst nah am Rand
-        container = [f for f in flaechen if enthaelt(box(f), bt) and f["width"] > t["width"] + 4]
+        # Tabellen-/Stellenwertzellen, Kästchen und Beschriftungsfelder sind bewusst eng
+        container = [f for f in flaechen if enthaelt(box(f), bt) and f["width"] > t["width"] + 4
+                     and f["width"] >= 0.35 * W and f["height"] >= 80]
         if not container:
             continue
         f = min(container, key=lambda c: c["width"] * c["height"])
@@ -491,7 +609,8 @@ def pruefe_seite(seite, klasse, rand_px, farbe=False):
         pruefe_farbe(seite, els, add)
     else:
         pruefe_druck(seite, els, figuren, add)
-    pruefe_platz(seite, els, rand_px, add)
+    pruefe_platz(seite, els, rand_px, klasse, add)
+    pruefe_uebersicht(seite, els, figuren, klasse, rand_px, add)
 
     # 9. Bearbeitbarkeit: lose Teilelemente gruppieren
     vorschlaege = []
@@ -519,7 +638,12 @@ def main():
     p.add_argument("--rand-cm", type=float, default=1.5, help="Seitenrand für Inhalte (Standard 1,5 cm)")
     p.add_argument("--seite", type=int, help="nur diese Seite (1-basiert)")
     p.add_argument("--farbe", action="store_true", help="Druckprofil Farbe statt Schwarz-Weiß prüfen")
+    p.add_argument("--ohne-skalierung", action="store_true",
+                   help="Maße nicht auf A4 mit 794 px Breite umrechnen (z. B. echtes A3-Plakat)")
+    p.add_argument("--alle", action="store_true", help="alle gequetschten Stellen einzeln ausgeben")
     a = p.parse_args()
+    global VOLL
+    VOLL = a.alle
 
     seiten, abgeschnitten = lade_seiten(lade_text(a.datei))
     if not seiten:
@@ -528,9 +652,16 @@ def main():
     for nr, seite in enumerate(seiten, 1):
         if a.seite and nr != a.seite:
             continue
+        d = dict(seite["dimensions"])
+        k = 1.0 if a.ohne_skalierung else massstab(seite)
+        if k != 1.0:
+            skaliere(seite, k)
+            seite["dimensions"] = {"width": d["width"] * k, "height": d["height"] * k}
         befunde, vorschlaege = pruefe_seite(seite, a.klasse, a.rand_cm * PX_PRO_CM, a.farbe)
-        d = seite["dimensions"]
         print(f"== Seite {nr} ({round(d['width'])}×{round(d['height'])} px, {len(seite['elements'])} Elemente) ==")
+        if k != 1.0:
+            print(f"HINWEIS: Seite in anderer Auflösung, Maße für die Prüfung auf 794 px Breite umgerechnet "
+                  f"(Faktor {k:.3f}). Positionen im Bericht sind umgerechnet; für edit-design durch {k:.3f} teilen.")
         for stufe in ("FEHLER", "WARNUNG", "HINWEIS"):
             for s, t in befunde:
                 if s == stufe:

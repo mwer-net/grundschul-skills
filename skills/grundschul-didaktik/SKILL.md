@@ -46,7 +46,7 @@ Ist nur Kleines unklar, triff eine sinnvolle Annahme und nenne sie. Bei „mach 
 ## 2. Verbindliche Leitlinien
 
 1. **Kompetenzorientierung:** Jedes Material benennt sein Lernziel als beobachtbare Handlung ("Die Kinder können Zahlen bis 20 im Zwanzigerfeld darstellen."). Orientierung an den KMK-Bildungsstandards Primarbereich (Fassung 2022) und dem Lehrplan des Bundeslandes.
-2. **Ein Ziel pro Material:** Ein Arbeitsblatt, ein Spiel, ein Plakat übt genau eine Sache. Lieber zwei schlanke Blätter als ein überladenes.
+2. **Ein Ziel pro Material:** Ein Arbeitsblatt, ein Spiel, ein Plakat übt genau eine Sache. Lieber zwei schlanke Blätter als ein überladenes. Nennt die Anfrage mehrere Themen, prüfen: Sind es Schritte zu einem Ziel (bündeln, in die Stellenwerttafel schreiben, zerlegen → „Ich kann Zahlen in Zehner und Einer zerlegen."), ein gemeinsames Ich-kann-Ziel formulieren und jedem Thema höchstens eine Aufgabe geben; sind es verschiedene Ziele, in den Entwürfen zwei Blätter vorschlagen.
 3. **Kognitive Belastung gering halten (Cognitive Load):** Nur Bilder, die zur Aufgabe gehören. Dekorative Bilder ohne Bezug ("seductive details") lenken nachweislich ab. Cliparts als Füllmaterial nie.
 4. **Handeln – Bild – Symbol (EIS-Prinzip, Bruner) plus Sprache:** Inhalte möglichst enaktiv vorbereiten (Material, Handlung), ikonisch darstellen und dann symbolisch notieren. Darstellungswechsel ausdrücklich verlangen ("Lege – zeichne – schreibe").
 5. **Differenzierung ist Standard, nicht Extra:** Mit Churer Modell drei Niveaus zur Selbstwahl; ohne Churer Modell Aufgaben steigend im Anspruch, mit Tipps und offenen Aufgaben, ggf. Sternchenaufgabe (siehe `references/kernkonzepte.md` und `references/differenzierung.md`). Gemeinsamer Lerngegenstand für alle, unterschiedliche Zugänge.
@@ -71,7 +71,7 @@ Ausführlich in `references/gestaltung.md`. Die wichtigsten Werte:
 - Fließtext: serifenlose, kindgerechte Schrift mit eindeutigen Formen (I/l unterscheidbar, in Klasse 1/2 einstöckiges a und g). Bevorzugt die Druckschrift des Bundeslandes; sonst Grundschrift oder Andika. Überschriften: eine runde, freundliche Display-Schrift (z. B. Fredoka, Baloo 2).
 - Druckprofil aus der Start-Abfrage: **s/w** (weißer Hintergrund, Text schwarz, keine Flächen, Bilder als Strichzeichnung) oder **Farbe** (eine Palette als Akzent an Nummernkreisen, Überschrift, Linien, Figur und Bildern; Text schwarz; keine Farbflächen hinter Aufgaben). Immer: Aufgaben ohne Kasten mit hängender Nummer, getrennt durch Abstand. Niveaus (falls gewählt) nur mit Punkten kennzeichnen (`references/druck-und-platz.md`).
 - Linksbündiger Flattersatz, keine Silbentrennung, Zeilenumbruch nach Sinneinheiten.
-- Seitenränder ≥ 1,5 cm, ausreichende Schreibflächen; Lineatur passend zur Klassenstufe. Platz geht an Übung, nicht an Rahmen: volle Item-Reihen, schlanker Kopf und Fuß.
+- Seitenränder ≥ 1,5 cm, ausreichende Schreibflächen; Lineatur passend zur Klassenstufe. Platz geht an Übung und Luft, nicht an Rahmen: schlanker Kopf und Fuß; in Kl. 1/2 Übersicht vor Menge (Richtwerte in `references/druck-und-platz.md`).
 - Klare Aufgabenblöcke mit Nummer und Arbeitsanweisungs-Symbol.
 - Kontrast mindestens 4,5:1; Farbe nie als einzige Information (Kopien sind oft s/w, rot-grün-Schwäche).
 
@@ -94,7 +94,7 @@ Prüfe jedes Material gegen diese Liste und korrigiere, bevor du es der Lehrkraf
 - [ ] Genug Platz zum Schreiben/Zeichnen
 - [ ] Rechtschreibung, Zeichensetzung, Rechnungen und Lösungen geprüft
 - [ ] Druckprofil eingehalten; keine Flächen hinter Aufgaben; auch in Graustufen lesbar
-- [ ] Seite gut genutzt: Aufgaben ohne Kasten, volle Item-Reihen, kein Leerstreifen
+- [ ] Übersichtlich: Aufgaben ohne Kasten, Aufgaben- und Item-Zahl im Richtwert der Klasse, jede Aufgabe auf einen Blick verständlich, Beispiel nicht gequetscht
 - [ ] Lösung / Selbstkontrolle beigelegt (wenn sinnvoll)
 - [ ] Kopfzeile: Name, Datum, ggf. Thema – aber schlank
 

@@ -55,9 +55,9 @@ Farbe als **Akzent**, das Layout bleibt kompakt wie im s/w-Profil:
 
 **Präsentation/Whiteboard:** Farbe uneingeschränkt nach diesem Profil, aber auch hier keine vollflächigen Bilder hinter Text. **Plakat und laminierte Karten:** Farbprofil; Kartenrahmen dürfen farbig sein, weil sie Karten unterscheiden (Funktion).
 
-## 4. Platzsparend gestalten (beide Profile)
+## 4. Übersichtlich und platzsparend gestalten (beide Profile)
 
-Ziel: **mehr Übung pro Blatt, ohne gedrängt zu wirken.** Gespart wird an Rahmen, Innenabständen und Deko, nie an Schriftgröße, Schreibfläche oder dem Abstand zwischen Aufgaben.
+Ziel: **Übersicht vor Menge.** Ein Kind muss jede Aufgabe auf einen Blick verstehen: was zu tun ist, wo es schreibt, wie das Beispiel geht. Gespart wird an Rahmen, Innenabständen und Deko, nie an Schriftgröße, Schreibfläche, dem Beispiel oder der Luft zwischen Aufgaben. In Kl. 1/2 gilt: lieber weniger Items mit Luft als eine volle Seite; eine Seite, die ein Erwachsener „vollgepackt" findet, überfordert ein Zweitklasskind.
 
 ### Aufbau einer Aufgabe ohne Kasten
 
@@ -71,7 +71,7 @@ Ziel: **mehr Übung pro Blatt, ohne gedrängt zu wirken.** Gespart wird an Rahme
 
 - **Hängende Nummer:** Nummernkreis (32–36 px; s/w schwarz, Farbe in der Hauptfarbe) links, Anweisung 12–16 px rechts daneben, die Arbeitsfläche beginnt bündig unter der Anweisung. Die Nummer markiert den Aufgabenbeginn, ein Kasten ist nicht nötig.
 - **Niveau-Punkte** (falls gewählt) rechtsbündig in der Anweisungszeile. Die Sternchenaufgabe trägt ★ an der Stelle der Nummer.
-- **Trennung durch Abstand:** 24–32 px zwischen Aufgaben, 8–16 px zwischen Anweisung und Arbeitsfläche. Optional eine dünne Trennlinie (1–1,5 px; s/w `#808080`, Farbe in der Akzentfarbe) über die Spaltenbreite. Einheitlich im ganzen Material.
+- **Trennung durch Abstand:** 24–32 px zwischen Aufgaben (Kl. 1/2: 32–48 px), 8–16 px zwischen Anweisung und Arbeitsfläche. Optional eine dünne Trennlinie (1–1,5 px; s/w `#808080`, Farbe in der Akzentfarbe) über die Spaltenbreite. Einheitlich im ganzen Material.
 - **Rahmen nur mit Funktion:** Wortspeicher, Tipp-Sprechblase der Leitfigur, Ergebnis- oder Antwortkästchen, Ausschneideteile (gestrichelt), Lösungsstreifen. Rahmen dann als dünne Kontur ohne Füllung, Ecken gerundet.
 
 ### Kopf und Fuß schlank
@@ -80,10 +80,18 @@ Ziel: **mehr Übung pro Blatt, ohne gedrängt zu wirken.** Gespart wird an Rahme
 - **Tipp der Leitfigur bei der Aufgabe, zu der er gehört** (rechts neben der Anweisung oder neben dem Beispiel), nicht als eigener Block im Kopf.
 - **Fuß** (nur wenn Selbsteinschätzung gewählt, sonst entfällt er und der Platz geht an Aufgaben) in einer Zeile bzw. einem schmalen Streifen (ca. 80–110 px): Ich-kann-Satz + Wachstumsgrafik zum Anmalen links/rechts, Reflexionsfrage mit Ankreuzfeldern darunter. Abgegrenzt durch eine Linie, nicht durch eine Fläche. Die Wachstumsgrafik passend zum Profil (farbig oder Strich-Version zum Anmalen).
 
-### Mehr Items pro Aufgabe
+### Aufgaben auf einen Blick verständlich
 
-- Reihen voll nutzen: Spaltenbreite (A4: 794 − 120 = 674 px) durch Item-Breite + Abstand teilen und die Reihe füllen, statt vier Items mit großem Zwischenraum zu verteilen.
-- Bei Übungsblättern lieber 2 Reihen à 5–6 Items als 1 Reihe à 4.
+- **Eine Handlung pro Aufgabe**, Anweisung in einer Zeile (Kl. 1/2 höchstens ca. 10 Wörter, ein oder zwei kurze Sätze). Braucht die Aufgabe mehrere Schritte, zeigt das Beispiel jeden Schritt.
+- **Eine Darstellungsform pro Aufgabe** (z. B. nur Punktefeld, nur Stellenwerttafel). Zwei Formen nebeneinander (Bild + Tafel + Gleichung in einer Reihe) nur in Kl. 3/4.
+- **Das vorgelöste Beispiel ist so groß wie ein Item** und hat denselben Abstand zu den Nachbarn (24–32 px). Es wird nie verkleinert oder zwischen andere Elemente gequetscht; Ziffern, Einheiten und Gleichheitszeichen mit normalem Wortabstand.
+- **Abbildungen exakt und ruhig:** Mengen geordnet statt gestreut (Punkte in Zweierreihen/Fünferstruktur, Zehnerstangen, Zwanzigerfeld), Bündel umschließen genau ihre Elemente ohne Überschneidung, Anzahlen stimmen. Solche Abbildungen berechnen und als Vektor setzen, nie frei zeichnen (`canva-materialerstellung`, Abschnitt 2b).
+- **Leitfigur-Tipp** neben der Anweisung oder am Ende der Reihe, nicht zwischen den Items.
+
+### Items pro Aufgabe
+
+- Items gleichmäßig über die Spaltenbreite (A4: 794 − 120 = 674 px) verteilen, Abstand 24–32 px.
+- Kl. 1/2: eine Reihe mit 3–4 Items je Aufgabe; kleine Items (Rechnungen, Zahlen) bis 6. Kl. 3/4: Reihen füllen, bei Übungsblättern gern 2 Reihen à 5–6 Items.
 - **Mindestgrößen** (Richtwerte, für Kinderhände nicht unterschreiten):
 
 | Element | Kl. 1 | Kl. 2 | Kl. 3/4 |
@@ -98,11 +106,14 @@ Ziel: **mehr Übung pro Blatt, ohne gedrängt zu wirken.** Gespart wird an Rahme
 
 ### Richtwerte pro A4-Seite
 
-| Klasse | Aufgaben | Items je Übungsaufgabe |
-|---|---|---|
-| 1 | 3–4 | 4–6 |
-| 2 | 4–5 | 6–8 |
-| 3/4 | 5–6 | 6–10 |
+| Klasse | Aufgaben | Items je Übungsaufgabe | belegte Fläche im Satzspiegel |
+|---|---|---|---|
+| 1 | 2–3 | 3–4 | höchstens ca. 55 % |
+| 2 | 3–4 | 3–4 (kleine Items bis 6) | höchstens ca. 55 % |
+| 3 | 4–5 | 6–8 | höchstens ca. 65 % |
+| 4 | 5–6 | 6–10 | höchstens ca. 65 % |
+
+Die Sternchenaufgabe zählt mit. Passt der Inhalt nicht, wird gestrichen oder auf zwei Blätter verteilt, nie enger gesetzt. `layout_check.py --klasse K` meldet zu viele Aufgaben, zu volle Seiten und gequetschte Stellen.
 
 Bei Kindern mit Konzentrationsschwierigkeiten statt weniger Aufgaben pro Blatt: dieselbe Seite mit Abhak-Kästchen pro Aufgabe oder auf zwei Blätter verteilen (`differenzierung.md`).
 
@@ -114,7 +125,7 @@ Bei Kindern mit Konzentrationsschwierigkeiten statt weniger Aufgaben pro Blatt: 
 | Aufgaben inkl. Abstände | Rest, ca. 720–760 px |
 | Fuß | 80–110 px |
 
-Passt eine weitere Aufgabe oder Item-Reihe hinein, wird sie ergänzt. Bleibt ein waagerechter Leerstreifen von mehr als ca. 64 px ungenutzt, Items ergänzen oder die Schreibfläche sinnvoll vergrößern.
+Kl. 3/4: Passt eine weitere Aufgabe oder Item-Reihe hinein, wird sie ergänzt; bleibt ein waagerechter Leerstreifen von mehr als ca. 64 px, Items ergänzen oder die Schreibfläche vergrößern. Kl. 1/2: Restplatz gleichmäßig als Luft zwischen die Aufgaben verteilen oder die Schreibfläche vergrößern, nicht auffüllen.
 
 ## 5. Freundlich bleiben in Schwarz-Weiß
 
@@ -134,7 +145,8 @@ Beide Profile:
 - [ ] Aufgaben ohne Kasten, mit hängender Nummer und einheitlichem Abstand
 - [ ] Rahmen nur mit Funktion
 - [ ] Kopf ≤ 160 px, Fuß ≤ 110 px, Tipp bei der Aufgabe
-- [ ] Reihen gefüllt, Mindestgrößen eingehalten, kein ungenutzter Leerstreifen
+- [ ] Aufgaben- und Item-Zahl im Richtwert der Klasse, jede Aufgabe auf einen Blick verständlich, Beispiel nicht gequetscht
+- [ ] Mindestgrößen eingehalten; Kl. 1/2 mit Luft, Kl. 3/4 ohne ungenutzte Leerstreifen
 - [ ] Keine Information nur über Farbe
 
 Schwarz-Weiß zusätzlich:

@@ -21,23 +21,24 @@ Die Canva-Umsetzung ist der teuerste Schritt. Deshalb:
 
 - **Ein Durchgang:** ein `create-design`, dann das Layout in **wenigen großen `edit-design`-Aufrufen** (alle Operationen einer Seite gebündelt) statt vieler kleiner.
 - **Antworten nicht ins Gespräch holen:** `read-design` immer mit `filter.fields`, Ergebnis als Datei speichern und nur mit `layout_check.py`, `python3` oder `jq` auswerten. Das volle JSON nie lesen.
-- **Vorschaubilder (`thumbnails`) sparsam:** einmal zur Abschlusskontrolle, nicht nach jedem Schritt.
+- **Vorschaubilder (`thumbnails`) gezielt:** für die visuelle Endkontrolle und nach jeder Korrektur daraus, nicht nach jedem Bauschritt.
 - **Operationen erzeugen statt tippen:** exakte Abbildungen mit den Skripten (`fach-mathematik/scripts/uhr_canva.py`) als fertige Operationsliste; gleichartige Elemente (Schreiblinien, Item-Reihen) per kurzem Python-Skript berechnen.
 - **Bilder wiederverwenden:** Leitfigur und Wachstumsgrafik mit den IDs aus `kindgerecht-gestalten.md`; `generate-image` nur für die im Plan gelisteten neuen Motive, je Motiv einmal.
-- **Höchstens zwei Prüf-Korrektur-Runden** mit `layout_check.py`. Bleibt danach etwas offen, der Lehrkraft die Vorschau mit dem offenen Punkt zeigen statt weiter zu probieren.
+- **Höchstens zwei Prüf-Korrektur-Runden** mit `layout_check.py`, höchstens drei Runden visuelle Endkontrolle. Bleibt danach etwas offen, der Lehrkraft die Vorschau mit dem offenen Punkt zeigen statt weiter zu probieren.
+- **Große Antworten als Datei:** `edit-design`-Antworten mit vielen Elementen (über ca. 25 000 Token) werden als Datei abgelegt; nie ganz lesen, sondern an `layout_check.py` bzw. `seite_kopieren.py` geben.
 
 ## Layout und Bearbeitbarkeit
 
 Ziel jedes Materials: übersichtlich, keine Darstellungsfehler (abgeschnitten, überlappend, verrutscht), von der Lehrkraft ohne Canva-Kenntnisse nachbearbeitbar. Regeln, Raster und Platzbudget: `references/layout-und-bearbeitbarkeit.md` – **vor dem Bauen lesen**. Kurzfassung:
 
-- **Druckprofil und kompaktes Layout** (`grundschul-didaktik/references/druck-und-platz.md`): weißer Hintergrund, keine Flächen hinter Aufgaben, Text schwarz; s/w mit Strichzeichnungen, Farbe als Akzent (Nummernkreise, Überschrift, Linien, Figur, Bilder). Immer Aufgaben ohne Kasten mit hängender Nummer, volle Item-Reihen.
-- Seitenrand 60 px für alle Elemente, eine Spalte, Abstände nur 8/16/24/32/48 px, 24–32 px zwischen Aufgaben.
+- **Druckprofil und kompaktes Layout** (`grundschul-didaktik/references/druck-und-platz.md`): weißer Hintergrund, keine Flächen hinter Aufgaben, Text schwarz; s/w mit Strichzeichnungen, Farbe als Akzent (Nummernkreise, Überschrift, Linien, Figur, Bilder). Immer Aufgaben ohne Kasten mit hängender Nummer; Aufgaben- und Item-Zahl nach dem Richtwert der Klasse, in Kl. 1/2 Übersicht vor Menge.
+- Seitenrand 60 px für alle Elemente, eine Spalte, Abstände nur 8/16/24/32/48 px, 24–32 px zwischen Aufgaben (Kl. 1/2: 32–48 px).
 - Platzbudget vor dem Bauen rechnen; passt es nicht, Item streichen oder zweite Seite – nie Ränder zusammenpressen.
 - Text bleibt Text, ein Textfeld pro Sinneinheit, feste Breite, Puffer darunter, kein Layout mit Leerzeichen.
 - Zusammengesetzte Abbildungen gruppieren (Uhr, Nummernkreis, Leitfigur + Sprechblase), Blöcke und Anweisungen nicht. Nichts sperren.
-- Nach dem Bauen `scripts/layout_check.py` laufen lassen (Abschnitt 3).
+- Nach dem Bauen `scripts/layout_check.py` laufen lassen, danach die visuelle Endkontrolle (Abschnitt 3).
 
-`create-design` ist nur ein **Startpunkt**: Die Canva-KI ignoriert px-Angaben für Ränder, Abstände und Schriftgrößen, ändert Text, setzt farbige Kästen und füllt Flächen mit Bildern. Das Layout wird danach mit `edit-design` auf das Raster gesetzt.
+`create-design` ist nur ein **Startpunkt**: Die Canva-KI ignoriert px-Angaben für Ränder, Abstände und Schriftgrößen, ändert Text, setzt farbige Kästen, legt ein Hintergrundbild an und baut Nummernkreise, Linien und Kästchen als Bilder. Das Layout wird danach mit `edit-design` auf das Raster gesetzt, bei Hintergrundbild oder Bild-Elementen auf einer neuen, leeren Seite (Abschnitt 1).
 
 ## Ablauf mit den Canva-Werkzeugen
 
@@ -47,7 +48,8 @@ Ziel jedes Materials: übersichtlich, keine Darstellungsfehler (abgeschnitten, �
   - `brief`: Zweck, Zielgruppe ("Arbeitsblatt für Klasse 2, Grundschule Deutschland"), Gestaltungsregeln (siehe Brief-Vorlage unten) und der **vollständige Text wörtlich**.
   - `format`: aus dem Medium der Start-Abfrage (Zuordnung in `grundschul-didaktik/references/rueckfragen.md`), immer mit Ausrichtung, z. B. `"Worksheet (A4 Portrait)"` für Arbeitsblätter, `"Poster (Portrait A3)"` oder A4 für Lernplakate, `"Presentation"` für Tafelbilder/Whiteboard.
   - **Achtung Formatfalle:** `"A4 Document (Portrait)"` erzeugt ein *responsives* Canva-Doc. Darin sind nur Text-Operationen erlaubt (`replace_text`, `find_and_replace_text`, `update_fill`, `delete_element`) – keine Formen, keine Positionierung. Für Arbeitsblätter immer eine **feste Seite** (`"type": "fixed"` in `read-design`) verwenden, also `"Worksheet (A4 Portrait)"`.
-  - Maße danach in `read-design` prüfen. Canva liefert bei „A4"-Formaten oft 816 × 1056 px (US Letter). Das ist für den Druck unkritisch, solange der Export mit `size: "a4"` erfolgt. Reicht die Höhe für das Platzbudget nicht (Letter hat 67 px weniger), `resize-design` auf 794 × 1123 px – das erzeugt ein **neues** Design; mit dessen ID weiterarbeiten und das Layout danach neu setzen.
+  - Maße danach in `read-design` prüfen. Canva liefert bei „A4"-Formaten oft 816 × 1056 px (US Letter) oder A4 in höherer Auflösung (1123 × 1587 px). Letter ist für den Druck unkritisch, solange der Export mit `size: "a4"` erfolgt. Für eigene Positionen gilt: alle px-Werte aus den Referenzen mit Seitenbreite ÷ 794 umrechnen (`layout_check.py` tut das selbst).
+  - **Saubere Seite:** Hat die erzeugte Seite ein Hintergrundbild (`background.media`) oder Elemente als Rechtecke mit Bildfüllung, lässt sich das per Operation nicht entfernen. Dann auf einer neuen Seite bauen: `add_page` mit `width: 794`, `height: 1123`, `background_color: "#FFFFFF"`, Inhalte dort per Skript setzen und die Seite mit `reorder_page` nach vorn holen. Die KI-Seite bleibt am Ende stehen und wird der Lehrkraft zum Löschen genannt (oder als Notlösung mit einem weißen Rechteck in Seitengröße, `layer_element` `"back"`, überdeckt). Die Seite ganz selbst zu bauen ist auch der Weg zu einheitlicher Schrift (siehe Brief-Vorlage).
   - Danach `get-create-design-async-job` abfragen, bis das Design fertig ist (nur wenn kein Widget es anzeigt).
 - **Mit Markenvorlage der Schule/Klasse** (Brand Kit mit Schulschrift, Farben, Willi/Wilma Waschbär): stattdessen die Legacy-Werkzeuge mit `brand_kit_id` (`generate-design` → `create-design-from-candidate`). Vorher mit `list-brand-kits` anbieten.
 - **Vorhandene Vorlage der Lehrkraft:** `search-designs` → `copy-design` → bearbeiten. So bleiben Kopfzeile, Symbole und Schrift der Klasse erhalten. Bei wiederkehrenden Formaten (Wochenplan, Laufzettel) ist das der bevorzugte Weg.
@@ -69,7 +71,9 @@ Ziel jedes Materials: übersichtlich, keine Darstellungsfehler (abgeschnitten, �
 Wenn ein Upload nicht möglich ist (abgeschottete Umgebung, blockierte Upload-URL), lässt sich jede exakte Zeichnung direkt aus `insert_shape` aufbauen:
 
 - SVG-Pfad in einer eigenen `view_box` (z. B. 100 × 100) rechnen, dann über `width`/`height` auf die Zielgröße skalieren. Nur `M/L/H/V/C/S/A/Z` sind erlaubt, **kein `Q`/`T`**. Kreise als zwei `A`-Bögen.
-- Mehrere Teilformen in **einem** Pfad zusammenfassen (z. B. alle 12 Stundenstriche), sonst wird die Operationsliste sehr groß. Dünne Linien ggf. als offene Pfade mit `stroke_weight` statt als gefüllte Rechtecke.
+- Mehrere Teilformen in **einem** Pfad zusammenfassen (z. B. alle 12 Stundenstriche), sonst wird die Operationsliste sehr groß.
+- **Linien immer als gefüllte Rechtecke** (1,5–2 px hoch bzw. breit, `color` gesetzt). Ein offener Pfad mit nur `stroke_weight` bleibt unsichtbar. Rahmen und Bündelkreise als geschlossene Pfade mit Kontur.
+- **Mengen geordnet berechnen:** Punkte, Plättchen, Murmeln in Zweierreihen/Fünferstruktur oder als Zehnerstange, Bündelrahmen mit 6–8 px Abstand um genau seine Elemente. Nie frei verteilen; gestreute Mengen und sich schneidende Kreise sind für Kinder nicht zählbar.
 - Zahlen am Zifferblatt als `add_text` – Position aus demselben Koordinatensystem rechnen.
 - Fertige Generatoren: `fach-mathematik/scripts/uhr_canva.py` (Uhr als Canva-Operationen), `fach-mathematik/scripts/uhr.py` (Uhr als PNG, wenn Upload möglich ist).
 
@@ -78,14 +82,15 @@ Wenn ein Upload nicht möglich ist (abgeschottete Umgebung, blockierte Upload-UR
 - **Geometrie automatisch prüfen:** `read-design` mit `open_transaction: true` (bzw. `transaction_id`) und `filter.fields: ["design_content"]`, Antwort als Datei speichern, dann
   `python3 scripts/layout_check.py design.json --klasse {K}`.
   Meldet FEHLER (abgeschnitten, Druckrand, überlappende oder verdeckte Texte, Restelemente), WARNUNGEN (Rand, Berührungen, fehlender Puffer, kleine Schrift, uneinheitliche Abstände, Druck: Farb-/Grauflächen, Hintergrundbild, farbige Schrift, helle oder dünne Linien) und HINWEISE (Gruppen, Unterstrich-Linien, Aufgabenkästen, Leerstreifen, Bilder auf s/w prüfen). Im Farbprofil `--farbe` angeben (prüft dann Flächen, Kästen und Schriftkontrast statt s/w-Tauglichkeit). Die ausgegebenen `group_elements`-Operationen direkt an `edit-design` geben. Wiederholen, bis keine FEHLER bleiben. Details: `references/layout-und-bearbeitbarkeit.md`, Abschnitt 3.
-- `read-design` lesen und gegen den Aufgabenplan abgleichen. Die Antwort wird schnell sehr groß; deshalb mit `filter.fields` gezielt anfordern (`thumbnails` für die Optik, `design_content` für Elementpositionen) und lange Ergebnisse als Datei mit `python3`/`jq` auswerten statt am Stück zu lesen.
+- Text gegen den Aufgabenplan abgleichen. Die Antwort wird schnell sehr groß; deshalb mit `filter.fields` gezielt anfordern (`thumbnails` für die Optik, `design_content` für Elementpositionen) und lange Ergebnisse als Datei mit `python3`/`jq` auswerten statt am Stück zu lesen.
   - Steht der Text wörtlich so da? Keine erfundenen Zusätze?
   - Schriftgrößen gemäß Klassenstufe (`grundschul-didaktik`)? Keine Schmuck- oder Großbuchstabenschrift für Fließtext?
   - Ich-kann-Ziel oben; Niveau-Punkte, Sternchenaufgabe ★, Wachstumsgrafik und Reflexionsfrage genau wie in der Start-Abfrage gewählt?
   - Genug Schreibfläche, Lineatur vorhanden?
   - Keine Deko-Elemente ohne Funktion, kein Text auf unruhigem Hintergrund?
-  - Druckprofil eingehalten (s/w: keine Farbe/Flächen; Farbe: nur Akzente, keine Flächen hinter Aufgaben)? Seite gut genutzt (keine Kästen, volle Reihen)?
-- Dem Nutzer die Vorschau zeigen.
+  - Druckprofil eingehalten (s/w: keine Farbe/Flächen; Farbe: nur Akzente, keine Flächen hinter Aufgaben)? Keine Kästen?
+- **Visuelle Endkontrolle (Pflicht):** `references/visuelle-endkontrolle.md`. Vorschau jeder Seite holen, mit `python3 scripts/sichtpruefung.py vorschau.png --design design.json` in vergrößerte Ausschnitte je Aufgabe zerlegen und jeden Ausschnitt gegen die Checkliste prüfen: Abbildungen exakt, Beispiel nicht gequetscht, für ein Kind der Klasse in Sekunden verständlich, keine Umbrüche oder Überlappungen, genug Luft. Jeden Befund selbst beheben und erneut prüfen, bis alles erfüllt ist.
+- Erst danach der Lehrkraft die Vorschau zeigen, mit einem Satz, was die Endkontrolle korrigiert hat.
 
 ### 4. Korrigieren
 
@@ -95,11 +100,11 @@ Wenn ein Upload nicht möglich ist (abgeschottete Umgebung, blockierte Upload-UR
   - `delete_element` für Deko ohne Funktion und für Aufgabenkästen/Farbflächen
   - `recolor_element` / `format_text` `color`: im s/w-Profil Nummernkreise und Schrift → `#1D1D1B`; im Farbprofil auf die Palette vereinheitlichen
   - `insert_shape` für Schreiblinien, Rahmen, Kästchen
-  - `add_text` setzt **immer** 16 px, normal, linksbündig – unabhängig vom Umfeld. Nach jedem `add_text` ein `format_text` mit Größe, Gewicht und `text_align` hinterherschicken, sonst sitzen Zahlen und Beschriftungen falsch.
-  - `add_page` für Niveau-Varianten oder Lösungsblatt
+  - `add_text` setzt **immer** 16 px, normal, linksbündig – unabhängig vom Umfeld, und in Canvas Standardschrift. Nach jedem `add_text` ein `format_text` mit Größe, Gewicht, Farbe, `line_height` und `text_align` hinterherschicken, sonst sitzen Zahlen und Beschriftungen falsch. Die neuen IDs stehen erst in der Antwort: Formatierung per Skript über Text + Position zuordnen.
+  - `add_page` (mit `width`, `height`, `background_color`) für Niveau-Varianten oder Lösungsblatt. **Duplizieren gibt es nicht:** `python3 scripts/seite_kopieren.py bauen design.json --ziel NEUE_PAGE_ID` erzeugt die Operationen für eine Kopie, `seite_kopieren.py formatieren` danach die `format_text`-Operationen; dann nur die Lösungen ergänzen.
   - `position_element` / `resize_element` auf das Raster; Textfelder nur in der Breite ändern, die Höhe ergibt sich
   - **Ebenen:** Neue Elemente landen immer ganz oben. Flächen, die nachträglich eingefügt werden, mit `layer_element` `"back"` nach hinten; Text, der hinter einer neuen Form verschwindet, mit `"front"` nach vorn
-  - `insert_fill` schneidet das Bild auf das angegebene Seitenverhältnis zu. Breite/Höhe im Verhältnis des Originals angeben, sonst fehlen Teile (z. B. die letzte Pflanze der Wachstumsgrafik); bei Bedarf `crop_media`
+  - `insert_fill` schneidet das Bild auf das angegebene Seitenverhältnis zu, oft mit versetztem Ausschnitt. Breite/Höhe im Verhältnis des Originals angeben und direkt danach `crop_media` mit `left: 0`, `top: 0` und denselben Maßen, sonst fehlen Teile (z. B. der Samen der Wachstumsgrafik)
   - `group_elements` für zusammengesetzte Abbildungen (Vorschläge liefert `layout_check.py`)
 - Mit `finalize: "keep_open"` arbeiten, Vorschau zeigen, **erst nach Freigabe** `finalize: "commit"`.
 
@@ -115,12 +120,12 @@ Wenn ein Upload nicht möglich ist (abgeschottete Umgebung, blockierte Upload-UR
 
 ## Brief-Vorlage für `create-design`
 
-Schrift lässt sich nachträglich nur eingeschränkt ändern (`format_text` kennt **keine Schriftart**). Farben und Kästen aus dem Brief setzt Canva zuverlässig um – deshalb im Brief Druckprofil und „keine Kästen" ausdrücklich verlangen; Schriftwünsche nur teilweise (im Test wurde eine runde Schrift für alles verwendet statt zwei getrennter). Wer eine bestimmte Schrift braucht, legt sie im Brand Kit an. Texte aus `add_text` erscheinen in Canvas Standardschrift – für längere Texte lieber Platz im Brief reservieren und den Text dort mitgeben. Deshalb Druckart und Schriften schon im Brief festlegen; Bilder und exakte Abbildungen danach selbst einsetzen und im Brief nur Platz dafür reservieren.
+Schrift lässt sich nachträglich nicht setzen (`format_text` kennt **keine Schriftart**). Farben und Kästen aus dem Brief setzt Canva zuverlässig um – deshalb im Brief Druckprofil und „keine Kästen" ausdrücklich verlangen; Schriftwünsche nur teilweise (im Test wurde eine runde Schrift für alles verwendet statt zwei getrennter). Wer eine bestimmte Schrift braucht, legt sie im Brand Kit an. Texte aus `add_text` erscheinen in Canvas Standardschrift, die vom Brief abweicht. Deshalb nicht mischen: Entweder die Texte aus `create-design` behalten und nur verschieben/formatieren, oder die Seite komplett selbst bauen (saubere Seite, Abschnitt 1) – dann ist die Schrift einheitlich. Bilder und exakte Abbildungen immer selbst einsetzen und im Brief nur Platz dafür reservieren.
 
 ```
 Arbeitsblatt für die Grundschule, Klasse {K}, Fach {Fach}, Thema "{Thema}".
 Format A4 hochkant. {DRUCK}
-Gestaltung: kindgerecht und freundlich durch runde Überschriftenschrift und runde Formen, aber ruhig und kompakt. Möglichst viele Aufgaben auf der Seite.
+Gestaltung: kindgerecht und freundlich durch runde Überschriftenschrift und runde Formen, ruhig und übersichtlich, mit Luft zwischen den Aufgaben.
 Schriften: Überschrift in {Fredoka/Baloo 2} (fett, {Überschriftfarbe}, {px}), aller übrige Text in {Andika/Schulschrift} ({px}, schwarz #1D1D1B),
 Zeilenabstand 1,5, linksbündig. Seitenrand rundum 60 px. Eine Spalte.
 Aufgaben OHNE Kasten, ohne Hintergrundfläche, ohne Innenabstand: Aufgabennummer als kleiner gefüllter Kreis (34 px) in {Kreisfarbe} mit weißer fetter Ziffer am linken Rand,
@@ -168,9 +173,14 @@ Platzhalter nach Druckprofil:
 | Canva setzt trotz Brief farbige Aufgabenkästen oder Flächen mit Bildfüllung | Kästen und Flächen löschen, Inhalte mit hängender Nummer neu stapeln (`references/layout-und-bearbeitbarkeit.md`) |
 | s/w-Profil: farbige Nummernkreise, Überschrift oder Schrift | `recolor_element` bzw. `format_text` `color` auf `#1D1D1B` |
 | Farbprofil: Anweisungen oder Fließtext farbig | `format_text` `color` `#1D1D1B`; Farbe nur für Überschrift und Akzente |
-| Seitenhintergrund ist ein Bild | Weißen Hintergrund lassen bzw. Bild löschen |
+| Seitenhintergrund ist ein Bild (per Operation nicht löschbar) | Auf neuer Seite bauen: `add_page` 794 × 1123, `background_color` `#FFFFFF` (Abschnitt 1) |
+| Linie unsichtbar | Offener Pfad mit `stroke_weight`: durch gefülltes Rechteck 1,5–2 px ersetzen |
+| Abbildung ungenau (Anzahl falsch, Kreise schneiden sich, Menge gestreut) | Geordnet neu berechnen (Abschnitt 2b), alte Teile löschen; Befund aus der visuellen Endkontrolle |
+| Blatt wirkt voll oder undurchsichtig, Beispiel gequetscht | Items und Aufgaben auf den Richtwert der Klasse kürzen, Beispiel in Item-Größe, Luft verteilen (`references/visuelle-endkontrolle.md`) |
+| Lösungsblatt muss nachgebaut werden | `add_page` + `scripts/seite_kopieren.py`, dann Lösungen ergänzen |
+| Bericht/Positionen passen nicht zur Seite (1123 × 1587 px) | Maße mit Seitenbreite ÷ 794 umrechnen; `layout_check.py` rechnet selbst um |
 | Ziffer im Nummernkreis verschwunden | Kreis wurde später eingefügt und liegt oben: Ziffer mit `layer_element` `"front"` |
-| Wachstumsgrafik oder Leitfigur abgeschnitten | Seitenverhältnis beim `insert_fill` beachten, sonst `resize_element` + `crop_media` |
+| Wachstumsgrafik oder Leitfigur abgeschnitten | Seitenverhältnis beim `insert_fill` beachten, danach `crop_media` auf `left`/`top` 0 |
 | Fußzeile passt nicht mehr auf die Seite | Platzbudget neu rechnen: Kästen und Innenabstände entfernen, Kopf und Fuß verschlanken, Reihe umbrechen oder `resize-design` auf A4 |
 | Uhren als 100+ lose Einzelteile, `read-design` abgeschnitten | Jede Uhr mit `group_elements` gruppieren |
 | Zu viele Seiten bei Karten | Kartenraster bewusst planen: 8 Karten pro A4-Seite (2 × 4) bei Memory/Wortkarten, 12 bei Domino (2 × 6) |

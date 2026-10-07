@@ -4,7 +4,7 @@ Ziel: Jedes Material ist **übersichtlich**, hat **keine Darstellungsfehler** (a
 
 In beiden Druckprofilen (Farbe oder s/w, `grundschul-didaktik/references/druck-und-platz.md`) stehen Aufgaben ohne Kasten. Die Werte unten gelten dafür; Flächen-Regeln nur, wo ausnahmsweise eine Fläche oder ein Rahmen mit Funktion vorkommt.
 
-Maße gelten für Canva-Pixel (96 px pro Zoll, 1 cm ≈ 38 px). A4 = 794 × 1123 px; Canva liefert oft US-Letter 816 × 1056 px.
+Maße gelten für Canva-Pixel (96 px pro Zoll, 1 cm ≈ 38 px). A4 = 794 × 1123 px; Canva liefert oft US-Letter 816 × 1056 px oder ein A4-Blatt in höherer Auflösung (1123 × 1587 px). Dann alle Werte mit Seitenbreite ÷ 794 umrechnen; `layout_check.py` rechnet selbst auf 794 px um.
 
 ## 1. Satzspiegel und Raster
 
@@ -15,7 +15,7 @@ Maße gelten für Canva-Pixel (96 px pro Zoll, 1 cm ≈ 38 px). A4 = 794 × 1123
 | Inhaltsspalte | eine Spalte; alle Blöcke gleiche linke Kante, gleiche Breite | Ein Raster macht das Blatt ruhig und erleichtert späteres Platzieren. |
 | Abstandsskala | nur 8 / 16 / 24 / 32 / 48 px | Gleiche Abstände wirken geordnet; „fast gleich" (13 px neben 16 px) wirkt fehlerhaft. |
 | Aufgaben | ohne Kasten, ohne Flächenfüllung | Kästen kosten Innenabstand und Toner; Nähe und Abstand gliedern genauso klar. |
-| Abstand zwischen Aufgaben | 24–32 px, überall gleich; optional dünne Trennlinie (1–1,5 px, `#808080`) mittig im Abstand | Aufgaben dürfen sich nie berühren. |
+| Abstand zwischen Aufgaben | 24–32 px (Kl. 1/2: 32–48 px), überall gleich; optional dünne Trennlinie (1–1,5 px, `#808080`) mittig im Abstand | Aufgaben dürfen sich nie berühren. |
 | Nähe-Prinzip | Anweisung → ihre Arbeitsfläche: 8–16 px; Aufgabe → nächste Aufgabe: 24–32 px | Zusammengehöriges steht näher beieinander als Getrenntes. |
 | Nummernkreis | 32–36 px, gefüllt (s/w schwarz, Farbe Hauptfarbe), weiße fette Ziffer; feste Spalte am linken Spaltenrand, Anweisung 12–16 px rechts davon, Arbeitsfläche bündig unter der Anweisung (hängende Nummer) | Kreis und Text dürfen sich nicht überschneiden; die Nummer ersetzt den Kasten. |
 | Rahmen mit Funktion (Sprechblase, Wortspeicher, Antwortkasten) | Kontur 1,5–2 px, keine Füllung, Ecken 8–16 px gerundet, Innenabstand 8–12 px | Text klebt sonst am Rand; mehr Innenabstand kostet nur Platz. |
@@ -24,7 +24,7 @@ Maße gelten für Canva-Pixel (96 px pro Zoll, 1 cm ≈ 38 px). A4 = 794 × 1123
 | Ausrichtung | Fließtext linksbündig, nichts gedreht | Zentrierter oder gedrehter Text ist schwer lesbar und schwer zu bearbeiten. |
 | Reihen gleichartiger Elemente (Uhren, Felder) | gleiche Größe, gleicher Abstand, gemeinsam zentriert in der Spalte | Kinder erkennen die Reihe als Einheit. |
 
-**Platzbudget vor dem Bauen:** Höhe des Satzspiegels (Letter 1056 − 120 = 936 px, A4 1123 − 120 = 1003 px) verteilen: Kopf ≤ 160 px, Fuß 80–110 px, Rest für Aufgaben und Abstände. Item-Reihen füllen (Spaltenbreite 674 px ÷ Item-Breite + Abstand), Mindestgrößen aus `druck-und-platz.md` einhalten. Bleibt Platz, Items oder eine Aufgabe ergänzen; passt es nicht, ein Item streichen oder eine zweite Seite anlegen – nie Abstände, Ränder oder Schriftgrößen zusammenpressen.
+**Platzbudget vor dem Bauen:** Höhe des Satzspiegels (Letter 1056 − 120 = 936 px, A4 1123 − 120 = 1003 px) verteilen: Kopf ≤ 160 px, Fuß 80–110 px, Rest für Aufgaben und Abstände. Aufgaben- und Item-Zahl nach den Richtwerten der Klasse aus `druck-und-platz.md`, Mindestgrößen einhalten. Bleibt Platz: in Kl. 3/4 Items oder eine Aufgabe ergänzen, in Kl. 1/2 als Luft zwischen die Aufgaben verteilen. Passt es nicht, ein Item streichen oder eine zweite Seite anlegen – nie Abstände, Ränder oder Schriftgrößen zusammenpressen.
 
 ## 2. Bearbeitbar bauen
 
@@ -48,13 +48,13 @@ Nach dem Erstellen und nach jeder größeren Korrektur:
 1. `read-design` mit `open_transaction: true` und `filter.fields: ["design_content"]` (nur so kommen Positionen und Locator-IDs).
 2. Antwort als Datei speichern und prüfen:
    `python3 scripts/layout_check.py design.json --klasse 2`
-3. Alle **FEHLER** beheben (abgeschnitten, Druckrand, überlappende Texte, Restelemente). **WARNUNGEN** prüfen und in der Regel beheben (Rand, Berührungen, fehlender Puffer, zu kleine Schrift, uneinheitliche Abstände). **HINWEISE** betreffen die Bearbeitbarkeit (Gruppen, Unterstrich-Linien, Layout per Leerzeichen) und den Platz (Aufgabenkästen, ungenutzte Streifen). Die **Druck-Prüfungen** laufen nach Profil: ohne Option für s/w (Hintergrundbild, Farb-/Grauflächen, farbige oder weiße Schrift, helle oder dünne Linien, geschätzte Flächendeckung, farbige Bilder), mit `--farbe` für das Farbprofil (Hintergrundbild, Flächen hinter Aufgaben, zu helle Schrift).
+3. Alle **FEHLER** beheben (abgeschnitten, Druckrand, überlappende Texte, Restelemente). **WARNUNGEN** prüfen und in der Regel beheben (Rand, Berührungen, fehlender Puffer, zu kleine Schrift, uneinheitliche Abstände, **Übersicht:** zu viele Aufgaben für die Klasse, zu volle Seite, gequetschte Stellen, an denen Text an einer Abbildung, Tabelle oder Linie klebt). **HINWEISE** betreffen die Bearbeitbarkeit (Gruppen, Unterstrich-Linien, Layout per Leerzeichen) und den Platz (Aufgabenkästen, ungenutzte Streifen). Die **Druck-Prüfungen** laufen nach Profil: ohne Option für s/w (Hintergrundbild, Farb-/Grauflächen, farbige oder weiße Schrift, helle oder dünne Linien, geschätzte Flächendeckung, farbige Bilder), mit `--farbe` für das Farbprofil (Hintergrundbild, Flächen hinter Aufgaben, zu helle Schrift).
 4. Die vom Skript ausgegebenen `group_elements`-Operationen direkt an `edit-design` geben.
-5. Erneut lesen und prüfen, bis keine FEHLER mehr bleiben. Dann die Vorschau (`thumbnails`) ansehen: Das Skript sieht Geometrie, nicht Optik.
+5. Erneut lesen und prüfen, bis keine FEHLER mehr bleiben. Danach folgt **immer** die visuelle Endkontrolle (`visuelle-endkontrolle.md`): Das Skript sieht Geometrie, nicht ob eine Abbildung stimmt oder ein Kind die Aufgabe versteht.
 
 Ohne Code-Ausführung dieselben Punkte von Hand an den Koordinaten aus `design_content` prüfen (Checkliste unten).
 
-**Große Antworten:** `read-design` kürzt Antworten über ca. 100 000 Zeichen. Ungruppierte Uhren (16 Elemente pro Uhr) sprengen das schnell. Dann zuerst gruppieren oder mit `filter.element_ids` gezielt nachlesen. Das Skript wertet abgeschnittene Antworten bis zur Schnittstelle aus und meldet das.
+**Große Antworten:** `read-design` kürzt Antworten über ca. 100 000 Zeichen. Ungruppierte Uhren (16 Elemente pro Uhr) sprengen das schnell. Dann zuerst gruppieren oder mit `filter.element_ids` gezielt nachlesen. Das Skript wertet abgeschnittene Antworten bis zur Schnittstelle aus und meldet das. Auch `edit-design`-Antworten werden bei vielen Elementen zu groß fürs Gespräch (über ca. 25 000 Token) und dann als Datei abgelegt: Diese Datei nie ganz lesen, sondern direkt an `layout_check.py` oder `seite_kopieren.py` geben (beide lesen das Format von `edit-design` mit der Seite unter `document`).
 
 ## 4. Typische Fehler der Canva-KI (aus Tests)
 
@@ -65,19 +65,22 @@ Ohne Code-Ausführung dieselben Punkte von Hand an den Koordinaten aus `design_c
 | Anweisung beginnt im Nummernkreis | Text auf Kreis-Ende + 16 px setzen, Breite entsprechend verringern |
 | Text „Name:" ragt in die eigene Schreiblinie | Linie hinter das Textende + 8 px verschieben |
 | Überschrift ohne Abstand zum nächsten Element | Folgeelemente um 16–24 px nach unten |
-| Seitenhintergrund als Bild | Weißen Hintergrund lassen; Bild löschen (kostet in s/w Toner) |
+| Seitenhintergrund als Bild (lässt sich per Operation nicht entfernen) | Auf einer neuen Seite bauen: `add_page` mit `width`/`height` der Zielgröße und `background_color` `#FFFFFF`; Notlösung: weißes Rechteck in Seitengröße mit `layer_element` `"back"` |
+| Nummernkreise, Niveau-Punkte, Linien oder Kästchen als Rechtecke mit Bildfüllung | Löschen und als Vektorformen neu setzen (Abschnitt 5) |
 | Aufgabenflächen als farbige Kästen oder Rechtecke mit Bildfüllung | Löschen (`delete_element`); Aufgaben mit hängender Nummer neu stapeln, Abstand 24–32 px |
 | Pastellflächen in Kopf/Fuß | Flächen löschen, Abgrenzung durch Linie |
 | s/w-Profil: farbige Schrift oder Nummernkreise | `format_text` `color` `#1D1D1B`, `recolor_element` Kreis `#1D1D1B` |
 | px-Angaben im Brief (Rand, Abstand, Schriftgröße) ignoriert, Text umformuliert | Brief nur als Startpunkt nutzen; Layout mit `edit-design` auf das Raster setzen, Text mit `find_and_replace_text` korrigieren |
-| Letter-Format 816 × 1056, Inhalt passt nicht ins Platzbudget | `resize-design` auf A4 (neues Design, neue ID), danach Layout neu setzen |
+| Letter-Format 816 × 1056 oder A4 in 1123 × 1587, Inhalt passt nicht ins Platzbudget | Neue Seite mit `add_page` (794 × 1123, weiß) oder `resize-design` auf A4 (neues Design, neue ID), danach Layout neu setzen |
 | Uhren als 100+ lose Einzelteile | je Uhr `group_elements` |
 
 ## 5. Stolperfallen beim Nachbauen mit `edit-design`
 
 - **Ebenen:** Jedes neue Element liegt ganz oben. Erst Flächen, dann Inhalte einfügen – oder danach `layer_element` (`"back"` für Flächen, `"front"` für verdeckte Ziffern).
-- **`add_text`** setzt Canvas Standardschrift in 16 px, nicht die Schrift des Designs. Immer `format_text` nachschicken; Schriftart lässt sich nicht setzen, deshalb längeren Text lieber in vorhandene Textfelder schreiben (`replace_text`).
-- **`insert_fill`** schneidet auf das angegebene Seitenverhältnis zu. Maße im Verhältnis des Originals wählen, Ergebnis in der Vorschau prüfen.
+- **`add_text`** setzt Canvas Standardschrift in 16 px, normal, linksbündig, nicht die Schrift des Designs. Jedes `add_text` braucht ein `format_text` (Größe, Gewicht, Farbe, `line_height`, `text_align`); die IDs der neuen Texte stehen erst in der Antwort, deshalb Formatierung per Skript zuordnen (Text + Position, wie `seite_kopieren.py formatieren`). Die Schriftart lässt sich nicht setzen: Texte aus `add_text` stehen in einer anderen Schrift als die von `create-design`. Ein Blatt daher entweder ganz mit `add_text` bauen (einheitlich) oder längere Texte in vorhandene Textfelder schreiben (`replace_text`), nicht mischen.
+- **Linien:** Ein offener Pfad mit nur `stroke_weight` bleibt unsichtbar. Linien (Schreiblinien, Trennlinien, Tabellenlinien) als **gefüllte Rechtecke** 1,5–2 px hoch setzen (`insert_shape` mit `color`), Rahmen als geschlossene Pfade mit Kontur.
+- **Seite duplizieren** gibt es nicht. Lösungs- oder Niveau-Seite: `add_page` (gleiche Größe, weiß), dann `scripts/seite_kopieren.py` (baut die Seite aus `read-design` nach und formatiert die Texte), danach nur die Lösungen ergänzen.
+- **`insert_fill`** schneidet auf das angegebene Seitenverhältnis zu, oft mit versetztem Ausschnitt (Teile fehlen). Maße im Verhältnis des Originals wählen und direkt danach `crop_media` mit `left: 0`, `top: 0` und denselben `width`/`height` schicken; Ergebnis in der Vorschau prüfen.
 - **Textbreite:** Textfelder ohne `width` wachsen in die Breite und laufen über den Rand.
 - **Gruppen** erst ganz am Ende bilden; danach sind die Einzelteile nur noch über die Gruppe zu verschieben.
 
@@ -86,11 +89,12 @@ Ohne Code-Ausführung dieselben Punkte von Hand an den Koordinaten aus `design_c
 - [ ] Alle Elemente ≥ 60 px vom Seitenrand, nichts ragt über die Seite
 - [ ] Eine Spalte: Aufgaben bündig, ohne Kasten, Abstände einheitlich (8er-Skala)
 - [ ] Druckprofil: keine Flächen hinter Aufgaben, Text schwarz; s/w zusätzlich Linien ≥ 1,5 px nicht heller als `#808080`, Farbe nur als Akzent
-- [ ] Platz genutzt: Kopf ≤ 160 px, Fuß ≤ 110 px, Item-Reihen gefüllt, kein Leerstreifen
+- [ ] Platz genutzt: Kopf ≤ 160 px, Fuß ≤ 110 px, Aufgaben- und Item-Zahl im Richtwert der Klasse (Kl. 1/2 mit Luft, Kl. 3/4 ohne Leerstreifen)
 - [ ] Keine Überlappung außer „Inhalt liegt mit Innenabstand in seiner Fläche"
 - [ ] Unter jedem Textfeld Puffer zum Wachsen
 - [ ] Textfelder mit fester Breite, kein Layout per Leerzeichen
 - [ ] Zusammengesetzte Abbildungen gruppiert, nichts gesperrt, nichts gedreht
 - [ ] Schreiblinien als Linienform, gleich lang
 - [ ] Keine leeren, doppelten oder unsichtbaren Elemente
-- [ ] `layout_check.py` ohne FEHLER, Vorschau angesehen
+- [ ] `layout_check.py --klasse K` ohne FEHLER und ohne Übersichts-Warnungen
+- [ ] Visuelle Endkontrolle bestanden (`visuelle-endkontrolle.md`)

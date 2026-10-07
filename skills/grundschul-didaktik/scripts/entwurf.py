@@ -72,6 +72,7 @@ PALETTEN = {  # Hauptfarbe, Akzent, dunkle Variante (Schrift/Nummernkreis)
 }
 
 # Fließtext in px je Klasse (pt × 1,33, Werte aus grundschul-didaktik)
+MAX_AUFGABEN = {1: 3, 2: 4, 3: 5, 4: 6}  # Richtwert pro A4-Seite, siehe druck-und-platz.md
 SCHRIFT = {1: 28, 2: 24, 3: 20, 4: 18}
 
 e = html.escape
@@ -212,7 +213,7 @@ document.querySelectorAll('.seite').forEach(s=>{
   let unten=0;[...s.children].forEach(c=>{if(c.tagName!=='FOOTER')unten=Math.max(unten,c.offsetTop+c.offsetHeight)});
   const rest=s.clientHeight-60-fh-unten;
   if(rest<0||s.scrollHeight>s.clientHeight+1){s.classList.add('zuviel');s.closest('.entwurf').classList.add('zuviel-w')}
-  else if(rest>150&&!s.querySelector('.karten')){s.closest('.entwurf').querySelector('.frei').textContent='Ungenutzt unten: '+Math.round(rest)+' px (Item oder Aufgabe ergänzen)'}
+  else if(rest>150&&!s.querySelector('.karten')){s.closest('.entwurf').querySelector('.frei').textContent='Ungenutzt unten: '+Math.round(rest)+' px ('+(KLEIN?'Abstände zwischen den Aufgaben vergrößern, nicht auffüllen':'Item oder Aufgabe ergänzen')+')'}
 });
 """
 
@@ -241,6 +242,10 @@ def baue_html(spec):
     for i, d in enumerate(spec["entwuerfe"]):
         name = d.get("name") or f"Entwurf {chr(65 + i)}"
         idee = f'<div class="idee">{e(d.get("idee", ""))}</div>'
+        anzahl = len(d.get("aufgaben", []))
+        if anzahl > MAX_AUFGABEN.get(klasse, 6):
+            idee += (f'<div class="warnung" style="display:block">{anzahl} Aufgaben: für Klasse {klasse} höchstens '
+                     f'{MAX_AUFGABEN[klasse]} (druck-und-platz.md). Aufgabe streichen oder zweite Seite.</div>')
         notiz = f'<div class="notiz">{e(d["notiz"])}</div>' if d.get("notiz") else ""
         spalten.append(
             f'<div class="entwurf"><div class="label">{e(name)}</div>{idee}'
@@ -251,7 +256,7 @@ def baue_html(spec):
             f'<title>Entwürfe {e(spec.get("titel", ""))}</title>'
             '<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Andika&family=Fredoka:wght@600&display=swap">'
             f'<style>{css}</style></head><body>{kopf}<div class="reihe">{"".join(spalten)}</div>'
-            f'<script>{JS}</script></body></html>')
+            f'<script>const KLEIN={"true" if klasse <= 2 else "false"};{JS}</script></body></html>')
 
 
 def png(html_pfad, png_pfad):
