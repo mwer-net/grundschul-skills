@@ -18,7 +18,7 @@ Laden mit: `grundschul-didaktik`, passendem `fach-*`, ggf. `arbeitsblatt`/`lerns
 ## Bausteine
 
 ### Stationskarte (A5 oder A4, laminierbar)
-- Stationsnummer groß + Stationsfarbe + Symbol (gleich auf Laufzettel und Lösungskarte)
+- Stationsnummer groß + Symbol (gleich auf Laufzettel und Lösungskarte); Stationsfarbe im Farbprofil, im s/w-Profil Symbol als Unterscheidung (`grundschul-didaktik/references/druck-und-platz.md`)
 - Ich-kann-Ziel der Station
 - Titel (kindgerecht), Sozialform-Symbol (👤 👥 👨‍👩‍👧), ggf. „Pflicht" / „Wahl" als Wort (Punkte sind für Niveaus reserviert)
 - Material-Liste mit Bildern
@@ -48,14 +48,14 @@ Laden mit: `grundschul-didaktik`, passendem `fach-*`, ggf. `arbeitsblatt`/`lerns
 
 ## Wochenplan (Besonderheiten)
 
-- Fächer farbig/symbolisch getrennt, Pflicht- und Wahlaufgaben klar markiert.
+- Fächer durch Symbol (im Farbprofil zusätzlich Farbe) getrennt, Pflicht- und Wahlaufgaben klar markiert.
 - Aufgaben mit Seiten-/Materialangabe ("AH S. 12, Nr. 1–3").
 - Abhakfeld pro Aufgabe, Unterschrift Lehrkraft/Eltern optional.
 - Plan auf 1 A4-Seite, Kl. 1 mit vielen Symbolen statt Text.
 
 ## Qualitätscheck
 
-- [ ] Stationsnummer, Farbe und Symbol stimmen auf Karte, Laufzettel und Lösung überein
+- [ ] Stationsnummer, Symbol (und ggf. Farbe) stimmen auf Karte, Laufzettel und Lösung überein
 - [ ] Pflichtpensum in der Zeit realistisch für langsamere Kinder
 - [ ] Material pro Station genannt und vorhanden
 - [ ] Selbstkontrolle an jeder geeigneten Station

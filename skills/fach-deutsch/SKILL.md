@@ -50,7 +50,7 @@ Nach dem Rückfrage-Protokoll aus `grundschul-didaktik` (eine Frage pro Nachrich
 
 ### Grammatik
 - Entdeckend: Proben (Umstellprobe, Ersatzprobe, Weglassprobe), Wortarten über Funktion statt nur Definition.
-- Farbkonvention Wortarten (oft Nomen blau, Verb rot, Adjektiv grün) – Klasse fragen.
+- Farbkonvention Wortarten (oft Nomen blau, Verb rot, Adjektiv grün) – Klasse fragen. Im Farbprofil direkt farbig; auf s/w-Blättern markieren die Kinder selbst farbig, vorgegebene Beispiele mit Wortart-Symbol oder Abkürzung.
 
 ### Sprechen und Zuhören
 - Gesprächsregeln, Erzählkreis, Hörverstehensaufgaben (Hörtext + Bildaufgaben), szenisches Spiel.

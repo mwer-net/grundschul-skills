@@ -14,7 +14,7 @@ Lernspiele sind Übungsformate: Der Inhalt muss schon eingeführt sein. Das Spie
 1. **Was genau wird geübt?** (z. B. "Einmaleins der 3er-Reihe", "Nomen mit Artikel", "Uhrzeit halbe Stunden")
 2. **Spielform:** *Empfehlung abhängig vom Inhalt (Tabelle unten).*
 3. **Gruppengröße und Spielzeit:** Partner / 3–4 Kinder / ganze Klasse; 10 oder 20 Minuten.
-4. **Wiederverwendbarkeit:** Laminieren (dann Farbe, robuste Karten) oder einmalig auf Papier?
+4. **Wiederverwendbarkeit:** Laminieren (robuste Karten) oder einmalig auf Papier? *Farbe oder s/w kommt aus der Start-Abfrage; laminierte Spiele meist farbig.*
 5. **Differenzierung:** Drei Kartensätze ● / ●● / ●●● zur Selbstwahl oder ein gemischter Satz? *Empfehlung: drei Sätze, Punkte in der Kartenecke.*
 
 ## Spielformen

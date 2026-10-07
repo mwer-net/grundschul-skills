@@ -45,7 +45,7 @@ Lesestrategien sichtbar machen (ab Kl. 2): Vor dem Lesen Überschrift/Bild betra
 ## Leseflüssigkeit
 
 - Lautlesetandem-Texte: kurz (Lesezeit ca. 1–2 Minuten), Wiederholungsbögen (Feld zum Abhaken nach jedem Lesedurchgang: ① ② ③ ④). Der eigene Fortschritt zählt, kein Vergleich zwischen Kindern.
-- Lesetheater/Dialoge mit Rollenfarben.
+- Lesetheater/Dialoge mit Rollennamen fett vor jeder Rede und Rollensymbol; im Farbprofil zusätzlich Rollenfarben, im s/w-Profil markieren die Kinder ihre Rolle selbst.
 - Blitzlesekarten mit häufigen Wörtern.
 
 ## Gestaltung
@@ -53,7 +53,8 @@ Lesestrategien sichtbar machen (ab Kl. 2): Vor dem Lesen Überschrift/Bild betra
 - Schriftgrößen gemäß Basis-Skill, Stufe A: 24–28 pt.
 - Ein Bild pro Absatz höchstens, nur wenn es Verständnis stützt.
 - Text links, Bild rechts oder oben; nie Text um Bilder fließen lassen (Kl. 1/2).
-- Bei Silbenfärbung: zwei Farben abwechselnd (meist blau/rot), nur wenn Klassenkonvention.
+- Bei Silbenfärbung: zwei Farben abwechselnd (meist blau/rot), nur wenn Klassenkonvention und Farbprofil. Im s/w-Profil stattdessen Silbenbögen unter den Wörtern.
+- Text schwarz auf Weiß, keine Hintergrundflächen; Bilder nach Druckprofil (`grundschul-didaktik/references/druck-und-platz.md`).
 
 ## Qualitätscheck
 
