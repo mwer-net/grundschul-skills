@@ -1,0 +1,132 @@
+/* Grundschul-Material: Gestaltungssystem für HTML → PDF.
+   Klassen am <body>: kl1–kl4 (Schriftgröße), sw | farbe, bei farbe zusätzlich
+   palette-sonnig | palette-himmel | palette-wiese | palette-beere; Format optional
+   a4-quer | a3-hoch | a5-hoch | folie (Standard A4 hoch).
+   Maße in CSS-px (96 dpi): A4 = 794 × 1123 px, Seitenrand 60 px. */
+
+@font-face{font-family:Andika;font-weight:400;src:url(fonts/Andika-Regular.woff2) format("woff2")}
+@font-face{font-family:Andika;font-weight:700;src:url(fonts/Andika-Bold.woff2) format("woff2")}
+@font-face{font-family:Fredoka;font-weight:600;src:url(fonts/Fredoka-SemiBold.woff2) format("woff2")}
+
+@page{size:A4;margin:0} /* andere Formate setzt blatt.py nach der body-Klasse */
+
+:root{
+  --text:#1D1D1B; --dunkel:#1D1D1B; --haupt:#1D1D1B; --akzent:#1D1D1B; --linie:#808080;
+  --strich:#1D1D1B; --fuell:#FFFFFF; --rand:60px; --fs:24px;
+  --abstand:36px; /* zwischen Aufgaben */
+}
+body.kl1{--fs:28px;--abstand:36px}
+body.kl2{--fs:24px;--abstand:28px}
+body.kl3{--fs:20px;--abstand:28px}
+body.kl4{--fs:18px;--abstand:24px}
+body.farbe{--linie:var(--akzent)}
+body.palette-sonnig{--haupt:#F28C28;--akzent:#2A9D8F;--dunkel:#C4620A}
+body.palette-himmel{--haupt:#3A86FF;--akzent:#FFBE0B;--dunkel:#2F6FD6}
+body.palette-wiese{--haupt:#43AA8B;--akzent:#F3722C;--dunkel:#2E7D63}
+body.palette-beere{--haupt:#E76F51;--akzent:#6A4C93;--dunkel:#C2462F}
+body.farbe.palette-himmel{--linie:#3A86FF} /* Gelb nie für Linien */
+
+*{box-sizing:border-box}
+html,body{margin:0;padding:0}
+body{font-family:Andika,sans-serif;color:var(--text);font-size:var(--fs);line-height:1.4;background:#fff;
+  -webkit-print-color-adjust:exact;print-color-adjust:exact}
+@media screen{body{background:#e9e9e6;padding:24px 0}.seite{margin:0 auto 24px;box-shadow:0 2px 12px rgba(0,0,0,.18)}}
+
+/* Seite */
+.seite{width:794px;height:1123px;padding:var(--rand);background:#fff;position:relative;overflow:hidden;
+  display:flex;flex-direction:column;break-after:page}
+.seite:last-child{break-after:auto}
+/* Formate: Klasse am <body>; Standard A4 hoch */
+body.a4-quer .seite{width:1123px;height:794px}
+body.a3-hoch .seite{width:1123px;height:1587px}
+body.a5-hoch .seite{width:559px;height:794px;--rand:40px}
+body.folie .seite{width:1280px;height:720px;--rand:48px}
+
+/* Kopf */
+.namenszeile{display:flex;gap:24px;font-size:16px;margin-bottom:14px}
+.namenszeile span{display:flex;align-items:flex-end;gap:8px}
+.namenszeile span::after{content:"";display:inline-block;border-bottom:1.5px solid var(--text);height:1em}
+.namenszeile .name{flex:1}.namenszeile .name::after{flex:1}
+.namenszeile .datum::after{width:150px}
+.kopf{display:flex;gap:20px;align-items:flex-start;margin-bottom:22px}
+.kopf>.titel{flex:1;min-width:0}
+h1{font-family:Fredoka,sans-serif;font-weight:600;color:var(--dunkel);font-size:calc(var(--fs)*1.6);line-height:1.15;margin:0 0 6px}
+.ziel{font-size:calc(var(--fs)*.85);font-weight:700}
+.wahlhilfe{font-size:calc(var(--fs)*.85)}
+
+/* Aufgabe: hängende Nummer, kein Kasten */
+.aufgabe{display:grid;grid-template-columns:34px 1fr;column-gap:14px;row-gap:12px}
+.aufgabe+.aufgabe{margin-top:var(--abstand)}
+.trenner .aufgabe+.aufgabe{border-top:1px solid var(--linie);padding-top:calc(var(--abstand) - 12px);margin-top:12px}
+.nr{grid-column:1;grid-row:1;width:34px;height:34px;border-radius:50%;background:var(--dunkel);color:#fff;
+  font:600 20px/34px Fredoka,sans-serif;text-align:center;margin-top:calc((var(--fs)*1.4 - 34px)/2)}
+.nr.stern{border-radius:0;background:var(--dunkel);color:transparent;
+  clip-path:polygon(50% 0%,61% 35%,98% 35%,68% 57%,79% 91%,50% 70%,21% 91%,32% 57%,2% 35%,39% 35%)}
+.anw{grid-column:2;grid-row:1;font-weight:700;display:flex;gap:16px;align-items:baseline}
+.anw>.text{flex:1}
+.niveau{display:inline-flex;gap:4px;align-self:center;white-space:nowrap}
+.niveau i{display:block;width:.42em;height:.42em;border-radius:50%;background:var(--dunkel)}
+.koerper{grid-column:2;min-width:0}
+.koerper>*+*{margin-top:14px}
+
+/* Item-Reihen */
+.reihe{display:grid;grid-template-columns:repeat(var(--spalten,3),1fr);column-gap:24px;row-gap:20px;align-items:end}
+.zelle{display:flex;flex-direction:column;align-items:center;gap:8px;min-width:0}
+.zelle.links{align-items:flex-start}
+.zeile{display:flex;align-items:baseline;gap:.3em;white-space:nowrap}
+
+/* Antworten: leer auf dem Arbeitsblatt, gefüllt im Beispiel und auf dem Lösungsblatt */
+.antwort{display:inline-block;min-width:2.4em;border-bottom:2px solid var(--text);text-align:center;
+  line-height:1.2;padding:0 .15em;vertical-align:baseline}
+.antwort.kurz{min-width:1.6em}.antwort.breit{min-width:5em}.antwort.lang{display:block;width:100%;height:1.5em}
+.antwort::after{content:"\00a0"}
+.beispiel .antwort[data-l]::after,body.loesung .antwort[data-l]::after{content:attr(data-l);font-weight:700}
+body.loesung .antwort[data-l]{color:var(--dunkel)}
+.nur-loesung{display:none}
+body.loesung .nur-loesung{display:revert}
+body.loesung .nicht-loesung{display:none}
+.schreiblinie{border-bottom:1.5px solid var(--text);height:calc(var(--fs)*1.9)}
+.box{display:inline-block;width:1em;height:1em;border:2px solid var(--text);border-radius:3px;vertical-align:-.12em;margin-right:.3em}
+
+/* Leitfigur mit Sprechblase */
+.tipp{display:flex;align-items:center;gap:12px;font-size:calc(var(--fs)*.85)}
+.figur{width:var(--figur,84px);height:auto;flex:none}
+.blase{position:relative;border:2px solid var(--strich);border-radius:14px;padding:6px 14px;background:#fff}
+body.farbe .blase{border-color:var(--haupt)} /* nie Gelb für Linien */
+.tipp .blase::before{content:"";position:absolute;left:-9px;top:50%;width:14px;height:14px;background:#fff;
+  border-left:2px solid;border-bottom:2px solid;border-color:inherit;transform:translateY(-50%) rotate(45deg)}
+.kopf>.tipp{flex:0 1 auto;max-width:48%}
+.tipp.rechts{flex-direction:row-reverse}
+.tipp.rechts .blase::before{left:auto;right:-9px;transform:translateY(-50%) rotate(-135deg)}
+
+/* Fuß: Selbsteinschätzung und Reflexion (nur wenn gewählt) */
+.fuss{margin-top:auto;border-top:1.5px solid var(--linie);padding-top:12px;display:grid;grid-template-columns:1fr auto;
+  column-gap:16px;row-gap:6px;font-size:calc(var(--fs)*.8);align-items:center}
+.fuss img{width:170px;height:auto}
+.fuss .reflexion{grid-column:1/-1;display:flex;flex-wrap:wrap;gap:4px 18px}
+
+/* Lösungsblatt-Kennzeichnung */
+.loesung-marke{display:none}
+body.loesung .loesung-marke{display:block;position:absolute;top:22px;right:var(--rand);font:600 calc(var(--fs)*.8) Fredoka,sans-serif;
+  border:2px solid var(--dunkel);border-radius:10px;padding:0 10px;color:var(--dunkel);vertical-align:middle}
+body.loesung .namenszeile{visibility:hidden}
+
+/* Karten (Lernspiel, Wort-/Bildkarten) */
+.karten{display:grid;flex:1;grid-template-columns:repeat(var(--spalten,2),1fr);grid-auto-rows:1fr;margin:calc(var(--rand)*-.5)}
+.karte{border:1.5px dashed #555;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:10px;padding:14px;position:relative}
+.karte .ecke{position:absolute;top:8px;right:10px}
+.karte img{max-height:55%;max-width:80%}
+.kartentext{font-size:calc(var(--fs)*1.25);font-weight:700;text-align:center}
+
+/* Entwürfe: Platzhalter für Bilder, die erst nach der Freigabe kommen */
+.platzhalter{display:flex;align-items:center;justify-content:center;text-align:center;border:2px dashed #9a9a9a;
+  border-radius:10px;color:#777;font:14px/1.3 sans-serif;padding:4px;width:100%;height:var(--h,80px)}
+
+/* Abbildungen (abbildungen.js) */
+x-uhr,x-menge,x-dienes,x-strichpunkt,x-stellentafel,x-zwanzigerfeld,x-zahlenstrahl{display:inline-block;line-height:0}
+x-stellentafel{line-height:1.2}
+.stellentafel{border-collapse:collapse;font-size:var(--fs)}
+.stellentafel th,.stellentafel td{border:2px solid var(--strich);width:1.9em;height:1.7em;text-align:center;padding:0}
+.stellentafel th{font-weight:700;font-size:.8em;height:1.4em}
+.stellentafel td.l{color:transparent;font-weight:700}
+.beispiel .stellentafel td.l,body.loesung .stellentafel td.l{color:var(--dunkel)}

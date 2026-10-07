@@ -5,7 +5,7 @@ description: Schreibt und gestaltet kindgerechte, differenzierte Lesetexte (Sach
 
 # Lesetext
 
-Laden mit: `grundschul-didaktik`, `fach-deutsch` (Lesedidaktik), ggf. Fach-Skill des Inhalts, `canva-materialerstellung`.
+Laden mit: `grundschul-didaktik`, `fach-deutsch` (Lesedidaktik), ggf. Fach-Skill des Inhalts, `html-materialerstellung`.
 
 ## Rückfragen
 
@@ -19,7 +19,7 @@ Zuerst die Start-Abfrage (`grundschul-didaktik/references/rueckfragen.md`) inklu
 
 ## Entwürfe und Aufgabenplan
 
-Nach den Rückfragen 2–3 Entwürfe zeigen (jeweils Überschrift, die ersten 2–3 Sätze und die Aufgabenliste), erst nach Freigabe des Aufgabenplans in Canva bauen (`grundschul-didaktik/references/entwurf-und-aufgabenplan.md`).
+Nach den Rückfragen 2–3 Entwürfe zeigen (jeweils Überschrift, die ersten 2–3 Sätze und die Aufgabenliste), erst nach Freigabe des Aufgabenplans die Endfassung bauen (`grundschul-didaktik/references/entwurf-und-aufgabenplan.md`).
 
 - **Entwürfe unterscheiden sich** in Textsorte bzw. Rahmen und in den Aufgabenformaten zum Text.
 - **Aufgabenplan:** ganzer Text je Fassung mit Wortzahl und Lesestufe, Aufgaben, Lösungen, Zeilennummern, Bildliste.

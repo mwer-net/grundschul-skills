@@ -5,7 +5,7 @@ description: Entwickelt druckbare Lernspiele für Klasse 1–4 (Domino, Memory, 
 
 # Lernspiel
 
-Laden mit: `grundschul-didaktik`, passendem `fach-*`, `canva-materialerstellung`.
+Laden mit: `grundschul-didaktik`, passendem `fach-*`, `html-materialerstellung`.
 
 Lernspiele sind Übungsformate: Der Inhalt muss schon eingeführt sein. Das Spiel soll möglichst viele Übungsdurchgänge pro Minute erzeugen und den Inhalt nicht hinter Spielregeln verstecken.
 
@@ -19,7 +19,7 @@ Lernspiele sind Übungsformate: Der Inhalt muss schon eingeführt sein. Das Spie
 
 ## Entwürfe und Aufgabenplan
 
-Die Spielform muss nicht gefragt werden: 2–3 Entwürfe mit verschiedenen passenden Spielformen zeigen (Kartenraster mit Beispielkarten, `entwurf.py` mit `"karten"`), erst nach Freigabe des Aufgabenplans in Canva bauen (`grundschul-didaktik/references/entwurf-und-aufgabenplan.md`).
+Die Spielform muss nicht gefragt werden: 2–3 Entwürfe mit verschiedenen passenden Spielformen zeigen (Kartenraster mit Beispielkarten, `.karten` in `blatt.css`), erst nach Freigabe des Aufgabenplans die Endfassung bauen (`grundschul-didaktik/references/entwurf-und-aufgabenplan.md`).
 
 - **Entwürfe unterscheiden sich** in der Spielform (Tabelle unten) und der Kartengestaltung.
 - **Aufgabenplan:** vollständige Kartenliste mit Vorder- und Rückseite jeder Karte, geprüfte Kette bzw. Paare, Spielanleitung wörtlich, Kartensätze je Niveau, Raster pro Seite.
@@ -61,7 +61,8 @@ Die Spielform muss nicht gefragt werden: 2–3 Entwürfe mit verschiedenen passe
 - [ ] Anleitung von Kindern ohne Erwachsene verständlich
 - [ ] Druckbild: Vorder- und Rückseite passgenau (Spiegelung beachten)
 
-## Canva-Hinweise
+## Umsetzung (`html-materialerstellung`)
 
 - Kartenraster: Memory/Wortkarten 2 × 4 pro A4, Domino 2 × 6 (quer liegende Steine), Bingo 1–2 Karten pro A4.
-- Rückseiten als eigene Seiten, horizontal gespiegelt zur Vorderseite.
+- Kartenraster mit `.karten` (`--spalten`), Schneidelinien sind die gestrichelten Kartenränder.
+- Rückseiten als eigene `.seite`, horizontal gespiegelt zur Vorderseite (Reihenfolge je Zeile umkehren).

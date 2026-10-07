@@ -1,0 +1,77 @@
+<!doctype html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<!-- Titel nach Schema Kl{K}_{Fach}_{Thema}_AB{n}; in der Entwurfsübersicht steht hier der Entwurfsname -->
+<title>Kl2_Mathe_Uhrzeit_AB1</title>
+<link rel="stylesheet" href="blatt.css">
+<script src="abbildungen.js"></script>
+</head>
+<!-- kl1–kl4 · sw | farbe palette-sonnig|himmel|wiese|beere · optional class="trenner" für dünne Linien zwischen Aufgaben -->
+<body class="kl2 farbe palette-himmel">
+<section class="seite">
+  <div class="namenszeile"><span class="name">Name:</span><span class="datum">Datum:</span></div>
+  <span class="loesung-marke">Lösung</span>
+  <div class="kopf">
+    <div class="titel">
+      <h1>Wie spät ist es?</h1>
+      <div class="ziel">Ich kann volle und halbe Stunden ablesen.</div>
+      <!-- nur mit Niveaus --><div class="wahlhilfe">Wähle deine Aufgaben.</div>
+    </div>
+    <!-- Leitfigur mit Funktion: Tipp zu einer Aufgabe. s/w: willi-strich.png -->
+    <div class="tipp"><img class="figur" src="bilder/willi.png" alt="Willi"><div class="blase">Zu 1: Erst der kleine Zeiger. Er zeigt die Stunde.</div></div>
+  </div>
+
+  <!-- Aufgabe: Nummernkreis, Anweisung (mit Niveau-Punkten nur wenn gewählt), Körper -->
+  <div class="aufgabe">
+    <span class="nr">1</span>
+    <div class="anw"><span class="text">Lies ab. Schreibe die Uhrzeit auf.</span><span class="niveau"><i></i></span></div>
+    <div class="koerper">
+      <div class="reihe" style="--spalten:4">
+        <!-- erstes Item als Beispiel: class="beispiel" zeigt die Lösung schon auf dem Arbeitsblatt -->
+        <div class="zelle beispiel"><x-uhr zeit="3:00"></x-uhr><span class="antwort breit" data-l="3 Uhr"></span></div>
+        <div class="zelle"><x-uhr zeit="4:30"></x-uhr><span class="antwort breit" data-l="halb 5"></span></div>
+        <div class="zelle"><x-uhr zeit="7:00"></x-uhr><span class="antwort breit" data-l="7 Uhr"></span></div>
+        <div class="zelle"><x-uhr zeit="9:30"></x-uhr><span class="antwort breit" data-l="halb 10"></span></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="aufgabe">
+    <span class="nr">2</span>
+    <div class="anw"><span class="text">Zeichne die Zeiger ein.</span><span class="niveau"><i></i><i></i></span></div>
+    <div class="koerper">
+      <div class="reihe" style="--spalten:3">
+        <!-- loesung="…": Zeiger erscheinen nur auf dem Lösungsblatt -->
+        <div class="zelle"><b>9 Uhr</b><x-uhr loesung="9:00" groesse="88"></x-uhr></div>
+        <div class="zelle"><b>halb 5</b><x-uhr loesung="4:30" groesse="88"></x-uhr></div>
+        <div class="zelle"><b>halb 12</b><x-uhr loesung="11:30" groesse="88"></x-uhr></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="aufgabe">
+    <span class="nr">3</span>
+    <div class="anw"><span class="text">Willi sagt: „Eine halbe Stunde nach 7 Uhr ist es 8 Uhr.“ Stimmt das?</span><span class="niveau"><i></i><i></i><i></i></span></div>
+    <div class="koerper">
+      <div class="schreiblinie nicht-loesung"></div>
+      <div class="nur-loesung"><b>Nein. Eine halbe Stunde nach 7 Uhr ist es halb 8.</b></div>
+    </div>
+  </div>
+
+  <!-- Sternchenaufgabe (nur wenn gewählt): Stern statt Nummer -->
+  <div class="aufgabe">
+    <span class="nr stern">★</span>
+    <div class="anw"><span class="text">Sternchenaufgabe: Wer mag, knobelt hier. Wie spät ist es eine Stunde nach halb 12?</span></div>
+    <div class="koerper"><div class="zeile">Es ist <span class="antwort breit" data-l="halb 1"></span>.</div></div>
+  </div>
+
+  <!-- Fuß nur mit Selbsteinschätzung; s/w: wachstum-strich.png -->
+  <div class="fuss">
+    <div class="text"><b>Ich kann volle und halbe Stunden ablesen.</b><br>Male an, wie weit du schon bist:</div>
+    <img src="bilder/wachstum.png" alt="Samen, Keimling, Pflanze, Blume">
+    <div class="reflexion">Was hat dir geholfen? <span><span class="box"></span>das Beispiel</span><span><span class="box"></span>Willis Tipp</span><span><span class="box"></span>ein anderes Kind</span></div>
+  </div>
+</section>
+</body>
+</html>

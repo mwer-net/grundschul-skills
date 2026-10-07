@@ -34,14 +34,14 @@ Die Antwort legt den Material-Skill fest:
 
 Nur die Optionen anbieten, die zur Materialart passen; die übliche als Empfehlung.
 
-| Materialart | Optionen (Empfehlung fett) | Canva-Format |
+| Materialart | Optionen (Empfehlung fett) | Format (`<body>`-Klasse) |
 |---|---|---|
-| Arbeitsblatt, Lesetext, Lernzielkontrolle | **A4 hoch**, A4 quer, A5 (Heftformat) | `"Worksheet (A4 Portrait)"`; A5 als A4 quer mit 2 Feldern |
-| Bild-/Wortkarten | **Tischkarten 8 pro A4**, A5-Karten (2 pro A4), Tafelkarten A4 quer, digital am Whiteboard | A4 mit Schneidelinien bzw. `"Presentation"` |
-| Lernspiel | **Karten auf A4 zum Ausschneiden**, Spielplan A3/A4 | A4 / `"Poster (Portrait A3)"` |
-| Lernplakat | **A3**, A2 aus A4-Kacheln, digital am Whiteboard | `"Poster (Portrait A3)"` bzw. `"Presentation"` |
-| Stationenlernen | **Stationskarten A5** + Laufzettel A4, Stationskarten A4 | A4 quer mit 2 Feldern / A4 hoch |
-| Präsentation / Tafelbild | **Whiteboard 16:9** | `"Presentation"` |
+| Arbeitsblatt, Lesetext, Lernzielkontrolle | **A4 hoch**, A4 quer, A5 (Heftformat) | Standard; `a4-quer`; `a5-hoch` |
+| Bild-/Wortkarten | **Tischkarten 8 pro A4**, A5-Karten (2 pro A4), Tafelkarten A4 quer, digital am Whiteboard | `.karten` auf A4 bzw. `folie` |
+| Lernspiel | **Karten auf A4 zum Ausschneiden**, Spielplan A3/A4 | `.karten` auf A4 / `a3-hoch` |
+| Lernplakat | **A3**, A2 aus A4-Kacheln, digital am Whiteboard | `a3-hoch` bzw. `folie` |
+| Stationenlernen | **Stationskarten A5** + Laufzettel A4, Stationskarten A4 | `a5-hoch` oder `a4-quer` mit 2 Karten / Standard |
+| Präsentation / Tafelbild | **Whiteboard 16:9** | `folie` |
 
 **3. Farbe oder Schwarz-Weiß**
 
@@ -51,7 +51,7 @@ a) Schwarz-weiß (Kopierer)   ← Empfehlung für Arbeitsblätter, Lernzielkontr
 b) Farbe
 ```
 
-Empfehlung je nach Medium: **s/w** für Kopiervorlagen (Arbeitsblatt, Lernzielkontrolle, Lesetext, Laufzettel); **Farbe** für Präsentation/Whiteboard, Plakat, laminierte Karten und Spiele. Bei Präsentation/Whiteboard nicht fragen, sondern Farbe annehmen. Die Antwort wählt das Druckprofil in `druck-und-platz.md` und den Aufruf von `layout_check.py` (`--farbe` bei Farbe).
+Empfehlung je nach Medium: **s/w** für Kopiervorlagen (Arbeitsblatt, Lernzielkontrolle, Lesetext, Laufzettel); **Farbe** für Präsentation/Whiteboard, Plakat, laminierte Karten und Spiele. Bei Präsentation/Whiteboard nicht fragen, sondern Farbe annehmen. Die Antwort wählt das Druckprofil in `druck-und-platz.md` (`<body class="sw">` bzw. `class="farbe palette-…"`).
 
 **4.–6. Bausteine des Blatts**
 
@@ -123,13 +123,13 @@ Die Antworten gelten für die ganze Unterhaltung, bis die Lehrkraft etwas andere
    Kurz halten. Keine Erklärungen, die nicht zur Entscheidung beitragen.
 5. **Widersprüche und Risiken direkt ansprechen**, z. B. "Brüche stehen nicht im Grundschullehrplan – meinst du Bruchteile wie Hälfte/Viertel bei Größen?"
 6. **Abbruchkriterium:** Sobald Klasse, Thema, Ziel und Funktion klar sind, keine weiteren Fragen. Höchstens ca. 4 Fragen nach der Start-Abfrage; danach mit Empfehlungen ergänzen und Annahmen offenlegen.
-7. **Entwürfe statt Briefing:** 2–3 schnelle Entwürfe zeigen, die Lehrkraft wählt und sagt, was anders sein soll. Danach den **Aufgabenplan** mit allen Inhalten und Lösungen zur Freigabe vorlegen. Erst nach dem Ok in Canva umsetzen. Ablauf, Formate und Beispiele: `entwurf-und-aufgabenplan.md`.
+7. **Entwürfe statt Briefing:** 2–3 schnelle Entwürfe zeigen, die Lehrkraft wählt und sagt, was anders sein soll. Danach den **Aufgabenplan** mit allen Inhalten und Lösungen zur Freigabe vorlegen. Erst nach dem Ok die Endfassung bauen. Ablauf, Formate und Beispiele: `entwurf-und-aufgabenplan.md`.
 8. **Nach der Erstellung:** Kurz nachfragen, ob etwas angepasst werden soll – eine Frage, keine Liste.
 
 ## Was nicht passieren darf
 
 - Losgenerieren bei einer Ein-Satz-Anfrage ohne Klassenstufe oder Ziel.
-- Canva-Umsetzung ohne freigegebenen Aufgabenplan.
+- Endfassung oder KI-Bilder ohne freigegebenen Aufgabenplan.
 - Fragebögen mit zehn Fragen auf einmal.
 - Fragen ohne Empfehlung ("Wie hättest du es gern?").
 - Fragen nach Dingen, die schon gesagt wurden oder die sich herleiten lassen.

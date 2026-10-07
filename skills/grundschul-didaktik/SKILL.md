@@ -5,7 +5,7 @@ description: Didaktische Basis für alle Unterrichtsmaterialien der Grundschule 
 
 # Grundschul-Didaktik (Basis-Skill)
 
-Dieser Skill ist das Fundament aller anderen Skills im Repository. Er legt fest, was jedes Material für Klasse 1–4 erfüllen muss. Fach-Skills (`fach-*`) liefern die Fachdidaktik, Material-Skills (`arbeitsblatt`, `lernspiel`, …) die Bauform, `canva-materialerstellung` die technische Umsetzung.
+Dieser Skill ist das Fundament aller anderen Skills im Repository. Er legt fest, was jedes Material für Klasse 1–4 erfüllen muss. Fach-Skills (`fach-*`) liefern die Fachdidaktik, Material-Skills (`arbeitsblatt`, `lernspiel`, …) die Bauform, `html-materialerstellung` die technische Umsetzung (HTML → PDF; Canva nur für KI-Bilder).
 
 ## Kernkonzepte: Growth Mindset und Churer Modell
 
@@ -19,19 +19,19 @@ Jedes Material folgt zwei Konzepten. Drei Bausteine sind wählbar und werden in 
 
 Ungenaue Anfragen sind der Normalfall ("Mach mir ein Arbeitsblatt zu Tieren"). Erstelle dann **nichts**, sondern kläre gezielt nach dem Protokoll in `references/rueckfragen.md`:
 
-0. **Start-Abfrage zuerst:** Materialart, Medium/Format, Farbe oder Schwarz-Weiß, dann je nach Materialart Selbsteinschätzung, Churer Modell und Sternchenaufgabe – einzeln nacheinander, jeweils mit Empfehlung (`references/rueckfragen.md`). Die Antworten bestimmen Material-Skill, Canva-Format, Druckprofil und Bausteine und gelten für die ganze Unterhaltung.
+0. **Start-Abfrage zuerst:** Materialart, Medium/Format, Farbe oder Schwarz-Weiß, dann je nach Materialart Selbsteinschätzung, Churer Modell und Sternchenaufgabe – einzeln nacheinander, jeweils mit Empfehlung (`references/rueckfragen.md`). Die Antworten bestimmen Material-Skill, Format, Druckprofil und Bausteine und gelten für die ganze Unterhaltung.
 1. **Abgleichen:** Was ist schon bekannt (Anfrage, Gesprächsverlauf, frühere Materialien)? Was fehlt aus der Pflichtliste unten und aus der Rückfrageliste des jeweiligen Material- und Fach-Skills?
 2. **Eine Frage pro Nachricht**, in Abhängigkeitsreihenfolge (Start-Abfrage → Klasse/Bundesland → Thema/Ziel → Lerngruppe → Materialspezifisches). Jede Frage mit 2–4 konkreten Antwortoptionen und **deiner Empfehlung samt kurzer Begründung**.
 3. **Nicht fragen, was du selbst herleiten kannst** (z. B. Zahlenraum aus der Klassenstufe), sondern als Annahme nennen.
-4. **Erst Entwürfe, dann Aufgabenplan, dann Canva** (`references/entwurf-und-aufgabenplan.md`): 2–3 schnelle, deutlich verschiedene Entwürfe als HTML-Vorschau (`scripts/entwurf.py`) oder Textskizze zeigen; die Lehrkraft wählt und sagt, was anders sein soll. Dann den Aufgabenplan mit allen Inhalten, Items und Lösungen zur Freigabe vorlegen. Erst nach dem Ok in Canva umsetzen – Canva baut nur noch den Plan.
-5. Sagt die Lehrkraft "mach einfach" oder "egal": nimm deine Empfehlungen, zeige einen Entwurf mit Aufgabenplan in einer Nachricht und liste die Annahmen auf; vor Canva trotzdem auf das Ok warten.
+4. **Erst Entwürfe, dann Aufgabenplan, dann Endfassung** (`references/entwurf-und-aufgabenplan.md`): 2–3 schnelle, deutlich verschiedene Entwürfe als HTML-Seiten (`html-materialerstellung`, `blatt.py uebersicht`) oder Textskizze zeigen; die Lehrkraft wählt und sagt, was anders sein soll. Dann den Aufgabenplan mit allen Inhalten, Items und Lösungen zur Freigabe vorlegen. Erst nach dem Ok den gewählten Entwurf zur Endfassung ausbauen und KI-Bilder erzeugen.
+5. Sagt die Lehrkraft "mach einfach" oder "egal": nimm deine Empfehlungen, zeige einen Entwurf mit Aufgabenplan in einer Nachricht und liste die Annahmen auf; vor der Endfassung trotzdem auf das Ok warten.
 
 Pflichtangaben (fehlen sie, wird gefragt):
 
 | Angabe | Warum |
 |---|---|
 | Materialart (Arbeitsblatt, Lernzielkontrolle, Spiel, Karten …) | Welcher Material-Skill gilt |
-| Medium/Format (A4, A5-Karten, Plakat, Präsentation …) | Canva-Format, Schriftgrößen, Raster |
+| Medium/Format (A4, A5-Karten, Plakat, Präsentation …) | Seitenformat, Schriftgrößen, Raster |
 | Farbe oder Schwarz-Weiß | Druckprofil (`references/druck-und-platz.md`) |
 | Selbsteinschätzung, Niveaus, Sternchenaufgabe (je nach Materialart) | Bausteine des Blatts (`references/rueckfragen.md`) |
 | Klassenstufe (1, 2, 3, 4 oder jahrgangsgemischt) | Schriftgröße, Textmenge, Zahlenraum, Abstraktionsgrad |
@@ -77,7 +77,7 @@ Ausführlich in `references/gestaltung.md`. Die wichtigsten Werte:
 
 ## 4. Qualitätscheck vor der Ausgabe
 
-Prüfe jedes Material gegen diese Liste und korrigiere, bevor du es der Lehrkraft gibst. Inhaltliche Punkte (Ziel, Aufgaben, Bausteine, Sprache, Rechnungen, Lösungen) schon am Aufgabenplan prüfen, bevor er zur Freigabe geht – Korrekturen in Canva sind teuer. Gestaltung und Druck nach der Canva-Umsetzung:
+Prüfe jedes Material gegen diese Liste und korrigiere, bevor du es der Lehrkraft gibst. Inhaltliche Punkte (Ziel, Aufgaben, Bausteine, Sprache, Rechnungen, Lösungen) schon am Aufgabenplan prüfen, bevor er zur Freigabe geht – späte Korrekturen kosten eine weitere Runde. Gestaltung und Druck nach dem Bauen:
 
 - [ ] Lernziel klar und zum Material passend
 - [ ] Klassenstufe: Schriftgröße, Textmenge, Zahlenraum, Wortschatz stimmen
@@ -101,7 +101,7 @@ Prüfe jedes Material gegen diese Liste und korrigiere, bevor du es der Lehrkraf
 ## 5. Ausgabe an die Lehrkraft
 
 Liefere immer:
-1. Das Material (bei Canva: Link + PDF-Export, siehe `canva-materialerstellung`).
+1. Das Material: PDF (Arbeitsblatt und Lösungsblatt) und die eigenständige HTML-Datei (`html-materialerstellung`).
 2. Eine Kurz-Info: Ich-kann-Ziel, Klassenstufe, Niveaus bzw. Sternchenaufgabe und Hilfen, benötigtes Material, Zeitbedarf, Reflexionsfrage für den Kreis.
 3. Die Lösung oder den Erwartungshorizont.
 4. Annahmen, die du getroffen hast.
@@ -110,8 +110,7 @@ Liefere immer:
 
 - `references/kernkonzepte.md` – Growth Mindset und Churer Modell (Haltung immer, Bausteine wählbar)
 - `references/rueckfragen.md` – Start-Abfrage (Materialart, Medium, Farbe/s/w, Selbsteinschätzung, Churer Modell, Sternchenaufgabe) und Rückfrage-Protokoll
-- `references/entwurf-und-aufgabenplan.md` – schnelle Entwürfe zur Auswahl, exakter Aufgabenplan je Materialart, Freigabe vor Canva
-- `scripts/entwurf.py` – rendert 2–3 Entwürfe als HTML-Vorschau im echten Format und Druckprofil, meldet Überlauf und Leerraum (Muster: `scripts/entwurf-beispiel.json`)
+- `references/entwurf-und-aufgabenplan.md` – schnelle Entwürfe zur Auswahl, exakter Aufgabenplan je Materialart, Freigabe vor der Endfassung
 - `references/gestaltung.md` – Layout, Schrift, Bilder, Farben, Symbole
 - `references/kindgerecht-gestalten.md` – Emotional Design: Formen, Leitfigur, Bildauswahl, Schriften, KI-Bild-Stil, Paletten für Farbdruck
 - `references/druck-und-platz.md` – Druckprofile s/w und Farbe, Aufgaben ohne Kasten, Mindestgrößen, Platzbudget

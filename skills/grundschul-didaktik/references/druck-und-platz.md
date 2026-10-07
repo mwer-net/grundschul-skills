@@ -34,7 +34,7 @@ Diese Regeln haben Vorrang vor älteren Gestaltungshinweisen (farbige Flächen, 
 7. **Leitfigur und Wachstumsgrafik in der Strich-Version** (IDs in `kindgerecht-gestalten.md`). Bonus: Die Kinder können Willi oder Wilma und die Pflanzenstufen selbst anmalen. Das passt zu „Male an, wie weit du schon bist".
 8. **Lösungsblatt:** Lösungen fett und unterstrichen, nicht farbig.
 9. **Schrift:** normale Strichstärke für Fließtext; fett nur für Überschrift, Anweisung und Hervorhebung. Keine extra-fetten Display-Schriften für längere Texte.
-10. **Prüfen:** Vorschau in Graustufen ansehen bzw. `layout_check.py` (meldet Flächen, farbige Schrift, helle oder dünne Linien, Hintergrundbilder).
+10. **Prüfen:** `blatt.py bauen` (meldet im s/w-Profil Farbe, Flächen und farbige Bilder).
 
 ## 3. Druckprofil Farbe
 
@@ -51,7 +51,7 @@ Farbe als **Akzent**, das Layout bleibt kompakt wie im s/w-Profil:
 4. **Kleine Tönungen nur mit Funktion:** Füllung der Tipp-Sprechblase oder eines Wortspeichers in sehr hellem Ton (Helligkeit ≥ 90 %) ist erlaubt; ganze Aufgaben werden nicht hinterlegt.
 5. **Farbe nie als einzige Information:** zusätzlich Symbol, Beschriftung oder Muster. Farbblätter werden oft später doch s/w kopiert; die Graustufen-Vorschau muss lesbar bleiben.
 6. **Lösungsblatt:** Lösungen fett, unterstrichen und in der Akzentfarbe.
-7. **Prüfen:** `layout_check.py --farbe` (meldet Hintergrundbilder, große Flächen, Aufgabenkästen, zu helle Schrift).
+7. **Prüfen:** `blatt.py bauen` (meldet Flächen hinter Aufgaben) und Vorschau ansehen: Farbe nur als Akzent.
 
 **Präsentation/Whiteboard:** Farbe uneingeschränkt nach diesem Profil, aber auch hier keine vollflächigen Bilder hinter Text. **Plakat und laminierte Karten:** Farbprofil; Kartenrahmen dürfen farbig sein, weil sie Karten unterscheiden (Funktion).
 
@@ -85,7 +85,7 @@ Ziel: **Übersicht vor Menge.** Ein Kind muss jede Aufgabe auf einen Blick verst
 - **Eine Handlung pro Aufgabe**, Anweisung in einer Zeile (Kl. 1/2 höchstens ca. 10 Wörter, ein oder zwei kurze Sätze). Braucht die Aufgabe mehrere Schritte, zeigt das Beispiel jeden Schritt.
 - **Eine Darstellungsform pro Aufgabe** (z. B. nur Punktefeld, nur Stellenwerttafel). Zwei Formen nebeneinander (Bild + Tafel + Gleichung in einer Reihe) nur in Kl. 3/4.
 - **Das vorgelöste Beispiel ist so groß wie ein Item** und hat denselben Abstand zu den Nachbarn (24–32 px). Es wird nie verkleinert oder zwischen andere Elemente gequetscht; Ziffern, Einheiten und Gleichheitszeichen mit normalem Wortabstand.
-- **Abbildungen exakt und ruhig:** Mengen geordnet statt gestreut (Punkte in Zweierreihen/Fünferstruktur, Zehnerstangen, Zwanzigerfeld), Bündel umschließen genau ihre Elemente ohne Überschneidung, Anzahlen stimmen. Solche Abbildungen berechnen und als Vektor setzen, nie frei zeichnen (`canva-materialerstellung`, Abschnitt 2b).
+- **Abbildungen exakt und ruhig:** Mengen geordnet statt gestreut (Punkte in Zweierreihen/Fünferstruktur, Zehnerstangen, Zwanzigerfeld), Bündel umschließen genau ihre Elemente ohne Überschneidung, Anzahlen stimmen. Solche Abbildungen berechnen und als Vektor setzen, nie frei zeichnen (`html-materialerstellung/assets/abbildungen.js`).
 - **Leitfigur-Tipp** neben der Anweisung oder am Ende der Reihe, nicht zwischen den Items.
 
 ### Items pro Aufgabe
@@ -113,7 +113,7 @@ Ziel: **Übersicht vor Menge.** Ein Kind muss jede Aufgabe auf einen Blick verst
 | 3 | 4–5 | 6–8 | höchstens ca. 65 % |
 | 4 | 5–6 | 6–10 | höchstens ca. 65 % |
 
-Die Sternchenaufgabe zählt mit. Passt der Inhalt nicht, wird gestrichen oder auf zwei Blätter verteilt, nie enger gesetzt. `layout_check.py --klasse K` meldet zu viele Aufgaben, zu volle Seiten und gequetschte Stellen.
+Die Sternchenaufgabe zählt mit. Passt der Inhalt nicht, wird gestrichen oder auf zwei Blätter verteilt, nie enger gesetzt. `blatt.py bauen` meldet zu viele Aufgaben, Überlauf und zu dichte Abstände.
 
 Bei Kindern mit Konzentrationsschwierigkeiten statt weniger Aufgaben pro Blatt: dieselbe Seite mit Abhak-Kästchen pro Aufgabe oder auf zwei Blätter verteilen (`differenzierung.md`).
 
@@ -152,12 +152,12 @@ Beide Profile:
 Schwarz-Weiß zusätzlich:
 - [ ] Text schwarz, Linien schwarz/dunkelgrau ≥ 1,5 px, nichts heller als `#808080`
 - [ ] Bilder als Strichzeichnung, Leitfigur und Wachstumsgrafik in der Strich-Version
-- [ ] `layout_check.py` ohne Druck-Warnungen
+- [ ] `blatt.py` ohne Druck-Warnungen
 
 Farbe zusätzlich:
 - [ ] Eine Palette, Farbe nur an Nummern, Überschrift, Linien, Figur, Bildern und Farbcodes
 - [ ] Fließtext und Anweisungen schwarz
-- [ ] Graustufen-Vorschau noch lesbar; `layout_check.py --farbe` ohne Warnungen
+- [ ] Graustufen-Vorschau noch lesbar; `blatt.py` ohne Warnungen
 
 ## Quellen
 

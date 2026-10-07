@@ -5,7 +5,7 @@ description: Erstellt differenzierte Arbeitsblätter für Klasse 1–4 in allen 
 
 # Arbeitsblatt
 
-Laden zusammen mit: `grundschul-didaktik` (Pflicht), dem passenden `fach-*`-Skill, `canva-materialerstellung` für die Umsetzung.
+Laden zusammen mit: `grundschul-didaktik` (Pflicht), dem passenden `fach-*`-Skill, `html-materialerstellung` für die Umsetzung.
 
 ## Rückfragen (zusätzlich zu den Pflichtangaben)
 
@@ -19,7 +19,7 @@ Nicht fragen, sondern als Varianten in die Entwürfe legen: Differenzierungsform
 
 ## Entwürfe und Aufgabenplan
 
-Nach den Rückfragen 2–3 Entwürfe zeigen, erst nach Freigabe des Aufgabenplans in Canva bauen (`grundschul-didaktik/references/entwurf-und-aufgabenplan.md`).
+Nach den Rückfragen 2–3 Entwürfe zeigen, erst nach Freigabe des Aufgabenplans die Endfassung bauen (`grundschul-didaktik/references/entwurf-und-aufgabenplan.md`).
 
 - **Entwürfe unterscheiden sich** im Zugang (kompakt üben / Geschichte als Rahmen / entdeckend), in den Aufgabenformaten und der Item-Dichte; mit Churer Modell ggf. auch in der Differenzierungsform (ein Blatt mit drei Bereichen oder drei Blätter).
 - **Aufgabenplan:** jede Aufgabe mit wörtlicher Anweisung, allen Items, vorgelöstem Beispiel, Willi-/Wilma-Tipp, Niveau bzw. ★; Selbstkontrolle; Lösungsblatt; Bildliste.
@@ -35,7 +35,7 @@ Nach den Rückfragen 2–3 Entwürfe zeigen, erst nach Freigabe des Aufgabenplan
    - Ohne Churer Modell dieselbe Steigerung ohne Punkte und Wahlhilfe: alle bearbeiten alle Aufgaben, die erste mit vorgelöstem Beispiel.
    - Willi oder Wilma gibt einen Strategietipp direkt bei der Aufgabe, zu der er gehört; Tipps und Rückmeldungen in „noch"-Sprache.
    - Falls gewählt: **Sternchenaufgabe ★** als letzte Aufgabe, freiwillig für alle („Wer mag, knobelt hier."), offen oder knobelnd, keine „mehr vom Gleichen". ★ statt Nummernkreis bzw. vor der Nummer.
-4. Fußzeile (nur wenn Selbsteinschätzung gewählt), schlank und ohne Fläche: Ich-kann-Satz + Wachstums-Selbsteinschätzung zum Anmalen (Samen → Keimling → Pflanze → Blume; s/w: Strich-Version, Farbe: farbige Grafik `MAHXV6P-UTw`, siehe `kindgerecht-gestalten.md`) und Reflexionsfrage („Was hat dir geholfen?"; Kl. 1/2 zum Ankreuzen oder mündlich im Kreis, ab Kl. 3 schriftlich). Optional ein Rückmeldefeld für die Lehrkraft. Ohne Selbsteinschätzung entfällt der Fuß, der Platz geht an Aufgaben.
+4. Fußzeile (nur wenn Selbsteinschätzung gewählt), schlank und ohne Fläche: Ich-kann-Satz + Wachstums-Selbsteinschätzung zum Anmalen (Samen → Keimling → Pflanze → Blume; s/w: Strich-Version, Farbe: farbige Grafik, Dateien in `html-materialerstellung/assets/bilder/`) und Reflexionsfrage („Was hat dir geholfen?"; Kl. 1/2 zum Ankreuzen oder mündlich im Kreis, ab Kl. 3 schriftlich). Optional ein Rückmeldefeld für die Lehrkraft. Ohne Selbsteinschätzung entfällt der Fuß, der Platz geht an Aufgaben.
 5. Separates Lösungsblatt zur Selbstkontrolle (gleiches Layout, Lösungen fett und unterstrichen, im Farbprofil zusätzlich in der Akzentfarbe).
 
 ## Bewährte Aufgabenformate
@@ -71,10 +71,10 @@ Zusätzlich zur Basis-Checkliste:
 - [ ] Bausteine wie gewählt: Fuß mit Selbsteinschätzung, Niveau-Punkte, Sternchenaufgabe nur, wenn in der Start-Abfrage bestätigt
 - [ ] Niveau-Varianten (falls gewählt) optisch gleichwertig, Kennzeichnung nur mit Punkten
 
-## Canva-Hinweise
+## Umsetzung (`html-materialerstellung`)
 
-- Format `"Worksheet (A4 Portrait)"` (feste Seite – `"A4 Document (Portrait)"` erzeugt ein responsives Doc ohne Formen und Positionierung). Alle Niveau-Varianten (falls gewählt) und das Lösungsblatt als Seiten im selben Design, damit das Layout identisch bleibt.
-- Layout nach `canva-materialerstellung/references/layout-und-bearbeitbarkeit.md` (60 px Rand, eine Spalte, Aufgaben ohne Kasten, 24–32 px dazwischen, Kl. 1/2: 32–48 px, Platzbudget) und mit `layout_check.py --klasse K` prüfen.
-- Danach **visuelle Endkontrolle** (`canva-materialerstellung/references/visuelle-endkontrolle.md`): jede Aufgabe als vergrößerten Ausschnitt ansehen, Abbildungen nachzählen, Beispiel und Verständlichkeit für die Klasse prüfen, Befunde selbst beheben. Erst dann die Vorschau zeigen.
-- Lösungsblatt: `add_page`, Seite 1 mit `seite_kopieren.py` nachbauen, Lösungen ergänzen.
+- Ausgangspunkt `assets/vorlage-arbeitsblatt.html`, A4 hoch. Niveau-Varianten (falls als getrennte Blätter gewählt) als weitere `.seite` in derselben Datei.
+- Layout nach `html-materialerstellung/references/layout.md`; `blatt.py bauen` ohne FEHLER.
+- Lösungen im selben HTML (`data-l`, `loesung=`, `nur-loesung`); `blatt.py` erzeugt das Lösungsblatt mit identischem Layout.
+- Danach **visuelle Endkontrolle** (`html-materialerstellung/references/visuelle-endkontrolle.md`): jeden Aufgaben-Ausschnitt ansehen, Abbildungen nachzählen, Beispiel und Verständlichkeit für die Klasse prüfen, Befunde selbst beheben. Erst dann PDF und Vorschau zeigen.
 - Dateiname/Titel: `Kl{K}_{Fach}_{Thema}_AB{Nr}`.

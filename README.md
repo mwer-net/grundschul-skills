@@ -1,6 +1,6 @@
 # Grundschul-Skills
 
-AI-Skills zur Unterrichtsvorbereitung für Grundschul-Lehrkräfte (Klasse 1–4). Die Skills erstellen Unterrichtsmaterial nach aktuellen didaktischen Standards und setzen es über den **Canva MCP** als druckfertiges Material um.
+AI-Skills zur Unterrichtsvorbereitung für Grundschul-Lehrkräfte (Klasse 1–4). Die Skills erstellen Unterrichtsmaterial nach aktuellen didaktischen Standards als **HTML/CSS** und geben es als druckfertiges A4-PDF mit Lösungsblatt aus. Der **Canva MCP** dient nur noch zum Erzeugen von KI-Bildern.
 
 ## Aufbau
 
@@ -12,14 +12,12 @@ skills/
 │   ├── references/             kernkonzepte · rueckfragen · entwurf-und-aufgabenplan · gestaltung ·
 │   │                           kindgerecht-gestalten · druck-und-platz · differenzierung ·
 │   │                           sprachsensibel · quellen
-│   └── scripts/                entwurf.py (schnelle Entwürfe als HTML-Vorschau)
-├── canva-materialerstellung/   Technik: Ablauf mit dem Canva MCP (erstellen, prüfen, korrigieren, exportieren)
-│   ├── references/             layout-und-bearbeitbarkeit (Raster, Platzbudget, bearbeitbar bauen) ·
-│   │                           visuelle-endkontrolle (Pflichtprüfung des fertigen Blatts)
-│   └── scripts/                layout_check.py (findet Überlappungen, Randfehler, fehlende Gruppen,
-│                               Flächen, Kontrast, Leerraum, zu volle oder gequetschte Seiten) ·
-│                               sichtpruefung.py (vergrößerte Ausschnitte je Aufgabe) ·
-│                               seite_kopieren.py (Seite nachbauen, z. B. Lösungsblatt)
+├── html-materialerstellung/    Technik: Material als HTML bauen, prüfen, als PDF ausgeben
+│   ├── assets/                 blatt.css (Gestaltungssystem) · abbildungen.js (Uhr, Mengen, Stellentafel …) ·
+│   │                           vorlage-arbeitsblatt.html · fonts/ (Fredoka, Andika) · bilder/ (Willi, Wilma, Wachstum)
+│   ├── references/             layout · visuelle-endkontrolle · bilder (KI-Bilder mit Canva)
+│   └── scripts/                blatt.py (prüft Rand, Überlappung, Schrift, Druckprofil; erzeugt PDF,
+│                               Lösungsblatt, Vorschau und Ausschnitte je Aufgabe; Entwurfsübersicht)
 │
 ├── unterrichtsplanung/         ┐
 ├── arbeitsblatt/               │
@@ -38,7 +36,7 @@ skills/
 └── fach-musik/                 ┘
 ```
 
-Beispiel: "Ich brauche ein Arbeitsblatt zur Uhrzeit für Klasse 2" lädt `grundschul-didaktik` + `arbeitsblatt` + `fach-mathematik` + `canva-materialerstellung`.
+Beispiel: "Ich brauche ein Arbeitsblatt zur Uhrzeit für Klasse 2" lädt `grundschul-didaktik` + `arbeitsblatt` + `fach-mathematik` + `html-materialerstellung`.
 
 ## Rückfragen statt Raten
 
@@ -49,15 +47,17 @@ Bei ungenauen Anfragen erstellen die Skills nicht sofort etwas, sondern fragen g
 - Herleitbares wird nicht gefragt, sondern als Annahme genannt
 - statt Fragen zu Aufgabenformat oder Rahmen: 2–3 schnelle Entwürfe zur Auswahl
 
-## Erst Entwurf, dann Canva
+## Erst Entwurf, dann Endfassung
 
-Die Umsetzung in Canva ist der zeit- und tokenintensivste Schritt. Deshalb läuft jedes Material in Phasen (`grundschul-didaktik/references/entwurf-und-aufgabenplan.md`):
+Jedes Material läuft in Phasen (`grundschul-didaktik/references/entwurf-und-aufgabenplan.md`):
 
 1. **Klären:** Start-Abfrage und wenige Rückfragen.
-2. **Entwürfe:** 2–3 schnelle, deutlich verschiedene Entwürfe als HTML-Vorschau im echten Format (`grundschul-didaktik/scripts/entwurf.py`, ohne Canva) oder als Textskizze.
+2. **Entwürfe:** 2–3 deutlich verschiedene Entwürfe als echte HTML-Seiten, nebeneinander als Bild (`blatt.py uebersicht`).
 3. **Feedback:** Die Lehrkraft wählt einen Entwurf und sagt, was anders sein soll.
 4. **Aufgabenplan:** alle Inhalte, Items, Lösungen und Bilder je Materialart exakt festgelegt, zur Freigabe.
-5. **Canva:** baut nur den freigegebenen Plan, in einem Durchgang.
+5. **Endfassung:** Der gewählte Entwurf wird ausgebaut, KI-Bilder kommen aus Canva, `blatt.py bauen` prüft und erzeugt PDF, Lösungsblatt und eine eigenständige HTML-Datei; danach visuelle Endkontrolle.
+
+Warum HTML statt Canva-Layout: Schrift, Abstände und exakte Abbildungen sind frei bestimmbar, die Vorschau ist schon das fertige Blatt, und eine Änderung kostet Sekunden statt einer neuen Canva-Runde. Die Canva-Schnittstelle konnte keine Schrift setzen, KI-Layouts mussten komplett nachgebaut werden.
 
 ## Kernkonzepte
 
@@ -77,7 +77,7 @@ Die Skills beruhen auf einer Recherche zu KMK-Bildungsstandards (2022), Perspekt
 
 ## Installation
 
-**Claude.ai / Claude Desktop:** Jeden Skill-Ordner als ZIP packen (`./scripts/package.sh` erzeugt sie in `dist/`) und unter *Einstellungen → Fähigkeiten → Skills* hochladen. Der Canva-Connector muss verbunden sein.
+**Claude.ai / Claude Desktop:** Jeden Skill-Ordner als ZIP packen (`./scripts/package.sh` erzeugt sie in `dist/`) und unter *Einstellungen → Fähigkeiten → Skills* hochladen. Für KI-Bilder den Canva-Connector verbinden. Zum Bauen der PDFs braucht die Umgebung Python und Chromium (`pip install playwright pypdfium2 && playwright install chromium`).
 
 **Claude Code:** Ordner aus `skills/` nach `~/.claude/skills/` (persönlich) oder `.claude/skills/` (Projekt) kopieren.
 
@@ -85,9 +85,12 @@ Empfehlung: Immer alle Skills installieren, da sie aufeinander verweisen.
 
 ## Canva
 
-- Canva for Education ist für Lehrkräfte kostenlos.
-- Schulschrift (z. B. Grundschrift) im Brand Kit hochladen, damit Materialien die Schrift der Klasse nutzen.
-- Eigene Vorlagen (Kopfzeile, Symbole) in Canva anlegen – die Skills nutzen sie, wenn vorhanden.
+- Nur für KI-Bilder (neue Posen von Willi und Wilma, Sachbilder). Canva for Education ist für Lehrkräfte kostenlos.
+- Das fertige PDF lässt sich in Canva hochladen, wenn jemand dort weiterarbeiten möchte.
+
+## Schriften
+
+Fredoka und Andika liegen unter der SIL Open Font License in `html-materialerstellung/assets/fonts/` und werden ins PDF eingebettet. Eine Schulschrift der Klasse kann dort ergänzt werden, sofern die Lizenz das erlaubt.
 
 ## Erweitern
 

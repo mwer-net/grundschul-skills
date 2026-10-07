@@ -58,7 +58,7 @@ Prozessbezogene Kompetenzen in jedes Material einbauen: Problemlösen, Kommunizi
 - Stellenwerte: Farben der Klasse (häufig E blau, Z rot, H grün) – Konvention erfragen. Im s/w-Profil Buchstaben E/Z/H über der Stelle; Kinder können die Farben anmalen.
 - Uhren, Felder, Zahlenstrahl in Schwarz auf Weiß (auch im Farbprofil, Farbe nur für Hervorhebungen wie den Fünferwechsel), Reihen gleichmäßig verteilt; Mindestgrößen in `grundschul-didaktik/references/druck-und-platz.md`.
 - Zahlenstrahl: gleichmäßige Abstände, Zehner deutlich markiert.
-- Uhr: analoges Zifferblatt mit großen Ziffern, Stundenzeiger deutlich kürzer und dicker. **Nie von der KI zeichnen lassen** – `scripts/uhr.py` erzeugt exakte Zifferblätter als PNG, `scripts/uhr_canva.py` dieselbe Uhr als Canva-Operationen (wenn kein Bild-Upload möglich ist).
+- Uhr: analoges Zifferblatt mit großen Ziffern, Stundenzeiger deutlich kürzer und dicker. **Nie von der KI zeichnen lassen** – `<x-uhr>` aus `html-materialerstellung/assets/abbildungen.js` berechnet exakte Zifferblätter.
 - Geld: Euro-Abbildungen sind erlaubt; maßstabsgetreu und eindeutig.
 - Rechenkästchen: 1 Ziffer pro Kästchen (schriftliche Verfahren!).
 
@@ -77,11 +77,22 @@ Prozessbezogene Kompetenzen in jedes Material einbauen: Problemlösen, Kommunizi
 - [ ] Darstellungen strukturiert und wie in der Klasse
 - [ ] Mindestens eine Aufgabe zum Entdecken/Erklären
 - [ ] Domino/Bingo: kein Ergebnis doppelt
-- [ ] Uhren, Zahlenstrahl und Felder berechnet statt generiert (siehe Skripte)
+- [ ] Uhren, Zahlenstrahl, Felder und Mengen berechnet statt generiert (Abbildungen unten)
 
-## Skripte
+## Abbildungen
 
-| Skript | Zweck |
+Exakte Darstellungen kommen als Elemente aus `html-materialerstellung/assets/abbildungen.js` ins HTML (Lösung über `loesung=` nur auf dem Lösungsblatt bzw. im Beispiel):
+
+| Element | Darstellung |
 |---|---|
-| `scripts/uhr.py` | Exaktes Zifferblatt als PNG: `python3 uhr.py 2:30 uhr.png [--minuten] [--transparent]`, `leer` für ein Blatt ohne Zeiger |
-| `scripts/uhr_canva.py` | Dieselbe Uhr als JSON-Operationen für `edit-design`: `python3 uhr_canva.py PAGE_ID LEFT TOP GROESSE 7:00 leer ...`. Der Schlüssel `_format` jeder `add_text`-Operation muss vor dem Senden entfernt und als eigenes `format_text` geschickt werden. Danach jede Uhr mit `group_elements` gruppieren (16 Teile pro Uhr; `canva-materialerstellung/scripts/layout_check.py` schlägt die Gruppen vor). |
+| `<x-uhr zeit="4:30" groesse="88">`, `<x-uhr loesung="4:30">` | Zifferblatt mit bzw. ohne Zeiger |
+| `<x-menge n="36" form="nuss" reihe="10" buendel-loesung="3">` | Gegenstände (kreis, plaettchen, nuss) in Zehnerreihen mit Fünferlücke; Bündelrahmen um volle Zehner |
+| `<x-dienes z="3" e="5">` | Zehnerstangen und Einerwürfel |
+| `<x-strichpunkt z="3" e="5">` | Strich-Punkt-Darstellung, Einer in Fünferstruktur |
+| `<x-stellentafel stellen="H Z E" loesung="1 3 5">` | Stellenwerttafel, leer oder mit Werten |
+| `<x-zwanzigerfeld n="13">` | Zwanzigerfeld mit Plättchen |
+| `<x-zahlenstrahl von="0" bis="100" schritt="10" zahlen="0 50 100" pfeile="30 70">` | Zahlenstrahl mit Pfeilen und Antwortkästchen |
+
+Fehlt eine Darstellung (Hunderterfeld, Geld, Geometrie), als neues Element in `abbildungen.js` ergänzen, nie freihand oder per KI.
+
+**Bündeln mit Gegenständen:** Ungebündelte Mengen sind hier ausnahmsweise erlaubt, aber geordnet (`x-menge`, Zehnerreihen mit Fünferlücke), in Kl. 2 bis ca. 45 Gegenstände.

@@ -1,0 +1,75 @@
+<!doctype html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<title>Kl2_Mathe_ZehnerEiner_AB1</title>
+<link rel="stylesheet" href="blatt.css">
+<script src="abbildungen.js"></script>
+</head>
+<body class="kl2 sw" style="--abstand:28px">
+<section class="seite">
+  <div class="namenszeile"><span class="name">Name:</span><span class="datum">Datum:</span></div>
+  <div class="kopf"><div class="titel">
+    <h1>Zehner und Einer<span class="loesung-marke">Lösung</span></h1>
+    <div class="ziel">Ich kann Zahlen bis 100 in Zehner und Einer bündeln und aufschreiben.</div>
+  </div>
+    <div class="tipp"><img class="figur" style="--figur:70px" src="bilder/willi-strich.png" alt="Willi"><div class="blase">Zu 1: Ich zähle 10 Nüsse ab und kreise sie ein.</div></div>
+  </div>
+
+  <div class="aufgabe">
+    <span class="nr">1</span>
+    <div class="anw"><span class="text">Kreise immer 10 ein. Schreibe Z, E und die Zahl.</span></div>
+    <div class="koerper">
+      <div class="reihe" style="--spalten:3">
+        <div class="zelle beispiel"><x-menge n="23" form="nuss" groesse="14" buendel-loesung="2"></x-menge>
+          <div class="zeile"><span class="antwort kurz" data-l="2"></span>Z <span class="antwort kurz" data-l="3"></span>E</div>
+          <div class="zeile">Zahl: <span class="antwort" data-l="23"></span></div></div>
+        <div class="zelle"><x-menge n="36" form="nuss" groesse="14" buendel-loesung="3"></x-menge>
+          <div class="zeile"><span class="antwort kurz" data-l="3"></span>Z <span class="antwort kurz" data-l="6"></span>E</div>
+          <div class="zeile">Zahl: <span class="antwort" data-l="36"></span></div></div>
+        <div class="zelle"><x-menge n="41" form="nuss" groesse="14" buendel-loesung="4"></x-menge>
+          <div class="zeile"><span class="antwort kurz" data-l="4"></span>Z <span class="antwort kurz" data-l="1"></span>E</div>
+          <div class="zeile">Zahl: <span class="antwort" data-l="41"></span></div></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="aufgabe">
+    <span class="nr">2</span>
+    <div class="anw"><span class="text">Wie viele Zehner, wie viele Einer? Schreibe in die Tafel.</span></div>
+    <div class="koerper">
+      <div class="reihe" style="--spalten:4">
+        <div class="zelle beispiel"><x-strichpunkt z="3" e="5"></x-strichpunkt><x-stellentafel loesung="3 5"></x-stellentafel></div>
+        <div class="zelle"><x-strichpunkt z="5" e="2"></x-strichpunkt><x-stellentafel loesung="5 2"></x-stellentafel></div>
+        <div class="zelle"><x-strichpunkt z="1" e="6"></x-strichpunkt><x-stellentafel loesung="1 6"></x-stellentafel></div>
+        <div class="zelle"><x-strichpunkt z="6" e="0"></x-strichpunkt><x-stellentafel loesung="6 0"></x-stellentafel></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="aufgabe">
+    <span class="nr">3</span>
+    <div class="anw"><span class="text">Schreibe die Zahl.</span></div>
+    <div class="koerper">
+      <div class="reihe" style="--spalten:2">
+        <div class="zelle links beispiel"><div class="zeile">4 Z 6 E = <span class="antwort" data-l="46"></span></div></div>
+        <div class="zelle links"><div class="zeile">8 E 2 Z = <span class="antwort" data-l="28"></span></div></div>
+        <div class="zelle links"><div class="zeile">dreiundfünfzig = <span class="antwort" data-l="53"></span></div></div>
+        <div class="zelle links"><div class="zeile">neunzig = <span class="antwort" data-l="90"></span></div></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="aufgabe">
+    <span class="nr stern">★</span>
+    <div class="anw"><span class="text">Sternchenaufgabe: Wer mag, knobelt hier. Lege 4 Plättchen in die Tafel. Welche Zahlen findest du?</span></div>
+    <div class="koerper">
+      <div style="display:flex;gap:24px;align-items:flex-end">
+        <x-stellentafel></x-stellentafel>
+        <div style="flex:1"><div class="schreiblinie nicht-loesung"></div><div class="nur-loesung"><b>4 · 13 · 22 · 31 · 40</b></div></div>
+      </div>
+    </div>
+  </div>
+</section>
+</body>
+</html>
