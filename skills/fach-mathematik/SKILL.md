@@ -44,6 +44,13 @@ Prozessbezogene Kompetenzen in jedes Material einbauen: Problemlösen, Kommunizi
 6. **Sachaufgaben:** Lebensweltlich, kurz, mit Bild; Fragestellung fett; Rechnung – Antwortsatz-Schema. Ab Kl. 2 auch Aufgaben mit überflüssigen Angaben oder ohne Frage ("Erfinde eine Frage").
 7. **Fachsprache korrekt:** Summand, Summe, Minuend, Differenz (ab Kl. 2/3 je nach Lehrplan), "Ergebnis", "gleich". Gleichheitszeichen als Beziehung, nicht als "ergibt" (Aufgaben wie 5 + 3 = __ + 4 einstreuen).
 
+## Kernkonzepte im Fach
+
+- Niveaus folgen den Darstellungsebenen: ● mit Material/Bild, ●● symbolisch, ●●● Muster erklären, Aufgaben erfinden, begründen.
+- Strategietipps nennen Rechenstrategien („Rechne erst bis zur 10."), nie „Zähl nach".
+- Offene Aufgaben (natürliche Differenzierung) sind die bevorzugte ●●●-Form.
+- „Willi hat sich vertan" mit typischen Fehlvorstellungen (unten) als Lernchance.
+
 ## Darstellungskonventionen für Materialien
 
 - Zwanzigerfeld: 2 × 10 Kreise, nach 5 Spalten Lücke oder Farbwechsel; Wendeplättchen rot/blau.

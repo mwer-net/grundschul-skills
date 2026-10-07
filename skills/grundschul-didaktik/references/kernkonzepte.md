@@ -32,10 +32,10 @@ Nach Carol Dweck: Fähigkeiten wachsen durch Üben, gute Strategien und Hilfe �
    Keine Stufe ist „schlecht" – auch die Blume wächst weiter. Grafik und Media-IDs: unten im Abschnitt „Wachstumsgrafik". Die Pflanzensymbole sind **ausschließlich** für die Selbsteinschätzung reserviert, nicht für Niveaus.
 3. **„Noch"-Sprache.** In Anweisungen, Tippkarten, Lösungsblättern und Rückmeldefeldern: „Das kannst du *noch nicht* – übe mit Tipp 1." Nie: „falsch", „schlecht", „zu schwer für dich".
 4. **Strategien sichtbar machen.** Tipps und Leitfigur nennen eine Strategie („Schau zuerst auf den kurzen Zeiger."), nicht nur „Streng dich an!".
-5. **Fehler als Lernchance einbauen.** Wo passend eine Aufgabe „Finde den Fehler" oder „Willi hat sich vertan – erkläre ihm, was falsch ist". Selbstkontrolle mit Lösung zum Nachschauen statt Rotstift.
+5. **Fehler als Lernchance einbauen.** Wo passend eine Aufgabe „Finde den Fehler" oder „Willi hat sich vertan – erkläre ihm, was falsch ist" (Rechenfehler ab Kl. 2, Rechtschreibfehler erst ab Kl. 3, siehe `fach-deutsch`). Selbstkontrolle mit Lösung zum Nachschauen statt Rotstift.
 6. **Reflexionsfrage am Ende** (Klasse 1/2 mündlich oder mit Ankreuzen, ab Klasse 3 schriftlich), z. B.: „Was hat dir geholfen?", „Was übst du als Nächstes?", „Welche Aufgabe war eine gute Herausforderung?"
 7. **Herausforderung positiv rahmen.** Die schwierigere Aufgabe heißt „Herausforderung" oder „Knobelaufgabe", nicht „Zusatz für die Schnellen".
-8. **Rückmeldefeld für die Lehrkraft** mit Prozess-Satzanfängen: „Du hast geschafft, …", „Deine Strategie …", „Als Nächstes kannst du …".
+8. **Rückmeldefeld für die Lehrkraft** (Pflicht auf Laufzettel und Lernzielkontrolle, auf Arbeitsblättern optional) mit Prozess-Satzanfängen: „Du hast geschafft, …", „Deine Strategie …", „Als Nächstes kannst du …".
 
 ### Vermeiden
 
@@ -61,7 +61,7 @@ Stufen der Öffnung: organisatorisch (Raum, Kreis, Platzwahl) → methodisch (Wa
 
 ### Umsetzung im Material
 
-1. **Lernaufgaben in drei Niveaus mit Selbstwahl.** Jedes Übungsmaterial bietet:
+1. **Lernaufgaben in drei Niveaus mit Selbstwahl.** Jedes Übungsmaterial (Arbeitsblatt, Lesetext-Aufgaben, Lernspiel, Station) bietet:
 
    | Kennzeichnung | Niveau | Inhalt |
    |---|---|---|
@@ -69,7 +69,7 @@ Stufen der Öffnung: organisatorisch (Raum, Kreis, Platzwahl) → methodisch (Wa
    | ●● | Kern | das Lernziel der Stunde |
    | ●●● | Herausforderung | erweiterte Anforderungen: Begründen, Übertragen, Erfinden |
 
-   Kennzeichnung neutral mit Punkten (s/w-tauglich), nie mit Wertungen. Die Kinder wählen selbst und dürfen wechseln. Optik und Figur sind auf allen Niveaus gleich.
+   Kennzeichnung neutral mit Punkten (s/w-tauglich), nie mit Wertungen, Buchstaben, Farben oder „leicht/schwer". Die Kinder wählen selbst und dürfen wechseln. Optik und Figur sind auf allen Niveaus gleich. Ausnahme: In benoteten Lernzielkontrollen gibt es keine Niveau-Wahl (siehe `lernzielkontrolle`).
 2. **Selbstständig bearbeitbar.** Weil die Lehrkraft während der Lernaufgaben berät, muss jede Aufgabe ohne Rückfrage verständlich sein: „So geht's"-Beispiel, Arbeitsanweisungs-Symbole, gestufte Tippkarten, Lösung zur Selbstkontrolle.
 3. **Wahlhilfe für die Kinder.** Ein Satz oben oder eine kleine Wahlhilfe: „Wähle deine Aufgaben. Fang dort an, wo du sicher bist, und wage dann eine Herausforderung." Die Wachstums-Selbsteinschätzung hilft bei der Wahl.
 4. **Sozialform offen lassen** oder anbieten (👤 / 👥), außer die Aufgabe braucht zwingend einen Partner.
@@ -81,7 +81,7 @@ Stufen der Öffnung: organisatorisch (Raum, Kreis, Platzwahl) → methodisch (Wa
 
 | Phase | Dauer (45 min) | Inhalt |
 |---|---|---|
-| Kreisinput | 10–12 min | Einstieg, gemeinsames Beispiel, Lernaufgaben vorstellen, Ich-kann-Ziel nennen |
+| Kreisinput | 10–12 min | Ich-kann-Ziel nennen, Einstieg, gemeinsames Beispiel, Lernaufgaben vorstellen |
 | Lernaufgaben | 25–30 min | freie Wahl von Aufgabe, Platz, Partner; Lehrkraft begleitet, Kleingruppen-Inputs bei Bedarf |
 | Reflexion im Kreis | 5 min | Wachstums-Selbsteinschätzung, „Was hat dir geholfen?", Ausblick |
 

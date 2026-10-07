@@ -26,17 +26,18 @@ Laden mit: `grundschul-didaktik` und dem passenden `fach-*`. Material danach mit
 Erlaubt die Schule keine freie Platzwahl, bleibt die Struktur gleich: Kinder wählen die Lernaufgabe am eigenen Platz. Bei Einführungen neuer Inhalte darf der Kreisinput länger sein; dann eine kurze Zwischenrunde einplanen. Details: `grundschul-didaktik/references/kernkonzepte.md`.
 
 Grundsätze:
-- Kinder in Klasse 1/2 halten ca. 10–15 Minuten in einer Phase konzentriert durch; Wechsel zwischen Bewegung und Ruhe einplanen.
+- Kinder in Klasse 1/2 halten ca. 10–15 Minuten bei einer Tätigkeit konzentriert durch. In der Lernaufgaben-Phase wechseln sie deshalb die Aufgabe und den Zugang (handelnd, schriftlich, spielerisch); Bewegung einplanen.
 - Lernziel als Ich-kann-Satz an der Tafel: "Ich kann …". Selbsteinschätzung und Reflexion beziehen sich darauf.
 - Lehrkraft-Rückmeldungen zum Prozess formulieren (Strategie, Fortschritt, „noch nicht"), nie zur Begabung.
 - Jede Phase mit Lehrkraft-Impuls (wörtlich formuliert) und erwarteter Schülerantwort.
-- Lernaufgaben konkret benennen: mindestens eine ● Grundlage (Wiederholung), ●● Kern, mindestens eine ●●● Herausforderung, dazu Hilfen und Selbstkontrolle.
+- Lernaufgaben konkret benennen: mindestens eine ● Grundlage (Wiederholung), ●● Kern, mindestens eine ●●● Herausforderung, dazu Wahlhilfe, Tippkarten mit Strategie und Selbstkontrolle.
 - Puffer und "Was, wenn die Zeit nicht reicht?" angeben.
 
 ## Reihenplanung
 
-- Lernziel der Reihe → Teilziele pro Stunde, logisch aufbauend (Einführung → Übung → Vertiefung → Anwendung → Überprüfung).
-- Tabelle: Stunde | Thema | Teilziel | Kern-Aktivität | Material | Differenzierung.
+- Lernziel der Reihe → Ich-kann-Ziele pro Stunde, logisch aufbauend (Einführung → Übung → Vertiefung → Anwendung → Überprüfung). Jede Stunde folgt dem Churer Ablauf.
+- Tabelle: Stunde | Thema | Ich-kann-Ziel | Kreisinput | Lernaufgaben ● / ●● / ●●● | Material.
+- Am Ende der Reihe eine Lernlandkarte bzw. Selbsteinschätzung mit Wachstumsstufen (siehe `lernzielkontrolle`).
 - Bezug zu Bildungsstandards/Lehrplan (Kompetenzbereich, Leitidee bzw. Perspektive) angeben.
 - Materialliste am Ende mit Verweis, welcher Skill es erzeugt (`arbeitsblatt`, `lernspiel` …).
 
@@ -47,7 +48,7 @@ Zusätzlich: Bedingungsanalyse (anonym), Sachanalyse (kurz), didaktische Analyse
 ## Vertretungsstunde
 
 - Komplett selbsterklärend, Material kopierfertig, Lösungen dabei.
-- Wiederholung statt neuem Stoff, bekannte Formate; Lernaufgaben-Übersicht (Laufzettel), damit die Kinder ohne Erklärung wählen können.
+- Wiederholung statt neuem Stoff, bekannte Formate; Lernaufgaben-Übersicht (Laufzettel mit Niveau-Punkten), damit die Kinder ohne Erklärung wählen können. Kreisinput und Reflexion als wörtliches Skript für die Vertretung.
 
 ## Ausgabe
 

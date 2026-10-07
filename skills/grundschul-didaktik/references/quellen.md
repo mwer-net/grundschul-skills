@@ -2,6 +2,8 @@
 
 Zusammenfassung der Recherche (Stand Oktober 2026), auf der die Skills beruhen. Links dienen der Vertiefung.
 
+Quellen zu Growth Mindset und Churer Modell stehen in `kernkonzepte.md`.
+
 ## Bildungsstandards und Rahmen
 
 - **KMK-Bildungsstandards Primarbereich Deutsch und Mathematik (Beschluss 23.06.2022).** Deutsch: Kompetenzbereiche Sprechen und Zuhören, Schreiben, Lesen, Sprache und Sprachgebrauch untersuchen; Leseflüssigkeit und Digitalisierung stärker betont. Mathematik: prozessbezogene Kompetenzen (Problemlösen, Kommunizieren, Argumentieren, Darstellen, Modellieren, Technische Grundfertigkeiten) und fünf Leitideen (Zahlen und Operationen; Raum und Form; Muster, Strukturen und funktionaler Zusammenhang; Größen und Messen; Daten, Häufigkeit und Wahrscheinlichkeit).
@@ -65,7 +67,7 @@ Zusammenfassung der Recherche (Stand Oktober 2026), auf der die Skills beruhen. 
 
 ## Differenzierung, Sprachsensibilität, offene Formen
 
-- Drei Niveaus (Basis / Standard / Erweitert), farblich oder symbolisch gekennzeichnet.
+- Drei Niveaus, in diesem Repo neutral mit Punkten gekennzeichnet: ● Grundlage / ●● Kern / ●●● Herausforderung (siehe `kernkonzepte.md`).
   - https://mebis.bycs.de/assets/dsc/lf/547c830a-5f72-447b-b849-e298bd0997a0/prompt-sammlung-differenzierte-arbeitsmaterialien.pdf
 - Scaffolding, Wortspeicher, Satzmuster im Fachunterricht.
   - https://www.friedrich-verlag.de/friedrich-plus/grundschule/deutsch/sprache-untersuchen/sprachsensiblen-fachunterricht-vorbereiten-6005

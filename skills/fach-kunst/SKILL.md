@@ -21,6 +21,13 @@ Nach dem Rückfrage-Protokoll aus `grundschul-didaktik` (eine Frage pro Nachrich
 - **Vielfalt der Kunst:** Künstlerinnen und Künstler unterschiedlicher Epochen, Kulturen und Geschlechter (z. B. Klee, Kandinsky, Matisse, Hundertwasser, Frida Kahlo, Niki de Saint Phalle, Yayoi Kusama, Keith Haring).
 - **Wertschätzende Reflexion:** Kriterien vorher klären, Galerie-Rundgang, "Mir gefällt …, weil …".
 
+## Kernkonzepte im Fach
+
+- Differenzierung meist natürlich über die offene Gestaltungsaufgabe; ● / ●● / ●●● für Technik-Übungen und Bildbetrachtung (● beschreiben, ●● vergleichen, ●●● deuten und übertragen).
+- Ich-kann-Ziel bezieht sich auf Technik oder Wahrnehmung, nicht auf „schön malen".
+- Rückmeldung zum Prozess (Ausprobieren, Mut zu Neuem), nie „Du bist eben begabt".
+- Probierblatt als erlaubter Fehlerraum.
+
 ## Materialtypen
 
 - **Technik-Anleitung** in 3–5 Bildschritten (Fotos der Zwischenstände), Materialliste mit Bildern.

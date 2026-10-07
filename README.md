@@ -9,7 +9,8 @@ Die Skills sind in drei Ebenen gegliedert, die zusammenspielen:
 ```
 skills/
 ├── grundschul-didaktik/        Basis: Kernkonzepte, Leitlinien, Gestaltung, Differenzierung, Rückfrage-Protokoll
-│   └── references/             gestaltung · differenzierung · sprachsensibel · rueckfragen · quellen
+│   └── references/             kernkonzepte · rueckfragen · gestaltung · kindgerecht-gestalten ·
+│                               differenzierung · sprachsensibel · quellen
 ├── canva-materialerstellung/   Technik: Ablauf mit dem Canva MCP (erstellen, prüfen, korrigieren, exportieren)
 │
 ├── unterrichtsplanung/         ┐
@@ -40,6 +41,15 @@ Bei ungenauen Anfragen erstellen die Skills nicht sofort etwas, sondern fragen g
 - Herleitbares wird nicht gefragt, sondern als Annahme genannt
 - vor der Erstellung ein kurzes Briefing zur Freigabe
 
+## Kernkonzepte
+
+Alle Materialien verkörpern zwei verbindliche Konzepte (`grundschul-didaktik/references/kernkonzepte.md`):
+
+- **Growth Mindset:** Ich-kann-Ziel oben, Wachstums-Selbsteinschätzung Samen → Keimling → Pflanze → Blume, „noch"-Sprache, Strategietipps, Reflexionsfrage am Ende.
+- **Churer Modell:** Kreisinput 10–12 min, Lernaufgaben ● Grundlage / ●● Kern / ●●● Herausforderung zur Selbstwahl, Reflexion im Kreis.
+
+Leitfigur aller Materialien ist Willi oder Wilma Waschbär (`grundschul-didaktik/references/kindgerecht-gestalten.md`).
+
 ## Didaktische Grundlage
 
 Die Skills beruhen auf einer Recherche zu KMK-Bildungsstandards (2022), Perspektivrahmen Sachunterricht, Mathematikdidaktik (EIS-Prinzip, Kraft der Fünf, produktives Üben), Lese- und Rechtschreibdidaktik, Cognitive Load Theory, Differenzierung und sprachsensiblem Unterricht. Details und Links: [`skills/grundschul-didaktik/references/quellen.md`](skills/grundschul-didaktik/references/quellen.md).
@@ -56,10 +66,8 @@ Empfehlung: Immer alle Skills installieren, da sie aufeinander verweisen.
 
 - Canva for Education ist für Lehrkräfte kostenlos.
 - Schulschrift (z. B. Grundschrift) im Brand Kit hochladen, damit Materialien die Schrift der Klasse nutzen.
-- Kernkonzepte aller Materialien: **Growth Mindset** (Ich-kann-Ziel, Wachstums-Selbsteinschätzung Samen → Blume, „noch"-Sprache) und **Churer Modell** (Kreisinput, Lernaufgaben ● / ●● / ●●● zur Selbstwahl, Reflexion im Kreis). Siehe `grundschul-didaktik/references/kernkonzepte.md`.
-- Leitfigur aller Materialien: Willi oder Wilma Waschbär (siehe `grundschul-didaktik/references/kindgerecht-gestalten.md`).
 - Eigene Vorlagen (Kopfzeile, Symbole) in Canva anlegen – die Skills nutzen sie, wenn vorhanden.
 
 ## Erweitern
 
-Neuer Fach- oder Material-Skill: Ordner mit `SKILL.md` anlegen (Frontmatter `name`, `description`), Abschnitt "Rückfragen", fachliche Leitlinien und Qualitätscheck aufnehmen und auf `grundschul-didaktik` verweisen.
+Neuer Fach- oder Material-Skill: Ordner mit `SKILL.md` anlegen (Frontmatter `name`, `description`), Abschnitt "Rückfragen", fachliche Leitlinien, Umsetzung der Kernkonzepte und Qualitätscheck aufnehmen und auf `grundschul-didaktik` verweisen.

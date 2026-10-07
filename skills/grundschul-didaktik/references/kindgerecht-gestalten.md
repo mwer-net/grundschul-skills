@@ -21,7 +21,7 @@ Zwei Befunde scheinen sich zu widersprechen, passen aber zusammen:
 
 - **1 Hauptfarbe + 1 Akzentfarbe + helle Flächenfarben** aus derselben Familie. Warme, freundliche Töne (Koralle, Sonnengelb, Mint, Himmelblau); keine Neonfarben.
 - Flächenfarben sehr hell (Helligkeit ≥ 90 %), damit Text darauf Kontrast ≥ 4,5:1 hat und s/w-Kopien nicht grau zulaufen.
-- Farbe bedeutet überall dasselbe: z. B. jede Aufgabenart oder jedes Niveau eine Farbe; Klassenkonventionen (Wortarten, Stellenwerte) haben Vorrang.
+- Farbe bedeutet überall dasselbe: z. B. jede Aufgabenart oder jede Station eine Farbe; Klassenkonventionen (Wortarten, Stellenwerte) haben Vorrang. Niveaus bekommen keine eigene Farbe, nur Punkte ● / ●● / ●●●.
 - Farbe nie als einzige Information (s/w-Druck, Rot-Grün-Schwäche).
 
 Bewährte Paletten (Hex):
@@ -39,17 +39,16 @@ Text bleibt dunkel (`#1D1D1B` bis `#333333`).
 
 Feste Vorgabe für alle Materialien: Die Leitfigur ist **Willi Waschbär** oder **Wilma Waschbär** – keine anderen Tiere, keine wechselnden Figuren. Die Wiedererkennung über alle Fächer und Klassenstufen ist der Sinn der Figur.
 
-| Figur | Aussehen | Canva-Media-ID (freigestellt) | Original |
+| Grafik | Aussehen | Canva-Media-ID (freigestellt) | Original |
 |---|---|---|---|
 | Willi Waschbär | grauer Waschbär-Junge, schwarze Augenmaske, geringelter Schwanz, oranges T-Shirt (#F28C28) | `MAHXV49zJZE` | `MAHXV7YdfHs` |
 | Wilma Waschbär | graues Waschbär-Mädchen, schwarze Augenmaske, geringelter Schwanz, petrolfarbenes Kleid (#2A9D8F), Schleife am Ohr | `MAHXV_-A1xo` | `MAHXVw6_gJo` |
-
 | Wachstumsgrafik (Samen → Keimling → Pflanze → Blume) | vier Stufen nebeneinander, Pastell, für die Selbsteinschätzung | `MAHXV6P-UTw` | `MAHXVybUqpg` |
 
 - **Wiederverwenden statt neu erzeugen:** Die freigestellte ID direkt mit `insert_fill` einsetzen. Für eine andere Pose (zeigt nach links, freut sich, denkt nach) `generate-image` mit dem Original als `imageReferences` und der Aussehen-Beschreibung oben aufrufen, danach `remove-background`. Neue Posen mit ID hier ergänzen.
 - Die IDs liegen im Canva-Konto der Lehrkraft, die die Figuren erstellt hat. In einem anderen Konto die Figuren mit Stil-Satz und Aussehen-Beschreibung neu erzeugen.
 - **Wer wann:** Pro Material eine Figur, abwechselnd über die Materialien einer Reihe; bei Partner- oder Dialogaufgaben auch beide.
-- **Immer mit Funktion:** Die Figur gibt einen Tipp in einer Sprechblase, zeigt auf das Beispiel („So geht's") oder stellt die Herausforderung ●●●. Ohne Funktion keine Figur.
+- **Immer mit Funktion:** Die Figur gibt einen Strategietipp in einer Sprechblase, zeigt auf das Beispiel („So geht's"), stellt die Herausforderung ●●●, hat sich bei „Finde den Fehler" vertan oder stellt die Reflexionsfrage. Sie spricht in „noch"-Sprache und lobt Strategie und Ausdauer, nie Begabung. Ohne Funktion keine Figur.
 - Höchstens 1–2 Auftritte pro Seite, klein (ca. 15 % der Seitenbreite), am Rand, nie zwischen Anweisung und Arbeitsfläche.
 
 ### 4. Bilder nur mit Mehrwert
@@ -71,7 +70,7 @@ Dosierung: Leitfigur plus nur die Bilder, die die Aufgaben brauchen. Mindestens 
 
 ### 5. Kindgerechte Schrift
 
-- **Fließtext:** klare Druckschrift mit eindeutigen Formen. In Klasse 1/2 bevorzugt mit einstöckigem a und g, weil es der Form entspricht, die die Kinder schreiben (Lesetests zeigen keinen Nachteil des zweistöckigen a – entscheidend ist die Passung zur Schreibschrift der Klasse). In Canva: **Andika** (für Leseanfänger entwickelt), sonst **Nunito** oder **Quicksand**.
+- **Fließtext:** klare Druckschrift mit eindeutigen Formen. In Klasse 1/2 mit einstöckigem a und g, weil es der Form entspricht, die die Kinder schreiben (Lesetests zeigen keinen Nachteil des zweistöckigen a – entscheidend ist die Passung zur Schrift der Klasse). In Canva: **Andika** (für Leseanfänger entwickelt, einstöckiges a und g). Ab Klasse 3 auch andere klare serifenlose Schriften wie **Nunito**.
 - **Überschriften:** eine runde, fröhliche Display-Schrift, z. B. **Fredoka**, **Baloo 2**, **Chewy** (nur Überschrift!).
 - Höchstens zwei Schriften. Keine Schreibschrift- oder Schmuckschriften für Lesetext, keine Großbuchstaben-Texte.
 - Schulschrift des Bundeslandes (Grundschrift, Fibel Nord/Süd, Druckschrift Bayern) wenn verfügbar: im Canva Brand Kit hochladen.

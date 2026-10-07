@@ -20,7 +20,7 @@ Jedes Material folgt zwei Konzepten. Details, Forschung und Beispiele: `referenc
 Ungenaue Anfragen sind der Normalfall ("Mach mir ein Arbeitsblatt zu Tieren"). Erstelle dann **nichts**, sondern kläre gezielt nach dem Protokoll in `references/rueckfragen.md`:
 
 1. **Abgleichen:** Was ist schon bekannt (Anfrage, Gesprächsverlauf, frühere Materialien)? Was fehlt aus der Pflichtliste unten und aus der Rückfrageliste des jeweiligen Material- und Fach-Skills?
-2. **Eine Frage pro Nachricht**, in Abhängigkeitsreihenfolge (Klasse → Thema/Ziel → Lerngruppe → Form/Ausgabe). Jede Frage mit 2–4 konkreten Antwortoptionen und **deiner Empfehlung samt kurzer Begründung**.
+2. **Eine Frage pro Nachricht**, in Abhängigkeitsreihenfolge (Klasse/Bundesland → Thema/Ziel → Lerngruppe → Form/Ausgabe). Jede Frage mit 2–4 konkreten Antwortoptionen und **deiner Empfehlung samt kurzer Begründung**.
 3. **Nicht fragen, was du selbst herleiten kannst** (z. B. Zahlenraum aus der Klassenstufe), sondern als Annahme nennen.
 4. **Briefing bestätigen lassen:** Wenn alles klar ist, fasse das Vorhaben in 3–6 Zeilen zusammen und warte auf ein Ok, bevor du in Canva erzeugst.
 5. Sagt die Lehrkraft "mach einfach" oder "egal": nimm deine Empfehlungen und liste die Annahmen auf.
@@ -36,7 +36,7 @@ Pflichtangaben (fehlen sie, wird gefragt):
 | Eingeführte Symbole, Lehrwerk, Farbsystem der Klasse | Material muss zur gewohnten Struktur passen |
 | Ausgabeform (Druck s/w oder farbig, Laminieren, Tafel/Whiteboard) | Kontraste, Farbcodierung, Format |
 
-Ist nur Kleines unklar (z. B. Farbe vs. s/w), triff eine sinnvolle Annahme und nenne sie.
+Ist nur Kleines unklar (z. B. Farbe vs. s/w), triff eine sinnvolle Annahme und nenne sie. Nicht gefragt wird nach Kernkonzepten und Leitfigur: Ich-kann-Ziel, Niveaus ● / ●● / ●●●, Wachstums-Selbsteinschätzung und Willi/Wilma Waschbär stehen fest.
 
 ## 2. Verbindliche Leitlinien
 
@@ -62,8 +62,8 @@ Ausführlich in `references/gestaltung.md`. Die wichtigsten Werte:
 | 3 | 14–16 pt | 1,5 | 2–3 Sätze |
 | 4 | 12–14 pt | 1,3–1,5 | bis 4 Sätze |
 
-- Fließtext: serifenlose, kindgerechte Schrift mit eindeutigen Formen (einstöckiges a, I/l unterscheidbar). Bevorzugt die Druckschrift des Bundeslandes; sonst Andika, Grundschrift oder eine vergleichbare Schulschrift. Überschriften: eine runde, freundliche Display-Schrift (z. B. Fredoka, Baloo 2).
-- Eine Farbpalette pro Material (Hauptfarbe, Akzent, sehr helle Flächen), Aufgabenblöcke als helle Flächen mit runden Ecken, Aufgabennummern in farbigen Kreisen.
+- Fließtext: serifenlose, kindgerechte Schrift mit eindeutigen Formen (I/l unterscheidbar, in Klasse 1/2 einstöckiges a und g). Bevorzugt die Druckschrift des Bundeslandes; sonst Grundschrift oder Andika. Überschriften: eine runde, freundliche Display-Schrift (z. B. Fredoka, Baloo 2).
+- Eine Farbpalette pro Material (Hauptfarbe, Akzent, sehr helle Flächen), Aufgabenblöcke als helle Flächen mit runden Ecken, Aufgabennummern in farbigen Kreisen. Niveaus nur mit Punkten kennzeichnen, nicht mit Farben.
 - Linksbündiger Flattersatz, keine Silbentrennung, Zeilenumbruch nach Sinneinheiten.
 - Großzügige Ränder und Schreibflächen; Lineatur passend zur Klassenstufe.
 - Klare Aufgabenblöcke mit Nummer und Arbeitsanweisungs-Symbol.
@@ -76,11 +76,11 @@ Prüfe jedes Material gegen diese Liste und korrigiere, bevor du es der Lehrkraf
 - [ ] Lernziel klar und zum Material passend
 - [ ] Klassenstufe: Schriftgröße, Textmenge, Zahlenraum, Wortschatz stimmen
 - [ ] Jede Aufgabe hat Nummer, Symbol und eine kurze Anweisung mit einem Verb
-- [ ] Ich-kann-Ziel oben, Wachstums-Selbsteinschätzung dazu passend
-- [ ] Drei Niveaus ● / ●● / ●●● zur Selbstwahl, gleiche Optik auf allen Niveaus
+- [ ] Ich-kann-Ziel oben, Wachstums-Selbsteinschätzung bezieht sich genau darauf
+- [ ] Lernaufgaben/Übungsmaterial: drei Niveaus ● / ●● / ●●● zur Selbstwahl mit Wahlhilfe, gleiche Optik auf allen Niveaus
 - [ ] Ohne Lehrkraft bearbeitbar: Beispiel, Tipps mit Strategie, Selbstkontrolle
-- [ ] „Noch"-Sprache, keine Wertung von Begabung, keine traurigen Smileys
-- [ ] Reflexionsfrage am Ende
+- [ ] „Noch"-Sprache, keine Wertung von Begabung, keine Rankings, keine Smileys oder Ampeln
+- [ ] Reflexionsfrage am Ende (Kl. 1/2 mündlich oder zum Ankreuzen, ab Kl. 3 schriftlich)
 - [ ] Ansprechend: Palette, runde Formen, Willi oder Wilma Waschbär mit Funktion
 - [ ] Keine rein dekorativen Bilder (Weglass-Test); alle Bilder eindeutig erkennbar
 - [ ] Genug Platz zum Schreiben/Zeichnen
@@ -93,7 +93,7 @@ Prüfe jedes Material gegen diese Liste und korrigiere, bevor du es der Lehrkraf
 
 Liefere immer:
 1. Das Material (bei Canva: Link + PDF-Export, siehe `canva-materialerstellung`).
-2. Eine Kurz-Info: Lernziel, Klassenstufe, Differenzierung, benötigtes Material, Zeitbedarf.
+2. Eine Kurz-Info: Ich-kann-Ziel, Klassenstufe, Niveaus und Hilfen, benötigtes Material, Zeitbedarf, Reflexionsfrage für den Kreis.
 3. Die Lösung oder den Erwartungshorizont.
 4. Annahmen, die du getroffen hast.
 

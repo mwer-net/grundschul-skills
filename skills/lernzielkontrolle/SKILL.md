@@ -17,12 +17,12 @@ Laden mit: `grundschul-didaktik`, passendem `fach-*`, `canva-materialerstellung`
 
 ## Aufbau Lernzielkontrolle
 
-1. Kopf: Name, Datum, Thema, ggf. Felder für Punkte/Note.
+1. Kopf: Name, Datum, Thema, ggf. Felder für Punkte/Note. Darunter die geprüften Ich-kann-Ziele, damit die Kinder wissen, was sie zeigen sollen.
 2. Aufgaben nach Anforderungsbereichen ordnen:
    - **AB I Reproduzieren** ca. 40–50 %
    - **AB II Zusammenhänge herstellen** ca. 30–40 %
    - **AB III Verallgemeinern und Reflektieren** ca. 10–20 %
-3. Jede Aufgabe: Punktzahl sichtbar, Aufgabenformate bekannt aus dem Unterricht (keine neuen Formate im Test!).
+3. Jede Aufgabe: Punktzahl sichtbar, Aufgabenformate bekannt aus dem Unterricht (keine neuen Formate im Test!). Keine Niveau-Wahl im benoteten Test; die Anforderungsbereiche ersetzen die Punkte ● / ●● / ●●●.
 4. Abschluss: Selbsteinschätzung je Ich-kann-Ziel mit Wachstumsstufen (vor Abgabe ausfüllen) und Rückmeldefeld mit Prozess-Satzanfängen („Du hast geschafft, …", „Als Nächstes übst du …"). Nicht Erreichtes als „noch nicht" formulieren.
 
 ## Erwartungshorizont (immer mitliefern)
@@ -30,7 +30,8 @@ Laden mit: `grundschul-didaktik`, passendem `fach-*`, `canva-materialerstellung`
 - Lösung jeder Aufgabe, Punkteverteilung inkl. Teilpunkte.
 - Zuordnung jeder Aufgabe zu Lernziel und Anforderungsbereich (Tabelle).
 - Notenschlüssel-Vorschlag, nur als Vorschlag; Schulvorgaben gehen vor.
-- Hinweise zu typischen Fehlern und was sie diagnostisch bedeuten (z. B. Mathe: um 1 daneben → zählendes Rechnen; Zahlendreher bei Zehner/Einer).
+- Hinweise zu typischen Fehlern und was sie diagnostisch bedeuten (z. B. Mathe: um 1 daneben → zählendes Rechnen; Zahlendreher bei Zehner/Einer), mit passender ● / ●● / ●●●-Lernaufgabe als nächstem Schritt.
+- Rückmeldung an das Kind individuell, ohne Vergleich mit anderen oder öffentlichen Notenspiegel.
 
 ## Selbsteinschätzung / Lernlandkarte
 

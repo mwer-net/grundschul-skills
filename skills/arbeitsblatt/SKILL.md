@@ -19,15 +19,15 @@ Nach dem Rückfrage-Protokoll, eine Frage pro Nachricht, jeweils mit Empfehlung:
 
 ## Aufbau
 
-1. Kopfzeile: `Name: ______  Datum: ______` und Niveau-Punkte. Darunter das **Ich-kann-Ziel** und ggf. die Wahlhilfe („Wähle deine Aufgaben …").
+1. Kopfzeile: `Name: ______  Datum: ______` (bei drei getrennten Niveau-Blättern zusätzlich die Niveau-Punkte). Unter der Überschrift das **Ich-kann-Ziel** und die Wahlhilfe („Wähle deine Aufgaben. Fang dort an, wo du sicher bist.").
 2. Überschrift (max. 5 Wörter, kindgerecht: "Wie spät ist es?" statt "Uhrzeiten ablesen").
-3. 2–5 Aufgabenblöcke, steigend im Anspruch:
+3. 3–5 Aufgabenblöcke, steigend im Anspruch, jeder mit Niveau-Punkten:
    - ● Grundlage: Einstieg mit vorgelöstem Beispiel ("So geht's"), Vorwissen mit Hilfen.
    - ●● Kern: Übung zum Lernziel, ggf. Anwendung / Sachsituation.
    - ●●● Herausforderung: offen, knobelnd, begründen, erfinden; gern „Willi hat sich vertan".
-   - Tipps nennen eine Strategie, Rückmeldungen in „noch"-Sprache.
-4. Fußzeile: Ich-kann-Satz + Wachstums-Selbsteinschätzung (Samen → Blume, Grafik `MAHXV6P-UTw`), ab Klasse 3 eine Reflexionsfrage („Was hat dir geholfen?").
-5. Separates Lösungsblatt (gleiches Layout, Lösungen farbig oder fett).
+   - Willi oder Wilma gibt einen Strategietipp; Tipps und Rückmeldungen in „noch"-Sprache.
+4. Fußzeile: Ich-kann-Satz + Wachstums-Selbsteinschätzung (Samen → Keimling → Pflanze → Blume, Grafik `MAHXV6P-UTw`) und Reflexionsfrage („Was hat dir geholfen?"; Kl. 1/2 zum Ankreuzen oder mündlich im Kreis, ab Kl. 3 schriftlich). Optional ein Rückmeldefeld für die Lehrkraft.
+5. Separates Lösungsblatt zur Selbstkontrolle (gleiches Layout, Lösungen farbig und fett).
 
 ## Bewährte Aufgabenformate
 
@@ -41,7 +41,7 @@ Nach dem Rückfrage-Protokoll, eine Frage pro Nachricht, jeweils mit Empfehlung:
 | Beschriften | Sachunterricht (Körper, Pflanze) | Linien mit Wortspeicher |
 | Schreibrahmen | Texte, Protokolle | Satzanfänge vorgeben |
 | Forscheraufgabe / offene Aufgabe | Alle Fächer, natürliche Differenzierung | "Finde möglichst viele …" |
-| Fehler finden | Ab Kl. 2, Rechtschreibung, Rechnen | Fehleranzahl angeben ("Finde 3 Fehler.") |
+| Fehler finden („Willi hat sich vertan") | Rechnen ab Kl. 2, Rechtschreibung erst ab Kl. 3 | Fehleranzahl angeben ("Finde 3 Fehler.") |
 
 ## Kontrolle durch Kinder (Selbstkontrolle)
 
@@ -57,7 +57,7 @@ Zusätzlich zur Basis-Checkliste:
 - [ ] Aufgaben steigen im Anspruch
 - [ ] Platz reicht für Kinderschrift (lieber 1 Item weniger)
 - [ ] Lösungsblatt vollständig und korrekt
-- [ ] Niveau-Varianten optisch gleichwertig
+- [ ] Niveau-Varianten optisch gleichwertig, Kennzeichnung nur mit Punkten
 
 ## Canva-Hinweise
 
