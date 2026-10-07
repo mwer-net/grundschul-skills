@@ -31,7 +31,7 @@ Farbe oder Schwarz-Weiß sowie die Bausteine (Selbsteinschätzung, Niveaus, Ster
 
 ## Schrift
 
-- Schulschrift oder kindgerechte Druckschrift: in Klasse 1/2 einstöckiges "a" und "g" (wie die Kinder schreiben), "I" (groß i) und "l" (klein L) unterscheidbar, deutliche Ober- und Unterlängen. Bewährt: Grundschrift (Grundschulverband), Andika, Fibel Nord/Süd, Druckschrift des Bundeslandes. In Canva: Schulschrift über das Brand Kit hochladen (OTF/TTF/WOFF), sonst eine klare serifenlose Schrift wählen und das "a" prüfen.
+- Schulschrift oder kindgerechte Druckschrift: in Klasse 1/2 einstöckiges "a" und "g" (wie die Kinder schreiben), "I" (groß i) und "l" (klein L) unterscheidbar, deutliche Ober- und Unterlängen. Bewährt: Grundschrift (Grundschulverband), Andika, Fibel Nord/Süd, Druckschrift des Bundeslandes. Standard im HTML: Andika (eingebettet in `html-materialerstellung/assets/fonts/`). Eine Schulschrift der Klasse als WOFF2/TTF (Lizenz beachten) in `fonts/` legen und per `@font-face` einbinden.
 - Maximal zwei Schriften: eine für Überschriften, eine für alles andere.
 - Keine Großbuchstaben-Texte, kein Kursivsatz, keine Schmuckschriften für Lesetext. Hervorhebung durch Fettdruck.
 - Größen siehe Tabelle im SKILL.md. Überschriften ca. 1,5-fach.

@@ -1,20 +1,20 @@
-# Entwürfe und Aufgabenplan (vor Canva)
+# Entwürfe und Aufgabenplan
 
-Ziel: Die Lehrkraft sieht früh, wie das Material aussehen wird, und entscheidet, **bevor** die teure Canva-Umsetzung beginnt. Canva baut nur noch einen freigegebenen Aufgabenplan, ohne inhaltliche Schleifen.
+Ziel: Die Lehrkraft sieht früh, wie das Material aussehen wird, und entscheidet, **bevor** Inhalte ausformuliert, Lösungen geprüft und Bilder erzeugt werden. Die Endfassung setzt nur noch einen freigegebenen Aufgabenplan um, ohne inhaltliche Schleifen.
 
-Warum: Der Aufbau in Canva (Design anlegen, Layout per `edit-design` setzen, prüfen, korrigieren) kostet ein Vielfaches an Zeit und Tokens gegenüber Entwurf und Plan. Gefällt das Ergebnis erst nach der Umsetzung nicht, ist dieser Aufwand verloren.
+Warum: Alle Items, Lösungen, Bilder und die Endkontrolle kosten ein Vielfaches an Zeit und Tokens gegenüber einem Entwurf. Gefällt die Richtung erst danach nicht, ist dieser Aufwand verloren. Entwürfe entstehen schon im echten Layout (`html-materialerstellung`); der gewählte Entwurf wird zur Endfassung ausgebaut, nicht neu gebaut.
 
 ## Ablauf
 
 | Phase | Was | Werkzeug | Ende |
 |---|---|---|---|
 | 1. Klären | Start-Abfrage und wenige Rückfragen (`rueckfragen.md`) | Chat | Grundlagen klar |
-| 2. Entwürfe | 2–3 schnelle, deutlich verschiedene Entwürfe | `scripts/entwurf.py` → HTML | Lehrkraft wählt |
+| 2. Entwürfe | 2–3 schnelle, deutlich verschiedene Entwürfe | HTML + `blatt.py uebersicht` | Lehrkraft wählt |
 | 3. Feedback | eine Frage: welcher Entwurf, was ändern | Chat | Richtung klar |
-| 4. Aufgabenplan | exakte Inhalte nach Materialart, mit Lösungen | Chat + `entwurf.py` (Platzprüfung) | **Freigabe** |
-| 5. Umsetzung | Plan wörtlich in Canva bauen, prüfen, exportieren | `canva-materialerstellung` | Material fertig |
+| 4. Aufgabenplan | exakte Inhalte nach Materialart, mit Lösungen | Chat + `blatt.py` (Platzprüfung) | **Freigabe** |
+| 5. Umsetzung | Entwurf zur Endfassung ausbauen, KI-Bilder, prüfen, PDF | `html-materialerstellung` | Material fertig |
 
-Vor Phase 4 wird nichts in Canva angelegt und kein Bild erzeugt (`generate-image`).
+Vor der Freigabe in Phase 4 wird kein KI-Bild erzeugt (Canva `generate-image`).
 
 ## Phase 1: Klären – kurz halten
 
@@ -32,13 +32,13 @@ Nach der Start-Abfrage nur fragen, was die Entwürfe nicht zeigen können: Klass
 
 Keine Lösungen, keine Rechenprüfung aller Items, kein Lösungsblatt: das kommt erst im Aufgabenplan.
 
-**Darstellung (bevorzugt): `scripts/entwurf.py`**
+**Darstellung (bevorzugt): HTML-Seiten** (`html-materialerstellung`)
 
-1. Entwürfe als kleines JSON schreiben (Aufbau im Kopf des Skripts, Muster: `scripts/entwurf-beispiel.json`).
-2. `python3 scripts/entwurf.py entwurf.json -o entwurf.html` (optional `--png entwurf.png`, braucht playwright).
-3. Die HTML-Datei der Lehrkraft zeigen: als Datei ausgeben bzw. im Arbeitsordner ablegen; wo nur Artefakte gehen, den Inhalt der HTML-Datei als HTML-Artefakt ausgeben.
+1. Je Entwurf eine Kopie von `assets/vorlage-arbeitsblatt.html` mit echtem Text, Beispiel-Items, exakten Abbildungen (`x-uhr` …) und Platzhaltern für neue Bilder (`.platzhalter`); `<title>` = Entwurfsname.
+2. `python3 scripts/blatt.py uebersicht a.html b.html c.html -o ordner/` legt die Seiten nebeneinander (`entwuerfe.png`, `entwuerfe.html`) und markiert, ob jeder Entwurf auf die Seite passt.
+3. Das Bild der Lehrkraft zeigen; wo nur Artefakte gehen, `entwuerfe.html` als Artefakt.
 
-Die Vorschau zeigt alle Entwürfe nebeneinander im echten Format (A4 hoch/quer, A3, Folie, Kartenraster), im gewählten Druckprofil, mit Schriftgröße nach Klasse. Ein Entwurf, der nicht auf die Seite passt, wird rot markiert; viel ungenutzter Platz wird angezeigt. Das ersetzt die erste Platzbudget-Rechnung.
+Die Vorschau zeigt jeden Entwurf im echten Format, Druckprofil und in der Schriftgröße der Klasse, so wie er gedruckt wird. Ein Entwurf, der nicht passt, wird rot markiert; viel ungenutzter Platz wird gemeldet.
 
 **Ohne Code-Ausführung: Textskizze** im Chat, je Entwurf höchstens 8 Zeilen:
 
@@ -69,16 +69,16 @@ Kleine Änderungen fließen direkt in den Aufgabenplan. Will die Lehrkraft etwas
 
 ## Phase 4: Aufgabenplan
 
-Der Aufgabenplan legt **jeden Inhalt exakt fest**, der später in Canva steht. Er ersetzt das bisherige Briefing zur Freigabe. Was er enthält, hängt von der Materialart ab (Tabelle unten). Immer:
+Der Aufgabenplan legt **jeden Inhalt exakt fest**, der später auf dem Blatt steht. Er ersetzt das bisherige Briefing zur Freigabe. Was er enthält, hängt von der Materialart ab (Tabelle unten). Immer:
 
 - Titel nach Schema `Kl2_Mathe_Uhrzeit_AB1`, Format, Druckprofil, gewählter Entwurf
 - alle Texte wörtlich: Überschrift, Ich-kann-Ziel, Wahlhilfe, Anweisungen, Tipps, Fußtext, Reflexionsfrage
 - alle Items vollständig, Rechnungen und Rechtschreibung geprüft
 - Lösungen bzw. Erwartungshorizont
-- Bildliste: welche Bilder wo, mit vorhandener Media-ID (Willi, Wilma, Wachstumsgrafik) oder als neues Motiv; exakte Abbildungen (Uhren, Zahlenstrahl) als Vektor mit Werten
+- Bildliste: welche Bilder wo, vorhandene Datei (Willi, Wilma, Wachstumsgrafik) oder neues KI-Motiv; exakte Abbildungen (Uhren, Zahlenstrahl, Mengen) mit Werten
 - Seiten: Niveau-Blätter, Lösungsblatt
 
-Den gewählten Entwurf im JSON auf die finalen Items aktualisieren und `entwurf.py` erneut laufen lassen: Passt alles auf die Seite? Erst dann den Plan zeigen.
+Den gewählten Entwurf auf die finalen Items aktualisieren und `blatt.py bauen --nur-pruefen` laufen lassen: Passt alles auf die Seite? Erst dann den Plan zeigen.
 
 Format im Chat (Beispiel Arbeitsblatt):
 
@@ -87,15 +87,15 @@ Aufgabenplan Kl2_Mathe_Uhrzeit_AB1 · A4 hoch · s/w · Entwurf A
 Kopf: „Wie spät ist es?" · Ich kann volle und halbe Stunden ablesen. · Wähle deine Aufgaben.
 1 ●  Lies ab. Schreibe die Uhrzeit auf.   5 Uhren 88 px + Antwortlinie
      Uhren: 3:00 · 4:30 · 7:00 · 9:30 · 12:00
-     Willi (Strich MAHXWZ6fTfM): „Schau zuerst auf den kleinen Zeiger. Er zeigt die Stunde."
+     Willi (willi-strich.png): „Schau zuerst auf den kleinen Zeiger. Er zeigt die Stunde."
      Lösung: 3 Uhr · halb 5 · 7 Uhr · halb 10 · 12 Uhr
 2 ●● …
-Fuß: Ich kann … · Male an, wie weit du schon bist: (Wachstum Strich MAHXWdlD_qM) · Was hat dir geholfen? ☐ … ☐ …
+Fuß: Ich kann … · Male an, wie weit du schon bist: (wachstum-strich.png) · Was hat dir geholfen? ☐ … ☐ …
 Seite 2: Lösungsblatt (Lösungen fett, unterstrichen)
-Passt das so? Danach setze ich es in Canva um; der Inhalt ändert sich dann nicht mehr.
+Passt das so? Danach baue ich die Endfassung als PDF; der Inhalt ändert sich dann nicht mehr.
 ```
 
-Erst nach dem Ok der Lehrkraft beginnt Phase 5. Änderungswünsche danach werden im Plan eingearbeitet und kurz bestätigt, nicht in Canva ausprobiert.
+Erst nach dem Ok der Lehrkraft beginnt Phase 5. Änderungswünsche danach werden im Plan eingearbeitet und kurz bestätigt, nicht am fertigen Blatt ausprobiert.
 
 ## Was je Materialart variiert und festgelegt wird
 
@@ -112,13 +112,13 @@ Erst nach dem Ok der Lehrkraft beginnt Phase 5. Änderungswünsche danach werden
 
 ## Abkürzungen
 
-- **„Mach einfach"**: ein Entwurf nach den Empfehlungen und der Aufgabenplan in einer Nachricht; vor Canva trotzdem auf das Ok warten.
+- **„Mach einfach"**: ein Entwurf nach den Empfehlungen und der Aufgabenplan in einer Nachricht; vor der Endfassung trotzdem auf das Ok warten.
 - **Folgematerial im selben Stil** („wie das letzte Blatt"): keine Entwürfe, direkt der Aufgabenplan mit dem bestätigten Layout.
-- **Kleine Korrektur an einem fertigen Canva-Material**: direkt in Canva ändern, kein neuer Plan.
+- **Kleine Korrektur an einem fertigen Material**: direkt in der HTML-Quelle ändern und neu bauen, kein neuer Plan.
 
 ## Was nicht passieren darf
 
-- Canva-Design anlegen oder Bilder erzeugen, bevor der Aufgabenplan freigegeben ist.
+- KI-Bilder erzeugen oder alle Items ausarbeiten, bevor der Aufgabenplan freigegeben ist.
 - Entwürfe, die sich nur in Farben oder Details unterscheiden.
-- Inhalte in Canva umformulieren oder ausprobieren; Inhalt kommt nur aus dem Plan.
+- Inhalte beim Bauen umformulieren oder ausprobieren; Inhalt kommt nur aus dem Plan.
 - Mehr als zwei Entwurfsrunden ohne gezielte Rückfrage.

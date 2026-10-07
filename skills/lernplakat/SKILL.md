@@ -5,7 +5,7 @@ description: Gestaltet Lernplakate, Merkplakate, Anschauungsposter und Tafelbild
 
 # Lernplakat und Tafelbild
 
-Laden mit: `grundschul-didaktik`, passendem `fach-*`, `canva-materialerstellung`.
+Laden mit: `grundschul-didaktik`, passendem `fach-*`, `html-materialerstellung`.
 
 Ein Lernplakat sichert Wissen dauerhaft im Raum. Es wird im Unterricht gemeinsam erarbeitet oder als Ergebnis aufgehängt und muss aus der Entfernung funktionieren.
 
@@ -18,7 +18,7 @@ Ein Lernplakat sichert Wissen dauerhaft im Raum. Es wird im Unterricht gemeinsam
 
 ## Entwürfe und Aufgabenplan
 
-2–3 Entwürfe zeigen (`entwurf.py` mit Format `a3-hoch` bzw. `folie`), erst nach Freigabe des Aufgabenplans in Canva bauen (`grundschul-didaktik/references/entwurf-und-aufgabenplan.md`).
+2–3 Entwürfe zeigen (Format `a3-hoch` bzw. `folie` am `<body>`), erst nach Freigabe des Aufgabenplans die Endfassung bauen (`grundschul-didaktik/references/entwurf-und-aufgabenplan.md`).
 
 - **Entwürfe unterscheiden sich** im Aufbau (Regel + Beispiele / Schrittfolge / Lückenplakat) und in der Anordnung.
 - **Aufgabenplan:** alle Texte wörtlich, Beispiele, Bildliste, Schriftgrößen für die Leseentfernung.
@@ -47,7 +47,8 @@ Ein Lernplakat sichert Wissen dauerhaft im Raum. Es wird im Unterricht gemeinsam
 - [ ] Fachlich korrekt und anschlussfähig für spätere Klassen
 - [ ] Konsistent mit Arbeitsblättern (Begriffe, Farben, Symbole)
 
-## Canva-Hinweise
+## Umsetzung (`html-materialerstellung`)
 
-- Merkplakat: `"Poster (Portrait A3)"` o. ä.; vor Export Maße prüfen. A2 als 4 × A4-Kacheln exportieren oder im Copyshop drucken.
-- Tafelbild: `"Presentation"` (16:9), Export als PDF und PNG.
+- Merkplakat: `<body class="… a3-hoch">`; A2 im Copyshop aus dem A3-PDF hochskalieren.
+- Tafelbild: `<body class="… folie">` (16:9), PDF für das Whiteboard, PNG-Vorschau aus `blatt.py` als Bild.
+- Schriftgrößen für die Leseentfernung über eigenes `<style>` (z. B. `--fs:40px`).

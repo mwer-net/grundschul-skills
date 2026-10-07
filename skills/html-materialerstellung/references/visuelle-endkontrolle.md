@@ -1,16 +1,14 @@
 # Visuelle Endkontrolle
 
-Pflichtschritt nach dem Bauen, bevor die Lehrkraft etwas sieht. `layout_check.py` prüft Geometrie (Ränder, Überlappung, Abstände, Fülle). Ob eine Abbildung stimmt, ein Beispiel gequetscht wirkt oder ein Kind die Aufgabe versteht, sieht nur der Blick auf das fertige Blatt. Die Endkontrolle findet solche Fehler **selbst** und behebt sie, statt sie der Lehrkraft zu überlassen.
+Pflichtschritt nach dem Bauen, bevor die Lehrkraft etwas sieht. Der Prüfbericht von `blatt.py` prüft Geometrie (Ränder, Überlappung, Abstände, Schrift, Druckprofil). Ob eine Abbildung stimmt, ein Beispiel gequetscht wirkt oder ein Kind die Aufgabe versteht, sieht nur der Blick auf das fertige Blatt. Die Endkontrolle findet solche Fehler **selbst** und behebt sie, statt sie der Lehrkraft zu überlassen.
 
 ## Ablauf
 
-1. **Voraussetzung:** `layout_check.py --klasse K` (bzw. mit `--farbe`) ohne FEHLER und ohne Übersichts-Warnungen (zu viele Aufgaben, zu volle Seite, gequetscht).
-2. **Vorschau holen:** `read-design` mit `filter.fields: ["thumbnails"]` (oder das Vorschaubild aus der letzten `edit-design`-Antwort), jede Seite inklusive Lösungsblatt.
+1. **Voraussetzung:** `blatt.py bauen` ohne FEHLER; WARNUNGEN zu Übersicht (zu viele Aufgaben, zu dicht) behoben.
+2. **Vorschau ansehen:** `NAME-s1.png` (jede Seite) und `NAME-loesung-s1.png`.
 3. **Gesamtblick** auf die ganze Seite (Abschnitt C, „Fünf-Sekunden-Test").
-4. **Ausschnitte vergrößert prüfen.** Das Vorschaubild ist nur ca. 424 × 600 px groß; Fehler in Abbildungen fallen darin erst vergrößert auf. Liegt es als Datei vor:
-   `python3 scripts/sichtpruefung.py vorschau.png --design design.json [--farbe]`
-   schneidet Kopf, jede Aufgabe und Fuß einzeln aus und vergrößert sie. **Jeden Ausschnitt einzeln ansehen** und die Checkliste A–F abarbeiten. Ohne Datei die Vorschau Abschnitt für Abschnitt ansehen und Zweifelsfälle an den Koordinaten aus `design_content` nachmessen.
-5. **Jeden Befund beheben** (Tabelle „Befund → Korrektur"), dann `layout_check.py` und die betroffenen Ausschnitte erneut prüfen.
+4. **Ausschnitte prüfen:** `NAME-s1-a1.png`, `-a2.png` … zeigen jede Aufgabe in doppelter Auflösung. **Jeden Ausschnitt einzeln ansehen** und die Checkliste A–F abarbeiten.
+5. **Jeden Befund beheben** (Tabelle „Befund → Korrektur"), dann neu bauen und die betroffenen Ausschnitte erneut prüfen.
 6. **Wiederholen, bis alle Punkte erfüllt sind**, höchstens drei Runden. Bleibt danach etwas offen, der Lehrkraft die Vorschau mit genau diesem Punkt zeigen.
 7. **Erst dann** die Vorschau zeigen, mit einem Satz, was die Endkontrolle korrigiert hat. Weicht das Blatt dabei vom freigegebenen Aufgabenplan ab (Item oder Aufgabe gestrichen), das ausdrücklich nennen.
 
@@ -49,22 +47,25 @@ Die Endkontrolle bewertet streng: Im Zweifel ist es ein Befund. „Sieht im Gro�
 - [ ] Das Auge wandert ruhig von oben nach unten; nichts lenkt ab (Deko, Fremdelemente).
 
 **F. Druck und Seiten**
-- [ ] s/w: keine Grauflächen, alles kopierfähig; Farbe: Graustufen-Fassung (`--farbe`) noch lesbar.
+- [ ] s/w: keine Grauflächen, alles kopierfähig; Farbe: auch in Graustufen gedruckt noch lesbar (Information nie nur über Farbe).
 - [ ] Lösungsblatt hat dasselbe Layout, alle Lösungen stehen an der richtigen Stelle.
+- [ ] Bilder scharf (kein dpi-Hinweis) und im s/w-Profil als Strichzeichnung.
 
 ## Befund → Korrektur
 
 | Befund | Korrektur |
 |---|---|
-| Abbildung ungenau (Anzahl falsch, Kreise schneiden sich, Menge gestreut) | Neu als Vektor berechnen: geordnete Anordnung (z. B. 2 × 5 je Zehner), Bündel als Kontur mit 6–8 px Abstand um genau seine Elemente; alte Teile löschen |
+| Abbildung ungenau (Anzahl falsch, Kreise schneiden sich, Menge gestreut) | Attribute des `x-…`-Elements prüfen (`n`, `z`, `e`, `zeit`); fehlt eine Darstellung, `abbildungen.js` erweitern statt freihand zeichnen |
 | Beispiel gequetscht | Beispiel auf Item-Größe bringen, Nachbarn auf 24–32 px Abstand; reicht die Breite nicht, ein Item der Reihe streichen |
 | Seite zu voll oder Aufgabe unklar | Zuerst Items kürzen (Kl. 1/2: 3–4 je Aufgabe), dann die schwächste Aufgabe streichen, dann zweite Seite; nie Schrift oder Abstände verkleinern |
 | Aufgabe mit zwei Darstellungsformen in einer Reihe | Auf eine Form reduzieren oder in zwei Aufgaben teilen (wenn der Richtwert es zulässt) |
-| Ungewollter Umbruch | Textfeld auf Spaltenbreite (`resize_element`), Anweisung kürzen; nie Schrift unter die Mindestgröße |
-| Tipp unterbricht die Reihe | Tipp neben die Anweisung oder an das Reihenende setzen |
-| Ziffer nicht mittig, Linie unsichtbar, Bild versetzt | `format_text` `text_align` `"center"` und Textbox auf Kreisbreite; Linie als gefülltes Rechteck; `crop_media` auf 0/0 |
-| Lösungsblatt weicht ab | Seite mit `seite_kopieren.py` neu aufbauen, dann Lösungen ergänzen |
+| Ungewollter Umbruch | Anweisung kürzen, `--spalten` senken oder `white-space:nowrap` für Rechenzeilen (`.zeile`); nie Schrift unter die Mindestgröße |
+| Tipp unterbricht die Reihe oder steht zwischen Anweisung und Arbeitsfläche | Tipp in den Kopf (`.kopf .tipp`, „Zu 1: …“) oder ans Reihenende |
+| Bild zu groß, unscharf oder farbig im s/w-Profil | Breite setzen, Original in voller Auflösung bzw. Strich-Version (`bilder.md`) |
+| Lösung fehlt oder steht falsch | `data-l`, `loesung=`, `buendel-loesung`, `nur-loesung` im HTML ergänzen und neu bauen |
 
 ## Beispiel aus dem Test (Kl. 2, Zehner und Einer)
 
-Das Blatt hatte `layout_check.py` ohne Fehler bestanden und war trotzdem unbrauchbar: In Aufgabe 1 schnitten sich die Kreise um die Zehner, die Murmeln lagen gestreut, das Beispiel „2 Z 3 E = 23" klebte an der Abbildung, und fünf Aufgaben mit je drei Darstellungsformen machten die Seite für ein Zweitklasskind undurchschaubar. Jeder dieser Punkte wäre im vergrößerten Ausschnitt von Aufgabe 1 (A, B, C, E) aufgefallen. Richtig wären gewesen: Murmeln als 2 × 5-Felder je Zehner mit sauberem Bündelrahmen, das Beispiel in Item-Größe, höchstens vier Aufgaben mit je einer Darstellungsform.
+Das Canva-Blatt hatte die automatische Layoutprüfung ohne Fehler bestanden und war trotzdem unbrauchbar: In Aufgabe 1 schnitten sich die Kreise um die Zehner, die Murmeln lagen gestreut, das Beispiel „2 Z 3 E = 23" klebte an der Abbildung, und fünf Aufgaben mit je drei Darstellungsformen machten die Seite für ein Zweitklasskind undurchschaubar. Jeder dieser Punkte wäre im vergrößerten Ausschnitt von Aufgabe 1 (A, B, C, E) aufgefallen. Richtig wären gewesen: Murmeln als 2 × 5-Felder je Zehner mit sauberem Bündelrahmen, das Beispiel in Item-Größe, höchstens vier Aufgaben mit je einer Darstellungsform.
+
+Im HTML-Test (Oktober 2026) fand die Endkontrolle am selben Blatt: Bündelrahmen benachbarter Zehner berührten sich (Zeilenabstand in `x-menge` vergrößert), die Willi-Sprechblase stand zwischen Anweisung und Nüssen (in den Kopf verschoben) und die Antwortzeile „__ Z __ E = __“ war breiter als ihre Spalte (auf zwei Zeilen „__ Z __ E“ / „Zahl: __“ verteilt).

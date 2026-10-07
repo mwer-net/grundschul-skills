@@ -40,7 +40,7 @@ Nach Carol Dweck: Fähigkeiten wachsen durch Üben, gute Strategien und Hilfe �
    | 3 | Pflanze | Ich kann es schon fast allein. |
    | 4 | Blume | Ich kann es sicher und kann es erklären. |
 
-   Keine Stufe ist „schlecht" – auch die Blume wächst weiter. **Erst prüfen, dann einschätzen:** Das Kind schätzt sich nach der Selbstkontrolle ein (oder vorher und nachher, um Wachstum sichtbar zu machen), damit die Einschätzung am Ergebnis hängt und nicht am Gefühl. Die Selbsteinschätzung wird nie benotet. Grafik und Media-IDs: unten im Abschnitt „Wachstumsgrafik". Die Pflanzensymbole sind **ausschließlich** für die Selbsteinschätzung reserviert, nicht für Niveaus.
+   Keine Stufe ist „schlecht" – auch die Blume wächst weiter. **Erst prüfen, dann einschätzen:** Das Kind schätzt sich nach der Selbstkontrolle ein (oder vorher und nachher, um Wachstum sichtbar zu machen), damit die Einschätzung am Ergebnis hängt und nicht am Gefühl. Die Selbsteinschätzung wird nie benotet. Grafik: unten im Abschnitt „Wachstumsgrafik". Die Pflanzensymbole sind **ausschließlich** für die Selbsteinschätzung reserviert, nicht für Niveaus.
 3. **„Noch"-Sprache.** In Anweisungen, Tippkarten, Lösungsblättern und Rückmeldefeldern: „Das kannst du *noch nicht* – übe mit Tipp 1." Nie: „falsch", „schlecht", „zu schwer für dich".
 4. **Strategien sichtbar machen.** Tipps und Leitfigur nennen eine Strategie („Schau zuerst auf den kurzen Zeiger."), nicht nur „Streng dich an!". **Willi/Wilma denkt laut:** Im „So geht's"-Beispiel spricht die Leitfigur ihre Schritte aus – planen, tun, prüfen („Zuerst schaue ich … Dann … Zum Schluss prüfe ich, ob …"). Bei ●● weniger vorgemacht, bei ●●● nur noch die Prüffrage (Hilfe ausschleichen).
 5. **Fehler als Lernchance einbauen.** Wo passend eine Aufgabe „Finde den Fehler" oder „Willi hat sich vertan – erkläre ihm, was falsch ist" (Rechenfehler ab Kl. 2, Rechtschreibfehler erst ab Kl. 3, siehe `fach-deutsch`). Selbstkontrolle mit Lösung zum Nachschauen statt Rotstift.
@@ -110,9 +110,9 @@ Stufen der Öffnung: organisatorisch (Raum, Kreis, Platzwahl) → methodisch (Wa
 
 Growth Mindset liefert die **Haltung und Sprache**, das Churer Modell die **Struktur**. Selbstwahl der Niveaus funktioniert nur, wenn Kinder eine Herausforderung nicht als Risiko erleben – darum gehören „noch"-Sprache und Strategietipps zu jeder Lernaufgabe. Die Wachstums-Selbsteinschätzung unterstützt die Wahl; wird mit Niveaus, aber ohne Selbsteinschätzung gearbeitet, trägt die Wahlhilfe allein („Fang dort an, wo du sicher bist").
 
-## Wachstumsgrafik (Canva)
+## Wachstumsgrafik
 
-Media-ID (freigestellt) `MAHXV6P-UTw`, Original `MAHXVybUqpg` (Tabelle in `kindgerecht-gestalten.md`, Abschnitt 3). Einsetzen mit `insert_fill`; darunter vier Ankreuzkreise oder die Kindersätze (ab Klasse 2).
+Dateien `wachstum.png` (Farbe) und `wachstum-strich.png` (s/w) in `html-materialerstellung/assets/bilder/`, eingesetzt im `.fuss` der Vorlage; darunter vier Ankreuzkreise oder die Kindersätze (ab Klasse 2).
 
 ## Quellen
 

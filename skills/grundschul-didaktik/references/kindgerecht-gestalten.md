@@ -39,7 +39,7 @@ Bewährte Paletten (Hex) für das Farbprofil:
 | Wiese | `#43AA8B` Grün | `#F3722C` Orange | `#2E7D63` |
 | Beere | `#E76F51` Koralle | `#6A4C93` Lila | `#C2462F` |
 
-Hauptfarbe und Akzent für Linien, Konturen, Bilder; für Schrift und Nummernkreise mit weißer Ziffer die dunkle Variante (sonst zu wenig Kontrast, `layout_check.py --farbe` meldet das). Gelb nie für Schrift oder Linien auf Weiß.
+Hauptfarbe und Akzent für Linien, Konturen, Bilder; für Schrift und Nummernkreise mit weißer Ziffer die dunkle Variante (sonst zu wenig Kontrast; `blatt.css` setzt sie). Gelb nie für Schrift oder Linien auf Weiß.
 
 Text bleibt schwarz (`#1D1D1B`).
 
@@ -47,17 +47,17 @@ Text bleibt schwarz (`#1D1D1B`).
 
 Feste Vorgabe für alle Materialien: Die Leitfigur ist **Willi Waschbär** oder **Wilma Waschbär** – keine anderen Tiere, keine wechselnden Figuren. Die Wiedererkennung über alle Fächer und Klassenstufen ist der Sinn der Figur.
 
-| Grafik | Aussehen | Canva-Media-ID (freigestellt) | Original |
-|---|---|---|---|
-| Willi Waschbär | grauer Waschbär-Junge, schwarze Augenmaske, geringelter Schwanz, oranges T-Shirt (#F28C28) | `MAHXV49zJZE` | `MAHXV7YdfHs` |
-| Wilma Waschbär | graues Waschbär-Mädchen, schwarze Augenmaske, geringelter Schwanz, petrolfarbenes Kleid (#2A9D8F), Schleife am Ohr | `MAHXV_-A1xo` | `MAHXVw6_gJo` |
-| Wachstumsgrafik (Samen → Keimling → Pflanze → Blume) | vier Stufen nebeneinander, Pastell, für die Selbsteinschätzung | `MAHXV6P-UTw` | `MAHXVybUqpg` |
-| Willi, Wilma, Wachstumsgrafik **als Strichzeichnung (s/w)** | gleiche Figuren, nur schwarze Konturen, weiße Füllung, zum Anmalen | noch anlegen | – |
+| Grafik | Aussehen | Datei (`html-materialerstellung/assets/bilder/`) |
+|---|---|---|
+| Willi Waschbär | grauer Waschbär-Junge, schwarze Augenmaske, geringelter Schwanz, oranges T-Shirt (#F28C28) | `willi.png`, s/w `willi-strich.png` |
+| Wilma Waschbär | graues Waschbär-Mädchen, schwarze Augenmaske, geringelter Schwanz, petrolfarbenes Kleid (#2A9D8F), Schleife am Ohr | `wilma.png`, s/w noch anlegen |
+| Wachstumsgrafik (Samen → Keimling → Pflanze → Blume) | vier Stufen nebeneinander, Pastell, für die Selbsteinschätzung | `wachstum.png`, s/w `wachstum-strich.png` |
 
-**Farbprofil: farbige Versionen. s/w-Profil: Strich-Versionen**, denn die farbigen werden in s/w zu grauen Flächen (Toner, unruhig). Fehlt eine Strich-Version noch: mit `generate-image` aus dem Original (`imageReferences`) erzeugen, Prompt „gleiche Figur als Ausmalbild: nur klare schwarze Konturen, weiße Füllung, keine Grautöne, keine Schraffur, weißer Hintergrund", dann `remove-background`. Die neue ID in der Tabelle oben ergänzen.
+Canva-Media-IDs und Technik: `html-materialerstellung/references/bilder.md`.
 
-- **Wiederverwenden statt neu erzeugen:** Die freigestellte ID direkt mit `insert_fill` einsetzen. Für eine andere Pose (zeigt nach links, freut sich, denkt nach) `generate-image` mit dem Original als `imageReferences` und der Aussehen-Beschreibung oben aufrufen, danach `remove-background`. Neue Posen mit ID hier ergänzen.
-- Die IDs liegen im Canva-Konto der Lehrkraft, die die Figuren erstellt hat. In einem anderen Konto die Figuren mit Stil-Satz und Aussehen-Beschreibung neu erzeugen.
+**Farbprofil: farbige Versionen. s/w-Profil: Strich-Versionen**, denn die farbigen werden in s/w zu grauen Flächen (Toner, unruhig). Fehlt eine Strich-Version noch: in Canva mit `generate-image` aus dem Original (`imageReferences`) erzeugen, Prompt „gleiche Figur als Ausmalbild: nur klare schwarze Konturen, weiße Füllung, keine Grautöne, keine Schraffur, weißer Hintergrund", dann `remove-background`, als Datei in `assets/bilder/` ablegen (`bilder.md`).
+
+- **Wiederverwenden statt neu erzeugen:** Die vorhandenen Dateien einsetzen. Für eine andere Pose (zeigt nach links, freut sich, denkt nach) `generate-image` mit dem Original als `imageReferences` und der Aussehen-Beschreibung oben aufrufen, danach `remove-background`; neue Posen als Datei ergänzen.
 - **Wer wann:** Pro Material eine Figur, abwechselnd über die Materialien einer Reihe; bei Partner- oder Dialogaufgaben auch beide.
 - **Immer mit Funktion:** Die Figur gibt einen Strategietipp in einer Sprechblase, zeigt auf das Beispiel und denkt dort laut vor („So geht's: Zuerst … dann … zum Schluss prüfe ich …"), stellt die Herausforderung ●●●, hat sich bei „Finde den Fehler" vertan oder stellt die Reflexionsfrage. Sie spricht in „noch"-Sprache und lobt Strategie und Ausdauer, nie Begabung. Ohne Funktion keine Figur.
 - Höchstens 1–2 Auftritte pro Seite, klein (ca. 15 % der Seitenbreite), am Rand, nie zwischen Anweisung und Arbeitsfläche.
@@ -81,12 +81,12 @@ Dosierung: Leitfigur plus nur die Bilder, die die Aufgaben brauchen. Für s/w al
 
 ### 5. Kindgerechte Schrift
 
-- **Fließtext:** klare Druckschrift mit eindeutigen Formen. In Klasse 1/2 mit einstöckigem a und g, weil es der Form entspricht, die die Kinder schreiben (Lesetests zeigen keinen Nachteil des zweistöckigen a – entscheidend ist die Passung zur Schrift der Klasse). In Canva: **Andika** (für Leseanfänger entwickelt, einstöckiges a und g). Ab Klasse 3 auch andere klare serifenlose Schriften wie **Nunito**.
+- **Fließtext:** klare Druckschrift mit eindeutigen Formen. In Klasse 1/2 mit einstöckigem a und g, weil es der Form entspricht, die die Kinder schreiben (Lesetests zeigen keinen Nachteil des zweistöckigen a – entscheidend ist die Passung zur Schrift der Klasse). Standard: **Andika** (für Leseanfänger entwickelt, einstöckiges a und g; im HTML eingebettet). Ab Klasse 3 auch andere klare serifenlose Schriften wie **Nunito**.
 - **Überschriften:** eine runde, fröhliche Display-Schrift, z. B. **Fredoka**, **Baloo 2**, **Chewy** (nur Überschrift!).
 - Höchstens zwei Schriften. Keine Schreibschrift- oder Schmuckschriften für Lesetext, keine Großbuchstaben-Texte.
-- Schulschrift des Bundeslandes (Grundschrift, Fibel Nord/Süd, Druckschrift Bayern) wenn verfügbar: im Canva Brand Kit hochladen.
+- Schulschrift des Bundeslandes (Grundschrift, Fibel Nord/Süd, Druckschrift Bayern) wenn verfügbar und lizenziert: als Schriftdatei in `html-materialerstellung/assets/fonts/` einbinden.
 
-## KI-Bilder in Canva (`generate-image`)
+## KI-Bilder (Canva `generate-image`)
 
 **Stil-Satz einmal pro Material festlegen und für jedes Bild wörtlich wiederverwenden** – so bleibt der Stil einheitlich.
 

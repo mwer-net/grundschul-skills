@@ -5,7 +5,7 @@ description: Plant und erstellt offene Lernformen für Klasse 1–4 – Statione
 
 # Stationenlernen, Lerntheke, Wochenplan
 
-Laden mit: `grundschul-didaktik`, passendem `fach-*`, ggf. `arbeitsblatt`/`lernspiel` für einzelne Stationen, `canva-materialerstellung`.
+Laden mit: `grundschul-didaktik`, passendem `fach-*`, ggf. `arbeitsblatt`/`lernspiel` für einzelne Stationen, `html-materialerstellung`.
 
 ## Rückfragen
 
@@ -19,7 +19,7 @@ Zuerst die Start-Abfrage (`grundschul-didaktik/references/rueckfragen.md`) inklu
 
 ## Entwürfe und Aufgabenplan
 
-Nach den Rückfragen 2–3 Entwürfe zeigen (Stationsübersicht + eine Musterkarte je Entwurf), erst nach Freigabe des Aufgabenplans in Canva bauen (`grundschul-didaktik/references/entwurf-und-aufgabenplan.md`).
+Nach den Rückfragen 2–3 Entwürfe zeigen (Stationsübersicht + eine Musterkarte je Entwurf), erst nach Freigabe des Aufgabenplans die Endfassung bauen (`grundschul-didaktik/references/entwurf-und-aufgabenplan.md`).
 
 - **Entwürfe unterscheiden sich** im Stationsmix (Zugänge, Pflicht/Wahl) und im Layout der Stationskarte.
 - **Aufgabenplan:** jede Station vollständig (Auftrag, Material, Niveaus, Tippkarte, Lösung), Laufzettel, Ritualkarte.
@@ -71,7 +71,7 @@ Nach den Rückfragen 2–3 Entwürfe zeigen (Stationsübersicht + eine Musterkar
 - [ ] Selbstkontrolle an jeder geeigneten Station
 - [ ] Wechsel der Zugänge (nicht nur Arbeitsblätter)
 
-## Canva-Hinweise
+## Umsetzung (`html-materialerstellung`)
 
-- Ein Design pro Bestandteil-Typ (Stationskarten, Laufzettel, Lösungen), Stationen als Seiten.
-- Stationskarten A5: zwei pro A4 (Format A4 quer mit 2 Feldern) oder `"A5 Document (Portrait)"`.
+- Eine HTML-Datei pro Bestandteil-Typ (Stationskarten, Laufzettel), Stationen als `.seite`; Lösungen über die Lösungs-Markierungen.
+- Stationskarten A5: `<body class="… a5-hoch">` oder zwei pro A4 quer (`a4-quer`, `.karten` mit `--spalten:2`).

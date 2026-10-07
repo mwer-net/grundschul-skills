@@ -76,7 +76,7 @@ Quellen zu Growth Mindset und Churer Modell stehen in `kernkonzepte.md`.
 - Stationenlernen mit Laufzettel und Selbstkontrolle.
   - https://www.meinunterricht.de/blog/stationenlernen-unterricht/
 
-## Canva
+## Canva (nur KI-Bilder)
 
-- Canva for Education ist für Lehrkräfte kostenlos, inkl. Premium-Elementen; DSGVO-Konformität laut Anbieter. Eigene Schriften (OTF/TTF/WOFF) können im Brand Kit hochgeladen werden, sofern die Lizenz das erlaubt.
+- Canva for Education ist für Lehrkräfte kostenlos, inkl. Premium-Elementen; DSGVO-Konformität laut Anbieter. Die Skills nutzen Canva nur noch zum Erzeugen von KI-Bildern.
   - https://www.canva.com/de_de/bildung/lehrkrafte/

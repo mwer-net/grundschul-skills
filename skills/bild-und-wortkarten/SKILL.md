@@ -5,7 +5,7 @@ description: Erstellt Bildkarten, Wortkarten, Flashcards, Anlautkarten, Wortspei
 
 # Bild- und Wortkarten
 
-Laden mit: `grundschul-didaktik`, passendem `fach-*`, `canva-materialerstellung`.
+Laden mit: `grundschul-didaktik`, passendem `fach-*`, `html-materialerstellung`.
 
 ## Rückfragen
 
@@ -17,7 +17,7 @@ Laden mit: `grundschul-didaktik`, passendem `fach-*`, `canva-materialerstellung`
 
 ## Entwürfe und Aufgabenplan
 
-2–3 Entwürfe mit je 4–8 Beispielkarten zeigen (`entwurf.py` mit `"karten"`), erst nach Freigabe des Aufgabenplans in Canva bauen (`grundschul-didaktik/references/entwurf-und-aufgabenplan.md`). Bilder erst danach erzeugen.
+2–3 Entwürfe mit je 4–8 Beispielkarten zeigen (`.karten` in `blatt.css`), erst nach Freigabe des Aufgabenplans die Endfassung bauen (`grundschul-didaktik/references/entwurf-und-aufgabenplan.md`). Bilder erst danach erzeugen.
 
 - **Entwürfe unterscheiden sich** im Kartentyp (Bild + Wort / Bild vorn, Wort hinten / nur Wort) und in Größe und Raster.
 - **Aufgabenplan:** Wortliste mit Artikel (ggf. Plural, Silben), Bildmotiv je Karte, Bildstil, Rückseite.
@@ -45,7 +45,7 @@ Laden mit: `grundschul-didaktik`, passendem `fach-*`, `canva-materialerstellung`
 - [ ] Größe zum Einsatz passend (Tafelkarten aus 6 m Entfernung lesbar)
 - [ ] Doppelseitiger Druck passgenau
 
-## Canva-Hinweise
+## Umsetzung (`html-materialerstellung`)
 
-- Tafelkarten: A4 quer, eine Karte pro Seite. Tischkarten: 8 pro A4 (2 × 4) mit Schneidelinien.
-- Bilder für ein Set in einem Rutsch mit gleichem Stil-Prompt per `generate-image` erzeugen.
+- Tafelkarten: `a4-quer`, eine Karte pro Seite. Tischkarten: 8 pro A4 (`.karten` mit `--spalten:2`, 4 Zeilen), Schneidelinien sind die gestrichelten Ränder.
+- Bilder für ein Set in einem Rutsch mit gleichem Stil-Satz per Canva `generate-image` erzeugen und als Dateien holen (`html-materialerstellung/references/bilder.md`).

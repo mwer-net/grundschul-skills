@@ -5,7 +5,7 @@ description: Erstellt Lernzielkontrollen, Lernstandserhebungen, Tests, Lernlandk
 
 # Lernzielkontrolle und Lernstandsdiagnose
 
-Laden mit: `grundschul-didaktik`, passendem `fach-*`, `canva-materialerstellung`.
+Laden mit: `grundschul-didaktik`, passendem `fach-*`, `html-materialerstellung`.
 
 ## Rückfragen
 
@@ -19,7 +19,7 @@ Zuerst die Start-Abfrage (`grundschul-didaktik/references/rueckfragen.md`); von 
 
 ## Entwürfe und Aufgabenplan
 
-Nach den Rückfragen 2–3 Entwürfe zeigen, erst nach Freigabe des Aufgabenplans in Canva bauen (`grundschul-didaktik/references/entwurf-und-aufgabenplan.md`).
+Nach den Rückfragen 2–3 Entwürfe zeigen, erst nach Freigabe des Aufgabenplans die Endfassung bauen (`grundschul-didaktik/references/entwurf-und-aufgabenplan.md`).
 
 - **Entwürfe unterscheiden sich** in Aufgabenauswahl und Gewichtung der Anforderungsbereiche (nur aus dem Unterricht bekannte Formate).
 - **Aufgabenplan:** jede Aufgabe mit Items, Punkten, Anforderungsbereich und Lernziel; Erwartungshorizont mit Teilpunkten; Notenschlüssel-Vorschlag; ggf. Nachteilsausgleich-Fassung.
@@ -59,8 +59,8 @@ Nach den Rückfragen 2–3 Entwürfe zeigen, erst nach Freigabe des Aufgabenplan
 - [ ] Nachteilsausgleich-Fassung inhaltsgleich
 - [ ] Selbsteinschätzung mit Wachstumsstufen (falls gewählt), Rückmeldung prozessorientiert
 
-## Canva-Hinweise
+## Umsetzung (`html-materialerstellung`)
 
-- Test und Erwartungshorizont als getrennte Designs (Erwartungshorizont nicht versehentlich mitdrucken).
+- Erwartungshorizont über die Lösungs-Markierungen (`data-l`, `nur-loesung`) als eigenes PDF (`-loesung.pdf`), nie auf dem Testblatt.
 - Bewertungsfelder rechts am Rand in einer Spalte.
 - Druckprofil aus der Start-Abfrage (meist s/w), Aufgaben ohne Kasten mit hängender Nummer (`grundschul-didaktik/references/druck-und-platz.md`); die gewonnene Höhe geht an die Schreibflächen, nicht an mehr Aufgaben.

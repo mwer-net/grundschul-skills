@@ -53,4 +53,4 @@ Zusätzlich: Bedingungsanalyse (anonym), Sachanalyse (kurz), didaktische Analyse
 
 ## Ausgabe
 
-Planung als übersichtliche Tabelle (Text oder Canva-Doc), danach anbieten, die Materialien einzeln zu erstellen – mit einer Frage, welches zuerst. Jedes Material läuft dann durch Entwürfe und Aufgabenplan (`grundschul-didaktik/references/entwurf-und-aufgabenplan.md`), bevor es in Canva entsteht.
+Planung als übersichtliche Tabelle (Text), danach anbieten, die Materialien einzeln zu erstellen – mit einer Frage, welches zuerst. Jedes Material läuft dann durch Entwürfe und Aufgabenplan (`grundschul-didaktik/references/entwurf-und-aufgabenplan.md`), bevor die Endfassung entsteht.
