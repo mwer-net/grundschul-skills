@@ -7,19 +7,19 @@ description: Didaktische Basis für alle Unterrichtsmaterialien der Grundschule 
 
 Dieser Skill ist das Fundament aller anderen Skills im Repository. Er legt fest, was jedes Material für Klasse 1–4 erfüllen muss. Fach-Skills (`fach-*`) liefern die Fachdidaktik, Material-Skills (`arbeitsblatt`, `lernspiel`, …) die Bauform, `canva-materialerstellung` die technische Umsetzung.
 
-## Kernkonzepte (verbindlich): Growth Mindset und Churer Modell
+## Kernkonzepte: Growth Mindset und Churer Modell
 
-Jedes Material folgt zwei Konzepten. Details, Forschung und Beispiele: `references/kernkonzepte.md`.
+Jedes Material folgt zwei Konzepten. Drei Bausteine sind wählbar und werden in der Start-Abfrage geklärt: Selbsteinschätzung unten, Niveaus zur Selbstwahl, Sternchenaufgabe ★ (`references/rueckfragen.md`). Details, Forschung und Beispiele: `references/kernkonzepte.md`.
 
-- **Growth Mindset:** Ich-kann-Ziel oben auf dem Blatt; Wachstums-Selbsteinschätzung (Samen → Keimling → Pflanze → Blume) statt Smileys, eingeschätzt nach der Selbstkontrolle; „noch"-Sprache; Tipps nennen Strategien, Willi/Wilma denkt im Beispiel laut vor (planen, tun, prüfen); Fehler als Lernchance; Reflexionsfrage am Ende; Rückmeldung konkret zum Prozess, nie zur Begabung. Wirkt nur eingebettet ins Fachlernen, nicht als eigene Mindset-Stunde.
-- **Churer Modell:** Lernaufgaben in drei Niveaus ● Grundlage / ●● Kern / ●●● Herausforderung, die Kinder **wählen selbst** (Lehrkraft berät die Wahl); jede Aufgabe ohne Lehrkraft bearbeitbar (Beispiel, Tippkarten, Selbstkontrolle); Sozialform offen; überschaubare Wahl (2–4 Möglichkeiten je Entscheidung); Stunden nach Kreisinput (10–12 min) → Lernaufgaben → Reflexion im Kreis.
+- **Growth Mindset:** Ich-kann-Ziel oben auf dem Blatt; Wachstums-Selbsteinschätzung (Samen → Keimling → Pflanze → Blume) statt Smileys, eingeschätzt nach der Selbstkontrolle (wählbar); „noch"-Sprache; Tipps nennen Strategien, Willi/Wilma denkt im Beispiel laut vor (planen, tun, prüfen); Fehler als Lernchance; Reflexionsfrage am Ende (mit der Selbsteinschätzung); Rückmeldung konkret zum Prozess, nie zur Begabung. Wirkt nur eingebettet ins Fachlernen, nicht als eigene Mindset-Stunde.
+- **Churer Modell:** Lernaufgaben in drei Niveaus ● Grundlage / ●● Kern / ●●● Herausforderung, die Kinder **wählen selbst** (Lehrkraft berät die Wahl; wählbar); jede Aufgabe ohne Lehrkraft bearbeitbar (Beispiel, Tippkarten, Selbstkontrolle); Sozialform offen; überschaubare Wahl (2–4 Möglichkeiten je Entscheidung); Stunden nach Kreisinput (10–12 min) → Lernaufgaben → Reflexion im Kreis.
 - Pflanzensymbole nur für die Selbsteinschätzung, Punkte nur für Niveaus. Material muss auch im klassischen Klassenraum funktionieren.
 
 ## 1. Vor dem Erstellen klären (Rückfrage-Protokoll)
 
 Ungenaue Anfragen sind der Normalfall ("Mach mir ein Arbeitsblatt zu Tieren"). Erstelle dann **nichts**, sondern kläre gezielt nach dem Protokoll in `references/rueckfragen.md`:
 
-0. **Start-Abfrage zuerst:** Materialart, Medium/Format, Farbe oder Schwarz-Weiß – einzeln nacheinander, jeweils mit Empfehlung (`references/rueckfragen.md`). Die Antworten bestimmen Material-Skill, Canva-Format und Druckprofil und gelten für die ganze Unterhaltung.
+0. **Start-Abfrage zuerst:** Materialart, Medium/Format, Farbe oder Schwarz-Weiß, dann je nach Materialart Selbsteinschätzung, Churer Modell und Sternchenaufgabe – einzeln nacheinander, jeweils mit Empfehlung (`references/rueckfragen.md`). Die Antworten bestimmen Material-Skill, Canva-Format, Druckprofil und Bausteine und gelten für die ganze Unterhaltung.
 1. **Abgleichen:** Was ist schon bekannt (Anfrage, Gesprächsverlauf, frühere Materialien)? Was fehlt aus der Pflichtliste unten und aus der Rückfrageliste des jeweiligen Material- und Fach-Skills?
 2. **Eine Frage pro Nachricht**, in Abhängigkeitsreihenfolge (Start-Abfrage → Klasse/Bundesland → Thema/Ziel → Lerngruppe → Materialspezifisches). Jede Frage mit 2–4 konkreten Antwortoptionen und **deiner Empfehlung samt kurzer Begründung**.
 3. **Nicht fragen, was du selbst herleiten kannst** (z. B. Zahlenraum aus der Klassenstufe), sondern als Annahme nennen.
@@ -33,6 +33,7 @@ Pflichtangaben (fehlen sie, wird gefragt):
 | Materialart (Arbeitsblatt, Lernzielkontrolle, Spiel, Karten …) | Welcher Material-Skill gilt |
 | Medium/Format (A4, A5-Karten, Plakat, Präsentation …) | Canva-Format, Schriftgrößen, Raster |
 | Farbe oder Schwarz-Weiß | Druckprofil (`references/druck-und-platz.md`) |
+| Selbsteinschätzung, Niveaus, Sternchenaufgabe (je nach Materialart) | Bausteine des Blatts (`references/rueckfragen.md`) |
 | Klassenstufe (1, 2, 3, 4 oder jahrgangsgemischt) | Schriftgröße, Textmenge, Zahlenraum, Abstraktionsgrad |
 | Bundesland | Lehrplan, Ausgangsschrift (Grundschrift / VA / SAS / LA), Begriffe |
 | Fach und Thema, Stelle in der Unterrichtsreihe | Einführung, Übung, Vertiefung oder Überprüfung |
@@ -40,7 +41,7 @@ Pflichtangaben (fehlen sie, wird gefragt):
 | Eingeführte Symbole, Lehrwerk, Farbsystem der Klasse | Material muss zur gewohnten Struktur passen |
 | Ausgabe (Laminieren, Anzahl), falls relevant | Robustheit, Kartenformat |
 
-Ist nur Kleines unklar, triff eine sinnvolle Annahme und nenne sie. Bei „mach einfach": Kopiervorlagen schwarz-weiß, Präsentation, Plakat, laminierte Karten und Spiele in Farbe. Nicht gefragt wird nach Kernkonzepten und Leitfigur: Ich-kann-Ziel, Niveaus ● / ●● / ●●●, Wachstums-Selbsteinschätzung und Willi/Wilma Waschbär stehen fest.
+Ist nur Kleines unklar, triff eine sinnvolle Annahme und nenne sie. Bei „mach einfach": Kopiervorlagen schwarz-weiß, Präsentation, Plakat, laminierte Karten und Spiele in Farbe; Selbsteinschätzung ja, Niveaus ja, Sternchenaufgabe nein. Nicht gefragt wird nach Ich-kann-Ziel, Kennzeichnung der Niveaus (● / ●● / ●●●) und Leitfigur Willi/Wilma Waschbär: Sie stehen fest.
 
 ## 2. Verbindliche Leitlinien
 
@@ -48,7 +49,7 @@ Ist nur Kleines unklar, triff eine sinnvolle Annahme und nenne sie. Bei „mach 
 2. **Ein Ziel pro Material:** Ein Arbeitsblatt, ein Spiel, ein Plakat übt genau eine Sache. Lieber zwei schlanke Blätter als ein überladenes.
 3. **Kognitive Belastung gering halten (Cognitive Load):** Nur Bilder, die zur Aufgabe gehören. Dekorative Bilder ohne Bezug ("seductive details") lenken nachweislich ab. Cliparts als Füllmaterial nie.
 4. **Handeln – Bild – Symbol (EIS-Prinzip, Bruner) plus Sprache:** Inhalte möglichst enaktiv vorbereiten (Material, Handlung), ikonisch darstellen und dann symbolisch notieren. Darstellungswechsel ausdrücklich verlangen ("Lege – zeichne – schreibe").
-5. **Differenzierung ist Standard, nicht Extra:** Drei Niveaus zur Selbstwahl nach dem Churer Modell (siehe `references/kernkonzepte.md` und `references/differenzierung.md`). Gemeinsamer Lerngegenstand für alle, unterschiedliche Zugänge.
+5. **Differenzierung ist Standard, nicht Extra:** Mit Churer Modell drei Niveaus zur Selbstwahl; ohne Churer Modell Aufgaben steigend im Anspruch, mit Tipps und offenen Aufgaben, ggf. Sternchenaufgabe (siehe `references/kernkonzepte.md` und `references/differenzierung.md`). Gemeinsamer Lerngegenstand für alle, unterschiedliche Zugänge.
 6. **Sprachsensibel:** Kurze Sätze, bekannte Wörter, Wortspeicher und Satzanfänge als Hilfe. Siehe `references/sprachsensibel.md`.
 7. **Selbstständigkeit:** Klare, gleichbleibende Arbeitsanweisungen mit Symbolen; Selbstkontrolle wo möglich (Lösungskarte, Kontrollzahl, Bildpuzzle).
 8. **Altersgerecht ansprechend (Emotional Design):** Das schön machen, was ohnehin da ist – nicht etwas dazustellen. Runde Formen, Aufgabennummern in Kreisen, Farbe als Akzent (im Farbprofil), als Leitfigur immer Willi oder Wilma Waschbär mit Funktion (zeigt das Beispiel, gibt Tipps), kindgerechte Überschriftenschrift, Geschichten-Rahmen ("Hilf Willi Waschbär …"). Das verbessert nachweislich Motivation und Behalten. Bilder nur, wenn das Kind sie zum Lösen braucht – unnütze Grafiken lenken ab. Details und Prüffragen: `references/kindgerecht-gestalten.md`.
@@ -68,7 +69,7 @@ Ausführlich in `references/gestaltung.md`. Die wichtigsten Werte:
 | 4 | 12–14 pt | 1,3–1,5 | bis 4 Sätze |
 
 - Fließtext: serifenlose, kindgerechte Schrift mit eindeutigen Formen (I/l unterscheidbar, in Klasse 1/2 einstöckiges a und g). Bevorzugt die Druckschrift des Bundeslandes; sonst Grundschrift oder Andika. Überschriften: eine runde, freundliche Display-Schrift (z. B. Fredoka, Baloo 2).
-- Druckprofil aus der Start-Abfrage: **s/w** (weißer Hintergrund, Text schwarz, keine Flächen, Bilder als Strichzeichnung) oder **Farbe** (eine Palette als Akzent an Nummernkreisen, Überschrift, Linien, Figur und Bildern; Text schwarz; keine Farbflächen hinter Aufgaben). Immer: Aufgaben ohne Kasten mit hängender Nummer, getrennt durch Abstand. Niveaus nur mit Punkten kennzeichnen (`references/druck-und-platz.md`).
+- Druckprofil aus der Start-Abfrage: **s/w** (weißer Hintergrund, Text schwarz, keine Flächen, Bilder als Strichzeichnung) oder **Farbe** (eine Palette als Akzent an Nummernkreisen, Überschrift, Linien, Figur und Bildern; Text schwarz; keine Farbflächen hinter Aufgaben). Immer: Aufgaben ohne Kasten mit hängender Nummer, getrennt durch Abstand. Niveaus (falls gewählt) nur mit Punkten kennzeichnen (`references/druck-und-platz.md`).
 - Linksbündiger Flattersatz, keine Silbentrennung, Zeilenumbruch nach Sinneinheiten.
 - Seitenränder ≥ 1,5 cm, ausreichende Schreibflächen; Lineatur passend zur Klassenstufe. Platz geht an Übung, nicht an Rahmen: volle Item-Reihen, schlanker Kopf und Fuß.
 - Klare Aufgabenblöcke mit Nummer und Arbeitsanweisungs-Symbol.
@@ -81,11 +82,13 @@ Prüfe jedes Material gegen diese Liste und korrigiere, bevor du es der Lehrkraf
 - [ ] Lernziel klar und zum Material passend
 - [ ] Klassenstufe: Schriftgröße, Textmenge, Zahlenraum, Wortschatz stimmen
 - [ ] Jede Aufgabe hat Nummer, Symbol und eine kurze Anweisung mit einem Verb
-- [ ] Ich-kann-Ziel oben, Wachstums-Selbsteinschätzung bezieht sich genau darauf
-- [ ] Lernaufgaben/Übungsmaterial: drei Niveaus ● / ●● / ●●● zur Selbstwahl mit Wahlhilfe, gleiche Optik auf allen Niveaus
-- [ ] Ohne Lehrkraft bearbeitbar: Beispiel mit lautem Denken der Leitfigur, Tipps mit Strategie, Selbstkontrolle vor der Selbsteinschätzung
+- [ ] Bausteine wie in der Start-Abfrage gewählt (Selbsteinschätzung, Niveaus, Sternchenaufgabe) – nicht mehr, nicht weniger
+- [ ] Ich-kann-Ziel oben; falls gewählt, bezieht sich die Wachstums-Selbsteinschätzung genau darauf
+- [ ] Falls Niveaus gewählt: ● / ●● / ●●● zur Selbstwahl mit Wahlhilfe, gleiche Optik auf allen Niveaus; sonst Aufgaben steigend im Anspruch ohne Punkte
+- [ ] Falls Sternchenaufgabe gewählt: genau eine ★-Aufgabe am Ende, offen/knobelnd, als Angebot für alle gerahmt
+- [ ] Ohne Lehrkraft bearbeitbar: Beispiel mit lautem Denken der Leitfigur, Tipps mit Strategie, Selbstkontrolle (vor der Selbsteinschätzung)
 - [ ] „Noch"-Sprache, keine Wertung von Begabung, keine Rankings, keine Smileys oder Ampeln
-- [ ] Reflexionsfrage am Ende (Kl. 1/2 mündlich oder zum Ankreuzen, ab Kl. 3 schriftlich)
+- [ ] Falls Selbsteinschätzung gewählt: Reflexionsfrage am Ende (Kl. 1/2 mündlich oder zum Ankreuzen, ab Kl. 3 schriftlich)
 - [ ] Ansprechend: runde Formen und Überschrift, Farbe als Akzent (Farbprofil), Willi oder Wilma Waschbär mit Funktion
 - [ ] Keine rein dekorativen Bilder (Weglass-Test); alle Bilder eindeutig erkennbar
 - [ ] Genug Platz zum Schreiben/Zeichnen
@@ -99,14 +102,14 @@ Prüfe jedes Material gegen diese Liste und korrigiere, bevor du es der Lehrkraf
 
 Liefere immer:
 1. Das Material (bei Canva: Link + PDF-Export, siehe `canva-materialerstellung`).
-2. Eine Kurz-Info: Ich-kann-Ziel, Klassenstufe, Niveaus und Hilfen, benötigtes Material, Zeitbedarf, Reflexionsfrage für den Kreis.
+2. Eine Kurz-Info: Ich-kann-Ziel, Klassenstufe, Niveaus bzw. Sternchenaufgabe und Hilfen, benötigtes Material, Zeitbedarf, Reflexionsfrage für den Kreis.
 3. Die Lösung oder den Erwartungshorizont.
 4. Annahmen, die du getroffen hast.
 
 ## Referenzen
 
-- `references/kernkonzepte.md` – Growth Mindset und Churer Modell (verbindlich)
-- `references/rueckfragen.md` – Start-Abfrage (Materialart, Medium, Farbe/s/w) und Rückfrage-Protokoll
+- `references/kernkonzepte.md` – Growth Mindset und Churer Modell (Haltung immer, Bausteine wählbar)
+- `references/rueckfragen.md` – Start-Abfrage (Materialart, Medium, Farbe/s/w, Selbsteinschätzung, Churer Modell, Sternchenaufgabe) und Rückfrage-Protokoll
 - `references/gestaltung.md` – Layout, Schrift, Bilder, Farben, Symbole
 - `references/kindgerecht-gestalten.md` – Emotional Design: Formen, Leitfigur, Bildauswahl, Schriften, KI-Bild-Stil, Paletten für Farbdruck
 - `references/druck-und-platz.md` – Druckprofile s/w und Farbe, Aufgaben ohne Kasten, Mindestgrößen, Platzbudget

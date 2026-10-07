@@ -9,6 +9,8 @@ Laden mit: `grundschul-didaktik`, passendem `fach-*`, `canva-materialerstellung`
 
 ## Rückfragen
 
+Zuerst die Start-Abfrage (`grundschul-didaktik/references/rueckfragen.md`); von den Bausteinen nur die Selbsteinschätzung (Niveaus und Sternchenaufgabe gibt es im Test nicht; bei Art „Selbsteinschätzung/Lernlandkarte" entfällt auch diese Frage). Danach:
+
 1. **Art:** Benotete Lernzielkontrolle, unbenotete Lernstandserhebung (Diagnose vor der Einheit), Selbsteinschätzung/Lernlandkarte oder Kompetenzraster?
 2. **Inhalte:** Welche Lernziele der Einheit werden geprüft? Liste der behandelten Inhalte bzw. Lehrwerksseiten erfragen. *Nur prüfen, was geübt wurde.*
 3. **Bewertung:** Noten (ab wann im Bundesland/Schule?), Punkte oder Kompetenzstufen? *Unbenotet: Wachstumsstufen statt Smileys.* Notenschlüssel der Schule?
@@ -23,7 +25,7 @@ Laden mit: `grundschul-didaktik`, passendem `fach-*`, `canva-materialerstellung`
    - **AB II Zusammenhänge herstellen** ca. 30–40 %
    - **AB III Verallgemeinern und Reflektieren** ca. 10–20 %
 3. Jede Aufgabe: Punktzahl sichtbar, Aufgabenformate bekannt aus dem Unterricht (keine neuen Formate im Test!). Keine Niveau-Wahl im benoteten Test; die Anforderungsbereiche ersetzen die Punkte ● / ●● / ●●●.
-4. Abschluss: Selbsteinschätzung je Ich-kann-Ziel mit Wachstumsstufen (vor Abgabe ausfüllen, fließt nie in die Note ein; nach der Rückgabe mit dem Ergebnis vergleichen: „Stimmt meine Einschätzung?") und Rückmeldefeld mit Prozess-Satzanfängen („Du hast geschafft, …", „Als Nächstes übst du …"). Nicht Erreichtes als „noch nicht" formulieren.
+4. Abschluss: falls gewählt, Selbsteinschätzung je Ich-kann-Ziel mit Wachstumsstufen (vor Abgabe ausfüllen, fließt nie in die Note ein; nach der Rückgabe mit dem Ergebnis vergleichen: „Stimmt meine Einschätzung?"); immer ein Rückmeldefeld mit Prozess-Satzanfängen („Du hast geschafft, …", „Als Nächstes übst du …"). Nicht Erreichtes als „noch nicht" formulieren.
 
 ## Erwartungshorizont (immer mitliefern)
 
@@ -48,7 +50,7 @@ Laden mit: `grundschul-didaktik`, passendem `fach-*`, `canva-materialerstellung`
 - [ ] Eindeutige Aufgabenstellung, keine Fangfragen
 - [ ] Erwartungshorizont vollständig, Punkte summieren sich korrekt
 - [ ] Nachteilsausgleich-Fassung inhaltsgleich
-- [ ] Selbsteinschätzung mit Wachstumsstufen, Rückmeldung prozessorientiert
+- [ ] Selbsteinschätzung mit Wachstumsstufen (falls gewählt), Rückmeldung prozessorientiert
 
 ## Canva-Hinweise
 

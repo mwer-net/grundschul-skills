@@ -46,14 +46,15 @@ Bei ungenauen Anfragen erstellen die Skills nicht sofort etwas, sondern fragen g
 
 ## Kernkonzepte
 
-Alle Materialien verkörpern zwei verbindliche Konzepte (`grundschul-didaktik/references/kernkonzepte.md`):
+Alle Materialien verkörpern zwei Konzepte (`grundschul-didaktik/references/kernkonzepte.md`). Haltung und Sprache gelten immer; Selbsteinschätzung, Niveaus zur Selbstwahl und Sternchenaufgabe werden zu Beginn abgefragt:
 
-- **Growth Mindset:** Ich-kann-Ziel oben, Wachstums-Selbsteinschätzung Samen → Keimling → Pflanze → Blume, „noch"-Sprache, Strategietipps, Reflexionsfrage am Ende.
-- **Churer Modell:** Kreisinput 10–12 min, Lernaufgaben ● Grundlage / ●● Kern / ●●● Herausforderung zur Selbstwahl, Reflexion im Kreis.
+- **Growth Mindset:** Ich-kann-Ziel oben, „noch"-Sprache, Strategietipps; wählbar: Wachstums-Selbsteinschätzung Samen → Keimling → Pflanze → Blume und Reflexionsfrage am Ende.
+- **Churer Modell:** Kreisinput 10–12 min, Reflexion im Kreis; wählbar: Lernaufgaben ● Grundlage / ●● Kern / ●●● Herausforderung zur Selbstwahl.
+- **Sternchenaufgabe ★** (wählbar): eine freiwillige Knobelaufgabe für alle am Ende.
 
 Leitfigur aller Materialien ist Willi oder Wilma Waschbär (`grundschul-didaktik/references/kindgerecht-gestalten.md`).
 
-Zu Beginn fragen die Skills einzeln ab: Materialart, Medium/Format und Farbe oder Schwarz-Weiß (`grundschul-didaktik/references/rueckfragen.md`). Daraus folgt das Druckprofil: s/w tonersparend mit Strichzeichnungen oder Farbe als Akzent. In beiden Profilen stehen Aufgaben ohne Kästen, damit mehr Übung auf eine Seite passt (`grundschul-didaktik/references/druck-und-platz.md`).
+Zu Beginn fragen die Skills einzeln ab: Materialart, Medium/Format, Farbe oder Schwarz-Weiß und je nach Materialart Selbsteinschätzung, Churer Modell und Sternchenaufgabe (`grundschul-didaktik/references/rueckfragen.md`). Daraus folgt das Druckprofil: s/w tonersparend mit Strichzeichnungen oder Farbe als Akzent. In beiden Profilen stehen Aufgaben ohne Kästen, damit mehr Übung auf eine Seite passt (`grundschul-didaktik/references/druck-und-platz.md`).
 
 ## Didaktische Grundlage
 

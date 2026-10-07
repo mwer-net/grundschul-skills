@@ -2,13 +2,13 @@
 
 ## Seitenaufbau (A4 Hochformat als Standard)
 
-Farbe oder Schwarz-Weiß legt die Start-Abfrage fest (`rueckfragen.md`). In beiden Druckprofilen ist das Layout kompakt mit möglichst vielen Aufgaben pro Seite. Profile, Mindestgrößen und Platzbudget: `druck-und-platz.md`.
+Farbe oder Schwarz-Weiß sowie die Bausteine (Selbsteinschätzung, Niveaus, Sternchenaufgabe) legt die Start-Abfrage fest (`rueckfragen.md`). Das Schema zeigt alle Bausteine; nicht gewählte entfallen. In beiden Druckprofilen ist das Layout kompakt mit möglichst vielen Aufgaben pro Seite. Profile, Mindestgrößen und Platzbudget: `druck-und-platz.md`.
 
 ```
 ┌──────────────────────────────────────────┐
 │ Name: ________   Datum: ______           │  ← Kopfzeile, 1 Zeile
 │ ÜBERSCHRIFT (groß)                       │  ← max. 5 Wörter
-│ Ich kann …  Wähle deine Aufgaben. …      │  ← Ich-kann-Ziel + Wahlhilfe
+│ Ich kann …  Wähle deine Aufgaben. …      │  ← Ich-kann-Ziel + Wahlhilfe (Niveaus)
 │                                          │
 │ ❶ Anweisung in einem Satz.     [Willi] ● │  ← Grundlage, mit „So geht's",
 │    ◷   ◷   ◷   ◷   ◷   ◷                 │    Tipp der Leitfigur hier
@@ -16,8 +16,9 @@ Farbe oder Schwarz-Weiß legt die Start-Abfrage fest (`rueckfragen.md`). In beid
 │ ❷ Anweisung …                         ●● │  ← Kern
 │    …                                     │
 │ ❸ …                                  ●●● │  ← Herausforderung
+│ ★ Sternchenaufgabe: Wer mag, …           │  ← optional, freiwillig für alle
 │ ──────────────────────────────────────── │
-│ Ich kann …   Samen→Keimling→Pflanze→Blume │  ← Selbsteinschätzung zum Anmalen
+│ Ich kann …   Samen→Keimling→Pflanze→Blume │  ← Selbsteinschätzung (optional)
 │ Was hat dir geholfen? ☐ … ☐ … ☐ …        │  ← Reflexionsfrage
 └──────────────────────────────────────────┘
 ```
@@ -61,7 +62,7 @@ Schreibfläche immer größer als gedacht: Kinderhandschrift braucht Platz.
 
 - **Druckprofil aus der Start-Abfrage:** s/w (Text schwarz, Linien schwarz/dunkelgrau, keine Flächen) oder Farbe (eine Palette als Akzent, Text schwarz, keine Flächen hinter Aufgaben). Details: `druck-und-platz.md`.
 - Information nie nur über Farbe: zusätzlich Symbol, Muster, Linienart oder Beschriftung.
-- Niveaus nie farblich unterscheiden, nur mit Punkten (gleiche Optik auf allen Niveaus).
+- Niveaus (falls gewählt) nie farblich unterscheiden, nur mit Punkten (gleiche Optik auf allen Niveaus).
 - Farbcodes der Klasse (Klassenkonvention prüfen): Wortarten (oft Nomen blau, Verben rot, Adjektive grün), Artikel (der blau, die rot, das grün, DaZ), Stellenwerte (oft Einer blau, Zehner rot, Hunderter grün). Auf s/w-Blättern malen die Kinder die Farbe selbst an, oder die Kategorie steht als Buchstabe/Wort dabei (E/Z/H, „Nomen").
 - Im Farbprofil werden Farbcodes direkt farbig gesetzt, im s/w-Profil wie oben ersetzt.
 
@@ -80,7 +81,8 @@ Schreibfläche immer größer als gedacht: Kinderhandschrift braucht Platz.
 | ✔️ Kreis | ankreuzen / einkreisen |
 | 👤 / 👥 / 👨‍👩‍👧 | Einzel- / Partner- / Gruppenarbeit |
 | 🔢 Rechenzeichen | rechnen |
-| ● ●● ●●● | Niveau: Grundlage / Kern / Herausforderung |
+| ● ●● ●●● | Niveau: Grundlage / Kern / Herausforderung (falls Churer Modell gewählt) |
+| ★ | Sternchenaufgabe, freiwillig für alle (falls gewählt) |
 
 Grundsatz: Ist in der Klasse schon ein Symbolset eingeführt (Lehrwerk, Metacom), immer dieses verwenden. Symbole immer gleich groß, links neben der Anweisung.
 

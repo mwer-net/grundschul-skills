@@ -27,8 +27,8 @@ Ein Lernplakat sichert Wissen dauerhaft im Raum. Es wird im Unterricht gemeinsam
 
 ## Tafelbild / Whiteboard-Folien
 
-- Für den Kreisinput (10–12 min): Ich-kann-Ziel oben, Erarbeitung in der Mitte, Ergebnis/Merksatz unten gerahmt, zum Schluss eine Folie mit den Lernaufgaben ● / ●● / ●●● zur Auswahl.
-- Für die Reflexion: Folie mit der Wachstumsgrafik und der Reflexionsfrage.
+- Für den Kreisinput (10–12 min): Ich-kann-Ziel oben, Erarbeitung in der Mitte, Ergebnis/Merksatz unten gerahmt, zum Schluss eine Folie mit den Lernaufgaben (mit Niveaus ● / ●● / ●●● zur Auswahl, sonst in der Reihenfolge, ggf. mit Sternchenaufgabe ★).
+- Für die Reflexion: Folie mit der Reflexionsfrage, mit Wachstumsgrafik, wenn die Selbsteinschätzung gewählt ist.
 - Pro Folie ein Schritt; max. 3 Folien pro Unterrichtsphase.
 - Bilder groß, Text minimal; das Tafelbild entsteht im Unterricht, nicht als fertiger Vortrag.
 - Kinder-Ergebnisse einplanen (leere Felder, Platz für Wortkarten).

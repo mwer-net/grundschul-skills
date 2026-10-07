@@ -9,24 +9,26 @@ Laden zusammen mit: `grundschul-didaktik` (Pflicht), dem passenden `fach-*`-Skil
 
 ## Rückfragen (zusätzlich zu den Pflichtangaben)
 
-Zuerst die Start-Abfrage (`grundschul-didaktik/references/rueckfragen.md`): Materialart steht fest, Medium meist A4 hoch, Farbe oder s/w *(Empfehlung: s/w für Kopiervorlagen)*. Danach nach dem Rückfrage-Protokoll, eine Frage pro Nachricht, jeweils mit Empfehlung:
+Zuerst die Start-Abfrage (`grundschul-didaktik/references/rueckfragen.md`): Materialart steht fest, Medium meist A4 hoch, Farbe oder s/w *(Empfehlung: s/w für Kopiervorlagen)*, dann Selbsteinschätzung unten *(Empfehlung: ja)*, Churer Modell mit Niveaus zur Selbstwahl *(Empfehlung: ja)*, Sternchenaufgabe *(Empfehlung: nein mit Niveaus, ja ohne)*. Danach nach dem Rückfrage-Protokoll, eine Frage pro Nachricht, jeweils mit Empfehlung:
 
 1. **Funktion:** Einführung (mit Beispiel, viel Anschauung), Übung (viele gleichartige Items, Selbstkontrolle), Vertiefung/Transfer (offene Aufgaben) oder Wiederholung? *Empfehlung meist: Übung.*
 2. **Umfang:** 1 Seite oder Mappe? Bearbeitungszeit (10 / 20 / 45 min)? *Empfehlung: 1 Seite, ca. 20 min.*
-3. **Differenzierung:** Ein Blatt mit 3 Bereichen, 3 Blätter in gleichem Layout oder ein Blatt + Tippkarten? *Empfehlung: 1 Blatt mit drei Bereichen ● / ●● / ●●● zur Selbstwahl (Churer Modell); bei großer Spanne 3 Blätter in gleichem Layout.*
+3. **Differenzierung** (nur mit Churer Modell): Ein Blatt mit 3 Bereichen, 3 Blätter in gleichem Layout oder ein Blatt + Tippkarten? *Empfehlung: 1 Blatt mit drei Bereichen ● / ●● / ●●● zur Selbstwahl; bei großer Spanne 3 Blätter in gleichem Layout.*
 4. **Sozialform:** frei wählbar (Standard), Einzel- oder Partnerarbeit?
 5. **Rahmen:** Gibt es eine Geschichte, die das Blatt tragen soll? (Leitfigur ist immer Willi oder Wilma Waschbär.)
 
 ## Aufbau
 
-1. Kopfzeile: `Name: ______  Datum: ______` (bei drei getrennten Niveau-Blättern zusätzlich die Niveau-Punkte). Unter der Überschrift das **Ich-kann-Ziel** und die Wahlhilfe („Wähle deine Aufgaben. Fang dort an, wo du sicher bist.").
+1. Kopfzeile: `Name: ______  Datum: ______` (bei drei getrennten Niveau-Blättern zusätzlich die Niveau-Punkte). Unter der Überschrift das **Ich-kann-Ziel**, mit Churer Modell zusätzlich die Wahlhilfe („Wähle deine Aufgaben. Fang dort an, wo du sicher bist.").
 2. Überschrift (max. 5 Wörter, kindgerecht: "Wie spät ist es?" statt "Uhrzeiten ablesen").
-3. Aufgaben steigend im Anspruch (Richtwert Kl. 1: 3–4, Kl. 2: 4–5, Kl. 3/4: 5–6), jede mit Niveau-Punkten, **ohne Kasten** mit hängender Nummer und vollen Item-Reihen (`grundschul-didaktik/references/druck-und-platz.md`):
+3. Aufgaben steigend im Anspruch (Richtwert Kl. 1: 3–4, Kl. 2: 4–5, Kl. 3/4: 5–6), mit Churer Modell jede mit Niveau-Punkten, **ohne Kasten** mit hängender Nummer und vollen Item-Reihen (`grundschul-didaktik/references/druck-und-platz.md`):
    - ● Grundlage: Einstieg mit vorgelöstem Beispiel ("So geht's"), Vorwissen mit Hilfen.
    - ●● Kern: Übung zum Lernziel, ggf. Anwendung / Sachsituation.
    - ●●● Herausforderung: offen, knobelnd, begründen, erfinden; gern „Willi hat sich vertan".
+   - Ohne Churer Modell dieselbe Steigerung ohne Punkte und Wahlhilfe: alle bearbeiten alle Aufgaben, die erste mit vorgelöstem Beispiel.
    - Willi oder Wilma gibt einen Strategietipp direkt bei der Aufgabe, zu der er gehört; Tipps und Rückmeldungen in „noch"-Sprache.
-4. Fußzeile, schlank und ohne Fläche: Ich-kann-Satz + Wachstums-Selbsteinschätzung zum Anmalen (Samen → Keimling → Pflanze → Blume; s/w: Strich-Version, Farbe: farbige Grafik `MAHXV6P-UTw`, siehe `kindgerecht-gestalten.md`) und Reflexionsfrage („Was hat dir geholfen?"; Kl. 1/2 zum Ankreuzen oder mündlich im Kreis, ab Kl. 3 schriftlich). Optional ein Rückmeldefeld für die Lehrkraft.
+   - Falls gewählt: **Sternchenaufgabe ★** als letzte Aufgabe, freiwillig für alle („Wer mag, knobelt hier."), offen oder knobelnd, keine „mehr vom Gleichen". ★ statt Nummernkreis bzw. vor der Nummer.
+4. Fußzeile (nur wenn Selbsteinschätzung gewählt), schlank und ohne Fläche: Ich-kann-Satz + Wachstums-Selbsteinschätzung zum Anmalen (Samen → Keimling → Pflanze → Blume; s/w: Strich-Version, Farbe: farbige Grafik `MAHXV6P-UTw`, siehe `kindgerecht-gestalten.md`) und Reflexionsfrage („Was hat dir geholfen?"; Kl. 1/2 zum Ankreuzen oder mündlich im Kreis, ab Kl. 3 schriftlich). Optional ein Rückmeldefeld für die Lehrkraft. Ohne Selbsteinschätzung entfällt der Fuß, der Platz geht an Aufgaben.
 5. Separates Lösungsblatt zur Selbstkontrolle (gleiches Layout, Lösungen fett und unterstrichen, im Farbprofil zusätzlich in der Akzentfarbe).
 
 ## Bewährte Aufgabenformate
@@ -58,10 +60,11 @@ Zusätzlich zur Basis-Checkliste:
 - [ ] Platz reicht für Kinderschrift (Mindestgrößen eingehalten), aber keine Seite verschenkt: keine Kästen, volle Item-Reihen, schlanker Kopf und Fuß
 - [ ] Druckprofil aus der Start-Abfrage eingehalten: keine Flächen hinter Aufgaben, Text schwarz; s/w mit Strichzeichnungen, Farbe nur als Akzent
 - [ ] Lösungsblatt vollständig und korrekt
-- [ ] Niveau-Varianten optisch gleichwertig, Kennzeichnung nur mit Punkten
+- [ ] Bausteine wie gewählt: Fuß mit Selbsteinschätzung, Niveau-Punkte, Sternchenaufgabe nur, wenn in der Start-Abfrage bestätigt
+- [ ] Niveau-Varianten (falls gewählt) optisch gleichwertig, Kennzeichnung nur mit Punkten
 
 ## Canva-Hinweise
 
-- Format `"Worksheet (A4 Portrait)"` (feste Seite – `"A4 Document (Portrait)"` erzeugt ein responsives Doc ohne Formen und Positionierung). Alle Niveau-Varianten und das Lösungsblatt als Seiten im selben Design, damit das Layout identisch bleibt.
+- Format `"Worksheet (A4 Portrait)"` (feste Seite – `"A4 Document (Portrait)"` erzeugt ein responsives Doc ohne Formen und Positionierung). Alle Niveau-Varianten (falls gewählt) und das Lösungsblatt als Seiten im selben Design, damit das Layout identisch bleibt.
 - Layout nach `canva-materialerstellung/references/layout-und-bearbeitbarkeit.md` (60 px Rand, eine Spalte, Aufgaben ohne Kasten, 24–32 px dazwischen, Platzbudget) und mit `layout_check.py` prüfen.
 - Dateiname/Titel: `Kl{K}_{Fach}_{Thema}_AB{Nr}`.
