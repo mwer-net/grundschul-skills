@@ -44,10 +44,12 @@ Feste Vorgabe für alle Materialien: Die Leitfigur ist **Willi Waschbär** oder 
 | Willi Waschbär | grauer Waschbär-Junge, schwarze Augenmaske, geringelter Schwanz, oranges T-Shirt (#F28C28) | `MAHXV49zJZE` | `MAHXV7YdfHs` |
 | Wilma Waschbär | graues Waschbär-Mädchen, schwarze Augenmaske, geringelter Schwanz, petrolfarbenes Kleid (#2A9D8F), Schleife am Ohr | `MAHXV_-A1xo` | `MAHXVw6_gJo` |
 
+| Wachstumsgrafik (Samen → Keimling → Pflanze → Blume) | vier Stufen nebeneinander, Pastell, für die Selbsteinschätzung | `MAHXV6P-UTw` | `MAHXVybUqpg` |
+
 - **Wiederverwenden statt neu erzeugen:** Die freigestellte ID direkt mit `insert_fill` einsetzen. Für eine andere Pose (zeigt nach links, freut sich, denkt nach) `generate-image` mit dem Original als `imageReferences` und der Aussehen-Beschreibung oben aufrufen, danach `remove-background`. Neue Posen mit ID hier ergänzen.
 - Die IDs liegen im Canva-Konto der Lehrkraft, die die Figuren erstellt hat. In einem anderen Konto die Figuren mit Stil-Satz und Aussehen-Beschreibung neu erzeugen.
 - **Wer wann:** Pro Material eine Figur, abwechselnd über die Materialien einer Reihe; bei Partner- oder Dialogaufgaben auch beide.
-- **Immer mit Funktion:** Die Figur gibt einen Tipp in einer Sprechblase, zeigt auf das Beispiel („So geht's") oder stellt die Sternchenaufgabe. Ohne Funktion keine Figur.
+- **Immer mit Funktion:** Die Figur gibt einen Tipp in einer Sprechblase, zeigt auf das Beispiel („So geht's") oder stellt die Herausforderung ●●●. Ohne Funktion keine Figur.
 - Höchstens 1–2 Auftritte pro Seite, klein (ca. 15 % der Seitenbreite), am Rand, nie zwischen Anweisung und Arbeitsfläche.
 
 ### 4. Bilder nur mit Mehrwert

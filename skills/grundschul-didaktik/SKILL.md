@@ -7,6 +7,14 @@ description: Didaktische Basis für alle Unterrichtsmaterialien der Grundschule 
 
 Dieser Skill ist das Fundament aller anderen Skills im Repository. Er legt fest, was jedes Material für Klasse 1–4 erfüllen muss. Fach-Skills (`fach-*`) liefern die Fachdidaktik, Material-Skills (`arbeitsblatt`, `lernspiel`, …) die Bauform, `canva-materialerstellung` die technische Umsetzung.
 
+## Kernkonzepte (verbindlich): Growth Mindset und Churer Modell
+
+Jedes Material folgt zwei Konzepten. Details, Forschung und Beispiele: `references/kernkonzepte.md`.
+
+- **Growth Mindset:** Ich-kann-Ziel oben auf dem Blatt; Wachstums-Selbsteinschätzung (Samen → Keimling → Pflanze → Blume) statt Smileys; „noch"-Sprache; Tipps nennen Strategien; Fehler als Lernchance; Reflexionsfrage am Ende; Rückmeldung zum Prozess, nie zur Begabung.
+- **Churer Modell:** Lernaufgaben in drei Niveaus ● Grundlage / ●● Kern / ●●● Herausforderung, die Kinder **wählen selbst**; jede Aufgabe ohne Lehrkraft bearbeitbar (Beispiel, Tippkarten, Selbstkontrolle); Sozialform offen; Stunden nach Kreisinput (10–12 min) → Lernaufgaben → Reflexion im Kreis.
+- Pflanzensymbole nur für die Selbsteinschätzung, Punkte nur für Niveaus. Material muss auch im klassischen Klassenraum funktionieren.
+
 ## 1. Vor dem Erstellen klären (Rückfrage-Protokoll)
 
 Ungenaue Anfragen sind der Normalfall ("Mach mir ein Arbeitsblatt zu Tieren"). Erstelle dann **nichts**, sondern kläre gezielt nach dem Protokoll in `references/rueckfragen.md`:
@@ -36,7 +44,7 @@ Ist nur Kleines unklar (z. B. Farbe vs. s/w), triff eine sinnvolle Annahme und n
 2. **Ein Ziel pro Material:** Ein Arbeitsblatt, ein Spiel, ein Plakat übt genau eine Sache. Lieber zwei schlanke Blätter als ein überladenes.
 3. **Kognitive Belastung gering halten (Cognitive Load):** Nur Bilder, die zur Aufgabe gehören. Dekorative Bilder ohne Bezug ("seductive details") lenken nachweislich ab. Cliparts als Füllmaterial nie.
 4. **Handeln – Bild – Symbol (EIS-Prinzip, Bruner) plus Sprache:** Inhalte möglichst enaktiv vorbereiten (Material, Handlung), ikonisch darstellen und dann symbolisch notieren. Darstellungswechsel ausdrücklich verlangen ("Lege – zeichne – schreibe").
-5. **Differenzierung ist Standard, nicht Extra:** Mindestens zwei, besser drei Niveaus (siehe `references/differenzierung.md`). Gemeinsamer Lerngegenstand für alle, unterschiedliche Zugänge.
+5. **Differenzierung ist Standard, nicht Extra:** Drei Niveaus zur Selbstwahl nach dem Churer Modell (siehe `references/kernkonzepte.md` und `references/differenzierung.md`). Gemeinsamer Lerngegenstand für alle, unterschiedliche Zugänge.
 6. **Sprachsensibel:** Kurze Sätze, bekannte Wörter, Wortspeicher und Satzanfänge als Hilfe. Siehe `references/sprachsensibel.md`.
 7. **Selbstständigkeit:** Klare, gleichbleibende Arbeitsanweisungen mit Symbolen; Selbstkontrolle wo möglich (Lösungskarte, Kontrollzahl, Bildpuzzle).
 8. **Altersgerecht ansprechend (Emotional Design):** Das schön machen, was ohnehin da ist – nicht etwas dazustellen. Warme Farbpalette, runde Formen, farbige Aufgabennummern, als Leitfigur immer Willi oder Wilma Waschbär mit Funktion (zeigt das Beispiel, gibt Tipps), kindgerechte Überschriftenschrift, Geschichten-Rahmen ("Hilf Willi Waschbär …"). Das verbessert nachweislich Motivation und Behalten. Bilder nur, wenn das Kind sie zum Lösen braucht – unnütze Grafiken lenken ab. Details und Prüffragen: `references/kindgerecht-gestalten.md`.
@@ -68,7 +76,11 @@ Prüfe jedes Material gegen diese Liste und korrigiere, bevor du es der Lehrkraf
 - [ ] Lernziel klar und zum Material passend
 - [ ] Klassenstufe: Schriftgröße, Textmenge, Zahlenraum, Wortschatz stimmen
 - [ ] Jede Aufgabe hat Nummer, Symbol und eine kurze Anweisung mit einem Verb
-- [ ] Mindestens zwei Niveaus oder ein Sternchen-/Zusatzangebot
+- [ ] Ich-kann-Ziel oben, Wachstums-Selbsteinschätzung dazu passend
+- [ ] Drei Niveaus ● / ●● / ●●● zur Selbstwahl, gleiche Optik auf allen Niveaus
+- [ ] Ohne Lehrkraft bearbeitbar: Beispiel, Tipps mit Strategie, Selbstkontrolle
+- [ ] „Noch"-Sprache, keine Wertung von Begabung, keine traurigen Smileys
+- [ ] Reflexionsfrage am Ende
 - [ ] Ansprechend: Palette, runde Formen, Willi oder Wilma Waschbär mit Funktion
 - [ ] Keine rein dekorativen Bilder (Weglass-Test); alle Bilder eindeutig erkennbar
 - [ ] Genug Platz zum Schreiben/Zeichnen
@@ -87,6 +99,7 @@ Liefere immer:
 
 ## Referenzen
 
+- `references/kernkonzepte.md` – Growth Mindset und Churer Modell (verbindlich)
 - `references/rueckfragen.md` – Rückfrage-Protokoll bei ungenauen Anfragen
 - `references/gestaltung.md` – Layout, Schrift, Bilder, Farben, Symbole
 - `references/kindgerecht-gestalten.md` – Emotional Design: Farbpaletten, Leitfigur, Bildauswahl, Schriften, KI-Bild-Stil

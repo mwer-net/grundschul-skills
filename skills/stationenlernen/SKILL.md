@@ -19,14 +19,14 @@ Laden mit: `grundschul-didaktik`, passendem `fach-*`, ggf. `arbeitsblatt`/`lerns
 
 ### Stationskarte (A5 oder A4, laminierbar)
 - Stationsnummer groß + Stationsfarbe + Symbol (gleich auf Laufzettel und Lösungskarte)
-- Titel (kindgerecht), Sozialform-Symbol (👤 👥 👨‍👩‍👧), ggf. Pflicht ● / Wahl ○
+- Titel (kindgerecht), Sozialform-Symbol (👤 👥 👨‍👩‍👧), ggf. „Pflicht" / „Wahl" als Wort (Punkte sind für Niveaus reserviert)
 - Material-Liste mit Bildern
 - Arbeitsauftrag in max. 3 Schritten
-- Differenzierung: 🌱 / 🌿 / 🌳 oder Sternchen-Zusatz
+- Differenzierung: ● / ●● / ●●● zur Selbstwahl, gestufte Tippkarten
 
 ### Laufzettel (A4, pro Kind)
 - Name, Zeitraum
-- Tabelle: Station | Pflicht/Wahl | erledigt ☐ | kontrolliert ☐ | Wie ging es? 😀 🙂 😐
+- Tabelle: Station | Pflicht/Wahl | erledigt ☐ | kontrolliert ☐ | Wie weit bin ich? Samen / Keimling / Pflanze / Blume
 - Platz für Rückmeldung der Lehrkraft
 
 ### Lösungskarten

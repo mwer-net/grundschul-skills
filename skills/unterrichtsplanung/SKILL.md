@@ -15,21 +15,22 @@ Laden mit: `grundschul-didaktik` und dem passenden `fach-*`. Material danach mit
 4. **Rahmen:** Lehrwerk, verfügbare Medien (Whiteboard, Tablets), Raum, Doppelbesetzung/Förderlehrkraft?
 5. **Klassenbesonderheiten:** Rituale, Unruhe, besondere Kinder (anonym).
 
-## Stundenverlauf (Standardstruktur)
+## Stundenverlauf (Standard: Churer Modell)
 
 | Phase | Zeit (45 min) | Inhalt | Sozialform | Medien |
 |---|---|---|---|---|
-| Einstieg / Ritual | 5–8 | Problem, Geschichte, Bild, stummer Impuls; Ziel transparent machen | Plenum (Sitzkreis) | Bild, Gegenstand |
-| Erarbeitung I | 10–15 | Handelnd/entdeckend, möglichst Partnerarbeit | PA/GA | Material, AB |
-| Zwischensicherung (optional) | 5 | Austausch, Strategien vergleichen | Plenum | Tafel |
-| Erarbeitung II / Übung | 10–15 | Differenziert üben | EA/PA | AB, Spiel, Stationen |
-| Sicherung / Reflexion | 5–10 | Ergebnisse, Merksatz, Lernzuwachs ("Was habe ich heute gelernt?") | Plenum | Tafelbild, Plakat |
+| Kreisinput | 10–12 | Impuls/Problem, gemeinsames Beispiel, Ich-kann-Ziel nennen, Lernaufgaben ● / ●● / ●●● vorstellen | Sitzkreis | Bild, Gegenstand, Plakat |
+| Lernaufgaben | 25–30 | Freie Wahl von Aufgabe, Platz und Partner; Lehrkraft begleitet, gibt Kleingruppen-Inputs | frei | AB, Karten, Spiel, Tippkarten, Lösungen |
+| Reflexion im Kreis | 5 | Wachstums-Selbsteinschätzung, „Was hat dir geholfen?", „Was übst du als Nächstes?" | Sitzkreis | Wachstumsgrafik |
+
+Erlaubt die Schule keine freie Platzwahl, bleibt die Struktur gleich: Kinder wählen die Lernaufgabe am eigenen Platz. Bei Einführungen neuer Inhalte darf der Kreisinput länger sein; dann eine kurze Zwischenrunde einplanen. Details: `grundschul-didaktik/references/kernkonzepte.md`.
 
 Grundsätze:
 - Kinder in Klasse 1/2 halten ca. 10–15 Minuten in einer Phase konzentriert durch; Wechsel zwischen Bewegung und Ruhe einplanen.
-- Lernziel als Kinder-Satz an der Tafel: "Heute lernst du, …".
+- Lernziel als Ich-kann-Satz an der Tafel: "Ich kann …". Selbsteinschätzung und Reflexion beziehen sich darauf.
+- Lehrkraft-Rückmeldungen zum Prozess formulieren (Strategie, Fortschritt, „noch nicht"), nie zur Begabung.
 - Jede Phase mit Lehrkraft-Impuls (wörtlich formuliert) und erwarteter Schülerantwort.
-- Differenzierung in der Arbeitsphase konkret benennen (Niveaus, Hilfen, Zusatz).
+- Lernaufgaben konkret benennen: mindestens eine ● Grundlage (Wiederholung), ●● Kern, mindestens eine ●●● Herausforderung, dazu Hilfen und Selbstkontrolle.
 - Puffer und "Was, wenn die Zeit nicht reicht?" angeben.
 
 ## Reihenplanung
@@ -46,7 +47,7 @@ Zusätzlich: Bedingungsanalyse (anonym), Sachanalyse (kurz), didaktische Analyse
 ## Vertretungsstunde
 
 - Komplett selbsterklärend, Material kopierfertig, Lösungen dabei.
-- Wiederholung statt neuem Stoff, bekannte Formate.
+- Wiederholung statt neuem Stoff, bekannte Formate; Lernaufgaben-Übersicht (Laufzettel), damit die Kinder ohne Erklärung wählen können.
 
 ## Ausgabe
 

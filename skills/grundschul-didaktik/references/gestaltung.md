@@ -15,9 +15,9 @@
 │                                          │
 │ ② [✂] Anweisung …                        │  ← Aufgabenblock 2
 │                                          │
-│ ★ Sternchenaufgabe (optional)            │  ← Zusatz/Knobelei unten
+│ ●●● Herausforderung                      │  ← Knobelei, frei wählbar
 │                                          │
-│ Selbsteinschätzung: 😀 🙂 😐             │  ← optional, Fußzeile
+│ Ich kann …  Samen→Keimling→Pflanze→Blume │  ← Wachstums-Selbsteinschätzung
 └──────────────────────────────────────────┘
 ```
 
@@ -79,7 +79,7 @@ Schreibfläche immer größer als gedacht: Kinderhandschrift braucht Platz.
 | ✔️ Kreis | ankreuzen / einkreisen |
 | 👤 / 👥 / 👨‍👩‍👧 | Einzel- / Partner- / Gruppenarbeit |
 | 🔢 Rechenzeichen | rechnen |
-| ⭐ | Sternchenaufgabe / Knobelaufgabe |
+| ● ●● ●●● | Niveau: Grundlage / Kern / Herausforderung |
 
 Grundsatz: Ist in der Klasse schon ein Symbolset eingeführt (Lehrwerk, Metacom), immer dieses verwenden. Symbole immer gleich groß, links neben der Anweisung.
 

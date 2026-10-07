@@ -36,7 +36,8 @@ Ziel: Mit möglichst wenigen, gezielten Fragen ein vollständiges gemeinsames Ve
    Ich erstelle:
    - Arbeitsblatt "Die Uhr – volle und halbe Stunden", Klasse 2, A4 hoch, s/w-tauglich
    - Ziel: Uhrzeiten (volle/halbe Stunde) ablesen und einzeichnen
-   - 3 Niveaus (🌱 ablesen mit Hilfsuhr, 🌿 ablesen + einzeichnen, 🌳 Zeitspannen)
+   - 3 Niveaus zur Selbstwahl (● ablesen mit Hilfsuhr, ●● ablesen + einzeichnen, ●●● Zeitspannen)
+   - Ich-kann-Ziel oben, Wachstums-Selbsteinschätzung unten
    - Schrift: Grundschrift 18 pt, Symbole wie im Lehrwerk
    - Plus Lösungsblatt
    Passt das so?

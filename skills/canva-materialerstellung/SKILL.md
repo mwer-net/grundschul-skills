@@ -93,12 +93,14 @@ Schriften: Überschrift in {Fredoka/Baloo 2} (fett, Hauptfarbe, {px}), aller üb
 Zeilenabstand 1,5, linksbündig. Großzügige Ränder und viel Weißraum.
 Jede Aufgabe ein eigener Block: helle Fläche mit stark abgerundeten Ecken, ohne Rahmenlinie.
 Aufgabennummer als ausgefüllter Kreis in der Hauptfarbe mit weißer, fetter Ziffer links neben der Anweisung.
+Unter der Überschrift das Ich-kann-Ziel in einer schmalen hellen Zeile. Jeder Aufgabenblock trägt rechts oben seine Niveau-Punkte (●, ●● oder ●●●) in Dunkelgrau.
+Fußzeile als helle abgerundete Fläche, mindestens 80 px hoch: Ich-kann-Satz und "Male an, wie weit du schon bist:", rechts Platz (ca. 220 × 110 px) für die Wachstumsgrafik.
 Platz lassen für: {Willi/Wilma oben rechts ca. 110 px mit Sprechblase, Uhren/Felder/benötigte Bilder …}.
 KEINE Bilder, Icons oder Cliparts selbst einfügen – die werden später ergänzt.
 Schreiblinien dunkelgrau und schlicht. Keine Dekoration ohne Funktion, kein Text auf Bildern, keine Großbuchstaben-Texte.
 Verwende exakt folgenden Text, nichts umformulieren, nichts ergänzen:
 ---
-{vollständiger Text inkl. Kopfzeile "Name: ____  Datum: ____"}
+{vollständiger Text inkl. Kopfzeile "Name: ____  Datum: ____", Ich-kann-Ziel, Niveau-Punkte vor jeder Aufgabe, Fußzeilentext}
 ---
 ```
 

@@ -13,20 +13,20 @@ Nach dem Rückfrage-Protokoll, eine Frage pro Nachricht, jeweils mit Empfehlung:
 
 1. **Funktion:** Einführung (mit Beispiel, viel Anschauung), Übung (viele gleichartige Items, Selbstkontrolle), Vertiefung/Transfer (offene Aufgaben) oder Wiederholung? *Empfehlung meist: Übung.*
 2. **Umfang:** 1 Seite oder Mappe? Bearbeitungszeit (10 / 20 / 45 min)? *Empfehlung: 1 Seite, ca. 20 min.*
-3. **Differenzierung:** Ein Blatt mit 3 Bereichen, 3 Blätter in gleichem Layout oder ein Blatt + Tippkarten? *Empfehlung: 3 Blätter in gleichem Layout ab heterogener Gruppe, sonst 1 Blatt mit Sternchenaufgabe.*
-4. **Sozialform:** Einzel- oder Partnerarbeit? (Beeinflusst Anweisungen und Symbole)
+3. **Differenzierung:** Ein Blatt mit 3 Bereichen, 3 Blätter in gleichem Layout oder ein Blatt + Tippkarten? *Empfehlung: 1 Blatt mit drei Bereichen ● / ●● / ●●● zur Selbstwahl (Churer Modell); bei großer Spanne 3 Blätter in gleichem Layout.*
+4. **Sozialform:** frei wählbar (Standard), Einzel- oder Partnerarbeit?
 5. **Rahmen:** Gibt es eine Geschichte, die das Blatt tragen soll? (Leitfigur ist immer Willi oder Wilma Waschbär.)
 
 ## Aufbau
 
-1. Kopfzeile: `Name: ______  Datum: ______` und kleines Themenfeld/Niveau-Symbol.
+1. Kopfzeile: `Name: ______  Datum: ______` und Niveau-Punkte. Darunter das **Ich-kann-Ziel** und ggf. die Wahlhilfe („Wähle deine Aufgaben …").
 2. Überschrift (max. 5 Wörter, kindgerecht: "Wie spät ist es?" statt "Uhrzeiten ablesen").
 3. 2–5 Aufgabenblöcke, steigend im Anspruch:
-   - Block 1: Einstieg mit vorgelöstem Beispiel ("So geht's").
-   - Block 2–3: Kernübung.
-   - Block 4: Anwendung / Transfer / Sachsituation.
-   - ★ Sternchenaufgabe: offen, knobelnd, kreativ.
-4. Optional Fußzeile: Selbsteinschätzung (😀 🙂 😐 "Das kann ich schon") oder Kontrollfeld.
+   - ● Grundlage: Einstieg mit vorgelöstem Beispiel ("So geht's"), Vorwissen mit Hilfen.
+   - ●● Kern: Übung zum Lernziel, ggf. Anwendung / Sachsituation.
+   - ●●● Herausforderung: offen, knobelnd, begründen, erfinden; gern „Willi hat sich vertan".
+   - Tipps nennen eine Strategie, Rückmeldungen in „noch"-Sprache.
+4. Fußzeile: Ich-kann-Satz + Wachstums-Selbsteinschätzung (Samen → Blume, Grafik `MAHXV6P-UTw`), ab Klasse 3 eine Reflexionsfrage („Was hat dir geholfen?").
 5. Separates Lösungsblatt (gleiches Layout, Lösungen farbig oder fett).
 
 ## Bewährte Aufgabenformate

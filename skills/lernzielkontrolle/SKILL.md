@@ -11,7 +11,7 @@ Laden mit: `grundschul-didaktik`, passendem `fach-*`, `canva-materialerstellung`
 
 1. **Art:** Benotete Lernzielkontrolle, unbenotete Lernstandserhebung (Diagnose vor der Einheit), Selbsteinschätzung/Lernlandkarte oder Kompetenzraster?
 2. **Inhalte:** Welche Lernziele der Einheit werden geprüft? Liste der behandelten Inhalte bzw. Lehrwerksseiten erfragen. *Nur prüfen, was geübt wurde.*
-3. **Bewertung:** Noten (ab wann im Bundesland/Schule?), Punkte, Smileys oder Kompetenzstufen? Notenschlüssel der Schule?
+3. **Bewertung:** Noten (ab wann im Bundesland/Schule?), Punkte oder Kompetenzstufen? *Unbenotet: Wachstumsstufen statt Smileys.* Notenschlüssel der Schule?
 4. **Dauer:** 20, 30 oder 45 Minuten?
 5. **Nachteilsausgleich:** Gibt es Kinder mit LRS-/Förderbedarf, die eine angepasste Fassung brauchen (größere Schrift, weniger Items, vorgelesen)?
 
@@ -23,7 +23,7 @@ Laden mit: `grundschul-didaktik`, passendem `fach-*`, `canva-materialerstellung`
    - **AB II Zusammenhänge herstellen** ca. 30–40 %
    - **AB III Verallgemeinern und Reflektieren** ca. 10–20 %
 3. Jede Aufgabe: Punktzahl sichtbar, Aufgabenformate bekannt aus dem Unterricht (keine neuen Formate im Test!).
-4. Abschluss: Selbsteinschätzung "So schätze ich mich ein" (vor Rückgabe ausfüllen) und Feld für Rückmeldung.
+4. Abschluss: Selbsteinschätzung je Ich-kann-Ziel mit Wachstumsstufen (vor Abgabe ausfüllen) und Rückmeldefeld mit Prozess-Satzanfängen („Du hast geschafft, …", „Als Nächstes übst du …"). Nicht Erreichtes als „noch nicht" formulieren.
 
 ## Erwartungshorizont (immer mitliefern)
 
@@ -35,7 +35,7 @@ Laden mit: `grundschul-didaktik`, passendem `fach-*`, `canva-materialerstellung`
 ## Selbsteinschätzung / Lernlandkarte
 
 - "Ich kann …"-Sätze aus Kindersicht, je Lernziel eine Zeile, mit Beispielaufgabe: "Ich kann Zahlen bis 100 am Hunderterfeld zeigen. (z. B. 47)".
-- Skala mit Symbolen (😀 🙂 😐 oder Ampel), dazu Spalte für Lehrkraft-Einschätzung.
+- Skala mit den Wachstumsstufen Samen / Keimling / Pflanze / Blume (siehe `grundschul-didaktik/references/kernkonzepte.md`), dazu Spalte für Lehrkraft-Einschätzung. Keine Smileys, keine Ampel.
 - Lernlandkarte als Weg/Insel-Karte für Kl. 1/2 ansprechend gestalten, Stationen = Lernziele.
 
 ## Qualitätscheck
@@ -46,6 +46,7 @@ Laden mit: `grundschul-didaktik`, passendem `fach-*`, `canva-materialerstellung`
 - [ ] Eindeutige Aufgabenstellung, keine Fangfragen
 - [ ] Erwartungshorizont vollständig, Punkte summieren sich korrekt
 - [ ] Nachteilsausgleich-Fassung inhaltsgleich
+- [ ] Selbsteinschätzung mit Wachstumsstufen, Rückmeldung prozessorientiert
 
 ## Canva-Hinweise
 
