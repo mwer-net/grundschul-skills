@@ -52,7 +52,9 @@ Feste Vorgabe für alle Materialien: Die Leitfigur ist **Willi Waschbär** oder 
 | Willi Waschbär | grauer Waschbär-Junge, schwarze Augenmaske, geringelter Schwanz, oranges T-Shirt (#F28C28) | `MAHXV49zJZE` | `MAHXV7YdfHs` |
 | Wilma Waschbär | graues Waschbär-Mädchen, schwarze Augenmaske, geringelter Schwanz, petrolfarbenes Kleid (#2A9D8F), Schleife am Ohr | `MAHXV_-A1xo` | `MAHXVw6_gJo` |
 | Wachstumsgrafik (Samen → Keimling → Pflanze → Blume) | vier Stufen nebeneinander, Pastell, für die Selbsteinschätzung | `MAHXV6P-UTw` | `MAHXVybUqpg` |
-| Willi, Wilma, Wachstumsgrafik **als Strichzeichnung (s/w)** | gleiche Figuren, nur schwarze Konturen, weiße Füllung, zum Anmalen | noch anlegen | – |
+| Willi **als Strichzeichnung (s/w)** | wie Willi, nur schwarze Konturen, weiße Füllung, zum Anmalen | `MAHXWZ6fTfM` | `MAHXWQZtaCE` |
+| Wachstumsgrafik **als Strichzeichnung (s/w)** | wie oben, nur schwarze Konturen, weiße Füllung, zum Anmalen | `MAHXWdlD_qM` | `MAHXWZ4IqAY` |
+| Wilma **als Strichzeichnung (s/w)** | wie Wilma, nur schwarze Konturen, weiße Füllung, zum Anmalen | noch anlegen | – |
 
 **Farbprofil: farbige Versionen. s/w-Profil: Strich-Versionen**, denn die farbigen werden in s/w zu grauen Flächen (Toner, unruhig). Fehlt eine Strich-Version noch: mit `generate-image` aus dem Original (`imageReferences`) erzeugen, Prompt „gleiche Figur als Ausmalbild: nur klare schwarze Konturen, weiße Füllung, keine Grautöne, keine Schraffur, weißer Hintergrund", dann `remove-background`. Die neue ID in der Tabelle oben ergänzen.
 
