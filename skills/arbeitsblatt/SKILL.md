@@ -62,4 +62,5 @@ Zusätzlich zur Basis-Checkliste:
 ## Canva-Hinweise
 
 - Format `"Worksheet (A4 Portrait)"` (feste Seite – `"A4 Document (Portrait)"` erzeugt ein responsives Doc ohne Formen und Positionierung). Alle Niveau-Varianten und das Lösungsblatt als Seiten im selben Design, damit das Layout identisch bleibt.
+- Layout nach `canva-materialerstellung/references/layout-und-bearbeitbarkeit.md` (60 px Rand, eine Spalte, 24 px zwischen Blöcken, Platzbudget) und mit `layout_check.py` prüfen.
 - Dateiname/Titel: `Kl{K}_{Fach}_{Thema}_AB{Nr}`.
