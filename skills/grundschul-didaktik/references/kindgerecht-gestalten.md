@@ -7,33 +7,37 @@ Zwei Befunde scheinen sich zu widersprechen, passen aber zusammen:
 1. **Emotional Design wirkt.** Warme, angenehme Farben, runde Formen und freundliche Gesichter an *lernrelevanten* Elementen verbessern Behalten, Verstehen und Motivation und senken die empfundene Schwierigkeit (Meta-Analyse Brom et al. 2018: d ≈ 0,3–0,4; Wong & Adesope 2021; Um, Plass et al. 2012).
 2. **Deko ohne Bezug schadet.** Interessante, aber für das Lernziel irrelevante Bilder und Details („seductive details") verschlechtern Behalten und Transfer (Sundararajan & Adesope 2020). Bei Kindern mit geringer Impulskontrolle ist der Effekt am stärksten; bei Leseanfängern konkurrieren bunte Bilder neben dem Text um Aufmerksamkeit. Stark dekorierte Lernumgebungen senken bei jungen Kindern die Aufmerksamkeit und den Lernzuwachs (Fisher, Godwin & Seltman 2014).
 
-**Daraus folgt die Grundregel: Das schön machen, was ohnehin da ist – nicht etwas dazustellen.** Farbe, Form und Figuren kommen an Elemente mit Funktion (Aufgabennummer, Beispiel, Tipp, Lernobjekt), nicht als Füllung.
+**Daraus folgt die Grundregel: Das schön machen, was ohnehin da ist – nicht etwas dazustellen.** Form und Figuren kommen an Elemente mit Funktion (Aufgabennummer, Beispiel, Tipp, Lernobjekt), nicht als Füllung.
+
+**Rahmenbedingung Schwarz-Weiß-Druck:** Kopiervorlagen werden s/w gedruckt und sollen wenig Toner verbrauchen und viele Aufgaben tragen. Deshalb wirkt Emotional Design hier über **Form, Schrift und Figur**, nicht über Farbflächen. Regeln: `druck-und-platz.md` (hat Vorrang vor Farbangaben in dieser Datei).
 
 ## Die fünf Hebel
 
 ### 1. Freundliche Formen für die Struktur
 
-- Aufgabenblöcke als Flächen mit **abgerundeten Ecken** (Rundung ca. 12–20 px) in sehr hellem Pastellton statt grauer Rahmen.
-- Aufgabennummern in **farbigen Kreisen** (Akzentfarbe, weiße Ziffer, fett).
-- Schreiblinien und Antwortkästen bleiben schlicht (dunkelgrau), damit Kinderschrift lesbar bleibt.
+- Aufgaben **ohne Kasten und ohne Flächenfüllung**: hängende Nummer, Abstand zur nächsten Aufgabe (`druck-und-platz.md`, Abschnitt 3).
+- Aufgabennummern in **kleinen gefüllten Kreisen** (32–36 px, schwarz, weiße fette Ziffer): kaum Toner, starker Anker.
+- Die wenigen Rahmen mit Funktion (Sprechblase, Wortspeicher, Antwortkästchen) als dünne Kontur mit **gerundeten Ecken** (Rundung ca. 8–16 px), ohne Füllung.
+- Schreiblinien und Antwortkästen schlicht (schwarz/dunkelgrau, 1,5–2 px), damit Kinderschrift lesbar bleibt.
 
-### 2. Eine Farbpalette pro Material
+### 2. Farbe nur bei Farbdruck
 
-- **1 Hauptfarbe + 1 Akzentfarbe + helle Flächenfarben** aus derselben Familie. Warme, freundliche Töne (Koralle, Sonnengelb, Mint, Himmelblau); keine Neonfarben.
-- Flächenfarben sehr hell (Helligkeit ≥ 90 %), damit Text darauf Kontrast ≥ 4,5:1 hat und s/w-Kopien nicht grau zulaufen.
-- Farbe bedeutet überall dasselbe: z. B. jede Aufgabenart oder jede Station eine Farbe; Klassenkonventionen (Wortarten, Stellenwerte) haben Vorrang. Niveaus bekommen keine eigene Farbe, nur Punkte ● / ●● / ●●●.
-- Farbe nie als einzige Information (s/w-Druck, Rot-Grün-Schwäche).
+Standard ist Schwarz-Weiß. Farbe kommt nur hinzu, wenn die Lehrkraft Farbdruck nennt (Plakat, laminierte Karten, Spiele, Whiteboard). Dann:
 
-Bewährte Paletten (Hex):
+- **1 Hauptfarbe + 1 Akzentfarbe** aus derselben Familie, warme, freundliche Töne; keine Neonfarben. Farbe auf Nummernkreise, Überschrift, Linien und Bildelemente, **keine großen Flächen hinter Text**.
+- Farbe bedeutet überall dasselbe: z. B. jede Station eine Farbe; Klassenkonventionen (Wortarten, Stellenwerte) haben Vorrang. Niveaus bekommen keine eigene Farbe, nur Punkte ● / ●● / ●●●.
+- Farbe nie als einzige Information; Graustufen-Vorschau prüfen.
 
-| Name | Hauptfarbe | Akzent | Flächen |
-|---|---|---|---|
-| Sonnig | `#F28C28` Orange | `#2A9D8F` Petrol | `#FFF4E6`, `#E8F6F3` |
-| Himmel | `#3A86FF` Blau | `#FFBE0B` Gelb | `#EAF2FF`, `#FFF8E1` |
-| Wiese | `#43AA8B` Grün | `#F3722C` Orange | `#EAF7F1`, `#FFF1E8` |
-| Beere | `#E76F51` Koralle | `#6A4C93` Lila | `#FDEDEA`, `#F1ECF7` |
+Bewährte Paletten (Hex) für Farbdruck:
 
-Text bleibt dunkel (`#1D1D1B` bis `#333333`).
+| Name | Hauptfarbe | Akzent |
+|---|---|---|
+| Sonnig | `#F28C28` Orange | `#2A9D8F` Petrol |
+| Himmel | `#3A86FF` Blau | `#FFBE0B` Gelb |
+| Wiese | `#43AA8B` Grün | `#F3722C` Orange |
+| Beere | `#E76F51` Koralle | `#6A4C93` Lila |
+
+Text bleibt schwarz (`#1D1D1B`).
 
 ### 3. Leitfigur: immer Willi oder Wilma Waschbär
 
@@ -44,6 +48,9 @@ Feste Vorgabe für alle Materialien: Die Leitfigur ist **Willi Waschbär** oder 
 | Willi Waschbär | grauer Waschbär-Junge, schwarze Augenmaske, geringelter Schwanz, oranges T-Shirt (#F28C28) | `MAHXV49zJZE` | `MAHXV7YdfHs` |
 | Wilma Waschbär | graues Waschbär-Mädchen, schwarze Augenmaske, geringelter Schwanz, petrolfarbenes Kleid (#2A9D8F), Schleife am Ohr | `MAHXV_-A1xo` | `MAHXVw6_gJo` |
 | Wachstumsgrafik (Samen → Keimling → Pflanze → Blume) | vier Stufen nebeneinander, Pastell, für die Selbsteinschätzung | `MAHXV6P-UTw` | `MAHXVybUqpg` |
+| Willi, Wilma, Wachstumsgrafik **als Strichzeichnung (s/w)** | gleiche Figuren, nur schwarze Konturen, weiße Füllung, zum Anmalen | noch anlegen | – |
+
+**Für Kopiervorlagen die Strich-Versionen verwenden.** Die farbigen Versionen werden in s/w zu grauen Flächen (Toner, unruhig). Fehlt eine Strich-Version noch: mit `generate-image` aus dem Original (`imageReferences`) erzeugen, Prompt „gleiche Figur als Ausmalbild: nur klare schwarze Konturen, weiße Füllung, keine Grautöne, keine Schraffur, weißer Hintergrund", dann `remove-background`. Die neue ID in der Tabelle oben ergänzen.
 
 - **Wiederverwenden statt neu erzeugen:** Die freigestellte ID direkt mit `insert_fill` einsetzen. Für eine andere Pose (zeigt nach links, freut sich, denkt nach) `generate-image` mit dem Original als `imageReferences` und der Aussehen-Beschreibung oben aufrufen, danach `remove-background`. Neue Posen mit ID hier ergänzen.
 - Die IDs liegen im Canva-Konto der Lehrkraft, die die Figuren erstellt hat. In einem anderen Konto die Figuren mit Stil-Satz und Aussehen-Beschreibung neu erzeugen.
@@ -66,7 +73,7 @@ Nicht zulässig: Stimmungsbilder zur Sachaufgabe (Kind beim Frühstück, wenn di
 
 **Weglass-Test:** Könnte das Kind die Aufgabe ohne das Bild genauso gut lösen? Dann weg damit.
 
-Dosierung: Leitfigur plus nur die Bilder, die die Aufgaben brauchen. Mindestens 30 % Weißraum.
+Dosierung: Leitfigur plus nur die Bilder, die die Aufgaben brauchen. Für s/w als Strichzeichnung.
 
 ### 5. Kindgerechte Schrift
 
@@ -79,7 +86,9 @@ Dosierung: Leitfigur plus nur die Bilder, die die Aufgaben brauchen. Mindestens 
 
 **Stil-Satz einmal pro Material festlegen und für jedes Bild wörtlich wiederverwenden** – so bleibt der Stil einheitlich:
 
-> Kindgerechte Illustration im flachen Vektorstil, runde, weiche Formen, klare dunkle Konturen, warme Pastellfarben ({Palette}), freundliche Gesichter, weißer Hintergrund, freigestellt, keine Schrift, keine Zahlen, keine Buchstaben im Bild, kein Hintergrundmuster.
+> Kindgerechte Strichzeichnung wie ein Ausmalbild, runde, weiche Formen, klare schwarze Konturen gleichmäßiger Stärke, weiße Füllung, keine Grautöne, keine Schraffur, freundliche Gesichter, weißer Hintergrund, freigestellt, keine Schrift, keine Zahlen, keine Buchstaben im Bild, kein Hintergrundmuster.
+
+Bei Farbdruck statt „weiße Füllung, keine Grautöne": „flacher Vektorstil, warme Pastellfarben ({Palette})".
 
 Danach Motiv konkret beschreiben: wer, was, Pose, Blickrichtung (zur Aufgabe hin), Bildausschnitt.
 
@@ -87,15 +96,14 @@ Regeln:
 - **Keine Schrift, Zahlen oder Uhren im KI-Bild.** KI erzeugt dabei regelmäßig Fehler. Fachlich exakte Elemente (Uhren, Zahlenstrahl, Mengenbilder) werden berechnet und als Vektor gesetzt (`fach-mathematik/scripts`).
 - Leitfigur: immer Willi oder Wilma Waschbär mit den IDs aus Abschnitt 3.
 - Sachabbildungen (Tiere, Pflanzen, Körper) auf fachliche Richtigkeit prüfen.
-- Für s/w-Druck oder Ausmalbilder: „nur schwarze Konturen, keine Füllung".
 - Diversität: Kinder unterschiedlicher Herkunft, Geschlechter und mit/ohne Brille, Rollstuhl usw. selbstverständlich abbilden, ohne es zum Thema zu machen.
 
 ## Prüffragen „ansprechend, aber nicht überladen"
 
-- [ ] Würde ein Kind das Blatt gern in die Hand nehmen? (Farbe, runde Formen, Willi oder Wilma mit Funktion)
+- [ ] Würde ein Kind das Blatt gern in die Hand nehmen? (runde Überschrift, Nummernkreise, Willi oder Wilma mit Funktion)
 - [ ] Jedes Bild besteht den Weglass-Test
-- [ ] Nur Bilder, die zum Lösen gebraucht werden, plus Leitfigur; ≥ 30 % Weißraum
-- [ ] Eine Palette, Farbe mit gleichbleibender Bedeutung, Text dunkel auf hell
+- [ ] Nur Bilder, die zum Lösen gebraucht werden, plus Leitfigur; als Strichzeichnung
+- [ ] Keine Farb- oder Grauflächen, Text schwarz, Information nie nur über Farbe
 - [ ] Höchstens zwei Schriften, Fließtext in klarer Druckschrift
 - [ ] Nichts Dekoratives zwischen Anweisung und Arbeitsfläche
-- [ ] Funktioniert in Schwarz-Weiß
+- [ ] Aufgaben ohne Kasten, Platz für Übung statt für Rahmen (`druck-und-platz.md`)

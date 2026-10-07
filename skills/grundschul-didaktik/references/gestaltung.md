@@ -2,32 +2,31 @@
 
 ## Seitenaufbau (A4 Hochformat als Standard)
 
+Standard ist der **Schwarz-Weiß-Druck** mit wenig Toner und möglichst vielen Aufgaben pro Seite. Regeln, Mindestgrößen und Platzbudget: `druck-und-platz.md`.
+
 ```
 ┌──────────────────────────────────────────┐
-│ Name: ________   Datum: ______   [Thema] │  ← Kopfzeile, klein, 1 Zeile
+│ Name: ________   Datum: ______           │  ← Kopfzeile, 1 Zeile
+│ ÜBERSCHRIFT (groß)                       │  ← max. 5 Wörter
+│ Ich kann …  Wähle deine Aufgaben. …      │  ← Ich-kann-Ziel + Wahlhilfe
 │                                          │
-│  ÜBERSCHRIFT (groß)  [Willi/Wilma + Tipp] │  ← 1 Zeile, max. 5 Wörter
-│  Ich kann …  · Wähle deine Aufgaben.     │  ← Ich-kann-Ziel + Wahlhilfe
-│                                          │
-│ ① [✎] Anweisung in einem Satz.        ●  │  ← Grundlage, mit „So geht's"
-│    ┌──────────────────────────────┐      │
-│    │  Arbeitsfläche               │      │
-│    └──────────────────────────────┘      │
-│                                          │
-│ ② [✂] Anweisung …                    ●●  │  ← Kern
-│                                          │
-│ ③ [✎] Knobelaufgabe …               ●●● │  ← Herausforderung
-│                                          │
-│ Ich kann …  Samen→Keimling→Pflanze→Blume │  ← Wachstums-Selbsteinschätzung
-│ Was hat dir geholfen? ______________     │  ← Reflexionsfrage
+│ ❶ Anweisung in einem Satz.     [Willi] ● │  ← Grundlage, mit „So geht's",
+│    ◷   ◷   ◷   ◷   ◷   ◷                 │    Tipp der Leitfigur hier
+│ ──────────────────────────────────────── │  ← Abstand, optional dünne Linie
+│ ❷ Anweisung …                         ●● │  ← Kern
+│    …                                     │
+│ ❸ …                                  ●●● │  ← Herausforderung
+│ ──────────────────────────────────────── │
+│ Ich kann …   Samen→Keimling→Pflanze→Blume │  ← Selbsteinschätzung zum Anmalen
+│ Was hat dir geholfen? ☐ … ☐ … ☐ …        │  ← Reflexionsfrage
 └──────────────────────────────────────────┘
 ```
 
 - Ränder: mindestens 1,5 cm, zum Abheften links 2 cm.
-- Pro A4-Seite: Klasse 1: 3 Aufgaben (je Niveau eine), Klasse 2: 3–4, Klasse 3/4: 4–5.
+- Pro A4-Seite (Richtwert): Klasse 1: 3–4 Aufgaben, Klasse 2: 4–5, Klasse 3/4: 5–6. Übungsaufgaben mit vollen Item-Reihen (Tabelle in `druck-und-platz.md`).
 - Lesefluss von oben nach unten, links nach rechts. Keine schräg platzierten Elemente, keine Zwei-Spalten-Texte in Klasse 1/2.
-- Weißraum ist ein Gestaltungsmittel. Mindestens 30 % der Seite frei.
-- Aufgabenblöcke durch Abstand oder dezente Rahmen trennen; einheitlich im ganzen Material.
+- Aufgaben **ohne Kasten**: hängende Nummer, 24–32 px Abstand zur nächsten Aufgabe, optional eine dünne graue Trennlinie. Rahmen nur, wo er eine Funktion hat (Wortspeicher, Sprechblase, Antwortkästchen, Ausschneideteile). Einheitlich im ganzen Material.
+- Weißraum gezielt einsetzen: zwischen Aufgaben und als Schreibfläche, nicht als Innenabstand in Rahmen. Kein ungenutzter Leerstreifen auf der Seite.
 
 ## Schrift
 
@@ -53,18 +52,18 @@ Schreibfläche immer größer als gedacht: Kinderhandschrift braucht Platz.
 
 - Funktional: Das Bild trägt Information (Anlaut, Mengenbild, Sachabbildung), wird zum Lösen gebraucht oder gibt als Leitfigur (Willi/Wilma Waschbär) einen Tipp. Weglass-Test und Dosierung: `kindgerecht-gestalten.md`.
 - Eindeutig: Ein Bild, ein Begriff. Bei Anlautbildern Mehrdeutigkeiten vermeiden (Hund vs. Dackel, Auto vs. PKW).
-- Einheitlicher Stil innerhalb eines Materials (alles Linien-Illustration oder alles flach farbig; nicht gemischt mit Fotos).
+- Für Kopiervorlagen als **Strichzeichnung** (schwarze Konturen, weiße Füllung, keine Graustufenflächen); einheitlicher Stil im ganzen Material, nicht gemischt mit Fotos.
 - Für Ausmalaufgaben: klare schwarze Konturen, keine Graustufenflächen.
-- Sachunterricht: Bei Tieren, Pflanzen, Körperteilen realistische Darstellung oder Foto; keine Comicverzerrung bei Fachinhalten.
+- Sachunterricht: Bei Tieren, Pflanzen, Körperteilen realistische Darstellung (für s/w als genaue Strichzeichnung); Fotos nur bei Farbdruck. Keine Comicverzerrung bei Fachinhalten.
 - Alle Bilder brauchen Platz zur Beschriftung, wenn Kinder beschriften sollen.
 
 ## Farbe
 
-- Eine Palette pro Material (Paletten und Regeln in `kindgerecht-gestalten.md`). Farbe hat Bedeutung: Aufgabennummern, Blockflächen, Stationen, Wortarten. Niveaus nie farblich unterscheiden, nur mit Punkten (gleiche Optik auf allen Niveaus).
-- Wortarten (übliche Konvention, Klasse prüfen): Nomen blau, Verben rot, Adjektive grün. Artikel: der blau, die rot, das grün (DaZ-Konvention; Lehrwerk prüfen).
-- Mathe Stellenwerte: Einer blau, Zehner rot, Hunderter grün (Montessori-Farben) – Klassenkonvention prüfen.
-- Pastell-Hintergründe nur hell (Kontrast!). Kein Text auf Bildern.
-- Muss in s/w funktionieren: Zusätzlich Symbol, Muster oder Beschriftung.
+- **Standard ist Schwarz-Weiß:** Text schwarz, Linien schwarz/dunkelgrau, keine Farb- oder Grauflächen. Details: `druck-und-platz.md`.
+- Information nie nur über Farbe: zusätzlich Symbol, Muster, Linienart oder Beschriftung.
+- Niveaus nie farblich unterscheiden, nur mit Punkten (gleiche Optik auf allen Niveaus).
+- Farbcodes der Klasse (Klassenkonvention prüfen): Wortarten (oft Nomen blau, Verben rot, Adjektive grün), Artikel (der blau, die rot, das grün, DaZ), Stellenwerte (oft Einer blau, Zehner rot, Hunderter grün). Auf s/w-Blättern malen die Kinder die Farbe selbst an, oder die Kategorie steht als Buchstabe/Wort dabei (E/Z/H, „Nomen").
+- Farbdruck nur auf ausdrücklichen Wunsch (Plakat, laminierte Karten, Whiteboard): Palette aus `kindgerecht-gestalten.md`, Farbe auf Linien, Nummern und Bildelemente, keine großen Flächen hinter Text.
 
 ## Arbeitsanweisungs-Symbole (Vorschlag für einheitliches Set)
 

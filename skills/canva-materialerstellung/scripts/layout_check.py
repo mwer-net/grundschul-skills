@@ -8,10 +8,13 @@ Tool-Result-Format [{"type": "text", "text": "..."}] haben und abgeschnitten
 sein (Canva kürzt große Antworten): Ausgewertet wird alles bis zur Schnittstelle,
 der Bericht weist darauf hin.
 
-  python3 layout_check.py design.json [--klasse 2] [--rand-cm 1.5] [--seite 1]
+  python3 layout_check.py design.json [--klasse 2] [--rand-cm 1.5] [--seite 1] [--farbe]
 
 Ausgabe: Bericht mit FEHLER (muss behoben werden), WARNUNG (prüfen) und
-HINWEIS (Bearbeitbarkeit), danach Vorschläge für `group_elements`.
+HINWEIS (Bearbeitbarkeit, Platz), danach Vorschläge für `group_elements`.
+Standard ist eine Kopiervorlage für Schwarz-Weiß-Druck: Farb- und Grauflächen,
+Hintergrundbilder, farbige Schrift und helle oder dünne Linien werden gemeldet.
+Mit --farbe (ausdrücklicher Farbdruck) entfallen diese Druck-Prüfungen.
 Exit-Code 1, wenn FEHLER gefunden wurden.
 """
 import argparse
@@ -23,6 +26,10 @@ PX_PRO_CM = 96 / 2.54          # Canva rechnet mit 96 px pro Zoll
 DRUCKRAND_PX = 0.5 * PX_PRO_CM  # 5 mm: diesen Rand drucken Bürodrucker nicht
 MIN_FLIESSTEXT_PX = {1: 26, 2: 21, 3: 19, 4: 16}  # 20/16/14/12 pt
 TOL = 2.0                      # Toleranz in px für Rundungen
+MAX_FLAECHE_PX2 = 3000         # ≈ 2 cm²: größere gefüllte Flächen kosten Toner und kopieren unsauber
+HELL_LINIE = 140               # Grauwert (0–255) heller als ca. #808080 fällt beim Kopieren weg
+DUNKEL_TEXT = 90               # Text heller als dieser Grauwert ist in s/w kontrastarm
+LEERSTREIFEN_PX = 64           # ungenutzte waagerechte Streifen ab dieser Höhe melden
 
 
 # ---------- Einlesen (auch abgeschnittene Antworten) ----------
@@ -111,9 +118,181 @@ def ref(e):
            f'{round(e["width"])}×{round(e["height"])}'
 
 
+# ---------- Farbe und Druck ----------
+
+def hex_rgb(h):
+    h = (h or "").lstrip("#")
+    if len(h) != 6:
+        return None
+    return tuple(int(h[i:i + 2], 16) for i in (0, 2, 4))
+
+
+def grauwert(rgb):
+    """Helligkeit wie bei der Umsetzung in Graustufen (0 = schwarz, 255 = weiß)."""
+    return 0.299 * rgb[0] + 0.587 * rgb[1] + 0.114 * rgb[2]
+
+
+def bunt(rgb):
+    return max(rgb) - min(rgb) > 24
+
+
+def alle_elemente(els):
+    """Elemente inklusive der Kinder von Gruppen."""
+    for e in els:
+        yield e
+        if e.get("children"):
+            yield from alle_elemente(e["children"])
+
+
+def pfad_anteil(d, vb):
+    """Anteil des Pfad-Rahmens an der viewBox (einfache absolute Pfade, sonst 1)."""
+    if not vb or not vb.get("width") or not vb.get("height") or re.search(r"[a-z]", d):
+        return 1.0
+    xs, ys = [], []
+    x = y = 0.0
+    for cmd, args in re.findall(r"([MLHVCSAZ])([^MLHVCSAZ]*)", d):
+        n = [float(v) for v in re.findall(r"-?\d*\.?\d+(?:e-?\d+)?", args)]
+        if cmd in "ML" and len(n) >= 2:
+            pts = list(zip(n[0::2], n[1::2]))
+        elif cmd in "CS" and len(n) >= 2:
+            pts = list(zip(n[0::2], n[1::2]))
+        elif cmd == "A" and len(n) >= 7:
+            r = max(n[0], n[1])
+            x, y = n[5], n[6]
+            xs += [x - r, x + r]
+            ys += [y - r, y + r]
+            continue
+        elif cmd == "H" and n:
+            pts = [(n[-1], y)]
+        elif cmd == "V" and n:
+            pts = [(x, n[-1])]
+        else:
+            continue
+        for px, py in pts:
+            xs.append(px)
+            ys.append(py)
+        x, y = pts[-1]
+    if not xs:
+        return 1.0
+    w = min(max(xs), vb["width"]) - max(min(xs), 0)
+    h = min(max(ys), vb["height"]) - max(min(ys), 0)
+    return max(0.0, min(1.0, w * h / (vb["width"] * vb["height"])))
+
+
+def fuellungen(e):
+    """(rgb, stroke_rgb, stroke_weight, strichbild) je Pfad einer Form.
+
+    strichbild: Pfad aus mehreren Teilpfaden (Uhrstriche, Zeiger, Ringe). Seine
+    Fläche lässt sich nicht aus dem Rahmen ablesen und wird nicht als Fläche gewertet."""
+    for p in e.get("paths", []):
+        fill = (p.get("fill") or {}).get("color") or {}
+        stroke = p.get("stroke") or {}
+        d = p.get("d", "")
+        strichbild = len(re.findall(r"[Mm]", d)) > 1 or pfad_anteil(d, e.get("viewBox")) < 0.5
+        yield (hex_rgb(fill.get("color")) if fill.get("type") == "solid" else None,
+               hex_rgb((stroke.get("color") or {}).get("color")), stroke.get("weight", 0) or 0, strichbild)
+
+
+def pruefe_druck(seite, els, figuren, add):
+    """Schwarz-Weiß-Druck: Toner, Kopierbarkeit, Kontrast."""
+    W, H = seite["dimensions"]["width"], seite["dimensions"]["height"]
+    hg = seite.get("background") or {}
+    if hg.get("media"):
+        add("WARNUNG", "Seitenhintergrund ist ein Bild: kostet Toner und kopiert unsauber. Bild entfernen, weiß lassen.")
+    hg_rgb = hex_rgb((hg.get("color") or {}).get("color") if isinstance(hg.get("color"), dict) else hg.get("color"))
+    if hg_rgb and grauwert(hg_rgb) < 250:
+        add("WARNUNG", f"Seitenhintergrund ist nicht weiß ({hg.get('color')}): weißen Hintergrund verwenden.")
+
+    alle = list(alle_elemente(els))
+    deckung = 0.0
+    gefuellte_flaechen = []
+    for e in alle:
+        if e["type"] != "shape" or not all(k in e for k in ("width", "height")):
+            continue
+        flaeche = e["width"] * e["height"]
+        duenn = min(e["width"], e["height"]) <= 4  # als Rechteck gebaute Linie
+        for fill, stroke, weight, strichbild in fuellungen(e):
+            if fill and grauwert(fill) < 250 and not strichbild:
+                deckung += flaeche * (1 - grauwert(fill) / 255)
+                gefuellte_flaechen.append((box(e), grauwert(fill)))
+                if duenn:
+                    if grauwert(fill) > HELL_LINIE:
+                        add("WARNUNG", f"Linie zu hell für Kopien (Grauwert {round(grauwert(fill))}, "
+                                       f"höchstens ca. #808080): {ref(e)}")
+                    if min(e["width"], e["height"]) < 1:
+                        add("WARNUNG", f"Linie dünner als 1 px, verschwindet beim Kopieren: {ref(e)}")
+                elif flaeche > MAX_FLAECHE_PX2:
+                    add("WARNUNG", f"Gefüllte Fläche ({round(flaeche / PX_PRO_CM ** 2, 1)} cm²) kostet Toner und "
+                                   f"kopiert unsauber. Entfernen oder nur Kontur: {ref(e)}")
+                elif bunt(fill):
+                    add("HINWEIS", f"Farbige Füllung wird in s/w grau. Schwarz (#1D1D1B) verwenden: {ref(e)}")
+            if weight and stroke:
+                if grauwert(stroke) > HELL_LINIE:
+                    add("WARNUNG", f"Kontur zu hell für Kopien (Grauwert {round(grauwert(stroke))}): {ref(e)}")
+                elif bunt(stroke):
+                    add("HINWEIS", f"Farbige Kontur wird in s/w grau. Schwarz/dunkelgrau verwenden: {ref(e)}")
+                if weight < 1 and not any(enthaelt(bx, box(e)) for bx in figuren):
+                    add("WARNUNG", f"Kontur dünner als 1 px ({weight}), verschwindet beim Kopieren: {ref(e)}")
+
+    for t in (e for e in alle if e["type"] == "text"):
+        farben = {r.get("formatting", {}).get("color") for r in t.get("textRegions", [])} - {None}
+        for c in farben:
+            rgb = hex_rgb(c)
+            if not rgb or grauwert(rgb) <= DUNKEL_TEXT:
+                continue
+            unter = [g for bx, g in gefuellte_flaechen if enthaelt(bx, box(t), tol=4)]
+            if grauwert(rgb) > 230 and unter:
+                if min(unter) > DUNKEL_TEXT:
+                    add("WARNUNG", f"Weiße Schrift auf heller/farbiger Fläche ist in s/w kaum lesbar. "
+                                   f"Fläche schwarz (#1D1D1B) färben: {ref(t)}")
+                continue  # weiße Ziffer im schwarzen Nummernkreis ist gewollt
+            add("WARNUNG", f"Schrift in {c} wird in s/w {'grau und kontrastarm' if grauwert(rgb) < 230 else 'unsichtbar'}. "
+                           f"Schwarz (#1D1D1B) verwenden: {ref(t)}")
+
+    bilder = [e for e in alle if (e.get("fill") or {}).get("media") or e["type"] == "image"]
+    if bilder:
+        add("HINWEIS", f"{len(bilder)} Bild(er): Für s/w als Strichzeichnung einsetzen (Leitfigur und "
+                       f"Wachstumsgrafik in der Strich-Version). Farbige Bilder werden zu Grauflächen.")
+    prozent = 100 * deckung / (W * H)
+    if prozent >= 1:
+        add("WARNUNG" if prozent >= 3 else "HINWEIS",
+            f"Formen und Flächen decken ca. {prozent:.1f} % der Seite (ohne Text und Bilder; eine "
+            f"Textseite hat ca. 5 %). Flächen entfernen spart Toner.")
+
+
+def pruefe_platz(seite, els, rand_px, add):
+    """Platz für Aufgaben statt für Kästen und Leerstreifen."""
+    W, H = seite["dimensions"]["width"], seite["dimensions"]["height"]
+    kaesten = []
+    for e in els:
+        if e["type"] not in ("shape", "rect") or e["width"] < 0.5 * W or e["height"] < 80:
+            continue
+        if e["width"] * e["height"] > 0.9 * W * H:
+            continue
+        gefuellt = any(f and grauwert(f) < 250 for f, _, _, _ in fuellungen(e))
+        umrandet = any(w and s for _, s, w, _ in fuellungen(e))
+        if gefuellt or umrandet:
+            kaesten.append(e)
+    if kaesten:
+        add("HINWEIS", f"{len(kaesten)} Aufgabenkasten/-kästen über die Spaltenbreite. Kästen kosten Innenabstand: "
+                       f"Aufgaben ohne Kasten mit hängender Nummer setzen (druck-und-platz.md).")
+    # Leerstreifen: belegte Höhen ohne Kästen (deren Innenraum zählt nicht als genutzt)
+    belegt = sorted((e["top"], e["top"] + e["height"]) for e in els
+                    if e not in kaesten and e["width"] * e["height"] < 0.9 * W * H)
+    oben, unten = rand_px, H - rand_px
+    pos = oben
+    for a, b in belegt:
+        if a - pos > LEERSTREIFEN_PX and pos < unten:
+            add("HINWEIS", f"Ungenutzter Streifen von {round(min(a, unten) - pos)} px (y {round(pos)}–"
+                           f"{round(min(a, unten))}): Items ergänzen oder Schreibfläche sinnvoll vergrößern.")
+        pos = max(pos, b)
+    if unten - pos > LEERSTREIFEN_PX:
+        add("HINWEIS", f"Unten bleiben {round(unten - pos)} px frei: weitere Items oder eine Aufgabe ergänzen.")
+
+
 # ---------- Prüfungen ----------
 
-def pruefe_seite(seite, klasse, rand_px):
+def pruefe_seite(seite, klasse, rand_px, farbe=False):
     befunde = []  # (stufe, text)
     W, H = seite["dimensions"]["width"], seite["dimensions"]["height"]
     els = [e for e in seite["elements"] if all(k in e for k in ("left", "top", "width", "height"))]
@@ -260,7 +439,12 @@ def pruefe_seite(seite, klasse, rand_px):
         if len(luecken) >= 2 and max(luecken) - min(luecken) > 8:
             add("HINWEIS", f"Abstände zwischen Blöcken uneinheitlich ({luecken} px); einen Wert verwenden.")
 
-    # 8. Bearbeitbarkeit: lose Teilelemente gruppieren
+    # 8. Druck (s/w) und Platz
+    if not farbe:
+        pruefe_druck(seite, els, figuren, add)
+    pruefe_platz(seite, els, rand_px, add)
+
+    # 9. Bearbeitbarkeit: lose Teilelemente gruppieren
     vorschlaege = []
     vergeben = set()
     for bx in figuren:
@@ -285,6 +469,7 @@ def main():
     p.add_argument("--klasse", type=int, choices=[1, 2, 3, 4])
     p.add_argument("--rand-cm", type=float, default=1.5, help="Seitenrand für Inhalte (Standard 1,5 cm)")
     p.add_argument("--seite", type=int, help="nur diese Seite (1-basiert)")
+    p.add_argument("--farbe", action="store_true", help="Farbdruck: s/w-Druckprüfungen auslassen")
     a = p.parse_args()
 
     seiten, abgeschnitten = lade_seiten(lade_text(a.datei))
@@ -294,7 +479,7 @@ def main():
     for nr, seite in enumerate(seiten, 1):
         if a.seite and nr != a.seite:
             continue
-        befunde, vorschlaege = pruefe_seite(seite, a.klasse, a.rand_cm * PX_PRO_CM)
+        befunde, vorschlaege = pruefe_seite(seite, a.klasse, a.rand_cm * PX_PRO_CM, a.farbe)
         d = seite["dimensions"]
         print(f"== Seite {nr} ({round(d['width'])}×{round(d['height'])} px, {len(seite['elements'])} Elemente) ==")
         for stufe in ("FEHLER", "WARNUNG", "HINWEIS"):

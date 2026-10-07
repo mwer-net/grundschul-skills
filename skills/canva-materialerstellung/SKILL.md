@@ -19,13 +19,14 @@ Canvas KI formuliert sonst eigene Texte, verwendet falsche Schriftgrößen oder 
 
 Ziel jedes Materials: übersichtlich, keine Darstellungsfehler (abgeschnitten, überlappend, verrutscht), von der Lehrkraft ohne Canva-Kenntnisse nachbearbeitbar. Regeln, Raster und Platzbudget: `references/layout-und-bearbeitbarkeit.md` – **vor dem Bauen lesen**. Kurzfassung:
 
-- Seitenrand 60 px für alle Elemente, eine Spalte, Abstände nur 8/16/24/32/48 px, 24 px zwischen Blöcken, 16–24 px Innenabstand.
+- **Schwarz-Weiß und kompakt** (`grundschul-didaktik/references/druck-und-platz.md`): weißer Hintergrund, keine Farb- oder Grauflächen, Text schwarz, Bilder als Strichzeichnung; Aufgaben ohne Kasten mit hängender Nummer, volle Item-Reihen.
+- Seitenrand 60 px für alle Elemente, eine Spalte, Abstände nur 8/16/24/32/48 px, 24–32 px zwischen Aufgaben.
 - Platzbudget vor dem Bauen rechnen; passt es nicht, Item streichen oder zweite Seite – nie Ränder zusammenpressen.
 - Text bleibt Text, ein Textfeld pro Sinneinheit, feste Breite, Puffer darunter, kein Layout mit Leerzeichen.
 - Zusammengesetzte Abbildungen gruppieren (Uhr, Nummernkreis, Leitfigur + Sprechblase), Blöcke und Anweisungen nicht. Nichts sperren.
 - Nach dem Bauen `scripts/layout_check.py` laufen lassen (Abschnitt 3).
 
-`create-design` ist nur ein **Startpunkt**: Die Canva-KI ignoriert px-Angaben für Ränder, Abstände und Schriftgrößen, ändert Text und füllt Flächen mit Bildern statt Farbe. Das Layout wird danach mit `edit-design` auf das Raster gesetzt.
+`create-design` ist nur ein **Startpunkt**: Die Canva-KI ignoriert px-Angaben für Ränder, Abstände und Schriftgrößen, ändert Text, setzt farbige Kästen und füllt Flächen mit Bildern. Das Layout wird danach mit `edit-design` auf das Raster gesetzt.
 
 ## Ablauf mit den Canva-Werkzeugen
 
@@ -46,7 +47,7 @@ Ziel jedes Materials: übersichtlich, keine Darstellungsfehler (abgeschnitten, �
 - Was ein Bild bekommt und wie viel: `grundschul-didaktik/references/kindgerecht-gestalten.md` (Leitfigur Willi/Wilma Waschbär mit fertigen Media-IDs, Bilder nur mit Mehrwert; Weglass-Test).
 - Eigene Illustrationen: `generate-image` mit dem **Stil-Satz** aus `kindgerecht-gestalten.md`, für jedes Bild eines Materials wörtlich gleich, danach das Motiv konkret. Keine Schrift, Zahlen oder Uhren im KI-Bild. Für Ausmalbilder: "nur schwarze Umrisse, keine Füllung".
 - `generate-image` liefert eine `media_id` (z. B. `MAHX…`). Diese direkt mit `edit-design` → `insert_fill` (`asset_type: "image"`, `asset_id: <media_id>`, `alt_text`, Position und Größe) ins Design setzen – kein Upload nötig. Leitfigur und Wachstumsgrafik nicht neu erzeugen, sondern die IDs aus `kindgerecht-gestalten.md` einsetzen; neue Posen dort mit ID ergänzen.
-- KI-Bilder haben einen weißen Hintergrund. Auf weißer Seite unproblematisch; auf farbigen Flächen vorher `remove-background` oder das Bild außerhalb der Fläche platzieren.
+- KI-Bilder haben einen weißen Hintergrund; auf der weißen Seite unproblematisch. Für s/w-Kopiervorlagen als Strichzeichnung erzeugen (Stil-Satz in `kindgerecht-gestalten.md`), Leitfigur und Wachstumsgrafik in der Strich-Version einsetzen.
 - Sachabbildungen (Tiere, Pflanzen, Körper): realistisch, fachlich korrekt prüfen. Bei Zweifel Foto aus der Canva-Bibliothek statt KI-Bild.
 - Hochladen von Bildern der Lehrkraft: `upload-asset-from-url` bzw. `create-upload-url`; Freisteller: `remove-background`.
 - Einheitlicher Bildstil im ganzen Material.
@@ -65,14 +66,14 @@ Wenn ein Upload nicht möglich ist (abgeschottete Umgebung, blockierte Upload-UR
 
 - **Geometrie automatisch prüfen:** `read-design` mit `open_transaction: true` (bzw. `transaction_id`) und `filter.fields: ["design_content"]`, Antwort als Datei speichern, dann
   `python3 scripts/layout_check.py design.json --klasse {K}`.
-  Meldet FEHLER (abgeschnitten, Druckrand, überlappende oder verdeckte Texte, Restelemente), WARNUNGEN (Rand, Berührungen, fehlender Puffer, kleine Schrift, uneinheitliche Abstände) und HINWEISE (Gruppen, Unterstrich-Linien). Die ausgegebenen `group_elements`-Operationen direkt an `edit-design` geben. Wiederholen, bis keine FEHLER bleiben. Details: `references/layout-und-bearbeitbarkeit.md`, Abschnitt 3.
+  Meldet FEHLER (abgeschnitten, Druckrand, überlappende oder verdeckte Texte, Restelemente), WARNUNGEN (Rand, Berührungen, fehlender Puffer, kleine Schrift, uneinheitliche Abstände, Druck: Farb-/Grauflächen, Hintergrundbild, farbige Schrift, helle oder dünne Linien) und HINWEISE (Gruppen, Unterstrich-Linien, Aufgabenkästen, Leerstreifen, Bilder auf s/w prüfen). Bei ausdrücklichem Farbdruck `--farbe` angeben. Die ausgegebenen `group_elements`-Operationen direkt an `edit-design` geben. Wiederholen, bis keine FEHLER bleiben. Details: `references/layout-und-bearbeitbarkeit.md`, Abschnitt 3.
 - `read-design` lesen und gegen das Briefing abgleichen. Die Antwort wird schnell sehr groß; deshalb mit `filter.fields` gezielt anfordern (`thumbnails` für die Optik, `design_content` für Elementpositionen) und lange Ergebnisse als Datei mit `python3`/`jq` auswerten statt am Stück zu lesen.
   - Steht der Text wörtlich so da? Keine erfundenen Zusätze?
   - Schriftgrößen gemäß Klassenstufe (`grundschul-didaktik`)? Keine Schmuck- oder Großbuchstabenschrift für Fließtext?
   - Ich-kann-Ziel oben, Niveau-Punkte an jeder Aufgabe, Wachstumsgrafik und Reflexionsfrage unten?
   - Genug Schreibfläche, Lineatur vorhanden?
   - Keine Deko-Elemente ohne Funktion, kein Text auf unruhigem Hintergrund?
-  - Funktioniert es in Schwarz-Weiß?
+  - Funktioniert es in Schwarz-Weiß, ohne große Farb- oder Grauflächen? Seite gut genutzt (keine Kästen, volle Reihen)?
 - Dem Nutzer die Vorschau zeigen.
 
 ### 4. Korrigieren
@@ -80,7 +81,8 @@ Wenn ein Upload nicht möglich ist (abgeschottete Umgebung, blockierte Upload-UR
 - `edit-design` innerhalb einer Bearbeitungstransaktion:
   - `find_and_replace_text` / `replace_text` für Textfehler
   - `format_text` für Schriftgröße (in px; bei A4-Designs ca. pt × 1,33), `line_height` 1,5, Fett für Hervorhebung
-  - `delete_element` für Deko ohne Funktion
+  - `delete_element` für Deko ohne Funktion und für Aufgabenkästen/Farbflächen
+  - `recolor_element` / `format_text` `color` für farbige Nummernkreise und Schrift → `#1D1D1B`
   - `insert_shape` für Schreiblinien, Rahmen, Kästchen
   - `add_text` setzt **immer** 16 px, normal, linksbündig – unabhängig vom Umfeld. Nach jedem `add_text` ein `format_text` mit Größe, Gewicht und `text_align` hinterherschicken, sonst sitzen Zahlen und Beschriftungen falsch.
   - `add_page` für Niveau-Varianten oder Lösungsblatt
@@ -102,22 +104,23 @@ Wenn ein Upload nicht möglich ist (abgeschottete Umgebung, blockierte Upload-UR
 
 ## Brief-Vorlage für `create-design`
 
-Schrift und Farben lassen sich nachträglich nur eingeschränkt ändern (`format_text` kennt **keine Schriftart**). Palette, runde Blöcke und farbige Nummernkreise setzt Canva aus dem Brief zuverlässig um; Schriftwünsche nur teilweise (im Test wurde eine runde Schrift für alles verwendet statt zwei getrennter). Wer eine bestimmte Schrift braucht, legt sie im Brand Kit an. Texte aus `add_text` erscheinen in Canvas Standardschrift – für längere Texte lieber Platz im Brief reservieren und den Text dort mitgeben. Deshalb Palette und Schriften schon im Brief festlegen; Bilder und exakte Abbildungen danach selbst einsetzen und im Brief nur Platz dafür reservieren.
+Schrift lässt sich nachträglich nur eingeschränkt ändern (`format_text` kennt **keine Schriftart**). Farben und Kästen aus dem Brief setzt Canva zuverlässig um – deshalb im Brief ausdrücklich s/w und „keine Kästen" verlangen; Schriftwünsche nur teilweise (im Test wurde eine runde Schrift für alles verwendet statt zwei getrennter). Wer eine bestimmte Schrift braucht, legt sie im Brand Kit an. Texte aus `add_text` erscheinen in Canvas Standardschrift – für längere Texte lieber Platz im Brief reservieren und den Text dort mitgeben. Deshalb Druckart und Schriften schon im Brief festlegen; Bilder und exakte Abbildungen danach selbst einsetzen und im Brief nur Platz dafür reservieren.
 
 ```
 Arbeitsblatt für die Grundschule, Klasse {K}, Fach {Fach}, Thema "{Thema}".
-Format A4 hochkant, druckfreundlich, weißer Seitenhintergrund.
-Gestaltung: kindgerecht, freundlich und fröhlich, aber ruhig und übersichtlich (Emotional Design ohne Deko).
-Farbpalette "{Name}": Hauptfarbe {Hex}, Akzent {Hex}, Flächen sehr hell {Hex} und {Hex}, Text dunkel #1D1D1B.
-Schriften: Überschrift in {Fredoka/Baloo 2} (fett, Hauptfarbe, {px}), aller übrige Text in {Andika/Schulschrift} ({px}, dunkel),
-Zeilenabstand 1,5, linksbündig. Seitenrand rundum 60 px, auch für farbige Flächen. Eine Spalte, alle Blöcke gleich breit und bündig, 24 px Abstand dazwischen. Viel Weißraum.
-Jede Aufgabe ein eigener Block: helle, einfarbige Fläche (kein Bild, kein Muster) mit stark abgerundeten Ecken, ohne Rahmenlinie, 20 px Innenabstand.
-Aufgabennummer als ausgefüllter Kreis in der Hauptfarbe mit weißer, fetter Ziffer links neben der Anweisung.
-Unter der Überschrift das Ich-kann-Ziel und die Wahlhilfe in einer schmalen hellen Zeile. Jeder Aufgabenblock trägt rechts oben seine Niveau-Punkte (●, ●● oder ●●●) in Dunkelgrau; alle Blöcke sehen gleich aus.
-Fußzeile als helle abgerundete Fläche, mindestens 80 px hoch: Ich-kann-Satz und "Male an, wie weit du schon bist:", rechts Platz (ca. 220 × 110 px) für die Wachstumsgrafik, darunter die Reflexionsfrage.
-Platz lassen für: {Willi/Wilma oben rechts ca. 110 px mit Sprechblase, Uhren/Felder/benötigte Bilder …}.
+Format A4 hochkant. Kopiervorlage für SCHWARZ-WEISS-Druck: weißer Seitenhintergrund, kein Hintergrundbild,
+keine farbigen oder grauen Flächen, alle Texte schwarz #1D1D1B, Linien schwarz/dunkelgrau 2 px.
+Gestaltung: kindgerecht und freundlich durch runde Überschriftenschrift und runde Formen, aber ruhig und kompakt. Möglichst viele Aufgaben auf der Seite.
+Schriften: Überschrift in {Fredoka/Baloo 2} (fett, schwarz, {px}), aller übrige Text in {Andika/Schulschrift} ({px}, schwarz),
+Zeilenabstand 1,5, linksbündig. Seitenrand rundum 60 px. Eine Spalte.
+Aufgaben OHNE Kasten, ohne Hintergrundfläche, ohne Innenabstand: Aufgabennummer als kleiner schwarz gefüllter Kreis (34 px) mit weißer fetter Ziffer am linken Rand,
+Anweisung direkt rechts daneben, Arbeitsfläche direkt darunter bündig mit der Anweisung. Zwischen zwei Aufgaben 32 px Abstand und eine dünne graue Linie (#808080, 1 px).
+Niveau-Punkte (●, ●● oder ●●●) rechtsbündig in der Anweisungszeile. Alle Aufgaben sehen gleich aus.
+Kopf kompakt (höchstens 160 px): Name/Datum-Zeile, Überschrift, darunter Ich-kann-Ziel und Wahlhilfe in einer Zeile.
+Fuß kompakt (höchstens 110 px), oben durch eine dünne Linie abgetrennt, keine Fläche: Ich-kann-Satz und "Male an, wie weit du schon bist:", rechts Platz (ca. 200 × 90 px) für die Wachstumsgrafik, darunter die Reflexionsfrage mit Ankreuzkästchen.
+Platz lassen für: {Willi/Wilma ca. 90 px mit Sprechblase rechts neben Aufgabe 1, Uhren/Felder in voller Reihe …}.
 KEINE Bilder, Icons oder Cliparts selbst einfügen – die werden später ergänzt.
-Schreiblinien dunkelgrau und schlicht. Keine Dekoration ohne Funktion, kein Text auf Bildern, keine Großbuchstaben-Texte.
+Keine Dekoration ohne Funktion, kein Text auf Bildern, keine Großbuchstaben-Texte.
 Verwende exakt folgenden Text, nichts umformulieren, nichts ergänzen:
 ---
 {vollständiger Text inkl. Kopfzeile "Name: ____  Datum: ____", Ich-kann-Ziel, Wahlhilfe, Niveau-Punkte an jeder Aufgabe, Fußzeilentext, Reflexionsfrage}
@@ -139,11 +142,13 @@ Verwende exakt folgenden Text, nichts umformulieren, nichts ergänzen:
 | Upload von Bildern blockiert | Abbildung als Vektorformen bauen (Abschnitt 2b) |
 | Canva setzt Platzhalter-Rahmen für Bilder/Uhren | Platzhalter mit `delete_element` entfernen; ein Bildrahmen kann mit `update_fill` direkt das KI-Bild aufnehmen (wird automatisch zugeschnitten) |
 | Leitfigur hat weißen Kasten | `remove-background` auf die `media_id`, dann die neue ID einsetzen |
+| Leitfigur/Wachstumsgrafik farbig (wird in s/w grau) | Strich-Version einsetzen; fehlt sie, nach `kindgerecht-gestalten.md` erzeugen und ID ergänzen |
 | Blöcke 16 px vom Rand, berühren sich oder überlappen um 1 px | Auf das Raster setzen: `position_element` / `resize_element`, Blöcke mit 24 px Abstand neu stapeln (`references/layout-und-bearbeitbarkeit.md`) |
-| Aufgabenflächen sind Bilder (Rechteck mit Bildfüllung) statt Formen | Durch `insert_shape` mit `color` und `corner_rounding` ersetzen, nach hinten legen, Bild-Rechteck löschen. Sonst lässt sich die Farbe nicht ändern |
+| Canva setzt trotz Brief farbige Aufgabenkästen oder Flächen mit Bildfüllung | Kästen und Flächen löschen, Inhalte mit hängender Nummer neu stapeln (`references/layout-und-bearbeitbarkeit.md`) |
+| Farbige Nummernkreise, Überschrift oder Schrift | `recolor_element` bzw. `format_text` `color` auf `#1D1D1B` |
 | Seitenhintergrund ist ein Bild | Weißen Hintergrund lassen bzw. Bild löschen |
 | Ziffer im Nummernkreis verschwunden | Kreis wurde später eingefügt und liegt oben: Ziffer mit `layer_element` `"front"` |
 | Wachstumsgrafik oder Leitfigur abgeschnitten | Seitenverhältnis beim `insert_fill` beachten, sonst `resize_element` + `crop_media` |
-| Fußzeile passt nicht mehr auf die Seite | Platzbudget neu rechnen: Abstände auf der 8er-Skala verkleinern, Reihe umbrechen oder `resize-design` auf A4 |
+| Fußzeile passt nicht mehr auf die Seite | Platzbudget neu rechnen: Kästen und Innenabstände entfernen, Kopf und Fuß verschlanken, Reihe umbrechen oder `resize-design` auf A4 |
 | Uhren als 100+ lose Einzelteile, `read-design` abgeschnitten | Jede Uhr mit `group_elements` gruppieren |
 | Zu viele Seiten bei Karten | Kartenraster bewusst planen: 8 Karten pro A4-Seite (2 × 4) bei Memory/Wortkarten, 12 bei Domino (2 × 6) |

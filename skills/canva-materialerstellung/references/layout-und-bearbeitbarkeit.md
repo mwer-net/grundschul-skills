@@ -2,26 +2,29 @@
 
 Ziel: Jedes Material ist **übersichtlich**, hat **keine Darstellungsfehler** (abgeschnitten, überlappend, verrutscht) und lässt sich von der Lehrkraft **ohne Canva-Kenntnisse nachbearbeiten** (Text ändern, Aufgabe tauschen, Block verschieben).
 
+Standard ist der **Schwarz-Weiß-Druck** mit Aufgaben ohne Kasten (`grundschul-didaktik/references/druck-und-platz.md`). Die Werte unten gelten dafür; Flächen-Regeln nur, wo ausnahmsweise eine Fläche oder ein Rahmen mit Funktion vorkommt.
+
 Maße gelten für Canva-Pixel (96 px pro Zoll, 1 cm ≈ 38 px). A4 = 794 × 1123 px; Canva liefert oft US-Letter 816 × 1056 px.
 
 ## 1. Satzspiegel und Raster
 
 | Regel | Wert | Warum |
 |---|---|---|
-| Seitenrand für **alle** Elemente, auch farbige Flächen | 60 px (≈ 1,6 cm); zum Abheften links 76 px | Bürodrucker drucken nicht randlos (4–5 mm), beim Einpassen Letter → A4 verschiebt sich der Inhalt leicht. |
+| Seitenrand für **alle** Elemente | 60 px (≈ 1,6 cm); zum Abheften links 76 px | Bürodrucker drucken nicht randlos (4–5 mm), beim Einpassen Letter → A4 verschiebt sich der Inhalt leicht. |
 | Absolute Untergrenze | 19 px (5 mm) | Darunter wird abgeschnitten. Canva-KI legt Blöcke gern 16 px vom Rand. |
 | Inhaltsspalte | eine Spalte; alle Blöcke gleiche linke Kante, gleiche Breite | Ein Raster macht das Blatt ruhig und erleichtert späteres Platzieren. |
 | Abstandsskala | nur 8 / 16 / 24 / 32 / 48 px | Gleiche Abstände wirken geordnet; „fast gleich" (13 px neben 16 px) wirkt fehlerhaft. |
-| Innenabstand in Flächen | 16–24 px, rundum gleich | Text klebt sonst am Rand. |
-| Abstand zwischen Aufgabenblöcken | 24 px, überall gleich | Blöcke dürfen sich nie berühren. |
-| Nähe-Prinzip | Anweisung → ihre Arbeitsfläche: 8–16 px; Block → nächster Block: 24–32 px | Zusammengehöriges steht näher beieinander als Getrenntes. |
-| Nummernkreis | feste Spalte links im Block, Anweisung 16 px rechts davon | Kreis und Text dürfen sich nicht überschneiden. |
+| Aufgaben | ohne Kasten, ohne Flächenfüllung | Kästen kosten Innenabstand und Toner; Nähe und Abstand gliedern genauso klar. |
+| Abstand zwischen Aufgaben | 24–32 px, überall gleich; optional dünne Trennlinie (1–1,5 px, `#808080`) mittig im Abstand | Aufgaben dürfen sich nie berühren. |
+| Nähe-Prinzip | Anweisung → ihre Arbeitsfläche: 8–16 px; Aufgabe → nächste Aufgabe: 24–32 px | Zusammengehöriges steht näher beieinander als Getrenntes. |
+| Nummernkreis | 32–36 px, schwarz gefüllt, weiße fette Ziffer; feste Spalte am linken Spaltenrand, Anweisung 12–16 px rechts davon, Arbeitsfläche bündig unter der Anweisung (hängende Nummer) | Kreis und Text dürfen sich nicht überschneiden; die Nummer ersetzt den Kasten. |
+| Rahmen mit Funktion (Sprechblase, Wortspeicher, Antwortkasten) | Kontur 1,5–2 px, keine Füllung, Ecken 8–16 px gerundet, Innenabstand 8–12 px | Text klebt sonst am Rand; mehr Innenabstand kostet nur Platz. |
 | Zeilenlänge | höchstens ca. 60 Zeichen | Längere Zeilen verlieren Leseanfänger. |
 | Schriftgrößen | höchstens drei: Überschrift, Text, Beschriftung | Klare Hierarchie. |
 | Ausrichtung | Fließtext linksbündig, nichts gedreht | Zentrierter oder gedrehter Text ist schwer lesbar und schwer zu bearbeiten. |
 | Reihen gleichartiger Elemente (Uhren, Felder) | gleiche Größe, gleicher Abstand, gemeinsam zentriert in der Spalte | Kinder erkennen die Reihe als Einheit. |
 
-**Platzbudget vor dem Bauen:** Höhe des Satzspiegels (Letter 1056 − 120 = 936 px, A4 1123 − 120 = 1003 px) auf Kopf, Blöcke, Abstände und Fußzeile verteilen. Passt es nicht, ein Item streichen oder eine zweite Seite anlegen – nie Abstände oder Ränder zusammenpressen.
+**Platzbudget vor dem Bauen:** Höhe des Satzspiegels (Letter 1056 − 120 = 936 px, A4 1123 − 120 = 1003 px) verteilen: Kopf ≤ 160 px, Fuß 80–110 px, Rest für Aufgaben und Abstände. Item-Reihen füllen (Spaltenbreite 674 px ÷ Item-Breite + Abstand), Mindestgrößen aus `druck-und-platz.md` einhalten. Bleibt Platz, Items oder eine Aufgabe ergänzen; passt es nicht, ein Item streichen oder eine zweite Seite anlegen – nie Abstände, Ränder oder Schriftgrößen zusammenpressen.
 
 ## 2. Bearbeitbar bauen
 
@@ -30,7 +33,7 @@ Maße gelten für Canva-Pixel (96 px pro Zoll, 1 cm ≈ 38 px). A4 = 794 × 1123
 3. **Kein Layout mit Leerzeichen, Tabs oder Leerzeilen.** Das verrutscht bei der ersten Änderung. Abstand entsteht durch Position, nicht durch Zeichen.
 4. **Textfelder mit fester Breite** (`add_text` mit `width`, sonst wächst das Feld unkontrolliert in die Breite): so breit wie die Spalte bzw. der Block abzüglich Innenabstand, nicht auf die Textlänge zugeschnitten. Text wächst dann nach unten. Darunter mindestens eine Zeile Puffer (≥ 8 px, besser 24 px), damit eine Korrektur der Lehrkraft nichts überdeckt. `update_text_anchoring` `"start"` hält die Oberkante fest.
 5. **Zusammengesetztes gruppieren** (`group_elements`): jede Uhr (Ziffernblatt, Striche, Zeiger, 12 Ziffern), Zahlenstrahl, Nummernkreis + Ziffer, Leitfigur + Sprechblase + Tipptext, Wachstumsgrafik + Beschriftung. Aufgabenflächen und Anweisungstexte **nicht** mitgruppieren, damit Text direkt anklickbar bleibt.
-6. **Ebenen ordnen:** Flächen hinten (`layer_element` `"back"`), Text und Abbildungen davor. Nichts Wichtiges hinter einer Fläche verstecken.
+6. **Ebenen ordnen:** Flächen (falls vorhanden) hinten (`layer_element` `"back"`), Text und Abbildungen davor. Nichts Wichtiges hinter einer Fläche verstecken.
 7. **Schreiblinien als Linienform**, alle gleich lang und gleich dick. Keine Unterstrich-Ketten im Fließtext („um ________"): zu niedrig für Kinderschrift, Länge ändert sich mit der Schrift. Ausnahme: `Name: ______  Datum: ______` in der Kopfzeile.
 8. **Gleiche Rolle, gleiches Format:** Alle Anweisungen gleiche Größe/Farbe/Schrift, alle Beschriftungen ebenso. Dann kann die Lehrkraft mit „Stil kopieren" oder „Alle ändern" arbeiten.
 9. **Nichts sperren.** Die Lehrkraft soll alles ändern können; gesperrte Elemente lassen sich nach dem Duplizieren eines Designs nicht mehr entsperren.
@@ -45,7 +48,7 @@ Nach dem Erstellen und nach jeder größeren Korrektur:
 1. `read-design` mit `open_transaction: true` und `filter.fields: ["design_content"]` (nur so kommen Positionen und Locator-IDs).
 2. Antwort als Datei speichern und prüfen:
    `python3 scripts/layout_check.py design.json --klasse 2`
-3. Alle **FEHLER** beheben (abgeschnitten, Druckrand, überlappende Texte, Restelemente). **WARNUNGEN** prüfen und in der Regel beheben (Rand, Berührungen, fehlender Puffer, zu kleine Schrift, uneinheitliche Abstände). **HINWEISE** betreffen die Bearbeitbarkeit (Gruppen, Unterstrich-Linien, Layout per Leerzeichen).
+3. Alle **FEHLER** beheben (abgeschnitten, Druckrand, überlappende Texte, Restelemente). **WARNUNGEN** prüfen und in der Regel beheben (Rand, Berührungen, fehlender Puffer, zu kleine Schrift, uneinheitliche Abstände). **HINWEISE** betreffen die Bearbeitbarkeit (Gruppen, Unterstrich-Linien, Layout per Leerzeichen) und den Platz (Aufgabenkästen, ungenutzte Streifen). Die **Druck-Prüfungen** für s/w (Hintergrundbild, Farb-/Grauflächen, farbige oder weiße Schrift, helle oder dünne Linien, geschätzte Flächendeckung, farbige Bilder) laufen standardmäßig; bei ausdrücklichem Farbdruck `--farbe` angeben.
 4. Die vom Skript ausgegebenen `group_elements`-Operationen direkt an `edit-design` geben.
 5. Erneut lesen und prüfen, bis keine FEHLER mehr bleiben. Dann die Vorschau (`thumbnails`) ansehen: Das Skript sieht Geometrie, nicht Optik.
 
@@ -62,8 +65,9 @@ Ohne Code-Ausführung dieselben Punkte von Hand an den Koordinaten aus `design_c
 | Anweisung beginnt im Nummernkreis | Text auf Kreis-Ende + 16 px setzen, Breite entsprechend verringern |
 | Text „Name:" ragt in die eigene Schreiblinie | Linie hinter das Textende + 8 px verschieben |
 | Überschrift ohne Abstand zum nächsten Element | Folgeelemente um 16–24 px nach unten |
-| Seitenhintergrund als Bild | Weißen Hintergrund lassen; bei Bedarf Bild löschen |
-| Aufgabenflächen als Rechtecke mit Bildfüllung | Durch `insert_shape` (Farbe, `corner_rounding` 16) ersetzen, damit die Lehrkraft die Farbe ändern kann |
+| Seitenhintergrund als Bild | Weißen Hintergrund lassen; Bild löschen (kostet in s/w Toner) |
+| Aufgabenflächen als farbige Kästen oder Rechtecke mit Bildfüllung | Löschen (`delete_element`); Aufgaben mit hängender Nummer neu stapeln, Abstand 24–32 px |
+| Farbige Schrift, farbige Nummernkreise, Pastellflächen in Kopf/Fuß | `format_text` `color` `#1D1D1B`, `recolor_element` Kreis `#1D1D1B`, Flächen löschen |
 | px-Angaben im Brief (Rand, Abstand, Schriftgröße) ignoriert, Text umformuliert | Brief nur als Startpunkt nutzen; Layout mit `edit-design` auf das Raster setzen, Text mit `find_and_replace_text` korrigieren |
 | Letter-Format 816 × 1056, Inhalt passt nicht ins Platzbudget | `resize-design` auf A4 (neues Design, neue ID), danach Layout neu setzen |
 | Uhren als 100+ lose Einzelteile | je Uhr `group_elements` |
@@ -79,7 +83,9 @@ Ohne Code-Ausführung dieselben Punkte von Hand an den Koordinaten aus `design_c
 ## 6. Checkliste
 
 - [ ] Alle Elemente ≥ 60 px vom Seitenrand, nichts ragt über die Seite
-- [ ] Eine Spalte: Blöcke bündig, gleich breit, Abstände einheitlich (8er-Skala)
+- [ ] Eine Spalte: Aufgaben bündig, ohne Kasten, Abstände einheitlich (8er-Skala)
+- [ ] S/W-tauglich: keine Farb- oder Grauflächen, Text schwarz, Linien ≥ 1,5 px nicht heller als `#808080`
+- [ ] Platz genutzt: Kopf ≤ 160 px, Fuß ≤ 110 px, Item-Reihen gefüllt, kein Leerstreifen
 - [ ] Keine Überlappung außer „Inhalt liegt mit Innenabstand in seiner Fläche"
 - [ ] Unter jedem Textfeld Puffer zum Wachsen
 - [ ] Textfelder mit fester Breite, kein Layout per Leerzeichen

@@ -53,9 +53,10 @@ Prozessbezogene Kompetenzen in jedes Material einbauen: Problemlösen, Kommunizi
 
 ## Darstellungskonventionen für Materialien
 
-- Zwanzigerfeld: 2 × 10 Kreise, nach 5 Spalten Lücke oder Farbwechsel; Wendeplättchen rot/blau.
+- Zwanzigerfeld: 2 × 10 Kreise, nach 5 Spalten Lücke oder Farbwechsel; Wendeplättchen rot/blau. Im s/w-Druck: rot = gefüllter Kreis, blau = leerer Kreis (Legende angeben), oder Kinder malen selbst an.
 - Hunderterfeld: 10 × 10, Fünferlinien hervorgehoben.
-- Stellenwerte: Farben der Klasse (häufig E blau, Z rot, H grün) – Konvention erfragen.
+- Stellenwerte: Farben der Klasse (häufig E blau, Z rot, H grün) – Konvention erfragen. Im s/w-Druck Buchstaben E/Z/H über der Stelle; Kinder können die Farben anmalen.
+- Uhren, Felder, Zahlenstrahl schwarz auf Weiß, Reihen gefüllt; Mindestgrößen in `grundschul-didaktik/references/druck-und-platz.md`.
 - Zahlenstrahl: gleichmäßige Abstände, Zehner deutlich markiert.
 - Uhr: analoges Zifferblatt mit großen Ziffern, Stundenzeiger deutlich kürzer und dicker. **Nie von der KI zeichnen lassen** – `scripts/uhr.py` erzeugt exakte Zifferblätter als PNG, `scripts/uhr_canva.py` dieselbe Uhr als Canva-Operationen (wenn kein Bild-Upload möglich ist).
 - Geld: Euro-Abbildungen sind erlaubt; maßstabsgetreu und eindeutig.
