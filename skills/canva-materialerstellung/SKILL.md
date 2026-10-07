@@ -1,19 +1,30 @@
 ---
 name: canva-materialerstellung
-description: Technischer Ablauf, um Grundschulmaterial (Arbeitsblätter, Karten, Plakate, Spiele, Präsentationen) mit dem Canva MCP zu erstellen, zu prüfen, zu korrigieren und als druckfertiges PDF zu exportieren. Laden, sobald ein Material in Canva umgesetzt werden soll.
+description: Technischer Ablauf, um Grundschulmaterial (Arbeitsblätter, Karten, Plakate, Spiele, Präsentationen) mit dem Canva MCP zu erstellen, zu prüfen, zu korrigieren und als druckfertiges PDF zu exportieren. Laden, sobald ein freigegebener Aufgabenplan in Canva umgesetzt werden soll (vorher Entwürfe und Aufgabenplan nach grundschul-didaktik).
 ---
 
 # Material mit Canva erstellen
 
-Voraussetzung: Inhalt und Briefing stehen fest (siehe `grundschul-didaktik`, Rückfrage-Protokoll). Aus der Start-Abfrage sind **Materialart, Medium/Format und Druckprofil (Farbe oder s/w)** bekannt; das Format bestimmt den `format`-Parameter, das Druckprofil Brief, Bilder und `layout_check.py`. Canva setzt um, entscheidet aber nicht über Inhalt oder Didaktik.
+Voraussetzung: Der **Aufgabenplan ist freigegeben** (`grundschul-didaktik/references/entwurf-und-aufgabenplan.md`): Die Lehrkraft hat einen Entwurf gewählt und den Plan mit allen Texten, Items, Lösungen und der Bildliste bestätigt. Ohne Freigabe kein `create-design` und kein `generate-image`. Aus der Start-Abfrage sind **Materialart, Medium/Format und Druckprofil (Farbe oder s/w)** bekannt; das Format bestimmt den `format`-Parameter, das Druckprofil Brief, Bilder und `layout_check.py`. Canva setzt um, entscheidet aber nicht über Inhalt oder Didaktik.
 
 ## Grundsatz: Erst Inhalt, dann Design
 
-1. **Inhalt vollständig selbst schreiben:** Überschrift, alle Arbeitsanweisungen, alle Aufgaben, Wortspeicher, Lösungen. Rechnungen und Rechtschreibung prüfen.
-2. **Layout-Skizze festlegen:** Reihenfolge der Blöcke, welche Bilder wohin, Platzbedarf für Schreibflächen.
+1. **Inhalt kommt aus dem Aufgabenplan**, wörtlich: Überschrift, alle Arbeitsanweisungen, alle Aufgaben, Wortspeicher, Lösungen (schon geprüft).
+2. **Layout kommt aus dem gewählten Entwurf:** Reihenfolge der Blöcke, Bilder, Item-Reihen und Platzbedarf sind in `entwurf.py` schon auf die Seite gerechnet.
 3. **Dann erst Canva beauftragen** – mit dem fertigen Text wörtlich im Brief.
 
-Canvas KI formuliert sonst eigene Texte, verwendet falsche Schriftgrößen oder füllt mit Deko. Das muss danach korrigiert werden.
+Canvas KI formuliert sonst eigene Texte, verwendet falsche Schriftgrößen oder füllt mit Deko. Das muss danach korrigiert werden. Inhaltliche Änderungswünsche während der Umsetzung erst im Aufgabenplan klären, nicht in Canva ausprobieren.
+
+## Tokens sparen
+
+Die Canva-Umsetzung ist der teuerste Schritt. Deshalb:
+
+- **Ein Durchgang:** ein `create-design`, dann das Layout in **wenigen großen `edit-design`-Aufrufen** (alle Operationen einer Seite gebündelt) statt vieler kleiner.
+- **Antworten nicht ins Gespräch holen:** `read-design` immer mit `filter.fields`, Ergebnis als Datei speichern und nur mit `layout_check.py`, `python3` oder `jq` auswerten. Das volle JSON nie lesen.
+- **Vorschaubilder (`thumbnails`) sparsam:** einmal zur Abschlusskontrolle, nicht nach jedem Schritt.
+- **Operationen erzeugen statt tippen:** exakte Abbildungen mit den Skripten (`fach-mathematik/scripts/uhr_canva.py`) als fertige Operationsliste; gleichartige Elemente (Schreiblinien, Item-Reihen) per kurzem Python-Skript berechnen.
+- **Bilder wiederverwenden:** Leitfigur und Wachstumsgrafik mit den IDs aus `kindgerecht-gestalten.md`; `generate-image` nur für die im Plan gelisteten neuen Motive, je Motiv einmal.
+- **Höchstens zwei Prüf-Korrektur-Runden** mit `layout_check.py`. Bleibt danach etwas offen, der Lehrkraft die Vorschau mit dem offenen Punkt zeigen statt weiter zu probieren.
 
 ## Layout und Bearbeitbarkeit
 
@@ -67,7 +78,7 @@ Wenn ein Upload nicht möglich ist (abgeschottete Umgebung, blockierte Upload-UR
 - **Geometrie automatisch prüfen:** `read-design` mit `open_transaction: true` (bzw. `transaction_id`) und `filter.fields: ["design_content"]`, Antwort als Datei speichern, dann
   `python3 scripts/layout_check.py design.json --klasse {K}`.
   Meldet FEHLER (abgeschnitten, Druckrand, überlappende oder verdeckte Texte, Restelemente), WARNUNGEN (Rand, Berührungen, fehlender Puffer, kleine Schrift, uneinheitliche Abstände, Druck: Farb-/Grauflächen, Hintergrundbild, farbige Schrift, helle oder dünne Linien) und HINWEISE (Gruppen, Unterstrich-Linien, Aufgabenkästen, Leerstreifen, Bilder auf s/w prüfen). Im Farbprofil `--farbe` angeben (prüft dann Flächen, Kästen und Schriftkontrast statt s/w-Tauglichkeit). Die ausgegebenen `group_elements`-Operationen direkt an `edit-design` geben. Wiederholen, bis keine FEHLER bleiben. Details: `references/layout-und-bearbeitbarkeit.md`, Abschnitt 3.
-- `read-design` lesen und gegen das Briefing abgleichen. Die Antwort wird schnell sehr groß; deshalb mit `filter.fields` gezielt anfordern (`thumbnails` für die Optik, `design_content` für Elementpositionen) und lange Ergebnisse als Datei mit `python3`/`jq` auswerten statt am Stück zu lesen.
+- `read-design` lesen und gegen den Aufgabenplan abgleichen. Die Antwort wird schnell sehr groß; deshalb mit `filter.fields` gezielt anfordern (`thumbnails` für die Optik, `design_content` für Elementpositionen) und lange Ergebnisse als Datei mit `python3`/`jq` auswerten statt am Stück zu lesen.
   - Steht der Text wörtlich so da? Keine erfundenen Zusätze?
   - Schriftgrößen gemäß Klassenstufe (`grundschul-didaktik`)? Keine Schmuck- oder Großbuchstabenschrift für Fließtext?
   - Ich-kann-Ziel oben; Niveau-Punkte, Sternchenaufgabe ★, Wachstumsgrafik und Reflexionsfrage genau wie in der Start-Abfrage gewählt?

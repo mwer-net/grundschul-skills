@@ -17,6 +17,13 @@ Zuerst die Start-Abfrage (`grundschul-didaktik/references/rueckfragen.md`); von 
 4. **Dauer:** 20, 30 oder 45 Minuten?
 5. **Nachteilsausgleich:** Gibt es Kinder mit LRS-/Förderbedarf, die eine angepasste Fassung brauchen (größere Schrift, weniger Items, vorgelesen)?
 
+## Entwürfe und Aufgabenplan
+
+Nach den Rückfragen 2–3 Entwürfe zeigen, erst nach Freigabe des Aufgabenplans in Canva bauen (`grundschul-didaktik/references/entwurf-und-aufgabenplan.md`).
+
+- **Entwürfe unterscheiden sich** in Aufgabenauswahl und Gewichtung der Anforderungsbereiche (nur aus dem Unterricht bekannte Formate).
+- **Aufgabenplan:** jede Aufgabe mit Items, Punkten, Anforderungsbereich und Lernziel; Erwartungshorizont mit Teilpunkten; Notenschlüssel-Vorschlag; ggf. Nachteilsausgleich-Fassung.
+
 ## Aufbau Lernzielkontrolle
 
 1. Kopf: Name, Datum, Thema, ggf. Felder für Punkte/Note. Darunter die geprüften Ich-kann-Ziele, damit die Kinder wissen, was sie zeigen sollen.

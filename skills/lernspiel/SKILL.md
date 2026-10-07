@@ -12,10 +12,17 @@ Lernspiele sind Übungsformate: Der Inhalt muss schon eingeführt sein. Das Spie
 ## Rückfragen
 
 1. **Was genau wird geübt?** (z. B. "Einmaleins der 3er-Reihe", "Nomen mit Artikel", "Uhrzeit halbe Stunden")
-2. **Spielform:** *Empfehlung abhängig vom Inhalt (Tabelle unten).*
+2. **Spielform:** nur fragen, wenn die Lehrkraft eine bestimmte will; sonst zeigen die Entwürfe 2–3 passende Spielformen (Tabelle unten).
 3. **Gruppengröße und Spielzeit:** Partner / 3–4 Kinder / ganze Klasse; 10 oder 20 Minuten.
 4. **Wiederverwendbarkeit:** Laminieren (robuste Karten) oder einmalig auf Papier? *Farbe oder s/w kommt aus der Start-Abfrage; laminierte Spiele meist farbig.*
 5. **Differenzierung:** kommt aus der Start-Abfrage (Churer Modell ja/nein, `grundschul-didaktik/references/rueckfragen.md`). Ja: drei Kartensätze ● / ●● / ●●● zur Selbstwahl, Punkte in der Kartenecke *(Empfehlung)*. Nein: ein Satz für alle, Tippkarten als Hilfe.
+
+## Entwürfe und Aufgabenplan
+
+Die Spielform muss nicht gefragt werden: 2–3 Entwürfe mit verschiedenen passenden Spielformen zeigen (Kartenraster mit Beispielkarten, `entwurf.py` mit `"karten"`), erst nach Freigabe des Aufgabenplans in Canva bauen (`grundschul-didaktik/references/entwurf-und-aufgabenplan.md`).
+
+- **Entwürfe unterscheiden sich** in der Spielform (Tabelle unten) und der Kartengestaltung.
+- **Aufgabenplan:** vollständige Kartenliste mit Vorder- und Rückseite jeder Karte, geprüfte Kette bzw. Paare, Spielanleitung wörtlich, Kartensätze je Niveau, Raster pro Seite.
 
 ## Spielformen
 

@@ -23,8 +23,8 @@ Ungenaue Anfragen sind der Normalfall ("Mach mir ein Arbeitsblatt zu Tieren"). E
 1. **Abgleichen:** Was ist schon bekannt (Anfrage, Gesprächsverlauf, frühere Materialien)? Was fehlt aus der Pflichtliste unten und aus der Rückfrageliste des jeweiligen Material- und Fach-Skills?
 2. **Eine Frage pro Nachricht**, in Abhängigkeitsreihenfolge (Start-Abfrage → Klasse/Bundesland → Thema/Ziel → Lerngruppe → Materialspezifisches). Jede Frage mit 2–4 konkreten Antwortoptionen und **deiner Empfehlung samt kurzer Begründung**.
 3. **Nicht fragen, was du selbst herleiten kannst** (z. B. Zahlenraum aus der Klassenstufe), sondern als Annahme nennen.
-4. **Briefing bestätigen lassen:** Wenn alles klar ist, fasse das Vorhaben in 3–6 Zeilen zusammen und warte auf ein Ok, bevor du in Canva erzeugst.
-5. Sagt die Lehrkraft "mach einfach" oder "egal": nimm deine Empfehlungen und liste die Annahmen auf.
+4. **Erst Entwürfe, dann Aufgabenplan, dann Canva** (`references/entwurf-und-aufgabenplan.md`): 2–3 schnelle, deutlich verschiedene Entwürfe als HTML-Vorschau (`scripts/entwurf.py`) oder Textskizze zeigen; die Lehrkraft wählt und sagt, was anders sein soll. Dann den Aufgabenplan mit allen Inhalten, Items und Lösungen zur Freigabe vorlegen. Erst nach dem Ok in Canva umsetzen – Canva baut nur noch den Plan.
+5. Sagt die Lehrkraft "mach einfach" oder "egal": nimm deine Empfehlungen, zeige einen Entwurf mit Aufgabenplan in einer Nachricht und liste die Annahmen auf; vor Canva trotzdem auf das Ok warten.
 
 Pflichtangaben (fehlen sie, wird gefragt):
 
@@ -77,7 +77,7 @@ Ausführlich in `references/gestaltung.md`. Die wichtigsten Werte:
 
 ## 4. Qualitätscheck vor der Ausgabe
 
-Prüfe jedes Material gegen diese Liste und korrigiere, bevor du es der Lehrkraft gibst:
+Prüfe jedes Material gegen diese Liste und korrigiere, bevor du es der Lehrkraft gibst. Inhaltliche Punkte (Ziel, Aufgaben, Bausteine, Sprache, Rechnungen, Lösungen) schon am Aufgabenplan prüfen, bevor er zur Freigabe geht – Korrekturen in Canva sind teuer. Gestaltung und Druck nach der Canva-Umsetzung:
 
 - [ ] Lernziel klar und zum Material passend
 - [ ] Klassenstufe: Schriftgröße, Textmenge, Zahlenraum, Wortschatz stimmen
@@ -110,6 +110,8 @@ Liefere immer:
 
 - `references/kernkonzepte.md` – Growth Mindset und Churer Modell (Haltung immer, Bausteine wählbar)
 - `references/rueckfragen.md` – Start-Abfrage (Materialart, Medium, Farbe/s/w, Selbsteinschätzung, Churer Modell, Sternchenaufgabe) und Rückfrage-Protokoll
+- `references/entwurf-und-aufgabenplan.md` – schnelle Entwürfe zur Auswahl, exakter Aufgabenplan je Materialart, Freigabe vor Canva
+- `scripts/entwurf.py` – rendert 2–3 Entwürfe als HTML-Vorschau im echten Format und Druckprofil, meldet Überlauf und Leerraum (Muster: `scripts/entwurf-beispiel.json`)
 - `references/gestaltung.md` – Layout, Schrift, Bilder, Farben, Symbole
 - `references/kindgerecht-gestalten.md` – Emotional Design: Formen, Leitfigur, Bildauswahl, Schriften, KI-Bild-Stil, Paletten für Farbdruck
 - `references/druck-und-platz.md` – Druckprofile s/w und Farbe, Aufgaben ohne Kasten, Mindestgrößen, Platzbudget
