@@ -83,4 +83,4 @@ Prozessbezogene Kompetenzen in jedes Material einbauen: Problemlösen, Kommunizi
 | Skript | Zweck |
 |---|---|
 | `scripts/uhr.py` | Exaktes Zifferblatt als PNG: `python3 uhr.py 2:30 uhr.png [--minuten] [--transparent]`, `leer` für ein Blatt ohne Zeiger |
-| `scripts/uhr_canva.py` | Dieselbe Uhr als JSON-Operationen für `edit-design`: `python3 uhr_canva.py PAGE_ID LEFT TOP GROESSE 7:00 leer ...`. Der Schlüssel `_format` jeder `add_text`-Operation muss vor dem Senden entfernt und als eigenes `format_text` geschickt werden. |
+| `scripts/uhr_canva.py` | Dieselbe Uhr als JSON-Operationen für `edit-design`: `python3 uhr_canva.py PAGE_ID LEFT TOP GROESSE 7:00 leer ...`. Der Schlüssel `_format` jeder `add_text`-Operation muss vor dem Senden entfernt und als eigenes `format_text` geschickt werden. Danach jede Uhr mit `group_elements` gruppieren (16 Teile pro Uhr; `canva-materialerstellung/scripts/layout_check.py` schlägt die Gruppen vor). |

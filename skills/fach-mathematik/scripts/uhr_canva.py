@@ -8,6 +8,11 @@ Formen (insert_shape) und Texten (add_text) direkt im Design gebaut.
 
 ZEIT: "7:00", "2:30" oder "leer". Mehrere Zeiten werden nebeneinander gesetzt.
 Ausgabe: JSON-Liste von Operationen für mcp__Canva__edit-design.
+
+Danach jede Uhr mit group_elements zu einem Element gruppieren (Locator-IDs aus
+read-design; canva-materialerstellung/scripts/layout_check.py schlägt die
+Gruppen fertig vor). Sonst besteht jede Uhr aus 16 losen Teilen, die die
+Lehrkraft nicht als Ganzes verschieben kann.
 """
 import argparse
 import json
@@ -59,8 +64,8 @@ def clock_ops(page_id, left, top, size, time, with_numbers=True):
                 "stroke_color": "#000000", "stroke_weight": max(1, round(size / 150, 1))})
 
     if with_numbers:
-        fs = size * 0.13
-        box = fs * 1.6
+        fs = size * 0.15
+        box = fs * 1.6  # Felder dürfen sich innerhalb der Uhr überlappen (wird gruppiert)
         for h in range(1, 13):
             a = math.radians(h * 30 - 90)
             x = left + (c + r * 0.68 * math.cos(a)) / vb * size

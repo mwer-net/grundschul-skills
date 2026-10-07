@@ -12,6 +12,8 @@ skills/
 │   └── references/             kernkonzepte · rueckfragen · gestaltung · kindgerecht-gestalten ·
 │                               differenzierung · sprachsensibel · quellen
 ├── canva-materialerstellung/   Technik: Ablauf mit dem Canva MCP (erstellen, prüfen, korrigieren, exportieren)
+│   ├── references/             layout-und-bearbeitbarkeit (Raster, Platzbudget, bearbeitbar bauen)
+│   └── scripts/                layout_check.py (findet Überlappungen, Randfehler, fehlende Gruppen)
 │
 ├── unterrichtsplanung/         ┐
 ├── arbeitsblatt/               │
