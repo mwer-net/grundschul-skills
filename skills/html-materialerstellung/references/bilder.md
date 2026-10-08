@@ -1,4 +1,4 @@
-# Bilder: Leitfigur, KI-Bilder mit Canva, Bilder ins Blatt holen
+# Bilder: Leitfigur, KI-Bilder und -Grafiken mit Canva, Bilder ins Blatt holen
 
 Was ein Bild bekommt, entscheidet `grundschul-didaktik/references/kindgerecht-gestalten.md` (Leitfigur mit Funktion, Bilder nur mit Mehrwert, Weglass-Test). Diese Datei regelt die Technik.
 
@@ -14,24 +14,35 @@ Was ein Bild bekommt, entscheidet `grundschul-didaktik/references/kindgerecht-ge
 
 Wilma als Strichzeichnung fehlt noch (anlegen nach Abschnitt 2, Datei `wilma-strich.png`).
 
-**Auflösung:** Die Dateien sind derzeit Vorschaubilder (200 px breit). Für Willi/Wilma bis ca. 80 px Breite reicht das (≥ 240 dpi), die Wachstumsgrafik wird im Druck leicht unscharf (`blatt.py` meldet die dpi). Sobald die Originale (1264 px bzw. 1776 px) vorliegen, die Dateien gleichen Namens ersetzen.
+**Auflösung:** Originale aus Canva (Willi/Wilma 1264 × 1264 px, Wachstumsgrafik 1776 × 896 px, transparenter Hintergrund), druckscharf in jeder sinnvollen Größe.
 
 Einbinden: `<img class="figur" src="bilder/willi-strich.png" alt="Willi">`. Im s/w-Profil immer die Strich-Version (`blatt.py` warnt bei farbigen Bildern).
 
-## 2. Neue KI-Bilder mit Canva
+## 2. Bilder und Grafiken nach Bedarf mit Canva-KI
 
-Canva dient nur noch als Bildgenerator. Erst nach Freigabe des Aufgabenplans und nur für Motive aus dessen Bildliste.
+Braucht ein Material ein Bild oder eine Grafik, die nicht in `assets/bilder/` liegt und nicht exakt berechnet werden muss (Abschnitt 3), erzeugt der Skill sie selbst mit der Canva-KI und baut sie ins HTML ein. Die Lehrkraft muss dafür nichts tun.
 
-1. `generate-image` mit dem **Stil-Satz** aus `kindgerecht-gestalten.md` (für alle Bilder eines Materials wörtlich gleich), danach das Motiv konkret. Neue Posen von Willi/Wilma mit dem Original als `imageReferences`. Keine Schrift, Zahlen oder Uhren im Bild.
-2. Bei weißem Hintergrund freistellen: `remove-background`.
-3. **Bild als Datei holen**, in dieser Reihenfolge:
-   - a) Das Ergebnis enthält eine `design_id`: `export-design` als `png` mit `transparent_background: true`, dann die Download-URL mit `curl -L -o motiv.png "<url>"` laden. Klappt nur, wenn die Umgebung Canva-Downloads erlaubt.
-   - b) Gesperrt: Die Lehrkraft öffnet „Open generated image", lädt das Bild herunter und gibt es in den Chat oder den Arbeitsordner.
-   - c) Notlösung für kleine Figuren (≤ 80 px Breite): das Vorschaubild aus `get-assets` (200 px), wenn es als Datei vorliegt.
-4. Die Datei neben die HTML-Quelle legen (`bilder/motiv.png`) und einbinden; `blatt.py` bettet sie ins PDF und in die eigenständige HTML-Datei ein.
-5. Neue Posen der Leitfigur in `assets/bilder/` aufnehmen und in der Tabelle oben mit Media-ID ergänzen, damit sie nie zweimal erzeugt werden.
+**Wofür:** Sachbilder (Tiere, Pflanzen, Gegenstände), Wortschatz-, Anlaut- und Bildkarten, Bildergeschichten und Schreibanlässe, Sachgrafiken ohne Beschriftung (Wasserkreislauf, Teile einer Pflanze, Lebenszyklus), Illustrationen für Lesetexte und Plakate, neue Posen von Willi und Wilma. Beschriftungen, Pfeile mit Text und Nummern setzt immer das HTML über oder neben das Bild, nie die KI.
 
-Die Media-IDs liegen im Canva-Konto, in dem die Figuren erstellt wurden. In einem anderen Konto die Dateien aus `assets/bilder/` verwenden; neue Posen mit einer davon als Referenz erzeugen (vorher hochladen: `create-upload-url`).
+**Wann:** Jedes Motiv steht in der Bildliste des Aufgabenplans und besteht den Weglass-Test (`kindgerecht-gestalten.md`). Erzeugt wird erst nach Freigabe des Aufgabenplans.
+
+### Ablauf
+
+1. **Erzeugen:** `generate-image` mit dem Stil-Satz des Druckprofils aus `kindgerecht-gestalten.md` (für alle Bilder eines Materials wörtlich gleich), danach das Motiv konkret (wer, was, Pose, Blickrichtung, Ausschnitt). `aspectRatio` passend zum Platz auf dem Blatt (z. B. `SQUARE_1_1` für Karten, `LANDSCAPE_2_1` für Bildfolgen). Neue Posen von Willi/Wilma und Strich-Versionen vorhandener Bilder mit dem Original als `imageReferences`. Danach `get-generate-image-job` abfragen, bis `SUCCESS`; das Ergebnis ist eine Media-ID (`MA…`).
+2. **Prüfen:** Vorschau ansehen: Motiv eindeutig und fachlich richtig, keine Schrift oder Zahlen im Bild, Stil passt zu den anderen Bildern. Sonst mit präzisiertem Prompt neu erzeugen (höchstens drei Versuche, dann die Lehrkraft fragen).
+3. **Freistellen:** `remove-background` mit der Media-ID → neue Media-ID mit transparentem Hintergrund.
+4. **Als Datei holen:** Canva gibt einzelne Bilder nicht direkt als Datei heraus, nur Designs. Deshalb über das Hilfsdesign „Bild-Export (Hilfsdesign)“:
+   - `get-assets` mit der Media-ID liefert die Originalgröße (`metadata.width`/`height`, meist 1264 px).
+   - Hilfsdesign mit `search-designs` suchen. Fehlt es: ein beliebiges Design mit `resize-design` (custom, Bildgröße) kopieren, Elemente löschen und den Titel per `update_title` auf „Bild-Export (Hilfsdesign)“ setzen.
+   - `read-design` mit `open_transaction`, dann `edit-design`: `add_page` in Originalgröße mit dem Dateinamen als Titel; mit `read-design` (`page_indices`) die Seiten-ID holen; `insert_fill` mit der Media-ID bei `top: 0, left: 0` in voller Seitengröße; `commit`.
+   - `export-design` als `png` mit `pages: [n]`, `transparent_background: true`, `lossless: true`.
+   - `curl -fsSL -o bilder/motiv.png "<url>"`; mit `file` prüfen (PNG, volle Größe). Die Umgebung muss `export-download.canva.com` erreichen.
+5. **Einbauen:** Datei neben die HTML-Quelle legen (`bilder/motiv.png`), mit `<img src="bilder/motiv.png" alt="…">` und fester Breite einsetzen; `blatt.py` bettet sie ins PDF und in die eigenständige HTML-Datei ein und meldet unscharfe Bilder.
+6. **Ablegen:** Neue Posen der Leitfigur in `assets/bilder/` aufnehmen und in der Tabelle oben mit Media-ID ergänzen, damit sie nie zweimal erzeugt werden.
+
+Sind Canva-Downloads in der Umgebung gesperrt: Die Lehrkraft öffnet „Open generated image“, lädt das Bild herunter und gibt es in den Chat oder den Arbeitsordner.
+
+Die Media-IDs liegen im Canva-Konto, in dem die Bilder erstellt wurden. In einem anderen Konto die Dateien aus `assets/bilder/` verwenden; als Referenz für neue Posen vorher hochladen (`create-upload-url`).
 
 ## 3. Keine KI für exakte Abbildungen
 

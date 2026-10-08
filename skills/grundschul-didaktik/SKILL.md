@@ -5,7 +5,7 @@ description: Didaktische Basis für alle Unterrichtsmaterialien der Grundschule 
 
 # Grundschul-Didaktik (Basis-Skill)
 
-Dieser Skill ist das Fundament aller anderen Skills im Repository. Er legt fest, was jedes Material für Klasse 1–4 erfüllen muss. Fach-Skills (`fach-*`) liefern die Fachdidaktik, Material-Skills (`arbeitsblatt`, `lernspiel`, …) die Bauform, `html-materialerstellung` die technische Umsetzung (HTML → PDF; Canva nur für KI-Bilder).
+Dieser Skill ist das Fundament aller anderen Skills im Repository. Er legt fest, was jedes Material für Klasse 1–4 erfüllen muss. Fach-Skills (`fach-*`) liefern die Fachdidaktik, Material-Skills (`arbeitsblatt`, `lernspiel`, …) die Bauform, `html-materialerstellung` die technische Umsetzung (HTML → PDF; Bilder und Grafiken nach Bedarf mit Canva-KI).
 
 ## Kernkonzepte: Growth Mindset und Churer Modell
 
