@@ -3,6 +3,8 @@ import stylistic from '@stylistic/eslint-plugin';
 import tsParser from '@typescript-eslint/parser';
 import { createTypeScriptImportResolver } from 'eslint-import-resolver-typescript';
 import { createNodeResolver, importX } from 'eslint-plugin-import-x';
+import * as reactHooks from 'eslint-plugin-react-hooks';
+import reactRefresh from 'eslint-plugin-react-refresh';
 import simpleImportSort from 'eslint-plugin-simple-import-sort';
 import eslintSortDestructure from 'eslint-plugin-sort-destructure-keys';
 import globals from 'globals';
@@ -82,6 +84,17 @@ export default tseslint.config(
 	{
 		files: ['**/*.{js,mjs,cjs}'],
 		extends: [tseslintConfigs.disableTypeChecked],
+	},
+	{
+		files: ['web/**/*.{ts,tsx}'],
+		plugins: {
+			'react-hooks': reactHooks,
+			'react-refresh': reactRefresh,
+		},
+		rules: {
+			...reactHooks.configs.recommended.rules,
+			'react-refresh/only-export-components': ['error', { allowConstantExport: true }],
+		},
 	},
 	{
 		// node:test gibt Promises aus describe/it zurück, der Runner wartet selbst darauf.

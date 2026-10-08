@@ -11,7 +11,7 @@ import { ID_MUSTER, MAPPE_SCHEMA, META_SCHEMA, verlangeSchema } from './schema';
 import { eindeutigeId, lokalesDatum, mappenSlug, slug } from './slug';
 import type { Version } from './versionen';
 import { legeVersionAn } from './versionen';
-import type { Art, Druckprofil, Fach, Format, Klasse } from './werte';
+import type { Art, Druckprofil, Fach, Format, Klasse, Status } from './werte';
 
 export const WUENSCHE_DATEI = '_wuensche.md';
 const MAX_ENTWUERFE = 3;
@@ -258,23 +258,32 @@ export interface MappenEintrag {
 	dokumente: { id: string; meta: DokumentMeta }[];
 }
 
+export const leseMappenEintrag = async (materialDir: string, id: string): Promise<MappenEintrag> => {
+	const mappe = await leseMappe(materialDir, id);
+	const dokumente = await Promise.all(
+		mappe.dokumente.map(async (d) => ({ id: d, meta: await leseMeta(materialDir, id, d) })),
+	);
+	return { mappe, dokumente };
+};
+
 const faltung = (text: string) => slug(text, Infinity).replace(/-/g, ' ');
 
-export const listeMappen = async (materialDir: string, filter: { fach?: Fach; suche?: string } = {}) => {
+export interface MappenFilter {
+	fach?: Fach;
+	klasse?: Klasse;
+	status?: Status;
+	suche?: string;
+}
+
+export const listeMappen = async (materialDir: string, filter: MappenFilter = {}) => {
 	const namen = await readdir(materialDir).catch(() => []);
 	const kandidaten = namen.filter((n) => ID_REGEX.test(n) && existsSync(path.join(materialDir, n, 'mappe.json')));
-	const eintraege: MappenEintrag[] = await Promise.all(
-		kandidaten.map(async (id) => {
-			const mappe = await leseMappe(materialDir, id);
-			const dokumente = await Promise.all(
-				mappe.dokumente.map(async (d) => ({ id: d, meta: await leseMeta(materialDir, id, d) })),
-			);
-			return { mappe, dokumente };
-		}),
-	);
+	const eintraege = await Promise.all(kandidaten.map((id) => leseMappenEintrag(materialDir, id)));
 	const suche = filter.suche ? faltung(filter.suche) : '';
 	return eintraege
 		.filter(({ mappe }) => !filter.fach || mappe.fach === filter.fach)
+		.filter(({ mappe }) => filter.klasse === undefined || mappe.klasse === filter.klasse)
+		.filter(({ mappe }) => !filter.status || mappe.status === filter.status)
 		.filter(({ dokumente, mappe }) => {
 			const text = faltung([mappe.id, mappe.titel, ...dokumente.map((d) => d.meta.titel)].join(' '));
 			return suche.split(' ').every((wort) => text.includes(wort));

@@ -84,3 +84,30 @@ export const entwurfAusTitel = (titel: string): { titel: string; idee: string } 
 	const [kopf = '', ...idee] = teile;
 	return { titel: kopf.trim(), idee: idee.join(' – ').trim() };
 };
+
+/** Seitengrößen, die blatt.py für Formate außer A4 hoch als `@page` einsetzt (A4 hoch steht in blatt.css). */
+export const SEITENGROESSE: Record<string, string | undefined> = {
+	'a4-quer': 'A4 landscape',
+	'a3-hoch': 'A3',
+	'a5-hoch': 'A5',
+	'folie': '338.67mm 190.5mm',
+};
+
+const BODY_WIE_BLATT_PY = /<body([^>]*)class="([^"]*)"/;
+
+/**
+ * Bereitet material.html für den Browser so vor, wie `einbetten()` in blatt.py es für den Druck tut: `@page` nach
+ * der Formatklasse und mit `loesung` die Klasse `loesung` am `<body>`. Ressourcen bleiben verlinkt.
+ */
+export const darstellungsHtml = (html: string, { loesung }: { loesung: boolean }): string => {
+	const klassen = BODY_WIE_BLATT_PY.exec(html)?.[2]?.split(/\s+/) ?? [];
+	const groesse = klassen.map((k) => SEITENGROESSE[k]).find(Boolean);
+	let ergebnis = groesse ? html.replace('</head>', `<style>@page{size:${groesse};margin:0}</style>\n</head>`) : html;
+	if (loesung) {
+		ergebnis = ergebnis.replace(
+			BODY_WIE_BLATT_PY,
+			(_ganz, vorher: string, k: string) => `<body${vorher}class="${k} loesung"`,
+		);
+	}
+	return ergebnis;
+};

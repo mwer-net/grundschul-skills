@@ -55,7 +55,9 @@ export const legeVersionAn = async (dokDir: string, urheber: Urheber, jetzt = ne
 		await schreibeAtomar(versionsPfad(dokDir, letzte), inhalt);
 		return letzte;
 	}
-	const name = versionsName(jetzt, urheber);
+	const zeit =
+		letzte && jetzt.getTime() - letzte.zeit.getTime() < 1000 ? new Date(letzte.zeit.getTime() + 1000) : jetzt;
+	const name = versionsName(zeit, urheber);
 	const neu = leseVersionsName(name);
 	if (!neu) {
 		throw new Error(`Ungültiger Versionsname ${name}`);

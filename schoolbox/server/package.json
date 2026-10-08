@@ -1,0 +1,21 @@
+{
+	"name": "@schoolbox/server",
+	"version": "0.1.0",
+	"private": true,
+	"description": "Express-Server der Schoolbox: API, Darstellung, Dateiüberwachung",
+	"main": "src/start.ts",
+	"scripts": {
+		"dev": "tsx watch src/start.ts",
+		"start": "tsx src/start.ts",
+		"typecheck": "tsc --noEmit",
+		"test": "tsx --test \"src/**/*.test.ts\""
+	},
+	"dependencies": {
+		"@schoolbox/kern": "workspace:*",
+		"express": "^5.2.1",
+		"tsx": "^4.23.15"
+	},
+	"devDependencies": {
+		"@types/express": "^5.0.6"
+	}
+}

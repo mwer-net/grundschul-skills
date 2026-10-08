@@ -120,6 +120,15 @@ schoolbox/bin/schoolbox fertig <mappe>/<dokument>   # baut mit blatt.py, legt ei
 
 `NODE_BIN` ist nötig, wenn im `PATH` ein älteres Node liegt: Der Wrapper nimmt dann das Node aus `.env`. Die Materialien landen in `MATERIAL_DIR` (Standard `materialien/`), das per `.gitignore` und Pre-Commit-Hook gesperrt ist.
 
+Der Server (`schoolbox/server`, Express) liefert API, Darstellung und Oberfläche aus und lauscht nur auf `HOST`/`PORT` aus `.env` (Standard `127.0.0.1:4009`). Ein Reverse Proxy leitet die öffentliche Adresse dorthin, `/api/ereignisse` (Server-Sent Events) ungepuffert. Er beobachtet `MATERIAL_DIR`: Ändert Claude ein `material.html`, legt er nach kurzer Ruhe eine Version an und meldet es allen offenen Browsern.
+
+```bash
+cd schoolbox
+pnpm build                            # Oberfläche (web/) bauen
+pnpm start                            # Server starten; mit PM2: pm2 start ecosystem.config.cjs
+pnpm dev                              # Entwicklung: Server mit Neustart bei Änderungen, Vite mit Proxy
+```
+
 ## Canva
 
 - Die Canva-KI erzeugt Bilder und Grafiken nach Bedarf: Sachbilder, Wortschatz- und Anlautbilder, Bildergeschichten, unbeschriftete Sachgrafiken, neue Posen von Willi und Wilma. Die Skills holen sie als PNG in Originalauflösung und bauen sie ins HTML ein (`html-materialerstellung/references/bilder.md`). Canva for Education ist für Lehrkräfte kostenlos.

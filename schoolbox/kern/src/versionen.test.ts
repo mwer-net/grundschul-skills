@@ -53,6 +53,21 @@ describe('legeVersionAn', () => {
 		assert.equal(await readFile(versionsPfad(dir, alle[0]!), 'utf8'), 'v3');
 	});
 
+	it('überschreibt keine Version, wenn die Urheber innerhalb einer Sekunde wechseln', async () => {
+		const dir = await dokument();
+		const plus = (ms: number) => new Date(T0.getTime() + ms);
+		for (const [i, urheber] of (['lehrkraft', 'claude', 'lehrkraft'] as const).entries()) {
+			await aendere(dir, `v${i}`);
+			await legeVersionAn(dir, urheber, plus(i * 100));
+		}
+		const alle = await listeVersionen(dir);
+		assert.deepEqual(
+			alle.map((v) => v.id),
+			['2026-10-08T10-15-03Z_lehrkraft', '2026-10-08T10-15-04Z_claude', '2026-10-08T10-15-05Z_lehrkraft'],
+		);
+		assert.equal(await readFile(versionsPfad(dir, alle[0]!), 'utf8'), 'v0');
+	});
+
 	it('beginnt nach 5 Minuten eine neue Version, auch bei ununterbrochenem Bearbeiten', async () => {
 		const dir = await dokument();
 		for (const [i, t] of [0, 2, 4, 6, 8, 11.5].entries()) {
