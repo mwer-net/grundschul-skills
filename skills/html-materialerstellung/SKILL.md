@@ -1,11 +1,11 @@
 ---
 name: html-materialerstellung
-description: Technischer Ablauf, um Grundschulmaterial (Arbeitsblätter, Lernzielkontrollen, Lesetexte, Karten, Plakate, Stationskarten) als HTML/CSS zu bauen, automatisch zu prüfen und als druckfertiges A4-PDF mit Lösungsblatt auszugeben. Laden für die Entwürfe (Phase 2) und die Umsetzung des freigegebenen Aufgabenplans. Canva nur für KI-Bilder.
+description: Technischer Ablauf, um Grundschulmaterial (Arbeitsblätter, Lernzielkontrollen, Lesetexte, Karten, Plakate, Stationskarten) als HTML/CSS zu bauen, automatisch zu prüfen und als druckfertiges A4-PDF mit Lösungsblatt auszugeben. Laden für die Entwürfe (Phase 2) und die Umsetzung des freigegebenen Aufgabenplans. Bilder und Grafiken nach Bedarf mit Canva-KI.
 ---
 
 # Material mit HTML erstellen
 
-Jedes Material entsteht als **eine HTML-Datei** mit dem Gestaltungssystem aus `assets/`. Dieselbe Datei ist Entwurf, Endfassung und Quelle für PDF und Lösungsblatt. Canva wird nur noch für **KI-Bilder** genutzt (`references/bilder.md`), nie für Layout oder Text.
+Jedes Material entsteht als **eine HTML-Datei** mit dem Gestaltungssystem aus `assets/`. Dieselbe Datei ist Entwurf, Endfassung und Quelle für PDF und Lösungsblatt. **Canva-KI** liefert Bilder und Grafiken nach Bedarf, die ins HTML eingebaut werden (`references/bilder.md`); Layout und Text entstehen nie in Canva.
 
 Warum: In HTML bestimmen wir Schrift (Fredoka, Andika, eingebettet), Abstände und exakte Abbildungen selbst; das Ergebnis sieht aus wie die Vorschau, ohne Nacharbeit.
 
@@ -22,7 +22,7 @@ Warum: In HTML bestimmen wir Schrift (Fredoka, Andika, eingebettet), Abstände u
 | `scripts/blatt.py` | baut, prüft, erzeugt PDF, Lösungsblatt, Vorschau und Ausschnitte; `uebersicht` für Entwürfe |
 | `references/layout.md` | Raster, Platzbudget, Klassen und Regeln für sauberes HTML |
 | `references/visuelle-endkontrolle.md` | Pflichtprüfung des fertigen Blatts |
-| `references/bilder.md` | Leitfigur, KI-Bilder mit Canva, Bilder ins Blatt holen |
+| `references/bilder.md` | Leitfigur, KI-Bilder und -Grafiken mit Canva erzeugen und ins Blatt holen |
 
 ## Ablauf
 
@@ -35,7 +35,7 @@ Warum: In HTML bestimmen wir Schrift (Fredoka, Andika, eingebettet), Abstände u
 ### 2. Endfassung (nach Freigabe des Aufgabenplans)
 
 1. Im gewählten Entwurf alle Items, Beispiele und Lösungen aus dem Plan eintragen. Lösungen stehen **im selben HTML**: `data-l="46"` an Antwortlinien, `loesung="4:30"` an Uhren, `buendel-loesung="3"` an Mengen, `loesung="3 5"` an Stellentafeln, `class="nur-loesung"` für Lösungstexte, `class="nicht-loesung"` für Schreiblinien, die auf dem Lösungsblatt verschwinden. Das erste Item als `class="beispiel"` zeigt seine Lösung schon auf dem Arbeitsblatt.
-2. Bilder einsetzen: vorhandene aus `assets/bilder/`, neue KI-Bilder nach `references/bilder.md`.
+2. Bilder einsetzen: vorhandene aus `assets/bilder/`, alle anderen Motive der Bildliste mit Canva-KI erzeugen und als Datei einbauen (`references/bilder.md`, Abschnitt 2).
 3. Bauen und prüfen:
    `python3 scripts/blatt.py bauen Kl2_Mathe_Uhrzeit_AB1.html -o ausgabe/`
    Ergebnis: eigenständige `.html` (alles eingebettet), `.pdf`, `-loesung.pdf`, Vorschau je Seite (`-s1.png`) und Ausschnitt je Aufgabe (`-s1-a1.png` …). Der Prüfbericht meldet FEHLER (Seitenrand, abgeschnitten, Überlappung, Schrift oder Bild fehlt; Lösungsblatt wird mitgeprüft), WARNUNGEN (Schrift zu klein für die Klasse, Farbe oder Flächen im s/w-Profil, farbiges Bild im s/w-Profil, zu viele Aufgaben, Aufgaben zu dicht) und HINWEISE (unscharfe Bilder, viel Leerraum, Platzhalter).

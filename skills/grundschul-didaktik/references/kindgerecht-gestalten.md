@@ -86,7 +86,10 @@ Dosierung: Leitfigur plus nur die Bilder, die die Aufgaben brauchen. Für s/w al
 - Höchstens zwei Schriften. Keine Schreibschrift- oder Schmuckschriften für Lesetext, keine Großbuchstaben-Texte.
 - Schulschrift des Bundeslandes (Grundschrift, Fibel Nord/Süd, Druckschrift Bayern) wenn verfügbar und lizenziert: als Schriftdatei in `html-materialerstellung/assets/fonts/` einbinden.
 
-## KI-Bilder (Canva `generate-image`)
+## KI-Bilder und -Grafiken (Canva `generate-image`)
+
+Bilder und Grafiken, die das Material braucht, erzeugt der Skill nach Bedarf mit der Canva-KI und baut sie ins HTML ein (Ablauf: `html-materialerstellung/references/bilder.md`, Abschnitt 2). Es gilt der Weglass-Test aus Abschnitt 4.
+
 
 **Stil-Satz einmal pro Material festlegen und für jedes Bild wörtlich wiederverwenden** – so bleibt der Stil einheitlich.
 
