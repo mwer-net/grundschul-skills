@@ -99,6 +99,27 @@ Empfehlung: Immer alle Skills installieren, da sie aufeinander verweisen.
 - **Debian/Ubuntu:** `sudo apt install python3-pil poppler-utils`. Danach läuft `python3 …/blatt.py` wie in den Skills beschrieben, ohne virtuelle Umgebung (PNGs über `pdftoppm`).
 - **Andere Systeme:** `python3 -m venv .venv && .venv/bin/pip install -r requirements.txt`, dann `.venv/bin/python` statt `python3` aufrufen.
 
+### Schoolbox (im Aufbau)
+
+Die Schoolbox (`schoolbox/`) macht das Material für die Lehrkraft nutzbar: Ablage in Mappen, später Ansicht, PDF, Präsentation und Bearbeiten im Browser. Claude legt Material über das CLI an und gibt am Ende einen Link aus. Braucht Node 22 und pnpm.
+
+```bash
+cp .env.example .env                  # SCHOOLBOX_URL, MATERIAL_DIR, NODE_BIN, PYTHON_BIN anpassen
+cd schoolbox && pnpm install && pnpm test
+schoolbox/bin/schoolbox --hilfe       # aus dem Repo-Hauptordner
+```
+
+Ein typischer Ablauf aus einer Claude-Sitzung:
+
+```bash
+schoolbox/bin/schoolbox neu --titel "Kartoffeln" --fach sachunterricht --klasse 3
+schoolbox/bin/schoolbox dokument <mappe> --titel "Teile der Kartoffel" --art arbeitsblatt --druckprofil sw --vorlage arbeitsblatt
+# … material.html mit den Skills ausarbeiten …
+schoolbox/bin/schoolbox fertig <mappe>/<dokument>   # baut mit blatt.py, legt eine Version an, gibt den Link aus
+```
+
+`NODE_BIN` ist nötig, wenn im `PATH` ein älteres Node liegt: Der Wrapper nimmt dann das Node aus `.env`. Die Materialien landen in `MATERIAL_DIR` (Standard `materialien/`), das per `.gitignore` und Pre-Commit-Hook gesperrt ist.
+
 ## Canva
 
 - Die Canva-KI erzeugt Bilder und Grafiken nach Bedarf: Sachbilder, Wortschatz- und Anlautbilder, Bildergeschichten, unbeschriftete Sachgrafiken, neue Posen von Willi und Wilma. Die Skills holen sie als PNG in Originalauflösung und bauen sie ins HTML ein (`html-materialerstellung/references/bilder.md`). Canva for Education ist für Lehrkräfte kostenlos.

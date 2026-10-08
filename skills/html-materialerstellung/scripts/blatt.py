@@ -2,7 +2,7 @@
 """Grundschul-Material aus HTML bauen: prüfen, PDF (A4), Lösungsblatt, Vorschaubilder.
 
 Aufrufe:
-    python3 blatt.py bauen blatt.html [-o ausgabe/] [--ohne-loesung] [--nur-pruefen]
+    python3 blatt.py bauen blatt.html [-o ausgabe/] [--ohne-loesung] [--nur-pruefen] [--bericht bericht.json]
     python3 blatt.py uebersicht a.html b.html [c.html] [-o ausgabe/]
 
 bauen erzeugt in ausgabe/ (Standard: Ordner der Quelle):
@@ -12,6 +12,7 @@ bauen erzeugt in ausgabe/ (Standard: Ordner der Quelle):
     NAME-s1.png …         Vorschau je Seite, NAME-s1-a1.png … Ausschnitt je Aufgabe
                           (für die visuelle Endkontrolle), NAME-loesung-s1.png
 und gibt den Prüfbericht aus (FEHLER / WARNUNG / HINWEIS). Exit-Code 1 bei FEHLER.
+--bericht schreibt ihn zusätzlich als JSON (seiten, meldungen, fehler), z. B. für die Schoolbox.
 
 uebersicht baut 2–3 Entwürfe, legt die ersten Seiten nebeneinander in entwuerfe.png
 und entwuerfe.html und meldet je Entwurf, ob er auf die Seite passt.
@@ -198,7 +199,13 @@ def ausgeben(bericht, titel=""):
     return f
 
 
-def bauen(quelle, ausgabe=None, ohne_loesung=False, nur_pruefen=False, still=False):
+def bericht_schreiben(datei, bericht, meldungen, fehler):
+    if datei:
+        daten = {"seiten": bericht["seiten"], "meldungen": meldungen, "fehler": fehler}
+        Path(datei).write_text(json.dumps(daten, ensure_ascii=False, indent=1), encoding="utf-8")
+
+
+def bauen(quelle, ausgabe=None, ohne_loesung=False, nur_pruefen=False, still=False, bericht_datei=None):
     quelle = Path(quelle).resolve()
     aus = Path(ausgabe).resolve() if ausgabe else quelle.parent
     aus.mkdir(parents=True, exist_ok=True)
@@ -209,7 +216,9 @@ def bauen(quelle, ausgabe=None, ohne_loesung=False, nur_pruefen=False, still=Fal
         pruef.write_text(einbetten(text, quelle.parent, pruefen=True), encoding="utf-8")
         bericht = pruefbericht(pruef)
         fehler = ausgeben(bericht, "" if not still else name)
+        meldungen = list(bericht["meldungen"])
         if nur_pruefen:
+            bericht_schreiben(bericht_datei, bericht, meldungen, fehler)
             return bericht, fehler, []
         fertig = aus / f"{name}.html"
         fertig.write_text(einbetten(text, quelle.parent), encoding="utf-8")
@@ -225,10 +234,12 @@ def bauen(quelle, ausgabe=None, ohne_loesung=False, nur_pruefen=False, still=Fal
             lb["meldungen"] = [m for m in lb["meldungen"] if m["stufe"] == "FEHLER"]
             if lb["meldungen"]:
                 fehler += ausgeben(lb, "Lösungsblatt")
+                meldungen += [{**m, "text": f"Lösungsblatt: {m['text']}"} for m in lb["meldungen"]]
             lh = Path(tmp) / f"{name}-loesung.html"
             lh.write_text(einbetten(text, quelle.parent, loesung=True), encoding="utf-8")
             pdf(lh, aus / f"{name}-loesung.pdf")
             erzeugt += [aus / f"{name}-loesung.pdf", *pngs(aus / f"{name}-loesung.pdf", str(aus / f"{name}-loesung"))]
+    bericht_schreiben(bericht_datei, bericht, meldungen, fehler)
     if not still:
         print("Erzeugt:\n  " + "\n  ".join(str(p) for p in erzeugt))
     return bericht, fehler, bilder
@@ -280,12 +291,13 @@ def main():
     b.add_argument("-o", "--ausgabe")
     b.add_argument("--ohne-loesung", action="store_true")
     b.add_argument("--nur-pruefen", action="store_true")
+    b.add_argument("--bericht", help="Prüfbericht zusätzlich als JSON-Datei")
     u = sub.add_parser("uebersicht")
     u.add_argument("quellen", nargs="+")
     u.add_argument("-o", "--ausgabe")
     a = ap.parse_args()
     if a.cmd == "bauen":
-        _, fehler, _ = bauen(a.quelle, a.ausgabe, a.ohne_loesung, a.nur_pruefen)
+        _, fehler, _ = bauen(a.quelle, a.ausgabe, a.ohne_loesung, a.nur_pruefen, bericht_datei=a.bericht)
         sys.exit(1 if fehler else 0)
     uebersicht(a.quellen, a.ausgabe)
 

@@ -1,0 +1,10 @@
+{
+	"name": "@schoolbox/kern",
+	"private": true,
+	"description": "Ablage, Versionen und CLI der Schoolbox",
+	"main": "src/index.ts",
+	"scripts": {
+		"typecheck": "tsc --noEmit",
+		"test": "tsx --test \"src/**/*.test.ts\""
+	}
+}
