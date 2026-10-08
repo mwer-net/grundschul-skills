@@ -132,6 +132,25 @@ pnpm start                            # Server starten; mit PM2: pm2 start ecosy
 pnpm dev                              # Entwicklung: Server mit Neustart bei Änderungen, Vite mit Proxy
 ```
 
+#### Betrieb auf einem eigenen Server
+
+Der Server bindet nur `HOST` (Standard `127.0.0.1`); öffentlich erreichbar wird er über einen Reverse Proxy mit TLS, der alles auf `http://127.0.0.1:<PORT>/` weiterleitet. Der Webroot des Proxys darf **nie** der Repo-Ordner sein, sonst wären `.env` und die Materialien abrufbar. Beispiel für Apache (`mod_proxy_http`, `mod_headers`):
+
+```apache
+DocumentRoot /pfad/zu/einem/leeren/ordner     # nur für /.well-known/ (Zertifikat per Webroot)
+ProxyPreserveHost On
+RequestHeader set X-Forwarded-Proto https
+ProxyPass /.well-known/ !
+ProxyPass / http://127.0.0.1:4009/
+ProxyPassReverse / http://127.0.0.1:4009/
+ExpiresActive Off                             # Cache-Control setzt der Server selbst
+LimitRequestBody 26214400                     # Bild-Uploads
+```
+
+Server-Sent Events brauchen keine Sonderbehandlung, solange der Proxy `text/event-stream` nicht komprimiert und sein Timeout über 25 s liegt (der Server sendet einen Puls). Erster Start: `pnpm install && pnpm build`, dann `pm2 start schoolbox/ecosystem.config.cjs && pm2 save`. Fehlversuche bei der Anmeldung stehen in `schoolbox/logs/error.log` als `JJJJ-MM-TT hh:mm:ss ±hh:mm: Anmeldung fehlgeschlagen: ip=<Adresse>` (bzw. `gebremst`), passend für einen fail2ban-Filter.
+
+Danach rollt `scripts/ausrollen.sh` neue Stände aus: Fast-Forward auf `origin/main`, `pnpm install --frozen-lockfile`, Typprüfung, Oberfläche daneben bauen und tauschen, `pm2 reload schoolbox`, bis `/healthz` den neuen Commit meldet. Schlägt ein Schritt fehl, kehrt es zum alten Commit zurück und der alte Stand läuft weiter. Es verlangt einen sauberen Arbeitsbaum auf `main`; `--immer` baut auch ohne neuen Stand.
+
 ## Canva
 
 - Die Canva-KI erzeugt Bilder und Grafiken nach Bedarf: Sachbilder, Wortschatz- und Anlautbilder, Bildergeschichten, unbeschriftete Sachgrafiken, neue Posen von Willi und Wilma. Die Skills holen sie als PNG in Originalauflösung und bauen sie ins HTML ein (`html-materialerstellung/references/bilder.md`). Canva for Education ist für Lehrkräfte kostenlos.

@@ -39,9 +39,6 @@ const pruefeUrl = (url: string | null): string | null => {
 	}
 };
 
-const pruefeMail = (schluessel: string, wert: string | null) =>
-	wert === null || /^[^\s@]+@[^\s@]+$/.test(wert) ? null : `${schluessel} „${wert}“ ist keine Mailadresse.`;
-
 /** Prüft beim Start alles, was der Server braucht, und meldet alle Probleme auf einmal. */
 export const pruefeServerKonfig = (konfig: Konfig): ServerKonfig => {
 	const portNummer = Number(konfig.port ?? STANDARD_PORT);
@@ -60,8 +57,6 @@ export const pruefeServerKonfig = (konfig: Konfig): ServerKonfig => {
 		konfig.sitzungGeheimnis !== null && konfig.sitzungGeheimnis.length >= MIN_GEHEIMNIS
 			? null
 			: `SITZUNG_GEHEIMNIS fehlt oder ist zu kurz (mindestens ${MIN_GEHEIMNIS} Zeichen, z. B. „openssl rand -hex 32“).`,
-		pruefeMail('MAIL_AN', konfig.mail.an),
-		pruefeMail('MAIL_VON', konfig.mail.von),
 	].filter((p): p is string => p !== null);
 	if (probleme.length > 0) {
 		const datei = path.join(konfig.wurzel, '.env');

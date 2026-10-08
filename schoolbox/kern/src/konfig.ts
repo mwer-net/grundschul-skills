@@ -10,12 +10,6 @@ export const BLATT_PY = path.join(SKILL_DIR, 'scripts', 'blatt.py');
 export const STANDARD_PORT = 4009;
 export const STANDARD_HOST = '127.0.0.1';
 
-export interface MailKonfig {
-	an: string | null;
-	von: string | null;
-	resendApiKey: string | null;
-}
-
 export interface Konfig {
 	wurzel: string;
 	materialDir: string;
@@ -25,7 +19,6 @@ export interface Konfig {
 	host: string | null;
 	passwortHash: string | null;
 	sitzungGeheimnis: string | null;
-	mail: MailKonfig;
 }
 
 type Umgebung = Record<string, string | undefined>;
@@ -47,10 +40,5 @@ export const ladeKonfig = (env: Umgebung = process.env, wurzel = WURZEL): Konfig
 		host: wert('HOST') ?? null,
 		passwortHash: wert('PASSWORT_HASH') ?? null,
 		sitzungGeheimnis: wert('SITZUNG_GEHEIMNIS') ?? null,
-		mail: {
-			an: wert('MAIL_AN') ?? null,
-			von: wert('MAIL_VON') ?? null,
-			resendApiKey: wert('MAIL_RESEND_API_KEY') ?? null,
-		},
 	};
 };

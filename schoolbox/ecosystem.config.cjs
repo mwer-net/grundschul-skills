@@ -17,7 +17,7 @@ module.exports = {
 			script: 'src/start.ts',
 			interpreter: env.NODE_BIN || 'node',
 			node_args: '--import tsx',
-			time: true,
+			// Setzt die Zeitstempel allein; time: true würde dieses Format überschreiben (fail2ban-Filter)
 			log_date_format: 'YYYY-MM-DD HH:mm:ss Z',
 			watch: false,
 			instances: 1,
@@ -25,6 +25,8 @@ module.exports = {
 			kill_timeout: 5000,
 			output: path.join(__dirname, 'logs', 'pm2.log'),
 			error: path.join(__dirname, 'logs', 'error.log'),
+			// Ohne merge_logs hängt PM2 die Prozessnummer an (error-8.log), der fail2ban-Filter sucht error.log
+			merge_logs: true,
 			env: {
 				NODE_ENV: 'production',
 			},

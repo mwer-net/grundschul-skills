@@ -15,6 +15,7 @@ CLAUDE.local.md
 .venv/
 node_modules/
 schoolbox/*/dist/
+schoolbox/web/dist.*/
 
 # Legt add-site.sh im Site-Ordner an
 logs/
