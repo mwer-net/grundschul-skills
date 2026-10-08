@@ -11,7 +11,7 @@ Bevor es um Klasse, Thema oder Details geht, werden die Grundentscheidungen gekl
 ```
 Was für ein Material brauchst du?
 a) Arbeitsblatt / Übungsblatt   ← Empfehlung, wenn „Blatt" oder „üben" in der Anfrage steht
-b) Lernzielkontrolle / Klassenarbeit
+b) Klassenarbeit (benotet, Kl. 3/4) oder Lernzielkontrolle (unbenotet)
 c) Lernspiel (Domino, Memory, Bingo …)
 d) Bild- oder Wortkarten
 e) etwas anderes: Lesetext, Lernplakat, Stationenlernen, Stundenplanung
@@ -22,7 +22,8 @@ Die Antwort legt den Material-Skill fest:
 | Materialart | Skill |
 |---|---|
 | Arbeitsblatt, Übungsblatt, Forscherblatt | `arbeitsblatt` |
-| Lernzielkontrolle, Klassenarbeit, Lernstandserhebung, Lernlandkarte | `lernzielkontrolle` |
+| Klassenarbeit, Probearbeit (benotete schriftliche Arbeit) | `klassenarbeit` |
+| Lernzielkontrolle (unbenotet), Lernstandserhebung, Lernlandkarte | `lernzielkontrolle` |
 | Lernspiel | `lernspiel` |
 | Bild-, Wort-, Flashcards | `bild-und-wortkarten` |
 | Lesetext, Lesespur, Lesetheater | `lesetext` |
@@ -36,7 +37,7 @@ Nur die Optionen anbieten, die zur Materialart passen; die übliche als Empfehlu
 
 | Materialart | Optionen (Empfehlung fett) | Format (`<body>`-Klasse) |
 |---|---|---|
-| Arbeitsblatt, Lesetext, Lernzielkontrolle | **A4 hoch**, A4 quer, A5 (Heftformat) | Standard; `a4-quer`; `a5-hoch` |
+| Arbeitsblatt, Lesetext, Lernzielkontrolle, Klassenarbeit | **A4 hoch**, A4 quer, A5 (Heftformat) | Standard; `a4-quer`; `a5-hoch` |
 | Bild-/Wortkarten | **Tischkarten 8 pro A4**, A5-Karten (2 pro A4), Tafelkarten A4 quer, digital am Whiteboard | `.karten` auf A4 bzw. `folie` |
 | Lernspiel | **Karten auf A4 zum Ausschneiden**, Spielplan A3/A4 | `.karten` auf A4 / `a3-hoch` |
 | Lernplakat | **A3**, A2 aus A4-Kacheln, digital am Whiteboard | `a3-hoch` bzw. `folie` |
@@ -47,11 +48,11 @@ Nur die Optionen anbieten, die zur Materialart passen; die übliche als Empfehlu
 
 ```
 Wird das Material farbig oder schwarz-weiß gedruckt?
-a) Schwarz-weiß (Kopierer)   ← Empfehlung für Arbeitsblätter, Lernzielkontrollen, Lesetexte
+a) Schwarz-weiß (Kopierer)   ← Empfehlung für Arbeitsblätter, Klassenarbeiten, Lernzielkontrollen, Lesetexte
 b) Farbe
 ```
 
-Empfehlung je nach Medium: **s/w** für Kopiervorlagen (Arbeitsblatt, Lernzielkontrolle, Lesetext, Laufzettel); **Farbe** für Präsentation/Whiteboard, Plakat, laminierte Karten und Spiele. Bei Präsentation/Whiteboard nicht fragen, sondern Farbe annehmen. Die Antwort wählt das Druckprofil in `druck-und-platz.md` (`<body class="sw">` bzw. `class="farbe palette-…"`).
+Empfehlung je nach Medium: **s/w** für Kopiervorlagen (Arbeitsblatt, Klassenarbeit, Lernzielkontrolle, Lesetext, Laufzettel); **Farbe** für Präsentation/Whiteboard, Plakat, laminierte Karten und Spiele. Bei Präsentation/Whiteboard nicht fragen, sondern Farbe annehmen. Die Antwort wählt das Druckprofil in `druck-und-platz.md` (`<body class="sw">` bzw. `class="farbe palette-…"`).
 
 **4.–6. Bausteine des Blatts**
 
@@ -61,7 +62,8 @@ Welche dieser Fragen gestellt wird, hängt von der Materialart ab. Bei allen and
 |---|---|---|---|
 | Arbeitsblatt, Lesetext, Stationenlernen | ja | ja | ja |
 | Lernspiel | – | ja | – |
-| Lernzielkontrolle | ja | – (benotet nie Niveau-Wahl) | – |
+| Lernzielkontrolle | ja | – | – |
+| Klassenarbeit | ja (vor der Abgabe, nie benotet) | – (keine Niveau-Wahl) | ja (außerhalb der Wertung) |
 
 **4. Selbsteinschätzung (Growth Mindset)**
 
@@ -71,7 +73,7 @@ a) Ja   ← Empfehlung
 b) Nein
 ```
 
-Nein: Der Fußbereich mit Wachstumsgrafik und Reflexionsfrage entfällt, der Platz geht an Aufgaben. Ich-kann-Ziel oben, „noch"-Sprache, Strategietipps und lautes Denken der Leitfigur bleiben (das ist Qualität jeder Aufgabe, kein Baustein). Bei Stationenlernen entfällt die Wachstumsspalte auf dem Laufzettel, bei der Lernzielkontrolle der Selbsteinschätzungsteil am Ende.
+Nein: Der Fußbereich mit Wachstumsgrafik und Reflexionsfrage entfällt, der Platz geht an Aufgaben. Ich-kann-Ziel oben, „noch"-Sprache, Strategietipps und lautes Denken der Leitfigur bleiben (das ist Qualität jeder Aufgabe, kein Baustein). Bei Stationenlernen entfällt die Wachstumsspalte auf dem Laufzettel, bei Lernzielkontrolle und Klassenarbeit der Selbsteinschätzungsteil am Ende.
 
 **5. Churer Modell (Niveaus zur Selbstwahl)**
 
@@ -87,7 +89,7 @@ Nein: keine Niveau-Punkte, keine Wahlhilfe, keine getrennten Niveau-Blätter ode
 
 ```
 Soll es am Ende eine Sternchenaufgabe ★ geben (eine Knobelaufgabe für alle, die möchten)?
-a) Ja   ← Empfehlung, wenn Churer „nein"
+a) Ja   ← Empfehlung, wenn Churer „nein" oder nicht gefragt (Klassenarbeit)
 b) Nein ← Empfehlung, wenn Churer „ja" (●●● bietet schon die Herausforderung)
 ```
 
@@ -102,12 +104,12 @@ Die Antworten gelten für die ganze Unterhaltung, bis die Lehrkraft etwas andere
    - Nicht herleitbar (fragen): alles, was das Ergebnis sichtbar verändert und in der Anfrage fehlt.
 2. **Reihenfolge nach Abhängigkeit.** Frühere Antworten verändern spätere Fragen:
    0. Start-Abfrage: Materialart → Medium/Format → Farbe oder s/w → je nach Materialart Selbsteinschätzung → Churer Modell → Sternchenaufgabe (siehe oben)
-   1. Klassenstufe (und ggf. Halbjahr), Bundesland
+   1. Klassenstufe (und ggf. Halbjahr)
    2. Fach, Thema, konkretes Lernziel
    3. Funktion in der Reihe (Einführung / Übung / Vertiefung / Überprüfung)
    4. Lerngruppe (Leistungsspanne, DaZ, Förderbedarfe)
    5. Materialspezifisches und Fachspezifisches (aus Material- und Fach-Skill), aber nur, was die Entwürfe nicht zeigen können. Aufgabenformate, Rahmen/Geschichte, Differenzierungsform, Spielform oder Kartentyp werden nicht gefragt, sondern als Varianten in die Entwürfe gelegt (`entwurf-und-aufgabenplan.md`).
-   6. Klassenkonventionen (Schrift, Symbole, Farbcodes) – fest stehen und werden nicht gefragt: Leitfigur Willi/Wilma Waschbär, Kennzeichnung der Niveaus mit ● / ●● / ●●● und Selbsteinschätzung mit Wachstumsstufen (sofern in der Start-Abfrage gewählt)
+   6. Klassenkonventionen (Schrift, Symbole, Farbcodes) – fest stehen und werden nicht gefragt: Bundesland Baden-Württemberg, Leitfigur Willi/Wilma Waschbär, Kennzeichnung der Niveaus mit ● / ●● / ●●● und Selbsteinschätzung mit Wachstumsstufen (sofern in der Start-Abfrage gewählt)
    7. Ausgabe (Anzahl Exemplare, Laminieren), falls für das Material relevant
 3. **Eine Frage pro Nachricht.** Ausnahme: Zwei eng verbundene Kleinigkeiten dürfen zusammen gefragt werden.
 4. **Jede Frage hat dieses Format:**
@@ -115,13 +117,13 @@ Die Antworten gelten für die ganze Unterhaltung, bis die Lehrkraft etwas andere
    ```
    Für welche Klassenstufe ist das Arbeitsblatt?
    a) Klasse 1
-   b) Klasse 2   ← Empfehlung: "Uhrzeit volle/halbe Stunde" steht meist im Lehrplan Klasse 2.
+   b) Klasse 2   ← Empfehlung: Volle und halbe Stunden werden meist in Klasse 2 geübt.
    c) Klasse 3
    d) andere / jahrgangsgemischt
    ```
 
    Kurz halten. Keine Erklärungen, die nicht zur Entscheidung beitragen.
-5. **Widersprüche und Risiken direkt ansprechen**, z. B. "Brüche stehen nicht im Grundschullehrplan – meinst du Bruchteile wie Hälfte/Viertel bei Größen?"
+5. **Widersprüche und Risiken direkt ansprechen**, z. B. "Brüche stehen nicht im Bildungsplan der Grundschule – meinst du Bruchteile wie Hälfte/Viertel bei Größen?"
 6. **Abbruchkriterium:** Sobald Klasse, Thema, Ziel und Funktion klar sind, keine weiteren Fragen. Höchstens ca. 4 Fragen nach der Start-Abfrage; danach mit Empfehlungen ergänzen und Annahmen offenlegen.
 7. **Entwürfe statt Briefing:** 2–3 schnelle Entwürfe zeigen, die Lehrkraft wählt und sagt, was anders sein soll. Danach den **Aufgabenplan** mit allen Inhalten und Lösungen zur Freigabe vorlegen. Erst nach dem Ok die Endfassung bauen. Ablauf, Formate und Beispiele: `entwurf-und-aufgabenplan.md`.
 8. **Nach der Erstellung:** Kurz nachfragen, ob etwas angepasst werden soll – eine Frage, keine Liste.
@@ -136,4 +138,4 @@ Die Antworten gelten für die ganze Unterhaltung, bis die Lehrkraft etwas andere
 
 ## Wiederkehrende Nutzer
 
-Hat die Lehrkraft in derselben Unterhaltung schon Materialart, Medium, Farbe/s/w, Selbsteinschätzung, Niveaus, Sternchenaufgabe, Klasse, Bundesland, Schrift oder Symbolset genannt, gelten diese weiter. Kurz bestätigen statt neu fragen ("Wieder Klasse 2, Grundschrift?").
+Hat die Lehrkraft in derselben Unterhaltung schon Materialart, Medium, Farbe/s/w, Selbsteinschätzung, Niveaus, Sternchenaufgabe, Klasse, Schrift oder Symbolset genannt, gelten diese weiter. Kurz bestätigen statt neu fragen ("Wieder Klasse 2, s/w?").

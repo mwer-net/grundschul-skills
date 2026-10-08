@@ -3,7 +3,9 @@ name: fach-kunst
 description: Fachdidaktik Kunst Klasse 1–4 (Zeichnen, Malen, Drucken, Collage, plastisches Gestalten, Bildbetrachtung) für Bildbetrachtungsbögen, Technik-Anleitungen, Künstlerporträts und Kunststunden. Laden bei jedem Kunst-Material oder jeder Kunst-Planung in der Grundschule.
 ---
 
-# Fach Kunst (Klasse 1–4)
+# Fach Kunst/Werken (Klasse 1–4)
+
+Grundlage: Bildungsplan Baden-Württemberg Kunst/Werken (2016).
 
 ## Fachspezifische Rückfragen
 

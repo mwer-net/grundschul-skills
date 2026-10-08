@@ -21,7 +21,7 @@ Maße in CSS-px (96 dpi): A4 = 794 × 1123 px, 1 cm ≈ 38 px.
 
 ## 2. Platzbudget
 
-Satzspiegel 1003 px Höhe: Kopf ≤ 170 px, Fuß ≤ 110 px (nur mit Selbsteinschätzung), Rest für Aufgaben. Aufgaben- und Item-Zahl nach dem Richtwert der Klasse (`druck-und-platz.md`); in Kl. 1/2 Übersicht vor Menge. `blatt.py` meldet Überlauf (FEHLER mit px) und Leerraum (HINWEIS). Passt es nicht: Item streichen oder zweite Seite. Bleibt Platz: Kl. 3/4 Item ergänzen, Kl. 1/2 `--abstand` erhöhen.
+Satzspiegel 1003 px Höhe: Kopf ≤ 160 px, Fuß ≤ 110 px (nur mit Selbsteinschätzung), Rest für Aufgaben. Aufgaben- und Item-Zahl nach dem Richtwert der Klasse (`druck-und-platz.md`); in Kl. 1/2 Übersicht vor Menge. `blatt.py` meldet Überlauf (FEHLER mit px) und Leerraum (HINWEIS). Passt es nicht: Item streichen oder zweite Seite. Bleibt Platz: Kl. 3/4 Item ergänzen, Kl. 1/2 `--abstand` erhöhen.
 
 Faustwerte Kl. 2 (24 px Schrift): Aufgabenzeile 34 px, Uhr 88 px + Antwortlinie ≈ 130 px, Rechenzeile 45 px, Schreiblinie 46 px, Leitfigur mit Sprechblase im Kopf ≈ 95 px.
 
@@ -34,7 +34,7 @@ Faustwerte Kl. 2 (24 px Schrift): Aufgabenzeile 34 px, Uhr 88 px + Antwortlinie 
 5. **Bilder mit `alt`** und fester Breite (`style="--figur:72px"` bzw. `width`), nie über die Spalte hinaus.
 6. **Lösungen im selben Dokument** (`data-l`, `loesung=`, `nur-loesung`); keine zweite Kopie pflegen.
 7. **Varianten** (Niveau-Blätter) als weitere `.seite` in derselben Datei; Titel nach Schema `Kl2_Mathe_Uhrzeit_AB1`.
-8. **Leitfigur** nie zwischen Anweisung und Arbeitsfläche: in den Kopf (`.kopf .tipp`, „Zu 1: …") oder neben eine Reihe, die Platz hat.
+8. **Leitfigur-Tipp** neben seiner Aufgabe, wenn die Reihe Platz hat (`.tipp` ans Reihenende), sonst in den Kopf (`.kopf .tipp`, „Zu 1: …"); nie zwischen Anweisung und Arbeitsfläche.
 
 ## 4. Checkliste
 

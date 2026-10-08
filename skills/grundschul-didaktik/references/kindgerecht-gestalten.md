@@ -15,7 +15,7 @@ Zwei Befunde scheinen sich zu widersprechen, passen aber zusammen:
 
 ### 1. Freundliche Formen für die Struktur
 
-- Aufgaben **ohne Kasten und ohne Flächenfüllung**: hängende Nummer, Abstand zur nächsten Aufgabe (`druck-und-platz.md`, Abschnitt 3).
+- Aufgaben **ohne Kasten und ohne Flächenfüllung**: hängende Nummer, Abstand zur nächsten Aufgabe (`druck-und-platz.md`, Abschnitt 4).
 - Aufgabennummern in **kleinen gefüllten Kreisen** (32–36 px, weiße fette Ziffer; Farbprofil: Hauptfarbe, s/w: schwarz): starker Anker, kaum Fläche.
 - Die wenigen Rahmen mit Funktion (Sprechblase, Wortspeicher, Antwortkästchen) als dünne Kontur mit **gerundeten Ecken** (Rundung ca. 8–16 px); im Farbprofil Kontur in der Akzentfarbe und ggf. sehr helle Füllung, im s/w-Profil ohne Füllung.
 - Schreiblinien und Antwortkästen schlicht (schwarz/dunkelgrau, 1,5–2 px), damit Kinderschrift lesbar bleibt.
@@ -84,12 +84,11 @@ Dosierung: Leitfigur plus nur die Bilder, die die Aufgaben brauchen. Für s/w al
 - **Fließtext:** klare Druckschrift mit eindeutigen Formen. In Klasse 1/2 mit einstöckigem a und g, weil es der Form entspricht, die die Kinder schreiben (Lesetests zeigen keinen Nachteil des zweistöckigen a – entscheidend ist die Passung zur Schrift der Klasse). Standard: **Andika** (für Leseanfänger entwickelt, einstöckiges a und g; im HTML eingebettet). Ab Klasse 3 auch andere klare serifenlose Schriften wie **Nunito**.
 - **Überschriften:** eine runde, fröhliche Display-Schrift, z. B. **Fredoka**, **Baloo 2**, **Chewy** (nur Überschrift!).
 - Höchstens zwei Schriften. Keine Schreibschrift- oder Schmuckschriften für Lesetext, keine Großbuchstaben-Texte.
-- Schulschrift des Bundeslandes (Grundschrift, Fibel Nord/Süd, Druckschrift Bayern) wenn verfügbar und lizenziert: als Schriftdatei in `html-materialerstellung/assets/fonts/` einbinden.
+- Schulschrift der Klasse (Druckschrift des Lehrwerks, ab Kl. 2 Lateinische oder Vereinfachte Ausgangsschrift), wenn verfügbar und lizenziert: als Schriftdatei in `html-materialerstellung/assets/fonts/` einbinden.
 
 ## KI-Bilder und -Grafiken (Canva `generate-image`)
 
 Bilder und Grafiken, die das Material braucht, erzeugt der Skill nach Bedarf mit der Canva-KI und baut sie ins HTML ein (Ablauf: `html-materialerstellung/references/bilder.md`, Abschnitt 2). Es gilt der Weglass-Test aus Abschnitt 4.
-
 
 **Stil-Satz einmal pro Material festlegen und für jedes Bild wörtlich wiederverwenden** – so bleibt der Stil einheitlich.
 
@@ -101,12 +100,11 @@ s/w-Profil:
 
 > Kindgerechte Strichzeichnung wie ein Ausmalbild, runde, weiche Formen, klare schwarze Konturen gleichmäßiger Stärke, weiße Füllung, keine Grautöne, keine Schraffur, freundliche Gesichter, weißer Hintergrund, freigestellt, keine Schrift, keine Zahlen, keine Buchstaben im Bild, kein Hintergrundmuster.
 
-
 Danach Motiv konkret beschreiben: wer, was, Pose, Blickrichtung (zur Aufgabe hin), Bildausschnitt.
 
 Regeln:
-- **Keine Schrift, Zahlen oder Uhren im KI-Bild.** KI erzeugt dabei regelmäßig Fehler. Fachlich exakte Elemente (Uhren, Zahlenstrahl, Mengenbilder) werden berechnet und als Vektor gesetzt (`fach-mathematik/scripts`).
-- Leitfigur: immer Willi oder Wilma Waschbär mit den IDs aus Abschnitt 3.
+- **Keine Schrift, Zahlen oder Uhren im KI-Bild.** KI erzeugt dabei regelmäßig Fehler. Fachlich exakte Elemente (Uhren, Zahlenstrahl, Mengenbilder) werden berechnet und als Vektor gesetzt (`html-materialerstellung/assets/abbildungen.js`).
+- Leitfigur: immer Willi oder Wilma Waschbär (Dateien in `html-materialerstellung/assets/bilder/`, neue Posen nach `html-materialerstellung/references/bilder.md`).
 - Sachabbildungen (Tiere, Pflanzen, Körper) auf fachliche Richtigkeit prüfen.
 - Diversität: Kinder unterschiedlicher Herkunft, Geschlechter und mit/ohne Brille, Rollstuhl usw. selbstverständlich abbilden, ohne es zum Thema zu machen.
 

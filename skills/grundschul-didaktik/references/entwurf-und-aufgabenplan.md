@@ -102,7 +102,8 @@ Erst nach dem Ok der Lehrkraft beginnt Phase 5. Änderungswünsche danach werden
 | Materialart | Entwürfe unterscheiden sich in | Aufgabenplan legt fest |
 |---|---|---|
 | `arbeitsblatt` | Zugang (kompakt üben / Geschichte als Rahmen / entdeckend), Aufgabenformate, Item-Dichte, Differenzierungsform (ein Blatt mit ● ●● ●●● oder drei Blätter) | jede Aufgabe mit Anweisung, allen Items, Beispiel, Tipp, Niveau bzw. ★; Selbstkontrolle; Lösungsblatt |
-| `lernzielkontrolle` | Aufgabenauswahl und Gewichtung der Anforderungsbereiche | jede Aufgabe mit Items, Punkten, Anforderungsbereich und Lernziel; Erwartungshorizont mit Teilpunkten; Notenschlüssel-Vorschlag; ggf. Nachteilsausgleich-Fassung |
+| `klassenarbeit` | Aufgabenauswahl, Gewichtung der Anforderungsbereiche, Anordnung, ggf. gleichwertige Wahlaufgaben | Haupt- und Probearbeit parallel; jede Aufgabe mit Items, Punkten, Anforderungsbereich und Ich-kann-Ziel; Erwartungshorizont mit Teilpunkten; Bearbeitungszeit; Notenschlüssel (Schulvorgabe oder Vorschlag); ggf. Nachteilsausgleich-Fassung |
+| `lernzielkontrolle` | Aufgabenauswahl und Gewichtung der Anforderungsbereiche; bei Lernlandkarten die Bildidee | jede Aufgabe mit Items und Ich-kann-Ziel; Erwartungshorizont; Auswertungsraster je Ziel statt Punkten; ggf. Nachteilsausgleich-Fassung |
 | `lernspiel` | Spielform (z. B. Domino / Memory / Klammerkarten), Kartengestaltung | vollständige Kartenliste (Vorder- und Rückseite jeder Karte), geprüfte Kette bzw. Paare, Spielanleitung wörtlich, Kartensätze je Niveau, Raster pro Seite |
 | `bild-und-wortkarten` | Kartentyp (Bild + Wort / Bild vorn, Wort hinten / nur Wort), Größe und Raster | Wortliste mit Artikel (ggf. Plural, Silben), Bildmotiv je Karte, Bildstil, Rückseite |
 | `lesetext` | Textsorte bzw. Rahmen, Aufgabenformate; im Entwurf nur die ersten 2–3 Sätze | ganzer Text je Fassung mit Wortzahl und Lesestufe, Aufgaben, Lösungen, Zeilennummern |

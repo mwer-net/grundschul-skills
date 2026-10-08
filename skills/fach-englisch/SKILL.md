@@ -1,21 +1,20 @@
 ---
 name: fach-englisch
-description: Fachdidaktik Englisch in der Grundschule (meist ab Klasse 1 oder 3) mit Vorrang von Hören und Sprechen, Flashcards, Songs, Storytelling und Mini-Books. Laden bei jedem Englisch-Material oder jeder Englisch-Planung in der Grundschule.
+description: Fachdidaktik Englisch in der Grundschule (in Baden-Württemberg ab Klasse 3) mit Vorrang von Hören und Sprechen, Flashcards, Songs, Storytelling und Mini-Books. Laden bei jedem Englisch-Material oder jeder Englisch-Planung in der Grundschule.
 ---
 
 # Fach Englisch (Grundschule)
 
-Grundlage: Lehrplan des Bundeslandes (Beginn Kl. 1 oder 3 je nach Land), Prinzipien des frühen Fremdsprachenlernens.
+Grundlage: Bildungsplan Baden-Württemberg Englisch (überarbeitet, seit 2025/26 aufsteigend), Prinzipien des frühen Fremdsprachenlernens. Englisch beginnt in Klasse 3 (Kl. 3 = 1. Lernjahr, Kl. 4 = 2. Lernjahr). An der Rheinschiene und an bilingualen Schulen gibt es stattdessen Französisch, teils ab Klasse 1; die Leitlinien gelten dafür sinngemäß.
 
 ## Fachspezifische Rückfragen
 
 Nach dem Rückfrage-Protokoll aus `grundschul-didaktik` (eine Frage pro Nachricht, mit Empfehlung). Ergänzend zu den Fragen des Material-Skills:
 
-1. **Klasse und Lernjahr:** Ab wann wird Englisch unterrichtet, im wievielten Lernjahr ist die Klasse?
-2. **Topic:** z. B. colours, numbers, animals, food, clothes, weather, my body, school things, family, hobbies, seasons/festivals.
-3. **Schriftbild:** Wird schon gelesen/geschrieben oder nur mündlich gearbeitet? *Empfehlung im 1. Lernjahr: Schriftbild nur unterstützend.*
-4. **Lehrwerk und Rituale:** Lehrwerk, Handpuppe im Unterricht, Begrüßungsritual, Classroom phrases? (Leitfigur auf dem Material bleibt Willi oder Wilma Waschbär.)
-5. **Phase:** Einführung neuer Wörter, Festigung, Anwendung (Dialog, Spiel) oder Story?
+1. **Topic:** z. B. colours, numbers, animals, food, clothes, weather, my body, school things, family, hobbies, seasons/festivals.
+2. **Schriftbild:** Wird schon gelesen/geschrieben oder nur mündlich gearbeitet? *Empfehlung im 1. Lernjahr: Schriftbild nur unterstützend.*
+3. **Lehrwerk und Rituale:** Lehrwerk, Handpuppe im Unterricht, Begrüßungsritual, Classroom phrases? (Leitfigur auf dem Material bleibt Willi oder Wilma Waschbär.)
+4. **Phase:** Einführung neuer Wörter, Festigung, Anwendung (Dialog, Spiel) oder Story?
 
 ## Didaktische Leitlinien
 
@@ -45,6 +44,17 @@ Nach dem Rückfrage-Protokoll aus `grundschul-didaktik` (eine Frage pro Nachrich
 - Wachstums-Selbsteinschätzung mit den deutschen Kindersätzen; Reflexion auf Deutsch erlaubt.
 - Niveaus: ● hören und zeigen/ankreuzen, ●● sprechen oder Wort zuordnen, ●●● eigene Sätze mit Chunks oder Dialog.
 - Fehler beim Sprechen nicht korrigierend unterbrechen, sondern richtig wiederholen (Recasting).
+
+## Leistung feststellen (BW)
+
+- **Nicht erlaubt:** Diktate, Nachschriften, schriftliche Vokabeltests und Übersetzungen.
+- Die Note beruht vor allem auf **kriteriengeleiteter Beobachtung** und dem Lernfortschritt. Hör- und Leseverstehen fließen ein.
+- Material dafür:
+  - Beobachtungsbogen mit Kann-Sätzen zu Hören und Sprechen.
+  - Hör- und Leseaufgaben („Listen and tick / colour / number", „Read and match") mit Hörtext-Skript für die Lehrkraft.
+  - Sprechanlässe (Dialogkarten, Mini-Book vorstellen) mit einem kurzen Kriterienraster: verständlich, passende Chunks, zusammenhängend.
+  - Selbsteinschätzung „I can …" mit Wachstumsstufen (`lernzielkontrolle`).
+- Klassenarbeiten wie in Deutsch und Mathematik gibt es nicht; Übungs- und Wiederholungsarbeiten zählen hier nicht als Notengrundlage.
 
 ## Sprachliche Regeln
 

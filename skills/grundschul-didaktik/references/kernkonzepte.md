@@ -1,6 +1,6 @@
 # Kernkonzepte: Growth Mindset und Churer Modell
 
-Beide Konzepte prägen, wie Aufgaben formuliert, angeboten und reflektiert werden. Zwei Bausteine sind **wählbar** und werden in der Start-Abfrage geklärt (`rueckfragen.md`, Fragen 4–6):
+Beide Konzepte prägen, wie Aufgaben formuliert, angeboten und reflektiert werden. Drei Bausteine sind **wählbar** und werden in der Start-Abfrage geklärt (`rueckfragen.md`, Fragen 4–6):
 
 | Baustein | Frage | Bei „nein" |
 |---|---|---|
@@ -8,7 +8,7 @@ Beide Konzepte prägen, wie Aufgaben formuliert, angeboten und reflektiert werde
 | Niveaus ● / ●● / ●●● zur Selbstwahl (B1, B3) | 5 | eine Aufgabenfolge für alle, steigend im Anspruch, ohne Punkte und Wahlhilfe |
 | Sternchenaufgabe ★ | 6 | keine |
 
-Immer gelten, unabhängig von der Wahl: Ich-kann-Ziel oben, „noch"-Sprache, Strategietipps, lautes Denken der Leitfigur, Fehler als Lernchance, Herausforderung positiv rahmen, Selbstständigkeit (Beispiel, Tipps, Selbstkontrolle). Fragt die Start-Abfrage nicht (z. B. Karten, Plakat) oder sagt die Lehrkraft „mach einfach", gelten die Empfehlungen: Selbsteinschätzung ja, Niveaus ja, Sternchenaufgabe nein.
+Immer gelten, unabhängig von der Wahl: Ich-kann-Ziel oben, „noch"-Sprache, Strategietipps, lautes Denken der Leitfigur, Fehler als Lernchance, Herausforderung positiv rahmen, Selbstständigkeit (Beispiel, Tipps, Selbstkontrolle). In Klassenarbeiten und Lernzielkontrollen entfallen Beispiel, Lösungstipps und Selbstkontrolle, weil sie zeigen, was das Kind allein kann; Haltung und Sprache bleiben. Fragt die Start-Abfrage einen Baustein nicht ab (z. B. bei Karten, Plakat), entfällt er. Sagt die Lehrkraft „mach einfach", gelten die Empfehlungen aus `rueckfragen.md`: Selbsteinschätzung ja, Niveaus ja, Sternchenaufgabe nur ohne Niveaus.
 
 ---
 
@@ -20,8 +20,8 @@ Nach Carol Dweck: Fähigkeiten wachsen durch Üben, gute Strategien und Hilfe �
 
 ### Was die Forschung sagt (Stand 2026, ehrlich eingeordnet)
 
-- **Umstrittene Durchschnittseffekte.** Zwei Meta-Analysen von 2023 kommen zu unterschiedlichen Schlüssen: Macnamara & Burgoyne finden in methodisch guten Studien kaum Leistungseffekte; Burnette et al. finden Effekte vor allem bei leistungsschwächeren und benachteiligten Kindern, kaum bei leistungsstarken. Tipton et al. (2023) zeigen, dass der Durchschnitt diese Unterschiede verdeckt. Fazit: kein Wundermittel, aber für die Kinder, die es am meisten brauchen, hilfreich.
-- **Mindset-Stunden allein wirken in der Grundschule nicht.** Die große EEF-Studie „Changing Mindsets" (England, 101 Grundschulen, 2019) fand durch eigenständige Mindset-Lektionen keinen Leistungszuwachs. Plakate, Gehirn-Erklärungen oder Merksätze ohne Fachbezug reichen nicht.
+- **Umstrittene Durchschnittseffekte.** Zwei Meta-Analysen von 2023 kommen zu unterschiedlichen Schlüssen: Macnamara & Burgoyne finden in methodisch guten Studien kaum Leistungseffekte; Burnette et al. finden Effekte vor allem bei leistungsschwächeren und benachteiligten Kindern, kaum bei leistungsstarken. Tipton et al. (2023) zeigen, dass der Durchschnitt diese Unterschiede verdeckt. Ein Review von 24 randomisierten Studien (Gazmuri 2025) findet in den methodisch besten praktisch keinen Effekt (d ≈ 0) und warnt, dass Interessenkonflikte die Studienlage beschönigen könnten. Fazit: kein Wundermittel; wenn überhaupt, profitieren leistungsschwächere Kinder.
+- **Mindset-Stunden allein wirken in der Grundschule nicht.** Die große EEF-Studie „Changing Mindsets" (England, 101 Grundschulen, 2019) fand durch eigenständige Mindset-Lektionen keinen Leistungszuwachs. Die Fachveröffentlichung zu einer englischen Studie mit 100 Grundschulen (Foliano, Hoskins & Rolfe 2026, 10- bis 11-Jährige) bestätigt das Muster: Das Programm veränderte die Überzeugungen deutlich (0,42 SD), die Leistungen in Lesen, Mathematik und Rechtschreibung aber nicht, auch nicht bei benachteiligten Kindern. Plakate, Gehirn-Erklärungen oder Merksätze ohne Fachbezug reichen nicht.
 - **Es wirkt über die Lernkultur.** Effekte entstehen dort, wo Lehrkräfte selbst an Entwicklung glauben und das im Unterricht zeigen (Yeager et al. 2019 und 2022, Jugendliche in den USA). Kinder übernehmen vor allem, **wie Erwachsene auf Fehler reagieren** (Haimovitz & Dweck 2016). Darum muss die Haltung in jeder Aufgabe, jedem Tipp und jeder Rückmeldung stecken.
 - **Prozesslob wirkt im Grundschulalter**, wenn es konkret ist: Strategie, Vorgehen und Fortschritt benennen statt Begabung („Du bist schlau"). Pauschales Anstrengungslob („Toll gestrengt!") kann als „du hast es nötig" verstanden werden und kippt spätestens ab der Pubertät (Amemiya & Wang 2018).
 - Dweck warnt vor dem „falschen Growth Mindset": Anstrengung loben, auch wenn sie nicht weiterführt, schadet. Es geht um Anstrengung **plus Strategie plus Hilfe holen**.
@@ -46,7 +46,7 @@ Nach Carol Dweck: Fähigkeiten wachsen durch Üben, gute Strategien und Hilfe �
 5. **Fehler als Lernchance einbauen.** Wo passend eine Aufgabe „Finde den Fehler" oder „Willi hat sich vertan – erkläre ihm, was falsch ist" (Rechenfehler ab Kl. 2, Rechtschreibfehler erst ab Kl. 3, siehe `fach-deutsch`). Selbstkontrolle mit Lösung zum Nachschauen statt Rotstift.
 6. **Reflexionsfrage am Ende** (gehört zum Fußbereich, entfällt mit Frage 4 „nein"; Klasse 1/2 mündlich oder mit Ankreuzen, ab Klasse 3 schriftlich), z. B.: „Was hat dir geholfen?", „Welche Strategie hast du benutzt?", „Was übst du als Nächstes?", „Welche Aufgabe war eine gute Herausforderung?"
 7. **Herausforderung positiv rahmen.** Die schwierigere Aufgabe heißt „Herausforderung", „Knobelaufgabe" oder „Sternchenaufgabe ★", nie „Zusatz für die Schnellen". Die Sternchenaufgabe (wählbar, Frage 6) ist ein freiwilliges Angebot für alle.
-8. **Rückmeldefeld für die Lehrkraft** (Pflicht auf Laufzettel und Lernzielkontrolle, auf Arbeitsblättern optional) mit Prozess-Satzanfängen: „Du hast geschafft, …", „Deine Strategie …", „Als Nächstes kannst du …". Rückmeldung immer konkret (was genau gelungen ist, welcher nächste Schritt), nie pauschal.
+8. **Rückmeldefeld für die Lehrkraft** (Pflicht auf Laufzettel, Lernzielkontrolle und Klassenarbeit, auf Arbeitsblättern optional) mit Prozess-Satzanfängen: „Du hast geschafft, …", „Deine Strategie …", „Als Nächstes kannst du …". Rückmeldung immer konkret (was genau gelungen ist, welcher nächste Schritt), nie pauschal. Bei benoteten Arbeiten kommt der Kommentar vor der Note (`klassenarbeit`).
 
 ### Vermeiden
 
@@ -76,7 +76,7 @@ Ein Unterrichts- und Raumkonzept für heterogene Klassen, seit 2011 an der Stadt
 - Die Kritik betrifft vor allem leistungsschwächere Kinder und Kinder mit hohem Strukturbedarf: Selbstorganisation muss erst aufgebaut werden, und freie Wahl ohne Begleitung kann überfordern. Darum gehören **schrittweise Öffnung, Lernbegleitung und gezielte Instruktion** dazu.
 - Allgemeine Wahlforschung stützt den Kern: Wahlmöglichkeiten steigern Motivation, Anstrengung und erlebte Kompetenz, bei Kindern stärker als bei Erwachsenen, am besten bei **überschaubar vielen Optionen** (Meta-Analyse Patall, Cooper & Robinson 2008).
 
-Stufen der Öffnung: organisatorisch (Raum, Kreis, Platzwahl) → methodisch (Wahl zwischen vorbereiteten Lernaufgaben) → inhaltlich (offene Aufgaben, bei denen die Kinder selbst differenzieren). Michael setzt das Modell ein, soweit die Schule es zulässt – Material muss deshalb **auch im klassischen Raum** funktionieren.
+Stufen der Öffnung: organisatorisch (Raum, Kreis, Platzwahl) → methodisch (Wahl zwischen vorbereiteten Lernaufgaben) → inhaltlich (offene Aufgaben, bei denen die Kinder selbst differenzieren). Die Lehrkraft setzt das Modell ein, soweit die Schule es zulässt – Material muss deshalb **auch im klassischen Raum** funktionieren.
 
 ### Umsetzung im Material
 
@@ -88,7 +88,7 @@ Stufen der Öffnung: organisatorisch (Raum, Kreis, Platzwahl) → methodisch (Wa
    | ●● | Kern | das Lernziel der Stunde |
    | ●●● | Herausforderung | erweiterte Anforderungen: Begründen, Übertragen, Erfinden |
 
-   Kennzeichnung neutral mit Punkten (s/w-tauglich), nie mit Wertungen, Buchstaben, Farben oder „leicht/schwer". Die Kinder wählen selbst und dürfen wechseln. Die Lehrkraft beobachtet die Wahl: Wer dauerhaft deutlich unter- oder überfordert wählt, bekommt im Gespräch eine Empfehlung (Wahl mit Beratung, keine Zuweisung). Optik und Figur sind auf allen Niveaus gleich. Ausnahme: In benoteten Lernzielkontrollen gibt es keine Niveau-Wahl (siehe `lernzielkontrolle`).
+   Kennzeichnung neutral mit Punkten (s/w-tauglich), nie mit Wertungen, Buchstaben, Farben oder „leicht/schwer". Die Kinder wählen selbst und dürfen wechseln. Die Lehrkraft beobachtet die Wahl: Wer dauerhaft deutlich unter- oder überfordert wählt, bekommt im Gespräch eine Empfehlung (Wahl mit Beratung, keine Zuweisung). Optik und Figur sind auf allen Niveaus gleich. Ausnahme: In Klassenarbeiten gibt es keine Niveau-Wahl (siehe `klassenarbeit`).
 2. **Selbstständig bearbeitbar.** Weil die Lehrkraft während der Lernaufgaben berät, muss jede Aufgabe ohne Rückfrage verständlich sein: „So geht's"-Beispiel, Arbeitsanweisungs-Symbole, gestufte Tippkarten, Lösung zur Selbstkontrolle.
 3. **Wahlhilfe für die Kinder** (nur mit Niveaus). Ein Satz oben oder eine kleine Wahlhilfe: „Wähle deine Aufgaben. Fang dort an, wo du sicher bist, und wage dann eine Herausforderung." Die Wachstums-Selbsteinschätzung hilft bei der Wahl.
 4. **Sozialform offen lassen** oder anbieten (👤 / 👥), außer die Aufgabe braucht zwingend einen Partner.
@@ -126,6 +126,10 @@ Growth Mindset und Metakognition:
   - https://educationendowmentfoundation.org.uk/news/eef-publishes-findings-from-growth-mindsets-approach
 - Yeager, D. et al. (2019): A national experiment reveals where a growth mindset improves achievement. Nature. – Yeager, D. et al. (2022): Teacher mindsets help explain where a growth-mindset intervention does and doesn't work. Psychological Science.
 - Haimovitz, K. & Dweck, C. (2016): Parents' views of failure predict children's fixed and growth intelligence mind-sets. Psychological Science.
+- Gazmuri, C. (2025): Can growth mindset interventions improve academic achievement? A structured review of the existing evidence. Review of Education 13, e70066.
+  - https://doi.org/10.1002/rev3.70066
+- Foliano, F., Hoskins, S. & Rolfe, H. (2026): Perseverance in the classroom: findings from a randomised educational intervention in primary schools in England. SSE Working Paper 26/5.
+  - https://swoba.hhs.se/hastel/abs/hastel2026_005.htm
 - Amemiya, J. & Wang, M.-T. (2018): Why effort praise can backfire in adolescence. Child Development Perspectives.
 - Sisk, V. et al. (2018): To what extent and under which circumstances are growth mind-sets important to academic achievement? Psychological Science.
 - Education Endowment Foundation (2025, aktualisiert): Metacognition and Self-Regulated Learning. Guidance Report.

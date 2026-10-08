@@ -5,6 +5,8 @@ description: Fachdidaktik Musik Klasse 1–4 (Singen, Musizieren, Musik hören, 
 
 # Fach Musik (Klasse 1–4)
 
+Grundlage: Bildungsplan Baden-Württemberg Musik (2016).
+
 ## Fachspezifische Rückfragen
 
 Nach dem Rückfrage-Protokoll aus `grundschul-didaktik` (eine Frage pro Nachricht, mit Empfehlung). Ergänzend zu den Fragen des Material-Skills:

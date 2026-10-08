@@ -11,10 +11,11 @@ Ein Lernplakat sichert Wissen dauerhaft im Raum. Es wird im Unterricht gemeinsam
 
 ## Rückfragen
 
+Zuerst die Start-Abfrage (`grundschul-didaktik/references/rueckfragen.md`): Medium (A3, A2 aus A4-Kacheln oder Whiteboard) und Farbe; die Bausteine entfallen. Danach:
+
 1. **Zweck:** Merkplakat (Regel/Strategie), Anschauung (Zahlenstrahl, Uhr, Alphabet), Wortspeicher, Klassenregeln/Rituale, Lernkultur (Wachstumsstufen, „noch"-Sätze, Hilfe-Regel) oder Tafelbild für den Kreisinput?
-2. **Format:** A3, A2 (aus A4-Kacheln) oder digital (Whiteboard)? *Empfehlung: A3 für Merkplakate.*
-3. **Kernaussage:** Welche eine Regel/Strategie soll hängen bleiben? Gibt es Lehrwerksformulierungen, die übernommen werden sollen?
-4. **Teilweise leer lassen?** Plakat mit Lücken zum gemeinsamen Ausfüllen im Unterricht?
+2. **Kernaussage:** Welche eine Regel/Strategie soll hängen bleiben? Gibt es Lehrwerksformulierungen, die übernommen werden sollen?
+3. **Teilweise leer lassen?** Plakat mit Lücken zum gemeinsamen Ausfüllen im Unterricht?
 
 ## Entwürfe und Aufgabenplan
 

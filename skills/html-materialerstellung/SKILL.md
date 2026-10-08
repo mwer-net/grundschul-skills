@@ -1,6 +1,6 @@
 ---
 name: html-materialerstellung
-description: Technischer Ablauf, um Grundschulmaterial (Arbeitsblätter, Lernzielkontrollen, Lesetexte, Karten, Plakate, Stationskarten) als HTML/CSS zu bauen, automatisch zu prüfen und als druckfertiges A4-PDF mit Lösungsblatt auszugeben. Laden für die Entwürfe (Phase 2) und die Umsetzung des freigegebenen Aufgabenplans. Bilder und Grafiken nach Bedarf mit Canva-KI.
+description: Technischer Ablauf, um Grundschulmaterial (Arbeitsblätter, Klassenarbeiten, Lernzielkontrollen, Lesetexte, Karten, Plakate, Stationskarten) als HTML/CSS zu bauen, automatisch zu prüfen und als druckfertiges A4-PDF mit Lösungsblatt auszugeben. Laden für die Entwürfe (Phase 2) und die Umsetzung des freigegebenen Aufgabenplans. Bilder und Grafiken nach Bedarf mit Canva-KI.
 ---
 
 # Material mit HTML erstellen
@@ -13,7 +13,7 @@ Warum: In HTML bestimmen wir Schrift (Fredoka, Andika, eingebettet), Abstände u
 
 | Datei | Zweck |
 |---|---|
-| `assets/blatt.css` | Gestaltungssystem: A4-Seite, 60 px Rand, Kopf, Aufgaben mit hängender Nummer, Niveau-Punkte, Antwortlinien, Sprechblase, Fuß, Karten, Platzhalter. Profile über Klassen am `<body>`. |
+| `assets/blatt.css` | Gestaltungssystem: A4-Seite, 60 px Rand, Kopf, Aufgaben mit hängender Nummer, Niveau-Punkte, Punktfelder, Antwortlinien, Sprechblase, Fuß, Karten, Platzhalter. Profile über Klassen am `<body>`. |
 | `assets/abbildungen.js` | Exakte Abbildungen als SVG: `x-uhr`, `x-menge` (Gegenstände in Reihen, Bündel), `x-dienes`, `x-strichpunkt`, `x-stellentafel`, `x-zwanzigerfeld`, `x-zahlenstrahl`. Aufrufe im Kopf der Datei. |
 | `assets/vorlage-arbeitsblatt.html` | Muster mit allen Bausteinen (Farbprofil); Ausgangspunkt für jedes Blatt |
 | `assets/beispiel-zehner-einer-kl2.html` | geprüftes Beispiel im s/w-Profil (Bündeln, Stellentafel, Sternchenaufgabe, Lösungen) |
@@ -52,7 +52,7 @@ Warum: In HTML bestimmen wir Schrift (Fredoka, Andika, eingebettet), Abstände u
 - `<body class="kl2 sw">` bzw. `class="kl2 farbe palette-himmel"` (Paletten: sonnig, himmel, wiese, beere). Die Klasse setzt Schriftgröße (Kl. 1: 28 px, 2: 24, 3: 20, 4: 18) und Aufgabenabstand; das Profil Farben. Text bleibt immer schwarz.
 - Seite: `<section class="seite">`, mehrere Seiten = mehrere Sections.
 - Kopf: `.namenszeile`, `.kopf` mit `.titel` (h1, `.ziel`, `.wahlhilfe`) und optional `.tipp` (Leitfigur mit Sprechblase), `.loesung-marke`.
-- Aufgabe: `.aufgabe` > `.nr` (oder `.nr.stern`) + `.anw` (`.text` + `.niveau` mit `<i>` je Punkt) + `.koerper`.
+- Aufgabe: `.aufgabe` > `.nr` (oder `.nr.stern`) + `.anw` (`.text` + `.niveau` mit `<i>` je Punkt, in Klassenarbeiten stattdessen `.punkte`) + `.koerper`.
 - Items: `.reihe` mit `--spalten`, darin `.zelle` (`.links` für linksbündig), `.zeile` für Rechenzeilen, `.antwort` (`.kurz`, `.breit`, `.lang`), `.schreiblinie`, `.box` (Ankreuzkästchen).
 - Fuß (nur mit Selbsteinschätzung): `.fuss` mit Text, Wachstumsgrafik, `.reflexion`.
 - Karten: `.karten` mit `--spalten`, `.karte`, `.kartentext`, `.ecke`.

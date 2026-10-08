@@ -9,19 +9,13 @@ Ob ein Material farbig oder schwarz-weiß gestaltet wird, fragt die **Start-Abfr
 
 **In beiden Profilen gilt das kompakte Layout** (Abschnitt 4): Aufgaben ohne Kasten, schlanker Kopf und Fuß, volle Item-Reihen. Farbe macht ein Blatt ansprechend, Kästen mit Innenabstand kosten nur Platz.
 
-Diese Regeln haben Vorrang vor älteren Gestaltungshinweisen (farbige Flächen, Aufgabenblöcke als Pastellkästen mit Innenabstand).
-
 ## 1. Warum
 
-| Befund | Folge für das Material |
-|---|---|
-| Tonerverbrauch steigt mit bedruckter Fläche × Tonwert. Herstellerangaben zur Reichweite rechnen mit 5 % Flächendeckung pro Seite (ISO/IEC 19752). | Mittlere Töne kosten am meisten: Farbige Nummernkreise, farbige Bilder und die Leitfigur werden zu Grauflächen. Helle Pastellflächen sind einzeln günstig, summieren sich aber: Ein Laserdrucker rastert sie als Punktmuster über die ganze Fläche. Das Probeblatt Uhrzeit hatte Pastellflächen auf rund 55 % der Seite (≈ 2 % Deckung, fast eine halbe Textseite zusätzlich). |
-| Am Kopierer werden helle Flächen oft ungleichmäßig wiedergegeben (Schleier, Streifen) oder fallen ganz weg. | Eine weiße Seite kopiert sauber, eine getönte nicht. |
-| Farben werden in s/w nach ihrer Helligkeit in Grau umgesetzt. Verschiedene Farben gleicher Helligkeit werden zum selben Grau. | Farbcodes gehen verloren; farbige Schrift (z. B. Orange) wird mittelgrau und kontrastarm. |
-| Kopierer lassen sehr helle Linien und Schrift wegfallen; jede Kopie einer Kopie und jede Verkleinerung (A4 → A5 halbiert die Linienstärke) verliert weiter. | Nur Schwarz und kräftiges Grau verwenden, keine Haarlinien. |
-| Eine umschließende Fläche oder ein Rahmen gruppiert stärker als Nähe (Gestalt: gemeinsame Region), aber zu viele Rahmen machen das Blatt unruhig. In den meisten Fällen reichen Weißraum und Nähe für eine klare Ordnung. | Aufgaben durch Abstand trennen, nicht durch Kästen. Rahmen nur, wo der Rahmen selbst eine Funktion hat. |
-| Jeder Kasten braucht Innenabstand oben und unten plus Abstand zum nächsten Kasten. Bei vier Aufgaben sind das schnell 150–200 px, also eine ganze Aufgabe. | Ohne Kästen passen bei gleicher Lesbarkeit mehr Items aufs Blatt. |
-| Warme Farben, runde Formen und freundliche Figuren an lernrelevanten Elementen steigern Motivation und Behalten (Emotional Design, `kindgerecht-gestalten.md`). Stark dekorierte Umgebungen lenken junge Kinder dagegen ab (Fisher, Godwin & Seltman 2014). | Farbe gezielt an Nummern, Überschrift, Figur und Lernobjekt; nicht als Fläche oder Deko. Ein s/w-Blatt braucht dafür Form und Figur (Abschnitt 5). |
+- **Toner:** Flächen und mittlere Töne kosten am meisten. Auch Pastellflächen druckt ein Laser als Punktraster über die ganze Fläche; auf dem Probeblatt Uhrzeit bedeckten sie 55 % der Seite und kosteten fast eine halbe Textseite Toner zusätzlich.
+- **Kopierer:** Helle Flächen werden fleckig oder fallen weg, sehr helle Linien verschwinden. Jede Kopie einer Kopie und jede Verkleinerung (A4 → A5 halbiert die Linienstärke) verliert weiter.
+- **Graustufen:** Farben gleicher Helligkeit werden zum selben Grau. Farbcodes gehen verloren, farbige Schrift wird kontrastarm.
+- **Kästen:** Jeder Kasten kostet Innenabstand, bei vier Aufgaben schnell 150–200 px, also eine ganze Aufgabe. Weißraum und Nähe ordnen ebenso klar; viele Rahmen machen das Blatt unruhig (Gestaltgesetze).
+- **Emotional Design:** Farbe, runde Formen und Figur an lernrelevanten Elementen motivieren (`kindgerecht-gestalten.md`). Stark dekorierte Umgebungen lenken junge Kinder dagegen ab (Fisher, Godwin & Seltman 2014). Darum Farbe gezielt an Nummern, Überschrift, Figur und Lernobjekt, nie als Fläche oder Deko.
 
 ## 2. Druckprofil Schwarz-Weiß
 
@@ -31,7 +25,7 @@ Diese Regeln haben Vorrang vor älteren Gestaltungshinweisen (farbige Flächen, 
 4. **Linien schwarz oder dunkelgrau** (`#1D1D1B` bis `#4A4A4A`), mindestens 1,5 px (≈ 1 pt). Schreiblinien 1,5–2 px. Nichts heller als `#808080`, sonst fällt es beim Kopieren weg. Hilfslinien (Mittelband der Lineatur) als dünne graue Linie, nicht als farbige Fläche.
 5. **Unterscheiden ohne Farbe:** fett vs. normal, durchgezogen vs. gestrichelt, gefüllt vs. leer, Symbol, Buchstabe (E/Z/H), Beschriftung. Farbcodes der Klasse (Wortarten, Stellenwerte, Wendeplättchen rot/blau) werden **von den Kindern angemalt** oder durch Beschriftung ersetzt („rot" ausgeschrieben, gefüllter Kreis = rot, leerer Kreis = blau).
 6. **Abbildungen als Strichzeichnung:** schwarze Konturen, weiße Füllung, keine Verläufe, keine Fotos, keine grauen Flächen. Das Lernobjekt (Uhr, Zwanzigerfeld) ist ohnehin Vektor in Schwarz.
-7. **Leitfigur und Wachstumsgrafik in der Strich-Version** (IDs in `kindgerecht-gestalten.md`). Bonus: Die Kinder können Willi oder Wilma und die Pflanzenstufen selbst anmalen. Das passt zu „Male an, wie weit du schon bist".
+7. **Leitfigur und Wachstumsgrafik in der Strich-Version** (Dateien in `html-materialerstellung/assets/bilder/`). Bonus: Die Kinder können Willi oder Wilma und die Pflanzenstufen selbst anmalen. Das passt zu „Male an, wie weit du schon bist".
 8. **Lösungsblatt:** Lösungen fett und unterstrichen, nicht farbig.
 9. **Schrift:** normale Strichstärke für Fließtext; fett nur für Überschrift, Anweisung und Hervorhebung. Keine extra-fetten Display-Schriften für längere Texte.
 10. **Prüfen:** `blatt.py bauen` (meldet im s/w-Profil Farbe, Flächen und farbige Bilder).
@@ -71,13 +65,13 @@ Ziel: **Übersicht vor Menge.** Ein Kind muss jede Aufgabe auf einen Blick verst
 
 - **Hängende Nummer:** Nummernkreis (32–36 px; s/w schwarz, Farbe in der Hauptfarbe) links, Anweisung 12–16 px rechts daneben, die Arbeitsfläche beginnt bündig unter der Anweisung. Die Nummer markiert den Aufgabenbeginn, ein Kasten ist nicht nötig.
 - **Niveau-Punkte** (falls gewählt) rechtsbündig in der Anweisungszeile. Die Sternchenaufgabe trägt ★ an der Stelle der Nummer.
-- **Trennung durch Abstand:** 24–32 px zwischen Aufgaben (Kl. 1/2: 32–48 px), 8–16 px zwischen Anweisung und Arbeitsfläche. Optional eine dünne Trennlinie (1–1,5 px; s/w `#808080`, Farbe in der Akzentfarbe) über die Spaltenbreite. Einheitlich im ganzen Material.
+- **Trennung durch Abstand:** zwischen Aufgaben Kl. 1: 36 px, Kl. 2/3: 28 px, Kl. 4: 24 px (`blatt.css`, nie unter 24 px), 12–16 px zwischen Anweisung und Arbeitsfläche. Optional eine dünne Trennlinie (1–1,5 px; s/w `#808080`, Farbe in der Akzentfarbe) über die Spaltenbreite. Einheitlich im ganzen Material.
 - **Rahmen nur mit Funktion:** Wortspeicher, Tipp-Sprechblase der Leitfigur, Ergebnis- oder Antwortkästchen, Ausschneideteile (gestrichelt), Lösungsstreifen. Rahmen dann als dünne Kontur ohne Füllung, Ecken gerundet.
 
 ### Kopf und Fuß schlank
 
 - **Kopf** (Name/Datum, Überschrift, Ich-kann-Ziel, Wahlhilfe nur mit Niveaus) zusammen höchstens ca. 160 px. Ich-kann-Ziel und Wahlhilfe in einer Zeile oder zwei kurzen Zeilen.
-- **Tipp der Leitfigur bei der Aufgabe, zu der er gehört** (rechts neben der Anweisung oder neben dem Beispiel), nicht als eigener Block im Kopf.
+- **Tipp der Leitfigur** neben der Aufgabe, zu der er gehört (am Ende ihrer Item-Reihe oder neben dem Beispiel); fehlt dort der Platz, rechts im Kopf mit Bezug („Zu 1: …"). Nie zwischen Anweisung und Arbeitsfläche, nie mitten in einer Item-Reihe.
 - **Fuß** (nur wenn Selbsteinschätzung gewählt, sonst entfällt er und der Platz geht an Aufgaben) in einer Zeile bzw. einem schmalen Streifen (ca. 80–110 px): Ich-kann-Satz + Wachstumsgrafik zum Anmalen links/rechts, Reflexionsfrage mit Ankreuzfeldern darunter. Abgegrenzt durch eine Linie, nicht durch eine Fläche. Die Wachstumsgrafik passend zum Profil (farbig oder Strich-Version zum Anmalen).
 
 ### Aufgaben auf einen Blick verständlich
@@ -86,11 +80,10 @@ Ziel: **Übersicht vor Menge.** Ein Kind muss jede Aufgabe auf einen Blick verst
 - **Eine Darstellungsform pro Aufgabe** (z. B. nur Punktefeld, nur Stellenwerttafel). Zwei Formen nebeneinander (Bild + Tafel + Gleichung in einer Reihe) nur in Kl. 3/4.
 - **Das vorgelöste Beispiel ist so groß wie ein Item** und hat denselben Abstand zu den Nachbarn (24–32 px). Es wird nie verkleinert oder zwischen andere Elemente gequetscht; Ziffern, Einheiten und Gleichheitszeichen mit normalem Wortabstand.
 - **Abbildungen exakt und ruhig:** Mengen geordnet statt gestreut (Punkte in Zweierreihen/Fünferstruktur, Zehnerstangen, Zwanzigerfeld), Bündel umschließen genau ihre Elemente ohne Überschneidung, Anzahlen stimmen. Solche Abbildungen berechnen und als Vektor setzen, nie frei zeichnen (`html-materialerstellung/assets/abbildungen.js`).
-- **Leitfigur-Tipp** neben der Anweisung oder am Ende der Reihe, nicht zwischen den Items.
 
 ### Items pro Aufgabe
 
-- Items gleichmäßig über die Spaltenbreite (A4: 794 − 120 = 674 px) verteilen, Abstand 24–32 px.
+- Items gleichmäßig über die Spaltenbreite (A4: 794 − 120 = 674 px) verteilen, Abstand 24–32 px, damit die Zuordnung Item → Antwortlinie klar bleibt.
 - Kl. 1/2: eine Reihe mit 3–4 Items je Aufgabe; kleine Items (Rechnungen, Zahlen) bis 6. Kl. 3/4: Reihen füllen, bei Übungsblättern gern 2 Reihen à 5–6 Items.
 - **Mindestgrößen** (Richtwerte, für Kinderhände nicht unterschreiten):
 
@@ -101,8 +94,6 @@ Ziel: **Übersicht vor Menge.** Ein Kind muss jede Aufgabe auf einen Blick verst
 | Antwortlinie für eine Zahl/Uhrzeit | 100 px | 88 px | 80 px |
 | Zeilenhöhe Schreiblinie | Lineatur 1 | Lineatur 2 | Lineatur 3/4 |
 | Ankreuz-/Ergebniskästchen | 28 px | 24 px | 22 px |
-
-- Abstand zwischen Items in einer Reihe 24–32 px, damit Kinder die Zuordnung Item → Antwortlinie sehen.
 
 ### Richtwerte pro A4-Seite
 
@@ -115,7 +106,7 @@ Ziel: **Übersicht vor Menge.** Ein Kind muss jede Aufgabe auf einen Blick verst
 
 Die Sternchenaufgabe zählt mit. Passt der Inhalt nicht, wird gestrichen oder auf zwei Blätter verteilt, nie enger gesetzt. `blatt.py bauen` meldet zu viele Aufgaben, Überlauf und zu dichte Abstände.
 
-Bei Kindern mit Konzentrationsschwierigkeiten statt weniger Aufgaben pro Blatt: dieselbe Seite mit Abhak-Kästchen pro Aufgabe oder auf zwei Blätter verteilen (`differenzierung.md`).
+Für Kinder mit Konzentrationsschwierigkeiten dieselben Aufgaben auf zwei Blätter verteilen (weniger pro Seite) und je Aufgabe ein Abhak-Kästchen setzen (`differenzierung.md`).
 
 ### Platzbudget (A4, Satzspiegel 1003 px)
 
@@ -125,7 +116,7 @@ Bei Kindern mit Konzentrationsschwierigkeiten statt weniger Aufgaben pro Blatt: 
 | Aufgaben inkl. Abstände | Rest, ca. 720–760 px |
 | Fuß | 80–110 px |
 
-Kl. 3/4: Passt eine weitere Aufgabe oder Item-Reihe hinein, wird sie ergänzt; bleibt ein waagerechter Leerstreifen von mehr als ca. 64 px, Items ergänzen oder die Schreibfläche vergrößern. Kl. 1/2: Restplatz gleichmäßig als Luft zwischen die Aufgaben verteilen oder die Schreibfläche vergrößern, nicht auffüllen.
+Kl. 3/4: Passt eine weitere Aufgabe oder Item-Reihe hinein, wird sie ergänzt; bleiben unten mehr als ca. 150 px frei (`blatt.py` meldet das), Items ergänzen oder die Schreibfläche vergrößern. Kl. 1/2: Restplatz gleichmäßig als Luft zwischen die Aufgaben verteilen oder die Schreibfläche vergrößern, nicht auffüllen.
 
 ## 5. Freundlich bleiben in Schwarz-Weiß
 
@@ -144,7 +135,7 @@ Beide Profile:
 - [ ] Weißer Hintergrund, kein Hintergrundbild, keine Flächen hinter Aufgaben, Kopf oder Fuß
 - [ ] Aufgaben ohne Kasten, mit hängender Nummer und einheitlichem Abstand
 - [ ] Rahmen nur mit Funktion
-- [ ] Kopf ≤ 160 px, Fuß ≤ 110 px, Tipp bei der Aufgabe
+- [ ] Kopf ≤ 160 px, Fuß ≤ 110 px, Tipp bei seiner Aufgabe oder mit „Zu 1: …" im Kopf
 - [ ] Aufgaben- und Item-Zahl im Richtwert der Klasse, jede Aufgabe auf einen Blick verständlich, Beispiel nicht gequetscht
 - [ ] Mindestgrößen eingehalten; Kl. 1/2 mit Luft, Kl. 3/4 ohne ungenutzte Leerstreifen
 - [ ] Keine Information nur über Farbe

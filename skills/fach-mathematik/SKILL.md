@@ -5,7 +5,7 @@ description: Fachdidaktik Mathematik Klasse 1–4 (Zahlen und Operationen, Raum 
 
 # Fach Mathematik (Klasse 1–4)
 
-Grundlage: KMK-Bildungsstandards Mathematik Primarbereich (2022), mathe 2000 (Wittmann/Müller), PIKAS, Lehrplan des Bundeslandes.
+Grundlage: Bildungsplan Baden-Württemberg Mathematik (Neufassung auf Grundlage der KMK-Bildungsstandards 2022), mathe 2000 (Wittmann/Müller), PIKAS.
 
 ## Fachspezifische Rückfragen
 
@@ -26,7 +26,7 @@ Nach dem Rückfrage-Protokoll aus `grundschul-didaktik` (eine Frage pro Nachrich
 | Größen und Messen | Geld (€), Uhr (volle h) | Längen (cm, m), Uhr, Geld | Gewicht, Zeit, Sachaufgaben | Hohlmaße, Umrechnen, Sachrechnen |
 | Daten, Häufigkeit, Wahrscheinlichkeit | Strichlisten | Tabellen, Diagramme lesen | Diagramme erstellen | Wahrscheinlichkeit (sicher/möglich/unmöglich) |
 
-Immer mit dem Landeslehrplan abgleichen; die Tabelle ist eine Orientierung.
+Immer mit dem Bildungsplan (Kl. 1/2 und 3/4) und dem Lehrwerk abgleichen; die Tabelle ist eine Orientierung.
 
 Prozessbezogene Kompetenzen in jedes Material einbauen: Problemlösen, Kommunizieren, Argumentieren, Darstellen, Modellieren, technische Grundfertigkeiten. Mindestens eine Aufgabe pro Blatt mit "Erkläre …", "Was fällt dir auf?" oder "Finde …".
 
@@ -42,7 +42,7 @@ Prozessbezogene Kompetenzen in jedes Material einbauen: Problemlösen, Kommunizi
    - **Umkehr- und Platzhalteraufgaben** (7 + __ = 12)
 5. **Natürliche Differenzierung durch offene Aufgaben:** "Finde viele Aufgaben mit Ergebnis 10."
 6. **Sachaufgaben:** Lebensweltlich, kurz, mit Bild; Fragestellung fett; Rechnung – Antwortsatz-Schema. Ab Kl. 2 auch Aufgaben mit überflüssigen Angaben oder ohne Frage ("Erfinde eine Frage").
-7. **Fachsprache korrekt:** Summand, Summe, Minuend, Differenz (ab Kl. 2/3 je nach Lehrplan), "Ergebnis", "gleich". Gleichheitszeichen als Beziehung, nicht als "ergibt" (Aufgaben wie 5 + 3 = __ + 4 einstreuen).
+7. **Fachsprache korrekt:** Summand, Summe, Minuend, Differenz (ab Kl. 2/3 je nach Lehrwerk), "Ergebnis", "gleich". Gleichheitszeichen als Beziehung, nicht als "ergibt" (Aufgaben wie 5 + 3 = __ + 4 einstreuen).
 
 ## Kernkonzepte im Fach
 
@@ -69,6 +69,17 @@ Prozessbezogene Kompetenzen in jedes Material einbauen: Problemlösen, Kommunizi
 - Übertrag vergessen bei schriftlichen Verfahren
 - "Mal macht immer größer"
 - Uhr: Stunden- und Minutenzeiger vertauscht
+
+## Klassenarbeiten
+
+Kl. 1/2 unbenotet (`lernzielkontrolle`), Kl. 3/4 höchstens 6 Arbeiten im Schuljahr (`klassenarbeit`).
+
+- **Prozesse prüfen, nicht nur Rechnen:** mindestens eine Aufgabe zum Erklären, Begründen oder Entdecken („Was fällt dir auf? Begründe.", „Willi hat sich vertan. Finde den Fehler.").
+- **Profi-Aufgaben** (PIKAS, Selter): Platz für Nebenrechnungen und Notizen, Vorgehen beschreiben lassen, offene Aufgaben mit mehreren Lösungen („Finde drei Aufgaben mit dem Ergebnis 100."), Eigenproduktionen („Erfinde eine Aufgabe und löse sie."), beziehungsreiche Aufgaben (schöne Päckchen), Hilfsaufgaben nutzen.
+- **Teilpunkte für den Weg:** Eine richtige Strategie mit Rechenfehler bekommt Punkte; der Erwartungshorizont legt fest, welche Wege zählen.
+- **Leselast niedrig:** Sachaufgaben kurz und mit Bild, damit die Arbeit Mathematik prüft und nicht Lesen. Bei Nachteilsausgleich werden Aufgaben vorgelesen.
+- **Darstellungen und Arbeitsmittel wie im Unterricht**, keine neuen Formate. Automatisierungsaufgaben (Einmaleins, Blitzrechnen) nur als kurzer Teil.
+- Fehler im Erwartungshorizont diagnostisch deuten (Fehlvorstellungen oben) und je Fehlertyp eine passende Lernaufgabe nennen.
 
 ## Qualitätscheck Mathe
 

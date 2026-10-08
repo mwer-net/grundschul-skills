@@ -2,7 +2,7 @@
 
 ## Seitenaufbau (A4 Hochformat als Standard)
 
-Farbe oder Schwarz-Weiß sowie die Bausteine (Selbsteinschätzung, Niveaus, Sternchenaufgabe) legt die Start-Abfrage fest (`rueckfragen.md`). Das Schema zeigt alle Bausteine; nicht gewählte entfallen. In beiden Druckprofilen ist das Layout kompakt mit möglichst vielen Aufgaben pro Seite. Profile, Mindestgrößen und Platzbudget: `druck-und-platz.md`.
+Farbe oder Schwarz-Weiß sowie die Bausteine (Selbsteinschätzung, Niveaus, Sternchenaufgabe) legt die Start-Abfrage fest (`rueckfragen.md`). Das Schema zeigt alle Bausteine; nicht gewählte entfallen. In beiden Druckprofilen ist das Layout kompakt: Der Platz geht an Aufgaben und Luft, nicht an Kästen. Profile, Mindestgrößen und Platzbudget: `druck-und-platz.md`.
 
 ```
 ┌──────────────────────────────────────────┐
@@ -23,15 +23,15 @@ Farbe oder Schwarz-Weiß sowie die Bausteine (Selbsteinschätzung, Niveaus, Ster
 └──────────────────────────────────────────┘
 ```
 
-- Ränder: mindestens 1,5 cm, zum Abheften links 2 cm.
+- Ränder: 60 px (≈ 1,6 cm) rundum (`blatt.css`).
 - Pro A4-Seite (Richtwert): Klasse 1: 2–3 Aufgaben, Klasse 2: 3–4, Klasse 3: 4–5, Klasse 4: 5–6. Übersicht vor Menge; Items je Aufgabe (Tabelle in `druck-und-platz.md`).
 - Lesefluss von oben nach unten, links nach rechts. Keine schräg platzierten Elemente, keine Zwei-Spalten-Texte in Klasse 1/2.
-- Aufgaben **ohne Kasten**: hängende Nummer, 24–32 px Abstand zur nächsten Aufgabe, optional eine dünne graue Trennlinie. Rahmen nur, wo er eine Funktion hat (Wortspeicher, Sprechblase, Antwortkästchen, Ausschneideteile). Einheitlich im ganzen Material.
+- Aufgaben **ohne Kasten**: hängende Nummer, Abstand zur nächsten Aufgabe nach Klasse (`druck-und-platz.md`), optional eine dünne graue Trennlinie. Rahmen nur, wo er eine Funktion hat (Wortspeicher, Sprechblase, Antwortkästchen, Ausschneideteile). Einheitlich im ganzen Material.
 - Weißraum gezielt einsetzen: zwischen Aufgaben und als Schreibfläche, nicht als Innenabstand in Rahmen. In Kl. 1/2 ist sichtbare Luft gewollt; in Kl. 3/4 kein ungenutzter Leerstreifen.
 
 ## Schrift
 
-- Schulschrift oder kindgerechte Druckschrift: in Klasse 1/2 einstöckiges "a" und "g" (wie die Kinder schreiben), "I" (groß i) und "l" (klein L) unterscheidbar, deutliche Ober- und Unterlängen. Bewährt: Grundschrift (Grundschulverband), Andika, Fibel Nord/Süd, Druckschrift des Bundeslandes. Standard im HTML: Andika (eingebettet in `html-materialerstellung/assets/fonts/`). Eine Schulschrift der Klasse als WOFF2/TTF (Lizenz beachten) in `fonts/` legen und per `@font-face` einbinden.
+- Schulschrift oder kindgerechte Druckschrift: in Klasse 1/2 einstöckiges "a" und "g" (wie die Kinder schreiben), "I" (groß i) und "l" (klein L) unterscheidbar, deutliche Ober- und Unterlängen. Bewährt: Andika oder die Druckschrift des Lehrwerks der Klasse. Standard im HTML: Andika (eingebettet in `html-materialerstellung/assets/fonts/`). Eine Schulschrift der Klasse als WOFF2/TTF (Lizenz beachten) in `fonts/` legen und per `@font-face` einbinden.
 - Maximal zwei Schriften: eine für Überschriften, eine für alles andere.
 - Keine Großbuchstaben-Texte, kein Kursivsatz, keine Schmuckschriften für Lesetext. Hervorhebung durch Fettdruck.
 - Größen siehe Tabelle im SKILL.md. Überschriften ca. 1,5-fach.
@@ -84,7 +84,7 @@ Schreibfläche immer größer als gedacht: Kinderhandschrift braucht Platz.
 | ● ●● ●●● | Niveau: Grundlage / Kern / Herausforderung (falls Churer Modell gewählt) |
 | ★ | Sternchenaufgabe, freiwillig für alle (falls gewählt) |
 
-Grundsatz: Ist in der Klasse schon ein Symbolset eingeführt (Lehrwerk, Metacom), immer dieses verwenden. Symbole immer gleich groß, links neben der Anweisung.
+Grundsatz: Ist in der Klasse schon ein Symbolset eingeführt (Lehrwerk, Metacom), immer dieses verwenden. Symbole immer gleich groß, nach der Nummer direkt vor dem Anweisungstext. Im Material als schwarze Linien-Icons (s/w-tauglich), nie als farbige Emojis; die Emojis oben stehen nur für die Bedeutung. Am wichtigsten sind sie in Kl. 1/2 und für leseschwache Kinder.
 
 ## Arbeitsanweisungen formulieren
 

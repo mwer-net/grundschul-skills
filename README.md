@@ -1,6 +1,6 @@
 # Grundschul-Skills
 
-AI-Skills zur Unterrichtsvorbereitung für Grundschul-Lehrkräfte (Klasse 1–4). Die Skills erstellen Unterrichtsmaterial nach aktuellen didaktischen Standards als **HTML/CSS** und geben es als druckfertiges A4-PDF mit Lösungsblatt aus. Bilder und Grafiken erzeugen die Skills bei Bedarf mit der **Canva-KI** (Canva MCP) und bauen sie ins Material ein.
+AI-Skills zur Unterrichtsvorbereitung für Grundschul-Lehrkräfte (Klasse 1–4) in Baden-Württemberg. Die Skills erstellen Unterrichtsmaterial nach aktuellen didaktischen Standards als **HTML/CSS** und geben es als druckfertiges A4-PDF mit Lösungsblatt aus. Bilder und Grafiken erzeugen die Skills bei Bedarf mit der **Canva-KI** (Canva MCP) und bauen sie ins Material ein.
 
 ## Aufbau
 
@@ -26,7 +26,8 @@ skills/
 ├── stationenlernen/            │
 ├── bild-und-wortkarten/        │
 ├── lernplakat/                 │
-├── lernzielkontrolle/          ┘
+├── lernzielkontrolle/          │  (unbenotet: Lernzielkontrolle, Lernlandkarte, „Fit für die Arbeit")
+├── klassenarbeit/              ┘  (benotet, Kl. 3/4: BW-Regeln, Probearbeit, Rückgabe)
 │
 ├── fach-deutsch/               ┐
 ├── fach-mathematik/            │
@@ -73,7 +74,7 @@ Zu Beginn fragen die Skills einzeln ab: Materialart, Medium/Format, Farbe oder S
 
 ## Didaktische Grundlage
 
-Die Skills beruhen auf einer Recherche zu KMK-Bildungsstandards (2022), Perspektivrahmen Sachunterricht, Mathematikdidaktik (EIS-Prinzip, Kraft der Fünf, produktives Üben), Lese- und Rechtschreibdidaktik, Cognitive Load Theory, Differenzierung und sprachsensiblem Unterricht. Details und Links: [`skills/grundschul-didaktik/references/quellen.md`](skills/grundschul-didaktik/references/quellen.md).
+Die Skills beruhen auf einer Recherche zum Bildungsplan Baden-Württemberg (Deutsch und Mathematik auf Grundlage der KMK-Bildungsstandards 2022), zu Grundwortschatz und Rechtschreibrahmen BW, zur Grundschul-Leistungsbeurteilungsverordnung und zu lernförderlichen Klassenarbeiten (PIKAS), zu Perspektivrahmen Sachunterricht, Mathematikdidaktik (EIS-Prinzip, Kraft der Fünf, produktives Üben), Lese- und Rechtschreibdidaktik, Cognitive Load Theory, Differenzierung und sprachsensiblem Unterricht. Details und Links: [`skills/grundschul-didaktik/references/quellen.md`](skills/grundschul-didaktik/references/quellen.md).
 
 ## Installation
 

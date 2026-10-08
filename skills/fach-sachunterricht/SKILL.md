@@ -1,11 +1,11 @@
 ---
 name: fach-sachunterricht
-description: Fachdidaktik Sachunterricht Klasse 1–4 (Natur, Technik, Raum, Zeit, Gesellschaft) nach dem Perspektivrahmen der GDSU, inkl. Forscherheften, Versuchsprotokollen und Sachtexten. Laden bei jedem Sachunterrichts-Material oder jeder HSU/MNK/Sachunterrichts-Planung.
+description: Fachdidaktik Sachunterricht Klasse 1–4 (Natur, Technik, Raum, Zeit, Gesellschaft) nach dem Perspektivrahmen der GDSU, inkl. Forscherheften, Versuchsprotokollen und Sachtexten. Laden bei jedem Sachunterrichts-Material oder jeder Sachunterrichts-Planung.
 ---
 
 # Fach Sachunterricht (Klasse 1–4)
 
-Grundlage: Perspektivrahmen Sachunterricht (GDSU 2013), Lehrplan des Bundeslandes (Fachname variiert: Sachunterricht, HSU in Bayern, MNK in Thüringen …).
+Grundlage: Bildungsplan Baden-Württemberg Sachunterricht (2016), Perspektivrahmen Sachunterricht (GDSU 2013).
 
 ## Fachspezifische Rückfragen
 
@@ -14,7 +14,7 @@ Nach dem Rückfrage-Protokoll aus `grundschul-didaktik` (eine Frage pro Nachrich
 1. **Thema und Perspektive:** Welches Thema (z. B. Wasser, Igel, Feuer, Verkehr, Wohnort, früher und heute)? Welcher Schwerpunkt?
 2. **Zugang:** Experimentieren, Beobachten (Lerngang, Tier/Pflanze), Recherchieren (Sachtext, Medien), Bauen/Konstruieren, Befragen?
 3. **Vorhandene Materialien:** Was steht für Versuche zur Verfügung (Sicherheit!)? Gibt es Exkursionsmöglichkeiten?
-4. **Regionale Bezüge:** Ort, Region, Bundesland für Heimat-/Raumthemen.
+4. **Regionale Bezüge:** Wohnort und Region in Baden-Württemberg für Raum- und Ortsthemen.
 
 ## Die fünf Perspektiven
 
@@ -64,6 +64,10 @@ Sicherheitshinweise (Feuer, Strom, Glas, Lebensmittel, Allergien) immer für die
 - Zeitleisten, Karten, Lagepläne.
 - Bauanleitungen in Bildschritten.
 - Lerngang-/Beobachtungsbögen.
+
+## Leistung feststellen
+
+Notengrundlage in Kl. 3/4 sind vor allem praktische Arbeiten, Forscherheft oder Lerntagebuch, Präsentationen und kurze schriftliche Übungs- oder Wiederholungsarbeiten (Rahmen in `klassenarbeit`). Kurze Überprüfungen fragen nach Ich-kann-Zielen und Denk- und Arbeitsweisen (Vermutung begründen, Beobachtung beschreiben, Abbildung beschriften), nicht nur nach Wissen. Leselast niedrig, Fachwörter mit Bild; Rechtschreibung anmerken; ob sie in die Note eingeht, regelt die Schule.
 
 ## Qualitätscheck Sachunterricht
 

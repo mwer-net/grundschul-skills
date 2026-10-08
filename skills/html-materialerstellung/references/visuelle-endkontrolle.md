@@ -33,7 +33,7 @@ Die Endkontrolle bewertet streng: Im Zweifel ist es ein Befund. „Sieht im Gro�
 - [ ] Für jede Aufgabe: Was soll ich tun? Wohin schreibe ich? Beides in wenigen Sekunden klar.
 - [ ] Eine Handlung pro Aufgabe, Anweisung in einer Zeile, nur bekannte Begriffe und Symbole.
 - [ ] Jeder Antwortplatz gehört eindeutig zu einem Item (Nähe, gleiche Spalte).
-- [ ] Tipp der Leitfigur steht bei der Aufgabe, zu der er gehört, und unterbricht keine Item-Reihe.
+- [ ] Tipp der Leitfigur steht bei seiner Aufgabe oder mit „Zu 1: …" im Kopf und unterbricht keine Item-Reihe.
 
 **D. Keine Darstellungsfehler**
 - [ ] Nichts abgeschnitten, nichts überlappt, nichts ragt über Linien oder Rand.
@@ -66,6 +66,4 @@ Die Endkontrolle bewertet streng: Im Zweifel ist es ein Befund. „Sieht im Gro�
 
 ## Beispiel aus dem Test (Kl. 2, Zehner und Einer)
 
-Das Canva-Blatt hatte die automatische Layoutprüfung ohne Fehler bestanden und war trotzdem unbrauchbar: In Aufgabe 1 schnitten sich die Kreise um die Zehner, die Murmeln lagen gestreut, das Beispiel „2 Z 3 E = 23" klebte an der Abbildung, und fünf Aufgaben mit je drei Darstellungsformen machten die Seite für ein Zweitklasskind undurchschaubar. Jeder dieser Punkte wäre im vergrößerten Ausschnitt von Aufgabe 1 (A, B, C, E) aufgefallen. Richtig wären gewesen: Murmeln als 2 × 5-Felder je Zehner mit sauberem Bündelrahmen, das Beispiel in Item-Größe, höchstens vier Aufgaben mit je einer Darstellungsform.
-
-Im HTML-Test (Oktober 2026) fand die Endkontrolle am selben Blatt: Bündelrahmen benachbarter Zehner berührten sich (Zeilenabstand in `x-menge` vergrößert), die Willi-Sprechblase stand zwischen Anweisung und Nüssen (in den Kopf verschoben) und die Antwortzeile „__ Z __ E = __“ war breiter als ihre Spalte (auf zwei Zeilen „__ Z __ E“ / „Zahl: __“ verteilt).
+Ein Blatt bestand die automatische Prüfung ohne Fehler und war trotzdem unbrauchbar: Die Kreise um die Zehner schnitten sich, die Murmeln lagen gestreut, das Beispiel klebte an der Abbildung, und fünf Aufgaben mit je drei Darstellungsformen überforderten ein Zweitklasskind. Am HTML-Blatt fand die Endkontrolle danach noch sich berührende Bündelrahmen (Zeilenabstand in `x-menge` vergrößert), eine Sprechblase zwischen Anweisung und Items (in den Kopf verschoben) und eine zu breite Antwortzeile (auf zwei Zeilen verteilt). Alles das war nur im vergrößerten Ausschnitt zu sehen.

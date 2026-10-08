@@ -39,12 +39,13 @@ Grundsätze:
 - Lernziel der Reihe → Ich-kann-Ziele pro Stunde, logisch aufbauend (Einführung → Übung → Vertiefung → Anwendung → Überprüfung). Jede Stunde folgt dem Churer Ablauf.
 - Tabelle: Stunde | Thema | Ich-kann-Ziel | Kreisinput | Lernaufgaben ● / ●● / ●●● | Material.
 - Am Ende der Reihe eine Lernlandkarte bzw. Selbsteinschätzung mit Wachstumsstufen (siehe `lernzielkontrolle`).
-- Bezug zu Bildungsstandards/Lehrplan (Kompetenzbereich, Leitidee bzw. Perspektive) angeben.
+- Endet die Reihe in Kl. 3/4 mit einer Klassenarbeit: Lernlandkarte zu Beginn, „Fit für die Arbeit" mit Lernaufgaben ● / ●● / ●●● zum gezielten Üben, Probearbeit 1–2 Wochen vorher, Termin nach den BW-Regeln (nicht montags, nicht nach Ferien oder Feiertag), Rückgabestunde mit Kommentar vor der Note und Berichtigung als Lernaufgabe (`klassenarbeit`).
+- Bezug zum Bildungsplan BW (Kompetenzbereich, Leitidee bzw. Perspektive) angeben.
 - Materialliste am Ende mit Verweis, welcher Skill es erzeugt (`arbeitsblatt`, `lernspiel` …).
 
 ## Unterrichtsentwurf (Lehrprobe)
 
-Zusätzlich: Bedingungsanalyse (anonym), Sachanalyse (kurz), didaktische Analyse (Bedeutung, Lehrplanbezug, Zugänge), methodische Analyse (Begründung der Entscheidungen), Lernziele (Grob-/Feinziele), Verlaufsplan, Materialanhang. Formvorgaben des Seminars erfragen.
+Zusätzlich: Bedingungsanalyse (anonym), Sachanalyse (kurz), didaktische Analyse (Bedeutung, Bezug zum Bildungsplan, Zugänge), methodische Analyse (Begründung der Entscheidungen), Lernziele (Grob-/Feinziele), Verlaufsplan, Materialanhang. Formvorgaben des Seminars erfragen.
 
 ## Vertretungsstunde
 

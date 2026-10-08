@@ -38,4 +38,4 @@ Die Niveaus entsprechen grob den Anforderungsbereichen I–III der Bildungsstand
 - **LRS:** Größere Schrift, mehr Zeilenabstand, kürzere Texte, Silbenhilfe falls eingeführt, Vorlesemöglichkeit.
 - **Rechenschwäche:** Strukturierte Anschauung (Fünfer-/Zehnerstruktur), kein zählendes Rechnen fördern, Darstellungswechsel.
 - **Hochbegabung:** Offene, komplexe Aufgaben; Begründen, Forschen, Erfinden (●●● steht trotzdem allen offen).
-- **Konzentration / ADHS:** Wenige Aufgaben pro Seite, klare Abschnitte, Abhak-Kästchen.
+- **Konzentration / ADHS:** dieselben Aufgaben auf zwei Blätter verteilt (wenige pro Seite), klare Abschnitte, Abhak-Kästchen je Aufgabe.

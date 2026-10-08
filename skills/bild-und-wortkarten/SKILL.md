@@ -9,11 +9,12 @@ Laden mit: `grundschul-didaktik`, passendem `fach-*`, `html-materialerstellung`.
 
 ## Rückfragen
 
-1. **Einsatz:** Tafel/Whiteboard für die ganze Klasse (groß, A5 bis A4), Partner-/Freiarbeit (klein, ca. 7 × 10 cm, 8 pro A4) oder Wortspeicher an der Wand?
-2. **Inhalt:** Wortliste vorhanden oder soll ich sie aus Lehrplan/Thema erstellen? *Empfehlung: Ich schlage 12–16 Wörter vor, du streichst.*
-3. **Kartentyp:** nicht fragen, sondern in den Entwürfen zeigen (nur Bild, nur Wort, Bild + Wort, Bild vorne/Wort hinten), außer die Lehrkraft hat ihn genannt.
-4. **Sprachliche Hilfen:** Artikel mit Farbcode? Pluralform? Silbenbögen?
-5. **Bildstil:** Illustration (einheitlich) oder Fotos? *Sachthemen: Fotos; Wortschatz/Englisch: Illustration.*
+Zuerst die Start-Abfrage (`grundschul-didaktik/references/rueckfragen.md`): Medium (Tafelkarten für die Klasse, Tischkarten 8 pro A4 für Partnerarbeit, A5-Karten, Whiteboard) und Farbe; die Bausteine entfallen. Danach:
+
+1. **Inhalt:** Wortliste vorhanden oder soll ich sie aus Grundwortschatz und Thema erstellen? *Empfehlung: Ich schlage 12–16 Wörter vor, du streichst.*
+2. **Kartentyp:** nicht fragen, sondern in den Entwürfen zeigen (nur Bild, nur Wort, Bild + Wort, Bild vorne/Wort hinten), außer die Lehrkraft hat ihn genannt.
+3. **Sprachliche Hilfen:** Artikel mit Farbcode? Pluralform? Silbenbögen?
+4. **Bildstil:** Illustration (einheitlich) oder Fotos? *Sachthemen: Fotos; Wortschatz/Englisch: Illustration.*
 
 ## Entwürfe und Aufgabenplan
 

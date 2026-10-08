@@ -11,11 +11,14 @@ Lernspiele sind Übungsformate: Der Inhalt muss schon eingeführt sein. Das Spie
 
 ## Rückfragen
 
+Zuerst die Start-Abfrage (`grundschul-didaktik/references/rueckfragen.md`): Medium, Farbe und Churer Modell. Danach:
+
 1. **Was genau wird geübt?** (z. B. "Einmaleins der 3er-Reihe", "Nomen mit Artikel", "Uhrzeit halbe Stunden")
 2. **Spielform:** nur fragen, wenn die Lehrkraft eine bestimmte will; sonst zeigen die Entwürfe 2–3 passende Spielformen (Tabelle unten).
 3. **Gruppengröße und Spielzeit:** Partner / 3–4 Kinder / ganze Klasse; 10 oder 20 Minuten.
-4. **Wiederverwendbarkeit:** Laminieren (robuste Karten) oder einmalig auf Papier? *Farbe oder s/w kommt aus der Start-Abfrage; laminierte Spiele meist farbig.*
-5. **Differenzierung:** kommt aus der Start-Abfrage (Churer Modell ja/nein, `grundschul-didaktik/references/rueckfragen.md`). Ja: drei Kartensätze ● / ●● / ●●● zur Selbstwahl, Punkte in der Kartenecke *(Empfehlung)*. Nein: ein Satz für alle, Tippkarten als Hilfe.
+4. **Wiederverwendbarkeit:** Laminieren (robuste Karten) oder einmalig auf Papier? *Laminierte Spiele meist farbig.*
+
+Die Differenzierung folgt aus der Start-Abfrage: mit Churer Modell drei Kartensätze ● / ●● / ●●● zur Selbstwahl, Punkte in der Kartenecke; ohne ein Satz für alle, Tippkarten als Hilfe.
 
 ## Entwürfe und Aufgabenplan
 
