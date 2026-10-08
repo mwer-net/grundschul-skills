@@ -6,10 +6,10 @@ import { ASSETS, darstellungsHtml, ID_MUSTER, mappenDir, sucheRessource } from '
 import type { Request, Response } from 'express';
 import { Router } from 'express';
 
-import { pruefeIdParam } from './api';
 import { leseQuelle, verlangeDokument } from './dokumente';
 import { HttpFehler } from './fehler';
 import type { Kontext } from './kontext';
+import { pruefeIdParam } from './schutz';
 
 const ID_REGEX = new RegExp(ID_MUSTER);
 const ASSETS_PFAD = '_assets';

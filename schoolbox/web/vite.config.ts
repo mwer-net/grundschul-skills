@@ -15,6 +15,8 @@ export default defineConfig(({ mode }) => {
 				'/api': server,
 				'/ansicht': server,
 				'/healthz': server,
+				'/robots.txt': server,
+				'^/f/[^/]+/(api|ansicht)(/|$)': server,
 			},
 		},
 	};

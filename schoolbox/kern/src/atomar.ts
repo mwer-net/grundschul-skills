@@ -4,7 +4,8 @@ import path from 'node:path';
 
 export const istTempDatei = (name: string) => name.startsWith('.') && name.endsWith('.tmp');
 
-export const schreibeAtomar = async (ziel: string, inhalt: string | Buffer): Promise<void> => {
+/** `modus` setzt die Dateirechte der neuen Datei (z. B. 0o600 für `.env`), sonst gilt die umask. */
+export const schreibeAtomar = async (ziel: string, inhalt: string | Buffer, modus?: number): Promise<void> => {
 	const tmp = path.join(
 		path.dirname(ziel),
 		`.${path.basename(ziel)}.${process.pid}.${randomBytes(4).toString('hex')}.tmp`,
@@ -12,6 +13,9 @@ export const schreibeAtomar = async (ziel: string, inhalt: string | Buffer): Pro
 	try {
 		const datei = await open(tmp, 'wx');
 		try {
+			if (modus !== undefined) {
+				await datei.chmod(modus);
+			}
 			await datei.writeFile(inhalt);
 			await datei.sync();
 		} finally {

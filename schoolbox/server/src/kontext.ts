@@ -4,6 +4,8 @@ import path from 'node:path';
 
 import { dokumentDir } from '@schoolbox/kern';
 
+import type { Bremse } from './bremse';
+import { erstelleBremse } from './bremse';
 import type { Ereignisse } from './ereignisse';
 import { erstelleEreignisse } from './ereignisse';
 import type { ServerKonfig } from './konfig';
@@ -21,6 +23,7 @@ export interface Kontext {
 	ereignisse: Ereignisse;
 	sperre: Sperre;
 	bekannt: Map<string, Bekannt>;
+	bremse: Bremse;
 	version: string;
 }
 
@@ -29,8 +32,12 @@ export const erstelleKontext = (konfig: ServerKonfig, version: string): Kontext 
 	ereignisse: erstelleEreignisse(),
 	sperre: erstelleSperre(),
 	bekannt: new Map(),
+	bremse: erstelleBremse(),
 	version,
 });
+
+/** Schlüssel der Sperre für `_freigaben.json`; kann mit keiner Dokument-ID kollidieren. */
+export const FREIGABEN_SPERRE = '_freigaben';
 
 export const dokSchluessel = (mappe: string, dok: string) => `${mappe}/${dok}`;
 

@@ -6,7 +6,7 @@ import path from 'node:path';
 import { after, before, describe, it } from 'node:test';
 import { promisify } from 'node:util';
 
-import { BLATT_PY, fertigstellen } from '@schoolbox/kern';
+import { BLATT_PY, fertigstellen, legeFreigabeAn } from '@schoolbox/kern';
 
 import type { TestServer } from './testhilfe';
 import { legeDokumentAn, starteTestServer } from './testhilfe';
@@ -64,7 +64,9 @@ describe('/ansicht gegen blatt.py', () => {
 		const { dir, dok, mappe } = await legeDokumentAn(s.materialDir, { beispiel: true });
 		const fertig = await fertigstellen(s.kontext.konfig, { mappe, dok });
 		assert.equal(fertig.bericht.fehler, 0);
-		const basis = `${s.url}/ansicht/${mappe}/dokumente/${dok}/`;
+		// Chromium hat keine Sitzung; der Teilen-Link prüft dabei auch die Darstellung unter /f/….
+		const { token } = await legeFreigabeAn(s.materialDir, { mappe, dok });
+		const basis = `${s.url}/f/${token}/ansicht/${mappe}/dokumente/${dok}/`;
 		for (const [url, referenz] of [
 			[basis, 'material'],
 			[`${basis}?loesung=1`, 'material-loesung'],

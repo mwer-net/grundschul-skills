@@ -14,6 +14,7 @@ import {
 	waehleEntwurf,
 	zerlegeZiel,
 } from './ablage';
+import { erzeugeGeheimnis, erzeugePasswortHash, pruefeNeuesPasswort, setzeEnvWerte } from './anmeldung';
 import { fertigstellen } from './bauen';
 import { SchoolboxFehler } from './fehler';
 import type { Konfig } from './konfig';
@@ -32,6 +33,7 @@ const HILFE = `schoolbox – Mappen und Dokumente der Schoolbox anlegen und fert
   schoolbox liste [--fach …] [--suche …]
   schoolbox wunsch "…"
   schoolbox status
+  schoolbox passwort      (Passwort der Anmeldung setzen oder ändern)
 
 Alle Befehle: --json für maschinenlesbare Ausgabe.
 Fächer:  ${FAECHER.join(', ')}
@@ -196,6 +198,84 @@ const befehlStatus = async (konfig: Konfig): Promise<Ergebnis> => {
 	};
 };
 
+/** Liest ohne Echo vom Terminal. Strg+C bzw. Strg+D brechen ab. */
+const leseVerdeckt = (frage: string) =>
+	new Promise<string>((resolve, reject) => {
+		const { stderr, stdin } = process;
+		let eingabe: string[] = [];
+		const ende = (fehler?: Error) => {
+			stdin.removeAllListeners('data');
+			stdin.setRawMode(false);
+			stdin.pause();
+			stderr.write('\n');
+			if (fehler) {
+				reject(fehler);
+			} else {
+				resolve(eingabe.join(''));
+			}
+		};
+		const beiDaten = (teil: string) => {
+			for (const zeichen of teil) {
+				if (zeichen === '\r' || zeichen === '\n') {
+					ende();
+					return;
+				}
+				if (zeichen === '\u0003' || zeichen === '\u0004') {
+					ende(new SchoolboxFehler('Abgebrochen, nichts geändert.'));
+					return;
+				}
+				if (zeichen === '\u007f' || zeichen === '\b') {
+					eingabe = eingabe.slice(0, -1);
+				} else if (zeichen >= ' ') {
+					eingabe.push(zeichen);
+				}
+			}
+		};
+		stderr.write(frage);
+		stdin.setEncoding('utf8');
+		stdin.setRawMode(true);
+		stdin.on('data', beiDaten);
+		stdin.resume();
+	});
+
+/** Ohne Terminal (Skripte, Tests) gilt die erste Zeile der Standardeingabe. */
+const leseZeile = async () => {
+	let text = '';
+	for await (const teil of process.stdin) {
+		text += String(teil);
+	}
+	return text.split(/\r?\n/)[0] ?? '';
+};
+
+const befehlPasswort = async (konfig: Konfig, argumente: string[]): Promise<Ergebnis> => {
+	lies(argumente, {});
+	let passwort: string;
+	if (process.stdin.isTTY) {
+		passwort = await leseVerdeckt('Neues Passwort für die Schoolbox: ');
+		pruefeNeuesPasswort(passwort);
+		if ((await leseVerdeckt('Noch einmal zur Kontrolle: ')) !== passwort) {
+			throw new SchoolboxFehler('Die beiden Eingaben stimmen nicht überein, nichts geändert.');
+		}
+	} else {
+		passwort = await leseZeile();
+		pruefeNeuesPasswort(passwort);
+	}
+	const datei = path.join(konfig.wurzel, '.env');
+	const werte: Record<string, string> = { PASSWORT_HASH: await erzeugePasswortHash(passwort) };
+	const geheimnisNeu = !konfig.sitzungGeheimnis;
+	if (geheimnisNeu) {
+		werte.SITZUNG_GEHEIMNIS = erzeugeGeheimnis();
+	}
+	await setzeEnvWerte(datei, werte);
+	const text = [
+		`Passwort gespeichert (PASSWORT_HASH in ${datei}).`,
+		...(geheimnisNeu ? ['SITZUNG_GEHEIMNIS fehlte und wurde zufällig erzeugt.'] : []),
+		'Es gilt nach dem nächsten Neustart der Schoolbox (z. B. „pm2 reload schoolbox“).',
+		'Danach sind alle bisherigen Anmeldungen ungültig.',
+	].join('\n');
+	return { daten: { datei, geheimnisNeu }, text };
+};
+
 const BEFEHLE: Record<string, (konfig: Konfig, argumente: string[]) => Promise<Ergebnis>> = {
 	neu: befehlNeu,
 	dokument: befehlDokument,
@@ -206,6 +286,7 @@ const BEFEHLE: Record<string, (konfig: Konfig, argumente: string[]) => Promise<E
 	liste: befehlListe,
 	wunsch: befehlWunsch,
 	status: befehlStatus,
+	passwort: befehlPasswort,
 };
 
 const main = async (argv: string[]): Promise<number> => {

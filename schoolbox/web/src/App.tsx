@@ -1,6 +1,17 @@
-export const App = () => (
-	<main style={{ fontFamily: 'system-ui, sans-serif', margin: '3rem auto', maxWidth: '40rem', padding: '0 1rem' }}>
-		<h1>Schoolbox</h1>
-		<p>Hier entsteht die Übersicht über deine Materialien.</p>
-	</main>
-);
+import { Anmeldung } from './Anmeldung';
+import { ANMELDE_SEITE } from './api';
+import { Geteilt } from './Geteilt';
+import { Start } from './Start';
+
+const pfad = window.location.pathname;
+const teilenToken = /^\/f\/([^/]+)/.exec(pfad)?.[1];
+
+export const App = () => {
+	if (pfad === ANMELDE_SEITE) {
+		return <Anmeldung />;
+	}
+	if (teilenToken) {
+		return <Geteilt token={teilenToken} />;
+	}
+	return <Start />;
+};

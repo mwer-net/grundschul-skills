@@ -107,6 +107,7 @@ Die Schoolbox (`schoolbox/`) macht das Material für die Lehrkraft nutzbar: Abla
 cp .env.example .env                  # SCHOOLBOX_URL, MATERIAL_DIR, NODE_BIN, PYTHON_BIN anpassen
 cd schoolbox && pnpm install && pnpm test
 schoolbox/bin/schoolbox --hilfe       # aus dem Repo-Hauptordner
+schoolbox/bin/schoolbox passwort      # Passwort der Anmeldung setzen (erzeugt auch SITZUNG_GEHEIMNIS)
 ```
 
 Ein typischer Ablauf aus einer Claude-Sitzung:
@@ -121,6 +122,8 @@ schoolbox/bin/schoolbox fertig <mappe>/<dokument>   # baut mit blatt.py, legt ei
 `NODE_BIN` ist nötig, wenn im `PATH` ein älteres Node liegt: Der Wrapper nimmt dann das Node aus `.env`. Die Materialien landen in `MATERIAL_DIR` (Standard `materialien/`), das per `.gitignore` und Pre-Commit-Hook gesperrt ist.
 
 Der Server (`schoolbox/server`, Express) liefert API, Darstellung und Oberfläche aus und lauscht nur auf `HOST`/`PORT` aus `.env` (Standard `127.0.0.1:4009`). Ein Reverse Proxy leitet die öffentliche Adresse dorthin, `/api/ereignisse` (Server-Sent Events) ungepuffert. Er beobachtet `MATERIAL_DIR`: Ändert Claude ein `material.html`, legt er nach kurzer Ruhe eine Version an und meldet es allen offenen Browsern.
+
+Ohne `PASSWORT_HASH` und `SITZUNG_GEHEIMNIS` startet er nicht. Anmeldung mit einem Passwort, wahlweise „angemeldet bleiben“ (ein Jahr); nach fünf Fehlversuchen von einer Adresse ist sie gebremst, jeder Fehlversuch steht als `Anmeldung fehlgeschlagen: ip=<Adresse>` im Log (passt für einen fail2ban-Filter). Ein neues Passwort gilt nach dem Neustart des Servers und meldet alle Geräte ab. Teilen-Links (`/f/<token>`) zeigen ein Dokument oder eine Mappe ohne Anmeldung, nur lesend, und lassen sich widerrufen. Der Reverse Proxy sollte `X-Forwarded-Proto` setzen; ist `SCHOOLBOX_URL` eine https-Adresse, ist das Cookie ohnehin `Secure`.
 
 ```bash
 cd schoolbox

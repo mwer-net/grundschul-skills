@@ -5,7 +5,6 @@ import path from 'node:path';
 import type { MappenFilter } from '@schoolbox/kern';
 import {
 	FAECHER,
-	ID_MUSTER,
 	leseMappenEintrag,
 	leseMeta,
 	listeMappen,
@@ -16,37 +15,20 @@ import {
 	waehleKlasse,
 	waehleWert,
 } from '@schoolbox/kern';
-import type { RequestHandler, RequestParamHandler } from 'express';
+import type { RequestHandler } from 'express';
 import { json, Router } from 'express';
 
 import { istAusgabeVeraltet, leseQuelle, schreibeQuelle, verlangeDokument } from './dokumente';
 import type { Ereignis } from './ereignisse';
 import { HttpFehler } from './fehler';
+import { freigabenApi } from './freigaben';
 import type { Kontext } from './kontext';
 import { dokSchluessel, kennung } from './kontext';
+import { csrfSchutz, pruefeIdParam } from './schutz';
 
 export const MAX_JSON = '5mb';
-export const CSRF_HEADER = 'x-schoolbox';
 const PULS_MS = 25_000;
-const ID_REGEX = new RegExp(ID_MUSTER);
 const KENNUNG_REGEX = /^[0-9a-f]{16}$/;
-const SICHERE_METHODEN = new Set(['GET', 'HEAD', 'OPTIONS']);
-
-/** Schreibende Anfragen nur als JSON mit eigenem Header. Ein fremdes Formular kann beides nicht setzen. */
-export const csrfSchutz: RequestHandler = (req, _res, next) => {
-	if (SICHERE_METHODEN.has(req.method) || (req.is('application/json') && req.get(CSRF_HEADER) === '1')) {
-		next();
-		return;
-	}
-	next(new HttpFehler(403, `Schreibende Anfragen brauchen Content-Type application/json und ${CSRF_HEADER}: 1.`));
-};
-
-export const pruefeIdParam = (was: string) => {
-	const pruefen: RequestParamHandler = (_req, _res, next, wert: string) => {
-		next(ID_REGEX.test(wert) ? undefined : new HttpFehler(400, `${was} „${wert}“ ist keine gültige ID.`));
-	};
-	return pruefen;
-};
 
 const text = (wert: unknown) => (typeof wert === 'string' && wert.trim() ? wert : undefined);
 
@@ -160,6 +142,8 @@ export const apiRouter = (kontext: Kontext) => {
 	});
 
 	router.get('/ereignisse', ereignisStrom(kontext));
+
+	router.use('/freigaben', freigabenApi(kontext));
 
 	router.use((req) => {
 		throw new HttpFehler(404, `Unbekannte Adresse: ${req.method} ${req.originalUrl}`);

@@ -2,11 +2,13 @@ import { accessSync, constants, existsSync, mkdirSync, statSync } from 'node:fs'
 import path from 'node:path';
 
 import type { Konfig } from '@schoolbox/kern';
-import { STANDARD_HOST, STANDARD_PORT } from '@schoolbox/kern';
+import { istPasswortHash, STANDARD_HOST, STANDARD_PORT } from '@schoolbox/kern';
 
 export interface ServerKonfig extends Konfig {
 	portNummer: number;
 	hostName: string;
+	passwortHash: string;
+	sitzungGeheimnis: string;
 }
 
 const MIN_GEHEIMNIS = 32;
@@ -52,9 +54,12 @@ export const pruefeServerKonfig = (konfig: Konfig): ServerKonfig => {
 		path.isAbsolute(konfig.pythonBin) && !existsSync(konfig.pythonBin)
 			? `PYTHON_BIN „${konfig.pythonBin}“ gibt es nicht.`
 			: null,
-		konfig.sitzungGeheimnis !== null && konfig.sitzungGeheimnis.length < MIN_GEHEIMNIS
-			? `SITZUNG_GEHEIMNIS ist zu kurz (mindestens ${MIN_GEHEIMNIS} Zeichen, z. B. „openssl rand -hex 32“).`
-			: null,
+		konfig.passwortHash !== null && istPasswortHash(konfig.passwortHash)
+			? null
+			: 'PASSWORT_HASH fehlt oder ist ungültig. Setzen mit „schoolbox/bin/schoolbox passwort“.',
+		konfig.sitzungGeheimnis !== null && konfig.sitzungGeheimnis.length >= MIN_GEHEIMNIS
+			? null
+			: `SITZUNG_GEHEIMNIS fehlt oder ist zu kurz (mindestens ${MIN_GEHEIMNIS} Zeichen, z. B. „openssl rand -hex 32“).`,
 		pruefeMail('MAIL_AN', konfig.mail.an),
 		pruefeMail('MAIL_VON', konfig.mail.von),
 	].filter((p): p is string => p !== null);
@@ -62,5 +67,11 @@ export const pruefeServerKonfig = (konfig: Konfig): ServerKonfig => {
 		const datei = path.join(konfig.wurzel, '.env');
 		throw new Error(`Die Konfiguration in ${datei} ist nicht in Ordnung:\n  - ${probleme.join('\n  - ')}`);
 	}
-	return { ...konfig, portNummer, hostName: konfig.host ?? STANDARD_HOST };
+	return {
+		...konfig,
+		portNummer,
+		hostName: konfig.host ?? STANDARD_HOST,
+		passwortHash: konfig.passwortHash ?? '',
+		sitzungGeheimnis: konfig.sitzungGeheimnis ?? '',
+	};
 };

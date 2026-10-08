@@ -23,6 +23,9 @@ const statusAus = (fehler: unknown): number => {
 	return typeof status === 'number' && status >= 400 && status < 500 ? status : 500;
 };
 
+/** Eigene API und die nur lesende API hinter Teilen-Links antworten mit JSON. */
+const API_PFAD = /^\/(f\/[^/]+\/)?api(\/|$)/;
+
 const MELDUNGEN: Record<number, string> = {
 	400: 'Die Anfrage ist ungültig.',
 	413: 'Die Daten sind zu groß.',
@@ -40,7 +43,7 @@ export const fehlerBehandlung: ErrorRequestHandler = (fehler, req, res, next) =>
 		next(fehler);
 		return;
 	}
-	if (req.originalUrl.startsWith('/api/')) {
+	if (API_PFAD.test(req.originalUrl)) {
 		res.status(status).json({ fehler: meldung, ...(fehler instanceof HttpFehler ? fehler.daten : {}) });
 		return;
 	}

@@ -20,9 +20,9 @@ describe('API', () => {
 	let dok: string;
 	let dir: string;
 	const dokUrl = () => `${s.url}/api/dokumente/${mappe}/${dok}`;
-	const lies = async () => (await (await fetch(dokUrl())).json()) as DokumentAntwort;
+	const lies = async () => (await (await s.holen(dokUrl())).json()) as DokumentAntwort;
 	const speichere = (body: unknown, koepfe: Record<string, string> = schreibKoepfe) =>
-		fetch(dokUrl(), { method: 'PUT', headers: koepfe, body: JSON.stringify(body) });
+		s.holen(dokUrl(), { method: 'PUT', headers: koepfe, body: JSON.stringify(body) });
 
 	before(async () => {
 		s = await starteTestServer();
@@ -31,35 +31,35 @@ describe('API', () => {
 	after(() => s.stop());
 
 	it('/healthz antwortet ohne Anmeldung mit ok und Version', async () => {
-		const antwort = await fetch(`${s.url}/healthz`);
+		const antwort = await s.holen(`${s.url}/healthz`);
 		assert.deepEqual(await antwort.json(), { status: 'ok', version: 'test' });
 	});
 
 	it('listet Mappen und filtert nach Fach, Klasse und Suche', async () => {
-		const alle = (await (await fetch(`${s.url}/api/mappen`)).json()) as { mappen: unknown[] };
+		const alle = (await (await s.holen(`${s.url}/api/mappen`)).json()) as { mappen: unknown[] };
 		assert.equal(alle.mappen.length, 1);
 		const filter = async (query: string) =>
-			((await (await fetch(`${s.url}/api/mappen?${query}`)).json()) as { mappen: unknown[] }).mappen.length;
+			((await (await s.holen(`${s.url}/api/mappen?${query}`)).json()) as { mappen: unknown[] }).mappen.length;
 		assert.equal(await filter('fach=mathematik&klasse=2&suche=zehner'), 1);
 		assert.equal(await filter('fach=deutsch'), 0);
 		assert.equal(await filter('suche=kartoffel'), 0);
-		const falsch = await fetch(`${s.url}/api/mappen?fach=mathe`);
+		const falsch = await s.holen(`${s.url}/api/mappen?fach=mathe`);
 		assert.equal(falsch.status, 400);
 		assert.match(((await falsch.json()) as { fehler: string }).fehler, /Gültige Werte: deutsch/);
 	});
 
 	it('liefert Mappe und Dokument, unbekannte als 404, ungültige IDs als 400', async () => {
-		const eintrag = (await (await fetch(`${s.url}/api/mappen/${mappe}`)).json()) as { dokumente: unknown[] };
+		const eintrag = (await (await s.holen(`${s.url}/api/mappen/${mappe}`)).json()) as { dokumente: unknown[] };
 		assert.equal(eintrag.dokumente.length, 1);
 		const dokument = await lies();
 		assert.equal(dokument.meta.titel, 'Blatt');
 		assert.equal(dokument.version, kennung(dokument.quelle));
 		assert.equal(dokument.ausgabeVeraltet, true);
-		assert.equal((await fetch(`${s.url}/api/mappen/gibt-es-nicht`)).status, 404);
-		assert.equal((await fetch(`${s.url}/api/dokumente/${mappe}/gibt-es-nicht`)).status, 404);
-		assert.equal((await fetch(`${s.url}/api/mappen/Gross`)).status, 400);
-		assert.equal((await fetch(`${s.url}/api/dokumente/${mappe}/..%2f..`)).status, 400);
-		assert.equal((await fetch(`${s.url}/api/nichts`)).status, 404);
+		assert.equal((await s.holen(`${s.url}/api/mappen/gibt-es-nicht`)).status, 404);
+		assert.equal((await s.holen(`${s.url}/api/dokumente/${mappe}/gibt-es-nicht`)).status, 404);
+		assert.equal((await s.holen(`${s.url}/api/mappen/Gross`)).status, 400);
+		assert.equal((await s.holen(`${s.url}/api/dokumente/${mappe}/..%2f..`)).status, 400);
+		assert.equal((await s.holen(`${s.url}/api/nichts`)).status, 404);
 	});
 
 	it('speichert mit passender basisVersion und legt eine Version der Lehrkraft an', async () => {
@@ -90,7 +90,7 @@ describe('API', () => {
 		const body = { quelle, basisVersion: version };
 		assert.equal((await speichere(body, { 'Content-Type': 'application/json' })).status, 403);
 		assert.equal((await speichere(body, { 'Content-Type': 'text/plain', 'x-schoolbox': '1' })).status, 403);
-		const formular = await fetch(dokUrl(), {
+		const formular = await s.holen(dokUrl(), {
 			method: 'PUT',
 			headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
 			body: 'quelle=x',
@@ -113,12 +113,12 @@ describe('API', () => {
 
 	it('listet Versionen und stellt eine wieder her', async () => {
 		const liste = async () =>
-			((await (await fetch(`${dokUrl()}/versionen`)).json()) as { versionen: { id: string }[] }).versionen;
+			((await (await s.holen(`${dokUrl()}/versionen`)).json()) as { versionen: { id: string }[] }).versionen;
 		const versionen = await liste();
 		const erste = versionen[0];
 		assert.ok(erste);
 		const ziel = `${dokUrl()}/versionen/${erste.id}/wiederherstellen`;
-		const antwort = await fetch(ziel, { method: 'POST', headers: schreibKoepfe, body: '{}' });
+		const antwort = await s.holen(ziel, { method: 'POST', headers: schreibKoepfe, body: '{}' });
 		assert.equal(antwort.status, 200);
 		const ersteQuelle = await readFile(path.join(dir, 'versionen', `${erste.id}.html`), 'utf8');
 		assert.equal(await readFile(path.join(dir, 'material.html'), 'utf8'), ersteQuelle);
@@ -127,7 +127,7 @@ describe('API', () => {
 			nachher.some((v) => v.id.endsWith('_claude') && v.id !== erste.id),
 			'Claudes Stand wurde gesichert',
 		);
-		const unbekannt = await fetch(`${dokUrl()}/versionen/2020-01-01T00-00-00Z_claude/wiederherstellen`, {
+		const unbekannt = await s.holen(`${dokUrl()}/versionen/2020-01-01T00-00-00Z_claude/wiederherstellen`, {
 			method: 'POST',
 			headers: schreibKoepfe,
 			body: '{}',

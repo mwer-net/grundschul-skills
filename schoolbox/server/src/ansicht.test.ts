@@ -32,52 +32,52 @@ describe('/ansicht', () => {
 	after(() => s.stop());
 
 	it('leitet ohne Schrägstrich am Ende um, damit relative Pfade stimmen', async () => {
-		const antwort = await fetch(`${basis.slice(0, -1)}?loesung=1`, { redirect: 'manual' });
+		const antwort = await s.holen(`${basis.slice(0, -1)}?loesung=1`, { redirect: 'manual' });
 		assert.equal(antwort.status, 301);
 		assert.equal(antwort.headers.get('location'), `${new URL(basis).pathname}?loesung=1`);
 	});
 
 	it('liefert material.html unverändert, mit ?loesung=1 mit body.loesung', async () => {
-		const html = await (await fetch(basis)).text();
+		const html = await (await s.holen(basis)).text();
 		assert.match(html, /<body class="kl2 sw" style/);
-		const loesung = await (await fetch(`${basis}?loesung=1`)).text();
+		const loesung = await (await s.holen(`${basis}?loesung=1`)).text();
 		assert.match(loesung, /<body class="kl2 sw loesung" style/);
 	});
 
 	it('findet Ressourcen wie blatt.py: erst im Dokumentordner, dann in assets/', async () => {
-		const css = await fetch(`${basis}blatt.css`);
+		const css = await s.holen(`${basis}blatt.css`);
 		assert.equal(css.status, 200);
 		assert.match(css.headers.get('content-type') ?? '', /text\/css/);
-		const bild = await fetch(`${basis}bilder/willi-strich.png`);
+		const bild = await s.holen(`${basis}bilder/willi-strich.png`);
 		assert.equal(bild.status, 200);
 		assert.equal(bild.headers.get('content-type'), 'image/png');
-		assert.equal((await fetch(`${basis}bilder/eigen.png`)).status, 200);
-		assert.equal((await fetch(`${basis}abbildungen.js`)).status, 200);
-		assert.equal((await fetch(`${basis}gibt-es-nicht.png`)).status, 404);
+		assert.equal((await s.holen(`${basis}bilder/eigen.png`)).status, 200);
+		assert.equal((await s.holen(`${basis}abbildungen.js`)).status, 200);
+		assert.equal((await s.holen(`${basis}gibt-es-nicht.png`)).status, 404);
 	});
 
 	it('trifft Mappenbilder über ../../bilder/', async () => {
-		const antwort = await fetch(new URL('../../bilder/gemeinsam.png', basis));
+		const antwort = await s.holen(new URL('../../bilder/gemeinsam.png', basis));
 		assert.equal(antwort.status, 200);
 		assert.equal(antwort.headers.get('content-type'), 'image/png');
 	});
 
 	it('löst url() in CSS relativ zum Ordner der CSS-Datei auf', async () => {
-		const css = await (await fetch(`${basis}blatt.css`)).text();
+		const css = await (await s.holen(`${basis}blatt.css`)).text();
 		const schrift = /url\("([^"]*Andika-Regular\.woff2)"\)/.exec(css)?.[1];
 		assert.equal(schrift, '../../../_assets/fonts/Andika-Regular.woff2');
-		const antwort = await fetch(new URL(schrift, `${basis}blatt.css`));
+		const antwort = await s.holen(new URL(schrift, `${basis}blatt.css`));
 		assert.equal(antwort.status, 200);
 		assert.equal(antwort.headers.get('content-type'), 'font/woff2');
-		const eigen = await (await fetch(`${basis}eigen.css`)).text();
+		const eigen = await (await s.holen(`${basis}eigen.css`)).text();
 		assert.equal(eigen, 'body{background:url("bilder/eigen.png")}');
 	});
 
 	it('setzt @page für Formate außer A4 hoch wie blatt.py', async () => {
 		const quer = await legeDokumentAn(s.materialDir, { format: 'a4-quer' });
-		const html = await (await fetch(`${s.url}/ansicht/${quer.mappe}/dokumente/${quer.dok}/`)).text();
+		const html = await (await s.holen(`${s.url}/ansicht/${quer.mappe}/dokumente/${quer.dok}/`)).text();
 		assert.match(html, /<style>@page\{size:A4 landscape;margin:0\}<\/style>\n<\/head>/);
-		assert.doesNotMatch(await (await fetch(basis)).text(), /@page/);
+		assert.doesNotMatch(await (await s.holen(basis)).text(), /@page/);
 	});
 
 	it('wehrt Traversal ab: ..%2f, %2e%2e, rohe .., absolute Pfade, Symlinks hinaus', async () => {
@@ -98,7 +98,7 @@ describe('/ansicht', () => {
 			`${pfad}.material.html.1.a.tmp`,
 		];
 		for (const versuch of versuche) {
-			const { status, text } = await rohAnfrage(s.url, versuch);
+			const { status, text } = await rohAnfrage(s.url, versuch, s.cookie);
 			assert.ok([400, 404].includes(status), `${versuch} → ${status}`);
 			assert.doesNotMatch(text, /GEHEIMER-INHALT|root:/, versuch);
 		}

@@ -27,7 +27,7 @@ describe('Dateiüberwachung', () => {
 		s = await starteTestServer({ ueberwachung: true });
 		const { dir, dok, mappe } = await legeDokumentAn(s.materialDir, { jetzt: VOR_10_MINUTEN() });
 		const vorher = await claudeVersionen(dir);
-		strom = sammleEreignisse(s.url);
+		strom = sammleEreignisse(s.url, s.cookie);
 		await strom.bereit;
 		const datei = path.join(dir, 'material.html');
 		const start = Date.now();
@@ -51,7 +51,7 @@ describe('Dateiüberwachung', () => {
 	it('erkennt atomares Schreiben (temporäre Datei + rename) und ignoriert die temporäre Datei', async () => {
 		s = await starteTestServer({ ueberwachung: true, ruheMs: 300 });
 		const { dir } = await legeDokumentAn(s.materialDir, { jetzt: VOR_10_MINUTEN() });
-		strom = sammleEreignisse(s.url);
+		strom = sammleEreignisse(s.url, s.cookie);
 		await strom.bereit;
 		const vorher = await claudeVersionen(dir);
 		await schreibeAtomar(path.join(dir, 'material.html'), '<html><body class="kl2 sw"></body></html>');
@@ -64,12 +64,12 @@ describe('Dateiüberwachung', () => {
 	it('hält eigenes Speichern nicht für eine Änderung durch Claude', async () => {
 		s = await starteTestServer({ ueberwachung: true, ruheMs: 300 });
 		const { dir, dok, mappe } = await legeDokumentAn(s.materialDir, { jetzt: VOR_10_MINUTEN() });
-		strom = sammleEreignisse(s.url);
+		strom = sammleEreignisse(s.url, s.cookie);
 		await strom.bereit;
 		const url = `${s.url}/api/dokumente/${mappe}/${dok}`;
-		const { quelle, version } = (await (await fetch(url)).json()) as { quelle: string; version: string };
+		const { quelle, version } = (await (await s.holen(url)).json()) as { quelle: string; version: string };
 		const neu = quelle.replace('</section>', '<p>Lehrkraft</p>\n</section>');
-		const antwort = await fetch(url, {
+		const antwort = await s.holen(url, {
 			method: 'PUT',
 			headers: schreibKoepfe,
 			body: JSON.stringify({ quelle: neu, basisVersion: version }),
@@ -87,7 +87,7 @@ describe('Dateiüberwachung', () => {
 
 	it('meldet neue Mappen mit mappe-neu, auch wenn sie per rename entstehen', async () => {
 		s = await starteTestServer({ ueberwachung: true, ruheMs: 300 });
-		strom = sammleEreignisse(s.url);
+		strom = sammleEreignisse(s.url, s.cookie);
 		await strom.bereit;
 		const { mappe } = await neueMappe(s.materialDir, { titel: 'Kartoffeln', fach: 'sachunterricht', klasse: 3 });
 		const andere = path.join(path.dirname(s.materialDir), `${path.basename(s.materialDir)}-x`);
