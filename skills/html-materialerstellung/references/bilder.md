@@ -14,7 +14,7 @@ Was ein Bild bekommt, entscheidet `grundschul-didaktik/references/kindgerecht-ge
 
 Wilma als Strichzeichnung fehlt noch (anlegen nach Abschnitt 2, Datei `wilma-strich.png`).
 
-**Auflösung:** Die Dateien sind derzeit Vorschaubilder (200 px breit). Für Willi/Wilma bis ca. 80 px Breite reicht das (≥ 240 dpi), die Wachstumsgrafik wird im Druck leicht unscharf (`blatt.py` meldet die dpi). Sobald die Originale (1264 px bzw. 1776 px) vorliegen, die Dateien gleichen Namens ersetzen.
+**Auflösung:** Originale aus Canva (Willi/Wilma 1264 × 1264 px, Wachstumsgrafik 1776 × 896 px, transparenter Hintergrund), druckscharf in jeder sinnvollen Größe.
 
 Einbinden: `<img class="figur" src="bilder/willi-strich.png" alt="Willi">`. Im s/w-Profil immer die Strich-Version (`blatt.py` warnt bei farbigen Bildern).
 
@@ -25,7 +25,7 @@ Canva dient nur noch als Bildgenerator. Erst nach Freigabe des Aufgabenplans und
 1. `generate-image` mit dem **Stil-Satz** aus `kindgerecht-gestalten.md` (für alle Bilder eines Materials wörtlich gleich), danach das Motiv konkret. Neue Posen von Willi/Wilma mit dem Original als `imageReferences`. Keine Schrift, Zahlen oder Uhren im Bild.
 2. Bei weißem Hintergrund freistellen: `remove-background`.
 3. **Bild als Datei holen**, in dieser Reihenfolge:
-   - a) Das Ergebnis enthält eine `design_id`: `export-design` als `png` mit `transparent_background: true`, dann die Download-URL mit `curl -L -o motiv.png "<url>"` laden. Klappt nur, wenn die Umgebung Canva-Downloads erlaubt.
+   - a) Das Ergebnis enthält eine `design_id`: `export-design` als `png` mit `transparent_background: true`, dann die Download-URL mit `curl -L -o motiv.png "<url>"` laden. Klappt nur, wenn die Umgebung Canva-Downloads erlaubt (Domain `export-download.canva.com`).
    - b) Gesperrt: Die Lehrkraft öffnet „Open generated image", lädt das Bild herunter und gibt es in den Chat oder den Arbeitsordner.
    - c) Notlösung für kleine Figuren (≤ 80 px Breite): das Vorschaubild aus `get-assets` (200 px), wenn es als Datei vorliegt.
 4. Die Datei neben die HTML-Quelle legen (`bilder/motiv.png`) und einbinden; `blatt.py` bettet sie ins PDF und in die eigenständige HTML-Datei ein.
