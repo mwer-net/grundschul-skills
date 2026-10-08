@@ -1,0 +1,50 @@
+#!/usr/bin/env bash
+# Netz unter .gitignore: Das Repo ist öffentlich. Materialien, .env und lokal/ dürfen nie in einen Commit,
+# auch nicht per `git add -f`. Aktivieren mit: git config core.hooksPath .githooks
+set -euo pipefail
+
+wurzel=$(git rev-parse --show-toplevel)
+
+env_wert() {
+	[ -f "$wurzel/.env" ] || return 0
+	sed -n "s/^$1=//p" "$wurzel/.env" | tail -n 1 | sed -e 's/^["'\'']//' -e 's/["'\'']$//'
+}
+
+gesperrt=(materialien lokal)
+material_dir=$(env_wert MATERIAL_DIR)
+case "$material_dir" in
+	"$wurzel"/*) material_dir=${material_dir#"$wurzel"/} ;;
+	/*) material_dir= ;;
+esac
+material_dir=${material_dir#./}
+material_dir=${material_dir%/}
+[ -n "$material_dir" ] && gesperrt+=("$material_dir")
+
+fehler=()
+while IFS= read -r -d '' pfad; do
+	for ordner in "${gesperrt[@]}"; do
+		case "$pfad" in "$ordner"/*) fehler+=("$pfad") ;; esac
+	done
+	name=${pfad##*/}
+	case "$name" in
+		.env.example) ;;
+		.env | .env.*) fehler+=("$pfad") ;;
+	esac
+done < <(git diff --cached --name-only --diff-filter=ACMR -z)
+
+if [ ${#fehler[@]} -gt 0 ]; then
+	echo "Commit abgebrochen: Diese Dateien dürfen nicht ins öffentliche Repo:" >&2
+	printf '  %s\n' "${fehler[@]}" | sort -u >&2
+	echo "Entfernen mit: git restore --staged <pfad>" >&2
+	exit 1
+fi
+
+url=$(env_wert SCHOOLBOX_URL)
+domain=${url#*://}
+domain=${domain%%/*}
+domain=${domain%%:*}
+if [ -n "$domain" ] && git diff --cached -U0 | grep '^+' | grep -v '^+++' | grep -qiF "$domain"; then
+	echo "Warnung: Der Diff enthält die Domain $domain. Bitte prüfen (git diff --cached)." >&2
+fi
+
+exit 0

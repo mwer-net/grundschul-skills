@@ -80,9 +80,24 @@ Die Skills beruhen auf einer Recherche zum Bildungsplan Baden-Württemberg (Deut
 
 **Claude.ai / Claude Desktop:** Jeden Skill-Ordner als ZIP packen (`./scripts/package.sh` erzeugt sie in `dist/`) und unter *Einstellungen → Fähigkeiten → Skills* hochladen. Für Bilder und Grafiken den Canva-Connector verbinden. Zum Bauen der PDFs braucht die Umgebung Python und Chromium (`pip install playwright pypdfium2 && playwright install chromium`).
 
-**Claude Code:** Ordner aus `skills/` nach `~/.claude/skills/` (persönlich) oder `.claude/skills/` (Projekt) kopieren.
+**Claude Code (empfohlen):** Repo klonen und darin `claude` starten. `.claude/skills` ist ein Symlink auf `skills/`, alle Skills sind damit als Projekt-Skills geladen, und Änderungen an `skills/` wirken sofort, ohne Kopieren. Liegen dieselben Skills zusätzlich als Kopie in `~/.claude/skills/`, erscheinen sie doppelt. Die Kopien dann entfernen.
+
+```bash
+git clone <repo-url> && cd <repo>
+git config core.hooksPath .githooks   # Pre-Commit-Hook: sperrt materialien/, lokal/ und .env
+claude
+```
+
+**Claude Code (persönlich, ohne Projekt):** Ordner aus `skills/` nach `~/.claude/skills/` kopieren.
 
 Empfehlung: Immer alle Skills installieren, da sie aufeinander verweisen.
+
+### Python und Chromium für `blatt.py`
+
+`blatt.py` braucht Python 3, Chromium, Pillow und pypdfium2 bzw. `pdftoppm`. Ohne die beiden Letzteren entsteht nur das PDF, ohne Vorschau-PNGs und ohne Ausschnitte je Aufgabe, und die visuelle Endkontrolle fällt aus. Chromium findet `blatt.py` als Playwright-Chromium (`~/.cache/ms-playwright/`), `chromium` oder `google-chrome`.
+
+- **Debian/Ubuntu:** `sudo apt install python3-pil poppler-utils`. Danach läuft `python3 …/blatt.py` wie in den Skills beschrieben, ohne virtuelle Umgebung (PNGs über `pdftoppm`).
+- **Andere Systeme:** `python3 -m venv .venv && .venv/bin/pip install -r requirements.txt`, dann `.venv/bin/python` statt `python3` aufrufen.
 
 ## Canva
 

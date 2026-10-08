@@ -1,4 +1,21 @@
 dist/
 .DS_Store
 __pycache__/
+
+# Daten und Konfiguration der Lehrkraft, lokale Notizen (nie ins öffentliche Repo)
 lokal/
+materialien/
+.env
+.env.*
+!.env.example
+CLAUDE.local.md
+.claude/settings.local.json
+
+# Abhängigkeiten und Build
+.venv/
+node_modules/
+schoolbox/*/dist/
+
+# Legt add-site.sh im Site-Ordner an
+logs/
+htdocs/
