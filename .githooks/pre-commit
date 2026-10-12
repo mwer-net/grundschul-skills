@@ -5,6 +5,13 @@ set -euo pipefail
 
 wurzel=$(git rev-parse --show-toplevel)
 
+# Setzt scripts/einrichten-lehrkraft.sh: Im Klon der Lehrkraft entsteht kein Commit, auch nicht versehentlich
+if [ "$(git config --type=bool --default false --get schoolbox.lehrkraftModus)" = true ]; then
+	echo "Commit abgebrochen: Dieser Klon ist im Lehrkraft-Modus, hier wird nicht committet." >&2
+	echo "Änderungen entstehen im Entwicklerklon und kommen mit scripts/ausrollen.sh hierher." >&2
+	exit 1
+fi
+
 env_wert() {
 	[ -f "$wurzel/.env" ] || return 0
 	sed -n "s/^$1=//p" "$wurzel/.env" | tail -n 1 | sed -e 's/^["'\'']//' -e 's/["'\'']$//'
@@ -23,7 +30,8 @@ material_dir=${material_dir%/}
 fehler=()
 while IFS= read -r -d '' pfad; do
 	for ordner in "${gesperrt[@]}"; do
-		case "$pfad" in "$ordner"/*) fehler+=("$pfad") ;; esac
+		# Der Name allein ist ein Symlink auf den Ordner: Sein Ziel (ein Pfad dieses Rechners) stünde im Commit
+		case "$pfad" in "$ordner" | "$ordner"/*) fehler+=("$pfad") ;; esac
 	done
 	name=${pfad##*/}
 	case "$name" in

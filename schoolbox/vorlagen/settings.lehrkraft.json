@@ -1,0 +1,52 @@
+{
+	"disableAllHooks": true,
+	"permissions": {
+		"disableBypassPermissionsMode": "disable",
+		"deny": [
+			"Bash(git commit *)",
+			"Bash(git push *)",
+			"Bash(git reset *)",
+			"Bash(git checkout *)",
+			"Bash(git switch *)",
+			"Bash(git restore *)",
+			"Bash(git merge *)",
+			"Bash(git pull *)",
+			"Bash(git rebase *)",
+			"Bash(git stash *)",
+			"Bash(git clean *)",
+			"Bash(git remote *)",
+			"Bash(git config *)",
+			"Read(/.env)",
+			"Edit(/.env)",
+			"Edit(/.env.example)",
+			"Edit(/.gitignore)",
+			"Edit(/.githooks/**)",
+			"Edit(/.claude/**)",
+			"Edit(/CLAUDE*.md)",
+			"Edit(/README.md)",
+			"Edit(/requirements.txt)",
+			"Edit(/skills/**)",
+			"Edit(/schoolbox/**)",
+			"Edit(/scripts/**)",
+			"Edit(/lokal/**)"
+		],
+		"allow": [
+			"Bash(schoolbox/bin/schoolbox *)",
+			"Bash(python3 skills/html-materialerstellung/scripts/blatt.py *)",
+			"Bash(python3 .claude/skills/html-materialerstellung/scripts/blatt.py *)",
+			"Bash(curl -fsSL -o materialien/*)",
+			"Bash(file *)",
+			"Edit(/materialien/**)",
+			"mcp__claude_ai_Canva__generate-image",
+			"mcp__claude_ai_Canva__get-generate-image-job",
+			"mcp__claude_ai_Canva__remove-background",
+			"mcp__claude_ai_Canva__get-assets",
+			"mcp__claude_ai_Canva__search-designs",
+			"mcp__claude_ai_Canva__resize-design",
+			"mcp__claude_ai_Canva__read-design",
+			"mcp__claude_ai_Canva__edit-design",
+			"mcp__claude_ai_Canva__export-design",
+			"mcp__claude_ai_Canva__create-upload-url"
+		]
+	}
+}

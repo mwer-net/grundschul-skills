@@ -74,6 +74,17 @@ cd "$wurzel"
 [ -z "$(git status --porcelain)" ] || abbruch "Der Arbeitsbaum ist nicht sauber:
 $(git status --short)"
 
+# Läuft die PM2-App aus einem anderen Klon (Aufruf im Entwicklerklon), lüde „pm2 reload“ dessen Dienst neu
+app_ordner=$(pm2 jlist 2>/dev/null 9>&- | node -e '
+	let text = "";
+	process.stdin.on("data", (teil) => (text += teil)).on("end", () => {
+		const zeile = text.split("\n").reverse().find((z) => z.startsWith("[{")) ?? "[]";
+		process.stdout.write(JSON.parse(zeile).find((app) => app.name === process.argv[1])?.pm2_env?.pm_cwd ?? "");
+	});' "$APP") || abbruch 'Die PM2-Liste ist nicht lesbar („pm2 jlist“ prüfen).'
+if [ -n "$app_ordner" ] && [ ! "$app_ordner" -ef "$schoolbox_dir/server" ]; then
+	abbruch "Die PM2-App „$APP“ läuft aus $app_ordner, nicht aus diesem Klon. Hier wird nicht ausgerollt."
+fi
+
 schritt 'Neuen Stand holen'
 git fetch --quiet origin main
 alt=$(git rev-parse HEAD)
@@ -146,6 +157,11 @@ if warte_auf_head; then
 	trap - ERR
 	echo "$healthz: $(curl -fsS --max-time 2 "$healthz")"
 	echo 'Ausgerollt.'
+	# Eine geänderte Vorlage kommt nicht von selbst in .claude/settings.local.json
+	if [ "$(git -C "$wurzel" config --get schoolbox.lehrkraftModus || true)" = true ] &&
+		! bash "$wurzel/scripts/einrichten-lehrkraft.sh" --pruefen >/dev/null; then
+		echo 'Hinweis: Der Lehrkraft-Modus weicht vom Stand im Repo ab. Bitte scripts/einrichten-lehrkraft.sh ausführen.'
+	fi
 	exit 0
 fi
 echo "$healthz meldet nach ${HEALTHZ_VERSUCHE} s nicht den neuen Stand. Fehlerlog: $schoolbox_dir/logs/error.log" >&2

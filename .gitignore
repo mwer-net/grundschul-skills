@@ -2,9 +2,10 @@ dist/
 .DS_Store
 __pycache__/
 
-# Daten und Konfiguration der Lehrkraft, lokale Notizen (nie ins öffentliche Repo)
-lokal/
-materialien/
+# Daten und Konfiguration der Lehrkraft, lokale Notizen (nie ins öffentliche Repo).
+# Ohne Schrägstrich am Ende: Nur so trifft die Regel auch einen Symlink dieses Namens.
+/lokal
+/materialien
 .env
 .env.*
 !.env.example

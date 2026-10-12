@@ -151,6 +151,31 @@ Server-Sent Events brauchen keine Sonderbehandlung, solange der Proxy `text/even
 
 Danach rollt `scripts/ausrollen.sh` neue Stände aus: Fast-Forward auf `origin/main`, `pnpm install --frozen-lockfile`, Typprüfung, Oberfläche daneben bauen und tauschen, `pm2 reload schoolbox`, bis `/healthz` den neuen Commit meldet. Schlägt ein Schritt fehl, kehrt es zum alten Commit zurück und der alte Stand läuft weiter. Es verlangt einen sauberen Arbeitsbaum auf `main`; `--immer` baut auch ohne neuen Stand.
 
+#### Zwei Klone: einer für die Lehrkraft, einer für die Entwicklung
+
+Die Lehrkraft spricht mit Claude in dem Ordner, aus dem die Schoolbox läuft. Wer dort auch entwickelt, riskiert zweierlei: Ein halbfertiger Stand legt die Schoolbox lahm, und ein Wunsch wie „alle Arbeitsblätter sollen größere Schrift haben“ ändert einen Skill, statt beim Entwickler zu landen. Deshalb zwei Klone.
+
+**Klon der Lehrkraft.** Er steht auf `main` und bekommt neue Stände nur mit `scripts/ausrollen.sh`. Einmal einrichten:
+
+```bash
+scripts/einrichten-lehrkraft.sh             # nach einer geänderten Vorlage erneut ausführen
+scripts/einrichten-lehrkraft.sh --pruefen   # meldet, was fehlt oder abweicht
+scripts/einrichten-lehrkraft.sh --aufheben  # alles zurücknehmen
+```
+
+Das Skript kopiert `schoolbox/vorlagen/settings.lehrkraft.json` nach `.claude/settings.local.json` (wird nie committet). Claude darf danach in diesem Ordner nicht committen, nicht pushen, `.env` nicht lesen und außerhalb von `materialien/` nichts ändern. Was es für Material braucht (das CLI, `blatt.py`, Canva, Dateien in `materialien/`), läuft ohne Rückfrage. Liegt `MATERIAL_DIR` woanders, die Freigaben in der Vorlage anpassen.
+
+Zwei Dinge an der Vorlage sind nicht offensichtlich:
+
+- **Hooks sind abgeschaltet** (`disableAllHooks`). Ein Hook aus den persönlichen Einstellungen, der Bash-Befehle umschreibt und freigibt, setzt sonst jede `Bash(…)`-Sperre außer Kraft, weil die Regel den umgeschriebenen Befehl nicht mehr erkennt.
+- **Die Regeln prüfen den Wortlaut eines Befehls.** `git -C . push` trifft die Sperre für `git push` nicht. Das Skript macht deshalb zusätzlich die Push-Adresse des Klons ungültig und schaltet im Pre-Commit-Hook eine Commit-Sperre ein (`git config schoolbox.lehrkraftModus true`). Holen funktioniert weiter, `ausrollen.sh` pusht nie.
+
+Einen Berechtigungsmodus legt die Vorlage nicht fest. Für die Sitzungen der Lehrkraft passt Auto: Claude fragt dann auch bei Unvorhergesehenem nicht nach, und die Sperren gelten trotzdem. Auto lässt sich nicht in der Einstellungsdatei setzen, nur beim Start, zum Beispiel mit `claude remote-control --permission-mode auto`.
+
+**Entwicklerklon.** Ein zweiter Klon an anderer Stelle, mit eigener `.env`: anderer `PORT`, eigenes `MATERIAL_DIR` mit Testmappen (nie die echten Materialien) und `SCHOOLBOX_URL=http://localhost:5173`, sonst nimmt der Browser das Anmelde-Cookie über http nicht an. Dort `git config core.hooksPath .githooks`, in `schoolbox/` einmal `pnpm install`, dann `pnpm dev`. `einrichten-lehrkraft.sh` wird dort nie ausgeführt. `ausrollen.sh` bricht im Entwicklerklon ab, solange die PM2-App aus einem anderen Ordner läuft, und lädt so nie versehentlich die Schoolbox der Lehrkraft neu.
+
+Der Weg einer Änderung: Branch im Entwicklerklon, nach `main` zusammenführen und pushen, dann im Klon der Lehrkraft `scripts/ausrollen.sh`.
+
 ## Canva
 
 - Die Canva-KI erzeugt Bilder und Grafiken nach Bedarf: Sachbilder, Wortschatz- und Anlautbilder, Bildergeschichten, unbeschriftete Sachgrafiken, neue Posen von Willi und Wilma. Die Skills holen sie als PNG in Originalauflösung und bauen sie ins HTML ein (`html-materialerstellung/references/bilder.md`). Canva for Education ist für Lehrkräfte kostenlos.
