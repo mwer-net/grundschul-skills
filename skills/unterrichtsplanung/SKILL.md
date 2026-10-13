@@ -55,3 +55,14 @@ Zusätzlich: Bedingungsanalyse (anonym), Sachanalyse (kurz), didaktische Analyse
 ## Ausgabe
 
 Planung als übersichtliche Tabelle (Text), danach anbieten, die Materialien einzeln zu erstellen – mit einer Frage, welches zuerst. Jedes Material läuft dann durch Entwürfe und Aufgabenplan (`grundschul-didaktik/references/entwurf-und-aufgabenplan.md`), bevor die Endfassung entsteht.
+
+## Umsetzung (`html-materialerstellung`)
+
+Soll der Verlaufsplan gedruckt werden oder ist eine Schoolbox eingerichtet, wird er ein eigenes HTML-Dokument. Die Planung im Chat bleibt der Entwurf: erst wenn die Lehrkraft ihr zustimmt, entsteht das Dokument.
+
+- Format A4 quer, Schrift für Erwachsene: `<body class="kl4 sw a4-quer">` (die `kl`-Klasse steuert hier nur die Schriftgröße, unabhängig von der Klassenstufe der Stunde).
+- Kopf mit `.kopf` > `.titel`: Thema als `h1`, Ich-kann-Ziel als `.ziel`, darunter eine Zeile mit Klasse, Fach, Dauer und Material. Keine Namenszeile, keine Leitfigur, kein Fuß.
+- Verlauf als `<table class="plan">` mit den Spalten Phase, Zeit, Inhalt und Impulse, Sozialform, Medien; Spaltenbreiten über `style="width:…%"` an den `<th>`, die Inhaltsspalte bleibt frei. Lehrkraft-Impulse und erwartete Antworten wörtlich in der Inhaltsspalte.
+- Eine Stunde je `.seite`. Eine Reihenplanung bekommt eine eigene Tabelle (Stunde, Thema, Ich-kann-Ziel, Kreisinput, Lernaufgaben, Material) auf der ersten Seite. Passt eine Tabelle nicht, auf zwei Seiten teilen, nie die Schrift verkleinern.
+- Keine Lösungs-Markierungen; `blatt.py bauen` prüft Rand und Überlauf wie bei jedem Blatt. Der Hinweis „frei unten“ ist beim Verlaufsplan unbedenklich.
+- Mit Schoolbox ist der Plan ein Dokument derselben Mappe wie die Materialien der Stunde: `schoolbox dokument <mappe> --titel "Verlaufsplan …" --art unterrichtsplanung --format a4-quer --druckprofil sw`. So wird er mit ihnen zusammen angesehen und gedruckt.

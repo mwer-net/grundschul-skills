@@ -4,6 +4,8 @@
 #   - kopiert schoolbox/vorlagen/settings.lehrkraft.json nach .claude/settings.local.json: Claude darf hier nicht
 #     committen, nicht pushen und außerhalb der Materialien nichts ändern; was es für Material braucht, läuft
 #     ohne Rückfrage
+#   - kopiert schoolbox/vorlagen/CLAUDE.lehrkraft.md nach CLAUDE.local.md: Claude spricht hier mit der Lehrkraft,
+#     ohne Technik, und gibt am Ende einen Link in die Schoolbox
 #   - macht die Push-Adresse ungültig und schaltet die Commit-Sperre im Pre-Commit-Hook ein. Die Regeln für Claude
 #     prüfen nur den Wortlaut eines Befehls („git -C . push“ rutscht durch), diese beiden Sperren greifen immer
 #
@@ -16,9 +18,12 @@
 set -Eeuo pipefail
 
 wurzel=$(cd "$(dirname "$(readlink -f "${BASH_SOURCE[0]}")")/.." && pwd)
-vorlage="$wurzel/schoolbox/vorlagen/settings.lehrkraft.json"
-ziel="$wurzel/.claude/settings.local.json"
-sicherung="$wurzel/.git/schoolbox-settings.local.json.vorher"
+vorlagen="$wurzel/schoolbox/vorlagen"
+# Vorlage:Ziel im Klon. Die Sicherung einer abweichenden Datei landet in .git/, also außerhalb des Arbeitsbaums
+DATEIEN=(
+	"settings.lehrkraft.json:.claude/settings.local.json"
+	"CLAUDE.lehrkraft.md:CLAUDE.local.md"
+)
 PUSH_GESPERRT=/dev/null/lehrkraft-modus-pusht-nicht
 
 modus=einrichten
@@ -46,11 +51,15 @@ env_wert() {
 git_wert() { git -C "$wurzel" config --get "$1" || true; }
 
 git -C "$wurzel" rev-parse --git-dir >/dev/null 2>&1 || abbruch "$wurzel ist kein Git-Klon."
-[ -f "$vorlage" ] || abbruch "Vorlage fehlt: $vorlage"
+for eintrag in "${DATEIEN[@]}"; do
+	[ -f "$vorlagen/${eintrag%%:*}" ] || abbruch "Vorlage fehlt: $vorlagen/${eintrag%%:*}"
+done
 
-sichere_ziel() {
+sichere() {
+	local vorlage=$1 ziel=$2 sicherung
 	[ -f "$ziel" ] || return 0
 	cmp -s "$vorlage" "$ziel" && return 0
+	sicherung="$wurzel/.git/schoolbox-$(basename "$ziel").vorher"
 	cp "$ziel" "$sicherung"
 	echo "Bisherige Datei gesichert: $sicherung"
 }
@@ -61,11 +70,14 @@ if [ "$modus" = pruefen ]; then
 		echo "FEHLT  $*"
 		abweichungen=$((abweichungen + 1))
 	}
-	if [ ! -f "$ziel" ]; then
-		melde ".claude/settings.local.json fehlt."
-	elif ! cmp -s "$vorlage" "$ziel"; then
-		melde ".claude/settings.local.json weicht von der Vorlage ab."
-	fi
+	for eintrag in "${DATEIEN[@]}"; do
+		ziel=${eintrag#*:}
+		if [ ! -f "$wurzel/$ziel" ]; then
+			melde "$ziel fehlt."
+		elif ! cmp -s "$vorlagen/${eintrag%%:*}" "$wurzel/$ziel"; then
+			melde "$ziel weicht von der Vorlage ab."
+		fi
+	done
 	[ "$(git_wert remote.origin.pushurl)" = "$PUSH_GESPERRT" ] || melde "Die Push-Adresse ist nicht gesperrt."
 	[ "$(git_wert schoolbox.lehrkraftModus)" = true ] || melde "Die Commit-Sperre ist nicht eingeschaltet."
 	[ "$(git_wert core.hooksPath)" = .githooks ] || melde "core.hooksPath zeigt nicht auf .githooks."
@@ -78,23 +90,30 @@ if [ "$modus" = pruefen ]; then
 fi
 
 if [ "$modus" = aufheben ]; then
-	sichere_ziel
-	rm -f "$ziel"
+	for eintrag in "${DATEIEN[@]}"; do
+		sichere "$vorlagen/${eintrag%%:*}" "$wurzel/${eintrag#*:}"
+		rm -f "$wurzel/${eintrag#*:}"
+	done
 	git -C "$wurzel" config --unset-all remote.origin.pushurl || true
 	git -C "$wurzel" config --unset-all schoolbox.lehrkraftModus || true
-	echo "Lehrkraft-Modus aufgehoben: Regeln für Claude entfernt, Push und Commit wieder möglich."
+	echo "Lehrkraft-Modus aufgehoben: Regeln und Anweisungen für Claude entfernt, Push und Commit wieder möglich."
 	exit 0
 fi
 
-sichere_ziel
-mkdir -p "$(dirname "$ziel")"
-cp "$vorlage" "$ziel"
+for eintrag in "${DATEIEN[@]}"; do
+	vorlage="$vorlagen/${eintrag%%:*}"
+	ziel="$wurzel/${eintrag#*:}"
+	sichere "$vorlage" "$ziel"
+	mkdir -p "$(dirname "$ziel")"
+	cp "$vorlage" "$ziel"
+done
 git -C "$wurzel" config core.hooksPath .githooks
 git -C "$wurzel" config remote.origin.pushurl "$PUSH_GESPERRT"
 git -C "$wurzel" config schoolbox.lehrkraftModus true
 
 echo "Lehrkraft-Modus eingerichtet in $wurzel:"
 echo "  - Regeln für Claude: .claude/settings.local.json"
+echo "  - Anweisungen für Claude: CLAUDE.local.md"
 echo "  - Push gesperrt, Commit-Sperre im Pre-Commit-Hook eingeschaltet"
 echo "Laufende Claude-Sitzungen in diesem Ordner neu starten."
 

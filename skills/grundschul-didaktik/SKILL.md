@@ -64,6 +64,7 @@ Ist nur Kleines unklar, triff eine sinnvolle Annahme und nenne sie. Bei „mach 
 9. **Fachlich korrekt:** Rechtschreibung nach amtlichem Regelwerk, mathematisch saubere Sprache ("Ergebnis", nicht "Lösungszahl"), sachlich richtige Abbildungen (Tierteile, Pflanzen, Uhrzeiten).
 10. **Vielfalt und Inklusion:** Namen, Familien, Hautfarben und Lebenswelten divers und unaufgeregt darstellen. Keine Klischees.
 11. **Druckprofil und kompaktes Layout:** Gestaltet wird nach dem Profil aus der Start-Abfrage: **Schwarz-Weiß** (tonersparend, Strichzeichnungen, keine Farb- oder Grauflächen) oder **Farbe** (Farbe als Akzent an Nummern, Überschrift, Figur und Bildern, keine Farbflächen hinter Aufgaben). In beiden Profilen nutzt die Seite ihren Platz für Aufgaben statt für Kästen und Innenabstände. Details: `references/druck-und-platz.md`.
+12. **Datenschutz:** Material und Gespräch enthalten keine personenbezogenen Daten von Kindern: keine echten Namen aus der Klasse, keine Fotos von Kindern, keine Förderbedarfe oder Diagnosen einzelner Kinder. Nennt die Lehrkraft solche Daten, nicht übernehmen, in einem Satz freundlich erklären und eine gleichwertige Lösung vorschlagen: Fantasienamen (divers gewählt, Leitlinie 10) oder leere Felder, in die die Kinder ihre Namen selbst schreiben. Angaben zur Lerngruppe ohne Namen sind erwünscht („zwei Kinder mit LRS“). Hintergrund: `references/quellen.md`, Abschnitt Datenschutz.
 
 ## 3. Gestaltung – Kurzfassung
 
@@ -103,6 +104,7 @@ Prüfe jedes Material gegen diese Liste und korrigiere, bevor du es der Lehrkraf
 - [ ] Keine rein dekorativen Bilder (Weglass-Test); alle Bilder eindeutig erkennbar
 - [ ] Genug Platz zum Schreiben/Zeichnen
 - [ ] Rechtschreibung, Zeichensetzung, Rechnungen und Lösungen geprüft
+- [ ] Keine personenbezogenen Daten von Kindern (echte Namen, Fotos, Förderbedarfe einzelner Kinder)
 - [ ] Druckprofil eingehalten; keine Flächen hinter Aufgaben; auch in Graustufen lesbar
 - [ ] Übersichtlich: Aufgaben ohne Kasten, Aufgaben- und Item-Zahl im Richtwert der Klasse, jede Aufgabe auf einen Blick verständlich, Beispiel nicht gequetscht
 - [ ] Lösung / Selbstkontrolle beigelegt (wenn sinnvoll)
@@ -115,6 +117,8 @@ Liefere immer:
 2. Eine Kurz-Info: Ich-kann-Ziel, Klassenstufe, Niveaus bzw. Sternchenaufgabe und Hilfen, benötigtes Material, Zeitbedarf, Reflexionsfrage für den Kreis.
 3. Die Lösung oder den Erwartungshorizont.
 4. Annahmen, die du getroffen hast.
+
+Ist eine Schoolbox eingerichtet (siehe Projektanweisungen), bekommt die Lehrkraft statt der Dateien aus Punkt 1 den Link in die Schoolbox (`html-materialerstellung`, Abschnitt „Mit Schoolbox“). Dort sieht sie Material und Lösung an, lädt das PDF und druckt. Kurz-Info und Annahmen stehen weiter in der Nachricht.
 
 ## Referenzen
 

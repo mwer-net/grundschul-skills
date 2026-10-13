@@ -41,11 +41,23 @@ Warum: In HTML bestimmen wir Schrift (Fredoka, Andika, eingebettet), Abstände u
    Ergebnis: eigenständige `.html` (alles eingebettet), `.pdf`, `-loesung.pdf`, Vorschau je Seite (`-s1.png`) und Ausschnitt je Aufgabe (`-s1-a1.png` …). Der Prüfbericht meldet FEHLER (Seitenrand, abgeschnitten, Überlappung, Schrift oder Bild fehlt; Lösungsblatt wird mitgeprüft), WARNUNGEN (Schrift zu klein für die Klasse, Farbe oder Flächen im s/w-Profil, farbiges Bild im s/w-Profil, zu viele Aufgaben, Aufgaben zu dicht) und HINWEISE (unscharfe Bilder, viel Leerraum, Platzhalter).
 4. FEHLER beheben und neu bauen, bis keiner bleibt. Passt der Inhalt nicht: erst `--abstand` am `<body>` um wenige px senken (nie unter 24 px), dann Item streichen, dann zweite Seite; nie Schrift oder Rand verkleinern.
 5. **Visuelle Endkontrolle** (`references/visuelle-endkontrolle.md`): Seitenvorschau, jeden Aufgaben-Ausschnitt und das Lösungsblatt ansehen, Befunde beheben, neu bauen.
-6. Der Lehrkraft geben: PDF (Arbeitsblatt und Lösung) und die eigenständige HTML-Datei, mit einem Satz, was die Endkontrolle korrigiert hat.
+6. Der Lehrkraft geben: PDF (Arbeitsblatt und Lösung) und die eigenständige HTML-Datei, mit einem Satz, was die Endkontrolle korrigiert hat. Mit Schoolbox stattdessen den Link (Abschnitt „Mit Schoolbox“).
 
 ### 3. Änderungen
 
 Änderungswünsche werden in der HTML-Quelle umgesetzt und neu gebaut (Sekunden). Die eigenständige HTML-Datei lässt sich im Browser öffnen und drucken; wer in Canva weiterarbeiten will, lädt das PDF dort hoch.
+
+## Mit Schoolbox
+
+Ist im Projekt eine Schoolbox eingerichtet (Ordner `schoolbox/`, Projektanweisungen), liegt das Material in **Mappen** und die Lehrkraft bekommt am Ende einen Link statt Dateien. Am Aufbau des HTML und an der Prüfung ändert sich nichts. Alle Aufrufe aus dem Hauptordner des Projekts; `schoolbox/bin/schoolbox --hilfe` nennt Befehle und gültige Werte.
+
+1. **Mappe und Dokumente anlegen** statt eigener Ordner und Dateinamen: `schoolbox/bin/schoolbox neu --titel … --fach … --klasse …`, dann je Bestandteil `schoolbox/bin/schoolbox dokument <mappe> --titel … --art … --druckprofil sw|farbe [--format a4-quer|a3-hoch|a5-hoch|folie] [--vorlage arbeitsblatt]`. Das Dokument liegt in `materialien/<mappe>/dokumente/<dokument>/`; die Quelle heißt immer `material.html`, mit `<title>` und `<body>`-Klassen schon gesetzt. Das Format steht in den Angaben des Dokuments (`meta.json` im selben Ordner) **und** als Klasse am `<body>`; ändert es sich, beides anpassen, sonst bricht `fertig` ab.
+2. **Druckhinweise** (doppelseitig, laminieren, in A3 drucken) gehören ans Dokument, die Schoolbox zeigt sie beim Drucken: `--druckhinweis "…"`, mehrfach möglich.
+3. **Entwürfe** in den Ordner des Dokuments schreiben (`entwurf-a.html` …), damit Pfade wie `bilder/…` später stimmen. Prüfen mit `python3 skills/html-materialerstellung/scripts/blatt.py uebersicht <entwürfe> -o <dokumentordner>/ausgabe/`, registrieren mit `schoolbox/bin/schoolbox entwuerfe <mappe>/<dokument> <entwürfe>`, den gewählten übernehmen mit `schoolbox/bin/schoolbox waehle <mappe>/<dokument> B`.
+4. **Bilder** des Dokuments in `bilder/` neben `material.html`; Bilder, die mehrere Dokumente der Mappe nutzen, in `materialien/<mappe>/bilder/` (eingebunden als `../../bilder/…`).
+5. **Bauen und Endkontrolle** wie oben mit `blatt.py bauen <dokumentordner>/material.html -o <dokumentordner>/ausgabe/`. Ohne `-o` lägen PDF und Vorschauen neben der Quelle.
+6. **Abschluss:** `schoolbox/bin/schoolbox fertig <mappe>/<dokument>` baut ein letztes Mal, hält den Stand als Version fest und nennt den Link. Bei FEHLERN gibt es ihn trotzdem (Exit-Code 1); erst beheben, dann erneut fertigstellen. Für eine Mappe mit mehreren Dokumenten `schoolbox/bin/schoolbox link <mappe>`.
+7. **Änderungen:** Die Lehrkraft kann die Quelle in der Schoolbox selbst bearbeiten. Vor jeder Änderung `material.html` neu lesen und gezielt ändern, nie aus einem früheren Stand neu schreiben. Danach wieder `fertig`; der Link bleibt gleich.
 
 ## Gestaltungssystem kurz
 

@@ -148,6 +148,35 @@ describe('Entwürfe', () => {
 		await assert.rejects(waehleEntwurf(materialDir, ziel, 'C'), /Registrierte Entwürfe: A, B/);
 	});
 
+	it('nimmt in einer zweiten Runde auch einen schon registrierten Entwurf als Quelle', async () => {
+		const materialDir = await ablage();
+		const mappe = await kartoffeln(materialDir);
+		const { id } = await neuesDokument(materialDir, mappe, {
+			titel: 'Uhrzeit',
+			art: 'arbeitsblatt',
+			format: 'a4-hoch',
+			druckprofil: 'sw',
+			druckhinweise: [],
+		});
+		const ziel = { mappe, dok: id };
+		const quelle = await ablage();
+		const dateien = [path.join(quelle, 'a.html'), path.join(quelle, 'b.html')];
+		await writeFile(
+			dateien[0] ?? '',
+			'<html><head><title>A · Erste</title></head><body class="kl3 sw">A</body></html>',
+		);
+		await writeFile(
+			dateien[1] ?? '',
+			'<html><head><title>B · Zweite</title></head><body class="kl3 sw">B</body></html>',
+		);
+		await registriereEntwuerfe(materialDir, ziel, dateien);
+		const ordner = path.join(dokumentDir(materialDir, mappe, id), 'entwuerfe');
+		const entwuerfe = await registriereEntwuerfe(materialDir, ziel, [path.join(ordner, 'B.html')]);
+		assert.deepEqual(entwuerfe, [{ name: 'A', titel: 'Zweite', idee: '' }]);
+		assert.deepEqual(await readdir(ordner), ['A.html']);
+		assert.ok((await readFile(path.join(ordner, 'A.html'), 'utf8')).includes('>B</body>'));
+	});
+
 	it('verweigert einen Entwurf mit anderem Format', async () => {
 		const materialDir = await ablage();
 		const mappe = await kartoffeln(materialDir);
@@ -199,13 +228,13 @@ describe('listeMappen', () => {
 });
 
 describe('notiereWunsch', () => {
-	it('hängt Wünsche mit Datum an _wuensche.md an', async () => {
+	it('hängt Wünsche mit Datum und Uhrzeit an _wuensche.md an', async () => {
 		const materialDir = await ablage();
 		await notiereWunsch(materialDir, 'Mehr Platz zum Schreiben', JETZT);
 		const datei = await notiereWunsch(materialDir, 'Willi\nauch auf Folien', JETZT);
 		assert.equal(
 			await readFile(datei, 'utf8'),
-			'# Wünsche der Lehrkraft\n\n- 2026-10-08: Mehr Platz zum Schreiben\n- 2026-10-08: Willi auch auf Folien\n',
+			'# Wünsche der Lehrkraft\n\n- 2026-10-08 10:15: Mehr Platz zum Schreiben\n- 2026-10-08 10:15: Willi auch auf Folien\n',
 		);
 		await assert.rejects(notiereWunsch(materialDir, '   '), SchoolboxFehler);
 	});

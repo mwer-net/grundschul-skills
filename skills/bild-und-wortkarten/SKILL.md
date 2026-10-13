@@ -49,4 +49,5 @@ Zuerst die Start-Abfrage (`grundschul-didaktik/references/rueckfragen.md`): Medi
 ## Umsetzung (`html-materialerstellung`)
 
 - Tafelkarten: `a4-quer`, eine Karte pro Seite. Tischkarten: 8 pro A4 (`.karten` mit `--spalten:2`, 4 Zeilen), Schneidelinien sind die gestrichelten Ränder.
+- Mit Schoolbox die Druckhinweise am Dokument hinterlegen (`schoolbox dokument … --druckhinweis "…"`, je Hinweis einmal), z. B. „Doppelseitig drucken, an der langen Kante wenden“ (Bild vorn, Wort hinten), „Laminieren“, „An den gestrichelten Linien ausschneiden“.
 - Bilder für ein Set in einem Rutsch mit gleichem Stil-Satz per Canva `generate-image` erzeugen und als Dateien holen (`html-materialerstellung/references/bilder.md`).

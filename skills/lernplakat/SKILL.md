@@ -53,3 +53,4 @@ Zuerst die Start-Abfrage (`grundschul-didaktik/references/rueckfragen.md`): Medi
 - Merkplakat: `<body class="… a3-hoch">`; A2 im Copyshop aus dem A3-PDF hochskalieren.
 - Tafelbild: `<body class="… folie">` (16:9), PDF für das Whiteboard, PNG-Vorschau aus `blatt.py` als Bild.
 - Schriftgrößen für die Leseentfernung über eigenes `<style>` (z. B. `--fs:40px`).
+- Mit Schoolbox die Druckhinweise am Dokument hinterlegen (`schoolbox dokument … --druckhinweis "…"`), z. B. „In A3 drucken“ oder „Für A2 im Copyshop aus dem A3-PDF vergrößern“.

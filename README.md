@@ -165,6 +165,8 @@ scripts/einrichten-lehrkraft.sh --aufheben  # alles zurücknehmen
 
 Das Skript kopiert `schoolbox/vorlagen/settings.lehrkraft.json` nach `.claude/settings.local.json` (wird nie committet). Claude darf danach in diesem Ordner nicht committen, nicht pushen, `.env` nicht lesen und außerhalb von `materialien/` nichts ändern. Was es für Material braucht (das CLI, `blatt.py`, Canva, Dateien in `materialien/`), läuft ohne Rückfrage. Liegt `MATERIAL_DIR` woanders, die Freigaben in der Vorlage anpassen.
 
+Außerdem kopiert es `schoolbox/vorlagen/CLAUDE.lehrkraft.md` nach `CLAUDE.local.md` (ebenfalls nie committet). Diese Anweisungen gelten nur in diesem Klon: Claude spricht mit einer Lehrkraft, die nicht programmiert. Im Chat stehen keine Befehle, Pfade oder Fehlermeldungen, Material wird über das CLI in Mappen abgelegt, und am Ende steht ein Link in die Schoolbox. Wünsche, die alle Materialien betreffen („ab jetzt größere Schrift“), ändert Claude nicht selbst, sondern notiert sie mit `schoolbox wunsch` in `materialien/_wuensche.md`. Die Skills selbst bleiben ohne Schoolbox nutzbar; ihre Abschnitte „Mit Schoolbox“ greifen nur, wenn die Projektanweisungen eine nennen.
+
 Zwei Dinge an der Vorlage sind nicht offensichtlich:
 
 - **Hooks sind abgeschaltet** (`disableAllHooks`). Ein Hook aus den persönlichen Einstellungen, der Bash-Befehle umschreibt und freigibt, setzt sonst jede `Bash(…)`-Sperre außer Kraft, weil die Regel den umgeschriebenen Befehl nicht mehr erkennt.

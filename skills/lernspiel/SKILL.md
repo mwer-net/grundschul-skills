@@ -69,3 +69,4 @@ Die Spielform muss nicht gefragt werden: 2–3 Entwürfe mit verschiedenen passe
 - Kartenraster: Memory/Wortkarten 2 × 4 pro A4, Domino 2 × 6 (quer liegende Steine), Bingo 1–2 Karten pro A4.
 - Kartenraster mit `.karten` (`--spalten`), Schneidelinien sind die gestrichelten Kartenränder.
 - Rückseiten als eigene `.seite`, horizontal gespiegelt zur Vorderseite (Reihenfolge je Zeile umkehren).
+- Mit Schoolbox die Druckhinweise am Dokument hinterlegen (`schoolbox dokument … --druckhinweis "…"`, je Hinweis einmal), z. B. „Doppelseitig drucken, an der langen Kante wenden“, „Auf festes Papier drucken und laminieren“, „Karten an den gestrichelten Linien ausschneiden“.

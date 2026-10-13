@@ -213,12 +213,13 @@ export const registriereEntwuerfe = async (
 	}
 	const ordner = path.join(dokumentDir(materialDir, ziel.mappe, ziel.dok), 'entwuerfe');
 	await mkdir(ordner, { recursive: true });
+	// Erst lesen, dann die alte Runde löschen: Eine Quelle kann selbst ein registrierter Entwurf sein (zweite Runde)
+	const inhalte = await Promise.all(dateien.map((datei) => readFile(datei, 'utf8')));
 	const alte = (await readdir(ordner)).filter((n) => /^[A-Z]\.html$/.test(n));
 	await Promise.all(alte.map((n) => rm(path.join(ordner, n))));
 	const entwuerfe: Entwurf[] = [];
-	for (const [i, datei] of dateien.entries()) {
+	for (const [i, html] of inhalte.entries()) {
 		const name = String.fromCharCode(65 + i);
-		const html = await readFile(datei, 'utf8');
 		await schreibeAtomar(path.join(ordner, `${name}.html`), html);
 		entwuerfe.push({ name, ...entwurfAusTitel(titelAusHtml(html) ?? `Entwurf ${name}`) });
 	}
@@ -300,6 +301,7 @@ export const notiereWunsch = async (materialDir: string, text: string, jetzt = n
 	const datei = path.join(materialDir, WUENSCHE_DATEI);
 	const bisher = await readFile(datei, 'utf8').catch(() => '# Wünsche der Lehrkraft\n\n');
 	const trenner = bisher.endsWith('\n') ? '' : '\n';
-	await schreibeAtomar(datei, `${bisher}${trenner}- ${lokalesDatum(jetzt)}: ${wunsch}\n`);
+	const uhrzeit = [jetzt.getHours(), jetzt.getMinutes()].map((n) => String(n).padStart(2, '0')).join(':');
+	await schreibeAtomar(datei, `${bisher}${trenner}- ${lokalesDatum(jetzt)} ${uhrzeit}: ${wunsch}\n`);
 	return datei;
 };

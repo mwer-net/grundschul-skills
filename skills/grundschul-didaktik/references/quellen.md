@@ -28,6 +28,13 @@ Die Skills gelten für Grundschulen in Baden-Württemberg.
 - **Grundschulempfehlung** ab 2025/26 aus Einschätzung der Klassenkonferenz, Kompass 4 und Elternwunsch.
   - https://km.baden-wuerttemberg.de/fileadmin/redaktion/m-km/intern/PDF/Publikationen/Grundschule/2025_Grundschul-Broschüre.pdf
 
+## Datenschutz
+
+- Schulen in Baden-Württemberg dürfen personenbezogene Daten von Schülerinnen und Schülern nur auf einer Rechtsgrundlage oder mit Einwilligung verarbeiten (DSGVO, Landesdatenschutzgesetz, Schulgesetz, Verwaltungsvorschrift „Datenschutz an öffentlichen Schulen“). Angaben zu Gesundheit und Förderbedarf sind besonders geschützt (Art. 9 DSGVO); für Fotos, Video- und Tonaufnahmen von Kindern gelten eigene Regeln (enger Unterrichtszweck oder Einwilligung). Übersicht des Zentrums für Schulqualität und Lehrerbildung (ZSL):
+  - https://lehrerfortbildung-bw.de/st_recht/daten/
+- In KI-Anwendungen geben Lehrkräfte keine personenbezogenen Daten ein („Es dürfen keine personenbezogenen Daten oder interne Dienstgeschäfte eingegeben werden.“, Hinweise des behördlichen Datenschutzbeauftragten am Staatlichen Schulamt Karlsruhe, März 2025). Deshalb Leitlinie 12 in `SKILL.md`: Fantasienamen statt Klassenliste, keine Fotos von Kindern, keine Diagnosen einzelner Kinder.
+  - https://ka.schulamt-bw.de/site/pbs-bw-km-root/get/documents_E-1861397507/KULTUS.Dachmandant/KULTUS/Schulaemter/schulamt-karlsruhe/Hinweise%20Schulen%20KI%20Kompetenz%2003_2025.pdf
+
 ## Leistungsbeurteilung und Klassenarbeiten
 
 - **Grundschul-Leistungsbeurteilungsverordnung BW (2016):** Schulbericht in Kl. 1/2, ganze Noten in Deutsch und Mathematik ab Ende Kl. 2; in Kl. 3/4 höchstens 8 Arbeiten in Deutsch und 6 in Mathematik, nicht montags, nicht nach Ferien oder Feiertagen; Fremdsprache ohne Diktate und Vokabeltests; motivationsförderliches Beurteilungskonzept der Gesamtlehrerkonferenz; Kinder an Selbsteinschätzung heranführen.

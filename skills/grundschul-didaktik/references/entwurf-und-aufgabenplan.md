@@ -109,7 +109,7 @@ Erst nach dem Ok der Lehrkraft beginnt Phase 5. Änderungswünsche danach werden
 | `lesetext` | Textsorte bzw. Rahmen, Aufgabenformate; im Entwurf nur die ersten 2–3 Sätze | ganzer Text je Fassung mit Wortzahl und Lesestufe, Aufgaben, Lösungen, Zeilennummern |
 | `lernplakat` | Aufbau (Regel + Beispiele / Schrittfolge / Lückenplakat), Anordnung | alle Texte wörtlich, Beispiele, Bildliste, Schriftgrößen für die Leseentfernung |
 | `stationenlernen` | Stationsmix (Zugänge, Pflicht/Wahl), Layout der Stationskarte; im Entwurf Stationsübersicht + eine Musterkarte | jede Station vollständig (Auftrag, Material, Niveaus, Tippkarte, Lösung), Laufzettel, Ritualkarte |
-| `unterrichtsplanung` | keine Entwürfe (Ergebnis ist Text) | – ; die Materialien der Stunde laufen einzeln durch diesen Ablauf |
+| `unterrichtsplanung` | keine Entwürfe (die Planung im Chat ist der Entwurf; gedruckt wird sie als Verlaufsplan in A4 quer) | – ; die Materialien der Stunde laufen einzeln durch diesen Ablauf |
 
 ## Abkürzungen
 

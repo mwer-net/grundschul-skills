@@ -36,7 +36,7 @@ Braucht ein Material ein Bild oder eine Grafik, die nicht in `assets/bilder/` li
    - Hilfsdesign mit `search-designs` suchen. Fehlt es: ein beliebiges Design mit `resize-design` (custom, Bildgröße) kopieren, Elemente löschen und den Titel per `update_title` auf „Bild-Export (Hilfsdesign)“ setzen.
    - `read-design` mit `open_transaction`, dann `edit-design`: `add_page` in Originalgröße mit dem Dateinamen als Titel; mit `read-design` (`page_indices`) die Seiten-ID holen; `insert_fill` mit der Media-ID bei `top: 0, left: 0` in voller Seitengröße; `commit`.
    - `export-design` als `png` mit `pages: [n]`, `transparent_background: true`, `lossless: true`.
-   - `curl -fsSL -o bilder/motiv.png "<url>"`; mit `file` prüfen (PNG, volle Größe). Die Umgebung muss `export-download.canva.com` erreichen.
+   - `curl -fsSL -o bilder/motiv.png "<url>"`; mit `file` prüfen (PNG, volle Größe). Die Umgebung muss `export-download.canva.com` erreichen. Mit Schoolbox aus dem Hauptordner: `curl -fsSL -o materialien/<mappe>/dokumente/<dokument>/bilder/motiv.png "<url>"`.
 5. **Einbauen:** Datei neben die HTML-Quelle legen (`bilder/motiv.png`), mit `<img src="bilder/motiv.png" alt="…">` und fester Breite einsetzen; `blatt.py` bettet sie ins PDF und in die eigenständige HTML-Datei ein und meldet unscharfe Bilder.
 6. **Ablegen:** Neue Posen der Leitfigur in `assets/bilder/` aufnehmen und in der Tabelle oben mit Media-ID ergänzen, damit sie nie zweimal erzeugt werden.
 

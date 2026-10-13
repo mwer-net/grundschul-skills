@@ -112,6 +112,11 @@ body.loesung .loesung-marke{display:block;position:absolute;top:22px;right:var(-
   border:2px solid var(--dunkel);border-radius:10px;padding:0 10px;color:var(--dunkel);vertical-align:middle}
 body.loesung .namenszeile{visibility:hidden}
 
+/* Verlaufsplan (Unterrichtsplanung): Tabelle für die Lehrkraft, nicht für Kinder */
+table.plan{width:100%;border-collapse:collapse;font-size:calc(var(--fs)*.85);line-height:1.3}
+.plan th,.plan td{border:1px solid var(--linie);padding:6px 8px;text-align:left;vertical-align:top}
+.plan th{font-weight:700}
+
 /* Karten (Lernspiel, Wort-/Bildkarten) */
 .karten{display:grid;flex:1;grid-template-columns:repeat(var(--spalten,2),1fr);grid-auto-rows:1fr;margin:calc(var(--rand)*-.5)}
 .karte{border:1.5px dashed #555;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:10px;padding:14px;position:relative}

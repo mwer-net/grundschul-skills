@@ -75,3 +75,4 @@ Nach den Rückfragen 2–3 Entwürfe zeigen (Stationsübersicht + eine Musterkar
 
 - Eine HTML-Datei pro Bestandteil-Typ (Stationskarten, Laufzettel), Stationen als `.seite`; Lösungen über die Lösungs-Markierungen.
 - Stationskarten A5: `<body class="… a5-hoch">` oder zwei pro A4 quer (`a4-quer`, `.karten` mit `--spalten:2`).
+- Mit Schoolbox ist jeder Bestandteil-Typ ein Dokument derselben Mappe; Druckhinweise am Dokument hinterlegen (`schoolbox dokument … --druckhinweis "…"`), z. B. „Stationskarten laminieren“, „Laufzettel einmal je Kind kopieren“.
