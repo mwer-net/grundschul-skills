@@ -7,10 +7,12 @@ import path from 'node:path';
 import type { Ziel } from './ablage';
 import { aktualisiereMappe, dokumentDir, leseMeta, pruefeFormat, schreibeMeta } from './ablage';
 import { kopiereAtomar } from './atomar';
+import { ausgabeSchluessel, PDF_DATEI, schreibeStand, uebernehmeAusgabe } from './ausgabe';
 import { SchoolboxFehler } from './fehler';
 import { druckprofilAusHtml } from './html';
 import type { Konfig } from './konfig';
 import { BLATT_PY } from './konfig';
+import type { Meldung } from './meldungen';
 import type { DokumentMeta, Pruefung } from './schema';
 import type { Version } from './versionen';
 import { legeVersionAn } from './versionen';
@@ -18,12 +20,6 @@ import { legeVersionAn } from './versionen';
 const BAU_TIMEOUT_MS = 5 * 60 * 1000;
 /** Erste Seite des Arbeitsblatts in `ausgabe/`, so benannt wie von blatt.py. */
 export const VORSCHAU_DATEI = 'material-s1.png';
-
-export interface Meldung {
-	stufe: 'FEHLER' | 'WARNUNG' | 'HINWEIS';
-	seite: number;
-	text: string;
-}
 
 export interface Pruefbericht {
 	seiten: unknown[];
@@ -77,6 +73,7 @@ export const fertigstellen = async (
 	const quelle = path.join(dir, 'material.html');
 	const html = await readFile(quelle, 'utf8');
 	pruefeFormat(meta, html, 'material.html');
+	const schluessel = await ausgabeSchluessel(dir);
 
 	const ausgabe = path.join(dir, 'ausgabe');
 	await rm(ausgabe, { recursive: true, force: true });
@@ -100,6 +97,7 @@ export const fertigstellen = async (
 		);
 	}
 	const bericht = JSON.parse(await readFile(berichtDatei, 'utf8')) as Pruefbericht;
+	await schreibeStand(ausgabe, schluessel);
 
 	meta.status = 'fertig';
 	meta.seiten = bericht.seiten.length;
@@ -113,6 +111,43 @@ export const fertigstellen = async (
 
 	const hinweiseBau = [...new Set(lauf.stderr.split('\n').map((z) => z.trim()))].filter(Boolean);
 	return { meta, bericht, version, ausgabe, hinweiseBau };
+};
+
+/**
+ * Baut `ausgabe/` neu wie `fertigstellen`, aber ohne meta.json, Version und Mappe anzufassen: für PDFs, die die
+ * Lehrkraft herunterlädt. Der Bau läuft in einem temporären Ordner und wird erst danach übernommen.
+ */
+export const baueAusgabe = async (konfig: Pick<Konfig, 'pythonBin'>, dokDir: string): Promise<Pruefbericht> => {
+	const schluessel = await ausgabeSchluessel(dokDir);
+	const tmp = await mkdtemp(path.join(tmpdir(), 'schoolbox-pdf-'));
+	try {
+		const berichtDatei = path.join(tmp, 'pruefbericht.json');
+		const quelle = path.join(dokDir, 'material.html');
+		const lauf = await fuehreAus(konfig.pythonBin, [
+			BLATT_PY,
+			'bauen',
+			quelle,
+			'-o',
+			tmp,
+			'--bericht',
+			berichtDatei,
+		]);
+		if (
+			(lauf.code !== 0 && lauf.code !== 1) ||
+			!existsSync(berichtDatei) ||
+			!existsSync(path.join(tmp, PDF_DATEI))
+		) {
+			throw new SchoolboxFehler(
+				`blatt.py ist abgebrochen (Exit ${lauf.code ?? 'Timeout'}):\n${lauf.stderr || lauf.stdout}`,
+				3,
+			);
+		}
+		const bericht = JSON.parse(await readFile(berichtDatei, 'utf8')) as Pruefbericht;
+		await uebernehmeAusgabe(tmp, dokDir, schluessel);
+		return bericht;
+	} finally {
+		await rm(tmp, { recursive: true, force: true });
+	}
 };
 
 /**

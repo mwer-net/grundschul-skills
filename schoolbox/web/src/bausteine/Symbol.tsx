@@ -13,6 +13,10 @@ const PFADE = {
 	zurueckholen: 'M4 9h10a5 5 0 0 1 0 10H8M4 9l4-4M4 9l4 4',
 	achtung: 'M12 4 2.5 20h19L12 4Zm0 6v5m0 2.5v.5',
 	plus: 'M12 5v14M5 12h14',
+	herunterladen: 'M12 4v11m0 0-4-4m4 4 4-4M5 20h14',
+	drucker: 'M7 9V3h10v6M7 17H5a1 1 0 0 1-1-1v-6a1 1 0 0 1 1-1h14a1 1 0 0 1 1 1v6a1 1 0 0 1-1 1h-2M7 14h10v7H7v-7Z',
+	runter: 'm6 9 6 6 6-6',
+	laden: 'M12 3a9 9 0 1 0 9 9',
 } as const;
 
 export type SymbolName = keyof typeof PFADE;

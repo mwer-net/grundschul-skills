@@ -19,7 +19,7 @@ export default defineConfig(({ mode }) => {
 				'/ansicht': server,
 				'/healthz': server,
 				'/robots.txt': server,
-				'^/f/[^/]+/(api|ansicht)(/|$)': server,
+				'^/f/[^/]+/(api|ansicht|pdf|alles)(/|$)': server,
 			},
 		},
 	};

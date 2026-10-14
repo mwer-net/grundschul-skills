@@ -53,8 +53,3 @@ export const sende = <T>(url: string, daten: unknown = {}) =>
 	});
 
 export const meldung = (fehler: unknown) => (fehler instanceof Error ? fehler.message : NICHT_ERREICHBAR);
-
-export const vorschauAdresse = (mappe: string, dok: string, kennung: string) =>
-	`/ansicht/${mappe}/dokumente/${dok}/ausgabe/material-s1.png?v=${kennung}`;
-
-export const ansichtAdresse = (mappe: string, dok: string) => `/ansicht/${mappe}/dokumente/${dok}/`;

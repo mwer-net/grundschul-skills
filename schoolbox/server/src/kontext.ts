@@ -2,13 +2,17 @@ import { createHash } from 'node:crypto';
 import { readFile } from 'node:fs/promises';
 import path from 'node:path';
 
-import { dokumentDir } from '@schoolbox/kern';
+import { baueAusgabe, dokumentDir } from '@schoolbox/kern';
 
+import type { Begrenzung } from './begrenzung';
+import { erstelleBegrenzung } from './begrenzung';
 import type { Bremse } from './bremse';
 import { erstelleBremse } from './bremse';
 import type { Ereignisse } from './ereignisse';
 import { erstelleEreignisse } from './ereignisse';
 import type { ServerKonfig } from './konfig';
+import type { Pdf, PdfBauer } from './pdf';
+import { erstellePdf } from './pdf';
 import type { Sperre } from './sperre';
 import { erstelleSperre } from './sperre';
 import type { Vorschau, VorschauBauer } from './vorschau';
@@ -27,24 +31,39 @@ export interface Kontext {
 	bekannt: Map<string, Bekannt>;
 	bremse: Bremse;
 	vorschau: Vorschau;
+	pdf: Pdf;
 	version: string;
 }
 
-/** Ohne `vorschauBauer` (Tests) entstehen keine Vorschauen; vorhandene werden trotzdem gemeldet. */
-export const erstelleKontext = (
-	konfig: ServerKonfig,
-	version: string,
-	vorschauBauer: VorschauBauer | null = null,
-): Kontext => {
+/** Jeder Bau startet Chromium und braucht entsprechend Speicher: Vorschauen und PDFs zusammen höchstens so viele. */
+export const GLEICHZEITIGE_BAUTEN = 2;
+
+export interface Bauer {
+	/** Ohne (Tests) entstehen keine Vorschauen; vorhandene werden trotzdem gemeldet. */
+	vorschau?: VorschauBauer;
+	/** Ohne baut blatt.py. */
+	pdf?: PdfBauer;
+}
+
+export const erstelleKontext = (konfig: ServerKonfig, version: string, bauer: Bauer = {}): Kontext => {
 	const ereignisse = erstelleEreignisse();
 	const sperre = erstelleSperre();
+	const begrenzung: Begrenzung = erstelleBegrenzung(GLEICHZEITIGE_BAUTEN);
+	const { materialDir } = konfig;
 	return {
 		konfig,
 		ereignisse,
 		sperre,
 		bekannt: new Map(),
 		bremse: erstelleBremse(),
-		vorschau: erstelleVorschau({ materialDir: konfig.materialDir, ereignisse, sperre, bauer: vorschauBauer }),
+		vorschau: erstelleVorschau({ materialDir, ereignisse, sperre, begrenzung, bauer: bauer.vorschau ?? null }),
+		pdf: erstellePdf({
+			materialDir,
+			ereignisse,
+			sperre,
+			begrenzung,
+			bauer: bauer.pdf ?? ((dokDir) => baueAusgabe(konfig, dokDir)),
+		}),
 		version,
 	};
 };

@@ -17,6 +17,7 @@ import { Router } from 'express';
 
 import { HttpFehler } from './fehler';
 import type { Kontext } from './kontext';
+import { pdfAntwort, sendePdf, waehleMappenVariante } from './pdf';
 import { pruefeIdParam } from './schutz';
 
 const text = (wert: unknown) => (typeof wert === 'string' && wert.trim() ? wert : undefined);
@@ -54,7 +55,7 @@ const mitVorschau = async (kontext: Kontext, { dokumente, mappe }: MappenEintrag
 	),
 });
 
-/** Mappen auflisten, ansehen, duplizieren und in den Papierkorb legen (unter `/api/mappen`). */
+/** Mappen auflisten, ansehen, als ein PDF holen, duplizieren und in den Papierkorb legen (unter `/api/mappen`). */
 export const mappenApi = (kontext: Kontext) => {
 	const { materialDir } = kontext.konfig;
 	const router = Router();
@@ -68,6 +69,19 @@ export const mappenApi = (kontext: Kontext) => {
 	router.get('/:mappe', async (req, res) => {
 		verlangeMappe(kontext, req.params.mappe);
 		res.json(await mitVorschau(kontext, await leseMappenEintrag(materialDir, req.params.mappe), true));
+	});
+
+	router.post('/:mappe/pdf', async (req, res) => {
+		const { mappe } = req.params;
+		verlangeMappe(kontext, mappe);
+		const variante = waehleMappenVariante((req.body as { variante?: unknown } | undefined)?.variante);
+		res.json(pdfAntwort(`/api/mappen/${mappe}/pdf/${variante}`, await kontext.pdf.mappe(mappe, variante)));
+	});
+
+	router.get('/:mappe/pdf/:variante{/:datei}', async (req, res) => {
+		const { mappe, variante } = req.params;
+		verlangeMappe(kontext, mappe);
+		await sendePdf(req, res, await kontext.pdf.mappe(mappe, waehleMappenVariante(variante)));
 	});
 
 	router.post('/:mappe/duplizieren', async (req, res) => {

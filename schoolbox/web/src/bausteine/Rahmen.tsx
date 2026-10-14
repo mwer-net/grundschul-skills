@@ -3,6 +3,7 @@ import { Link, Outlet, useLocation, useNavigate } from 'react-router-dom';
 
 import { meldung, sende } from '../api';
 import { useHinweis } from './hinweis';
+import { useKopfHoehe } from './kopf';
 import type { SucheKontext } from './suche';
 import { Symbol } from './Symbol';
 
@@ -15,6 +16,7 @@ export const Rahmen = () => {
 	const { pathname } = useLocation();
 	const navigate = useNavigate();
 	const zeige = useHinweis();
+	const kopf = useKopfHoehe<HTMLElement>();
 
 	const sucheNach = (wert: string) => {
 		setSuche(wert);
@@ -35,7 +37,7 @@ export const Rahmen = () => {
 	const kontext: SucheKontext = { suche, setSuche };
 	return (
 		<div className="flex min-h-dvh flex-col">
-			<header className="sticky top-0 z-30 border-b border-rand bg-white/95 backdrop-blur">
+			<header ref={kopf} className="sticky top-0 z-30 border-b border-rand bg-white/95 backdrop-blur">
 				<div className="mx-auto flex max-w-[90rem] items-center gap-4 px-8 py-3 max-lg:px-4 max-md:gap-2">
 					<Link
 						to="/"

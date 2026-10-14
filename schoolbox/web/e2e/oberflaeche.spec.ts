@@ -1,3 +1,8 @@
+import { readFile, writeFile } from 'node:fs/promises';
+import path from 'node:path';
+
+import type { Download, Page } from '@playwright/test';
+
 import { expect, legeMappeAn, PASSWORT, test } from './hilfe';
 
 const KLEINSTE_TIPPFLAECHE = 44;
@@ -11,6 +16,18 @@ const dreiMappen = async () => {
 	await legeMappeAn('Größen und Messen', 'mathematik', 4, [{ titel: 'Lernspiel Meterstab', art: 'lernspiel' }]);
 	return kartoffel;
 };
+
+/** Mit Umlauten im Titel, Lösung und Druckhinweis; das zweite Blatt ragt über die Seite. */
+const herbst = () =>
+	legeMappeAn('Bäume im Herbst', 'sachunterricht', 2, [
+		{ titel: 'Blätter sammeln', loesung: true, druckhinweise: ['Auf festes Papier drucken'] },
+		{ titel: 'Kastanien zählen', ueberlauf: true },
+	]);
+
+/** WebKit unter Linux macht im Download-Namen aus Leerzeichen `_`; Umlaute und Gedankenstrich bleiben. */
+const dateiname = async (download: Promise<Download>) => (await download).suggestedFilename().replaceAll('_', ' ');
+
+const blattGeladen = (page: Page) => expect(page.locator('[data-blattansicht][data-geladen]')).toBeVisible();
 
 test.describe('Übersicht', () => {
 	test('lädt ein, wenn es noch nichts gibt, und zeigt eine neue Mappe von selbst', async ({ page }) => {
@@ -73,21 +90,23 @@ test.describe('Übersicht', () => {
 });
 
 test.describe('Mappe', () => {
-	test('zeigt die Dokumente und hebt das verlinkte hervor', async ({ page }) => {
+	test('zeigt die Dokumente, „Ansehen“ öffnet eins', async ({ druecke, page }) => {
 		const { dokumente, id } = await dreiMappen();
-		await page.goto(`/m/${id}/${dokumente[1]}`);
+		await page.goto(`/m/${id}`);
 		await expect(page.getByRole('heading', { level: 1, name: 'Die Kartoffel' })).toBeVisible();
 		const kacheln = page.locator('[data-dokument]');
 		await expect(kacheln).toHaveCount(2);
 		await expect(kacheln.nth(0)).toContainText('Arbeitsblatt · A4 hoch');
 		await expect(kacheln.nth(1)).toContainText('Präsentation · Folie');
-		await expect(page.locator('[data-dokument][aria-current="true"]')).toContainText('Vom Feld auf den Teller');
-		await expect(kacheln.nth(0).getByRole('link', { name: 'Ansehen' })).toHaveAttribute(
-			'href',
-			`/ansicht/${id}/dokumente/${dokumente[0]}/`,
-		);
 		await expect(kacheln.nth(0).locator('img')).toBeVisible();
 		await expect(kacheln.nth(1).locator('img')).toBeVisible();
+
+		await druecke(kacheln.nth(1).getByRole('link', { name: 'Ansehen' }));
+		await expect(page).toHaveURL(new RegExp(`/m/${id}/${dokumente[1]}$`));
+		await expect(page.getByRole('heading', { level: 1, name: 'Vom Feld auf den Teller' })).toBeVisible();
+		await blattGeladen(page);
+		await druecke(page.getByRole('link', { name: 'Die Kartoffel' }));
+		await expect(page).toHaveURL(new RegExp(`/m/${id}$`));
 	});
 
 	test('dupliziert, löscht, macht rückgängig und stellt aus dem Papierkorb wieder her', async ({ druecke, page }) => {
@@ -166,7 +185,9 @@ test.describe('Teilen', () => {
 		await expect(einzeln.getByRole('textbox')).toHaveCount(0);
 		await druecke(einzeln.getByRole('button', { name: 'Link erstellen', exact: true }));
 		await besuch.goto(await einzeln.getByRole('textbox', { name: 'Link zum Teilen' }).inputValue());
-		await expect(besuch.getByRole('link', { name: 'Ansehen' })).toHaveCount(1);
+		await expect(besuch.getByRole('heading', { level: 1, name: 'Teile der Kartoffel' })).toBeVisible();
+		await expect(besuch.getByRole('link', { name: 'Die Kartoffel' })).toHaveCount(0);
+		await expect(besuch.getByRole('button', { name: 'Teilen' })).toHaveCount(0);
 		await page.keyboard.press('Escape');
 		await expect(einzeln).toBeHidden();
 
@@ -177,6 +198,120 @@ test.describe('Teilen', () => {
 		await expect(feld).toHaveCount(0);
 		await besuch.goto(link);
 		await expect(besuch.getByRole('heading', { name: 'Schade!' })).toBeVisible();
+		await fremd.close();
+	});
+});
+
+test.describe('Dokument und PDF', () => {
+	test('zeigt das Material, schaltet auf die Lösung um und aktualisiert sich von selbst', async ({
+		druecke,
+		page,
+	}) => {
+		const { dokumente, id } = await herbst();
+		await page.goto(`/m/${id}/${dokumente[0]}`);
+		await expect(page.getByRole('heading', { level: 1, name: 'Blätter sammeln' })).toBeVisible();
+		await expect(page.getByText('Auf festes Papier drucken')).toBeVisible();
+		await blattGeladen(page);
+		const blatt = page.locator('[data-blattansicht] iframe').last();
+		await expect(blatt).toHaveAttribute('src', `/ansicht/${id}/dokumente/${dokumente[0]}/`);
+
+		const loesung = page.getByRole('button', { name: 'Lösung', exact: true });
+		await druecke(loesung);
+		await expect(loesung).toHaveAttribute('aria-pressed', 'true');
+		await expect(page).toHaveURL(/\?fassung=loesung$/);
+		await expect(blatt).toHaveAttribute('src', /\?loesung=1$/);
+		await expect(page.getByRole('link', { name: 'Drucken' })).toHaveAttribute('href', /fassung=loesung$/);
+
+		// Claude ändert das Material: Die Ansicht lädt neu, ohne die Seite neu zu laden
+		await page.evaluate(() => {
+			document.body.dataset.nichtNeuGeladen = 'ja';
+		});
+		const quelle = path.join(
+			process.env.E2E_MATERIAL_DIR ?? '',
+			id,
+			'dokumente',
+			dokumente[0] ?? '',
+			'material.html',
+		);
+		await writeFile(quelle, (await readFile(quelle, 'utf8')).replace('</body>', '<p>Neu</p></body>'));
+		await expect(page.getByRole('status')).toContainText('Aktualisiert');
+		await blattGeladen(page);
+		await expect(page.locator('body')).toHaveAttribute('data-nicht-neu-geladen', 'ja');
+	});
+
+	test('lädt PDFs mit lesbarem Namen herunter', async ({ druecke, page }) => {
+		const { dokumente, id } = await herbst();
+		await page.goto(`/m/${id}/${dokumente[0]}`);
+		await druecke(page.getByRole('button', { name: 'PDF herunterladen' }));
+		const menue = page.getByRole('menu');
+		await expect(menue.getByRole('menuitem')).toHaveText(['Arbeitsblatt', 'Lösung', 'Arbeitsblatt und Lösung']);
+		const download = page.waitForEvent('download');
+		await druecke(menue.getByRole('menuitem', { name: 'Lösung', exact: true }));
+		await expect(page.getByRole('button', { name: 'PDF wird erstellt …' })).toBeVisible();
+		expect(await dateiname(download)).toBe('Kl2 Sachunterricht Blätter sammeln – Lösung.pdf');
+
+		await page.goto(`/m/${id}`);
+		await druecke(page.getByRole('button', { name: 'Alles als PDF' }));
+		const alles = page.waitForEvent('download');
+		await druecke(page.getByRole('menuitem', { name: 'Ohne Lösungen' }));
+		// Ein Blatt ragt über die Seite: erst fragen, dann trotzdem herunterladen
+		const dialog = page.getByRole('dialog', { name: 'Beim Prüfen ist etwas aufgefallen' });
+		await expect(dialog).toContainText('Kastanien zählen');
+		await expect(dialog).toContainText('„Aufgabe 4“ ragt über das Blatt hinaus');
+		await druecke(dialog.getByRole('button', { name: 'Claude bitten, es zu reparieren' }));
+		await expect(dialog.getByText(/Kopiert|Kopiere diesen Text/)).toBeVisible();
+		await druecke(dialog.getByRole('button', { name: 'Trotzdem herunterladen' }));
+		await expect(dialog).toBeHidden();
+		expect(await dateiname(alles)).toBe('Kl2 Sachunterricht Bäume im Herbst – Alles.pdf');
+	});
+
+	test('„Drucken“ öffnet das PDF in einem eigenen Tab', async ({ context, druecke, page }) => {
+		const { dokumente, id } = await herbst();
+		// Den PDF-Betrachter des Browsers gibt es im Test nicht; geprüft wird, dass der Tab das PDF zum Ansehen öffnet.
+		await context.route(/\/pdf\/.*\?anzeigen=1$/, (route) =>
+			route.fulfill({ contentType: 'text/html', body: '<p>Hier ist das PDF</p>' }),
+		);
+		await page.goto(`/m/${id}/${dokumente[0]}`);
+		const tab = context.waitForEvent('page');
+		await druecke(page.getByRole('link', { name: 'Drucken' }));
+		const druck = await tab;
+		await expect(druck.getByText('Hier ist das PDF')).toBeVisible();
+		expect(decodeURIComponent(druck.url())).toMatch(
+			/\/pdf\/arbeitsblatt\/Kl2 Sachunterricht Blätter sammeln – Arbeitsblatt\.pdf\?anzeigen=1$/,
+		);
+
+		await page.goto(`/m/${id}/${dokumente[1]}`);
+		const zweiter = context.waitForEvent('page');
+		await druecke(page.getByRole('link', { name: 'Drucken' }));
+		const warnung = (await zweiter).getByRole('dialog', { name: 'Beim Prüfen ist etwas aufgefallen' });
+		await expect(warnung).toBeVisible();
+		await druecke(warnung.getByRole('button', { name: 'Schließen' }));
+		await expect((await zweiter).getByRole('heading', { name: 'Nicht gedruckt' })).toBeVisible();
+		await druecke((await zweiter).getByRole('button', { name: 'Doch drucken' }));
+		await expect((await zweiter).getByText('Hier ist das PDF')).toBeVisible();
+	});
+
+	test('ein Teilen-Link zeigt Dokumente und lädt PDFs, ohne zu warnen', async ({ browser, druecke, page }) => {
+		const { id } = await herbst();
+		const antwort = await page.request.post('/api/freigaben', {
+			headers: { 'x-schoolbox': '1' },
+			data: { mappe: id },
+		});
+		expect(antwort.status()).toBe(201);
+		const { token } = (await antwort.json()) as { token: string };
+
+		const fremd = await browser.newContext({ hasTouch: test.info().project.use.hasTouch });
+		const besuch = await fremd.newPage();
+		await besuch.goto(`/f/${token}`);
+		await druecke(besuch.locator('[data-dokument]').nth(1).getByRole('link', { name: 'Ansehen' }));
+		await expect(besuch.getByRole('heading', { level: 1, name: 'Kastanien zählen' })).toBeVisible();
+		await blattGeladen(besuch);
+		await expect(besuch.getByRole('button', { name: 'Teilen' })).toHaveCount(0);
+		const download = besuch.waitForEvent('download');
+		await druecke(besuch.getByRole('button', { name: 'PDF herunterladen' }));
+		expect(await dateiname(download)).toBe('Kl2 Sachunterricht Kastanien zählen – Arbeitsblatt.pdf');
+		await druecke(besuch.getByRole('link', { name: 'Bäume im Herbst' }));
+		await expect(besuch).toHaveURL(new RegExp(`/f/${token}$`));
 		await fremd.close();
 	});
 });
@@ -206,6 +341,20 @@ test.describe('Bedienung', () => {
 		await druecke(page.getByRole('button', { name: 'Mappe teilen' }));
 		await druecke(page.getByRole('button', { name: 'Link erstellen', exact: true }));
 		await expect(page.getByRole('textbox', { name: 'Link zum Teilen' })).toBeVisible();
+		expect(await zuKlein()).toEqual([]);
+		await page.keyboard.press('Escape');
+
+		const { dokumente, id: herbstId } = await herbst();
+		await page.goto(`/m/${herbstId}/${dokumente[0]}`);
+		await blattGeladen(page);
+		expect(await zuKlein()).toEqual([]);
+		await druecke(page.getByRole('button', { name: 'PDF herunterladen' }));
+		await expect(page.getByRole('menu')).toBeVisible();
+		expect(await zuKlein()).toEqual([]);
+		expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true);
+		await page.goto(`/m/${herbstId}/${dokumente[1]}`);
+		await druecke(page.getByRole('button', { name: 'PDF herunterladen' }));
+		await expect(page.getByRole('dialog')).toBeVisible();
 		expect(await zuKlein()).toEqual([]);
 		// Nichts ragt seitlich über den Bildschirm hinaus
 		expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true);

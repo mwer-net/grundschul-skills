@@ -277,9 +277,9 @@ export const leseMappenEintrag = async (materialDir: string, id: string): Promis
 };
 
 /**
- * Kopie einer Mappe, z. B. für die Parallelklasse: alles außer Versionen und Ausgaben, Titel „… (Kopie)“. Teilen-Links
- * hängen an der ID und gelten für die Kopie nicht. Die Kopie entsteht unter einem Punkt-Namen und erscheint erst
- * vollständig in der Ablage.
+ * Kopie einer Mappe, z. B. für die Parallelklasse: alles außer Versionen und Ausgaben (auch „Alles als PDF“), Titel
+ * „… (Kopie)“. Teilen-Links hängen an der ID und gelten für die Kopie nicht. Die Kopie entsteht unter einem
+ * Punkt-Namen und erscheint erst vollständig in der Ablage.
  */
 export const dupliziereMappe = async (materialDir: string, mappeId: string, jetzt = new Date()): Promise<Mappe> => {
 	const { dokumente, mappe: vorlage } = await leseMappenEintrag(materialDir, mappeId);
@@ -290,8 +290,9 @@ export const dupliziereMappe = async (materialDir: string, mappeId: string, jetz
 	const zeit = jetzt.toISOString();
 	const kopieren = (von: string) => {
 		const [ordner, , unterordner, ...rest] = path.relative(quelle, von).split(path.sep);
-		const ausgelassen = ordner === 'dokumente' && rest.length === 0 && NICHT_KOPIEREN.includes(unterordner ?? '');
-		return !ausgelassen && !istTempDatei(path.basename(von));
+		const imDokument = ordner === 'dokumente' && rest.length === 0 && NICHT_KOPIEREN.includes(unterordner ?? '');
+		const mappenAusgabe = path.relative(quelle, von) === 'ausgabe';
+		return !imDokument && !mappenAusgabe && !istTempDatei(path.basename(von));
 	};
 	try {
 		await cp(quelle, bau, { recursive: true, filter: kopieren });

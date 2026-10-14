@@ -1,75 +1,21 @@
-import { useEffect, useRef, useState } from 'react';
+import { useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 
-import { ansichtAdresse, meldung, sende } from '../api';
+import { meldung, sende } from '../api';
 import { useHinweis } from '../bausteine/hinweis';
-import { Kachel, Marke } from '../bausteine/Kachel';
-import { klassen } from '../bausteine/klassen';
-import { Knopf, KnopfAdresse, KnopfLink } from '../bausteine/Knopf';
+import { Marke } from '../bausteine/Kachel';
+import { Knopf, KnopfLink } from '../bausteine/Knopf';
 import { Symbol } from '../bausteine/Symbol';
-import { Vorschau } from '../bausteine/Vorschau';
 import { Zustand } from '../bausteine/Zustand';
 import { melde, useEreignisse } from '../ereignisse';
 import { useLaden } from '../lib/laden';
-import { anzahl, ART_NAME, datum, FACH_FARBE, FACH_NAME, FORMAT_NAME, klasseName } from '../lib/text';
+import { datum, FACH_FARBE, FACH_NAME, klasseName } from '../lib/text';
 import { useTitel } from '../lib/titel';
+import { PdfKnopf } from '../pdf/PdfKnopf';
+import { mappenWahl } from '../pdf/wahl';
 import { TeilenDialog } from '../teilen/TeilenDialog';
 import type { DokumentEintrag, Mappe, MappenEintrag, PapierkorbEintrag } from '../typen';
-
-interface KachelEigenschaften {
-	mappe: string;
-	dokument: DokumentEintrag;
-	markiert: boolean;
-	teile: () => void;
-}
-
-const DokumentKachel = ({ dokument, mappe, markiert, teile }: KachelEigenschaften) => {
-	const kachel = useRef<HTMLLIElement>(null);
-	const { id, meta } = dokument;
-	const adresse = ansichtAdresse(mappe, id);
-
-	useEffect(() => {
-		if (markiert) {
-			kachel.current?.scrollIntoView({ block: 'center' });
-		}
-	}, [markiert]);
-
-	return (
-		<li ref={kachel} data-dokument={id} aria-current={markiert ? 'true' : undefined}>
-			<Kachel className={klassen('flex h-full flex-col', markiert && 'ring-4 ring-brand-500')}>
-				{/* Das Bild führt zum selben Ziel wie „Ansehen“; für Tastatur und Vorleser reicht der Knopf. */}
-				<a href={adresse} className="relative block" tabIndex={-1} aria-hidden="true">
-					<Vorschau mappe={mappe} dokument={dokument} />
-					{meta.status === 'entwurf' && (
-						<span className="absolute top-3 left-3">
-							<Marke>Entwurf</Marke>
-						</span>
-					)}
-				</a>
-				<div className="flex flex-1 flex-col gap-1 border-t border-rand p-4">
-					<h2 className="text-xl">{meta.titel}</h2>
-					<p className="text-leise">
-						{[
-							ART_NAME[meta.art],
-							FORMAT_NAME[meta.format],
-							...(meta.seiten > 0 ? [anzahl(meta.seiten, 'Seite', 'Seiten')] : []),
-						].join(' · ')}
-					</p>
-					<div className="mt-auto flex flex-wrap gap-2 pt-3">
-						<KnopfAdresse href={adresse}>
-							<Symbol name="auge" />
-							Ansehen
-						</KnopfAdresse>
-						<Knopf art="zweit" onClick={teile}>
-							<Symbol name="teilen" />
-							Teilen
-						</Knopf>
-					</div>
-				</div>
-			</Kachel>
-		</li>
-	);
-};
+import { DokumentKachel } from './DokumentKachel';
 
 const ZurUebersicht = () => (
 	<KnopfLink to="/" art="leise" className="-ml-5">
@@ -79,7 +25,7 @@ const ZurUebersicht = () => (
 );
 
 export const Mappenansicht = () => {
-	const { dok: markiert, mappe: id = '' } = useParams();
+	const { mappe: id = '' } = useParams();
 	const { daten, fehler, neuLaden } = useLaden<MappenEintrag>(`/api/mappen/${id}`);
 	const [teilen, setTeilen] = useState<{ dokument?: DokumentEintrag } | null>(null);
 	const [laeuft, setLaeuft] = useState(false);
@@ -115,6 +61,7 @@ export const Mappenansicht = () => {
 	}
 
 	const { dokumente, mappe } = daten;
+	const zugang = { mappe: mappe.id, token: null };
 
 	const hole = async ({ eintrag }: PapierkorbEintrag) => {
 		try {
@@ -173,6 +120,15 @@ export const Mappenansicht = () => {
 					</p>
 				</div>
 				<div className="flex flex-none flex-wrap gap-2">
+					{dokumente.length > 0 && (
+						<PdfKnopf
+							beschriftung="Alles als PDF"
+							wahl={mappenWahl(zugang, dokumente)}
+							mappe={mappe}
+							warnen
+							ganzeMappe
+						/>
+					)}
 					<Knopf art="zweit" onClick={() => setTeilen({})}>
 						<Symbol name="teilen" />
 						Mappe teilen
@@ -196,9 +152,9 @@ export const Mappenansicht = () => {
 					{dokumente.map((dokument) => (
 						<DokumentKachel
 							key={dokument.id}
-							mappe={mappe.id}
+							zugang={zugang}
+							mappe={mappe}
 							dokument={dokument}
-							markiert={dokument.id === markiert}
 							teile={() => setTeilen({ dokument })}
 						/>
 					))}

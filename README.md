@@ -127,6 +127,8 @@ Ohne `PASSWORT_HASH` und `SITZUNG_GEHEIMNIS` startet er nicht. Anmeldung mit ein
 
 Die Oberfläche (`schoolbox/web`, React, Tailwind) ist für Safari auf Mac und iPad gebaut, Desktop zuerst und vollständig mit dem Finger bedienbar. Die Übersicht zeigt alle Mappen mit Vorschau, Suche und Filtern nach Fach, Klasse und Materialart; was Claude neu anlegt, erscheint ohne Neuladen. Fehlt einem Dokument die Vorschau der ersten Seite (`ausgabe/material-s1.png`) oder ist sie älter als `material.html`, baut der Server sie im Hintergrund mit `blatt.py` (eine nach der anderen, Chromium nötig). Gelöschte Mappen liegen 30 Tage in `MATERIAL_DIR/_papierkorb/` und lassen sich dort wiederherstellen; danach löscht der Server sie beim Start bzw. einmal täglich endgültig, samt ihren Teilen-Links.
 
+Jedes Dokument hat eine eigene Seite: das Material, wie es gedruckt aussieht, umschaltbar auf die Lösung, mit „PDF herunterladen“ und „Drucken“ (öffnet das PDF in einem neuen Tab, gedruckt wird aus dem PDF-Betrachter des Browsers). PDFs baut der Server bei Bedarf mit `blatt.py` und hebt sie in `ausgabe/` auf, bis sich Material, Bilder, Stylesheets oder `blatt.py` ändern (`ausgabe/stand.json`); Vorschauen und PDFs bauen höchstens zu zweit gleichzeitig. Findet die Prüfung Fehler, warnt die Oberfläche mit verständlichen Sätzen und lässt das PDF trotzdem zu. „Alles als PDF“ fügt die Blätter einer Mappe zusammen, wahlweise mit den Lösungen am Ende; dafür braucht der Server `pdfunite` (Debian/Ubuntu: `poppler-utils`). Teilen-Links bieten Ansicht, PDF und Drucken genauso, ohne Warnung.
+
 ```bash
 cd schoolbox
 pnpm build                            # Oberfläche (web/) bauen

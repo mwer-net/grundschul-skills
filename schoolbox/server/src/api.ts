@@ -12,6 +12,7 @@ import type { Kontext } from './kontext';
 import { dokSchluessel, kennung } from './kontext';
 import { mappenApi } from './mappen';
 import { papierkorbApi } from './papierkorb';
+import { pdfAntwort, sendePdf, waehlePdfVariante } from './pdf';
 import { csrfSchutz, pruefeIdParam } from './schutz';
 
 export const MAX_JSON = '5mb';
@@ -105,6 +106,20 @@ export const apiRouter = (kontext: Kontext) => {
 			return schreibeQuelle(kontext, mappe, dok, await readFile(versionsPfad(dir, gefunden), 'utf8'));
 		});
 		res.json(ergebnis);
+	});
+
+	router.post('/dokumente/:mappe/:dok/pdf', async (req, res) => {
+		const { dok, mappe } = req.params;
+		verlangeDokument(kontext, mappe, dok);
+		const variante = waehlePdfVariante((req.body as { variante?: unknown } | undefined)?.variante);
+		const pdf = await kontext.pdf.dokument(mappe, dok, variante);
+		res.json(pdfAntwort(`/api/dokumente/${mappe}/${dok}/pdf/${variante}`, pdf));
+	});
+
+	router.get('/dokumente/:mappe/:dok/pdf/:variante{/:datei}', async (req, res) => {
+		const { dok, mappe, variante } = req.params;
+		verlangeDokument(kontext, mappe, dok);
+		await sendePdf(req, res, await kontext.pdf.dokument(mappe, dok, waehlePdfVariante(variante)));
 	});
 
 	router.get('/ereignisse', ereignisStrom(kontext));

@@ -2,9 +2,18 @@ import type { ReactNode } from 'react';
 
 import { klassen } from './klassen';
 
+interface Eigenschaften {
+	children: ReactNode;
+	className?: string;
+	/** Schneidet den Inhalt an den runden Ecken ab; ohne, wenn ein Menü über den Rand hinausragen muss. */
+	beschnitten?: boolean;
+}
+
 /** Weiße Karte mit runden Ecken: der Rahmen für Mappen, Dokumente und Einträge im Papierkorb. */
-export const Kachel = ({ children, className }: { children: ReactNode; className?: string }) => (
-	<div className={klassen('overflow-hidden rounded-2xl bg-white shadow-karte', className)}>{children}</div>
+export const Kachel = ({ beschnitten = true, children, className }: Eigenschaften) => (
+	<div className={klassen(beschnitten && 'overflow-hidden', 'rounded-2xl bg-white shadow-karte', className)}>
+		{children}
+	</div>
 );
 
 export const Marke = ({ children }: { children: ReactNode }) => (

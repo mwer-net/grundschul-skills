@@ -9,6 +9,8 @@ export interface Ereignis {
 	typ: EreignisTyp;
 	mappe?: string;
 	dok?: string;
+	/** Bei `verbunden`: Die Verbindung war schon einmal da und ist wieder da (nicht der erste Aufbau). */
+	wieder?: boolean;
 }
 
 type Hoerer = (ereignis: Ereignis) => void;
@@ -27,7 +29,11 @@ export const melde = verteile;
 
 const oeffne = () => {
 	const strom = new EventSource('/api/ereignisse');
-	strom.addEventListener('open', () => verteile({ typ: 'verbunden' }));
+	let wieder = false;
+	strom.addEventListener('open', () => {
+		verteile({ typ: 'verbunden', wieder });
+		wieder = true;
+	});
 	for (const typ of SERVER_TYPEN) {
 		strom.addEventListener(typ, (nachricht: MessageEvent<string>) => {
 			const daten = JSON.parse(nachricht.data) as { mappe?: string; dok?: string };
@@ -37,13 +43,19 @@ const oeffne = () => {
 	return strom;
 };
 
-/** Eine gemeinsame Verbindung für alle Seiten; sie besteht, solange jemand zuhört. Safari verbindet selbst neu. */
-export const useEreignisse = (hoerer: Hoerer) => {
+/**
+ * Eine gemeinsame Verbindung für alle Seiten; sie besteht, solange jemand zuhört. Safari verbindet selbst neu.
+ * Teilen-Links haben keine Sitzung und hören deshalb nicht zu (`aktiv` falsch).
+ */
+export const useEreignisse = (hoerer: Hoerer, aktiv = true) => {
 	const aktuell = useRef(hoerer);
 	useEffect(() => {
 		aktuell.current = hoerer;
 	}, [hoerer]);
 	useEffect(() => {
+		if (!aktiv) {
+			return undefined;
+		}
 		const eigener: Hoerer = (ereignis) => aktuell.current(ereignis);
 		hoererListe.add(eigener);
 		quelle ??= oeffne();
@@ -54,5 +66,5 @@ export const useEreignisse = (hoerer: Hoerer) => {
 				quelle = null;
 			}
 		};
-	}, []);
+	}, [aktiv]);
 };

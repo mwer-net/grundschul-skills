@@ -1,6 +1,7 @@
+import type { Meldung } from '@schoolbox/kern/src/meldungen';
 import type { DokumentMeta, Mappe } from '@schoolbox/kern/src/schema';
 
-export type { DokumentMeta, Mappe };
+export type { DokumentMeta, Mappe, Meldung };
 
 export interface DokumentEintrag {
 	id: string;
@@ -39,4 +40,16 @@ export interface Freigabe {
 	widerrufen: string | null;
 	pfad: string;
 	url: string | null;
+}
+
+export interface PdfMeldung extends Meldung {
+	dok: string;
+	titel: string;
+}
+
+/** Antwort, wenn ein PDF fertig ist: wohin der Browser für die Datei geht, wie sie heißt, was die Prüfung fand. */
+export interface PdfAntwort {
+	adresse: string;
+	dateiname: string;
+	meldungen: PdfMeldung[];
 }

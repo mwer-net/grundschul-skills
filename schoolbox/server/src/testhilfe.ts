@@ -1,17 +1,31 @@
-import { copyFile, mkdtemp, rm } from 'node:fs/promises';
+import { copyFile, mkdtemp, readFile, rm, writeFile } from 'node:fs/promises';
 import http from 'node:http';
 import type { AddressInfo } from 'node:net';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
 
-import type { Format } from '@schoolbox/kern';
-import { ASSETS, dokumentDir, erzeugePasswortHash, ladeKonfig, neueMappe, neuesDokument } from '@schoolbox/kern';
+import type { Format, Meldung } from '@schoolbox/kern';
+import {
+	ASSETS,
+	ausgabeSchluessel,
+	dokumentDir,
+	erzeugePasswortHash,
+	formatAusHtml,
+	ladeKonfig,
+	LOESUNG_PDF_DATEI,
+	neueMappe,
+	neuesDokument,
+	PDF_DATEI,
+	uebernehmeAusgabe,
+} from '@schoolbox/kern';
+import { A4, FOLIE, testPdf } from '@schoolbox/kern/src/testpdf';
 
 import { erstelleApp } from './app';
 import type { ServerKonfig } from './konfig';
 import { pruefeServerKonfig } from './konfig';
 import type { Kontext } from './kontext';
 import { erstelleKontext } from './kontext';
+import type { PdfBauer } from './pdf';
 import { CSRF_HEADER } from './schutz';
 import type { Sitzung } from './sitzung';
 import { signiereSitzung, SITZUNG_COOKIE } from './sitzung';
@@ -46,6 +60,8 @@ export interface TestServerOptionen {
 	/** `true`: leerer Ordner für eine eigene index.html. Ein Pfad: diese gebaute Oberfläche. */
 	webDist?: boolean | string;
 	vorschauBauer?: VorschauBauer;
+	/** Ohne baut blatt.py die PDFs. */
+	pdfBauer?: PdfBauer;
 	/** Fester Port und feste Ablage für die Browser-Tests; sonst ein freier Port und ein neuer Ordner in /tmp. */
 	port?: number;
 	materialDir?: string;
@@ -60,7 +76,7 @@ export const starteTestServer = async (optionen: TestServerOptionen = {}) => {
 		SITZUNG_GEHEIMNIS: TEST_GEHEIMNIS,
 	};
 	const konfig = pruefeServerKonfig(ladeKonfig(env, materialDir));
-	const kontext = erstelleKontext(konfig, 'test', optionen.vorschauBauer);
+	const kontext = erstelleKontext(konfig, 'test', { vorschau: optionen.vorschauBauer, pdf: optionen.pdfBauer });
 	const ueberwachung: Ueberwachung | null = optionen.ueberwachung
 		? await starteUeberwachung(kontext, optionen.ruheMs)
 		: null;
@@ -167,3 +183,30 @@ export const sammleEreignisse = (url: string, cookie: string) => {
 };
 
 export const warte = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
+
+export const UEBERLAUF = '„Aufgabe 4“ ragt aus der Seite (31 px) → kürzen, Item streichen oder zweite Seite';
+
+/**
+ * Ersatz für blatt.py, ohne Chromium und in Millisekunden: je eine leere Seite im Format des Dokuments, eine Lösung,
+ * wenn die Quelle `data-l` enthält, und ein Prüffehler, wenn sie `data-test-ueberlauf` enthält.
+ */
+export const baueErsatzAusgabe = async (dokDir: string) => {
+	const schluessel = await ausgabeSchluessel(dokDir);
+	const html = await readFile(path.join(dokDir, 'material.html'), 'utf8');
+	const seite = ['folie', 'a4-quer'].includes(formatAusHtml(html)) ? FOLIE : A4;
+	const meldungen: Meldung[] = html.includes('data-test-ueberlauf')
+		? [{ stufe: 'FEHLER', seite: 1, text: UEBERLAUF }]
+		: [];
+	const tmp = await mkdtemp(path.join(tmpdir(), 'schoolbox-ersatz-'));
+	try {
+		await writeFile(path.join(tmp, PDF_DATEI), testPdf([seite]));
+		if (html.includes('data-l=')) {
+			await writeFile(path.join(tmp, LOESUNG_PDF_DATEI), testPdf([seite]));
+		}
+		const bericht = { seiten: [], meldungen, fehler: meldungen.length };
+		await writeFile(path.join(tmp, 'pruefbericht.json'), JSON.stringify(bericht));
+		await uebernehmeAusgabe(tmp, dokDir, schluessel);
+	} finally {
+		await rm(tmp, { recursive: true, force: true });
+	}
+};

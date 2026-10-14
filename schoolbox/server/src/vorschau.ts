@@ -4,6 +4,7 @@ import path from 'node:path';
 
 import { dokumentDir, VORSCHAU_DATEI } from '@schoolbox/kern';
 
+import type { Begrenzung } from './begrenzung';
 import type { Ereignisse } from './ereignisse';
 import type { Sperre } from './sperre';
 
@@ -22,13 +23,17 @@ interface Abhaengigkeiten {
 	materialDir: string;
 	ereignisse: Ereignisse;
 	sperre: Sperre;
+	begrenzung: Begrenzung;
 	bauer: VorschauBauer | null;
 }
 
-/** Ein Bau nach dem anderen: Jeder Lauf startet Chromium und braucht entsprechend Speicher. */
+/**
+ * Vorschauen eine nach der anderen, und zusammen mit den PDF-Bauten in der gemeinsamen Grenze: So wartet ein PDF,
+ * auf das die Lehrkraft wartet, höchstens auf eine einzige Vorschau.
+ */
 const VORSCHAU_SPERRE = '_vorschau';
 
-export const erstelleVorschau = ({ bauer, ereignisse, materialDir, sperre }: Abhaengigkeiten): Vorschau => {
+export const erstelleVorschau = ({ bauer, begrenzung, ereignisse, materialDir, sperre }: Abhaengigkeiten): Vorschau => {
 	const laufend = new Set<string>();
 	/** Stand von material.html, an dem der Bau gescheitert ist: erst eine neue Fassung bekommt einen neuen Versuch. */
 	const gescheitert = new Map<string, number>();
@@ -43,7 +48,7 @@ export const erstelleVorschau = ({ bauer, ereignisse, materialDir, sperre }: Abh
 			if (!existsSync(path.join(dir, 'material.html'))) {
 				return false;
 			}
-			await bauer(dir);
+			await begrenzung(() => bauer(dir));
 			return true;
 		})
 			.then(

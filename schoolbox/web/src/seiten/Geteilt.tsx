@@ -1,24 +1,86 @@
-import { useParams } from 'react-router-dom';
+import type { ReactNode } from 'react';
+import { Route, Routes, useParams } from 'react-router-dom';
 
-import { Kachel } from '../bausteine/Kachel';
-import { KnopfAdresse } from '../bausteine/Knopf';
-import { Symbol } from '../bausteine/Symbol';
+import { useKopfHoehe } from '../bausteine/kopf';
 import { Zustand } from '../bausteine/Zustand';
 import { useLaden } from '../lib/laden';
-import { ART_NAME, FACH_NAME, klasseName } from '../lib/text';
+import { FACH_NAME, klasseName } from '../lib/text';
 import { useTitel } from '../lib/titel';
-import type { DokumentMeta, Mappe } from '../typen';
+import type { Zugang } from '../lib/zugang';
+import { PdfKnopf } from '../pdf/PdfKnopf';
+import { mappenWahl } from '../pdf/wahl';
+import type { DokumentEintrag, Mappe } from '../typen';
+import { Dokumentansicht } from './Dokumentansicht';
+import { DokumentKachel } from './DokumentKachel';
+import { Drucken } from './Drucken';
 
 interface Inhalt {
+	ziel: { mappe: string; dok: string | null };
 	mappe: Mappe;
-	dokumente: { id: string; meta: DokumentMeta }[];
+	dokumente: DokumentEintrag[];
 }
 
-/** Vorläufige Seite für Teilen-Links: Titel und Dokumente zum Ansehen. Die eigentliche Ansicht kommt mit 009. */
+const GeteilteMappe = ({ inhalt, zugang }: { zugang: Zugang; inhalt: Inhalt }) => {
+	const { dokumente, mappe } = inhalt;
+	useTitel(mappe.titel);
+	return (
+		<>
+			<div className="flex items-start justify-between gap-6 max-lg:flex-col max-lg:gap-4">
+				<div>
+					<h1 className="text-3xl max-md:text-2xl">{mappe.titel}</h1>
+					<p className="mt-1 text-leise">{`${FACH_NAME[mappe.fach]} · ${klasseName(mappe.klasse)}`}</p>
+				</div>
+				{dokumente.length > 0 && (
+					<PdfKnopf
+						beschriftung="Alles als PDF"
+						wahl={mappenWahl(zugang, dokumente)}
+						mappe={mappe}
+						warnen={false}
+					/>
+				)}
+			</div>
+			<ul className="mt-6 grid grid-cols-[repeat(auto-fill,minmax(19rem,1fr))] gap-6 max-md:gap-4">
+				{dokumente.map((dokument) => (
+					<DokumentKachel key={dokument.id} zugang={zugang} mappe={mappe} dokument={dokument} />
+				))}
+			</ul>
+		</>
+	);
+};
+
+const GeteiltesDokument = ({ einzeln, zugang }: { zugang: Zugang; einzeln: boolean }) => {
+	const { dok = '' } = useParams();
+	return <Dokumentansicht zugang={zugang} dok={dok} zurueckZurMappe={!einzeln} />;
+};
+
+const GeteiltDrucken = ({ zugang }: { zugang: Zugang }) => {
+	const { dok = '' } = useParams();
+	return <Drucken zugang={zugang} dok={dok} />;
+};
+
+const GeteiltRahmen = ({ children }: { children: ReactNode }) => {
+	const kopf = useKopfHoehe<HTMLElement>();
+	return (
+		<div className="flex min-h-dvh flex-col">
+			<header ref={kopf} className="sticky top-0 z-30 border-b border-rand bg-white/95 backdrop-blur">
+				<div className="mx-auto flex min-h-12 max-w-[90rem] items-center px-8 py-3 font-display text-3xl text-brand-600 max-lg:px-4 max-md:text-2xl">
+					Schoolbox
+				</div>
+			</header>
+			<main className="mx-auto w-full max-w-[90rem] flex-1 px-8 pt-8 pb-24 max-lg:px-4 max-md:pt-5">
+				{children}
+			</main>
+		</div>
+	);
+};
+
+/**
+ * Teilen-Links: ein Dokument oder eine ganze Mappe ansehen, als PDF holen und drucken, ohne Anmeldung. Weiterteilen
+ * und Ändern gehen hier nicht.
+ */
 export const Geteilt = () => {
 	const { token = '' } = useParams();
 	const { daten, fehler } = useLaden<Inhalt>(`/f/${token}/api/inhalt`);
-	useTitel(daten?.mappe.titel);
 
 	if (!daten) {
 		return fehler ? (
@@ -29,35 +91,26 @@ export const Geteilt = () => {
 		) : null;
 	}
 
-	const { dokumente, mappe } = daten;
-	const ansicht = (dok: string) => `/f/${token}/ansicht/${mappe.id}/dokumente/${dok}/`;
+	const zugang: Zugang = { mappe: daten.mappe.id, token };
+	const einzeln = daten.ziel.dok;
+	const start =
+		einzeln === null ? (
+			<GeteilteMappe zugang={zugang} inhalt={daten} />
+		) : (
+			<Dokumentansicht zugang={zugang} dok={einzeln} zurueckZurMappe={false} />
+		);
+	const ansehen = (
+		<GeteiltRahmen>
+			<Routes>
+				<Route index element={start} />
+				<Route path="d/:dok" element={<GeteiltesDokument zugang={zugang} einzeln={einzeln !== null} />} />
+			</Routes>
+		</GeteiltRahmen>
+	);
 	return (
-		<main className="mx-auto w-full max-w-3xl px-4 py-10 max-md:py-6">
-			<h1 className="text-3xl max-md:text-2xl">{mappe.titel}</h1>
-			<p className="mt-1 text-leise">{`${FACH_NAME[mappe.fach]} · ${klasseName(mappe.klasse)}`}</p>
-			<ul className="mt-6 flex flex-col gap-4">
-				{dokumente.map(({ id, meta }) => (
-					<li key={id}>
-						<Kachel className="flex items-center justify-between gap-4 p-5 max-md:flex-col max-md:items-stretch">
-							<div>
-								<h2 className="text-xl">{meta.titel}</h2>
-								<p className="text-leise">{ART_NAME[meta.art]}</p>
-							</div>
-							<div className="flex flex-none flex-wrap gap-2">
-								<KnopfAdresse href={ansicht(id)}>
-									<Symbol name="auge" />
-									Ansehen
-								</KnopfAdresse>
-								{meta.hatLoesung && (
-									<KnopfAdresse art="zweit" href={`${ansicht(id)}?loesung=1`}>
-										Lösung
-									</KnopfAdresse>
-								)}
-							</div>
-						</Kachel>
-					</li>
-				))}
-			</ul>
-		</main>
+		<Routes>
+			<Route path="d/:dok/drucken" element={<GeteiltDrucken zugang={zugang} />} />
+			<Route path="*" element={ansehen} />
+		</Routes>
 	);
 };

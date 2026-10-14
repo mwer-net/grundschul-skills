@@ -4,15 +4,18 @@ import path from 'node:path';
 import { VORSCHAU_DATEI } from '@schoolbox/kern';
 
 import { WEB_DIST } from './app';
-import { starteTestServer, TEST_PASSWORT } from './testhilfe';
+import { baueErsatzAusgabe, starteTestServer, TEST_PASSWORT } from './testhilfe';
 
 /**
  * Server für die Browser-Tests der Oberfläche (`pnpm --filter @schoolbox/web run e2e`): die gebaute Oberfläche, eine
- * eigene, leere Ablage, das Passwort der Tests. Vorschauen entstehen ohne Chromium, damit die Tests schnell bleiben.
+ * eigene, leere Ablage, das Passwort der Tests. Vorschauen und PDFs entstehen ohne Chromium, damit die Tests schnell
+ * bleiben.
  */
 const PORT = Number(process.env.E2E_PORT);
 const MATERIAL_DIR = process.env.E2E_MATERIAL_DIR ?? '';
 const VORSCHAU_MS = 1200;
+/** Lang genug, dass „PDF wird erstellt …“ zu sehen ist. */
+const PDF_MS = 800;
 const WEISSES_BILD = Buffer.from(
 	'iVBORw0KGgoAAAANSUhEUgAAAB4AAAAqCAIAAAAruXxOAAAAKElEQVR42u3MQREAAAwCIPuX1hS7fSAA6Zmo1Wq1Wq1Wq9VqtVr9Uw9hEbYPF9a3kwAAAABJRU5ErkJggg==',
 	'base64',
@@ -21,6 +24,11 @@ const WEISSES_BILD = Buffer.from(
 const vorschauBauer = async (dokDir: string) => {
 	await new Promise((resolve) => setTimeout(resolve, VORSCHAU_MS));
 	await writeFile(path.join(dokDir, 'ausgabe', VORSCHAU_DATEI), WEISSES_BILD);
+};
+
+const pdfBauer = async (dokDir: string) => {
+	await new Promise((resolve) => setTimeout(resolve, PDF_MS));
+	await baueErsatzAusgabe(dokDir);
 };
 
 const starte = async () => {
@@ -36,6 +44,7 @@ const starte = async () => {
 		ueberwachung: true,
 		ruheMs: 300,
 		vorschauBauer,
+		pdfBauer,
 	});
 	console.log(`Testserver läuft auf ${server.url}, Ablage ${MATERIAL_DIR}, Passwort „${TEST_PASSWORT}“`);
 	const beenden = () => {

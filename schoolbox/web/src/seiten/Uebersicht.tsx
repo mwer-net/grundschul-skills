@@ -60,7 +60,7 @@ const MappenKachel = ({ dokumente, mappe }: MappenEintrag) => (
 			<Kachel className="flex h-full flex-col transition-shadow hover:shadow-lg">
 				<div className="h-2 flex-none" style={{ background: FACH_FARBE[mappe.fach] }} />
 				<div className="relative">
-					<Vorschau mappe={mappe.id} dokument={dokumente[0]} />
+					<Vorschau zugang={{ mappe: mappe.id, token: null }} dokument={dokumente[0]} />
 					{mappe.status === 'entwurf' && (
 						<span className="absolute top-3 left-3">
 							<Marke>Entwurf</Marke>

@@ -35,7 +35,9 @@ const ladeServerKonfig = (): ServerKonfig => {
 
 const starte = async () => {
 	const konfig = ladeServerKonfig();
-	const kontext = erstelleKontext(konfig, leseVersion(konfig.wurzel), (dokDir) => baueVorschau(konfig, dokDir));
+	const kontext = erstelleKontext(konfig, leseVersion(konfig.wurzel), {
+		vorschau: (dokDir) => baueVorschau(konfig, dokDir),
+	});
 	const ueberwachung = await starteUeberwachung(kontext);
 	const aufraeumen = starteAufraeumen(kontext);
 	const server = erstelleApp(kontext).listen(konfig.portNummer, konfig.hostName, () => {

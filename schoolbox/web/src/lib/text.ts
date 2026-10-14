@@ -1,18 +1,10 @@
+import { ART_NAME, FACH_NAME } from '@schoolbox/kern/src/namen';
 import type { Art, Fach, Format, Klasse } from '@schoolbox/kern/src/werte';
 
 import type { MappenEintrag } from '../typen';
 
 export type { Art, Fach, Format, Klasse };
-
-export const FACH_NAME: Record<Fach, string> = {
-	deutsch: 'Deutsch',
-	mathematik: 'Mathematik',
-	sachunterricht: 'Sachunterricht',
-	englisch: 'Englisch',
-	kunst: 'Kunst',
-	musik: 'Musik',
-	faecheruebergreifend: 'Fächerübergreifend',
-};
+export { ART_NAME, FACH_NAME };
 
 /** Heftfarben, wie sie an vielen Grundschulen üblich sind: Deutsch rot, Mathe blau, Sachunterricht grün. */
 export const FACH_FARBE: Record<Fach, string> = {
@@ -23,20 +15,6 @@ export const FACH_FARBE: Record<Fach, string> = {
 	kunst: '#e2762b',
 	musik: '#8a5bb5',
 	faecheruebergreifend: '#6b7783',
-};
-
-export const ART_NAME: Record<Art, string> = {
-	arbeitsblatt: 'Arbeitsblatt',
-	klassenarbeit: 'Klassenarbeit',
-	lernzielkontrolle: 'Lernzielkontrolle',
-	lesetext: 'Lesetext',
-	lernspiel: 'Lernspiel',
-	karten: 'Karten',
-	lernplakat: 'Lernplakat',
-	praesentation: 'Präsentation',
-	stationen: 'Stationen',
-	unterrichtsplanung: 'Unterrichtsplanung',
-	sonstiges: 'Sonstiges',
 };
 
 export const FORMAT_NAME: Record<Format, string> = {

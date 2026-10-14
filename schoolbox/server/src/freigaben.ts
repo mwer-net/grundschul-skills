@@ -17,6 +17,7 @@ import { ansichtRouter } from './ansicht';
 import { HttpFehler } from './fehler';
 import type { Kontext } from './kontext';
 import { FREIGABEN_SPERRE } from './kontext';
+import { pdfAntwort, sendePdf, waehleMappenVariante, waehlePdfVariante } from './pdf';
 
 const ID_REGEX = new RegExp(ID_MUSTER);
 const SICHERE_METHODEN = new Set(['GET', 'HEAD']);
@@ -135,8 +136,8 @@ const ansichtWaechter =
 	};
 
 /**
- * Teilen-Links unter `/f/:token`: Seiten (Ansicht, Präsentation), eine nur lesende API und die Darstellung, beides
- * beschränkt auf das freigegebene Ziel. Schreiben geht hier nie.
+ * Teilen-Links unter `/f/:token`: Seiten (Ansicht, Präsentation), eine nur lesende API, die Darstellung und die PDFs,
+ * alles beschränkt auf das freigegebene Ziel. Schreiben geht hier nie.
  */
 export const teilenRouter = (kontext: Kontext, sendeSeite: (status: number) => RequestHandler) => {
 	const { materialDir } = kontext.konfig;
@@ -156,7 +157,7 @@ export const teilenRouter = (kontext: Kontext, sendeSeite: (status: number) => R
 			return;
 		}
 		const status = freigabe === null ? 404 : 410;
-		if (/^\/(api|ansicht)(\/|$)/.test(req.path)) {
+		if (/^\/(api|ansicht|pdf|alles)(\/|$)/.test(req.path)) {
 			throw new HttpFehler(status, GILT_NICHT_MEHR);
 		}
 		sendeSeite(status)(req, res, next);
@@ -167,9 +168,47 @@ export const teilenRouter = (kontext: Kontext, sendeSeite: (status: number) => R
 		const ids = await erlaubteDokumente(materialDir, ziel);
 		const mappe = await leseMappe(materialDir, ziel.mappe);
 		const dokumente = await Promise.all(
-			ids.map(async (id) => ({ id, meta: await leseMeta(materialDir, mappe.id, id) })),
+			ids.map(async (id) => ({
+				id,
+				meta: await leseMeta(materialDir, mappe.id, id),
+				vorschau: await kontext.vorschau.stand(mappe.id, id, true),
+			})),
 		);
 		res.json({ ziel, mappe: { ...mappe, dokumente: ids }, dokumente });
+	});
+
+	const verlangeDok = async (req: Request) => {
+		const { ziel } = freigabeVon(req);
+		const { dok = '' } = req.params as { dok?: string };
+		if (!(await erlaubteDokumente(materialDir, ziel)).includes(dok)) {
+			throw new HttpFehler(404, 'Nicht gefunden.');
+		}
+		return { mappe: ziel.mappe, dok };
+	};
+
+	/** „Alles als PDF“ nur für Links auf eine ganze Mappe. */
+	const verlangeMappe = (req: Request) => {
+		const { ziel } = freigabeVon(req);
+		if (ziel.dok !== null) {
+			throw new HttpFehler(404, 'Nicht gefunden.');
+		}
+		return ziel.mappe;
+	};
+
+	const tokenVon = (req: Request) => (req.params as { token?: string }).token ?? '';
+
+	router.get('/api/pdf/:dok/:variante', async (req, res) => {
+		const { dok, mappe } = await verlangeDok(req);
+		const variante = waehlePdfVariante(req.params.variante);
+		const pdf = await kontext.pdf.dokument(mappe, dok, variante);
+		res.json(pdfAntwort(`${freigabePfad(tokenVon(req))}/pdf/${dok}/${variante}`, pdf));
+	});
+
+	router.get('/api/alles/:variante', async (req, res) => {
+		const mappe = verlangeMappe(req);
+		const variante = waehleMappenVariante(req.params.variante);
+		const pdf = await kontext.pdf.mappe(mappe, variante);
+		res.json(pdfAntwort(`${freigabePfad(tokenVon(req))}/alles/${variante}`, pdf));
 	});
 
 	router.use('/api', () => {
@@ -177,6 +216,16 @@ export const teilenRouter = (kontext: Kontext, sendeSeite: (status: number) => R
 	});
 
 	router.use('/ansicht', ansichtWaechter(materialDir), ansichtRouter(kontext));
+
+	router.get('/pdf/:dok/:variante{/:datei}', async (req, res) => {
+		const { dok, mappe } = await verlangeDok(req);
+		await sendePdf(req, res, await kontext.pdf.dokument(mappe, dok, waehlePdfVariante(req.params.variante)));
+	});
+
+	router.get('/alles/:variante{/:datei}', async (req, res) => {
+		const mappe = verlangeMappe(req);
+		await sendePdf(req, res, await kontext.pdf.mappe(mappe, waehleMappenVariante(req.params.variante)));
+	});
 
 	router.get('/{*seite}', sendeSeite(200));
 
