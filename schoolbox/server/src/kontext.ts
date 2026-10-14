@@ -11,6 +11,8 @@ import { erstelleEreignisse } from './ereignisse';
 import type { ServerKonfig } from './konfig';
 import type { Sperre } from './sperre';
 import { erstelleSperre } from './sperre';
+import type { Vorschau, VorschauBauer } from './vorschau';
+import { erstelleVorschau } from './vorschau';
 
 /** Inhalts-Hashes, die der Server zuletzt gesehen oder selbst geschrieben hat. */
 export interface Bekannt {
@@ -24,17 +26,28 @@ export interface Kontext {
 	sperre: Sperre;
 	bekannt: Map<string, Bekannt>;
 	bremse: Bremse;
+	vorschau: Vorschau;
 	version: string;
 }
 
-export const erstelleKontext = (konfig: ServerKonfig, version: string): Kontext => ({
-	konfig,
-	ereignisse: erstelleEreignisse(),
-	sperre: erstelleSperre(),
-	bekannt: new Map(),
-	bremse: erstelleBremse(),
-	version,
-});
+/** Ohne `vorschauBauer` (Tests) entstehen keine Vorschauen; vorhandene werden trotzdem gemeldet. */
+export const erstelleKontext = (
+	konfig: ServerKonfig,
+	version: string,
+	vorschauBauer: VorschauBauer | null = null,
+): Kontext => {
+	const ereignisse = erstelleEreignisse();
+	const sperre = erstelleSperre();
+	return {
+		konfig,
+		ereignisse,
+		sperre,
+		bekannt: new Map(),
+		bremse: erstelleBremse(),
+		vorschau: erstelleVorschau({ materialDir: konfig.materialDir, ereignisse, sperre, bauer: vorschauBauer }),
+		version,
+	};
+};
 
 /** Schlüssel der Sperre für `_freigaben.json`; kann mit keiner Dokument-ID kollidieren. */
 export const FREIGABEN_SPERRE = '_freigaben';

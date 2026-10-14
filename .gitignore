@@ -17,6 +17,7 @@ CLAUDE.local.md
 node_modules/
 schoolbox/*/dist/
 schoolbox/web/dist.*/
+schoolbox/web/test-results/
 
 # Legt add-site.sh im Site-Ordner an
 logs/

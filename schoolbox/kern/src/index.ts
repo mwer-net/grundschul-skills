@@ -6,6 +6,7 @@ export * from './fehler';
 export * from './freigaben';
 export * from './html';
 export * from './konfig';
+export * from './papierkorb';
 export * from './pfade';
 export * from './schema';
 export * from './slug';

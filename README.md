@@ -101,7 +101,7 @@ Empfehlung: Immer alle Skills installieren, da sie aufeinander verweisen.
 
 ### Schoolbox (im Aufbau)
 
-Die Schoolbox (`schoolbox/`) macht das Material für die Lehrkraft nutzbar: Ablage in Mappen, später Ansicht, PDF, Präsentation und Bearbeiten im Browser. Claude legt Material über das CLI an und gibt am Ende einen Link aus. Braucht Node 22 und pnpm.
+Die Schoolbox (`schoolbox/`) macht das Material für die Lehrkraft nutzbar: Ablage in Mappen, im Browser eine Übersicht mit Suche, Papierkorb und Teilen-Links; später Ansicht, PDF, Präsentation und Bearbeiten. Claude legt Material über das CLI an und gibt am Ende einen Link aus. Braucht Node 22 und pnpm.
 
 ```bash
 cp .env.example .env                  # SCHOOLBOX_URL, MATERIAL_DIR, NODE_BIN, PYTHON_BIN anpassen
@@ -125,12 +125,18 @@ Der Server (`schoolbox/server`, Express) liefert API, Darstellung und Oberfläch
 
 Ohne `PASSWORT_HASH` und `SITZUNG_GEHEIMNIS` startet er nicht. Anmeldung mit einem Passwort, wahlweise „angemeldet bleiben“ (ein Jahr); nach fünf Fehlversuchen von einer Adresse ist sie gebremst, jeder Fehlversuch steht als `Anmeldung fehlgeschlagen: ip=<Adresse>` im Log (passt für einen fail2ban-Filter). Ein neues Passwort gilt nach dem Neustart des Servers und meldet alle Geräte ab. Teilen-Links (`/f/<token>`) zeigen ein Dokument oder eine Mappe ohne Anmeldung, nur lesend, und lassen sich widerrufen. Der Reverse Proxy sollte `X-Forwarded-Proto` setzen; ist `SCHOOLBOX_URL` eine https-Adresse, ist das Cookie ohnehin `Secure`.
 
+Die Oberfläche (`schoolbox/web`, React, Tailwind) ist für Safari auf Mac und iPad gebaut, Desktop zuerst und vollständig mit dem Finger bedienbar. Die Übersicht zeigt alle Mappen mit Vorschau, Suche und Filtern nach Fach, Klasse und Materialart; was Claude neu anlegt, erscheint ohne Neuladen. Fehlt einem Dokument die Vorschau der ersten Seite (`ausgabe/material-s1.png`) oder ist sie älter als `material.html`, baut der Server sie im Hintergrund mit `blatt.py` (eine nach der anderen, Chromium nötig). Gelöschte Mappen liegen 30 Tage in `MATERIAL_DIR/_papierkorb/` und lassen sich dort wiederherstellen; danach löscht der Server sie beim Start bzw. einmal täglich endgültig, samt ihren Teilen-Links.
+
 ```bash
 cd schoolbox
 pnpm build                            # Oberfläche (web/) bauen
 pnpm start                            # Server starten; mit PM2: pm2 start ecosystem.config.cjs
 pnpm dev                              # Entwicklung: Server mit Neustart bei Änderungen, Vite mit Proxy
+pnpm --filter @schoolbox/web run e2e:browser   # einmalig: WebKit und Chromium für die Browser-Tests
+pnpm --filter @schoolbox/web run e2e           # Oberfläche bauen, in WebKit (iPad hoch/quer, Mac) und Chromium testen
 ```
+
+Die Browser-Tests starten einen eigenen Server mit leerer Ablage in `/tmp`. Browser nur über `e2e:browser` installieren: `playwright install` räumt im gemeinsamen Cache `~/.cache/ms-playwright/` alle Browser ab, die zu keiner Playwright-Installation mehr gehören, und dazu kann das Chromium gehören, mit dem `blatt.py` baut. Das Skript setzt `PLAYWRIGHT_SKIP_BROWSER_GC=1` und installiert Chromium immer mit. WebKit braucht unter Linux zusätzliche Systembibliotheken; welche fehlen, nennt die Fehlermeldung beim ersten Start.
 
 #### Betrieb auf einem eigenen Server
 

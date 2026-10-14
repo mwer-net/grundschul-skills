@@ -1,172 +1,83 @@
-:root {
-	--farbe: #2e6fb7;
-	--farbe-dunkel: #24588f;
-	--text: #26323d;
-	--leise: #5d6b78;
-	--flaeche: #f6f4ef;
-	--fehler: #b3261e;
-	color: var(--text);
-	background: var(--flaeche);
-	font-family: system-ui, -apple-system, 'Segoe UI', sans-serif;
-	font-size: 17px;
-	line-height: 1.45;
-	-webkit-text-size-adjust: 100%;
-}
+@import 'tailwindcss';
 
-body {
-	margin: 0;
-}
-
-h1 {
-	margin: 0 0 0.5rem;
-	font-size: 1.8rem;
-}
-
-.karte-seite {
-	display: flex;
-	min-height: 100vh;
-	min-height: 100dvh;
-	align-items: center;
-	justify-content: center;
-	padding: 1rem;
-	box-sizing: border-box;
-}
-
-.karte {
-	display: flex;
-	width: 100%;
-	max-width: 24rem;
-	flex-direction: column;
-	gap: 0.75rem;
-	padding: 2rem 1.5rem;
-	border-radius: 1rem;
-	background: #fff;
-	box-shadow: 0 2px 12px rgb(0 0 0 / 8%);
-}
-
-.karte p {
-	margin: 0;
-}
-
-label {
-	font-weight: 600;
-}
-
-/* 16 px und mehr, sonst zoomt Safari auf dem iPad beim Antippen hinein. */
-input[type='password'] {
-	min-height: 48px;
-	padding: 0 0.75rem;
-	border: 2px solid #c9d1d9;
-	border-radius: 0.6rem;
-	font-size: 1.1rem;
-}
-
-input[type='password']:focus {
-	border-color: var(--farbe);
-	outline: none;
-}
-
-.haken {
-	display: flex;
-	min-height: 44px;
-	align-items: flex-start;
-	gap: 0.6rem;
+/* Dieselben Schriften wie im Material; die Dateien liegen beim Skill und werden mit der Oberfläche gebaut. */
+@font-face {
+	font-family: 'Andika';
 	font-weight: 400;
-	cursor: pointer;
+	font-display: swap;
+	src: url('../../../skills/html-materialerstellung/assets/fonts/Andika-Regular.woff2') format('woff2');
 }
-
-.haken input {
-	width: 1.4rem;
-	height: 1.4rem;
-	flex: none;
-	margin: 0.1rem 0 0;
+@font-face {
+	font-family: 'Andika';
+	font-weight: 700;
+	font-display: swap;
+	src: url('../../../skills/html-materialerstellung/assets/fonts/Andika-Bold.woff2') format('woff2');
 }
-
-.haken small {
-	display: block;
-	color: var(--leise);
-}
-
-.meldung {
-	color: var(--fehler);
+@font-face {
+	font-family: 'Fredoka';
 	font-weight: 600;
+	font-display: swap;
+	src: url('../../../skills/html-materialerstellung/assets/fonts/Fredoka-SemiBold.woff2') format('woff2');
 }
 
-.knopf {
-	display: inline-flex;
-	min-height: 48px;
-	align-items: center;
-	justify-content: center;
-	padding: 0 1.25rem;
-	border: 2px solid var(--farbe);
-	border-radius: 0.6rem;
-	background: var(--farbe);
-	color: #fff;
-	font: inherit;
-	font-weight: 600;
-	text-decoration: none;
-	cursor: pointer;
+@theme {
+	--font-sans: 'Andika', system-ui, -apple-system, 'Segoe UI', sans-serif;
+	--font-display: 'Fredoka', 'Andika', system-ui, sans-serif;
+
+	--color-brand-50: #eef4fb;
+	--color-brand-100: #dbe8f6;
+	--color-brand-200: #b9d2ec;
+	--color-brand-500: #2e6fb7;
+	--color-brand-600: #24588f;
+	--color-brand-700: #1c4672;
+
+	--color-papier: #f6f4ef;
+	--color-tinte: #26323d;
+	--color-leise: #5d6b78;
+	--color-rand: #d9d5cb;
+	--color-entwurf: #ffe08a;
+	--color-fehler: #b3261e;
+
+	--shadow-karte: 0 1px 3px rgb(38 50 61 / 10%), 0 4px 14px rgb(38 50 61 / 6%);
 }
 
-.knopf:active {
-	background: var(--farbe-dunkel);
-}
+@layer base {
+	html {
+		background: var(--color-papier);
+		color: var(--color-tinte);
+		font-family: var(--font-sans);
+		font-size: 17px;
+		line-height: 1.45;
+		-webkit-text-size-adjust: 100%;
+		-webkit-tap-highlight-color: transparent;
+	}
 
-.knopf:disabled {
-	opacity: 0.5;
-	cursor: default;
-}
+	h1,
+	h2,
+	h3 {
+		font-family: var(--font-display);
+		font-weight: 600;
+		line-height: 1.2;
+	}
 
-.knopf-zweit {
-	background: #fff;
-	color: var(--farbe);
-}
+	button,
+	a,
+	summary,
+	label {
+		touch-action: manipulation;
+	}
 
-.kopf {
-	display: flex;
-	align-items: center;
-	justify-content: space-between;
-	padding: 0.5rem 1rem;
-	background: #fff;
-	box-shadow: 0 1px 4px rgb(0 0 0 / 8%);
-	font-size: 1.2rem;
-}
+	button:not(:disabled),
+	summary {
+		cursor: pointer;
+	}
 
-.inhalt {
-	max-width: 50rem;
-	margin: 0 auto;
-	padding: 1.5rem 1rem;
-}
+	:focus-visible {
+		outline: 3px solid var(--color-brand-500);
+		outline-offset: 2px;
+	}
 
-.liste {
-	display: flex;
-	flex-direction: column;
-	gap: 0.75rem;
-	padding: 0;
-	list-style: none;
-}
-
-.liste li {
-	display: flex;
-	flex-wrap: wrap;
-	align-items: center;
-	gap: 0.75rem;
-	padding: 0.75rem 1rem;
-	border-radius: 0.75rem;
-	background: #fff;
-}
-
-.liste li span {
-	flex: 1 1 12rem;
-	font-weight: 600;
-}
-
-.unsichtbar {
-	position: absolute;
-	width: 1px;
-	height: 1px;
-	overflow: hidden;
-	clip-path: inset(50%);
-	opacity: 0;
-	pointer-events: none;
+	dialog::backdrop {
+		background: rgb(38 50 61 / 45%);
+	}
 }

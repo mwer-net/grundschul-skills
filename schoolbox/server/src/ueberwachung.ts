@@ -22,7 +22,7 @@ const istMappe = (materialDir: string, mappe: string) => existsSync(path.join(ma
 /**
  * Beobachtet die Ablage. Ändert sich material.html, ohne dass der Server selbst geschrieben hat, war es Claude:
  * Nach `ruheMs` ohne weitere Änderung entsteht eine Version mit Urheber `claude`, und `dokument-geaendert` geht
- * an alle Browser. Neue Mappen melden `mappe-neu`.
+ * an alle Browser. Neue Mappen melden `mappe-neu`, verschwundene (Papierkorb) `mappe-entfernt`.
  */
 export const starteUeberwachung = async (kontext: Kontext, ruheMs = RUHE_MS): Promise<Ueberwachung> => {
 	const { materialDir } = kontext.konfig;
@@ -62,7 +62,9 @@ export const starteUeberwachung = async (kontext: Kontext, ruheMs = RUHE_MS): Pr
 
 	const pruefeMappe = (mappe: string) => {
 		if (!istMappe(materialDir, mappe)) {
-			bekannteMappen.delete(mappe);
+			if (bekannteMappen.delete(mappe)) {
+				kontext.ereignisse.sende({ typ: 'mappe-entfernt', daten: { mappe } });
+			}
 		} else if (!bekannteMappen.has(mappe)) {
 			bekannteMappen.add(mappe);
 			kontext.ereignisse.sende({ typ: 'mappe-neu', daten: { mappe } });

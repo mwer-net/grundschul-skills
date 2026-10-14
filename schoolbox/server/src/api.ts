@@ -1,20 +1,6 @@
-import { existsSync } from 'node:fs';
 import { readFile } from 'node:fs/promises';
-import path from 'node:path';
 
-import type { MappenFilter } from '@schoolbox/kern';
-import {
-	FAECHER,
-	leseMappenEintrag,
-	leseMeta,
-	listeMappen,
-	listeVersionen,
-	mappenDir,
-	STATUS,
-	versionsPfad,
-	waehleKlasse,
-	waehleWert,
-} from '@schoolbox/kern';
+import { leseMeta, listeVersionen, versionsPfad } from '@schoolbox/kern';
 import type { RequestHandler } from 'express';
 import { json, Router } from 'express';
 
@@ -24,25 +10,13 @@ import { HttpFehler } from './fehler';
 import { freigabenApi } from './freigaben';
 import type { Kontext } from './kontext';
 import { dokSchluessel, kennung } from './kontext';
+import { mappenApi } from './mappen';
+import { papierkorbApi } from './papierkorb';
 import { csrfSchutz, pruefeIdParam } from './schutz';
 
 export const MAX_JSON = '5mb';
 const PULS_MS = 25_000;
 const KENNUNG_REGEX = /^[0-9a-f]{16}$/;
-
-const text = (wert: unknown) => (typeof wert === 'string' && wert.trim() ? wert : undefined);
-
-const leseFilter = (query: Record<string, unknown>): MappenFilter => {
-	const fach = text(query.fach);
-	const klasse = text(query.klasse);
-	const status = text(query.status);
-	return {
-		fach: fach === undefined ? undefined : waehleWert('Fach', fach, FAECHER),
-		klasse: klasse === undefined ? undefined : waehleKlasse(klasse),
-		status: status === undefined ? undefined : waehleWert('Status', status, STATUS),
-		suche: text(query.suche),
-	};
-};
 
 const ereignisStrom =
 	(kontext: Kontext): RequestHandler =>
@@ -87,16 +61,8 @@ export const apiRouter = (kontext: Kontext) => {
 		next(/^[0-9TZ_a-z-]+$/.test(wert) ? undefined : new HttpFehler(400, `Version „${wert}“ ist ungültig.`));
 	});
 
-	router.get('/mappen', async (req, res) => {
-		res.json({ mappen: await listeMappen(materialDir, leseFilter(req.query)) });
-	});
-
-	router.get('/mappen/:mappe', async (req, res) => {
-		if (!existsSync(path.join(mappenDir(materialDir, req.params.mappe), 'mappe.json'))) {
-			throw new HttpFehler(404, `Die Mappe „${req.params.mappe}“ gibt es nicht.`);
-		}
-		res.json(await leseMappenEintrag(materialDir, req.params.mappe));
-	});
+	router.use('/mappen', mappenApi(kontext));
+	router.use('/papierkorb', papierkorbApi(kontext));
 
 	router.get('/dokumente/:mappe/:dok', async (req, res) => {
 		const { dok, mappe } = req.params;

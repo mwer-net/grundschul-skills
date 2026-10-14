@@ -1,10 +1,12 @@
 import { spawn } from 'node:child_process';
 import { existsSync } from 'node:fs';
-import { mkdir, readFile, rm } from 'node:fs/promises';
+import { mkdir, mkdtemp, readFile, rm } from 'node:fs/promises';
+import { tmpdir } from 'node:os';
 import path from 'node:path';
 
 import type { Ziel } from './ablage';
 import { aktualisiereMappe, dokumentDir, leseMeta, pruefeFormat, schreibeMeta } from './ablage';
+import { kopiereAtomar } from './atomar';
 import { SchoolboxFehler } from './fehler';
 import { druckprofilAusHtml } from './html';
 import type { Konfig } from './konfig';
@@ -14,6 +16,8 @@ import type { Version } from './versionen';
 import { legeVersionAn } from './versionen';
 
 const BAU_TIMEOUT_MS = 5 * 60 * 1000;
+/** Erste Seite des Arbeitsblatts in `ausgabe/`, so benannt wie von blatt.py. */
+export const VORSCHAU_DATEI = 'material-s1.png';
 
 export interface Meldung {
 	stufe: 'FEHLER' | 'WARNUNG' | 'HINWEIS';
@@ -109,4 +113,36 @@ export const fertigstellen = async (
 
 	const hinweiseBau = [...new Set(lauf.stderr.split('\n').map((z) => z.trim()))].filter(Boolean);
 	return { meta, bericht, version, ausgabe, hinweiseBau };
+};
+
+/**
+ * Baut nur die Vorschau der ersten Seite nach `ausgabe/`, mit demselben blatt.py wie beim Fertigstellen. Der Bau
+ * läuft in einem temporären Ordner, der Rest von `ausgabe/` (PDFs, Prüfbericht) bleibt, wie er ist.
+ */
+export const baueVorschau = async (konfig: Pick<Konfig, 'pythonBin'>, dokDir: string): Promise<string> => {
+	const tmp = await mkdtemp(path.join(tmpdir(), 'schoolbox-vorschau-'));
+	try {
+		const quelle = path.join(dokDir, 'material.html');
+		const lauf = await fuehreAus(konfig.pythonBin, [BLATT_PY, 'bauen', quelle, '-o', tmp, '--ohne-loesung']);
+		const bild = path.join(tmp, VORSCHAU_DATEI);
+		if (!existsSync(bild)) {
+			throw new SchoolboxFehler(
+				`blatt.py hat keine Vorschau erzeugt (Exit ${lauf.code ?? 'Timeout'}):\n${lauf.stderr || lauf.stdout}`,
+				3,
+			);
+		}
+		// Der Bau dauert Sekunden. Liegt die Mappe inzwischen im Papierkorb, darf hier kein Ordner neu entstehen:
+		// Er stünde dem Wiederherstellen im Weg. Deshalb nie rekursiv anlegen.
+		if (!existsSync(quelle)) {
+			throw new SchoolboxFehler('Das Dokument gibt es nicht mehr.', 3);
+		}
+		const ziel = path.join(dokDir, 'ausgabe', VORSCHAU_DATEI);
+		if (!existsSync(path.dirname(ziel))) {
+			await mkdir(path.dirname(ziel));
+		}
+		await kopiereAtomar(bild, ziel);
+		return ziel;
+	} finally {
+		await rm(tmp, { recursive: true, force: true });
+	}
 };

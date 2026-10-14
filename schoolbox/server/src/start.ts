@@ -2,12 +2,13 @@ import { execFileSync } from 'node:child_process';
 import { readFileSync } from 'node:fs';
 import path from 'node:path';
 
-import { ladeKonfig } from '@schoolbox/kern';
+import { baueVorschau, ladeKonfig } from '@schoolbox/kern';
 
 import { erstelleApp } from './app';
 import type { ServerKonfig } from './konfig';
 import { pruefeServerKonfig } from './konfig';
 import { erstelleKontext } from './kontext';
+import { starteAufraeumen } from './papierkorb';
 import { starteUeberwachung } from './ueberwachung';
 
 const SCHLIESSEN_MS = 3000;
@@ -34,8 +35,9 @@ const ladeServerKonfig = (): ServerKonfig => {
 
 const starte = async () => {
 	const konfig = ladeServerKonfig();
-	const kontext = erstelleKontext(konfig, leseVersion(konfig.wurzel));
+	const kontext = erstelleKontext(konfig, leseVersion(konfig.wurzel), (dokDir) => baueVorschau(konfig, dokDir));
 	const ueberwachung = await starteUeberwachung(kontext);
+	const aufraeumen = starteAufraeumen(kontext);
 	const server = erstelleApp(kontext).listen(konfig.portNummer, konfig.hostName, () => {
 		console.log(`Schoolbox ${kontext.version} läuft auf http://${konfig.hostName}:${konfig.portNummer}`);
 		console.log(`Ablage: ${konfig.materialDir}`);
@@ -48,6 +50,7 @@ const starte = async () => {
 	const beenden = (signal: string) => {
 		console.log(`${signal} erhalten, Schoolbox wird beendet.`);
 		ueberwachung.stop();
+		aufraeumen.stop();
 		server.close(() => process.exit(0));
 		server.closeAllConnections();
 		setTimeout(() => process.exit(0), SCHLIESSEN_MS).unref();

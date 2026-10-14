@@ -17,6 +17,7 @@ import type { Sitzung } from './sitzung';
 import { signiereSitzung, SITZUNG_COOKIE } from './sitzung';
 import type { Ueberwachung } from './ueberwachung';
 import { starteUeberwachung } from './ueberwachung';
+import type { VorschauBauer } from './vorschau';
 
 type Init = NonNullable<Parameters<typeof fetch>[1]>;
 
@@ -39,10 +40,19 @@ export interface TestServer {
 export const sitzungsCookie = (konfig: ServerKonfig, sitzung: Partial<Sitzung> = {}) =>
 	`${SITZUNG_COOKIE}=${signiereSitzung(konfig, { ausgestellt: Date.now(), dauerhaft: true, ...sitzung })}`;
 
-export const starteTestServer = async (
-	optionen: { ueberwachung?: boolean; ruheMs?: number; webDist?: boolean } = {},
-) => {
-	const materialDir = await mkdtemp(path.join(tmpdir(), 'schoolbox-server-'));
+export interface TestServerOptionen {
+	ueberwachung?: boolean;
+	ruheMs?: number;
+	/** `true`: leerer Ordner für eine eigene index.html. Ein Pfad: diese gebaute Oberfläche. */
+	webDist?: boolean | string;
+	vorschauBauer?: VorschauBauer;
+	/** Fester Port und feste Ablage für die Browser-Tests; sonst ein freier Port und ein neuer Ordner in /tmp. */
+	port?: number;
+	materialDir?: string;
+}
+
+export const starteTestServer = async (optionen: TestServerOptionen = {}) => {
+	const materialDir = optionen.materialDir ?? (await mkdtemp(path.join(tmpdir(), 'schoolbox-server-')));
 	const env = {
 		MATERIAL_DIR: materialDir,
 		PORT: '4999',
@@ -50,15 +60,18 @@ export const starteTestServer = async (
 		SITZUNG_GEHEIMNIS: TEST_GEHEIMNIS,
 	};
 	const konfig = pruefeServerKonfig(ladeKonfig(env, materialDir));
-	const kontext = erstelleKontext(konfig, 'test');
+	const kontext = erstelleKontext(konfig, 'test', optionen.vorschauBauer);
 	const ueberwachung: Ueberwachung | null = optionen.ueberwachung
 		? await starteUeberwachung(kontext, optionen.ruheMs)
 		: null;
-	const webDist = await mkdtemp(path.join(tmpdir(), optionen.webDist ? 'schoolbox-web-' : 'schoolbox-kein-web-'));
+	const webDist =
+		typeof optionen.webDist === 'string'
+			? optionen.webDist
+			: await mkdtemp(path.join(tmpdir(), optionen.webDist ? 'schoolbox-web-' : 'schoolbox-kein-web-'));
 	if (!optionen.webDist) {
 		await rm(webDist, { recursive: true });
 	}
-	const server = erstelleApp(kontext, webDist).listen(0, '127.0.0.1');
+	const server = erstelleApp(kontext, webDist).listen(optionen.port ?? 0, '127.0.0.1');
 	await new Promise<void>((resolve) => server.once('listening', resolve));
 	const { port } = server.address() as AddressInfo;
 	const stop = async () => {

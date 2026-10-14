@@ -8,10 +8,11 @@ export interface DokumentGeaendert {
 }
 
 type DokumentEreignis = { typ: 'dokument-geaendert'; daten: DokumentGeaendert };
-type MappeEreignis = { typ: 'mappe-neu'; daten: { mappe: string } };
+type MappeEreignis = { typ: 'mappe-neu' | 'mappe-entfernt'; daten: { mappe: string } };
 type PdfEreignis = { typ: 'pdf-fertig'; daten: { mappe: string; dok: string } };
+type VorschauEreignis = { typ: 'vorschau-fertig'; daten: { mappe: string; dok: string } };
 
-export type Ereignis = DokumentEreignis | MappeEreignis | PdfEreignis;
+export type Ereignis = DokumentEreignis | MappeEreignis | PdfEreignis | VorschauEreignis;
 
 export type Hoerer = (ereignis: Ereignis) => void;
 

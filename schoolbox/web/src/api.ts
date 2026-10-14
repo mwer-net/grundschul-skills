@@ -8,7 +8,17 @@ export class ApiFehler extends Error {
 	}
 }
 
+export const ANMELDE_SEITE = '/anmelden';
 const NICHT_ERREICHBAR = 'Die Schoolbox ist gerade nicht erreichbar. Bitte versuch es gleich noch einmal.';
+
+/** Nur Pfade auf dieser Seite; `//andere.seite` oder `https://…` würden sonst nach außen führen. */
+export const sichererPfad = (weiter: string | null) =>
+	weiter && weiter.startsWith('/') && !weiter.startsWith('//') && !weiter.startsWith('/\\') ? weiter : '/';
+
+export const zurAnmeldung = () => {
+	const weiter = `${window.location.pathname}${window.location.search}`;
+	window.location.replace(`${ANMELDE_SEITE}?weiter=${encodeURIComponent(weiter)}`);
+};
 
 const auswerten = async <T>(antwort: Response): Promise<T> => {
 	const daten = (await antwort.json().catch(() => ({}))) as T & { fehler?: string };
@@ -25,6 +35,10 @@ const anfrage = async <T>(url: string, init?: RequestInit): Promise<T> => {
 	} catch {
 		throw new ApiFehler(0, NICHT_ERREICHBAR);
 	}
+	// Abgelaufene Sitzung mitten im Arbeiten: zur Anmeldung und danach zurück auf diese Seite
+	if (antwort.status === 401 && window.location.pathname !== ANMELDE_SEITE) {
+		zurAnmeldung();
+	}
 	return auswerten<T>(antwort);
 };
 
@@ -38,13 +52,9 @@ export const sende = <T>(url: string, daten: unknown = {}) =>
 		body: JSON.stringify(daten),
 	});
 
-export const ANMELDE_SEITE = '/anmelden';
+export const meldung = (fehler: unknown) => (fehler instanceof Error ? fehler.message : NICHT_ERREICHBAR);
 
-/** Nur Pfade auf dieser Seite; `//andere.seite` oder `https://…` würden sonst nach außen führen. */
-export const sichererPfad = (weiter: string | null) =>
-	weiter && weiter.startsWith('/') && !weiter.startsWith('//') && !weiter.startsWith('/\\') ? weiter : '/';
+export const vorschauAdresse = (mappe: string, dok: string, kennung: string) =>
+	`/ansicht/${mappe}/dokumente/${dok}/ausgabe/material-s1.png?v=${kennung}`;
 
-export const zurAnmeldung = () => {
-	const weiter = `${window.location.pathname}${window.location.search}`;
-	window.location.replace(`${ANMELDE_SEITE}?weiter=${encodeURIComponent(weiter)}`);
-};
+export const ansichtAdresse = (mappe: string, dok: string) => `/ansicht/${mappe}/dokumente/${dok}/`;

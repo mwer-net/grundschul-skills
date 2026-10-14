@@ -7,16 +7,23 @@
 	"scripts": {
 		"dev": "vite",
 		"build": "tsc --noEmit && vite build",
-		"typecheck": "tsc --noEmit"
+		"typecheck": "tsc --noEmit",
+		"e2e": "pnpm run build && playwright test",
+		"e2e:browser": "PLAYWRIGHT_SKIP_BROWSER_GC=1 playwright install webkit chromium"
 	},
 	"dependencies": {
 		"react": "^19.0.0",
-		"react-dom": "^19.0.0"
+		"react-dom": "^19.0.0",
+		"react-router-dom": "^7.18.4"
 	},
 	"devDependencies": {
+		"@playwright/test": "^1.64.0",
+		"@schoolbox/kern": "workspace:*",
+		"@tailwindcss/vite": "^4.3.3",
 		"@types/react": "^19.0.0",
 		"@types/react-dom": "^19.0.0",
 		"@vitejs/plugin-react": "^5.0.0",
+		"tailwindcss": "^4.3.3",
 		"vite": "^7.0.0"
 	}
 }

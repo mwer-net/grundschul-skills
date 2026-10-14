@@ -6,11 +6,11 @@ import type { Ziel } from './ablage';
 import {
 	leseMappe,
 	leseMeta,
-	listeMappen,
 	neueMappe,
 	neuesDokument,
 	notiereWunsch,
 	registriereEntwuerfe,
+	sammleMappen,
 	waehleEntwurf,
 	zerlegeZiel,
 } from './ablage';
@@ -167,14 +167,15 @@ const befehlLink = async (konfig: Konfig, argumente: string[]): Promise<Ergebnis
 const befehlListe = async (konfig: Konfig, argumente: string[]): Promise<Ergebnis> => {
 	const { values } = lies(argumente, { fach: { type: 'string' }, suche: { type: 'string' } });
 	const fach = values.fach === undefined ? undefined : waehleWert('Fach', values.fach, FAECHER);
-	const eintraege = await listeMappen(konfig.materialDir, { fach, suche: values.suche });
-	const zeilen = eintraege.flatMap(({ dokumente, mappe }) => [
+	const { defekt, mappen } = await sammleMappen(konfig.materialDir, { fach, suche: values.suche });
+	const zeilen = mappen.flatMap(({ dokumente, mappe }) => [
 		`${mappe.id}  ${mappe.titel} · ${mappe.fach} · Kl. ${mappe.klasse} · ${mappe.status} · geändert ${mappe.geaendert.slice(0, 10)}`,
 		...dokumente.map(({ id, meta }) => `    ${id}  ${meta.titel} · ${meta.art} · ${meta.format} · ${meta.status}`),
 	]);
+	const kaputt = defekt.map((d) => `${d.id}  NICHT LESBAR: ${d.fehler.replace(/\n\s*/g, ' ')}`);
 	return {
-		daten: { mappen: eintraege },
-		text: zeilen.length > 0 ? zeilen.join('\n') : 'Keine Mappen gefunden.',
+		daten: { mappen, defekt },
+		text: [...(zeilen.length > 0 ? zeilen : ['Keine Mappen gefunden.']), ...kaputt].join('\n'),
 	};
 };
 

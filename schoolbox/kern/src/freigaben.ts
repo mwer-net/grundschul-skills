@@ -117,3 +117,13 @@ export const widerrufeFreigabe = async (
 	}
 	return freigabe;
 };
+
+/** Entfernt alle Teilen-Links dieser Mappen, z. B. nachdem sie endgültig gelöscht wurden. Gibt die Anzahl zurück. */
+export const entferneFreigabenVon = async (materialDir: string, mappen: readonly string[]): Promise<number> => {
+	const freigaben = await leseFreigaben(materialDir);
+	const bleiben = freigaben.filter((f) => !mappen.includes(f.ziel.mappe));
+	if (bleiben.length < freigaben.length) {
+		await schreibeFreigaben(materialDir, bleiben);
+	}
+	return freigaben.length - bleiben.length;
+};

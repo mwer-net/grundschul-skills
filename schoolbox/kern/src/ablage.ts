@@ -1,11 +1,13 @@
+import { randomBytes } from 'node:crypto';
 import { existsSync } from 'node:fs';
-import { mkdir, readdir, readFile, rm } from 'node:fs/promises';
+import { cp, mkdir, readdir, readFile, rename, rm } from 'node:fs/promises';
 import path from 'node:path';
 
-import { kopiereAtomar, schreibeAtomar, schreibeJson } from './atomar';
+import { istTempDatei, kopiereAtomar, schreibeAtomar, schreibeJson } from './atomar';
 import { SchoolboxFehler } from './fehler';
 import { entwurfAusTitel, formatAusHtml, setzeBodyKlassen, setzeTitel, titelAusHtml } from './html';
 import { ASSETS } from './konfig';
+import { idsImPapierkorb } from './papierkorb';
 import type { DokumentMeta, Entwurf, Mappe } from './schema';
 import { ID_MUSTER, MAPPE_SCHEMA, META_SCHEMA, verlangeSchema } from './schema';
 import { eindeutigeId, lokalesDatum, mappenSlug, slug } from './slug';
@@ -15,6 +17,8 @@ import type { Art, Druckprofil, Fach, Format, Klasse, Status } from './werte';
 
 export const WUENSCHE_DATEI = '_wuensche.md';
 const MAX_ENTWUERFE = 3;
+/** Je Dokument: Was sich neu erzeugen lässt oder zur Geschichte des Originals gehört, wandert nicht in eine Kopie. */
+const NICHT_KOPIEREN = ['versionen', 'ausgabe'];
 const ID_REGEX = new RegExp(ID_MUSTER);
 
 const GERUEST = `<!doctype html>
@@ -109,9 +113,14 @@ export interface NeueMappe {
 	klasse: Klasse;
 }
 
+const freieMappenId = (materialDir: string, basis: string) => {
+	const imPapierkorb = idsImPapierkorb(materialDir);
+	return eindeutigeId(basis, (k) => imPapierkorb.has(k) || existsSync(path.join(materialDir, k)));
+};
+
 export const neueMappe = async (materialDir: string, { fach, klasse, titel }: NeueMappe, jetzt = new Date()) => {
 	await mkdir(materialDir, { recursive: true });
-	const id = eindeutigeId(mappenSlug(titel, fach, klasse, jetzt), (k) => existsSync(path.join(materialDir, k)));
+	const id = freieMappenId(materialDir, mappenSlug(titel, fach, klasse, jetzt));
 	const dir = mappenDir(materialDir, id);
 	await mkdir(dir);
 	await mkdir(path.join(dir, 'bilder'));
@@ -267,6 +276,41 @@ export const leseMappenEintrag = async (materialDir: string, id: string): Promis
 	return { mappe, dokumente };
 };
 
+/**
+ * Kopie einer Mappe, z. B. für die Parallelklasse: alles außer Versionen und Ausgaben, Titel „… (Kopie)“. Teilen-Links
+ * hängen an der ID und gelten für die Kopie nicht. Die Kopie entsteht unter einem Punkt-Namen und erscheint erst
+ * vollständig in der Ablage.
+ */
+export const dupliziereMappe = async (materialDir: string, mappeId: string, jetzt = new Date()): Promise<Mappe> => {
+	const { dokumente, mappe: vorlage } = await leseMappenEintrag(materialDir, mappeId);
+	const titel = `${vorlage.titel} (Kopie)`;
+	const id = freieMappenId(materialDir, mappenSlug(titel, vorlage.fach, vorlage.klasse, jetzt));
+	const quelle = mappenDir(materialDir, mappeId);
+	const bau = path.join(materialDir, `.${id}.${randomBytes(4).toString('hex')}.tmp`);
+	const zeit = jetzt.toISOString();
+	const kopieren = (von: string) => {
+		const [ordner, , unterordner, ...rest] = path.relative(quelle, von).split(path.sep);
+		const ausgelassen = ordner === 'dokumente' && rest.length === 0 && NICHT_KOPIEREN.includes(unterordner ?? '');
+		return !ausgelassen && !istTempDatei(path.basename(von));
+	};
+	try {
+		await cp(quelle, bau, { recursive: true, filter: kopieren });
+		for (const { id: dok, meta } of dokumente) {
+			const dir = path.join(bau, 'dokumente', dok);
+			await Promise.all(NICHT_KOPIEREN.map((ordner) => mkdir(path.join(dir, ordner), { recursive: true })));
+			await schreibeJson(path.join(dir, 'meta.json'), { ...meta, erstellt: zeit, geaendert: zeit });
+			await legeVersionAn(dir, 'lehrkraft', jetzt);
+		}
+		const mappe: Mappe = { ...vorlage, id, titel, erstellt: zeit, geaendert: zeit };
+		await schreibeJson(path.join(bau, 'mappe.json'), mappe);
+		await rename(bau, mappenDir(materialDir, id));
+		return mappe;
+	} catch (fehler) {
+		await rm(bau, { recursive: true, force: true });
+		throw fehler;
+	}
+};
+
 const faltung = (text: string) => slug(text, Infinity).replace(/-/g, ' ');
 
 export interface MappenFilter {
@@ -276,12 +320,41 @@ export interface MappenFilter {
 	suche?: string;
 }
 
-export const listeMappen = async (materialDir: string, filter: MappenFilter = {}) => {
+export interface DefekteMappe {
+	id: string;
+	fehler: string;
+}
+
+export interface MappenListe {
+	mappen: MappenEintrag[];
+	/** Mappen, deren mappe.json oder meta.json sich nicht lesen lässt (Claude schreibt sie von Hand). */
+	defekt: DefekteMappe[];
+}
+
+const leseEintragOderFehler = async (materialDir: string, id: string): Promise<MappenEintrag | DefekteMappe> => {
+	try {
+		const eintrag = await leseMappenEintrag(materialDir, id);
+		if (eintrag.mappe.id !== id) {
+			throw new SchoolboxFehler(`mappe.json nennt die ID „${eintrag.mappe.id}“, der Ordner heißt „${id}“.`);
+		}
+		return eintrag;
+	} catch (fehler) {
+		if (!(fehler instanceof SchoolboxFehler)) {
+			throw fehler;
+		}
+		return { id, fehler: fehler.message.replaceAll(`${materialDir}${path.sep}`, '') };
+	}
+};
+
+/** Wie `listeMappen`, nur bricht eine einzelne kaputte Mappe nicht die ganze Liste ab: Sie steht unter `defekt`. */
+export const sammleMappen = async (materialDir: string, filter: MappenFilter = {}): Promise<MappenListe> => {
 	const namen = await readdir(materialDir).catch(() => []);
 	const kandidaten = namen.filter((n) => ID_REGEX.test(n) && existsSync(path.join(materialDir, n, 'mappe.json')));
-	const eintraege = await Promise.all(kandidaten.map((id) => leseMappenEintrag(materialDir, id)));
+	const gelesen = await Promise.all(kandidaten.map((id) => leseEintragOderFehler(materialDir, id)));
+	const eintraege = gelesen.filter((g): g is MappenEintrag => 'mappe' in g);
+	const defekt = gelesen.filter((g): g is DefekteMappe => 'fehler' in g);
 	const suche = filter.suche ? faltung(filter.suche) : '';
-	return eintraege
+	const mappen = eintraege
 		.filter(({ mappe }) => !filter.fach || mappe.fach === filter.fach)
 		.filter(({ mappe }) => filter.klasse === undefined || mappe.klasse === filter.klasse)
 		.filter(({ mappe }) => !filter.status || mappe.status === filter.status)
@@ -290,7 +363,11 @@ export const listeMappen = async (materialDir: string, filter: MappenFilter = {}
 			return suche.split(' ').every((wort) => text.includes(wort));
 		})
 		.sort((a, b) => b.mappe.geaendert.localeCompare(a.mappe.geaendert));
+	return { mappen, defekt };
 };
+
+export const listeMappen = async (materialDir: string, filter: MappenFilter = {}) =>
+	(await sammleMappen(materialDir, filter)).mappen;
 
 export const notiereWunsch = async (materialDir: string, text: string, jetzt = new Date()) => {
 	const wunsch = text.trim().replace(/\s*\n\s*/g, ' ');

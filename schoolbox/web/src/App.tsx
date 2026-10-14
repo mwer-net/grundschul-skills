@@ -1,17 +1,28 @@
-import { Anmeldung } from './Anmeldung';
+import { BrowserRouter, Route, Routes } from 'react-router-dom';
+
 import { ANMELDE_SEITE } from './api';
-import { Geteilt } from './Geteilt';
-import { Start } from './Start';
+import { HinweisAnbieter } from './bausteine/Hinweisleiste';
+import { Rahmen } from './bausteine/Rahmen';
+import { Anmeldung } from './seiten/Anmeldung';
+import { Geteilt } from './seiten/Geteilt';
+import { Mappenansicht } from './seiten/Mappenansicht';
+import { NichtGefunden } from './seiten/NichtGefunden';
+import { Papierkorb } from './seiten/Papierkorb';
+import { Uebersicht } from './seiten/Uebersicht';
 
-const pfad = window.location.pathname;
-const teilenToken = /^\/f\/([^/]+)/.exec(pfad)?.[1];
-
-export const App = () => {
-	if (pfad === ANMELDE_SEITE) {
-		return <Anmeldung />;
-	}
-	if (teilenToken) {
-		return <Geteilt token={teilenToken} />;
-	}
-	return <Start />;
-};
+export const App = () => (
+	<BrowserRouter>
+		<HinweisAnbieter>
+			<Routes>
+				<Route path={ANMELDE_SEITE} element={<Anmeldung />} />
+				<Route path="/f/:token/*" element={<Geteilt />} />
+				<Route element={<Rahmen />}>
+					<Route index element={<Uebersicht />} />
+					<Route path="m/:mappe/:dok?" element={<Mappenansicht />} />
+					<Route path="papierkorb" element={<Papierkorb />} />
+					<Route path="*" element={<NichtGefunden />} />
+				</Route>
+			</Routes>
+		</HinweisAnbieter>
+	</BrowserRouter>
+);
