@@ -3,7 +3,7 @@ import path from 'node:path';
 
 import type { Download, Page } from '@playwright/test';
 
-import { expect, legeMappeAn, PASSWORT, test } from './hilfe';
+import { expect, legeEntwuerfeAn, legeMappeAn, PASSWORT, test, waehle } from './hilfe';
 
 const KLEINSTE_TIPPFLAECHE = 44;
 
@@ -26,6 +26,32 @@ const herbst = () =>
 
 /** WebKit unter Linux macht im Download-Namen aus Leerzeichen `_`; Umlaute und Gedankenstrich bleiben. */
 const dateiname = async (download: Promise<Download>) => (await download).suggestedFilename().replaceAll('_', ' ');
+
+/** Sichtbare Links, Knöpfe und Felder, die kleiner sind als eine Fingerspitze. */
+const zuKleinAuf = (page: Page) =>
+	page.evaluate((minimum) => {
+		const sichtbar = [...document.querySelectorAll<HTMLElement>('a, button, input')].filter(
+			(e) => e.getClientRects().length > 0 && !e.classList.contains('sr-only'),
+		);
+		return sichtbar
+			.filter((e) => {
+				const { height, width } = e.getBoundingClientRect();
+				return height < minimum || width < minimum;
+			})
+			.map((e) => `${e.tagName} „${e.textContent || e.getAttribute('aria-label')}“`);
+	}, KLEINSTE_TIPPFLAECHE);
+
+/** Eine Uhrzeit-Mappe mit einem Arbeitsblatt und drei Entwürfen; B passt nicht auf die Seite. */
+const uhrzeitMitEntwuerfen = async () => {
+	const { dokumente, id } = await legeMappeAn('Uhrzeit', 'mathematik', 2, [{ titel: 'Uhrzeit ablesen' }]);
+	const dok = dokumente[0] ?? '';
+	await legeEntwuerfeAn(id, dok, [
+		{ titel: 'Uhren lesen – nur Aufgaben' },
+		{ titel: 'Willis Tag – Geschichte als Rahmen', passt: false },
+		{ titel: 'Uhren-Rallye – Stationen im Klassenzimmer' },
+	]);
+	return { id, dok };
+};
 
 const blattGeladen = (page: Page) => expect(page.locator('[data-blattansicht][data-geladen]')).toBeVisible();
 
@@ -316,21 +342,104 @@ test.describe('Dokument und PDF', () => {
 	});
 });
 
+test.describe('Entwürfe', () => {
+	test('drei Entwürfe nebeneinander bzw. zum Wischen, ohne Auswahlknopf; was nicht passt, ist markiert', async ({
+		druecke,
+		page,
+	}) => {
+		const { dok, id } = await uhrzeitMitEntwuerfen();
+		await page.goto(`/m/${id}`);
+		const kachel = page.locator(`[data-dokument="${dok}"]`);
+		await expect(kachel.locator('[data-entwurf-minis] img')).toHaveCount(3);
+		await expect(kachel.getByRole('button', { name: 'PDF' })).toHaveCount(0);
+		await druecke(kachel.getByRole('link', { name: 'Entwürfe vergleichen' }));
+		await expect(page).toHaveURL(new RegExp(`/m/${id}/${dok}/entwuerfe$`));
+
+		await expect(page.getByText('Schreib Claude, welcher Entwurf es werden soll')).toBeVisible();
+		await expect(page.getByRole('button', { name: /wähl/i })).toHaveCount(0);
+		const entwuerfe = page.locator('[data-entwurf]');
+		await expect(entwuerfe).toHaveCount(3);
+		await expect(entwuerfe.nth(0)).toContainText('Uhren lesen');
+		await expect(entwuerfe.nth(0)).toContainText('nur Aufgaben');
+		await expect(entwuerfe.nth(0).locator('[data-status="passt"]')).toBeVisible();
+		await expect(entwuerfe.nth(1).locator('[data-status="passt-nicht"]')).toHaveText(
+			'Passt nicht ganz auf die Seite',
+		);
+		for (const nr of [0, 1, 2]) {
+			await expect(entwuerfe.nth(nr).locator('img')).toHaveJSProperty('complete', true);
+		}
+
+		const { height, width } = page.viewportSize() ?? { height: 0, width: 0 };
+		const kaesten = await Promise.all([0, 1, 2].map((nr) => entwuerfe.nth(nr).boundingBox()));
+		if (width >= 1024) {
+			// Mac und iPad quer: alle drei ganz im Bild, gleich groß, nebeneinander
+			for (const kasten of kaesten) {
+				expect(kasten).not.toBeNull();
+				expect((kasten?.y ?? 0) + (kasten?.height ?? 0)).toBeLessThanOrEqual(height);
+				expect((kasten?.x ?? 0) + (kasten?.width ?? 0)).toBeLessThanOrEqual(width);
+				expect(kasten?.width).toBeCloseTo(kaesten[0]?.width ?? 0, 0);
+				expect(kasten?.y).toBeCloseTo(kaesten[0]?.y ?? 0, 0);
+			}
+		} else {
+			// iPad hoch: A ist zu sehen, C liegt rechts daneben und kommt durch Wischen ins Bild
+			expect(kaesten[0]?.x ?? -1).toBeGreaterThanOrEqual(0);
+			expect(kaesten[2]?.x ?? 0).toBeGreaterThan(width);
+			await page.locator('[data-entwuerfe]').evaluate((liste) => liste.scrollBy({ left: liste.scrollWidth }));
+			await expect(entwuerfe.nth(2)).toBeInViewport({ ratio: 0.9 });
+		}
+		expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true);
+		expect(await zuKleinAuf(page)).toEqual([]);
+	});
+
+	test('öffnet einen Entwurf groß und blättert zum nächsten', async ({ druecke, page }) => {
+		const { dok, id } = await uhrzeitMitEntwuerfen();
+		await page.goto(`/m/${id}/${dok}/entwuerfe`);
+		await druecke(page.locator('[data-entwurf="B"] a'));
+		await expect(page).toHaveURL(new RegExp('/entwuerfe/B$'));
+		await expect(page.getByRole('heading', { level: 1 })).toHaveText('Entwurf B: Willis Tag');
+		await blattGeladen(page);
+		const blatt = page.locator('[data-blattansicht] iframe').last();
+		await expect(blatt).toHaveAttribute('src', `/ansicht/${id}/dokumente/${dok}/?entwurf=B`);
+		await expect(page.frameLocator('[data-blattansicht] iframe').last().getByText('Inhalt B')).toBeVisible();
+		await expect(page.locator('[data-meldungen]')).toContainText('ragt über das Blatt hinaus');
+
+		await druecke(page.getByRole('link', { name: 'Entwurf C' }));
+		await expect(page).toHaveURL(new RegExp('/entwuerfe/C$'));
+		await expect(page.locator('[data-meldungen]')).toHaveCount(0);
+		await expect(page.frameLocator('[data-blattansicht] iframe').last().getByText('Inhalt C')).toBeVisible();
+		await druecke(page.getByRole('link', { name: 'Alle Entwürfe' }));
+		await expect(page).toHaveURL(new RegExp(`/m/${id}/${dok}/entwuerfe$`));
+	});
+
+	test('nach „schoolbox waehle … B“ zeigt die Dokumentseite B, die Entwürfe bleiben erreichbar', async ({
+		druecke,
+		page,
+	}) => {
+		const { dok, id } = await uhrzeitMitEntwuerfen();
+		await page.goto(`/m/${id}/${dok}`);
+		await expect(page.locator('[data-entwuerfe-offen]')).toBeVisible();
+
+		await waehle(id, dok, 'B');
+		await expect(page.locator('[data-entwuerfe-offen]')).toHaveCount(0);
+		await expect(page.frameLocator('[data-blattansicht] iframe').last().getByText('Inhalt B')).toBeVisible();
+
+		await druecke(page.getByRole('link', { name: 'Entwürfe', exact: true }));
+		await expect(page).toHaveURL(new RegExp(`/m/${id}/${dok}/entwuerfe$`));
+		await expect(page.getByText('Entwurf B ist gewählt.')).toBeVisible();
+		await expect(page.locator('[data-entwurf="B"]')).toContainText('Gewählt');
+		await expect(page.locator('[data-entwurf]')).toHaveCount(3);
+
+		await page.goto(`/m/${id}`);
+		const kachel = page.locator(`[data-dokument="${dok}"]`);
+		await expect(kachel.getByRole('link', { name: 'Ansehen' })).toBeVisible();
+		await expect(kachel.locator('[data-entwurf-minis]')).toHaveCount(0);
+	});
+});
+
 test.describe('Bedienung', () => {
 	test('alles Bedienbare ist groß genug für den Finger', async ({ druecke, page }) => {
 		const { id } = await dreiMappen();
-		const zuKlein = () =>
-			page.evaluate((minimum) => {
-				const sichtbar = [...document.querySelectorAll<HTMLElement>('a, button, input')].filter(
-					(e) => e.getClientRects().length > 0 && !e.classList.contains('sr-only'),
-				);
-				return sichtbar
-					.filter((e) => {
-						const { height, width } = e.getBoundingClientRect();
-						return height < minimum || width < minimum;
-					})
-					.map((e) => `${e.tagName} „${e.textContent || e.getAttribute('aria-label')}“`);
-			}, KLEINSTE_TIPPFLAECHE);
+		const zuKlein = () => zuKleinAuf(page);
 
 		await page.goto('/');
 		await expect(page.locator('[data-mappe]')).toHaveCount(3);

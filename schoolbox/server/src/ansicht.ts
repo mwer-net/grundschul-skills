@@ -17,6 +17,15 @@ const CSS_URL = /url\((?!data:)([^)]+)\)/g;
 
 const nichtGefunden = () => new HttpFehler(404, 'Nicht gefunden.');
 
+const leseEntwurf = async (dokDir: string, name: unknown) => {
+	if (typeof name !== 'string' || !/^[A-Z]$/.test(name)) {
+		throw new HttpFehler(400, 'Ungültiger Entwurf.');
+	}
+	return readFile(path.join(dokDir, 'entwuerfe', `${name}.html`), 'utf8').catch(() => {
+		throw nichtGefunden();
+	});
+};
+
 /**
  * Pfadteile aus der URL. Browser lösen `.` und `..` selbst auf, echte Seiten schicken sie also nie. Express
  * dekodiert `%2f` innerhalb eines Teils zu `/`; auch das ist ein Angriff, kein Dateiname.
@@ -120,7 +129,10 @@ export const ansichtRouter = (kontext: Kontext) => {
 
 	router.get('/:mappe/dokumente/:dok/', async (req, res) => {
 		const dir = verlangeDokument(kontext, req.params.mappe, req.params.dok);
-		const html = darstellungsHtml(await leseQuelle(dir), { loesung: req.query.loesung === '1' });
+		const { entwurf, loesung } = req.query;
+		// Ein Entwurf unter derselben Adresse wie material.html: Relative Pfade gelten wie nach `schoolbox waehle`.
+		const quelle = entwurf === undefined ? await leseQuelle(dir) : await leseEntwurf(dir, entwurf);
+		const html = darstellungsHtml(quelle, { loesung: loesung === '1' });
 		res.set('Cache-Control', 'no-store').type('html').send(html);
 	});
 

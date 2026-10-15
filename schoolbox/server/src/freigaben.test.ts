@@ -53,6 +53,7 @@ describe('Teilen-Links', () => {
 		await mkdir(path.join(a.dir, 'versionen'), { recursive: true });
 		await writeFile(path.join(a.dir, 'versionen', 'alt.html'), 'ALTER-STAND');
 		await writeFile(path.join(a.dir, 'entwuerfe', 'A.html'), 'ENTWURF');
+		await writeFile(path.join(a.dir, 'entwurf-a.html'), 'ENTWURF');
 		andereMappe = (await legeDokumentAn(s.materialDir, { jetzt: new Date('2026-01-01T00:00:00Z') })).mappe;
 	});
 	after(() => s.stop());
@@ -120,6 +121,8 @@ describe('Teilen-Links', () => {
 			`/f/${token}/ansicht/${mappe}/dokumente//${dokB}/`,
 			`${a}versionen/alt.html`,
 			`${a}entwuerfe/A.html`,
+			`${a}?entwurf=A`,
+			`${a}entwurf-a.html`,
 			`${a}meta.json`,
 			`/f/${token}/ansicht/${mappe}/mappe.json`,
 			`/f/${token}/ansicht/${andereMappe}/dokumente/blatt/`,

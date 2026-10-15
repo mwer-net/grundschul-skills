@@ -1,4 +1,5 @@
 import { SchoolboxFehler } from './fehler';
+import type { Meldung } from './meldungen';
 import type { Art, Druckprofil, Fach, Format, Klasse, Status } from './werte';
 import { ARTEN, DRUCKPROFILE, FAECHER, FORMATE, KLASSEN, STATUS } from './werte';
 
@@ -19,10 +20,21 @@ export interface Pruefung {
 	hinweise: number;
 }
 
+/** Was `schoolbox entwuerfe` beim Bau der Vorschau über einen Entwurf herausfindet. */
+export interface EntwurfPruefung {
+	seiten: number;
+	/** Wie in `blatt.py uebersicht`: Kein FEHLER betrifft die Seite. */
+	passt: boolean;
+	/** Nur die FEHLER aus dem Prüfbericht. */
+	meldungen: Meldung[];
+}
+
 export interface Entwurf {
 	name: string;
 	titel: string;
 	idee: string;
+	/** Fehlt, solange es keine Vorschau gibt (oder ihr Bau gescheitert ist). */
+	pruefung?: EntwurfPruefung;
 }
 
 export interface DokumentMeta {
@@ -36,6 +48,8 @@ export interface DokumentMeta {
 	seiten: number;
 	pruefung: Pruefung | null;
 	entwuerfe: Entwurf[];
+	/** Buchstabe des Entwurfs, den `schoolbox waehle` übernommen hat; eine neue Runde setzt ihn zurück. */
+	gewaehlt?: string | null;
 	erstellt: string;
 	geaendert: string;
 }
@@ -56,6 +70,7 @@ export interface JsonSchema {
 export const ID_MUSTER = '^[a-z0-9]+(-[a-z0-9]+)*$';
 const ZEIT: JsonSchema = { type: 'string', format: 'date-time' };
 const ANZAHL: JsonSchema = { type: 'integer', minimum: 0 };
+const ENTWURF_NAME = '^[A-Z]$';
 
 export const MAPPE_SCHEMA: JsonSchema = {
 	$schema: 'https://json-schema.org/draft/2020-12/schema',
@@ -112,12 +127,33 @@ export const META_SCHEMA: JsonSchema = {
 				type: 'object',
 				required: ['name', 'titel', 'idee'],
 				properties: {
-					name: { type: 'string', pattern: '^[A-Z]$' },
+					name: { type: 'string', pattern: ENTWURF_NAME },
 					titel: { type: 'string' },
 					idee: { type: 'string' },
+					pruefung: {
+						type: 'object',
+						required: ['seiten', 'passt', 'meldungen'],
+						properties: {
+							seiten: ANZAHL,
+							passt: { type: 'boolean' },
+							meldungen: {
+								type: 'array',
+								items: {
+									type: 'object',
+									required: ['stufe', 'seite', 'text'],
+									properties: {
+										stufe: { enum: ['FEHLER', 'WARNUNG', 'HINWEIS'] },
+										seite: ANZAHL,
+										text: { type: 'string' },
+									},
+								},
+							},
+						},
+					},
 				},
 			},
 		},
+		gewaehlt: { type: ['string', 'null'], pattern: ENTWURF_NAME },
 		erstellt: ZEIT,
 		geaendert: ZEIT,
 	},

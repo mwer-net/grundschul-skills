@@ -38,6 +38,8 @@ Keine Lösungen, keine Rechenprüfung aller Items, kein Lösungsblatt: das kommt
 2. `python3 scripts/blatt.py uebersicht a.html b.html c.html -o ordner/` legt die Seiten nebeneinander (`entwuerfe.png`, `entwuerfe.html`) und markiert, ob jeder Entwurf auf die Seite passt.
 3. Das Bild der Lehrkraft zeigen; wo nur Artefakte gehen, `entwuerfe.html` als Artefakt.
 
+Mit Schoolbox: Entwürfe mit `schoolbox entwuerfe` registrieren und den Link geben statt des Bildes. Der Befehl prüft die Entwürfe selbst und meldet, ob sie auf die Seite passen; Schritt 2 entfällt dann (Ablauf in `html-materialerstellung`, Abschnitt „Mit Schoolbox“).
+
 Die Vorschau zeigt jeden Entwurf im echten Format, Druckprofil und in der Schriftgröße der Klasse, so wie er gedruckt wird. Ein Entwurf, der nicht passt, wird rot markiert; viel ungenutzter Platz wird gemeldet.
 
 **Ohne Code-Ausführung: Textskizze** im Chat, je Entwurf höchstens 8 Zeilen:

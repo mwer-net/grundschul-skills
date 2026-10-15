@@ -73,6 +73,21 @@ describe('/ansicht', () => {
 		assert.equal(eigen, 'body{background:url("bilder/eigen.png")}');
 	});
 
+	it('zeigt mit ?entwurf=B den Entwurf unter der Adresse des Dokuments, damit relative Pfade stimmen', async () => {
+		const dokDir = path.join(s.materialDir, mappe, 'dokumente', path.basename(basis));
+		await writeFile(
+			path.join(dokDir, 'entwuerfe', 'B.html'),
+			'<html><head><title>B · Zwei</title></head><body class="kl2 sw"><img src="bilder/eigen.png"></body></html>',
+		);
+		const html = await (await s.holen(`${basis}?entwurf=B&loesung=1`)).text();
+		assert.match(html, /<title>B · Zwei<\/title>/);
+		assert.match(html, /<body class="kl2 sw loesung"/);
+		assert.equal((await s.holen(new URL('bilder/eigen.png', `${basis}?entwurf=B`))).status, 200);
+		assert.equal((await s.holen(`${basis}?entwurf=C`)).status, 404);
+		assert.equal((await s.holen(`${basis}?entwurf=..%2fmaterial`)).status, 400);
+		assert.equal((await s.holen(`${basis}?entwurf=b`)).status, 400);
+	});
+
 	it('setzt @page für Formate außer A4 hoch wie blatt.py', async () => {
 		const quer = await legeDokumentAn(s.materialDir, { format: 'a4-quer' });
 		const html = await (await s.holen(`${s.url}/ansicht/${quer.mappe}/dokumente/${quer.dok}/`)).text();

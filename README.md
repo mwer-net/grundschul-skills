@@ -115,6 +115,8 @@ Ein typischer Ablauf aus einer Claude-Sitzung:
 ```bash
 schoolbox/bin/schoolbox neu --titel "Kartoffeln" --fach sachunterricht --klasse 3
 schoolbox/bin/schoolbox dokument <mappe> --titel "Teile der Kartoffel" --art arbeitsblatt --druckprofil sw --vorlage arbeitsblatt
+schoolbox/bin/schoolbox entwuerfe <mappe>/<dokument> entwurf-a.html entwurf-b.html   # prüft, baut Vorschauen, gibt den Link aus
+schoolbox/bin/schoolbox waehle <mappe>/<dokument> B                                  # Entwurf B wird material.html
 # … material.html mit den Skills ausarbeiten …
 schoolbox/bin/schoolbox fertig <mappe>/<dokument>   # baut mit blatt.py, legt eine Version an, gibt den Link aus
 ```
@@ -128,6 +130,8 @@ Ohne `PASSWORT_HASH` und `SITZUNG_GEHEIMNIS` startet er nicht. Anmeldung mit ein
 Die Oberfläche (`schoolbox/web`, React, Tailwind) ist für Safari auf Mac und iPad gebaut, Desktop zuerst und vollständig mit dem Finger bedienbar. Die Übersicht zeigt alle Mappen mit Vorschau, Suche und Filtern nach Fach, Klasse und Materialart; was Claude neu anlegt, erscheint ohne Neuladen. Fehlt einem Dokument die Vorschau der ersten Seite (`ausgabe/material-s1.png`) oder ist sie älter als `material.html`, baut der Server sie im Hintergrund mit `blatt.py` (eine nach der anderen, Chromium nötig). Gelöschte Mappen liegen 30 Tage in `MATERIAL_DIR/_papierkorb/` und lassen sich dort wiederherstellen; danach löscht der Server sie beim Start bzw. einmal täglich endgültig, samt ihren Teilen-Links.
 
 Jedes Dokument hat eine eigene Seite: das Material, wie es gedruckt aussieht, umschaltbar auf die Lösung, mit „PDF herunterladen“ und „Drucken“ (öffnet das PDF in einem neuen Tab, gedruckt wird aus dem PDF-Betrachter des Browsers). PDFs baut der Server bei Bedarf mit `blatt.py` und hebt sie in `ausgabe/` auf, bis sich Material, Bilder, Stylesheets oder `blatt.py` ändern (`ausgabe/stand.json`); Vorschauen und PDFs bauen höchstens zu zweit gleichzeitig. Findet die Prüfung Fehler, warnt die Oberfläche mit verständlichen Sätzen und lässt das PDF trotzdem zu. „Alles als PDF“ fügt die Blätter einer Mappe zusammen, wahlweise mit den Lösungen am Ende; dafür braucht der Server `pdfunite` (Debian/Ubuntu: `poppler-utils`). Teilen-Links bieten Ansicht, PDF und Drucken genauso, ohne Warnung.
+
+Entwürfe vergleicht die Lehrkraft unter `/m/<mappe>/<dokument>/entwuerfe`: am Mac und auf dem iPad quer nebeneinander und ohne Scrollen, auf dem iPad hoch zum Durchwischen, jeweils mit Buchstabe, Idee und dem Vermerk, ob der Entwurf auf die Seite passt; antippen zeigt ihn groß mit allen Seiten. Wählen kann sie nur bei Claude, deshalb gibt es dort keinen Auswahlknopf. `schoolbox entwuerfe` baut dafür die Vorschauen (`entwuerfe/A-s1.png`) mit `blatt.py`, aus einer Temp-Kopie im Dokumentordner, damit relative Pfade wie nach `waehle` stimmen. Teilen-Links sehen keine Entwürfe.
 
 ```bash
 cd schoolbox

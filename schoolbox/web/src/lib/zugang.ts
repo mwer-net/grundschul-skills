@@ -1,4 +1,5 @@
 import type { MappenVariante, PdfVariante } from '@schoolbox/kern/src/namen';
+import { entwurfVorschauDatei } from '@schoolbox/kern/src/namen';
 
 import { lade, sende } from '../api';
 import type { PdfAntwort } from '../typen';
@@ -25,6 +26,16 @@ export const ansichtAdresse = (zugang: Zugang, dok: string, loesung = false) =>
 
 export const vorschauAdresse = (zugang: Zugang, dok: string, kennung: string) =>
 	`${basis(zugang)}/ansicht/${zugang.mappe}/dokumente/${dok}/ausgabe/material-s1.png?v=${kennung}`;
+
+/** Entwürfe gibt es nur für die Lehrkraft; Teilen-Links sehen sie nie. */
+export const entwurfAnsichtAdresse = (zugang: Zugang, dok: string, name: string) =>
+	`/ansicht/${zugang.mappe}/dokumente/${dok}/?entwurf=${name}`;
+
+export const entwurfVorschauAdresse = (zugang: Zugang, dok: string, name: string, kennung: string) =>
+	`/ansicht/${zugang.mappe}/dokumente/${dok}/entwuerfe/${entwurfVorschauDatei(name)}?v=${encodeURIComponent(kennung)}`;
+
+export const entwuerfeSeite = (zugang: Zugang, dok: string, name?: string) =>
+	`/m/${zugang.mappe}/${dok}/entwuerfe${name ? `/${name}` : ''}`;
 
 /** Seite der Mappe; bei einem Link auf ein einzelnes Dokument gibt es sie nicht. */
 export const mappenSeite = (zugang: Zugang) => (zugang.token === null ? `/m/${zugang.mappe}` : `/f/${zugang.token}`);

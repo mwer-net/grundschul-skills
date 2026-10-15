@@ -63,3 +63,6 @@ export const pdfDateiname = (
 /** „Kl3 Sachunterricht Die Kartoffel – Alles.pdf“ bzw. „… – Alles mit Lösungen.pdf“. */
 export const mappenPdfDateiname = (mappe: { titel: string; fach: Fach; klasse: Klasse }, variante: MappenVariante) =>
 	dateiname(mappe.fach, mappe.klasse, mappe.titel, variante === 'alles' ? 'Alles' : 'Alles mit Lösungen');
+
+/** Vorschau der ersten Seite eines Entwurfs, neben ihm in `entwuerfe/`: `B-s1.png`. */
+export const entwurfVorschauDatei = (name: string) => `${name}-s1.png`;

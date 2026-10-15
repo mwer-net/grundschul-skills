@@ -4,9 +4,10 @@ import { Kachel, Marke } from '../bausteine/Kachel';
 import { Knopf, KnopfLink } from '../bausteine/Knopf';
 import { Symbol } from '../bausteine/Symbol';
 import { Vorschau } from '../bausteine/Vorschau';
+import { hatOffeneEntwuerfe } from '../entwuerfe/offen';
 import { anzahl, ART_NAME, FORMAT_NAME } from '../lib/text';
 import type { Zugang } from '../lib/zugang';
-import { dokumentSeite, istGeteilt } from '../lib/zugang';
+import { dokumentSeite, entwuerfeSeite, istGeteilt } from '../lib/zugang';
 import { PdfKnopf } from '../pdf/PdfKnopf';
 import { dokumentWahl } from '../pdf/wahl';
 import type { DokumentEintrag, Mappe } from '../typen';
@@ -21,7 +22,9 @@ interface Eigenschaften {
 
 export const DokumentKachel = ({ dokument, mappe, teile, zugang }: Eigenschaften) => {
 	const { id, meta } = dokument;
-	const seite = dokumentSeite(zugang, id);
+	// Solange kein Entwurf gewählt ist, gibt es nur die Entwürfe zu sehen; material.html ist noch das leere Gerüst.
+	const waehlen = !istGeteilt(zugang) && hatOffeneEntwuerfe(meta);
+	const seite = waehlen ? entwuerfeSeite(zugang, id) : dokumentSeite(zugang, id);
 	return (
 		<li data-dokument={id}>
 			<Kachel beschnitten={false} className="flex h-full flex-col">
@@ -51,14 +54,16 @@ export const DokumentKachel = ({ dokument, mappe, teile, zugang }: Eigenschaften
 					<div className="mt-auto flex flex-wrap gap-2 pt-3">
 						<KnopfLink to={seite}>
 							<Symbol name="auge" />
-							Ansehen
+							{waehlen ? 'Entwürfe vergleichen' : 'Ansehen'}
 						</KnopfLink>
-						<PdfKnopf
-							beschriftung="PDF"
-							wahl={dokumentWahl(zugang, dokument)}
-							mappe={mappe}
-							warnen={!istGeteilt(zugang)}
-						/>
+						{!waehlen && (
+							<PdfKnopf
+								beschriftung="PDF"
+								wahl={dokumentWahl(zugang, dokument)}
+								mappe={mappe}
+								warnen={!istGeteilt(zugang)}
+							/>
+						)}
 						{teile && (
 							<Knopf art="zweit" onClick={teile}>
 								<Symbol name="teilen" />

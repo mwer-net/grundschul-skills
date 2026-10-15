@@ -179,6 +179,8 @@ def ausschnitte(seiten_png, bericht, praefix):
         for j, (x, y, w, h) in enumerate(s["aufgaben"]):
             box = [max(0, int((x - 16) * k)), max(0, int((y - 12) * k)),
                    min(im.width, int((x + w + 16) * k)), min(im.height, int((y + h + 12) * k))]
+            if box[2] <= box[0] or box[3] <= box[1]:  # Aufgabe liegt ganz außerhalb der Seite (Überlauf)
+                continue
             ziel = f"{praefix}-s{s['nr']}-a{j + 1}.png"
             im.crop(box).save(ziel)
             dateien.append(ziel)

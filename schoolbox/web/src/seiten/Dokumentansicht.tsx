@@ -8,12 +8,14 @@ import { Marke } from '../bausteine/Kachel';
 import { Knopf, KnopfAdresse, KnopfLink } from '../bausteine/Knopf';
 import { Symbol } from '../bausteine/Symbol';
 import { Zustand } from '../bausteine/Zustand';
+import { hatOffeneEntwuerfe } from '../entwuerfe/offen';
+import { ClaudeHinweis } from '../entwuerfe/Teile';
 import { useEreignisse } from '../ereignisse';
 import { useLaden } from '../lib/laden';
 import { anzahl, ART_NAME, FORMAT_NAME } from '../lib/text';
 import { useTitel } from '../lib/titel';
 import type { Zugang } from '../lib/zugang';
-import { ansichtAdresse, druckSeite, inhaltAdresse, istGeteilt, mappenSeite } from '../lib/zugang';
+import { ansichtAdresse, druckSeite, entwuerfeSeite, inhaltAdresse, istGeteilt, mappenSeite } from '../lib/zugang';
 import { PdfKnopf } from '../pdf/PdfKnopf';
 import { dokumentWahl, materialName } from '../pdf/wahl';
 import { TeilenDialog } from '../teilen/TeilenDialog';
@@ -83,6 +85,7 @@ export const Dokumentansicht = ({ dok, zugang, zurueckZurMappe }: Eigenschaften)
 	const { mappe } = daten;
 	const { meta } = dokument;
 	const loesung = meta.hatLoesung && suche.get('fassung') === 'loesung';
+	const entwuerfe = !geteilt && meta.entwuerfe.length > 0;
 	const zeigeLoesung = (ja: boolean) => setSuche(ja ? { fassung: 'loesung' } : {}, { replace: true });
 
 	return (
@@ -113,6 +116,12 @@ export const Dokumentansicht = ({ dok, zugang, zurueckZurMappe }: Eigenschaften)
 					</div>
 				)}
 				<div className="ml-auto flex flex-wrap gap-2 max-md:ml-0">
+					{entwuerfe && (
+						<KnopfLink to={entwuerfeSeite(zugang, dok)} art="zweit">
+							<Symbol name="kopieren" />
+							Entwürfe
+						</KnopfLink>
+					)}
 					<PdfKnopf
 						art="haupt"
 						beschriftung="PDF herunterladen"
@@ -139,6 +148,19 @@ export const Dokumentansicht = ({ dok, zugang, zurueckZurMappe }: Eigenschaften)
 				</div>
 			</div>
 
+			{entwuerfe && hatOffeneEntwuerfe(meta) && (
+				<div className="mt-4" data-entwuerfe-offen>
+					<ClaudeHinweis>
+						<p className="text-leise">
+							{`Für dieses Material gibt es ${meta.entwuerfe.length === 1 ? 'einen Entwurf' : `${meta.entwuerfe.length} Entwürfe`}. Sobald Claude deine Wahl übernommen hat, steht es hier.`}
+						</p>
+						<KnopfLink to={entwuerfeSeite(zugang, dok)} className="mt-2">
+							Entwürfe vergleichen
+							<Symbol name="weiter" />
+						</KnopfLink>
+					</ClaudeHinweis>
+				</div>
+			)}
 			{meta.druckhinweise.length > 0 && <Druckhinweise liste={meta.druckhinweise} />}
 			<div className="mt-4">
 				<Blattansicht

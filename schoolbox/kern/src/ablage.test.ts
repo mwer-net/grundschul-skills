@@ -141,10 +141,16 @@ describe('Entwürfe', () => {
 			{ name: 'B', titel: 'Willis Tag', idee: 'Geschichte als Rahmen, Uhrzeiten zuordnen' },
 		]);
 		const dir = dokumentDir(materialDir, mappe, id);
+		assert.equal((await leseMeta(materialDir, mappe, id)).gewaehlt, null);
+		await writeFile(path.join(dir, 'entwurf-b.html'), 'Arbeitsdatei');
 		await waehleEntwurf(materialDir, ziel, 'b');
 		assert.ok((await readFile(path.join(dir, 'material.html'), 'utf8')).includes('>B</body>'));
 		assert.ok(existsSync(path.join(dir, 'entwuerfe', 'A.html')));
 		assert.equal((await listeVersionen(dir)).length, 1);
+		assert.equal((await leseMeta(materialDir, mappe, id)).gewaehlt, 'B');
+		assert.ok(!existsSync(path.join(dir, 'entwurf-b.html')), 'Arbeitsdateien räumt waehle auf');
+		await registriereEntwuerfe(materialDir, ziel, dateien);
+		assert.equal((await leseMeta(materialDir, mappe, id)).gewaehlt, null, 'eine neue Runde wählt neu');
 		await assert.rejects(waehleEntwurf(materialDir, ziel, 'C'), /Registrierte Entwürfe: A, B/);
 	});
 
@@ -171,6 +177,7 @@ describe('Entwürfe', () => {
 		);
 		await registriereEntwuerfe(materialDir, ziel, dateien);
 		const ordner = path.join(dokumentDir(materialDir, mappe, id), 'entwuerfe');
+		await writeFile(path.join(ordner, 'B-s1.png'), 'alte Vorschau');
 		const entwuerfe = await registriereEntwuerfe(materialDir, ziel, [path.join(ordner, 'B.html')]);
 		assert.deepEqual(entwuerfe, [{ name: 'A', titel: 'Zweite', idee: '' }]);
 		assert.deepEqual(await readdir(ordner), ['A.html']);

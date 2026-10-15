@@ -4,6 +4,7 @@ import { parseArgs } from 'node:util';
 
 import type { Ziel } from './ablage';
 import {
+	dokumentDir,
 	leseMappe,
 	leseMeta,
 	neueMappe,
@@ -15,10 +16,12 @@ import {
 	zerlegeZiel,
 } from './ablage';
 import { erzeugeGeheimnis, erzeugePasswortHash, pruefeNeuesPasswort, setzeEnvWerte } from './anmeldung';
-import { fertigstellen } from './bauen';
+import type { EntwurfErgebnis } from './bauen';
+import { baueEntwurfsVorschauen, fertigstellen } from './bauen';
 import { SchoolboxFehler } from './fehler';
 import type { Konfig } from './konfig';
 import { ladeKonfig } from './konfig';
+import { entwurfVorschauDatei } from './namen';
 import { ARTEN, DRUCKPROFILE, FAECHER, FORMATE, STANDARD_FORMAT, waehleKlasse, waehleWert } from './werte';
 
 const HILFE = `schoolbox – Mappen und Dokumente der Schoolbox anlegen und fertigstellen
@@ -64,11 +67,11 @@ const pflicht = (wert: string | undefined, name: string): string => {
 	return wert.trim();
 };
 
-const linkZu = (konfig: Konfig, ziel: Ziel): string => {
+const linkZu = (konfig: Konfig, ziel: Ziel, zusatz = ''): string => {
 	if (!konfig.schoolboxUrl) {
 		throw new SchoolboxFehler('SCHOOLBOX_URL fehlt in der .env im Repo-Hauptordner.');
 	}
-	return `${konfig.schoolboxUrl}/m/${ziel.mappe}${ziel.dok ? `/${ziel.dok}` : ''}`;
+	return `${konfig.schoolboxUrl}/m/${ziel.mappe}${ziel.dok ? `/${ziel.dok}` : ''}${zusatz}`;
 };
 
 const mitDokument = (ziel: Ziel): Ziel & { dok: string } => ({ ...ziel, dok: ziel.dok ?? '' });
@@ -115,23 +118,49 @@ const befehlDokument = async (konfig: Konfig, argumente: string[]): Promise<Erge
 	};
 };
 
+const entwurfZeilen = ({ entwurf, fehler }: EntwurfErgebnis): string[] => {
+	const kopf = `  ${entwurf.name} · ${entwurf.titel}${entwurf.idee ? ` – ${entwurf.idee}` : ''}`;
+	const { pruefung } = entwurf;
+	if (!pruefung) {
+		return [`${kopf}: keine Vorschau`, `      ${(fehler ?? '').replace(/\n\s*/g, ' ')}`];
+	}
+	const seiten = `${pruefung.seiten} ${pruefung.seiten === 1 ? 'Seite' : 'Seiten'}`;
+	const status = pruefung.passt ? 'passt auf die Seite' : 'passt NICHT auf die Seite';
+	const fehlerText = pruefung.meldungen.length > 0 ? `, ${pruefung.meldungen.length} Fehler` : '';
+	const meldungen = pruefung.meldungen.map((m) => `      ${m.seite ? `S. ${m.seite}: ` : ''}${m.text}`);
+	return [`${kopf}: ${status} (${seiten}${fehlerText})`, ...meldungen];
+};
+
 const befehlEntwuerfe = async (konfig: Konfig, argumente: string[]): Promise<Ergebnis> => {
 	const { positionals } = lies(argumente, {});
 	const ziel = mitDokument(zerlegeZiel(positionals[0], true));
 	const dateien = positionals.slice(1).map((d) => path.resolve(d));
-	const entwuerfe = await registriereEntwuerfe(konfig.materialDir, ziel, dateien);
-	const zeilen = entwuerfe.map((e) => `  ${e.name} · ${e.titel}${e.idee ? ` – ${e.idee}` : ''}`);
-	return { daten: { entwuerfe }, text: `Entwürfe registriert:\n${zeilen.join('\n')}` };
+	await registriereEntwuerfe(konfig.materialDir, ziel, dateien);
+	const ergebnisse = await baueEntwurfsVorschauen(konfig, ziel);
+	const ordner = path.join(dokumentDir(konfig.materialDir, ziel.mappe, ziel.dok), 'entwuerfe');
+	const vorschauen = ergebnisse
+		.filter(({ entwurf }) => entwurf.pruefung)
+		.map(({ entwurf }) => path.join(ordner, entwurfVorschauDatei(entwurf.name)));
+	const link = linkZu(konfig, ziel, '/entwuerfe');
+	const text = [
+		'Entwürfe registriert und geprüft:',
+		...ergebnisse.flatMap(entwurfZeilen),
+		...(vorschauen.length > 0 ? [`Vorschauen: ${vorschauen.join(' ')}`] : []),
+		`Link: ${link}`,
+	].join('\n');
+	const entwuerfe = ergebnisse.map(({ entwurf, fehler }) => ({ ...entwurf, fehler }));
+	return { daten: { entwuerfe, vorschauen, link }, text };
 };
 
 const befehlWaehle = async (konfig: Konfig, argumente: string[]): Promise<Ergebnis> => {
 	const { positionals } = lies(argumente, {});
 	const ziel = mitDokument(zerlegeZiel(positionals[0], true));
 	const { entwurf } = await waehleEntwurf(konfig.materialDir, ziel, pflicht(positionals[1], 'Entwurf (A, B, C)'));
-	return {
-		daten: { entwurf },
-		text: `Entwurf ${entwurf.name} („${entwurf.titel}“) ist jetzt material.html von ${ziel.mappe}/${ziel.dok}.`,
-	};
+	const text = [
+		`Entwurf ${entwurf.name} („${entwurf.titel}“) ist jetzt material.html von ${ziel.mappe}/${ziel.dok}.`,
+		'Die Entwürfe bleiben in der Schoolbox zum Nachsehen.',
+	].join('\n');
+	return { daten: { entwurf }, text };
 };
 
 const befehlFertig = async (konfig: Konfig, argumente: string[]): Promise<Ergebnis> => {

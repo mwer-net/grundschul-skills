@@ -4,7 +4,16 @@ import path from 'node:path';
 import type { Locator, Page } from '@playwright/test';
 import { expect, test as basis } from '@playwright/test';
 import type { Art, Fach, Format, Klasse } from '@schoolbox/kern';
-import { leseMeta, neueMappe, neuesDokument, schreibeMeta } from '@schoolbox/kern';
+import {
+	dokumentDir,
+	entwurfVorschauDatei,
+	leseMeta,
+	neueMappe,
+	neuesDokument,
+	registriereEntwuerfe,
+	schreibeMeta,
+	waehleEntwurf,
+} from '@schoolbox/kern';
 
 const MATERIAL_DIR = process.env.E2E_MATERIAL_DIR ?? '';
 /** Wie `TEST_PASSWORT` in server/src/testhilfe.ts; der Testserver kennt nur dieses. */
@@ -45,6 +54,43 @@ export const legeMappeAn = async (titel: string, fach: Fach, klasse: Klasse, dok
 	}
 	return { id: mappe.id, dokumente: ids };
 };
+
+/** Weiß, im Seitenverhältnis von A4: Für die Tests zählt das Format der Vorschau, nicht ihr Inhalt. */
+const WEISSE_SEITE = Buffer.from(
+	'iVBORw0KGgoAAAANSUhEUgAAAB4AAAAqCAIAAAAruXxOAAAAKElEQVR42u3MQREAAAwCIPuX1hS7fSAA6Zmo1Wq1Wq1Wq9VqtVr9Uw9hEbYPF9a3kwAAAABJRU5ErkJggg==',
+	'base64',
+);
+export const UEBERSTAND = '„2 Zeichne die Zeiger ein.“ ragt aus der Seite (120 px) → kürzen oder zweite Seite';
+
+/**
+ * Registriert Entwürfe wie `schoolbox entwuerfe`, nur ohne blatt.py: Vorschau und Prüfung sind vorgegeben. Jeder
+ * Entwurf enthält „Inhalt <Buchstabe>“.
+ */
+export const legeEntwuerfeAn = async (mappe: string, dok: string, entwuerfe: { titel: string; passt?: boolean }[]) => {
+	const dir = dokumentDir(MATERIAL_DIR, mappe, dok);
+	const material = await readFile(path.join(dir, 'material.html'), 'utf8');
+	const dateien: string[] = [];
+	for (const [i, { titel }] of entwuerfe.entries()) {
+		const name = String.fromCharCode(65 + i);
+		const datei = path.join(dir, `entwurf-${name.toLowerCase()}.html`);
+		const html = material
+			.replace(/<title>.*?<\/title>/s, `<title>${name} · ${titel}</title>`)
+			.replace('</section>', `<p>Inhalt ${name}</p></section>`);
+		await writeFile(datei, html);
+		dateien.push(datei);
+	}
+	await registriereEntwuerfe(MATERIAL_DIR, { mappe, dok }, dateien);
+	const meta = await leseMeta(MATERIAL_DIR, mappe, dok);
+	for (const [i, entwurf] of meta.entwuerfe.entries()) {
+		const passt = entwuerfe[i]?.passt ?? true;
+		await writeFile(path.join(dir, 'entwuerfe', entwurfVorschauDatei(entwurf.name)), WEISSE_SEITE);
+		const meldungen = passt ? [] : [{ stufe: 'FEHLER' as const, seite: 1, text: UEBERSTAND }];
+		entwurf.pruefung = { seiten: 1, passt, meldungen };
+	}
+	await schreibeMeta(MATERIAL_DIR, mappe, dok, meta);
+};
+
+export const waehle = (mappe: string, dok: string, name: string) => waehleEntwurf(MATERIAL_DIR, { mappe, dok }, name);
 
 const leereAblage = async () => {
 	const namen = await readdir(MATERIAL_DIR);

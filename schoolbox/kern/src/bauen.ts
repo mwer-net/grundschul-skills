@@ -1,6 +1,7 @@
 import { spawn } from 'node:child_process';
+import { randomBytes } from 'node:crypto';
 import { existsSync } from 'node:fs';
-import { mkdir, mkdtemp, readFile, rm } from 'node:fs/promises';
+import { copyFile, mkdir, mkdtemp, readFile, rm } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
 
@@ -13,7 +14,8 @@ import { druckprofilAusHtml } from './html';
 import type { Konfig } from './konfig';
 import { BLATT_PY } from './konfig';
 import type { Meldung } from './meldungen';
-import type { DokumentMeta, Pruefung } from './schema';
+import { entwurfVorschauDatei } from './namen';
+import type { DokumentMeta, Entwurf, EntwurfPruefung, Pruefung } from './schema';
 import type { Version } from './versionen';
 import { legeVersionAn } from './versionen';
 
@@ -180,4 +182,91 @@ export const baueVorschau = async (konfig: Pick<Konfig, 'pythonBin'>, dokDir: st
 	} finally {
 		await rm(tmp, { recursive: true, force: true });
 	}
+};
+
+/**
+ * Baut die Vorschau eines registrierten Entwurfs nach `entwuerfe/B-s1.png` und prüft ihn, ohne Lösung. blatt.py löst
+ * Pfade relativ zur Quelle auf; der Entwurf wird deshalb als Temp-Datei in den Dokumentordner kopiert und von dort
+ * gebaut, damit `bilder/…` wie später in material.html stimmt.
+ */
+export const baueEntwurfVorschau = async (
+	konfig: Pick<Konfig, 'pythonBin'>,
+	dokDir: string,
+	name: string,
+): Promise<EntwurfPruefung> => {
+	const entwurf = path.join(dokDir, 'entwuerfe', `${name}.html`);
+	const stamm = `.entwurf-${name}.${process.pid}.${randomBytes(4).toString('hex')}`;
+	const kopie = path.join(dokDir, `${stamm}.tmp`);
+	const tmp = await mkdtemp(path.join(tmpdir(), 'schoolbox-entwurf-'));
+	try {
+		await copyFile(entwurf, kopie);
+		const berichtDatei = path.join(tmp, 'pruefbericht.json');
+		const lauf = await fuehreAus(konfig.pythonBin, [
+			BLATT_PY,
+			'bauen',
+			kopie,
+			'-o',
+			tmp,
+			'--ohne-loesung',
+			'--bericht',
+			berichtDatei,
+		]).catch((fehler: Error) => {
+			throw new SchoolboxFehler(`blatt.py ließ sich nicht starten (${konfig.pythonBin}): ${fehler.message}`, 3);
+		});
+		const bild = path.join(tmp, `${stamm}-s1.png`);
+		if (!existsSync(berichtDatei) || !existsSync(bild)) {
+			throw new SchoolboxFehler(
+				`blatt.py ist abgebrochen (Exit ${lauf.code ?? 'Timeout'}):\n${(lauf.stderr || lauf.stdout).trim()}`,
+				3,
+			);
+		}
+		// Eine neue Runde während des Baus hat diesen Entwurf ersetzt oder gelöscht: nichts ablegen.
+		if (!existsSync(entwurf)) {
+			throw new SchoolboxFehler(`Den Entwurf ${name} gibt es nicht mehr.`, 3);
+		}
+		await kopiereAtomar(bild, path.join(dokDir, 'entwuerfe', entwurfVorschauDatei(name)));
+		const bericht = JSON.parse(await readFile(berichtDatei, 'utf8')) as Pruefbericht;
+		const meldungen = bericht.meldungen.filter((m) => m.stufe === 'FEHLER');
+		return { seiten: bericht.seiten.length, passt: !meldungen.some((m) => m.text.includes('Seite')), meldungen };
+	} finally {
+		await Promise.all([rm(kopie, { force: true }), rm(tmp, { recursive: true, force: true })]);
+	}
+};
+
+export interface EntwurfErgebnis {
+	entwurf: Entwurf;
+	/** Warum es keine Vorschau gibt; `null`, wenn der Bau geklappt hat. */
+	fehler: string | null;
+}
+
+/**
+ * Baut die Vorschauen aller registrierten Entwürfe nacheinander (Chromium braucht Speicher) und trägt das Ergebnis
+ * der Prüfung in meta.json ein. Ein gescheiterter Entwurf hält die anderen nicht auf.
+ */
+export const baueEntwurfsVorschauen = async (
+	konfig: Pick<Konfig, 'materialDir' | 'pythonBin'>,
+	ziel: Ziel & { dok: string },
+): Promise<EntwurfErgebnis[]> => {
+	const { materialDir } = konfig;
+	const dir = dokumentDir(materialDir, ziel.mappe, ziel.dok);
+	const { entwuerfe } = await leseMeta(materialDir, ziel.mappe, ziel.dok);
+	const ergebnisse: EntwurfErgebnis[] = [];
+	for (const entwurf of entwuerfe) {
+		try {
+			const pruefung = await baueEntwurfVorschau(konfig, dir, entwurf.name);
+			ergebnisse.push({ entwurf: { ...entwurf, pruefung }, fehler: null });
+		} catch (fehler) {
+			if (!(fehler instanceof SchoolboxFehler)) {
+				throw fehler;
+			}
+			const ohne: Entwurf = { ...entwurf };
+			delete ohne.pruefung;
+			ergebnisse.push({ entwurf: ohne, fehler: fehler.message });
+		}
+	}
+	// Frisch lesen: Während der Bauten kann sich meta.json geändert haben (Titel, Druckhinweise).
+	const meta = await leseMeta(materialDir, ziel.mappe, ziel.dok);
+	meta.entwuerfe = meta.entwuerfe.map((alt) => ergebnisse.find((e) => e.entwurf.name === alt.name)?.entwurf ?? alt);
+	await schreibeMeta(materialDir, ziel.mappe, ziel.dok, meta);
+	return ergebnisse;
 };

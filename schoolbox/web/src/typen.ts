@@ -1,7 +1,7 @@
 import type { Meldung } from '@schoolbox/kern/src/meldungen';
-import type { DokumentMeta, Mappe } from '@schoolbox/kern/src/schema';
+import type { DokumentMeta, Entwurf, Mappe } from '@schoolbox/kern/src/schema';
 
-export type { DokumentMeta, Mappe, Meldung };
+export type { DokumentMeta, Entwurf, Mappe, Meldung };
 
 export interface DokumentEintrag {
 	id: string;

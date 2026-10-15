@@ -1,5 +1,6 @@
 import type { Freigabe, Ziel } from '@schoolbox/kern';
 import {
+	ENTWURF_QUELLE,
 	findeFreigabe,
 	ID_MUSTER,
 	istToken,
@@ -131,7 +132,8 @@ const ansichtWaechter =
 				(ordner === 'dokumente' &&
 					dok !== undefined &&
 					(await erlaubteDokumente(materialDir, ziel)).includes(dok) &&
-					(erster === undefined || !GESPERRT_IM_DOKUMENT.has(erster))));
+					req.query.entwurf === undefined &&
+					(erster === undefined || !(GESPERRT_IM_DOKUMENT.has(erster) || ENTWURF_QUELLE.test(erster)))));
 		next(erlaubt ? undefined : new HttpFehler(404, 'Nicht gefunden.'));
 	};
 

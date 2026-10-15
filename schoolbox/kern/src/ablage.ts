@@ -17,6 +17,10 @@ import type { Art, Druckprofil, Fach, Format, Klasse, Status } from './werte';
 
 export const WUENSCHE_DATEI = '_wuensche.md';
 const MAX_ENTWUERFE = 3;
+/** Eine Runde in `entwuerfe/`: `B.html` und seine Vorschau `B-s1.png`. */
+const ENTWURF_DATEI = /^[A-Z](\.html|-s\d+\.png)$/;
+/** So schreibt Claude die Entwürfe in den Dokumentordner (Lehrkraft-Anweisungen, Skill `html-materialerstellung`). */
+export const ENTWURF_QUELLE = /^entwurf-[a-z]\.html$/;
 /** Je Dokument: Was sich neu erzeugen lässt oder zur Geschichte des Originals gehört, wandert nicht in eine Kopie. */
 const NICHT_KOPIEREN = ['versionen', 'ausgabe'];
 const ID_REGEX = new RegExp(ID_MUSTER);
@@ -224,7 +228,7 @@ export const registriereEntwuerfe = async (
 	await mkdir(ordner, { recursive: true });
 	// Erst lesen, dann die alte Runde löschen: Eine Quelle kann selbst ein registrierter Entwurf sein (zweite Runde)
 	const inhalte = await Promise.all(dateien.map((datei) => readFile(datei, 'utf8')));
-	const alte = (await readdir(ordner)).filter((n) => /^[A-Z]\.html$/.test(n));
+	const alte = (await readdir(ordner)).filter((n) => ENTWURF_DATEI.test(n));
 	await Promise.all(alte.map((n) => rm(path.join(ordner, n))));
 	const entwuerfe: Entwurf[] = [];
 	for (const [i, html] of inhalte.entries()) {
@@ -233,6 +237,7 @@ export const registriereEntwuerfe = async (
 		entwuerfe.push({ name, ...entwurfAusTitel(titelAusHtml(html) ?? `Entwurf ${name}`) });
 	}
 	meta.entwuerfe = entwuerfe;
+	meta.gewaehlt = null;
 	meta.status = 'entwurf';
 	meta.geaendert = jetzt.toISOString();
 	await schreibeMeta(materialDir, ziel.mappe, ziel.dok, meta);
@@ -240,6 +245,11 @@ export const registriereEntwuerfe = async (
 	return entwuerfe;
 };
 
+/**
+ * Übernimmt einen registrierten Entwurf als material.html. Die Runde in `entwuerfe/` bleibt zum Nachsehen; die
+ * Arbeitsdateien `entwurf-a.html` … im Dokumentordner haben ausgedient und würden sonst über Teilen-Links und Kopien
+ * der Mappe mitwandern.
+ */
 export const waehleEntwurf = async (
 	materialDir: string,
 	ziel: Ziel & { dok: string },
@@ -257,9 +267,12 @@ export const waehleEntwurf = async (
 	pruefeFormat(meta, await readFile(quelle, 'utf8'), `Entwurf ${entwurf.name}`);
 	await kopiereAtomar(quelle, path.join(dir, 'material.html'));
 	const version = await legeVersionAn(dir, 'claude', jetzt);
+	meta.gewaehlt = entwurf.name;
 	meta.geaendert = jetzt.toISOString();
 	await schreibeMeta(materialDir, ziel.mappe, ziel.dok, meta);
 	await aktualisiereMappe(materialDir, ziel.mappe, jetzt);
+	const arbeitsdateien = (await readdir(dir)).filter((n) => ENTWURF_QUELLE.test(n));
+	await Promise.all(arbeitsdateien.map((n) => rm(path.join(dir, n), { force: true })));
 	return { entwurf, version };
 };
 

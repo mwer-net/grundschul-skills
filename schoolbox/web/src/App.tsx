@@ -6,6 +6,8 @@ import { Rahmen } from './bausteine/Rahmen';
 import { Anmeldung } from './seiten/Anmeldung';
 import { Dokumentansicht } from './seiten/Dokumentansicht';
 import { Drucken } from './seiten/Drucken';
+import { Entwuerfe } from './seiten/Entwuerfe';
+import { EntwurfGross } from './seiten/EntwurfGross';
 import { Geteilt } from './seiten/Geteilt';
 import { Mappenansicht } from './seiten/Mappenansicht';
 import { NichtGefunden } from './seiten/NichtGefunden';
@@ -16,6 +18,16 @@ import { Uebersicht } from './seiten/Uebersicht';
 const DokumentSeite = () => {
 	const { dok = '', mappe = '' } = useParams();
 	return <Dokumentansicht key={`${mappe}/${dok}`} zugang={{ mappe, token: null }} dok={dok} zurueckZurMappe />;
+};
+
+const EntwuerfeSeite = () => {
+	const { dok = '', mappe = '' } = useParams();
+	return <Entwuerfe key={`${mappe}/${dok}`} zugang={{ mappe, token: null }} dok={dok} />;
+};
+
+const EntwurfSeite = () => {
+	const { dok = '', mappe = '', name = '' } = useParams();
+	return <EntwurfGross key={`${mappe}/${dok}`} zugang={{ mappe, token: null }} dok={dok} name={name} />;
 };
 
 const DruckSeite = () => {
@@ -34,6 +46,8 @@ export const App = () => (
 					<Route index element={<Uebersicht />} />
 					<Route path="m/:mappe" element={<Mappenansicht />} />
 					<Route path="m/:mappe/:dok" element={<DokumentSeite />} />
+					<Route path="m/:mappe/:dok/entwuerfe" element={<EntwuerfeSeite />} />
+					<Route path="m/:mappe/:dok/entwuerfe/:name" element={<EntwurfSeite />} />
 					<Route path="papierkorb" element={<Papierkorb />} />
 					<Route path="*" element={<NichtGefunden />} />
 				</Route>
