@@ -4,7 +4,14 @@ import { tmpdir } from 'node:os';
 import path from 'node:path';
 import { describe, it } from 'node:test';
 
-import { legeVersionAn, leseVersionsName, listeVersionen, versionsName, versionsPfad } from './versionen';
+import {
+	legeVersionAn,
+	leseVersionsName,
+	listeVersionen,
+	sichereFassung,
+	versionsName,
+	versionsPfad,
+} from './versionen';
 
 const T0 = new Date('2026-10-08T10:15:03.456Z');
 const minuten = (n: number) => new Date(T0.getTime() + n * 60 * 1000);
@@ -95,5 +102,45 @@ describe('legeVersionAn', () => {
 			['claude', 'lehrkraft', 'claude'],
 		);
 		assert.deepEqual((await readdir(path.join(dir, 'versionen'))).length, 3);
+	});
+
+	it('fasst ohne `zusammenfassen` nie zusammen', async () => {
+		const dir = await dokument();
+		await legeVersionAn(dir, 'lehrkraft', T0);
+		await aendere(dir, 'v2');
+		await legeVersionAn(dir, 'lehrkraft', minuten(1), { zusammenfassen: false });
+		const alle = await listeVersionen(dir);
+		assert.equal(alle.length, 2);
+		assert.equal(await readFile(versionsPfad(dir, alle[0]!), 'utf8'), 'v1');
+	});
+});
+
+describe('sichereFassung', () => {
+	it('legt die neueste Version hinter die Fassung, damit das nächste Speichern sie nicht überschreibt', async () => {
+		const dir = await dokument();
+		await legeVersionAn(dir, 'lehrkraft', T0);
+		await aendere(dir, 'von Claude');
+		await legeVersionAn(dir, 'claude', minuten(1));
+		const gesichert = await sichereFassung(dir, 'ungespeichert', minuten(2));
+		assert.equal(gesichert?.urheber, 'lehrkraft');
+		let alle = await listeVersionen(dir);
+		assert.deepEqual(
+			alle.map((v) => v.urheber),
+			['lehrkraft', 'claude', 'lehrkraft', 'claude'],
+		);
+		assert.equal(await readFile(versionsPfad(dir, alle[2]!), 'utf8'), 'ungespeichert');
+		await aendere(dir, 'weiter bearbeitet');
+		await legeVersionAn(dir, 'lehrkraft', minuten(3));
+		alle = await listeVersionen(dir);
+		const inhalte = await Promise.all(alle.map((v) => readFile(versionsPfad(dir, v), 'utf8')));
+		assert.deepEqual(inhalte, ['v1', 'von Claude', 'ungespeichert', 'von Claude', 'weiter bearbeitet']);
+	});
+
+	it('sichert nichts doppelt', async () => {
+		const dir = await dokument();
+		await legeVersionAn(dir, 'claude', T0);
+		assert.equal(await sichereFassung(dir, 'v1', minuten(1)), null);
+		assert.ok(await sichereFassung(dir, 'neu', minuten(1)));
+		assert.equal(await sichereFassung(dir, 'neu', minuten(1)), null);
 	});
 });

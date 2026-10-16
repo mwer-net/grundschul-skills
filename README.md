@@ -140,6 +140,8 @@ Folien präsentiert die Lehrkraft mit „Präsentieren“ (`/m/<mappe>/<dokument
 
 Für Schulen mit unsicherem WLAN gibt es bei Folien unter „Ohne Internet“ drei Downloads, alle aus `blatt.py` und je Dokument zwischengespeichert: „PDF zum Präsentieren“ (`--schritte`, eine Seite je Aufdeck-Schritt, zum Blättern auf dem iPad), „Offline-Präsentation“ (die eigenständige HTML-Datei mit eingebettetem `praesentation.js` für Safari auf dem Mac) und „Folien mit Notizen“ (`--notizen`, A4 zum Ausdrucken). Dieselben Downloads gibt es hinter Teilen-Links.
 
+„Bearbeiten“ (`/m/<mappe>/<dokument>/bearbeiten`, nur für die Lehrkraft) öffnet den Editor. Er arbeitet auf derselben `material.html` wie Claude und schreibt **verlustfrei** zurück: `kern/src/quelltext.ts` zerlegt die Quelle mit Zeichenpositionen, jede Bearbeitung ersetzt nur die betroffenen Bereiche, Kommentare und Einrückung bleiben Byte für Byte. Gezeigt wird das Material in einem `iframe`, das der Editor selbst aus der Quelle füllt, mit `data-sb`-Nummern in jedem Element; die landen wie die von `abbildungen.js` gezeichneten SVGs nie in der Datei. Welche Teile sich auswählen lassen und was mit ihnen geht, steht im Baustein-Register `kern/src/bausteine.ts`. Gespeichert wird 1,5 s nach der letzten Änderung mit der Version als Basis; ändert Claude währenddessen, sichert der Editor den eigenen Stand als Version und fragt, ob er neu laden soll. Rückgängig/Wiederholen (⌘Z, ⇧⌘Z) und die Versionen mit Vorschau und „Wiederherstellen“ gehören dazu.
+
 ```bash
 cd schoolbox
 pnpm build                            # Oberfläche (web/) bauen

@@ -1,10 +1,10 @@
 import { readFile } from 'node:fs/promises';
 
-import { leseMeta, listeVersionen, versionsPfad } from '@schoolbox/kern';
+import { dokumentDir, leseMeta, listeVersionen, sichereFassung, versionsPfad } from '@schoolbox/kern';
 import type { RequestHandler } from 'express';
 import { json, Router } from 'express';
 
-import { istAusgabeVeraltet, leseQuelle, schreibeQuelle, verlangeDokument } from './dokumente';
+import { istAusgabeVeraltet, leseQuelle, nimmFremdeAenderungAuf, schreibeQuelle, verlangeDokument } from './dokumente';
 import type { Ereignis } from './ereignisse';
 import { HttpFehler } from './fehler';
 import { freigabenApi } from './freigaben';
@@ -40,15 +40,29 @@ const ereignisStrom =
 		});
 	};
 
-const leseBody = (body: unknown) => {
-	const { basisVersion, quelle } = (body ?? {}) as { basisVersion?: unknown; quelle?: unknown };
+const leseQuelleAus = (body: unknown) => {
+	const { quelle } = (body ?? {}) as { quelle?: unknown };
 	if (typeof quelle !== 'string' || !quelle.trim()) {
 		throw new HttpFehler(400, '„quelle“ fehlt oder ist leer.');
 	}
+	return quelle;
+};
+
+const leseBody = (body: unknown) => {
+	const quelle = leseQuelleAus(body);
+	const { basisVersion } = (body ?? {}) as { basisVersion?: unknown };
 	if (typeof basisVersion !== 'string' || !KENNUNG_REGEX.test(basisVersion)) {
 		throw new HttpFehler(400, '„basisVersion“ fehlt oder ist ungültig.');
 	}
 	return { basisVersion, quelle };
+};
+
+const findeVersion = async (dir: string, id: string) => {
+	const gefunden = (await listeVersionen(dir)).find((v) => v.id === id);
+	if (!gefunden) {
+		throw new HttpFehler(404, `Die Version „${id}“ gibt es nicht.`);
+	}
+	return gefunden;
 };
 
 export const apiRouter = (kontext: Kontext) => {
@@ -95,15 +109,33 @@ export const apiRouter = (kontext: Kontext) => {
 		res.json({ versionen: await listeVersionen(dir) });
 	});
 
+	/** Der ungespeicherte Stand des Editors, bevor er eine Änderung von Claude lädt; material.html bleibt, wie es ist. */
+	router.post('/dokumente/:mappe/:dok/versionen', async (req, res) => {
+		const { dok, mappe } = req.params;
+		verlangeDokument(kontext, mappe, dok);
+		const quelle = leseQuelleAus(req.body);
+		const gesichert = await kontext.sperre(dokSchluessel(mappe, dok), async () => {
+			// Erst Claudes Fassung als Version; die gesicherte kommt dahinter, der aktuelle Stand bleibt die neueste.
+			await nimmFremdeAenderungAuf(kontext, mappe, dok);
+			return sichereFassung(dokumentDir(materialDir, mappe, dok), quelle);
+		});
+		res.json({ gesichert });
+	});
+
+	router.get('/dokumente/:mappe/:dok/versionen/:version', async (req, res) => {
+		const { dok, mappe, version } = req.params;
+		const dir = verlangeDokument(kontext, mappe, dok);
+		const gefunden = await findeVersion(dir, version);
+		res.json({ version: gefunden, quelle: await readFile(versionsPfad(dir, gefunden), 'utf8') });
+	});
+
 	router.post('/dokumente/:mappe/:dok/versionen/:version/wiederherstellen', async (req, res) => {
 		const { dok, mappe, version } = req.params;
 		const dir = verlangeDokument(kontext, mappe, dok);
 		const ergebnis = await kontext.sperre(dokSchluessel(mappe, dok), async () => {
-			const gefunden = (await listeVersionen(dir)).find((v) => v.id === version);
-			if (!gefunden) {
-				throw new HttpFehler(404, `Die Version „${version}“ gibt es nicht.`);
-			}
-			return schreibeQuelle(kontext, mappe, dok, await readFile(versionsPfad(dir, gefunden), 'utf8'));
+			const quelle = await readFile(versionsPfad(dir, await findeVersion(dir, version)), 'utf8');
+			// Eine eigene Version, sonst ginge die letzte Fassung der Lehrkraft im Zusammenfassen verloren.
+			return schreibeQuelle(kontext, mappe, dok, quelle, { zusammenfassen: false });
 		});
 		res.json(ergebnis);
 	});

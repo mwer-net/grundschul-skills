@@ -18,6 +18,7 @@ import type { Zugang } from '../lib/zugang';
 import {
 	ansichtAdresse,
 	druckSeite,
+	editorSeite,
 	entwuerfeSeite,
 	inhaltAdresse,
 	istGeteilt,
@@ -64,9 +65,16 @@ interface KnoepfeEigenschaften {
 const Knoepfe = ({ dokument, entwuerfe, loesung, mappe, teilen, zugang }: KnoepfeEigenschaften) => {
 	const { id: dok, meta } = dokument;
 	const geteilt = istGeteilt(zugang);
-	const praesentieren = meta.format === 'folie' && !(entwuerfe && hatOffeneEntwuerfe(meta));
+	const offen = entwuerfe && hatOffeneEntwuerfe(meta);
+	const praesentieren = meta.format === 'folie' && !offen;
 	return (
 		<div className="ml-auto flex flex-wrap gap-2 max-md:ml-0">
+			{!geteilt && !offen && (
+				<KnopfLink to={editorSeite(zugang, dok)} art="zweit">
+					<Symbol name="stift" />
+					Bearbeiten
+				</KnopfLink>
+			)}
 			{entwuerfe && (
 				<KnopfLink to={entwuerfeSeite(zugang, dok)} art="zweit">
 					<Symbol name="kopieren" />

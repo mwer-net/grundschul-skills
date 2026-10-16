@@ -38,12 +38,27 @@ export const listeVersionen = async (dokDir: string): Promise<Version[]> => {
 
 export const versionsPfad = (dokDir: string, version: Version) => path.join(dokDir, 'versionen', `${version.id}.html`);
 
+const schreibeVersion = async (dokDir: string, zeit: Date, urheber: Urheber, inhalt: Buffer | string) => {
+	const neu = leseVersionsName(versionsName(zeit, urheber));
+	if (!neu) {
+		throw new Error(`Ungültiger Versionsname für ${zeit.toISOString()}`);
+	}
+	await schreibeAtomar(versionsPfad(dokDir, neu), inhalt);
+	return neu;
+};
+
 /**
  * Schnappschuss von material.html. Folgt er innerhalb von 5 Minuten auf eine Version desselben Urhebers, ersetzt er
  * deren Inhalt. Das Fenster beginnt beim ersten Schnappschuss und wandert nicht mit, damit auch langes Bearbeiten
  * spätestens alle 5 Minuten einen Wiederherstellungspunkt hinterlässt. Unveränderter Inhalt ergibt keine Version.
+ * Ohne `zusammenfassen` entsteht immer eine eigene Version (Wiederherstellen: Die letzte darf nicht verloren gehen).
  */
-export const legeVersionAn = async (dokDir: string, urheber: Urheber, jetzt = new Date()): Promise<Version | null> => {
+export const legeVersionAn = async (
+	dokDir: string,
+	urheber: Urheber,
+	jetzt = new Date(),
+	{ zusammenfassen = true }: { zusammenfassen?: boolean } = {},
+): Promise<Version | null> => {
 	const inhalt = await readFile(path.join(dokDir, 'material.html'));
 	await mkdir(path.join(dokDir, 'versionen'), { recursive: true });
 	const letzte = (await listeVersionen(dokDir)).at(-1);
@@ -51,17 +66,36 @@ export const legeVersionAn = async (dokDir: string, urheber: Urheber, jetzt = ne
 		return null;
 	}
 	const abstand = letzte ? jetzt.getTime() - letzte.zeit.getTime() : Infinity;
-	if (letzte && letzte.urheber === urheber && abstand >= 0 && abstand < ZUSAMMENFASSEN_MS) {
+	if (zusammenfassen && letzte && letzte.urheber === urheber && abstand >= 0 && abstand < ZUSAMMENFASSEN_MS) {
 		await schreibeAtomar(versionsPfad(dokDir, letzte), inhalt);
 		return letzte;
 	}
 	const zeit =
 		letzte && jetzt.getTime() - letzte.zeit.getTime() < 1000 ? new Date(letzte.zeit.getTime() + 1000) : jetzt;
-	const name = versionsName(zeit, urheber);
-	const neu = leseVersionsName(name);
-	if (!neu) {
-		throw new Error(`Ungültiger Versionsname ${name}`);
+	return schreibeVersion(dokDir, zeit, urheber, inhalt);
+};
+
+/**
+ * Sichert eine Fassung der Lehrkraft, die nicht in material.html steht: ihren ungespeicherten Stand, bevor der
+ * Editor eine Änderung von Claude lädt. Danach kommt der Stand von material.html noch einmal als neueste Version mit
+ * dem Urheber der bisher neuesten. So zeigt die Liste, was zuletzt galt, und das nächste Speichern der Lehrkraft fasst
+ * nicht mit der gesicherten Fassung zusammen.
+ */
+export const sichereFassung = async (dokDir: string, inhalt: string, jetzt = new Date()): Promise<Version | null> => {
+	await mkdir(path.join(dokDir, 'versionen'), { recursive: true });
+	const versionen = await listeVersionen(dokDir);
+	for (const v of versionen.slice(-2)) {
+		if ((await readFile(versionsPfad(dokDir, v), 'utf8')) === inhalt) {
+			return null;
+		}
 	}
-	await schreibeAtomar(versionsPfad(dokDir, neu), inhalt);
-	return neu;
+	const letzte = versionen.at(-1);
+	const zeit =
+		letzte && jetzt.getTime() < letzte.zeit.getTime() + 1000 ? new Date(letzte.zeit.getTime() + 1000) : jetzt;
+	const gesichert = await schreibeVersion(dokDir, zeit, 'lehrkraft', inhalt);
+	if (letzte) {
+		const aktuell = await readFile(versionsPfad(dokDir, letzte));
+		await schreibeVersion(dokDir, new Date(zeit.getTime() + 1000), letzte.urheber, aktuell);
+	}
+	return gesichert;
 };

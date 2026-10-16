@@ -23,6 +23,11 @@ const PFADE = {
 	vollbild: 'M4 9V4h5m6 0h5v5m0 6v5h-5m-6 0H4v-5',
 	bildschirm: 'M4 4h16a1 1 0 0 1 1 1v10a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1V5a1 1 0 0 1 1-1Zm5 16h6m-3-4v4',
 	nummer: 'M10 4 8 20m8-16-2 16M5 9h15M4 15h15',
+	stift: 'm4 20 1-4L16 5a2 2 0 0 1 3 3L8 19l-4 1Zm10-13 3 3',
+	rueckgaengig: 'M9 14 4 9l5-5M4 9h11a5 5 0 0 1 0 10h-3',
+	wiederholen: 'm15 14 5-5-5-5m5 5H9a5 5 0 0 0 0 10h3',
+	uhr: 'M12 3a9 9 0 1 0 0 18 9 9 0 0 0 0-18Zm0 4v5l3 2',
+	minus: 'M5 12h14',
 } as const;
 
 export type SymbolName = keyof typeof PFADE;

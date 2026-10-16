@@ -134,4 +134,57 @@ describe('API', () => {
 		});
 		assert.equal(unbekannt.status, 404);
 	});
+
+	it('zeigt eine Version und legt beim Wiederherstellen eine eigene an, statt die letzte zu überschreiben', async () => {
+		const { quelle, version } = await lies();
+		const bearbeitet = quelle.replace('</body>', '<p>von der Lehrkraft</p></body>');
+		assert.equal((await speichere({ quelle: bearbeitet, basisVersion: version })).status, 200);
+		const liste = async () =>
+			((await (await s.holen(`${dokUrl()}/versionen`)).json()) as { versionen: { id: string }[] }).versionen;
+		const vorher = await liste();
+		const erste = vorher[0];
+		assert.ok(erste);
+		const ansicht = (await (await s.holen(`${dokUrl()}/versionen/${erste.id}`)).json()) as {
+			quelle: string;
+			version: { id: string; urheber: string };
+		};
+		assert.equal(ansicht.version.id, erste.id);
+		assert.equal(ansicht.quelle, await readFile(path.join(dir, 'versionen', `${erste.id}.html`), 'utf8'));
+		assert.equal((await s.holen(`${dokUrl()}/versionen/2020-01-01T00-00-00Z_claude`)).status, 404);
+
+		const ziel = `${dokUrl()}/versionen/${erste.id}/wiederherstellen`;
+		assert.equal((await s.holen(ziel, { method: 'POST', headers: schreibKoepfe, body: '{}' })).status, 200);
+		const nachher = await liste();
+		assert.equal(nachher.length, vorher.length + 1);
+		const inhalte = await Promise.all(
+			nachher.map((v) => readFile(path.join(dir, 'versionen', `${v.id}.html`), 'utf8')),
+		);
+		assert.ok(inhalte.includes(bearbeitet), 'die bearbeitete Fassung bleibt als Version');
+	});
+
+	it('sichert einen ungespeicherten Stand als Version, ohne material.html zu ändern', async () => {
+		const { quelle } = await lies();
+		await writeFile(path.join(dir, 'material.html'), quelle.replace('</body>', '<p>von Claude</p></body>'));
+		const vonClaude = await readFile(path.join(dir, 'material.html'), 'utf8');
+		const offen = quelle.replace('</body>', '<p>noch nicht gespeichert</p></body>');
+		const antwort = await s.holen(`${dokUrl()}/versionen`, {
+			method: 'POST',
+			headers: schreibKoepfe,
+			body: JSON.stringify({ quelle: offen }),
+		});
+		assert.equal(antwort.status, 200);
+		const { gesichert } = (await antwort.json()) as { gesichert: { id: string; urheber: string } };
+		assert.equal(gesichert.urheber, 'lehrkraft');
+		assert.equal(await readFile(path.join(dir, 'material.html'), 'utf8'), vonClaude);
+		const { versionen } = (await (await s.holen(`${dokUrl()}/versionen`)).json()) as {
+			versionen: { id: string }[];
+		};
+		const [vorletzte, letzte] = versionen.slice(-2);
+		assert.equal(versionen.filter((v) => v.id === gesichert.id).length, 1);
+		assert.equal(vorletzte?.id, gesichert.id);
+		assert.ok(letzte?.id.endsWith('_claude'));
+		assert.equal(await readFile(path.join(dir, 'versionen', `${letzte?.id ?? ''}.html`), 'utf8'), vonClaude);
+		const leer = await s.holen(`${dokUrl()}/versionen`, { method: 'POST', headers: schreibKoepfe, body: '{}' });
+		assert.equal(leer.status, 400);
+	});
 });

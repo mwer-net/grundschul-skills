@@ -9,6 +9,9 @@ export interface Ereignis {
 	typ: EreignisTyp;
 	mappe?: string;
 	dok?: string;
+	/** Bei `dokument-geaendert`: Kennung des neuen Inhalts und wer ihn geschrieben hat (`null`: nur meta.json). */
+	version?: string;
+	urheber?: 'claude' | 'lehrkraft' | null;
 	/** Bei `verbunden`: Die Verbindung war schon einmal da und ist wieder da (nicht der erste Aufbau). */
 	wieder?: boolean;
 }
@@ -36,8 +39,8 @@ const oeffne = () => {
 	});
 	for (const typ of SERVER_TYPEN) {
 		strom.addEventListener(typ, (nachricht: MessageEvent<string>) => {
-			const daten = JSON.parse(nachricht.data) as { mappe?: string; dok?: string };
-			verteile({ typ, mappe: daten.mappe, dok: daten.dok });
+			const daten = JSON.parse(nachricht.data) as Omit<Ereignis, 'typ' | 'wieder'>;
+			verteile({ typ, mappe: daten.mappe, dok: daten.dok, version: daten.version, urheber: daten.urheber });
 		});
 	}
 	return strom;

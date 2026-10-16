@@ -55,6 +55,11 @@ export const datum = (iso: string, jetzt = new Date()) => {
 	return tage === 1 ? 'Gestern' : DATUM.format(zeit);
 };
 
+const UHRZEIT = new Intl.DateTimeFormat('de-DE', { hour: '2-digit', minute: '2-digit' });
+
+/** „10:32 Uhr“ */
+export const uhrzeit = (iso: string) => `${UHRZEIT.format(new Date(iso))} Uhr`;
+
 export const tageBis = (iso: string, jetzt = new Date()) =>
 	Math.max(0, Math.ceil((new Date(iso).getTime() - jetzt.getTime()) / TAG_MS));
 

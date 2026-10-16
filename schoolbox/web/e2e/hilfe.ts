@@ -94,6 +94,9 @@ export const legeEntwuerfeAn = async (mappe: string, dok: string, entwuerfe: { t
 	await schreibeMeta(MATERIAL_DIR, mappe, dok, meta);
 };
 
+/** Ordner eines Dokuments in der Ablage der Tests: material.html, versionen/ … */
+export const dokumentOrdner = (mappe: string, dok: string) => dokumentDir(MATERIAL_DIR, mappe, dok);
+
 export const waehle = (mappe: string, dok: string, name: string) => waehleEntwurf(MATERIAL_DIR, { mappe, dok }, name);
 
 const leereAblage = async () => {

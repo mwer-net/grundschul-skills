@@ -6,6 +6,7 @@ import { Rahmen } from './bausteine/Rahmen';
 import { Anmeldung } from './seiten/Anmeldung';
 import { Dokumentansicht } from './seiten/Dokumentansicht';
 import { Drucken } from './seiten/Drucken';
+import { Editor } from './seiten/Editor';
 import { Entwuerfe } from './seiten/Entwuerfe';
 import { EntwurfGross } from './seiten/EntwurfGross';
 import { Geteilt } from './seiten/Geteilt';
@@ -36,6 +37,11 @@ const DruckSeite = () => {
 	return <Drucken zugang={{ mappe, token: null }} dok={dok} />;
 };
 
+const EditorSeite = () => {
+	const { dok = '', mappe = '' } = useParams();
+	return <Editor key={`${mappe}/${dok}`} mappe={mappe} dok={dok} />;
+};
+
 const PraesentationSeite = () => {
 	const { dok = '', mappe = '' } = useParams();
 	return <Praesentation key={`${mappe}/${dok}`} zugang={{ mappe, token: null }} dok={dok} />;
@@ -49,6 +55,7 @@ export const App = () => (
 				<Route path="/f/:token/*" element={<Geteilt />} />
 				<Route path="m/:mappe/:dok/drucken" element={<DruckSeite />} />
 				<Route path="m/:mappe/:dok/praesentation" element={<PraesentationSeite />} />
+				<Route path="m/:mappe/:dok/bearbeiten" element={<EditorSeite />} />
 				<Route element={<Rahmen />}>
 					<Route index element={<Uebersicht />} />
 					<Route path="m/:mappe" element={<Mappenansicht />} />

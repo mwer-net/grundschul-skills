@@ -49,6 +49,9 @@ export const praesentationSeite = (zugang: Zugang, dok: string) => `${dokumentSe
 export const praesentationAnsicht = (zugang: Zugang, dok: string) =>
 	`${basis(zugang)}/ansicht/${zugang.mappe}/dokumente/${dok}/?praesentation=1`;
 
+/** Bearbeiten kann nur die Lehrkraft; Teilen-Links öffnen den Editor nie. */
+export const editorSeite = (zugang: Zugang, dok: string) => `/m/${zugang.mappe}/${dok}/bearbeiten`;
+
 export const druckSeite = (zugang: Zugang, dok: string, variante: PdfVariante) =>
 	`${dokumentSeite(zugang, dok)}/drucken?fassung=${variante}`;
 

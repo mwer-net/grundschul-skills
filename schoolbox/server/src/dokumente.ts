@@ -68,7 +68,7 @@ export const schreibeQuelle = async (
 	mappe: string,
 	dok: string,
 	quelle: string,
-	jetzt = new Date(),
+	{ jetzt = new Date(), zusammenfassen = true }: { jetzt?: Date; zusammenfassen?: boolean } = {},
 ): Promise<Gespeichert> => {
 	const { materialDir } = kontext.konfig;
 	const dir = dokumentDir(materialDir, mappe, dok);
@@ -76,7 +76,7 @@ export const schreibeQuelle = async (
 	pruefeFormat(meta, quelle, 'der neuen Fassung');
 	await nimmFremdeAenderungAuf(kontext, mappe, dok);
 	await schreibeAtomar(path.join(dir, 'material.html'), quelle);
-	const gesichert = await legeVersionAn(dir, 'lehrkraft', jetzt);
+	const gesichert = await legeVersionAn(dir, 'lehrkraft', jetzt, { zusammenfassen });
 	meta.geaendert = jetzt.toISOString();
 	await schreibeMeta(materialDir, mappe, dok, meta);
 	await aktualisiereMappe(materialDir, mappe, jetzt);

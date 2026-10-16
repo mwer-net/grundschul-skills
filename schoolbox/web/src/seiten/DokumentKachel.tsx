@@ -7,7 +7,7 @@ import { Vorschau } from '../bausteine/Vorschau';
 import { hatOffeneEntwuerfe } from '../entwuerfe/offen';
 import { anzahl, ART_NAME, FORMAT_NAME } from '../lib/text';
 import type { Zugang } from '../lib/zugang';
-import { dokumentSeite, entwuerfeSeite, istGeteilt, praesentationSeite } from '../lib/zugang';
+import { dokumentSeite, editorSeite, entwuerfeSeite, istGeteilt, praesentationSeite } from '../lib/zugang';
 import { PdfKnopf } from '../pdf/PdfKnopf';
 import { dokumentWahl } from '../pdf/wahl';
 import type { DokumentEintrag, Mappe } from '../typen';
@@ -69,6 +69,12 @@ export const DokumentKachel = ({ dokument, mappe, teile, zugang }: Eigenschaften
 								mappe={mappe}
 								warnen={!istGeteilt(zugang)}
 							/>
+						)}
+						{!waehlen && !istGeteilt(zugang) && (
+							<KnopfLink to={editorSeite(zugang, id)} art="zweit">
+								<Symbol name="stift" />
+								Bearbeiten
+							</KnopfLink>
 						)}
 						{teile && (
 							<Knopf art="zweit" onClick={teile}>
