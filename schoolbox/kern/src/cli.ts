@@ -22,12 +22,21 @@ import { SchoolboxFehler } from './fehler';
 import type { Konfig } from './konfig';
 import { ladeKonfig } from './konfig';
 import { entwurfVorschauDatei } from './namen';
-import { ARTEN, DRUCKPROFILE, FAECHER, FORMATE, STANDARD_FORMAT, waehleKlasse, waehleWert } from './werte';
+import {
+	ARTEN,
+	DRUCKPROFILE,
+	FAECHER,
+	FORMATE,
+	STANDARD_FORMAT,
+	standardFormat,
+	waehleKlasse,
+	waehleWert,
+} from './werte';
 
 const HILFE = `schoolbox – Mappen und Dokumente der Schoolbox anlegen und fertigstellen
 
   schoolbox neu --titel … --fach … --klasse …
-  schoolbox dokument <mappe> --titel … --art … --druckprofil sw|farbe [--format …] [--vorlage arbeitsblatt]
+  schoolbox dokument <mappe> --titel … --art … --druckprofil sw|farbe [--format …] [--vorlage arbeitsblatt|praesentation]
                      [--druckhinweis "…"]…
   schoolbox entwuerfe <mappe>/<dok> A.html B.html [C.html]
   schoolbox waehle <mappe>/<dok> B
@@ -41,7 +50,7 @@ const HILFE = `schoolbox – Mappen und Dokumente der Schoolbox anlegen und fert
 Alle Befehle: --json für maschinenlesbare Ausgabe.
 Fächer:  ${FAECHER.join(', ')}
 Arten:   ${ARTEN.join(', ')}
-Formate: ${FORMATE.join(', ')} (Standard ${STANDARD_FORMAT})
+Formate: ${FORMATE.join(', ')} (Standard ${STANDARD_FORMAT}, bei --art praesentation ${standardFormat('praesentation')})
 Klassen: 1, 2, 3, 4, gemischt`;
 
 interface Ergebnis {
@@ -99,10 +108,12 @@ const befehlDokument = async (konfig: Konfig, argumente: string[]): Promise<Erge
 		druckhinweis: { type: 'string', multiple: true },
 	});
 	const { mappe } = zerlegeZiel(positionals[0], false);
+	const titel = pflicht(values.titel, 'titel');
+	const art = waehleWert('Art', values.art, ARTEN);
 	const angaben = {
-		titel: pflicht(values.titel, 'titel'),
-		art: waehleWert('Art', values.art, ARTEN),
-		format: waehleWert('Format', values.format ?? STANDARD_FORMAT, FORMATE),
+		titel,
+		art,
+		format: waehleWert('Format', values.format ?? standardFormat(art), FORMATE),
 		druckprofil: waehleWert('Druckprofil', values.druckprofil, DRUCKPROFILE),
 		vorlage: values.vorlage,
 		druckhinweise: (values.druckhinweis ?? []).map((h) => h.trim()).filter(Boolean),

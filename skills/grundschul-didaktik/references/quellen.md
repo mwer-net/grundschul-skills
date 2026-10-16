@@ -105,6 +105,37 @@ Die Skills gelten für Grundschulen in Baden-Württemberg.
   - https://booksforkeeps.co.uk/article/typography-in-childrens-books/
   - https://www.bwillcreative.com/best-fonts-for-teachers-in-canva/
 
+## Präsentation und Folien (Skill `praesentation`)
+
+- **Kreisinput im Churer Modell:** Neue Inhalte werden im Sitzkreis eingeführt, in der Regel höchstens 10–12 Minuten (ISB Bayern: 12–15); dort werden auch die Lernaufgaben vorgestellt, und der Kreis ist Ort der Reflexion. Die (digitale) Tafel tritt zurück. Folien sind also Impuls im Kreis, kein Vortrag.
+  - https://churermodell.ch/konzept/
+  - ISB Bayern, Konzeptpapier Churermodell (Link in `kernkonzepte.md`)
+- **Vorhersagen vor dem Aufdecken:** Unter den generativen Lernstrategien wirken Vorhersagen (und Abrufübungen) schon in der unteren Grundschule, Zeichnen und Fragenstellen erst ab der Sekundarstufe (Review Brod 2021, Educational Psychology Review 33, 1295–1318; Studien mit Kl. 2–5). Eine Vermutung weckt Neugier, eine falsche überrascht; beides lenkt die Aufmerksamkeit auf die Antwort. Entscheidend ist, dass die Kinder die Rückmeldung verarbeiten: Jüngere Kinder lösen sich schwerer von ihrer falschen Vermutung als ältere. Viert- und Fünftklässler profitierten von Vorhersagen deutlich mehr als vom Erzeugen von Beispielen (Breitwieser & Brod 2021, Child Development). Für Folien: erst vermuten lassen, dann aufdecken und die richtige Antwort ausdrücklich der Vermutung gegenüberstellen.
+  - https://doi.org/10.1007/s10648-020-09571-9 (frei: pedocs)
+- **Schülervorstellungen im Sachunterricht:** Vorwissen ist einer der wichtigsten Prädiktoren für die Lernleistung. Die Vorstellungen der Kinder aufzunehmen und regelmäßig Einblick in ihre Konzepte zu nehmen, ist „eine zentrale fachdidaktische Notwendigkeit“ (Adamina, Kübler, Kalcsics, Bietenhard & Engeli 2018, „Wie ich mir das denke und vorstelle …“, Klinkhardt, Einführung).
+  - https://www.klinkhardt.de/newsite/media/20180821_9783781522572%20Adamina%20ua.pdf
+- **Bild und gesprochenes Wort bei Kindern:** Bei Viertklässlern verbesserten Bilder das Lernen aus einem Biologie-Text; der Text sollte dabei gesprochen statt geschrieben sein. Selbst lesen und zugleich Bilder ansehen kann Kinder überlasten (Herrlinger, Höffler, Opfermann & Leutner 2017, Research in Science Education 47, 685–704). Für Folien: großes Bild, die Lehrkraft spricht, auf der Folie nur Stichworte.
+  - https://doi.org/10.1007/s11165-016-9525-y
+- **Redundanz:** Gesprochener plus geschriebener Text war nur bei geringem Vorwissen, vorgegebenem Tempo und Material ohne Bilder besser als gesprochener allein; nur Schlüsselbegriffe statt des ganzen Wortlauts zu zeigen schnitt besser ab (Meta-Analyse Adesope & Nesbit 2012, Journal of Educational Psychology 104, 250–263; 57 Studien, vor allem Studierende).
+  - https://rex.libraries.wsu.edu/esploro/outputs/journalArticle/Verbal-Redundancy-in-Multimedia-Learning-Environments/99900601157101842
+- **Segmentieren:** Lernstoff in Abschnitte teilen verbessert Behalten und Transfer und senkt die Belastung, auch wenn der Abschnitt vorgegeben wird (Meta-Analyse Rey et al. 2019, Educational Psychology Review 31, 389–419). Für Folien: eine Aussage je Folie, Schritte nacheinander aufdecken.
+  - https://doi.org/10.1007/s10648-018-9456-4
+- **Signalisieren:** Hervorhebungen, die auf das Wesentliche lenken, verbessern das Lernen (Meta-Analyse Schneider, Beege, Nebel & Rey 2018, Educational Research Review 23, 1–24; 103 Studien).
+  - https://doi.org/10.1016/j.edurev.2017.11.001
+- **Folienaufbau:** Folien mit einer Aussage als Überschrift und einem Bild als Beleg wurden besser verstanden als Stichpunktlisten (Garner & Alley 2013, International Journal of Engineering Education 29(6); Studierende). Für die Grundschule übertragen, nicht eigens untersucht.
+  - https://www.ijee.ie/articles/Vol29-6/23_ijee2791ns.pdf
+- **Lesbarkeit aus der Entfernung:** Flüssiges Lesen braucht eine x-Höhe von mindestens etwa 0,2° Sehwinkel („critical print size“), flüssig bleibt es bis etwa 2° (Legge & Bigelow 2011, Journal of Vision 11(5):8). Aus 6 m sind 0,2° knapp 21 mm x-Höhe, aus 5 m 17,5 mm.
+  - https://doi.org/10.1167/11.5.8
+  - Rechnung für Folien: Bei 1,7–2 m breitem Bild ist ein Folienpixel (1280 px) 1,3–1,6 mm groß. Andika und Fredoka haben eine x-Höhe von 0,51 em (gemessen). Text braucht für 6 m also mindestens etwa 31 px. Der Skill setzt 40 px (Kl. 1/2: 48 px), das reicht auch für ein 65-Zoll-Display (1,43 m breit) aus 6 m; Überschriften 64 px.
+  - Bezug `lernplakat`: 48 pt Text auf A3 haben 8,6 mm x-Höhe und sind damit bis etwa 2,5 m flüssig lesbar, 100 pt Überschrift bis etwa 5 m – nicht der ganze Text aus 5–6 m.
+- **Kontrast am Beamer:** Umgebungslicht hebt das Schwarz der Projektion an und senkt den Kontrast; der Entwurf der Norm ANSI/INFOCOMM 3M-2011 nennt mindestens 7:1 für reine Information, 15:1 für Inhalte, mit denen gearbeitet wird. Darum dunkle Schrift auf hellem Grund, keine hellen Farben für Text, Raum nicht voll ausleuchten.
+  - https://proav.de/video/contrast-brightness.html
+- **Visuelle Timer:** Untersucht vor allem bei Kindern mit Autismus, meist in Einzelfallstudien: visuelle Hilfen bei Übergängen (Dettmer, Simpson, Myles & Ganz 2000, Focus on Autism and Other Developmental Disabilities 15, 163–170); Wartezeit mit Time Timer von 150 auf 600 s verlängert (Grey et al. 2009, laut Herstellerseite). Für ganze Klassen fehlen Belege; die Timer-Folie im Skill ist darum eine Erfahrungsregel.
+  - https://spedsupport.tea.texas.gov/resource-library/autism-toolkit/visual-timer
+  - https://www.timetimer.com/pages/research-in-special-needs (Herstellerangaben)
+
+Erfahrungsregeln ohne eigenen Beleg (im Skill so gekennzeichnet): Höchstzahl der Folien und Minuten je Folie, 48 px in Kl. 1/2, fachliche Genauigkeit (wie in `lernplakat`), Willi oder Wilma als Fragesteller, Platz für die Beiträge der Kinder, Halbkreis vor dem Bild bzw. A3-Ausdruck in der Kreismitte, Timer, Notizen je Folie.
+
 ## Differenzierung, Sprachsensibilität, offene Formen
 
 - Drei Niveaus, in diesem Repo neutral mit Punkten gekennzeichnet: ● Grundlage / ●● Kern / ●●● Herausforderung (siehe `kernkonzepte.md`).

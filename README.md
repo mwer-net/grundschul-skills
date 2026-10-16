@@ -13,8 +13,9 @@ skills/
 │   │                           kindgerecht-gestalten · druck-und-platz · differenzierung ·
 │   │                           sprachsensibel · quellen
 ├── html-materialerstellung/    Technik: Material als HTML bauen, prüfen, als PDF ausgeben
-│   ├── assets/                 blatt.css (Gestaltungssystem) · abbildungen.js (Uhr, Mengen, Stellentafel …) ·
-│   │                           vorlage-arbeitsblatt.html · fonts/ (Fredoka, Andika) · bilder/ (Willi, Wilma, Wachstum)
+│   ├── assets/                 blatt.css (Gestaltungssystem) · abbildungen.js (Uhr, Mengen, Stellentafel, Timer …) ·
+│   │                           vorlage-arbeitsblatt.html · vorlage-praesentation.html · fonts/ (Fredoka, Andika) ·
+│   │                           bilder/ (Willi, Wilma, Wachstum)
 │   ├── references/             layout · visuelle-endkontrolle · bilder (KI-Bilder und -Grafiken mit Canva)
 │   └── scripts/                blatt.py (prüft Rand, Überlappung, Schrift, Druckprofil; erzeugt PDF,
 │                               Lösungsblatt, Vorschau und Ausschnitte je Aufgabe; Entwurfsübersicht)
@@ -26,6 +27,7 @@ skills/
 ├── stationenlernen/            │
 ├── bild-und-wortkarten/        │
 ├── lernplakat/                 │
+├── praesentation/              │  (Folien 16:9 für den Kreisinput: Aufdecken, Timer, Notizen)
 ├── lernzielkontrolle/          │  (unbenotet: Lernzielkontrolle, Lernlandkarte, „Fit für die Arbeit")
 ├── klassenarbeit/              ┘  (benotet, Kl. 3/4: BW-Regeln, Probearbeit, Rückgabe)
 │
@@ -74,7 +76,7 @@ Zu Beginn fragen die Skills einzeln ab: Materialart, Medium/Format, Farbe oder S
 
 ## Didaktische Grundlage
 
-Die Skills beruhen auf einer Recherche zum Bildungsplan Baden-Württemberg (Deutsch und Mathematik auf Grundlage der KMK-Bildungsstandards 2022), zu Grundwortschatz und Rechtschreibrahmen BW, zur Grundschul-Leistungsbeurteilungsverordnung und zu lernförderlichen Klassenarbeiten (PIKAS), zu Perspektivrahmen Sachunterricht, Mathematikdidaktik (EIS-Prinzip, Kraft der Fünf, produktives Üben), Lese- und Rechtschreibdidaktik, Cognitive Load Theory, Differenzierung und sprachsensiblem Unterricht. Details und Links: [`skills/grundschul-didaktik/references/quellen.md`](skills/grundschul-didaktik/references/quellen.md).
+Die Skills beruhen auf einer Recherche zum Bildungsplan Baden-Württemberg (Deutsch und Mathematik auf Grundlage der KMK-Bildungsstandards 2022), zu Grundwortschatz und Rechtschreibrahmen BW, zur Grundschul-Leistungsbeurteilungsverordnung und zu lernförderlichen Klassenarbeiten (PIKAS), zu Perspektivrahmen Sachunterricht, Mathematikdidaktik (EIS-Prinzip, Kraft der Fünf, produktives Üben), Lese- und Rechtschreibdidaktik, Cognitive Load Theory, Folien im Kreisinput (Multimedia-Prinzipien, Vorhersagen vor dem Aufdecken, Lesbarkeit am Beamer), Differenzierung und sprachsensiblem Unterricht. Details und Links: [`skills/grundschul-didaktik/references/quellen.md`](skills/grundschul-didaktik/references/quellen.md).
 
 ## Installation
 

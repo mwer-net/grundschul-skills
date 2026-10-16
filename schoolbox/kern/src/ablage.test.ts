@@ -277,4 +277,22 @@ describe('CLI', () => {
 			return true;
 		});
 	});
+
+	it('legt eine Präsentation ohne --format im Folienformat aus der Vorlage an', async () => {
+		const materialDir = await ablage();
+		const mappe = await kartoffeln(materialDir);
+		const cli = path.resolve(__dirname, '..', '..', 'bin', 'schoolbox');
+		const argumente = ['--titel', 'Kreisinput', '--art', 'praesentation', '--druckprofil', 'farbe'];
+		const ausgabe = execFileSync(cli, ['dokument', mappe, ...argumente, '--vorlage', 'praesentation', '--json'], {
+			encoding: 'utf8',
+			env: { ...process.env, MATERIAL_DIR: materialDir },
+			stdio: 'pipe',
+		});
+		const { id, pfad } = JSON.parse(ausgabe) as { id: string; pfad: string };
+		assert.equal(id, `${mappe}/kreisinput`);
+		assert.equal((await leseMeta(materialDir, mappe, 'kreisinput')).format, 'folie');
+		const html = await readFile(pfad, 'utf8');
+		assert.deepEqual(bodyKlassen(html), ['kl3', 'farbe', 'palette-wiese', 'folie']);
+		assert.equal(titelAusHtml(html), 'Kreisinput');
+	});
 });

@@ -64,6 +64,7 @@ Sicherheitshinweise (Feuer, Strom, Glas, Lebensmittel, Allergien) immer für die
 - Zeitleisten, Karten, Lagepläne.
 - Bauanleitungen in Bildschritten.
 - Lerngang-/Beobachtungsbögen.
+- Folien für den Kreisinput (`praesentation`): Bildimpuls oder Phänomen, Vermutungen sammeln und abstimmen, Auflösung neben der Vermutung, Merksatz zur Ergebnissicherung. Echtes hat Vorrang (originale Begegnung); die Folie zeigt, was sich nicht in den Kreis holen lässt (Feld, Tier im Bau, Vorgang unter der Erde, früher).
 
 ## Leistung feststellen
 

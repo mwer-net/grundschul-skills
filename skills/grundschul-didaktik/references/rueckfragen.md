@@ -14,7 +14,7 @@ a) Arbeitsblatt / Übungsblatt   ← Empfehlung, wenn „Blatt" oder „üben" i
 b) Klassenarbeit (benotet, Kl. 3/4) oder Lernzielkontrolle (unbenotet)
 c) Lernspiel (Domino, Memory, Bingo …)
 d) Bild- oder Wortkarten
-e) etwas anderes: Lesetext, Lernplakat, Stationenlernen, Stundenplanung
+e) etwas anderes: Lesetext, Lernplakat, Präsentation (Folien), Stationenlernen, Stundenplanung
 ```
 
 Die Antwort legt den Material-Skill fest:
@@ -27,7 +27,8 @@ Die Antwort legt den Material-Skill fest:
 | Lernspiel | `lernspiel` |
 | Bild-, Wort-, Flashcards | `bild-und-wortkarten` |
 | Lesetext, Lesespur, Lesetheater | `lesetext` |
-| Lernplakat, Merkplakat, Tafelbild | `lernplakat` |
+| Lernplakat, Merkplakat, Anschauungsplakat | `lernplakat` |
+| Präsentation, Folien, Tafelbild am Beamer oder Whiteboard | `praesentation` |
 | Stationen, Lerntheke, Werkstatt, Wochenplan | `stationenlernen` |
 | Stunde oder Reihe planen | `unterrichtsplanung` (Medium und Farbe erst bei den Materialien der Stunde fragen) |
 
@@ -40,9 +41,9 @@ Nur die Optionen anbieten, die zur Materialart passen; die übliche als Empfehlu
 | Arbeitsblatt, Lesetext, Lernzielkontrolle, Klassenarbeit | **A4 hoch**, A4 quer, A5 (Heftformat) | Standard; `a4-quer`; `a5-hoch` |
 | Bild-/Wortkarten | **Tischkarten 8 pro A4**, A5-Karten (2 pro A4), Tafelkarten A4 quer, digital am Whiteboard | `.karten` auf A4 bzw. `folie` |
 | Lernspiel | **Karten auf A4 zum Ausschneiden**, Spielplan A3/A4 | `.karten` auf A4 / `a3-hoch` |
-| Lernplakat | **A3**, A2 aus A4-Kacheln, digital am Whiteboard | `a3-hoch` bzw. `folie` |
+| Lernplakat | **A3**, A2 aus A4-Kacheln | `a3-hoch` |
 | Stationenlernen | **Stationskarten A5** + Laufzettel A4, Stationskarten A4 | `a5-hoch` oder `a4-quer` mit 2 Karten / Standard |
-| Präsentation / Tafelbild | **Whiteboard 16:9** | `folie` |
+| Präsentation | **Folien 16:9** für Beamer, Smartboard oder Display (nicht fragen) | `folie` |
 
 **3. Farbe oder Schwarz-Weiß**
 
@@ -56,7 +57,7 @@ Empfehlung je nach Medium: **s/w** für Kopiervorlagen (Arbeitsblatt, Klassenarb
 
 **4.–6. Bausteine des Blatts**
 
-Welche dieser Fragen gestellt wird, hängt von der Materialart ab. Bei allen anderen Materialarten (Karten, Plakat, Präsentation) entfallen sie; bei `unterrichtsplanung` erst bei den Materialien der Stunde fragen.
+Welche dieser Fragen gestellt wird, hängt von der Materialart ab. Bei allen anderen Materialarten (Karten, Plakat) entfallen sie; bei `unterrichtsplanung` erst bei den Materialien der Stunde fragen.
 
 | Materialart | 4. Selbsteinschätzung | 5. Churer Modell | 6. Sternchenaufgabe |
 |---|---|---|---|
@@ -64,6 +65,7 @@ Welche dieser Fragen gestellt wird, hängt von der Materialart ab. Bei allen and
 | Lernspiel | – | ja | – |
 | Lernzielkontrolle | ja | – | – |
 | Klassenarbeit | ja (vor der Abgabe, nie benotet) | – (keine Niveau-Wahl) | ja (außerhalb der Wertung) |
+| Präsentation | ja, wenn eine Reflexionsfolie entsteht | ja, wenn eine Lernaufgaben-Folie entsteht | ja, wenn eine Lernaufgaben-Folie entsteht |
 
 **4. Selbsteinschätzung (Growth Mindset)**
 

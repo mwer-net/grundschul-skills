@@ -3,7 +3,7 @@ import { describe, it } from 'node:test';
 
 import { SchoolboxFehler } from './fehler';
 import { MAPPE_SCHEMA, META_SCHEMA, pruefeSchema } from './schema';
-import { ARTEN, FAECHER, FORMATE, waehleKlasse, waehleWert } from './werte';
+import { ARTEN, FAECHER, FORMATE, standardFormat, waehleKlasse, waehleWert } from './werte';
 
 describe('waehleWert', () => {
 	it('akzeptiert gültige Werte unabhängig von Groß-/Kleinschreibung', () => {
@@ -28,6 +28,13 @@ describe('waehleWert', () => {
 		}
 		assert.throws(() => waehleKlasse('5'), /Gültige Werte: 1, 2, 3, 4, gemischt/);
 		assert.throws(() => waehleWert('Fach', undefined, FAECHER), /Fach fehlt/);
+	});
+});
+
+describe('standardFormat', () => {
+	it('nimmt für Präsentationen das Folienformat, sonst A4 hoch', () => {
+		assert.equal(standardFormat('praesentation'), 'folie');
+		assert.equal(standardFormat('arbeitsblatt'), 'a4-hoch');
 	});
 });
 

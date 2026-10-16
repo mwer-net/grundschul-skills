@@ -8,6 +8,7 @@
      <x-stellentafel stellen="Z E" loesung="3 5"></x-stellentafel>   Stellenwerttafel, Werte nur in Beispiel/Lösung
      <x-zwanzigerfeld n="13"></x-zwanzigerfeld>           Zwanzigerfeld mit 13 Plättchen
      <x-zahlenstrahl von="0" bis="20" zahlen="0 5 10 15 20" pfeile="7 13"></x-zahlenstrahl>
+     <x-timer minuten="10" groesse="360"></x-timer>     Zeitscheibe wie ein Time Timer, darunter „10 Minuten“
    "Beispiel" bedeutet: Element liegt in einem Container mit class="beispiel". */
 (function () {
   const NS = "http://www.w3.org/2000/svg";
@@ -157,8 +158,37 @@
     el.innerHTML = svg(breite, top + 30 + fs, s);
   }
 
+  // Zifferblatt bis 60 (über 60 Minuten: 120, nur alle 30 beschriftet, dreistellige Zahlen stießen an den Rand),
+  // Zahlen gegen den Uhrzeigersinn ab 0 oben; die Scheibe zeigt die eingestellte Zeit. Ablaufen lässt sie erst die
+  // Präsentation.
+  function timer(el) {
+    const minuten = num(el, "minuten", 10), g = num(el, "groesse", 360);
+    const skala = num(el, "skala", minuten > 60 ? 120 : 60);
+    const schritt = [1, 2, 5, 10, 15, 30].find((s) => skala / s <= (skala > 60 ? 4 : 12)) || skala / 12;
+    const punkt = (m, r) => {
+      const a = (2 * Math.PI * m) / skala;
+      return `${r1(50 - r * Math.sin(a))} ${r1(50 - r * Math.cos(a))}`;
+    };
+    let s = '<circle cx="50" cy="50" r="48" stroke-width="2.5" fill="#fff"/>';
+    const zeit = Math.min(Math.max(minuten, 0), skala), farbe = 'class="timer-scheibe" stroke="none" style="fill:var(--haupt)"';
+    if (zeit >= skala) s += `<circle cx="50" cy="50" r="35" ${farbe}/>`;
+    else if (zeit > 0) s += `<path d="M50 50 L50 15 A35 35 0 ${zeit / skala > 0.5 ? 1 : 0} 0 ${punkt(zeit, 35)} Z" ${farbe}/>`;
+    const fein = skala <= 60 ? 1 : skala / 60;
+    for (let m = 0; m < skala; m += fein) {
+      const gross = Math.abs(m / schritt - Math.round(m / schritt)) < 1e-9;
+      s += `<path d="M${punkt(m, gross ? 35 : 36.3)} L${punkt(m, 38)}" stroke-width="${gross ? 1.6 : 0.6}"/>`;
+    }
+    for (let m = 0; m < skala; m += schritt) {
+      const [x, y] = punkt(m, 42.3).split(" ");
+      s += `<text x="${x}" y="${y}" font-family="Andika,sans-serif" font-size="6" font-weight="700" fill="currentColor" stroke="none" text-anchor="middle" dominant-baseline="central">${m}</text>`;
+    }
+    s += '<circle cx="50" cy="50" r="4" fill="currentColor" stroke="none"/>';
+    const text = `${String(minuten).replace(".", ",")} ${minuten === 1 ? "Minute" : "Minuten"}`;
+    el.innerHTML = svg(100, 100, s, [g, g]) + `<span class="timer-text">${text}</span>`;
+  }
+
   const ARTEN = { "x-uhr": uhr, "x-menge": menge, "x-dienes": dienes, "x-strichpunkt": strichpunkt,
-    "x-stellentafel": stellentafel, "x-zwanzigerfeld": zwanzigerfeld, "x-zahlenstrahl": zahlenstrahl };
+    "x-stellentafel": stellentafel, "x-zwanzigerfeld": zwanzigerfeld, "x-zahlenstrahl": zahlenstrahl, "x-timer": timer };
   window.zeichneAbbildungen = function () {
     for (const [tag, f] of Object.entries(ARTEN)) document.querySelectorAll(tag).forEach(f);
   };

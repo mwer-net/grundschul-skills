@@ -31,6 +31,7 @@ Nach dem Rückfrage-Protokoll aus `grundschul-didaktik` (eine Frage pro Nachrich
 | Material | Hinweise |
 |---|---|
 | Flashcards | Bild ohne Text (Vorderseite), Wortkarte separat; ein Stil pro Set (siehe `bild-und-wortkarten`) |
+| Folien (Beamer, Smartboard) | mit `praesentation`: Flashcards je Folie erst als Bild, die Kinder sprechen, dann erscheint das Wortbild (`data-schritt`); Storytelling mit einem großen Bild je Folie, die Lehrkraft erzählt, die Mitmach-Phrase steht als Stichwort. Kein Ton, die Lehrkraft spricht vor |
 | Listening tasks | "Listen and colour / tick / number / draw" mit Bildern; Hörtext für die Lehrkraft beilegen |
 | Speaking cards | Dialogkarten mit Bildimpulsen, Redemittel als Sprechblasen |
 | Mini-Book | Faltbuch aus A4 (8 Seiten), Satzmuster wiederholt ("I can see a …") |

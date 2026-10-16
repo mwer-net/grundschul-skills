@@ -40,6 +40,8 @@ export type Urheber = (typeof URHEBER)[number];
 
 export const STANDARD_FORMAT: Format = 'a4-hoch';
 
+export const standardFormat = (art: Art): Format => (art === 'praesentation' ? 'folie' : STANDARD_FORMAT);
+
 export const FACH_KUERZEL: Record<Fach, string> = {
 	deutsch: 'de',
 	mathematik: 'ma',

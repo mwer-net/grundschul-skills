@@ -258,19 +258,28 @@ def uebersicht(quellen, ausgabe=None):
         seiten.append(bilder[0] if bilder else None)
         passt = not any("Seite" in m["text"] and m["stufe"] == "FEHLER" for m in bericht["meldungen"])
         status.append("passt auf die Seite" if passt and not fehler else ("passt NICHT auf die Seite" if not passt else f"{fehler} Fehler"))
-    w, h, rand, kopf = 794, 1123, 30, 70
-    bild = Image.new("RGB", (rand + len(quellen) * (w + rand), h + kopf + rand), "#e9e9e6")
+    rand, kopf = 30, 70
+    groessen = []
+    for png in seiten:  # Hochformate 794 px breit, Querformate (a4-quer, folie) 1123 px, Seitenverhältnis wie die Seite
+        if not png:
+            groessen.append((794, 1123))
+            continue
+        with Image.open(png) as im:
+            w = 794 if im.height >= im.width else 1123
+            groessen.append((w, round(w * im.height / im.width)))
+    bild = Image.new("RGB", (rand + sum(w + rand for w, _ in groessen), max(h for _, h in groessen) + kopf + rand), "#e9e9e6")
     zeichne = ImageDraw.Draw(bild)
     try:
         schrift = ImageFont.truetype(str(next(iter(glob.glob("/usr/share/fonts/**/DejaVuSans-Bold.ttf", recursive=True)), "")), 22)
     except Exception:
         schrift = ImageFont.load_default()
-    for i, (png, n, st) in enumerate(zip(seiten, namen, status)):
-        x = rand + i * (w + rand)
+    x = rand
+    for png, n, st, (w, h) in zip(seiten, namen, status, groessen):
         zeichne.text((x, 12), n, fill="#1D1D1B", font=schrift)
         zeichne.text((x, 40), st, fill="#b00000" if "NICHT" in st or "Fehler" in st else "#2E7D32", font=schrift)
         if png:
             bild.paste(Image.open(png).convert("RGB").resize((w, h)), (x, kopf))
+        x += w + rand
     ziel = aus / "entwuerfe.png"
     bild.save(ziel)
     karten = "".join(

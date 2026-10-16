@@ -19,7 +19,7 @@ Laden mit: `grundschul-didaktik` und dem passenden `fach-*`. Material danach mit
 
 | Phase | Zeit (45 min) | Inhalt | Sozialform | Medien |
 |---|---|---|---|---|
-| Kreisinput | 10–12 | Impuls/Problem, gemeinsames Beispiel, Ich-kann-Ziel nennen, Lernaufgaben ● / ●● / ●●● vorstellen | Sitzkreis | Bild, Gegenstand, Plakat |
+| Kreisinput | 10–12 | Impuls/Problem, gemeinsames Beispiel, Ich-kann-Ziel nennen, Lernaufgaben ● / ●● / ●●● vorstellen | Sitzkreis | Bild, Gegenstand, Plakat oder Folien |
 | Lernaufgaben | 25–30 | Freie Wahl von Aufgabe, Platz und Partner; Lehrkraft begleitet, gibt Kleingruppen-Inputs | frei | AB, Karten, Spiel, Tippkarten, Lösungen |
 | Reflexion im Kreis | 5 | Wachstums-Selbsteinschätzung (nach der Selbstkontrolle), „Welche Strategie hat dir geholfen?", „Was übst du als Nächstes?" | Sitzkreis | Wachstumsgrafik |
 
@@ -41,7 +41,7 @@ Grundsätze:
 - Am Ende der Reihe eine Lernlandkarte bzw. Selbsteinschätzung mit Wachstumsstufen (siehe `lernzielkontrolle`).
 - Endet die Reihe in Kl. 3/4 mit einer Klassenarbeit: Lernlandkarte zu Beginn, „Fit für die Arbeit" mit Lernaufgaben ● / ●● / ●●● zum gezielten Üben, Probearbeit 1–2 Wochen vorher, Termin nach den BW-Regeln (nicht montags, nicht nach Ferien oder Feiertag), Rückgabestunde mit Kommentar vor der Note und Berichtigung als Lernaufgabe (`klassenarbeit`).
 - Bezug zum Bildungsplan BW (Kompetenzbereich, Leitidee bzw. Perspektive) angeben.
-- Materialliste am Ende mit Verweis, welcher Skill es erzeugt (`arbeitsblatt`, `lernspiel` …).
+- Materialliste am Ende mit Verweis, welcher Skill es erzeugt (`arbeitsblatt`, `lernspiel`, `praesentation` …).
 
 ## Unterrichtsentwurf (Lehrprobe)
 
@@ -54,7 +54,7 @@ Zusätzlich: Bedingungsanalyse (anonym), Sachanalyse (kurz), didaktische Analyse
 
 ## Ausgabe
 
-Planung als übersichtliche Tabelle (Text), danach anbieten, die Materialien einzeln zu erstellen – mit einer Frage, welches zuerst. Jedes Material läuft dann durch Entwürfe und Aufgabenplan (`grundschul-didaktik/references/entwurf-und-aufgabenplan.md`), bevor die Endfassung entsteht.
+Planung als übersichtliche Tabelle (Text), danach anbieten, die Materialien einzeln zu erstellen – mit einer Frage, welches zuerst. Folien für Kreisinput und Reflexion entstehen mit `praesentation`; ihre Lernaufgaben-Folie übernimmt Namen und Niveaus der Lernaufgaben aus dem Plan. Jedes Material läuft dann durch Entwürfe und Aufgabenplan (`grundschul-didaktik/references/entwurf-und-aufgabenplan.md`), bevor die Endfassung entsteht.
 
 ## Umsetzung (`html-materialerstellung`)
 

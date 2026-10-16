@@ -110,6 +110,7 @@ Erst nach dem Ok der Lehrkraft beginnt Phase 5. Änderungswünsche danach werden
 | `bild-und-wortkarten` | Kartentyp (Bild + Wort / Bild vorn, Wort hinten / nur Wort), Größe und Raster | Wortliste mit Artikel (ggf. Plural, Silben), Bildmotiv je Karte, Bildstil, Rückseite |
 | `lesetext` | Textsorte bzw. Rahmen, Aufgabenformate; im Entwurf nur die ersten 2–3 Sätze | ganzer Text je Fassung mit Wortzahl und Lesestufe, Aufgaben, Lösungen, Zeilennummern |
 | `lernplakat` | Aufbau (Regel + Beispiele / Schrittfolge / Lückenplakat), Anordnung | alle Texte wörtlich, Beispiele, Bildliste, Schriftgrößen für die Leseentfernung |
+| `praesentation` | Einstieg (Bildimpuls mit Frage / Rätsel mit Vermutungen / Geschichte von Willi oder Wilma); ein Entwurf ist nur die Einstiegsfolie, den Ablauf nennt der `<title>` | je Folie Zweck, Bild, Text wörtlich, Aufdeck-Schritte in ihrer Reihenfolge, Lösung, Notiz und Minuten; Lernaufgaben mit Niveau bzw. ★, Reflexionsfrage |
 | `stationenlernen` | Stationsmix (Zugänge, Pflicht/Wahl), Layout der Stationskarte; im Entwurf Stationsübersicht + eine Musterkarte | jede Station vollständig (Auftrag, Material, Niveaus, Tippkarte, Lösung), Laufzettel, Ritualkarte |
 | `unterrichtsplanung` | keine Entwürfe (die Planung im Chat ist der Entwurf; gedruckt wird sie als Verlaufsplan in A4 quer) | – ; die Materialien der Stunde laufen einzeln durch diesen Ablauf |
 

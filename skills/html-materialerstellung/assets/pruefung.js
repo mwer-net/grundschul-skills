@@ -13,6 +13,7 @@
   const kl = +((B.className.match(/kl(\d)/) || [0, 2])[1]);
   const RICHTWERT = { 1: 3, 2: 4, 3: 5, 4: 6 }[kl] || 6;
   const fs = parseFloat(getComputedStyle(B).fontSize);
+  const folie = B.classList.contains("folie"), mitNotizen = !!document.querySelector(".seite .notiz");
   const kurz = (el) => el.matches(".antwort") && !el.textContent.trim() ? "Antwortlinie" : (el.textContent || el.getAttribute("alt") || el.tagName.toLowerCase()).trim().replace(/\s+/g, " ").slice(0, 40);
   const sichtbar = (el) => { const r = el.getBoundingClientRect(); return r.width > 0 && r.height > 0 && getComputedStyle(el).visibility !== "hidden"; };
   const rgb = (c) => (c.match(/[\d.]+/g) || []).map(Number);
@@ -46,7 +47,7 @@
       .forEach((e) => melde("FEHLER", nr, `„${kurz(e)}“ ist abgeschnitten`));
 
     // 3. Überlappungen zwischen Inhalten
-    const INHALT = "img,svg,.blase,.anw,h1,.ziel,.wahlhilfe,.zeile,.antwort,table,.nr,.schreiblinie,.kartentext,.item,.platzhalter,x-stellentafel";
+    const INHALT = "img,svg,.blase,.anw,h1,.ziel,.wahlhilfe,.zeile,.antwort,table,.nr,.schreiblinie,.kartentext,.item,.platzhalter,x-stellentafel,.timer-text,.leerstelle,.vermutung";
     const teile = alle.filter((e) => e.matches(INHALT)), paare = [];
     const schneidet = (a, b) => {
       const A = a.getBoundingClientRect(), C = b.getBoundingClientRect();
@@ -72,7 +73,7 @@
       if (!t.textContent.trim() || !p || p.closest("svg,.nr,.namenszeile,.platzhalter,.loesung-marke") || !sichtbar(p)) continue;
       if (parseFloat(getComputedStyle(p).fontSize) < min - 0.5) klein.add(`„${t.textContent.trim().slice(0, 30)}“ (${getComputedStyle(p).fontSize})`);
     }
-    if (klein.size) melde("WARNUNG", nr, `Schrift kleiner als ${min} px für Klasse ${kl}: ${[...klein].slice(0, 4).join(", ")}`);
+    if (klein.size) melde("WARNUNG", nr, `Schrift kleiner als ${min} px ${folie ? "auf Folien (Leseentfernung)" : `für Klasse ${kl}`}: ${[...klein].slice(0, 4).join(", ")}`);
 
     // 5. Druckprofil
     if (B.classList.contains("sw")) {
@@ -111,13 +112,14 @@
       if (gap < 20) melde("WARNUNG", nr, `Nur ${Math.round(gap)} px zwischen Aufgabe ${i} und ${i + 1}`);
     }
 
-    // 8. Ungenutzter Platz
+    // 8. Ungenutzter Platz (Folien dürfen leer sein: eine Aussage je Folie)
     const fuss = S.querySelector(".fuss");
     const inhalt = [...S.children].filter((e) => e !== fuss && sichtbar(e));
     const unten = Math.max(P.top + rand, ...inhalt.map((e) => e.getBoundingClientRect().bottom));
     const rest = Math.round((fuss ? fuss.getBoundingClientRect().top - 16 : innen.b) - unten);
-    if (rest > 150 && !S.querySelector(".karten"))
+    if (rest > 150 && !S.querySelector(".karten") && !folie)
       melde("HINWEIS", nr, `${rest} px frei unten → ${kl <= 2 ? "Abstand zwischen Aufgaben vergrößern (--abstand), nicht auffüllen" : "Item oder Aufgabe ergänzen"}`);
+    if (folie && mitNotizen && !S.querySelector(".notiz")) melde("HINWEIS", nr, "Folie ohne Notiz für die Lehrkraft");
 
     const ph = S.querySelectorAll(".platzhalter").length;
     if (ph) melde("HINWEIS", nr, `${ph} Platzhalter (Entwurf)`);

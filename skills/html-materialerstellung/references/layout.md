@@ -25,6 +25,8 @@ Satzspiegel 1003 px Höhe: Kopf ≤ 160 px, Fuß ≤ 110 px (nur mit Selbsteinsc
 
 Faustwerte Kl. 2 (24 px Schrift): Aufgabenzeile 34 px, Uhr 88 px + Antwortlinie ≈ 130 px, Rechenzeile 45 px, Schreiblinie 46 px, Leitfigur mit Sprechblase im Kopf ≈ 95 px.
 
+**Folien** (`folie`): 1280 × 720 px, Rand 48 px, Satzspiegel 1184 × 624 px. Kopf mit Überschrift und Ziel ≈ 150 px, zweizeilige Überschrift ohne Ziel ≈ 175 px; den Rest füllt `.buehne`. Text 40 px (Kl. 1/2: 48 px), eine Textzeile ≈ 56 px, Nummernkreis 52 px, Abstand zwischen Aufgaben 32 px. Kein Fuß und keine Namenszeile; Platz bleibt frei, statt ihn zu füllen.
+
 ## 3. Sauberes HTML
 
 1. **Text bleibt Text**, nie in Bildern. Keine Schrift, Zahlen oder Uhren in KI-Bildern.

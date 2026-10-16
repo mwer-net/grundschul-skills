@@ -1,6 +1,6 @@
 ---
 name: html-materialerstellung
-description: Technischer Ablauf, um Grundschulmaterial (Arbeitsblätter, Klassenarbeiten, Lernzielkontrollen, Lesetexte, Karten, Plakate, Stationskarten) als HTML/CSS zu bauen, automatisch zu prüfen und als druckfertiges A4-PDF mit Lösungsblatt auszugeben. Laden für die Entwürfe (Phase 2) und die Umsetzung des freigegebenen Aufgabenplans. Bilder und Grafiken nach Bedarf mit Canva-KI.
+description: Technischer Ablauf, um Grundschulmaterial (Arbeitsblätter, Klassenarbeiten, Lernzielkontrollen, Lesetexte, Karten, Plakate, Stationskarten, Folien) als HTML/CSS zu bauen, automatisch zu prüfen und als druckfertiges A4-PDF mit Lösungsblatt auszugeben. Laden für die Entwürfe (Phase 2) und die Umsetzung des freigegebenen Aufgabenplans. Bilder und Grafiken nach Bedarf mit Canva-KI.
 ---
 
 # Material mit HTML erstellen
@@ -13,9 +13,10 @@ Warum: In HTML bestimmen wir Schrift (Fredoka, Andika, eingebettet), Abstände u
 
 | Datei | Zweck |
 |---|---|
-| `assets/blatt.css` | Gestaltungssystem: A4-Seite, 60 px Rand, Kopf, Aufgaben mit hängender Nummer, Niveau-Punkte, Punktfelder, Antwortlinien, Sprechblase, Fuß, Karten, Platzhalter. Profile über Klassen am `<body>`. |
-| `assets/abbildungen.js` | Exakte Abbildungen als SVG: `x-uhr`, `x-menge` (Gegenstände in Reihen, Bündel), `x-dienes`, `x-strichpunkt`, `x-stellentafel`, `x-zwanzigerfeld`, `x-zahlenstrahl`. Aufrufe im Kopf der Datei. |
+| `assets/blatt.css` | Gestaltungssystem: A4-Seite, 60 px Rand, Kopf, Aufgaben mit hängender Nummer, Niveau-Punkte, Punktfelder, Antwortlinien, Sprechblase, Fuß, Karten, Platzhalter, Folien. Profile über Klassen am `<body>`. |
+| `assets/abbildungen.js` | Exakte Abbildungen als SVG: `x-uhr`, `x-menge` (Gegenstände in Reihen, Bündel), `x-dienes`, `x-strichpunkt`, `x-stellentafel`, `x-zwanzigerfeld`, `x-zahlenstrahl`, `x-timer` (Zeitscheibe für Folien). Aufrufe im Kopf der Datei. |
 | `assets/vorlage-arbeitsblatt.html` | Muster mit allen Bausteinen (Farbprofil); Ausgangspunkt für jedes Blatt |
+| `assets/vorlage-praesentation.html` | Kreisinput mit sechs Folien und allen Folien-Bausteinen; Ausgangspunkt für Präsentationen (Abschnitt „Folien“) |
 | `assets/beispiel-zehner-einer-kl2.html` | geprüftes Beispiel im s/w-Profil (Bündeln, Stellentafel, Sternchenaufgabe, Lösungen) |
 | `assets/fonts/` | Fredoka (Überschrift), Andika (Text, einstöckiges a/g), OFL-Lizenz |
 | `assets/bilder/` | Willi, Wilma, Wachstumsgrafik farbig und als Strichzeichnung (`references/bilder.md`) |
@@ -51,7 +52,7 @@ Warum: In HTML bestimmen wir Schrift (Fredoka, Andika, eingebettet), Abstände u
 
 Ist im Projekt eine Schoolbox eingerichtet (Ordner `schoolbox/`, Projektanweisungen), liegt das Material in **Mappen** und die Lehrkraft bekommt am Ende einen Link statt Dateien. Am Aufbau des HTML und an der Prüfung ändert sich nichts. Alle Aufrufe aus dem Hauptordner des Projekts; `schoolbox/bin/schoolbox --hilfe` nennt Befehle und gültige Werte.
 
-1. **Mappe und Dokumente anlegen** statt eigener Ordner und Dateinamen: `schoolbox/bin/schoolbox neu --titel … --fach … --klasse …`, dann je Bestandteil `schoolbox/bin/schoolbox dokument <mappe> --titel … --art … --druckprofil sw|farbe [--format a4-quer|a3-hoch|a5-hoch|folie] [--vorlage arbeitsblatt]`. Das Dokument liegt in `materialien/<mappe>/dokumente/<dokument>/`; die Quelle heißt immer `material.html`, mit `<title>` und `<body>`-Klassen schon gesetzt. Das Format steht in den Angaben des Dokuments (`meta.json` im selben Ordner) **und** als Klasse am `<body>`; ändert es sich, beides anpassen, sonst bricht `fertig` ab.
+1. **Mappe und Dokumente anlegen** statt eigener Ordner und Dateinamen: `schoolbox/bin/schoolbox neu --titel … --fach … --klasse …`, dann je Bestandteil `schoolbox/bin/schoolbox dokument <mappe> --titel … --art … --druckprofil sw|farbe [--format a4-quer|a3-hoch|a5-hoch|folie] [--vorlage arbeitsblatt|praesentation]` (bei `--art praesentation` ist `folie` Standard). Das Dokument liegt in `materialien/<mappe>/dokumente/<dokument>/`; die Quelle heißt immer `material.html`, mit `<title>` und `<body>`-Klassen schon gesetzt. Das Format steht in den Angaben des Dokuments (`meta.json` im selben Ordner) **und** als Klasse am `<body>`; ändert es sich, beides anpassen, sonst bricht `fertig` ab.
 2. **Druckhinweise** (doppelseitig, laminieren, in A3 drucken) gehören ans Dokument, die Schoolbox zeigt sie beim Drucken: `--druckhinweis "…"`, mehrfach möglich.
 3. **Entwürfe** in den Ordner des Dokuments schreiben (`entwurf-a.html` …), damit Pfade wie `bilder/…` später stimmen. `schoolbox/bin/schoolbox entwuerfe <mappe>/<dokument> <entwürfe>` registriert sie, baut und prüft sie wie `blatt.py uebersicht` (ein eigener Aufruf von `uebersicht` ist nicht nötig), nennt je Entwurf, ob er auf die Seite passt, die Vorschaubilder zum Ansehen und den Link für die Lehrkraft. Den gewählten übernehmen mit `schoolbox/bin/schoolbox waehle <mappe>/<dokument> B`; die Arbeitsdateien `entwurf-*.html` räumt das auf, die Entwürfe bleiben in der Schoolbox zum Nachsehen.
 4. **Bilder** des Dokuments in `bilder/` neben `material.html`; Bilder, die mehrere Dokumente der Mappe nutzen, in `materialien/<mappe>/bilder/` (eingebunden als `../../bilder/…`).
@@ -68,7 +69,24 @@ Ist im Projekt eine Schoolbox eingerichtet (Ordner `schoolbox/`, Projektanweisun
 - Items: `.reihe` mit `--spalten`, darin `.zelle` (`.links` für linksbündig), `.zeile` für Rechenzeilen, `.antwort` (`.kurz`, `.breit`, `.lang`), `.schreiblinie`, `.box` (Ankreuzkästchen).
 - Fuß (nur mit Selbsteinschätzung): `.fuss` mit Text, Wachstumsgrafik, `.reflexion`.
 - Karten: `.karten` mit `--spalten`, `.karte`, `.kartentext`, `.ecke`.
+- Folien: Abschnitt „Folien“.
 - Eigene Gestaltung ist erlaubt (zusätzliches `<style>` im Kopf), solange `references/layout.md` und das Druckprofil eingehalten werden.
+
+## Folien
+
+Für Präsentationen (Skill `praesentation`), Ausgangspunkt `assets/vorlage-praesentation.html`. Am `<body>` steht `folie`, z. B. `<body class="kl3 farbe palette-wiese folie">`, je Folie eine `<section class="seite">`. Eine Folie ist 1280 × 720 px groß (16:9), mit 48 px Rand bleiben 1184 × 624 px. Text 40 px (Kl. 1/2: 48 px), Überschrift 64 px; das setzt `blatt.css` für `folie`, die Klassenstufe ändert daran nichts außer in Kl. 1/2. Raster und Platzbudget: `references/layout.md`.
+
+| Baustein | Markup | Beim Präsentieren | Im PDF |
+|---|---|---|---|
+| Bühne | `<div class="buehne">` nach dem Kopf: füllt den Rest der Folie, Inhalte nebeneinander und mittig. Bilder, Platzhalter und Timer behalten ihre Breite, Text und `.tipp` passen sich an. | wie im PDF | wie gesetzt |
+| Schritt | `data-schritt="1"`, `"2"` … an einem Element der Folie; gleiche Zahl erscheint zusammen | Weiter deckt der Reihe nach auf, danach kommt die nächste Folie | alles sichtbar |
+| Aufdecken | `<span class="aufdecken">…</span>` um die Lösung im Satz, z. B. das Schlüsselwort des Merksatzes | verdeckt (Fläche mit „?“), Antippen oder Weiter deckt auf | sichtbar |
+| Timer | `<x-timer minuten="25" groesse="280"></x-timer>`. Die Skala reicht bis 60, über 60 Minuten bis 120; für kurze Phasen `skala="5"` oder `"10"`, sonst ist die Scheibe kaum zu sehen | läuft ab wie ein Time Timer, Antippen startet und hält an, sanftes Ende ohne Ton | Scheibe mit der eingestellten Zeit, darunter „25 Minuten“ |
+| Vermutung | `<div class="vermutung"><span class="nr">A</span>Antwort<span class="leerstelle"></span></div>`, mehrere untereinander in `<div class="reihe" style="--spalten:1;width:620px">`: Antwort zum Abstimmen mit Kästchen für die Strichliste; langer Text bricht um | wie im PDF | wie gesetzt |
+| Leerstelle | `<span class="leerstelle" style="--h:120px"></span>` (Höhe über `--h`, sonst volle Breite oder `width`) für Antworten oder Wortkarten, die die Lehrkraft am Board ergänzt | gestrichelter Rahmen | gestrichelter Rahmen |
+| Notiz | `<aside class="notiz"><p>…</p></aside>` am Ende jeder Folie | nie zu sehen | fehlt |
+
+Den Präsentationsmodus gibt es in der Schoolbox noch nicht; bis dahin zeigen Ansicht und PDF die Folien wie in der letzten Spalte. Niveau-Punkte, ★ und `.tipp` funktionieren wie auf dem Arbeitsblatt. Die Prüfung meldet auf Folien keinen freien Platz (eine Aussage je Folie ist gewollt), warnt bei Schrift unter 80 % der Folienschrift (32 px, Kl. 1/2: 38 px) und weist auf Folien ohne Notiz hin, sobald eine Folie eine hat.
 
 ## Tokens sparen
 

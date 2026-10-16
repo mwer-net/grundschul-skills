@@ -19,6 +19,8 @@ body.kl1{--fs:28px;--abstand:36px}
 body.kl2{--fs:24px;--abstand:28px}
 body.kl3{--fs:20px;--abstand:28px}
 body.kl4{--fs:18px;--abstand:24px}
+body.folie{--fs:40px;--abstand:32px;--figur:150px} /* Folien: lesbar aus 6 m */
+body.folie.kl1,body.folie.kl2{--fs:48px}
 body.farbe{--linie:var(--akzent)}
 body.palette-sonnig{--haupt:#F28C28;--akzent:#2A9D8F;--dunkel:#C4620A}
 body.palette-himmel{--haupt:#3A86FF;--akzent:#FFBE0B;--dunkel:#2F6FD6}
@@ -130,9 +132,25 @@ table.plan{width:100%;border-collapse:collapse;font-size:calc(var(--fs)*.85);lin
 
 /* Abbildungen (abbildungen.js) */
 x-uhr,x-menge,x-dienes,x-strichpunkt,x-stellentafel,x-zwanzigerfeld,x-zahlenstrahl{display:inline-block;line-height:0}
+x-timer{display:inline-flex;flex-direction:column;align-items:center;gap:12px}
+.timer-text{font-weight:700;line-height:1.2}
 x-stellentafel{line-height:1.2}
 .stellentafel{border-collapse:collapse;font-size:var(--fs)}
 .stellentafel th,.stellentafel td{border:2px solid var(--strich);width:1.9em;height:1.7em;text-align:center;padding:0}
 .stellentafel th{font-weight:700;font-size:.8em;height:1.4em}
 .stellentafel td.l{color:transparent;font-weight:700}
 .beispiel .stellentafel td.l,body.loesung .stellentafel td.l{color:var(--dunkel)}
+
+/* Folien (praesentation): Bühne füllt den Platz unter dem Kopf, Leerstelle für Ergebnisse der Kinder,
+   Vermutung = Antwort zum Abstimmen mit Kästchen für die Strichliste (Text bricht um, statt hinauszulaufen).
+   data-schritt und .aufdecken sind im Druck sichtbar; Notizen für die Lehrkraft nie. */
+body.folie .aufgabe{grid-template-columns:52px 1fr;column-gap:20px}
+body.folie .nr{width:52px;height:52px;font-size:30px;line-height:52px;margin-top:calc((var(--fs)*1.4 - 52px)/2)}
+.buehne{flex:1;min-height:0;display:flex;align-items:center;justify-content:center;gap:48px}
+.buehne>img,.buehne>.platzhalter,.buehne>x-timer{flex:none}
+.leerstelle{display:block;border:2px dashed var(--linie);border-radius:12px;width:100%;height:var(--h,80px)}
+.vermutung{display:grid;grid-template-columns:auto 1fr 150px;column-gap:16px;align-items:center}
+body.folie .vermutung .nr{margin-top:0}
+.vermutung .leerstelle{height:var(--h,56px)}
+body.folie .platzhalter{font-size:24px}
+.notiz{display:none}
