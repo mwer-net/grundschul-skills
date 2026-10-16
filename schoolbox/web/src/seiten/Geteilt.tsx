@@ -13,6 +13,7 @@ import type { DokumentEintrag, Mappe } from '../typen';
 import { Dokumentansicht } from './Dokumentansicht';
 import { DokumentKachel } from './DokumentKachel';
 import { Drucken } from './Drucken';
+import { Praesentation } from './Praesentation';
 
 interface Inhalt {
 	ziel: { mappe: string; dok: string | null };
@@ -56,6 +57,11 @@ const GeteiltesDokument = ({ einzeln, zugang }: { zugang: Zugang; einzeln: boole
 const GeteiltDrucken = ({ zugang }: { zugang: Zugang }) => {
 	const { dok = '' } = useParams();
 	return <Drucken zugang={zugang} dok={dok} />;
+};
+
+const GeteiltPraesentieren = ({ zugang }: { zugang: Zugang }) => {
+	const { dok = '' } = useParams();
+	return <Praesentation key={dok} zugang={zugang} dok={dok} />;
 };
 
 const GeteiltRahmen = ({ children }: { children: ReactNode }) => {
@@ -110,6 +116,10 @@ export const Geteilt = () => {
 	return (
 		<Routes>
 			<Route path="d/:dok/drucken" element={<GeteiltDrucken zugang={zugang} />} />
+			<Route path="d/:dok/praesentation" element={<GeteiltPraesentieren zugang={zugang} />} />
+			{einzeln !== null && (
+				<Route path="praesentation" element={<Praesentation zugang={zugang} dok={einzeln} />} />
+			)}
 			<Route path="*" element={ansehen} />
 		</Routes>
 	);

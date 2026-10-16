@@ -49,7 +49,7 @@ export const EntwurfGross = ({ dok, name, zugang }: Eigenschaften) => {
 					</h1>
 					{entwurf.idee && <p className="mt-1 text-leise">{entwurf.idee}</p>}
 					<div className="mt-1">
-						<EntwurfStatus entwurf={entwurf} />
+						<EntwurfStatus entwurf={entwurf} format={dokument.meta.format} />
 					</div>
 				</div>
 			</div>

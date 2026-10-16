@@ -104,6 +104,8 @@ describe('Teilen-Links', () => {
 		assert.equal((await fetch(`${basis}blatt.css`)).status, 200);
 		assert.equal((await fetch(new URL('../../bilder/m.png', basis))).status, 200);
 		assert.equal((await fetch(`${f}/ansicht/_assets/blatt.css`)).status, 200);
+		assert.match(await (await fetch(`${basis}?praesentation=1`)).text(), /<script src="praesentation\.js">/);
+		assert.equal((await fetch(`${basis}praesentation.js`)).status, 200);
 		const umleitung = await fetch(basis.slice(0, -1), { redirect: 'manual' });
 		assert.equal(umleitung.headers.get('location'), new URL(basis).pathname);
 	});

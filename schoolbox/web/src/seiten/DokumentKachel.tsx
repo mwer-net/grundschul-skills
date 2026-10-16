@@ -7,7 +7,7 @@ import { Vorschau } from '../bausteine/Vorschau';
 import { hatOffeneEntwuerfe } from '../entwuerfe/offen';
 import { anzahl, ART_NAME, FORMAT_NAME } from '../lib/text';
 import type { Zugang } from '../lib/zugang';
-import { dokumentSeite, entwuerfeSeite, istGeteilt } from '../lib/zugang';
+import { dokumentSeite, entwuerfeSeite, istGeteilt, praesentationSeite } from '../lib/zugang';
 import { PdfKnopf } from '../pdf/PdfKnopf';
 import { dokumentWahl } from '../pdf/wahl';
 import type { DokumentEintrag, Mappe } from '../typen';
@@ -56,6 +56,12 @@ export const DokumentKachel = ({ dokument, mappe, teile, zugang }: Eigenschaften
 							<Symbol name="auge" />
 							{waehlen ? 'Entwürfe vergleichen' : 'Ansehen'}
 						</KnopfLink>
+						{!waehlen && meta.format === 'folie' && (
+							<KnopfLink to={praesentationSeite(zugang, id)} art="zweit">
+								<Symbol name="praesentieren" />
+								Präsentieren
+							</KnopfLink>
+						)}
 						{!waehlen && (
 							<PdfKnopf
 								beschriftung="PDF"

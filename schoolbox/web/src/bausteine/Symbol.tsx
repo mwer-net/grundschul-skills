@@ -19,6 +19,10 @@ const PFADE = {
 	drucker: 'M7 9V3h10v6M7 17H5a1 1 0 0 1-1-1v-6a1 1 0 0 1 1-1h14a1 1 0 0 1 1 1v6a1 1 0 0 1-1 1h-2M7 14h10v7H7v-7Z',
 	runter: 'm6 9 6 6 6-6',
 	laden: 'M12 3a9 9 0 1 0 9 9',
+	praesentieren: 'M3 4h18M4 4v10a1 1 0 0 0 1 1h14a1 1 0 0 0 1-1V4m-8 11v3m-4 3 4-3 4 3M10.5 7v5l4-2.5-4-2.5Z',
+	vollbild: 'M4 9V4h5m6 0h5v5m0 6v5h-5m-6 0H4v-5',
+	bildschirm: 'M4 4h16a1 1 0 0 1 1 1v10a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1V5a1 1 0 0 1 1-1Zm5 16h6m-3-4v4',
+	nummer: 'M10 4 8 20m8-16-2 16M5 9h15M4 15h15',
 } as const;
 
 export type SymbolName = keyof typeof PFADE;

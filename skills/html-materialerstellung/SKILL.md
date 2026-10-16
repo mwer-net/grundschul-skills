@@ -14,6 +14,7 @@ Warum: In HTML bestimmen wir Schrift (Fredoka, Andika, eingebettet), Abstände u
 | Datei | Zweck |
 |---|---|
 | `assets/blatt.css` | Gestaltungssystem: A4-Seite, 60 px Rand, Kopf, Aufgaben mit hängender Nummer, Niveau-Punkte, Punktfelder, Antwortlinien, Sprechblase, Fuß, Karten, Platzhalter, Folien. Profile über Klassen am `<body>`. |
+| `assets/praesentation.js` | Präsentationsmodus für Folien: blättern, Schritte und Aufdecken, Timer, Schwarzbild; nur mit `?praesentation=1` aktiv (Abschnitt „Folien“) |
 | `assets/abbildungen.js` | Exakte Abbildungen als SVG: `x-uhr`, `x-menge` (Gegenstände in Reihen, Bündel), `x-dienes`, `x-strichpunkt`, `x-stellentafel`, `x-zwanzigerfeld`, `x-zahlenstrahl`, `x-timer` (Zeitscheibe für Folien). Aufrufe im Kopf der Datei. |
 | `assets/vorlage-arbeitsblatt.html` | Muster mit allen Bausteinen (Farbprofil); Ausgangspunkt für jedes Blatt |
 | `assets/vorlage-praesentation.html` | Kreisinput mit sechs Folien und allen Folien-Bausteinen; Ausgangspunkt für Präsentationen (Abschnitt „Folien“) |
@@ -86,7 +87,7 @@ Für Präsentationen (Skill `praesentation`), Ausgangspunkt `assets/vorlage-prae
 | Leerstelle | `<span class="leerstelle" style="--h:120px"></span>` (Höhe über `--h`, sonst volle Breite oder `width`) für Antworten oder Wortkarten, die die Lehrkraft am Board ergänzt | gestrichelter Rahmen | gestrichelter Rahmen |
 | Notiz | `<aside class="notiz"><p>…</p></aside>` am Ende jeder Folie | nie zu sehen | fehlt |
 
-Den Präsentationsmodus gibt es in der Schoolbox noch nicht; bis dahin zeigen Ansicht und PDF die Folien wie in der letzten Spalte. Niveau-Punkte, ★ und `.tipp` funktionieren wie auf dem Arbeitsblatt. Die Prüfung meldet auf Folien keinen freien Platz (eine Aussage je Folie ist gewollt), warnt bei Schrift unter 80 % der Folienschrift (32 px, Kl. 1/2: 38 px) und weist auf Folien ohne Notiz hin, sobald eine Folie eine hat.
+Präsentiert wird mit `assets/praesentation.js`: Mit `?praesentation=1` in der Adresse (oder `class="praesentieren"` am `<body>`) zeigt es eine Folie nach der anderen bildschirmfüllend und verhält sich wie in der vorletzten Spalte; ohne den Schalter bleibt das Dokument wie in der letzten Spalte. In der Schoolbox heißt das Knopf **Präsentieren**, sie fügt das Skript selbst ein; ins Material gehört es nicht. Niveau-Punkte, ★ und `.tipp` funktionieren wie auf dem Arbeitsblatt. Die Prüfung meldet auf Folien keinen freien Platz (eine Aussage je Folie ist gewollt), warnt bei Schrift unter 80 % der Folienschrift (32 px, Kl. 1/2: 38 px) und weist auf Folien ohne Notiz hin, sobald eine Folie eine hat.
 
 ## Tokens sparen
 

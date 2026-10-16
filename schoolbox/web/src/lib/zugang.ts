@@ -43,6 +43,12 @@ export const mappenSeite = (zugang: Zugang) => (zugang.token === null ? `/m/${zu
 export const dokumentSeite = (zugang: Zugang, dok: string) =>
 	zugang.token === null ? `/m/${zugang.mappe}/${dok}` : `/f/${zugang.token}/d/${dok}`;
 
+/** Startseite und Hülle der Präsentation; die Folien selbst zeigt `praesentationAnsicht` im Iframe. */
+export const praesentationSeite = (zugang: Zugang, dok: string) => `${dokumentSeite(zugang, dok)}/praesentation`;
+
+export const praesentationAnsicht = (zugang: Zugang, dok: string) =>
+	`${basis(zugang)}/ansicht/${zugang.mappe}/dokumente/${dok}/?praesentation=1`;
+
 export const druckSeite = (zugang: Zugang, dok: string, variante: PdfVariante) =>
 	`${dokumentSeite(zugang, dok)}/drucken?fassung=${variante}`;
 

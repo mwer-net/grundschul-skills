@@ -159,18 +159,19 @@
   }
 
   // Zifferblatt bis 60 (über 60 Minuten: 120, nur alle 30 beschriftet, dreistellige Zahlen stießen an den Rand),
-  // Zahlen gegen den Uhrzeigersinn ab 0 oben; die Scheibe zeigt die eingestellte Zeit. Ablaufen lässt sie erst die
-  // Präsentation.
+  // Zahlen gegen den Uhrzeigersinn ab 0 oben; die Scheibe zeigt die eingestellte Zeit oder, beim Präsentieren
+  // (praesentation.js), die Restzeit aus dem Attribut rest (Minuten, mit Nachkommastellen).
   function timer(el) {
     const minuten = num(el, "minuten", 10), g = num(el, "groesse", 360);
     const skala = num(el, "skala", minuten > 60 ? 120 : 60);
+    const rest = num(el, "rest", minuten);
     const schritt = [1, 2, 5, 10, 15, 30].find((s) => skala / s <= (skala > 60 ? 4 : 12)) || skala / 12;
     const punkt = (m, r) => {
       const a = (2 * Math.PI * m) / skala;
       return `${r1(50 - r * Math.sin(a))} ${r1(50 - r * Math.cos(a))}`;
     };
     let s = '<circle cx="50" cy="50" r="48" stroke-width="2.5" fill="#fff"/>';
-    const zeit = Math.min(Math.max(minuten, 0), skala), farbe = 'class="timer-scheibe" stroke="none" style="fill:var(--haupt)"';
+    const zeit = Math.min(Math.max(rest, 0), skala), farbe = 'class="timer-scheibe" stroke="none" style="fill:var(--haupt)"';
     if (zeit >= skala) s += `<circle cx="50" cy="50" r="35" ${farbe}/>`;
     else if (zeit > 0) s += `<path d="M50 50 L50 15 A35 35 0 ${zeit / skala > 0.5 ? 1 : 0} 0 ${punkt(zeit, 35)} Z" ${farbe}/>`;
     const fein = skala <= 60 ? 1 : skala / 60;
@@ -189,9 +190,14 @@
 
   const ARTEN = { "x-uhr": uhr, "x-menge": menge, "x-dienes": dienes, "x-strichpunkt": strichpunkt,
     "x-stellentafel": stellentafel, "x-zwanzigerfeld": zwanzigerfeld, "x-zahlenstrahl": zahlenstrahl, "x-timer": timer };
-  window.zeichneAbbildungen = function () {
-    for (const [tag, f] of Object.entries(ARTEN)) document.querySelectorAll(tag).forEach(f);
+  // Ohne Argument alle Abbildungen, sonst nur das Element selbst und was darin liegt (z. B. ein ablaufender Timer).
+  window.zeichneAbbildungen = function (wurzel) {
+    const ort = wurzel instanceof Element ? wurzel : document;
+    for (const [tag, f] of Object.entries(ARTEN)) {
+      if (ort !== document && ort.matches(tag)) f(ort);
+      ort.querySelectorAll(tag).forEach(f);
+    }
   };
-  if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", window.zeichneAbbildungen);
+  if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", () => window.zeichneAbbildungen());
   else window.zeichneAbbildungen();
 })();

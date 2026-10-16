@@ -129,14 +129,14 @@ const befehlDokument = async (konfig: Konfig, argumente: string[]): Promise<Erge
 	};
 };
 
-const entwurfZeilen = ({ entwurf, fehler }: EntwurfErgebnis): string[] => {
+const entwurfZeilen = ({ entwurf, fehler }: EntwurfErgebnis, seite: string): string[] => {
 	const kopf = `  ${entwurf.name} · ${entwurf.titel}${entwurf.idee ? ` – ${entwurf.idee}` : ''}`;
 	const { pruefung } = entwurf;
 	if (!pruefung) {
 		return [`${kopf}: keine Vorschau`, `      ${(fehler ?? '').replace(/\n\s*/g, ' ')}`];
 	}
 	const seiten = `${pruefung.seiten} ${pruefung.seiten === 1 ? 'Seite' : 'Seiten'}`;
-	const status = pruefung.passt ? 'passt auf die Seite' : 'passt NICHT auf die Seite';
+	const status = pruefung.passt ? `passt auf ${seite}` : `passt NICHT auf ${seite}`;
 	const fehlerText = pruefung.meldungen.length > 0 ? `, ${pruefung.meldungen.length} Fehler` : '';
 	const meldungen = pruefung.meldungen.map((m) => `      ${m.seite ? `S. ${m.seite}: ` : ''}${m.text}`);
 	return [`${kopf}: ${status} (${seiten}${fehlerText})`, ...meldungen];
@@ -148,6 +148,8 @@ const befehlEntwuerfe = async (konfig: Konfig, argumente: string[]): Promise<Erg
 	const dateien = positionals.slice(1).map((d) => path.resolve(d));
 	await registriereEntwuerfe(konfig.materialDir, ziel, dateien);
 	const ergebnisse = await baueEntwurfsVorschauen(konfig, ziel);
+	const { format } = await leseMeta(konfig.materialDir, ziel.mappe, ziel.dok);
+	const seite = format === 'folie' ? 'die Folie' : 'die Seite';
 	const ordner = path.join(dokumentDir(konfig.materialDir, ziel.mappe, ziel.dok), 'entwuerfe');
 	const vorschauen = ergebnisse
 		.filter(({ entwurf }) => entwurf.pruefung)
@@ -155,7 +157,7 @@ const befehlEntwuerfe = async (konfig: Konfig, argumente: string[]): Promise<Erg
 	const link = linkZu(konfig, ziel, '/entwuerfe');
 	const text = [
 		'Entwürfe registriert und geprüft:',
-		...ergebnisse.flatMap(entwurfZeilen),
+		...ergebnisse.flatMap((ergebnis) => entwurfZeilen(ergebnis, seite)),
 		...(vorschauen.length > 0 ? [`Vorschauen: ${vorschauen.join(' ')}`] : []),
 		`Link: ${link}`,
 	].join('\n');

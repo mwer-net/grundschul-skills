@@ -15,11 +15,19 @@ import { useLaden } from '../lib/laden';
 import { anzahl, ART_NAME, FORMAT_NAME } from '../lib/text';
 import { useTitel } from '../lib/titel';
 import type { Zugang } from '../lib/zugang';
-import { ansichtAdresse, druckSeite, entwuerfeSeite, inhaltAdresse, istGeteilt, mappenSeite } from '../lib/zugang';
+import {
+	ansichtAdresse,
+	druckSeite,
+	entwuerfeSeite,
+	inhaltAdresse,
+	istGeteilt,
+	mappenSeite,
+	praesentationSeite,
+} from '../lib/zugang';
 import { PdfKnopf } from '../pdf/PdfKnopf';
 import { dokumentWahl, materialName } from '../pdf/wahl';
 import { TeilenDialog } from '../teilen/TeilenDialog';
-import type { MappenEintrag } from '../typen';
+import type { DokumentEintrag, Mappe, MappenEintrag } from '../typen';
 
 interface Eigenschaften {
 	zugang: Zugang;
@@ -41,6 +49,62 @@ const Druckhinweise = ({ liste }: { liste: string[] }) => (
 		</div>
 	</div>
 );
+
+interface KnoepfeEigenschaften {
+	zugang: Zugang;
+	dokument: DokumentEintrag;
+	mappe: Mappe;
+	loesung: boolean;
+	/** Es gibt Entwürfe, und die Lehrkraft darf sie sehen (kein Teilen-Link). */
+	entwuerfe: boolean;
+	teilen: () => void;
+}
+
+/** Was sich mit dem Dokument tun lässt. Bei Folien ist Präsentieren das Wichtigste; PDF und Drucken treten zurück. */
+const Knoepfe = ({ dokument, entwuerfe, loesung, mappe, teilen, zugang }: KnoepfeEigenschaften) => {
+	const { id: dok, meta } = dokument;
+	const geteilt = istGeteilt(zugang);
+	const praesentieren = meta.format === 'folie' && !(entwuerfe && hatOffeneEntwuerfe(meta));
+	return (
+		<div className="ml-auto flex flex-wrap gap-2 max-md:ml-0">
+			{entwuerfe && (
+				<KnopfLink to={entwuerfeSeite(zugang, dok)} art="zweit">
+					<Symbol name="kopieren" />
+					Entwürfe
+				</KnopfLink>
+			)}
+			{praesentieren && (
+				<KnopfLink to={praesentationSeite(zugang, dok)}>
+					<Symbol name="praesentieren" />
+					Präsentieren
+				</KnopfLink>
+			)}
+			<PdfKnopf
+				art={praesentieren ? 'zweit' : 'haupt'}
+				beschriftung="PDF herunterladen"
+				wahl={dokumentWahl(zugang, dokument)}
+				mappe={mappe}
+				warnen={!geteilt}
+				rechtsbuendig
+			/>
+			<KnopfAdresse
+				art="zweit"
+				href={druckSeite(zugang, dok, loesung ? 'loesung' : 'arbeitsblatt')}
+				target="_blank"
+				rel="noopener"
+			>
+				<Symbol name="drucker" />
+				Drucken
+			</KnopfAdresse>
+			{!geteilt && (
+				<Knopf art="zweit" onClick={teilen}>
+					<Symbol name="teilen" />
+					Teilen
+				</Knopf>
+			)}
+		</div>
+	);
+};
 
 /**
  * Ein Dokument ansehen, als PDF herunterladen, drucken und teilen; für die Lehrkraft und genauso hinter Teilen-Links.
@@ -115,37 +179,14 @@ export const Dokumentansicht = ({ dok, zugang, zurueckZurMappe }: Eigenschaften)
 						<Chip titel="Lösung" aktiv={loesung} waehle={() => zeigeLoesung(true)} />
 					</div>
 				)}
-				<div className="ml-auto flex flex-wrap gap-2 max-md:ml-0">
-					{entwuerfe && (
-						<KnopfLink to={entwuerfeSeite(zugang, dok)} art="zweit">
-							<Symbol name="kopieren" />
-							Entwürfe
-						</KnopfLink>
-					)}
-					<PdfKnopf
-						art="haupt"
-						beschriftung="PDF herunterladen"
-						wahl={dokumentWahl(zugang, dokument)}
-						mappe={mappe}
-						warnen={!geteilt}
-						rechtsbuendig
-					/>
-					<KnopfAdresse
-						art="zweit"
-						href={druckSeite(zugang, dok, loesung ? 'loesung' : 'arbeitsblatt')}
-						target="_blank"
-						rel="noopener"
-					>
-						<Symbol name="drucker" />
-						Drucken
-					</KnopfAdresse>
-					{!geteilt && (
-						<Knopf art="zweit" onClick={() => setTeilen(true)}>
-							<Symbol name="teilen" />
-							Teilen
-						</Knopf>
-					)}
-				</div>
+				<Knoepfe
+					zugang={zugang}
+					dokument={dokument}
+					mappe={mappe}
+					loesung={loesung}
+					entwuerfe={entwuerfe}
+					teilen={() => setTeilen(true)}
+				/>
 			</div>
 
 			{entwuerfe && hatOffeneEntwuerfe(meta) && (

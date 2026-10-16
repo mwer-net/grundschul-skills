@@ -79,4 +79,4 @@ Nicht in diesem Skill: Video, Ton und Animationen außer den Aufdeck-Schritten.
 
 ## Ausgabe an die Lehrkraft
 
-Zusätzlich zur Kurz-Info (`grundschul-didaktik`, Abschnitt 5) den **Ablauf**, je Folie eine Zeile: Impulsfrage und Übergang. Ansicht und PDF zeigen die Notizen nicht.
+Zusätzlich zur Kurz-Info (`grundschul-didaktik`, Abschnitt 5) den **Ablauf**, je Folie eine Zeile: Impulsfrage und Übergang. Ansicht und PDF zeigen die Notizen nicht. In der Schoolbox startet die Lehrkraft die Folien mit dem Knopf **Präsentieren** auf der Dokumentseite; darauf kurz hinweisen (Weiter mit Pfeiltaste, Klicker oder Antippen rechts, „?“ und Timer antippen).

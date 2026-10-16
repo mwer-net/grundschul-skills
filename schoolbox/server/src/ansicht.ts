@@ -129,10 +129,10 @@ export const ansichtRouter = (kontext: Kontext) => {
 
 	router.get('/:mappe/dokumente/:dok/', async (req, res) => {
 		const dir = verlangeDokument(kontext, req.params.mappe, req.params.dok);
-		const { entwurf, loesung } = req.query;
+		const { entwurf, loesung, praesentation } = req.query;
 		// Ein Entwurf unter derselben Adresse wie material.html: Relative Pfade gelten wie nach `schoolbox waehle`.
 		const quelle = entwurf === undefined ? await leseQuelle(dir) : await leseEntwurf(dir, entwurf);
-		const html = darstellungsHtml(quelle, { loesung: loesung === '1' });
+		const html = darstellungsHtml(quelle, { loesung: loesung === '1', praesentation: praesentation === '1' });
 		res.set('Cache-Control', 'no-store').type('html').send(html);
 	});
 

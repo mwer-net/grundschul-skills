@@ -12,6 +12,7 @@ import { Geteilt } from './seiten/Geteilt';
 import { Mappenansicht } from './seiten/Mappenansicht';
 import { NichtGefunden } from './seiten/NichtGefunden';
 import { Papierkorb } from './seiten/Papierkorb';
+import { Praesentation } from './seiten/Praesentation';
 import { Uebersicht } from './seiten/Uebersicht';
 
 /** `key`: Ein anderes Dokument ist eine andere Seite, ohne Reste der vorigen (Ansicht, Fassung, Dialoge). */
@@ -35,6 +36,11 @@ const DruckSeite = () => {
 	return <Drucken zugang={{ mappe, token: null }} dok={dok} />;
 };
 
+const PraesentationSeite = () => {
+	const { dok = '', mappe = '' } = useParams();
+	return <Praesentation key={`${mappe}/${dok}`} zugang={{ mappe, token: null }} dok={dok} />;
+};
+
 export const App = () => (
 	<BrowserRouter>
 		<HinweisAnbieter>
@@ -42,6 +48,7 @@ export const App = () => (
 				<Route path={ANMELDE_SEITE} element={<Anmeldung />} />
 				<Route path="/f/:token/*" element={<Geteilt />} />
 				<Route path="m/:mappe/:dok/drucken" element={<DruckSeite />} />
+				<Route path="m/:mappe/:dok/praesentation" element={<PraesentationSeite />} />
 				<Route element={<Rahmen />}>
 					<Route index element={<Uebersicht />} />
 					<Route path="m/:mappe" element={<Mappenansicht />} />

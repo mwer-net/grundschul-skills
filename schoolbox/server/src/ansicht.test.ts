@@ -44,6 +44,16 @@ describe('/ansicht', () => {
 		assert.match(loesung, /<body class="kl2 sw loesung" style/);
 	});
 
+	it('fügt die Präsentations-Laufzeit nur mit ?praesentation=1 ein, sonst bleibt die Quelle byte-gleich', async () => {
+		const ohne = await (await s.holen(basis)).text();
+		assert.doesNotMatch(ohne, /praesentation\.js/);
+		const mit = await (await s.holen(`${basis}?praesentation=1`)).text();
+		assert.equal(mit, ohne.replace('</body>', '<script src="praesentation.js"></script>\n</body>'));
+		const skript = await s.holen(`${basis}praesentation.js`);
+		assert.equal(skript.status, 200);
+		assert.match(await skript.text(), /window\.praesentation/);
+	});
+
 	it('findet Ressourcen wie blatt.py: erst im Dokumentordner, dann in assets/', async () => {
 		const css = await s.holen(`${basis}blatt.css`);
 		assert.equal(css.status, 200);

@@ -2,6 +2,7 @@ import type { ReactNode } from 'react';
 
 import { klassen } from '../bausteine/klassen';
 import { Symbol } from '../bausteine/Symbol';
+import type { Format } from '../lib/text';
 import type { Zugang } from '../lib/zugang';
 import { entwurfVorschauAdresse } from '../lib/zugang';
 import type { DokumentEintrag, Entwurf } from '../typen';
@@ -19,22 +20,23 @@ export const Buchstabe = ({ className, name }: { name: string; className?: strin
 );
 
 /** Grün, wenn alles passt. Ein Entwurf, der übersteht, ist deutlich, aber ruhig markiert: Bernstein statt Rot. */
-export const EntwurfStatus = ({ entwurf }: { entwurf: Entwurf }) => {
+export const EntwurfStatus = ({ entwurf, format }: { entwurf: Entwurf; format: Format }) => {
 	const { pruefung } = entwurf;
 	if (!pruefung) {
 		return null;
 	}
+	const seite = format === 'folie' ? 'die Folie' : 'die Seite';
 	return pruefung.passt ? (
 		<span className="inline-flex items-center gap-1.5 font-bold text-[#2e7d32]" data-status="passt">
 			<Symbol name="haken" className="size-5 flex-none" />
-			Passt auf die Seite
+			{`Passt auf ${seite}`}
 		</span>
 	) : (
 		<span className="inline-flex items-start gap-1.5 font-bold text-[#7a5200]" data-status="passt-nicht">
 			<span className="flex size-6 flex-none items-center justify-center rounded-full bg-entwurf">
 				<Symbol name="achtung" className="size-4 flex-none" />
 			</span>
-			Passt nicht ganz auf die Seite
+			{`Passt nicht ganz auf ${seite}`}
 		</span>
 	);
 };

@@ -94,7 +94,7 @@ export const Entwuerfe = ({ dok, zugang }: Eigenschaften) => {
 										</h2>
 										{entwurf.idee && <p className="line-clamp-2 text-leise">{entwurf.idee}</p>}
 										<div className="mt-1 flex flex-wrap gap-2">
-											<EntwurfStatus entwurf={entwurf} />
+											<EntwurfStatus entwurf={entwurf} format={meta.format} />
 											{entwurf.name === meta.gewaehlt && (
 												<span className="inline-flex items-center gap-1.5 font-bold text-brand-600">
 													<Symbol name="haken" className="size-5 flex-none" />

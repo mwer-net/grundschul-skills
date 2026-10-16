@@ -95,11 +95,17 @@ export const SEITENGROESSE: Record<string, string | undefined> = {
 
 const BODY_WIE_BLATT_PY = /<body([^>]*)class="([^"]*)"/;
 
+const PRAESENTATION_SKRIPT = '<script src="praesentation.js"></script>';
+
 /**
  * Bereitet material.html für den Browser so vor, wie `einbetten()` in blatt.py es für den Druck tut: `@page` nach
- * der Formatklasse und mit `loesung` die Klasse `loesung` am `<body>`. Ressourcen bleiben verlinkt.
+ * der Formatklasse und mit `loesung` die Klasse `loesung` am `<body>`. Ressourcen bleiben verlinkt. Mit
+ * `praesentation` kommt die Präsentations-Laufzeit aus den Assets dazu; sie wird erst mit `?praesentation=1` aktiv.
  */
-export const darstellungsHtml = (html: string, { loesung }: { loesung: boolean }): string => {
+export const darstellungsHtml = (
+	html: string,
+	{ loesung, praesentation = false }: { loesung: boolean; praesentation?: boolean },
+): string => {
 	const klassen = BODY_WIE_BLATT_PY.exec(html)?.[2]?.split(/\s+/) ?? [];
 	const groesse = klassen.map((k) => SEITENGROESSE[k]).find(Boolean);
 	let ergebnis = groesse ? html.replace('</head>', `<style>@page{size:${groesse};margin:0}</style>\n</head>`) : html;
@@ -108,6 +114,11 @@ export const darstellungsHtml = (html: string, { loesung }: { loesung: boolean }
 			BODY_WIE_BLATT_PY,
 			(_ganz, vorher: string, k: string) => `<body${vorher}class="${k} loesung"`,
 		);
+	}
+	if (praesentation && !/<script[^>]+src="[^"]*praesentation\.js"/.test(ergebnis)) {
+		ergebnis = ergebnis.includes('</body>')
+			? ergebnis.replace('</body>', `${PRAESENTATION_SKRIPT}\n</body>`)
+			: `${ergebnis}\n${PRAESENTATION_SKRIPT}`;
 	}
 	return ergebnis;
 };

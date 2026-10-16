@@ -28,6 +28,8 @@ interface NeuesDokument {
 	/** Der Ersatz-Bauer des Testservers meldet dann, dass etwas über die Seite ragt. */
 	ueberlauf?: boolean;
 	druckhinweise?: string[];
+	/** Vorlage aus den Skill-Assets, z. B. `praesentation` (Kartoffel-Kreisinput mit allen Folien-Bausteinen). */
+	vorlage?: string;
 }
 
 /** Legt eine Mappe so an, wie Claude es tut: direkt in der Ablage, am Server vorbei. */
@@ -41,8 +43,10 @@ export const legeMappeAn = async (titel: string, fach: Fach, klasse: Klasse, dok
 		loesung,
 		titel: dokTitel,
 		ueberlauf,
+		vorlage,
 	} of dokumente) {
-		const angaben = { titel: dokTitel, art, format, druckprofil: 'sw', druckhinweise } as const;
+		const druckprofil = vorlage ? 'farbe' : 'sw';
+		const angaben = { titel: dokTitel, art, format, druckprofil, druckhinweise, vorlage } as const;
 		const { id, pfad } = await neuesDokument(MATERIAL_DIR, mappe.id, angaben);
 		if (loesung || ueberlauf) {
 			const zusatz = `<p${loesung ? ' data-l="7"' : ''}${ueberlauf ? ' data-test-ueberlauf' : ''}>3 + 4 = …</p>`;

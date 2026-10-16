@@ -14,6 +14,7 @@ skills/
 │   │                           sprachsensibel · quellen
 ├── html-materialerstellung/    Technik: Material als HTML bauen, prüfen, als PDF ausgeben
 │   ├── assets/                 blatt.css (Gestaltungssystem) · abbildungen.js (Uhr, Mengen, Stellentafel, Timer …) ·
+│   │                           praesentation.js (Folien präsentieren, mit ?praesentation=1) ·
 │   │                           vorlage-arbeitsblatt.html · vorlage-praesentation.html · fonts/ (Fredoka, Andika) ·
 │   │                           bilder/ (Willi, Wilma, Wachstum)
 │   ├── references/             layout · visuelle-endkontrolle · bilder (KI-Bilder und -Grafiken mit Canva)
@@ -134,6 +135,8 @@ Die Oberfläche (`schoolbox/web`, React, Tailwind) ist für Safari auf Mac und i
 Jedes Dokument hat eine eigene Seite: das Material, wie es gedruckt aussieht, umschaltbar auf die Lösung, mit „PDF herunterladen“ und „Drucken“ (öffnet das PDF in einem neuen Tab, gedruckt wird aus dem PDF-Betrachter des Browsers). PDFs baut der Server bei Bedarf mit `blatt.py` und hebt sie in `ausgabe/` auf, bis sich Material, Bilder, Stylesheets oder `blatt.py` ändern (`ausgabe/stand.json`); Vorschauen und PDFs bauen höchstens zu zweit gleichzeitig. Findet die Prüfung Fehler, warnt die Oberfläche mit verständlichen Sätzen und lässt das PDF trotzdem zu. „Alles als PDF“ fügt die Blätter einer Mappe zusammen, wahlweise mit den Lösungen am Ende; dafür braucht der Server `pdfunite` (Debian/Ubuntu: `poppler-utils`). Teilen-Links bieten Ansicht, PDF und Drucken genauso, ohne Warnung.
 
 Entwürfe vergleicht die Lehrkraft unter `/m/<mappe>/<dokument>/entwuerfe`: am Mac und auf dem iPad quer nebeneinander und ohne Scrollen, auf dem iPad hoch zum Durchwischen, jeweils mit Buchstabe, Idee und dem Vermerk, ob der Entwurf auf die Seite passt; antippen zeigt ihn groß mit allen Seiten. Wählen kann sie nur bei Claude, deshalb gibt es dort keinen Auswahlknopf. `schoolbox entwuerfe` baut dafür die Vorschauen (`entwuerfe/A-s1.png`) mit `blatt.py`, aus einer Temp-Kopie im Dokumentordner, damit relative Pfade wie nach `waehle` stimmen. Teilen-Links sehen keine Entwürfe.
+
+Folien präsentiert die Lehrkraft mit „Präsentieren“ (`/m/<mappe>/<dokument>/praesentation`, für Teilen-Links `/f/<token>/praesentation` bzw. `/f/<token>/d/<dokument>/praesentation`). Die Startseite lädt vorab alle Bilder und Schriften, danach übersteht die Präsentation WLAN-Aussetzer; „Präsentation starten“ schaltet auf Vollbild und hält den Bildschirm wach (Screen Wake Lock). Gesteuert wird mit Pfeiltasten, Leertaste, einem Klicker (Bild-ab/Bild-auf), durch Antippen (rechts weiter, links zurück) oder Wischen; B schaltet auf Schwarz, Esc beendet. Die Folien selbst zeigt `praesentation.js` aus den Skill-Assets, das der Server bei `?praesentation=1` in die Darstellung einfügt; Schritte (`data-schritt`), verdeckte Lösungen (`.aufdecken`) und der ablaufende Timer (`x-timer`) gehören dazu. Ohne den Schalter bleiben Ansicht und PDF unverändert.
 
 ```bash
 cd schoolbox
