@@ -1,45 +1,9 @@
-import { readdir, readFile, stat, writeFile } from 'node:fs/promises';
+import { readFile, stat, writeFile } from 'node:fs/promises';
 import path from 'node:path';
 
-import type { Page } from '@playwright/test';
-
-import { dokumentOrdner, expect, legeMappeAn, test } from './hilfe';
-
-interface TestZugriff {
-	quelle: () => string | null;
-	aendere: (neu: string, beschreibung?: string) => void;
-}
-
-const uhrzeit = async () => {
-	const { dokumente, id } = await legeMappeAn('Uhrzeit', 'mathematik', 2, [
-		{ titel: 'Wie spät ist es?', vorlage: 'arbeitsblatt' },
-	]);
-	const dok = dokumente[0] ?? '';
-	const ordner = dokumentOrdner(id, dok);
-	return { id, dok, ordner, material: path.join(ordner, 'material.html') };
-};
-
-const versionen = async (ordner: string) => (await readdir(path.join(ordner, 'versionen')).catch(() => [])).sort();
-
-const oeffne = async (page: Page, mappe: string, dok: string) => {
-	await page.goto(`/m/${mappe}/${dok}/bearbeiten`);
-	await expect(page.locator('[data-leinwand][data-geladen]')).toBeVisible();
-	await expect(page.locator('[data-speicherstand="gespeichert"]')).toBeVisible();
-};
-
-const material = (page: Page) => page.frameLocator('[data-editor-rahmen="sichtbar"]');
-
-const quelle = (page: Page) =>
-	page.evaluate(() => (window as unknown as { schoolboxEditor: TestZugriff }).schoolboxEditor.quelle() ?? '');
-
-const aendere = (page: Page, neu: string) =>
-	page.evaluate((text) => (window as unknown as { schoolboxEditor: TestZugriff }).schoolboxEditor.aendere(text), neu);
-
-const gespeichert = async (page: Page, datei: string) => {
-	const stand = await quelle(page);
-	await expect.poll(() => readFile(datei, 'utf8'), { timeout: 10_000 }).toBe(stand);
-	await expect(page.locator('[data-speicherstand="gespeichert"]')).toBeVisible();
-};
+import type { TestZugriff } from './editorhilfe';
+import { aendere, gespeichert, material, oeffne, quelle, uhrzeit, versionen } from './editorhilfe';
+import { expect, test } from './hilfe';
 
 test.describe('Editor', () => {
 	test('öffnet aus Dokument und Mappe und speichert nichts, solange nichts geändert ist', async ({

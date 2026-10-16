@@ -8,7 +8,9 @@ import { ASSETS } from './konfig';
 import type { Knoten, Zerlegung } from './quelltext';
 import {
 	dupliziere,
+	eingesetzt,
 	entferne,
+	ersetzeFolge,
 	fuegeEin,
 	innenVon,
 	klassenVon,
@@ -16,6 +18,7 @@ import {
 	markiere,
 	neuerVerlauf,
 	nimmAuf,
+	nummerNach,
 	quelleVon,
 	setzeAttribut,
 	unterschied,
@@ -195,6 +198,54 @@ describe('Änderungen', () => {
 				{ von: 3, bis: 5, text: '' },
 			]),
 		);
+	});
+});
+
+describe('Text in mehreren Absätzen', () => {
+	const lesetext =
+		'<section>\n  <h1>Igel</h1>\n  <p>Erster <b>Satz</b>.</p>\n  <p>Zweiter.</p>\n  <p>Dritter.</p>\n</section>\n';
+
+	it('teilt einen Absatz auf eigene Zeilen mit derselben Einrückung', () => {
+		const z = zerlege(lesetext);
+		const erster = z.knoten.find((k) => k.tag === 'p');
+		assert.ok(erster);
+		const neu = wendeAn(lesetext, ersetzeFolge(z, [erster], ['<p>Erster</p>', '<p><b>Satz</b>.</p>']));
+		assert.equal(neu, lesetext.replace('<p>Erster <b>Satz</b>.</p>', '<p>Erster</p>\n  <p><b>Satz</b>.</p>'));
+	});
+
+	it('führt Nachbarn zusammen und rechnet die Nummern um', () => {
+		const z = zerlege(lesetext);
+		const absaetze = z.knoten.filter((k) => k.tag === 'p');
+		const [erster, zweiter, dritter] = absaetze;
+		assert.ok(erster && zweiter && dritter);
+		const [a] = ersetzeFolge(z, [erster, zweiter], ['<p>Erster Satz. Zweiter.</p>']);
+		assert.ok(a);
+		const neu = zerlege(wendeAn(lesetext, [a]));
+		assert.equal(
+			neu.quelle,
+			lesetext.replace('<p>Erster <b>Satz</b>.</p>\n  <p>Zweiter.</p>', '<p>Erster Satz. Zweiter.</p>'),
+		);
+		const nach = nummerNach(z, neu, a);
+		const h1 = z.knoten.find((k) => k.tag === 'h1');
+		assert.ok(h1);
+		assert.equal(nach(h1.nr), h1.nr);
+		assert.equal(nach(zweiter.nr), null);
+		assert.equal(neu.knoten[nach(dritter.nr) ?? -1]?.start, neu.quelle.indexOf('<p>Dritter'));
+		assert.deepEqual(
+			eingesetzt(neu, a).map((k) => k.tag),
+			['p'],
+		);
+	});
+
+	it('ersetzt nur direkt benachbarte Geschwister', () => {
+		const z = zerlege(lesetext);
+		const [erster, , dritter] = z.knoten.filter((k) => k.tag === 'p');
+		assert.ok(erster && dritter);
+		assert.throws(() => ersetzeFolge(z, [erster, dritter], ['<p>x</p>']));
+		const mitKommentar = zerlege('<p>a</p><!-- x --><p>b</p>');
+		const [a, b] = mitKommentar.knoten;
+		assert.ok(a && b);
+		assert.throws(() => ersetzeFolge(mitKommentar, [a, b], ['<p>ab</p>']));
 	});
 });
 

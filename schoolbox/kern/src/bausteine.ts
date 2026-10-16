@@ -23,6 +23,12 @@ export const FAEHIGKEITEN = [
 
 export type Faehigkeit = (typeof FAEHIGKEITEN)[number];
 
+/**
+ * Was Enter in einem Textträger tut: `eine` beendet die Bearbeitung (Überschrift, Anweisung), `umbruch` setzt ein
+ * `<br>` (Sprechblase), `absatz` teilt das Element in zwei gleiche (Absatz, Listenpunkt).
+ */
+export type Zeilen = 'eine' | 'umbruch' | 'absatz';
+
 export interface Baustein {
 	/** Kennung für Code und Tests. */
 	art: string;
@@ -35,6 +41,8 @@ export interface Baustein {
 	zaehlen?: boolean;
 	/** Ein Element, das zusätzlich hierauf passt, heißt so (z. B. die Sternchenaufgabe). */
 	sonderfall?: { selektor: string; name: string };
+	/** Nur mit `text`: was Enter tut; ohne Angabe `eine`. */
+	zeilen?: Zeilen;
 }
 
 /** Die eigenen Elemente aus `abbildungen.js`; ihren Inhalt zeichnet erst der Browser. */
@@ -48,6 +56,26 @@ export const ABBILDUNGEN = [
 	'x-zahlenstrahl',
 	'x-timer',
 ] as const;
+
+/**
+ * Teile eines Textträgers, die beim Tippen unverändert bleiben: Nummern, Niveau-Punkte, Antwortlinien und
+ * Lösungen (019), Abbildungen (018), Bilder (017). Sie lassen sich weder ändern noch löschen.
+ */
+export const GESCHUETZT = [
+	'.nr',
+	'.niveau',
+	'.antwort',
+	'.leerstelle',
+	'.loesung-marke',
+	'.box',
+	'.nur-loesung',
+	'.nicht-loesung',
+	'[data-l]',
+	'img',
+	'svg',
+	'math',
+	...ABBILDUNGEN,
+].join(', ');
 
 export const BAUSTEINE: readonly Baustein[] = [
 	{
@@ -96,13 +124,15 @@ export const BAUSTEINE: readonly Baustein[] = [
 	{ art: 'ziel', name: 'Lernziel', selektor: '.ziel', faehigkeiten: ['text'] },
 	{ art: 'wahlhilfe', name: 'Wahlhilfe', selektor: '.wahlhilfe', faehigkeiten: ['text'] },
 	{ art: 'anweisung', name: 'Anweisung', selektor: '.anw .text', faehigkeiten: ['text'] },
-	{ art: 'blase', name: 'Sprechblase', selektor: '.blase', faehigkeiten: ['text'] },
+	{ art: 'blase', name: 'Sprechblase', selektor: '.blase', faehigkeiten: ['text'], zeilen: 'umbruch' },
 	{ art: 'kartentext', name: 'Kartentext', selektor: '.kartentext', faehigkeiten: ['text'] },
 	{ art: 'platzhalter', name: 'Bildplatzhalter', selektor: '.platzhalter', faehigkeiten: ['bild'] },
 	{ art: 'notiz', name: 'Notiz', selektor: '.notiz', faehigkeiten: [] },
-	{ art: 'absatz', name: 'Absatz', selektor: 'p, li', faehigkeiten: ['text'] },
+	{ art: 'absatz', name: 'Absatz', selektor: 'p, li', faehigkeiten: ['text'], zeilen: 'absatz' },
 ];
 
 export const bausteinNach = (art: string) => BAUSTEINE.find((b) => b.art === art);
 
 export const kann = (baustein: Baustein, faehigkeit: Faehigkeit) => baustein.faehigkeiten.includes(faehigkeit);
+
+export const zeilenVon = (baustein: Baustein): Zeilen => baustein.zeilen ?? 'eine';

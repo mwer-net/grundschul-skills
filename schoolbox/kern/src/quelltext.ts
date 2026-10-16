@@ -397,6 +397,59 @@ export const verschiebe = (z: Zerlegung, k: Knoten, ziel: Knoten, wo: 'vor' | 'n
 	return [raus, { ...rein, von: pos, bis: pos }];
 };
 
+/**
+ * Ersetzt eine Folge benachbarter Geschwister durch neue Elemente, etwa Absätze, die beim Tippen geteilt oder
+ * zusammengeführt wurden. Zwischen die neuen kommt, was in der Quelle zwischen den ersten beiden stand, bei nur einem
+ * Element ein Zeilenumbruch mit dessen Einrückung (bzw. nichts, wenn es nicht allein auf seiner Zeile steht).
+ */
+export const ersetzeFolge = (z: Zerlegung, folge: Knoten[], elemente: string[]): Aenderung[] => {
+	const erstes = folge[0];
+	const letztes = folge.at(-1);
+	if (!erstes || !letztes) {
+		return [];
+	}
+	const geschwister = erstes.eltern?.kinder ?? z.wurzeln;
+	const ab = geschwister.indexOf(erstes);
+	folge.forEach((k, i) => {
+		const vorher = folge[i - 1];
+		if (geschwister[ab + i] !== k || (vorher && z.quelle.slice(vorher.ende, k.start).trim() !== '')) {
+			throw new Error('Nur direkt benachbarte Geschwister lassen sich gemeinsam ersetzen.');
+		}
+	});
+	const zweites = folge[1];
+	const einzug = einrueckung(z, erstes);
+	let trenner = einzug === null ? '' : `\n${einzug}`;
+	if (zweites) {
+		trenner = z.quelle.slice(erstes.ende, zweites.start);
+	}
+	return [{ von: erstes.start, bis: letztes.ende, text: elemente.join(trenner) }];
+};
+
+/**
+ * Welche Nummer ein Element der alten Zerlegung nach der Änderung `a` hat: davor gleich, dahinter verschoben um die
+ * Zahl neuer bzw. entfernter Elemente. Elemente, die im ersetzten Bereich begannen, gibt es so nicht mehr (`null`).
+ */
+export const nummerNach = (alt: Zerlegung, neu: Zerlegung, a: Aenderung) => {
+	const versatz = neu.knoten.length - alt.knoten.length;
+	return (nr: number): number | null => {
+		const k = alt.knoten[nr];
+		if (!k) {
+			return null;
+		}
+		if (k.start < a.von) {
+			return nr;
+		}
+		return k.start >= a.bis ? nr + versatz : null;
+	};
+};
+
+/** Die obersten Elemente, die die Änderung `a` in die neue Zerlegung eingesetzt hat, in ihrer Reihenfolge. */
+export const eingesetzt = (neu: Zerlegung, a: Aenderung) => {
+	const bis = a.von + a.text.length;
+	const drin = (k: Knoten | null) => k !== null && k.start >= a.von && k.start < bis;
+	return neu.knoten.filter((k) => drin(k) && !drin(k.eltern));
+};
+
 const schuetzeAttribut = (wert: string) => wert.replace(/&/g, '&amp;').replace(/"/g, '&quot;').replace(/</g, '&lt;');
 
 export const schuetzeText = (text: string) => text.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');

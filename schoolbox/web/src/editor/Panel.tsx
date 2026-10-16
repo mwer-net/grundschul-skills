@@ -1,8 +1,12 @@
-import type { ReactNode } from 'react';
+import type { Zeilen } from '@schoolbox/kern/src/bausteine';
+import { kann, zeilenVon } from '@schoolbox/kern/src/bausteine';
+import type { MouseEvent, ReactNode } from 'react';
 
 import { Knopf } from '../bausteine/Knopf';
 import { Symbol } from '../bausteine/Symbol';
 import type { PfadTeil } from './darstellung';
+import { TEXTWERKZEUG } from './text';
+import type { Format, TextZustand } from './textdom';
 
 interface Eigenschaften {
 	pfad: PfadTeil[];
@@ -48,6 +52,89 @@ export const AuswahlPanel = ({ children, pfad, waehle }: Eigenschaften) => {
 				<Symbol name="schliessen" />
 				Auswahl aufheben
 			</Knopf>
+		</div>
+	);
+};
+
+const FERTIG: Record<Zeilen, string> = {
+	eine: 'Fertig bist du mit ⏎ oder wenn du neben den Text tippst.',
+	umbruch: '⏎ macht eine neue Zeile. Fertig bist du, wenn du neben den Text tippst.',
+	absatz: '⏎ beginnt einen neuen Absatz. Fertig bist du, wenn du neben den Text tippst.',
+};
+
+/** Knöpfe, die beim Drücken den Cursor im Text lassen. */
+const halteFokus = { [TEXTWERKZEUG]: '', onMouseDown: (e: MouseEvent) => e.preventDefault() };
+
+interface TextEigenschaften {
+	pfad: PfadTeil[];
+	/** Nicht in der Vorschau einer Version und nicht bei einem Konflikt. */
+	aktiv: boolean;
+	bearbeitet: boolean;
+	zustand: TextZustand;
+	formatiere: (format: Format) => void;
+	beende: () => void;
+	fokussiere: () => void;
+}
+
+/** Für Textträger: Text ändern, dabei nur fett und unterstrichen; Schrift und Größe bestimmt das Blatt. */
+export const Textwerkzeug = ({
+	aktiv,
+	bearbeitet,
+	beende,
+	fokussiere,
+	formatiere,
+	pfad,
+	zustand,
+}: TextEigenschaften) => {
+	const baustein = pfad.at(-1)?.baustein;
+	if (!aktiv || !baustein || !kann(baustein, 'text')) {
+		return null;
+	}
+	if (!bearbeitet) {
+		return (
+			<div className="mt-3">
+				<Knopf art="zweit" onClick={fokussiere}>
+					<Symbol name="stift" />
+					Text ändern
+				</Knopf>
+				<p className="mt-2 text-leise">Oder tippe noch einmal in den Text.</p>
+			</div>
+		);
+	}
+	return (
+		<div className="mt-3" data-textbearbeitung>
+			<div className="flex flex-wrap gap-2">
+				<div role="group" aria-label="Schrift" className="flex gap-2">
+					<Knopf
+						art={zustand.fett ? 'haupt' : 'zweit'}
+						className="w-12 px-0 text-lg font-black"
+						aria-label="Fett"
+						title={zustand.fettMoeglich ? 'Fett (⌘B)' : 'Dieser Text ist schon fett'}
+						aria-pressed={zustand.fett}
+						disabled={!zustand.fettMoeglich}
+						{...halteFokus}
+						onClick={() => formatiere('bold')}
+					>
+						B
+					</Knopf>
+					<Knopf
+						art={zustand.unterstrichen ? 'haupt' : 'zweit'}
+						className="w-12 px-0 text-lg underline"
+						aria-label="Unterstrichen"
+						title="Unterstrichen (⌘U)"
+						aria-pressed={zustand.unterstrichen}
+						{...halteFokus}
+						onClick={() => formatiere('underline')}
+					>
+						U
+					</Knopf>
+				</div>
+				<Knopf {...halteFokus} onClick={beende}>
+					<Symbol name="haken" />
+					Fertig
+				</Knopf>
+			</div>
+			<p className="mt-2 text-leise">{FERTIG[zeilenVon(baustein)]}</p>
 		</div>
 	);
 };

@@ -26,8 +26,8 @@ interface Eigenschaften {
 	zoom: number;
 	/** Tasten aus dem Material, z. B. Cmd+Z, während der Fokus im `iframe` liegt. */
 	taste: (e: KeyboardEvent) => void;
-	/** Das sichtbare Dokument, sobald es fertig ist (für Breadcrumb und Tests). */
-	geladen: (doc: Document) => void;
+	/** Das sichtbare Dokument, sobald es fertig ist, mit dem HTML, aus dem es entstand. */
+	geladen: (doc: Document, html: string) => void;
 	/** Vorschau einer Version: nichts auswählbar. */
 	nurAnsehen?: boolean;
 }
@@ -110,10 +110,15 @@ export const Leinwand = ({
 			const ziel = (e.target as Node | null)?.nodeType === 1 ? (e.target as Element) : null;
 			rueckrufe.current.waehle(trefferAn(ziel)?.nr ?? null);
 		});
-		dokument.addEventListener('keydown', (e) => rueckrufe.current.taste(e));
+		dokument.addEventListener('keydown', (e) => {
+			// Beim Tippen gehören Esc und ⌘Z dem Textfeld.
+			if (!(e.target as HTMLElement | null)?.isContentEditable) {
+				rueckrufe.current.taste(e);
+			}
+		});
 	};
 
-	const fertig = (nr: number, frame: HTMLIFrameElement) => {
+	const fertig = ({ html: inhalt, nr }: Rahmen, frame: HTMLIFrameElement) => {
 		const dokument = frame.contentDocument;
 		if (!dokument) {
 			return;
@@ -123,7 +128,7 @@ export const Leinwand = ({
 			verbinde(dokument);
 			setRahmen((alt) => alt.filter((r) => r.nr >= nr).map((r) => (r.nr === nr ? { ...r, masse } : r)));
 			setDoc(dokument);
-			rueckrufe.current.geladen(dokument);
+			rueckrufe.current.geladen(dokument, inhalt);
 		};
 		void dokument.fonts.ready.then(zeigen, zeigen);
 	};
@@ -174,7 +179,7 @@ export const Leinwand = ({
 									}
 								: { left: 0, width: LADE_BREITE, height: 800, visibility: 'hidden' }
 						}
-						onLoad={(e) => fertig(r.nr, e.currentTarget)}
+						onLoad={(e) => fertig(r, e.currentTarget)}
 					/>
 				))}
 				{box && gewaehlt && nrVon(gewaehlt) !== null && (

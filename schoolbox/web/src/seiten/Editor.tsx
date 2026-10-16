@@ -16,7 +16,8 @@ import { Konfliktleiste, Speicheranzeige, Vorschauleiste } from '../editor/Anzei
 import { useBearbeitung } from '../editor/bearbeitung';
 import { editorHtml, pfadZu } from '../editor/darstellung';
 import { Leinwand } from '../editor/Leinwand';
-import { AuswahlPanel } from '../editor/Panel';
+import { AuswahlPanel, Textwerkzeug } from '../editor/Panel';
+import { useText } from '../editor/text';
 import type { VersionEintrag } from '../editor/version';
 import { Versionen } from '../editor/Versionen';
 import { useEreignisse } from '../ereignisse';
@@ -34,7 +35,7 @@ interface Eigenschaften {
 	dok: string;
 }
 
-/** Zugriff für die Browser-Tests, bis es Bedienelemente zum Ändern gibt (015 ff.). */
+/** Zugriff für die Browser-Tests: Quelle lesen und ändern wie ein Befehl. */
 interface TestZugriff {
 	quelle: () => string | null;
 	aendere: (neu: string, beschreibung?: string) => void;
@@ -113,6 +114,16 @@ const Kopfleiste = ({ children, kannVor, kannZurueck, stand, titel, verlassen, v
 	</header>
 );
 
+/** Die Quelle zerlegt und als HTML für das `iframe`, beides nur neu, wenn sich Quelle oder Fassung ändern. */
+const useDarstellung = (quelle: string | null, basis: string, loesung: boolean) => {
+	const zerlegung = useMemo(() => (quelle === null ? null : zerlege(quelle)), [quelle]);
+	const html = useMemo(
+		() => (zerlegung === null ? null : editorHtml(zerlegung, { basis, loesung })),
+		[zerlegung, basis, loesung],
+	);
+	return { zerlegung, html };
+};
+
 const istEingabe = (ziel: EventTarget | null) =>
 	ziel instanceof HTMLElement && (ziel.isContentEditable || ['INPUT', 'TEXTAREA', 'SELECT'].includes(ziel.tagName));
 
@@ -135,7 +146,7 @@ const Bearbeitung = ({ dokument, mappe: mappenDaten }: { mappe: Mappe; dokument:
 	const b = useBearbeitung(mappe, dok);
 	const { alles, stand } = b.speicher;
 	const [auswahl, setAuswahl] = useState<number | null>(null);
-	const [doc, setDoc] = useState<Document | null>(null);
+	const [geladen, setGeladen] = useState<{ doc: Document; html: string } | null>(null);
 	const [panel, setPanel] = useState<'auswahl' | 'versionen'>('auswahl');
 	const [vorschau, setVorschau] = useState<{ version: VersionEintrag; quelle: string } | null>(null);
 	const [zoom, setZoom] = useState(1);
@@ -146,14 +157,21 @@ const Bearbeitung = ({ dokument, mappe: mappenDaten }: { mappe: Mappe; dokument:
 	const loesung = Boolean(meta.hatLoesung) && suche.get('fassung') === 'loesung';
 
 	const anzeige = vorschau?.quelle ?? b.verlauf?.quelle ?? null;
-	const html = useMemo(
-		() =>
-			anzeige === null
-				? null
-				: editorHtml(zerlege(anzeige), { basis: `/ansicht/${mappe}/dokumente/${dok}/`, loesung }),
-		[anzeige, dok, loesung, mappe],
-	);
-	const pfad = useMemo(() => (doc && auswahl !== null ? pfadZu(doc, auswahl) : []), [doc, auswahl]);
+	const { html, zerlegung } = useDarstellung(anzeige, `/ansicht/${mappe}/dokumente/${dok}/`, loesung);
+	const pfad = useMemo(() => (geladen && auswahl !== null ? pfadZu(geladen.doc, auswahl) : []), [geladen, auswahl]);
+	const merken = useCallback((d: Document, h: string) => setGeladen({ doc: d, html: h }), []);
+
+	const frei = vorschau === null && b.konflikt === null;
+	const text = useText({
+		geladen,
+		html,
+		zerlegung,
+		auswahl,
+		setAuswahl,
+		bearbeitbar: frei,
+		befehl: b.befehl,
+		pruefe: b.pruefe,
+	});
 
 	useEffect(() => {
 		if (stand.art === 'gespeichert') {
@@ -165,10 +183,10 @@ const Bearbeitung = ({ dokument, mappe: mappenDaten }: { mappe: Mappe; dokument:
 		if (typ === 'dokument-geaendert' && m === mappe && geaendert === dok) {
 			versionenNeu();
 			if (version !== b.speicher.basis.current?.version) {
-				void b.pruefe(urheber ?? null);
+				text.pruefeSpaeter(urheber ?? null);
 			}
 		} else if (typ === 'verbunden' && wieder) {
-			void b.pruefe('claude');
+			text.pruefeSpaeter('claude');
 		}
 	});
 
@@ -262,7 +280,6 @@ const Bearbeitung = ({ dokument, mappe: mappenDaten }: { mappe: Mappe; dokument:
 			return w.vorbereiten();
 		},
 	}));
-	const frei = vorschau === null && b.konflikt === null;
 	const kannZurueck = frei && Boolean(b.verlauf?.zurueck.length);
 	const kannVor = frei && Boolean(b.verlauf?.vor.length);
 
@@ -343,7 +360,7 @@ const Bearbeitung = ({ dokument, mappe: mappenDaten }: { mappe: Mappe; dokument:
 							waehle={setAuswahl}
 							zoom={zoom}
 							taste={taste}
-							geladen={setDoc}
+							geladen={merken}
 							nurAnsehen={vorschau !== null}
 						/>
 					)}
@@ -365,7 +382,17 @@ const Bearbeitung = ({ dokument, mappe: mappenDaten }: { mappe: Mappe; dokument:
 							/>
 						</>
 					) : (
-						<AuswahlPanel pfad={pfad} waehle={setAuswahl} />
+						<AuswahlPanel pfad={pfad} waehle={setAuswahl}>
+							<Textwerkzeug
+								pfad={pfad}
+								aktiv={frei}
+								bearbeitet={text.bearbeitet}
+								zustand={text.zustand}
+								formatiere={text.formatiere}
+								beende={text.beende}
+								fokussiere={text.fokussiere}
+							/>
+						</AuswahlPanel>
 					)}
 				</aside>
 			</div>

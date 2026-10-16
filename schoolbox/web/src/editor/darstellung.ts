@@ -4,10 +4,15 @@ import { darstellungsHtml } from '@schoolbox/kern/src/html';
 import type { Zerlegung } from '@schoolbox/kern/src/quelltext';
 import { MARKE, markiere } from '@schoolbox/kern/src/quelltext';
 
-/** Nur im Editor: kein Markieren von Text, kein Lupen-Menü beim langen Drücken auf dem iPad. */
+/**
+ * Nur im Editor: kein Markieren von Text, kein Lupen-Menü beim langen Drücken auf dem iPad. Ausnahme ist der Text,
+ * der gerade bearbeitet wird.
+ */
 const EDITOR_STIL =
 	'<style data-editor>html,body{-webkit-user-select:none;user-select:none;-webkit-touch-callout:none}' +
-	'img{-webkit-user-drag:none}</style>';
+	'img{-webkit-user-drag:none}' +
+	'[contenteditable=true]{-webkit-user-select:text;user-select:text;-webkit-touch-callout:default;cursor:text;' +
+	'outline:none}[contenteditable=true] [contenteditable=false]{-webkit-user-select:none;user-select:none}</style>';
 
 /**
  * Das Material für das `iframe` des Editors, aus der Quelle im Speicher: wie `/ansicht` (Seitengröße, Lösung), mit
