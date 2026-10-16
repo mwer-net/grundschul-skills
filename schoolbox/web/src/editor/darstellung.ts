@@ -26,6 +26,9 @@ export const editorHtml = (zerlegung: Zerlegung, { basis, loesung }: { basis: st
 	return offen ? html.replace(offen[0], `${offen[0]}${kopf}`) : `${kopf}${html}`;
 };
 
+/** Ein Befehl hat das Material geändert; bis die neue Fassung steht, nimmt die alte nichts mehr an. */
+export const VERALTET = 'data-veraltet';
+
 /** Ein Element der Darstellung mit seinem Eintrag im Register und der Nummer seines Quellelements. */
 export interface Treffer {
 	nr: number;
@@ -38,7 +41,7 @@ export const nrVon = (element: Element) => {
 	return wert === null ? null : Number(wert);
 };
 
-const bausteinVon = (element: Element) =>
+export const bausteinVon = (element: Element) =>
 	nrVon(element) === null ? undefined : BAUSTEINE.find((b) => element.matches(b.selektor));
 
 /** Der innerste Baustein an dieser Stelle, auch aus einer gezeichneten Abbildung heraus (deren SVG trägt keine Nummer). */

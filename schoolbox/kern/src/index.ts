@@ -15,5 +15,6 @@ export * from './pfade';
 export * from './quelltext';
 export * from './schema';
 export * from './slug';
+export * from './struktur';
 export * from './versionen';
 export * from './werte';

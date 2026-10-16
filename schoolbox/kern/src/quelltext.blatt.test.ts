@@ -9,18 +9,21 @@ import { promisify } from 'node:util';
 import { ASSETS, BLATT_PY } from './konfig';
 import type { Knoten } from './quelltext';
 import { klassenVon, schuetzeText, verschiebe, wendeAn, zerlege } from './quelltext';
+import { verschiebeBaustein } from './struktur';
 
 const ausfuehren = promisify(execFile);
 const CHROMIUM_DA = 'import sys; sys.path.insert(0, sys.argv[1]); import blatt; blatt.finde_chromium()';
 
-const chromiumFehlt = () => {
+const fehlt = (befehl: string, argumente: string[]) => {
 	try {
-		execFileSync('python3', ['-c', CHROMIUM_DA, path.dirname(BLATT_PY)], { stdio: 'ignore' });
+		execFileSync(befehl, argumente, { stdio: 'ignore' });
 		return false;
 	} catch {
 		return true;
 	}
 };
+
+const chromiumFehlt = () => fehlt('python3', ['-c', CHROMIUM_DA, path.dirname(BLATT_PY)]);
 
 interface Bericht {
 	seiten: unknown[];
@@ -70,4 +73,30 @@ describe('blatt.py auf im Editor bearbeiteten Dateien', () => {
 			assert.match(html, /<h1>Uhr &amp; „ß“<\/h1>/);
 		}
 	});
+
+	it(
+		'zeigt nach dem Umsortieren im Lösungsblatt dieselbe Reihenfolge und Nummern',
+		{ timeout: 300_000 },
+		async (t) => {
+			if (chromiumFehlt() || fehlt('pdftotext', ['-v'])) {
+				t.skip('kein Chromium für blatt.py oder kein pdftotext');
+				return;
+			}
+			const ordner = await mkdtemp(path.join(tmpdir(), 'schoolbox-struktur-blatt-'));
+			const quelle = await readFile(path.join(ASSETS, 'vorlage-arbeitsblatt.html'), 'utf8');
+			const aufgaben = zerlege(quelle).knoten.filter((k) => klassenVon(k).includes('aufgabe'));
+			const [erste, , dritte] = aufgaben as [Knoten, Knoten, Knoten];
+			const neu = verschiebeBaustein(quelle, dritte.nr, { nr: erste.nr, wo: 'vor' }, { jeSeite: false }).quelle;
+			await baue(ordner, 'umsortiert', neu);
+			for (const name of ['umsortiert', 'umsortiert-loesung']) {
+				const pdf = path.join(ordner, 'umsortiert', `${name}.pdf`);
+				const { stdout } = await ausfuehren('pdftotext', ['-layout', pdf, '-']);
+				const text = stdout.replace(/\s+/g, ' ');
+				const willi = text.indexOf('1 Willi sagt');
+				const liesAb = text.indexOf('2 Lies ab.');
+				const zeichne = text.indexOf('3 Zeichne die Zeiger');
+				assert.ok(willi >= 0 && willi < liesAb && liesAb < zeichne, `${name}: ${text}`);
+			}
+		},
+	);
 });

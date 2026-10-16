@@ -1,4 +1,6 @@
+import type { Zerlegung } from '@schoolbox/kern/src/quelltext';
 import { zerlege } from '@schoolbox/kern/src/quelltext';
+import { hatNamenszeile } from '@schoolbox/kern/src/struktur';
 import type { ReactNode } from 'react';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
@@ -16,7 +18,11 @@ import { Konfliktleiste, Speicheranzeige, Vorschauleiste } from '../editor/Anzei
 import { useBearbeitung } from '../editor/bearbeitung';
 import { editorHtml, pfadZu } from '../editor/darstellung';
 import { Leinwand } from '../editor/Leinwand';
-import { AuswahlPanel, Textwerkzeug } from '../editor/Panel';
+import { leistenHtml } from '../editor/leiste';
+import { AuswahlPanel, Blattwerkzeug, Strukturwerkzeug, Textwerkzeug } from '../editor/Panel';
+import { Seitenleiste } from '../editor/Seitenleiste';
+import type { Struktur } from '../editor/struktur';
+import { useStruktur } from '../editor/struktur';
 import { useText } from '../editor/text';
 import type { VersionEintrag } from '../editor/version';
 import { Versionen } from '../editor/Versionen';
@@ -124,6 +130,34 @@ const useDarstellung = (quelle: string | null, basis: string, loesung: boolean) 
 	return { zerlegung, html };
 };
 
+/** Die Seitenleiste zum Material, ohne Leiste, solange es nicht geladen ist. */
+const Seiten = ({
+	html,
+	struktur,
+	zerlegung,
+}: {
+	html: string | null;
+	zerlegung: Zerlegung | null;
+	struktur: Struktur;
+}) => {
+	const leiste = useMemo(() => (html === null ? null : leistenHtml(html)), [html]);
+	const namenszeile = useMemo(() => (zerlegung ? hatNamenszeile(zerlegung) : false), [zerlegung]);
+	if (leiste === null) {
+		return null;
+	}
+	return (
+		<Seitenleiste
+			html={leiste}
+			gewaehlt={struktur.werte?.seite ?? null}
+			aktiv={struktur.aktiv}
+			waehle={struktur.zeigeAn}
+			verschiebe={(nr, ablage) => struktur.verschiebe(nr, ablage, true)}
+			hinzufuegen={(mitNamenszeile) => void struktur.neueSeite(mitNamenszeile)}
+			namenszeile={namenszeile}
+		/>
+	);
+};
+
 const istEingabe = (ziel: EventTarget | null) =>
 	ziel instanceof HTMLElement && (ziel.isContentEditable || ['INPUT', 'TEXTAREA', 'SELECT'].includes(ziel.tagName));
 
@@ -200,6 +234,19 @@ const Bearbeitung = ({ dokument, mappe: mappenDaten }: { mappe: Mappe; dokument:
 		wiederholen();
 	}, [wiederholen]);
 
+	const struktur = useStruktur({
+		geladen,
+		html,
+		verlauf: b.verlauf,
+		pfad,
+		setAuswahl,
+		befehl: b.befehl,
+		rueckgaengig: zurueck,
+		folien: meta.format === 'folie',
+		frei,
+		bearbeitet: text.bearbeitet,
+	});
+
 	const taste = useCallback(
 		(e: KeyboardEvent) => {
 			const befehl = e.metaKey || e.ctrlKey;
@@ -255,9 +302,9 @@ const Bearbeitung = ({ dokument, mappe: mappenDaten }: { mappe: Mappe; dokument:
 
 	const zeigeVersion = async (version: VersionEintrag) => {
 		try {
-			const { quelle } = await lade<{ quelle: string }>(`${b.adresse}/versionen/${version.id}`);
+			const fassung = await lade<{ quelle: string }>(`${b.adresse}/versionen/${version.id}`);
 			setAuswahl(null);
-			setVorschau({ version, quelle });
+			setVorschau({ version, quelle: fassung.quelle });
 		} catch (grund) {
 			zeige({ text: meldung(grund), art: 'fehler' });
 		}
@@ -331,40 +378,46 @@ const Bearbeitung = ({ dokument, mappe: mappenDaten }: { mappe: Mappe; dokument:
 			</Kopfleiste>
 
 			<div className="flex min-h-0 flex-1 max-lg:flex-col">
-				<main className="min-h-0 flex-1 overflow-y-auto px-6 py-4 max-lg:px-4">
-					{b.konflikt && (
-						<Konfliktleiste
-							urheber={b.konflikt.urheber}
-							laeuft={b.laeuft}
-							neuLaden={() => {
-								setAuswahl(null);
-								void b.neuLaden();
-							}}
-						/>
-					)}
-					{vorschau && (
-						<Vorschauleiste
-							version={vorschau.version}
-							laeuft={b.laeuft}
-							wiederherstellen={() => void wiederherstellen(vorschau.version.id)}
-							schliessen={() => setVorschau(null)}
-						/>
-					)}
-					<Zoom zoom={zoom} setZoom={setZoom} />
-					{html !== null && (
-						<Leinwand
-							html={html}
-							titel={meta.titel}
-							auswahl={auswahl}
-							auswahlName={pfad.at(-1)?.name ?? null}
-							waehle={setAuswahl}
-							zoom={zoom}
-							taste={taste}
-							geladen={merken}
-							nurAnsehen={vorschau !== null}
-						/>
-					)}
-				</main>
+				<div className="flex min-h-0 flex-1">
+					<Seiten html={html} zerlegung={zerlegung} struktur={struktur} />
+					<main className="min-h-0 flex-1 overflow-y-auto px-6 py-4 max-lg:px-4">
+						{b.konflikt && (
+							<Konfliktleiste
+								urheber={b.konflikt.urheber}
+								laeuft={b.laeuft}
+								neuLaden={() => {
+									setAuswahl(null);
+									void b.neuLaden();
+								}}
+							/>
+						)}
+						{vorschau && (
+							<Vorschauleiste
+								version={vorschau.version}
+								laeuft={b.laeuft}
+								wiederherstellen={() => void wiederherstellen(vorschau.version.id)}
+								schliessen={() => setVorschau(null)}
+							/>
+						)}
+						<Zoom zoom={zoom} setZoom={setZoom} />
+						{html !== null && (
+							<Leinwand
+								html={html}
+								titel={meta.titel}
+								auswahl={auswahl}
+								auswahlName={pfad.at(-1)?.name ?? null}
+								waehle={setAuswahl}
+								zoom={zoom}
+								taste={taste}
+								geladen={merken}
+								nurAnsehen={vorschau !== null}
+								ziehbar={struktur.aktiv}
+								ablegen={struktur.verschiebe}
+								springe={struktur.springe}
+							/>
+						)}
+					</main>
+				</div>
 				<aside
 					className={klassen(
 						'w-[22rem] flex-none overflow-y-auto border-l border-rand bg-white px-5 py-4',
@@ -382,7 +435,11 @@ const Bearbeitung = ({ dokument, mappe: mappenDaten }: { mappe: Mappe; dokument:
 							/>
 						</>
 					) : (
-						<AuswahlPanel pfad={pfad} waehle={setAuswahl}>
+						<AuswahlPanel
+							pfad={pfad}
+							waehle={setAuswahl}
+							leer={<Blattwerkzeug aktiv={frei} struktur={struktur} />}
+						>
 							<Textwerkzeug
 								pfad={pfad}
 								aktiv={frei}
@@ -392,6 +449,7 @@ const Bearbeitung = ({ dokument, mappe: mappenDaten }: { mappe: Mappe; dokument:
 								beende={text.beende}
 								fokussiere={text.fokussiere}
 							/>
+							<Strukturwerkzeug pfad={pfad} aktiv={struktur.aktiv} struktur={struktur} />
 						</AuswahlPanel>
 					)}
 				</aside>

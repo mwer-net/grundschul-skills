@@ -43,6 +43,12 @@ export interface Baustein {
 	sonderfall?: { selektor: string; name: string };
 	/** Nur mit `text`: was Enter tut; ohne Angabe `eine`. */
 	zeilen?: Zeilen;
+	/** Nur mit `ordnen`: Ziehen auch in andere Elemente dieses Selektors, sonst nur innerhalb des Elternelements. */
+	ordnenIn?: string;
+	/** Nur mit `ordnen`: Ziehen in der Seitenleiste statt im Blatt, weil der Baustein größer ist als der Bildschirm. */
+	ordnenInLeiste?: boolean;
+	/** Nur mit `spalten`: was ohne `--spalten` gilt (wie in blatt.css). */
+	spaltenStandard?: number;
 }
 
 /** Die eigenen Elemente aus `abbildungen.js`; ihren Inhalt zeichnet erst der Browser. */
@@ -84,6 +90,7 @@ export const BAUSTEINE: readonly Baustein[] = [
 		selektor: '.seite',
 		faehigkeiten: ['ordnen', 'duplizieren', 'loeschen', 'hinzufuegen'],
 		zaehlen: true,
+		ordnenInLeiste: true,
 	},
 	{
 		art: 'aufgabe',
@@ -92,9 +99,10 @@ export const BAUSTEINE: readonly Baustein[] = [
 		faehigkeiten: ['ordnen', 'duplizieren', 'loeschen'],
 		zaehlen: true,
 		sonderfall: { selektor: '.aufgabe:has(> .nr.stern)', name: 'Sternchenaufgabe' },
+		ordnenIn: '.seite',
 	},
-	{ art: 'reihe', name: 'Reihe', selektor: '.reihe', faehigkeiten: ['spalten'] },
-	{ art: 'karten', name: 'Kartenbogen', selektor: '.karten', faehigkeiten: ['spalten'] },
+	{ art: 'reihe', name: 'Reihe', selektor: '.reihe', faehigkeiten: ['spalten'], spaltenStandard: 3 },
+	{ art: 'karten', name: 'Kartenbogen', selektor: '.karten', faehigkeiten: ['spalten'], spaltenStandard: 2 },
 	{
 		art: 'item',
 		name: 'Item',

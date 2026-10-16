@@ -330,7 +330,7 @@ export const wendeAn = (quelle: string, aenderungen: Aenderung[]): string => {
 const zeilenAnfang = (quelle: string, pos: number) => quelle.lastIndexOf('\n', pos - 1) + 1;
 
 /** Steht das Element allein auf seiner Zeile(n)? Dann liefert es die Einrückung, sonst `null`. */
-const einrueckung = (z: Zerlegung, k: Knoten): string | null => {
+export const einrueckung = (z: Zerlegung, k: Knoten): string | null => {
 	const anfang = zeilenAnfang(z.quelle, k.start);
 	const davor = z.quelle.slice(anfang, k.start);
 	const danach = z.quelle.slice(k.ende).match(/^[ \t]*(\r?\n|$)/);
@@ -382,13 +382,17 @@ export const fuegeInnenEin = (z: Zerlegung, eltern: Knoten, wo: 'anfang' | 'ende
 
 export const dupliziere = (z: Zerlegung, k: Knoten): Aenderung[] => fuegeEin(z, k, 'nach', quelleVon(z, k));
 
+/** Rückt die Folgezeilen eines mehrzeiligen Elements von einer Einrückung auf eine andere. */
+export const rueckeUm = (html: string, alt: string | null, neu: string | null) =>
+	alt === null || neu === null || alt === neu ? html : html.split(`\n${alt}`).join(`\n${neu}`);
+
 /** Verschiebt `k` vor bzw. hinter `ziel`. `ziel` darf weder `k` noch darin enthalten sein. */
 export const verschiebe = (z: Zerlegung, k: Knoten, ziel: Knoten, wo: 'vor' | 'nach'): Aenderung[] => {
 	if (ziel.start >= k.start && ziel.ende <= k.ende) {
 		throw new Error('Ein Element lässt sich nicht in sich selbst verschieben.');
 	}
 	const raus = entferne(z, k)[0];
-	const rein = fuegeEin(z, ziel, wo, quelleVon(z, k))[0];
+	const rein = fuegeEin(z, ziel, wo, rueckeUm(quelleVon(z, k), einrueckung(z, k), einrueckung(z, ziel)))[0];
 	if (!raus || !rein) {
 		return [];
 	}

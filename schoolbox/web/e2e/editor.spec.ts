@@ -59,7 +59,7 @@ test.describe('Editor', () => {
 
 		await druecke(material(page).locator('.blase'));
 		await expect(page.locator('[data-auswahl="blase"]')).toBeVisible();
-		await page.locator('[data-leinwand]').click({ position: { x: 12, y: 30 } });
+		await page.locator('[data-leinwand]').click({ position: { x: 4, y: 30 } });
 		await expect(page.locator('[data-auswahlrahmen]')).toHaveCount(0);
 
 		// Gerenderte Uhren im Blatt, aber nie in der Quelle des Editors
