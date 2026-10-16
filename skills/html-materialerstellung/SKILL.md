@@ -14,14 +14,14 @@ Warum: In HTML bestimmen wir Schrift (Fredoka, Andika, eingebettet), Abstände u
 | Datei | Zweck |
 |---|---|
 | `assets/blatt.css` | Gestaltungssystem: A4-Seite, 60 px Rand, Kopf, Aufgaben mit hängender Nummer, Niveau-Punkte, Punktfelder, Antwortlinien, Sprechblase, Fuß, Karten, Platzhalter, Folien. Profile über Klassen am `<body>`. |
-| `assets/praesentation.js` | Präsentationsmodus für Folien: blättern, Schritte und Aufdecken, Timer, Schwarzbild; nur mit `?praesentation=1` aktiv (Abschnitt „Folien“) |
+| `assets/praesentation.js` | Präsentationsmodus für Folien: blättern, Schritte und Aufdecken, Timer, Schwarzbild; nur mit `?praesentation=1` aktiv. `blatt.py` bettet es in die Offline-Präsentation ein und baut damit `--schritte` und `--notizen` (Abschnitt „Folien“) |
 | `assets/abbildungen.js` | Exakte Abbildungen als SVG: `x-uhr`, `x-menge` (Gegenstände in Reihen, Bündel), `x-dienes`, `x-strichpunkt`, `x-stellentafel`, `x-zwanzigerfeld`, `x-zahlenstrahl`, `x-timer` (Zeitscheibe für Folien). Aufrufe im Kopf der Datei. |
 | `assets/vorlage-arbeitsblatt.html` | Muster mit allen Bausteinen (Farbprofil); Ausgangspunkt für jedes Blatt |
 | `assets/vorlage-praesentation.html` | Kreisinput mit sechs Folien und allen Folien-Bausteinen; Ausgangspunkt für Präsentationen (Abschnitt „Folien“) |
 | `assets/beispiel-zehner-einer-kl2.html` | geprüftes Beispiel im s/w-Profil (Bündeln, Stellentafel, Sternchenaufgabe, Lösungen) |
 | `assets/fonts/` | Fredoka (Überschrift), Andika (Text, einstöckiges a/g), OFL-Lizenz |
 | `assets/bilder/` | Willi, Wilma, Wachstumsgrafik farbig und als Strichzeichnung (`references/bilder.md`) |
-| `scripts/blatt.py` | baut, prüft, erzeugt PDF, Lösungsblatt, Vorschau und Ausschnitte; `uebersicht` für Entwürfe |
+| `scripts/blatt.py` | baut, prüft, erzeugt PDF, Lösungsblatt, Vorschau und Ausschnitte; bei Folien die Offline-Präsentation, auf Wunsch `--schritte` und `--notizen`; `uebersicht` für Entwürfe |
 | `references/layout.md` | Raster, Platzbudget, Klassen und Regeln für sauberes HTML |
 | `references/visuelle-endkontrolle.md` | Pflichtprüfung des fertigen Blatts |
 | `references/bilder.md` | Leitfigur, KI-Bilder und -Grafiken mit Canva erzeugen und ins Blatt holen |
@@ -85,9 +85,19 @@ Für Präsentationen (Skill `praesentation`), Ausgangspunkt `assets/vorlage-prae
 | Timer | `<x-timer minuten="25" groesse="280"></x-timer>`. Die Skala reicht bis 60, über 60 Minuten bis 120; für kurze Phasen `skala="5"` oder `"10"`, sonst ist die Scheibe kaum zu sehen | läuft ab wie ein Time Timer, Antippen startet und hält an, sanftes Ende ohne Ton | Scheibe mit der eingestellten Zeit, darunter „25 Minuten“ |
 | Vermutung | `<div class="vermutung"><span class="nr">A</span>Antwort<span class="leerstelle"></span></div>`, mehrere untereinander in `<div class="reihe" style="--spalten:1;width:620px">`: Antwort zum Abstimmen mit Kästchen für die Strichliste; langer Text bricht um | wie im PDF | wie gesetzt |
 | Leerstelle | `<span class="leerstelle" style="--h:120px"></span>` (Höhe über `--h`, sonst volle Breite oder `width`) für Antworten oder Wortkarten, die die Lehrkraft am Board ergänzt | gestrichelter Rahmen | gestrichelter Rahmen |
-| Notiz | `<aside class="notiz"><p>…</p></aside>` am Ende jeder Folie | nie zu sehen | fehlt |
+| Notiz | `<aside class="notiz"><p>…</p></aside>` am Ende jeder Folie | nie zu sehen | fehlt; steht in „Folien mit Notizen“ (`--notizen`) |
 
 Präsentiert wird mit `assets/praesentation.js`: Mit `?praesentation=1` in der Adresse (oder `class="praesentieren"` am `<body>`) zeigt es eine Folie nach der anderen bildschirmfüllend und verhält sich wie in der vorletzten Spalte; ohne den Schalter bleibt das Dokument wie in der letzten Spalte. In der Schoolbox heißt das Knopf **Präsentieren**, sie fügt das Skript selbst ein; ins Material gehört es nicht. Niveau-Punkte, ★ und `.tipp` funktionieren wie auf dem Arbeitsblatt. Die Prüfung meldet auf Folien keinen freien Platz (eine Aussage je Folie ist gewollt), warnt bei Schrift unter 80 % der Folienschrift (32 px, Kl. 1/2: 38 px) und weist auf Folien ohne Notiz hin, sobald eine Folie eine hat.
+
+Ausgaben von `blatt.py bauen` für Folien, zum Präsentieren ohne Internet und zum Ausdrucken:
+
+| Ausgabe | Aufruf | Wofür |
+|---|---|---|
+| `NAME.html` | immer | Offline-Präsentation für den Mac: alles eingebettet samt `praesentation.js`, startet mit „Präsentation starten“ (Vollbild, Bildschirm bleibt wach), nach Esc wieder der Startbildschirm. Ohne JavaScript und im Druck die Seitenfolge |
+| `NAME-schritte.pdf` | `--schritte` | Fürs iPad: eine Seite je Zustand wie beim Weiterklicken, also je Folie 1 (alles verdeckt) + je Schritt + je `.aufdecken`; die Vorlage hat 11 Seiten. Verdeckt sieht aus wie beim Präsentieren, der Timer steht still |
+| `NAME-notizen.pdf` | `--notizen` | Zum Ausdrucken: A4 hoch, je Blatt bis zu zwei Folien klein (360 px breit), daneben „Folie 3 · 3 Schritte · 1 × aufdecken · Timer 25 Minuten“ und die Notizen in 17 px. Passt die zweite nicht mehr, kommt sie aufs nächste Blatt. Die Prüfung läuft auch hier; nur FEHLER zählen („Folien mit Notizen: … → Notiz kürzen“) |
+
+`--nur-zusatz` baut nur `--schritte`/`--notizen`, ohne Blatt, Vorschauen und Lösung (so ruft die Schoolbox es auf). Das normale PDF bleibt in jedem Fall die Seitenfolge mit allem aufgedeckt.
 
 ## Tokens sparen
 

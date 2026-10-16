@@ -23,8 +23,10 @@ import { inhaltsAngabe } from './pdf';
 import type { TestServer } from './testhilfe';
 import {
 	baueErsatzAusgabe,
+	baueErsatzFolien,
 	BEISPIEL,
 	legeDokumentAn,
+	NOTIZ_ZU_LANG,
 	sammleEreignisse,
 	schreibKoepfe,
 	starteTestServer,
@@ -45,6 +47,15 @@ const FOLIE_HTML = `<!doctype html>
 <html lang="de"><head><meta charset="utf-8"><title>Folie</title><link rel="stylesheet" href="blatt.css"></head>
 <body class="kl2 sw folie"><section class="seite"><h1>Wie spät ist es?</h1></section>
 <section class="seite"><h1>Halb fünf</h1></section></body></html>
+`;
+
+/** Drei Folien: zwei Schritte, eine Lösung zum Aufdecken, Notizen. Mit Schritten 1 + (1 + 2 + 1) + 1 = 6 Seiten. */
+const SCHRITTE_HTML = `<!doctype html>
+<html lang="de"><head><meta charset="utf-8"><title>Folien</title><link rel="stylesheet" href="blatt.css"></head>
+<body class="kl2 sw folie"><section class="seite"><h1>Wie spät ist es?</h1><aside class="notiz"><p>Kurz.</p></aside></section>
+<section class="seite"><h1>Uhr</h1><p data-schritt="1">kleiner Zeiger</p><p data-schritt="2">großer Zeiger</p>
+<p>Es ist <span class="aufdecken">halb fünf</span>.</p><aside class="notiz"><p>Zeiger zeigen.</p></aside></section>
+<section class="seite"><h1>Ende</h1></section></body></html>
 `;
 
 /** Das Beispielblatt mit einer Aufgabe, die die Seite sprengt. */
@@ -186,6 +197,48 @@ describe('PDF mit blatt.py', () => {
 		await speichere(s, daten.adresse, ordner, 'zu-lang.pdf');
 	});
 
+	it(
+		'baut für Folien das PDF mit Schritten, die Notizen und die Offline-Präsentation',
+		{ timeout: 180_000 },
+		async (t) => {
+			if (chromiumFehlt) {
+				t.skip('kein Chromium für blatt.py gefunden');
+				return;
+			}
+			const { dir, dok, mappe: folien } = await legeDokumentAn(s.materialDir, { format: 'folie' });
+			await writeFile(path.join(dir, 'material.html'), SCHRITTE_HTML);
+			const pfad = `/api/dokumente/${folien}/${dok}/pdf`;
+			const hole = (variante: string) => vorbereiten(s, pfad, variante);
+			const [normal, schritte, notizen, offline] = await Promise.all([
+				hole('arbeitsblatt'),
+				hole('schritte'),
+				hole('notizen'),
+				hole('praesentation'),
+			]);
+			for (const { daten, status } of [normal, schritte, notizen, offline]) {
+				assert.equal(status, 200);
+				assert.deepEqual(daten.meldungen, []);
+			}
+			const groessen = async (adresse: string, name: string) =>
+				seitenGroessen(await speichere(s, adresse, ordner, name));
+			assert.equal((await groessen(normal.daten.adresse, 'folien.pdf')).length, 3);
+			const mitSchritten = await groessen(schritte.daten.adresse, 'schritte.pdf');
+			assert.equal(mitSchritten.length, 6);
+			assert.ok(
+				mitSchritten.every((g) => g === '960x540'),
+				mitSchritten.join(),
+			);
+			assert.deepEqual(await groessen(notizen.daten.adresse, 'notizen.pdf'), ['594.96x841.92', '594.96x841.92']);
+
+			const html = await s.holen(`${s.url}${offline.daten.adresse}`);
+			assert.equal(html.headers.get('content-type'), 'application/octet-stream');
+			const text = await html.text();
+			assert.match(text, /class="kl2 sw folie praesentation-start"/);
+			assert.match(text, /window\.praesentation/);
+			assert.doesNotMatch(text, /href="blatt\.css"/, 'alles eingebettet');
+		},
+	);
+
 	it('fasst alle Dokumente zu einem PDF zusammen, Lösungen am Ende', { timeout: 300_000 }, async (t) => {
 		if (chromiumFehlt) {
 			t.skip('kein Chromium für blatt.py gefunden');
@@ -258,6 +311,78 @@ describe('PDF: Ablauf', () => {
 		await vorbereiten(s, pfad, 'arbeitsblatt');
 		assert.equal(bauten, 2, 'nach einer Änderung neu gebaut');
 		assert.ok(!(await readdir(path.join(dir, 'ausgabe'))).includes('material-beides.pdf'), 'alte Teile sind weg');
+	});
+
+	it('baut die Zusätze für Folien je einmal, ohne das PDF anzufassen, und nennt sie passend', async () => {
+		let bauten = 0;
+		const zusaetze: string[] = [];
+		s = await starteTestServer({
+			pdfBauer: async (dir) => {
+				bauten += 1;
+				await baueErsatzAusgabe(dir);
+			},
+			folienBauer: async (dir, art) => {
+				zusaetze.push(art);
+				await warte(100);
+				await baueErsatzFolien(dir, art);
+			},
+		});
+		const { dir, dok, mappe } = await legeDokumentAn(s.materialDir, { format: 'folie' });
+		await writeFile(path.join(dir, 'material.html'), FOLIE_HTML.replace('<body', '<body data-test-notiz-lang'));
+		const pfad = `/api/dokumente/${mappe}/${dok}/pdf`;
+		const server = s;
+		const hole = (variante: string) => vorbereiten(server, pfad, variante);
+		const [schritte, notizen, offline, nochmal] = await Promise.all([
+			hole('schritte'),
+			hole('notizen'),
+			hole('praesentation'),
+			hole('schritte'),
+		]);
+		assert.deepEqual(
+			[schritte, notizen, offline, nochmal].map((a) => a.status),
+			[200, 200, 200, 200],
+		);
+		assert.equal(bauten, 1);
+		assert.deepEqual(zusaetze.sort(), ['notizen', 'schritte']);
+		assert.equal(schritte.daten.dateiname, 'Kl2 Mathe Blatt – Präsentation mit Schritten.pdf');
+		assert.equal(notizen.daten.dateiname, 'Kl2 Mathe Blatt – Folien mit Notizen.pdf');
+		assert.equal(offline.daten.dateiname, 'Kl2 Mathe Blatt – Präsentation.html');
+		assert.deepEqual(schritte.daten.meldungen, []);
+		assert.deepEqual(notizen.daten.meldungen, [
+			{ stufe: 'FEHLER', seite: 1, text: NOTIZ_ZU_LANG, dok, titel: 'Blatt' },
+		]);
+
+		const pdf = await s.holen(`${s.url}${schritte.daten.adresse}?anzeigen=1`);
+		assert.equal(pdf.headers.get('content-type'), 'application/pdf');
+		assert.match(pdf.headers.get('content-disposition') ?? '', /^inline; /);
+		const html = await s.holen(`${s.url}${offline.daten.adresse}?anzeigen=1`);
+		assert.equal(html.headers.get('content-type'), 'application/octet-stream');
+		assert.match(html.headers.get('content-disposition') ?? '', /^attachment; .*Pr%C3%A4sentation\.html$/);
+		assert.match(await html.text(), /Wie spät ist es\?/);
+
+		await vorbereiten(s, pfad, 'arbeitsblatt');
+		await vorbereiten(s, pfad, 'notizen');
+		assert.deepEqual([bauten, zusaetze.length], [1, 2], 'aus dem Cache');
+		await writeFile(path.join(dir, 'material.html'), FOLIE_HTML.replace('Halb fünf', 'Viertel nach'));
+		const neu = await vorbereiten(s, pfad, 'notizen');
+		assert.deepEqual([bauten, zusaetze.length], [2, 3], 'nach einer Änderung neu gebaut');
+		assert.deepEqual(neu.daten.meldungen, []);
+
+		const link = await legeFreigabeAn(s.materialDir, { mappe, dok });
+		const geteilt = await fetch(`${s.url}/f/${link.token}/api/pdf/${dok}/schritte`);
+		assert.equal(geteilt.status, 200);
+		const { adresse } = (await geteilt.json()) as Vorbereitet;
+		assert.equal((await fetch(`${s.url}${adresse}`)).headers.get('content-type'), 'application/pdf');
+	});
+
+	it('gibt die Zusätze nur für Folien', async () => {
+		s = await starteTestServer({ pdfBauer: baueErsatzAusgabe, folienBauer: baueErsatzFolien });
+		const { dok, mappe } = await legeDokumentAn(s.materialDir, { beispiel: true });
+		for (const variante of ['schritte', 'notizen', 'praesentation']) {
+			const { daten, status } = await vorbereiten(s, `/api/dokumente/${mappe}/${dok}/pdf`, variante);
+			assert.equal(status, 404, variante);
+			assert.equal(daten.fehler, 'Das gibt es nur für Präsentationen (Folien).');
+		}
 	});
 
 	it('baut höchstens zwei Dokumente zugleich, Vorschauen mitgezählt', async () => {

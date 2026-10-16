@@ -13,6 +13,14 @@ import { sucheRessource } from './pfade';
 export const STAND_DATEI = 'stand.json';
 export const PDF_DATEI = 'material.pdf';
 export const LOESUNG_PDF_DATEI = 'material-loesung.pdf';
+/** Eigenständige HTML-Datei aus blatt.py; bei Folien die Offline-Präsentation. */
+export const HTML_DATEI = 'material.html';
+
+/** Zusätze für Folien, die blatt.py nur auf Wunsch baut (`--schritte`, `--notizen`). */
+export type FolienZusatz = 'schritte' | 'notizen';
+export const zusatzPdfDatei = (art: FolienZusatz) => `material-${art}.pdf`;
+export const zusatzBerichtDatei = (art: FolienZusatz) => `pruefbericht-${art}.json`;
+export const zusatzStandDatei = (art: FolienZusatz) => `stand-${art}.json`;
 
 /** Dieselben Verweise, die `einbetten()` in blatt.py auflöst. */
 const VERWEISE = [
@@ -45,7 +53,8 @@ const ressourcen = async (html: string, dokDir: string): Promise<[string, string
 
 /**
  * Hash über alles, was das PDF bestimmt: material.html, eingebundene Stylesheets (samt Schriften), Skripte und
- * Bilder, dazu blatt.py und pruefung.js. Ein bloßes `touch` ändert ihn nicht.
+ * Bilder, dazu blatt.py, pruefung.js und praesentation.js (steckt in der Offline-Präsentation und den Zusätzen für
+ * Folien). Ein bloßes `touch` ändert ihn nicht.
  */
 export const ausgabeSchluessel = async (dokDir: string): Promise<string> => {
 	const html = await readFile(path.join(dokDir, 'material.html'));
@@ -55,6 +64,7 @@ export const ausgabeSchluessel = async (dokDir: string): Promise<string> => {
 		...dateien,
 		['blatt.py', BLATT_PY],
 		['pruefung.js', path.join(ASSETS, 'pruefung.js')],
+		['praesentation.js', path.join(ASSETS, 'praesentation.js')],
 	] as const) {
 		hash.update(`\0${name}\0`);
 		hash.update(datei === null ? 'fehlt' : await readFile(datei).catch(() => 'fehlt'));

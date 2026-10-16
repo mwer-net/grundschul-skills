@@ -31,6 +31,16 @@ const FACH_KURZ: Record<Fach, string> = { ...FACH_NAME, mathematik: 'Mathe', fae
 export const PDF_VARIANTEN = ['arbeitsblatt', 'loesung', 'beides'] as const;
 export type PdfVariante = (typeof PDF_VARIANTEN)[number];
 
+/** Nur für Folien: zum Präsentieren ohne Internet und zum Ausdrucken der Notizen. */
+export const FOLIEN_VARIANTEN = ['schritte', 'notizen', 'praesentation'] as const;
+export type FolienVariante = (typeof FOLIEN_VARIANTEN)[number];
+
+export const AUSGABE_VARIANTEN = [...PDF_VARIANTEN, ...FOLIEN_VARIANTEN] as const;
+export type AusgabeVariante = PdfVariante | FolienVariante;
+
+export const istFolienVariante = (variante: AusgabeVariante): variante is FolienVariante =>
+	FOLIEN_VARIANTEN.some((v) => v === variante);
+
 export const MAPPEN_VARIANTEN = ['alles', 'alles-mit-loesungen'] as const;
 export type MappenVariante = (typeof MAPPEN_VARIANTEN)[number];
 
@@ -39,9 +49,9 @@ const MAX_TITEL = 120;
 
 const sauber = (text: string) => text.replace(VERBOTEN, ' ').replace(/\s+/g, ' ').trim().slice(0, MAX_TITEL).trim();
 
-const dateiname = (fach: Fach, klasse: Klasse, titel: string, zusatz: string) => {
+const dateiname = (fach: Fach, klasse: Klasse, titel: string, zusatz: string, endung = 'pdf') => {
 	const kopf = [klasse === 'gemischt' ? '' : `Kl${klasse}`, FACH_KURZ[fach], sauber(titel)].filter(Boolean).join(' ');
-	return `${[kopf || 'Material', zusatz].filter(Boolean).join(' – ')}.pdf`;
+	return `${[kopf || 'Material', zusatz].filter(Boolean).join(' – ')}.${endung}`;
 };
 
 const ZUSATZ_LOESUNG: Record<Exclude<PdfVariante, 'arbeitsblatt'>, string> = {
@@ -58,6 +68,25 @@ export const pdfDateiname = (
 	const art = dokument.art === 'sonstiges' ? '' : ART_NAME[dokument.art];
 	const zusatz = variante === 'arbeitsblatt' ? art : [art, ZUSATZ_LOESUNG[variante]].filter(Boolean).join(' ');
 	return dateiname(mappe.fach, mappe.klasse, dokument.titel, variante === 'loesung' ? 'Lösung' : zusatz);
+};
+
+const FOLIEN_DATEINAME: Record<FolienVariante, { zusatz: string; endung: string }> = {
+	schritte: { zusatz: 'Präsentation mit Schritten', endung: 'pdf' },
+	notizen: { zusatz: 'Folien mit Notizen', endung: 'pdf' },
+	praesentation: { zusatz: 'Präsentation', endung: 'html' },
+};
+
+/** Wie `pdfDateiname`, dazu „… – Präsentation mit Schritten.pdf“, „… – Folien mit Notizen.pdf“, „… – Präsentation.html“. */
+export const ausgabeDateiname = (
+	mappe: { fach: Fach; klasse: Klasse },
+	dokument: { titel: string; art: Art },
+	variante: AusgabeVariante,
+) => {
+	if (!istFolienVariante(variante)) {
+		return pdfDateiname(mappe, dokument, variante);
+	}
+	const { endung, zusatz } = FOLIEN_DATEINAME[variante];
+	return dateiname(mappe.fach, mappe.klasse, dokument.titel, zusatz, endung);
 };
 
 /** „Kl3 Sachunterricht Die Kartoffel – Alles.pdf“ bzw. „… – Alles mit Lösungen.pdf“. */

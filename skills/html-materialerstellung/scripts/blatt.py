@@ -3,6 +3,7 @@
 
 Aufrufe:
     python3 blatt.py bauen blatt.html [-o ausgabe/] [--ohne-loesung] [--nur-pruefen] [--bericht bericht.json]
+                           [--schritte] [--notizen] [--nur-zusatz]
     python3 blatt.py uebersicht a.html b.html [c.html] [-o ausgabe/]
 
 bauen erzeugt in ausgabe/ (Standard: Ordner der Quelle):
@@ -13,6 +14,14 @@ bauen erzeugt in ausgabe/ (Standard: Ordner der Quelle):
                           (für die visuelle Endkontrolle), NAME-loesung-s1.png
 und gibt den Prüfbericht aus (FEHLER / WARNUNG / HINWEIS). Exit-Code 1 bei FEHLER.
 --bericht schreibt ihn zusätzlich als JSON (seiten, meldungen, fehler), z. B. für die Schoolbox.
+
+Folien (body class folie): NAME.html ist dann die Offline-Präsentation (praesentation.js eingebettet, startet mit
+einem Startbildschirm); das PDF bleibt die normale Seitenfolge, alles aufgedeckt. Zusätzlich auf Wunsch:
+    --schritte            NAME-schritte.pdf: eine Seite je Schritt (vor dem ersten Schritt, jeder data-schritt,
+                          jedes .aufdecken), zum Blättern auf dem iPad ohne Internet
+    --notizen             NAME-notizen.pdf: A4 hoch, je Blatt zwei Folien klein mit Notizen und Ablauf, zum
+                          Ausdrucken; wird wie das Blatt geprüft (nur FEHLER, „Folien mit Notizen: …“)
+    --nur-zusatz          nur diese Ausgaben bauen, ohne Blatt, Vorschauen und Lösung
 
 uebersicht baut 2–3 Entwürfe, legt die ersten Seiten nebeneinander in entwuerfe.png
 und entwuerfe.html und meldet je Entwurf, ob er auf die Seite passt.
@@ -83,8 +92,15 @@ def suche(name, quelle_dir):
     return None
 
 
-def einbetten(quelltext, quelle_dir, pruefen=False, loesung=False):
-    """Eigenständiges HTML: CSS, Schriften, Skripte und Bilder einbetten."""
+def mit_klasse(text, klasse):
+    return re.sub(r'<body([^>]*)class="([^"]*)"', lambda m: f'<body{m.group(1)}class="{m.group(2)} {klasse}"', text, count=1)
+
+
+def einbetten(quelltext, quelle_dir, pruefen=False, loesung=False, modus=None):
+    """Eigenständiges HTML: CSS, Schriften, Skripte und Bilder einbetten.
+
+    modus (nur Folien): "start" (Offline-Präsentation), "schritte" oder "notizen" bettet praesentation.js ein und
+    setzt die Klasse praesentation-<modus> am <body>; "notizen" druckt auf A4 hoch."""
     def css_ersetzen(m):
         p = suche(m.group(1), quelle_dir)
         if not p:
@@ -116,10 +132,13 @@ def einbetten(quelltext, quelle_dir, pruefen=False, loesung=False):
     t = re.sub(r'(<img[^>]+src=")([^"]+)(")', bild_ersetzen, t)
     body = re.search(r'<body[^>]*class="([^"]*)"', t)
     fmt = next((SEITE[k] for k in (body.group(1).split() if body else []) if k in SEITE), None)
-    if fmt:
+    if fmt and modus != "notizen":
         t = t.replace("</head>", f"<style>@page{{size:{fmt};margin:0}}</style>\n</head>", 1)
     if loesung:
-        t = re.sub(r'<body([^>]*)class="([^"]*)"', r'<body\1class="\2 loesung"', t, count=1)
+        t = mit_klasse(t, "loesung")
+    if modus:
+        js = (ASSETS / "praesentation.js").read_text(encoding="utf-8")
+        t = mit_klasse(t, f"praesentation-{modus}").replace("</head>", f"<script>\n{js}\n</script>\n</head>", 1)
     if pruefen:
         js = (ASSETS / "pruefung.js").read_text(encoding="utf-8")
         t = t.replace("</body>", f"<script>\n{js}\n</script>\n</body>")
@@ -207,13 +226,53 @@ def bericht_schreiben(datei, bericht, meldungen, fehler):
         Path(datei).write_text(json.dumps(daten, ensure_ascii=False, indent=1), encoding="utf-8")
 
 
-def bauen(quelle, ausgabe=None, ohne_loesung=False, nur_pruefen=False, still=False, bericht_datei=None):
+def ist_folie(text):
+    body = re.search(r'<body[^>]*class="([^"]*)"', text)
+    return bool(body) and "folie" in body.group(1).split()
+
+
+def folien_ausgaben(text, quelle, aus, tmp, schritte, notizen, still):
+    """--schritte und --notizen; gibt (erzeugte Dateien, Meldungen, Anzahl Fehler) zurück."""
+    if not ist_folie(text):
+        print("Hinweis: --schritte und --notizen gibt es nur für Folien (body class folie).", file=sys.stderr)
+        return [], [], 0
+    name, erzeugt, meldungen, fehler = quelle.stem, [], [], 0
+    if schritte:
+        sh = Path(tmp) / f"{name}-schritte.html"
+        sh.write_text(einbetten(text, quelle.parent, modus="schritte"), encoding="utf-8")
+        pdf(sh, aus / f"{name}-schritte.pdf")
+        erzeugt.append(aus / f"{name}-schritte.pdf")
+    if notizen:
+        np = Path(tmp) / "pruefen-notizen.html"
+        np.write_text(einbetten(text, quelle.parent, pruefen=True, modus="notizen"), encoding="utf-8")
+        nb = pruefbericht(np)
+        nb["meldungen"] = [m for m in nb["meldungen"] if m["stufe"] == "FEHLER"]
+        if nb["meldungen"]:
+            fehler += ausgeben(nb, "Folien mit Notizen")
+            meldungen += [{**m, "text": f"Folien mit Notizen: {m['text']}"} for m in nb["meldungen"]]
+        elif not still:
+            print(f"Folien mit Notizen: {len(nb['seiten'])} Blätter, Prüfung ok.")
+        nh = Path(tmp) / f"{name}-notizen.html"
+        nh.write_text(einbetten(text, quelle.parent, modus="notizen"), encoding="utf-8")
+        pdf(nh, aus / f"{name}-notizen.pdf")
+        erzeugt.append(aus / f"{name}-notizen.pdf")
+    return erzeugt, meldungen, fehler
+
+
+def bauen(quelle, ausgabe=None, ohne_loesung=False, nur_pruefen=False, still=False, bericht_datei=None,
+          schritte=False, notizen=False, nur_zusatz=False):
     quelle = Path(quelle).resolve()
     aus = Path(ausgabe).resolve() if ausgabe else quelle.parent
     aus.mkdir(parents=True, exist_ok=True)
     name = quelle.stem
     text = quelle.read_text(encoding="utf-8")
     with tempfile.TemporaryDirectory() as tmp:
+        if nur_zusatz:
+            erzeugt, meldungen, fehler = folien_ausgaben(text, quelle, aus, tmp, schritte, notizen, still)
+            bericht_schreiben(bericht_datei, {"seiten": []}, meldungen, fehler)
+            if not still:
+                print("Erzeugt:\n  " + "\n  ".join(str(p) for p in erzeugt))
+            return {"seiten": [], "meldungen": meldungen}, fehler, []
         pruef = Path(tmp) / "pruefen.html"
         pruef.write_text(einbetten(text, quelle.parent, pruefen=True), encoding="utf-8")
         bericht = pruefbericht(pruef)
@@ -225,6 +284,8 @@ def bauen(quelle, ausgabe=None, ohne_loesung=False, nur_pruefen=False, still=Fal
         fertig = aus / f"{name}.html"
         fertig.write_text(einbetten(text, quelle.parent), encoding="utf-8")
         pdf(fertig, aus / f"{name}.pdf")
+        if ist_folie(text):  # Offline-Präsentation; das PDF oben ist aus der Fassung ohne Laufzeit entstanden
+            fertig.write_text(einbetten(text, quelle.parent, modus="start"), encoding="utf-8")
         bilder = pngs(aus / f"{name}.pdf", str(aus / name))
         teile = ausschnitte(bilder, bericht, str(aus / name))
         erzeugt = [fertig, aus / f"{name}.pdf", *bilder, *teile]
@@ -241,6 +302,11 @@ def bauen(quelle, ausgabe=None, ohne_loesung=False, nur_pruefen=False, still=Fal
             lh.write_text(einbetten(text, quelle.parent, loesung=True), encoding="utf-8")
             pdf(lh, aus / f"{name}-loesung.pdf")
             erzeugt += [aus / f"{name}-loesung.pdf", *pngs(aus / f"{name}-loesung.pdf", str(aus / f"{name}-loesung"))]
+        if schritte or notizen:
+            mehr, zusatz, zfehler = folien_ausgaben(text, quelle, aus, tmp, schritte, notizen, still)
+            erzeugt += mehr
+            meldungen += zusatz
+            fehler += zfehler
     bericht_schreiben(bericht_datei, bericht, meldungen, fehler)
     if not still:
         print("Erzeugt:\n  " + "\n  ".join(str(p) for p in erzeugt))
@@ -303,12 +369,18 @@ def main():
     b.add_argument("--ohne-loesung", action="store_true")
     b.add_argument("--nur-pruefen", action="store_true")
     b.add_argument("--bericht", help="Prüfbericht zusätzlich als JSON-Datei")
+    b.add_argument("--schritte", action="store_true", help="Folien: NAME-schritte.pdf, eine Seite je Schritt")
+    b.add_argument("--notizen", action="store_true", help="Folien: NAME-notizen.pdf, Folien mit Notizen auf A4")
+    b.add_argument("--nur-zusatz", action="store_true", help="nur --schritte/--notizen bauen")
     u = sub.add_parser("uebersicht")
     u.add_argument("quellen", nargs="+")
     u.add_argument("-o", "--ausgabe")
     a = ap.parse_args()
     if a.cmd == "bauen":
-        _, fehler, _ = bauen(a.quelle, a.ausgabe, a.ohne_loesung, a.nur_pruefen, bericht_datei=a.bericht)
+        if a.nur_zusatz and not (a.schritte or a.notizen):
+            ap.error("--nur-zusatz braucht --schritte oder --notizen")
+        _, fehler, _ = bauen(a.quelle, a.ausgabe, a.ohne_loesung, a.nur_pruefen, bericht_datei=a.bericht,
+                             schritte=a.schritte, notizen=a.notizen, nur_zusatz=a.nur_zusatz)
         sys.exit(1 if fehler else 0)
     uebersicht(a.quellen, a.ausgabe)
 

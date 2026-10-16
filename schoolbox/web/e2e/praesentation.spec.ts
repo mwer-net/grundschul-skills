@@ -1,6 +1,6 @@
 import type { Frame, Locator, Page } from '@playwright/test';
 
-import { expect, legeMappeAn, test } from './hilfe';
+import { dateiname, expect, legeMappeAn, test } from './hilfe';
 
 /** Der Kartoffel-Kreisinput aus der Vorlage: Folie 3 mit drei Schritten, 4 mit Aufdecken, 5 mit Timer, 6 mit Schritt. */
 const kreisinput = () =>
@@ -214,6 +214,42 @@ test.describe('Präsentation', () => {
 		await context.setOffline(false);
 	});
 
+	test('Ohne Internet: PDF mit Schritten, Offline-Präsentation und Folien mit Notizen', async ({ druecke, page }) => {
+		const { dokumente, id } = await kreisinput();
+		await page.goto(`/m/${id}/${dokumente[1]}`);
+		await expect(page.getByRole('heading', { level: 1 })).toContainText('Teile der Kartoffel');
+		await expect(page.getByRole('button', { name: 'Ohne Internet' })).toHaveCount(0);
+
+		await page.goto(`/m/${id}/${dokumente[0]}`);
+		const knopf = page.getByRole('button', { name: 'Ohne Internet' });
+		await druecke(knopf);
+		const eintraege = page.getByRole('menu').getByRole('menuitem');
+		await expect(eintraege).toHaveCount(3);
+		await expect(eintraege.nth(0)).toContainText('PDF zum PräsentierenFürs iPad');
+		await expect(eintraege.nth(0)).toContainText('Jeder Schritt ist eine eigene Seite.');
+		const ipad = test.info().project.name.startsWith('ipad');
+		await expect(eintraege.nth(1)).toContainText(ipad ? 'auf dem iPad läuft die Datei nicht' : 'in Safari öffnen');
+		await expect(eintraege.nth(2)).toContainText('daneben deine Notizen');
+		await page.keyboard.press('Escape');
+
+		const name = 'Kl3 Sachunterricht Kreisinput Kartoffel';
+		// Die Offline-Präsentation liegt schon fertig im Bau; die beiden PDFs entstehen erst auf Anfrage.
+		for (const [titel, datei, gebaut] of [
+			['PDF zum Präsentieren', `${name} – Präsentation mit Schritten.pdf`, true],
+			['Offline-Präsentation', `${name} – Präsentation.html`, false],
+			['Folien mit Notizen', `${name} – Folien mit Notizen.pdf`, true],
+		] as const) {
+			await druecke(knopf);
+			const download = page.waitForEvent('download');
+			await druecke(page.getByRole('menuitem', { name: new RegExp(`^${titel}`) }));
+			if (gebaut) {
+				await expect(page.getByRole('button', { name: 'Wird erstellt …' })).toBeVisible();
+			}
+			expect(await dateiname(download)).toBe(datei);
+			await expect(knopf).toBeEnabled();
+		}
+	});
+
 	test('Teilen-Links öffnen die Präsentation ohne Anmeldung; Präsentieren gibt es nur für Folien', async ({
 		browser,
 		druecke,
@@ -234,6 +270,7 @@ test.describe('Präsentation', () => {
 		const fremd = await browser.newContext({ hasTouch: test.info().project.use.hasTouch });
 		const besuch = await fremd.newPage();
 		await besuch.goto(`/f/${dokLink}`);
+		await expect(besuch.getByRole('button', { name: 'Ohne Internet' })).toBeVisible();
 		await druecke(besuch.getByRole('link', { name: 'Präsentieren' }));
 		await expect(besuch).toHaveURL(new RegExp(`/f/${dokLink}/d/${dokumente[0]}/praesentation$`));
 		const folie = await starte(besuch, druecke);

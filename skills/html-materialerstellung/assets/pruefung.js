@@ -4,6 +4,7 @@
  const M = [];
  try {
   await document.fonts.ready;
+  if (window.blattBereit) await window.blattBereit; // Umbau der Seiten, z. B. Folien mit Notizen
   await Promise.all([...document.images].map((i) => (i.complete ? 0 : new Promise((r) => { i.onload = i.onerror = r; }))));
   if (window.zeichneAbbildungen) window.zeichneAbbildungen();
   await new Promise((r) => setTimeout(r, 100));
@@ -14,7 +15,7 @@
   const RICHTWERT = { 1: 3, 2: 4, 3: 5, 4: 6 }[kl] || 6;
   const fs = parseFloat(getComputedStyle(B).fontSize);
   const folie = B.classList.contains("folie"), mitNotizen = !!document.querySelector(".seite .notiz");
-  const kurz = (el) => el.matches(".antwort") && !el.textContent.trim() ? "Antwortlinie" : (el.textContent || el.getAttribute("alt") || el.tagName.toLowerCase()).trim().replace(/\s+/g, " ").slice(0, 40);
+  const kurz = (el) => el.dataset.name || (el.matches(".antwort") && !el.textContent.trim() ? "Antwortlinie" : (el.textContent || el.getAttribute("alt") || el.tagName.toLowerCase()).trim().replace(/\s+/g, " ").slice(0, 40));
   const sichtbar = (el) => { const r = el.getBoundingClientRect(); return r.width > 0 && r.height > 0 && getComputedStyle(el).visibility !== "hidden"; };
   const rgb = (c) => (c.match(/[\d.]+/g) || []).map(Number);
   const bunt = (c) => { const [r, g, b, a = 1] = rgb(c); return a > 0.05 && Math.max(r, g, b) - Math.min(r, g, b) > 24; };
@@ -24,7 +25,8 @@
   if (!document.fonts.check("600 16px Fredoka")) melde("FEHLER", 0, "Schrift Fredoka nicht geladen (fonts/ fehlt?)");
 
   const seiten = [];
-  document.querySelectorAll(".seite").forEach((S, si) => {
+  // nur äußere Seiten: In „Folien mit Notizen“ stecken die Folien verkleinert in einem Blatt
+  [...document.querySelectorAll(".seite")].filter((s) => !s.parentElement.closest(".seite")).forEach((S, si) => {
     const nr = si + 1, P = S.getBoundingClientRect(), rand = parseFloat(getComputedStyle(S).paddingLeft);
     const innen = { l: P.left + rand - 1, t: P.top + rand - 1, r: P.right - rand + 1, b: P.bottom - rand + 1 };
     const rel = (r) => [Math.round(r.left - P.left), Math.round(r.top - P.top), Math.round(r.width), Math.round(r.height)];
@@ -39,7 +41,8 @@
       const r = e.getBoundingClientRect();
       const um = Math.round(Math.max(innen.l - r.left, innen.t - r.top, r.right - innen.r, r.bottom - innen.b));
       const wo = (r.bottom > P.bottom || r.right > P.right ? "ragt aus der Seite" : "ragt in den Seitenrand") + ` (${um} px)`;
-      melde("FEHLER", nr, `„${kurz(e)}“ ${wo} → kürzen, Item streichen oder zweite Seite`);
+      const rat = e.closest(".notizblatt") ? "Notiz kürzen" : "kürzen, Item streichen oder zweite Seite";
+      melde("FEHLER", nr, `„${kurz(e)}“ ${wo} → ${rat}`);
     });
 
     // 2. Abgeschnittener oder zu breiter Text

@@ -1,10 +1,11 @@
 import { mkdir, rm, writeFile } from 'node:fs/promises';
 import path from 'node:path';
 
+import type { FolienZusatz } from '@schoolbox/kern';
 import { VORSCHAU_DATEI } from '@schoolbox/kern';
 
 import { WEB_DIST } from './app';
-import { baueErsatzAusgabe, starteTestServer, TEST_PASSWORT } from './testhilfe';
+import { baueErsatzAusgabe, baueErsatzFolien, starteTestServer, TEST_PASSWORT } from './testhilfe';
 
 /**
  * Server für die Browser-Tests der Oberfläche (`pnpm --filter @schoolbox/web run e2e`): die gebaute Oberfläche, eine
@@ -31,6 +32,11 @@ const pdfBauer = async (dokDir: string) => {
 	await baueErsatzAusgabe(dokDir);
 };
 
+const folienBauer = async (dokDir: string, art: FolienZusatz) => {
+	await new Promise((resolve) => setTimeout(resolve, PDF_MS));
+	await baueErsatzFolien(dokDir, art);
+};
+
 const starte = async () => {
 	if (!Number.isInteger(PORT) || !path.isAbsolute(MATERIAL_DIR)) {
 		throw new Error('E2E_PORT und E2E_MATERIAL_DIR (absoluter Pfad) müssen gesetzt sein.');
@@ -45,6 +51,7 @@ const starte = async () => {
 		ruheMs: 300,
 		vorschauBauer,
 		pdfBauer,
+		folienBauer,
 	});
 	console.log(`Testserver läuft auf ${server.url}, Ablage ${MATERIAL_DIR}, Passwort „${TEST_PASSWORT}“`);
 	const beenden = () => {

@@ -2,7 +2,7 @@ import { createHash } from 'node:crypto';
 import { readFile } from 'node:fs/promises';
 import path from 'node:path';
 
-import { baueAusgabe, dokumentDir } from '@schoolbox/kern';
+import { baueAusgabe, baueFolienZusatz, dokumentDir } from '@schoolbox/kern';
 
 import type { Begrenzung } from './begrenzung';
 import { erstelleBegrenzung } from './begrenzung';
@@ -11,7 +11,7 @@ import { erstelleBremse } from './bremse';
 import type { Ereignisse } from './ereignisse';
 import { erstelleEreignisse } from './ereignisse';
 import type { ServerKonfig } from './konfig';
-import type { Pdf, PdfBauer } from './pdf';
+import type { FolienBauer, Pdf, PdfBauer } from './pdf';
 import { erstellePdf } from './pdf';
 import type { Sperre } from './sperre';
 import { erstelleSperre } from './sperre';
@@ -43,6 +43,8 @@ export interface Bauer {
 	vorschau?: VorschauBauer;
 	/** Ohne baut blatt.py. */
 	pdf?: PdfBauer;
+	/** Ohne baut blatt.py. */
+	folien?: FolienBauer;
 }
 
 export const erstelleKontext = (konfig: ServerKonfig, version: string, bauer: Bauer = {}): Kontext => {
@@ -63,6 +65,7 @@ export const erstelleKontext = (konfig: ServerKonfig, version: string, bauer: Ba
 			sperre,
 			begrenzung,
 			bauer: bauer.pdf ?? ((dokDir) => baueAusgabe(konfig, dokDir)),
+			folienBauer: bauer.folien ?? ((dokDir, art) => baueFolienZusatz(konfig, dokDir, art)),
 		}),
 		version,
 	};

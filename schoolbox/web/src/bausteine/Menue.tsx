@@ -8,6 +8,8 @@ import { Symbol } from './Symbol';
 
 export interface MenueEintrag {
 	titel: string;
+	/** Ein Satz unter dem Titel: wofür der Eintrag gut ist. */
+	beschreibung?: string;
 	waehle: () => void;
 }
 
@@ -71,20 +73,29 @@ export const Menue = ({ art = 'zweit', beschriftung, disabled, eintraege, rechts
 					className={klassen(
 						'absolute top-full z-20 mt-2 flex min-w-full flex-col gap-1 rounded-xl border border-rand bg-white p-2 shadow-karte',
 						rechtsbuendig ? 'right-0' : 'left-0',
+						eintraege.some((e) => e.beschreibung) && 'w-96 max-w-[calc(100vw-2rem)]',
 					)}
 				>
-					{eintraege.map(({ titel, waehle }) => (
+					{eintraege.map(({ beschreibung, titel, waehle }) => (
 						<li key={titel} role="none">
 							<button
 								type="button"
 								role="menuitem"
-								className="min-h-12 w-full rounded-lg px-4 text-left font-bold whitespace-nowrap text-brand-600 hover:bg-brand-50 active:bg-brand-100"
+								className={klassen(
+									'min-h-12 w-full rounded-lg px-4 text-left font-bold text-brand-600 hover:bg-brand-50 active:bg-brand-100',
+									beschreibung ? 'py-2' : 'whitespace-nowrap',
+								)}
 								onClick={() => {
 									setOffen(false);
 									waehle();
 								}}
 							>
 								{titel}
+								{beschreibung && (
+									<span className="mt-0.5 block text-base font-normal text-leise">
+										{beschreibung}
+									</span>
+								)}
 							</button>
 						</li>
 					))}

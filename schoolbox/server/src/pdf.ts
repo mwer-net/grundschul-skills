@@ -3,11 +3,15 @@ import { existsSync } from 'node:fs';
 import { mkdir, readFile } from 'node:fs/promises';
 import path from 'node:path';
 
-import type { MappenVariante, Meldung, PdfVariante, Pruefbericht } from '@schoolbox/kern';
+import type { AusgabeVariante, FolienZusatz, MappenVariante, Meldung, Pruefbericht } from '@schoolbox/kern';
 import {
+	AUSGABE_VARIANTEN,
+	ausgabeDateiname,
 	ausgabeSchluessel,
 	dokumentDir,
 	fuegePdfsZusammen,
+	HTML_DATEI,
+	istFolienVariante,
 	leseMappe,
 	leseMeta,
 	leseStand,
@@ -16,9 +20,10 @@ import {
 	mappenDir,
 	mappenPdfDateiname,
 	PDF_DATEI,
-	PDF_VARIANTEN,
-	pdfDateiname,
 	schreibeStand,
+	zusatzBerichtDatei,
+	zusatzPdfDatei,
+	zusatzStandDatei,
 } from '@schoolbox/kern';
 import type { Request, Response } from 'express';
 
@@ -29,6 +34,9 @@ import type { Sperre } from './sperre';
 
 /** Baut `ausgabe/` eines Dokumentordners samt `stand.json`. Im Betrieb blatt.py, in den Browser-Tests ein Ersatz. */
 export type PdfBauer = (dokDir: string) => Promise<unknown>;
+
+/** Baut einen Zusatz für Folien nach `ausgabe/`, samt Prüfbericht und Stand-Datei. Im Betrieb blatt.py. */
+export type FolienBauer = (dokDir: string, art: FolienZusatz) => Promise<unknown>;
 
 export interface PdfMeldung extends Meldung {
 	dok: string;
@@ -43,7 +51,7 @@ export interface PdfDatei {
 }
 
 export interface Pdf {
-	dokument: (mappe: string, dok: string, variante: PdfVariante) => Promise<PdfDatei>;
+	dokument: (mappe: string, dok: string, variante: AusgabeVariante) => Promise<PdfDatei>;
 	/** Alle Dokumente der Mappe in Mappenreihenfolge, wahlweise mit den Lösungen am Ende. */
 	mappe: (mappe: string, variante: MappenVariante) => Promise<PdfDatei>;
 }
@@ -54,6 +62,7 @@ interface Abhaengigkeiten {
 	sperre: Sperre;
 	begrenzung: Begrenzung;
 	bauer: PdfBauer;
+	folienBauer: FolienBauer;
 }
 
 const BEIDES_DATEI = 'material-beides.pdf';
@@ -63,9 +72,9 @@ const NICHT_GEBAUT =
 
 const pdfSperre = (mappe: string, dok?: string) => `_pdf/${mappe}${dok === undefined ? '' : `/${dok}`}`;
 
-const leseFehler = async (ausgabe: string, mitLoesung: boolean): Promise<Meldung[]> => {
+const leseFehler = async (ausgabe: string, mitLoesung: boolean, datei = 'pruefbericht.json'): Promise<Meldung[]> => {
 	try {
-		const bericht = JSON.parse(await readFile(path.join(ausgabe, 'pruefbericht.json'), 'utf8')) as Pruefbericht;
+		const bericht = JSON.parse(await readFile(path.join(ausgabe, datei), 'utf8')) as Pruefbericht;
 		return bericht.meldungen
 			.filter((m) => m.stufe === 'FEHLER')
 			.filter((m) => mitLoesung || !m.text.startsWith(LOESUNG_PRAEFIX));
@@ -80,7 +89,16 @@ interface Gebaut {
 	loesung: boolean;
 }
 
-export const erstellePdf = ({ bauer, begrenzung, ereignisse, materialDir, sperre }: Abhaengigkeiten): Pdf => {
+const NUR_FOLIEN = 'Das gibt es nur für Präsentationen (Folien).';
+
+export const erstellePdf = ({
+	bauer,
+	begrenzung,
+	ereignisse,
+	folienBauer,
+	materialDir,
+	sperre,
+}: Abhaengigkeiten): Pdf => {
 	/** Stellt sicher, dass `ausgabe/` zum jetzigen Dokument passt. Nur innerhalb der PDF-Sperre des Dokuments. */
 	const stelleSicher = async (mappe: string, dok: string): Promise<Gebaut> => {
 		const dir = dokumentDir(materialDir, mappe, dok);
@@ -107,28 +125,67 @@ export const erstellePdf = ({ bauer, begrenzung, ereignisse, materialDir, sperre
 		};
 	};
 
+	/** PDF mit Schritten oder Folien mit Notizen, gebaut wie das PDF: bei Bedarf und global begrenzt. */
+	const stelleZusatzSicher = async (mappe: string, dok: string, { ausgabe, stand }: Gebaut, art: FolienZusatz) => {
+		const datei = path.join(ausgabe, zusatzPdfDatei(art));
+		if ((await leseStand(ausgabe, zusatzStandDatei(art))) === stand && existsSync(datei)) {
+			return datei;
+		}
+		const dir = dokumentDir(materialDir, mappe, dok);
+		try {
+			await begrenzung(() => folienBauer(dir, art));
+		} catch (fehler) {
+			console.error(`${art} für ${mappe}/${dok}:`, fehler instanceof Error ? fehler.message : fehler);
+			throw existsSync(path.join(dir, 'material.html'))
+				? new HttpFehler(500, NICHT_GEBAUT)
+				: new HttpFehler(404, 'Dieses Dokument gibt es nicht mehr.');
+		}
+		return datei;
+	};
+
+	/** Die Datei zur Variante, dazu Fehler, die nur sie hat (Folien mit Notizen werden eigens geprüft). */
+	const bereitstellen = async (
+		mappe: string,
+		dok: string,
+		gebaut: Gebaut,
+		variante: AusgabeVariante,
+	): Promise<{ datei: string; fehler: Meldung[] }> => {
+		const { ausgabe, loesung } = gebaut;
+		if (variante === 'praesentation') {
+			return { datei: path.join(ausgabe, HTML_DATEI), fehler: [] };
+		}
+		if (variante === 'schritte' || variante === 'notizen') {
+			const datei = await stelleZusatzSicher(mappe, dok, gebaut, variante);
+			return { datei, fehler: await leseFehler(ausgabe, false, zusatzBerichtDatei(variante)) };
+		}
+		if (variante !== 'arbeitsblatt' && !loesung) {
+			throw new HttpFehler(404, 'Zu diesem Dokument gibt es keine Lösung.');
+		}
+		const blatt = path.join(ausgabe, PDF_DATEI);
+		const beides = path.join(ausgabe, BEIDES_DATEI);
+		if (variante === 'beides' && !existsSync(beides)) {
+			await fuegePdfsZusammen([blatt, path.join(ausgabe, LOESUNG_PDF_DATEI)], beides);
+		}
+		const dateien = { arbeitsblatt: blatt, loesung: path.join(ausgabe, LOESUNG_PDF_DATEI), beides };
+		return { datei: dateien[variante], fehler: [] };
+	};
+
 	const mitTitel = (dok: string, titel: string, meldungen: Meldung[]): PdfMeldung[] =>
 		meldungen.map((m) => ({ ...m, dok, titel }));
 
 	const dokument: Pdf['dokument'] = async (mappeId, dok, variante) => {
 		const [mappe, meta] = await Promise.all([leseMappe(materialDir, mappeId), leseMeta(materialDir, mappeId, dok)]);
+		if (istFolienVariante(variante) && meta.format !== 'folie') {
+			throw new HttpFehler(404, NUR_FOLIEN);
+		}
 		return sperre(pdfSperre(mappeId, dok), async () => {
-			const { ausgabe, loesung } = await stelleSicher(mappeId, dok);
-			if (variante !== 'arbeitsblatt' && !loesung) {
-				throw new HttpFehler(404, 'Zu diesem Dokument gibt es keine Lösung.');
-			}
-			const dateien: Record<PdfVariante, string> = {
-				arbeitsblatt: path.join(ausgabe, PDF_DATEI),
-				loesung: path.join(ausgabe, LOESUNG_PDF_DATEI),
-				beides: path.join(ausgabe, BEIDES_DATEI),
-			};
-			if (variante === 'beides' && !existsSync(dateien.beides)) {
-				await fuegePdfsZusammen([dateien.arbeitsblatt, dateien.loesung], dateien.beides);
-			}
+			const gebaut = await stelleSicher(mappeId, dok);
+			const { datei, fehler } = await bereitstellen(mappeId, dok, gebaut, variante);
+			const blattFehler = await leseFehler(gebaut.ausgabe, variante === 'loesung' || variante === 'beides');
 			return {
-				datei: dateien[variante],
-				dateiname: pdfDateiname(mappe, meta, variante),
-				meldungen: mitTitel(dok, meta.titel, await leseFehler(ausgabe, variante !== 'arbeitsblatt')),
+				datei,
+				dateiname: ausgabeDateiname(mappe, meta, variante),
+				meldungen: mitTitel(dok, meta.titel, [...blattFehler, ...fehler]),
 			};
 		});
 	};
@@ -212,18 +269,27 @@ export const inhaltsAngabe = (art: 'attachment' | 'inline', name: string) => {
 	return `${art}; filename="${ascii}"; filename*=UTF-8''${utf8}`;
 };
 
-/** Mit `?anzeigen=1` zum Ansehen und Drucken im Browser, sonst als Download. */
+/**
+ * Mit `?anzeigen=1` zum Ansehen und Drucken im Browser, sonst als Download. Die Offline-Präsentation (HTML) gibt es
+ * nur als Download, und zwar als `application/octet-stream`: Bei `text/html` zeigt WebKit die Datei trotz `attachment`
+ * teils an, statt sie zu speichern.
+ */
 export const sendePdf = (req: Request, res: Response, { datei, dateiname }: PdfDatei) =>
 	new Promise<void>((resolve, reject) => {
-		const art = req.query.anzeigen === '1' ? 'inline' : 'attachment';
+		const pdf = path.extname(datei) === '.pdf';
+		const art = req.query.anzeigen === '1' && pdf ? 'inline' : 'attachment';
 		res.set({ 'Content-Disposition': inhaltsAngabe(art, dateiname), 'Cache-Control': 'private, no-cache' });
-		res.type('application/pdf').sendFile(datei, { cacheControl: false }, (fehler) => {
-			if (fehler) {
-				reject(fehler);
-			} else {
-				resolve();
-			}
-		});
+		res.type(pdf ? 'application/pdf' : 'application/octet-stream').sendFile(
+			datei,
+			{ cacheControl: false },
+			(fehler) => {
+				if (fehler) {
+					reject(fehler);
+				} else {
+					resolve();
+				}
+			},
+		);
 	});
 
 const waehle = <T extends string>(wert: unknown, gueltig: readonly T[]): T => {
@@ -234,7 +300,7 @@ const waehle = <T extends string>(wert: unknown, gueltig: readonly T[]): T => {
 	return treffer;
 };
 
-export const waehlePdfVariante = (wert: unknown) => waehle(wert, PDF_VARIANTEN);
+export const waehlePdfVariante = (wert: unknown) => waehle(wert, AUSGABE_VARIANTEN);
 export const waehleMappenVariante = (wert: unknown) => waehle(wert, MAPPEN_VARIANTEN);
 
 /** Antwort beim Vorbereiten: wohin der Browser für die Datei geht, wie sie heißt, was die Prüfung fand. */

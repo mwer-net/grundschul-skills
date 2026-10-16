@@ -8,7 +8,16 @@ import path from 'node:path';
 import type { Ziel } from './ablage';
 import { aktualisiereMappe, dokumentDir, leseMeta, pruefeFormat, schreibeMeta } from './ablage';
 import { kopiereAtomar } from './atomar';
-import { ausgabeSchluessel, PDF_DATEI, schreibeStand, uebernehmeAusgabe } from './ausgabe';
+import type { FolienZusatz } from './ausgabe';
+import {
+	ausgabeSchluessel,
+	PDF_DATEI,
+	schreibeStand,
+	uebernehmeAusgabe,
+	zusatzBerichtDatei,
+	zusatzPdfDatei,
+	zusatzStandDatei,
+} from './ausgabe';
 import { SchoolboxFehler } from './fehler';
 import { druckprofilAusHtml } from './html';
 import type { Konfig } from './konfig';
@@ -147,6 +156,51 @@ export const baueAusgabe = async (konfig: Pick<Konfig, 'pythonBin'>, dokDir: str
 		const bericht = JSON.parse(await readFile(berichtDatei, 'utf8')) as Pruefbericht;
 		await uebernehmeAusgabe(tmp, dokDir, schluessel);
 		return bericht;
+	} finally {
+		await rm(tmp, { recursive: true, force: true });
+	}
+};
+
+/**
+ * Baut einen Zusatz für Folien (PDF mit Schritten oder Folien mit Notizen) nach `ausgabe/`, samt Prüfbericht und
+ * eigener Stand-Datei; der normale Bau bleibt, wie er ist. `ausgabe/` muss schon bestehen (erst der normale Bau).
+ */
+export const baueFolienZusatz = async (
+	konfig: Pick<Konfig, 'pythonBin'>,
+	dokDir: string,
+	art: FolienZusatz,
+): Promise<Pruefbericht> => {
+	const schluessel = await ausgabeSchluessel(dokDir);
+	const tmp = await mkdtemp(path.join(tmpdir(), 'schoolbox-folien-'));
+	try {
+		const berichtDatei = path.join(tmp, 'pruefbericht.json');
+		const quelle = path.join(dokDir, 'material.html');
+		const lauf = await fuehreAus(konfig.pythonBin, [
+			BLATT_PY,
+			'bauen',
+			quelle,
+			'-o',
+			tmp,
+			'--nur-zusatz',
+			`--${art}`,
+			'--bericht',
+			berichtDatei,
+		]);
+		const pdf = path.join(tmp, zusatzPdfDatei(art));
+		if ((lauf.code !== 0 && lauf.code !== 1) || !existsSync(berichtDatei) || !existsSync(pdf)) {
+			throw new SchoolboxFehler(
+				`blatt.py ist abgebrochen (Exit ${lauf.code ?? 'Timeout'}):\n${lauf.stderr || lauf.stdout}`,
+				3,
+			);
+		}
+		const ausgabe = path.join(dokDir, 'ausgabe');
+		if (!existsSync(quelle) || !existsSync(ausgabe)) {
+			throw new SchoolboxFehler('Das Dokument gibt es nicht mehr.', 3);
+		}
+		await kopiereAtomar(berichtDatei, path.join(ausgabe, zusatzBerichtDatei(art)));
+		await kopiereAtomar(pdf, path.join(ausgabe, zusatzPdfDatei(art)));
+		await schreibeStand(ausgabe, schluessel, zusatzStandDatei(art));
+		return JSON.parse(await readFile(berichtDatei, 'utf8')) as Pruefbericht;
 	} finally {
 		await rm(tmp, { recursive: true, force: true });
 	}

@@ -22,6 +22,31 @@ export const dokumentWahl = (zugang: Zugang, dokument: Pick<DokumentEintrag, 'id
 	];
 };
 
+/** iPadOS meldet sich in Safari als Mac; verraten wird es durch den Touchscreen. */
+const istIpad = () =>
+	/iPad/.test(navigator.userAgent) || (/Macintosh/.test(navigator.userAgent) && navigator.maxTouchPoints > 1);
+
+/** Für Folien: präsentieren ohne Internet (iPad: PDF, Mac: eigenständige Datei) und die Notizen zum Ausdrucken. */
+export const folienWahl = (zugang: Zugang, dokument: Pick<DokumentEintrag, 'id'>): PdfWahl[] => [
+	{
+		titel: 'PDF zum Präsentieren',
+		hinweis: 'Fürs iPad: in der Dateien-App öffnen und blättern. Jeder Schritt ist eine eigene Seite.',
+		vorbereiten: () => bereiteDokumentVor(zugang, dokument.id, 'schritte'),
+	},
+	{
+		titel: 'Offline-Präsentation',
+		hinweis: istIpad()
+			? 'Nur für den Mac, auf dem iPad läuft die Datei nicht. Nimm hier das PDF zum Präsentieren.'
+			: 'Für den Mac: Die Datei aus den Downloads in Safari öffnen, dann geht alles wie hier.',
+		vorbereiten: () => bereiteDokumentVor(zugang, dokument.id, 'praesentation'),
+	},
+	{
+		titel: 'Folien mit Notizen',
+		hinweis: 'Zum Ausdrucken: jede Folie klein, daneben deine Notizen und die Schritte.',
+		vorbereiten: () => bereiteDokumentVor(zugang, dokument.id, 'notizen'),
+	},
+];
+
 export const mappenWahl = (zugang: Zugang, dokumente: Pick<DokumentEintrag, 'meta'>[]): PdfWahl[] => {
 	const ohne = { titel: 'Ohne Lösungen', vorbereiten: () => bereiteMappeVor(zugang, 'alles') };
 	if (!dokumente.some((d) => d.meta.hatLoesung)) {

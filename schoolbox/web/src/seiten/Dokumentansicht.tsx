@@ -25,7 +25,7 @@ import {
 	praesentationSeite,
 } from '../lib/zugang';
 import { PdfKnopf } from '../pdf/PdfKnopf';
-import { dokumentWahl, materialName } from '../pdf/wahl';
+import { dokumentWahl, folienWahl, materialName } from '../pdf/wahl';
 import { TeilenDialog } from '../teilen/TeilenDialog';
 import type { DokumentEintrag, Mappe, MappenEintrag } from '../typen';
 
@@ -87,6 +87,16 @@ const Knoepfe = ({ dokument, entwuerfe, loesung, mappe, teilen, zugang }: Knoepf
 				warnen={!geteilt}
 				rechtsbuendig
 			/>
+			{praesentieren && (
+				<PdfKnopf
+					beschriftung="Ohne Internet"
+					laeuft="Wird erstellt …"
+					wahl={folienWahl(zugang, dokument)}
+					mappe={mappe}
+					warnen={!geteilt}
+					rechtsbuendig
+				/>
+			)}
 			<KnopfAdresse
 				art="zweit"
 				href={druckSeite(zugang, dok, loesung ? 'loesung' : 'arbeitsblatt')}

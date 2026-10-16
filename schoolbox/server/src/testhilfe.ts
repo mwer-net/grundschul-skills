@@ -4,19 +4,24 @@ import type { AddressInfo } from 'node:net';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
 
-import type { Format, Meldung } from '@schoolbox/kern';
+import type { FolienZusatz, Format, Meldung } from '@schoolbox/kern';
 import {
 	ASSETS,
 	ausgabeSchluessel,
 	dokumentDir,
 	erzeugePasswortHash,
 	formatAusHtml,
+	HTML_DATEI,
 	ladeKonfig,
 	LOESUNG_PDF_DATEI,
 	neueMappe,
 	neuesDokument,
 	PDF_DATEI,
+	schreibeStand,
 	uebernehmeAusgabe,
+	zusatzBerichtDatei,
+	zusatzPdfDatei,
+	zusatzStandDatei,
 } from '@schoolbox/kern';
 import { A4, FOLIE, testPdf } from '@schoolbox/kern/src/testpdf';
 
@@ -25,7 +30,7 @@ import type { ServerKonfig } from './konfig';
 import { pruefeServerKonfig } from './konfig';
 import type { Kontext } from './kontext';
 import { erstelleKontext } from './kontext';
-import type { PdfBauer } from './pdf';
+import type { FolienBauer, PdfBauer } from './pdf';
 import { CSRF_HEADER } from './schutz';
 import type { Sitzung } from './sitzung';
 import { signiereSitzung, SITZUNG_COOKIE } from './sitzung';
@@ -62,6 +67,8 @@ export interface TestServerOptionen {
 	vorschauBauer?: VorschauBauer;
 	/** Ohne baut blatt.py die PDFs. */
 	pdfBauer?: PdfBauer;
+	/** Ohne baut blatt.py die Zusätze für Folien. */
+	folienBauer?: FolienBauer;
 	/** Fester Port und feste Ablage für die Browser-Tests; sonst ein freier Port und ein neuer Ordner in /tmp. */
 	port?: number;
 	materialDir?: string;
@@ -76,7 +83,11 @@ export const starteTestServer = async (optionen: TestServerOptionen = {}) => {
 		SITZUNG_GEHEIMNIS: TEST_GEHEIMNIS,
 	};
 	const konfig = pruefeServerKonfig(ladeKonfig(env, materialDir));
-	const kontext = erstelleKontext(konfig, 'test', { vorschau: optionen.vorschauBauer, pdf: optionen.pdfBauer });
+	const kontext = erstelleKontext(konfig, 'test', {
+		vorschau: optionen.vorschauBauer,
+		pdf: optionen.pdfBauer,
+		folien: optionen.folienBauer,
+	});
 	const ueberwachung: Ueberwachung | null = optionen.ueberwachung
 		? await starteUeberwachung(kontext, optionen.ruheMs)
 		: null;
@@ -205,8 +216,29 @@ export const baueErsatzAusgabe = async (dokDir: string) => {
 		}
 		const bericht = { seiten: [], meldungen, fehler: meldungen.length };
 		await writeFile(path.join(tmp, 'pruefbericht.json'), JSON.stringify(bericht));
+		await writeFile(path.join(tmp, HTML_DATEI), html);
 		await uebernehmeAusgabe(tmp, dokDir, schluessel);
 	} finally {
 		await rm(tmp, { recursive: true, force: true });
 	}
+};
+
+export const NOTIZ_ZU_LANG = 'Folien mit Notizen: „Folie 1 mit Notiz“ ragt aus der Seite (62 px) → Notiz kürzen';
+
+/**
+ * Ersatz für `blatt.py --nur-zusatz`: zwei Folienseiten mit Schritten bzw. ein A4-Blatt mit Notizen, ein Prüffehler
+ * der Notizen, wenn die Quelle `data-test-notiz-lang` enthält. Erwartet wie das Original einen fertigen Bau.
+ */
+export const baueErsatzFolien = async (dokDir: string, art: FolienZusatz) => {
+	const schluessel = await ausgabeSchluessel(dokDir);
+	const html = await readFile(path.join(dokDir, 'material.html'), 'utf8');
+	const ausgabe = path.join(dokDir, 'ausgabe');
+	const meldungen: Meldung[] =
+		art === 'notizen' && html.includes('data-test-notiz-lang')
+			? [{ stufe: 'FEHLER', seite: 1, text: NOTIZ_ZU_LANG }]
+			: [];
+	await writeFile(path.join(ausgabe, zusatzPdfDatei(art)), testPdf(art === 'notizen' ? [A4] : [FOLIE, FOLIE]));
+	const bericht = { seiten: [], meldungen, fehler: meldungen.length };
+	await writeFile(path.join(ausgabe, zusatzBerichtDatei(art)), JSON.stringify(bericht));
+	await schreibeStand(ausgabe, schluessel, zusatzStandDatei(art));
 };

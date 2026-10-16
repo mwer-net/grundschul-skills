@@ -1,4 +1,4 @@
-import type { MappenVariante, PdfVariante } from '@schoolbox/kern/src/namen';
+import type { AusgabeVariante, MappenVariante, PdfVariante } from '@schoolbox/kern/src/namen';
 import { entwurfVorschauDatei } from '@schoolbox/kern/src/namen';
 
 import { lade, sende } from '../api';
@@ -52,7 +52,7 @@ export const praesentationAnsicht = (zugang: Zugang, dok: string) =>
 export const druckSeite = (zugang: Zugang, dok: string, variante: PdfVariante) =>
 	`${dokumentSeite(zugang, dok)}/drucken?fassung=${variante}`;
 
-export const bereiteDokumentVor = (zugang: Zugang, dok: string, variante: PdfVariante) =>
+export const bereiteDokumentVor = (zugang: Zugang, dok: string, variante: AusgabeVariante) =>
 	zugang.token === null
 		? sende<PdfAntwort>(`/api/dokumente/${zugang.mappe}/${dok}/pdf`, { variante })
 		: lade<PdfAntwort>(`/f/${zugang.token}/api/pdf/${dok}/${variante}`);

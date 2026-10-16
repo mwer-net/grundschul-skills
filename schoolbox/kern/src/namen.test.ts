@@ -2,7 +2,7 @@ import assert from 'node:assert/strict';
 import { describe, it } from 'node:test';
 
 import { verstaendlich } from './meldungen';
-import { mappenPdfDateiname, pdfDateiname } from './namen';
+import { ausgabeDateiname, mappenPdfDateiname, pdfDateiname } from './namen';
 
 describe('pdfDateiname', () => {
 	const mathe = { fach: 'mathematik', klasse: 2 } as const;
@@ -18,6 +18,27 @@ describe('pdfDateiname', () => {
 			'Größen Meter Zentimeter – Lesetext.pdf',
 		);
 		assert.equal(pdfDateiname(mathe, { titel: 'Rest', art: 'sonstiges' }, 'arbeitsblatt'), 'Kl2 Mathe Rest.pdf');
+	});
+
+	it('benennt die Ausgaben für Folien', () => {
+		const sache = { fach: 'sachunterricht', klasse: 3 } as const;
+		const folien = { titel: 'Die Kartoffel', art: 'praesentation' } as const;
+		assert.equal(
+			ausgabeDateiname(sache, folien, 'arbeitsblatt'),
+			'Kl3 Sachunterricht Die Kartoffel – Präsentation.pdf',
+		);
+		assert.equal(
+			ausgabeDateiname(sache, folien, 'schritte'),
+			'Kl3 Sachunterricht Die Kartoffel – Präsentation mit Schritten.pdf',
+		);
+		assert.equal(
+			ausgabeDateiname(sache, folien, 'notizen'),
+			'Kl3 Sachunterricht Die Kartoffel – Folien mit Notizen.pdf',
+		);
+		assert.equal(
+			ausgabeDateiname(sache, folien, 'praesentation'),
+			'Kl3 Sachunterricht Die Kartoffel – Präsentation.html',
+		);
 	});
 
 	it('benennt „Alles als PDF“ nach der Mappe', () => {

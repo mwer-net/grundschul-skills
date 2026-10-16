@@ -1,9 +1,9 @@
 import { readFile, writeFile } from 'node:fs/promises';
 import path from 'node:path';
 
-import type { Download, Page } from '@playwright/test';
+import type { Page } from '@playwright/test';
 
-import { expect, legeEntwuerfeAn, legeMappeAn, PASSWORT, test, waehle } from './hilfe';
+import { dateiname, expect, legeEntwuerfeAn, legeMappeAn, PASSWORT, test, waehle } from './hilfe';
 
 const KLEINSTE_TIPPFLAECHE = 44;
 
@@ -23,9 +23,6 @@ const herbst = () =>
 		{ titel: 'Blätter sammeln', loesung: true, druckhinweise: ['Auf festes Papier drucken'] },
 		{ titel: 'Kastanien zählen', ueberlauf: true },
 	]);
-
-/** WebKit unter Linux macht im Download-Namen aus Leerzeichen `_`; Umlaute und Gedankenstrich bleiben. */
-const dateiname = async (download: Promise<Download>) => (await download).suggestedFilename().replaceAll('_', ' ');
 
 /** Sichtbare Links, Knöpfe und Felder, die kleiner sind als eine Fingerspitze. */
 const zuKleinAuf = (page: Page) =>

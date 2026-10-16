@@ -11,6 +11,8 @@ import { PdfWarnung } from './PdfWarnung';
 
 export interface PdfWahl {
 	titel: string;
+	/** Wofür die Datei gut ist; steht im Menü unter dem Titel. */
+	hinweis?: string;
 	vorbereiten: () => Promise<PdfAntwort>;
 }
 
@@ -24,12 +26,14 @@ interface Eigenschaften {
 	ganzeMappe?: boolean;
 	art?: KnopfArt;
 	rechtsbuendig?: boolean;
+	/** Was der Knopf zeigt, solange der Server baut. */
+	laeuft?: string;
 }
 
-export const PdfLaeuft = () => (
+export const PdfLaeuft = ({ text = 'PDF wird erstellt …' }: { text?: string }) => (
 	<>
 		<Symbol name="laden" className="size-6 flex-none animate-spin" />
-		PDF wird erstellt …
+		{text}
 	</>
 );
 
@@ -41,6 +45,7 @@ export const PdfKnopf = ({
 	art = 'zweit',
 	beschriftung,
 	ganzeMappe,
+	laeuft: laeuftText,
 	mappe,
 	rechtsbuendig,
 	wahl,
@@ -72,7 +77,7 @@ export const PdfKnopf = ({
 
 	const [erste] = wahl;
 	const inhalt = laeuft ? (
-		<PdfLaeuft />
+		<PdfLaeuft text={laeuftText} />
 	) : (
 		<>
 			<Symbol name="herunterladen" />
@@ -87,7 +92,11 @@ export const PdfKnopf = ({
 					beschriftung={inhalt}
 					disabled={laeuft}
 					rechtsbuendig={rechtsbuendig}
-					eintraege={wahl.map((w) => ({ titel: w.titel, waehle: () => void hole(w) }))}
+					eintraege={wahl.map((w) => ({
+						titel: w.titel,
+						beschreibung: w.hinweis,
+						waehle: () => void hole(w),
+					}))}
 				/>
 			) : (
 				<Knopf art={art} disabled={laeuft || !erste} onClick={() => erste && void hole(erste)}>

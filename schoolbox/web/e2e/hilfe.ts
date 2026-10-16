@@ -1,7 +1,7 @@
 import { readdir, readFile, rm, writeFile } from 'node:fs/promises';
 import path from 'node:path';
 
-import type { Locator, Page } from '@playwright/test';
+import type { Download, Locator, Page } from '@playwright/test';
 import { expect, test as basis } from '@playwright/test';
 import type { Art, Fach, Format, Klasse } from '@schoolbox/kern';
 import {
@@ -125,5 +125,9 @@ export const test = basis.extend<Hilfen>({
 		await nutze((ziel) => (hasTouch ? ziel.tap() : ziel.click()));
 	},
 });
+
+/** WebKit unter Linux macht im Download-Namen aus Leerzeichen `_`; Umlaute und Gedankenstrich bleiben. */
+export const dateiname = async (download: Promise<Download>) =>
+	(await download).suggestedFilename().replaceAll('_', ' ');
 
 export { expect };

@@ -67,16 +67,17 @@ Nicht in diesem Skill: Video, Ton und Animationen außer den Aufdeck-Schritten.
 - [ ] Eine Aussage je Folie, Bild groß, Text nur Stichworte, nichts rein Dekoratives
 - [ ] Lernaufgaben-Folie mit den Bausteinen der Start-Abfrage (Niveaus bzw. ★)
 - [ ] Jede Folie hat eine Notiz
-- [ ] `blatt.py bauen` ohne FEHLER und ohne Schriftwarnung; im PDF alle Schritte sichtbar, keine Notizen
+- [ ] `blatt.py bauen --notizen` ohne FEHLER und ohne Schriftwarnung; im PDF alle Schritte sichtbar, keine Notizen; in „Folien mit Notizen“ jede Notiz ganz
 
 ## Umsetzung (`html-materialerstellung`)
 
 - Ausgangspunkt `assets/vorlage-praesentation.html` (`<body class="kl3 farbe palette-wiese folie">`, je Folie eine `<section class="seite">`). Bausteine und Markup: `html-materialerstellung`, Abschnitt „Folien“.
 - Mit Schoolbox: `schoolbox/bin/schoolbox dokument <mappe> --titel … --art praesentation --druckprofil farbe --format folie --vorlage praesentation`.
-- Bauen mit `blatt.py bauen`. Das PDF hat eine Seite je Folie und zeigt alle Schritte und Lösungen aufgedeckt (zum Drucken und als Notlösung ohne Internet).
+- Bauen mit `blatt.py bauen --notizen`. Das PDF hat eine Seite je Folie und zeigt alle Schritte und Lösungen aufgedeckt (zum Drucken). `--notizen` baut und prüft zusätzlich „Folien mit Notizen“ (A4 hoch, je Blatt zwei Folien mit ihren Notizen): Meldet die Prüfung „Notiz kürzen“, passt eine Notiz auch allein nicht aufs Blatt.
+- Ohne Internet präsentieren: `NAME.html` ist bei Folien die Offline-Präsentation (für den Mac, startet mit „Präsentation starten“), `--schritte` baut das PDF zum Präsentieren (fürs iPad, eine Seite je Schritt). Mit Schoolbox entsteht beides auf Knopfdruck, nicht von Hand.
 - Visuelle Endkontrolle mit den Folienbildern (`-s1.png` …); KI-Bilder von Pflanzen, Tieren und Körper fachlich prüfen (`html-materialerstellung/references/bilder.md`).
 - Dateiname/Titel: `Kl{K}_{Fach}_{Thema}_Folien`.
 
 ## Ausgabe an die Lehrkraft
 
-Zusätzlich zur Kurz-Info (`grundschul-didaktik`, Abschnitt 5) den **Ablauf**, je Folie eine Zeile: Impulsfrage und Übergang. Ansicht und PDF zeigen die Notizen nicht. In der Schoolbox startet die Lehrkraft die Folien mit dem Knopf **Präsentieren** auf der Dokumentseite; darauf kurz hinweisen (Weiter mit Pfeiltaste, Klicker oder Antippen rechts, „?“ und Timer antippen).
+Zusätzlich zur Kurz-Info (`grundschul-didaktik`, Abschnitt 5) den **Ablauf**, je Folie eine Zeile: Impulsfrage und Übergang. Ansicht und PDF zeigen die Notizen nicht, ausgedruckt hat sie die Lehrkraft mit „Folien mit Notizen“. In der Schoolbox startet die Lehrkraft die Folien mit dem Knopf **Präsentieren** auf der Dokumentseite; darauf kurz hinweisen (Weiter mit Pfeiltaste, Klicker oder Antippen rechts, „?“ und Timer antippen). Ist das WLAN in der Schule unsicher, steht unter **Ohne Internet**: „PDF zum Präsentieren“ (iPad, jeder Schritt eine Seite), „Offline-Präsentation“ (Mac, Datei in Safari öffnen) und „Folien mit Notizen“ (zum Ausdrucken).
