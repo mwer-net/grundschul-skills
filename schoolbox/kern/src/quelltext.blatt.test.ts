@@ -7,6 +7,7 @@ import { describe, it } from 'node:test';
 import { promisify } from 'node:util';
 
 import { ASSETS, BLATT_PY } from './konfig';
+import { setzeLoesung } from './loesungen';
 import type { Knoten } from './quelltext';
 import { klassenVon, schuetzeText, verschiebe, wendeAn, zerlege } from './quelltext';
 import { verschiebeBaustein } from './struktur';
@@ -97,6 +98,31 @@ describe('blatt.py auf im Editor bearbeiteten Dateien', () => {
 				const zeichne = text.indexOf('3 Zeichne die Zeiger');
 				assert.ok(willi >= 0 && willi < liesAb && liesAb < zeichne, `${name}: ${text}`);
 			}
+		},
+	);
+
+	it(
+		'zeigt eine geänderte Lösung nur im Lösungsblatt, das Arbeitsblatt bleibt gleich',
+		{ timeout: 300_000 },
+		async (t) => {
+			if (chromiumFehlt() || fehlt('pdftotext', ['-v'])) {
+				t.skip('kein Chromium für blatt.py oder kein pdftotext');
+				return;
+			}
+			const ordner = await mkdtemp(path.join(tmpdir(), 'schoolbox-loesung-blatt-'));
+			const quelle = await readFile(path.join(ASSETS, 'vorlage-arbeitsblatt.html'), 'utf8');
+			const zweite = zerlege(quelle).knoten.filter((k) => klassenVon(k).includes('antwort'))[1] as Knoten;
+			await baue(ordner, 'vorher', quelle);
+			await baue(ordner, 'nachher', setzeLoesung(quelle, zweite.nr, 'halb fünf'));
+			const pdfText = async (name: string, datei: string) =>
+				(await ausfuehren('pdftotext', ['-layout', path.join(ordner, name, datei), '-'])).stdout;
+			assert.equal(await pdfText('nachher', 'nachher.pdf'), await pdfText('vorher', 'vorher.pdf'));
+			const loesungVorher = await pdfText('vorher', 'vorher-loesung.pdf');
+			const loesungNachher = await pdfText('nachher', 'nachher-loesung.pdf');
+			const anzahl = (text: string, was: string) => text.split(was).length - 1;
+			assert.equal(anzahl(loesungVorher, 'halb fünf'), 0);
+			assert.equal(anzahl(loesungNachher, 'halb fünf'), 1);
+			assert.equal(anzahl(loesungNachher, 'halb 5'), anzahl(loesungVorher, 'halb 5') - 1);
 		},
 	);
 });

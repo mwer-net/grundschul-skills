@@ -6,6 +6,7 @@ import type { Version } from '@schoolbox/kern';
 import {
 	aktualisiereMappe,
 	dokumentDir,
+	hatLoesung,
 	legeVersionAn,
 	leseMeta,
 	pruefeFormat,
@@ -78,6 +79,7 @@ export const schreibeQuelle = async (
 	await schreibeAtomar(path.join(dir, 'material.html'), quelle);
 	const gesichert = await legeVersionAn(dir, 'lehrkraft', jetzt, { zusammenfassen });
 	meta.geaendert = jetzt.toISOString();
+	meta.hatLoesung = hatLoesung(quelle);
 	await schreibeMeta(materialDir, mappe, dok, meta);
 	await aktualisiereMappe(materialDir, mappe, jetzt);
 	kontext.bekannt.set(dokSchluessel(mappe, dok), await leseBekannt(kontext, mappe, dok));

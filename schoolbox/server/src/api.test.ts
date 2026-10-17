@@ -11,7 +11,7 @@ interface DokumentAntwort {
 	quelle: string;
 	version: string;
 	ausgabeVeraltet: boolean;
-	meta: { titel: string };
+	meta: { titel: string; hatLoesung: boolean };
 }
 
 describe('API', () => {
@@ -72,6 +72,18 @@ describe('API', () => {
 		assert.equal(await readFile(path.join(dir, 'material.html'), 'utf8'), neu);
 		const versionen = await readdir(path.join(dir, 'versionen'));
 		assert.ok(versionen.some((v) => v.endsWith('_lehrkraft.html')));
+	});
+
+	it('setzt hatLoesung beim Speichern nach derselben Regel wie blatt.py', async () => {
+		const { quelle, version } = await lies();
+		const mit = quelle.replace('</section>', '<p><span class="antwort" data-l="7"></span></p>\n</section>');
+		const erste = (await (await speichere({ quelle: mit, basisVersion: version })).json()) as { version: string };
+		assert.equal((await lies()).meta.hatLoesung, true);
+		const ohne = mit.replace(/ data-l="[^"]*"/g, '').replace(/nur-loesung|loesung=/g, 'x');
+		await speichere({ quelle: ohne, basisVersion: erste.version });
+		assert.equal((await lies()).meta.hatLoesung, false);
+		await speichere({ quelle: mit, basisVersion: kennung(ohne) });
+		assert.equal((await lies()).meta.hatLoesung, true);
 	});
 
 	it('lehnt eine veraltete basisVersion mit 409 ab und überschreibt nichts', async () => {

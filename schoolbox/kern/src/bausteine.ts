@@ -22,6 +22,10 @@ export const FAEHIGKEITEN = [
 	'abbildung',
 	/** Spalten −/+ (016). */
 	'spalten',
+	/** Richtige Antwort einer Antwortlinie, `data-l` (019). */
+	'loesung',
+	/** „Als Beispiel zeigen“: Lösung schon auf dem Arbeitsblatt, `class="beispiel"` (019). */
+	'beispiel',
 ] as const;
 
 export type Faehigkeit = (typeof FAEHIGKEITEN)[number];
@@ -101,7 +105,7 @@ export const BAUSTEINE: readonly Baustein[] = [
 		art: 'item',
 		name: 'Item',
 		selektor: '.reihe > .zelle',
-		faehigkeiten: ['ordnen', 'duplizieren', 'loeschen'],
+		faehigkeiten: ['ordnen', 'duplizieren', 'loeschen', 'beispiel'],
 		zaehlen: true,
 	},
 	{
@@ -122,6 +126,9 @@ export const BAUSTEINE: readonly Baustein[] = [
 	{ art: 'figur', name: 'Leitfigur', selektor: 'img.figur', faehigkeiten: ['bild'] },
 	{ art: 'bild', name: 'Bild', selektor: 'img', faehigkeiten: ['bild'] },
 	{ art: 'abbildung', name: 'Abbildung', selektor: ABBILDUNGEN.join(', '), faehigkeiten: ['abbildung'] },
+	// Nur in der Lösungsansicht wählbar: Auf dem Arbeitsblatt ist die Linie leer und der Lösungstext unsichtbar.
+	{ art: 'antwort', name: 'Antwortlinie', selektor: 'body.loesung .antwort', faehigkeiten: ['loesung'] },
+	{ art: 'loesungstext', name: 'Lösungstext', selektor: 'body.loesung .nur-loesung', faehigkeiten: ['text'] },
 	{ art: 'ueberschrift', name: 'Überschrift', selektor: 'h1, h2, h3', faehigkeiten: ['text'] },
 	{ art: 'ziel', name: 'Lernziel', selektor: '.ziel', faehigkeiten: ['text'] },
 	{ art: 'wahlhilfe', name: 'Wahlhilfe', selektor: '.wahlhilfe', faehigkeiten: ['text'] },

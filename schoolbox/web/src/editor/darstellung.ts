@@ -7,13 +7,17 @@ import { MARKE, markiere } from '@schoolbox/kern/src/quelltext';
 
 /**
  * Nur im Editor: kein Markieren von Text, kein Lupen-Menü beim langen Drücken auf dem iPad. Ausnahme ist der Text,
- * der gerade bearbeitet wird.
+ * der gerade bearbeitet wird. In der Lösungsansicht sind Antwortlinien ohne Lösung gelb gestreift mit „?“ (019).
  */
 const EDITOR_STIL =
 	'<style data-editor>html,body{-webkit-user-select:none;user-select:none;-webkit-touch-callout:none}' +
 	'img{-webkit-user-drag:none}' +
 	'[contenteditable=true]{-webkit-user-select:text;user-select:text;-webkit-touch-callout:default;cursor:text;' +
-	'outline:none}[contenteditable=true] [contenteditable=false]{-webkit-user-select:none;user-select:none}</style>';
+	'outline:none}[contenteditable=true] [contenteditable=false]{-webkit-user-select:none;user-select:none}' +
+	'body.loesung .antwort:not([data-l]),body.loesung .antwort[data-l=""]{border-bottom:2px dashed #d97706;' +
+	'background:repeating-linear-gradient(135deg,#fef3c7 0 5px,transparent 5px 10px)}' +
+	'body.loesung .antwort:not([data-l])::after,body.loesung .antwort[data-l=""]::after{content:"?";' +
+	'color:#b45309;font-weight:700}</style>';
 
 /**
  * Das Material für das `iframe` des Editors, aus der Quelle im Speicher: wie `/ansicht` (Seitengröße, Lösung), mit

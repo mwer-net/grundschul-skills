@@ -1,3 +1,4 @@
+import { hatLoesung, kannLoesungHaben } from '@schoolbox/kern/src/loesungen';
 import type { Zerlegung } from '@schoolbox/kern/src/quelltext';
 import { zerlege } from '@schoolbox/kern/src/quelltext';
 import { hatNamenszeile } from '@schoolbox/kern/src/struktur';
@@ -23,6 +24,8 @@ import { Bildwerkzeug } from '../editor/Bildpanel';
 import { editorHtml, pfadZu } from '../editor/darstellung';
 import { Leinwand } from '../editor/Leinwand';
 import { leistenHtml } from '../editor/leiste';
+import { useLoesung } from '../editor/loesung';
+import { Loesungsuebersicht, Loesungswerkzeug } from '../editor/Loesungspanel';
 import { AuswahlPanel, Blattwerkzeug, Strukturwerkzeug, Textwerkzeug } from '../editor/Panel';
 import { Seitenleiste } from '../editor/Seitenleiste';
 import type { Struktur } from '../editor/struktur';
@@ -124,15 +127,44 @@ const Kopfleiste = ({ children, kannVor, kannZurueck, stand, titel, verlassen, v
 	</header>
 );
 
-/** Die Quelle zerlegt und als HTML für das `iframe`, beides nur neu, wenn sich Quelle oder Fassung ändern. */
-const useDarstellung = (quelle: string | null, basis: string, loesung: boolean) => {
+/**
+ * Die Quelle zerlegt und als HTML für das `iframe`, beides nur neu, wenn sich Quelle oder Fassung ändern. Die
+ * Lösungsansicht gibt es, sobald das Material eine Lösung hat oder Antwortlinien, die noch eine brauchen.
+ */
+const useDarstellung = (quelle: string | null, basis: string, loesungGewuenscht: boolean, sonst: boolean) => {
 	const zerlegung = useMemo(() => (quelle === null ? null : zerlege(quelle)), [quelle]);
+	const mitLoesung = zerlegung ? kannLoesungHaben(zerlegung) : sonst;
+	const loesung = mitLoesung && loesungGewuenscht;
 	const html = useMemo(
 		() => (zerlegung === null ? null : editorHtml(zerlegung, { basis, loesung })),
 		[zerlegung, basis, loesung],
 	);
-	return { zerlegung, html };
+	return { zerlegung, html, mitLoesung, loesung };
 };
+
+/**
+ * Nach dem Wechsel der Fassung ist manches nicht mehr wählbar (Antwortlinie, Lösungstext auf dem Arbeitsblatt): Dann
+ * gilt das Umgebende, sobald die neue Fassung zu sehen ist.
+ */
+const useAuswahlFolgt = (
+	geladen: { html: string } | null,
+	html: string | null,
+	auswahl: number | null,
+	pfad: { nr: number }[],
+	setAuswahl: (nr: number | null) => void,
+) => {
+	const innerstes = pfad.at(-1)?.nr ?? null;
+	const sichtbar = geladen?.html === html;
+	useEffect(() => {
+		if (sichtbar && auswahl !== null && innerstes !== auswahl) {
+			setAuswahl(innerstes);
+		}
+	}, [sichtbar, auswahl, innerstes, setAuswahl]);
+};
+
+/** Ein Lösungsblatt gibt es nach dem Stand im Editor, nicht nach dem beim Öffnen (PDF-Auswahl). */
+const mitStand = (dokument: DokumentEintrag, verlauf: { quelle: string } | null): DokumentEintrag =>
+	verlauf ? { ...dokument, meta: { ...dokument.meta, hatLoesung: hatLoesung(verlauf.quelle) } } : dokument;
 
 /** Die Seitenleiste zum Material, ohne Leiste, solange es nicht geladen ist. */
 const Seiten = ({
@@ -192,11 +224,14 @@ const Bearbeitung = ({ dokument, mappe: mappenDaten }: { mappe: Mappe; dokument:
 	const { neuLaden: versionenNeu } = versionen;
 
 	useTitel(`${meta.titel} bearbeiten`);
-	const loesung = Boolean(meta.hatLoesung) && suche.get('fassung') === 'loesung';
-
 	const anzeige = vorschau?.quelle ?? b.verlauf?.quelle ?? null;
 	const basis = `/ansicht/${mappe}/dokumente/${dok}/`;
-	const { html, zerlegung } = useDarstellung(anzeige, basis, loesung);
+	const { html, loesung, mitLoesung, zerlegung } = useDarstellung(
+		anzeige,
+		basis,
+		suche.get('fassung') === 'loesung',
+		Boolean(meta.hatLoesung),
+	);
 	const pfad = useMemo(() => (geladen && auswahl !== null ? pfadZu(geladen.doc, auswahl) : []), [geladen, auswahl]);
 	const merken = useCallback((d: Document, h: string) => setGeladen({ doc: d, html: h }), []);
 
@@ -263,6 +298,10 @@ const Bearbeitung = ({ dokument, mappe: mappenDaten }: { mappe: Mappe; dokument:
 	});
 
 	const abbildung = useAbbildung({ geladen, html, zerlegung, pfad, struktur });
+
+	const loes = useLoesung({ geladen, html, zerlegung, pfad, struktur, loesung, rueckgaengig: zurueck });
+
+	useAuswahlFolgt(geladen, html, auswahl, pfad, setAuswahl);
 
 	const taste = useCallback(
 		(e: KeyboardEvent) => {
@@ -337,13 +376,19 @@ const Bearbeitung = ({ dokument, mappe: mappenDaten }: { mappe: Mappe; dokument:
 		return <Fehlt fehler={b.ladeFehler} />;
 	}
 
-	const wahl = dokumentWahl(zugang, dokument).map((w) => ({
+	const wahl = dokumentWahl(zugang, mitStand(dokument, b.verlauf)).map((w) => ({
 		...w,
 		vorbereiten: async () => {
 			await alles();
 			return w.vorbereiten();
 		},
 	}));
+	const ohneAuswahl = (
+		<>
+			{loesung && <Loesungsuebersicht l={loes} />}
+			<Blattwerkzeug aktiv={frei} struktur={struktur} />
+		</>
+	);
 	const kannZurueck = frei && Boolean(b.verlauf?.zurueck.length);
 	const kannVor = frei && Boolean(b.verlauf?.vor.length);
 
@@ -358,7 +403,7 @@ const Bearbeitung = ({ dokument, mappe: mappenDaten }: { mappe: Mappe; dokument:
 				zurueck={zurueck}
 				vor={vor}
 			>
-				{meta.hatLoesung && (
+				{mitLoesung && (
 					<div role="group" aria-label="Was zeigen?" className="flex gap-2">
 						<Chip
 							titel={materialName(dokument)}
@@ -453,11 +498,7 @@ const Bearbeitung = ({ dokument, mappe: mappenDaten }: { mappe: Mappe; dokument:
 							/>
 						</>
 					) : (
-						<AuswahlPanel
-							pfad={pfad}
-							waehle={setAuswahl}
-							leer={<Blattwerkzeug aktiv={frei} struktur={struktur} />}
-						>
+						<AuswahlPanel pfad={pfad} waehle={setAuswahl} leer={ohneAuswahl}>
 							<Textwerkzeug
 								pfad={pfad}
 								aktiv={frei}
@@ -469,6 +510,7 @@ const Bearbeitung = ({ dokument, mappe: mappenDaten }: { mappe: Mappe; dokument:
 							/>
 							<Bildwerkzeug bild={bild} />
 							<Abbildungswerkzeug abb={abbildung} />
+							<Loesungswerkzeug l={loes} />
 							<Strukturwerkzeug pfad={pfad} aktiv={struktur.aktiv} struktur={struktur} />
 						</AuswahlPanel>
 					)}
