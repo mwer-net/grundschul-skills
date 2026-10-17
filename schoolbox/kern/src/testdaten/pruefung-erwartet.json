@@ -1,0 +1,105 @@
+{
+	"pruefung-blatt.html": [
+		{
+			"stufe": "FEHLER",
+			"seite": 1,
+			"text": "„Diese Zeile ragt in den Rand.“ ragt in den Seitenrand (91 px) → kürzen, Item streichen oder zweite Seite"
+		},
+		{
+			"stufe": "FEHLER",
+			"seite": 1,
+			"text": "„6 Zu lang für die Seite. Sehr hoch“ ragt aus der Seite (723 px) → kürzen, Item streichen oder zweite Seite"
+		},
+		{
+			"stufe": "FEHLER",
+			"seite": 1,
+			"text": "„Ein sehr langer Text, der nicht passt“ ist abgeschnitten"
+		},
+		{
+			"stufe": "FEHLER",
+			"seite": 1,
+			"text": "„Erste Zeile“ überlappt „Zweite Zeile“ (606 × 24 px)"
+		},
+		{
+			"stufe": "WARNUNG",
+			"seite": 1,
+			"text": "Schrift kleiner als 19 px für Klasse 2: „Winzige Schrift hier.“ (10px)"
+		},
+		{
+			"stufe": "WARNUNG",
+			"seite": 1,
+			"text": "Farbe im s/w-Profil: Rote Anweisung im s/w-Profil."
+		},
+		{
+			"stufe": "WARNUNG",
+			"seite": 1,
+			"text": "Fläche hinter „div“ (rgb(204, 204, 204)) → Aufgaben ohne Kasten und Fläche"
+		},
+		{
+			"stufe": "WARNUNG",
+			"seite": 1,
+			"text": "Bild „Willi“ ist farbig → im s/w-Profil die Strich-Version nehmen"
+		},
+		{
+			"stufe": "FEHLER",
+			"seite": 1,
+			"text": "Bild fehlt: bilder/gibt-es-nicht.png"
+		},
+		{
+			"stufe": "HINWEIS",
+			"seite": 1,
+			"text": "Bild „Klein“ hat im Druck nur 13 dpi (unscharf) → Original in voller Größe einsetzen"
+		},
+		{
+			"stufe": "WARNUNG",
+			"seite": 1,
+			"text": "6 Aufgaben (+★): Richtwert Klasse 2 sind höchstens 4 → Übersicht vor Menge"
+		},
+		{
+			"stufe": "WARNUNG",
+			"seite": 1,
+			"text": "Nur 4 px zwischen Aufgabe 1 und 2"
+		},
+		{
+			"stufe": "HINWEIS",
+			"seite": 2,
+			"text": "878 px frei unten → Abstand zwischen Aufgaben vergrößern (--abstand), nicht auffüllen"
+		},
+		{
+			"stufe": "HINWEIS",
+			"seite": 2,
+			"text": "1 Platzhalter (Entwurf)"
+		}
+	],
+	"pruefung-folien.html": [
+		{
+			"stufe": "HINWEIS",
+			"seite": 2,
+			"text": "Folie ohne Notiz für die Lehrkraft"
+		}
+	],
+	"beispiel-zehner-einer-kl2.html": [],
+	"vorlage-arbeitsblatt.html": [],
+	"vorlage-praesentation.html": [
+		{
+			"stufe": "HINWEIS",
+			"seite": 1,
+			"text": "1 Platzhalter (Entwurf)"
+		},
+		{
+			"stufe": "HINWEIS",
+			"seite": 2,
+			"text": "1 Platzhalter (Entwurf)"
+		},
+		{
+			"stufe": "HINWEIS",
+			"seite": 3,
+			"text": "1 Platzhalter (Entwurf)"
+		},
+		{
+			"stufe": "HINWEIS",
+			"seite": 4,
+			"text": "1 Platzhalter (Entwurf)"
+		}
+	]
+}

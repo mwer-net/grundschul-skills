@@ -4,6 +4,7 @@ import { zerlege } from '@schoolbox/kern/src/quelltext';
 import { hatNamenszeile } from '@schoolbox/kern/src/struktur';
 import type { ReactNode } from 'react';
 import { useCallback, useEffect, useMemo, useState } from 'react';
+import type { SetURLSearchParams } from 'react-router-dom';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 
 import type { ApiFehler } from '../api';
@@ -27,6 +28,9 @@ import { leistenHtml } from '../editor/leiste';
 import { useLoesung } from '../editor/loesung';
 import { Loesungsuebersicht, Loesungswerkzeug } from '../editor/Loesungspanel';
 import { AuswahlPanel, Blattwerkzeug, Strukturwerkzeug, Textwerkzeug } from '../editor/Panel';
+import { Pruefhinweise, Pruefliste } from '../editor/Pruefliste';
+import type { Pruefpunkt } from '../editor/pruefung';
+import { usePruefung } from '../editor/pruefung';
 import { Seitenleiste } from '../editor/Seitenleiste';
 import type { Struktur } from '../editor/struktur';
 import { useStruktur } from '../editor/struktur';
@@ -162,6 +166,45 @@ const useAuswahlFolgt = (
 	}, [sichtbar, auswahl, innerstes, setAuswahl]);
 };
 
+/**
+ * Antippen einer Meldung: zum Baustein rollen und ihn wählen. Eine Antwortlinie lässt sich nur in der Lösungsansicht
+ * wählen; dann erst umschalten und wählen, wenn die Lösung zu sehen ist.
+ */
+const useZeigePunkt = ({
+	geladen,
+	html,
+	loesung,
+	setSuche,
+	zeigeAn,
+}: {
+	loesung: boolean;
+	geladen: { html: string } | null;
+	html: string | null;
+	zeigeAn: (nr: number) => void;
+	setSuche: SetURLSearchParams;
+}) => {
+	const loesungSichtbar = loesung && geladen?.html === html;
+	const [nachWechsel, setNachWechsel] = useState<number | null>(null);
+	useEffect(() => {
+		if (nachWechsel !== null && loesungSichtbar) {
+			setNachWechsel(null);
+			zeigeAn(nachWechsel);
+		}
+	}, [nachWechsel, loesungSichtbar, zeigeAn]);
+	return (p: Pruefpunkt) => {
+		const nr = p.bausteine[0];
+		if (nr === undefined) {
+			return;
+		}
+		if (p.code === 'loesung-fehlt' && !loesung) {
+			setSuche({ fassung: 'loesung' }, { replace: true });
+			setNachWechsel(nr);
+		} else {
+			zeigeAn(nr);
+		}
+	};
+};
+
 /** Ein Lösungsblatt gibt es nach dem Stand im Editor, nicht nach dem beim Öffnen (PDF-Auswahl). */
 const mitStand = (dokument: DokumentEintrag, verlauf: { quelle: string } | null): DokumentEintrag =>
 	verlauf ? { ...dokument, meta: { ...dokument.meta, hatLoesung: hatLoesung(verlauf.quelle) } } : dokument;
@@ -236,6 +279,7 @@ const Bearbeitung = ({ dokument, mappe: mappenDaten }: { mappe: Mappe; dokument:
 	const merken = useCallback((d: Document, h: string) => setGeladen({ doc: d, html: h }), []);
 
 	const frei = vorschau === null && b.konflikt === null;
+	const pruefung = usePruefung({ geladen, html, zerlegung, ausgang: b.ausgang, aus: vorschau !== null });
 	const text = useText({
 		geladen,
 		html,
@@ -245,6 +289,7 @@ const Bearbeitung = ({ dokument, mappe: mappenDaten }: { mappe: Mappe; dokument:
 		bearbeitbar: frei,
 		befehl: b.befehl,
 		pruefe: b.pruefe,
+		getippt: pruefung.getippt,
 	});
 
 	useEffect(() => {
@@ -302,6 +347,7 @@ const Bearbeitung = ({ dokument, mappe: mappenDaten }: { mappe: Mappe; dokument:
 	const loes = useLoesung({ geladen, html, zerlegung, pfad, struktur, loesung, rueckgaengig: zurueck });
 
 	useAuswahlFolgt(geladen, html, auswahl, pfad, setAuswahl);
+	const zeigePunkt = useZeigePunkt({ loesung, geladen, html, zeigeAn: struktur.zeigeAn, setSuche });
 
 	const taste = useCallback(
 		(e: KeyboardEvent) => {
@@ -477,43 +523,48 @@ const Bearbeitung = ({ dokument, mappe: mappenDaten }: { mappe: Mappe; dokument:
 								ablegen={struktur.verschiebe}
 								springe={struktur.springe}
 								groesse={bild.groesse}
+								pruefung={pruefung.stand}
 							/>
 						)}
 					</main>
 				</div>
 				<aside
 					className={klassen(
-						'w-[22rem] flex-none overflow-y-auto border-l border-rand bg-white px-5 py-4',
-						'max-lg:max-h-[38vh] max-lg:w-auto max-lg:border-t max-lg:border-l-0',
+						'flex w-[22rem] flex-none flex-col border-l border-rand bg-white',
+						'max-lg:h-[38vh] max-lg:w-auto max-lg:border-t max-lg:border-l-0',
 					)}
 					data-panel={panel}
 				>
-					{panel === 'versionen' ? (
-						<>
-							<h2 className="mb-3 text-xl">Versionen</h2>
-							<Versionen
-								versionen={versionen.daten?.versionen ?? null}
-								gewaehlt={vorschau?.version.id ?? null}
-								waehle={(v) => void zeigeVersion(v)}
-							/>
-						</>
-					) : (
-						<AuswahlPanel pfad={pfad} waehle={setAuswahl} leer={ohneAuswahl}>
-							<Textwerkzeug
-								pfad={pfad}
-								aktiv={frei}
-								bearbeitet={text.bearbeitet}
-								zustand={text.zustand}
-								formatiere={text.formatiere}
-								beende={text.beende}
-								fokussiere={text.fokussiere}
-							/>
-							<Bildwerkzeug bild={bild} />
-							<Abbildungswerkzeug abb={abbildung} />
-							<Loesungswerkzeug l={loes} />
-							<Strukturwerkzeug pfad={pfad} aktiv={struktur.aktiv} struktur={struktur} />
-						</AuswahlPanel>
-					)}
+					<Pruefliste stand={pruefung.stand} zeige={zeigePunkt} />
+					<div className="min-h-0 flex-1 overflow-y-auto px-5 py-4 max-lg:px-4">
+						{panel === 'versionen' ? (
+							<>
+								<h2 className="mb-3 text-xl">Versionen</h2>
+								<Versionen
+									versionen={versionen.daten?.versionen ?? null}
+									gewaehlt={vorschau?.version.id ?? null}
+									waehle={(v) => void zeigeVersion(v)}
+								/>
+							</>
+						) : (
+							<AuswahlPanel pfad={pfad} waehle={setAuswahl} leer={ohneAuswahl}>
+								<Pruefhinweise stand={pruefung.stand} nr={auswahl} />
+								<Textwerkzeug
+									pfad={pfad}
+									aktiv={frei}
+									bearbeitet={text.bearbeitet}
+									zustand={text.zustand}
+									formatiere={text.formatiere}
+									beende={text.beende}
+									fokussiere={text.fokussiere}
+								/>
+								<Bildwerkzeug bild={bild} />
+								<Abbildungswerkzeug abb={abbildung} />
+								<Loesungswerkzeug l={loes} />
+								<Strukturwerkzeug pfad={pfad} aktiv={struktur.aktiv} struktur={struktur} />
+							</AuswahlPanel>
+						)}
+					</div>
 				</aside>
 			</div>
 		</div>

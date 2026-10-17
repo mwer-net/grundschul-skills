@@ -29,6 +29,8 @@ export const useBearbeitung = (mappe: string, dok: string) => {
 	const adresse = `/api/dokumente/${mappe}/${dok}`;
 	const zeige = useHinweis();
 	const [verlauf, setVerlauf] = useState<Verlauf | null>(null);
+	/** Die Quelle beim Öffnen bzw. letzten Neuladen; daran misst die Prüfung, was sich durch Umsortieren verschob. */
+	const [ausgang, setAusgang] = useState<string | null>(null);
 	const [ladeFehler, setLadeFehler] = useState<ApiFehler | null>(null);
 	const [konflikt, setKonflikt] = useState<Konflikt | null>(null);
 	const [laeuft, setLaeuft] = useState(false);
@@ -60,6 +62,7 @@ export const useBearbeitung = (mappe: string, dok: string) => {
 			setzeBasis(neu);
 			quelle.current = neu.quelle;
 			setVerlauf(neuerVerlauf(neu.quelle));
+			setAusgang(neu.quelle);
 			setKonflikt(null);
 		},
 		[setzeBasis],
@@ -132,6 +135,7 @@ export const useBearbeitung = (mappe: string, dok: string) => {
 	return {
 		adresse,
 		verlauf,
+		ausgang,
 		ladeFehler,
 		konflikt,
 		laeuft,

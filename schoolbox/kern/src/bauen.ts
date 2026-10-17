@@ -23,6 +23,7 @@ import { druckprofilAusHtml } from './html';
 import type { Konfig } from './konfig';
 import { BLATT_PY } from './konfig';
 import type { Meldung } from './meldungen';
+import { ohneZiele } from './meldungen';
 import { entwurfVorschauDatei } from './namen';
 import type { DokumentMeta, Entwurf, EntwurfPruefung, Pruefung } from './schema';
 import type { Version } from './versionen';
@@ -280,7 +281,7 @@ export const baueEntwurfVorschau = async (
 		}
 		await kopiereAtomar(bild, path.join(dokDir, 'entwuerfe', entwurfVorschauDatei(name)));
 		const bericht = JSON.parse(await readFile(berichtDatei, 'utf8')) as Pruefbericht;
-		const meldungen = bericht.meldungen.filter((m) => m.stufe === 'FEHLER');
+		const meldungen = bericht.meldungen.filter((m) => m.stufe === 'FEHLER').map(ohneZiele);
 		return { seiten: bericht.seiten.length, passt: !meldungen.some((m) => m.text.includes('Seite')), meldungen };
 	} finally {
 		await Promise.all([rm(kopie, { force: true }), rm(tmp, { recursive: true, force: true })]);

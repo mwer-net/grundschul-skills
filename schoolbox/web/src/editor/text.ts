@@ -24,22 +24,34 @@ interface Optionen {
 	befehl: (neu: string, beschreibung: string) => void;
 	/** Nachsehen, ob jemand anderes das Material geändert hat. */
 	pruefe: (urheber: Urheber) => Promise<void>;
+	/** Bei jeder Eingabe, z. B. für die Live-Prüfung: Die Quelle ändert sich erst am Ende. */
+	getippt?: () => void;
 }
 
 /**
  * Text im Material bearbeiten: Ein gewählter Textträger wird bearbeitbar, ein zweites Antippen setzt den Cursor.
  * Während getippt wird, ändert sich die Quelle nicht; erst am Ende entsteht daraus **ein** Befehl.
  */
-export const useText = ({ auswahl, bearbeitbar, befehl, geladen, html, pruefe, setAuswahl, zerlegung }: Optionen) => {
+export const useText = ({
+	auswahl,
+	bearbeitbar,
+	befehl,
+	geladen,
+	getippt,
+	html,
+	pruefe,
+	setAuswahl,
+	zerlegung,
+}: Optionen) => {
 	const doc = geladen && geladen.html === html ? geladen.doc : null;
 	const [bearbeitet, setBearbeitet] = useState(false);
 	const [zustand, setZustand] = useState<TextZustand>(RUHE);
 	const steuerung = useRef<TextSteuerung | null>(null);
-	const rueckrufe = useRef({ befehl, setAuswahl });
+	const rueckrufe = useRef({ befehl, setAuswahl, getippt });
 
 	useEffect(() => {
-		rueckrufe.current = { befehl, setAuswahl };
-	}, [befehl, setAuswahl]);
+		rueckrufe.current = { befehl, setAuswahl, getippt };
+	}, [befehl, setAuswahl, getippt]);
 
 	useEffect(() => {
 		const element = doc && auswahl !== null ? elementZu(doc, auswahl) : null;
@@ -63,7 +75,10 @@ export const useText = ({ auswahl, bearbeitbar, befehl, geladen, html, pruefe, s
 				setBearbeitet(true);
 				setZustand(s.zustand());
 			},
-			aendert: () => setZustand(s.zustand()),
+			aendert: () => {
+				setZustand(s.zustand());
+				rueckrufe.current.getippt?.();
+			},
 			endet: (ergebnis) => {
 				setBearbeitet(false);
 				setZustand(RUHE);

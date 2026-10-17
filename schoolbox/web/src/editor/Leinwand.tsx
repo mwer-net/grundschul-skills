@@ -2,9 +2,11 @@ import type { Ablage } from '@schoolbox/kern/src/struktur';
 import type { PointerEvent as ReactPointerEvent } from 'react';
 import { useEffect, useRef, useState } from 'react';
 
+import { klassen } from '../bausteine/klassen';
 import { Symbol } from '../bausteine/Symbol';
 import type { Groesse } from './bild';
 import { elementZu, nrVon, trefferAn, VERALTET } from './darstellung';
+import type { Pruefstand } from './pruefung';
 import type { ZiehenSteuerung, ZugAnzeige } from './ziehen';
 import { ruesteZiehen } from './ziehen';
 
@@ -42,6 +44,8 @@ interface Eigenschaften {
 	springe: number;
 	/** Ein gewähltes Bild bekommt Ziehpunkte an den Ecken. */
 	groesse: Groesse | null;
+	/** Fehler rot, Warnungen orange umrandet, solange das geprüfte Dokument zu sehen ist (020). */
+	pruefung: Pruefstand | null;
 }
 
 /** Ecken des Bildes: nach außen ziehen macht es größer. */
@@ -163,6 +167,42 @@ const Griffe = ({ gewaehlt, groesse, links, setZiehBreite, skala, ziehBreite }: 
 	);
 };
 
+interface PruefrahmenEigenschaften {
+	pruefung: Pruefstand | null;
+	/** Das sichtbare Dokument: Rahmen nur, wenn die Prüfung zu ihm gehört. */
+	doc: Document | null;
+	/** Vorschau einer Version. */
+	aus?: boolean;
+	links: number;
+	skala: number;
+}
+
+/** Fehler rot, Warnungen orange; Hinweise bekommen keinen Rahmen. */
+const Pruefrahmen = ({ aus, doc, links, pruefung, skala }: PruefrahmenEigenschaften) =>
+	aus || pruefung?.doc !== doc
+		? null
+		: pruefung.punkte
+				.filter((p) => p.stufe !== 'HINWEIS')
+				.flatMap((p, i) =>
+					p.rahmen.map((r, j) => (
+						<div
+							key={`${i}-${j}`}
+							className={klassen(
+								'pointer-events-none absolute rounded-md border-[3px]',
+								p.stufe === 'FEHLER' ? 'border-fehler bg-fehler/5' : 'border-warnung',
+							)}
+							data-pruefrahmen={p.stufe}
+							data-code={p.code ?? undefined}
+							style={{
+								left: links + r.links * skala - 3,
+								top: r.oben * skala - 3,
+								width: r.breite * skala + 6,
+								height: r.hoehe * skala + 6,
+							}}
+						/>
+					)),
+				);
+
 /**
  * Das Material im Editor. Wie die Blattansicht lädt jede neue Fassung unsichtbar und ersetzt die alte erst, wenn sie
  * fertig ist; die Scrollposition bleibt. Anders als dort nimmt das `iframe` Berührungen an: Antippen wählt den
@@ -177,6 +217,7 @@ export const Leinwand = ({
 	groesse,
 	html,
 	nurAnsehen,
+	pruefung,
 	springe,
 	taste,
 	titel,
@@ -361,6 +402,7 @@ export const Leinwand = ({
 						onLoad={(e) => fertig(r, e.currentTarget)}
 					/>
 				))}
+				<Pruefrahmen pruefung={pruefung} doc={doc} aus={nurAnsehen} links={links} skala={skala} />
 				{box && gewaehlt && nrVon(gewaehlt) !== null && (
 					<div
 						ref={auswahlRahmen}

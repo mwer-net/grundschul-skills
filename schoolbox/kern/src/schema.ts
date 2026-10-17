@@ -145,6 +145,7 @@ export const META_SCHEMA: JsonSchema = {
 										stufe: { enum: ['FEHLER', 'WARNUNG', 'HINWEIS'] },
 										seite: ANZAHL,
 										text: { type: 'string' },
+										code: { type: 'string' },
 									},
 								},
 							},

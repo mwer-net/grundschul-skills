@@ -13,7 +13,7 @@ bauen erzeugt in ausgabe/ (Standard: Ordner der Quelle):
     NAME-s1.png …         Vorschau je Seite, NAME-s1-a1.png … Ausschnitt je Aufgabe
                           (für die visuelle Endkontrolle), NAME-loesung-s1.png
 und gibt den Prüfbericht aus (FEHLER / WARNUNG / HINWEIS). Exit-Code 1 bei FEHLER.
---bericht schreibt ihn zusätzlich als JSON (seiten, meldungen, fehler), z. B. für die Schoolbox.
+--bericht schreibt ihn zusätzlich als JSON (seiten, meldungen mit code und ziele, fehler), z. B. für die Schoolbox.
 
 Folien (body class folie): NAME.html ist dann die Offline-Präsentation (praesentation.js eingebettet, startet mit
 einem Startbildschirm); das PDF bleibt die normale Seitenfolge, alles aufgedeckt. Zusätzlich auf Wunsch:
@@ -149,7 +149,7 @@ def pruefbericht(html_pfad):
     dom = chromium(["--dump-dom"], Path(html_pfad).resolve().as_uri())
     m = re.search(r'<script type="application/json" id="pruefbericht">(.*?)</script>', dom, re.S)
     if not m:
-        return {"seiten": [], "meldungen": [{"stufe": "FEHLER", "seite": 0, "text": "Prüfung lief nicht durch (Skriptfehler?)"}]}
+        return {"seiten": [], "meldungen": [{"stufe": "FEHLER", "seite": 0, "code": "pruefskript", "text": "Prüfung lief nicht durch (Skriptfehler?)", "ziele": []}]}
     return json.loads(html.unescape(m.group(1)))
 
 

@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import { describe, it } from 'node:test';
 
-import { verstaendlich } from './meldungen';
+import { erklaere, verstaendlich } from './meldungen';
 import { ausgabeDateiname, mappenPdfDateiname, pdfDateiname } from './namen';
 
 describe('pdfDateiname', () => {
@@ -91,5 +91,50 @@ describe('verstaendlich', () => {
 		for (const [seite, text, erwartet] of faelle) {
 			assert.equal(verstaendlich({ stufe: 'FEHLER', seite, text }), erwartet);
 		}
+	});
+
+	it('übersetzt nach Code, mit den Namen aus dem Bericht oder eigenen', () => {
+		const ziel = (name: string) => ({ sb: 3, name, rechteck: [0, 0, 10, 10] });
+		const ueberlauf = {
+			stufe: 'FEHLER' as const,
+			seite: 2,
+			code: 'ueberlauf' as const,
+			text: '„4 Rechne“ ragt aus der Seite (40 px) → kürzen, Item streichen oder zweite Seite',
+			ziele: [ziel('4 Rechne')],
+		};
+		assert.equal(
+			verstaendlich(ueberlauf),
+			'Seite 2: „4 Rechne“ ragt über das Blatt hinaus und wird beim Drucken abgeschnitten.',
+		);
+		const imEditor = erklaere(ueberlauf, ['Aufgabe 4']);
+		assert.equal(imEditor.satz, 'Aufgabe 4 ragt über das Blatt hinaus und wird beim Drucken abgeschnitten.');
+		assert.match(imEditor.tipp ?? '', /Spalten erhöhen/);
+		assert.equal(
+			verstaendlich({ ...ueberlauf, text: `Lösungsblatt: ${ueberlauf.text}` }),
+			'Im Lösungsblatt, Seite 2: „4 Rechne“ ragt über das Blatt hinaus und wird beim Drucken abgeschnitten.',
+		);
+		assert.equal(
+			erklaere({
+				stufe: 'WARNUNG',
+				seite: 1,
+				code: 'aufgaben-viele',
+				text: '6 Aufgaben (+★): Richtwert Klasse 2 sind höchstens 4 → Übersicht vor Menge',
+			}).satz,
+			'Auf der Seite stehen 6 Aufgaben. Für Klasse 2 sind höchstens 4 übersichtlich.',
+		);
+		assert.equal(
+			erklaere({ stufe: 'WARNUNG', seite: 1, code: 'schrift-klein', text: '…' }, ['Absatz 1', 'Item 2', 'Item 3'])
+				.satz,
+			'Die Schrift bei Absatz 1, Item 2 und Item 3 ist sehr klein.',
+		);
+		assert.match(
+			erklaere({
+				stufe: 'HINWEIS',
+				seite: 1,
+				code: 'platz-frei',
+				text: '300 px frei unten → Abstand … (--abstand)',
+			}).tipp ?? '',
+			/Abstand vergrößern/,
+		);
 	});
 });

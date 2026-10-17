@@ -37,6 +37,8 @@
 	--color-rand: #d9d5cb;
 	--color-entwurf: #ffe08a;
 	--color-fehler: #b3261e;
+	--color-warnung: #b45309;
+	--color-gut: #2e7d32;
 
 	--shadow-karte: 0 1px 3px rgb(38 50 61 / 10%), 0 4px 14px rgb(38 50 61 / 6%);
 }

@@ -19,6 +19,9 @@ const EDITOR_STIL =
 	'body.loesung .antwort:not([data-l])::after,body.loesung .antwort[data-l=""]::after{content:"?";' +
 	'color:#b45309;font-weight:700}</style>';
 
+/** Die Prüfung aus blatt.py, hier ohne Selbststart: Der Editor ruft `pruefeBlatt` nach jeder Änderung (020). */
+const PRUEFUNG = '<script src="pruefung.js" data-manuell defer></script>';
+
 /**
  * Das Material für das `iframe` des Editors, aus der Quelle im Speicher: wie `/ansicht` (Seitengröße, Lösung), mit
  * `data-sb` in jedem Element und einer `<base>`, damit Bilder, Schriften und blatt.css wie dort geladen werden. Diese
@@ -26,7 +29,7 @@ const EDITOR_STIL =
  */
 export const editorHtml = (zerlegung: Zerlegung, { basis, loesung }: { basis: string; loesung: boolean }) => {
 	const html = darstellungsHtml(markiere(zerlegung), { loesung });
-	const kopf = `<base href="${basis}">${EDITOR_STIL}`;
+	const kopf = `<base href="${basis}">${EDITOR_STIL}${PRUEFUNG}`;
 	const offen = /<head[^>]*>/i.exec(html);
 	return offen ? html.replace(offen[0], `${offen[0]}${kopf}`) : `${kopf}${html}`;
 };

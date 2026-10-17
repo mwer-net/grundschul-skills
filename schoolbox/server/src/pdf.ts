@@ -19,6 +19,7 @@ import {
 	MAPPEN_VARIANTEN,
 	mappenDir,
 	mappenPdfDateiname,
+	ohneZiele,
 	PDF_DATEI,
 	schreibeStand,
 	zusatzBerichtDatei,
@@ -77,7 +78,8 @@ const leseFehler = async (ausgabe: string, mitLoesung: boolean, datei = 'pruefbe
 		const bericht = JSON.parse(await readFile(path.join(ausgabe, datei), 'utf8')) as Pruefbericht;
 		return bericht.meldungen
 			.filter((m) => m.stufe === 'FEHLER')
-			.filter((m) => mitLoesung || !m.text.startsWith(LOESUNG_PRAEFIX));
+			.filter((m) => mitLoesung || !m.text.startsWith(LOESUNG_PRAEFIX))
+			.map(ohneZiele);
 	} catch {
 		return [];
 	}
