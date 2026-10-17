@@ -158,6 +158,30 @@ export const useStruktur = (o: Optionen) => {
 		[zeige],
 	);
 
+	/**
+	 * Nur Attribute ändern sich (Abbildungen): Die Nummern bleiben gleich, deshalb bleibt die Auswahl stehen und die
+	 * alte Darstellung darf bis zur neuen weiter antippen.
+	 */
+	const aendereAttribute = useCallback(
+		(beschreibung: string, rechne: (q: string) => string) => {
+			const { aktiv: bereit, befehl, quelle: alt } = aktuell.current;
+			if (!alt || !bereit) {
+				return false;
+			}
+			try {
+				const neu = rechne(alt);
+				if (neu !== alt) {
+					befehl(neu, beschreibung);
+				}
+				return true;
+			} catch (fehler) {
+				zeige({ text: meldung(fehler), art: 'fehler' });
+				return false;
+			}
+		},
+		[zeige],
+	);
+
 	const nummerierung = () => ({ jeSeite: aktuell.current.folien });
 
 	const zurueckKnopf = () => ({ titel: 'Rückgängig', ausfuehren: () => aktuell.current.rueckgaengig() });
@@ -205,6 +229,7 @@ export const useStruktur = (o: Optionen) => {
 	return {
 		aktiv,
 		fuehreAus,
+		aendereAttribute,
 		werte,
 		springe,
 		zeigeAn,

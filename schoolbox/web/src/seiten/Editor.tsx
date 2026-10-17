@@ -14,6 +14,8 @@ import { Knopf, KnopfLink } from '../bausteine/Knopf';
 import type { SymbolName } from '../bausteine/Symbol';
 import { Symbol } from '../bausteine/Symbol';
 import { Zustand } from '../bausteine/Zustand';
+import { useAbbildung } from '../editor/abbildung';
+import { Abbildungswerkzeug } from '../editor/Abbildungspanel';
 import { Konfliktleiste, Speicheranzeige, Vorschauleiste } from '../editor/Anzeigen';
 import { useBearbeitung } from '../editor/bearbeitung';
 import { useBild } from '../editor/bild';
@@ -260,6 +262,8 @@ const Bearbeitung = ({ dokument, mappe: mappenDaten }: { mappe: Mappe; dokument:
 		rueckgaengig: zurueck,
 	});
 
+	const abbildung = useAbbildung({ geladen, html, zerlegung, pfad, struktur });
+
 	const taste = useCallback(
 		(e: KeyboardEvent) => {
 			const befehl = e.metaKey || e.ctrlKey;
@@ -464,6 +468,7 @@ const Bearbeitung = ({ dokument, mappe: mappenDaten }: { mappe: Mappe; dokument:
 								fokussiere={text.fokussiere}
 							/>
 							<Bildwerkzeug bild={bild} />
+							<Abbildungswerkzeug abb={abbildung} />
 							<Strukturwerkzeug pfad={pfad} aktiv={struktur.aktiv} struktur={struktur} />
 						</AuswahlPanel>
 					)}

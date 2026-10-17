@@ -1,3 +1,4 @@
+import { schemaVon } from '@schoolbox/kern/src/abbildungen';
 import type { Baustein } from '@schoolbox/kern/src/bausteine';
 import { BAUSTEINE } from '@schoolbox/kern/src/bausteine';
 import { darstellungsHtml } from '@schoolbox/kern/src/html';
@@ -62,6 +63,9 @@ const name = ({ baustein, element }: Treffer, umgebung: Element | null) => {
 	const { sonderfall } = baustein;
 	if (sonderfall && element.matches(sonderfall.selektor)) {
 		return sonderfall.name;
+	}
+	if (baustein.art === 'abbildung') {
+		return schemaVon(element.localName)?.name ?? baustein.name;
 	}
 	if (!baustein.zaehlen) {
 		return baustein.name;

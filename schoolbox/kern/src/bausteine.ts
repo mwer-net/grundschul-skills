@@ -4,6 +4,9 @@
  * zählt: Passt ein Element auf mehrere Einträge, gilt der erste.
  */
 
+import type { Abbildung } from './abbildungen';
+import { ABBILDUNG_SCHEMA } from './abbildungen';
+
 export const FAEHIGKEITEN = [
 	/** Ziehen innerhalb des Elternelements bzw. der Seite (016). */
 	'ordnen',
@@ -52,16 +55,7 @@ export interface Baustein {
 }
 
 /** Die eigenen Elemente aus `abbildungen.js`; ihren Inhalt zeichnet erst der Browser. */
-export const ABBILDUNGEN = [
-	'x-uhr',
-	'x-menge',
-	'x-dienes',
-	'x-strichpunkt',
-	'x-stellentafel',
-	'x-zwanzigerfeld',
-	'x-zahlenstrahl',
-	'x-timer',
-] as const;
+export const ABBILDUNGEN = Object.keys(ABBILDUNG_SCHEMA) as Abbildung[];
 
 /**
  * Teile eines Textträgers, die beim Tippen unverändert bleiben: Nummern, Niveau-Punkte, Antwortlinien und

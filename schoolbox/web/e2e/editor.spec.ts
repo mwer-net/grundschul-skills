@@ -46,7 +46,7 @@ test.describe('Editor', () => {
 		await expect(page.locator('[data-auswahlrahmen]')).toBeVisible();
 
 		await druecke(material(page).locator('x-uhr').nth(1));
-		await expect(page.locator('[data-breadcrumb]')).toHaveText('Seite 1›Aufgabe 1›Reihe›Item 2›Abbildung');
+		await expect(page.locator('[data-breadcrumb]')).toHaveText('Seite 1›Aufgabe 1›Reihe›Item 2›Uhr');
 		await druecke(page.locator('[data-breadcrumb]').getByRole('button', { name: 'Aufgabe 1' }));
 		await expect(page.locator('[data-auswahl="aufgabe"] h2')).toHaveText('Aufgabe 1');
 
