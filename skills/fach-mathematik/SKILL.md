@@ -104,6 +104,6 @@ Exakte Darstellungen kommen als Elemente aus `html-materialerstellung/assets/abb
 | `<x-zwanzigerfeld n="13">` | Zwanzigerfeld mit Plättchen |
 | `<x-zahlenstrahl von="0" bis="100" schritt="10" zahlen="0 50 100" pfeile="30 70">` | Zahlenstrahl mit Pfeilen und Antwortkästchen |
 
-Fehlt eine Darstellung (Hunderterfeld, Geld, Geometrie), als neues Element in `abbildungen.js` ergänzen, nie freihand oder per KI.
+Fehlt eine Darstellung (Hunderterfeld, Geld, Geometrie), als neues Element in `abbildungen.js` ergänzen, nie freihand oder per KI. In der Schoolbox braucht ein neues Element außerdem einen Eintrag in `ABBILDUNG_SCHEMA` (`schoolbox/kern/src/abbildungen.ts`), sonst lässt es sich im Editor nicht einstellen und der Test dazu schlägt fehl.
 
 **Bündeln mit Gegenständen:** Ungebündelte Mengen sind hier ausnahmsweise erlaubt, aber geordnet (`x-menge`, Zehnerreihen mit Fünferlücke), in Kl. 2 bis ca. 45 Gegenstände.
