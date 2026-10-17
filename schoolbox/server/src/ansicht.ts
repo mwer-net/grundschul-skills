@@ -2,7 +2,7 @@ import { existsSync, realpathSync } from 'node:fs';
 import { readFile, stat } from 'node:fs/promises';
 import path from 'node:path';
 
-import { ASSETS, darstellungsHtml, ID_MUSTER, mappenDir, sucheRessource } from '@schoolbox/kern';
+import { ASSETS, darstellungsHtml, ID_MUSTER, liegtIn, mappenDir, sucheRessource } from '@schoolbox/kern';
 import type { Request, Response } from 'express';
 import { Router } from 'express';
 
@@ -37,11 +37,6 @@ const pruefeTeile = (teile: unknown): string[] => {
 		throw new HttpFehler(400, 'Ungültiger Pfad.');
 	}
 	return liste;
-};
-
-const liegtIn = (datei: string, ordner: string) => {
-	const relativ = path.relative(ordner, datei);
-	return relativ !== '' && !relativ.startsWith('..') && !path.isAbsolute(relativ);
 };
 
 /** Erlaubt ist nur, was nach dem Auflösen aller Symlinks in der Mappe oder in assets/ liegt. */

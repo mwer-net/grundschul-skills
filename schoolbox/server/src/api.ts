@@ -4,6 +4,7 @@ import { dokumentDir, leseMeta, listeVersionen, sichereFassung, versionsPfad } f
 import type { RequestHandler } from 'express';
 import { json, Router } from 'express';
 
+import { bilderApi } from './bilder';
 import { istAusgabeVeraltet, leseQuelle, nimmFremdeAenderungAuf, schreibeQuelle, verlangeDokument } from './dokumente';
 import type { Ereignis } from './ereignisse';
 import { HttpFehler } from './fehler';
@@ -78,6 +79,8 @@ export const apiRouter = (kontext: Kontext) => {
 
 	router.use('/mappen', mappenApi(kontext));
 	router.use('/papierkorb', papierkorbApi(kontext));
+
+	router.use('/dokumente/:mappe/:dok/bilder', bilderApi(kontext));
 
 	router.get('/dokumente/:mappe/:dok', async (req, res) => {
 		const { dok, mappe } = req.params;

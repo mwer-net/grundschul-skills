@@ -52,4 +52,16 @@ export const sende = <T>(url: string, daten: unknown = {}, methode: 'POST' | 'PU
 		body: JSON.stringify(daten),
 	});
 
+/** Dateien (Bilder) als rohe Bytes; der Dateiname steht URI-kodiert in einem eigenen Kopf. */
+export const sendeDatei = <T>(url: string, daten: Blob, name: string) =>
+	anfrage<T>(url, {
+		method: 'POST',
+		headers: {
+			'Content-Type': 'application/octet-stream',
+			'x-schoolbox': '1',
+			'x-dateiname': encodeURIComponent(name),
+		},
+		body: daten,
+	});
+
 export const meldung = (fehler: unknown) => (fehler instanceof Error ? fehler.message : NICHT_ERREICHBAR);

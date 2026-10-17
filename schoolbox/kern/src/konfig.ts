@@ -6,6 +6,7 @@ export const WURZEL = path.resolve(__dirname, '..', '..', '..');
 export const SKILL_DIR = path.join(WURZEL, 'skills', 'html-materialerstellung');
 export const ASSETS = path.join(SKILL_DIR, 'assets');
 export const BLATT_PY = path.join(SKILL_DIR, 'scripts', 'blatt.py');
+export const BILD_PY = path.join(WURZEL, 'schoolbox', 'kern', 'bild.py');
 
 export const STANDARD_PORT = 4009;
 export const STANDARD_HOST = '127.0.0.1';

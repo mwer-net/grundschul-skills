@@ -204,6 +204,7 @@ export const useStruktur = (o: Optionen) => {
 
 	return {
 		aktiv,
+		fuehreAus,
 		werte,
 		springe,
 		zeigeAn,

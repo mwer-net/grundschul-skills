@@ -454,7 +454,8 @@ export const eingesetzt = (neu: Zerlegung, a: Aenderung) => {
 	return neu.knoten.filter((k) => drin(k) && !drin(k.eltern));
 };
 
-const schuetzeAttribut = (wert: string) => wert.replace(/&/g, '&amp;').replace(/"/g, '&quot;').replace(/</g, '&lt;');
+export const schuetzeAttribut = (wert: string) =>
+	wert.replace(/&/g, '&amp;').replace(/"/g, '&quot;').replace(/</g, '&lt;');
 
 export const schuetzeText = (text: string) => text.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
 

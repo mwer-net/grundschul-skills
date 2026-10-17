@@ -31,6 +31,8 @@ const PFADE = {
 	wiederholen: 'm15 14 5-5-5-5m5 5H9a5 5 0 0 0 0 10h3',
 	uhr: 'M12 3a9 9 0 1 0 0 18 9 9 0 0 0 0-18Zm0 4v5l3 2',
 	minus: 'M5 12h14',
+	bild: 'M4 5h16a1 1 0 0 1 1 1v12a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1V6a1 1 0 0 1 1-1Zm-1 12 5-5 4 4 3-3 5 5M15 8.5h.01',
+	hochladen: 'M12 16V4m0 0-4 4m4-4 4 4M5 20h14',
 } as const;
 
 export type SymbolName = keyof typeof PFADE;

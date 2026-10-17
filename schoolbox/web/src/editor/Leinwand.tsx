@@ -1,7 +1,9 @@
 import type { Ablage } from '@schoolbox/kern/src/struktur';
+import type { PointerEvent as ReactPointerEvent } from 'react';
 import { useEffect, useRef, useState } from 'react';
 
 import { Symbol } from '../bausteine/Symbol';
+import type { Groesse } from './bild';
 import { elementZu, nrVon, trefferAn, VERALTET } from './darstellung';
 import type { ZiehenSteuerung, ZugAnzeige } from './ziehen';
 import { ruesteZiehen } from './ziehen';
@@ -38,7 +40,18 @@ interface Eigenschaften {
 	ablegen: (nr: number, ablage: Ablage) => void;
 	/** Ändert sich die Zahl, rollt die Ansicht zum gewählten Baustein. */
 	springe: number;
+	/** Ein gewähltes Bild bekommt Ziehpunkte an den Ecken. */
+	groesse: Groesse | null;
 }
+
+/** Ecken des Bildes: nach außen ziehen macht es größer. */
+const ECKEN = [
+	{ x: -1, y: -1, name: 'oben links', zeiger: 'cursor-nwse-resize' },
+	{ x: 1, y: -1, name: 'oben rechts', zeiger: 'cursor-nesw-resize' },
+	{ x: -1, y: 1, name: 'unten links', zeiger: 'cursor-nesw-resize' },
+	{ x: 1, y: 1, name: 'unten rechts', zeiger: 'cursor-nwse-resize' },
+] as const;
+const GRIFF = 44;
 
 const RAND = 16;
 const LADE_BREITE = 1600;
@@ -64,6 +77,92 @@ const miss = (doc: Document): Masse => {
 	return { breite: blatt + 2 * RAND, hoehe: doc.documentElement.scrollHeight };
 };
 
+interface GriffEigenschaften {
+	gewaehlt: Element | null;
+	groesse: Groesse | null;
+	/** Lage des Blatts in der Leinwand. */
+	links: number;
+	skala: number;
+	ziehBreite: number | null;
+	setZiehBreite: (px: number | null) => void;
+}
+
+/** Ziehpunkte an den Ecken eines Bildes: Das Blatt zeigt die Größe sofort, die Quelle ändert erst das Loslassen. */
+const Griffe = ({ gewaehlt, groesse, links, setZiehBreite, skala, ziehBreite }: GriffEigenschaften) => {
+	if (!gewaehlt || !groesse) {
+		return null;
+	}
+	const box = gewaehlt.getBoundingClientRect();
+	const ziehGriff = (e: ReactPointerEvent<HTMLButtonElement>, ecke: (typeof ECKEN)[number]) => {
+		if (!e.isPrimary) {
+			return;
+		}
+		e.preventDefault();
+		e.stopPropagation();
+		const griff = e.currentTarget;
+		try {
+			griff.setPointerCapture(e.pointerId);
+		} catch {
+			// Ohne Fang kommen die Bewegungen nur, solange der Zeiger über dem Griff bleibt.
+		}
+		const start = { x: e.clientX, y: e.clientY, breite: Math.round(box.width) };
+		const verhaeltnis = box.width / Math.max(1, box.height);
+		let jetzt = start.breite;
+		const bewege = (m: PointerEvent) => {
+			const dx = ((m.clientX - start.x) / skala) * ecke.x;
+			const dy = ((m.clientY - start.y) / skala) * ecke.y * verhaeltnis;
+			const wunsch = start.breite + (Math.abs(dx) > Math.abs(dy) ? dx : dy);
+			jetzt = Math.round(Math.max(groesse.min, Math.min(groesse.max, wunsch)));
+			groesse.zeige(jetzt);
+			setZiehBreite(jetzt);
+		};
+		const ende = (m: PointerEvent) => {
+			griff.removeEventListener('pointermove', bewege);
+			griff.removeEventListener('pointerup', ende);
+			griff.removeEventListener('pointercancel', ende);
+			setZiehBreite(null);
+			if (m.type === 'pointercancel') {
+				groesse.zeige(start.breite);
+			} else if (jetzt !== start.breite) {
+				groesse.setze(jetzt);
+			}
+		};
+		griff.addEventListener('pointermove', bewege);
+		griff.addEventListener('pointerup', ende);
+		griff.addEventListener('pointercancel', ende);
+	};
+	return (
+		<>
+			{ECKEN.map((ecke) => (
+				<button
+					key={ecke.name}
+					type="button"
+					aria-label={`Größe ändern, Ecke ${ecke.name}`}
+					className={`absolute flex touch-none items-center justify-center ${ecke.zeiger}`}
+					data-griff={`${ecke.y < 0 ? 'oben' : 'unten'}-${ecke.x < 0 ? 'links' : 'rechts'}`}
+					style={{
+						left: links + (ecke.x < 0 ? box.left : box.right) * skala - GRIFF / 2,
+						top: (ecke.y < 0 ? box.top : box.bottom) * skala - GRIFF / 2,
+						width: GRIFF,
+						height: GRIFF,
+					}}
+					onPointerDown={(e) => ziehGriff(e, ecke)}
+				>
+					<span className="size-4 rounded-sm border-[3px] border-brand-500 bg-white shadow" />
+				</button>
+			))}
+			{ziehBreite !== null && (
+				<span
+					className="pointer-events-none absolute rounded-lg bg-tinte px-3 py-1 font-bold whitespace-nowrap text-white"
+					style={{ left: links + box.left * skala, top: box.bottom * skala + 12 }}
+				>
+					{`${ziehBreite} px`}
+				</span>
+			)}
+		</>
+	);
+};
+
 /**
  * Das Material im Editor. Wie die Blattansicht lädt jede neue Fassung unsichtbar und ersetzt die alte erst, wenn sie
  * fertig ist; die Scrollposition bleibt. Anders als dort nimmt das `iframe` Berührungen an: Antippen wählt den
@@ -75,6 +174,7 @@ export const Leinwand = ({
 	auswahl,
 	auswahlName,
 	geladen,
+	groesse,
 	html,
 	nurAnsehen,
 	springe,
@@ -90,6 +190,7 @@ export const Leinwand = ({
 	const [rahmen, setRahmen] = useState<Rahmen[]>([]);
 	const [doc, setDoc] = useState<Document | null>(null);
 	const [zug, setZug] = useState<ZugAnzeige | null>(null);
+	const [ziehBreite, setZiehBreite] = useState<number | null>(null);
 	const rueckrufe = useRef({ waehle, taste, geladen, nurAnsehen, ziehbar, ablegen, html, auswahl });
 	const skalaJetzt = useRef(1);
 	const ziehen = useRef<ZiehenSteuerung | null>(null);
@@ -278,6 +379,16 @@ export const Leinwand = ({
 							</span>
 						)}
 					</div>
+				)}
+				{!nurAnsehen && (
+					<Griffe
+						gewaehlt={gewaehlt}
+						groesse={groesse?.nr === auswahl ? groesse : null}
+						links={links}
+						skala={skala}
+						ziehBreite={ziehBreite}
+						setZiehBreite={setZiehBreite}
+					/>
 				)}
 				{zug?.platz && (
 					<div

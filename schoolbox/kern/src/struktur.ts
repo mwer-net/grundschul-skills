@@ -241,6 +241,12 @@ export const setzeStilWert = (stil: string | null, name: string, wert: string) =
 	return teile.join(';');
 };
 
+/** Entfernt eine Eigenschaft aus dem `style`-Wert; `null`, wenn nichts übrig bleibt. */
+export const ohneStilWert = (stil: string | null, name: string) =>
+	stilTeile(stil)
+		.filter((t) => eigenschaft(t) !== name)
+		.join(';') || null;
+
 const begrenze = (wert: number, { max, min }: { min: number; max: number }) =>
 	Math.min(max, Math.max(min, Math.round(wert)));
 

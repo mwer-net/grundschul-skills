@@ -1,19 +1,22 @@
 import type { MouseEvent, ReactNode } from 'react';
 import { useEffect, useRef } from 'react';
 
+import { klassen } from './klassen';
 import { Symbol } from './Symbol';
 
 interface Eigenschaften {
 	titel: string;
 	schliessen: () => void;
 	children: ReactNode;
+	/** Für Inhalte, die Platz brauchen, z. B. eine Bildersammlung. */
+	breit?: boolean;
 }
 
 /**
  * Fenster über der Seite, mit dem `<dialog>` des Browsers: Der hält den Fokus im Fenster, schließt mit Esc und
  * legt den Rest der Seite still. Ein Tipp neben das Fenster schließt es ebenfalls.
  */
-export const Dialog = ({ children, schliessen, titel }: Eigenschaften) => {
+export const Dialog = ({ breit, children, schliessen, titel }: Eigenschaften) => {
 	const dialog = useRef<HTMLDialogElement>(null);
 
 	useEffect(() => {
@@ -32,7 +35,10 @@ export const Dialog = ({ children, schliessen, titel }: Eigenschaften) => {
 	return (
 		<dialog
 			ref={dialog}
-			className="m-auto max-h-[calc(100dvh-2rem)] w-[min(38rem,calc(100vw-2rem))] overflow-y-auto rounded-2xl bg-white p-0 text-tinte shadow-karte"
+			className={klassen(
+				'm-auto max-h-[calc(100dvh-2rem)] overflow-y-auto rounded-2xl bg-white p-0 text-tinte shadow-karte',
+				breit ? 'w-[min(60rem,calc(100vw-2rem))]' : 'w-[min(38rem,calc(100vw-2rem))]',
+			)}
 			aria-labelledby="dialog-titel"
 			onClose={schliessen}
 			onClick={daneben}

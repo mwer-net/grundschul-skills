@@ -16,6 +16,8 @@ import { Symbol } from '../bausteine/Symbol';
 import { Zustand } from '../bausteine/Zustand';
 import { Konfliktleiste, Speicheranzeige, Vorschauleiste } from '../editor/Anzeigen';
 import { useBearbeitung } from '../editor/bearbeitung';
+import { useBild } from '../editor/bild';
+import { Bildwerkzeug } from '../editor/Bildpanel';
 import { editorHtml, pfadZu } from '../editor/darstellung';
 import { Leinwand } from '../editor/Leinwand';
 import { leistenHtml } from '../editor/leiste';
@@ -191,7 +193,8 @@ const Bearbeitung = ({ dokument, mappe: mappenDaten }: { mappe: Mappe; dokument:
 	const loesung = Boolean(meta.hatLoesung) && suche.get('fassung') === 'loesung';
 
 	const anzeige = vorschau?.quelle ?? b.verlauf?.quelle ?? null;
-	const { html, zerlegung } = useDarstellung(anzeige, `/ansicht/${mappe}/dokumente/${dok}/`, loesung);
+	const basis = `/ansicht/${mappe}/dokumente/${dok}/`;
+	const { html, zerlegung } = useDarstellung(anzeige, basis, loesung);
 	const pfad = useMemo(() => (geladen && auswahl !== null ? pfadZu(geladen.doc, auswahl) : []), [geladen, auswahl]);
 	const merken = useCallback((d: Document, h: string) => setGeladen({ doc: d, html: h }), []);
 
@@ -245,6 +248,16 @@ const Bearbeitung = ({ dokument, mappe: mappenDaten }: { mappe: Mappe; dokument:
 		folien: meta.format === 'folie',
 		frei,
 		bearbeitet: text.bearbeitet,
+	});
+
+	const bild = useBild({
+		geladen,
+		html,
+		pfad,
+		struktur,
+		adresse: b.adresse,
+		basis,
+		rueckgaengig: zurueck,
 	});
 
 	const taste = useCallback(
@@ -414,6 +427,7 @@ const Bearbeitung = ({ dokument, mappe: mappenDaten }: { mappe: Mappe; dokument:
 								ziehbar={struktur.aktiv}
 								ablegen={struktur.verschiebe}
 								springe={struktur.springe}
+								groesse={bild.groesse}
 							/>
 						)}
 					</main>
@@ -449,6 +463,7 @@ const Bearbeitung = ({ dokument, mappe: mappenDaten }: { mappe: Mappe; dokument:
 								beende={text.beende}
 								fokussiere={text.fokussiere}
 							/>
+							<Bildwerkzeug bild={bild} />
 							<Strukturwerkzeug pfad={pfad} aktiv={struktur.aktiv} struktur={struktur} />
 						</AuswahlPanel>
 					)}

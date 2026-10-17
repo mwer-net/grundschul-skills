@@ -7,9 +7,15 @@ export const CSRF_HEADER = 'x-schoolbox';
 const ID_REGEX = new RegExp(ID_MUSTER);
 const SICHERE_METHODEN = new Set(['GET', 'HEAD', 'OPTIONS']);
 
-/** Schreibende Anfragen nur als JSON mit eigenem Header. Ein fremdes Formular kann beides nicht setzen. */
+/**
+ * Schreibende Anfragen nur als JSON (Bilder als application/octet-stream) mit eigenem Header. Ein fremdes Formular
+ * kann den Header nicht setzen, ein fremdes Skript nicht ohne CORS-Freigabe.
+ */
 export const csrfSchutz: RequestHandler = (req, _res, next) => {
-	if (SICHERE_METHODEN.has(req.method) || (req.is('application/json') && req.get(CSRF_HEADER) === '1')) {
+	if (
+		SICHERE_METHODEN.has(req.method) ||
+		(Boolean(req.is(['application/json', 'application/octet-stream'])) && req.get(CSRF_HEADER) === '1')
+	) {
 		next();
 		return;
 	}

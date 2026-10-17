@@ -4,6 +4,8 @@ export * from './atomar';
 export * from './ausgabe';
 export * from './bauen';
 export * from './bausteine';
+export * from './bildbefehle';
+export * from './bilder';
 export * from './fehler';
 export * from './freigaben';
 export * from './html';

@@ -16,3 +16,9 @@ export const sucheRessource = (name: string, quelleDir: string, assetsDir = ASSE
 	}
 	return null;
 };
+
+/** Liegt `datei` innerhalb von `ordner` (nicht der Ordner selbst)? Beide schon aufgelöst. */
+export const liegtIn = (datei: string, ordner: string) => {
+	const relativ = path.relative(ordner, datei);
+	return relativ !== '' && !relativ.startsWith('..') && !path.isAbsolute(relativ);
+};

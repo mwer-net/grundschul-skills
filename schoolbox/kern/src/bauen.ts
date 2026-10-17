@@ -38,13 +38,13 @@ export interface Pruefbericht {
 	fehler: number;
 }
 
-interface Lauf {
+export interface Lauf {
 	code: number | null;
 	stdout: string;
 	stderr: string;
 }
 
-const fuehreAus = (befehl: string, argumente: string[]) =>
+export const fuehreAus = (befehl: string, argumente: string[]) =>
 	new Promise<Lauf>((resolve, reject) => {
 		const kind = spawn(befehl, argumente, { timeout: BAU_TIMEOUT_MS });
 		let stdout = '';
