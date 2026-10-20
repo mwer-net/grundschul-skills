@@ -22,6 +22,7 @@ import { Konfliktleiste, Speicheranzeige, Vorschauleiste } from '../editor/Anzei
 import { useBearbeitung } from '../editor/bearbeitung';
 import { useBild } from '../editor/bild';
 import { Bildwerkzeug } from '../editor/Bildpanel';
+import { ClaudeFragen } from '../editor/ClaudeFragen';
 import { editorHtml, pfadZu } from '../editor/darstellung';
 import { Leinwand } from '../editor/Leinwand';
 import { leistenHtml } from '../editor/leiste';
@@ -429,10 +430,19 @@ const Bearbeitung = ({ dokument, mappe: mappenDaten }: { mappe: Mappe; dokument:
 			return w.vorbereiten();
 		},
 	}));
+	// Aus der Quelle im Editor, nicht aus der Darstellung: Nach dem Tippen gilt schon der neue Text.
+	const frage = {
+		aktiv: frei,
+		zerlegung,
+		ort: { mappe: mappenDaten, dokument: { id: dok, titel: meta.titel } },
+		loesung,
+		nachher: () => void alles(),
+	};
 	const ohneAuswahl = (
 		<>
 			{loesung && <Loesungsuebersicht l={loes} />}
 			<Blattwerkzeug aktiv={frei} struktur={struktur} />
+			<ClaudeFragen {...frage} nr={null} />
 		</>
 	);
 	const kannZurueck = frei && Boolean(b.verlauf?.zurueck.length);
@@ -562,6 +572,7 @@ const Bearbeitung = ({ dokument, mappe: mappenDaten }: { mappe: Mappe; dokument:
 								<Abbildungswerkzeug abb={abbildung} />
 								<Loesungswerkzeug l={loes} />
 								<Strukturwerkzeug pfad={pfad} aktiv={struktur.aktiv} struktur={struktur} />
+								<ClaudeFragen {...frage} nr={auswahl} pfad={pfad} />
 							</AuswahlPanel>
 						)}
 					</div>

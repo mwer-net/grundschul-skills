@@ -46,6 +46,15 @@ Neue Posen von Willi und Wilma bleiben in der Mappe (`materialien/<mappe>/bilder
 
 - **Finden:** `schoolbox/bin/schoolbox liste --suche "kartoffel"` (auch `--fach …`). Ist nicht eindeutig, welches Material sie meint, frag mit den Titeln nach.
 - **Vor jeder Änderung die Quelle neu lesen.** Die Lehrkraft kann das Material inzwischen in der Schoolbox selbst geändert haben. Überschreib die Datei nie aus dem Gedächtnis oder aus einem früheren Stand im Gespräch, und schreib sie nicht neu: Ändere gezielt die Stelle, um die es geht. Was sie selbst geändert hat, bleibt.
+- **Referenzen aus „Claude fragen“:** Im Editor der Schoolbox kann sie einen Teil des Blatts auswählen und „Claude fragen“ tippen. Dann fügt sie zwei Zeilen ein und schreibt ihren Wunsch dahinter, zum Beispiel:
+
+  ```
+  Schoolbox · „Uhrzeit“ (Mathematik Kl. 2) · Wie spät ist es? · Seite 1 › Aufgabe 3 („Zeichne die Zeiger …“)
+  [sb:2026-10-08-uhrzeit-ma-kl2/wie-spaet-ist-es#seite1/aufgabe3]
+  Mach die Aufgabe schwerer.
+  ```
+
+  Gemeint ist genau dieser Teil: Mappe und Dokument stehen vor dem `#`, danach der Weg dorthin (`#loesung/…` heißt, sie hat sich die Lösung angesehen; ohne `#` meint sie das ganze Dokument). Gib die ganze Nachricht an `schoolbox/bin/schoolbox finde "<ihre Nachricht>"` weiter. Der Befehl liest die Datei neu, sucht über den Weg und den Text in Klammern und nennt die Stelle in `material.html` mit Zeilen und Quelltext. Das gilt auch dann, wenn sie seither umsortiert hat. Ändere genau diese Stelle und sonst nichts. Meldet der Befehl „nicht eindeutig“ oder „nicht gefunden“, frag sie mit den Titeln aus der Meldung („Meinst du die Aufgabe ‚Zeichne die Zeiger‘ oder ‚Wie spät ist es‘?“), statt zu raten. Danach fertigstellen wie im nächsten Punkt und sagen: „Ist geändert. Hast du das Blatt in der Schoolbox offen, zeigt sie die Änderung gleich.“ Die Referenz selbst sprichst du ihr gegenüber nie an.
 - Danach wie oben bauen, prüfen, `fertig`, `status`. Der Link bleibt derselbe; nenn ihn noch einmal und sag in einem Satz, was sich geändert hat.
 
 ## Grundsätzliche Wünsche

@@ -46,8 +46,8 @@ export interface Baustein {
 	faehigkeiten: readonly Faehigkeit[];
 	/** Mit Nummer: die wievielte ihrer Art innerhalb des umgebenden Bausteins. */
 	zaehlen?: boolean;
-	/** Ein Element, das zusätzlich hierauf passt, heißt so (z. B. die Sternchenaufgabe). */
-	sonderfall?: { selektor: string; name: string };
+	/** Ein Element, das zusätzlich hierauf passt, heißt so (z. B. die Sternchenaufgabe) und zählt für sich. */
+	sonderfall?: { selektor: string; name: string; art: string };
 	/** Nur mit `text`: was Enter tut; ohne Angabe `eine`. */
 	zeilen?: Zeilen;
 	/** Nur mit `ordnen`: Ziehen auch in andere Elemente dieses Selektors, sonst nur innerhalb des Elternelements. */
@@ -96,7 +96,7 @@ export const BAUSTEINE: readonly Baustein[] = [
 		selektor: '.aufgabe',
 		faehigkeiten: ['ordnen', 'duplizieren', 'loeschen'],
 		zaehlen: true,
-		sonderfall: { selektor: '.aufgabe:has(> .nr.stern)', name: 'Sternchenaufgabe' },
+		sonderfall: { selektor: '.aufgabe:has(> .nr.stern)', name: 'Sternchenaufgabe', art: 'sternchenaufgabe' },
 		ordnenIn: '.seite',
 	},
 	{ art: 'reihe', name: 'Reihe', selektor: '.reihe', faehigkeiten: ['spalten'], spaltenStandard: 3 },

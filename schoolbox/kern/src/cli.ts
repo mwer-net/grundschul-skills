@@ -1,3 +1,4 @@
+import { readFile } from 'node:fs/promises';
 import path from 'node:path';
 import type { ParseArgsConfig } from 'node:util';
 import { parseArgs } from 'node:util';
@@ -22,6 +23,10 @@ import { SchoolboxFehler } from './fehler';
 import type { Konfig } from './konfig';
 import { ladeKonfig } from './konfig';
 import { entwurfVorschauDatei } from './namen';
+import type { Knoten } from './quelltext';
+import { zerlege } from './quelltext';
+import type { Aufloesung, Kandidat, Referenz } from './referenz';
+import { liesReferenzen, loeseReferenz, pfadText } from './referenz';
 import {
 	ARTEN,
 	DRUCKPROFILE,
@@ -43,6 +48,7 @@ const HILFE = `schoolbox – Mappen und Dokumente der Schoolbox anlegen und fert
   schoolbox fertig <mappe>/<dok>
   schoolbox link <mappe>[/<dok>]
   schoolbox liste [--fach …] [--suche …]
+  schoolbox finde "<Text mit [sb:…]>"   (Referenz aus „Claude fragen“ auflösen)
   schoolbox wunsch "…"
   schoolbox status
   schoolbox passwort      (Passwort der Anmeldung setzen oder ändern)
@@ -319,6 +325,81 @@ const befehlPasswort = async (konfig: Konfig, argumente: string[]): Promise<Erge
 	return { daten: { datei, geheimnisNeu }, text };
 };
 
+const MAX_ZEILEN = 80;
+
+const zeileVon = (quelle: string, pos: number) => quelle.slice(0, pos).split('\n').length;
+
+const auszug = (quelle: string, k: Knoten) => {
+	const zeilen = quelle.slice(k.start, k.ende).split('\n');
+	return zeilen.length > MAX_ZEILEN
+		? [...zeilen.slice(0, MAX_ZEILEN), `… (gekürzt, ${zeilen.length} Zeilen)`].join('\n')
+		: zeilen.join('\n');
+};
+
+const ortVon = (quelle: string, k: Knoten) => `Zeilen ${zeileVon(quelle, k.start)}–${zeileVon(quelle, k.ende)}`;
+
+const liste = (quelle: string, andere: Kandidat[]) =>
+	andere.map((a) => `${pfadText(a.pfad)} (${ortVon(quelle, a.k)}, „${a.text.slice(0, 60)}“)`).join('; ');
+
+const BEFUND: Record<Aufloesung['befund'], (ref: Referenz, a: Aufloesung) => string> = {
+	'pfad': (_ref, a) =>
+		a.andere.length > 0
+			? `Gefunden. Achtung: Denselben Text haben auch ${a.andere.map((k) => pfadText(k.pfad)).join(', ')}. Ist nicht klar, welches gemeint ist, frag nach.`
+			: 'Gefunden.',
+	'verschoben': () =>
+		'Gefunden über den Text: Das Element steht inzwischen an anderer Stelle, seither wurde umsortiert.',
+	'aehnlich': (ref) =>
+		`Gefunden über den Textanfang: Den Text „${ref.probe ?? ''}“ gibt es so nicht mehr, dieses Element beginnt am ähnlichsten. Vermutlich wurde es seither geändert. Passt es nicht zum Wunsch, frag nach.`,
+	'nur-pfad': (ref) =>
+		`Unsicher: Am angegebenen Platz steht ein Element dieser Art, aber mit ganz anderem Text als „${ref.probe ?? ''}“. Frag nach, ob das gemeint ist.`,
+	'mehrdeutig': () => 'Nicht eindeutig: Der Text passt auf mehrere Elemente. Frag nach, welches gemeint ist.',
+	'fehlt': () => 'Nicht gefunden: Das Element gibt es so nicht mehr. Frag nach, was gemeint ist.',
+	'dokument': () => 'Gemeint ist das ganze Dokument.',
+};
+
+const findeEine = async (konfig: Konfig, ref: Referenz) => {
+	await leseMeta(konfig.materialDir, ref.mappe, ref.dok);
+	const datei = path.join(dokumentDir(konfig.materialDir, ref.mappe, ref.dok), 'material.html');
+	const quelle = await readFile(datei, 'utf8');
+	const aufloesung = loeseReferenz(zerlege(quelle), ref);
+	const { andere, befund, ziel } = aufloesung;
+	const kopf = [
+		ref.text,
+		`${ref.loesung ? 'Lösungsansicht. ' : ''}${BEFUND[befund](ref, aufloesung)}`,
+		`Datei: ${path.relative(process.cwd(), datei)}`,
+	];
+	const zielText = ziel ? [`Jetzt: ${pfadText(ziel.pfad)}, ${ortVon(quelle, ziel.k)}`, auszug(quelle, ziel.k)] : [];
+	const kandidaten = befund === 'mehrdeutig' ? [`Kandidaten: ${liste(quelle, andere)}`] : [];
+	return {
+		code: ['mehrdeutig', 'fehlt', 'nur-pfad'].includes(befund) ? 1 : 0,
+		daten: {
+			referenz: ref,
+			befund,
+			datei,
+			ziel: ziel && { pfad: pfadText(ziel.pfad), start: ziel.k.start, ende: ziel.k.ende, text: ziel.text },
+			andere: andere.map((a) => ({ pfad: pfadText(a.pfad), start: a.k.start, ende: a.k.ende })),
+		},
+		text: [...kopf, ...kandidaten, ...zielText].join('\n'),
+	};
+};
+
+const befehlFinde = async (konfig: Konfig, argumente: string[]): Promise<Ergebnis> => {
+	const { positionals } = lies(argumente, {});
+	const refs = liesReferenzen(positionals.join(' '));
+	if (refs.length === 0) {
+		throw new SchoolboxFehler('Keine Referenz [sb:<mappe>/<dokument>#…] im Text gefunden.');
+	}
+	const ergebnisse = [];
+	for (const ref of refs) {
+		ergebnisse.push(await findeEine(konfig, ref));
+	}
+	return {
+		code: Math.max(...ergebnisse.map((e) => e.code)),
+		daten: { referenzen: ergebnisse.map((e) => e.daten) },
+		text: ergebnisse.map((e) => e.text).join('\n\n'),
+	};
+};
+
 const BEFEHLE: Record<string, (konfig: Konfig, argumente: string[]) => Promise<Ergebnis>> = {
 	neu: befehlNeu,
 	dokument: befehlDokument,
@@ -327,6 +408,7 @@ const BEFEHLE: Record<string, (konfig: Konfig, argumente: string[]) => Promise<E
 	fertig: befehlFertig,
 	link: befehlLink,
 	liste: befehlListe,
+	finde: befehlFinde,
 	wunsch: befehlWunsch,
 	status: befehlStatus,
 	passwort: befehlPasswort,

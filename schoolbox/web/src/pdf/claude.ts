@@ -1,3 +1,5 @@
+import { maschinenteil } from '@schoolbox/kern/src/referenz';
+
 import type { PdfMeldung } from '../typen';
 
 /** Meldungen je Dokument, in der Reihenfolge, in der sie kamen. */
@@ -12,13 +14,13 @@ export const jeDokument = (meldungen: PdfMeldung[]) => {
 };
 
 /**
- * Fertiger Auftrag für die Claude-App: welche Mappe, welches Dokument, die Meldungen im Wortlaut der Prüfung (die
+ * Fertiger Auftrag für die Claude-App: welche Mappe, welches Dokument (als Referenz `[sb:…]`, 021), die Meldungen im Wortlaut der Prüfung (die
  * versteht Claude genauer als die Übersetzung für die Lehrkraft).
  */
 export const bitteAnClaude = (mappe: { id: string; titel: string }, meldungen: PdfMeldung[]) => {
 	const teile = jeDokument(meldungen).map(
 		({ dok, meldungen: liste, titel }) =>
-			`Dokument „${titel}“ (${dok}):\n${liste.map((m) => `- ${m.seite > 0 ? `Seite ${m.seite}: ` : ''}${m.text}`).join('\n')}`,
+			`Dokument „${titel}“ ${maschinenteil(mappe.id, dok, false)}:\n${liste.map((m) => `- ${m.seite > 0 ? `Seite ${m.seite}: ` : ''}${m.text}`).join('\n')}`,
 	);
 	return [
 		`Bitte repariere in der Schoolbox-Mappe „${mappe.titel}“ (${mappe.id}), was die Prüfung beim PDF meldet, und stelle das Material danach wieder fertig.`,
