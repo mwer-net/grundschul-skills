@@ -115,6 +115,8 @@ export interface NeueMappe {
 	titel: string;
 	fach: Fach;
 	klasse: Klasse;
+	/** Feste ID statt einer aus Datum und Titel, z. B. für die Mappe „Schoolbox-Hilfe“. Gibt es sie schon: Fehler. */
+	id?: string;
 }
 
 const freieMappenId = (materialDir: string, basis: string) => {
@@ -122,9 +124,16 @@ const freieMappenId = (materialDir: string, basis: string) => {
 	return eindeutigeId(basis, (k) => imPapierkorb.has(k) || existsSync(path.join(materialDir, k)));
 };
 
-export const neueMappe = async (materialDir: string, { fach, klasse, titel }: NeueMappe, jetzt = new Date()) => {
+export const neueMappe = async (
+	materialDir: string,
+	{ fach, id: festeId, klasse, titel }: NeueMappe,
+	jetzt = new Date(),
+) => {
 	await mkdir(materialDir, { recursive: true });
-	const id = freieMappenId(materialDir, mappenSlug(titel, fach, klasse, jetzt));
+	const id =
+		festeId === undefined
+			? freieMappenId(materialDir, mappenSlug(titel, fach, klasse, jetzt))
+			: pruefeId(festeId, 'Mappe');
 	const dir = mappenDir(materialDir, id);
 	await mkdir(dir);
 	await mkdir(path.join(dir, 'bilder'));

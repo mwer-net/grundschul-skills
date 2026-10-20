@@ -10,7 +10,7 @@ import { Symbol } from './Symbol';
 const KOPF_KNOPF =
 	'flex min-h-12 flex-none items-center gap-2 rounded-xl px-3 font-bold text-brand-600 no-underline hover:bg-brand-50';
 
-/** Kopfzeile aller Seiten nach der Anmeldung: Name, Suche, Papierkorb, Abmelden. */
+/** Kopfzeile aller Seiten nach der Anmeldung: Name, Suche, Hilfe, Papierkorb, Abmelden. */
 export const Rahmen = () => {
 	const [suche, setSuche] = useState('');
 	const { pathname } = useLocation();
@@ -65,6 +65,10 @@ export const Rahmen = () => {
 							onChange={(e) => sucheNach(e.target.value)}
 						/>
 					</label>
+					<Link to="/hilfe" className={KOPF_KNOPF} aria-label="Hilfe">
+						<Symbol name="hilfe" />
+						<span className="max-lg:hidden">Hilfe</span>
+					</Link>
 					<Link to="/papierkorb" className={KOPF_KNOPF} aria-label="Papierkorb">
 						<Symbol name="papierkorb" />
 						<span className="max-lg:hidden">Papierkorb</span>

@@ -149,6 +149,7 @@ pnpm start                            # Server starten; mit PM2: pm2 start ecosy
 pnpm dev                              # Entwicklung: Server mit Neustart bei Änderungen, Vite mit Proxy
 pnpm --filter @schoolbox/web run e2e:browser   # einmalig: WebKit und Chromium für die Browser-Tests
 pnpm --filter @schoolbox/web run e2e           # Oberfläche bauen, in WebKit (iPad hoch/quer, Mac) und Chromium testen
+pnpm --filter @schoolbox/web run hilfe:bilder  # Bildschirmfotos der Hilfeseite neu aufnehmen (web/public/hilfe-bilder/)
 ```
 
 Die Browser-Tests starten einen eigenen Server mit leerer Ablage in `/tmp`. Browser nur über `e2e:browser` installieren: `playwright install` räumt im gemeinsamen Cache `~/.cache/ms-playwright/` alle Browser ab, die zu keiner Playwright-Installation mehr gehören, und dazu kann das Chromium gehören, mit dem `blatt.py` baut. Das Skript setzt `PLAYWRIGHT_SKIP_BROWSER_GC=1` und installiert Chromium immer mit. WebKit braucht unter Linux zusätzliche Systembibliotheken; welche fehlen, nennt die Fehlermeldung beim ersten Start.
@@ -170,7 +171,7 @@ LimitRequestBody 26214400                     # Bild-Uploads
 
 Server-Sent Events brauchen keine Sonderbehandlung, solange der Proxy `text/event-stream` nicht komprimiert und sein Timeout über 25 s liegt (der Server sendet einen Puls). Erster Start: `pnpm install && pnpm build`, dann `pm2 start schoolbox/ecosystem.config.cjs && pm2 save`. Fehlversuche bei der Anmeldung stehen in `schoolbox/logs/error.log` als `JJJJ-MM-TT hh:mm:ss ±hh:mm: Anmeldung fehlgeschlagen: ip=<Adresse>` (bzw. `gebremst`), passend für einen fail2ban-Filter.
 
-Danach rollt `scripts/ausrollen.sh` neue Stände aus: Fast-Forward auf `origin/main`, `pnpm install --frozen-lockfile`, Typprüfung, Oberfläche daneben bauen und tauschen, `pm2 reload schoolbox`, bis `/healthz` den neuen Commit meldet. Schlägt ein Schritt fehl, kehrt es zum alten Commit zurück und der alte Stand läuft weiter. Es verlangt einen sauberen Arbeitsbaum auf `main`; `--immer` baut auch ohne neuen Stand.
+Danach rollt `scripts/ausrollen.sh` neue Stände aus: Fast-Forward auf `origin/main`, `pnpm install --frozen-lockfile`, Typprüfung, Oberfläche daneben bauen und tauschen, `pm2 reload schoolbox`, bis `/healthz` den neuen Commit meldet. Schlägt ein Schritt fehl, kehrt es zum alten Commit zurück und der alte Stand läuft weiter. Danach bringt es mit `schoolbox kurzanleitung` die Mappe „Schoolbox-Hilfe“ auf den Stand von `schoolbox/vorlagen/kurzanleitung.html`; eigene Änderungen daran bleiben als Version erhalten, und eine gelöschte Mappe kommt nicht wieder. Es verlangt einen sauberen Arbeitsbaum auf `main`; `--immer` baut auch ohne neuen Stand.
 
 #### Zwei Klone: einer für die Lehrkraft, einer für die Entwicklung
 

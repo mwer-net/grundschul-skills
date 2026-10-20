@@ -10,6 +10,7 @@ export * from './fehler';
 export * from './freigaben';
 export * from './html';
 export * from './konfig';
+export * from './kurzanleitung';
 export * from './loesungen';
 export * from './meldungen';
 export * from './namen';

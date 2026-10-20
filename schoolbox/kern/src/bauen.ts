@@ -75,7 +75,7 @@ export interface Fertig {
 }
 
 export const fertigstellen = async (
-	konfig: Konfig,
+	konfig: Pick<Konfig, 'materialDir' | 'pythonBin'>,
 	ziel: Ziel & { dok: string },
 	jetzt = new Date(),
 ): Promise<Fertig> => {

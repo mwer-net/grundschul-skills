@@ -10,6 +10,7 @@ import { Editor } from './seiten/Editor';
 import { Entwuerfe } from './seiten/Entwuerfe';
 import { EntwurfGross } from './seiten/EntwurfGross';
 import { Geteilt } from './seiten/Geteilt';
+import { Hilfe } from './seiten/Hilfe';
 import { Mappenansicht } from './seiten/Mappenansicht';
 import { NichtGefunden } from './seiten/NichtGefunden';
 import { Papierkorb } from './seiten/Papierkorb';
@@ -63,6 +64,7 @@ export const App = () => (
 					<Route path="m/:mappe/:dok/entwuerfe" element={<EntwuerfeSeite />} />
 					<Route path="m/:mappe/:dok/entwuerfe/:name" element={<EntwurfSeite />} />
 					<Route path="papierkorb" element={<Papierkorb />} />
+					<Route path="hilfe" element={<Hilfe />} />
 					<Route path="*" element={<NichtGefunden />} />
 				</Route>
 			</Routes>

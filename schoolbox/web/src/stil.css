@@ -83,3 +83,31 @@
 		background: rgb(38 50 61 / 45%);
 	}
 }
+
+/* Fließtext der Hilfeseite: Tailwind setzt Listen und Abstände zurück */
+@layer components {
+	.hilfe-text > * + * {
+		margin-top: 0.75rem;
+	}
+
+	.hilfe-text h3 {
+		margin-top: 1.25rem;
+		font-size: 1.25rem;
+	}
+
+	.hilfe-text ol,
+	.hilfe-text ul:not(.pl-0) {
+		display: flex;
+		flex-direction: column;
+		gap: 0.4rem;
+		padding-left: 1.5rem;
+	}
+
+	.hilfe-text ol {
+		list-style: decimal;
+	}
+
+	.hilfe-text ul:not(.pl-0) {
+		list-style: disc;
+	}
+}

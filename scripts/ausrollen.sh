@@ -1,6 +1,7 @@
 #!/usr/bin/env bash
 # Rollt den Stand von origin/main aus: Fast-Forward, Abhängigkeiten, Typprüfung, Oberfläche bauen, PM2 neu laden,
 # /healthz prüfen. Schlägt ein Schritt fehl, kehrt alles zum alten Commit zurück und der alte Stand läuft weiter.
+# Danach zieht es die Kurzanleitung (Mappe „Schoolbox-Hilfe“) auf den Stand der Vorlage nach.
 #
 #   scripts/ausrollen.sh            nur wenn origin/main neuer ist oder der Server den Stand nicht meldet
 #   scripts/ausrollen.sh --immer    auch ohne neuen Stand bauen und neu laden
@@ -157,6 +158,9 @@ if warte_auf_head; then
 	trap - ERR
 	echo "$healthz: $(curl -fsS --max-time 2 "$healthz")"
 	echo 'Ausgerollt.'
+	# Läuft erst nach dem Ausrollen: Ein Fehler hier rollt nichts zurück, er wird nur gemeldet
+	"$schoolbox_dir/bin/schoolbox" kurzanleitung ||
+		echo 'Hinweis: Die Kurzanleitung ließ sich nicht aktualisieren („schoolbox/bin/schoolbox kurzanleitung“).'
 	# Eine geänderte Vorlage kommt nicht von selbst in .claude/settings.local.json
 	if [ "$(git -C "$wurzel" config --get schoolbox.lehrkraftModus || true)" = true ] &&
 		! bash "$wurzel/scripts/einrichten-lehrkraft.sh" --pruefen >/dev/null; then

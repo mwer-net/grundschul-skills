@@ -22,6 +22,8 @@ import { baueEntwurfsVorschauen, fertigstellen } from './bauen';
 import { SchoolboxFehler } from './fehler';
 import type { Konfig } from './konfig';
 import { ladeKonfig } from './konfig';
+import type { KurzanleitungStand } from './kurzanleitung';
+import { HILFE_MAPPE, KURZANLEITUNG, richteKurzanleitungEin } from './kurzanleitung';
 import { entwurfVorschauDatei } from './namen';
 import type { Knoten } from './quelltext';
 import { zerlege } from './quelltext';
@@ -52,6 +54,7 @@ const HILFE = `schoolbox – Mappen und Dokumente der Schoolbox anlegen und fert
   schoolbox wunsch "…"
   schoolbox status
   schoolbox passwort      (Passwort der Anmeldung setzen oder ändern)
+  schoolbox kurzanleitung (Mappe „Schoolbox-Hilfe“ anlegen oder auf den Stand der Vorlage bringen)
 
 Alle Befehle: --json für maschinenlesbare Ausgabe.
 Fächer:  ${FAECHER.join(', ')}
@@ -325,6 +328,27 @@ const befehlPasswort = async (konfig: Konfig, argumente: string[]): Promise<Erge
 	return { daten: { datei, geheimnisNeu }, text };
 };
 
+const KURZANLEITUNG_TEXT: Record<KurzanleitungStand, string> = {
+	'angelegt': 'Kurzanleitung angelegt.',
+	'aktualisiert': 'Kurzanleitung auf den Stand der Vorlage gebracht (der vorige Stand bleibt als Version).',
+	'aktuell': 'Kurzanleitung ist aktuell.',
+	'im-papierkorb': 'Die Mappe „Schoolbox-Hilfe“ liegt im Papierkorb und wird nicht neu angelegt.',
+};
+
+const befehlKurzanleitung = async (konfig: Konfig, argumente: string[]): Promise<Ergebnis> => {
+	lies(argumente, {});
+	const { fertig, stand } = await richteKurzanleitungEin(konfig);
+	const fehler = fertig?.meta.pruefung?.fehler ?? 0;
+	const ziel = { mappe: HILFE_MAPPE, dok: KURZANLEITUNG };
+	const link = konfig.schoolboxUrl ? linkZu(konfig, ziel) : null;
+	const text = [
+		KURZANLEITUNG_TEXT[stand],
+		...(fehler > 0 ? [`Prüfung: ${fehler} Fehler, siehe ${fertig?.ausgabe ?? ''}`] : []),
+		...(link && stand !== 'im-papierkorb' ? [`Link: ${link}`] : []),
+	].join('\n');
+	return { code: fehler > 0 ? 1 : 0, daten: { stand, link, pruefung: fertig?.meta.pruefung ?? null }, text };
+};
+
 const MAX_ZEILEN = 80;
 
 const zeileVon = (quelle: string, pos: number) => quelle.slice(0, pos).split('\n').length;
@@ -412,6 +436,7 @@ const BEFEHLE: Record<string, (konfig: Konfig, argumente: string[]) => Promise<E
 	wunsch: befehlWunsch,
 	status: befehlStatus,
 	passwort: befehlPasswort,
+	kurzanleitung: befehlKurzanleitung,
 };
 
 const main = async (argv: string[]): Promise<number> => {

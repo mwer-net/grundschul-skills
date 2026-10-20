@@ -2,8 +2,9 @@ import { Link, useSearchParams } from 'react-router-dom';
 
 import { Chip } from '../bausteine/Chip';
 import { Kachel, Marke } from '../bausteine/Kachel';
-import { Knopf } from '../bausteine/Knopf';
+import { Knopf, KnopfLink } from '../bausteine/Knopf';
 import { useSuche } from '../bausteine/suche';
+import { Symbol } from '../bausteine/Symbol';
 import { Vorschau } from '../bausteine/Vorschau';
 import { Zustand } from '../bausteine/Zustand';
 import { useEreignisse } from '../ereignisse';
@@ -130,6 +131,10 @@ export const Uebersicht = () => {
 						„Ich brauche ein Arbeitsblatt zur Uhrzeit für Klasse 2.“
 					</p>
 					<p className="text-leise">Sobald Claude etwas angelegt hat, erscheint es hier von selbst.</p>
+					<KnopfLink to="/hilfe" art="zweit">
+						<Symbol name="hilfe" />
+						So geht’s
+					</KnopfLink>
 				</Zustand>
 				{defekt.length > 0 && <Defekte defekt={defekt} />}
 			</>
