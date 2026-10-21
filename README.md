@@ -150,9 +150,41 @@ pnpm dev                              # Entwicklung: Server mit Neustart bei Än
 pnpm --filter @schoolbox/web run e2e:browser   # einmalig: WebKit und Chromium für die Browser-Tests
 pnpm --filter @schoolbox/web run e2e           # Oberfläche bauen, in WebKit (iPad hoch/quer, Mac) und Chromium testen
 pnpm --filter @schoolbox/web run hilfe:bilder  # Bildschirmfotos der Hilfeseite neu aufnehmen (web/public/hilfe-bilder/)
+pnpm --filter @schoolbox/web run video         # Demo-Video neu aufnehmen und schneiden (siehe unten)
 ```
 
 Die Browser-Tests starten einen eigenen Server mit leerer Ablage in `/tmp`. Browser nur über `e2e:browser` installieren: `playwright install` räumt im gemeinsamen Cache `~/.cache/ms-playwright/` alle Browser ab, die zu keiner Playwright-Installation mehr gehören, und dazu kann das Chromium gehören, mit dem `blatt.py` baut. Das Skript setzt `PLAYWRIGHT_SKIP_BROWSER_GC=1` und installiert Chromium immer mit. WebKit braucht unter Linux zusätzliche Systembibliotheken; welche fehlen, nennt die Fehlermeldung beim ersten Start.
+
+#### Demo-Video
+
+[![Demo-Video der Schoolbox](schoolbox/docs/schoolbox-demo.png)](schoolbox/docs/schoolbox-demo.mp4)
+
+[Demo-Video ansehen](schoolbox/docs/schoolbox-demo.mp4) (5:58, 1920×1080, ohne Ton): ein Arbeitsblatt „Uhrzeit“ für Klasse 2 von der ersten Bitte an Claude bis zum Teilen, aus Sicht der Lehrkraft, am Mac und am iPad.
+
+| Zeit | Kapitel |
+|------|---------|
+| 0:04 | 1 · Anmelden |
+| 0:12 | 2 · Ein Wunsch an Claude |
+| 0:34 | 3 · Entwürfe vergleichen |
+| 1:02 | 4 · Alle Mappen |
+| 1:20 | 5 · Eine Mappe |
+| 1:40 | 6 · Ansehen, PDF, Drucken |
+| 1:57 | 7 · Selbst ändern im Editor |
+| 4:26 | 8 · Präsentieren |
+| 4:59 | 9 · Teilen |
+| 5:21 | 10 · Papierkorb |
+| 5:34 | 11 · Hilfe |
+
+Alles im Video sind Testdaten. Der Claude-Chat ist nachgestellt (eine schlichte Seite, im Bild als „nachgestellt“ beschriftet); die Schoolbox selbst ist echt, Claudes Änderungen an `material.html` laufen über dieselbe Ablage wie im Betrieb.
+
+`pnpm --filter @schoolbox/web run video` baut die Oberfläche, startet einen Testserver auf Port 4049 mit eigener Ablage in `/tmp`, nimmt jedes Kapitel in Chromium auf (`e2e/video/drehbuch.ts`) und schneidet daraus mit `ffmpeg` (mit libx264) das MP4, samt Titelkarten, Untertiteln und iPad-Rahmen. Ein Durchlauf dauert etwa 25 Minuten; Kontrollbilder alle fünf Sekunden landen neben den Aufnahmen in `/tmp/schoolbox-video-aufnahme/kontrolle/`. Das Skript gehört nicht zu `e2e`. Stellschrauben über Umgebungsvariablen:
+
+| Variable | Wirkung |
+|----------|---------|
+| `VIDEO_ZIEL` | Ausgabedatei (Standard `lokal/video/schoolbox-demo.mp4`; für dieses README nach `schoolbox/docs/` kopieren) |
+| `VIDEO_NUR` | nur bestimmte Kapitel schneiden, z. B. `k10`, für Probeschnitte |
+| `VIDEO_TEMPO` | Grundtempo gegenüber der Aufnahme (Standard `1.2`), ohne neu aufzunehmen |
+| `VIDEO_PRESET` | x264-Preset (Standard `medium`; `veryfast` für Probeschnitte) |
 
 #### Betrieb auf einem eigenen Server
 
