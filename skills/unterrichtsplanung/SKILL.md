@@ -37,6 +37,7 @@ Grundsätze:
 ## Reihenplanung
 
 - Lernziel der Reihe → Ich-kann-Ziele pro Stunde, logisch aufbauend (Einführung → Übung → Vertiefung → Anwendung → Überprüfung). Jede Stunde folgt dem Churer Ablauf.
+- Rahmengeschichte (empfohlen ab etwa fünf Stunden): ein Problem, das die Reihe löst; jede Stunde ein Kapitel, dessen Rätsel das Ich-kann-Ziel ist, mit Szenenkarte für den Kreisinput; die Überprüfung löst den Rahmen auf. Szenenkarten und Posen der Leitfigur nach `grundschul-didaktik/references/kindgerecht-gestalten.md`, Abschnitt „Geschichten-Rahmen für eine Reihe“. In der Reihentabelle steht das Kapitel neben dem Thema.
 - Tabelle: Stunde | Thema | Ich-kann-Ziel | Kreisinput | Lernaufgaben ● / ●● / ●●● | Material.
 - Am Ende der Reihe eine Lernlandkarte bzw. Selbsteinschätzung mit Wachstumsstufen (siehe `lernzielkontrolle`).
 - Endet die Reihe in Kl. 3/4 mit einer Klassenarbeit: Lernlandkarte zu Beginn, „Fit für die Arbeit" mit Lernaufgaben ● / ●● / ●●● zum gezielten Üben, Probearbeit 1–2 Wochen vorher, Termin nach den BW-Regeln (nicht montags, nicht nach Ferien oder Feiertag), Rückgabestunde mit Kommentar vor der Note und Berichtigung als Lernaufgabe (`klassenarbeit`).

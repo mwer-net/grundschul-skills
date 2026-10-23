@@ -57,6 +57,7 @@ Schreibfläche immer größer als gedacht: Kinderhandschrift braucht Platz.
 - Für Ausmalaufgaben: klare schwarze Konturen, keine Graustufenflächen.
 - Sachunterricht: Bei Tieren, Pflanzen, Körperteilen realistische Darstellung (im s/w-Profil als genaue Strichzeichnung); Fotos nur im Farbprofil. Keine Comicverzerrung bei Fachinhalten.
 - Alle Bilder brauchen Platz zur Beschriftung, wenn Kinder beschriften sollen.
+- **Keine Hände, Finger oder anderen Körperteile als selbst gezeichnetes SVG** (auch nicht als Zeigehand an einer Aufgabe): Sie wirken unbeholfen und verderben die ganze Seite. Eine Geste zeigt die Leitfigur als fertige Grafik, einen Hinweis ein Pfeil oder ein kurzes Wort.
 
 ## Farbe
 
@@ -84,7 +85,7 @@ Schreibfläche immer größer als gedacht: Kinderhandschrift braucht Platz.
 | ● ●● ●●● | Niveau: Grundlage / Kern / Herausforderung (falls Churer Modell gewählt) |
 | ★ | Sternchenaufgabe, freiwillig für alle (falls gewählt) |
 
-Grundsatz: Ist in der Klasse schon ein Symbolset eingeführt (Lehrwerk, Metacom), immer dieses verwenden. Symbole immer gleich groß, nach der Nummer direkt vor dem Anweisungstext. Im Material als schwarze Linien-Icons (s/w-tauglich), nie als farbige Emojis; die Emojis oben stehen nur für die Bedeutung. Am wichtigsten sind sie in Kl. 1/2 und für leseschwache Kinder.
+Grundsatz: Ist in der Klasse schon ein Symbolset eingeführt (Lehrwerk, Metacom), immer dieses verwenden. Symbole immer gleich groß, nach der Nummer direkt vor dem Anweisungstext. **Genau ein Symbol pro Aufgabe**, das für die Haupthandlung; mehrere Symbole nebeneinander machen die Anweisung unruhiger statt klarer. Im Material als schwarze Linien-Icons (s/w-tauglich), nie als farbige Emojis; die Emojis oben stehen nur für die Bedeutung. Am wichtigsten sind sie in Kl. 1/2 und für leseschwache Kinder.
 
 ## Arbeitsanweisungen formulieren
 

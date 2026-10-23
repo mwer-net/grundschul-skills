@@ -49,8 +49,8 @@ Feste Vorgabe für alle Materialien: Die Leitfigur ist **Willi Waschbär** oder 
 
 | Grafik | Aussehen | Datei (`html-materialerstellung/assets/bilder/`) |
 |---|---|---|
-| Willi Waschbär | grauer Waschbär-Junge, schwarze Augenmaske, geringelter Schwanz, oranges T-Shirt (#F28C28) | `willi.png`, s/w `willi-strich.png` |
-| Wilma Waschbär | graues Waschbär-Mädchen, schwarze Augenmaske, geringelter Schwanz, petrolfarbenes Kleid (#2A9D8F), Schleife am Ohr | `wilma.png`, s/w noch anlegen |
+| Willi Waschbär | grauer Waschbär-Junge, schwarze Augenmaske, dunkelbraune Augen ohne Wimpern, geringelter Schwanz, oranges T-Shirt (#F28C28) | `willi.png`, s/w `willi-strich.png` |
+| Wilma Waschbär | graues Waschbär-Mädchen, schwarze Augenmaske, petrolfarbene Augen mit Wimpern, geringelter Schwanz, petrolfarbenes Kleid (#2A9D8F), petrolfarbene Schleife am Ohr | `wilma.png`, s/w noch anlegen |
 | Wachstumsgrafik (Samen → Keimling → Pflanze → Blume) | vier Stufen nebeneinander, Pastell, für die Selbsteinschätzung | `wachstum.png`, s/w `wachstum-strich.png` |
 
 Canva-Media-IDs und Technik: `html-materialerstellung/references/bilder.md`.
@@ -60,7 +60,7 @@ Canva-Media-IDs und Technik: `html-materialerstellung/references/bilder.md`.
 - **Wiederverwenden statt neu erzeugen:** Die vorhandenen Dateien einsetzen. Für eine andere Pose (zeigt nach links, freut sich, denkt nach) `generate-image` mit dem Original als `imageReferences` und der Aussehen-Beschreibung oben aufrufen, danach `remove-background`; neue Posen als Datei ergänzen.
 - **Wer wann:** Pro Material eine Figur, abwechselnd über die Materialien einer Reihe; bei Partner- oder Dialogaufgaben auch beide.
 - **Immer mit Funktion:** Die Figur gibt einen Strategietipp in einer Sprechblase, zeigt auf das Beispiel und denkt dort laut vor („So geht's: Zuerst … dann … zum Schluss prüfe ich …"), stellt die Herausforderung ●●●, hat sich bei „Finde den Fehler" vertan oder stellt die Reflexionsfrage. Sie spricht in „noch"-Sprache und lobt Strategie und Ausdauer, nie Begabung. Ohne Funktion keine Figur.
-- Höchstens 1–2 Auftritte pro Seite, klein (ca. 15 % der Seitenbreite), am Rand, nie zwischen Anweisung und Arbeitsfläche.
+- Höchstens ein Auftritt pro Seite (Figur mit Tipp oder Figur in der Ecke, nie beides), zwei nur bei Partner- oder Dialogaufgaben; klein (ca. 15 % der Seitenbreite), am Rand, nie zwischen Anweisung und Arbeitsfläche. Zwei Figuren auf einer Seite wirkten in der Erprobung sofort überladen.
 
 ### 4. Bilder nur mit Mehrwert
 
@@ -100,13 +100,40 @@ s/w-Profil:
 
 > Kindgerechte Strichzeichnung wie ein Ausmalbild, runde, weiche Formen, klare schwarze Konturen gleichmäßiger Stärke, weiße Füllung, keine Grautöne, keine Schraffur, freundliche Gesichter, weißer Hintergrund, freigestellt, keine Schrift, keine Zahlen, keine Buchstaben im Bild, kein Hintergrundmuster.
 
+Szenenbild mit Hintergrund (Farbprofil, für Geschichten und Erzählanlässe, nicht freigestellt):
+
+> Kindgerechte Illustration im flachen Vektorstil, runde, weiche Formen, klare dunkle Konturen, warme fröhliche Farben, freundliche Gesichter, keine Schrift, keine Zahlen, keine Buchstaben im Bild.
+
 Danach Motiv konkret beschreiben: wer, was, Pose, Blickrichtung (zur Aufgabe hin), Bildausschnitt.
 
 Regeln:
-- **Keine Schrift, Zahlen oder Uhren im KI-Bild.** KI erzeugt dabei regelmäßig Fehler. Fachlich exakte Elemente (Uhren, Zahlenstrahl, Mengenbilder) werden berechnet und als Vektor gesetzt (`html-materialerstellung/assets/abbildungen.js`).
+- **Keine Schrift, Zahlen oder Uhren im KI-Bild.** KI erzeugt dabei regelmäßig Fehler. Fachlich exakte Elemente (Uhren, Zahlenstrahl, Mengenbilder) werden berechnet und als Vektor gesetzt (`html-materialerstellung/assets/abbildungen.js`). Auch Gegenstände meiden, die Schrift anziehen (Schilder, Plakate, offene Bücher, Tafeln, Hausnummern), oder sie ausdrücklich „leer“ beschreiben.
+- **Keine Anzahl, auf die es ankommt.** Würfelaugen, Fächer, Anzahl Häuser oder Gegenstände in Reihen stimmen im KI-Bild fast nie. Was gezählt werden soll, wird berechnet (`html-materialerstellung/references/bilder.md`, Abschnitt 3).
 - Leitfigur: immer Willi oder Wilma Waschbär (Dateien in `html-materialerstellung/assets/bilder/`, neue Posen nach `html-materialerstellung/references/bilder.md`).
 - Sachabbildungen (Tiere, Pflanzen, Körper) auf fachliche Richtigkeit prüfen.
 - Diversität: Kinder unterschiedlicher Herkunft, Geschlechter und mit/ohne Brille, Rollstuhl usw. selbstverständlich abbilden, ohne es zum Thema zu machen.
+
+Prompt-Regeln für Figuren und Szenen (jede verhindert einen Fehler, der in der Erprobung vorkam):
+- **Jede Figur mit ihrem Aussehen beschreiben**, auch wenn ihr Referenzbild dabei ist: Art, Fellfarbe, Augenfarbe, Kleidung, Erkennungszeichen („Willi: grauer Waschbär-Junge, schwarze Augenmaske, dunkelbraune Augen, oranges T-Shirt“).
+- **„Jede Figur genau einmal im Bild.“** ausdrücklich in den Prompt schreiben. Ohne den Satz erscheint dieselbe Figur gelegentlich zweimal, mit anderer Kleidung.
+- **Höchstens drei bis vier Figuren je Szene.** Jede weitere Figur erhöht die Zahl der Fehler an Pfoten und Gesichtern.
+- **Einfache, eindeutige Posen und Griffe:** wer hält was in welcher Pfote und wie („hält die Lupe am Griff vor sich, das Auge bleibt frei“). Ein Gegenstand direkt vor dem Auge verschmilzt mit dem Auge; ein Gegenstand ohne beschriebenen Griff schwebt oder wächst aus dem Arm.
+- **Nie auf eine andere Figur verweisen** („genau wie Wilma“, „im selben Stil wie die andere Figur“): Die KI überträgt dann Merkmale wie Augenfarbe, Wimpern oder Schleife.
+- **Nur Referenzbilder der Figuren, die vorkommen**, je Figur eins. Ein überzähliges Referenzbild holt seine Figur zusätzlich ins Bild.
+- Erzeugt wird erst, wenn der Text der Szene steht, damit Bild und Text dieselbe Handlung zeigen.
+
+Geprüft wird jedes KI-Bild in voller Auflösung, Figur für Figur (`html-materialerstellung/references/bilder.md`, Abschnitt 2, Schritt 5); Fehler werden nach Abschnitt 2a dort repariert.
+
+## Geschichten-Rahmen für eine Reihe
+
+Eine durchgehende Geschichte trägt eine ganze Unterrichtsreihe besser als einzelne Blätter: Die Kinder wollen wissen, wie es weitergeht, und jede Stunde hat einen Anlass. Die Geschichte ist der Impuls des Kreisinputs, nicht Deko auf dem Arbeitsblatt.
+
+- **Rahmen:** ein Problem, das sich nur mit dem Lernziel der Reihe lösen lässt (etwas ist verschwunden, kaputt, verzaubert); jede Stunde ein Kapitel oder Fall, dessen Rätsel genau das Ich-kann-Ziel der Stunde ist. Die letzte Stunde löst den Rahmen auf (Überprüfung als „Prüfung“, Fest, Urkunde).
+- **Szenenkarte je Stunde** (Karte, Plakat oder Folie für den Kreisinput): Szenenbild über die volle Breite, Titel des Kapitels, kurze Geschichte (Kl. 1/2: drei bis fünf kurze Sätze zum Vorlesen), darunter die Frage der Stunde in einem Rätselkasten. Das Szenenbild ist hier Erzählanlass mit Funktion; der Weglass-Test gilt weiter für die Arbeitsblätter.
+- **Arbeitsblätter bleiben ruhig:** Sie greifen das Kapitel im Titel auf („Fall 3: …“) und haben höchstens die Leitfigur mit Tipp, keine Szenenbilder.
+- **Leitfigur in Bewegung:** Willi oder Wilma zeigt in jeder Szene eine andere Handlung und Pose passend zur Geschichte (rennt, kniet und misst, staunt, zeigt auf eine Spur, jubelt). Immer dieselbe Standardpose wirkt langweilig und erzählt nichts.
+- **Wiedererkennbar:** Leitfigur und höchstens ein bis zwei Nebenfiguren mit fester Aussehen-Beschreibung und denselben Referenzbildern in allen Szenen; der Szenen-Stil-Satz ist für die ganze Reihe gleich.
+- Szenen erst erzeugen, wenn alle Geschichten der Reihe stehen; danach jede Szene gegen ihren Text prüfen.
 
 ## Prüffragen „ansprechend, aber nicht überladen"
 
@@ -117,3 +144,5 @@ Regeln:
 - [ ] Höchstens zwei Schriften, Fließtext in klarer Druckschrift
 - [ ] Nichts Dekoratives zwischen Anweisung und Arbeitsfläche
 - [ ] Aufgaben ohne Kasten, Platz für Übung statt für Rahmen (`druck-und-platz.md`)
+- [ ] Höchstens ein Figurenauftritt pro Seite, ein Arbeitsanweisungs-Symbol pro Aufgabe, keine selbst gezeichneten Hände oder Körperteile
+- [ ] Jedes KI-Bild in voller Auflösung geprüft (Augen, Pfoten, Gegenstände, jede Figur einmal, keine Schrift) und passend zum Text
