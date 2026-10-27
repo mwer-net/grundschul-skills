@@ -71,6 +71,7 @@
     for (let i = 0; i < teile.length; i++) for (let j = i + 1; j < teile.length; j++) {
       const a = teile[i], b = teile[j];
       if (a.contains(b) || b.contains(a)) continue;
+      if (a.closest("[data-ueberlagert-ok]") || b.closest("[data-ueberlagert-ok]")) continue;
       const s = schneidet(a, b);
       if (s) paare.push([a, b, s]);
     }
@@ -84,7 +85,7 @@
     const walker = document.createTreeWalker(S, NodeFilter.SHOW_TEXT);
     while (walker.nextNode()) {
       const t = walker.currentNode, p = t.parentElement;
-      if (!t.textContent.trim() || !p || p.closest("svg,.nr,.namenszeile,.platzhalter,.loesung-marke") || !sichtbar(p)) continue;
+      if (!t.textContent.trim() || !p || p.closest("svg,.nr,.namenszeile,.platzhalter,.loesung-marke,[data-klein-ok]") || !sichtbar(p)) continue;
       const text = `„${t.textContent.trim().slice(0, 30)}“ (${getComputedStyle(p).fontSize})`;
       if (parseFloat(getComputedStyle(p).fontSize) < min - 0.5 && !klein.has(text)) klein.set(text, p);
     }
@@ -101,7 +102,7 @@
     alle.filter((e) => e.tagName === "DIV" || e.tagName === "SECTION").forEach((e) => {
       const c = getComputedStyle(e), r = e.getBoundingClientRect();
       const [R, G, Bl, a = 1] = rgb(c.backgroundColor);
-      if (a > 0.05 && (R + G + Bl) / 3 < 245 && r.width * r.height > 4000 && !e.closest(".karten"))
+      if (a > 0.05 && (R + G + Bl) / 3 < 245 && r.width * r.height > 4000 && !e.closest(".karten,[data-flaeche-ok]"))
         melde("WARNUNG", nr, "flaeche", `Fläche hinter „${kurz(e)}“ (${c.backgroundColor}) → Aufgaben ohne Kasten und Fläche`, [ziel(e)]);
     });
 

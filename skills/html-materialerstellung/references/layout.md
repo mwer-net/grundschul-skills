@@ -37,6 +37,11 @@ Faustwerte Kl. 2 (24 px Schrift): Aufgabenzeile 34 px, Uhr 88 px + Antwortlinie 
 6. **Lösungen im selben Dokument** (`data-l`, `loesung=`, `nur-loesung`); keine zweite Kopie pflegen.
 7. **Varianten** (Niveau-Blätter) als weitere `.seite` in derselben Datei; Titel nach Schema `Kl2_Mathe_Uhrzeit_AB1`.
 8. **Leitfigur-Tipp** neben seiner Aufgabe, wenn die Reihe Platz hat (`.tipp` ans Reihenende), sonst in den Kopf (`.kopf .tipp`, „Zu 1: …"); nie zwischen Anweisung und Arbeitsfläche.
+9. **Gewollte Ausnahmen markieren**, damit die Prüfung sie nicht meldet; nur dort, wo das Blatt angesehen und für richtig befunden ist:
+   - `data-rand-ok`: Element darf in den Seitenrand (Seitenzahl, Fußzeile, Deko am Rand).
+   - `data-ueberlagert-ok`: Element darf andere überlagern (Würfelaugen auf einem Würfel, Etikett auf einem Bild).
+   - `data-klein-ok`: Schrift darf kleiner sein als für die Klasse (Fußzeile, Hinweise für die Lehrkraft).
+   - `data-flaeche-ok`: Fläche ist gewollt (Titelband, Szenenkarte), nicht hinter einer Aufgabe.
 
 ## 4. Checkliste
 
