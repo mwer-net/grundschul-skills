@@ -63,8 +63,14 @@ KI-Bilder haben regelmäßig Fehler, die erst in voller Auflösung auffallen: ei
 1. **Bearbeiten statt neu würfeln**, wenn das Bild sonst passt: `generate-image` mit dem fehlerhaften Bild als **einziger** `imageReferences` und dem Prompt „Bearbeite dieses Bild und behalte alles andere genau gleich (Figuren, Farben, Hintergrund, Bildausschnitt). Korrigiere nur: …“, dann den Fehler mit Ort und den gewünschten Zustand („Die Lupe hat einen Griff und Willi hält sie mit der rechten Pfote vor sich, sein Auge ist frei“).
 2. **Den Sollzustand beschreiben, nie auf eine andere Figur verweisen.** „Dunkelbraune Augen ohne Wimpern“ statt „Augen wie bei Wilma“: Der Verweis überträgt weitere Merkmale der anderen Figur (Augenfarbe, Wimpern, Schleife).
 3. **Ergebnis wieder vollständig prüfen** (Schritt 5): Eine Bearbeitung lässt den Fehler oft stehen oder erzeugt einen neuen an anderer Stelle.
-4. **Nach zwei erfolglosen Bearbeitungen** neu erzeugen, mit der Prompt-Regel, die den Fehler verhindert, oder den Bildausschnitt so wählen, dass die Stelle wegfällt. Pixel-Retusche von Hand (übermalen, weichzeichnen) sieht fast immer schlechter aus als der Fehler.
-5. Die neue Datei ersetzen, Bildliste aktualisieren, neu bauen.
+4. **Nach zwei erfolglosen Bearbeitungen** neu erzeugen, mit der Prompt-Regel, die den Fehler verhindert, oder den Bildausschnitt so wählen, dass die Stelle wegfällt. Pixel-Retusche an Figuren (übermalen, weichzeichnen) sieht fast immer schlechter aus als der Fehler.
+5. **Kleine Fehler an einer Stelle:** Bleibt nach der Bearbeitung ein kleiner Rest oder betrifft der Fehler nur eine Stelle, nicht das ganze Bild neu bearbeiten:
+   - Auf ruhigem Untergrund (Busch, Himmel, Wiese, Stoff) die Stelle mit Textur direkt daneben überdecken: dasselbe Bild um einige Pixel verschoben, nur innerhalb einer weichen Maske einsetzen, die vor Konturen endet. Einen Farbstich (grünlich, bläulich) nur in der Maske entfärben.
+   - An Figuren den Ausschnitt um die Stelle (etwa 256 px) auf 1024 px vergrößern, hochladen (`create-upload-url`), nach Schritt 1 bearbeiten, wieder verkleinern, per Versatzsuche genau ausrichten und mit weicher Maske einsetzen.
+   - Exakte Inhalte (Würfelaugen, Punkte) nicht von der KI zeichnen lassen: die KI macht die Fläche leer, dann die Punkte perspektivisch in die Fläche rechnen (Ecken der Fläche bestimmen, Punkte bilinear abbilden).
+
+   Danach die Stelle vergrößert ansehen; sieht man die Naht, Maske kleiner oder Versatz ändern.
+6. Die neue Datei ersetzen, Bildliste aktualisieren, neu bauen.
 
 ## 3. Keine KI für exakte Abbildungen
 

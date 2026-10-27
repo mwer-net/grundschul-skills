@@ -56,7 +56,8 @@ Die Endkontrolle bewertet streng: Im Zweifel ist es ein Befund. „Sieht im Gro�
 - [ ] Arme, Hände, Pfoten und Beine gezählt: keine dritte Hand, keine Pfote ohne Körper, kein Arm, der in einen Gegenstand übergeht.
 - [ ] Gehaltene Gegenstände haben einen Griff und eine Pfote daran; nichts schwebt, ohne dass die Geschichte es will.
 - [ ] Schwanz, Ohren, Kleidung vollständig und deckend; keine durchscheinenden Figuren, Schleier, Wischer oder Geisterbilder.
-- [ ] Jede Figur genau einmal, so wie ihr Referenzbild (Kleidung, Fellfarbe, Augenfarbe, Erkennungszeichen).
+- [ ] Jede Figur genau einmal, so wie ihr Referenzbild (Kleidung, Fellfarbe, Augenfarbe, Erkennungszeichen); wiederkehrende Nebenfiguren sehen in allen Szenen der Reihe gleich aus.
+- [ ] Jede Figur, die in der Geschichte spricht oder handelt, ist im Bild zu sehen; im Bild tut niemand etwas anderes, als der Text sagt.
 - [ ] Keine Buchstaben, Ziffern oder Schriftreste, auch nicht klein an Häusern, Schildern, Kisten oder Kleidung.
 - [ ] Bild und Text passen: dieselbe Figur tut, was die Geschichte sagt; jede Anzahl, die der Text nennt, stimmt im Bild (Würfelaugen, Fächer, Häuser, Reihen); Gegenstände und Ort stimmen.
 
