@@ -232,6 +232,14 @@ export const FARBEN: Option[] = [
 	{ wert: 'leer', name: 'Weiß' },
 ];
 
+const ZAHL = /^-?\d+([.,]\d+)?$/;
+export const alsZahl = (wert: string) => (ZAHL.test(wert.trim()) ? Number(wert.trim().replace(',', '.')) : NaN);
+
+const STUFEN_DREI = ['unmöglich', 'möglich', 'sicher'];
+const STUFEN_FUENF: Option[] = ['unmöglich', 'wenig wahrscheinlich', 'möglich', 'sehr wahrscheinlich', 'sicher'].map(
+	(wert) => ({ wert, name: wert }),
+);
+
 export const ABBILDUNG_SCHEMA = {
 	'x-uhr': {
 		name: 'Uhr',
@@ -475,6 +483,288 @@ export const ABBILDUNG_SCHEMA = {
 		],
 		regeln: (w): Fehler => (w.zeilen('eintraege').length === 4 ? { eintraege: 'Vier geht nicht.' } : {}),
 	},
+	'x-gluecksrad': {
+		name: 'Glücksrad',
+		felder: [
+			{
+				art: 'liste',
+				attribut: 'felder',
+				name: 'Felder',
+				unter: [
+					{ name: 'Füllung', art: 'muster', optionen: FARBEN, standard: 'rot' },
+					{ name: 'Beschriftung', art: 'text', leer: true },
+				],
+				min: 2,
+				max: 12,
+			},
+			{
+				art: 'zahlen',
+				attribut: 'anteile',
+				name: 'Anteile',
+				beispiel: '1 1 2',
+				hilfe: 'Eine Zahl je Feld. Leer heißt: alle Felder gleich groß.',
+			},
+			{
+				art: 'text',
+				attribut: 'loesung',
+				name: 'Füllungen erst in der Lösung',
+				hilfe: 'Auf dem Blatt bleiben alle Felder weiß, z. B. „rot blau rot“.',
+				beispiel: 'rot blau rot',
+			},
+			{ art: 'schalter', attribut: 'zeiger', name: 'Zeiger', an: 'ja', aus: 'nein', standard: true },
+			{ art: 'schalter', attribut: 'legende', name: 'Legende', an: 'ja', aus: 'nein', standard: true },
+			{
+				art: 'schalter',
+				attribut: 'bastel',
+				name: 'Bastelvorlage (12 cm)',
+				an: 'ja',
+				aus: 'nein',
+				standard: false,
+			},
+			{ art: 'zahl', ...GROESSE, min: 100, max: 460, standard: 200, schritt: 20 },
+		],
+		regeln: (w): Fehler => {
+			const felder = w.zeilen('felder').length;
+			const anteile = w.zahlen('anteile');
+			if (anteile.length > 0 && anteile.reduce((a, b) => a + b, 0) <= 0) {
+				return { anteile: 'Die Anteile müssen zusammen mehr als 0 ergeben.' };
+			}
+			if (anteile.length > 0 && felder > 0 && anteile.length !== felder) {
+				return { anteile: `Bitte genau ${felder} Zahlen, eine je Feld.` };
+			}
+			return {};
+		},
+	},
+	'x-wuerfel': {
+		name: 'Würfel',
+		felder: [
+			{
+				art: 'auswahl',
+				attribut: 'art',
+				name: 'Seite zeigt',
+				standard: 'augen',
+				optionen: [
+					{ wert: 'augen', name: 'Augen' },
+					{ wert: 'zahl', name: 'Zahl' },
+					{ wert: 'muster', name: 'Füllung' },
+					{ wert: 'text', name: 'Text' },
+				],
+			},
+			{ art: 'zahl', attribut: 'augen', name: 'Augen', min: 0, max: 6, standard: 0 },
+			{ art: 'text', attribut: 'inhalt', name: 'Zahl, Text oder Füllung', max: 6 },
+			{ art: 'text', attribut: 'loesung', name: 'Nur in der Lösung', max: 6 },
+			{
+				art: 'auswahl',
+				attribut: 'ansicht',
+				name: 'Ansicht',
+				standard: 'flach',
+				optionen: [
+					{ wert: 'flach', name: 'Flach' },
+					{ wert: 'raeumlich', name: 'Räumlich' },
+				],
+			},
+			{ art: 'zahl', attribut: 'oben', name: 'Oben', min: 0, max: 6, standard: 1 },
+			{ art: 'zahl', attribut: 'vorne', name: 'Vorne', min: 0, max: 6, standard: 2 },
+			{ art: 'zahl', attribut: 'rechts', name: 'Rechts', min: 0, max: 6, standard: 3 },
+			{ art: 'zahl', ...GROESSE, min: 32, max: 200, standard: 60, schritt: 4 },
+		],
+	},
+	'x-strichliste': {
+		name: 'Strichliste',
+		felder: [
+			{
+				art: 'liste',
+				attribut: 'werte',
+				name: 'Zeilen',
+				unter: [
+					{ name: 'Name', art: 'text', standard: 'Neu' },
+					{ name: 'Anzahl', art: 'zahl', min: 0, max: 30, standard: '1' },
+				],
+				min: 1,
+				max: 8,
+			},
+			{
+				art: 'auswahl',
+				attribut: 'zeige',
+				name: 'Auf dem Blatt steht',
+				standard: 'striche',
+				optionen: [
+					{ wert: 'striche', name: 'Striche' },
+					{ wert: 'zahl', name: 'Anzahl' },
+					{ wert: 'leer', name: 'Nichts' },
+				],
+			},
+			{ art: 'zahl', ...GROESSE, min: 28, max: 60, standard: 34, schritt: 2 },
+		],
+	},
+	'x-diagramm': {
+		name: 'Diagramm',
+		felder: [
+			{
+				art: 'auswahl',
+				attribut: 'art',
+				name: 'Art',
+				standard: 'saeulen',
+				optionen: [
+					{ wert: 'saeulen', name: 'Säulen' },
+					{ wert: 'balken', name: 'Balken' },
+					{ wert: 'bild', name: 'Bilder' },
+				],
+			},
+			{
+				art: 'liste',
+				attribut: 'werte',
+				name: 'Werte',
+				unter: [
+					{ name: 'Name', art: 'text', standard: 'Neu' },
+					{ name: 'Wert', art: 'zahl', min: 0, max: 100000, standard: '1' },
+				],
+				min: 1,
+				max: 12,
+			},
+			{
+				art: 'zahlen',
+				attribut: 'offen',
+				name: 'Offen zum Zeichnen',
+				beispiel: '2 3',
+				hilfe: 'Nummern der Einträge, die die Kinder selbst zeichnen.',
+			},
+			{ art: 'zahl', attribut: 'skala', name: 'Skalenschritt', min: 1, max: 100000, standard: 1 },
+			{ art: 'zahl', attribut: 'bis', name: 'Bis', min: 1, max: 100000, standard: 10 },
+			{ art: 'text', attribut: 'einheit', name: 'Achse', max: 20 },
+			{
+				art: 'auswahl',
+				attribut: 'symbol',
+				name: 'Symbol',
+				standard: 'kreis',
+				optionen: [
+					{ wert: 'kreis', name: 'Kreis' },
+					{ wert: 'quadrat', name: 'Quadrat' },
+					{ wert: 'stern', name: 'Stern' },
+					{ wert: 'herz', name: 'Herz' },
+				],
+			},
+			{ art: 'zahl', attribut: 'je', name: 'Ein Symbol steht für', min: 1, max: 1000, standard: 1 },
+			{ art: 'zahl', ...GROESSE, min: 100, max: 400, standard: 200, schritt: 20 },
+		],
+		regeln: (w): Fehler => {
+			const bis = w.text('bis');
+			const groesster = Math.max(0, ...w.zeilen('werte').map((z) => alsZahl(z[1] ?? '0')));
+			return bis !== null && groesster > alsZahl(bis) ? { bis: `Ein Wert ist größer als ${bis}.` } : {};
+		},
+	},
+	'x-urne': {
+		name: 'Kugeln im Säckchen',
+		felder: [
+			{
+				art: 'liste',
+				attribut: 'kugeln',
+				name: 'Kugeln',
+				unter: [
+					{ name: 'Füllung', art: 'muster', optionen: FARBEN, standard: 'rot' },
+					{ name: 'Anzahl', art: 'zahl', min: 0, max: 20, standard: '1' },
+				],
+				max: 8,
+			},
+			{
+				art: 'text',
+				attribut: 'loesung',
+				name: 'Kugeln erst in der Lösung',
+				hilfe: 'Auf dem Blatt bleibt das Gefäß leer, z. B. „rot: 3; blau: 1“.',
+				beispiel: 'rot: 3; blau: 1',
+			},
+			{
+				art: 'auswahl',
+				attribut: 'form',
+				name: 'Gefäß',
+				standard: 'sack',
+				optionen: [
+					{ wert: 'sack', name: 'Säckchen' },
+					{ wert: 'glas', name: 'Glas' },
+				],
+			},
+			{ art: 'schalter', attribut: 'legende', name: 'Legende', an: 'ja', aus: 'nein', standard: true },
+			{ art: 'mischen', attribut: 'seed', name: 'Anordnung' },
+			{ art: 'zahl', ...GROESSE, min: 100, max: 300, standard: 160, schritt: 10 },
+		],
+		regeln: (w): Fehler => {
+			const summe = w.zeilen('kugeln').reduce((a, z) => a + alsZahl(z[1] ?? '0'), 0);
+			return summe > 20 ? { kugeln: `Höchstens 20 Kugeln, hier sind es ${summe}.` } : {};
+		},
+	},
+	'x-wahrscheinlichkeit': {
+		name: 'Wahrscheinlichkeit',
+		felder: [
+			{
+				art: 'auswahl',
+				attribut: 'stufen',
+				name: 'Stufen',
+				standard: '3',
+				optionen: [
+					{ wert: '3', name: '3: unmöglich, möglich, sicher' },
+					{ wert: '5', name: '5: auch wenig und sehr wahrscheinlich' },
+				],
+			},
+			{
+				art: 'liste',
+				attribut: 'ereignisse',
+				name: 'Ereignisse',
+				unter: [
+					{ name: 'Buchstabe', art: 'text', standard: 'A' },
+					{ name: 'Stufe', art: 'auswahl', standard: 'möglich', optionen: STUFEN_FUENF },
+				],
+				max: 10,
+			},
+		],
+		regeln: (w): Fehler => {
+			const erlaubt = w.text('stufen') === '5' ? STUFEN_FUENF.map((o) => o.wert) : STUFEN_DREI;
+			const falsch = w.zeilen('ereignisse').find((z) => !erlaubt.includes(z[1] ?? ''));
+			return falsch ? { ereignisse: `„${falsch[1] ?? ''}“ steht nicht auf dieser Skala.` } : {};
+		},
+	},
+	'x-kombinatorik': {
+		name: 'Möglichkeiten',
+		felder: [
+			{
+				art: 'auswahl',
+				attribut: 'art',
+				name: 'Darstellung',
+				standard: 'baum',
+				optionen: [
+					{ wert: 'baum', name: 'Baum' },
+					{ wert: 'tabelle', name: 'Tabelle' },
+					{ wert: 'liste', name: 'Liste' },
+				],
+			},
+			{
+				art: 'liste',
+				attribut: 'stufen',
+				name: 'Stufen',
+				zeilenTrenner: '/',
+				hilfe: 'Je Stufe die Wörter mit Leerzeichen, z. B. „Waffel Becher“.',
+				unter: [{ name: 'Wörter', art: 'text', standard: 'A B' }],
+				min: 1,
+				max: 3,
+			},
+			{
+				art: 'schalter',
+				attribut: 'wiederholung',
+				name: 'Mit Wiederholung',
+				an: 'ja',
+				aus: 'nein',
+				standard: true,
+			},
+			{
+				art: 'schalter',
+				attribut: 'reihenfolge',
+				name: 'Reihenfolge zählt',
+				an: 'ja',
+				aus: 'nein',
+				standard: true,
+			},
+			{ art: 'zahl', attribut: 'vorgegeben', name: 'Schon ausgefüllt', min: 0, max: 24, standard: 1 },
+		],
+	},
 } satisfies Record<string, AbbildungSchema>;
 
 export type Abbildung = keyof typeof ABBILDUNG_SCHEMA;
@@ -642,9 +932,7 @@ export const unterschiede = (alt: Werte, neu: Werte) =>
 
 // ── Prüfen ──────────────────────────────────────────────────────────────────
 
-const ZAHL = /^-?\d+([.,]\d+)?$/;
 
-export const alsZahl = (wert: string) => (ZAHL.test(wert.trim()) ? Number(wert.trim().replace(',', '.')) : NaN);
 
 const zahlText = (n: number) => String(n).replace('.', ',');
 

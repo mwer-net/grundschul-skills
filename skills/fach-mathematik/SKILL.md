@@ -61,6 +61,9 @@ Prozessbezogene Kompetenzen in jedes Material einbauen: Problemlösen, Kommunizi
 - Uhr: analoges Zifferblatt mit großen Ziffern, Stundenzeiger deutlich kürzer und dicker. **Nie von der KI zeichnen lassen** – `<x-uhr>` aus `html-materialerstellung/assets/abbildungen.js` berechnet exakte Zifferblätter.
 - Geld: Euro-Abbildungen sind erlaubt; maßstabsgetreu und eindeutig.
 - Rechenkästchen: 1 Ziffer pro Kästchen (schriftliche Verfahren!).
+- Strichliste: Fünferbündel aus vier senkrechten und einem schrägen Strich (`x-strichliste`).
+- Diagramm: Skala ab 0 und gleichmäßig (`x-diagramm`).
+- Glücksrad: im s/w-Blatt nur mit Legende, sonst sind die Felder nicht zu unterscheiden (`x-gluecksrad`).
 
 ## Typische Fehlvorstellungen (für Aufgaben und Tipps)
 
@@ -103,6 +106,15 @@ Exakte Darstellungen kommen als Elemente aus `html-materialerstellung/assets/abb
 | `<x-stellentafel stellen="H Z E" loesung="1 3 5">` | Stellenwerttafel, leer oder mit Werten |
 | `<x-zwanzigerfeld n="13">` | Zwanzigerfeld mit Plättchen |
 | `<x-zahlenstrahl von="0" bis="100" schritt="10" zahlen="0 50 100" pfeile="30 70">` | Zahlenstrahl mit Pfeilen und Antwortkästchen |
+| `<x-gluecksrad felder="rot: 1; blau: 2" anteile="1 2">` | Glücksrad, auch zum Ausmalen und als Bastelvorlage |
+| `<x-wuerfel augen="5">` | Würfel, flach oder räumlich |
+| `<x-strichliste werte="Hund: 7; Katze: 4">` | Strichliste mit Fünferbündeln |
+| `<x-diagramm werte="Mo: 3; Di: 7" offen="2">` | Säulen-, Balken- und Bilddiagramm |
+| `<x-urne kugeln="rot: 3; blau: 5">` | Kugeln im Säckchen oder Glas |
+| `<x-wahrscheinlichkeit ereignisse="A: sicher">` | Skala unmöglich, möglich, sicher |
+| `<x-kombinatorik stufen="Waffel Becher / Erdbeer Schoko">` | Möglichkeiten als Baum, Tabelle, Liste |
+
+Zur Leitidee „Daten, Häufigkeit, Wahrscheinlichkeit“: Kl. 1/2 Strichliste, Würfel, Glücksrad; Kl. 3/4 Diagramm, Wahrscheinlichkeit, Möglichkeiten.
 
 Fehlt eine Darstellung, als neues Element ergänzen, nie freihand oder per KI: `html-materialerstellung/SKILL.md`, Abschnitt „Neues Element“.
 

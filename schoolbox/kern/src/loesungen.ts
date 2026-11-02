@@ -17,8 +17,13 @@ const knotenAn = (z: Zerlegung, nr: number, klasse: string, was: string) => {
 	return k;
 };
 
+/** Elemente, die ohne `loesung=` nichts im Lösungsblatt ändern. Gleiche Liste wie `OHNE_LOESUNGSANGABE` in `blatt.py`. */
+export const OHNE_LOESUNGSANGABE =
+	'<x-(?!uhr|menge|dienes|strichpunkt|stellentafel|zwanzigerfeld|zahlenstrahl|timer|probe|gluecksrad|wuerfel|urne|diagramm)[a-z]';
+
 /** Dieselbe Regel wie `blatt.py bauen`: Nur dann entsteht ein Lösungsblatt. */
-export const hatLoesung = (quelle: string) => /data-l=|loesung=|nur-loesung/.test(quelle);
+export const hatLoesung = (quelle: string) =>
+	/data-l=|loesung=|nur-loesung|<x-diagramm[^>]* offen=/.test(quelle) || new RegExp(OHNE_LOESUNGSANGABE).test(quelle);
 
 export const istAntwort = (k: Knoten) => hat(k, 'antwort');
 

@@ -77,6 +77,8 @@
     "x-uhr": "Uhr", "x-menge": "Menge", "x-dienes": "Zehnerstangen und Einerwürfel", "x-strichpunkt": "Strich-Punkt-Bild",
     "x-stellentafel": "Stellentafel", "x-zwanzigerfeld": "Zwanzigerfeld", "x-zahlenstrahl": "Zahlenstrahl", "x-timer": "Timer",
     "x-probe": "Probe",
+    "x-gluecksrad": "Glücksrad", "x-wuerfel": "Würfel", "x-strichliste": "Strichliste", "x-diagramm": "Diagramm",
+    "x-urne": "Kugeln im Säckchen", "x-wahrscheinlichkeit": "Wahrscheinlichkeit", "x-kombinatorik": "Möglichkeiten",
   };
 
   class Abbildungsfehler extends Error {}
@@ -353,6 +355,431 @@
     el.innerHTML = svg(100, 100, s, [g, g]) + `<span class="timer-text">${text}</span>`;
   }
 
+  /* == Daten und Zufall == */
+  const FARB_DEUTSCH = { rot: "Rot", blau: "Blau", gruen: "Grün", gelb: "Gelb", orange: "Orange", lila: "Lila", grau: "Grau", leer: "Weiß" };
+
+  const pruefeFarbe = (name) => {
+    if (!FARBNAMEN.includes(name)) abbruch(`„${name}“ gibt es als Füllung nicht.`);
+    return name;
+  };
+
+  /** Legende unter einer Abbildung: s/w nennt das Muster zur Farbe („Rot = schraffiert“). Liefert SVG und Höhe. */
+  const legendeVon = (f, namen, y, breite) => {
+    const reihen = [...new Set(namen)].filter((n) => n !== "leer");
+    const beschriftung = (n) => (istSw() ? `${FARB_DEUTSCH[n]} = ${f.name(n)}` : FARB_DEUTSCH[n]);
+    const spalte = Math.max(90, ...reihen.map((n) => textBreite(beschriftung(n), 14) + 38));
+    const jeReihe = Math.max(1, Math.floor(breite / spalte));
+    const s = reihen.map((n, i) => {
+      const x = (i % jeReihe) * spalte, yy = y + Math.floor(i / jeReihe) * 26;
+      return `<rect x="${r1(x)}" y="${r1(yy)}" width="20" height="20" rx="3" fill="${f.von(n)}" stroke-width="1.5"/>` +
+        text(x + 26, yy + 10, beschriftung(n), { groesse: 14, anker: "start" });
+    }).join("");
+    return { s, h: Math.ceil(reihen.length / jeReihe) * 26 };
+  };
+
+  const GLUECKSRAD_DURCHMESSER_CM = 12;
+
+  function gluecksrad(el) {
+    const felder = paare(el, "felder");
+    const anteile = liste(el, "anteile");
+    const nachher = liste(el, "loesung");
+    const bastel = attr(el, "bastel", "nein") === "ja";
+    const mitZeiger = attr(el, "zeiger", "ja") === "ja";
+    const mitLegende = attr(el, "legende", "ja") === "ja";
+    const d = bastel ? cm(GLUECKSRAD_DURCHMESSER_CM) : num(el, "groesse", 200);
+    if (felder.length < 2 || felder.length > 12) abbruch("Ein Glücksrad braucht 2 bis 12 Felder.");
+    if (anteile.length > 0 && anteile.length !== felder.length) abbruch("Bei „Anteile“ braucht jedes Feld genau eine Zahl.");
+    if (nachher.length > 0 && nachher.length !== felder.length) abbruch("Bei der Lösung braucht jedes Feld genau eine Füllung.");
+    const teile = anteile.length > 0 ? anteile.map(Number) : felder.map(() => 1);
+    if (teile.some((a) => !(a > 0))) abbruch("Anteile müssen Zahlen größer als 0 sein.");
+    const summe = teile.reduce((a, b) => a + b, 0);
+    const winkel = teile.map((a) => (a / summe) * 360);
+    if (winkel.some((w) => w < 20 - 1e-9)) abbruch("Ein Feld ist zu schmal (unter 20°). Nimm weniger Felder oder andere Anteile.");
+    let fuellen = felder.map((t) => pruefeFarbe(t.name));
+    if (nachher.length > 0) fuellen = loesungSichtbar(el) ? nachher.map(pruefeFarbe) : felder.map(() => "leer");
+    const f = fuellung();
+    const r = d / 2, rand = 6, breite = Math.max(d + 2 * rand, mitLegende ? 300 : 0), cx = breite / 2, cy = r + rand;
+    const punkt = (w, q = r) => {
+      const a = ((w - 90) * Math.PI) / 180;
+      return [r1(cx + q * Math.cos(a)), r1(cy + q * Math.sin(a))];
+    };
+    let s = "", start = 0, schrift = "";
+    felder.forEach((t, i) => {
+      const w = winkel[i], [x1, y1] = punkt(start), [x2, y2] = punkt(start + w);
+      s += `<path data-winkel="${r1(w)}" d="M${r1(cx)} ${r1(cy)} L${x1} ${y1} A${r1(r)} ${r1(r)} 0 ${w > 180 ? 1 : 0} 1 ${x2} ${y2} Z" ` +
+        `fill="${f.von(fuellen[i])}" stroke-width="1.6"/>`;
+      const groesse = Math.max(14, Math.min(22, d / 10)), q = r * 0.66;
+      const bogen = ((w * Math.PI) / 180) * q, b = textBreite(t.wert, groesse) + 8;
+      if (t.wert && b <= bogen) {
+        const [lx, ly] = punkt(start + w / 2, q), h = groesse + 6;
+        schrift += `<rect x="${r1(lx - b / 2)}" y="${r1(ly - h / 2)}" width="${r1(b)}" height="${r1(h)}" rx="4" fill="#fff" stroke="none"/>` +
+          text(lx, ly, t.wert, { groesse, fett: true });
+      }
+      start += w;
+    });
+    s += `<circle class="rad-rand" cx="${r1(cx)}" cy="${r1(cy)}" r="${r1(r)}" stroke-width="2"/>` + schrift;
+    if (mitZeiger && !bastel) {
+      const [px, py] = punkt(35, r * 0.46), [a1, a2] = punkt(35 - 90, r * 0.08), [b1, b2] = punkt(35 + 90, r * 0.08);
+      s += `<path d="M${a1} ${a2} L${px} ${py} L${b1} ${b2} Z" fill="${SCHWARZ}" stroke="none"/>`;
+    }
+    s += `<circle cx="${r1(cx)}" cy="${r1(cy)}" r="${bastel ? 3 : r1(Math.max(4, r * 0.05))}" fill="${SCHWARZ}" stroke="none"/>`;
+    let unten = d + 2 * rand;
+    if (mitLegende && nachher.length === 0) {
+      const leg = legendeVon(f, fuellen, unten + 4, breite);
+      s += leg.s;
+      unten += leg.h + 4;
+    }
+    if (bastel) {
+      masstab(el);
+      s += text(0, unten + 12, "Ausschneiden. Bleistift durch die Büroklammer in die Mitte stellen, Klammer drehen.", { groesse: 14, anker: "start" });
+      unten += 24;
+    } else el.removeAttribute("data-masstab");
+    el.innerHTML = svg(breite, unten, f.defs() + s);
+  }
+
+  const AUGEN_STELLEN = {
+    1: [[50, 50]], 2: [[27, 27], [73, 73]], 3: [[27, 27], [50, 50], [73, 73]], 4: [[27, 27], [73, 27], [27, 73], [73, 73]],
+    5: [[27, 27], [73, 27], [50, 50], [27, 73], [73, 73]], 6: [[27, 25], [73, 25], [27, 50], [73, 50], [27, 75], [73, 75]],
+  };
+  const augenBild = (n, a) => (AUGEN_STELLEN[n] || []).map(([x, y]) =>
+    `<circle class="auge" cx="${r1((x * a) / 100)}" cy="${r1((y * a) / 100)}" r="${r1(a * 0.09)}" fill="${SCHWARZ}" stroke="none"/>`).join("");
+
+  const augenZahl = (roh, name) => {
+    const n = Number(roh);
+    if (!Number.isInteger(n) || n < 0 || n > 6) abbruch(`${name} muss eine Zahl von 0 bis 6 sein.`);
+    return n;
+  };
+
+  function wuerfel(el) {
+    const a = num(el, "groesse", 60);
+    const art = attr(el, "art", "augen");
+    const nachher = attr(el, "loesung", null);
+    const f = fuellung();
+    if (attr(el, "ansicht", "flach") === "raeumlich") {
+      const seiten = [augenZahl(attr(el, "oben", "1"), "Oben"), augenZahl(attr(el, "vorne", "2"), "Vorne"), augenZahl(attr(el, "rechts", "3"), "Rechts")];
+      for (const [i, j] of [[0, 1], [0, 2], [1, 2]]) {
+        if (seiten[i] === 0 || seiten[j] === 0) continue;
+        if (seiten[i] + seiten[j] === 7) abbruch(`${seiten[i]} und ${seiten[j]} liegen auf dem Würfel gegenüber. Man sieht sie nie zusammen.`);
+        if (seiten[i] === seiten[j]) abbruch(`Die ${seiten[i]} gibt es auf dem Würfel nur einmal.`);
+      }
+      const t = a * 0.42, k = r1(t / a);
+      const flaeche = (matrix, n, klasse) => `<g class="${klasse}" transform="matrix(${matrix})"><rect width="${a}" height="${a}" fill="#fff" stroke-width="1.6"/>${augenBild(n, a)}</g>`;
+      const inneres = flaeche(`1 0 0 1 0 ${r1(t)}`, seiten[1], "vorne") + flaeche(`1 0 ${-k} ${k} ${r1(t)} 0`, seiten[0], "oben") +
+        flaeche(`${k} ${-k} 0 1 ${a} ${r1(t)}`, seiten[2], "rechts");
+      el.innerHTML = svg(r1(a + t + 2), r1(a + t + 2), `<g transform="translate(1 1)">${inneres}</g>`);
+      return;
+    }
+    const zeigeLoesung = nachher !== null && loesungSichtbar(el);
+    const augen = attr(el, "augen", "0"), beschriftet = attr(el, "inhalt", "");
+    const wert = zeigeLoesung ? nachher : (art === "augen" ? augen : beschriftet);
+    const leer = nachher !== null && !zeigeLoesung;
+    let innen = "", grund = "#fff";
+    if (!leer) {
+      if (art === "augen") innen = augenBild(augenZahl(wert, "Die Augenzahl"), a);
+      else if (art === "muster") grund = wert ? f.von(pruefeFarbe(wert)) : "#fff";
+      else innen = text(a / 2, a / 2, wert, { groesse: Math.min(a * 0.5, ((a * 0.86) / Math.max(1, String(wert).length)) / SCHRIFT_BREITE), fett: true });
+    }
+    el.innerHTML = svg(a + 2, a + 2, `${f.defs()}<g transform="translate(1 1)"><rect width="${a}" height="${a}" rx="${r1(a * 0.14)}" fill="${grund}" stroke-width="1.6"/>${innen}</g>`);
+  }
+
+  /** Vier senkrechte Striche, der fünfte quer darüber. */
+  const strichBild = (n, x, y, h, dx, luecke) => {
+    let s = "";
+    const start = (i) => x + Math.floor(i / 5) * (4 * dx + luecke) + (i % 5) * dx;
+    for (let i = 0; i < n; i++) {
+      if (i % 5 === 4) s += `<line class="strich" x1="${r1(start(i - 4) - dx * 0.5)}" y1="${r1(y + h)}" x2="${r1(start(i - 1) + dx * 0.5)}" y2="${r1(y)}" stroke-width="2"/>`;
+      else s += `<line class="strich" x1="${r1(start(i))}" y1="${r1(y)}" x2="${r1(start(i))}" y2="${r1(y + h)}" stroke-width="2"/>`;
+    }
+    return s;
+  };
+
+  function strichliste(el) {
+    const werte = paare(el, "werte");
+    const zeige = attr(el, "zeige", "striche");
+    const h = num(el, "groesse", 34);
+    if (werte.length < 1 || werte.length > 8) abbruch("Eine Strichliste hat 1 bis 8 Zeilen.");
+    const zahlen = werte.map((t) => Number(t.wert));
+    if (zahlen.some((n) => !Number.isInteger(n) || n < 0 || n > 30)) abbruch("Je Zeile geht eine ganze Zahl von 0 bis 30.");
+    const schrift = Math.min(h * 0.55, 20), striche = h - 14, dx = striche * 0.32, luecke = dx * 1.5;
+    const bedarf = (Math.ceil(Math.max(...zahlen, 15) / 5) * (4 * dx + luecke)) + 16;
+    const sp1 = Math.max(90, ...werte.map((t) => textBreite(t.name, schrift) + 18));
+    const sp2 = Math.max(90, bedarf), sp3 = Math.max(72, h * 1.8);
+    const breite = sp1 + sp2 + sp3, hoehe = (werte.length + 1) * h;
+    let s = `<rect x="1" y="1" width="${r1(breite)}" height="${r1(hoehe)}" stroke-width="1.6"/>`;
+    for (const x of [sp1, sp1 + sp2]) s += `<line x1="${r1(x + 1)}" y1="1" x2="${r1(x + 1)}" y2="${r1(hoehe + 1)}" stroke-width="1.5"/>`;
+    s += text(sp1 + sp2 / 2 + 1, h / 2 + 1, "Striche", { groesse: schrift, fett: true }) + text(sp1 + sp2 + sp3 / 2 + 1, h / 2 + 1, "Anzahl", { groesse: schrift, fett: true });
+    werte.forEach((t, i) => {
+      const y = (i + 1) * h + 1, n = zahlen[i];
+      s += `<line x1="1" y1="${r1(y)}" x2="${r1(breite + 1)}" y2="${r1(y)}" stroke-width="1.5"/>`;
+      s += text(10, y + h / 2, t.name, { groesse: schrift, anker: "start" });
+      if (zeige === "striche" || loesungSichtbar(el)) s += strichBild(n, sp1 + 12 + dx * 0.5, y + 7, striche, dx, luecke);
+      if (zeige === "zahl" || loesungSichtbar(el)) s += `<g class="anzahl">${text(sp1 + sp2 + sp3 / 2 + 1, y + h / 2, zahl(n), { groesse: schrift, fett: true })}</g>`;
+    });
+    el.innerHTML = svg(r1(breite + 2), r1(hoehe + 2), s);
+  }
+
+  const SKALEN_SCHRITTE = [1, 2, 5, 10, 20, 25, 50, 100, 200, 250, 500, 1000];
+  const aufHalbemSchritt = (v, schritt) => Number.isInteger(v / (schritt / 2));
+
+  /** Skala ab 0: kleinster runder Schritt mit höchstens zehn Linien, auf dessen halben Schritten alle Werte liegen. */
+  const skalaVon = (zahlen, schritt, bis) => {
+    const groesster = Math.max(...zahlen, 0);
+    if (schritt !== null) {
+      if (!(schritt > 0)) abbruch("Der Skalenschritt muss größer als 0 sein.");
+      const ende = bis ?? Math.max(schritt, Math.ceil(groesster / schritt) * schritt);
+      return { schritt, ende };
+    }
+    const passend = SKALEN_SCHRITTE.find((k) => (bis ?? Math.ceil(groesster / k) * k) / k <= 10 && zahlen.every((v) => aufHalbemSchritt(v, k)));
+    if (!passend) abbruch("Diese Werte passen auf keine runde Skala. Nimm rundere Werte oder gib einen Skalenschritt an.");
+    return { schritt: passend, ende: bis ?? Math.max(passend, Math.ceil(groesster / passend) * passend) };
+  };
+
+  const STERN_PUNKTE = Array.from({ length: 10 }, (_, i) => {
+    const a = (i * Math.PI) / 5 - Math.PI / 2, q = i % 2 === 0 ? 1 : 0.45;
+    return [q * Math.cos(a), q * Math.sin(a)];
+  });
+  const SYMBOLE = {
+    kreis: (x, y, r, fuell) => `<circle cx="${r1(x)}" cy="${r1(y)}" r="${r1(r)}" fill="${fuell}" stroke-width="1.5"/>`,
+    quadrat: (x, y, r, fuell) => `<rect x="${r1(x - r)}" y="${r1(y - r)}" width="${r1(2 * r)}" height="${r1(2 * r)}" fill="${fuell}" stroke-width="1.5"/>`,
+    stern: (x, y, r, fuell) => `<path d="M${STERN_PUNKTE.map(([a, b]) => `${r1(x + a * r)} ${r1(y + b * r)}`).join(" L")} Z" fill="${fuell}" stroke-width="1.5"/>`,
+    herz: (x, y, r, fuell) => `<path d="M${r1(x)} ${r1(y + r)} C${r1(x - 1.6 * r)} ${r1(y - 0.2 * r)} ${r1(x - 0.8 * r)} ${r1(y - 1.2 * r)} ${r1(x)} ${r1(y - 0.4 * r)} C${r1(x + 0.8 * r)} ${r1(y - 1.2 * r)} ${r1(x + 1.6 * r)} ${r1(y - 0.2 * r)} ${r1(x)} ${r1(y + r)} Z" fill="${fuell}" stroke-width="1.5"/>`,
+  };
+
+  function diagramm(el) {
+    const art = attr(el, "art", "saeulen");
+    const werte = paare(el, "werte");
+    const offen = liste(el, "offen").map(Number);
+    const einheit = attr(el, "einheit", "");
+    const groesse = num(el, "groesse", 200);
+    const bisRoh = attr(el, "bis", null), schrittRoh = attr(el, "skala", null);
+    const symbol = attr(el, "symbol", "kreis");
+    const je = num(el, "je", 1);
+    if (werte.length < 1 || werte.length > 12) abbruch("Ein Diagramm hat 1 bis 12 Einträge.");
+    const zahlen = werte.map((t) => Number(t.wert));
+    if (zahlen.some((v) => !Number.isFinite(v) || v < 0)) abbruch("Die Werte müssen Zahlen ab 0 sein.");
+    const istOffen = (i) => offen.includes(i + 1) && !loesungSichtbar(el);
+    const f = fuellung(), grund = f.von(istSw() ? 1 : 0);
+
+    if (art === "bild") {
+      if (!SYMBOLE[symbol]) abbruch(`Das Symbol „${symbol}“ gibt es nicht.`);
+      if (!(je >= 1)) abbruch("„Ein Symbol steht für“ muss mindestens 1 sein.");
+      for (const v of zahlen) {
+        const halb = je === 2 && v % 2 === 1;
+        if (v % je !== 0 && !halb) abbruch(je === 2 ? "Die Werte müssen ganze Zahlen sein." : `Die Werte müssen durch ${je} teilbar sein, halbe Symbole gehen nur, wenn ein Symbol für 2 steht.`);
+      }
+      const zh = 34, r = 13, schrift = 15, links = Math.max(70, ...werte.map((t) => textBreite(t.name, schrift) + 14));
+      const anzahl = Math.max(...zahlen.map((v) => Math.ceil(v / je)), 1), id = `abb-c${++fuellungsNr}`;
+      let s = `<defs><clipPath id="${id}"><rect x="${-r - 2}" y="${-r - 2}" width="${r + 2}" height="${2 * r + 4}"/></clipPath></defs>`;
+      werte.forEach((t, i) => {
+        const y = i * zh;
+        s += text(links - 10, y + zh / 2, t.name, { groesse: schrift, anker: "end" });
+        s += `<line x1="${r1(links)}" y1="${r1(y)}" x2="${r1(links)}" y2="${r1(y + zh)}" stroke-width="1.5"/>`;
+        if (istOffen(i)) return;
+        const ganz = Math.floor(zahlen[i] / je), halb = zahlen[i] % je !== 0;
+        for (let k = 0; k < ganz + (halb ? 1 : 0); k++) {
+          const x = links + 18 + k * 32, zeichen = SYMBOLE[symbol](0, 0, r, grund);
+          s += `<g class="symbol" transform="translate(${r1(x)} ${r1(y + zh / 2)})">${halb && k === ganz ? `<g clip-path="url(#${id})">${zeichen}</g>` : zeichen}</g>`;
+        }
+      });
+      const unten = werte.length * zh + 8;
+      s += `<g transform="translate(${r1(links + 18)} ${unten + 13})">${SYMBOLE[symbol](0, 0, r, grund)}</g>` +
+        text(links + 40, unten + 13, `= ${zahl(je)}${einheit ? ` ${einheit}` : ""}`, { groesse: schrift, anker: "start" });
+      el.innerHTML = svg(r1(links + 34 + anzahl * 32), unten + 30, f.defs() + s);
+      return;
+    }
+
+    const { ende, schritt } = skalaVon(zahlen, schrittRoh === null ? null : Number(schrittRoh), bisRoh === null ? null : Number(bisRoh));
+    if (zahlen.some((v) => v > ende)) abbruch(`Ein Wert ist größer als „Bis“ (${zahl(ende)}).`);
+    if (zahlen.some((v) => !aufHalbemSchritt(v, schritt))) abbruch("Die Werte müssen auf einem Skalenstrich oder genau dazwischen liegen.");
+    if (ende / schritt > 12) abbruch("Das wären mehr als 12 Linien. Nimm einen größeren Skalenschritt.");
+    const schrift = 14, linien = [];
+    for (let v = 0; v <= ende + 1e-9; v += schritt) linien.push(r1(v));
+    const zahlBreite = Math.max(...linien.map((v) => textBreite(zahl(v), schrift))) + 12;
+
+    if (art === "balken") {
+      const links = Math.max(70, ...werte.map((t) => textBreite(t.name, schrift) + 14)), zeile = 34, plot = groesse * 2;
+      const x = (v) => links + (v / ende) * plot, unten = werte.length * zeile + 4;
+      let s = "";
+      for (const v of linien) s += `<line x1="${r1(x(v))}" y1="0" x2="${r1(x(v))}" y2="${unten}" stroke="${GRAU}" stroke-width="1"/>` + text(x(v), unten + 12, zahl(v), { groesse: schrift });
+      werte.forEach((t, i) => {
+        const y = i * zeile + 4;
+        s += text(links - 8, y + zeile / 2 - 2, t.name, { groesse: schrift, anker: "end" });
+        if (!istOffen(i)) s += `<rect class="wert" data-wert="${zahlen[i]}" x="${r1(links)}" y="${y + 3}" width="${r1(x(zahlen[i]) - links)}" height="${zeile - 10}" fill="${grund}" stroke-width="1.5"/>`;
+      });
+      s += `<line x1="${r1(links)}" y1="0" x2="${r1(links)}" y2="${unten}" stroke-width="2"/><line x1="${r1(links)}" y1="${unten}" x2="${r1(x(ende) + 6)}" y2="${unten}" stroke-width="2"/>`;
+      if (einheit) s += text(x(ende), unten + 32, einheit, { groesse: schrift, anker: "end" });
+      el.innerHTML = svg(r1(x(ende) + 14), unten + (einheit ? 44 : 24), f.defs() + s);
+      return;
+    }
+
+    const spalte = Math.max(48, ...werte.map((t) => textBreite(t.name, schrift) + 10)), links = zahlBreite, oben = einheit ? 26 : 10;
+    const unten = oben + groesse, y = (v) => unten - (v / ende) * groesse, breite = links + spalte * werte.length + 10;
+    let s = einheit ? text(4, 8, einheit, { groesse: schrift, anker: "start" }) : "";
+    for (const v of linien) s += `<line class="gitter" data-v="${v}" x1="${r1(links)}" y1="${r1(y(v))}" x2="${r1(breite - 4)}" y2="${r1(y(v))}" stroke="${GRAU}" stroke-width="1"/>` + text(links - 6, y(v), zahl(v), { groesse: schrift, anker: "end" });
+    werte.forEach((t, i) => {
+      const x = links + i * spalte, b = Math.min(spalte - 14, 44), xb = x + (spalte - b) / 2;
+      if (!istOffen(i)) s += `<rect class="wert" data-wert="${zahlen[i]}" x="${r1(xb)}" y="${r1(y(zahlen[i]))}" width="${r1(b)}" height="${r1(unten - y(zahlen[i]))}" fill="${grund}" stroke-width="1.5"/>`;
+      s += text(x + spalte / 2, unten + 14, t.name, { groesse: schrift });
+    });
+    s += `<line x1="${r1(links)}" y1="${r1(oben - 6)}" x2="${r1(links)}" y2="${r1(unten)}" stroke-width="2"/><line x1="${r1(links)}" y1="${r1(unten)}" x2="${r1(breite - 2)}" y2="${r1(unten)}" stroke-width="2"/>`;
+    el.setAttribute("data-skala", String(schritt));
+    el.innerHTML = svg(r1(breite), r1(unten + 28), f.defs() + s);
+  }
+
+  function urne(el) {
+    const kugeln = paare(el, "kugeln");
+    const nachher = paare(el, "loesung");
+    const form = attr(el, "form", "sack");
+    const mitLegende = attr(el, "legende", "ja") === "ja";
+    const g = num(el, "groesse", 160);
+    const auspacken = (eintraege) => eintraege.flatMap((t) => {
+      const n = Number(t.wert);
+      if (!Number.isInteger(n) || n < 0) abbruch("Die Anzahl der Kugeln muss eine ganze Zahl sein.");
+      return Array.from({ length: n }, () => pruefeFarbe(t.name));
+    });
+    const hatNachher = nachher.length > 0;
+    const alle = hatNachher ? auspacken(nachher) : auspacken(kugeln);
+    if (alle.length > 20) abbruch("Höchstens 20 Kugeln, sonst passen sie nicht hinein.");
+    const zeichnen = !hatNachher || loesungSichtbar(el);
+    const f = fuellung(), zz = zufall(samen(el, alle.join(",")));
+    const h = g * 1.1, breite = Math.max(g, mitLegende ? 200 : 0), x0 = (breite - g) / 2;
+    let s = form === "glas"
+      ? `<path d="M${r1(x0 + g * 0.12)} 6 V${r1(h - 10)} Q${r1(x0 + g * 0.12)} ${r1(h - 2)} ${r1(x0 + g * 0.2)} ${r1(h - 2)} H${r1(x0 + g * 0.8)} Q${r1(x0 + g * 0.88)} ${r1(h - 2)} ${r1(x0 + g * 0.88)} ${r1(h - 10)} V6" stroke-width="2.2"/>`
+      : `<path d="M${r1(x0 + g * 0.4)} ${r1(g * 0.16)} C${r1(x0 + g * 0.02)} ${r1(g * 0.34)} ${r1(x0 - g * 0.04)} ${r1(h - 2)} ${r1(x0 + g * 0.5)} ${r1(h - 2)} C${r1(x0 + g * 1.04)} ${r1(h - 2)} ${r1(x0 + g * 0.98)} ${r1(g * 0.34)} ${r1(x0 + g * 0.6)} ${r1(g * 0.16)}" stroke-width="2.2"/>` +
+        `<path d="M${r1(x0 + g * 0.3)} 4 L${r1(x0 + g * 0.42)} ${r1(g * 0.16)} H${r1(x0 + g * 0.58)} L${r1(x0 + g * 0.7)} 4 Q${r1(x0 + g * 0.5)} ${r1(g * 0.1)} ${r1(x0 + g * 0.3)} 4 Z" stroke-width="2.2"/><line x1="${r1(x0 + g * 0.38)}" y1="${r1(g * 0.16)}" x2="${r1(x0 + g * 0.62)}" y2="${r1(g * 0.16)}" stroke-width="3"/>`;
+    if (zeichnen && alle.length > 0) {
+      const iw = g * 0.62, ih = g * 0.58, spalten = Math.ceil(Math.sqrt(alle.length * (iw / ih))), zeilen = Math.ceil(alle.length / spalten);
+      const r = Math.min(iw / spalten, ih / zeilen) * 0.42, plaetze = [];
+      for (let z = 0; z < zeilen; z++) for (let c = 0; c < spalten; c++) plaetze.push([x0 + (g - iw) / 2 + (c + 0.5) * (iw / spalten), h - 10 - ih + (z + 0.5) * (ih / zeilen)]);
+      const orte = gemischt(plaetze, zz), reihe = gemischt(alle, zz);
+      reihe.forEach((name, i) => {
+        s += `<circle class="kugel" data-farbe="${name}" cx="${r1(orte[i][0])}" cy="${r1(orte[i][1])}" r="${r1(r)}" fill="${f.von(name)}" stroke-width="1.5"/>`;
+      });
+    }
+    let unten = h + 2;
+    if (mitLegende && zeichnen) {
+      const leg = legendeVon(f, alle, unten + 8, breite);
+      s += leg.s;
+      unten += leg.h + 8;
+    }
+    el.innerHTML = svg(r1(breite), r1(unten), f.defs() + s);
+  }
+
+  const STUFEN_WOERTER = { 3: ["unmöglich", "möglich", "sicher"], 5: ["unmöglich", "wenig wahrscheinlich", "möglich", "sehr wahrscheinlich", "sicher"] };
+
+  function wahrscheinlichkeit(el) {
+    const stufen = num(el, "stufen", 3);
+    const ereignisse = paare(el, "ereignisse");
+    const woerter = STUFEN_WOERTER[stufen];
+    if (!woerter) abbruch("Die Skala hat 3 oder 5 Stufen.");
+    for (const t of ereignisse) if (!woerter.includes(t.wert)) abbruch(`„${t.wert}“ steht nicht auf dieser Skala.`);
+    const breite = 620, spalte = breite / woerter.length, boxen = Math.max(1, ...woerter.map((w) => ereignisse.filter((t) => t.wert === w).length)), b = 34;
+    let s = `<line x1="${r1(spalte / 2)}" y1="56" x2="${r1(breite - spalte / 2)}" y2="56" stroke-width="2"/>`;
+    woerter.forEach((w, i) => {
+      const x = spalte * i + spalte / 2;
+      umbrechen(w, 12).forEach((z, n, alle) => {
+        s += text(x, 34 - (alle.length - 1 - n) * 18, z, { groesse: 15, fett: true });
+      });
+      s += `<line x1="${r1(x)}" y1="48" x2="${r1(x)}" y2="64" stroke-width="2"/>`;
+      const hier = ereignisse.filter((t) => t.wert === w);
+      for (let k = 0; k < boxen; k++) s += antwortfeld(el, x - b / 2, 74 + k * (b + 6), b, b, hier[k]?.name);
+    });
+    el.innerHTML = svg(breite, 78 + boxen * (b + 6), s);
+  }
+
+  /** Alle Möglichkeiten: Kreuzprodukt der Stufen, gefiltert nach Wiederholung und Reihenfolge. */
+  const moeglichkeiten = (stufen, wiederholung, reihenfolge) => {
+    let pfade = [[]];
+    for (const stufe of stufen) pfade = pfade.flatMap((p) => stufe.map((w) => [...p, w]));
+    if (!wiederholung) pfade = pfade.filter((p) => new Set(p).size === p.length);
+    if (reihenfolge) return pfade;
+    const gesehen = new Set();
+    return pfade.filter((p) => {
+      const k = [...p].sort().join("\u0000");
+      if (gesehen.has(k)) return false;
+      gesehen.add(k);
+      return true;
+    });
+  };
+
+  function kombinatorik(el) {
+    const art = attr(el, "art", "baum");
+    const stufen = raster(el, "stufen");
+    const wiederholung = attr(el, "wiederholung", "ja") === "ja";
+    const reihenfolge = attr(el, "reihenfolge", "ja") === "ja";
+    const vorgegeben = num(el, "vorgegeben", 1);
+    if (stufen.length < 1 || stufen.length > 3) abbruch("Es gehen 1 bis 3 Stufen.");
+    const pfade = moeglichkeiten(stufen, wiederholung, reihenfolge);
+    if (pfade.length === 0) abbruch("So gibt es keine einzige Möglichkeit.");
+    if (pfade.length > 24) abbruch(`Das wären ${pfade.length} Möglichkeiten; höchstens 24 passen aufs Blatt.`);
+    el.setAttribute("data-anzahl", String(pfade.length));
+    const schrift = 15, zeile = 28, kasten = (t) => textBreite(t, schrift) + 14;
+    const sichtbar = (i) => i < vorgegeben;
+    const feld = (x, y, b, h, t, zeigen) => (zeigen
+      ? `<rect x="${r1(x)}" y="${r1(y)}" width="${r1(b)}" height="${r1(h)}" rx="3" fill="#fff" stroke-width="1.5"/>${text(x + b / 2, y + h / 2, t, { groesse: schrift })}`
+      : antwortfeld(el, x, y, b, h, t, { groesse: schrift }));
+    let s = "", breite = 0, hoehe = 0;
+
+    if (art === "baum") {
+      const spaltenBreite = stufen.map((st) => Math.max(...st.map(kasten)));
+      const xVon = (d) => 26 + spaltenBreite.slice(0, d).reduce((a, b) => a + b + 34, 0);
+      const baue = (d, gruppe) => {
+        const kinder = new Map();
+        gruppe.forEach(({ i, p }) => {
+          if (!kinder.has(p[d])) kinder.set(p[d], []);
+          kinder.get(p[d]).push({ i, p });
+        });
+        return [...kinder.entries()].map(([name, teil]) => ({ name, teil, zeigen: teil.some((t) => sichtbar(t.i)), unter: d + 1 < stufen.length ? baue(d + 1, teil) : [] }));
+      };
+      const baum = baue(0, pfade.map((p, i) => ({ i, p })));
+      let naechste = 0;
+      const lege = (knoten) => {
+        knoten.y = knoten.unter.length === 0 ? naechste++ * zeile + zeile / 2 : knoten.unter.map(lege).reduce((a, b) => a + b, 0) / knoten.unter.length;
+        return knoten.y;
+      };
+      baum.forEach(lege);
+      hoehe = naechste * zeile;
+      const zeichne = (knoten, d, vonX, vonY) => {
+        const x = xVon(d), b = spaltenBreite[d], h = zeile - 6;
+        s += `<line x1="${r1(vonX)}" y1="${r1(vonY)}" x2="${r1(x)}" y2="${r1(knoten.y)}" stroke-width="1.5"/>`;
+        s += `<g class="ast">${feld(x, knoten.y - h / 2, b, h, knoten.name, knoten.zeigen)}</g>`;
+        knoten.unter.forEach((k) => zeichne(k, d + 1, x + b, knoten.y));
+      };
+      const mitte = baum.reduce((a, k) => a + k.y, 0) / baum.length;
+      s += `<circle cx="6" cy="${r1(mitte)}" r="4" fill="${SCHWARZ}" stroke="none"/>`;
+      baum.forEach((k) => zeichne(k, 0, 6, mitte));
+      breite = xVon(stufen.length - 1) + spaltenBreite[stufen.length - 1] + 4;
+    } else if (art === "tabelle") {
+      if (stufen.length !== 2) abbruch("Eine Tabelle geht nur mit genau 2 Stufen.");
+      const [a, b] = stufen, k = pfade.map((p) => p.join("\u0000"));
+      const links = Math.max(...a.map(kasten), 40), sp = Math.max(...a.flatMap((x) => b.map((y) => kasten(`${x} ${y}`))), ...b.map(kasten));
+      breite = links + sp * b.length + 2;
+      hoehe = (a.length + 1) * zeile + 2;
+      b.forEach((w, c) => {
+        s += text(links + c * sp + sp / 2, zeile / 2, w, { groesse: schrift, fett: true });
+      });
+      a.forEach((w, r) => {
+        const y = (r + 1) * zeile;
+        s += text(links - 8, y + zeile / 2, w, { groesse: schrift, fett: true, anker: "end" });
+        b.forEach((v, c) => {
+          const x = links + c * sp, i = k.indexOf(`${w}\u0000${v}`);
+          if (i < 0) s += `<rect x="${r1(x + 1)}" y="${r1(y + 2)}" width="${r1(sp - 2)}" height="${zeile - 4}" fill="#fff" stroke-width="1.5"/><line x1="${r1(x + 6)}" y1="${r1(y + zeile / 2)}" x2="${r1(x + sp - 6)}" y2="${r1(y + zeile / 2)}" stroke-width="1.5"/>`;
+          else s += `<g class="ast">${feld(x + 1, y + 2, sp - 2, zeile - 4, `${w} ${v}`, sichtbar(i))}</g>`;
+        });
+      });
+    } else {
+      const b = Math.max(...pfade.map((p) => kasten(p.join(" + "))), 90), jeSpalte = 8, spalten = Math.ceil(pfade.length / jeSpalte);
+      breite = spalten * (b + 12);
+      hoehe = Math.min(pfade.length, jeSpalte) * zeile;
+      pfade.forEach((p, i) => {
+        s += `<g class="ast">${feld(Math.floor(i / jeSpalte) * (b + 12), (i % jeSpalte) * zeile + 2, b, zeile - 4, p.join(" + "), sichtbar(i))}</g>`;
+      });
+    }
+    const y = hoehe + 8, wort = "Anzahl der Möglichkeiten:";
+    s += text(0, y + 16, wort, { groesse: schrift, anker: "start" }) + antwortfeld(el, textBreite(wort, schrift) + 8, y, 54, 32, String(pfade.length), { groesse: schrift });
+    el.innerHTML = svg(r1(Math.max(breite, textBreite(wort, schrift) + 66)), r1(y + 34), s);
+  }
+
   /* == Test == */
   // x-probe gibt es nur für die Tests der Feldtypen im Panel (023); in Material kommt es nicht vor.
   function probe(el) {
@@ -387,7 +814,8 @@
   /* == Ende der Abschnitte == */
   const ARTEN = { "x-uhr": uhr, "x-menge": menge, "x-dienes": dienes, "x-strichpunkt": strichpunkt,
     "x-stellentafel": stellentafel, "x-zwanzigerfeld": zwanzigerfeld, "x-zahlenstrahl": zahlenstrahl, "x-timer": timer,
-    "x-probe": probe };
+    "x-probe": probe, "x-gluecksrad": gluecksrad, "x-wuerfel": wuerfel, "x-strichliste": strichliste, "x-diagramm": diagramm,
+    "x-urne": urne, "x-wahrscheinlichkeit": wahrscheinlichkeit, "x-kombinatorik": kombinatorik };
 
   const zeichne = (f, el) => {
     el.removeAttribute("data-fehler");

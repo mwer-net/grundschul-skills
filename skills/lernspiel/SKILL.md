@@ -56,6 +56,8 @@ Die Spielform muss nicht gefragt werden: 2–3 Entwürfe mit verschiedenen passe
 - Kein Gewinnen durch reines Glück: Inhalt entscheidet.
 - Wenn möglich eine kooperative Variante anbieten (gemeinsam gegen die Zeit, Klassenziel). Keine Ranglisten über mehrere Runden; wer eine Aufgabe nicht weiß, darf eine Tippkarte nehmen.
 
+Würfel für Spielregeln und Spielkarten kommen aus `<x-wuerfel>` (`html-materialerstellung/references/abbildungen.md`), nie als Bild.
+
 ## Qualitätscheck
 
 - [ ] Jede Aufgabe hat genau eine eindeutige Lösung im Spiel (Domino: kein Ergebnis doppelt!)

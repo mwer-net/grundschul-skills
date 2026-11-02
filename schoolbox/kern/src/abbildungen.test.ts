@@ -21,7 +21,8 @@ import {
 	zeilenVon,
 	ziffernText,
 } from './abbildungen';
-import { ASSETS } from './konfig';
+import { ASSETS, BLATT_PY } from './konfig';
+import { hatLoesung, OHNE_LOESUNGSANGABE } from './loesungen';
 import { zerlege } from './quelltext';
 
 const JS = readFileSync(path.join(ASSETS, 'abbildungen.js'), 'utf8');
@@ -44,6 +45,9 @@ const gelesen = (funktion: string) => {
 	].map((t) => t[1]);
 	if (/\binhalt\(el\)/.test(rumpf)) {
 		namen.push('inhalt');
+	}
+	if (/\bsamen\(el,/.test(rumpf)) {
+		namen.push('seed');
 	}
 	return [...new Set(namen)].sort();
 };
@@ -376,5 +380,28 @@ describe('Rechenkerne in abbildungen.js', () => {
 				['1', '0'],
 			],
 		);
+	});
+});
+
+describe('Daten und Zufall (024)', () => {
+	it('prüft die Regeln über mehrere Felder', () => {
+		assert.match(pruefe('x-gluecksrad', { felder: 'rot; blau', anteile: '0 0' }).anteile ?? '', /mehr als 0/);
+		assert.match(pruefe('x-gluecksrad', { felder: 'rot; blau', anteile: '1 1 2' }).anteile ?? '', /genau 2 Zahlen/);
+		assert.match(pruefe('x-diagramm', { werte: 'A: 12', bis: '10' }).bis ?? '', /größer als 10/);
+		assert.match(pruefe('x-urne', { kugeln: 'rot: 15; blau: 6' }).kugeln ?? '', /21/);
+		assert.match(
+			pruefe('x-wahrscheinlichkeit', { ereignisse: 'A: sehr wahrscheinlich' }).ereignisse ?? '',
+			/nicht auf/,
+		);
+		assert.deepEqual(pruefe('x-wahrscheinlichkeit', { stufen: '5', ereignisse: 'A: sehr wahrscheinlich' }), {});
+	});
+
+	it('hält die Regel fürs Lösungsblatt mit blatt.py gleich', () => {
+		const blatt = readFileSync(BLATT_PY, 'utf8');
+		assert.ok(blatt.includes(`OHNE_LOESUNGSANGABE = r"${OHNE_LOESUNGSANGABE}"`));
+		assert.equal(hatLoesung('<x-gluecksrad felder="rot; blau"></x-gluecksrad>'), false);
+		assert.equal(hatLoesung('<x-diagramm werte="A: 1"></x-diagramm>'), false);
+		assert.equal(hatLoesung('<x-diagramm werte="A: 1" offen="1"></x-diagramm>'), true);
+		assert.equal(hatLoesung('<x-strichliste werte="A: 1"></x-strichliste>'), true);
 	});
 });

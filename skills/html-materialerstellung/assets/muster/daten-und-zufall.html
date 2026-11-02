@@ -1,0 +1,80 @@
+<!doctype html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<title>Muster: Daten und Zufall</title>
+<link rel="stylesheet" href="blatt.css">
+<script src="abbildungen.js"></script>
+</head>
+<body class="kl3 sw">
+<section class="seite">
+  <div class="kopf"><div class="titel"><h1>Daten und Zufall</h1></div></div>
+  <div class="aufgabe">
+    <span class="nr">1</span><div class="anw"><span class="text">Glücksrad: mit Anteilen, zum Ausmalen</span></div>
+    <div class="koerper"><div class="reihe" style="--spalten:2">
+      <div class="zelle"><x-gluecksrad felder="rot: 1; blau: 2; gruen: 3" anteile="1 1 2" groesse="150"></x-gluecksrad></div>
+      <div class="zelle"><x-gluecksrad felder="leer: 1; leer: 2; leer: 3; leer: 4" loesung="rot blau rot rot" groesse="150"></x-gluecksrad></div>
+    </div></div>
+  </div>
+  <div class="aufgabe">
+    <span class="nr">2</span><div class="anw"><span class="text">Würfel: Augen, Beispiel, Einzeichnen, räumlich</span></div>
+    <div class="koerper"><div class="reihe" style="--spalten:4">
+      <div class="zelle"><x-wuerfel augen="5"></x-wuerfel></div>
+      <div class="zelle beispiel"><x-wuerfel loesung="3"></x-wuerfel></div>
+      <div class="zelle"><x-wuerfel loesung="6"></x-wuerfel></div>
+      <div class="zelle"><x-wuerfel ansicht="raeumlich" oben="1" vorne="2" rechts="3"></x-wuerfel></div>
+    </div></div>
+  </div>
+  <div class="aufgabe">
+    <span class="nr">3</span><div class="anw"><span class="text">Strichliste: Zählen, Striche machen</span></div>
+    <div class="koerper"><div class="reihe" style="--spalten:2">
+      <div class="zelle"><x-strichliste werte="Hund: 7; Katze: 4; Maus: 12" groesse="30"></x-strichliste></div>
+      <div class="zelle"><x-strichliste werte="Rot: 9; Blau: 6" zeige="zahl" groesse="30"></x-strichliste></div>
+    </div></div>
+  </div>
+  <div class="aufgabe">
+    <span class="nr">4</span><div class="anw"><span class="text">Diagramm: Säulen mit offener Säule</span></div>
+    <div class="koerper"><x-diagramm werte="Mo: 3; Di: 7; Mi: 12" offen="2" einheit="Kinder" groesse="120"></x-diagramm></div>
+  </div>
+</section>
+<section class="seite">
+  <div class="kopf"><div class="titel"><h1>Daten und Zufall</h1></div></div>
+  <div class="aufgabe">
+    <span class="nr">5</span><div class="anw"><span class="text">Balken und Bilddiagramm</span></div>
+    <div class="koerper"><div class="reihe" style="--spalten:2">
+      <div class="zelle"><x-diagramm art="balken" werte="Hund: 20; Katze: 35" groesse="120" einheit="Stimmen"></x-diagramm></div>
+      <div class="zelle"><x-diagramm art="bild" werte="Äpfel: 6; Birnen: 3" symbol="stern" je="2"></x-diagramm></div>
+    </div></div>
+  </div>
+  <div class="aufgabe">
+    <span class="nr">6</span><div class="anw"><span class="text">Kugeln im Säckchen und im Glas</span></div>
+    <div class="koerper"><div class="reihe" style="--spalten:2">
+      <div class="zelle"><x-urne kugeln="rot: 3; blau: 5" groesse="100" seed="1"></x-urne></div>
+      <div class="zelle"><x-urne form="glas" kugeln="leer: 0" loesung="rot: 4; gruen: 2" groesse="100" seed="2"></x-urne></div>
+    </div></div>
+  </div>
+  <div class="aufgabe">
+    <span class="nr">7</span><div class="anw"><span class="text">Wahrscheinlichkeit einordnen</span></div>
+    <div class="koerper"><x-wahrscheinlichkeit ereignisse="A: sicher; B: unmöglich; C: möglich; D: möglich"></x-wahrscheinlichkeit></div>
+  </div>
+  <div class="aufgabe">
+    <span class="nr">8</span><div class="anw"><span class="text">Möglichkeiten: Baum, Tabelle, Liste</span></div>
+    <div class="koerper"><div class="reihe" style="--spalten:2">
+      <div class="zelle"><x-kombinatorik stufen="Waffel Becher / Erdbeer Schoko Vanille"></x-kombinatorik></div>
+      <div class="zelle"><x-kombinatorik art="tabelle" stufen="Rot Blau / Hut Tuch" vorgegeben="1"></x-kombinatorik></div>
+    </div></div>
+  </div>
+</section>
+<section class="seite">
+  <div class="kopf"><div class="titel"><h1>Bastelvorlage</h1></div></div>
+  <div class="aufgabe">
+    <span class="nr">9</span><div class="anw"><span class="text">2 aus 3 Sorten, ohne Reihenfolge</span></div>
+    <div class="koerper"><x-kombinatorik art="liste" stufen="Erdbeer Schoko Vanille / Erdbeer Schoko Vanille" wiederholung="nein" reihenfolge="nein"></x-kombinatorik></div>
+  </div>
+  <div class="aufgabe">
+    <span class="nr">10</span><div class="anw"><span class="text">Glücksrad in Originalgröße</span></div>
+    <div class="koerper"><x-gluecksrad bastel="ja" felder="rot: 1; blau: 2; gruen: 3; gelb: 4; orange: 5; lila: 6"></x-gluecksrad></div>
+  </div>
+</section>
+</body>
+</html>

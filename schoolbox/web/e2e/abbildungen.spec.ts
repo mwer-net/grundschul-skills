@@ -273,3 +273,125 @@ test.describe('Editor: Feldtypen (023)', () => {
 		}
 	});
 });
+
+/** Ein Element außerhalb des Editors gezeichnet, wie es blatt.py auch tut. */
+const gezeichnet = async (page: Page, html: string, klasse = 'kl3 sw') => {
+	const seite = await page.context().newPage();
+	await seite.setContent(`<!doctype html><html><body class="${klasse}">${html}</body></html>`);
+	await seite.addScriptTag({ path: path.join(ASSETS, 'abbildungen.js') });
+	return seite;
+};
+
+test.describe('Daten und Zufall (024)', () => {
+	test('Glücksrad: Winkel genau, Muster unterscheidbar, Bastelvorlage 12 cm', async ({ page }) => {
+		const seite = await gezeichnet(page, '<x-gluecksrad felder="rot; blau; gruen" anteile="1 1 2"></x-gluecksrad>');
+		const winkel = await seite
+			.locator('path[data-winkel]')
+			.evaluateAll((p) => p.map((e) => e.getAttribute('data-winkel')));
+		expect(winkel).toEqual(['90', '90', '180']);
+		const fuellungen = await seite
+			.locator('path[data-winkel]')
+			.evaluateAll((p) => p.map((e) => e.getAttribute('fill')));
+		expect(new Set(fuellungen).size).toBe(3);
+		expect(await seite.locator('x-gluecksrad').getByText('Rot = schraffiert').count()).toBe(1);
+
+		const bastel = await gezeichnet(page, '<x-gluecksrad bastel="ja" felder="rot; blau"></x-gluecksrad>');
+		await expect(bastel.locator('x-gluecksrad')).toHaveAttribute('data-masstab', '');
+		const r = Number(await bastel.locator('.rad-rand').getAttribute('r'));
+		expect((2 * r * 2.54) / 96).toBeCloseTo(12, 2);
+		const zu = await gezeichnet(page, '<x-gluecksrad felder="rot; blau" anteile="1 40"></x-gluecksrad>');
+		await expect(zu.locator('x-gluecksrad')).toHaveAttribute('data-fehler', /unter 20°/);
+	});
+
+	test('Diagramm: Skala mit Schritt 2, alle Säulen enden genau auf dem Wert', async ({ page }) => {
+		const seite = await gezeichnet(page, '<x-diagramm werte="A: 3; B: 7; C: 12"></x-diagramm>');
+		await expect(seite.locator('x-diagramm')).toHaveAttribute('data-skala', '2');
+		const y = async (v: number) => Number(await seite.locator(`.gitter[data-v="${v}"]`).getAttribute('y1'));
+		const basis = await y(0);
+		const proEinheit = (basis - (await y(12))) / 12;
+		for (const v of [3, 7, 12]) {
+			const oben = Number(await seite.locator(`.wert[data-wert="${v}"]`).getAttribute('y'));
+			expect(oben).toBeCloseTo(basis - v * proEinheit, 1);
+		}
+		const offen = await gezeichnet(page, '<x-diagramm werte="A: 3; B: 7" offen="2"></x-diagramm>');
+		await expect(offen.locator('.wert')).toHaveCount(1);
+		const loesung = await gezeichnet(
+			page,
+			'<x-diagramm werte="A: 3; B: 7" offen="2"></x-diagramm>',
+			'kl3 sw loesung',
+		);
+		await expect(loesung.locator('.wert')).toHaveCount(2);
+	});
+
+	test('Möglichkeiten: 2 aus 3 ohne Reihenfolge sind 3, mit Wiederholung 6', async ({ page }) => {
+		const stufen = 'stufen="E S V / E S V" art="liste" reihenfolge="nein"';
+		const ohne = await gezeichnet(
+			page,
+			`<x-kombinatorik ${stufen} wiederholung="nein"></x-kombinatorik>`,
+			'kl3 sw loesung',
+		);
+		await expect(ohne.locator('x-kombinatorik')).toHaveAttribute('data-anzahl', '3');
+		await expect(ohne.locator('.ast')).toHaveCount(3);
+		const mit = await gezeichnet(page, `<x-kombinatorik ${stufen}></x-kombinatorik>`);
+		await expect(mit.locator('x-kombinatorik')).toHaveAttribute('data-anzahl', '6');
+	});
+
+	test('Strichliste bündelt zu fünft, die fehlende Spalte steht nur in der Lösung', async ({ page }) => {
+		const blatt = await gezeichnet(page, '<x-strichliste werte="A: 7" zeige="zahl"></x-strichliste>');
+		await expect(blatt.locator('.strich')).toHaveCount(0);
+		const loesung = await gezeichnet(
+			page,
+			'<x-strichliste werte="A: 7" zeige="zahl"></x-strichliste>',
+			'kl3 sw loesung',
+		);
+		await expect(loesung.locator('.strich')).toHaveCount(7);
+		const schraeg = await loesung
+			.locator('.strich')
+			.evaluateAll((l) => l.filter((e) => e.getAttribute('x1') !== e.getAttribute('x2')).length);
+		expect(schraeg).toBe(1);
+	});
+
+	test('Panel: Wert ändern und Feld hinzufügen sind je ein Schritt, Würfel-Fehler sperrt', async ({
+		druecke,
+		page,
+	}) => {
+		test.slow();
+		const { dok, id, material: datei } = await uhrzeit();
+		await oeffne(page, id, dok);
+		await aendere(
+			page,
+			(await quelle(page)).replace(
+				/<x-uhr[^>]*><\/x-uhr>/,
+				'<x-diagramm werte="A: 3; B: 7"></x-diagramm><x-gluecksrad felder="rot; blau"></x-gluecksrad><x-wuerfel ansicht="raeumlich" oben="1" vorne="2" rechts="3"></x-wuerfel>',
+			),
+		);
+		await gespeichert(page, datei);
+
+		await druecke(material(page).locator('x-diagramm'));
+		const stand = await readFile(datei, 'utf8');
+		await page.getByLabel('Wert in Zeile 1').fill('4');
+		await page.getByLabel('Wert in Zeile 1').press('Enter');
+		await gespeichert(page, datei);
+		const nachher = await readFile(datei, 'utf8');
+		expect(nachher).toContain('<x-diagramm werte="A: 4; B: 7">');
+		expect(geaendert(stand, nachher)).toHaveLength(1);
+		await druecke(zurueck(page));
+		await gespeichert(page, datei);
+		expect(await readFile(datei, 'utf8')).toBe(stand);
+
+		await druecke(material(page).locator('x-gluecksrad'));
+		await druecke(page.locator('[data-zeile-neu="felder"]'));
+		await gespeichert(page, datei);
+		expect(await readFile(datei, 'utf8')).toContain('<x-gluecksrad felder="rot; blau; rot">');
+		await druecke(zurueck(page));
+		await gespeichert(page, datei);
+		expect(await readFile(datei, 'utf8')).toBe(stand);
+
+		await druecke(material(page).locator('x-wuerfel'));
+		const vorne = page.getByLabel('Vorne', { exact: true });
+		await vorne.fill('6');
+		await vorne.press('Enter');
+		await expect(page.locator('[data-fehler="_element"]')).toContainText('liegen auf dem Würfel gegenüber');
+		expect(await readFile(datei, 'utf8')).toBe(stand);
+	});
+});

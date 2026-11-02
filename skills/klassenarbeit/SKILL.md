@@ -93,6 +93,8 @@ Die Fassung mit Nachteilsausgleich ist inhaltsgleich: dieselbe HTML-Datei mit ei
 - Englisch/Französisch: `fach-englisch`, Abschnitt „Leistung feststellen".
 - Sachunterricht: kurze Übungsarbeiten zu Ich-kann-Zielen, Fachbegriffe und Erklärungen, Leselast niedrig (`fach-sachunterricht`).
 
+Diagramm lesen und zeichnen ist ein eigener Aufgabentyp: `<x-diagramm werte="…">` zum Ablesen, mit `offen="…"` zum Zeichnen; die Lösung steht dann auf dem Lösungsblatt (`html-materialerstellung/references/abbildungen.md`).
+
 ## Qualitätscheck
 
 - [ ] Termin und Zahl im BW-Rahmen und nach Schulkonzept
