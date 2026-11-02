@@ -428,6 +428,13 @@ const rechenkerne = () => {
 		ausschnittZahlen: (von: number, bis: number, art: string, mitte: number | null) => number[];
 		rechenstrichWerte: (start: number, spruenge: number[]) => number[];
 		leseSprung: (text: string) => number;
+		mauerWerte: (basis: number[], art?: string) => number[][];
+		mauerEindeutig: (stufen: number, offen: string[], art?: string) => boolean;
+		istEindeutig: (gleichungen: Record<string, number>[], offen: string[]) => boolean;
+		RECHENDREIECK_GLEICHUNGEN: Record<string, number>[];
+		zauberLoesungen: (art: string, zahlen: number[], summe: number | null) => Record<string, number>[];
+		ketteWerte: (start: number, ops: unknown[]) => number[];
+		leseOperator: (text: string) => unknown;
 	};
 };
 
@@ -733,5 +740,49 @@ describe('Zahldarstellungen (027)', () => {
 		assert.equal(leseSprung('−4'), -4);
 		assert.equal(leseSprung('-4'), -4);
 		assert.throws(() => leseSprung('30'), /kein Sprung/);
+	});
+});
+
+describe('Rechenformate (028)', () => {
+	it('Zahlenmauer rechnet und prüft die Eindeutigkeit', () => {
+		const { mauerEindeutig, mauerWerte } = rechenkerne();
+		const reihen = Array.from(mauerWerte([3, 5, 2]), (r) => [...r]);
+		assert.deepEqual(reihen, [[3, 5, 2], [8, 7], [15]]);
+		assert.ok(mauerEindeutig(3, ['1-0', '1-1', '2-0']));
+		assert.ok(!mauerEindeutig(3, ['0-0', '0-1', '0-2', '1-0', '1-1']));
+		assert.ok(mauerEindeutig(3, ['0-1', '1-0', '2-0']));
+		assert.deepEqual([...(mauerWerte([20, 7, 3], 'minus').at(-1) ?? [])], [9]);
+	});
+
+	it('Rechendreieck: Außenzahlen allein reichen, Mischungen nicht immer', () => {
+		const { RECHENDREIECK_GLEICHUNGEN, istEindeutig } = rechenkerne();
+		assert.ok(istEindeutig(RECHENDREIECK_GLEICHUNGEN, ['i0', 'i1', 'i2']));
+		assert.ok(istEindeutig(RECHENDREIECK_GLEICHUNGEN, ['a0', 'a1', 'a2']));
+		assert.ok(istEindeutig(RECHENDREIECK_GLEICHUNGEN, ['i0', 'i1', 'a0']));
+		assert.ok(!istEindeutig(RECHENDREIECK_GLEICHUNGEN, ['i0', 'i1', 'i2', 'a0']));
+	});
+
+	it('Zauberdreieck und magisches Quadrat', () => {
+		const { zauberLoesungen } = rechenkerne();
+		assert.equal(zauberLoesungen('quadrat', [1, 2, 3, 4, 5, 6, 7, 8, 9], 15).length, 8);
+		for (const summe of [9, 10, 11, 12]) {
+			const alle = zauberLoesungen('dreieck', [1, 2, 3, 4, 5, 6], summe);
+			assert.equal(alle.length, 6, String(summe));
+			for (const l of alle) {
+				const s = (a: string, b: string, c: string) => (l[a] ?? 0) + (l[b] ?? 0) + (l[c] ?? 0);
+				assert.equal(s('e0', 's0', 'e1'), summe);
+				assert.equal(s('e1', 's1', 'e2'), summe);
+				assert.equal(s('e2', 's2', 'e0'), summe);
+			}
+		}
+		assert.equal(zauberLoesungen('dreieck', [1, 2, 3, 4, 5, 6], null).length, 24);
+		assert.equal(zauberLoesungen('dreieck', [1, 2, 3, 4, 5, 6], 13).length, 0);
+	});
+
+	it('Rechenschritte', () => {
+		const { ketteWerte, leseOperator } = rechenkerne();
+		assert.deepEqual([...ketteWerte(8, ['+5', '−3', '·2'].map(leseOperator))], [8, 13, 10, 20]);
+		assert.throws(() => ketteWerte(9, [leseOperator(':4')]), /ohne Rest/);
+		assert.throws(() => leseOperator('5'), /kein Rechenschritt/);
 	});
 });

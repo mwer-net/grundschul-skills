@@ -52,6 +52,8 @@ Nach den Rückfragen 2–3 Entwürfe zeigen, erst nach Freigabe des Aufgabenplan
 | Forscheraufgabe / offene Aufgabe | Alle Fächer, natürliche Differenzierung | "Finde möglichst viele …" |
 | Fehler finden („Willi hat sich vertan") | Rechnen ab Kl. 2, Rechtschreibung erst ab Kl. 3 | Fehleranzahl angeben ("Finde 3 Fehler.") |
 
+Mathe-Rechenformate (`x-zahlenmauer`, `x-rechendreieck`, `x-zahlenhaus`) als Item-Reihen in `.reihe`, alle gleich groß.
+
 ## Kontrolle durch Kinder (Selbstkontrolle)
 
 - Lösungswort aus Buchstaben der Ergebnisse

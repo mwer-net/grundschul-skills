@@ -714,3 +714,98 @@ test.describe('Zahldarstellungen (027)', () => {
 		await expect(material(page).locator('.strich-wert')).toHaveCount(4);
 	});
 });
+
+test.describe('Rechenformate (028)', () => {
+	const felder = (seite: Page) =>
+		seite
+			.locator('.rechenfeld')
+			.evaluateAll((l) => l.map((e) => `${e.getAttribute('data-id')}=${(e.textContent ?? '').trim()}`).sort());
+
+	test('Zahlenmauer 3 5 2: Lösung 8, 7, 15, Raum und Eindeutigkeit werden geprüft', async ({ page }) => {
+		const tag = '<x-zahlenmauer basis="3 5 2"></x-zahlenmauer>';
+		expect(await felder(await gezeichnet(page, tag))).toEqual(['0-0=3', '0-1=5', '0-2=2', '1-0=', '1-1=', '2-0=']);
+		expect(await felder(await gezeichnet(page, tag, 'kl3 sw loesung'))).toEqual([
+			'0-0=3',
+			'0-1=5',
+			'0-2=2',
+			'1-0=8',
+			'1-1=7',
+			'2-0=15',
+		]);
+		const decke = await gezeichnet(
+			page,
+			'<x-zahlenmauer basis="3 5 2" offen="0-0 0-1 0-2 1-0 1-1"></x-zahlenmauer>',
+		);
+		await expect(decke.locator('x-zahlenmauer')).toHaveAttribute('data-fehler', /mehrere Lösungen/);
+		const raum = await gezeichnet(page, '<x-zahlenmauer basis="6 6 7"></x-zahlenmauer>', 'kl1 sw');
+		await expect(raum.locator('x-zahlenmauer')).toHaveAttribute('data-fehler', /über 20/);
+	});
+
+	test('Zauberdreieck mit Summe 9 und zwei Ecken ist eindeutig, Rad mit Rest wird abgelehnt', async ({ page }) => {
+		const tag = '<x-zauberdreieck summe="9" vorgegeben="e0 e1"></x-zauberdreieck>';
+		const blatt = await gezeichnet(page, tag, 'kl3 sw loesung');
+		await expect(blatt.locator('x-zauberdreieck')).toHaveAttribute('data-loesungen', '1');
+		const w = await blatt
+			.locator('.rechenfeld')
+			.evaluateAll((l) =>
+				Object.fromEntries(
+					l.map((e) => [e.getAttribute('data-id') ?? '', Number(e.getAttribute('data-wert'))] as const),
+				),
+			);
+		expect((w.e0 ?? 0) + (w.s0 ?? 0) + (w.e1 ?? 0)).toBe(9);
+		expect((w.e1 ?? 0) + (w.s1 ?? 0) + (w.e2 ?? 0)).toBe(9);
+		expect((w.e2 ?? 0) + (w.s2 ?? 0) + (w.e0 ?? 0)).toBe(9);
+		const offen = await gezeichnet(page, '<x-zauberdreieck summe="9"></x-zauberdreieck>');
+		await expect(offen.locator('x-zauberdreieck')).toHaveAttribute('data-fehler', /mehrere Lösungen/);
+		const forscher = await gezeichnet(page, '<x-zauberdreieck></x-zauberdreieck>', 'kl3 sw loesung');
+		await expect(forscher.locator('x-zauberdreieck')).toContainText('eine von 24 Lösungen');
+		const rad = await gezeichnet(page, '<x-rechenrad mitte=":4" zahlen="4 8 12 16 20 25"></x-rechenrad>');
+		await expect(rad.locator('x-rechenrad')).toHaveAttribute('data-fehler', /ohne Rest/);
+		const haus = await gezeichnet(page, '<x-zahlenhaus dach="7" zerlegungen="3 5"></x-zahlenhaus>');
+		await expect(haus.locator('x-zahlenhaus')).toHaveAttribute('data-fehler', /ergeben nicht 7/);
+	});
+
+	test('Panel: Stein antippen und Basis ändern sind je ein Schritt, Mehrdeutiges sperrt', async ({
+		druecke,
+		page,
+	}) => {
+		test.slow();
+		const { dok, id, material: datei } = await uhrzeit();
+		await oeffne(page, id, dok);
+		await aendere(
+			page,
+			(await quelle(page)).replace(/<x-uhr[^>]*><\/x-uhr>/, '<x-zahlenmauer basis="3 5 2"></x-zahlenmauer>'),
+		);
+		await gespeichert(page, datei);
+		const stand = await readFile(datei, 'utf8');
+
+		await druecke(material(page).locator('x-zahlenmauer'));
+		const stein = (nr: string) => page.locator(`[data-form-raster="offen"] [data-zelle="${nr}"]`);
+		await expect(stein('2-0')).toHaveAttribute('aria-pressed', 'true');
+		await expect(stein('2-0')).toContainText('15');
+		await druecke(stein('2-0'));
+		await gespeichert(page, datei);
+		expect(await readFile(datei, 'utf8')).toContain('offen="1-0 1-1"');
+		await druecke(zurueck(page));
+		await gespeichert(page, datei);
+		expect(await readFile(datei, 'utf8')).toBe(stand);
+		await expect(material(page).locator('x-zahlenmauer')).not.toHaveAttribute('offen');
+
+		await druecke(material(page).locator('x-zahlenmauer'));
+		await expect(stein('2-0')).toHaveAttribute('aria-pressed', 'true');
+		await expect(page.getByLabel('Unterste Reihe')).toHaveValue('3 5 2');
+		await page.getByLabel('Unterste Reihe').fill('4 5 2');
+		await page.getByLabel('Unterste Reihe').press('Enter');
+		await gespeichert(page, datei);
+		expect(await readFile(datei, 'utf8')).toContain('basis="4 5 2"');
+		await druecke(zurueck(page));
+		await gespeichert(page, datei);
+		expect(await readFile(datei, 'utf8')).toBe(stand);
+		await expect(material(page).locator('x-zahlenmauer')).toHaveAttribute('basis', '3 5 2');
+
+		await druecke(material(page).locator('x-zahlenmauer'));
+		await druecke(stein('0-0'));
+		await expect(page.locator('[data-fehler="_element"]')).toContainText('mehrere Lösungen');
+		expect(await readFile(datei, 'utf8')).toBe(stand);
+	});
+});

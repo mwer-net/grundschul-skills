@@ -149,6 +149,8 @@ export interface FormZelle {
 	h?: number;
 	/** Grau in der Zelle, z. B. die berechnete Lösung. */
 	text?: string;
+	/** Gewählt, solange das Attribut fehlt. */
+	an?: boolean;
 }
 
 /**
@@ -1180,6 +1182,183 @@ export const ABBILDUNG_SCHEMA = {
 				standard: 560,
 				schritt: 20,
 			},
+		],
+	},
+	'x-zahlenmauer': {
+		name: 'Zahlenmauer',
+		felder: [
+			{ art: 'zahlen', attribut: 'basis', name: 'Unterste Reihe', beispiel: '3 5 2' },
+			{ art: 'raster', attribut: 'offen', name: 'Leere Steine', form: true },
+			{
+				art: 'auswahl',
+				attribut: 'art',
+				name: 'Rechnung',
+				standard: 'plus',
+				optionen: [
+					{ wert: 'plus', name: 'Plus' },
+					{ wert: 'minus', name: 'Minus' },
+				],
+			},
+			{ art: 'zahl', ...GROESSE, min: 24, max: 80, standard: 44, schritt: 2 },
+		],
+		regeln: (w): Fehler => {
+			const anzahl = w.zahlen('basis').length;
+			return anzahl < 2 || anzahl > 5 ? { basis: 'Eine Zahlenmauer hat unten 2 bis 5 Steine.' } : {};
+		},
+	},
+	'x-rechendreieck': {
+		name: 'Rechendreieck',
+		felder: [
+			{ art: 'zahlen', attribut: 'innen', name: 'Innenzahlen', beispiel: '3 5 2' },
+			{ art: 'raster', attribut: 'offen', name: 'Leere Felder', form: true },
+			{
+				art: 'auswahl',
+				attribut: 'darstellung',
+				name: 'Innen',
+				standard: 'zahlen',
+				optionen: [
+					{ wert: 'zahlen', name: 'Zahlen' },
+					{ wert: 'plaettchen', name: 'Plättchen' },
+				],
+			},
+			{ art: 'zahl', ...GROESSE, min: 140, max: 360, standard: 220, schritt: 10 },
+		],
+	},
+	'x-zahlenhaus': {
+		name: 'Zahlenhaus',
+		felder: [
+			{ art: 'zahl', attribut: 'dach', name: 'Dach', min: 0, max: 1000000, standard: 7 },
+			{
+				art: 'liste',
+				attribut: 'zerlegungen',
+				name: 'Stockwerke',
+				feldTrenner: ' ',
+				unter: [
+					{ art: 'zahl', name: 'Links' },
+					{ art: 'zahl', name: 'Rechts' },
+				],
+			},
+			{
+				art: 'schalter',
+				attribut: 'alle',
+				name: 'Alle Zerlegungen der Reihe nach',
+				an: 'ja',
+				aus: 'nein',
+				standard: false,
+			},
+			{ art: 'raster', attribut: 'offen', name: 'Leere Felder', form: true },
+			{ art: 'zahl', ...GROESSE, min: 24, max: 70, standard: 40, schritt: 2 },
+		],
+	},
+	'x-zahlenkette': {
+		name: 'Rechenkette',
+		felder: [
+			{ art: 'zahl', attribut: 'start', name: 'Start', min: 0, max: 1000000, standard: 0 },
+			{
+				art: 'liste',
+				attribut: 'operatoren',
+				name: 'Rechenschritte',
+				zeilenTrenner: ' ',
+				feldTrenner: ' ',
+				min: 1,
+				max: 8,
+				unter: [{ art: 'text', name: 'Schritt' }],
+				hilfe: 'Zum Beispiel +5, −3, ·2 oder :4.',
+			},
+			{
+				art: 'mehrfach',
+				attribut: 'zeige',
+				name: 'Schon vorgegeben',
+				standard: ['start', 'operatoren'],
+				optionen: [
+					{ wert: 'start', name: 'Start' },
+					{ wert: 'operatoren', name: 'Rechenschritte' },
+					{ wert: 'zwischen', name: 'Zwischenergebnisse' },
+					{ wert: 'ziel', name: 'Ziel' },
+				],
+			},
+			{
+				art: 'auswahl',
+				attribut: 'art',
+				name: 'Darstellung',
+				standard: 'kette',
+				optionen: [
+					{ wert: 'kette', name: 'Kette' },
+					{ wert: 'pfeilbild', name: 'Pfeilbild' },
+				],
+			},
+			{
+				art: 'schalter',
+				attribut: 'rueckwaerts',
+				name: 'Rückwärts (Ziel gegeben)',
+				an: 'ja',
+				aus: 'nein',
+				standard: false,
+			},
+		],
+	},
+	'x-zauberdreieck': {
+		name: 'Zauberdreieck',
+		felder: [
+			{
+				art: 'auswahl',
+				attribut: 'art',
+				name: 'Form',
+				standard: 'dreieck',
+				optionen: [
+					{ wert: 'dreieck', name: 'Zauberdreieck (6 Zahlen)' },
+					{ wert: 'quadrat', name: 'Magisches Quadrat (9 Zahlen)' },
+				],
+			},
+			{
+				art: 'zahlen',
+				attribut: 'zahlen',
+				name: 'Zahlen',
+				beispiel: '1 2 3 4 5 6',
+				hilfe: 'Leer: 1 bis 6 oder 1 bis 9.',
+			},
+			{
+				art: 'zahl',
+				attribut: 'summe',
+				name: 'Summe je Linie',
+				min: 0,
+				max: 100000,
+				standard: 0,
+				hilfe: '0: ohne Summe, eine Forscheraufgabe.',
+			},
+			{ art: 'raster', attribut: 'vorgegeben', name: 'Vorgegebene Felder', form: true },
+			{ art: 'mischen', attribut: 'seed', name: 'Lösung' },
+			{ art: 'zahl', ...GROESSE, min: 26, max: 70, standard: 44, schritt: 2 },
+		],
+	},
+	'x-rechenrad': {
+		name: 'Rechenrad',
+		felder: [
+			{
+				art: 'text',
+				attribut: 'mitte',
+				name: 'In der Mitte',
+				muster: '[+\\-−·×*:] ?[0-9]+',
+				musterHilfe: 'Zum Beispiel ·7 oder :4.',
+			},
+			{
+				art: 'zahlen',
+				attribut: 'zahlen',
+				name: 'Innerer Ring',
+				beispiel: '1 2 3 4 5 6',
+				hilfe: '6 bis 10 Zahlen.',
+			},
+			{
+				art: 'auswahl',
+				attribut: 'offen',
+				name: 'Offen',
+				standard: 'aussen',
+				optionen: [
+					{ wert: 'aussen', name: 'Außen' },
+					{ wert: 'innen', name: 'Innen' },
+				],
+			},
+			{ art: 'zahl', ...GROESSE, min: 160, max: 400, standard: 240, schritt: 10 },
 		],
 	},
 	'x-wuerfelbau': {

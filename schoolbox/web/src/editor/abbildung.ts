@@ -107,6 +107,10 @@ export const useAbbildung = ({ geladen, html, pfad, struktur, zerlegung }: Optio
 	);
 	const basis = quelle && nr !== null ? `${nr}:${JSON.stringify(quelle)}` : null;
 	const [entwurf, setEntwurf] = useState<{ basis: string; werte: Werte } | null>(null);
+	// Hat sich die Quelle bewegt, ist der Entwurf vorbei; sonst lebte er nach „Rückgängig“ mit derselben Quelle wieder auf.
+	if (entwurf && entwurf.basis !== basis) {
+		setEntwurf(null);
+	}
 	const werte = entwurf && entwurf.basis === basis ? entwurf.werte : quelle;
 	const [ausBlatt, setAusBlatt] = useState<AusDemBlatt>(LEER);
 	const regelFehler: Fehler = useMemo(() => (schema && werte ? pruefeWerte(schema, werte) : {}), [schema, werte]);

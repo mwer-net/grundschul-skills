@@ -317,3 +317,61 @@ Erweiterungen der Grundelemente: `x-zwanzigerfeld` `art` (`fuenfer`, `zehner`, `
 ```
 
 `start`; `spruenge` mit Vorzeichen; `zeige` aus `start`, `spruenge`, `zwischen`, `ziel` (Standard: Start und Sprünge), alles andere ist ein Kästchen mit der berechneten Lösung; `massstab="ja"` Bögen maßstäblich, mindestens 28 px; `gemischt="ja"` erlaubt Vor- und Rückwärtssprünge, dann immer im Maßstab; `breite` in px.
+
+## Rechenformate
+
+Muster: `assets/muster/rechenformate.html`. Die Lösung wird immer berechnet. Das Element prüft den Zahlenraum der Klasse (kl1 20, kl2 100, kl3 1 000, kl4 1 000 000) und ob sich jedes offene Feld eindeutig ergibt; sonst FEHLER. `offen` listet leere Felder; ohne Angabe gilt der Standard des Elements.
+
+### `x-zahlenmauer`: Zahlenmauer
+
+```html
+<x-zahlenmauer basis="3 5 2"></x-zahlenmauer>
+<x-zahlenmauer basis="4 2 6 1" offen="0-1 0-2 1-0 2-1 3-0"></x-zahlenmauer>
+```
+
+`basis` unterste Reihe, 2 bis 5 Steine; `offen` Steine als `Reihe-Stein`, Reihe 0 ist unten; Standard: alles über der Basis. `art` `plus` oder `minus` (links minus rechts); `groesse` Steinbreite in px.
+
+### `x-rechendreieck`: Rechendreieck
+
+```html
+<x-rechendreieck innen="3 5 2"></x-rechendreieck>
+<x-rechendreieck innen="4 7 6" offen="i0 i1 a2" darstellung="plaettchen"></x-rechendreieck>
+```
+
+`innen` drei Zahlen; `offen` aus `i0`, `i1`, `i2` (innen: oben, links, rechts) und `a0`, `a1`, `a2` (außen: links, unten, rechts), Standard: außen; `darstellung` `zahlen` oder `plaettchen` (bis 20); `groesse` in px.
+
+### `x-zahlenhaus`: Zahlenhaus
+
+```html
+<x-zahlenhaus dach="7" zerlegungen="3 4; 5 2"></x-zahlenhaus>
+<x-zahlenhaus dach="5" alle="ja" offen="0-r 1-l 2-r 3-l 4-r 5-l"></x-zahlenhaus>
+```
+
+`dach`; `zerlegungen` Stockwerke; `alle="ja"` alle Zerlegungen der Reihe nach; `offen` aus `dach`, `0-l`, `0-r` … (Stockwerk, links oder rechts), Standard: rechts; `groesse` in px.
+
+### `x-zahlenkette`: Rechenkette
+
+```html
+<x-zahlenkette start="8" operatoren="+5 −3 ·2"></x-zahlenkette>
+<x-zahlenkette start="4" operatoren="·5 −2" rueckwaerts="ja" art="pfeilbild"></x-zahlenkette>
+```
+
+`start` ist immer die erste Zahl, auch rückwärts; `operatoren` mit `+`, `−`, `·`, `:` (nur ohne Rest); `zeige` aus `start`, `operatoren`, `zwischen`, `ziel`, Standard Start und Schritte, bei `rueckwaerts="ja"` Ziel und Schritte; `art` `kette` oder `pfeilbild`.
+
+### `x-zauberdreieck`: Zauberdreieck und magisches Quadrat
+
+```html
+<x-zauberdreieck summe="9" vorgegeben="e0 e1"></x-zauberdreieck>
+<x-zauberdreieck></x-zauberdreieck>
+<x-zauberdreieck art="quadrat" vorgegeben="z0 z4 z5"></x-zauberdreieck>
+```
+
+`art` `dreieck` (Felder `e0` oben, `s0`, `e1` links, `s1`, `e2` rechts, `s2`) oder `quadrat` (`z0` bis `z8`); `zahlen` Standard 1 bis 6 bzw. 1 bis 9; `summe`: mit ihr muss es genau eine Lösung geben, ohne sie zeigt die Lösung „eine von n Lösungen“ (Forscheraufgabe); `vorgegeben` Felder, deren Zahl aus der Lösung schon dasteht; `seed` wählt die Lösung; `groesse` in px.
+
+### `x-rechenrad`: Rechenrad
+
+```html
+<x-rechenrad mitte="·7" zahlen="1 2 3 4 5 6 7 8"></x-rechenrad>
+```
+
+`mitte` Rechenschritt; `zahlen` innerer Ring, 6 bis 10; `offen` `aussen` oder `innen`; `groesse` in px.

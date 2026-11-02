@@ -44,6 +44,8 @@ Prozessbezogene Kompetenzen in jedes Material einbauen: Problemlösen, Kommunizi
 6. **Sachaufgaben:** Lebensweltlich, kurz, mit Bild; Fragestellung fett; Rechnung – Antwortsatz-Schema. Ab Kl. 2 auch Aufgaben mit überflüssigen Angaben oder ohne Frage ("Erfinde eine Frage").
 7. **Fachsprache korrekt:** Summand, Summe, Minuend, Differenz (ab Kl. 2/3 je nach Lehrwerk), "Ergebnis", "gleich". Gleichheitszeichen als Beziehung, nicht als "ergibt" (Aufgaben wie 5 + 3 = __ + 4 einstreuen).
 
+Substanzielle Aufgabenformate (Wittmann) tragen Übung und Entdecken zugleich: `x-zahlenmauer`, `x-rechendreieck`, `x-zahlenhaus`, `x-zahlenkette`, `x-zauberdreieck`, `x-rechenrad`. Forscherfragen für Sternchenaufgaben: „Was passiert mit dem Deckstein, wenn eine Basiszahl um 1 größer wird?“, „Welche Summen sind im Zauberdreieck möglich?“, „Wie viele Zerlegungen hat das Haus?“
+
 ## Kernkonzepte im Fach
 
 - Niveaus folgen den Darstellungsebenen: ● mit Material/Bild, ●● symbolisch, ●●● Muster erklären, Aufgaben erfinden, begründen.
@@ -113,6 +115,12 @@ Exakte Darstellungen kommen als Elemente aus `html-materialerstellung/assets/abb
 | `<x-hundertertafel ausschnitt="kreuz" mitte="45">` | Hundertertafel, Ausschnitte, Lücken |
 | `<x-rechenrahmen stellung="7 3">` | Rechenrahmen 20 oder 100 |
 | `<x-rechenstrich start="47" spruenge="+30 +4">` | Rechenstrich (leerer Zahlenstrahl) |
+| `<x-zahlenmauer basis="3 5 2">` | Zahlenmauer, Lösung und Eindeutigkeit berechnet |
+| `<x-rechendreieck innen="3 5 2">` | Rechendreieck |
+| `<x-zahlenhaus dach="7" zerlegungen="3 4; 5 2">` | Zahlenhaus |
+| `<x-zahlenkette start="8" operatoren="+5 −3 ·2">` | Rechenkette, Pfeilbild |
+| `<x-zauberdreieck summe="9" vorgegeben="e0 e1">` | Zauberdreieck, magisches Quadrat |
+| `<x-rechenrad mitte="·7" zahlen="1 2 3 4 5 6">` | Rechenrad |
 | `<x-gluecksrad felder="rot: 1; blau: 2" anteile="1 2">` | Glücksrad, auch zum Ausmalen und als Bastelvorlage |
 | `<x-wuerfel augen="5">` | Würfel, flach oder räumlich |
 | `<x-strichliste werte="Hund: 7; Katze: 4">` | Strichliste mit Fünferbündeln |

@@ -726,8 +726,8 @@ const rasterMass = (angabe: string | number | undefined, abb: AbbildungSteuerung
 /** Zelle in der Gestalt des Elements: Antippen nimmt sie in die Liste auf oder heraus. */
 const FormRaster = ({ abb, feld }: FeldEigenschaften<RasterFeld>) => {
 	const wert = wertVon(feld, abb)?.wert ?? null;
-	const gewaehlt = listeVon(wert);
 	const zellen = abb.zellen[feld.attribut] ?? [];
+	const gewaehlt = wert === null ? zellen.filter((z) => z.an).map((z) => z.id) : listeVon(wert);
 	const setze = (zelle: string) => {
 		const neu = gewaehlt.includes(zelle) ? gewaehlt.filter((g) => g !== zelle) : [...gewaehlt, zelle];
 		abb.aendere(feld, neu.length === 0 ? null : neu.join(' '));

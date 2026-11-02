@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<title>Muster: Rechenformate</title>
+<link rel="stylesheet" href="blatt.css">
+<script src="abbildungen.js"></script>
+</head>
+<body class="kl3 sw">
+<section class="seite">
+  <div class="kopf"><div class="titel"><h1>Rechenformate</h1></div></div>
+  <div class="aufgabe">
+    <span class="nr">1</span><div class="anw"><span class="text">Zahlenmauern: Deckstein und Basis gesucht</span></div>
+    <div class="koerper"><div class="reihe" style="--spalten:3">
+      <div class="zelle"><x-zahlenmauer basis="3 5 2"></x-zahlenmauer></div>
+      <div class="zelle"><x-zahlenmauer basis="4 2 6 1" offen="0-1 0-2 1-0 2-1 3-0" groesse="38"></x-zahlenmauer></div>
+      <div class="zelle"><x-zahlenmauer basis="20 7 3" art="minus" offen="1-0 1-1 2-0"></x-zahlenmauer></div>
+    </div></div>
+  </div>
+  <div class="aufgabe">
+    <span class="nr">2</span><div class="anw"><span class="text">Rechendreiecke</span></div>
+    <div class="koerper"><div class="reihe" style="--spalten:2">
+      <div class="zelle"><x-rechendreieck innen="3 5 2" groesse="180"></x-rechendreieck></div>
+      <div class="zelle"><x-rechendreieck innen="4 7 6" offen="i0 i1 a2" darstellung="plaettchen" groesse="180"></x-rechendreieck></div>
+    </div></div>
+  </div>
+  <div class="aufgabe">
+    <span class="nr">3</span><div class="anw"><span class="text">Zahlenhäuser</span></div>
+    <div class="koerper"><div class="reihe" style="--spalten:3">
+      <div class="zelle"><x-zahlenhaus dach="7" zerlegungen="3 4; 5 2; 6 1"></x-zahlenhaus></div>
+      <div class="zelle"><x-zahlenhaus dach="5" alle="ja" offen="0-r 1-l 2-r 3-l 4-r 5-l" groesse="36"></x-zahlenhaus></div>
+      <div class="zelle"><x-zahlenhaus dach="10" zerlegungen="4 6; 7 3" offen="dach 1-l"></x-zahlenhaus></div>
+    </div></div>
+  </div>
+</section>
+<section class="seite">
+  <div class="kopf"><div class="titel"><h1>Rechenformate</h1></div></div>
+  <div class="aufgabe">
+    <span class="nr">4</span><div class="anw"><span class="text">Rechenketten, auch rückwärts</span></div>
+    <div class="koerper"><x-zahlenkette start="8" operatoren="+5 −3 ·2"></x-zahlenkette><br><x-zahlenkette start="8" operatoren="+7 :3 ·6" art="pfeilbild"></x-zahlenkette><br><x-zahlenkette start="4" operatoren="·5 −2" rueckwaerts="ja"></x-zahlenkette></div>
+  </div>
+  <div class="aufgabe">
+    <span class="nr">5</span><div class="anw"><span class="text">Zauberdreieck und magisches Quadrat</span></div>
+    <div class="koerper"><div class="reihe" style="--spalten:3">
+      <div class="zelle"><x-zauberdreieck summe="9" vorgegeben="e0 e1"></x-zauberdreieck></div>
+      <div class="zelle"><x-zauberdreieck></x-zauberdreieck></div>
+      <div class="zelle"><x-zauberdreieck art="quadrat" vorgegeben="z0 z4 z5"></x-zauberdreieck></div>
+    </div></div>
+  </div>
+  <div class="aufgabe">
+    <span class="nr">6</span><div class="anw"><span class="text">Rechenräder</span></div>
+    <div class="koerper"><div class="reihe" style="--spalten:2">
+      <div class="zelle"><x-rechenrad mitte="·7" zahlen="1 2 3 4 5 6 7 8" groesse="220"></x-rechenrad></div>
+      <div class="zelle"><x-rechenrad mitte=":4" zahlen="4 8 12 16 20 24" offen="innen" groesse="220"></x-rechenrad></div>
+    </div></div>
+  </div>
+</section>
+</body>
+</html>

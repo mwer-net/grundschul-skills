@@ -82,6 +82,7 @@
     "x-urne": "Kugeln im Säckchen", "x-wahrscheinlichkeit": "Wahrscheinlichkeit", "x-kombinatorik": "Möglichkeiten",
     "x-gitter": "Gitter", "x-figur": "Figur", "x-tangram": "Tangram",
     "x-hunderterfeld": "Hunderterfeld", "x-hundertertafel": "Hundertertafel", "x-rechenrahmen": "Rechenrahmen", "x-rechenstrich": "Rechenstrich",
+    "x-zahlenmauer": "Zahlenmauer", "x-rechendreieck": "Rechendreieck", "x-zahlenhaus": "Zahlenhaus", "x-zahlenkette": "Rechenkette", "x-zauberdreieck": "Zauberdreieck", "x-rechenrad": "Rechenrad",
     "x-wuerfelbau": "Würfelgebäude", "x-wuerfelnetz": "Würfelnetz", "x-koerper": "Körper",
   };
 
@@ -1914,6 +1915,337 @@
     el.innerHTML = svg(breite, linie + 10 + 26 + (gestaffelt ? 30 : 0) + 2, s);
   }
 
+  /* == Rechenformate == */
+  const ZAHLENRAUM = { 1: 20, 2: 100, 3: 1000, 4: 1000000 };
+  const pruefeRaum = (werte) => {
+    const k = klasse(), grenze = ZAHLENRAUM[k] ?? 1000000;
+    for (const w of werte) {
+      if (!Number.isInteger(w)) abbruch(`${String(w).replace(".", ",")} ist keine ganze Zahl.`);
+      if (w < 0) abbruch(`Ein Feld wäre ${zahl(w)} und damit unter 0.`);
+      if (w > grenze) abbruch(`Ein Feld wäre ${zahl(w)} und damit über ${zahl(grenze)}, die Grenze in Klasse ${k}.`);
+    }
+  };
+  /** Rang über die Gaußsche Elimination; die Gleichungen sind klein, die Koeffizienten ganz. */
+  const rang = (zeilen) => {
+    const m = zeilen.map((z) => [...z]);
+    let r = 0;
+    const spalten = m[0]?.length ?? 0;
+    for (let c = 0; c < spalten && r < m.length; c++) {
+      let p = r;
+      for (let i = r; i < m.length; i++) if (Math.abs(m[i][c]) > Math.abs(m[p][c])) p = i;
+      if (Math.abs(m[p][c]) < 1e-9) continue;
+      [m[r], m[p]] = [m[p], m[r]];
+      for (let i = 0; i < m.length; i++) {
+        if (i === r) continue;
+        const f = m[i][c] / m[r][c];
+        for (let j = c; j < spalten; j++) m[i][j] -= f * m[r][j];
+      }
+      r++;
+    }
+    return r;
+  };
+  /** Ergibt sich jedes offene Feld aus den gegebenen? `gleichungen`: je `{ id: Faktor }`. */
+  const istEindeutig = (gleichungen, offen) => {
+    const ids = [...offen];
+    if (ids.length === 0) return true;
+    return rang(gleichungen.map((g) => ids.map((id) => g[id] ?? 0))) === ids.length;
+  };
+  const MEHRERE = "Mit diesen Vorgaben gibt es mehrere Lösungen.";
+  const leseOffen = (roh, standard) => new Set(roh === null ? standard : trenneListe(roh));
+  const feldMass = (werte, wunsch) => {
+    const mindest = { 1: 28, 2: 24, 3: 22, 4: 22 }[klasse()] ?? 24;
+    const schrift = Math.max(14, Math.min(20, Math.max(wunsch, mindest) * 0.5));
+    const breit = Math.max(...werte.map((w) => textBreite(zahl(w), schrift))) + 14;
+    return { b: Math.max(wunsch, mindest, breit), schrift };
+  };
+  const rechenfeld = (el, id, x, y, b, h, wert, offen, schrift, { rund = false, rand = "", inhaltText } = {}) => {
+    const zeige = !offen || loesungSichtbar(el);
+    const wort = inhaltText ?? zahl(wert);
+    return `<g class="rechenfeld" data-id="${id}" data-wert="${wert}" data-offen="${offen ? "ja" : "nein"}">` +
+      `<rect x="${r1(x)}" y="${r1(y)}" width="${r1(b)}" height="${r1(h)}" rx="${rund ? r1(h / 2) : 3}" fill="#fff" stroke-width="1.6"${rand}/>` +
+      (zeige ? text(x + b / 2, y + h / 2, wort, { groesse: schrift, fett: offen }) : "") + "</g>";
+  };
+
+  const mauerWerte = (basis, art = "plus") => {
+    const reihen = [basis];
+    while (reihen[reihen.length - 1].length > 1) {
+      const unten = reihen[reihen.length - 1];
+      reihen.push(unten.slice(1).map((w, i) => (art === "minus" ? unten[i] - w : unten[i] + w)));
+    }
+    return reihen;
+  };
+  const mauerEindeutig = (stufen, offen, art = "plus") => {
+    const gleichungen = [];
+    for (let r = 1; r < stufen; r++) {
+      for (let c = 0; c < stufen - r; c++) gleichungen.push({ [`${r}-${c}`]: 1, [`${r - 1}-${c}`]: -1, [`${r - 1}-${c + 1}`]: art === "minus" ? 1 : -1 });
+    }
+    return istEindeutig(gleichungen, offen);
+  };
+
+  function zahlenmauer(el) {
+    const basis = liste(el, "basis").map(Number), art = attr(el, "art", "plus");
+    if (basis.length < 2 || basis.length > 5) abbruch("Eine Zahlenmauer hat unten 2 bis 5 Steine.");
+    if (art !== "plus" && art !== "minus") abbruch(`Die Art „${art}“ gibt es nicht.`);
+    const reihen = mauerWerte(basis, art);
+    pruefeRaum(reihen.flat());
+    const stufen = basis.length;
+    const zellen = reihen.flatMap((reihe, r) => reihe.map((w, c) => ({ id: `${r}-${c}`, x: r / 2 + c, y: stufen - 1 - r, text: String(w), an: r > 0 })));
+    meldeZellen(el, "offen", zellen);
+    const offen = leseOffen(attr(el, "offen", null), zellen.filter((z) => z.an).map((z) => z.id));
+    for (const id of offen) if (!zellen.some((z) => z.id === id)) abbruch(`Den Stein „${id}“ gibt es nicht.`);
+    if (!mauerEindeutig(stufen, offen, art)) abbruch(MEHRERE);
+    const { b, schrift } = feldMass(reihen.flat(), num(el, "groesse", 44));
+    const h = Math.max(30, schrift * 1.8);
+    let s = "";
+    reihen.forEach((reihe, r) => reihe.forEach((w, c) => {
+      const deck = r === stufen - 1;
+      s += rechenfeld(el, `${r}-${c}`, 1 + (r / 2 + c) * b, 1 + (stufen - 1 - r) * h, b, h, w, offen.has(`${r}-${c}`), schrift, { rand: deck && !istSw() ? ' style="stroke:var(--akzent)"' : "" });
+    }));
+    el.innerHTML = svg(r1(stufen * b + 2), r1(stufen * h + 2), s);
+  }
+
+  const RECHENDREIECK_GLEICHUNGEN = [{ a0: 1, i0: -1, i1: -1 }, { a1: 1, i1: -1, i2: -1 }, { a2: 1, i2: -1, i0: -1 }];
+  const plaettchenMitte = (cx, cy, n, r = 3.6, abstand = 9) => {
+    let s = "";
+    const breite = Math.min(n, 5), zeilen = Math.ceil(n / 5);
+    for (let i = 0; i < n; i++) {
+      const c = i % 5, z = Math.floor(i / 5);
+      s += `<circle class="plaettchen" cx="${r1(cx + (c - (Math.min(n - z * 5, 5) - 1) / 2) * abstand)}" cy="${r1(cy + (z - (zeilen - 1) / 2) * abstand)}" r="${r}" fill="currentColor" stroke="none" data-b="${breite}"/>`;
+    }
+    return s;
+  };
+
+  function rechendreieck(el) {
+    const innen = liste(el, "innen").map(Number);
+    if (innen.length !== 3) abbruch("Das Rechendreieck braucht drei Innenzahlen.");
+    const aussen = [innen[0] + innen[1], innen[1] + innen[2], innen[2] + innen[0]];
+    const alle = [...innen, ...aussen];
+    pruefeRaum(alle);
+    const plaettchen = attr(el, "darstellung", "zahlen") === "plaettchen";
+    if (plaettchen && innen.some((w) => w > 20)) abbruch("Plättchen gehen bis 20.");
+    const namen = ["i0", "i1", "i2", "a0", "a1", "a2"];
+    const offenStandard = ["a0", "a1", "a2"];
+    const lage = [[1, 0], [0, 2], [2, 2], [0, 1], [1, 3], [2, 1]];
+    meldeZellen(el, "offen", namen.map((id, i) => ({ id, x: lage[i][0], y: lage[i][1], text: String(alle[i]), an: offenStandard.includes(id) })));
+    const offen = leseOffen(attr(el, "offen", null), offenStandard);
+    for (const id of offen) if (!namen.includes(id)) abbruch(`Das Feld „${id}“ gibt es nicht.`);
+    if (!istEindeutig(RECHENDREIECK_GLEICHUNGEN, offen)) abbruch(MEHRERE);
+    const g = num(el, "groesse", 220), { b, schrift } = feldMass(alle, 44), h = Math.max(30, schrift * 1.8);
+    const h3 = g * 0.866, ox = b + 8, oy = 4;
+    const T = [ox + g / 2, oy], L = [ox, oy + h3], R = [ox + g, oy + h3], M = [ox + g / 2, oy + h3 * 0.62];
+    let s = `<path d="M${r1(T[0])} ${r1(T[1])}L${r1(L[0])} ${r1(L[1])}L${r1(R[0])} ${r1(R[1])}Z" stroke-width="2.2" stroke-linejoin="round" fill="#fff"/>`;
+    const seitenMitte = [[(T[0] + L[0]) / 2, (T[1] + L[1]) / 2], [(L[0] + R[0]) / 2, L[1]], [(R[0] + T[0]) / 2, (R[1] + T[1]) / 2]];
+    for (const p of seitenMitte) s += `<line x1="${r1(M[0])}" y1="${r1(M[1])}" x2="${r1(p[0])}" y2="${r1(p[1])}" stroke-width="1.6"/>`;
+    const orteInnen = [[T[0], oy + h3 * 0.36], [ox + g * 0.25, oy + h3 * 0.8], [ox + g * 0.75, oy + h3 * 0.8]];
+    orteInnen.forEach(([x, y], i) => {
+      const id = namen[i], ist = offen.has(id);
+      if (plaettchen) {
+        const inhaltPunkte = !ist || loesungSichtbar(el) ? plaettchenMitte(x, y, innen[i]) : "";
+        s += `<g class="rechenfeld" data-id="${id}" data-wert="${innen[i]}" data-offen="${ist ? "ja" : "nein"}">${inhaltPunkte}</g>`;
+      } else s += rechenfeld(el, id, x - b / 2, y - h / 2, b, h, innen[i], ist, schrift);
+    });
+    const orteAussen = [[seitenMitte[0][0] - b / 2 - 8, seitenMitte[0][1]], [seitenMitte[1][0], L[1] + h / 2 + 8], [seitenMitte[2][0] + b / 2 + 8, seitenMitte[2][1]]];
+    orteAussen.forEach(([x, y], i) => {
+      s += rechenfeld(el, `a${i}`, x - b / 2, y - h / 2, b, h, aussen[i], offen.has(`a${i}`), schrift);
+    });
+    el.innerHTML = svg(r1(g + 2 * ox), r1(h3 + oy + h + 12), s);
+  }
+
+  function zahlenhaus(el) {
+    const dachRoh = num(el, "dach", NaN), alleZerlegungen = attr(el, "alle", "nein") === "ja";
+    if (!Number.isInteger(dachRoh) || dachRoh < 0) abbruch("Das Dach braucht eine Zahl.");
+    const dach = dachRoh;
+    const zeilen = alleZerlegungen
+      ? Array.from({ length: dach + 1 }, (_, i) => [i, dach - i])
+      : (el.getAttribute("zerlegungen") || "").split(";").map((t) => t.trim()).filter(Boolean).map((t) => t.split(/\s+/).map(Number));
+    if (zeilen.length === 0) abbruch("Das Zahlenhaus braucht mindestens ein Stockwerk.");
+    if (zeilen.length > 21) abbruch("Das Zahlenhaus hat höchstens 21 Stockwerke.");
+    for (const z of zeilen) {
+      if (z.length !== 2) abbruch("Jedes Stockwerk hat zwei Zahlen.");
+      if (z[0] + z[1] !== dach) abbruch(`${zahl(z[0])} und ${zahl(z[1])} ergeben nicht ${zahl(dach)}.`);
+    }
+    pruefeRaum([dach, ...zeilen.flat()]);
+    const standard = zeilen.map((_, r) => `${r}-r`);
+    const zellen = [{ id: "dach", x: 0.5, y: 0, text: String(dach), an: false }];
+    zeilen.forEach((z, r) => {
+      zellen.push({ id: `${r}-l`, x: 0, y: r + 1, text: String(z[0]), an: false }, { id: `${r}-r`, x: 1, y: r + 1, text: String(z[1]), an: true });
+    });
+    meldeZellen(el, "offen", zellen);
+    const offen = leseOffen(attr(el, "offen", null), standard);
+    for (const id of offen) if (!zellen.some((z) => z.id === id)) abbruch(`Das Feld „${id}“ gibt es nicht.`);
+    if (!istEindeutig(zeilen.map((_, r) => ({ dach: 1, [`${r}-l`]: -1, [`${r}-r`]: -1 })), offen)) abbruch(MEHRERE);
+    const { b, schrift } = feldMass([dach, ...zeilen.flat()], num(el, "groesse", 40)), h = Math.max(28, schrift * 1.7);
+    const breite = 2 * b, dachH = b * 0.95;
+    let s = `<path d="M1 ${r1(dachH + 1)}L${r1(b + 1)} 1L${r1(breite + 1)} ${r1(dachH + 1)}Z" fill="#fff" stroke-width="2" stroke-linejoin="round"/>`;
+    const ist = offen.has("dach");
+    s += `<g class="rechenfeld" data-id="dach" data-wert="${dach}" data-offen="${ist ? "ja" : "nein"}">${!ist || loesungSichtbar(el) ? text(b + 1, dachH * 0.64, zahl(dach), { groesse: schrift, fett: true }) : ""}</g>`;
+    zeilen.forEach((z, r) => {
+      const y = dachH + 1 + r * h;
+      s += rechenfeld(el, `${r}-l`, 1, y, b, h, z[0], offen.has(`${r}-l`), schrift) + rechenfeld(el, `${r}-r`, 1 + b, y, b, h, z[1], offen.has(`${r}-r`), schrift);
+    });
+    el.innerHTML = svg(r1(breite + 2), r1(dachH + zeilen.length * h + 2), s);
+  }
+
+  const leseOperator = (t) => {
+    const m = /^([+\-−·×*:])\s*(\d+)$/.exec(String(t).trim());
+    if (!m) abbruch(`„${t}“ ist kein Rechenschritt. So sieht einer aus: +5, −3, ·2 oder :4.`);
+    return { art: { "+": "+", "-": "−", "−": "−", "·": "·", "×": "·", "*": "·", ":": ":" }[m[1]], wert: Number(m[2]) };
+  };
+  const rechne = (a, { art, wert }) => {
+    if (art === "+") return a + wert;
+    if (art === "−") return a - wert;
+    if (art === "·") return a * wert;
+    if (wert === 0) abbruch("Durch 0 kann man nicht teilen.");
+    if (a % wert !== 0) abbruch(`${zahl(a)} : ${zahl(wert)} geht nicht ohne Rest auf.`);
+    return a / wert;
+  };
+  const operatorText = ({ art, wert }) => `${art}${art === "·" || art === ":" ? " " : ""}${zahl(wert)}`;
+  const ketteWerte = (start, ops) => ops.reduce((w, o) => [...w, rechne(w[w.length - 1], o)], [start]);
+
+  function zahlenkette(el) {
+    const start = num(el, "start", 0), ops = liste(el, "operatoren").map(leseOperator);
+    if (ops.length === 0) abbruch("Die Kette braucht mindestens einen Rechenschritt, zum Beispiel +5.");
+    const rueckwaerts = attr(el, "rueckwaerts", "nein") === "ja";
+    const standard = rueckwaerts ? ["ziel", "operatoren"] : ["start", "operatoren"];
+    const zeige = attr(el, "zeige", null) === null ? standard : liste(el, "zeige");
+    if (!["start", "ziel", "zwischen"].some((z) => zeige.includes(z))) abbruch("Mindestens eine Zahl muss vorgegeben sein, sonst lässt sich nichts rechnen.");
+    if (!zeige.includes("operatoren") && ops.length > 1 && !zeige.includes("zwischen")) abbruch(MEHRERE);
+    const werte = ketteWerte(start, ops);
+    pruefeRaum(werte);
+    const pfeilbild = attr(el, "art", "kette") === "pfeilbild";
+    const { b, schrift } = feldMass(werte, 44), h = Math.max(30, schrift * 1.8), luecke = pfeilbild ? 62 : 56, oben = pfeilbild ? 40 : 24;
+    const breite = werte.length * b + ops.length * luecke;
+    if (breite > SATZSPIEGEL) abbruch("Die Kette ist zu lang für eine Zeile. Nimm weniger Schritte.");
+    let s = "";
+    const wortHoehe = 14;
+    werte.forEach((w, i) => {
+      const x = i * (b + luecke) + 1, ist = i === 0 ? "start" : i === werte.length - 1 ? "ziel" : "zwischen";
+      s += rechenfeld(el, `w${i}`, x, oben, b, h, w, !zeige.includes(ist), schrift, { rund: pfeilbild });
+      if (i === ops.length) return;
+      const x1 = x + b + 3, x2 = x + b + luecke - 3, my = oben + h / 2, wort = operatorText(ops[i]), mitte = (x1 + x2) / 2;
+      if (pfeilbild) s += `<path d="M${r1(x + b / 2)} ${oben - 1}Q${r1(mitte)} ${r1(oben - 36)} ${r1(x + b + luecke + b / 2)} ${oben - 1}" stroke-width="1.8"/><path d="M${r1(x + b + luecke + b / 2 - 7)} ${oben - 6}L${r1(x + b + luecke + b / 2)} ${oben - 1}L${r1(x + b + luecke + b / 2 - 1)} ${oben - 10}" stroke-width="1.8"/>`;
+      else s += `<path d="M${r1(x1)} ${r1(my)}L${r1(x2)} ${r1(my)}M${r1(x2 - 6)} ${r1(my - 4)}L${r1(x2)} ${r1(my)}L${r1(x2 - 6)} ${r1(my + 4)}" stroke-width="1.8"/>`;
+      const wy = pfeilbild ? oben - 26 : my - 10;
+      const offenOp = !zeige.includes("operatoren");
+      s += `<g class="kette-op" data-wert="${wort}" data-offen="${offenOp ? "ja" : "nein"}">`;
+      if (offenOp) s += antwortfeld(el, mitte - 20, wy - wortHoehe + 2, 40, 22, wort, { groesse: 13 });
+      else s += text(mitte, wy, wort, { groesse: 14, fett: true });
+      s += "</g>";
+    });
+    el.innerHTML = svg(r1(breite + 2), r1(oben + h + 2), s);
+  }
+
+  const ZAUBER = {
+    dreieck: {
+      felder: ["e0", "s0", "e1", "s1", "e2", "s2"],
+      linien: [["e0", "s0", "e1"], ["e1", "s1", "e2"], ["e2", "s2", "e0"]],
+      zahlen: [1, 2, 3, 4, 5, 6],
+    },
+    quadrat: {
+      felder: ["z0", "z1", "z2", "z3", "z4", "z5", "z6", "z7", "z8"],
+      linien: [["z0", "z1", "z2"], ["z3", "z4", "z5"], ["z6", "z7", "z8"], ["z0", "z3", "z6"], ["z1", "z4", "z7"], ["z2", "z5", "z8"], ["z0", "z4", "z8"], ["z2", "z4", "z6"]],
+      zahlen: [1, 2, 3, 4, 5, 6, 7, 8, 9],
+    },
+  };
+  /** Alle Belegungen, in denen jede Linie dieselbe Summe hat; Wiederholungen in `zahlen` zählen einmal. */
+  const zauberLoesungen = (art, zahlen, summe) => {
+    const { felder, linien } = ZAUBER[art], vorrat = new Map();
+    for (const z of zahlen) vorrat.set(z, (vorrat.get(z) ?? 0) + 1);
+    const belegt = {}, gefunden = [];
+    const geht = () => {
+      let ziel = summe ?? null;
+      for (const l of linien) {
+        if (!l.every((f) => belegt[f] !== undefined)) continue;
+        const s = l.reduce((a, f) => a + belegt[f], 0);
+        if (ziel === null) ziel = s;
+        else if (s !== ziel) return false;
+      }
+      return true;
+    };
+    const setze = (i) => {
+      if (i === felder.length) {
+        gefunden.push({ ...belegt });
+        return;
+      }
+      for (const [z, n] of vorrat) {
+        if (n === 0) continue;
+        vorrat.set(z, n - 1);
+        belegt[felder[i]] = z;
+        if (geht()) setze(i + 1);
+        delete belegt[felder[i]];
+        vorrat.set(z, n);
+      }
+    };
+    setze(0);
+    return gefunden;
+  };
+
+  function zauberdreieck(el) {
+    const art = attr(el, "art", "dreieck");
+    if (!ZAUBER[art]) abbruch(`Die Art „${art}“ gibt es nicht.`);
+    const zahlen = attr(el, "zahlen", null) === null ? ZAUBER[art].zahlen : liste(el, "zahlen").map(Number);
+    if (zahlen.length !== ZAUBER[art].felder.length) abbruch(`Hier braucht es genau ${ZAUBER[art].felder.length} Zahlen.`);
+    pruefeRaum(zahlen);
+    const summe = num(el, "summe", 0) || null, loesungen = zauberLoesungen(art, zahlen, summe);
+    if (loesungen.length === 0) abbruch(summe === null ? "Mit diesen Zahlen geht es nicht auf." : `Mit diesen Zahlen gibt es keine Lösung für die Summe ${zahl(summe)}.`);
+    const zz = zufall(samen(el, `${art}|${zahlen.join()}|${summe ?? ""}`));
+    const wahl = loesungen[Math.floor(zz() * loesungen.length)];
+    const dreieck = art === "dreieck";
+    const orte = dreieck
+      ? { e0: [1, 0], s0: [0.5, 1], e1: [0, 2], s1: [1, 2], e2: [2, 2], s2: [1.5, 1] }
+      : Object.fromEntries(ZAUBER.quadrat.felder.map((f, i) => [f, [i % 3, Math.floor(i / 3)]]));
+    meldeZellen(el, "vorgegeben", ZAUBER[art].felder.map((id) => ({ id, x: orte[id][0], y: orte[id][1], text: String(wahl[id]) })));
+    const gegeben = liste(el, "vorgegeben");
+    for (const id of gegeben) if (!ZAUBER[art].felder.includes(id)) abbruch(`Das Feld „${id}“ gibt es nicht.`);
+    const passende = loesungen.filter((l) => gegeben.every((f) => l[f] === wahl[f]));
+    if (passende.length > 1 && summe !== null) abbruch(MEHRERE);
+    const { b, schrift } = feldMass(zahlen, num(el, "groesse", 44)), h = b;
+    const X = (x) => 1 + x * (dreieck ? b * 1.15 : b), Y = (y) => 1 + y * (dreieck ? b * 1.25 : b);
+    let s = "";
+    if (dreieck) {
+      const mitte = (id) => [X(orte[id][0]) + b / 2, Y(orte[id][1]) + h / 2];
+      const [a, c, d] = ["e0", "e1", "e2"].map(mitte);
+      s += `<path d="M${r1(a[0])} ${r1(a[1])}L${r1(c[0])} ${r1(c[1])}L${r1(d[0])} ${r1(d[1])}Z" stroke-width="1.6"/>`;
+    }
+    for (const id of ZAUBER[art].felder) s += rechenfeld(el, id, X(orte[id][0]), Y(orte[id][1]), b, h, wahl[id], !gegeben.includes(id), schrift, { rund: dreieck });
+    const unten = Y(2) + h + 2;
+    let hoehe = unten;
+    if (summe === null && loesungSichtbar(el) && passende.length > 1) {
+      const wort = `eine von ${zahl(passende.length)} Lösungen`;
+      s += text(0, unten + 12, wort, { groesse: 13, anker: "start" });
+      hoehe += 20;
+    }
+    el.setAttribute("data-loesungen", passende.length);
+    el.innerHTML = svg(r1(Math.max(X(2) + b + 2, 140)), r1(hoehe), s);
+  }
+
+  function rechenrad(el) {
+    const op = leseOperator(attr(el, "mitte", "·2")), innen = liste(el, "zahlen").map(Number);
+    if (innen.length < 6 || innen.length > 10) abbruch("Das Rechenrad hat 6 bis 10 Zahlen.");
+    const aussen = innen.map((z) => rechne(z, op));
+    pruefeRaum([...innen, ...aussen]);
+    const offen = attr(el, "offen", "aussen");
+    if (offen !== "aussen" && offen !== "innen") abbruch("Offen ist der äußere oder der innere Ring.");
+    if (offen === "innen" && op.art === "·" && op.wert === 0) abbruch(MEHRERE);
+    const g = num(el, "groesse", 240), n = innen.length, R = g / 2, m = R + 1;
+    const r3 = R * 0.3, r2 = R * 0.65;
+    let s = `<circle cx="${m}" cy="${m}" r="${R}" stroke-width="2" fill="#fff"/><circle cx="${m}" cy="${m}" r="${r2}" stroke-width="1.6"/>`;
+    const auf = (r, w) => [m + r * Math.sin(w), m - r * Math.cos(w)];
+    for (let i = 0; i < n; i++) {
+      const w = ((i + 0.5) * 2 * Math.PI) / n;
+      const [a, c] = auf(r3, w), [d, e] = auf(R, w);
+      s += `<line x1="${r1(a)}" y1="${r1(c)}" x2="${r1(d)}" y2="${r1(e)}" stroke-width="1.4"/>`;
+      const wm = (i * 2 * Math.PI) / n;
+      const [ix, iy] = auf((r3 + r2) / 2, wm), [ax, ay] = auf((r2 + R) / 2, wm);
+      const schrift = Math.min(16, R * 0.14);
+      s += `<g class="rechenfeld" data-id="i${i}" data-wert="${innen[i]}" data-offen="${offen === "innen" ? "ja" : "nein"}">${offen !== "innen" || loesungSichtbar(el) ? text(ix, iy, zahl(innen[i]), { groesse: schrift, fett: offen === "innen" }) : ""}</g>`;
+      s += `<g class="rechenfeld" data-id="a${i}" data-wert="${aussen[i]}" data-offen="${offen === "aussen" ? "ja" : "nein"}">${offen !== "aussen" || loesungSichtbar(el) ? text(ax, ay, zahl(aussen[i]), { groesse: schrift, fett: offen === "aussen" }) : ""}</g>`;
+    }
+    s += `<circle cx="${m}" cy="${m}" r="${r1(r3)}" fill="#fff" stroke-width="2"${istSw() ? "" : ' style="stroke:var(--akzent);fill:color-mix(in srgb,var(--haupt) 25%,#fff)"'}/>`;
+    s += text(m, m, operatorText(op), { groesse: Math.min(20, R * 0.17), fett: true });
+    el.innerHTML = svg(g + 2, g + 2, s);
+  }
+
   /* == Test == */
   // x-probe gibt es nur für die Tests der Feldtypen im Panel (023); in Material kommt es nicht vor.
   function probe(el) {
@@ -1952,6 +2284,7 @@
     "x-urne": urne, "x-wahrscheinlichkeit": wahrscheinlichkeit, "x-kombinatorik": kombinatorik,
     "x-gitter": gitter, "x-figur": figur, "x-tangram": tangram,
     "x-hunderterfeld": hunderterfeld, "x-hundertertafel": hundertertafel, "x-rechenrahmen": rechenrahmen, "x-rechenstrich": rechenstrich,
+    "x-zahlenmauer": zahlenmauer, "x-rechendreieck": rechendreieck, "x-zahlenhaus": zahlenhaus, "x-zahlenkette": zahlenkette, "x-zauberdreieck": zauberdreieck, "x-rechenrad": rechenrad,
     "x-wuerfelbau": wuerfelbau, "x-wuerfelnetz": wuerfelnetz, "x-koerper": koerper };
 
   const zeichne = (f, el) => {
@@ -1977,6 +2310,7 @@
     ARTEN, zahl, cm, zufall, gemischt, trenneListe, trenneRaster, bildVon, spiegelung, skaliere, gehWeg, flaecheUmfang, TANGRAM_TEILE, TANGRAM_UMRISSE,
     ansichtenVon, wuerfelVon, verdeckteWuerfel, WUERFELNETZE, NICHT_NETZE, netzZellen, falteNetz, istWuerfelnetz, netzLaschen, netzLage, AUGEN_DER_SEITE, vielflach, KOERPER_ZAHLEN,
     tafelOrt, ausschnittZahlen, rechenstrichWerte, leseSprung,
+    mauerWerte, mauerEindeutig, istEindeutig, RECHENDREIECK_GLEICHUNGEN, zauberLoesungen, ketteWerte, leseOperator,
   };
   if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", () => window.zeichneAbbildungen());
   else window.zeichneAbbildungen();

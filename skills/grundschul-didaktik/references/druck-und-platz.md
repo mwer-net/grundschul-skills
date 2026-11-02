@@ -102,6 +102,9 @@ Ziel: **Übersicht vor Menge.** Ein Kind muss jede Aufgabe auf einen Blick verst
 | Hunderterfeld, Feld | 22 px | 18 px | 14 px |
 | Hundertertafel, Feld | 32 px | 28 px | 24 px |
 | Rechenrahmen, Kugel | 18 px | 16 px | 10 px |
+| Zahlenmauer, Stein | 44 px | 40 px | 38 px |
+| Rechendreieck | 220 px | 200 px | 180 px |
+| Rechenrad | 240 px | 220 px | 200 px |
 | Würfelgebäude, Würfelkante | 30 px | 26 px | 22 px |
 | Würfelnetz, Kästchen | 34 px | 30 px | 20 px |
 | Bastelwürfel, Kante | 4 cm | 4 cm | 3 cm |
