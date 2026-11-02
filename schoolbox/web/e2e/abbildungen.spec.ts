@@ -809,3 +809,140 @@ test.describe('Rechenformate (028)', () => {
 		expect(await readFile(datei, 'utf8')).toBe(stand);
 	});
 });
+
+test.describe('Einmaleins und schriftliches Rechnen (029)', () => {
+	const ziffern = (seite: Page, rolle: string) =>
+		seite.locator(`.stelle[data-rolle="${rolle}"]`).evaluateAll((l) =>
+			l
+				.filter((e) => (e.textContent ?? '') !== '')
+				.map((e) => e.textContent ?? '')
+				.join(''),
+		);
+
+	test('Punktfeld und Malkreuz: Teilaufgaben und Offenes erst in der Lösung', async ({ page }) => {
+		const feld = '<x-punktfeld zeilen="6" spalten="7" trenner="5" loesung="ja"></x-punktfeld>';
+		const blatt = await gezeichnet(page, feld);
+		await expect(blatt.locator('.punkt')).toHaveCount(42);
+		await expect(blatt.locator('.trennlinie')).toHaveCount(0);
+		await expect(blatt.locator('x-punktfeld')).not.toContainText('5 · 7');
+		const loesung = await gezeichnet(page, feld, 'kl3 sw loesung');
+		await expect(loesung.locator('.trennlinie')).toHaveCount(1);
+		await expect(loesung.locator('x-punktfeld')).toContainText('5 · 7 + 1 · 7');
+		const zuViel = await gezeichnet(page, '<x-punktfeld zeilen="6" spalten="7" trenner="6"></x-punktfeld>');
+		await expect(zuViel.locator('x-punktfeld')).toHaveAttribute('data-fehler', /innerhalb des Feldes/);
+
+		const kreuz = '<x-malkreuz a="23" b="45"></x-malkreuz>';
+		const offen = await gezeichnet(page, kreuz, 'kl4 sw');
+		await expect(offen.locator('.rechenfeld[data-id="s0"]')).toHaveText('20');
+		await expect(offen.locator('.rechenfeld[data-id="p0-0"]')).toHaveText('');
+		const voll = await gezeichnet(page, kreuz, 'kl4 sw loesung');
+		await expect(voll.locator('.rechenfeld[data-id="p0-0"]')).toHaveText('800');
+		await expect(voll.locator('.rechenfeld[data-id="summe"]')).toHaveText('1035');
+	});
+
+	test('Schriftlich: 0,5 cm im Druckmaß, Ziffern mittig, Lösung vollständig', async ({ page }) => {
+		const tag = '<x-schriftlich art="minus" zahlen="903 478" verfahren="ergaenzen-erweitern"></x-schriftlich>';
+		const blatt = await gezeichnet(page, tag);
+		expect(await ziffern(blatt, 'ergebnis')).toBe('');
+		expect(await ziffern(blatt, 'uebertrag')).toBe('');
+		expect(await ziffern(blatt, 'aufgabe')).toBe('309874−');
+		const lage = await blatt.locator('x-schriftlich').evaluate((el) => {
+			const raster = el.querySelector('.karo')?.getBoundingClientRect();
+			const wort = el.querySelector('.stelle[data-r="0"][data-c="1"] text')?.getBoundingClientRect();
+			return {
+				breite: raster?.width ?? 0,
+				mitte: (wort?.left ?? 0) + (wort?.width ?? 0) / 2,
+				links: raster?.left ?? 0,
+			};
+		});
+		const kaestchen = (0.5 * 96) / 2.54;
+		expect(lage.breite / 4).toBeCloseTo(kaestchen, 1);
+		expect(lage.mitte - lage.links).toBeCloseTo(kaestchen * 1.5, 0);
+		const loesung = await gezeichnet(page, tag, 'kl3 sw loesung');
+		expect(await ziffern(loesung, 'ergebnis')).toBe('524');
+		expect(await ziffern(loesung, 'uebertrag')).toBe('11');
+
+		const bund = await gezeichnet(
+			page,
+			tag.replace('ergaenzen-erweitern', 'abziehen-entbuendeln'),
+			'kl3 sw loesung',
+		);
+		expect(await ziffern(bund, 'uebertrag')).toBe('1398');
+		await expect(bund.locator('.durch')).toHaveCount(3);
+		const fremd = await gezeichnet(
+			page,
+			'<x-schriftlich art="minus" zahlen="3 5" verfahren="abziehen-erweitern"></x-schriftlich>',
+		);
+		await expect(fremd.locator('x-schriftlich')).toHaveAttribute('data-fehler', /mindestens so groß/);
+		const ohne = await gezeichnet(page, '<x-schriftlich art="minus" zahlen="9 5"></x-schriftlich>');
+		await expect(ohne.locator('x-schriftlich')).toHaveAttribute('data-fehler', /Verfahren/);
+		const klasse = await gezeichnet(page, '<x-schriftlich zahlen="800 700"></x-schriftlich>');
+		await expect(klasse.locator('x-schriftlich')).toHaveAttribute('data-fehler', /über 1000/);
+	});
+
+	test('Fehler zum Finden: Blatt und Lösung passen zusammen, anderer seed ändert ihn', async ({ page }) => {
+		const tag = (seed: number) =>
+			`<x-schriftlich art="plus" zahlen="478 356 7" fehlerhaft="ja" seed="${seed}"></x-schriftlich>`;
+		const blatt = await gezeichnet(page, tag(1));
+		const falsch = await blatt.locator('x-schriftlich').getAttribute('data-falsch');
+		expect(falsch).not.toBe('841');
+		await expect(blatt.locator('.fehlerkreis')).toHaveCount(0);
+		const ergebnis = await ziffern(blatt, 'ergebnis');
+		const loesung = await gezeichnet(page, tag(1), 'kl3 sw loesung');
+		await expect(loesung.locator('x-schriftlich')).toHaveAttribute('data-falsch', falsch ?? '');
+		expect(await ziffern(loesung, 'ergebnis')).toBe(ergebnis);
+		expect(await loesung.locator('.fehlerkreis').count()).toBeGreaterThan(0);
+		await expect(loesung.locator('x-schriftlich')).toContainText('Richtig: 478 + 356 + 7 = 841');
+		const andere = new Set<string | null>([falsch]);
+		for (let seed = 2; seed < 12; seed++) {
+			const neu = await gezeichnet(page, tag(seed));
+			andere.add(await neu.locator('x-schriftlich').getAttribute('data-falsch'));
+		}
+		expect(andere.size).toBeGreaterThan(1);
+	});
+
+	test('Panel: Zahl ändern rechnet neu, Verfahren wechseln, je ein Rückgängig-Schritt', async ({ druecke, page }) => {
+		test.slow();
+		const { dok, id, material: datei } = await uhrzeit();
+		await oeffne(page, id, dok);
+		await aendere(
+			page,
+			(await quelle(page)).replace(
+				/<x-uhr[^>]*><\/x-uhr>/,
+				'<x-schriftlich art="minus" zahlen="93 48" verfahren="abziehen-entbuendeln"></x-schriftlich>',
+			),
+		);
+		await gespeichert(page, datei);
+		const stand = await readFile(datei, 'utf8');
+		const element = material(page).locator('x-schriftlich');
+
+		await druecke(element);
+		const info = page.locator('[data-abbildung-info]');
+		await expect(info).toContainText('Ergebnis: 45');
+		await page.getByLabel('Zahlen').fill('93 50');
+		await page.getByLabel('Zahlen').press('Enter');
+		await gespeichert(page, datei);
+		await expect(info).toContainText('Ergebnis: 43');
+		await expect(element).toHaveAttribute('data-ergebnis', '43');
+		await druecke(zurueck(page));
+		await gespeichert(page, datei);
+		expect(await readFile(datei, 'utf8')).toBe(stand);
+		await expect(element).toHaveAttribute('data-ergebnis', '45');
+
+		await druecke(element);
+		await expect(page.getByLabel('Zahlen')).toHaveValue('93 48');
+		await page.getByLabel('Verfahren bei Minus').selectOption({ label: 'Ergänzen, Erweitern' });
+		await gespeichert(page, datei);
+		await expect(element).toHaveAttribute('verfahren', 'ergaenzen-erweitern');
+		await expect(info).toContainText('8 + 5 = 13, 1 gemerkt');
+		await druecke(zurueck(page));
+		await gespeichert(page, datei);
+		expect(await readFile(datei, 'utf8')).toBe(stand);
+
+		await druecke(element);
+		await page.getByLabel('Zahlen').fill('5 9');
+		await page.getByLabel('Zahlen').press('Enter');
+		await expect(page.locator('[data-fehler="zahlen"]')).toContainText('mindestens so groß');
+		expect(await readFile(datei, 'utf8')).toBe(stand);
+	});
+});

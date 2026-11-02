@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<title>Muster: Einmaleins und schriftliches Rechnen</title>
+<link rel="stylesheet" href="blatt.css">
+<script src="abbildungen.js"></script>
+</head>
+<body class="kl4 sw">
+<section class="seite">
+  <div class="kopf"><div class="titel"><h1>Einmaleins und Malkreuz</h1></div></div>
+  <div class="aufgabe"><div class="nr">1</div><div class="anw"><div class="text">Zerlege das Punktfeld an der Linie.</div></div>
+    <div class="koerper reihe" style="--spalten:3">
+      <div class="zelle"><x-punktfeld zeilen="6" spalten="7" trenner="5"></x-punktfeld></div>
+      <div class="zelle"><x-punktfeld zeilen="7" spalten="4" trenner="2"></x-punktfeld></div>
+      <div class="zelle"><x-punktfeld zeilen="4" spalten="9" trenner="5" richtung="spalten" loesung="ja"></x-punktfeld></div>
+    </div></div>
+  <div class="aufgabe"><div class="nr">2</div><div class="anw"><div class="text">Was siehst du, wenn der Malwinkel liegt?</div></div>
+    <div class="koerper"><x-punktfeld zeilen="10" spalten="10" abdecken="3 4"></x-punktfeld></div></div>
+  <div class="aufgabe"><div class="nr">3</div><div class="anw"><div class="text">Rechne im Malkreuz.</div></div>
+    <div class="koerper reihe" style="--spalten:2">
+      <div class="zelle"><x-malkreuz a="34" b="6"></x-malkreuz></div>
+      <div class="zelle"><x-malkreuz a="23" b="45"></x-malkreuz></div>
+    </div></div>
+</section>
+<section class="seite">
+  <div class="kopf"><div class="titel"><h1>Schriftlich rechnen</h1></div></div>
+  <div class="aufgabe"><div class="nr">1</div><div class="anw"><div class="text">Addiere und multipliziere.</div></div>
+    <div class="koerper reihe" style="--spalten:3">
+      <div class="zelle"><x-schriftlich art="plus" zahlen="345 278 96"></x-schriftlich></div>
+      <div class="zelle"><x-schriftlich art="mal" zahlen="347 6"></x-schriftlich></div>
+      <div class="zelle"><x-schriftlich art="mal" zahlen="345 23"></x-schriftlich></div>
+    </div></div>
+  <div class="aufgabe"><div class="nr">2</div><div class="anw"><div class="text">Subtrahiere: einmal mit Entbündeln, einmal mit Erweitern.</div></div>
+    <div class="koerper reihe" style="--spalten:2">
+      <div class="zelle"><x-schriftlich art="minus" zahlen="903 478" verfahren="abziehen-entbuendeln"></x-schriftlich></div>
+      <div class="zelle"><x-schriftlich art="minus" zahlen="903 478" verfahren="ergaenzen-erweitern"></x-schriftlich></div>
+    </div></div>
+  <div class="aufgabe"><div class="nr">3</div><div class="anw"><div class="text">Dividiere.</div></div>
+    <div class="koerper reihe" style="--spalten:2">
+      <div class="zelle"><x-schriftlich art="geteilt" zahlen="957 4"></x-schriftlich></div>
+      <div class="zelle"><x-schriftlich art="geteilt" zahlen="4081 4"></x-schriftlich></div>
+    </div></div>
+  <div class="aufgabe"><div class="nr">4</div><div class="anw"><div class="text">Finde den Fehler und kreise ihn ein.</div></div>
+    <div class="koerper"><x-schriftlich art="plus" zahlen="478 356" fehlerhaft="ja" seed="3"></x-schriftlich></div></div>
+</section>
+</body>
+</html>

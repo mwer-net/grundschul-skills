@@ -375,3 +375,46 @@ Muster: `assets/muster/rechenformate.html`. Die Lösung wird immer berechnet. Da
 ```
 
 `mitte` Rechenschritt; `zahlen` innerer Ring, 6 bis 10; `offen` `aussen` oder `innen`; `groesse` in px.
+
+## Einmaleins und schriftliches Rechnen
+
+Muster: `assets/muster/einmaleins-und-schriftlich.html`. Lösung und Teilergebnisse werden immer berechnet. Der Zahlenraum der Klasse wird geprüft.
+
+### `x-punktfeld`: Punktfeld
+
+```html
+<x-punktfeld zeilen="6" spalten="7" trenner="5"></x-punktfeld>
+<x-punktfeld zeilen="4" spalten="9" trenner="5" richtung="spalten" loesung="ja"></x-punktfeld>
+<x-punktfeld zeilen="10" spalten="10" abdecken="3 4"></x-punktfeld>
+```
+
+`zeilen`, `spalten` höchstens 10, Fünferlücke nach der 5. Zeile und Spalte. `trenner` Zerlegungslinie nach Zeile oder Spalte k (`richtung` `zeilen`, `spalten`); empfohlen sind die Kernaufgaben: nach 1, 2 oder 5 (10 ist das volle Zehnerfeld). `loesung="ja"`: Linie erst in der Lösung. Die Teilaufgaben („5 · 7 + 1 · 7“) stehen immer erst in der Lösung. `abdecken` lässt Zeilen und Spalten frei, der Rest liegt grau darunter wie beim Malwinkel. `groesse` Punktabstand in px, 14 bis 40.
+
+### `x-malkreuz`: Malkreuz
+
+```html
+<x-malkreuz a="34" b="6"></x-malkreuz>
+<x-malkreuz a="23" b="45" zeige="zerlegung teilprodukte"></x-malkreuz>
+```
+
+`a`, `b` 1 bis 99, zerlegt nach Stellenwerten (34 = 30 + 4). `zeige` mehrfach: `zerlegung`, `teilprodukte`, `summe`; Standard `zerlegung`. Was nicht in `zeige` steht, füllt das Lösungsblatt.
+
+### `x-schriftlich`: Schriftliche Rechnung
+
+```html
+<x-schriftlich art="plus" zahlen="345 278 96"></x-schriftlich>
+<x-schriftlich art="minus" zahlen="903 478" verfahren="ergaenzen-erweitern"></x-schriftlich>
+<x-schriftlich art="mal" zahlen="345 23"></x-schriftlich>
+<x-schriftlich art="geteilt" zahlen="957 4"></x-schriftlich>
+<x-schriftlich art="plus" zahlen="478 356" fehlerhaft="ja" seed="3"></x-schriftlich>
+```
+
+Eine Ziffer je Kästchen im echten Heftmaß, also in Originalgröße drucken (`kaestchen` 0,4 bis 1 cm, Standard 0,5).
+
+- `art`: `plus` (2 bis 4 Zahlen), `minus` (erste Zahl mindestens so groß wie die zweite), `mal` (zweiter Faktor höchstens 3 Stellen), `geteilt` (durch 2 bis 9, mit oder ohne Rest). Jede Zahl höchstens 7 Stellen.
+- `verfahren` bei Minus Pflicht: `abziehen-entbuendeln`, `abziehen-erweitern`, `ergaenzen-entbuendeln`, `ergaenzen-erweitern`. Entbündeln zeigt die neuen Ziffern über den durchgestrichenen, Erweitern die Überträge unter dem Subtrahenden. Abziehen und Ergänzen sehen im Blatt gleich aus und unterscheiden sich in der Sprechweise; das Panel nennt sie.
+- `uebertrag` `zeile` (Standard) oder `keine`. Beim Malnehmen hat jedes Teilprodukt eine eigene Übertragszeile über sich; die Teilprodukte beginnen beim höchsten Stellenwert des zweiten Faktors und tragen ihre Nullen.
+- `zeige` mehrfach: `aufgabe`, `uebertraege`, `ergebnis`; Standard `aufgabe`. Das Lösungsblatt zeigt alles, bei Geteilt mit allen Zwischenschritten und Rest.
+- `fehlerhaft="ja"` zeigt die Rechnung mit genau einem typischen Fehler (Übertrag vergessen, Stelle verrutscht, falsch herum gerechnet; bei Geteilt Rest oder Null vergessen), `seed` wählt ihn. Die Lösung kreist die falsche Ziffer ein, schreibt die richtige darunter und nennt den Fehler. Lässt sich keiner einbauen (ohne Übertrag und kürzere Zahl), meldet das Element das.
+
+Der Bildungsplan BW nennt für Klasse 3/4 alle vier Verfahren im Zahlenraum bis 1 000 000, Subtraktion als „Abziehen oder Ergänzen“, Division auch mit Rest, und begrenzt weder Stellenzahl noch Divisor. Die Grenzen hier sind Vorgaben der Schoolbox.

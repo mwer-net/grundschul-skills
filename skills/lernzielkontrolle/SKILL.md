@@ -55,6 +55,7 @@ Diagramm lesen und zeichnen ist ein eigener Aufgabentyp: `<x-diagramm werte="…
 - [ ] Jede Aufgabe einem Ich-kann-Ziel zugeordnet, Anforderungsbereiche ausgewogen
 - [ ] Bearbeitbar in der Zeit (Faustregel: eigene Bearbeitungszeit × 3–4)
 - [ ] Eindeutige Aufgabenstellung, keine Fangfragen (Rechenformate wie `x-zahlenmauer` prüfen die Eindeutigkeit selbst; ein FEHLER bleibt nicht stehen)
+- [ ] Schriftliche Rechnungen nur mit `x-schriftlich`, damit die Lösung stimmt
 - [ ] Keine Punkte, keine Note; Auswertung je Ziel
 - [ ] Fassung mit Nachteilsausgleich inhaltsgleich
 - [ ] Selbsteinschätzung mit Wachstumsstufen (falls gewählt), Rückmeldung prozessorientiert

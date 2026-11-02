@@ -389,6 +389,14 @@ const liegtIn = (x: number, y: number, p: number[][]) => {
 	return drin;
 };
 
+interface Stellenrechnung {
+	ziffern: number[];
+	uebertraege?: number[];
+	neu?: (number | null)[];
+	sprechweise?: string[];
+	ergebnis: number;
+}
+
 /** Lädt `abbildungen.js` ohne Browser; nötig sind nur die Rechenkerne. */
 const rechenkerne = () => {
 	const fenster: Record<string, unknown> = {};
@@ -435,6 +443,34 @@ const rechenkerne = () => {
 		zauberLoesungen: (art: string, zahlen: number[], summe: number | null) => Record<string, number>[];
 		ketteWerte: (start: number, ops: unknown[]) => number[];
 		leseOperator: (text: string) => unknown;
+		malkreuzRechnung: (a: number, b: number) => { produkte: number[][]; summen: number[]; ergebnis: number };
+		addiere: (zahlen: number[]) => Stellenrechnung;
+		subtrahiereErweitern: (a: number, b: number, verfahren: string) => Stellenrechnung;
+		subtrahiereEntbuendeln: (a: number, b: number, verfahren: string) => Stellenrechnung;
+		multipliziere: (
+			a: number,
+			b: number,
+		) => {
+			teile: { faktor: number; verschoben: number; uebertraege: number[]; wert: number }[];
+			summe: Stellenrechnung | null;
+			ergebnis: number;
+		};
+		dividiere: (
+			a: number,
+			b: number,
+		) => {
+			schritte: { ende: number; teil: number; q: number; produkt: number; rest: number }[];
+			quotient: number;
+			rest: number;
+		};
+		moeglicheFehler: (art: string, zahlen: number[], verfahren: string | null) => { art: string }[];
+		rechnungsplan: (
+			art: string,
+			zahlen: number[],
+			verfahren: string | null,
+			fehler: unknown,
+			mitUebertrag: boolean,
+		) => { text: string | number; zeilen: { zellen: { c: number; t: string; rolle: string }[] }[] };
 	};
 };
 
@@ -784,5 +820,155 @@ describe('Rechenformate (028)', () => {
 		assert.deepEqual([...ketteWerte(8, ['+5', '−3', '·2'].map(leseOperator))], [8, 13, 10, 20]);
 		assert.throws(() => ketteWerte(9, [leseOperator(':4')]), /ohne Rest/);
 		assert.throws(() => leseOperator('5'), /kein Rechenschritt/);
+	});
+});
+
+describe('Einmaleins und schriftliches Rechnen (029)', () => {
+	const stellen = (n: number) => [...String(n)].reverse().map(Number);
+	const liste = <T>(x: readonly T[] | undefined) => Array.from(x ?? []);
+	const zufaellig = (seed: number) => {
+		const zz = rechenkerne().zufall(seed);
+		return (bis: number) => Math.floor(zz() * bis);
+	};
+
+	it('Malkreuz zerlegt nach Stellenwerten', () => {
+		const { malkreuzRechnung } = rechenkerne();
+		const r = malkreuzRechnung(23, 45);
+		assert.deepEqual(
+			Array.from(r.produkte, (z) => [...z]),
+			[
+				[800, 120],
+				[100, 15],
+			],
+		);
+		assert.deepEqual([...r.summen], [920, 115]);
+		assert.equal(r.ergebnis, 1035);
+		assert.equal(malkreuzRechnung(30, 6).produkte.length, 1);
+	});
+
+	it('903 − 478 wie im Schulbuch: Entbündeln oben, Erweitern unter dem Subtrahenden', () => {
+		const { subtrahiereEntbuendeln, subtrahiereErweitern } = rechenkerne();
+		const bund = subtrahiereEntbuendeln(903, 478, 'abziehen');
+		assert.deepEqual(liste(bund.neu), [13, 9, 8]);
+		assert.deepEqual(liste(bund.ziffern), [5, 2, 4]);
+		assert.deepEqual(liste(bund.sprechweise), ['13 − 8 = 5', '9 − 7 = 2', '8 − 4 = 4']);
+		const ergaenzen = subtrahiereErweitern(903, 478, 'ergaenzen');
+		assert.deepEqual(liste(ergaenzen.uebertraege), [0, 1, 1]);
+		assert.deepEqual(liste(ergaenzen.ziffern), [5, 2, 4]);
+		assert.deepEqual(liste(ergaenzen.sprechweise), ['8 + 5 = 13, 1 gemerkt', '8 + 2 = 10, 1 gemerkt', '5 + 4 = 9']);
+		assert.equal(subtrahiereErweitern(903, 478, 'abziehen').sprechweise?.[0], '13 − 8 = 5, 1 gemerkt');
+	});
+
+	it('Hand-Beispiele für Plus, Mal und Geteilt', () => {
+		const { addiere, dividiere, multipliziere } = rechenkerne();
+		assert.deepEqual(liste(addiere([345, 278, 96]).uebertraege), [0, 1, 2]);
+		const mal = multipliziere(345, 23);
+		assert.deepEqual(
+			Array.from(mal.teile, (t) => t.wert),
+			[6900, 1035],
+		);
+		assert.deepEqual(liste(mal.teile[1]?.uebertraege), [0, 1, 1, 1]);
+		const geteilt = dividiere(957, 4);
+		assert.deepEqual(
+			Array.from(geteilt.schritte, (x) => [x.teil, x.q, x.produkt, x.rest]),
+			[
+				[9, 2, 8, 1],
+				[15, 3, 12, 3],
+				[37, 9, 36, 1],
+			],
+		);
+		assert.equal(dividiere(4081, 4).quotient, 1020);
+		assert.equal(dividiere(3, 4).quotient, 0);
+		assert.equal(dividiere(3, 4).rest, 3);
+	});
+
+	it('1000 zufällige Aufgaben je Verfahren stimmen mit der Rechnung überein', () => {
+		const { addiere, dividiere, multipliziere, subtrahiereEntbuendeln, subtrahiereErweitern } = rechenkerne();
+		const zz = zufaellig(29);
+		for (let i = 0; i < 1000; i++) {
+			const zahlen = Array.from({ length: 2 + zz(3) }, () => zz(300_000));
+			const summe = addiere(zahlen);
+			assert.equal(
+				summe.ergebnis,
+				zahlen.reduce((x, y) => x + y, 0),
+			);
+			liste(summe.ziffern).forEach((z, stelle) => {
+				const spalte = zahlen.reduce((t, n) => t + (stellen(n)[stelle] ?? 0), summe.uebertraege?.[stelle] ?? 0);
+				assert.equal(spalte % 10, z);
+				assert.equal(Math.floor(spalte / 10), summe.uebertraege?.[stelle + 1] ?? 0);
+			});
+
+			const [x, y] = [zz(1_000_000), zz(1_000_000)];
+			const [a, b] = [Math.max(x, y), Math.min(x, y)];
+			const erweitern = subtrahiereErweitern(a, b, 'ergaenzen');
+			assert.equal(erweitern.ergebnis, a - b);
+			const entbuendeln = subtrahiereEntbuendeln(a, b, 'abziehen');
+			assert.equal(entbuendeln.ergebnis, a - b);
+			stellen(a).forEach((o, stelle) => {
+				const unten = (stellen(b)[stelle] ?? 0) + (erweitern.uebertraege?.[stelle] ?? 0);
+				const z = stellen(a - b)[stelle] ?? 0;
+				assert.equal((unten + z) % 10, o);
+				assert.equal(unten + z >= 10 ? 1 : 0, erweitern.uebertraege?.[stelle + 1] ?? 0);
+				assert.equal((entbuendeln.neu?.[stelle] ?? o) - (stellen(b)[stelle] ?? 0), z);
+			});
+
+			const [m, n] = [zz(10_000), zz(1000)];
+			const mal = multipliziere(m, n);
+			assert.equal(mal.ergebnis, m * n);
+			mal.teile.forEach((t) => {
+				assert.equal(t.wert, m * t.faktor * 10 ** t.verschoben);
+			});
+
+			const [p, q] = [zz(1_000_000), 2 + zz(8)];
+			const geteilt = dividiere(p, q);
+			assert.equal(geteilt.quotient, Math.floor(p / q));
+			assert.equal(geteilt.rest, p % q);
+			geteilt.schritte.forEach((schritt) => {
+				assert.equal(schritt.produkt, schritt.q * q);
+				assert.equal(schritt.rest, schritt.teil - schritt.produkt);
+				assert.ok(schritt.q < 10 && schritt.rest < q);
+			});
+		}
+	});
+
+	it('Jeder eingebaute Fehler verfälscht das Ergebnis', () => {
+		const { moeglicheFehler, rechnungsplan } = rechenkerne();
+		const zz = zufaellig(7);
+		const verfahren = ['abziehen-entbuendeln', 'ergaenzen-erweitern'];
+		for (let i = 0; i < 300; i++) {
+			const [x, y] = [zz(100_000), zz(100_000)];
+			const aufgaben: [string, number[]][] = [
+				['plus', [x, y]],
+				['minus', [Math.max(x, y), Math.min(x, y)]],
+				['mal', [zz(1000), zz(100)]],
+				['geteilt', [x, 2 + zz(8)]],
+			];
+			for (const [art, zahlen] of aufgaben) {
+				const v = verfahren[i % 2] ?? null;
+				const richtig = rechnungsplan(art, zahlen, v, null, true).text;
+				for (const fehler of moeglicheFehler(art, zahlen, v)) {
+					const falsch = rechnungsplan(art, zahlen, v, fehler, true).text;
+					assert.notEqual(
+						String(falsch),
+						String(richtig),
+						`${art} ${zahlen.join(' ')} ${JSON.stringify(fehler)}`,
+					);
+				}
+			}
+		}
+	});
+
+	it('Das Raster hat eine Ziffer je Kästchen, Stellen stehen untereinander', () => {
+		const { rechnungsplan } = rechenkerne();
+		const plan = rechnungsplan('minus', [903, 478], 'ergaenzen-erweitern', null, true);
+		const zeile = (nr: number) => Array.from(plan.zeilen[nr]?.zellen ?? [], (z) => `${z.c}:${z.t}`);
+		assert.deepEqual(zeile(0), ['3:3', '2:0', '1:9']);
+		assert.deepEqual(zeile(1), ['3:8', '2:7', '1:4', '0:−']);
+		assert.deepEqual(zeile(2), ['2:1', '1:1']);
+		assert.deepEqual(zeile(3), ['3:5', '2:2', '1:4']);
+		const karte = rechnungsplan('mal', [345, 23], null, null, false);
+		for (const z of karte.zeilen) {
+			assert.ok(z.zellen.every((c) => c.t.length === 1));
+		}
 	});
 });

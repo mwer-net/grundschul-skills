@@ -100,6 +100,7 @@ Diagramm lesen und zeichnen ist ein eigener Aufgabentyp: `<x-diagramm werte="…
 - [ ] Termin und Zahl im BW-Rahmen und nach Schulkonzept
 - [ ] Nur Inhalte und Formate, die geübt wurden; Probearbeit gleich aufgebaut
 - [ ] Rechenformate (`x-zahlenmauer` und Co.) eindeutig: Die Prüfung meldet mehrdeutige Vorgaben als FEHLER
+- [ ] Schriftliche Rechnungen nur mit `x-schriftlich`, damit Erwartungshorizont und Lösung stimmen
 - [ ] Ich-kann-Ziele oben, jede Aufgabe einem Ziel zugeordnet
 - [ ] Anforderungsbereiche ausgewogen, mindestens eine Aufgabe zum Erklären oder Begründen
 - [ ] Bearbeitbar in der Zeit; Leselast passend zur Klasse

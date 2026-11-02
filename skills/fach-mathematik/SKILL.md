@@ -16,6 +16,8 @@ Nach dem Rückfrage-Protokoll aus `grundschul-didaktik` (eine Frage pro Nachrich
 3. **Lehrwerk:** Zahlenbuch, Flex und Flo, Denken und Rechnen, Welt der Zahl …? (Begriffe und Aufgabenformate übernehmen.)
 4. **Schwerpunkt:** Verstehen (Einführung mit Material/Bild), Automatisieren (Blitzrechnen, Einspluseins/Einmaleins) oder Anwenden (Sachaufgaben)?
 
+Vor jedem schriftlichen Minus zusätzlich: Welches Subtraktionsverfahren lernt die Klasse (Abziehen oder Ergänzen, Entbündeln oder Erweitern), und wie werden Überträge notiert? Ohne Antwort kein schriftliches Minus; `x-schriftlich` verlangt das Verfahren.
+
 ## Inhaltsbereiche (Leitideen) und typischer Stoff
 
 | Leitidee | Kl. 1 | Kl. 2 | Kl. 3 | Kl. 4 |
@@ -63,7 +65,8 @@ Substanzielle Aufgabenformate (Wittmann) tragen Übung und Entdecken zugleich: `
 - Zahlenstrahl: gleichmäßige Abstände, Zehner deutlich markiert.
 - Uhr: analoges Zifferblatt mit großen Ziffern, Stundenzeiger deutlich kürzer und dicker. **Nie von der KI zeichnen lassen** – `<x-uhr>` aus `html-materialerstellung/assets/abbildungen.js` berechnet exakte Zifferblätter.
 - Geld: Euro-Abbildungen sind erlaubt; maßstabsgetreu und eindeutig.
-- Rechenkästchen: 1 Ziffer pro Kästchen (schriftliche Verfahren!).
+- Rechenkästchen: 1 Ziffer pro Kästchen (schriftliche Verfahren!). Schriftliche Rechnungen immer als `x-schriftlich`, auch im Karoraster des Hefts.
+- Einmaleins: Kernaufgaben (1·, 2·, 5·, 10·) am Punktfeld (`x-punktfeld`), Nachbaraufgaben über die Zerlegungslinie ableiten.
 - Würfelbau: Schrägbild, Bauplan und Ansichten aus einem Bauplan, keine verdeckten Würfel bei Bauplan-Aufgaben.
 - Gitter: in echten Zentimetern wie im Heft (`x-gitter`), Achse auf einer Gitterlinie, Lösung berechnet statt gezeichnet.
 - Strichliste: Fünferbündel aus vier senkrechten und einem schrägen Strich (`x-strichliste`).
@@ -121,6 +124,9 @@ Exakte Darstellungen kommen als Elemente aus `html-materialerstellung/assets/abb
 | `<x-zahlenkette start="8" operatoren="+5 −3 ·2">` | Rechenkette, Pfeilbild |
 | `<x-zauberdreieck summe="9" vorgegeben="e0 e1">` | Zauberdreieck, magisches Quadrat |
 | `<x-rechenrad mitte="·7" zahlen="1 2 3 4 5 6">` | Rechenrad |
+| `<x-punktfeld zeilen="6" spalten="7" trenner="5">` | Punktfeld, Zerlegung und Teilaufgaben berechnet |
+| `<x-malkreuz a="23" b="45">` | Malkreuz nach Stellenwerten |
+| `<x-schriftlich art="minus" zahlen="903 478" verfahren="ergaenzen-erweitern">` | Schriftliche Rechnung im Karoraster, Lösung Ziffer für Ziffer berechnet |
 | `<x-gluecksrad felder="rot: 1; blau: 2" anteile="1 2">` | Glücksrad, auch zum Ausmalen und als Bastelvorlage |
 | `<x-wuerfel augen="5">` | Würfel, flach oder räumlich |
 | `<x-strichliste werte="Hund: 7; Katze: 4">` | Strichliste mit Fünferbündeln |

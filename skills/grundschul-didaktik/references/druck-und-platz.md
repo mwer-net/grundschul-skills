@@ -105,6 +105,9 @@ Ziel: **Übersicht vor Menge.** Ein Kind muss jede Aufgabe auf einen Blick verst
 | Zahlenmauer, Stein | 44 px | 40 px | 38 px |
 | Rechendreieck | 220 px | 200 px | 180 px |
 | Rechenrad | 240 px | 220 px | 200 px |
+| Punktfeld, Punktabstand | 24 px | 20 px | 16 px |
+| Malkreuz, Feld | 34 px hoch | 34 px hoch | 34 px hoch |
+| Schriftliche Rechnung, Kästchen | 0,7 cm | 0,5 cm | 0,5 cm |
 | Würfelgebäude, Würfelkante | 30 px | 26 px | 22 px |
 | Würfelnetz, Kästchen | 34 px | 30 px | 20 px |
 | Bastelwürfel, Kante | 4 cm | 4 cm | 3 cm |

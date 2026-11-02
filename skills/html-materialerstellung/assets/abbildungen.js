@@ -82,6 +82,7 @@
     "x-urne": "Kugeln im Säckchen", "x-wahrscheinlichkeit": "Wahrscheinlichkeit", "x-kombinatorik": "Möglichkeiten",
     "x-gitter": "Gitter", "x-figur": "Figur", "x-tangram": "Tangram",
     "x-hunderterfeld": "Hunderterfeld", "x-hundertertafel": "Hundertertafel", "x-rechenrahmen": "Rechenrahmen", "x-rechenstrich": "Rechenstrich",
+    "x-punktfeld": "Punktfeld", "x-malkreuz": "Malkreuz", "x-schriftlich": "Schriftliche Rechnung",
     "x-zahlenmauer": "Zahlenmauer", "x-rechendreieck": "Rechendreieck", "x-zahlenhaus": "Zahlenhaus", "x-zahlenkette": "Rechenkette", "x-zauberdreieck": "Zauberdreieck", "x-rechenrad": "Rechenrad",
     "x-wuerfelbau": "Würfelgebäude", "x-wuerfelnetz": "Würfelnetz", "x-koerper": "Körper",
   };
@@ -2246,6 +2247,435 @@
     el.innerHTML = svg(g + 2, g + 2, s);
   }
 
+  /* == Einmaleins und schriftliches Rechnen == */
+  function punktfeld(el) {
+    const zeilen = num(el, "zeilen", 5), spalten = num(el, "spalten", 5), d = num(el, "groesse", 20);
+    const richtung = attr(el, "richtung", "zeilen"), trenner = attr(el, "trenner", null);
+    const abdecken = attr(el, "abdecken", null), nurLoesung = attr(el, "loesung", null) === "ja";
+    if (zeilen < 1 || zeilen > 10 || spalten < 1 || spalten > 10) abbruch("Ein Punktfeld hat höchstens 10 Zeilen und 10 Spalten.");
+    if (richtung !== "zeilen" && richtung !== "spalten") abbruch(`Die Richtung „${richtung}“ gibt es nicht.`);
+    const nachZeilen = richtung === "zeilen", anzahl = nachZeilen ? zeilen : spalten;
+    const k = trenner === null ? null : Number(trenner);
+    if (k !== null && (!Number.isInteger(k) || k < 1 || k >= anzahl)) abbruch(`Die Zerlegungslinie muss innerhalb des Feldes liegen (1 bis ${anzahl - 1}).`);
+    pruefeRaum([zeilen * spalten]);
+    const ort = (i) => d / 2 + i * d + (i >= 5 ? d * 0.5 : 0) + 2;
+    const breite = ort(spalten - 1) + d / 2 + 2, hoehe = ort(zeilen - 1) + d / 2 + 2, r = Math.max(3, d * 0.3);
+    let s = "";
+    for (let z = 0; z < zeilen; z++) {
+      for (let c = 0; c < spalten; c++) s += `<circle class="punkt" cx="${r1(ort(c))}" cy="${r1(ort(z))}" r="${r1(r)}" fill="${SCHWARZ}" stroke="none"/>`;
+    }
+    if (abdecken !== null) {
+      const [dz, ds] = abdecken.trim().split(/\s+/).map(Number);
+      if (!(dz >= 1 && dz <= zeilen && ds >= 1 && ds <= spalten)) abbruch("Der freie Teil muss im Feld liegen (Zeilen, dann Spalten).");
+      const x = dz === zeilen ? ort(ds - 1) + d / 2 : null, y = ds === spalten ? ort(dz - 1) + d / 2 : null;
+      const ecke = [ort(ds - 1) + d / 2, ort(dz - 1) + d / 2];
+      const pfad = x !== null ? `M${r1(x)} 0H${r1(breite)}V${r1(hoehe)}H${r1(x)}Z`
+        : y !== null ? `M0 ${r1(y)}H${r1(breite)}V${r1(hoehe)}H0Z`
+        : `M${r1(ecke[0])} 0H${r1(breite)}V${r1(hoehe)}H0V${r1(ecke[1])}H${r1(ecke[0])}Z`;
+      s += `<path class="abdeckung" d="${pfad}" fill="#d0d0d0" stroke="none"/>`;
+    }
+    const zeigeLinie = k !== null && (!nurLoesung || loesungSichtbar(el));
+    let unten = hoehe;
+    if (zeigeLinie) {
+      const lage = (ort(k - 1) + ort(k)) / 2, stil = `class="trennlinie" stroke-width="3" stroke-linecap="round"${istSw() ? "" : ' style="stroke:var(--haupt)"'}`;
+      s += nachZeilen ? `<path ${stil} d="M1 ${r1(lage)}H${r1(breite - 1)}"/>` : `<path ${stil} d="M${r1(lage)} 1V${r1(hoehe - 1)}"/>`;
+    }
+    const teil = k === null ? "" : nachZeilen ? `${k} · ${spalten} + ${zeilen - k} · ${spalten}` : `${zeilen} · ${k} + ${zeilen} · ${spalten - k}`;
+    if (teil) el.setAttribute("data-teilaufgaben", teil);
+    else el.removeAttribute("data-teilaufgaben");
+    const breiteText = teil ? textBreite(teil, 14) + 4 : 0;
+    if (teil && loesungSichtbar(el)) {
+      s += text(Math.max(breite, breiteText) / 2, hoehe + 12, teil, { groesse: 14, fett: true });
+    }
+    if (k !== null) unten = hoehe + 22;
+    meldeInfo(el, `${zeilen} · ${spalten} = ${zahl(zeilen * spalten)}`);
+    el.innerHTML = svg(r1(Math.max(breite, breiteText)), r1(unten), s);
+  }
+
+  const stellenteile = (n) => {
+    const ziffern = String(n), teile = [];
+    [...ziffern].forEach((z, i) => {
+      if (z !== "0") teile.push(Number(z) * 10 ** (ziffern.length - 1 - i));
+    });
+    return teile.length > 0 ? teile : [0];
+  };
+  const malkreuzRechnung = (a, b) => {
+    const spalten = stellenteile(a), zeilen = stellenteile(b);
+    const produkte = zeilen.map((z) => spalten.map((s) => z * s));
+    return { spalten, zeilen, produkte, summen: produkte.map((p) => p.reduce((x, y) => x + y, 0)), ergebnis: a * b };
+  };
+
+  function malkreuz(el) {
+    const a = num(el, "a", 34), b = num(el, "b", 6), zeige = leseOffen(attr(el, "zeige", null), ["zerlegung"]);
+    for (const n of [a, b]) {
+      if (!Number.isInteger(n) || n < 1 || n > 99) abbruch("Beim Malkreuz sind beide Zahlen 1 bis 99.");
+    }
+    const r = malkreuzRechnung(a, b);
+    pruefeRaum([r.ergebnis]);
+    const schrift = 16, h = 34;
+    const alle = [...r.spalten, ...r.zeilen, ...r.produkte.flat(), ...r.summen, r.ergebnis];
+    const b0 = Math.max(52, ...alle.map((w) => textBreite(zahl(w), schrift) + 14));
+    const sp = r.spalten.length, ze = r.zeilen.length, mitSumme = ze > 1;
+    const zeile0 = 30, l = 2;
+    let s = text(l, 12, `${a} · ${b} =`, { groesse: 16, fett: true, anker: "start" });
+    const xErgebnis = l + textBreite(`${a} · ${b} =`, 16) + 8;
+    s += rechenfeld(el, "ergebnis", xErgebnis, 0, b0, 24, r.ergebnis, !zeige.has("summe"), schrift);
+    const x = (c) => l + c * b0, y = (z) => zeile0 + z * h;
+    s += `<g class="malkreuz-kopf">${text(x(0) + b0 / 2, y(0) + h / 2, "·", { groesse: 20, fett: true })}</g>`;
+    r.spalten.forEach((w, c) => {
+      s += rechenfeld(el, `s${c}`, x(c + 1), y(0), b0, h, w, !zeige.has("zerlegung"), schrift);
+    });
+    r.zeilen.forEach((w, z) => {
+      s += rechenfeld(el, `z${z}`, x(0), y(z + 1), b0, h, w, !zeige.has("zerlegung"), schrift);
+      r.spalten.forEach((_, c) => {
+        s += rechenfeld(el, `p${z}-${c}`, x(c + 1), y(z + 1), b0, h, r.produkte[z][c], !zeige.has("teilprodukte"), schrift);
+      });
+      s += text(x(sp + 1) + 10, y(z + 1) + h / 2, "→", { groesse: 16 });
+      s += rechenfeld(el, `t${z}`, x(sp + 1) + 22, y(z + 1), b0, h, r.summen[z], !zeige.has("summe"), schrift);
+    });
+    if (mitSumme) {
+      const xs = x(sp + 1) + 22, ys = y(ze + 1) + 6;
+      s += `<path d="M${r1(xs)} ${r1(ys - 3)}H${r1(xs + b0)}" stroke-width="2"/>`;
+      s += rechenfeld(el, "summe", xs, ys, b0, h, r.ergebnis, !zeige.has("summe"), schrift);
+    }
+    const breite = x(sp + 1) + 22 + b0 + 2, hoehe = y(ze + 1) + (mitSumme ? h + 8 : 2);
+    meldeInfo(el, `Ergebnis: ${zahl(r.ergebnis)}`);
+    el.innerHTML = svg(r1(breite), r1(hoehe), s);
+  }
+
+  /* Die Rechenkerne rechnen Stelle für Stelle; die Reihung ist immer von den Einern (Index 0) nach links. */
+  const stellenVon = (n) => [...String(n)].reverse().map(Number);
+  const zahlAus = (stellen) => Number([...stellen].reverse().join("")) || 0;
+
+  /** `vergessen`: Spalte, deren Übertrag nach links nicht ankommt (Fehleraufgabe). */
+  const addiere = (zahlen, { vergessen = null } = {}) => {
+    const reihen = zahlen.map(stellenVon), breite = Math.max(...reihen.map((r) => r.length));
+    const ziffern = [], uebertraege = [];
+    let behalten = 0;
+    for (let i = 0; i < breite || behalten > 0; i++) {
+      uebertraege[i] = behalten;
+      const summe = reihen.reduce((t, r) => t + (r[i] ?? 0), behalten);
+      ziffern[i] = summe % 10;
+      behalten = i === vergessen ? 0 : Math.floor(summe / 10);
+    }
+    return { ziffern, uebertraege, ergebnis: zahlAus(ziffern) };
+  };
+
+  /** Erweitern: Übertrag unter dem Subtrahenden. `falschHerum`: In dieser Spalte oben von unten abgezogen. */
+  const subtrahiereErweitern = (a, b, verfahren, { vergessen = null, falschHerum = null } = {}) => {
+    const oben = stellenVon(a), unten = stellenVon(b), ziffern = [], uebertraege = [], sprechweise = [];
+    let behalten = 0;
+    for (let i = 0; i < oben.length; i++) {
+      uebertraege[i] = behalten;
+      const s = (unten[i] ?? 0) + behalten, ziel = oben[i];
+      if (i === falschHerum) {
+        ziffern[i] = Math.abs(ziel - s);
+        behalten = 0;
+        continue;
+      }
+      const leihe = s > ziel;
+      ziffern[i] = (leihe ? ziel + 10 : ziel) - s;
+      const voll = leihe ? ziel + 10 : ziel;
+      sprechweise[i] = verfahren === "ergaenzen" ? `${s} + ${ziffern[i]} = ${voll}` : `${voll} − ${s} = ${ziffern[i]}`;
+      if (leihe) sprechweise[i] += ", 1 gemerkt";
+      behalten = leihe && i !== vergessen ? 1 : 0;
+    }
+    while (ziffern.length > 1 && ziffern[ziffern.length - 1] === 0) ziffern.pop();
+    return { ziffern, uebertraege, sprechweise, ergebnis: zahlAus(ziffern) };
+  };
+
+  /** Entbündeln: `neu[i]` ist die Ziffer, die über der durchgestrichenen steht (`null`: unverändert). */
+  const subtrahiereEntbuendeln = (a, b, verfahren, { vergessen = null, falschHerum = null } = {}) => {
+    const oben = stellenVon(a), unten = stellenVon(b), neu = oben.map(() => null), jetzt = [...oben], ziffern = [], sprechweise = [];
+    const geliehen = [];
+    for (let i = 0; i < oben.length; i++) {
+      const s = unten[i] ?? 0;
+      if (i === falschHerum) {
+        ziffern[i] = Math.abs(jetzt[i] - s);
+        continue;
+      }
+      if (jetzt[i] < s) {
+        geliehen.push(i);
+        let j = i + 1;
+        while (jetzt[j] === 0) j++;
+        if (i !== vergessen) {
+          jetzt[j]--;
+          neu[j] = jetzt[j];
+          for (let m = j - 1; m > i; m--) {
+            jetzt[m] = 9;
+            neu[m] = 9;
+          }
+        }
+        jetzt[i] += 10;
+        neu[i] = jetzt[i];
+      }
+      ziffern[i] = jetzt[i] - s;
+      sprechweise[i] = verfahren === "ergaenzen" ? `${s} + ${ziffern[i]} = ${jetzt[i]}` : `${jetzt[i]} − ${s} = ${ziffern[i]}`;
+    }
+    while (ziffern.length > 1 && ziffern[ziffern.length - 1] === 0) ziffern.pop();
+    return { ziffern, neu, sprechweise, geliehen, ergebnis: zahlAus(ziffern) };
+  };
+
+  /** Ein Teilprodukt: `verschoben` Nullen rechts, `uebertraege[i]` kommt in Stelle i dazu. */
+  const teilprodukt = (a, faktor, verschoben, { vergessen = null } = {}) => {
+    const oben = stellenVon(a), ziffern = [], uebertraege = [];
+    let behalten = 0;
+    for (let i = 0; i < oben.length || behalten > 0; i++) {
+      uebertraege[i] = behalten;
+      const produkt = (oben[i] ?? 0) * faktor + behalten;
+      ziffern[i] = produkt % 10;
+      behalten = i === vergessen ? 0 : Math.floor(produkt / 10);
+    }
+    while (ziffern.length > 1 && ziffern[ziffern.length - 1] === 0) ziffern.pop();
+    return { faktor, verschoben, ziffern, uebertraege, wert: zahlAus(ziffern) * 10 ** verschoben };
+  };
+  /** Vom höchsten Stellenwert des zweiten Faktors an, wie in den Schulbüchern. */
+  const multipliziere = (a, b, { teilVergessen = null, vergessen = null, verrutscht = null } = {}) => {
+    const stellen = stellenVon(b), teile = [];
+    for (let i = stellen.length - 1; i >= 0; i--) {
+      const nr = stellen.length - 1 - i;
+      teile.push(teilprodukt(a, stellen[i], nr === verrutscht ? 0 : i, nr === teilVergessen ? { vergessen } : {}));
+    }
+    const summe = teile.length > 1 ? addiere(teile.map((t) => t.wert)) : null;
+    return { teile, summe, ergebnis: summe ? summe.ergebnis : teile[0].wert };
+  };
+
+  /** `restVergessen`: Nummer des Schritts, dessen Rest nicht heruntergenommen wird. `nullWeg`: Null im Ergebnis fehlt. */
+  const dividiere = (a, b, { restVergessen = null, nullWeg = false } = {}) => {
+    const ziffern = [...String(a)].map(Number), schritte = [];
+    let teil = 0, ende = 0;
+    for (; ende < ziffern.length; ende++) {
+      teil = teil * 10 + ziffern[ende];
+      if (teil >= b) break;
+    }
+    if (ende === ziffern.length) ende = ziffern.length - 1;
+    for (; ende < ziffern.length; ende++) {
+      if (schritte.length > 0) teil = teil * 10 + ziffern[ende];
+      const q = Math.floor(teil / b), produkt = q * b, rest = teil - produkt;
+      schritte.push({ ende, teil, q, produkt, rest });
+      teil = schritte.length - 1 === restVergessen ? 0 : rest;
+    }
+    const alleQ = schritte.map((x) => x.q), letzter = schritte[schritte.length - 1];
+    const qZiffern = nullWeg ? alleQ.filter((q) => q !== 0) : alleQ;
+    return { schritte, quotient: qZiffern.length > 0 ? Number(qZiffern.join("")) : 0, qZiffern, rest: letzter.rest };
+  };
+
+  const FEHLER_NAMEN = { uebertrag: "Übertrag vergessen", stelle: "Stelle verrutscht", herum: "Falsch herum gerechnet", rest: "Rest vergessen", null: "Null im Ergebnis vergessen" };
+  /** Alle Fehler, die in dieser Aufgabe etwas ändern; die Rechnung rechnet immer mit genau diesem einen Fehler. */
+  const moeglicheFehler = (art, zahlen, verfahren) => {
+    const [a, b] = zahlen, liste = [];
+    if (art === "plus") {
+      addiere(zahlen).uebertraege.forEach((u, i) => {
+        if (u > 0) liste.push({ art: "uebertrag", vergessen: i - 1 });
+      });
+      const letzte = zahlen[zahlen.length - 1];
+      if (letzte > 0 && String(letzte).length < String(Math.max(...zahlen)).length) liste.push({ art: "stelle" });
+    } else if (art === "minus") {
+      const oben = stellenVon(a), unten = stellenVon(b);
+      let spalten = subtrahiereEntbuendeln(a, b, "abziehen").geliehen;
+      if (verfahren?.endsWith("erweitern")) {
+        const r = subtrahiereErweitern(a, b, "abziehen");
+        spalten = oben.flatMap((o, i) => ((unten[i] ?? 0) + r.uebertraege[i] > o ? [i] : []));
+      }
+      for (const i of spalten) liste.push({ art: "uebertrag", vergessen: i }, { art: "herum", falschHerum: i });
+      if (b * 10 <= a && b > 0) liste.push({ art: "stelle" });
+    } else if (art === "mal") {
+      multipliziere(a, b).teile.forEach((t, nr) => {
+        t.uebertraege.forEach((u, i) => {
+          if (u > 0) liste.push({ art: "uebertrag", teilVergessen: nr, vergessen: i - 1 });
+        });
+      });
+      if (a > 0 && b >= 10) liste.push({ art: "stelle", verrutscht: 0 });
+    } else {
+      const d = dividiere(a, b);
+      d.schritte.slice(0, -1).forEach((x, nr) => {
+        if (x.rest > 0) liste.push({ art: "rest", restVergessen: nr });
+      });
+      if (d.schritte.some((x, nr) => x.q === 0 && nr > 0)) liste.push({ art: "null", nullWeg: true });
+    }
+    return liste;
+  };
+
+  const VERFAHREN = ["abziehen-entbuendeln", "abziehen-erweitern", "ergaenzen-entbuendeln", "ergaenzen-erweitern"];
+  /** Der Plan der Rechnung im Karoraster: Zeilen mit Zellen; `rolle` entscheidet, was das Arbeitsblatt zeigt. */
+  const rechnungsplan = (art, zahlen, verfahren, fehler, mitUebertrag, mindestBreite = 0) => {
+    const zeilen = [];
+    const reihe = (zellen, strich = null) => {
+      zeilen.push({ zellen, strich });
+      return zeilen[zeilen.length - 1];
+    };
+    const ziffernzellen = (stellen, rechts, rolle) => stellen.map((t, i) => ({ c: rechts - i, t: String(t), rolle }));
+    const uebertragszellen = (werte, rechts) => werte.flatMap((u, i) => (u > 0 ? [{ c: rechts - i, t: String(u), rolle: "uebertrag" }] : []));
+    const f = fehler ?? {};
+    if (art === "plus" || art === "minus") {
+      const anzeige = f.art === "stelle" ? [...zahlen.slice(0, -1), zahlen[zahlen.length - 1] * 10] : zahlen;
+      const [abzug, bund] = (verfahren ?? "abziehen-erweitern").split("-");
+      let r = null;
+      if (art === "plus") r = addiere(anzeige, f);
+      else if (bund === "entbuendeln") r = subtrahiereEntbuendeln(anzeige[0], anzeige[1], abzug, f);
+      else r = subtrahiereErweitern(anzeige[0], anzeige[1], abzug, f);
+      const w = Math.max(mindestBreite, r.ziffern.length, ...anzeige.map((z) => String(z).length));
+      const zeichen = { c: 0, t: art === "plus" ? "+" : "−", rolle: "aufgabe" };
+      const oben = stellenVon(anzeige[0]);
+      if (r.neu && mitUebertrag) reihe(r.neu.flatMap((n, i) => (n === null ? [] : [{ c: w - i, t: String(n), rolle: "uebertrag" }])));
+      anzeige.forEach((z, i) => {
+        const zellen = ziffernzellen(stellenVon(z), w, "aufgabe");
+        if (r.neu && mitUebertrag && i === 0) zellen.forEach((x, j) => { if (r.neu[j] !== null && oben[j] !== undefined) x.durch = true; });
+        if (i === anzeige.length - 1) zellen.push(zeichen);
+        reihe(zellen);
+      });
+      if (r.uebertraege && mitUebertrag) reihe(uebertragszellen(r.uebertraege, w));
+      zeilen[zeilen.length - 1].strich = "voll";
+      reihe(ziffernzellen(r.ziffern, w, "ergebnis")).ergebnis = true;
+      return { zeilen, spalten: w + 1, ergebnis: r.ergebnis, sprechweise: r.sprechweise ?? [], text: r.ergebnis };
+    }
+    if (art === "mal") {
+      const [a, b] = zahlen, r = multipliziere(a, b, f);
+      const la = String(a).length, lb = String(b).length, rechts = Math.max(la + lb + 1, mindestBreite);
+      const start = rechts - la - lb;
+      reihe([...[...String(a)].map((t, i) => ({ c: start + i, t, rolle: "aufgabe" })), { c: start + la, t: "·", rolle: "aufgabe" },
+        ...[...String(b)].map((t, i) => ({ c: start + la + 1 + i, t, rolle: "aufgabe" }))], "voll");
+      r.teile.forEach((t, nr) => {
+        const ende = rechts - t.verschoben;
+        const zellen = [...ziffernzellen(t.ziffern, ende, "ergebnis")];
+        for (let i = 0; i < t.verschoben; i++) zellen.push({ c: rechts - i, t: "0", rolle: "ergebnis" });
+        if (mitUebertrag) reihe(uebertragszellen(t.uebertraege, ende));
+        if (r.summe && nr === r.teile.length - 1) zellen.push({ c: 0, t: "+", rolle: "ergebnis" });
+        const z = reihe(zellen);
+        if (!r.summe) z.ergebnis = true;
+      });
+      if (r.summe) {
+        if (mitUebertrag) reihe(uebertragszellen(r.summe.uebertraege, rechts));
+        zeilen[zeilen.length - 1].strich = "voll";
+        reihe(ziffernzellen(r.summe.ziffern, rechts, "ergebnis")).ergebnis = true;
+      }
+      return { zeilen, spalten: rechts + 1, ergebnis: r.ergebnis, sprechweise: [], text: r.ergebnis };
+    }
+    const [a, b] = zahlen, r = dividiere(a, b, f), richtig = dividiere(a, b);
+    const la = String(a).length, ende = (stelle) => 1 + stelle;
+    const qStart = la + 4, qBreite = richtig.qZiffern.length, kopf = [];
+    [...String(a)].forEach((t, i) => kopf.push({ c: 1 + i, t, rolle: "aufgabe" }));
+    kopf.push({ c: la + 1, t: ":", rolle: "aufgabe" }, { c: la + 2, t: String(b), rolle: "aufgabe" }, { c: la + 3, t: "=", rolle: "aufgabe" });
+    r.qZiffern.forEach((q, i) => kopf.push({ c: qStart + i, t: String(q), rolle: "ergebnis" }));
+    if (r.rest > 0) kopf.push({ c: qStart + qBreite, t: "R", rolle: "ergebnis" }, { c: qStart + qBreite + 1, t: String(r.rest), rolle: "ergebnis" });
+    reihe(kopf).ergebnis = true;
+    r.schritte.forEach((x, nr) => {
+      const rechts = ende(x.ende), ziffern = [...String(x.produkt)], links = rechts - ziffern.length + 1;
+      const zellen = ziffern.map((t, i) => ({ c: links + i, t, rolle: "ergebnis" }));
+      zellen.push({ c: links - 1, t: "−", rolle: "ergebnis" });
+      reihe(zellen, { von: links - 1, bis: rechts });
+      const danach = r.schritte[nr + 1];
+      const wert = danach ? danach.teil : x.rest, rechtsWert = danach ? ende(danach.ende) : rechts;
+      const wort = String(wert).padStart(danach && x.rest === 0 && f.restVergessen !== nr ? 2 : 1, "0");
+      reihe([...wort].map((t, i) => ({ c: rechtsWert - wort.length + 1 + i, t, rolle: "ergebnis" })));
+    });
+    const spalten = Math.max(mindestBreite, qStart + qBreite + 2);
+    return { zeilen, spalten, ergebnis: richtig.quotient, sprechweise: [], text: r.rest > 0 ? `${r.quotient} R ${r.rest}` : String(r.quotient) };
+  };
+
+  const pruefeSchriftlich = (art, zahlen, verfahren) => {
+    if (!["plus", "minus", "mal", "geteilt"].includes(art)) abbruch(`Die Art „${art}“ gibt es nicht.`);
+    if (zahlen.some((z) => !Number.isInteger(z) || z < 0)) abbruch("Schriftlich gerechnet wird nur mit ganzen Zahlen ab 0.");
+    if (zahlen.some((z) => String(z).length > 7)) abbruch("Eine Zahl hat höchstens 7 Stellen.");
+    if (art === "plus" && (zahlen.length < 2 || zahlen.length > 4)) abbruch("Bei Plus stehen 2 bis 4 Zahlen untereinander.");
+    if (art !== "plus" && zahlen.length !== 2) abbruch("Hier gehören genau 2 Zahlen hinein.");
+    if (art === "minus" && zahlen[0] < zahlen[1]) abbruch("Die erste Zahl muss mindestens so groß sein wie die zweite.");
+    if (art === "minus" && !VERFAHREN.includes(verfahren)) abbruch("Bitte das Verfahren wählen, das die Klasse gelernt hat.");
+    if (art === "mal" && String(zahlen[1]).length > 3) abbruch("Der zweite Faktor hat höchstens 3 Stellen.");
+    if (art === "geteilt" && (zahlen[1] < 2 || zahlen[1] > 9)) abbruch("Geteilt wird durch 2 bis 9.");
+  };
+  const schriftlichWert = (art, zahlen) => {
+    if (art === "plus") return zahlen.reduce((x, y) => x + y, 0);
+    if (art === "minus") return zahlen[0] - zahlen[1];
+    return art === "mal" ? zahlen[0] * zahlen[1] : Math.floor(zahlen[0] / zahlen[1]);
+  };
+  const RECHENZEICHEN = { plus: " + ", minus: " − ", mal: " · ", geteilt: " : " };
+
+  function schriftlich(el) {
+    const art = attr(el, "art", "plus"), zahlen = liste(el, "zahlen").map(Number), verfahren = attr(el, "verfahren", null);
+    const mitUebertrag = attr(el, "uebertrag", "zeile") !== "keine", zeige = leseOffen(attr(el, "zeige", null), ["aufgabe"]);
+    const kaestchen = num(el, "kaestchen", 0.5), fehlerhaft = attr(el, "fehlerhaft", null) === "ja";
+    if (kaestchen < 0.4 || kaestchen > 1) abbruch("Ein Kästchen misst 0,4 bis 1 cm.");
+    pruefeSchriftlich(art, zahlen, verfahren);
+    const wert = schriftlichWert(art, zahlen);
+    pruefeRaum([...zahlen, wert]);
+    masstab(el);
+    const richtig = rechnungsplan(art, zahlen, verfahren, null, mitUebertrag);
+    let plan = richtig, wahl = null;
+    if (fehlerhaft) {
+      const moeglich = moeglicheFehler(art, zahlen, verfahren);
+      if (moeglich.length === 0) abbruch("In diese Aufgabe lässt sich kein typischer Fehler einbauen.");
+      const zz = zufall(samen(el, `${art}|${zahlen.join(" ")}`));
+      wahl = moeglich[Math.floor(zz() * moeglich.length)];
+      plan = rechnungsplan(art, zahlen, verfahren, wahl, mitUebertrag);
+    }
+    const k = cm(kaestchen), schrift = Math.max(12, k * 0.72), klein = Math.max(9, k * 0.5);
+    const sichtbar = (rolle) => fehlerhaft || loesungSichtbar(el) || zeige.has(rolle === "uebertrag" ? "uebertraege" : rolle);
+    const unterschiede = new Set();
+    let korrektur = [];
+    if (fehlerhaft) {
+      const versatz = plan.spalten - richtig.spalten;
+      plan.zeilen.forEach((z, r) => {
+        const soll = richtig.zeilen[r]?.zellen ?? [];
+        for (const zelle of z.zellen) {
+          if (zelle.rolle === "uebertrag") continue;
+          const gegen = soll.find((x) => x.c + versatz === zelle.c && x.rolle !== "uebertrag");
+          if (gegen?.t !== zelle.t) unterschiede.add(`${r}-${zelle.c}`);
+        }
+        if (z.ergebnis && art !== "geteilt") korrektur = soll.flatMap((x) => (x.rolle === "uebertrag" || z.zellen.some((y) => y.c === x.c + versatz && y.t === x.t && y.rolle !== "uebertrag") ? [] : [{ c: x.c + versatz, t: x.t }]));
+      });
+    }
+    const hatKorrektur = fehlerhaft && art !== "geteilt";
+    const zeilenzahl = plan.zeilen.length + (hatKorrektur ? 1 : 0), breite = plan.spalten * k, hoehe = zeilenzahl * k;
+    let gitter = "";
+    for (let i = 0; i <= plan.spalten; i++) gitter += `M${r1(i * k)} 0V${r1(hoehe)}`;
+    for (let i = 0; i <= zeilenzahl; i++) gitter += `M0 ${r1(i * k)}H${r1(breite)}`;
+    let s = `<path class="karo" d="${gitter}" stroke="#808080" stroke-width="0.5"/>`;
+    const uebertragFarbe = istSw() ? SCHWARZ : "var(--dunkel)";
+    plan.zeilen.forEach((z, r) => {
+      for (const zelle of z.zellen) {
+        const zeigen = sichtbar(zelle.rolle), x = zelle.c * k, y = r * k;
+        s += `<g class="stelle" data-r="${r}" data-c="${zelle.c}" data-rolle="${zelle.rolle}" data-wert="${zelle.t}">`;
+        if (zeigen && zelle.rolle === "uebertrag") {
+          s += text(x + k / 2, y + k * 0.62, zelle.t, { groesse: klein, farbe: uebertragFarbe });
+        } else if (zeigen) {
+          s += text(x + k / 2, y + k / 2, zelle.t, { groesse: schrift });
+        }
+        if (sichtbar("uebertrag") && zelle.durch) s += `<path class="durch" d="M${r1(x + k * 0.2)} ${r1(y + k * 0.8)}L${r1(x + k * 0.8)} ${r1(y + k * 0.2)}" stroke-width="1.2"/>`;
+        if (loesungSichtbar(el) && unterschiede.has(`${r}-${zelle.c}`)) s += `<circle class="fehlerkreis" cx="${r1(x + k / 2)}" cy="${r1(y + k / 2)}" r="${r1(k * 0.46)}" fill="none" stroke-width="1.6"/>`;
+        s += "</g>";
+      }
+      if (z.strich) {
+        const von = z.strich === "voll" ? 0 : z.strich.von * k, bis = z.strich === "voll" ? breite : (z.strich.bis + 1) * k;
+        s += `<path class="ergebnisstrich" d="M${r1(von)} ${r1((r + 1) * k)}H${r1(bis)}" stroke-width="1.8"/>`;
+      }
+    });
+    if (hatKorrektur && loesungSichtbar(el)) {
+      for (const zelle of korrektur) {
+        s += `<g class="korrektur" data-c="${zelle.c}">${text((zelle.c + 0.5) * k, (plan.zeilen.length + 0.5) * k, zelle.t, { groesse: schrift, fett: true })}</g>`;
+      }
+    }
+    let unten = hoehe, weit = breite;
+    const zeichen = RECHENZEICHEN[art], aufgabe = zahlen.map((z) => zahl(z)).join(zeichen);
+    const rest = art === "geteilt" ? zahlen[0] % zahlen[1] : 0;
+    const richtigText = `${aufgabe} = ${zahl(wert)}${rest > 0 ? ` R ${rest}` : ""}`;
+    if (fehlerhaft) {
+      const zeile = `${FEHLER_NAMEN[wahl.art]}. Richtig: ${richtigText}`;
+      weit = Math.max(breite, textBreite(zeile, 13) + 2);
+      unten = hoehe + 20;
+      if (loesungSichtbar(el)) s += text(0, hoehe + 12, zeile, { groesse: 13, anker: "start", fett: true });
+      el.setAttribute("data-fehlerart", wahl.art);
+      el.setAttribute("data-falsch", plan.text);
+    } else {
+      el.removeAttribute("data-fehlerart");
+      el.removeAttribute("data-falsch");
+    }
+    el.setAttribute("data-ergebnis", String(wert));
+    const gesprochen = [...richtig.sprechweise].filter(Boolean).join("; ");
+    meldeInfo(el, `Ergebnis: ${zahl(wert)}${rest > 0 ? ` R ${rest}` : ""}${fehlerhaft ? ` · Eingebaut: ${FEHLER_NAMEN[wahl.art]}` : ""}${gesprochen ? ` · Gesprochen: ${gesprochen}` : ""}`);
+    el.innerHTML = svg(r1(weit), r1(unten), s);
+  }
+
   /* == Test == */
   // x-probe gibt es nur für die Tests der Feldtypen im Panel (023); in Material kommt es nicht vor.
   function probe(el) {
@@ -2285,6 +2715,7 @@
     "x-gitter": gitter, "x-figur": figur, "x-tangram": tangram,
     "x-hunderterfeld": hunderterfeld, "x-hundertertafel": hundertertafel, "x-rechenrahmen": rechenrahmen, "x-rechenstrich": rechenstrich,
     "x-zahlenmauer": zahlenmauer, "x-rechendreieck": rechendreieck, "x-zahlenhaus": zahlenhaus, "x-zahlenkette": zahlenkette, "x-zauberdreieck": zauberdreieck, "x-rechenrad": rechenrad,
+    "x-punktfeld": punktfeld, "x-malkreuz": malkreuz, "x-schriftlich": schriftlich,
     "x-wuerfelbau": wuerfelbau, "x-wuerfelnetz": wuerfelnetz, "x-koerper": koerper };
 
   const zeichne = (f, el) => {
@@ -2311,6 +2742,7 @@
     ansichtenVon, wuerfelVon, verdeckteWuerfel, WUERFELNETZE, NICHT_NETZE, netzZellen, falteNetz, istWuerfelnetz, netzLaschen, netzLage, AUGEN_DER_SEITE, vielflach, KOERPER_ZAHLEN,
     tafelOrt, ausschnittZahlen, rechenstrichWerte, leseSprung,
     mauerWerte, mauerEindeutig, istEindeutig, RECHENDREIECK_GLEICHUNGEN, zauberLoesungen, ketteWerte, leseOperator,
+    malkreuzRechnung, addiere, subtrahiereErweitern, subtrahiereEntbuendeln, multipliziere, dividiere, moeglicheFehler, rechnungsplan,
   };
   if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", () => window.zeichneAbbildungen());
   else window.zeichneAbbildungen();

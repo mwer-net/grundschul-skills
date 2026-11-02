@@ -1184,6 +1184,176 @@ export const ABBILDUNG_SCHEMA = {
 			},
 		],
 	},
+	'x-punktfeld': {
+		name: 'Punktfeld',
+		felder: [
+			{ art: 'zahl', attribut: 'zeilen', name: 'Zeilen', min: 1, max: 10, standard: 5 },
+			{ art: 'zahl', attribut: 'spalten', name: 'Spalten', min: 1, max: 10, standard: 5 },
+			{
+				art: 'zahlen',
+				attribut: 'trenner',
+				name: 'Zerlegungslinie nach',
+				beispiel: '5',
+				hilfe: 'Kernaufgaben: nach 1, 2 oder 5.',
+			},
+			{
+				art: 'auswahl',
+				attribut: 'richtung',
+				name: 'Linie zerlegt die',
+				standard: 'zeilen',
+				optionen: [
+					{ wert: 'zeilen', name: 'Zeilen' },
+					{ wert: 'spalten', name: 'Spalten' },
+				],
+			},
+			{
+				art: 'schalter',
+				attribut: 'loesung',
+				name: 'Linie nur in der Lösung',
+				an: 'ja',
+				aus: 'nein',
+				standard: false,
+			},
+			{
+				art: 'zahlen',
+				attribut: 'abdecken',
+				name: 'Frei bleiben',
+				beispiel: '3 4',
+				hilfe: 'Zeilen und Spalten, der Rest ist grau abgedeckt wie mit dem Malwinkel.',
+			},
+			{ art: 'zahl', ...GROESSE, min: 14, max: 40, standard: 20, schritt: 2 },
+		],
+		regeln: (w): Fehler => {
+			const fehler: Fehler = {};
+			const trenner = w.zahlen('trenner');
+			const grenze = w.zahl(w.text('richtung') === 'spalten' ? 'spalten' : 'zeilen');
+			if (trenner.length > 1 || trenner.some((k) => k < 1 || k >= grenze)) {
+				fehler.trenner = `Eine Linie innerhalb des Feldes: 1 bis ${grenze - 1}.`;
+			}
+			const frei = w.zahlen('abdecken');
+			const [freiZeilen = 0, freiSpalten = 0] = frei;
+			const passt = frei.length === 2 && freiZeilen <= w.zahl('zeilen') && freiSpalten <= w.zahl('spalten');
+			if (frei.length > 0 && !passt) {
+				fehler.abdecken = 'Zwei Zahlen, die im Feld liegen.';
+			}
+			return fehler;
+		},
+	},
+	'x-malkreuz': {
+		name: 'Malkreuz',
+		felder: [
+			{ art: 'zahl', attribut: 'a', name: 'Erste Zahl', min: 1, max: 99, standard: 34 },
+			{ art: 'zahl', attribut: 'b', name: 'Zweite Zahl', min: 1, max: 99, standard: 6 },
+			{
+				art: 'mehrfach',
+				attribut: 'zeige',
+				name: 'Im Blatt steht schon',
+				standard: ['zerlegung'],
+				optionen: [
+					{ wert: 'zerlegung', name: 'Zerlegung' },
+					{ wert: 'teilprodukte', name: 'Teilprodukte' },
+					{ wert: 'summe', name: 'Summe' },
+				],
+			},
+		],
+	},
+	'x-schriftlich': {
+		name: 'Schriftliche Rechnung',
+		felder: [
+			{
+				art: 'auswahl',
+				attribut: 'art',
+				name: 'Rechnung',
+				standard: 'plus',
+				optionen: [
+					{ wert: 'plus', name: 'Plus' },
+					{ wert: 'minus', name: 'Minus' },
+					{ wert: 'mal', name: 'Mal' },
+					{ wert: 'geteilt', name: 'Geteilt' },
+				],
+			},
+			{ art: 'zahlen', attribut: 'zahlen', name: 'Zahlen', beispiel: '345 278' },
+			{
+				art: 'auswahl',
+				attribut: 'verfahren',
+				name: 'Verfahren bei Minus',
+				hilfe: 'So, wie es die Klasse gelernt hat.',
+				optionen: [
+					{ wert: null, name: 'Bitte wählen' },
+					{ wert: 'abziehen-entbuendeln', name: 'Abziehen, Entbündeln' },
+					{ wert: 'abziehen-erweitern', name: 'Abziehen, Erweitern' },
+					{ wert: 'ergaenzen-entbuendeln', name: 'Ergänzen, Entbündeln' },
+					{ wert: 'ergaenzen-erweitern', name: 'Ergänzen, Erweitern' },
+				],
+			},
+			{
+				art: 'auswahl',
+				attribut: 'uebertrag',
+				name: 'Überträge',
+				standard: 'zeile',
+				optionen: [
+					{ wert: 'zeile', name: 'Notieren' },
+					{ wert: 'keine', name: 'Nicht notieren' },
+				],
+			},
+			{
+				art: 'mehrfach',
+				attribut: 'zeige',
+				name: 'Im Blatt steht schon',
+				standard: ['aufgabe'],
+				optionen: [
+					{ wert: 'aufgabe', name: 'Aufgabe' },
+					{ wert: 'uebertraege', name: 'Überträge' },
+					{ wert: 'ergebnis', name: 'Ergebnis' },
+				],
+			},
+			{
+				art: 'zahl',
+				attribut: 'kaestchen',
+				name: 'Kästchen',
+				einheit: 'cm',
+				min: 0.4,
+				max: 1,
+				standard: 0.5,
+				schritt: 0.1,
+			},
+			{
+				art: 'schalter',
+				attribut: 'fehlerhaft',
+				name: 'Rechnung mit Fehler zum Finden',
+				an: 'ja',
+				aus: 'nein',
+				standard: false,
+			},
+			{ art: 'mischen', attribut: 'seed', name: 'Fehler', knopf: 'Anderer Fehler' },
+		],
+		regeln: (w): Fehler => {
+			const art = w.text('art') ?? 'plus';
+			const zahlen = w.zahlen('zahlen');
+			const [erste = 0, zweite = 0] = zahlen;
+			if (zahlen.some((z) => String(z).length > 7)) {
+				return { zahlen: 'Eine Zahl hat höchstens 7 Stellen.' };
+			}
+			if (art === 'plus' && (zahlen.length < 2 || zahlen.length > 4)) {
+				return { zahlen: 'Bei Plus stehen 2 bis 4 Zahlen untereinander.' };
+			}
+			if (art !== 'plus' && zahlen.length !== 2) {
+				return { zahlen: 'Hier gehören genau 2 Zahlen hinein.' };
+			}
+			if (art === 'minus' && erste < zweite) {
+				return { zahlen: 'Die erste Zahl muss mindestens so groß sein wie die zweite.' };
+			}
+			if (art === 'minus' && !w.text('verfahren')) {
+				return { verfahren: 'Bitte das Verfahren wählen, das die Klasse gelernt hat.' };
+			}
+			if (art === 'geteilt' && (zweite < 2 || zweite > 9)) {
+				return { zahlen: 'Geteilt wird durch 2 bis 9.' };
+			}
+			return art === 'mal' && String(zweite).length > 3
+				? { zahlen: 'Der zweite Faktor hat höchstens 3 Stellen.' }
+				: {};
+		},
+	},
 	'x-zahlenmauer': {
 		name: 'Zahlenmauer',
 		felder: [
