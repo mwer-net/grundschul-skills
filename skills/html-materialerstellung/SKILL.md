@@ -15,7 +15,7 @@ Warum: In HTML bestimmen wir Schrift (Fredoka, Andika, eingebettet), Abstände u
 |---|---|
 | `assets/blatt.css` | Gestaltungssystem: A4-Seite, 60 px Rand, Kopf, Aufgaben mit hängender Nummer, Niveau-Punkte, Punktfelder, Antwortlinien, Sprechblase, Fuß, Karten, Platzhalter, Folien. Profile über Klassen am `<body>`. |
 | `assets/praesentation.js` | Präsentationsmodus für Folien: blättern, Schritte und Aufdecken, Timer, Schwarzbild; nur mit `?praesentation=1` aktiv. `blatt.py` bettet es in die Offline-Präsentation ein und baut damit `--schritte` und `--notizen` (Abschnitt „Folien“) |
-| `assets/abbildungen.js` | Exakte Abbildungen als SVG: `x-uhr`, `x-menge` (Gegenstände in Reihen, Bündel), `x-dienes`, `x-strichpunkt`, `x-stellentafel`, `x-zwanzigerfeld`, `x-zahlenstrahl`, `x-timer` (Zeitscheibe für Folien). Aufrufe im Kopf der Datei. |
+| `assets/abbildungen.js` | Exakte Abbildungen als SVG (`x-…`-Elemente), berechnet statt gezeichnet. Welche es gibt, wie man sie schreibt und welche Mindestgrößen gelten, steht im Katalog: `references/abbildungen.md`. Musterblätter: `assets/muster/`. |
 | `assets/vorlage-arbeitsblatt.html` | Muster mit allen Bausteinen (Farbprofil); Ausgangspunkt für jedes Blatt |
 | `assets/vorlage-praesentation.html` | Kreisinput mit sechs Folien und allen Folien-Bausteinen; Ausgangspunkt für Präsentationen (Abschnitt „Folien“) |
 | `assets/beispiel-zehner-einer-kl2.html` | geprüftes Beispiel im s/w-Profil (Bündeln, Stellentafel, Sternchenaufgabe, Lösungen) |
@@ -99,6 +99,23 @@ Ausgaben von `blatt.py bauen` für Folien, zum Präsentieren ohne Internet und z
 
 `--nur-zusatz` baut nur `--schritte`/`--notizen`, ohne Blatt, Vorschauen und Lösung (so ruft die Schoolbox es auf). Das normale PDF bleibt in jedem Fall die Seitenfolge mit allem aufgedeckt.
 
+## Neues Element
+
+Fehlt eine Darstellung: nie freihand und nie per KI, sondern als neues Element. **Neues Element = Zeichenfunktion in `abbildungen.js` + Eintrag in `ABBILDUNG_SCHEMA` (`schoolbox/kern/src/abbildungen.ts`) + Katalogeintrag + Musterblatt.** Ohne Schema lässt es sich im Editor nicht einstellen, und der Test dazu schlägt fehl.
+
+1. Zeichenfunktion im passenden Abschnitt, nur mit den Helfern aus dem Kern.
+2. s/w: nur Schwarz und Grau (nicht heller als `#808080`), Unterschiede über Form und Muster. Farbe: Palette, Gelb nie für Linien oder Schrift. Text immer schwarz. Linien ≥ 1,5 px.
+3. Lösung nur über `loesungSichtbar` (Lösungsblatt, `.beispiel`).
+4. Unzulässige Angaben → `meldeFehler` (in der Zeichenfunktion: `abbruch("Satz für die Lehrkraft")`).
+5. Mindestgrößen nach `grundschul-didaktik/references/druck-und-platz.md`; fehlt das Element dort, Zeile ergänzen.
+6. Eintrag in `ABBILDUNG_SCHEMA` mit deutschem Namen, Feldern, Grenzen und Regeln, derselbe Name in `NAMEN`.
+7. Katalogeintrag, Zeile in der Tabelle des Fach-Skills. Zeichnet das Element HTML statt SVG: `INHALT` in `pruefung.js`. Immer: Elementliste in `blatt.css`; hat es keine Lösungsangabe, auch `OHNE_LOESUNGSANGABE` in `blatt.py`.
+8. Im Musterblatt des Bereichs (`assets/muster/`); `blatt.py bauen` in sw und farbe ohne FEHLER, Lösungsblatt stimmt.
+9. e2e: ein Feld im Panel ändern → ein Rückgängig-Schritt, die Quelle ändert nur dieses Attribut.
+10. Skill-Anbindung mit einem `claude -p`-Lauf je Issue prüfen; Fehler danach an einer Kopie nachbauen.
+
+Maßstäbliche Elemente (echte Zentimeter): `masstab(el)` im Element, und beim Anlegen `--druckhinweis "In Originalgröße drucken (100 %)"`.
+
 ## Tokens sparen
 
 - Entwürfe und Endfassung sind dieselbe Datei; Änderungen als gezielte Edits, nicht neu schreiben.
@@ -108,7 +125,7 @@ Ausgaben von `blatt.py bauen` für Folien, zum Präsentieren ohne Internet und z
 
 ## Ohne Code-Ausführung
 
-HTML wie oben schreiben und als HTML-Artefakt zeigen (CSS aus `blatt.css` und `abbildungen.js` inline einfügen); Drucken über den Browser (A4, Ränder „keine", Hintergrundgrafiken an). Prüfung dann von Hand nach `references/layout.md`.
+HTML wie oben schreiben und als HTML-Artefakt zeigen (CSS aus `blatt.css` inline einfügen, aus `abbildungen.js` nur den Abschnitt „Kern“, den Schluss ab „Ende der Abschnitte“ und die gebrauchten Abschnitte, nicht die ganze Datei); Drucken über den Browser (A4, Ränder „keine", Hintergrundgrafiken an). Prüfung dann von Hand nach `references/layout.md`.
 
 ## Typische Probleme
 

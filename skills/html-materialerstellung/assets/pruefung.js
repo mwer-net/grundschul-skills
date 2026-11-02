@@ -42,6 +42,14 @@
     const ziel = (e) => { const m = e.closest("[data-sb]"); return { sb: m ? +m.getAttribute("data-sb") : null, name: kurz(e), rechteck: rel(e.getBoundingClientRect()) }; };
     const alle = [...S.querySelectorAll("*")].filter((e) => !e.closest("svg") || e.tagName.toLowerCase() === "svg").filter(sichtbar);
 
+    // 0. Abbildungen, die nicht gezeichnet werden konnten (meldeFehler in abbildungen.js)
+    S.querySelectorAll("[data-fehler]").forEach((e) => {
+      const name = e.dataset.name || (window.abbildungsName ? window.abbildungsName(e.localName) : e.localName);
+      melde("FEHLER", nr, "abbildung", `Abbildung „${name}“: ${e.getAttribute("data-fehler")}`, [ziel(e)]);
+    });
+    if (S.querySelector("[data-masstab]") && !M.some((m) => m.code === "masstab"))
+      melde("HINWEIS", nr, "masstab", "In Originalgröße drucken (100 %, nicht „An Seite anpassen“) → --druckhinweis beim Anlegen setzen", [ziel(S.querySelector("[data-masstab]"))]);
+
     // 1. Seitenrand und Seitenende
     const raus = alle.filter((e) => !e.closest(".karten,.loesung-marke,[data-rand-ok]")).filter((e) => {
       const r = e.getBoundingClientRect();

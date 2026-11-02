@@ -16,6 +16,10 @@ export const MELDUNG_CODES = [
 	'notiz-fehlt',
 	'platzhalter',
 	'pruefskript',
+	/** Eine Abbildung ließ sich nicht zeichnen; der Grund steht im Text (023). */
+	'abbildung',
+	/** Das Blatt hat Abbildungen mit echten Maßen (023). */
+	'masstab',
 	/** Nur im Editor: Antwortlinien ohne Lösung (019). */
 	'loesung-fehlt',
 	/** Nur im Editor: „Zu 3: …“ zeigt nach dem Umsortieren auf eine andere Aufgabe (016). */
@@ -135,6 +139,14 @@ const TABELLE: Record<MeldungCode, Uebersetzung> = {
 	}),
 	'pruefskript': () => ({
 		satz: 'Die automatische Prüfung ist nicht durchgelaufen. Bitte das PDF genau ansehen.',
+		tipp: null,
+	}),
+	'abbildung': (_n, text) => ({
+		satz: text.replace(/^Abbildung „(.*?)“: /, '$1: '),
+		tipp: 'Die Abbildung antippen und die Angaben im Panel ändern. Oder Claude fragen.',
+	}),
+	'masstab': () => ({
+		satz: 'Dieses Blatt hat echte Maße. Bitte in Originalgröße drucken (100 %, nicht „An Seite anpassen“).',
 		tipp: null,
 	}),
 	'loesung-fehlt': (_n, text) => ({

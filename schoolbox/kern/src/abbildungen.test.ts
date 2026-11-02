@@ -2,8 +2,9 @@ import assert from 'node:assert/strict';
 import { readdirSync, readFileSync } from 'node:fs';
 import path from 'node:path';
 import { describe, it } from 'node:test';
+import { runInNewContext } from 'node:vm';
 
-import type { AbbildungSchema, Feld, Werte } from './abbildungen';
+import type { AbbildungSchema, Feld, ListeFeld, Werte } from './abbildungen';
 import {
 	ABBILDUNG_SCHEMA,
 	aendereFeld,
@@ -11,9 +12,13 @@ import {
 	feldWert,
 	NUR_ZUR_LAUFZEIT,
 	pruefeWerte,
+	rasterText,
+	rasterVon,
 	schemaVon,
 	setzeAbbildung,
 	werteVon,
+	zeilenText,
+	zeilenVon,
 	ziffernText,
 } from './abbildungen';
 import { ASSETS } from './konfig';
@@ -24,7 +29,7 @@ const JS = readFileSync(path.join(ASSETS, 'abbildungen.js'), 'utf8');
 /** Tag → Name der Zeichenfunktion, aus `const ARTEN = { "x-uhr": uhr, … }`. */
 const arten = (): Record<string, string> => {
 	const liste = /const ARTEN = \{([^}]*)\}/.exec(JS)?.[1] ?? '';
-	return Object.fromEntries([...liste.matchAll(/"(x-[a-z]+)":\s*(\w+)/g)].map((t) => [t[1] ?? '', t[2] ?? '']));
+	return Object.fromEntries([...liste.matchAll(/"(x-[a-z0-9-]+)":\s*(\w+)/g)].map((t) => [t[1] ?? '', t[2] ?? '']));
 };
 
 /** Alle Attribute, die eine Zeichenfunktion liest (`num(el, "…")`, `getAttribute("…")`, `hasAttribute("…")`). */
@@ -32,7 +37,14 @@ const gelesen = (funktion: string) => {
 	const start = JS.indexOf(`function ${funktion}(el)`);
 	assert.ok(start >= 0, funktion);
 	const rumpf = JS.slice(start, JS.indexOf('\n  }\n', start));
-	const namen = [...rumpf.matchAll(/(?:num\(el, |[gs]etAttribute\(|hasAttribute\()"([a-z-]+)"/g)].map((t) => t[1]);
+	const namen = [
+		...rumpf.matchAll(
+			/(?:num\(el, |attr\(el, |liste\(el, |paare\(el, |raster\(el, |getAttribute\(|hasAttribute\()"([a-z0-9-]+)"/g,
+		),
+	].map((t) => t[1]);
+	if (/\binhalt\(el\)/.test(rumpf)) {
+		namen.push('inhalt');
+	}
 	return [...new Set(namen)].sort();
 };
 
@@ -64,18 +76,33 @@ describe('Schema der Abbildungen', () => {
 		}
 	});
 
-	it('nimmt jede Abbildung aus den Vorlagen und Beispielen als gültig an', () => {
+	it('nimmt jede Abbildung aus den Vorlagen, Beispielen und Musterblättern als gültig an', () => {
 		let anzahl = 0;
-		for (const datei of readdirSync(ASSETS).filter((d) => d.endsWith('.html'))) {
-			for (const k of zerlege(readFileSync(path.join(ASSETS, datei), 'utf8')).knoten) {
+		const dateien = [
+			...readdirSync(ASSETS)
+				.filter((d) => d.endsWith('.html'))
+				.map((d) => path.join(ASSETS, d)),
+			...readdirSync(path.join(ASSETS, 'muster')).map((d) => path.join(ASSETS, 'muster', d)),
+		];
+		for (const datei of dateien) {
+			const z = zerlege(readFileSync(datei, 'utf8'));
+			for (const k of z.knoten) {
 				const s = schemaVon(k.tag);
-				if (s) {
+				if (s && !k.attribute.some((a) => a.name === 'data-erwarteter-fehler')) {
 					anzahl += 1;
-					assert.deepEqual(pruefeWerte(s, werteVon(s, k)), {}, `${datei}: <${k.tag}>`);
+					assert.deepEqual(pruefeWerte(s, werteVon(s, k, z)), {}, `${datei}: <${k.tag}>`);
 				}
 			}
 		}
 		assert.ok(anzahl > 5);
+	});
+
+	it('abbildungen.js nennt jedes Element wie das Schema', () => {
+		const block = /const NAMEN = \{([^}]*)\}/.exec(JS)?.[1] ?? '';
+		const namen = new Map([...block.matchAll(/"(x-[a-z0-9-]+)":\s*"([^"]+)"/g)].map((t) => [t[1], t[2]]));
+		for (const [tag, s] of Object.entries(ABBILDUNG_SCHEMA)) {
+			assert.equal(namen.get(tag), s.name, tag);
+		}
 	});
 });
 
@@ -166,6 +193,108 @@ describe('Felder ändern', () => {
 	});
 });
 
+describe('neue Feldtypen', () => {
+	const probe = schema('x-probe');
+	const liste = feld(probe, 'eintraege') as ListeFeld;
+
+	it('Liste: Paare lesen und schreiben, leere Felder bleiben im Entwurf sichtbar', () => {
+		assert.deepEqual(zeilenVon(liste, 'Hund: 7; Katze: 4'), [
+			['Hund', '7'],
+			['Katze', '4'],
+		]);
+		assert.deepEqual(zeilenVon(liste, 'Hund: 7;'), [['Hund', '7']]);
+		assert.equal(
+			zeilenText(liste, [
+				['Hund', '7'],
+				['Katze', '4'],
+			]),
+			'Hund: 7; Katze: 4',
+		);
+		const entwurf = zeilenText(liste, [
+			['Hund', ''],
+			['', '4'],
+		]);
+		assert.deepEqual(zeilenVon(liste, entwurf), [
+			['Hund', ''],
+			['', '4'],
+		]);
+		assert.equal(zeilenText(liste, []), null);
+	});
+
+	it('Liste: andere Trenner', () => {
+		const spruenge: ListeFeld = {
+			art: 'liste',
+			attribut: 'a',
+			name: 'A',
+			zeilenTrenner: ' ',
+			unter: [{ name: 'S', art: 'text' }],
+		};
+		assert.deepEqual(zeilenVon(spruenge, '+30 +4'), [['+30'], ['+4']]);
+		assert.equal(zeilenText(spruenge, [['+30'], ['+4']]), '+30 +4');
+		const paar: ListeFeld = {
+			art: 'liste',
+			attribut: 'a',
+			name: 'A',
+			feldTrenner: ' ',
+			unter: [
+				{ name: 'X', art: 'zahl' },
+				{ name: 'Y', art: 'zahl' },
+			],
+		};
+		assert.deepEqual(zeilenVon(paar, '3 4; 5 2'), [
+			['3', '4'],
+			['5', '2'],
+		]);
+		assert.equal(
+			zeilenText(paar, [
+				['3', '4'],
+				['5', '2'],
+			]),
+			'3 4; 5 2',
+		);
+	});
+
+	it('Prüfen: Text, Liste, Mehrfach, Raster, Muster und Regeln', () => {
+		assert.match(pruefe('x-probe', { titel: 'x'.repeat(21) }).titel ?? '', /Höchstens 20/);
+		assert.match(pruefe('x-probe', { inhalt: 'Ro1' }).inhalt ?? '', /Nur Buchstaben/);
+		assert.deepEqual(pruefe('x-probe', { inhalt: 'Ro|si|ne' }), {});
+		assert.match(pruefe('x-probe', { eintraege: 'A: 200' }).eintraege ?? '', /Zeile 1.*0 bis 99/);
+		assert.match(pruefe('x-probe', { eintraege: 'A: ∅' }).eintraege ?? '', /Zeile 1: „Zahl“ fehlt/);
+		assert.match(pruefe('x-probe', { eintraege: 'A: 1; B: 1; C: 1; D: 1' }).eintraege ?? '', /Vier geht nicht/);
+		assert.match(pruefe('x-probe', { arten: 'vier' }).arten ?? '', /gibt es hier nicht/);
+		assert.match(pruefe('x-probe', { feld: '0 2' }).feld ?? '', /„2“ geht/);
+		assert.match(pruefe('x-probe', { hoehen: '1 9' }).hoehen ?? '', /von 0 bis 5/);
+		assert.match(pruefe('x-probe', { farbe: 'pink' }).farbe ?? '', /gibt es hier nicht/);
+	});
+
+	it('Feld am Inhalt: Wert ist der Text im Element, geschrieben wird nur der Inhalt', () => {
+		const q = '<div><x-probe titel="a">Ro|si&amp;ne</x-probe></div>';
+		const z = zerlege(q);
+		const k = z.knoten.find((x) => x.tag === 'x-probe');
+		assert.ok(k);
+		assert.equal(werteVon(probe, k, z).inhalt, 'Ro|si&ne');
+		const { quelle } = setzeAbbildung('<div><x-probe titel="a">Ro|sine</x-probe></div>', k.nr, {
+			inhalt: 'Ro|si|ne<',
+		});
+		assert.equal(quelle, '<div><x-probe titel="a">Ro|si|ne&lt;</x-probe></div>');
+	});
+
+	it('Raster lesen und schreiben', () => {
+		assert.deepEqual(rasterVon('0 1 1 / 0 1 0'), [
+			['0', '1', '1'],
+			['0', '1', '0'],
+		]);
+		assert.equal(
+			rasterText([
+				['0', '1'],
+				['1', '0'],
+			]),
+			'0 1 / 1 0',
+		);
+		assert.equal(rasterText([]), null);
+	});
+});
+
 describe('setzeAbbildung', () => {
 	const QUELLE = `<div class="aufgabe">
   <div class="reihe">
@@ -194,5 +323,58 @@ describe('setzeAbbildung', () => {
 		const nr = uhren(QUELLE)[0]?.nr ?? -1;
 		assert.throws(() => setzeAbbildung(QUELLE, nr, { zeit: '4:99' }), /Minuten 0 bis 59/);
 		assert.throws(() => setzeAbbildung(QUELLE, 0, { zeit: '4:30' }), /keine Abbildung/);
+	});
+});
+
+/** Lädt `abbildungen.js` ohne Browser; nötig sind nur die Rechenkerne. */
+const rechenkerne = () => {
+	const fenster: Record<string, unknown> = {};
+	const dokument = {
+		readyState: 'complete',
+		querySelectorAll: () => [],
+		body: { classList: { contains: () => false } },
+	};
+	runInNewContext(JS, { window: fenster, document: dokument, Element: class {} });
+	return fenster.schoolboxAbbildungen as {
+		zahl: (n: number) => string;
+		cm: (x: number) => number;
+		zufall: (seed: number) => () => number;
+		gemischt: <T>(feld: T[], zz: () => number) => T[];
+		trenneListe: (text: string) => string[];
+		trenneRaster: (text: string) => string[][];
+	};
+};
+
+describe('Rechenkerne in abbildungen.js', () => {
+	it('schreibt Zahlen mit Komma und schmalem Leerzeichen ab fünf Stellen', () => {
+		const { zahl } = rechenkerne();
+		assert.equal(zahl(1000), '1000');
+		assert.equal(zahl(12_500), '12\u202F500');
+		assert.equal(zahl(2.5), '2,5');
+		assert.equal(zahl(-3), '−3');
+	});
+
+	it('mischt mit gleichem Seed gleich, mit anderem anders', () => {
+		const { gemischt, zufall } = rechenkerne();
+		const zahlen = Array.from({ length: 20 }, (_, i) => i);
+		assert.deepEqual([...gemischt(zahlen, zufall(7))], [...gemischt(zahlen, zufall(7))]);
+		assert.notDeepEqual([...gemischt(zahlen, zufall(7))], [...gemischt(zahlen, zufall(8))]);
+		assert.deepEqual(
+			[...gemischt(zahlen, zufall(7))].sort((a, b) => a - b),
+			zahlen,
+		);
+	});
+
+	it('trennt Listen und Raster wie das Schema', () => {
+		const { trenneListe, trenneRaster } = rechenkerne();
+		assert.deepEqual([...trenneListe('a b c')], ['a', 'b', 'c']);
+		assert.deepEqual([...trenneListe('a b; c')], ['a b', 'c']);
+		assert.deepEqual(
+			Array.from(trenneRaster('0 1 / 1 0'), (z) => [...z]),
+			[
+				['0', '1'],
+				['1', '0'],
+			],
+		);
 	});
 });

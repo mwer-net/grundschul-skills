@@ -1,24 +1,186 @@
 /* Exakte Abbildungen als SVG, berechnet statt gezeichnet (nie KI-Bilder für Lernobjekte).
-   Im HTML als eigene Elemente verwenden, Beispiele:
-     <x-uhr zeit="4:30" groesse="88"></x-uhr>            Uhr mit Zeigern
-     <x-uhr loesung="4:30"></x-uhr>                       leere Uhr, Zeiger nur im Beispiel/Lösungsblatt
-     <x-menge n="23" form="nuss" reihe="10" buendel="2"></x-menge>   Gegenstände in Reihen, 2 Zehner eingekreist
-     <x-dienes z="3" e="5"></x-dienes>                    Zehnerstangen und Einerwürfel
-     <x-strichpunkt z="3" e="5"></x-strichpunkt>          Strich = Zehner, Punkt = Einer (Fünferstruktur)
-     <x-stellentafel stellen="Z E" loesung="3 5"></x-stellentafel>   Stellenwerttafel, Werte nur in Beispiel/Lösung
-     <x-zwanzigerfeld n="13"></x-zwanzigerfeld>           Zwanzigerfeld mit 13 Plättchen
-     <x-zahlenstrahl von="0" bis="20" zahlen="0 5 10 15 20" pfeile="7 13"></x-zahlenstrahl>
-     <x-timer minuten="10" groesse="360"></x-timer>     Zeitscheibe wie ein Time Timer, darunter „10 Minuten“
-   "Beispiel" bedeutet: Element liegt in einem Container mit class="beispiel". */
+   Welche Elemente es gibt und wie sie geschrieben werden, steht im Katalog: references/abbildungen.md.
+   Die Datei ist in Abschnitte gegliedert (Marker wie unten). "Beispiel" bedeutet: Das Element liegt in einem Container
+   mit class="beispiel". Neues Element: Checkliste in SKILL.md, Abschnitt „Neues Element“. */
 (function () {
+  /* == Kern == */
   const NS = "http://www.w3.org/2000/svg";
+  const SCHWARZ = "#1D1D1B", GRAU = "#808080";
   const loesungSichtbar = (el) => document.body.classList.contains("loesung") || !!el.closest(".beispiel");
+  const istSw = () => !document.body.classList.contains("farbe");
+  const klasse = () => +((document.body.className.match(/kl(\d)/) || [0, 2])[1]);
   const num = (el, a, d) => (el.hasAttribute(a) && el.getAttribute(a) !== "" ? parseFloat(el.getAttribute(a)) : d);
+  const attr = (el, a, d) => (el.hasAttribute(a) && el.getAttribute(a) !== "" ? el.getAttribute(a) : d);
   const svg = (w, h, inner, px) =>
     `<svg xmlns="${NS}" viewBox="0 0 ${w} ${h}" width="${px ? px[0] : w}" height="${px ? px[1] : h}" ` +
     `fill="none" stroke="currentColor" style="color:var(--strich);overflow:visible">${inner}</svg>`;
   const r1 = (v) => Math.round(v * 100) / 100;
 
+  const maskiere = (t) => String(t).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
+
+  /** SVG-Text in Andika, immer schwarz; Inhalt maskiert. */
+  const text = (x, y, inhalt, { groesse = 16, fett = false, anker = "middle", grundlinie = "central", farbe = SCHWARZ } = {}) =>
+    `<text x="${r1(x)}" y="${r1(y)}" font-family="Andika,sans-serif" font-size="${r1(groesse)}"${fett ? ' font-weight="700"' : ""} ` +
+    `fill="${farbe}" stroke="none" text-anchor="${anker}" dominant-baseline="${grundlinie}">${maskiere(inhalt)}</text>`;
+
+  const SCHRIFT_BREITE = 0.56; // mittlere Zeichenbreite von Andika je Schriftgröße, für Platzrechnungen
+  const textBreite = (t, groesse) => String(t).length * groesse * SCHRIFT_BREITE;
+
+  /** Kästchen wie .antwort; die Lösung steht nur im Beispiel und auf dem Lösungsblatt darin. */
+  const antwortfeld = (el, x, y, b, h, loesung, { groesse = Math.min(h * 0.62, 20), immer = false } = {}) =>
+    `<rect x="${r1(x)}" y="${r1(y)}" width="${r1(b)}" height="${r1(h)}" rx="3" stroke-width="1.6" fill="#fff"/>` +
+    (loesung !== undefined && loesung !== null && (immer || loesungSichtbar(el))
+      ? text(x + b / 2, y + h / 2, loesung, { groesse, fett: true })
+      : "");
+
+  /** Deutsche Schreibweise: Komma, schmale Zifferngruppen ab fünf Stellen (DIN 5008). Die einzige Stelle dafür. */
+  const zahl = (n) => {
+    const v = n < 0 ? "−" : "";
+    const [ganz, rest] = String(Math.abs(n)).split(".");
+    const gruppen = ganz.length >= 5 ? ganz.replace(/\B(?=(\d{3})+$)/g, "\u202f") : ganz;
+    return v + gruppen + (rest ? `,${rest}` : "");
+  };
+
+  const cm = (x) => (x * 96) / 2.54;
+
+  /** Das Element hat echte Maße: pruefung.js meldet „In Originalgröße drucken“. */
+  const masstab = (el) => el.setAttribute("data-masstab", "");
+
+  const streuwert = (t) => {
+    let h = 2166136261;
+    for (const z of String(t)) h = Math.imul(h ^ z.codePointAt(0), 16777619);
+    return h >>> 0;
+  };
+
+  /** Deterministischer Zufall (mulberry32): gleicher seed, gleiche Folge, im Editor wie im PDF. */
+  const zufall = (seed) => {
+    let a = streuwert(seed);
+    return () => {
+      a = (a + 0x6d2b79f5) | 0;
+      let t = Math.imul(a ^ (a >>> 15), 1 | a);
+      t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
+      return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+    };
+  };
+  const gemischt = (feld, zz) => {
+    const a = [...feld];
+    for (let i = a.length - 1; i > 0; i--) {
+      const j = Math.floor(zz() * (i + 1));
+      [a[i], a[j]] = [a[j], a[i]];
+    }
+    return a;
+  };
+  /** seed aus dem Attribut, sonst aus dem Inhalt: gleiche Angaben ergeben dasselbe Bild. */
+  const samen = (el, inhalt) => attr(el, "seed", null) ?? inhalt;
+
+  const NAMEN = {
+    "x-uhr": "Uhr", "x-menge": "Menge", "x-dienes": "Zehnerstangen und Einerwürfel", "x-strichpunkt": "Strich-Punkt-Bild",
+    "x-stellentafel": "Stellentafel", "x-zwanzigerfeld": "Zwanzigerfeld", "x-zahlenstrahl": "Zahlenstrahl", "x-timer": "Timer",
+    "x-probe": "Probe",
+  };
+
+  class Abbildungsfehler extends Error {}
+  /** Bricht das Zeichnen ab; das Element erscheint als gestrichelter Kasten mit dem Text (meldeFehler). */
+  const abbruch = (meldung) => {
+    throw new Abbildungsfehler(meldung);
+  };
+
+  const umbrechen = (meldung, zeichen) => {
+    const zeilen = [];
+    let z = "";
+    for (const wort of meldung.split(/\s+/)) {
+      if (z && (z + " " + wort).length > zeichen) {
+        zeilen.push(z);
+        z = wort;
+      } else z = z ? `${z} ${wort}` : wort;
+    }
+    return z ? [...zeilen, z] : zeilen;
+  };
+
+  /** Statt der Abbildung ein gestrichelter Kasten mit dem Text. Nie still etwas Falsches zeichnen. */
+  const meldeFehler = (el, meldung) => {
+    el.setAttribute("data-fehler", meldung);
+    const zeilen = umbrechen(meldung, 40);
+    const h = 24 + zeilen.length * 20;
+    el.innerHTML = svg(320, h, `<rect x="1" y="1" width="318" height="${h - 2}" rx="6" stroke-width="2" stroke-dasharray="6 4"/>` +
+      zeilen.map((z, i) => text(160, 22 + i * 20, z, { groesse: 15 })).join(""));
+  };
+
+  /** Liste mit Leerzeichen, oder mit ;, wenn Einträge Leerzeichen enthalten. */
+  const trenneListe = (w) => (w.includes(";") ? w.split(";") : w.split(/\s+/)).map((t) => t.trim()).filter(Boolean);
+  const liste = (el, a) => trenneListe(el.getAttribute(a) || "");
+  /** Paare `Beschriftung: Wert; Beschriftung: Wert`; ohne Doppelpunkt fehlt der Wert. */
+  const paare = (el, a) => (el.getAttribute(a) || "").split(";").map((t) => t.trim()).filter(Boolean).map((t) => {
+    const i = t.indexOf(":");
+    return i < 0 ? { name: t, wert: "" } : { name: t.slice(0, i).trim(), wert: t.slice(i + 1).trim() };
+  });
+  /** Raster zeilenweise mit /, Zellen mit Leerzeichen: `0 1 1 / 0 1 0`. */
+  const trenneRaster = (w) => w.split("/").map((z) => z.trim()).filter(Boolean).map((z) => z.split(/\s+/));
+  const raster = (el, a) => trenneRaster(el.getAttribute(a) || "");
+
+  /** Der ursprüngliche Text eines Elements, dessen Inhalt die Angabe ist; das Zeichnen ersetzt den Inhalt. */
+  const inhalt = (el) => {
+    if (el._abbInhalt === undefined) el._abbInhalt = el.textContent.trim();
+    return el._abbInhalt;
+  };
+  window.setzeAbbildungsInhalt = (el, wert) => {
+    el._abbInhalt = wert;
+  };
+
+  /** Für das Panel: Felder eines Rasters in der Gestalt des Elements, Hinweise zur Kontrolle. Nur zur Laufzeit. */
+  const meldeZellen = (el, feld, zellen) => {
+    el._abbZellen = { ...(el._abbZellen || {}), [feld]: zellen };
+  };
+  const meldeInfo = (el, info) => {
+    el._abbInfo = info;
+  };
+
+  const FARBNAMEN = ["rot", "blau", "gruen", "gelb", "orange", "lila", "grau", "leer"];
+  const FARBWERTE = { rot: "#D8392B", blau: "#2F6FD6", gruen: "#2E9E4F", gelb: "#FFD23F", orange: "#F28C28", lila: "#7B4FA3", grau: "#9A9A9A", leer: "#FFFFFF" };
+  const PALETTE = ["var(--haupt)", "var(--akzent)", "var(--dunkel)", "color-mix(in srgb,var(--haupt) 45%,#fff)", "color-mix(in srgb,var(--akzent) 45%,#fff)", "color-mix(in srgb,var(--dunkel) 45%,#fff)"];
+  const MUSTERNAMEN = ["weiß", "schraffiert", "gepunktet", "kariert", "quer gestreift", "grau", "gekreuzt schräg", "dicht schraffiert"];
+  const MUSTER = [
+    "",
+    '<path d="M0 8 L8 0" stroke-width="1.5"/>',
+    '<circle cx="4" cy="4" r="1.5" fill="#1D1D1B" stroke="none"/>',
+    '<path d="M0 4 H8 M4 0 V8" stroke-width="1"/>',
+    '<path d="M0 4 H8" stroke-width="2"/>',
+    "",
+    '<path d="M0 8 L8 0 M0 0 L8 8" stroke-width="1"/>',
+    '<path d="M0 4 L4 0 M4 8 L8 4" stroke-width="1.5"/>',
+  ];
+
+  let fuellungsNr = 0;
+  /**
+   * Füllungen für ein Element: s/w über Muster (mit eindeutiger ID), Farbe über die Palette aus blatt.css bzw. benannte
+   * Farben. `f.von(i)` nimmt die Nummer in der Palette oder den Namen einer Farbe; `f.defs()` gehört ins SVG.
+   */
+  const fuellung = () => {
+    const id = `abb-f${++fuellungsNr}`, benutzt = new Set();
+    const musterFuer = (i) => {
+      const n = i % MUSTER.length;
+      if (n === 0) return "#fff";
+      if (n === 5) return GRAU;
+      benutzt.add(n);
+      return `url(#${id}-${n})`;
+    };
+    return {
+      von(wert) {
+        const i = typeof wert === "number" ? wert : FARBNAMEN.indexOf(wert);
+        if (istSw()) return wert === "leer" ? "#fff" : musterFuer(typeof wert === "number" ? i : [1, 2, 3, 4, 7, 6, 5, 0][i < 0 ? 0 : i]);
+        if (typeof wert === "number") return PALETTE[i % PALETTE.length];
+        return FARBWERTE[wert] ?? FARBWERTE.grau;
+      },
+      name(wert) {
+        const i = typeof wert === "number" ? wert : FARBNAMEN.indexOf(wert);
+        return MUSTERNAMEN[(typeof wert === "number" ? i : [1, 2, 3, 4, 7, 6, 5, 0][i < 0 ? 0 : i]) % MUSTER.length];
+      },
+      defs: () => (benutzt.size === 0 ? "" : `<defs>${[...benutzt].map((n) =>
+        `<pattern id="${id}-${n}" width="8" height="8" patternUnits="userSpaceOnUse"><rect width="8" height="8" fill="#fff" stroke="none"/><g stroke="${SCHWARZ}" fill="none">${MUSTER[n]}</g></pattern>`).join("")}</defs>`),
+    };
+  };
+
+  /* == Grundelemente == */
   function uhr(el) {
     const g = num(el, "groesse", 88);
     let zeit = el.getAttribute("zeit");
@@ -36,6 +198,7 @@
       }
     }
     if (zeit) {
+      if (!/^\d{1,2}:\d{2}$/.test(zeit)) abbruch(`„${zeit}“ ist keine Uhrzeit wie 4:30.`);
       const [hh, mm] = zeit.split(":").map(Number);
       const am = (mm * 6 * Math.PI) / 180, ah = (((hh % 12) + mm / 60) * 30 * Math.PI) / 180;
       s += `<line x1="50" y1="50" x2="${r1(50 + 18 * Math.sin(ah))}" y2="${r1(50 - 18 * Math.cos(ah))}" stroke-width="5" stroke-linecap="round"/>`;
@@ -138,6 +301,8 @@
   function zahlenstrahl(el) {
     const von = num(el, "von", 0), bis = num(el, "bis", 20), schritt = num(el, "schritt", 1);
     const breite = num(el, "breite", 560), fs = num(el, "schrift", 16);
+    if (!(von < bis)) abbruch("„Bis“ muss größer sein als „Von“.");
+    if (!(schritt > 0) || (bis - von) / schritt > 1000) abbruch("Der Abstand der Striche passt nicht.");
     const zahlen = (el.getAttribute("zahlen") || `${von} ${bis}`).split(/\s+/).map(Number);
     const pfeile = (el.getAttribute("pfeile") || "").split(/\s+/).filter(Boolean).map(Number);
     const x = (v) => r1(10 + ((v - von) / (bis - von)) * (breite - 20));
@@ -188,16 +353,62 @@
     el.innerHTML = svg(100, 100, s, [g, g]) + `<span class="timer-text">${text}</span>`;
   }
 
+  /* == Test == */
+  // x-probe gibt es nur für die Tests der Feldtypen im Panel (023); in Material kommt es nicht vor.
+  function probe(el) {
+    const titel = attr(el, "titel", "");
+    const eintraege = paare(el, "eintraege");
+    const arten = liste(el, "arten");
+    const feld = raster(el, "feld");
+    const hoehen = raster(el, "hoehen");
+    const form = liste(el, "form");
+    const farbe = attr(el, "farbe", "rot");
+    const seed = attr(el, "seed", "");
+    const wort = inhalt(el);
+    if (titel === "falsch") abbruch("Dieser Titel geht nicht.");
+    meldeZellen(el, "form", [0, 1, 2, 3].map((i) => ({ id: String(i), x: i, y: i % 2, text: String(i + 1) })));
+    meldeInfo(el, `${eintraege.length} Einträge`);
+    const zz = zufall(samen(el, `${titel}|${wort}`));
+    const f = fuellung();
+    let s = `<rect x="0" y="0" width="40" height="40" fill="${f.von(farbe)}" stroke-width="1.5"/>`;
+    s += text(50, 10, titel || "–", { anker: "start" }) + text(50, 30, wort || "–", { anker: "start" });
+    s += text(50, 50, eintraege.map((e) => `${e.name}=${e.wert}`).join(",") || "–", { anker: "start" });
+    s += text(50, 70, arten.join(",") || "–", { anker: "start" });
+    s += text(50, 90, form.join(",") || "–", { anker: "start" });
+    s += text(150, 90, hoehen.map((z) => z.join(" ")).join("/") || "–", { anker: "start" });
+    feld.forEach((z, r) => z.forEach((c, i) => {
+      if (c !== "0") s += `<rect x="${i * 10}" y="${50 + r * 10}" width="10" height="10" fill="${SCHWARZ}" stroke="none"/>`;
+    }));
+    s += `<circle class="probe-punkt" cx="${r1(zz() * 40)}" cy="110" r="4" fill="${SCHWARZ}" stroke="none"/>`;
+    el.setAttribute("data-seed-probe", seed);
+    el.innerHTML = svg(320, 120, f.defs() + s);
+  }
+
+  /* == Ende der Abschnitte == */
   const ARTEN = { "x-uhr": uhr, "x-menge": menge, "x-dienes": dienes, "x-strichpunkt": strichpunkt,
-    "x-stellentafel": stellentafel, "x-zwanzigerfeld": zwanzigerfeld, "x-zahlenstrahl": zahlenstrahl, "x-timer": timer };
+    "x-stellentafel": stellentafel, "x-zwanzigerfeld": zwanzigerfeld, "x-zahlenstrahl": zahlenstrahl, "x-timer": timer,
+    "x-probe": probe };
+
+  const zeichne = (f, el) => {
+    el.removeAttribute("data-fehler");
+    try {
+      f(el);
+    } catch (e) {
+      meldeFehler(el, e instanceof Abbildungsfehler ? e.message : `Die Abbildung ließ sich nicht zeichnen (${e.message}).`);
+    }
+  };
+
   // Ohne Argument alle Abbildungen, sonst nur das Element selbst und was darin liegt (z. B. ein ablaufender Timer).
   window.zeichneAbbildungen = function (wurzel) {
     const ort = wurzel instanceof Element ? wurzel : document;
     for (const [tag, f] of Object.entries(ARTEN)) {
-      if (ort !== document && ort.matches(tag)) f(ort);
-      ort.querySelectorAll(tag).forEach(f);
+      if (ort !== document && ort.matches(tag)) zeichne(f, ort);
+      ort.querySelectorAll(tag).forEach((el) => zeichne(f, el));
     }
   };
+  window.abbildungsName = (tag) => NAMEN[tag] || tag;
+  /* == Rechenkerne für Tests == */
+  window.schoolboxAbbildungen = { ARTEN, zahl, cm, zufall, gemischt, trenneListe, trenneRaster };
   if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", () => window.zeichneAbbildungen());
   else window.zeichneAbbildungen();
 })();

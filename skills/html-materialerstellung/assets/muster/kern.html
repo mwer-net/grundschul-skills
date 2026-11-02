@@ -1,0 +1,53 @@
+<!doctype html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<title>Muster: die Grundelemente</title>
+<link rel="stylesheet" href="blatt.css">
+<script src="abbildungen.js"></script>
+</head>
+<body class="kl3 sw">
+<section class="seite">
+  <div class="kopf"><div class="titel"><h1>Grundelemente</h1></div></div>
+  <div class="aufgabe">
+    <span class="nr">1</span><div class="anw"><span class="text">Uhren: Beispiel, Einzeichnen, ohne Ziffern</span></div>
+    <div class="koerper"><div class="reihe" style="--spalten:3">
+      <div class="zelle beispiel"><x-uhr loesung="4:30"></x-uhr></div>
+      <div class="zelle"><x-uhr loesung="9:15"></x-uhr></div>
+      <div class="zelle"><x-uhr zeit="7:00" ziffern="nein"></x-uhr></div>
+    </div></div>
+  </div>
+  <div class="aufgabe">
+    <span class="nr">2</span><div class="anw"><span class="text">Mengen: Nüsse mit Bündeln, Plättchen, Kreise</span></div>
+    <div class="koerper"><div class="reihe" style="--spalten:3">
+      <div class="zelle"><x-menge n="23" form="nuss" reihe="10" buendel-loesung="2" groesse="10"></x-menge></div>
+      <div class="zelle"><x-menge n="12" form="plaettchen" reihe="5" groesse="14"></x-menge></div>
+      <div class="zelle"><x-menge n="14" buendel="1" groesse="10"></x-menge></div>
+    </div></div>
+  </div>
+  <div class="aufgabe">
+    <span class="nr">3</span><div class="anw"><span class="text">Zehner und Einer</span></div>
+    <div class="koerper"><div class="reihe" style="--spalten:3">
+      <div class="zelle"><x-dienes z="3" e="7"></x-dienes></div>
+      <div class="zelle"><x-strichpunkt z="2" e="8"></x-strichpunkt></div>
+      <div class="zelle"><x-stellentafel stellen="H Z E" loesung="1 3 5" zeilen="2"></x-stellentafel></div>
+    </div></div>
+  </div>
+  <div class="aufgabe">
+    <span class="nr">4</span><div class="anw"><span class="text">Zwanzigerfeld und Stellentafel mit Werten</span></div>
+    <div class="koerper"><div class="reihe" style="--spalten:2">
+      <div class="zelle"><x-zwanzigerfeld n="13"></x-zwanzigerfeld></div>
+      <div class="zelle"><x-stellentafel stellen="Z E" werte="4 2"></x-stellentafel></div>
+    </div></div>
+  </div>
+  <div class="aufgabe">
+    <span class="nr">5</span><div class="anw"><span class="text">Zahlenstrahl mit Pfeilen</span></div>
+    <div class="koerper"><x-zahlenstrahl von="0" bis="100" schritt="10" zahlen="0 50 100" pfeile="30 70" breite="620"></x-zahlenstrahl></div>
+  </div>
+  <div class="aufgabe">
+    <span class="nr">6</span><div class="anw"><span class="text">Zeitscheibe</span></div>
+    <div class="koerper"><x-timer minuten="25" groesse="120"></x-timer></div>
+  </div>
+</section>
+</body>
+</html>

@@ -61,9 +61,24 @@
 			"text": "Nur 4 px zwischen Aufgabe 1 und 2"
 		},
 		{
+			"stufe": "FEHLER",
+			"seite": 2,
+			"text": "Abbildung „Probe“: Dieser Titel geht nicht."
+		},
+		{
+			"stufe": "FEHLER",
+			"seite": 2,
+			"text": "Abbildung „Zahlenstrahl“: „Bis“ muss größer sein als „Von“."
+		},
+		{
 			"stufe": "HINWEIS",
 			"seite": 2,
-			"text": "878 px frei unten → Abstand zwischen Aufgaben vergrößern (--abstand), nicht auffüllen"
+			"text": "In Originalgröße drucken (100 %, nicht „An Seite anpassen“) → --druckhinweis beim Anlegen setzen"
+		},
+		{
+			"stufe": "HINWEIS",
+			"seite": 2,
+			"text": "699 px frei unten → Abstand zwischen Aufgaben vergrößern (--abstand), nicht auffüllen"
 		},
 		{
 			"stufe": "HINWEIS",

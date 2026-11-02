@@ -4,8 +4,17 @@
  * braucht nur einen Eintrag hier. Rechnet nur über Text-Patches auf der Quelle, wie die anderen Editor-Befehle.
  */
 
-import type { Knoten } from './quelltext';
-import { attribut, setzeAttribut, wendeAn, zerlege } from './quelltext';
+import type { Knoten, Zerlegung } from './quelltext';
+import {
+	attribut,
+	entschluessele,
+	ersetzeInnen,
+	innenVon,
+	schuetzeText,
+	setzeAttribut,
+	wendeAn,
+	zerlege,
+} from './quelltext';
 import type { StrukturErgebnis } from './struktur';
 
 /** Ein zweites Attribut für denselben Wert, das `abbildungen.js` nur im Beispiel und auf dem Lösungsblatt zeichnet. */
@@ -22,6 +31,10 @@ interface FeldBasis {
 	name: string;
 	hilfe?: string;
 	loesung?: Loesung;
+	/** Abschnitt im Panel; außer dem ersten bleiben Abschnitte zunächst eingeklappt. */
+	gruppe?: string;
+	/** Der Wert ist der Text im Element (`<x-silben>Ro|si|ne</x-silben>`), nicht ein Attribut. */
+	quelle?: 'inhalt';
 }
 
 export interface ZahlFeld extends FeldBasis {
@@ -65,7 +78,110 @@ export interface ZiffernFeld extends FeldBasis {
 	stellen: string;
 }
 
-export type Feld = ZahlFeld | UhrzeitFeld | AuswahlFeld | SchalterFeld | ZahlenFeld | ZiffernFeld;
+/** Ein einzeiliges oder mehrzeiliges Textfeld. */
+export interface TextFeld extends FeldBasis {
+	art: 'text';
+	max?: number;
+	/** Regulärer Ausdruck für den ganzen Text; `musterHilfe` sagt der Lehrkraft, was erlaubt ist. */
+	muster?: string;
+	musterHilfe?: string;
+	zeilen?: number;
+	beispiel?: string;
+	/** Knopf, der das Zeichen an der Cursor-Stelle einfügt, z. B. den Silbenstrich. */
+	einfuegen?: { zeichen: string; name: string };
+}
+
+export interface Option {
+	wert: string;
+	name: string;
+}
+
+export interface UnterFeld {
+	name: string;
+	art: 'text' | 'zahl' | 'auswahl' | 'muster' | 'schalter';
+	optionen?: Option[];
+	min?: number;
+	max?: number;
+	/** Neue Zeilen beginnen damit. */
+	standard?: string;
+	/** Darf leer bleiben (fällt am Zeilenende weg). */
+	leer?: boolean;
+	/** Nur `art: 'schalter'`: Wert, wenn der Haken gesetzt ist. */
+	an?: string;
+}
+
+/** Zeilen aus Unterfeldern: `Hund: 7; Katze: 4`. Zeilen hinzufügen, löschen, verschieben. */
+export interface ListeFeld extends FeldBasis {
+	art: 'liste';
+	unter: UnterFeld[];
+	min?: number;
+	max?: number;
+	/** Zwischen den Zeilen; Standard `;`. */
+	zeilenTrenner?: ';' | ' ' | '/';
+	/** Zwischen den Unterfeldern einer Zeile; Standard `:`. */
+	feldTrenner?: ':' | ' ';
+}
+
+/** Mehrere Haken aus festen Optionen; im Attribut mit Leerzeichen getrennt. */
+export interface MehrfachFeld extends FeldBasis {
+	art: 'mehrfach';
+	optionen: Option[];
+	/** Was ohne Attribut gilt. */
+	standard?: string[];
+	mindestens?: number;
+}
+
+/** Ein Zustand einer Rasterzelle; `zeichen` steht im Panel in der Zelle. */
+export interface RasterZustand {
+	wert: string;
+	name: string;
+	zeichen?: string;
+}
+
+/** Eine Zelle in der Gestalt des Elements; das Element meldet sie beim Zeichnen (`meldeZellen`). */
+export interface FormZelle {
+	id: string;
+	x: number;
+	y: number;
+	b?: number;
+	h?: number;
+	/** Grau in der Zelle, z. B. die berechnete Lösung. */
+	text?: string;
+}
+
+/**
+ * Kleines Gitter im Panel. Ohne `form`: `0 1 1 / 0 1 0` im Attribut, Antippen schaltet die Zustände durch oder nimmt mit
+ * `zahlen` eine Zahl auf. Mit `form`: Felder in der Gestalt des Elements (Mauer, Haus, Tafel …), im Attribut stehen die
+ * gewählten Felder als Liste.
+ */
+export interface RasterFeld extends FeldBasis {
+	art: 'raster';
+	/** Attribut mit der Spaltenzahl, feste Zahl, oder `wachsen` für Knöpfe Zeile/Spalte ±. */
+	spalten?: string | number;
+	zeilen?: string | number;
+	zustaende?: RasterZustand[];
+	zahlen?: { min: number; max: number };
+	wachsen?: { spalten: number; zeilen: number };
+	form?: boolean;
+}
+
+/** Auswahl mit Vorschau: im s/w-Blatt das Muster, im Farbblatt die Farbe. */
+export interface MusterFeld extends FeldBasis {
+	art: 'muster';
+	optionen: Option[];
+	standard?: string;
+}
+
+/** Knopf „Neu mischen“: setzt das Attribut neu, gleiche Inhalte in anderer Anordnung. */
+export interface MischenFeld extends FeldBasis {
+	art: 'mischen';
+	knopf?: string;
+}
+
+type FeldAus018 = ZahlFeld | UhrzeitFeld | AuswahlFeld | SchalterFeld | ZahlenFeld | ZiffernFeld;
+type FeldAus023 = TextFeld | ListeFeld | MehrfachFeld | RasterFeld | MusterFeld | MischenFeld;
+
+export type Feld = FeldAus018 | FeldAus023;
 
 /** Attributname → Wert in der Quelle, `null` = fehlt. Enthält auch die Lösungs-Attribute. */
 export type Werte = Record<string, string | null>;
@@ -85,6 +201,12 @@ export interface Lesen {
 	zahl: (attribut: string) => number;
 	zahlen: (attribut: string) => number[];
 	text: (attribut: string) => string | null;
+	/** Zeilen einer `liste`, je Zeile die Unterfelder. */
+	zeilen: (attribut: string) => string[][];
+	/** Zellen eines `raster`. */
+	raster: (attribut: string) => string[][];
+	/** Gewählte Werte eines `mehrfach`-Feldes oder Einträge eines Attributs. */
+	liste: (attribut: string) => string[];
 }
 
 const STELLEN_STANDARD = 'Z E';
@@ -98,6 +220,17 @@ const ZEHNER_EINER = (zehner: string, einer: string): AbbildungSchema['felder'] 
 
 const mindestensEins = (w: Lesen): Fehler =>
 	w.zahl('z') + w.zahl('e') === 0 ? { e: 'Mindestens ein Zehner oder ein Einer.' } : {};
+
+export const FARBEN: Option[] = [
+	{ wert: 'rot', name: 'Rot' },
+	{ wert: 'blau', name: 'Blau' },
+	{ wert: 'gruen', name: 'Grün' },
+	{ wert: 'gelb', name: 'Gelb' },
+	{ wert: 'orange', name: 'Orange' },
+	{ wert: 'lila', name: 'Lila' },
+	{ wert: 'grau', name: 'Grau' },
+	{ wert: 'leer', name: 'Weiß' },
+];
 
 export const ABBILDUNG_SCHEMA = {
 	'x-uhr': {
@@ -289,6 +422,59 @@ export const ABBILDUNG_SCHEMA = {
 				: {};
 		},
 	},
+	/** Nur für die Tests der Feldtypen (023); kommt in Material nicht vor. */
+	'x-probe': {
+		name: 'Probe',
+		felder: [
+			{ art: 'text', attribut: 'titel', name: 'Titel', max: 20, gruppe: 'Einfach' },
+			{
+				art: 'text',
+				attribut: 'inhalt',
+				name: 'Wort',
+				quelle: 'inhalt',
+				muster: '[A-Za-zÄÖÜäöüß|&<]*',
+				musterHilfe: 'Nur Buchstaben und |.',
+				einfuegen: { zeichen: '|', name: 'Strich einfügen' },
+				gruppe: 'Einfach',
+			},
+			{ art: 'muster', attribut: 'farbe', name: 'Füllung', optionen: FARBEN, standard: 'rot', gruppe: 'Einfach' },
+			{
+				art: 'mehrfach',
+				attribut: 'arten',
+				name: 'Arten',
+				optionen: [
+					{ wert: 'eins', name: 'Eins' },
+					{ wert: 'zwei', name: 'Zwei' },
+					{ wert: 'drei', name: 'Drei' },
+				],
+				gruppe: 'Einfach',
+			},
+			{ art: 'mischen', attribut: 'seed', name: 'Anordnung', gruppe: 'Einfach' },
+			{
+				art: 'liste',
+				attribut: 'eintraege',
+				name: 'Einträge',
+				unter: [
+					{ name: 'Name', art: 'text', standard: 'Neu' },
+					{ name: 'Zahl', art: 'zahl', min: 0, max: 99, standard: '1' },
+				],
+				min: 1,
+				max: 5,
+				gruppe: 'Listen',
+			},
+			{ art: 'raster', attribut: 'feld', name: 'Feld', spalten: 3, zeilen: 2, gruppe: 'Raster' },
+			{
+				art: 'raster',
+				attribut: 'hoehen',
+				name: 'Höhen',
+				zahlen: { min: 0, max: 5 },
+				wachsen: { spalten: 4, zeilen: 4 },
+				gruppe: 'Raster',
+			},
+			{ art: 'raster', attribut: 'form', name: 'Form', form: true, gruppe: 'Raster' },
+		],
+		regeln: (w): Fehler => (w.zeilen('eintraege').length === 4 ? { eintraege: 'Vier geht nicht.' } : {}),
+	},
 } satisfies Record<string, AbbildungSchema>;
 
 export type Abbildung = keyof typeof ABBILDUNG_SCHEMA;
@@ -307,8 +493,20 @@ export const attributeVon = (schema: AbbildungSchema) =>
 
 // ── Werte lesen und schreiben ───────────────────────────────────────────────
 
-export const werteVon = (schema: AbbildungSchema, k: Knoten): Werte =>
-	Object.fromEntries(attributeVon(schema).map((a) => [a, attribut(k, a)?.wert ?? null]));
+const amInhalt = (schema: AbbildungSchema, a: string) =>
+	schema.felder.some((f) => f.attribut === a && f.quelle === 'inhalt');
+
+/** Mit `quelle: 'inhalt'` braucht es die Zerlegung, weil der Wert der Text im Element ist. */
+export const werteVon = (schema: AbbildungSchema, k: Knoten, z?: Zerlegung): Werte =>
+	Object.fromEntries(
+		attributeVon(schema).map((a) => {
+			if (amInhalt(schema, a)) {
+				const roh = z ? entschluessele(innenVon(z, k)).trim() : '';
+				return [a, roh === '' ? null : roh];
+			}
+			return [a, attribut(k, a)?.wert ?? null];
+		}),
+	);
 
 /** Wert eines Feldes und ob er nur in der Lösung steht; mit beiden Attributen gilt, was `abbildungen.js` zeichnet. */
 export const feldWert = (feld: Feld, w: Werte): { wert: string | null; nurLoesung: boolean } => {
@@ -324,6 +522,73 @@ export const stellenVon = (w: Werte, attributName: string) =>
 	(w[attributName] ?? STELLEN_STANDARD).split(/\s+/).filter(Boolean);
 
 export const listeVon = (wert: string | null) => (wert ?? '').split(/[\s,;]+/).filter(Boolean);
+
+/** Platzhalter für ein leeres Unterfeld im Entwurf, damit die Zeile beim Tippen nicht wegfällt. */
+export const LEER = '∅';
+
+const teile = (text: string, trenner: string, anzahl: number): string[] => {
+	if (trenner === ' ') {
+		return text.split(/\s+/).filter(Boolean);
+	}
+	const i = text.indexOf(trenner);
+	return i < 0 || anzahl < 2
+		? [text.trim()]
+		: [text.slice(0, i).trim(), ...teile(text.slice(i + 1), trenner, anzahl - 1)];
+};
+
+/** `Hund: 7; Katze: 4` → `[['Hund', '7'], ['Katze', '4']]`. Eine leere letzte Zeile (`…;`) zählt nicht. */
+export const zeilenVon = (feld: ListeFeld, wert: string | null): string[][] => {
+	const { feldTrenner = ':', unter, zeilenTrenner = ';' } = feld;
+	if (!wert?.trim()) {
+		return [];
+	}
+	const zeilen = zeilenTrenner === ' ' ? wert.trim().split(/\s+/) : wert.split(zeilenTrenner);
+	if (zeilen.at(-1)?.trim() === '') {
+		zeilen.pop();
+	}
+	return zeilen.map((z) => {
+		const werte = teile(z.trim(), feldTrenner, unter.length);
+		return unter.map((_, i) => {
+			const w = werte[i] ?? '';
+			return w === LEER ? '' : w;
+		});
+	});
+};
+
+export const zeilenText = (feld: ListeFeld, zeilen: string[][]): string | null => {
+	const { feldTrenner = ':', unter, zeilenTrenner = ';' } = feld;
+	if (zeilen.length === 0) {
+		return null;
+	}
+	const zwischen = feldTrenner === ' ' ? ' ' : ': ';
+	let trenner = '; ';
+	if (zeilenTrenner === ' ') {
+		trenner = ' ';
+	} else if (zeilenTrenner === '/') {
+		trenner = ' / ';
+	}
+	return zeilen
+		.map((z) => {
+			const werte = unter.map((u, i) => (z[i] ?? '').trim() || (u.leer ? '' : LEER));
+			while (werte.length > 1 && werte.at(-1) === '') {
+				werte.pop();
+			}
+			return werte.join(zwischen);
+		})
+		.join(trenner);
+};
+
+export const rasterVon = (wert: string | null): string[][] =>
+	(wert ?? '')
+		.split('/')
+		.map((z) => z.trim())
+		.filter(Boolean)
+		.map((z) => z.split(/\s+/));
+
+export const rasterText = (zeilen: string[][]) => {
+	const text = zeilen.map((z) => z.join(' ')).join(' / ');
+	return text === '' ? null : text;
+};
 
 /** Ziffern je Stelle als Attributwert; leere Stellen am Ende fallen weg, eine ganz leere Tafel hat keinen Wert. */
 export const ziffernText = (liste: string[]) => {
@@ -383,30 +648,126 @@ export const alsZahl = (wert: string) => (ZAHL.test(wert.trim()) ? Number(wert.t
 
 const zahlText = (n: number) => String(n).replace('.', ',');
 
+const pruefeUnterfeld = (u: UnterFeld, wert: string): string | null => {
+	if (wert === '') {
+		return u.leer ? null : `„${u.name}“ fehlt.`;
+	}
+	if (u.art === 'zahl') {
+		const n = alsZahl(wert);
+		if (Number.isNaN(n)) {
+			return `„${wert}“ ist keine Zahl.`;
+		}
+		if ((u.min !== undefined && n < u.min) || (u.max !== undefined && n > u.max)) {
+			return `„${u.name}“: bitte von ${u.min ?? ''} bis ${u.max ?? ''}.`;
+		}
+	}
+	if ((u.art === 'auswahl' || u.art === 'muster') && u.optionen && !u.optionen.some((o) => o.wert === wert)) {
+		return `„${wert}“ gibt es bei „${u.name}“ nicht.`;
+	}
+	return null;
+};
+
+const pruefeListe = (feld: ListeFeld, wert: string | null): string | null => {
+	const zeilen = zeilenVon(feld, wert);
+	if (wert !== null && feld.min !== undefined && zeilen.length < feld.min) {
+		return `Bitte mindestens ${feld.min} ${feld.min === 1 ? 'Zeile' : 'Zeilen'}.`;
+	}
+	if (feld.max !== undefined && zeilen.length > feld.max) {
+		return `Höchstens ${feld.max} Zeilen.`;
+	}
+	for (const [i, zeile] of zeilen.entries()) {
+		for (const [j, u] of feld.unter.entries()) {
+			const meldung = pruefeUnterfeld(u, zeile[j] ?? '');
+			if (meldung) {
+				return `Zeile ${i + 1}: ${meldung}`;
+			}
+		}
+	}
+	return null;
+};
+
+const pruefeRaster = (feld: RasterFeld, wert: string | null): string | null => {
+	if (feld.form) {
+		return null;
+	}
+	const { max = Infinity, min = -Infinity } = feld.zahlen ?? {};
+	const erlaubt = feld.zustaende?.map((z) => z.wert) ?? ['0', '1'];
+	for (const zelle of rasterVon(wert).flat()) {
+		if (feld.zahlen) {
+			const n = alsZahl(zelle);
+			if (!Number.isInteger(n) || n < min || n > max) {
+				return `Bitte Zahlen von ${min} bis ${max}.`;
+			}
+		} else if (!erlaubt.includes(zelle)) {
+			return `„${zelle}“ geht in diesem Feld nicht.`;
+		}
+	}
+	return null;
+};
+
+const pruefeZahl = (feld: ZahlFeld, wert: string | null) => {
+	if (wert === null) {
+		return null;
+	}
+	const n = alsZahl(wert);
+	return !Number.isInteger(n) || n < feld.min || n > feld.max
+		? `Bitte eine ganze Zahl von ${zahlText(feld.min)} bis ${zahlText(feld.max)}.`
+		: null;
+};
+
+const pruefeUhrzeit = (wert: string | null) => {
+	if (wert === null) {
+		return null;
+	}
+	const treffer = /^(\d{1,2}):(\d{2})$/.exec(wert.trim());
+	const [stunde, minute] = [Number(treffer?.[1]), Number(treffer?.[2])];
+	return !treffer || stunde > 23 || minute > 59 ? 'Bitte eine Uhrzeit wie 4:30 (Minuten 0 bis 59).' : null;
+};
+
+const pruefeZiffern = (feld: ZiffernFeld, wert: string | null, w: Werte) => {
+	const stellen = stellenVon(w, feld.stellen);
+	const liste = listeVon(wert);
+	if (liste.length > stellen.length) {
+		return `Die Tafel hat nur ${stellen.length} ${stellen.length === 1 ? 'Stelle' : 'Stellen'}.`;
+	}
+	const luecke = liste.findIndex((z) => z === '?');
+	if (luecke >= 0) {
+		return `Bei „${stellen[luecke] ?? ''}“ fehlt eine Zahl. Trag eine ein oder nimm weniger Stellen.`;
+	}
+	const falsch = liste.find((z) => !/^\d{1,2}$/.test(z));
+	return falsch === undefined ? null : `„${falsch}“ geht nicht. Bitte je Stelle eine Zahl von 0 bis 99.`;
+};
+
+const pruefeText = (feld: TextFeld, wert: string | null) => {
+	if (wert === null) {
+		return null;
+	}
+	if (feld.max !== undefined && wert.length > feld.max) {
+		return `Höchstens ${feld.max} Zeichen.`;
+	}
+	return feld.muster && !new RegExp(`^(?:${feld.muster})$`, 'su').test(wert)
+		? (feld.musterHilfe ?? 'Diese Zeichen gehen hier nicht.')
+		: null;
+};
+
+const pruefeMehrfach = (feld: MehrfachFeld, wert: string | null) => {
+	const gewaehlt = listeVon(wert ?? feld.standard?.join(' ') ?? null);
+	const falsch = gewaehlt.find((g) => !feld.optionen.some((o) => o.wert === g));
+	if (falsch !== undefined) {
+		return `„${falsch}“ gibt es hier nicht.`;
+	}
+	return feld.mindestens !== undefined && gewaehlt.length < feld.mindestens
+		? `Bitte mindestens ${feld.mindestens} auswählen.`
+		: null;
+};
+
 const pruefeFeld = (feld: Feld, w: Werte): string | null => {
 	const { wert } = feldWert(feld, w);
 	switch (feld.art) {
-		case 'zahl': {
-			if (wert === null) {
-				return null;
-			}
-			const n = alsZahl(wert);
-			if (!Number.isInteger(n) || n < feld.min || n > feld.max) {
-				return `Bitte eine ganze Zahl von ${zahlText(feld.min)} bis ${zahlText(feld.max)}.`;
-			}
-			return null;
-		}
-		case 'uhrzeit': {
-			if (wert === null) {
-				return null;
-			}
-			const teile = /^(\d{1,2}):(\d{2})$/.exec(wert.trim());
-			const [stunde, minute] = [Number(teile?.[1]), Number(teile?.[2])];
-			if (!teile || stunde > 23 || minute > 59) {
-				return 'Bitte eine Uhrzeit wie 4:30 (Minuten 0 bis 59).';
-			}
-			return null;
-		}
+		case 'zahl':
+			return pruefeZahl(feld, wert);
+		case 'uhrzeit':
+			return pruefeUhrzeit(wert);
 		case 'schalter':
 			return wert === null || wert === feld.an || wert === feld.aus
 				? null
@@ -415,19 +776,18 @@ const pruefeFeld = (feld: Feld, w: Werte): string | null => {
 			const falsch = listeVon(wert).find((z) => Number.isNaN(alsZahl(z)));
 			return falsch === undefined ? null : `„${falsch}“ ist keine Zahl. Trenne die Zahlen mit Leerzeichen.`;
 		}
-		case 'ziffern': {
-			const stellen = stellenVon(w, feld.stellen);
-			const liste = listeVon(wert);
-			if (liste.length > stellen.length) {
-				return `Die Tafel hat nur ${stellen.length} ${stellen.length === 1 ? 'Stelle' : 'Stellen'}.`;
-			}
-			const luecke = liste.findIndex((z) => z === '?');
-			if (luecke >= 0) {
-				return `Bei „${stellen[luecke] ?? ''}“ fehlt eine Zahl. Trag eine ein oder nimm weniger Stellen.`;
-			}
-			const falsch = liste.find((z) => !/^\d{1,2}$/.test(z));
-			return falsch === undefined ? null : `„${falsch}“ geht nicht. Bitte je Stelle eine Zahl von 0 bis 99.`;
-		}
+		case 'ziffern':
+			return pruefeZiffern(feld, wert, w);
+		case 'text':
+			return pruefeText(feld, wert);
+		case 'liste':
+			return pruefeListe(feld, wert);
+		case 'mehrfach':
+			return pruefeMehrfach(feld, wert);
+		case 'raster':
+			return pruefeRaster(feld, wert);
+		case 'muster':
+			return wert === null || feld.optionen.some((o) => o.wert === wert) ? null : `„${wert}“ gibt es hier nicht.`;
 		default:
 			return null;
 	}
@@ -451,6 +811,21 @@ const leser = (schema: AbbildungSchema, w: Werte): Lesen => {
 		zahlen: (a) => {
 			const f = feld(a);
 			return listeVon(f ? feldWert(f, w).wert : null).map(alsZahl);
+		},
+		zeilen: (a) => {
+			const f = feld(a);
+			return f?.art === 'liste' ? zeilenVon(f, feldWert(f, w).wert) : [];
+		},
+		raster: (a) => {
+			const f = feld(a);
+			return rasterVon(f ? feldWert(f, w).wert : null);
+		},
+		liste: (a) => {
+			const f = feld(a);
+			if (f?.art === 'mehrfach') {
+				return listeVon(feldWert(f, w).wert ?? f.standard?.join(' ') ?? null);
+			}
+			return listeVon(f ? feldWert(f, w).wert : (w[a] ?? null));
 		},
 	};
 };
@@ -479,7 +854,7 @@ export const setzeAbbildung = (quelle: string, nr: number, werte: Werte): Strukt
 	if (!k || !schema) {
 		throw new Error(`Das Element ${nr} ist keine Abbildung.`);
 	}
-	const fehler = Object.values(pruefeWerte(schema, { ...werteVon(schema, k), ...werte }));
+	const fehler = Object.values(pruefeWerte(schema, { ...werteVon(schema, k, zerlege(quelle)), ...werte }));
 	if (fehler.length > 0) {
 		throw new Error(fehler[0]);
 	}
@@ -488,7 +863,12 @@ export const setzeAbbildung = (quelle: string, nr: number, werte: Werte): Strukt
 		const z = zerlege(neu);
 		const knoten = z.knoten[nr];
 		if (knoten) {
-			neu = wendeAn(neu, setzeAttribut(z, knoten, name, wert));
+			neu = wendeAn(
+				neu,
+				amInhalt(schema, name)
+					? ersetzeInnen(z, knoten, schuetzeText(wert ?? ''))
+					: setzeAttribut(z, knoten, name, wert),
+			);
 		}
 	}
 	return { quelle: neu, nr };

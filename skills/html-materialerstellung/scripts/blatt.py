@@ -46,6 +46,9 @@ import tempfile
 from pathlib import Path
 
 ASSETS = Path(__file__).resolve().parent.parent / "assets"
+# Abbildungen, die ihre Lösung selbst berechnen: Sie brauchen kein loesung= und trotzdem ein Lösungsblatt. Die alten
+# Elemente aus der ersten Fassung gehören nicht dazu, sonst bekämen Blätter ohne jede Lösung ein leeres Lösungsblatt.
+OHNE_LOESUNGSANGABE = r"<x-(?!uhr|menge|dienes|strichpunkt|stellentafel|zwanzigerfeld|zahlenstrahl|timer|probe)[a-z]"
 SEITE = {"a4-quer": "A4 landscape", "a3-hoch": "A3", "a5-hoch": "A5", "folie": "338.67mm 190.5mm"}
 
 
@@ -289,7 +292,8 @@ def bauen(quelle, ausgabe=None, ohne_loesung=False, nur_pruefen=False, still=Fal
         bilder = pngs(aus / f"{name}.pdf", str(aus / name))
         teile = ausschnitte(bilder, bericht, str(aus / name))
         erzeugt = [fertig, aus / f"{name}.pdf", *bilder, *teile]
-        hat_loesung = ("data-l=" in text or "loesung=" in text or "nur-loesung" in text) and not ohne_loesung
+        hat_loesung = ("data-l=" in text or "loesung=" in text or "nur-loesung" in text
+                       or re.search(OHNE_LOESUNGSANGABE, text)) and not ohne_loesung
         if hat_loesung:
             lp = Path(tmp) / "pruefen-loesung.html"
             lp.write_text(einbetten(text, quelle.parent, pruefen=True, loesung=True), encoding="utf-8")
