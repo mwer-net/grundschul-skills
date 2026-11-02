@@ -1,0 +1,66 @@
+<!doctype html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<title>Muster: Ebene Geometrie</title>
+<link rel="stylesheet" href="blatt.css">
+<script src="abbildungen.js"></script>
+</head>
+<body class="kl3 sw">
+<section class="seite">
+  <div class="kopf"><div class="titel"><h1>Ebene Geometrie</h1></div></div>
+  <div class="aufgabe">
+    <span class="nr">1</span><div class="anw"><span class="text">Spiegeln an der Achse</span></div>
+    <div class="koerper"><x-gitter spalten="12" zeilen="6" aufgabe="spiegeln" achse="senkrecht" achse-bei="6" figur="0 0 0 0 0 0 / 0 0 0 1 1 1 / 0 0 1 1 0 0 / 0 1 1 1 0 0 / 0 0 0 1 1 1 / 0 0 0 0 0 0"></x-gitter></div>
+  </div>
+  <div class="aufgabe">
+    <span class="nr">2</span><div class="anw"><span class="text">Bandornament fortsetzen</span></div>
+    <div class="koerper"><x-gitter spalten="24" zeilen="4" aufgabe="fortsetzen" rapport="4" figur="1 1 0 0 / 1 0 0 0 / 1 1 0 0"></x-gitter></div>
+  </div>
+  <div class="aufgabe">
+    <span class="nr">3</span><div class="anw"><span class="text">Doppelt so groß zeichnen</span></div>
+    <div class="koerper"><x-gitter spalten="10" zeilen="8" aufgabe="vergroessern" faktor="2" figur="0 1 1 0 / 0 1 0 0 / 1 1 0 0"></x-gitter></div>
+  </div>
+  <div class="aufgabe">
+    <span class="nr">4</span><div class="anw"><span class="text">Geh den Weg. Beschreibe den Weg.</span></div>
+    <div class="koerper"><div class="reihe" style="--spalten:2">
+      <div class="zelle"><x-gitter spalten="10" zeilen="6" aufgabe="weg" start="1,4" weg="3→ 2↑ 1←"></x-gitter></div>
+      <div class="zelle"><x-gitter spalten="10" zeilen="6" aufgabe="weg" wegart="beschreiben" start="0,5" weg="4→ 3↑"></x-gitter></div>
+    </div></div>
+  </div>
+</section>
+<section class="seite">
+  <div class="kopf"><div class="titel"><h1>Ebene Geometrie</h1></div></div>
+  <div class="aufgabe">
+    <span class="nr">5</span><div class="anw"><span class="text">Fläche und Umfang, auch mit Linien</span></div>
+    <div class="koerper"><div class="reihe" style="--spalten:2">
+      <div class="zelle"><x-gitter spalten="10" zeilen="4" zaehlen="flaeche umfang" figur="0 1 1 1 / 0 1 1 0"></x-gitter></div>
+      <div class="zelle"><x-gitter spalten="10" zeilen="4" art="punkte" zaehlen="flaeche" linien="1,1 5,1 3,3"></x-gitter></div>
+    </div></div>
+  </div>
+  <div class="aufgabe">
+    <span class="nr">6</span><div class="anw"><span class="text">Figuren: rechte Winkel kennzeichnen, Maße, Parallelen</span></div>
+    <div class="koerper"><div class="reihe" style="--spalten:3">
+      <div class="zelle"><x-figur form="dreieck" typ="rechtwinklig" loesung="rechter-winkel" beschriftung="ja"></x-figur></div>
+      <div class="zelle"><x-figur form="rechteck" masse="4 2" markierung="gleich-lang"></x-figur></div>
+      <div class="zelle"><x-figur form="parallelogramm" markierung="parallel" drehung="15"></x-figur></div>
+    </div></div>
+  </div>
+  <div class="aufgabe">
+    <span class="nr">7</span><div class="anw"><span class="text">Tangram: Lege die Figuren</span></div>
+    <div class="koerper"><div class="reihe" style="--spalten:3">
+      <div class="zelle"><x-tangram umriss="fisch" groesse="20"></x-tangram></div>
+      <div class="zelle"><x-tangram umriss="katze" teile="quadrat" groesse="20"></x-tangram></div>
+      <div class="zelle"><x-tangram umriss="schiff" groesse="20"></x-tangram></div>
+    </div></div>
+  </div>
+</section>
+<section class="seite">
+  <div class="kopf"><div class="titel"><h1>Tangram zum Ausschneiden</h1></div></div>
+  <div class="aufgabe">
+    <span class="nr">8</span><div class="anw"><span class="text">Schneide die sieben Teile aus.</span></div>
+    <div class="koerper"><x-tangram bogen="ja"></x-tangram></div>
+  </div>
+</section>
+</body>
+</html>

@@ -22,7 +22,7 @@ import {
 	ziffernText,
 } from './abbildungen';
 import { ASSETS, BLATT_PY } from './konfig';
-import { hatLoesung, OHNE_LOESUNGSANGABE } from './loesungen';
+import { hatLoesung, MIT_LOESUNG, OHNE_LOESUNGSANGABE } from './loesungen';
 import { zerlege } from './quelltext';
 
 const JS = readFileSync(path.join(ASSETS, 'abbildungen.js'), 'utf8');
@@ -258,6 +258,32 @@ describe('neue Feldtypen', () => {
 		);
 	});
 
+	it('Liste ohne Trenner zwischen Zahl und Zeichen', () => {
+		const weg: ListeFeld = {
+			art: 'liste',
+			attribut: 'weg',
+			name: 'Weg',
+			zeilenTrenner: ' ',
+			feldTrenner: '',
+			unter: [
+				{ name: 'S', art: 'zahl' },
+				{ name: 'R', art: 'text' },
+			],
+		};
+		assert.deepEqual(zeilenVon(weg, '3→ 12↑'), [
+			['3', '→'],
+			['12', '↑'],
+		]);
+		assert.equal(
+			zeilenText(weg, [
+				['3', '→'],
+				['12', '↑'],
+			]),
+			'3→ 12↑',
+		);
+		assert.deepEqual(zeilenVon(weg, zeilenText(weg, [['', '→']])), [['', '→']]);
+	});
+
 	it('Prüfen: Text, Liste, Mehrfach, Raster, Muster und Regeln', () => {
 		assert.match(pruefe('x-probe', { titel: 'x'.repeat(21) }).titel ?? '', /Höchstens 20/);
 		assert.match(pruefe('x-probe', { inhalt: 'Ro1' }).inhalt ?? '', /Nur Buchstaben/);
@@ -330,6 +356,39 @@ describe('setzeAbbildung', () => {
 	});
 });
 
+interface Form {
+	zellen: number[][];
+	polys: number[][][];
+}
+
+const flaecheVon = (p: number[][]) =>
+	Math.abs(
+		p.reduce((summe, [x = 0, y = 0], i) => {
+			const [c = 0, d = 0] = p[(i + 1) % p.length] ?? [];
+			return summe + x * d - c * y;
+		}, 0),
+	) / 2;
+
+const kantenVon = (p: number[][]) =>
+	p
+		.map(([x = 0, y = 0], i) => {
+			const [c = 0, d = 0] = p[(i + 1) % p.length] ?? [];
+			return Math.round(Math.hypot(c - x, d - y) * 1000) / 1000;
+		})
+		.sort((a, b) => a - b);
+
+const liegtIn = (x: number, y: number, p: number[][]) => {
+	let drin = false;
+	p.forEach(([a = 0, b = 0], i) => {
+		const [c = 0, d = 0] = p[(i + 1) % p.length] ?? [];
+		const [ober, unter] = [b > y, d > y];
+		if (ober !== unter && x < a + ((y - b) * (c - a)) / (d - b)) {
+			drin = !drin;
+		}
+	});
+	return drin;
+};
+
 /** Lädt `abbildungen.js` ohne Browser; nötig sind nur die Rechenkerne. */
 const rechenkerne = () => {
 	const fenster: Record<string, unknown> = {};
@@ -346,6 +405,13 @@ const rechenkerne = () => {
 		gemischt: <T>(feld: T[], zz: () => number) => T[];
 		trenneListe: (text: string) => string[];
 		trenneRaster: (text: string) => string[][];
+		bildVon: (form: Form, abbildung: (x: number, y: number) => number[]) => Form;
+		spiegelung: (achse: string, bei: number) => (x: number, y: number) => number[];
+		skaliere: (form: Form, faktor: number) => Form;
+		gehWeg: (start: number[], schritte: string[], spalten: number, zeilen: number) => number[][];
+		flaecheUmfang: (form: Form) => { flaeche: number; umfang: number | null };
+		TANGRAM_TEILE: Record<string, number[][]>;
+		TANGRAM_UMRISSE: Record<string, Record<string, number[][]>>;
 	};
 };
 
@@ -399,9 +465,124 @@ describe('Daten und Zufall (024)', () => {
 	it('hält die Regel fürs Lösungsblatt mit blatt.py gleich', () => {
 		const blatt = readFileSync(BLATT_PY, 'utf8');
 		assert.ok(blatt.includes(`OHNE_LOESUNGSANGABE = r"${OHNE_LOESUNGSANGABE}"`));
+		assert.ok(blatt.includes(`MIT_LOESUNG = r"${MIT_LOESUNG}"`));
 		assert.equal(hatLoesung('<x-gluecksrad felder="rot; blau"></x-gluecksrad>'), false);
 		assert.equal(hatLoesung('<x-diagramm werte="A: 1"></x-diagramm>'), false);
 		assert.equal(hatLoesung('<x-diagramm werte="A: 1" offen="1"></x-diagramm>'), true);
 		assert.equal(hatLoesung('<x-strichliste werte="A: 1"></x-strichliste>'), true);
+	});
+});
+
+describe('Ebene Geometrie (025)', () => {
+	const zuListe = (w: number[][]) => Array.from(w, (z) => Array.from(z).join(',')).sort();
+	const leer: number[][][] = [];
+
+	it('spiegelt Kästchen und Linien genau', () => {
+		const { bildVon, spiegelung } = rechenkerne();
+		const b = bildVon(
+			{
+				zellen: [
+					[3, 1],
+					[4, 2],
+				],
+				polys: [
+					[
+						[0, 0],
+						[3, 0],
+						[3, 2],
+					],
+				],
+			},
+			spiegelung('senkrecht', 6),
+		);
+		assert.deepEqual(zuListe(b.zellen), ['7,2', '8,1']);
+		assert.deepEqual(
+			Array.from(b.polys[0] ?? [], (p) => Array.from(p).join(',')),
+			['12,0', '9,0', '9,2'],
+		);
+		const w = bildVon({ zellen: [[3, 1]], polys: leer }, spiegelung('waagerecht', 4));
+		assert.deepEqual(zuListe(w.zellen), ['3,6']);
+	});
+
+	it('vergrößert und verkleinert', () => {
+		const { skaliere } = rechenkerne();
+		assert.deepEqual(zuListe(skaliere({ zellen: [[2, 1]], polys: leer }, 2).zellen), ['0,0', '0,1', '1,0', '1,1']);
+		const voll = [
+			[2, 2],
+			[3, 2],
+			[2, 3],
+			[3, 3],
+		];
+		assert.deepEqual(zuListe(skaliere({ zellen: voll, polys: leer }, 0.5).zellen), ['0,0']);
+		assert.throws(() => skaliere({ zellen: [[2, 2]], polys: leer }, 0.5), /nicht halbieren/);
+	});
+
+	it('geht den Weg und lehnt das Verlassen ab', () => {
+		const { gehWeg } = rechenkerne();
+		const orte = gehWeg([1, 4], ['3→', '2↑', '1←'], 10, 6);
+		assert.deepEqual(Array.from(orte.at(-1) ?? []), [3, 2]);
+		assert.throws(() => gehWeg([1, 1], ['2↑'], 10, 6), /verlässt das Gitter/);
+	});
+
+	it('rechnet Fläche und Umfang', () => {
+		const { flaecheUmfang } = rechenkerne();
+		assert.deepEqual(
+			{
+				...flaecheUmfang({
+					zellen: [
+						[0, 0],
+						[1, 0],
+					],
+					polys: leer,
+				}),
+			},
+			{ flaeche: 2, umfang: 6 },
+		);
+		const schraeg = flaecheUmfang({
+			zellen: [],
+			polys: [
+				[
+					[1, 1],
+					[5, 1],
+					[3, 3],
+				],
+			],
+		});
+		assert.equal(schraeg.flaeche, 4);
+		assert.equal(schraeg.umfang, null);
+	});
+
+	it('Tangram: Die sieben Teile ergeben das Quadrat, jeder Umriss ist eine gültige Lage', () => {
+		const { TANGRAM_TEILE, TANGRAM_UMRISSE } = rechenkerne();
+		const teile = Object.entries(TANGRAM_TEILE);
+		assert.equal(teile.length, 7);
+		assert.equal(
+			teile.reduce((a, [, p]) => a + flaecheVon(p), 0),
+			16,
+		);
+		const pruefeLage = (name: string, lage: Record<string, number[][]>) => {
+			for (const [teil, p] of teile) {
+				const q = lage[teil];
+				assert.ok(q, `${name}: ${teil}`);
+				assert.equal(q.length, p.length, `${name}: ${teil}`);
+				assert.deepEqual(kantenVon(q), kantenVon(p), `${name}: ${teil} ist deckungsgleich`);
+			}
+			const alle = Object.values(lage);
+			const xs = alle.flat().map((v) => v[0] ?? 0);
+			const ys = alle.flat().map((v) => v[1] ?? 0);
+			for (let x = Math.min(...xs) + 0.07; x < Math.max(...xs); x += 0.13) {
+				for (let y = Math.min(...ys) + 0.11; y < Math.max(...ys); y += 0.13) {
+					assert.ok(
+						alle.filter((p) => liegtIn(x, y, p)).length <= 1,
+						`${name}: Teile überlappen bei ${x},${y}`,
+					);
+				}
+			}
+		};
+		pruefeLage('Quadrat', TANGRAM_TEILE);
+		assert.ok(Object.keys(TANGRAM_UMRISSE).length >= 5);
+		for (const [name, lage] of Object.entries(TANGRAM_UMRISSE)) {
+			pruefeLage(name, lage);
+		}
 	});
 });

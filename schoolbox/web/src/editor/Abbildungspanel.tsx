@@ -693,7 +693,11 @@ const rasterMass = (angabe: string | number | undefined, abb: AbbildungSteuerung
 	}
 	const roh = angabe ? abb.werte?.[angabe] : null;
 	const n = roh ? alsZahl(roh) : NaN;
-	return Number.isFinite(n) ? n : sonst;
+	if (Number.isFinite(n)) {
+		return n;
+	}
+	const feld = abb.schema?.felder.find((f) => f.attribut === angabe);
+	return feld?.art === 'zahl' ? feld.standard : sonst;
 };
 
 /** Zelle in der Gestalt des Elements: Antippen nimmt sie in die Liste auf oder heraus. */

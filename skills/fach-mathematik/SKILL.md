@@ -61,6 +61,7 @@ Prozessbezogene Kompetenzen in jedes Material einbauen: Problemlösen, Kommunizi
 - Uhr: analoges Zifferblatt mit großen Ziffern, Stundenzeiger deutlich kürzer und dicker. **Nie von der KI zeichnen lassen** – `<x-uhr>` aus `html-materialerstellung/assets/abbildungen.js` berechnet exakte Zifferblätter.
 - Geld: Euro-Abbildungen sind erlaubt; maßstabsgetreu und eindeutig.
 - Rechenkästchen: 1 Ziffer pro Kästchen (schriftliche Verfahren!).
+- Gitter: in echten Zentimetern wie im Heft (`x-gitter`), Achse auf einer Gitterlinie, Lösung berechnet statt gezeichnet.
 - Strichliste: Fünferbündel aus vier senkrechten und einem schrägen Strich (`x-strichliste`).
 - Diagramm: Skala ab 0 und gleichmäßig (`x-diagramm`).
 - Glücksrad: im s/w-Blatt nur mit Legende, sonst sind die Felder nicht zu unterscheiden (`x-gluecksrad`).
@@ -113,6 +114,11 @@ Exakte Darstellungen kommen als Elemente aus `html-materialerstellung/assets/abb
 | `<x-urne kugeln="rot: 3; blau: 5">` | Kugeln im Säckchen oder Glas |
 | `<x-wahrscheinlichkeit ereignisse="A: sicher">` | Skala unmöglich, möglich, sicher |
 | `<x-kombinatorik stufen="Waffel Becher / Erdbeer Schoko">` | Möglichkeiten als Baum, Tabelle, Liste |
+| `<x-gitter figur="1 1 / 1 0" aufgabe="spiegeln" achse="senkrecht">` | Spiegeln, Fortsetzen, Vergrößern, Weg, Fläche und Umfang im Gitter |
+| `<x-figur form="dreieck" loesung="rechter-winkel">` | Ebene Figur mit Normsymbolen |
+| `<x-tangram umriss="katze">` | Tangram mit Umriss, Bogen zum Ausschneiden |
+
+Zur Leitidee „Raum und Form“: Kl. 1/2 Formen (`x-figur`), Wege und Auslegen (`x-gitter`), Tangram; Kl. 3/4 Spiegeln, Fortsetzen, Vergrößern, Fläche und Umfang (`x-gitter`), Eigenschaften (`x-figur`).
 
 Zur Leitidee „Daten, Häufigkeit, Wahrscheinlichkeit“: Kl. 1/2 Strichliste, Würfel, Glücksrad; Kl. 3/4 Diagramm, Wahrscheinlichkeit, Möglichkeiten.
 

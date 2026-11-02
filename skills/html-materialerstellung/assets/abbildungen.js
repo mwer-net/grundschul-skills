@@ -42,6 +42,7 @@
   };
 
   const cm = (x) => (x * 96) / 2.54;
+  const SATZSPIEGEL = 620; // nutzbare Breite einer A4-Hochkantseite in px
 
   /** Das Element hat echte Maße: pruefung.js meldet „In Originalgröße drucken“. */
   const masstab = (el) => el.setAttribute("data-masstab", "");
@@ -79,6 +80,7 @@
     "x-probe": "Probe",
     "x-gluecksrad": "Glücksrad", "x-wuerfel": "Würfel", "x-strichliste": "Strichliste", "x-diagramm": "Diagramm",
     "x-urne": "Kugeln im Säckchen", "x-wahrscheinlichkeit": "Wahrscheinlichkeit", "x-kombinatorik": "Möglichkeiten",
+    "x-gitter": "Gitter", "x-figur": "Figur", "x-tangram": "Tangram",
   };
 
   class Abbildungsfehler extends Error {}
@@ -780,6 +782,413 @@
     el.innerHTML = svg(r1(Math.max(breite, textBreite(wort, schrift) + 66)), r1(y + 34), s);
   }
 
+  /* == Ebene Geometrie == */
+  const HELL_ODER_MUSTER = (f) => (istSw() ? f.von(1) : "color-mix(in srgb,var(--haupt) 45%,#fff)");
+
+  /** Abbildung einer Form { zellen: [[x, y]], polys: [[[x, y]]] } unter T im Gitterpunkt-Maß. */
+  const bildVon = (form, T) => ({
+    zellen: form.zellen.map(([x, y]) => {
+      const [a, b] = T(x, y), [c, d] = T(x + 1, y + 1);
+      return [Math.min(a, c), Math.min(b, d)];
+    }),
+    polys: form.polys.map((p) => p.map(([x, y]) => T(x, y))),
+  });
+  const spiegelung = (achse, bei) => (achse === "senkrecht" ? (x, y) => [2 * bei - x, y] : (x, y) => [x, 2 * bei - y]);
+
+  const seiteDerAchse = (form, achse, bei) => {
+    const i = achse === "senkrecht" ? 0 : 1;
+    const werte = [...form.zellen.flatMap((z) => [z[i], z[i] + 1]), ...form.polys.flat().map((p) => p[i])];
+    if (werte.every((v) => v <= bei)) return -1;
+    if (werte.every((v) => v >= bei)) return 1;
+    return 0;
+  };
+
+  const passtInsGitter = (form, spalten, zeilen) =>
+    form.zellen.every(([x, y]) => x >= 0 && y >= 0 && x < spalten && y < zeilen) &&
+    form.polys.flat().every(([x, y]) => x >= 0 && y >= 0 && x <= spalten && y <= zeilen);
+
+  /** Vergrößern um 2 oder Halbieren: Beim Halbieren muss jedes 2×2-Feld ganz voll oder ganz leer sein. */
+  const skaliere = (form, faktor) => {
+    const xs = [...form.zellen.map((z) => z[0]), ...form.polys.flat().map((p) => p[0])];
+    const ys = [...form.zellen.map((z) => z[1]), ...form.polys.flat().map((p) => p[1])];
+    const x0 = Math.min(...xs), y0 = Math.min(...ys);
+    const polys = form.polys.map((p) => p.map(([x, y]) => [(x - x0) * faktor, (y - y0) * faktor]));
+    if (polys.flat().flat().some((v) => !Number.isInteger(v * 2))) abbruch("Diese Figur liegt nach dem Verkleinern nicht mehr auf dem Gitter.");
+    if (faktor >= 1) {
+      const zellen = form.zellen.flatMap(([x, y]) => {
+        const liste2 = [];
+        for (let i = 0; i < faktor; i++) for (let j = 0; j < faktor; j++) liste2.push([(x - x0) * faktor + i, (y - y0) * faktor + j]);
+        return liste2;
+      });
+      return { zellen, polys };
+    }
+    const voll = new Set(form.zellen.map(([x, y]) => `${x - x0},${y - y0}`)), kloetze = new Set();
+    for (const k of voll) {
+      const [x, y] = k.split(",").map(Number), a = x - (x % 2), b = y - (y % 2);
+      if (![[a, b], [a + 1, b], [a, b + 1], [a + 1, b + 1]].every(([p, q]) => voll.has(`${p},${q}`))) abbruch("Diese Figur lässt sich nicht halbieren: Jedes 2×2-Feld muss ganz voll oder ganz leer sein.");
+      kloetze.add(`${a / 2},${b / 2}`);
+    }
+    return { zellen: [...kloetze].map((k) => k.split(",").map(Number)), polys };
+  };
+
+  const RICHTUNGEN = { "→": [1, 0], "←": [-1, 0], "↑": [0, -1], "↓": [0, 1] };
+  /** Zellen eines Wegs. Bricht ab, wenn er das Gitter verlässt. */
+  const gehWeg = (start, schritte, spalten, zeilen) => {
+    const orte = [start];
+    for (const roh of schritte) {
+      const t = /^(\d+)\s*([←→↑↓])$/.exec(roh);
+      if (!t) abbruch(`„${roh}“ verstehe ich nicht als Schritt. Schreibe zum Beispiel 3→.`);
+      const [dx, dy] = RICHTUNGEN[t[2]], [x, y] = orte[orte.length - 1], n = Number(t[1]);
+      const neu = [x + dx * n, y + dy * n];
+      if (neu[0] < 0 || neu[1] < 0 || neu[0] >= spalten || neu[1] >= zeilen) abbruch("Der Weg verlässt das Gitter. Ändere den Start oder die Schritte.");
+      orte.push(neu);
+    }
+    return orte;
+  };
+
+  /** Fläche in Kästchen und Umfang in Kästchenlängen. Schräge Linien haben keinen Umfang in ganzen Längen. */
+  const flaecheUmfang = (form) => {
+    const voll = new Set(form.zellen.map(([x, y]) => `${x},${y}`));
+    let flaeche = voll.size, umfang = 0, schraeg = false;
+    for (const k of voll) {
+      const [x, y] = k.split(",").map(Number);
+      for (const [a, b] of [[1, 0], [-1, 0], [0, 1], [0, -1]]) if (!voll.has(`${x + a},${y + b}`)) umfang += 1;
+    }
+    for (const p of form.polys) {
+      let doppelt = 0;
+      p.forEach(([x, y], i) => {
+        const [c, d] = p[(i + 1) % p.length];
+        doppelt += x * d - c * y;
+        if (x !== c && y !== d) schraeg = true;
+        umfang += Math.abs(c - x) + Math.abs(d - y);
+      });
+      flaeche += Math.abs(doppelt) / 2;
+    }
+    return { flaeche, umfang: schraeg ? null : umfang };
+  };
+
+  function gitter(el) {
+    const art = attr(el, "art", "karo");
+    const spalten = num(el, "spalten", 10), zeilen = num(el, "zeilen", 8);
+    const k = cm(num(el, "kaestchen", klasse() <= 2 ? 1 : 0.5));
+    const figur = raster(el, "figur");
+    const linienRoh = attr(el, "linien", "");
+    const aufgabe = attr(el, "aufgabe", "keine");
+    const achse = attr(el, "achse", "");
+    const faktor = attr(el, "faktor", "2") === "0.5" ? 0.5 : 2;
+    const zaehlen = liste(el, "zaehlen");
+    const wegart = attr(el, "wegart", "gehen");
+    const schritte = liste(el, "weg");
+    const startRoh = attr(el, "start", "0,0");
+    const rapportart = attr(el, "rapportart", "schieben");
+    const gegebenRapporte = num(el, "rapporte", 2);
+    if (figur.flat().some((z) => z !== "0") && linienRoh) abbruch("Eine Figur besteht aus Kästchen oder aus Linien, nicht aus beidem.");
+    const form = { zellen: [], polys: [] };
+    figur.forEach((zeile, y) => zeile.forEach((z, x) => {
+      if (z !== "0") form.zellen.push([x, y]);
+    }));
+    if (linienRoh) {
+      form.polys = linienRoh.split(";").map((t) => t.trim()).filter(Boolean).map((t) => t.split(/\s+/).map((p) => p.split(",").map(Number)));
+      if (form.polys.flat().flat().some((v) => !Number.isFinite(v))) abbruch("Linien schreibt man als Punkte, zum Beispiel 0,0 3,0 3,2.");
+    }
+    if (!passtInsGitter(form, spalten, zeilen)) abbruch("Die Figur passt nicht ins Gitter. Mach das Gitter größer.");
+    const istLeer = form.zellen.length === 0 && form.polys.length === 0;
+    if (["spiegeln", "fortsetzen", "vergroessern"].includes(aufgabe) && istLeer) abbruch("Die Figur ist noch leer.");
+    const f = fuellung(), grund = HELL_ODER_MUSTER(f);
+
+    let oben = 0, loesung = { zellen: [], polys: [] }, zielGitter = false, achseLinie = "", wegBild = "";
+    if (achse && aufgabe !== "fortsetzen") {
+      const grenze = achse === "senkrecht" ? spalten : zeilen, bei = num(el, "achse-bei", Math.floor(grenze / 2));
+      if (!(bei > 0 && bei < grenze)) abbruch("Die Achse muss innerhalb des Gitters auf einer Linie liegen.");
+      const a = bei * k;
+      achseLinie = achse === "senkrecht"
+        ? `<line class="achse" x1="${r1(a)}" y1="-6" x2="${r1(a)}" y2="${r1(zeilen * k + 6)}" stroke="${SCHWARZ}" stroke-width="2.5" stroke-dasharray="8 5"/>`
+        : `<line class="achse" x1="-6" y1="${r1(a)}" x2="${r1(spalten * k + 6)}" y2="${r1(a)}" stroke="${SCHWARZ}" stroke-width="2.5" stroke-dasharray="8 5"/>`;
+      if (aufgabe === "spiegeln") {
+        if (seiteDerAchse(form, achse, bei) === 0) abbruch("Die Figur kreuzt die Achse. Sie muss ganz auf einer Seite liegen.");
+        loesung = bildVon(form, spiegelung(achse, bei));
+        if (!passtInsGitter(loesung, spalten, zeilen)) abbruch("Die gespiegelte Hälfte passt nicht ins Gitter. Rücke die Achse oder die Figur.");
+      }
+    } else if (aufgabe === "spiegeln") abbruch("Zum Spiegeln fehlt die Achse.");
+
+    let gegeben = form;
+    if (aufgabe === "fortsetzen") {
+      const xs = [...form.zellen.map((z) => z[0] + 1), ...form.polys.flat().map((p) => p[0])];
+      const w = num(el, "rapport", Math.max(...xs));
+      if (!(w >= 1)) abbruch("Ein Rapport ist mindestens ein Kästchen breit.");
+      if ((gegebenRapporte + 2) * w > spalten) abbruch(`Das Gitter ist zu schmal: Es braucht ${(gegebenRapporte + 2) * w} Spalten.`);
+      const nach = (i) => (x, y) => {
+        const wenden = i % 2 === 1 && rapportart !== "schieben";
+        return [i * w + (wenden ? w - x : x), wenden && rapportart === "drehen" ? zeilen - y : y];
+      };
+      const vereint = (von, bis) => {
+        const v = { zellen: [], polys: [] };
+        for (let i = von; i < bis; i++) {
+          const b = bildVon(form, nach(i));
+          v.zellen.push(...b.zellen);
+          v.polys.push(...b.polys);
+        }
+        return v;
+      };
+      gegeben = vereint(0, gegebenRapporte);
+      loesung = vereint(gegebenRapporte, gegebenRapporte + 2);
+    }
+    if (aufgabe === "vergroessern") {
+      zielGitter = true;
+      loesung = skaliere(form, faktor);
+      if (!passtInsGitter(loesung, spalten, zeilen)) abbruch("Die Figur passt in dieser Größe nicht ins Zielgitter. Mach das Gitter größer.");
+    }
+
+    const breiteGitter = spalten * k, hoeheGitter = zeilen * k, abstand = zielGitter ? 28 : 0;
+    const gesamt = breiteGitter * (zielGitter ? 2 : 1) + abstand;
+    if (gesamt > SATZSPIEGEL) abbruch("So viele Spalten passen nicht aufs Blatt. Nimm weniger Spalten oder kleinere Kästchen.");
+
+    const zelle = (x, y, klassenName, dx = 0) => `<rect class="${klassenName}" data-x="${x}" data-y="${y}" x="${r1(dx + x * k)}" y="${r1(y * k)}" width="${r1(k)}" height="${r1(k)}" fill="${grund}" stroke="${SCHWARZ}" stroke-width="1.5"/>`;
+    const poly = (p, klassenName, dx = 0) => `<path class="${klassenName}" d="M${p.map(([x, y]) => `${r1(dx + x * k)} ${r1(y * k)}`).join(" L")} Z" fill="${grund}" stroke="${SCHWARZ}" stroke-width="2"/>`;
+    const gitterLinien = (dx) => {
+      let s = "";
+      if (art === "karo") {
+        for (let x = 0; x <= spalten; x++) s += `<line x1="${r1(dx + x * k)}" y1="0" x2="${r1(dx + x * k)}" y2="${r1(hoeheGitter)}" stroke="${GRAU}" stroke-width="1"/>`;
+        for (let y = 0; y <= zeilen; y++) s += `<line x1="${r1(dx)}" y1="${r1(y * k)}" x2="${r1(dx + breiteGitter)}" y2="${r1(y * k)}" stroke="${GRAU}" stroke-width="1"/>`;
+        return s;
+      }
+      const rPunkt = art === "geobrett" ? 3 : 1.6;
+      for (let x = 0; x <= spalten; x++) for (let y = 0; y <= zeilen; y++) s += `<circle cx="${r1(dx + x * k)}" cy="${r1(y * k)}" r="${rPunkt}" fill="${SCHWARZ}" stroke="none"/>`;
+      return s;
+    };
+    const zeigeLoesung = loesungSichtbar(el);
+    let s = gegeben.zellen.map(([x, y]) => zelle(x, y, "kaestchen")).join("") + gegeben.polys.map((p) => poly(p, "kaestchen")).join("");
+    s += gitterLinien(0);
+    if (zielGitter) s += gitterLinien(breiteGitter + abstand);
+    if (zeigeLoesung) {
+      const dx = zielGitter ? breiteGitter + abstand : 0;
+      s += loesung.zellen.map(([x, y]) => zelle(x, y, "kaestchen-loesung", dx)).join("") + loesung.polys.map((p) => poly(p, "kaestchen-loesung", dx)).join("");
+    }
+    s += achseLinie;
+
+    if (aufgabe === "weg") {
+      const start = startRoh.split(",").map(Number);
+      if (start.length !== 2 || start.some((v) => !Number.isInteger(v))) abbruch("Den Start schreibt man als Spalte,Zeile, zum Beispiel 2,3.");
+      if (start[0] < 0 || start[1] < 0 || start[0] >= spalten || start[1] >= zeilen) abbruch("Der Start liegt außerhalb des Gitters.");
+      const orte = gehWeg(start, schritte, spalten, zeilen);
+      const mitte = ([x, y]) => [r1((x + 0.5) * k), r1((y + 0.5) * k)];
+      const beschreiben = wegart === "beschreiben", [sx, sy] = mitte(orte[0]), [zx, zy] = mitte(orte[orte.length - 1]);
+      if (beschreiben || zeigeLoesung) {
+        wegBild += `<path class="weg" d="M${orte.map((o) => mitte(o).join(" ")).join(" L")}" stroke="${SCHWARZ}" stroke-width="2.5" stroke-linejoin="round"/>`;
+        wegBild += `<circle class="ziel" cx="${zx}" cy="${zy}" r="${r1(k * 0.28)}" fill="#fff" stroke-width="2"/>` + text(zx, zy, "Z", { groesse: Math.min(14, k * 0.42), fett: true });
+      }
+      wegBild += `<circle class="start" cx="${sx}" cy="${sy}" r="${r1(k * 0.2)}" fill="${SCHWARZ}" stroke="none"/>`;
+      s += wegBild;
+      el.setAttribute("data-ziel", orte[orte.length - 1].join(","));
+      const folge = schritte.join("  ");
+      if (beschreiben) {
+        oben = 0;
+        const y = hoeheGitter + 10, b = Math.max(textBreite(folge, 16) + 24, 200);
+        s += antwortfeld(el, 0, y, b, 32, folge, { groesse: 16 });
+        el.innerHTML = svg(r1(Math.max(breiteGitter, b) + 2), r1(y + 34), f.defs() + `<g transform="translate(1 1)">${s}</g>`);
+        return;
+      }
+      oben = 30;
+      s = text(0, -18, folge, { groesse: 18, fett: true, anker: "start" }) + s;
+    }
+
+    let unten = hoeheGitter + (achse ? 8 : 2), breiteText = 0;
+    if (zaehlen.length > 0) {
+      const { flaeche, umfang } = flaecheUmfang(form);
+      if (zaehlen.includes("umfang") && umfang === null) abbruch("Den Umfang gibt es nur bei Figuren ohne schräge Linien.");
+      el.setAttribute("data-flaeche", String(flaeche));
+      if (umfang !== null) el.setAttribute("data-umfang", String(umfang));
+      const zeile = (wort, wert, einheit) => {
+        const w1 = textBreite(wort, 15) + 8;
+        s += text(0, unten + 22, wort, { groesse: 15, anker: "start" }) + antwortfeld(el, w1, unten + 6, 56, 32, zahl(wert), { groesse: 15 }) +
+          text(w1 + 62, unten + 22, einheit, { groesse: 15, anker: "start" });
+        breiteText = Math.max(breiteText, w1 + 62 + textBreite(einheit, 15));
+        unten += 36;
+      };
+      if (zaehlen.includes("flaeche")) zeile("Fläche:", flaeche, "Kästchen");
+      if (zaehlen.includes("umfang")) zeile("Umfang:", umfang, "Kästchenlängen");
+      unten += 6;
+    }
+    masstab(el);
+    el.innerHTML = svg(r1(Math.max(gesamt, breiteText) + 2), r1(unten + oben + 2), `${f.defs()}<g transform="translate(1 ${oben + 1})">${s}</g>`);
+  }
+
+  const ECKEN = {
+    quadrat: (a) => [[0, 0], [a, 0], [a, a], [0, a]],
+    rechteck: (a, b) => [[0, 0], [a, 0], [a, b], [0, b]],
+    trapez: (a, b) => [[0, b], [a, b], [a * 0.75, 0], [a * 0.25, 0]],
+    parallelogramm: (a, b) => [[0, b], [a, b], [a + b * 0.5, 0], [b * 0.5, 0]],
+    raute: (a) => [[0, 0], [a, 0], [a * 1.5, a * 0.866], [a * 0.5, a * 0.866]],
+  };
+  const regelmaessig = (n, a) => {
+    const r = a / (2 * Math.sin(Math.PI / n));
+    return Array.from({ length: n }, (_, i) => {
+      const w = (2 * Math.PI * i) / n - Math.PI / 2;
+      return [r * Math.cos(w), r * Math.sin(w)];
+    });
+  };
+  const dreieckEcken = (typ, a, b) => {
+    if (typ === "gleichseitig") return [[0, a * 0.866], [a, a * 0.866], [a / 2, 0]];
+    if (typ === "gleichschenklig") return [[0, b], [a, b], [a / 2, 0]];
+    return [[0, b], [a, b], [0, 0]];
+  };
+
+  /** Zeichnet die Normsymbole an ein konvexes Vieleck; zählt die rechten Winkel. */
+  const markiere = (ecken, was) => {
+    const n = ecken.length, mitte = ecken.reduce((a, p) => [a[0] + p[0] / n, a[1] + p[1] / n], [0, 0]);
+    const kanten = ecken.map((p, i) => [p, ecken[(i + 1) % n]]);
+    const laenge = ([p, q]) => Math.hypot(q[0] - p[0], q[1] - p[1]);
+    let s = "", rechte = 0;
+    if (was.includes("rechter-winkel")) {
+      ecken.forEach((p, i) => {
+        const a = ecken[(i + n - 1) % n], b = ecken[(i + 1) % n];
+        const u = [a[0] - p[0], a[1] - p[1]], v = [b[0] - p[0], b[1] - p[1]];
+        const lu = Math.hypot(...u), lv = Math.hypot(...v);
+        if (Math.abs(u[0] * v[0] + u[1] * v[1]) / (lu * lv) > 0.01) return;
+        rechte += 1;
+        const r = 16, a1 = [p[0] + (u[0] / lu) * r, p[1] + (u[1] / lu) * r], a2 = [p[0] + (v[0] / lv) * r, p[1] + (v[1] / lv) * r];
+        const kreuz = u[0] * v[1] - u[1] * v[0];
+        const hin = [u[0] / lu + v[0] / lv, u[1] / lu + v[1] / lv], lh = Math.hypot(...hin);
+        s += `<path class="rechter-winkel" d="M${r1(a1[0])} ${r1(a1[1])} A${r} ${r} 0 0 ${kreuz > 0 ? 1 : 0} ${r1(a2[0])} ${r1(a2[1])}" stroke-width="1.5"/>`;
+        s += `<circle cx="${r1(p[0] + (hin[0] / lh) * r * 0.52)}" cy="${r1(p[1] + (hin[1] / lh) * r * 0.52)}" r="1.8" fill="${SCHWARZ}" stroke="none"/>`;
+      });
+    }
+    if (was.includes("parallel")) {
+      const gruppen = [];
+      kanten.forEach((k) => {
+        const d = [(k[1][0] - k[0][0]) / laenge(k), (k[1][1] - k[0][1]) / laenge(k)];
+        const g = gruppen.find((x) => Math.abs(x.d[0] * d[1] - x.d[1] * d[0]) < 0.01);
+        if (g) g.kanten.push(k);
+        else gruppen.push({ d, kanten: [k] });
+      });
+      gruppen.filter((g) => g.kanten.length > 1).forEach((g, nr) => g.kanten.forEach(([p, q]) => {
+        const mx = (p[0] + q[0]) / 2, my = (p[1] + q[1]) / 2;
+        for (let j = 0; j <= nr; j++) {
+          const x = mx + g.d[0] * j * 7, y = my + g.d[1] * j * 7, nx = -g.d[1], ny = g.d[0];
+          s += `<path class="parallel" d="M${r1(x - g.d[0] * 6 + nx * 5)} ${r1(y - g.d[1] * 6 + ny * 5)} L${r1(x)} ${r1(y)} L${r1(x - g.d[0] * 6 - nx * 5)} ${r1(y - g.d[1] * 6 - ny * 5)}" stroke-width="1.5"/>`;
+        }
+      }));
+    }
+    if (was.includes("gleich-lang")) {
+      const gruppen = [];
+      kanten.forEach((k) => {
+        const g = gruppen.find((x) => Math.abs(x.l - laenge(k)) < 0.5);
+        if (g) g.kanten.push(k);
+        else gruppen.push({ l: laenge(k), kanten: [k] });
+      });
+      gruppen.filter((g) => g.kanten.length > 1).forEach((g, nr) => g.kanten.forEach((k) => {
+        const [p, q] = k, d = [(q[0] - p[0]) / laenge(k), (q[1] - p[1]) / laenge(k)], mx = (p[0] + q[0]) / 2, my = (p[1] + q[1]) / 2;
+        for (let j = 0; j <= nr; j++) {
+          const o = (j - nr / 2) * 5, x = mx + d[0] * o, y = my + d[1] * o;
+          s += `<line class="gleich-lang" x1="${r1(x - d[1] * 6)}" y1="${r1(y + d[0] * 6)}" x2="${r1(x + d[1] * 6)}" y2="${r1(y - d[0] * 6)}" stroke-width="1.5"/>`;
+        }
+      }));
+    }
+    return { s, rechte, mitte };
+  };
+
+  function figur(el) {
+    const form = attr(el, "form", "quadrat");
+    const typ = attr(el, "typ", "rechtwinklig");
+    const masse = liste(el, "masse").map(Number);
+    const drehung = num(el, "drehung", 0);
+    const markierung = liste(el, "markierung");
+    const nachher = liste(el, "loesung");
+    const mitNamen = attr(el, "beschriftung", "nein") === "ja";
+    const groesse = num(el, "groesse", 120);
+    if (masse.some((m) => !(m > 0))) abbruch("Die Maße müssen Zahlen größer als 0 sein.");
+    const a = masse[0] ?? 4, b = masse[1] ?? (form === "rechteck" ? 2.5 : 3);
+    let ecken = null;
+    if (ECKEN[form]) ecken = ECKEN[form](a, b);
+    else if (form === "dreieck") ecken = dreieckEcken(typ, a, b);
+    else if (form === "fuenfeck") ecken = regelmaessig(5, a);
+    else if (form === "sechseck") ecken = regelmaessig(6, a);
+    else if (form !== "kreis") abbruch(`Die Form „${form}“ gibt es nicht.`);
+    const rand = 24;
+    if (form === "kreis") {
+      const d = masse.length > 0 ? cm(a) : groesse;
+      if (masse.length > 0) masstab(el);
+      else el.removeAttribute("data-masstab");
+      el.innerHTML = svg(r1(d + 4), r1(d + 4), `<circle cx="${r1(d / 2 + 2)}" cy="${r1(d / 2 + 2)}" r="${r1(d / 2)}" stroke-width="2"/>`);
+      return;
+    }
+    const roh = ecken.flat(), breit = Math.max(...roh.filter((_, i) => i % 2 === 0)) - Math.min(...roh.filter((_, i) => i % 2 === 0));
+    const hoch = Math.max(...roh.filter((_, i) => i % 2 === 1)) - Math.min(...roh.filter((_, i) => i % 2 === 1));
+    const mass = masse.length > 0 ? cm(1) : groesse / Math.max(breit, hoch);
+    if (masse.length > 0) masstab(el);
+    else el.removeAttribute("data-masstab");
+    const w = (drehung * Math.PI) / 180, gedreht = ecken.map(([x, y]) => [mass * (x * Math.cos(w) - y * Math.sin(w)), mass * (x * Math.sin(w) + y * Math.cos(w))]);
+    const x0 = Math.min(...gedreht.map((p) => p[0])), y0 = Math.min(...gedreht.map((p) => p[1]));
+    const punkte = gedreht.map(([x, y]) => [r1(x - x0 + rand), r1(y - y0 + rand)]);
+    const zeigen = loesungSichtbar(el) ? [...markierung, ...nachher] : markierung;
+    const { mitte, rechte, s: marken } = markiere(punkte, zeigen);
+    let s = `<path class="umriss" d="M${punkte.map((p) => p.join(" ")).join(" L")} Z" stroke-width="2"/>${marken}`;
+    if (mitNamen) punkte.forEach((p, i) => {
+      const d = [p[0] - mitte[0], p[1] - mitte[1]], l = Math.hypot(...d);
+      s += text(p[0] + (d[0] / l) * 14, p[1] + (d[1] / l) * 14, String.fromCharCode(65 + i), { groesse: 15, fett: true });
+    });
+    el.setAttribute("data-rechte-winkel", String(rechte));
+    el.innerHTML = svg(r1(Math.max(...punkte.map((p) => p[0])) + rand), r1(Math.max(...punkte.map((p) => p[1])) + rand), s);
+  }
+
+  /** Die sieben Teile aus dem Quadrat mit Seite 4 (Fläche 16). */
+  const TANGRAM_TEILE = {
+    gross1: [[0, 0], [4, 0], [2, 2]], gross2: [[0, 0], [2, 2], [0, 4]], mittel: [[4, 4], [4, 2], [2, 4]], klein1: [[2, 2], [3, 3], [1, 3]],
+    klein2: [[4, 0], [4, 2], [3, 1]], quadrat: [[3, 1], [4, 2], [3, 3], [2, 2]], raute: [[1, 3], [3, 3], [2, 4], [0, 4]],
+  };
+  /** Jeder Umriss ist eine gültige Lage aller sieben Teile; der kern-Test rechnet Deckungsgleichheit und Überlappung nach. */
+  const TANGRAM_UMRISSE = {
+    haus: {
+      gross1: [[0, 2], [4, 2], [2, 0]], gross2: [[0, 2], [4, 2], [2, 4]], mittel: [[0, 2], [2, 4], [0, 4]], klein1: [[4, 2], [4, 4], [3, 3]],
+      klein2: [[4, 4], [2, 4], [3, 3]], quadrat: [[1, 1], [0, 0], [-1, 1], [0, 2]], raute: [[3, 1], [3, -1], [4, 0], [4, 2]],
+    },
+    katze: {
+      quadrat: [[1, 0], [2, 1], [1, 2], [0, 1]], klein1: [[0, 1], [1, 0], [0, -1]], klein2: [[1, 0], [2, 1], [2, -1]], gross1: [[1, 2], [1, 6], [3, 4]],
+      gross2: [[1, 6], [5, 6], [3, 4]], mittel: [[1, 2], [1, 4], [-1, 4]], raute: [[5, 6], [7, 6], [8, 5], [6, 5]],
+    },
+    schiff: {
+      gross1: [[4, 0], [4, 4], [2, 2]], gross2: [[4, 4], [0, 4], [2, 2]], quadrat: [[3, 1], [2, 0], [1, 1], [2, 2]], mittel: [[0, 4], [2, 4], [2, 6]],
+      klein1: [[2, 4], [4, 4], [3, 5]], klein2: [[2, 4], [3, 5], [2, 6]], raute: [[0, 4], [-2, 4], [-1, 5], [1, 5]],
+    },
+    fisch: {
+      gross1: [[0, 2], [4, 2], [2, 0]], gross2: [[0, 2], [4, 2], [2, 4]], mittel: [[4, 2], [6, 2], [6, 0]], klein1: [[4, 2], [6, 2], [5, 3]],
+      klein2: [[6, 2], [6, 4], [5, 3]], raute: [[1, 1], [2, 0], [2, -2], [1, -1]], quadrat: [[1, 3], [2, 4], [1, 5], [0, 4]],
+    },
+    kerze: {
+      quadrat: [[1, 0], [2, 1], [1, 2], [0, 1]], gross1: [[0, 2], [0, 6], [2, 4]], mittel: [[0, 2], [2, 2], [2, 4]], klein1: [[0, 6], [2, 6], [1, 5]],
+      klein2: [[2, 4], [2, 6], [1, 5]], gross2: [[-1, 6], [3, 6], [1, 8]], raute: [[3, 6], [5, 6], [4, 7], [2, 7]],
+    },
+  };
+
+  function tangram(el) {
+    const umriss = attr(el, "umriss", "haus");
+    const vorgegeben = liste(el, "teile");
+    const bogen = attr(el, "bogen", "nein") === "ja";
+    const einheit = bogen ? cm(3) : num(el, "groesse", 30);
+    const f = fuellung(), namen = Object.keys(TANGRAM_TEILE);
+    const fuell = (n) => f.von(namen.indexOf(n) + 1);
+    const pfad = (p, x0, y0) => `M${p.map(([x, y]) => `${r1((x - x0) * einheit + 3)} ${r1((y - y0) * einheit + 3)}`).join(" L")} Z`;
+    if (bogen) {
+      masstab(el);
+      let s = "";
+      for (const n of namen) s += `<path class="teil" data-teil="${n}" d="${pfad(TANGRAM_TEILE[n], 0, 0)}" fill="${fuell(n)}" stroke-width="2"/>`;
+      el.innerHTML = svg(r1(4 * einheit + 6), r1(4 * einheit + 6), f.defs() + s);
+      return;
+    }
+    el.removeAttribute("data-masstab");
+    const lage = TANGRAM_UMRISSE[umriss];
+    if (!lage) abbruch(`Den Umriss „${umriss}“ gibt es nicht. Es gibt: ${Object.keys(TANGRAM_UMRISSE).join(", ")}.`);
+    for (const v of vorgegeben) if (!lage[v]) abbruch(`Das Teil „${v}“ gibt es nicht.`);
+    const alle = Object.values(lage).flat(), x0 = Math.min(...alle.map((p) => p[0])), y0 = Math.min(...alle.map((p) => p[1]));
+    let s = namen.map((n) => `<path d="${pfad(lage[n], x0, y0)}" fill="#fff" stroke-width="5" stroke-linejoin="round"/>`).join("");
+    s += namen.map((n) => `<path d="${pfad(lage[n], x0, y0)}" fill="#fff" stroke="none"/>`).join("");
+    for (const n of namen) {
+      if (loesungSichtbar(el) || vorgegeben.includes(n)) s += `<path class="teil" data-teil="${n}" d="${pfad(lage[n], x0, y0)}" fill="${fuell(n)}" stroke-width="1.6"/>`;
+    }
+    const breite = Math.max(...alle.map((p) => p[0])) - x0, hoehe = Math.max(...alle.map((p) => p[1])) - y0;
+    el.innerHTML = svg(r1(breite * einheit + 6), r1(hoehe * einheit + 6), f.defs() + s);
+  }
+
   /* == Test == */
   // x-probe gibt es nur für die Tests der Feldtypen im Panel (023); in Material kommt es nicht vor.
   function probe(el) {
@@ -815,7 +1224,8 @@
   const ARTEN = { "x-uhr": uhr, "x-menge": menge, "x-dienes": dienes, "x-strichpunkt": strichpunkt,
     "x-stellentafel": stellentafel, "x-zwanzigerfeld": zwanzigerfeld, "x-zahlenstrahl": zahlenstrahl, "x-timer": timer,
     "x-probe": probe, "x-gluecksrad": gluecksrad, "x-wuerfel": wuerfel, "x-strichliste": strichliste, "x-diagramm": diagramm,
-    "x-urne": urne, "x-wahrscheinlichkeit": wahrscheinlichkeit, "x-kombinatorik": kombinatorik };
+    "x-urne": urne, "x-wahrscheinlichkeit": wahrscheinlichkeit, "x-kombinatorik": kombinatorik,
+    "x-gitter": gitter, "x-figur": figur, "x-tangram": tangram };
 
   const zeichne = (f, el) => {
     el.removeAttribute("data-fehler");
@@ -836,7 +1246,9 @@
   };
   window.abbildungsName = (tag) => NAMEN[tag] || tag;
   /* == Rechenkerne für Tests == */
-  window.schoolboxAbbildungen = { ARTEN, zahl, cm, zufall, gemischt, trenneListe, trenneRaster };
+  window.schoolboxAbbildungen = {
+    ARTEN, zahl, cm, zufall, gemischt, trenneListe, trenneRaster, bildVon, spiegelung, skaliere, gehWeg, flaecheUmfang, TANGRAM_TEILE, TANGRAM_UMRISSE,
+  };
   if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", () => window.zeichneAbbildungen());
   else window.zeichneAbbildungen();
 })();

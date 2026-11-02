@@ -97,6 +97,8 @@ Ziel: **Übersicht vor Menge.** Ein Kind muss jede Aufgabe auf einen Blick verst
 | Glücksrad zum Ablesen | 180 px | 160 px | 140 px |
 | Würfel | 60 px | 52 px | 44 px |
 | Strichliste, Zeilenhöhe | 38 px | 34 px | 30 px |
+| Gitter, Kästchen | 1 cm | 1 cm | 0,5 cm |
+| Figur | 120 px | 100 px | 80 px |
 | Diagramm, Höhe der Skala | 180 px | 160 px | 120 px |
 
 ### Richtwerte pro A4-Seite

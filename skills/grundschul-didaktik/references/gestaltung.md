@@ -46,7 +46,7 @@ Farbe oder Schwarz-Weiß sowie die Bausteine (Selbsteinschätzung, Niveaus, Ster
 | 3 | Lineatur 3 |
 | 4 | Lineatur 4 |
 
-Mathe: Kästchen 1 cm (Kl. 1) bzw. 0,5 cm (ab Kl. 2/3), passend zum Heft der Klasse.
+Mathe: Kästchen 1 cm (Kl. 1) bzw. 0,5 cm (ab Kl. 2/3), passend zum Heft der Klasse; Gitter mit Figuren: `x-gitter`.
 Schreibfläche immer größer als gedacht: Kinderhandschrift braucht Platz.
 
 ## Bilder und Illustrationen

@@ -119,7 +119,7 @@ export interface ListeFeld extends FeldBasis {
 	/** Zwischen den Zeilen; Standard `;`. */
 	zeilenTrenner?: ';' | ' ' | '/';
 	/** Zwischen den Unterfeldern einer Zeile; Standard `:`. */
-	feldTrenner?: ':' | ' ';
+	feldTrenner?: ':' | ' ' | '';
 }
 
 /** Mehrere Haken aus festen Optionen; im Attribut mit Leerzeichen getrennt. */
@@ -234,6 +234,12 @@ export const FARBEN: Option[] = [
 
 const ZAHL = /^-?\d+([.,]\d+)?$/;
 export const alsZahl = (wert: string) => (ZAHL.test(wert.trim()) ? Number(wert.trim().replace(',', '.')) : NaN);
+
+const FIGUR_MARKEN: Option[] = [
+	{ wert: 'rechter-winkel', name: 'Rechte Winkel' },
+	{ wert: 'parallel', name: 'Parallele Seiten' },
+	{ wert: 'gleich-lang', name: 'Gleich lange Seiten' },
+];
 
 const STUFEN_DREI = ['unmöglich', 'möglich', 'sicher'];
 const STUFEN_FUENF: Option[] = ['unmöglich', 'wenig wahrscheinlich', 'möglich', 'sehr wahrscheinlich', 'sicher'].map(
@@ -765,6 +771,265 @@ export const ABBILDUNG_SCHEMA = {
 			{ art: 'zahl', attribut: 'vorgegeben', name: 'Schon ausgefüllt', min: 0, max: 24, standard: 1 },
 		],
 	},
+	'x-gitter': {
+		name: 'Gitter',
+		felder: [
+			{
+				art: 'auswahl',
+				attribut: 'art',
+				name: 'Art',
+				standard: 'karo',
+				gruppe: 'Gitter',
+				optionen: [
+					{ wert: 'karo', name: 'Kästchen' },
+					{ wert: 'punkte', name: 'Punkte' },
+					{ wert: 'geobrett', name: 'Geobrett' },
+				],
+			},
+			{ art: 'zahl', attribut: 'spalten', name: 'Spalten', min: 1, max: 40, standard: 10, gruppe: 'Gitter' },
+			{ art: 'zahl', attribut: 'zeilen', name: 'Zeilen', min: 1, max: 40, standard: 8, gruppe: 'Gitter' },
+			{
+				art: 'auswahl',
+				attribut: 'kaestchen',
+				name: 'Kästchen',
+				gruppe: 'Gitter',
+				optionen: [
+					{ wert: null, name: 'Wie im Heft der Klasse' },
+					{ wert: '0.5', name: '0,5 cm' },
+					{ wert: '1', name: '1 cm' },
+				],
+			},
+			{ art: 'raster', attribut: 'figur', name: 'Figur', spalten: 'spalten', zeilen: 'zeilen', gruppe: 'Figur' },
+			{
+				art: 'text',
+				attribut: 'linien',
+				name: 'Figur aus Linien',
+				gruppe: 'Figur',
+				muster: '[-0-9.,; ]*',
+				musterHilfe: 'Punkte wie 0,0 3,0 3,2; mehrere Figuren mit ; trennen.',
+				hilfe: 'Diese Figur besteht aus Linien und lässt sich nur über Claude ändern.',
+			},
+			{
+				art: 'auswahl',
+				attribut: 'aufgabe',
+				name: 'Aufgabe',
+				standard: 'keine',
+				gruppe: 'Aufgabe',
+				optionen: [
+					{ wert: 'keine', name: 'Keine' },
+					{ wert: 'spiegeln', name: 'Spiegeln' },
+					{ wert: 'fortsetzen', name: 'Fortsetzen' },
+					{ wert: 'vergroessern', name: 'Vergrößern' },
+					{ wert: 'weg', name: 'Weg' },
+				],
+			},
+			{
+				art: 'auswahl',
+				attribut: 'achse',
+				name: 'Achse',
+				gruppe: 'Aufgabe',
+				optionen: [
+					{ wert: null, name: 'Keine' },
+					{ wert: 'senkrecht', name: 'Senkrecht' },
+					{ wert: 'waagerecht', name: 'Waagerecht' },
+				],
+			},
+			{
+				art: 'zahl',
+				attribut: 'achse-bei',
+				name: 'Achse nach Kästchen',
+				min: 1,
+				max: 39,
+				standard: 5,
+				gruppe: 'Aufgabe',
+			},
+			{
+				art: 'zahl',
+				attribut: 'rapport',
+				name: 'Breite eines Musters',
+				min: 1,
+				max: 40,
+				standard: 4,
+				gruppe: 'Aufgabe',
+			},
+			{
+				art: 'zahl',
+				attribut: 'rapporte',
+				name: 'Muster vorgegeben',
+				min: 1,
+				max: 10,
+				standard: 2,
+				gruppe: 'Aufgabe',
+			},
+			{
+				art: 'auswahl',
+				attribut: 'rapportart',
+				name: 'Fortsetzen durch',
+				standard: 'schieben',
+				gruppe: 'Aufgabe',
+				optionen: [
+					{ wert: 'schieben', name: 'Schieben' },
+					{ wert: 'spiegeln', name: 'Spiegeln im Wechsel' },
+					{ wert: 'drehen', name: 'Drehen im Wechsel' },
+				],
+			},
+			{
+				art: 'auswahl',
+				attribut: 'faktor',
+				name: 'Größe',
+				standard: '2',
+				gruppe: 'Aufgabe',
+				optionen: [
+					{ wert: '2', name: 'Doppelt so groß' },
+					{ wert: '0.5', name: 'Halb so groß' },
+				],
+			},
+			{
+				art: 'liste',
+				attribut: 'weg',
+				name: 'Weg',
+				zeilenTrenner: ' ',
+				feldTrenner: '',
+				gruppe: 'Aufgabe',
+				unter: [
+					{ name: 'Schritte', art: 'zahl', min: 1, max: 40, standard: '1' },
+					{
+						name: 'Richtung',
+						art: 'auswahl',
+						standard: '→',
+						optionen: [
+							{ wert: '→', name: '→ rechts' },
+							{ wert: '←', name: '← links' },
+							{ wert: '↑', name: '↑ hoch' },
+							{ wert: '↓', name: '↓ runter' },
+						],
+					},
+				],
+			},
+			{
+				art: 'auswahl',
+				attribut: 'wegart',
+				name: 'Beim Weg',
+				standard: 'gehen',
+				gruppe: 'Aufgabe',
+				optionen: [
+					{ wert: 'gehen', name: 'Kinder gehen die Pfeile' },
+					{ wert: 'beschreiben', name: 'Kinder schreiben die Pfeile' },
+				],
+			},
+			{
+				art: 'text',
+				attribut: 'start',
+				name: 'Start (Spalte,Zeile)',
+				gruppe: 'Aufgabe',
+				muster: '\\d+,\\d+',
+				musterHilfe: 'Zum Beispiel 2,3. Das Kästchen oben links ist 0,0.',
+			},
+			{
+				art: 'mehrfach',
+				attribut: 'zaehlen',
+				name: 'Zählen lassen',
+				gruppe: 'Aufgabe',
+				optionen: [
+					{ wert: 'flaeche', name: 'Fläche' },
+					{ wert: 'umfang', name: 'Umfang' },
+				],
+			},
+		],
+	},
+	'x-figur': {
+		name: 'Figur',
+		felder: [
+			{
+				art: 'auswahl',
+				attribut: 'form',
+				name: 'Form',
+				standard: 'quadrat',
+				optionen: [
+					{ wert: 'quadrat', name: 'Quadrat' },
+					{ wert: 'rechteck', name: 'Rechteck' },
+					{ wert: 'dreieck', name: 'Dreieck' },
+					{ wert: 'kreis', name: 'Kreis' },
+					{ wert: 'trapez', name: 'Trapez' },
+					{ wert: 'parallelogramm', name: 'Parallelogramm' },
+					{ wert: 'raute', name: 'Raute' },
+					{ wert: 'fuenfeck', name: 'Fünfeck' },
+					{ wert: 'sechseck', name: 'Sechseck' },
+				],
+			},
+			{
+				art: 'auswahl',
+				attribut: 'typ',
+				name: 'Dreieck',
+				standard: 'rechtwinklig',
+				optionen: [
+					{ wert: 'rechtwinklig', name: 'Rechtwinklig' },
+					{ wert: 'gleichseitig', name: 'Gleichseitig' },
+					{ wert: 'gleichschenklig', name: 'Gleichschenklig' },
+				],
+			},
+			{
+				art: 'zahlen',
+				attribut: 'masse',
+				name: 'Maße in cm',
+				beispiel: '4 3',
+				hilfe: 'Mit Maßen zeichnet die Figur in echten Zentimetern.',
+			},
+			{ art: 'zahl', attribut: 'drehung', name: 'Drehung in Grad', min: 0, max: 359, standard: 0, schritt: 15 },
+			{ art: 'mehrfach', attribut: 'markierung', name: 'Kennzeichnen', optionen: FIGUR_MARKEN },
+			{ art: 'mehrfach', attribut: 'loesung', name: 'Kennzeichnen nur in der Lösung', optionen: FIGUR_MARKEN },
+			{
+				art: 'schalter',
+				attribut: 'beschriftung',
+				name: 'Ecken A, B, C',
+				an: 'ja',
+				aus: 'nein',
+				standard: false,
+			},
+			{ art: 'zahl', ...GROESSE, min: 60, max: 400, standard: 120, schritt: 10 },
+		],
+	},
+	'x-tangram': {
+		name: 'Tangram',
+		felder: [
+			{
+				art: 'auswahl',
+				attribut: 'umriss',
+				name: 'Umriss',
+				standard: 'haus',
+				optionen: [
+					{ wert: 'haus', name: 'Haus' },
+					{ wert: 'katze', name: 'Katze' },
+					{ wert: 'schiff', name: 'Schiff' },
+					{ wert: 'fisch', name: 'Fisch' },
+					{ wert: 'kerze', name: 'Kerze' },
+				],
+			},
+			{
+				art: 'mehrfach',
+				attribut: 'teile',
+				name: 'Schon eingezeichnet',
+				optionen: [
+					{ wert: 'gross1', name: 'Großes Dreieck 1' },
+					{ wert: 'gross2', name: 'Großes Dreieck 2' },
+					{ wert: 'mittel', name: 'Mittleres Dreieck' },
+					{ wert: 'klein1', name: 'Kleines Dreieck 1' },
+					{ wert: 'klein2', name: 'Kleines Dreieck 2' },
+					{ wert: 'quadrat', name: 'Quadrat' },
+					{ wert: 'raute', name: 'Parallelogramm' },
+				],
+			},
+			{
+				art: 'schalter',
+				attribut: 'bogen',
+				name: 'Bogen zum Ausschneiden (12 cm)',
+				an: 'ja',
+				aus: 'nein',
+				standard: false,
+			},
+			{ art: 'zahl', ...GROESSE, min: 14, max: 60, standard: 30, schritt: 2 },
+		],
+	},
 } satisfies Record<string, AbbildungSchema>;
 
 export type Abbildung = keyof typeof ABBILDUNG_SCHEMA;
@@ -817,6 +1082,10 @@ export const listeVon = (wert: string | null) => (wert ?? '').split(/[\s,;]+/).f
 export const LEER = '∅';
 
 const teile = (text: string, trenner: string, anzahl: number): string[] => {
+	if (trenner === '') {
+		const t = new RegExp(`^(${LEER}|\\d*)(.*)$`, 's').exec(text);
+		return [t?.[1] ?? '', t?.[2] ?? ''];
+	}
 	if (trenner === ' ') {
 		return text.split(/\s+/).filter(Boolean);
 	}
@@ -850,7 +1119,7 @@ export const zeilenText = (feld: ListeFeld, zeilen: string[][]): string | null =
 	if (zeilen.length === 0) {
 		return null;
 	}
-	const zwischen = feldTrenner === ' ' ? ' ' : ': ';
+	const zwischen = feldTrenner === ':' ? ': ' : feldTrenner;
 	let trenner = '; ';
 	if (zeilenTrenner === ' ') {
 		trenner = ' ';
@@ -931,8 +1200,6 @@ export const unterschiede = (alt: Werte, neu: Werte) =>
 	Object.keys(neu).filter((a) => (alt[a] ?? null) !== (neu[a] ?? null));
 
 // ── Prüfen ──────────────────────────────────────────────────────────────────
-
-
 
 const zahlText = (n: number) => String(n).replace('.', ',');
 

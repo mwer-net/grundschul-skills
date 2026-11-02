@@ -395,3 +395,93 @@ test.describe('Daten und Zufall (024)', () => {
 		expect(await readFile(datei, 'utf8')).toBe(stand);
 	});
 });
+
+test.describe('Ebene Geometrie (025)', () => {
+	const zellen = (seite: Page, klasse: string) =>
+		seite
+			.locator(klasse)
+			.evaluateAll((l) => l.map((e) => `${e.getAttribute('data-x')},${e.getAttribute('data-y')}`).sort());
+
+	test('Kästchen misst 1 cm, Hinweis zum Maßstab, Fehler bei Achse und Weg', async ({ page }) => {
+		const seite = await gezeichnet(
+			page,
+			'<x-gitter kaestchen="1" spalten="3" zeilen="2" figur="1 0 0"></x-gitter>',
+		);
+		await expect(seite.locator('x-gitter')).toHaveAttribute('data-masstab', '');
+		const breite = Number(await seite.locator('.kaestchen').getAttribute('width'));
+		expect((breite * 2.54) / 96).toBeCloseTo(1, 2);
+		const kreuzt = await gezeichnet(
+			page,
+			'<x-gitter spalten="8" zeilen="2" aufgabe="spiegeln" achse="senkrecht" achse-bei="1" figur="1 1"></x-gitter>',
+		);
+		await expect(kreuzt.locator('x-gitter')).toHaveAttribute('data-fehler', /kreuzt die Achse/);
+		const weg = await gezeichnet(
+			page,
+			'<x-gitter spalten="3" zeilen="3" aufgabe="weg" start="0,0" weg="9→"></x-gitter>',
+		);
+		await expect(weg.locator('x-gitter')).toHaveAttribute('data-fehler', /verlässt das Gitter/);
+	});
+
+	test('Kästchen im Panel: je ein Schritt, die Lösung spiegelt sie genau', async ({ druecke, page }) => {
+		test.slow();
+		const { dok, id, material: datei } = await uhrzeit();
+		await oeffne(page, id, dok);
+		await aendere(
+			page,
+			(await quelle(page)).replace(
+				/<x-uhr[^>]*><\/x-uhr>/,
+				'<x-gitter spalten="8" zeilen="3" kaestchen="0.5" aufgabe="spiegeln" achse="senkrecht" achse-bei="4" figur="0 0 1 1 0 0 0 0 / 0 0 0 0 0 0 0 0 / 0 0 0 0 0 0 0 0"></x-gitter>',
+			),
+		);
+		await gespeichert(page, datei);
+		const stand = await readFile(datei, 'utf8');
+		await druecke(material(page).locator('x-gitter'));
+		await page.locator('[data-gruppe="Figur"] summary').click();
+		await druecke(page.locator('[data-raster="figur"] [data-zelle="1-2"]'));
+		await gespeichert(page, datei);
+		await druecke(page.locator('[data-raster="figur"] [data-zelle="2-1"]'));
+		await gespeichert(page, datei);
+		const nachher = await readFile(datei, 'utf8');
+		expect(nachher).toContain('figur="0 0 1 1 0 0 0 0 / 0 0 1 0 0 0 0 0 / 0 1 0 0 0 0 0 0"');
+		expect(geaendert(stand, nachher)).toHaveLength(1);
+
+		const tag = /<x-gitter[^>]*><\/x-gitter>/.exec(nachher)?.[0] ?? '';
+		const loesung = await gezeichnet(page, tag, 'kl3 sw loesung');
+		expect(await zellen(loesung, '.kaestchen')).toEqual(['1,2', '2,0', '2,1', '3,0']);
+		expect(await zellen(loesung, '.kaestchen-loesung')).toEqual(['4,0', '5,0', '5,1', '6,2']);
+		const blatt = await gezeichnet(page, tag);
+		await expect(blatt.locator('.kaestchen-loesung')).toHaveCount(0);
+
+		await druecke(zurueck(page));
+		await gespeichert(page, datei);
+		expect(await readFile(datei, 'utf8')).toContain('figur="0 0 1 1 0 0 0 0 / 0 0 1 0 0 0 0 0 / 0 0 0 0 0 0 0 0"');
+		await druecke(zurueck(page));
+		await gespeichert(page, datei);
+		expect(await readFile(datei, 'utf8')).toBe(stand);
+
+		await druecke(material(page).locator('x-gitter'));
+		await page.locator('[data-gruppe="Aufgabe"] summary').click();
+		await page.getByLabel('Achse nach Kästchen', { exact: true }).fill('3');
+		await page.getByLabel('Achse nach Kästchen', { exact: true }).press('Enter');
+		await expect(page.locator('[data-fehler="_element"]')).toContainText('kreuzt die Achse');
+		expect(await readFile(datei, 'utf8')).toBe(stand);
+	});
+
+	test('Figur kennzeichnet rechte Winkel, Tangram-Bogen zeigt sieben Teile', async ({ page }) => {
+		const blatt = await gezeichnet(page, '<x-figur form="dreieck" loesung="rechter-winkel"></x-figur>');
+		await expect(blatt.locator('.rechter-winkel')).toHaveCount(0);
+		const loesung = await gezeichnet(
+			page,
+			'<x-figur form="dreieck" loesung="rechter-winkel"></x-figur>',
+			'kl3 sw loesung',
+		);
+		await expect(loesung.locator('.rechter-winkel')).toHaveCount(1);
+		const bogen = await gezeichnet(page, '<x-tangram bogen="ja"></x-tangram>');
+		await expect(bogen.locator('.teil')).toHaveCount(7);
+		await expect(bogen.locator('x-tangram')).toHaveAttribute('data-masstab', '');
+		const umriss = await gezeichnet(page, '<x-tangram umriss="kerze"></x-tangram>');
+		await expect(umriss.locator('.teil')).toHaveCount(0);
+		const voll = await gezeichnet(page, '<x-tangram umriss="kerze"></x-tangram>', 'kl3 sw loesung');
+		await expect(voll.locator('.teil')).toHaveCount(7);
+	});
+});
