@@ -62,6 +62,7 @@ Sicherheitshinweise (Feuer, Strom, Glas, Lebensmittel, Allergien) immer für die
 - Beschriftungsaufgaben (Körperteile, Pflanzenteile) mit realistischen Abbildungen.
 - Steckbriefe (Tiere, Pflanzen) als Rechercheraster.
 - Zeitleisten, Karten, Lagepläne.
+- Thermometer (`x-skala art="thermometer"`), Kalender (`x-kalender`) und Uhr mit Digitalanzeige (`x-uhr digital="ja"`) für Wetter und „Zeit und Zeitrhythmen“; Katalog in `html-materialerstellung`, Abschnitt „Größen“.
 - Bauanleitungen in Bildschritten.
 - Lerngang-/Beobachtungsbögen.
 - Folien für den Kreisinput (`praesentation`): Bildimpuls oder Phänomen, Vermutungen sammeln und abstimmen, Auflösung neben der Vermutung, Merksatz zur Ergebnissicherung. Echtes hat Vorrang (originale Begegnung); die Folie zeigt, was sich nicht in den Kreis holen lässt (Feld, Tier im Bau, Vorgang unter der Erde, früher).

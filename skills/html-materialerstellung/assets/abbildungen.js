@@ -82,6 +82,7 @@
     "x-urne": "Kugeln im Säckchen", "x-wahrscheinlichkeit": "Wahrscheinlichkeit", "x-kombinatorik": "Möglichkeiten",
     "x-gitter": "Gitter", "x-figur": "Figur", "x-tangram": "Tangram",
     "x-hunderterfeld": "Hunderterfeld", "x-hundertertafel": "Hundertertafel", "x-rechenrahmen": "Rechenrahmen", "x-rechenstrich": "Rechenstrich",
+    "x-geld": "Geld", "x-skala": "Messgerät", "x-strecke": "Strecke", "x-kalender": "Kalender", "x-zeitspanne": "Zeitspanne",
     "x-punktfeld": "Punktfeld", "x-malkreuz": "Malkreuz", "x-schriftlich": "Schriftliche Rechnung",
     "x-zahlenmauer": "Zahlenmauer", "x-rechendreieck": "Rechendreieck", "x-zahlenhaus": "Zahlenhaus", "x-zahlenkette": "Rechenkette", "x-zauberdreieck": "Zauberdreieck", "x-rechenrad": "Rechenrad",
     "x-wuerfelbau": "Würfelgebäude", "x-wuerfelnetz": "Würfelnetz", "x-koerper": "Körper",
@@ -189,8 +190,30 @@
   };
 
   /* == Grundelemente == */
+  const uhrText = (zeit, format) => {
+    const [hh, mm] = zeit.split(":").map(Number);
+    const stunde = format === "12" ? String(hh % 12 || 12) : String(hh).padStart(2, "0");
+    return `${stunde}:${String(mm).padStart(2, "0")}`;
+  };
+  const uhrSektor = (roh) => {
+    const m = roh.match(/^(\d{1,2}):(\d{2})-(\d{1,2}):(\d{2})$/);
+    if (!m) abbruch(`„${roh}“ ist keine Zeitspanne wie 4:30-4:50.`);
+    const von = Number(m[1]) * 60 + Number(m[2]);
+    let bis = Number(m[3]) * 60 + Number(m[4]);
+    if (bis <= von) bis += 720;
+    if (bis - von > 60) abbruch("Der Sektor zeigt höchstens 60 Minuten.");
+    const punkt = (minute) => {
+      const a = ((minute % 60) * 6 * Math.PI) / 180;
+      return `${r1(50 + 47 * Math.sin(a))} ${r1(50 - 47 * Math.cos(a))}`;
+    };
+    const flaeche = istSw() ? "#d0d0d0" : "color-mix(in srgb,var(--haupt) 45%,#fff)";
+    if (bis - von === 60) return `<circle class="uhr-sektor" cx="50" cy="50" r="47" fill="${flaeche}" stroke="none"/>`;
+    return `<path class="uhr-sektor" d="M50 50L${punkt(von)}A47 47 0 ${bis - von > 30 ? 1 : 0} 1 ${punkt(bis)}Z" fill="${flaeche}" stroke="none"/>`;
+  };
   function uhr(el) {
     const g = num(el, "groesse", 88);
+    const digital = attr(el, "digital", "nein"), format = attr(el, "format", "24"), mitMinuten = attr(el, "minuten", "nein") === "ja", mit24 = attr(el, "ziffern24", "nein") === "ja";
+    if (!["nein", "ja", "nur"].includes(digital)) abbruch(`„${digital}“ gibt es bei der Digitalanzeige nicht.`);
     let zeit = el.getAttribute("zeit");
     if (!zeit && el.getAttribute("loesung") && loesungSichtbar(el)) zeit = el.getAttribute("loesung");
     let s = '<circle cx="50" cy="50" r="47" stroke-width="2.5"/>';
@@ -205,6 +228,14 @@
         s += `<text x="${r1(50 + 35 * Math.sin(a))}" y="${r1(50 - 35 * Math.cos(a))}" font-family="Andika,sans-serif" font-size="9.5" font-weight="700" fill="currentColor" stroke="none" text-anchor="middle" dominant-baseline="central">${h}</text>`;
       }
     }
+    if (mit24) {
+      for (let h = 13; h <= 24; h++) {
+        const a = (h * 30 * Math.PI) / 180;
+        s += text(50 + 24.5 * Math.sin(a), 50 - 24.5 * Math.cos(a), String(h), { groesse: 6, farbe: "currentColor" });
+      }
+    }
+    const sektorRoh = el.getAttribute("sektor") || (loesungSichtbar(el) ? el.getAttribute("sektor-loesung") : null);
+    if (sektorRoh) s = uhrSektor(sektorRoh) + s;
     if (zeit) {
       if (!/^\d{1,2}:\d{2}$/.test(zeit)) abbruch(`„${zeit}“ ist keine Uhrzeit wie 4:30.`);
       const [hh, mm] = zeit.split(":").map(Number);
@@ -213,7 +244,27 @@
       s += `<line x1="50" y1="50" x2="${r1(50 + 27 * Math.sin(am))}" y2="${r1(50 - 27 * Math.cos(am))}" stroke-width="3" stroke-linecap="round"/>`;
     }
     s += '<circle cx="50" cy="50" r="3" fill="currentColor" stroke="none"/>';
-    el.innerHTML = svg(100, 100, s, [g, g]);
+    const anzeige = (y) => `<rect x="20" y="${y}" width="60" height="24" rx="4" stroke-width="1.6" fill="#fff"/>` +
+      `<g class="uhr-digital">${zeit ? text(50, y + 12, uhrText(zeit, format), { groesse: 16, fett: true }) : ""}</g>`;
+    if (digital === "nur") {
+      el.innerHTML = svg(100, 26, anzeige(1), [g, g * 0.26]);
+      return;
+    }
+    if (!mitMinuten && digital === "nein") {
+      el.innerHTML = svg(100, 100, s, [g, g]);
+      return;
+    }
+    const rand = mitMinuten ? 11 : 0;
+    let ring = "";
+    if (mitMinuten) {
+      for (let i = 1; i <= 12; i++) {
+        const a = (i * 30 * Math.PI) / 180;
+        ring += text(50 + 53 * Math.sin(a), 50 - 53 * Math.cos(a), String(i * 5), { groesse: 6.5, farbe: "currentColor" });
+      }
+    }
+    const breit = 100 + rand * 2, hoch = breit + (digital === "ja" ? 28 : 0), faktor = g / 100;
+    const unten = digital === "ja" ? anzeige(breit + 2 - rand) : "";
+    el.innerHTML = svg(breit, hoch, `<g transform="translate(${rand} ${rand})">${s}${ring}${unten}</g>`, [breit * faktor, hoch * faktor]);
   }
 
   const FORMEN = {
@@ -2676,6 +2727,418 @@
     el.innerHTML = svg(r1(weit), r1(unten), s);
   }
 
+  /* == Größen == */
+  // Münzen: Durchmesser in mm (EU-Verordnung 729/2014), Scheine: Europa-Serie in mm.
+  const MUENZEN = {
+    "1ct": { mm: 16.25, wert: 1, metall: "kupfer" }, "2ct": { mm: 18.75, wert: 2, metall: "kupfer" }, "5ct": { mm: 21.25, wert: 5, metall: "kupfer" },
+    "10ct": { mm: 19.75, wert: 10, metall: "gold" }, "20ct": { mm: 22.25, wert: 20, metall: "gold" }, "50ct": { mm: 24.25, wert: 50, metall: "gold" },
+    "1€": { mm: 23.25, wert: 100, metall: "euro1" }, "2€": { mm: 25.75, wert: 200, metall: "euro2" },
+  };
+  const SCHEINE = {
+    "5€": { b: 120, h: 62, wert: 500, farbe: "#c9c9c9" }, "10€": { b: 127, h: 67, wert: 1000, farbe: "#e8a3a3" }, "20€": { b: 133, h: 72, wert: 2000, farbe: "#a9c3e8" },
+    "50€": { b: 140, h: 77, wert: 5000, farbe: "#f0c08a" }, "100€": { b: 147, h: 77, wert: 10000, farbe: "#a8d8a8" }, "200€": { b: 153, h: 77, wert: 20000, farbe: "#efe08f" },
+  };
+  const SCHEIN_HOECHSTENS = 0.75; // EZB/2013/10: deutlich verkleinert, hier höchstens 75 % je Seite
+  const METALL_SW = { kupfer: "#bdbdbd", gold: "#e4e4e4", euro1: "#e4e4e4", euro2: "#bdbdbd" };
+  const METALL_FARBE = { kupfer: "#c6794a", gold: "#dcb84c", euro1: "#dcb84c", euro2: "#c9c9c9" };
+  const KERN_SW = { euro1: "#bdbdbd", euro2: "#e4e4e4" };
+  const KERN_FARBE = { euro1: "#c9c9c9", euro2: "#dcb84c" };
+  const stueckWert = (name) => (MUENZEN[name] ?? SCHEINE[name])?.wert;
+
+  const betragText = (cent, kl) => {
+    const euro = Math.floor(cent / 100), ct = cent % 100;
+    if (kl >= 3) return `${zahl(euro)},${String(ct).padStart(2, "0")} €`;
+    if (euro === 0) return `${ct} ct`;
+    return ct === 0 ? `${zahl(euro)} €` : `${zahl(euro)} € ${ct} ct`;
+  };
+  /** Wenigste Stücke für den Betrag. Ohne `vorrat` reicht Gierig, das Euro-System ist kanonisch; mit `vorrat` jedes Stück einmal. */
+  const mindestStueckelung = (cent, vorrat = []) => {
+    if (vorrat.length === 0) {
+      const stuecke = [];
+      let rest = cent;
+      for (const name of Object.keys({ ...SCHEINE, ...MUENZEN }).sort((a, b) => stueckWert(b) - stueckWert(a))) {
+        while (rest >= stueckWert(name)) {
+          stuecke.push(name);
+          rest -= stueckWert(name);
+        }
+      }
+      return stuecke;
+    }
+    const besser = new Map([[0, []]]);
+    for (const name of vorrat) {
+      const w = stueckWert(name);
+      for (const [summe, stuecke] of [...besser].sort((a, b) => b[0] - a[0])) {
+        const neu = summe + w, bisher = besser.get(neu);
+        if (neu <= cent && (!bisher || bisher.length > stuecke.length + 1)) besser.set(neu, [...stuecke, name]);
+      }
+    }
+    const treffer = besser.get(cent);
+    return treffer ? [...treffer].sort((a, b) => stueckWert(b) - stueckWert(a)) : null;
+  };
+
+  const stueckBild = (name, x, y, mass, rueck) => {
+    const schein = SCHEINE[name];
+    if (schein) {
+      const b = schein.b * mass.schein, h = schein.h * mass.schein, wort = name.replace("€", " €");
+      return `<g class="stueck" data-stueck="${name}" data-b="${r1(b)}" data-h="${r1(h)}">` +
+        `<rect x="${r1(x)}" y="${r1(y)}" width="${r1(b)}" height="${r1(h)}" rx="4" stroke-width="1.6" fill="${istSw() ? "#fff" : schein.farbe}"/>` +
+        text(x + b / 2, y + h * 0.42, wort, { groesse: h * 0.36, fett: true }) +
+        text(x + b / 2, y + h * 0.82, "Spielgeld", { groesse: Math.max(10, h * 0.15) }) + "</g>";
+    }
+    const m = MUENZEN[name], d = m.mm * mass.muenze, r = d / 2, cx = x + r, cy = y + r;
+    const sw = istSw(), kern = sw ? KERN_SW[m.metall] : KERN_FARBE[m.metall];
+    let s = `<g class="stueck" data-stueck="${name}" data-d="${r1(d)}"><circle cx="${r1(cx)}" cy="${r1(cy)}" r="${r1(r)}" stroke-width="1.4" fill="${sw ? METALL_SW[m.metall] : METALL_FARBE[m.metall]}"/>`;
+    if (kern) s += `<circle cx="${r1(cx)}" cy="${r1(cy)}" r="${r1(r * 0.7)}" stroke-width="0.8" fill="${kern}"/>`;
+    if (rueck) {
+      for (let i = 0; i < 12; i++) {
+        const a = (i * 30 * Math.PI) / 180;
+        s += `<circle cx="${r1(cx + r * 0.62 * Math.sin(a))}" cy="${r1(cy - r * 0.62 * Math.cos(a))}" r="${r1(r * 0.07)}" fill="${SCHWARZ}" stroke="none"/>`;
+      }
+    } else {
+      const zahlWort = name.replace(/ct|€/, ""), einheit = name.endsWith("€") ? "€" : "ct";
+      s += text(cx, cy - r * 0.14, zahlWort, { groesse: r * 0.92, fett: true }) + text(cx, cy + r * 0.5, einheit, { groesse: Math.max(8, r * 0.46) });
+    }
+    return s + "</g>";
+  };
+  const stueckMass = (name, mass) => {
+    const schein = SCHEINE[name];
+    return schein ? { b: schein.b * mass.schein, h: schein.h * mass.schein } : { b: MUENZEN[name].mm * mass.muenze, h: MUENZEN[name].mm * mass.muenze };
+  };
+  const legeAus = (namen, mass, rueck, gruppiert, oben = 0) => {
+    let x = 0, y = oben, zeile = 0, s = "", vorher = null, weit = 0;
+    for (const name of namen) {
+      const { b, h } = stueckMass(name, mass), luecke = gruppiert && vorher !== null && vorher !== name ? 16 : 0;
+      x += x > 0 ? luecke : 0;
+      if (x > 0 && x + b > SATZSPIEGEL - 4) {
+        x = 0;
+        y += zeile + 8;
+        zeile = 0;
+      }
+      s += stueckBild(name, x + 1, y + 1, mass, rueck);
+      x += b + 8;
+      weit = Math.max(weit, x);
+      zeile = Math.max(zeile, h + 2);
+      vorher = name;
+    }
+    return { s, weit, unten: y + zeile };
+  };
+  const leseBetrag = (roh) => {
+    const m = String(roh).trim().replace("€", "").trim().match(/^(\d+)(?:[.,](\d{1,2}))?$/);
+    if (!m) abbruch(`„${roh}“ ist kein Betrag wie 3,45.`);
+    return Number(m[1]) * 100 + Number((m[2] ?? "0").padEnd(2, "0"));
+  };
+
+  function geld(el) {
+    const namen = liste(el, "stuecke"), aufgabe = attr(el, "aufgabe", "keine"), anordnung = attr(el, "anordnung", "reihe");
+    const seite = attr(el, "seite", "wert"), massstab = attr(el, "massstab", "0.5"), betragRoh = attr(el, "betrag", null);
+    for (const n of namen) if (stueckWert(n) === undefined) abbruch(`Das Stück „${n}“ gibt es nicht.`);
+    if (!["keine", "betrag", "legen"].includes(aufgabe)) abbruch(`Die Aufgabe „${aufgabe}“ gibt es nicht.`);
+    const original = massstab === "original", faktor = original ? 1 : Number(massstab);
+    if (!(faktor >= 0.3 && faktor <= 1)) abbruch("Der Maßstab ist „original“ oder eine Zahl von 0,3 bis 1.");
+    if (original) masstab(el);
+    else el.removeAttribute("data-masstab");
+    const mm = cm(0.1), mass = { muenze: mm * faktor, schein: mm * Math.min(faktor, SCHEIN_HOECHSTENS) };
+    const gruppiert = anordnung === "gruppiert", kl = klasse();
+    const folge = gruppiert ? [...namen].sort((a, b) => stueckWert(b) - stueckWert(a)) : namen;
+    const summe = namen.reduce((t, n) => t + stueckWert(n), 0);
+    if (namen.length === 0 && aufgabe !== "legen") abbruch("Es fehlen die Stücke.");
+    const flaeche = legeAus(folge, mass, seite === "rueck", gruppiert);
+    let s = flaeche.s, weit = flaeche.weit, unten = flaeche.unten;
+    if (aufgabe === "betrag") {
+      pruefeRaum([Math.ceil(summe / 100)]);
+      s += text(0, unten + 22, "Das sind", { groesse: 16, anker: "start" });
+      s += antwortfeld(el, 72, unten + 8, 120, 28, betragText(summe, kl), { groesse: 16 });
+      unten += 40;
+      weit = Math.max(weit, 194);
+    }
+    if (aufgabe === "legen") {
+      if (betragRoh === null) abbruch("Es fehlt der Betrag zum Legen.");
+      const cent = leseBetrag(betragRoh);
+      pruefeRaum([Math.ceil(cent / 100)]);
+      const loesung = mindestStueckelung(cent, namen);
+      if (!loesung) abbruch(`Mit diesen Stücken lässt sich ${betragText(cent, kl)} nicht legen.`);
+      const anfang = unten + (namen.length > 0 ? 12 : 0);
+      s += text(0, anfang + 10, `Lege ${betragText(cent, kl)}.`, { groesse: 16, fett: true, anker: "start" });
+      const bild = legeAus(loesung, mass, false, false, anfang + 30);
+      const hoehe = bild.unten - anfang - 30 + 12;
+      s += `<rect class="legefeld" x="0.5" y="${r1(anfang + 24)}" width="${SATZSPIEGEL - 1}" height="${r1(hoehe)}" rx="6" stroke-width="1.2" stroke-dasharray="6 4"/>`;
+      if (loesungSichtbar(el)) s += `<g transform="translate(8 0)">${bild.s}</g>`;
+      el.setAttribute("data-stueckelung", loesung.join(" "));
+      unten = anfang + 24 + hoehe;
+      weit = SATZSPIEGEL;
+    } else {
+      el.removeAttribute("data-stueckelung");
+    }
+    if (summe > 0) meldeInfo(el, `Zusammen: ${betragText(summe, kl)}`);
+    else meldeInfo(el, null);
+    el.innerHTML = svg(r1(weit), r1(unten + 1), s);
+  }
+
+  const SKALA_EINHEITEN = { lineal: ["cm", "mm"], massband: ["cm", "m"], messbecher: ["ml", "l"], thermometer: ["°C"], waage: ["g", "kg"] };
+  const SKALA_STANDARD = {
+    "lineal|cm": [0, 15, "1 0.1"], "lineal|mm": [0, 150, "10 1"], "massband|cm": [0, 100, "10 1"], "massband|m": [0, 5, "1 0.1"],
+    "messbecher|ml": [0, 500, "100 20"], "messbecher|l": [0, 2, "1 0.1"], "thermometer|°C": [-20, 40, "10 2"], "waage|g": [0, 1000, "100 20"], "waage|kg": [0, 5, "1 0.1"],
+  };
+  /** Striche mit exakt gleichen Abständen, aus ganzzahligen Vielfachen statt aufaddiert. */
+  const skalaStriche = (von, bis, haupt, klein) => {
+    const anzahl = Math.round((bis - von) / klein);
+    if (Math.abs(anzahl * klein - (bis - von)) > 1e-6) abbruch("Die Striche passen nicht in die Skala.");
+    if (anzahl > 300) abbruch("Diese Teilung hat zu viele Striche.");
+    return Array.from({ length: anzahl + 1 }, (_, i) => {
+      const wert = Math.round((von + i * klein) * 1e6) / 1e6, q = wert / haupt;
+      return { wert, gross: Math.abs(q - Math.round(q)) < 1e-6, anteil: i / anzahl };
+    });
+  };
+
+  function skala(el) {
+    const art = attr(el, "art", "lineal"), einheiten = SKALA_EINHEITEN[art];
+    if (!einheiten) abbruch(`Das Messgerät „${art}“ gibt es nicht.`);
+    const einheit = attr(el, "einheit", einheiten[0]);
+    if (!einheiten.includes(einheit)) abbruch(`${einheit} passt nicht zu diesem Messgerät.`);
+    const [v0, b0, t0] = SKALA_STANDARD[`${art}|${einheit}`];
+    const von = num(el, "von", v0), bis = num(el, "bis", b0), [haupt, klein] = attr(el, "teilung", t0).trim().split(/\s+/).map(Number);
+    if (!(von < bis)) abbruch("„Von“ muss kleiner sein als „bis“.");
+    if (!(haupt > 0 && klein > 0)) abbruch("Die Teilung besteht aus Hauptstrich und Zwischenstrich, z. B. 1 0,1.");
+    const aufgabe = attr(el, "aufgabe", null), wertRoh = attr(el, "wert", null), loesungRoh = attr(el, "loesung", null);
+    const massstab = attr(el, "massstab", art === "lineal" ? "original" : "nein"), groesse = attr(el, "groesse", null);
+    if (aufgabe !== null && aufgabe !== "ablesen" && aufgabe !== "einzeichnen") abbruch(`Die Aufgabe „${aufgabe}“ gibt es nicht.`);
+    const roh = wertRoh ?? loesungRoh, wert = roh === null ? null : Number(String(roh).replace(",", "."));
+    if (wert !== null && !(wert >= von && wert <= bis)) abbruch(`Der Wert muss zwischen ${zahl(von)} und ${zahl(bis)} liegen.`);
+    const striche = skalaStriche(von, bis, haupt, klein), anteil = wert === null ? 0 : (wert - von) / (bis - von);
+    const zeigeWert = wert !== null && (loesungSichtbar(el) || (wertRoh !== null && aufgabe !== "einzeichnen"));
+    const wort = wert === null ? "" : `${zahl(wert)} ${einheit}`, fluessig = istSw() ? "#b5b5b5" : "var(--haupt)", zeiger = istSw() ? SCHWARZ : "var(--haupt)";
+    const original = art === "lineal" && massstab === "original";
+    if (original) masstab(el);
+    else el.removeAttribute("data-masstab");
+    let s = "", breite = 0, hoehe = 0;
+    if (art === "lineal" || art === "massband") {
+      const proEinheit = original ? cm(einheit === "mm" ? 0.1 : 1) : (Number(groesse) || 480) / (bis - von), L = (bis - von) * proEinheit;
+      if (L + 24 > SATZSPIEGEL) abbruch("Das passt nicht auf die Seite: Bitte „bis“ kleiner wählen.");
+      const x0 = 12, koerper = art === "lineal" ? 46 : 34;
+      s += `<rect x="0.8" y="0.8" width="${r1(L + 24)}" height="${koerper}" rx="${art === "lineal" ? 3 : 1}" stroke-width="1.6" fill="${art === "lineal" ? "#fff" : "#f4f4f4"}"/>`;
+      for (const st of striche) {
+        const x = x0 + st.anteil * L, mitte = !st.gross && Math.abs(((st.wert * 2) / haupt) - Math.round((st.wert * 2) / haupt)) < 1e-6;
+        const lang = st.gross ? 18 : mitte ? 12 : 7;
+        s += `<line class="strich" data-wert="${st.wert}" x1="${r1(x)}" y1="1" x2="${r1(x)}" y2="${lang + 1}" stroke-width="${st.gross ? 1.5 : 0.7}"/>`;
+        if (st.gross) s += text(x, lang + 10, zahl(st.wert), { groesse: 12 });
+      }
+      breite = L + 26;
+      hoehe = koerper + 2;
+      if (zeigeWert) {
+        const x = x0 + anteil * L;
+        s += `<path class="marke" d="M${r1(x)} ${hoehe + 1}l-7 11h14Z" fill="${zeiger}" stroke="none"/>`;
+      }
+      hoehe += 14;
+      if (!original) {
+        s += text(breite - 2, hoehe + 8, "nicht zum Messen", { groesse: 11, anker: "end" });
+        hoehe += 16;
+      }
+    } else if (art === "messbecher" || art === "thermometer") {
+      const L = Number(groesse) || 190, oben = 14;
+      if (art === "messbecher") {
+        const b = 86;
+        s += `<path d="M1 ${oben - 10}H${b + 1}V${r1(oben + L + 6)}Q${b + 1} ${r1(oben + L + 12)} ${b - 5} ${r1(oben + L + 12)}H7Q1 ${r1(oben + L + 12)} 1 ${r1(oben + L + 6)}Z" stroke-width="2" fill="#fff"/>`;
+        if (zeigeWert) s += `<rect class="pegel" x="2" y="${r1(oben + L * (1 - anteil))}" width="${b - 2}" height="${r1(L * anteil + 11)}" fill="${fluessig}" stroke="none" opacity="0.7"/>`;
+        for (const st of striche) {
+          const y = oben + L * (1 - st.anteil), lang = st.gross ? 26 : 12;
+          s += `<line class="strich" data-wert="${st.wert}" x1="${b + 1}" y1="${r1(y)}" x2="${b + 1 - lang}" y2="${r1(y)}" stroke-width="${st.gross ? 1.6 : 0.8}"/>`;
+          if (st.gross) s += text(b + 8, y, `${zahl(st.wert)} ${einheit}`, { groesse: 12, anker: "start" });
+        }
+        breite = b + 70;
+      } else {
+        const m = 24, roehre = 14, kugel = 15;
+        s += `<path d="M${m - roehre / 2} ${r1(oben + L + 6)}V${oben - 4}a${roehre / 2} ${roehre / 2} 0 0 1 ${roehre} 0V${r1(oben + L + 6)}" stroke-width="1.8" fill="#fff"/>`;
+        s += `<circle cx="${m}" cy="${r1(oben + L + 6 + kugel - 3)}" r="${kugel}" stroke-width="1.8" fill="${zeigeWert ? fluessig : "#fff"}"/>`;
+        if (zeigeWert) s += `<rect class="pegel" x="${m - 4}" y="${r1(oben + L * (1 - anteil))}" width="8" height="${r1(L * anteil + 14)}" fill="${fluessig}" stroke="none"/>`;
+        for (const st of striche) {
+          const y = oben + L * (1 - st.anteil), lang = st.gross ? 14 : 7;
+          s += `<line class="strich" data-wert="${st.wert}" x1="${m + roehre / 2}" y1="${r1(y)}" x2="${m + roehre / 2 + lang}" y2="${r1(y)}" stroke-width="${st.gross ? 1.6 : 0.8}"/>`;
+          if (st.gross) s += text(m + roehre / 2 + lang + 4, y, `${zahl(st.wert)} °C`, { groesse: 12, anker: "start" });
+        }
+        breite = m + 80;
+      }
+      hoehe = oben + L + (art === "messbecher" ? 14 : 36);
+    } else {
+      const R = (Number(groesse) || 240) / 2, mx = R + 8, my = R + 14, winkel = (t) => Math.PI * 0.84 * (t - 0.5);
+      const grosse = striche.filter((st) => st.gross).length, jeder = Math.max(1, Math.ceil((grosse * 34) / (Math.PI * 0.84 * (R - 26))));
+      let nr = 0;
+      s += `<path d="M${r1(mx - R)} ${r1(my)}A${r1(R)} ${r1(R)} 0 0 1 ${r1(mx + R)} ${r1(my)}Z" stroke-width="2" fill="#fff"/>`;
+      for (const st of striche) {
+        const a = winkel(st.anteil), lang = st.gross ? 16 : 8, sin = Math.sin(a), cos = Math.cos(a);
+        s += `<line class="strich" data-wert="${st.wert}" x1="${r1(mx + R * sin)}" y1="${r1(my - R * cos)}" x2="${r1(mx + (R - lang) * sin)}" y2="${r1(my - (R - lang) * cos)}" stroke-width="${st.gross ? 1.6 : 0.8}"/>`;
+        if (st.gross && nr++ % jeder === 0) s += text(mx + (R - lang - 13) * sin, my - (R - lang - 13) * cos, zahl(st.wert), { groesse: 11 });
+      }
+      s += text(mx + R * 0.42, my - 12, einheit, { groesse: 14, fett: true });
+      if (zeigeWert) {
+        const a = winkel(anteil);
+        s += `<line class="marke" x1="${r1(mx)}" y1="${r1(my)}" x2="${r1(mx + (R - 6) * Math.sin(a))}" y2="${r1(my - (R - 6) * Math.cos(a))}" stroke-width="3" stroke-linecap="round" style="stroke:${zeiger}"/>`;
+      }
+      s += `<circle cx="${r1(mx)}" cy="${r1(my)}" r="5" fill="${SCHWARZ}" stroke="none"/>`;
+      breite = R * 2 + 16;
+      hoehe = my + 8;
+    }
+    if (aufgabe === "ablesen") {
+      s += antwortfeld(el, 0, hoehe + 6, 110, 28, wort, { groesse: 15 });
+      hoehe += 36;
+      breite = Math.max(breite, 112);
+    } else if (aufgabe === "einzeichnen" && wert !== null) {
+      s += text(0, hoehe + 16, `Zeichne ein: ${wort}`, { groesse: 15, fett: true, anker: "start" });
+      hoehe += 26;
+      breite = Math.max(breite, textBreite(`Zeichne ein: ${wort}`, 15) + 4);
+    }
+    el.setAttribute("data-wert", wert === null ? "" : String(wert));
+    el.innerHTML = svg(r1(breite), r1(hoehe), s);
+  }
+
+  const leseLaenge = (roh) => {
+    const m = String(roh).trim().match(/^(\d+(?:[.,]\d+)?)\s*(cm|mm)?$/);
+    if (!m) abbruch(`„${roh}“ ist keine Länge wie 7 cm oder 45 mm.`);
+    const zahlwert = Number(m[1].replace(",", ".")), einheit = m[2] ?? "cm";
+    return { cm: einheit === "mm" ? zahlwert / 10 : zahlwert, wort: `${zahl(zahlwert)} ${einheit}` };
+  };
+  function strecke(el) {
+    const { cm: laenge, wort } = leseLaenge(attr(el, "laenge", "7")), [a, b] = trenneListe(attr(el, "beschriftung", "")), richtung = attr(el, "richtung", "waagerecht");
+    if (richtung !== "waagerecht" && richtung !== "schraeg") abbruch(`Die Richtung „${richtung}“ gibt es nicht.`);
+    if (!(laenge > 0)) abbruch("Die Strecke braucht eine Länge.");
+    const L = cm(laenge), winkel = richtung === "schraeg" ? Math.PI / 6 : 0, dx = L * Math.cos(winkel), dy = L * Math.sin(winkel), rand = 14;
+    if (dx + rand * 2 > SATZSPIEGEL) abbruch("Diese Strecke passt in Originalgröße nicht auf die Seite.");
+    masstab(el);
+    const x1 = rand, y1 = dy + 18, x2 = x1 + dx, y2 = y1 - dy, nx = Math.sin(winkel) * 7, ny = Math.cos(winkel) * 7;
+    let s = `<line class="strecke" data-laenge="${laenge}" x1="${r1(x1)}" y1="${r1(y1)}" x2="${r1(x2)}" y2="${r1(y2)}" stroke-width="1.6"/>`;
+    for (const [x, y] of [[x1, y1], [x2, y2]]) s += `<line x1="${r1(x - nx)}" y1="${r1(y - ny)}" x2="${r1(x + nx)}" y2="${r1(y + ny)}" stroke-width="1.6"/>`;
+    if (a) s += text(x1, y1 + 16, a, { groesse: 14, fett: true });
+    if (b) s += text(x2, y2 + 16, b, { groesse: 14, fett: true });
+    const unten = y1 + 28;
+    s += antwortfeld(el, 0, unten, 90, 28, wort, { groesse: 15 });
+    el.innerHTML = svg(r1(Math.max(dx + rand * 2, 92)), r1(unten + 30), s);
+  }
+
+  const MONATE = ["Januar", "Februar", "März", "April", "Mai", "Juni", "Juli", "August", "September", "Oktober", "November", "Dezember"];
+  /** `start`: Spalte des 1. Tags, Montag ist 0. Eigene Rechnung, damit keine Zeitzone hineinspielt. */
+  const kalenderMonat = (jahr, monat) => {
+    const schalt = (jahr % 4 === 0 && jahr % 100 !== 0) || jahr % 400 === 0;
+    const tage = [31, schalt ? 29 : 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31][monat - 1];
+    const v = [0, 3, 2, 5, 0, 3, 5, 1, 4, 6, 2, 4][monat - 1], j = monat < 3 ? jahr - 1 : jahr;
+    const sonntag0 = (j + Math.floor(j / 4) - Math.floor(j / 100) + Math.floor(j / 400) + v + 1) % 7;
+    return { tage, start: (sonntag0 + 6) % 7 };
+  };
+  const isoWoche = (jahr, monat, tag) => {
+    const d = new Date(Date.UTC(jahr, monat - 1, tag)), wt = (d.getUTCDay() + 6) % 7;
+    d.setUTCDate(d.getUTCDate() - wt + 3);
+    const erster = new Date(Date.UTC(d.getUTCFullYear(), 0, 4));
+    return 1 + Math.round(((d - erster) / 86400000 - 3 + ((erster.getUTCDay() + 6) % 7)) / 7);
+  };
+  const monatsbild = (el, jahr, monat, ox, oy, z, h, { markiert, luecken, mitKw, praefix, schrift }) => {
+    const { tage, start } = kalenderMonat(jahr, monat), links = mitKw ? z : 0;
+    let s = text(ox + links + (7 * z) / 2, oy + h / 2, `${MONATE[monat - 1]} ${jahr}`, { groesse: schrift + 2, fett: true });
+    ["Mo", "Di", "Mi", "Do", "Fr", "Sa", "So"].forEach((w, i) => {
+      s += text(ox + links + (i + 0.5) * z, oy + h * 1.5, w, { groesse: schrift, fett: true });
+    });
+    if (mitKw) s += text(ox + z / 2, oy + h * 1.5, "KW", { groesse: schrift - 1 });
+    const zellen = [];
+    for (let t = 1; t <= tage; t++) {
+      const pos = start + t - 1, wt = pos % 7, woche = Math.floor(pos / 7), x = ox + links + wt * z, y = oy + (woche + 2) * h, id = `${praefix}${t}`;
+      const offen = luecken.has(id), zeige = !offen || loesungSichtbar(el);
+      zellen.push({ id, x: wt, y: woche, text: String(t) });
+      s += `<g class="kal-tag" data-tag="${t}" data-wt="${wt}" data-woche="${woche}" data-offen="${offen ? "ja" : "nein"}">`;
+      s += `<rect x="${r1(x)}" y="${r1(y)}" width="${r1(z)}" height="${r1(h)}" stroke-width="0.8" fill="${wt >= 5 ? "#E0E0E0" : "#fff"}"/>`;
+      if (zeige) s += text(x + z / 2, y + h / 2, String(t), { groesse: schrift });
+      if (markiert.has(id)) s += `<circle class="kal-ring" cx="${r1(x + z / 2)}" cy="${r1(y + h / 2)}" r="${r1(Math.min(z, h) * 0.42)}" fill="none" stroke-width="1.8"${istSw() ? "" : ' style="stroke:var(--haupt)"'}/>`;
+      s += "</g>";
+      if (mitKw && (wt === 0 || t === 1)) s += text(ox + z / 2, y + h / 2, String(isoWoche(jahr, monat, t)), { groesse: schrift - 1, farbe: GRAU });
+    }
+    const wochen = Math.ceil((start + tage) / 7);
+    return { s, zellen, breite: links + 7 * z, hoehe: (wochen + 2) * h };
+  };
+  function kalender(el) {
+    const art = attr(el, "art", "monat"), monat = num(el, "monat", 1), jahr = num(el, "jahr", 2026), mitKw = attr(el, "kw", "nein") === "ja";
+    const markiert = new Set(liste(el, "markiert")), luecken = new Set(liste(el, "luecken"));
+    if (art !== "monat" && art !== "jahr") abbruch(`Die Art „${art}“ gibt es nicht.`);
+    if (!Number.isInteger(jahr) || jahr < 1900 || jahr > 2100) abbruch("Das Jahr liegt zwischen 1900 und 2100.");
+    if (art === "monat") {
+      if (!Number.isInteger(monat) || monat < 1 || monat > 12) abbruch("Der Monat ist 1 bis 12.");
+      const bild = monatsbild(el, jahr, monat, 0.5, 0.5, 44, 34, { markiert, luecken, mitKw, praefix: "", schrift: 15 });
+      meldeZellen(el, "markiert", bild.zellen);
+      meldeZellen(el, "luecken", bild.zellen);
+      el.innerHTML = svg(r1(bild.breite + 1), r1(bild.hoehe + 1), bild.s);
+      return;
+    }
+    meldeZellen(el, "markiert", []);
+    meldeZellen(el, "luecken", []);
+    const z = mitKw ? 22 : 25, h = 20, abstand = 14, proZeile = 3;
+    let s = "", breite = 0, hoehe = 0;
+    for (let m = 1; m <= 12; m++) {
+      const spalte = (m - 1) % proZeile, zeile = Math.floor((m - 1) / proZeile), weit = (mitKw ? 8 : 7) * z;
+      const bild = monatsbild(el, jahr, m, 0.5 + spalte * (weit + abstand), 0.5 + zeile * (8 * h + abstand), z, h, { markiert, luecken, mitKw, praefix: `${m}-`, schrift: 11 });
+      s += `<g class="kal-monat" data-monat="${m}">${bild.s}</g>`;
+      breite = Math.max(breite, (spalte + 1) * (weit + abstand));
+      hoehe = Math.max(hoehe, (zeile + 1) * (8 * h + abstand));
+    }
+    el.innerHTML = svg(r1(breite), r1(hoehe), s);
+  }
+
+  const leseZeit = (roh) => {
+    const m = String(roh).trim().match(/^(\d{1,2}):(\d{2})$/);
+    if (!m || Number(m[1]) > 24 || Number(m[2]) > 59) abbruch(`„${roh}“ ist keine Uhrzeit wie 8:20.`);
+    return Number(m[1]) * 60 + Number(m[2]);
+  };
+  const zeitText = (min) => `${Math.floor(min / 60) % 24}:${String(min % 60).padStart(2, "0")}`;
+  const dauerText = (min) => {
+    const h = Math.floor(min / 60), m = min % 60;
+    return [h > 0 ? `${h} h` : "", m > 0 || h === 0 ? `${m} min` : ""].filter(Boolean).join(" ");
+  };
+  /** Stationen der Zeitspanne: automatisch zur vollen Stunde, dann die ganzen Stunden, dann der Rest. */
+  const zeitStationen = (von, bis, spruenge) => {
+    const orte = [von];
+    if (spruenge) {
+      for (const teil of spruenge.split(",").map((t) => t.trim()).filter(Boolean)) {
+        const letzter = orte[orte.length - 1], bisZeit = teil.match(/^bis\s+(\d{1,2}:\d{2})$/), plus = teil.match(/^\+\s*(\d+)\s*(min|h)$/);
+        if (bisZeit) {
+          let ziel = leseZeit(bisZeit[1]);
+          while (ziel < letzter) ziel += 1440;
+          orte.push(ziel);
+        } else if (plus) orte.push(letzter + Number(plus[1]) * (plus[2] === "h" ? 60 : 1));
+        else abbruch(`„${teil}“ ist kein Sprung wie „bis 9:00“ oder „+40 min“.`);
+      }
+      if (orte[orte.length - 1] !== bis) abbruch(`Die Sprünge enden bei ${zeitText(orte[orte.length - 1])}, nicht bei ${zeitText(bis)}.`);
+      return orte;
+    }
+    const naechste = Math.ceil(von / 60) * 60;
+    if (naechste > von && naechste < bis) orte.push(naechste);
+    const letzteVolle = Math.floor(bis / 60) * 60;
+    if (letzteVolle > orte[orte.length - 1] && letzteVolle < bis) orte.push(letzteVolle);
+    if (orte[orte.length - 1] !== bis) orte.push(bis);
+    return orte;
+  };
+  function zeitspanne(el) {
+    const vonRoh = attr(el, "von", "8:20"), bisRoh = attr(el, "bis", "9:45"), spruenge = attr(el, "spruenge", null), zeige = leseOffen(attr(el, "zeige", null), ["von", "bis"]);
+    const von = leseZeit(vonRoh);
+    let bis = leseZeit(bisRoh);
+    if (bis <= von) {
+      if (klasse() <= 2) abbruch("In Klasse 1 und 2 geht die Zeitspanne nicht über Mitternacht.");
+      bis += 1440;
+    }
+    if (bis - von > 1440) abbruch("Die Zeitspanne ist höchstens 24 Stunden lang.");
+    const orte = zeitStationen(von, bis, spruenge), schritt = Math.min(130, (SATZSPIEGEL - 80) / (orte.length - 1)), b = 62, h = 28, oben = 44;
+    let s = `<line x1="${b / 2}" y1="${oben + 6}" x2="${r1(b / 2 + schritt * (orte.length - 1))}" y2="${oben + 6}" stroke-width="2"/>`;
+    orte.forEach((ort, i) => {
+      const x = b / 2 + i * schritt, rolle = i === 0 ? "von" : i === orte.length - 1 ? "bis" : "spruenge";
+      s += `<line x1="${r1(x)}" y1="${oben}" x2="${r1(x)}" y2="${oben + 12}" stroke-width="2"/>`;
+      s += rechenfeld(el, `o${i}`, x - b / 2, oben + 16, b, h, ort, !zeige.has(rolle), 15, { inhaltText: zeitText(ort) });
+      if (i === 0) return;
+      const x0 = x - schritt, mitte = x0 + schritt / 2, wortS = `+${dauerText(ort - orte[i - 1])}`;
+      s += `<path d="M${r1(x0)} ${oben}Q${r1(mitte)} ${oben - 26} ${r1(x)} ${oben}" stroke-width="1.6"/>`;
+      s += `<g class="sprung" data-wert="${wortS}" data-offen="${zeige.has("spruenge") ? "nein" : "ja"}">`;
+      if (zeige.has("spruenge") || loesungSichtbar(el)) s += text(mitte, oben - 22, wortS, { groesse: 13, fett: !zeige.has("spruenge") });
+      s += "</g>";
+    });
+    const unten = oben + 16 + h + 8;
+    s += text(0, unten + 14, "Dauer:", { groesse: 16, anker: "start" });
+    s += rechenfeld(el, "dauer", 56, unten, 110, 28, bis - von, !zeige.has("dauer"), 15, { inhaltText: dauerText(bis - von) });
+    meldeInfo(el, `Dauer: ${dauerText(bis - von)}`);
+    el.innerHTML = svg(r1(Math.max(b + schritt * (orte.length - 1), 170)), r1(unten + 30), s);
+  }
+
   /* == Test == */
   // x-probe gibt es nur für die Tests der Feldtypen im Panel (023); in Material kommt es nicht vor.
   function probe(el) {
@@ -2715,6 +3178,7 @@
     "x-gitter": gitter, "x-figur": figur, "x-tangram": tangram,
     "x-hunderterfeld": hunderterfeld, "x-hundertertafel": hundertertafel, "x-rechenrahmen": rechenrahmen, "x-rechenstrich": rechenstrich,
     "x-zahlenmauer": zahlenmauer, "x-rechendreieck": rechendreieck, "x-zahlenhaus": zahlenhaus, "x-zahlenkette": zahlenkette, "x-zauberdreieck": zauberdreieck, "x-rechenrad": rechenrad,
+    "x-geld": geld, "x-skala": skala, "x-strecke": strecke, "x-kalender": kalender, "x-zeitspanne": zeitspanne,
     "x-punktfeld": punktfeld, "x-malkreuz": malkreuz, "x-schriftlich": schriftlich,
     "x-wuerfelbau": wuerfelbau, "x-wuerfelnetz": wuerfelnetz, "x-koerper": koerper };
 
@@ -2743,6 +3207,7 @@
     tafelOrt, ausschnittZahlen, rechenstrichWerte, leseSprung,
     mauerWerte, mauerEindeutig, istEindeutig, RECHENDREIECK_GLEICHUNGEN, zauberLoesungen, ketteWerte, leseOperator,
     malkreuzRechnung, addiere, subtrahiereErweitern, subtrahiereEntbuendeln, multipliziere, dividiere, moeglicheFehler, rechnungsplan,
+    MUENZEN, SCHEINE, betragText, mindestStueckelung, skalaStriche, kalenderMonat, isoWoche, zeitStationen, dauerText, uhrText,
   };
   if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", () => window.zeichneAbbildungen());
   else window.zeichneAbbildungen();

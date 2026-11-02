@@ -105,6 +105,10 @@ Ziel: **Übersicht vor Menge.** Ein Kind muss jede Aufgabe auf einen Blick verst
 | Zahlenmauer, Stein | 44 px | 40 px | 38 px |
 | Rechendreieck | 220 px | 200 px | 180 px |
 | Rechenrad | 240 px | 220 px | 200 px |
+| Geld, Maßstab | 0,5 | 0,5 | 0,3 |
+| Messbecher, Thermometer, Länge | 180 px | 170 px | 150 px |
+| Waage, Durchmesser | 240 px | 200 px | 170 px |
+| Kalender, Monat | 44 px je Tag | 44 px je Tag | 44 px je Tag |
 | Punktfeld, Punktabstand | 24 px | 20 px | 16 px |
 | Malkreuz, Feld | 34 px hoch | 34 px hoch | 34 px hoch |
 | Schriftliche Rechnung, Kästchen | 0,7 cm | 0,5 cm | 0,5 cm |

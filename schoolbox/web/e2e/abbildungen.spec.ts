@@ -946,3 +946,147 @@ test.describe('Einmaleins und schriftliches Rechnen (029)', () => {
 		expect(await readFile(datei, 'utf8')).toBe(stand);
 	});
 });
+
+test.describe('Größen (030)', () => {
+	const cmPx = 96 / 2.54;
+
+	test('Geld: echte Verhältnisse, Scheine höchstens 75 %, Betrag und Legen', async ({ page }) => {
+		const blatt = await gezeichnet(page, '<x-geld stuecke="1ct 5ct 10ct 2€ 200€" massstab="original"></x-geld>');
+		const mass = async (name: string, a: string) =>
+			Number(await blatt.locator(`[data-stueck="${name}"]`).getAttribute(a));
+		expect(await mass('10ct', 'data-d')).toBeLessThan(await mass('5ct', 'data-d'));
+		expect((await mass('2€', 'data-d')) / (await mass('1ct', 'data-d'))).toBeCloseTo(25.75 / 16.25, 2);
+		expect(await mass('2€', 'data-d')).toBeCloseTo(2.575 * cmPx, 0);
+		expect(await mass('200€', 'data-b')).toBeLessThanOrEqual(15.3 * cmPx * 0.75 + 0.1);
+		await expect(blatt.locator('x-geld')).toHaveAttribute('data-masstab', '');
+		await expect(blatt.locator('[data-stueck="200€"]')).toContainText('Spielgeld');
+
+		const betrag = '<x-geld stuecke="2€ 1€ 20ct 20ct 5ct" aufgabe="betrag"></x-geld>';
+		await expect((await gezeichnet(page, betrag)).locator('x-geld')).not.toContainText('3,45');
+		await expect((await gezeichnet(page, betrag, 'kl3 sw loesung')).locator('x-geld')).toContainText('3,45 €');
+		await expect((await gezeichnet(page, betrag, 'kl2 sw loesung')).locator('x-geld')).toContainText('3 € 45 ct');
+		const legen = await gezeichnet(page, '<x-geld aufgabe="legen" betrag="3,45"></x-geld>', 'kl3 sw loesung');
+		await expect(legen.locator('x-geld')).toHaveAttribute('data-stueckelung', '2€ 1€ 20ct 20ct 5ct');
+		await expect(legen.locator('.stueck')).toHaveCount(5);
+		const nicht = await gezeichnet(page, '<x-geld stuecke="20ct" aufgabe="legen" betrag="0,30"></x-geld>');
+		await expect(nicht.locator('x-geld')).toHaveAttribute('data-fehler', /nicht legen/);
+	});
+
+	test('Skala und Strecke: Originalgröße, Wert erst in der Lösung, unpassende Einheit abgelehnt', async ({
+		page,
+	}) => {
+		const lineal = await gezeichnet(page, '<x-skala von="0" bis="10" wert="7" aufgabe="ablesen"></x-skala>');
+		await expect(lineal.locator('x-skala')).toHaveAttribute('data-masstab', '');
+		await expect(lineal.locator('.marke')).toHaveCount(1);
+		await expect(lineal.locator('x-skala')).not.toContainText('7 cm');
+		const x = (w: string) =>
+			lineal.locator(`.strich[data-wert="${w}"]`).evaluate((e) => e.getBoundingClientRect().left);
+		expect((await x('1')) - (await x('0'))).toBeCloseTo(cmPx, 1);
+		const zeichnen = '<x-skala art="thermometer" wert="-5" aufgabe="einzeichnen"></x-skala>';
+		await expect((await gezeichnet(page, zeichnen)).locator('.pegel')).toHaveCount(0);
+		await expect((await gezeichnet(page, zeichnen, 'kl3 sw loesung')).locator('.pegel')).toHaveCount(1);
+		const falsch = await gezeichnet(page, '<x-skala art="lineal" einheit="°C"></x-skala>');
+		await expect(falsch.locator('x-skala')).toHaveAttribute('data-fehler', /passt nicht/);
+		const aussen = await gezeichnet(page, '<x-skala von="0" bis="10" wert="12"></x-skala>');
+		await expect(aussen.locator('x-skala')).toHaveAttribute('data-fehler', /zwischen/);
+
+		const strecke = await gezeichnet(page, '<x-strecke laenge="7" beschriftung="A B"></x-strecke>');
+		await expect(strecke.locator('x-strecke')).toHaveAttribute('data-masstab', '');
+		const breite = await strecke.locator('.strecke').evaluate((e) => e.getBoundingClientRect().width);
+		expect(breite).toBeCloseTo(7 * cmPx, 0);
+		const lang = await gezeichnet(page, '<x-strecke laenge="30"></x-strecke>');
+		await expect(lang.locator('x-strecke')).toHaveAttribute('data-fehler', /passt in Originalgröße nicht/);
+	});
+
+	test('Kalender: Februar 2028 beginnt am Dienstag und hat 29 Tage, Lücken erst in der Lösung', async ({ page }) => {
+		const tag = '<x-kalender monat="2" jahr="2028" luecken="8" markiert="14"></x-kalender>';
+		const blatt = await gezeichnet(page, tag);
+		await expect(blatt.locator('.kal-tag')).toHaveCount(29);
+		await expect(blatt.locator('.kal-tag[data-tag="1"]')).toHaveAttribute('data-wt', '1');
+		await expect(blatt.locator('.kal-tag[data-tag="8"]')).toHaveText('');
+		await expect(blatt.locator('.kal-ring')).toHaveCount(1);
+		const loesung = await gezeichnet(page, tag, 'kl3 sw loesung');
+		await expect(loesung.locator('.kal-tag[data-tag="8"]')).toHaveText('8');
+		const jahr = await gezeichnet(page, '<x-kalender art="jahr" jahr="2028"></x-kalender>');
+		await expect(jahr.locator('.kal-monat')).toHaveCount(12);
+		await expect(jahr.locator('.kal-tag')).toHaveCount(366);
+	});
+
+	test('Uhr digital und Sektor, Zeitspanne', async ({ page }) => {
+		const uhr = await gezeichnet(page, '<x-uhr zeit="16:30" digital="ja" format="12" sektor="4:30-4:50"></x-uhr>');
+		await expect(uhr.locator('.uhr-digital')).toHaveText('4:30');
+		await expect(uhr.locator('.uhr-sektor')).toHaveCount(1);
+		const nur = await gezeichnet(page, '<x-uhr loesung="4:30" digital="nur" sektor-loesung="4:30-4:50"></x-uhr>');
+		await expect(nur.locator('.uhr-digital')).toHaveText('');
+		const voll = await gezeichnet(
+			page,
+			'<x-uhr loesung="4:30" digital="ja" sektor-loesung="4:30-4:50"></x-uhr>',
+			'kl3 sw loesung',
+		);
+		await expect(voll.locator('.uhr-digital')).toHaveText('04:30');
+		await expect(voll.locator('.uhr-sektor')).toHaveCount(1);
+		const zuLang = await gezeichnet(page, '<x-uhr sektor="4:00-5:30"></x-uhr>');
+		await expect(zuLang.locator('x-uhr')).toHaveAttribute('data-fehler', /60 Minuten/);
+
+		const spanne = '<x-zeitspanne von="8:20" bis="9:45"></x-zeitspanne>';
+		const blatt = await gezeichnet(page, spanne);
+		await expect(blatt.locator('.rechenfeld[data-id="o0"]')).toHaveText('8:20');
+		await expect(blatt.locator('.rechenfeld[data-id="dauer"]')).toHaveText('');
+		const loesung = await gezeichnet(page, spanne, 'kl3 sw loesung');
+		await expect(loesung.locator('.rechenfeld[data-id="o1"]')).toHaveText('9:00');
+		await expect(loesung.locator('.rechenfeld[data-id="dauer"]')).toHaveText('1 h 25 min');
+		const nacht = '<x-zeitspanne von="23:30" bis="0:30"></x-zeitspanne>';
+		await expect((await gezeichnet(page, nacht, 'kl2 sw')).locator('x-zeitspanne')).toHaveAttribute(
+			'data-fehler',
+			/Mitternacht/,
+		);
+		await expect(
+			(await gezeichnet(page, nacht, 'kl3 sw loesung')).locator('.rechenfeld[data-id="dauer"]'),
+		).toHaveText('1 h');
+	});
+
+	test('Panel: Münze hinzufügen, Wert ändern, Tag antippen, je ein Rückgängig-Schritt', async ({ druecke, page }) => {
+		test.slow();
+		const { dok, id, material: datei } = await uhrzeit();
+		await oeffne(page, id, dok);
+		await aendere(
+			page,
+			(await quelle(page)).replace(
+				/<x-uhr[^>]*><\/x-uhr>/,
+				'<x-geld stuecke="1€"></x-geld><x-skala von="0" bis="10" wert="7"></x-skala><x-kalender monat="2" jahr="2028"></x-kalender>',
+			),
+		);
+		await gespeichert(page, datei);
+		const stand = await readFile(datei, 'utf8');
+
+		const geld = material(page).locator('x-geld');
+		await druecke(geld);
+		await expect(page.locator('[data-abbildung-info]')).toContainText('1 €');
+		await druecke(page.getByRole('button', { name: 'Zeile hinzufügen' }));
+		await gespeichert(page, datei);
+		await expect(geld.locator('.stueck')).toHaveCount(2);
+		expect(await readFile(datei, 'utf8')).toContain('stuecke="1€ 1€"');
+		await druecke(zurueck(page));
+		await gespeichert(page, datei);
+		expect(await readFile(datei, 'utf8')).toBe(stand);
+
+		const skala = material(page).locator('x-skala');
+		await druecke(skala);
+		await page.getByLabel('Wert', { exact: true }).fill('4');
+		await page.getByLabel('Wert', { exact: true }).press('Enter');
+		await gespeichert(page, datei);
+		await expect(skala).toHaveAttribute('data-wert', '4');
+		await druecke(zurueck(page));
+		await gespeichert(page, datei);
+		expect(await readFile(datei, 'utf8')).toBe(stand);
+
+		await druecke(material(page).locator('x-kalender'));
+		await druecke(page.locator('[data-form-raster="markiert"] [data-zelle="14"]'));
+		await gespeichert(page, datei);
+		expect(await readFile(datei, 'utf8')).toContain('markiert="14"');
+		await expect(material(page).locator('.kal-ring')).toHaveCount(1);
+		await druecke(zurueck(page));
+		await gespeichert(page, datei);
+		expect(await readFile(datei, 'utf8')).toBe(stand);
+	});
+});

@@ -26,6 +26,7 @@ Vor jedem schriftlichen Minus zusätzlich: Welches Subtraktionsverfahren lernt d
 | Raum und Form | Lagebeziehungen, Formen | Körper, Symmetrie | Würfelnetze, Baupläne | Maßstab, Flächen/Umfang |
 | Muster, Strukturen, funktionaler Zusammenhang | Muster fortsetzen | Zahlenfolgen, Rechenpäckchen | Zahlenmauern, Gesetzmäßigkeiten | Proportionale Zusammenhänge |
 | Größen und Messen | Geld (€), Uhr (volle h) | Längen (cm, m), Uhr, Geld | Gewicht, Zeit, Sachaufgaben | Hohlmaße, Umrechnen, Sachrechnen |
+| Elemente für Größen | `x-geld`, `x-uhr` | `x-geld`, `x-uhr`, `x-strecke`, `x-skala` (Lineal), `x-kalender`, `x-zeitspanne` | `x-skala` (Waage, Maßband), `x-zeitspanne` | `x-skala` (Messbecher), `x-zeitspanne` |
 | Daten, Häufigkeit, Wahrscheinlichkeit | Strichlisten | Tabellen, Diagramme lesen | Diagramme erstellen | Wahrscheinlichkeit (sicher/möglich/unmöglich) |
 
 Immer mit dem Bildungsplan (Kl. 1/2 und 3/4) und dem Lehrwerk abgleichen; die Tabelle ist eine Orientierung.
@@ -64,7 +65,7 @@ Substanzielle Aufgabenformate (Wittmann) tragen Übung und Entdecken zugleich: `
 - Uhren, Felder, Zahlenstrahl in Schwarz auf Weiß (auch im Farbprofil, Farbe nur für Hervorhebungen wie den Fünferwechsel), Reihen gleichmäßig verteilt; Mindestgrößen in `grundschul-didaktik/references/druck-und-platz.md`.
 - Zahlenstrahl: gleichmäßige Abstände, Zehner deutlich markiert.
 - Uhr: analoges Zifferblatt mit großen Ziffern, Stundenzeiger deutlich kürzer und dicker. **Nie von der KI zeichnen lassen** – `<x-uhr>` aus `html-materialerstellung/assets/abbildungen.js` berechnet exakte Zifferblätter.
-- Geld: Euro-Abbildungen sind erlaubt; maßstabsgetreu und eindeutig.
+- Geld: `x-geld`, Münzen in echten Verhältnissen, Scheine schematisch und verkleinert (EZB), keine Fotos echter Scheine. Beträge ab Kl. 3 in Kommaschreibweise.
 - Rechenkästchen: 1 Ziffer pro Kästchen (schriftliche Verfahren!). Schriftliche Rechnungen immer als `x-schriftlich`, auch im Karoraster des Hefts.
 - Einmaleins: Kernaufgaben (1·, 2·, 5·, 10·) am Punktfeld (`x-punktfeld`), Nachbaraufgaben über die Zerlegungslinie ableiten.
 - Würfelbau: Schrägbild, Bauplan und Ansichten aus einem Bauplan, keine verdeckten Würfel bei Bauplan-Aufgaben.
@@ -124,6 +125,11 @@ Exakte Darstellungen kommen als Elemente aus `html-materialerstellung/assets/abb
 | `<x-zahlenkette start="8" operatoren="+5 −3 ·2">` | Rechenkette, Pfeilbild |
 | `<x-zauberdreieck summe="9" vorgegeben="e0 e1">` | Zauberdreieck, magisches Quadrat |
 | `<x-rechenrad mitte="·7" zahlen="1 2 3 4 5 6">` | Rechenrad |
+| `<x-geld stuecke="2€ 1€ 50ct" aufgabe="betrag">` | Münzen und Spielgeld, Betrag und Mindest-Stückelung berechnet |
+| `<x-skala art="lineal" bis="12" wert="7" aufgabe="ablesen">` | Lineal, Maßband, Messbecher, Thermometer, Waage |
+| `<x-strecke laenge="7">` | Strecke zum Messen in Originalgröße |
+| `<x-kalender monat="2" jahr="2028">` | Monats- und Jahreskalender |
+| `<x-zeitspanne von="8:20" bis="9:45">` | Zeitspanne am Zeitstrahl |
 | `<x-punktfeld zeilen="6" spalten="7" trenner="5">` | Punktfeld, Zerlegung und Teilaufgaben berechnet |
 | `<x-malkreuz a="23" b="45">` | Malkreuz nach Stellenwerten |
 | `<x-schriftlich art="minus" zahlen="903 478" verfahren="ergaenzen-erweitern">` | Schriftliche Rechnung im Karoraster, Lösung Ziffer für Ziffer berechnet |

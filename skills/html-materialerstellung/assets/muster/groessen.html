@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<title>Muster: Größen</title>
+<link rel="stylesheet" href="blatt.css">
+<script src="abbildungen.js"></script>
+</head>
+<body class="kl3 sw">
+<section class="seite">
+  <div class="kopf"><div class="titel"><h1>Geld</h1></div></div>
+  <div class="aufgabe"><div class="nr">1</div><div class="anw"><div class="text">Alle Münzen, sortiert nach Wert.</div></div>
+    <div class="koerper"><x-geld stuecke="1ct 2ct 5ct 10ct 20ct 50ct 1€ 2€" massstab="original" anordnung="gruppiert"></x-geld></div></div>
+  <div class="aufgabe"><div class="nr">2</div><div class="anw"><div class="text">Spielgeld: alle Scheine.</div></div>
+    <div class="koerper"><x-geld stuecke="5€ 10€ 20€ 50€ 100€ 200€" massstab="0.3"></x-geld></div></div>
+  <div class="aufgabe"><div class="nr">3</div><div class="anw"><div class="text">Wie viel Geld ist das?</div></div>
+    <div class="koerper"><x-geld stuecke="2€ 1€ 50ct 20ct 20ct" aufgabe="betrag"></x-geld></div></div>
+  <div class="aufgabe"><div class="nr">4</div><div class="anw"><div class="text">Lege mit möglichst wenigen Stücken.</div></div>
+    <div class="koerper"><x-geld aufgabe="legen" betrag="3,45"></x-geld></div></div>
+</section>
+<section class="seite">
+  <div class="kopf"><div class="titel"><h1>Messen</h1></div></div>
+  <div class="aufgabe"><div class="nr">1</div><div class="anw"><div class="text">Lies am Lineal ab.</div></div>
+    <div class="koerper"><x-skala art="lineal" von="0" bis="12" wert="7.5" aufgabe="ablesen"></x-skala></div></div>
+  <div class="aufgabe"><div class="nr">2</div><div class="anw"><div class="text">Lies ab und zeichne ein.</div></div>
+    <div class="koerper reihe" style="--spalten:3">
+      <div class="zelle"><x-skala art="messbecher" einheit="ml" wert="300" aufgabe="ablesen" groesse="150"></x-skala></div>
+      <div class="zelle"><x-skala art="thermometer" wert="-5" aufgabe="einzeichnen" groesse="170"></x-skala></div>
+      <div class="zelle"><x-skala art="waage" einheit="g" bis="1000" wert="350" aufgabe="ablesen" groesse="170"></x-skala></div>
+    </div></div>
+  <div class="aufgabe"><div class="nr">3</div><div class="anw"><div class="text">Miss die Strecken.</div></div>
+    <div class="koerper reihe" style="--spalten:2">
+      <div class="zelle"><x-strecke laenge="7" beschriftung="A B"></x-strecke></div>
+      <div class="zelle"><x-strecke laenge="45 mm" richtung="schraeg"></x-strecke></div>
+    </div></div>
+</section>
+<section class="seite">
+  <div class="kopf"><div class="titel"><h1>Zeit</h1></div></div>
+  <div class="aufgabe"><div class="nr">1</div><div class="anw"><div class="text">Trage die fehlenden Tage ein.</div></div>
+    <div class="koerper"><x-kalender monat="2" jahr="2028" markiert="14" luecken="8 22" kw="ja"></x-kalender></div></div>
+  <div class="aufgabe"><div class="nr">2</div><div class="anw"><div class="text">Wie spät ist es, wie lange dauert es?</div></div>
+    <div class="koerper reihe" style="--spalten:3">
+      <div class="zelle"><x-uhr zeit="4:30" digital="ja" groesse="110"></x-uhr></div>
+      <div class="zelle"><x-uhr zeit="4:50" sektor="4:30-4:50" minuten="ja" groesse="130"></x-uhr></div>
+      <div class="zelle"><x-uhr zeit="16:30" digital="nur" groesse="110"></x-uhr></div>
+    </div></div>
+  <div class="aufgabe"><div class="nr">3</div><div class="anw"><div class="text">Rechne die Zeitspanne aus.</div></div>
+    <div class="koerper"><x-zeitspanne von="8:20" bis="9:45"></x-zeitspanne></div></div>
+</section>
+<section class="seite">
+  <div class="kopf"><div class="titel"><h1>Das Jahr 2028</h1></div></div>
+  <div class="aufgabe"><div class="nr">1</div><div class="anw"><div class="text">Ein Schaltjahr auf einer Seite.</div></div>
+    <div class="koerper"><x-kalender art="jahr" jahr="2028"></x-kalender></div></div>
+</section>
+</body>
+</html>

@@ -464,6 +464,20 @@ const rechenkerne = () => {
 			rest: number;
 		};
 		moeglicheFehler: (art: string, zahlen: number[], verfahren: string | null) => { art: string }[];
+		MUENZEN: Record<string, { mm: number; wert: number }>;
+		SCHEINE: Record<string, { b: number; h: number; wert: number }>;
+		betragText: (cent: number, klasse: number) => string;
+		mindestStueckelung: (cent: number, vorrat?: string[]) => string[] | null;
+		skalaStriche: (
+			von: number,
+			bis: number,
+			haupt: number,
+			klein: number,
+		) => { wert: number; gross: boolean; anteil: number }[];
+		kalenderMonat: (jahr: number, monat: number) => { tage: number; start: number };
+		isoWoche: (jahr: number, monat: number, tag: number) => number;
+		zeitStationen: (von: number, bis: number, spruenge: string | null) => number[];
+		dauerText: (minuten: number) => string;
 		rechnungsplan: (
 			art: string,
 			zahlen: number[],
@@ -970,5 +984,85 @@ describe('Einmaleins und schriftliches Rechnen (029)', () => {
 		for (const z of karte.zeilen) {
 			assert.ok(z.zellen.every((c) => c.t.length === 1));
 		}
+	});
+});
+
+describe('Größen (030)', () => {
+	it('Münzen haben die echten Verhältnisse', () => {
+		const { MUENZEN } = rechenkerne();
+		assert.ok((MUENZEN['10ct']?.mm ?? 0) < (MUENZEN['5ct']?.mm ?? 0));
+		assert.equal(MUENZEN['2€']?.mm, 25.75);
+		assert.equal(MUENZEN['1ct']?.mm, 16.25);
+	});
+
+	it('Beträge: bis Klasse 2 mit Einheiten, ab Klasse 3 mit Komma', () => {
+		const { betragText } = rechenkerne();
+		assert.equal(betragText(345, 2), '3 € 45 ct');
+		assert.equal(betragText(345, 3), '3,45 €');
+		assert.equal(betragText(45, 1), '45 ct');
+		assert.equal(betragText(300, 2), '3 €');
+		assert.equal(betragText(5, 4), '0,05 €');
+	});
+
+	it('Wenigste Stücke gegen Hand-Beispiele', () => {
+		const { mindestStueckelung } = rechenkerne();
+		assert.deepEqual([...(mindestStueckelung(345) ?? [])], ['2€', '1€', '20ct', '20ct', '5ct']);
+		assert.deepEqual([...(mindestStueckelung(880) ?? [])], ['5€', '2€', '1€', '50ct', '20ct', '10ct']);
+		assert.deepEqual([...(mindestStueckelung(40, ['20ct', '20ct', '10ct']) ?? [])], ['20ct', '20ct']);
+		assert.deepEqual(
+			[...(mindestStueckelung(60, ['50ct', '20ct', '20ct', '20ct']) ?? [])],
+			['20ct', '20ct', '20ct'],
+		);
+		assert.equal(mindestStueckelung(30, ['20ct', '20ct']), null);
+	});
+
+	it('Skala: gleiche Abstände, auch bei Kommateilung', () => {
+		const { skalaStriche } = rechenkerne();
+		const striche = Array.from(skalaStriche(0, 2, 1, 0.1));
+		assert.equal(striche.length, 21);
+		assert.equal(striche[3]?.wert, 0.3);
+		assert.deepEqual(
+			striche.filter((s) => s.gross).map((s) => s.wert),
+			[0, 1, 2],
+		);
+		striche.forEach((s, i) => {
+			assert.ok(Math.abs(s.anteil - i / 20) < 1e-9);
+		});
+		const kalt = Array.from(skalaStriche(-20, 40, 10, 2));
+		assert.deepEqual(
+			kalt.filter((s) => s.gross).map((s) => s.wert),
+			[-20, -10, 0, 10, 20, 30, 40],
+		);
+		assert.throws(() => skalaStriche(0, 10, 5, 3), /passen nicht/);
+	});
+
+	it('Kalender stimmt für viele Monate mit Date überein', () => {
+		const { isoWoche, kalenderMonat } = rechenkerne();
+		const februar = kalenderMonat(2028, 2);
+		assert.equal(februar.tage, 29);
+		assert.equal(februar.start, 1);
+		for (let i = 0; i < 2400; i++) {
+			const jahr = 1900 + Math.floor(i / 12);
+			const monat = (i % 12) + 1;
+			const { start, tage } = kalenderMonat(jahr, monat);
+			assert.equal(tage, new Date(Date.UTC(jahr, monat, 0)).getUTCDate());
+			assert.equal(start, (new Date(Date.UTC(jahr, monat - 1, 1)).getUTCDay() + 6) % 7);
+		}
+		assert.equal(isoWoche(2028, 1, 1), 52);
+		assert.equal(isoWoche(2026, 1, 1), 1);
+		assert.equal(isoWoche(2026, 12, 31), 53);
+		assert.equal(isoWoche(2028, 2, 14), 7);
+	});
+
+	it('Zeitspanne: zur vollen Stunde, dann weiter', () => {
+		const { dauerText, zeitStationen } = rechenkerne();
+		assert.deepEqual([...zeitStationen(500, 585, null)], [500, 540, 585]);
+		assert.deepEqual([...zeitStationen(500, 705, null)], [500, 540, 660, 705]);
+		assert.deepEqual([...zeitStationen(540, 660, null)], [540, 660]);
+		assert.deepEqual([...zeitStationen(500, 580, 'bis 9:00, +40 min')], [500, 540, 580]);
+		assert.throws(() => zeitStationen(500, 590, 'bis 9:00, +40 min'), /enden bei/);
+		assert.equal(dauerText(85), '1 h 25 min');
+		assert.equal(dauerText(60), '1 h');
+		assert.equal(dauerText(5), '5 min');
 	});
 });

@@ -418,3 +418,65 @@ Eine Ziffer je Kästchen im echten Heftmaß, also in Originalgröße drucken (`k
 - `fehlerhaft="ja"` zeigt die Rechnung mit genau einem typischen Fehler (Übertrag vergessen, Stelle verrutscht, falsch herum gerechnet; bei Geteilt Rest oder Null vergessen), `seed` wählt ihn. Die Lösung kreist die falsche Ziffer ein, schreibt die richtige darunter und nennt den Fehler. Lässt sich keiner einbauen (ohne Übertrag und kürzere Zahl), meldet das Element das.
 
 Der Bildungsplan BW nennt für Klasse 3/4 alle vier Verfahren im Zahlenraum bis 1 000 000, Subtraktion als „Abziehen oder Ergänzen“, Division auch mit Rest, und begrenzt weder Stellenzahl noch Divisor. Die Grenzen hier sind Vorgaben der Schoolbox.
+
+## Größen
+
+Muster: `assets/muster/groessen.html`. Beträge, Längen und Zeiten werden immer berechnet.
+
+### `x-geld`: Münzen und Spielgeld-Scheine
+
+```html
+<x-geld stuecke="2€ 1€ 50ct 20ct 20ct" aufgabe="betrag"></x-geld>
+<x-geld aufgabe="legen" betrag="3,45"></x-geld>
+<x-geld stuecke="1ct 2ct 5ct 10ct 20ct 50ct 1€ 2€" massstab="original" anordnung="gruppiert"></x-geld>
+```
+
+`stuecke`: 1ct, 2ct, 5ct, 10ct, 20ct, 50ct, 1€, 2€, 5€, 10€, 20€, 50€, 100€, 200€, jedes Stück einzeln. `aufgabe`: `keine`, `betrag` (Antwortkästchen), `legen` (mit `betrag`; die Lösung legt mit möglichst wenigen Stücken, `stuecke` begrenzt dann den Vorrat). `anordnung` `reihe` oder `gruppiert`. `seite` `wert` oder `rueck` (nur Münzen). `massstab`: `original` (Münzen in echten mm, in Originalgröße drucken) oder Faktor 0,3 bis 1, Standard 0,5. Münzen haben echte Größenverhältnisse. Scheine sind schematisch, tragen „Spielgeld“ und bleiben höchstens 75 % groß (EZB/2013/10). Beträge bis Klasse 2 als „3 € 45 ct“, ab Klasse 3 als „3,45 €“. Nie Fotos oder KI-Bilder von echtem Geld.
+
+### `x-skala`: Messgerät
+
+```html
+<x-skala art="lineal" von="0" bis="12" wert="7.5" aufgabe="ablesen"></x-skala>
+<x-skala art="messbecher" einheit="ml" wert="300" aufgabe="ablesen"></x-skala>
+<x-skala art="thermometer" wert="-5" aufgabe="einzeichnen"></x-skala>
+<x-skala art="waage" einheit="g" bis="1000" loesung="350"></x-skala>
+```
+
+`art`: `lineal` (cm, mm), `massband` (cm, m), `messbecher` (ml, l), `thermometer` (°C, Standard −20 bis 40), `waage` (g, kg). `von`, `bis`, `einheit`, `teilung` (Hauptstrich und Zwischenstrich, z. B. `10 1`). `wert` zeigt den Wert, `loesung` erst im Lösungsblatt. `aufgabe`: `ablesen` (Antwortkästchen), `einzeichnen` (Marke erst in der Lösung). Das Lineal ist in Originalgröße, also in Originalgröße drucken; `massstab="nein"` verkleinert es auf `groesse` und schreibt „nicht zum Messen“ dazu. `groesse` ist sonst die Länge oder der Durchmesser in px.
+
+### `x-strecke`: Strecke zum Messen
+
+```html
+<x-strecke laenge="7" beschriftung="A B"></x-strecke>
+<x-strecke laenge="45 mm" richtung="schraeg"></x-strecke>
+```
+
+`laenge` in cm oder mm, immer in Originalgröße; was nicht auf die Seite passt, meldet das Element. `beschriftung` Buchstaben an den Enden, `richtung` `waagerecht` oder `schraeg`. Die Länge steht im Antwortkästchen der Lösung.
+
+### `x-kalender`: Monat oder Jahr
+
+```html
+<x-kalender monat="2" jahr="2028" markiert="14" luecken="8 22" kw="ja"></x-kalender>
+<x-kalender art="jahr" jahr="2028"></x-kalender>
+```
+
+`art` `monat` oder `jahr` (12 Monate auf einer Seite). Wochen beginnen am Montag, Schaltjahre stimmen. `markiert` Tage mit Ring, `luecken` Tage ohne Zahl; im Jahreskalender als `Monat-Tag`, z. B. `2-14` (dort nur in der Quelle, das Panel zeigt die Tage nur beim Monat). `kw="ja"` Kalenderwochen. Feiertage und Ferien kommen nicht automatisch, sie sind je Land verschieden: über `markiert`.
+
+### `x-zeitspanne`: Zeitspanne am Zeitstrahl
+
+```html
+<x-zeitspanne von="8:20" bis="9:45"></x-zeitspanne>
+<x-zeitspanne von="8:20" bis="10:00" spruenge="bis 9:00, +1 h" zeige="von spruenge"></x-zeitspanne>
+```
+
+Ohne `spruenge` geht es zur vollen Stunde, über die ganzen Stunden und dann zum Ende. Sprünge: `bis 9:00`, `+40 min`, `+1 h`. `zeige` mehrfach: `von`, `bis`, `spruenge`, `dauer`; Standard `von bis`. Bis 24 Stunden; in Klasse 1 und 2 nicht über Mitternacht.
+
+### Uhr: weitere Angaben
+
+```html
+<x-uhr zeit="4:30" digital="ja"></x-uhr>
+<x-uhr zeit="4:50" sektor="4:30-4:50" minuten="ja"></x-uhr>
+<x-uhr loesung="16:30" digital="nur" format="24"></x-uhr>
+```
+
+`digital` `nein`, `ja`, `nur`; `format` `24` oder `12`. `sektor` Zeitspanne als Fläche, bis 60 Minuten; `sektor-loesung` erst im Lösungsblatt. `minuten="ja"` äußerer Ring 5, 10, …; `ziffern24="ja"` innerer Ring 13 bis 24.
