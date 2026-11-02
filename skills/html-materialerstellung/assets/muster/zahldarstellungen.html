@@ -1,0 +1,88 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<title>Muster: Zahldarstellungen</title>
+<link rel="stylesheet" href="blatt.css">
+<script src="abbildungen.js"></script>
+</head>
+<body class="kl3 sw">
+<section class="seite">
+  <div class="kopf"><div class="titel"><h1>Hunderterfeld und Hundertertafel</h1></div></div>
+  <div class="aufgabe">
+    <span class="nr">1</span><div class="anw"><span class="text">36 = 30 + 6, Malwinkel, Lösung</span></div>
+    <div class="koerper"><div class="reihe" style="--spalten:3">
+      <div class="zelle"><x-hunderterfeld n="30" n2="6" groesse="16"></x-hunderterfeld></div>
+      <div class="zelle"><x-hunderterfeld malwinkel="3x7" groesse="16"></x-hunderterfeld></div>
+      <div class="zelle"><x-hunderterfeld loesung="4x8" groesse="16"></x-hunderterfeld></div>
+    </div></div>
+  </div>
+  <div class="aufgabe">
+    <span class="nr">2</span><div class="anw"><span class="text">Trage die Lücken ein. Die Fünferreihe ist markiert.</span></div>
+    <div class="koerper"><x-hundertertafel luecken="7 23 58 94" markiert="5 10 15 20 25 30 35 40 45 50" groesse="28"></x-hundertertafel></div>
+  </div>
+  <div class="aufgabe">
+    <span class="nr">3</span><div class="anw"><span class="text">Kreuz, Block, Treppe, Zeile und Tafel ab 301</span></div>
+    <div class="koerper"><div class="reihe" style="--spalten:4">
+      <div class="zelle"><x-hundertertafel ausschnitt="kreuz" mitte="45" luecken="35 44 46 55"></x-hundertertafel></div>
+      <div class="zelle"><x-hundertertafel ausschnitt="block" mitte="68" zufall="4" seed="b" groesse="26"></x-hundertertafel></div>
+      <div class="zelle"><x-hundertertafel ausschnitt="treppe" mitte="23" luecken="24 35" groesse="26"></x-hundertertafel></div>
+      <div class="zelle"><x-hundertertafel von="301" bis="400" ausschnitt="kreuz" mitte="345" luecken="335 355"></x-hundertertafel></div>
+    </div></div>
+  </div>
+</section>
+<section class="seite">
+  <div class="kopf"><div class="titel"><h1>Rechenrahmen und Rechenstrich</h1></div></div>
+  <div class="aufgabe">
+    <span class="nr">4</span><div class="anw"><span class="text">Rechenrahmen</span></div>
+    <div class="koerper"><div class="reihe" style="--spalten:2">
+      <div class="zelle"><x-rechenrahmen stellung="7 3"></x-rechenrahmen></div>
+      <div class="zelle"><x-rechenrahmen art="100" loesung="10 10 4" groesse="10"></x-rechenrahmen></div>
+    </div></div>
+  </div>
+  <div class="aufgabe">
+    <span class="nr">5</span><div class="anw"><span class="text">Rechne am Rechenstrich.</span></div>
+    <div class="koerper"><x-rechenstrich start="47" spruenge="+30 +4"></x-rechenstrich></div>
+  </div>
+  <div class="aufgabe">
+    <span class="nr">6</span><div class="anw"><span class="text">Rückwärts, mit Zwischenzahl</span></div>
+    <div class="koerper"><x-rechenstrich start="83" spruenge="−20 −3" zeige="start spruenge zwischen"></x-rechenstrich></div>
+  </div>
+  <div class="aufgabe">
+    <span class="nr">7</span><div class="anw"><span class="text">Im Maßstab, Sprünge gesucht</span></div>
+    <div class="koerper"><x-rechenstrich start="50" spruenge="+40 +7" massstab="ja" zeige="start zwischen ziel"></x-rechenstrich></div>
+  </div>
+  <div class="aufgabe">
+    <span class="nr">8</span><div class="anw"><span class="text">Gemischte Sprünge</span></div>
+    <div class="koerper"><x-rechenstrich start="60" spruenge="+30 −15 +5" gemischt="ja"></x-rechenstrich></div>
+  </div>
+</section>
+<section class="seite">
+  <div class="kopf"><div class="titel"><h1>Bestehende Elemente, erweitert</h1></div></div>
+  <div class="aufgabe">
+    <span class="nr">9</span><div class="anw"><span class="text">Fünferfeld, Zehnerfeld, 7 = 5 + 2, Lösung</span></div>
+    <div class="koerper"><div class="reihe" style="--spalten:4">
+      <div class="zelle"><x-zwanzigerfeld art="fuenfer" n="3" groesse="18"></x-zwanzigerfeld></div>
+      <div class="zelle"><x-zwanzigerfeld art="zehner" n="5" n2="2" groesse="12"></x-zwanzigerfeld></div>
+      <div class="zelle"><x-zwanzigerfeld n="5" n2="2" groesse="12"></x-zwanzigerfeld></div>
+      <div class="zelle"><x-zwanzigerfeld loesung="10 3" groesse="12"></x-zwanzigerfeld></div>
+    </div></div>
+  </div>
+  <div class="aufgabe">
+    <span class="nr">10</span><div class="anw"><span class="text">Mehrsystemblöcke bis 9 999, die zweite Zahl als Lösung</span></div>
+    <div class="koerper"><div class="reihe" style="--spalten:2">
+      <div class="zelle"><x-dienes t="1" h="1" z="3" e="4" groesse="6"></x-dienes></div>
+      <div class="zelle"><x-dienes loesung="1 2 0 3" groesse="6"></x-dienes></div>
+    </div></div>
+  </div>
+  <div class="aufgabe">
+    <span class="nr">11</span><div class="anw"><span class="text">Stellentafel bis zur Million, Plättchen</span></div>
+    <div class="koerper"><x-stellentafel stellen="M HT ZT T H Z E" werte="1 2 3 4 5 6 7"></x-stellentafel><br><x-stellentafel stellen="M HT ZT T H Z E" art="plaettchen" plaettchen="1 0 3 5 7 12 15"></x-stellentafel></div>
+  </div>
+  <div class="aufgabe">
+    <span class="nr">12</span><div class="anw"><span class="text">Zahlenstrahl im Ausschnitt und bis zur Million</span></div>
+    <div class="koerper"><x-zahlenstrahl von="3400" bis="3500" schritt="10" marken="5" zahlen="3400 3450 3500" pfeile="3420 3480"></x-zahlenstrahl><x-zahlenstrahl von="0" bis="1000000" schritt="100000" marken="5" zahlen="0 500000 1000000" pfeile="200000" breite="540"></x-zahlenstrahl></div>
+  </div>
+</section>
+</body>
+</html>

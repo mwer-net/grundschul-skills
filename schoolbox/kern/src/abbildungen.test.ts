@@ -424,6 +424,10 @@ const rechenkerne = () => {
 		AUGEN_DER_SEITE: Record<string, number>;
 		vielflach: (form: string, masse: number[]) => { punkte: unknown[]; kanten: unknown[]; flaechen: unknown[] };
 		KOERPER_ZAHLEN: Record<string, { ecken: number; kanten: number; flaechen: number }>;
+		tafelOrt: (von: number, zahl: number) => number[];
+		ausschnittZahlen: (von: number, bis: number, art: string, mitte: number | null) => number[];
+		rechenstrichWerte: (start: number, spruenge: number[]) => number[];
+		leseSprung: (text: string) => number;
 	};
 };
 
@@ -703,5 +707,31 @@ describe('Räumliche Geometrie (026)', () => {
 				form,
 			);
 		}
+	});
+});
+
+describe('Zahldarstellungen (027)', () => {
+	it('Hundertertafel: Ausschnitte stehen an der richtigen Stelle', () => {
+		const { ausschnittZahlen, tafelOrt } = rechenkerne();
+		assert.deepEqual([...ausschnittZahlen(1, 100, 'kreuz', 45)], [35, 44, 45, 46, 55]);
+		assert.deepEqual([...tafelOrt(1, 45)], [4, 4]);
+		assert.deepEqual([...tafelOrt(1, 35)], [4, 3]);
+		assert.deepEqual([...tafelOrt(301, 345)], [4, 4]);
+		assert.deepEqual([...ausschnittZahlen(301, 400, 'kreuz', 345)], [335, 344, 345, 346, 355]);
+		assert.deepEqual([...ausschnittZahlen(1, 100, 'zeile', 45)], [41, 42, 43, 44, 45, 46, 47, 48, 49, 50]);
+		assert.equal(ausschnittZahlen(1, 100, 'spalte', 45).length, 10);
+		assert.deepEqual([...ausschnittZahlen(1, 100, 'treppe', 23)], [23, 24, 34, 35, 45, 46]);
+		assert.throws(() => ausschnittZahlen(1, 100, 'kreuz', 41), /am Rand/);
+		assert.throws(() => ausschnittZahlen(1, 100, 'kreuz', 5), /steht nicht auf dieser Tafel/);
+		assert.throws(() => ausschnittZahlen(1, 100, 'kreuz', null), /fehlt die Mittelzahl/);
+	});
+
+	it('Rechenstrich rechnet und liest Sprünge', () => {
+		const { leseSprung, rechenstrichWerte } = rechenkerne();
+		assert.deepEqual([...rechenstrichWerte(47, [30, 4])], [47, 77, 81]);
+		assert.equal(leseSprung('+30'), 30);
+		assert.equal(leseSprung('−4'), -4);
+		assert.equal(leseSprung('-4'), -4);
+		assert.throws(() => leseSprung('30'), /kein Sprung/);
 	});
 });

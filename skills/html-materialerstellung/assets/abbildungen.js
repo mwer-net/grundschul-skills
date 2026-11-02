@@ -75,12 +75,13 @@
   const samen = (el, inhalt) => attr(el, "seed", null) ?? inhalt;
 
   const NAMEN = {
-    "x-uhr": "Uhr", "x-menge": "Menge", "x-dienes": "Zehnerstangen und Einerwürfel", "x-strichpunkt": "Strich-Punkt-Bild",
+    "x-uhr": "Uhr", "x-menge": "Menge", "x-dienes": "Mehrsystemblöcke", "x-strichpunkt": "Strich-Punkt-Bild",
     "x-stellentafel": "Stellentafel", "x-zwanzigerfeld": "Zwanzigerfeld", "x-zahlenstrahl": "Zahlenstrahl", "x-timer": "Timer",
     "x-probe": "Probe",
     "x-gluecksrad": "Glücksrad", "x-wuerfel": "Würfel", "x-strichliste": "Strichliste", "x-diagramm": "Diagramm",
     "x-urne": "Kugeln im Säckchen", "x-wahrscheinlichkeit": "Wahrscheinlichkeit", "x-kombinatorik": "Möglichkeiten",
     "x-gitter": "Gitter", "x-figur": "Figur", "x-tangram": "Tangram",
+    "x-hunderterfeld": "Hunderterfeld", "x-hundertertafel": "Hundertertafel", "x-rechenrahmen": "Rechenrahmen", "x-rechenstrich": "Rechenstrich",
     "x-wuerfelbau": "Würfelgebäude", "x-wuerfelnetz": "Würfelnetz", "x-koerper": "Körper",
   };
 
@@ -248,19 +249,40 @@
   }
 
   function dienes(el) {
-    const z = num(el, "z", 0), e = num(el, "e", 0), u = num(el, "groesse", 8);
+    const loes = liste(el, "loesung").map(Number), zeige = loes.length > 0 && loesungSichtbar(el);
+    if (loes.length && loes.length !== 4) abbruch("Die Lösung hat vier Zahlen: Tausender, Hunderter, Zehner, Einer.");
+    const t = zeige ? loes[0] : num(el, "t", 0), h = zeige ? loes[1] : num(el, "h", 0);
+    const z = zeige ? loes[2] : num(el, "z", 0), e = zeige ? loes[3] : num(el, "e", 0), u = num(el, "groesse", 8);
+    const tiefe = t ? r1(u * 3.5) : 0;
     let s = "", x = 0;
+    for (let i = 0; i < t; i++, x += u * 10 + tiefe + u * 1.6) {
+      const k = u * 10;
+      let g = `<rect class="tausender" x="${x}" y="${tiefe}" width="${k}" height="${k}" stroke-width="1.4"/>`;
+      g += `<path d="M${x} ${tiefe}L${x + tiefe} 0H${x + k + tiefe}L${x + k} ${tiefe}M${x + k + tiefe} 0V${k}L${x + k} ${k + tiefe}" stroke-width="1.4"/>`;
+      for (let m = 1; m < 10; m++) {
+        g += `<line x1="${x + m * u}" y1="${tiefe}" x2="${x + m * u}" y2="${tiefe + k}" stroke-width=".5"/><line x1="${x}" y1="${tiefe + m * u}" x2="${x + k}" y2="${tiefe + m * u}" stroke-width=".5"/>`;
+      }
+      s += g;
+    }
+    for (let i = 0; i < h; i++, x += u * 10 + u * 1.6) {
+      s += `<rect class="hunderter" x="${x}" y="${tiefe}" width="${u * 10}" height="${u * 10}" stroke-width="1.4"/>`;
+      for (let m = 1; m < 10; m++) {
+        s += `<line x1="${x + m * u}" y1="${tiefe}" x2="${x + m * u}" y2="${tiefe + u * 10}" stroke-width=".5"/><line x1="${x}" y1="${tiefe + m * u}" x2="${x + u * 10}" y2="${tiefe + m * u}" stroke-width=".5"/>`;
+      }
+    }
     for (let i = 0; i < z; i++, x += u + u * 0.8) {
-      s += `<rect x="${x}" y="0" width="${u}" height="${u * 10}" stroke-width="1.4"/>`;
-      for (let k = 1; k < 10; k++) s += `<line x1="${x}" y1="${k * u}" x2="${x + u}" y2="${k * u}" stroke-width=".7"/>`;
+      s += `<rect class="zehner" x="${x}" y="${tiefe}" width="${u}" height="${u * 10}" stroke-width="1.4"/>`;
+      for (let k = 1; k < 10; k++) s += `<line x1="${x}" y1="${tiefe + k * u}" x2="${x + u}" y2="${tiefe + k * u}" stroke-width=".7"/>`;
     }
     if (z && e) x += u * 0.8;
     for (let i = 0; i < e; i++) {
       const c = Math.floor(i / 5), r = i % 5;
-      s += `<rect x="${x + c * (u * 1.6)}" y="${u * 10 - (r + 1) * u * 1.6 + u * 0.6}" width="${u}" height="${u}" stroke-width="1.4"/>`;
+      s += `<rect class="einer" x="${x + c * (u * 1.6)}" y="${tiefe + u * 10 - (r + 1) * u * 1.6 + u * 0.6}" width="${u}" height="${u}" stroke-width="1.4"/>`;
     }
     const w = x + Math.ceil(e / 5) * u * 1.6;
-    el.innerHTML = svg(r1(Math.max(w, u)), u * 10, s);
+    if (w > SATZSPIEGEL) abbruch("So viele Blöcke passen nicht in eine Zeile. Nimm eine kleinere Größe.");
+    el.setAttribute("data-wert", t * 1000 + h * 100 + z * 10 + e);
+    el.innerHTML = svg(r1(Math.max(w, u)), u * 10 + tiefe, s);
   }
 
   function strichpunkt(el) {
@@ -276,12 +298,37 @@
     el.innerHTML = svg(r1(Math.max(w, 4)), h, s);
   }
 
+  /** `data-stellenfarben="E:blau Z:rot H:gruen"` am body, nur im Farbprofil; s/w bleibt bei den Buchstaben. */
+  const stellenfarben = () => {
+    const roh = document.body?.getAttribute("data-stellenfarben");
+    if (!roh || istSw()) return {};
+    return Object.fromEntries(roh.trim().split(/\s+/).map((t) => t.split(":")).filter(([, f]) => FARBWERTE[f]).map(([s, f]) => [s, FARBWERTE[f]]));
+  };
+
   function stellentafel(el) {
     const stellen = (el.getAttribute("stellen") || "Z E").split(/\s+/);
     const werte = (el.getAttribute("werte") || "").split(/\s+/);
     const loes = (el.getAttribute("loesung") || "").split(/\s+/);
     const zeilen = num(el, "zeilen", 1);
-    let t = '<table class="stellentafel"><tr>' + stellen.map((s) => `<th>${s}</th>`).join("") + "</tr>";
+    if (stellen.length > 7) abbruch("Die Stellentafel hat höchstens 7 Stellen.");
+    const farben = stellenfarben();
+    const kopf = (s) => (farben[s] ? `<th style="border-top:6px solid ${farben[s]}">${s}</th>` : `<th>${s}</th>`);
+    let t = '<table class="stellentafel"><tr>' + stellen.map(kopf).join("") + "</tr>";
+    if (attr(el, "art", "ziffern") === "plaettchen") {
+      const gegeben = liste(el, "plaettchen").map(Number), loesung = loes.filter(Boolean).map(Number);
+      const anzahl = loesung.length && loesungSichtbar(el) ? loesung : gegeben;
+      for (const a of [...gegeben, ...loesung]) if (!Number.isInteger(a) || a < 0 || a > 15) abbruch("In einer Stelle liegen 0 bis 15 Plättchen.");
+      if (gegeben.length > stellen.length || loesung.length > stellen.length) abbruch("Es sind mehr Plättchen-Zahlen als Stellen.");
+      t += "<tr>" + stellen.map((st, i) => {
+        let s = "";
+        for (let k = 0; k < (anzahl[i] ?? 0); k++) {
+          s += `<circle class="plaettchen" cx="${7 + Math.floor(k / 5) * 13}" cy="${7 + (k % 5) * 13}" r="5" stroke="none" fill="${farben[st] ?? "currentColor"}"/>`;
+        }
+        return `<td class="plaettchen-zelle" data-stelle="${st}" data-anzahl="${anzahl[i] ?? 0}">${svg(40, 66, s)}</td>`;
+      }).join("") + "</tr>";
+      el.innerHTML = t + "</table>";
+      return;
+    }
     for (let r = 0; r < zeilen; r++) {
       t += "<tr>" + stellen.map((_, i) => {
         if (r === 0 && werte[i]) return `<td>${werte[i]}</td>`;
@@ -293,19 +340,25 @@
   }
 
   function zwanzigerfeld(el) {
-    const n = num(el, "n", 0), d = num(el, "groesse", 22);
+    const art = attr(el, "art", "zwanziger"), felder = { fuenfer: 5, zehner: 10, zwanziger: 20 }[art];
+    if (!felder) abbruch(`Das Feld „${art}“ gibt es nicht.`);
+    const loes = liste(el, "loesung").map(Number), zeige = loes.length > 0 && loesungSichtbar(el);
+    const n = zeige ? loes[0] : num(el, "n", 0), n2 = zeige ? (loes[1] ?? 0) : num(el, "n2", 0), d = num(el, "groesse", 22);
+    if ((felder < 20 || n2 > 0) && n + n2 > felder) abbruch(`${n + n2} Plättchen passen nicht in ${felder} Felder.`);
     let s = "";
-    for (let i = 0; i < 20; i++) {
+    for (let i = 0; i < felder; i++) {
       const c = i % 10, r = Math.floor(i / 10), x = c * d + (c >= 5 ? d * 0.3 : 0), y = r * d;
       s += `<rect x="${r1(x)}" y="${y}" width="${d}" height="${d}" stroke-width="1.5"/>`;
       if (i < n) s += `<circle cx="${r1(x + d / 2)}" cy="${y + d / 2}" r="${d * 0.36}" fill="currentColor" stroke="none"/>`;
+      else if (i < n + n2) s += plaettchenKreis(x + d / 2, y + d / 2, d * 0.36, true);
     }
-    el.innerHTML = svg(r1(10 * d + d * 0.3), 2 * d, s);
+    el.innerHTML = svg(r1(felder === 5 ? 5 * d : 10 * d + d * 0.3), felder === 20 ? 2 * d : d, s);
   }
 
   function zahlenstrahl(el) {
     const von = num(el, "von", 0), bis = num(el, "bis", 20), schritt = num(el, "schritt", 1);
-    const breite = num(el, "breite", 560), fs = num(el, "schrift", 16);
+    const breite = num(el, "breite", 560), fs = num(el, "schrift", 16), mittel = num(el, "marken", 5);
+    if (!(mittel >= 1)) abbruch("Die mittleren Striche brauchen einen Abstand ab 1.");
     if (!(von < bis)) abbruch("„Bis“ muss größer sein als „Von“.");
     if (!(schritt > 0) || (bis - von) / schritt > 1000) abbruch("Der Abstand der Striche passt nicht.");
     const zahlen = (el.getAttribute("zahlen") || `${von} ${bis}`).split(/\s+/).map(Number);
@@ -314,16 +367,17 @@
     const top = pfeile.length ? 26 : 4;
     let s = `<line x1="0" y1="${top + 12}" x2="${breite}" y2="${top + 12}" stroke-width="2"/>`;
     for (let v = von; v <= bis + 1e-9; v += schritt) {
-      const lang = Math.abs(v % (schritt * 10)) < 1e-9 ? 12 : Math.abs(v % (schritt * 5)) < 1e-9 ? 9 : 6;
+      const lang = Math.abs(v % (schritt * mittel * 2)) < 1e-9 ? 12 : Math.abs(v % (schritt * mittel)) < 1e-9 ? 9 : 6;
       s += `<line x1="${x(v)}" y1="${top + 12 - lang}" x2="${x(v)}" y2="${top + 12 + lang}" stroke-width="1.5"/>`;
     }
     zahlen.forEach((v) => {
-      s += `<text x="${x(v)}" y="${top + 26 + fs * 0.8}" font-family="Andika,sans-serif" font-size="${fs}" fill="currentColor" stroke="none" text-anchor="middle">${v}</text>`;
+      s += `<text x="${x(v)}" y="${top + 26 + fs * 0.8}" font-family="Andika,sans-serif" font-size="${fs}" fill="currentColor" stroke="none" text-anchor="middle">${zahl(v)}</text>`;
     });
     pfeile.forEach((v) => {
       s += `<path d="M${x(v)} ${top - 2} L${x(v)} ${top + 6} M${x(v) - 4} ${top + 2} L${x(v)} ${top + 6} L${x(v) + 4} ${top + 2}" stroke-width="1.5"/>`;
-      s += `<rect x="${x(v) - 15}" y="${top - 26}" width="30" height="22" rx="3" stroke-width="1.5"/>`;
-      if (loesungSichtbar(el)) s += `<text x="${x(v)}" y="${top - 9}" font-family="Andika,sans-serif" font-size="${fs}" font-weight="700" fill="currentColor" stroke="none" text-anchor="middle">${v}</text>`;
+      const halb = String(v).length <= 3 ? 15 : r1(textBreite(zahl(v), fs) / 2 + 5);
+      s += `<rect x="${r1(x(v) - halb)}" y="${top - 26}" width="${r1(2 * halb)}" height="22" rx="3" stroke-width="1.5"/>`;
+      if (loesungSichtbar(el)) s += `<text x="${x(v)}" y="${top - 9}" font-family="Andika,sans-serif" font-size="${fs}" font-weight="700" fill="currentColor" stroke="none" text-anchor="middle">${zahl(v)}</text>`;
     });
     el.innerHTML = svg(breite, top + 30 + fs, s);
   }
@@ -1685,6 +1739,181 @@
     el.innerHTML = svg(r1(breite), r1(hoehe), f.defs() + s);
   }
 
+  /* == Zahldarstellungen == */
+  const plaettchenKreis = (cx, cy, r, ring, fuell = "currentColor") => ring
+    ? `<circle class="plaettchen-ring" cx="${r1(cx)}" cy="${r1(cy)}" r="${r1(r * 0.88)}" fill="#fff" stroke-width="${r1(Math.max(2, r * 0.26))}"/>`
+    : `<circle class="plaettchen-voll" cx="${r1(cx)}" cy="${r1(cy)}" r="${r1(r)}" stroke="none" fill="${fuell}"/>`;
+
+  function hunderterfeld(el) {
+    const zeilen = num(el, "zeilen", 10), spalten = num(el, "spalten", 10), d = num(el, "groesse", 22);
+    if (zeilen < 1 || zeilen > 10 || spalten < 1 || spalten > 10) abbruch("Das Feld hat höchstens 10 Zeilen und 10 Spalten.");
+    const loesung = attr(el, "loesung", null), zeige = loesung !== null && loesungSichtbar(el);
+    const ausLoesung = zeige && !loesung.includes("x") ? loesung.trim().split(/\s+/).map(Number) : [];
+    const n = zeige && ausLoesung.length ? ausLoesung[0] : num(el, "n", 0);
+    const n2 = zeige && ausLoesung.length ? (ausLoesung[1] ?? 0) : num(el, "n2", 0);
+    if (!Number.isInteger(n) || !Number.isInteger(n2) || n < 0 || n2 < 0) abbruch("Die Anzahl der Plättchen muss eine ganze Zahl sein.");
+    if (n + n2 > zeilen * spalten) abbruch(`${n + n2} Plättchen passen nicht in ${zeilen * spalten} Felder.`);
+    const winkelText = zeige && loesung.includes("x") ? loesung : attr(el, "malwinkel", null);
+    const luecke = d * 0.3;
+    const X = (c) => r1(c * d + (c >= 5 ? luecke : 0) + 2), Y = (r) => r1(r * d + (r >= 5 ? luecke : 0) + 2);
+    const farbe1 = istSw() ? SCHWARZ : "var(--haupt)";
+    let s = "";
+    for (let i = 0; i < zeilen * spalten; i++) {
+      const c = i % spalten, r = Math.floor(i / spalten);
+      s += `<rect class="hunderter-feld" x="${X(c)}" y="${Y(r)}" width="${d}" height="${d}" stroke-width="1"/>`;
+      if (i < n) s += plaettchenKreis(X(c) + d / 2, Y(r) + d / 2, d * 0.36, false, farbe1);
+      else if (i < n + n2) s += plaettchenKreis(X(c) + d / 2, Y(r) + d / 2, d * 0.36, true);
+    }
+    const breite = spalten * d + (spalten > 5 ? luecke : 0), hoehe = zeilen * d + (zeilen > 5 ? luecke : 0);
+    if (winkelText) {
+      const t = /^(\d+)x(\d+)$/.exec(winkelText.trim());
+      if (!t) abbruch("Der Malwinkel sieht so aus: 3x7 (Zeilen x Spalten).");
+      const a = Number(t[1]), b = Number(t[2]);
+      if (a < 1 || b < 1 || a > zeilen || b > spalten) abbruch(`Der Malwinkel ${a}x${b} passt nicht ins Feld.`);
+      const x2 = Number(X(b - 1)) + d, y2 = Number(Y(a - 1)) + d;
+      s += `<path class="malwinkel" data-malwinkel="${a}x${b}" d="M${r1(x2)} 0V${r1(y2)}H0" stroke-width="3.5" stroke-linejoin="round"/>`;
+    }
+    el.innerHTML = svg(r1(breite + 4), r1(hoehe + 4), s);
+  }
+
+  const TAFEL_AUSSCHNITTE = ["ganz", "zeile", "spalte", "kreuz", "block", "treppe"];
+  const tafelOrt = (von, z) => [(z - von) % 10, Math.floor((z - von) / 10)];
+  /** Die Zahlen des Ausschnitts. Ein Kreuz am Rand gäbe es auf der echten Tafel nicht und wird abgelehnt. */
+  const ausschnittZahlen = (von, bis, art, mitte) => {
+    const alle = Array.from({ length: bis - von + 1 }, (_, i) => von + i);
+    if (art === "ganz") return alle;
+    if (mitte === null || mitte === undefined || Number.isNaN(mitte)) abbruch("Für diesen Ausschnitt fehlt die Mittelzahl.");
+    if (mitte < von || mitte > bis) abbruch(`${zahl(mitte)} steht nicht auf dieser Tafel (${zahl(von)} bis ${zahl(bis)}).`);
+    const [spalte, zeile] = tafelOrt(von, mitte);
+    if (art === "zeile") return alle.filter((z) => tafelOrt(von, z)[1] === zeile);
+    if (art === "spalte") return alle.filter((z) => tafelOrt(von, z)[0] === spalte);
+    const versatz = { kreuz: [-10, -1, 0, 1, 10], block: [-11, -10, -9, -1, 0, 1, 9, 10, 11], treppe: [0, 1, 11, 12, 22, 23] }[art];
+    if (!versatz) abbruch(`Den Ausschnitt „${art}“ gibt es nicht.`);
+    const links = art === "treppe" ? 0 : 1;
+    if (spalte < links || spalte + 1 > 9) abbruch(`Um ${zahl(mitte)} passt der Ausschnitt nicht: Die Zahl steht am Rand der Tafel.`);
+    const zahlen = versatz.map((v) => mitte + v);
+    const draussen = zahlen.find((z) => z < von || z > bis);
+    if (draussen !== undefined) abbruch(`${zahl(draussen)} steht nicht auf dieser Tafel (${zahl(von)} bis ${zahl(bis)}).`);
+    return zahlen;
+  };
+
+  function hundertertafel(el) {
+    const von = num(el, "von", 1), bis = num(el, "bis", von + 99), d = num(el, "groesse", 32);
+    if (!(von <= bis) || bis - von >= 400) abbruch("Die Tafel geht von „Von“ bis „Bis“, höchstens 400 Zahlen.");
+    const art = attr(el, "ausschnitt", "ganz");
+    const roh = attr(el, "mitte", null);
+    const zahlen = ausschnittZahlen(von, bis, art, roh === null ? null : Number(roh));
+    const luecken = new Set(liste(el, "luecken").map(Number)), markiert = new Set(liste(el, "markiert").map(Number));
+    const zufaellig = num(el, "zufall", 0);
+    if (zufaellig > 0) {
+      const zz = zufall(samen(el, `${von}|${bis}|${art}|${roh ?? ""}`));
+      for (const z of gemischt(zahlen, zz).slice(0, zufaellig)) luecken.add(z);
+    }
+    for (const z of [...luecken, ...markiert]) if (!zahlen.includes(z)) abbruch(`${zahl(z)} steht nicht in diesem Ausschnitt.`);
+    if (zahlen.every((z) => luecken.has(z))) abbruch("Mindestens eine Zahl muss stehen bleiben; aus ihr ergeben sich die anderen.");
+    const orte = zahlen.map((z) => tafelOrt(von, z));
+    const c0 = Math.min(...orte.map((o) => o[0])), r0 = Math.min(...orte.map((o) => o[1]));
+    const zellen = zahlen.map((z, i) => ({ id: String(z), x: orte[i][0] - c0, y: orte[i][1] - r0, text: String(z) }));
+    meldeZellen(el, "luecken", zellen);
+    meldeZellen(el, "markiert", zellen);
+    const f = fuellung(), muster = istSw() ? f.von(2) : "color-mix(in srgb,var(--haupt) 30%,#fff)";
+    const groesste = String(bis).length, schrift = Math.min(d * 0.46, (d * 0.86) / (groesste * SCHRIFT_BREITE));
+    let s = "";
+    for (const { id, x, y } of zellen) {
+      const z = Number(id), leer = luecken.has(z), px = x * d + 1, py = y * d + 1;
+      s += `<g class="tafel-zelle${leer ? " luecke" : ""}" data-zahl="${z}" data-x="${x}" data-y="${y}">`;
+      s += `<rect x="${px}" y="${py}" width="${d}" height="${d}" stroke-width="1.2" fill="${markiert.has(z) ? muster : "#fff"}"${markiert.has(z) ? ' class="markiert"' : ""}/>`;
+      if (markiert.has(z) && istSw() && (!leer || loesungSichtbar(el))) s += `<rect x="${r1(px + d * 0.12)}" y="${r1(py + d * 0.22)}" width="${r1(d * 0.76)}" height="${r1(d * 0.56)}" fill="#fff" stroke="none"/>`;
+      if (!leer) s += text(px + d / 2, py + d / 2, z, { groesse: schrift });
+      else if (loesungSichtbar(el)) s += text(px + d / 2, py + d / 2, z, { groesse: schrift, fett: true });
+      s += "</g>";
+    }
+    const breite = (Math.max(...zellen.map((c) => c.x)) + 1) * d, hoehe = (Math.max(...zellen.map((c) => c.y)) + 1) * d;
+    if (breite > SATZSPIEGEL) abbruch("Die Tafel ist zu breit. Nimm eine kleinere Größe.");
+    el.innerHTML = svg(r1(breite + 2), r1(hoehe + 2), f.defs() + s);
+  }
+
+  function rechenrahmen(el) {
+    const art = attr(el, "art", "20");
+    if (art !== "20" && art !== "100") abbruch("Den Rechenrahmen gibt es als 20 und als 100.");
+    const reihen = art === "100" ? 10 : 2, d = num(el, "groesse", 18);
+    const loesung = liste(el, "loesung").map(Number), stellung = liste(el, "stellung").map(Number);
+    const werte = loesung.length && loesungSichtbar(el) ? loesung : stellung;
+    for (const w of [...stellung, ...loesung]) if (!Number.isInteger(w) || w < 0 || w > 10) abbruch("In jeder Reihe sind 0 bis 10 Kugeln links.");
+    if (stellung.length > reihen || loesung.length > reihen) abbruch(`Dieser Rahmen hat ${reihen} Reihen.`);
+    const stange = d * 13.5, rand = 8, hell = "#fff", dunkel = istSw() ? SCHWARZ : "var(--haupt)";
+    let s = `<rect x="1" y="1" width="${r1(stange + 2 * rand)}" height="${r1(reihen * (d + 3) + 2 * rand - 3)}" rx="4" stroke-width="2.4"/>`;
+    for (let r = 0; r < reihen; r++) {
+      const y = rand + 1 + r * (d + 3) + d / 2, links = werte[r] ?? 0;
+      s += `<line x1="1" y1="${r1(y)}" x2="${r1(stange + 2 * rand + 1)}" y2="${r1(y)}" stroke-width="1.2"/>`;
+      for (let i = 0; i < 10; i++) {
+        const x = i < links ? rand + 1 + i * d : rand + 1 + stange - (10 - i) * d;
+        s += `<circle class="kugel" data-reihe="${r}" data-nr="${i}" data-seite="${i < links ? "links" : "rechts"}" cx="${r1(x + d / 2)}" cy="${r1(y)}" r="${r1(d * 0.46)}" stroke-width="1.3" style="fill:${i < 5 ? dunkel : hell}"/>`;
+      }
+    }
+    el.setAttribute("data-summe", werte.reduce((a, w) => a + w, 0));
+    el.innerHTML = svg(r1(stange + 2 * rand + 2), r1(reihen * (d + 3) + 2 * rand - 1), s);
+  }
+
+  const leseSprung = (t) => {
+    const m = /^([+\-−])\s*(\d+)$/.exec(String(t).trim());
+    if (!m) abbruch(`„${t}“ ist kein Sprung. So sieht einer aus: +30 oder −4.`);
+    return m[1] === "+" ? Number(m[2]) : -Number(m[2]);
+  };
+  const rechenstrichWerte = (start, spruenge) => spruenge.reduce((w, s) => [...w, w[w.length - 1] + s], [start]);
+  const sprungText = (s) => `${s < 0 ? "−" : "+"}${zahl(Math.abs(s))}`;
+
+  function rechenstrich(el) {
+    const start = num(el, "start", 0), breite = num(el, "breite", 560);
+    const spruenge = liste(el, "spruenge").map(leseSprung);
+    if (spruenge.length === 0) abbruch("Der Rechenstrich braucht mindestens einen Sprung, zum Beispiel +30.");
+    if (breite > SATZSPIEGEL) abbruch(`Der Rechenstrich ist breiter als die Seite (höchstens ${SATZSPIEGEL} px).`);
+    const hoch = spruenge.some((s) => s > 0), runter = spruenge.some((s) => s < 0);
+    if (spruenge.includes(0)) abbruch("Ein Sprung um 0 ist kein Sprung.");
+    if (hoch && runter && attr(el, "gemischt", "nein") !== "ja") abbruch("Vor- und Rückwärtssprünge in einer Aufgabe: Das braucht „Gemischte Sprünge“.");
+    const zeige = attr(el, "zeige", null) === null ? ["start", "spruenge"] : liste(el, "zeige");
+    const werte = rechenstrichWerte(start, spruenge);
+    const massstab = attr(el, "massstab", "nein") === "ja" || (hoch && runter);
+    const klein = Math.min(...werte), gross = Math.max(...werte), rand = 30, innen = breite - 2 * rand;
+    const xVon = (w, i) => {
+      if (massstab) return rand + ((w - klein) / (gross - klein || 1)) * innen;
+      const schritt = i * (innen / spruenge.length);
+      return runter ? rand + innen - schritt : rand + schritt;
+    };
+    const orte = werte.map(xVon);
+    if (massstab) {
+      orte.slice(1).forEach((x, i) => {
+        const b = Math.abs(x - orte[i]);
+        if (b < 28) abbruch(`Der Bogen für ${sprungText(spruenge[i])} wäre nur ${Math.round(b)} px breit. Nimm den Rechenstrich breiter oder ohne Maßstab.`);
+      });
+    }
+    const bogenHoehe = 34, oben = 30 + bogenHoehe, linie = oben + 2;
+    let s = `<line x1="0" y1="${linie}" x2="${breite}" y2="${linie}" stroke-width="2"/>`;
+    const feld = (x, y, wert, wort, klasse, ist) => {
+      const b = Math.max(38, textBreite(wort, 15) + 12), sichtbar = zeige.includes(ist);
+      return `<g class="${klasse}" data-wert="${wert}" data-sichtbar="${sichtbar ? "ja" : "nein"}">` +
+        (sichtbar ? text(x, y + 13, wort, { groesse: 15, fett: true }) : antwortfeld(el, x - b / 2, y, b, 26, wort, { groesse: 15 })) + "</g>";
+    };
+    spruenge.forEach((sprung, i) => {
+      const a = orte[i], z = orte[i + 1], mitte = (a + z) / 2, h = Math.min(bogenHoehe, Math.abs(z - a) * 0.45 + 8);
+      const richtung = z > a ? -1 : 1, spitzeY = linie - 2;
+      s += `<path class="bogen" d="M${r1(a)} ${spitzeY}Q${r1(mitte)} ${r1(linie - 2 * h)} ${r1(z)} ${spitzeY}" stroke-width="2"/>`;
+      s += `<path d="M${r1(z + richtung * 7)} ${spitzeY - 6}L${r1(z)} ${spitzeY}L${r1(z + richtung * 1)} ${spitzeY - 9}" stroke-width="2" stroke-linejoin="round"/>`;
+      s += feld(mitte, linie - h - 28, sprung, sprungText(sprung), "strich-sprung", "spruenge");
+    });
+    let letzte = -1, reihe = 0, gestaffelt = false;
+    orte.forEach((x, i) => {
+      s += `<line x1="${r1(x)}" y1="${linie - 6}" x2="${r1(x)}" y2="${linie + 6}" stroke-width="2"/>`;
+      reihe = letzte >= 0 && Math.abs(x - letzte) < 46 && reihe === 0 ? 1 : 0;
+      gestaffelt = gestaffelt || reihe === 1;
+      letzte = x;
+      const ist = i === 0 ? "start" : i === werte.length - 1 ? "ziel" : "zwischen";
+      s += feld(x, linie + 10 + reihe * 30, werte[i], zahl(werte[i]), "strich-wert", ist);
+    });
+    el.setAttribute("data-ziel", werte[werte.length - 1]);
+    el.innerHTML = svg(breite, linie + 10 + 26 + (gestaffelt ? 30 : 0) + 2, s);
+  }
+
   /* == Test == */
   // x-probe gibt es nur für die Tests der Feldtypen im Panel (023); in Material kommt es nicht vor.
   function probe(el) {
@@ -1722,6 +1951,7 @@
     "x-probe": probe, "x-gluecksrad": gluecksrad, "x-wuerfel": wuerfel, "x-strichliste": strichliste, "x-diagramm": diagramm,
     "x-urne": urne, "x-wahrscheinlichkeit": wahrscheinlichkeit, "x-kombinatorik": kombinatorik,
     "x-gitter": gitter, "x-figur": figur, "x-tangram": tangram,
+    "x-hunderterfeld": hunderterfeld, "x-hundertertafel": hundertertafel, "x-rechenrahmen": rechenrahmen, "x-rechenstrich": rechenstrich,
     "x-wuerfelbau": wuerfelbau, "x-wuerfelnetz": wuerfelnetz, "x-koerper": koerper };
 
   const zeichne = (f, el) => {
@@ -1746,6 +1976,7 @@
   window.schoolboxAbbildungen = {
     ARTEN, zahl, cm, zufall, gemischt, trenneListe, trenneRaster, bildVon, spiegelung, skaliere, gehWeg, flaecheUmfang, TANGRAM_TEILE, TANGRAM_UMRISSE,
     ansichtenVon, wuerfelVon, verdeckteWuerfel, WUERFELNETZE, NICHT_NETZE, netzZellen, falteNetz, istWuerfelnetz, netzLaschen, netzLage, AUGEN_DER_SEITE, vielflach, KOERPER_ZAHLEN,
+    tafelOrt, ausschnittZahlen, rechenstrichWerte, leseSprung,
   };
   if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", () => window.zeichneAbbildungen());
   else window.zeichneAbbildungen();

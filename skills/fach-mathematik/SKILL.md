@@ -12,7 +12,7 @@ Grundlage: Bildungsplan Baden-Württemberg Mathematik (Neufassung auf Grundlage 
 Nach dem Rückfrage-Protokoll aus `grundschul-didaktik` (eine Frage pro Nachricht, mit Empfehlung). Ergänzend zu den Fragen des Material-Skills:
 
 1. **Zahlenraum und Stand:** Bis 10/20/100/1000/Million? Mit oder ohne Zehnerübergang? Welche Rechenstrategien sind eingeführt?
-2. **Arbeitsmittel der Klasse:** Zwanzigerfeld, Rechenschiffchen, Rechenkette, Hunderterfeld/-tafel, Dienes-Material, Stellenwerttafel, Zahlenstrahl? *Material muss dieselben Darstellungen zeigen.*
+2. **Arbeitsmittel der Klasse:** Zwanzigerfeld, Rechenschiffchen, Rechenkette, Hunderterfeld/-tafel, Dienes-Material, Stellenwerttafel, Zahlenstrahl, Rechenrahmen (20er oder 100er, welche Farben)? Stellenfarben der Klasse? *Material muss dieselben Darstellungen zeigen.*
 3. **Lehrwerk:** Zahlenbuch, Flex und Flo, Denken und Rechnen, Welt der Zahl …? (Begriffe und Aufgabenformate übernehmen.)
 4. **Schwerpunkt:** Verstehen (Einführung mit Material/Bild), Automatisieren (Blitzrechnen, Einspluseins/Einmaleins) oder Anwenden (Sachaufgaben)?
 
@@ -54,8 +54,9 @@ Prozessbezogene Kompetenzen in jedes Material einbauen: Problemlösen, Kommunizi
 ## Darstellungskonventionen für Materialien
 
 - Zwanzigerfeld: 2 × 10 Kreise, nach 5 Spalten Lücke oder Farbwechsel; Wendeplättchen rot/blau. Im s/w-Profil: rot = gefüllter Kreis, blau = leerer Kreis (Legende angeben), oder Kinder malen selbst an.
-- Hunderterfeld: 10 × 10, Fünferlinien hervorgehoben.
-- Stellenwerte: Farben der Klasse (häufig E blau, Z rot, H grün) – Konvention erfragen. Im s/w-Profil Buchstaben E/Z/H über der Stelle; Kinder können die Farben anmalen.
+- Hunderterfeld: 10 × 10, Fünferkreuz hervorgehoben (`x-hunderterfeld`).
+- Rechenstrich, leerer Zahlenstrahl, Kl. 2: `x-rechenstrich`; Sprünge mit gleichem Vorzeichen in einer Aufgabe.
+- Stellenwerte: Farben der Klasse (häufig E blau, Z rot, H grün) – Konvention erfragen, dann `data-stellenfarben` am `<body>` (Katalog, Abschnitt „Zahldarstellungen“). Im s/w-Profil Buchstaben E/Z/H über der Stelle; Kinder können die Farben anmalen.
 - Uhren, Felder, Zahlenstrahl in Schwarz auf Weiß (auch im Farbprofil, Farbe nur für Hervorhebungen wie den Fünferwechsel), Reihen gleichmäßig verteilt; Mindestgrößen in `grundschul-didaktik/references/druck-und-platz.md`.
 - Zahlenstrahl: gleichmäßige Abstände, Zehner deutlich markiert.
 - Uhr: analoges Zifferblatt mit großen Ziffern, Stundenzeiger deutlich kürzer und dicker. **Nie von der KI zeichnen lassen** – `<x-uhr>` aus `html-materialerstellung/assets/abbildungen.js` berechnet exakte Zifferblätter.
@@ -103,11 +104,15 @@ Exakte Darstellungen kommen als Elemente aus `html-materialerstellung/assets/abb
 |---|---|
 | `<x-uhr zeit="4:30" groesse="88">`, `<x-uhr loesung="4:30">` | Zifferblatt mit bzw. ohne Zeiger |
 | `<x-menge n="36" form="nuss" reihe="10" buendel-loesung="3">` | Gegenstände (kreis, plaettchen, nuss) in Zehnerreihen mit Fünferlücke; Bündelrahmen um volle Zehner |
-| `<x-dienes z="3" e="5">` | Zehnerstangen und Einerwürfel |
+| `<x-dienes t="1" h="2" z="3" e="5">` | Mehrsystemblöcke: Tausender, Hunderter, Zehner, Einer |
 | `<x-strichpunkt z="3" e="5">` | Strich-Punkt-Darstellung, Einer in Fünferstruktur |
 | `<x-stellentafel stellen="H Z E" loesung="1 3 5">` | Stellenwerttafel, leer oder mit Werten |
 | `<x-zwanzigerfeld n="13">` | Zwanzigerfeld mit Plättchen |
 | `<x-zahlenstrahl von="0" bis="100" schritt="10" zahlen="0 50 100" pfeile="30 70">` | Zahlenstrahl mit Pfeilen und Antwortkästchen |
+| `<x-hunderterfeld n="30" n2="6">` | Hunderterfeld, Malwinkel |
+| `<x-hundertertafel ausschnitt="kreuz" mitte="45">` | Hundertertafel, Ausschnitte, Lücken |
+| `<x-rechenrahmen stellung="7 3">` | Rechenrahmen 20 oder 100 |
+| `<x-rechenstrich start="47" spruenge="+30 +4">` | Rechenstrich (leerer Zahlenstrahl) |
 | `<x-gluecksrad felder="rot: 1; blau: 2" anteile="1 2">` | Glücksrad, auch zum Ausmalen und als Bastelvorlage |
 | `<x-wuerfel augen="5">` | Würfel, flach oder räumlich |
 | `<x-strichliste werte="Hund: 7; Katze: 4">` | Strichliste mit Fünferbündeln |
@@ -126,6 +131,6 @@ Zur Leitidee „Raum und Form“: Kl. 1/2 Formen (`x-figur`), Wege und Auslegen 
 
 Zur Leitidee „Daten, Häufigkeit, Wahrscheinlichkeit“: Kl. 1/2 Strichliste, Würfel, Glücksrad; Kl. 3/4 Diagramm, Wahrscheinlichkeit, Möglichkeiten.
 
-Fehlt eine Darstellung, als neues Element ergänzen, nie freihand oder per KI: `html-materialerstellung/SKILL.md`, Abschnitt „Neues Element“.
+Fehlt eine andere Darstellung, als neues Element ergänzen, nie freihand oder per KI: `html-materialerstellung/SKILL.md`, Abschnitt „Neues Element“.
 
 **Bündeln mit Gegenständen:** Ungebündelte Mengen sind hier ausnahmsweise erlaubt, aber geordnet (`x-menge`, Zehnerreihen mit Fünferlücke), in Kl. 2 bis ca. 45 Gegenstände.

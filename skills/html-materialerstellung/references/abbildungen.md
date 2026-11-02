@@ -40,7 +40,7 @@ Zählen und Bündeln.
 
 `n` Anzahl (1 bis 100), `form` `kreis`, `plaettchen` oder `nuss`, `reihe` Reihenlänge mit Fünferlücke (1 bis 10), `groesse` Maß eines Gegenstands (8 bis 40), `buendel`/`buendel-loesung` Rahmen um volle Zehner immer bzw. nur in der Lösung.
 
-### `x-dienes`: Zehnerstangen und Einerwürfel
+### `x-dienes`: Mehrsystemblöcke
 
 ```html
 <x-dienes z="3" e="5"></x-dienes>
@@ -273,3 +273,47 @@ Fehler: Frage ist zugleich Vorgabe; Fragen ohne Schrägbild oder Bauplan; nach B
 ```
 
 `form` `wuerfel`, `quader`, `kugel`, `zylinder`, `kegel`, `pyramide`, `prisma`; `ansicht` `schraegbild` (Kavalierperspektive) oder `kantenmodell` (nur mit geraden Kanten); `verdeckt` `gestrichelt` oder `aus`; `markiere` `ecken`, `kanten`, `flaechen`: Antwortfeld auf dem Blatt, Markierung und Anzahl in der Lösung (beim Kegel heißt es „Spitzen“); `masse` in Einheiten; `drehung` um die senkrechte Achse; `groesse` px je Einheit.
+
+## Zahldarstellungen
+
+Muster: `assets/muster/zahldarstellungen.html`. Stellenfarben der Klasse: einmal am `<body>`, zum Beispiel `data-stellenfarben="E:blau Z:rot H:gruen"`. Sie gelten nur im Farbprofil, als schmale Kopfleiste in der Stellentafel und an deren Plättchen.
+
+Erweiterungen der Grundelemente: `x-zwanzigerfeld` `art` (`fuenfer`, `zehner`, `zwanziger`), `n2` zweite Sorte, `loesung="5 2"`. `x-dienes` `t`, `h`, `loesung="1 2 3 4"` (T H Z E). `x-stellentafel` bis `M HT ZT T H Z E`, `art="plaettchen"` mit `plaettchen="3 0 12"` (bis 15 je Stelle), auch in `loesung`. `x-zahlenstrahl` `marken` mittlere Striche alle so viele Schritte; Ausschnitte wie 3400 bis 3500 ohne Null.
+
+### `x-hunderterfeld`: Hunderterfeld
+
+```html
+<x-hunderterfeld n="30" n2="6"></x-hunderterfeld>
+<x-hunderterfeld malwinkel="3x7"></x-hunderterfeld>
+<x-hunderterfeld loesung="4x8"></x-hunderterfeld>
+```
+
+`n` volle Plättchen zeilenweise, `n2` Ringe; `zeilen`, `spalten` Ausschnitt; `malwinkel` Zeilen x Spalten, liegt immer oben links; `loesung` Plättchen (`30 6`) oder Malwinkel (`3x7`) erst in der Lösung; `groesse` px je Feld. Die Lücke in der Mitte ist das Fünferkreuz.
+
+### `x-hundertertafel`: Hundertertafel
+
+```html
+<x-hundertertafel luecken="7 23 58" markiert="5 10 15"></x-hundertertafel>
+<x-hundertertafel ausschnitt="kreuz" mitte="45" luecken="35 44 46 55"></x-hundertertafel>
+<x-hundertertafel von="301" bis="400" ausschnitt="block" mitte="345" zufall="4" seed="a"></x-hundertertafel>
+```
+
+`von`, `bis`; `ausschnitt` `ganz`, `zeile`, `spalte`, `kreuz`, `block`, `treppe` mit `mitte`; `luecken` leer auf dem Blatt, in der Lösung ausgefüllt; `zufall` so viele zufällige Lücken dazu (`seed`); `markiert` mit Muster oder Farbe; `groesse` px je Feld. Eine Zahl muss stehen bleiben; Kreuz und Block gehen nicht am Rand der Tafel.
+
+### `x-rechenrahmen`: Rechenrahmen
+
+```html
+<x-rechenrahmen stellung="7 3"></x-rechenrahmen>
+<x-rechenrahmen art="100" loesung="10 10 4"></x-rechenrahmen>
+```
+
+`art` `20` oder `100`; `stellung` Kugeln links je Reihe; `loesung` erst in der Lösung; `groesse` px je Kugel.
+
+### `x-rechenstrich`: Rechenstrich
+
+```html
+<x-rechenstrich start="47" spruenge="+30 +4"></x-rechenstrich>
+<x-rechenstrich start="83" spruenge="−20 −3" zeige="start spruenge zwischen"></x-rechenstrich>
+```
+
+`start`; `spruenge` mit Vorzeichen; `zeige` aus `start`, `spruenge`, `zwischen`, `ziel` (Standard: Start und Sprünge), alles andere ist ein Kästchen mit der berechneten Lösung; `massstab="ja"` Bögen maßstäblich, mindestens 28 px; `gemischt="ja"` erlaubt Vor- und Rückwärtssprünge, dann immer im Maßstab; `breite` in px.

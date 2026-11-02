@@ -610,3 +610,107 @@ test.describe('Räumliche Geometrie (026)', () => {
 		await expect(modell.locator('.kugel-ecke')).toHaveCount(8);
 	});
 });
+
+test.describe('Zahldarstellungen (027)', () => {
+	const werte = (seite: Page, klasse: string) =>
+		seite
+			.locator(klasse)
+			.evaluateAll((l) =>
+				l.map(
+					(e) =>
+						`${e.getAttribute('data-wert')}:${e.getAttribute('data-sichtbar')}:${(e.textContent ?? '').trim()}`,
+				),
+			);
+
+	test('Rechenstrich 47 +30 +4: Blatt zeigt 47 und Sprünge, Lösung 77 und 81', async ({ page }) => {
+		const tag = '<x-rechenstrich start="47" spruenge="+30 +4"></x-rechenstrich>';
+		const blatt = await gezeichnet(page, tag);
+		expect(await werte(blatt, '.strich-wert')).toEqual(['47:ja:47', '77:nein:', '81:nein:']);
+		expect(await werte(blatt, '.strich-sprung')).toEqual(['30:ja:+30', '4:ja:+4']);
+		const voll = await gezeichnet(page, tag, 'kl3 sw loesung');
+		expect(await werte(voll, '.strich-wert')).toEqual(['47:ja:47', '77:nein:77', '81:nein:81']);
+		const gemischt = await gezeichnet(page, '<x-rechenstrich start="50" spruenge="+30 −4"></x-rechenstrich>');
+		await expect(gemischt.locator('x-rechenstrich')).toHaveAttribute('data-fehler', /Gemischte Sprünge/);
+		const eng = await gezeichnet(
+			page,
+			'<x-rechenstrich start="0" spruenge="+1 +99" massstab="ja"></x-rechenstrich>',
+		);
+		await expect(eng.locator('x-rechenstrich')).toHaveAttribute('data-fehler', /px breit/);
+	});
+
+	test('Stellentafel: 7 Stellen mit Plättchen passen, Stellenfarben nur in Farbe, Fehler ab 8 Stellen', async ({
+		page,
+	}) => {
+		const tag =
+			'<x-stellentafel stellen="M HT ZT T H Z E" art="plaettchen" plaettchen="15 15 15 15 15 15 15"></x-stellentafel>';
+		const seite = await gezeichnet(page, tag);
+		await expect(seite.locator('.plaettchen')).toHaveCount(105);
+		const breite = await seite.locator('.stellentafel').evaluate((t) => t.getBoundingClientRect().width);
+		expect(breite).toBeLessThanOrEqual(620);
+		const acht = await gezeichnet(page, '<x-stellentafel stellen="A M HT ZT T H Z E"></x-stellentafel>');
+		await expect(acht.locator('x-stellentafel')).toHaveAttribute('data-fehler', /höchstens 7/);
+		const zuViele = await gezeichnet(page, '<x-stellentafel art="plaettchen" plaettchen="16 0"></x-stellentafel>');
+		await expect(zuViele.locator('x-stellentafel')).toHaveAttribute('data-fehler', /0 bis 15/);
+	});
+
+	test('Hunderterfeld, Rahmen und Blöcke zeigen die Lösung erst im Lösungsblatt', async ({ page }) => {
+		const feld = '<x-hunderterfeld n="30" n2="6"></x-hunderterfeld>';
+		const blatt = await gezeichnet(page, feld);
+		await expect(blatt.locator('.plaettchen-voll')).toHaveCount(30);
+		await expect(blatt.locator('.plaettchen-ring')).toHaveCount(6);
+		const winkel = '<x-hunderterfeld loesung="3x7"></x-hunderterfeld>';
+		await expect((await gezeichnet(page, winkel)).locator('.malwinkel')).toHaveCount(0);
+		await expect((await gezeichnet(page, winkel, 'kl3 sw loesung')).locator('.malwinkel')).toHaveCount(1);
+		const rahmen = '<x-rechenrahmen loesung="7 3"></x-rechenrahmen>';
+		await expect((await gezeichnet(page, rahmen)).locator('x-rechenrahmen')).toHaveAttribute('data-summe', '0');
+		await expect((await gezeichnet(page, rahmen, 'kl3 sw loesung')).locator('x-rechenrahmen')).toHaveAttribute(
+			'data-summe',
+			'10',
+		);
+		const bloecke = await gezeichnet(page, '<x-dienes t="1" h="2" z="3" e="4"></x-dienes>');
+		await expect(bloecke.locator('x-dienes')).toHaveAttribute('data-wert', '1234');
+		await expect(bloecke.locator('.tausender')).toHaveCount(1);
+		await expect(bloecke.locator('.hunderter')).toHaveCount(2);
+	});
+
+	test('Panel: Lücke antippen und Sprung hinzufügen sind je ein Schritt', async ({ druecke, page }) => {
+		test.slow();
+		const { dok, id, material: datei } = await uhrzeit();
+		await oeffne(page, id, dok);
+		await aendere(
+			page,
+			(await quelle(page)).replace(
+				/<x-uhr[^>]*><\/x-uhr>/,
+				'<x-hundertertafel ausschnitt="kreuz" mitte="45"></x-hundertertafel><x-rechenstrich start="47" spruenge="+30 +4"></x-rechenstrich>',
+			),
+		);
+		await gespeichert(page, datei);
+		const stand = await readFile(datei, 'utf8');
+		const orte = await material(page)
+			.locator('.tafel-zelle')
+			.evaluateAll((l) =>
+				l.map((e) => [e.getAttribute('data-zahl'), e.getAttribute('data-x'), e.getAttribute('data-y')].join()),
+			);
+		expect(orte).toEqual(['35,1,0', '44,0,1', '45,1,1', '46,2,1', '55,1,2']);
+
+		await druecke(material(page).locator('x-hundertertafel'));
+		await page.locator('[data-gruppe="Lücken"] summary').click();
+		await druecke(page.locator('[data-form-raster="luecken"] [data-zelle="44"]'));
+		await gespeichert(page, datei);
+		const mitLuecke = await readFile(datei, 'utf8');
+		expect(mitLuecke).toContain('luecken="44"');
+		await expect(material(page).locator('.luecke')).toHaveCount(1);
+		await druecke(zurueck(page));
+		await gespeichert(page, datei);
+		expect(await readFile(datei, 'utf8')).toBe(stand);
+
+		await druecke(material(page).locator('x-rechenstrich'));
+		await druecke(page.getByRole('button', { name: 'Zeile hinzufügen' }));
+		const neu = page.getByLabel('Sprung in Zeile 3');
+		await neu.fill('+5');
+		await neu.press('Enter');
+		await gespeichert(page, datei);
+		expect(await readFile(datei, 'utf8')).toContain('spruenge="+30 +4 +5"');
+		await expect(material(page).locator('.strich-wert')).toHaveCount(4);
+	});
+});
