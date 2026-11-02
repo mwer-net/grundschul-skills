@@ -485,3 +485,128 @@ test.describe('Ebene Geometrie (025)', () => {
 		await expect(voll.locator('.teil')).toHaveCount(7);
 	});
 });
+
+test.describe('Räumliche Geometrie (026)', () => {
+	test('Alle Netze: Lösung markiert sie richtig; Bastelwürfel misst 4 cm, gegenüber 7', async ({ page }) => {
+		const alle = [
+			...Array.from({ length: 11 }, (_, i) => `${i + 1}`),
+			...Array.from({ length: 8 }, (_, i) => `n${i + 1}`),
+		];
+		const html = alle.map(
+			(n) => `<x-wuerfelnetz netz="${n}" aufgabe="netz-oder-nicht" groesse="18"></x-wuerfelnetz>`,
+		);
+		const blatt = await gezeichnet(page, html.join(''));
+		await expect(blatt.locator('.haken, .kreuz')).toHaveCount(0);
+		const loesung = await gezeichnet(page, html.join(''), 'kl3 sw loesung');
+		await expect(loesung.locator('.haken')).toHaveCount(11);
+		await expect(loesung.locator('.kreuz')).toHaveCount(8);
+
+		const bastel = await gezeichnet(
+			page,
+			'<x-wuerfelnetz netz="1" augen="ja" bastel="ja" kante="4"></x-wuerfelnetz>',
+		);
+		await expect(bastel.locator('x-wuerfelnetz')).toHaveAttribute('data-masstab', '');
+		await expect(bastel.locator('.lasche')).toHaveCount(7);
+		const felder = await bastel
+			.locator('.feld')
+			.evaluateAll((l) =>
+				l.map((e) => [e.getAttribute('data-normale') ?? '', Number(e.getAttribute('data-augen'))] as const),
+			);
+		expect(felder).toHaveLength(6);
+		const augen = new Map(felder);
+		for (const [seite, zahl] of felder) {
+			const gegen = seite
+				.split(',')
+				.map((a) => -Number(a) || 0)
+				.join();
+			expect(zahl + (augen.get(gegen) ?? 0)).toBe(7);
+		}
+		const zu = await gezeichnet(page, '<x-wuerfelnetz netz="1" bastel="ja" kante="8"></x-wuerfelnetz>');
+		await expect(zu.locator('x-wuerfelnetz')).toHaveAttribute('data-fehler', /Größte Kante/);
+	});
+
+	test('Augen ergänzen zeigt die Lösung, Gegenüber markiert die Gegenfläche', async ({ page }) => {
+		const tag = '<x-wuerfelnetz netz="10" aufgabe="augen-ergaenzen" seed="a"></x-wuerfelnetz>';
+		const blatt = await gezeichnet(page, tag);
+		await expect(blatt.locator('.augen')).toHaveCount(3);
+		const voll = await gezeichnet(page, tag, 'kl3 sw loesung');
+		await expect(voll.locator('.augen')).toHaveCount(6);
+		const netz = '<x-wuerfelnetz netz="3" aufgabe="gegenueber" markiere="2"></x-wuerfelnetz>';
+		const vorher = await gezeichnet(page, netz);
+		await expect(vorher.locator('.marke')).toHaveCount(1);
+		const nachher = await gezeichnet(page, netz, 'kl3 sw loesung');
+		await expect(nachher.locator('.marke')).toHaveCount(2);
+	});
+
+	test('Bauplan im Panel: Schrägbild und Ansichten ändern sich gemeinsam, Verdecktes wird abgelehnt', async ({
+		druecke,
+		page,
+	}) => {
+		test.slow();
+		const { dok, id, material: datei } = await uhrzeit();
+		await oeffne(page, id, dok);
+		await aendere(
+			page,
+			(await quelle(page)).replace(
+				/<x-uhr[^>]*><\/x-uhr>/,
+				'<x-wuerfelbau bauplan="1 2 / 1 1" zeige="schraegbild vorne rechts" fragen="anzahl"></x-wuerfelbau>',
+			),
+		);
+		await gespeichert(page, datei);
+		const stand = await readFile(datei, 'utf8');
+		const bau = material(page).locator('x-wuerfelbau');
+		await expect(bau.locator('.baustein')).toHaveCount(5);
+		await expect(bau.locator('[data-ansicht="vorne"]')).toHaveAttribute('data-hoehen', '1 2');
+		await expect(bau.locator('[data-ansicht="rechts"]')).toHaveAttribute('data-hoehen', '1 2');
+
+		await druecke(bau);
+		const zelle = page.locator('[data-raster="bauplan"] [data-zelle="1-1"]');
+		await zelle.fill('3');
+		await zelle.press('Enter');
+		await gespeichert(page, datei);
+		expect(await readFile(datei, 'utf8')).toContain('bauplan="1 2 / 1 3"');
+		await expect(bau.locator('.baustein')).toHaveCount(7);
+		await expect(bau.locator('[data-ansicht="vorne"]')).toHaveAttribute('data-hoehen', '1 3');
+		await expect(bau.locator('[data-ansicht="rechts"]')).toHaveAttribute('data-hoehen', '3 2');
+
+		await druecke(zurueck(page));
+		await gespeichert(page, datei);
+		expect(await readFile(datei, 'utf8')).toBe(stand);
+
+		await druecke(bau);
+		const eckzelle = page.locator('[data-raster="bauplan"] [data-zelle="0-0"]');
+		await eckzelle.fill('2');
+		await eckzelle.press('Enter');
+		await expect(page.locator('[data-fehler="_element"]')).toContainText('nicht zu sehen');
+		expect(await readFile(datei, 'utf8')).toBe(stand);
+	});
+
+	test('Netz im Panel mit Vor und Zurück durchsehen', async ({ druecke, page }) => {
+		test.slow();
+		const { dok, id, material: datei } = await uhrzeit();
+		await oeffne(page, id, dok);
+		await aendere(
+			page,
+			(await quelle(page)).replace(/<x-uhr[^>]*><\/x-uhr>/, '<x-wuerfelnetz netz="2"></x-wuerfelnetz>'),
+		);
+		await gespeichert(page, datei);
+		await druecke(material(page).locator('x-wuerfelnetz'));
+		await druecke(page.getByRole('button', { name: 'Netz: vor' }));
+		await gespeichert(page, datei);
+		expect(await readFile(datei, 'utf8')).toContain('netz="3"');
+		await druecke(page.getByRole('button', { name: 'Netz: zurück' }));
+		await gespeichert(page, datei);
+		expect(await readFile(datei, 'utf8')).toContain('netz="2"');
+	});
+
+	test('Körper: Lösung markiert Ecken und nennt die Anzahl', async ({ page }) => {
+		const tag = '<x-koerper form="pyramide" markiere="ecken"></x-koerper>';
+		const blatt = await gezeichnet(page, tag);
+		await expect(blatt.locator('.ecke')).toHaveCount(0);
+		const voll = await gezeichnet(page, tag, 'kl3 sw loesung');
+		await expect(voll.locator('.ecke')).toHaveCount(5);
+		await expect(voll.locator('x-koerper')).toHaveAttribute('data-ecken', '5');
+		const modell = await gezeichnet(page, '<x-koerper form="quader" ansicht="kantenmodell"></x-koerper>');
+		await expect(modell.locator('.kugel-ecke')).toHaveCount(8);
+	});
+});

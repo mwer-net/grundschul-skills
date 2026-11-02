@@ -99,6 +99,9 @@ Ziel: **Übersicht vor Menge.** Ein Kind muss jede Aufgabe auf einen Blick verst
 | Strichliste, Zeilenhöhe | 38 px | 34 px | 30 px |
 | Gitter, Kästchen | 1 cm | 1 cm | 0,5 cm |
 | Figur | 120 px | 100 px | 80 px |
+| Würfelgebäude, Würfelkante | 30 px | 26 px | 22 px |
+| Würfelnetz, Kästchen | 34 px | 30 px | 20 px |
+| Bastelwürfel, Kante | 4 cm | 4 cm | 3 cm |
 | Diagramm, Höhe der Skala | 180 px | 160 px | 120 px |
 
 ### Richtwerte pro A4-Seite

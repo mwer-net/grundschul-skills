@@ -48,8 +48,8 @@ from pathlib import Path
 ASSETS = Path(__file__).resolve().parent.parent / "assets"
 # Abbildungen, die ihre Lösung selbst berechnen: Sie brauchen kein loesung= und trotzdem ein Lösungsblatt. Die alten
 # Elemente aus der ersten Fassung gehören nicht dazu, sonst bekämen Blätter ohne jede Lösung ein leeres Lösungsblatt.
-OHNE_LOESUNGSANGABE = r"<x-(?!uhr|menge|dienes|strichpunkt|stellentafel|zwanzigerfeld|zahlenstrahl|timer|probe|gluecksrad|wuerfel|urne|diagramm|gitter|figur)[a-z]"
-MIT_LOESUNG = r"<x-diagramm[^>]* offen=|<x-gitter[^>]* (?:aufgabe|zaehlen)="
+OHNE_LOESUNGSANGABE = r"<x-(?!uhr|menge|dienes|strichpunkt|stellentafel|zwanzigerfeld|zahlenstrahl|timer|probe|gluecksrad|wuerfel|urne|diagramm|gitter|figur|koerper)[a-z]"
+MIT_LOESUNG = r"<x-diagramm[^>]* offen=|<x-gitter[^>]* (?:aufgabe|zaehlen)=|<x-wuerfelbau[^>]* fragen=|<x-wuerfelnetz[^>]* aufgabe=|<x-koerper[^>]* markiere="
 SEITE = {"a4-quer": "A4 landscape", "a3-hoch": "A3", "a5-hoch": "A5", "folie": "338.67mm 190.5mm"}
 
 

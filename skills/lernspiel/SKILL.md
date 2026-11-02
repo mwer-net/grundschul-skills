@@ -56,7 +56,7 @@ Die Spielform muss nicht gefragt werden: 2–3 Entwürfe mit verschiedenen passe
 - Kein Gewinnen durch reines Glück: Inhalt entscheidet.
 - Wenn möglich eine kooperative Variante anbieten (gemeinsam gegen die Zeit, Klassenziel). Keine Ranglisten über mehrere Runden; wer eine Aufgabe nicht weiß, darf eine Tippkarte nehmen.
 
-Würfel für Spielregeln und Spielkarten kommen aus `<x-wuerfel>` (`html-materialerstellung/references/abbildungen.md`), nie als Bild.
+Würfel für Spielregeln und Spielkarten kommen aus `<x-wuerfel>` (`html-materialerstellung/references/abbildungen.md`), nie als Bild. Spielwürfel mit eigenen Seiten: `<x-wuerfelnetz flaechen="…" bastel="ja">`, Druckhinweis „Originalgröße, festes Papier“.
 
 ## Qualitätscheck
 

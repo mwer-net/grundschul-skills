@@ -81,6 +81,7 @@
     "x-gluecksrad": "Glücksrad", "x-wuerfel": "Würfel", "x-strichliste": "Strichliste", "x-diagramm": "Diagramm",
     "x-urne": "Kugeln im Säckchen", "x-wahrscheinlichkeit": "Wahrscheinlichkeit", "x-kombinatorik": "Möglichkeiten",
     "x-gitter": "Gitter", "x-figur": "Figur", "x-tangram": "Tangram",
+    "x-wuerfelbau": "Würfelgebäude", "x-wuerfelnetz": "Würfelnetz", "x-koerper": "Körper",
   };
 
   class Abbildungsfehler extends Error {}
@@ -1189,6 +1190,501 @@
     el.innerHTML = svg(r1(breite * einheit + 6), r1(hoehe * einheit + 6), f.defs() + s);
   }
 
+  /* == Räumliche Geometrie == */
+  const SEITENHOEHE = 900; // nutzbare Höhe einer A4-Hochkantseite in px
+  const TIEFE = Math.SQRT1_2 / 2;
+  const PROJEKTION = {
+    schraeg: (x, y, z) => [x + y * TIEFE, -z - y * TIEFE],
+    iso: (x, y, z) => [(x + y) * 0.866, (x - y) * 0.5 - z],
+  };
+  const imVieleck = (x, y, p) => {
+    let drin = false;
+    p.forEach(([a, b], i) => {
+      const [c, d] = p[(i + 1) % p.length];
+      if ((b > y) !== (d > y) && x < a + ((y - b) * (c - a)) / (d - b)) drin = !drin;
+    });
+    return drin;
+  };
+
+  const ansichtenVon = (plan) => {
+    const hoechster = (zeile) => Math.max(...zeile);
+    return {
+      vorne: plan[0].map((_, s) => hoechster(plan.map((z) => z[s]))),
+      rechts: [...plan].reverse().map(hoechster),
+      links: plan.map(hoechster),
+      oben: plan.map((z) => z.map((h) => (h > 0 ? 1 : 0))),
+    };
+  };
+  /** Von hinten nach vorn und von unten nach oben: So verdecken spätere Würfel die früheren. */
+  const wuerfelVon = (plan) => {
+    const alle = [];
+    plan.forEach((zeile, r) => zeile.forEach((hoehe, x) => {
+      for (let z = 0; z < hoehe; z++) alle.push({ x, y: plan.length - 1 - r, z });
+    }));
+    return alle.sort((a, b) => b.y - a.y || a.x - b.x || a.z - b.z);
+  };
+  const wuerfelSeiten = ({ x, y, z }) => ({
+    oben: [[x, y, z + 1], [x + 1, y, z + 1], [x + 1, y + 1, z + 1], [x, y + 1, z + 1]],
+    vorne: [[x, y, z], [x + 1, y, z], [x + 1, y, z + 1], [x, y, z + 1]],
+    seite: [[x + 1, y, z], [x + 1, y + 1, z], [x + 1, y + 1, z + 1], [x + 1, y, z + 1]],
+  });
+  const verdeckteWuerfel = (plan, art = "schraeg") => {
+    const zeige = PROJEKTION[art];
+    const alle = wuerfelVon(plan);
+    const seitenAuf = alle.map((w) => Object.values(wuerfelSeiten(w)).map((s) => s.map((p) => zeige(...p))));
+    const stellen = [0.1, 0.3, 0.5, 0.7, 0.9];
+    return alle.filter((_, i) => seitenAuf[i].every(([a, b, , d]) => stellen.every((s) => stellen.every((t) => {
+      const px = a[0] + (b[0] - a[0]) * s + (d[0] - a[0]) * t, py = a[1] + (b[1] - a[1]) * s + (d[1] - a[1]) * t;
+      return seitenAuf.slice(i + 1).some((spaeter) => spaeter.some((p) => imVieleck(px, py, p)));
+    }))));
+  };
+  const TOENE = {
+    sw: { oben: "#ffffff", vorne: "#d9d9d9", seite: "#a6a6a6" },
+    farbe: {
+      oben: "color-mix(in srgb,var(--haupt) 20%,#fff)", vorne: "color-mix(in srgb,var(--haupt) 50%,#fff)", seite: "color-mix(in srgb,var(--haupt) 85%,#fff)",
+    },
+  };
+  const ANSICHT_NAMEN = { vorne: "von vorne", rechts: "von rechts", links: "von links", oben: "von oben" };
+  /** Bausteine nebeneinander, bei zu wenig Breite in die nächste Reihe. */
+  const reihen = (bausteine, abstand = 22) => {
+    let x = 0, y = 0, zeilenhoehe = 0, breite = 0, s = "";
+    for (const b of bausteine) {
+      if (x > 0 && x + b.b > SATZSPIEGEL) {
+        x = 0;
+        y += zeilenhoehe + abstand;
+        zeilenhoehe = 0;
+      }
+      s += `<g transform="translate(${r1(x)} ${r1(y)})">${b.s}</g>`;
+      breite = Math.max(breite, x + b.b);
+      zeilenhoehe = Math.max(zeilenhoehe, b.h);
+      x += b.b + abstand;
+    }
+    return { b: breite, h: y + zeilenhoehe, s };
+  };
+
+  function wuerfelbau(el) {
+    const zeilen = raster(el, "bauplan");
+    if (zeilen.length === 0) abbruch("Der Bauplan fehlt, zum Beispiel 2 1 / 1 0.");
+    if (zeilen.some((z) => z.length !== zeilen[0].length)) abbruch("Alle Zeilen des Bauplans müssen gleich lang sein.");
+    if (zeilen.length > 4 || zeilen[0].length > 4) abbruch("Der Bauplan darf höchstens 4 × 4 groß sein.");
+    const plan = zeilen.map((z) => z.map(Number));
+    if (plan.flat().some((h) => !Number.isInteger(h) || h < 0 || h > 5)) abbruch("Die Türme dürfen 0 bis 5 Würfel hoch sein.");
+    const anzahl = plan.flat().reduce((a, h) => a + h, 0);
+    if (anzahl === 0) abbruch("Der Bau braucht mindestens einen Würfel.");
+    const zeige = liste(el, "zeige"), fragen = liste(el, "fragen");
+    const gezeigt = zeige.length ? zeige : ["schraegbild"];
+    const beides = fragen.find((f) => gezeigt.includes(f));
+    if (beides) abbruch(`„${beides}“ steht als Vorgabe und als Frage da. Die Frage verrät dann ihre Antwort.`);
+    if (fragen.length && !gezeigt.includes("schraegbild") && !gezeigt.includes("bauplan")) abbruch("Zu den Fragen braucht es ein Schrägbild oder einen Bauplan als Vorgabe.");
+    const art = attr(el, "projektion", "schraeg");
+    if (!PROJEKTION[art]) abbruch(`Die Projektion „${art}“ gibt es nicht.`);
+    const verdeckt = verdeckteWuerfel(plan, art);
+    if (gezeigt.includes("schraegbild") && !gezeigt.includes("bauplan") && verdeckt.length && fragen.some((f) => f === "bauplan" || f === "anzahl")) {
+      abbruch("Ein Würfel ist von hier nicht zu sehen; die Aufgabe ist nicht eindeutig.");
+    }
+    const e = num(el, "einheit", 26), zelle = 22;
+    const toene = istSw() ? TOENE.sw : TOENE.farbe;
+    const ansichten = ansichtenVon(plan);
+    const beschrifte = (b, wort) => {
+      const breite = Math.max(b.b, textBreite(wort, 13));
+      return { b: breite, h: b.h + 20, s: `<g transform="translate(${r1((breite - b.b) / 2)} 0)">${b.s}</g>${text(breite / 2, b.h + 11, wort, { groesse: 13 })}` };
+    };
+
+    const schraegbild = () => {
+      const zeigeAuf = PROJEKTION[art], alle = wuerfelVon(plan);
+      const punkte = alle.flatMap((w) => Object.values(wuerfelSeiten(w)).flat().map((p) => zeigeAuf(...p)));
+      const x0 = Math.min(...punkte.map((p) => p[0])), y0 = Math.min(...punkte.map((p) => p[1]));
+      const pfad = (seite) => seite.map((p) => {
+        const [x, y] = zeigeAuf(...p);
+        return `${r1((x - x0) * e + 1)},${r1((y - y0) * e + 1)}`;
+      }).join(" ");
+      let s = alle.map((w) => `<g class="baustein" data-w="${w.x},${w.y},${w.z}">${Object.entries(wuerfelSeiten(w)).map(([n, seite]) =>
+        `<polygon class="seite-${n}" points="${pfad(seite)}" style="fill:${toene[n]}" stroke-width="1.4" stroke-linejoin="round"/>`).join("")}</g>`).join("");
+      if (attr(el, "verdeckt", "nicht") === "zeigen") {
+        s += verdeckt.map((w) => Object.values(wuerfelSeiten(w)).map((seite) =>
+          `<polygon class="verdeckt" points="${pfad(seite)}" stroke-width="1" stroke-dasharray="4 3"/>`).join("")).join("");
+      }
+      return {
+        b: r1((Math.max(...punkte.map((p) => p[0])) - x0) * e + 2),
+        h: r1((Math.max(...punkte.map((p) => p[1])) - y0) * e + 2),
+        s: `<g class="schraegbild">${s}</g>`,
+      };
+    };
+    const bauplanBlatt = (leer) => {
+      const breite = plan[0].length * zelle, hoehe = plan.length * zelle;
+      let s = "";
+      plan.forEach((z, r) => z.forEach((h, c) => {
+        const zeigen = !leer || loesungSichtbar(el);
+        s += `<rect class="plan-zelle" data-hoehe="${h}" x="${c * zelle + 1}" y="${r * zelle + 1}" width="${zelle}" height="${zelle}" stroke-width="1.2"/>`;
+        if (zeigen && h > 0) s += text(c * zelle + zelle / 2 + 1, r * zelle + zelle / 2 + 1, zahl(h), { groesse: 14, fett: true });
+      }));
+      s += `<line x1="1" y1="${hoehe + 1}" x2="${breite + 1}" y2="${hoehe + 1}" stroke-width="3"/>`;
+      return beschrifte({ b: breite + 2, h: hoehe + 2, s: `<g class="bauplan">${s}</g>` }, "Bauplan, unten vorne");
+    };
+    const ansichtBlatt = (welche, leer) => {
+      const oben = welche === "oben", werte = ansichten[welche];
+      const spalten = oben ? plan[0].length : werte.length;
+      const hoehe = oben ? plan.length : Math.max(3, Math.max(...plan.flat()) + (leer ? 1 : 0));
+      const voll = (c, r) => (oben ? werte[r][c] === 1 : hoehe - r <= werte[c]);
+      let s = "";
+      for (let r = 0; r < hoehe; r++) {
+        for (let c = 0; c < spalten; c++) {
+          const gefuellt = voll(c, r) && (!leer || loesungSichtbar(el));
+          if (gefuellt) s += `<rect class="ansicht-voll" data-x="${c}" data-y="${r}" x="${c * zelle + 1}" y="${r * zelle + 1}" width="${zelle}" height="${zelle}" style="fill:${toene.vorne}" stroke-width="1.4"/>`;
+          else if (leer) s += `<rect x="${c * zelle + 1}" y="${r * zelle + 1}" width="${zelle}" height="${zelle}" stroke-width=".7"/>`;
+        }
+      }
+      const wert = oben ? werte.map((z) => z.join(" ")).join(" / ") : werte.join(" ");
+      return beschrifte({
+        b: spalten * zelle + 2, h: hoehe * zelle + 2,
+        s: `<g class="ansicht" data-ansicht="${welche}" data-hoehen="${wert}">${s}${oben || leer ? "" : `<line x1="1" y1="${hoehe * zelle + 1}" x2="${spalten * zelle + 1}" y2="${hoehe * zelle + 1}" stroke-width="2"/>`}</g>`,
+      }, ANSICHT_NAMEN[welche]);
+    };
+    const bausteine = [];
+    for (const was of gezeigt) {
+      if (was === "schraegbild") bausteine.push(schraegbild());
+      else if (was === "bauplan") bausteine.push(bauplanBlatt(false));
+      else if (ansichten[was]) bausteine.push(ansichtBlatt(was, false));
+      else abbruch(`„${was}“ lässt sich nicht zeigen.`);
+    }
+    for (const was of fragen) {
+      if (was === "bauplan") bausteine.push(bauplanBlatt(true));
+      else if (ansichten[was]) bausteine.push(ansichtBlatt(was, true));
+      else if (was !== "anzahl") abbruch(`„${was}“ lässt sich nicht fragen.`);
+    }
+    const r = reihen(bausteine);
+    let s = r.s, h = r.h;
+    if (fragen.includes("anzahl")) {
+      const w = textBreite("Das sind", 15) + 8;
+      s += text(0, h + 26, "Das sind", { groesse: 15, anker: "start" }) + antwortfeld(el, w, h + 10, 44, 32, zahl(anzahl), { groesse: 15 }) +
+        text(w + 50, h + 26, "Würfel.", { groesse: 15, anker: "start" });
+      h += 44;
+    }
+    el.setAttribute("data-anzahl", anzahl);
+    el.setAttribute("data-verdeckt", verdeckt.length);
+    el.innerHTML = svg(r1(Math.max(r.b, 230)), r1(h + 2), s);
+  }
+
+  const WUERFELNETZE = {
+    1: "1000/1111/1000", 2: "1000/1111/0100", 3: "1000/1111/0010", 4: "1000/1111/0001", 5: "0100/1111/0100", 6: "0100/1111/0010",
+    7: "1100/0111/0100", 8: "1100/0111/0010", 9: "1100/0111/0001", 10: "1100/0110/0011", 11: "11100/00111",
+  };
+  const NICHT_NETZE = {
+    n1: "111111", n2: "111/111", n3: "1111/1100", n4: "1111/1001", n5: "11111/10000", n6: "01000/11111", n7: "00100/11111", n8: "1110/0011/0001",
+  };
+  const netzZellen = (code) => {
+    const zeilen = (WUERFELNETZE[code] ?? NICHT_NETZE[code]).split("/"), zellen = [];
+    zeilen.forEach((z, r) => [...z].forEach((v, c) => {
+      if (v === "1") zellen.push({ nr: zellen.length + 1, c, r });
+    }));
+    return zellen;
+  };
+  const gegen = (v) => v.map((a) => -a);
+  const NACHBARN = [
+    { dc: 1, dr: 0, name: "rechts", rahmen: ({ n, r, u }) => ({ n: r, r: gegen(n), u }) },
+    { dc: -1, dr: 0, name: "links", rahmen: ({ n, r, u }) => ({ n: gegen(r), r: n, u }) },
+    { dc: 0, dr: -1, name: "oben", rahmen: ({ n, r, u }) => ({ n: u, r, u: gegen(n) }) },
+    { dc: 0, dr: 1, name: "unten", rahmen: ({ n, r, u }) => ({ n: gegen(u), r, u: n }) },
+  ];
+  /** Rollt das Papier um seine Kanten: `n` zeigt nach außen, `r` und `u` sind im Netz rechts und oben. */
+  const falteNetz = (zellen) => {
+    const stelle = new Map(zellen.map((z) => [`${z.c},${z.r}`, z]));
+    const fertig = [{ ...zellen[0], rahmen: { n: [0, 0, 1], r: [1, 0, 0], u: [0, 1, 0] } }];
+    const gesehen = new Set([zellen[0].nr]);
+    for (let i = 0; i < fertig.length; i++) {
+      const z = fertig[i];
+      for (const d of NACHBARN) {
+        const q = stelle.get(`${z.c + d.dc},${z.r + d.dr}`);
+        if (q && !gesehen.has(q.nr)) {
+          gesehen.add(q.nr);
+          fertig.push({ ...q, rahmen: d.rahmen(z.rahmen), von: z.nr, weg: d.name });
+        }
+      }
+    }
+    return fertig;
+  };
+  const istWuerfelnetz = (zellen) => new Set(falteNetz(zellen).map((z) => z.rahmen.n.join())).size === 6;
+  /** An jeder Klebekante genau eine Lasche, möglichst dort, wo sie das Netz nicht breiter macht. */
+  const netzLaschen = (zellen) => {
+    const faltung = falteNetz(zellen), belegt = new Set(zellen.map((z) => `${z.c},${z.r}`));
+    const cs = zellen.map((z) => z.c), rs = zellen.map((z) => z.r);
+    const innen = (c, r) => c >= Math.min(...cs) && c <= Math.max(...cs) && r >= Math.min(...rs) && r <= Math.max(...rs);
+    const paare = new Map();
+    for (const z of faltung) {
+      for (const d of NACHBARN) {
+        if (belegt.has(`${z.c + d.dc},${z.r + d.dr}`)) continue;
+        const { n, r, u } = z.rahmen;
+        const richtung = { rechts: r, links: gegen(r), oben: u, unten: gegen(u) }[d.name];
+        const ort = n.map((a, i) => a + richtung[i]).join();
+        paare.set(ort, [...(paare.get(ort) ?? []), { nr: z.nr, c: z.c, r: z.r, seite: d.name, innen: innen(z.c + d.dc, z.r + d.dr) }]);
+      }
+    }
+    return [...paare.values()].map((p) => p.find((k) => k.innen) ?? p[0]);
+  };
+  const AUGEN_DER_SEITE = { "0,0,1": 1, "0,0,-1": 6, "1,0,0": 2, "-1,0,0": 5, "0,1,0": 3, "0,-1,0": 4 };
+  /** Wie weit das Augenbild im Netz gedreht ist, damit es gefaltet wie auf einem echten Würfel liegt. */
+  const augenDrehung = ({ n, r, u }) => {
+    const hoch = n[2] !== 0 ? [0, 1, 0] : [0, 0, 1];
+    const gleich = (a, b) => a.join() === b.join();
+    if (gleich(hoch, u)) return 0;
+    if (gleich(hoch, r)) return 90;
+    return gleich(hoch, gegen(u)) ? 180 : 270;
+  };
+  const ACHSE = (v) => v.findIndex((a) => a !== 0);
+  /** Rechtecke im Netz: Jedes Feld liegt an seinem Vorgänger, die Breite kommt aus der Richtung im Körper. */
+  const netzLage = (faltung, masse) => {
+    const lage = new Map();
+    for (const z of faltung) {
+      const b = masse[ACHSE(z.rahmen.r)], h = masse[ACHSE(z.rahmen.u)];
+      const v = lage.get(z.von);
+      let x = 0, y = 0;
+      if (v) {
+        x = z.weg === "rechts" ? v.x + v.b : z.weg === "links" ? v.x - b : v.x;
+        y = z.weg === "unten" ? v.y + v.h : z.weg === "oben" ? v.y - h : v.y;
+      }
+      lage.set(z.nr, { x, y, b, h });
+    }
+    return lage;
+  };
+  const drehZellen = (zellen, grad) => {
+    let z = zellen;
+    for (let i = 0; i < ((grad % 360) + 360) % 360; i += 90) z = z.map((q) => ({ ...q, c: -q.r, r: q.c }));
+    return z;
+  };
+  const flaecheVonNetz = (x, y, b, h, wert, a, f, drehung) => {
+    const mx = x + b / 2, my = y + h / 2;
+    if (wert === "" || wert === "0") return "";
+    if (/^[1-6]$/.test(wert)) {
+      return `<g class="augen" transform="translate(${r1(mx - a / 2)} ${r1(my - a / 2)}) rotate(${drehung} ${r1(a / 2)} ${r1(a / 2)})">${augenBild(Number(wert), a)}</g>`;
+    }
+    if (FARBNAMEN.includes(wert)) return `<rect x="${r1(x)}" y="${r1(y)}" width="${r1(b)}" height="${r1(h)}" fill="${f.von(wert)}" stroke="none"/>`;
+    const wort = wert.replace(/^#/, "");
+    return text(mx, my, wort, { groesse: Math.min(a * 0.5, ((a * 0.86) / Math.max(1, wort.length)) / SCHRIFT_BREITE), fett: true });
+  };
+
+  function wuerfelnetz(el) {
+    const code = attr(el, "netz", "1");
+    if (!WUERFELNETZE[code] && !NICHT_NETZE[code]) abbruch(`Das Netz „${code}“ gibt es nicht. Es gibt 1 bis 11 und n1 bis n8.`);
+    const istQuader = attr(el, "art", "wuerfel") === "quader";
+    const bastel = attr(el, "bastel", "nein") === "ja";
+    const aufgabe = attr(el, "aufgabe", "keine");
+    const echt = Boolean(WUERFELNETZE[code]);
+    const laschen = attr(el, "laschen", bastel ? "ja" : "nein") === "ja";
+    if (!echt && (laschen || bastel || aufgabe === "gegenueber" || aufgabe === "augen-ergaenzen")) abbruch(`Aus Netz ${code} lässt sich kein Würfel falten. Hier passt nur die Aufgabe „Netz oder nicht“.`);
+    if (istQuader && !["1", "2", "3", "4", "5", "6"].includes(code)) abbruch("Für Quader gibt es die Netze 1 bis 6.");
+    const kante = num(el, "kante", 4), angegeben = liste(el, "masse").map(Number);
+    if (istQuader && (angegeben.length !== 3 || angegeben.some((m) => !(m > 0)))) abbruch("Der Quader braucht drei Maße, zum Beispiel 4 2 1.");
+    const masse = istQuader ? angegeben : (bastel ? [kante, kante, kante] : [1, 1, 1]);
+    const px = bastel ? cm(1) : num(el, "groesse", 30);
+    const standard = attr(el, "augen", "nein") === "ja" || aufgabe === "augen-ergaenzen";
+    const flaechen = liste(el, "flaechen");
+    if (standard && flaechen.length) abbruch("Beim Standardwürfel stehen die Augen schon fest. Dann bleiben die Flächen leer.");
+    if (flaechen.length && flaechen.length !== 6) abbruch(`Ein Würfel hat 6 Flächen, hier stehen ${flaechen.length}.`);
+    for (const inhaltFlaeche of flaechen) if (/^\d+$/.test(inhaltFlaeche) && Number(inhaltFlaeche) > 6) abbruch(`„${inhaltFlaeche}“ hat zu viele Augen. Zahlen schreibst du mit #, zum Beispiel #${inhaltFlaeche}.`);
+
+    const lasche = bastel ? 0.6 : 0.25;
+    const entwurf = (grad) => {
+      const zellen = drehZellen(netzZellen(code), grad);
+      const faltung = echt ? falteNetz(zellen) : zellen.map((z) => ({ ...z, rahmen: { n: [0, 0, 1], r: [1, 0, 0], u: [0, 1, 0] } }));
+      const lage = echt ? netzLage(faltung, masse) : new Map(zellen.map((z) => [z.nr, { x: z.c, y: z.r, b: 1, h: 1 }]));
+      const klappen = echt && laschen ? netzLaschen(zellen).map((k) => {
+        const l = lage.get(k.nr), t = Math.min(lasche, Math.min(l.b, l.h) * 0.25);
+        const ecken = {
+          oben: [[l.x, l.y], [l.x + t, l.y - t], [l.x + l.b - t, l.y - t], [l.x + l.b, l.y]],
+          unten: [[l.x, l.y + l.h], [l.x + t, l.y + l.h + t], [l.x + l.b - t, l.y + l.h + t], [l.x + l.b, l.y + l.h]],
+          links: [[l.x, l.y], [l.x - t, l.y + t], [l.x - t, l.y + l.h - t], [l.x, l.y + l.h]],
+          rechts: [[l.x + l.b, l.y], [l.x + l.b + t, l.y + t], [l.x + l.b + t, l.y + l.h - t], [l.x + l.b, l.y + l.h]],
+        }[k.seite];
+        return { ...k, ecken };
+      }) : [];
+      const xs = [...lage.values()].flatMap((l) => [l.x, l.x + l.b]).concat(klappen.flatMap((k) => k.ecken.map((p) => p[0])));
+      const ys = [...lage.values()].flatMap((l) => [l.y, l.y + l.h]).concat(klappen.flatMap((k) => k.ecken.map((p) => p[1])));
+      const x0 = Math.min(...xs), y0 = Math.min(...ys);
+      return { faltung, lage, klappen, x0, y0, breite: Math.max(...xs) - x0, hoehe: Math.max(...ys) - y0 };
+    };
+    const passt = (e, k) => e.breite * k <= SATZSPIEGEL - 4 && e.hoehe * k <= SEITENHOEHE;
+    const start = num(el, "drehung", 0);
+    let e = entwurf(start);
+    if (!passt(e, px)) {
+      const quer = entwurf(start + 90);
+      if (passt(quer, px)) e = quer;
+      else {
+        const moeglich = Math.max(...[e, quer].map((v) => Math.min((SATZSPIEGEL - 4) / v.breite, SEITENHOEHE / v.hoehe)));
+        abbruch(bastel ? `Bei ${zahl(kante)} cm Kante passt das Netz nicht aufs Blatt. Größte Kante: ${zahl(Math.floor((moeglich * masse[0]) / cm(1) * 10) / 10)} cm.` : "Das Netz passt so groß nicht aufs Blatt.");
+      }
+    }
+    if (bastel) masstab(el);
+    const f = fuellung(), musterId = `abb-lasche-${++fuellungsNr}`;
+    const X = (v) => r1((v - e.x0) * px + 2), Y = (v) => r1((v - e.y0) * px + 2);
+    const nachNormale = new Map(e.faltung.map((z) => [z.rahmen.n.join(), z]));
+    const markiert = num(el, "markiere", 1);
+    const ziel = e.faltung.find((z) => z.nr === markiert);
+    if (aufgabe === "gegenueber" && !ziel) abbruch("Die markierte Fläche muss 1 bis 6 sein.");
+    const gegenueber = aufgabe === "gegenueber" ? nachNormale.get(gegen(ziel.rahmen.n).join()) : null;
+    const versteckt = new Set();
+    if (aufgabe === "augen-ergaenzen") {
+      const zz = zufall(samen(el, `${code}|${attr(el, "drehung", "0")}`));
+      for (const achse of [[0, 0, 1], [1, 0, 0], [0, 1, 0]]) {
+        const seite = zz() < 0.5 ? achse : gegen(achse);
+        versteckt.add(nachNormale.get(seite.join()).nr);
+      }
+    }
+    let s = `<defs><pattern id="${musterId}" width="6" height="6" patternUnits="userSpaceOnUse" patternTransform="rotate(45)"><line x1="0" y1="0" x2="0" y2="6" stroke="${GRAU}" stroke-width="1.2"/></pattern></defs>`;
+    for (const k of e.klappen) {
+      s += `<polygon class="lasche" data-feld="${k.nr}" data-seite="${k.seite}" points="${k.ecken.map(([x, y]) => `${X(x)},${Y(y)}`).join(" ")}" fill="url(#${musterId})" stroke-width="1.4"/>`;
+    }
+    const kanten = new Map();
+    const reinKante = (a, b) => {
+      const name = [a, b].map((p) => p.join()).sort().join("|");
+      kanten.set(name, { a, b, zahl: (kanten.get(name)?.zahl ?? 0) + 1 });
+    };
+    for (const z of e.faltung) {
+      const l = e.lage.get(z.nr), nv = z.rahmen.n.join();
+      const lo = [X(l.x), Y(l.y)], ro = [X(l.x + l.b), Y(l.y)], lu = [X(l.x), Y(l.y + l.h)], ru = [X(l.x + l.b), Y(l.y + l.h)];
+      for (const [a, b] of [[lo, ro], [ro, ru], [ru, lu], [lu, lo]]) reinKante(a, b);
+      const a = Math.min(l.b, l.h) * px;
+      const augen = standard ? String(AUGEN_DER_SEITE[nv]) : (flaechen[z.nr - 1] ?? "");
+      const wert = versteckt.has(z.nr) && !loesungSichtbar(el) ? "" : augen;
+      const istMarke = aufgabe === "gegenueber" && (z.nr === markiert || (gegenueber?.nr === z.nr && loesungSichtbar(el)));
+      s += `<g class="feld" data-feld="${z.nr}" data-normale="${nv}" data-augen="${wert}">`;
+      if (istMarke) s += `<rect class="marke" x="${X(l.x)}" y="${Y(l.y)}" width="${r1(l.b * px)}" height="${r1(l.h * px)}" fill="${f.von("rot")}" stroke="none"/>`;
+      s += flaecheVonNetz(X(l.x), Y(l.y), r1(l.b * px), r1(l.h * px), wert, a, f, augenDrehung(z.rahmen)) + "</g>";
+    }
+    for (const { a, b, zahl: anzahl } of kanten.values()) {
+      const falz = anzahl > 1;
+      s += `<line class="${falz ? "falz" : "kontur"}" x1="${a[0]}" y1="${a[1]}" x2="${b[0]}" y2="${b[1]}" stroke-width="${falz ? 1 : 1.8}"${falz ? ' stroke-dasharray="5 4"' : ""}/>`;
+    }
+    let breite = e.breite * px + 4, hoehe = e.hoehe * px + 4;
+    if (aufgabe === "netz-oder-nicht") {
+      const w = textBreite("Würfelnetz?", 13) + 8, y = hoehe + 6;
+      s += text(0, y + 13, "Würfelnetz?", { groesse: 13, anker: "start" }) + `<rect class="netz-frage" x="${r1(w)}" y="${r1(y)}" width="26" height="26" rx="3" stroke-width="1.6" fill="#fff"/>`;
+      if (loesungSichtbar(el)) {
+        s += echt ? `<path class="haken" d="M${r1(w + 6)} ${r1(y + 13)}l5 6 9-12" stroke-width="3"/>` : `<path class="kreuz" d="M${r1(w + 6)} ${r1(y + 6)}l14 14m0-14l-14 14" stroke-width="3"/>`;
+      }
+      el.setAttribute("data-netz", echt ? "ja" : "nein");
+      breite = Math.max(breite, w + 28);
+      hoehe += 36;
+    }
+    if (gegenueber) el.setAttribute("data-gegenueber", gegenueber.nr);
+    el.setAttribute("data-laschen", e.klappen.length);
+    el.innerHTML = svg(r1(breite), r1(hoehe), f.defs() + s);
+  }
+
+  const KOERPER_ZAHLEN = {
+    wuerfel: { ecken: 8, kanten: 12, flaechen: 6 }, quader: { ecken: 8, kanten: 12, flaechen: 6 }, pyramide: { ecken: 5, kanten: 8, flaechen: 5 },
+    prisma: { ecken: 6, kanten: 9, flaechen: 5 }, kugel: { ecken: 0, kanten: 0, flaechen: 1 }, zylinder: { ecken: 0, kanten: 2, flaechen: 3 }, kegel: { ecken: 1, kanten: 1, flaechen: 2 },
+  };
+  const VIELFLACHE = {
+    quader: (l, b, h) => ({
+      ecken: [[0, 0, 0], [l, 0, 0], [l, b, 0], [0, b, 0], [0, 0, h], [l, 0, h], [l, b, h], [0, b, h]],
+      seiten: [[0, 1, 2, 3], [4, 5, 6, 7], [0, 1, 5, 4], [1, 2, 6, 5], [2, 3, 7, 6], [3, 0, 4, 7]],
+    }),
+    pyramide: (l, b, h) => ({
+      ecken: [[0, 0, 0], [l, 0, 0], [l, b, 0], [0, b, 0], [l / 2, b / 2, h]],
+      seiten: [[0, 1, 2, 3], [0, 1, 4], [1, 2, 4], [2, 3, 4], [3, 0, 4]],
+    }),
+    prisma: (l, b, h) => ({
+      ecken: [[0, 0, 0], [l, 0, 0], [l / 2, 0, h], [0, b, 0], [l, b, 0], [l / 2, b, h]],
+      seiten: [[0, 1, 2], [3, 4, 5], [0, 1, 4, 3], [1, 2, 5, 4], [2, 0, 3, 5]],
+    }),
+  };
+  VIELFLACHE.wuerfel = VIELFLACHE.quader;
+  /** Ecken, Kanten und Flächen; `sichtbar` nach der Blickrichtung der Kavalierperspektive. */
+  const vielflach = (form, [l, b, h], drehung = 0) => {
+    const { ecken, seiten } = VIELFLACHE[form](l, b, h);
+    const w = (drehung * Math.PI) / 180, mx = l / 2, my = b / 2;
+    const punkte = ecken.map(([x, y, z]) => [mx + (x - mx) * Math.cos(w) - (y - my) * Math.sin(w), my + (x - mx) * Math.sin(w) + (y - my) * Math.cos(w), z]);
+    const mitte = [0, 1, 2].map((i) => punkte.reduce((a, p) => a + p[i], 0) / punkte.length);
+    const blick = [TIEFE, -1, TIEFE];
+    const flaechen = seiten.map((s) => {
+      const [a, c, d] = s.map((i) => punkte[i]);
+      const u = [0, 1, 2].map((i) => c[i] - a[i]), v = [0, 1, 2].map((i) => d[i] - a[i]);
+      const n = [u[1] * v[2] - u[2] * v[1], u[2] * v[0] - u[0] * v[2], u[0] * v[1] - u[1] * v[0]];
+      const m = [0, 1, 2].map((i) => s.reduce((sum, e) => sum + punkte[e][i], 0) / s.length);
+      const aussen = n.reduce((sum, wert, i) => sum + wert * (m[i] - mitte[i]), 0) >= 0 ? 1 : -1;
+      return { ecken: s, sichtbar: n.reduce((sum, wert, i) => sum + aussen * wert * blick[i], 0) > 1e-9 };
+    });
+    const kanten = new Map();
+    for (const f of flaechen) {
+      f.ecken.forEach((a, i) => {
+        const c = f.ecken[(i + 1) % f.ecken.length], name = [a, c].sort((p, q) => p - q).join();
+        kanten.set(name, { a, c, sichtbar: (kanten.get(name)?.sichtbar ?? false) || f.sichtbar });
+      });
+    }
+    return { punkte, flaechen, kanten: [...kanten.values()] };
+  };
+
+  function koerper(el) {
+    const form = attr(el, "form", "wuerfel");
+    if (!KOERPER_ZAHLEN[form]) abbruch(`Den Körper „${form}“ gibt es nicht.`);
+    const ansicht = attr(el, "ansicht", "schraegbild");
+    const istVielflach = Boolean(VIELFLACHE[form]);
+    if (ansicht === "kantenmodell" && !istVielflach) abbruch("Ein Kantenmodell gibt es nur für Körper mit geraden Kanten.");
+    const px = num(el, "groesse", 30), gestrichelt = attr(el, "verdeckt", "gestrichelt") === "gestrichelt";
+    const marken = liste(el, "markiere"), zeige = loesungSichtbar(el);
+    const f = fuellung(), masse = liste(el, "masse").map(Number);
+    if (masse.some((m) => !(m > 0))) abbruch("Die Maße müssen größer als 0 sein.");
+    const zahlen = KOERPER_ZAHLEN[form];
+    const strich = gestrichelt ? ' stroke-dasharray="5 4"' : "";
+    let s = "", breite, hoehe;
+    if (istVielflach) {
+      const roh = { wuerfel: [3, 3, 3], quader: [4, 2, 2], pyramide: [3, 3, 3], prisma: [4, 2, 3] }[form];
+      const m = form === "wuerfel" ? Array(3).fill(masse[0] ?? roh[0]) : roh.map((w, i) => masse[i] ?? w);
+      const { flaechen, kanten, punkte } = vielflach(form, m, num(el, "drehung", 0));
+      const auf = punkte.map((p) => PROJEKTION.schraeg(...p));
+      const x0 = Math.min(...auf.map((p) => p[0])), y0 = Math.min(...auf.map((p) => p[1]));
+      const P = auf.map(([x, y]) => [r1((x - x0) * px + 8), r1((y - y0) * px + 8)]);
+      if (zeige && marken.includes("flaechen")) {
+        for (const q of flaechen.filter((v) => v.sichtbar)) s += `<polygon class="flaeche-marke" points="${q.ecken.map((i) => P[i].join()).join(" ")}" fill="${f.von("gruen")}" stroke="none"/>`;
+      }
+      for (const k of kanten) {
+        const dick = zeige && marken.includes("kanten") ? 3.2 : ansicht === "kantenmodell" ? 2.4 : 1.8;
+        if (k.sichtbar || ansicht === "kantenmodell") s += `<line class="kante" x1="${P[k.a][0]}" y1="${P[k.a][1]}" x2="${P[k.c][0]}" y2="${P[k.c][1]}" stroke-width="${dick}"/>`;
+        else if (gestrichelt) s += `<line class="kante-verdeckt" x1="${P[k.a][0]}" y1="${P[k.a][1]}" x2="${P[k.c][0]}" y2="${P[k.c][1]}" stroke-width="${dick === 1.8 ? 1.2 : dick}"${strich}/>`;
+      }
+      if (ansicht === "kantenmodell") for (const p of P) s += `<circle class="kugel-ecke" cx="${p[0]}" cy="${p[1]}" r="5" fill="${SCHWARZ}" stroke="none"/>`;
+      else if (zeige && marken.includes("ecken")) for (const p of P) s += `<circle class="ecke" cx="${p[0]}" cy="${p[1]}" r="4.5" fill="${SCHWARZ}" stroke="none"/>`;
+      breite = Math.max(...P.map((p) => p[0])) + 8;
+      hoehe = Math.max(...P.map((p) => p[1])) + 8;
+    } else {
+      const d = (masse[0] ?? 3) * px, h = form === "kugel" ? d : (masse[1] ?? 3) * px, rx = d / 2, ry = d * 0.15;
+      const bogen = (cy, vorne, extra) => `<path d="M8 ${r1(cy)}a${r1(rx)} ${r1(ry)} 0 0 ${vorne ? 0 : 1} ${r1(d)} 0" ${extra}/>`;
+      const fett = zeige && marken.includes("kanten") ? 3.2 : 1.8;
+      const flaecheMarke = zeige && marken.includes("flaechen") ? `fill="${f.von("gruen")}"` : "";
+      if (form === "kugel") {
+        const cy = 8 + rx;
+        s += `<circle class="koerper-rand" cx="${r1(8 + rx)}" cy="${r1(cy)}" r="${r1(rx)}" stroke-width="1.8" ${flaecheMarke}/>`;
+        s += bogen(cy, true, 'stroke-width="1.2"') + (gestrichelt ? bogen(cy, false, `stroke-width="1"${strich}`) : "");
+        hoehe = d + 16;
+      } else if (form === "zylinder") {
+        const oben = 8 + ry, unten = oben + h;
+        if (flaecheMarke) s += `<path d="M8 ${r1(oben)}V${r1(unten)}a${r1(rx)} ${r1(ry)} 0 0 0 ${r1(d)} 0V${r1(oben)}a${r1(rx)} ${r1(ry)} 0 0 0 ${r1(-d)} 0" ${flaecheMarke} stroke="none"/>`;
+        s += `<ellipse class="koerper-kreis" cx="${r1(8 + rx)}" cy="${r1(oben)}" rx="${r1(rx)}" ry="${r1(ry)}" stroke-width="${fett}" ${flaecheMarke}/>`;
+        s += `<line x1="8" y1="${r1(oben)}" x2="8" y2="${r1(unten)}" stroke-width="1.8"/><line x1="${r1(8 + d)}" y1="${r1(oben)}" x2="${r1(8 + d)}" y2="${r1(unten)}" stroke-width="1.8"/>`;
+        s += bogen(unten, true, `class="koerper-kreis" stroke-width="${fett}"`) + (gestrichelt ? bogen(unten, false, `class="koerper-kreis" stroke-width="${fett === 1.8 ? 1.2 : fett}"${strich}`) : "");
+        hoehe = unten + ry + 8;
+      } else {
+        const unten = 8 + h;
+        if (flaecheMarke) s += `<path d="M8 ${r1(unten)}L${r1(8 + rx)} 8L${r1(8 + d)} ${r1(unten)}a${r1(rx)} ${r1(ry)} 0 0 1 ${r1(-d)} 0" ${flaecheMarke} stroke="none"/>`;
+        s += `<path class="koerper-rand" d="M8 ${r1(unten)}L${r1(8 + rx)} 8L${r1(8 + d)} ${r1(unten)}" stroke-width="1.8" stroke-linejoin="round"/>`;
+        s += bogen(unten, true, `class="koerper-kreis" stroke-width="${fett}"`) + (gestrichelt ? bogen(unten, false, `class="koerper-kreis" stroke-width="${fett === 1.8 ? 1.2 : fett}"${strich}`) : "");
+        if (zeige && marken.includes("ecken")) s += `<circle class="ecke" cx="${r1(8 + rx)}" cy="8" r="4.5" fill="${SCHWARZ}" stroke="none"/>`;
+        hoehe = unten + ry + 8;
+      }
+      breite = d + 16;
+    }
+    const worte = { ecken: form === "kegel" ? "Spitzen" : "Ecken", kanten: "Kanten", flaechen: "Flächen" };
+    for (const was of marken) {
+      if (zahlen[was] === undefined) abbruch(`„${was}“ lässt sich nicht markieren.`);
+      el.setAttribute(`data-${was}`, zahlen[was]);
+      const w = textBreite(`${worte[was]}:`, 14) + 6;
+      s += text(0, hoehe + 18, `${worte[was]}:`, { groesse: 14, anker: "start" }) + antwortfeld(el, w, hoehe + 3, 40, 30, zahl(zahlen[was]), { groesse: 15 });
+      breite = Math.max(breite, w + 42);
+      hoehe += 34;
+    }
+    el.innerHTML = svg(r1(breite), r1(hoehe), f.defs() + s);
+  }
+
   /* == Test == */
   // x-probe gibt es nur für die Tests der Feldtypen im Panel (023); in Material kommt es nicht vor.
   function probe(el) {
@@ -1225,7 +1721,8 @@
     "x-stellentafel": stellentafel, "x-zwanzigerfeld": zwanzigerfeld, "x-zahlenstrahl": zahlenstrahl, "x-timer": timer,
     "x-probe": probe, "x-gluecksrad": gluecksrad, "x-wuerfel": wuerfel, "x-strichliste": strichliste, "x-diagramm": diagramm,
     "x-urne": urne, "x-wahrscheinlichkeit": wahrscheinlichkeit, "x-kombinatorik": kombinatorik,
-    "x-gitter": gitter, "x-figur": figur, "x-tangram": tangram };
+    "x-gitter": gitter, "x-figur": figur, "x-tangram": tangram,
+    "x-wuerfelbau": wuerfelbau, "x-wuerfelnetz": wuerfelnetz, "x-koerper": koerper };
 
   const zeichne = (f, el) => {
     el.removeAttribute("data-fehler");
@@ -1248,6 +1745,7 @@
   /* == Rechenkerne für Tests == */
   window.schoolboxAbbildungen = {
     ARTEN, zahl, cm, zufall, gemischt, trenneListe, trenneRaster, bildVon, spiegelung, skaliere, gehWeg, flaecheUmfang, TANGRAM_TEILE, TANGRAM_UMRISSE,
+    ansichtenVon, wuerfelVon, verdeckteWuerfel, WUERFELNETZE, NICHT_NETZE, netzZellen, falteNetz, istWuerfelnetz, netzLaschen, netzLage, AUGEN_DER_SEITE, vielflach, KOERPER_ZAHLEN,
   };
   if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", () => window.zeichneAbbildungen());
   else window.zeichneAbbildungen();

@@ -256,6 +256,7 @@ const Auswahl = ({ abb, feld }: FeldEigenschaften<AuswahlFeld>) => {
 	const bekannt = feld.optionen.some((o) => o.wert === wert);
 	const optionen = bekannt ? feld.optionen : [...feld.optionen, { wert, name: wert ?? '–' }];
 	const index = optionen.findIndex((o) => o.wert === wert);
+	const blaettere = (schritt: number) => abb.aendere(feld, optionen[index + schritt]?.wert ?? null);
 	return (
 		<Rahmen feld={feld} abb={abb} id={id}>
 			<select
@@ -271,6 +272,28 @@ const Auswahl = ({ abb, feld }: FeldEigenschaften<AuswahlFeld>) => {
 					</option>
 				))}
 			</select>
+			{feld.blaettern && (
+				<div className="mt-2 flex gap-2">
+					<Knopf
+						art="zweit"
+						className="flex-1"
+						aria-label={`${feld.name}: zurück`}
+						disabled={index <= 0}
+						onClick={() => blaettere(-1)}
+					>
+						Zurück
+					</Knopf>
+					<Knopf
+						art="zweit"
+						className="flex-1"
+						aria-label={`${feld.name}: vor`}
+						disabled={index >= optionen.length - 1}
+						onClick={() => blaettere(1)}
+					>
+						Vor
+					</Knopf>
+				</div>
+			)}
 		</Rahmen>
 	);
 };

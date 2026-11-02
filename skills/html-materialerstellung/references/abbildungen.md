@@ -221,3 +221,55 @@ Die Lösung wird berechnet, nie angegeben. Fehler: Figur kreuzt die Achse, Spieg
 ```
 
 `umriss` `haus`, `katze`, `schiff`, `fisch`, `kerze`; `teile` schon eingezeichnet: `gross1`, `gross2`, `mittel`, `klein1`, `klein2`, `quadrat`, `raute`; `groesse` px je Einheit; `bogen="ja"` Quadrat von 12 cm zum Ausschneiden. Die Lösung zeigt alle sieben Teile in einer gültigen Lage.
+
+## Räumliche Geometrie
+
+Muster: `assets/muster/raeumliche-geometrie.html`. Schrägbild, Bauplan und Ansichten entstehen aus einem Bauplan und passen darum immer zusammen.
+
+### `x-wuerfelbau`: Würfelgebäude
+
+```html
+<x-wuerfelbau bauplan="2 1 / 3 1" zeige="schraegbild bauplan vorne rechts links oben"></x-wuerfelbau>
+<x-wuerfelbau bauplan="1 2 / 1 3" zeige="schraegbild" fragen="bauplan anzahl"></x-wuerfelbau>
+```
+
+| Attribut | Bedeutung |
+|---|---|
+| `bauplan` | Turmhöhen 0 bis 5, Zeilen mit `/`, höchstens 4 × 4; die letzte Zeile ist vorne |
+| `zeige` | Vorgaben: `schraegbild` (Standard), `bauplan`, `vorne`, `rechts`, `links`, `oben` |
+| `fragen` | Antworten: `anzahl`, `bauplan`, `vorne`, `rechts`, `links`, `oben`; leer auf dem Blatt, gefüllt in der Lösung |
+| `projektion` | `schraeg` (Standard) oder `iso` |
+| `verdeckt` | `zeigen`: verdeckte Würfel gestrichelt |
+| `einheit` | Würfelkante in px |
+
+Fehler: Frage ist zugleich Vorgabe; Fragen ohne Schrägbild oder Bauplan; nach Bauplan oder Anzahl gefragt, während das Schrägbild einen Würfel verdeckt.
+
+### `x-wuerfelnetz`: Würfel- und Quadernetz
+
+```html
+<x-wuerfelnetz netz="3" aufgabe="gegenueber" markiere="2"></x-wuerfelnetz>
+<x-wuerfelnetz netz="n4" aufgabe="netz-oder-nicht"></x-wuerfelnetz>
+<x-wuerfelnetz netz="10" aufgabe="augen-ergaenzen" seed="a"></x-wuerfelnetz>
+<x-wuerfelnetz netz="1" augen="ja" bastel="ja" kante="4"></x-wuerfelnetz>
+<x-wuerfelnetz netz="6" flaechen="1 #12 Haus rot 5 Stern" bastel="ja" kante="5"></x-wuerfelnetz>
+```
+
+| Attribut | Bedeutung |
+|---|---|
+| `netz` | `1` bis `11` (alle Würfelnetze), `n1` bis `n8` (geprüft keine Netze) |
+| `aufgabe` | `netz-oder-nicht`, `gegenueber` (`markiere` = Fläche 1 bis 6 in Leserichtung), `augen-ergaenzen` (drei Flächen leer, je Paar eine, nach `seed`) |
+| `augen` | `ja`: Standardwürfel, gegenüber immer 7, gedreht wie ein echter Würfel |
+| `flaechen` | sechs Einträge in Leserichtung: `1`–`6` Augen, `0` leer, `#12` Zahl, Farbname (s/w: Muster), sonst Wort ohne Leerzeichen |
+| `laschen` | `ja`: 7 Laschen, an jeder Klebekante eine; bei `bastel` Standard |
+| `bastel`, `kante` | Bastelvorlage in echten cm (Standard 4), dreht sich selbst aufs Blatt; passt sie nicht, nennt der Fehler die größte Kante. Beim Anlegen `--druckhinweis "In Originalgröße drucken (100 %), festes Papier"` |
+| `art`, `masse` | `quader` mit drei Maßen, nur Netze 1 bis 6 |
+| `drehung`, `groesse` | 0, 90, 180, 270 Grad; px je Kästchen |
+
+### `x-koerper`: Körper
+
+```html
+<x-koerper form="pyramide" markiere="ecken kanten"></x-koerper>
+<x-koerper form="quader" ansicht="kantenmodell"></x-koerper>
+```
+
+`form` `wuerfel`, `quader`, `kugel`, `zylinder`, `kegel`, `pyramide`, `prisma`; `ansicht` `schraegbild` (Kavalierperspektive) oder `kantenmodell` (nur mit geraden Kanten); `verdeckt` `gestrichelt` oder `aus`; `markiere` `ecken`, `kanten`, `flaechen`: Antwortfeld auf dem Blatt, Markierung und Anzahl in der Lösung (beim Kegel heißt es „Spitzen“); `masse` in Einheiten; `drehung` um die senkrechte Achse; `groesse` px je Einheit.

@@ -61,6 +61,7 @@ Prozessbezogene Kompetenzen in jedes Material einbauen: Problemlösen, Kommunizi
 - Uhr: analoges Zifferblatt mit großen Ziffern, Stundenzeiger deutlich kürzer und dicker. **Nie von der KI zeichnen lassen** – `<x-uhr>` aus `html-materialerstellung/assets/abbildungen.js` berechnet exakte Zifferblätter.
 - Geld: Euro-Abbildungen sind erlaubt; maßstabsgetreu und eindeutig.
 - Rechenkästchen: 1 Ziffer pro Kästchen (schriftliche Verfahren!).
+- Würfelbau: Schrägbild, Bauplan und Ansichten aus einem Bauplan, keine verdeckten Würfel bei Bauplan-Aufgaben.
 - Gitter: in echten Zentimetern wie im Heft (`x-gitter`), Achse auf einer Gitterlinie, Lösung berechnet statt gezeichnet.
 - Strichliste: Fünferbündel aus vier senkrechten und einem schrägen Strich (`x-strichliste`).
 - Diagramm: Skala ab 0 und gleichmäßig (`x-diagramm`).
@@ -117,8 +118,11 @@ Exakte Darstellungen kommen als Elemente aus `html-materialerstellung/assets/abb
 | `<x-gitter figur="1 1 / 1 0" aufgabe="spiegeln" achse="senkrecht">` | Spiegeln, Fortsetzen, Vergrößern, Weg, Fläche und Umfang im Gitter |
 | `<x-figur form="dreieck" loesung="rechter-winkel">` | Ebene Figur mit Normsymbolen |
 | `<x-tangram umriss="katze">` | Tangram mit Umriss, Bogen zum Ausschneiden |
+| `<x-wuerfelbau bauplan="2 1 / 3 1" fragen="anzahl">` | Würfelgebäude: Schrägbild, Bauplan, Ansichten |
+| `<x-wuerfelnetz netz="3" aufgabe="gegenueber">` | Würfelnetz, Nicht-Netz, Bastelwürfel |
+| `<x-koerper form="pyramide" markiere="ecken">` | Körper im Schrägbild, Kantenmodell |
 
-Zur Leitidee „Raum und Form“: Kl. 1/2 Formen (`x-figur`), Wege und Auslegen (`x-gitter`), Tangram; Kl. 3/4 Spiegeln, Fortsetzen, Vergrößern, Fläche und Umfang (`x-gitter`), Eigenschaften (`x-figur`).
+Zur Leitidee „Raum und Form“: Kl. 1/2 Formen (`x-figur`), Wege und Auslegen (`x-gitter`), Tangram, Ansichten zum Würfelgebäude (`x-wuerfelbau`), Körper benennen (`x-koerper`); Kl. 3/4 Spiegeln, Fortsetzen, Vergrößern, Fläche und Umfang (`x-gitter`), Eigenschaften (`x-figur`), Baupläne (`x-wuerfelbau`), Netze (`x-wuerfelnetz`), Ecken, Kanten, Flächen (`x-koerper`).
 
 Zur Leitidee „Daten, Häufigkeit, Wahrscheinlichkeit“: Kl. 1/2 Strichliste, Würfel, Glücksrad; Kl. 3/4 Diagramm, Wahrscheinlichkeit, Möglichkeiten.
 

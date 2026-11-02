@@ -412,6 +412,18 @@ const rechenkerne = () => {
 		flaecheUmfang: (form: Form) => { flaeche: number; umfang: number | null };
 		TANGRAM_TEILE: Record<string, number[][]>;
 		TANGRAM_UMRISSE: Record<string, Record<string, number[][]>>;
+		ansichtenVon: (plan: number[][]) => { vorne: number[]; rechts: number[]; links: number[]; oben: number[][] };
+		wuerfelVon: (plan: number[][]) => unknown[];
+		verdeckteWuerfel: (plan: number[][], art?: string) => unknown[];
+		WUERFELNETZE: Record<string, string>;
+		NICHT_NETZE: Record<string, string>;
+		netzZellen: (code: string) => { nr: number; c: number; r: number }[];
+		falteNetz: (zellen: unknown[]) => { nr: number; rahmen: { n: number[] } }[];
+		istWuerfelnetz: (zellen: unknown[]) => boolean;
+		netzLaschen: (zellen: unknown[]) => { nr: number; seite: string }[];
+		AUGEN_DER_SEITE: Record<string, number>;
+		vielflach: (form: string, masse: number[]) => { punkte: unknown[]; kanten: unknown[]; flaechen: unknown[] };
+		KOERPER_ZAHLEN: Record<string, { ecken: number; kanten: number; flaechen: number }>;
 	};
 };
 
@@ -583,6 +595,113 @@ describe('Ebene Geometrie (025)', () => {
 		assert.ok(Object.keys(TANGRAM_UMRISSE).length >= 5);
 		for (const [name, lage] of Object.entries(TANGRAM_UMRISSE)) {
 			pruefeLage(name, lage);
+		}
+	});
+});
+
+describe('Räumliche Geometrie (026)', () => {
+	const netto = <T>(wert: T): T => JSON.parse(JSON.stringify(wert)) as T;
+
+	it('Ansichten passen zu Bauplänen, die von Hand gerechnet sind', () => {
+		const { ansichtenVon, wuerfelVon } = rechenkerne();
+		const faelle = [
+			{
+				plan: [
+					[2, 1],
+					[3, 1],
+				],
+				anzahl: 7,
+				vorne: [3, 1],
+				rechts: [3, 2],
+				links: [2, 3],
+				oben: [
+					[1, 1],
+					[1, 1],
+				],
+			},
+			{
+				plan: [
+					[3, 0, 1],
+					[2, 1, 1],
+				],
+				anzahl: 8,
+				vorne: [3, 1, 1],
+				rechts: [2, 3],
+				links: [3, 2],
+				oben: [
+					[1, 0, 1],
+					[1, 1, 1],
+				],
+			},
+			{
+				plan: [[0], [4], [1]],
+				anzahl: 5,
+				vorne: [4],
+				rechts: [1, 4, 0],
+				links: [0, 4, 1],
+				oben: [[0], [1], [1]],
+			},
+		];
+		for (const { anzahl, links, oben, plan, rechts, vorne } of faelle) {
+			assert.deepEqual(netto(ansichtenVon(plan)), { vorne, rechts, links, oben });
+			assert.equal(wuerfelVon(plan).length, anzahl);
+		}
+	});
+
+	it('findet verdeckte Würfel', () => {
+		const { verdeckteWuerfel } = rechenkerne();
+		const voll = [
+			[2, 2],
+			[2, 2],
+		];
+		assert.equal(verdeckteWuerfel(voll).length, 1);
+		assert.equal(verdeckteWuerfel(voll, 'iso').length, 1);
+		assert.equal(
+			verdeckteWuerfel([
+				[1, 2],
+				[1, 3],
+			]).length,
+			0,
+		);
+	});
+
+	it('Alle 11 Netze falten sich zum Würfel mit 7 Laschen, Nicht-Netze scheitern', () => {
+		const { AUGEN_DER_SEITE, NICHT_NETZE, WUERFELNETZE, falteNetz, istWuerfelnetz, netzLaschen, netzZellen } =
+			rechenkerne();
+		assert.equal(Object.keys(WUERFELNETZE).length, 11);
+		for (const code of Object.keys(WUERFELNETZE)) {
+			const zellen = netzZellen(code);
+			assert.equal(zellen.length, 6, code);
+			assert.ok(istWuerfelnetz(zellen), code);
+			assert.equal(netzLaschen(zellen).length, 7, code);
+			const augen = Object.fromEntries(
+				falteNetz(zellen).map((z) => [z.rahmen.n.join(), AUGEN_DER_SEITE[z.rahmen.n.join()]]),
+			);
+			for (const [seite, zahl] of Object.entries(augen)) {
+				const gegen = seite
+					.split(',')
+					.map((a) => -Number(a) || 0)
+					.join();
+				assert.equal((zahl ?? 0) + (augen[gegen] ?? 0), 7, code);
+			}
+		}
+		assert.equal(Object.keys(NICHT_NETZE).length, 8);
+		for (const code of Object.keys(NICHT_NETZE)) {
+			const zellen = netzZellen(code);
+			assert.equal(zellen.length, 6, code);
+			assert.ok(!istWuerfelnetz(zellen), code);
+		}
+	});
+
+	it('Körper haben die richtigen Zahlen', () => {
+		const { KOERPER_ZAHLEN, vielflach } = rechenkerne();
+		for (const form of ['wuerfel', 'quader', 'pyramide', 'prisma']) {
+			const { flaechen, kanten, punkte } = vielflach(form, [3, 2, 2]);
+			assert.deepEqual(
+				{ ecken: punkte.length, kanten: kanten.length, flaechen: flaechen.length },
+				netto(KOERPER_ZAHLEN[form]),
+				form,
+			);
 		}
 	});
 });

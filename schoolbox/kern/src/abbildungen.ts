@@ -57,6 +57,8 @@ export interface AuswahlFeld extends FeldBasis {
 	optionen: { wert: string | null; name: string }[];
 	/** Was `abbildungen.js` ohne Attribut zeichnet, wenn es dafür eine eigene Option gibt. */
 	standard?: string;
+	/** Zurück und Vor unter der Auswahl: Man sieht jede Option gleich im Blatt. */
+	blaettern?: boolean;
 }
 
 export interface SchalterFeld extends FeldBasis {
@@ -234,6 +236,15 @@ export const FARBEN: Option[] = [
 
 const ZAHL = /^-?\d+([.,]\d+)?$/;
 export const alsZahl = (wert: string) => (ZAHL.test(wert.trim()) ? Number(wert.trim().replace(',', '.')) : NaN);
+
+const WUERFELBAU_TEILE = [
+	{ wert: 'schraegbild', name: 'Schrägbild' },
+	{ wert: 'bauplan', name: 'Bauplan' },
+	{ wert: 'vorne', name: 'Ansicht von vorne' },
+	{ wert: 'rechts', name: 'Ansicht von rechts' },
+	{ wert: 'links', name: 'Ansicht von links' },
+	{ wert: 'oben', name: 'Ansicht von oben' },
+];
 
 const FIGUR_MARKEN: Option[] = [
 	{ wert: 'rechter-winkel', name: 'Rechte Winkel' },
@@ -987,6 +998,213 @@ export const ABBILDUNG_SCHEMA = {
 				standard: false,
 			},
 			{ art: 'zahl', ...GROESSE, min: 60, max: 400, standard: 120, schritt: 10 },
+		],
+	},
+	'x-wuerfelbau': {
+		name: 'Würfelgebäude',
+		felder: [
+			{
+				art: 'raster',
+				attribut: 'bauplan',
+				name: 'Bauplan (Turmhöhen)',
+				zahlen: { min: 0, max: 5 },
+				wachsen: { spalten: 4, zeilen: 4 },
+				hilfe: 'Die unterste Zeile ist vorne.',
+			},
+			{ art: 'mehrfach', attribut: 'zeige', name: 'Vorgegeben', optionen: WUERFELBAU_TEILE },
+			{
+				art: 'mehrfach',
+				attribut: 'fragen',
+				name: 'Gefragt',
+				optionen: [{ wert: 'anzahl', name: 'Anzahl der Würfel' }, ...WUERFELBAU_TEILE.slice(1)],
+			},
+			{
+				art: 'auswahl',
+				attribut: 'projektion',
+				name: 'Schrägbild',
+				standard: 'schraeg',
+				optionen: [
+					{ wert: 'schraeg', name: 'Schräg' },
+					{ wert: 'iso', name: 'Isometrisch' },
+				],
+			},
+			{
+				art: 'schalter',
+				attribut: 'verdeckt',
+				name: 'Verdeckte Würfel zeigen',
+				an: 'zeigen',
+				aus: 'nicht',
+				standard: false,
+			},
+			{
+				art: 'zahl',
+				attribut: 'einheit',
+				name: 'Würfelkante',
+				min: 14,
+				max: 50,
+				standard: 26,
+				schritt: 2,
+				einheit: 'px',
+			},
+		],
+	},
+	'x-wuerfelnetz': {
+		name: 'Würfelnetz',
+		felder: [
+			{
+				art: 'auswahl',
+				attribut: 'netz',
+				name: 'Netz',
+				standard: '1',
+				blaettern: true,
+				optionen: [
+					...Array.from({ length: 11 }, (_, i) => ({ wert: String(i + 1), name: `Netz ${i + 1}` })),
+					...Array.from({ length: 8 }, (_, i) => ({ wert: `n${i + 1}`, name: `Kein Netz ${i + 1}` })),
+				],
+			},
+			{
+				art: 'auswahl',
+				attribut: 'aufgabe',
+				name: 'Aufgabe',
+				standard: 'keine',
+				optionen: [
+					{ wert: 'keine', name: 'Keine' },
+					{ wert: 'netz-oder-nicht', name: 'Netz oder nicht?' },
+					{ wert: 'gegenueber', name: 'Gegenüberliegende Fläche' },
+					{ wert: 'augen-ergaenzen', name: 'Augen ergänzen' },
+				],
+			},
+			{ art: 'zahl', attribut: 'markiere', name: 'Markierte Fläche', min: 1, max: 6, standard: 1 },
+			{
+				art: 'schalter',
+				attribut: 'augen',
+				name: 'Standardwürfel (gegenüber 7)',
+				an: 'ja',
+				aus: 'nein',
+				standard: false,
+			},
+			{
+				art: 'liste',
+				attribut: 'flaechen',
+				name: 'Flächen',
+				zeilenTrenner: ' ',
+				feldTrenner: ' ',
+				min: 6,
+				max: 6,
+				unter: [{ art: 'text', name: 'Inhalt' }],
+				hilfe: '1 bis 6 sind Augen, 0 ist leer, #12 eine Zahl; sonst Wort oder Farbe, ohne Leerzeichen.',
+			},
+			{ art: 'schalter', attribut: 'laschen', name: 'Laschen', an: 'ja', aus: 'nein', standard: false },
+			{
+				art: 'schalter',
+				attribut: 'bastel',
+				name: 'Bastelvorlage',
+				an: 'ja',
+				aus: 'nein',
+				standard: false,
+				gruppe: 'Bastelvorlage',
+			},
+			{
+				art: 'zahl',
+				attribut: 'kante',
+				name: 'Kante',
+				min: 1,
+				max: 8,
+				standard: 4,
+				schritt: 0.5,
+				einheit: 'cm',
+				gruppe: 'Bastelvorlage',
+			},
+			{
+				art: 'auswahl',
+				attribut: 'art',
+				name: 'Körper',
+				standard: 'wuerfel',
+				gruppe: 'Weitere Angaben',
+				optionen: [
+					{ wert: 'wuerfel', name: 'Würfel' },
+					{ wert: 'quader', name: 'Quader' },
+				],
+			},
+			{
+				art: 'zahlen',
+				attribut: 'masse',
+				name: 'Maße des Quaders',
+				beispiel: '4 2 1',
+				gruppe: 'Weitere Angaben',
+			},
+			{
+				art: 'zahl',
+				attribut: 'drehung',
+				name: 'Drehung in Grad',
+				min: 0,
+				max: 270,
+				standard: 0,
+				schritt: 90,
+				gruppe: 'Weitere Angaben',
+			},
+			{ art: 'zahl', ...GROESSE, min: 16, max: 80, standard: 30, schritt: 2, gruppe: 'Weitere Angaben' },
+			{ art: 'text', attribut: 'seed', name: 'Mischung', gruppe: 'Weitere Angaben' },
+		],
+	},
+	'x-koerper': {
+		name: 'Körper',
+		felder: [
+			{
+				art: 'auswahl',
+				attribut: 'form',
+				name: 'Form',
+				standard: 'wuerfel',
+				optionen: [
+					{ wert: 'wuerfel', name: 'Würfel' },
+					{ wert: 'quader', name: 'Quader' },
+					{ wert: 'kugel', name: 'Kugel' },
+					{ wert: 'zylinder', name: 'Zylinder' },
+					{ wert: 'kegel', name: 'Kegel' },
+					{ wert: 'pyramide', name: 'Pyramide' },
+					{ wert: 'prisma', name: 'Prisma' },
+				],
+			},
+			{
+				art: 'auswahl',
+				attribut: 'ansicht',
+				name: 'Ansicht',
+				standard: 'schraegbild',
+				optionen: [
+					{ wert: 'schraegbild', name: 'Schrägbild' },
+					{ wert: 'kantenmodell', name: 'Kantenmodell' },
+				],
+			},
+			{
+				art: 'schalter',
+				attribut: 'verdeckt',
+				name: 'Verdeckte Kanten gestrichelt',
+				an: 'gestrichelt',
+				aus: 'aus',
+				standard: true,
+			},
+			{
+				art: 'mehrfach',
+				attribut: 'markiere',
+				name: 'Gefragt und in der Lösung markiert',
+				optionen: [
+					{ wert: 'ecken', name: 'Ecken' },
+					{ wert: 'kanten', name: 'Kanten' },
+					{ wert: 'flaechen', name: 'Flächen' },
+				],
+			},
+			{ art: 'zahlen', attribut: 'masse', name: 'Maße', beispiel: '4 2 2', gruppe: 'Weitere Angaben' },
+			{
+				art: 'zahl',
+				attribut: 'drehung',
+				name: 'Drehung in Grad',
+				min: 0,
+				max: 359,
+				standard: 0,
+				schritt: 15,
+				gruppe: 'Weitere Angaben',
+			},
+			{ art: 'zahl', ...GROESSE, min: 14, max: 60, standard: 30, schritt: 2, gruppe: 'Weitere Angaben' },
 		],
 	},
 	'x-tangram': {

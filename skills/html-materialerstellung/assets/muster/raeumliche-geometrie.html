@@ -1,0 +1,95 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<title>Muster: Räumliche Geometrie</title>
+<link rel="stylesheet" href="blatt.css">
+<script src="abbildungen.js"></script>
+</head>
+<body class="kl3 sw">
+<section class="seite">
+  <div class="kopf"><div class="titel"><h1>Räumliche Geometrie</h1></div></div>
+  <div class="aufgabe">
+    <span class="nr">1</span><div class="anw"><span class="text">Ein Bauplan, alle Ansichten</span></div>
+    <div class="koerper"><x-wuerfelbau bauplan="2 1 / 3 1" zeige="schraegbild bauplan vorne rechts links oben"></x-wuerfelbau></div>
+  </div>
+  <div class="aufgabe">
+    <span class="nr">2</span><div class="anw"><span class="text">Schreibe den Bauplan. Wie viele Würfel sind es?</span></div>
+    <div class="koerper"><x-wuerfelbau bauplan="1 2 / 1 3" zeige="schraegbild" fragen="bauplan anzahl"></x-wuerfelbau></div>
+  </div>
+  <div class="aufgabe">
+    <span class="nr">3</span><div class="anw"><span class="text">Zeichne den Bau von vorne und von oben.</span></div>
+    <div class="koerper"><x-wuerfelbau bauplan="3 0 1 / 2 1 1" zeige="bauplan" fragen="vorne oben" projektion="iso"></x-wuerfelbau></div>
+  </div>
+  <div class="aufgabe">
+    <span class="nr">4</span><div class="anw"><span class="text">Welche Fläche liegt gegenüber? Ergänze die Augen.</span></div>
+    <div class="koerper"><div class="reihe" style="--spalten:2">
+      <div class="zelle"><x-wuerfelnetz netz="3" aufgabe="gegenueber" markiere="2" groesse="30"></x-wuerfelnetz></div>
+      <div class="zelle"><x-wuerfelnetz netz="10" aufgabe="augen-ergaenzen" seed="a" groesse="30"></x-wuerfelnetz></div>
+    </div></div>
+  </div>
+</section>
+<section class="seite">
+  <div class="kopf"><div class="titel"><h1>Würfelnetze</h1></div></div>
+  <div class="aufgabe">
+    <span class="nr">5</span><div class="anw"><span class="text">Kannst du daraus einen Würfel falten?</span></div>
+    <div class="koerper"><div class="reihe" style="--spalten:4">
+      <div class="zelle"><x-wuerfelnetz netz="1" aufgabe="netz-oder-nicht" groesse="20"></x-wuerfelnetz></div>
+      <div class="zelle"><x-wuerfelnetz netz="2" aufgabe="netz-oder-nicht" groesse="20"></x-wuerfelnetz></div>
+      <div class="zelle"><x-wuerfelnetz netz="3" aufgabe="netz-oder-nicht" groesse="20"></x-wuerfelnetz></div>
+      <div class="zelle"><x-wuerfelnetz netz="4" aufgabe="netz-oder-nicht" groesse="20"></x-wuerfelnetz></div>
+      <div class="zelle"><x-wuerfelnetz netz="5" aufgabe="netz-oder-nicht" groesse="20"></x-wuerfelnetz></div>
+      <div class="zelle"><x-wuerfelnetz netz="6" aufgabe="netz-oder-nicht" groesse="20"></x-wuerfelnetz></div>
+      <div class="zelle"><x-wuerfelnetz netz="7" aufgabe="netz-oder-nicht" groesse="20"></x-wuerfelnetz></div>
+      <div class="zelle"><x-wuerfelnetz netz="8" aufgabe="netz-oder-nicht" groesse="20"></x-wuerfelnetz></div>
+      <div class="zelle"><x-wuerfelnetz netz="9" aufgabe="netz-oder-nicht" groesse="20"></x-wuerfelnetz></div>
+      <div class="zelle"><x-wuerfelnetz netz="10" aufgabe="netz-oder-nicht" groesse="20"></x-wuerfelnetz></div>
+      <div class="zelle"><x-wuerfelnetz netz="11" aufgabe="netz-oder-nicht" groesse="20"></x-wuerfelnetz></div>
+      <div class="zelle"><x-wuerfelnetz netz="n1" aufgabe="netz-oder-nicht" groesse="20"></x-wuerfelnetz></div>
+      <div class="zelle"><x-wuerfelnetz netz="n2" aufgabe="netz-oder-nicht" groesse="20"></x-wuerfelnetz></div>
+      <div class="zelle"><x-wuerfelnetz netz="n3" aufgabe="netz-oder-nicht" groesse="20"></x-wuerfelnetz></div>
+      <div class="zelle"><x-wuerfelnetz netz="n4" aufgabe="netz-oder-nicht" groesse="20"></x-wuerfelnetz></div>
+      <div class="zelle"><x-wuerfelnetz netz="n5" aufgabe="netz-oder-nicht" groesse="20"></x-wuerfelnetz></div>
+      <div class="zelle"><x-wuerfelnetz netz="n6" aufgabe="netz-oder-nicht" groesse="20"></x-wuerfelnetz></div>
+      <div class="zelle"><x-wuerfelnetz netz="n7" aufgabe="netz-oder-nicht" groesse="20"></x-wuerfelnetz></div>
+      <div class="zelle"><x-wuerfelnetz netz="n8" aufgabe="netz-oder-nicht" groesse="20"></x-wuerfelnetz></div>
+    </div></div>
+  </div>
+</section>
+<section class="seite">
+  <div class="kopf"><div class="titel"><h1>Körper</h1></div></div>
+  <div class="aufgabe">
+    <span class="nr">6</span><div class="anw"><span class="text">Zähle Ecken, Kanten und Flächen.</span></div>
+    <div class="koerper"><div class="reihe" style="--spalten:4">
+      <div class="zelle"><x-koerper form="wuerfel" markiere="ecken kanten flaechen"></x-koerper></div>
+      <div class="zelle"><x-koerper form="quader" markiere="ecken"></x-koerper></div>
+      <div class="zelle"><x-koerper form="pyramide" markiere="kanten"></x-koerper></div>
+      <div class="zelle"><x-koerper form="prisma" markiere="flaechen" groesse="26"></x-koerper></div>
+    </div></div>
+  </div>
+  <div class="aufgabe">
+    <span class="nr">7</span><div class="anw"><span class="text">Runde Körper und ein Kantenmodell</span></div>
+    <div class="koerper"><div class="reihe" style="--spalten:4">
+      <div class="zelle"><x-koerper form="kugel"></x-koerper></div>
+      <div class="zelle"><x-koerper form="zylinder" markiere="kanten flaechen" masse="2 3"></x-koerper></div>
+      <div class="zelle"><x-koerper form="kegel" markiere="ecken" masse="3 3"></x-koerper></div>
+      <div class="zelle"><x-koerper form="quader" ansicht="kantenmodell" groesse="26"></x-koerper></div>
+    </div></div>
+  </div>
+  <div class="aufgabe">
+    <span class="nr">8</span><div class="anw"><span class="text">Ein Quader und ein Würfel mit eigenen Seiten</span></div>
+    <div class="koerper"><div class="reihe" style="--spalten:2">
+      <div class="zelle"><x-wuerfelnetz art="quader" masse="4 2 1" netz="5" laschen="ja" groesse="20"></x-wuerfelnetz></div>
+      <div class="zelle"><x-wuerfelnetz netz="6" flaechen="1 #12 Haus rot 5 Stern" groesse="34"></x-wuerfelnetz></div>
+    </div></div>
+  </div>
+</section>
+<section class="seite">
+  <div class="kopf"><div class="titel"><h1>Würfel zum Basteln</h1></div></div>
+  <div class="aufgabe">
+    <span class="nr">9</span><div class="anw"><span class="text">Schneide aus, falte und klebe.</span></div>
+    <div class="koerper"><x-wuerfelnetz netz="1" augen="ja" bastel="ja" kante="4"></x-wuerfelnetz></div>
+  </div>
+</section>
+</body>
+</html>

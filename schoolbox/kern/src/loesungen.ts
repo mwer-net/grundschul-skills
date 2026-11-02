@@ -19,8 +19,9 @@ const knotenAn = (z: Zerlegung, nr: number, klasse: string, was: string) => {
 
 /** Elemente, die ohne `loesung=` nichts im Lösungsblatt ändern. Gleiche Liste wie `OHNE_LOESUNGSANGABE` in `blatt.py`. */
 export const OHNE_LOESUNGSANGABE =
-	'<x-(?!uhr|menge|dienes|strichpunkt|stellentafel|zwanzigerfeld|zahlenstrahl|timer|probe|gluecksrad|wuerfel|urne|diagramm|gitter|figur)[a-z]';
-export const MIT_LOESUNG = '<x-diagramm[^>]* offen=|<x-gitter[^>]* (?:aufgabe|zaehlen)=';
+	'<x-(?!uhr|menge|dienes|strichpunkt|stellentafel|zwanzigerfeld|zahlenstrahl|timer|probe|gluecksrad|wuerfel|urne|diagramm|gitter|figur|koerper)[a-z]';
+export const MIT_LOESUNG =
+	'<x-diagramm[^>]* offen=|<x-gitter[^>]* (?:aufgabe|zaehlen)=|<x-wuerfelbau[^>]* fragen=|<x-wuerfelnetz[^>]* aufgabe=|<x-koerper[^>]* markiere=';
 
 /** Dieselbe Regel wie `blatt.py bauen`: Nur dann entsteht ein Lösungsblatt. */
 export const hatLoesung = (quelle: string) =>
