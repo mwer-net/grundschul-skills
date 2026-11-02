@@ -480,3 +480,25 @@ Ohne `spruenge` geht es zur vollen Stunde, über die ganzen Stunden und dann zum
 ```
 
 `digital` `nein`, `ja`, `nur`; `format` `24` oder `12`. `sektor` Zeitspanne als Fläche, bis 60 Minuten; `sektor-loesung` erst im Lösungsblatt. `minuten="ja"` äußerer Ring 5, 10, …; `ziffern24="ja"` innerer Ring 13 bis 24.
+
+## Deutsch
+
+Muster: `assets/muster/deutsch.html`.
+
+### `x-lineatur`
+
+```html
+<x-lineatur art="2" zeilen="3" vorlage="Rosine" vorlage-zeilen="1" anfang="Ha" loesung="Der Hund bellt."></x-lineatur>
+```
+
+`art` `1`, `2`, `3`, `4`, `karo`, `karo-klein`; Maße in `grundschul-didaktik/references/gestaltung.md`. `zeilen` 1 bis 30. `vorlage` grau zum Nachspuren (Schriftgröße folgt dem Mittelband), `vorlage-zeilen` wie viele Zeilen, `anfang` schwarzes Vorbild am Zeilenanfang. `loesung` nur im Lösungsblatt, wird umbrochen und muss in die freien Zeilen passen. `mittelband` `linie` oder `getoent` (nur Farbprofil, nur auf Wunsch). `band` 2 bis 10 mm überschreibt das Mittelband, falls das Heft der Klasse anders misst. `breite` in px, Standard ganze Spalte. Fest in Originalgröße; der Druckhinweis erscheint von selbst. Zu langer Text meldet einen Fehler, gekürzt wird nichts.
+
+### `x-silben`
+
+```html
+<x-silben>Die Ro|si|ne ist süß.</x-silben>
+<x-silben darstellung="beides" farben="blau rot">Zu|cker</x-silben>
+<x-silben aufgabe="boegen">Ta|fel</x-silben>
+```
+
+Inhalt: Text mit `|` an den Silbengrenzen; ein Wort ohne `|` ist eine Silbe. Nicht erlaubt: `||`, `|` am Wortanfang oder -ende, andere Zeichen als Buchstaben, Satzzeichen, Leerzeichen. `darstellung` `boegen`, `farbe`, `beides`; im s/w-Profil immer Bögen. `farben` zwei aus `blau`, `rot`, `gruen`, `lila`, `braun`, `schwarz`; je Wort beginnt die erste Farbe neu. `aufgabe` `keine`, `boegen` (Bögen nur im Lösungsblatt), `trennen` (Striche nur im Lösungsblatt). Silbenregeln: `fach-deutsch`.

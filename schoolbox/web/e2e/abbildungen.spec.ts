@@ -1,5 +1,7 @@
-import { readFile, writeFile } from 'node:fs/promises';
+import { mkdtemp, readFile, writeFile } from 'node:fs/promises';
+import { tmpdir } from 'node:os';
 import path from 'node:path';
+import { pathToFileURL } from 'node:url';
 
 import type { Page } from '@playwright/test';
 import { ASSETS } from '@schoolbox/kern/src/konfig';
@@ -1087,6 +1089,171 @@ test.describe('Größen (030)', () => {
 		await expect(material(page).locator('.kal-ring')).toHaveCount(1);
 		await druecke(zurueck(page));
 		await gespeichert(page, datei);
+		expect(await readFile(datei, 'utf8')).toBe(stand);
+	});
+});
+
+test.describe('Lineatur und Silben (031)', () => {
+	const cmPx = 96 / 2.54;
+	const mitSchrift = async (page: Page, html: string) => {
+		const ordner = await mkdtemp(path.join(tmpdir(), 'lineatur-'));
+		const datei = path.join(ordner, 'blatt.html');
+		const css = pathToFileURL(path.join(ASSETS, 'blatt.css')).href;
+		const js = pathToFileURL(path.join(ASSETS, 'abbildungen.js')).href;
+		await writeFile(
+			datei,
+			`<!doctype html><html><head><link rel="stylesheet" href="${css}"><script src="${js}"></script></head><body class="kl2 sw">${html}</body></html>`,
+		);
+		const seite = await page.context().newPage();
+		await seite.goto(pathToFileURL(datei).href);
+		return seite;
+	};
+
+	test('Lineatur 2: vier Linien im Abstand 4 mm, Originalgröße, Lösung erst im Lösungsblatt', async ({ page }) => {
+		const tag = '<x-lineatur art="2" zeilen="2" vorlage="Rosine" loesung="Der Hund."></x-lineatur>';
+		const blatt = await gezeichnet(page, tag);
+		await expect(blatt.locator('x-lineatur')).toHaveAttribute('data-masstab', '');
+		const lagen = await blatt
+			.locator('.linie[data-z="0"]')
+			.evaluateAll((l) => l.map((e) => e.getBoundingClientRect().top));
+		expect(lagen).toHaveLength(4);
+		lagen.slice(1).forEach((y, i) => {
+			expect(y - (lagen[i] ?? 0)).toBeCloseTo(0.4 * cmPx, 1);
+		});
+		await expect(blatt.locator('.loesungstext')).toHaveCount(0);
+		await expect(blatt.locator('.vorlage text')).toHaveAttribute('fill', '#808080');
+		await expect((await gezeichnet(page, tag, 'kl2 sw loesung')).locator('.loesungstext')).toHaveText('Der Hund.');
+		const lang =
+			'<x-lineatur art="1" vorlage="Dieser Satz ist für eine einzige Schreibzeile viel zu lang."></x-lineatur>';
+		await expect((await gezeichnet(page, lang)).locator('x-lineatur')).toHaveAttribute('data-fehler', /zu lang/);
+		const voll = '<x-lineatur art="karo" zeilen="1" breite="200" vorlage="Rosine am Morgen"></x-lineatur>';
+		await expect((await gezeichnet(page, voll)).locator('x-lineatur')).toHaveAttribute('data-fehler', /zu lang/);
+	});
+
+	test('Nachspurwort: x-Höhe genau im Mittelband, Grundlinie auf der Grundlinie', async ({ page }) => {
+		const blatt = await mitSchrift(page, '<x-lineatur art="2" zeilen="1" vorlage="xxx"></x-lineatur>');
+		const m = await blatt.locator('x-lineatur').evaluate(async (el) => {
+			await document.fonts.load('100px Andika');
+			const wort = el.querySelector('.vorlage text');
+			const groesse = Number(wort?.getAttribute('font-size'));
+			const zeichnung = document.createElement('canvas').getContext('2d');
+			if (!zeichnung) {
+				throw new Error('Kein Canvas');
+			}
+			zeichnung.font = '1000px Andika';
+			const lage = (name: string) =>
+				el.querySelector(`.linie[data-art="${name}"]`)?.getBoundingClientRect().top ?? 0;
+			return {
+				band: lage('grund') - lage('mitte'),
+				grund: Number(el.querySelector('.linie[data-art="grund"]')?.getAttribute('y1')),
+				y: Number(wort?.getAttribute('y')),
+				x: (zeichnung.measureText('x').actualBoundingBoxAscent / 1000) * groesse,
+			};
+		});
+		expect(Math.abs(m.x - m.band)).toBeLessThan(0.02 * cmPx);
+		expect(m.y).toBe(m.grund);
+	});
+
+	test('Mittelband getönt nur im Farbprofil', async ({ page }) => {
+		const tag = '<x-lineatur art="1" zeilen="1" mittelband="getoent"></x-lineatur>';
+		await expect((await gezeichnet(page, tag)).locator('.getoent')).toHaveCount(0);
+		await expect((await gezeichnet(page, tag, 'kl1 farbe')).locator('.getoent')).toHaveCount(1);
+	});
+
+	test('Silben: s/w Bögen, Farbe blau-rot-blau, Aufgaben erst in der Lösung', async ({ page }) => {
+		const tag = '<x-silben>Ro|si|ne</x-silben>';
+		const sw = await gezeichnet(page, tag);
+		await expect(sw.locator('.silbe')).toHaveCount(3);
+		await expect(sw.locator('.bogen')).toHaveCount(3);
+		const bunt = await gezeichnet(page, '<x-silben darstellung="farbe">Ro|si|ne</x-silben>', 'kl2 farbe');
+		await expect(bunt.locator('.bogen')).toHaveCount(0);
+		expect(await bunt.locator('.silbe').evaluateAll((l) => l.map((e) => e.getAttribute('data-farbe')))).toEqual([
+			'blau',
+			'rot',
+			'blau',
+		]);
+		const swFarbe = await gezeichnet(page, '<x-silben darstellung="farbe">Ro|si|ne</x-silben>');
+		await expect(swFarbe.locator('.bogen')).toHaveCount(3);
+
+		const boegen = '<x-silben aufgabe="boegen">Ta|fel</x-silben>';
+		await expect((await gezeichnet(page, boegen)).locator('.bogen')).toHaveCount(0);
+		await expect((await gezeichnet(page, boegen, 'kl2 sw loesung')).locator('.bogen')).toHaveCount(2);
+		const trennen = '<x-silben aufgabe="trennen">Ta|fel</x-silben>';
+		await expect((await gezeichnet(page, trennen)).locator('x-silben')).toHaveText('Tafel');
+		await expect((await gezeichnet(page, trennen, 'kl2 sw loesung')).locator('x-silben')).toHaveText('Ta|fel');
+		const unter = await mitSchrift(page, '<x-silben>gut pg</x-silben>');
+		const lage = await unter
+			.locator('.silbe')
+			.first()
+			.evaluate(async (e) => {
+				await document.fonts.load('100px Andika');
+				const marke = document.createElement('span');
+				marke.style.cssText = 'display:inline-block;height:0;width:0';
+				e.prepend(marke);
+				const grundlinie = marke.getBoundingClientRect().bottom;
+				marke.remove();
+				const zeichnung = document.createElement('canvas').getContext('2d');
+				if (!zeichnung) {
+					throw new Error('Kein Canvas');
+				}
+				zeichnung.font = '1000px Andika';
+				const groesse = Number.parseFloat(getComputedStyle(e).fontSize);
+				return {
+					bogen: e.querySelector('.bogen')?.getBoundingClientRect().top ?? 0,
+					unterlaenge: grundlinie + (zeichnung.measureText('p').actualBoundingBoxDescent / 1000) * groesse,
+				};
+			});
+		expect(lage.bogen).toBeGreaterThanOrEqual(lage.unterlaenge);
+		const falsch = await gezeichnet(page, '<x-silben>Ro||si</x-silben>');
+		await expect(falsch.locator('x-silben')).toHaveAttribute('data-fehler', /nebeneinander/);
+	});
+
+	test('Panel: Lineatur wechseln und Silbenstrich einfügen, je ein Rückgängig-Schritt', async ({ druecke, page }) => {
+		test.slow();
+		const { dok, id, material: datei } = await uhrzeit();
+		await oeffne(page, id, dok);
+		await aendere(
+			page,
+			(await quelle(page)).replace(
+				/<x-uhr[^>]*><\/x-uhr>/,
+				'<x-lineatur art="1" zeilen="1"></x-lineatur><x-silben>Rosi|ne</x-silben>',
+			),
+		);
+		await gespeichert(page, datei);
+		const stand = await readFile(datei, 'utf8');
+
+		const linien = material(page).locator('x-lineatur');
+		await druecke(linien);
+		await page.getByLabel('Lineatur', { exact: true }).selectOption({ label: 'Lineatur 2' });
+		await gespeichert(page, datei);
+		await expect(linien).toHaveAttribute('art', '2');
+		await druecke(zurueck(page));
+		await gespeichert(page, datei);
+		expect(await readFile(datei, 'utf8')).toBe(stand);
+		await expect(linien).toHaveAttribute('art', '1');
+
+		const silben = material(page).locator('x-silben');
+		await druecke(silben);
+		const feld = page.getByLabel('Text', { exact: true });
+		await expect(feld).toHaveValue('Rosi|ne');
+		await feld.evaluate((e: HTMLTextAreaElement) => {
+			e.focus();
+			e.setSelectionRange(2, 2);
+		});
+		await druecke(page.getByRole('button', { name: 'Silbenstrich einfügen' }));
+		await expect(feld).toHaveValue('Ro|si|ne');
+		await feld.press('Tab');
+		await gespeichert(page, datei);
+		expect(await readFile(datei, 'utf8')).toContain('<x-silben>Ro|si|ne</x-silben>');
+		await expect(silben.locator('.silbe')).toHaveCount(3);
+		await druecke(zurueck(page));
+		await gespeichert(page, datei);
+		expect(await readFile(datei, 'utf8')).toBe(stand);
+		await expect(silben.locator('.silbe')).toHaveCount(2);
+
+		await druecke(silben);
+		await feld.fill('Ro||si');
+		await expect(page.locator('[data-fehler="inhalt"]')).toContainText('nebeneinander');
 		expect(await readFile(datei, 'utf8')).toBe(stand);
 	});
 });

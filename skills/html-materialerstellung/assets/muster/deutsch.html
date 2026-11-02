@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<title>Muster: Deutsch</title>
+<link rel="stylesheet" href="blatt.css">
+<script src="abbildungen.js"></script>
+</head>
+<body class="kl2 sw">
+<section class="seite">
+  <div class="kopf"><div class="titel"><h1>Schreiblinien</h1></div></div>
+  <div class="aufgabe"><div class="nr">1</div><div class="anw"><div class="text">Spure nach und schreibe weiter (Lineatur 1).</div></div>
+    <div class="koerper"><x-lineatur art="1" zeilen="2" vorlage="Rosine"></x-lineatur></div></div>
+  <div class="aufgabe"><div class="nr">2</div><div class="anw"><div class="text">Lineatur 2 mit Vorbild am Zeilenanfang.</div></div>
+    <div class="koerper"><x-lineatur art="2" zeilen="2" vorlage="Hund und Katze" anfang="Ha"></x-lineatur></div></div>
+  <div class="aufgabe"><div class="nr">3</div><div class="anw"><div class="text">Was macht der Hund? Antworte im Satz (Lineatur 3).</div></div>
+    <div class="koerper"><x-lineatur art="3" zeilen="3" loesung="Der Hund bellt laut."></x-lineatur></div></div>
+  <div class="aufgabe"><div class="nr">4</div><div class="anw"><div class="text">Schreibe auf die Linie (Lineatur 4).</div></div>
+    <div class="koerper"><x-lineatur art="4" zeilen="2" vorlage="Heute scheint die Sonne."></x-lineatur></div></div>
+</section>
+<section class="seite">
+  <div class="kopf"><div class="titel"><h1>Karo und Silben</h1></div></div>
+  <div class="aufgabe"><div class="nr">1</div><div class="anw"><div class="text">Schreibe ins Karo.</div></div>
+    <div class="koerper reihe" style="--spalten:2">
+      <div class="zelle links"><x-lineatur art="karo" zeilen="2" vorlage="Haus" breite="280"></x-lineatur></div>
+      <div class="zelle links"><x-lineatur art="karo-klein" zeilen="3" vorlage="123" breite="280"></x-lineatur></div>
+    </div></div>
+  <div class="aufgabe"><div class="nr">2</div><div class="anw"><div class="text">Lies die Wörter in Silben.</div></div>
+    <div class="koerper reihe" style="--spalten:3">
+      <div class="zelle"><x-silben>Ro|si|ne</x-silben></div>
+      <div class="zelle"><x-silben>A|bend</x-silben></div>
+      <div class="zelle"><x-silben>Was|ser</x-silben></div>
+    </div></div>
+  <div class="aufgabe"><div class="nr">3</div><div class="anw"><div class="text">Lies den Text.</div></div>
+    <div class="koerper"><x-silben darstellung="beides">Die Ro|si|ne ist süß. Der Zu|cker ist auch süß. Mag der Pa|pa|gei das?</x-silben></div></div>
+  <div class="aufgabe"><div class="nr">4</div><div class="anw"><div class="text">Zeichne die Silbenbögen.</div></div>
+    <div class="koerper"><x-silben aufgabe="boegen">Ta|fel Blei|stift Ma|me|la|de</x-silben></div></div>
+</section>
+<section class="seite">
+  <div class="kopf"><div class="titel"><h1>Silben trennen</h1></div></div>
+  <div class="aufgabe"><div class="nr">1</div><div class="anw"><div class="text">Trenne die Wörter mit Strichen.</div></div>
+    <div class="koerper"><x-silben aufgabe="trennen">Som|mer Gar|ten Blu|me</x-silben></div></div>
+</section>
+</body>
+</html>

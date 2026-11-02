@@ -82,6 +82,7 @@
     "x-urne": "Kugeln im Säckchen", "x-wahrscheinlichkeit": "Wahrscheinlichkeit", "x-kombinatorik": "Möglichkeiten",
     "x-gitter": "Gitter", "x-figur": "Figur", "x-tangram": "Tangram",
     "x-hunderterfeld": "Hunderterfeld", "x-hundertertafel": "Hundertertafel", "x-rechenrahmen": "Rechenrahmen", "x-rechenstrich": "Rechenstrich",
+    "x-lineatur": "Schreiblinien", "x-silben": "Silben",
     "x-geld": "Geld", "x-skala": "Messgerät", "x-strecke": "Strecke", "x-kalender": "Kalender", "x-zeitspanne": "Zeitspanne",
     "x-punktfeld": "Punktfeld", "x-malkreuz": "Malkreuz", "x-schriftlich": "Schriftliche Rechnung",
     "x-zahlenmauer": "Zahlenmauer", "x-rechendreieck": "Rechendreieck", "x-zahlenhaus": "Zahlenhaus", "x-zahlenkette": "Rechenkette", "x-zauberdreieck": "Zauberdreieck", "x-rechenrad": "Rechenrad",
@@ -3139,6 +3140,129 @@
     el.innerHTML = svg(r1(Math.max(b + schritt * (orte.length - 1), 170)), r1(unten + 30), s);
   }
 
+  /* == Deutsch == */
+  const ANDIKA_X_HOEHE = 0.5; // gemessen an Andika-Regular.woff2: „x“ bei 1000 px Schrift 500 px hoch
+  /** Maße in mm. `oben`/`unten`: Abstand der Hilfslinien über und unter dem Mittelband; `abstand`: bis zur nächsten Zeile. */
+  const LINEATUREN = {
+    1: { band: 5, oben: 5, unten: 5, abstand: 7 }, 2: { band: 4, oben: 4, unten: 4, abstand: 6 },
+    3: { band: 3.5, oben: 0, unten: 0, abstand: 5.5 }, 4: { band: 0, oben: 0, unten: 0, abstand: 9, schrift: 3.5 },
+  };
+  const KARO = { karo: 10, "karo-klein": 5 };
+  const lineaturMass = (art, band) => {
+    const l = LINEATUREN[art];
+    const faktor = band !== null && l.band > 0 ? band / l.band : 1;
+    const mittel = band !== null && l.band > 0 ? band : l.band, oben = l.oben * faktor, unten = l.unten * faktor;
+    return { band: mittel, oben, unten, abstand: l.abstand, hoehe: oben + mittel + unten, schrift: (mittel || band || l.schrift) / ANDIKA_X_HOEHE };
+  };
+  const satzZeilen = (wort, breite, groesse) => {
+    const zeilen = [];
+    let zeile = "";
+    for (const w of wort.trim().split(/\s+/)) {
+      const neu = zeile ? `${zeile} ${w}` : w;
+      if (zeile && textBreite(neu, groesse) > breite) {
+        zeilen.push(zeile);
+        zeile = w;
+      } else zeile = neu;
+    }
+    if (zeile) zeilen.push(zeile);
+    return zeilen;
+  };
+
+  function lineatur(el) {
+    const art = attr(el, "art", "1"), zeilen = num(el, "zeilen", 3), vorlage = attr(el, "vorlage", null), anfang = attr(el, "anfang", null);
+    const vorlageZeilen = num(el, "vorlage-zeilen", 1), mittelband = attr(el, "mittelband", "linie"), band = attr(el, "band", null), loesung = attr(el, "loesung", null);
+    if (!LINEATUREN[art] && !KARO[art]) abbruch(`Die Lineatur „${art}“ gibt es nicht.`);
+    if (!Number.isInteger(zeilen) || zeilen < 1 || zeilen > 30) abbruch("Es sind 1 bis 30 Zeilen.");
+    if (mittelband !== "linie" && mittelband !== "getoent") abbruch(`Das Mittelband „${mittelband}“ gibt es nicht.`);
+    const bandMm = band === null ? null : Number(String(band).replace(",", "."));
+    if (bandMm !== null && !(bandMm >= 2 && bandMm <= 10)) abbruch("Das Mittelband misst 2 bis 10 mm.");
+    const spalte = el.parentElement?.clientWidth || SATZSPIEGEL, breite = Math.min(num(el, "breite", spalte), SATZSPIEGEL);
+    masstab(el);
+    const mm = cm(0.1);
+    let s = "", hoehe = 0;
+    const satz = (x, y, wort, groesse, farbe, klasse2) => `<g class="${klasse2}">${text(x, y, wort, { groesse, anker: "start", grundlinie: "alphabetic", farbe })}</g>`;
+    if (KARO[art]) {
+      const k = (bandMm ?? KARO[art]) * mm, spalten = Math.floor((breite - 1) / k);
+      hoehe = zeilen * k;
+      let gitter = "";
+      for (let i = 0; i <= spalten; i++) gitter += `M${r1(i * k + 0.5)} 0.5V${r1(hoehe + 0.5)}`;
+      for (let i = 0; i <= zeilen; i++) gitter += `M0.5 ${r1(i * k + 0.5)}H${r1(spalten * k + 0.5)}`;
+      s += `<path class="karo" d="${gitter}" stroke="#808080" stroke-width="0.6"/>`;
+      const zeichen = (wort, zeile, farbe, klasse2) => {
+        const teile = [...wort];
+        if (teile.length > spalten) abbruch("Der Text ist zu lang für eine Zeile.");
+        return teile.map((t, i) => (t === " " ? "" : `<g class="${klasse2}">${text((i + 0.5) * k + 0.5, (zeile + 0.5) * k + 0.5, t, { groesse: k * 0.72, farbe })}</g>`)).join("");
+      };
+      let frei = 0;
+      if (vorlage !== null) for (; frei < Math.min(vorlageZeilen, zeilen); frei++) s += zeichen(vorlage, frei, "#808080", "vorlage");
+      if (anfang !== null) for (let z = frei; z < zeilen; z++) s += zeichen(anfang, z, SCHWARZ, "anfang");
+      if (loesung !== null && loesungSichtbar(el)) s += zeichen(loesung, frei, SCHWARZ, "loesungstext");
+    } else {
+      const m = lineaturMass(art, bandMm), teilung = (m.hoehe + m.abstand) * mm, groesse = m.schrift * mm, randOben = m.oben > 0 ? 0.75 : Math.max(groesse * 0.8 - m.band * mm, 0) + 1;
+      hoehe = zeilen * teilung - m.abstand * mm + randOben + (m.unten > 0 ? 0.75 : groesse * 0.25);
+      const grund = (z) => randOben + z * teilung + (m.oben + m.band) * mm, x0 = 0, x1 = breite - 1;
+      const rest = breite - 8;
+      if (vorlage !== null && textBreite(vorlage, groesse) + (anfang ? textBreite(anfang, groesse) + 16 : 0) > rest) abbruch("Der Text ist zu lang für eine Zeile.");
+      for (let z = 0; z < zeilen; z++) {
+        const y = grund(z), linie = (lage, stark, name) => `<line class="linie" data-art="${name}" data-z="${z}" data-y="${r1(lage)}" x1="${x0}" y1="${r1(lage)}" x2="${r1(x1)}" y2="${r1(lage)}" stroke-width="${stark ? 1.5 : 1}" style="stroke:${stark ? SCHWARZ : "#808080"}"/>`;
+        if (m.band > 0 && mittelband === "getoent" && !istSw()) s += `<rect class="getoent" x="${x0}" y="${r1(y - m.band * mm)}" width="${r1(x1)}" height="${r1(m.band * mm)}" fill="color-mix(in srgb,var(--haupt) 18%,#fff)" stroke="none"/>`;
+        if (m.oben > 0) s += linie(y - (m.band + m.oben) * mm, false, "oben");
+        if (m.band > 0) s += linie(y - m.band * mm, false, "mitte");
+        s += linie(y, true, "grund");
+        if (m.unten > 0) s += linie(y + m.unten * mm, false, "unten");
+        let x = 2;
+        if (anfang !== null) {
+          s += satz(x, y, anfang, groesse, SCHWARZ, "anfang");
+          x += textBreite(anfang, groesse) + 16;
+        }
+        if (vorlage !== null && z < vorlageZeilen) s += satz(x, y, vorlage, groesse, "#808080", "vorlage");
+      }
+      if (loesung !== null && loesungSichtbar(el)) {
+        const erste = vorlage !== null ? Math.min(vorlageZeilen, zeilen) : 0;
+        const teile = satzZeilen(loesung, rest, groesse);
+        if (teile.length > zeilen - erste) abbruch("Die Lösung passt nicht in die Zeilen.");
+        teile.forEach((t, i) => {
+          s += satz(2, grund(erste + i), t, groesse, SCHWARZ, "loesungstext");
+        });
+      } else if (loesung !== null) {
+        const erste = vorlage !== null ? Math.min(vorlageZeilen, zeilen) : 0;
+        if (satzZeilen(loesung, rest, groesse).length > zeilen - erste) abbruch("Die Lösung passt nicht in die Zeilen.");
+      }
+    }
+    el.innerHTML = svg(r1(breite), r1(hoehe + 1), s);
+  }
+
+  const SILBEN_FARBEN = { blau: "#1f4fb8", rot: "#b3261e", gruen: "#1b6e34", lila: "#6a2c91", braun: "#7a4a12", schwarz: "#1D1D1B" };
+  const pruefeSilben = (wort) => {
+    if (/\|\|/.test(wort)) abbruch("Zwei Silbenstriche stehen direkt nebeneinander.");
+    if (/(^|[\s„"'(])\||\|($|[\s.,;:!?“"')])/.test(wort)) abbruch("Ein Silbenstrich steht am Anfang oder Ende eines Worts.");
+    if (!/^[\p{L}\s|.,;:!?„“"'()\-–…]*$/u.test(wort)) abbruch("Erlaubt sind Buchstaben, Satzzeichen, Leerzeichen und der Silbenstrich.");
+  };
+  /** Zerlegt in Teile: Wörter mit ihren Silben, dazwischen Satzzeichen und Leerraum. */
+  const silbenTeile = (wort) => (wort.match(/[\p{L}|\-]+|[^\p{L}|\-]+/gu) ?? []).map((t) => (/\p{L}/u.test(t) ? { silben: t.split("|") } : { text: t }));
+
+  function silben(el) {
+    const wort = inhalt(el), darstellung = attr(el, "darstellung", "boegen"), farben = trenneListe(attr(el, "farben", "blau rot")), aufgabe = attr(el, "aufgabe", "keine");
+    if (!["boegen", "farbe", "beides"].includes(darstellung)) abbruch(`Die Darstellung „${darstellung}“ gibt es nicht.`);
+    if (!["keine", "boegen", "trennen"].includes(aufgabe)) abbruch(`Die Aufgabe „${aufgabe}“ gibt es nicht.`);
+    if (farben.length !== 2 || farben.some((f) => !SILBEN_FARBEN[f])) abbruch(`Zwei Farben aus: ${Object.keys(SILBEN_FARBEN).join(", ")}.`);
+    pruefeSilben(wort);
+    const sw = istSw(), loesung = loesungSichtbar(el);
+    const mitBogen = aufgabe === "boegen" ? loesung : aufgabe === "keine" && (sw || darstellung !== "farbe");
+    const mitFarbe = aufgabe === "keine" && !sw && darstellung !== "boegen";
+    const mitStrich = aufgabe === "trennen" && loesung;
+    const bogen = '<svg class="bogen" viewBox="0 0 100 20" preserveAspectRatio="none" aria-hidden="true"><path d="M3 2Q50 34 97 2" fill="none" stroke="currentColor" stroke-width="1.6" vector-effect="non-scaling-stroke"/></svg>';
+    const html = silbenTeile(wort).map((t) => {
+      if (t.text !== undefined) return maskiere(t.text);
+      const stuecke = t.silben.map((silbe, i) => {
+        const farbe = mitFarbe ? ` style="color:${SILBEN_FARBEN[farben[i % 2]]}"` : "";
+        return `<span class="silbe${mitBogen ? " mit-bogen" : ""}" data-farbe="${mitFarbe ? farben[i % 2] : ""}"${farbe}>${maskiere(silbe)}${mitBogen ? bogen : ""}</span>`;
+      });
+      return `<span class="wort">${stuecke.join(mitStrich ? '<span class="silbenstrich">|</span>' : "")}</span>`;
+    }).join("");
+    el.innerHTML = html;
+  }
+
   /* == Test == */
   // x-probe gibt es nur für die Tests der Feldtypen im Panel (023); in Material kommt es nicht vor.
   function probe(el) {
@@ -3178,6 +3302,7 @@
     "x-gitter": gitter, "x-figur": figur, "x-tangram": tangram,
     "x-hunderterfeld": hunderterfeld, "x-hundertertafel": hundertertafel, "x-rechenrahmen": rechenrahmen, "x-rechenstrich": rechenstrich,
     "x-zahlenmauer": zahlenmauer, "x-rechendreieck": rechendreieck, "x-zahlenhaus": zahlenhaus, "x-zahlenkette": zahlenkette, "x-zauberdreieck": zauberdreieck, "x-rechenrad": rechenrad,
+    "x-lineatur": lineatur, "x-silben": silben,
     "x-geld": geld, "x-skala": skala, "x-strecke": strecke, "x-kalender": kalender, "x-zeitspanne": zeitspanne,
     "x-punktfeld": punktfeld, "x-malkreuz": malkreuz, "x-schriftlich": schriftlich,
     "x-wuerfelbau": wuerfelbau, "x-wuerfelnetz": wuerfelnetz, "x-koerper": koerper };
@@ -3208,6 +3333,7 @@
     mauerWerte, mauerEindeutig, istEindeutig, RECHENDREIECK_GLEICHUNGEN, zauberLoesungen, ketteWerte, leseOperator,
     malkreuzRechnung, addiere, subtrahiereErweitern, subtrahiereEntbuendeln, multipliziere, dividiere, moeglicheFehler, rechnungsplan,
     MUENZEN, SCHEINE, betragText, mindestStueckelung, skalaStriche, kalenderMonat, isoWoche, zeitStationen, dauerText, uhrText,
+    ANDIKA_X_HOEHE, lineaturMass, silbenTeile, pruefeSilben,
   };
   if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", () => window.zeichneAbbildungen());
   else window.zeichneAbbildungen();

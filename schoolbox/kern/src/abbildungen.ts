@@ -1236,6 +1236,119 @@ export const ABBILDUNG_SCHEMA = {
 			},
 		],
 	},
+	'x-lineatur': {
+		name: 'Schreiblinien',
+		felder: [
+			{
+				art: 'auswahl',
+				attribut: 'art',
+				name: 'Lineatur',
+				standard: '1',
+				blaettern: true,
+				optionen: [
+					{ wert: '1', name: 'Lineatur 1' },
+					{ wert: '2', name: 'Lineatur 2' },
+					{ wert: '3', name: 'Lineatur 3' },
+					{ wert: '4', name: 'Lineatur 4' },
+					{ wert: 'karo', name: 'Karo 1 cm' },
+					{ wert: 'karo-klein', name: 'Karo 0,5 cm' },
+				],
+			},
+			{ art: 'zahl', attribut: 'zeilen', name: 'Zeilen', min: 1, max: 30, standard: 3 },
+			{ art: 'text', attribut: 'vorlage', name: 'Zum Nachspuren', beispiel: 'Rosine' },
+			{ art: 'zahl', attribut: 'vorlage-zeilen', name: 'Zeilen mit Vorlage', min: 1, max: 30, standard: 1 },
+			{ art: 'text', attribut: 'anfang', name: 'Vorbild am Zeilenanfang', beispiel: 'Ro' },
+			{ art: 'text', attribut: 'loesung', name: 'Text in der Lösung', beispiel: 'Der Hund bellt.' },
+			{
+				art: 'auswahl',
+				attribut: 'mittelband',
+				name: 'Mittelband',
+				standard: 'linie',
+				gruppe: 'Maße',
+				hilfe: 'Getönt erscheint nur beim Farbdruck.',
+				optionen: [
+					{ wert: 'linie', name: 'Graue Linien' },
+					{ wert: 'getoent', name: 'Getönt' },
+				],
+			},
+			{
+				art: 'text',
+				attribut: 'band',
+				name: 'Mittelband in mm',
+				beispiel: '4',
+				gruppe: 'Maße',
+				muster: '\\d+([.,]\\d+)?',
+				musterHilfe: 'Eine Zahl wie 4 oder 3,5.',
+			},
+			{
+				art: 'zahl',
+				attribut: 'breite',
+				name: 'Breite',
+				einheit: 'px',
+				min: 100,
+				max: 620,
+				standard: 620,
+				schritt: 20,
+				gruppe: 'Maße',
+			},
+		],
+	},
+	'x-silben': {
+		name: 'Silben',
+		felder: [
+			{
+				art: 'text',
+				attribut: 'inhalt',
+				name: 'Text',
+				quelle: 'inhalt',
+				zeilen: 4,
+				beispiel: 'Die Ro|si|ne ist süß.',
+				einfuegen: { zeichen: '|', name: 'Silbenstrich einfügen' },
+				hilfe: 'Nach Sprechsilben: A|bend, Was|ser, Zu|cker.',
+			},
+			{
+				art: 'auswahl',
+				attribut: 'darstellung',
+				name: 'Darstellung',
+				standard: 'boegen',
+				optionen: [
+					{ wert: 'boegen', name: 'Bögen' },
+					{ wert: 'farbe', name: 'Farben' },
+					{ wert: 'beides', name: 'Farben und Bögen' },
+				],
+			},
+			{
+				art: 'text',
+				attribut: 'farben',
+				name: 'Farben der Klasse',
+				beispiel: 'blau rot',
+				hilfe: 'Zwei aus blau, rot, gruen, lila, braun, schwarz.',
+			},
+			{
+				art: 'auswahl',
+				attribut: 'aufgabe',
+				name: 'Aufgabe',
+				standard: 'keine',
+				optionen: [
+					{ wert: 'keine', name: 'Nur zeigen' },
+					{ wert: 'boegen', name: 'Bögen zeichnen' },
+					{ wert: 'trennen', name: 'Trennstriche setzen' },
+				],
+			},
+		],
+		regeln: (w): Fehler => {
+			const wort = w.text('inhalt') ?? '';
+			if (wort.includes('||')) {
+				return { inhalt: 'Zwei Silbenstriche stehen direkt nebeneinander.' };
+			}
+			if (/(^|[\s„"'(])\||\|($|[\s.,;:!?“"')])/.test(wort)) {
+				return { inhalt: 'Ein Silbenstrich steht am Anfang oder Ende eines Worts.' };
+			}
+			return /^[\p{L}\s|.,;:!?„“"'()\-–…]*$/u.test(wort)
+				? {}
+				: { inhalt: 'Erlaubt sind Buchstaben, Satzzeichen, Leerzeichen und der Silbenstrich.' };
+		},
+	},
 	'x-geld': {
 		name: 'Geld',
 		felder: [

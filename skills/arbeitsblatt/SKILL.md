@@ -48,7 +48,7 @@ Nach den Rückfragen 2–3 Entwürfe zeigen, erst nach Freigabe des Aufgabenplan
 | Malen nach Ergebnis / Bildpuzzle | Mathe-Übung mit Selbstkontrolle | Farbschlüssel als ausgeschriebene Farbnamen, Bild als Strichzeichnung |
 | Zahlenmauer, Rechendreieck, Zahlenhaus | Mathe, produktives Üben | Siehe `fach-mathematik` |
 | Beschriften | Sachunterricht (Körper, Pflanze) | Linien mit Wortspeicher |
-| Schreibrahmen | Texte, Protokolle | Satzanfänge vorgeben |
+| Schreibrahmen | Texte, Protokolle | Satzanfänge vorgeben; in Deutsch auf `x-lineatur` statt `.schreiblinie` |
 | Forscheraufgabe / offene Aufgabe | Alle Fächer, natürliche Differenzierung | "Finde möglichst viele …" |
 | Fehler finden („Willi hat sich vertan") | Rechnen ab Kl. 2, Rechtschreibung erst ab Kl. 3 | Fehleranzahl angeben ("Finde 3 Fehler.") |
 

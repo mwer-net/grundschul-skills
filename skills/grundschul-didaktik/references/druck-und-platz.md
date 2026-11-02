@@ -21,8 +21,8 @@ Ob ein Material farbig oder schwarz-weiß gestaltet wird, fragt die **Start-Abfr
 
 1. **Weißer Seitenhintergrund**, kein Hintergrundbild, keine Flächenfüllung über Aufgaben, Kopf- oder Fußzeile.
 2. **Gefüllte Flächen nur klein und mit Funktion:** Nummernkreis, Ankreuzfeld, Wendeplättchen. Faustregel: keine gefüllte Fläche größer als ca. 2 cm² (≈ 3 000 px²) außer Abbildungen, die das Lernobjekt sind.
-3. **Text schwarz** (`#1D1D1B`). Keine farbige oder hellgraue Schrift. Hervorhebung durch Fettdruck, nicht durch Farbe.
-4. **Linien schwarz oder dunkelgrau** (`#1D1D1B` bis `#4A4A4A`), mindestens 1,5 px (≈ 1 pt). Schreiblinien 1,5–2 px. Nichts heller als `#808080`, sonst fällt es beim Kopieren weg. Hilfslinien (Mittelband der Lineatur) als dünne graue Linie, nicht als farbige Fläche.
+3. **Text schwarz** (`#1D1D1B`). Keine farbige oder hellgraue Schrift. Hervorhebung durch Fettdruck, nicht durch Farbe. Die Nachspurvorlage in `x-lineatur` ist bewusst grau `#808080`.
+4. **Linien schwarz oder dunkelgrau** (`#1D1D1B` bis `#4A4A4A`), mindestens 1,5 px (≈ 1 pt). Schreiblinien 1,5–2 px. Nichts heller als `#808080`, sonst fällt es beim Kopieren weg. Hilfslinien (Mittelband der Lineatur) als dünne graue Linie, nicht als farbige Fläche; das getönte Mittelband gibt es nur im Farbprofil auf Wunsch (`gestaltung.md`).
 5. **Unterscheiden ohne Farbe:** fett vs. normal, durchgezogen vs. gestrichelt, gefüllt vs. leer, Symbol, Buchstabe (E/Z/H), Beschriftung. Farbcodes der Klasse (Wortarten, Stellenwerte, Wendeplättchen rot/blau) werden **von den Kindern angemalt** oder durch Beschriftung ersetzt („rot" ausgeschrieben, gefüllter Kreis = rot, leerer Kreis = blau).
 6. **Abbildungen als Strichzeichnung:** schwarze Konturen, weiße Füllung, keine Verläufe, keine Fotos, keine grauen Flächen. Das Lernobjekt (Uhr, Zwanzigerfeld) ist ohnehin Vektor in Schwarz.
 7. **Leitfigur und Wachstumsgrafik in der Strich-Version** (Dateien in `html-materialerstellung/assets/bilder/`). Bonus: Die Kinder können Willi oder Wilma und die Pflanzenstufen selbst anmalen. Das passt zu „Male an, wie weit du schon bist".
@@ -41,7 +41,7 @@ Farbe als **Akzent**, das Layout bleibt kompakt wie im s/w-Profil:
    - Trennlinien zwischen Aufgaben, Kontur der Tipp-Sprechblase, Unterstreichung im Beispiel in der Akzentfarbe,
    - Willi oder Wilma, Wachstumsgrafik und Abbildungen in der farbigen Version,
    - Farbcodes der Klasse (Wortarten, Stellenwerte, Wendeplättchen) direkt farbig.
-3. **Text bleibt schwarz** (`#1D1D1B`). Farbige Schrift nur für die Überschrift und kurze Hervorhebungen, nie für Anweisungen oder Fließtext.
+3. **Text bleibt schwarz** (`#1D1D1B`). Farbige Schrift nur für die Überschrift und kurze Hervorhebungen, nie für Anweisungen oder Fließtext. Einzige Ausnahme: Silbenfarben aus `x-silben`, wenn die Klasse damit arbeitet (Kontrast mindestens 4,5:1).
 4. **Kleine Tönungen nur mit Funktion:** Füllung der Tipp-Sprechblase oder eines Wortspeichers in sehr hellem Ton (Helligkeit ≥ 90 %) ist erlaubt; ganze Aufgaben werden nicht hinterlegt.
 5. **Farbe nie als einzige Information:** zusätzlich Symbol, Beschriftung oder Muster. Farbblätter werden oft später doch s/w kopiert; die Graustufen-Vorschau muss lesbar bleiben.
 6. **Lösungsblatt:** Lösungen fett, unterstrichen und in der Akzentfarbe.
@@ -92,7 +92,7 @@ Ziel: **Übersicht vor Menge.** Ein Kind muss jede Aufgabe auf einen Blick verst
 | Uhr zum Ablesen | 100 px (2,6 cm) | 88 px (2,3 cm) | 80 px (2,1 cm) |
 | Uhr zum Zeiger-Einzeichnen | 120 px (3,2 cm) | 100 px (2,6 cm) | 96 px (2,5 cm) |
 | Antwortlinie für eine Zahl/Uhrzeit | 100 px | 88 px | 80 px |
-| Zeilenhöhe Schreiblinie | Lineatur 1 | Lineatur 2 | Lineatur 3/4 |
+| Zeilenhöhe Schreiblinie (`x-lineatur`, Maße in `gestaltung.md`) | Lineatur 1 | Lineatur 2 | Lineatur 3/4 |
 | Ankreuz-/Ergebniskästchen | 28 px | 24 px | 22 px |
 | Glücksrad zum Ablesen | 180 px | 160 px | 140 px |
 | Würfel | 60 px | 52 px | 44 px |

@@ -62,6 +62,19 @@ Nach dem Rückfrage-Protokoll aus `grundschul-didaktik` (eine Frage pro Nachrich
 - Strategietipps statt „Pass besser auf": Mitsprechen, Verlängern, Ableiten, Nachschlagen.
 - Schreibkonferenz mit Prozess-Rückmeldung („Dein Anfang macht neugierig, als Nächstes …").
 
+## Abbildungen
+
+Schreibzeilen und Silben kommen als Elemente aus `html-materialerstellung/assets/abbildungen.js` ins HTML. Attribute: `html-materialerstellung/references/abbildungen.md`, Abschnitt „Deutsch“.
+
+| Element | Darstellung |
+|---|---|
+| `<x-lineatur art="2" zeilen="3" vorlage="Rosine" loesung="Der Hund bellt.">` | Schreiblinien in Originalmaß, graue Nachspurvorlage, Antwort nur im Lösungsblatt |
+| `<x-silben>Ro\|si\|ne</x-silben>` | Silbenbögen, im Farbprofil auf Wunsch blau-rot; `aufgabe="boegen"` oder `"trennen"` zum Selbermachen |
+
+**Silben setzt du selbst mit `|`**, nach Sprechsilben, nicht nach Worttrennung im Wörterbuch: `A|bend` (auch ein einzelner Vokal ist eine Silbe), `Was|ser` (Doppelkonsonant wird geteilt), `Zu|cker` (`ck` bleibt zusammen und beginnt die neue Silbe), `Pa|pa|gei`, `Blei|stift` (Zusammensetzungen an der Fuge). Einsilbige Wörter bleiben ohne Strich und bekommen einen Bogen.
+
+Silbenbögen und -farben nur, wenn die Klasse damit arbeitet (Rückfrage oben: Methode, Bögen oder Farbe, welche Farben). Sonst ohne.
+
 ## Leistung überprüfen
 
 Kl. 1/2 unbenotet (`lernzielkontrolle`), Kl. 3/4 als Klassenarbeit (`klassenarbeit`). Rechtschreibfehler und Ausdrucksmängel werden in allen Arbeiten angemerkt und für die Förderung genutzt.

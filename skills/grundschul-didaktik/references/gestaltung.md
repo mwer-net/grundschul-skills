@@ -39,12 +39,17 @@ Farbe oder Schwarz-Weiß sowie die Bausteine (Selbsteinschätzung, Niveaus, Ster
 
 ## Lineatur und Schreibflächen
 
-| Klasse | Lineatur (Schreibzeilen) |
-|---|---|
-| 1 | Lineatur 1 (Vierlinien-System mit farbigem Mittelband, sehr hohe Zeilen) |
-| 2 | Lineatur 2 |
-| 3 | Lineatur 3 |
-| 4 | Lineatur 4 |
+Schreibzeilen immer mit `x-lineatur` (Katalog `html-materialerstellung/references/abbildungen.md`), nie von Hand zeichnen. Originalgröße drucken.
+
+| Klasse | Lineatur | Aufbau |
+|---|---|---|
+| 1 | Lineatur 1 | vier Linien, Abstand 5 mm |
+| 2 | Lineatur 2 | vier Linien, Abstand 4 mm |
+| 3 | Lineatur 3 | Mittelband 3,5 mm, ohne Ober- und Unterlinie |
+| 4 | Lineatur 4 | einzelne Linien, Abstand 9 mm |
+| Mathematik, Muster | `karo`, `karo-klein` | 5 mm, 4 mm |
+
+**Mittelband:** Standard sind graue Linien (`#808080`), weil getönte Flächen beim Kopieren wegfallen. Das getönte Band (`mittelband="getoent"`) nur im Farbprofil und nur auf Wunsch der Lehrkraft.
 
 Mathe: Kästchen 1 cm (Kl. 1) bzw. 0,5 cm (ab Kl. 2/3), passend zum Heft der Klasse; Gitter mit Figuren: `x-gitter`.
 Schreibfläche immer größer als gedacht: Kinderhandschrift braucht Platz.

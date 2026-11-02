@@ -131,7 +131,7 @@ table.plan{width:100%;border-collapse:collapse;font-size:calc(var(--fs)*.85);lin
   border-radius:10px;color:#777;font:14px/1.3 sans-serif;padding:4px;width:100%;height:var(--h,80px)}
 
 /* Abbildungen (abbildungen.js) */
-x-uhr,x-menge,x-dienes,x-strichpunkt,x-stellentafel,x-zwanzigerfeld,x-zahlenstrahl,x-probe,x-gluecksrad,x-wuerfel,x-strichliste,x-diagramm,x-urne,x-wahrscheinlichkeit,x-kombinatorik,x-gitter,x-figur,x-tangram,x-wuerfelbau,x-wuerfelnetz,x-koerper,x-hunderterfeld,x-hundertertafel,x-rechenrahmen,x-rechenstrich,x-zahlenmauer,x-rechendreieck,x-zahlenhaus,x-zahlenkette,x-zauberdreieck,x-rechenrad,x-punktfeld,x-malkreuz,x-schriftlich,x-geld,x-skala,x-strecke,x-kalender,x-zeitspanne{display:inline-block;line-height:0}
+x-uhr,x-menge,x-dienes,x-strichpunkt,x-stellentafel,x-zwanzigerfeld,x-zahlenstrahl,x-probe,x-gluecksrad,x-wuerfel,x-strichliste,x-diagramm,x-urne,x-wahrscheinlichkeit,x-kombinatorik,x-gitter,x-figur,x-tangram,x-wuerfelbau,x-wuerfelnetz,x-koerper,x-hunderterfeld,x-hundertertafel,x-rechenrahmen,x-rechenstrich,x-zahlenmauer,x-rechendreieck,x-zahlenhaus,x-zahlenkette,x-zauberdreieck,x-rechenrad,x-punktfeld,x-malkreuz,x-schriftlich,x-lineatur,x-geld,x-skala,x-strecke,x-kalender,x-zeitspanne{display:inline-block;line-height:0}
 x-timer{display:inline-flex;flex-direction:column;align-items:center;gap:12px}
 .timer-text{font-weight:700;line-height:1.2}
 x-stellentafel{line-height:1.2}
@@ -155,3 +155,10 @@ body.folie .vermutung .nr{margin-top:0}
 .vermutung .leerstelle{height:var(--h,56px)}
 body.folie .platzhalter{font-size:24px}
 .notiz{display:none}
+x-lineatur{display:block}
+x-silben{display:block;line-height:1.9}
+x-silben .wort{white-space:nowrap}
+x-silben .silbe{display:inline-block;line-height:1.3;position:relative}
+x-silben .silbe.mit-bogen{padding-bottom:.42em}
+x-silben .bogen{position:absolute;left:0;right:0;bottom:0;width:100%;height:.4em;overflow:visible}
+x-silben .silbenstrich{font-weight:700;padding:0 .08em}

@@ -62,7 +62,7 @@ Lesestrategien sichtbar machen (ab Kl. 2): Vor dem Lesen Überschrift/Bild betra
 - Schriftgrößen gemäß Basis-Skill, Stufe A: 24–28 pt.
 - Ein Bild pro Absatz höchstens, nur wenn es Verständnis stützt.
 - Text links, Bild rechts oder oben; nie Text um Bilder fließen lassen (Kl. 1/2).
-- Bei Silbenfärbung: zwei Farben abwechselnd (meist blau/rot), nur wenn Klassenkonvention und Farbprofil. Im s/w-Profil stattdessen Silbenbögen unter den Wörtern.
+- Silbenfärbung und -bögen nur über `x-silben`, Absatz für Absatz ein Element (`fach-deutsch`, Abschnitt „Abbildungen“), und nur, wenn die Klasse damit arbeitet. Im s/w-Profil werden Farben von selbst zu Bögen.
 - Text schwarz auf Weiß, keine Hintergrundflächen; Bilder nach Druckprofil (`grundschul-didaktik/references/druck-und-platz.md`).
 
 ## Qualitätscheck

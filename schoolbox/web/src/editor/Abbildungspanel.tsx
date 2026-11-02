@@ -438,7 +438,7 @@ const Text = ({ abb, feld }: FeldEigenschaften<TextFeld>) => {
 				<Knopf
 					art="zweit"
 					className="mt-2"
-					onPointerDown={(e) => e.preventDefault()}
+					onMouseDown={(e) => e.preventDefault()}
 					onClick={() => {
 						const stelle = eingabe.current?.selectionStart ?? text.length;
 						const neu = `${text.slice(0, stelle)}${feld.einfuegen?.zeichen ?? ''}${text.slice(stelle)}`;

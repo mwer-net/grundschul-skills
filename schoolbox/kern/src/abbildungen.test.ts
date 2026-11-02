@@ -464,6 +464,13 @@ const rechenkerne = () => {
 			rest: number;
 		};
 		moeglicheFehler: (art: string, zahlen: number[], verfahren: string | null) => { art: string }[];
+		ANDIKA_X_HOEHE: number;
+		lineaturMass: (
+			art: string,
+			band: number | null,
+		) => { band: number; oben: number; unten: number; abstand: number; hoehe: number; schrift: number };
+		silbenTeile: (text: string) => { silben?: string[]; text?: string }[];
+		pruefeSilben: (text: string) => void;
 		MUENZEN: Record<string, { mm: number; wert: number }>;
 		SCHEINE: Record<string, { b: number; h: number; wert: number }>;
 		betragText: (cent: number, klasse: number) => string;
@@ -1064,5 +1071,49 @@ describe('Größen (030)', () => {
 		assert.equal(dauerText(85), '1 h 25 min');
 		assert.equal(dauerText(60), '1 h');
 		assert.equal(dauerText(5), '5 min');
+	});
+});
+
+describe('Lineatur und Silben (031)', () => {
+	it('Lineatur: Maße je Art, Schrift aus dem Mittelband', () => {
+		const { ANDIKA_X_HOEHE, lineaturMass } = rechenkerne();
+		const zwei = lineaturMass('2', null);
+		assert.deepEqual([zwei.oben, zwei.band, zwei.unten], [4, 4, 4]);
+		assert.equal(zwei.schrift * ANDIKA_X_HOEHE, 4);
+		assert.equal(lineaturMass('1', null).band, 5);
+		assert.equal(lineaturMass('3', null).band, 3.5);
+		assert.equal(lineaturMass('3', null).oben, 0);
+		assert.equal(lineaturMass('4', null).band, 0);
+		const eigen = lineaturMass('1', 6);
+		assert.deepEqual([eigen.oben, eigen.band, eigen.unten], [6, 6, 6]);
+	});
+
+	it('Silben: Wörter, Satzzeichen und Grenzen', () => {
+		const { pruefeSilben, silbenTeile } = rechenkerne();
+		const teile = Array.from(silbenTeile('Die Ro|si|ne, süß.'), (t) => (t.silben ? [...t.silben] : t.text));
+		assert.deepEqual(teile, [['Die'], ' ', ['Ro', 'si', 'ne'], ', ', ['süß'], '.']);
+		pruefeSilben('A|bend „Was|ser“, Zu|cker!');
+		assert.throws(() => pruefeSilben('Ro||si'), /direkt nebeneinander/);
+		assert.throws(() => pruefeSilben('|Rosine'), /Anfang oder Ende/);
+		assert.throws(() => pruefeSilben('Ro|si| ne'), /Anfang oder Ende/);
+		assert.throws(() => pruefeSilben('Rosine|.'), /Anfang oder Ende/);
+		assert.throws(() => pruefeSilben('Ro5si'), /Erlaubt sind/);
+	});
+
+	it('Schema sperrt dieselben Silbenfehler', () => {
+		const regeln = ABBILDUNG_SCHEMA['x-silben'].regeln;
+		const fuer = (wort: string) =>
+			regeln?.({
+				liste: () => [],
+				raster: () => [],
+				text: (a) => (a === 'inhalt' ? wort : null),
+				zahl: () => 0,
+				zahlen: () => [],
+				zeilen: () => [],
+			}) ?? {};
+		assert.deepEqual(fuer('Ro|si|ne.'), {});
+		assert.ok(fuer('Ro||si').inhalt);
+		assert.ok(fuer('|Ro').inhalt);
+		assert.ok(fuer('Ro5').inhalt);
 	});
 });
