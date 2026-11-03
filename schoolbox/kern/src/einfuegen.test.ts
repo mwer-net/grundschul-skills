@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import { describe, it } from 'node:test';
 
-import { einfuegbarAus, fuegeBausteinEin, verschiebeAufNeueSeite } from './einfuegen';
+import { einfuegbarAus, fuegeBausteinEin, fuegeZusatzEin, verschiebeAufNeueSeite } from './einfuegen';
 import { KATALOG } from './katalog';
 import { leseStarter } from './katalog-starter';
 import { klassenVon, zerlege } from './quelltext';
@@ -134,6 +134,16 @@ describe('Einfügen', () => {
 			assert.ok(zahl(quelle) >= zahl(BLATT), e.id);
 			assert.ok(!e.starter || (b.html ?? '').length > 0, `${e.id}: Starter fehlt`);
 		}
+	});
+});
+
+describe('Zusatzbausteine', () => {
+	const leer = BLATT.replace(/<section class="seite">[\s\S]*<\/section>/, '<section class="seite"></section>');
+	it('legt nur Gewähltes an, in sinnvoller Reihenfolge', () => {
+		const starter = leseStarter();
+		assert.equal(fuegeZusatzEin(leer, {}, starter, n), leer);
+		const q = fuegeZusatzEin(leer, { niveaus: true, sternchen: true, selbsteinschaetzung: true }, starter, n);
+		assert.ok(q.indexOf('wahlhilfe') < q.indexOf('stern') && q.indexOf('stern') < q.indexOf('class="fuss"'));
 	});
 });
 

@@ -15,7 +15,7 @@ import {
 	waehleEntwurf,
 } from '@schoolbox/kern';
 
-const MATERIAL_DIR = process.env.E2E_MATERIAL_DIR ?? '';
+export const MATERIAL_DIR = process.env.E2E_MATERIAL_DIR ?? '';
 /** Wie `TEST_PASSWORT` in server/src/testhilfe.ts; der Testserver kennt nur dieses. */
 export const PASSWORT = 'drei-kleine-woerter';
 

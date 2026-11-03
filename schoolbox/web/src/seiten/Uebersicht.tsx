@@ -3,6 +3,7 @@ import { Link, useSearchParams } from 'react-router-dom';
 import { Chip } from '../bausteine/Chip';
 import { Kachel, Marke } from '../bausteine/Kachel';
 import { Knopf, KnopfLink } from '../bausteine/Knopf';
+import { MappeAnlegen } from './Anlegen';
 import { useSuche } from '../bausteine/suche';
 import { Symbol } from '../bausteine/Symbol';
 import { Vorschau } from '../bausteine/Vorschau';
@@ -131,6 +132,7 @@ export const Uebersicht = () => {
 						„Ich brauche ein Arbeitsblatt zur Uhrzeit für Klasse 2.“
 					</p>
 					<p className="text-leise">Sobald Claude etwas angelegt hat, erscheint es hier von selbst.</p>
+					<MappeAnlegen />
 					<KnopfLink to="/hilfe" art="zweit">
 						<Symbol name="hilfe" />
 						So geht’s
@@ -163,7 +165,10 @@ export const Uebersicht = () => {
 	return (
 		<>
 			<div className="flex items-end justify-between gap-4">
-				<h1 className="text-3xl max-md:text-2xl">Meine Mappen</h1>
+				<div className="flex flex-wrap items-center gap-4">
+					<h1 className="text-3xl max-md:text-2xl">Meine Mappen</h1>
+					<MappeAnlegen />
+				</div>
 				<p className="text-leise" aria-live="polite">
 					{gefiltert
 						? `${treffer.length} von ${mappen.length} ${mappen.length === 1 ? 'Mappe' : 'Mappen'}`

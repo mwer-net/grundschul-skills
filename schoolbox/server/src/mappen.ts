@@ -1,15 +1,24 @@
 import { existsSync } from 'node:fs';
 import path from 'node:path';
 
-import type { MappenEintrag, MappenFilter } from '@schoolbox/kern';
+import type { Art, Fach, Format, Klasse, MappenEintrag, MappenFilter } from '@schoolbox/kern';
 import {
+	ART_FORMATE,
+	ARTEN,
 	dupliziereMappe,
 	FAECHER,
+	KLASSEN,
 	legeInPapierkorb,
+	leseMappe,
 	leseMappenEintrag,
+	leseMeta,
 	mappenDir,
+	neueMappe,
+	neuesDokument,
 	sammleMappen,
 	STATUS,
+	verfuegbareVorlagen,
+	VORLAGE_FORMAT,
 	waehleKlasse,
 	waehleWert,
 } from '@schoolbox/kern';
@@ -55,6 +64,21 @@ const mitVorschau = async (kontext: Kontext, { dokumente, mappe }: MappenEintrag
 	),
 });
 
+const MAX_TITEL = 120;
+
+const pruefeTitel = (titel: unknown) => {
+	const name = typeof titel === 'string' ? titel.trim() : '';
+	if (name === '') {
+		throw new HttpFehler(400, 'Bitte gib einen Titel ein.');
+	}
+	if (name.length > MAX_TITEL) {
+		throw new HttpFehler(400, `Der Titel ist zu lang (höchstens ${MAX_TITEL} Zeichen).`);
+	}
+	return name;
+};
+
+const gleicherTitel = (a: string, b: string) => a.trim().toLocaleLowerCase('de') === b.toLocaleLowerCase('de');
+
 /** Mappen auflisten, ansehen, als ein PDF holen, duplizieren und in den Papierkorb legen (unter `/api/mappen`). */
 export const mappenApi = (kontext: Kontext) => {
 	const { materialDir } = kontext.konfig;
@@ -91,6 +115,64 @@ export const mappenApi = (kontext: Kontext) => {
 		verlangeMappe(kontext, mappe);
 		const profil = waehleProfil(req.query.profil);
 		await sendePdf(req, res, await kontext.pdf.mappe(mappe, waehleMappenVariante(variante), profil));
+	});
+
+	router.post('/', async (req, res) => {
+		const { fach, klasse, titel } = (req.body ?? {}) as Record<string, unknown>;
+		const name = pruefeTitel(titel);
+		if (!FAECHER.includes(fach as Fach) || !KLASSEN.includes(klasse as Klasse)) {
+			throw new HttpFehler(400, 'Bitte wähle Fach und Klasse aus.');
+		}
+		const { mappen } = await sammleMappen(materialDir);
+		if (mappen.some((m) => gleicherTitel(m.mappe.titel, name))) {
+			throw new HttpFehler(409, `Eine Mappe „${name}“ gibt es schon. Wähle bitte einen anderen Titel.`);
+		}
+		const { mappe } = await neueMappe(materialDir, { titel: name, fach: fach as Fach, klasse: klasse as Klasse });
+		kontext.ereignisse.sende({ typ: 'mappe-neu', daten: { mappe: mappe.id } });
+		res.status(201).json({ mappe });
+	});
+
+	router.get('/vorlagen/liste', (_req, res) => {
+		res.json({ vorlagen: verfuegbareVorlagen() });
+	});
+
+	router.post('/:mappe/dokumente', async (req, res) => {
+		const { mappe } = req.params;
+		verlangeMappe(kontext, mappe);
+		const { art, format, titel, vorlage, zusatz } = (req.body ?? {}) as Record<string, unknown>;
+		const name = pruefeTitel(titel);
+		if (!ARTEN.includes(art as Art)) {
+			throw new HttpFehler(400, 'Bitte wähle aus, was du anlegen möchtest.');
+		}
+		const fest = typeof vorlage === 'string' ? VORLAGE_FORMAT[vorlage]?.format : undefined;
+		if (fest !== format && !ART_FORMATE[art as Art].includes(format as Format)) {
+			throw new HttpFehler(400, 'Dieses Format passt nicht zu dieser Art.');
+		}
+		if (vorlage !== undefined && !verfuegbareVorlagen().includes(String(vorlage))) {
+			throw new HttpFehler(400, 'Diese Vorlage gibt es nicht.');
+		}
+		const daten = await leseMappe(materialDir, mappe);
+		const metas = await Promise.all(daten.dokumente.map((d) => leseMeta(materialDir, mappe, d)));
+		if (metas.some((m) => gleicherTitel(m.titel, name))) {
+			throw new HttpFehler(409, `In dieser Mappe gibt es „${name}“ schon. Wähle bitte einen anderen Titel.`);
+		}
+		const w = (zusatz ?? {}) as Record<string, unknown>;
+		const { id } = await neuesDokument(materialDir, mappe, {
+			titel: name,
+			art: art as Art,
+			format: format as Format,
+			druckprofil: 'farbe',
+			...(typeof vorlage === 'string' ? { vorlage } : {}),
+			druckhinweise: [],
+			urheber: 'lehrkraft',
+			zusatz: {
+				selbsteinschaetzung: w.selbsteinschaetzung === true,
+				niveaus: w.niveaus === true,
+				sternchen: w.sternchen === true,
+			},
+		});
+		kontext.ereignisse.sende({ typ: 'mappe-neu', daten: { mappe } });
+		res.status(201).json({ id });
 	});
 
 	router.post('/:mappe/duplizieren', async (req, res) => {

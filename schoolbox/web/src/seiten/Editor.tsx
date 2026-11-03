@@ -275,7 +275,9 @@ const Bearbeitung = ({ dokument, mappe: mappenDaten }: { mappe: Mappe; dokument:
 	const { alles, stand } = b.speicher;
 	const [auswahl, setAuswahl] = useState<number | null>(null);
 	const [geladen, setGeladen] = useState<{ doc: Document; html: string } | null>(null);
-	const [panel, setPanel] = useState<'auswahl' | 'versionen' | 'bibliothek' | 'gliederung'>('auswahl');
+	const [panel, setPanel] = useState<'auswahl' | 'versionen' | 'bibliothek' | 'gliederung'>(
+		suche.get('neu') === '1' ? 'bibliothek' : 'auswahl',
+	);
 	const [vorschau, setVorschau] = useState<{ version: VersionEintrag; quelle: string } | null>(null);
 	const [zoom, setZoom] = useState(1);
 	const versionen = useLaden<{ versionen: VersionEintrag[] }>(`${b.adresse}/versionen`);

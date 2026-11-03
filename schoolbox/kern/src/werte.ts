@@ -124,6 +124,30 @@ export const ART_ANGABEN: Record<Art, ArtAngaben> = {
 	sonstiges: { name: 'Sonstiges', format: 'a4-hoch', optionen: [] },
 };
 
+/** Was der Assistent je Art als Format anbietet (045); das erste ist die Empfehlung und gleich `ART_ANGABEN[art].format`. */
+export const ART_FORMATE: Record<Art, readonly Format[]> = {
+	arbeitsblatt: ['a4-hoch', 'a4-quer', 'a5-hoch'],
+	lesetext: ['a4-hoch', 'a4-quer', 'a5-hoch'],
+	lernzielkontrolle: ['a4-hoch', 'a4-quer', 'a5-hoch'],
+	klassenarbeit: ['a4-hoch', 'a4-quer', 'a5-hoch'],
+	karten: ['a4-hoch', 'a4-quer', 'folie'],
+	lernspiel: ['a4-hoch', 'a3-hoch'],
+	lernplakat: ['a3-hoch'],
+	stationen: ['a5-hoch', 'a4-quer', 'a4-hoch'],
+	praesentation: ['folie'],
+	unterrichtsplanung: ['a4-hoch'],
+	sonstiges: ['a4-hoch'],
+};
+
+export const FORMAT_NAME: Record<Format, string> = {
+	'a4-hoch': 'A4 hoch',
+	'a4-quer': 'A4 quer',
+	'a3-hoch': 'A3 hoch',
+	'a5-hoch': 'A5 (Heftformat)',
+	folie: 'Folien 16:9',
+	minibuch: 'Mini-Book',
+};
+
 /** Vorlagen mit festem Format. */
 export const VORLAGE_FORMAT: Record<string, { name: string; format: Format; optionen: string[] }> = {
 	minibuch: { name: 'Mini-Book', format: 'minibuch', optionen: ['Faltbuch aus einem A4-Blatt, 8 Seiten'] },

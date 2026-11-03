@@ -25,6 +25,21 @@ export const ART_NAME: Record<Art, string> = {
 	sonstiges: 'Sonstiges',
 };
 
+/** Ein Satz im Assistenten (045). */
+export const ART_KURZ: Record<Art, string> = {
+	arbeitsblatt: 'Aufgaben zum Üben und Festigen.',
+	klassenarbeit: 'Benotete Arbeit mit Erwartungshorizont.',
+	lernzielkontrolle: 'Lernstand ohne Note erheben.',
+	lesetext: 'Sachtext oder Geschichte, auch mit Fragen.',
+	lernspiel: 'Domino, Memory, Bingo oder Spielplan.',
+	karten: 'Bild- und Wortkarten für Tisch und Tafel.',
+	lernplakat: 'Großes Plakat für die Wand.',
+	praesentation: 'Folien für Beamer und Tafel.',
+	stationen: 'Stationskarten und Laufzettel.',
+	unterrichtsplanung: 'Stunde oder Reihe planen.',
+	sonstiges: 'Alles andere.',
+};
+
 /** Kurz, wie auf dem Heftumschlag; fächerübergreifend lässt den Dateinamen ohne Fach. */
 const FACH_KURZ: Record<Fach, string> = { ...FACH_NAME, mathematik: 'Mathe', faecheruebergreifend: '' };
 

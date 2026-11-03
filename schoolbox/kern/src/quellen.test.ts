@@ -15,7 +15,7 @@ import { ABBILDUNG_SCHEMA, attributeVon, NUR_ZUR_LAUFZEIT, pruefeWerte, SKALA_ST
 import { ASSETS, BLATT_PY, SKILL_DIR, WURZEL } from './konfig';
 import { MELDUNG_CODES } from './meldungen';
 import { abgleichen, ABSCHNITTE, setzeAbschnitt } from './quellen';
-import { ART_ANGABEN, ARTEN, FORMATE, STANDARD_FORMAT, standardFormat, VORLAGE_FORMAT } from './werte';
+import { ARTEN, ART_ANGABEN, ART_FORMATE, FORMATE, STANDARD_FORMAT, VORLAGE_FORMAT, standardFormat } from './werte';
 
 const KATALOG = readFileSync(path.join(SKILL_DIR, 'references', 'abbildungen.md'), 'utf8');
 const JS = readFileSync(path.join(ASSETS, 'abbildungen.js'), 'utf8');
@@ -355,5 +355,13 @@ describe('Standardwerte: Zeichnung gegen Schema', { skip: hatBrowser() ? false :
 		assert.equal(zahlStandard(bis, { art: 'messbecher' }), 500);
 		assert.equal(zahlStandard(bis, { art: 'waage', einheit: 'kg' }), 5);
 		assert.equal(zahlStandard(bis, {}), 15);
+	});
+});
+
+describe('Assistent (045)', () => {
+	it('die Empfehlung im Assistenten ist das Format aus der Tabelle je Art', () => {
+		for (const art of ARTEN) {
+			assert.equal(ART_FORMATE[art][0], ART_ANGABEN[art].format, art);
+		}
 	});
 });

@@ -4,11 +4,15 @@ import { cp, mkdir, readdir, readFile, rename, rm } from 'node:fs/promises';
 import path from 'node:path';
 
 import { istTempDatei, kopiereAtomar, schreibeAtomar, schreibeJson } from './atomar';
+import type { Zusatz } from './einfuegen';
+import { fuegeZusatzEin } from './einfuegen';
 import { SchoolboxFehler } from './fehler';
 import { entwurfAusTitel, formatAusHtml, setzeBodyKlassen, setzeTitel, titelAusHtml } from './html';
+import { leseStarter } from './katalog-starter';
 import { ASSETS } from './konfig';
 import { idsImPapierkorb } from './papierkorb';
 import type { DokumentMeta, Entwurf, Mappe } from './schema';
+import type { Urheber } from './werte';
 import { ID_MUSTER, MAPPE_SCHEMA, META_SCHEMA, verlangeSchema } from './schema';
 import { eindeutigeId, lokalesDatum, mappenSlug, slug } from './slug';
 import type { Version } from './versionen';
@@ -168,6 +172,10 @@ export interface NeuesDokument {
 	druckprofil: Druckprofil;
 	vorlage?: string;
 	druckhinweise: readonly string[];
+	/** Wer das Dokument anlegt; ohne Angabe Claude über die CLI. */
+	urheber?: Urheber;
+	/** Zusatzbausteine aus dem Assistenten (045). */
+	zusatz?: Zusatz;
 }
 
 export const neuesDokument = async (
@@ -177,14 +185,15 @@ export const neuesDokument = async (
 	jetzt = new Date(),
 ) => {
 	const mappe = await leseMappe(materialDir, mappeId);
-	const { art, druckhinweise, druckprofil, format, titel, vorlage } = angaben;
+	const { art, druckhinweise, druckprofil, format, titel, urheber = 'claude', vorlage, zusatz } = angaben;
 	const dokumente = path.join(mappenDir(materialDir, mappeId), 'dokumente');
 	const id = eindeutigeId(slug(titel) || 'dokument', (k) => existsSync(path.join(dokumente, k)));
 	const dir = path.join(dokumente, id);
 	await mkdir(dir, { recursive: true });
 	await Promise.all(['bilder', 'entwuerfe', 'versionen', 'ausgabe'].map((d) => mkdir(path.join(dir, d))));
 	const roh = await ladeVorlage(vorlage);
-	const html = setzeBodyKlassen(setzeTitel(roh, titel), { druckprofil, format, klasse: mappe.klasse });
+	const klassen = setzeBodyKlassen(setzeTitel(roh, titel), { druckprofil, format, klasse: mappe.klasse });
+	const html = zusatz ? fuegeZusatzEin(klassen, zusatz, leseStarter(), { jeSeite: format === 'folie' }) : klassen;
 	await schreibeAtomar(path.join(dir, 'material.html'), html);
 	const zeit = jetzt.toISOString();
 	const meta: DokumentMeta = {
@@ -202,7 +211,7 @@ export const neuesDokument = async (
 		geaendert: zeit,
 	};
 	await schreibeMeta(materialDir, mappeId, id, meta);
-	await legeVersionAn(dir, 'claude', jetzt);
+	await legeVersionAn(dir, urheber, jetzt);
 	await aktualisiereMappe(materialDir, mappeId, jetzt, (m) => {
 		m.dokumente.push(id);
 	});

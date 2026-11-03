@@ -179,6 +179,30 @@ export const fuegeBausteinEin = (
 	return ergebnis(quelle, b.ort === 'zeile' ? inZeile(z, ziel, html) : inAufgabe(z, ziel, html), n);
 };
 
+export interface Zusatz {
+	selbsteinschaetzung?: boolean;
+	niveaus?: boolean;
+	sternchen?: boolean;
+}
+
+const STERNCHEN =
+	'<div class="aufgabe"><span class="nr stern">★</span><div class="anw"><span class="text">Für Schnelle</span></div><div class="koerper"></div></div>';
+
+/** Die Zusatzbausteine aus dem Assistenten (045). Ohne Wahl bleibt die Quelle unverändert. */
+export const fuegeZusatzEin = (
+	quelle: string,
+	zusatz: Zusatz,
+	starter: ReadonlyMap<string, string>,
+	n: Nummerierung,
+) => {
+	const schritte: Einfuegbar[] = [
+		...(zusatz.niveaus ? [{ id: 'wahlhilfe', ort: 'seite' as const, html: starter.get('wahlhilfe') ?? '' }] : []),
+		...(zusatz.sternchen ? [{ id: 'sternchen', ort: 'seite' as const, html: STERNCHEN }] : []),
+		...(zusatz.selbsteinschaetzung ? [{ id: 'fuss', ort: 'seite' as const, html: starter.get('fuss') ?? '' }] : []),
+	];
+	return schritte.reduce((q, b) => fuegeBausteinEin(q, b, null, n).quelle, quelle);
+};
+
 /**
  * Überlauf (044): Die genannten Kinder einer Seite kommen auf eine neue Seite direkt dahinter; was die Seite sonst
  * auszeichnet (Fuß), bleibt, wo es ist. Ein Schritt im Verlauf.

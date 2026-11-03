@@ -5,6 +5,7 @@ import { meldung, sende } from '../api';
 import { useHinweis } from '../bausteine/hinweis';
 import { Marke } from '../bausteine/Kachel';
 import { Knopf, KnopfLink } from '../bausteine/Knopf';
+import { MaterialAnlegen } from './Anlegen';
 import { Symbol } from '../bausteine/Symbol';
 import { Zustand } from '../bausteine/Zustand';
 import { melde, useEreignisse } from '../ereignisse';
@@ -120,6 +121,7 @@ export const Mappenansicht = () => {
 					</p>
 				</div>
 				<div className="flex flex-none flex-wrap gap-2">
+					<MaterialAnlegen mappe={mappe.id} />
 					{dokumente.length > 0 && (
 						<PdfKnopf
 							beschriftung="Alles als PDF"
