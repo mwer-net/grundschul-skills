@@ -96,7 +96,7 @@ const werteVon = (doc: Document, pfad: PfadTeil[]): StrukturWerte => {
 		spalten,
 		abstand: zahl(fenster?.getComputedStyle(doc.body).getPropertyValue('--abstand'), ABSTAND.min),
 		seite: seite ? nrVon(seite) : null,
-		seiten: doc.querySelectorAll('.seite').length,
+		seiten: doc.querySelectorAll('.seite:not([data-erzeugt])').length,
 	};
 };
 

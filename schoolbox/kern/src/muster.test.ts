@@ -152,3 +152,23 @@ describe('Mini-Book und Forscherbogen (036)', { skip: hatBrowser() ? false : 'Ke
 		}
 	});
 });
+
+describe('Spiele (037)', { skip: hatBrowser() ? false : 'Kein Chromium für blatt.py' }, () => {
+	it('Erzeugte Seiten stehen im PDF, die Rufliste nur im Lösungsblatt', () => {
+		const eintraege = Array.from({ length: 24 }, (_, i) => `${i + 3}·2: ${(i + 3) * 2}`).join('; ');
+		const html =
+			'<!doctype html><html lang="de"><head><meta charset="utf-8"><title>Test</title><link rel="stylesheet" href="blatt.css"><script src="abbildungen.js"></script></head>' +
+			`<body class="kl3 sw"><section class="seite"><x-bingo felder="4" karten="28" je-seite="2" seed="s" eintraege="${eintraege}"></x-bingo></section></body></html>`;
+		const pdf = bauePdf(html, 'bingo');
+		const seiten = (datei: string) =>
+			Number(/Pages:\s+(\d+)/.exec(execFileSync('pdfinfo', [datei], { encoding: 'utf8' }))?.[1]);
+		assert.equal(seiten(pdf), 14);
+		const loesung = pdf.replace(/\.pdf$/, '-loesung.pdf');
+		assert.equal(seiten(loesung), 15);
+		assert.ok(!text(pdf).includes('Rufliste'));
+		assert.ok(text(loesung).includes('Rufliste'));
+		// Gleicher seed: dieselben Karten im Arbeits- und im Lösungsblatt
+		const karten = (datei: string) => text(datei).split('Rufliste')[0]?.replace(/\s+/g, ' ');
+		assert.equal(karten(pdf)?.trim(), karten(loesung)?.trim());
+	});
+});

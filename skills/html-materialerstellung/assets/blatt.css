@@ -166,6 +166,39 @@ table.plan{width:100%;border-collapse:collapse;font-size:calc(var(--fs)*.85);lin
 .platzhalter{display:flex;align-items:center;justify-content:center;text-align:center;border:2px dashed #9a9a9a;
   border-radius:10px;color:#777;font:14px/1.3 sans-serif;padding:4px;width:100%;height:var(--h,80px)}
 
+/* Spiele (abbildungen.js) */
+x-bingo,x-domino,x-spielplan{display:block}
+.spiel-zelle{display:flex;align-items:center;justify-content:center;text-align:center;overflow:hidden;line-height:1.15;background:#fff;padding:4px;min-width:0}
+.spiel-zelle svg{max-width:100%;height:auto}
+.spiel-teil{flex:none}
+.spiel-joker{font-size:1.4em}
+.bingo-bogen{display:grid;grid-template-columns:repeat(var(--spalten),max-content);justify-content:center;gap:16px}
+.bingo-kopf{font:600 20px/32px Fredoka,sans-serif;text-align:center;color:var(--dunkel);border:1.5px solid var(--strich);border-bottom:0;background:var(--fuell);height:34px}
+.bingo-kopf span{font:12px Andika,sans-serif;margin-left:8px}
+.bingo-gitter{display:grid;grid-template-columns:repeat(var(--seite),var(--zelle));grid-auto-rows:var(--zelle);border-top:1.5px solid var(--strich);border-left:1.5px solid var(--strich)}
+.bingo-gitter .spiel-zelle{border-right:1.5px solid var(--strich);border-bottom:1.5px solid var(--strich)}
+.rufliste h2{margin:0 0 6px;font:600 28px Fredoka,sans-serif}
+.rufliste p{margin:0 0 14px}
+.rufliste ol{display:grid;grid-template-columns:repeat(3,1fr);gap:8px 16px;margin:0;padding:0;list-style:none}
+.domino-bogen{display:grid;grid-template-columns:1fr 1fr;gap:6px 12px}
+.domino-stein{position:relative;display:grid;grid-template-columns:1fr 1fr;height:var(--stein-h);border:1.5px dashed var(--strich)}
+.domino-stein .spiel-zelle+.spiel-zelle{border-left:3px solid var(--strich)}
+.domino-nr{position:absolute;top:2px;left:4px;font-size:12px;z-index:1}
+.spiel-plan{position:relative;margin:0 auto}
+.spiel-plan>svg{position:absolute;left:0;top:0;fill:none;stroke:var(--strich)}
+.spiel-pfeile{z-index:1;pointer-events:none}
+.spiel-feld{position:absolute;border:1.5px solid var(--strich);padding-top:16px}
+.spiel-ende{border-width:3.5px;font-weight:700}
+.spiel-sonder{background:var(--fuell)}
+.spiel-nr{position:absolute;top:1px;left:4px;font-size:12px}
+.land-karte{display:grid;grid-template-columns:1fr 1fr;grid-auto-rows:var(--land-h);gap:12px 24px}
+.land-station{position:relative;display:flex;flex-direction:column;justify-content:space-between;align-items:center;border:2px solid var(--strich);border-radius:12px;padding:8px 8px 6px;text-align:center;line-height:1.15}
+.land-legende{margin:14px 0 0}
+.ampel{display:inline-flex;gap:8px;vertical-align:middle}
+.ampel i{display:block;width:26px;height:26px;border:2px solid var(--strich);border-radius:50%;background:#fff}
+.land-legende .ampel i{width:18px;height:18px}
+.spiel-bild{display:block;object-fit:contain}
+
 /* Abbildungen (abbildungen.js) */
 x-rhythmus,x-noten,x-schaltplan,x-verkehrszeichen,x-wetter,x-uhr,x-menge,x-dienes,x-strichpunkt,x-stellentafel,x-zwanzigerfeld,x-zahlenstrahl,x-probe,x-gluecksrad,x-wuerfel,x-strichliste,x-diagramm,x-urne,x-wahrscheinlichkeit,x-kombinatorik,x-gitter,x-figur,x-tangram,x-wuerfelbau,x-wuerfelnetz,x-koerper,x-hunderterfeld,x-hundertertafel,x-rechenrahmen,x-rechenstrich,x-zahlenmauer,x-rechendreieck,x-zahlenhaus,x-zahlenkette,x-zauberdreieck,x-rechenrad,x-punktfeld,x-malkreuz,x-schriftlich,x-lineatur,x-wortarten,x-satzglieder,x-wortbausteine,x-zeitleiste,x-jahreskreis,x-windrose,x-plan,x-geld,x-skala,x-strecke,x-kalender,x-zeitspanne{display:inline-block;line-height:0}
 x-timer{display:inline-flex;flex-direction:column;align-items:center;gap:12px}

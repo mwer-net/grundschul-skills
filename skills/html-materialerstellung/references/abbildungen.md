@@ -615,6 +615,37 @@ Amtliche Zeichen, nie selbst zeichnen oder als KI-Bild. `nummer` (StVO): 101, 10
 
 Nur `art="linie"` nimmt Werte unter null; `von` setzt den Skalenbeginn, die Null-Linie ist dann kräftig. `offen`: Punkte erst im Lösungsblatt. Einträge ohne Wert bleiben auch dort leer, z. B. für einen Beobachtungsbogen ohne feste Lösung.
 
+## Spiele
+
+Muster: `assets/muster/spiele.html`. Bingo, Domino und Spielpläne nie von Hand bauen: Die Elemente mischen, prüfen und legen Folgeseiten selbst an. Ein Element, das mehr als eine Seite füllt, steht allein auf seiner `.seite`; die Folgeseiten (`data-erzeugt`) gehören nicht in die Quelle. FEHLER aus `blatt.py` ernst nehmen: Sie heißen, dass das Spiel so nicht funktioniert.
+
+**Mini-Inhalte** statt Text, in jedem Feld: `uhr:7:30`, `wuerfel:5`, `menge:7`, `geld:2€ 50ct`, `rhythmus:4 8 8 4`, `bild:bilder/katze.png`. Listen trennt `;`, zwei Seiten eines Eintrags trennt `: ` mit Leerzeichen.
+
+### `x-bingo`
+
+```html
+<x-bingo felder="4" karten="28" je-seite="2" eintraege="7·8: 56; 6·9: 54; 3·4: 12"></x-bingo>
+```
+
+`eintraege` Ruf und Feld, ohne `: ` beides gleich. `felder` 3 (Kl. 1), 4 oder 5; `karten` 1 bis 40; `je-seite` 1, 2 oder 4; `frei="ja"` Joker in der Mitte bei ungerader Größe; `rufliste="nein"` ohne Rufliste; `seed` für andere Karten. Nötig sind Felder × Felder + 4 Einträge, alle verschieden. Zwei Karten unterscheiden sich in mindestens zwei Feldern. Feld mindestens 2,5 cm (Kl. 1/2), 2 cm (Kl. 3/4). Die Rufliste enthält alle Einträge in gemischter Reihenfolge und steht auf einer eigenen Seite des Lösungsblatts.
+
+### `x-domino`
+
+```html
+<x-domino kette="geschlossen" paare="7·8: 56; uhr:7:30: halb 8"></x-domino>
+```
+
+`paare` Aufgabe und Lösung, 12 bis 24. `kette` `geschlossen` (der erste Stein trägt die Lösung des letzten) oder `offen` (mit „Start“ und „Ende“, ein Stein mehr). `je-seite` gerade Zahl bis 16, Standard 12; `rueckseite="nummer"` zeigt die Nummer auf jedem Stein, zur Selbstkontrolle; `seed` für eine andere Lage. Keine Lösung doppelt, keine Lösung gleich einer Aufgabe. Auf dem Blatt gemischt, auf dem Lösungsblatt in Kettenfolge mit Nummern.
+
+### `x-spielplan`
+
+```html
+<x-spielplan felder="30" form="schlange" inhalt="; 7+8; ?; +3; ★" leitern="3-14; 17-5" loesungen="2: 15"></x-spielplan>
+<x-spielplan art="lernlandkarte" inhalt="Ich kann bis 100 zählen.; Ich kann zum Zehner ergänzen."></x-spielplan>
+```
+
+`felder` 20 bis 40; `form` `schlange`, `spirale`, `rundweg`, `leiter`. `inhalt` je Feld ab Feld 1, leere Einträge zählen mit; Feld 1 und das letzte tragen `start` und `ziel`. Sonderfelder `?`, `★`, `+3`, `−2`. `leitern` von-bis; rückwärts ist es eine Rutsche (gestrichelt); auf einem Feld endet höchstens eine, eine Leiter kreuzt höchstens eine andere. `loesungen` `Feld: Lösung` als Kontrollkarte auf dem Lösungsblatt. Passt der Weg nicht, meldet das Element einen Fehler: weniger Felder oder `a4-quer`, `a3-hoch`. `art="lernlandkarte"`: `inhalt` sind 2 bis 12 Ich-kann-Ziele, je Station drei Kreise zum Anmalen.
+
 ## Musik
 
 Muster: `assets/muster/musik.html`. Noten nie als Text oder KI-Bild setzen: Das Element balkt, setzt die Hälse und prüft die Takte.

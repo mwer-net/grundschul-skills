@@ -17,6 +17,7 @@ import {
 	markierungLesen,
 	markierungNeuerText,
 	markierungText,
+	miniTeile,
 	notenAnfuegen,
 	notenMitTon,
 	notenPunkt,
@@ -536,6 +537,12 @@ const rechenkerne = () => {
 			auftakt?: boolean,
 		) => { stufe: number | null; wert: number; pause: boolean; achtel: number }[][];
 		halsNachOben: (stufe: number) => boolean;
+		bingoKarten: (eintraege: string[], felder: number, karten: number, seed: string) => number[][] | null;
+		dominoSteine: (paare: string[][], kette: string) => { nr: number; links: string; rechts: string }[];
+		dominoFehler: (paare: string[][]) => string | null;
+		spielplanRaster: (form: string, felder: number, b: number, h: number) => [number, number];
+		spielplanWeg: (form: string, felder: number, c: number, r: number) => number[][];
+		teilePaar: (t: string) => string[];
 		balkenGruppen: (noten: { wert: number; pause: boolean; achtel: number }[], vorn?: number) => number[][];
 		gruppeNachOben: (stufen: number[]) => boolean;
 		silbeStandard: (n: { wert: number; pause: boolean; punkt: boolean }) => string;
@@ -1512,5 +1519,95 @@ describe('Musik (035)', () => {
 		assert.equal(notenTon(T`c'4`, 0, -1), T`c'4`);
 		assert.equal(notenTon(T`a''4`, 0, 1), T`a''4`);
 		assert.deepEqual(notenMitTon(T`c'4 r4 | g'2`), [T`c'4`, T`g'2`]);
+	});
+});
+
+describe('Spiele (037)', () => {
+	const { bingoKarten, dominoFehler, dominoSteine, spielplanRaster, spielplanWeg, teilePaar } = rechenkerne();
+	const eintraege = Array.from({ length: 24 }, (_, i) => `e${i}`);
+
+	it('Bingo: Karten unterscheiden sich in mindestens zwei Feldern, gleicher seed gleiche Karten', () => {
+		for (let seed = 0; seed < 40; seed++) {
+			const karten = bingoKarten(eintraege, 16, 28, String(seed));
+			assert.ok(karten);
+			assert.equal(karten.length, 28);
+			karten.forEach((a, i) => {
+				assert.equal(new Set(a).size, 16);
+				karten.slice(i + 1).forEach((b) => {
+					assert.ok(a.filter((x) => !b.includes(x)).length >= 2);
+				});
+			});
+		}
+		assert.deepEqual(
+			JSON.stringify(bingoKarten(eintraege, 16, 5, 'a')),
+			JSON.stringify(bingoKarten(eintraege, 16, 5, 'a')),
+		);
+		assert.notEqual(
+			JSON.stringify(bingoKarten(eintraege, 16, 5, 'a')),
+			JSON.stringify(bingoKarten(eintraege, 16, 5, 'b')),
+		);
+	});
+
+	it('Bingo: Zu wenige Einträge lehnt das Panel ab', () => {
+		const s = schemaVonSicher('x-bingo');
+		const mit = (n: number) => eintraege.slice(0, n).join('; ');
+		assert.match(pruefeWerte(s, { felder: '4', eintraege: mit(14) }).eintraege ?? '', /mindestens 20/);
+		assert.deepEqual(pruefeWerte(s, { felder: '4', eintraege: mit(24) }), {});
+	});
+
+	it('Domino: Die Kette schließt sich und ist eindeutig', () => {
+		const paare = Array.from({ length: 12 }, (_, i) => [`a${i}`, `l${i}`]);
+		const steine = Array.from(dominoSteine(paare, 'geschlossen'));
+		assert.equal(steine.length, 12);
+		steine.forEach((stein, k) => {
+			assert.equal(stein.rechts, `a${k}`);
+			assert.equal(stein.links, `l${(k + 11) % 12}`);
+		});
+		const offen = Array.from(dominoSteine(paare, 'offen'));
+		assert.equal(offen.length, 13);
+		assert.equal(offen[0]?.links, 'Start');
+		assert.equal(offen[12]?.rechts, 'Ende');
+		assert.equal(dominoFehler(paare), null);
+		assert.match(dominoFehler([...paare.slice(1), ['a0', 'l1']]) ?? '', /zweimal/);
+		assert.match(dominoFehler([...paare.slice(1), ['a0', 'a1']]) ?? '', /zugleich/);
+		assert.match(dominoFehler(paare.slice(1)) ?? '', /12 bis 24/);
+		const s = schemaVonSicher('x-domino');
+		const text = paare.map(([a, l]) => `${a}: ${l}`).join('; ');
+		assert.deepEqual(pruefeWerte(s, { paare: text }), {});
+		assert.match(pruefeWerte(s, { paare: text.replace('l2', 'l1') }).paare ?? '', /zweimal/);
+	});
+
+	it('Domino und Bingo: Mini-Inhalte behalten ihre Doppelpunkte', () => {
+		assert.deepEqual(Array.from(teilePaar('uhr:7:30: halb acht')), ['uhr:7:30', 'halb acht']);
+		assert.deepEqual(Array.from(teilePaar('uhr:7:30')), ['uhr:7:30', '']);
+		const paare = schemaVonSicher('x-domino').felder.find((f) => f.attribut === 'paare');
+		assert.ok(paare?.art === 'liste');
+		assert.deepEqual(zeilenVon(paare, 'uhr:7:30: halb 8; 7·8: 56'), [
+			['uhr:7:30', 'halb 8'],
+			['7·8', '56'],
+		]);
+		assert.equal(zeilenText(paare, [['uhr:7:30', 'halb 8']]), 'uhr:7:30: halb 8');
+		assert.deepEqual(miniTeile('uhr:7:30'), { art: 'uhr', inhalt: '7:30' });
+		assert.deepEqual(miniTeile('7·8'), { art: '', inhalt: '7·8' });
+	});
+
+	it('Spielplan: Jeder Weg läuft ohne Sprung und ohne Überschneidung', () => {
+		for (const [b, h] of [
+			[620, 870],
+			[1003, 590],
+		]) {
+			for (const form of ['schlange', 'spirale', 'rundweg', 'leiter']) {
+				for (let felder = 20; felder <= 40; felder++) {
+					const [c, r] = spielplanRaster(form, felder, b ?? 0, h ?? 0);
+					const weg = Array.from(spielplanWeg(form, felder, c, r), (o) => Array.from(o));
+					assert.equal(weg.length, felder, `${form} ${felder}`);
+					assert.equal(new Set(weg.map(String)).size, felder, `${form} ${felder}: überlappt`);
+					weg.slice(1).forEach(([x = 0, y = 0], i) => {
+						const [vx = 0, vy = 0] = weg[i] ?? [];
+						assert.equal(Math.abs(x - vx) + Math.abs(y - vy), 1, `${form} ${felder}: Sprung`);
+					});
+				}
+			}
+		}
 	});
 });

@@ -48,8 +48,8 @@ from pathlib import Path
 ASSETS = Path(__file__).resolve().parent.parent / "assets"
 # Abbildungen, die ihre Lösung selbst berechnen: Sie brauchen kein loesung= und trotzdem ein Lösungsblatt. Die alten
 # Elemente aus der ersten Fassung gehören nicht dazu, sonst bekämen Blätter ohne jede Lösung ein leeres Lösungsblatt.
-OHNE_LOESUNGSANGABE = r"<x-(?!uhr|menge|dienes|strichpunkt|stellentafel|zwanzigerfeld|zahlenstrahl|timer|probe|gluecksrad|wuerfel|urne|diagramm|gitter|figur|koerper|hunderterfeld|hundertertafel|rechenrahmen|punktfeld|geld|skala|kalender|lineatur|silben|wortarten|satzglieder|wortbausteine|zeitleiste|jahreskreis|windrose|plan|schaltplan|kreislauf|verkehrszeichen|wetter|rhythmus|noten)[a-z]"
-MIT_LOESUNG = r"<x-diagramm[^>]* offen=|<x-gitter[^>]* (?:aufgabe|zaehlen)=|<x-wuerfelbau[^>]* fragen=|<x-wuerfelnetz[^>]* aufgabe=|<x-koerper[^>]* markiere=|<x-hundertertafel[^>]* (?:luecken|zufall)=|<x-geld[^>]* aufgabe=|<x-skala[^>]* aufgabe=|<x-kalender[^>]* luecken=|<x-silben[^>]* aufgabe=|<x-wortarten[^>]* aufgabe=|<x-satzglieder[^>]* aufgabe=|<x-wortbausteine[^>]* aufgabe=|<x-zeitleiste[^>]*: ?offen|<x-jahreskreis[^>]* beschriftung=.leer|<x-windrose[^>]* beschriftung=.(?:leer|norden)|<x-plan[^>]* aufgabe=|<x-schaltplan[^>]* aufgabe=.(?:leuchtet|vervollstaendigen|benennen)|<x-kreislauf[^>]* offen=|<x-verkehrszeichen[^>]* ausmalen=.ja|<x-rhythmus[^>]* aufgabe=.(?:silben|noten|ergaenzen)|<x-noten[^>]* aufgabe=.(?:benennen|zeichnen)"
+OHNE_LOESUNGSANGABE = r"<x-(?!spielplan|uhr|menge|dienes|strichpunkt|stellentafel|zwanzigerfeld|zahlenstrahl|timer|probe|gluecksrad|wuerfel|urne|diagramm|gitter|figur|koerper|hunderterfeld|hundertertafel|rechenrahmen|punktfeld|geld|skala|kalender|lineatur|silben|wortarten|satzglieder|wortbausteine|zeitleiste|jahreskreis|windrose|plan|schaltplan|kreislauf|verkehrszeichen|wetter|rhythmus|noten)[a-z]"
+MIT_LOESUNG = r"<x-spielplan[^>]* loesungen=|<x-diagramm[^>]* offen=|<x-gitter[^>]* (?:aufgabe|zaehlen)=|<x-wuerfelbau[^>]* fragen=|<x-wuerfelnetz[^>]* aufgabe=|<x-koerper[^>]* markiere=|<x-hundertertafel[^>]* (?:luecken|zufall)=|<x-geld[^>]* aufgabe=|<x-skala[^>]* aufgabe=|<x-kalender[^>]* luecken=|<x-silben[^>]* aufgabe=|<x-wortarten[^>]* aufgabe=|<x-satzglieder[^>]* aufgabe=|<x-wortbausteine[^>]* aufgabe=|<x-zeitleiste[^>]*: ?offen|<x-jahreskreis[^>]* beschriftung=.leer|<x-windrose[^>]* beschriftung=.(?:leer|norden)|<x-plan[^>]* aufgabe=|<x-schaltplan[^>]* aufgabe=.(?:leuchtet|vervollstaendigen|benennen)|<x-kreislauf[^>]* offen=|<x-verkehrszeichen[^>]* ausmalen=.ja|<x-rhythmus[^>]* aufgabe=.(?:silben|noten|ergaenzen)|<x-noten[^>]* aufgabe=.(?:benennen|zeichnen)"
 SEITE = {"a4-quer": "A4 landscape", "a3-hoch": "A3", "a5-hoch": "A5", "folie": "338.67mm 190.5mm", "minibuch": "A4 landscape"}
 
 
@@ -158,11 +158,30 @@ def einbetten(quelltext, quelle_dir, pruefen=False, loesung=False, modus=None):
                 print(f"FEHLER  Bild nicht gefunden: {src}", file=sys.stderr)
         return f"{m.group(0)[:-1]}{dazu}>"
 
+    # Mini-Inhalte `bild:katze.png`: gezählt wie miniBilder() in abbildungen.js
+    def mini_ersetzen(m):
+        quellen = []
+        for treffer in re.finditer(r"bild:([^;:\"]+)", m.group(0)):
+            src = html.unescape(treffer.group(1).strip())
+            if src not in quellen:
+                quellen.append(src)
+        dazu = ""
+        for i, src in enumerate(quellen):
+            if src.startswith(("data:", "http:", "https:")):
+                continue
+            p = suche(src, quelle_dir)
+            if p:
+                dazu += f' data-mini-{i}="{daten_uri(p)}"'
+            else:
+                print(f"FEHLER  Bild nicht gefunden: {src}", file=sys.stderr)
+        return f"{m.group(0)[:-1]}{dazu}>"
+
     t = re.sub(r'<link[^>]+href="([^"]+\.css)"[^>]*>', css_ersetzen, quelltext)
     t = re.sub(r'<script[^>]+src="([^"]+\.js)"[^>]*>\s*</script>', js_ersetzen, t)
     t = re.sub(r'(<img[^>]+src=")([^"]+)(")', bild_ersetzen, t)
     t = re.sub(r"<x-verkehrszeichen\b[^>]*>", zeichen_ersetzen, t)
     t = re.sub(r"<x-kreislauf\b[^>]*>", stationen_ersetzen, t)
+    t = re.sub(r"<x-(?:bingo|domino|spielplan)\b[^>]*>", mini_ersetzen, t)
     body = re.search(r'<body[^>]*class="([^"]*)"', t)
     fmt = next((SEITE[k] for k in (body.group(1).split() if body else []) if k in SEITE), None)
     if fmt and modus != "notizen":

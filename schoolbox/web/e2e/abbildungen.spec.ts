@@ -1833,3 +1833,106 @@ test.describe('Musik (035)', () => {
 		expect(await readFile(datei, 'utf8')).toBe(stand);
 	});
 });
+
+const BINGO_EINTRAEGE = Array.from({ length: 24 }, (_, i) => `${i + 3}·2: ${(i + 3) * 2}`).join('; ');
+
+test.describe('Spiele (037)', () => {
+	test('Bingo: Karten, Folgeseiten, Rufliste und Fehler bei zu wenigen Einträgen', async ({ page }) => {
+		const tag = `<x-bingo felder="4" karten="8" je-seite="2" seed="a" eintraege="${BINGO_EINTRAEGE}"></x-bingo>`;
+		const blatt = await gezeichnet(page, `<section class="seite" data-sb="1">${tag}</section>`);
+		await expect(blatt.locator('.bingo-karte')).toHaveCount(8);
+		await expect(blatt.locator('.seite')).toHaveCount(4);
+		await expect(blatt.locator('.seite[data-erzeugt]')).toHaveCount(3);
+		await expect(blatt.locator('[data-ruf]')).toHaveCount(0);
+		const karten = await blatt.locator('.bingo-karte').evaluateAll((k) => k.map((e) => e.textContent));
+		expect(new Set(karten).size).toBe(8);
+		await blatt.evaluate(() => {
+			document.body.classList.add('loesung');
+			(window as unknown as { zeichneAbbildungen: () => void }).zeichneAbbildungen();
+		});
+		await expect(blatt.locator('.seite')).toHaveCount(5);
+		await expect(blatt.locator('[data-ruf]')).toHaveCount(24);
+		expect(await blatt.locator('.bingo-karte').evaluateAll((k) => k.map((e) => e.textContent))).toEqual(karten);
+
+		await blatt.locator('x-bingo').evaluate((el) => {
+			el.setAttribute('eintraege', Array.from({ length: 14 }, (_, i) => `e${i}`).join('; '));
+			(window as unknown as { zeichneAbbildungen: () => void }).zeichneAbbildungen();
+		});
+		await expect(blatt.locator('x-bingo')).toHaveAttribute('data-fehler', /mindestens 20/);
+		await expect(blatt.locator('.seite')).toHaveCount(1);
+	});
+
+	test('Domino: gemischt auf dem Blatt, Kette in der Lösung, doppelte Lösung abgelehnt', async ({ page }) => {
+		const paare = Array.from({ length: 12 }, (_, i) => `a${i}: l${i}`).join('; ');
+		const html = `<section class="seite"><x-domino seed="1" paare="${paare}"></x-domino></section>`;
+		const blatt = await gezeichnet(page, html);
+		const folge = () =>
+			blatt.locator('.domino-stein').evaluateAll((s) => s.map((e) => Number(e.getAttribute('data-stein'))));
+		const sortiert = Array.from({ length: 12 }, (_, i) => i + 1);
+		expect(await folge()).not.toEqual(sortiert);
+		await blatt.evaluate(() => {
+			document.body.classList.add('loesung');
+			(window as unknown as { zeichneAbbildungen: () => void }).zeichneAbbildungen();
+		});
+		expect(await folge()).toEqual(sortiert);
+		await expect(blatt.locator('.domino-stein').first()).toContainText('l11');
+		const doppelt = paare.replace('l3', 'l2');
+		const falsch = await gezeichnet(page, `<x-domino paare="${doppelt}"></x-domino>`);
+		await expect(falsch.locator('x-domino')).toHaveAttribute('data-fehler', /zweimal/);
+	});
+
+	test('Spielplan: Felder überlappen nicht, Leitern, Mini-Inhalt, Lernlandkarte', async ({ page }) => {
+		const blatt = await gezeichnet(
+			page,
+			'<x-spielplan felder="24" form="leiter" inhalt="; uhr:7:30; +3; ★" leitern="3-14; 17-5"></x-spielplan>',
+		);
+		await expect(blatt.locator('[data-feld]')).toHaveCount(24);
+		await expect(blatt.locator('[data-feld="2"] x-uhr svg')).toHaveCount(1);
+		await expect(blatt.locator('[data-feld="3"].spiel-sonder')).toHaveCount(1);
+		await expect(blatt.locator('[data-leiter]')).toHaveCount(2);
+		const falsch = await gezeichnet(page, '<x-spielplan felder="24" leitern="3-99"></x-spielplan>');
+		await expect(falsch.locator('x-spielplan')).toHaveAttribute('data-fehler', /endet nicht auf einem Feld/);
+		const unbekannt = await gezeichnet(page, '<x-spielplan felder="24" inhalt="; katze:1"></x-spielplan>');
+		await expect(unbekannt.locator('x-spielplan')).toHaveAttribute('data-fehler', /gibt es nicht/);
+		const land = await gezeichnet(
+			page,
+			'<x-spielplan art="lernlandkarte" inhalt="Ich kann A.; Ich kann B."></x-spielplan>',
+		);
+		await expect(land.locator('[data-station]')).toHaveCount(2);
+		await expect(land.locator('[data-station] .ampel i')).toHaveCount(6);
+	});
+
+	test('Editor: Folgeseiten zählen nicht, Antippen wählt das Element, Neu mischen als ein Schritt', async ({
+		druecke,
+		page,
+	}) => {
+		const { dok, id, material: datei } = await uhrzeit();
+		await oeffne(page, id, dok);
+		const tag = `<x-bingo felder="4" karten="6" je-seite="2" seed="a" eintraege="${BINGO_EINTRAEGE}"></x-bingo>`;
+		const alt = await quelle(page);
+		await aendere(
+			page,
+			alt.replace(/<section class="seite">[\s\S]*<\/section>/, `<section class="seite">\n  ${tag}\n</section>`),
+		);
+		await gespeichert(page, datei);
+		const inhalt = material(page);
+		await expect(inhalt.locator('.seite')).toHaveCount(3);
+		await expect(inhalt.locator('.seite[data-erzeugt]')).toHaveCount(2);
+		await expect(page.locator('[data-seitenleiste] [data-seite-miniatur]')).toHaveCount(1);
+
+		await druecke(inhalt.locator('.seite[data-erzeugt] .bingo-karte').first());
+		await expect(panel(page)).toBeVisible();
+		await expect(page.locator('[data-seitenleiste] [data-seite-miniatur]')).toHaveCount(1);
+		await expect(inhalt.locator('.seite[data-erzeugt]')).toHaveCount(2);
+
+		const vorher = await inhalt.locator('.seite[data-erzeugt] .bingo-karte').first().textContent();
+		await druecke(page.locator('[data-mischen="seed"]'));
+		await gespeichert(page, datei);
+		await expect(inhalt.locator('.seite[data-erzeugt] .bingo-karte').first()).not.toHaveText(vorher ?? '');
+		await expect(inhalt.locator('.seite[data-erzeugt]')).toHaveCount(2);
+		expect(await readFile(datei, 'utf8')).not.toMatch(/data-erzeugt/);
+
+		await druecke(zurueck(page));
+		await expect(inhalt.locator('.seite[data-erzeugt] .bingo-karte').first()).toHaveText(vorher ?? '');
+	});
+});

@@ -1,0 +1,47 @@
+<!doctype html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<title>Muster_Spiele</title>
+<link rel="stylesheet" href="blatt.css">
+<script src="abbildungen.js"></script>
+</head>
+<body class="kl3 sw">
+<section class="seite">
+  <h1>Einmaleins-Bingo</h1>
+  <x-bingo felder="4" karten="28" je-seite="2" seed="muster" eintraege="3·3: 9; 3·4: 12; 3·5: 15; 3·6: 18; 3·7: 21; 3·8: 24; 3·9: 27; 4·4: 16; 4·5: 20; 4·7: 28; 4·8: 32; 4·9: 36; 5·5: 25; 5·6: 30; 5·7: 35; 5·8: 40; 5·9: 45; 6·7: 42; 6·8: 48; 6·9: 54; 7·7: 49; 7·8: 56; 7·9: 63; 8·8: 64"></x-bingo>
+</section>
+<section class="seite">
+  <h1>Bild-Bingo</h1>
+  <x-bingo felder="3" karten="2" je-seite="2" rufliste="nein" eintraege="bild:bilder/verkehrszeichen/101-grau.svg; bild:bilder/verkehrszeichen/102-grau.svg; bild:bilder/verkehrszeichen/136-grau.svg; bild:bilder/verkehrszeichen/138-grau.svg; bild:bilder/verkehrszeichen/205-grau.svg; bild:bilder/verkehrszeichen/206-grau.svg; bild:bilder/verkehrszeichen/220-grau.svg; bild:bilder/verkehrszeichen/237-grau.svg; bild:bilder/verkehrszeichen/239-grau.svg; bild:bilder/verkehrszeichen/240-grau.svg; bild:bilder/verkehrszeichen/250-grau.svg; bild:bilder/verkehrszeichen/254-grau.svg; bild:bilder/verkehrszeichen/267-grau.svg"></x-bingo>
+</section>
+<section class="seite">
+  <h1>Uhr-Domino</h1>
+  <x-domino je-seite="10" paare="uhr:7:00: 7 Uhr; uhr:8:30: halb 9; uhr:9:00: 9 Uhr; uhr:10:30: halb 11; uhr:11:00: 11 Uhr; uhr:12:30: halb 1; uhr:1:00: 1 Uhr; uhr:2:30: halb 3; uhr:3:00: 3 Uhr; uhr:4:30: halb 5; uhr:5:00: 5 Uhr; uhr:6:30: halb 7"></x-domino>
+</section>
+<section class="seite">
+  <h1>Wort-Domino</h1>
+  <x-domino kette="offen" je-seite="14" paare="der Hund: dog; die Katze: cat; die Maus: mouse; das Pferd: horse; der Vogel: bird; der Fisch: fish; die Kuh: cow; das Schwein: pig; das Schaf: sheep; die Ente: duck; der Frosch: frog; der Bär: bear"></x-domino>
+</section>
+<section class="seite">
+  <h1>Schlange</h1>
+  <x-spielplan felder="30" form="schlange" inhalt="; 7+8; ?; 12−5; ★; 6+9; +3; 14−7; 8+5; −2; 16−8; 9+6; ?; 13−6; 7+7; ★; 15−9; +3; 8+8; 17−8; −2; 6+7; ?; 12−4; 9+9; 14−5; ★; 5+8; 11−3" loesungen="2: 15; 4: 7"></x-spielplan>
+</section>
+<section class="seite">
+  <h1>Leiterspiel</h1>
+  <x-spielplan felder="30" form="leiter" leitern="3-14; 8-19; 17-5; 25-11"></x-spielplan>
+</section>
+<section class="seite">
+  <h1>Rundweg</h1>
+  <x-spielplan felder="24" form="rundweg"></x-spielplan>
+</section>
+<section class="seite">
+  <h1>Spirale</h1>
+  <x-spielplan felder="25" form="spirale"></x-spielplan>
+</section>
+<section class="seite">
+  <h1>Das kann ich schon</h1>
+  <x-spielplan art="lernlandkarte" inhalt="Ich kann Mengen bis 100 zählen.; Ich kann zum Zehner ergänzen.; Ich kann in Schritten rechnen.; Ich kann die Malaufgaben der 5.; Ich kann Aufgaben erfinden."></x-spielplan>
+</section>
+</body>
+</html>

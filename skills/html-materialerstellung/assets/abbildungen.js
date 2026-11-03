@@ -75,6 +75,7 @@
   const samen = (el, inhalt) => attr(el, "seed", null) ?? inhalt;
 
   const NAMEN = {
+    "x-bingo": "Bingo", "x-domino": "Domino", "x-spielplan": "Spielplan",
     "x-uhr": "Uhr", "x-menge": "Menge", "x-dienes": "Mehrsystemblöcke", "x-strichpunkt": "Strich-Punkt-Bild",
     "x-stellentafel": "Stellentafel", "x-zwanzigerfeld": "Zwanzigerfeld", "x-zahlenstrahl": "Zahlenstrahl", "x-timer": "Timer",
     "x-probe": "Probe",
@@ -4298,6 +4299,300 @@
     el.innerHTML = svg(r1(breite + 2), r1(h + 2), s);
   }
 
+  /* == Spiele == */
+  const MINI = /^(uhr|wuerfel|menge|geld|rhythmus|bild):(.+)$/;
+  /** `7·8: 56` → beide Seiten; nur `: ` trennt, denn `uhr:7:30` enthält selbst Doppelpunkte. */
+  const teilePaar = (t) => {
+    const i = t.indexOf(": ");
+    return i < 0 ? [t.trim(), ""] : [t.slice(0, i).trim(), t.slice(i + 2).trim()];
+  };
+  const spielListe = (el, a) => (el.getAttribute(a) || "").split(";").map((t) => t.trim()).filter(Boolean);
+  const blattMass = () => {
+    const k = document.body.classList;
+    if (k.contains("a4-quer")) return { b: 1003, h: 590 };
+    if (k.contains("a3-hoch")) return { b: 1003, h: 1340 };
+    return { b: 620, h: 870 };
+  };
+  const spielSchrift = () => parseFloat(getComputedStyle(document.body).getPropertyValue("--fs")) || 20;
+  /** Passt der Text umbrochen in die Fläche? Mit der mittleren Zeichenbreite, wie die anderen Platzrechnungen. */
+  const textPasst = (t, b, h, g) => {
+    const woerter = String(t).split(/\s+/);
+    if (woerter.some((w) => textBreite(w, g) > b)) return false;
+    let zeilen = 1, frei = b;
+    for (const w of woerter) {
+      const noetig = textBreite(w, g) + textBreite(" ", g);
+      if (noetig > frei) {
+        zeilen++;
+        frei = b;
+      }
+      frei -= noetig;
+    }
+    return zeilen * g * 1.2 <= h;
+  };
+  /** Bilder der Mini-Inhalte in der Reihenfolge, in der sie in den Attributen stehen; blatt.py zählt genauso. */
+  const miniBilder = (el) => {
+    const quellen = [];
+    for (const a of el.attributes) {
+      if (a.name.startsWith("data-")) continue;
+      for (const m of a.value.matchAll(/bild:([^;:]+)/g)) if (!quellen.includes(m[1].trim())) quellen.push(m[1].trim());
+    }
+    return quellen;
+  };
+  /** Ein Feldinhalt als HTML; die Mini-Abbildungen zeichnet `zeichneMinis`, sobald sie im Blatt stehen. */
+  const miniHtml = (el, inhalt, b, h, g = spielSchrift()) => {
+    const m = MINI.exec(inhalt);
+    if (!m) {
+      const unbekannt = /^([A-Za-zÄÖÜäöü]+):\S/.exec(inhalt);
+      if (unbekannt) abbruch(`Den Inhalt „${unbekannt[1]}:“ gibt es nicht. Es gehen uhr, wuerfel, menge, geld, rhythmus und bild.`);
+      if (!textPasst(inhalt, b, h, g)) abbruch(`„${inhalt}“ passt nicht ins Feld. Bitte kürzen oder weniger Felder wählen.`);
+      return maskiere(inhalt);
+    }
+    const [, typ, wert] = m, g2 = Math.max(24, Math.floor(Math.min(b, h)));
+    if (typ === "uhr") return `<x-uhr zeit="${maskiere(wert)}" groesse="${g2}"></x-uhr>`;
+    if (typ === "wuerfel") return `<x-wuerfel augen="${maskiere(wert)}" groesse="${Math.min(g2, 70)}"></x-wuerfel>`;
+    if (typ === "menge") return `<x-menge n="${maskiere(wert)}" reihe="5" groesse="${Math.min(Math.floor(b / 7), 18)}"></x-menge>`;
+    if (typ === "geld") return `<x-geld stuecke="${maskiere(wert)}"></x-geld>`;
+    if (typ === "rhythmus") return `<x-rhythmus art="karte" noten="${maskiere(wert)}"></x-rhythmus>`;
+    const quelle = wert.trim(), nr = miniBilder(el).indexOf(quelle);
+    const src = el.getAttribute(`data-mini-${nr}`) ?? quelle;
+    return `<img class="spiel-bild" src="${maskiere(src)}" alt="" style="max-width:${Math.floor(b)}px;max-height:${Math.floor(h)}px">`;
+  };
+  const MINI_TAGS = "x-uhr,x-wuerfel,x-menge,x-geld,x-rhythmus";
+  const zeichneMinis = (wurzel) => {
+    wurzel.querySelectorAll(MINI_TAGS).forEach((m) => {
+      zeichne(ARTEN[m.localName], m);
+      if (m.hasAttribute("data-fehler")) abbruch(m.getAttribute("data-fehler"));
+    });
+  };
+
+  const FOLGE = new WeakMap();
+  const folgeseitenWeg = (el) => {
+    (FOLGE.get(el) || []).forEach((s) => s.remove());
+    FOLGE.delete(el);
+  };
+  /** Erstes Stück ins Element, jedes weitere auf eine erzeugte Seite. Die Quelle kennt diese Seiten nicht. */
+  const setzeStuecke = (el, stuecke) => {
+    el.innerHTML = stuecke[0];
+    zeichneMinis(el);
+    const seite = el.closest(".seite"), neu = [];
+    if (!seite) return;
+    let davor = seite;
+    for (const stueck of stuecke.slice(1)) {
+      const s = seite.cloneNode(false);
+      s.setAttribute("data-erzeugt", "");
+      s.removeAttribute("data-sb");
+      if (el.hasAttribute("data-sb")) s.setAttribute("data-sb", el.getAttribute("data-sb"));
+      for (const kind of seite.children) {
+        if (!kind.matches(".namenszeile,.loesung-marke")) continue;
+        const kopie = kind.cloneNode(true);
+        kopie.removeAttribute("data-sb");
+        kopie.querySelectorAll("[data-sb]").forEach((k) => k.removeAttribute("data-sb"));
+        s.append(kopie);
+      }
+      const teil = document.createElement("div");
+      teil.className = "spiel-teil";
+      teil.innerHTML = stueck;
+      s.append(teil);
+      davor.after(s);
+      davor = s;
+      neu.push(s);
+    }
+    FOLGE.set(el, neu);
+    neu.forEach(zeichneMinis);
+  };
+  const stueckeln = (feld, je) => {
+    const teile = [];
+    for (let i = 0; i < feld.length; i += je) teile.push(feld.slice(i, i + je));
+    return teile;
+  };
+
+  /** Mischt verschiedene Karten; zwei Karten unterscheiden sich in mindestens zwei Einträgen. */
+  const bingoKarten = (eintraege, felder, karten, seed) => {
+    const zz = zufall(seed), alle = eintraege.map((_, i) => i), fertig = [];
+    let versuche = 0;
+    while (fertig.length < karten) {
+      if (++versuche > 5000) return null;
+      const karte = gemischt(alle, zz).slice(0, felder), menge = new Set(karte);
+      if (fertig.every((k) => k.filter((i) => !menge.has(i)).length >= 2)) fertig.push(karte);
+    }
+    return fertig;
+  };
+
+  function bingo(el) {
+    folgeseitenWeg(el);
+    const eintraege = spielListe(el, "eintraege").map(teilePaar).map(([ruf, feld]) => ({ ruf, feld: feld || ruf }));
+    const seite = num(el, "felder", 4), karten = num(el, "karten", 4), je = num(el, "je-seite", 2);
+    const frei = attr(el, "frei", "nein") === "ja" && seite % 2 === 1, rufliste = attr(el, "rufliste", "ja") === "ja";
+    if (![3, 4, 5].includes(seite)) abbruch("Eine Karte hat 3, 4 oder 5 Felder je Reihe.");
+    if (![1, 2, 4].includes(je)) abbruch("Auf eine Seite passen 1, 2 oder 4 Karten.");
+    if (karten < 1 || karten > 40) abbruch("Es gehen 1 bis 40 Karten.");
+    const felder = seite * seite - (frei ? 1 : 0), noetig = felder + 4;
+    if (eintraege.length < noetig) abbruch(`Das sind ${eintraege.length} Einträge; für verschiedene Karten braucht es mindestens ${noetig}.`);
+    if (new Set(eintraege.map((e) => e.feld)).size !== eintraege.length) abbruch("Ein Eintrag steht doppelt in der Liste.");
+    const seed = samen(el, `${el.getAttribute("eintraege")}|${seite}|${karten}`), satz = bingoKarten(eintraege, felder, karten, seed);
+    if (!satz) abbruch(`So viele verschiedene Karten gehen mit ${eintraege.length} Einträgen nicht. Bitte Einträge ergänzen.`);
+    const { b, h } = blattMass(), spalten = je === 4 ? 2 : 1, reihen = je === 1 ? 1 : 2;
+    const zelle = Math.floor(Math.min((b - 16 * (spalten - 1)) / spalten / seite, (h - 16 * (reihen - 1) - 40 * reihen) / reihen / seite, 130) * 10) / 10;
+    const mindestens = cm(klasse() <= 2 ? 2.5 : 2);
+    if (zelle < mindestens - 0.5) abbruch(`Die Felder wären kleiner als ${klasse() <= 2 ? "2,5" : "2"} cm. Bitte weniger Karten je Seite oder weniger Felder.`);
+    const karteHtml = (karte, k) => {
+      const inhalte = [...karte.map((i) => miniHtml(el, eintraege[i].feld, zelle - 8, zelle - 8))];
+      if (frei) inhalte.splice((felder / 2), 0, '<b class="spiel-joker">★</b>');
+      return `<div class="bingo-karte" data-karte="${k + 1}"><div class="bingo-kopf">Bingo <span data-klein-ok>Karte ${k + 1}</span></div>` +
+        `<div class="bingo-gitter" style="--seite:${seite};--zelle:${zelle}px">${inhalte.map((t) => `<div class="spiel-zelle">${t}</div>`).join("")}</div></div>`;
+    };
+    const stuecke = stueckeln(satz.map(karteHtml), je).map((t) => `<div class="bingo-bogen" style="--spalten:${spalten}">${t.join("")}</div>`);
+    if (rufliste && loesungSichtbar(el)) {
+      const ruf = gemischt(eintraege, zufall(`${seed}|ruf`));
+      stuecke.push(`<div class="rufliste"><h2>Rufliste</h2><p>Zum Abhaken: ${ruf.length} Einträge</p><ol>` +
+        ruf.map((e) => `<li data-ruf><span class="box"></span> ${e.ruf === e.feld && MINI.test(e.ruf) ? miniHtml(el, e.ruf, 90, 60) : maskiere(e.ruf)}</li>`).join("") + "</ol></div>");
+    }
+    el.setAttribute("data-karten", String(satz.length));
+    setzeStuecke(el, stuecke);
+  }
+
+  /** Stein k = [Lösung von k−1 | Aufgabe k]. Geschlossen: Der erste trägt die Lösung des letzten. */
+  const dominoSteine = (paare, kette) => {
+    const n = paare.length;
+    if (kette === "geschlossen") return paare.map(([aufgabe], k) => ({ nr: k + 1, links: paare[(k + n - 1) % n][1], rechts: aufgabe }));
+    return [...paare.map(([aufgabe], k) => ({ nr: k + 1, links: k === 0 ? "Start" : paare[k - 1][1], rechts: aufgabe })),
+      { nr: n + 1, links: paare[n - 1][1], rechts: "Ende" }];
+  };
+  const dominoFehler = (paare) => {
+    const aufgaben = paare.map((p) => p[0]), loesungen = paare.map((p) => p[1]);
+    if (paare.length < 12 || paare.length > 24) return `Ein Domino hat 12 bis 24 Steine, hier sind es ${paare.length}.`;
+    const leer = paare.findIndex(([a, l]) => !a || !l);
+    if (leer >= 0) return `In Zeile ${leer + 1} fehlt die Aufgabe oder die Lösung.`;
+    const doppelt = loesungen.find((l, i) => loesungen.indexOf(l) !== i);
+    if (doppelt) return `Die Lösung „${doppelt}“ kommt zweimal vor. Dann ist die Kette nicht eindeutig.`;
+    const auchAufgabe = loesungen.find((l) => aufgaben.includes(l));
+    if (auchAufgabe) return `„${auchAufgabe}“ ist zugleich Lösung und Aufgabe. Dann ist die Kette nicht eindeutig.`;
+    return null;
+  };
+
+  function domino(el) {
+    folgeseitenWeg(el);
+    const paare = spielListe(el, "paare").map(teilePaar), kette = attr(el, "kette", "geschlossen"), rueckseite = attr(el, "rueckseite", "nein");
+    if (!["geschlossen", "offen"].includes(kette)) abbruch(`Die Kette „${kette}“ gibt es nicht.`);
+    if (!["nein", "nummer"].includes(rueckseite)) abbruch(`„${rueckseite}“ gibt es bei der Nummer nicht.`);
+    const fehler = dominoFehler(paare);
+    if (fehler) abbruch(fehler);
+    const je = num(el, "je-seite", 12), { b, h } = blattMass();
+    if (je < 2 || je > 16 || je % 2 === 1) abbruch("Auf eine Seite passen 2 bis 16 Steine, immer eine gerade Zahl.");
+    const steinH = Math.floor(Math.min(h / (je / 2) - 6, 120)), steinB = Math.floor((b - 12) / 2), halb = steinB / 2 - 10;
+    const steine = dominoSteine(paare, kette), loesung = loesungSichtbar(el);
+    const seed = samen(el, `${el.getAttribute("paare")}|${kette}`);
+    const folge = loesung ? steine : gemischt(steine, zufall(seed));
+    const stein = (s) => `<div class="domino-stein" data-stein="${s.nr}" style="--stein-h:${steinH}px">` +
+      (loesung || rueckseite === "nummer" ? `<span class="domino-nr" data-klein-ok>${s.nr}</span>` : "") +
+      `<div class="spiel-zelle">${miniHtml(el, s.links, halb, steinH - 10)}</div><div class="spiel-zelle">${miniHtml(el, s.rechts, halb, steinH - 10)}</div></div>`;
+    el.setAttribute("data-steine", String(steine.length));
+    setzeStuecke(el, stueckeln(folge.map(stein), je).map((t) => `<div class="domino-bogen">${t.join("")}</div>`));
+  }
+
+  /** Reihenfolge der Felder im Gitter. Benachbarte Felder berühren sich, kein Weg kreuzt sich selbst. */
+  const spielplanWeg = (form, felder, c, r) => {
+    const weg = [];
+    if (form === "schlange" || form === "leiter") {
+      for (let z = 0; z < r; z++) for (let s = 0; s < c; s++) {
+        const spalte = z % 2 === 0 ? s : c - 1 - s;
+        weg.push([spalte, form === "leiter" ? r - 1 - z : z]);
+      }
+    } else if (form === "rundweg") {
+      for (let s = 0; s < c; s++) weg.push([s, 0]);
+      for (let z = 1; z < r; z++) weg.push([c - 1, z]);
+      for (let s = c - 2; s >= 0; s--) weg.push([s, r - 1]);
+      for (let z = r - 2; z > 0; z--) weg.push([0, z]);
+    } else {
+      let l = 0, o = 0, re = c - 1, u = r - 1;
+      while (l <= re && o <= u) {
+        for (let s = l; s <= re; s++) weg.push([s, o]);
+        for (let z = o + 1; z <= u; z++) weg.push([re, z]);
+        if (o < u) for (let s = re - 1; s >= l; s--) weg.push([s, u]);
+        if (l < re) for (let z = u - 1; z > o; z--) weg.push([l, z]);
+        l++; o++; re--; u--;
+      }
+    }
+    return weg.slice(0, felder);
+  };
+  const spielplanRaster = (form, felder, b, h) => {
+    if (form === "rundweg") {
+      const summe = Math.ceil((felder + 4) / 2), r = Math.max(3, Math.round((summe * h) / (b + h)));
+      return [summe - r, r];
+    }
+    const c = Math.max(3, Math.ceil(Math.sqrt((felder * b) / h)));
+    return [c, Math.ceil(felder / c)];
+  };
+  const SONDERFELD = /^(\?|★|[+\-−]\d+)$/;
+  const schneiden = ([a, b], [c, d]) => {
+    const seite = (p, q, s) => (q[0] - p[0]) * (s[1] - p[1]) - (q[1] - p[1]) * (s[0] - p[0]);
+    return seite(a, b, c) * seite(a, b, d) < 0 && seite(c, d, a) * seite(c, d, b) < 0;
+  };
+
+  function lernlandkarte(el) {
+    const ziele = spielListe(el, "inhalt");
+    if (ziele.length < 2 || ziele.length > 12) abbruch("Eine Lernlandkarte hat 2 bis 12 Ziele.");
+    const { b } = blattMass(), g = spielSchrift(), breite = Math.floor((b - 24) / 2), hoehe = 118;
+    const station = (z, i) => {
+      const zeile = Math.floor(i / 2), rechts = zeile % 2 === 0 ? i % 2 === 1 : i % 2 === 0;
+      if (!textPasst(z, breite - 16, hoehe - 50, g)) abbruch(`„${z}“ passt nicht auf die Station. Bitte kürzen.`);
+      return `<div class="land-station" data-station="${i + 1}" style="grid-column:${rechts ? 2 : 1};grid-row:${zeile + 1}"><span class="domino-nr" data-klein-ok>${i + 1}</span>` +
+        `<div class="land-text">${maskiere(z)}</div><div class="ampel" aria-label="Zum Anmalen"><i></i><i></i><i></i></div></div>`;
+    };
+    el.innerHTML = `<div class="land-karte" style="--land-h:${hoehe}px">${ziele.map(station).join("")}</div>` +
+      '<p class="land-legende"><span class="ampel"><i></i></span> grün = kann ich <span class="ampel"><i></i></span> gelb = fast <span class="ampel"><i></i></span> rot = noch nicht</p>';
+  }
+
+  function spielplan(el) {
+    folgeseitenWeg(el);
+    if (attr(el, "art", "spiel") === "lernlandkarte") return lernlandkarte(el);
+    const felder = num(el, "felder", 30), form = attr(el, "form", "schlange"), start = attr(el, "start", "Start"), ziel = attr(el, "ziel", "Ziel");
+    if (felder < 20 || felder > 40) abbruch("Ein Spielplan hat 20 bis 40 Felder.");
+    if (!["schlange", "spirale", "rundweg", "leiter"].includes(form)) abbruch(`Die Form „${form}“ gibt es nicht.`);
+    // Leere Zeilen zählen mit: Der Inhalt gehört zu seiner Feldnummer.
+    const inhalt = (el.getAttribute("inhalt") || "").split(";").map((t) => t.trim());
+    while (inhalt.length && !inhalt.at(-1)) inhalt.pop();
+    if (inhalt.length > felder) abbruch(`Das sind ${inhalt.length} Inhalte für ${felder} Felder.`);
+    const { b, h } = blattMass(), [c, r] = spielplanRaster(form, felder, b, h), luecke = 8;
+    const s = Math.floor(Math.min((b - luecke * (c - 1)) / c, (h - luecke * (r - 1)) / r, 130));
+    if (s < cm(1.8)) abbruch(`Die Felder würden kleiner als 1,8 cm. Bitte weniger Felder oder ein größeres Format (A4 quer, A3).`);
+    const weg = spielplanWeg(form, felder, c, r), mitte = ([x, y]) => [x * (s + luecke) + s / 2, y * (s + luecke) + s / 2];
+    const leitern = (attr(el, "leitern", "") || "").split(/[;\s]+/).filter(Boolean).map((t) => {
+      const m = /^(\d+)-(\d+)$/.exec(t);
+      if (!m) abbruch(`„${t}“ ist keine Leiter. Geschrieben wird sie von-bis, zum Beispiel 3-12.`);
+      const von = +m[1], bis = +m[2];
+      if (von === bis || von < 1 || bis < 1 || von > felder || bis > felder) abbruch(`Die Leiter ${t} endet nicht auf einem Feld.`);
+      return { von, bis, strecke: [mitte(weg[von - 1]), mitte(weg[bis - 1])] };
+    });
+    leitern.forEach((l, i) => {
+      if (leitern.some((m, j) => j !== i && (m.von === l.von || m.bis === l.von))) abbruch(`Auf Feld ${l.von} treffen sich zwei Leitern.`);
+      if (leitern.filter((m, j) => j !== i && schneiden(l.strecke, m.strecke)).length > 1) abbruch(`Die Leiter ${l.von}-${l.bis} kreuzt mehr als eine andere Leiter.`);
+    });
+    const zellen = weg.map((ort, i) => {
+      const nr = i + 1, roh = nr === 1 ? start : nr === felder ? ziel : (inhalt[i] ?? "");
+      const sonder = SONDERFELD.test(roh), rand = nr === 1 || nr === felder;
+      const zeige = sonder ? `<b class="spiel-joker">${maskiere(roh.replace("-", "−"))}</b>` : roh ? miniHtml(el, roh, s - 10, s - 24) : "";
+      return `<div class="spiel-zelle spiel-feld${rand ? " spiel-ende" : ""}${sonder ? " spiel-sonder" : ""}" data-feld="${nr}" style="left:${ort[0] * (s + luecke)}px;top:${ort[1] * (s + luecke)}px;width:${s}px;height:${s}px"><span class="spiel-nr" data-klein-ok>${nr}</span>${zeige}</div>`;
+    }).join("");
+    const breite = c * s + (c - 1) * luecke, hoehe = r * s + (r - 1) * luecke;
+    let unter = "";
+    for (let i = 1; i < weg.length; i++) {
+      const [x1, y1] = mitte(weg[i - 1]), [x2, y2] = mitte(weg[i]);
+      unter += `<line x1="${x1}" y1="${y1}" x2="${x2}" y2="${y2}" stroke-width="4"/>`;
+    }
+    const pfeile = leitern.map(({ bis, strecke: [[x1, y1], [x2, y2]], von }) =>
+      `<line class="spiel-leiter" data-leiter="${von}-${bis}" x1="${x1}" y1="${y1}" x2="${x2}" y2="${y2}" stroke-width="3"${bis < von ? ' stroke-dasharray="8 5"' : ""} marker-end="url(#spiel-spitze)"/>`).join("");
+    const lagen = `<svg class="spiel-weg" width="${breite}" height="${hoehe}" viewBox="0 0 ${breite} ${hoehe}" data-ueberlagert-ok>${unter}</svg>${zellen}` +
+      `<svg class="spiel-pfeile" width="${breite}" height="${hoehe}" viewBox="0 0 ${breite} ${hoehe}" data-ueberlagert-ok><defs><marker id="spiel-spitze" viewBox="0 0 8 8" refX="7" refY="4" markerWidth="5" markerHeight="5" orient="auto"><path d="M0 0L8 4L0 8Z" fill="#1D1D1B" stroke="none"/></marker></defs>${pfeile}</svg>`;
+    const stuecke = [`<div class="spiel-plan" style="width:${breite}px;height:${hoehe}px" data-spalten="${c}" data-reihen="${r}" data-kante="${s}">${lagen}</div>`];
+    const loesungen = attr(el, "loesungen", "").split(";").map((t) => t.trim()).filter(Boolean);
+    if (loesungen.length && loesungSichtbar(el)) stuecke.push(`<div class="rufliste"><h2>Kontrollkarte</h2><ol>${loesungen.map((t) => {
+      const [nr, wert] = teilePaar(t);
+      return `<li>Feld ${maskiere(nr)}: ${maskiere(wert)}</li>`;
+    }).join("")}</ol></div>`);
+    setzeStuecke(el, stuecke);
+  }
+
   /* == Test == */
   // x-probe gibt es nur für die Tests der Feldtypen im Panel (023); in Material kommt es nicht vor.
   function probe(el) {
@@ -4340,13 +4635,14 @@
     "x-lineatur": lineatur, "x-silben": silben, "x-wortarten": wortarten, "x-satzglieder": satzglieder, "x-wortbausteine": wortbausteine, "x-zeitleiste": zeitleiste, "x-jahreskreis": jahreskreis, "x-windrose": windrose, "x-plan": plan, "x-schaltplan": schaltplan, "x-kreislauf": kreislauf, "x-verkehrszeichen": verkehrszeichen, "x-wetter": wetter, "x-rhythmus": rhythmus, "x-noten": noten,
     "x-geld": geld, "x-skala": skala, "x-strecke": strecke, "x-kalender": kalender, "x-zeitspanne": zeitspanne,
     "x-punktfeld": punktfeld, "x-malkreuz": malkreuz, "x-schriftlich": schriftlich,
-    "x-wuerfelbau": wuerfelbau, "x-wuerfelnetz": wuerfelnetz, "x-koerper": koerper };
+    "x-wuerfelbau": wuerfelbau, "x-wuerfelnetz": wuerfelnetz, "x-koerper": koerper, "x-bingo": bingo, "x-domino": domino, "x-spielplan": spielplan };
 
   const zeichne = (f, el) => {
     el.removeAttribute("data-fehler");
     try {
       f(el);
     } catch (e) {
+      folgeseitenWeg(el);
       meldeFehler(el, e instanceof Abbildungsfehler ? e.message : `Die Abbildung ließ sich nicht zeichnen (${e.message}).`);
     }
   };
@@ -4362,6 +4658,7 @@
   window.abbildungsName = (tag) => NAMEN[tag] || tag;
   /* == Rechenkerne für Tests == */
   window.schoolboxAbbildungen = {
+    bingoKarten, dominoSteine, dominoFehler, spielplanWeg, spielplanRaster, teilePaar,
     ARTEN, zahl, cm, zufall, gemischt, trenneListe, trenneRaster, bildVon, spiegelung, skaliere, gehWeg, flaecheUmfang, TANGRAM_TEILE, TANGRAM_UMRISSE,
     ansichtenVon, wuerfelVon, verdeckteWuerfel, WUERFELNETZE, NICHT_NETZE, netzZellen, falteNetz, istWuerfelnetz, netzLaschen, netzLage, AUGEN_DER_SEITE, vielflach, KOERPER_ZAHLEN,
     tafelOrt, ausschnittZahlen, rechenstrichWerte, leseSprung,

@@ -46,7 +46,7 @@ Diagramm lesen und zeichnen ist ein eigener Aufgabentyp: `<x-diagramm werte="…
 - „Ich kann …"-Sätze aus Kindersicht, je Lernziel eine Zeile, mit Beispielaufgabe: „Ich kann Zahlen bis 100 am Hunderterfeld zeigen. (z. B. 47)".
 - Skala mit den Wachstumsstufen Samen / Keimling / Pflanze / Blume (`grundschul-didaktik/references/kernkonzepte.md`), dazu eine Spalte für die Einschätzung der Lehrkraft. Keine Smileys, keine Ampel.
 - Die Beispielaufgabe ist der Prüfstein: Das Kind löst sie, kontrolliert und schätzt sich danach ein. Kinder in Klasse 1/2 überschätzen sich oft; der Vergleich mit der Lehrkraft-Spalte wird im Gespräch besprochen, nicht bewertet.
-- Lernlandkarte für Kl. 1/2 als Weg- oder Inselkarte, Stationen = Lernziele.
+- Lernlandkarte für Kl. 1/2 als Weg- oder Inselkarte, Stationen = Lernziele: `<x-spielplan art="lernlandkarte" inhalt="…">`.
 - **„Fit für die Arbeit"** vor einer Klassenarbeit: dieselben Ich-kann-Ziele wie die Arbeit, je Ziel eine Beispielaufgabe und ein Verweis auf passende Lernaufgaben ● / ●● / ●●● zum Weiterüben (`klassenarbeit`, Ablauf).
 
 ## Qualitätscheck

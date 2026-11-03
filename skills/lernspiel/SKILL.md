@@ -31,12 +31,12 @@ Die Spielform muss nicht gefragt werden: 2–3 Entwürfe mit verschiedenen passe
 
 | Spiel | Prinzip | Gut für | Umfang |
 |---|---|---|---|
-| **Domino** | Aufgabe ↔ Ergebnis, Kette | Rechnen, Bild-Wort, Reime | 12–24 Steine, geschlossene Kette als Selbstkontrolle |
+| **Domino** | Aufgabe ↔ Ergebnis, Kette | Rechnen, Bild-Wort, Reime | 12–24 Steine, geschlossene Kette als Selbstkontrolle; `x-domino` |
 | **Memory** | Paare finden | Bild-Wort, Aufgabe-Ergebnis, Englisch-Vokabeln, Rhythmus und Silben (`x-rhythmus art="karte"`, `fach-musik`) | 8–16 Paare, Rückseite einheitlich |
-| **Bingo** | Lehrkraft ruft, Kinder markieren | Ganze Klasse, Rechnen, Wortschatz | 3×3 (Kl. 1), 4×4 (Kl. 2–4), unterschiedliche Karten |
+| **Bingo** | Lehrkraft ruft, Kinder markieren | Ganze Klasse, Rechnen, Wortschatz | 3×3 (Kl. 1), 4×4 (Kl. 2–4), unterschiedliche Karten; `x-bingo` |
 | **Quartett** | 4 zusammengehörige Karten | Wortfamilien, Tierarten, Formen | 6–8 Quartette |
 | **Klammerkarten** | Richtige Lösung mit Klammer markieren | Einzelarbeit, Selbstkontrolle auf der Rückseite | 10–20 Karten |
-| **Würfel-/Laufspiel** | Felder mit Aufgaben | Gemischte Wiederholung | 20–30 Felder, Aufgabenkarten separat |
+| **Würfel-/Laufspiel** | Felder mit Aufgaben | Gemischte Wiederholung | 20–30 Felder, Aufgabenkarten separat; `x-spielplan`, Leiterspiel `form="leiter"` mit `leitern` |
 | **Trimino / Puzzle** | Dreiecke/Teile passend legen | Rechnen, Gegensätze | Ergibt Form als Selbstkontrolle |
 | **Wer-hat-…? (Ich habe – wer hat)** | Kettenspiel Klasse | Kopfrechnen, Uhrzeit, Vokabeln | Karten = Kinderzahl |
 
@@ -62,15 +62,16 @@ Würfel für Spielregeln und Spielkarten kommen aus `<x-wuerfel>` (`html-materia
 
 ## Qualitätscheck
 
-- [ ] Jede Aufgabe hat genau eine eindeutige Lösung im Spiel (Domino: kein Ergebnis doppelt!)
-- [ ] Domino-Kette schließt sich bzw. Anfang/Ende markiert
-- [ ] Bingo-Karten unterscheiden sich, alle Werte werden gerufen
+- [ ] Jede Aufgabe hat genau eine eindeutige Lösung im Spiel. Domino: Kein Ergebnis doppelt und die Kette schließt sich prüft `x-domino`
+- [ ] Bingo: Verschiedene Karten und die vollständige Rufliste prüft `x-bingo`
+- [ ] FEHLER aus `blatt.py` ernst nehmen: Sie heißen, dass das Spiel so nicht funktioniert
 - [ ] Anleitung von Kindern ohne Erwachsene verständlich
 - [ ] Druckbild: Vorder- und Rückseite passgenau (Spiegelung beachten)
 
 ## Umsetzung (`html-materialerstellung`)
 
-- Kartenraster: Memory/Wortkarten 2 × 4 pro A4, Domino 2 × 6 (quer liegende Steine), Bingo 1–2 Karten pro A4.
+- Bingo, Domino, Würfel-/Laufspiel und Leiterspiel über die Elemente, Abschnitt „Spiele“ in `html-materialerstellung/references/abbildungen.md`. Kartenraster: Memory/Wortkarten 2 × 4 pro A4, Domino 2 × 6 (quer liegende Steine), Bingo 1–2 Karten pro A4.
+- Spielwürfel mit eigenen Seiten über `x-wuerfelnetz`. Druckhinweise: festes Papier, laminieren, ausschneiden.
 - Kartenraster mit `.karten` (`--spalten`), Schneidelinien sind die gestrichelten Kartenränder.
 - Rückseiten als eigene `.seite`, horizontal gespiegelt zur Vorderseite (Reihenfolge je Zeile umkehren).
 - Mit Schoolbox die Druckhinweise am Dokument hinterlegen (`schoolbox dokument … --druckhinweis "…"`, je Hinweis einmal), z. B. „Doppelseitig drucken, an der langen Kante wenden“, „Auf festes Papier drucken und laminieren“, „Karten an den gestrichelten Linien ausschneiden“.

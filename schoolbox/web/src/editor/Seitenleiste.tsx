@@ -41,7 +41,7 @@ const FINGER_WEG = 10;
 const MAUS_WEG = 6;
 
 const miss = (doc: Document): { breite: number; seiten: SeitenMass[] } => {
-	const seiten = [...doc.querySelectorAll<HTMLElement>('.seite')].flatMap((s) => {
+	const seiten = [...doc.querySelectorAll<HTMLElement>('.seite:not([data-erzeugt])')].flatMap((s) => {
 		const nr = nrVon(s);
 		return nr === null ? [] : [{ nr, top: s.offsetTop, hoehe: s.offsetHeight }];
 	});

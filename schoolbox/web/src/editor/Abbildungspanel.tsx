@@ -29,6 +29,8 @@ import {
 	markierungLesen,
 	markierungNeuerText,
 	markierungText,
+	MINI_ARTEN,
+	miniTeile,
 	notenAnfuegen,
 	notenMitTon,
 	notenPunkt,
@@ -671,6 +673,72 @@ const BildWahl = ({
 	);
 };
 
+const MINI_BEISPIEL: Record<string, string> = {
+	uhr: '7:30',
+	wuerfel: '5',
+	menge: '7',
+	geld: '2€ 50ct',
+	rhythmus: '4 8 8 4',
+};
+
+/** Ein Feldinhalt: Art wählen, dazu die passende Eingabe. Im Attribut steht `uhr:7:30`, Text ohne Vorsatz. */
+const MiniEingabe = ({
+	abb,
+	aendere,
+	name,
+	uebernimm,
+	wert,
+}: {
+	wert: string;
+	name: string;
+	abb: AbbildungSteuerung;
+	aendere: (neu: string, sofort: boolean) => void;
+	uebernimm: () => void;
+}) => {
+	const { art, inhalt } = miniTeile(wert);
+	const mitArt = (neu: string, neuInhalt: string) => (neu ? `${neu}:${neuInhalt}` : neuInhalt);
+	return (
+		<div className="flex flex-col gap-2">
+			<select
+				aria-label={`Art: ${name}`}
+				className={`${EINGABE} w-full`}
+				value={art}
+				onChange={(e) => {
+					const neu = e.target.value;
+					aendere(mitArt(neu, neu === art ? inhalt : (MINI_BEISPIEL[neu] ?? '')), true);
+				}}
+			>
+				{MINI_ARTEN.map((o) => (
+					<option key={o.wert} value={o.wert}>
+						{o.name}
+					</option>
+				))}
+			</select>
+			{art === 'bild' ? (
+				<BildWahl
+					abb={abb}
+					aendere={(w, sofort) => aendere(mitArt(art, w), sofort)}
+					name={name}
+					wert={inhalt}
+				/>
+			) : (
+				<input
+					type="text"
+					aria-label={name}
+					placeholder={MINI_BEISPIEL[art] ?? name}
+					enterKeyHint="done"
+					autoComplete="off"
+					className={`${EINGABE} w-full min-w-0`}
+					value={inhalt}
+					onChange={(e) => aendere(mitArt(art, e.target.value), false)}
+					onBlur={uebernimm}
+					onKeyDown={fertigMitEnter}
+				/>
+			)}
+		</div>
+	);
+};
+
 const UnterEingabe = ({
 	abb,
 	aendere,
@@ -705,6 +773,9 @@ const UnterEingabe = ({
 	}
 	if (u.art === 'bild') {
 		return <BildWahl abb={abb} aendere={aendere} name={name} wert={wert} />;
+	}
+	if (u.art === 'mini') {
+		return <MiniEingabe abb={abb} aendere={aendere} name={name} uebernimm={uebernimm} wert={wert} />;
 	}
 	if (u.art === 'muster') {
 		return (

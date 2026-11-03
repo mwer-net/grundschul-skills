@@ -104,7 +104,7 @@ export interface Option {
 
 export interface UnterFeld {
 	name: string;
-	art: 'text' | 'zahl' | 'auswahl' | 'muster' | 'schalter' | 'bild';
+	art: 'text' | 'zahl' | 'auswahl' | 'muster' | 'schalter' | 'bild' | 'mini';
 	optionen?: Option[];
 	min?: number;
 	max?: number;
@@ -125,7 +125,7 @@ export interface ListeFeld extends FeldBasis {
 	/** Zwischen den Zeilen; Standard `;`. */
 	zeilenTrenner?: ';' | ' ' | '/';
 	/** Zwischen den Unterfeldern einer Zeile; Standard `:`. */
-	feldTrenner?: ':' | ' ' | '';
+	feldTrenner?: ':' | ': ' | '-' | ' ' | '';
 }
 
 /** Mehrere Haken aus festen Optionen; im Attribut mit Leerzeichen getrennt. */
@@ -2289,6 +2289,163 @@ export const ABBILDUNG_SCHEMA = {
 		],
 		regeln: (w): Fehler => (w.text('symbol') || w.text('loesung') ? {} : { symbol: 'Bitte ein Symbol wählen.' }),
 	},
+	'x-bingo': {
+		name: 'Bingo',
+		felder: [
+			{ art: 'mischen', attribut: 'seed', name: 'Karten' },
+			{
+				art: 'liste',
+				attribut: 'eintraege',
+				name: 'Einträge',
+				hilfe: 'Ruf und Feld, zum Beispiel 7·8 und 56. Nötig sind Felder × Felder + 4 Einträge.',
+				unter: [
+					{ name: 'Ruf', art: 'text', standard: 'Neu' },
+					{ name: 'Feld', art: 'mini', leer: true },
+				],
+				feldTrenner: ': ',
+				min: 8,
+				max: 60,
+			},
+			{ art: 'zahl', attribut: 'felder', name: 'Felder je Reihe', min: 3, max: 5, standard: 4 },
+			{ art: 'zahl', attribut: 'karten', name: 'Karten', min: 1, max: 40, standard: 4 },
+			{
+				art: 'auswahl',
+				attribut: 'je-seite',
+				name: 'Karten je Seite',
+				standard: '2',
+				optionen: [
+					{ wert: '1', name: '1' },
+					{ wert: '2', name: '2' },
+					{ wert: '4', name: '4' },
+				],
+			},
+			{ art: 'schalter', attribut: 'frei', name: 'Joker in der Mitte', an: 'ja', aus: 'nein', standard: false },
+			{ art: 'schalter', attribut: 'rufliste', name: 'Rufliste', an: 'ja', aus: 'nein', standard: true },
+		],
+		regeln: (w): Fehler => {
+			const seite = w.zahl('felder');
+			const noetig = seite * seite - (w.text('frei') === 'ja' && seite % 2 === 1 ? 1 : 0) + 4;
+			const anzahl = w.zeilen('eintraege').length;
+			return anzahl < noetig
+				? { eintraege: `Das sind ${anzahl} Einträge; für verschiedene Karten braucht es mindestens ${noetig}.` }
+				: {};
+		},
+	},
+	'x-domino': {
+		name: 'Domino',
+		felder: [
+			{ art: 'mischen', attribut: 'seed', name: 'Lage der Steine' },
+			{
+				art: 'liste',
+				attribut: 'paare',
+				name: 'Paare',
+				unter: [
+					{ name: 'Aufgabe', art: 'mini', standard: 'Neu' },
+					{ name: 'Lösung', art: 'mini', standard: 'Neu' },
+				],
+				feldTrenner: ': ',
+				min: 12,
+				max: 24,
+			},
+			{
+				art: 'auswahl',
+				attribut: 'kette',
+				name: 'Kette',
+				standard: 'geschlossen',
+				optionen: [
+					{ wert: 'geschlossen', name: 'Geschlossen' },
+					{ wert: 'offen', name: 'Offen, mit Start und Ende' },
+				],
+			},
+			{
+				art: 'auswahl',
+				attribut: 'je-seite',
+				name: 'Steine je Seite',
+				standard: '12',
+				optionen: ['8', '10', '12', '14', '16'].map((wert) => ({ wert, name: wert })),
+			},
+			{
+				art: 'schalter',
+				attribut: 'rueckseite',
+				name: 'Nummer auf dem Stein',
+				an: 'nummer',
+				aus: 'nein',
+				standard: false,
+			},
+		],
+		regeln: (w): Fehler => {
+			const zeilen = w.zeilen('paare');
+			const aufgaben = zeilen.map((z) => z[0] ?? '');
+			const loesungen = zeilen.map((z) => z[1] ?? '');
+			const doppelt = loesungen.find((l, i) => loesungen.indexOf(l) !== i);
+			if (doppelt) {
+				return { paare: `Die Lösung „${doppelt}“ kommt zweimal vor. Dann ist die Kette nicht eindeutig.` };
+			}
+			const auchAufgabe = loesungen.find((l) => aufgaben.includes(l));
+			return auchAufgabe
+				? { paare: `„${auchAufgabe}“ ist zugleich Lösung und Aufgabe. Dann ist die Kette nicht eindeutig.` }
+				: {};
+		},
+	},
+	'x-spielplan': {
+		name: 'Spielplan',
+		felder: [
+			{
+				art: 'auswahl',
+				attribut: 'art',
+				name: 'Art',
+				standard: 'spiel',
+				optionen: [
+					{ wert: 'spiel', name: 'Spielplan' },
+					{ wert: 'lernlandkarte', name: 'Lernlandkarte' },
+				],
+			},
+			{ art: 'zahl', attribut: 'felder', name: 'Felder', min: 20, max: 40, standard: 30 },
+			{
+				art: 'auswahl',
+				attribut: 'form',
+				name: 'Form',
+				standard: 'schlange',
+				optionen: [
+					{ wert: 'schlange', name: 'Schlange' },
+					{ wert: 'spirale', name: 'Spirale' },
+					{ wert: 'rundweg', name: 'Rundweg' },
+					{ wert: 'leiter', name: 'Leiterspiel' },
+				],
+			},
+			{
+				art: 'liste',
+				attribut: 'inhalt',
+				name: 'Inhalt je Feld',
+				hilfe: 'Text, Aufgabe oder Sonderfeld: ?, ★, +3, −2. Eine leere Zeile lässt das Feld frei.',
+				unter: [{ name: 'Inhalt', art: 'mini', leer: true }],
+				max: 40,
+			},
+			{
+				art: 'liste',
+				attribut: 'leitern',
+				name: 'Leitern und Rutschen',
+				hilfe: 'Von Feld, bis Feld. Führt der Weg zurück, ist es eine Rutsche.',
+				unter: [
+					{ name: 'Von', art: 'zahl', min: 1, max: 40, standard: '2' },
+					{ name: 'Bis', art: 'zahl', min: 1, max: 40, standard: '9' },
+				],
+				feldTrenner: '-',
+			},
+			{ art: 'text', attribut: 'start', name: 'Start' },
+			{ art: 'text', attribut: 'ziel', name: 'Ziel' },
+			{
+				art: 'liste',
+				attribut: 'loesungen',
+				name: 'Kontrollkarte',
+				unter: [
+					{ name: 'Feld', art: 'zahl', min: 1, max: 40, standard: '2' },
+					{ name: 'Lösung', art: 'text', standard: 'Neu' },
+				],
+				feldTrenner: ': ',
+			},
+		],
+	},
 	'x-rhythmus': {
 		name: 'Rhythmus',
 		felder: [
@@ -3378,7 +3535,7 @@ const teile = (text: string, trenner: string, anzahl: number): string[] => {
 	const i = text.indexOf(trenner);
 	return i < 0 || anzahl < 2
 		? [text.trim()]
-		: [text.slice(0, i).trim(), ...teile(text.slice(i + 1), trenner, anzahl - 1)];
+		: [text.slice(0, i).trim(), ...teile(text.slice(i + trenner.length), trenner, anzahl - 1)];
 };
 
 /** `Hund: 7; Katze: 4` → `[['Hund', '7'], ['Katze', '4']]`. Eine leere letzte Zeile (`…;`) zählt nicht. */
@@ -3398,6 +3555,22 @@ export const zeilenVon = (feld: ListeFeld, wert: string | null): string[][] => {
 			return w === LEER ? '' : w;
 		});
 	});
+};
+
+export const MINI_ARTEN: Option[] = [
+	{ wert: '', name: 'Text' },
+	{ wert: 'bild', name: 'Bild' },
+	{ wert: 'uhr', name: 'Uhr' },
+	{ wert: 'wuerfel', name: 'Würfel' },
+	{ wert: 'menge', name: 'Menge' },
+	{ wert: 'geld', name: 'Geld' },
+	{ wert: 'rhythmus', name: 'Rhythmus' },
+];
+
+/** `uhr:7:30` → Art und Wert; ohne bekannte Art ist alles Text. */
+export const miniTeile = (wert: string): { art: string; inhalt: string } => {
+	const t = /^(uhr|wuerfel|menge|geld|rhythmus|bild):(.*)$/s.exec(wert);
+	return t ? { art: t[1] ?? '', inhalt: t[2] ?? '' } : { art: '', inhalt: wert };
 };
 
 export const zeilenText = (feld: ListeFeld, zeilen: string[][]): string | null => {
