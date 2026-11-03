@@ -50,6 +50,8 @@ Die Spielform muss nicht gefragt werden: 2–3 Entwürfe mit verschiedenen passe
 
 ## Gestaltungsregeln
 
+Satzstreifen zum Legen und Umstellen: `x-satzglieder` mit `ausschneiden="ja"` (`fach-deutsch`).
+
 - Karten mind. 6 × 6 cm (Kl. 1/2), ein Element pro Karte, Text groß (mind. 20 pt), Bild eindeutig.
 - Niveaus (falls gewählt) nur mit Punkten ● / ●● / ●●● in der Kartenecke, nicht mit Farbe; Farbe nur zur Unterscheidung verschiedener Spiele.
 - Rückseiten gestalten (Muster + Spielname), damit Sets nicht vermischt werden.

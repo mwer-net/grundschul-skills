@@ -15,6 +15,7 @@ Nach dem Rückfrage-Protokoll aus `grundschul-didaktik` (eine Frage pro Nachrich
 2. **Lehrwerk / Fibel und Anlauttabelle:** Welche? Welche Buchstaben sind eingeführt (Kl. 1)? Silbenmethode (Farbe/Bögen)?
 3. **Schrift:** Druckschrift; als verbundene Schrift Lateinische (LA) oder Vereinfachte Ausgangsschrift (VA)? *Legt die Schule fest; einmal fragen, dann gilt es weiter.*
 4. **Fachbegriffe:** "Nomen" oder "Namenwort", "Verb" oder "Tunwort/Zeitwort"? (Schul-/Lehrwerkskonvention)
+5. **Bei Sprache untersuchen:** Welche Wortartsymbole oder -farben nutzt die Klasse? Wie wird das Prädikat markiert? Welche Wortarten und Satzglieder sind schon eingeführt?
 
 ## Kompetenzbereiche (Bildungsplan BW, Bildungsstandards 2022)
 
@@ -70,10 +71,15 @@ Schreibzeilen und Silben kommen als Elemente aus `html-materialerstellung/assets
 |---|---|
 | `<x-lineatur art="2" zeilen="3" vorlage="Rosine" loesung="Der Hund bellt.">` | Schreiblinien in Originalmaß, graue Nachspurvorlage, Antwort nur im Lösungsblatt |
 | `<x-silben>Ro\|si\|ne</x-silben>` | Silbenbögen, im Farbprofil auf Wunsch blau-rot; `aufgabe="boegen"` oder `"trennen"` zum Selbermachen |
+| `<x-wortarten aufgabe="bestimmen">Der/Art Hund/N bellt/V.</x-wortarten>` | Montessori-Symbole oder Linienarten je Wortart, in s/w unterscheidbar |
+| `<x-satzglieder aufgabe="umstellen">[Der Hund]S [bellt]P [den Mann]AkO [an]P.</x-satzglieder>` | Satzglied-Kästchen mit Verbklammer; die Umstellung rechnet das Element selbst |
+| `<x-wortbausteine stamm="fahr">ver\|fahr\|en</x-wortbausteine>` | Bausteine als Kästchen, Stamm fett; auch Wortfamilie |
 
 **Silben setzt du selbst mit `|`**, nach Sprechsilben, nicht nach Worttrennung im Wörterbuch: `A|bend` (auch ein einzelner Vokal ist eine Silbe), `Was|ser` (Doppelkonsonant wird geteilt), `Zu|cker` (`ck` bleibt zusammen und beginnt die neue Silbe), `Pa|pa|gei`, `Blei|stift` (Zusammensetzungen an der Fuge). Einsilbige Wörter bleiben ohne Strich und bekommen einen Bogen.
 
 Silbenbögen und -farben nur, wenn die Klasse damit arbeitet (Rückfrage oben: Methode, Bögen oder Farbe, welche Farben). Sonst ohne.
+
+**Wortarten und Satzglieder markierst du selbst**, ein Programm bestimmt sie nicht. Kl. 2: nur Nomen, Verb, Adjektiv (`nur="N V A"`). Kl. 3/4 nach Rückfrage, nur Eingeführtes. Weicht die Klasse von den Montessori-Farben ab, setze `farben`.
 
 ## Leistung überprüfen
 

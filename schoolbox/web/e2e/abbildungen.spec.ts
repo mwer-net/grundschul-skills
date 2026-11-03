@@ -1257,3 +1257,155 @@ test.describe('Lineatur und Silben (031)', () => {
 		expect(await readFile(datei, 'utf8')).toBe(stand);
 	});
 });
+
+test.describe('Sprache untersuchen (032)', () => {
+	test('Wortarten: Symbole, Linien und Bestimmen', async ({ page }) => {
+		const tag = '<x-wortarten>Der/Art Hund/N bellt/V laut/A heute.</x-wortarten>';
+		const blatt = await gezeichnet(page, tag);
+		await expect(blatt.locator('.wortart[data-wortart] svg:not(.wa-leer)')).toHaveCount(4);
+		await expect(blatt.locator('.wortart')).toHaveCount(5);
+		await expect(blatt.locator('x-wortarten')).toContainText('Der Hund bellt laut heute.');
+		const formen = await blatt
+			.locator('.wa-symbol')
+			.evaluateAll((l) => l.map((e) => `${e.innerHTML}|${e.getAttribute('fill')}`));
+		expect(new Set(formen).size).toBe(4);
+		const nur = await gezeichnet(page, tag.replace('<x-wortarten>', '<x-wortarten nur="N V">'));
+		await expect(nur.locator('.wa-symbol')).toHaveCount(2);
+
+		const aufgabe = tag.replace('<x-wortarten>', '<x-wortarten aufgabe="bestimmen">');
+		const blattAufgabe = await gezeichnet(page, aufgabe);
+		await expect(blattAufgabe.locator('.wa-leer')).toHaveCount(4);
+		await expect(blattAufgabe.locator('.wa-symbol:not(.wa-leer)')).toHaveCount(0);
+		const loesung = await gezeichnet(page, aufgabe, 'kl3 sw loesung');
+		await expect(loesung.locator('.wa-symbol:not(.wa-leer)')).toHaveCount(4);
+
+		const linien = tag.replace('<x-wortarten>', '<x-wortarten darstellung="unterstreichen">');
+		const stile = await (
+			await gezeichnet(page, linien)
+		)
+			.locator('.wa-linie')
+			.evaluateAll((l) => l.map((e) => getComputedStyle(e).textDecorationStyle));
+		expect(stile).toEqual(['dotted', 'solid', 'wavy', 'dashed']);
+		const farbe = await gezeichnet(
+			page,
+			tag.replace('<x-wortarten>', '<x-wortarten farben="V: blau">'),
+			'kl3 farbe',
+		);
+		await expect(farbe.locator('[data-wortart="V"] .wa-symbol')).toHaveAttribute('stroke', '#1f4fb8');
+		const falsch = await gezeichnet(page, '<x-wortarten>Der/X Hund.</x-wortarten>');
+		await expect(falsch.locator('x-wortarten')).toHaveAttribute('data-fehler', /Kürzel/);
+	});
+
+	test('Satzglieder: Kästchen, Rollen, Umstellung nur in der Lösung', async ({ page }) => {
+		const satz = '[Der Hund]S [bellt]P [den Briefträger]AkO [an]P.';
+		const blatt = await gezeichnet(page, `<x-satzglieder>${satz}</x-satzglieder>`);
+		await expect(blatt.locator('.sg-kasten')).toHaveCount(4);
+		await expect(blatt.locator('.praedikat')).toHaveCount(2);
+		await expect(blatt.locator('.sg-rolle').first()).toHaveText('Subjekt');
+
+		const bestimmen = `<x-satzglieder aufgabe="bestimmen">${satz}</x-satzglieder>`;
+		await expect((await gezeichnet(page, bestimmen)).locator('.sg-rolle.frei')).toHaveCount(4);
+		const gelöst = await gezeichnet(page, bestimmen, 'kl3 sw loesung');
+		await expect(gelöst.locator('.sg-rolle').nth(2)).toHaveText('Akkusativobjekt');
+		const fragen = `<x-satzglieder aufgabe="fragen">${satz}</x-satzglieder>`;
+		await expect((await gezeichnet(page, fragen, 'kl3 sw loesung')).locator('.sg-rolle').nth(2)).toHaveText(
+			'Wen oder was?',
+		);
+
+		const um = `<x-satzglieder aufgabe="umstellen">${satz}</x-satzglieder>`;
+		const leer = (await gezeichnet(page, um)).locator('.sg-umstellung');
+		await expect(leer.locator('.sg-kasten')).toHaveCount(4);
+		await expect(leer).toHaveText('');
+		const voll = (await gezeichnet(page, um, 'kl3 sw loesung')).locator('.sg-umstellung');
+		expect(await voll.locator('.sg-kasten').allTextContents()).toEqual([
+			'Den Briefträger',
+			'bellt',
+			'der Hund',
+			'an',
+		]);
+
+		const streifen = `<x-satzglieder ausschneiden="ja">${satz}</x-satzglieder>`;
+		const geschnitten = await gezeichnet(page, streifen);
+		await expect(geschnitten.locator('.schnitt')).toHaveCount(4);
+		await expect(geschnitten.locator('.sg-rolle')).toHaveCount(0);
+		const ohne = await gezeichnet(page, '<x-satzglieder>[Der Hund]S schläft.</x-satzglieder>');
+		await expect(ohne.locator('x-satzglieder')).toHaveAttribute('data-fehler', /Prädikat/);
+	});
+
+	test('Wortbausteine: Stamm, Zerlegen, Zusammensetzen, Familie', async ({ page }) => {
+		const wort = '<x-wortbausteine stamm="fahr">ver|fahr|en</x-wortbausteine>';
+		const blatt = await gezeichnet(page, wort);
+		await expect(blatt.locator('.wb-kasten')).toHaveCount(3);
+		await expect(blatt.locator('.wb-kasten.stamm')).toHaveText('fahr');
+		const falsch = await gezeichnet(page, '<x-wortbausteine stamm="lauf">ver|fahr|en</x-wortbausteine>');
+		await expect(falsch.locator('x-wortbausteine')).toHaveAttribute('data-fehler', /keiner der Bausteine/);
+
+		const zerlegen = '<x-wortbausteine aufgabe="zerlegen" stamm="fahr">ver|fahr|en</x-wortbausteine>';
+		await expect((await gezeichnet(page, zerlegen)).locator('.wb-ganz')).toHaveText('verfahren');
+		await expect((await gezeichnet(page, zerlegen, 'kl3 sw loesung')).locator('.wb-kasten')).toHaveCount(3);
+		const setzen = '<x-wortbausteine aufgabe="zusammensetzen">ver|fahr|en</x-wortbausteine>';
+		await expect((await gezeichnet(page, setzen)).locator('.wb-ergebnis')).toHaveText('');
+		await expect((await gezeichnet(page, setzen, 'kl3 sw loesung')).locator('.wb-ergebnis')).toHaveText(
+			'verfahren',
+		);
+		const familie =
+			'<x-wortbausteine art="familie" aufgabe="familie" woerter="Fahrer; Abfahrt">fahr</x-wortbausteine>';
+		await expect((await gezeichnet(page, familie)).locator('.wb-wort.leer')).toHaveCount(2);
+		await expect((await gezeichnet(page, familie, 'kl3 sw loesung')).locator('.wb-wort').first()).toHaveText(
+			'Fahrer',
+		);
+	});
+
+	test('Panel: Wortart ändern und Wörter verbinden, je ein Rückgängig-Schritt', async ({ druecke, page }) => {
+		test.slow();
+		const { dok, id, material: datei } = await uhrzeit();
+		await oeffne(page, id, dok);
+		await aendere(
+			page,
+			(await quelle(page)).replace(
+				/<x-uhr[^>]*><\/x-uhr>/,
+				'<x-wortarten>Der/Art Hund bellt/V.</x-wortarten><x-satzglieder>Der Hund [bellt]P.</x-satzglieder>',
+			),
+		);
+		await gespeichert(page, datei);
+		const stand = await readFile(datei, 'utf8');
+
+		const arten = material(page).locator('x-wortarten');
+		await druecke(arten);
+		await druecke(panel(page).locator('[data-chip="1"]'));
+		await page.getByLabel('Wortart von „Hund“').selectOption({ label: 'Nomen' });
+		await gespeichert(page, datei);
+		expect(await readFile(datei, 'utf8')).toContain('Der/Art Hund/N bellt/V.');
+		await expect(arten.locator('[data-wortart="N"]')).toHaveCount(1);
+		await druecke(zurueck(page));
+		await gespeichert(page, datei);
+		expect(await readFile(datei, 'utf8')).toBe(stand);
+
+		await druecke(arten);
+		const satzFeld = page.getByLabel('Satz', { exact: true });
+		await expect(satzFeld).toHaveValue('Der Hund bellt.');
+		await satzFeld.fill('Der Dackel bellt.');
+		await satzFeld.blur();
+		await gespeichert(page, datei);
+		expect(await readFile(datei, 'utf8')).toContain('Der/Art Dackel bellt/V.');
+		await druecke(zurueck(page));
+		await gespeichert(page, datei);
+		expect(await readFile(datei, 'utf8')).toBe(stand);
+
+		const glieder = material(page).locator('x-satzglieder');
+		await druecke(glieder);
+		await druecke(panel(page).locator('[data-chip="0"]'));
+		await druecke(page.getByRole('button', { name: 'Mit „Hund“ verbinden' }));
+		await gespeichert(page, datei);
+		expect(await readFile(datei, 'utf8')).toContain('[Der Hund] [bellt]P.');
+		await page.getByLabel('Satzglied von „Der“').selectOption({ label: 'Subjekt' });
+		await gespeichert(page, datei);
+		expect(await readFile(datei, 'utf8')).toContain('[Der Hund]S [bellt]P.');
+		await expect(glieder.locator('[data-rolle="S"]')).toHaveText('Der Hund');
+		await druecke(zurueck(page));
+		await gespeichert(page, datei);
+		await druecke(zurueck(page));
+		await gespeichert(page, datei);
+		expect(await readFile(datei, 'utf8')).toBe(stand);
+	});
+});

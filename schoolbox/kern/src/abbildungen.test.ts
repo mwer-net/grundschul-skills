@@ -10,6 +10,13 @@ import {
 	aendereFeld,
 	attributeVon,
 	feldWert,
+	markeSetzen,
+	markeTrennen,
+	markeVerbinden,
+	markierungKlartext,
+	markierungLesen,
+	markierungNeuerText,
+	markierungText,
 	NUR_ZUR_LAUFZEIT,
 	pruefeWerte,
 	rasterText,
@@ -471,6 +478,15 @@ const rechenkerne = () => {
 		) => { band: number; oben: number; unten: number; abstand: number; hoehe: number; schrift: number };
 		silbenTeile: (text: string) => { silben?: string[]; text?: string }[];
 		pruefeSilben: (text: string) => void;
+		WORTARTEN: Record<string, { name: string; symbol: string; voll: boolean; linie: string }>;
+		ROLLEN: Record<string, { name: string; frage: string }>;
+		wortartenTeile: (text: string) => { wort?: string; marke?: string | null; text?: string }[];
+		satzLesen: (text: string) => { glieder: { text: string; rolle: string | null }[]; zeichen: string };
+		satzUmstellen: (
+			text: string,
+			vorn?: string | null,
+		) => { glieder: { text: string; rolle: string | null }[]; zeichen: string };
+		pruefeBausteine: (wort: string, stamm: string | null) => string[];
 		MUENZEN: Record<string, { mm: number; wert: number }>;
 		SCHEINE: Record<string, { b: number; h: number; wert: number }>;
 		betragText: (cent: number, klasse: number) => string;
@@ -1115,5 +1131,125 @@ describe('Lineatur und Silben (031)', () => {
 		assert.ok(fuer('Ro||si').inhalt);
 		assert.ok(fuer('|Ro').inhalt);
 		assert.ok(fuer('Ro5').inhalt);
+	});
+});
+
+describe('Sprache untersuchen (032)', () => {
+	it('stellt Sätze richtig um: Verbzweit, Partikel, Großschreibung', () => {
+		const { satzUmstellen } = rechenkerne();
+		const faelle: [string, string, string?][] = [
+			['[Der Hund]S [bellt]P [den Briefträger]AkO [an]P.', 'Den Briefträger bellt der Hund an.'],
+			['[Anna]S [liest]P [ein Buch]AkO.', 'Ein Buch liest Anna.'],
+			['[Der Lehrer]S [gibt]P [dem Kind]DaO [das Heft]AkO.', 'Dem Kind gibt der Lehrer das Heft.'],
+			['[Heute]Zeit [spielt]P [Ben]S [Fußball]AkO.', 'Ben spielt heute Fußball.'],
+			['[Die Katze]S [schläft]P [auf dem Sofa]Ort.', 'Auf dem Sofa schläft die Katze.'],
+			['[Wir]S [gehen]P [morgen]Zeit [ins Kino]Ort.', 'Morgen gehen wir ins Kino.'],
+			['[Mein Bruder]S [räumt]P [sein Zimmer]AkO [auf]P.', 'Sein Zimmer räumt mein Bruder auf.'],
+			['[Tante Anna]S [ruft]P [uns]AkO [an]P.', 'Uns ruft Tante Anna an.'],
+			['[Kleine Kinder]S [malen]P [bunte Bilder]AkO.', 'Bunte Bilder malen kleine Kinder.'],
+			['[Ben und Anna]S [bauen]P [ein Haus]AkO.', 'Ein Haus bauen Ben und Anna.'],
+			['[Hunde]S [fressen]P [Knochen]AkO.', 'Knochen fressen Hunde.'],
+			['[Im Garten]Ort [wächst]P [eine Blume]S.', 'Eine Blume wächst im Garten.'],
+			['[Er]S [schenkt]P [ihr]DaO [eine Rose]AkO.', 'Ihr schenkt er eine Rose.'],
+			['[Frau Meier]S [schreibt]P [einen Brief]AkO.', 'Einen Brief schreibt Frau Meier.'],
+			['[Die Kinder]S [steigen]P [in den Bus]Ort [ein]P.', 'In den Bus steigen die Kinder ein.'],
+			['[Am Montag]Zeit [fährt]P [die Klasse]S [nach Ulm]Ort.', 'Die Klasse fährt am Montag nach Ulm.'],
+			['[Das Kind]S [hilft]P [der Oma]DaO!', 'Der Oma hilft das Kind!'],
+			['[Oma]S [backt]P [einen Kuchen]AkO.', 'Einen Kuchen backt Oma.'],
+			['[Der Hund]S [bellt]P [den Mann]AkO [heute]Zeit [an]P.', 'Heute bellt der Hund den Mann an.', 'Zeit'],
+			['[Viele Vögel]S [fliegen]P [im Herbst]Zeit [nach Süden]Ort.', 'Im Herbst fliegen viele Vögel nach Süden.'],
+		];
+		for (const [satz, erwartet, vorn] of faelle) {
+			const neu = satzUmstellen(satz, vorn ?? null);
+			assert.equal(`${neu.glieder.map((g) => g.text).join(' ')}${neu.zeichen}`, erwartet, satz);
+		}
+	});
+
+	it('lehnt ab, was sich nicht umstellen lässt', () => {
+		const { satzLesen, satzUmstellen } = rechenkerne();
+		assert.throws(() => satzLesen('[Der Hund]S schläft.'), /Prädikat/);
+		assert.throws(() => satzLesen('[Der Hund]X [bellt]P.'), /gibt es nicht/);
+		assert.throws(() => satzLesen('[Der Hund S [bellt]P.'), /Klammer/);
+		assert.throws(() => satzUmstellen('[Bellt]P [der Hund]S?'), /Fragen/);
+		assert.throws(() => satzUmstellen('[Bring]P [den Ball]AkO!'), /zweiter Stelle/);
+		assert.throws(() => satzUmstellen('[Der Hund]S [bellt]P.'), /noch ein Satzglied/);
+		assert.throws(() => satzUmstellen('Der Hund [bellt]P [laut]Ort.'), /zweiter Stelle|jedes Wort/);
+	});
+
+	it('Wortarten: Kürzel je Wort, jedes Symbol und jede Linie einzeln', () => {
+		const { WORTARTEN, wortartenTeile } = rechenkerne();
+		const teile = Array.from(wortartenTeile('Der/Art Hund/N bellt, laut/A.'), (t) => ({ ...t }));
+		assert.deepEqual(teile, [
+			{ wort: 'Der', marke: 'Art' },
+			{ text: ' ' },
+			{ wort: 'Hund', marke: 'N' },
+			{ text: ' ' },
+			{ wort: 'bellt', marke: null },
+			{ text: ', ' },
+			{ wort: 'laut', marke: 'A' },
+			{ text: '.' },
+		]);
+		const alle = Object.values(WORTARTEN);
+		assert.equal(new Set(alle.map((w) => w.symbol)).size, alle.length);
+		assert.equal(new Set(alle.map((w) => w.linie)).size, alle.length);
+	});
+
+	it('Wortbausteine: Stamm muss ein Baustein sein', () => {
+		const { pruefeBausteine } = rechenkerne();
+		assert.deepEqual(Array.from(pruefeBausteine('ver|fahr|en', 'fahr')), ['ver', 'fahr', 'en']);
+		assert.deepEqual(Array.from(pruefeBausteine('Fahr|er', 'fahr')), ['Fahr', 'er']);
+		assert.throws(() => pruefeBausteine('ver|fahr|en', 'lauf'), /keiner der Bausteine/);
+		assert.throws(() => pruefeBausteine('ver||en', null), /fehlt ein Baustein/);
+		assert.deepEqual(pruefe('x-wortbausteine', { inhalt: 'ver|fahr|en', stamm: 'fahr' }), {});
+		assert.ok(pruefe('x-wortbausteine', { inhalt: 'ver|fahr|en', stamm: 'lauf' }).stamm);
+		assert.ok(pruefe('x-wortbausteine', { inhalt: 'ver|fahr', art: 'familie', woerter: 'a; b' }).inhalt);
+		assert.ok(pruefe('x-wortbausteine', { inhalt: 'fahr', art: 'familie' }).woerter);
+		assert.ok(pruefe('x-wortbausteine', { inhalt: 'ver|fahr', aufgabe: 'familie' }).aufgabe);
+	});
+
+	it('Schema: Kürzel, Rollen und Prädikat', () => {
+		assert.deepEqual(pruefe('x-wortarten', { inhalt: 'Der/Art Hund/N bellt/V.' }), {});
+		assert.ok(pruefe('x-wortarten', { inhalt: 'Der/X Hund.' }).inhalt);
+		assert.deepEqual(pruefe('x-satzglieder', { inhalt: '[Der Hund]S [bellt]P.' }), {});
+		assert.match(pruefe('x-satzglieder', { inhalt: '[Der Hund]S schläft.' }).inhalt ?? '', /Prädikat/);
+		assert.ok(pruefe('x-satzglieder', { inhalt: '[Der Hund]X [bellt]P.' }).inhalt);
+		assert.ok(pruefe('x-satzglieder', { inhalt: '[Der Hund S [bellt]P.' }).inhalt);
+	});
+
+	it('Markierung: lesen, schreiben, Gruppen', () => {
+		const einzeln = 'Der/Art Hund/N bellt laut/A.';
+		const satz = markierungLesen(einzeln);
+		assert.equal(markierungKlartext(satz), 'Der Hund bellt laut.');
+		assert.equal(markierungText(satz), einzeln);
+		const glieder = '[Der Hund]S [bellt]P den Mann [an]P.';
+		const g = markierungLesen(glieder, true);
+		assert.equal(markierungKlartext(g), 'Der Hund bellt den Mann an.');
+		assert.equal(markierungText(g, true), glieder);
+
+		const verbunden = markeVerbinden(g, 3);
+		assert.equal(markierungText(verbunden, true), '[Der Hund]S [bellt]P [den Mann] [an]P.');
+		const gesetzt = markeSetzen(verbunden, 4, 'AkO');
+		assert.equal(markierungText(gesetzt, true), '[Der Hund]S [bellt]P [den Mann]AkO [an]P.');
+		assert.equal(markierungText(markeTrennen(gesetzt, 0), true), '[Der]S [Hund]S [bellt]P [den Mann]AkO [an]P.');
+		assert.equal(markierungText(markeVerbinden(g, 1), true), '[Der Hund bellt]S den Mann [an]P.');
+	});
+
+	it('Markierung: ändert sich ein Wort, bleiben die übrigen markiert', () => {
+		const alt = markierungLesen('Der/Art Hund/N bellt/V laut/A.');
+		assert.equal(
+			markierungText(markierungNeuerText(alt, 'Der Dackel bellt laut.')),
+			'Der/Art Dackel bellt/V laut/A.',
+		);
+		assert.equal(markierungText(markierungNeuerText(alt, 'Der Hund bellt.')), 'Der/Art Hund/N bellt/V.');
+		assert.equal(markierungText(markierungNeuerText(alt, 'Heute bellt der Hund.')), 'Heute bellt/V der Hund.');
+		const g = markierungLesen('[Der Hund]S [bellt]P.', true);
+		assert.equal(
+			markierungText(markierungNeuerText(g, 'Der große Hund bellt.'), true),
+			'[Der große Hund]S [bellt]P.',
+		);
+		assert.equal(
+			markierungText(markierungNeuerText(g, 'Der Hund bellt laut.'), true),
+			'[Der Hund]S [bellt]P laut.',
+		);
 	});
 });

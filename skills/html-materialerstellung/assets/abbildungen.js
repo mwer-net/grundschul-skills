@@ -82,7 +82,7 @@
     "x-urne": "Kugeln im Säckchen", "x-wahrscheinlichkeit": "Wahrscheinlichkeit", "x-kombinatorik": "Möglichkeiten",
     "x-gitter": "Gitter", "x-figur": "Figur", "x-tangram": "Tangram",
     "x-hunderterfeld": "Hunderterfeld", "x-hundertertafel": "Hundertertafel", "x-rechenrahmen": "Rechenrahmen", "x-rechenstrich": "Rechenstrich",
-    "x-lineatur": "Schreiblinien", "x-silben": "Silben",
+    "x-lineatur": "Schreiblinien", "x-silben": "Silben", "x-wortarten": "Wortarten", "x-satzglieder": "Satzglieder", "x-wortbausteine": "Wortbausteine",
     "x-geld": "Geld", "x-skala": "Messgerät", "x-strecke": "Strecke", "x-kalender": "Kalender", "x-zeitspanne": "Zeitspanne",
     "x-punktfeld": "Punktfeld", "x-malkreuz": "Malkreuz", "x-schriftlich": "Schriftliche Rechnung",
     "x-zahlenmauer": "Zahlenmauer", "x-rechendreieck": "Rechendreieck", "x-zahlenhaus": "Zahlenhaus", "x-zahlenkette": "Rechenkette", "x-zauberdreieck": "Zauberdreieck", "x-rechenrad": "Rechenrad",
@@ -3263,6 +3263,169 @@
     el.innerHTML = html;
   }
 
+  /* Sprache untersuchen (032) */
+  const WORTARTEN = {
+    N: { name: "Nomen", farbe: "#1D1D1B", symbol: '<path d="M2 19L12 1L22 19Z"/>', voll: true, linie: "solid 2px" },
+    Art: { name: "Artikel", farbe: "#4FA3E0", symbol: '<path d="M8 19L12 11L16 19Z"/>', voll: true, linie: "dotted 2px" },
+    V: { name: "Verb", farbe: "#D0281E", symbol: '<circle cx="12" cy="10" r="9"/>', voll: true, linie: "wavy 1.5px" },
+    A: { name: "Adjektiv", farbe: "#1F3F9E", symbol: '<path d="M5 19L12 7L19 19Z"/>', voll: false, linie: "dashed 2px" },
+    P: { name: "Pronomen", farbe: "#7A3E9D", symbol: '<path d="M9 19L12 1L15 19Z"/>', voll: false, linie: "double 3px" },
+    Pr: { name: "Präposition", farbe: "#2E8B3E", symbol: '<path d="M3 17Q12 -3 21 17" fill="none"/>', voll: false, linie: "dashed 3.5px" },
+    K: { name: "Konjunktion", farbe: "#D9608F", symbol: '<rect x="2" y="13" width="20" height="5"/>', voll: false, linie: "solid 4px" },
+    Adv: { name: "Adverb", farbe: "#E8871E", symbol: '<circle cx="12" cy="14" r="5"/>', voll: false, linie: "dotted 3.5px" },
+  };
+  const WORT_FARBEN = { ...SILBEN_FARBEN, hellblau: "#4FA3E0", rosa: "#D9608F", orange: "#E8871E" };
+  const wortartenTeile = (satz) => [...satz.matchAll(/([\p{L}\p{N}-]+)(?:\/(\p{L}*))?|[^\p{L}\p{N}-]+/gu)].map((m) => (m[1] ? { wort: m[1], marke: m[2] ?? null } : { text: m[0] }));
+  const pruefeWortarten = (satz) => {
+    for (const t of wortartenTeile(satz)) {
+      if (t.marke !== undefined && t.marke !== null && !WORTARTEN[t.marke]) abbruch(`Das Kürzel „${t.marke}“ gibt es nicht. Erlaubt: ${Object.keys(WORTARTEN).join(", ")}.`);
+    }
+  };
+  const wortartSymbol = (w, farbe) => {
+    const f = w.voll ? farbe : "none";
+    return `<svg class="wa-symbol" viewBox="0 0 24 20" aria-hidden="true" fill="${f}" stroke="${farbe}" stroke-width="2" stroke-linejoin="round">${w.symbol}</svg>`;
+  };
+
+  function wortarten(el) {
+    const satz = inhalt(el), darstellung = attr(el, "darstellung", "symbole"), aufgabe = attr(el, "aufgabe", "keine"), nur = liste(el, "nur"), eigene = paare(el, "farben");
+    if (!["symbole", "unterstreichen"].includes(darstellung)) abbruch(`Die Darstellung „${darstellung}“ gibt es nicht.`);
+    if (!["keine", "bestimmen"].includes(aufgabe)) abbruch(`Die Aufgabe „${aufgabe}“ gibt es nicht.`);
+    pruefeWortarten(satz);
+    for (const k of nur) if (!WORTARTEN[k]) abbruch(`Das Kürzel „${k}“ gibt es nicht.`);
+    const farben = {};
+    for (const { name: k, wert: f } of eigene) {
+      if (!WORTARTEN[k]) abbruch(`Das Kürzel „${k}“ gibt es nicht.`);
+      if (!WORT_FARBEN[f]) abbruch(`Die Farbe „${f}“ gibt es nicht. Erlaubt: ${Object.keys(WORT_FARBEN).join(", ")}.`);
+      farben[k] = WORT_FARBEN[f];
+    }
+    const sw = istSw(), sichtbar = aufgabe === "keine" || loesungSichtbar(el);
+    const html = wortartenTeile(satz).map((t) => {
+      if (t.text !== undefined) return maskiere(t.text);
+      const w = t.marke && (nur.length === 0 || nur.includes(t.marke)) ? WORTARTEN[t.marke] : null;
+      const wort = maskiere(t.wort);
+      if (!w) return `<span class="wortart"><span class="wa-text">${wort}</span></span>`;
+      const farbe = sw ? SCHWARZ : farben[t.marke] ?? w.farbe;
+      if (darstellung === "unterstreichen") {
+        const [stil, dicke] = w.linie.split(" ");
+        const strich = sichtbar ? ` style="text-decoration:underline ${stil} ${farbe};text-decoration-thickness:${dicke}"` : "";
+        return `<span class="wortart" data-wortart="${t.marke}"><span class="wa-text wa-linie"${strich}>${wort}</span></span>`;
+      }
+      const platz = sichtbar ? wortartSymbol(w, farbe) : '<svg class="wa-symbol wa-leer" viewBox="0 0 24 20" aria-hidden="true"><rect x="1" y="1" width="22" height="18" fill="none" stroke="#808080" stroke-width="1.5" stroke-dasharray="3 3"/></svg>';
+      return `<span class="wortart" data-wortart="${t.marke}"><span class="wa-text">${wort}</span>${platz}</span>`;
+    }).join("");
+    el.innerHTML = html;
+  }
+
+  const ROLLEN = {
+    S: { name: "Subjekt", frage: "Wer oder was?" },
+    P: { name: "Prädikat", frage: "Was tut jemand?" },
+    AkO: { name: "Akkusativobjekt", frage: "Wen oder was?" },
+    DaO: { name: "Dativobjekt", frage: "Wem?" },
+    Ort: { name: "Ortsangabe", frage: "Wo?" },
+    Zeit: { name: "Zeitangabe", frage: "Wann?" },
+  };
+  const satzLesen = (satz) => {
+    const glieder = [];
+    let zeichen = "";
+    const rest = satz.replace(/\[([^\[\]]*)\](\p{L}*)|([^\[\]]+)/gu, (_, klammer, rolle, frei) => {
+      if (klammer !== undefined) {
+        if (rolle && !ROLLEN[rolle]) abbruch(`Das Satzglied „${rolle}“ gibt es nicht. Erlaubt: ${Object.keys(ROLLEN).join(", ")}.`);
+        glieder.push({ text: klammer.trim(), rolle: rolle || null });
+      } else if (/[\p{L}\p{N}]/u.test(frei)) {
+        const ende = frei.trim().match(/[.!?]+$/)?.[0] ?? "";
+        glieder.push({ text: frei.trim().slice(0, frei.trim().length - ende.length), rolle: null });
+        zeichen = ende;
+      } else if (frei.trim()) {
+        zeichen = frei.trim();
+      }
+      return "";
+    });
+    if (rest.trim()) abbruch("Eine eckige Klammer ist nicht geschlossen.");
+    if (!glieder.some((g) => g.rolle === "P")) abbruch("Jeder Satz braucht ein Prädikat.");
+    if (glieder.filter((g) => g.rolle === "P").length > 2) abbruch("Das Prädikat hat höchstens zwei Teile.");
+    return { glieder, zeichen };
+  };
+  // Mitten im Satz klein: alles außer Nomen und Namen. Die Liste ist geschlossen genug für Grundschulsätze.
+  const KLEIN_AM_ANFANG = new Set("der die das den dem des ein eine einen einem einer eines kein keine keinen keinem keiner mein meine meinen meinem meiner dein deine deinen deinem deiner sein seine seinen seinem seiner ihr ihre ihren ihrem ihrer unser unsere unseren unserem unserer euer eure euren eurem eurer ich du er sie es wir mir dir ihm ihnen uns euch mich dich ihn wer jeder jede jedes alle viele einige manche dieser diese dieses diesen diesem heute gestern morgen vorgestern übermorgen jetzt nun dann bald später früher oft immer manchmal nie abends morgens mittags nachts dort hier da draußen drinnen oben unten vorn hinten im am in an auf unter über vor hinter neben zwischen bei beim mit nach zu zum zur vom von aus durch für um ohne gegen seit zwei drei vier fünf sechs sieben acht neun zehn".split(" "));
+  const ANREDE = new Set(["Herr", "Frau", "Tante", "Onkel", "Oma", "Opa", "Mama", "Papa"]);
+  const kleinImSatz = (t) => {
+    const [erstes, ...rest] = t.split(/\s+/);
+    if (KLEIN_AM_ANFANG.has(erstes.toLowerCase())) return erstes.charAt(0).toLowerCase() + t.slice(1);
+    const beifuegung = rest.length > 0 && !["und", "oder"].includes(rest[0]) && !ANREDE.has(erstes) && /(e|en|er|es|em)$/.test(erstes) && /^\p{Lu}/u.test(rest.at(-1));
+    return beifuegung ? erstes.charAt(0).toLowerCase() + t.slice(1) : t;
+  };
+  const grossAmAnfang = (t) => t.charAt(0).toUpperCase() + t.slice(1);
+  const satzUmstellen = (satz, vorn = null) => {
+    const { glieder, zeichen } = satzLesen(satz);
+    if (zeichen.includes("?")) abbruch("Fragen lassen sich hier nicht umstellen.");
+    if (glieder.some((g) => !g.rolle)) abbruch("Zum Umstellen braucht jedes Wort ein Satzglied.");
+    if (glieder[1]?.rolle !== "P") abbruch("Zum Umstellen steht das Prädikat an zweiter Stelle.");
+    const [gebeugt, ...klammer] = glieder.filter((g) => g.rolle === "P");
+    const andere = glieder.filter((g) => g.rolle !== "P"), erstes = glieder[0];
+    const wahl = andere.find((g) => g !== erstes && (vorn === null || g.rolle === vorn));
+    if (!wahl) abbruch(vorn === null ? "Zum Umstellen braucht der Satz noch ein Satzglied." : `Das Satzglied „${vorn}“ lässt sich nicht nach vorn stellen.`);
+    const neu = [wahl, gebeugt, ...andere.filter((g) => g !== wahl), ...klammer];
+    return { glieder: neu.map((g, i) => ({ rolle: g.rolle, text: i === 0 ? grossAmAnfang(g.text) : g === erstes ? kleinImSatz(g.text) : g.text })), zeichen };
+  };
+
+  function satzglieder(el) {
+    const satz = inhalt(el), aufgabe = attr(el, "aufgabe", "keine"), ausschneiden = attr(el, "ausschneiden", "nein") === "ja", vorn = attr(el, "vorn", null);
+    if (!["keine", "bestimmen", "umstellen", "fragen"].includes(aufgabe)) abbruch(`Die Aufgabe „${aufgabe}“ gibt es nicht.`);
+    const { glieder, zeichen } = satzLesen(satz);
+    const loesung = loesungSichtbar(el);
+    const kasten = (g, oben, leer) => {
+      const art = [g.rolle === "P" ? "praedikat" : "", g.rolle ? "" : "ohne-rolle", leer ? "leer" : "", ausschneiden ? "schnitt" : ""].filter(Boolean).join(" ");
+      const kopf = oben === null ? "" : `<span class="sg-rolle${oben === "" ? " frei" : ""}">${maskiere(oben)}</span>`;
+      const platz = leer ? ` style="min-width:${r1([...g.text].length * 0.55 + 1.5)}em"` : "";
+      return `<span class="sg-glied">${kopf}<span class="sg-kasten ${art}" data-rolle="${g.rolle ?? ""}"${platz}>${leer ? "" : maskiere(g.text)}</span></span>`;
+    };
+    const oben = (g) => {
+      if (!g.rolle) return aufgabe === "keine" && ausschneiden ? null : "";
+      if (aufgabe === "bestimmen") return loesung ? ROLLEN[g.rolle].name : "";
+      if (aufgabe === "fragen") return loesung ? ROLLEN[g.rolle].frage : "";
+      return aufgabe === "keine" && !ausschneiden ? ROLLEN[g.rolle].name : null;
+    };
+    const satzEnde = ausschneiden || !zeichen ? "" : `<span class="sg-zeichen">${maskiere(zeichen)}</span>`;
+    let html = `<span class="sg-reihe">${glieder.map((g) => kasten(g, oben(g), false)).join("")}${satzEnde}</span>`;
+    if (aufgabe === "umstellen") {
+      const neu = satzUmstellen(satz, vorn);
+      html += `<span class="sg-reihe sg-umstellung"${loesung ? " data-loesung" : ""}>${neu.glieder.map((g) => kasten(g, null, !loesung)).join("")}${loesung && neu.zeichen ? `<span class="sg-zeichen">${maskiere(neu.zeichen)}</span>` : ""}</span>`;
+    }
+    el.innerHTML = html;
+  }
+
+  const bausteineVon = (wort) => wort.split("|").map((t) => t.trim());
+  const pruefeBausteine = (wort, stamm) => {
+    if (/\s/.test(wort.trim())) abbruch("Ein Wort, keine Leerzeichen.");
+    const teile = bausteineVon(wort);
+    if (teile.some((t) => !t)) abbruch("Zwischen zwei Strichen fehlt ein Baustein.");
+    if (teile.some((t) => !/^[\p{L}-]+$/u.test(t))) abbruch("Bausteine bestehen aus Buchstaben.");
+    if (stamm !== null && !teile.some((t) => t.toLowerCase() === stamm.toLowerCase())) abbruch(`Der Stamm „${stamm}“ ist keiner der Bausteine.`);
+    return teile;
+  };
+
+  function wortbausteine(el) {
+    const art = attr(el, "art", "wort"), wort = inhalt(el), stamm = attr(el, "stamm", null), woerter = liste(el, "woerter"), aufgabe = attr(el, "aufgabe", "keine");
+    if (!["wort", "familie"].includes(art)) abbruch(`Die Art „${art}“ gibt es nicht.`);
+    const teile = pruefeBausteine(wort, stamm), loesung = loesungSichtbar(el);
+    const reihe = () => `<span class="wb-reihe">${teile.map((t) => `<span class="wb-kasten${stamm !== null && t.toLowerCase() === stamm.toLowerCase() ? " stamm" : ""}">${maskiere(t)}</span>`).join("")}</span>`;
+    if (art === "familie") {
+      if (!["keine", "familie"].includes(aufgabe)) abbruch(`Die Aufgabe „${aufgabe}“ gibt es bei einer Wortfamilie nicht.`);
+      if (teile.length !== 1) abbruch("Bei einer Wortfamilie steht in der Mitte nur der Stamm.");
+      if (woerter.length < 1 || woerter.length > 8) abbruch("Eine Wortfamilie hat 1 bis 8 Wörter.");
+      const plaetze = [[1, 2], [3, 2], [2, 1], [2, 3], [1, 1], [1, 3], [3, 1], [3, 3]];
+      const zeigen = aufgabe === "keine" || loesung;
+      const felder = woerter.map((w, i) => `<span class="wb-wort${zeigen ? "" : " leer"}" style="grid-row:${plaetze[i][0]};grid-column:${plaetze[i][1]}">${zeigen ? maskiere(w) : ""}</span>`).join("");
+      el.innerHTML = `<span class="wb-familie"><span class="wb-kasten stamm" style="grid-row:2;grid-column:2">${maskiere(teile[0])}</span>${felder}</span>`;
+      return;
+    }
+    if (!["keine", "zerlegen", "zusammensetzen"].includes(aufgabe)) abbruch(`Die Aufgabe „${aufgabe}“ gibt es bei einem Wort nicht.`);
+    const ganz = teile.join("");
+    if (aufgabe === "zerlegen" && !loesung) el.innerHTML = `<span class="wb-ganz">${maskiere(ganz)}</span>`;
+    else if (aufgabe === "zusammensetzen") el.innerHTML = `${reihe()}<span class="wb-wort wb-ergebnis${loesung ? "" : " leer"}">${loesung ? maskiere(ganz) : ""}</span>`;
+    else el.innerHTML = reihe();
+  }
+
   /* == Test == */
   // x-probe gibt es nur für die Tests der Feldtypen im Panel (023); in Material kommt es nicht vor.
   function probe(el) {
@@ -3302,7 +3465,7 @@
     "x-gitter": gitter, "x-figur": figur, "x-tangram": tangram,
     "x-hunderterfeld": hunderterfeld, "x-hundertertafel": hundertertafel, "x-rechenrahmen": rechenrahmen, "x-rechenstrich": rechenstrich,
     "x-zahlenmauer": zahlenmauer, "x-rechendreieck": rechendreieck, "x-zahlenhaus": zahlenhaus, "x-zahlenkette": zahlenkette, "x-zauberdreieck": zauberdreieck, "x-rechenrad": rechenrad,
-    "x-lineatur": lineatur, "x-silben": silben,
+    "x-lineatur": lineatur, "x-silben": silben, "x-wortarten": wortarten, "x-satzglieder": satzglieder, "x-wortbausteine": wortbausteine,
     "x-geld": geld, "x-skala": skala, "x-strecke": strecke, "x-kalender": kalender, "x-zeitspanne": zeitspanne,
     "x-punktfeld": punktfeld, "x-malkreuz": malkreuz, "x-schriftlich": schriftlich,
     "x-wuerfelbau": wuerfelbau, "x-wuerfelnetz": wuerfelnetz, "x-koerper": koerper };
@@ -3333,7 +3496,7 @@
     mauerWerte, mauerEindeutig, istEindeutig, RECHENDREIECK_GLEICHUNGEN, zauberLoesungen, ketteWerte, leseOperator,
     malkreuzRechnung, addiere, subtrahiereErweitern, subtrahiereEntbuendeln, multipliziere, dividiere, moeglicheFehler, rechnungsplan,
     MUENZEN, SCHEINE, betragText, mindestStueckelung, skalaStriche, kalenderMonat, isoWoche, zeitStationen, dauerText, uhrText,
-    ANDIKA_X_HOEHE, lineaturMass, silbenTeile, pruefeSilben,
+    ANDIKA_X_HOEHE, lineaturMass, silbenTeile, pruefeSilben, WORTARTEN, ROLLEN, wortartenTeile, satzLesen, satzUmstellen, kleinImSatz, pruefeBausteine,
   };
   if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", () => window.zeichneAbbildungen());
   else window.zeichneAbbildungen();

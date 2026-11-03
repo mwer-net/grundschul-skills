@@ -59,6 +59,8 @@ export interface AuswahlFeld extends FeldBasis {
 	standard?: string;
 	/** Zurück und Vor unter der Auswahl: Man sieht jede Option gleich im Blatt. */
 	blaettern?: boolean;
+	/** Weitere Optionen aus einem Feld mit `|`-Teilen, z. B. die Bausteine eines Worts. */
+	optionenAus?: string;
 }
 
 export interface SchalterFeld extends FeldBasis {
@@ -185,7 +187,17 @@ export interface MischenFeld extends FeldBasis {
 type FeldAus018 = ZahlFeld | UhrzeitFeld | AuswahlFeld | SchalterFeld | ZahlenFeld | ZiffernFeld;
 type FeldAus023 = TextFeld | ListeFeld | MehrfachFeld | RasterFeld | MusterFeld | MischenFeld;
 
-export type Feld = FeldAus018 | FeldAus023;
+/** Der Inhalt als Wort-Chips: Wort antippen, Markierung wählen; mit `gruppen` lassen sich Nachbarn verbinden. */
+export interface MarkierungFeld extends FeldBasis {
+	art: 'markierung';
+	/** Wie die Auswahl im Panel heißt, z. B. „Wortart“. */
+	markeName: string;
+	optionen: Option[];
+	gruppen?: boolean;
+	beispiel?: string;
+}
+
+export type Feld = FeldAus018 | FeldAus023 | MarkierungFeld;
 
 /** Attributname → Wert in der Quelle, `null` = fehlt. Enthält auch die Lösungs-Attribute. */
 export type Werte = Record<string, string | null>;
@@ -258,6 +270,196 @@ const STUFEN_DREI = ['unmöglich', 'möglich', 'sicher'];
 const STUFEN_FUENF: Option[] = ['unmöglich', 'wenig wahrscheinlich', 'möglich', 'sehr wahrscheinlich', 'sicher'].map(
 	(wert) => ({ wert, name: wert }),
 );
+
+/** Satz als Wörter mit Markierung; bei `gruppen` gehören benachbarte Wörter mit gleicher `gruppe` zu einem Satzglied. */
+export interface MarkWort {
+	wort: string;
+	marke: string | null;
+	gruppe: number;
+	/** Was bis zum nächsten Wort folgt: Leerzeichen, Satzzeichen. */
+	nach: string;
+}
+
+export interface MarkSatz {
+	vor: string;
+	woerter: MarkWort[];
+}
+
+const WORT = /[\p{L}\p{N}-]+/gu;
+
+const woerterIn = (text: string, marke: string | null, gruppe: () => number): MarkSatz => {
+	const treffer = [...text.matchAll(WORT)];
+	const woerter = treffer.map((t, i): MarkWort => {
+		const ende = (t.index ?? 0) + t[0].length;
+		return { wort: t[0], marke, gruppe: gruppe(), nach: text.slice(ende, treffer[i + 1]?.index ?? text.length) };
+	});
+	return { vor: treffer.length === 0 ? text : text.slice(0, treffer[0]?.index ?? 0), woerter };
+};
+
+const lesenEinzeln = (wert: string): MarkSatz => {
+	const treffer = [...wert.matchAll(/([\p{L}\p{N}-]+)(?:\/(\p{L}*))?/gu)];
+	const woerter = treffer.map((t, i): MarkWort => {
+		const ende = (t.index ?? 0) + t[0].length;
+		return {
+			wort: t[1] ?? '',
+			marke: t[2] ?? null,
+			gruppe: i,
+			nach: wert.slice(ende, treffer[i + 1]?.index ?? wert.length),
+		};
+	});
+	return { vor: treffer.length === 0 ? wert : wert.slice(0, treffer[0]?.index ?? 0), woerter };
+};
+
+const lesenGruppen = (wert: string): MarkSatz => {
+	let nr = 0;
+	const neueGruppe = () => nr++;
+	const satz: MarkSatz = { vor: '', woerter: [] };
+	const anhaengen = (teil: MarkSatz) => {
+		const letztes = satz.woerter.at(-1);
+		if (letztes) {
+			letztes.nach += teil.vor;
+		} else {
+			satz.vor += teil.vor;
+		}
+		satz.woerter.push(...teil.woerter);
+	};
+	for (const t of wert.matchAll(/\[([^[\]]*)\](\p{L}*)|[^[\]]+|[[\]]/gu)) {
+		if (t[1] === undefined) {
+			anhaengen(woerterIn(t[0], null, neueGruppe));
+		} else {
+			const gruppe = neueGruppe();
+			anhaengen(woerterIn(t[1], t[2] || null, () => gruppe));
+		}
+	}
+	return satz;
+};
+
+export const markierungLesen = (wert: string, gruppen = false) => (gruppen ? lesenGruppen(wert) : lesenEinzeln(wert));
+
+export const markierungKlartext = (satz: MarkSatz) => satz.vor + satz.woerter.map((w) => `${w.wort}${w.nach}`).join('');
+
+/** Einzelne Wörter und Gruppen ohne Rolle bleiben ohne Klammer, wenn sie allein stehen. */
+export const markierungText = (satz: MarkSatz, gruppen = false) => {
+	if (!gruppen) {
+		return satz.vor + satz.woerter.map((w) => `${w.wort}${w.marke ? `/${w.marke}` : ''}${w.nach}`).join('');
+	}
+	let text = satz.vor;
+	satz.woerter.forEach((w, i) => {
+		const vorher = satz.woerter[i - 1];
+		const nachher = satz.woerter[i + 1];
+		const offen = vorher?.gruppe !== w.gruppe;
+		const schluss = nachher?.gruppe !== w.gruppe;
+		const klammer = w.marke !== null || !offen || !schluss;
+		text += `${klammer && offen ? '[' : ''}${w.wort}${klammer && schluss ? `]${w.marke ?? ''}` : ''}${w.nach}`;
+	});
+	return text;
+};
+
+/** Überträgt die Markierungen auf einen neuen Satz: Wörter, die gleich bleiben, behalten ihre (längste gemeinsame Folge). */
+export const markierungNeuerText = (alt: MarkSatz, klartext: string): MarkSatz => {
+	let nr = Math.max(-1, ...alt.woerter.map((w) => w.gruppe)) + 1;
+	const neu = woerterIn(klartext, null, () => nr++);
+	const a = alt.woerter;
+	const b = neu.woerter;
+	const laenge = Array.from({ length: a.length + 1 }, () => new Array<number>(b.length + 1).fill(0));
+	const feld = (i: number, j: number) => laenge[i]?.[j] ?? 0;
+	for (let i = a.length - 1; i >= 0; i--) {
+		for (let j = b.length - 1; j >= 0; j--) {
+			const gleich = a[i]?.wort === b[j]?.wort;
+			(laenge[i] as number[])[j] = gleich ? feld(i + 1, j + 1) + 1 : Math.max(feld(i + 1, j), feld(i, j + 1));
+		}
+	}
+	let i = 0;
+	let j = 0;
+	const herkunft = new Map<number, MarkWort>();
+	while (i < a.length && j < b.length) {
+		const quelle = a[i];
+		if (quelle && quelle.wort === b[j]?.wort) {
+			herkunft.set(j, quelle);
+			i++;
+			j++;
+		} else if (feld(i + 1, j) >= feld(i, j + 1)) {
+			i++;
+		} else {
+			j++;
+		}
+	}
+	b.forEach((w, k) => {
+		const quelle = herkunft.get(k);
+		if (quelle) {
+			w.marke = quelle.marke;
+			w.gruppe = quelle.gruppe;
+		}
+	});
+	// Ein neues Wort mitten in einer Gruppe gehört dazu, sonst zerfiele sie.
+	b.forEach((w, k) => {
+		if (herkunft.has(k)) {
+			return;
+		}
+		const links = [...b.slice(0, k)].reverse().find((_, r) => herkunft.has(k - 1 - r));
+		const rechts = b.slice(k + 1).find((_, r) => herkunft.has(k + 1 + r));
+		if (links && rechts && links.gruppe === rechts.gruppe) {
+			w.gruppe = links.gruppe;
+			w.marke = links.marke;
+		}
+	});
+	return neu;
+};
+
+export const markeSetzen = (satz: MarkSatz, i: number, marke: string | null): MarkSatz => {
+	const gruppe = satz.woerter[i]?.gruppe;
+	return { ...satz, woerter: satz.woerter.map((w) => (w.gruppe === gruppe ? { ...w, marke } : w)) };
+};
+
+/** Verbindet die Gruppe von Wort `i` mit der des nächsten Worts; die erste vorhandene Markierung gilt. */
+export const markeVerbinden = (satz: MarkSatz, i: number): MarkSatz => {
+	const links = satz.woerter[i];
+	const rechts = satz.woerter[i + 1];
+	if (!links || !rechts || links.gruppe === rechts.gruppe) {
+		return satz;
+	}
+	const marke = links.marke ?? rechts.marke;
+	return {
+		...satz,
+		woerter: satz.woerter.map((w) =>
+			w.gruppe === links.gruppe || w.gruppe === rechts.gruppe ? { ...w, gruppe: links.gruppe, marke } : w,
+		),
+	};
+};
+
+/** Trennt die Gruppe zwischen Wort `i` und dem nächsten; beide Teile behalten die Markierung. */
+export const markeTrennen = (satz: MarkSatz, i: number): MarkSatz => {
+	const links = satz.woerter[i];
+	const rechts = satz.woerter[i + 1];
+	if (!links || !rechts || links.gruppe !== rechts.gruppe) {
+		return satz;
+	}
+	const neu = Math.max(...satz.woerter.map((w) => w.gruppe)) + 1;
+	return {
+		...satz,
+		woerter: satz.woerter.map((w, k) => (k > i && w.gruppe === links.gruppe ? { ...w, gruppe: neu } : w)),
+	};
+};
+
+const WORTART_OPTIONEN: Option[] = [
+	{ wert: 'N', name: 'Nomen' },
+	{ wert: 'Art', name: 'Artikel' },
+	{ wert: 'V', name: 'Verb' },
+	{ wert: 'A', name: 'Adjektiv' },
+	{ wert: 'P', name: 'Pronomen' },
+	{ wert: 'Pr', name: 'Präposition' },
+	{ wert: 'K', name: 'Konjunktion' },
+	{ wert: 'Adv', name: 'Adverb' },
+];
+
+const ROLLEN_OPTIONEN: Option[] = [
+	{ wert: 'S', name: 'Subjekt' },
+	{ wert: 'P', name: 'Prädikat' },
+	{ wert: 'AkO', name: 'Akkusativobjekt' },
+	{ wert: 'DaO', name: 'Dativobjekt' },
+	{ wert: 'Ort', name: 'Ortsangabe' },
+	{ wert: 'Zeit', name: 'Zeitangabe' },
+];
 
 export const ABBILDUNG_SCHEMA = {
 	'x-uhr': {
@@ -1347,6 +1549,207 @@ export const ABBILDUNG_SCHEMA = {
 			return /^[\p{L}\s|.,;:!?„“"'()\-–…]*$/u.test(wort)
 				? {}
 				: { inhalt: 'Erlaubt sind Buchstaben, Satzzeichen, Leerzeichen und der Silbenstrich.' };
+		},
+	},
+	'x-wortarten': {
+		name: 'Wortarten',
+		felder: [
+			{
+				art: 'markierung',
+				attribut: 'inhalt',
+				name: 'Satz',
+				quelle: 'inhalt',
+				markeName: 'Wortart',
+				beispiel: 'Der Hund bellt laut.',
+				optionen: WORTART_OPTIONEN,
+				hilfe: 'Wort antippen und die Wortart wählen.',
+			},
+			{
+				art: 'auswahl',
+				attribut: 'darstellung',
+				name: 'Darstellung',
+				standard: 'symbole',
+				optionen: [
+					{ wert: 'symbole', name: 'Symbole' },
+					{ wert: 'unterstreichen', name: 'Unterstreichen' },
+				],
+			},
+			{ art: 'mehrfach', attribut: 'nur', name: 'Nur diese zeigen', optionen: WORTART_OPTIONEN, gruppe: 'Mehr' },
+			{
+				art: 'liste',
+				attribut: 'farben',
+				name: 'Farben der Klasse',
+				gruppe: 'Mehr',
+				unter: [
+					{ name: 'Wortart', art: 'auswahl', standard: 'N', optionen: WORTART_OPTIONEN },
+					{
+						name: 'Farbe',
+						art: 'auswahl',
+						standard: 'blau',
+						optionen: [
+							'blau',
+							'rot',
+							'gruen',
+							'lila',
+							'braun',
+							'schwarz',
+							'hellblau',
+							'rosa',
+							'orange',
+						].map((f) => ({ wert: f, name: f === 'gruen' ? 'grün' : f })),
+					},
+				],
+			},
+			{
+				art: 'auswahl',
+				attribut: 'aufgabe',
+				name: 'Aufgabe',
+				standard: 'keine',
+				optionen: [
+					{ wert: 'keine', name: 'Nur zeigen' },
+					{ wert: 'bestimmen', name: 'Wortarten bestimmen' },
+				],
+			},
+		],
+		regeln: (w): Fehler => {
+			const unbekannt = markierungLesen(w.text('inhalt') ?? '').woerter.find(
+				(t) => t.marke !== null && !WORTART_OPTIONEN.some((o) => o.wert === t.marke),
+			);
+			return unbekannt ? { inhalt: `Das Kürzel „${unbekannt.marke ?? ''}“ gibt es nicht.` } : {};
+		},
+	},
+	'x-satzglieder': {
+		name: 'Satzglieder',
+		felder: [
+			{
+				art: 'markierung',
+				attribut: 'inhalt',
+				name: 'Satz',
+				quelle: 'inhalt',
+				markeName: 'Satzglied',
+				gruppen: true,
+				beispiel: 'Der Hund bellt den Briefträger an.',
+				optionen: ROLLEN_OPTIONEN,
+				hilfe: 'Wort antippen, Nachbarn verbinden und das Satzglied wählen.',
+			},
+			{
+				art: 'auswahl',
+				attribut: 'aufgabe',
+				name: 'Aufgabe',
+				standard: 'keine',
+				optionen: [
+					{ wert: 'keine', name: 'Nur zeigen' },
+					{ wert: 'bestimmen', name: 'Satzglieder bestimmen' },
+					{ wert: 'umstellen', name: 'Satz umstellen' },
+					{ wert: 'fragen', name: 'Fragen stellen' },
+				],
+			},
+			{
+				art: 'auswahl',
+				attribut: 'vorn',
+				name: 'Beim Umstellen nach vorn',
+				gruppe: 'Mehr',
+				optionen: [
+					{ wert: null, name: 'Nächstes Satzglied' },
+					...ROLLEN_OPTIONEN.filter((o) => o.wert !== 'P'),
+				],
+			},
+			{
+				art: 'schalter',
+				attribut: 'ausschneiden',
+				name: 'Satzstreifen zum Ausschneiden',
+				an: 'ja',
+				aus: 'nein',
+				standard: false,
+				gruppe: 'Mehr',
+			},
+		],
+		regeln: (w): Fehler => {
+			const wert = w.text('inhalt');
+			if (wert === null) {
+				return {};
+			}
+			const zaehler = [...wert].filter((z) => z === '[').length;
+			if (zaehler !== [...wert].filter((z) => z === ']').length) {
+				return { inhalt: 'Eine eckige Klammer ist nicht geschlossen.' };
+			}
+			const { woerter } = markierungLesen(wert, true);
+			const unbekannt = woerter.find((t) => t.marke !== null && !ROLLEN_OPTIONEN.some((o) => o.wert === t.marke));
+			if (unbekannt) {
+				return { inhalt: `Das Satzglied „${unbekannt.marke ?? ''}“ gibt es nicht.` };
+			}
+			return woerter.some((t) => t.marke === 'P') ? {} : { inhalt: 'Jeder Satz braucht ein Prädikat.' };
+		},
+	},
+	'x-wortbausteine': {
+		name: 'Wortbausteine',
+		felder: [
+			{
+				art: 'auswahl',
+				attribut: 'art',
+				name: 'Art',
+				standard: 'wort',
+				optionen: [
+					{ wert: 'wort', name: 'Ein Wort zerlegt' },
+					{ wert: 'familie', name: 'Wortfamilie' },
+				],
+			},
+			{
+				art: 'text',
+				attribut: 'inhalt',
+				name: 'Bausteine',
+				quelle: 'inhalt',
+				beispiel: 'ver|fahr|en',
+				einfuegen: { zeichen: '|', name: 'Trennstrich einfügen' },
+				hilfe: 'Bei einer Wortfamilie nur der Stamm.',
+			},
+			{
+				art: 'auswahl',
+				attribut: 'stamm',
+				name: 'Stamm',
+				optionen: [{ wert: null, name: 'Nicht hervorheben' }],
+				optionenAus: 'inhalt',
+			},
+			{
+				art: 'liste',
+				attribut: 'woerter',
+				name: 'Wörter der Familie',
+				max: 8,
+				unter: [{ name: 'Wort', art: 'text', standard: 'Wort' }],
+			},
+			{
+				art: 'auswahl',
+				attribut: 'aufgabe',
+				name: 'Aufgabe',
+				standard: 'keine',
+				optionen: [
+					{ wert: 'keine', name: 'Nur zeigen' },
+					{ wert: 'zerlegen', name: 'Wort zerlegen' },
+					{ wert: 'zusammensetzen', name: 'Wort zusammensetzen' },
+					{ wert: 'familie', name: 'Wortfamilie finden' },
+				],
+			},
+		],
+		regeln: (w): Fehler => {
+			const wort = w.text('inhalt') ?? '';
+			const familie = w.text('art') === 'familie';
+			const teile = wort.split('|').map((t) => t.trim());
+			const stamm = w.text('stamm');
+			const aufgabe = w.text('aufgabe');
+			if (wort !== '' && teile.some((t) => !/^[\p{L}-]+$/u.test(t))) {
+				return { inhalt: 'Bausteine bestehen aus Buchstaben, dazwischen je ein Strich.' };
+			}
+			if (stamm !== null && !teile.some((t) => t.toLowerCase() === stamm.toLowerCase())) {
+				return { stamm: `Der Stamm „${stamm}“ ist keiner der Bausteine.` };
+			}
+			if (familie && teile.length > 1) {
+				return { inhalt: 'Bei einer Wortfamilie steht in der Mitte nur der Stamm.' };
+			}
+			if (familie && w.zeilen('woerter').length === 0) {
+				return { woerter: 'Eine Wortfamilie braucht Wörter.' };
+			}
+			const passt = familie ? aufgabe !== 'zerlegen' && aufgabe !== 'zusammensetzen' : aufgabe !== 'familie';
+			return passt ? {} : { aufgabe: 'Diese Aufgabe passt nicht zur Art.' };
 		},
 	},
 	'x-geld': {

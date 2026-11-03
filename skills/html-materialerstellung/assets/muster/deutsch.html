@@ -41,5 +41,38 @@
   <div class="aufgabe"><div class="nr">1</div><div class="anw"><div class="text">Trenne die Wörter mit Strichen.</div></div>
     <div class="koerper"><x-silben aufgabe="trennen">Som|mer Gar|ten Blu|me</x-silben></div></div>
 </section>
+<section class="seite">
+  <div class="kopf"><div class="titel"><h1>Wortarten</h1></div></div>
+  <div class="aufgabe"><div class="nr">1</div><div class="anw"><div class="text">Alle Symbole.</div></div>
+    <div class="koerper"><x-wortarten>Der/Art kleine/A Hund/N und/K er/P bellen/V laut/Adv auf/Pr dem/Art Hof/N.</x-wortarten></div></div>
+  <div class="aufgabe"><div class="nr">2</div><div class="anw"><div class="text">Unterstrichen.</div></div>
+    <div class="koerper"><x-wortarten darstellung="unterstreichen">Der/Art kleine/A Hund/N und/K er/P bellen/V laut/Adv auf/Pr dem/Art Hof/N.</x-wortarten></div></div>
+  <div class="aufgabe"><div class="nr">3</div><div class="anw"><div class="text">Zeichne die Symbole für Nomen und Verb.</div></div>
+    <div class="koerper"><x-wortarten aufgabe="bestimmen" nur="N V">Die/Art Katze/N schläft/V im/Pr Korb/N.</x-wortarten></div></div>
+  <div class="aufgabe"><div class="nr">4</div><div class="anw"><div class="text">Unterstreiche Nomen, Verb und Adjektiv.</div></div>
+    <div class="koerper"><x-wortarten aufgabe="bestimmen" darstellung="unterstreichen">Der/Art Hase/N läuft/V schnell/A.</x-wortarten></div></div>
+</section>
+<section class="seite">
+  <div class="kopf"><div class="titel"><h1>Satzglieder</h1></div></div>
+  <div class="aufgabe"><div class="nr">1</div><div class="anw"><div class="text">Satzglieder mit Verbklammer.</div></div>
+    <div class="koerper"><x-satzglieder>[Der Hund]S [bellt]P [den Briefträger]AkO [an]P.</x-satzglieder></div></div>
+  <div class="aufgabe"><div class="nr">2</div><div class="anw"><div class="text">Bestimme die Satzglieder.</div></div>
+    <div class="koerper"><x-satzglieder aufgabe="bestimmen">[Die Lehrerin]S [gibt]P [dem Kind]DaO [ein Heft]AkO.</x-satzglieder></div></div>
+  <div class="aufgabe"><div class="nr">3</div><div class="anw"><div class="text">Stelle den Satz um.</div></div>
+    <div class="koerper"><x-satzglieder aufgabe="umstellen">[Der Hund]S [bellt]P [den Briefträger]AkO [an]P.</x-satzglieder></div></div>
+  <div class="aufgabe"><div class="nr">4</div><div class="anw"><div class="text">Schneide aus und lege neue Sätze.</div></div>
+    <div class="koerper"><x-satzglieder ausschneiden="ja">[Morgen]Zeit [fahren]P [wir]S [nach Ulm]Ort.</x-satzglieder></div></div>
+</section>
+<section class="seite">
+  <div class="kopf"><div class="titel"><h1>Wortbausteine</h1></div></div>
+  <div class="aufgabe"><div class="nr">1</div><div class="anw"><div class="text">Bausteine und Stamm.</div></div>
+    <div class="koerper"><x-wortbausteine stamm="fahr">ver|fahr|en</x-wortbausteine></div></div>
+  <div class="aufgabe"><div class="nr">2</div><div class="anw"><div class="text">Zerlege das Wort.</div></div>
+    <div class="koerper"><x-wortbausteine aufgabe="zerlegen" stamm="lauf">ver|lauf|en</x-wortbausteine></div></div>
+  <div class="aufgabe"><div class="nr">3</div><div class="anw"><div class="text">Setze das Wort zusammen.</div></div>
+    <div class="koerper"><x-wortbausteine aufgabe="zusammensetzen" stamm="spiel">ab|spiel|en</x-wortbausteine></div></div>
+  <div class="aufgabe"><div class="nr">4</div><div class="anw"><div class="text">Finde Wörter zur Wortfamilie.</div></div>
+    <div class="koerper"><x-wortbausteine art="familie" aufgabe="familie" woerter="Fahrer; Abfahrt; fahren; Fahrrad; Einfahrt; befahren">fahr</x-wortbausteine></div></div>
+</section>
 </body>
 </html>

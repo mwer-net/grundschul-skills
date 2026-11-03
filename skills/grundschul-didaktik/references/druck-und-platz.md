@@ -94,6 +94,7 @@ Ziel: **Übersicht vor Menge.** Ein Kind muss jede Aufgabe auf einen Blick verst
 | Antwortlinie für eine Zahl/Uhrzeit | 100 px | 88 px | 80 px |
 | Zeilenhöhe Schreiblinie (`x-lineatur`, Maße in `gestaltung.md`) | Lineatur 1 | Lineatur 2 | Lineatur 3/4 |
 | Ankreuz-/Ergebniskästchen | 28 px | 24 px | 22 px |
+| Wortart-Symbol, Satzglied-Kästchen | folgt der Schriftgröße, nicht verkleinern | ebenso | ebenso |
 | Glücksrad zum Ablesen | 180 px | 160 px | 140 px |
 | Würfel | 60 px | 52 px | 44 px |
 | Strichliste, Zeilenhöhe | 38 px | 34 px | 30 px |

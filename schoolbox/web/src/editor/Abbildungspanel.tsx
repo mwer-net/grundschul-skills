@@ -2,6 +2,7 @@ import type {
 	AuswahlFeld,
 	Feld,
 	ListeFeld,
+	MarkierungFeld,
 	MehrfachFeld,
 	MischenFeld,
 	MusterFeld,
@@ -19,6 +20,13 @@ import {
 	alsZahl,
 	feldWert,
 	listeVon,
+	markeSetzen,
+	markeTrennen,
+	markeVerbinden,
+	markierungKlartext,
+	markierungLesen,
+	markierungNeuerText,
+	markierungText,
 	rasterText,
 	rasterVon,
 	stellenVon,
@@ -253,8 +261,11 @@ const Uhrzeit = ({ abb, feld }: FeldEigenschaften<UhrzeitFeld>) => {
 const Auswahl = ({ abb, feld }: FeldEigenschaften<AuswahlFeld>) => {
 	const id = useId();
 	const wert = wertVon(feld, abb)?.wert ?? feld.standard ?? null;
-	const bekannt = feld.optionen.some((o) => o.wert === wert);
-	const optionen = bekannt ? feld.optionen : [...feld.optionen, { wert, name: wert ?? '–' }];
+	const aus = feld.optionenAus && abb.werte ? (abb.werte[feld.optionenAus] ?? '') : '';
+	const dazu = aus.split('|').flatMap((t) => (t.trim() ? [{ wert: t.trim(), name: t.trim() }] : []));
+	const moeglich = [...feld.optionen, ...dazu];
+	const bekannt = moeglich.some((o) => o.wert === wert);
+	const optionen = bekannt ? moeglich : [...moeglich, { wert, name: wert ?? '–' }];
 	const index = optionen.findIndex((o) => o.wert === wert);
 	const blaettere = (schritt: number) => abb.aendere(feld, optionen[index + schritt]?.wert ?? null);
 	return (
@@ -874,6 +885,102 @@ const Raster = ({ abb, feld }: FeldEigenschaften<RasterFeld>) => {
 	);
 };
 
+/** Satz als Wort-Chips. Getippt wird gegen den Stand beim Betreten, damit ein halbes Wort keine Markierung verliert. */
+const Markierung = ({ abb, feld }: FeldEigenschaften<MarkierungFeld>) => {
+	const id = useId();
+	const wert = wertVon(feld, abb)?.wert ?? '';
+	const satz = markierungLesen(wert, feld.gruppen);
+	const klartext = markierungKlartext(satz);
+	const [text, setText] = useState(klartext);
+	const [gewaehlt, setGewaehlt] = useState<number | null>(null);
+	const eingabe = useRef<HTMLTextAreaElement>(null);
+	const basis = useRef(satz);
+
+	useEffect(() => {
+		if (eingabe.current?.ownerDocument.activeElement !== eingabe.current) {
+			setText(klartext);
+		}
+	}, [klartext]);
+
+	const schreibe = (neu: typeof satz, uebernehmen = true) => {
+		const quelle = markierungText(neu, feld.gruppen);
+		abb.aendere(feld, quelle.trim() === '' ? null : quelle, uebernehmen ? undefined : { uebernehmen: false });
+	};
+	const wort = gewaehlt === null ? undefined : satz.woerter[gewaehlt];
+	const umschalten = (i: number) =>
+		schreibe(
+			satz.woerter[i]?.gruppe === satz.woerter[i + 1]?.gruppe ? markeTrennen(satz, i) : markeVerbinden(satz, i),
+		);
+	const naechstes = gewaehlt === null ? undefined : satz.woerter[gewaehlt + 1];
+	const verbunden = Boolean(wort && naechstes && wort.gruppe === naechstes.gruppe);
+	return (
+		<Rahmen feld={feld} abb={abb} id={id}>
+			<div className="flex flex-wrap gap-1" data-markierung>
+				{satz.woerter.map((w, i) => {
+					const schluss = satz.woerter[i + 1]?.gruppe !== w.gruppe;
+					const anfang = satz.woerter[i - 1]?.gruppe !== w.gruppe;
+					const name = feld.optionen.find((o) => o.wert === w.marke)?.name;
+					return (
+						<button
+							key={`${i}-${w.wort}`}
+							type="button"
+							data-chip={i}
+							data-marke={w.marke ?? ''}
+							aria-pressed={gewaehlt === i}
+							className={`min-h-11 border-2 px-2 ${anfang ? 'rounded-l-xl' : '-ml-1.5 border-l-0'} ${schluss ? 'rounded-r-xl' : 'border-r-0'} ${gewaehlt === i ? 'border-brand-500 bg-brand-50' : 'border-rand bg-white'}`}
+							onClick={() => setGewaehlt(gewaehlt === i ? null : i)}
+						>
+							<span className="block">{w.wort}</span>
+							{schluss && <span className="block text-sm text-leise">{name ?? '–'}</span>}
+						</button>
+					);
+				})}
+			</div>
+			{gewaehlt !== null && wort && (
+				<div className="mt-2">
+					<select
+						aria-label={`${feld.markeName} von „${wort.wort}“`}
+						className={`${EINGABE} w-full`}
+						value={wort.marke ?? ''}
+						onChange={(e) => schreibe(markeSetzen(satz, gewaehlt, e.target.value || null))}
+					>
+						<option value="">Keine</option>
+						{feld.optionen.map((o) => (
+							<option key={o.wert} value={o.wert}>
+								{o.name}
+							</option>
+						))}
+					</select>
+					{feld.gruppen && naechstes && (
+						<Knopf art="zweit" className="mt-2" onClick={() => umschalten(gewaehlt)}>
+							{verbunden ? `Von „${naechstes.wort}“ trennen` : `Mit „${naechstes.wort}“ verbinden`}
+						</Knopf>
+					)}
+				</div>
+			)}
+			<textarea
+				id={id}
+				ref={eingabe}
+				rows={2}
+				autoComplete="off"
+				className={`${EINGABE} mt-2 w-full py-2`}
+				aria-invalid={Boolean(abb.fehler[feld.attribut])}
+				placeholder={feld.beispiel && `z. B. ${feld.beispiel}`}
+				value={text}
+				onFocus={() => {
+					basis.current = satz;
+				}}
+				onChange={(e) => {
+					setText(e.target.value);
+					setGewaehlt(null);
+					schreibe(markierungNeuerText(basis.current, e.target.value), false);
+				}}
+				onBlur={() => schreibe(markierungNeuerText(basis.current, text.trim()))}
+			/>
+		</Rahmen>
+	);
+};
+
 const Eingabe = ({ abb, feld }: FeldEigenschaften<Feld>) => {
 	switch (feld.art) {
 		case 'zahl':
@@ -900,6 +1007,8 @@ const Eingabe = ({ abb, feld }: FeldEigenschaften<Feld>) => {
 			return <MusterEingabe feld={feld} abb={abb} />;
 		case 'mischen':
 			return <Mischen feld={feld} abb={abb} />;
+		case 'markierung':
+			return <Markierung feld={feld} abb={abb} />;
 		default:
 			return null;
 	}
