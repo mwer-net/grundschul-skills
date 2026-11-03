@@ -6,6 +6,7 @@ import path from 'node:path';
 import { describe, it } from 'node:test';
 import { promisify } from 'node:util';
 
+import { BROWSER_HINWEIS, browserFehlt } from './browsertest';
 import { ASSETS, BLATT_PY } from './konfig';
 import { setzeLoesung } from './loesungen';
 import type { Knoten } from './quelltext';
@@ -13,7 +14,6 @@ import { klassenVon, schuetzeText, verschiebe, wendeAn, zerlege } from './quellt
 import { verschiebeBaustein } from './struktur';
 
 const ausfuehren = promisify(execFile);
-const CHROMIUM_DA = 'import sys; sys.path.insert(0, sys.argv[1]); import blatt; blatt.finde_chromium()';
 
 const fehlt = (befehl: string, argumente: string[]) => {
 	try {
@@ -23,8 +23,6 @@ const fehlt = (befehl: string, argumente: string[]) => {
 		return true;
 	}
 };
-
-const chromiumFehlt = () => fehlt('python3', ['-c', CHROMIUM_DA, path.dirname(BLATT_PY)]);
 
 interface Bericht {
 	seiten: unknown[];
@@ -55,8 +53,8 @@ const bearbeite = (quelle: string) => {
 
 describe('blatt.py auf im Editor bearbeiteten Dateien', () => {
 	it('baut wie vorher, ohne Fehler und mit derselben Seitenzahl', { timeout: 300_000 }, async (t) => {
-		if (chromiumFehlt()) {
-			t.skip('kein Chromium für blatt.py gefunden');
+		if (browserFehlt()) {
+			t.skip(BROWSER_HINWEIS);
 			return;
 		}
 		const ordner = await mkdtemp(path.join(tmpdir(), 'schoolbox-editor-blatt-'));
@@ -79,8 +77,8 @@ describe('blatt.py auf im Editor bearbeiteten Dateien', () => {
 		'zeigt nach dem Umsortieren im Lösungsblatt dieselbe Reihenfolge und Nummern',
 		{ timeout: 300_000 },
 		async (t) => {
-			if (chromiumFehlt() || fehlt('pdftotext', ['-v'])) {
-				t.skip('kein Chromium für blatt.py oder kein pdftotext');
+			if (browserFehlt() || fehlt('pdftotext', ['-v'])) {
+				t.skip(BROWSER_HINWEIS);
 				return;
 			}
 			const ordner = await mkdtemp(path.join(tmpdir(), 'schoolbox-struktur-blatt-'));
@@ -105,8 +103,8 @@ describe('blatt.py auf im Editor bearbeiteten Dateien', () => {
 		'zeigt eine geänderte Lösung nur im Lösungsblatt, das Arbeitsblatt bleibt gleich',
 		{ timeout: 300_000 },
 		async (t) => {
-			if (chromiumFehlt() || fehlt('pdftotext', ['-v'])) {
-				t.skip('kein Chromium für blatt.py oder kein pdftotext');
+			if (browserFehlt() || fehlt('pdftotext', ['-v'])) {
+				t.skip(BROWSER_HINWEIS);
 				return;
 			}
 			const ordner = await mkdtemp(path.join(tmpdir(), 'schoolbox-loesung-blatt-'));

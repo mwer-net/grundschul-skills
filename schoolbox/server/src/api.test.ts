@@ -11,7 +11,7 @@ interface DokumentAntwort {
 	quelle: string;
 	version: string;
 	ausgabeVeraltet: boolean;
-	meta: { titel: string; hatLoesung: boolean };
+	meta: { format: string; titel: string; hatLoesung: boolean };
 }
 
 describe('API', () => {
@@ -110,17 +110,24 @@ describe('API', () => {
 		assert.equal(formular.status, 403);
 	});
 
-	it('lehnt fehlerhafte Inhalte, falsches Format und zu große Daten ab', async () => {
+	it('lehnt fehlerhafte Inhalte und zu große Daten ab', async () => {
 		const { quelle, version } = await lies();
 		assert.equal((await speichere({ quelle: '', basisVersion: version })).status, 400);
 		assert.equal((await speichere({ quelle, basisVersion: 'abc' })).status, 400);
-		const quer = quelle.replace('<body class="', '<body class="a4-quer ');
-		const format = await speichere({ quelle: quer, basisVersion: version });
-		assert.equal(format.status, 400);
-		assert.match(((await format.json()) as { fehler: string }).fehler, /Format passt nicht/);
 		const riesig = await speichere({ quelle: 'x'.repeat(6 * 1024 * 1024), basisVersion: version });
 		assert.equal(riesig.status, 413);
 		assert.equal(await readFile(path.join(dir, 'material.html'), 'utf8'), quelle);
+	});
+
+	it('nimmt das Format aus der Quelle, weil es sich im Editor ändern lässt (046)', async () => {
+		const { quelle, version } = await lies();
+		const quer = quelle.replace('<body class="', '<body class="a4-quer ');
+		const antwort = await speichere({ quelle: quer, basisVersion: version });
+		assert.equal(antwort.status, 200);
+		const neu = await lies();
+		assert.equal(neu.meta.format, 'a4-quer');
+		assert.equal((await speichere({ quelle, basisVersion: neu.version })).status, 200);
+		assert.equal((await lies()).meta.format, 'a4-hoch');
 	});
 
 	it('listet Versionen und stellt eine wieder her', async () => {

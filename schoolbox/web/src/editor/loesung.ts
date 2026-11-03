@@ -58,7 +58,8 @@ export const useLoesung = ({ geladen, html, loesung, pfad, rueckgaengig, struktu
 	const gewaehlt = pfad.at(-1);
 	const knoten = gewaehlt ? zerlegung?.knoten[gewaehlt.nr] : undefined;
 
-	const antwort = gewaehlt && knoten && kann(gewaehlt.baustein, 'loesung') && istAntwort(knoten) ? gewaehlt.nr : null;
+	const antwort =
+		loesung && gewaehlt && knoten && kann(gewaehlt.baustein, 'loesung') && istAntwort(knoten) ? gewaehlt.nr : null;
 	const gespeichert = antwort !== null && knoten ? loesungVon(knoten) : '';
 	const basis = antwort === null ? null : `${antwort}:${gespeichert}`;
 	const [entwurf, setEntwurf] = useState<{ basis: string; wert: string } | null>(null);

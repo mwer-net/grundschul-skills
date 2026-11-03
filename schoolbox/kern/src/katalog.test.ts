@@ -1,5 +1,4 @@
 import assert from 'node:assert/strict';
-import { execFileSync } from 'node:child_process';
 import { mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
@@ -8,9 +7,10 @@ import { after, describe, it } from 'node:test';
 import type { AbbildungSchema, Werte } from './abbildungen';
 import { ABBILDUNG_SCHEMA, attributeVon, KATALOG_KATEGORIEN, NUR_ZUR_LAUFZEIT, pruefeWerte } from './abbildungen';
 import { KIT_KATALOG } from './bausteine';
+import { browserSkip, pruefeStapel } from './browsertest';
 import { KATALOG, sucheImKatalog } from './katalog';
 import { leseStarter } from './katalog-starter';
-import { ASSETS, BLATT_PY } from './konfig';
+import { ASSETS } from './konfig';
 
 const STARTER = leseStarter();
 const CSS = readFileSync(path.join(ASSETS, 'blatt.css'), 'utf8');
@@ -184,50 +184,27 @@ describe('Suche', () => {
 	});
 });
 
-const hatBrowser = () => {
-	try {
-		execFileSync(
-			'python3',
-			[
-				'-c',
-				'import sys; sys.path.insert(0, sys.argv[1]); import blatt; blatt.finde_chromium()',
-				path.dirname(BLATT_PY),
-			],
-			{ stdio: 'ignore' },
-		);
-		return true;
-	} catch {
-		return false;
-	}
-};
-
-describe('Starter im Browser', { skip: hatBrowser() ? false : 'Kein Chromium für blatt.py' }, () => {
+describe('Starter im Browser', { skip: browserSkip() }, () => {
 	const ordner = mkdtempSync(path.join(tmpdir(), 'schoolbox-starter-'));
 	after(() => rmSync(ordner, { force: true, recursive: true }));
 
-	const pruefe = (profil: string, id: string, html: string) => {
+	const seite = (profil: string, id: string, html: string) => {
 		const dir = path.join(ordner, profil, id);
 		mkdirSync(dir, { recursive: true });
 		const datei = path.join(dir, 'material.html');
-		const seite = `<!doctype html><html lang="de"><head><meta charset="utf-8"><title>${id}</title><link rel="stylesheet" href="blatt.css"><script src="abbildungen.js"></script></head><body class="kl3 ${profil}"><section class="seite"><div class="kopf"><div class="titel"><h1>Test</h1></div></div><div class="aufgabe"><span class="nr">1</span><div class="anw"><span class="text">Test</span></div><div class="koerper">${html}</div></div></section></body></html>`;
-		writeFileSync(datei, seite);
-		const bericht = path.join(dir, 'b.json');
-		try {
-			execFileSync('python3', ['-B', BLATT_PY, 'bauen', datei, '--nur-pruefen', '--bericht', bericht], {
-				stdio: 'ignore',
-			});
-		} catch {
-			// Exit 1 bei FEHLER; der Bericht steht trotzdem da.
-		}
-		return (JSON.parse(readFileSync(bericht, 'utf8')) as { meldungen: { stufe: string; text: string }[] }).meldungen
-			.filter((m) => m.stufe === 'FEHLER')
-			.map((m) => `${profil} ${id}: ${m.text}`);
+		writeFileSync(
+			datei,
+			`<!doctype html><html lang="de"><head><meta charset="utf-8"><title>${id}</title><link rel="stylesheet" href="blatt.css"><script src="abbildungen.js"></script></head><body class="kl3 ${profil}"><section class="seite"><div class="kopf"><div class="titel"><h1>Test</h1></div></div><div class="aufgabe"><span class="nr">1</span><div class="anw"><span class="text">Test</span></div><div class="koerper">${html}</div></div></section></body></html>`,
+		);
+		return datei;
 	};
 
 	for (const profil of ['sw', 'farbe palette-himmel']) {
 		it(`jeder x-Starter zeichnet fehlerfrei auf leerer Seite: ${profil}`, { timeout: 600_000 }, () => {
-			const fehler = KATALOG.filter((e) => e.herkunft === 'abbildung').flatMap((e) =>
-				pruefe(profil, e.id, STARTER.get(e.id) ?? ''),
+			const eintraege = KATALOG.filter((e) => e.herkunft === 'abbildung');
+			const berichte = pruefeStapel(eintraege.map((e) => seite(profil, e.id, STARTER.get(e.id) ?? '')));
+			const fehler = eintraege.flatMap((e, i) =>
+				(berichte[i] ?? []).filter((m) => m.stufe === 'FEHLER').map((m) => `${profil} ${e.id}: ${m.text}`),
 			);
 			assert.deepEqual(fehler, []);
 		});

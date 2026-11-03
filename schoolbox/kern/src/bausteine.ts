@@ -170,15 +170,8 @@ export const BAUSTEINE: readonly Baustein[] = [
 		faehigkeiten: [...GRUND, 'abbildung'],
 		...KLEIN,
 	},
-	// Nur in der Lösungsansicht wählbar: Auf dem Arbeitsblatt ist die Linie leer und der Lösungstext unsichtbar.
-	{
-		art: 'antwort',
-		name: 'Antwortlinie',
-		selektor: 'body.loesung .antwort',
-		faehigkeiten: [...GRUND, 'loesung'],
-		...KLEIN,
-	},
-	{ art: 'antwort', name: 'Antwortlinie', selektor: '.antwort', faehigkeiten: GRUND, ...KLEIN },
+	// Den Lösungstext ändern geht nur in der Lösungsansicht (loesung.ts): Auf dem Arbeitsblatt ist die Linie leer.
+	{ art: 'antwort', name: 'Antwortlinie', selektor: '.antwort', faehigkeiten: [...GRUND, 'loesung'], ...KLEIN },
 	{ art: 'box', name: 'Kästchen', selektor: '.box', faehigkeiten: GRUND, ...KLEIN },
 	{ art: 'punkte', name: 'Punkte', selektor: '.punkte', faehigkeiten: GRUND, ...KLEIN },
 	{ art: 'schreiblinie', name: 'Schreiblinie', selektor: '.schreiblinie', faehigkeiten: GRUND, ...KLEIN },

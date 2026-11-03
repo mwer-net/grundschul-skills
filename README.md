@@ -108,7 +108,7 @@ Die Schoolbox (`schoolbox/`) macht das Material für die Lehrkraft nutzbar: Abla
 
 ```bash
 cp .env.example .env                  # SCHOOLBOX_URL, MATERIAL_DIR, NODE_BIN, PYTHON_BIN anpassen
-cd schoolbox && pnpm install && pnpm test
+cd schoolbox && pnpm install && pnpm test   # schnell, ohne Browser; vor dem Merge: pnpm run test:alles
 schoolbox/bin/schoolbox --hilfe       # aus dem Repo-Hauptordner
 schoolbox/bin/schoolbox passwort      # Passwort der Anmeldung setzen (erzeugt auch SITZUNG_GEHEIMNIS)
 ```

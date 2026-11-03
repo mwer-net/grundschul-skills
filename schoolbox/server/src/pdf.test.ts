@@ -18,6 +18,7 @@ import {
 	schreibeMeta,
 	widerrufeFreigabe,
 } from '@schoolbox/kern';
+import { BROWSER_HINWEIS, browserFehlt } from '@schoolbox/kern/src/browsertest';
 
 import { inhaltsAngabe } from './pdf';
 import type { TestServer } from './testhilfe';
@@ -35,7 +36,6 @@ import {
 } from './testhilfe';
 
 const ausfuehren = promisify(execFile);
-const CHROMIUM_DA = 'import sys; sys.path.insert(0, sys.argv[1]); import blatt; blatt.finde_chromium()';
 
 interface Vorbereitet {
 	adresse: string;
@@ -65,8 +65,15 @@ const ueberlauf = async () =>
 		'<section class="seite"><div class="aufgabe" style="height:1300px" data-test-ueberlauf><span class="nr">9</span></div>',
 	);
 
-const ohneZeitstempel = (pdf: Buffer) =>
-	Buffer.from(pdf.toString('latin1').replace(/\/(CreationDate|ModDate) \(D:[^)]*\)/g, ''), 'latin1');
+/** Chromium schreibt interne Knotennummern in Tabellen-Tags; sie hängen vom Lauf ab, nicht vom Inhalt. */
+const vergleichbar = (pdf: Buffer) =>
+	Buffer.from(
+		pdf
+			.toString('latin1')
+			.replace(/\/(CreationDate|ModDate) \(D:[^)]*\)/g, '')
+			.replace(/\(node\d+\)/g, '(node)'),
+		'latin1',
+	);
 
 const seitenGroessen = async (datei: string) => {
 	const { stdout } = await ausfuehren('pdfinfo', ['-f', '1', '-l', '999', datei]);
@@ -117,10 +124,7 @@ describe('PDF mit blatt.py', () => {
 
 	before(async () => {
 		s = await starteTestServer();
-		chromiumFehlt = await ausfuehren(s.kontext.konfig.pythonBin, ['-c', CHROMIUM_DA, path.dirname(BLATT_PY)]).then(
-			() => false,
-			() => true,
-		);
+		chromiumFehlt = browserFehlt();
 		({ ids, mappe } = await legeDreiAn(s.materialDir));
 		ordner = await mkdtemp(path.join(tmpdir(), 'schoolbox-pdf-test-'));
 	});
@@ -128,7 +132,7 @@ describe('PDF mit blatt.py', () => {
 
 	it('gleicht dem PDF aus blatt.py per Shell, mit eingebetteten Schriften', { timeout: 180_000 }, async (t) => {
 		if (chromiumFehlt) {
-			t.skip('kein Chromium für blatt.py gefunden');
+			t.skip(BROWSER_HINWEIS);
 			return;
 		}
 		const [dok = ''] = ids;
@@ -149,8 +153,8 @@ describe('PDF mit blatt.py', () => {
 			const datei = await speichere(s, antwort.daten.adresse, ordner, referenz);
 			const [vonServer, vonShell] = await Promise.all([readFile(datei), readFile(path.join(shell, referenz))]);
 			assert.ok(
-				ohneZeitstempel(vonServer).equals(ohneZeitstempel(vonShell)),
-				`${referenz}: bis auf die Zeitstempel byte-gleich`,
+				vergleichbar(vonServer).equals(vergleichbar(vonShell)),
+				`${referenz}: bis auf Zeitstempel und Knotennummern byte-gleich`,
 			);
 			const { stdout } = await ausfuehren('pdffonts', [datei]);
 			const schriften = stdout.split('\n').slice(2).filter(Boolean);
@@ -164,7 +168,7 @@ describe('PDF mit blatt.py', () => {
 
 	it('kommt beim zweiten Mal aus dem Cache', { timeout: 180_000 }, async (t) => {
 		if (chromiumFehlt) {
-			t.skip('kein Chromium für blatt.py gefunden');
+			t.skip(BROWSER_HINWEIS);
 			return;
 		}
 		const [dok = ''] = ids;
@@ -181,7 +185,7 @@ describe('PDF mit blatt.py', () => {
 
 	it('warnt bei Überlauf, lässt aber herunterladen', { timeout: 180_000 }, async (t) => {
 		if (chromiumFehlt) {
-			t.skip('kein Chromium für blatt.py gefunden');
+			t.skip(BROWSER_HINWEIS);
 			return;
 		}
 		const dok = ids[1] ?? '';
@@ -202,7 +206,7 @@ describe('PDF mit blatt.py', () => {
 		{ timeout: 180_000 },
 		async (t) => {
 			if (chromiumFehlt) {
-				t.skip('kein Chromium für blatt.py gefunden');
+				t.skip(BROWSER_HINWEIS);
 				return;
 			}
 			const { dir, dok, mappe: folien } = await legeDokumentAn(s.materialDir, { format: 'folie' });
@@ -241,7 +245,7 @@ describe('PDF mit blatt.py', () => {
 
 	it('fasst alle Dokumente zu einem PDF zusammen, Lösungen am Ende', { timeout: 300_000 }, async (t) => {
 		if (chromiumFehlt) {
-			t.skip('kein Chromium für blatt.py gefunden');
+			t.skip(BROWSER_HINWEIS);
 			return;
 		}
 		const ohne = await vorbereiten(s, `/api/mappen/${mappe}/pdf`, 'alles');

@@ -20,6 +20,7 @@ import {
 	SKALA_STANDARD,
 	zahlStandard,
 } from './abbildungen';
+import { browserSkip } from './browsertest';
 import { ASSETS, BLATT_PY, SKILL_DIR, WURZEL } from './konfig';
 import { MELDUNG_CODES } from './meldungen';
 import { abgleichen, ABSCHNITTE, setzeAbschnitt } from './quellen';
@@ -196,25 +197,6 @@ describe('Erzeugte Abschnitte', () => {
 	});
 });
 
-const hatBrowser = () => {
-	try {
-		execFileSync(
-			'python3',
-			[
-				'-c',
-				'import sys; sys.path.insert(0, sys.argv[1]); import blatt; blatt.finde_chromium()',
-				path.dirname(BLATT_PY),
-			],
-			{
-				stdio: 'ignore',
-			},
-		);
-		return true;
-	} catch {
-		return false;
-	}
-};
-
 interface Fall {
 	tag: string;
 	attribut: string;
@@ -339,7 +321,7 @@ const OHNE_FESTEN_STANDARD = new Set([
 
 const istFehlerbild = (html: string) => html.includes('abbildung-fehler') || html === '';
 
-describe('Standardwerte: Zeichnung gegen Schema', { skip: hatBrowser() ? false : 'Kein Chromium für blatt.py' }, () => {
+describe('Standardwerte: Zeichnung gegen Schema', { skip: browserSkip() }, () => {
 	/** Erst das nackte Element: Dort gilt jeder Standard. Was so nicht zeichnet, bekommt die Werte eines Beispiels. */
 	const gezeichnet = () => {
 		const nackt = zeichne(faelle(() => ({})));

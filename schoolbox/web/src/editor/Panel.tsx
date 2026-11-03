@@ -178,6 +178,11 @@ export const Textwerkzeug = ({
 					<Symbol name="haken" />
 					Fertig
 				</Knopf>
+				{pfad.some((t) => t.baustein.art === 'tabelle') && (
+					<Knopf art="zweit" {...halteFokus} onClick={beende}>
+						Zeilen und Spalten
+					</Knopf>
+				)}
 			</div>
 			<p className="mt-2 text-leise">{FERTIG[zeilenVon(baustein)]}</p>
 		</div>

@@ -9,6 +9,7 @@ import { promisify } from 'node:util';
 
 import { dokumentDir, mappenDir, neueMappe, neuesDokument } from './ablage';
 import { bildStamm, findeBild, nimmBildAuf, sammleBilder, uebernimmBild } from './bilder';
+import { BROWSER_HINWEIS, browserFehlt } from './browsertest';
 import { SchoolboxFehler } from './fehler';
 import { ASSETS, BLATT_PY } from './konfig';
 
@@ -204,21 +205,10 @@ describe('uebernimmBild und sammleBilder', () => {
 	});
 });
 
-const chromiumFehlt = () => {
-	try {
-		const pruefen = 'import sys; sys.path.insert(0, sys.argv[1]); import blatt; blatt.finde_chromium()';
-		execFileSync('python3', ['-c', pruefen, path.dirname(BLATT_PY)], { stdio: 'ignore' });
-		execFileSync('pdfimages', ['-v'], { stdio: 'ignore' });
-		return false;
-	} catch {
-		return true;
-	}
-};
-
 describe('blatt.py mit hochgeladenen Bildern', () => {
 	it('bettet das Bild in voller Auflösung ein und meldet zu kleine Bilder', { timeout: 300_000 }, async (t) => {
-		if (chromiumFehlt()) {
-			t.skip('kein Chromium für blatt.py oder kein pdfimages');
+		if (browserFehlt()) {
+			t.skip(BROWSER_HINWEIS);
 			return;
 		}
 		const { neu } = await ablage();

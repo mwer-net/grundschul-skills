@@ -17,20 +17,11 @@ import {
 } from 'node:fs';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
-import { after, describe, it } from 'node:test';
+import { after, before, describe, it } from 'node:test';
 
+import { browserSkip, imStapel } from './browsertest';
 import { darstellungsHtml, druckprofilAusHtml } from './html';
 import { ASSETS, BLATT_PY } from './konfig';
-
-const CHROMIUM_DA = 'import sys; sys.path.insert(0, sys.argv[1]); import blatt; blatt.finde_chromium()';
-const hatBrowser = () => {
-	try {
-		execFileSync('python3', ['-c', CHROMIUM_DA, path.dirname(BLATT_PY)], { stdio: 'ignore' });
-		return true;
-	} catch {
-		return false;
-	}
-};
 
 const ordner = mkdtempSync(path.join(tmpdir(), 'schoolbox-grau-'));
 after(() => rmSync(ordner, { force: true, recursive: true }));
@@ -167,7 +158,7 @@ describe('darstellungsHtml mit Profil', () => {
 	});
 });
 
-describe('graustufen.js', { skip: hatBrowser() ? false : 'Kein Chromium für blatt.py' }, () => {
+describe('graustufen.js', { skip: browserSkip() }, () => {
 	it('rechnet Werte um: Luminanz, helle Flächen, Alpha, var() und Wörter bleiben', () => {
 		const html = `<!doctype html><html><head><meta charset="utf-8"></head><body class="sw"><div class="seite"></div>
 <script src="graustufen.js"></script>${ausgeben(`() => {
@@ -227,7 +218,7 @@ describe('graustufen.js', { skip: hatBrowser() ? false : 'Kein Chromium für bla
 	});
 });
 
-describe('Eigene Klasse .sw im Material', { skip: hatBrowser() ? false : 'Kein Chromium für blatt.py' }, () => {
+describe('Eigene Klasse .sw im Material', { skip: browserSkip() }, () => {
 	const html = `<!doctype html><html lang="de"><head><meta charset="utf-8"><title>Schlüsselwort</title>
 <link rel="stylesheet" href="blatt.css"><style>.sw{white-space:nowrap;color:#c62828}.sw.nomen{letter-spacing:2px}.sw-wert{color:#1565c0}</style></head>
 <body class="kl3 farbe palette-sonne"><section class="seite"><p>${'Ein langer Satz, der umbrechen muss. '.repeat(12)}
@@ -250,7 +241,7 @@ describe('Eigene Klasse .sw im Material', { skip: hatBrowser() ? false : 'Kein C
 	});
 });
 
-describe('s/w-PDF', { skip: hatBrowser() ? false : 'Kein Chromium für blatt.py' }, () => {
+describe('s/w-PDF', { skip: browserSkip() }, () => {
 	it('Eigenes CSS: keine bunten Pixel, gleiche Seiten, Schriften und Text, kein ganzseitiges Raster', () => {
 		const datei = path.join(ordner, 'eigen.html');
 		writeFileSync(datei, EIGENES_CSS);
@@ -272,25 +263,39 @@ describe('s/w-PDF', { skip: hatBrowser() ? false : 'Kein Chromium für blatt.py'
 		path.join(ASSETS, 'beispiel-zehner-einer-kl2.html'),
 		path.join(ASSETS, 'vorlage-arbeitsblatt.html'),
 	];
-	for (const pfad of blaetter) {
-		const name = path.basename(pfad, '.html');
+	const mitMessung = (html: string) => html.replace('</body>', `${ausgeben(BOXEN)}</body>`);
+	const faelle = blaetter.map((pfad) => ({
+		name: path.basename(pfad, '.html'),
+		roh: inFarbe(readFileSync(pfad, 'utf8')),
+	}));
+	/** Je Blatt die Boxen in Farbe und in s/w, alles in einem Browser. */
+	let boxen: string[] = [];
+	before(() => {
+		const schreibe = (name: string, html: string) => {
+			const datei = path.join(ordner, `${name}.html`);
+			writeFileSync(datei, html);
+			return { quelle: datei, element: 'ergebnis', pruefen: false };
+		};
+		boxen = imStapel(
+			faelle.flatMap(({ name, roh }) => [
+				schreibe(`${name}-boxen-f`, mitMessung(roh)),
+				schreibe(`${name}-boxen-s`, mitMessung(darstellungsHtml(roh, { loesung: false, profil: 'sw' }))),
+			]),
+		);
+	});
+	faelle.forEach(({ name, roh }, i) => {
 		it(`${name}: Layout wie in Farbe, keine bunten Pixel`, () => {
-			const roh = inFarbe(readFileSync(pfad, 'utf8'));
-			const quelle = path.join(ordner, `${name}.html`);
-			writeFileSync(quelle, roh);
-			const mitMessung = (html: string) => html.replace('</body>', `${ausgeben(BOXEN)}</body>`);
-			const farbeBoxen = imBrowser<string[]>(mitMessung(roh), `${name}-boxen-f`);
-			const swBoxen = imBrowser<string[]>(
-				mitMessung(darstellungsHtml(roh, { loesung: false, profil: 'sw' })),
-				`${name}-boxen-s`,
-			);
+			const farbeBoxen = JSON.parse(boxen[2 * i] ?? '[]') as string[];
+			const swBoxen = JSON.parse(boxen[2 * i + 1] ?? '[]') as string[];
 			assert.ok(farbeBoxen.length > 0, 'Gegenprobe: Es wurde etwas gemessen');
 			assert.deepEqual(swBoxen, farbeBoxen);
+			const quelle = path.join(ordner, `${name}.html`);
+			writeFileSync(quelle, roh);
 			const pdf = baue(quelle, `aus-${name}`, '--profil', 'sw');
 			assert.equal(buntePixel(pdf), 0);
 			assert.equal(ganzseitigeRaster(pdf), 0);
 		});
-	}
+	});
 });
 
 /** Testmappe aus einem bunten JPG und einem PNG mit Alpha, wie die Reihen der Lehrkraft. */
@@ -328,7 +333,7 @@ const pdfBilder = (pdf: string) =>
 		.map((z) => z.trim().split(/\s+/))
 		.map((sp) => ({ breite: Number(sp[3]), hoehe: Number(sp[4]), farbe: sp[5] }));
 
-describe('Bilder in s/w', { skip: hatBrowser() ? false : 'Kein Chromium für blatt.py' }, () => {
+describe('Bilder in s/w', { skip: browserSkip() }, () => {
 	const dir = path.join(ordner, 'bilder-mappe');
 	const quelle = path.join(dir, 'material.html');
 	const dateienVon = (wurzel: string): string[] =>

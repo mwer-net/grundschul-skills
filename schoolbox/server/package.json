@@ -9,6 +9,7 @@
 		"start": "tsx src/start.ts",
 		"typecheck": "tsc --noEmit",
 		"test": "tsx --test \"src/**/*.test.ts\"",
+		"test:alles": "SCHOOLBOX_TESTS=alles tsx --test --test-concurrency=2 \"src/**/*.test.ts\"",
 		"testserver": "tsx src/testserver.ts"
 	},
 	"dependencies": {

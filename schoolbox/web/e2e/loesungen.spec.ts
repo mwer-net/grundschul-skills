@@ -19,7 +19,10 @@ const geaendert = (alt: string, neu: string) => {
 
 /** Was die Antwortlinie gerade zeigt (blatt.css schreibt die Lösung per `::after`). */
 const sichtbar = (linie: Locator) =>
-	linie.evaluate((el) => el.ownerDocument.defaultView?.getComputedStyle(el, '::after').content ?? '');
+	linie
+		.evaluate((el) => el.ownerDocument.defaultView?.getComputedStyle(el, '::after').content ?? '')
+		// Der Rahmen wechselt nach jedem Speichern; die Abfrage wiederholt sich von selbst.
+		.catch(() => '');
 
 /** Cursor ans Ende des Texts, wie Antippen hinter dem letzten Wort. */
 const ansEnde = (ziel: Locator) =>
@@ -39,7 +42,7 @@ test.describe('Editor: Lösungen', () => {
 		await oeffne(page, id, dok);
 
 		await druecke(material(page).locator('.antwort').nth(1));
-		await expect(page.locator('[data-auswahl="antwort"]')).toHaveCount(0);
+		await expect(antwort(page)).toHaveCount(0);
 
 		await druecke(fassung(page, 'Lösung'));
 		const linie = material(page).locator('.antwort').nth(1);
@@ -56,7 +59,7 @@ test.describe('Editor: Lösungen', () => {
 		]);
 
 		await druecke(fassung(page, 'Arbeitsblatt'));
-		await expect(breadcrumb(page)).toHaveText('Seite 1›Aufgabe 1›Reihe›Item 2');
+		await expect(breadcrumb(page)).toHaveText('Seite 1›Aufgabe 1›Reihe›Item 2›Antwortlinie');
 		await expect.poll(() => sichtbar(material(page).locator('.antwort').nth(1))).toBe('" "');
 
 		await druecke(zurueck(page));
@@ -84,7 +87,7 @@ test.describe('Editor: Lösungen', () => {
 		await expect(page.locator('[data-hinweis="fehlt"]')).toHaveText('Hier fehlt noch die Lösung.');
 		await antwort(page).fill('7 Uhr');
 		await druecke(page.getByRole('button', { name: 'Zur anderen fehlenden Lösung' }));
-		await expect(breadcrumb(page)).toHaveText('Seite 1›Sternchenaufgabe›Antwortlinie');
+		await expect(breadcrumb(page)).toHaveText('Seite 1›Sternchenaufgabe›Rechenzeile›Antwortlinie');
 		await expect(antwort(page)).toHaveValue('');
 		await gespeichert(page, datei);
 		expect(await readFile(datei, 'utf8')).toContain('data-l="7 Uhr"');
@@ -103,7 +106,7 @@ test.describe('Editor: Lösungen', () => {
 		await druecke(fassung(page, 'Arbeitsblatt'));
 		await gespeichert(page, datei);
 		expect(await readFile(datei, 'utf8')).toContain('data-l="sieben Uhr"');
-		await expect(breadcrumb(page)).toHaveText('Seite 1›Aufgabe 1›Reihe›Item 3');
+		await expect(breadcrumb(page)).toHaveText('Seite 1›Aufgabe 1›Reihe›Item 3›Antwortlinie');
 
 		await druecke(fassung(page, 'Lösung'));
 		await druecke(material(page).locator('.antwort').nth(3));
@@ -160,6 +163,7 @@ test.describe('Editor: Lösungen', () => {
 		const schalter = page.getByLabel('Als Beispiel zeigen');
 
 		await druecke(zelle(1).locator('.antwort'));
+		await druecke(breadcrumb(page).getByRole('button', { name: 'Item 2' }));
 		await expect(breadcrumb(page)).toHaveText('Seite 1›Aufgabe 1›Reihe›Item 2');
 		await expect(schalter).not.toBeChecked();
 		await expect(page.locator('[data-hinweis="anderes-beispiel"]')).toContainText(

@@ -233,7 +233,7 @@ describe('Referenz auflösen', () => {
 		const z = zerlege(BEISPIEL);
 		const linie = mitKlasse(z, 'antwort')[4] as Knoten;
 		const { ergebnis, text } = ueber(BEISPIEL, linie.nr, BEISPIEL, true);
-		assert.match(text, /#loesung\/seite1\/aufgabe1\/reihe1\/item2\/antwort2\]$/);
+		assert.match(text, /#loesung\/seite1\/aufgabe1\/reihe1\/item2\/zeile1\/antwort2\]$/);
 		assert.equal(ergebnis.befund, 'pfad');
 		assert.equal(ergebnis.ziel?.k.nr, linie.nr);
 	});

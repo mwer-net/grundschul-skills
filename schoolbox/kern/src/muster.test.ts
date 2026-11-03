@@ -9,22 +9,14 @@ import { execFileSync } from 'node:child_process';
 import { mkdtempSync, readdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
-import { after, describe, it } from 'node:test';
+import { after, before, describe, it } from 'node:test';
 
+import type { Pruefmeldung } from './browsertest';
+import { browserSkip, pruefeStapel } from './browsertest';
 import { ASSETS, BLATT_PY } from './konfig';
 import type { Meldung } from './meldungen';
 
 const MUSTER = path.join(ASSETS, 'muster');
-const CHROMIUM_DA = 'import sys; sys.path.insert(0, sys.argv[1]); import blatt; blatt.finde_chromium()';
-
-const hatBrowser = () => {
-	try {
-		execFileSync('python3', ['-c', CHROMIUM_DA, path.dirname(BLATT_PY)], { stdio: 'ignore' });
-		return true;
-	} catch {
-		return false;
-	}
-};
 
 const ordner = mkdtempSync(path.join(tmpdir(), 'schoolbox-muster-'));
 after(() => rmSync(ordner, { force: true, recursive: true }));
@@ -54,24 +46,39 @@ const dateien = readdirSync(MUSTER).filter((d) => d.endsWith('.html'));
 const VORLAGEN_036 = ['vorlage-minibuch.html', 'vorlage-forscherbogen-12.html', 'vorlage-forscherbogen-34.html'];
 const pfade = [...dateien.map((d) => path.join(MUSTER, d)), ...VORLAGEN_036.map((d) => path.join(ASSETS, d))];
 
-describe('Musterblätter', { skip: hatBrowser() ? false : 'Kein Chromium für blatt.py' }, () => {
+describe('Musterblätter', { skip: browserSkip() }, () => {
 	it('gibt es', () => {
 		assert.ok(dateien.length > 0);
 	});
 
-	for (const pfad of pfade) {
-		const datei = path.basename(pfad);
+	const faelle = pfade.flatMap((pfad) => {
 		const html = readFileSync(pfad, 'utf8');
-		for (const [fassung, quelle] of Object.entries(fassungen(html))) {
-			it(`${datei} (${fassung}) besteht die Prüfung`, () => {
-				const fehler = pruefe(quelle, `${datei}-${fassung}`)
-					.filter((m) => m.stufe === 'FEHLER')
-					.map((m) => m.text)
-					.sort();
-				assert.deepEqual(fehler, erwarteteFehler(html));
-			});
-		}
-	}
+		return Object.entries(fassungen(html)).map(([fassung, quelle]) => ({
+			datei: path.basename(pfad),
+			fassung,
+			html,
+			quelle,
+		}));
+	});
+	let berichte: Pruefmeldung[][] = [];
+	before(() => {
+		berichte = pruefeStapel(
+			faelle.map((f) => {
+				const datei = path.join(ordner, `${f.datei}-${f.fassung}.html`);
+				writeFileSync(datei, f.quelle);
+				return datei;
+			}),
+		);
+	});
+	faelle.forEach((f, i) => {
+		it(`${f.datei} (${f.fassung}) besteht die Prüfung`, () => {
+			const fehler = (berichte[i] ?? [])
+				.filter((m) => m.stufe === 'FEHLER')
+				.map((m) => m.text)
+				.sort();
+			assert.deepEqual(fehler, erwarteteFehler(f.html));
+		});
+	});
 
 	it('schlägt bei einem FEHLER im Musterblatt an', () => {
 		const html = readFileSync(path.join(MUSTER, dateien[0] ?? ''), 'utf8');
@@ -97,7 +104,7 @@ const bauePdf = (html: string, name: string) => {
 
 const text = (pdf: string) => execFileSync('pdftotext', [pdf, '-'], { encoding: 'utf8' });
 
-describe('Mini-Book und Forscherbogen (036)', { skip: hatBrowser() ? false : 'Kein Chromium für blatt.py' }, () => {
+describe('Mini-Book und Forscherbogen (036)', { skip: browserSkip() }, () => {
 	it('schießt acht Felder auf eine A4-Seite quer aus: 5-4-3-2 kopfstehend, 6-7-8-1 aufrecht', () => {
 		const pdf = bauePdf(miniBook(ACHT.map((n) => feld(n))), 'schema');
 		const info = execFileSync('pdfinfo', [pdf], { encoding: 'utf8' });
@@ -153,7 +160,7 @@ describe('Mini-Book und Forscherbogen (036)', { skip: hatBrowser() ? false : 'Ke
 	});
 });
 
-describe('Spiele (037)', { skip: hatBrowser() ? false : 'Kein Chromium für blatt.py' }, () => {
+describe('Spiele (037)', { skip: browserSkip() }, () => {
 	it('Erzeugte Seiten stehen im PDF, die Rufliste nur im Lösungsblatt', () => {
 		const eintraege = Array.from({ length: 24 }, (_, i) => `${i + 3}·2: ${(i + 3) * 2}`).join('; ');
 		const html =
@@ -173,7 +180,7 @@ describe('Spiele (037)', { skip: hatBrowser() ? false : 'Kein Chromium für blat
 	});
 });
 
-describe('Rätsel (038)', { skip: hatBrowser() ? false : 'Kein Chromium für blatt.py' }, () => {
+describe('Rätsel (038)', { skip: browserSkip() }, () => {
 	const blatt = (loesungen: string[], inhalt: string) =>
 		'<!doctype html><html lang="de"><head><meta charset="utf-8"><title>Test</title>' +
 		'<link rel="stylesheet" href="blatt.css"><script src="abbildungen.js"></script></head><body class="kl3 sw">' +

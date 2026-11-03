@@ -1,5 +1,4 @@
 import assert from 'node:assert/strict';
-import { execFileSync } from 'node:child_process';
 import { existsSync } from 'node:fs';
 import { copyFile, mkdtemp, readdir, readFile, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
@@ -8,18 +7,8 @@ import { describe, it } from 'node:test';
 
 import { dokumentDir, leseMeta, neueMappe, neuesDokument, registriereEntwuerfe, waehleEntwurf } from './ablage';
 import { baueEntwurfsVorschauen } from './bauen';
-import { ASSETS, BLATT_PY } from './konfig';
-
-const CHROMIUM_DA = 'import sys; sys.path.insert(0, sys.argv[1]); import blatt; blatt.finde_chromium()';
-
-const chromiumFehlt = () => {
-	try {
-		execFileSync('python3', ['-c', CHROMIUM_DA, path.dirname(BLATT_PY)], { stdio: 'ignore' });
-		return false;
-	} catch {
-		return true;
-	}
-};
+import { BROWSER_HINWEIS, browserFehlt } from './browsertest';
+import { ASSETS } from './konfig';
 
 const entwurf = (vorlage: string, titel: string, aufgabenMal = 1) => {
 	const start = vorlage.indexOf('<div class="aufgabe">');
@@ -32,8 +21,8 @@ const entwurf = (vorlage: string, titel: string, aufgabenMal = 1) => {
 
 describe('baueEntwurfsVorschauen (mit blatt.py)', () => {
 	it('baut Vorschauen relativ zum Dokumentordner und markiert, was nicht auf die Seite passt', async (t) => {
-		if (chromiumFehlt()) {
-			t.skip('kein Chromium für blatt.py gefunden');
+		if (browserFehlt()) {
+			t.skip(BROWSER_HINWEIS);
 			return;
 		}
 		const materialDir = await mkdtemp(path.join(tmpdir(), 'schoolbox-entwurf-'));

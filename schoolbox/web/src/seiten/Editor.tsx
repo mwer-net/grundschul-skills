@@ -322,13 +322,15 @@ const useEinfuegeWerkzeuge = ({
 	const docJetzt = geladen?.html === html ? (geladen?.doc ?? null) : null;
 	const einfuegen = useEinfuegen({ struktur, auswahl, folien, nachher });
 	const slash = useSlash({
-		doc: docJetzt,
+		// Das Dokument im Rahmen: Beim Tippen weicht die Quelle davon ab, das Menü muss trotzdem aufgehen.
+		doc: geladen?.doc ?? null,
 		bearbeitet: text.bearbeitet,
 		beende: text.beende,
 		eintraege: einfuegen.eintraege,
 		waehle: einfuegen.fuegeEin,
 	});
 	useTabelleTab({
+		angezeigt: geladen?.doc ?? null,
 		doc: docJetzt,
 		bearbeitet: text.bearbeitet,
 		beende: text.beende,

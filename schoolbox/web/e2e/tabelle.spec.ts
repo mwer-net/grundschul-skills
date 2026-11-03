@@ -12,7 +12,14 @@ test.describe('Editor: Tabelle', () => {
 		await expect(tabelle).toHaveCount(1);
 		const zelle = tabelle.locator('tbody td').first();
 		await druecke(zelle);
-		await page.getByRole('button', { name: 'Zeile danach' }).click();
+		// Während des Tippens führt ein Knopf zu den Werkzeugen der Tabelle.
+		const zuDenWerkzeugen = page.getByRole('button', { name: 'Zeilen und Spalten' });
+		const zeileDanach = page.getByRole('button', { name: 'Zeile danach' });
+		await expect(zuDenWerkzeugen.or(zeileDanach)).toBeVisible();
+		if (await zuDenWerkzeugen.isVisible()) {
+			await zuDenWerkzeugen.click();
+		}
+		await zeileDanach.click();
 		await expect(tabelle.locator('tbody tr')).toHaveCount(3);
 		const vorher = await quelle(page);
 		await page.getByRole('button', { name: 'Rückgängig' }).click();

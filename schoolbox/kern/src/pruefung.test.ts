@@ -5,21 +5,12 @@ import { tmpdir } from 'node:os';
 import path from 'node:path';
 import { describe, it } from 'node:test';
 
+import { BROWSER_HINWEIS, browserFehlt } from './browsertest';
 import { ASSETS, BLATT_PY } from './konfig';
 import type { Meldung } from './meldungen';
 import { MELDUNG_CODES } from './meldungen';
 
 const TESTDATEN = path.join(__dirname, 'testdaten');
-const CHROMIUM_DA = 'import sys; sys.path.insert(0, sys.argv[1]); import blatt; blatt.finde_chromium()';
-
-const chromiumFehlt = () => {
-	try {
-		execFileSync('python3', ['-c', CHROMIUM_DA, path.dirname(BLATT_PY)], { stdio: 'ignore' });
-		return false;
-	} catch {
-		return true;
-	}
-};
 
 const pruefe = async (datei: string) => {
 	const tmp = await mkdtemp(path.join(tmpdir(), 'schoolbox-pruefung-'));
@@ -40,8 +31,8 @@ const pruefe = async (datei: string) => {
 
 describe('pruefung.js (mit blatt.py)', () => {
 	it('liefert dieselben Meldungstexte wie vor den Codes, jetzt mit Code und Zielen', async (t) => {
-		if (chromiumFehlt()) {
-			t.skip('kein Chromium für blatt.py gefunden');
+		if (browserFehlt()) {
+			t.skip(BROWSER_HINWEIS);
 			return;
 		}
 		const erwartet = JSON.parse(await readFile(path.join(TESTDATEN, 'pruefung-erwartet.json'), 'utf8')) as Record<

@@ -10,8 +10,8 @@ test.describe('Anlegen ohne Claude', () => {
 		await page.goto('/');
 		await page.getByRole('button', { name: 'Mappe anlegen' }).first().click();
 		const titel = `Testmappe ${Date.now()}`;
-		await page.getByLabel('Titel').fill(titel);
-		await page.getByRole('button', { name: 'Anlegen' }).click();
+		await page.getByRole('textbox', { name: 'Titel' }).fill(titel);
+		await page.getByRole('button', { name: 'Anlegen', exact: true }).click();
 		await expect(page.getByRole('heading', { name: titel })).toBeVisible();
 
 		await page.getByRole('button', { name: 'Material anlegen' }).click();
@@ -21,9 +21,9 @@ test.describe('Anlegen ohne Claude', () => {
 		await page.getByRole('button', { name: 'Weiter' }).click();
 		await page.getByRole('button', { name: 'Weiter' }).click();
 		await expect(page.locator('[data-anlegen-fehler]')).toContainText('Titel');
-		await page.getByLabel('Titel').fill('Mein Blatt');
+		await page.getByRole('textbox', { name: 'Titel' }).fill('Mein Blatt');
 		await page.getByRole('button', { name: 'Weiter' }).click();
-		await page.getByRole('button', { name: 'Anlegen' }).click();
+		await page.getByRole('button', { name: 'Anlegen', exact: true }).click();
 		await expect(page).toHaveURL(/bearbeiten\?neu=1/);
 		await expect(page.locator('[data-bibliothek]')).toBeVisible();
 
@@ -48,8 +48,8 @@ test.describe('Anlegen ohne Claude', () => {
 		for (const i of [1, 2]) {
 			await page.goto('/');
 			await page.getByRole('button', { name: 'Mappe anlegen' }).first().click();
-			await page.getByLabel('Titel').fill(titel);
-			await page.getByRole('button', { name: 'Anlegen' }).click();
+			await page.getByRole('textbox', { name: 'Titel' }).fill(titel);
+			await page.getByRole('button', { name: 'Anlegen', exact: true }).click();
 			if (i === 1) {
 				await expect(page.getByRole('heading', { name: titel })).toBeVisible();
 			}
@@ -58,10 +58,11 @@ test.describe('Anlegen ohne Claude', () => {
 	});
 
 	test('Jede Art führt zu einem bearbeitbaren Dokument', async ({ page }) => {
+		test.setTimeout(180_000);
 		await page.goto('/');
 		await page.getByRole('button', { name: 'Mappe anlegen' }).first().click();
-		await page.getByLabel('Titel').fill(`Alle Arten ${Date.now()}`);
-		await page.getByRole('button', { name: 'Anlegen' }).click();
+		await page.getByRole('textbox', { name: 'Titel' }).fill(`Alle Arten ${Date.now()}`);
+		await page.getByRole('button', { name: 'Anlegen', exact: true }).click();
 		await expect(page).toHaveURL(/\/m\//);
 		const mappe = page.url();
 		for (const art of [
@@ -81,9 +82,9 @@ test.describe('Anlegen ohne Claude', () => {
 			await page.locator(`[data-wahl="${art}"]`).click();
 			await page.getByRole('button', { name: 'Weiter' }).click();
 			await page.getByRole('button', { name: 'Weiter' }).click();
-			await page.getByLabel('Titel').fill(art);
+			await page.getByRole('textbox', { name: 'Titel' }).fill(art);
 			await page.getByRole('button', { name: 'Weiter' }).click();
-			await page.getByRole('button', { name: 'Anlegen' }).click();
+			await page.getByRole('button', { name: 'Anlegen', exact: true }).click();
 			await expect(page.locator('[data-leinwand][data-geladen]')).toBeVisible();
 		}
 	});

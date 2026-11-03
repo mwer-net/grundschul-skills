@@ -6,6 +6,7 @@ import path from 'node:path';
 import { after, before, describe, it } from 'node:test';
 
 import { dokumentDir, fertigstellen, legeFreigabeAn, leseMeta } from '@schoolbox/kern';
+import { browserSkip } from '@schoolbox/kern/src/browsertest';
 
 import type { TestServer } from './testhilfe';
 import { legeDokumentAn, sammleEreignisse, schreibKoepfe, starteTestServer, warte } from './testhilfe';
@@ -25,7 +26,7 @@ const FARBIG = `<!doctype html>
 
 const FARBIGER_PDF_BAU = 180_000;
 
-describe('Ansichten Farbe und s/w', () => {
+describe('Ansichten Farbe und s/w', { skip: browserSkip() }, () => {
 	let s: TestServer;
 	let strom: ReturnType<typeof sammleEreignisse>;
 	let mappe = '';

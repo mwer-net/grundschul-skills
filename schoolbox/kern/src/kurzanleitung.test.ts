@@ -1,34 +1,22 @@
 import assert from 'node:assert/strict';
-import { execFileSync } from 'node:child_process';
 import { mkdir, mkdtemp, readFile, rename, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
 import { describe, it } from 'node:test';
 
 import { dokumentDir, leseMappe, leseMeta, mappenDir } from './ablage';
-import { BLATT_PY } from './konfig';
+import { BROWSER_HINWEIS, browserFehlt } from './browsertest';
 import { HILFE_MAPPE, KURZANLEITUNG, KURZANLEITUNG_VORLAGE, richteKurzanleitungEin } from './kurzanleitung';
 import { PAPIERKORB } from './papierkorb';
 import { listeVersionen } from './versionen';
-
-const CHROMIUM_DA = 'import sys; sys.path.insert(0, sys.argv[1]); import blatt; blatt.finde_chromium()';
-
-const chromiumFehlt = () => {
-	try {
-		execFileSync('python3', ['-c', CHROMIUM_DA, path.dirname(BLATT_PY)], { stdio: 'ignore' });
-		return false;
-	} catch {
-		return true;
-	}
-};
 
 const T0 = new Date('2026-10-20T08:00:00Z');
 const spaeter = (stunden: number) => new Date(T0.getTime() + stunden * 60 * 60 * 1000);
 
 describe('richteKurzanleitungEin (mit blatt.py)', () => {
 	it('legt die Hilfe-Mappe an, lässt sie in Ruhe und zieht eine geänderte Vorlage nach', async (t) => {
-		if (chromiumFehlt()) {
-			t.skip('kein Chromium für blatt.py gefunden');
+		if (browserFehlt()) {
+			t.skip(BROWSER_HINWEIS);
 			return;
 		}
 		const materialDir = await mkdtemp(path.join(tmpdir(), 'schoolbox-kurzanleitung-'));

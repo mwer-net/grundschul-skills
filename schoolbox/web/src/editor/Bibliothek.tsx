@@ -93,7 +93,7 @@ export const Einfuegemarken = ({
 					aria-label="Baustein einfügen"
 					className="absolute flex size-11 -translate-x-1/2 items-center justify-center rounded-full bg-brand-500 text-white shadow-md"
 					data-einfuegen-plus
-					style={{ left: links + (box.left + box.width / 2) * skala, top: box.bottom * skala - 2 }}
+					style={{ left: links + box.left * skala - 26, top: ((box.top + box.bottom) / 2) * skala - 22 }}
 					onClick={() => oeffne(auswahl, links + box.left * skala, box.bottom * skala + 46)}
 				>
 					<Symbol name="plus" />

@@ -7,6 +7,7 @@ import { after, before, describe, it } from 'node:test';
 import { promisify } from 'node:util';
 
 import { BLATT_PY, fertigstellen, legeFreigabeAn } from '@schoolbox/kern';
+import { BROWSER_HINWEIS, browserFehlt } from '@schoolbox/kern/src/browsertest';
 
 import type { TestServer } from './testhilfe';
 import { legeDokumentAn, starteTestServer } from './testhilfe';
@@ -32,8 +33,6 @@ for i, seite in enumerate(seiten, 1):
 print(json.dumps({"seiten": len(seiten), "vergleich": ergebnis}))
 `;
 
-const CHROMIUM_DA = 'import sys; sys.path.insert(0, sys.argv[1]); import blatt; blatt.finde_chromium()';
-
 interface Vergleich {
 	seiten: number;
 	vergleich: { seite: number; groesse: boolean; abweichung: number[] | null }[];
@@ -49,16 +48,13 @@ describe('/ansicht gegen blatt.py', () => {
 		s = await starteTestServer();
 		python = s.kontext.konfig.pythonBin;
 		skripte = path.dirname(BLATT_PY);
-		chromiumFehlt = await ausfuehren(python, ['-c', CHROMIUM_DA, skripte]).then(
-			() => false,
-			() => true,
-		);
+		chromiumFehlt = browserFehlt();
 	});
 	after(() => s.stop());
 
 	it('druckt das Beispielblatt pixelgleich, als Blatt und als Lösung', { timeout: 180_000 }, async (t) => {
 		if (chromiumFehlt) {
-			t.skip('kein Chromium für blatt.py gefunden');
+			t.skip(BROWSER_HINWEIS);
 			return;
 		}
 		const { dir, dok, mappe } = await legeDokumentAn(s.materialDir, { beispiel: true });

@@ -238,6 +238,8 @@ export const useSlash = ({ bearbeitet, beende, doc, eintraege, waehle }: SlashOp
 };
 
 interface TabOptionen {
+	/** Das Dokument im Rahmen. Beim Tippen weicht die Quelle davon ab; die Taste muss trotzdem ankommen. */
+	angezeigt: Document | null;
 	doc: Document | null;
 	bearbeitet: boolean;
 	beende: () => void;
@@ -248,7 +250,16 @@ interface TabOptionen {
 }
 
 /** Tab in einer Kit-Tabelle (047): Der Text gilt, dann weiter zur nächsten Zelle; am Ende eine neue Zeile. */
-export const useTabelleTab = ({ bearbeitet, beende, doc, fokussiere, folien, setAuswahl, struktur }: TabOptionen) => {
+export const useTabelleTab = ({
+	angezeigt,
+	bearbeitet,
+	beende,
+	doc,
+	fokussiere,
+	folien,
+	setAuswahl,
+	struktur,
+}: TabOptionen) => {
 	const [ziel, setZiel] = useState<{ tabelle: number; zeile: number; spalte: number; neu: boolean } | null>(null);
 	const aktuell = useRef({ beende });
 	useEffect(() => {
@@ -256,32 +267,33 @@ export const useTabelleTab = ({ bearbeitet, beende, doc, fokussiere, folien, set
 	});
 
 	useEffect(() => {
-		const fenster = doc?.defaultView;
-		if (!doc || !fenster) {
+		const fenster = angezeigt?.defaultView;
+		if (!angezeigt || !fenster) {
 			return undefined;
 		}
 		const taste = (e: KeyboardEvent) => {
-			const zelle =
-				e.target instanceof Element ? e.target.closest('table.kit-tabelle th, table.kit-tabelle td') : null;
+			// Das Ereignis kommt aus dem Rahmen: `instanceof` kennt dessen Klassen nicht.
+			const start = e.target as Partial<Element> | null;
+			const zelle = start?.closest?.('table.kit-tabelle th, table.kit-tabelle td') as HTMLTableCellElement | null;
 			const t = zelle?.closest('table');
-			if (e.key !== 'Tab' || e.shiftKey || !(zelle instanceof HTMLTableCellElement) || !t) {
+			if (e.key !== 'Tab' || e.shiftKey || !zelle || !t) {
 				return;
 			}
 			e.preventDefault();
 			e.stopImmediatePropagation();
-			const zeile = zelle.parentElement instanceof HTMLTableRowElement ? zelle.parentElement.rowIndex : 0;
+			const zeile = (zelle.parentElement as HTMLTableRowElement).rowIndex;
 			const weiter = naechsteZelle(
 				{ zeile, spalte: zelle.cellIndex },
 				t.rows.length,
 				t.rows[zeile]?.cells.length ?? 1,
 			);
-			const tabelle = [...doc.querySelectorAll('table.kit-tabelle')].indexOf(t);
+			const tabelle = [...angezeigt.querySelectorAll('table.kit-tabelle')].indexOf(t);
 			setZiel({ tabelle, zeile: weiter?.zeile ?? zeile + 1, spalte: weiter?.spalte ?? 0, neu: weiter === null });
 			aktuell.current.beende();
 		};
 		fenster.addEventListener('keydown', taste, true);
 		return () => fenster.removeEventListener('keydown', taste, true);
-	}, [doc]);
+	}, [angezeigt]);
 
 	useEffect(() => {
 		if (!ziel || !doc || bearbeitet) {

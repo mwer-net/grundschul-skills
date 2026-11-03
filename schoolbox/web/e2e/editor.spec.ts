@@ -42,7 +42,7 @@ test.describe('Editor', () => {
 		const { dok, id } = await uhrzeit();
 		await oeffne(page, id, dok);
 		await druecke(material(page).locator('h1'));
-		await expect(page.locator('[data-breadcrumb]')).toHaveText('Seite 1›Überschrift');
+		await expect(page.locator('[data-breadcrumb]')).toHaveText('Seite 1›Kopf›Überschrift');
 		await expect(page.locator('[data-auswahlrahmen]')).toBeVisible();
 
 		await druecke(material(page).locator('x-uhr').nth(1));

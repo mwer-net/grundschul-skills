@@ -34,8 +34,8 @@ test.describe('Editor: Bausteine einfügen', () => {
 		const { dok, id } = await uhrzeit();
 		await oeffne(page, id, dok);
 		await page.getByRole('button', { name: 'Bausteine' }).click();
-		await page.getByRole('searchbox', { name: 'Baustein suchen' }).fill('Notiz');
-		const griff = await page.locator('[data-ziehgriff="notiz"]').boundingBox();
+		await page.getByRole('searchbox', { name: 'Baustein suchen' }).fill('Schreiblinie');
+		const griff = await page.locator('[data-ziehgriff="schreiblinie"]').boundingBox();
 		const ziel = await page.locator('[data-editor-rahmen="sichtbar"]').boundingBox();
 		if (!griff || !ziel) {
 			throw new Error('nicht zu sehen');
@@ -44,15 +44,15 @@ test.describe('Editor: Bausteine einfügen', () => {
 		await page.mouse.down();
 		await page.mouse.move(ziel.x + ziel.width / 2, ziel.y + 300, { steps: 5 });
 		await page.mouse.up();
-		await expect.poll(() => quelle(page)).toContain('notiz');
+		await expect.poll(() => quelle(page)).toContain('schreiblinie');
 	});
 
 	test('Ziehen mit dem Finger (Pointer-Ereignisse mit Touch)', async ({ page }) => {
 		const { dok, id } = await uhrzeit();
 		await oeffne(page, id, dok);
 		await page.getByRole('button', { name: 'Bausteine' }).click();
-		await page.getByRole('searchbox', { name: 'Baustein suchen' }).fill('Notiz');
-		const griff = page.locator('[data-ziehgriff="notiz"]');
+		await page.getByRole('searchbox', { name: 'Baustein suchen' }).fill('Schreiblinie');
+		const griff = page.locator('[data-ziehgriff="schreiblinie"]');
 		const ziel = await page.locator('[data-editor-rahmen="sichtbar"]').boundingBox();
 		if (!ziel) {
 			throw new Error('nicht zu sehen');
@@ -61,7 +61,7 @@ test.describe('Editor: Bausteine einfügen', () => {
 		await griff.dispatchEvent('pointerdown', { ...punkt, clientX: 0, clientY: 0 });
 		await griff.dispatchEvent('pointermove', { ...punkt, clientX: ziel.x + ziel.width / 2, clientY: ziel.y + 300 });
 		await griff.dispatchEvent('pointerup', { ...punkt, clientX: ziel.x + ziel.width / 2, clientY: ziel.y + 300 });
-		await expect.poll(() => quelle(page)).toContain('notiz');
+		await expect.poll(() => quelle(page)).toContain('schreiblinie');
 	});
 
 	test('Slash: / allein in einer Zeile öffnet das Menü, Esc lässt den Text stehen, mitten im Text nichts', async ({

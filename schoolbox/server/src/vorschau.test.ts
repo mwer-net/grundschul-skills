@@ -1,18 +1,15 @@
 import assert from 'node:assert/strict';
-import { execFile } from 'node:child_process';
 import { existsSync } from 'node:fs';
 import { readFile, stat, utimes, writeFile } from 'node:fs/promises';
 import path from 'node:path';
 import { afterEach, describe, it } from 'node:test';
-import { promisify } from 'node:util';
 
-import { baueVorschau, BLATT_PY, neuesDokument, VORSCHAU_DATEI } from '@schoolbox/kern';
+import { baueVorschau, neuesDokument, VORSCHAU_DATEI } from '@schoolbox/kern';
+import { BROWSER_HINWEIS, browserFehlt } from '@schoolbox/kern/src/browsertest';
 
 import type { TestServer } from './testhilfe';
 import { legeDokumentAn, sammleEreignisse, schreibKoepfe, starteTestServer, warte } from './testhilfe';
 
-const ausfuehren = promisify(execFile);
-const CHROMIUM_DA = 'import sys; sys.path.insert(0, sys.argv[1]); import blatt; blatt.finde_chromium()';
 const PNG_KOPF = Buffer.from([0x89, 0x50, 0x4e, 0x47]);
 
 describe('Vorschauen', () => {
@@ -147,16 +144,11 @@ describe('Vorschauen', () => {
 	});
 
 	it('blatt.py baut die Vorschau nach ausgabe/ und lässt den Rest dort stehen', { timeout: 120_000 }, async (t) => {
-		s = await starteTestServer();
-		const python = s.kontext.konfig.pythonBin;
-		const chromiumFehlt = await ausfuehren(python, ['-c', CHROMIUM_DA, path.dirname(BLATT_PY)]).then(
-			() => false,
-			() => true,
-		);
-		if (chromiumFehlt) {
-			t.skip('kein Chromium');
+		if (browserFehlt()) {
+			t.skip(BROWSER_HINWEIS);
 			return;
 		}
+		s = await starteTestServer();
 		const { dir } = await legeDokumentAn(s.materialDir, { beispiel: true });
 		await writeFile(path.join(dir, 'ausgabe', 'material.pdf'), 'altes PDF');
 		const ziel = await baueVorschau(s.kontext.konfig, dir);
