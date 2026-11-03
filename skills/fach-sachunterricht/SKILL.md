@@ -67,6 +67,19 @@ Sicherheitshinweise (Feuer, Strom, Glas, Lebensmittel, Allergien) immer für die
 - Lerngang-/Beobachtungsbögen.
 - Folien für den Kreisinput (`praesentation`): Bildimpuls oder Phänomen, Vermutungen sammeln und abstimmen, Auflösung neben der Vermutung, Merksatz zur Ergebnissicherung. Echtes hat Vorrang (originale Begegnung); die Folie zeigt, was sich nicht in den Kreis holen lässt (Feld, Tier im Bau, Vorgang unter der Erde, früher).
 
+## Abbildungen
+
+Exakte Darstellungen kommen als Elemente aus `html-materialerstellung/assets/abbildungen.js` ins HTML. Attribute: `html-materialerstellung/references/abbildungen.md`, Abschnitt „Sachunterricht“.
+
+| Element | Darstellung | Klasse |
+|---|---|---|
+| `<x-jahreskreis jahreszeiten="ja">` | Jahreskreis, Woche, Tageskreis | 1/2 |
+| `<x-plan art="raum" objekte="tafel: D1; tisch: B3">` | Klassenzimmer in Draufsicht | 1/2 |
+| `<x-zeitleiste art="leben" von="0" bis="10">` | eigene Lebenszeit, maßstäblich | 2/3 |
+| `<x-zeitleiste von="1900" bis="2020" ereignisse="1969: Mondlandung">` | Zeitleiste mit Ereignissen und Zeiträumen | 3/4 |
+| `<x-plan objekte="schule: B3" massstab="1 Kästchen = 100 m" nordpfeil="ja">` | Ortsplan mit Planquadraten, Legende, Maßstabsleiste | 3/4 |
+| `<x-windrose richtungen="8">` | Himmelsrichtungen, deutsche Kürzel | 3/4 |
+
 ## Leistung feststellen
 
 Notengrundlage in Kl. 3/4 sind vor allem praktische Arbeiten, Forscherheft oder Lerntagebuch, Präsentationen und kurze schriftliche Übungs- oder Wiederholungsarbeiten (Rahmen in `klassenarbeit`). Kurze Überprüfungen fragen nach Ich-kann-Zielen und Denk- und Arbeitsweisen (Vermutung begründen, Beobachtung beschreiben, Abbildung beschriften), nicht nur nach Wissen. Leselast niedrig, Fachwörter mit Bild; Rechtschreibung anmerken; ob sie in die Note eingeht, regelt die Schule.
@@ -74,7 +87,7 @@ Notengrundlage in Kl. 3/4 sind vor allem praktische Arbeiten, Forscherheft oder 
 ## Qualitätscheck Sachunterricht
 
 - [ ] Fachlich geprüft (Biologie, Physik, Geographie, Geschichte)
-- [ ] Abbildungen realistisch und korrekt (Anzahl Beine, Pflanzenteile, Kartenausschnitt)
+- [ ] Abbildungen realistisch und korrekt (Anzahl Beine, Pflanzenteile; Kartenausschnitt: Pläne mit `x-plan`, nie als KI-Bild)
 - [ ] Versuchsmaterial alltagsnah und sicher
 - [ ] Denk- und Arbeitsweisen sichtbar (nicht nur Wissen abfragen)
 - [ ] Fachwörter mit Wortspeicher

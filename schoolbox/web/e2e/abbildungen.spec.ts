@@ -1409,3 +1409,171 @@ test.describe('Sprache untersuchen (032)', () => {
 		expect(await readFile(datei, 'utf8')).toBe(stand);
 	});
 });
+
+test.describe('Sachunterricht: Zeit und Raum (033)', () => {
+	const cmPxPlan = 96 / 2.54;
+	const kasten = (t: string) => t.split(' ').map(Number) as [number, number, number, number];
+
+	test('Zeitleiste maßstäblich, Beschriftungen ohne Überlappung', async ({ page }) => {
+		const tag =
+			'<x-zeitleiste von="1900" bis="2020" schritt="10" ereignisse="1914: Erster Weltkrieg; 1918: Kriegsende; 1969: Mondlandung; 1989: Mauerfall"></x-zeitleiste>';
+		const blatt = await gezeichnet(page, tag);
+		const lagen = await blatt.locator('.ereignis').evaluateAll((l) =>
+			l.map((e) => ({
+				jahr: Number(e.getAttribute('data-jahr')),
+				x: Number(e.getAttribute('data-x')),
+				box: e.getAttribute('data-box') ?? '',
+			})),
+		);
+		expect(lagen.map((l) => l.jahr)).toEqual([1914, 1918, 1969, 1989]);
+		const erstes = lagen[0];
+		const letztes = lagen.at(-1);
+		const proJahr = ((letztes?.x ?? 0) - (erstes?.x ?? 0)) / 75;
+		for (const l of lagen) {
+			expect(Math.abs(l.x - (erstes?.x ?? 0) - (l.jahr - 1914) * proJahr)).toBeLessThan(0.2);
+		}
+		for (const a of lagen) {
+			for (const b of lagen) {
+				if (a !== b) {
+					const [ax, ay, aw, ah] = kasten(a.box);
+					const [bx, by, bw, bh] = kasten(b.box);
+					expect(ax + aw <= bx || bx + bw <= ax || ay + ah <= by || by + bh <= ay).toBe(true);
+				}
+			}
+		}
+		const eng = await gezeichnet(
+			page,
+			'<x-zeitleiste von="1900" bis="2020" ereignisse="1914: A; 1915: B; 1916: C; 1917: D; 1918: E; 1919: F; 1920: G; 1921: H"></x-zeitleiste>',
+		);
+		await expect(eng.locator('x-zeitleiste')).toHaveAttribute('data-fehler', /zu dicht/);
+	});
+
+	test('Zeitleiste: offen, Zeitraum und v. Chr.', async ({ page }) => {
+		const tag =
+			'<x-zeitleiste von="-500" bis="500" schritt="100" ereignisse="-58-260: Römer am Rhein; 260: Alamannen: offen"></x-zeitleiste>';
+		const blatt = await gezeichnet(page, tag);
+		await expect(blatt.locator('.zeitraum')).toHaveCount(1);
+		await expect(blatt.locator('[data-offen]')).not.toContainText('Alamannen');
+		await expect(blatt.locator('.zl-liste')).toHaveText('Alamannen');
+		await expect(blatt.locator('svg')).toContainText('500 v. Chr.');
+		await expect((await gezeichnet(page, tag, 'kl3 sw loesung')).locator('[data-offen]')).toContainText(
+			'Alamannen',
+		);
+		const ohne = await gezeichnet(page, '<x-zeitleiste von="-10" bis="10" ereignisse="0: Null"></x-zeitleiste>');
+		await expect(ohne.locator('x-zeitleiste')).toHaveAttribute('data-fehler', /Jahr 0/);
+	});
+
+	test('Jahreskreis: Januar oben, im Uhrzeigersinn, Jahreszeiten meteorologisch', async ({ page }) => {
+		const blatt = await gezeichnet(page, '<x-jahreskreis jahreszeiten="ja" markiert="Juli"></x-jahreskreis>');
+		await expect(blatt.locator('.segment[data-nr="0"]')).toHaveAttribute('data-name', 'Januar');
+		await expect(blatt.locator('.segment[data-nr="0"]')).toHaveAttribute('data-start', '0');
+		await expect(blatt.locator('.segment[data-nr="3"]')).toHaveAttribute('data-start', '90');
+		await expect(blatt.locator('.segment[data-markiert]')).toHaveAttribute('data-name', 'Juli');
+		await expect(blatt.locator('.jahreszeit[data-zeit="Frühling"]')).toHaveCount(3);
+		await expect(blatt.locator('.legende')).toHaveCount(4);
+		const leer = '<x-jahreskreis beschriftung="leer" art="woche"></x-jahreskreis>';
+		await expect((await gezeichnet(page, leer)).locator('.kreistext')).toHaveCount(0);
+		await expect((await gezeichnet(page, leer, 'kl3 sw loesung')).locator('.kreistext')).toHaveCount(7);
+		await expect(
+			(await gezeichnet(page, '<x-jahreskreis art="stunden"></x-jahreskreis>')).locator('.segment'),
+		).toHaveCount(24);
+	});
+
+	test('Windrose: deutsche Kürzel, leer erst in der Lösung', async ({ page }) => {
+		const namen = async (html: string, klasse?: string) =>
+			(await gezeichnet(page, html, klasse))
+				.locator('.richtung')
+				.evaluateAll((l) => l.map((e) => e.textContent ?? ''));
+		expect(await namen('<x-windrose></x-windrose>')).toEqual(['N', 'O', 'S', 'W']);
+		expect(await namen('<x-windrose richtungen="8"></x-windrose>')).toEqual([
+			'N',
+			'O',
+			'S',
+			'W',
+			'NO',
+			'SO',
+			'SW',
+			'NW',
+		]);
+		expect(await namen('<x-windrose beschriftung="norden"></x-windrose>')).toEqual(['N', '', '', '']);
+		expect(await namen('<x-windrose beschriftung="leer"></x-windrose>', 'kl3 sw loesung')).toEqual([
+			'N',
+			'O',
+			'S',
+			'W',
+		]);
+	});
+
+	test('Plan: Legende vollständig, Muster verschieden, Aufgaben', async ({ page }) => {
+		const tag =
+			'<x-plan spalten="4" zeilen="2" boden="wasser wald wiese strasse / leer platz leer leer" objekte="schule: A1; baum: B1 B2" massstab="1 Kästchen = 100 m"></x-plan>';
+		const blatt = await gezeichnet(page, tag);
+		expect(
+			await blatt.locator('.legende').evaluateAll((l) => l.map((e) => e.getAttribute('data-legende')).sort()),
+		).toEqual(['baum', 'platz', 'schule', 'strasse', 'wald', 'wasser', 'wiese'].sort());
+		const fuellungen = await blatt.locator('.flaeche').evaluateAll((l) => l.map((e) => e.getAttribute('fill')));
+		expect(new Set(fuellungen).size).toBe(5);
+		await expect(blatt.locator('x-plan')).toHaveAttribute('data-masstab', '');
+		const k = await blatt.locator('.massstabsleiste').getAttribute('data-laenge');
+		expect(Number(k)).toBeCloseTo(1.2 * cmPxPlan, 0);
+		await expect(blatt.locator('x-plan .massstabsleiste')).toContainText('100 m');
+		const falsch = await gezeichnet(page, '<x-plan objekte="ufo: A1"></x-plan>');
+		await expect(falsch.locator('x-plan')).toHaveAttribute('data-fehler', /Symbol/);
+
+		const finden = '<x-plan aufgabe="finden" objekte="schule: B3"></x-plan>';
+		await expect((await gezeichnet(page, finden)).locator('.planfrage')).not.toContainText('B3');
+		await expect((await gezeichnet(page, finden, 'kl3 sw loesung')).locator('.planfrage')).toContainText('B3');
+		const ein = '<x-plan aufgabe="einzeichnen" objekte="schule: B3"></x-plan>';
+		await expect((await gezeichnet(page, ein)).locator('.flaeche, g.symbol:not(.legende g)')).toHaveCount(0);
+		await expect((await gezeichnet(page, ein, 'kl3 sw loesung')).locator('g.symbol:not(.legende g)')).toHaveCount(
+			1,
+		);
+		const weg = '<x-plan aufgabe="weg" weg="A1 A2 B2"></x-plan>';
+		await expect((await gezeichnet(page, weg)).locator('.weg')).toHaveCount(0);
+		await expect((await gezeichnet(page, weg)).locator('.wegmarke')).toHaveCount(2);
+		await expect((await gezeichnet(page, weg, 'kl3 sw loesung')).locator('.weg')).toHaveCount(1);
+		const schief = await gezeichnet(page, '<x-plan aufgabe="weg" weg="A1 C3"></x-plan>');
+		await expect(schief.locator('x-plan')).toHaveAttribute('data-fehler', /nebeneinander/);
+	});
+
+	test('Panel: Ereignis hinzufügen, Kästchen belegen, je ein Rückgängig-Schritt', async ({ druecke, page }) => {
+		test.slow();
+		const { dok, id, material: datei } = await uhrzeit();
+		await oeffne(page, id, dok);
+		await aendere(
+			page,
+			(await quelle(page)).replace(
+				/<x-uhr[^>]*><\/x-uhr>/,
+				'<x-zeitleiste ereignisse="1914: Krieg"></x-zeitleiste><x-plan spalten="3" zeilen="2"></x-plan>',
+			),
+		);
+		await gespeichert(page, datei);
+		const stand = await readFile(datei, 'utf8');
+
+		const leiste = material(page).locator('x-zeitleiste');
+		await druecke(leiste);
+		await druecke(page.getByRole('button', { name: 'Zeile hinzufügen' }));
+		await gespeichert(page, datei);
+		expect(await readFile(datei, 'utf8')).toContain('ereignisse="1914: Krieg; 2000: Ereignis"');
+		await expect(leiste.locator('.ereignis')).toHaveCount(2);
+		await druecke(zurueck(page));
+		await gespeichert(page, datei);
+		expect(await readFile(datei, 'utf8')).toBe(stand);
+
+		const plan = material(page).locator('x-plan');
+		await druecke(plan);
+		await druecke(panel(page).locator('[data-plan-zelle="B2"]'));
+		await page.getByLabel('Symbol in B2').selectOption({ label: 'Schule' });
+		await gespeichert(page, datei);
+		expect(await readFile(datei, 'utf8')).toContain('objekte="schule: B2"');
+		await expect(plan.locator('.legende[data-legende="schule"]')).toHaveCount(1);
+		await page.getByLabel('Fläche in B2').selectOption({ label: 'Wiese' });
+		await gespeichert(page, datei);
+		expect(await readFile(datei, 'utf8')).toContain('boden="leer leer leer / leer wiese leer"');
+		await druecke(zurueck(page));
+		await gespeichert(page, datei);
+		await druecke(zurueck(page));
+		await gespeichert(page, datei);
+		expect(await readFile(datei, 'utf8')).toBe(stand);
+	});
+});

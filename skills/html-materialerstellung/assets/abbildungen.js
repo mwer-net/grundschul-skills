@@ -82,7 +82,7 @@
     "x-urne": "Kugeln im Säckchen", "x-wahrscheinlichkeit": "Wahrscheinlichkeit", "x-kombinatorik": "Möglichkeiten",
     "x-gitter": "Gitter", "x-figur": "Figur", "x-tangram": "Tangram",
     "x-hunderterfeld": "Hunderterfeld", "x-hundertertafel": "Hundertertafel", "x-rechenrahmen": "Rechenrahmen", "x-rechenstrich": "Rechenstrich",
-    "x-lineatur": "Schreiblinien", "x-silben": "Silben", "x-wortarten": "Wortarten", "x-satzglieder": "Satzglieder", "x-wortbausteine": "Wortbausteine",
+    "x-lineatur": "Schreiblinien", "x-silben": "Silben", "x-wortarten": "Wortarten", "x-satzglieder": "Satzglieder", "x-wortbausteine": "Wortbausteine", "x-zeitleiste": "Zeitleiste", "x-jahreskreis": "Jahreskreis", "x-windrose": "Windrose", "x-plan": "Plan",
     "x-geld": "Geld", "x-skala": "Messgerät", "x-strecke": "Strecke", "x-kalender": "Kalender", "x-zeitspanne": "Zeitspanne",
     "x-punktfeld": "Punktfeld", "x-malkreuz": "Malkreuz", "x-schriftlich": "Schriftliche Rechnung",
     "x-zahlenmauer": "Zahlenmauer", "x-rechendreieck": "Rechendreieck", "x-zahlenhaus": "Zahlenhaus", "x-zahlenkette": "Rechenkette", "x-zauberdreieck": "Zauberdreieck", "x-rechenrad": "Rechenrad",
@@ -3426,6 +3426,345 @@
     else el.innerHTML = reihe();
   }
 
+  /* == Sachunterricht == */
+  /** Ein Jahr auf der Leiste. Vor Christus negativ; ein Jahr 0 gibt es nicht, auf -1 folgt 1. */
+  const zeitPos = (jahr) => (jahr < 0 ? jahr : jahr - 1);
+  const jahrText = (j) => (j < 0 ? `${-j} v. Chr.` : String(j));
+  const zeitEreignisse = (roh) => roh.map((p) => {
+    const m = p.name.match(/^(-?\d+)(?:-(-?\d+))?$/);
+    if (!m) abbruch(`„${p.name}“ ist kein Jahr und kein Zeitraum.`);
+    const offen = /:\s*offen$/.test(p.wert);
+    return { von: Number(m[1]), bis: m[2] === undefined ? null : Number(m[2]), text: p.wert.replace(/:\s*offen$/, "").trim(), offen };
+  });
+
+  function zeitleiste(el) {
+    const art = attr(el, "art", "jahre"), leben = art === "leben", von = num(el, "von", 1900), bis = num(el, "bis", 2020), liste2 = attr(el, "ereignisliste", "ja") === "ja";
+    if (!["jahre", "leben"].includes(art)) abbruch(`Die Art „${art}“ gibt es nicht.`);
+    if (!(von < bis)) abbruch("Der Anfang liegt vor dem Ende.");
+    if (!leben && (von === 0 || bis === 0)) abbruch("Ein Jahr 0 gibt es nicht.");
+    const spanne = zeitPos(bis) - zeitPos(von);
+    const vorschlag = spanne <= 20 ? 1 : spanne <= 100 ? 10 : spanne <= 1000 ? 100 : 1000;
+    const schritt = num(el, "schritt", vorschlag);
+    if (!(schritt > 0)) abbruch("Der Schritt ist größer als 0.");
+    const breite = num(el, "breite", Math.min(el.parentElement?.clientWidth || SATZSPIEGEL, SATZSPIEGEL));
+    const pos = leben ? (j) => j : zeitPos, rand = 34, x0 = rand, x1 = breite - rand - 10, proJahr = (x1 - x0) / (pos(bis) - pos(von));
+    const xVon = (j) => x0 + (pos(j) - pos(von)) * proJahr;
+    const liste3 = zeitEreignisse(paare(el, "ereignisse")), f = fuellung(), loesung = loesungSichtbar(el), groesse = 15, zeile = 19;
+    for (const e of liste3) {
+      if (!leben && (e.von === 0 || e.bis === 0)) abbruch("Ein Jahr 0 gibt es nicht.");
+      for (const j of e.bis === null ? [e.von] : [e.von, e.bis]) if (j < von || j > bis) abbruch(`${jahrText(j)} liegt außerhalb der Leiste.`);
+      if (e.bis !== null && e.bis <= e.von) abbruch("Ein Zeitraum geht vom früheren zum späteren Jahr.");
+    }
+    const balken = [], reihen = [];
+    liste3.filter((e) => e.bis !== null).forEach((e) => {
+      let r = reihen.findIndex((ende) => ende < e.von);
+      if (r < 0) r = reihen.length;
+      reihen[r] = e.bis;
+      balken.push({ e, r });
+    });
+    const balkenHoehe = reihen.length * 12;
+    const kopfText = (e) => (leben ? `${e.von}${e.bis === null ? "" : `–${e.bis}`} ${e.von === 1 && e.bis === null ? "Jahr" : "Jahre"}` : e.bis === null ? jahrText(e.von) : `${jahrText(e.von)}–${jahrText(e.bis)}`);
+    const karten = liste3.map((e) => {
+      const zeilen = satzZeilen(e.text, 150, groesse), kopf = kopfText(e);
+      const w = Math.min(Math.max(textBreite(kopf, groesse) * 1.05, ...zeilen.map((z) => textBreite(z, groesse))), 170) + 14;
+      return { e, zeilen, kopf, w, h: (zeilen.length + 1) * zeile + 8, x: xVon(e.bis === null ? e.von : (e.von + e.bis) / 2) };
+    }).sort((a, b) => a.x - b.x);
+    const stufe = Math.max(0, ...karten.map((k) => k.h)) + 10, tiefe = 26;
+    const belegt = [];
+    const frei = (k, seite, n, kx) => belegt.every((b) => {
+      if (b.seite !== seite) return true;
+      const neben = Math.abs(b.kx - kx) >= (b.k.w + k.w) / 2 + 6;
+      if (b.n === n) return neben;
+      const fuehrungKreuzt = (n > b.n && Math.abs(k.x - b.kx) < b.k.w / 2 + 3) || (b.n > n && Math.abs(b.k.x - kx) < k.w / 2 + 3);
+      return !fuehrungKreuzt;
+    });
+    let seite = "unten";
+    for (const k of karten) {
+      const kx = Math.min(Math.max(k.x, k.w / 2 + 1), breite - k.w / 2 - 1);
+      const zuerst = seite === "unten" ? ["oben", "unten"] : ["unten", "oben"];
+      const wahl = [0, 1, 2].flatMap((n) => zuerst.map((s) => ({ s, n }))).find(({ s, n }) => frei(k, s, n, kx));
+      if (!wahl) abbruch("Ereignisse liegen zu dicht; Leiste länger machen oder Zeitraum kürzen.");
+      belegt.push({ k, seite: wahl.s, n: wahl.n, kx });
+      seite = wahl.s;
+    }
+    const obenStufen = Math.max(0, ...belegt.filter((b) => b.seite === "oben").map((b) => b.n + 1));
+    const untenStufen = Math.max(0, ...belegt.filter((b) => b.seite === "unten").map((b) => b.n + 1));
+    const y = obenStufen * stufe + balkenHoehe + 12;
+    let s = "";
+    balken.forEach(({ e, r }) => {
+      const a = xVon(e.von), z = xVon(e.bis);
+      s += `<rect class="zeitraum" data-von="${e.von}" data-bis="${e.bis}" data-x="${r1(a)}" data-x2="${r1(z)}" x="${r1(a)}" y="${y - 12 * (r + 1)}" width="${r1(z - a)}" height="11" fill="${f.von(r + 1)}" stroke="${SCHWARZ}" stroke-width="1"/>`;
+    });
+    s += `<line class="strahl" x1="${x0 - 12}" y1="${y}" x2="${x1 + 16}" y2="${y}" stroke="${SCHWARZ}" stroke-width="2.5"/><path d="M${x1 + 16} ${y - 6}L${x1 + 26} ${y}L${x1 + 16} ${y + 6}Z" fill="${SCHWARZ}" stroke="none"/>`;
+    const marken = [];
+    const erster = Math.ceil(von / schritt) * schritt;
+    for (let t = erster; t <= bis; t += schritt) if (leben || t !== 0) marken.push(t);
+    const breiteste = Math.max(...marken.map((t) => textBreite(jahrText(t), 14))) + 8;
+    const jede = Math.max(1, Math.ceil(breiteste / (schritt * proJahr)));
+    for (const { k, seite: sei, n, kx } of belegt) {
+      const oben = sei === "oben";
+      const ky = oben ? y - balkenHoehe - (n + 1) * stufe + 2 : y + tiefe + n * stufe;
+      const fuss = oben ? ky + k.h : ky;
+      const zeigen = !k.e.offen || loesung;
+      s += `<g class="ereignis" data-jahr="${k.e.von}" data-x="${r1(k.x)}" data-box="${r1(kx - k.w / 2)} ${r1(ky)} ${r1(k.w)} ${r1(k.h)}"${k.e.offen ? " data-offen" : ""}>`;
+      s += `<line class="fuehrung" x1="${r1(k.x)}" y1="${oben ? y - balkenHoehe : y + 7}" x2="${r1(k.x)}" y2="${r1(fuss)}" stroke="${SCHWARZ}" stroke-width="1"/>`;
+      s += `<rect x="${r1(kx - k.w / 2)}" y="${r1(ky)}" width="${r1(k.w)}" height="${r1(k.h)}" rx="3" fill="#fff" stroke="${SCHWARZ}" stroke-width="1.2"/>`;
+      s += text(kx, ky + 4 + zeile / 2, k.kopf, { groesse, fett: true });
+      if (zeigen) k.zeilen.forEach((z, i) => { s += text(kx, ky + 4 + zeile * (i + 1.5), z, { groesse }); });
+      s += "</g>";
+    }
+    marken.forEach((t, i) => {
+      const x = xVon(t), mitText = i % jede === 0, name = leben ? String(t) : jahrText(t), tb = textBreite(name, 14);
+      s += `<line class="strich" data-jahr="${t}" data-x="${r1(x)}" x1="${r1(x)}" y1="${y - (mitText ? 7 : 4)}" x2="${r1(x)}" y2="${y + (mitText ? 7 : 4)}" stroke="${SCHWARZ}" stroke-width="${mitText ? 1.8 : 1}"/>`;
+      if (mitText) s += `<rect x="${r1(x - tb / 2 - 1)}" y="${y + 10}" width="${r1(tb + 2)}" height="16" fill="#fff" stroke="none"/>${text(x, y + 18, name, { groesse: 14 })}`;
+    });
+    const hoehe = y + tiefe + untenStufen * stufe + 2;
+    let unten = "";
+    const offeneTexte = liste3.filter((e) => e.offen).map((e) => e.text).sort((a, b) => a.localeCompare(b, "de"));
+    if (liste2 && offeneTexte.length > 0) unten = `<div class="zl-liste">${offeneTexte.map((t) => `<span>${maskiere(t)}</span>`).join("")}</div>`;
+    el.innerHTML = svg(breite, r1(hoehe), f.defs() + s) + unten;
+  }
+
+  const KREIS_MONATE = ["Januar", "Februar", "März", "April", "Mai", "Juni", "Juli", "August", "September", "Oktober", "November", "Dezember"];
+  const KREIS_TAGE = ["Montag", "Dienstag", "Mittwoch", "Donnerstag", "Freitag", "Samstag", "Sonntag"];
+  const TAGESZEITEN = ["Morgen", "Mittag", "Abend", "Nacht"];
+  const STUNDEN_NAMEN = Array.from({ length: 24 }, (_, i) => String(i));
+  const KREISE = { jahr: KREIS_MONATE, woche: KREIS_TAGE, tag: TAGESZEITEN, stunden: STUNDEN_NAMEN };
+  const JAHRESZEITEN = [
+    { name: "Frühling", monate: [2, 3, 4], farbe: "#7CC36A", muster: 2 },
+    { name: "Sommer", monate: [5, 6, 7], farbe: "#FFD23F", muster: 0 },
+    { name: "Herbst", monate: [8, 9, 10], farbe: "#F28C28", muster: 1 },
+    { name: "Winter", monate: [11, 0, 1], farbe: "#6FA8DC", muster: 3 },
+  ];
+
+  function jahreskreis(el) {
+    const art = attr(el, "art", "jahr"), beschriftung = attr(el, "beschriftung", "voll"), mitZeiten = attr(el, "jahreszeiten", "nein") === "ja", markiert = liste(el, "markiert"), g = num(el, "groesse", 320);
+    const namen = KREISE[art];
+    if (!namen) abbruch(`Die Art „${art}“ gibt es nicht.`);
+    if (!["voll", "leer"].includes(beschriftung)) abbruch(`Die Beschriftung „${beschriftung}“ gibt es nicht.`);
+    if (mitZeiten && art !== "jahr") abbruch("Jahreszeiten gibt es nur beim Jahreskreis.");
+    for (const m of markiert) if (!namen.includes(m)) abbruch(`„${m}“ gehört nicht zu diesem Kreis.`);
+    const f = fuellung(), sw = istSw(), n = namen.length, band = mitZeiten ? 18 : 0, r = g / 2 - 2 - band, r0 = g * 0.09, c = g / 2, zeigen = beschriftung === "voll" || loesungSichtbar(el);
+    const groesse = n === 24 ? 13 : 15;
+    const radial = n === 12;
+    const laenge = r - r0 - 10;
+    if (radial && textBreite("September", groesse) > laenge) abbruch("Der Kreis ist zu klein für die Beschriftung.");
+    if (!radial && n !== 24 && textBreite("Donnerstag", groesse) > 2 * (r * 0.62) * Math.sin(Math.PI / n)) abbruch("Der Kreis ist zu klein für die Beschriftung.");
+    const punkt = (rad, w) => [c + rad * Math.sin(w), c - rad * Math.cos(w)];
+    const sektor = (a, b, innen, aussen) => {
+      const [x1, y1] = punkt(aussen, a), [x2, y2] = punkt(aussen, b), [x3, y3] = punkt(innen, b), [x4, y4] = punkt(innen, a), gross = b - a > Math.PI ? 1 : 0;
+      return `M${r1(x1)} ${r1(y1)}A${r1(aussen)} ${r1(aussen)} 0 ${gross} 1 ${r1(x2)} ${r1(y2)}L${r1(x3)} ${r1(y3)}A${r1(innen)} ${r1(innen)} 0 ${gross} 0 ${r1(x4)} ${r1(y4)}Z`;
+    };
+    const teil = (2 * Math.PI) / n;
+    let s = "";
+    namen.forEach((name, i) => {
+      const a = i * teil, b = a + teil, an = markiert.includes(name);
+      const fuell = an ? (sw ? f.von(1) : "color-mix(in srgb,var(--haupt) 30%,#fff)") : "#fff";
+      s += `<path class="segment" data-name="${name}" data-nr="${i}" data-start="${r1((a * 180) / Math.PI)}"${an ? " data-markiert" : ""} d="${sektor(a, b, r0, r)}" fill="${fuell}" stroke="${SCHWARZ}" stroke-width="1.5"/>`;
+    });
+    if (mitZeiten) {
+      for (const z of JAHRESZEITEN) {
+        for (const m of z.monate) {
+          const a = m * teil, b = a + teil;
+          s += `<path class="jahreszeit" data-zeit="${z.name}" d="${sektor(a, b, r, r + band)}" fill="${sw ? f.von(z.muster) : z.farbe}" stroke="${SCHWARZ}" stroke-width="1"/>`;
+        }
+      }
+    }
+    if (zeigen) {
+      namen.forEach((name, i) => {
+        const w = (i + 0.5) * teil, tb = textBreite(name, groesse);
+        if (radial) {
+          const grad = (w * 180) / Math.PI, links = w > Math.PI, [x, y] = punkt(r - 8 - tb / 2, w), dreh = links ? grad + 90 : grad - 90;
+          s += `<g class="kreistext" transform="rotate(${r1(dreh)} ${r1(x)} ${r1(y)})"><rect x="${r1(x - tb / 2 - 2)}" y="${r1(y - 9)}" width="${r1(tb + 4)}" height="18" fill="#fff" stroke="none"/>${text(x, y, name, { groesse })}</g>`;
+        } else {
+          const [x, y] = punkt(n === 24 ? r - 14 : r * 0.62, w);
+          s += `<g class="kreistext"><rect x="${r1(x - tb / 2 - 2)}" y="${r1(y - 9)}" width="${r1(tb + 4)}" height="18" fill="#fff" stroke="none"/>${text(x, y, name, { groesse })}</g>`;
+        }
+      });
+    }
+    let h = g;
+    if (mitZeiten) {
+      let lx = 2, ly = g + 8;
+      for (const z of JAHRESZEITEN) {
+        const b = 24 + textBreite(z.name, 14) + 12;
+        if (lx + b > g && lx > 2) { lx = 2; ly += 22; }
+        s += `<g class="legende" data-legende="${z.name}"><rect x="${r1(lx)}" y="${ly}" width="18" height="16" fill="${sw ? f.von(z.muster) : z.farbe}" stroke="${SCHWARZ}" stroke-width="1"/>${text(lx + 22, ly + 8, z.name, { groesse: 14, anker: "start" })}</g>`;
+        lx += b;
+      }
+      h = ly + 22;
+    }
+    el.innerHTML = svg(g, h, f.defs() + s);
+  }
+
+  function windrose(el) {
+    const richtungen = attr(el, "richtungen", "4"), beschriftung = attr(el, "beschriftung", "voll"), g = num(el, "groesse", 170);
+    if (!["4", "8"].includes(richtungen)) abbruch("Eine Windrose hat 4 oder 8 Richtungen.");
+    if (!["voll", "leer", "norden"].includes(beschriftung)) abbruch(`Die Beschriftung „${beschriftung}“ gibt es nicht.`);
+    const c = g / 2, platz = 28, R = c - platz, b = R * 0.16;
+    const zacke = (w, lang, voll, gesamt) => {
+      const sin = Math.sin(w), cos = Math.cos(w), sp = [c + lang * sin, c - lang * cos], l = [c - b * cos, c - b * sin], rr = [c + b * cos, c + b * sin];
+      const flaeche = (p) => `M${r1(c)} ${r1(c)}L${r1(p[0])} ${r1(p[1])}L${r1(sp[0])} ${r1(sp[1])}Z`;
+      return `<path d="${flaeche(l)}" fill="${gesamt ? SCHWARZ : "#fff"}" stroke="${SCHWARZ}" stroke-width="1.2"/><path d="${flaeche(rr)}" fill="${voll ? SCHWARZ : "#fff"}" stroke="${SCHWARZ}" stroke-width="1.2"/>`;
+    };
+    const achter = richtungen === "8";
+    const haupt = ["N", "O", "S", "W"], neben = ["NO", "SO", "SW", "NW"];
+    let s = "";
+    if (achter) neben.forEach((_, i) => { s += zacke(Math.PI / 4 + (i * Math.PI) / 2, R * 0.62, false, false); });
+    haupt.forEach((name, i) => { s += zacke((i * Math.PI) / 2, R, true, name === "N"); });
+    const schild = (name, w, fernab) => {
+      const x = c + fernab * Math.sin(w), y = c - fernab * Math.cos(w), norden = name === "N";
+      const zeigen = beschriftung === "voll" || (beschriftung === "norden" && norden);
+      if (zeigen) return `<g class="richtung" data-richtung="${name}">${text(x, y, name, { groesse: norden ? 22 : 17, fett: norden })}</g>`;
+      return `<g class="richtung" data-richtung="${name}" data-leer stroke="${SCHWARZ}">${antwortfeld(el, x - 15, y - 12, 30, 24, name, { groesse: 16 })}</g>`;
+    };
+    haupt.forEach((name, i) => { s += schild(name, (i * Math.PI) / 2, R + 15); });
+    if (achter) neben.forEach((name, i) => { s += schild(name, Math.PI / 4 + (i * Math.PI) / 2, R * 0.62 + 19); });
+    el.innerHTML = svg(g, g, s);
+  }
+
+  const PLAN_FLAECHEN = { leer: "frei", strasse: "Straße", wasser: "Wasser", wald: "Wald", wiese: "Wiese", platz: "Platz" };
+  const PLAN_FARBEN = { strasse: "#A9A9A9", wasser: "#8EC5F2", wald: "#5FA768", wiese: "#C6E6A8", platz: "#EADBB5" };
+  const PLAN_MUSTER = {
+    wasser: `<path d="M0 4H16M0 12H16" stroke="${SCHWARZ}" stroke-width="1.2"/>`,
+    wald: `<path d="M8 2L12 9H4ZM8 9V13" stroke="${SCHWARZ}" stroke-width="1" fill="none"/>`,
+    wiese: `<path d="M3 7L4.5 11L6 7M11 13L12.5 16L14 13" stroke="${SCHWARZ}" stroke-width="1" fill="none"/>`,
+    platz: `<circle cx="4" cy="4" r="1.2" fill="${SCHWARZ}" stroke="none"/><circle cx="12" cy="12" r="1.2" fill="${SCHWARZ}" stroke="none"/>`,
+  };
+  const PLAN_SYMBOLE = {
+    ort: {
+      schule: { name: "Schule", d: "M3 21V10L12 5L21 10V21ZM12 5V1L16 2.5L12 4M10 21V15H14V21" },
+      kirche: { name: "Kirche", d: "M6 21V10L12 5L18 10V21ZM12 5V0M10 2H14M10 21V16H14V21" },
+      rathaus: { name: "Rathaus", d: "M3 9L12 3L21 9ZM3 21H21M6 9V21M10 9V21M14 9V21M18 9V21" },
+      bahnhof: { name: "Bahnhof", d: "M6 3H18V16H6ZM6 10H18M9 16L6 21M15 16L18 21M9 13H9.5M14.5 13H15" },
+      bushaltestelle: { name: "Bushaltestelle", d: "M12 1A11 11 0 1 0 12 23A11 11 0 1 0 12 1ZM8 6V18M16 6V18M8 12H16" },
+      spielplatz: { name: "Spielplatz", d: "M3 21L6 4H18L21 21M12 4V14M9 14H15" },
+      haus: { name: "Haus", d: "M4 21V11L12 4L20 11V21Z" },
+      baum: { name: "Baum", d: "M12 2A7 7 0 1 0 12 16A7 7 0 1 0 12 2ZM12 16V22M8 22H16" },
+      bruecke: { name: "Brücke", d: "M2 9H22M2 15H22M6 9V15M12 9V15M18 9V15M2 6L5 9M22 6L19 9M2 18L5 15M22 18L19 15" },
+      post: { name: "Post", d: "M2 6H22V18H2ZM2 6L12 13L22 6" },
+      krankenhaus: { name: "Krankenhaus", d: "M3 3H21V21H3ZM9 7H15V10H18V15H15V18H9V15H6V10H9Z" },
+      parkplatz: { name: "Parkplatz", d: "M3 3H21V21H3ZM9 18V6H14A3.5 3.5 0 0 1 14 13H9" },
+    },
+    raum: {
+      tisch: { name: "Tisch", d: "M3 6H21V18H3Z" },
+      stuhl: { name: "Stuhl", d: "M7 7H17V19H7ZM5 4H19V7H5Z" },
+      tafel: { name: "Tafel", d: "M2 9H22V15H2ZM6 15V18M18 15V18" },
+      tuer: { name: "Tür", d: "M4 21V3M4 3A18 18 0 0 1 22 21M2 21H22" },
+      fenster: { name: "Fenster", d: "M2 9H22V15H2ZM2 12H22M8 9V15M16 9V15" },
+      schrank: { name: "Schrank", d: "M3 5H21V19H3ZM3 5L21 19M21 5L3 19" },
+      teppich: { name: "Teppich", d: "M5 4H19V20H5ZM2 7H5M2 12H5M2 17H5M19 7H22M19 12H22M19 17H22" },
+    },
+  };
+  const planZelle = (q, spalten, zeilen) => {
+    const m = String(q).match(/^([A-Z])(\d+)$/);
+    if (!m) abbruch(`„${q}“ ist kein Planquadrat. So sieht eines aus: B3.`);
+    const x = m[1].charCodeAt(0) - 65, y = Number(m[2]) - 1;
+    if (x >= spalten || y < 0 || y >= zeilen) abbruch(`Das Planquadrat ${q} liegt außerhalb des Plans.`);
+    return { x, y };
+  };
+
+  function plan(el) {
+    const art = attr(el, "art", "ort"), spalten = num(el, "spalten", 6), zeilen = num(el, "zeilen", 5), boden = raster(el, "boden"), objekte = paare(el, "objekte"), mitQuadraten = attr(el, "planquadrate", "ja") === "ja", mitLegende = attr(el, "legende", "ja") === "ja", massstab = attr(el, "massstab", null), nordpfeil = attr(el, "nordpfeil", "nein") === "ja", aufgabe = attr(el, "aufgabe", "keine"), weg = liste(el, "weg"), kaestchen = num(el, "kaestchen", 1.2);
+    const satz = PLAN_SYMBOLE[art];
+    if (!satz) abbruch(`Die Art „${art}“ gibt es nicht.`);
+    if (!["keine", "finden", "einzeichnen", "weg"].includes(aufgabe)) abbruch(`Die Aufgabe „${aufgabe}“ gibt es nicht.`);
+    if (!(spalten >= 1 && spalten <= 26 && zeilen >= 1 && zeilen <= 30)) abbruch("Der Plan hat 1 bis 26 Spalten und 1 bis 30 Zeilen.");
+    if (kaestchen < 0.8) abbruch("Ein Kästchen misst mindestens 0,8 cm.");
+    const k = cm(kaestchen), rand = mitQuadraten ? 24 : 2, breite = rand + spalten * k + 2, sw = istSw();
+    if (breite > SATZSPIEGEL) abbruch("Der Plan ist zu breit für die Seite. Nimm weniger Spalten.");
+    const orte = new Map();
+    for (const { name, wert } of objekte) {
+      if (!satz[name]) abbruch(`Das Symbol „${name}“ gibt es hier nicht. Erlaubt: ${Object.keys(satz).join(", ")}.`);
+      for (const q of trenneListe(wert)) {
+        const { x, y } = planZelle(q, spalten, zeilen), schluessel = `${x},${y}`;
+        if (orte.has(schluessel)) abbruch(`Im Planquadrat ${q} steht schon ein Symbol.`);
+        orte.set(schluessel, { name, q, x, y });
+      }
+    }
+    const zeigeSymbole = aufgabe !== "einzeichnen" || loesungSichtbar(el);
+    const id = `abb-plan${++fuellungsNr}`;
+    const genutzt = new Set();
+    const fuellen = (art2) => {
+      if (art2 === "leer") return "#fff";
+      if (!sw) return PLAN_FARBEN[art2];
+      if (art2 === "strasse") return "#808080";
+      return `url(#${id}-${art2})`;
+    };
+    let s = "";
+    boden.forEach((reihe, y) => reihe.forEach((z, x) => {
+      if (!PLAN_FLAECHEN[z]) abbruch(`Die Fläche „${z}“ gibt es nicht.`);
+      if (x >= spalten || y >= zeilen) abbruch("Der Boden ist größer als der Plan.");
+      if (z !== "leer") {
+        genutzt.add(z);
+        s += `<rect class="flaeche" data-flaeche="${z}" data-q="${String.fromCharCode(65 + x)}${y + 1}" x="${r1(rand + x * k)}" y="${r1(rand + y * k)}" width="${r1(k)}" height="${r1(k)}" fill="${fuellen(z)}" stroke="none"/>`;
+      }
+    }));
+    let linien = "";
+    for (let i = 0; i <= spalten; i++) linien += `M${r1(rand + i * k)} ${rand}V${r1(rand + zeilen * k)}`;
+    for (let i = 0; i <= zeilen; i++) linien += `M${rand} ${r1(rand + i * k)}H${r1(rand + spalten * k)}`;
+    s += `<path class="planlinien" d="${linien}" fill="none" stroke="#4A4A4A" stroke-width="1"/>`;
+    if (mitQuadraten) {
+      for (let i = 0; i < spalten; i++) s += text(rand + (i + 0.5) * k, 11, String.fromCharCode(65 + i), { groesse: 15, fett: true });
+      for (let i = 0; i < zeilen; i++) s += text(11, rand + (i + 0.5) * k, i + 1, { groesse: 15, fett: true });
+    }
+    const symbol = (name, x, y, g) => `<g class="symbol" data-symbol="${name}" transform="translate(${r1(x)} ${r1(y)}) scale(${r1(g / 24)})"><rect x="-1" y="-1" width="26" height="26" rx="3" fill="#fff" stroke="none"/><path d="${satz[name].d}" fill="none" stroke="${SCHWARZ}" stroke-width="${r1(1.6 * (24 / g) * 0.75)}" stroke-linejoin="round"/></g>`;
+    if (zeigeSymbole) {
+      for (const o of orte.values()) s += symbol(o.name, rand + o.x * k + k * 0.12, rand + o.y * k + k * 0.12, k * 0.76);
+    }
+    if (aufgabe === "weg") {
+      if (weg.length < 2) abbruch("Ein Weg hat mindestens zwei Planquadrate.");
+      const punkte = weg.map((q) => planZelle(q, spalten, zeilen));
+      punkte.slice(1).forEach((p, i) => {
+        const v = punkte[i];
+        if (Math.abs(p.x - v.x) + Math.abs(p.y - v.y) !== 1) abbruch(`${weg[i]} und ${weg[i + 1]} liegen nicht nebeneinander.`);
+      });
+      const mitte = (p) => [rand + (p.x + 0.5) * k, rand + (p.y + 0.5) * k];
+      if (loesungSichtbar(el)) s += `<polyline class="weg" points="${punkte.map((p) => mitte(p).map(r1).join(",")).join(" ")}" fill="none" stroke="${SCHWARZ}" stroke-width="3.5" stroke-dasharray="8 4"/>`;
+      [[punkte[0], "S"], [punkte.at(-1), "Z"]].forEach(([p, t]) => {
+        const [x, y] = mitte(p);
+        s += `<g class="wegmarke" data-marke="${t}"><circle cx="${r1(x)}" cy="${r1(y)}" r="${r1(k * 0.26)}" fill="#fff" stroke="${SCHWARZ}" stroke-width="1.8"/>${text(x, y, t, { groesse: 15, fett: true })}</g>`;
+      });
+    }
+    let y = rand + zeilen * k + 8;
+    if (massstab !== null) {
+      const m = massstab.match(/^1 Kästchen = (.+)$/);
+      if (!m) abbruch("Den Maßstab schreibt man so: 1 Kästchen = 100 m.");
+      masstab(el);
+      s += `<g class="massstabsleiste" data-laenge="${r1(k)}"><path d="M${rand} ${y + 2}v8h${r1(k)}v-8" fill="none" stroke="${SCHWARZ}" stroke-width="2"/>${text(rand + k + 8, y + 7, m[1], { groesse: 15, anker: "start" })}</g>`;
+    }
+    if (nordpfeil) {
+      const x = rand + spalten * k - 12;
+      s += `<g class="nordpfeil"><path d="M${r1(x)} ${y + 26}V${y + 8}M${r1(x - 6)} ${y + 15}L${r1(x)} ${y + 6}L${r1(x + 6)} ${y + 15}" fill="none" stroke="${SCHWARZ}" stroke-width="2"/>${text(x - 16, y + 16, "N", { groesse: 17, fett: true })}</g>`;
+    }
+    if (massstab !== null || nordpfeil) y += 34;
+    if (mitLegende) {
+      const eintraege = [...new Set([...orte.values()].map((o) => o.name))].map((name) => ({ name, titel: satz[name].name, symbol: true })).concat([...genutzt].map((z) => ({ name: z, titel: PLAN_FLAECHEN[z], symbol: false })));
+      let lx = rand;
+      for (const e of eintraege) {
+        const b = 30 + textBreite(e.titel, 15) + 12;
+        if (lx + b > breite + 4 && lx > rand) { lx = rand; y += 30; }
+        const bild = e.symbol ? symbol(e.name, lx, y, 24) : `<rect x="${r1(lx)}" y="${y}" width="24" height="24" fill="${fuellen(e.name)}" stroke="${SCHWARZ}" stroke-width="1"/>`;
+        s += `<g class="legende" data-legende="${e.name}">${bild}${text(lx + 30, y + 12, e.titel, { groesse: 15, anker: "start" })}</g>`;
+        lx += b;
+      }
+      if (eintraege.length > 0) y += 32;
+    }
+    if (aufgabe === "finden" || aufgabe === "einzeichnen") {
+      const je = new Map();
+      for (const o of orte.values()) je.set(o.name, [...(je.get(o.name) ?? []), o.q]);
+      for (const [name, qs] of je) {
+        const titel = satz[name].name, antwort = qs.join(", "), bw = Math.max(70, textBreite(antwort, 15) + 16);
+        s += `<g class="planfrage" data-frage="${name}">${text(rand, y + 14, titel, { groesse: 15, anker: "start" })}`;
+        const fx = rand + textBreite(titel, 15) + 12;
+        s += aufgabe === "finden" ? `<g stroke="${SCHWARZ}">${antwortfeld(el, fx, y, bw, 28, antwort, { groesse: 15 })}</g>` : text(fx, y + 14, antwort, { groesse: 15, fett: true, anker: "start" });
+        s += "</g>";
+        y += 34;
+      }
+    }
+    const defs = sw && genutzt.size ? `<defs>${[...genutzt].filter((z) => PLAN_MUSTER[z]).map((z) => `<pattern id="${id}-${z}" width="16" height="16" patternUnits="userSpaceOnUse"><rect width="16" height="16" fill="#fff" stroke="none"/>${PLAN_MUSTER[z]}</pattern>`).join("")}</defs>` : "";
+    el.innerHTML = svg(r1(breite), r1(y), defs + s);
+  }
+
   /* == Test == */
   // x-probe gibt es nur für die Tests der Feldtypen im Panel (023); in Material kommt es nicht vor.
   function probe(el) {
@@ -3465,7 +3804,7 @@
     "x-gitter": gitter, "x-figur": figur, "x-tangram": tangram,
     "x-hunderterfeld": hunderterfeld, "x-hundertertafel": hundertertafel, "x-rechenrahmen": rechenrahmen, "x-rechenstrich": rechenstrich,
     "x-zahlenmauer": zahlenmauer, "x-rechendreieck": rechendreieck, "x-zahlenhaus": zahlenhaus, "x-zahlenkette": zahlenkette, "x-zauberdreieck": zauberdreieck, "x-rechenrad": rechenrad,
-    "x-lineatur": lineatur, "x-silben": silben, "x-wortarten": wortarten, "x-satzglieder": satzglieder, "x-wortbausteine": wortbausteine,
+    "x-lineatur": lineatur, "x-silben": silben, "x-wortarten": wortarten, "x-satzglieder": satzglieder, "x-wortbausteine": wortbausteine, "x-zeitleiste": zeitleiste, "x-jahreskreis": jahreskreis, "x-windrose": windrose, "x-plan": plan,
     "x-geld": geld, "x-skala": skala, "x-strecke": strecke, "x-kalender": kalender, "x-zeitspanne": zeitspanne,
     "x-punktfeld": punktfeld, "x-malkreuz": malkreuz, "x-schriftlich": schriftlich,
     "x-wuerfelbau": wuerfelbau, "x-wuerfelnetz": wuerfelnetz, "x-koerper": koerper };
@@ -3496,7 +3835,7 @@
     mauerWerte, mauerEindeutig, istEindeutig, RECHENDREIECK_GLEICHUNGEN, zauberLoesungen, ketteWerte, leseOperator,
     malkreuzRechnung, addiere, subtrahiereErweitern, subtrahiereEntbuendeln, multipliziere, dividiere, moeglicheFehler, rechnungsplan,
     MUENZEN, SCHEINE, betragText, mindestStueckelung, skalaStriche, kalenderMonat, isoWoche, zeitStationen, dauerText, uhrText,
-    ANDIKA_X_HOEHE, lineaturMass, silbenTeile, pruefeSilben, WORTARTEN, ROLLEN, wortartenTeile, satzLesen, satzUmstellen, kleinImSatz, pruefeBausteine,
+    ANDIKA_X_HOEHE, lineaturMass, silbenTeile, pruefeSilben, WORTARTEN, ROLLEN, wortartenTeile, satzLesen, satzUmstellen, kleinImSatz, pruefeBausteine, zeitPos, jahrText, KREISE, PLAN_SYMBOLE,
   };
   if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", () => window.zeichneAbbildungen());
   else window.zeichneAbbildungen();

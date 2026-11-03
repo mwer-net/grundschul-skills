@@ -18,6 +18,9 @@ import {
 	markierungNeuerText,
 	markierungText,
 	NUR_ZUR_LAUFZEIT,
+	planLage,
+	planObjekteText,
+	planObjekteVon,
 	pruefeWerte,
 	rasterText,
 	rasterVon,
@@ -106,6 +109,17 @@ describe('Schema der Abbildungen', () => {
 			}
 		}
 		assert.ok(anzahl > 5);
+	});
+
+	it('nimmt bei einem Schritt unter 1 auch Kommazahlen an, sonst nur ganze', () => {
+		const plan = schemaVon('x-plan');
+		assert.ok(plan);
+		const fehler = (wert: string) => pruefeWerte(plan, { kaestchen: wert }).kaestchen;
+		assert.equal(fehler('0.9'), undefined);
+		assert.equal(fehler('1,2'), undefined);
+		assert.match(fehler('0.95') ?? '', /Schritten von 0,1/);
+		assert.match(fehler('0.5') ?? '', /von 0,8 bis 3/);
+		assert.match(pruefeWerte(plan, { spalten: '2.5' }).spalten ?? '', /ganze Zahl/);
 	});
 
 	it('abbildungen.js nennt jedes Element wie das Schema', () => {
@@ -487,6 +501,8 @@ const rechenkerne = () => {
 			vorn?: string | null,
 		) => { glieder: { text: string; rolle: string | null }[]; zeichen: string };
 		pruefeBausteine: (wort: string, stamm: string | null) => string[];
+		zeitPos: (jahr: number) => number;
+		jahrText: (jahr: number) => string;
 		MUENZEN: Record<string, { mm: number; wert: number }>;
 		SCHEINE: Record<string, { b: number; h: number; wert: number }>;
 		betragText: (cent: number, klasse: number) => string;
@@ -1251,5 +1267,48 @@ describe('Sprache untersuchen (032)', () => {
 			markierungText(markierungNeuerText(g, 'Der Hund bellt laut.'), true),
 			'[Der Hund]S [bellt]P laut.',
 		);
+	});
+});
+
+describe('Sachunterricht: Zeit und Raum (033)', () => {
+	it('Zeitleiste: kein Jahr 0, v. Chr. ausgeschrieben', () => {
+		const { jahrText, zeitPos } = rechenkerne();
+		assert.equal(zeitPos(1) - zeitPos(-1), 1);
+		assert.equal(zeitPos(2000) - zeitPos(1900), 100);
+		assert.equal(jahrText(-500), '500 v. Chr.');
+		assert.equal(jahrText(1969), '1969');
+	});
+
+	it('Zeitleiste: Regeln', () => {
+		assert.deepEqual(
+			pruefe('x-zeitleiste', { von: '1900', bis: '2020', ereignisse: '1914: Krieg; 1900-1914: Zeit' }),
+			{},
+		);
+		assert.ok(pruefe('x-zeitleiste', { von: '2000', bis: '1900' }).bis);
+		assert.match(pruefe('x-zeitleiste', { ereignisse: '1800: Alt' }).ereignisse ?? '', /außerhalb/);
+		assert.match(pruefe('x-zeitleiste', { ereignisse: 'um 1900: Alt' }).ereignisse ?? '', /kein Jahr/);
+		assert.match(pruefe('x-zeitleiste', { von: '-100', ereignisse: '0: Null' }).ereignisse ?? '', /Jahr 0/);
+		assert.deepEqual(pruefe('x-zeitleiste', { art: 'leben', von: '0', bis: '10', ereignisse: '0: Geburt' }), {});
+	});
+
+	it('Jahreskreis: Jahreszeiten und Markierung passen zur Art', () => {
+		assert.deepEqual(pruefe('x-jahreskreis', { markiert: 'Juli', jahreszeiten: 'ja' }), {});
+		assert.ok(pruefe('x-jahreskreis', { art: 'tag', jahreszeiten: 'ja' }).jahreszeiten);
+		assert.ok(pruefe('x-jahreskreis', { art: 'tag', markiert: 'Juli' }).markiert);
+	});
+
+	it('Plan: Planquadrate und Objekte', () => {
+		assert.deepEqual(planLage('B3', 6, 5), { x: 1, y: 2 });
+		assert.equal(planLage('G1', 6, 5), null);
+		assert.equal(planLage('A6', 6, 5), null);
+		const orte = planObjekteVon('schule: B3; baum: A2 A3');
+		assert.equal(orte.get('A3'), 'baum');
+		assert.equal(planObjekteText(orte), 'schule: B3; baum: A2 A3');
+		assert.equal(planObjekteText(new Map()), null);
+		assert.ok(pruefe('x-plan', { objekte: 'tisch: A1' }).boden);
+		assert.ok(pruefe('x-plan', { objekte: 'schule: Z9' }).boden);
+		assert.ok(pruefe('x-plan', { spalten: '26' }).spalten);
+		assert.deepEqual(pruefe('x-plan', { aufgabe: 'weg', weg: 'A1 A2 B2' }), {});
+		assert.ok(pruefe('x-plan', { aufgabe: 'weg', weg: 'A1 C3' }).weg);
 	});
 });

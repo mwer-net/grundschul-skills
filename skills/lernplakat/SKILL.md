@@ -35,6 +35,9 @@ Zuerst die Start-Abfrage (`grundschul-didaktik/references/rueckfragen.md`): Medi
 
 ## Plakat und Folien
 
+Zeitleiste und Jahreskreis in Plakatgröße: `x-zeitleiste` mit `breite`, `x-jahreskreis` mit `groesse`.
+
+
 Entsteht zum Plakat auch eine Präsentation (Skill `praesentation`), Merksatz, Begriffe, Beispiele und Farben auf beiden gleich halten; die Merksatz-Folie kann das Plakat vorbereiten.
 
 ## Qualitätscheck

@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<title>Muster: Sachunterricht</title>
+<link rel="stylesheet" href="blatt.css">
+<script src="abbildungen.js"></script>
+</head>
+<body class="kl3 sw">
+<section class="seite">
+  <div class="kopf"><div class="titel"><h1>Zeitleisten</h1></div></div>
+  <div class="aufgabe"><div class="nr">1</div><div class="anw"><div class="text">Mein Leben: Trage ein, was fehlt.</div></div>
+    <div class="koerper"><x-zeitleiste art="leben" von="0" bis="10" schritt="1" ereignisse="0: Geburt; 3: Kindergarten; 6: Schule: offen; 9: Umzug: offen"></x-zeitleiste></div></div>
+  <div class="aufgabe"><div class="nr">2</div><div class="anw"><div class="text">Das 20. Jahrhundert.</div></div>
+    <div class="koerper"><x-zeitleiste von="1900" bis="2020" schritt="10" ereignisse="1914: Erster Weltkrieg beginnt; 1918: Erster Weltkrieg endet; 1969: Mondlandung; 1989: Mauerfall"></x-zeitleiste></div></div>
+  <div class="aufgabe"><div class="nr">3</div><div class="anw"><div class="text">Römer und Alamannen, mit Zeitraum und v. Chr.</div></div>
+    <div class="koerper"><x-zeitleiste von="-500" bis="500" schritt="100" ereignisse="-58-260: Römer am Rhein; -500: Kelten leben hier; 260: Alamannen kommen: offen"></x-zeitleiste></div></div>
+</section>
+<section class="seite">
+  <div class="kopf"><div class="titel"><h1>Kreise und Windrosen</h1></div></div>
+  <div class="aufgabe"><div class="nr">1</div><div class="anw"><div class="text">Jahreskreis, voll und leer.</div></div>
+    <div class="koerper reihe" style="--spalten:2">
+      <div class="zelle links"><x-jahreskreis groesse="290" jahreszeiten="ja" markiert="Juli"></x-jahreskreis></div>
+      <div class="zelle links"><x-jahreskreis groesse="290" beschriftung="leer"></x-jahreskreis></div>
+    </div></div>
+  <div class="aufgabe"><div class="nr">2</div><div class="anw"><div class="text">Tageskreis und Woche.</div></div>
+    <div class="koerper reihe" style="--spalten:2">
+      <div class="zelle links"><x-jahreskreis art="tag" groesse="210" markiert="Morgen"></x-jahreskreis></div>
+      <div class="zelle links"><x-jahreskreis art="stunden" groesse="210"></x-jahreskreis></div>
+    </div></div>
+  <div class="aufgabe"><div class="nr">3</div><div class="anw"><div class="text">Windrosen mit 4 und 8 Richtungen.</div></div>
+    <div class="koerper reihe" style="--spalten:3">
+      <div class="zelle links"><x-windrose></x-windrose></div>
+      <div class="zelle links"><x-windrose richtungen="8"></x-windrose></div>
+      <div class="zelle links"><x-windrose richtungen="8" beschriftung="norden"></x-windrose></div>
+    </div></div>
+</section>
+<section class="seite">
+  <div class="kopf"><div class="titel"><h1>Pläne</h1></div></div>
+  <div class="aufgabe"><div class="nr">1</div><div class="anw"><div class="text">Wo steht was? Schreibe die Planquadrate auf.</div></div>
+    <div class="koerper"><x-plan spalten="8" zeilen="5" aufgabe="finden" massstab="1 Kästchen = 100 m" nordpfeil="ja"
+      boden="wasser wasser leer strasse leer wald wald wald / leer leer leer strasse leer leer wald wald / strasse strasse strasse strasse strasse strasse strasse strasse / wiese wiese leer strasse platz platz leer leer / wiese wiese leer strasse platz platz leer leer"
+      objekte="schule: E4; kirche: C2; baum: A4 B5; bruecke: D1; bahnhof: G4"></x-plan></div></div>
+</section>
+<section class="seite">
+  <div class="kopf"><div class="titel"><h1>Pläne zum Einzeichnen</h1></div></div>
+  <div class="aufgabe"><div class="nr">1</div><div class="anw"><div class="text">Unser Klassenzimmer von oben.</div></div>
+    <div class="koerper"><x-plan art="raum" spalten="7" zeilen="4" kaestchen="1" objekte="tafel: D1; tuer: A1; fenster: G2 G3; tisch: B3 C3 D3 E3; stuhl: B4 C4 D4 E4; schrank: A4; teppich: F4"></x-plan></div></div>
+  <div class="aufgabe"><div class="nr">2</div><div class="anw"><div class="text">Zeichne die Symbole ein.</div></div>
+    <div class="koerper"><x-plan spalten="6" zeilen="3" kaestchen="0.9" aufgabe="einzeichnen" objekte="post: B2; spielplatz: E3"></x-plan></div></div>
+  <div class="aufgabe"><div class="nr">3</div><div class="anw"><div class="text">Zeichne den Weg von S nach Z.</div></div>
+    <div class="koerper"><x-plan spalten="6" zeilen="3" kaestchen="0.9" aufgabe="weg" weg="A1 A2 B2 C2 D2 D3 E3" boden="leer leer leer leer leer leer / strasse strasse strasse strasse leer leer / leer leer leer strasse strasse leer"></x-plan></div></div>
+</section>
+</body>
+</html>

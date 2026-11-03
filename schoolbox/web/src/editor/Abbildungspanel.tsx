@@ -7,6 +7,7 @@ import type {
 	MischenFeld,
 	MusterFeld,
 	Option,
+	PlanFeld,
 	RasterFeld,
 	SchalterFeld,
 	TextFeld,
@@ -27,6 +28,8 @@ import {
 	markierungLesen,
 	markierungNeuerText,
 	markierungText,
+	planObjekteText,
+	planObjekteVon,
 	rasterText,
 	rasterVon,
 	stellenVon,
@@ -537,15 +540,17 @@ const Mehrfach = ({ abb, feld }: FeldEigenschaften<MehrfachFeld>) => {
 	const id = useId();
 	const roh = wertVon(feld, abb)?.wert ?? null;
 	const gewaehlt = listeVon(roh ?? feld.standard?.join(' ') ?? null);
+	const je = feld.optionenJe;
+	const optionen = je ? (je.werte[abb.werte?.[je.feld] ?? Object.keys(je.werte)[0] ?? ''] ?? []) : feld.optionen;
 	const setze = (wert: string, an: boolean) => {
-		const neu = feld.optionen.map((o) => o.wert).filter((w) => (w === wert ? an : gewaehlt.includes(w)));
+		const neu = optionen.map((o) => o.wert).filter((w) => (w === wert ? an : gewaehlt.includes(w)));
 		const gleich = feld.standard && neu.join(' ') === feld.standard.join(' ');
 		abb.aendere(feld, gleich || (neu.length === 0 && !feld.standard) ? null : neu.join(' '));
 	};
 	return (
 		<Rahmen feld={feld} abb={abb} id={id}>
 			<div data-mehrfach>
-				{feld.optionen.map((o) => (
+				{optionen.map((o) => (
 					<Haken
 						key={o.wert}
 						name={o.name}
@@ -981,6 +986,100 @@ const Markierung = ({ abb, feld }: FeldEigenschaften<MarkierungFeld>) => {
 	);
 };
 
+const PLAN_TOENE: Record<string, string> = {
+	strasse: '#a9a9a9',
+	wasser: '#8ec5f2',
+	wald: '#5fa768',
+	wiese: '#c6e6a8',
+	platz: '#eadbb5',
+};
+
+/** Gitter für zwei Attribute: Jede Wahl ändert genau eins davon und ist ein Rückgängig-Schritt. */
+const Plan = ({ abb, feld }: FeldEigenschaften<PlanFeld>) => {
+	const id = useId();
+	const [gewaehlt, setGewaehlt] = useState<string | null>(null);
+	const w = abb.werte ?? {};
+	const spalten = Number(w.spalten ?? 6);
+	const zeilen = Number(w.zeilen ?? 5);
+	const boden = rasterVon(w[feld.attribut] ?? null);
+	const orte = planObjekteVon(w[feld.objekte] ?? null);
+	const symbole = feld.symbole[w.art ?? 'ort'] ?? [];
+	const name = (q: string) => String.fromCharCode(65 + Number(q.split(',')[0]));
+	const quadrate = Array.from({ length: zeilen }, (_, y) =>
+		Array.from({ length: spalten }, (__, x) => ({ q: `${name(String(x))}${y + 1}`, x, y })),
+	);
+	const flaecheVon = (x: number, y: number) => boden[y]?.[x] ?? 'leer';
+	const lage = quadrate.flat().find((z) => z.q === gewaehlt);
+	const setzeFlaeche = (x: number, y: number, wert: string) => {
+		const neu = quadrate.map((reihe) => reihe.map((z) => (z.x === x && z.y === y ? wert : flaecheVon(z.x, z.y))));
+		abb.aendere(feld, neu.flat().every((z) => z === 'leer') ? null : rasterText(neu));
+	};
+	const setzeSymbol = (q: string, wert: string) => {
+		const neu = new Map(orte);
+		if (wert) {
+			neu.set(q, wert);
+		} else {
+			neu.delete(q);
+		}
+		abb.aendere({ art: 'text', attribut: feld.objekte, name: 'Symbol' }, planObjekteText(neu));
+	};
+	return (
+		<Rahmen feld={feld} abb={abb} id={id}>
+			<div className="overflow-x-auto" id={id} data-plan>
+				<div className="grid w-max gap-0.5" style={{ gridTemplateColumns: `repeat(${spalten}, 2.75rem)` }}>
+					{quadrate.flat().map((z) => {
+						const symbol = symbole.find((o) => o.wert === orte.get(z.q));
+						return (
+							<button
+								key={z.q}
+								type="button"
+								data-plan-zelle={z.q}
+								data-flaeche={flaecheVon(z.x, z.y)}
+								aria-label={`Planquadrat ${z.q}${symbol ? `: ${symbol.name}` : ''}`}
+								aria-pressed={gewaehlt === z.q}
+								className={`size-11 overflow-hidden rounded border-2 text-xs ${gewaehlt === z.q ? 'border-brand-500' : 'border-rand'}`}
+								style={{ background: PLAN_TOENE[flaecheVon(z.x, z.y)] ?? '#fff' }}
+								onClick={() => setGewaehlt(gewaehlt === z.q ? null : z.q)}
+							>
+								{symbol ? symbol.name.slice(0, 5) : z.q}
+							</button>
+						);
+					})}
+				</div>
+			</div>
+			{lage && (
+				<div className="mt-2 grid gap-2">
+					<select
+						aria-label={`Fläche in ${lage.q}`}
+						className={`${EINGABE} w-full`}
+						value={flaecheVon(lage.x, lage.y)}
+						onChange={(e) => setzeFlaeche(lage.x, lage.y, e.target.value)}
+					>
+						{feld.flaechen.map((o) => (
+							<option key={o.wert} value={o.wert}>
+								{o.name}
+							</option>
+						))}
+					</select>
+					<select
+						aria-label={`Symbol in ${lage.q}`}
+						className={`${EINGABE} w-full`}
+						value={orte.get(lage.q) ?? ''}
+						onChange={(e) => setzeSymbol(lage.q, e.target.value)}
+					>
+						<option value="">Kein Symbol</option>
+						{symbole.map((o) => (
+							<option key={o.wert} value={o.wert}>
+								{o.name}
+							</option>
+						))}
+					</select>
+				</div>
+			)}
+		</Rahmen>
+	);
+};
+
 const Eingabe = ({ abb, feld }: FeldEigenschaften<Feld>) => {
 	switch (feld.art) {
 		case 'zahl':
@@ -1009,6 +1108,8 @@ const Eingabe = ({ abb, feld }: FeldEigenschaften<Feld>) => {
 			return <Mischen feld={feld} abb={abb} />;
 		case 'markierung':
 			return <Markierung feld={feld} abb={abb} />;
+		case 'plan':
+			return <Plan feld={feld} abb={abb} />;
 		default:
 			return null;
 	}

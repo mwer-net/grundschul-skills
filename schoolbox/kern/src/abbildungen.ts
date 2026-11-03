@@ -133,6 +133,8 @@ export interface MehrfachFeld extends FeldBasis {
 	/** Was ohne Attribut gilt. */
 	standard?: string[];
 	mindestens?: number;
+	/** Die Optionen hängen von einem anderen Feld ab; der erste Eintrag gilt, solange es fehlt. */
+	optionenJe?: { feld: string; werte: Record<string, Option[]> };
 }
 
 /** Ein Zustand einer Rasterzelle; `zeichen` steht im Panel in der Zelle. */
@@ -197,7 +199,16 @@ export interface MarkierungFeld extends FeldBasis {
 	beispiel?: string;
 }
 
-export type Feld = FeldAus018 | FeldAus023 | MarkierungFeld;
+/** Ein Gitter im Panel für zwei Attribute: Kästchen antippen, Fläche (`boden`) und Symbol (`objekte`) wählen. */
+export interface PlanFeld extends FeldBasis {
+	art: 'plan';
+	objekte: string;
+	flaechen: Option[];
+	/** Symbole je Wert von `art`. */
+	symbole: Record<string, Option[]>;
+}
+
+export type Feld = FeldAus018 | FeldAus023 | MarkierungFeld | PlanFeld;
 
 /** Attributname → Wert in der Quelle, `null` = fehlt. Enthält auch die Lösungs-Attribute. */
 export type Werte = Record<string, string | null>;
@@ -439,6 +450,94 @@ export const markeTrennen = (satz: MarkSatz, i: number): MarkSatz => {
 		...satz,
 		woerter: satz.woerter.map((w, k) => (k > i && w.gruppe === links.gruppe ? { ...w, gruppe: neu } : w)),
 	};
+};
+
+const namenOptionen = (namen: string[]): Option[] => namen.map((wert) => ({ wert, name: wert }));
+
+const KREIS_OPTIONEN: Record<string, Option[]> = {
+	jahr: namenOptionen([
+		'Januar',
+		'Februar',
+		'März',
+		'April',
+		'Mai',
+		'Juni',
+		'Juli',
+		'August',
+		'September',
+		'Oktober',
+		'November',
+		'Dezember',
+	]),
+	woche: namenOptionen(['Montag', 'Dienstag', 'Mittwoch', 'Donnerstag', 'Freitag', 'Samstag', 'Sonntag']),
+	tag: namenOptionen(['Morgen', 'Mittag', 'Abend', 'Nacht']),
+	stunden: namenOptionen(Array.from({ length: 24 }, (_, i) => String(i))),
+};
+
+const PLAN_FLAECHEN: Option[] = [
+	{ wert: 'leer', name: 'Frei' },
+	{ wert: 'strasse', name: 'Straße' },
+	{ wert: 'wasser', name: 'Wasser' },
+	{ wert: 'wald', name: 'Wald' },
+	{ wert: 'wiese', name: 'Wiese' },
+	{ wert: 'platz', name: 'Platz' },
+];
+
+const PLAN_SYMBOLE: Record<string, Option[]> = {
+	ort: [
+		{ wert: 'schule', name: 'Schule' },
+		{ wert: 'kirche', name: 'Kirche' },
+		{ wert: 'rathaus', name: 'Rathaus' },
+		{ wert: 'bahnhof', name: 'Bahnhof' },
+		{ wert: 'bushaltestelle', name: 'Bushaltestelle' },
+		{ wert: 'spielplatz', name: 'Spielplatz' },
+		{ wert: 'haus', name: 'Haus' },
+		{ wert: 'baum', name: 'Baum' },
+		{ wert: 'bruecke', name: 'Brücke' },
+		{ wert: 'post', name: 'Post' },
+		{ wert: 'krankenhaus', name: 'Krankenhaus' },
+		{ wert: 'parkplatz', name: 'Parkplatz' },
+	],
+	raum: [
+		{ wert: 'tisch', name: 'Tisch' },
+		{ wert: 'stuhl', name: 'Stuhl' },
+		{ wert: 'tafel', name: 'Tafel' },
+		{ wert: 'tuer', name: 'Tür' },
+		{ wert: 'fenster', name: 'Fenster' },
+		{ wert: 'schrank', name: 'Schrank' },
+		{ wert: 'teppich', name: 'Teppich' },
+	],
+};
+
+/** `B3` als Spalte und Zeile, `null`, wenn es außerhalb liegt. */
+export const planLage = (q: string, spalten: number, zeilen: number) => {
+	const m = /^([A-Z])(\d+)$/.exec(q);
+	if (!m) {
+		return null;
+	}
+	const x = (m[1] ?? 'A').charCodeAt(0) - 65;
+	const y = Number(m[2]) - 1;
+	return x < spalten && y >= 0 && y < zeilen ? { x, y } : null;
+};
+
+/** `schule: B3; baum: A2 A3` als Planquadrat → Symbol. */
+export const planObjekteVon = (wert: string | null) => {
+	const orte = new Map<string, string>();
+	for (const teil of (wert ?? '').split(';')) {
+		const [name, quadrate] = teil.split(':');
+		for (const q of (quadrate ?? '').split(/\s+/).filter(Boolean)) {
+			orte.set(q, (name ?? '').trim());
+		}
+	}
+	return orte;
+};
+
+export const planObjekteText = (orte: Map<string, string>) => {
+	const je = new Map<string, string[]>();
+	for (const [q, name] of orte) {
+		je.set(name, [...(je.get(name) ?? []), q]);
+	}
+	return [...je].map(([name, quadrate]) => `${name}: ${quadrate.join(' ')}`).join('; ') || null;
 };
 
 const WORTART_OPTIONEN: Option[] = [
@@ -1752,6 +1851,280 @@ export const ABBILDUNG_SCHEMA = {
 			return passt ? {} : { aufgabe: 'Diese Aufgabe passt nicht zur Art.' };
 		},
 	},
+	'x-zeitleiste': {
+		name: 'Zeitleiste',
+		felder: [
+			{
+				art: 'auswahl',
+				attribut: 'art',
+				name: 'Art',
+				standard: 'jahre',
+				optionen: [
+					{ wert: 'jahre', name: 'Jahreszahlen' },
+					{ wert: 'leben', name: 'Lebensjahre' },
+				],
+			},
+			{ art: 'zahl', attribut: 'von', name: 'Von', min: -5000, max: 2100, standard: 1900 },
+			{ art: 'zahl', attribut: 'bis', name: 'Bis', min: -5000, max: 2100, standard: 2020 },
+			{
+				art: 'zahl',
+				attribut: 'schritt',
+				name: 'Markierung alle',
+				min: 1,
+				max: 1000,
+				standard: 10,
+				einheit: 'Jahre',
+			},
+			{
+				art: 'liste',
+				attribut: 'ereignisse',
+				name: 'Ereignisse',
+				hilfe: 'Jahr oder Zeitraum: 1914 oder 1900-1914, vor Christus mit Minus: -500.',
+				unter: [
+					{ name: 'Jahr', art: 'text', standard: '2000' },
+					{ name: 'Ereignis', art: 'text', standard: 'Ereignis' },
+					{ name: 'Kinder tragen ein', art: 'schalter', an: 'offen', leer: true },
+				],
+			},
+			{
+				art: 'schalter',
+				attribut: 'ereignisliste',
+				name: 'Offene Ereignisse als Liste',
+				an: 'ja',
+				aus: 'nein',
+				standard: true,
+				gruppe: 'Mehr',
+			},
+			{
+				art: 'zahl',
+				attribut: 'breite',
+				name: 'Breite',
+				min: 200,
+				max: 1600,
+				standard: 620,
+				einheit: 'px',
+				gruppe: 'Mehr',
+			},
+		],
+		regeln: (w): Fehler => {
+			const leben = w.text('art') === 'leben';
+			const von = w.zahl('von');
+			const bis = w.zahl('bis');
+			if (von >= bis) {
+				return { bis: 'Das Ende liegt nach dem Anfang.' };
+			}
+			for (const zeile of w.zeilen('ereignisse')) {
+				const m = /^(-?\d+)(?:-(-?\d+))?$/.exec((zeile[0] ?? '').trim());
+				if (!m) {
+					return { ereignisse: `„${zeile[0] ?? ''}“ ist kein Jahr und kein Zeitraum.` };
+				}
+				const jahre = [m[1], m[2]].filter((j) => j !== undefined).map(Number);
+				if (!leben && jahre.includes(0)) {
+					return { ereignisse: 'Ein Jahr 0 gibt es nicht.' };
+				}
+				if (jahre.some((j) => j < von || j > bis)) {
+					return { ereignisse: `${zeile[0] ?? ''} liegt außerhalb der Leiste.` };
+				}
+			}
+			return {};
+		},
+	},
+	'x-jahreskreis': {
+		name: 'Jahreskreis',
+		felder: [
+			{
+				art: 'auswahl',
+				attribut: 'art',
+				name: 'Art',
+				standard: 'jahr',
+				optionen: [
+					{ wert: 'jahr', name: 'Jahreskreis' },
+					{ wert: 'woche', name: 'Woche' },
+					{ wert: 'tag', name: 'Tageskreis: vier Tageszeiten' },
+					{ wert: 'stunden', name: 'Tageskreis: 24 Stunden' },
+				],
+			},
+			{
+				art: 'auswahl',
+				attribut: 'beschriftung',
+				name: 'Beschriftung',
+				standard: 'voll',
+				optionen: [
+					{ wert: 'voll', name: 'Beschriftet' },
+					{ wert: 'leer', name: 'Leer, Kinder tragen ein' },
+				],
+			},
+			{ art: 'schalter', attribut: 'jahreszeiten', name: 'Jahreszeiten', an: 'ja', aus: 'nein', standard: false },
+			{
+				art: 'mehrfach',
+				attribut: 'markiert',
+				name: 'Markiert',
+				optionen: [],
+				optionenJe: { feld: 'art', werte: KREIS_OPTIONEN },
+				gruppe: 'Mehr',
+			},
+			{
+				art: 'zahl',
+				attribut: 'groesse',
+				name: 'Größe',
+				min: 200,
+				max: 1200,
+				standard: 320,
+				einheit: 'px',
+				gruppe: 'Mehr',
+			},
+		],
+		regeln: (w): Fehler => {
+			const art = w.text('art') ?? 'jahr';
+			if (w.text('jahreszeiten') === 'ja' && art !== 'jahr') {
+				return { jahreszeiten: 'Jahreszeiten gibt es nur beim Jahreskreis.' };
+			}
+			const erlaubt = KREIS_OPTIONEN[art] ?? [];
+			const falsch = w.liste('markiert').find((m) => !erlaubt.some((o) => o.wert === m));
+			return falsch ? { markiert: `„${falsch}“ gehört nicht zu diesem Kreis.` } : {};
+		},
+	},
+	'x-windrose': {
+		name: 'Windrose',
+		felder: [
+			{
+				art: 'auswahl',
+				attribut: 'richtungen',
+				name: 'Richtungen',
+				standard: '4',
+				optionen: [
+					{ wert: '4', name: '4 Richtungen' },
+					{ wert: '8', name: '8 Richtungen' },
+				],
+			},
+			{
+				art: 'auswahl',
+				attribut: 'beschriftung',
+				name: 'Beschriftung',
+				standard: 'voll',
+				optionen: [
+					{ wert: 'voll', name: 'Alle Richtungen' },
+					{ wert: 'norden', name: 'Nur Norden' },
+					{ wert: 'leer', name: 'Leer, Kinder tragen ein' },
+				],
+			},
+			{ art: 'zahl', attribut: 'groesse', name: 'Größe', min: 120, max: 600, standard: 170, einheit: 'px' },
+		],
+	},
+	'x-plan': {
+		name: 'Plan',
+		felder: [
+			{
+				art: 'auswahl',
+				attribut: 'art',
+				name: 'Art',
+				standard: 'ort',
+				optionen: [
+					{ wert: 'ort', name: 'Ortsplan' },
+					{ wert: 'raum', name: 'Raumplan' },
+				],
+			},
+			{ art: 'zahl', attribut: 'spalten', name: 'Spalten', min: 1, max: 26, standard: 6 },
+			{ art: 'zahl', attribut: 'zeilen', name: 'Zeilen', min: 1, max: 30, standard: 5 },
+			{
+				art: 'plan',
+				attribut: 'boden',
+				objekte: 'objekte',
+				name: 'Plan',
+				hilfe: 'Kästchen antippen, dann Fläche und Symbol wählen. Die Legende entsteht von selbst.',
+				flaechen: PLAN_FLAECHEN,
+				symbole: PLAN_SYMBOLE,
+			},
+			{
+				art: 'auswahl',
+				attribut: 'aufgabe',
+				name: 'Aufgabe',
+				standard: 'keine',
+				optionen: [
+					{ wert: 'keine', name: 'Nur zeigen' },
+					{ wert: 'finden', name: 'Planquadrate finden' },
+					{ wert: 'einzeichnen', name: 'Symbole einzeichnen' },
+					{ wert: 'weg', name: 'Weg einzeichnen' },
+				],
+			},
+			{
+				art: 'text',
+				attribut: 'weg',
+				name: 'Weg',
+				beispiel: 'A1 A2 B2',
+				hilfe: 'Planquadrate von Start bis Ziel.',
+			},
+			{
+				art: 'schalter',
+				attribut: 'planquadrate',
+				name: 'Planquadrate',
+				an: 'ja',
+				aus: 'nein',
+				standard: true,
+				gruppe: 'Mehr',
+			},
+			{
+				art: 'schalter',
+				attribut: 'legende',
+				name: 'Legende',
+				an: 'ja',
+				aus: 'nein',
+				standard: true,
+				gruppe: 'Mehr',
+			},
+			{
+				art: 'schalter',
+				attribut: 'nordpfeil',
+				name: 'Nordpfeil',
+				an: 'ja',
+				aus: 'nein',
+				standard: false,
+				gruppe: 'Mehr',
+			},
+			{ art: 'text', attribut: 'massstab', name: 'Maßstab', beispiel: '1 Kästchen = 100 m', gruppe: 'Mehr' },
+			{
+				art: 'zahl',
+				attribut: 'kaestchen',
+				name: 'Kästchen',
+				min: 0.8,
+				max: 3,
+				standard: 1.2,
+				schritt: 0.1,
+				einheit: 'cm',
+				gruppe: 'Mehr',
+			},
+		],
+		regeln: (w): Fehler => {
+			const spalten = w.zahl('spalten');
+			const zeilen = w.zahl('zeilen');
+			if (spalten * w.zahl('kaestchen') * (96 / 2.54) + 26 > 620) {
+				return { spalten: 'Der Plan ist zu breit für die Seite. Nimm weniger Spalten.' };
+			}
+			const symbole = PLAN_SYMBOLE[w.text('art') ?? 'ort'] ?? [];
+			const objekte = planObjekteVon(w.text('objekte'));
+			const falsch = [...objekte.values()].find((name) => !symbole.some((o) => o.wert === name));
+			if (falsch) {
+				return { boden: `Das Symbol „${falsch}“ gibt es hier nicht.` };
+			}
+			const draussen = [...objekte.keys()].find((q) => planLage(q, spalten, zeilen) === null);
+			if (draussen) {
+				return { boden: `Das Planquadrat ${draussen} liegt außerhalb des Plans.` };
+			}
+			const weg = (w.text('weg') ?? '').split(/\s+/).filter(Boolean);
+			if (w.text('aufgabe') !== 'weg') {
+				return {};
+			}
+			const lagen = weg.map((q) => planLage(q, spalten, zeilen));
+			if (weg.length < 2 || lagen.some((l) => l === null)) {
+				return { weg: 'Ein Weg hat mindestens zwei Planquadrate im Plan.' };
+			}
+			const nebeneinander = lagen.every((l, i) => {
+				const v = lagen[i - 1];
+				return !v || !l || Math.abs(l.x - v.x) + Math.abs(l.y - v.y) === 1;
+			});
+			return nebeneinander ? {} : { weg: 'Die Planquadrate des Wegs liegen nebeneinander.' };
+		},
+	},
 	'x-geld': {
 		name: 'Geld',
 		felder: [
@@ -2587,7 +2960,12 @@ export const schemaVon = (tag: string): AbbildungSchema | undefined =>
 	(ABBILDUNG_SCHEMA as Record<string, AbbildungSchema>)[tag];
 
 export const attributeVon = (schema: AbbildungSchema) =>
-	schema.felder.flatMap((f) => (f.loesung ? [f.attribut, f.loesung.attribut] : [f.attribut]));
+	schema.felder.flatMap((f) => {
+		if (f.art === 'plan') {
+			return [f.attribut, f.objekte];
+		}
+		return f.loesung ? [f.attribut, f.loesung.attribut] : [f.attribut];
+	});
 
 // ── Werte lesen und schreiben ───────────────────────────────────────────────
 
@@ -2808,9 +3186,15 @@ const pruefeZahl = (feld: ZahlFeld, wert: string | null) => {
 		return null;
 	}
 	const n = alsZahl(wert);
-	return !Number.isInteger(n) || n < feld.min || n > feld.max
+	const schritt = feld.schritt ?? 1;
+	const ganz = Number.isInteger(schritt);
+	const passt = ganz ? Number.isInteger(n) : Math.abs(n / schritt - Math.round(n / schritt)) < 1e-6;
+	if (passt && n >= feld.min && n <= feld.max) {
+		return null;
+	}
+	return ganz
 		? `Bitte eine ganze Zahl von ${zahlText(feld.min)} bis ${zahlText(feld.max)}.`
-		: null;
+		: `Bitte eine Zahl von ${zahlText(feld.min)} bis ${zahlText(feld.max)} in Schritten von ${zahlText(schritt)}.`;
 };
 
 const pruefeUhrzeit = (wert: string | null) => {
@@ -2850,7 +3234,7 @@ const pruefeText = (feld: TextFeld, wert: string | null) => {
 
 const pruefeMehrfach = (feld: MehrfachFeld, wert: string | null) => {
 	const gewaehlt = listeVon(wert ?? feld.standard?.join(' ') ?? null);
-	const falsch = gewaehlt.find((g) => !feld.optionen.some((o) => o.wert === g));
+	const falsch = feld.optionenJe ? undefined : gewaehlt.find((g) => !feld.optionen.some((o) => o.wert === g));
 	if (falsch !== undefined) {
 		return `„${falsch}“ gibt es hier nicht.`;
 	}
