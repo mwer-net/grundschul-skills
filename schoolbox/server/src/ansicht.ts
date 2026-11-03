@@ -142,7 +142,9 @@ export const ansichtRouter = (kontext: Kontext) => {
 		if (!eintrag) {
 			throw nichtGefunden();
 		}
-		res.set('Cache-Control', 'no-cache').type('html').send(katalogVorschau(eintrag, leseStarter(), `${req.baseUrl}/${ASSETS_PFAD}/`));
+		res.set('Cache-Control', 'no-cache')
+			.type('html')
+			.send(katalogVorschau(eintrag, leseStarter(), `${req.baseUrl}/${ASSETS_PFAD}/`));
 	});
 
 	router.get('/:mappe/dokumente/:dok', (req, res) => {

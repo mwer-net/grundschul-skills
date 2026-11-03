@@ -74,3 +74,5 @@ Lesestrategien sichtbar machen (ab Kl. 2): Vor dem Lesen Überschrift/Bild betra
 - [ ] Fragen sind nur mit dem Text lösbar, nicht aus Weltwissen
 - [ ] Lösungen beigelegt
 - [ ] Ich-kann-Ziel vorhanden; Niveau-Punkte, Sternchenaufgabe, Wachstums-Selbsteinschätzung und Reflexionsfrage genau wie in der Start-Abfrage gewählt
+
+**Aufgabenformate:** Lückentext, Wortspeicher, Ankreuzen und Richtig/Falsch sind fertige Elemente, siehe `html-materialerstellung/references/abbildungen.md`, Abschnitt „Aufgabenformate“.

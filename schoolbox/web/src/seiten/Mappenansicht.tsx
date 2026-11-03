@@ -5,7 +5,6 @@ import { meldung, sende } from '../api';
 import { useHinweis } from '../bausteine/hinweis';
 import { Marke } from '../bausteine/Kachel';
 import { Knopf, KnopfLink } from '../bausteine/Knopf';
-import { MaterialAnlegen } from './Anlegen';
 import { Symbol } from '../bausteine/Symbol';
 import { Zustand } from '../bausteine/Zustand';
 import { melde, useEreignisse } from '../ereignisse';
@@ -16,6 +15,7 @@ import { PdfKnopf } from '../pdf/PdfKnopf';
 import { mappenWahl } from '../pdf/wahl';
 import { TeilenDialog } from '../teilen/TeilenDialog';
 import type { DokumentEintrag, Mappe, MappenEintrag, PapierkorbEintrag } from '../typen';
+import { MaterialAnlegen } from './Anlegen';
 import { DokumentKachel } from './DokumentKachel';
 
 const ZurUebersicht = () => (

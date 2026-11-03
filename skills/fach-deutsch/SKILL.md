@@ -106,3 +106,5 @@ Kl. 1/2 unbenotet (`lernzielkontrolle`), Kl. 3/4 als Klassenarbeit (`klassenarbe
 - [ ] Fachbegriffe wie in der Klasse
 - [ ] Bei Leseaufgaben: lösbar nur mit Text
 - [ ] Bei Schreibaufgaben: Planungshilfe vorhanden
+
+**Aufgabenformate:** Lückentext, Wortspeicher, Ankreuzen und Richtig/Falsch sind fertige Elemente, siehe `html-materialerstellung/references/abbildungen.md`, Abschnitt „Aufgabenformate“.

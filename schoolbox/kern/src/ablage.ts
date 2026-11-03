@@ -12,12 +12,11 @@ import { leseStarter } from './katalog-starter';
 import { ASSETS } from './konfig';
 import { idsImPapierkorb } from './papierkorb';
 import type { DokumentMeta, Entwurf, Mappe } from './schema';
-import type { Urheber } from './werte';
 import { ID_MUSTER, MAPPE_SCHEMA, META_SCHEMA, verlangeSchema } from './schema';
 import { eindeutigeId, lokalesDatum, mappenSlug, slug } from './slug';
 import type { Version } from './versionen';
 import { legeVersionAn } from './versionen';
-import type { Art, Druckprofil, Fach, Format, Klasse, Status } from './werte';
+import type { Art, Druckprofil, Fach, Format, Klasse, Status, Urheber } from './werte';
 
 export const WUENSCHE_DATEI = '_wuensche.md';
 const MAX_ENTWUERFE = 3;

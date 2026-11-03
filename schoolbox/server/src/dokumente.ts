@@ -6,13 +6,13 @@ import type { Version } from '@schoolbox/kern';
 import {
 	aktualisiereMappe,
 	dokumentDir,
+	formatAusHtml,
 	hatLoesung,
 	legeVersionAn,
 	leseMeta,
-	formatAusHtml,
-	titelAusHtml,
 	schreibeAtomar,
 	schreibeMeta,
+	titelAusHtml,
 } from '@schoolbox/kern';
 
 import { HttpFehler } from './fehler';

@@ -9,13 +9,21 @@ import { cpSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } f
 import { tmpdir } from 'node:os';
 import path from 'node:path';
 import { after, describe, it } from 'node:test';
+import { runInNewContext } from 'node:vm';
 
 import type { AbbildungSchema, Feld, Werte } from './abbildungen';
-import { ABBILDUNG_SCHEMA, attributeVon, NUR_ZUR_LAUFZEIT, pruefeWerte, SKALA_STANDARD, zahlStandard } from './abbildungen';
+import {
+	ABBILDUNG_SCHEMA,
+	attributeVon,
+	NUR_ZUR_LAUFZEIT,
+	pruefeWerte,
+	SKALA_STANDARD,
+	zahlStandard,
+} from './abbildungen';
 import { ASSETS, BLATT_PY, SKILL_DIR, WURZEL } from './konfig';
 import { MELDUNG_CODES } from './meldungen';
 import { abgleichen, ABSCHNITTE, setzeAbschnitt } from './quellen';
-import { ARTEN, ART_ANGABEN, ART_FORMATE, FORMATE, STANDARD_FORMAT, VORLAGE_FORMAT, standardFormat } from './werte';
+import { ART_ANGABEN, ART_FORMATE, ARTEN, FORMATE, STANDARD_FORMAT, standardFormat, VORLAGE_FORMAT } from './werte';
 
 const KATALOG = readFileSync(path.join(SKILL_DIR, 'references', 'abbildungen.md'), 'utf8');
 const JS = readFileSync(path.join(ASSETS, 'abbildungen.js'), 'utf8');
@@ -28,7 +36,9 @@ const imKatalog = schemata.filter(([tag]) => !NUR_FUER_TESTS.has(tag));
 const abschnittVon = (katalog: string, tag: string) => {
 	const teile = katalog.split(/^(?=#{2,3} )/m);
 	const nennen = new RegExp(`\\b${tag}\\b`);
-	return teile.some((t) => new RegExp(`^### .*\`${tag}\``).test(t)) ? teile.filter((t) => nennen.test(t)).join('\n') : null;
+	return teile.some((t) => new RegExp(`^### .*\`${tag}\``).test(t))
+		? teile.filter((t) => nennen.test(t)).join('\n')
+		: null;
 };
 
 const beispiele = (katalog: string) =>
@@ -40,7 +50,7 @@ const beispiele = (katalog: string) =>
 					[...(t[2] ?? '').matchAll(/([a-z0-9-]+)(?:="([^"]*)")?/g)].map((a) => [a[1] ?? '', a[2] ?? '']),
 				),
 				...(t[3]?.trim() ? { inhalt: t[3].trim() } : {}),
-			} as Werte,
+			},
 			text: t[0],
 		})),
 	);
@@ -52,7 +62,9 @@ const beispielFehler = ({ attribute, tag }: { tag: string; attribute: Werte }) =
 		return `${tag} steht nicht im Schema`;
 	}
 	const bekannt = new Set(attributeVon(s));
-	const fremd = Object.keys(attribute).filter((a) => !bekannt.has(a) && !NUR_ZUR_LAUFZEIT.includes(a) && a !== 'class');
+	const fremd = Object.keys(attribute).filter(
+		(a) => !bekannt.has(a) && !NUR_ZUR_LAUFZEIT.includes(a) && a !== 'class',
+	);
 	if (fremd.length > 0) {
 		return `unbekannt: ${fremd.join(', ')}`;
 	}
@@ -66,7 +78,11 @@ const fehlendeAttribute = (katalog: string, tag: string, s: AbbildungSchema) => 
 	return text === null
 		? ['(kein Abschnitt)']
 		: attributeVon(s).filter(
-				(a) => !NUR_ZUR_LAUFZEIT.includes(a) && a !== 'inhalt' && a !== 'seed' && !new RegExp(`\\b${a}\\b`).test(text),
+				(a) =>
+					!NUR_ZUR_LAUFZEIT.includes(a) &&
+					a !== 'inhalt' &&
+					a !== 'seed' &&
+					!new RegExp(`\\b${a}\\b`).test(text),
 			);
 };
 
@@ -87,7 +103,9 @@ describe('Katalog gegen Schema', () => {
 	});
 
 	it('Probe: Ein neues Element ohne Abschnitt und ein gekürztes Beispiel schlagen an', () => {
-		assert.deepEqual(fehlendeAttribute(KATALOG, 'x-gibt-es-nicht', { name: 'Neu', felder: [] }), ['(kein Abschnitt)']);
+		assert.deepEqual(fehlendeAttribute(KATALOG, 'x-gibt-es-nicht', { name: 'Neu', felder: [] }), [
+			'(kein Abschnitt)',
+		]);
 		const ohneSchrift = KATALOG.replace(', `schrift` Größe der Zahlen', '').replace(/schrift=/g, 'schrift_=');
 		const zahlenstrahl = ABBILDUNG_SCHEMA['x-zahlenstrahl'] as AbbildungSchema;
 		assert.ok(fehlendeAttribute(ohneSchrift, 'x-zahlenstrahl', zahlenstrahl).includes('schrift'));
@@ -136,7 +154,10 @@ describe('Erzeugte Abschnitte', () => {
 
 	const kopie = (name: string) => {
 		const ziel = path.join(ordner, name);
-		for (const datei of [...new Set(ABSCHNITTE.map((a) => a.datei)), 'skills/html-materialerstellung/assets/blatt.css']) {
+		for (const datei of [
+			...new Set(ABSCHNITTE.map((a) => a.datei)),
+			'skills/html-materialerstellung/assets/blatt.css',
+		]) {
 			mkdirSync(path.dirname(path.join(ziel, datei)), { recursive: true });
 			cpSync(path.join(WURZEL, datei), path.join(ziel, datei));
 		}
@@ -177,9 +198,17 @@ describe('Erzeugte Abschnitte', () => {
 
 const hatBrowser = () => {
 	try {
-		execFileSync('python3', ['-c', 'import sys; sys.path.insert(0, sys.argv[1]); import blatt; blatt.finde_chromium()', path.dirname(BLATT_PY)], {
-			stdio: 'ignore',
-		});
+		execFileSync(
+			'python3',
+			[
+				'-c',
+				'import sys; sys.path.insert(0, sys.argv[1]); import blatt; blatt.finde_chromium()',
+				path.dirname(BLATT_PY),
+			],
+			{
+				stdio: 'ignore',
+			},
+		);
 		return true;
 	} catch {
 		return false;
@@ -332,10 +361,15 @@ describe('Standardwerte: Zeichnung gegen Schema', { skip: hatBrowser() ? false :
 	});
 
 	it('Gegenprobe: Der Test zeichnet wirklich, und andere Werte ändern das Bild', { timeout: 240_000 }, () => {
-		const gueltig = gezeichnet().filter((g) => g.fall.anders !== null && !istFehlerbild(g.ohne) && !istFehlerbild(g.anders));
+		const gueltig = gezeichnet().filter(
+			(g) => g.fall.anders !== null && !istFehlerbild(g.ohne) && !istFehlerbild(g.anders),
+		);
 		const geaendert = gueltig.filter((g) => g.ohne !== g.anders);
 		assert.ok(gueltig.length >= 120, `nur ${gueltig.length} gültig`);
-		assert.ok(geaendert.length >= gueltig.length / 2, `nur ${geaendert.length} von ${gueltig.length} ändern das Bild`);
+		assert.ok(
+			geaendert.length >= gueltig.length / 2,
+			`nur ${geaendert.length} von ${gueltig.length} ändern das Bild`,
+		);
 		console.log(`Standardwerte: ${geaendert.length} von ${gueltig.length} anderen Werten ändern das Bild`);
 	});
 
@@ -348,7 +382,7 @@ describe('Standardwerte: Zeichnung gegen Schema', { skip: hatBrowser() ? false :
 
 	it('Messgerät: Von, bis und Teilung folgen Gerät und Einheit wie in abbildungen.js', () => {
 		const js = /const SKALA_STANDARD = (\{[\s\S]*?\n {2}\});/.exec(JS)?.[1] ?? '';
-		assert.deepEqual(new Function(`return ${js}`)(), SKALA_STANDARD);
+		assert.deepEqual(JSON.parse(JSON.stringify(runInNewContext(`(${js})`))), SKALA_STANDARD);
 		const felder = (ABBILDUNG_SCHEMA['x-skala'] as AbbildungSchema).felder;
 		const bis = felder.find((f) => f.attribut === 'bis');
 		assert.ok(bis?.art === 'zahl');

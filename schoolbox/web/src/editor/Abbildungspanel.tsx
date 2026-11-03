@@ -21,7 +21,6 @@ import type {
 import {
 	alsZahl,
 	feldWert,
-	zahlStandard,
 	listeVon,
 	markeSetzen,
 	markeTrennen,
@@ -42,6 +41,7 @@ import {
 	rasterText,
 	rasterVon,
 	stellenVon,
+	zahlStandard,
 	zeilenText,
 	zeilenVon,
 	ziffernText,
@@ -476,7 +476,8 @@ const Text = ({ abb, feld }: FeldEigenschaften<TextFeld>) => {
 					onMouseDown={(e) => e.preventDefault()}
 					onClick={() => {
 						const stelle = eingabe.current?.selectionStart ?? text.length;
-						const neu = `${text.slice(0, stelle)}${feld.einfuegen?.zeichen ?? ''}${text.slice(stelle)}`;
+						const ende = feld.einfuegen?.bis ? (eingabe.current?.selectionEnd ?? stelle) : stelle;
+						const neu = `${text.slice(0, stelle)}${feld.einfuegen?.zeichen ?? ''}${text.slice(stelle, ende)}${feld.einfuegen?.bis ?? ''}${text.slice(ende)}`;
 						vorschau(neu);
 						eingabe.current?.focus();
 					}}

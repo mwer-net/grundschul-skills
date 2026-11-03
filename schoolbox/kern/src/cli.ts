@@ -124,11 +124,7 @@ const befehlDokument = async (konfig: Konfig, argumente: string[]): Promise<Erge
 	const angaben = {
 		titel,
 		art,
-		format: waehleWert(
-			'Format',
-			values.format ?? standardFormat(art, values.vorlage),
-			FORMATE,
-		),
+		format: waehleWert('Format', values.format ?? standardFormat(art, values.vorlage), FORMATE),
 		druckprofil: waehleWert('Druckprofil', values.druckprofil ?? 'farbe', DRUCKPROFILE),
 		vorlage: values.vorlage,
 		druckhinweise: (values.druckhinweis ?? []).map((h) => h.trim()).filter(Boolean),

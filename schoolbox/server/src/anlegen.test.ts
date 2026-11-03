@@ -4,7 +4,7 @@ import { readdir, readFile } from 'node:fs/promises';
 import path from 'node:path';
 import { afterEach, describe, it } from 'node:test';
 
-import { ARTEN, ART_FORMATE } from '@schoolbox/kern';
+import { ART_FORMATE, ARTEN } from '@schoolbox/kern';
 
 import type { TestServer } from './testhilfe';
 import { schreibKoepfe, starteTestServer } from './testhilfe';
@@ -59,8 +59,14 @@ describe('Anlegen ohne Claude (045) und Katalog (044)', () => {
 		const gut = { titel: 'Blatt', art: 'arbeitsblatt', format: 'a4-hoch' };
 		assert.equal((await sende(s, `/api/mappen/${id}/dokumente`, gut)).status, 201);
 		assert.equal((await sende(s, `/api/mappen/${id}/dokumente`, gut)).status, 409);
-		assert.equal((await sende(s, `/api/mappen/${id}/dokumente`, { ...gut, titel: 'B', format: 'folie' })).status, 400);
-		assert.equal((await sende(s, `/api/mappen/${id}/dokumente`, { ...gut, titel: 'C', vorlage: '../x' })).status, 400);
+		assert.equal(
+			(await sende(s, `/api/mappen/${id}/dokumente`, { ...gut, titel: 'B', format: 'folie' })).status,
+			400,
+		);
+		assert.equal(
+			(await sende(s, `/api/mappen/${id}/dokumente`, { ...gut, titel: 'C', vorlage: '../x' })).status,
+			400,
+		);
 		assert.equal(existsSync(path.join(s.materialDir, id, 'dokumente', 'b')), false);
 	});
 
@@ -83,7 +89,9 @@ describe('Anlegen ohne Claude (045) und Katalog (044)', () => {
 	it('Katalog: alle Einträge mit Starter, Vorschau je Eintrag; Unbekanntes gibt 404', async () => {
 		s = await starteTestServer();
 		const a = await s.holen(`${s.url}/api/katalog`);
-		const { eintraege } = (await a.json()) as { eintraege: { id: string; einfuegbar: { html?: string; teile?: string[]; klasse?: string } }[] };
+		const { eintraege } = (await a.json()) as {
+			eintraege: { id: string; einfuegbar: { html?: string; teile?: string[]; klasse?: string } }[];
+		};
 		assert.ok(eintraege.length > 50);
 		for (const e of eintraege) {
 			assert.ok(e.einfuegbar.html || e.einfuegbar.teile || e.einfuegbar.klasse, e.id);

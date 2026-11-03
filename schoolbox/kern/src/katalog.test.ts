@@ -16,15 +16,41 @@ const STARTER = leseStarter();
 const CSS = readFileSync(path.join(ASSETS, 'blatt.css'), 'utf8');
 /** Gepflegte Liste aus 043: Diese Klassen des Kits müssen im Katalog stehen. */
 const KIT_KLASSEN = [
-	'aufgabe', 'anw', 'reihe', 'zelle', 'karten', 'karte', 'antwort', 'schreiblinie', 'box', 'malfeld', 'vermutung',
-	'punkte', 'tipp', 'blase', 'figur', 'platzhalter', 'notiz', 'kopf', 'ziel', 'wahlhilfe', 'namenszeile', 'fuss',
-	'reflexion', 'trenner', 'beispiel', 'zeile',
+	'aufgabe',
+	'anw',
+	'reihe',
+	'zelle',
+	'karten',
+	'karte',
+	'antwort',
+	'schreiblinie',
+	'box',
+	'malfeld',
+	'vermutung',
+	'punkte',
+	'tipp',
+	'blase',
+	'figur',
+	'platzhalter',
+	'notiz',
+	'kopf',
+	'ziel',
+	'wahlhilfe',
+	'namenszeile',
+	'fuss',
+	'reflexion',
+	'trenner',
+	'beispiel',
+	'zeile',
 ];
 
 const attribute = (html: string): Werte => {
 	const kopf = /^<[a-z0-9-]+([^>]*)>/.exec(html)?.[1] ?? '';
 	return Object.fromEntries(
-		[...kopf.matchAll(/([a-z0-9-]+)(?:="([^"]*)")?/g)].map((a) => [a[1] ?? '', (a[2] ?? '').replace(/&quot;/g, '"')]),
+		[...kopf.matchAll(/([a-z0-9-]+)(?:="([^"]*)")?/g)].map((a) => [
+			a[1] ?? '',
+			(a[2] ?? '').replace(/&quot;/g, '"'),
+		]),
 	);
 };
 
@@ -42,7 +68,9 @@ describe('Katalog', () => {
 	it('jede Kit-Klasse aus der Liste steht im Katalog und in blatt.css', () => {
 		const html = [...STARTER.values()].join('\n');
 		const klassen = KATALOG.flatMap((e) => (e.klasse ? [e.klasse] : []));
-		const fehlt = KIT_KLASSEN.filter((k) => !klassen.includes(k) && !new RegExp(`class="[^"]*\\b${k}\\b`).test(html));
+		const fehlt = KIT_KLASSEN.filter(
+			(k) => !klassen.includes(k) && !new RegExp(`class="[^"]*\\b${k}\\b`).test(html),
+		);
 		assert.deepEqual(fehlt, []);
 		for (const k of KIT_KLASSEN.filter((x) => x !== 'zelle')) {
 			assert.ok(new RegExp(`\\.${k}\\b`).test(CSS), `blatt.css: .${k}`);
@@ -59,9 +87,15 @@ describe('Katalog', () => {
 
 	it('jeder Starter steht in den Mustern, jede Kennung im Katalog', () => {
 		const verlangt = new Set(KATALOG.flatMap((e) => [...(e.starter ? [e.starter] : []), ...(e.teile ?? [])]));
-		assert.deepEqual([...verlangt].filter((id) => !STARTER.has(id)), []);
-		const bekannt = new Set(KATALOG.map((e) => e.starter));
-		assert.deepEqual([...STARTER.keys()].filter((id) => !bekannt.has(id)), []);
+		assert.deepEqual(
+			[...verlangt].filter((id) => !STARTER.has(id)),
+			[],
+		);
+		const bekannt = new Set(KATALOG.flatMap((e) => [e.starter, ...(e.teile ?? [])]));
+		assert.deepEqual(
+			[...STARTER.keys()].filter((id) => !bekannt.has(id)),
+			[],
+		);
 	});
 
 	it('jeder x-Starter besteht die Prüfung des Schemas', () => {
@@ -79,8 +113,18 @@ describe('Katalog', () => {
 
 	it('Wächter: Kein x-Eintrag hat eigenen Namen oder HTML, Kit-Einträge haben genau eine Namensquelle', () => {
 		const quelle = readFileSync(path.join(__dirname, 'katalog.ts'), 'utf8');
-		assert.deepEqual([...quelle.matchAll(/id: '(x-[a-z-]+)'/g)].map((t) => t[1]), []);
-		assert.ok(!/<[a-z]+[\s>]/.test(quelle.replace(/\/\*[\s\S]*?\*\//g, '').replace(/`[^`]*`/g, '').replace(/<[A-Z][^>]*>/g, '')));
+		assert.deepEqual(
+			[...quelle.matchAll(/id: '(x-[a-z-]+)'/g)].map((t) => t[1]),
+			[],
+		);
+		assert.ok(
+			!/<[a-z]+[\s>]/.test(
+				quelle
+					.replace(/\/\*[\s\S]*?\*\//g, '')
+					.replace(/`[^`]*`/g, '')
+					.replace(/<[A-Z][^>]*>/g, ''),
+			),
+		);
 		for (const e of KIT_KATALOG) {
 			assert.ok((e.art === undefined) !== (e.name === undefined), `${e.id}: art oder name, nicht beides`);
 		}
@@ -90,7 +134,12 @@ describe('Katalog', () => {
 		const { 'x-uhr': _uhr, ...rest } = ABBILDUNG_SCHEMA as Record<string, AbbildungSchema>;
 		const ids = new Set(KATALOG.filter((e) => e.id !== 'x-uhr').map((e) => e.id));
 		assert.ok(_uhr);
-		assert.deepEqual(Object.keys({ 'x-uhr': _uhr, ...rest }).filter((t) => !ids.has(t)).sort(), ['x-probe', 'x-uhr']);
+		assert.deepEqual(
+			Object.keys({ 'x-uhr': _uhr, ...rest })
+				.filter((t) => !ids.has(t))
+				.sort(),
+			['x-probe', 'x-uhr'],
+		);
 	});
 
 	it('Probe: Eine doppelte Kennung im Muster ist ein Fehler', () => {
@@ -139,7 +188,11 @@ const hatBrowser = () => {
 	try {
 		execFileSync(
 			'python3',
-			['-c', 'import sys; sys.path.insert(0, sys.argv[1]); import blatt; blatt.finde_chromium()', path.dirname(BLATT_PY)],
+			[
+				'-c',
+				'import sys; sys.path.insert(0, sys.argv[1]); import blatt; blatt.finde_chromium()',
+				path.dirname(BLATT_PY),
+			],
 			{ stdio: 'ignore' },
 		);
 		return true;
@@ -160,7 +213,9 @@ describe('Starter im Browser', { skip: hatBrowser() ? false : 'Kein Chromium fü
 		writeFileSync(datei, seite);
 		const bericht = path.join(dir, 'b.json');
 		try {
-			execFileSync('python3', ['-B', BLATT_PY, 'bauen', datei, '--nur-pruefen', '--bericht', bericht], { stdio: 'ignore' });
+			execFileSync('python3', ['-B', BLATT_PY, 'bauen', datei, '--nur-pruefen', '--bericht', bericht], {
+				stdio: 'ignore',
+			});
 		} catch {
 			// Exit 1 bei FEHLER; der Bericht steht trotzdem da.
 		}

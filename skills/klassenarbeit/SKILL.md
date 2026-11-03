@@ -115,3 +115,5 @@ Diagramm lesen und zeichnen ist ein eigener Aufgabentyp: `<x-diagramm werte="…
 - Punkte rechts in der Anweisungszeile: `<span class="punkte"><span class="antwort kurz"></span>/ 4 P.</span>` statt `.niveau`.
 - Erwartungshorizont über die Lösungs-Markierungen (`data-l`, `nur-loesung`) als eigenes PDF (`-loesung.pdf`), nie auf dem Blatt der Kinder.
 - Aufgaben ohne Kasten. Gewonnene Höhe geht an Schreibflächen und Notizplatz, nicht an mehr Aufgaben.
+
+**Aufgabenformate:** Lückentext, Wortspeicher, Ankreuzen und Richtig/Falsch sind fertige Elemente, siehe `html-materialerstellung/references/abbildungen.md`, Abschnitt „Aufgabenformate“.

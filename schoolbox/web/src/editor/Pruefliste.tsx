@@ -1,7 +1,7 @@
-import { Knopf } from '../bausteine/Knopf';
 import { useState } from 'react';
 
 import { klassen } from '../bausteine/klassen';
+import { Knopf } from '../bausteine/Knopf';
 import { Symbol } from '../bausteine/Symbol';
 import type { Pruefpunkt, Pruefstand } from './pruefung';
 
@@ -69,7 +69,7 @@ interface Eigenschaften {
 	/** Zum Element rollen und es auswählen. */
 	zeige: (p: Pruefpunkt) => void;
 	/** Legt, was über die Seite ragt, auf eine neue Seite (044). */
-	verschiebe?: (p: Pruefpunkt) => void;
+	verschiebe?: ((p: Pruefpunkt) => void) | undefined;
 }
 
 /**
@@ -125,7 +125,13 @@ export const Pruefliste = ({ stand, verschiebe, zeige }: Eigenschaften) => {
 					{wichtig.length > 0 && (
 						<ul className="flex flex-col gap-1">
 							{wichtig.map((p, i) => (
-								<Eintrag key={`${p.code}-${i}`} p={p} mitSeite={mehrereSeiten} zeige={waehle} verschiebe={verschiebe} />
+								<Eintrag
+									key={`${p.code}-${i}`}
+									p={p}
+									mitSeite={mehrereSeiten}
+									zeige={waehle}
+									verschiebe={verschiebe}
+								/>
 							))}
 						</ul>
 					)}
@@ -136,7 +142,13 @@ export const Pruefliste = ({ stand, verschiebe, zeige }: Eigenschaften) => {
 							</summary>
 							<ul className="flex flex-col gap-1">
 								{hinweise.map((p, i) => (
-									<Eintrag key={`${p.code}-${i}`} p={p} mitSeite={mehrereSeiten} zeige={waehle} verschiebe={verschiebe} />
+									<Eintrag
+										key={`${p.code}-${i}`}
+										p={p}
+										mitSeite={mehrereSeiten}
+										zeige={waehle}
+										verschiebe={verschiebe}
+									/>
 								))}
 							</ul>
 						</details>

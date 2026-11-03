@@ -26,16 +26,32 @@ interface FeldBasis {
 	name: string;
 	titel: string;
 }
-export type KitFeld =
-	| (FeldBasis & { typ: 'zahl'; min: number; max: number; schritt: number; einheit: string; standard: number })
-	| (FeldBasis & { typ: 'wahl'; optionen: readonly { wert: string; titel: string }[] })
-	| (FeldBasis & { typ: 'schalter' })
-	| (FeldBasis & { typ: 'text' });
+type ZahlFeld = FeldBasis & {
+	typ: 'zahl';
+	min: number;
+	max: number;
+	schritt: number;
+	einheit: string;
+	standard: number;
+};
+type WahlFeld = FeldBasis & { typ: 'wahl'; optionen: readonly { wert: string; titel: string }[] };
+type SchalterFeld = FeldBasis & { typ: 'schalter' };
+type TextFeld = FeldBasis & { typ: 'text' };
+export type KitFeld = ZahlFeld | WahlFeld | SchalterFeld | TextFeld;
 
 type Wert = string | number | boolean;
 
 const HOEHE = { typ: 'zahl', name: 'hoehe', titel: 'Höhe', min: 40, max: 600, schritt: 10, einheit: 'px' } as const;
-const BREITE = { typ: 'zahl', name: 'breite', titel: 'Breite', min: 20, max: 100, schritt: 5, einheit: '%', standard: 100 } as const;
+const BREITE = {
+	typ: 'zahl',
+	name: 'breite',
+	titel: 'Breite',
+	min: 20,
+	max: 100,
+	schritt: 5,
+	einheit: '%',
+	standard: 100,
+} as const;
 
 export const KIT_FELDER: Readonly<Record<string, readonly KitFeld[]>> = {
 	schreiblinie: [
@@ -70,6 +86,32 @@ export const KIT_FELDER: Readonly<Record<string, readonly KitFeld[]>> = {
 		{ typ: 'schalter', name: 'namenszeile', titel: 'Namenszeile zeigen' },
 	],
 	absatz: [{ typ: 'schalter', name: 'liste', titel: 'Als Liste' }],
+	tabelle: [
+		{ typ: 'schalter', name: 'kopfspalte', titel: 'Kopfspalte' },
+		{
+			typ: 'wahl',
+			name: 'spaltenbreite',
+			titel: 'Spaltenbreite',
+			optionen: [
+				{ wert: '', titel: 'Gleich' },
+				{ wert: 'nach-inhalt', titel: 'Nach Inhalt' },
+				{ wert: 'erste-schmal', titel: 'Erste schmal' },
+			],
+		},
+		{
+			typ: 'wahl',
+			name: 'zeilenhoehe',
+			titel: 'Zeilenhöhe',
+			optionen: [
+				{ wert: '', titel: 'Normal' },
+				{ wert: 'kompakt', titel: 'Kompakt' },
+				{ wert: 'schreibzeilen', titel: 'Schreibzeile' },
+			],
+		},
+		{ typ: 'schalter', name: 'ohne-linien-innen', titel: 'Ohne Linien innen' },
+	],
+	tabellenzeile: [{ typ: 'schalter', name: 'beispiel', titel: 'Als Beispiel zeigen' }],
+	tabellenzelle: [{ typ: 'text', name: 'loesung', titel: 'Lösung' }],
 };
 
 const hat = (k: Knoten | null | undefined, klasse: string) => Boolean(k && klassenVon(k).includes(klasse));
@@ -140,7 +182,25 @@ const kindAnAus = (klasse: string, html: string): Regel => ({
 	},
 });
 
+const klasseAnAus = (klasse: string): Regel => ({
+	lies: (k) => hat(k, klasse),
+	setze: (z, k, an) => setzeAttribut(z, k, 'class', klassenOhne(k, [klasse], an ? klasse : '') || null),
+});
+const klassenWahl = (werte: readonly string[]): Regel => ({
+	lies: (k) => werte.find((w) => hat(k, w)) ?? '',
+	setze: (z, k, wert) => setzeAttribut(z, k, 'class', klassenOhne(k, werte, String(wert))),
+});
+
 const REGELN: Readonly<Record<string, Regel>> = {
+	'tabelle.kopfspalte': klasseAnAus('kopfspalte'),
+	'tabelle.ohne-linien-innen': klasseAnAus('ohne-linien-innen'),
+	'tabelle.spaltenbreite': klassenWahl(['nach-inhalt', 'erste-schmal']),
+	'tabelle.zeilenhoehe': klassenWahl(['kompakt', 'schreibzeilen']),
+	'tabellenzeile.beispiel': klasseAnAus('beispiel'),
+	'tabellenzelle.loesung': {
+		lies: (k) => attribut(k, 'data-l')?.wert ?? '',
+		setze: (z, k, wert) => setzeAttribut(z, k, 'data-l', String(wert).trim() || null),
+	},
 	'schreiblinie.anzahl': {
 		lies: (k) => gleicheFolge(k).length,
 		setze: (z, k, wert) => {
@@ -177,7 +237,10 @@ const REGELN: Readonly<Record<string, Regel>> = {
 	'box.groesse': {
 		lies: (k) => pxVon(k, 'width') ?? 20,
 		setze: (z, k, w) => {
-			const rest = stilVon(k).split(';').map((t) => t.trim()).filter((t) => t && !/^(width|height):/.test(t));
+			const rest = stilVon(k)
+				.split(';')
+				.map((t) => t.trim())
+				.filter((t) => t && !/^(width|height):/.test(t));
 			return setzeAttribut(z, k, 'style', [...rest, `width:${w}px`, `height:${w}px`].join(';'));
 		},
 	},
@@ -244,7 +307,12 @@ const REGELN: Readonly<Record<string, Regel>> = {
 			}
 			return da
 				? entferne(z, da)
-				: fuegeEin(z, k, 'vor', '<div class="namenszeile"><span class="name">Name:</span><span class="datum">Datum:</span></div>');
+				: fuegeEin(
+						z,
+						k,
+						'vor',
+						'<div class="namenszeile"><span class="name">Name:</span><span class="datum">Datum:</span></div>',
+					);
 		},
 	},
 	'absatz.liste': {
@@ -284,7 +352,14 @@ export const leseKit = (quelle: string, nr: number, art: string): Record<string,
 };
 
 /** Grenzen stehen nur in `KIT_FELDER`: Was darüber hinausgeht, wird nicht geschrieben, sondern begrenzt. */
-export const setzeKit = (quelle: string, nr: number, art: string, name: string, wert: Wert, n: Nummerierung = { jeSeite: false }) => {
+export const setzeKit = (
+	quelle: string,
+	nr: number,
+	art: string,
+	name: string,
+	wert: Wert,
+	n: Nummerierung = { jeSeite: false },
+) => {
 	const regel = REGELN[`${art}.${name}`];
 	const feld = KIT_FELDER[art]?.find((f) => f.name === name);
 	if (!regel || !feld) {

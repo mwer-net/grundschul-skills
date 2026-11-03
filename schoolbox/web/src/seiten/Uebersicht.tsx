@@ -3,7 +3,6 @@ import { Link, useSearchParams } from 'react-router-dom';
 import { Chip } from '../bausteine/Chip';
 import { Kachel, Marke } from '../bausteine/Kachel';
 import { Knopf, KnopfLink } from '../bausteine/Knopf';
-import { MappeAnlegen } from './Anlegen';
 import { useSuche } from '../bausteine/suche';
 import { Symbol } from '../bausteine/Symbol';
 import { Vorschau } from '../bausteine/Vorschau';
@@ -14,6 +13,7 @@ import type { Art, Fach } from '../lib/text';
 import { anzahl, ART_NAME, datum, FACH_FARBE, FACH_NAME, filtere, KLASSEN_NAMEN, klasseName } from '../lib/text';
 import { useTitel } from '../lib/titel';
 import type { DefekteMappe, MappenEintrag, MappenListe } from '../typen';
+import { MappeAnlegen } from './Anlegen';
 
 type FilterName = 'fach' | 'klasse' | 'art';
 

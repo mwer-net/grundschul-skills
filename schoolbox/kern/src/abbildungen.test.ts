@@ -507,6 +507,13 @@ const rechenkerne = () => {
 		) => { band: number; oben: number; unten: number; abstand: number; hoehe: number; schrift: number };
 		silbenTeile: (text: string) => { silben?: string[]; text?: string }[];
 		pruefeSilben: (text: string) => void;
+		lueckenLesen: (roh: string) => { text?: string; wort?: string; beispiel?: boolean }[];
+		lueckeFehler: (teile: unknown[]) => string | null;
+		wortspeicherFehler: (woerter: string[], luecken: string[]) => string | null;
+		ankreuzenLesen: (roh: string) => { frage: string; optionen: { text: string; richtig: boolean }[] }[];
+		ankreuzenFehler: (fragen: unknown[], mehrfach: boolean) => string | null;
+		aussagenLesen: (roh: string) => { text: string; wert: string }[];
+		aussagenFehler: (aussagen: unknown[]) => string | null;
 		WORTARTEN: Record<string, { name: string; symbol: string; voll: boolean; linie: string }>;
 		ROLLEN: Record<string, { name: string; frage: string }>;
 		wortartenTeile: (text: string) => { wort?: string; marke?: string | null; text?: string }[];
@@ -1757,5 +1764,53 @@ describe('Spiele (037)', () => {
 				}
 			}
 		}
+	});
+});
+
+describe('Aufgabenformate (048)', () => {
+	// Die Werte kommen aus einem eigenen `vm`-Kontext; `deepEqual` vergleicht sonst auch die Prototypen.
+	const schlicht = <T>(wert: T) => JSON.parse(JSON.stringify(wert)) as T;
+
+	it('Lücken: [Wort] und [[Wort]], ohne Lücke eine Meldung', () => {
+		const { lueckeFehler, lueckenLesen } = rechenkerne();
+		const teile = lueckenLesen('Der [Hund] und die [[Katze]].');
+		assert.deepEqual(schlicht(teile.filter((t) => t.wort).map((t) => [t.wort, t.beispiel])), [
+			['Hund', false],
+			['Katze', true],
+		]);
+		assert.equal(lueckeFehler(teile), null);
+		assert.match(lueckeFehler(lueckenLesen('Ohne Lücke.')) ?? '', /keine Lücke/);
+	});
+
+	it('Wortspeicher: fehlendes und doppeltes Wort werden genannt, Ablenker sind erlaubt', () => {
+		const { wortspeicherFehler } = rechenkerne();
+		assert.equal(wortspeicherFehler(['Hund', 'Maus'], ['Hund']), null);
+		assert.match(wortspeicherFehler(['Maus'], ['Hund']) ?? '', /„Hund“ findet kein Wort.*Ergänze/);
+		assert.match(wortspeicherFehler(['Hund', 'Hund'], []) ?? '', /doppelt/);
+	});
+
+	it('Ankreuzen: mindestens eine richtig, ohne Mehrfachwahl genau eine, nichts doppelt', () => {
+		const { ankreuzenFehler, ankreuzenLesen } = rechenkerne();
+		const f = (roh: string, mehrfach = false) => ankreuzenFehler(ankreuzenLesen(roh), mehrfach);
+		assert.deepEqual(schlicht(ankreuzenLesen('Was?: *a, b')[0]), {
+			frage: 'Was?',
+			optionen: [
+				{ text: 'a', richtig: true },
+				{ text: 'b', richtig: false },
+			],
+		});
+		assert.equal(f('Was?: *a, b'), null);
+		assert.match(f('Was?: a, b') ?? '', /keine richtige Antwort/);
+		assert.match(f('Was?: *a, *b') ?? '', /2 richtige/);
+		assert.equal(f('Was?: *a, *b', true), null);
+		assert.match(f('Was?: *a, a') ?? '', /doppelt/);
+		assert.match(f('') ?? '', /noch keine Frage/);
+	});
+
+	it('Richtig oder falsch: Jede Aussage braucht ihren Wahrheitswert', () => {
+		const { aussagenFehler, aussagenLesen } = rechenkerne();
+		assert.deepEqual(schlicht(aussagenLesen('Uhr: 3: r')[0]), { text: 'Uhr: 3', wert: 'r' });
+		assert.equal(aussagenFehler(aussagenLesen('A: r; B: f')), null);
+		assert.match(aussagenFehler(aussagenLesen('A')) ?? '', /richtig \(r\) oder falsch/);
 	});
 });

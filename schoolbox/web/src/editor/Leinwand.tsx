@@ -219,6 +219,27 @@ const Pruefrahmen = ({ aus, doc, links, pruefung, skala }: PruefrahmenEigenschaf
  * innersten Baustein. Das geht über Pointer-Ereignisse, weil Safari auf dem iPad `click` nicht zuverlässig an das
  * Material schickt. Der Auswahlrahmen liegt über dem `iframe`, nie im Material.
  */
+const Ueberlagerung = ({
+	aus,
+	box,
+	doc,
+	einblendung,
+	links,
+	masse,
+	skala,
+}: {
+	aus: boolean | undefined;
+	box: DOMRect | undefined;
+	doc: Document | null;
+	einblendung: Eigenschaften['einblendung'];
+	links: number;
+	masse: Masse | null;
+	skala: number;
+}) =>
+	aus || !doc || !masse || !einblendung
+		? null
+		: einblendung({ doc, links, skala, box: box ?? null, hoehe: masse.hoehe * skala });
+
 export const Leinwand = ({
 	ablegen,
 	auswahl,
@@ -433,7 +454,15 @@ export const Leinwand = ({
 						)}
 					</div>
 				)}
-				{!nurAnsehen && doc && masse && einblendung?.({ doc, links, skala, box: box ?? null, hoehe: masse.hoehe * skala })}
+				<Ueberlagerung
+					aus={nurAnsehen}
+					box={box}
+					doc={doc}
+					einblendung={einblendung}
+					links={links}
+					masse={masse}
+					skala={skala}
+				/>
 				{!nurAnsehen && (
 					<Griffe
 						gewaehlt={gewaehlt}

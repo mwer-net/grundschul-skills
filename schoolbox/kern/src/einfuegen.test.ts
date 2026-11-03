@@ -31,20 +31,28 @@ const BLATT = `<!doctype html><html><head><title>t</title><style>.meins{color:re
 </body></html>
 `;
 const n = { jeSeite: false };
-const nrVon = (q: string, klasse: string, i = 0) => zerlege(q).knoten.filter((k) => klassenVon(k).includes(klasse))[i]?.nr ?? null;
+const nrVon = (q: string, klasse: string, i = 0) =>
+	zerlege(q).knoten.filter((k) => klassenVon(k).includes(klasse))[i]?.nr ?? null;
 const aufgaben = (q: string) => [...q.matchAll(/<span class="nr( stern)?">([^<]*)</g)].map((t) => t[2]);
 
 describe('Einfügen', () => {
 	it('legt eine Aufgabe hinter die gewählte, vor den Stern, und nummeriert neu', () => {
-		const html = '<div class="aufgabe"><span class="nr">9</span><div class="anw"><span class="text">Neu</span></div><div class="koerper"></div></div>';
-		const { nr, quelle } = fuegeBausteinEin(BLATT, { id: 'aufgabe', ort: 'seite', html }, nrVon(BLATT, 'aufgabe'), n);
+		const html =
+			'<div class="aufgabe"><span class="nr">9</span><div class="anw"><span class="text">Neu</span></div><div class="koerper"></div></div>';
+		const { nr, quelle } = fuegeBausteinEin(
+			BLATT,
+			{ id: 'aufgabe', ort: 'seite', html },
+			nrVon(BLATT, 'aufgabe'),
+			n,
+		);
 		assert.deepEqual(aufgaben(quelle), ['1', '2', '★']);
 		assert.ok(quelle.indexOf('Neu') < quelle.indexOf('Stern'));
 		assert.equal(nr, nrVon(quelle, 'aufgabe', 1));
 	});
 
 	it('bei gewählter Sternchenaufgabe und ohne Auswahl bleibt der Stern am Ende, der Fuß auch', () => {
-		const html = '<div class="aufgabe"><span class="nr">9</span><div class="anw"><span class="text">Neu</span></div><div class="koerper"></div></div>';
+		const html =
+			'<div class="aufgabe"><span class="nr">9</span><div class="anw"><span class="text">Neu</span></div><div class="koerper"></div></div>';
 		for (const nr of [nrVon(BLATT, 'aufgabe', 1), null]) {
 			const { quelle } = fuegeBausteinEin(BLATT, { id: 'aufgabe', ort: 'seite', html }, nr, n);
 			assert.deepEqual(aufgaben(quelle), ['1', '2', '★']);
@@ -55,9 +63,16 @@ describe('Einfügen', () => {
 
 	it('Element in eine Aufgabe: in den Körper; ohne passende Stelle in eine neue Aufgabe', () => {
 		const uhr = '<x-uhr zeit="4:30"></x-uhr>';
-		const koerper = fuegeBausteinEin(BLATT, { id: 'x-uhr', ort: 'aufgabe', html: uhr }, nrVon(BLATT, 'anw'), n).quelle;
+		const koerper = fuegeBausteinEin(
+			BLATT,
+			{ id: 'x-uhr', ort: 'aufgabe', html: uhr },
+			nrVon(BLATT, 'anw'),
+			n,
+		).quelle;
 		assert.deepEqual(aufgaben(koerper), ['1', '★']);
-		assert.ok(koerper.indexOf(uhr) > koerper.indexOf('class="reihe"') && koerper.indexOf(uhr) < koerper.indexOf('Stern'));
+		assert.ok(
+			koerper.indexOf(uhr) > koerper.indexOf('class="reihe"') && koerper.indexOf(uhr) < koerper.indexOf('Stern'),
+		);
 		const neu = fuegeBausteinEin(BLATT, { id: 'x-uhr', ort: 'aufgabe', html: uhr }, nrVon(BLATT, 'kopf'), n).quelle;
 		assert.deepEqual(aufgaben(neu), ['1', '2', '★']);
 		assert.match(neu, /<div class="koerper"><x-uhr zeit="4:30"><\/x-uhr><\/div>/);
@@ -65,10 +80,20 @@ describe('Einfügen', () => {
 
 	it('Element im Item: neues Item daneben, in einer Zeile: im Item', () => {
 		const uhr = '<x-uhr zeit="4:30"></x-uhr>';
-		const item = fuegeBausteinEin(BLATT, { id: 'x-uhr', ort: 'aufgabe', html: uhr }, nrVon(BLATT, 'zelle'), n).quelle;
+		const item = fuegeBausteinEin(
+			BLATT,
+			{ id: 'x-uhr', ort: 'aufgabe', html: uhr },
+			nrVon(BLATT, 'zelle'),
+			n,
+		).quelle;
 		assert.match(item, /<div class="zelle"><x-uhr zeit="4:30"><\/x-uhr><\/div>/);
 		const antwort = '<span class="antwort"></span>';
-		const inItem = fuegeBausteinEin(BLATT, { id: 'antwort', ort: 'zeile', html: antwort }, nrVon(BLATT, 'zelle', 1), n).quelle;
+		const inItem = fuegeBausteinEin(
+			BLATT,
+			{ id: 'antwort', ort: 'zeile', html: antwort },
+			nrVon(BLATT, 'zelle', 1),
+			n,
+		).quelle;
 		assert.equal(zerlege(inItem).knoten.length, zerlege(BLATT).knoten.length + 1);
 	});
 
@@ -76,9 +101,17 @@ describe('Einfügen', () => {
 		const t = fuegeBausteinEin(BLATT, { id: 'trenner', ort: 'blatt', klasse: 'trenner' }, null, n).quelle;
 		assert.match(t, /<body class="kl2 farbe palette-himmel trenner">/);
 		assert.equal(t.replace(' trenner', ''), BLATT);
-		const b = fuegeBausteinEin(BLATT, { id: 'beispiel', ort: 'zeile', klasse: 'beispiel' }, nrVon(BLATT, 'zelle'), n).quelle;
+		const b = fuegeBausteinEin(
+			BLATT,
+			{ id: 'beispiel', ort: 'zeile', klasse: 'beispiel' },
+			nrVon(BLATT, 'zelle'),
+			n,
+		).quelle;
 		assert.match(b, /class="zelle beispiel"/);
-		assert.throws(() => fuegeBausteinEin(BLATT, { id: 'beispiel', ort: 'zeile', klasse: 'beispiel' }, null, n), /Wähle/);
+		assert.throws(
+			() => fuegeBausteinEin(BLATT, { id: 'beispiel', ort: 'zeile', klasse: 'beispiel' }, null, n),
+			/Wähle/,
+		);
 	});
 
 	it('leere Seite: geht ins Leere, ohne Fehler', () => {
@@ -90,18 +123,29 @@ describe('Einfügen', () => {
 	it('Rezept: eine neue Aufgabe mit Anweisung und allen Teilen', () => {
 		const { quelle } = fuegeBausteinEin(
 			BLATT,
-			{ id: 'r', ort: 'seite', teile: ['<x-uhr></x-uhr>', '<span class="antwort"></span>'], anweisung: 'Lies ab.' },
+			{
+				id: 'r',
+				ort: 'seite',
+				teile: ['<x-uhr></x-uhr>', '<span class="antwort"></span>'],
+				anweisung: 'Lies ab.',
+			},
 			null,
 			n,
 		);
-		assert.match(quelle, /Lies ab\.<\/span><\/div><div class="koerper"><x-uhr><\/x-uhr><span class="antwort"><\/span>/);
+		assert.match(
+			quelle,
+			/Lies ab\.<\/span><\/div><div class="koerper"><x-uhr><\/x-uhr><span class="antwort"><\/span>/,
+		);
 		assert.deepEqual(aufgaben(quelle), ['1', '2', '★']);
 	});
 
 	it('Kopf und Namenszeile an den Seitenanfang, Fuß ans Ende', () => {
-		const q = (id: string, html: string) => fuegeBausteinEin(BLATT, { id, ort: 'seite', html }, nrVon(BLATT, 'aufgabe'), n).quelle;
+		const q = (id: string, html: string) =>
+			fuegeBausteinEin(BLATT, { id, ort: 'seite', html }, nrVon(BLATT, 'aufgabe'), n).quelle;
 		const kopf = q('kopf', '<div class="kopf neu"></div>');
-		assert.ok(kopf.indexOf('namenszeile') < kopf.indexOf('kopf neu') && kopf.indexOf('kopf neu') < kopf.indexOf('<h1>'));
+		assert.ok(
+			kopf.indexOf('namenszeile') < kopf.indexOf('kopf neu') && kopf.indexOf('kopf neu') < kopf.indexOf('<h1>'),
+		);
 		const name = q('namenszeile', '<div class="namenszeile neu"></div>');
 		assert.ok(name.indexOf('namenszeile neu') < name.indexOf('<div class="namenszeile">'));
 		const fuss = q('fuss', '<div class="fuss neu"></div>');
@@ -119,7 +163,12 @@ describe('Einfügen', () => {
 	});
 
 	it('ändert in vorhandenem Material mit eigenem CSS nur die neue Stelle', () => {
-		const { quelle } = fuegeBausteinEin(BLATT, { id: 'x-uhr', ort: 'aufgabe', html: '<x-uhr></x-uhr>' }, nrVon(BLATT, 'anw'), n);
+		const { quelle } = fuegeBausteinEin(
+			BLATT,
+			{ id: 'x-uhr', ort: 'aufgabe', html: '<x-uhr></x-uhr>' },
+			nrVon(BLATT, 'anw'),
+			n,
+		);
 		assert.equal(quelle.replace(/\s*<x-uhr><\/x-uhr>/, ''), BLATT);
 	});
 

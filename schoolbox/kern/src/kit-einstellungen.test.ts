@@ -20,7 +20,8 @@ const BLATT = `<!doctype html><html><head><title>Alt</title></head>
 </section>
 </body></html>
 `;
-const nr = (q: string, klasse: string, i = 0) => zerlege(q).knoten.filter((k) => klassenVon(k).includes(klasse))[i]?.nr ?? -1;
+const nr = (q: string, klasse: string, i = 0) =>
+	zerlege(q).knoten.filter((k) => klassenVon(k).includes(klasse))[i]?.nr ?? -1;
 const tag = (q: string, t: string) => zerlege(q).knoten.find((k) => k.tag === t)?.nr ?? -1;
 const n = (q: string, s: string) => q.split(s).length - 1;
 
@@ -89,7 +90,13 @@ describe('Einstellungen der Kit-Bausteine', () => {
 
 describe('Ganzes Blatt', () => {
 	it('liest und ändert genau das Genannte', () => {
-		assert.deepEqual(leseBlatt(BLATT), { titel: 'Alt', klasse: 2, palette: 'himmel', format: 'a4-hoch', trenner: false });
+		assert.deepEqual(leseBlatt(BLATT), {
+			titel: 'Alt',
+			klasse: 2,
+			palette: 'himmel',
+			format: 'a4-hoch',
+			trenner: false,
+		});
 		const klasse = setzeBlatt(BLATT, { klasse: 4 });
 		assert.equal(klasse, BLATT.replace('kl2', 'kl4'));
 		assert.equal(setzeBlatt(BLATT, { palette: 'wiese' }), BLATT.replace('palette-himmel', 'palette-wiese'));
@@ -98,5 +105,19 @@ describe('Ganzes Blatt', () => {
 		assert.equal(setzeBlatt(BLATT, { trenner: true }), BLATT.replace('palette-himmel"', 'palette-himmel trenner"'));
 		assert.match(setzeBlatt(BLATT, { titel: 'Neu & gut' }), /<title>Neu &amp; gut<\/title>/);
 		assert.equal(leseBlatt(setzeBlatt(BLATT, { klasse: 'gemischt' })).klasse, 'gemischt');
+	});
+});
+
+describe('Tabelle: Klassen und Lösung', () => {
+	const T = '<body><table class="kit-tabelle"><tbody><tr><td>a</td></tr></tbody></table></body>';
+	const kn = (q: string, tagName: string) => zerlege(q).knoten.find((k) => k.tag === tagName)?.nr ?? -1;
+	it('setzt die Klassen einzeln und nimmt sie wieder weg', () => {
+		const t = kn(T, 'table');
+		const a = setzeKit(T, t, 'tabelle', 'zeilenhoehe', 'kompakt');
+		assert.match(a, /class="kit-tabelle kompakt"/);
+		assert.match(setzeKit(a, t, 'tabelle', 'zeilenhoehe', 'schreibzeilen'), /class="kit-tabelle schreibzeilen"/);
+		assert.equal(setzeKit(a, t, 'tabelle', 'zeilenhoehe', ''), T);
+		assert.equal(setzeKit(setzeKit(T, t, 'tabelle', 'kopfspalte', true), t, 'tabelle', 'kopfspalte', false), T);
+		assert.match(setzeKit(T, kn(T, 'td'), 'tabellenzelle', 'loesung', '4'), /<td data-l="4">/);
 	});
 });

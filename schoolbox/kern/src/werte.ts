@@ -64,7 +64,12 @@ const A4_OPTIONEN = {
 const ALLE_BAUSTEINE = { selbsteinschaetzung: 'ja', niveaus: 'ja', sternchen: 'ja' };
 
 export const ART_ANGABEN: Record<Art, ArtAngaben> = {
-	arbeitsblatt: { name: 'Arbeitsblatt', ...A4_OPTIONEN, optionen: [...A4_OPTIONEN.optionen], bausteine: ALLE_BAUSTEINE },
+	arbeitsblatt: {
+		name: 'Arbeitsblatt',
+		...A4_OPTIONEN,
+		optionen: [...A4_OPTIONEN.optionen],
+		bausteine: ALLE_BAUSTEINE,
+	},
 	lesetext: { name: 'Lesetext', ...A4_OPTIONEN, optionen: [...A4_OPTIONEN.optionen], bausteine: ALLE_BAUSTEINE },
 	lernzielkontrolle: {
 		name: 'Lernzielkontrolle',
@@ -144,8 +149,8 @@ export const FORMAT_NAME: Record<Format, string> = {
 	'a4-quer': 'A4 quer',
 	'a3-hoch': 'A3 hoch',
 	'a5-hoch': 'A5 (Heftformat)',
-	folie: 'Folien 16:9',
-	minibuch: 'Mini-Book',
+	'folie': 'Folien 16:9',
+	'minibuch': 'Mini-Book',
 };
 
 /** Vorlagen mit festem Format. */

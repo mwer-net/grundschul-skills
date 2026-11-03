@@ -6,7 +6,18 @@
 
 import type { KatalogEintrag } from './katalog';
 import type { Aenderung, Knoten, Zerlegung } from './quelltext';
-import { attribut, entferne, fuegeEin, klassenVon, quelleVon, rueckeUm, einrueckung, setzeAttribut, wendeAn, zerlege } from './quelltext';
+import {
+	attribut,
+	einrueckung,
+	entferne,
+	fuegeEin,
+	klassenVon,
+	quelleVon,
+	rueckeUm,
+	setzeAttribut,
+	wendeAn,
+	zerlege,
+} from './quelltext';
 import type { Nummerierung, StrukturErgebnis } from './struktur';
 import { nummeriere, seitenVon } from './struktur';
 
@@ -94,7 +105,12 @@ const inKoerper = (z: Zerlegung, koerper: Knoten, html: string): Aenderung[] => 
 const inAufgabe = (z: Zerlegung, ziel: Knoten | null, html: string): Aenderung[] => {
 	const zelle = aufwaerts(ziel, 'zelle') ?? aufwaerts(ziel, 'karte');
 	if (zelle) {
-		return fuegeEin(z, zelle, 'nach', html.startsWith('<div class="zelle') ? html : `<div class="zelle">${html}</div>`);
+		return fuegeEin(
+			z,
+			zelle,
+			'nach',
+			html.startsWith('<div class="zelle') ? html : `<div class="zelle">${html}</div>`,
+		);
 	}
 	const aufgabe = aufwaerts(ziel, 'aufgabe');
 	const koerper = aufgabe?.kinder.find((k) => hat(k, 'koerper'));
@@ -133,7 +149,10 @@ export const einfuegbarAus = (e: KatalogEintrag, starter: ReadonlyMap<string, st
 	...(e.klasse ? { klasse: e.klasse } : {}),
 	...(e.starter ? { html: starter.get(e.starter) ?? '' } : {}),
 	...(e.teile
-		? { teile: e.teile.filter((t) => t !== 'aufgabe').map((t) => starter.get(t) ?? ''), anweisung: e.anweisung ?? '' }
+		? {
+				teile: e.teile.filter((t) => t !== 'aufgabe').map((t) => starter.get(t) ?? ''),
+				anweisung: e.anweisung ?? '',
+			}
 		: {}),
 });
 

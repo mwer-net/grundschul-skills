@@ -18,9 +18,11 @@ const DRUCK = 'skills/grundschul-didaktik/references/druck-und-platz.md';
 const BLATT_CSS = 'skills/html-materialerstellung/assets/blatt.css';
 
 const tabelle = (kopf: string[], zeilen: string[][]) =>
-	[`| ${kopf.join(' | ')} |`, `|${kopf.map(() => '---').join('|')}|`, ...zeilen.map((z) => `| ${z.join(' | ')} |`)].join(
-		'\n',
-	);
+	[
+		`| ${kopf.join(' | ')} |`,
+		`|${kopf.map(() => '---').join('|')}|`,
+		...zeilen.map((z) => `| ${z.join(' | ')} |`),
+	].join('\n');
 
 /** Arten mit gleichen Angaben teilen sich eine Zeile. */
 const gruppiere = <T>(eintraege: ArtAngaben[], teil: (a: ArtAngaben) => T | undefined) => {
@@ -39,13 +41,15 @@ const gruppiere = <T>(eintraege: ArtAngaben[], teil: (a: ArtAngaben) => T | unde
 
 const formatJeArt = () => {
 	const arten = ARTEN.map((a) => ART_ANGABEN[a]).filter((a) => a.optionen.length > 0);
-	const zeilen = gruppiere(arten, ({ nichtFragen, optionen, umsetzung }) => ({ nichtFragen, optionen, umsetzung })).map(
-		({ namen, wert: { nichtFragen, optionen, umsetzung } }) => {
-			const [erste, ...rest] = optionen;
-			const angebot = [nichtFragen ? `${erste} (nicht fragen)` : `**${erste}**`, ...rest].join(', ');
-			return [namen.join(', '), angebot, umsetzung ?? ''];
-		},
-	);
+	const zeilen = gruppiere(arten, ({ nichtFragen, optionen, umsetzung }) => ({
+		nichtFragen,
+		optionen,
+		umsetzung,
+	})).map(({ namen, wert: { nichtFragen, optionen, umsetzung } }) => {
+		const [erste, ...rest] = optionen;
+		const angebot = [nichtFragen ? `${erste} (nicht fragen)` : `**${erste}**`, ...rest].join(', ');
+		return [namen.join(', '), angebot, umsetzung ?? ''];
+	});
 	for (const { format, name, optionen } of Object.values(VORLAGE_FORMAT)) {
 		zeilen.push([name, `${optionen.join(', ')} (nicht fragen)`, `\`${format}\``]);
 	}
@@ -76,6 +80,18 @@ const klassenWerte = (wurzel: string) => {
 	return tabelle(['Klasse', 'Schrift', 'Abstand zwischen Aufgaben'], zeilen);
 };
 
+const lueckenBreite = (wurzel: string) => {
+	const css = readFileSync(path.join(wurzel, BLATT_CSS), 'utf8');
+	const zeilen = [...css.matchAll(/^body\.kl([1-4])\{--luecke-min:(\d+)mm\}/gm)].map((t) => [
+		`Kl. ${t[1]}`,
+		`${t[2]} mm`,
+	]);
+	if (zeilen.length !== 4) {
+		throw new Error(`${BLATT_CSS}: Lückenbreite von Kl. 1 bis 4 nicht gefunden.`);
+	}
+	return tabelle(['Klasse', 'Lücke mindestens'], zeilen);
+};
+
 interface Abschnitt {
 	datei: string;
 	marke: string;
@@ -86,6 +102,7 @@ export const ABSCHNITTE: Abschnitt[] = [
 	{ datei: RUECKFRAGEN, marke: 'format-je-art', inhalt: formatJeArt },
 	{ datei: RUECKFRAGEN, marke: 'bausteine-je-art', inhalt: bausteineJeArt },
 	{ datei: DRUCK, marke: 'schrift-und-abstand', inhalt: klassenWerte },
+	{ datei: DRUCK, marke: 'luecken-breite', inhalt: lueckenBreite },
 ];
 
 /** Setzt den Inhalt zwischen `<!-- erzeugt: marke -->` und `<!-- /erzeugt: marke -->`. */

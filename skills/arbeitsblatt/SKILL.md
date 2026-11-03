@@ -82,3 +82,5 @@ Zusätzlich zur Basis-Checkliste:
 - Lösungen im selben HTML (`data-l`, `loesung=`, `nur-loesung`); `blatt.py` erzeugt das Lösungsblatt mit identischem Layout.
 - Danach **visuelle Endkontrolle** (`html-materialerstellung/references/visuelle-endkontrolle.md`): jeden Aufgaben-Ausschnitt ansehen, Abbildungen nachzählen, Beispiel und Verständlichkeit für die Klasse prüfen, Befunde selbst beheben. Erst dann PDF und Vorschau zeigen.
 - Dateiname/Titel: `Kl{K}_{Fach}_{Thema}_AB{Nr}`.
+
+**Aufgabenformate:** Lückentext, Wortspeicher, Ankreuzen und Richtig/Falsch sind fertige Elemente, siehe `html-materialerstellung/references/abbildungen.md`, Abschnitt „Aufgabenformate“.

@@ -84,6 +84,7 @@
     "x-urne": "Kugeln im Säckchen", "x-wahrscheinlichkeit": "Wahrscheinlichkeit", "x-kombinatorik": "Möglichkeiten",
     "x-gitter": "Gitter", "x-figur": "Figur", "x-tangram": "Tangram",
     "x-hunderterfeld": "Hunderterfeld", "x-hundertertafel": "Hundertertafel", "x-rechenrahmen": "Rechenrahmen", "x-rechenstrich": "Rechenstrich",
+    "x-lueckentext": "Lückentext", "x-wortspeicher": "Wortspeicher", "x-ankreuzen": "Ankreuzen", "x-richtigfalsch": "Richtig oder falsch",
     "x-lineatur": "Schreiblinien", "x-silben": "Silben", "x-wortarten": "Wortarten", "x-satzglieder": "Satzglieder", "x-wortbausteine": "Wortbausteine", "x-zeitleiste": "Zeitleiste", "x-jahreskreis": "Jahreskreis", "x-windrose": "Windrose", "x-plan": "Plan", "x-schaltplan": "Stromkreis", "x-kreislauf": "Kreislauf", "x-verkehrszeichen": "Verkehrszeichen", "x-wetter": "Wettersymbol", "x-rhythmus": "Rhythmus", "x-noten": "Noten",
     "x-geld": "Geld", "x-skala": "Messgerät", "x-strecke": "Strecke", "x-kalender": "Kalender", "x-zeitspanne": "Zeitspanne",
     "x-punktfeld": "Punktfeld", "x-malkreuz": "Malkreuz", "x-schriftlich": "Schriftliche Rechnung",
@@ -4937,6 +4938,124 @@
     el.innerHTML = svg(320, 120, f.defs() + s);
   }
 
+  /* Aufgabenformate (048) */
+  /** `Der [Hund] bellt, die [[Katze]] miaut.`: Text und Lücken; doppelte Klammern sind ein schon eingetragenes Beispiel. */
+  const lueckenLesen = (roh) => {
+    const teile = [];
+    const muster = /\[\[([^\[\]]+)\]\]|\[([^\[\]]+)\]/g;
+    let stelle = 0;
+    for (let t = muster.exec(roh); t; t = muster.exec(roh)) {
+      if (t.index > stelle) teile.push({ text: roh.slice(stelle, t.index) });
+      teile.push({ wort: (t[1] ?? t[2]).trim(), beispiel: t[1] !== undefined });
+      stelle = t.index + t[0].length;
+    }
+    if (stelle < roh.length) teile.push({ text: roh.slice(stelle) });
+    return teile;
+  };
+  const lueckeFehler = (teile) => (teile.some((t) => t.wort !== undefined) ? null : "Der Text hat keine Lücke. Setze ein Wort in eckige Klammern: [Wort].");
+
+  function lueckentext(el) {
+    const roh = inhalt(el), darstellung = attr(el, "darstellung", "linie"), breite = attr(el, "breite", "einheitlich");
+    if (!["linie", "kasten", "gepunktet"].includes(darstellung)) abbruch(`Die Darstellung „${darstellung}“ gibt es nicht.`);
+    if (!["einheitlich", "wortlaenge"].includes(breite)) abbruch(`Die Breite „${breite}“ gibt es nicht.`);
+    const teile = lueckenLesen(roh), fehler = lueckeFehler(teile);
+    if (fehler) abbruch(fehler);
+    const loesung = loesungSichtbar(el);
+    const laengste = Math.max(...teile.filter((t) => t.wort).map((t) => t.wort.length));
+    el.innerHTML = teile.map((t) => {
+      if (t.text !== undefined) return maskiere(t.text);
+      const zeichen = breite === "wortlaenge" ? t.wort.length : laengste;
+      const sichtbar = t.beispiel || loesung;
+      return `<span class="luecke ${darstellung}${t.beispiel ? " beispiel-wort" : ""}" style="--zeichen:${zeichen + 2}">${sichtbar ? maskiere(t.wort) : "&nbsp;"}</span>`;
+    }).join("");
+  }
+
+  /** Vorschlag statt Rätsel: Was fehlt, nennt die Meldung beim Namen. */
+  const wortspeicherFehler = (woerter, luecken) => {
+    const doppelt = woerter.find((w, i) => woerter.indexOf(w) !== i);
+    if (doppelt) return `„${doppelt}“ steht doppelt im Wortspeicher. Lösche eines davon.`;
+    const fehlt = luecken.find((w) => !woerter.includes(w));
+    return fehlt ? `Die Lücke „${fehlt}“ findet kein Wort im Wortspeicher. Ergänze „${fehlt}“.` : null;
+  };
+
+  function wortspeicher(el) {
+    const bereich = el.closest(".aufgabe") ?? el.closest(".seite") ?? document;
+    const luecken = [...bereich.querySelectorAll("x-lueckentext")]
+      .flatMap((l) => lueckenLesen(inhalt(l)))
+      .filter((t) => t.wort && !t.beispiel)
+      .map((t) => t.wort);
+    const eigene = liste(el, "woerter");
+    const woerter = eigene.length > 0 ? eigene : [...new Set(luecken)];
+    if (woerter.length === 0) abbruch("Der Wortspeicher ist leer. Trage Wörter ein.");
+    const fehler = wortspeicherFehler(woerter, luecken);
+    if (fehler) abbruch(fehler);
+    const reihenfolge = attr(el, "reihenfolge", "alphabetisch");
+    if (!["alphabetisch", "gemischt"].includes(reihenfolge)) abbruch(`Die Reihenfolge „${reihenfolge}“ gibt es nicht.`);
+    const folge = reihenfolge === "gemischt"
+      ? gemischt(woerter, zufall(samen(el, woerter.join(","))))
+      : [...woerter].sort((a, b) => a.localeCompare(b, "de"));
+    const spalten = num(el, "spalten", 4), rahmen = attr(el, "rahmen", "1") !== "0";
+    el.innerHTML = `<div class="wortspeicher${rahmen ? " mit-rahmen" : ""}" style="--spalten:${spalten}">${folge.map((w) => `<span>${maskiere(w)}</span>`).join("")}</div>`;
+  }
+
+  /** `Frage: *richtig, falsch; Frage: …`: Der Stern markiert die richtige Antwort. */
+  const ankreuzenLesen = (roh) => roh.split(";").map((z) => z.trim()).filter(Boolean).map((z) => {
+    const i = z.lastIndexOf(":");
+    const optionen = (i < 0 ? z : z.slice(i + 1)).split(",").map((o) => o.trim()).filter(Boolean);
+    return {
+      frage: i < 0 ? "" : z.slice(0, i).trim(),
+      optionen: optionen.map((o) => ({ text: o.replace(/^\*/, "").trim(), richtig: o.startsWith("*") })),
+    };
+  });
+  const ankreuzenFehler = (fragen, mehrfach) => {
+    if (fragen.length === 0) return "Es gibt noch keine Frage. Trage eine Frage und Antworten ein.";
+    for (const f of fragen) {
+      const name = f.frage ? `„${f.frage}“` : "Diese Frage";
+      const texte = f.optionen.map((o) => o.text);
+      const doppelt = texte.find((t, i) => texte.indexOf(t) !== i);
+      if (doppelt) return `${name}: Die Antwort „${doppelt}“ steht doppelt. Ändere eine davon.`;
+      const richtig = f.optionen.filter((o) => o.richtig).length;
+      if (richtig === 0) return `${name} hat keine richtige Antwort. Markiere sie mit *.`;
+      if (richtig > 1 && !mehrfach) return `${name} hat ${richtig} richtige Antworten. Erlaube Mehrfachwahl oder lasse eine übrig.`;
+    }
+    return null;
+  };
+
+  function ankreuzen(el) {
+    const mehrfach = attr(el, "mehrfach", "0") === "1", fragen = ankreuzenLesen(attr(el, "fragen", ""));
+    const fehler = ankreuzenFehler(fragen, mehrfach);
+    if (fehler) abbruch(fehler);
+    const loesung = loesungSichtbar(el), spalten = num(el, "spalten", 1), seed = attr(el, "seed", null);
+    el.innerHTML = fragen.map((f) => {
+      const folge = seed === null ? f.optionen : gemischt(f.optionen, zufall(`${seed}|${f.frage}`));
+      const zeilen = folge.map((o) => `<label class="wahl"><span class="box${loesung && o.richtig ? " kreuz" : ""}"></span>${maskiere(o.text)}</label>`).join("");
+      return `<div class="ankreuzen">${f.frage ? `<p class="frage">${maskiere(f.frage)}</p>` : ""}<div class="wahlen" style="--spalten:${spalten}">${zeilen}</div></div>`;
+    }).join("");
+  }
+
+  /** `Hunde bellen: r; Katzen fliegen: f`. */
+  const aussagenLesen = (roh) => roh.split(";").map((z) => z.trim()).filter(Boolean).map((z) => {
+    const i = z.lastIndexOf(":");
+    return { text: (i < 0 ? z : z.slice(0, i)).trim(), wert: i < 0 ? "" : z.slice(i + 1).trim() };
+  });
+  const aussagenFehler = (aussagen) => {
+    if (aussagen.length === 0) return "Es gibt noch keine Aussage. Trage eine ein.";
+    const offen = aussagen.find((a) => a.wert !== "r" && a.wert !== "f");
+    return offen ? `„${offen.text}“: Gib an, ob die Aussage richtig (r) oder falsch (f) ist.` : null;
+  };
+  const DAUMEN = (runter) => `<svg viewBox="0 0 24 24" width="22" height="22" aria-label="${runter ? "Daumen runter" : "Daumen hoch"}" fill="none" stroke="currentColor" stroke-width="2"${runter ? ' style="transform:scaleY(-1)"' : ""}><path d="M7 11v9H4v-9zM7 11l4-8a2 2 0 0 1 2 2v4h6a2 2 0 0 1 2 2l-2 7a2 2 0 0 1-2 2H7"/></svg>`;
+  const RF_KOEPFE = { richtigfalsch: ["richtig", "falsch"], janein: ["ja", "nein"], daumen: [DAUMEN(false), DAUMEN(true)] };
+
+  function richtigfalsch(el) {
+    const aussagen = aussagenLesen(attr(el, "aussagen", "")), fehler = aussagenFehler(aussagen);
+    if (fehler) abbruch(fehler);
+    const koepfe = RF_KOEPFE[attr(el, "koepfe", "richtigfalsch")];
+    if (!koepfe) abbruch(`Die Spaltenköpfe „${attr(el, "koepfe", "")}“ gibt es nicht.`);
+    const loesung = loesungSichtbar(el);
+    const kreuz = (an) => `<td><span class="box${loesung && an ? " kreuz" : ""}"></span></td>`;
+    el.innerHTML = `<table><thead><tr><th></th><th>${koepfe[0]}</th><th>${koepfe[1]}</th></tr></thead><tbody>${aussagen.map((a) => `<tr><td>${maskiere(a.text)}</td>${kreuz(a.wert === "r")}${kreuz(a.wert === "f")}</tr>`).join("")}</tbody></table>`;
+  }
+
   /* == Ende der Abschnitte == */
   const ARTEN = { "x-suchsel": suchsel, "x-kreuzwort": kreuzwort, "x-loesungswort": loesungswort, "x-uhr": uhr, "x-menge": menge, "x-dienes": dienes, "x-strichpunkt": strichpunkt,
     "x-stellentafel": stellentafel, "x-zwanzigerfeld": zwanzigerfeld, "x-zahlenstrahl": zahlenstrahl, "x-timer": timer,
@@ -4945,6 +5064,7 @@
     "x-gitter": gitter, "x-figur": figur, "x-tangram": tangram,
     "x-hunderterfeld": hunderterfeld, "x-hundertertafel": hundertertafel, "x-rechenrahmen": rechenrahmen, "x-rechenstrich": rechenstrich,
     "x-zahlenmauer": zahlenmauer, "x-rechendreieck": rechendreieck, "x-zahlenhaus": zahlenhaus, "x-zahlenkette": zahlenkette, "x-zauberdreieck": zauberdreieck, "x-rechenrad": rechenrad,
+    "x-lueckentext": lueckentext, "x-wortspeicher": wortspeicher, "x-ankreuzen": ankreuzen, "x-richtigfalsch": richtigfalsch,
     "x-lineatur": lineatur, "x-silben": silben, "x-wortarten": wortarten, "x-satzglieder": satzglieder, "x-wortbausteine": wortbausteine, "x-zeitleiste": zeitleiste, "x-jahreskreis": jahreskreis, "x-windrose": windrose, "x-plan": plan, "x-schaltplan": schaltplan, "x-kreislauf": kreislauf, "x-verkehrszeichen": verkehrszeichen, "x-wetter": wetter, "x-rhythmus": rhythmus, "x-noten": noten,
     "x-geld": geld, "x-skala": skala, "x-strecke": strecke, "x-kalender": kalender, "x-zeitspanne": zeitspanne,
     "x-punktfeld": punktfeld, "x-malkreuz": malkreuz, "x-schriftlich": schriftlich,
@@ -4979,6 +5099,7 @@
     mauerWerte, mauerEindeutig, istEindeutig, RECHENDREIECK_GLEICHUNGEN, zauberLoesungen, ketteWerte, leseOperator,
     malkreuzRechnung, addiere, subtrahiereErweitern, subtrahiereEntbuendeln, multipliziere, dividiere, moeglicheFehler, rechnungsplan,
     MUENZEN, SCHEINE, betragText, mindestStueckelung, skalaStriche, kalenderMonat, isoWoche, zeitStationen, dauerText, uhrText,
+    lueckenLesen, lueckeFehler, wortspeicherFehler, ankreuzenLesen, ankreuzenFehler, aussagenLesen, aussagenFehler,
     ANDIKA_X_HOEHE, lineaturMass, silbenTeile, pruefeSilben, WORTARTEN, ROLLEN, wortartenTeile, satzLesen, satzUmstellen, kleinImSatz, pruefeBausteine, zeitPos, jahrText, KREISE, PLAN_SYMBOLE, stromTeile, stromkreis, VERKEHRSZEICHEN, WETTER_FORMEN, leseTakte, halsNachOben, balkenGruppen, gruppeNachOben, silbeStandard,
   };
   if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", () => window.zeichneAbbildungen());

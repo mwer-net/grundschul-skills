@@ -96,8 +96,8 @@ export interface TextFeld extends FeldBasis {
 	musterHilfe?: string;
 	zeilen?: number;
 	beispiel?: string;
-	/** Knopf, der das Zeichen an der Cursor-Stelle einfügt, z. B. den Silbenstrich. */
-	einfuegen?: { zeichen: string; name: string };
+	/** Knopf, der das Zeichen an der Cursor-Stelle einfügt, z. B. den Silbenstrich; mit `bis` umschließt er die Markierung. */
+	einfuegen?: { zeichen: string; name: string; bis?: string };
 }
 
 const NUR_BUCHSTABEN = /^[A-Za-zÄÖÜäöüß]+$/;
@@ -737,7 +737,11 @@ export const SKALA_STANDARD: Record<string, [number, number, string]> = {
 
 const skalaStandard = (w: Werte): [number, number, string] => {
 	const art = w.art ?? 'lineal';
-	const einheit = w.einheit ?? Object.keys(SKALA_STANDARD).find((k) => k.startsWith(`${art}|`))?.split('|')[1];
+	const einheit =
+		w.einheit ??
+		Object.keys(SKALA_STANDARD)
+			.find((k) => k.startsWith(`${art}|`))
+			?.split('|')[1];
 	return SKALA_STANDARD[`${art}|${einheit}`] ?? [0, 15, '1 0.1'];
 };
 
@@ -748,7 +752,12 @@ export const zahlStandard = (feld: ZahlFeld, w: Werte | null | undefined) =>
 export const ABBILDUNG_SCHEMA = {
 	'x-uhr': {
 		name: 'Uhr',
-		katalog: { kategorie: 'Größen', suchbegriffe: ['Uhrzeit', 'Zifferblatt', 'Zeiger', 'Uhr', 'lesen', 'digital'], ort: 'aufgabe', faecher: ['mathematik'] },
+		katalog: {
+			kategorie: 'Größen',
+			suchbegriffe: ['Uhrzeit', 'Zifferblatt', 'Zeiger', 'Uhr', 'lesen', 'digital'],
+			ort: 'aufgabe',
+			faecher: ['mathematik'],
+		},
 		felder: [
 			{
 				art: 'uhrzeit',
@@ -814,7 +823,12 @@ export const ABBILDUNG_SCHEMA = {
 	},
 	'x-menge': {
 		name: 'Menge',
-		katalog: { kategorie: 'Zahlen', suchbegriffe: ['Zählen', 'Bündeln', 'Plättchen', 'Nüsse', 'Anzahl', 'Mengenbild'], ort: 'aufgabe', faecher: ['mathematik'] },
+		katalog: {
+			kategorie: 'Zahlen',
+			suchbegriffe: ['Zählen', 'Bündeln', 'Plättchen', 'Nüsse', 'Anzahl', 'Mengenbild'],
+			ort: 'aufgabe',
+			faecher: ['mathematik'],
+		},
 		felder: [
 			{ art: 'zahl', attribut: 'n', name: 'Anzahl', min: 1, max: 100, standard: 10 },
 			{
@@ -859,7 +873,12 @@ export const ABBILDUNG_SCHEMA = {
 	},
 	'x-dienes': {
 		name: 'Mehrsystemblöcke',
-		katalog: { kategorie: 'Zahlen', suchbegriffe: ['Dienes', 'Zehnerstange', 'Einerwürfel', 'Stellenwert', 'Mehrsystem'], ort: 'aufgabe', faecher: ['mathematik'] },
+		katalog: {
+			kategorie: 'Zahlen',
+			suchbegriffe: ['Dienes', 'Zehnerstange', 'Einerwürfel', 'Stellenwert', 'Mehrsystem'],
+			ort: 'aufgabe',
+			faecher: ['mathematik'],
+		},
 		felder: [
 			{ art: 'zahl', attribut: 't', name: 'Tausenderwürfel', min: 0, max: 9, standard: 0 },
 			{ art: 'zahl', attribut: 'h', name: 'Hunderterplatten', min: 0, max: 9, standard: 0 },
@@ -880,7 +899,12 @@ export const ABBILDUNG_SCHEMA = {
 	},
 	'x-strichpunkt': {
 		name: 'Strich-Punkt-Bild',
-		katalog: { kategorie: 'Zahlen', suchbegriffe: ['Zehner', 'Einer', 'Stellenwert', 'Striche', 'Punkte'], ort: 'aufgabe', faecher: ['mathematik'] },
+		katalog: {
+			kategorie: 'Zahlen',
+			suchbegriffe: ['Zehner', 'Einer', 'Stellenwert', 'Striche', 'Punkte'],
+			ort: 'aufgabe',
+			faecher: ['mathematik'],
+		},
 		felder: [
 			...ZEHNER_EINER('Striche (Zehner)', 'Punkte (Einer)'),
 			{ art: 'zahl', ...GROESSE, min: 20, max: 80, standard: 40, schritt: 4 },
@@ -889,7 +913,12 @@ export const ABBILDUNG_SCHEMA = {
 	},
 	'x-stellentafel': {
 		name: 'Stellentafel',
-		katalog: { kategorie: 'Zahlen', suchbegriffe: ['Stellenwerttafel', 'Hunderter', 'Zehner', 'Einer', 'Tausender', 'Plättchen'], ort: 'aufgabe', faecher: ['mathematik'] },
+		katalog: {
+			kategorie: 'Zahlen',
+			suchbegriffe: ['Stellenwerttafel', 'Hunderter', 'Zehner', 'Einer', 'Tausender', 'Plättchen'],
+			ort: 'aufgabe',
+			faecher: ['mathematik'],
+		},
 		felder: [
 			{
 				art: 'auswahl',
@@ -935,7 +964,12 @@ export const ABBILDUNG_SCHEMA = {
 	},
 	'x-zwanzigerfeld': {
 		name: 'Zwanzigerfeld',
-		katalog: { kategorie: 'Zahlen', suchbegriffe: ['Zwanzigerraum', 'Zehnerfeld', 'Fünferfeld', 'Wendeplättchen', 'Kraft', 'Fünf'], ort: 'aufgabe', faecher: ['mathematik'] },
+		katalog: {
+			kategorie: 'Zahlen',
+			suchbegriffe: ['Zwanzigerraum', 'Zehnerfeld', 'Fünferfeld', 'Wendeplättchen', 'Kraft', 'Fünf'],
+			ort: 'aufgabe',
+			faecher: ['mathematik'],
+		},
 		felder: [
 			{
 				art: 'auswahl',
@@ -962,7 +996,12 @@ export const ABBILDUNG_SCHEMA = {
 	},
 	'x-zahlenstrahl': {
 		name: 'Zahlenstrahl',
-		katalog: { kategorie: 'Zahlen', suchbegriffe: ['Zahlengerade', 'Zahlenreihe', 'Nachbarzahlen', 'Hunderterraum'], ort: 'aufgabe', faecher: ['mathematik'] },
+		katalog: {
+			kategorie: 'Zahlen',
+			suchbegriffe: ['Zahlengerade', 'Zahlenreihe', 'Nachbarzahlen', 'Hunderterraum'],
+			ort: 'aufgabe',
+			faecher: ['mathematik'],
+		},
 		felder: [
 			{ art: 'zahl', attribut: 'von', name: 'Von', min: 0, max: 1000000, standard: 0 },
 			{ art: 'zahl', attribut: 'bis', name: 'Bis', min: 1, max: 1000000, standard: 20 },
@@ -1018,7 +1057,12 @@ export const ABBILDUNG_SCHEMA = {
 	},
 	'x-timer': {
 		name: 'Timer',
-		katalog: { kategorie: 'Größen', suchbegriffe: ['Zeitscheibe', 'Zeit', 'Minuten', 'Countdown', 'Stoppuhr'], ort: 'aufgabe', faecher: ['mathematik'] },
+		katalog: {
+			kategorie: 'Größen',
+			suchbegriffe: ['Zeitscheibe', 'Zeit', 'Minuten', 'Countdown', 'Stoppuhr'],
+			ort: 'aufgabe',
+			faecher: ['mathematik'],
+		},
 		felder: [
 			{ art: 'zahl', attribut: 'minuten', name: 'Minuten', min: 1, max: 120, standard: 10 },
 			{
@@ -1100,7 +1144,12 @@ export const ABBILDUNG_SCHEMA = {
 	},
 	'x-gluecksrad': {
 		name: 'Glücksrad',
-		katalog: { kategorie: 'Daten und Zufall', suchbegriffe: ['Drehrad', 'Zufall', 'Wahrscheinlichkeit', 'Rad'], ort: 'aufgabe', faecher: ['mathematik'] },
+		katalog: {
+			kategorie: 'Daten und Zufall',
+			suchbegriffe: ['Drehrad', 'Zufall', 'Wahrscheinlichkeit', 'Rad'],
+			ort: 'aufgabe',
+			faecher: ['mathematik'],
+		},
 		felder: [
 			{
 				art: 'liste',
@@ -1153,7 +1202,12 @@ export const ABBILDUNG_SCHEMA = {
 	},
 	'x-wuerfel': {
 		name: 'Würfel',
-		katalog: { kategorie: 'Daten und Zufall', suchbegriffe: ['Würfelaugen', 'Augenzahl', 'Zufall'], ort: 'aufgabe', faecher: ['mathematik'] },
+		katalog: {
+			kategorie: 'Daten und Zufall',
+			suchbegriffe: ['Würfelaugen', 'Augenzahl', 'Zufall'],
+			ort: 'aufgabe',
+			faecher: ['mathematik'],
+		},
 		felder: [
 			{
 				art: 'auswahl',
@@ -1188,7 +1242,12 @@ export const ABBILDUNG_SCHEMA = {
 	},
 	'x-strichliste': {
 		name: 'Strichliste',
-		katalog: { kategorie: 'Daten und Zufall', suchbegriffe: ['Häufigkeit', 'Zählen', 'Strichtabelle', 'Fünferbündel'], ort: 'aufgabe', faecher: ['mathematik'] },
+		katalog: {
+			kategorie: 'Daten und Zufall',
+			suchbegriffe: ['Häufigkeit', 'Zählen', 'Strichtabelle', 'Fünferbündel'],
+			ort: 'aufgabe',
+			faecher: ['mathematik'],
+		},
 		felder: [
 			{
 				art: 'liste',
@@ -1217,7 +1276,12 @@ export const ABBILDUNG_SCHEMA = {
 	},
 	'x-diagramm': {
 		name: 'Diagramm',
-		katalog: { kategorie: 'Daten und Zufall', suchbegriffe: ['Säulendiagramm', 'Balkendiagramm', 'Bilddiagramm', 'Schaubild', 'Statistik'], ort: 'aufgabe', faecher: ['mathematik'] },
+		katalog: {
+			kategorie: 'Daten und Zufall',
+			suchbegriffe: ['Säulendiagramm', 'Balkendiagramm', 'Bilddiagramm', 'Schaubild', 'Statistik'],
+			ort: 'aufgabe',
+			faecher: ['mathematik'],
+		},
 		felder: [
 			{
 				art: 'auswahl',
@@ -1292,7 +1356,12 @@ export const ABBILDUNG_SCHEMA = {
 	},
 	'x-urne': {
 		name: 'Kugeln im Säckchen',
-		katalog: { kategorie: 'Daten und Zufall', suchbegriffe: ['Kugeln', 'Säckchen', 'Ziehen', 'Zufall'], ort: 'aufgabe', faecher: ['mathematik'] },
+		katalog: {
+			kategorie: 'Daten und Zufall',
+			suchbegriffe: ['Kugeln', 'Säckchen', 'Ziehen', 'Zufall'],
+			ort: 'aufgabe',
+			faecher: ['mathematik'],
+		},
 		felder: [
 			{
 				art: 'liste',
@@ -1332,7 +1401,12 @@ export const ABBILDUNG_SCHEMA = {
 	},
 	'x-wahrscheinlichkeit': {
 		name: 'Wahrscheinlichkeit',
-		katalog: { kategorie: 'Daten und Zufall', suchbegriffe: ['sicher', 'möglich', 'unmöglich', 'Skala', 'Ereignis'], ort: 'aufgabe', faecher: ['mathematik'] },
+		katalog: {
+			kategorie: 'Daten und Zufall',
+			suchbegriffe: ['sicher', 'möglich', 'unmöglich', 'Skala', 'Ereignis'],
+			ort: 'aufgabe',
+			faecher: ['mathematik'],
+		},
 		felder: [
 			{
 				art: 'auswahl',
@@ -1363,7 +1437,12 @@ export const ABBILDUNG_SCHEMA = {
 	},
 	'x-kombinatorik': {
 		name: 'Möglichkeiten',
-		katalog: { kategorie: 'Daten und Zufall', suchbegriffe: ['Kombinationen', 'Baumdiagramm', 'Möglichkeiten', 'Eisbecher'], ort: 'aufgabe', faecher: ['mathematik'] },
+		katalog: {
+			kategorie: 'Daten und Zufall',
+			suchbegriffe: ['Kombinationen', 'Baumdiagramm', 'Möglichkeiten', 'Eisbecher'],
+			ort: 'aufgabe',
+			faecher: ['mathematik'],
+		},
 		felder: [
 			{
 				art: 'auswahl',
@@ -1407,7 +1486,21 @@ export const ABBILDUNG_SCHEMA = {
 	},
 	'x-gitter': {
 		name: 'Gitter',
-		katalog: { kategorie: 'Geometrie', suchbegriffe: ['Karos', 'Kästchen', 'Spiegeln', 'Achsensymmetrie', 'Muster', 'fortsetzen', 'Vergrößern', 'Wege'], ort: 'aufgabe', faecher: ['mathematik'] },
+		katalog: {
+			kategorie: 'Geometrie',
+			suchbegriffe: [
+				'Karos',
+				'Kästchen',
+				'Spiegeln',
+				'Achsensymmetrie',
+				'Muster',
+				'fortsetzen',
+				'Vergrößern',
+				'Wege',
+			],
+			ort: 'aufgabe',
+			faecher: ['mathematik'],
+		},
 		felder: [
 			{
 				art: 'auswahl',
@@ -1575,7 +1668,12 @@ export const ABBILDUNG_SCHEMA = {
 	},
 	'x-figur': {
 		name: 'Figur',
-		katalog: { kategorie: 'Geometrie', suchbegriffe: ['Dreieck', 'Viereck', 'Rechteck', 'Kreis', 'Fläche', 'Formen', 'rechter', 'Winkel'], ort: 'aufgabe', faecher: ['mathematik'] },
+		katalog: {
+			kategorie: 'Geometrie',
+			suchbegriffe: ['Dreieck', 'Viereck', 'Rechteck', 'Kreis', 'Fläche', 'Formen', 'rechter', 'Winkel'],
+			ort: 'aufgabe',
+			faecher: ['mathematik'],
+		},
 		felder: [
 			{
 				art: 'auswahl',
@@ -1628,7 +1726,12 @@ export const ABBILDUNG_SCHEMA = {
 	},
 	'x-hunderterfeld': {
 		name: 'Hunderterfeld',
-		katalog: { kategorie: 'Zahlen', suchbegriffe: ['Hunderterraum', 'Punktefeld', 'Malwinkel', '100er-Feld'], ort: 'aufgabe', faecher: ['mathematik'] },
+		katalog: {
+			kategorie: 'Zahlen',
+			suchbegriffe: ['Hunderterraum', 'Punktefeld', 'Malwinkel', '100er-Feld'],
+			ort: 'aufgabe',
+			faecher: ['mathematik'],
+		},
 		felder: [
 			{ art: 'zahl', attribut: 'n', name: 'Plättchen', min: 0, max: 100, standard: 0 },
 			{ art: 'zahl', attribut: 'n2', name: 'Plättchen, zweite Sorte', min: 0, max: 100, standard: 0 },
@@ -1653,7 +1756,12 @@ export const ABBILDUNG_SCHEMA = {
 	},
 	'x-hundertertafel': {
 		name: 'Hundertertafel',
-		katalog: { kategorie: 'Zahlen', suchbegriffe: ['Hunderterraum', 'Hunderterblatt', 'Tausendertafel', 'Zahlentafel'], ort: 'aufgabe', faecher: ['mathematik'] },
+		katalog: {
+			kategorie: 'Zahlen',
+			suchbegriffe: ['Hunderterraum', 'Hunderterblatt', 'Tausendertafel', 'Zahlentafel'],
+			ort: 'aufgabe',
+			faecher: ['mathematik'],
+		},
 		felder: [
 			{ art: 'zahl', attribut: 'von', name: 'Von', min: 1, max: 9901, standard: 1 },
 			{ art: 'zahl', attribut: 'bis', name: 'Bis', min: 1, max: 10000, standard: 100 },
@@ -1689,7 +1797,12 @@ export const ABBILDUNG_SCHEMA = {
 	},
 	'x-rechenrahmen': {
 		name: 'Rechenrahmen',
-		katalog: { kategorie: 'Zahlen', suchbegriffe: ['Abakus', 'Rechenschieber', 'Kugeln', 'Zwanzigerrahmen'], ort: 'aufgabe', faecher: ['mathematik'] },
+		katalog: {
+			kategorie: 'Zahlen',
+			suchbegriffe: ['Abakus', 'Rechenschieber', 'Kugeln', 'Zwanzigerrahmen'],
+			ort: 'aufgabe',
+			faecher: ['mathematik'],
+		},
 		felder: [
 			{
 				art: 'auswahl',
@@ -1713,7 +1826,12 @@ export const ABBILDUNG_SCHEMA = {
 	},
 	'x-rechenstrich': {
 		name: 'Rechenstrich',
-		katalog: { kategorie: 'Rechnen', suchbegriffe: ['leerer', 'Zahlenstrahl', 'Rechenweg', 'Sprünge', 'Halbschriftlich'], ort: 'aufgabe', faecher: ['mathematik'] },
+		katalog: {
+			kategorie: 'Rechnen',
+			suchbegriffe: ['leerer', 'Zahlenstrahl', 'Rechenweg', 'Sprünge', 'Halbschriftlich'],
+			ort: 'aufgabe',
+			faecher: ['mathematik'],
+		},
 		felder: [
 			{ art: 'zahl', attribut: 'start', name: 'Start', min: 0, max: 1000000, standard: 0 },
 			{
@@ -1763,7 +1881,11 @@ export const ABBILDUNG_SCHEMA = {
 	},
 	'x-lineatur': {
 		name: 'Schreiblinien',
-		katalog: { kategorie: 'Schreiben', suchbegriffe: ['Schreiblinien', 'Lineatur', 'Zeilen', 'Hilfslinien', 'Schreiben', 'lernen'], ort: 'aufgabe' },
+		katalog: {
+			kategorie: 'Schreiben',
+			suchbegriffe: ['Schreiblinien', 'Lineatur', 'Zeilen', 'Hilfslinien', 'Schreiben', 'lernen'],
+			ort: 'aufgabe',
+		},
 		felder: [
 			{
 				art: 'auswahl',
@@ -1819,9 +1941,124 @@ export const ABBILDUNG_SCHEMA = {
 			},
 		],
 	},
+	'x-lueckentext': {
+		name: 'Lückentext',
+		katalog: { kategorie: 'Schreiben', suchbegriffe: ['Lücke', 'Einsetzen', 'Ergänzen', 'Text'], ort: 'aufgabe' },
+		felder: [
+			{
+				art: 'text',
+				attribut: 'inhalt',
+				name: 'Text',
+				quelle: 'inhalt',
+				zeilen: 5,
+				beispiel: 'Der [Hund] bellt, die [[Katze]] miaut.',
+				einfuegen: { zeichen: '[', bis: ']', name: 'Lücke' },
+				hilfe: 'Lücke: [Wort]. Schon eingetragen: [[Wort]].',
+			},
+			{
+				art: 'auswahl',
+				attribut: 'darstellung',
+				name: 'Darstellung',
+				standard: 'linie',
+				optionen: [
+					{ wert: 'linie', name: 'Linie' },
+					{ wert: 'kasten', name: 'Kasten' },
+					{ wert: 'gepunktet', name: 'Gepunktet' },
+				],
+			},
+			{
+				art: 'auswahl',
+				attribut: 'breite',
+				name: 'Breite',
+				standard: 'einheitlich',
+				optionen: [
+					{ wert: 'einheitlich', name: 'Alle gleich breit' },
+					{ wert: 'wortlaenge', name: 'Nach Wortlänge' },
+				],
+			},
+		],
+	},
+	'x-wortspeicher': {
+		name: 'Wortspeicher',
+		katalog: { kategorie: 'Schreiben', suchbegriffe: ['Wörter', 'Wortkasten', 'Lücke'], ort: 'aufgabe' },
+		felder: [
+			{
+				art: 'text',
+				attribut: 'woerter',
+				name: 'Wörter',
+				zeilen: 3,
+				beispiel: 'Hund; Maus; Pferd',
+				hilfe: 'Leer: die Wörter aus den Lücken dieser Aufgabe.',
+			},
+			{ art: 'zahl', attribut: 'spalten', name: 'Spalten', min: 1, max: 6, standard: 4 },
+			{
+				art: 'auswahl',
+				attribut: 'reihenfolge',
+				name: 'Reihenfolge',
+				standard: 'alphabetisch',
+				optionen: [
+					{ wert: 'alphabetisch', name: 'Alphabetisch' },
+					{ wert: 'gemischt', name: 'Gemischt' },
+				],
+			},
+			{ art: 'mischen', attribut: 'seed', name: 'Anordnung' },
+			{ art: 'schalter', attribut: 'rahmen', name: 'Rahmen', an: '1', aus: '0', standard: true },
+		],
+	},
+	'x-ankreuzen': {
+		name: 'Ankreuzen',
+		katalog: {
+			kategorie: 'Schreiben',
+			suchbegriffe: ['Multiple Choice', 'Auswahl', 'Kreuzen', 'Antworten'],
+			ort: 'aufgabe',
+		},
+		felder: [
+			{
+				art: 'text',
+				attribut: 'fragen',
+				name: 'Fragen',
+				zeilen: 5,
+				beispiel: 'Wie viele Beine hat ein Hund?: *4, 3, 6',
+				hilfe: 'Frage: Antworten mit Komma; * markiert die richtige; ; trennt die Fragen.',
+			},
+			{ art: 'schalter', attribut: 'mehrfach', name: 'Mehrere richtig', an: '1', aus: '0', standard: false },
+			{ art: 'zahl', attribut: 'spalten', name: 'Spalten', min: 1, max: 4, standard: 1 },
+			{ art: 'mischen', attribut: 'seed', name: 'Anordnung' },
+		],
+	},
+	'x-richtigfalsch': {
+		name: 'Richtig oder falsch',
+		katalog: { kategorie: 'Schreiben', suchbegriffe: ['Aussagen', 'Stimmt', 'Ja Nein', 'Wahr'], ort: 'aufgabe' },
+		felder: [
+			{
+				art: 'text',
+				attribut: 'aussagen',
+				name: 'Aussagen',
+				zeilen: 5,
+				beispiel: 'Hunde bellen: r; Katzen fliegen: f',
+				hilfe: 'Aussage: r oder f; ; trennt die Aussagen.',
+			},
+			{
+				art: 'auswahl',
+				attribut: 'koepfe',
+				name: 'Spaltenköpfe',
+				standard: 'richtigfalsch',
+				optionen: [
+					{ wert: 'richtigfalsch', name: 'richtig / falsch' },
+					{ wert: 'janein', name: 'ja / nein' },
+					{ wert: 'daumen', name: 'Daumen' },
+				],
+			},
+		],
+	},
 	'x-silben': {
 		name: 'Silben',
-		katalog: { kategorie: 'Sprache', suchbegriffe: ['Silbenbögen', 'Silbe', 'Klatschen', 'Lesen', 'lernen'], ort: 'aufgabe', faecher: ['deutsch'] },
+		katalog: {
+			kategorie: 'Sprache',
+			suchbegriffe: ['Silbenbögen', 'Silbe', 'Klatschen', 'Lesen', 'lernen'],
+			ort: 'aufgabe',
+			faecher: ['deutsch'],
+		},
 		felder: [
 			{
 				art: 'text',
@@ -1878,7 +2115,12 @@ export const ABBILDUNG_SCHEMA = {
 	},
 	'x-wortarten': {
 		name: 'Wortarten',
-		katalog: { kategorie: 'Sprache', suchbegriffe: ['Nomen', 'Verb', 'Adjektiv', 'Montessori', 'Symbole', 'Grammatik'], ort: 'aufgabe', faecher: ['deutsch'] },
+		katalog: {
+			kategorie: 'Sprache',
+			suchbegriffe: ['Nomen', 'Verb', 'Adjektiv', 'Montessori', 'Symbole', 'Grammatik'],
+			ort: 'aufgabe',
+			faecher: ['deutsch'],
+		},
 		felder: [
 			{
 				art: 'markierung',
@@ -1946,7 +2188,12 @@ export const ABBILDUNG_SCHEMA = {
 	},
 	'x-satzglieder': {
 		name: 'Satzglieder',
-		katalog: { kategorie: 'Sprache', suchbegriffe: ['Subjekt', 'Prädikat', 'Objekt', 'Satzbau', 'Umstellprobe'], ort: 'aufgabe', faecher: ['deutsch'] },
+		katalog: {
+			kategorie: 'Sprache',
+			suchbegriffe: ['Subjekt', 'Prädikat', 'Objekt', 'Satzbau', 'Umstellprobe'],
+			ort: 'aufgabe',
+			faecher: ['deutsch'],
+		},
 		felder: [
 			{
 				art: 'markierung',
@@ -2010,7 +2257,12 @@ export const ABBILDUNG_SCHEMA = {
 	},
 	'x-wortbausteine': {
 		name: 'Wortbausteine',
-		katalog: { kategorie: 'Sprache', suchbegriffe: ['Wortfamilie', 'Stamm', 'Vorsilbe', 'Endung', 'Morphem'], ort: 'aufgabe', faecher: ['deutsch'] },
+		katalog: {
+			kategorie: 'Sprache',
+			suchbegriffe: ['Wortfamilie', 'Stamm', 'Vorsilbe', 'Endung', 'Morphem'],
+			ort: 'aufgabe',
+			faecher: ['deutsch'],
+		},
 		felder: [
 			{
 				art: 'auswahl',
@@ -2082,7 +2334,12 @@ export const ABBILDUNG_SCHEMA = {
 	},
 	'x-zeitleiste': {
 		name: 'Zeitleiste',
-		katalog: { kategorie: 'Sachunterricht', suchbegriffe: ['Zeitstrahl', 'Geschichte', 'Jahre', 'Ablauf'], ort: 'aufgabe', faecher: ['sachunterricht'] },
+		katalog: {
+			kategorie: 'Sachunterricht',
+			suchbegriffe: ['Zeitstrahl', 'Geschichte', 'Jahre', 'Ablauf'],
+			ort: 'aufgabe',
+			faecher: ['sachunterricht'],
+		},
 		felder: [
 			{
 				art: 'auswahl',
@@ -2161,7 +2418,12 @@ export const ABBILDUNG_SCHEMA = {
 	},
 	'x-jahreskreis': {
 		name: 'Jahreskreis',
-		katalog: { kategorie: 'Sachunterricht', suchbegriffe: ['Jahreszeiten', 'Monate', 'Jahreslauf', 'Feste'], ort: 'aufgabe', faecher: ['sachunterricht'] },
+		katalog: {
+			kategorie: 'Sachunterricht',
+			suchbegriffe: ['Jahreszeiten', 'Monate', 'Jahreslauf', 'Feste'],
+			ort: 'aufgabe',
+			faecher: ['sachunterricht'],
+		},
 		felder: [
 			{
 				art: 'auswahl',
@@ -2217,7 +2479,12 @@ export const ABBILDUNG_SCHEMA = {
 	},
 	'x-windrose': {
 		name: 'Windrose',
-		katalog: { kategorie: 'Sachunterricht', suchbegriffe: ['Himmelsrichtungen', 'Norden', 'Kompass', 'Karte'], ort: 'aufgabe', faecher: ['sachunterricht'] },
+		katalog: {
+			kategorie: 'Sachunterricht',
+			suchbegriffe: ['Himmelsrichtungen', 'Norden', 'Kompass', 'Karte'],
+			ort: 'aufgabe',
+			faecher: ['sachunterricht'],
+		},
 		felder: [
 			{
 				art: 'auswahl',
@@ -2245,7 +2512,12 @@ export const ABBILDUNG_SCHEMA = {
 	},
 	'x-schaltplan': {
 		name: 'Stromkreis',
-		katalog: { kategorie: 'Sachunterricht', suchbegriffe: ['Schaltung', 'Batterie', 'Lampe', 'Strom', 'Stromkreis'], ort: 'aufgabe', faecher: ['sachunterricht'] },
+		katalog: {
+			kategorie: 'Sachunterricht',
+			suchbegriffe: ['Schaltung', 'Batterie', 'Lampe', 'Strom', 'Stromkreis'],
+			ort: 'aufgabe',
+			faecher: ['sachunterricht'],
+		},
 		felder: [
 			{
 				art: 'liste',
@@ -2300,7 +2572,12 @@ export const ABBILDUNG_SCHEMA = {
 	},
 	'x-kreislauf': {
 		name: 'Kreislauf',
-		katalog: { kategorie: 'Sachunterricht', suchbegriffe: ['Wasserkreislauf', 'Zyklus', 'Lebenskreislauf', 'Pfeile'], ort: 'aufgabe', faecher: ['sachunterricht'] },
+		katalog: {
+			kategorie: 'Sachunterricht',
+			suchbegriffe: ['Wasserkreislauf', 'Zyklus', 'Lebenskreislauf', 'Pfeile'],
+			ort: 'aufgabe',
+			faecher: ['sachunterricht'],
+		},
 		felder: [
 			{
 				art: 'auswahl',
@@ -2342,7 +2619,12 @@ export const ABBILDUNG_SCHEMA = {
 	},
 	'x-verkehrszeichen': {
 		name: 'Verkehrszeichen',
-		katalog: { kategorie: 'Sachunterricht', suchbegriffe: ['Verkehr', 'Schild', 'Radfahren', 'Straße'], ort: 'aufgabe', faecher: ['sachunterricht'] },
+		katalog: {
+			kategorie: 'Sachunterricht',
+			suchbegriffe: ['Verkehr', 'Schild', 'Radfahren', 'Straße'],
+			ort: 'aufgabe',
+			faecher: ['sachunterricht'],
+		},
 		felder: [
 			{
 				art: 'auswahl',
@@ -2365,7 +2647,12 @@ export const ABBILDUNG_SCHEMA = {
 	},
 	'x-wetter': {
 		name: 'Wettersymbol',
-		katalog: { kategorie: 'Sachunterricht', suchbegriffe: ['Wetter', 'Sonne', 'Regen', 'Wolken', 'Wetterbogen'], ort: 'aufgabe', faecher: ['sachunterricht'] },
+		katalog: {
+			kategorie: 'Sachunterricht',
+			suchbegriffe: ['Wetter', 'Sonne', 'Regen', 'Wolken', 'Wetterbogen'],
+			ort: 'aufgabe',
+			faecher: ['sachunterricht'],
+		},
 		felder: [
 			{
 				art: 'auswahl',
@@ -2386,7 +2673,11 @@ export const ABBILDUNG_SCHEMA = {
 	},
 	'x-suchsel': {
 		name: 'Suchsel',
-		katalog: { kategorie: 'Spiele und Rätsel', suchbegriffe: ['Wörtersuche', 'Buchstabengitter', 'Wortsuchrätsel', 'Suchrätsel'], ort: 'aufgabe' },
+		katalog: {
+			kategorie: 'Spiele und Rätsel',
+			suchbegriffe: ['Wörtersuche', 'Buchstabengitter', 'Wortsuchrätsel', 'Suchrätsel'],
+			ort: 'aufgabe',
+		},
 		felder: [
 			{ art: 'mischen', attribut: 'seed', name: 'Gitter' },
 			{
@@ -2453,7 +2744,11 @@ export const ABBILDUNG_SCHEMA = {
 	},
 	'x-kreuzwort': {
 		name: 'Kreuzworträtsel',
-		katalog: { kategorie: 'Spiele und Rätsel', suchbegriffe: ['Kreuzworträtsel', 'Rätsel', 'Wörter'], ort: 'aufgabe' },
+		katalog: {
+			kategorie: 'Spiele und Rätsel',
+			suchbegriffe: ['Kreuzworträtsel', 'Rätsel', 'Wörter'],
+			ort: 'aufgabe',
+		},
 		felder: [
 			{ art: 'mischen', attribut: 'seed', name: 'Gitter' },
 			{
@@ -2496,7 +2791,11 @@ export const ABBILDUNG_SCHEMA = {
 	},
 	'x-loesungswort': {
 		name: 'Lösungswort',
-		katalog: { kategorie: 'Spiele und Rätsel', suchbegriffe: ['Lösungswort', 'Selbstkontrolle', 'Geheimwort'], ort: 'aufgabe' },
+		katalog: {
+			kategorie: 'Spiele und Rätsel',
+			suchbegriffe: ['Lösungswort', 'Selbstkontrolle', 'Geheimwort'],
+			ort: 'aufgabe',
+		},
 		felder: [
 			{ art: 'text', attribut: 'wort', name: 'Wort', beispiel: 'SONNE' },
 			{
@@ -2537,7 +2836,11 @@ export const ABBILDUNG_SCHEMA = {
 	},
 	'x-bingo': {
 		name: 'Bingo',
-		katalog: { kategorie: 'Spiele und Rätsel', suchbegriffe: ['Bingo', 'Spiel', 'Karten', 'Rufliste'], ort: 'seite' },
+		katalog: {
+			kategorie: 'Spiele und Rätsel',
+			suchbegriffe: ['Bingo', 'Spiel', 'Karten', 'Rufliste'],
+			ort: 'seite',
+		},
 		felder: [
 			{ art: 'mischen', attribut: 'seed', name: 'Karten' },
 			{
@@ -2580,7 +2883,11 @@ export const ABBILDUNG_SCHEMA = {
 	},
 	'x-domino': {
 		name: 'Domino',
-		katalog: { kategorie: 'Spiele und Rätsel', suchbegriffe: ['Domino', 'Spiel', 'Kette', 'Steine', 'Klammerkarten'], ort: 'seite' },
+		katalog: {
+			kategorie: 'Spiele und Rätsel',
+			suchbegriffe: ['Domino', 'Spiel', 'Kette', 'Steine', 'Klammerkarten'],
+			ort: 'seite',
+		},
 		felder: [
 			{ art: 'mischen', attribut: 'seed', name: 'Lage der Steine' },
 			{
@@ -2637,7 +2944,11 @@ export const ABBILDUNG_SCHEMA = {
 	},
 	'x-spielplan': {
 		name: 'Spielplan',
-		katalog: { kategorie: 'Spiele und Rätsel', suchbegriffe: ['Brettspiel', 'Würfelspiel', 'Leiterspiel', 'Laufspiel', 'Spielfeld'], ort: 'seite' },
+		katalog: {
+			kategorie: 'Spiele und Rätsel',
+			suchbegriffe: ['Brettspiel', 'Würfelspiel', 'Leiterspiel', 'Laufspiel', 'Spielfeld'],
+			ort: 'seite',
+		},
 		felder: [
 			{
 				art: 'auswahl',
@@ -2697,7 +3008,12 @@ export const ABBILDUNG_SCHEMA = {
 	},
 	'x-rhythmus': {
 		name: 'Rhythmus',
-		katalog: { kategorie: 'Musik', suchbegriffe: ['Takt', 'Klatschen', 'Notenwerte', 'Rhythmuskarten'], ort: 'aufgabe', faecher: ['musik'] },
+		katalog: {
+			kategorie: 'Musik',
+			suchbegriffe: ['Takt', 'Klatschen', 'Notenwerte', 'Rhythmuskarten'],
+			ort: 'aufgabe',
+			faecher: ['musik'],
+		},
 		felder: [
 			{ art: 'auswahl', attribut: 'takt', name: 'Takt', standard: '4/4', optionen: NOTEN_TAKTARTEN },
 			{ art: 'noten', attribut: 'noten', name: 'Noten', tonhoehe: false },
@@ -2745,7 +3061,12 @@ export const ABBILDUNG_SCHEMA = {
 	},
 	'x-noten': {
 		name: 'Noten',
-		katalog: { kategorie: 'Musik', suchbegriffe: ['Notenzeile', 'Notensystem', 'Melodie', 'Violinschlüssel', 'Lied'], ort: 'aufgabe', faecher: ['musik'] },
+		katalog: {
+			kategorie: 'Musik',
+			suchbegriffe: ['Notenzeile', 'Notensystem', 'Melodie', 'Violinschlüssel', 'Lied'],
+			ort: 'aufgabe',
+			faecher: ['musik'],
+		},
 		felder: [
 			{ art: 'auswahl', attribut: 'takt', name: 'Takt', standard: '4/4', optionen: NOTEN_TAKTARTEN },
 			{ art: 'noten', attribut: 'noten', name: 'Noten', tonhoehe: true },
@@ -2786,7 +3107,12 @@ export const ABBILDUNG_SCHEMA = {
 	},
 	'x-plan': {
 		name: 'Plan',
-		katalog: { kategorie: 'Sachunterricht', suchbegriffe: ['Lageplan', 'Ortsplan', 'Karte', 'Klassenzimmer', 'Wegbeschreibung'], ort: 'aufgabe', faecher: ['sachunterricht'] },
+		katalog: {
+			kategorie: 'Sachunterricht',
+			suchbegriffe: ['Lageplan', 'Ortsplan', 'Karte', 'Klassenzimmer', 'Wegbeschreibung'],
+			ort: 'aufgabe',
+			faecher: ['sachunterricht'],
+		},
 		felder: [
 			{
 				art: 'auswahl',
@@ -2901,7 +3227,12 @@ export const ABBILDUNG_SCHEMA = {
 	},
 	'x-geld': {
 		name: 'Geld',
-		katalog: { kategorie: 'Größen', suchbegriffe: ['Euro', 'Cent', 'Münzen', 'Scheine', 'Rechengeld'], ort: 'aufgabe', faecher: ['mathematik'] },
+		katalog: {
+			kategorie: 'Größen',
+			suchbegriffe: ['Euro', 'Cent', 'Münzen', 'Scheine', 'Rechengeld'],
+			ort: 'aufgabe',
+			faecher: ['mathematik'],
+		},
 		felder: [
 			{
 				art: 'liste',
@@ -2990,7 +3321,12 @@ export const ABBILDUNG_SCHEMA = {
 	},
 	'x-skala': {
 		name: 'Messgerät',
-		katalog: { kategorie: 'Größen', suchbegriffe: ['Lineal', 'Messbecher', 'Thermometer', 'Waage', 'Maßband', 'Messen'], ort: 'aufgabe', faecher: ['mathematik'] },
+		katalog: {
+			kategorie: 'Größen',
+			suchbegriffe: ['Lineal', 'Messbecher', 'Thermometer', 'Waage', 'Maßband', 'Messen'],
+			ort: 'aufgabe',
+			faecher: ['mathematik'],
+		},
 		felder: [
 			{
 				art: 'auswahl',
@@ -3077,7 +3413,12 @@ export const ABBILDUNG_SCHEMA = {
 	},
 	'x-strecke': {
 		name: 'Strecke',
-		katalog: { kategorie: 'Größen', suchbegriffe: ['Länge', 'Zentimeter', 'Messen', 'Linie'], ort: 'aufgabe', faecher: ['mathematik'] },
+		katalog: {
+			kategorie: 'Größen',
+			suchbegriffe: ['Länge', 'Zentimeter', 'Messen', 'Linie'],
+			ort: 'aufgabe',
+			faecher: ['mathematik'],
+		},
 		felder: [
 			{
 				art: 'text',
@@ -3102,7 +3443,12 @@ export const ABBILDUNG_SCHEMA = {
 	},
 	'x-kalender': {
 		name: 'Kalender',
-		katalog: { kategorie: 'Größen', suchbegriffe: ['Monat', 'Datum', 'Wochentage', 'Jahr'], ort: 'aufgabe', faecher: ['mathematik'] },
+		katalog: {
+			kategorie: 'Größen',
+			suchbegriffe: ['Monat', 'Datum', 'Wochentage', 'Jahr'],
+			ort: 'aufgabe',
+			faecher: ['mathematik'],
+		},
 		felder: [
 			{
 				art: 'auswahl',
@@ -3123,7 +3469,12 @@ export const ABBILDUNG_SCHEMA = {
 	},
 	'x-zeitspanne': {
 		name: 'Zeitspanne',
-		katalog: { kategorie: 'Größen', suchbegriffe: ['Dauer', 'Uhrzeit', 'Zeitpunkt', 'von', 'bis'], ort: 'aufgabe', faecher: ['mathematik'] },
+		katalog: {
+			kategorie: 'Größen',
+			suchbegriffe: ['Dauer', 'Uhrzeit', 'Zeitpunkt', 'von', 'bis'],
+			ort: 'aufgabe',
+			faecher: ['mathematik'],
+		},
 		felder: [
 			{ art: 'uhrzeit', attribut: 'von', name: 'Von' },
 			{ art: 'uhrzeit', attribut: 'bis', name: 'Bis' },
@@ -3150,7 +3501,12 @@ export const ABBILDUNG_SCHEMA = {
 	},
 	'x-punktfeld': {
 		name: 'Punktfeld',
-		katalog: { kategorie: 'Rechnen', suchbegriffe: ['Malfeld', 'Einmaleins', 'Punktebild', 'Multiplikation'], ort: 'aufgabe', faecher: ['mathematik'] },
+		katalog: {
+			kategorie: 'Rechnen',
+			suchbegriffe: ['Malfeld', 'Einmaleins', 'Punktebild', 'Multiplikation'],
+			ort: 'aufgabe',
+			faecher: ['mathematik'],
+		},
 		felder: [
 			{ art: 'zahl', attribut: 'zeilen', name: 'Zeilen', min: 1, max: 10, standard: 5 },
 			{ art: 'zahl', attribut: 'spalten', name: 'Spalten', min: 1, max: 10, standard: 5 },
@@ -3206,7 +3562,12 @@ export const ABBILDUNG_SCHEMA = {
 	},
 	'x-malkreuz': {
 		name: 'Malkreuz',
-		katalog: { kategorie: 'Rechnen', suchbegriffe: ['Malnehmen', 'Multiplikation', 'halbschriftlich', 'Malkreuz'], ort: 'aufgabe', faecher: ['mathematik'] },
+		katalog: {
+			kategorie: 'Rechnen',
+			suchbegriffe: ['Malnehmen', 'Multiplikation', 'halbschriftlich', 'Malkreuz'],
+			ort: 'aufgabe',
+			faecher: ['mathematik'],
+		},
 		felder: [
 			{ art: 'zahl', attribut: 'a', name: 'Erste Zahl', min: 1, max: 99, standard: 34 },
 			{ art: 'zahl', attribut: 'b', name: 'Zweite Zahl', min: 1, max: 99, standard: 6 },
@@ -3225,7 +3586,12 @@ export const ABBILDUNG_SCHEMA = {
 	},
 	'x-schriftlich': {
 		name: 'Schriftliche Rechnung',
-		katalog: { kategorie: 'Rechnen', suchbegriffe: ['schriftliche', 'Addition', 'Subtraktion', 'Multiplikation', 'Division', 'Übertrag'], ort: 'aufgabe', faecher: ['mathematik'] },
+		katalog: {
+			kategorie: 'Rechnen',
+			suchbegriffe: ['schriftliche', 'Addition', 'Subtraktion', 'Multiplikation', 'Division', 'Übertrag'],
+			ort: 'aufgabe',
+			faecher: ['mathematik'],
+		},
 		felder: [
 			{
 				art: 'auswahl',
@@ -3323,7 +3689,12 @@ export const ABBILDUNG_SCHEMA = {
 	},
 	'x-zahlenmauer': {
 		name: 'Zahlenmauer',
-		katalog: { kategorie: 'Rechnen', suchbegriffe: ['Rechenmauer', 'Zahlenpyramide', 'Mauer'], ort: 'aufgabe', faecher: ['mathematik'] },
+		katalog: {
+			kategorie: 'Rechnen',
+			suchbegriffe: ['Rechenmauer', 'Zahlenpyramide', 'Mauer'],
+			ort: 'aufgabe',
+			faecher: ['mathematik'],
+		},
 		felder: [
 			{ art: 'zahlen', attribut: 'basis', name: 'Unterste Reihe', beispiel: '3 5 2' },
 			{ art: 'raster', attribut: 'offen', name: 'Leere Steine', form: true },
@@ -3346,7 +3717,12 @@ export const ABBILDUNG_SCHEMA = {
 	},
 	'x-rechendreieck': {
 		name: 'Rechendreieck',
-		katalog: { kategorie: 'Rechnen', suchbegriffe: ['Zahlendreieck', 'Rechendreieck'], ort: 'aufgabe', faecher: ['mathematik'] },
+		katalog: {
+			kategorie: 'Rechnen',
+			suchbegriffe: ['Zahlendreieck', 'Rechendreieck'],
+			ort: 'aufgabe',
+			faecher: ['mathematik'],
+		},
 		felder: [
 			{ art: 'zahlen', attribut: 'innen', name: 'Innenzahlen', beispiel: '3 5 2' },
 			{ art: 'raster', attribut: 'offen', name: 'Leere Felder', form: true },
@@ -3365,7 +3741,12 @@ export const ABBILDUNG_SCHEMA = {
 	},
 	'x-zahlenhaus': {
 		name: 'Zahlenhaus',
-		katalog: { kategorie: 'Rechnen', suchbegriffe: ['Zerlegen', 'Zerlegungshaus', 'Zahlzerlegung', 'Dach'], ort: 'aufgabe', faecher: ['mathematik'] },
+		katalog: {
+			kategorie: 'Rechnen',
+			suchbegriffe: ['Zerlegen', 'Zerlegungshaus', 'Zahlzerlegung', 'Dach'],
+			ort: 'aufgabe',
+			faecher: ['mathematik'],
+		},
 		felder: [
 			{ art: 'zahl', attribut: 'dach', name: 'Dach', min: 0, max: 1000000, standard: 7 },
 			{
@@ -3392,7 +3773,12 @@ export const ABBILDUNG_SCHEMA = {
 	},
 	'x-zahlenkette': {
 		name: 'Rechenkette',
-		katalog: { kategorie: 'Rechnen', suchbegriffe: ['Rechenkette', 'Kettenaufgabe', 'Pfeile'], ort: 'aufgabe', faecher: ['mathematik'] },
+		katalog: {
+			kategorie: 'Rechnen',
+			suchbegriffe: ['Rechenkette', 'Kettenaufgabe', 'Pfeile'],
+			ort: 'aufgabe',
+			faecher: ['mathematik'],
+		},
 		felder: [
 			{ art: 'zahl', attribut: 'start', name: 'Start', min: 0, max: 1000000, standard: 0 },
 			{
@@ -3440,7 +3826,12 @@ export const ABBILDUNG_SCHEMA = {
 	},
 	'x-zauberdreieck': {
 		name: 'Zauberdreieck',
-		katalog: { kategorie: 'Rechnen', suchbegriffe: ['magisches', 'Dreieck', 'Zauberquadrat'], ort: 'aufgabe', faecher: ['mathematik'] },
+		katalog: {
+			kategorie: 'Rechnen',
+			suchbegriffe: ['magisches', 'Dreieck', 'Zauberquadrat'],
+			ort: 'aufgabe',
+			faecher: ['mathematik'],
+		},
 		felder: [
 			{
 				art: 'auswahl',
@@ -3475,7 +3866,12 @@ export const ABBILDUNG_SCHEMA = {
 	},
 	'x-rechenrad': {
 		name: 'Rechenrad',
-		katalog: { kategorie: 'Rechnen', suchbegriffe: ['Rechenblume', 'Einmaleins', 'Kreis'], ort: 'aufgabe', faecher: ['mathematik'] },
+		katalog: {
+			kategorie: 'Rechnen',
+			suchbegriffe: ['Rechenblume', 'Einmaleins', 'Kreis'],
+			ort: 'aufgabe',
+			faecher: ['mathematik'],
+		},
 		felder: [
 			{
 				art: 'text',
@@ -3506,7 +3902,12 @@ export const ABBILDUNG_SCHEMA = {
 	},
 	'x-wuerfelbau': {
 		name: 'Würfelgebäude',
-		katalog: { kategorie: 'Geometrie', suchbegriffe: ['Würfelgebäude', 'Bauplan', 'Schrägbild', 'räumlich', 'Ansichten'], ort: 'aufgabe', faecher: ['mathematik'] },
+		katalog: {
+			kategorie: 'Geometrie',
+			suchbegriffe: ['Würfelgebäude', 'Bauplan', 'Schrägbild', 'räumlich', 'Ansichten'],
+			ort: 'aufgabe',
+			faecher: ['mathematik'],
+		},
 		felder: [
 			{
 				art: 'raster',
@@ -3555,7 +3956,12 @@ export const ABBILDUNG_SCHEMA = {
 	},
 	'x-wuerfelnetz': {
 		name: 'Würfelnetz',
-		katalog: { kategorie: 'Geometrie', suchbegriffe: ['Netz', 'Basteln', 'Faltnetz', 'Würfel', 'räumlich'], ort: 'seite', faecher: ['mathematik'] },
+		katalog: {
+			kategorie: 'Geometrie',
+			suchbegriffe: ['Netz', 'Basteln', 'Faltnetz', 'Würfel', 'räumlich'],
+			ort: 'seite',
+			faecher: ['mathematik'],
+		},
 		felder: [
 			{
 				art: 'auswahl',
@@ -3655,7 +4061,12 @@ export const ABBILDUNG_SCHEMA = {
 	},
 	'x-koerper': {
 		name: 'Körper',
-		katalog: { kategorie: 'Geometrie', suchbegriffe: ['Quader', 'Kugel', 'Pyramide', 'Zylinder', 'Kegel', 'Kanten', 'Ecken'], ort: 'aufgabe', faecher: ['mathematik'] },
+		katalog: {
+			kategorie: 'Geometrie',
+			suchbegriffe: ['Quader', 'Kugel', 'Pyramide', 'Zylinder', 'Kegel', 'Kanten', 'Ecken'],
+			ort: 'aufgabe',
+			faecher: ['mathematik'],
+		},
 		felder: [
 			{
 				art: 'auswahl',
@@ -3716,7 +4127,12 @@ export const ABBILDUNG_SCHEMA = {
 	},
 	'x-tangram': {
 		name: 'Tangram',
-		katalog: { kategorie: 'Geometrie', suchbegriffe: ['Legespiel', 'Formen', 'Puzzle'], ort: 'aufgabe', faecher: ['mathematik'] },
+		katalog: {
+			kategorie: 'Geometrie',
+			suchbegriffe: ['Legespiel', 'Formen', 'Puzzle'],
+			ort: 'aufgabe',
+			faecher: ['mathematik'],
+		},
 		felder: [
 			{
 				art: 'auswahl',

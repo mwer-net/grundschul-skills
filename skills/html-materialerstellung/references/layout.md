@@ -53,3 +53,5 @@ Faustwerte Kl. 2 (24 px Schrift): Aufgabenzeile 34 px, Uhr 88 px + Antwortlinie 
 - [ ] Visuelle Endkontrolle bestanden (`visuelle-endkontrolle.md`)
 
 **Hervorheben im Text:** `<mark>…</mark>` (Palettenfarbe; in s/w fett und unterstrichen).
+
+**Tabellen:** `<table class="kit-tabelle">` mit `thead`/`tbody`; Varianten `kopfspalte`, `schreibzeilen`, `kompakt`, `nach-inhalt`, `erste-schmal`, `ohne-linien-innen`. Lösung je Zelle über `data-l`, Beispielzeile mit `.beispiel`. Maße stehen in `blatt.css`. Muster: `assets/muster/tabellen.html`.

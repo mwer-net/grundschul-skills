@@ -238,7 +238,13 @@ export const MaterialAnlegen = ({ mappe }: { mappe: string }) => {
 						{name === 'Art' && (
 							<div className="grid grid-cols-2 gap-2 max-md:grid-cols-1">
 								{ARTEN.map((a) => (
-									<Wahl key={a} id={a} titel={ART_NAME[a]} aktiv={a === art} waehle={() => waehleArt(a)}>
+									<Wahl
+										key={a}
+										id={a}
+										titel={ART_NAME[a]}
+										aktiv={a === art}
+										waehle={() => waehleArt(a)}
+									>
 										<span className="block text-sm text-leise">{ART_KURZ[a]}</span>
 									</Wahl>
 								))}
@@ -247,7 +253,13 @@ export const MaterialAnlegen = ({ mappe }: { mappe: string }) => {
 						{name === 'Format' && (
 							<div className="flex flex-col gap-2">
 								{ART_FORMATE[art].map((f, i) => (
-									<Wahl key={f} id={f} titel={FORMAT_NAME[f]} aktiv={f === format} waehle={() => setFormat(f)}>
+									<Wahl
+										key={f}
+										id={f}
+										titel={FORMAT_NAME[f]}
+										aktiv={f === format}
+										waehle={() => setFormat(f)}
+									>
 										{i === 0 && <span className="block text-sm text-leise">Empfehlung</span>}
 									</Wahl>
 								))}
@@ -258,7 +270,6 @@ export const MaterialAnlegen = ({ mappe }: { mappe: string }) => {
 								<input
 									className={FELD}
 									value={titel}
-									// eslint-disable-next-line jsx-a11y/no-autofocus -- Einziges Feld dieses Schritts.
 									autoFocus
 									onChange={(e) => setTitel(e.target.value)}
 								/>
@@ -267,11 +278,24 @@ export const MaterialAnlegen = ({ mappe }: { mappe: string }) => {
 						{name === 'Start' && (
 							<>
 								<div className="grid grid-cols-2 gap-2 max-md:grid-cols-1">
-									<Wahl id="leer" titel="Leer" aktiv={vorlage === null} waehle={() => setVorlage(null)}>
-										<span className="block text-sm text-leise">Du fügst die Bausteine selbst ein.</span>
+									<Wahl
+										id="leer"
+										titel="Leer"
+										aktiv={vorlage === null}
+										waehle={() => setVorlage(null)}
+									>
+										<span className="block text-sm text-leise">
+											Du fügst die Bausteine selbst ein.
+										</span>
 									</Wahl>
 									{vorlagen.map((v) => (
-										<Wahl key={v} id={v} titel={`Vorlage: ${v}`} aktiv={vorlage === v} waehle={() => setVorlage(v)}>
+										<Wahl
+											key={v}
+											id={v}
+											titel={`Vorlage: ${v}`}
+											aktiv={vorlage === v}
+											waehle={() => setVorlage(v)}
+										>
 											<iframe
 												src={`/ansicht/_assets/vorlage-${v}.html`}
 												title={`Vorschau ${v}`}
@@ -283,7 +307,9 @@ export const MaterialAnlegen = ({ mappe }: { mappe: string }) => {
 									))}
 								</div>
 								{vorlagen.length === 0 && (
-									<p className="mt-2 text-leise">Für diese Art gibt es noch keine Vorlage. Du startest mit einem leeren Blatt.</p>
+									<p className="mt-2 text-leise">
+										Für diese Art gibt es noch keine Vorlage. Du startest mit einem leeren Blatt.
+									</p>
 								)}
 								{zusaetze.length > 0 && (
 									<fieldset className="mt-4">

@@ -86,6 +86,17 @@ Ziel: **Übersicht vor Menge.** Ein Kind muss jede Aufgabe auf einen Blick verst
 | Kl. 4 | 18 px | 24 px |
 <!-- /erzeugt: schrift-und-abstand -->
 
+Lücken müssen breit genug sein, damit Kinder der Klasse darin schreiben können. Mindestbreite einer Lücke:
+
+<!-- erzeugt: luecken-breite -->
+| Klasse | Lücke mindestens |
+|---|---|
+| Kl. 1 | 30 mm |
+| Kl. 2 | 26 mm |
+| Kl. 3 | 22 mm |
+| Kl. 4 | 18 mm |
+<!-- /erzeugt: luecken-breite -->
+
 - **Mindestgrößen** (Richtwerte, für Kinderhände nicht unterschreiten):
 
 | Element | Kl. 1 | Kl. 2 | Kl. 3/4 |

@@ -148,7 +148,7 @@ export const mappenApi = (kontext: Kontext) => {
 		if (fest !== format && !ART_FORMATE[art as Art].includes(format as Format)) {
 			throw new HttpFehler(400, 'Dieses Format passt nicht zu dieser Art.');
 		}
-		if (vorlage !== undefined && !verfuegbareVorlagen().includes(String(vorlage))) {
+		if (vorlage !== undefined && (typeof vorlage !== 'string' || !verfuegbareVorlagen().includes(vorlage))) {
 			throw new HttpFehler(400, 'Diese Vorlage gibt es nicht.');
 		}
 		const daten = await leseMappe(materialDir, mappe);

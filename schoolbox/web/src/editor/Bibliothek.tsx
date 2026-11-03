@@ -1,6 +1,6 @@
-import type { Art, Fach, Klasse } from '@schoolbox/kern/src/werte';
 import { KATALOG_KATEGORIEN } from '@schoolbox/kern/src/abbildungen';
 import { sucheImKatalog } from '@schoolbox/kern/src/katalog';
+import type { Art, Fach, Klasse } from '@schoolbox/kern/src/werte';
 import type { PointerEvent as ReactPointerEvent } from 'react';
 import { useEffect, useRef, useState } from 'react';
 
@@ -107,7 +107,11 @@ export const Einfuegemarken = ({
 						<div
 							key={nr}
 							className="absolute flex justify-center"
-							style={{ left: links + r.left * skala, width: r.width * skala, top: (r.top + r.height / 3) * skala }}
+							style={{
+								left: links + r.left * skala,
+								width: r.width * skala,
+								top: (r.top + r.height / 3) * skala,
+							}}
 						>
 							<Knopf
 								art="haupt"
@@ -135,7 +139,6 @@ export const Einfuegemarken = ({
 						placeholder="Suchen …"
 						className="mb-2 min-h-11 w-full rounded-lg border border-rand px-3"
 						value={suche}
-						// eslint-disable-next-line jsx-a11y/no-autofocus -- Die Suche ist der Sinn dieses Fensters.
 						autoFocus
 						onChange={(ev) => setSuche(ev.target.value)}
 						onKeyDown={(ev) => ev.key === 'Escape' && setSchnell(null)}
@@ -199,8 +202,8 @@ const stelleUnter = (doc: Document, x: number, y: number) => {
 
 const Karte = ({
 	doc,
-	eintrag,
 	einfuegen,
+	eintrag,
 	setAuswahl,
 }: {
 	eintrag: Posten;
@@ -400,7 +403,11 @@ export const Gliederung = ({
 											}
 										};
 										return (
-											<li key={knr} className="flex items-center gap-1 pl-2" data-gliederung-aufgabe>
+											<li
+												key={knr}
+												className="flex items-center gap-1 pl-2"
+												data-gliederung-aufgabe
+											>
 												<button
 													type="button"
 													className={klassen(ZEILE, 'min-w-0 flex-1 truncate')}

@@ -2,6 +2,7 @@ import type { Einfuegbar } from '@schoolbox/kern/src/einfuegen';
 import { fuegeBausteinEin, verschiebeAufNeueSeite } from '@schoolbox/kern/src/einfuegen';
 import type { KatalogEintrag } from '@schoolbox/kern/src/katalog';
 import { sucheImKatalog } from '@schoolbox/kern/src/katalog';
+import { fuegeZeileEin, naechsteZelle, teileTabelle } from '@schoolbox/kern/src/tabelle';
 import { useCallback, useEffect, useRef, useState } from 'react';
 
 import { useLaden } from '../lib/laden';
@@ -32,7 +33,10 @@ export const ueberstehende = (seite: Element) => {
 	const unterkante = Math.max(...kinder.map((k) => k.getBoundingClientRect().bottom));
 	let zuViel = unterkante - grenze;
 	const raus: Element[] = [];
-	for (const k of kinder.filter((e) => !e.classList.contains('fuss')).slice(1).toReversed()) {
+	for (const k of kinder
+		.filter((e) => !e.classList.contains('fuss'))
+		.slice(1)
+		.toReversed()) {
 		if (zuViel <= 1) {
 			break;
 		}
@@ -40,6 +44,21 @@ export const ueberstehende = (seite: Element) => {
 		zuViel -= k.getBoundingClientRect().height;
 	}
 	return raus.flatMap((k) => nrVon(k) ?? []);
+};
+
+/** Ragt eine Tabelle über die Seite, wird zwischen den Zeilen geteilt statt der ganzen Aufgabe (047). */
+export const tabelleZumTeilen = (seite: Element) => {
+	const stil = seite.ownerDocument.defaultView?.getComputedStyle(seite);
+	const grenze = seite.getBoundingClientRect().bottom - parseFloat(stil?.paddingBottom ?? '0');
+	for (const t of seite.querySelectorAll<HTMLTableElement>('table.kit-tabelle')) {
+		const zeilen = [...t.rows];
+		const abZeile = zeilen.findIndex((r) => r.getBoundingClientRect().bottom > grenze);
+		const nr = zeilen[0]?.cells[0] ? nrVon(zeilen[0].cells[0]) : null;
+		if (abZeile > (t.tHead ? 1 : 0) && nr !== null) {
+			return { nr, abZeile };
+		}
+	}
+	return null;
 };
 
 interface Optionen {
@@ -72,9 +91,22 @@ export const useEinfuegen = ({ auswahl, folien, nachher, struktur }: Optionen) =
 
 	const verschiebe = (doc: Document, seitenNr: number) => {
 		const seite = [...doc.querySelectorAll('.seite:not([data-erzeugt])')][seitenNr - 1];
+		const geteilt = seite ? tabelleZumTeilen(seite) : null;
+		if (geteilt) {
+			struktur.fuehreAus(
+				'Tabelle geteilt',
+				(q) => teileTabelle(q, geteilt.nr, geteilt.abZeile, { jeSeite: folien }),
+				true,
+			);
+			return;
+		}
 		const nrs = seite ? ueberstehende(seite) : [];
 		if (nrs.length > 0) {
-			struktur.fuehreAus('Auf neue Seite verschoben', (q) => verschiebeAufNeueSeite(q, nrs, { jeSeite: folien }), true);
+			struktur.fuehreAus(
+				'Auf neue Seite verschoben',
+				(q) => verschiebeAufNeueSeite(q, nrs, { jeSeite: folien }),
+				true,
+			);
 		}
 	};
 
@@ -112,8 +144,10 @@ const stelle = (doc: Document) => {
  * `/` öffnet das Menü nur, wenn es allein in seiner Zeile steht; `1/2` und „und/oder“ bleiben Text. Die Tasten laufen
  * im Fenster des Materials zuerst hier durch, damit Enter und Esc weder die Zeile noch die Auswahl verändern.
  */
-export const useSlash = ({ beende, bearbeitet, doc, eintraege, waehle }: SlashOptionen) => {
-	const [offen, setOffen] = useState<{ knoten: Text; filter: string; index: number; x: number; y: number } | null>(null);
+export const useSlash = ({ bearbeitet, beende, doc, eintraege, waehle }: SlashOptionen) => {
+	const [offen, setOffen] = useState<{ knoten: Text; filter: string; index: number; x: number; y: number } | null>(
+		null,
+	);
 	const [gewaehlt, setGewaehlt] = useState<Posten | null>(null);
 	const treffer = offen ? (sucheImKatalog(offen.filter, eintraege) as Posten[]) : [];
 	const aktuell = useRef({ offen, treffer });
@@ -162,7 +196,7 @@ export const useSlash = ({ beende, bearbeitet, doc, eintraege, waehle }: SlashOp
 			if (!jetzt) {
 				return;
 			}
-			const schritt = e.key === 'ArrowDown' ? 1 : e.key === 'ArrowUp' ? -1 : 0;
+			const schritt = ({ ArrowDown: 1, ArrowUp: -1 } as Record<string, number>)[e.key] ?? 0;
 			if (schritt !== 0 && liste.length > 0) {
 				setOffen({ ...jetzt, index: (jetzt.index + schritt + liste.length) % liste.length });
 			} else if (e.key === 'Enter') {
@@ -197,6 +231,80 @@ export const useSlash = ({ beende, bearbeitet, doc, eintraege, waehle }: SlashOp
 		}
 	}, [gewaehlt, bearbeitet, waehle]);
 
-	const menue: SlashMenue | null = offen ? { treffer, index: offen.index, x: offen.x, y: offen.y, waehle: nimm } : null;
+	const menue: SlashMenue | null = offen
+		? { treffer, index: offen.index, x: offen.x, y: offen.y, waehle: nimm }
+		: null;
 	return { menue };
+};
+
+interface TabOptionen {
+	doc: Document | null;
+	bearbeitet: boolean;
+	beende: () => void;
+	fokussiere: () => void;
+	setAuswahl: (nr: number | null) => void;
+	struktur: Struktur;
+	folien: boolean;
+}
+
+/** Tab in einer Kit-Tabelle (047): Der Text gilt, dann weiter zur nächsten Zelle; am Ende eine neue Zeile. */
+export const useTabelleTab = ({ bearbeitet, beende, doc, fokussiere, folien, setAuswahl, struktur }: TabOptionen) => {
+	const [ziel, setZiel] = useState<{ tabelle: number; zeile: number; spalte: number; neu: boolean } | null>(null);
+	const aktuell = useRef({ beende });
+	useEffect(() => {
+		aktuell.current = { beende };
+	});
+
+	useEffect(() => {
+		const fenster = doc?.defaultView;
+		if (!doc || !fenster) {
+			return undefined;
+		}
+		const taste = (e: KeyboardEvent) => {
+			const zelle =
+				e.target instanceof Element ? e.target.closest('table.kit-tabelle th, table.kit-tabelle td') : null;
+			const t = zelle?.closest('table');
+			if (e.key !== 'Tab' || e.shiftKey || !(zelle instanceof HTMLTableCellElement) || !t) {
+				return;
+			}
+			e.preventDefault();
+			e.stopImmediatePropagation();
+			const zeile = zelle.parentElement instanceof HTMLTableRowElement ? zelle.parentElement.rowIndex : 0;
+			const weiter = naechsteZelle(
+				{ zeile, spalte: zelle.cellIndex },
+				t.rows.length,
+				t.rows[zeile]?.cells.length ?? 1,
+			);
+			const tabelle = [...doc.querySelectorAll('table.kit-tabelle')].indexOf(t);
+			setZiel({ tabelle, zeile: weiter?.zeile ?? zeile + 1, spalte: weiter?.spalte ?? 0, neu: weiter === null });
+			aktuell.current.beende();
+		};
+		fenster.addEventListener('keydown', taste, true);
+		return () => fenster.removeEventListener('keydown', taste, true);
+	}, [doc]);
+
+	useEffect(() => {
+		if (!ziel || !doc || bearbeitet) {
+			return;
+		}
+		const t = doc.querySelectorAll<HTMLTableElement>('table.kit-tabelle')[ziel.tabelle];
+		const zelle = t?.rows[ziel.zeile]?.cells[ziel.spalte];
+		if (ziel.neu && !zelle) {
+			const start = t?.rows[0]?.cells[0];
+			const nr = start ? nrVon(start) : null;
+			setZiel({ ...ziel, neu: false });
+			if (nr !== null) {
+				const letzte = t?.rows[(t?.rows.length ?? 1) - 1]?.cells[0];
+				const von = letzte ? nrVon(letzte) : nr;
+				struktur.fuehreAus('Zeile eingefügt', (q) => fuegeZeileEin(q, von ?? nr, 'nach', { jeSeite: folien }));
+			}
+			return;
+		}
+		if (zelle) {
+			setZiel(null);
+			const nr = nrVon(zelle);
+			setAuswahl(nr);
+			window.setTimeout(fokussiere, 0);
+		}
+	}, [ziel, doc, bearbeitet, struktur, folien, setAuswahl, fokussiere]);
 };

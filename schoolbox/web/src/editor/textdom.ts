@@ -507,8 +507,8 @@ export const ruesteText = ({
 
 	/** Hervorheben (046): `<mark>`; in s/w fett und unterstrichen, damit es nicht nur an der Farbe hängt. */
 	const hebeHervor = () => {
-		const auswahl = doc.getSelection();
-		const r = auswahl?.rangeCount ? auswahl.getRangeAt(0) : null;
+		const markiert = doc.getSelection();
+		const r = markiert?.rangeCount ? markiert.getRangeAt(0) : null;
 		if (!r || r.collapsed) {
 			return;
 		}

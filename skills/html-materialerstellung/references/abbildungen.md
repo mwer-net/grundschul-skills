@@ -481,6 +481,44 @@ Ohne `spruenge` geht es zur vollen Stunde, über die ganzen Stunden und dann zum
 
 `digital` `nein`, `ja`, `nur`; `format` `24` oder `12`. `sektor` Zeitspanne als Fläche, bis 60 Minuten; `sektor-loesung` erst im Lösungsblatt. `minuten="ja"` äußerer Ring 5, 10, …; `ziffern24="ja"` innerer Ring 13 bis 24. `ziffern="nein"` ohne die Ziffern 1 bis 12.
 
+## Aufgabenformate
+
+### `x-lueckentext`
+
+```html
+<x-lueckentext>Der [Hund] bellt, die [[Katze]] miaut.</x-lueckentext>
+<x-lueckentext darstellung="kasten" breite="wortlaenge">Die [Sonne] scheint.</x-lueckentext>
+```
+
+`[Wort]` ist eine Lücke, `[[Wort]]` schon eingetragen. `darstellung`: `linie` (Standard), `kasten`, `gepunktet`. `breite`: `einheitlich` (Standard), `wortlaenge`. Lösung: berechnet.
+
+### `x-wortspeicher`
+
+```html
+<x-wortspeicher></x-wortspeicher>
+<x-wortspeicher woerter="Hund; Maus; Pferd" spalten="3" reihenfolge="gemischt" seed="a" rahmen="0"></x-wortspeicher>
+```
+
+Ohne `woerter`: die Wörter aller Lücken derselben Aufgabe. Fehlt ein Lückenwort oder steht eines doppelt, meldet das Element es. `reihenfolge`: `alphabetisch` (Standard), `gemischt`.
+
+### `x-ankreuzen`
+
+```html
+<x-ankreuzen fragen="Wie viele Beine hat ein Hund?: *4, 3, 6"></x-ankreuzen>
+<x-ankreuzen mehrfach="1" spalten="2" seed="a" fragen="Was kann fliegen?: *Vogel, Hund, *Biene"></x-ankreuzen>
+```
+
+`*` markiert die richtige Antwort. Mindestens eine richtig, ohne `mehrfach` genau eine. Lösung: Kreuz gesetzt.
+
+### `x-richtigfalsch`
+
+```html
+<x-richtigfalsch aussagen="Hunde bellen: r; Katzen fliegen: f"></x-richtigfalsch>
+<x-richtigfalsch koepfe="daumen" aussagen="Fische schwimmen: r"></x-richtigfalsch>
+```
+
+`koepfe`: `richtigfalsch` (Standard), `janein`, `daumen`. Lösung: Kreuz gesetzt.
+
 ## Deutsch
 
 Muster: `assets/muster/deutsch.html`.

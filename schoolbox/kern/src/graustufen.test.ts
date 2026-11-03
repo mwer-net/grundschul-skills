@@ -414,28 +414,30 @@ describe('Bilder in s/w', { skip: hatBrowser() ? false : 'Kein Chromium für bla
 	});
 
 	it('nimmt ein schon graues Bild unverändert und meldet eine Strichzeichnung nicht als kontrastarm', () => {
-		const dir = path.join(ordner, 'strich-unveraendert');
-		mkdirSync(path.join(dir, 'bilder'), { recursive: true });
+		const strichOrdner = path.join(ordner, 'strich-unveraendert');
+		mkdirSync(path.join(strichOrdner, 'bilder'), { recursive: true });
 		const willi = path.join(ASSETS, 'bilder', 'willi-strich.png');
-		writeFileSync(path.join(dir, 'bilder', 'willi-strich.png'), readFileSync(willi));
-		const quelle = path.join(dir, 'blatt.html');
+		writeFileSync(path.join(strichOrdner, 'bilder', 'willi-strich.png'), readFileSync(willi));
+		const strichQuelle = path.join(strichOrdner, 'blatt.html');
 		const html = `<!doctype html><html lang="de"><head><meta charset="utf-8"><title>Strich</title><link rel="stylesheet" href="blatt.css"></head>
 <body class="kl2 sw"><section class="seite"><img class="figur" src="bilder/willi-strich.png" alt="Willi"></section></body></html>`;
-		writeFileSync(quelle, html);
+		writeFileSync(strichQuelle, html);
 		const eingebettet = execFileSync(
 			'python3',
 			[
 				'-c',
 				'import sys;sys.path.insert(0,sys.argv[1]);import blatt;from pathlib import Path;q=Path(sys.argv[2]);print(blatt.einbetten(q.read_text(encoding="utf-8"),q.parent))',
 				path.dirname(BLATT_PY),
-				quelle,
+				strichQuelle,
 			],
 			{ encoding: 'utf8', maxBuffer: 64 * 1024 * 1024 },
 		);
 		assert.ok(eingebettet.includes(readFileSync(willi).toString('base64')), 'Bytes des Originals');
 
-		const bericht = path.join(dir, 'bericht.json');
-		execFileSync('python3', [BLATT_PY, 'bauen', quelle, '--nur-pruefen', '--bericht', bericht], { encoding: 'utf8' });
+		const bericht = path.join(strichOrdner, 'bericht.json');
+		execFileSync('python3', [BLATT_PY, 'bauen', strichQuelle, '--nur-pruefen', '--bericht', bericht], {
+			encoding: 'utf8',
+		});
 		const { meldungen } = JSON.parse(readFileSync(bericht, 'utf8')) as { meldungen: { code: string }[] };
 		assert.deepEqual(
 			meldungen.filter((m) => m.code === 'bild-kontrast-sw'),
@@ -451,10 +453,7 @@ describe('Bilder in s/w', { skip: hatBrowser() ? false : 'Kein Chromium für bla
 		const sw = JSON.parse(readFileSync(bericht, 'utf8')) as { meldungen: { code: string; text: string }[] };
 		assert.deepEqual(
 			sw.meldungen.filter((m) => m.code === 'bild-kontrast-sw').map((m) => m.text),
-			[
-				'Bild „Quer“ hat in s/w kaum Kontrast',
-				'Bild „Flau“ hat in s/w kaum Kontrast',
-			],
+			['Bild „Quer“ hat in s/w kaum Kontrast', 'Bild „Flau“ hat in s/w kaum Kontrast'],
 		);
 		execFileSync('python3', [BLATT_PY, 'bauen', quelle, '--nur-pruefen', '--bericht', bericht], {
 			stdio: 'ignore',

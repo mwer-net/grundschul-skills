@@ -32,7 +32,9 @@ test.describe('Anlegen ohne Claude', () => {
 		expect(versionen.some((v) => v.includes('lehrkraft'))).toBe(true);
 		await page.locator('[data-einfuegen="aufgabe"]').click();
 		await expect(page.frameLocator('[data-editor-rahmen="sichtbar"]').locator('.aufgabe')).toHaveCount(1);
-		await expect.poll(async () => readFile(path.join(MATERIAL_DIR, mappe, 'dokumente', dok, 'material.html'), 'utf8')).toContain('class="aufgabe"');
+		await expect
+			.poll(async () => readFile(path.join(MATERIAL_DIR, mappe, 'dokumente', dok, 'material.html'), 'utf8'))
+			.toContain('class="aufgabe"');
 	});
 
 	test('Abbrechen hinterlässt nichts; doppelter Titel gibt eine klare Meldung', async ({ page }) => {
@@ -62,7 +64,18 @@ test.describe('Anlegen ohne Claude', () => {
 		await page.getByRole('button', { name: 'Anlegen' }).click();
 		await expect(page).toHaveURL(/\/m\//);
 		const mappe = page.url();
-		for (const art of ['lesetext', 'lernspiel', 'karten', 'lernplakat', 'stationen', 'praesentation', 'unterrichtsplanung', 'klassenarbeit', 'lernzielkontrolle', 'sonstiges']) {
+		for (const art of [
+			'lesetext',
+			'lernspiel',
+			'karten',
+			'lernplakat',
+			'stationen',
+			'praesentation',
+			'unterrichtsplanung',
+			'klassenarbeit',
+			'lernzielkontrolle',
+			'sonstiges',
+		]) {
 			await page.goto(mappe);
 			await page.getByRole('button', { name: 'Material anlegen' }).click();
 			await page.locator(`[data-wahl="${art}"]`).click();

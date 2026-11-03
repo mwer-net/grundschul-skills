@@ -13,15 +13,25 @@ import {
 	setzeSichtbarkeit,
 	SICHTBARKEITEN,
 } from '@schoolbox/kern/src/kit-einstellungen';
+import type { StrukturErgebnis } from '@schoolbox/kern/src/struktur';
 import { ABSTAND, SPALTEN } from '@schoolbox/kern/src/struktur';
+import {
+	fuegeSpalteEin,
+	fuegeZeileEin,
+	groesseVon,
+	loescheSpalte,
+	loescheZeile,
+	setzeGroesse,
+	setzeKopfzeile,
+} from '@schoolbox/kern/src/tabelle';
 import type { Format as Format2 } from '@schoolbox/kern/src/werte';
 import { FORMAT_NAME, KLASSEN } from '@schoolbox/kern/src/werte';
 import type { MouseEvent, ReactNode } from 'react';
 import { useEffect, useRef, useState } from 'react';
 
 import { Knopf } from '../bausteine/Knopf';
-import { klasseName } from '../lib/text';
 import { Symbol } from '../bausteine/Symbol';
+import { klasseName } from '../lib/text';
 import type { PfadTeil } from './darstellung';
 import type { Spalten, Struktur } from './struktur';
 import { TEXTWERKZEUG } from './text';
@@ -209,100 +219,6 @@ const Spaltenwahl = ({ eigene, spalten, struktur }: { spalten: Spalten; eigene: 
 	</div>
 );
 
-/** Verschieben, Duplizieren, Löschen und Spalten für den gewählten Baustein. */
-export const Strukturwerkzeug = ({ aktiv, format, pfad, quelle, struktur }: StrukturEigenschaften) => {
-	const gewaehlt = pfad.at(-1);
-	const w = struktur.werte;
-	if (!aktiv || !gewaehlt || !w) {
-		return null;
-	}
-	const { baustein, name, nr } = gewaehlt;
-	const { nach } = w;
-	const einzigeSeite = baustein.art === 'seite' && w.seiten <= 1;
-	const loeschbar = kannImFormat(baustein, 'loeschen', format);
-	const duplizierbar = kannImFormat(baustein, 'duplizieren', format);
-	return (
-		<div className="mt-4 flex flex-col gap-5" data-struktur>
-			{nach && (
-				<div>
-					<div role="group" aria-label="Verschieben" className="flex flex-wrap gap-2">
-						<Knopf
-							art="zweit"
-							className="px-4"
-							disabled={!nach.zurueck}
-							onClick={() => nach.zurueck && struktur.verschiebe(nr, nach.zurueck, true)}
-						>
-							<Symbol name={nach.quer ? 'links' : 'hoch'} />
-							{nach.quer ? 'Nach links' : 'Nach oben'}
-						</Knopf>
-						<Knopf
-							art="zweit"
-							className="px-4"
-							disabled={!nach.vor}
-							onClick={() => nach.vor && struktur.verschiebe(nr, nach.vor, true)}
-						>
-							<Symbol name={nach.quer ? 'rechts' : 'runter'} />
-							{nach.quer ? 'Nach rechts' : 'Nach unten'}
-						</Knopf>
-					</div>
-					<p className="mt-2 text-leise">
-						{baustein.ordnenInLeiste
-							? 'Oder links in der Seitenleiste gedrückt halten und ziehen.'
-							: 'Oder im Blatt gedrückt halten und ziehen.'}
-					</p>
-				</div>
-			)}
-			<KitWerkzeug art={baustein.art} folien={format === 'folie'} nr={nr} quelle={quelle} struktur={struktur} />
-			{kann(baustein, 'ordnen') && baustein.art !== 'seite' && (
-				<label className="block font-bold">
-					Sichtbarkeit
-					<select
-						className="mt-1 min-h-12 w-full rounded-xl border-2 border-rand bg-white px-3 font-normal"
-						aria-label="Sichtbarkeit"
-						data-sichtbarkeit
-						value={quelle ? leseSichtbarkeit(quelle, nr) : ''}
-						onChange={(e) =>
-							struktur.aendereAttribute('Sichtbarkeit geändert', (q) => setzeSichtbarkeit(q, nr, e.target.value))
-						}
-					>
-						{SICHTBARKEITEN.map((s) => (
-							<option key={s.wert} value={s.wert}>
-								{s.titel}
-							</option>
-						))}
-					</select>
-				</label>
-			)}
-			{(duplizierbar || loeschbar) && (
-				<div className="flex flex-wrap gap-2">
-					{duplizierbar && (
-						<Knopf art="zweit" onClick={() => struktur.dupliziere(nr)}>
-							<Symbol name="kopieren" />
-							Duplizieren
-						</Knopf>
-					)}
-					{loeschbar && (
-						<Knopf
-							art="gefahr"
-							disabled={einzigeSeite}
-							title={einzigeSeite ? 'Die einzige Seite bleibt.' : undefined}
-							onClick={() => struktur.loesche(nr, name)}
-						>
-							<Symbol name="papierkorb" />
-							Löschen
-						</Knopf>
-					)}
-				</div>
-			)}
-			{w.spalten && <Spaltenwahl spalten={w.spalten} eigene={w.spalten.nr === nr} struktur={struktur} />}
-		</div>
-	);
-};
-
-/**
- * Abstand zwischen den Aufgaben für das ganze Blatt. Beim Ziehen zeigt das Blatt den Abstand sofort, die Quelle
- * ändert sich erst beim Loslassen: ein Schritt zum Rückgängigmachen.
- */
 const FELD = 'mt-1 min-h-12 w-full rounded-xl border-2 border-rand bg-white px-3 font-normal';
 
 /** Zeichnet die Felder aus `KIT_FELDER`; Grenzen und Wirkung stehen dort, nicht hier. */
@@ -359,7 +275,11 @@ const KitWerkzeug = ({
 							/>
 						)}
 						{f.typ === 'wahl' && (
-							<select className={FELD} value={String(wert)} onChange={(e) => setze(f.name, f.titel, e.target.value)}>
+							<select
+								className={FELD}
+								value={String(wert)}
+								onChange={(e) => setze(f.name, f.titel, e.target.value)}
+							>
 								{f.optionen.map((o) => (
 									<option key={o.wert} value={o.wert}>
 										{o.titel}
@@ -382,6 +302,182 @@ const KitWerkzeug = ({
 	);
 };
 
+/** Zeilen und Spalten der Kit-Tabelle (047), gewählt ist die Tabelle oder etwas darin. */
+const TabellenWerkzeug = ({
+	folien,
+	nr,
+	pfad,
+	quelle,
+	struktur,
+}: {
+	folien: boolean;
+	nr: number;
+	pfad: PfadTeil[];
+	quelle: string | null;
+	struktur: Struktur;
+}) => {
+	if (!quelle || !pfad.some((t) => t.baustein.art === 'tabelle')) {
+		return null;
+	}
+	const n = { jeSeite: folien };
+	const g = groesseVon(quelle, nr);
+	const tu = (name: string, rechne: (q: string) => StrukturErgebnis) => struktur.fuehreAus(name, rechne);
+	const inZelle = pfad.at(-1)?.baustein.art === 'tabellenzelle';
+	return (
+		<div className="flex flex-col gap-3" data-tabelle-werkzeug>
+			<label className="flex min-h-11 items-center gap-2 font-bold">
+				<input
+					type="checkbox"
+					className="size-5"
+					checked={g.kopf}
+					onChange={(e) => tu('Kopfzeile geändert', (q) => setzeKopfzeile(q, nr, e.target.checked, n))}
+				/>
+				Kopfzeile
+			</label>
+			<div className="flex gap-2">
+				{(['zeilen', 'spalten'] as const).map((was) => (
+					<label key={was} className="block flex-1 font-bold">
+						{was === 'zeilen' ? 'Zeilen' : 'Spalten'}
+						<input
+							key={g[was]}
+							type="number"
+							className={FELD}
+							min={1}
+							max={30}
+							defaultValue={g[was]}
+							onBlur={(e) => {
+								const wert = Math.max(1, Math.min(30, Number(e.target.value)));
+								if (wert !== g[was]) {
+									tu('Tabellengröße geändert', (q) => setzeGroesse(q, nr, { [was]: wert }, n));
+								}
+							}}
+						/>
+					</label>
+				))}
+			</div>
+			{inZelle && (
+				<div className="grid grid-cols-2 gap-2">
+					<Knopf art="zweit" onClick={() => tu('Zeile eingefügt', (q) => fuegeZeileEin(q, nr, 'vor', n))}>
+						Zeile davor
+					</Knopf>
+					<Knopf art="zweit" onClick={() => tu('Zeile eingefügt', (q) => fuegeZeileEin(q, nr, 'nach', n))}>
+						Zeile danach
+					</Knopf>
+					<Knopf art="zweit" onClick={() => tu('Spalte eingefügt', (q) => fuegeSpalteEin(q, nr, 'vor', n))}>
+						Spalte davor
+					</Knopf>
+					<Knopf art="zweit" onClick={() => tu('Spalte eingefügt', (q) => fuegeSpalteEin(q, nr, 'nach', n))}>
+						Spalte danach
+					</Knopf>
+					<Knopf art="gefahr" onClick={() => tu('Zeile gelöscht', (q) => loescheZeile(q, nr, n))}>
+						Zeile löschen
+					</Knopf>
+					<Knopf art="gefahr" onClick={() => tu('Spalte gelöscht', (q) => loescheSpalte(q, nr, n))}>
+						Spalte löschen
+					</Knopf>
+				</div>
+			)}
+		</div>
+	);
+};
+
+/** Verschieben, Duplizieren, Löschen und Spalten für den gewählten Baustein. */
+export const Strukturwerkzeug = ({ aktiv, format, pfad, quelle, struktur }: StrukturEigenschaften) => {
+	const gewaehlt = pfad.at(-1);
+	const w = struktur.werte;
+	if (!aktiv || !gewaehlt || !w) {
+		return null;
+	}
+	const { baustein, name, nr } = gewaehlt;
+	const { nach } = w;
+	const einzigeSeite = baustein.art === 'seite' && w.seiten <= 1;
+	const loeschbar = kannImFormat(baustein, 'loeschen', format);
+	const duplizierbar = kannImFormat(baustein, 'duplizieren', format);
+	return (
+		<div className="mt-4 flex flex-col gap-5" data-struktur>
+			{nach && (
+				<div>
+					<div role="group" aria-label="Verschieben" className="flex flex-wrap gap-2">
+						<Knopf
+							art="zweit"
+							className="px-4"
+							disabled={!nach.zurueck}
+							onClick={() => nach.zurueck && struktur.verschiebe(nr, nach.zurueck, true)}
+						>
+							<Symbol name={nach.quer ? 'links' : 'hoch'} />
+							{nach.quer ? 'Nach links' : 'Nach oben'}
+						</Knopf>
+						<Knopf
+							art="zweit"
+							className="px-4"
+							disabled={!nach.vor}
+							onClick={() => nach.vor && struktur.verschiebe(nr, nach.vor, true)}
+						>
+							<Symbol name={nach.quer ? 'rechts' : 'runter'} />
+							{nach.quer ? 'Nach rechts' : 'Nach unten'}
+						</Knopf>
+					</div>
+					<p className="mt-2 text-leise">
+						{baustein.ordnenInLeiste
+							? 'Oder links in der Seitenleiste gedrückt halten und ziehen.'
+							: 'Oder im Blatt gedrückt halten und ziehen.'}
+					</p>
+				</div>
+			)}
+			<TabellenWerkzeug folien={format === 'folie'} nr={nr} pfad={pfad} quelle={quelle} struktur={struktur} />
+			<KitWerkzeug art={baustein.art} folien={format === 'folie'} nr={nr} quelle={quelle} struktur={struktur} />
+			{kann(baustein, 'ordnen') && baustein.art !== 'seite' && (
+				<label className="block font-bold">
+					Sichtbarkeit
+					<select
+						className="mt-1 min-h-12 w-full rounded-xl border-2 border-rand bg-white px-3 font-normal"
+						aria-label="Sichtbarkeit"
+						data-sichtbarkeit
+						value={quelle ? leseSichtbarkeit(quelle, nr) : ''}
+						onChange={(e) => {
+							struktur.aendereAttribute('Sichtbarkeit geändert', (q) =>
+								setzeSichtbarkeit(q, nr, e.target.value),
+							);
+						}}
+					>
+						{SICHTBARKEITEN.map((s) => (
+							<option key={s.wert} value={s.wert}>
+								{s.titel}
+							</option>
+						))}
+					</select>
+				</label>
+			)}
+			{(duplizierbar || loeschbar) && (
+				<div className="flex flex-wrap gap-2">
+					{duplizierbar && (
+						<Knopf art="zweit" onClick={() => struktur.dupliziere(nr)}>
+							<Symbol name="kopieren" />
+							Duplizieren
+						</Knopf>
+					)}
+					{loeschbar && (
+						<Knopf
+							art="gefahr"
+							disabled={einzigeSeite}
+							title={einzigeSeite ? 'Die einzige Seite bleibt.' : undefined}
+							onClick={() => struktur.loesche(nr, name)}
+						>
+							<Symbol name="papierkorb" />
+							Löschen
+						</Knopf>
+					)}
+				</div>
+			)}
+			{w.spalten && <Spaltenwahl spalten={w.spalten} eigene={w.spalten.nr === nr} struktur={struktur} />}
+		</div>
+	);
+};
+
+/**
+ * Abstand zwischen den Aufgaben für das ganze Blatt. Beim Ziehen zeigt das Blatt den Abstand sofort, die Quelle
+ * ändert sich erst beim Loslassen: ein Schritt zum Rückgängigmachen.
+ */
 /** Titel, Klasse, Palette, Format und Trennlinien; jede Änderung ist ein Schritt im Verlauf (046). */
 const BlattWerte = ({ quelle, struktur }: { quelle: string; struktur: Struktur }) => {
 	const w = leseBlatt(quelle);
@@ -403,9 +499,9 @@ const BlattWerte = ({ quelle, struktur }: { quelle: string; struktur: Struktur }
 				<select
 					className={FELD}
 					value={String(w.klasse)}
-					onChange={(e) =>
-						setze('Klasse', { klasse: KLASSEN.find((k) => String(k) === e.target.value) ?? 'gemischt' })
-					}
+					onChange={(e) => {
+						setze('Klasse', { klasse: KLASSEN.find((k) => String(k) === e.target.value) ?? 'gemischt' });
+					}}
 				>
 					{KLASSEN.map((k) => (
 						<option key={k} value={String(k)}>
@@ -443,7 +539,9 @@ const BlattWerte = ({ quelle, struktur }: { quelle: string; struktur: Struktur }
 						</option>
 					))}
 				</select>
-				<span className="mt-1 block font-normal text-leise">Passt danach etwas nicht mehr, meldet es die Prüfung.</span>
+				<span className="mt-1 block font-normal text-leise">
+					Passt danach etwas nicht mehr, meldet es die Prüfung.
+				</span>
 			</label>
 			<label className="flex min-h-11 items-center gap-2 font-bold">
 				<input
@@ -458,7 +556,15 @@ const BlattWerte = ({ quelle, struktur }: { quelle: string; struktur: Struktur }
 	);
 };
 
-export const Blattwerkzeug = ({ aktiv, quelle, struktur }: { aktiv: boolean; quelle: string | null; struktur: Struktur }) => {
+export const Blattwerkzeug = ({
+	aktiv,
+	quelle,
+	struktur,
+}: {
+	aktiv: boolean;
+	quelle: string | null;
+	struktur: Struktur;
+}) => {
 	const wert = struktur.werte?.abstand ?? null;
 	const [jetzt, setJetzt] = useState(wert ?? ABSTAND.min);
 	const regler = useRef<HTMLInputElement>(null);

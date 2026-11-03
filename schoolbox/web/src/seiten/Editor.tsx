@@ -1,8 +1,9 @@
+import { formatAusHtml } from '@schoolbox/kern/src/html';
 import { hatLoesung, kannLoesungHaben } from '@schoolbox/kern/src/loesungen';
 import type { Zerlegung } from '@schoolbox/kern/src/quelltext';
 import { zerlege } from '@schoolbox/kern/src/quelltext';
 import { hatNamenszeile } from '@schoolbox/kern/src/struktur';
-import type { Druckprofil } from '@schoolbox/kern/src/werte';
+import type { Druckprofil, Format } from '@schoolbox/kern/src/werte';
 import type { ReactNode } from 'react';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import type { SetURLSearchParams } from 'react-router-dom';
@@ -22,13 +23,12 @@ import { useAbbildung } from '../editor/abbildung';
 import { Abbildungswerkzeug } from '../editor/Abbildungspanel';
 import { Konfliktleiste, Speicheranzeige, Vorschauleiste } from '../editor/Anzeigen';
 import { useBearbeitung } from '../editor/bearbeitung';
-import { useBild } from '../editor/bild';
-import { formatAusHtml } from '@schoolbox/kern/src/html';
 import { Bibliothek, Einfuegemarken, Gliederung } from '../editor/Bibliothek';
+import { useBild } from '../editor/bild';
 import { Bildwerkzeug } from '../editor/Bildpanel';
-import { useEinfuegen, useSlash } from '../editor/einfuegen';
 import { ClaudeFragen } from '../editor/ClaudeFragen';
 import { editorHtml, pfadZu } from '../editor/darstellung';
+import { useEinfuegen, useSlash, useTabelleTab } from '../editor/einfuegen';
 import { Leinwand } from '../editor/Leinwand';
 import { leistenHtml } from '../editor/leiste';
 import { useLoesung } from '../editor/loesung';
@@ -265,6 +265,83 @@ const Fehlt = ({ fehler }: { fehler: ApiFehler | null }) => (
 	</Zustand>
 );
 
+type PanelName = 'auswahl' | 'versionen' | 'bibliothek' | 'gliederung';
+
+/** Im Editor lässt sich das Format ändern (046): Es gilt, was in der Quelle steht. */
+const formatVon = (verlauf: { quelle: string } | null, sonst: Format) =>
+	verlauf ? formatAusHtml(verlauf.quelle) : sonst;
+
+const schritte = (verlauf: { zurueck: unknown[]; vor: unknown[] } | null, frei: boolean) => ({
+	kannVor: frei && Boolean(verlauf?.vor.length),
+	kannZurueck: frei && Boolean(verlauf?.zurueck.length),
+});
+
+const PanelKnopf = ({
+	children,
+	disabled,
+	name,
+	panel,
+	setPanel,
+}: {
+	children: ReactNode;
+	disabled?: boolean;
+	name: PanelName;
+	panel: PanelName;
+	setPanel: (p: PanelName) => void;
+}) => (
+	<Knopf
+		art={panel === name ? 'haupt' : 'zweit'}
+		aria-pressed={panel === name}
+		disabled={disabled}
+		onClick={() => setPanel(panel === name ? 'auswahl' : name)}
+	>
+		{children}
+	</Knopf>
+);
+
+/** Bibliothek, Slash-Menü, Tab in Tabellen und „auf neue Seite“: alles, was auf dem gerade gezeigten Dokument arbeitet. */
+const useEinfuegeWerkzeuge = ({
+	auswahl,
+	folien,
+	geladen,
+	html,
+	nachher,
+	setAuswahl,
+	struktur,
+	text,
+}: {
+	auswahl: number | null;
+	folien: boolean;
+	geladen: { doc: Document; html: string } | null;
+	html: string | null;
+	nachher: () => void;
+	setAuswahl: (nr: number | null) => void;
+	struktur: Struktur;
+	text: ReturnType<typeof useText>;
+}) => {
+	const docJetzt = geladen?.html === html ? (geladen?.doc ?? null) : null;
+	const einfuegen = useEinfuegen({ struktur, auswahl, folien, nachher });
+	const slash = useSlash({
+		doc: docJetzt,
+		bearbeitet: text.bearbeitet,
+		beende: text.beende,
+		eintraege: einfuegen.eintraege,
+		waehle: einfuegen.fuegeEin,
+	});
+	useTabelleTab({
+		doc: docJetzt,
+		bearbeitet: text.bearbeitet,
+		beende: text.beende,
+		fokussiere: text.fokussiere,
+		setAuswahl,
+		struktur,
+		folien,
+	});
+	const verschiebeUeberlauf =
+		struktur.aktiv && docJetzt ? (p: Pruefpunkt) => einfuegen.verschiebe(docJetzt, p.seite) : undefined;
+	return { docJetzt, einfuegen, slash, verschiebeUeberlauf };
+};
+
 const Bearbeitung = ({ dokument, mappe: mappenDaten }: { mappe: Mappe; dokument: DokumentEintrag }) => {
 	const { id: dok, meta } = dokument;
 	const mappe = mappenDaten.id;
@@ -276,18 +353,16 @@ const Bearbeitung = ({ dokument, mappe: mappenDaten }: { mappe: Mappe; dokument:
 	const { alles, stand } = b.speicher;
 	const [auswahl, setAuswahl] = useState<number | null>(null);
 	const [geladen, setGeladen] = useState<{ doc: Document; html: string } | null>(null);
-	const [panel, setPanel] = useState<'auswahl' | 'versionen' | 'bibliothek' | 'gliederung'>(
-		suche.get('neu') === '1' ? 'bibliothek' : 'auswahl',
-	);
+	const [panel, setPanel] = useState<PanelName>(suche.get('neu') === '1' ? 'bibliothek' : 'auswahl');
 	const [vorschau, setVorschau] = useState<{ version: VersionEintrag; quelle: string } | null>(null);
 	const [zoom, setZoom] = useState(1);
 	const versionen = useLaden<{ versionen: VersionEintrag[] }>(`${b.adresse}/versionen`);
 	const { neuLaden: versionenNeu } = versionen;
 
-	// Im Editor lässt sich das Format ändern (046): Es gilt, was in der Quelle steht.
-	const format = b.verlauf ? formatAusHtml(b.verlauf.quelle) : meta.format;
+	const format = formatVon(b.verlauf, meta.format);
+	const quelle = b.verlauf?.quelle ?? null;
 	useTitel(`${meta.titel} bearbeiten`);
-	const anzeige = vorschau?.quelle ?? b.verlauf?.quelle ?? null;
+	const anzeige = vorschau?.quelle ?? quelle;
 	const basis = `/ansicht/${mappe}/dokumente/${dok}/`;
 	const { profil, waehle: waehleProfil } = useAnsichtsProfil({ mappe, token: null }, dok, meta);
 	const { html, loesung, mitLoesung, zerlegung } = useDarstellung(
@@ -369,13 +444,15 @@ const Bearbeitung = ({ dokument, mappe: mappenDaten }: { mappe: Mappe; dokument:
 	const loes = useLoesung({ geladen, html, zerlegung, pfad, struktur, loesung, rueckgaengig: zurueck });
 
 	useAuswahlFolgt(geladen, html, auswahl, pfad, setAuswahl);
-	const einfuegen = useEinfuegen({ struktur, auswahl, folien: format === 'folie', nachher: () => setPanel('auswahl') });
-	const slash = useSlash({
-		doc: geladen && geladen.html === html ? geladen.doc : null,
-		bearbeitet: text.bearbeitet,
-		beende: text.beende,
-		eintraege: einfuegen.eintraege,
-		waehle: einfuegen.fuegeEin,
+	const { docJetzt, einfuegen, slash, verschiebeUeberlauf } = useEinfuegeWerkzeuge({
+		auswahl,
+		folien: format === 'folie',
+		geladen,
+		html,
+		nachher: () => setPanel('auswahl'),
+		setAuswahl,
+		struktur,
+		text,
 	});
 	const zeigePunkt = useZeigePunkt({ loesung, geladen, html, zeigeAn: struktur.zeigeAn, setSuche });
 
@@ -470,12 +547,58 @@ const Bearbeitung = ({ dokument, mappe: mappenDaten }: { mappe: Mappe; dokument:
 	const ohneAuswahl = (
 		<>
 			{loesung && <Loesungsuebersicht l={loes} />}
-			<Blattwerkzeug aktiv={frei} quelle={b.verlauf?.quelle ?? null} struktur={struktur} />
+			<Blattwerkzeug aktiv={frei} quelle={quelle} struktur={struktur} />
 			<ClaudeFragen {...frage} nr={null} />
 		</>
 	);
-	const kannZurueck = frei && Boolean(b.verlauf?.zurueck.length);
-	const kannVor = frei && Boolean(b.verlauf?.vor.length);
+	const panelInhalt = {
+		bibliothek: (
+			<Bibliothek
+				einfuegen={einfuegen}
+				mappe={mappenDaten}
+				art={meta.art}
+				doc={docJetzt}
+				setAuswahl={setAuswahl}
+			/>
+		),
+		gliederung: <Gliederung doc={docJetzt} auswahl={auswahl} aktiv={struktur.aktiv} struktur={struktur} />,
+		versionen: (
+			<>
+				<h2 className="mb-3 text-xl">Versionen</h2>
+				<Versionen
+					versionen={versionen.daten?.versionen ?? null}
+					gewaehlt={vorschau?.version.id ?? null}
+					waehle={(v) => void zeigeVersion(v)}
+				/>
+			</>
+		),
+		auswahl: (
+			<AuswahlPanel pfad={pfad} waehle={setAuswahl} leer={ohneAuswahl}>
+				<Pruefhinweise stand={pruefung.stand} nr={auswahl} />
+				<Textwerkzeug
+					pfad={pfad}
+					aktiv={frei}
+					bearbeitet={text.bearbeitet}
+					zustand={text.zustand}
+					formatiere={text.formatiere}
+					beende={text.beende}
+					fokussiere={text.fokussiere}
+				/>
+				<Bildwerkzeug bild={bild} />
+				<Abbildungswerkzeug abb={abbildung} />
+				<Loesungswerkzeug l={loes} />
+				<Strukturwerkzeug
+					pfad={pfad}
+					aktiv={struktur.aktiv}
+					format={format}
+					quelle={quelle}
+					struktur={struktur}
+				/>
+				<ClaudeFragen {...frage} nr={auswahl} pfad={pfad} />
+			</AuswahlPanel>
+		),
+	};
+	const { kannVor, kannZurueck } = schritte(b.verlauf, frei);
 
 	return (
 		<div className="flex h-dvh flex-col bg-papier" data-editor>
@@ -504,22 +627,13 @@ const Bearbeitung = ({ dokument, mappe: mappenDaten }: { mappe: Mappe; dokument:
 				)}
 				<ProfilSchalter profil={profil} waehle={waehleProfil} />
 				<div className="flex flex-wrap gap-2">
-					<Knopf
-						art={panel === 'bibliothek' ? 'haupt' : 'zweit'}
-						aria-pressed={panel === 'bibliothek'}
-						disabled={!frei}
-						onClick={() => setPanel(panel === 'bibliothek' ? 'auswahl' : 'bibliothek')}
-					>
+					<PanelKnopf name="bibliothek" panel={panel} setPanel={setPanel} disabled={!frei}>
 						<Symbol name="plus" />
 						Bausteine
-					</Knopf>
-					<Knopf
-						art={panel === 'gliederung' ? 'haupt' : 'zweit'}
-						aria-pressed={panel === 'gliederung'}
-						onClick={() => setPanel(panel === 'gliederung' ? 'auswahl' : 'gliederung')}
-					>
+					</PanelKnopf>
+					<PanelKnopf name="gliederung" panel={panel} setPanel={setPanel}>
 						Gliederung
-					</Knopf>
+					</PanelKnopf>
 					<Knopf
 						art={panel === 'versionen' ? 'haupt' : 'zweit'}
 						aria-pressed={panel === 'versionen'}
@@ -543,12 +657,7 @@ const Bearbeitung = ({ dokument, mappe: mappenDaten }: { mappe: Mappe; dokument:
 
 			<div className="flex min-h-0 flex-1 max-lg:flex-col">
 				<div className="flex min-h-0 flex-1">
-					<Seiten
-						html={html}
-						zerlegung={zerlegung}
-						struktur={struktur}
-						festeSeiten={format === 'minibuch'}
-					/>
+					<Seiten html={html} zerlegung={zerlegung} struktur={struktur} festeSeiten={format === 'minibuch'} />
 					<main className="min-h-0 flex-1 overflow-y-auto px-6 py-4 max-lg:px-4">
 						{b.konflikt && (
 							<Konfliktleiste
@@ -610,64 +719,8 @@ const Bearbeitung = ({ dokument, mappe: mappenDaten }: { mappe: Mappe; dokument:
 					)}
 					data-panel={panel}
 				>
-					<Pruefliste
-						stand={pruefung.stand}
-						zeige={zeigePunkt}
-						{...(struktur.aktiv && geladen && geladen.html === html
-							? { verschiebe: (p: Pruefpunkt) => einfuegen.verschiebe(geladen.doc, p.seite) }
-							: {})}
-					/>
-					<div className="min-h-0 flex-1 overflow-y-auto px-5 py-4 max-lg:px-4">
-						{panel === 'bibliothek' ? (
-							<Bibliothek
-								einfuegen={einfuegen}
-								mappe={mappenDaten}
-								art={meta.art}
-								doc={geladen && geladen.html === html ? geladen.doc : null}
-								setAuswahl={setAuswahl}
-							/>
-						) : panel === 'gliederung' ? (
-							<Gliederung
-								doc={geladen && geladen.html === html ? geladen.doc : null}
-								auswahl={auswahl}
-								aktiv={struktur.aktiv}
-								struktur={struktur}
-							/>
-						) : panel === 'versionen' ? (
-							<>
-								<h2 className="mb-3 text-xl">Versionen</h2>
-								<Versionen
-									versionen={versionen.daten?.versionen ?? null}
-									gewaehlt={vorschau?.version.id ?? null}
-									waehle={(v) => void zeigeVersion(v)}
-								/>
-							</>
-						) : (
-							<AuswahlPanel pfad={pfad} waehle={setAuswahl} leer={ohneAuswahl}>
-								<Pruefhinweise stand={pruefung.stand} nr={auswahl} />
-								<Textwerkzeug
-									pfad={pfad}
-									aktiv={frei}
-									bearbeitet={text.bearbeitet}
-									zustand={text.zustand}
-									formatiere={text.formatiere}
-									beende={text.beende}
-									fokussiere={text.fokussiere}
-								/>
-								<Bildwerkzeug bild={bild} />
-								<Abbildungswerkzeug abb={abbildung} />
-								<Loesungswerkzeug l={loes} />
-								<Strukturwerkzeug
-									pfad={pfad}
-									aktiv={struktur.aktiv}
-									format={format}
-									quelle={b.verlauf?.quelle ?? null}
-									struktur={struktur}
-								/>
-								<ClaudeFragen {...frage} nr={auswahl} pfad={pfad} />
-							</AuswahlPanel>
-						)}
-					</div>
+					<Pruefliste stand={pruefung.stand} zeige={zeigePunkt} verschiebe={verschiebeUeberlauf} />
+					<div className="min-h-0 flex-1 overflow-y-auto px-5 py-4 max-lg:px-4">{panelInhalt[panel]}</div>
 				</aside>
 			</div>
 		</div>
