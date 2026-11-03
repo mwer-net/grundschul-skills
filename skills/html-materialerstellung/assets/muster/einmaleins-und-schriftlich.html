@@ -11,7 +11,7 @@
   <div class="kopf"><div class="titel"><h1>Einmaleins und Malkreuz</h1></div></div>
   <div class="aufgabe"><div class="nr">1</div><div class="anw"><div class="text">Zerlege das Punktfeld an der Linie.</div></div>
     <div class="koerper reihe" style="--spalten:3">
-      <div class="zelle"><x-punktfeld zeilen="6" spalten="7" trenner="5"></x-punktfeld></div>
+      <div class="zelle"><x-punktfeld data-katalog="x-punktfeld" zeilen="6" spalten="7" trenner="5"></x-punktfeld></div>
       <div class="zelle"><x-punktfeld zeilen="7" spalten="4" trenner="2"></x-punktfeld></div>
       <div class="zelle"><x-punktfeld zeilen="4" spalten="9" trenner="5" richtung="spalten" loesung="ja"></x-punktfeld></div>
     </div></div>
@@ -19,7 +19,7 @@
     <div class="koerper"><x-punktfeld zeilen="10" spalten="10" abdecken="3 4"></x-punktfeld></div></div>
   <div class="aufgabe"><div class="nr">3</div><div class="anw"><div class="text">Rechne im Malkreuz.</div></div>
     <div class="koerper reihe" style="--spalten:2">
-      <div class="zelle"><x-malkreuz a="34" b="6"></x-malkreuz></div>
+      <div class="zelle"><x-malkreuz data-katalog="x-malkreuz" a="34" b="6"></x-malkreuz></div>
       <div class="zelle"><x-malkreuz a="23" b="45"></x-malkreuz></div>
     </div></div>
 </section>
@@ -27,7 +27,7 @@
   <div class="kopf"><div class="titel"><h1>Schriftlich rechnen</h1></div></div>
   <div class="aufgabe"><div class="nr">1</div><div class="anw"><div class="text">Addiere und multipliziere.</div></div>
     <div class="koerper reihe" style="--spalten:3">
-      <div class="zelle"><x-schriftlich art="plus" zahlen="345 278 96"></x-schriftlich></div>
+      <div class="zelle"><x-schriftlich data-katalog="x-schriftlich" art="plus" zahlen="345 278 96"></x-schriftlich></div>
       <div class="zelle"><x-schriftlich art="mal" zahlen="347 6"></x-schriftlich></div>
       <div class="zelle"><x-schriftlich art="mal" zahlen="345 23"></x-schriftlich></div>
     </div></div>

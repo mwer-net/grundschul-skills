@@ -10,7 +10,7 @@
 <section class="seite">
   <div class="kopf"><div class="titel"><h1>Schreiblinien</h1></div></div>
   <div class="aufgabe"><div class="nr">1</div><div class="anw"><div class="text">Spure nach und schreibe weiter (Lineatur 1).</div></div>
-    <div class="koerper"><x-lineatur art="1" zeilen="2" vorlage="Rosine"></x-lineatur></div></div>
+    <div class="koerper"><x-lineatur data-katalog="x-lineatur" art="1" zeilen="2" vorlage="Rosine"></x-lineatur></div></div>
   <div class="aufgabe"><div class="nr">2</div><div class="anw"><div class="text">Lineatur 2 mit Vorbild am Zeilenanfang.</div></div>
     <div class="koerper"><x-lineatur art="2" zeilen="2" vorlage="Hund und Katze" anfang="Ha"></x-lineatur></div></div>
   <div class="aufgabe"><div class="nr">3</div><div class="anw"><div class="text">Was macht der Hund? Antworte im Satz (Lineatur 3).</div></div>
@@ -27,7 +27,7 @@
     </div></div>
   <div class="aufgabe"><div class="nr">2</div><div class="anw"><div class="text">Lies die Wörter in Silben.</div></div>
     <div class="koerper reihe" style="--spalten:3">
-      <div class="zelle"><x-silben>Ro|si|ne</x-silben></div>
+      <div class="zelle"><x-silben data-katalog="x-silben">Ro|si|ne</x-silben></div>
       <div class="zelle"><x-silben>A|bend</x-silben></div>
       <div class="zelle"><x-silben>Was|ser</x-silben></div>
     </div></div>
@@ -44,7 +44,7 @@
 <section class="seite">
   <div class="kopf"><div class="titel"><h1>Wortarten</h1></div></div>
   <div class="aufgabe"><div class="nr">1</div><div class="anw"><div class="text">Alle Symbole.</div></div>
-    <div class="koerper"><x-wortarten>Der/Art kleine/A Hund/N und/K er/P bellen/V laut/Adv auf/Pr dem/Art Hof/N.</x-wortarten></div></div>
+    <div class="koerper"><x-wortarten data-katalog="x-wortarten">Der/Art kleine/A Hund/N und/K er/P bellen/V laut/Adv auf/Pr dem/Art Hof/N.</x-wortarten></div></div>
   <div class="aufgabe"><div class="nr">2</div><div class="anw"><div class="text">Unterstrichen.</div></div>
     <div class="koerper"><x-wortarten darstellung="unterstreichen">Der/Art kleine/A Hund/N und/K er/P bellen/V laut/Adv auf/Pr dem/Art Hof/N.</x-wortarten></div></div>
   <div class="aufgabe"><div class="nr">3</div><div class="anw"><div class="text">Zeichne die Symbole für Nomen und Verb.</div></div>
@@ -55,7 +55,7 @@
 <section class="seite">
   <div class="kopf"><div class="titel"><h1>Satzglieder</h1></div></div>
   <div class="aufgabe"><div class="nr">1</div><div class="anw"><div class="text">Satzglieder mit Verbklammer.</div></div>
-    <div class="koerper"><x-satzglieder>[Der Hund]S [bellt]P [den Briefträger]AkO [an]P.</x-satzglieder></div></div>
+    <div class="koerper"><x-satzglieder data-katalog="x-satzglieder">[Der Hund]S [bellt]P [den Briefträger]AkO [an]P.</x-satzglieder></div></div>
   <div class="aufgabe"><div class="nr">2</div><div class="anw"><div class="text">Bestimme die Satzglieder.</div></div>
     <div class="koerper"><x-satzglieder aufgabe="bestimmen">[Die Lehrerin]S [gibt]P [dem Kind]DaO [ein Heft]AkO.</x-satzglieder></div></div>
   <div class="aufgabe"><div class="nr">3</div><div class="anw"><div class="text">Stelle den Satz um.</div></div>
@@ -66,7 +66,7 @@
 <section class="seite">
   <div class="kopf"><div class="titel"><h1>Wortbausteine</h1></div></div>
   <div class="aufgabe"><div class="nr">1</div><div class="anw"><div class="text">Bausteine und Stamm.</div></div>
-    <div class="koerper"><x-wortbausteine stamm="fahr">ver|fahr|en</x-wortbausteine></div></div>
+    <div class="koerper"><x-wortbausteine data-katalog="x-wortbausteine" stamm="fahr">ver|fahr|en</x-wortbausteine></div></div>
   <div class="aufgabe"><div class="nr">2</div><div class="anw"><div class="text">Zerlege das Wort.</div></div>
     <div class="koerper"><x-wortbausteine aufgabe="zerlegen" stamm="lauf">ver|lauf|en</x-wortbausteine></div></div>
   <div class="aufgabe"><div class="nr">3</div><div class="anw"><div class="text">Setze das Wort zusammen.</div></div>

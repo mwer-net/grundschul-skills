@@ -11,7 +11,7 @@
   <div class="kopf"><div class="titel"><h1>Räumliche Geometrie</h1></div></div>
   <div class="aufgabe">
     <span class="nr">1</span><div class="anw"><span class="text">Ein Bauplan, alle Ansichten</span></div>
-    <div class="koerper"><x-wuerfelbau bauplan="2 1 / 3 1" zeige="schraegbild bauplan vorne rechts links oben"></x-wuerfelbau></div>
+    <div class="koerper"><x-wuerfelbau data-katalog="x-wuerfelbau" bauplan="2 1 / 3 1" zeige="schraegbild bauplan vorne rechts links oben"></x-wuerfelbau></div>
   </div>
   <div class="aufgabe">
     <span class="nr">2</span><div class="anw"><span class="text">Schreibe den Bauplan. Wie viele Würfel sind es?</span></div>
@@ -24,7 +24,7 @@
   <div class="aufgabe">
     <span class="nr">4</span><div class="anw"><span class="text">Welche Fläche liegt gegenüber? Ergänze die Augen.</span></div>
     <div class="koerper"><div class="reihe" style="--spalten:2">
-      <div class="zelle"><x-wuerfelnetz netz="3" aufgabe="gegenueber" markiere="2" groesse="30"></x-wuerfelnetz></div>
+      <div class="zelle"><x-wuerfelnetz data-katalog="x-wuerfelnetz" netz="3" aufgabe="gegenueber" markiere="2" groesse="30"></x-wuerfelnetz></div>
       <div class="zelle"><x-wuerfelnetz netz="10" aufgabe="augen-ergaenzen" seed="a" groesse="30"></x-wuerfelnetz></div>
     </div></div>
   </div>
@@ -61,7 +61,7 @@
   <div class="aufgabe">
     <span class="nr">6</span><div class="anw"><span class="text">Zähle Ecken, Kanten und Flächen.</span></div>
     <div class="koerper"><div class="reihe" style="--spalten:4">
-      <div class="zelle"><x-koerper form="wuerfel" markiere="ecken kanten flaechen"></x-koerper></div>
+      <div class="zelle"><x-koerper data-katalog="x-koerper" form="wuerfel" markiere="ecken kanten flaechen"></x-koerper></div>
       <div class="zelle"><x-koerper form="quader" markiere="ecken"></x-koerper></div>
       <div class="zelle"><x-koerper form="pyramide" markiere="kanten"></x-koerper></div>
       <div class="zelle"><x-koerper form="prisma" markiere="flaechen" groesse="26"></x-koerper></div>

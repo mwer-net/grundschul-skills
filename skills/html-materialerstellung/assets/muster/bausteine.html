@@ -1,0 +1,71 @@
+<!doctype html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<title>Muster: die Kit-Bausteine</title>
+<link rel="stylesheet" href="blatt.css">
+<script src="abbildungen.js"></script>
+</head>
+<body class="kl3 sw">
+<section class="seite">
+  <div class="namenszeile" data-katalog="namenszeile"><span class="name">Name:</span><span class="datum">Datum:</span></div>
+  <div class="kopf" data-katalog="kopf">
+    <div class="titel">
+      <h1>Überschrift</h1>
+      <div class="ziel" data-katalog="ziel">Ich kann …</div>
+      <div class="wahlhilfe" data-katalog="wahlhilfe">Wähle deine Aufgaben.</div>
+    </div>
+    <div class="tipp" data-katalog="tipp"><img class="figur" src="bilder/willi.png" alt="Willi"><div class="blase" data-katalog="blase">Dein Tipp</div></div>
+  </div>
+  <div class="aufgabe" data-katalog="aufgabe">
+    <span class="nr">1</span>
+    <div class="anw" data-katalog="anweisung"><span class="text">Anweisung</span></div>
+    <div class="koerper">
+      <div class="reihe" style="--spalten:2" data-katalog="reihe">
+        <div class="zelle" data-katalog="zelle">Aufgabe <span class="antwort breit" data-l="Antwort" data-katalog="antwort"></span></div>
+        <div class="zelle beispiel">Beispiel <span class="antwort breit" data-l="Antwort"></span></div>
+      </div>
+    </div>
+  </div>
+  <div class="aufgabe">
+    <span class="nr stern">★</span>
+    <div class="anw"><span class="text">Sternchenaufgabe</span></div>
+    <div class="koerper"><div class="zeile" data-katalog="zeile">Es ist <span class="antwort breit" data-l="Antwort"></span>.</div></div>
+  </div>
+  <div class="aufgabe">
+    <span class="nr">2</span>
+    <div class="anw"><span class="text">Schreibe.</span><span class="punkte" data-katalog="punkte">/ 2</span></div>
+    <div class="koerper">
+      <p data-katalog="text">Hier steht ein kurzer Text.</p>
+      <div class="schreiblinie" data-katalog="schreiblinie"></div>
+      <div class="malfeld" style="--h:90px" data-katalog="malfeld"></div>
+      <div class="zeile"><span class="box" data-katalog="box"></span> Antwort</div>
+      <div class="reihe" style="--spalten:1"><div class="vermutung" data-katalog="vermutung"><span class="nr">A</span>Antwort<span class="leerstelle"></span></div></div>
+    </div>
+  </div>
+  <div class="reihe" style="--spalten:2">
+    <div class="zelle"><img class="figur" src="bilder/willi.png" alt="Willi" data-katalog="willi"></div>
+    <div class="zelle"><img class="figur" src="bilder/wilma.png" alt="Wilma" data-katalog="wilma"></div>
+  </div>
+  <div class="fuss" data-katalog="fuss">
+    <div class="text"><b>Ich kann …</b><br>Male an, wie weit du schon bist:</div>
+    <img src="bilder/wachstum.png" alt="Samen, Keimling, Pflanze, Blume">
+    <div class="reflexion" data-katalog="reflexion">Was hat dir geholfen? <span><span class="box"></span>das Beispiel</span></div>
+  </div>
+</section>
+<section class="seite">
+  <div class="kopf"><div class="titel"><h1>Karten, Bildplatzhalter und Notiz</h1></div></div>
+  <div class="platzhalter" style="width:220px;height:120px" data-katalog="platzhalter">Bild</div>
+  <div class="karten" style="--spalten:2" data-katalog="karten">
+    <div class="karte" data-katalog="karte"><div class="kartentext">Karte</div></div>
+    <div class="karte"><div class="kartentext">Karte</div></div>
+  </div>
+  <div class="aufgabe">
+    <span class="nr">1</span>
+    <div class="anw"><span class="text">Trage die Buchstaben ein.</span></div>
+    <div class="koerper"><x-loesungswort data-katalog="x-loesungswort" wort="SONNE" zuordnung="42: S; 64: O; 27: N; 28: N; 45: E"></x-loesungswort></div>
+  </div>
+  <aside class="notiz" data-katalog="notiz"><p>Notiz für die Lehrkraft</p></aside>
+</section>
+</body>
+</html>

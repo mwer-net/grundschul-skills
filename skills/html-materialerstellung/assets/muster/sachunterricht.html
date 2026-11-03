@@ -10,7 +10,7 @@
 <section class="seite">
   <div class="kopf"><div class="titel"><h1>Zeitleisten</h1></div></div>
   <div class="aufgabe"><div class="nr">1</div><div class="anw"><div class="text">Mein Leben: Trage ein, was fehlt.</div></div>
-    <div class="koerper"><x-zeitleiste art="leben" von="0" bis="10" schritt="1" ereignisse="0: Geburt; 3: Kindergarten; 6: Schule: offen; 9: Umzug: offen"></x-zeitleiste></div></div>
+    <div class="koerper"><x-zeitleiste data-katalog="x-zeitleiste" art="leben" von="0" bis="10" schritt="1" ereignisse="0: Geburt; 3: Kindergarten; 6: Schule: offen; 9: Umzug: offen"></x-zeitleiste></div></div>
   <div class="aufgabe"><div class="nr">2</div><div class="anw"><div class="text">Das 20. Jahrhundert.</div></div>
     <div class="koerper"><x-zeitleiste von="1900" bis="2020" schritt="10" ereignisse="1914: Erster Weltkrieg beginnt; 1918: Erster Weltkrieg endet; 1969: Mondlandung; 1989: Mauerfall"></x-zeitleiste></div></div>
   <div class="aufgabe"><div class="nr">3</div><div class="anw"><div class="text">Römer und Alamannen, mit Zeitraum und v. Chr.</div></div>
@@ -20,7 +20,7 @@
   <div class="kopf"><div class="titel"><h1>Kreise und Windrosen</h1></div></div>
   <div class="aufgabe"><div class="nr">1</div><div class="anw"><div class="text">Jahreskreis, voll und leer.</div></div>
     <div class="koerper reihe" style="--spalten:2">
-      <div class="zelle links"><x-jahreskreis groesse="290" jahreszeiten="ja" markiert="Juli"></x-jahreskreis></div>
+      <div class="zelle links"><x-jahreskreis data-katalog="x-jahreskreis" groesse="290" jahreszeiten="ja" markiert="Juli"></x-jahreskreis></div>
       <div class="zelle links"><x-jahreskreis groesse="290" beschriftung="leer"></x-jahreskreis></div>
     </div></div>
   <div class="aufgabe"><div class="nr">2</div><div class="anw"><div class="text">Tageskreis und Woche.</div></div>
@@ -30,7 +30,7 @@
     </div></div>
   <div class="aufgabe"><div class="nr">3</div><div class="anw"><div class="text">Windrosen mit 4 und 8 Richtungen.</div></div>
     <div class="koerper reihe" style="--spalten:3">
-      <div class="zelle links"><x-windrose></x-windrose></div>
+      <div class="zelle links"><x-windrose data-katalog="x-windrose"></x-windrose></div>
       <div class="zelle links"><x-windrose richtungen="8"></x-windrose></div>
       <div class="zelle links"><x-windrose richtungen="8" beschriftung="norden"></x-windrose></div>
     </div></div>
@@ -38,7 +38,7 @@
 <section class="seite">
   <div class="kopf"><div class="titel"><h1>Pläne</h1></div></div>
   <div class="aufgabe"><div class="nr">1</div><div class="anw"><div class="text">Wo steht was? Schreibe die Planquadrate auf.</div></div>
-    <div class="koerper"><x-plan spalten="8" zeilen="5" aufgabe="finden" massstab="1 Kästchen = 100 m" nordpfeil="ja"
+    <div class="koerper"><x-plan data-katalog="x-plan" spalten="8" zeilen="5" aufgabe="finden" massstab="1 Kästchen = 100 m" nordpfeil="ja"
       boden="wasser wasser leer strasse leer wald wald wald / leer leer leer strasse leer leer wald wald / strasse strasse strasse strasse strasse strasse strasse strasse / wiese wiese leer strasse platz platz leer leer / wiese wiese leer strasse platz platz leer leer"
       objekte="schule: E4; kirche: C2; baum: A4 B5; bruecke: D1; bahnhof: G4"></x-plan></div></div>
 </section>
@@ -54,7 +54,7 @@
 <section class="seite">
   <div class="kopf"><div class="titel"><h1>Stromkreise</h1></div></div>
   <div class="aufgabe"><div class="nr">1</div><div class="anw"><div class="text">Leuchtet die Lampe? Kreuze an.</div></div>
-    <div class="koerper"><div class="zellen" style="display:flex;gap:18px;flex-wrap:wrap"><x-schaltplan teile="batterie schalter:offen lampe" aufgabe="leuchtet"></x-schaltplan><x-schaltplan teile="batterie schalter:zu lampe" aufgabe="leuchtet"></x-schaltplan></div></div></div>
+    <div class="koerper"><div class="zellen" style="display:flex;gap:18px;flex-wrap:wrap"><x-schaltplan data-katalog="x-schaltplan" teile="batterie schalter:offen lampe" aufgabe="leuchtet"></x-schaltplan><x-schaltplan teile="batterie schalter:zu lampe" aufgabe="leuchtet"></x-schaltplan></div></div></div>
   <div class="aufgabe"><div class="nr">2</div><div class="anw"><div class="text">Das Kabel liegt parallel zur Lampe. Und jetzt?</div></div>
     <div class="koerper"><x-schaltplan teile="batterie lampe" zweig="kabel" aufgabe="leuchtet"></x-schaltplan></div></div>
   <div class="aufgabe"><div class="nr">3</div><div class="anw"><div class="text">Ein Kabel fehlt. Zeichne es ein.</div></div>
@@ -63,7 +63,7 @@
 <section class="seite">
   <div class="kopf"><div class="titel"><h1>Kreisläufe</h1></div></div>
   <div class="aufgabe"><div class="nr">1</div><div class="anw"><div class="text">Der Wasserkreislauf. Was fehlt?</div></div>
-    <div class="koerper"><x-kreislauf stationen="Meer und Seen; Wolken; Regen; Bach und Fluss" pfeile="verdunsten; ziehen weiter; versickern und fließen; münden" offen="3 p1"></x-kreislauf></div></div>
+    <div class="koerper"><x-kreislauf data-katalog="x-kreislauf" stationen="Meer und Seen; Wolken; Regen; Bach und Fluss" pfeile="verdunsten; ziehen weiter; versickern und fließen; münden" offen="3 p1"></x-kreislauf></div></div>
   <div class="aufgabe"><div class="nr">2</div><div class="anw"><div class="text">Wie aus der Bohne eine Pflanze wird.</div></div>
     <div class="koerper"><x-kreislauf art="ablauf" stationen="Bohne; Keimling; Blüte; Hülse" pfeile="keimt; blüht; reift"></x-kreislauf></div></div>
   <div class="aufgabe"><div class="nr">3</div><div class="anw"><div class="text">Wie heißen die Teile?</div></div>
@@ -72,11 +72,11 @@
 <section class="seite">
   <div class="kopf"><div class="titel"><h1>Verkehr und Wetter</h1></div></div>
   <div class="aufgabe"><div class="nr">1</div><div class="anw"><div class="text">Wie heißen diese Zeichen?</div></div>
-    <div class="koerper"><div style="display:flex;gap:18px;flex-wrap:wrap;align-items:center"><x-verkehrszeichen nummer="205"></x-verkehrszeichen><x-verkehrszeichen nummer="206"></x-verkehrszeichen><x-verkehrszeichen nummer="237"></x-verkehrszeichen><x-verkehrszeichen nummer="267"></x-verkehrszeichen><x-verkehrszeichen nummer="350"></x-verkehrszeichen></div></div></div>
+    <div class="koerper"><div style="display:flex;gap:18px;flex-wrap:wrap;align-items:center"><x-verkehrszeichen data-katalog="x-verkehrszeichen" nummer="205"></x-verkehrszeichen><x-verkehrszeichen nummer="206"></x-verkehrszeichen><x-verkehrszeichen nummer="237"></x-verkehrszeichen><x-verkehrszeichen nummer="267"></x-verkehrszeichen><x-verkehrszeichen nummer="350"></x-verkehrszeichen></div></div></div>
   <div class="aufgabe"><div class="nr">2</div><div class="anw"><div class="text">Male die Zeichen richtig aus.</div></div>
     <div class="koerper"><div style="display:flex;gap:18px;flex-wrap:wrap;align-items:center"><x-verkehrszeichen nummer="306" ausmalen="ja" groesse="110"></x-verkehrszeichen><x-verkehrszeichen nummer="274" ausmalen="ja" groesse="110"></x-verkehrszeichen></div></div></div>
   <div class="aufgabe"><div class="nr">3</div><div class="anw"><div class="text">Das Wetter heute: Zeichne das Symbol.</div></div>
-    <div class="koerper"><div style="display:flex;gap:18px;align-items:center"><x-wetter symbol="regen" wind="2"></x-wetter><x-wetter loesung="heiter"></x-wetter></div></div></div>
+    <div class="koerper"><div style="display:flex;gap:18px;align-items:center"><x-wetter data-katalog="x-wetter" symbol="regen" wind="2"></x-wetter><x-wetter loesung="heiter"></x-wetter></div></div></div>
   <div class="aufgabe"><div class="nr">4</div><div class="anw"><div class="text">Der Temperaturverlauf im Januar.</div></div>
     <div class="koerper"><x-diagramm art="linie" werte="Mo: -5; Di: -2; Mi: 0; Do: 3; Fr: 6" offen="4 5" von="-10" bis="10" skala="5" einheit="°C" groesse="170"></x-diagramm></div></div>
 </section>

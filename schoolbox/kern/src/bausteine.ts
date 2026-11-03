@@ -4,7 +4,7 @@
  * zählt: Passt ein Element auf mehrere Einträge, gilt der erste.
  */
 
-import type { Abbildung } from './abbildungen';
+import type { Abbildung, KatalogAngaben } from './abbildungen';
 import { ABBILDUNG_SCHEMA } from './abbildungen';
 
 export const FAEHIGKEITEN = [
@@ -149,3 +149,45 @@ export const kannImFormat = (baustein: Baustein, faehigkeit: Faehigkeit, format:
 	kann(baustein, faehigkeit) && !(format === 'minibuch' && baustein.art === 'seite' && faehigkeit !== 'ordnen');
 
 export const zeilenVon = (baustein: Baustein): Zeilen => baustein.zeilen ?? 'eine';
+
+export interface KitEintrag extends KatalogAngaben {
+	id: string;
+	/** Name und Fähigkeiten stehen im Register, wenn der Baustein dort steht. */
+	art?: string;
+	/** Nur ohne Register-Eintrag. */
+	name?: string;
+	/** Kein eigenes Element, sondern eine Klasse am `<body>` (`ort: 'blatt'`) oder am gewählten Item (`ort: 'zeile'`). */
+	klasse?: string;
+}
+
+/** Die Kit-Bausteine für den Katalog (`katalog.ts`). Starter stehen in `assets/muster/bausteine.html` (`data-katalog`). */
+export const KIT_KATALOG: readonly KitEintrag[] = [
+	{ id: 'namenszeile', name: 'Namenszeile', kategorie: 'Kopf und Rahmen', suchbegriffe: ['Name', 'Datum'], ort: 'seite' },
+	{ id: 'kopf', name: 'Kopf', kategorie: 'Kopf und Rahmen', suchbegriffe: ['Titel', 'Überschrift'], ort: 'seite' },
+	{ id: 'ziel', art: 'ziel', kategorie: 'Kopf und Rahmen', suchbegriffe: ['Ich-kann-Ziel', 'Lernziel'], ort: 'zeile' },
+	{ id: 'wahlhilfe', art: 'wahlhilfe', kategorie: 'Kopf und Rahmen', suchbegriffe: ['Niveau', 'Wählen'], ort: 'zeile' },
+	{ id: 'fuss', name: 'Fuß', kategorie: 'Kopf und Rahmen', suchbegriffe: ['Selbsteinschätzung', 'Wachstum'], ort: 'seite' },
+	{ id: 'reflexion', name: 'Reflexion', kategorie: 'Selbstkontrolle', suchbegriffe: ['Was hat dir geholfen'], ort: 'zeile' },
+	{ id: 'trenner', name: 'Trennlinien', kategorie: 'Kopf und Rahmen', suchbegriffe: ['Linie', 'Trennung'], ort: 'blatt', klasse: 'trenner' },
+	{ id: 'aufgabe', art: 'aufgabe', kategorie: 'Aufgabe und Text', suchbegriffe: ['Nummer', 'Aufgabenblock'], ort: 'seite' },
+	{ id: 'anweisung', art: 'anweisung', kategorie: 'Aufgabe und Text', suchbegriffe: ['Arbeitsauftrag'], ort: 'zeile' },
+	{ id: 'text', art: 'absatz', kategorie: 'Aufgabe und Text', suchbegriffe: ['Absatz', 'Fließtext'], ort: 'aufgabe' },
+	{ id: 'reihe', art: 'reihe', kategorie: 'Aufgabe und Text', suchbegriffe: ['Spalten', 'Raster'], ort: 'aufgabe' },
+	{ id: 'zelle', art: 'item', kategorie: 'Aufgabe und Text', suchbegriffe: ['Item', 'Spalte'], ort: 'zeile' },
+	{ id: 'zeile', name: 'Rechenzeile', kategorie: 'Aufgabe und Text', suchbegriffe: ['Satz', 'Zeile'], ort: 'aufgabe' },
+	{ id: 'beispiel', name: 'Beispiel', kategorie: 'Aufgabe und Text', suchbegriffe: ['vorgelöst', 'Muster'], ort: 'zeile', klasse: 'beispiel' },
+	{ id: 'vermutung', art: 'vermutung', kategorie: 'Aufgabe und Text', suchbegriffe: ['Forscherfrage', 'Antwort A'], ort: 'aufgabe' },
+	{ id: 'punkte', name: 'Punkte', kategorie: 'Aufgabe und Text', suchbegriffe: ['Bewertung', 'Klassenarbeit'], ort: 'zeile' },
+	{ id: 'antwort', art: 'antwort', kategorie: 'Schreiben', suchbegriffe: ['Antwortlinie', 'Lücke'], ort: 'zeile' },
+	{ id: 'schreiblinie', name: 'Schreiblinie', kategorie: 'Schreiben', suchbegriffe: ['Zeile', 'Linie'], ort: 'aufgabe' },
+	{ id: 'box', name: 'Kästchen', kategorie: 'Schreiben', suchbegriffe: ['Ankreuzen', 'Kasten'], ort: 'zeile' },
+	{ id: 'malfeld', name: 'Malfeld', kategorie: 'Schreiben', suchbegriffe: ['Zeichnen', 'Malen'], ort: 'aufgabe' },
+	{ id: 'tipp', art: 'tipp', kategorie: 'Bilder', suchbegriffe: ['Leitfigur', 'Hilfe'], ort: 'seite' },
+	{ id: 'blase', art: 'blase', kategorie: 'Bilder', suchbegriffe: ['Sprechblase', 'Sagen'], ort: 'zeile' },
+	{ id: 'willi', name: 'Willi', kategorie: 'Bilder', suchbegriffe: ['Leitfigur', 'Waschbär'], ort: 'zeile' },
+	{ id: 'wilma', name: 'Wilma', kategorie: 'Bilder', suchbegriffe: ['Leitfigur', 'Waschbär'], ort: 'zeile' },
+	{ id: 'platzhalter', art: 'platzhalter', kategorie: 'Bilder', suchbegriffe: ['Bild', 'Foto'], ort: 'aufgabe' },
+	{ id: 'karten', art: 'karten', kategorie: 'Spiele und Rätsel', suchbegriffe: ['Kartenbogen', 'Ausschneiden', 'Memory', 'Quartett'], ort: 'seite' },
+	{ id: 'karte', art: 'karte', kategorie: 'Spiele und Rätsel', suchbegriffe: ['Wortkarte', 'Bildkarte'], ort: 'zeile' },
+	{ id: 'notiz', art: 'notiz', kategorie: 'Folien', suchbegriffe: ['Sprechernotiz', 'Lehrkraft'], ort: 'seite', arten: ['praesentation'] },
+];
