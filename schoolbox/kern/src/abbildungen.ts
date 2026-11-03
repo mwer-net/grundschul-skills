@@ -210,7 +210,13 @@ export interface PlanFeld extends FeldBasis {
 	symbole: Record<string, Option[]>;
 }
 
-export type Feld = FeldAus018 | FeldAus023 | MarkierungFeld | PlanFeld;
+/** Noten als Text; im Panel eine Leiste zum Anfügen. `tonhoehe`: `c'4`, sonst nur der Wert wie `4`. */
+export interface NotenFeld extends FeldBasis {
+	art: 'noten';
+	tonhoehe: boolean;
+}
+
+export type Feld = FeldAus018 | FeldAus023 | MarkierungFeld | PlanFeld | NotenFeld;
 
 /** Attributname → Wert in der Quelle, `null` = fehlt. Enthält auch die Lösungs-Attribute. */
 export type Werte = Record<string, string | null>;
@@ -611,6 +617,71 @@ const WETTER: Option[] = [
 	{ wert: 'gewitter', name: 'Gewitter' },
 	{ wert: 'nebel', name: 'Nebel' },
 ];
+
+const NOTEN_TAKTARTEN: Option[] = [
+	{ wert: '2/4', name: '2/4' },
+	{ wert: '3/4', name: '3/4' },
+	{ wert: '4/4', name: '4/4' },
+];
+
+const NOTEN_ACHTEL: Record<string, number> = { 1: 8, 2: 4, 4: 2, 8: 1 };
+const NOTEN_TAKT_ACHTEL: Record<string, number> = { '2/4': 4, '3/4': 6, '4/4': 8 };
+const NOTEN_STUFEN = ['c', 'd', 'e', 'f', 'g', 'a', 'h'];
+
+const wortAchtel = (wort: string) => {
+	const t = /(1|2|4|8)(\.?)$/.exec(wort);
+	return t ? (NOTEN_ACHTEL[t[1] ?? ''] ?? 0) * (t[2] ? 1.5 : 1) : 0;
+};
+
+/** Hängt eine Note an; ist der letzte Takt voll, beginnt ein neuer. */
+export const notenAnfuegen = (text: string, wort: string, takt: string) => {
+	const roh = text.trim();
+	if (!roh) {
+		return wort;
+	}
+	const letzter = roh.split('|').at(-1) ?? '';
+	const summe = letzter
+		.trim()
+		.split(/\s+/)
+		.filter(Boolean)
+		.reduce((s, w) => s + wortAchtel(w), 0);
+	return summe >= (NOTEN_TAKT_ACHTEL[takt] ?? 8) ? `${roh} | ${wort}` : `${roh} ${wort}`;
+};
+
+export const notenZuruecknehmen = (text: string) =>
+	text
+		.trim()
+		.replace(/\S+$/, '')
+		.replace(/[\s|]+$/, '');
+
+/** Setzt oder nimmt den Punkt der letzten Note; punktierte Achtel gibt es nicht. */
+export const notenPunkt = (text: string) => {
+	const roh = text.trim();
+	if (/\.$/.test(roh)) {
+		return roh.slice(0, -1);
+	}
+	return /[124]$/.test(roh) ? `${roh}.` : roh;
+};
+
+/** Die Noten mit Tonhöhe, ohne Pausen und Taktstriche. */
+export const notenMitTon = (text: string) => text.split(/[\s|]+/).filter((w) => /^[a-h]'/.test(w));
+
+/** Verschiebt die `nr`-te Note (ab 0) um Stufen; bleibt in c' bis a''. */
+export const notenTon = (text: string, nr: number, schritt: number) => {
+	let i = -1;
+	return text.replace(
+		/(^|[\s|])([a-h])('{1,2})(?=[1248])/g,
+		(ganz: string, vor: string, ton: string, oktave: string) => {
+			i += 1;
+			if (i !== nr) {
+				return ganz;
+			}
+			const alt = NOTEN_STUFEN.indexOf(ton === 'b' ? 'h' : ton) + (oktave.length - 1) * 7;
+			const neu = Math.min(12, Math.max(0, alt + schritt));
+			return `${vor}${NOTEN_STUFEN[neu % 7] ?? ''}${String.raw`'`.repeat(neu >= 7 ? 2 : 1)}`;
+		},
+	);
+};
 
 export const ABBILDUNG_SCHEMA = {
 	'x-uhr': {
@@ -2217,6 +2288,93 @@ export const ABBILDUNG_SCHEMA = {
 			{ art: 'zahl', ...GROESSE, min: 24, max: 200, standard: 60, schritt: 4 },
 		],
 		regeln: (w): Fehler => (w.text('symbol') || w.text('loesung') ? {} : { symbol: 'Bitte ein Symbol wählen.' }),
+	},
+	'x-rhythmus': {
+		name: 'Rhythmus',
+		felder: [
+			{ art: 'auswahl', attribut: 'takt', name: 'Takt', standard: '4/4', optionen: NOTEN_TAKTARTEN },
+			{ art: 'noten', attribut: 'noten', name: 'Noten', tonhoehe: false },
+			{
+				art: 'auswahl',
+				attribut: 'art',
+				name: 'Art',
+				standard: 'zeile',
+				optionen: [
+					{ wert: 'zeile', name: 'Zeile mit mehreren Takten' },
+					{ wert: 'karte', name: 'Karte mit einem Takt' },
+					{ wert: 'grafisch', name: 'Grafisch: Strich und Punkt' },
+				],
+			},
+			{
+				art: 'text',
+				attribut: 'silben',
+				name: 'Silben',
+				beispiel: 'ta',
+				hilfe: '„keine“, „ta“ für ta, ti-ti, ta-a oder die Silben der Klasse, mit Leerzeichen getrennt.',
+			},
+			{
+				art: 'auswahl',
+				attribut: 'aufgabe',
+				name: 'Aufgabe',
+				standard: 'keine',
+				optionen: [
+					{ wert: 'keine', name: 'Keine' },
+					{ wert: 'silben', name: 'Silben schreiben' },
+					{ wert: 'noten', name: 'Noten schreiben' },
+					{ wert: 'ergaenzen', name: 'Note ergänzen' },
+				],
+			},
+			{
+				art: 'zahlen',
+				attribut: 'offen',
+				name: 'Fehlende Noten',
+				beispiel: '5',
+				hilfe: 'Nummern der Noten zum Ergänzen; ohne Angabe die letzte.',
+			},
+			{ art: 'schalter', attribut: 'linie', name: 'Rhythmuslinie', an: 'ja', aus: 'nein', standard: false },
+			{ art: 'schalter', attribut: 'auftakt', name: 'Mit Auftakt', an: 'ja', aus: 'nein', standard: false },
+			{ art: 'zahl', attribut: 'breite', name: 'Breite', min: 120, max: 620, standard: 620, einheit: 'px' },
+		],
+	},
+	'x-noten': {
+		name: 'Noten',
+		felder: [
+			{ art: 'auswahl', attribut: 'takt', name: 'Takt', standard: '4/4', optionen: NOTEN_TAKTARTEN },
+			{ art: 'noten', attribut: 'noten', name: 'Noten', tonhoehe: true },
+			{ art: 'schalter', attribut: 'namen', name: 'Notennamen darunter', an: 'ja', aus: 'nein', standard: false },
+			{
+				art: 'text',
+				attribut: 'text',
+				name: 'Liedtext',
+				beispiel: 'Al le mei ne Ent chen',
+				hilfe: 'Silben mit Leerzeichen getrennt, eine je Note.',
+			},
+			{
+				art: 'auswahl',
+				attribut: 'aufgabe',
+				name: 'Aufgabe',
+				standard: 'keine',
+				optionen: [
+					{ wert: 'keine', name: 'Keine' },
+					{ wert: 'benennen', name: 'Noten benennen' },
+					{ wert: 'zeichnen', name: 'Noten zeichnen' },
+				],
+			},
+			{ art: 'zahl', attribut: 'systeme', name: 'Leere Notenzeilen', min: 0, max: 8, standard: 0 },
+			{
+				art: 'auswahl',
+				attribut: 'vorzeichen',
+				name: 'Vorzeichen',
+				standard: 'keine',
+				optionen: [
+					{ wert: 'keine', name: 'Keine' },
+					{ wert: 'b', name: 'Ein b (F-Dur)' },
+					{ wert: 'kreuz', name: 'Ein Kreuz (G-Dur)' },
+				],
+			},
+			{ art: 'schalter', attribut: 'auftakt', name: 'Mit Auftakt', an: 'ja', aus: 'nein', standard: false },
+			{ art: 'zahl', attribut: 'breite', name: 'Breite', min: 200, max: 620, standard: 620, einheit: 'px' },
+		],
 	},
 	'x-plan': {
 		name: 'Plan',

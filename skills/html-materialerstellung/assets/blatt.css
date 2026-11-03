@@ -131,7 +131,7 @@ table.plan{width:100%;border-collapse:collapse;font-size:calc(var(--fs)*.85);lin
   border-radius:10px;color:#777;font:14px/1.3 sans-serif;padding:4px;width:100%;height:var(--h,80px)}
 
 /* Abbildungen (abbildungen.js) */
-x-schaltplan,x-verkehrszeichen,x-wetter,x-uhr,x-menge,x-dienes,x-strichpunkt,x-stellentafel,x-zwanzigerfeld,x-zahlenstrahl,x-probe,x-gluecksrad,x-wuerfel,x-strichliste,x-diagramm,x-urne,x-wahrscheinlichkeit,x-kombinatorik,x-gitter,x-figur,x-tangram,x-wuerfelbau,x-wuerfelnetz,x-koerper,x-hunderterfeld,x-hundertertafel,x-rechenrahmen,x-rechenstrich,x-zahlenmauer,x-rechendreieck,x-zahlenhaus,x-zahlenkette,x-zauberdreieck,x-rechenrad,x-punktfeld,x-malkreuz,x-schriftlich,x-lineatur,x-wortarten,x-satzglieder,x-wortbausteine,x-zeitleiste,x-jahreskreis,x-windrose,x-plan,x-geld,x-skala,x-strecke,x-kalender,x-zeitspanne{display:inline-block;line-height:0}
+x-rhythmus,x-noten,x-schaltplan,x-verkehrszeichen,x-wetter,x-uhr,x-menge,x-dienes,x-strichpunkt,x-stellentafel,x-zwanzigerfeld,x-zahlenstrahl,x-probe,x-gluecksrad,x-wuerfel,x-strichliste,x-diagramm,x-urne,x-wahrscheinlichkeit,x-kombinatorik,x-gitter,x-figur,x-tangram,x-wuerfelbau,x-wuerfelnetz,x-koerper,x-hunderterfeld,x-hundertertafel,x-rechenrahmen,x-rechenstrich,x-zahlenmauer,x-rechendreieck,x-zahlenhaus,x-zahlenkette,x-zauberdreieck,x-rechenrad,x-punktfeld,x-malkreuz,x-schriftlich,x-lineatur,x-wortarten,x-satzglieder,x-wortbausteine,x-zeitleiste,x-jahreskreis,x-windrose,x-plan,x-geld,x-skala,x-strecke,x-kalender,x-zeitspanne{display:inline-block;line-height:0}
 x-timer{display:inline-flex;flex-direction:column;align-items:center;gap:12px}
 .timer-text{font-weight:700;line-height:1.2}
 x-stellentafel{line-height:1.2}
@@ -192,7 +192,7 @@ x-wortbausteine .wb-wort{display:inline-block;min-width:5em;text-align:center;pa
 x-wortbausteine .wb-wort.leer{border-bottom:1.5px solid #1D1D1B;min-height:1.5em;min-width:6em}
 x-wortbausteine .wb-ergebnis{display:block;width:max-content;min-width:8em;margin-top:.6em;text-align:left}
 x-zeitleiste,x-plan,x-jahreskreis,x-windrose{max-width:100%}
-x-schaltplan,x-kreislauf{max-width:100%}
+x-schaltplan,x-kreislauf,x-rhythmus,x-noten{max-width:100%}
 x-kreislauf{display:block}
 .kl-kreis{position:relative;margin:0 auto}
 .kl-kreis>svg{position:absolute;left:0;top:0}

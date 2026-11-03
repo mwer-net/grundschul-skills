@@ -1711,3 +1711,123 @@ test.describe('Sachunterricht: Natur und Technik (034)', () => {
 		await expect.poll(() => vorschau.evaluate((b: HTMLImageElement) => b.naturalWidth)).toBeGreaterThan(0);
 	});
 });
+
+/** Noten schreiben Oktaven mit Apostrophen; so bleiben sie lesbar. */
+const T = String.raw;
+
+test.describe('Musik (035)', () => {
+	test('Rhythmus: Taktfehler, Silben, Aufgaben, Kopfgröße', async ({ page }) => {
+		const falsch = await gezeichnet(page, '<x-rhythmus takt="4/4" noten="4 4 8 8 4 4 | 4 4 2"></x-rhythmus>');
+		await expect(falsch.locator('x-rhythmus')).toHaveAttribute('data-fehler', /Takt 1 hat 5 Viertel statt 4/);
+		const karte = await gezeichnet(
+			page,
+			'<x-rhythmus art="karte" takt="2/4" noten="4 8 8" silben="ta"></x-rhythmus>',
+		);
+		expect(Number(await karte.locator('x-rhythmus').getAttribute('data-kopf-mm'))).toBeGreaterThanOrEqual(8);
+		await expect(karte.locator('.balken')).toHaveCount(1);
+		expect(await karte.locator('.silbe').evaluateAll((l) => l.map((e) => e.getAttribute('data-silbe')))).toEqual([
+			'ta',
+			'ti',
+			'ti',
+		]);
+		const zwei = await gezeichnet(page, '<x-rhythmus art="karte" takt="2/4" noten="4 4 | 2"></x-rhythmus>');
+		await expect(zwei.locator('x-rhythmus')).toHaveAttribute('data-fehler', /genau einen Takt/);
+		const liste = await gezeichnet(page, '<x-rhythmus takt="2/4" noten="4 4" silben="du"></x-rhythmus>');
+		await expect(liste.locator('x-rhythmus')).toHaveAttribute('data-fehler', /1 Silben passen nicht zu 2/);
+
+		const notenAufgabe = '<x-rhythmus takt="2/4" noten="4 4" aufgabe="noten"></x-rhythmus>';
+		await expect((await gezeichnet(page, notenAufgabe)).locator('.note')).toHaveCount(0);
+		await expect((await gezeichnet(page, notenAufgabe, 'kl3 sw loesung')).locator('.note')).toHaveCount(2);
+		const ergaenzen = '<x-rhythmus takt="2/4" noten="4 4" aufgabe="ergaenzen" offen="2"></x-rhythmus>';
+		await expect((await gezeichnet(page, ergaenzen)).locator('.note')).toHaveCount(1);
+		await expect((await gezeichnet(page, ergaenzen)).locator('.notenluecke')).toHaveCount(1);
+		const grafisch = await gezeichnet(page, '<x-rhythmus art="grafisch" takt="2/4" noten="4 8 8"></x-rhythmus>');
+		await expect(grafisch.locator('.lang')).toHaveCount(1);
+		await expect(grafisch.locator('.kurz')).toHaveCount(2);
+	});
+
+	test('Noten: Linien und Zwischenräume, Hälse, Hilfslinie, Aufgaben', async ({ page }) => {
+		const tag = T`<x-noten takt="4/4" noten="c'4 e'4 f'4 h'4 | f''4 g''4 a''4 r4" namen="ja"></x-noten>`;
+		const blatt = await gezeichnet(page, tag);
+		const linien = await blatt
+			.locator('.notenlinie')
+			.evaluateAll((l) => l.map((e) => Number(e.getAttribute('y1'))).sort((a, b) => a - b));
+		expect(linien).toHaveLength(5);
+		const lage = await blatt
+			.locator('.note')
+			.evaluateAll((l) =>
+				Object.fromEntries(l.map((e) => [e.getAttribute('data-stufe'), Number(e.getAttribute('data-y'))])),
+			);
+		const [oben, , mitte, , unten] = linien as [number, number, number, number, number];
+		const sp = (unten - oben) / 4;
+		expect(lage['2']).toBeCloseTo(unten, 1);
+		expect(lage['3']).toBeCloseTo(unten - sp / 2, 1);
+		expect(lage['6']).toBeCloseTo(mitte, 1);
+		expect(lage['10']).toBeCloseTo(oben, 1);
+		expect(lage['0']).toBeCloseTo(unten + sp, 1);
+		expect(lage['12']).toBeCloseTo(oben - sp, 1);
+		await expect(blatt.locator('.hilfslinie')).toHaveCount(2);
+		expect(
+			await blatt.locator('line.hals').evaluateAll((l) => l.map((e) => e.getAttribute('data-richtung'))),
+		).toEqual(['oben', 'oben', 'oben', 'unten', 'unten', 'unten', 'unten']);
+		expect(await blatt.locator('.notenname').evaluateAll((l) => l.map((e) => e.getAttribute('data-name')))).toEqual(
+			['c', 'e', 'f', 'h', 'f', 'g', 'a'],
+		);
+		const b = await gezeichnet(page, T`<x-noten vorzeichen="b" noten="h'1" namen="ja"></x-noten>`);
+		await expect(b.locator('.notenname')).toHaveAttribute('data-name', 'b');
+		const hoch = await gezeichnet(page, T`<x-noten noten="h''1"></x-noten>`);
+		await expect(hoch.locator('x-noten')).toHaveAttribute('data-fehler', /zu hoch/);
+		const zeichnen = T`<x-noten takt="2/4" noten="g'2" aufgabe="zeichnen"></x-noten>`;
+		await expect((await gezeichnet(page, zeichnen)).locator('.note')).toHaveCount(0);
+		await expect((await gezeichnet(page, zeichnen, 'kl3 sw loesung')).locator('.note')).toHaveCount(1);
+		const leer = await gezeichnet(page, '<x-noten systeme="2"></x-noten>');
+		await expect(leer.locator('.notenlinie.leer')).toHaveCount(10);
+	});
+
+	test('Panel: Note anfügen und zurücknehmen, Tonhöhe ändern, je ein Rückgängig-Schritt', async ({
+		druecke,
+		page,
+	}) => {
+		test.slow();
+		const { dok, id, material: datei } = await uhrzeit();
+		await oeffne(page, id, dok);
+		await aendere(
+			page,
+			(await quelle(page)).replace(
+				/<x-uhr[^>]*><\/x-uhr>/,
+				T`<x-rhythmus takt="2/4" noten="4 4"></x-rhythmus><x-noten takt="2/4" noten="g'4 a'4"></x-noten>`,
+			),
+		);
+		await gespeichert(page, datei);
+		const stand = await readFile(datei, 'utf8');
+
+		await druecke(material(page).locator('x-rhythmus'));
+		const leiste = panel(page).getByRole('group', { name: 'Note anfügen' });
+		await druecke(leiste.getByRole('button', { name: 'Halbe', exact: true }));
+		await gespeichert(page, datei);
+		expect(await readFile(datei, 'utf8')).toContain('noten="4 4 | 2"');
+		await druecke(zurueck(page));
+		await gespeichert(page, datei);
+		expect(await readFile(datei, 'utf8')).toBe(stand);
+
+		await druecke(material(page).locator('x-rhythmus'));
+		await druecke(panel(page).getByRole('button', { name: 'Letzte Note zurücknehmen' }));
+		await expect(panel(page).locator('[data-fehler="_element"]')).toContainText('Takt 1 hat 1 Viertel statt 2');
+		expect(await readFile(datei, 'utf8')).toBe(stand);
+		await druecke(
+			panel(page)
+				.getByRole('group', { name: 'Note anfügen' })
+				.getByRole('button', { name: 'Viertel', exact: true }),
+		);
+		await gespeichert(page, datei);
+		expect(await readFile(datei, 'utf8')).toBe(stand);
+
+		await druecke(material(page).locator('x-noten'));
+		await druecke(panel(page).getByRole('button', { name: 'Höher ↑' }));
+		await gespeichert(page, datei);
+		expect(await readFile(datei, 'utf8')).toContain(T`noten="g'4 h'4"`);
+		await druecke(zurueck(page));
+		await gespeichert(page, datei);
+		expect(await readFile(datei, 'utf8')).toBe(stand);
+	});
+});

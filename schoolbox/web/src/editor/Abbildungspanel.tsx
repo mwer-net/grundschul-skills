@@ -6,6 +6,7 @@ import type {
 	MehrfachFeld,
 	MischenFeld,
 	MusterFeld,
+	NotenFeld,
 	Option,
 	PlanFeld,
 	RasterFeld,
@@ -28,6 +29,11 @@ import {
 	markierungLesen,
 	markierungNeuerText,
 	markierungText,
+	notenAnfuegen,
+	notenMitTon,
+	notenPunkt,
+	notenTon,
+	notenZuruecknehmen,
 	planObjekteText,
 	planObjekteVon,
 	rasterText,
@@ -1171,6 +1177,89 @@ const Plan = ({ abb, feld }: FeldEigenschaften<PlanFeld>) => {
 	);
 };
 
+const NOTEN_KNOEPFE = [
+	{ name: 'Viertel', woerter: ['4'] },
+	{ name: 'Achtelpaar', woerter: ['8', '8'] },
+	{ name: 'Halbe', woerter: ['2'] },
+	{ name: 'Ganze', woerter: ['1'] },
+	{ name: 'Viertelpause', woerter: ['r4'] },
+	{ name: 'Achtelpause', woerter: ['r8'] },
+	{ name: 'Halbe Pause', woerter: ['r2'] },
+];
+
+const NotenEingabe = ({ abb, feld }: FeldEigenschaften<NotenFeld>) => {
+	const id = useId();
+	const wert = wertVon(feld, abb)?.wert ?? '';
+	const takt = abb.werte?.takt ?? '4/4';
+	const mitTon = notenMitTon(wert);
+	const [gewaehlt, setGewaehlt] = useState<number | null>(null);
+	const stelle = gewaehlt !== null && gewaehlt < mitTon.length ? gewaehlt : mitTon.length - 1;
+	const schreibe = (neu: string) => abb.aendere(feld, neu.trim() === '' ? null : neu);
+	const fuegeAn = (woerter: string[]) => {
+		const ton = /^[a-h]'{1,2}/.exec(mitTon.at(-1) ?? '')?.[0] ?? String.raw`g'`;
+		schreibe(
+			woerter.reduce(
+				(text, w) => notenAnfuegen(text, feld.tonhoehe && !w.startsWith('r') ? `${ton}${w}` : w, takt),
+				wert,
+			),
+		);
+	};
+	return (
+		<Rahmen feld={feld} abb={abb} id={id}>
+			<div className="grid grid-cols-2 gap-2" role="group" aria-label="Note anfügen">
+				{NOTEN_KNOEPFE.map((k) => (
+					<Knopf key={k.name} art="zweit" onClick={() => fuegeAn(k.woerter)}>
+						{k.name}
+					</Knopf>
+				))}
+				<Knopf art="zweit" onClick={() => schreibe(notenPunkt(wert))}>
+					Punkt
+				</Knopf>
+				<Knopf art="zweit" className="col-span-2" onClick={() => schreibe(notenZuruecknehmen(wert))}>
+					Letzte Note zurücknehmen
+				</Knopf>
+			</div>
+			{feld.tonhoehe && mitTon.length > 0 && (
+				<div className="mt-2">
+					<div className="flex flex-wrap gap-1" role="group" aria-label="Note wählen">
+						{mitTon.map((w, i) => (
+							<button
+								// Die Noten tragen keine Kennung; ihre Stelle ist die Kennung.
+								key={String(i)}
+								type="button"
+								aria-pressed={i === stelle}
+								className={`min-h-11 min-w-11 rounded-lg border-2 px-1 ${i === stelle ? 'border-brand-500 font-bold' : 'border-rand'}`}
+								onClick={() => setGewaehlt(i)}
+							>
+								{w}
+							</button>
+						))}
+					</div>
+					<div className="mt-2 flex gap-2">
+						<Knopf art="zweit" className="flex-1" onClick={() => schreibe(notenTon(wert, stelle, 1))}>
+							Höher ↑
+						</Knopf>
+						<Knopf art="zweit" className="flex-1" onClick={() => schreibe(notenTon(wert, stelle, -1))}>
+							Tiefer ↓
+						</Knopf>
+					</div>
+				</div>
+			)}
+			<div className="mt-2">
+				<Text
+					abb={abb}
+					feld={{
+						art: 'text',
+						attribut: feld.attribut,
+						name: 'Als Text',
+						beispiel: feld.tonhoehe ? String.raw`c'4 d'4 e'4 f'4 | g'2 g'2` : '4 8 8 4 r4',
+					}}
+				/>
+			</div>
+		</Rahmen>
+	);
+};
+
 const Eingabe = ({ abb, feld }: FeldEigenschaften<Feld>) => {
 	switch (feld.art) {
 		case 'zahl':
@@ -1197,6 +1286,8 @@ const Eingabe = ({ abb, feld }: FeldEigenschaften<Feld>) => {
 			return <MusterEingabe feld={feld} abb={abb} />;
 		case 'mischen':
 			return <Mischen feld={feld} abb={abb} />;
+		case 'noten':
+			return <NotenEingabe abb={abb} feld={feld} />;
 		case 'markierung':
 			return <Markierung feld={feld} abb={abb} />;
 		case 'plan':

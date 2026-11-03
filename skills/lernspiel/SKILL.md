@@ -32,7 +32,7 @@ Die Spielform muss nicht gefragt werden: 2–3 Entwürfe mit verschiedenen passe
 | Spiel | Prinzip | Gut für | Umfang |
 |---|---|---|---|
 | **Domino** | Aufgabe ↔ Ergebnis, Kette | Rechnen, Bild-Wort, Reime | 12–24 Steine, geschlossene Kette als Selbstkontrolle |
-| **Memory** | Paare finden | Bild-Wort, Aufgabe-Ergebnis, Englisch-Vokabeln | 8–16 Paare, Rückseite einheitlich |
+| **Memory** | Paare finden | Bild-Wort, Aufgabe-Ergebnis, Englisch-Vokabeln, Rhythmus und Silben (`x-rhythmus art="karte"`, `fach-musik`) | 8–16 Paare, Rückseite einheitlich |
 | **Bingo** | Lehrkraft ruft, Kinder markieren | Ganze Klasse, Rechnen, Wortschatz | 3×3 (Kl. 1), 4×4 (Kl. 2–4), unterschiedliche Karten |
 | **Quartett** | 4 zusammengehörige Karten | Wortfamilien, Tierarten, Formen | 6–8 Quartette |
 | **Klammerkarten** | Richtige Lösung mit Klammer markieren | Einzelarbeit, Selbstkontrolle auf der Rückseite | 10–20 Karten |

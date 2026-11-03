@@ -82,7 +82,7 @@
     "x-urne": "Kugeln im Säckchen", "x-wahrscheinlichkeit": "Wahrscheinlichkeit", "x-kombinatorik": "Möglichkeiten",
     "x-gitter": "Gitter", "x-figur": "Figur", "x-tangram": "Tangram",
     "x-hunderterfeld": "Hunderterfeld", "x-hundertertafel": "Hundertertafel", "x-rechenrahmen": "Rechenrahmen", "x-rechenstrich": "Rechenstrich",
-    "x-lineatur": "Schreiblinien", "x-silben": "Silben", "x-wortarten": "Wortarten", "x-satzglieder": "Satzglieder", "x-wortbausteine": "Wortbausteine", "x-zeitleiste": "Zeitleiste", "x-jahreskreis": "Jahreskreis", "x-windrose": "Windrose", "x-plan": "Plan", "x-schaltplan": "Stromkreis", "x-kreislauf": "Kreislauf", "x-verkehrszeichen": "Verkehrszeichen", "x-wetter": "Wettersymbol",
+    "x-lineatur": "Schreiblinien", "x-silben": "Silben", "x-wortarten": "Wortarten", "x-satzglieder": "Satzglieder", "x-wortbausteine": "Wortbausteine", "x-zeitleiste": "Zeitleiste", "x-jahreskreis": "Jahreskreis", "x-windrose": "Windrose", "x-plan": "Plan", "x-schaltplan": "Stromkreis", "x-kreislauf": "Kreislauf", "x-verkehrszeichen": "Verkehrszeichen", "x-wetter": "Wettersymbol", "x-rhythmus": "Rhythmus", "x-noten": "Noten",
     "x-geld": "Geld", "x-skala": "Messgerät", "x-strecke": "Strecke", "x-kalender": "Kalender", "x-zeitspanne": "Zeitspanne",
     "x-punktfeld": "Punktfeld", "x-malkreuz": "Malkreuz", "x-schriftlich": "Schriftliche Rechnung",
     "x-zahlenmauer": "Zahlenmauer", "x-rechendreieck": "Rechendreieck", "x-zahlenhaus": "Zahlenhaus", "x-zahlenkette": "Rechenkette", "x-zauberdreieck": "Zauberdreieck", "x-rechenrad": "Rechenrad",
@@ -4003,6 +4003,301 @@
     el.innerHTML = svg(60, 60, s, [groesse, groesse]);
   }
 
+  /* == Musik == */
+
+  /* Umrisse aus der Schrift Bravura (Steinberg, SIL OFL 1.1); Lizenz: assets/fonts/NOTENZEICHEN-OFL.txt. 250 Einheiten sind ein Linienabstand. */
+  const NOTENZEICHEN = {
+    schluessel: { d: "M376 415C374 427 376 428 382 434C398 449 419 470 438 491C522 583 572 702 572 815C572 902 548 988 507 1048C492 1070 466 1098 455 1098C441 1098 410 1072 390 1050C316 968 292 843 292 739C292 681 299 616 306 575C308 563 309 561 297 551C233 498 164 437 112 373C43 287 0 194 0 87C0 -87 119 -252 364 -252C387 -252 413 -250 433 -246C444 -244 446 -243 448 -255C460 -322 475 -409 475 -456C475 -604 375 -622 316 -622C262 -622 236 -606 236 -593C236 -586 245 -583 268 -576C299 -567 335 -540 335 -482C335 -427 300 -380 239 -380C172 -380 132 -433 132 -495C132 -560 171 -658 322 -658C389 -658 519 -628 519 -458C519 -401 501 -306 490 -244C488 -232 489 -233 503 -227C604 -187 671 -102 671 11C671 139 577 252 430 252C404 252 404 252 401 270ZM470 943C503 943 530 916 530 861C530 792 497 728 419 650C403 634 379 611 356 591C349 585 345 586 343 599C339 625 337 659 337 691C337 847 409 943 470 943ZM361 262C364 243 364 244 346 238C258 208 201 129 201 44C201 -46 248 -110 316 -133C324 -136 336 -139 343 -139C351 -139 355 -134 355 -128C355 -121 347 -118 340 -115C298 -97 268 -54 268 -8C268 49 307 92 368 109C384 113 386 112 388 101L438 -197C440 -208 439 -208 424 -211C408 -214 388 -216 368 -216C193 -216 80 -119 80 20C80 79 90 158 173 252C233 319 279 356 326 394C336 402 338 401 340 390ZM430 103C428 115 429 118 441 117C522 110 589 42 589 -46C589 -109 551 -160 495 -188C483 -194 481 -194 479 -182Z", w: 671 },
+    ganz: { d: "M216 125C83 125 0 70 0 2C0 -65 57 -125 206 -125C370 -125 422 -68 422 2C422 73 309 125 216 125ZM111 63C122 98 159 103 190 103C259 103 314 29 314 -31C314 -38 313 -44 312 -50C307 -75 293 -92 268 -98C258 -101 247 -102 237 -102C228 -102 220 -101 211 -98C194 -93 178 -84 164 -72C156 -65 149 -58 143 -50C123 -27 108 7 108 39C108 47 109 55 111 63Z", w: 422 },
+    halb: { d: "M97 -125C262 -125 295 9 295 42C295 93 254 125 196 125C47 125 0 10 0 -42C0 -95 42 -125 97 -125ZM173 -46C128 -76 97 -87 75 -87C54 -87 42 -76 35 -64C32 -58 29 -51 29 -44C29 -22 51 5 120 45C170 74 201 84 221 84C240 84 251 75 258 63C261 57 264 51 264 44C264 24 243 0 173 -46Z", w: 295 },
+    kopf: { d: "M97 -125C186 -125 295 -43 295 42C295 93 255 125 198 125C88 125 0 44 0 -42C0 -94 43 -125 97 -125Z", w: 295 },
+    fahneOben: { d: "M238 -790C238 -790 264 -695 264 -617C264 -492 212 -374 149 -274C98 -195 56 -109 40 -13C37 3 29 9 19 9C8 9 0 6 0 -6V-245C66 -257 161 -393 197 -478C212 -512 221 -569 221 -628C221 -673 214 -720 197 -765C195 -771 194 -776 194 -780C194 -796 204 -805 210 -809C211 -810 213 -810 215 -810C222 -810 234 -804 238 -790Z", w: 264 },
+    fahneUnten: { d: "M240 760C254 718 261 668 261 623C261 564 236 480 221 446C184 362 134 281 0 236V1C0 -9 8 -14 16 -14C25 -14 38 -8 40 8C57 103 131 190 182 269C245 368 306 487 306 612C306 690 286 761 278 793C275 804 269 808 262 808C250 808 237 796 237 777C237 772 238 766 240 760Z", w: 306 },
+    pauseGanz: { d: "M282 -109V-17C282 -2 270 9 256 9H26C11 9 0 -2 0 -17V-109C0 -123 11 -135 26 -135H256C270 -135 282 -123 282 -109Z", w: 283 },
+    pauseHalb: { d: "M282 24V116C282 131 270 142 256 142H26C11 142 0 131 0 116V24C0 10 11 -2 26 -2H256C270 -2 282 10 282 24Z", w: 283 },
+    pauseViertel: { d: "M78 -38C94 -58 108 -77 121 -98C123 -102 127 -110 127 -112C127 -113 127 -115 126 -116C124 -120 120 -121 115 -121C111 -121 103 -119 99 -118C94 -118 88 -115 83 -115C40 -115 1 -158 1 -211C1 -261 44 -310 117 -366C125 -372 135 -375 143 -375C150 -375 157 -373 158 -369C159 -366 160 -364 160 -362C160 -353 152 -345 144 -338C131 -338 120 -311 118 -302C115 -294 114 -285 114 -276C114 -245 129 -210 161 -204C166 -203 171 -203 177 -203C206 -203 239 -214 255 -220C256 -220 257 -221 258 -221C261 -222 263 -222 265 -222C268 -222 270 -221 270 -218C270 -206 244 -173 233 -161C195 -115 164 -78 164 -22C164 -18 165 -13 165 -9C169 49 205 97 231 138C234 143 235 148 235 153C235 163 231 172 231 172C231 172 83 348 66 365C61 370 54 373 48 373C38 373 28 366 28 352C28 347 29 342 32 336C36 325 93 274 93 202C93 165 78 122 33 75C23 65 19 54 19 46C19 32 29 22 29 22Z", w: 270 },
+    pauseAchtel: { d: "M134 107C134 144 104 174 67 174C30 174 0 144 0 107C0 86 12 68 27 56C36 50 45 45 55 43C63 41 72 39 81 39C95 39 109 42 120 46C134 50 143 54 156 61C158 62 160 62 161 62C165 62 166 58 166 53C166 50 166 46 165 42C162 27 90 -172 72 -238C72 -250 95 -251 101 -251C112 -251 126 -249 136 -241C139 -239 237 112 237 112C241 130 246 146 247 151C247 161 237 166 235 167C233 167 230 167 224 163C217 157 167 97 134 97Z", w: 250 },
+    punkt: { d: "M100 0C100 28 78 50 50 50C22 50 0 28 0 0C0 -28 22 -50 50 -50C78 -50 100 -28 100 0Z", w: 100 },
+    be: { d: "M12 -170C15 -174 18 -175 21 -175C24 -175 27 -173 27 -173C57 -156 81 -129 106 -112C195 -50 226 11 226 57C226 114 182 150 136 153C129 153 122 152 115 150C104 147 92 143 81 136C75 131 64 122 59 122C57 122 56 122 54 123C47 126 43 133 43 140C44 162 50 402 50 422C50 433 41 439 31 439C17 439 1 429 0 411C0 411 4 -160 12 -170ZM47 -81C47 -81 44 -21 44 19C44 35 45 47 46 51C50 63 76 85 90 93C99 98 108 100 116 100C126 100 135 96 141 89C151 78 157 61 157 42C157 24 152 3 140 -18C127 -42 98 -74 68 -93C64 -95 61 -96 58 -96C49 -96 47 -86 47 -81Z", w: 226 },
+    kreuz: { d: "M237 118C244 121 249 129 249 135V206C249 211 246 214 242 214C240 214 239 214 237 213C237 213 217 205 212 204C205 204 198 209 198 217V339C198 345 192 350 184 350C174 350 168 345 168 339V209C167 199 164 186 155 180C143 173 109 159 92 155C83 155 80 167 80 175V295C80 301 73 306 66 306C56 306 50 301 50 295V160C50 146 44 136 38 133C32 130 12 122 12 122C5 120 0 112 0 106V35C0 29 3 26 8 26C9 26 11 27 12 27C12 27 27 33 34 37C35 37 36 38 37 38C44 38 50 28 50 20V-79C50 -90 45 -99 39 -102C33 -104 12 -113 12 -113C5 -115 0 -123 0 -129V-200C0 -206 3 -209 8 -209C9 -209 11 -208 12 -208C12 -208 26 -202 35 -199C36 -198 37 -198 38 -198C45 -198 50 -209 50 -214V-337C50 -343 56 -348 63 -348C73 -348 80 -343 80 -337V-198C80 -185 85 -178 90 -176L151 -151C152 -151 154 -150 155 -150C163 -150 168 -162 168 -168V-293C168 -299 174 -304 181 -304C192 -304 198 -299 198 -293V-151C198 -143 202 -131 209 -128C216 -125 237 -117 237 -117C244 -114 249 -106 249 -100V-29C249 -24 246 -21 242 -21C240 -21 239 -21 237 -22L211 -32C205 -32 198 -26 198 -14V79C198 86 203 105 211 108ZM168 -45C162 -65 115 -85 92 -85C86 -85 81 -83 80 -80C78 -76 77 -54 77 -30C77 1 78 36 80 44C82 61 128 82 153 82C160 82 166 80 168 76C170 71 172 46 172 19C172 -8 170 -36 168 -45Z", w: 249 },
+    ziffer0: { d: "M450 0C450 139 354 251 235 251C116 251 20 139 20 0C20 -138 116 -250 235 -250C354 -250 450 -138 450 0ZM235 220C276 220 310 125 310 7C310 -110 276 -205 235 -205C193 -205 160 -110 160 7C160 125 193 220 235 220Z", w: 470 },
+    ziffer1: { d: "M24 13C24 13 20 7 20 0C20 -5 23 -11 31 -14C35 -15 39 -16 40 -16C50 -16 54 -7 54 -7C54 -7 97 62 108 81C112 88 116 91 118 91C122 91 124 83 124 77V-181C124 -204 101 -219 80 -219C73 -219 63 -222 63 -234C63 -245 72 -250 85 -250H298C314 -250 314 -234 314 -234C314 -234 314 -219 299 -219C285 -219 267 -201 267 -184V228C267 244 261 250 247 251C233 251 208 247 195 247C176 247 158 248 143 250C141 250 139 251 138 251C128 251 124 241 120 232Z", w: 334 },
+    ziffer2: { d: "M421 -91C421 -79 416 -77 409 -77C401 -77 398 -81 396 -87C396 -88 395 -89 395 -90C385 -114 377 -133 356 -133C351 -133 346 -132 339 -130C326 -125 319 -124 309 -119C289 -111 242 -95 201 -95C188 -95 175 -97 164 -101C186 -65 271 -35 293 -29C308 -25 350 -17 383 10C407 29 426 58 426 102C426 149 406 183 380 205C329 248 251 254 229 254C202 254 168 253 142 247C107 240 72 219 48 191C31 170 20 145 20 118C20 104 23 90 29 75C44 44 75 20 111 20C172 20 181 83 181 108C181 168 112 171 112 191C114 205 132 229 191 229C280 229 281 162 281 133C281 95 269 60 247 31C211 -17 183 -41 134 -71C79 -106 40 -155 23 -218C23 -220 22 -222 22 -224C22 -235 29 -248 40 -255C43 -257 46 -257 48 -257C70 -257 82 -196 141 -196C181 -196 196 -250 285 -250C328 -250 405 -246 421 -91Z", w: 446 },
+    ziffer3: { d: "M213 248C208 248 203 249 198 249C112 249 26 192 26 139C26 106 45 62 107 58H112C156 58 178 90 178 123V131C175 168 150 170 145 172C140 174 125 172 125 186V190C127 207 158 215 167 215C252 215 260 162 260 138V131C260 57 201 28 138 25C128 24 114 19 114 8C114 -4 131 -4 139 -4C254 -4 263 -82 263 -95C263 -201 209 -213 187 -213C183 -213 179 -212 178 -212C170 -211 151 -211 150 -196V-191C150 -169 172 -154 173 -125C173 -115 172 -104 168 -94C157 -69 128 -53 101 -53C97 -53 94 -53 90 -54C73 -57 54 -67 42 -80C25 -95 20 -119 20 -141C22 -219 93 -249 191 -251H200C299 -251 401 -200 401 -112V-105C400 -91 398 -77 392 -64C388 -54 381 -44 373 -35C367 -27 359 -20 349 -14L328 -2L295 7C290 8 287 8 285 12C284 14 284 15 284 17C284 21 285 25 288 26C299 29 310 30 319 35C334 42 347 49 358 62C374 80 380 103 380 126C380 218 255 245 213 248Z", w: 421 },
+    ziffer4: { d: "M362 -74V140C362 148 361 157 350 157C341 157 336 155 330 148L235 33C231 28 226 22 226 10V-74H91C171 -6 331 221 334 232C334 234 335 235 335 237C335 245 328 251 320 251C311 251 270 249 252 249C234 249 189 251 181 251C172 251 158 248 158 232C158 108 60 -31 30 -73L24 -81C24 -82 23 -83 23 -84C21 -88 20 -92 20 -95C20 -105 28 -112 40 -112H226V-175C226 -202 204 -210 186 -210C170 -210 163 -219 163 -229C163 -239 167 -250 182 -250H395C405 -250 415 -243 415 -229C415 -215 403 -209 393 -209C383 -209 362 -203 362 -171V-112H435C445 -112 450 -105 450 -93C450 -81 446 -74 435 -74Z", w: 470 },
+    ziffer5: { d: "M76 59C76 59 80 115 81 124C82 132 87 137 96 137H100C110 135 157 128 198 128C337 128 342 208 342 224C342 237 339 245 328 245C315 245 237 236 205 236C173 236 87 244 70 246C52 246 47 237 46 229L35 7V5C35 -8 45 -10 55 -10C65 -10 66 -1 77 10C87 20 111 43 145 43C179 43 248 24 248 -87C248 -197 189 -211 163 -211C155 -211 147 -211 140 -208C135 -205 129 -201 128 -194C128 -187 135 -183 140 -180C163 -166 178 -141 178 -113C178 -69 143 -35 100 -35C46 -35 24 -74 21 -109C20 -115 20 -121 20 -127C20 -210 74 -251 197 -251C317 -251 383 -177 383 -87C383 4 309 78 218 78C160 78 117 68 85 49C83 48 81 48 80 48C76 48 76 52 76 55Z", w: 403 },
+    ziffer6: { d: "M260 100C272 88 289 83 305 83C313 83 322 85 330 87C361 95 385 127 385 159C385 163 385 166 384 170C379 203 351 227 321 238C297 248 268 251 242 251C166 250 95 213 59 145C37 103 20 50 20 3V-1C21 -47 29 -99 51 -139C72 -177 106 -218 145 -235C170 -246 200 -249 225 -249C270 -249 320 -242 356 -213C391 -185 414 -140 414 -95C414 -39 384 -5 352 19C325 39 294 50 263 50C231 50 198 38 172 15C170 13 168 13 166 13C160 13 157 21 157 37C160 222 219 227 240 227C260 227 273 222 273 212C273 198 254 186 248 174C243 165 241 155 241 145C241 130 246 115 256 104C257 102 259 101 260 100ZM222 2C254 2 281 -48 281 -110C281 -172 254 -222 222 -222C190 -222 164 -172 164 -110C164 -48 190 2 222 2Z", w: 434 },
+    ziffer7: { d: "M421 204C421 231 421 244 404 244C403 244 387 240 383 233C376 221 362 164 337 164C312 164 265 249 182 249C124 249 109 226 95 213C81 200 75 196 68 195C60 195 47 209 42 219C40 223 35 226 30 226C25 226 20 223 20 214V49C20 49 21 33 31 33C39 33 42 42 46 53C56 78 69 136 114 136C154 136 202 61 260 61C288 61 302 76 310 82C313 84 317 86 319 86C323 86 325 83 326 77C326 49 249 -7 189 -78C151 -122 120 -180 120 -219C120 -240 120 -250 139 -250C157 -250 179 -241 204 -241C229 -241 276 -250 286 -250C296 -250 302 -242 302 -213C302 -46 421 97 421 200Z", w: 441 },
+    ziffer8: { d: "M334 36C370 59 394 92 394 142C394 244 247 259 220 259C104 259 25 206 25 122C25 53 64 16 112 -11C60 -36 20 -69 20 -132C20 -219 110 -259 209 -259C309 -259 416 -216 416 -81C416 -21 381 12 334 36ZM282 59C202 87 117 104 117 167C117 209 174 230 218 230C250 230 335 214 335 144C335 104 315 78 282 59ZM205 -226C138 -226 77 -192 77 -127C77 -87 112 -50 156 -33C229 -65 303 -86 303 -152C303 -192 272 -226 205 -226Z", w: 436 },
+    ziffer9: { d: "M174 -98C162 -86 145 -81 129 -81C121 -81 112 -83 104 -85C73 -93 49 -125 49 -157C49 -161 49 -164 50 -168C55 -201 83 -225 113 -236C137 -246 166 -249 192 -249C268 -248 339 -211 375 -143C397 -101 414 -48 414 -1V3C413 49 405 101 383 141C362 179 328 220 289 237C264 248 234 251 209 251C164 251 114 244 78 215C43 187 20 142 20 97C20 41 50 7 82 -17C109 -37 140 -48 171 -48C203 -48 236 -36 262 -13C264 -11 266 -11 268 -11C274 -11 277 -19 277 -35C274 -220 215 -225 194 -225C174 -225 161 -220 161 -210C161 -196 180 -184 186 -172C191 -163 193 -153 193 -143C193 -128 188 -113 178 -102C177 -100 175 -99 174 -98ZM212 0C180 0 153 50 153 112C153 174 180 224 212 224C244 224 270 174 270 112C270 50 244 0 212 0Z", w: 434 }
+  };
+  const NOTEN_WERTE = { 1: 8, 2: 4, 4: 2, 8: 1 };
+  const NOTEN_TAKTE = { "2/4": 4, "3/4": 6, "4/4": 8 };
+  const TON_NAMEN = ["c", "d", "e", "f", "g", "a", "h"];
+  const TON_MAX = 12;
+  const viertelText = (achtel) => String(achtel / 2).replace(".", ",");
+
+  /** `c'4.` oder `r8` oder im Rhythmus `4.`: Tonhöhe als Stufe ab c' (c' = 0, a'' = 12), Dauer in Achteln. */
+  const leseNote = (wort, mitTon) => {
+    const t = (mitTon ? /^(?:(r)|([a-h])('{1,2}))(1|2|4|8)(\.?)$/ : /^(r)?()()(1|2|4|8)(\.?)$/).exec(wort);
+    if (!t) abbruch(mitTon ? `„${wort}“ ist keine Note. Schreibe z. B. c'4 oder r4.` : `„${wort}“ ist kein Notenwert. Schreibe z. B. 4, 8, 2. oder r4.`);
+    const [, pause, ton, oktave, wert, punkt] = t;
+    if (wert === "8" && punkt) abbruch("Punktierte Achtel gibt es hier nicht.");
+    const achtel = NOTEN_WERTE[wert] * (punkt ? 1.5 : 1), note = { pause: !!pause, wert: Number(wert), punkt: !!punkt, achtel, stufe: null, ton: null };
+    if (mitTon && !pause) {
+      const name = ton === "b" ? "h" : ton;
+      note.ton = name;
+      note.stufe = TON_NAMEN.indexOf(name) + (oktave.length - 1) * 7;
+      if (note.stufe > TON_MAX) abbruch(`${wort} ist zu hoch: Der Tonumfang geht von c' bis a''.`);
+    }
+    return note;
+  };
+  /** Liest die Takte und prüft, dass jeder aufgeht; der Auftakt darf im ersten und letzten Takt fehlen. */
+  const leseTakte = (text, takt, mitTon, auftakt = false) => {
+    const soll = NOTEN_TAKTE[takt];
+    if (!soll) abbruch(`Die Taktart ${takt} gibt es hier nicht.`);
+    const takte = String(text).split("|").map((t) => t.trim().split(/\s+/).filter(Boolean)).filter((t) => t.length > 0).map((t) => t.map((w) => leseNote(w, mitTon)));
+    takte.forEach((noten, i) => {
+      const summe = noten.reduce((s, n) => s + n.achtel, 0), rand = auftakt && (i === 0 || i === takte.length - 1);
+      if (rand ? summe > soll : summe !== soll) abbruch(`Takt ${i + 1} hat ${viertelText(summe)} Viertel statt ${viertelText(soll)}.`);
+    });
+    return takte;
+  };
+  /** Hals nach oben unter der Mittellinie (h' = Stufe 6), ab der Mittellinie nach unten. */
+  const halsNachOben = (stufe) => stufe < 6;
+  /** Achtel innerhalb eines Schlags: Listen der Positionen im Takt, die ein Balken verbindet. */
+  const balkenGruppen = (noten, auftaktRest = 0) => {
+    const gruppen = [];
+    let lage = auftaktRest;
+    noten.forEach((n, i) => {
+      const folge = noten[i + 1];
+      if (n.wert === 8 && !n.pause && folge?.wert === 8 && !folge.pause && lage % 2 === 0) gruppen.push([i, i + 1]);
+      lage += n.achtel;
+    });
+    return gruppen;
+  };
+  /** Ein Balken zeigt dorthin, wohin die von der Mittellinie entferntere Note will. */
+  const gruppeNachOben = (stufen) => {
+    const hoch = Math.max(...stufen) - 6, tief = 6 - Math.min(...stufen);
+    return tief > hoch;
+  };
+  const silbeStandard = (n) => {
+    if (n.pause) return "";
+    if (n.wert === 8) return "ti";
+    if (n.wert === 4) return n.punkt ? "ta-i" : "ta";
+    if (n.wert === 2) return n.punkt ? "ta-a-a" : "ta-a";
+    return "ta-a-a-a";
+  };
+
+  /** Zeichnet Noten in Zeilen; `liniert`: fünf Linien und Tonhöhen, sonst eine Rhythmusreihe. Liefert Inhalt und Höhe. */
+  const notenSatz = ({ auftakt = false, breite, darunter = null, feld = 0, liniert, offen = () => false, rhythmuslinie = false, sp, takt, takte, vorzeichen = "keine" }) => {
+    const s = sp / 250, unterHoehe = darunter ? 34 : 0;
+    const zeichen = (name, x, y) => `<path class="z-${name}" d="${NOTENZEICHEN[name].d}" transform="translate(${r1(x)} ${r1(y)}) scale(${r1(s * 10000) / 10000} ${r1(-s * 10000) / 10000})" fill="${SCHWARZ}" stroke="none"/>`;
+    const zeichenBreite = (name) => NOTENZEICHEN[name].w * s;
+    const abstand = (n) => {
+      const je = { 8: 2.6, 4: 3.6, 2: 5.2, 1: 7.2 }[n.wert] * (n.punkt ? 1.3 : 1);
+      return Math.max(je * sp * (liniert ? 1 : 0.72), 1.9 * sp);
+    };
+    const [oben, unten] = takt.split("/");
+    const taktBreite = (ziffern) => Math.max(...ziffern.map((z) => zeichenBreite(`ziffer${z}`))) + sp;
+    const vorBreite = liniert ? zeichenBreite("schluessel") + sp * 0.8 + (vorzeichen === "keine" ? 0 : zeichenBreite(vorzeichen) + sp * 0.5) : 0;
+    const kopfBreite = (erste) => vorBreite + (erste ? taktBreite([oben, unten]) : 0);
+    const mindest = (n, i, inhalt) => Math.max(abstand(n), darunter && inhalt[i] ? Math.max(textBreite(inhalt[i], 16) + 8, feld) : 0);
+
+    const reihen = [[]];
+    let frei = breite - kopfBreite(true), nr = 0;
+    const nachTakt = takte.map((noten) => {
+      const namen = noten.map((n, i) => darunter?.(nr + i, n) ?? "");
+      nr += noten.length;
+      const b = noten.reduce((w, n, i) => w + mindest(n, i, namen), sp * 1.1);
+      return { noten, namen, b, start: nr - noten.length };
+    });
+    for (const t of nachTakt) {
+      if (t.b > frei && reihen.at(-1).length > 0) {
+        reihen.push([]);
+        frei = breite - kopfBreite(false);
+      }
+      if (t.b > frei) abbruch("Der Takt passt nicht in die Breite. Nimm weniger Noten oder eine größere Breite.");
+      reihen.at(-1).push(t);
+      frei -= t.b;
+    }
+
+    const hoch = liniert ? 5.5 * sp : 4.2 * sp, tief = liniert ? 4.5 * sp : 1.2 * sp, zeilenHoehe = hoch + tief + unterHoehe + 6;
+    let inhaltSvg = "", maxX = 0;
+    const bogen = [];
+    reihen.forEach((reihe, ri) => {
+      const y0 = hoch + ri * zeilenHoehe, lage = (stufe) => y0 - ((stufe - 6) * sp) / 2;
+      const belegt = reihe.reduce((w, t) => w + t.b, kopfBreite(ri === 0) + 4), dehnung = reihe.length > 0 && liniert ? Math.min(1.6, (breite - kopfBreite(ri === 0) - 4) / (belegt - kopfBreite(ri === 0) - 4)) : 1;
+      const rechts = liniert ? kopfBreite(ri === 0) + 4 + (belegt - kopfBreite(ri === 0) - 4) * dehnung : belegt;
+      if (liniert) {
+        for (let i = -2; i <= 2; i++) inhaltSvg += `<line class="notenlinie" x1="0" x2="${r1(rechts)}" y1="${r1(y0 + i * sp)}" y2="${r1(y0 + i * sp)}" stroke="${SCHWARZ}" stroke-width="1.5"/>`;
+        inhaltSvg += zeichen("schluessel", 2, lage(4));
+        if (vorzeichen !== "keine") inhaltSvg += zeichen(vorzeichen, zeichenBreite("schluessel") + sp * 0.5, lage(vorzeichen === "be" ? 6 : 10));
+      } else if (rhythmuslinie) {
+        inhaltSvg += `<line class="rhythmuslinie" x1="0" x2="${r1(rechts)}" y1="${r1(y0)}" y2="${r1(y0)}" stroke="${SCHWARZ}" stroke-width="1.5"/>`;
+      }
+      let x = vorBreite + 2;
+      if (ri === 0) {
+        const mitte = (z, y) => zeichen(`ziffer${z}`, x + (taktBreite([oben, unten]) - sp - zeichenBreite(`ziffer${z}`)) / 2, y);
+        inhaltSvg += `<g class="taktangabe">${mitte(oben, y0 - sp)}${mitte(unten, y0 + sp)}</g>`;
+        x += taktBreite([oben, unten]);
+      }
+      for (const t of reihe) {
+        const vorn = auftakt && t === nachTakt[0] ? NOTEN_TAKTE[takt] - t.noten.reduce((w, n) => w + n.achtel, 0) : 0, gruppen = balkenGruppen(t.noten, vorn), orte = [];
+        t.noten.forEach((n, i) => {
+          const b = mindest(n, i, t.namen) * dehnung, name = n.pause ? null : n.wert === 1 ? "ganz" : n.wert === 2 ? "halb" : "kopf", gezeigt = !offen(t.start + i);
+          const y = n.stufe === null ? y0 : lage(n.stufe), hx = x + 2;
+          orte[i] = { hx, y, n, gezeigt, name };
+          if (gezeigt) {
+            if (n.pause) {
+              const pz = { 1: "pauseGanz", 2: "pauseHalb", 4: "pauseViertel", 8: "pauseAchtel" }[n.wert];
+              inhaltSvg += `<g class="pause" data-wert="${n.wert}">${zeichen(pz, hx, n.wert === 1 ? y0 - sp : y0)}</g>`;
+              if (n.punkt) inhaltSvg += zeichen("punkt", hx + zeichenBreite(pz) + sp * 0.3, y0 - sp / 2);
+            } else {
+              const kw = zeichenBreite(name);
+              for (let l = n.stufe === null ? 2 : n.stufe; n.stufe !== null && l <= 0; l += 2) inhaltSvg += `<line class="hilfslinie" x1="${r1(hx - sp * 0.3)}" x2="${r1(hx + kw + sp * 0.3)}" y1="${r1(lage(l))}" y2="${r1(lage(l))}" stroke="${SCHWARZ}" stroke-width="1.5"/>`;
+              if (n.stufe !== null && n.stufe >= 12) inhaltSvg += `<line class="hilfslinie" x1="${r1(hx - sp * 0.3)}" x2="${r1(hx + kw + sp * 0.3)}" y1="${r1(lage(12))}" y2="${r1(lage(12))}" stroke="${SCHWARZ}" stroke-width="1.5"/>`;
+              inhaltSvg += `<g class="note" data-wert="${n.wert}" data-stufe="${n.stufe ?? ""}" data-x="${r1(hx)}" data-y="${r1(y)}">${zeichen(name, hx, y)}</g>`;
+              if (n.punkt) inhaltSvg += zeichen("punkt", hx + kw + sp * 0.3, n.stufe !== null && n.stufe % 2 === 0 ? y - sp / 2 : y);
+            }
+          } else {
+            inhaltSvg += `<rect class="notenluecke" x="${r1(hx - 2)}" y="${r1(y0 - sp * 2.4)}" width="${r1(b - 6)}" height="${r1(sp * 3.6)}" fill="none" stroke="${GRAU}" stroke-width="1.2" stroke-dasharray="4 3"/>`;
+          }
+          if (darunter && t.namen[i] !== undefined) bogen.push({ x: hx + (name ? zeichenBreite(name) : sp) / 2, y: y0 + tief + 2, b, nr: t.start + i, t: t.namen[i] });
+          x += b;
+        });
+        const inGruppe = new Set(gruppen.flat());
+        orte.forEach((o, i) => {
+          if (!o.gezeigt || !o.name || o.name === "ganz" || inGruppe.has(i)) return;
+          const auf = o.n.stufe === null || halsNachOben(o.n.stufe), kw = zeichenBreite(o.name), lang = sp * 3.5;
+          const sx = auf ? o.hx + kw - sp * 0.05 : o.hx + sp * 0.05, sy = auf ? o.y - sp * 0.17 : o.y + sp * 0.17;
+          let ende = auf ? o.y - lang : o.y + lang;
+          if (o.n.stufe !== null) ende = auf ? Math.min(ende, y0) : Math.max(ende, y0);
+          inhaltSvg += `<line class="hals" data-richtung="${auf ? "oben" : "unten"}" x1="${r1(sx)}" x2="${r1(sx)}" y1="${r1(sy)}" y2="${r1(ende)}" stroke="${SCHWARZ}" stroke-width="${r1(sp * 0.12)}"/>`;
+          if (o.n.wert === 8) inhaltSvg += zeichen(auf ? "fahneOben" : "fahneUnten", sx, ende);
+        });
+        for (const [a, b] of gruppen) {
+          const A = orte[a], B = orte[b];
+          if (!A.gezeigt || !B.gezeigt) {
+            for (const o of [A, B]) {
+              if (!o.gezeigt) continue;
+              const auf = o.n.stufe === null || halsNachOben(o.n.stufe), kw = zeichenBreite("kopf"), sx = auf ? o.hx + kw - sp * 0.05 : o.hx + sp * 0.05, ende = auf ? o.y - sp * 3.5 : o.y + sp * 3.5;
+              inhaltSvg += `<line class="hals" data-richtung="${auf ? "oben" : "unten"}" x1="${r1(sx)}" x2="${r1(sx)}" y1="${r1(o.y)}" y2="${r1(ende)}" stroke="${SCHWARZ}" stroke-width="${r1(sp * 0.12)}"/>`;
+              inhaltSvg += zeichen(auf ? "fahneOben" : "fahneUnten", sx, ende);
+            }
+            continue;
+          }
+          const stufen = [A.n.stufe, B.n.stufe], auf = A.n.stufe === null || gruppeNachOben(stufen), kw = zeichenBreite("kopf");
+          const xa = auf ? A.hx + kw - sp * 0.05 : A.hx + sp * 0.05, xb = auf ? B.hx + kw - sp * 0.05 : B.hx + sp * 0.05;
+          const steig = Math.max(-sp, Math.min(sp, (B.y - A.y) * 0.5)), rand = auf ? Math.min(A.y, B.y - steig) - sp * 3.5 : Math.max(A.y, B.y - steig) + sp * 3.5;
+          const ya = rand, yb = rand + steig, dick = sp * 0.5, versatz = auf ? 0 : -dick;
+          inhaltSvg += `<g class="balken" data-richtung="${auf ? "oben" : "unten"}"><line class="hals" data-richtung="${auf ? "oben" : "unten"}" x1="${r1(xa)}" x2="${r1(xa)}" y1="${r1(A.y)}" y2="${r1(ya)}" stroke="${SCHWARZ}" stroke-width="${r1(sp * 0.12)}"/><line class="hals" data-richtung="${auf ? "oben" : "unten"}" x1="${r1(xb)}" x2="${r1(xb)}" y1="${r1(B.y)}" y2="${r1(yb)}" stroke="${SCHWARZ}" stroke-width="${r1(sp * 0.12)}"/><path d="M${r1(xa - sp * 0.06)} ${r1(ya + versatz)}L${r1(xb + sp * 0.06)} ${r1(yb + versatz)}V${r1(yb + versatz + dick)}L${r1(xa - sp * 0.06)} ${r1(ya + versatz + dick)}Z" fill="${SCHWARZ}" stroke="none"/></g>`;
+        }
+        x += sp * 1.1 * dehnung;
+        maxX = Math.max(maxX, x);
+        if (liniert || takte.length > 1) inhaltSvg += `<line class="taktstrich" x1="${r1(x - sp * 0.4)}" x2="${r1(x - sp * 0.4)}" y1="${r1(y0 - (liniert ? 2 : 1.6) * sp)}" y2="${r1(y0 + (liniert ? 2 : 0.6) * sp)}" stroke="${SCHWARZ}" stroke-width="1.5"/>`;
+      }
+    });
+    const hoehe = reihen.length * zeilenHoehe + (darunter ? 2 : 0);
+    return { s: inhaltSvg, hoehe, unten: bogen, rechts: maxX };
+  };
+
+  const notenMass = { karte: cm(0.8), zeile: 14, noten: 10 };
+
+  function rhythmus(el) {
+    const takt = attr(el, "takt", "4/4"), art = attr(el, "art", "zeile"), aufgabe = attr(el, "aufgabe", "keine"), silbenRoh = attr(el, "silben", "keine"), linie = attr(el, "linie", "nein") === "ja", auftakt = attr(el, "auftakt", "nein") === "ja";
+    if (!["karte", "zeile", "grafisch"].includes(art)) abbruch(`Die Art „${art}“ gibt es nicht.`);
+    if (!["keine", "silben", "noten", "ergaenzen"].includes(aufgabe)) abbruch(`Die Aufgabe „${aufgabe}“ gibt es nicht.`);
+    const roh = attr(el, "noten", null);
+    if (roh === null) abbruch("Die Noten fehlen.");
+    const takte = leseTakte(roh, takt, false, auftakt), alle = takte.flat(), loesung = loesungSichtbar(el);
+    if (art === "karte" && takte.length !== 1) abbruch("Eine Rhythmuskarte hat genau einen Takt.");
+    const klingend = alle.filter((n) => !n.pause);
+    let silben = klingend.map(silbeStandard);
+    if (!["keine", "ta"].includes(silbenRoh)) {
+      silben = silbenRoh.split(/\s+/).filter(Boolean);
+      if (silben.length !== klingend.length) abbruch(`${silben.length} Silben passen nicht zu ${klingend.length} Noten.`);
+    }
+    if (art === "grafisch") {
+      const je = 26;
+      let x = 4, s = "";
+      alle.forEach((n) => {
+        const b = n.achtel * je;
+        if (!n.pause) s += n.wert === 8 ? `<circle class="kurz" cx="${r1(x + 7)}" cy="14" r="7" fill="${SCHWARZ}" stroke="none"/>` : `<line class="lang" x1="${r1(x)}" x2="${r1(x + b - 10)}" y1="14" y2="14" stroke="${SCHWARZ}" stroke-width="8" stroke-linecap="round"/>`;
+        x += b;
+      });
+      el.innerHTML = svg(r1(x + 4), 28, s);
+      return;
+    }
+    const zuSilbe = [];
+    let k = 0;
+    alle.forEach((n, i) => {
+      zuSilbe[i] = n.pause ? "" : silben[k++];
+    });
+    const offeneNummern = liste(el, "offen").map(Number), nurSilben = aufgabe === "noten" && !loesung;
+    const ergaenzen = aufgabe === "ergaenzen" ? (offeneNummern.length ? offeneNummern : [alle.length]) : [];
+    if (ergaenzen.some((i) => !(i >= 1 && i <= alle.length))) abbruch(`Die Note ${ergaenzen.find((i) => !(i >= 1 && i <= alle.length))} gibt es nicht.`);
+    const zeigeSilben = silbenRoh !== "keine" || aufgabe === "silben" || aufgabe === "noten";
+    const satz = notenSatz({ auftakt, breite: Math.min(num(el, "breite", SATZSPIEGEL), SATZSPIEGEL), darunter: zeigeSilben ? (i) => zuSilbe[i] : null, liniert: false, offen: (i) => nurSilben || (ergaenzen.includes(i + 1) && !loesung), rhythmuslinie: linie, sp: notenMass[art], takt, takte, feld: aufgabe === "silben" ? 44 : 0 });
+    let s = satz.s;
+    for (const u of satz.unten) {
+      if (!u.t) continue;
+      if (aufgabe === "silben") s += `<g class="silbe" data-silbe="${maskiere(u.t)}" stroke="${SCHWARZ}">${antwortfeld(el, u.x - 19, u.y, 38, 26, u.t, { groesse: 15 })}</g>`;
+      else s += `<g class="silbe" data-silbe="${maskiere(u.t)}">${text(u.x, u.y + 12, u.t, { groesse: art === "karte" ? 20 : 16 })}</g>`;
+    }
+    el.setAttribute("data-kopf-mm", String(r1((notenMass[art] * 25.4) / 96)));
+    el.innerHTML = svg(r1(satz.rechts + 4), r1(satz.hoehe + 4), s);
+  }
+
+  const NOTEN_VORZEICHEN = { keine: "keine", b: "be", kreuz: "kreuz" };
+  const notenName = (n, vorzeichen) => {
+    if (vorzeichen === "b" && n.ton === "h") return "b";
+    if (vorzeichen === "kreuz" && n.ton === "f") return "fis";
+    return n.ton;
+  };
+
+  function noten(el) {
+    const takt = attr(el, "takt", "4/4"), aufgabe = attr(el, "aufgabe", "keine"), namenAn = attr(el, "namen", "nein") === "ja", auftakt = attr(el, "auftakt", "nein") === "ja", vorRoh = attr(el, "vorzeichen", "keine"), systeme = num(el, "systeme", 0), breite = Math.min(num(el, "breite", SATZSPIEGEL), SATZSPIEGEL), textRoh = attr(el, "text", "");
+    if (!["keine", "benennen", "zeichnen"].includes(aufgabe)) abbruch(`Die Aufgabe „${aufgabe}“ gibt es nicht.`);
+    if (!NOTEN_VORZEICHEN[vorRoh]) abbruch(`Das Vorzeichen „${vorRoh}“ gibt es nicht.`);
+    if (!(Number.isInteger(systeme) && systeme >= 0 && systeme <= 8)) abbruch("Es gehen 0 bis 8 leere Notenzeilen.");
+    const roh = attr(el, "noten", ""), sp = notenMass.noten;
+    if (!roh && systeme === 0) abbruch("Es fehlen Noten oder leere Notenzeilen.");
+    const takte = roh ? leseTakte(roh, takt, true, auftakt) : [], klingend = takte.flat().filter((n) => !n.pause), loesung = loesungSichtbar(el);
+    const silben = textRoh.split(/\s+/).filter(Boolean);
+    if (silben.length > 0 && silben.length !== klingend.length) abbruch(`${silben.length} Textsilben passen nicht zu ${klingend.length} Noten.`);
+    const alle = takte.flat(), beschriftung = [];
+    let k = 0;
+    alle.forEach((n, i) => {
+      if (n.pause) {
+        beschriftung[i] = "";
+        return;
+      }
+      beschriftung[i] = silben.length ? silben[k] : notenName(n, vorRoh);
+      k += 1;
+    });
+    const mitNamen = namenAn || aufgabe === "benennen" || aufgabe === "zeichnen" || silben.length > 0;
+    let s = "", h = 0;
+    if (takte.length > 0) {
+      const satz = notenSatz({ auftakt, breite, darunter: mitNamen ? (i) => beschriftung[i] : null, feld: aufgabe === "benennen" ? 36 : 0, liniert: true, offen: () => aufgabe === "zeichnen" && !loesung, sp, takt, takte, vorzeichen: NOTEN_VORZEICHEN[vorRoh] });
+      s += satz.s;
+      h = satz.hoehe;
+      for (const u of satz.unten) {
+        if (!u.t) continue;
+        if (aufgabe === "benennen") s += `<g class="notenname" data-name="${maskiere(u.t)}" stroke="${SCHWARZ}">${antwortfeld(el, u.x - 15, u.y, 30, 26, u.t, { groesse: 15 })}</g>`;
+        else s += `<g class="notenname" data-name="${maskiere(u.t)}">${text(u.x, u.y + 12, u.t, { groesse: 16 })}</g>`;
+      }
+    }
+    const luftOben = 2.5 * sp, s2 = sp / 250;
+    for (let i = 0; i < systeme; i++) {
+      const y0 = h + luftOben + 2 * sp;
+      for (let l = -2; l <= 2; l++) s += `<line class="notenlinie leer" x1="0" x2="${r1(breite)}" y1="${r1(y0 + l * sp)}" y2="${r1(y0 + l * sp)}" stroke="${SCHWARZ}" stroke-width="1.5"/>`;
+      s += `<path class="z-schluessel" d="${NOTENZEICHEN.schluessel.d}" transform="translate(2 ${r1(y0 + sp)}) scale(${r1(s2 * 10000) / 10000} ${r1(-s2 * 10000) / 10000})" fill="${SCHWARZ}" stroke="none"/>`;
+      h = y0 + 2 * sp + 2.5 * sp;
+    }
+    el.innerHTML = svg(r1(breite + 2), r1(h + 2), s);
+  }
+
   /* == Test == */
   // x-probe gibt es nur für die Tests der Feldtypen im Panel (023); in Material kommt es nicht vor.
   function probe(el) {
@@ -4042,7 +4337,7 @@
     "x-gitter": gitter, "x-figur": figur, "x-tangram": tangram,
     "x-hunderterfeld": hunderterfeld, "x-hundertertafel": hundertertafel, "x-rechenrahmen": rechenrahmen, "x-rechenstrich": rechenstrich,
     "x-zahlenmauer": zahlenmauer, "x-rechendreieck": rechendreieck, "x-zahlenhaus": zahlenhaus, "x-zahlenkette": zahlenkette, "x-zauberdreieck": zauberdreieck, "x-rechenrad": rechenrad,
-    "x-lineatur": lineatur, "x-silben": silben, "x-wortarten": wortarten, "x-satzglieder": satzglieder, "x-wortbausteine": wortbausteine, "x-zeitleiste": zeitleiste, "x-jahreskreis": jahreskreis, "x-windrose": windrose, "x-plan": plan, "x-schaltplan": schaltplan, "x-kreislauf": kreislauf, "x-verkehrszeichen": verkehrszeichen, "x-wetter": wetter,
+    "x-lineatur": lineatur, "x-silben": silben, "x-wortarten": wortarten, "x-satzglieder": satzglieder, "x-wortbausteine": wortbausteine, "x-zeitleiste": zeitleiste, "x-jahreskreis": jahreskreis, "x-windrose": windrose, "x-plan": plan, "x-schaltplan": schaltplan, "x-kreislauf": kreislauf, "x-verkehrszeichen": verkehrszeichen, "x-wetter": wetter, "x-rhythmus": rhythmus, "x-noten": noten,
     "x-geld": geld, "x-skala": skala, "x-strecke": strecke, "x-kalender": kalender, "x-zeitspanne": zeitspanne,
     "x-punktfeld": punktfeld, "x-malkreuz": malkreuz, "x-schriftlich": schriftlich,
     "x-wuerfelbau": wuerfelbau, "x-wuerfelnetz": wuerfelnetz, "x-koerper": koerper };
@@ -4073,7 +4368,7 @@
     mauerWerte, mauerEindeutig, istEindeutig, RECHENDREIECK_GLEICHUNGEN, zauberLoesungen, ketteWerte, leseOperator,
     malkreuzRechnung, addiere, subtrahiereErweitern, subtrahiereEntbuendeln, multipliziere, dividiere, moeglicheFehler, rechnungsplan,
     MUENZEN, SCHEINE, betragText, mindestStueckelung, skalaStriche, kalenderMonat, isoWoche, zeitStationen, dauerText, uhrText,
-    ANDIKA_X_HOEHE, lineaturMass, silbenTeile, pruefeSilben, WORTARTEN, ROLLEN, wortartenTeile, satzLesen, satzUmstellen, kleinImSatz, pruefeBausteine, zeitPos, jahrText, KREISE, PLAN_SYMBOLE, stromTeile, stromkreis, VERKEHRSZEICHEN, WETTER_FORMEN,
+    ANDIKA_X_HOEHE, lineaturMass, silbenTeile, pruefeSilben, WORTARTEN, ROLLEN, wortartenTeile, satzLesen, satzUmstellen, kleinImSatz, pruefeBausteine, zeitPos, jahrText, KREISE, PLAN_SYMBOLE, stromTeile, stromkreis, VERKEHRSZEICHEN, WETTER_FORMEN, leseTakte, halsNachOben, balkenGruppen, gruppeNachOben, silbeStandard,
   };
   if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", () => window.zeichneAbbildungen());
   else window.zeichneAbbildungen();

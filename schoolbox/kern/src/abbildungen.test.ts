@@ -17,6 +17,11 @@ import {
 	markierungLesen,
 	markierungNeuerText,
 	markierungText,
+	notenAnfuegen,
+	notenMitTon,
+	notenPunkt,
+	notenTon,
+	notenZuruecknehmen,
 	NUR_ZUR_LAUFZEIT,
 	planLage,
 	planObjekteText,
@@ -524,6 +529,16 @@ const rechenkerne = () => {
 			zweig?: { art: string; zustand: string | null }[],
 		) => { ergebnis: string; laufen: { art: string }[] };
 		VERKEHRSZEICHEN: Record<string, string>;
+		leseTakte: (
+			text: string,
+			takt: string,
+			mitTon: boolean,
+			auftakt?: boolean,
+		) => { stufe: number | null; wert: number; pause: boolean; achtel: number }[][];
+		halsNachOben: (stufe: number) => boolean;
+		balkenGruppen: (noten: { wert: number; pause: boolean; achtel: number }[], vorn?: number) => number[][];
+		gruppeNachOben: (stufen: number[]) => boolean;
+		silbeStandard: (n: { wert: number; pause: boolean; punkt: boolean }) => string;
 		rechnungsplan: (
 			art: string,
 			zahlen: number[],
@@ -1395,5 +1410,107 @@ describe('Sachunterricht: Natur und Technik (034)', () => {
 		assert.deepEqual(pruefeWerte(s, { art: 'linie', werte: 'Mo; Di' }), {});
 		assert.ok(pruefeWerte(s, { werte: 'Mo: -5' }).werte);
 		assert.ok(pruefeWerte(s, { werte: 'Mo' }).werte);
+	});
+});
+
+/** Noten schreiben Oktaven mit Apostrophen; so bleiben sie lesbar. */
+const T = String.raw;
+
+describe('Musik (035)', () => {
+	const { balkenGruppen, gruppeNachOben, halsNachOben, leseTakte } = rechenkerne();
+	const stufe = (ton: string) => leseTakte(`${ton}1`, '4/4', true)[0]?.[0]?.stufe;
+
+	it('prüft die Takte und nennt die Nummer', () => {
+		assert.throws(() => leseTakte('4 4 8 8 4 4 | 4 4 2', '4/4', false), /Takt 1 hat 5 Viertel statt 4/);
+		assert.throws(() => leseTakte('4 4 | 4', '2/4', false), /Takt 2 hat 1 Viertel statt 2/);
+		assert.throws(() => leseTakte('4 8', '2/4', false), /Takt 1 hat 1,5 Viertel statt 2/);
+		assert.equal(leseTakte('4 8 8 4 r4 | 2.  4', '4/4', false).length, 2);
+		assert.throws(() => leseTakte('4', '4/4', false), /Takt 1/);
+		assert.equal(leseTakte('4 | 4 4 4 4 | 4 4 4', '4/4', false, true).length, 3);
+		assert.throws(() => leseTakte('4 4 4 4 4', '4/4', false, true), /Takt 1/);
+		assert.throws(() => leseTakte('4', '6/8', false), /6\/8/);
+		assert.throws(() => leseTakte('16', '4/4', false), /kein Notenwert/);
+		assert.throws(() => leseTakte('8.', '4/4', false), /Achtel/);
+	});
+
+	it('legt die Tonhöhen von c bis a in Stufen ab und lehnt alles andere ab', () => {
+		const leiter = [
+			T`c'`,
+			T`d'`,
+			T`e'`,
+			T`f'`,
+			T`g'`,
+			T`a'`,
+			T`h'`,
+			T`c''`,
+			T`d''`,
+			T`e''`,
+			T`f''`,
+			T`g''`,
+			T`a''`,
+		];
+		assert.deepEqual(leiter.map(stufe), [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12]);
+		assert.equal(stufe(T`b'`), 6);
+		assert.throws(() => stufe(T`h''`), /zu hoch/);
+		assert.throws(() => stufe('c'), /keine Note/);
+		assert.throws(() => stufe(T`c'''`), /keine Note/);
+	});
+
+	it('Halsrichtung an zehn Beispielen', () => {
+		const faelle: [string, boolean][] = [
+			[T`c'`, true],
+			[T`d'`, true],
+			[T`e'`, true],
+			[T`g'`, true],
+			[T`a'`, true],
+			[T`h'`, false],
+			[T`c''`, false],
+			[T`e''`, false],
+			[T`g''`, false],
+			[T`a''`, false],
+		];
+		for (const [ton, oben] of faelle) {
+			assert.equal(halsNachOben(stufe(ton) ?? -1), oben, ton);
+		}
+	});
+
+	it('balkt Achtel nur innerhalb eines Schlags', () => {
+		const gruppen = (text: string, vorn = 0) =>
+			Array.from(balkenGruppen(leseTakte(text, '4/4', false, true)[0] ?? [], vorn), (g) => Array.from(g));
+		assert.deepEqual(gruppen('8 8 4 4 4'), [[0, 1]]);
+		assert.deepEqual(gruppen('8 8 8 8 2'), [
+			[0, 1],
+			[2, 3],
+		]);
+		assert.deepEqual(gruppen('4 8 8 2'), [[1, 2]]);
+		assert.deepEqual(gruppen('8 4 8 2'), []);
+		assert.deepEqual(gruppen('r8 8 8 8 2'), [[2, 3]]);
+		assert.deepEqual(gruppen('8 8', 1), []);
+		assert.equal(gruppeNachOben([0, 2]), true);
+		assert.equal(gruppeNachOben([8, 10]), false);
+		assert.equal(gruppeNachOben([4, 9]), false);
+	});
+
+	it('die Notenleiste füllt die Takte der Reihe nach', () => {
+		let t = '';
+		for (const w of ['4', '4', '8', '8', '4', '2']) {
+			t = notenAnfuegen(t, w, '4/4');
+		}
+		assert.equal(t, '4 4 8 8 4 | 2');
+		assert.equal(notenAnfuegen('4 4', '4', '2/4'), '4 4 | 4');
+		assert.equal(notenZuruecknehmen('4 4 8 8 4 | 2'), '4 4 8 8 4');
+		assert.equal(notenZuruecknehmen('4'), '');
+		assert.equal(notenPunkt('4 2'), '4 2.');
+		assert.equal(notenPunkt('4 2.'), '4 2');
+		assert.equal(notenPunkt('8'), '8');
+	});
+
+	it('Tonhöhe ändert genau eine Note und bleibt im Umfang', () => {
+		assert.equal(notenTon(T`c'4 r4 g'2`, 1, 1), T`c'4 r4 a'2`);
+		assert.equal(notenTon(T`h'4`, 0, 1), T`c''4`);
+		assert.equal(notenTon(T`c''4`, 0, -1), T`h'4`);
+		assert.equal(notenTon(T`c'4`, 0, -1), T`c'4`);
+		assert.equal(notenTon(T`a''4`, 0, 1), T`a''4`);
+		assert.deepEqual(notenMitTon(T`c'4 r4 | g'2`), [T`c'4`, T`g'2`]);
 	});
 });

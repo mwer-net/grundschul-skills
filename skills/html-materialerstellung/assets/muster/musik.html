@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<title>Muster: Musik</title>
+<link rel="stylesheet" href="blatt.css">
+<script src="abbildungen.js"></script>
+</head>
+<body class="kl3 sw">
+<section class="seite">
+  <div class="karten" style="--spalten:2">
+    <div class="karte"><div class="kartentext" style="font-weight:400"><x-rhythmus art="karte" takt="2/4" noten="4 8 8" silben="ta"></x-rhythmus></div></div>
+    <div class="karte"><div class="kartentext" style="font-weight:400"><x-rhythmus art="karte" takt="3/4" noten="4 4 4" silben="ta"></x-rhythmus></div></div>
+    <div class="karte"><div class="kartentext" style="font-weight:400"><x-rhythmus art="karte" takt="4/4" noten="2 4 4" silben="ta"></x-rhythmus></div></div>
+    <div class="karte"><div class="kartentext" style="font-weight:400"><x-rhythmus art="karte" takt="2/4" noten="r4 4"></x-rhythmus></div></div>
+    <div class="karte"><div class="kartentext" style="font-weight:400"><x-rhythmus art="karte" takt="3/4" noten="2."></x-rhythmus></div></div>
+    <div class="karte"><div class="kartentext" style="font-weight:400"><x-rhythmus art="karte" takt="4/4" noten="4 r4 2"></x-rhythmus></div></div>
+    <div class="karte"><div class="kartentext" style="font-weight:400"><x-rhythmus art="karte" takt="2/4" noten="8 8 8 8" silben="ta"></x-rhythmus></div></div>
+    <div class="karte"><div class="kartentext" style="font-weight:400"><x-rhythmus art="karte" takt="4/4" noten="1" silben="ta"></x-rhythmus></div></div>
+  </div>
+</section>
+<section class="seite">
+  <div class="kopf"><div class="titel"><h1>Rhythmus lesen</h1></div></div>
+  <div class="aufgabe"><div class="nr">1</div><div class="anw"><div class="text">Sprich den Rhythmus und schreibe die Silben darunter.</div></div>
+    <div class="koerper"><x-rhythmus takt="4/4" noten="4 8 8 4 r4 | 8 8 8 8 2" aufgabe="silben"></x-rhythmus></div></div>
+  <div class="aufgabe"><div class="nr">2</div><div class="anw"><div class="text">Eine Note fehlt. Ergänze sie.</div></div>
+    <div class="koerper"><x-rhythmus takt="3/4" noten="4 4 4 | 2 4" aufgabe="ergaenzen" offen="5"></x-rhythmus></div></div>
+  <div class="aufgabe"><div class="nr">3</div><div class="anw"><div class="text">Schreibe die Noten zu den Silben.</div></div>
+    <div class="koerper"><x-rhythmus takt="4/4" noten="4 8 8 2" silben="ta" aufgabe="noten"></x-rhythmus></div></div>
+  <div class="aufgabe"><div class="nr">4</div><div class="anw"><div class="text">Auf der Rhythmuslinie, mit Silben der Klasse.</div></div>
+    <div class="koerper"><x-rhythmus takt="2/4" noten="4 4 | 8 8 4" linie="ja" silben="du du du-de du-de du"></x-rhythmus></div></div>
+  <div class="aufgabe"><div class="nr">5</div><div class="anw"><div class="text">Klatsche: Strich für lang, Punkt für kurz.</div></div>
+    <div class="koerper"><x-rhythmus art="grafisch" takt="4/4" noten="4 8 8 2"></x-rhythmus></div></div>
+</section>
+<section class="seite">
+  <div class="kopf"><div class="titel"><h1>Noten lesen und schreiben</h1></div></div>
+  <div class="aufgabe"><div class="nr">1</div><div class="anw"><div class="text">Lies die Tonleiter.</div></div>
+    <div class="koerper"><x-noten takt="4/4" noten="c'4 d'4 e'4 f'4 | g'4 a'4 h'4 c''4" namen="ja"></x-noten></div></div>
+  <div class="aufgabe"><div class="nr">2</div><div class="anw"><div class="text">Wie heißen die Noten?</div></div>
+    <div class="koerper"><x-noten takt="4/4" noten="e'4 g'4 a'8 g'8 e'4 | c''2 a''2" aufgabe="benennen"></x-noten></div></div>
+  <div class="aufgabe"><div class="nr">3</div><div class="anw"><div class="text">Zeichne die Noten.</div></div>
+    <div class="koerper"><x-noten takt="3/4" noten="g'4 a'4 h'4 | c''2." aufgabe="zeichnen"></x-noten></div></div>
+  <div class="aufgabe"><div class="nr">4</div><div class="anw"><div class="text">Singe mit Text, in F-Dur, mit Auftakt.</div></div>
+    <div class="koerper"><x-noten takt="3/4" auftakt="ja" vorzeichen="b" noten="c'4 | f'4 f'4 g'4 | a'2 h'4" text="Komm wir sin gen heu te"></x-noten></div></div>
+</section>
+<section class="seite">
+  <div class="kopf"><div class="titel"><h1>Eigene Lieder</h1></div></div>
+  <div class="aufgabe"><div class="nr">1</div><div class="anw"><div class="text">Schreibe selbst.</div></div>
+    <div class="koerper"><x-noten systeme="4"></x-noten></div></div>
+</section>
+</body>
+</html>

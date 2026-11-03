@@ -12,7 +12,7 @@ Grundlage: Bildungsplan Baden-Württemberg Musik (2016).
 Nach dem Rückfrage-Protokoll aus `grundschul-didaktik` (eine Frage pro Nachricht, mit Empfehlung). Ergänzend zu den Fragen des Material-Skills:
 
 1. **Bereich:** Singen, Musizieren (Orff/Boomwhackers/Körperinstrumente), Musik hören, Musik und Bewegung, Musik erfinden, Instrumente kennenlernen?
-2. **Vorkenntnisse:** Kennt die Klasse Rhythmussilben (z. B. ta, ti-ti), grafische Notation, Noten?
+2. **Vorkenntnisse:** Kennt die Klasse Rhythmussilben, grafische Notation, Noten? Welche Silben nutzt sie (ta, ti-ti, ta-a oder du, du-de)? Die Klassenkonvention gilt, `ta` ist nur der Standard.
 3. **Lied oder Werk:** Welches? (Rechte prüfen; Volkslieder und gemeinfreie Werke bevorzugen)
 4. **Instrumente vorhanden?**
 
@@ -33,10 +33,22 @@ Nach dem Rückfrage-Protokoll aus `grundschul-didaktik` (eine Frage pro Nachrich
 ## Materialtypen
 
 - **Liedblatt:** Text in großer Schrift, Strophen nummeriert, Refrain hervorgehoben; Bilder zu den Strophen für Leseanfänger; Noten nur wenn Ziel.
-- **Rhythmuskarten:** ein Takt pro Karte, Symbol + Rhythmussilben, für Spiele kombinierbar.
+- **Rhythmuskarten:** ein Takt pro Karte, Symbol + Rhythmussilben, für Spiele kombinierbar: `x-rhythmus art="karte"`.
 - **Hörbogen / Hörlandkarte:** Werk, Komponist, Aufgaben zum Ankreuzen/Malen.
 - **Instrumentenkarten:** Foto, Name, Instrumentengruppe, Spielweise.
 - **Klanggeschichte:** Text mit Symbolen, wo welches Instrument spielt.
+
+## Abbildungen
+
+Rhythmen und Noten kommen als Elemente aus `html-materialerstellung/assets/abbildungen.js` ins HTML, nie als Text oder KI-Bild. Attribute: `html-materialerstellung/references/abbildungen.md`, Abschnitt „Musik“. Muster: `assets/muster/musik.html`.
+
+| Element | Darstellung | Klasse |
+|---|---|---|
+| `<x-rhythmus art="grafisch" takt="4/4" noten="4 8 8 2">` | grafische Notation, lang und kurz | 1/2 |
+| `<x-rhythmus art="karte" takt="2/4" noten="4 8 8" silben="ta">` | Rhythmuskarte, ein Takt, Silben | 1–4 |
+| `<x-rhythmus takt="4/4" noten="4 8 8 2 \| 4 4 2" aufgabe="silben">` | Rhythmuszeile, Aufgaben `silben`, `noten`, `ergaenzen` | 2–4 |
+| `<x-noten noten="c'4 d'4 e'4 f'4" namen="ja">` | Noten im Violinschlüssel, Namen, Liedtext, Aufgaben `benennen`, `zeichnen` | 3/4 |
+| `<x-noten systeme="4">` | leere Notenzeilen | 3/4 |
 
 ## Rechte
 
