@@ -81,7 +81,7 @@ Zeichnet HTML, nicht SVG.
 <x-zahlenstrahl von="0" bis="100" schritt="10" zahlen="0 50 100" pfeile="30 70" breite="620"></x-zahlenstrahl>
 ```
 
-`von` und `bis`, `schritt` Abstand der Striche, `zahlen` beschriftete Zahlen, `pfeile` Pfeile mit Antwortkästchen (Zahl nur in der Lösung), `breite` in px. Fehler: `bis` nicht größer als `von`, Schritt nicht passend.
+`von` und `bis`, `schritt` Abstand der Striche, `zahlen` beschriftete Zahlen, `pfeile` Pfeile mit Antwortkästchen (Zahl nur in der Lösung), `breite` in px, `schrift` Größe der Zahlen. Fehler: `bis` nicht größer als `von`, Schritt nicht passend.
 
 ### `x-timer`: Zeitscheibe
 
@@ -278,7 +278,7 @@ Fehler: Frage ist zugleich Vorgabe; Fragen ohne Schrägbild oder Bauplan; nach B
 
 Muster: `assets/muster/zahldarstellungen.html`. Stellenfarben der Klasse: einmal am `<body>`, zum Beispiel `data-stellenfarben="E:blau Z:rot H:gruen"`. Sie gelten nur in Farbe, als schmale Kopfleiste in der Stellentafel und an deren Plättchen.
 
-Erweiterungen der Grundelemente: `x-zwanzigerfeld` `art` (`fuenfer`, `zehner`, `zwanziger`), `n2` zweite Sorte, `loesung="5 2"`. `x-dienes` `t`, `h`, `loesung="1 2 3 4"` (T H Z E). `x-stellentafel` bis `M HT ZT T H Z E`, `art="plaettchen"` mit `plaettchen="3 0 12"` (bis 15 je Stelle), auch in `loesung`. `x-zahlenstrahl` `marken` mittlere Striche alle so viele Schritte; Ausschnitte wie 3400 bis 3500 ohne Null.
+Erweiterungen der Grundelemente: `x-zwanzigerfeld` `art` (`fuenfer`, `zehner`, `zwanziger`), `n2` zweite Sorte, `loesung="5 2"`. `x-dienes` `t`, `h`, `loesung="1 2 3 4"` (T H Z E). `x-stellentafel` bis `M HT ZT T H Z E`, `art="plaettchen"` mit `plaettchen="3 0 12"` (bis 15 je Stelle), auch in `loesung`. `x-zahlenstrahl` `marken` mittlere Striche alle so viele Schritte; Ausschnitte wie 3400 bis 3500 ohne Null. `x-stellentafel` `zeilen` Anzahl der Zeilen. `x-dienes`, `x-strichpunkt` und `x-zwanzigerfeld` `groesse` Maß in px.
 
 ### `x-hunderterfeld`: Hunderterfeld
 
@@ -479,7 +479,7 @@ Ohne `spruenge` geht es zur vollen Stunde, über die ganzen Stunden und dann zum
 <x-uhr loesung="16:30" digital="nur" format="24"></x-uhr>
 ```
 
-`digital` `nein`, `ja`, `nur`; `format` `24` oder `12`. `sektor` Zeitspanne als Fläche, bis 60 Minuten; `sektor-loesung` erst im Lösungsblatt. `minuten="ja"` äußerer Ring 5, 10, …; `ziffern24="ja"` innerer Ring 13 bis 24.
+`digital` `nein`, `ja`, `nur`; `format` `24` oder `12`. `sektor` Zeitspanne als Fläche, bis 60 Minuten; `sektor-loesung` erst im Lösungsblatt. `minuten="ja"` äußerer Ring 5, 10, …; `ziffern24="ja"` innerer Ring 13 bis 24. `ziffern="nein"` ohne die Ziffern 1 bis 12.
 
 ## Deutsch
 
@@ -654,7 +654,7 @@ Muster: `assets/muster/spiele.html`. Bingo, Domino und Spielpläne nie von Hand 
 ### `x-bingo`
 
 ```html
-<x-bingo felder="4" karten="28" je-seite="2" eintraege="7·8: 56; 6·9: 54; 3·4: 12"></x-bingo>
+<x-bingo felder="3" karten="28" je-seite="2" eintraege="7·8: 56; 6·9: 54; 3·4: 12; 5·6: 30; 8·8: 64; 4·7: 28; 9·3: 27; 6·6: 36; 7·7: 49; 2·9: 18; 8·3: 24; 9·9: 81; 5·7: 35"></x-bingo>
 ```
 
 `eintraege` Ruf und Feld, ohne `: ` beides gleich. `felder` 3 (Kl. 1), 4 oder 5; `karten` 1 bis 40; `je-seite` 1, 2 oder 4; `frei="ja"` Joker in der Mitte bei ungerader Größe; `rufliste="nein"` ohne Rufliste; `seed` für andere Karten. Nötig sind Felder × Felder + 4 Einträge, alle verschieden. Zwei Karten unterscheiden sich in mindestens zwei Feldern. Feld mindestens 2,5 cm (Kl. 1/2), 2 cm (Kl. 3/4). Die Rufliste enthält alle Einträge in gemischter Reihenfolge und steht auf einer eigenen Seite des Lösungsblatts.
@@ -662,7 +662,7 @@ Muster: `assets/muster/spiele.html`. Bingo, Domino und Spielpläne nie von Hand 
 ### `x-domino`
 
 ```html
-<x-domino kette="geschlossen" paare="7·8: 56; uhr:7:30: halb 8"></x-domino>
+<x-domino kette="geschlossen" paare="7·8: 56; 6·9: 54; 3·4: 12; 5·6: 30; 8·8: 64; 4·7: 28; 9·3: 27; 6·6: 36; 7·7: 49; 2·9: 18; 8·3: 24; uhr:7:30: halb 8"></x-domino>
 ```
 
 `paare` Aufgabe und Lösung, 12 bis 24. `kette` `geschlossen` (der erste Stein trägt die Lösung des letzten) oder `offen` (mit „Start“ und „Ende“, ein Stein mehr). `je-seite` gerade Zahl bis 16, Standard 12; `rueckseite="nummer"` zeigt die Nummer auf jedem Stein, zur Selbstkontrolle; `seed` für eine andere Lage. Keine Lösung doppelt, keine Lösung gleich einer Aufgabe. Auf dem Blatt gemischt, auf dem Lösungsblatt in Kettenfolge mit Nummern.

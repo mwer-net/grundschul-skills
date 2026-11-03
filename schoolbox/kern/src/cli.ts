@@ -60,7 +60,7 @@ const hilfe = () => `schoolbox – Mappen und Dokumente der Schoolbox anlegen un
 Alle Befehle: --json für maschinenlesbare Ausgabe.
 Fächer:  ${FAECHER.join(', ')}
 Arten:   ${ARTEN.join(', ')}
-Formate: ${FORMATE.join(', ')} (Standard ${STANDARD_FORMAT}, bei --art praesentation ${standardFormat('praesentation')})
+Formate: ${FORMATE.join(', ')} (Standard je Art: Lernplakat ${standardFormat('lernplakat')}, Stationen ${standardFormat('stationen')}, Präsentation ${standardFormat('praesentation')}, sonst ${STANDARD_FORMAT})
 Vorlagen: ${verfuegbareVorlagen().join(', ')}
 Klassen: 1, 2, 3, 4, gemischt`;
 
@@ -126,7 +126,7 @@ const befehlDokument = async (konfig: Konfig, argumente: string[]): Promise<Erge
 		art,
 		format: waehleWert(
 			'Format',
-			values.format ?? (values.vorlage === 'minibuch' ? 'minibuch' : standardFormat(art)),
+			values.format ?? standardFormat(art, values.vorlage),
 			FORMATE,
 		),
 		druckprofil: waehleWert('Druckprofil', values.druckprofil ?? 'farbe', DRUCKPROFILE),

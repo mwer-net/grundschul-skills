@@ -43,6 +43,8 @@ export interface ZahlFeld extends FeldBasis {
 	max: number;
 	/** Was `abbildungen.js` ohne Attribut nimmt. */
 	standard: number;
+	/** Hängt der Standard von anderen Feldern ab, liefert das den wirksamen Wert; `standard` gilt dann für die Grundwerte. */
+	standardJe?: (w: Werte) => number;
 	schritt?: number;
 	einheit?: string;
 }
@@ -684,6 +686,29 @@ export const notenTon = (text: string, nr: number, schritt: number) => {
 		},
 	);
 };
+
+/** Von, bis und Teilung je Messgerät und Einheit, wie `SKALA_STANDARD` in `abbildungen.js`. */
+export const SKALA_STANDARD: Record<string, [number, number, string]> = {
+	'lineal|cm': [0, 15, '1 0.1'],
+	'lineal|mm': [0, 150, '10 1'],
+	'massband|cm': [0, 100, '10 1'],
+	'massband|m': [0, 5, '1 0.1'],
+	'messbecher|ml': [0, 500, '100 20'],
+	'messbecher|l': [0, 2, '1 0.1'],
+	'thermometer|°C': [-20, 40, '10 2'],
+	'waage|g': [0, 1000, '100 20'],
+	'waage|kg': [0, 5, '1 0.1'],
+};
+
+const skalaStandard = (w: Werte): [number, number, string] => {
+	const art = w.art ?? 'lineal';
+	const einheit = w.einheit ?? Object.keys(SKALA_STANDARD).find((k) => k.startsWith(`${art}|`))?.split('|')[1];
+	return SKALA_STANDARD[`${art}|${einheit}`] ?? [0, 15, '1 0.1'];
+};
+
+/** Der wirksame Standard eines Zahlenfeldes bei den übrigen Werten. */
+export const zahlStandard = (feld: ZahlFeld, w: Werte | null | undefined) =>
+	feld.standardJe && w ? feld.standardJe(w) : feld.standard;
 
 export const ABBILDUNG_SCHEMA = {
 	'x-uhr': {
@@ -2938,8 +2963,26 @@ export const ABBILDUNG_SCHEMA = {
 				],
 			},
 			{ art: 'zahlen', attribut: 'teilung', name: 'Striche: Haupt, Zwischen', beispiel: '10 1', gruppe: 'Skala' },
-			{ art: 'zahl', attribut: 'von', name: 'Von', min: -50, max: 10000, standard: 0, gruppe: 'Skala' },
-			{ art: 'zahl', attribut: 'bis', name: 'Bis', min: -50, max: 100000, standard: 15, gruppe: 'Skala' },
+			{
+				art: 'zahl',
+				attribut: 'von',
+				name: 'Von',
+				min: -50,
+				max: 10000,
+				standard: 0,
+				standardJe: (w) => skalaStandard(w)[0],
+				gruppe: 'Skala',
+			},
+			{
+				art: 'zahl',
+				attribut: 'bis',
+				name: 'Bis',
+				min: -50,
+				max: 100000,
+				standard: 15,
+				standardJe: (w) => skalaStandard(w)[1],
+				gruppe: 'Skala',
+			},
 			{
 				art: 'auswahl',
 				attribut: 'massstab',
@@ -3976,7 +4019,7 @@ const leser = (schema: AbbildungSchema, w: Werte): Lesen => {
 			if (wert !== null) {
 				return alsZahl(wert);
 			}
-			return f?.art === 'zahl' ? f.standard : 0;
+			return f?.art === 'zahl' ? zahlStandard(f, w) : 0;
 		},
 		zahlen: (a) => {
 			const f = feld(a);

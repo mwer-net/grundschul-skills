@@ -11,7 +11,7 @@ Maße in CSS-px (96 dpi): A4 = 794 × 1123 px, 1 cm ≈ 38 px.
 | Seitenrand | 60 px für alles (Bürodrucker drucken nicht randlos) | `.seite` hat das Padding; nichts mit negativen Rändern oder `position:absolute` hinausschieben |
 | Spalte | eine Inhaltsspalte, alle Aufgaben bündig | `.aufgabe` mit hängender Nummer |
 | Aufgaben | ohne Kasten, ohne Fläche | keine `background` oder `border` an Aufgaben |
-| Abstand zwischen Aufgaben | Kl. 1: 36 px, Kl. 2: 28 px, Kl. 3: 28 px, Kl. 4: 24 px; optional Trennlinie (`class="trenner"` am body) | `--abstand`, nur in kleinen Schritten anpassen, nie unter 24 px |
+| Abstand zwischen Aufgaben | je Klasse, Tabelle in `grundschul-didaktik/references/druck-und-platz.md`; optional Trennlinie (`class="trenner"` am body) | `--abstand`, nur in kleinen Schritten anpassen, nie unter 24 px |
 | Nähe | Anweisung → Arbeitsfläche 12–16 px, Aufgabe → Aufgabe deutlich mehr | `.koerper` |
 | Nummernkreis | 34 px, gefüllt, weiße Ziffer; ★ für die Sternchenaufgabe | `.nr`, `.nr.stern` |
 | Rahmen mit Funktion | nur Sprechblase, Wortspeicher, Antwortkasten: Kontur 2 px, Ecken gerundet | `.blase`, `.box` |

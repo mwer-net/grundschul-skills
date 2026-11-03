@@ -55,7 +55,7 @@ Ziel: **Übersicht vor Menge.** Ein Kind muss jede Aufgabe auf einen Blick verst
 
 - **Hängende Nummer:** Nummernkreis (32–36 px, in der Hauptfarbe) links, Anweisung 12–16 px rechts daneben, die Arbeitsfläche beginnt bündig unter der Anweisung. Die Nummer markiert den Aufgabenbeginn, ein Kasten ist nicht nötig.
 - **Niveau-Punkte** (falls gewählt) rechtsbündig in der Anweisungszeile. Die Sternchenaufgabe trägt ★ an der Stelle der Nummer.
-- **Trennung durch Abstand:** zwischen Aufgaben Kl. 1: 36 px, Kl. 2/3: 28 px, Kl. 4: 24 px (`blatt.css`, nie unter 24 px), 12–16 px zwischen Anweisung und Arbeitsfläche. Optional eine dünne Trennlinie (1–1,5 px; s/w `#808080`, Farbe in der Akzentfarbe) über die Spaltenbreite. Einheitlich im ganzen Material.
+- **Trennung durch Abstand:** zwischen Aufgaben wie in der Tabelle unter „Mindestgrößen“ (nie weniger), 12–16 px zwischen Anweisung und Arbeitsfläche. Optional eine dünne Trennlinie (1–1,5 px; s/w `#808080`, Farbe in der Akzentfarbe) über die Spaltenbreite. Einheitlich im ganzen Material.
 - **Rahmen nur mit Funktion:** Wortspeicher, Tipp-Sprechblase der Leitfigur, Ergebnis- oder Antwortkästchen, Ausschneideteile (gestrichelt), Lösungsstreifen. Rahmen dann als dünne Kontur ohne Füllung, Ecken gerundet.
 
 ### Kopf und Fuß schlank
@@ -75,6 +75,17 @@ Ziel: **Übersicht vor Menge.** Ein Kind muss jede Aufgabe auf einen Blick verst
 
 - Items gleichmäßig über die Spaltenbreite (A4: 794 − 120 = 674 px) verteilen, Abstand 24–32 px, damit die Zuordnung Item → Antwortlinie klar bleibt.
 - Kl. 1/2: eine Reihe mit 3–4 Items je Aufgabe; kleine Items (Rechnungen, Zahlen) bis 6. Kl. 3/4: Reihen füllen, bei Übungsblättern gern 2 Reihen à 5–6 Items.
+- **Schrift und Abstand je Klasse** (aus `blatt.css`):
+
+<!-- erzeugt: schrift-und-abstand -->
+| Klasse | Schrift | Abstand zwischen Aufgaben |
+|---|---|---|
+| Kl. 1 | 28 px | 36 px |
+| Kl. 2 | 24 px | 28 px |
+| Kl. 3 | 20 px | 28 px |
+| Kl. 4 | 18 px | 24 px |
+<!-- /erzeugt: schrift-und-abstand -->
+
 - **Mindestgrößen** (Richtwerte, für Kinderhände nicht unterschreiten):
 
 | Element | Kl. 1 | Kl. 2 | Kl. 3/4 |

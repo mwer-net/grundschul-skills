@@ -107,6 +107,8 @@ Ausgaben von `blatt.py bauen` für Folien, zum Präsentieren ohne Internet und z
 
 ## Neues Element
 
+Bevor ein Element, ein Format oder ein Maß dazukommt: [Quellen](references/quellen.md) lesen, dort steht, wo was gilt.
+
 Fehlt eine Darstellung: nie freihand und nie per KI, sondern als neues Element. **Neues Element = Zeichenfunktion in `abbildungen.js` + Eintrag in `ABBILDUNG_SCHEMA` (`schoolbox/kern/src/abbildungen.ts`) + Katalogeintrag + Musterblatt.** Ohne Schema lässt es sich im Editor nicht einstellen, und der Test dazu schlägt fehl.
 
 1. Zeichenfunktion im passenden Abschnitt, nur mit den Helfern aus dem Kern.
@@ -115,7 +117,7 @@ Fehlt eine Darstellung: nie freihand und nie per KI, sondern als neues Element. 
 4. Unzulässige Angaben → `meldeFehler` (in der Zeichenfunktion: `abbruch("Satz für die Lehrkraft")`).
 5. Mindestgrößen nach `grundschul-didaktik/references/druck-und-platz.md`; fehlt das Element dort, Zeile ergänzen.
 6. Eintrag in `ABBILDUNG_SCHEMA` mit deutschem Namen, Feldern, Grenzen und Regeln, derselbe Name in `NAMEN`.
-7. Katalogeintrag, Zeile in der Tabelle des Fach-Skills. Zeichnet das Element HTML statt SVG: `INHALT` in `pruefung.js`. Immer: Elementliste in `blatt.css`; hat es keine Lösungsangabe, auch `OHNE_LOESUNGSANGABE` in `blatt.py`.
+7. Abschnitt in `references/abbildungen.md` (der Test meldet fehlende Abschnitte, Attribute und falsche Beispiele), Zeile in der Tabelle des Fach-Skills. Zeichnet das Element HTML statt SVG: `INHALT` in `pruefung.js`. Immer: Elementliste in `blatt.css`; hat es keine Lösungsangabe, auch `OHNE_LOESUNGSANGABE` in `blatt.py`.
 8. Im Musterblatt des Bereichs (`assets/muster/`); `blatt.py bauen` in sw und farbe ohne FEHLER, Lösungsblatt stimmt.
 9. e2e: ein Feld im Panel ändern → ein Rückgängig-Schritt, die Quelle ändert nur dieses Attribut.
 10. Skill-Anbindung mit einem `claude -p`-Lauf je Issue prüfen; Fehler danach an einer Kopie nachbauen.

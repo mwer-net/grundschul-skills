@@ -21,6 +21,7 @@ import type {
 import {
 	alsZahl,
 	feldWert,
+	zahlStandard,
 	listeVon,
 	markeSetzen,
 	markeTrennen,
@@ -157,11 +158,12 @@ const Rahmen = ({
 const Zahl = ({ abb, feld }: FeldEigenschaften<ZahlFeld>) => {
 	const id = useId();
 	const wert = wertVon(feld, abb)?.wert ?? null;
-	const { feld: eingabe, setText, text } = useEingabe(wert ?? String(feld.standard));
-	const jetzt = alsZahl(wert ?? String(feld.standard));
+	const standard = zahlStandard(feld, abb.werte);
+	const { feld: eingabe, setText, text } = useEingabe(wert ?? String(standard));
+	const jetzt = alsZahl(wert ?? String(standard));
 	const schritt = feld.schritt ?? 1;
 	const springe = (richtung: 1 | -1) => {
-		const basis = Number.isFinite(jetzt) ? jetzt : feld.standard;
+		const basis = Number.isFinite(jetzt) ? jetzt : standard;
 		const neu = Math.min(
 			feld.max,
 			Math.max(feld.min, Math.round((basis + richtung * schritt) / schritt) * schritt),
@@ -197,7 +199,7 @@ const Zahl = ({ abb, feld }: FeldEigenschaften<ZahlFeld>) => {
 						abb.aendere(feld, roh === '' ? null : roh, { uebernehmen: false });
 					}}
 					onBlur={() => {
-						setText(wert ?? String(feld.standard));
+						setText(wert ?? String(standard));
 						abb.uebernimm();
 					}}
 					onKeyDown={fertigMitEnter}

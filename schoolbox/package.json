@@ -11,6 +11,8 @@
 		"dev": "pnpm -r --parallel run dev",
 		"start": "pnpm --filter @schoolbox/server run start",
 		"typecheck": "pnpm -r run typecheck",
+		"quellen": "tsx kern/src/quellen.ts",
+		"quellen:pruefen": "tsx kern/src/quellen.ts --pruefen",
 		"test": "pnpm -r run test",
 		"prettier:check": "prettier --check \"**/*.{js,mjs,cjs,ts,tsx,json}\"",
 		"prettier:fix": "prettier --write \"**/*.{js,mjs,cjs,ts,tsx,json}\"",

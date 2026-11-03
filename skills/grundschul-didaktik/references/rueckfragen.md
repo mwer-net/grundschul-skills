@@ -36,27 +36,31 @@ Die Antwort legt den Material-Skill fest:
 
 Nur die Optionen anbieten, die zur Materialart passen; die übliche als Empfehlung.
 
+<!-- erzeugt: format-je-art -->
 | Materialart | Optionen (Empfehlung fett) | Format (`<body>`-Klasse) |
 |---|---|---|
-| Arbeitsblatt, Lesetext, Lernzielkontrolle, Klassenarbeit | **A4 hoch**, A4 quer, A5 (Heftformat) | Standard; `a4-quer`; `a5-hoch` |
-| Bild-/Wortkarten | **Tischkarten 8 pro A4**, A5-Karten (2 pro A4), Tafelkarten A4 quer, digital am Whiteboard | `.karten` auf A4 bzw. `folie` |
+| Arbeitsblatt, Klassenarbeit, Lernzielkontrolle, Lesetext | **A4 hoch**, A4 quer, A5 (Heftformat) | Standard; `a4-quer`; `a5-hoch` |
 | Lernspiel | **Karten auf A4 zum Ausschneiden**, Spielplan A3/A4 | `.karten` auf A4 / `a3-hoch` |
+| Bild-/Wortkarten | **Tischkarten 8 pro A4**, A5-Karten (2 pro A4), Tafelkarten A4 quer, digital am Whiteboard | `.karten` auf A4 bzw. `folie` |
 | Lernplakat | **A3**, A2 aus A4-Kacheln | `a3-hoch` |
-| Stationenlernen | **Stationskarten A5** + Laufzettel A4, Stationskarten A4 | `a5-hoch` oder `a4-quer` mit 2 Karten / Standard |
+| Präsentation | Folien 16:9 für Beamer, Smartboard oder Display (nicht fragen) | `folie` |
+| Stationenlernen | **Stationskarten A5 + Laufzettel A4**, Stationskarten A4 | `a5-hoch` oder `a4-quer` mit 2 Karten / Standard |
 | Mini-Book | Faltbuch aus einem A4-Blatt, 8 Seiten (nicht fragen) | `minibuch` |
-| Präsentation | **Folien 16:9** für Beamer, Smartboard oder Display (nicht fragen) | `folie` |
+<!-- /erzeugt: format-je-art -->
 
 **3.–5. Bausteine des Blatts**
 
 Welche dieser Fragen gestellt wird, hängt von der Materialart ab. Bei allen anderen Materialarten (Karten, Plakat) entfallen sie; bei `unterrichtsplanung` erst bei den Materialien der Stunde fragen.
 
+<!-- erzeugt: bausteine-je-art -->
 | Materialart | 3. Selbsteinschätzung | 4. Churer Modell | 5. Sternchenaufgabe |
 |---|---|---|---|
 | Arbeitsblatt, Lesetext, Stationenlernen | ja | ja | ja |
-| Lernspiel | – | ja | – |
-| Lernzielkontrolle | ja | – | – |
 | Klassenarbeit | ja (vor der Abgabe, nie benotet) | – (keine Niveau-Wahl) | ja (außerhalb der Wertung) |
+| Lernzielkontrolle | ja | – | – |
+| Lernspiel | – | ja | – |
 | Präsentation | ja, wenn eine Reflexionsfolie entsteht | ja, wenn eine Lernaufgaben-Folie entsteht | ja, wenn eine Lernaufgaben-Folie entsteht |
+<!-- /erzeugt: bausteine-je-art -->
 
 **3. Selbsteinschätzung (Growth Mindset)**
 

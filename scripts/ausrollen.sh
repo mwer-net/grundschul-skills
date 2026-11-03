@@ -94,6 +94,16 @@ if [ "$alt" = "$neu" ] && [ "$immer" = 0 ] && meldet_head; then
 	echo "Schon aktuell ($(git rev-parse --short HEAD)). Mit --immer trotzdem neu bauen."
 	exit 0
 fi
+# Vor der ersten Änderung: Der neue Stand wird außerhalb des Arbeitsbaums geprüft, mit dem tsx des laufenden Stands
+schritt 'Quellen prüfen'
+pruefordner=$(mktemp -d)
+git archive "$neu" skills schoolbox/kern/src | tar -x -C "$pruefordner"
+if ! "$schoolbox_dir/node_modules/.bin/tsx" "$pruefordner/schoolbox/kern/src/quellen.ts" --pruefen; then
+	rm -rf "$pruefordner"
+	abbruch 'Die erzeugten Abschnitte in den Skills passen nicht zu ihrer Quelle. Nichts ausgerollt.'
+fi
+rm -rf "$pruefordner"
+
 if [ "$alt" = "$neu" ]; then
 	echo "Stand unverändert ($(git rev-parse --short HEAD)), baue neu."
 else

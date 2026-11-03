@@ -35,6 +35,9 @@ describe('standardFormat', () => {
 	it('nimmt für Präsentationen das Folienformat, sonst A4 hoch', () => {
 		assert.equal(standardFormat('praesentation'), 'folie');
 		assert.equal(standardFormat('arbeitsblatt'), 'a4-hoch');
+		assert.equal(standardFormat('lernplakat'), 'a3-hoch');
+		assert.equal(standardFormat('stationen'), 'a5-hoch');
+		assert.equal(standardFormat('arbeitsblatt', 'minibuch'), 'minibuch');
 	});
 });
 

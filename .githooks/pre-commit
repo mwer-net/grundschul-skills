@@ -47,6 +47,14 @@ if [ ${#fehler[@]} -gt 0 ]; then
 	exit 1
 fi
 
+# Erzeugte Tabellen in den Skills müssen zu ihrer Quelle passen. Fehlt tsx (frischer Klon), prüft spätestens ausrollen.sh
+if git diff --cached --name-only | grep -qE '^(skills/|schoolbox/kern/src/)' && [ -x "$wurzel/schoolbox/node_modules/.bin/tsx" ]; then
+	if ! "$wurzel/schoolbox/node_modules/.bin/tsx" "$wurzel/schoolbox/kern/src/quellen.ts" --pruefen; then
+		echo 'Commit abgebrochen: In schoolbox/ „pnpm run quellen“ ausführen und die Dateien hinzufügen.' >&2
+		exit 1
+	fi
+fi
+
 url=$(env_wert SCHOOLBOX_URL)
 domain=${url#*://}
 domain=${domain%%/*}
