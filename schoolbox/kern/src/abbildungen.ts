@@ -97,6 +97,8 @@ export interface TextFeld extends FeldBasis {
 	einfuegen?: { zeichen: string; name: string };
 }
 
+const NUR_BUCHSTABEN = /^[A-Za-zÄÖÜäöüß]+$/;
+
 export interface Option {
 	wert: string;
 	name: string;
@@ -2288,6 +2290,154 @@ export const ABBILDUNG_SCHEMA = {
 			{ art: 'zahl', ...GROESSE, min: 24, max: 200, standard: 60, schritt: 4 },
 		],
 		regeln: (w): Fehler => (w.text('symbol') || w.text('loesung') ? {} : { symbol: 'Bitte ein Symbol wählen.' }),
+	},
+	'x-suchsel': {
+		name: 'Suchsel',
+		felder: [
+			{ art: 'mischen', attribut: 'seed', name: 'Gitter' },
+			{
+				art: 'liste',
+				attribut: 'woerter',
+				name: 'Wörter',
+				hilfe: 'Nur Buchstaben. Das Bild braucht nur die Wortliste „Bilder“.',
+				unter: [
+					{ name: 'Wort', art: 'text', standard: 'Wort' },
+					{ name: 'Bild', art: 'mini', leer: true },
+				],
+				feldTrenner: ': ',
+				min: 2,
+				max: 20,
+			},
+			{ art: 'zahl', attribut: 'spalten', name: 'Spalten', min: 5, max: 20, standard: 10 },
+			{ art: 'zahl', attribut: 'zeilen', name: 'Zeilen', min: 5, max: 20, standard: 10 },
+			{
+				art: 'mehrfach',
+				attribut: 'richtungen',
+				name: 'Richtungen',
+				hilfe: 'Ohne Haken gilt der Standard der Klasse.',
+				optionen: [
+					{ wert: 'rechts', name: 'Nach rechts' },
+					{ wert: 'runter', name: 'Nach unten' },
+					{ wert: 'diagonal', name: 'Schräg' },
+					{ wert: 'rueckwaerts', name: 'Rückwärts' },
+				],
+			},
+			{
+				art: 'auswahl',
+				attribut: 'buchstaben',
+				name: 'Buchstaben',
+				optionen: [
+					{ wert: null, name: 'Nach Klasse' },
+					{ wert: 'gross', name: 'Großbuchstaben' },
+					{ wert: 'wie-geschrieben', name: 'Wie geschrieben' },
+				],
+			},
+			{
+				art: 'auswahl',
+				attribut: 'wortliste',
+				name: 'Wortliste',
+				standard: 'text',
+				optionen: [
+					{ wert: 'text', name: 'Text' },
+					{ wert: 'bilder', name: 'Bilder' },
+					{ wert: 'keine', name: 'Keine' },
+				],
+			},
+		],
+		regeln: (w): Fehler => {
+			const breite = Math.max(w.zahl('spalten'), w.zahl('zeilen'));
+			for (const [wort = ''] of w.zeilen('woerter')) {
+				if (!NUR_BUCHSTABEN.test(wort)) {
+					return { woerter: `„${wort}“ darf nur aus Buchstaben bestehen.` };
+				}
+				if ([...wort].length > breite) {
+					return { woerter: `„${wort}“ ist länger als das Gitter.` };
+				}
+			}
+			return {};
+		},
+	},
+	'x-kreuzwort': {
+		name: 'Kreuzworträtsel',
+		felder: [
+			{ art: 'mischen', attribut: 'seed', name: 'Gitter' },
+			{
+				art: 'liste',
+				attribut: 'eintraege',
+				name: 'Einträge',
+				hilfe: 'Hinweis als Text oder Bild, dazu das Wort. Höchstens 12.',
+				unter: [
+					{ name: 'Hinweis', art: 'mini', standard: 'Hinweis' },
+					{ name: 'Wort', art: 'text', standard: 'Wort' },
+				],
+				feldTrenner: ': ',
+				min: 2,
+				max: 12,
+			},
+			{
+				art: 'auswahl',
+				attribut: 'art',
+				name: 'Art',
+				standard: 'kreuz',
+				optionen: [
+					{ wert: 'kreuz', name: 'Frei gekreuzt' },
+					{ wert: 'senkrecht', name: 'Lösungswort senkrecht' },
+				],
+			},
+			{ art: 'text', attribut: 'loesungswort', name: 'Lösungswort' },
+		],
+		regeln: (w): Fehler => {
+			for (const [, wort = ''] of w.zeilen('eintraege')) {
+				if (!NUR_BUCHSTABEN.test(wort)) {
+					return { eintraege: `„${wort}“ darf nur aus Buchstaben bestehen.` };
+				}
+			}
+			const geheim = w.text('loesungswort');
+			if (geheim && !NUR_BUCHSTABEN.test(geheim)) {
+				return { loesungswort: 'Das Lösungswort darf nur aus Buchstaben bestehen.' };
+			}
+			return w.text('art') === 'senkrecht' && !geheim ? { loesungswort: 'Hier fehlt das Lösungswort.' } : {};
+		},
+	},
+	'x-loesungswort': {
+		name: 'Lösungswort',
+		felder: [
+			{ art: 'text', attribut: 'wort', name: 'Wort', beispiel: 'SONNE' },
+			{
+				art: 'text',
+				attribut: 'bezug',
+				name: 'Aufgabe',
+				hilfe: 'Nummer der Aufgabe, deren Lösungen die Buchstaben liefern.',
+			},
+			{
+				art: 'liste',
+				attribut: 'zuordnung',
+				name: 'Legende',
+				hilfe: 'Jedes richtige Ergebnis mit seinem Buchstaben.',
+				unter: [
+					{ name: 'Ergebnis', art: 'text', standard: '1' },
+					{ name: 'Buchstabe', art: 'text', standard: 'A' },
+				],
+				feldTrenner: ': ',
+				min: 0,
+				max: 26,
+			},
+			{
+				art: 'liste',
+				attribut: 'ablenker',
+				name: 'Ablenker',
+				hilfe: 'Typische falsche Ergebnisse mit eigenem Buchstaben.',
+				unter: [
+					{ name: 'Ergebnis', art: 'text', standard: '1' },
+					{ name: 'Buchstabe', art: 'text', standard: 'X' },
+				],
+				feldTrenner: ': ',
+				min: 0,
+				max: 10,
+			},
+		],
+		regeln: (w): Fehler =>
+			NUR_BUCHSTABEN.test(w.text('wort') ?? '') ? {} : { wort: 'Das Wort darf nur aus Buchstaben bestehen.' },
 	},
 	'x-bingo': {
 		name: 'Bingo',

@@ -1936,3 +1936,125 @@ test.describe('Spiele (037)', () => {
 		await expect(inhalt.locator('.seite[data-erzeugt] .bingo-karte').first()).toHaveText(vorher ?? '');
 	});
 });
+
+test.describe('Rätsel (038)', () => {
+	test('Suchsel Klasse 1: nur waagerecht und groß, die Lösung rahmt jedes Wort', async ({ page }) => {
+		const blatt = await gezeichnet(
+			page,
+			'<x-suchsel seed="1" woerter="Oma; Opa; Mama; Papa; Ball; Hut"></x-suchsel>',
+			'kl1 sw',
+		);
+		await expect(blatt.locator('.suchsel-zelle')).toHaveCount(100);
+		await expect(blatt.locator('.raetsel-liste li').first()).toHaveText('OMA');
+		await expect(blatt.locator('.suchsel-wort')).toHaveCount(0);
+		await blatt.evaluate(() => {
+			document.body.classList.add('loesung');
+			(window as unknown as { zeichneAbbildungen: () => void }).zeichneAbbildungen();
+		});
+		const rahmen = blatt.locator('.suchsel-wort');
+		await expect(rahmen).toHaveCount(6);
+		const winkel = await rahmen.evaluateAll((r) => r.map((e) => e.getAttribute('data-winkel')));
+		expect(new Set(winkel)).toEqual(new Set(['0']));
+	});
+
+	test('Suchsel: Wort im Wort, zu langes Wort und zu kleines Gitter melden einen Fehler', async ({ page }) => {
+		const fehler = async (attribute: string) => {
+			const blatt = await gezeichnet(page, `<x-suchsel ${attribute}></x-suchsel>`);
+			return blatt.locator('x-suchsel');
+		};
+		await expect(await fehler('woerter="Oma; Omas"')).toHaveAttribute('data-fehler', /steckt in/);
+		await expect(await fehler('spalten="5" zeilen="5" woerter="Schildkröte; Hund"')).toHaveAttribute(
+			'data-fehler',
+			/länger als das Gitter/,
+		);
+		await expect(
+			await fehler('spalten="5" zeilen="5" woerter="Hunde; Katze; Maus; Vogel; Fisch; Pferd"'),
+		).toHaveAttribute('data-fehler', /größeres Gitter/);
+	});
+
+	test('Kreuzworträtsel: Lösung zeigt alle Wörter, senkrecht prüft die Buchstaben', async ({ page }) => {
+		const eintraege = 'a: STUHL; b: STIFT; c: SCHULE; d: LINEAL; e: RADIERER; f: DOSE; g: TAFEL; h: RANZEN';
+		const blatt = await gezeichnet(
+			page,
+			`<x-kreuzwort seed="1" loesungswort="HEFT" eintraege="${eintraege}"></x-kreuzwort>`,
+		);
+		await expect(blatt.locator('[data-hinweis]')).toHaveCount(8);
+		await expect(blatt.locator('.kreuz-titel')).toHaveText(['Waagerecht', 'Senkrecht']);
+		await expect(blatt.locator('.kreuz-loesung')).toHaveCount(4);
+		await expect(blatt.locator('.raetsel-wort text')).toHaveCount(4);
+		await blatt.evaluate(() => {
+			document.body.classList.add('loesung');
+			(window as unknown as { zeichneAbbildungen: () => void }).zeichneAbbildungen();
+		});
+		await expect(blatt.locator('.raetsel-wort text')).toHaveCount(8);
+		const falsch = await gezeichnet(
+			page,
+			'<x-kreuzwort art="senkrecht" loesungswort="BA" eintraege="a: HUND; b: HAUS"></x-kreuzwort>',
+		);
+		await expect(falsch.locator('x-kreuzwort')).toHaveAttribute('data-fehler', /enthält kein B/);
+		const unmoeglich = await gezeichnet(page, '<x-kreuzwort eintraege="a: HUND; b: KLEE"></x-kreuzwort>');
+		await expect(unmoeglich.locator('x-kreuzwort')).toHaveAttribute('data-fehler', /neu mischen/);
+	});
+
+	test('Editor: Wort hinzufügen und Neu mischen sind je ein Schritt', async ({ druecke, page }) => {
+		const { dok, id, material: datei } = await uhrzeit();
+		await oeffne(page, id, dok);
+		const alt = await quelle(page);
+		await aendere(
+			page,
+			alt.replace(
+				/<section class="seite">[\s\S]*<\/section>/,
+				'<section class="seite">\n  <x-suchsel seed="a" woerter="Hund; Katze; Maus"></x-suchsel>\n</section>',
+			),
+		);
+		await gespeichert(page, datei);
+		const inhalt = material(page);
+		const gitter = () => inhalt.locator('x-suchsel svg').first().textContent();
+		await druecke(inhalt.locator('x-suchsel svg').first());
+		await expect(panel(page)).toBeVisible();
+
+		const vorher = await gitter();
+		await druecke(page.locator('[data-mischen="seed"]'));
+		await gespeichert(page, datei);
+		await expect.poll(gitter).not.toBe(vorher);
+		await druecke(zurueck(page));
+		await expect.poll(gitter).toBe(vorher);
+
+		await druecke(inhalt.locator('x-suchsel svg').first());
+		await druecke(panel(page).getByRole('button', { name: 'Zeile hinzufügen' }));
+		await expect(inhalt.locator('.raetsel-liste li')).toHaveCount(4);
+		await gespeichert(page, datei);
+		await druecke(zurueck(page));
+		await expect(inhalt.locator('.raetsel-liste li')).toHaveCount(3);
+	});
+
+	test('Editor: Item-Lösung ändern zeigt den Fehler im Panel des Lösungsworts', async ({ druecke, page }) => {
+		const { dok, id, material: datei } = await uhrzeit();
+		await oeffne(page, id, dok);
+		const alt = await quelle(page);
+		const seite =
+			'<section class="seite"><div class="aufgabe"><span class="nr">3</span><div class="anw"><span class="text">Rechne.</span></div>' +
+			'<div class="koerper"><div class="reihe" style="--spalten:2"><div class="zelle"><span class="antwort" data-l="42"></span></div>' +
+			'<div class="zelle"><span class="antwort" data-l="64"></span></div></div>' +
+			'<x-loesungswort wort="SO" bezug="3" zuordnung="42: S; 64: O"></x-loesungswort></div></div></section>';
+		await aendere(page, alt.replace(/<section class="seite">[\s\S]*<\/section>/, seite));
+		await gespeichert(page, datei);
+		const inhalt = material(page);
+		await expect(inhalt.locator('x-loesungswort')).not.toHaveAttribute('data-fehler');
+
+		await druecke(
+			page.getByRole('group', { name: 'Was zeigen?' }).getByRole('button', { name: 'Lösung', exact: true }),
+		);
+		await druecke(inhalt.locator('.antwort').nth(1));
+		await page.getByLabel('Richtige Antwort').fill('48');
+		await page.getByLabel('Richtige Antwort').press('Enter');
+		await gespeichert(page, datei);
+		await expect(inhalt.locator('x-loesungswort')).toHaveAttribute('data-fehler', /Item 2 hat jetzt die Lösung 48/);
+
+		await druecke(inhalt.locator('x-loesungswort').first());
+		await expect(page.locator('[data-fehler="_element"]')).toContainText('Item 2 hat jetzt die Lösung 48');
+
+		await druecke(zurueck(page));
+		await expect(inhalt.locator('x-loesungswort')).not.toHaveAttribute('data-fehler');
+	});
+});

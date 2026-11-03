@@ -63,6 +63,7 @@ Würfel für Spielregeln und Spielkarten kommen aus `<x-wuerfel>` (`html-materia
 ## Qualitätscheck
 
 - [ ] Jede Aufgabe hat genau eine eindeutige Lösung im Spiel. Domino: Kein Ergebnis doppelt und die Kette schließt sich prüft `x-domino`
+- [ ] Rätsel als Spiel oder Station: `x-suchsel`, `x-kreuzwort`, zur Kontrolle `x-loesungswort` (Abschnitt „Rätsel“ im Katalog)
 - [ ] Bingo: Verschiedene Karten und die vollständige Rufliste prüft `x-bingo`
 - [ ] FEHLER aus `blatt.py` ernst nehmen: Sie heißen, dass das Spiel so nicht funktioniert
 - [ ] Anleitung von Kindern ohne Erwachsene verständlich

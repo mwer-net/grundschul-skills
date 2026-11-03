@@ -37,6 +37,7 @@ Nach dem Rückfrage-Protokoll aus `grundschul-didaktik` (eine Frage pro Nachrich
 | Mini-Book | Faltbuch aus A4 (8 Seiten), Satzmuster wiederholt ("I can see a …"); anlegen mit `--format minibuch --vorlage minibuch` (siehe `html-materialerstellung`, Abschnitt „Mini-Book“) |
 | Picture dictionary | Bild + Wort, ohne Lautschrift, Kinder malen selbst |
 | Games | Bingo, auch Bild-Bingo mit `x-bingo` und `bild:`, Memory, "I spy", Kim's game, Simon says (siehe `lernspiel`) |
+| Word Search, Crossword | Nur mit bekanntem Wortschatz: `x-suchsel` mit `wortliste="bilder"`, `x-kreuzwort` mit Bildhinweisen (`bild:`); Abschnitt „Rätsel“ im Katalog |
 | Worksheets | Wenig Text, Arbeitsanweisungen in einfachem Englisch mit Symbol ("Colour.", "Match.", "Listen and tick.") |
 
 ## Kernkonzepte im Fach

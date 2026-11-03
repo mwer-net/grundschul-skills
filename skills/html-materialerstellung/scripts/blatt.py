@@ -181,7 +181,7 @@ def einbetten(quelltext, quelle_dir, pruefen=False, loesung=False, modus=None):
     t = re.sub(r'(<img[^>]+src=")([^"]+)(")', bild_ersetzen, t)
     t = re.sub(r"<x-verkehrszeichen\b[^>]*>", zeichen_ersetzen, t)
     t = re.sub(r"<x-kreislauf\b[^>]*>", stationen_ersetzen, t)
-    t = re.sub(r"<x-(?:bingo|domino|spielplan)\b[^>]*>", mini_ersetzen, t)
+    t = re.sub(r"<x-(?:bingo|domino|spielplan|suchsel|kreuzwort)\b[^>]*>", mini_ersetzen, t)
     body = re.search(r'<body[^>]*class="([^"]*)"', t)
     fmt = next((SEITE[k] for k in (body.group(1).split() if body else []) if k in SEITE), None)
     if fmt and modus != "notizen":

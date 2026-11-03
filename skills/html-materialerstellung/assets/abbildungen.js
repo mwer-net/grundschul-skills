@@ -75,6 +75,7 @@
   const samen = (el, inhalt) => attr(el, "seed", null) ?? inhalt;
 
   const NAMEN = {
+    "x-suchsel": "Suchsel", "x-kreuzwort": "Kreuzworträtsel", "x-loesungswort": "Lösungswort",
     "x-bingo": "Bingo", "x-domino": "Domino", "x-spielplan": "Spielplan",
     "x-uhr": "Uhr", "x-menge": "Menge", "x-dienes": "Mehrsystemblöcke", "x-strichpunkt": "Strich-Punkt-Bild",
     "x-stellentafel": "Stellentafel", "x-zwanzigerfeld": "Zwanzigerfeld", "x-zahlenstrahl": "Zahlenstrahl", "x-timer": "Timer",
@@ -4593,6 +4594,318 @@
     setzeStuecke(el, stuecke);
   }
 
+  /* == Rätsel == */
+  const raetselWort = (w, gross) => [...(gross ? w.replace(/ß/g, "SS").toUpperCase() : w)];
+  const istWort = (w) => /^[A-Za-zÄÖÜäöüß]+$/.test(w);
+  const raetselZelle = () => cm(klasse() <= 2 ? 1 : 0.8);
+  const SUCHSEL_RICHTUNGEN = { rechts: [1, 0], runter: [0, 1], diagonal: [1, 1], rueckwaerts: [-1, 0] };
+  const suchselStandard = (kl) => (kl <= 1 ? ["rechts"] : kl === 2 ? ["rechts", "runter"] : ["rechts", "runter", "diagonal"]);
+  const ALLE_ACHT = [[1, 0], [-1, 0], [0, 1], [0, -1], [1, 1], [-1, -1], [1, -1], [-1, 1]];
+  const SPERRLISTE = ["ARSCH", "KACKE", "PIPI", "SCHEISS", "HURE", "NAZI", "FICK", "PENIS", "SEX", "FUCK", "SHIT"];
+  const FUELLER = "ABCDEFGHIJKLMNOPRSTUVWZ";
+
+  /** Wie oft steht das Wort im Gitter, in allen acht Richtungen? Ein Palindrom zählt je Lage einmal. */
+  const suchselZaehle = (gitter, wort) => {
+    const z = wort.map((b) => b.toUpperCase()), treffer = new Set();
+    gitter.forEach((reihe, y) => reihe.forEach((_, x) => {
+      for (const [dx, dy] of ALLE_ACHT) {
+        if (z.every((b, i) => gitter[y + i * dy]?.[x + i * dx]?.toUpperCase() === b)) {
+          treffer.add([`${x},${y}`, `${x + (z.length - 1) * dx},${y + (z.length - 1) * dy}`].sort().join("|"));
+        }
+      }
+    }));
+    return treffer.size;
+  };
+  /** Steckt ein Wort in einem anderen, auch rückwärts, kann es nie genau einmal im Gitter stehen. */
+  const suchselEnthalten = (woerter) => {
+    const gross = woerter.map((w) => w.join("").toUpperCase());
+    for (const [i, a] of gross.entries()) {
+      for (const [j, b] of gross.entries()) {
+        if (i !== j && (b.includes(a) || b.includes([...a].reverse().join("")))) return [a, b];
+      }
+    }
+    return null;
+  };
+
+  /** Legt die Wörter ins Gitter und füllt auf; jedes Wort steht danach genau einmal. Ohne Lösung `null`. */
+  const suchselBau = (woerter, spalten, zeilen, richtungen, seed, gross = true) => {
+    const zz = zufall(seed), dirs = richtungen.map((r) => SUCHSEL_RICHTUNGEN[r]);
+    const folge = [...woerter].sort((a, b) => b.length - a.length), eigene = woerter.map((w) => w.join("").toUpperCase());
+    const sperre = SPERRLISTE.filter((w) => !eigene.some((e) => e.includes(w)));
+    for (let lauf = 0; lauf < 300; lauf++) {
+      const gitter = Array.from({ length: zeilen }, () => Array(spalten).fill(null)), lagen = [];
+      let geht = true;
+      for (const wort of folge) {
+        let gelegt = false;
+        for (let v = 0; v < 200 && !gelegt; v++) {
+          const [dx, dy] = dirs[Math.floor(zz() * dirs.length)];
+          const x = Math.floor(zz() * spalten), y = Math.floor(zz() * zeilen), n = wort.length;
+          const ex = x + (n - 1) * dx, ey = y + (n - 1) * dy;
+          if (ex < 0 || ey < 0 || ex >= spalten || ey >= zeilen) continue;
+          if (!wort.every((b, i) => [null, b].includes(gitter[y + i * dy][x + i * dx]))) continue;
+          wort.forEach((b, i) => { gitter[y + i * dy][x + i * dx] = b; });
+          lagen.push({ wort: wort.join(""), x, y, dx, dy, n });
+          gelegt = true;
+        }
+        if (!gelegt) { geht = false; break; }
+      }
+      if (!geht) continue;
+      // Bei „wie geschrieben“ auch große Füllbuchstaben: Sonst verrät jeder große Buchstabe einen Wortanfang.
+      for (const reihe of gitter) reihe.forEach((b, i) => {
+        if (b !== null) return;
+        const f = FUELLER[Math.floor(zz() * FUELLER.length)];
+        reihe[i] = gross || zz() < 0.12 ? f : f.toLowerCase();
+      });
+      if (!sperre.some((w) => suchselZaehle(gitter, [...w]) > 0) && woerter.every((w) => suchselZaehle(gitter, w) === 1)) return { gitter, lagen };
+    }
+    return null;
+  };
+
+  function suchsel(el) {
+    const kl = klasse(), spalten = num(el, "spalten", 10), zeilen = num(el, "zeilen", 10);
+    const gewaehlt = liste(el, "richtungen"), richtungen = gewaehlt.length ? gewaehlt : suchselStandard(kl);
+    const wortliste = attr(el, "wortliste", "text"), gross = attr(el, "buchstaben", kl <= 2 ? "gross" : "wie-geschrieben") === "gross";
+    for (const r of richtungen) if (!SUCHSEL_RICHTUNGEN[r]) abbruch(`Die Richtung „${r}“ gibt es nicht.`);
+    if (!["text", "bilder", "keine"].includes(wortliste)) abbruch(`Die Wortliste „${wortliste}“ gibt es nicht.`);
+    const eintraege = spielListe(el, "woerter").map(teilePaar).map(([wort, bild]) => ({ wort, bild }));
+    if (eintraege.length < 2) abbruch("Ein Suchsel braucht mindestens zwei Wörter.");
+    const falsch = eintraege.find((e) => !istWort(e.wort));
+    if (falsch) abbruch(`„${falsch.wort}“ ist kein Wort aus Buchstaben.`);
+    if (wortliste === "bilder") {
+      const ohne = eintraege.find((e) => !e.bild);
+      if (ohne) abbruch(`Zu „${ohne.wort}“ fehlt das Bild.`);
+    }
+    const woerter = eintraege.map((e) => raetselWort(e.wort, gross));
+    const zulang = woerter.find((w) => w.length > Math.max(spalten, zeilen));
+    if (zulang) abbruch(`„${zulang.join("")}“ ist länger als das Gitter. Bitte das Gitter vergrößern.`);
+    const drin = suchselEnthalten(woerter);
+    if (drin) abbruch(`„${drin[0]}“ steckt in „${drin[1]}“ und stünde damit zweimal im Gitter. Bitte ein Wort tauschen.`);
+    const zelle = raetselZelle();
+    if (spalten * zelle > SATZSPIEGEL) abbruch(`${spalten} Spalten passen nicht aufs Blatt; höchstens ${Math.floor(SATZSPIEGEL / zelle)}.`);
+    const bau = suchselBau(woerter, spalten, zeilen, richtungen, attr(el, "seed", null) ?? `${el.getAttribute("woerter")}|${spalten}|${zeilen}`, gross);
+    if (!bau) abbruch("Die Wörter passen so nicht. Bitte ein größeres Gitter oder weniger Wörter.");
+    const b = spalten * zelle, h = zeilen * zelle;
+    let s = "";
+    bau.gitter.forEach((reihe, y) => reihe.forEach((t, x) => {
+      s += `<rect class="suchsel-zelle" x="${r1(x * zelle)}" y="${r1(y * zelle)}" width="${r1(zelle)}" height="${r1(zelle)}" fill="none" stroke-width=".8"/>` +
+        text((x + 0.5) * zelle, (y + 0.5) * zelle, t, { groesse: zelle * 0.58 });
+    }));
+    if (loesungSichtbar(el)) {
+      const stil = istSw() ? "" : ' style="stroke:var(--haupt)"';
+      for (const l of bau.lagen) {
+        const x1 = (l.x + 0.5) * zelle, y1 = (l.y + 0.5) * zelle, lang = (l.n - 1) * Math.hypot(l.dx, l.dy) * zelle, winkel = (Math.atan2(l.dy, l.dx) * 180) / Math.PI, d = zelle * 0.84;
+        s += `<rect class="suchsel-wort" data-wort="${maskiere(l.wort)}" data-winkel="${r1(winkel)}" x="${r1(x1 - d / 2)}" y="${r1(y1 - d / 2)}" width="${r1(lang + d)}" height="${r1(d)}" rx="${r1(d / 2)}" fill="none" stroke-width="2.4"${stil} transform="rotate(${r1(winkel)} ${r1(x1)} ${r1(y1)})"/>`;
+      }
+    }
+    const zeigeWort = (w) => maskiere(gross ? w.replace(/ß/g, "SS").toUpperCase() : w);
+    const wortHtml = wortliste === "keine" ? "" : `<ul class="raetsel-liste">${eintraege.map((e) => `<li>${wortliste === "bilder" ? miniHtml(el, e.bild, 70, 70) : zeigeWort(e.wort)}</li>`).join("")}</ul>`;
+    el.innerHTML = svg(b, h, s) + wortHtml;
+    zeichneMinis(el);
+  }
+
+  /** Dürfen die Buchstaben hier liegen? Wörter berühren sich nur an Kreuzungen. */
+  const kreuzPasst = (feld, wort, x, y, quer) => {
+    const dx = quer ? 1 : 0, dy = quer ? 0 : 1, ort = (a, c) => `${a},${c}`;
+    if (feld.has(ort(x - dx, y - dy)) || feld.has(ort(x + wort.length * dx, y + wort.length * dy))) return 0;
+    let kreuzungen = 0;
+    for (let i = 0; i < wort.length; i++) {
+      const cx = x + i * dx, cy = y + i * dy, da = feld.get(ort(cx, cy));
+      if (da !== undefined) {
+        if (da !== wort[i]) return 0;
+        kreuzungen++;
+      } else if (feld.has(ort(cx + dy, cy + dx)) || feld.has(ort(cx - dy, cy - dx))) return 0;
+    }
+    return kreuzungen;
+  };
+  const kreuzOrte = (l) => l.wort.map((_, i) => `${l.x + (l.quer ? i : 0)},${l.y + (l.quer ? 0 : i)}`);
+  /** Zusammenhängend, und jede Buchstabenfolge im Gitter ist genau eines der Wörter? */
+  const kreuzGueltig = (lagen) => {
+    const feld = new Map();
+    for (const l of lagen) {
+      for (const [i, o] of kreuzOrte(l).entries()) {
+        if (feld.has(o) && feld.get(o) !== l.wort[i]) return false;
+        feld.set(o, l.wort[i]);
+      }
+    }
+    const erwartet = lagen.map((l) => `${l.quer ? "q" : "s"}${l.x},${l.y},${l.wort.join("")}`).sort(), gefunden = [];
+    for (const [quer, dx, dy] of [[true, 1, 0], [false, 0, 1]]) {
+      for (const o of feld.keys()) {
+        const [x, y] = o.split(",").map(Number);
+        if (feld.has(`${x - dx},${y - dy}`)) continue;
+        let n = 0, wort = "";
+        while (feld.has(`${x + n * dx},${y + n * dy}`)) wort += feld.get(`${x + n * dx},${y + n * dy}`), n++;
+        if (n > 1) gefunden.push(`${quer ? "q" : "s"}${x},${y},${wort}`);
+      }
+    }
+    if (erwartet.join("|") !== gefunden.sort().join("|")) return false;
+    const besucht = new Set([0]), offen = [0];
+    while (offen.length) {
+      const hier = new Set(kreuzOrte(lagen[offen.pop()]));
+      lagen.forEach((m, j) => {
+        if (!besucht.has(j) && kreuzOrte(m).some((o) => hier.has(o))) { besucht.add(j); offen.push(j); }
+      });
+    }
+    return besucht.size === lagen.length;
+  };
+  /** Legt alle Wörter zusammenhängend und innerhalb der Maße; sonst `null`. */
+  const kreuzBau = (woerter, seed, maxSpalten = 99, maxZeilen = 99) => {
+    const zz = zufall(seed);
+    for (let lauf = 0; lauf < 300; lauf++) {
+      const folge = gemischt(woerter.map((w, nr) => ({ w, nr })), zz).sort((a, b) => b.w.length - a.w.length);
+      const feld = new Map(), lagen = [];
+      const lege = ({ nr, w }, x, y, quer) => {
+        w.forEach((b, i) => feld.set(`${x + (quer ? i : 0)},${y + (quer ? 0 : i)}`, b));
+        lagen.push({ nr, wort: w, x, y, quer });
+      };
+      lege(folge[0], 0, 0, true);
+      let geht = true;
+      for (const eintrag of folge.slice(1)) {
+        const orte = [];
+        lagen.forEach((l) => l.wort.forEach((b, i) => eintrag.w.forEach((c, j) => {
+          if (b !== c) return;
+          const quer = !l.quer, x = l.quer ? l.x + i : l.x - j, y = l.quer ? l.y - j : l.y + i, k = kreuzPasst(feld, eintrag.w, x, y, quer);
+          if (k > 0) orte.push({ x, y, quer, k });
+        })));
+        if (orte.length === 0) { geht = false; break; }
+        const best = Math.max(...orte.map((o) => o.k)), wahl = orte.filter((o) => o.k === best);
+        const o = wahl[Math.floor(zz() * wahl.length)];
+        lege(eintrag, o.x, o.y, o.quer);
+      }
+      if (!geht) continue;
+      const xs = [...feld.keys()].map((k) => +k.split(",")[0]), ys = [...feld.keys()].map((k) => +k.split(",")[1]);
+      const x0 = Math.min(...xs), y0 = Math.min(...ys), spalten = Math.max(...xs) - x0 + 1, zeilen = Math.max(...ys) - y0 + 1;
+      const fertig = lagen.map((l) => ({ ...l, x: l.x - x0, y: l.y - y0 }));
+      if (spalten <= maxSpalten && zeilen <= maxZeilen && kreuzGueltig(fertig)) return { lagen: fertig, spalten, zeilen };
+    }
+    return null;
+  };
+
+  const kaestchenWort = (wort, sichtbar) => {
+    const z = raetselZelle(), buchstaben = [...wort];
+    if (buchstaben.length * z > SATZSPIEGEL) abbruch("Das Lösungswort ist zu lang für eine Zeile.");
+    let s = "";
+    buchstaben.forEach((b, i) => {
+      s += `<rect class="wort-kaestchen" x="${r1(i * z + 1)}" y="1" width="${r1(z - 2)}" height="${r1(z - 2)}" fill="#fff" stroke-width="2"/>` +
+        text(i * z + 4, 10, String(i + 1), { groesse: 10, anker: "start" }) +
+        (sichtbar ? text(i * z + z / 2, z / 2 + 3, b, { groesse: z * 0.55, fett: true }) : "");
+    });
+    return `<div class="raetsel-wort"><span>Lösungswort:</span>${svg(buchstaben.length * z, z, s)}</div>`;
+  };
+
+  function kreuzwort(el) {
+    const art = attr(el, "art", "kreuz"), geheimRoh = attr(el, "loesungswort", null);
+    const eintraege = spielListe(el, "eintraege").map(teilePaar).map(([hinweis, wort]) => ({ hinweis, roh: wort, wort: raetselWort(wort, true) }));
+    if (!["kreuz", "senkrecht"].includes(art)) abbruch(`Die Art „${art}“ gibt es nicht.`);
+    if (eintraege.length < 2 || eintraege.length > 12) abbruch("Ein Kreuzworträtsel hat 2 bis 12 Wörter.");
+    const falsch = eintraege.find((e) => !e.hinweis || !istWort(e.roh));
+    if (falsch) abbruch(`Zu „${falsch.hinweis || falsch.roh}“ fehlt ein Hinweis oder ein Wort aus Buchstaben.`);
+    if (geheimRoh !== null && !istWort(geheimRoh)) abbruch("Das Lösungswort darf nur aus Buchstaben bestehen.");
+    const loesung = loesungSichtbar(el), geheim = geheimRoh === null ? null : raetselWort(geheimRoh, true), z = raetselZelle();
+    const maxSpalten = Math.floor(SATZSPIEGEL / z), maxZeilen = Math.floor(800 / z);
+    let lagen, spalten, zeilen, spalteLoesung = -1;
+    if (art === "senkrecht") {
+      if (!geheim) abbruch("Beim senkrechten Rätsel fehlt das Lösungswort.");
+      if (geheim.length !== eintraege.length) abbruch(`Das Lösungswort hat ${geheim.length} Buchstaben, es sind aber ${eintraege.length} Wörter.`);
+      const stellen = eintraege.map((e, i) => {
+        const s = e.wort.indexOf(geheim[i]);
+        if (s < 0) abbruch(`„${e.roh}“ enthält kein ${geheim[i]}. Bitte ein anderes Wort nehmen.`);
+        return s;
+      });
+      spalteLoesung = Math.max(...stellen);
+      lagen = eintraege.map((e, i) => ({ nr: i, wort: e.wort, x: spalteLoesung - stellen[i], y: i, quer: true }));
+      spalten = Math.max(...lagen.map((l) => l.x + l.wort.length));
+      zeilen = eintraege.length;
+      if (spalten > maxSpalten) abbruch("Das Gitter wird zu breit. Bitte kürzere Wörter nehmen.");
+    } else {
+      const bau = kreuzBau(eintraege.map((e) => e.wort), attr(el, "seed", null) ?? el.getAttribute("eintraege"), maxSpalten, maxZeilen);
+      if (!bau) abbruch("Für diese Wörter findet sich kein Gitter. Bitte ein Wort tauschen oder neu mischen.");
+      ({ lagen, spalten, zeilen } = bau);
+    }
+    const felder = new Map();
+    lagen.forEach((l) => kreuzOrte(l).forEach((o, i) => felder.set(o, l.wort[i])));
+    const nummern = new Map();
+    [...lagen].sort((a, b) => a.y - b.y || a.x - b.x).forEach((l) => {
+      const k = `${l.x},${l.y}`;
+      if (!nummern.has(k)) nummern.set(k, nummern.size + 1);
+      l.nummer = nummern.get(k);
+    });
+    const markiert = new Map();
+    if (geheim && art === "kreuz") {
+      geheim.forEach((b, i) => {
+        const ort = [...felder.entries()].find(([k, v]) => v === b && !markiert.has(k));
+        if (!ort) abbruch(`Im Gitter fehlt ein ${b} für das Lösungswort. Bitte ein Wort tauschen.`);
+        markiert.set(ort[0], i + 1);
+      });
+    }
+    let s = "";
+    for (const [k, b] of felder) {
+      const [x, y] = k.split(",").map(Number), hell = x === spalteLoesung || markiert.has(k);
+      const stil = hell && !istSw() ? ' style="fill:color-mix(in srgb,var(--haupt) 25%,#fff)"' : "";
+      s += `<rect class="kreuz-zelle${hell ? " kreuz-loesung" : ""}" x="${r1(x * z + 1)}" y="${r1(y * z + 1)}" width="${r1(z - 2)}" height="${r1(z - 2)}" fill="#fff" stroke-width="1.4"${stil}/>`;
+      if (hell && istSw()) s += `<rect x="${r1(x * z + 4)}" y="${r1(y * z + 4)}" width="${r1(z - 8)}" height="${r1(z - 8)}" fill="none" stroke-width="1"/>`;
+      if (nummern.has(k)) s += text(x * z + 5, y * z + 11, String(nummern.get(k)), { groesse: 10, anker: "start" });
+      if (markiert.has(k)) s += text((x + 1) * z - 5, (y + 1) * z - 11, String(markiert.get(k)), { groesse: 10, anker: "end", fett: true });
+      if (loesung) s += text((x + 0.5) * z, (y + 0.5) * z + 2, b, { groesse: z * 0.52 });
+    }
+    const hinweis = (l) => `<li data-hinweis="${l.nummer}"><b>${l.nummer}</b> <span>${miniHtml(el, eintraege[l.nr].hinweis, 240, 200)}</span></li>`;
+    const nachNummer = (a, c) => a.nummer - c.nummer, quer = lagen.filter((l) => l.quer).sort(nachNummer), runter = lagen.filter((l) => !l.quer).sort(nachNummer);
+    const spalte = (titel, teile) => (teile.length ? `<div><b class="kreuz-titel">${titel}</b><ul>${teile.map(hinweis).join("")}</ul></div>` : "");
+    const hinweise = art === "senkrecht" ? spalte("Wörter", quer) : spalte("Waagerecht", quer) + spalte("Senkrecht", runter);
+    el.innerHTML = svg(spalten * z, zeilen * z, s) + `<div class="kreuz-hinweise">${hinweise}</div>` + (geheim ? kaestchenWort(geheim.join(""), loesung) : "");
+    zeichneMinis(el);
+  }
+
+  /** Die Lösungen einer Aufgabe in Reihenfolge; die Aufgabe heißt wie ihre Nummer. */
+  const antwortenVon = (bezug) => {
+    const aufgabe = [...document.querySelectorAll(".aufgabe")].find((a) => a.querySelector(":scope > .nr")?.textContent.trim() === bezug);
+    return aufgabe ? [...aufgabe.querySelectorAll(".antwort")].map((a) => (a.getAttribute("data-l") ?? "").trim()) : null;
+  };
+  /** Stimmen die Lösungen noch zur Legende? Gibt die Meldung zurück, sonst `null`. */
+  const loesungswortFehler = (buchstaben, antworten, legende, bezug) => {
+    if (antworten.length !== buchstaben.length) return `Aufgabe ${bezug} hat ${antworten.length} Lösungen, das Lösungswort aber ${buchstaben.length} Buchstaben.`;
+    for (const [i, antwort] of antworten.entries()) {
+      if (legende.get(antwort) !== buchstaben[i]) return `Aufgabe ${bezug}, Item ${i + 1} hat jetzt die Lösung ${antwort || "(keine)"}; das Lösungswort stimmt nicht mehr.`;
+    }
+    return null;
+  };
+
+  function loesungswort(el) {
+    const wort = attr(el, "wort", null), bezug = attr(el, "bezug", null);
+    if (!wort || !istWort(wort)) abbruch("Das Lösungswort fehlt oder enthält mehr als Buchstaben.");
+    const buchstaben = raetselWort(wort, true), legende = new Map();
+    const paareVon = (roh) => roh.split(";").map((t) => t.trim()).filter(Boolean).map(teilePaar);
+    const zuordnung = paareVon(attr(el, "zuordnung", "")), ablenker = paareVon(attr(el, "ablenker", ""));
+    const eintragen = ([ergebnis, b]) => {
+      if (!ergebnis || !b) abbruch("In der Legende fehlt ein Ergebnis oder ein Buchstabe.");
+      if (legende.has(ergebnis) && legende.get(ergebnis) !== b.toUpperCase()) abbruch(`Das Ergebnis ${ergebnis} steht mit zwei Buchstaben in der Legende.`);
+      legende.set(ergebnis, b.toUpperCase());
+    };
+    zuordnung.forEach(eintragen);
+    if (bezug) {
+      const antworten = antwortenVon(bezug);
+      if (!antworten) abbruch(`Eine Aufgabe ${bezug} gibt es auf diesem Blatt nicht.`);
+      if (zuordnung.length === 0) {
+        const vorschlag = antworten.map((a, i) => `${a}: ${buchstaben[i] ?? "?"}`).join("; ");
+        abbruch(`Die Legende fehlt. Sie hält fest, was zu den Lösungen gehört. Bitte als Zuordnung eintragen: ${vorschlag}`);
+      }
+      const fehler = loesungswortFehler(buchstaben, antworten, legende, bezug);
+      if (fehler) abbruch(fehler);
+    } else {
+      if (zuordnung.length === 0) abbruch("Ohne Bezug auf eine Aufgabe braucht es eine Zuordnung von Ergebnis und Buchstabe.");
+      for (const b of buchstaben) if (![...legende.values()].includes(b)) abbruch(`Für den Buchstaben ${b} fehlt ein Ergebnis in der Legende.`);
+    }
+    ablenker.forEach((p) => {
+      if (legende.has(p[0])) abbruch(`Der Ablenker ${p[0]} ist zugleich ein richtiges Ergebnis.`);
+      eintragen(p);
+    });
+    const spalten = gemischt([...legende.entries()], zufall(`${wort}|${[...legende.keys()].join()}`)), zeilen = [];
+    for (let i = 0; i < spalten.length; i += 8) {
+      const teil = spalten.slice(i, i + 8);
+      zeilen.push(`<tr><th>Ergebnis</th>${teil.map(([e]) => `<td>${maskiere(e)}</td>`).join("")}</tr><tr><th>Buchstabe</th>${teil.map(([, b]) => `<td>${maskiere(b)}</td>`).join("")}</tr>`);
+    }
+    el.innerHTML = `<table class="raetsel-legende">${zeilen.join("")}</table>` + kaestchenWort(buchstaben.join(""), loesungSichtbar(el));
+  }
+
   /* == Test == */
   // x-probe gibt es nur für die Tests der Feldtypen im Panel (023); in Material kommt es nicht vor.
   function probe(el) {
@@ -4625,7 +4938,7 @@
   }
 
   /* == Ende der Abschnitte == */
-  const ARTEN = { "x-uhr": uhr, "x-menge": menge, "x-dienes": dienes, "x-strichpunkt": strichpunkt,
+  const ARTEN = { "x-suchsel": suchsel, "x-kreuzwort": kreuzwort, "x-loesungswort": loesungswort, "x-uhr": uhr, "x-menge": menge, "x-dienes": dienes, "x-strichpunkt": strichpunkt,
     "x-stellentafel": stellentafel, "x-zwanzigerfeld": zwanzigerfeld, "x-zahlenstrahl": zahlenstrahl, "x-timer": timer,
     "x-probe": probe, "x-gluecksrad": gluecksrad, "x-wuerfel": wuerfel, "x-strichliste": strichliste, "x-diagramm": diagramm,
     "x-urne": urne, "x-wahrscheinlichkeit": wahrscheinlichkeit, "x-kombinatorik": kombinatorik,
@@ -4658,6 +4971,7 @@
   window.abbildungsName = (tag) => NAMEN[tag] || tag;
   /* == Rechenkerne für Tests == */
   window.schoolboxAbbildungen = {
+    suchselBau, suchselZaehle, suchselStandard, raetselWort, kreuzBau, kreuzGueltig, loesungswortFehler,
     bingoKarten, dominoSteine, dominoFehler, spielplanWeg, spielplanRaster, teilePaar,
     ARTEN, zahl, cm, zufall, gemischt, trenneListe, trenneRaster, bildVon, spiegelung, skaliere, gehWeg, flaecheUmfang, TANGRAM_TEILE, TANGRAM_UMRISSE,
     ansichtenVon, wuerfelVon, verdeckteWuerfel, WUERFELNETZE, NICHT_NETZE, netzZellen, falteNetz, istWuerfelnetz, netzLaschen, netzLage, AUGEN_DER_SEITE, vielflach, KOERPER_ZAHLEN,

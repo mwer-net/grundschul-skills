@@ -41,6 +41,10 @@ const zeige = (doc: Document, nr: number, wert: string) => {
 	} else {
 		element.removeAttribute('data-l');
 	}
+	const fenster = doc.defaultView as (Window & { zeichneAbbildungen?: (wurzel: Element) => void }) | null;
+	for (const wort of doc.querySelectorAll('x-loesungswort')) {
+		fenster?.zeichneAbbildungen?.(wort);
+	}
 };
 
 /**

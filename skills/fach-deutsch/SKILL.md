@@ -81,6 +81,8 @@ Silbenbögen und -farben nur, wenn die Klasse damit arbeitet (Rückfrage oben: M
 
 **Wortarten und Satzglieder markierst du selbst**, ein Programm bestimmt sie nicht. Kl. 2: nur Nomen, Verb, Adjektiv (`nur="N V A"`). Kl. 3/4 nach Rückfrage, nur Eingeführtes. Weicht die Klasse von den Montessori-Farben ab, setze `farben`.
 
+Rätsel (Abschnitt „Rätsel“ im Katalog): `x-suchsel` in Kl. 1 nur mit eingeführten Buchstaben; Lernwörter als `x-kreuzwort`.
+
 ## Leistung überprüfen
 
 Kl. 1/2 unbenotet (`lernzielkontrolle`), Kl. 3/4 als Klassenarbeit (`klassenarbeit`). Rechtschreibfehler und Ausdrucksmängel werden in allen Arbeiten angemerkt und für die Förderung genutzt.

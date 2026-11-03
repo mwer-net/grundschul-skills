@@ -1,0 +1,43 @@
+<!doctype html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<title>Muster_Raetsel</title>
+<link rel="stylesheet" href="blatt.css">
+<script src="abbildungen.js"></script>
+</head>
+<body class="kl4 sw">
+<section class="seite">
+  <div class="kopf"><div class="titel"><h1>Suchsel und Kreuzworträtsel</h1></div></div>
+  <div class="aufgabe">
+    <span class="nr">1</span><div class="anw"><span class="text">Suche die acht Wörter. Schreibe sie danach in dein Heft.</span></div>
+    <div class="koerper"><x-suchsel spalten="12" zeilen="10" seed="muster" richtungen="rechts runter diagonal rueckwaerts" woerter="Fluss; Straße; Brücke; Märchen; Wiese; König; Schule; Vogel"></x-suchsel></div>
+  </div>
+</section>
+<section class="seite">
+  <div class="kopf"><div class="titel"><h1>Kreuzworträtsel</h1></div></div>
+  <div class="aufgabe">
+    <span class="nr">2</span><div class="anw"><span class="text">Löse das Rätsel. Die markierten Felder ergeben das Lösungswort.</span></div>
+    <div class="koerper"><x-kreuzwort seed="muster" loesungswort="HEFT" eintraege="Darauf sitzt du in der Klasse.: STUHL; Damit schreibst du.: STIFT; Hier lernst du.: SCHULE; Damit zeichnest du gerade Linien.: LINEAL; Damit radierst du.: RADIERER; Darin ist dein Essen.: DOSE; Darauf schreibt die Lehrerin.: TAFEL; Darin trägst du alles.: RANZEN"></x-kreuzwort></div>
+  </div>
+</section>
+<section class="seite">
+  <div class="kopf"><div class="titel"><h1>Lösungswörter</h1></div></div>
+  <div class="aufgabe">
+    <span class="nr">3</span><div class="anw"><span class="text">Rechne. Suche jedes Ergebnis in der Tabelle. Schreibe den Buchstaben in das Kästchen mit der Nummer der Rechnung.</span></div>
+    <div class="koerper"><div class="reihe" style="--spalten:5">
+      <div class="zelle"><span>6 · 7 =</span> <span class="antwort" data-l="42"></span></div>
+      <div class="zelle"><span>8 · 8 =</span> <span class="antwort" data-l="64"></span></div>
+      <div class="zelle"><span>9 · 3 =</span> <span class="antwort" data-l="27"></span></div>
+      <div class="zelle"><span>4 · 7 =</span> <span class="antwort" data-l="28"></span></div>
+      <div class="zelle"><span>5 · 9 =</span> <span class="antwort" data-l="45"></span></div>
+    </div>
+    <x-loesungswort wort="SONNE" bezug="3" zuordnung="42: S; 64: O; 27: N; 28: N; 45: E" ablenker="24: U; 72: K; 54: T"></x-loesungswort></div>
+  </div>
+  <div class="aufgabe">
+    <span class="nr">4</span><div class="anw"><span class="text">Trage die Wörter ein. Die dicke Spalte ergibt ein Wort.</span></div>
+    <div class="koerper"><x-kreuzwort art="senkrecht" loesungswort="BAUM" eintraege="Du isst sie.: BIRNE; Darin wohnst du.: HAUS; Das Tier bellt.: HUND; Er scheint nachts.: MOND"></x-kreuzwort></div>
+  </div>
+</section>
+</body>
+</html>

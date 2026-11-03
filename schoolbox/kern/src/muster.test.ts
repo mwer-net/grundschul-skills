@@ -172,3 +172,40 @@ describe('Spiele (037)', { skip: hatBrowser() ? false : 'Kein Chromium für blat
 		assert.equal(karten(pdf)?.trim(), karten(loesung)?.trim());
 	});
 });
+
+describe('Rätsel (038)', { skip: hatBrowser() ? false : 'Kein Chromium für blatt.py' }, () => {
+	const blatt = (loesungen: string[], inhalt: string) =>
+		'<!doctype html><html lang="de"><head><meta charset="utf-8"><title>Test</title>' +
+		'<link rel="stylesheet" href="blatt.css"><script src="abbildungen.js"></script></head><body class="kl3 sw">' +
+		'<section class="seite"><div class="kopf"><div class="titel"><h1>Test</h1></div></div>' +
+		'<div class="aufgabe"><span class="nr">3</span><div class="anw"><span class="text">Rechne.</span></div>' +
+		`<div class="koerper"><div class="reihe" style="--spalten:5">${loesungen
+			.map((l) => `<div class="zelle"><span class="antwort" data-l="${l}"></span></div>`)
+			.join('')}</div>${inhalt}</div></div></section></body></html>`;
+	const sonne =
+		'<x-loesungswort wort="SONNE" bezug="3" zuordnung="42: S; 64: O; 27: N; 28: N; 45: E" ablenker="24: U"></x-loesungswort>';
+
+	it('Lösungsblatt zeigt SONNE; eine geänderte Lösung ist ein FEHLER', () => {
+		const richtig = ['42', '64', '27', '28', '45'];
+		const pdf = bauePdf(blatt(richtig, sonne), 'sonne');
+		const buchstaben = (datei: string) => text(datei).replace(/[^A-Z]/g, '');
+		assert.ok(!buchstaben(pdf).includes('SONNE'), 'auf dem Arbeitsblatt noch nicht');
+		assert.ok(buchstaben(pdf.replace(/\.pdf$/, '-loesung.pdf')).includes('SONNE'));
+		const falsch = pruefe(blatt(['42', '48', '27', '28', '45'], sonne), 'sonne-falsch');
+		assert.ok(
+			falsch.some((m) => /Aufgabe 3, Item 2 hat jetzt die Lösung 48/.test(m.text)),
+			JSON.stringify(falsch),
+		);
+	});
+
+	it('Ohne gespeicherte Legende nennt das Element, was einzutragen ist', () => {
+		const meldungen = pruefe(
+			blatt(['42', '64'], '<x-loesungswort wort="SO" bezug="3"></x-loesungswort>'),
+			'sonne-leer',
+		);
+		assert.ok(
+			meldungen.some((m) => m.text.includes('42: S; 64: O')),
+			JSON.stringify(meldungen),
+		);
+	});
+});

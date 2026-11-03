@@ -417,6 +417,14 @@ const liegtIn = (x: number, y: number, p: number[][]) => {
 	return drin;
 };
 
+interface KreuzLage {
+	nr: number;
+	wort: string[];
+	x: number;
+	y: number;
+	quer: boolean;
+}
+
 interface Stellenrechnung {
 	ziffern: number[];
 	uebertraege?: number[];
@@ -537,6 +545,30 @@ const rechenkerne = () => {
 			auftakt?: boolean,
 		) => { stufe: number | null; wert: number; pause: boolean; achtel: number }[][];
 		halsNachOben: (stufe: number) => boolean;
+		suchselBau: (
+			woerter: string[][],
+			spalten: number,
+			zeilen: number,
+			richtungen: string[],
+			seed: string,
+			gross?: boolean,
+		) => { gitter: string[][]; lagen: { wort: string; dx: number; dy: number }[] } | null;
+		suchselZaehle: (gitter: string[][], wort: string[]) => number;
+		suchselStandard: (klasse: number) => string[];
+		raetselWort: (wort: string, gross: boolean) => string[];
+		kreuzBau: (
+			woerter: string[][],
+			seed: string,
+			maxSpalten?: number,
+			maxZeilen?: number,
+		) => { lagen: KreuzLage[]; spalten: number; zeilen: number } | null;
+		kreuzGueltig: (lagen: KreuzLage[]) => boolean;
+		loesungswortFehler: (
+			buchstaben: string[],
+			antworten: string[],
+			legende: Map<string, string>,
+			bezug: string,
+		) => string | null;
 		bingoKarten: (eintraege: string[], felder: number, karten: number, seed: string) => number[][] | null;
 		dominoSteine: (paare: string[][], kette: string) => { nr: number; links: string; rechts: string }[];
 		dominoFehler: (paare: string[][]) => string | null;
@@ -1519,6 +1551,122 @@ describe('Musik (035)', () => {
 		assert.equal(notenTon(T`c'4`, 0, -1), T`c'4`);
 		assert.equal(notenTon(T`a''4`, 0, 1), T`a''4`);
 		assert.deepEqual(notenMitTon(T`c'4 r4 | g'2`), [T`c'4`, T`g'2`]);
+	});
+});
+
+describe('Rätsel (038)', () => {
+	const { kreuzBau, kreuzGueltig, loesungswortFehler, raetselWort, suchselBau, suchselStandard, suchselZaehle } =
+		rechenkerne();
+
+	it('Suchsel Klasse 1: nur waagerecht, groß, jedes Wort genau einmal über 100 seeds', () => {
+		const woerter = ['Oma', 'Opa', 'Mama', 'Papa', 'Ball', 'Hut'].map((w) => raetselWort(w, true));
+		assert.deepEqual(Array.from(suchselStandard(1)), ['rechts']);
+		for (let seed = 0; seed < 100; seed++) {
+			const bau = suchselBau(woerter, 8, 8, ['rechts'], String(seed));
+			assert.ok(bau, `seed ${seed}`);
+			for (const lage of bau.lagen) {
+				assert.deepEqual([lage.dx, lage.dy], [1, 0]);
+			}
+			for (const wort of woerter) {
+				assert.equal(suchselZaehle(bau.gitter, wort), 1, `${wort.join('')} bei seed ${seed}`);
+			}
+			assert.ok(bau.gitter.flat().every((b) => b === b.toUpperCase()));
+		}
+	});
+
+	it('Suchsel Klasse 4: alle Richtungen, Umlaut eine Zelle, ß wird groß zu SS', () => {
+		assert.deepEqual(Array.from(raetselWort('Straße', true)), ['S', 'T', 'R', 'A', 'S', 'S', 'E']);
+		assert.deepEqual(Array.from(raetselWort('Bär', true)), ['B', 'Ä', 'R']);
+		const woerter = ['Fluss', 'Straße', 'Brücke', 'Märchen', 'Wiese', 'König'].map((w) => raetselWort(w, false));
+		for (let seed = 0; seed < 100; seed++) {
+			const bau = suchselBau(
+				woerter,
+				12,
+				10,
+				['rechts', 'runter', 'diagonal', 'rueckwaerts'],
+				String(seed),
+				false,
+			);
+			assert.ok(bau, `seed ${seed}`);
+			for (const wort of woerter) {
+				assert.equal(suchselZaehle(bau.gitter, wort), 1, `${wort.join('')} bei seed ${seed}`);
+			}
+		}
+	});
+
+	it('Suchsel: Zu viele Wörter ergeben keine Lösung, Palindrome zählen je Lage einmal', () => {
+		const woerter = ['AAAA', 'BBBB', 'CCCC', 'DDDD', 'EEEE'].map((w) => raetselWort(w, true));
+		assert.equal(suchselBau(woerter, 4, 4, ['rechts'], 'x'), null);
+		assert.equal(suchselZaehle([['O', 'T', 'T', 'O']], ['O', 'T', 'T', 'O']), 1);
+	});
+
+	it('Kreuzworträtsel: zusammenhängend und regelkonform über 100 seeds', () => {
+		const woerter = ['STUHL', 'STIFT', 'SCHULE', 'LINEAL', 'RADIERER', 'DOSE', 'TAFEL', 'RANZEN'].map((w) =>
+			raetselWort(w, true),
+		);
+		for (let seed = 0; seed < 100; seed++) {
+			const bau = kreuzBau(woerter, String(seed), 20, 26);
+			assert.ok(bau, `seed ${seed}`);
+			assert.equal(bau.lagen.length, 8);
+			assert.ok(kreuzGueltig(bau.lagen), `seed ${seed}`);
+			assert.ok(bau.spalten <= 20 && bau.zeilen <= 26);
+		}
+	});
+
+	it('Kreuzworträtsel: Die Prüfung erkennt Berührung und Lücke', () => {
+		const lage = (nr: number, wort: string, x: number, y: number, quer: boolean) => ({
+			nr,
+			wort: [...wort],
+			x,
+			y,
+			quer,
+		});
+		assert.ok(kreuzGueltig([lage(0, 'HUND', 0, 0, true), lage(1, 'UHR', 1, 0, false)]));
+		assert.ok(!kreuzGueltig([lage(0, 'HUND', 0, 0, true), lage(1, 'BAD', 0, 1, true)]), 'nebeneinander');
+		assert.ok(!kreuzGueltig([lage(0, 'HUND', 0, 0, true), lage(1, 'BAD', 0, 5, true)]), 'nicht verbunden');
+		assert.equal(
+			kreuzBau(
+				[
+					['A', 'B'],
+					['C', 'D'],
+				].map((w) => Array.from(w)),
+				'x',
+			),
+			null,
+		);
+	});
+
+	it('Lösungswort: erkennt eine geänderte Item-Lösung', () => {
+		const legende = new Map([
+			['42', 'S'],
+			['64', 'O'],
+			['27', 'N'],
+			['28', 'N'],
+			['45', 'E'],
+		]);
+		const wort = [...'SONNE'];
+		assert.equal(loesungswortFehler(wort, ['42', '64', '27', '28', '45'], legende, '3'), null);
+		assert.equal(
+			loesungswortFehler(wort, ['42', '48', '27', '28', '45'], legende, '3'),
+			'Aufgabe 3, Item 2 hat jetzt die Lösung 48; das Lösungswort stimmt nicht mehr.',
+		);
+		assert.match(loesungswortFehler(wort, ['42'], legende, '3') ?? '', /hat 1 Lösungen/);
+	});
+
+	it('Das Panel lehnt falsche Wörter ab', () => {
+		const suchsel = schemaVonSicher('x-suchsel');
+		assert.deepEqual(pruefeWerte(suchsel, { spalten: '10', woerter: 'Hund; Katze' }), {});
+		assert.match(pruefeWerte(suchsel, { spalten: '10', woerter: 'Hund 2; Katze' }).woerter ?? '', /Buchstaben/);
+		assert.match(
+			pruefeWerte(suchsel, { spalten: '5', zeilen: '5', woerter: 'Schildkröte; Hund' }).woerter ?? '',
+			/länger/,
+		);
+		const kreuz = schemaVonSicher('x-kreuzwort');
+		assert.match(
+			pruefeWerte(kreuz, { art: 'senkrecht', eintraege: 'a: HUND; b: UHR' }).loesungswort ?? '',
+			/fehlt/,
+		);
+		assert.deepEqual(pruefeWerte(schemaVonSicher('x-loesungswort'), { wort: 'SONNE', bezug: '3' }), {});
 	});
 });
 
