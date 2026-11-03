@@ -114,7 +114,7 @@ Muster: `assets/muster/daten-und-zufall.html`.
 | `bastel` | `ja`: Originalgröße Ø 12 cm mit Mitte und Hinweis zu Bleistift und Büroklammer; beim Anlegen `--druckhinweis "In Originalgröße drucken (100 %)"` |
 | `groesse` | Durchmesser in px, 100 bis 460 |
 
-s/w: Muster und Legende („Rot = schraffiert“); ohne Legende nicht zu lesen. Jedes Feld mindestens 20°, sonst Fehler. Eine Beschriftung erscheint nur, wenn sie in das Feld passt.
+s/w: Muster und Legende (das Kästchen zeigt das Muster zur Farbe); ohne Legende nicht zu lesen. Jedes Feld mindestens 20°, sonst Fehler. Eine Beschriftung erscheint nur, wenn sie in das Feld passt.
 
 ### `x-wuerfel`: Würfel
 

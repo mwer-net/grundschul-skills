@@ -45,8 +45,6 @@ export interface BildWerte {
 	dpi: number | null;
 	/** Wird im Druck unscharf. */
 	unscharf: boolean;
-	/** Nur im s/w-Profil: Das Bild ist farbig. */
-	farbig: boolean;
 	figur: boolean;
 }
 
@@ -127,33 +125,6 @@ export const bereiteVor = async (datei: File): Promise<{ daten: Blob; name: stri
 	}
 };
 
-/** Wie `pruefung.js`: mittlere Buntheit der deckenden Pixel einer 64 × 64-Verkleinerung. */
-const istFarbig = (bild: HTMLImageElement) => {
-	const leinwand = bild.ownerDocument.createElement('canvas');
-	leinwand.width = 64;
-	leinwand.height = 64;
-	const kontext = leinwand.getContext('2d', { willReadFrequently: true });
-	if (!kontext || !bild.naturalWidth) {
-		return false;
-	}
-	try {
-		kontext.drawImage(bild, 0, 0, 64, 64);
-		const d = kontext.getImageData(0, 0, 64, 64).data;
-		let summe = 0;
-		let n = 0;
-		for (let i = 0; i < d.length; i += 4) {
-			if ((d[i + 3] ?? 0) > 128) {
-				const [r = 0, g = 0, b = 0] = [d[i], d[i + 1], d[i + 2]];
-				summe += Math.max(r, g, b) - Math.min(r, g, b);
-				n += 1;
-			}
-		}
-		return n > 0 && summe / n > FARBIG_AB;
-	} catch {
-		return false;
-	}
-};
-
 /** Platz in der Spalte: die Innenbreite des Elternelements. */
 const spaltenBreite = (element: HTMLElement) => {
 	const eltern = element.parentElement;
@@ -182,7 +153,6 @@ const miss = (element: HTMLElement, nr: number): BildWerte => {
 			max,
 			dpi: null,
 			unscharf: false,
-			farbig: false,
 			figur: false,
 		};
 	}
@@ -201,7 +171,6 @@ const miss = (element: HTMLElement, nr: number): BildWerte => {
 		max,
 		dpi,
 		unscharf: dpi !== null && dpi < DPI_MIN,
-		farbig: sw && geladen && istFarbig(bild),
 		figur: bild.classList.contains('figur'),
 	};
 };
@@ -219,7 +188,7 @@ const pruefeNoch = (quelle: string, w: BildWerte) => {
 
 /**
  * Das Bild-Panel (017): Werte des gewählten Bildes aus der Darstellung und die Befehle dazu. Hochladen, Übernehmen
- * und Graustufen legen zuerst eine Datei auf dem Server an; danach ändert ein Befehl nur `src` (bzw. setzt das Bild
+ * legen zuerst eine Datei auf dem Server an; danach ändert ein Befehl nur `src` (bzw. setzt das Bild
  * an die Stelle des Platzhalters). Jeder Befehl ist ein Schritt im Verlauf.
  */
 export const useBild = ({ adresse, basis, geladen, html, pfad, rueckgaengig, struktur }: Optionen) => {
@@ -315,16 +284,6 @@ export const useBild = ({ adresse, basis, geladen, html, pfad, rueckgaengig, str
 			await setzeEin(src, alt, null);
 		});
 
-	const graustufen = () =>
-		arbeite('grau', async () => {
-			const w = aktuell.current;
-			if (!w) {
-				return;
-			}
-			const { src } = await sende<{ src: string }>(`${adresse}/bilder/graustufen`, { src: w.src });
-			ausfuehren('In Graustufen', (q) => tauscheBild(q, w.nr, src));
-		});
-
 	const zeigeBreite = (px: number) => {
 		const element = doc && werte ? (elementZu(doc, werte.nr) as HTMLElement | null) : null;
 		if (!element || !werte) {
@@ -365,7 +324,6 @@ export const useBild = ({ adresse, basis, geladen, html, pfad, rueckgaengig, str
 		adresse,
 		hochladen,
 		uebernimm,
-		graustufen,
 		zeigeBreite,
 		setzeBreite,
 		beschreibe,

@@ -100,23 +100,6 @@ describe('Bilder-API', () => {
 		assert.equal((await s.holen(url('/uebernehmen'), { method: 'POST', headers: schreibKoepfe })).status, 400);
 	});
 
-	it('legt eine Graustufen-Fassung an', async () => {
-		const antwort = await s.holen(url('/graustufen'), {
-			method: 'POST',
-			headers: schreibKoepfe,
-			body: JSON.stringify({ src: 'bilder/willi.png' }),
-		});
-		assert.deepEqual(await antwort.json(), { src: 'bilder/willi-grau.png', breite: 1264, hoehe: 1264 });
-		assert.ok(existsSync(path.join(dir, 'bilder', 'willi-grau.png')));
-		assert.ok((await readFile(path.join(ASSETS, 'bilder', 'willi.png'))).length > 0);
-		const draussen = await s.holen(url('/graustufen'), {
-			method: 'POST',
-			headers: schreibKoepfe,
-			body: JSON.stringify({ src: '../../../../.env' }),
-		});
-		assert.equal(draussen.status, 400);
-	});
-
 	it('antwortet für unbekannte Dokumente mit 404', async () => {
 		assert.equal((await s.holen(`${s.url}/api/dokumente/${mappe}/gibt-es-nicht/bilder`)).status, 404);
 	});

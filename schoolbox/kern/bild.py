@@ -1,7 +1,6 @@
-"""Bilder für die Schoolbox aufbereiten (Pillow): Uploads aufnehmen und Graustufen-Fassungen anlegen.
+"""Bilder für die Schoolbox aufbereiten (Pillow): Uploads aufnehmen.
 
     python3 bild.py aufnehmen <eingabe> <ziel-ohne-endung>
-    python3 bild.py graustufen <eingabe> <ziel-ohne-endung>
 
 Schreibt <ziel>.png oder <ziel>.jpg und gibt {"datei", "breite", "hoehe"} als JSON aus. Ein Bild, das sich nicht
 lesen lässt, endet mit Exit 2 und einer Meldung auf stderr.
@@ -66,21 +65,11 @@ def aufnehmen(eingabe, ziel):
     return speichere(bild, ziel, verlustfrei, profil)
 
 
-def graustufen(eingabe, ziel):
-    roh = oeffne(eingabe)
-    bild = ImageOps.exif_transpose(roh)
-    if hat_transparenz(bild):
-        bild, verlustfrei = bild.convert("LA"), True
-    else:
-        bild, verlustfrei = bild.convert("RGB").convert("L"), roh.format in VERLUSTFREI
-    return speichere(bild, ziel, verlustfrei, None)
-
-
 def main():
-    if len(sys.argv) != 4 or sys.argv[1] not in ("aufnehmen", "graustufen"):
+    if len(sys.argv) != 4 or sys.argv[1] != "aufnehmen":
         sys.exit(__doc__)
     befehl, eingabe, ziel = sys.argv[1:]
-    ergebnis = aufnehmen(eingabe, ziel) if befehl == "aufnehmen" else graustufen(eingabe, ziel)
+    ergebnis = aufnehmen(eingabe, ziel)
     print(json.dumps(ergebnis))
 
 

@@ -97,19 +97,45 @@ export const SEITENGROESSE: Record<string, string | undefined> = {
 const BODY_WIE_BLATT_PY = /<body([^>]*)class="([^"]*)"/;
 
 const PRAESENTATION_SKRIPT = '<script src="praesentation.js"></script>';
+const GRAU_SKRIPT = '<script src="graustufen.js"></script>';
+
+const ansEnde = (html: string, skript: string) =>
+	html.includes('</body>') ? html.replace('</body>', `${skript}\n</body>`) : `${html}\n${skript}`;
+
+/**
+ * Tauscht die Profilklassen am `<body>` wie `setze_profil` in blatt.py: s/w statt `farbe palette-*`; die Farbansicht
+ * einer s/w-Quelle bekommt die Standardpalette.
+ */
+const mitProfil = (html: string, profil: Druckprofil): string =>
+	html.replace(BODY_WIE_BLATT_PY, (_ganz, vorher: string, k: string) => {
+		const klassen = k.split(/\s+/).filter(Boolean);
+		const rest = klassen.filter((c) => c !== 'sw' && c !== 'farbe' && !c.startsWith('palette-'));
+		const palette = klassen.find((c) => c.startsWith('palette-')) ?? STANDARD_PALETTE;
+		const neu = profil === 'sw' ? ['sw', ...rest] : ['farbe', palette, ...rest];
+		return `<body${vorher}class="${neu.join(' ')}"`;
+	});
 
 /**
  * Bereitet material.html für den Browser so vor, wie `einbetten()` in blatt.py es für den Druck tut: `@page` nach
  * der Formatklasse und mit `loesung` die Klasse `loesung` am `<body>`. Ressourcen bleiben verlinkt. Mit
  * `praesentation` kommt die Präsentations-Laufzeit aus den Assets dazu; sie wird erst mit `?praesentation=1` aktiv.
+ * `profil` setzt die Darstellung (ohne Angabe gilt die Quelle); in s/w läuft `graustufen.js` mit. Die Quelle selbst
+ * bleibt, wie sie ist (Entscheidung 23).
  */
 export const darstellungsHtml = (
 	html: string,
-	{ loesung, praesentation = false }: { loesung: boolean; praesentation?: boolean },
+	{
+		loesung,
+		praesentation = false,
+		profil,
+	}: { loesung: boolean; praesentation?: boolean; profil?: Druckprofil | undefined },
 ): string => {
 	const klassen = BODY_WIE_BLATT_PY.exec(html)?.[2]?.split(/\s+/) ?? [];
 	const groesse = klassen.map((k) => SEITENGROESSE[k]).find(Boolean);
 	let ergebnis = groesse ? html.replace('</head>', `<style>@page{size:${groesse};margin:0}</style>\n</head>`) : html;
+	if (profil !== undefined && profil !== druckprofilAusHtml(html)) {
+		ergebnis = mitProfil(ergebnis, profil);
+	}
 	if (loesung) {
 		ergebnis = ergebnis.replace(
 			BODY_WIE_BLATT_PY,
@@ -117,9 +143,10 @@ export const darstellungsHtml = (
 		);
 	}
 	if (praesentation && !/<script[^>]+src="[^"]*praesentation\.js"/.test(ergebnis)) {
-		ergebnis = ergebnis.includes('</body>')
-			? ergebnis.replace('</body>', `${PRAESENTATION_SKRIPT}\n</body>`)
-			: `${ergebnis}\n${PRAESENTATION_SKRIPT}`;
+		ergebnis = ansEnde(ergebnis, PRAESENTATION_SKRIPT);
+	}
+	if ((profil ?? druckprofilAusHtml(html)) === 'sw') {
+		ergebnis = ansEnde(ergebnis, GRAU_SKRIPT);
 	}
 	return ergebnis;
 };

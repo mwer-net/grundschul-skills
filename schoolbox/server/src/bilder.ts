@@ -1,4 +1,4 @@
-import { MAX_BILD_BYTES, nimmBildAuf, sammleBilder, uebernimmBild, wandleInGraustufen } from '@schoolbox/kern';
+import { MAX_BILD_BYTES, nimmBildAuf, sammleBilder, uebernimmBild } from '@schoolbox/kern';
 import type { NextFunction, Request, Response } from 'express';
 import { raw, Router } from 'express';
 
@@ -37,7 +37,7 @@ const nimmRohAn = (req: Request, res: Response, next: NextFunction) => {
 };
 
 /**
- * Bilder eines Dokuments: Sammlung zum Aussuchen, Upload, Übernehmen aus der Sammlung, Graustufen. Alle schreibenden
+ * Bilder eines Dokuments: Sammlung zum Aussuchen, Upload, Übernehmen aus der Sammlung. Alle schreibenden
  * Wege legen nur neue Dateien in `bilder/` an; material.html ändert erst der Editor mit dem neuen `src`.
  */
 export const bilderApi = (kontext: Kontext) => {
@@ -73,12 +73,6 @@ export const bilderApi = (kontext: Kontext) => {
 				uebernimmBild(konfig.materialDir, mappe, dok, schluessel),
 			),
 		);
-	});
-
-	router.post('/graustufen', async (req, res) => {
-		const { dok, mappe } = ziel(req);
-		const src = leseText(req.body, 'src');
-		res.json(await kontext.sperre(dokSchluessel(mappe, dok), () => wandleInGraustufen(konfig, mappe, dok, src)));
 	});
 
 	return router;

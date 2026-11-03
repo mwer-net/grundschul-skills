@@ -4,13 +4,14 @@ import { BAUSTEINE } from '@schoolbox/kern/src/bausteine';
 import { darstellungsHtml } from '@schoolbox/kern/src/html';
 import type { Zerlegung } from '@schoolbox/kern/src/quelltext';
 import { MARKE, markiere } from '@schoolbox/kern/src/quelltext';
+import type { Druckprofil } from '@schoolbox/kern/src/werte';
 
 /**
  * Nur im Editor: kein Markieren von Text, kein Lupen-Menü beim langen Drücken auf dem iPad. Ausnahme ist der Text,
  * der gerade bearbeitet wird. In der Lösungsansicht sind Antwortlinien ohne Lösung gelb gestreift mit „?“ (019).
  */
 const EDITOR_STIL =
-	'<style data-editor>html,body{-webkit-user-select:none;user-select:none;-webkit-touch-callout:none}' +
+	'<style data-editor data-grau-roh>html,body{-webkit-user-select:none;user-select:none;-webkit-touch-callout:none}' +
 	'img{-webkit-user-drag:none}' +
 	'[contenteditable=true]{-webkit-user-select:text;user-select:text;-webkit-touch-callout:default;cursor:text;' +
 	'outline:none}[contenteditable=true] [contenteditable=false]{-webkit-user-select:none;user-select:none}' +
@@ -27,8 +28,11 @@ const PRUEFUNG = '<script src="pruefung.js" data-manuell defer></script>';
  * `data-sb` in jedem Element und einer `<base>`, damit Bilder, Schriften und blatt.css wie dort geladen werden. Diese
  * Fassung wird nie gespeichert.
  */
-export const editorHtml = (zerlegung: Zerlegung, { basis, loesung }: { basis: string; loesung: boolean }) => {
-	const html = darstellungsHtml(markiere(zerlegung), { loesung });
+export const editorHtml = (
+	zerlegung: Zerlegung,
+	{ basis, loesung, profil }: { basis: string; loesung: boolean; profil?: Druckprofil | undefined },
+) => {
+	const html = darstellungsHtml(markiere(zerlegung), { loesung, profil });
 	const kopf = `<base href="${basis}">${EDITOR_STIL}${PRUEFUNG}`;
 	const offen = /<head[^>]*>/i.exec(html);
 	return offen ? html.replace(offen[0], `${offen[0]}${kopf}`) : `${kopf}${html}`;

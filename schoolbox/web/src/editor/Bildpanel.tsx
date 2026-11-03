@@ -211,7 +211,7 @@ const Vorschau = ({ w }: { w: BildWerte }) => (
 );
 
 const Hinweise = ({ bild, w }: { bild: BildSteuerung; w: BildWerte }) => {
-	if (!w.unscharf && !w.farbig) {
+	if (!w.unscharf) {
 		return null;
 	}
 	return (
@@ -221,29 +221,6 @@ const Hinweise = ({ bild, w }: { bild: BildSteuerung; w: BildWerte }) => {
 					<Symbol name="achtung" className="size-5 flex-none" />
 					{`Das Bild ist für diese Größe zu klein und wird im Druck unscharf (${w.dpi ?? 0} dpi). Mach es kleiner oder nimm ein größeres Bild.`}
 				</p>
-			)}
-			{w.farbig && (
-				<div className="rounded-xl bg-[#fff8e1] p-3" data-hinweis="farbig">
-					<p className="flex gap-2">
-						<Symbol name="achtung" className="size-5 flex-none" />
-						Das Bild ist farbig, das Blatt wird schwarz-weiß gedruckt.
-					</p>
-					{bild.arbeit === 'grau' ? (
-						<div className="mt-2">
-							<Laeuft text="Wird umgewandelt …" />
-						</div>
-					) : (
-						<Knopf
-							art="zweit"
-							className="mt-2"
-							disabled={bild.arbeit !== null}
-							onClick={() => void bild.graustufen()}
-						>
-							In Graustufen umwandeln
-						</Knopf>
-					)}
-					<p className="mt-2 text-leise">Für eine Strichzeichnung schreib Claude.</p>
-				</div>
 			)}
 		</div>
 	);

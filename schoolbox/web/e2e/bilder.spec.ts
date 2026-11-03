@@ -214,26 +214,6 @@ test.describe('Editor: Bilder', () => {
 		expect(existsSync(gespeichertesFoto)).toBe(true);
 	});
 
-	test('wandelt ein farbiges Bild im s/w-Blatt in Graustufen um', async ({ druecke, page }) => {
-		const { dok, id, material: datei, ordner } = await uhrzeit();
-		const roh = await readFile(datei, 'utf8');
-		await writeFile(datei, roh.replace('<body class="kl2 farbe', '<body class="kl2 sw'));
-		await oeffne(page, id, dok);
-		await druecke(material(page).locator('img.figur'));
-		const farbig = page.locator('[data-hinweis="farbig"]');
-		await expect(farbig).toContainText('Das Bild ist farbig');
-		await expect(farbig).toContainText('Für eine Strichzeichnung schreib Claude.');
-		await druecke(farbig.getByRole('button', { name: 'In Graustufen umwandeln' }));
-		await bisDarin(datei, 'willi-grau.png');
-		await gespeichert(page, datei);
-		expect(await readFile(datei, 'utf8')).toContain('<img class="figur" src="bilder/willi-grau.png" alt="Willi">');
-		expect(existsSync(path.join(ordner, 'bilder', 'willi-grau.png'))).toBe(true);
-		await expect(page.locator('[data-auswahl="figur"]')).toBeVisible();
-		await expect(material(page).locator('img.figur')).toHaveJSProperty('complete', true);
-		await expect(page.locator('[data-bildwerkzeug="bild"]')).toBeVisible();
-		await expect(farbig).toHaveCount(0);
-	});
-
 	test('setzt ein Bild an die Stelle eines Platzhalters', async ({ druecke, page }) => {
 		const { dok, id, material: datei } = await uhrzeit();
 		const roh = await readFile(datei, 'utf8');

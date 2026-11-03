@@ -476,10 +476,10 @@
     return name;
   };
 
-  /** Legende unter einer Abbildung: s/w nennt das Muster zur Farbe („Rot = schraffiert“). Liefert SVG und Höhe. */
+  /** Legende unter einer Abbildung: In s/w zeigt das Kästchen das Muster zur Farbe, das Layout bleibt gleich. Liefert SVG und Höhe. */
   const legendeVon = (f, namen, y, breite) => {
     const reihen = [...new Set(namen)].filter((n) => n !== "leer");
-    const beschriftung = (n) => (istSw() ? `${FARB_DEUTSCH[n]} = ${f.name(n)}` : FARB_DEUTSCH[n]);
+    const beschriftung = (n) => FARB_DEUTSCH[n];
     const spalte = Math.max(90, ...reihen.map((n) => textBreite(beschriftung(n), 14) + 38));
     const jeReihe = Math.max(1, Math.floor(breite / spalte));
     const s = reihen.map((n, i) => {

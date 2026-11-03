@@ -1,5 +1,5 @@
 /**
- * Bilder im Editor (017): Uploads aufnehmen, Graustufen-Fassungen anlegen, die Bildersammlung zusammenstellen und
+ * Bilder im Editor (017): Uploads aufnehmen, die Bildersammlung zusammenstellen und
  * Bilder aus ihr ins Dokument übernehmen. Pillow erledigt die Bildarbeit (`kern/bild.py`). Bilder werden nie
  * überschrieben und nie gelöscht: Ältere Versionen des Materials verweisen noch auf sie.
  */
@@ -56,7 +56,7 @@ const freierStamm = async (bilderDir: string, wunsch: string) => {
 
 const verarbeite = async (
 	konfig: Pick<Konfig, 'pythonBin'>,
-	befehl: 'aufnehmen' | 'graustufen',
+	befehl: 'aufnehmen',
 	eingabe: string | Buffer,
 	bilderDir: string,
 	wunsch: string,
@@ -121,18 +121,6 @@ export const findeBild = (materialDir: string, mappe: string, dok: string, src: 
 		throw ungueltig();
 	}
 	return datei;
-};
-
-/** Legt eine Graustufen-Fassung neben die Bilder des Dokuments (`willi-grau.png`); das Original bleibt. */
-export const wandleInGraustufen = async (
-	konfig: Pick<Konfig, 'materialDir' | 'pythonBin'>,
-	mappe: string,
-	dok: string,
-	src: string,
-): Promise<Bild> => {
-	const datei = findeBild(konfig.materialDir, mappe, dok, src);
-	const bilderDir = path.join(dokumentDir(konfig.materialDir, mappe, dok), BILDER);
-	return verarbeite(konfig, 'graustufen', datei, bilderDir, `${bildStamm(datei)}-grau`);
 };
 
 /** Kopiert ein Bild in `bilder/` des Dokuments; liegt dort schon dasselbe unter demselben Namen, bleibt es dabei. */

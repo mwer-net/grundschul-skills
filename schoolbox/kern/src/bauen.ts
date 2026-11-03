@@ -27,6 +27,7 @@ import { ohneZiele } from './meldungen';
 import { entwurfVorschauDatei } from './namen';
 import type { DokumentMeta, Entwurf, EntwurfPruefung, Pruefung } from './schema';
 import type { Version } from './versionen';
+import type { Druckprofil } from './werte';
 import { legeVersionAn } from './versionen';
 
 const BAU_TIMEOUT_MS = 5 * 60 * 1000;
@@ -129,7 +130,11 @@ export const fertigstellen = async (
  * Baut `ausgabe/` neu wie `fertigstellen`, aber ohne meta.json, Version und Mappe anzufassen: für PDFs, die die
  * Lehrkraft herunterlädt. Der Bau läuft in einem temporären Ordner und wird erst danach übernommen.
  */
-export const baueAusgabe = async (konfig: Pick<Konfig, 'pythonBin'>, dokDir: string): Promise<Pruefbericht> => {
+export const baueAusgabe = async (
+	konfig: Pick<Konfig, 'pythonBin'>,
+	dokDir: string,
+	profil?: Druckprofil,
+): Promise<Pruefbericht> => {
 	const schluessel = await ausgabeSchluessel(dokDir);
 	const tmp = await mkdtemp(path.join(tmpdir(), 'schoolbox-pdf-'));
 	try {
@@ -143,6 +148,7 @@ export const baueAusgabe = async (konfig: Pick<Konfig, 'pythonBin'>, dokDir: str
 			tmp,
 			'--bericht',
 			berichtDatei,
+			...(profil === undefined ? [] : ['--profil', profil]),
 		]);
 		if (
 			(lauf.code !== 0 && lauf.code !== 1) ||

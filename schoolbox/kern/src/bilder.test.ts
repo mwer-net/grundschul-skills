@@ -8,7 +8,7 @@ import { describe, it } from 'node:test';
 import { promisify } from 'node:util';
 
 import { dokumentDir, mappenDir, neueMappe, neuesDokument } from './ablage';
-import { bildStamm, findeBild, nimmBildAuf, sammleBilder, uebernimmBild, wandleInGraustufen } from './bilder';
+import { bildStamm, findeBild, nimmBildAuf, sammleBilder, uebernimmBild } from './bilder';
 import { SchoolboxFehler } from './fehler';
 import { ASSETS, BLATT_PY } from './konfig';
 
@@ -125,21 +125,6 @@ describe('nimmBildAuf', () => {
 		});
 		await assert.rejects(nimmBildAuf(KONFIG, ziel.dir, Buffer.alloc(0), 'x.jpg'), /leer/);
 		assert.deepEqual(await readdir(path.join(ziel.dir, 'bilder')), []);
-	});
-});
-
-describe('wandleInGraustufen', () => {
-	it('legt eine graue Fassung an und lässt das Original', async () => {
-		const { materialDir, neu } = await ablage();
-		const ziel = await neu('Grau');
-		const bild = await wandleInGraustufen({ ...KONFIG, materialDir }, ziel.mappe, ziel.dok, 'bilder/willi.png');
-		assert.equal(bild.src, 'bilder/willi-grau.png');
-		assert.equal(befund(path.join(ziel.dir, bild.src)).mode, 'LA');
-		assert.equal(befund(path.join(ASSETS, 'bilder', 'willi.png')).mode, 'RGBA');
-		await nimmBildAuf(KONFIG, ziel.dir, await foto(ziel.dir, 200, 100), 'rot.jpg');
-		const grau = await wandleInGraustufen({ ...KONFIG, materialDir }, ziel.mappe, ziel.dok, 'bilder/rot.jpg');
-		assert.equal(grau.src, 'bilder/rot-grau.jpg');
-		assert.equal(befund(path.join(ziel.dir, grau.src)).mode, 'L');
 	});
 });
 

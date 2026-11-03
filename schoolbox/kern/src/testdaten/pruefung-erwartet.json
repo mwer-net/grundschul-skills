@@ -26,19 +26,14 @@
 			"text": "Schrift kleiner als 19 px für Klasse 2: „Winzige Schrift hier.“ (10px)"
 		},
 		{
-			"stufe": "WARNUNG",
+			"stufe": "HINWEIS",
 			"seite": 1,
-			"text": "Farbe im s/w-Profil: Rote Anweisung im s/w-Profil."
+			"text": "Der Text nennt Farben (rote), in s/w sind sie nicht zu sehen → Merkmal in Worten nennen"
 		},
 		{
 			"stufe": "WARNUNG",
 			"seite": 1,
 			"text": "Fläche hinter „div“ (rgb(204, 204, 204)) → Aufgaben ohne Kasten und Fläche"
-		},
-		{
-			"stufe": "WARNUNG",
-			"seite": 1,
-			"text": "Bild „Willi“ ist farbig → im s/w-Profil die Strich-Version nehmen"
 		},
 		{
 			"stufe": "FEHLER",
@@ -122,6 +117,23 @@
 			"stufe": "FEHLER",
 			"seite": 0,
 			"text": "Ein Mini-Book hat genau 8 Seiten, dieses hat 1 → --vorlage minibuch als Ausgangspunkt nehmen"
+		}
+	],
+	"pruefung-sw.html": [
+		{
+			"stufe": "HINWEIS",
+			"seite": 1,
+			"text": "In s/w kaum lesbar (Kontrast unter 3:1): Gelbe Schrift auf Weiß, Dunkel auf dunkel"
+		},
+		{
+			"stufe": "HINWEIS",
+			"seite": 1,
+			"text": "Der Text nennt Farben (gelbe, roten, blau), in s/w sind sie nicht zu sehen → Merkmal in Worten nennen"
+		},
+		{
+			"stufe": "HINWEIS",
+			"seite": 1,
+			"text": "668 px frei unten → Abstand zwischen Aufgaben vergrößern (--abstand), nicht auffüllen"
 		}
 	]
 }

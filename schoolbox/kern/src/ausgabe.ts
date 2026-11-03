@@ -11,6 +11,8 @@ import { sucheRessource } from './pfade';
 
 /** Schlüssel des letzten Baus in `ausgabe/`; passt er zum Dokument, ist die Ausgabe aktuell. */
 export const STAND_DATEI = 'stand.json';
+/** Zwischenspeicher der s/w-Bilder (041): Überlebt jeden Bau, damit Mappen-PDFs nicht jedes Bild neu rechnen. */
+const BLEIBT = new Set(['grau-cache']);
 export const PDF_DATEI = 'material.pdf';
 export const LOESUNG_PDF_DATEI = 'material-loesung.pdf';
 /** Eigenständige HTML-Datei aus blatt.py; bei Folien die Offline-Präsentation. */
@@ -53,8 +55,8 @@ const ressourcen = async (html: string, dokDir: string): Promise<[string, string
 
 /**
  * Hash über alles, was das PDF bestimmt: material.html, eingebundene Stylesheets (samt Schriften), Skripte und
- * Bilder, dazu blatt.py, pruefung.js und praesentation.js (steckt in der Offline-Präsentation und den Zusätzen für
- * Folien). Ein bloßes `touch` ändert ihn nicht.
+ * Bilder, dazu blatt.py, pruefung.js, graustufen.js und praesentation.js (steckt in der Offline-Präsentation und den
+ * Zusätzen für Folien). Ein bloßes `touch` ändert ihn nicht.
  */
 export const ausgabeSchluessel = async (dokDir: string): Promise<string> => {
 	const html = await readFile(path.join(dokDir, 'material.html'));
@@ -65,6 +67,7 @@ export const ausgabeSchluessel = async (dokDir: string): Promise<string> => {
 		['blatt.py', BLATT_PY],
 		['pruefung.js', path.join(ASSETS, 'pruefung.js')],
 		['praesentation.js', path.join(ASSETS, 'praesentation.js')],
+		['graustufen.js', path.join(ASSETS, 'graustufen.js')],
 	] as const) {
 		hash.update(`\0${name}\0`);
 		hash.update(datei === null ? 'fehlt' : await readFile(datei).catch(() => 'fehlt'));
@@ -111,7 +114,7 @@ export const uebernehmeAusgabe = async (von: string, dokDir: string, schluessel:
 	for (const name of neu) {
 		await kopiereAtomar(path.join(von, name), path.join(ausgabe, name));
 	}
-	const reste = (await readdir(ausgabe)).filter((n) => !neu.includes(n) && !istTempDatei(n));
+	const reste = (await readdir(ausgabe)).filter((n) => !neu.includes(n) && !istTempDatei(n) && !BLEIBT.has(n));
 	await Promise.all(reste.map((n) => rm(path.join(ausgabe, n), { recursive: true, force: true })));
 	await schreibeStand(ausgabe, schluessel);
 };

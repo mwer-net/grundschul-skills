@@ -5,11 +5,15 @@ export const MELDUNG_CODES = [
 	'abgeschnitten',
 	'ueberlappung',
 	'schrift-klein',
-	'farbe-sw',
+	/** Nur in der s/w-Ansicht: Text hebt sich nach der Umrechnung kaum von der Fläche ab (040). */
+	'kontrast-sw',
+	/** Nur in der s/w-Ansicht: Der Text spricht von Farben, die dort nicht zu sehen sind (040). */
+	'farbwort-sw',
 	'flaeche',
 	'bild-fehlt',
 	'bild-unscharf',
-	'bild-farbig',
+	/** Nur in der s/w-Ansicht: Ein Bild wird im Grau kaum erkennbar (041). */
+	'bild-kontrast-sw',
 	'aufgaben-viele',
 	'abstand-knapp',
 	'platz-frei',
@@ -98,9 +102,13 @@ const TABELLE: Record<MeldungCode, Uebersetzung> = {
 				: 'Die Schrift ist stellenweise sehr klein.',
 		tipp: 'Claude bitten, die Schrift größer zu machen.',
 	}),
-	'farbe-sw': (namen) => ({
-		satz: `${namen.length > 0 ? aufzaehlung(namen) : 'Etwas'} ist farbig, das Blatt wird aber schwarz-weiß gedruckt.`,
-		tipp: 'Im Druck wird die Farbe grau. Prüfe, ob man dann noch alles erkennt.',
+	'kontrast-sw': (namen) => ({
+		satz: `${namen.length > 0 ? aufzaehlung(namen) : 'Ein Text'} ist in Schwarz-Weiß kaum zu lesen.`,
+		tipp: 'Eine dunklere Schriftfarbe oder eine hellere Fläche wählen.',
+	}),
+	'farbwort-sw': (_n, text) => ({
+		satz: `Der Text nennt Farben (${/\((.*?)\)/.exec(text)?.[1] ?? ''}), in Schwarz-Weiß sind sie nicht zu sehen.`,
+		tipp: 'Das Merkmal mit anderen Worten nennen, zum Beispiel „die gestreiften Felder“.',
 	}),
 	'flaeche': ([a]) => ({
 		satz: a ? `Hinter ${a} liegt eine graue Fläche.` : 'Auf dem Blatt liegt eine graue Fläche.',
@@ -111,9 +119,9 @@ const TABELLE: Record<MeldungCode, Uebersetzung> = {
 		satz: `${a} wird im Druck unscharf.`,
 		tipp: 'Das Bild kleiner machen oder ein größeres Bild nehmen.',
 	}),
-	'bild-farbig': ([a = 'Ein Bild']) => ({
-		satz: `${a} ist farbig, das Blatt wird aber schwarz-weiß gedruckt.`,
-		tipp: 'Das Bild antippen und „In Graustufen umwandeln“ wählen.',
+	'bild-kontrast-sw': ([a = 'Ein Bild']) => ({
+		satz: `${a} hat in Schwarz-Weiß kaum Kontrast.`,
+		tipp: 'Ein Bild mit klaren Formen nehmen oder das Blatt in Farbe drucken.',
 	}),
 	'aufgaben-viele': (_n, text) => {
 		const [, anzahl, klasse, hoechstens] = /^(\d+) Aufgaben .*Klasse (\d) sind höchstens (\d+)/.exec(text) ?? [];

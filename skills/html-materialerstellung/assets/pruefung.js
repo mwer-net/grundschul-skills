@@ -1,6 +1,6 @@
 /* Automatische Layoutprüfung im Browser. blatt.py fügt dieses Skript nur zur Prüfung ein und liest
    das Ergebnis aus dem JSON-Element #pruefbericht. Stufen: FEHLER, WARNUNG, HINWEIS.
-   Jede Meldung hat neben dem Text einen Code (ueberlauf, rand, ueberlappung, schrift-klein, farbe-sw …) und die
+   Jede Meldung hat neben dem Text einen Code (ueberlauf, rand, ueberlappung, schrift-klein, kontrast-sw …) und die
    betroffenen Elemente als ziele: [{ sb, name, rechteck: [x, y, breite, hoehe] auf der Seite }], sb = data-sb aus
    dem Editor der Schoolbox, sonst null. Mit data-manuell am <script> prüft es nicht von selbst: Dann ruft der
    Editor window.pruefeBlatt({ warten: false }) und bekommt den Bericht zurück. */
@@ -12,6 +12,7 @@
   await document.fonts.ready;
   if (warten) {
    if (window.blattBereit) await window.blattBereit; // Umbau der Seiten, z. B. Folien mit Notizen
+   if (window.grauBereit) await window.grauBereit; // s/w-Ansicht
    await Promise.all([...document.images].map((i) => (i.complete ? 0 : new Promise((r) => { i.onload = i.onerror = r; }))));
    if (window.zeichneAbbildungen) window.zeichneAbbildungen();
    await new Promise((r) => setTimeout(r, 100));
@@ -26,7 +27,30 @@
   const kurz = (el) => el.dataset.name || (el.matches(".antwort") && !el.textContent.trim() ? "Antwortlinie" : (el.textContent || el.getAttribute("alt") || el.tagName.toLowerCase()).trim().replace(/\s+/g, " ").slice(0, 40));
   const sichtbar = (el) => { const r = el.getBoundingClientRect(); return r.width > 0 && r.height > 0 && getComputedStyle(el).visibility !== "hidden"; };
   const rgb = (c) => (c.match(/[\d.]+/g) || []).map(Number);
-  const bunt = (c) => { const [r, g, b, a = 1] = rgb(c); return a > 0.05 && Math.max(r, g, b) - Math.min(r, g, b) > 24; };
+  // WCAG 1.4.3 verlangt für große Schrift 3:1; Fließtext auf den Blättern hat 18–28 px und zählt dazu.
+  const KONTRAST_MIN = 3;
+  const FARBWORT = /(?<!\p{L})(?:rot|blau|grün|gelb|orange|lila|violett|rosa|pink|braun|türkis|bunt|farbig)(?:e|en|er|es|em)?(?!\p{L})/giu;
+  const leuchtdichte = (r, g, b) => { const k = (w) => { w /= 255; return w <= 0.03928 ? w / 12.92 : ((w + 0.055) / 1.055) ** 2.4; }; return 0.2126 * k(r) + 0.7152 * k(g) + 0.0722 * k(b); };
+  const kontrast = (x, y) => (Math.max(x, y) + 0.05) / (Math.min(x, y) + 0.05);
+  /** Kleinster Kontrast des Texts zu seiner Fläche; null, wenn ein Bild dahinter liegt. Verläufe zählen mit jedem Farbstopp. */
+  const kontrastZurFlaeche = (el) => {
+    const [tr, tg, tb, ta = 1] = rgb(getComputedStyle(el).color);
+    if (ta < 0.05) return null;
+    const schichten = [];
+    let verlauf = [];
+    for (let e = el; e; e = e.parentElement) {
+      const c = getComputedStyle(e);
+      if (/url\(/.test(c.backgroundImage)) return null;
+      if (/gradient/.test(c.backgroundImage) && !verlauf.length) verlauf = (c.backgroundImage.match(/rgba?\([^)]*\)/g) || []).map(rgb);
+      const f = rgb(c.backgroundColor);
+      if ((f[3] ?? 1) > 0) schichten.push(f);
+      if ((f[3] ?? 1) === 1) break;
+    }
+    const auf = (f, g) => { const a = f[3] ?? 1; return [0, 1, 2].map((i) => f[i] * a + g[i] * (1 - a)); };
+    const grund = schichten.reduceRight((unten, f) => auf(f, unten), [255, 255, 255]);
+    const flaechen = verlauf.length ? verlauf.map((f) => auf(f, grund)) : [grund];
+    return Math.min(...flaechen.map((f) => { const t = auf([tr, tg, tb, ta], f); return kontrast(leuchtdichte(...t), leuchtdichte(...f)); }));
+  };
 
   await Promise.all(["16px Andika", "700 16px Andika", "600 16px Fredoka"].map((f) => document.fonts.load(f).catch(() => 0)));
   if (!document.fonts.check("16px Andika")) melde("FEHLER", 0, "schrift-fehlt", "Schrift Andika nicht geladen (fonts/ fehlt?)");
@@ -104,10 +128,19 @@
       melde("WARNUNG", nr, "schrift-klein", `Schrift kleiner als ${min} px ${folie ? "auf Folien (Leseentfernung)" : `für Klasse ${kl}`}: ${erste.map(([t]) => t).join(", ")}`, erste.map(([, p]) => ziel(p)));
     }
 
-    // 5. Druckprofil
+    // 5. s/w-Ansicht: Farben rechnet graustufen.js um, zu melden ist nur, was dabei verloren geht
     if (B.classList.contains("sw")) {
-      const farbig = alle.filter((e) => { const c = getComputedStyle(e); return bunt(c.color) || bunt(c.backgroundColor) || bunt(c.borderTopColor); });
-      if (farbig.length) melde("WARNUNG", nr, "farbe-sw", `Farbe im s/w-Profil: ${farbig.slice(0, 3).map(kurz).join(", ")}`, farbig.slice(0, 3).map(ziel));
+      const schwach = [], worte = new Set(), farbworte = [];
+      const pruefer = document.createTreeWalker(S, NodeFilter.SHOW_TEXT);
+      while (pruefer.nextNode()) {
+        const t = pruefer.currentNode, p = t.parentElement;
+        if (!t.textContent.trim() || !p || p.closest("svg,.loesung-marke") || !sichtbar(p)) continue;
+        const k = kontrastZurFlaeche(p);
+        if (k !== null && k < KONTRAST_MIN && !schwach.includes(p)) schwach.push(p);
+        for (const m of t.textContent.matchAll(FARBWORT)) { worte.add(m[0].toLowerCase()); if (!farbworte.includes(p)) farbworte.push(p); }
+      }
+      if (schwach.length) melde("HINWEIS", nr, "kontrast-sw", `In s/w kaum lesbar (Kontrast unter ${KONTRAST_MIN}:1): ${schwach.slice(0, 3).map(kurz).join(", ")}`, schwach.slice(0, 3).map(ziel));
+      if (worte.size) melde("HINWEIS", nr, "farbwort-sw", `Der Text nennt Farben (${[...worte].slice(0, 4).join(", ")}), in s/w sind sie nicht zu sehen → Merkmal in Worten nennen`, farbworte.slice(0, 3).map(ziel));
     }
     alle.filter((e) => e.tagName === "DIV" || e.tagName === "SECTION").forEach((e) => {
       const c = getComputedStyle(e), r = e.getBoundingClientRect();
@@ -116,20 +149,22 @@
         melde("WARNUNG", nr, "flaeche", `Fläche hinter „${kurz(e)}“ (${c.backgroundColor}) → Aufgaben ohne Kasten und Fläche`, [ziel(e)]);
     });
 
-    // 6. Bilder: geladen, Auflösung, im s/w-Profil wirklich schwarz-weiß
+    // 6. Bilder: geladen, Auflösung
     S.querySelectorAll("img").forEach((im) => {
       if (!im.complete || !im.naturalWidth) return melde("FEHLER", nr, "bild-fehlt", `Bild fehlt: ${im.getAttribute("src").slice(0, 60)}`, [ziel(im)]);
       const r = im.getBoundingClientRect(), dpi = Math.round((im.naturalWidth / r.width) * 96);
-      if (dpi < 150) melde("HINWEIS", nr, "bild-unscharf", `Bild „${im.alt || "ohne alt"}“ hat im Druck nur ${dpi} dpi (unscharf) → Original in voller Größe einsetzen`, [ziel(im)]);
       if (B.classList.contains("sw")) {
         try {
           const c = document.createElement("canvas"); c.width = 64; c.height = 64;
           const x = c.getContext("2d"); x.drawImage(im, 0, 0, 64, 64);
-          const d = x.getImageData(0, 0, 64, 64).data; let s = 0, n = 0;
-          for (let i = 0; i < d.length; i += 4) if (d[i + 3] > 128) { s += Math.max(d[i], d[i + 1], d[i + 2]) - Math.min(d[i], d[i + 1], d[i + 2]); n++; }
-          if (n && s / n > 30) melde("WARNUNG", nr, "bild-farbig", `Bild „${im.alt || im.getAttribute("src").slice(0, 30)}“ ist farbig → im s/w-Profil die Strich-Version nehmen`, [ziel(im)]);
+          const d = x.getImageData(0, 0, 64, 64).data, y = [];
+          for (let i = 0; i < d.length; i += 4) if (d[i + 3] > 128) y.push(0.299 * d[i] + 0.587 * d[i + 1] + 0.114 * d[i + 2]);
+          y.sort((a, b) => a - b);
+          // Spanne zwischen 1 und 99 % der Grauwerte (dünne Striche zählen noch); unter 40 von 255 verschwimmen die Formen im Druck.
+          if (y.length && y[Math.floor(y.length * 0.99)] - y[Math.floor(y.length * 0.01)] < 40) melde("HINWEIS", nr, "bild-kontrast-sw", `Bild „${im.alt || im.getAttribute("src").slice(0, 30)}“ hat in s/w kaum Kontrast`, [ziel(im)]);
         } catch (e) { /* fremde Quelle */ }
       }
+      if (dpi < 150) melde("HINWEIS", nr, "bild-unscharf", `Bild „${im.alt || "ohne alt"}“ hat im Druck nur ${dpi} dpi (unscharf) → Original in voller Größe einsetzen`, [ziel(im)]);
     });
 
     // 7. Aufgaben: Anzahl, Abstände, Ausschnitte für die visuelle Endkontrolle

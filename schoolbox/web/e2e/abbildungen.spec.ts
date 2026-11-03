@@ -295,7 +295,7 @@ test.describe('Daten und Zufall (024)', () => {
 			.locator('path[data-winkel]')
 			.evaluateAll((p) => p.map((e) => e.getAttribute('fill')));
 		expect(new Set(fuellungen).size).toBe(3);
-		expect(await seite.locator('x-gluecksrad').getByText('Rot = schraffiert').count()).toBe(1);
+		expect(await seite.locator('x-gluecksrad').getByText('Rot', { exact: true }).count()).toBe(1);
 
 		const bastel = await gezeichnet(page, '<x-gluecksrad bastel="ja" felder="rot; blau"></x-gluecksrad>');
 		await expect(bastel.locator('x-gluecksrad')).toHaveAttribute('data-masstab', '');

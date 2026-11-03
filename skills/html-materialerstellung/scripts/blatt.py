@@ -3,7 +3,7 @@
 
 Aufrufe:
     python3 blatt.py bauen blatt.html [-o ausgabe/] [--ohne-loesung] [--nur-pruefen] [--bericht bericht.json]
-                           [--schritte] [--notizen] [--nur-zusatz]
+                           [--schritte] [--notizen] [--nur-zusatz] [--profil farbe|sw]
     python3 blatt.py uebersicht a.html b.html [c.html] [-o ausgabe/]
 
 bauen erzeugt in ausgabe/ (Standard: Ordner der Quelle):
@@ -13,6 +13,8 @@ bauen erzeugt in ausgabe/ (Standard: Ordner der Quelle):
     NAME-s1.png …         Vorschau je Seite, NAME-s1-a1.png … Ausschnitt je Aufgabe
                           (für die visuelle Endkontrolle), NAME-loesung-s1.png
 und gibt den Prüfbericht aus (FEHLER / WARNUNG / HINWEIS). Exit-Code 1 bei FEHLER.
+--profil sw stellt ein farbiges Blatt in Graustufen dar (assets/graustufen.js), ohne die Quelle zu ändern; ohne Angabe
+gilt die Klasse am <body> der Quelle.
 --bericht schreibt ihn zusätzlich als JSON (seiten, meldungen mit code und ziele, fehler), z. B. für die Schoolbox.
 
 Folien (body class folie): NAME.html ist dann die Offline-Präsentation (praesentation.js eingebettet, startet mit
@@ -33,8 +35,11 @@ sonst pdftoppm.
 """
 import argparse
 import base64
+import fcntl
 import glob
+import hashlib
 import html
+import io
 import json
 import mimetypes
 import os
@@ -100,18 +105,156 @@ def mit_klasse(text, klasse):
     return re.sub(r'<body([^>]*)class="([^"]*)"', lambda m: f'<body{m.group(1)}class="{m.group(2)} {klasse}"', text, count=1)
 
 
-def einbetten(quelltext, quelle_dir, pruefen=False, loesung=False, modus=None):
+JPEG_QUALITAET = 85
+RASTER = (".png", ".jpg", ".jpeg", ".webp", ".gif")
+HELLIGKEIT = lambda r, g, b: round(0.299 * r + 0.587 * g + 0.114 * b)
+
+
+def pillow():
+    try:
+        from PIL import Image, ImageOps
+    except ImportError:
+        sys.exit("Für die s/w-Fassung braucht blatt.py Pillow: pip install Pillow")
+    return Image, ImageOps
+
+
+def strich_fassung(pfad):
+    """name-strich.* neben name.* mit gleichem Seitenverhältnis (1 % Spielraum), sonst None."""
+    Image, _ = pillow()
+    if pfad.stem.endswith("-strich") or pfad.suffix.lower() not in RASTER:
+        return None
+    with Image.open(pfad) as bild:
+        verhaeltnis = bild.width / bild.height
+    for endung in RASTER:
+        kandidat = pfad.with_name(f"{pfad.stem}-strich{endung}")
+        if kandidat.exists():
+            with Image.open(kandidat) as strich:
+                if abs(strich.width / strich.height - verhaeltnis) <= 0.01 * verhaeltnis:
+                    return kandidat
+    return None
+
+
+def grau_bytes(pfad, masse=None):
+    """Graufassung im selben Format: JPEG bleibt JPEG, Alpha bleibt. masse hält die Pixelmaße des Originals."""
+    Image, ImageOps = pillow()
+    with Image.open(pfad) as roh:
+        bild = ImageOps.exif_transpose(roh) if roh.format == "JPEG" else roh.copy()
+        mit_alpha = "A" in bild.getbands() or "transparency" in roh.info
+        grau = bild.convert("RGBA").convert("LA") if mit_alpha else bild.convert("RGB").convert("L")
+        if masse and grau.size != masse:
+            grau = grau.resize(masse, Image.LANCZOS)
+        puffer = io.BytesIO()
+        dpi = {"dpi": roh.info["dpi"]} if "dpi" in roh.info else {}
+        if roh.format == "JPEG":
+            grau.save(puffer, "JPEG", quality=JPEG_QUALITAET, optimize=True, **dpi)
+        elif roh.format == "WEBP":
+            grau.save(puffer, "WEBP", quality=JPEG_QUALITAET)
+        else:
+            grau.save(puffer, "PNG", optimize=True, **dpi)
+        return puffer.getvalue(), ("image/jpeg" if roh.format == "JPEG" else "image/webp" if roh.format == "WEBP" else "image/png")
+
+
+def svg_grau(text):
+    """Farben in einer SVG-Datei; Bilder darin gibt es im Material nicht."""
+    def hex_grau(m):
+        h = m.group(1)
+        h = "".join(z * 2 for z in h) if len(h) == 3 else h
+        v = HELLIGKEIT(*(int(h[i:i + 2], 16) for i in (0, 2, 4)))
+        return f"#{v:02x}{v:02x}{v:02x}"
+    text = re.sub(r"#([0-9a-fA-F]{6}|[0-9a-fA-F]{3})\b", hex_grau, text)
+    return re.sub(r"rgb\(\s*(\d+)[ ,]+(\d+)[ ,]+(\d+)\s*\)",
+                  lambda m: "rgb({0},{0},{0})".format(HELLIGKEIT(*map(int, m.groups()))), text)
+
+
+class Graufassungen:
+    """Bilder fürs s/w-Profil, zwischengespeichert nach Inhalts-Hash (nur innerhalb von ausgabe/). Gibt data:-URIs zurück."""
+
+    def __init__(self, ordner):
+        self.ordner = ordner
+
+    def _gespeichert(self, schluessel, endung, erzeuge):
+        if self.ordner:
+            datei = self.ordner / f"{schluessel}{endung}"
+            if datei.exists():
+                return datei.read_bytes()
+        daten = erzeuge()
+        if self.ordner:
+            self.ordner.mkdir(exist_ok=True)
+            tmp = self.ordner / f".{schluessel}.{os.getpid()}.tmp"
+            tmp.write_bytes(daten)
+            os.replace(tmp, self.ordner / f"{schluessel}{endung}")
+        return daten
+
+    def uri(self, pfad):
+        pfad = Path(pfad)
+        endung = pfad.suffix.lower()
+        if endung == ".svg":
+            daten = svg_grau(pfad.read_text(encoding="utf-8")).encode()
+            return f"data:image/svg+xml;base64,{base64.b64encode(daten).decode()}"
+        if endung not in RASTER:
+            return daten_uri(pfad)
+        Image, _ = pillow()
+        with Image.open(pfad) as bild:
+            masse = bild.size
+            jpeg = bild.format == "JPEG"
+        strich = strich_fassung(pfad)
+        quelle = strich or pfad
+        h = hashlib.sha256(quelle.read_bytes())
+        h.update(f"{masse}{JPEG_QUALITAET}".encode())
+        ablage = ".jpg" if jpeg and quelle.suffix.lower() in (".jpg", ".jpeg") else ".png"
+        daten = self._gespeichert(h.hexdigest()[:32], ablage, lambda: grau_bytes(quelle, masse)[0])
+        typ = "image/jpeg" if ablage == ".jpg" else "image/png"
+        return f"data:{typ};base64,{base64.b64encode(daten).decode()}"
+
+    def daten_uri(self, uri):
+        """Bild, das schon als data: in der Quelle steht."""
+        m = re.match(r"data:image/(png|jpeg);base64,(.*)", uri, re.S)
+        if not m:
+            return uri
+        with tempfile.NamedTemporaryFile(suffix=f".{m.group(1)}") as tmp:
+            tmp.write(base64.b64decode(m.group(2)))
+            tmp.flush()
+            daten, typ = grau_bytes(tmp.name)
+        return f"data:{typ};base64,{base64.b64encode(daten).decode()}"
+
+
+def profil_von(text):
+    body = re.search(r'<body[^>]*class="([^"]*)"', text)
+    return "sw" if body and "sw" in body.group(1).split() and "farbe" not in body.group(1).split() else "farbe"
+
+
+def setze_profil(text, profil):
+    """Klassen am <body> wie kern/src/html.ts: s/w statt farbe palette-*; die Farbansicht einer s/w-Quelle bekommt die Standardpalette."""
+    def tausche(m):
+        klassen = m.group(2).split()
+        ohne = [k for k in klassen if k not in ("sw", "farbe") and not k.startswith("palette-")]
+        if profil == "sw":
+            neu = ["sw", *ohne]
+        else:
+            neu = ["farbe", next((k for k in klassen if k.startswith("palette-")), "palette-himmel"), *ohne]
+        return f'<body{m.group(1)}class="{" ".join(neu)}"'
+    return re.sub(r'<body([^>]*)class="([^"]*)"', tausche, text, count=1)
+
+
+def einbetten(quelltext, quelle_dir, pruefen=False, loesung=False, modus=None, profil=None, cache=None):
     """Eigenständiges HTML: CSS, Schriften, Skripte und Bilder einbetten.
 
     modus (nur Folien): "start" (Offline-Präsentation), "schritte" oder "notizen" bettet praesentation.js ein und
-    setzt die Klasse praesentation-<modus> am <body>; "notizen" druckt auf A4 hoch."""
+    setzt die Klasse praesentation-<modus> am <body>; "notizen" druckt auf A4 hoch.
+    profil: ohne Angabe gilt die Quelle. Bei s/w (auch aus der Quelle) läuft assets/graustufen.js mit und alle Bilder
+    werden Graufassungen (oder name-strich, wenn es das gibt); cache ist der Ordner, in dem die Fassungen bleiben."""
+    grau = Graufassungen(cache) if (profil or profil_von(quelltext)) == "sw" else None
+    bild_uri = grau.uri if grau else daten_uri
+
     def css_ersetzen(m):
         p = suche(m.group(1), quelle_dir)
         if not p:
             sys.exit(f"Stylesheet {m.group(1)} nicht gefunden.")
         css = p.read_text(encoding="utf-8")
+        def url_uri(ziel):  # Schriften bleiben, wie sie sind; nur Bilder aus eigenem CSS werden grau
+            return bild_uri(ziel) if ziel.suffix.lower() in (*RASTER, ".svg") else daten_uri(ziel)
         css = re.sub(r"url\((?!data:)([^)]+)\)",
-                     lambda u: f"url({daten_uri(suche(u.group(1).strip(chr(34) + chr(39)), p.parent))})"
+                     lambda u: f"url({url_uri(suche(u.group(1).strip(chr(34) + chr(39)), p.parent))})"
                      if suche(u.group(1).strip(chr(34) + chr(39)), p.parent) else u.group(0), css)
         return f"<style>\n{css}\n</style>"
 
@@ -123,6 +266,8 @@ def einbetten(quelltext, quelle_dir, pruefen=False, loesung=False, modus=None):
 
     def bild_ersetzen(m):
         src = m.group(2)
+        if grau and src.startswith("data:"):
+            return f"{m.group(1)}{grau.daten_uri(src)}{m.group(3)}"
         # `${` steht in Vorlagen aus dem eingebetteten abbildungen.js.
         if src.startswith(("data:", "http:", "https:", "${")):
             return m.group(0)
@@ -130,7 +275,7 @@ def einbetten(quelltext, quelle_dir, pruefen=False, loesung=False, modus=None):
         if not p:
             print(f"FEHLER  Bild nicht gefunden: {src}", file=sys.stderr)
             return m.group(0)
-        return f"{m.group(1)}{daten_uri(p)}{m.group(3)}"
+        return f"{m.group(1)}{bild_uri(p)}{m.group(3)}"
 
     # Diese Bilder setzt erst abbildungen.js ein; im eigenständigen HTML müssen sie schon am Element hängen.
     def zeichen_ersetzen(m):
@@ -141,7 +286,7 @@ def einbetten(quelltext, quelle_dir, pruefen=False, loesung=False, modus=None):
         for variante in ("", "-grau", "-kontur"):
             p = suche(f"bilder/verkehrszeichen/{nummer.group(1)}{variante}.svg", quelle_dir)
             if p:
-                dazu += f' data-bild{variante}="{daten_uri(p)}"'
+                dazu += f' data-bild{variante}="{bild_uri(p)}"'
         return f"{m.group(0)[:-1]}{dazu}>"
 
     def stationen_ersetzen(m):
@@ -153,7 +298,7 @@ def einbetten(quelltext, quelle_dir, pruefen=False, loesung=False, modus=None):
                 continue
             p = suche(src, quelle_dir)
             if p:
-                dazu += f' data-bild-{i}="{daten_uri(p)}"'
+                dazu += f' data-bild-{i}="{bild_uri(p)}"'
             else:
                 print(f"FEHLER  Bild nicht gefunden: {src}", file=sys.stderr)
         return f"{m.group(0)[:-1]}{dazu}>"
@@ -171,14 +316,18 @@ def einbetten(quelltext, quelle_dir, pruefen=False, loesung=False, modus=None):
                 continue
             p = suche(src, quelle_dir)
             if p:
-                dazu += f' data-mini-{i}="{daten_uri(p)}"'
+                dazu += f' data-mini-{i}="{bild_uri(p)}"'
             else:
                 print(f"FEHLER  Bild nicht gefunden: {src}", file=sys.stderr)
         return f"{m.group(0)[:-1]}{dazu}>"
 
+    if profil and profil != profil_von(quelltext):
+        quelltext = setze_profil(quelltext, profil)
     t = re.sub(r'<link[^>]+href="([^"]+\.css)"[^>]*>', css_ersetzen, quelltext)
     t = re.sub(r'<script[^>]+src="([^"]+\.js)"[^>]*>\s*</script>', js_ersetzen, t)
     t = re.sub(r'(<img[^>]+src=")([^"]+)(")', bild_ersetzen, t)
+    if grau:  # <image> in eigenem SVG; in Farbe bleibt alles, wie es ist
+        t = re.sub(r'(<image\b[^>]*?\bhref=")([^"]+)(")', bild_ersetzen, t)
     t = re.sub(r"<x-verkehrszeichen\b[^>]*>", zeichen_ersetzen, t)
     t = re.sub(r"<x-kreislauf\b[^>]*>", stationen_ersetzen, t)
     t = re.sub(r"<x-(?:bingo|domino|spielplan|suchsel|kreuzwort)\b[^>]*>", mini_ersetzen, t)
@@ -191,6 +340,9 @@ def einbetten(quelltext, quelle_dir, pruefen=False, loesung=False, modus=None):
     if modus:
         js = (ASSETS / "praesentation.js").read_text(encoding="utf-8")
         t = mit_klasse(t, f"praesentation-{modus}").replace("</head>", f"<script>\n{js}\n</script>\n</head>", 1)
+    if profil_von(quelltext) == "sw":
+        js = (ASSETS / "graustufen.js").read_text(encoding="utf-8")
+        t = t.replace("</body>", f"<script>\n{js}\n</script>\n</body>")
     if pruefen:
         js = (ASSETS / "pruefung.js").read_text(encoding="utf-8")
         t = t.replace("</body>", f"<script>\n{js}\n</script>\n</body>")
@@ -205,9 +357,99 @@ def pruefbericht(html_pfad):
     return json.loads(html.unescape(m.group(1)))
 
 
-def pdf(html_pfad, pdf_pfad):
-    chromium([f"--print-to-pdf={pdf_pfad}", "--no-pdf-header-footer", "--print-to-pdf-no-header"],
-             Path(html_pfad).resolve().as_uri())
+class Cdp:
+    """Chromium über --remote-debugging-pipe: Nur so läuft eine Seite vor dem Drucken schon unter dem Medium print."""
+
+    def __init__(self, ordner):
+        von_chrome, an_uns = os.pipe()
+        von_uns, an_chrome = os.pipe()
+        def kanaele():  # Chromium erwartet die Pipe auf 3 und 4; die Enden können selbst dort liegen
+            lesen, schreiben = fcntl.fcntl(von_uns, fcntl.F_DUPFD, 10), fcntl.fcntl(an_uns, fcntl.F_DUPFD, 10)
+            os.dup2(lesen, 3, inheritable=True)
+            os.dup2(schreiben, 4, inheritable=True)
+        self.proc = subprocess.Popen(
+            [finde_chromium(), "--headless", "--no-sandbox", "--disable-gpu", "--hide-scrollbars",
+             "--allow-file-access-from-files", "--remote-debugging-pipe", f"--user-data-dir={ordner}", "about:blank"],
+            stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, preexec_fn=kanaele, close_fds=False, start_new_session=True)
+        os.close(von_uns)
+        os.close(an_uns)
+        self.schreiben, self.lesen = os.fdopen(an_chrome, "wb"), os.fdopen(von_chrome, "rb")
+        self.nr = 0
+
+    def nachricht(self):
+        puffer = bytearray()
+        while True:
+            z = self.lesen.read(1)
+            if not z:
+                raise RuntimeError("Chromium hat die Verbindung beendet.")
+            if z == b"\0":
+                return json.loads(puffer)
+            puffer += z
+
+    def befehl(self, methode, sitzung=None, **parameter):
+        self.nr += 1
+        anfrage = {"id": self.nr, "method": methode, "params": parameter}
+        if sitzung:
+            anfrage["sessionId"] = sitzung
+        self.schreiben.write(json.dumps(anfrage).encode() + b"\0")
+        self.schreiben.flush()
+        while True:
+            antwort = self.nachricht()
+            if antwort.get("id") == self.nr:
+                if "error" in antwort:
+                    raise RuntimeError(f"{methode}: {antwort['error'].get('message')}")
+                return antwort["result"]
+
+    def warte_auf(self, ereignis):
+        while True:
+            if self.nachricht().get("method") == ereignis:
+                return
+
+    def schliessen(self):
+        try:
+            self.befehl("Browser.close")
+        except (RuntimeError, OSError):
+            pass
+        try:
+            self.proc.wait(timeout=5)
+        except subprocess.TimeoutExpired:
+            os.killpg(self.proc.pid, 9)
+            self.proc.wait()
+        self.schreiben.close()
+        self.lesen.close()
+
+
+def pdf_grau(html_pfad, pdf_pfad):
+    """s/w-PDF: Der Grau-Pass rechnet unter dem Medium print, damit er nur festschreibt, was im Druck gilt."""
+    # Chromium schreibt beim Beenden noch ins Profil; ein Rest in /tmp ist besser als ein abgebrochener Bau.
+    with tempfile.TemporaryDirectory(ignore_cleanup_errors=True) as profil:
+        cdp = Cdp(profil)
+        try:
+            ziel = cdp.befehl("Target.createTarget", url="about:blank")["targetId"]
+            s = cdp.befehl("Target.attachToTarget", targetId=ziel, flatten=True)["sessionId"]
+            cdp.befehl("Page.enable", s)
+            cdp.befehl("Emulation.setEmulatedMedia", s, media="print")
+            cdp.befehl("Page.navigate", s, url=Path(html_pfad).resolve().as_uri())
+            cdp.warte_auf("Page.loadEventFired")
+            lauf = cdp.befehl("Runtime.evaluate", s, awaitPromise=True, returnByValue=True, expression=(
+                "(async () => { await window.grauBereit; "
+                "await Promise.all([...document.images].map((i) => i.complete ? 0 : new Promise((r) => { i.onload = i.onerror = r; }))); "
+                "window.macheGrau(); await new Promise((r) => setTimeout(r, 100)); return 'ok'; })()"))
+            if lauf.get("result", {}).get("value") != "ok":
+                sys.exit(f"Grau-Pass fehlgeschlagen: {lauf.get('exceptionDetails', {}).get('text', lauf)}")
+            daten = cdp.befehl("Page.printToPDF", s, printBackground=True, preferCSSPageSize=True,
+                               displayHeaderFooter=False)["data"]
+            Path(pdf_pfad).write_bytes(base64.b64decode(daten))
+        finally:
+            cdp.schliessen()
+
+
+def pdf(html_pfad, pdf_pfad, grau=False):
+    if grau:
+        pdf_grau(html_pfad, pdf_pfad)
+    else:
+        chromium([f"--print-to-pdf={pdf_pfad}", "--no-pdf-header-footer", "--print-to-pdf-no-header"],
+                 Path(html_pfad).resolve().as_uri())
     if not Path(pdf_pfad).exists():
         sys.exit("PDF wurde nicht erzeugt.")
 
@@ -287,7 +529,13 @@ def ist_folie(text):
     return hat_format(text, "folie")
 
 
-def folien_ausgaben(text, quelle, aus, tmp, schritte, notizen, still):
+def bild_cache(quelle):
+    """Zwischenspeicher nur unter einem schon vorhandenen ausgabe/ neben der Quelle; sonst rechnet jeder Bau neu."""
+    ausgabe = quelle.parent / "ausgabe"
+    return ausgabe / "grau-cache" if ausgabe.is_dir() else None
+
+
+def folien_ausgaben(text, quelle, aus, tmp, schritte, notizen, still, profil=None):
     """--schritte und --notizen; gibt (erzeugte Dateien, Meldungen, Anzahl Fehler) zurück."""
     if not ist_folie(text):
         print("Hinweis: --schritte und --notizen gibt es nur für Folien (body class folie).", file=sys.stderr)
@@ -295,12 +543,12 @@ def folien_ausgaben(text, quelle, aus, tmp, schritte, notizen, still):
     name, erzeugt, meldungen, fehler = quelle.stem, [], [], 0
     if schritte:
         sh = Path(tmp) / f"{name}-schritte.html"
-        sh.write_text(einbetten(text, quelle.parent, modus="schritte"), encoding="utf-8")
-        pdf(sh, aus / f"{name}-schritte.pdf")
+        sh.write_text(einbetten(text, quelle.parent, modus="schritte", profil=profil, cache=bild_cache(quelle)), encoding="utf-8")
+        pdf(sh, aus / f"{name}-schritte.pdf", grau=(profil or profil_von(text)) == "sw")
         erzeugt.append(aus / f"{name}-schritte.pdf")
     if notizen:
         np = Path(tmp) / "pruefen-notizen.html"
-        np.write_text(einbetten(text, quelle.parent, pruefen=True, modus="notizen"), encoding="utf-8")
+        np.write_text(einbetten(text, quelle.parent, pruefen=True, modus="notizen", profil=profil, cache=bild_cache(quelle)), encoding="utf-8")
         nb = pruefbericht(np)
         nb["meldungen"] = [m for m in nb["meldungen"] if m["stufe"] == "FEHLER"]
         if nb["meldungen"]:
@@ -309,28 +557,30 @@ def folien_ausgaben(text, quelle, aus, tmp, schritte, notizen, still):
         elif not still:
             print(f"Folien mit Notizen: {len(nb['seiten'])} Blätter, Prüfung ok.")
         nh = Path(tmp) / f"{name}-notizen.html"
-        nh.write_text(einbetten(text, quelle.parent, modus="notizen"), encoding="utf-8")
-        pdf(nh, aus / f"{name}-notizen.pdf")
+        nh.write_text(einbetten(text, quelle.parent, modus="notizen", profil=profil, cache=bild_cache(quelle)), encoding="utf-8")
+        pdf(nh, aus / f"{name}-notizen.pdf", grau=(profil or profil_von(text)) == "sw")
         erzeugt.append(aus / f"{name}-notizen.pdf")
     return erzeugt, meldungen, fehler
 
 
 def bauen(quelle, ausgabe=None, ohne_loesung=False, nur_pruefen=False, still=False, bericht_datei=None,
-          schritte=False, notizen=False, nur_zusatz=False):
+          schritte=False, notizen=False, nur_zusatz=False, profil=None):
     quelle = Path(quelle).resolve()
     aus = Path(ausgabe).resolve() if ausgabe else quelle.parent
     aus.mkdir(parents=True, exist_ok=True)
     name = quelle.stem
     text = quelle.read_text(encoding="utf-8")
+    grau = (profil or profil_von(text)) == "sw"
+    cache = bild_cache(quelle)
     with tempfile.TemporaryDirectory() as tmp:
         if nur_zusatz:
-            erzeugt, meldungen, fehler = folien_ausgaben(text, quelle, aus, tmp, schritte, notizen, still)
+            erzeugt, meldungen, fehler = folien_ausgaben(text, quelle, aus, tmp, schritte, notizen, still, profil)
             bericht_schreiben(bericht_datei, {"seiten": []}, meldungen, fehler)
             if not still:
                 print("Erzeugt:\n  " + "\n  ".join(str(p) for p in erzeugt))
             return {"seiten": [], "meldungen": meldungen}, fehler, []
         pruef = Path(tmp) / "pruefen.html"
-        pruef.write_text(einbetten(text, quelle.parent, pruefen=True), encoding="utf-8")
+        pruef.write_text(einbetten(text, quelle.parent, pruefen=True, profil=profil, cache=cache), encoding="utf-8")
         bericht = pruefbericht(pruef)
         fehler = ausgeben(bericht, "" if not still else name)
         meldungen = list(bericht["meldungen"])
@@ -338,10 +588,10 @@ def bauen(quelle, ausgabe=None, ohne_loesung=False, nur_pruefen=False, still=Fal
             bericht_schreiben(bericht_datei, bericht, meldungen, fehler)
             return bericht, fehler, []
         fertig = aus / f"{name}.html"
-        fertig.write_text(einbetten(text, quelle.parent), encoding="utf-8")
-        pdf(fertig, aus / f"{name}.pdf")
+        fertig.write_text(einbetten(text, quelle.parent, profil=profil, cache=cache), encoding="utf-8")
+        pdf(fertig, aus / f"{name}.pdf", grau=grau)
         if ist_folie(text):  # Offline-Präsentation; das PDF oben ist aus der Fassung ohne Laufzeit entstanden
-            fertig.write_text(einbetten(text, quelle.parent, modus="start"), encoding="utf-8")
+            fertig.write_text(einbetten(text, quelle.parent, modus="start", profil=profil, cache=cache), encoding="utf-8")
         bilder = pngs(aus / f"{name}.pdf", str(aus / name))
         # Im Mini-Book liegen acht Felder auf einem Blatt, die Maße aus der Prüfung passen nicht zum Druckbild
         teile = [] if hat_format(text, "minibuch") else ausschnitte(bilder, bericht, str(aus / name))
@@ -350,18 +600,18 @@ def bauen(quelle, ausgabe=None, ohne_loesung=False, nur_pruefen=False, still=Fal
                        or re.search(OHNE_LOESUNGSANGABE, text) or re.search(MIT_LOESUNG, text)) and not ohne_loesung
         if hat_loesung:
             lp = Path(tmp) / "pruefen-loesung.html"
-            lp.write_text(einbetten(text, quelle.parent, pruefen=True, loesung=True), encoding="utf-8")
+            lp.write_text(einbetten(text, quelle.parent, pruefen=True, loesung=True, profil=profil, cache=cache), encoding="utf-8")
             lb = pruefbericht(lp)
             lb["meldungen"] = [m for m in lb["meldungen"] if m["stufe"] == "FEHLER"]
             if lb["meldungen"]:
                 fehler += ausgeben(lb, "Lösungsblatt")
                 meldungen += [{**m, "text": f"Lösungsblatt: {m['text']}"} for m in lb["meldungen"]]
             lh = Path(tmp) / f"{name}-loesung.html"
-            lh.write_text(einbetten(text, quelle.parent, loesung=True), encoding="utf-8")
-            pdf(lh, aus / f"{name}-loesung.pdf")
+            lh.write_text(einbetten(text, quelle.parent, loesung=True, profil=profil, cache=cache), encoding="utf-8")
+            pdf(lh, aus / f"{name}-loesung.pdf", grau=grau)
             erzeugt += [aus / f"{name}-loesung.pdf", *pngs(aus / f"{name}-loesung.pdf", str(aus / f"{name}-loesung"))]
         if schritte or notizen:
-            mehr, zusatz, zfehler = folien_ausgaben(text, quelle, aus, tmp, schritte, notizen, still)
+            mehr, zusatz, zfehler = folien_ausgaben(text, quelle, aus, tmp, schritte, notizen, still, profil)
             erzeugt += mehr
             meldungen += zusatz
             fehler += zfehler
@@ -430,6 +680,7 @@ def main():
     b.add_argument("--schritte", action="store_true", help="Folien: NAME-schritte.pdf, eine Seite je Schritt")
     b.add_argument("--notizen", action="store_true", help="Folien: NAME-notizen.pdf, Folien mit Notizen auf A4")
     b.add_argument("--nur-zusatz", action="store_true", help="nur --schritte/--notizen bauen")
+    b.add_argument("--profil", choices=("farbe", "sw"), help="Darstellung; ohne Angabe gilt die Quelle")
     u = sub.add_parser("uebersicht")
     u.add_argument("quellen", nargs="+")
     u.add_argument("-o", "--ausgabe")
@@ -438,7 +689,7 @@ def main():
         if a.nur_zusatz and not (a.schritte or a.notizen):
             ap.error("--nur-zusatz braucht --schritte oder --notizen")
         _, fehler, _ = bauen(a.quelle, a.ausgabe, a.ohne_loesung, a.nur_pruefen, bericht_datei=a.bericht,
-                             schritte=a.schritte, notizen=a.notizen, nur_zusatz=a.nur_zusatz)
+                             schritte=a.schritte, notizen=a.notizen, nur_zusatz=a.nur_zusatz, profil=a.profil)
         sys.exit(1 if fehler else 0)
     uebersicht(a.quellen, a.ausgabe)
 

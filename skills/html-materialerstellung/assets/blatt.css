@@ -255,12 +255,12 @@ x-satzglieder .sg-glied{display:inline-flex;flex-direction:column;gap:.15em}
 x-satzglieder .sg-rolle{font-size:.8em;min-height:1.4em;text-align:center;white-space:nowrap}
 x-satzglieder .sg-rolle.frei{border-bottom:1.5px dashed #808080;min-width:5em}
 x-satzglieder .sg-kasten{border:1.5px solid #1D1D1B;padding:.2em .5em;text-align:center;white-space:nowrap}
-x-satzglieder .sg-kasten.praedikat{border:4px double #1D1D1B;padding:calc(.2em - 2.5px) calc(.5em - 2.5px)}
+x-satzglieder .sg-kasten.praedikat{border:4px double #1D1D1B;padding:calc(.2em - 3px) calc(.5em - 3px)} /* gleiche Maße wie in Farbe: 2,5 px rundet der Browser dort auf 2 px ab */
 body.farbe x-satzglieder .sg-kasten.praedikat{border:2.5px solid var(--haupt);padding:calc(.2em - 1px) calc(.5em - 1px)}
 x-satzglieder .sg-kasten.ohne-rolle{border-color:#808080}
 x-satzglieder .sg-kasten.leer{min-height:1.9em}
 x-satzglieder .sg-kasten.schnitt{border-style:dashed;padding:.5em .8em}
-x-satzglieder .sg-kasten.schnitt.praedikat{border:3px dashed #1D1D1B;padding:calc(.5em - 1.5px) calc(.8em - 1.5px)}
+x-satzglieder .sg-kasten.schnitt.praedikat{border:3px dashed #1D1D1B;padding:calc(.2em - 2px) calc(.5em - 2px)} /* Maße wie in Farbe */
 body.farbe x-satzglieder .sg-kasten.schnitt.praedikat{border-color:var(--haupt)}
 x-satzglieder .sg-zeichen{padding-bottom:.25em;margin-left:-.2em}
 x-wortbausteine{display:block;line-height:1.3}
