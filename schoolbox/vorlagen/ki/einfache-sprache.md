@@ -1,0 +1,1 @@
+Formuliere die Texte und Arbeitsanweisungen in einfacher Sprache, auch für Kinder mit Deutsch als Zweitsprache. Fachliche Inhalte bleiben gleich. Richte dich nach grundschul-didaktik (references/sprachsensibel.md).

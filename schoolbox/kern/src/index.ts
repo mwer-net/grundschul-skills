@@ -12,6 +12,7 @@ export * from './freigaben';
 export * from './html';
 export * from './katalog';
 export * from './katalog-starter';
+export * from './ki-aktionen';
 export * from './kit-einstellungen';
 export * from './konfig';
 export * from './kurzanleitung';

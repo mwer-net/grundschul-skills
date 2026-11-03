@@ -2,7 +2,7 @@ import { existsSync } from 'node:fs';
 import { readFile, stat } from 'node:fs/promises';
 import path from 'node:path';
 
-import type { Version } from '@schoolbox/kern';
+import type { Urheber, Version } from '@schoolbox/kern';
 import {
 	aktualisiereMappe,
 	dokumentDir,
@@ -70,7 +70,11 @@ export const schreibeQuelle = async (
 	mappe: string,
 	dok: string,
 	quelle: string,
-	{ jetzt = new Date(), zusammenfassen = true }: { jetzt?: Date; zusammenfassen?: boolean } = {},
+	{
+		jetzt = new Date(),
+		urheber = 'lehrkraft',
+		zusammenfassen = true,
+	}: { jetzt?: Date; urheber?: Urheber; zusammenfassen?: boolean } = {},
 ): Promise<Gespeichert> => {
 	const { materialDir } = kontext.konfig;
 	const dir = dokumentDir(materialDir, mappe, dok);
@@ -80,14 +84,14 @@ export const schreibeQuelle = async (
 	meta.titel = titelAusHtml(quelle) || meta.titel;
 	await nimmFremdeAenderungAuf(kontext, mappe, dok);
 	await schreibeAtomar(path.join(dir, 'material.html'), quelle);
-	const gesichert = await legeVersionAn(dir, 'lehrkraft', jetzt, { zusammenfassen });
+	const gesichert = await legeVersionAn(dir, urheber, jetzt, { zusammenfassen });
 	meta.geaendert = jetzt.toISOString();
 	meta.hatLoesung = hatLoesung(quelle);
 	await schreibeMeta(materialDir, mappe, dok, meta);
 	await aktualisiereMappe(materialDir, mappe, jetzt);
 	kontext.bekannt.set(dokSchluessel(mappe, dok), await leseBekannt(kontext, mappe, dok));
 	const version = kennung(quelle);
-	kontext.ereignisse.sende({ typ: 'dokument-geaendert', daten: { mappe, dok, version, urheber: 'lehrkraft' } });
+	kontext.ereignisse.sende({ typ: 'dokument-geaendert', daten: { mappe, dok, version, urheber } });
 	return { version, gesichert };
 };
 

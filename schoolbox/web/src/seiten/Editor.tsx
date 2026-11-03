@@ -27,8 +27,10 @@ import { Bibliothek, Einfuegemarken, Gliederung } from '../editor/Bibliothek';
 import { useBild } from '../editor/bild';
 import { Bildwerkzeug } from '../editor/Bildpanel';
 import { ClaudeFragen } from '../editor/ClaudeFragen';
+import { ClaudePanel } from '../editor/ClaudePanel';
 import { editorHtml, pfadZu } from '../editor/darstellung';
 import { useEinfuegen, useSlash, useTabelleTab } from '../editor/einfuegen';
+import { useKiZustand } from '../editor/ki';
 import { Leinwand } from '../editor/Leinwand';
 import { leistenHtml } from '../editor/leiste';
 import { useLoesung } from '../editor/loesung';
@@ -47,7 +49,7 @@ import { useEreignisse } from '../ereignisse';
 import { useLaden } from '../lib/laden';
 import { useAnsichtsProfil } from '../lib/profil';
 import { useTitel } from '../lib/titel';
-import { dokumentSeite, inhaltAdresse, praesentationSeite } from '../lib/zugang';
+import { ansichtAdresse, dokumentSeite, inhaltAdresse, praesentationSeite } from '../lib/zugang';
 import { PdfKnopf } from '../pdf/PdfKnopf';
 import { dokumentWahl, materialName } from '../pdf/wahl';
 import type { DokumentEintrag, Mappe, MappenEintrag } from '../typen';
@@ -265,7 +267,7 @@ const Fehlt = ({ fehler }: { fehler: ApiFehler | null }) => (
 	</Zustand>
 );
 
-type PanelName = 'auswahl' | 'versionen' | 'bibliothek' | 'gliederung';
+type PanelName = 'auswahl' | 'versionen' | 'bibliothek' | 'gliederung' | 'claude';
 
 /** Im Editor lässt sich das Format ändern (046): Es gilt, was in der Quelle steht. */
 const formatVon = (verlauf: { quelle: string } | null, sonst: Format) =>
@@ -356,6 +358,7 @@ const Bearbeitung = ({ dokument, mappe: mappenDaten }: { mappe: Mappe; dokument:
 	const [auswahl, setAuswahl] = useState<number | null>(null);
 	const [geladen, setGeladen] = useState<{ doc: Document; html: string } | null>(null);
 	const [panel, setPanel] = useState<PanelName>(suche.get('neu') === '1' ? 'bibliothek' : 'auswahl');
+	const ki = useKiZustand();
 	const [vorschau, setVorschau] = useState<{ version: VersionEintrag; quelle: string } | null>(null);
 	const [zoom, setZoom] = useState(1);
 	const versionen = useLaden<{ versionen: VersionEintrag[] }>(`${b.adresse}/versionen`);
@@ -554,6 +557,22 @@ const Bearbeitung = ({ dokument, mappe: mappenDaten }: { mappe: Mappe; dokument:
 		</>
 	);
 	const panelInhalt = {
+		claude: (
+			<ClaudePanel
+				adresse={ansichtAdresse(zugang, dok, loesung, profil)}
+				mappe={mappe}
+				dok={dok}
+				zustand={ki.zustand}
+				neuLaden={ki.neu}
+				vorbereiten={alles}
+				zerlegung={zerlegung}
+				ort={frage.ort}
+				loesung={loesung}
+				nr={auswahl}
+				pfad={pfad}
+				frei={frei}
+			/>
+		),
 		bibliothek: (
 			<Bibliothek
 				einfuegen={einfuegen}
@@ -636,6 +655,12 @@ const Bearbeitung = ({ dokument, mappe: mappenDaten }: { mappe: Mappe; dokument:
 					<PanelKnopf name="gliederung" panel={panel} setPanel={setPanel}>
 						Gliederung
 					</PanelKnopf>
+					{ki.zustand.verfuegbar && (
+						<PanelKnopf name="claude" panel={panel} setPanel={setPanel}>
+							<Symbol name="sprechblase" />
+							Mit Claude
+						</PanelKnopf>
+					)}
 					<Knopf
 						art={panel === 'versionen' ? 'haupt' : 'zweit'}
 						aria-pressed={panel === 'versionen'}

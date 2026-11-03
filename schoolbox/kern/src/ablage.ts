@@ -26,6 +26,8 @@ const ENTWURF_DATEI = /^[A-Z](\.html|-s\d+\.png)$/;
 export const ENTWURF_QUELLE = /^entwurf-[a-z]\.html$/;
 /** Je Dokument: Was sich neu erzeugen lässt oder zur Geschichte des Originals gehört, wandert nicht in eine Kopie. */
 const NICHT_KOPIEREN = ['versionen', 'ausgabe'];
+/** Gehören zum laufenden Auftrag an Claude (057) und entstehen in der Kopie auch nicht leer neu. */
+const NUR_IM_ORIGINAL = ['vorschlag', '.ki-pruefung.html'];
 const ID_REGEX = new RegExp(ID_MUSTER);
 
 const GERUEST = `<!doctype html>
@@ -320,7 +322,10 @@ export const dupliziereMappe = async (materialDir: string, mappeId: string, jetz
 	const zeit = jetzt.toISOString();
 	const kopieren = (von: string) => {
 		const [ordner, , unterordner, ...rest] = path.relative(quelle, von).split(path.sep);
-		const imDokument = ordner === 'dokumente' && rest.length === 0 && NICHT_KOPIEREN.includes(unterordner ?? '');
+		const imDokument =
+			ordner === 'dokumente' &&
+			rest.length === 0 &&
+			[...NICHT_KOPIEREN, ...NUR_IM_ORIGINAL].includes(unterordner ?? '');
 		const mappenAusgabe = path.relative(quelle, von) === 'ausgabe';
 		return !imDokument && !mappenAusgabe && !istTempDatei(path.basename(von));
 	};

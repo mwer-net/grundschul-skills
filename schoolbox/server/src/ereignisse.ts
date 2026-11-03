@@ -12,7 +12,10 @@ type MappeEreignis = { typ: 'mappe-neu' | 'mappe-entfernt'; daten: { mappe: stri
 type PdfEreignis = { typ: 'pdf-fertig'; daten: { mappe: string; dok: string } };
 type VorschauEreignis = { typ: 'vorschau-fertig'; daten: { mappe: string; dok: string } };
 
-export type Ereignis = DokumentEreignis | MappeEreignis | PdfEreignis | VorschauEreignis;
+/** Ein Auftrag an Claude (057): kein Text aus dem Material, nur Schritte und Status. */
+type KiEreignis = { typ: 'ki-stand'; daten: { mappe: string; dok: string; id: string } };
+
+export type Ereignis = DokumentEreignis | KiEreignis | MappeEreignis | PdfEreignis | VorschauEreignis;
 
 export type Hoerer = (ereignis: Ereignis) => void;
 

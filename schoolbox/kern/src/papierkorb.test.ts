@@ -138,6 +138,8 @@ describe('dupliziereMappe', () => {
 		await writeFile(path.join(dir, 'ausgabe', 'material.pdf'), 'PDF');
 		await writeFile(path.join(dir, 'material.html'), '<body class="kl3 sw"><p>Geändert</p></body>');
 		await legeFreigabeAn(materialDir, { mappe, dok: null });
+		await mkdir(path.join(dir, 'vorschlag'));
+		await writeFile(path.join(dir, 'vorschlag', 'material.html'), 'Vorschlag von Claude');
 
 		const spaeter = inTagen(3);
 		const kopie = await dupliziereMappe(materialDir, mappe, spaeter);
@@ -157,6 +159,7 @@ describe('dupliziereMappe', () => {
 			'Bild der Mappe',
 		);
 		assert.deepEqual(await readdir(path.join(neu, 'ausgabe')), []);
+		assert.equal(existsSync(path.join(neu, 'vorschlag')), false);
 		const versionen = await listeVersionen(neu);
 		assert.deepEqual(
 			versionen.map((v) => v.urheber),

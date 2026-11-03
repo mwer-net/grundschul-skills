@@ -1,0 +1,1 @@
+Fülle diesen Baustein mit passenden Inhalten zu Thema und Klasse des Blatts. Ändere nur seinen Inhalt und seine Angaben, nicht die Art des Bausteins. Die Regeln dazu stehen in html-materialerstellung (references/abbildungen.md).

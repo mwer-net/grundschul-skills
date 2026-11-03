@@ -2,7 +2,7 @@ import { createHash } from 'node:crypto';
 import { readFile } from 'node:fs/promises';
 import path from 'node:path';
 
-import { baueAusgabe, baueFolienZusatz, dokumentDir } from '@schoolbox/kern';
+import { baueAusgabe, baueFolienZusatz, dokumentDir, pruefeFassung } from '@schoolbox/kern';
 
 import type { Begrenzung } from './begrenzung';
 import { erstelleBegrenzung } from './begrenzung';
@@ -10,6 +10,8 @@ import type { Bremse } from './bremse';
 import { erstelleBremse } from './bremse';
 import type { Ereignisse } from './ereignisse';
 import { erstelleEreignisse } from './ereignisse';
+import type { Ki, KiPruefer } from './ki';
+import { erstelleKi } from './ki';
 import type { ServerKonfig } from './konfig';
 import type { FolienBauer, Pdf, PdfBauer } from './pdf';
 import { erstellePdf } from './pdf';
@@ -32,6 +34,7 @@ export interface Kontext {
 	bremse: Bremse;
 	vorschau: Vorschau;
 	pdf: Pdf;
+	ki: Ki;
 	version: string;
 }
 
@@ -45,6 +48,8 @@ export interface Bauer {
 	pdf?: PdfBauer;
 	/** Ohne baut blatt.py. */
 	folien?: FolienBauer;
+	/** Ohne prüft blatt.py die Vorschläge von Claude. */
+	kiPruefer?: KiPruefer;
 }
 
 export const erstelleKontext = (konfig: ServerKonfig, version: string, bauer: Bauer = {}): Kontext => {
@@ -66,6 +71,11 @@ export const erstelleKontext = (konfig: ServerKonfig, version: string, bauer: Ba
 			begrenzung,
 			bauer: bauer.pdf ?? ((dokDir, profil) => baueAusgabe(konfig, dokDir, profil)),
 			folienBauer: bauer.folien ?? ((dokDir, art) => baueFolienZusatz(konfig, dokDir, art)),
+		}),
+		ki: erstelleKi({
+			konfig,
+			ereignisse,
+			pruefer: bauer.kiPruefer ?? ((dokDir, html) => pruefeFassung(konfig, dokDir, html)),
 		}),
 		version,
 	};

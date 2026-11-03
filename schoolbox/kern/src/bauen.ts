@@ -1,7 +1,7 @@
 import { spawn } from 'node:child_process';
 import { randomBytes } from 'node:crypto';
 import { existsSync } from 'node:fs';
-import { copyFile, mkdir, mkdtemp, readFile, rm } from 'node:fs/promises';
+import { copyFile, mkdir, mkdtemp, readFile, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
 
@@ -210,6 +210,40 @@ export const baueFolienZusatz = async (
 		await schreibeStand(ausgabe, schluessel, zusatzStandDatei(art));
 		return JSON.parse(await readFile(berichtDatei, 'utf8')) as Pruefbericht;
 	} finally {
+		await rm(tmp, { recursive: true, force: true });
+	}
+};
+
+/**
+ * Prüft eine Fassung, die noch nicht material.html ist (Vorschlag von Claude, 057). Sie liegt dafür kurz im
+ * Dokumentordner, damit Bilder wie beim echten Bau gefunden werden.
+ */
+export const KI_PRUEFDATEI = '.ki-pruefung.html';
+export const pruefeFassung = async (konfig: Pick<Konfig, 'pythonBin'>, dokDir: string, html: string) => {
+	const tmp = await mkdtemp(path.join(tmpdir(), 'schoolbox-pruefung-'));
+	const quelle = path.join(dokDir, KI_PRUEFDATEI);
+	const berichtDatei = path.join(tmp, 'pruefbericht.json');
+	try {
+		await writeFile(quelle, html);
+		const lauf = await fuehreAus(konfig.pythonBin, [
+			BLATT_PY,
+			'bauen',
+			quelle,
+			'-o',
+			tmp,
+			'--nur-pruefen',
+			'--bericht',
+			berichtDatei,
+		]);
+		if ((lauf.code !== 0 && lauf.code !== 1) || !existsSync(berichtDatei)) {
+			throw new SchoolboxFehler(
+				`blatt.py ist abgebrochen (Exit ${lauf.code ?? 'Timeout'}):\n${lauf.stderr || lauf.stdout}`,
+				3,
+			);
+		}
+		return JSON.parse(await readFile(berichtDatei, 'utf8')) as Pruefbericht;
+	} finally {
+		await rm(quelle, { force: true });
 		await rm(tmp, { recursive: true, force: true });
 	}
 };

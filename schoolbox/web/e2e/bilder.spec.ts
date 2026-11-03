@@ -107,6 +107,7 @@ test.describe('Editor: Bilder', () => {
 		await dialog.getByRole('searchbox').fill('wilma');
 		await expect(dialog.locator('[data-sammlung-bild]')).toHaveCount(1);
 		await druecke(dialog.locator('[data-sammlung-bild="_assets/bilder/wilma.png"]'));
+		await bisDarin(datei, 'bilder/wilma.png');
 		await gespeichert(page, datei);
 		const nachher = await readFile(datei, 'utf8');
 		expect(geaendert(vorher, nachher)).toEqual([

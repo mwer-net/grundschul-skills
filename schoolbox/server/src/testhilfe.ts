@@ -27,6 +27,7 @@ import {
 import { A4, FOLIE, testPdf } from '@schoolbox/kern/src/testpdf';
 
 import { erstelleApp } from './app';
+import type { KiPruefer } from './ki';
 import type { ServerKonfig } from './konfig';
 import { pruefeServerKonfig } from './konfig';
 import type { Kontext } from './kontext';
@@ -40,6 +41,40 @@ import { starteUeberwachung } from './ueberwachung';
 import type { VorschauBauer } from './vorschau';
 
 type Init = NonNullable<Parameters<typeof fetch>[1]>;
+
+/** Spielt `claude` nach (Issue 057): Kein Test verbraucht Limit. Das Verhalten steht in `fall.txt` daneben. */
+export const KI_ATTRAPPE = String.raw`#!/usr/bin/env node
+const fs = require('node:fs'), path = require('node:path');
+const fall = fs.readFileSync(path.join(__dirname, 'fall.txt'), 'utf8').trim();
+const args = process.argv.slice(2);
+fs.appendFileSync(path.join(__dirname, 'aufrufe.jsonl'), JSON.stringify({ args, cwd: process.cwd(), env: Object.keys(process.env) }) + '\n');
+if (args[0] === 'auth') {
+	if (fall === 'abgemeldet') { console.log('{"loggedIn":false}'); process.exit(1); }
+	console.log('{"loggedIn":true}'); process.exit(0);
+}
+fs.writeFileSync(path.join(__dirname, 'pid'), String(process.pid));
+const sag = (o) => console.log(JSON.stringify(o));
+const projekt = path.join(process.env.HOME, '.claude', 'projects', process.cwd().replace(/[^a-zA-Z0-9]/g, '-'));
+fs.mkdirSync(projekt, { recursive: true });
+fs.writeFileSync(path.join(projekt, 'sitzung.jsonl'), 'materialtext');
+let eingabe = '';
+process.stdin.on('data', (d) => { eingabe += d; });
+process.stdin.on('end', () => {
+	fs.appendFileSync(path.join(__dirname, 'prompts.txt'), eingabe + '\n---\n');
+	sag({ type: 'system', subtype: 'init', session_id: 's1' });
+	sag({ type: 'rate_limit_event', rate_limit_info: { status: 'allowed', resetsAt: 1900000000, unifiedWindows: { five_hour: { utilization: 0.5, resetsAt: 1900000000 }, seven_day: { utilization: 0.2, resetsAt: 1900000000 } } } });
+	sag({ type: 'assistant', message: { content: [{ type: 'tool_use', name: 'Skill', input: { skill: 'fach-mathematik' } }, { type: 'tool_use', name: 'Edit', input: {} }] } });
+	const ende = (extra) => sag({ type: 'result', subtype: 'success', is_error: false, result: 'Annahme: Klasse 2', num_turns: 2, total_cost_usd: 0.01, usage: { output_tokens: 5 }, permission_denials: [], ...extra });
+	const aendere = () => { const d = 'material.html'; fs.writeFileSync(d, fs.readFileSync(d, 'utf8').replace('</h1>', ' von Claude</h1>')); };
+	if (fall === 'haenger') { setInterval(() => {}, 1000); return; }
+	if (fall === 'fehler') { sag({ type: 'assistant', error: 'rate_limit', message: { content: [] } }); ende({ is_error: true, result: 'limit' }); process.exit(1); }
+	if (fall === 'abmeldung') { sag({ type: 'assistant', error: 'authentication_failed', message: { content: [] } }); ende({ is_error: true, result: 'Not logged in' }); process.exit(1); }
+	if (fall === 'nichts') { ende({}); return; }
+	if (fall === 'gross') { fs.writeFileSync('material.html', 'x'.repeat(6 * 1024 * 1024)); ende({}); return; }
+	if (fall === 'aussen') { aendere(); fs.writeFileSync('andere.txt', 'boese'); fs.writeFileSync(path.join(__dirname, 'aussen.txt'), 'gelaufen'); ende({}); return; }
+	aendere(); ende({});
+});
+`;
 
 export const BEISPIEL = path.join(ASSETS, 'beispiel-zehner-einer-kl2.html');
 export const TEST_PASSWORT = 'drei-kleine-woerter';
@@ -73,6 +108,9 @@ export interface TestServerOptionen {
 	/** Fester Port und feste Ablage für die Browser-Tests; sonst ein freier Port und ein neuer Ordner in /tmp. */
 	port?: number;
 	materialDir?: string;
+	/** Zusätzliche Konfiguration, z. B. `CLAUDE_BIN` für die Attrappe. */
+	env?: Record<string, string>;
+	kiPruefer?: KiPruefer;
 }
 
 export const starteTestServer = async (optionen: TestServerOptionen = {}) => {
@@ -82,12 +120,14 @@ export const starteTestServer = async (optionen: TestServerOptionen = {}) => {
 		PORT: '4999',
 		PASSWORT_HASH: await erzeugePasswortHash(TEST_PASSWORT, 10),
 		SITZUNG_GEHEIMNIS: TEST_GEHEIMNIS,
+		...optionen.env,
 	};
 	const konfig = pruefeServerKonfig(ladeKonfig(env, materialDir));
 	const kontext = erstelleKontext(konfig, 'test', {
 		vorschau: optionen.vorschauBauer,
 		pdf: optionen.pdfBauer,
 		folien: optionen.folienBauer,
+		kiPruefer: optionen.kiPruefer,
 	});
 	const ueberwachung: Ueberwachung | null = optionen.ueberwachung
 		? await starteUeberwachung(kontext, optionen.ruheMs)
@@ -104,6 +144,7 @@ export const starteTestServer = async (optionen: TestServerOptionen = {}) => {
 	const { port } = server.address() as AddressInfo;
 	const stop = async () => {
 		ueberwachung?.stop();
+		kontext.ki.stop();
 		server.closeAllConnections();
 		await new Promise<void>((resolve) => server.close(() => resolve()));
 	};

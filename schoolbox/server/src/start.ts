@@ -38,6 +38,7 @@ const starte = async () => {
 	const kontext = erstelleKontext(konfig, leseVersion(konfig.wurzel), {
 		vorschau: (dokDir) => baueVorschau(konfig, dokDir),
 	});
+	await kontext.ki.beendeReste();
 	const ueberwachung = await starteUeberwachung(kontext);
 	const aufraeumen = starteAufraeumen(kontext);
 	const server = erstelleApp(kontext).listen(konfig.portNummer, konfig.hostName, () => {
@@ -53,6 +54,7 @@ const starte = async () => {
 		console.log(`${signal} erhalten, Schoolbox wird beendet.`);
 		ueberwachung.stop();
 		aufraeumen.stop();
+		kontext.ki.stop();
 		server.close(() => process.exit(0));
 		server.closeAllConnections();
 		setTimeout(() => process.exit(0), SCHLIESSEN_MS).unref();

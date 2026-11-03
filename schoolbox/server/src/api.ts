@@ -19,6 +19,7 @@ import { istAusgabeVeraltet, leseQuelle, nimmFremdeAenderungAuf, schreibeQuelle,
 import type { Ereignis } from './ereignisse';
 import { HttpFehler } from './fehler';
 import { freigabenApi } from './freigaben';
+import { kiApi } from './ki-api';
 import type { Kontext } from './kontext';
 import { dokSchluessel, kennung, leseBekannt } from './kontext';
 import { mappenApi } from './mappen';
@@ -192,6 +193,8 @@ export const apiRouter = (kontext: Kontext) => {
 		const profil = waehleProfil(req.query.profil);
 		await sendePdf(req, res, await kontext.pdf.dokument(mappe, dok, waehlePdfVariante(variante), profil));
 	});
+
+	kiApi(router, kontext);
 
 	router.get('/ereignisse', ereignisStrom(kontext));
 

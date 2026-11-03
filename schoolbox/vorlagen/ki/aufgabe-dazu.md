@@ -1,0 +1,1 @@
+Ergänze eine weitere Aufgabe, die zu Thema, Klasse und den vorhandenen Aufgaben passt, im selben Stil. Nimm dafür die Bausteine aus html-materialerstellung (references/abbildungen.md, falls ein Element nötig ist).

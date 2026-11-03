@@ -4,6 +4,7 @@ import {
 	findeFreigabe,
 	ID_MUSTER,
 	istToken,
+	KI_PRUEFDATEI,
 	legeFreigabeAn,
 	leseFreigaben,
 	leseMappe,
@@ -23,7 +24,7 @@ import { pdfAntwort, sendePdf, waehleMappenVariante, waehlePdfVariante, waehlePr
 const ID_REGEX = new RegExp(ID_MUSTER);
 const SICHERE_METHODEN = new Set(['GET', 'HEAD']);
 /** Was ein Teilen-Link im Dokumentordner nie sieht: alte Stände, Entwürfe, Verwaltungsdaten. */
-const GESPERRT_IM_DOKUMENT = new Set(['versionen', 'entwuerfe', 'meta.json']);
+const GESPERRT_IM_DOKUMENT = new Set(['versionen', 'entwuerfe', 'vorschlag', KI_PRUEFDATEI, 'meta.json']);
 export const GILT_NICHT_MEHR = 'Dieser Link gilt nicht mehr.';
 
 export const freigabePfad = (token: string) => `/f/${token}`;
@@ -133,6 +134,7 @@ const ansichtWaechter =
 					dok !== undefined &&
 					(await erlaubteDokumente(materialDir, ziel)).includes(dok) &&
 					req.query.entwurf === undefined &&
+					req.query.vorschlag === undefined &&
 					(erster === undefined || !(GESPERRT_IM_DOKUMENT.has(erster) || ENTWURF_QUELLE.test(erster)))));
 		next(erlaubt ? undefined : new HttpFehler(404, 'Nicht gefunden.'));
 	};

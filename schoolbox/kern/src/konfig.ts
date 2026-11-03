@@ -20,6 +20,11 @@ export interface Konfig {
 	host: string | null;
 	passwortHash: string | null;
 	sitzungGeheimnis: string | null;
+	/** `claude` für Aufträge aus dem Editor (057); ohne Angabe wird es gesucht. */
+	claudeBin: string | null;
+	kiModell: string;
+	/** `SCHOOLBOX_KI=aus` schaltet die Aufträge ab, auch wenn `claude` angemeldet ist. */
+	kiAn: boolean;
 }
 
 type Umgebung = Record<string, string | undefined>;
@@ -41,5 +46,8 @@ export const ladeKonfig = (env: Umgebung = process.env, wurzel = WURZEL): Konfig
 		host: wert('HOST') ?? null,
 		passwortHash: wert('PASSWORT_HASH') ?? null,
 		sitzungGeheimnis: wert('SITZUNG_GEHEIMNIS') ?? null,
+		claudeBin: wert('CLAUDE_BIN') ?? null,
+		kiModell: wert('SCHOOLBOX_KI_MODELL') ?? 'sonnet',
+		kiAn: wert('SCHOOLBOX_KI') !== 'aus',
 	};
 };

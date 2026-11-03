@@ -1,6 +1,13 @@
 import { useEffect, useRef } from 'react';
 
-const SERVER_TYPEN = ['mappe-neu', 'mappe-entfernt', 'dokument-geaendert', 'vorschau-fertig', 'pdf-fertig'] as const;
+const SERVER_TYPEN = [
+	'mappe-neu',
+	'mappe-entfernt',
+	'dokument-geaendert',
+	'vorschau-fertig',
+	'pdf-fertig',
+	'ki-stand',
+] as const;
 
 /** `verbunden`: Die Verbindung steht (wieder), z. B. nach dem Aufwachen des iPads. Es kann etwas verpasst worden sein. */
 export type EreignisTyp = (typeof SERVER_TYPEN)[number] | 'verbunden';
@@ -12,6 +19,8 @@ export interface Ereignis {
 	/** Bei `dokument-geaendert`: Kennung des neuen Inhalts und wer ihn geschrieben hat (`null`: nur meta.json). */
 	version?: string;
 	urheber?: 'claude' | 'lehrkraft' | null;
+	/** Bei `ki-stand`: der Auftrag, der sich geändert hat. */
+	id?: string;
 	/** Bei `verbunden`: Die Verbindung war schon einmal da und ist wieder da (nicht der erste Aufbau). */
 	wieder?: boolean;
 }
@@ -40,7 +49,14 @@ const oeffne = () => {
 	for (const typ of SERVER_TYPEN) {
 		strom.addEventListener(typ, (nachricht: MessageEvent<string>) => {
 			const daten = JSON.parse(nachricht.data) as Omit<Ereignis, 'typ' | 'wieder'>;
-			verteile({ typ, mappe: daten.mappe, dok: daten.dok, version: daten.version, urheber: daten.urheber });
+			verteile({
+				typ,
+				mappe: daten.mappe,
+				dok: daten.dok,
+				version: daten.version,
+				urheber: daten.urheber,
+				id: daten.id,
+			});
 		});
 	}
 	return strom;

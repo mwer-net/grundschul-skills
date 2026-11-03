@@ -1,0 +1,1 @@
+Ergänze die fehlenden Lösungen dieses Teils so, wie es die Skills für Lösungsblätter vorsehen (html-materialerstellung). Prüfe jede Lösung fachlich. Sichtbare Inhalte für die Kinder bleiben unverändert.

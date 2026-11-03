@@ -6,7 +6,7 @@ import path from 'node:path';
 import { describe, it } from 'node:test';
 
 import { dokumentDir, leseMeta, neueMappe, neuesDokument, registriereEntwuerfe, waehleEntwurf } from './ablage';
-import { baueEntwurfsVorschauen } from './bauen';
+import { baueEntwurfsVorschauen, KI_PRUEFDATEI, pruefeFassung } from './bauen';
 import { BROWSER_HINWEIS, browserFehlt } from './browsertest';
 import { ASSETS } from './konfig';
 
@@ -65,4 +65,36 @@ describe('baueEntwurfsVorschauen (mit blatt.py)', () => {
 		assert.ok(existsSync(path.join(dir, 'entwuerfe', 'B-s1.png')), 'Entwürfe bleiben zum Nachsehen');
 		assert.ok(!existsSync(dateien[0] ?? ''));
 	});
+});
+
+describe('pruefeFassung (mit blatt.py)', () => {
+	it(
+		'prüft eine Fassung, ohne etwas im Dokumentordner zu hinterlassen',
+		{ skip: browserFehlt() && BROWSER_HINWEIS },
+		async () => {
+			const materialDir = await mkdtemp(path.join(tmpdir(), 'schoolbox-fassung-'));
+			const { mappe } = await neueMappe(materialDir, { titel: 'Prüfen', fach: 'mathematik', klasse: 2 });
+			const { id } = await neuesDokument(materialDir, mappe.id, {
+				titel: 'Blatt',
+				art: 'arbeitsblatt',
+				format: 'a4-hoch',
+				druckprofil: 'farbe',
+				druckhinweise: [],
+			});
+			const dir = dokumentDir(materialDir, mappe.id, id);
+			const html = await readFile(path.join(ASSETS, 'beispiel-zehner-einer-kl2.html'), 'utf8');
+			const vorher = await readFile(path.join(dir, 'material.html'), 'utf8');
+			const bericht = await pruefeFassung({ pythonBin: 'python3' }, dir, html);
+			assert.equal(typeof bericht.fehler, 'number');
+			assert.ok(bericht.seiten.length > 0);
+			assert.equal(existsSync(path.join(dir, KI_PRUEFDATEI)), false);
+			assert.equal(await readFile(path.join(dir, 'material.html'), 'utf8'), vorher);
+			// Gegenprobe: Eine Fassung, die blatt.py nicht lesen kann, meldet einen Fehler, und aufgeräumt wird trotzdem
+			await assert.rejects(
+				pruefeFassung({ pythonBin: 'python3' }, dir, '<link rel="stylesheet" href="fehlt.css">'),
+				/blatt\.py/,
+			);
+			assert.equal(existsSync(path.join(dir, KI_PRUEFDATEI)), false);
+		},
+	);
 });

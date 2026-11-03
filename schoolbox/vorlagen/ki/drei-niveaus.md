@@ -1,0 +1,1 @@
+Differenziere das Blatt in drei Niveaus. Richte dich nach grundschul-didaktik (references/differenzierung.md) und halte dich an das dort beschriebene Modell. Das Original bleibt erkennbar erhalten: Ergänze, statt vorhandene Aufgaben zu streichen.

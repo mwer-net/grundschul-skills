@@ -5,7 +5,7 @@ import type { Druckprofil, FolienZusatz } from '@schoolbox/kern';
 import { baueVorschau, VORSCHAU_DATEI } from '@schoolbox/kern';
 
 import { WEB_DIST } from './app';
-import { baueErsatzAusgabe, baueErsatzFolien, starteTestServer, TEST_PASSWORT } from './testhilfe';
+import { baueErsatzAusgabe, baueErsatzFolien, KI_ATTRAPPE, starteTestServer, TEST_PASSWORT } from './testhilfe';
 
 /**
  * Server für die Browser-Tests der Oberfläche (`pnpm --filter @schoolbox/web run e2e`): die gebaute Oberfläche, eine
@@ -44,7 +44,14 @@ const starte = async () => {
 	}
 	await rm(MATERIAL_DIR, { recursive: true, force: true });
 	await mkdir(MATERIAL_DIR, { recursive: true });
+	const kiOrdner = `${MATERIAL_DIR}-ki`;
+	const claude = path.join(kiOrdner, 'claude');
+	await mkdir(kiOrdner, { recursive: true });
+	await writeFile(claude, KI_ATTRAPPE, { mode: 0o755 });
+	await writeFile(path.join(kiOrdner, 'fall.txt'), 'gut');
 	const server = await starteTestServer({
+		env: { CLAUDE_BIN: claude },
+		kiPruefer: () => Promise.resolve({ seiten: [], meldungen: [], fehler: 0 }),
 		port: PORT,
 		materialDir: MATERIAL_DIR,
 		webDist: WEB_DIST,

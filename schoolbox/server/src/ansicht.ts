@@ -19,6 +19,7 @@ import { Router } from 'express';
 
 import { leseQuelle, verlangeDokument } from './dokumente';
 import { HttpFehler } from './fehler';
+import { leseVorschlag } from './ki';
 import type { Kontext } from './kontext';
 import { pruefeIdParam } from './schutz';
 
@@ -35,6 +36,14 @@ const leseEntwurf = async (dokDir: string, name: unknown) => {
 	return readFile(path.join(dokDir, 'entwuerfe', `${name}.html`), 'utf8').catch(() => {
 		throw nichtGefunden();
 	});
+};
+
+const leseVorschlagQuelle = async (kontext: Kontext, mappe: string, dok: string) => {
+	const vorschlag = await leseVorschlag(kontext.konfig.materialDir, mappe, dok);
+	if (!vorschlag) {
+		throw nichtGefunden();
+	}
+	return vorschlag.quelle;
 };
 
 /**
@@ -154,9 +163,12 @@ export const ansichtRouter = (kontext: Kontext) => {
 
 	router.get('/:mappe/dokumente/:dok/', async (req, res) => {
 		const dir = verlangeDokument(kontext, req.params.mappe, req.params.dok);
-		const { entwurf, loesung, praesentation, profil } = req.query;
+		const { entwurf, loesung, praesentation, profil, vorschlag } = req.query;
 		// Ein Entwurf unter derselben Adresse wie material.html: Relative Pfade gelten wie nach `schoolbox waehle`.
-		const quelle = entwurf === undefined ? await leseQuelle(dir) : await leseEntwurf(dir, entwurf);
+		const quelle =
+			vorschlag === undefined
+				? await (entwurf === undefined ? leseQuelle(dir) : leseEntwurf(dir, entwurf))
+				: await leseVorschlagQuelle(kontext, req.params.mappe, req.params.dok);
 		const html = darstellungsHtml(quelle, {
 			loesung: loesung === '1',
 			praesentation: praesentation === '1',
