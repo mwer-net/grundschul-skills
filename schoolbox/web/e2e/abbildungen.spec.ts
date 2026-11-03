@@ -1756,7 +1756,9 @@ test.describe('Musik (035)', () => {
 		const lage = await blatt
 			.locator('.note')
 			.evaluateAll((l) =>
-				Object.fromEntries(l.map((e) => [e.getAttribute('data-stufe'), Number(e.getAttribute('data-y'))])),
+				Object.fromEntries(
+					l.map((e) => [e.getAttribute('data-stufe') ?? '', Number(e.getAttribute('data-y'))] as const),
+				),
 			);
 		const [oben, , mitte, , unten] = linien as [number, number, number, number, number];
 		const sp = (unten - oben) / 4;
