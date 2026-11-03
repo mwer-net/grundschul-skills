@@ -278,6 +278,32 @@ describe('CLI', () => {
 		});
 	});
 
+	it('legt ein Mini-Book ohne --format aus der Vorlage an und nennt alle Vorlagen', async () => {
+		const materialDir = await ablage();
+		const mappe = await kartoffeln(materialDir);
+		const cli = path.resolve(__dirname, '..', '..', 'bin', 'schoolbox');
+		const umgebung = {
+			encoding: 'utf8',
+			env: { ...process.env, MATERIAL_DIR: materialDir },
+			stdio: 'pipe',
+		} as const;
+		const angaben = ['--titel', 'Farben', '--art', 'arbeitsblatt', '--druckprofil', 'sw'];
+		const ausgabe = execFileSync(cli, ['dokument', mappe, ...angaben, '--vorlage', 'minibuch', '--json'], umgebung);
+		const { pfad } = JSON.parse(ausgabe) as { pfad: string };
+		assert.equal((await leseMeta(materialDir, mappe, 'farben')).format, 'minibuch');
+		const html = await readFile(pfad, 'utf8');
+		assert.ok(bodyKlassen(html).includes('minibuch'));
+		assert.equal(html.match(/class="seite"/g)?.length, 8);
+		const alle = ['arbeitsblatt', 'forscherbogen-12', 'forscherbogen-34', 'minibuch', 'praesentation'];
+		const hilfe = execFileSync(cli, ['hilfe'], umgebung);
+		assert.ok(hilfe.includes(`Vorlagen: ${alle.join(', ')}`), hilfe);
+		assert.ok(hilfe.includes('minibuch'));
+		assert.throws(
+			() => execFileSync(cli, ['dokument', mappe, ...angaben, '--vorlage', 'gibtsnicht'], umgebung),
+			(fehler: { stderr: string }) => alle.every((name) => fehler.stderr.includes(name)),
+		);
+	});
+
 	it('legt eine Präsentation ohne --format im Folienformat aus der Vorlage an', async () => {
 		const materialDir = await ablage();
 		const mappe = await kartoffeln(materialDir);

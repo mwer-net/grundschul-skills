@@ -116,5 +116,12 @@
 			"seite": 4,
 			"text": "1 Platzhalter (Entwurf)"
 		}
+	],
+	"pruefung-minibuch.html": [
+		{
+			"stufe": "FEHLER",
+			"seite": 0,
+			"text": "Ein Mini-Book hat genau 8 Seiten, dieses hat 1 → --vorlage minibuch als Ausgangspunkt nehmen"
+		}
 	]
 }

@@ -33,6 +33,8 @@
   if (!document.fonts.check("600 16px Fredoka")) melde("FEHLER", 0, "schrift-fehlt", "Schrift Fredoka nicht geladen (fonts/ fehlt?)");
 
   const seiten = [];
+  const feldzahl = document.querySelectorAll(".seite").length;
+  if (B.classList.contains("minibuch") && feldzahl !== 8) melde("FEHLER", 0, "minibuch-seiten", `Ein Mini-Book hat genau 8 Seiten, dieses hat ${feldzahl} → --vorlage minibuch als Ausgangspunkt nehmen`);
   // nur äußere Seiten: In „Folien mit Notizen“ stecken die Folien verkleinert in einem Blatt
   [...document.querySelectorAll(".seite")].filter((s) => !s.parentElement.closest(".seite")).forEach((S, si) => {
     const nr = si + 1, P = S.getBoundingClientRect(), rand = parseFloat(getComputedStyle(S).paddingLeft);
@@ -60,7 +62,7 @@
       const um = Math.round(Math.max(innen.l - r.left, innen.t - r.top, r.right - innen.r, r.bottom - innen.b));
       const ganz = r.bottom > P.bottom || r.right > P.right;
       const wo = (ganz ? "ragt aus der Seite" : "ragt in den Seitenrand") + ` (${um} px)`;
-      const rat = e.closest(".notizblatt") ? "Notiz kürzen" : "kürzen, Item streichen oder zweite Seite";
+      const rat = e.closest(".notizblatt") ? "Notiz kürzen" : B.classList.contains("minibuch") ? "kürzen oder verkleinern, nichts an die Falz" : "kürzen, Item streichen oder zweite Seite";
       melde("FEHLER", nr, ganz ? "ueberlauf" : "rand", `„${kurz(e)}“ ${wo} → ${rat}`, [ziel(e)]);
     });
 
@@ -144,7 +146,7 @@
     const inhalt = [...S.children].filter((e) => e !== fuss && sichtbar(e));
     const unten = Math.max(P.top + rand, ...inhalt.map((e) => e.getBoundingClientRect().bottom));
     const rest = Math.round((fuss ? fuss.getBoundingClientRect().top - 16 : innen.b) - unten);
-    if (rest > 150 && !S.querySelector(".karten") && !folie)
+    if (rest > 150 && !S.querySelector(".karten") && !folie && !B.classList.contains("minibuch"))
       melde("HINWEIS", nr, "platz-frei", `${rest} px frei unten → ${kl <= 2 ? "Abstand zwischen Aufgaben vergrößern (--abstand), nicht auffüllen" : "Item oder Aufgabe ergänzen"}`, [ziel(S)]);
     if (folie && mitNotizen && !S.querySelector(".notiz")) melde("HINWEIS", nr, "notiz-fehlt", "Folie ohne Notiz für die Lehrkraft", [ziel(S)]);
 

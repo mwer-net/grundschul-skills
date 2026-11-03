@@ -24,7 +24,7 @@ export const ARTEN = [
 	'sonstiges',
 ] as const;
 
-export const FORMATE = ['a4-hoch', 'a4-quer', 'a3-hoch', 'a5-hoch', 'folie'] as const;
+export const FORMATE = ['a4-hoch', 'a4-quer', 'a3-hoch', 'a5-hoch', 'folie', 'minibuch'] as const;
 export const DRUCKPROFILE = ['sw', 'farbe'] as const;
 export const KLASSEN = [1, 2, 3, 4, 'gemischt'] as const;
 export const STATUS = ['entwurf', 'fertig'] as const;

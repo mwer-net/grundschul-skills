@@ -33,6 +33,8 @@ interface Eigenschaften {
 	hinzufuegen: (mitNamenszeile: boolean) => void;
 	/** Die erste Seite hat eine Namenszeile, die eine neue Seite übernehmen kann. */
 	namenszeile: boolean;
+	/** Im Mini-Book steht die Zahl der Seiten fest. */
+	festeSeiten: boolean;
 }
 
 const FINGER_WEG = 10;
@@ -61,6 +63,7 @@ interface Druck {
  */
 export const Seitenleiste = ({
 	aktiv,
+	festeSeiten,
 	gewaehlt,
 	hinzufuegen,
 	html,
@@ -278,18 +281,24 @@ export const Seitenleiste = ({
 					/>
 				)}
 			</div>
-			<Knopf
-				art="zweit"
-				className="mt-4 w-full px-2"
-				aria-label="Seite hinzufügen"
-				title="Seite hinzufügen"
-				disabled={!aktiv}
-				onClick={() => hinzufuegen(namenszeile && mitNamenszeile)}
-			>
-				<Symbol name="plus" />
-				Seite
-			</Knopf>
-			{namenszeile && (
+			{festeSeiten ? (
+				<p className="mt-4 text-sm text-leise" data-feste-seiten>
+					Ein Mini-Book hat immer acht Seiten.
+				</p>
+			) : (
+				<Knopf
+					art="zweit"
+					className="mt-4 w-full px-2"
+					aria-label="Seite hinzufügen"
+					title="Seite hinzufügen"
+					disabled={!aktiv}
+					onClick={() => hinzufuegen(namenszeile && mitNamenszeile)}
+				>
+					<Symbol name="plus" />
+					Seite
+				</Knopf>
+			)}
+			{namenszeile && !festeSeiten && (
 				<label className="mt-2 flex min-h-11 items-center gap-2 text-sm text-leise">
 					<input
 						type="checkbox"

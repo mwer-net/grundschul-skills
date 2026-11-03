@@ -50,7 +50,7 @@ ASSETS = Path(__file__).resolve().parent.parent / "assets"
 # Elemente aus der ersten Fassung gehören nicht dazu, sonst bekämen Blätter ohne jede Lösung ein leeres Lösungsblatt.
 OHNE_LOESUNGSANGABE = r"<x-(?!uhr|menge|dienes|strichpunkt|stellentafel|zwanzigerfeld|zahlenstrahl|timer|probe|gluecksrad|wuerfel|urne|diagramm|gitter|figur|koerper|hunderterfeld|hundertertafel|rechenrahmen|punktfeld|geld|skala|kalender|lineatur|silben|wortarten|satzglieder|wortbausteine|zeitleiste|jahreskreis|windrose|plan|schaltplan|kreislauf|verkehrszeichen|wetter|rhythmus|noten)[a-z]"
 MIT_LOESUNG = r"<x-diagramm[^>]* offen=|<x-gitter[^>]* (?:aufgabe|zaehlen)=|<x-wuerfelbau[^>]* fragen=|<x-wuerfelnetz[^>]* aufgabe=|<x-koerper[^>]* markiere=|<x-hundertertafel[^>]* (?:luecken|zufall)=|<x-geld[^>]* aufgabe=|<x-skala[^>]* aufgabe=|<x-kalender[^>]* luecken=|<x-silben[^>]* aufgabe=|<x-wortarten[^>]* aufgabe=|<x-satzglieder[^>]* aufgabe=|<x-wortbausteine[^>]* aufgabe=|<x-zeitleiste[^>]*: ?offen|<x-jahreskreis[^>]* beschriftung=.leer|<x-windrose[^>]* beschriftung=.(?:leer|norden)|<x-plan[^>]* aufgabe=|<x-schaltplan[^>]* aufgabe=.(?:leuchtet|vervollstaendigen|benennen)|<x-kreislauf[^>]* offen=|<x-verkehrszeichen[^>]* ausmalen=.ja|<x-rhythmus[^>]* aufgabe=.(?:silben|noten|ergaenzen)|<x-noten[^>]* aufgabe=.(?:benennen|zeichnen)"
-SEITE = {"a4-quer": "A4 landscape", "a3-hoch": "A3", "a5-hoch": "A5", "folie": "338.67mm 190.5mm"}
+SEITE = {"a4-quer": "A4 landscape", "a3-hoch": "A3", "a5-hoch": "A5", "folie": "338.67mm 190.5mm", "minibuch": "A4 landscape"}
 
 
 def finde_chromium():
@@ -259,9 +259,13 @@ def bericht_schreiben(datei, bericht, meldungen, fehler):
         Path(datei).write_text(json.dumps(daten, ensure_ascii=False, indent=1), encoding="utf-8")
 
 
-def ist_folie(text):
+def hat_format(text, format_name):
     body = re.search(r'<body[^>]*class="([^"]*)"', text)
-    return bool(body) and "folie" in body.group(1).split()
+    return bool(body) and format_name in body.group(1).split()
+
+
+def ist_folie(text):
+    return hat_format(text, "folie")
 
 
 def folien_ausgaben(text, quelle, aus, tmp, schritte, notizen, still):
@@ -320,7 +324,8 @@ def bauen(quelle, ausgabe=None, ohne_loesung=False, nur_pruefen=False, still=Fal
         if ist_folie(text):  # Offline-Präsentation; das PDF oben ist aus der Fassung ohne Laufzeit entstanden
             fertig.write_text(einbetten(text, quelle.parent, modus="start"), encoding="utf-8")
         bilder = pngs(aus / f"{name}.pdf", str(aus / name))
-        teile = ausschnitte(bilder, bericht, str(aus / name))
+        # Im Mini-Book liegen acht Felder auf einem Blatt, die Maße aus der Prüfung passen nicht zum Druckbild
+        teile = [] if hat_format(text, "minibuch") else ausschnitte(bilder, bericht, str(aus / name))
         erzeugt = [fertig, aus / f"{name}.pdf", *bilder, *teile]
         hat_loesung = ("data-l=" in text or "loesung=" in text or "nur-loesung" in text
                        or re.search(OHNE_LOESUNGSANGABE, text) or re.search(MIT_LOESUNG, text)) and not ohne_loesung

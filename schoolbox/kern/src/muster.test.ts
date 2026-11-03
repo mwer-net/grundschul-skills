@@ -51,14 +51,17 @@ const erwarteteFehler = (html: string) =>
 	[...html.matchAll(/data-erwarteter-fehler="([^"]+)"/g)].map((t) => t[1] ?? '').sort();
 
 const dateien = readdirSync(MUSTER).filter((d) => d.endsWith('.html'));
+const VORLAGEN_036 = ['vorlage-minibuch.html', 'vorlage-forscherbogen-12.html', 'vorlage-forscherbogen-34.html'];
+const pfade = [...dateien.map((d) => path.join(MUSTER, d)), ...VORLAGEN_036.map((d) => path.join(ASSETS, d))];
 
 describe('Musterblätter', { skip: hatBrowser() ? false : 'Kein Chromium für blatt.py' }, () => {
 	it('gibt es', () => {
 		assert.ok(dateien.length > 0);
 	});
 
-	for (const datei of dateien) {
-		const html = readFileSync(path.join(MUSTER, datei), 'utf8');
+	for (const pfad of pfade) {
+		const datei = path.basename(pfad);
+		const html = readFileSync(pfad, 'utf8');
 		for (const [fassung, quelle] of Object.entries(fassungen(html))) {
 			it(`${datei} (${fassung}) besteht die Prüfung`, () => {
 				const fehler = pruefe(quelle, `${datei}-${fassung}`)
@@ -75,5 +78,77 @@ describe('Musterblätter', { skip: hatBrowser() ? false : 'Kein Chromium für bl
 		const kaputt = html.replace('</section>', '<x-zahlenstrahl von="5" bis="5"></x-zahlenstrahl></section>');
 		const fehler = pruefe(kaputt, 'kaputt').filter((m) => m.stufe === 'FEHLER');
 		assert.ok(fehler.some((m) => m.text.includes('Zahlenstrahl')));
+	});
+});
+
+const feld = (nr: number, inhalt = `<p>kopf${nr}</p><p style="margin-top:auto">fuss${nr}</p>`) =>
+	`<section class="seite">${inhalt}</section>`;
+const miniBook = (felder: string[]) =>
+	`<!doctype html><html lang="de"><head><meta charset="utf-8"><title>Test</title><link rel="stylesheet" href="blatt.css"></head><body class="kl3 sw minibuch">${felder.join('')}</body></html>`;
+const ACHT = [1, 2, 3, 4, 5, 6, 7, 8];
+
+const bauePdf = (html: string, name: string) => {
+	const datei = path.join(ordner, `${name}.html`);
+	const aus = path.join(ordner, `${name}-aus`);
+	writeFileSync(datei, html);
+	execFileSync('python3', [BLATT_PY, 'bauen', datei, '-o', aus], { stdio: 'ignore' });
+	return path.join(aus, `${name}.pdf`);
+};
+
+const text = (pdf: string) => execFileSync('pdftotext', [pdf, '-'], { encoding: 'utf8' });
+
+describe('Mini-Book und Forscherbogen (036)', { skip: hatBrowser() ? false : 'Kein Chromium für blatt.py' }, () => {
+	it('schießt acht Felder auf eine A4-Seite quer aus: 5-4-3-2 kopfstehend, 6-7-8-1 aufrecht', () => {
+		const pdf = bauePdf(miniBook(ACHT.map((n) => feld(n))), 'schema');
+		const info = execFileSync('pdfinfo', [pdf], { encoding: 'utf8' });
+		assert.match(info, /Pages:\s+1\n/);
+		assert.match(info, /Page size:\s+841\.\d+ x 59\d\.\d+ pts/);
+		const bbox = execFileSync('pdftotext', ['-bbox', pdf, '-'], { encoding: 'utf8' });
+		const woerter = new Map(
+			[...bbox.matchAll(/xMin="([\d.]+)" yMin="([\d.]+)" xMax="[\d.]+" yMax="[\d.]+">(kopf|fuss)(\d)</g)].map(
+				(t) => [`${t[3]}${t[4]}`, { x: Number(t[1]), y: Number(t[2]) }],
+			),
+		);
+		const ort = (wort: string) => {
+			const stelle = woerter.get(wort);
+			assert.ok(stelle, wort);
+			return stelle;
+		};
+		const breite = 841.89 / 4;
+		const hoehe = 595.28 / 2;
+		[
+			[5, 4, 3, 2],
+			[6, 7, 8, 1],
+		].forEach((reihe, r) => {
+			reihe.forEach((nr, spalte) => {
+				const kopf = ort(`kopf${nr}`);
+				const fuss = ort(`fuss${nr}`);
+				assert.equal(Math.floor(kopf.x / breite), spalte, `Seite ${nr}: Spalte`);
+				assert.equal(Math.floor(kopf.y / hoehe), r, `Seite ${nr}: Reihe`);
+				assert.equal(kopf.y > fuss.y, r === 0, `Seite ${nr}: ${r === 0 ? 'kopfstehend' : 'aufrecht'}`);
+			});
+		});
+	});
+
+	it('meldet Inhalt an der Falz und eine falsche Seitenzahl als FEHLER', () => {
+		const breit = feld(1, '<p style="width:260px">zu nah an der Falz</p>');
+		const codes = (html: string, name: string) =>
+			pruefe(html, name)
+				.filter((m) => m.stufe === 'FEHLER')
+				.map((m) => m.code);
+		assert.deepEqual(codes(miniBook([breit, ...ACHT.slice(1).map((n) => feld(n))]), 'falz'), ['rand']);
+		assert.deepEqual(codes(miniBook(ACHT.slice(1).map((n) => feld(n))), 'sieben'), ['minibuch-seiten']);
+	});
+
+	it('zeigt die Faltanleitung und die Sicherheitshinweise nur auf dem Lösungsblatt', () => {
+		for (const [name, satz] of [
+			['minibuch', 'So entsteht das Büchlein'],
+			['forscherbogen-12', 'Für die Lehrkraft'],
+			['forscherbogen-34', 'Für die Lehrkraft'],
+		] as const) {
+			const pdf = bauePdf(readFileSync(path.join(ASSETS, `vorlage-${name}.html`), 'utf8'), `nur-${name}`);
+			assert.ok(!text(pdf).includes(satz), `${name}: Arbeitsblatt`);
+			assert.ok(text(pdf.replace(/\.pdf$/, '-loesung.pdf')).includes(satz), `${name}: Lösung`);
+		}
 	});
 });

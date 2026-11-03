@@ -34,7 +34,7 @@ Nach dem Rückfrage-Protokoll aus `grundschul-didaktik` (eine Frage pro Nachrich
 | Folien (Beamer, Smartboard) | mit `praesentation`: Flashcards je Folie erst als Bild, die Kinder sprechen, dann erscheint das Wortbild (`data-schritt`); Storytelling mit einem großen Bild je Folie, die Lehrkraft erzählt, die Mitmach-Phrase steht als Stichwort. Kein Ton, die Lehrkraft spricht vor |
 | Listening tasks | "Listen and colour / tick / number / draw" mit Bildern; Hörtext für die Lehrkraft beilegen |
 | Speaking cards | Dialogkarten mit Bildimpulsen, Redemittel als Sprechblasen |
-| Mini-Book | Faltbuch aus A4 (8 Seiten), Satzmuster wiederholt ("I can see a …") |
+| Mini-Book | Faltbuch aus A4 (8 Seiten), Satzmuster wiederholt ("I can see a …"); anlegen mit `--format minibuch --vorlage minibuch` (siehe `html-materialerstellung`, Abschnitt „Mini-Book“) |
 | Picture dictionary | Bild + Wort, ohne Lautschrift, Kinder malen selbst |
 | Games | Bingo, Memory, "I spy", Kim's game, Simon says (siehe `lernspiel`) |
 | Worksheets | Wenig Text, Arbeitsanweisungen in einfachem Englisch mit Symbol ("Colour.", "Match.", "Listen and tick.") |

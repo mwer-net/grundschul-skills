@@ -18,6 +18,8 @@ Warum: In HTML bestimmen wir Schrift (Fredoka, Andika, eingebettet), Abstände u
 | `assets/abbildungen.js` | Exakte Abbildungen als SVG (`x-…`-Elemente), berechnet statt gezeichnet. Welche es gibt, wie man sie schreibt und welche Mindestgrößen gelten, steht im Katalog: `references/abbildungen.md`. Musterblätter: `assets/muster/`. |
 | `assets/vorlage-arbeitsblatt.html` | Muster mit allen Bausteinen (Farbprofil); Ausgangspunkt für jedes Blatt |
 | `assets/vorlage-praesentation.html` | Kreisinput mit sechs Folien und allen Folien-Bausteinen; Ausgangspunkt für Präsentationen (Abschnitt „Folien“) |
+| `assets/vorlage-minibuch.html` | Faltbuch aus einem A4-Blatt, acht Seiten mit Satzmuster, Faltanleitung auf dem Lösungsblatt (Abschnitt „Mini-Book“) |
+| `assets/vorlage-forscherbogen-12.html`, `assets/vorlage-forscherbogen-34.html` | Forscherbogen bildgestützt (Kl. 1/2) und schriftlich (Kl. 3/4); Sicherheitshinweise als `.nur-loesung` im Kopf, Malfläche `.malfeld` |
 | `assets/beispiel-zehner-einer-kl2.html` | geprüftes Beispiel im s/w-Profil (Bündeln, Stellentafel, Sternchenaufgabe, Lösungen) |
 | `assets/fonts/` | Fredoka (Überschrift), Andika (Text, einstöckiges a/g), OFL-Lizenz |
 | `assets/bilder/` | Willi, Wilma, Wachstumsgrafik farbig und als Strichzeichnung (`references/bilder.md`) |
@@ -53,7 +55,7 @@ Warum: In HTML bestimmen wir Schrift (Fredoka, Andika, eingebettet), Abstände u
 
 Ist im Projekt eine Schoolbox eingerichtet (Ordner `schoolbox/`, Projektanweisungen), liegt das Material in **Mappen** und die Lehrkraft bekommt am Ende einen Link statt Dateien. Am Aufbau des HTML und an der Prüfung ändert sich nichts. Alle Aufrufe aus dem Hauptordner des Projekts; `schoolbox/bin/schoolbox --hilfe` nennt Befehle und gültige Werte.
 
-1. **Mappe und Dokumente anlegen** statt eigener Ordner und Dateinamen: `schoolbox/bin/schoolbox neu --titel … --fach … --klasse …`, dann je Bestandteil `schoolbox/bin/schoolbox dokument <mappe> --titel … --art … --druckprofil sw|farbe [--format a4-quer|a3-hoch|a5-hoch|folie] [--vorlage arbeitsblatt|praesentation]` (bei `--art praesentation` ist `folie` Standard). Das Dokument liegt in `materialien/<mappe>/dokumente/<dokument>/`; die Quelle heißt immer `material.html`, mit `<title>` und `<body>`-Klassen schon gesetzt. Das Format steht in den Angaben des Dokuments (`meta.json` im selben Ordner) **und** als Klasse am `<body>`; ändert es sich, beides anpassen, sonst bricht `fertig` ab.
+1. **Mappe und Dokumente anlegen** statt eigener Ordner und Dateinamen: `schoolbox/bin/schoolbox neu --titel … --fach … --klasse …`, dann je Bestandteil `schoolbox/bin/schoolbox dokument <mappe> --titel … --art … --druckprofil sw|farbe [--format a4-quer|a3-hoch|a5-hoch|folie|minibuch] [--vorlage arbeitsblatt|praesentation|minibuch|forscherbogen-12|forscherbogen-34]` (bei `--art praesentation` ist `folie` Standard). Das Dokument liegt in `materialien/<mappe>/dokumente/<dokument>/`; die Quelle heißt immer `material.html`, mit `<title>` und `<body>`-Klassen schon gesetzt. Das Format steht in den Angaben des Dokuments (`meta.json` im selben Ordner) **und** als Klasse am `<body>`; ändert es sich, beides anpassen, sonst bricht `fertig` ab.
 2. **Druckhinweise** (doppelseitig, laminieren, in A3 drucken) gehören ans Dokument, die Schoolbox zeigt sie beim Drucken: `--druckhinweis "…"`, mehrfach möglich.
 3. **Entwürfe** in den Ordner des Dokuments schreiben (`entwurf-a.html` …), damit Pfade wie `bilder/…` später stimmen. `schoolbox/bin/schoolbox entwuerfe <mappe>/<dokument> <entwürfe>` registriert sie, baut und prüft sie wie `blatt.py uebersicht` (ein eigener Aufruf von `uebersicht` ist nicht nötig), nennt je Entwurf, ob er auf die Seite passt, die Vorschaubilder zum Ansehen und den Link für die Lehrkraft. Den gewählten übernehmen mit `schoolbox/bin/schoolbox waehle <mappe>/<dokument> B`; die Arbeitsdateien `entwurf-*.html` räumt das auf, die Entwürfe bleiben in der Schoolbox zum Nachsehen.
 4. **Bilder** des Dokuments in `bilder/` neben `material.html`; Bilder, die mehrere Dokumente der Mappe nutzen, in `materialien/<mappe>/bilder/` (eingebunden als `../../bilder/…`).
@@ -98,6 +100,10 @@ Ausgaben von `blatt.py bauen` für Folien, zum Präsentieren ohne Internet und z
 | `NAME-notizen.pdf` | `--notizen` | Zum Ausdrucken: A4 hoch, je Blatt bis zu zwei Folien klein (360 px breit), daneben „Folie 3 · 3 Schritte · 1 × aufdecken · Timer 25 Minuten“ und die Notizen in 17 px. Passt die zweite nicht mehr, kommt sie aufs nächste Blatt. Die Prüfung läuft auch hier; nur FEHLER zählen („Folien mit Notizen: … → Notiz kürzen“) |
 
 `--nur-zusatz` baut nur `--schritte`/`--notizen`, ohne Blatt, Vorschauen und Lösung (so ruft die Schoolbox es auf). Das normale PDF bleibt in jedem Fall die Seitenfolge mit allem aufgedeckt.
+
+## Mini-Book
+
+`schoolbox dokument <mappe> … --format minibuch --vorlage minibuch --druckhinweis "In Originalgröße drucken, einseitig"`. Das Format bedeutet: genau acht `.seite` in Lesereihenfolge (Titel, sechs Innenseiten, Rückseite), je ein Achtel A4. Das Ausschießen auf ein A4-Blatt quer (oben 5, 4, 3, 2 kopfstehend, unten 6, 7, 8, 1) macht `blatt.css` im Druck; die Reihenfolge nie von Hand umstellen. Die Prüfung meldet FEHLER bei einer anderen Seitenzahl und bei Inhalt näher als 4 mm an der Falz. Eine Seite fasst nur Bild und einen kurzen Satz; `x-lineatur` mit `breite="248"`. Die `.faltanleitung` am Ende der Vorlage bleibt stehen: Sie steht nur auf dem Lösungsblatt.
 
 ## Neues Element
 

@@ -43,6 +43,40 @@ body.a4-quer .seite{width:1123px;height:794px}
 body.a3-hoch .seite{width:1123px;height:1587px}
 body.a5-hoch .seite{width:559px;height:794px;--rand:40px}
 body.folie .seite{width:1280px;height:720px;--rand:48px}
+/* Mini-Book: acht Felder in Lesereihenfolge; 16 px Rand hält den Inhalt 4 mm von der Falz */
+body.minibuch .seite{width:74.25mm;height:105mm;--rand:16px}
+.faltanleitung{max-width:794px;margin:0 auto;padding:40px 60px;background:#fff;font-size:16px}
+.faltanleitung h2{margin:0 0 6px;font:600 28px Fredoka,sans-serif}
+.faltanleitung p{margin:0 0 20px}
+.faltanleitung ol{display:grid;grid-template-columns:repeat(3,1fr);gap:20px 28px;margin:0;padding:0;list-style:none;counter-reset:schritt}
+.faltanleitung li{counter-increment:schritt;padding-top:calc(var(--bild,200px)*.6875 + 8px);background:top left/var(--bild,200px) auto no-repeat;position:relative}
+.faltanleitung li::before{content:counter(schritt) ". ";font-weight:700}
+/* Bildfolge als Hintergrund: Die Vorlage bleibt frei von <svg> */
+.faltanleitung li:nth-child(1){background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 160 110'%3E%3Cdefs%3E%3Cmarker id='s' viewBox='0 0 8 8' refX='7' refY='4' markerWidth='7' markerHeight='7' orient='auto'%3E%3Cpath d='M0 0L8 4L0 8Z' fill='%231D1D1B'/%3E%3C/marker%3E%3C/defs%3E%3Crect fill='%23fff' stroke='%231D1D1B' stroke-width='1.5' x='10' y='10' width='140' height='90'/%3E%3Cpath fill='none' stroke='%23808080' stroke-dasharray='4 3' d='M10 55H150'/%3E%3Cpath fill='none' stroke='%231D1D1B' stroke-width='1.5' marker-end='url(%23s)' d='M80 20V48'/%3E%3C/svg%3E")}
+.faltanleitung li:nth-child(2){background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 160 110'%3E%3Crect fill='%23fff' stroke='%231D1D1B' stroke-width='1.5' x='10' y='10' width='140' height='90'/%3E%3Cpath fill='none' stroke='%23808080' stroke-dasharray='4 3' d='M10 55H150M45 10V100M80 10V100M115 10V100'/%3E%3C/svg%3E")}
+.faltanleitung li:nth-child(3){background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 160 110'%3E%3Crect fill='%23fff' stroke='%231D1D1B' stroke-width='1.5' x='10' y='10' width='140' height='90'/%3E%3Cpath fill='none' stroke='%23808080' stroke-dasharray='4 3' d='M10 55H150M45 10V100M80 10V100M115 10V100'/%3E%3Cpath fill='none' stroke='%231D1D1B' stroke-width='2.5' d='M45 55H115'/%3E%3C/svg%3E")}
+.faltanleitung li:nth-child(4){background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 160 110'%3E%3Crect fill='%23fff' stroke='%231D1D1B' stroke-width='1.5' x='10' y='35' width='140' height='45'/%3E%3Cpath fill='none' stroke='%23808080' stroke-dasharray='4 3' d='M45 35V80M80 35V80M115 35V80'/%3E%3Cpath fill='none' stroke='%231D1D1B' stroke-width='2.5' d='M45 80H115'/%3E%3C/svg%3E")}
+.faltanleitung li:nth-child(5){background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 160 110'%3E%3Cdefs%3E%3Cmarker id='s' viewBox='0 0 8 8' refX='7' refY='4' markerWidth='7' markerHeight='7' orient='auto'%3E%3Cpath d='M0 0L8 4L0 8Z' fill='%231D1D1B'/%3E%3C/marker%3E%3C/defs%3E%3Cpath fill='%23fff' stroke='%231D1D1B' stroke-width='1.5' d='M10 45H55L80 20L105 45H150V75H105L80 100L55 75H10Z'/%3E%3Cpath fill='none' stroke='%231D1D1B' stroke-width='1.5' marker-end='url(%23s)' d='M6 60H34'/%3E%3Cpath fill='none' stroke='%231D1D1B' stroke-width='1.5' marker-end='url(%23s)' d='M154 60H126'/%3E%3C/svg%3E")}
+.faltanleitung li:nth-child(6){background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 160 110'%3E%3Crect fill='%23fff' stroke='%231D1D1B' stroke-width='1.5' x='50' y='15' width='60' height='80'/%3E%3Cpath fill='none' stroke='%23808080' stroke-dasharray='4 3' d='M56 15V95'/%3E%3C/svg%3E")}
+@media print{
+  /* Ausschießen: oben 5 4 3 2 kopfstehend, unten 6 7 8 1 */
+  body.minibuch{display:grid;grid-template-columns:repeat(4,74.25mm);grid-template-rows:repeat(2,105mm);position:relative;width:297mm}
+  body.minibuch .seite{break-after:auto;break-inside:avoid;outline:.2mm dashed #9a9a9a;outline-offset:-.1mm}
+  body.minibuch .seite:nth-of-type(5){order:1}
+  body.minibuch .seite:nth-of-type(4){order:2}
+  body.minibuch .seite:nth-of-type(3){order:3}
+  body.minibuch .seite:nth-of-type(2){order:4}
+  body.minibuch .seite:nth-of-type(6){order:5}
+  body.minibuch .seite:nth-of-type(7){order:6}
+  body.minibuch .seite:nth-of-type(8){order:7}
+  body.minibuch .seite:nth-of-type(1){order:8}
+  body.minibuch .seite:is(:nth-of-type(2),:nth-of-type(3),:nth-of-type(4),:nth-of-type(5)){transform:rotate(180deg)}
+  /* Schnittlinie nur über die zwei mittleren Felder */
+  body.minibuch::after{content:"";position:absolute;z-index:2;top:102mm;left:74.25mm;width:148.5mm;height:6mm;
+    background:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%231D1D1B' stroke-width='2'%3E%3Ccircle cx='5' cy='6' r='3'/%3E%3Ccircle cx='5' cy='18' r='3'/%3E%3Cpath d='M7.5 7.5 22 18M7.5 16.5 22 6'/%3E%3C/svg%3E") left center/5mm 5mm no-repeat,
+      linear-gradient(#1D1D1B,#1D1D1B) center/100% .3mm no-repeat}
+  body.minibuch .faltanleitung{grid-column:1/-1;grid-row:3;order:9;break-before:page;width:297mm;max-width:none;padding:15mm 20mm;--bild:58mm}
+}
 
 /* Kopf */
 .namenszeile{display:flex;gap:24px;font-size:16px;margin-bottom:14px}
@@ -85,6 +119,8 @@ h1{font-family:Fredoka,sans-serif;font-weight:600;color:var(--dunkel);font-size:
 .antwort::after{content:"\00a0"}
 .beispiel .antwort[data-l]::after,body.loesung .antwort[data-l]::after{content:attr(data-l);font-weight:700}
 body.loesung .antwort[data-l]{color:var(--dunkel)}
+.malfeld{border:2px solid var(--linie);border-radius:10px;height:var(--h,160px)}
+.sicherheit{border:2px solid var(--text);border-radius:10px;padding:8px 12px;margin-bottom:14px;font-size:.85em;line-height:1.25}
 .nur-loesung{display:none}
 body.loesung .nur-loesung{display:revert}
 body.loesung .nicht-loesung{display:none}

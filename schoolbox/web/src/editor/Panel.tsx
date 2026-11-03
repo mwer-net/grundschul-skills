@@ -1,5 +1,5 @@
 import type { Zeilen } from '@schoolbox/kern/src/bausteine';
-import { kann, zeilenVon } from '@schoolbox/kern/src/bausteine';
+import { kann, kannImFormat, zeilenVon } from '@schoolbox/kern/src/bausteine';
 import { ABSTAND, SPALTEN } from '@schoolbox/kern/src/struktur';
 import type { MouseEvent, ReactNode } from 'react';
 import { useEffect, useRef, useState } from 'react';
@@ -148,6 +148,7 @@ export const Textwerkzeug = ({
 interface StrukturEigenschaften {
 	pfad: PfadTeil[];
 	aktiv: boolean;
+	format: string;
 	struktur: Struktur;
 }
 
@@ -179,7 +180,7 @@ const Spaltenwahl = ({ eigene, spalten, struktur }: { spalten: Spalten; eigene: 
 );
 
 /** Verschieben, Duplizieren, Löschen und Spalten für den gewählten Baustein. */
-export const Strukturwerkzeug = ({ aktiv, pfad, struktur }: StrukturEigenschaften) => {
+export const Strukturwerkzeug = ({ aktiv, format, pfad, struktur }: StrukturEigenschaften) => {
 	const gewaehlt = pfad.at(-1);
 	const w = struktur.werte;
 	if (!aktiv || !gewaehlt || !w) {
@@ -188,7 +189,8 @@ export const Strukturwerkzeug = ({ aktiv, pfad, struktur }: StrukturEigenschafte
 	const { baustein, name, nr } = gewaehlt;
 	const { nach } = w;
 	const einzigeSeite = baustein.art === 'seite' && w.seiten <= 1;
-	const loeschbar = kann(baustein, 'loeschen');
+	const loeschbar = kannImFormat(baustein, 'loeschen', format);
+	const duplizierbar = kannImFormat(baustein, 'duplizieren', format);
 	return (
 		<div className="mt-4 flex flex-col gap-5" data-struktur>
 			{nach && (
@@ -220,9 +222,9 @@ export const Strukturwerkzeug = ({ aktiv, pfad, struktur }: StrukturEigenschafte
 					</p>
 				</div>
 			)}
-			{(kann(baustein, 'duplizieren') || loeschbar) && (
+			{(duplizierbar || loeschbar) && (
 				<div className="flex flex-wrap gap-2">
-					{kann(baustein, 'duplizieren') && (
+					{duplizierbar && (
 						<Knopf art="zweit" onClick={() => struktur.dupliziere(nr)}>
 							<Symbol name="kopieren" />
 							Duplizieren

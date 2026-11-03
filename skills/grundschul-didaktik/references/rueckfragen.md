@@ -43,6 +43,7 @@ Nur die Optionen anbieten, die zur Materialart passen; die übliche als Empfehlu
 | Lernspiel | **Karten auf A4 zum Ausschneiden**, Spielplan A3/A4 | `.karten` auf A4 / `a3-hoch` |
 | Lernplakat | **A3**, A2 aus A4-Kacheln | `a3-hoch` |
 | Stationenlernen | **Stationskarten A5** + Laufzettel A4, Stationskarten A4 | `a5-hoch` oder `a4-quer` mit 2 Karten / Standard |
+| Mini-Book | Faltbuch aus einem A4-Blatt, 8 Seiten (nicht fragen) | `minibuch` |
 | Präsentation | **Folien 16:9** für Beamer, Smartboard oder Display (nicht fragen) | `folie` |
 
 **3. Farbe oder Schwarz-Weiß**

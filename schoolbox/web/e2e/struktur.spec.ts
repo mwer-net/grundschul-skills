@@ -1,9 +1,10 @@
 import { readFile } from 'node:fs/promises';
+import path from 'node:path';
 
 import type { Locator, Page } from '@playwright/test';
 
 import { gespeichert, material, oeffne, quelle, uhrzeit } from './editorhilfe';
-import { expect, test } from './hilfe';
+import { dokumentOrdner, expect, legeMappeAn, test } from './hilfe';
 
 interface Punkt {
 	x: number;
@@ -274,5 +275,39 @@ test.describe('Editor: Struktur', () => {
 		await expect(page.locator('[data-auswahl="item"] h2')).toHaveText('Item 2');
 		await gespeichert(page, datei);
 		expect(await readFile(datei, 'utf8')).toMatch(/zeit="4:30".*\n.*zelle beispiel.*zeit="3:00"/);
+	});
+});
+
+test.describe('Mini-Book (036)', () => {
+	test('Text einer Innenseite ändern, Seiten nicht hinzufügen oder löschen', async ({ druecke, page }) => {
+		const { dokumente, id } = await legeMappeAn('Farben', 'englisch', 3, [
+			{ titel: 'Farben', format: 'minibuch', vorlage: 'minibuch' },
+		]);
+		const dok = dokumente[0] ?? '';
+		const datei = path.join(dokumentOrdner(id, dok), 'material.html');
+		await oeffne(page, id, dok);
+		const leiste = page.locator('[data-seitenleiste]');
+		await expect(leiste.locator('[data-seite-miniatur]')).toHaveCount(8);
+		await expect(leiste.getByRole('button', { name: 'Seite hinzufügen' })).toHaveCount(0);
+		await expect(leiste.getByLabel('mit Namenszeile')).toHaveCount(0);
+		await expect(leiste.locator('[data-feste-seiten]')).toHaveText('Ein Mini-Book hat immer acht Seiten.');
+
+		await druecke(leiste.getByRole('button', { name: 'Seite 3' }));
+		await expect(page.locator('[data-auswahl="seite"] h2')).toHaveText('Seite 3');
+		const werkzeug = page.locator('[data-struktur]');
+		await expect(werkzeug.getByRole('button', { name: 'Löschen' })).toHaveCount(0);
+		await expect(werkzeug.getByRole('button', { name: 'Duplizieren' })).toHaveCount(0);
+		await expect(werkzeug.getByRole('button', { name: 'Nach unten' })).toBeEnabled();
+
+		const satz = material(page).locator('.seite').nth(2).locator('p');
+		await druecke(satz);
+		await druecke(satz);
+		await expect(page.locator('[data-textbearbeitung]')).toBeVisible();
+		await page.keyboard.press('ControlOrMeta+End');
+		await page.keyboard.type(' Toll');
+		await page.getByRole('button', { name: 'Fertig' }).click();
+		await gespeichert(page, datei);
+		expect(await readFile(datei, 'utf8')).toMatch(/I can see a blue .*Toll/);
+		expect((await readFile(datei, 'utf8')).match(/class="seite"/g)).toHaveLength(8);
 	});
 });

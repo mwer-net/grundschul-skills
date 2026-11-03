@@ -24,6 +24,8 @@ export const MELDUNG_CODES = [
 	'loesung-fehlt',
 	/** Nur im Editor: „Zu 3: …“ zeigt nach dem Umsortieren auf eine andere Aufgabe (016). */
 	'verweis',
+	/** Ein Mini-Book hat nicht genau acht Seiten (036). */
+	'minibuch-seiten',
 ] as const;
 
 export type MeldungCode = (typeof MELDUNG_CODES)[number];
@@ -154,6 +156,10 @@ const TABELLE: Record<MeldungCode, Uebersetzung> = {
 		tipp: 'In der Lösungsansicht die gestreifte Linie antippen und die Lösung eintragen.',
 	}),
 	'verweis': (_n, text) => ({ satz: text, tipp: 'Die Sprechblase antippen und die Nummer ändern.' }),
+	'minibuch-seiten': () => ({
+		satz: 'Ein Mini-Book muss genau acht Seiten haben, sonst liegen sie nach dem Falten falsch.',
+		tipp: null,
+	}),
 };
 
 type Regel = [RegExp, (...teile: string[]) => string];

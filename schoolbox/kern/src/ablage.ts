@@ -1,5 +1,5 @@
 import { randomBytes } from 'node:crypto';
-import { existsSync } from 'node:fs';
+import { existsSync, readdirSync } from 'node:fs';
 import { cp, mkdir, readdir, readFile, rename, rm } from 'node:fs/promises';
 import path from 'node:path';
 
@@ -144,8 +144,8 @@ export const neueMappe = async (
 	return { mappe, pfad: dir };
 };
 
-export const verfuegbareVorlagen = async (): Promise<string[]> =>
-	(await readdir(ASSETS))
+export const verfuegbareVorlagen = (): string[] =>
+	readdirSync(ASSETS)
 		.map((name) => /^vorlage-([a-z0-9-]+)\.html$/.exec(name)?.[1])
 		.filter((name): name is string => name !== undefined)
 		.sort();
@@ -154,7 +154,7 @@ const ladeVorlage = async (vorlage: string | undefined): Promise<string> => {
 	if (vorlage === undefined) {
 		return GERUEST;
 	}
-	const vorhanden = await verfuegbareVorlagen();
+	const vorhanden = verfuegbareVorlagen();
 	if (!vorhanden.includes(vorlage)) {
 		throw new SchoolboxFehler(`Vorlage „${vorlage}“ gibt es nicht. Vorhanden: ${vorhanden.join(', ') || 'keine'}.`);
 	}

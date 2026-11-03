@@ -212,10 +212,12 @@ const mitStand = (dokument: DokumentEintrag, verlauf: { quelle: string } | null)
 
 /** Die Seitenleiste zum Material, ohne Leiste, solange es nicht geladen ist. */
 const Seiten = ({
+	festeSeiten,
 	html,
 	struktur,
 	zerlegung,
 }: {
+	festeSeiten: boolean;
 	html: string | null;
 	zerlegung: Zerlegung | null;
 	struktur: Struktur;
@@ -234,6 +236,7 @@ const Seiten = ({
 			verschiebe={(nr, ablage) => struktur.verschiebe(nr, ablage, true)}
 			hinzufuegen={(mitNamenszeile) => void struktur.neueSeite(mitNamenszeile)}
 			namenszeile={namenszeile}
+			festeSeiten={festeSeiten}
 		/>
 	);
 };
@@ -497,7 +500,12 @@ const Bearbeitung = ({ dokument, mappe: mappenDaten }: { mappe: Mappe; dokument:
 
 			<div className="flex min-h-0 flex-1 max-lg:flex-col">
 				<div className="flex min-h-0 flex-1">
-					<Seiten html={html} zerlegung={zerlegung} struktur={struktur} />
+					<Seiten
+						html={html}
+						zerlegung={zerlegung}
+						struktur={struktur}
+						festeSeiten={meta.format === 'minibuch'}
+					/>
 					<main className="min-h-0 flex-1 overflow-y-auto px-6 py-4 max-lg:px-4">
 						{b.konflikt && (
 							<Konfliktleiste
@@ -571,7 +579,12 @@ const Bearbeitung = ({ dokument, mappe: mappenDaten }: { mappe: Mappe; dokument:
 								<Bildwerkzeug bild={bild} />
 								<Abbildungswerkzeug abb={abbildung} />
 								<Loesungswerkzeug l={loes} />
-								<Strukturwerkzeug pfad={pfad} aktiv={struktur.aktiv} struktur={struktur} />
+								<Strukturwerkzeug
+									pfad={pfad}
+									aktiv={struktur.aktiv}
+									format={meta.format}
+									struktur={struktur}
+								/>
 								<ClaudeFragen {...frage} nr={auswahl} pfad={pfad} />
 							</AuswahlPanel>
 						)}

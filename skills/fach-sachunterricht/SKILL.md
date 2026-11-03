@@ -44,17 +44,9 @@ Gute Themen vernetzen Perspektiven (z. B. "Wasser": Naturwissenschaft + Geograph
 
 ## Forscherheft / Versuchsprotokoll (Vorlage nach Klassenstufe)
 
-Kl. 1/2 (bildgestützt):
-1. Meine Frage: …
-2. Ich vermute: (ankreuzen/malen) ☐ … ☐ …
-3. Das brauche ich: (Bilder)
-4. So mache ich es: (2–3 Bildschritte)
-5. Das sehe ich: (malen)
-6. Ich habe herausgefunden: Satzanfang
+Kl. 1/2 (bildgestützt): `--vorlage forscherbogen-12`. Kl. 3/4 (schriftlich): `--vorlage forscherbogen-34`, `art` der Lineatur nach der Klasse. Die Vorlagen geben Aufbau und Schritte vor; einsetzen, was zum Versuch gehört.
 
-Kl. 3/4 (schriftlich): Forscherfrage – Vermutung ("Ich vermute, dass …, weil …") – Material – Durchführung (Schritte) – Beobachtung – Ergebnis – Erklärung – neue Fragen.
-
-Sicherheitshinweise (Feuer, Strom, Glas, Lebensmittel, Allergien) immer für die Lehrkraft angeben; keine Versuche mit Netzstrom oder gefährlichen Stoffen.
+Sicherheitshinweise (Feuer, Strom, Glas, Lebensmittel, Allergien) immer für die Lehrkraft angeben, als `.nur-loesung` im Kopf wie in der Vorlage: Sie stehen nur auf dem Lösungsblatt. Keine Versuche mit Netzstrom oder gefährlichen Stoffen.
 
 ## Materialtypen im Sachunterricht
 

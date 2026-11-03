@@ -91,6 +91,7 @@ export const SEITENGROESSE: Record<string, string | undefined> = {
 	'a3-hoch': 'A3',
 	'a5-hoch': 'A5',
 	'folie': '338.67mm 190.5mm',
+	'minibuch': 'A4 landscape',
 };
 
 const BODY_WIE_BLATT_PY = /<body([^>]*)class="([^"]*)"/;

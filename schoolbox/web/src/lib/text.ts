@@ -23,9 +23,10 @@ export const FORMAT_NAME: Record<Format, string> = {
 	'a3-hoch': 'A3',
 	'a5-hoch': 'A5',
 	'folie': 'Folie',
+	'minibuch': 'Mini-Book',
 };
 
-export const QUERFORMATE: readonly Format[] = ['a4-quer', 'folie'];
+export const QUERFORMATE: readonly Format[] = ['a4-quer', 'folie', 'minibuch'];
 
 /** In dieser Reihenfolge stehen die Klassen zur Wahl. */
 export const KLASSEN_NAMEN: Record<string, string> = {

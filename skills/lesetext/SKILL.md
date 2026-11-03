@@ -60,6 +60,7 @@ Lesestrategien sichtbar machen (ab Kl. 2): Vor dem Lesen Überschrift/Bild betra
 ## Gestaltung
 
 - Schriftgrößen gemäß Basis-Skill, Stufe A: 24–28 pt.
+- Lesebüchlein für Stufe A/B als Mini-Book: `--format minibuch --vorlage minibuch` (siehe `html-materialerstellung`, Abschnitt „Mini-Book“), je Seite Bild und ein Satz.
 - Ein Bild pro Absatz höchstens, nur wenn es Verständnis stützt.
 - Text links, Bild rechts oder oben; nie Text um Bilder fließen lassen (Kl. 1/2).
 - Silbenfärbung und -bögen nur über `x-silben`, Absatz für Absatz ein Element (`fach-deutsch`, Abschnitt „Abbildungen“), und nur, wenn die Klasse damit arbeitet. Im s/w-Profil werden Farben von selbst zu Bögen.

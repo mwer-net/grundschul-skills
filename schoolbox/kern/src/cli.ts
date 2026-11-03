@@ -13,6 +13,7 @@ import {
 	notiereWunsch,
 	registriereEntwuerfe,
 	sammleMappen,
+	verfuegbareVorlagen,
 	waehleEntwurf,
 	zerlegeZiel,
 } from './ablage';
@@ -40,10 +41,10 @@ import {
 	waehleWert,
 } from './werte';
 
-const HILFE = `schoolbox – Mappen und Dokumente der Schoolbox anlegen und fertigstellen
+const hilfe = () => `schoolbox – Mappen und Dokumente der Schoolbox anlegen und fertigstellen
 
   schoolbox neu --titel … --fach … --klasse …
-  schoolbox dokument <mappe> --titel … --art … --druckprofil sw|farbe [--format …] [--vorlage arbeitsblatt|praesentation]
+  schoolbox dokument <mappe> --titel … --art … --druckprofil sw|farbe [--format …] [--vorlage …]
                      [--druckhinweis "…"]…
   schoolbox entwuerfe <mappe>/<dok> A.html B.html [C.html]
   schoolbox waehle <mappe>/<dok> B
@@ -60,6 +61,7 @@ Alle Befehle: --json für maschinenlesbare Ausgabe.
 Fächer:  ${FAECHER.join(', ')}
 Arten:   ${ARTEN.join(', ')}
 Formate: ${FORMATE.join(', ')} (Standard ${STANDARD_FORMAT}, bei --art praesentation ${standardFormat('praesentation')})
+Vorlagen: ${verfuegbareVorlagen().join(', ')}
 Klassen: 1, 2, 3, 4, gemischt`;
 
 interface Ergebnis {
@@ -74,7 +76,7 @@ const lies = <O extends Optionen>(argumente: string[], options: O) => {
 	try {
 		return parseArgs({ args: argumente, options, allowPositionals: true, strict: true });
 	} catch (fehler) {
-		throw new SchoolboxFehler(`${(fehler as Error).message}\n\n${HILFE}`);
+		throw new SchoolboxFehler(`${(fehler as Error).message}\n\n${hilfe()}`);
 	}
 };
 
@@ -122,7 +124,11 @@ const befehlDokument = async (konfig: Konfig, argumente: string[]): Promise<Erge
 	const angaben = {
 		titel,
 		art,
-		format: waehleWert('Format', values.format ?? standardFormat(art), FORMATE),
+		format: waehleWert(
+			'Format',
+			values.format ?? (values.vorlage === 'minibuch' ? 'minibuch' : standardFormat(art)),
+			FORMATE,
+		),
 		druckprofil: waehleWert('Druckprofil', values.druckprofil, DRUCKPROFILE),
 		vorlage: values.vorlage,
 		druckhinweise: (values.druckhinweis ?? []).map((h) => h.trim()).filter(Boolean),
@@ -444,12 +450,12 @@ const main = async (argv: string[]): Promise<number> => {
 	const [befehl, ...argumente] = argv.filter((a) => a !== '--json');
 	try {
 		if (!befehl || ['hilfe', '--hilfe', '--help', '-h'].includes(befehl)) {
-			console.log(HILFE);
+			console.log(hilfe());
 			return befehl ? 0 : 2;
 		}
 		const ausfuehren = BEFEHLE[befehl];
 		if (!ausfuehren) {
-			throw new SchoolboxFehler(`Unbekannter Befehl „${befehl}“.\n\n${HILFE}`);
+			throw new SchoolboxFehler(`Unbekannter Befehl „${befehl}“.\n\n${hilfe()}`);
 		}
 		const { code = 0, daten, text } = await ausfuehren(ladeKonfig(), argumente);
 		console.log(json ? JSON.stringify(daten, null, '\t') : text);

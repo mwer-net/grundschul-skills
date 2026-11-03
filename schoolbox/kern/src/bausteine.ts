@@ -144,4 +144,8 @@ export const bausteinNach = (art: string) => BAUSTEINE.find((b) => b.art === art
 
 export const kann = (baustein: Baustein, faehigkeit: Faehigkeit) => baustein.faehigkeiten.includes(faehigkeit);
 
+/** Im Mini-Book steht die Zahl der Seiten fest: Sie lassen sich ordnen, aber nicht vermehren oder löschen. */
+export const kannImFormat = (baustein: Baustein, faehigkeit: Faehigkeit, format: string | undefined) =>
+	kann(baustein, faehigkeit) && !(format === 'minibuch' && baustein.art === 'seite' && faehigkeit !== 'ordnen');
+
 export const zeilenVon = (baustein: Baustein): Zeilen => baustein.zeilen ?? 'eine';
