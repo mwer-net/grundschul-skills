@@ -9,7 +9,8 @@ import {
 	hatLoesung,
 	legeVersionAn,
 	leseMeta,
-	pruefeFormat,
+	formatAusHtml,
+	titelAusHtml,
 	schreibeAtomar,
 	schreibeMeta,
 } from '@schoolbox/kern';
@@ -74,7 +75,9 @@ export const schreibeQuelle = async (
 	const { materialDir } = kontext.konfig;
 	const dir = dokumentDir(materialDir, mappe, dok);
 	const meta = await leseMeta(materialDir, mappe, dok);
-	pruefeFormat(meta, quelle, 'der neuen Fassung');
+	// Format und Titel lassen sich im Editor ändern (046); auch eine ältere Version bringt ihre mit.
+	meta.format = formatAusHtml(quelle);
+	meta.titel = titelAusHtml(quelle) || meta.titel;
 	await nimmFremdeAenderungAuf(kontext, mappe, dok);
 	await schreibeAtomar(path.join(dir, 'material.html'), quelle);
 	const gesichert = await legeVersionAn(dir, 'lehrkraft', jetzt, { zusammenfassen });

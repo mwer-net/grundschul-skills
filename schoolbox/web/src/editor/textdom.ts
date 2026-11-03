@@ -43,7 +43,7 @@ const ERLAUBT = new Set([
 	'formatUnderline',
 ]);
 
-export type Format = 'bold' | 'underline';
+export type Format = 'bold' | 'underline' | 'mark';
 
 export interface TextZustand {
 	fett: boolean;
@@ -505,11 +505,35 @@ export const ruesteText = ({
 		return gewicht !== 'bold' && Number(gewicht) < 600;
 	};
 
+	/** Hervorheben (046): `<mark>`; in s/w fett und unterstrichen, damit es nicht nur an der Farbe hängt. */
+	const hebeHervor = () => {
+		const auswahl = doc.getSelection();
+		const r = auswahl?.rangeCount ? auswahl.getRangeAt(0) : null;
+		if (!r || r.collapsed) {
+			return;
+		}
+		const start = r.commonAncestorContainer;
+		const da = (start instanceof Element ? start : start.parentElement)?.closest('mark');
+		still(() => {
+			if (da) {
+				da.replaceWith(...da.childNodes);
+			} else {
+				const m = doc.createElement('mark');
+				m.append(r.extractContents());
+				r.insertNode(m);
+			}
+		});
+	};
+
 	const formatiere = (format: Format) => {
 		if (!sitzung || (format === 'bold' && !fettMoeglich())) {
 			return;
 		}
-		befehl(format);
+		if (format === 'mark') {
+			hebeHervor();
+		} else {
+			befehl(format);
+		}
 		aendert();
 	};
 

@@ -74,6 +74,19 @@ export const Einfuegemarken = ({
 
 	return (
 		<>
+			{[...doc.querySelectorAll('.nicht-loesung, body.loesung .nur-loesung')].map((m) => {
+				const r = m.getBoundingClientRect();
+				return (
+					<span
+						key={nrVon(m)}
+						className="pointer-events-none absolute rounded-md bg-amber-200 px-2 py-0.5 text-sm font-bold"
+						data-sichtbarkeit-marke
+						style={{ left: links + r.left * skala, top: r.top * skala - 12 }}
+					>
+						{m.classList.contains('nur-loesung') ? 'Nur Lösung' : 'Nur Arbeitsblatt'}
+					</span>
+				);
+			})}
 			{aktiv && box && auswahl !== null && (
 				<button
 					type="button"

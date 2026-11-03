@@ -1,15 +1,34 @@
 import type { Zeilen } from '@schoolbox/kern/src/bausteine';
 import { kann, kannImFormat, zeilenVon } from '@schoolbox/kern/src/bausteine';
+import type { BlattWerte as BlattWerteTyp } from '@schoolbox/kern/src/kit-einstellungen';
+import {
+	BLATT_FORMATE,
+	KIT_FELDER,
+	leseBlatt,
+	leseKit,
+	leseSichtbarkeit,
+	PALETTEN,
+	setzeBlatt,
+	setzeKit,
+	setzeSichtbarkeit,
+	SICHTBARKEITEN,
+} from '@schoolbox/kern/src/kit-einstellungen';
 import { ABSTAND, SPALTEN } from '@schoolbox/kern/src/struktur';
+import type { Format as Format2 } from '@schoolbox/kern/src/werte';
+import { FORMAT_NAME, KLASSEN } from '@schoolbox/kern/src/werte';
 import type { MouseEvent, ReactNode } from 'react';
 import { useEffect, useRef, useState } from 'react';
 
 import { Knopf } from '../bausteine/Knopf';
+import { klasseName } from '../lib/text';
 import { Symbol } from '../bausteine/Symbol';
 import type { PfadTeil } from './darstellung';
 import type { Spalten, Struktur } from './struktur';
 import { TEXTWERKZEUG } from './text';
 import type { Format, TextZustand } from './textdom';
+
+/** Nur für die Punkte im Panel; die Farben selbst stehen in `blatt.css`. */
+const PALETTEN_FARBE = { sonnig: '#F28C28', himmel: '#3A86FF', wiese: '#43AA8B', beere: '#E76F51' };
 
 interface Eigenschaften {
 	pfad: PfadTeil[];
@@ -134,6 +153,16 @@ export const Textwerkzeug = ({
 					>
 						U
 					</Knopf>
+					<Knopf
+						art="zweit"
+						className="px-3"
+						aria-label="Hervorheben"
+						title="Markierten Text hervorheben; in s/w fett und unterstrichen"
+						{...halteFokus}
+						onClick={() => formatiere('mark')}
+					>
+						<mark className="rounded bg-amber-200 px-1">A</mark>
+					</Knopf>
 				</div>
 				<Knopf {...halteFokus} onClick={beende}>
 					<Symbol name="haken" />
@@ -146,6 +175,7 @@ export const Textwerkzeug = ({
 };
 
 interface StrukturEigenschaften {
+	quelle: string | null;
 	pfad: PfadTeil[];
 	aktiv: boolean;
 	format: string;
@@ -180,7 +210,7 @@ const Spaltenwahl = ({ eigene, spalten, struktur }: { spalten: Spalten; eigene: 
 );
 
 /** Verschieben, Duplizieren, Löschen und Spalten für den gewählten Baustein. */
-export const Strukturwerkzeug = ({ aktiv, format, pfad, struktur }: StrukturEigenschaften) => {
+export const Strukturwerkzeug = ({ aktiv, format, pfad, quelle, struktur }: StrukturEigenschaften) => {
 	const gewaehlt = pfad.at(-1);
 	const w = struktur.werte;
 	if (!aktiv || !gewaehlt || !w) {
@@ -222,6 +252,27 @@ export const Strukturwerkzeug = ({ aktiv, format, pfad, struktur }: StrukturEige
 					</p>
 				</div>
 			)}
+			<KitWerkzeug art={baustein.art} folien={format === 'folie'} nr={nr} quelle={quelle} struktur={struktur} />
+			{kann(baustein, 'ordnen') && baustein.art !== 'seite' && (
+				<label className="block font-bold">
+					Sichtbarkeit
+					<select
+						className="mt-1 min-h-12 w-full rounded-xl border-2 border-rand bg-white px-3 font-normal"
+						aria-label="Sichtbarkeit"
+						data-sichtbarkeit
+						value={quelle ? leseSichtbarkeit(quelle, nr) : ''}
+						onChange={(e) =>
+							struktur.aendereAttribute('Sichtbarkeit geändert', (q) => setzeSichtbarkeit(q, nr, e.target.value))
+						}
+					>
+						{SICHTBARKEITEN.map((s) => (
+							<option key={s.wert} value={s.wert}>
+								{s.titel}
+							</option>
+						))}
+					</select>
+				</label>
+			)}
 			{(duplizierbar || loeschbar) && (
 				<div className="flex flex-wrap gap-2">
 					{duplizierbar && (
@@ -252,7 +303,162 @@ export const Strukturwerkzeug = ({ aktiv, format, pfad, struktur }: StrukturEige
  * Abstand zwischen den Aufgaben für das ganze Blatt. Beim Ziehen zeigt das Blatt den Abstand sofort, die Quelle
  * ändert sich erst beim Loslassen: ein Schritt zum Rückgängigmachen.
  */
-export const Blattwerkzeug = ({ aktiv, struktur }: { aktiv: boolean; struktur: Struktur }) => {
+const FELD = 'mt-1 min-h-12 w-full rounded-xl border-2 border-rand bg-white px-3 font-normal';
+
+/** Zeichnet die Felder aus `KIT_FELDER`; Grenzen und Wirkung stehen dort, nicht hier. */
+const KitWerkzeug = ({
+	art,
+	folien,
+	nr,
+	quelle,
+	struktur,
+}: {
+	art: string;
+	folien: boolean;
+	nr: number;
+	quelle: string | null;
+	struktur: Struktur;
+}) => {
+	const felder = KIT_FELDER[art];
+	if (!felder || !quelle) {
+		return null;
+	}
+	const werte = leseKit(quelle, nr, art);
+	const setze = (name: string, titel: string, wert: string | number | boolean) =>
+		struktur.aendereAttribute(`${titel} geändert`, (q) => setzeKit(q, nr, art, name, wert, { jeSeite: folien }));
+	return (
+		<div className="flex flex-col gap-3" data-kit={art}>
+			{felder.map((f) => {
+				const wert = werte[f.name];
+				if (f.typ === 'schalter') {
+					return (
+						<label key={f.name} className="flex min-h-11 items-center gap-2 font-bold">
+							<input
+								type="checkbox"
+								className="size-5"
+								checked={wert === true}
+								onChange={(e) => setze(f.name, f.titel, e.target.checked)}
+							/>
+							{f.titel}
+						</label>
+					);
+				}
+				return (
+					<label key={f.name} className="block font-bold">
+						{f.titel}
+						{f.typ === 'zahl' && (
+							<input
+								key={String(wert)}
+								type="number"
+								className={FELD}
+								min={f.min}
+								max={f.max}
+								step={f.schritt}
+								defaultValue={Number(wert)}
+								onBlur={(e) => setze(f.name, f.titel, Number(e.target.value))}
+							/>
+						)}
+						{f.typ === 'wahl' && (
+							<select className={FELD} value={String(wert)} onChange={(e) => setze(f.name, f.titel, e.target.value)}>
+								{f.optionen.map((o) => (
+									<option key={o.wert} value={o.wert}>
+										{o.titel}
+									</option>
+								))}
+							</select>
+						)}
+						{f.typ === 'text' && (
+							<input
+								key={String(wert)}
+								className={FELD}
+								defaultValue={String(wert)}
+								onBlur={(e) => setze(f.name, f.titel, e.target.value)}
+							/>
+						)}
+					</label>
+				);
+			})}
+		</div>
+	);
+};
+
+/** Titel, Klasse, Palette, Format und Trennlinien; jede Änderung ist ein Schritt im Verlauf (046). */
+const BlattWerte = ({ quelle, struktur }: { quelle: string; struktur: Struktur }) => {
+	const w = leseBlatt(quelle);
+	const setze = (titel: string, neu: Partial<BlattWerteTyp>) =>
+		struktur.aendereAttribute(`${titel} geändert`, (q) => setzeBlatt(q, neu));
+	return (
+		<div className="mt-3 flex flex-col gap-3">
+			<label className="block font-bold">
+				Titel
+				<input
+					key={w.titel}
+					className={FELD}
+					defaultValue={w.titel}
+					onBlur={(e) => e.target.value.trim() && setze('Titel', { titel: e.target.value.trim() })}
+				/>
+			</label>
+			<label className="block font-bold">
+				Klasse
+				<select
+					className={FELD}
+					value={String(w.klasse)}
+					onChange={(e) =>
+						setze('Klasse', { klasse: KLASSEN.find((k) => String(k) === e.target.value) ?? 'gemischt' })
+					}
+				>
+					{KLASSEN.map((k) => (
+						<option key={k} value={String(k)}>
+							{klasseName(k)}
+						</option>
+					))}
+				</select>
+			</label>
+			<div role="group" aria-label="Palette" className="flex flex-wrap gap-2" data-palette>
+				{PALETTEN.map((p) => (
+					<Knopf
+						key={p}
+						art={w.palette === p ? 'haupt' : 'zweit'}
+						aria-pressed={w.palette === p}
+						className="px-3"
+						onClick={() => setze('Palette', { palette: p })}
+					>
+						<span aria-hidden className="size-4 rounded-full" style={{ background: PALETTEN_FARBE[p] }} />
+						{p[0]?.toUpperCase()}
+						{p.slice(1)}
+					</Knopf>
+				))}
+			</div>
+			<label className="block font-bold">
+				Format
+				<select
+					className={FELD}
+					value={w.format}
+					disabled={w.format === 'minibuch'}
+					onChange={(e) => setze('Format', { format: e.target.value as Format2 })}
+				>
+					{(w.format === 'minibuch' ? ['minibuch' as const] : BLATT_FORMATE).map((f) => (
+						<option key={f} value={f}>
+							{FORMAT_NAME[f]}
+						</option>
+					))}
+				</select>
+				<span className="mt-1 block font-normal text-leise">Passt danach etwas nicht mehr, meldet es die Prüfung.</span>
+			</label>
+			<label className="flex min-h-11 items-center gap-2 font-bold">
+				<input
+					type="checkbox"
+					className="size-5"
+					checked={w.trenner}
+					onChange={(e) => setze('Trennlinien', { trenner: e.target.checked })}
+				/>
+				Trennlinien zwischen Aufgaben
+			</label>
+		</div>
+	);
+};
+
+export const Blattwerkzeug = ({ aktiv, quelle, struktur }: { aktiv: boolean; quelle: string | null; struktur: Struktur }) => {
 	const wert = struktur.werte?.abstand ?? null;
 	const [jetzt, setJetzt] = useState(wert ?? ABSTAND.min);
 	const regler = useRef<HTMLInputElement>(null);
@@ -284,6 +490,7 @@ export const Blattwerkzeug = ({ aktiv, struktur }: { aktiv: boolean; struktur: S
 	return (
 		<div className="mt-6 border-t border-rand pt-4" data-blatt>
 			<h2 className="text-xl">Ganzes Blatt</h2>
+			{quelle && <BlattWerte quelle={quelle} struktur={struktur} />}
 			<label className="mt-3 block">
 				<span className="flex justify-between font-bold">
 					Abstand zwischen Aufgaben

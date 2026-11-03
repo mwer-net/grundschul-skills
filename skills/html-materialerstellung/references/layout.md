@@ -51,3 +51,5 @@ Faustwerte Kl. 2 (24 px Schrift): Aufgabenzeile 34 px, Uhr 88 px + Antwortlinie 
 - [ ] Aufgaben- und Item-Zahl im Richtwert, Kl. 1/2 mit Luft
 - [ ] Lösungsblatt vollständig und deckungsgleich
 - [ ] Visuelle Endkontrolle bestanden (`visuelle-endkontrolle.md`)
+
+**Hervorheben im Text:** `<mark>…</mark>` (Palettenfarbe; in s/w fett und unterstrichen).

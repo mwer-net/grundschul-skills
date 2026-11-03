@@ -23,6 +23,7 @@ import { Abbildungswerkzeug } from '../editor/Abbildungspanel';
 import { Konfliktleiste, Speicheranzeige, Vorschauleiste } from '../editor/Anzeigen';
 import { useBearbeitung } from '../editor/bearbeitung';
 import { useBild } from '../editor/bild';
+import { formatAusHtml } from '@schoolbox/kern/src/html';
 import { Bibliothek, Einfuegemarken, Gliederung } from '../editor/Bibliothek';
 import { Bildwerkzeug } from '../editor/Bildpanel';
 import { useEinfuegen, useSlash } from '../editor/einfuegen';
@@ -283,6 +284,8 @@ const Bearbeitung = ({ dokument, mappe: mappenDaten }: { mappe: Mappe; dokument:
 	const versionen = useLaden<{ versionen: VersionEintrag[] }>(`${b.adresse}/versionen`);
 	const { neuLaden: versionenNeu } = versionen;
 
+	// Im Editor lässt sich das Format ändern (046): Es gilt, was in der Quelle steht.
+	const format = b.verlauf ? formatAusHtml(b.verlauf.quelle) : meta.format;
 	useTitel(`${meta.titel} bearbeiten`);
 	const anzeige = vorschau?.quelle ?? b.verlauf?.quelle ?? null;
 	const basis = `/ansicht/${mappe}/dokumente/${dok}/`;
@@ -346,7 +349,7 @@ const Bearbeitung = ({ dokument, mappe: mappenDaten }: { mappe: Mappe; dokument:
 		setAuswahl,
 		befehl: b.befehl,
 		rueckgaengig: zurueck,
-		folien: meta.format === 'folie',
+		folien: format === 'folie',
 		frei,
 		bearbeitet: text.bearbeitet,
 	});
@@ -366,7 +369,7 @@ const Bearbeitung = ({ dokument, mappe: mappenDaten }: { mappe: Mappe; dokument:
 	const loes = useLoesung({ geladen, html, zerlegung, pfad, struktur, loesung, rueckgaengig: zurueck });
 
 	useAuswahlFolgt(geladen, html, auswahl, pfad, setAuswahl);
-	const einfuegen = useEinfuegen({ struktur, auswahl, folien: meta.format === 'folie', nachher: () => setPanel('auswahl') });
+	const einfuegen = useEinfuegen({ struktur, auswahl, folien: format === 'folie', nachher: () => setPanel('auswahl') });
 	const slash = useSlash({
 		doc: geladen && geladen.html === html ? geladen.doc : null,
 		bearbeitet: text.bearbeitet,
@@ -467,7 +470,7 @@ const Bearbeitung = ({ dokument, mappe: mappenDaten }: { mappe: Mappe; dokument:
 	const ohneAuswahl = (
 		<>
 			{loesung && <Loesungsuebersicht l={loes} />}
-			<Blattwerkzeug aktiv={frei} struktur={struktur} />
+			<Blattwerkzeug aktiv={frei} quelle={b.verlauf?.quelle ?? null} struktur={struktur} />
 			<ClaudeFragen {...frage} nr={null} />
 		</>
 	);
@@ -529,7 +532,7 @@ const Bearbeitung = ({ dokument, mappe: mappenDaten }: { mappe: Mappe; dokument:
 						Versionen
 					</Knopf>
 					<PdfKnopf beschriftung="PDF" wahl={wahl} mappe={mappenDaten} warnen rechtsbuendig />
-					{meta.format === 'folie' && (
+					{format === 'folie' && (
 						<Knopf art="zweit" onClick={() => void verlassen(praesentationSeite(zugang, dok))}>
 							<Symbol name="praesentieren" />
 							Präsentieren
@@ -544,7 +547,7 @@ const Bearbeitung = ({ dokument, mappe: mappenDaten }: { mappe: Mappe; dokument:
 						html={html}
 						zerlegung={zerlegung}
 						struktur={struktur}
-						festeSeiten={meta.format === 'minibuch'}
+						festeSeiten={format === 'minibuch'}
 					/>
 					<main className="min-h-0 flex-1 overflow-y-auto px-6 py-4 max-lg:px-4">
 						{b.konflikt && (
@@ -657,7 +660,8 @@ const Bearbeitung = ({ dokument, mappe: mappenDaten }: { mappe: Mappe; dokument:
 								<Strukturwerkzeug
 									pfad={pfad}
 									aktiv={struktur.aktiv}
-									format={meta.format}
+									format={format}
+									quelle={b.verlauf?.quelle ?? null}
 									struktur={struktur}
 								/>
 								<ClaudeFragen {...frage} nr={auswahl} pfad={pfad} />

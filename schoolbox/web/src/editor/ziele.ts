@@ -30,7 +30,8 @@ export interface Ordnung {
 }
 
 /** Ziehen im Blatt: alles mit `ordnen`, außer was dafür in der Seitenleiste liegt. */
-export const ziehbarImBlatt = (baustein: Baustein) => kann(baustein, 'ordnen') && !baustein.ordnenInLeiste;
+export const ziehbarImBlatt = (baustein: Baustein) => 
+	kann(baustein, 'ordnen') && !baustein.ordnenInLeiste && !baustein.ordnenNurKnopf;
 
 /** Wohin der Baustein darf (Register: `ordnenIn`, sonst das Elternelement) und zwischen welche Geschwister. */
 export const ordnungVon = (element: Element, baustein: Baustein): Ordnung => {

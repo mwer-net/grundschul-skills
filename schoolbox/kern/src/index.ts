@@ -6,6 +6,7 @@ export * from './bauen';
 export * from './bausteine';
 export * from './einfuegen';
 export * from './katalog';
+export * from './kit-einstellungen';
 export * from './katalog-starter';
 export * from './bildbefehle';
 export * from './bilder';

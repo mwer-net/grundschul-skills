@@ -54,6 +54,8 @@ export interface Baustein {
 	ordnenIn?: string;
 	/** Nur mit `ordnen`: Ziehen in der Seitenleiste statt im Blatt, weil der Baustein größer ist als der Bildschirm. */
 	ordnenInLeiste?: boolean;
+	/** Nur mit `ordnen`: Verschieben über ↑ ↓ im Panel; Ziehen bleibt dem umgebenden Baustein (046). */
+	ordnenNurKnopf?: boolean;
 	/** Nur mit `spalten`: was ohne `--spalten` gilt (wie in blatt.css). */
 	spaltenStandard?: number;
 }
@@ -81,6 +83,10 @@ export const GESCHUETZT = [
 	...ABBILDUNGEN,
 ].join(', ');
 
+/** Das Mindeste für alles aus dem Katalog (046). Gezogen wird weiter der umgebende Baustein, sonst griffe man daneben. */
+const KLEIN = { ordnenNurKnopf: true } as const;
+const GRUND = ['ordnen', 'duplizieren', 'loeschen'] as const;
+
 export const BAUSTEINE: readonly Baustein[] = [
 	{
 		art: 'seite',
@@ -99,8 +105,12 @@ export const BAUSTEINE: readonly Baustein[] = [
 		sonderfall: { selektor: '.aufgabe:has(> .nr.stern)', name: 'Sternchenaufgabe', art: 'sternchenaufgabe' },
 		ordnenIn: '.seite',
 	},
-	{ art: 'reihe', name: 'Reihe', selektor: '.reihe', faehigkeiten: ['spalten'], spaltenStandard: 3 },
-	{ art: 'karten', name: 'Kartenbogen', selektor: '.karten', faehigkeiten: ['spalten'], spaltenStandard: 2 },
+	{ art: 'namenszeile', name: 'Namenszeile', selektor: '.namenszeile', faehigkeiten: GRUND, ...KLEIN },
+	{ art: 'kopf', name: 'Kopf', selektor: '.kopf', faehigkeiten: GRUND, ...KLEIN },
+	{ art: 'fuss', name: 'Fuß', selektor: '.fuss', faehigkeiten: GRUND, ...KLEIN },
+	{ art: 'reflexion', name: 'Reflexion', selektor: '.reflexion', faehigkeiten: GRUND, ...KLEIN },
+	{ art: 'reihe', name: 'Reihe', selektor: '.reihe', faehigkeiten: [...GRUND, 'spalten'], spaltenStandard: 3, ...KLEIN },
+	{ art: 'karten', name: 'Kartenbogen', selektor: '.karten', faehigkeiten: [...GRUND, 'spalten'], spaltenStandard: 2, ...KLEIN },
 	{
 		art: 'item',
 		name: 'Item',
@@ -122,22 +132,29 @@ export const BAUSTEINE: readonly Baustein[] = [
 		faehigkeiten: ['ordnen', 'duplizieren', 'loeschen', 'text'],
 		zaehlen: true,
 	},
-	{ art: 'tipp', name: 'Tipp', selektor: '.tipp', faehigkeiten: [] },
-	{ art: 'figur', name: 'Leitfigur', selektor: 'img.figur', faehigkeiten: ['bild'] },
-	{ art: 'bild', name: 'Bild', selektor: 'img', faehigkeiten: ['bild'] },
-	{ art: 'abbildung', name: 'Abbildung', selektor: ABBILDUNGEN.join(', '), faehigkeiten: ['abbildung'] },
+	{ art: 'tipp', name: 'Tipp', selektor: '.tipp', faehigkeiten: GRUND, ...KLEIN },
+	{ art: 'figur', name: 'Leitfigur', selektor: 'img.figur', faehigkeiten: [...GRUND, 'bild'], ...KLEIN },
+	{ art: 'bild', name: 'Bild', selektor: 'img', faehigkeiten: [...GRUND, 'bild'], ...KLEIN },
+	{ art: 'abbildung', name: 'Abbildung', selektor: ABBILDUNGEN.join(', '), faehigkeiten: [...GRUND, 'abbildung'], ...KLEIN },
 	// Nur in der Lösungsansicht wählbar: Auf dem Arbeitsblatt ist die Linie leer und der Lösungstext unsichtbar.
-	{ art: 'antwort', name: 'Antwortlinie', selektor: 'body.loesung .antwort', faehigkeiten: ['loesung'] },
+	{ art: 'antwort', name: 'Antwortlinie', selektor: 'body.loesung .antwort', faehigkeiten: [...GRUND, 'loesung'], ...KLEIN },
+	{ art: 'antwort', name: 'Antwortlinie', selektor: '.antwort', faehigkeiten: GRUND, ...KLEIN },
+	{ art: 'box', name: 'Kästchen', selektor: '.box', faehigkeiten: GRUND, ...KLEIN },
+	{ art: 'punkte', name: 'Punkte', selektor: '.punkte', faehigkeiten: GRUND, ...KLEIN },
+	{ art: 'schreiblinie', name: 'Schreiblinie', selektor: '.schreiblinie', faehigkeiten: GRUND, ...KLEIN },
+	{ art: 'malfeld', name: 'Malfeld', selektor: '.malfeld', faehigkeiten: GRUND, ...KLEIN },
+	{ art: 'leerstelle', name: 'Leerstelle', selektor: '.leerstelle', faehigkeiten: GRUND, ...KLEIN },
 	{ art: 'loesungstext', name: 'Lösungstext', selektor: 'body.loesung .nur-loesung', faehigkeiten: ['text'] },
-	{ art: 'ueberschrift', name: 'Überschrift', selektor: 'h1, h2, h3', faehigkeiten: ['text'] },
-	{ art: 'ziel', name: 'Lernziel', selektor: '.ziel', faehigkeiten: ['text'] },
-	{ art: 'wahlhilfe', name: 'Wahlhilfe', selektor: '.wahlhilfe', faehigkeiten: ['text'] },
-	{ art: 'anweisung', name: 'Anweisung', selektor: '.anw .text', faehigkeiten: ['text'] },
-	{ art: 'blase', name: 'Sprechblase', selektor: '.blase', faehigkeiten: ['text'], zeilen: 'umbruch' },
-	{ art: 'kartentext', name: 'Kartentext', selektor: '.kartentext', faehigkeiten: ['text'] },
-	{ art: 'platzhalter', name: 'Bildplatzhalter', selektor: '.platzhalter', faehigkeiten: ['bild'] },
-	{ art: 'notiz', name: 'Notiz', selektor: '.notiz', faehigkeiten: [] },
-	{ art: 'absatz', name: 'Absatz', selektor: 'p, li', faehigkeiten: ['text'], zeilen: 'absatz' },
+	{ art: 'ueberschrift', name: 'Überschrift', selektor: 'h1, h2, h3', faehigkeiten: [...GRUND, 'text'], ...KLEIN },
+	{ art: 'ziel', name: 'Lernziel', selektor: '.ziel', faehigkeiten: [...GRUND, 'text'], ...KLEIN },
+	{ art: 'wahlhilfe', name: 'Wahlhilfe', selektor: '.wahlhilfe', faehigkeiten: [...GRUND, 'text'], ...KLEIN },
+	{ art: 'anweisung', name: 'Anweisung', selektor: '.anw .text', faehigkeiten: [...GRUND, 'text'], ...KLEIN },
+	{ art: 'blase', name: 'Sprechblase', selektor: '.blase', faehigkeiten: [...GRUND, 'text'], zeilen: 'umbruch', ...KLEIN },
+	{ art: 'kartentext', name: 'Kartentext', selektor: '.kartentext', faehigkeiten: [...GRUND, 'text'], ...KLEIN },
+	{ art: 'platzhalter', name: 'Bildplatzhalter', selektor: '.platzhalter', faehigkeiten: [...GRUND, 'bild'], ...KLEIN },
+	{ art: 'notiz', name: 'Notiz', selektor: '.notiz', faehigkeiten: GRUND, ...KLEIN },
+	{ art: 'absatz', name: 'Absatz', selektor: 'p, li', faehigkeiten: [...GRUND, 'text'], zeilen: 'absatz', ...KLEIN },
+	{ art: 'zeile', name: 'Rechenzeile', selektor: '.zeile', faehigkeiten: GRUND, ...KLEIN },
 ];
 
 export const bausteinNach = (art: string) => BAUSTEINE.find((b) => b.art === art);
