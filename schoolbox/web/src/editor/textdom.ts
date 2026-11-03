@@ -173,13 +173,16 @@ export const textHtml = (element: Element, z: Zerlegung, zeilen: Zeilen) => {
 		if (tag === 'u') {
 			return unter ? kinder(fett, unter) : `<u>${kinder(fett, true)}</u>`;
 		}
+		if (tag === 'mark') {
+			return `<mark>${kinder(fett, unter)}</mark>`;
+		}
 		// Was schon in der Quelle stand (z. B. `<span class="aufdecken">`), bleibt; was der Browser erfunden hat, fällt weg.
 		return passt ? `${oeffnerVon(z, passt)}${kinder(fett, unter)}</${tag}>` : kinder(fett, unter);
 	};
 	let html = [...element.childNodes].map((n) => knoten(n, false, false)).join('');
 	for (let vorher = ''; vorher !== html;) {
 		vorher = html;
-		html = html.replace(/<(b|u)><\/\1>/g, '').replace(/<\/(b|u)><\1>/g, '');
+		html = html.replace(/<(b|u|mark)><\/\1>/g, '').replace(/<\/(b|u|mark)><\1>/g, '');
 	}
 	// Ein leeres Feld hält der Browser mit einem `<br>` offen.
 	return html.replace(/(<br>\s*)+$/, '');

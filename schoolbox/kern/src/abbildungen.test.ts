@@ -1782,6 +1782,12 @@ describe('Aufgabenformate (048)', () => {
 		assert.match(lueckeFehler(lueckenLesen('Ohne Lücke.')) ?? '', /keine Lücke/);
 	});
 
+	it('Aufgabenformate: Ihre Klassen gelten nur im eigenen Element, weil Material dieselben Namen selbst nutzt', () => {
+		const css = readFileSync(path.join(ASSETS, 'blatt.css'), 'utf8');
+		assert.ok(css.includes('x-lueckentext .luecke{'), 'Gegenprobe: Die Regeln stehen in blatt.css');
+		assert.deepEqual(css.match(/^(body\S*\s)?\.(luecke|wortspeicher|ankreuzen|frage|wahl|wahlen)\b[^\n]*/gm), null);
+	});
+
 	it('Wortspeicher: fehlendes und doppeltes Wort werden genannt, Ablenker sind erlaubt', () => {
 		const { wortspeicherFehler } = rechenkerne();
 		assert.equal(wortspeicherFehler(['Hund', 'Maus'], ['Hund']), null);
