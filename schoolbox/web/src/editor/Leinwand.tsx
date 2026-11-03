@@ -1,5 +1,5 @@
 import type { Ablage } from '@schoolbox/kern/src/struktur';
-import type { PointerEvent as ReactPointerEvent } from 'react';
+import type { PointerEvent as ReactPointerEvent, ReactNode } from 'react';
 import { useEffect, useRef, useState } from 'react';
 
 import { klassen } from '../bausteine/klassen';
@@ -21,7 +21,17 @@ interface Rahmen {
 	masse: Masse | null;
 }
 
+/** Was über dem Material liegen darf (044), in den Koordinaten der Leinwand. */
+export interface Einblendung {
+	doc: Document;
+	links: number;
+	skala: number;
+	box: DOMRect | null;
+	hoehe: number;
+}
+
 interface Eigenschaften {
+	einblendung?: (e: Einblendung) => ReactNode;
 	html: string;
 	titel: string;
 	/** `data-sb` des gewählten Bausteins. */
@@ -213,6 +223,7 @@ export const Leinwand = ({
 	ablegen,
 	auswahl,
 	auswahlName,
+	einblendung,
 	geladen,
 	groesse,
 	html,
@@ -422,6 +433,7 @@ export const Leinwand = ({
 						)}
 					</div>
 				)}
+				{!nurAnsehen && doc && masse && einblendung?.({ doc, links, skala, box: box ?? null, hoehe: masse.hoehe * skala })}
 				{!nurAnsehen && (
 					<Griffe
 						gewaehlt={gewaehlt}

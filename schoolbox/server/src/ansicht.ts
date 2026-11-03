@@ -2,7 +2,18 @@ import { existsSync, realpathSync } from 'node:fs';
 import { readFile, stat } from 'node:fs/promises';
 import path from 'node:path';
 
-import { ASSETS, darstellungsHtml, ID_MUSTER, liegtIn, mappenDir, sucheRessource } from '@schoolbox/kern';
+import type { KatalogEintrag } from '@schoolbox/kern';
+import {
+	ASSETS,
+	darstellungsHtml,
+	einfuegbarAus,
+	ID_MUSTER,
+	KATALOG,
+	leseStarter,
+	liegtIn,
+	mappenDir,
+	sucheRessource,
+} from '@schoolbox/kern';
 import type { Request, Response } from 'express';
 import { Router } from 'express';
 
@@ -50,6 +61,14 @@ const pruefeGrenzen = async (datei: string | null, mappeDir: string | null): Pro
 		throw nichtGefunden();
 	}
 	return datei;
+};
+
+const katalogVorschau = (e: KatalogEintrag, starter: ReadonlyMap<string, string>, assets: string) => {
+	const b = einfuegbarAus(e, starter);
+	const innen = b.teile ? b.teile.join('') : (b.html ?? '');
+	return `<!doctype html><html lang="de"><head><meta charset="utf-8"><title>Vorschau</title><base href="${assets}">
+<link rel="stylesheet" href="blatt.css"><style>html,body{background:#fff;overflow:hidden}body{margin:0;padding:12px}</style></head>
+<body class="kl2 farbe"><div class="koerper">${innen}</div><script src="abbildungen.js"></script></body></html>`;
 };
 
 const urlPfad = (teile: string[]) => teile.map(encodeURIComponent).join('/');
@@ -115,6 +134,15 @@ export const ansichtRouter = (kontext: Kontext) => {
 		const teile = pruefeTeile(req.params.teile);
 		const datei = existsSync(path.join(ASSETS, ...teile)) ? realpathSync(path.join(ASSETS, ...teile)) : null;
 		await sendeDatei(req, res, await pruefeGrenzen(datei, null), null, null);
+	});
+
+	// Vorschau eines Katalogeintrags für die Bibliothek (044): mit denselben Assets wie ein Dokument.
+	router.get('/_katalog/:id', (req, res) => {
+		const eintrag = KATALOG.find((e) => e.id === req.params.id);
+		if (!eintrag) {
+			throw nichtGefunden();
+		}
+		res.set('Cache-Control', 'no-cache').type('html').send(katalogVorschau(eintrag, leseStarter(), `${req.baseUrl}/${ASSETS_PFAD}/`));
 	});
 
 	router.get('/:mappe/dokumente/:dok', (req, res) => {

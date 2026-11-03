@@ -1,6 +1,16 @@
 import { readFile } from 'node:fs/promises';
 
-import { dokumentDir, leseMeta, listeVersionen, schreibeMeta, sichereFassung, versionsPfad } from '@schoolbox/kern';
+import {
+	dokumentDir,
+	einfuegbarAus,
+	KATALOG,
+	leseMeta,
+	leseStarter,
+	listeVersionen,
+	schreibeMeta,
+	sichereFassung,
+	versionsPfad,
+} from '@schoolbox/kern';
 import type { RequestHandler } from 'express';
 import { json, Router } from 'express';
 
@@ -75,6 +85,11 @@ export const apiRouter = (kontext: Kontext) => {
 	router.param('dok', pruefeIdParam('Dokument'));
 	router.param('version', (_req, _res, next, wert: string) => {
 		next(/^[0-9TZ_a-z-]+$/.test(wert) ? undefined : new HttpFehler(400, `Version „${wert}“ ist ungültig.`));
+	});
+
+	router.get('/katalog', (_req, res) => {
+		const starter = leseStarter();
+		res.json({ eintraege: KATALOG.map((e) => ({ ...e, einfuegbar: einfuegbarAus(e, starter) })) });
 	});
 
 	router.use('/mappen', mappenApi(kontext));

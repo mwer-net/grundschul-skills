@@ -23,7 +23,9 @@ import { Abbildungswerkzeug } from '../editor/Abbildungspanel';
 import { Konfliktleiste, Speicheranzeige, Vorschauleiste } from '../editor/Anzeigen';
 import { useBearbeitung } from '../editor/bearbeitung';
 import { useBild } from '../editor/bild';
+import { Bibliothek, Einfuegemarken, Gliederung } from '../editor/Bibliothek';
 import { Bildwerkzeug } from '../editor/Bildpanel';
+import { useEinfuegen, useSlash } from '../editor/einfuegen';
 import { ClaudeFragen } from '../editor/ClaudeFragen';
 import { editorHtml, pfadZu } from '../editor/darstellung';
 import { Leinwand } from '../editor/Leinwand';
@@ -273,7 +275,7 @@ const Bearbeitung = ({ dokument, mappe: mappenDaten }: { mappe: Mappe; dokument:
 	const { alles, stand } = b.speicher;
 	const [auswahl, setAuswahl] = useState<number | null>(null);
 	const [geladen, setGeladen] = useState<{ doc: Document; html: string } | null>(null);
-	const [panel, setPanel] = useState<'auswahl' | 'versionen'>('auswahl');
+	const [panel, setPanel] = useState<'auswahl' | 'versionen' | 'bibliothek' | 'gliederung'>('auswahl');
 	const [vorschau, setVorschau] = useState<{ version: VersionEintrag; quelle: string } | null>(null);
 	const [zoom, setZoom] = useState(1);
 	const versionen = useLaden<{ versionen: VersionEintrag[] }>(`${b.adresse}/versionen`);
@@ -362,6 +364,14 @@ const Bearbeitung = ({ dokument, mappe: mappenDaten }: { mappe: Mappe; dokument:
 	const loes = useLoesung({ geladen, html, zerlegung, pfad, struktur, loesung, rueckgaengig: zurueck });
 
 	useAuswahlFolgt(geladen, html, auswahl, pfad, setAuswahl);
+	const einfuegen = useEinfuegen({ struktur, auswahl, folien: meta.format === 'folie', nachher: () => setPanel('auswahl') });
+	const slash = useSlash({
+		doc: geladen && geladen.html === html ? geladen.doc : null,
+		bearbeitet: text.bearbeitet,
+		beende: text.beende,
+		eintraege: einfuegen.eintraege,
+		waehle: einfuegen.fuegeEin,
+	});
 	const zeigePunkt = useZeigePunkt({ loesung, geladen, html, zeigeAn: struktur.zeigeAn, setSuche });
 
 	const taste = useCallback(
@@ -490,6 +500,22 @@ const Bearbeitung = ({ dokument, mappe: mappenDaten }: { mappe: Mappe; dokument:
 				<ProfilSchalter profil={profil} waehle={waehleProfil} />
 				<div className="flex flex-wrap gap-2">
 					<Knopf
+						art={panel === 'bibliothek' ? 'haupt' : 'zweit'}
+						aria-pressed={panel === 'bibliothek'}
+						disabled={!frei}
+						onClick={() => setPanel(panel === 'bibliothek' ? 'auswahl' : 'bibliothek')}
+					>
+						<Symbol name="plus" />
+						Bausteine
+					</Knopf>
+					<Knopf
+						art={panel === 'gliederung' ? 'haupt' : 'zweit'}
+						aria-pressed={panel === 'gliederung'}
+						onClick={() => setPanel(panel === 'gliederung' ? 'auswahl' : 'gliederung')}
+					>
+						Gliederung
+					</Knopf>
+					<Knopf
 						art={panel === 'versionen' ? 'haupt' : 'zweit'}
 						aria-pressed={panel === 'versionen'}
 						onClick={() => {
@@ -551,6 +577,20 @@ const Bearbeitung = ({ dokument, mappe: mappenDaten }: { mappe: Mappe; dokument:
 								nurAnsehen={vorschau !== null}
 								ziehbar={struktur.aktiv}
 								ablegen={struktur.verschiebe}
+								einblendung={
+									frei
+										? (e) => (
+												<Einfuegemarken
+													e={e}
+													auswahl={auswahl}
+													aktiv={struktur.aktiv}
+													setAuswahl={setAuswahl}
+													einfuegen={einfuegen}
+													slash={slash.menue}
+												/>
+											)
+										: undefined
+								}
 								springe={struktur.springe}
 								groesse={bild.groesse}
 								pruefung={pruefung.stand}
@@ -565,9 +605,30 @@ const Bearbeitung = ({ dokument, mappe: mappenDaten }: { mappe: Mappe; dokument:
 					)}
 					data-panel={panel}
 				>
-					<Pruefliste stand={pruefung.stand} zeige={zeigePunkt} />
+					<Pruefliste
+						stand={pruefung.stand}
+						zeige={zeigePunkt}
+						{...(struktur.aktiv && geladen && geladen.html === html
+							? { verschiebe: (p: Pruefpunkt) => einfuegen.verschiebe(geladen.doc, p.seite) }
+							: {})}
+					/>
 					<div className="min-h-0 flex-1 overflow-y-auto px-5 py-4 max-lg:px-4">
-						{panel === 'versionen' ? (
+						{panel === 'bibliothek' ? (
+							<Bibliothek
+								einfuegen={einfuegen}
+								mappe={mappenDaten}
+								art={meta.art}
+								doc={geladen && geladen.html === html ? geladen.doc : null}
+								setAuswahl={setAuswahl}
+							/>
+						) : panel === 'gliederung' ? (
+							<Gliederung
+								doc={geladen && geladen.html === html ? geladen.doc : null}
+								auswahl={auswahl}
+								aktiv={struktur.aktiv}
+								struktur={struktur}
+							/>
+						) : panel === 'versionen' ? (
 							<>
 								<h2 className="mb-3 text-xl">Versionen</h2>
 								<Versionen

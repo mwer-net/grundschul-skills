@@ -1,3 +1,4 @@
+import { Knopf } from '../bausteine/Knopf';
 import { useState } from 'react';
 
 import { klassen } from '../bausteine/klassen';
@@ -30,7 +31,17 @@ const Satz = ({ mitSeite, p }: { p: Pruefpunkt; mitSeite: boolean }) => (
 	</>
 );
 
-const Eintrag = ({ mitSeite, p, zeige }: { p: Pruefpunkt; mitSeite: boolean; zeige: (p: Pruefpunkt) => void }) => (
+const Eintrag = ({
+	mitSeite,
+	p,
+	verschiebe,
+	zeige,
+}: {
+	p: Pruefpunkt;
+	mitSeite: boolean;
+	zeige: (p: Pruefpunkt) => void;
+	verschiebe?: ((p: Pruefpunkt) => void) | undefined;
+}) => (
 	<li>
 		<button
 			type="button"
@@ -45,6 +56,11 @@ const Eintrag = ({ mitSeite, p, zeige }: { p: Pruefpunkt; mitSeite: boolean; zei
 		>
 			<Satz p={p} mitSeite={mitSeite} />
 		</button>
+		{verschiebe && p.code === 'ueberlauf' && (
+			<Knopf art="zweit" className="mt-1 w-full" data-ueberlauf-verschieben onClick={() => verschiebe(p)}>
+				Auf neue Seite verschieben
+			</Knopf>
+		)}
 	</li>
 );
 
@@ -52,6 +68,8 @@ interface Eigenschaften {
 	stand: Pruefstand | null;
 	/** Zum Element rollen und es auswählen. */
 	zeige: (p: Pruefpunkt) => void;
+	/** Legt, was über die Seite ragt, auf eine neue Seite (044). */
+	verschiebe?: (p: Pruefpunkt) => void;
 }
 
 /**
@@ -59,7 +77,7 @@ interface Eigenschaften {
  * die Prüfung findet; so verschiebt sich am iPad hoch das Blatt nicht bei jeder Änderung. Hinweise stehen grau und
  * eingeklappt darunter.
  */
-export const Pruefliste = ({ stand, zeige }: Eigenschaften) => {
+export const Pruefliste = ({ stand, verschiebe, zeige }: Eigenschaften) => {
 	const [offen, setOffen] = useState(false);
 	if (!stand) {
 		return null;
@@ -107,7 +125,7 @@ export const Pruefliste = ({ stand, zeige }: Eigenschaften) => {
 					{wichtig.length > 0 && (
 						<ul className="flex flex-col gap-1">
 							{wichtig.map((p, i) => (
-								<Eintrag key={`${p.code}-${i}`} p={p} mitSeite={mehrereSeiten} zeige={waehle} />
+								<Eintrag key={`${p.code}-${i}`} p={p} mitSeite={mehrereSeiten} zeige={waehle} verschiebe={verschiebe} />
 							))}
 						</ul>
 					)}
@@ -118,7 +136,7 @@ export const Pruefliste = ({ stand, zeige }: Eigenschaften) => {
 							</summary>
 							<ul className="flex flex-col gap-1">
 								{hinweise.map((p, i) => (
-									<Eintrag key={`${p.code}-${i}`} p={p} mitSeite={mehrereSeiten} zeige={waehle} />
+									<Eintrag key={`${p.code}-${i}`} p={p} mitSeite={mehrereSeiten} zeige={waehle} verschiebe={verschiebe} />
 								))}
 							</ul>
 						</details>
