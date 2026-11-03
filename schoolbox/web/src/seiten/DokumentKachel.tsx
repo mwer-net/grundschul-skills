@@ -65,7 +65,11 @@ export const DokumentKachel = ({ dokument, mappe, teile, zugang }: Eigenschaften
 						{!waehlen && (
 							<PdfKnopf
 								beschriftung="PDF"
-								wahl={dokumentWahl(zugang, dokument)}
+								wahl={dokumentWahl(
+									zugang,
+									dokument,
+									dokument.meta.format === 'folie' ? undefined : dokument.meta.druckprofil,
+								)}
 								mappe={mappe}
 								warnen={!istGeteilt(zugang)}
 							/>

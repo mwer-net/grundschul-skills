@@ -2,6 +2,7 @@ import { hatLoesung, kannLoesungHaben } from '@schoolbox/kern/src/loesungen';
 import type { Zerlegung } from '@schoolbox/kern/src/quelltext';
 import { zerlege } from '@schoolbox/kern/src/quelltext';
 import { hatNamenszeile } from '@schoolbox/kern/src/struktur';
+import type { Druckprofil } from '@schoolbox/kern/src/werte';
 import type { ReactNode } from 'react';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import type { SetURLSearchParams } from 'react-router-dom';
@@ -13,6 +14,7 @@ import { Chip } from '../bausteine/Chip';
 import { useHinweis } from '../bausteine/hinweis';
 import { klassen } from '../bausteine/klassen';
 import { Knopf, KnopfLink } from '../bausteine/Knopf';
+import { ProfilSchalter } from '../bausteine/ProfilSchalter';
 import type { SymbolName } from '../bausteine/Symbol';
 import { Symbol } from '../bausteine/Symbol';
 import { Zustand } from '../bausteine/Zustand';
@@ -40,6 +42,7 @@ import type { VersionEintrag } from '../editor/version';
 import { Versionen } from '../editor/Versionen';
 import { useEreignisse } from '../ereignisse';
 import { useLaden } from '../lib/laden';
+import { useAnsichtsProfil } from '../lib/profil';
 import { useTitel } from '../lib/titel';
 import { dokumentSeite, inhaltAdresse, praesentationSeite } from '../lib/zugang';
 import { PdfKnopf } from '../pdf/PdfKnopf';
@@ -136,13 +139,19 @@ const Kopfleiste = ({ children, kannVor, kannZurueck, stand, titel, verlassen, v
  * Die Quelle zerlegt und als HTML für das `iframe`, beides nur neu, wenn sich Quelle oder Fassung ändern. Die
  * Lösungsansicht gibt es, sobald das Material eine Lösung hat oder Antwortlinien, die noch eine brauchen.
  */
-const useDarstellung = (quelle: string | null, basis: string, loesungGewuenscht: boolean, sonst: boolean) => {
+const useDarstellung = (
+	quelle: string | null,
+	basis: string,
+	loesungGewuenscht: boolean,
+	sonst: boolean,
+	profil: Druckprofil | undefined,
+) => {
 	const zerlegung = useMemo(() => (quelle === null ? null : zerlege(quelle)), [quelle]);
 	const mitLoesung = zerlegung ? kannLoesungHaben(zerlegung) : sonst;
 	const loesung = mitLoesung && loesungGewuenscht;
 	const html = useMemo(
-		() => (zerlegung === null ? null : editorHtml(zerlegung, { basis, loesung })),
-		[zerlegung, basis, loesung],
+		() => (zerlegung === null ? null : editorHtml(zerlegung, { basis, loesung, profil })),
+		[zerlegung, basis, loesung, profil],
 	);
 	return { zerlegung, html, mitLoesung, loesung };
 };
@@ -273,11 +282,13 @@ const Bearbeitung = ({ dokument, mappe: mappenDaten }: { mappe: Mappe; dokument:
 	useTitel(`${meta.titel} bearbeiten`);
 	const anzeige = vorschau?.quelle ?? b.verlauf?.quelle ?? null;
 	const basis = `/ansicht/${mappe}/dokumente/${dok}/`;
+	const { profil, waehle: waehleProfil } = useAnsichtsProfil({ mappe, token: null }, dok, meta);
 	const { html, loesung, mitLoesung, zerlegung } = useDarstellung(
 		anzeige,
 		basis,
 		suche.get('fassung') === 'loesung',
 		Boolean(meta.hatLoesung),
+		profil,
 	);
 	const pfad = useMemo(() => (geladen && auswahl !== null ? pfadZu(geladen.doc, auswahl) : []), [geladen, auswahl]);
 	const merken = useCallback((d: Document, h: string) => setGeladen({ doc: d, html: h }), []);
@@ -426,7 +437,7 @@ const Bearbeitung = ({ dokument, mappe: mappenDaten }: { mappe: Mappe; dokument:
 		return <Fehlt fehler={b.ladeFehler} />;
 	}
 
-	const wahl = dokumentWahl(zugang, mitStand(dokument, b.verlauf)).map((w) => ({
+	const wahl = dokumentWahl(zugang, mitStand(dokument, b.verlauf), profil).map((w) => ({
 		...w,
 		vorbereiten: async () => {
 			await alles();
@@ -476,6 +487,7 @@ const Bearbeitung = ({ dokument, mappe: mappenDaten }: { mappe: Mappe; dokument:
 						/>
 					</div>
 				)}
+				<ProfilSchalter profil={profil} waehle={waehleProfil} />
 				<div className="flex flex-wrap gap-2">
 					<Knopf
 						art={panel === 'versionen' ? 'haupt' : 'zweit'}

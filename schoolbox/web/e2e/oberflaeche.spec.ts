@@ -236,14 +236,14 @@ test.describe('Dokument und PDF', () => {
 		await expect(page.getByText('Auf festes Papier drucken')).toBeVisible();
 		await blattGeladen(page);
 		const blatt = page.locator('[data-blattansicht] iframe').last();
-		await expect(blatt).toHaveAttribute('src', `/ansicht/${id}/dokumente/${dokumente[0]}/`);
+		await expect(blatt).toHaveAttribute('src', `/ansicht/${id}/dokumente/${dokumente[0]}/?profil=sw`);
 
 		const loesung = page.getByRole('button', { name: 'Lösung', exact: true });
 		await druecke(loesung);
 		await expect(loesung).toHaveAttribute('aria-pressed', 'true');
 		await expect(page).toHaveURL(/\?fassung=loesung$/);
-		await expect(blatt).toHaveAttribute('src', /\?loesung=1$/);
-		await expect(page.getByRole('link', { name: 'Drucken' })).toHaveAttribute('href', /fassung=loesung$/);
+		await expect(blatt).toHaveAttribute('src', /\?loesung=1&profil=sw$/);
+		await expect(page.getByRole('link', { name: 'Drucken' })).toHaveAttribute('href', /fassung=loesung&profil=sw$/);
 
 		// Claude ändert das Material: Die Ansicht lädt neu, ohne die Seite neu zu laden
 		await page.evaluate(() => {
@@ -267,16 +267,23 @@ test.describe('Dokument und PDF', () => {
 		await page.goto(`/m/${id}/${dokumente[0]}`);
 		await druecke(page.getByRole('button', { name: 'PDF herunterladen' }));
 		const menue = page.getByRole('menu');
-		await expect(menue.getByRole('menuitem')).toHaveText(['Arbeitsblatt', 'Lösung', 'Arbeitsblatt und Lösung']);
+		await expect(menue.getByRole('menuitem')).toHaveText([
+			'Arbeitsblatt',
+			'Lösung',
+			'Arbeitsblatt und Lösung',
+			'Arbeitsblatt (in Farbe)',
+			'Lösung (in Farbe)',
+			'Arbeitsblatt und Lösung (in Farbe)',
+		]);
 		const download = page.waitForEvent('download');
 		await druecke(menue.getByRole('menuitem', { name: 'Lösung', exact: true }));
 		await expect(page.getByRole('button', { name: 'PDF wird erstellt …' })).toBeVisible();
-		expect(await dateiname(download)).toBe('Kl2 Sachunterricht Blätter sammeln – Lösung.pdf');
+		expect(await dateiname(download)).toBe('Kl2 Sachunterricht Blätter sammeln – Lösung (schwarz-weiß).pdf');
 
 		await page.goto(`/m/${id}`);
 		await druecke(page.getByRole('button', { name: 'Alles als PDF' }));
 		const alles = page.waitForEvent('download');
-		await druecke(page.getByRole('menuitem', { name: 'Ohne Lösungen' }));
+		await druecke(page.getByRole('menuitem', { name: 'Ohne Lösungen, in Farbe' }));
 		// Ein Blatt ragt über die Seite: erst fragen, dann trotzdem herunterladen
 		const dialog = page.getByRole('dialog', { name: 'Beim Prüfen ist etwas aufgefallen' });
 		await expect(dialog).toContainText('Kastanien zählen');
@@ -291,7 +298,7 @@ test.describe('Dokument und PDF', () => {
 	test('„Drucken“ öffnet das PDF in einem eigenen Tab', async ({ context, druecke, page }) => {
 		const { dokumente, id } = await herbst();
 		// Den PDF-Betrachter des Browsers gibt es im Test nicht; geprüft wird, dass der Tab das PDF zum Ansehen öffnet.
-		await context.route(/\/pdf\/.*\?anzeigen=1$/, (route) =>
+		await context.route(/\/pdf\/.*[?&]anzeigen=1$/, (route) =>
 			route.fulfill({ contentType: 'text/html', body: '<p>Hier ist das PDF</p>' }),
 		);
 		await page.goto(`/m/${id}/${dokumente[0]}`);
@@ -300,7 +307,7 @@ test.describe('Dokument und PDF', () => {
 		const druck = await tab;
 		await expect(druck.getByText('Hier ist das PDF')).toBeVisible();
 		expect(decodeURIComponent(druck.url())).toMatch(
-			/\/pdf\/arbeitsblatt\/Kl2 Sachunterricht Blätter sammeln – Arbeitsblatt\.pdf\?anzeigen=1$/,
+			/\/pdf\/arbeitsblatt\/Kl2 Sachunterricht Blätter sammeln – Arbeitsblatt \(schwarz-weiß\)\.pdf\?profil=sw&anzeigen=1$/,
 		);
 
 		await page.goto(`/m/${id}/${dokumente[1]}`);
@@ -332,6 +339,7 @@ test.describe('Dokument und PDF', () => {
 		await expect(besuch.getByRole('button', { name: 'Teilen' })).toHaveCount(0);
 		const download = besuch.waitForEvent('download');
 		await druecke(besuch.getByRole('button', { name: 'PDF herunterladen' }));
+		await druecke(besuch.getByRole('menuitem', { name: 'Arbeitsblatt (in Farbe)' }));
 		expect(await dateiname(download)).toBe('Kl2 Sachunterricht Kastanien zählen – Arbeitsblatt.pdf');
 		await druecke(besuch.getByRole('link', { name: 'Bäume im Herbst' }));
 		await expect(besuch).toHaveURL(new RegExp(`/f/${token}$`));
@@ -460,6 +468,7 @@ test.describe('Bedienung', () => {
 		expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true);
 		await page.goto(`/m/${herbstId}/${dokumente[1]}`);
 		await druecke(page.getByRole('button', { name: 'PDF herunterladen' }));
+		await druecke(page.getByRole('menuitem', { name: 'Arbeitsblatt', exact: true }));
 		await expect(page.getByRole('dialog')).toBeVisible();
 		expect(await zuKlein()).toEqual([]);
 		// Nichts ragt seitlich über den Bildschirm hinaus

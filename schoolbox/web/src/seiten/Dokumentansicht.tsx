@@ -1,3 +1,4 @@
+import type { Druckprofil } from '@schoolbox/kern/src/werte';
 import { useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
 
@@ -6,12 +7,14 @@ import { Chip } from '../bausteine/Chip';
 import { useHinweis } from '../bausteine/hinweis';
 import { Marke } from '../bausteine/Kachel';
 import { Knopf, KnopfAdresse, KnopfLink } from '../bausteine/Knopf';
+import { ProfilSchalter } from '../bausteine/ProfilSchalter';
 import { Symbol } from '../bausteine/Symbol';
 import { Zustand } from '../bausteine/Zustand';
 import { hatOffeneEntwuerfe } from '../entwuerfe/offen';
 import { ClaudeHinweis } from '../entwuerfe/Teile';
 import { useEreignisse } from '../ereignisse';
 import { useLaden } from '../lib/laden';
+import { useAnsichtsProfil } from '../lib/profil';
 import { anzahl, ART_NAME, FORMAT_NAME } from '../lib/text';
 import { useTitel } from '../lib/titel';
 import type { Zugang } from '../lib/zugang';
@@ -56,13 +59,14 @@ interface KnoepfeEigenschaften {
 	dokument: DokumentEintrag;
 	mappe: Mappe;
 	loesung: boolean;
+	profil: Druckprofil | undefined;
 	/** Es gibt Entwürfe, und die Lehrkraft darf sie sehen (kein Teilen-Link). */
 	entwuerfe: boolean;
 	teilen: () => void;
 }
 
 /** Was sich mit dem Dokument tun lässt. Bei Folien ist Präsentieren das Wichtigste; PDF und Drucken treten zurück. */
-const Knoepfe = ({ dokument, entwuerfe, loesung, mappe, teilen, zugang }: KnoepfeEigenschaften) => {
+const Knoepfe = ({ dokument, entwuerfe, loesung, mappe, profil, teilen, zugang }: KnoepfeEigenschaften) => {
 	const { id: dok, meta } = dokument;
 	const geteilt = istGeteilt(zugang);
 	const offen = entwuerfe && hatOffeneEntwuerfe(meta);
@@ -90,7 +94,7 @@ const Knoepfe = ({ dokument, entwuerfe, loesung, mappe, teilen, zugang }: Knoepf
 			<PdfKnopf
 				art={praesentieren ? 'zweit' : 'haupt'}
 				beschriftung="PDF herunterladen"
-				wahl={dokumentWahl(zugang, dokument)}
+				wahl={dokumentWahl(zugang, dokument, profil)}
 				mappe={mappe}
 				warnen={!geteilt}
 				rechtsbuendig
@@ -107,7 +111,7 @@ const Knoepfe = ({ dokument, entwuerfe, loesung, mappe, teilen, zugang }: Knoepf
 			)}
 			<KnopfAdresse
 				art="zweit"
-				href={druckSeite(zugang, dok, loesung ? 'loesung' : 'arbeitsblatt')}
+				href={druckSeite(zugang, dok, loesung ? 'loesung' : 'arbeitsblatt', profil)}
 				target="_blank"
 				rel="noopener"
 			>
@@ -137,6 +141,7 @@ export const Dokumentansicht = ({ dok, zugang, zurueckZurMappe }: Eigenschaften)
 	const zeige = useHinweis();
 	const dokument = daten?.dokumente.find((d) => d.id === dok);
 	useTitel(dokument?.meta.titel);
+	const ansicht = useAnsichtsProfil(zugang, dok, dokument?.meta);
 
 	useEreignisse(({ dok: geaendert, mappe, typ, wieder }) => {
 		if (typ === 'dokument-geaendert' && mappe === zugang.mappe && geaendert === dok) {
@@ -169,6 +174,7 @@ export const Dokumentansicht = ({ dok, zugang, zurueckZurMappe }: Eigenschaften)
 	const loesung = meta.hatLoesung && suche.get('fassung') === 'loesung';
 	const entwuerfe = !geteilt && meta.entwuerfe.length > 0;
 	const zeigeLoesung = (ja: boolean) => setSuche(ja ? { fassung: 'loesung' } : {}, { replace: true });
+	const { profil } = ansicht;
 
 	return (
 		<>
@@ -197,11 +203,13 @@ export const Dokumentansicht = ({ dok, zugang, zurueckZurMappe }: Eigenschaften)
 						<Chip titel="Lösung" aktiv={loesung} waehle={() => zeigeLoesung(true)} />
 					</div>
 				)}
+				<ProfilSchalter profil={profil} waehle={ansicht.waehle} />
 				<Knoepfe
 					zugang={zugang}
 					dokument={dokument}
 					mappe={mappe}
 					loesung={loesung}
+					profil={profil}
 					entwuerfe={entwuerfe}
 					teilen={() => setTeilen(true)}
 				/>
@@ -223,7 +231,7 @@ export const Dokumentansicht = ({ dok, zugang, zurueckZurMappe }: Eigenschaften)
 			{meta.druckhinweise.length > 0 && <Druckhinweise liste={meta.druckhinweise} />}
 			<div className="mt-4">
 				<Blattansicht
-					adresse={ansichtAdresse(zugang, dok, loesung)}
+					adresse={ansichtAdresse(zugang, dok, loesung, profil)}
 					stand={stand}
 					titel={loesung ? `${meta.titel} (Lösung)` : meta.titel}
 				/>

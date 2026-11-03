@@ -51,7 +51,7 @@ Nach dem Rückfrage-Protokoll aus `grundschul-didaktik` (eine Frage pro Nachrich
 
 ### Grammatik
 - Entdeckend: Proben (Umstellprobe, Ersatzprobe, Weglassprobe), Wortarten über Funktion statt nur Definition.
-- Farbkonvention Wortarten (oft Nomen blau, Verb rot, Adjektiv grün) – Klasse fragen. Im Farbprofil direkt farbig; auf s/w-Blättern markieren die Kinder selbst farbig, vorgegebene Beispiele mit Wortart-Symbol oder Abkürzung.
+- Farbkonvention Wortarten (oft Nomen blau, Verb rot, Adjektiv grün) – Klasse fragen. Direkt farbig, vorgegebene Beispiele zusätzlich mit Wortart-Symbol oder Abkürzung.
 
 ### Sprechen und Zuhören
 - Gesprächsregeln, Erzählkreis, Hörverstehensaufgaben (Hörtext + Bildaufgaben), szenisches Spiel.
@@ -70,7 +70,7 @@ Schreibzeilen und Silben kommen als Elemente aus `html-materialerstellung/assets
 | Element | Darstellung |
 |---|---|
 | `<x-lineatur art="2" zeilen="3" vorlage="Rosine" loesung="Der Hund bellt.">` | Schreiblinien in Originalmaß, graue Nachspurvorlage, Antwort nur im Lösungsblatt |
-| `<x-silben>Ro\|si\|ne</x-silben>` | Silbenbögen, im Farbprofil auf Wunsch blau-rot; `aufgabe="boegen"` oder `"trennen"` zum Selbermachen |
+| `<x-silben>Ro\|si\|ne</x-silben>` | Silbenbögen, auf Wunsch blau-rot; `aufgabe="boegen"` oder `"trennen"` zum Selbermachen |
 | `<x-wortarten aufgabe="bestimmen">Der/Art Hund/N bellt/V.</x-wortarten>` | Montessori-Symbole oder Linienarten je Wortart, in s/w unterscheidbar |
 | `<x-satzglieder aufgabe="umstellen">[Der Hund]S [bellt]P [den Mann]AkO [an]P.</x-satzglieder>` | Satzglied-Kästchen mit Verbklammer; die Umstellung rechnet das Element selbst |
 | `<x-wortbausteine stamm="fahr">ver\|fahr\|en</x-wortbausteine>` | Bausteine als Kästchen, Stamm fett; auch Wortfamilie |

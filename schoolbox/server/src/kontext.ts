@@ -64,7 +64,7 @@ export const erstelleKontext = (konfig: ServerKonfig, version: string, bauer: Ba
 			ereignisse,
 			sperre,
 			begrenzung,
-			bauer: bauer.pdf ?? ((dokDir) => baueAusgabe(konfig, dokDir)),
+			bauer: bauer.pdf ?? ((dokDir, profil) => baueAusgabe(konfig, dokDir, profil)),
 			folienBauer: bauer.folien ?? ((dokDir, art) => baueFolienZusatz(konfig, dokDir, art)),
 		}),
 		version,

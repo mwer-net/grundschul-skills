@@ -28,7 +28,7 @@ Alle Materialien sind für Grundschulen in Baden-Württemberg; das Bundesland wi
 
 Ungenaue Anfragen sind der Normalfall ("Mach mir ein Arbeitsblatt zu Tieren"). Erstelle dann **nichts**, sondern kläre gezielt nach dem Protokoll in `references/rueckfragen.md`:
 
-0. **Start-Abfrage zuerst:** Materialart, Medium/Format, Farbe oder Schwarz-Weiß, dann je nach Materialart Selbsteinschätzung, Churer Modell und Sternchenaufgabe – einzeln nacheinander, jeweils mit Empfehlung (`references/rueckfragen.md`). Die Antworten bestimmen Material-Skill, Format, Druckprofil und Bausteine und gelten für die ganze Unterhaltung.
+0. **Start-Abfrage zuerst:** Materialart, Medium/Format, dann je nach Materialart Selbsteinschätzung, Churer Modell und Sternchenaufgabe – einzeln nacheinander, jeweils mit Empfehlung (`references/rueckfragen.md`). Die Antworten bestimmen Material-Skill, Format und Bausteine und gelten für die ganze Unterhaltung.
 1. **Abgleichen:** Was ist schon bekannt (Anfrage, Gesprächsverlauf, frühere Materialien)? Was fehlt aus der Pflichtliste unten und aus der Rückfrageliste des jeweiligen Material- und Fach-Skills?
 2. **Eine Frage pro Nachricht**, in Abhängigkeitsreihenfolge (Start-Abfrage → Klasse → Thema/Ziel → Lerngruppe → Materialspezifisches). Jede Frage mit 2–4 konkreten Antwortoptionen und **deiner Empfehlung samt kurzer Begründung**.
 3. **Nicht fragen, was du selbst herleiten kannst** (z. B. Zahlenraum aus der Klassenstufe), sondern als Annahme nennen.
@@ -41,7 +41,6 @@ Pflichtangaben (fehlen sie, wird gefragt):
 |---|---|
 | Materialart (Arbeitsblatt, Klassenarbeit, Spiel, Karten …) | Welcher Material-Skill gilt |
 | Medium/Format (A4, A5-Karten, Plakat, Präsentation …) | Seitenformat, Schriftgrößen, Raster |
-| Farbe oder Schwarz-Weiß | Druckprofil (`references/druck-und-platz.md`) |
 | Selbsteinschätzung, Niveaus, Sternchenaufgabe (je nach Materialart) | Bausteine des Blatts (`references/rueckfragen.md`) |
 | Klassenstufe (1, 2, 3, 4 oder jahrgangsgemischt) | Schriftgröße, Textmenge, Zahlenraum, Abstraktionsgrad |
 | Fach und Thema, Stelle in der Unterrichtsreihe | Einführung, Übung, Vertiefung oder Überprüfung |
@@ -49,7 +48,7 @@ Pflichtangaben (fehlen sie, wird gefragt):
 | Eingeführte Symbole, Lehrwerk, Farbsystem der Klasse | Material muss zur gewohnten Struktur passen |
 | Ausgabe (Laminieren, Anzahl), falls relevant | Robustheit, Kartenformat |
 
-Ist nur Kleines unklar, triff eine sinnvolle Annahme und nenne sie. Bei „mach einfach": Kopiervorlagen schwarz-weiß, Präsentation, Plakat, laminierte Karten und Spiele in Farbe; Selbsteinschätzung ja, Niveaus ja, Sternchenaufgabe nur ohne Niveaus. Nicht gefragt wird nach Ich-kann-Ziel, Kennzeichnung der Niveaus (● / ●● / ●●●) und Leitfigur Willi/Wilma Waschbär: Sie stehen fest.
+Ist nur Kleines unklar, triff eine sinnvolle Annahme und nenne sie. Bei „mach einfach": Selbsteinschätzung ja, Niveaus ja, Sternchenaufgabe nur ohne Niveaus. Nicht gefragt wird nach Ich-kann-Ziel, Kennzeichnung der Niveaus (● / ●● / ●●●) und Leitfigur Willi/Wilma Waschbär: Sie stehen fest.
 
 ## 2. Verbindliche Leitlinien
 
@@ -60,10 +59,10 @@ Ist nur Kleines unklar, triff eine sinnvolle Annahme und nenne sie. Bei „mach 
 5. **Differenzierung ist Standard, nicht Extra:** Mit Churer Modell drei Niveaus zur Selbstwahl; ohne Churer Modell Aufgaben steigend im Anspruch, mit Tipps und offenen Aufgaben, ggf. Sternchenaufgabe (siehe `references/kernkonzepte.md` und `references/differenzierung.md`). Gemeinsamer Lerngegenstand für alle, unterschiedliche Zugänge.
 6. **Sprachsensibel:** Kurze Sätze, bekannte Wörter, Wortspeicher und Satzanfänge als Hilfe. Siehe `references/sprachsensibel.md`.
 7. **Selbstständigkeit:** Klare, gleichbleibende Arbeitsanweisungen, mit den Symbolen der Klasse, wo sie eingeführt sind; Selbstkontrolle wo möglich (Lösungskarte, Kontrollzahl, Bildpuzzle).
-8. **Altersgerecht ansprechend (Emotional Design):** Das schön machen, was ohnehin da ist – nicht etwas dazustellen. Runde Formen, Aufgabennummern in Kreisen, Farbe als Akzent (im Farbprofil), als Leitfigur immer Willi oder Wilma Waschbär mit Funktion (zeigt das Beispiel, gibt Tipps), kindgerechte Überschriftenschrift, Geschichten-Rahmen ("Hilf Willi Waschbär …"; über eine ganze Reihe mit Szenenkarten). Das verbessert nachweislich Motivation und Behalten. Bilder nur, wenn das Kind sie zum Lösen braucht – unnütze Grafiken lenken ab. Höchstens eine Figur pro Seite; jedes KI-Bild wird in voller Auflösung auf Fehler geprüft. Details und Prüffragen: `references/kindgerecht-gestalten.md`.
+8. **Altersgerecht ansprechend (Emotional Design):** Das schön machen, was ohnehin da ist – nicht etwas dazustellen. Runde Formen, Aufgabennummern in Kreisen, Farbe als Akzent, als Leitfigur immer Willi oder Wilma Waschbär mit Funktion (zeigt das Beispiel, gibt Tipps), kindgerechte Überschriftenschrift, Geschichten-Rahmen ("Hilf Willi Waschbär …"; über eine ganze Reihe mit Szenenkarten). Das verbessert nachweislich Motivation und Behalten. Bilder nur, wenn das Kind sie zum Lösen braucht – unnütze Grafiken lenken ab. Höchstens eine Figur pro Seite; jedes KI-Bild wird in voller Auflösung auf Fehler geprüft. Details und Prüffragen: `references/kindgerecht-gestalten.md`.
 9. **Fachlich korrekt:** Rechtschreibung nach amtlichem Regelwerk, mathematisch saubere Sprache ("Ergebnis", nicht "Lösungszahl"), sachlich richtige Abbildungen (Tierteile, Pflanzen, Uhrzeiten).
 10. **Vielfalt und Inklusion:** Namen, Familien, Hautfarben und Lebenswelten divers und unaufgeregt darstellen. Keine Klischees.
-11. **Druckprofil und kompaktes Layout:** Gestaltet wird nach dem Profil aus der Start-Abfrage: **Schwarz-Weiß** (tonersparend, Strichzeichnungen, keine Farb- oder Grauflächen) oder **Farbe** (Farbe als Akzent an Nummern, Überschrift, Figur und Bildern, keine Farbflächen hinter Aufgaben). In beiden Profilen nutzt die Seite ihren Platz für Aufgaben statt für Kästen und Innenabstände. Details: `references/druck-und-platz.md`.
+11. **Farbe und kompaktes Layout:** Material wird in Farbe angelegt (Akzent an Nummern, Überschrift, Figur und Bildern, keine Farbflächen hinter Aufgaben); s/w ist eine Ansicht davon (`references/gestaltung.md`, Abschnitt „Farbe“). Die Seite nutzt ihren Platz für Aufgaben statt für Kästen und Innenabstände. Details: `references/druck-und-platz.md`.
 12. **Datenschutz:** Material und Gespräch enthalten keine personenbezogenen Daten von Kindern: keine echten Namen aus der Klasse, keine Fotos von Kindern, keine Förderbedarfe oder Diagnosen einzelner Kinder. Nennt die Lehrkraft solche Daten, nicht übernehmen, in einem Satz freundlich erklären und eine gleichwertige Lösung vorschlagen: Fantasienamen (divers gewählt, Leitlinie 10) oder leere Felder, in die die Kinder ihre Namen selbst schreiben. Angaben zur Lerngruppe ohne Namen sind erwünscht („zwei Kinder mit LRS“). Hintergrund: `references/quellen.md`, Abschnitt Datenschutz.
 
 ## 3. Gestaltung – Kurzfassung
@@ -80,11 +79,11 @@ Ausführlich in `references/gestaltung.md`. Die wichtigsten Werte:
 `blatt.css` setzt das um: Kl. 1 28 px (21 pt), Kl. 2 24 px (18 pt), Kl. 3 20 px (15 pt), Kl. 4 18 px (13,5 pt).
 
 - Fließtext: serifenlose, kindgerechte Schrift mit eindeutigen Formen (I/l unterscheidbar, in Klasse 1/2 einstöckiges a und g). Bevorzugt die Druckschrift der Klasse (Lehrwerk), sonst Andika. Überschriften: eine runde, freundliche Display-Schrift (z. B. Fredoka, Baloo 2).
-- Druckprofil aus der Start-Abfrage: **s/w** (weißer Hintergrund, Text schwarz, keine Flächen, Bilder als Strichzeichnung) oder **Farbe** (eine Palette als Akzent an Nummernkreisen, Überschrift, Linien, Figur und Bildern; Text schwarz; keine Farbflächen hinter Aufgaben). Immer: Aufgaben ohne Kasten mit hängender Nummer, getrennt durch Abstand. Niveaus (falls gewählt) nur mit Punkten kennzeichnen (`references/druck-und-platz.md`).
+- Eine Palette als Akzent an Nummernkreisen, Überschrift, Linien, Figur und Bildern; Text schwarz; keine Farbflächen hinter Aufgaben. Aufgaben ohne Kasten mit hängender Nummer, getrennt durch Abstand. Niveaus (falls gewählt) nur mit Punkten kennzeichnen (`references/druck-und-platz.md`).
 - Linksbündiger Flattersatz, keine Silbentrennung, Zeilenumbruch nach Sinneinheiten.
 - Seitenränder ≥ 1,5 cm, ausreichende Schreibflächen; Lineatur passend zur Klassenstufe. Platz geht an Übung und Luft, nicht an Rahmen: schlanker Kopf und Fuß; in Kl. 1/2 Übersicht vor Menge (Richtwerte in `references/druck-und-platz.md`).
 - Klare Aufgaben mit Nummer, in Kl. 1/2 und bei eingeführtem Symbolset mit Arbeitsanweisungs-Symbol (`references/gestaltung.md`).
-- Kontrast mindestens 4,5:1; Farbe nie als einzige Information (Kopien sind oft s/w, rot-grün-Schwäche).
+- Kontrast mindestens 4,5:1; Farbe als einzige Information: siehe `references/gestaltung.md`, Abschnitt „Farbe“.
 
 ## 4. Qualitätscheck vor der Ausgabe
 
@@ -100,12 +99,12 @@ Prüfe jedes Material gegen diese Liste und korrigiere, bevor du es der Lehrkraf
 - [ ] Ohne Lehrkraft bearbeitbar: Beispiel mit lautem Denken der Leitfigur, Tipps mit Strategie, Selbstkontrolle (vor der Selbsteinschätzung); in Klassenarbeit und Lernzielkontrolle stattdessen bekannte, eindeutige Aufgabenformate
 - [ ] „Noch"-Sprache, keine Wertung von Begabung, keine Rankings, keine Smileys oder Ampeln
 - [ ] Falls Selbsteinschätzung gewählt: Reflexionsfrage am Ende (Kl. 1/2 mündlich oder zum Ankreuzen, ab Kl. 3 schriftlich)
-- [ ] Ansprechend: runde Formen und Überschrift, Farbe als Akzent (Farbprofil), Willi oder Wilma Waschbär mit Funktion
+- [ ] Ansprechend: runde Formen und Überschrift, Farbe als Akzent, Willi oder Wilma Waschbär mit Funktion
 - [ ] Keine rein dekorativen Bilder (Weglass-Test); alle Bilder eindeutig erkennbar
 - [ ] Genug Platz zum Schreiben/Zeichnen
 - [ ] Rechtschreibung, Zeichensetzung, Rechnungen und Lösungen geprüft
 - [ ] Keine personenbezogenen Daten von Kindern (echte Namen, Fotos, Förderbedarfe einzelner Kinder)
-- [ ] Druckprofil eingehalten; keine Flächen hinter Aufgaben; auch in Graustufen lesbar
+- [ ] Farbe nur als Akzent; keine Flächen hinter Aufgaben; auch in der s/w-Ansicht lesbar
 - [ ] Übersichtlich: Aufgaben ohne Kasten, Aufgaben- und Item-Zahl im Richtwert der Klasse, jede Aufgabe auf einen Blick verständlich, Beispiel nicht gequetscht
 - [ ] Lösung / Selbstkontrolle beigelegt (wenn sinnvoll)
 - [ ] Kopfzeile: Name, Datum, ggf. Thema – aber schlank
@@ -123,11 +122,11 @@ Ist eine Schoolbox eingerichtet (siehe Projektanweisungen), bekommt die Lehrkraf
 ## Referenzen
 
 - `references/kernkonzepte.md` – Growth Mindset und Churer Modell (Haltung immer, Bausteine wählbar)
-- `references/rueckfragen.md` – Start-Abfrage (Materialart, Medium, Farbe/s/w, Selbsteinschätzung, Churer Modell, Sternchenaufgabe) und Rückfrage-Protokoll
+- `references/rueckfragen.md` – Start-Abfrage (Materialart, Medium, Selbsteinschätzung, Churer Modell, Sternchenaufgabe) und Rückfrage-Protokoll
 - `references/entwurf-und-aufgabenplan.md` – schnelle Entwürfe zur Auswahl, exakter Aufgabenplan je Materialart, Freigabe vor der Endfassung
 - `references/gestaltung.md` – Layout, Schrift, Bilder, Farben, Symbole
 - `references/kindgerecht-gestalten.md` – Emotional Design: Formen, Leitfigur, Bildauswahl, Schriften, KI-Bild-Stil, Paletten für Farbdruck
-- `references/druck-und-platz.md` – Druckprofile s/w und Farbe, Aufgaben ohne Kasten, Mindestgrößen, Platzbudget
+- `references/druck-und-platz.md` – Farbe als Akzent, Aufgaben ohne Kasten, Mindestgrößen, Platzbudget
 - `references/differenzierung.md` – Niveaustufen, Hilfekarten, offene Aufgaben
 - `references/sprachsensibel.md` – DaZ, Wortspeicher, Operatoren, Satzmuster
 - `references/quellen.md` – wissenschaftliche Grundlagen und Rechercheergebnisse

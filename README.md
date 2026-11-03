@@ -18,7 +18,7 @@ skills/
 │   │                           vorlage-arbeitsblatt.html · vorlage-praesentation.html · fonts/ (Fredoka, Andika) ·
 │   │                           bilder/ (Willi, Wilma, Wachstum)
 │   ├── references/             layout · visuelle-endkontrolle · bilder (KI-Bilder und -Grafiken mit Canva)
-│   └── scripts/                blatt.py (prüft Rand, Überlappung, Schrift, Druckprofil; erzeugt PDF,
+│   └── scripts/                blatt.py (prüft Rand, Überlappung, Schrift; erzeugt PDF,
 │                               Lösungsblatt, Vorschau und Ausschnitte je Aufgabe; Entwurfsübersicht)
 │
 ├── unterrichtsplanung/         ┐
@@ -73,7 +73,7 @@ Alle Materialien verkörpern zwei Konzepte (`grundschul-didaktik/references/kern
 
 Leitfigur aller Materialien ist Willi oder Wilma Waschbär (`grundschul-didaktik/references/kindgerecht-gestalten.md`).
 
-Zu Beginn fragen die Skills einzeln ab: Materialart, Medium/Format, Farbe oder Schwarz-Weiß und je nach Materialart Selbsteinschätzung, Churer Modell und Sternchenaufgabe (`grundschul-didaktik/references/rueckfragen.md`). Daraus folgt das Druckprofil: s/w tonersparend mit Strichzeichnungen oder Farbe als Akzent. In beiden Profilen stehen Aufgaben ohne Kästen, damit der Platz für Aufgaben und Luft bleibt; Richtwerte je Klasse halten die Blätter übersichtlich (`grundschul-didaktik/references/druck-und-platz.md`).
+Zu Beginn fragen die Skills einzeln ab: Materialart, Medium/Format und je nach Materialart Selbsteinschätzung, Churer Modell und Sternchenaufgabe (`grundschul-didaktik/references/rueckfragen.md`). Daraus folgt das Druckprofil: s/w tonersparend mit Strichzeichnungen oder Farbe als Akzent. In beiden Profilen stehen Aufgaben ohne Kästen, damit der Platz für Aufgaben und Luft bleibt; Richtwerte je Klasse halten die Blätter übersichtlich (`grundschul-didaktik/references/druck-und-platz.md`).
 
 ## Didaktische Grundlage
 
@@ -117,7 +117,7 @@ Ein typischer Ablauf aus einer Claude-Sitzung:
 
 ```bash
 schoolbox/bin/schoolbox neu --titel "Kartoffeln" --fach sachunterricht --klasse 3
-schoolbox/bin/schoolbox dokument <mappe> --titel "Teile der Kartoffel" --art arbeitsblatt --druckprofil sw --vorlage arbeitsblatt
+schoolbox/bin/schoolbox dokument <mappe> --titel "Teile der Kartoffel" --art arbeitsblatt --vorlage arbeitsblatt
 schoolbox/bin/schoolbox entwuerfe <mappe>/<dokument> entwurf-a.html entwurf-b.html   # prüft, baut Vorschauen, gibt den Link aus
 schoolbox/bin/schoolbox waehle <mappe>/<dokument> B                                  # Entwurf B wird material.html
 # … material.html mit den Skills ausarbeiten …

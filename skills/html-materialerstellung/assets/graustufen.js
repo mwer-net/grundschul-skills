@@ -18,6 +18,10 @@
   const KEINE = new Set(["transparent", "currentcolor", "inherit", "initial", "unset", "revert", "none", "canvastext"]);
   const TOKEN = /url\([^)]*\)|#[0-9a-f]{3,8}\b|\b(?:rgb|hsl|hwb|lab|lch|oklab|oklch|color)a?\((?:[^()]|\([^()]*\))*\)|\b[a-z]{3,}\b(?![(-])/gi;
 
+  // Material mit einer eigenen Klasse .sw (z. B. Schlüsselwörter): Die Regel darf nicht den body treffen, der für die
+  // s/w-Ansicht dieselbe Klasse trägt. body.sw selbst und .sw-wert bleiben, was sie sind.
+  const EIGENE_SW = /(?<![\w)-])\.sw(?![\w-])/;
+
   const leinwand = document.createElement("canvas");
   leinwand.width = leinwand.height = 1;
   const stift = leinwand.getContext("2d", { willReadFrequently: true });
@@ -58,6 +62,7 @@
     for (const regel of liste) {
       if (regel.cssRules && regel.cssRules.length) regeln(regel.cssRules);
       if (!regel.style) continue;
+      if (EIGENE_SW.test(regel.selectorText ?? "")) regel.selectorText = regel.selectorText.replace(new RegExp(EIGENE_SW, "g"), ":not(body).sw");
       for (const name of KURZFORMEN) if (regel.style.getPropertyValue(name).includes("var(")) eigenschaft(regel.style, name, true);
       for (const name of [...regel.style]) eigenschaft(regel.style, name, true);
     }

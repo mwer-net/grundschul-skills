@@ -10,6 +10,7 @@ import { aktualisiereMappe, dokumentDir, leseMeta, pruefeFormat, schreibeMeta } 
 import { kopiereAtomar } from './atomar';
 import type { FolienZusatz } from './ausgabe';
 import {
+	ausgabeOrdner,
 	ausgabeSchluessel,
 	PDF_DATEI,
 	schreibeStand,
@@ -19,7 +20,6 @@ import {
 	zusatzStandDatei,
 } from './ausgabe';
 import { SchoolboxFehler } from './fehler';
-import { druckprofilAusHtml } from './html';
 import type { Konfig } from './konfig';
 import { BLATT_PY } from './konfig';
 import type { Meldung } from './meldungen';
@@ -27,8 +27,8 @@ import { ohneZiele } from './meldungen';
 import { entwurfVorschauDatei } from './namen';
 import type { DokumentMeta, Entwurf, EntwurfPruefung, Pruefung } from './schema';
 import type { Version } from './versionen';
-import type { Druckprofil } from './werte';
 import { legeVersionAn } from './versionen';
+import type { Druckprofil } from './werte';
 
 const BAU_TIMEOUT_MS = 5 * 60 * 1000;
 /** Erste Seite des Arbeitsblatts in `ausgabe/`, so benannt wie von blatt.py. */
@@ -116,7 +116,6 @@ export const fertigstellen = async (
 	meta.seiten = bericht.seiten.length;
 	meta.pruefung = zaehle(bericht.meldungen);
 	meta.hatLoesung = existsSync(path.join(ausgabe, 'material-loesung.pdf'));
-	meta.druckprofil = druckprofilAusHtml(html) ?? meta.druckprofil;
 	meta.geaendert = jetzt.toISOString();
 	await schreibeMeta(materialDir, ziel.mappe, ziel.dok, meta);
 	const version = await legeVersionAn(dir, 'claude', jetzt);
@@ -129,13 +128,15 @@ export const fertigstellen = async (
 /**
  * Baut `ausgabe/` neu wie `fertigstellen`, aber ohne meta.json, Version und Mappe anzufassen: für PDFs, die die
  * Lehrkraft herunterlädt. Der Bau läuft in einem temporären Ordner und wird erst danach übernommen.
+ * Mit `profil` entsteht die Ansicht in Farbe oder s/w; die Quelle bleibt unverändert (042).
  */
 export const baueAusgabe = async (
 	konfig: Pick<Konfig, 'pythonBin'>,
 	dokDir: string,
 	profil?: Druckprofil,
 ): Promise<Pruefbericht> => {
-	const schluessel = await ausgabeSchluessel(dokDir);
+	const schluessel = await ausgabeSchluessel(dokDir, profil);
+	const ziel = await ausgabeOrdner(dokDir, profil);
 	const tmp = await mkdtemp(path.join(tmpdir(), 'schoolbox-pdf-'));
 	try {
 		const berichtDatei = path.join(tmp, 'pruefbericht.json');
@@ -161,7 +162,7 @@ export const baueAusgabe = async (
 			);
 		}
 		const bericht = JSON.parse(await readFile(berichtDatei, 'utf8')) as Pruefbericht;
-		await uebernehmeAusgabe(tmp, dokDir, schluessel);
+		await uebernehmeAusgabe(tmp, dokDir, schluessel, ziel);
 		return bericht;
 	} finally {
 		await rm(tmp, { recursive: true, force: true });

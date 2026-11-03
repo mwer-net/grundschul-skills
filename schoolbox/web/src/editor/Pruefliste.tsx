@@ -5,7 +5,7 @@ import { Symbol } from '../bausteine/Symbol';
 import type { Pruefpunkt, Pruefstand } from './pruefung';
 
 /** Diese zeigt das Bild-Panel selbst, live beim Ziehen an den Ecken (017). */
-const IM_BILDPANEL = new Set(['bild-unscharf', 'bild-kontrast-sw']);
+const IM_BILDPANEL = new Set(['bild-unscharf']);
 
 const FARBE: Record<Pruefpunkt['stufe'], string> = {
 	FEHLER: 'border-fehler',

@@ -1,7 +1,7 @@
 import { mkdir, rm, writeFile } from 'node:fs/promises';
 import path from 'node:path';
 
-import type { FolienZusatz } from '@schoolbox/kern';
+import type { Druckprofil, FolienZusatz } from '@schoolbox/kern';
 import { baueVorschau, VORSCHAU_DATEI } from '@schoolbox/kern';
 
 import { WEB_DIST } from './app';
@@ -28,9 +28,9 @@ const vorschauBauer = async (dokDir: string) => {
 	await writeFile(path.join(dokDir, 'ausgabe', VORSCHAU_DATEI), WEISSES_BILD);
 };
 
-const pdfBauer = async (dokDir: string) => {
+const pdfBauer = async (dokDir: string, profil?: Druckprofil) => {
 	await new Promise((resolve) => setTimeout(resolve, PDF_MS));
-	await baueErsatzAusgabe(dokDir);
+	await baueErsatzAusgabe(dokDir, profil);
 };
 
 const folienBauer = async (dokDir: string, art: FolienZusatz) => {

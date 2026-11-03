@@ -16,7 +16,7 @@ Wilma als Strichzeichnung fehlt noch (anlegen nach Abschnitt 2, Datei `wilma-str
 
 **Auflösung:** Originale aus Canva (Willi/Wilma 1264 × 1264 px, Wachstumsgrafik 1776 × 896 px, transparenter Hintergrund), druckscharf in jeder sinnvollen Größe.
 
-Einbinden: `<img class="figur" src="bilder/willi-strich.png" alt="Willi">`. Im s/w-Profil immer die Strich-Version (`blatt.py` warnt bei farbigen Bildern).
+Einbinden: `<img class="figur" src="bilder/willi-strich.png" alt="Willi">`. In der s/w-Ausgabe wird ein `name-strich.png` neben `name.png` von selbst genommen, sonst das Bild in Graustufen.
 
 ## 2. Bilder und Grafiken nach Bedarf mit Canva-KI
 

@@ -3,12 +3,21 @@ import { existsSync } from 'node:fs';
 import { mkdir, readFile } from 'node:fs/promises';
 import path from 'node:path';
 
-import type { AusgabeVariante, FolienZusatz, MappenVariante, Meldung, Pruefbericht } from '@schoolbox/kern';
+import type {
+	AusgabeVariante,
+	Druckprofil,
+	FolienZusatz,
+	MappenVariante,
+	Meldung,
+	Pruefbericht,
+} from '@schoolbox/kern';
 import {
 	AUSGABE_VARIANTEN,
 	ausgabeDateiname,
+	ausgabeOrdner,
 	ausgabeSchluessel,
 	dokumentDir,
+	DRUCKPROFILE,
 	fuegePdfsZusammen,
 	HTML_DATEI,
 	istFolienVariante,
@@ -34,7 +43,7 @@ import { HttpFehler } from './fehler';
 import type { Sperre } from './sperre';
 
 /** Baut `ausgabe/` eines Dokumentordners samt `stand.json`. Im Betrieb blatt.py, in den Browser-Tests ein Ersatz. */
-export type PdfBauer = (dokDir: string) => Promise<unknown>;
+export type PdfBauer = (dokDir: string, profil?: Druckprofil) => Promise<unknown>;
 
 /** Baut einen Zusatz für Folien nach `ausgabe/`, samt Prüfbericht und Stand-Datei. Im Betrieb blatt.py. */
 export type FolienBauer = (dokDir: string, art: FolienZusatz) => Promise<unknown>;
@@ -52,9 +61,10 @@ export interface PdfDatei {
 }
 
 export interface Pdf {
-	dokument: (mappe: string, dok: string, variante: AusgabeVariante) => Promise<PdfDatei>;
+	/** `profil`: Ansicht in Farbe oder s/w; ohne Angabe gilt, was die Quelle vorgibt (042). */
+	dokument: (mappe: string, dok: string, variante: AusgabeVariante, profil?: Druckprofil) => Promise<PdfDatei>;
 	/** Alle Dokumente der Mappe in Mappenreihenfolge, wahlweise mit den Lösungen am Ende. */
-	mappe: (mappe: string, variante: MappenVariante) => Promise<PdfDatei>;
+	mappe: (mappe: string, variante: MappenVariante, profil?: Druckprofil) => Promise<PdfDatei>;
 }
 
 interface Abhaengigkeiten {
@@ -102,16 +112,16 @@ export const erstellePdf = ({
 	sperre,
 }: Abhaengigkeiten): Pdf => {
 	/** Stellt sicher, dass `ausgabe/` zum jetzigen Dokument passt. Nur innerhalb der PDF-Sperre des Dokuments. */
-	const stelleSicher = async (mappe: string, dok: string): Promise<Gebaut> => {
+	const stelleSicher = async (mappe: string, dok: string, profil?: Druckprofil): Promise<Gebaut> => {
 		const dir = dokumentDir(materialDir, mappe, dok);
-		const ausgabe = path.join(dir, 'ausgabe');
 		if (!existsSync(path.join(dir, 'material.html'))) {
 			throw new HttpFehler(404, 'Dieses Dokument gibt es nicht mehr.');
 		}
-		const [stand, schluessel] = await Promise.all([leseStand(ausgabe), ausgabeSchluessel(dir)]);
+		const ausgabe = await ausgabeOrdner(dir, profil);
+		const [stand, schluessel] = await Promise.all([leseStand(ausgabe), ausgabeSchluessel(dir, profil)]);
 		if (stand !== schluessel || !existsSync(path.join(ausgabe, PDF_DATEI))) {
 			try {
-				await begrenzung(() => bauer(dir));
+				await begrenzung(() => bauer(dir, profil));
 			} catch (fehler) {
 				console.error(`PDF für ${mappe}/${dok}:`, fehler instanceof Error ? fehler.message : fehler);
 				throw existsSync(path.join(dir, 'material.html'))
@@ -175,24 +185,24 @@ export const erstellePdf = ({
 	const mitTitel = (dok: string, titel: string, meldungen: Meldung[]): PdfMeldung[] =>
 		meldungen.map((m) => ({ ...m, dok, titel }));
 
-	const dokument: Pdf['dokument'] = async (mappeId, dok, variante) => {
+	const dokument: Pdf['dokument'] = async (mappeId, dok, variante, profil) => {
 		const [mappe, meta] = await Promise.all([leseMappe(materialDir, mappeId), leseMeta(materialDir, mappeId, dok)]);
 		if (istFolienVariante(variante) && meta.format !== 'folie') {
 			throw new HttpFehler(404, NUR_FOLIEN);
 		}
 		return sperre(pdfSperre(mappeId, dok), async () => {
-			const gebaut = await stelleSicher(mappeId, dok);
+			const gebaut = await stelleSicher(mappeId, dok, profil);
 			const { datei, fehler } = await bereitstellen(mappeId, dok, gebaut, variante);
 			const blattFehler = await leseFehler(gebaut.ausgabe, variante === 'loesung' || variante === 'beides');
 			return {
 				datei,
-				dateiname: ausgabeDateiname(mappe, meta, variante),
+				dateiname: ausgabeDateiname(mappe, meta, variante, profil),
 				meldungen: mitTitel(dok, meta.titel, [...blattFehler, ...fehler]),
 			};
 		});
 	};
 
-	const mappePdf: Pdf['mappe'] = async (mappeId, variante) => {
+	const mappePdf: Pdf['mappe'] = async (mappeId, variante, profil) => {
 		const mappe = await leseMappe(materialDir, mappeId);
 		if (mappe.dokumente.length === 0) {
 			throw new HttpFehler(404, 'In dieser Mappe gibt es noch keine Dokumente.');
@@ -202,7 +212,7 @@ export const erstellePdf = ({
 			mappe.dokumente.map(async (dok) => {
 				const meta = await leseMeta(materialDir, mappeId, dok);
 				return sperre(pdfSperre(mappeId, dok), async () => {
-					const gebaut = await stelleSicher(mappeId, dok);
+					const gebaut = await stelleSicher(mappeId, dok, profil);
 					const fehler = await leseFehler(gebaut.ausgabe, mitLoesungen);
 					return { dok, ...gebaut, meldungen: mitTitel(dok, meta.titel, fehler) };
 				});
@@ -213,14 +223,15 @@ export const erstellePdf = ({
 			...(mitLoesungen ? teile.filter((t) => t.loesung).map((t) => path.join(t.ausgabe, LOESUNG_PDF_DATEI)) : []),
 		];
 		const schluessel = createHash('sha256')
-			.update(JSON.stringify([variante, teile.map((t) => [t.dok, t.stand, t.loesung])]))
+			.update(JSON.stringify([variante, profil ?? null, teile.map((t) => [t.dok, t.stand, t.loesung])]))
 			.digest('hex')
 			.slice(0, 32);
 
 		const dir = mappenDir(materialDir, mappeId);
 		const ausgabe = path.join(dir, 'ausgabe');
-		const datei = path.join(ausgabe, `${variante}.pdf`);
-		const standDatei = `${variante}.json`;
+		const stamm = profil === undefined ? variante : `${variante}-${profil}`;
+		const datei = path.join(ausgabe, `${stamm}.pdf`);
+		const standDatei = `${stamm}.json`;
 		await sperre(pdfSperre(mappeId), async () => {
 			if ((await leseStand(ausgabe, standDatei)) === schluessel && existsSync(datei)) {
 				return;
@@ -237,7 +248,7 @@ export const erstellePdf = ({
 		});
 		return {
 			datei,
-			dateiname: mappenPdfDateiname(mappe, variante),
+			dateiname: mappenPdfDateiname(mappe, variante, profil),
 			meldungen: teile.flatMap((t) => t.meldungen),
 		};
 	};
@@ -304,10 +315,12 @@ const waehle = <T extends string>(wert: unknown, gueltig: readonly T[]): T => {
 
 export const waehlePdfVariante = (wert: unknown) => waehle(wert, AUSGABE_VARIANTEN);
 export const waehleMappenVariante = (wert: unknown) => waehle(wert, MAPPEN_VARIANTEN);
+/** Ansicht aus Anfrage oder Body; ohne Angabe gilt die Quelle. */
+export const waehleProfil = (wert: unknown) => (wert === undefined ? undefined : waehle(wert, DRUCKPROFILE));
 
 /** Antwort beim Vorbereiten: wohin der Browser für die Datei geht, wie sie heißt, was die Prüfung fand. */
-export const pdfAntwort = (adresse: string, { dateiname, meldungen }: PdfDatei) => ({
-	adresse: `${adresse}/${encodeURIComponent(dateiname)}`,
+export const pdfAntwort = (adresse: string, { dateiname, meldungen }: PdfDatei, profil?: Druckprofil) => ({
+	adresse: `${adresse}/${encodeURIComponent(dateiname)}${profil === undefined ? '' : `?profil=${profil}`}`,
 	dateiname,
 	meldungen,
 });

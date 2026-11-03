@@ -1,11 +1,10 @@
 import assert from 'node:assert/strict';
 import { execFileSync } from 'node:child_process';
-import { existsSync } from 'node:fs';
-import { readdir, readFile } from 'node:fs/promises';
+import { readdir } from 'node:fs/promises';
 import path from 'node:path';
 import { after, before, describe, it } from 'node:test';
 
-import { ASSETS, MAX_BILD_BYTES } from '@schoolbox/kern';
+import { MAX_BILD_BYTES } from '@schoolbox/kern';
 
 import { DATEINAME_HEADER } from './bilder';
 import { CSRF_HEADER } from './schutz';

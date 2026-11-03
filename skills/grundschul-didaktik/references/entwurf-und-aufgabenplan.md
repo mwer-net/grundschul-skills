@@ -40,7 +40,7 @@ Keine Lösungen, keine Rechenprüfung aller Items, kein Lösungsblatt: das kommt
 
 Mit Schoolbox: Entwürfe mit `schoolbox entwuerfe` registrieren und den Link geben statt des Bildes. Der Befehl prüft die Entwürfe selbst und meldet, ob sie auf die Seite passen; Schritt 2 entfällt dann (Ablauf in `html-materialerstellung`, Abschnitt „Mit Schoolbox“).
 
-Die Vorschau zeigt jeden Entwurf im echten Format, Druckprofil und in der Schriftgröße der Klasse, so wie er gedruckt wird. Ein Entwurf, der nicht passt, wird rot markiert; viel ungenutzter Platz wird gemeldet.
+Die Vorschau zeigt jeden Entwurf im echten Format und in der Schriftgröße der Klasse, so wie er gedruckt wird. Ein Entwurf, der nicht passt, wird rot markiert; viel ungenutzter Platz wird gemeldet.
 
 **Ohne Code-Ausführung: Textskizze** im Chat, je Entwurf höchstens 8 Zeilen:
 
@@ -73,7 +73,7 @@ Kleine Änderungen fließen direkt in den Aufgabenplan. Will die Lehrkraft etwas
 
 Der Aufgabenplan legt **jeden Inhalt exakt fest**, der später auf dem Blatt steht. Er ersetzt das bisherige Briefing zur Freigabe. Was er enthält, hängt von der Materialart ab (Tabelle unten). Immer:
 
-- Titel nach Schema `Kl2_Mathe_Uhrzeit_AB1`, Format, Druckprofil, gewählter Entwurf
+- Titel nach Schema `Kl2_Mathe_Uhrzeit_AB1`, Format, gewählter Entwurf
 - alle Texte wörtlich: Überschrift, Ich-kann-Ziel, Wahlhilfe, Anweisungen, Tipps, Fußtext, Reflexionsfrage
 - alle Items vollständig, Rechnungen und Rechtschreibung geprüft
 - Lösungen bzw. Erwartungshorizont
@@ -85,7 +85,7 @@ Den gewählten Entwurf auf die finalen Items aktualisieren und `blatt.py bauen -
 Format im Chat (Beispiel Arbeitsblatt):
 
 ```
-Aufgabenplan Kl2_Mathe_Uhrzeit_AB1 · A4 hoch · s/w · Entwurf A
+Aufgabenplan Kl2_Mathe_Uhrzeit_AB1 · A4 hoch · Entwurf A
 Kopf: „Wie spät ist es?" · Ich kann volle und halbe Stunden ablesen. · Wähle deine Aufgaben.
 1 ●  Lies ab. Schreibe die Uhrzeit auf.   5 Uhren 88 px + Antwortlinie
      Uhren: 3:00 · 4:30 · 7:00 · 9:30 · 12:00

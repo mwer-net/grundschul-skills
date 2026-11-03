@@ -6,13 +6,17 @@ import path from 'node:path';
 
 import { istTempDatei, kopiereAtomar, schreibeJson } from './atomar';
 import { SchoolboxFehler } from './fehler';
+import { druckprofilAusHtml } from './html';
 import { ASSETS, BLATT_PY } from './konfig';
 import { sucheRessource } from './pfade';
+import type { Druckprofil } from './werte';
 
 /** Schlüssel des letzten Baus in `ausgabe/`; passt er zum Dokument, ist die Ausgabe aktuell. */
 export const STAND_DATEI = 'stand.json';
 /** Zwischenspeicher der s/w-Bilder (041): Überlebt jeden Bau, damit Mappen-PDFs nicht jedes Bild neu rechnen. */
-const BLEIBT = new Set(['grau-cache']);
+const GRAU_CACHE = 'grau-cache';
+/** Die jeweils andere Ansicht und der Zwischenspeicher überleben den Bau einer Ansicht (042). */
+const BLEIBT = new Set([GRAU_CACHE, 'sw', 'farbe']);
 export const PDF_DATEI = 'material.pdf';
 export const LOESUNG_PDF_DATEI = 'material-loesung.pdf';
 /** Eigenständige HTML-Datei aus blatt.py; bei Folien die Offline-Präsentation. */
@@ -58,10 +62,30 @@ const ressourcen = async (html: string, dokDir: string): Promise<[string, string
  * Bilder, dazu blatt.py, pruefung.js, graustufen.js und praesentation.js (steckt in der Offline-Präsentation und den
  * Zusätzen für Folien). Ein bloßes `touch` ändert ihn nicht.
  */
-export const ausgabeSchluessel = async (dokDir: string): Promise<string> => {
+const STRICH_ENDUNGEN = ['.png', '.jpg', '.jpeg', '.webp', '.gif'];
+
+export const ausgabeSchluessel = async (dokDir: string, profil?: Druckprofil): Promise<string> => {
 	const html = await readFile(path.join(dokDir, 'material.html'));
 	const hash = createHash('sha256').update(html);
-	const dateien = await ressourcen(html.toString('utf8'), dokDir);
+	const text = html.toString('utf8');
+	const dateien = await ressourcen(text, dokDir);
+	const quelleProfil = druckprofilAusHtml(text);
+	if (profil !== undefined && profil !== (quelleProfil ?? 'farbe')) {
+		hash.update(`\0profil\0${profil}`);
+	}
+	if ((profil ?? quelleProfil) === 'sw') {
+		for (const [name, datei] of dateien) {
+			if (datei !== null) {
+				for (const endung of STRICH_ENDUNGEN) {
+					const strich = datei.replace(/\.[^./]+$/, `-strich${endung}`);
+					if (existsSync(strich)) {
+						hash.update(`\0strich\0${name}\0`);
+						hash.update(await readFile(strich));
+					}
+				}
+			}
+		}
+	}
 	for (const [name, datei] of [
 		...dateien,
 		['blatt.py', BLATT_PY],
@@ -73,6 +97,19 @@ export const ausgabeSchluessel = async (dokDir: string): Promise<string> => {
 		hash.update(datei === null ? 'fehlt' : await readFile(datei).catch(() => 'fehlt'));
 	}
 	return hash.digest('hex').slice(0, 32);
+};
+
+/**
+ * Ordner einer Ansicht: Was die Quelle selbst vorgibt, liegt wie immer in `ausgabe/`, die andere Ansicht in
+ * `ausgabe/sw/` bzw. `ausgabe/farbe/`. So überschreiben sich Zwischenspeicher und Dateien nicht (042).
+ */
+export const ausgabeOrdner = async (dokDir: string, profil?: Druckprofil): Promise<string> => {
+	const ausgabe = path.join(dokDir, 'ausgabe');
+	if (profil === undefined) {
+		return ausgabe;
+	}
+	const quelle = druckprofilAusHtml(await readFile(path.join(dokDir, 'material.html'), 'utf8')) ?? 'farbe';
+	return profil === quelle ? ausgabe : path.join(ausgabe, profil);
 };
 
 export const leseStand = async (ausgabe: string, datei = STAND_DATEI): Promise<string | null> => {
@@ -101,13 +138,16 @@ export const istAusgabeAktuell = async (dokDir: string): Promise<boolean> => {
  * weg, `stand.json` zuletzt. Liegt das Dokument inzwischen im Papierkorb, entsteht hier kein Ordner neu (er stünde
  * dem Wiederherstellen im Weg); darum wird nie rekursiv angelegt.
  */
-export const uebernehmeAusgabe = async (von: string, dokDir: string, schluessel: string) => {
+export const uebernehmeAusgabe = async (von: string, dokDir: string, schluessel: string, ziel?: string) => {
 	if (!existsSync(path.join(dokDir, 'material.html'))) {
 		throw new SchoolboxFehler('Das Dokument gibt es nicht mehr.', 3);
 	}
-	const ausgabe = path.join(dokDir, 'ausgabe');
-	if (!existsSync(ausgabe)) {
-		await mkdir(ausgabe);
+	const haupt = path.join(dokDir, 'ausgabe');
+	const ausgabe = ziel ?? haupt;
+	for (const ordner of [haupt, ausgabe]) {
+		if (!existsSync(ordner)) {
+			await mkdir(ordner);
+		}
 	}
 	await rm(path.join(ausgabe, STAND_DATEI), { force: true });
 	const neu = await readdir(von);

@@ -2,7 +2,7 @@
 
 ## Seitenaufbau (A4 Hochformat als Standard)
 
-Farbe oder Schwarz-Weiß sowie die Bausteine (Selbsteinschätzung, Niveaus, Sternchenaufgabe) legt die Start-Abfrage fest (`rueckfragen.md`). Das Schema zeigt alle Bausteine; nicht gewählte entfallen. In beiden Druckprofilen ist das Layout kompakt: Der Platz geht an Aufgaben und Luft, nicht an Kästen. Profile, Mindestgrößen und Platzbudget: `druck-und-platz.md`.
+Die Bausteine (Selbsteinschätzung, Niveaus, Sternchenaufgabe) legt die Start-Abfrage fest (`rueckfragen.md`). Das Schema zeigt alle Bausteine; nicht gewählte entfallen. Das Layout ist kompakt: Der Platz geht an Aufgaben und Luft, nicht an Kästen. Farbe und s/w: Abschnitt „Farbe“ unten. Mindestgrößen und Platzbudget: `druck-und-platz.md`.
 
 ```
 ┌──────────────────────────────────────────┐
@@ -49,7 +49,7 @@ Schreibzeilen immer mit `x-lineatur` (Katalog `html-materialerstellung/reference
 | 4 | Lineatur 4 | einzelne Linien, Abstand 9 mm |
 | Mathematik, Muster | `karo`, `karo-klein` | 5 mm, 4 mm |
 
-**Mittelband:** Standard sind graue Linien (`#808080`), weil getönte Flächen beim Kopieren wegfallen. Das getönte Band (`mittelband="getoent"`) nur im Farbprofil und nur auf Wunsch der Lehrkraft.
+**Mittelband:** Standard sind graue Linien (`#808080`), weil getönte Flächen beim Kopieren wegfallen. Das getönte Band (`mittelband="getoent"`) nur auf Wunsch der Lehrkraft.
 
 Mathe: Kästchen 1 cm (Kl. 1) bzw. 0,5 cm (ab Kl. 2/3), passend zum Heft der Klasse; Gitter mit Figuren: `x-gitter`.
 Schreibfläche immer größer als gedacht: Kinderhandschrift braucht Platz.
@@ -58,19 +58,19 @@ Schreibfläche immer größer als gedacht: Kinderhandschrift braucht Platz.
 
 - Funktional: Das Bild trägt Information (Anlaut, Mengenbild, Sachabbildung), wird zum Lösen gebraucht oder gibt als Leitfigur (Willi/Wilma Waschbär) einen Tipp. Weglass-Test und Dosierung: `kindgerecht-gestalten.md`.
 - Eindeutig: Ein Bild, ein Begriff. Bei Anlautbildern Mehrdeutigkeiten vermeiden (Hund vs. Dackel, Auto vs. PKW).
-- Stil nach Druckprofil: s/w als **Strichzeichnung** (schwarze Konturen, weiße Füllung, keine Graustufenflächen), Farbe als flache Illustration in der Palette. Einheitlicher Stil im ganzen Material, nicht gemischt mit Fotos.
+- Stil: flache Illustration in der Palette, einheitlich im ganzen Material, nicht gemischt mit Fotos. Eine **Strichzeichnung** (schwarze Konturen, weiße Füllung, keine Graustufenflächen) als `name-strich.png` neben `name.png`, wenn die Kinder anmalen sollen: Der s/w-Druck nimmt sie von selbst, wenn das Seitenverhältnis gleich ist; sonst wird das Bild in Graustufen gedruckt.
 - Für Ausmalaufgaben: klare schwarze Konturen, keine Graustufenflächen.
-- Sachunterricht: Bei Tieren, Pflanzen, Körperteilen realistische Darstellung (im s/w-Profil als genaue Strichzeichnung); Fotos nur im Farbprofil. Keine Comicverzerrung bei Fachinhalten.
+- Sachunterricht: Bei Tieren, Pflanzen, Körperteilen realistische Darstellung. Keine Comicverzerrung bei Fachinhalten.
 - Alle Bilder brauchen Platz zur Beschriftung, wenn Kinder beschriften sollen.
 - **Keine Hände, Finger oder anderen Körperteile als selbst gezeichnetes SVG** (auch nicht als Zeigehand an einer Aufgabe): Sie wirken unbeholfen und verderben die ganze Seite. Eine Geste zeigt die Leitfigur als fertige Grafik, einen Hinweis ein Pfeil oder ein kurzes Wort.
 
 ## Farbe
 
-- **Druckprofil aus der Start-Abfrage:** s/w (Text schwarz, Linien schwarz/dunkelgrau, keine Flächen) oder Farbe (eine Palette als Akzent, Text schwarz, keine Flächen hinter Aufgaben). Details: `druck-und-platz.md`.
-- Information nie nur über Farbe: zusätzlich Symbol, Muster, Linienart oder Beschriftung.
+- **Jedes Material wird in Farbe angelegt** (`<body class="kl2 farbe palette-…">`): eine Palette als Akzent, Text schwarz, keine Flächen hinter Aufgaben. Details: `druck-und-platz.md`.
+- **s/w ist eine Ansicht, keine eigene Fassung.** In der Schoolbox schaltet die Lehrkraft jedes Blatt per Knopf um, außerhalb baut `blatt.py bauen --profil sw` das s/w-PDF. Farben, Flächen und Bilder werden dabei umgerechnet, das Layout bleibt gleich. Deshalb nie fragen, ob farbig oder s/w gedruckt wird, und kein eigenes s/w-Blatt anlegen. Folien bleiben farbig.
+- **Pflicht: Information nie nur über Farbe**, weil jedes Blatt auch in s/w funktionieren muss: zusätzlich Symbol, Muster, Linienart oder Beschriftung. In der Anweisung nie allein über die Farbe auf etwas zeigen („Kreise die rote Zahl ein“). Die s/w-Ansicht meldet schwachen Kontrast und Farbwörter als Hinweis.
 - Niveaus (falls gewählt) nie farblich unterscheiden, nur mit Punkten (gleiche Optik auf allen Niveaus).
-- Farbcodes der Klasse (Klassenkonvention prüfen): Wortarten (oft Nomen blau, Verben rot, Adjektive grün), Artikel (der blau, die rot, das grün, DaZ), Stellenwerte (oft Einer blau, Zehner rot, Hunderter grün). Auf s/w-Blättern malen die Kinder die Farbe selbst an, oder die Kategorie steht als Buchstabe/Wort dabei (E/Z/H, „Nomen").
-- Im Farbprofil werden Farbcodes direkt farbig gesetzt, im s/w-Profil wie oben ersetzt.
+- Farbcodes der Klasse (Klassenkonvention prüfen): Wortarten (oft Nomen blau, Verben rot, Adjektive grün), Artikel (der blau, die rot, das grün, DaZ), Stellenwerte (oft Einer blau, Zehner rot, Hunderter grün). Farbcodes werden direkt farbig gesetzt; die Kategorie steht zusätzlich als Buchstabe, Wort oder Symbol dabei (E/Z/H, „Nomen"), damit sie auch in s/w lesbar bleibt.
 
 ## Arbeitsanweisungs-Symbole (Vorschlag für einheitliches Set)
 
@@ -90,7 +90,7 @@ Schreibfläche immer größer als gedacht: Kinderhandschrift braucht Platz.
 | ● ●● ●●● | Niveau: Grundlage / Kern / Herausforderung (falls Churer Modell gewählt) |
 | ★ | Sternchenaufgabe, freiwillig für alle (falls gewählt) |
 
-Grundsatz: Ist in der Klasse schon ein Symbolset eingeführt (Lehrwerk, Metacom), immer dieses verwenden. Symbole immer gleich groß, nach der Nummer direkt vor dem Anweisungstext. **Genau ein Symbol pro Aufgabe**, das für die Haupthandlung; mehrere Symbole nebeneinander machen die Anweisung unruhiger statt klarer. Im Material als schwarze Linien-Icons (s/w-tauglich), nie als farbige Emojis; die Emojis oben stehen nur für die Bedeutung. Am wichtigsten sind sie in Kl. 1/2 und für leseschwache Kinder.
+Grundsatz: Ist in der Klasse schon ein Symbolset eingeführt (Lehrwerk, Metacom), immer dieses verwenden. Symbole immer gleich groß, nach der Nummer direkt vor dem Anweisungstext. **Genau ein Symbol pro Aufgabe**, das für die Haupthandlung; mehrere Symbole nebeneinander machen die Anweisung unruhiger statt klarer. Im Material als schwarze Linien-Icons, nie als farbige Emojis; die Emojis oben stehen nur für die Bedeutung. Am wichtigsten sind sie in Kl. 1/2 und für leseschwache Kinder.
 
 ## Arbeitsanweisungen formulieren
 

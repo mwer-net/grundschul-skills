@@ -71,8 +71,8 @@ const ABSCHNITTE: Abschnitt[] = [
 				</ul>
 				<ol start={3}>
 					<li>
-						Claude fragt kurz nach (Farbe oder schwarz-weiß, Niveaus …), zeigt dir Entwürfe und einen Plan
-						der Aufgaben. Ist alles fertig, schickt Claude dir einen Link in die Schoolbox.
+						Claude fragt kurz nach (Format, Niveaus …), zeigt dir Entwürfe und einen Plan der Aufgaben. Ist
+						alles fertig, schickt Claude dir einen Link in die Schoolbox.
 					</li>
 					<li>
 						Alles, was Claude für dich gemacht hat, steht hier unter „Meine Mappen“. Eine Anfrage ist eine

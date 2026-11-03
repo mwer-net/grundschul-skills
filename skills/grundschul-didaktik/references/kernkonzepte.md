@@ -88,7 +88,7 @@ Stufen der Öffnung: organisatorisch (Raum, Kreis, Platzwahl) → methodisch (Wa
    | ●● | Kern | das Lernziel der Stunde |
    | ●●● | Herausforderung | erweiterte Anforderungen: Begründen, Übertragen, Erfinden |
 
-   Kennzeichnung neutral mit Punkten (s/w-tauglich), nie mit Wertungen, Buchstaben, Farben oder „leicht/schwer". Die Kinder wählen selbst und dürfen wechseln. Die Lehrkraft beobachtet die Wahl: Wer dauerhaft deutlich unter- oder überfordert wählt, bekommt im Gespräch eine Empfehlung (Wahl mit Beratung, keine Zuweisung). Optik und Figur sind auf allen Niveaus gleich. Ausnahme: In Klassenarbeiten gibt es keine Niveau-Wahl (siehe `klassenarbeit`).
+   Kennzeichnung neutral mit Punkten, nie mit Wertungen, Buchstaben, Farben oder „leicht/schwer". Die Kinder wählen selbst und dürfen wechseln. Die Lehrkraft beobachtet die Wahl: Wer dauerhaft deutlich unter- oder überfordert wählt, bekommt im Gespräch eine Empfehlung (Wahl mit Beratung, keine Zuweisung). Optik und Figur sind auf allen Niveaus gleich. Ausnahme: In Klassenarbeiten gibt es keine Niveau-Wahl (siehe `klassenarbeit`).
 2. **Selbstständig bearbeitbar.** Weil die Lehrkraft während der Lernaufgaben berät, muss jede Aufgabe ohne Rückfrage verständlich sein: „So geht's"-Beispiel, Arbeitsanweisungs-Symbole, gestufte Tippkarten, Lösung zur Selbstkontrolle.
 3. **Wahlhilfe für die Kinder** (nur mit Niveaus). Ein Satz oben oder eine kleine Wahlhilfe: „Wähle deine Aufgaben. Fang dort an, wo du sicher bist, und wage dann eine Herausforderung." Die Wachstums-Selbsteinschätzung hilft bei der Wahl.
 4. **Sozialform offen lassen** oder anbieten (👤 / 👥), außer die Aufgabe braucht zwingend einen Partner.

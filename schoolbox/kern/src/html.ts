@@ -142,11 +142,11 @@ export const darstellungsHtml = (
 			(_ganz, vorher: string, k: string) => `<body${vorher}class="${k} loesung"`,
 		);
 	}
-	if (praesentation && !/<script[^>]+src="[^"]*praesentation\.js"/.test(ergebnis)) {
-		ergebnis = ansEnde(ergebnis, PRAESENTATION_SKRIPT);
-	}
 	if ((profil ?? druckprofilAusHtml(html)) === 'sw') {
 		ergebnis = ansEnde(ergebnis, GRAU_SKRIPT);
+	}
+	if (praesentation && !/<script[^>]+src="[^"]*praesentation\.js"/.test(ergebnis)) {
+		ergebnis = ansEnde(ergebnis, PRAESENTATION_SKRIPT);
 	}
 	return ergebnis;
 };

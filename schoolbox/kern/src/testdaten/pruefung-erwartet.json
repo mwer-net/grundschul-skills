@@ -133,7 +133,12 @@
 		{
 			"stufe": "HINWEIS",
 			"seite": 1,
-			"text": "668 px frei unten → Abstand zwischen Aufgaben vergrößern (--abstand), nicht auffüllen"
+			"text": "Bild „Flau“ hat in s/w kaum Kontrast"
+		},
+		{
+			"stufe": "HINWEIS",
+			"seite": 1,
+			"text": "624 px frei unten → Abstand zwischen Aufgaben vergrößern (--abstand), nicht auffüllen"
 		}
 	]
 }

@@ -5,7 +5,16 @@
 
 import assert from 'node:assert/strict';
 import { execFileSync } from 'node:child_process';
-import { existsSync, mkdirSync, mkdtempSync, readdirSync, readFileSync, rmSync, statSync, writeFileSync } from 'node:fs';
+import {
+	existsSync,
+	mkdirSync,
+	mkdtempSync,
+	readdirSync,
+	readFileSync,
+	rmSync,
+	statSync,
+	writeFileSync,
+} from 'node:fs';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
 import { after, describe, it } from 'node:test';
@@ -108,7 +117,9 @@ const ganzseitigeRaster = (pdf: string) =>
 const baue = (datei: string, unter: string, ...weitere: string[]) => {
 	const aus = path.join(ordner, unter);
 	try {
-		execFileSync('python3', [BLATT_PY, 'bauen', datei, '-o', aus, '--ohne-loesung', ...weitere], { stdio: 'ignore' });
+		execFileSync('python3', [BLATT_PY, 'bauen', datei, '-o', aus, '--ohne-loesung', ...weitere], {
+			stdio: 'ignore',
+		});
 	} catch {
 		// Exit-Code 1 bei FEHLER; das PDF steht trotzdem da.
 	}
@@ -184,7 +195,9 @@ describe('graustufen.js', { skip: hatBrowser() ? false : 'Kein Chromium für bla
 	});
 
 	it('färbt Pseudo-Elemente, Inline-Stile, SVG und Verläufe um', () => {
-		const html = `${EIGENES_CSS.replace('</body>', `<script src="graustufen.js"></script>${ausgeben(`() => {
+		const html = `${EIGENES_CSS.replace(
+			'</body>',
+			`<script src="graustufen.js"></script>${ausgeben(`() => {
 	const bunt = (w) => { const m = w.match(/[\\d.]+/g) || []; return Math.max(+m[0], +m[1], +m[2]) - Math.min(+m[0], +m[1], +m[2]) > 6; };
 	const k = document.querySelector('.karte');
 	return {
@@ -198,7 +211,8 @@ describe('graustufen.js', { skip: hatBrowser() ? false : 'Kein Chromium für bla
 		verlauf: getComputedStyle(document.querySelector('.kopf')).backgroundImage,
 		buntErkannt: bunt('rgb(255, 0, 0)'),
 	};
-}`)}</body>`)}`.replace('class="kl3 farbe palette-sonnig"', 'class="kl3 sw"');
+}`)}</body>`,
+		)}`.replace('class="kl3 farbe palette-sonnig"', 'class="kl3 sw"');
 		const w = imBrowser<Record<string, string | boolean>>(html, 'elemente');
 		assert.equal(w.buntErkannt, true, 'Gegenprobe des Prüfers');
 		for (const [name, wert] of Object.entries(w)) {
@@ -210,6 +224,29 @@ describe('graustufen.js', { skip: hatBrowser() ? false : 'Kein Chromium für bla
 			}
 		}
 		assert.equal(w.flaeche, 'rgb(255, 255, 255)', 'helle bunte Fläche wird weiß');
+	});
+});
+
+describe('Eigene Klasse .sw im Material', { skip: hatBrowser() ? false : 'Kein Chromium für blatt.py' }, () => {
+	const html = `<!doctype html><html lang="de"><head><meta charset="utf-8"><title>Schlüsselwort</title>
+<link rel="stylesheet" href="blatt.css"><style>.sw{white-space:nowrap;color:#c62828}.sw.nomen{letter-spacing:2px}.sw-wert{color:#1565c0}</style></head>
+<body class="kl3 farbe palette-sonne"><section class="seite"><p>${'Ein langer Satz, der umbrechen muss. '.repeat(12)}
+<span class="sw nomen">Wort</span></p></section></body></html>`;
+	const ausgabe = (profil: 'farbe' | 'sw') =>
+		imBrowser<{ boxen: string[]; farbe: string }>(
+			darstellungsHtml(html, { loesung: false, profil }).replace(
+				'</body>',
+				`${ausgeben(`() => ({ boxen: (${BOXEN})(), farbe: getComputedStyle(document.querySelector('.sw.nomen')).color })`)}</body>`,
+			),
+			`eigene-sw-${profil}`,
+		);
+
+	it('trifft den body nicht: Das Blatt bricht wie in Farbe um, das Wort bleibt ohne Umbruch und wird grau', () => {
+		const farbe = ausgabe('farbe');
+		const sw = ausgabe('sw');
+		assert.deepEqual(sw.boxen, farbe.boxen);
+		assert.equal(farbe.farbe, 'rgb(198, 40, 40)');
+		assert.equal(sw.farbe, 'rgb(87, 87, 87)');
 	});
 });
 
@@ -376,6 +413,36 @@ describe('Bilder in s/w', { skip: hatBrowser() ? false : 'Kein Chromium für bla
 		rmSync(path.join(dir, 'ausgabe'), { force: true, recursive: true });
 	});
 
+	it('nimmt ein schon graues Bild unverändert und meldet eine Strichzeichnung nicht als kontrastarm', () => {
+		const dir = path.join(ordner, 'strich-unveraendert');
+		mkdirSync(path.join(dir, 'bilder'), { recursive: true });
+		const willi = path.join(ASSETS, 'bilder', 'willi-strich.png');
+		writeFileSync(path.join(dir, 'bilder', 'willi-strich.png'), readFileSync(willi));
+		const quelle = path.join(dir, 'blatt.html');
+		const html = `<!doctype html><html lang="de"><head><meta charset="utf-8"><title>Strich</title><link rel="stylesheet" href="blatt.css"></head>
+<body class="kl2 sw"><section class="seite"><img class="figur" src="bilder/willi-strich.png" alt="Willi"></section></body></html>`;
+		writeFileSync(quelle, html);
+		const eingebettet = execFileSync(
+			'python3',
+			[
+				'-c',
+				'import sys;sys.path.insert(0,sys.argv[1]);import blatt;from pathlib import Path;q=Path(sys.argv[2]);print(blatt.einbetten(q.read_text(encoding="utf-8"),q.parent))',
+				path.dirname(BLATT_PY),
+				quelle,
+			],
+			{ encoding: 'utf8', maxBuffer: 64 * 1024 * 1024 },
+		);
+		assert.ok(eingebettet.includes(readFileSync(willi).toString('base64')), 'Bytes des Originals');
+
+		const bericht = path.join(dir, 'bericht.json');
+		execFileSync('python3', [BLATT_PY, 'bauen', quelle, '--nur-pruefen', '--bericht', bericht], { encoding: 'utf8' });
+		const { meldungen } = JSON.parse(readFileSync(bericht, 'utf8')) as { meldungen: { code: string }[] };
+		assert.deepEqual(
+			meldungen.filter((m) => m.code === 'bild-kontrast-sw'),
+			[],
+		);
+	});
+
 	it('meldet ein Bild ohne Kontrast als Hinweis, nur in s/w', () => {
 		const bericht = path.join(dir, 'b.json');
 		execFileSync('python3', [BLATT_PY, 'bauen', quelle, '--nur-pruefen', '--bericht', bericht, '--profil', 'sw'], {
@@ -384,9 +451,14 @@ describe('Bilder in s/w', { skip: hatBrowser() ? false : 'Kein Chromium für bla
 		const sw = JSON.parse(readFileSync(bericht, 'utf8')) as { meldungen: { code: string; text: string }[] };
 		assert.deepEqual(
 			sw.meldungen.filter((m) => m.code === 'bild-kontrast-sw').map((m) => m.text),
-			['Bild „Figur“ hat in s/w kaum Kontrast', 'Bild „Quer“ hat in s/w kaum Kontrast', 'Bild „Flau“ hat in s/w kaum Kontrast'],
+			[
+				'Bild „Quer“ hat in s/w kaum Kontrast',
+				'Bild „Flau“ hat in s/w kaum Kontrast',
+			],
 		);
-		execFileSync('python3', [BLATT_PY, 'bauen', quelle, '--nur-pruefen', '--bericht', bericht], { stdio: 'ignore' });
+		execFileSync('python3', [BLATT_PY, 'bauen', quelle, '--nur-pruefen', '--bericht', bericht], {
+			stdio: 'ignore',
+		});
 		const farbe = JSON.parse(readFileSync(bericht, 'utf8')) as { meldungen: { code: string }[] };
 		assert.equal(farbe.meldungen.filter((m) => m.code === 'bild-kontrast-sw').length, 0, 'Gegenprobe Farbe');
 		rmSync(bericht);

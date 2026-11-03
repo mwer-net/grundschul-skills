@@ -1,6 +1,6 @@
 import { readFile } from 'node:fs/promises';
 
-import { dokumentDir, leseMeta, listeVersionen, sichereFassung, versionsPfad } from '@schoolbox/kern';
+import { dokumentDir, leseMeta, listeVersionen, schreibeMeta, sichereFassung, versionsPfad } from '@schoolbox/kern';
 import type { RequestHandler } from 'express';
 import { json, Router } from 'express';
 
@@ -10,10 +10,10 @@ import type { Ereignis } from './ereignisse';
 import { HttpFehler } from './fehler';
 import { freigabenApi } from './freigaben';
 import type { Kontext } from './kontext';
-import { dokSchluessel, kennung } from './kontext';
+import { dokSchluessel, kennung, leseBekannt } from './kontext';
 import { mappenApi } from './mappen';
 import { papierkorbApi } from './papierkorb';
-import { pdfAntwort, sendePdf, waehlePdfVariante } from './pdf';
+import { pdfAntwort, sendePdf, waehlePdfVariante, waehleProfil } from './pdf';
 import { csrfSchutz, pruefeIdParam } from './schutz';
 
 export const MAX_JSON = '5mb';
@@ -143,18 +143,39 @@ export const apiRouter = (kontext: Kontext) => {
 		res.json(ergebnis);
 	});
 
+	// Die zuletzt gewählte Ansicht (042): kein Inhalt, also keine Version und kein Hinweis „wurde geändert“.
+	router.put('/dokumente/:mappe/:dok/ansicht', async (req, res) => {
+		const { dok, mappe } = req.params;
+		verlangeDokument(kontext, mappe, dok);
+		const profil = waehleProfil((req.body as { profil?: unknown } | undefined)?.profil);
+		if (profil === undefined) {
+			throw new HttpFehler(400, '„profil“ fehlt.');
+		}
+		await kontext.sperre(dokSchluessel(mappe, dok), async () => {
+			const meta = await leseMeta(kontext.konfig.materialDir, mappe, dok);
+			if (meta.druckprofil !== profil) {
+				await schreibeMeta(kontext.konfig.materialDir, mappe, dok, { ...meta, druckprofil: profil });
+				kontext.bekannt.set(dokSchluessel(mappe, dok), await leseBekannt(kontext, mappe, dok));
+			}
+		});
+		res.json({ profil });
+	});
+
 	router.post('/dokumente/:mappe/:dok/pdf', async (req, res) => {
 		const { dok, mappe } = req.params;
 		verlangeDokument(kontext, mappe, dok);
-		const variante = waehlePdfVariante((req.body as { variante?: unknown } | undefined)?.variante);
-		const pdf = await kontext.pdf.dokument(mappe, dok, variante);
-		res.json(pdfAntwort(`/api/dokumente/${mappe}/${dok}/pdf/${variante}`, pdf));
+		const body = req.body as { variante?: unknown; profil?: unknown } | undefined;
+		const variante = waehlePdfVariante(body?.variante);
+		const profil = waehleProfil(body?.profil);
+		const pdf = await kontext.pdf.dokument(mappe, dok, variante, profil);
+		res.json(pdfAntwort(`/api/dokumente/${mappe}/${dok}/pdf/${variante}`, pdf, profil));
 	});
 
 	router.get('/dokumente/:mappe/:dok/pdf/:variante{/:datei}', async (req, res) => {
 		const { dok, mappe, variante } = req.params;
 		verlangeDokument(kontext, mappe, dok);
-		await sendePdf(req, res, await kontext.pdf.dokument(mappe, dok, waehlePdfVariante(variante)));
+		const profil = waehleProfil(req.query.profil);
+		await sendePdf(req, res, await kontext.pdf.dokument(mappe, dok, waehlePdfVariante(variante), profil));
 	});
 
 	router.get('/ereignisse', ereignisStrom(kontext));

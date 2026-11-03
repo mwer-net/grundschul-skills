@@ -40,7 +40,7 @@ Warum so: Kommentare wirken auf die Motivation besser als Noten allein; eine Not
 
 ## Rückfragen
 
-Zuerst die Start-Abfrage (`grundschul-didaktik/references/rueckfragen.md`): Medium meist A4 hoch, s/w; Bausteine Selbsteinschätzung *(Empfehlung: ja)* und Sternchenaufgabe *(Empfehlung: ja, außerhalb der Wertung)*. Keine Niveau-Wahl. Danach, je eine Frage mit Empfehlung:
+Zuerst die Start-Abfrage (`grundschul-didaktik/references/rueckfragen.md`): Medium meist A4 hoch; Bausteine Selbsteinschätzung *(Empfehlung: ja)* und Sternchenaufgabe *(Empfehlung: ja, außerhalb der Wertung)*. Keine Niveau-Wahl. Danach, je eine Frage mit Empfehlung:
 
 1. **Inhalte:** Welche Ich-kann-Ziele bzw. Lehrwerksseiten hatte die Einheit? *Nur prüfen, was geübt wurde.*
 2. **Schulvorgaben:** Gibt es einen Notenschlüssel oder ein Bewertungsraster der Schule? *Sonst Vorschlag, als solcher gekennzeichnet.*
@@ -114,4 +114,4 @@ Diagramm lesen und zeichnen ist ein eigener Aufgabentyp: `<x-diagramm werte="…
 - Probearbeit und Hauptarbeit sind zwei Kopien derselben HTML-Datei, die sich nur in Zahlen und Wörtern unterscheiden; eine dritte Kopie dient bei Bedarf zum Nachschreiben.
 - Punkte rechts in der Anweisungszeile: `<span class="punkte"><span class="antwort kurz"></span>/ 4 P.</span>` statt `.niveau`.
 - Erwartungshorizont über die Lösungs-Markierungen (`data-l`, `nur-loesung`) als eigenes PDF (`-loesung.pdf`), nie auf dem Blatt der Kinder.
-- Druckprofil meist s/w; Aufgaben ohne Kasten. Gewonnene Höhe geht an Schreibflächen und Notizplatz, nicht an mehr Aufgaben.
+- Aufgaben ohne Kasten. Gewonnene Höhe geht an Schreibflächen und Notizplatz, nicht an mehr Aufgaben.

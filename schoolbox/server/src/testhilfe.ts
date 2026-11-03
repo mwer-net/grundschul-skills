@@ -4,9 +4,10 @@ import type { AddressInfo } from 'node:net';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
 
-import type { FolienZusatz, Format, Meldung } from '@schoolbox/kern';
+import type { Druckprofil, FolienZusatz, Format, Meldung } from '@schoolbox/kern';
 import {
 	ASSETS,
+	ausgabeOrdner,
 	ausgabeSchluessel,
 	dokumentDir,
 	erzeugePasswortHash,
@@ -201,8 +202,8 @@ export const UEBERLAUF = '„Aufgabe 4“ ragt aus der Seite (31 px) → kürzen
  * Ersatz für blatt.py, ohne Chromium und in Millisekunden: je eine leere Seite im Format des Dokuments, eine Lösung,
  * wenn die Quelle `data-l` enthält, und ein Prüffehler, wenn sie `data-test-ueberlauf` enthält.
  */
-export const baueErsatzAusgabe = async (dokDir: string) => {
-	const schluessel = await ausgabeSchluessel(dokDir);
+export const baueErsatzAusgabe = async (dokDir: string, profil?: Druckprofil) => {
+	const schluessel = await ausgabeSchluessel(dokDir, profil);
 	const html = await readFile(path.join(dokDir, 'material.html'), 'utf8');
 	const seite = ['folie', 'a4-quer'].includes(formatAusHtml(html)) ? FOLIE : A4;
 	const meldungen: Meldung[] = html.includes('data-test-ueberlauf')
@@ -217,7 +218,7 @@ export const baueErsatzAusgabe = async (dokDir: string) => {
 		const bericht = { seiten: [], meldungen, fehler: meldungen.length };
 		await writeFile(path.join(tmp, 'pruefbericht.json'), JSON.stringify(bericht));
 		await writeFile(path.join(tmp, HTML_DATEI), html);
-		await uebernehmeAusgabe(tmp, dokDir, schluessel);
+		await uebernehmeAusgabe(tmp, dokDir, schluessel, await ausgabeOrdner(dokDir, profil));
 	} finally {
 		await rm(tmp, { recursive: true, force: true });
 	}

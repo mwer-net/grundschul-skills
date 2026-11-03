@@ -27,7 +27,7 @@ Nach den Rückfragen 2–3 Entwürfe zeigen (Stationsübersicht + eine Musterkar
 ## Bausteine
 
 ### Stationskarte (A5 oder A4, laminierbar)
-- Stationsnummer groß + Symbol (gleich auf Laufzettel und Lösungskarte); Stationsfarbe im Farbprofil, im s/w-Profil Symbol als Unterscheidung (`grundschul-didaktik/references/druck-und-platz.md`)
+- Stationsnummer groß + Symbol (gleich auf Laufzettel und Lösungskarte); Stationsfarbe zusätzlich zum Symbol (`grundschul-didaktik/references/gestaltung.md`)
 - Ich-kann-Ziel der Station
 - Titel (kindgerecht), Sozialform-Symbol (👤 👥 👨‍👩‍👧), ggf. „Pflicht" / „Wahl" als Wort (Punkte sind für Niveaus reserviert)
 - Material-Liste mit Bildern
@@ -62,7 +62,7 @@ Satzstreifen zum Umstellen als Station: `x-satzglieder` mit `ausschneiden="ja"` 
 
 ## Wochenplan (Besonderheiten)
 
-- Fächer durch Symbol (im Farbprofil zusätzlich Farbe) getrennt, Pflicht- und Wahlaufgaben klar markiert.
+- Fächer durch Symbol und Farbe getrennt, Pflicht- und Wahlaufgaben klar markiert.
 - Aufgaben mit Seiten-/Materialangabe ("AH S. 12, Nr. 1–3").
 - Abhakfeld pro Aufgabe, Unterschrift Lehrkraft/Eltern optional.
 - Plan auf 1 A4-Seite, Kl. 1 mit vielen Symbolen statt Text.

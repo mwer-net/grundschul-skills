@@ -210,12 +210,29 @@ const Vorschau = ({ w }: { w: BildWerte }) => (
 	</figure>
 );
 
-const Hinweise = ({ bild, w }: { bild: BildSteuerung; w: BildWerte }) => {
-	if (!w.unscharf) {
+/** Im s/w-Druck kann eine andere Datei erscheinen als am Bildschirm (041); entschieden wird das nur an einer Stelle. */
+const Druckfassung = ({ adresse, src }: { adresse: string; src: string }) => {
+	const { daten } = useLaden<{ strich: string | null }>(`${adresse}/bilder/fassung?src=${encodeURIComponent(src)}`);
+	if (!daten) {
+		return null;
+	}
+	return (
+		<p className="flex gap-2 rounded-xl bg-brand-50 p-3" data-hinweis="druckfassung">
+			<Symbol name="drucker" className="size-5 flex-none" />
+			{daten.strich
+				? `Im s/w-PDF erscheint hier die Strichzeichnung „${daten.strich}“.`
+				: 'Im s/w-PDF erscheint dieses Bild in Graustufen.'}
+		</p>
+	);
+};
+
+const Hinweise = ({ adresse, w }: { adresse: string; w: BildWerte }) => {
+	if (!w.unscharf && !w.sw) {
 		return null;
 	}
 	return (
 		<div className="mt-3 flex flex-col gap-3" data-bild-hinweise>
+			{w.sw && <Druckfassung adresse={adresse} src={w.src} />}
 			{w.unscharf && (
 				<p className="flex gap-2 rounded-xl bg-[#fff8e1] p-3" data-hinweis="dpi">
 					<Symbol name="achtung" className="size-5 flex-none" />
@@ -326,7 +343,7 @@ export const Bildwerkzeug = ({ bild }: { bild: BildSteuerung }) => {
 	return (
 		<div className="mt-3" data-bildwerkzeug={w.platzhalter ? 'platzhalter' : 'bild'}>
 			{w.platzhalter ? <p className="text-leise">{`Hier soll ein Bild hin: ${w.alt}`}</p> : <Vorschau w={w} />}
-			{!w.platzhalter && <Hinweise bild={bild} w={w} />}
+			{!w.platzhalter && <Hinweise adresse={bild.adresse} w={w} />}
 			<h3 className="mt-5 font-bold">{w.platzhalter ? 'Bild einsetzen' : 'Austauschen'}</h3>
 			<div className="mt-2 flex flex-wrap gap-2">
 				{bild.arbeit === 'hochladen' || bild.arbeit === 'sammlung' ? (

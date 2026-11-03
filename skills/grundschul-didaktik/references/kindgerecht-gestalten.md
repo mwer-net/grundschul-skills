@@ -9,18 +9,18 @@ Zwei Befunde scheinen sich zu widersprechen, passen aber zusammen:
 
 **Daraus folgt die Grundregel: Das schön machen, was ohnehin da ist – nicht etwas dazustellen.** Form und Figuren kommen an Elemente mit Funktion (Aufgabennummer, Beispiel, Tipp, Lernobjekt), nicht als Füllung.
 
-**Druckprofil:** Die Start-Abfrage legt fest, ob farbig oder schwarz-weiß gestaltet wird (`druck-und-platz.md`). Im **Farbprofil** wirkt Emotional Design über Farbe als Akzent, Form, Schrift und Figur; im **s/w-Profil** über Form, Schrift und Figur. In beiden gibt es keine Farbflächen hinter Aufgaben und keine Aufgabenkästen – das Blatt soll Platz für Übung haben.
+**Farbe:** Material wird in Farbe angelegt, s/w ist eine Ansicht davon (`gestaltung.md`, Abschnitt „Farbe“). Emotional Design wirkt über Farbe als Akzent, Form, Schrift und Figur. Es gibt keine Farbflächen hinter Aufgaben und keine Aufgabenkästen – das Blatt soll Platz für Übung haben.
 
 ## Die fünf Hebel
 
 ### 1. Freundliche Formen für die Struktur
 
 - Aufgaben **ohne Kasten und ohne Flächenfüllung**: hängende Nummer, Abstand zur nächsten Aufgabe (`druck-und-platz.md`, Abschnitt 4).
-- Aufgabennummern in **kleinen gefüllten Kreisen** (32–36 px, weiße fette Ziffer; Farbprofil: Hauptfarbe, s/w: schwarz): starker Anker, kaum Fläche.
-- Die wenigen Rahmen mit Funktion (Sprechblase, Wortspeicher, Antwortkästchen) als dünne Kontur mit **gerundeten Ecken** (Rundung ca. 8–16 px); im Farbprofil Kontur in der Akzentfarbe und ggf. sehr helle Füllung, im s/w-Profil ohne Füllung.
+- Aufgabennummern in **kleinen gefüllten Kreisen** (32–36 px, weiße fette Ziffer, in der Hauptfarbe): starker Anker, kaum Fläche.
+- Die wenigen Rahmen mit Funktion (Sprechblase, Wortspeicher, Antwortkästchen) als dünne Kontur mit **gerundeten Ecken** (Rundung ca. 8–16 px); Kontur in der Akzentfarbe und ggf. sehr helle Füllung.
 - Schreiblinien und Antwortkästen schlicht (schwarz/dunkelgrau, 1,5–2 px), damit Kinderschrift lesbar bleibt.
 
-### 2. Farbe als Akzent (Farbprofil)
+### 2. Farbe als Akzent
 
 Wurde in der Start-Abfrage Farbe gewählt:
 
@@ -28,9 +28,7 @@ Wurde in der Start-Abfrage Farbe gewählt:
 - Farbe bedeutet überall dasselbe: z. B. jede Station eine Farbe; Klassenkonventionen (Wortarten, Stellenwerte) haben Vorrang. Niveaus bekommen keine eigene Farbe, nur Punkte ● / ●● / ●●●.
 - Farbe nie als einzige Information; Graustufen-Vorschau prüfen.
 
-Im **s/w-Profil** entfällt die Palette: Nummernkreise schwarz, Überschrift schwarz in runder Schrift, Leitfigur und Wachstumsgrafik als Strichzeichnung zum Anmalen.
-
-Bewährte Paletten (Hex) für das Farbprofil:
+Bewährte Paletten (Hex):
 
 | Name | Hauptfarbe | Akzent | Überschrift + Nummernkreis (Kontrast ≥ 3:1) |
 |---|---|---|---|
@@ -55,7 +53,7 @@ Feste Vorgabe für alle Materialien: Die Leitfigur ist **Willi Waschbär** oder 
 
 Canva-Media-IDs und Technik: `html-materialerstellung/references/bilder.md`.
 
-**Farbprofil: farbige Versionen. s/w-Profil: Strich-Versionen**, denn die farbigen werden in s/w zu grauen Flächen (Toner, unruhig). Fehlt eine Strich-Version noch: in Canva mit `generate-image` aus dem Original (`imageReferences`) erzeugen, Prompt „gleiche Figur als Ausmalbild: nur klare schwarze Konturen, weiße Füllung, keine Grautöne, keine Schraffur, weißer Hintergrund", dann `remove-background`, als Datei in `assets/bilder/` ablegen (`bilder.md`).
+**Im Material steht die farbige Version; die s/w-Ausgabe nimmt von selbst die Strich-Version**, denn die farbigen werden in s/w zu grauen Flächen (Toner, unruhig). Fehlt eine Strich-Version noch: in Canva mit `generate-image` aus dem Original (`imageReferences`) erzeugen, Prompt „gleiche Figur als Ausmalbild: nur klare schwarze Konturen, weiße Füllung, keine Grautöne, keine Schraffur, weißer Hintergrund", dann `remove-background`, als Datei in `assets/bilder/` ablegen (`bilder.md`).
 
 - **Wiederverwenden statt neu erzeugen:** Die vorhandenen Dateien einsetzen. Für eine andere Pose (zeigt nach links, freut sich, denkt nach) `generate-image` mit dem Original als `imageReferences` und der Aussehen-Beschreibung oben aufrufen, danach `remove-background`; neue Posen als Datei ergänzen.
 - **Wer wann:** Pro Material eine Figur, abwechselnd über die Materialien einer Reihe; bei Partner- oder Dialogaufgaben auch beide.
@@ -77,7 +75,7 @@ Nicht zulässig: Stimmungsbilder zur Sachaufgabe (Kind beim Frühstück, wenn di
 
 **Weglass-Test:** Könnte das Kind die Aufgabe ohne das Bild genauso gut lösen? Dann weg damit.
 
-Dosierung: Leitfigur plus nur die Bilder, die die Aufgaben brauchen. Für s/w als Strichzeichnung.
+Dosierung: Leitfigur plus nur die Bilder, die die Aufgaben brauchen.
 
 ### 5. Kindgerechte Schrift
 
@@ -92,15 +90,15 @@ Bilder und Grafiken, die das Material braucht, erzeugt der Skill nach Bedarf mit
 
 **Stil-Satz einmal pro Material festlegen und für jedes Bild wörtlich wiederverwenden** – so bleibt der Stil einheitlich.
 
-Farbprofil:
+Farbbild:
 
 > Kindgerechte Illustration im flachen Vektorstil, runde, weiche Formen, klare dunkle Konturen, warme Pastellfarben ({Palette}), freundliche Gesichter, weißer Hintergrund, freigestellt, keine Schrift, keine Zahlen, keine Buchstaben im Bild, kein Hintergrundmuster.
 
-s/w-Profil:
+Strichzeichnung zum Anmalen (`name-strich.png`):
 
 > Kindgerechte Strichzeichnung wie ein Ausmalbild, runde, weiche Formen, klare schwarze Konturen gleichmäßiger Stärke, weiße Füllung, keine Grautöne, keine Schraffur, freundliche Gesichter, weißer Hintergrund, freigestellt, keine Schrift, keine Zahlen, keine Buchstaben im Bild, kein Hintergrundmuster.
 
-Szenenbild mit Hintergrund (Farbprofil, für Geschichten und Erzählanlässe, nicht freigestellt):
+Szenenbild mit Hintergrund (für Geschichten und Erzählanlässe, nicht freigestellt):
 
 > Kindgerechte Illustration im flachen Vektorstil, runde, weiche Formen, klare dunkle Konturen, warme fröhliche Farben, freundliche Gesichter, keine Schrift, keine Zahlen, keine Buchstaben im Bild.
 
@@ -137,9 +135,9 @@ Eine durchgehende Geschichte trägt eine ganze Unterrichtsreihe besser als einze
 
 ## Prüffragen „ansprechend, aber nicht überladen"
 
-- [ ] Würde ein Kind das Blatt gern in die Hand nehmen? (runde Überschrift, Nummernkreise, Farbakzente im Farbprofil, Willi oder Wilma mit Funktion)
+- [ ] Würde ein Kind das Blatt gern in die Hand nehmen? (runde Überschrift, Nummernkreise, Farbakzente, Willi oder Wilma mit Funktion)
 - [ ] Jedes Bild besteht den Weglass-Test
-- [ ] Nur Bilder, die zum Lösen gebraucht werden, plus Leitfigur; Version passend zum Druckprofil
+- [ ] Nur Bilder, die zum Lösen gebraucht werden, plus Leitfigur
 - [ ] Keine Flächen hinter Aufgaben, Text schwarz, Information nie nur über Farbe
 - [ ] Höchstens zwei Schriften, Fließtext in klarer Druckschrift
 - [ ] Nichts Dekoratives zwischen Anweisung und Arbeitsfläche

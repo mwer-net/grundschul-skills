@@ -18,7 +18,7 @@ import { ansichtRouter } from './ansicht';
 import { HttpFehler } from './fehler';
 import type { Kontext } from './kontext';
 import { FREIGABEN_SPERRE } from './kontext';
-import { pdfAntwort, sendePdf, waehleMappenVariante, waehlePdfVariante } from './pdf';
+import { pdfAntwort, sendePdf, waehleMappenVariante, waehlePdfVariante, waehleProfil } from './pdf';
 
 const ID_REGEX = new RegExp(ID_MUSTER);
 const SICHERE_METHODEN = new Set(['GET', 'HEAD']);
@@ -202,15 +202,17 @@ export const teilenRouter = (kontext: Kontext, sendeSeite: (status: number) => R
 	router.get('/api/pdf/:dok/:variante', async (req, res) => {
 		const { dok, mappe } = await verlangeDok(req);
 		const variante = waehlePdfVariante(req.params.variante);
-		const pdf = await kontext.pdf.dokument(mappe, dok, variante);
-		res.json(pdfAntwort(`${freigabePfad(tokenVon(req))}/pdf/${dok}/${variante}`, pdf));
+		const profil = waehleProfil(req.query.profil);
+		const pdf = await kontext.pdf.dokument(mappe, dok, variante, profil);
+		res.json(pdfAntwort(`${freigabePfad(tokenVon(req))}/pdf/${dok}/${variante}`, pdf, profil));
 	});
 
 	router.get('/api/alles/:variante', async (req, res) => {
 		const mappe = verlangeMappe(req);
 		const variante = waehleMappenVariante(req.params.variante);
-		const pdf = await kontext.pdf.mappe(mappe, variante);
-		res.json(pdfAntwort(`${freigabePfad(tokenVon(req))}/alles/${variante}`, pdf));
+		const profil = waehleProfil(req.query.profil);
+		const pdf = await kontext.pdf.mappe(mappe, variante, profil);
+		res.json(pdfAntwort(`${freigabePfad(tokenVon(req))}/alles/${variante}`, pdf, profil));
 	});
 
 	router.use('/api', () => {
@@ -221,12 +223,18 @@ export const teilenRouter = (kontext: Kontext, sendeSeite: (status: number) => R
 
 	router.get('/pdf/:dok/:variante{/:datei}', async (req, res) => {
 		const { dok, mappe } = await verlangeDok(req);
-		await sendePdf(req, res, await kontext.pdf.dokument(mappe, dok, waehlePdfVariante(req.params.variante)));
+		const profil = waehleProfil(req.query.profil);
+		await sendePdf(
+			req,
+			res,
+			await kontext.pdf.dokument(mappe, dok, waehlePdfVariante(req.params.variante), profil),
+		);
 	});
 
 	router.get('/alles/:variante{/:datei}', async (req, res) => {
 		const mappe = verlangeMappe(req);
-		await sendePdf(req, res, await kontext.pdf.mappe(mappe, waehleMappenVariante(req.params.variante)));
+		const profil = waehleProfil(req.query.profil);
+		await sendePdf(req, res, await kontext.pdf.mappe(mappe, waehleMappenVariante(req.params.variante), profil));
 	});
 
 	router.get('/{*seite}', sendeSeite(200));

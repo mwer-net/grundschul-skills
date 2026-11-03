@@ -44,7 +44,7 @@ import {
 const hilfe = () => `schoolbox – Mappen und Dokumente der Schoolbox anlegen und fertigstellen
 
   schoolbox neu --titel … --fach … --klasse …
-  schoolbox dokument <mappe> --titel … --art … --druckprofil sw|farbe [--format …] [--vorlage …]
+  schoolbox dokument <mappe> --titel … --art … [--druckprofil sw|farbe] [--format …] [--vorlage …]
                      [--druckhinweis "…"]…
   schoolbox entwuerfe <mappe>/<dok> A.html B.html [C.html]
   schoolbox waehle <mappe>/<dok> B
@@ -129,7 +129,7 @@ const befehlDokument = async (konfig: Konfig, argumente: string[]): Promise<Erge
 			values.format ?? (values.vorlage === 'minibuch' ? 'minibuch' : standardFormat(art)),
 			FORMATE,
 		),
-		druckprofil: waehleWert('Druckprofil', values.druckprofil, DRUCKPROFILE),
+		druckprofil: waehleWert('Druckprofil', values.druckprofil ?? 'farbe', DRUCKPROFILE),
 		vorlage: values.vorlage,
 		druckhinweise: (values.druckhinweis ?? []).map((h) => h.trim()).filter(Boolean),
 	};

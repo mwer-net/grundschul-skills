@@ -1,5 +1,6 @@
 import type { AusgabeVariante, MappenVariante, PdfVariante } from '@schoolbox/kern/src/namen';
 import { entwurfVorschauDatei } from '@schoolbox/kern/src/namen';
+import type { Druckprofil } from '@schoolbox/kern/src/werte';
 
 import { lade, sende } from '../api';
 import type { PdfAntwort } from '../typen';
@@ -21,8 +22,17 @@ export const istGeteilt = (zugang: Zugang) => zugang.token !== null;
 export const inhaltAdresse = (zugang: Zugang) =>
 	zugang.token === null ? `/api/mappen/${zugang.mappe}` : `/f/${zugang.token}/api/inhalt`;
 
-export const ansichtAdresse = (zugang: Zugang, dok: string, loesung = false) =>
-	`${basis(zugang)}/ansicht/${zugang.mappe}/dokumente/${dok}/${loesung ? '?loesung=1' : ''}`;
+export const ansichtAdresse = (zugang: Zugang, dok: string, loesung = false, profil?: Druckprofil) => {
+	const suche = new URLSearchParams();
+	if (loesung) {
+		suche.set('loesung', '1');
+	}
+	if (profil) {
+		suche.set('profil', profil);
+	}
+	const text = suche.toString();
+	return `${basis(zugang)}/ansicht/${zugang.mappe}/dokumente/${dok}/${text ? `?${text}` : ''}`;
+};
 
 export const vorschauAdresse = (zugang: Zugang, dok: string, kennung: string) =>
 	`${basis(zugang)}/ansicht/${zugang.mappe}/dokumente/${dok}/ausgabe/material-s1.png?v=${kennung}`;
@@ -52,15 +62,17 @@ export const praesentationAnsicht = (zugang: Zugang, dok: string) =>
 /** Bearbeiten kann nur die Lehrkraft; Teilen-Links öffnen den Editor nie. */
 export const editorSeite = (zugang: Zugang, dok: string) => `/m/${zugang.mappe}/${dok}/bearbeiten`;
 
-export const druckSeite = (zugang: Zugang, dok: string, variante: PdfVariante) =>
-	`${dokumentSeite(zugang, dok)}/drucken?fassung=${variante}`;
+export const druckSeite = (zugang: Zugang, dok: string, variante: PdfVariante, profil?: Druckprofil) =>
+	`${dokumentSeite(zugang, dok)}/drucken?fassung=${variante}${profil ? `&profil=${profil}` : ''}`;
 
-export const bereiteDokumentVor = (zugang: Zugang, dok: string, variante: AusgabeVariante) =>
-	zugang.token === null
-		? sende<PdfAntwort>(`/api/dokumente/${zugang.mappe}/${dok}/pdf`, { variante })
-		: lade<PdfAntwort>(`/f/${zugang.token}/api/pdf/${dok}/${variante}`);
+const profilSuche = (profil?: Druckprofil) => (profil ? `?profil=${profil}` : '');
 
-export const bereiteMappeVor = (zugang: Zugang, variante: MappenVariante) =>
+export const bereiteDokumentVor = (zugang: Zugang, dok: string, variante: AusgabeVariante, profil?: Druckprofil) =>
 	zugang.token === null
-		? sende<PdfAntwort>(`/api/mappen/${zugang.mappe}/pdf`, { variante })
-		: lade<PdfAntwort>(`/f/${zugang.token}/api/alles/${variante}`);
+		? sende<PdfAntwort>(`/api/dokumente/${zugang.mappe}/${dok}/pdf`, { variante, profil })
+		: lade<PdfAntwort>(`/f/${zugang.token}/api/pdf/${dok}/${variante}${profilSuche(profil)}`);
+
+export const bereiteMappeVor = (zugang: Zugang, variante: MappenVariante, profil?: Druckprofil) =>
+	zugang.token === null
+		? sende<PdfAntwort>(`/api/mappen/${zugang.mappe}/pdf`, { variante, profil })
+		: lade<PdfAntwort>(`/f/${zugang.token}/api/alles/${variante}${profilSuche(profil)}`);

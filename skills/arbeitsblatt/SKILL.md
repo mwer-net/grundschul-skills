@@ -9,7 +9,7 @@ Laden zusammen mit: `grundschul-didaktik` (Pflicht), dem passenden `fach-*`-Skil
 
 ## Rückfragen (zusätzlich zu den Pflichtangaben)
 
-Zuerst die Start-Abfrage (`grundschul-didaktik/references/rueckfragen.md`): Materialart steht fest, Medium meist A4 hoch, Farbe oder s/w *(Empfehlung: s/w für Kopiervorlagen)*, dann Selbsteinschätzung unten *(Empfehlung: ja)*, Churer Modell mit Niveaus zur Selbstwahl *(Empfehlung: ja)*, Sternchenaufgabe *(Empfehlung: nein mit Niveaus, ja ohne)*. Danach nach dem Rückfrage-Protokoll, eine Frage pro Nachricht, jeweils mit Empfehlung:
+Zuerst die Start-Abfrage (`grundschul-didaktik/references/rueckfragen.md`): Materialart steht fest, Medium meist A4 hoch, dann Selbsteinschätzung unten *(Empfehlung: ja)*, Churer Modell mit Niveaus zur Selbstwahl *(Empfehlung: ja)*, Sternchenaufgabe *(Empfehlung: nein mit Niveaus, ja ohne)*. Danach nach dem Rückfrage-Protokoll, eine Frage pro Nachricht, jeweils mit Empfehlung:
 
 1. **Funktion:** Einführung (mit Beispiel, viel Anschauung), Übung (viele gleichartige Items, Selbstkontrolle), Vertiefung/Transfer (offene Aufgaben) oder Wiederholung? *Empfehlung meist: Übung.*
 2. **Umfang:** 1 Seite oder Mappe? Bearbeitungszeit (10 / 20 / 45 min)? *Empfehlung: 1 Seite, ca. 20 min.*
@@ -36,7 +36,7 @@ Nach den Rückfragen 2–3 Entwürfe zeigen, erst nach Freigabe des Aufgabenplan
    - Willi oder Wilma gibt einen Strategietipp direkt bei der Aufgabe, zu der er gehört; Tipps und Rückmeldungen in „noch"-Sprache.
    - Falls gewählt: **Sternchenaufgabe ★** als letzte Aufgabe, freiwillig für alle („Wer mag, knobelt hier."), offen oder knobelnd, keine „mehr vom Gleichen". ★ statt Nummernkreis bzw. vor der Nummer.
 4. Fußzeile (nur wenn Selbsteinschätzung gewählt), schlank und ohne Fläche: Ich-kann-Satz + Wachstums-Selbsteinschätzung zum Anmalen (Samen → Keimling → Pflanze → Blume; s/w: Strich-Version, Farbe: farbige Grafik, Dateien in `html-materialerstellung/assets/bilder/`) und Reflexionsfrage („Was hat dir geholfen?"; Kl. 1/2 zum Ankreuzen oder mündlich im Kreis, ab Kl. 3 schriftlich). Optional ein Rückmeldefeld für die Lehrkraft. Ohne Selbsteinschätzung entfällt der Fuß, der Platz geht an Aufgaben.
-5. Separates Lösungsblatt zur Selbstkontrolle (gleiches Layout, Lösungen fett und unterstrichen, im Farbprofil zusätzlich in der Akzentfarbe).
+5. Separates Lösungsblatt zur Selbstkontrolle (gleiches Layout, Lösungen fett, unterstrichen und in der Akzentfarbe).
 
 ## Bewährte Aufgabenformate
 
@@ -69,7 +69,7 @@ Zusätzlich zur Basis-Checkliste:
 - [ ] Erstes Item jeder neuen Aufgabenart vorgelöst
 - [ ] Aufgaben steigen im Anspruch
 - [ ] Platz reicht für Kinderschrift (Mindestgrößen eingehalten), keine Kästen, schlanker Kopf und Fuß; Kl. 1/2 mit sichtbarer Luft, Kl. 3/4 ohne Leerstreifen
-- [ ] Druckprofil aus der Start-Abfrage eingehalten: keine Flächen hinter Aufgaben, Text schwarz; s/w mit Strichzeichnungen, Farbe nur als Akzent
+- [ ] Keine Flächen hinter Aufgaben, Text schwarz, Farbe nur als Akzent und nie als einzige Information (`grundschul-didaktik/references/gestaltung.md`)
 - [ ] Lösungsblatt vollständig und korrekt
 - [ ] Visuelle Endkontrolle bestanden: Abbildungen exakt, Beispiel nicht gequetscht, für ein Kind der Klasse auf einen Blick verständlich
 - [ ] Bausteine wie gewählt: Fuß mit Selbsteinschätzung, Niveau-Punkte, Sternchenaufgabe nur, wenn in der Start-Abfrage bestätigt

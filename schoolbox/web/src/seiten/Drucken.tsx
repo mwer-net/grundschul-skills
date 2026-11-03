@@ -20,7 +20,8 @@ interface MitPdf {
 type Stand = { art: 'laeuft' } | MitPdf | { art: 'fehler'; text: string };
 
 /** Zeigt das PDF im Browser; Safari bringt dafür einen eigenen Betrachter mit Drucken bzw. Teilen-Menü mit. */
-const oeffne = ({ adresse }: PdfAntwort) => window.location.replace(`${adresse}?anzeigen=1`);
+const oeffne = ({ adresse }: PdfAntwort) =>
+	window.location.replace(`${adresse}${adresse.includes('?') ? '&' : '?'}anzeigen=1`);
 
 /**
  * Eigener Tab zum Drucken: „Drucken“ öffnet ihn sofort (so blockiert Safari ihn nicht), hier wird das PDF bei Bedarf
@@ -29,6 +30,8 @@ const oeffne = ({ adresse }: PdfAntwort) => window.location.replace(`${adresse}?
 export const Drucken = ({ dok, zugang }: { zugang: Zugang; dok: string }) => {
 	const [suche] = useSearchParams();
 	const variante = suche.get('fassung') === 'loesung' ? 'loesung' : 'arbeitsblatt';
+	const gewuenscht = suche.get('profil');
+	const profil = gewuenscht === 'sw' || gewuenscht === 'farbe' ? gewuenscht : undefined;
 	const [stand, setStand] = useState<Stand>({ art: 'laeuft' });
 	const { mappe, token } = zugang;
 	const { daten } = useLaden<MappenEintrag>(inhaltAdresse(zugang));
@@ -37,7 +40,7 @@ export const Drucken = ({ dok, zugang }: { zugang: Zugang; dok: string }) => {
 	useEffect(() => {
 		let aktiv = true;
 		const geteilt = istGeteilt({ mappe, token });
-		bereiteDokumentVor({ mappe, token }, dok, variante).then(
+		bereiteDokumentVor({ mappe, token }, dok, variante, profil).then(
 			(antwort) => {
 				if (!aktiv) {
 					return;
@@ -57,7 +60,7 @@ export const Drucken = ({ dok, zugang }: { zugang: Zugang; dok: string }) => {
 		return () => {
 			aktiv = false;
 		};
-	}, [dok, mappe, token, variante]);
+	}, [dok, mappe, profil, token, variante]);
 
 	return (
 		<main className="flex min-h-dvh items-center justify-center">

@@ -1,6 +1,6 @@
 # Visuelle Endkontrolle
 
-Pflichtschritt nach dem Bauen, bevor die Lehrkraft etwas sieht. Der Prüfbericht von `blatt.py` prüft Geometrie (Ränder, Überlappung, Abstände, Schrift, Druckprofil). Ob eine Abbildung stimmt, ein Beispiel gequetscht wirkt oder ein Kind die Aufgabe versteht, sieht nur der Blick auf das fertige Blatt. Die Endkontrolle findet solche Fehler **selbst** und behebt sie, statt sie der Lehrkraft zu überlassen.
+Pflichtschritt nach dem Bauen, bevor die Lehrkraft etwas sieht. Der Prüfbericht von `blatt.py` prüft Geometrie (Ränder, Überlappung, Abstände, Schrift). Ob eine Abbildung stimmt, ein Beispiel gequetscht wirkt oder ein Kind die Aufgabe versteht, sieht nur der Blick auf das fertige Blatt. Die Endkontrolle findet solche Fehler **selbst** und behebt sie, statt sie der Lehrkraft zu überlassen.
 
 ## Ablauf
 
@@ -47,9 +47,9 @@ Die Endkontrolle bewertet streng: Im Zweifel ist es ein Befund. „Sieht im Gro�
 - [ ] Das Auge wandert ruhig von oben nach unten; nichts lenkt ab (Deko, Fremdelemente).
 
 **F. Druck und Seiten**
-- [ ] s/w: keine Grauflächen, alles kopierfähig; Farbe: auch in Graustufen gedruckt noch lesbar (Information nie nur über Farbe).
+- [ ] Auch in der s/w-Ansicht lesbar (`blatt.py bauen --profil sw`); Information nie nur über Farbe.
 - [ ] Lösungsblatt hat dasselbe Layout, alle Lösungen stehen an der richtigen Stelle.
-- [ ] Bilder scharf (kein dpi-Hinweis) und im s/w-Profil als Strichzeichnung.
+- [ ] Bilder scharf (kein dpi-Hinweis).
 
 **G. KI-Bilder (je Bild in voller Auflösung, jede Figur einzeln)**
 - [ ] Augen: zwei je Figur, in der Farbe ihrer Beschreibung, frei; kein Gegenstand (Lupe, Brille, Fernglas) mit dem Auge verschmolzen.
@@ -71,7 +71,7 @@ Die Endkontrolle bewertet streng: Im Zweifel ist es ein Befund. „Sieht im Gro�
 | Aufgabe mit zwei Darstellungsformen in einer Reihe | Auf eine Form reduzieren oder in zwei Aufgaben teilen (wenn der Richtwert es zulässt) |
 | Ungewollter Umbruch | Anweisung kürzen, `--spalten` senken oder `white-space:nowrap` für Rechenzeilen (`.zeile`); nie Schrift unter die Mindestgröße |
 | Tipp unterbricht die Reihe oder steht zwischen Anweisung und Arbeitsfläche | Tipp in den Kopf (`.kopf .tipp`, „Zu 1: …“) oder ans Reihenende |
-| Bild zu groß, unscharf oder farbig im s/w-Profil | Breite setzen, Original in voller Auflösung bzw. Strich-Version (`bilder.md`) |
+| Bild zu groß oder unscharf | Breite setzen, Original in voller Auflösung (`bilder.md`) |
 | Lösung fehlt oder steht falsch | `data-l`, `loesung=`, `buendel-loesung`, `nur-loesung` im HTML ergänzen und neu bauen |
 | Fehler im KI-Bild (Auge, Pfote, doppelte Figur, Schleier, Buchstabe) | Bearbeiten mit dem Bild als einziger Referenz und „behalte alles andere genau gleich, korrigiere nur …“, danach neu prüfen (`bilder.md`, Abschnitt 2a) |
 | Anzahl im KI-Bild passt nicht zum Text | Text an das Bild anpassen oder die Menge als SVG berechnen; nicht neu würfeln, bis es zufällig passt (`bilder.md`, Abschnitt 3) |

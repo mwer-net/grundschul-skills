@@ -5,7 +5,7 @@ Alle `x-…`-Elemente aus `assets/abbildungen.js`. Sie sind berechnet, nie von H
 **Für alle gilt:**
 
 - Lösung erscheint nur auf dem Lösungsblatt und im Beispiel (`class="beispiel"` am Container).
-- s/w: nur Schwarz und Grau, Unterschiede über Form und Muster. Farbe: Palette, Text bleibt schwarz.
+- Farbe aus der Palette, Text bleibt schwarz. In der s/w-Ansicht zeichnen die Elemente selbst mit Schwarz, Grau, Form und Muster.
 - Unzulässige Angaben zeichnen einen gestrichelten Kasten mit dem Grund. `blatt.py` meldet ihn als FEHLER mit dem Namen der Abbildung, der Editor sperrt das Speichern.
 - Attributformate: Liste mit Leerzeichen oder `;`, wenn Einträge Leerzeichen enthalten; Paare `Name: Wert; Name: Wert`; Raster zeilenweise `0 1 1 / 0 1 0`. Zahlen auf dem Blatt: Dezimalkomma, ab fünf Stellen mit schmalem Leerzeichen (U+202F).
 - Mit `seed="…"` hängt alles Gemischte nur am Attribut: gleicher Seed, gleiches Bild in Vorschau, PDF und Lösung.
@@ -276,7 +276,7 @@ Fehler: Frage ist zugleich Vorgabe; Fragen ohne Schrägbild oder Bauplan; nach B
 
 ## Zahldarstellungen
 
-Muster: `assets/muster/zahldarstellungen.html`. Stellenfarben der Klasse: einmal am `<body>`, zum Beispiel `data-stellenfarben="E:blau Z:rot H:gruen"`. Sie gelten nur im Farbprofil, als schmale Kopfleiste in der Stellentafel und an deren Plättchen.
+Muster: `assets/muster/zahldarstellungen.html`. Stellenfarben der Klasse: einmal am `<body>`, zum Beispiel `data-stellenfarben="E:blau Z:rot H:gruen"`. Sie gelten nur in Farbe, als schmale Kopfleiste in der Stellentafel und an deren Plättchen.
 
 Erweiterungen der Grundelemente: `x-zwanzigerfeld` `art` (`fuenfer`, `zehner`, `zwanziger`), `n2` zweite Sorte, `loesung="5 2"`. `x-dienes` `t`, `h`, `loesung="1 2 3 4"` (T H Z E). `x-stellentafel` bis `M HT ZT T H Z E`, `art="plaettchen"` mit `plaettchen="3 0 12"` (bis 15 je Stelle), auch in `loesung`. `x-zahlenstrahl` `marken` mittlere Striche alle so viele Schritte; Ausschnitte wie 3400 bis 3500 ohne Null.
 
@@ -491,7 +491,7 @@ Muster: `assets/muster/deutsch.html`.
 <x-lineatur art="2" zeilen="3" vorlage="Rosine" vorlage-zeilen="1" anfang="Ha" loesung="Der Hund bellt."></x-lineatur>
 ```
 
-`art` `1`, `2`, `3`, `4`, `karo`, `karo-klein`; Maße in `grundschul-didaktik/references/gestaltung.md`. `zeilen` 1 bis 30. `vorlage` grau zum Nachspuren (Schriftgröße folgt dem Mittelband), `vorlage-zeilen` wie viele Zeilen, `anfang` schwarzes Vorbild am Zeilenanfang. `loesung` nur im Lösungsblatt, wird umbrochen und muss in die freien Zeilen passen. `mittelband` `linie` oder `getoent` (nur Farbprofil, nur auf Wunsch). `band` 2 bis 10 mm überschreibt das Mittelband, falls das Heft der Klasse anders misst. `breite` in px, Standard ganze Spalte. Fest in Originalgröße; der Druckhinweis erscheint von selbst. Zu langer Text meldet einen Fehler, gekürzt wird nichts.
+`art` `1`, `2`, `3`, `4`, `karo`, `karo-klein`; Maße in `grundschul-didaktik/references/gestaltung.md`. `zeilen` 1 bis 30. `vorlage` grau zum Nachspuren (Schriftgröße folgt dem Mittelband), `vorlage-zeilen` wie viele Zeilen, `anfang` schwarzes Vorbild am Zeilenanfang. `loesung` nur im Lösungsblatt, wird umbrochen und muss in die freien Zeilen passen. `mittelband` `linie` oder `getoent` (nur in Farbe, nur auf Wunsch). `band` 2 bis 10 mm überschreibt das Mittelband, falls das Heft der Klasse anders misst. `breite` in px, Standard ganze Spalte. Fest in Originalgröße; der Druckhinweis erscheint von selbst. Zu langer Text meldet einen Fehler, gekürzt wird nichts.
 
 ### `x-silben`
 
@@ -501,7 +501,7 @@ Muster: `assets/muster/deutsch.html`.
 <x-silben aufgabe="boegen">Ta|fel</x-silben>
 ```
 
-Inhalt: Text mit `|` an den Silbengrenzen; ein Wort ohne `|` ist eine Silbe. Nicht erlaubt: `||`, `|` am Wortanfang oder -ende, andere Zeichen als Buchstaben, Satzzeichen, Leerzeichen. `darstellung` `boegen`, `farbe`, `beides`; im s/w-Profil immer Bögen. `farben` zwei aus `blau`, `rot`, `gruen`, `lila`, `braun`, `schwarz`; je Wort beginnt die erste Farbe neu. `aufgabe` `keine`, `boegen` (Bögen nur im Lösungsblatt), `trennen` (Striche nur im Lösungsblatt). Silbenregeln: `fach-deutsch`.
+Inhalt: Text mit `|` an den Silbengrenzen; ein Wort ohne `|` ist eine Silbe. Nicht erlaubt: `||`, `|` am Wortanfang oder -ende, andere Zeichen als Buchstaben, Satzzeichen, Leerzeichen. `darstellung` `boegen`, `farbe`, `beides`; in s/w immer Bögen. `farben` zwei aus `blau`, `rot`, `gruen`, `lila`, `braun`, `schwarz`; je Wort beginnt die erste Farbe neu. `aufgabe` `keine`, `boegen` (Bögen nur im Lösungsblatt), `trennen` (Striche nur im Lösungsblatt). Silbenregeln: `fach-deutsch`.
 
 ### `x-wortarten`
 
@@ -509,7 +509,7 @@ Inhalt: Text mit `|` an den Silbengrenzen; ein Wort ohne `|` ist eine Silbe. Nic
 <x-wortarten aufgabe="bestimmen" nur="N V">Der/Art Hund/N bellt/V laut/A.</x-wortarten>
 ```
 
-Inhalt: Kürzel mit `/` am Wort; Wörter ohne Kürzel bleiben ohne Zeichen. Kürzel: `N` Nomen, `Art` Artikel, `V` Verb, `A` Adjektiv, `P` Pronomen, `Pr` Präposition, `K` Konjunktion, `Adv` Adverb. `darstellung` `symbole` (Montessori-Formen unter dem Wort) oder `unterstreichen` (Linienart je Wortart). `nur` Kürzel, die gezeigt werden. `farben` Klassenfarben, z. B. `N: blau; V: rot` (blau, rot, gruen, lila, braun, schwarz, hellblau, rosa, orange); wirkt nur im Farbprofil. `aufgabe` `keine` oder `bestimmen` (leere Symbolplätze, Symbole und Linien nur im Lösungsblatt).
+Inhalt: Kürzel mit `/` am Wort; Wörter ohne Kürzel bleiben ohne Zeichen. Kürzel: `N` Nomen, `Art` Artikel, `V` Verb, `A` Adjektiv, `P` Pronomen, `Pr` Präposition, `K` Konjunktion, `Adv` Adverb. `darstellung` `symbole` (Montessori-Formen unter dem Wort) oder `unterstreichen` (Linienart je Wortart). `nur` Kürzel, die gezeigt werden. `farben` Klassenfarben, z. B. `N: blau; V: rot` (blau, rot, gruen, lila, braun, schwarz, hellblau, rosa, orange); wirkt nur in Farbe. `aufgabe` `keine` oder `bestimmen` (leere Symbolplätze, Symbole und Linien nur im Lösungsblatt).
 
 ### `x-satzglieder`
 
@@ -586,7 +586,7 @@ Schaltzeichen nach DIN EN 60617 in Schulbuchform. `teile`: `batterie` (mindesten
 <x-kreislauf art="ablauf" stationen="Bohne: bilder/bohne.png; Keimling; Blüte" pfeile="keimt; blüht"></x-kreislauf>
 ```
 
-`art` `kreis` oder `ablauf`. `stationen`: 3 bis 8, mit Semikolon getrennt, nach dem Doppelpunkt optional ein Bild aus `bilder/`. `pfeile`: Beschriftung je Übergang, mit Semikolon getrennt. `offen`: Nummern leerer Stationen, `p` und Nummer für leere Pfeiltexte; beides füllt nur das Lösungsblatt. Bilder nach Druckprofil wie jedes Bild (im s/w-Blatt Strich oder Graustufen).
+`art` `kreis` oder `ablauf`. `stationen`: 3 bis 8, mit Semikolon getrennt, nach dem Doppelpunkt optional ein Bild aus `bilder/`. `pfeile`: Beschriftung je Übergang, mit Semikolon getrennt. `offen`: Nummern leerer Stationen, `p` und Nummer für leere Pfeiltexte; beides füllt nur das Lösungsblatt. Bilder wie jedes Bild (in s/w Strich oder Graustufen).
 
 ### `x-verkehrszeichen`
 

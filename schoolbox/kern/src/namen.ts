@@ -1,4 +1,4 @@
-import type { Art, Fach, Klasse } from './werte';
+import type { Art, Druckprofil, Fach, Klasse } from './werte';
 
 /** Namen für Menschen. Ohne Node-Abhängigkeiten, damit auch die Oberfläche sie nutzen kann. */
 export const FACH_NAME: Record<Fach, string> = {
@@ -76,22 +76,34 @@ const FOLIEN_DATEINAME: Record<FolienVariante, { zusatz: string; endung: string 
 	praesentation: { zusatz: 'Präsentation', endung: 'html' },
 };
 
+/** „… – Arbeitsblatt (schwarz-weiß).pdf“: Beide Ansichten lassen sich nebeneinander speichern. */
+const mitProfil = (name: string, profil: Druckprofil | undefined) =>
+	profil === 'sw' ? name.replace(/\.(\w+)$/, ' (schwarz-weiß).$1') : name;
+
 /** Wie `pdfDateiname`, dazu „… – Präsentation mit Schritten.pdf“, „… – Folien mit Notizen.pdf“, „… – Präsentation.html“. */
 export const ausgabeDateiname = (
 	mappe: { fach: Fach; klasse: Klasse },
 	dokument: { titel: string; art: Art },
 	variante: AusgabeVariante,
+	profil?: Druckprofil,
 ) => {
 	if (!istFolienVariante(variante)) {
-		return pdfDateiname(mappe, dokument, variante);
+		return mitProfil(pdfDateiname(mappe, dokument, variante), profil);
 	}
 	const { endung, zusatz } = FOLIEN_DATEINAME[variante];
 	return dateiname(mappe.fach, mappe.klasse, dokument.titel, zusatz, endung);
 };
 
 /** „Kl3 Sachunterricht Die Kartoffel – Alles.pdf“ bzw. „… – Alles mit Lösungen.pdf“. */
-export const mappenPdfDateiname = (mappe: { titel: string; fach: Fach; klasse: Klasse }, variante: MappenVariante) =>
-	dateiname(mappe.fach, mappe.klasse, mappe.titel, variante === 'alles' ? 'Alles' : 'Alles mit Lösungen');
+export const mappenPdfDateiname = (
+	mappe: { titel: string; fach: Fach; klasse: Klasse },
+	variante: MappenVariante,
+	profil?: Druckprofil,
+) =>
+	mitProfil(
+		dateiname(mappe.fach, mappe.klasse, mappe.titel, variante === 'alles' ? 'Alles' : 'Alles mit Lösungen'),
+		profil,
+	);
 
 /** Vorschau der ersten Seite eines Entwurfs, neben ihm in `entwuerfe/`: `B-s1.png`. */
 export const entwurfVorschauDatei = (name: string) => `${name}-s1.png`;

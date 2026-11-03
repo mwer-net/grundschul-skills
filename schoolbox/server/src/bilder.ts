@@ -1,4 +1,4 @@
-import { MAX_BILD_BYTES, nimmBildAuf, sammleBilder, uebernimmBild } from '@schoolbox/kern';
+import { druckfassung, MAX_BILD_BYTES, nimmBildAuf, sammleBilder, uebernimmBild } from '@schoolbox/kern';
 import type { NextFunction, Request, Response } from 'express';
 import { raw, Router } from 'express';
 
@@ -51,6 +51,11 @@ export const bilderApi = (kontext: Kontext) => {
 	router.get('/', async (req, res) => {
 		const { mappe } = ziel(req);
 		res.json(await sammleBilder(konfig.materialDir, mappe));
+	});
+
+	router.get('/fassung', async (req, res) => {
+		const { dir } = ziel(req);
+		res.json(await druckfassung(konfig, dir, leseText(req.query, 'src')));
 	});
 
 	router.post('/', nimmRohAn, async (req, res) => {

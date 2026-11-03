@@ -16,7 +16,7 @@ import type { Sammlung, SammlungsBild } from './bildbefehle';
 import { MAX_BILD_BYTES } from './bildbefehle';
 import { SchoolboxFehler } from './fehler';
 import type { Konfig } from './konfig';
-import { ASSETS, BILD_PY } from './konfig';
+import { ASSETS, BILD_PY, BLATT_PY } from './konfig';
 import { liegtIn, sucheRessource } from './pfade';
 import { attribut, zerlege } from './quelltext';
 import { eindeutigeId, slug } from './slug';
@@ -36,6 +36,16 @@ export interface Bild {
 }
 
 const ungueltig = () => new SchoolboxFehler('Dieses Bild gibt es nicht.');
+
+/** Welche Datei im s/w-PDF für dieses Bild erscheint: entscheidet `blatt.py`, damit es nur eine Regel gibt (041). */
+export const druckfassung = async (konfig: Pick<Konfig, 'pythonBin'>, dokDir: string, src: string) => {
+	const datei = sucheRessource(src, dokDir);
+	if (datei === null || ![realpathSync(dokDir), realpathSync(ASSETS)].some((ordner) => liegtIn(datei, ordner))) {
+		return { strich: null };
+	}
+	const lauf = await fuehreAus(konfig.pythonBin, [BLATT_PY, 'fassung', datei]).catch(() => null);
+	return lauf?.code === 0 ? (JSON.parse(lauf.stdout) as { strich: string | null }) : { strich: null };
+};
 
 const stammVon = (datei: string) => path.basename(datei, path.extname(datei));
 

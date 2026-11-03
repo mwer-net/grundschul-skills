@@ -156,12 +156,12 @@
       if (B.classList.contains("sw")) {
         try {
           const c = document.createElement("canvas"); c.width = 64; c.height = 64;
-          const x = c.getContext("2d"); x.drawImage(im, 0, 0, 64, 64);
+          const x = c.getContext("2d"); x.fillStyle = "#fff"; x.fillRect(0, 0, 64, 64); x.drawImage(im, 0, 0, 64, 64); // auf dem Papier: Strichzeichnungen sind sonst nur Linien
           const d = x.getImageData(0, 0, 64, 64).data, y = [];
-          for (let i = 0; i < d.length; i += 4) if (d[i + 3] > 128) y.push(0.299 * d[i] + 0.587 * d[i + 1] + 0.114 * d[i + 2]);
+          for (let i = 0; i < d.length; i += 4) y.push(0.299 * d[i] + 0.587 * d[i + 1] + 0.114 * d[i + 2]);
           y.sort((a, b) => a - b);
           // Spanne zwischen 1 und 99 % der Grauwerte (dünne Striche zählen noch); unter 40 von 255 verschwimmen die Formen im Druck.
-          if (y.length && y[Math.floor(y.length * 0.99)] - y[Math.floor(y.length * 0.01)] < 40) melde("HINWEIS", nr, "bild-kontrast-sw", `Bild „${im.alt || im.getAttribute("src").slice(0, 30)}“ hat in s/w kaum Kontrast`, [ziel(im)]);
+          if (y[Math.floor(y.length * 0.99)] - y[Math.floor(y.length * 0.01)] < 40) melde("HINWEIS", nr, "bild-kontrast-sw", `Bild „${im.alt || im.getAttribute("src").slice(0, 30)}“ hat in s/w kaum Kontrast`, [ziel(im)]);
         } catch (e) { /* fremde Quelle */ }
       }
       if (dpi < 150) melde("HINWEIS", nr, "bild-unscharf", `Bild „${im.alt || "ohne alt"}“ hat im Druck nur ${dpi} dpi (unscharf) → Original in voller Größe einsetzen`, [ziel(im)]);

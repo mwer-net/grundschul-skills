@@ -58,11 +58,11 @@ Substanzielle Aufgabenformate (Wittmann) tragen Übung und Entdecken zugleich: `
 
 ## Darstellungskonventionen für Materialien
 
-- Zwanzigerfeld: 2 × 10 Kreise, nach 5 Spalten Lücke oder Farbwechsel; Wendeplättchen rot/blau. Im s/w-Profil: rot = gefüllter Kreis, blau = leerer Kreis (Legende angeben), oder Kinder malen selbst an.
+- Zwanzigerfeld: 2 × 10 Kreise, nach 5 Spalten Lücke oder Farbwechsel; Wendeplättchen rot/blau, mit Legende: rot = gefüllter Kreis, blau = leerer Kreis, damit es auch in s/w lesbar bleibt.
 - Hunderterfeld: 10 × 10, Fünferkreuz hervorgehoben (`x-hunderterfeld`).
 - Rechenstrich, leerer Zahlenstrahl, Kl. 2: `x-rechenstrich`; Sprünge mit gleichem Vorzeichen in einer Aufgabe.
-- Stellenwerte: Farben der Klasse (häufig E blau, Z rot, H grün) – Konvention erfragen, dann `data-stellenfarben` am `<body>` (Katalog, Abschnitt „Zahldarstellungen“). Im s/w-Profil Buchstaben E/Z/H über der Stelle; Kinder können die Farben anmalen.
-- Uhren, Felder, Zahlenstrahl in Schwarz auf Weiß (auch im Farbprofil, Farbe nur für Hervorhebungen wie den Fünferwechsel), Reihen gleichmäßig verteilt; Mindestgrößen in `grundschul-didaktik/references/druck-und-platz.md`.
+- Stellenwerte: Farben der Klasse (häufig E blau, Z rot, H grün) – Konvention erfragen, dann `data-stellenfarben` am `<body>` (Katalog, Abschnitt „Zahldarstellungen“). Buchstaben E/Z/H über der Stelle bleiben dabei, damit es in s/w lesbar ist.
+- Uhren, Felder, Zahlenstrahl in Schwarz auf Weiß (Farbe nur für Hervorhebungen wie den Fünferwechsel), Reihen gleichmäßig verteilt; Mindestgrößen in `grundschul-didaktik/references/druck-und-platz.md`.
 - Zahlenstrahl: gleichmäßige Abstände, Zehner deutlich markiert.
 - Uhr: analoges Zifferblatt mit großen Ziffern, Stundenzeiger deutlich kürzer und dicker. **Nie von der KI zeichnen lassen** – `<x-uhr>` aus `html-materialerstellung/assets/abbildungen.js` berechnet exakte Zifferblätter.
 - Geld: `x-geld`, Münzen in echten Verhältnissen, Scheine schematisch und verkleinert (EZB), keine Fotos echter Scheine. Beträge ab Kl. 3 in Kommaschreibweise.
@@ -72,7 +72,7 @@ Substanzielle Aufgabenformate (Wittmann) tragen Übung und Entdecken zugleich: `
 - Gitter: in echten Zentimetern wie im Heft (`x-gitter`), Achse auf einer Gitterlinie, Lösung berechnet statt gezeichnet.
 - Strichliste: Fünferbündel aus vier senkrechten und einem schrägen Strich (`x-strichliste`).
 - Diagramm: Skala ab 0 und gleichmäßig (`x-diagramm`).
-- Glücksrad: im s/w-Blatt nur mit Legende, sonst sind die Felder nicht zu unterscheiden (`x-gluecksrad`).
+- Glücksrad: immer mit Legende, sonst sind die Felder in s/w nicht zu unterscheiden (`x-gluecksrad`).
 
 ## Typische Fehlvorstellungen (für Aufgaben und Tipps)
 

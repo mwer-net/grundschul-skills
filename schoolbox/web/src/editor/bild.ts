@@ -21,7 +21,6 @@ import type { Struktur } from './struktur';
 
 /** Darunter meldet auch `pruefung.js`, dass ein Bild im Druck unscharf wird. */
 const DPI_MIN = 150;
-const FARBIG_AB = 30;
 const HEIC_TYP = /^image\/hei[cf]/i;
 const HEIC_NAME = /\.hei[cf]$/i;
 /** Wie `bildStamm` im Kern: Kameranamen taugen nicht als Beschreibung. */
@@ -45,6 +44,8 @@ export interface BildWerte {
 	dpi: number | null;
 	/** Wird im Druck unscharf. */
 	unscharf: boolean;
+	/** Das Blatt ist gerade in der s/w-Ansicht (042). */
+	sw: boolean;
 	figur: boolean;
 }
 
@@ -58,7 +59,7 @@ export interface Groesse {
 	setze: (px: number) => void;
 }
 
-export type BildArbeit = 'hochladen' | 'sammlung' | 'grau' | null;
+export type BildArbeit = 'hochladen' | 'sammlung' | null;
 
 interface Optionen {
 	/** Das sichtbare Dokument; gemessen wird nur, wenn es zur aktuellen Quelle (`html`) gehört. */
@@ -139,7 +140,6 @@ const spaltenBreite = (element: HTMLElement) => {
 const miss = (element: HTMLElement, nr: number): BildWerte => {
 	const rahmen = element.getBoundingClientRect();
 	const max = Math.max(BILD_MIN, Math.floor(spaltenBreite(element)));
-	const sw = element.ownerDocument.body.classList.contains('sw');
 	if (element.tagName !== 'IMG') {
 		return {
 			nr,
@@ -153,6 +153,7 @@ const miss = (element: HTMLElement, nr: number): BildWerte => {
 			max,
 			dpi: null,
 			unscharf: false,
+			sw: false,
 			figur: false,
 		};
 	}
@@ -171,6 +172,7 @@ const miss = (element: HTMLElement, nr: number): BildWerte => {
 		max,
 		dpi,
 		unscharf: dpi !== null && dpi < DPI_MIN,
+		sw: bild.ownerDocument.body.classList.contains('sw'),
 		figur: bild.classList.contains('figur'),
 	};
 };

@@ -17,7 +17,7 @@ import { Router } from 'express';
 
 import { HttpFehler } from './fehler';
 import type { Kontext } from './kontext';
-import { pdfAntwort, sendePdf, waehleMappenVariante } from './pdf';
+import { pdfAntwort, sendePdf, waehleMappenVariante, waehleProfil } from './pdf';
 import { pruefeIdParam } from './schutz';
 
 const text = (wert: unknown) => (typeof wert === 'string' && wert.trim() ? wert : undefined);
@@ -74,14 +74,23 @@ export const mappenApi = (kontext: Kontext) => {
 	router.post('/:mappe/pdf', async (req, res) => {
 		const { mappe } = req.params;
 		verlangeMappe(kontext, mappe);
-		const variante = waehleMappenVariante((req.body as { variante?: unknown } | undefined)?.variante);
-		res.json(pdfAntwort(`/api/mappen/${mappe}/pdf/${variante}`, await kontext.pdf.mappe(mappe, variante)));
+		const body = req.body as { variante?: unknown; profil?: unknown } | undefined;
+		const variante = waehleMappenVariante(body?.variante);
+		const profil = waehleProfil(body?.profil);
+		res.json(
+			pdfAntwort(
+				`/api/mappen/${mappe}/pdf/${variante}`,
+				await kontext.pdf.mappe(mappe, variante, profil),
+				profil,
+			),
+		);
 	});
 
 	router.get('/:mappe/pdf/:variante{/:datei}', async (req, res) => {
 		const { mappe, variante } = req.params;
 		verlangeMappe(kontext, mappe);
-		await sendePdf(req, res, await kontext.pdf.mappe(mappe, waehleMappenVariante(variante)));
+		const profil = waehleProfil(req.query.profil);
+		await sendePdf(req, res, await kontext.pdf.mappe(mappe, waehleMappenVariante(variante), profil));
 	});
 
 	router.post('/:mappe/duplizieren', async (req, res) => {

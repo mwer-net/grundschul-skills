@@ -54,7 +54,7 @@ Lesestrategien sichtbar machen (ab Kl. 2): Vor dem Lesen Überschrift/Bild betra
 ## Leseflüssigkeit
 
 - Lautlesetandem-Texte: kurz (Lesezeit ca. 1–2 Minuten), Wiederholungsbögen (Feld zum Abhaken nach jedem Lesedurchgang: ① ② ③ ④). Der eigene Fortschritt zählt, kein Vergleich zwischen Kindern.
-- Lesetheater/Dialoge mit Rollennamen fett vor jeder Rede und Rollensymbol; im Farbprofil zusätzlich Rollenfarben, im s/w-Profil markieren die Kinder ihre Rolle selbst.
+- Lesetheater/Dialoge mit Rollennamen fett vor jeder Rede und Rollensymbol, zusätzlich Rollenfarben.
 - Blitzlesekarten mit häufigen Wörtern.
 
 ## Gestaltung
@@ -63,8 +63,8 @@ Lesestrategien sichtbar machen (ab Kl. 2): Vor dem Lesen Überschrift/Bild betra
 - Lesebüchlein für Stufe A/B als Mini-Book: `--format minibuch --vorlage minibuch` (siehe `html-materialerstellung`, Abschnitt „Mini-Book“), je Seite Bild und ein Satz.
 - Ein Bild pro Absatz höchstens, nur wenn es Verständnis stützt.
 - Text links, Bild rechts oder oben; nie Text um Bilder fließen lassen (Kl. 1/2).
-- Silbenfärbung und -bögen nur über `x-silben`, Absatz für Absatz ein Element (`fach-deutsch`, Abschnitt „Abbildungen“), und nur, wenn die Klasse damit arbeitet. Im s/w-Profil werden Farben von selbst zu Bögen.
-- Text schwarz auf Weiß, keine Hintergrundflächen; Bilder nach Druckprofil (`grundschul-didaktik/references/druck-und-platz.md`).
+- Silbenfärbung und -bögen nur über `x-silben`, Absatz für Absatz ein Element (`fach-deutsch`, Abschnitt „Abbildungen“), und nur, wenn die Klasse damit arbeitet. In der s/w-Ansicht werden Farben von selbst zu Bögen.
+- Text schwarz auf Weiß, keine Hintergrundflächen; Bilder wie in `grundschul-didaktik/references/gestaltung.md`.
 
 ## Qualitätscheck
 

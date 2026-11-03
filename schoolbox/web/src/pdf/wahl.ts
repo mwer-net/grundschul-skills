@@ -1,3 +1,6 @@
+import type { PdfVariante } from '@schoolbox/kern/src/namen';
+import type { Druckprofil } from '@schoolbox/kern/src/werte';
+
 import { ART_NAME } from '../lib/text';
 import type { Zugang } from '../lib/zugang';
 import { bereiteDokumentVor, bereiteMappeVor } from '../lib/zugang';
@@ -8,18 +11,30 @@ import type { PdfWahl } from './PdfKnopf';
 export const materialName = ({ meta }: Pick<DokumentEintrag, 'meta'>) =>
 	meta.art === 'sonstiges' ? 'Material' : ART_NAME[meta.art];
 
+/** Die aktuelle Ansicht steht vorn; die andere ist direkt wählbar (042). */
+const PROFILE_NAME: Record<Druckprofil, string> = { farbe: 'in Farbe', sw: 'in s/w' };
+const andere = (profil: Druckprofil): Druckprofil => (profil === 'sw' ? 'farbe' : 'sw');
+
 /** Ohne Lösung gibt es nur das Material selbst, sonst auch die Lösung allein und beides in einer Datei. */
-export const dokumentWahl = (zugang: Zugang, dokument: Pick<DokumentEintrag, 'id' | 'meta'>): PdfWahl[] => {
+export const dokumentWahl = (
+	zugang: Zugang,
+	dokument: Pick<DokumentEintrag, 'id' | 'meta'>,
+	aktuell: Druckprofil = 'farbe',
+): PdfWahl[] => {
 	const name = materialName(dokument);
-	const material = { titel: name, vorbereiten: () => bereiteDokumentVor(zugang, dokument.id, 'arbeitsblatt') };
-	if (!dokument.meta.hatLoesung) {
-		return [material];
-	}
-	return [
-		material,
-		{ titel: 'Lösung', vorbereiten: () => bereiteDokumentVor(zugang, dokument.id, 'loesung') },
-		{ titel: `${name} und Lösung`, vorbereiten: () => bereiteDokumentVor(zugang, dokument.id, 'beides') },
-	];
+	const eintraege = (profil: Druckprofil, zusatz: string): PdfWahl[] => {
+		const eintrag = (titel: string, variante: PdfVariante): PdfWahl => ({
+			titel: `${titel}${zusatz}`,
+			vorbereiten: () => bereiteDokumentVor(zugang, dokument.id, variante, profil),
+		});
+		return [
+			eintrag(name, 'arbeitsblatt'),
+			...(dokument.meta.hatLoesung
+				? [eintrag('Lösung', 'loesung'), eintrag(`${name} und Lösung`, 'beides')]
+				: []),
+		];
+	};
+	return [...eintraege(aktuell, ''), ...eintraege(andere(aktuell), ` (${PROFILE_NAME[andere(aktuell)]})`)];
 };
 
 /** iPadOS meldet sich in Safari als Mac; verraten wird es durch den Touchscreen. */
@@ -47,10 +62,21 @@ export const folienWahl = (zugang: Zugang, dokument: Pick<DokumentEintrag, 'id'>
 	},
 ];
 
+/** „Alles als PDF“: Die Wahl gilt für alle Dokumente der Mappe (042). */
 export const mappenWahl = (zugang: Zugang, dokumente: Pick<DokumentEintrag, 'meta'>[]): PdfWahl[] => {
-	const ohne = { titel: 'Ohne Lösungen', vorbereiten: () => bereiteMappeVor(zugang, 'alles') };
-	if (!dokumente.some((d) => d.meta.hatLoesung)) {
-		return [ohne];
-	}
-	return [ohne, { titel: 'Mit Lösungen am Ende', vorbereiten: () => bereiteMappeVor(zugang, 'alles-mit-loesungen') }];
+	const mitLoesungen = dokumente.some((d) => d.meta.hatLoesung);
+	return (['farbe', 'sw'] as const).flatMap((profil) => [
+		{
+			titel: mitLoesungen ? `Ohne Lösungen, ${PROFILE_NAME[profil]}` : `Alles ${PROFILE_NAME[profil]}`,
+			vorbereiten: () => bereiteMappeVor(zugang, 'alles', profil),
+		},
+		...(mitLoesungen
+			? [
+					{
+						titel: `Mit Lösungen am Ende, ${PROFILE_NAME[profil]}`,
+						vorbereiten: () => bereiteMappeVor(zugang, 'alles-mit-loesungen', profil),
+					},
+				]
+			: []),
+	]);
 };

@@ -106,6 +106,7 @@ def mit_klasse(text, klasse):
 
 
 JPEG_QUALITAET = 85
+FARBSTICH = 25
 RASTER = (".png", ".jpg", ".jpeg", ".webp", ".gif")
 HELLIGKEIT = lambda r, g, b: round(0.299 * r + 0.587 * g + 0.114 * b)
 
@@ -132,6 +133,16 @@ def strich_fassung(pfad):
                 if abs(strich.width / strich.height - verhaeltnis) <= 0.01 * verhaeltnis:
                     return kandidat
     return None
+
+
+def schon_grau(pfad):
+    """Sichtbar kein Farbstich (Strichzeichnungen): Solche Bilder bleiben, wie sie sind."""
+    Image, _ = pillow()
+    from PIL import ImageChops
+    with Image.open(pfad) as bild:
+        r, g, b, a = bild.convert("RGBA").split()
+    stich = ImageChops.lighter(ImageChops.lighter(ImageChops.difference(r, g), ImageChops.difference(g, b)), ImageChops.difference(r, b))
+    return ImageChops.multiply(stich, a).getextrema()[1] <= FARBSTICH
 
 
 def grau_bytes(pfad, masse=None):
@@ -199,6 +210,10 @@ class Graufassungen:
             jpeg = bild.format == "JPEG"
         strich = strich_fassung(pfad)
         quelle = strich or pfad
+        with Image.open(quelle) as bild:
+            gleich_gross = bild.size == masse
+        if gleich_gross and schon_grau(quelle):
+            return daten_uri(quelle)
         h = hashlib.sha256(quelle.read_bytes())
         h.update(f"{masse}{JPEG_QUALITAET}".encode())
         ablage = ".jpg" if jpeg and quelle.suffix.lower() in (".jpg", ".jpeg") else ".png"
@@ -684,7 +699,13 @@ def main():
     u = sub.add_parser("uebersicht")
     u.add_argument("quellen", nargs="+")
     u.add_argument("-o", "--ausgabe")
+    f = sub.add_parser("fassung", help="welche Datei s/w gedruckt wird: JSON mit strich (Dateiname oder null)")
+    f.add_argument("bild")
     a = ap.parse_args()
+    if a.cmd == "fassung":
+        strich = strich_fassung(Path(a.bild))
+        print(json.dumps({"strich": strich.name if strich else None}))
+        return
     if a.cmd == "bauen":
         if a.nur_zusatz and not (a.schritte or a.notizen):
             ap.error("--nur-zusatz braucht --schritte oder --notizen")

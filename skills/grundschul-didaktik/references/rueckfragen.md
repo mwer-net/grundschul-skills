@@ -4,7 +4,7 @@ Ziel: Mit möglichst wenigen, gezielten Fragen ein vollständiges gemeinsames Ve
 
 ## Start-Abfrage (immer zuerst)
 
-Bevor es um Klasse, Thema oder Details geht, werden die Grundentscheidungen geklärt: drei immer (Materialart, Medium, Farbe), drei weitere je nach Materialart (Selbsteinschätzung, Churer Modell, Sternchenaufgabe). Sie bestimmen, welcher Material-Skill gilt, welches Format, welches Druckprofil und welche Bausteine das Blatt hat. **Einzeln nacheinander**, eine Frage pro Nachricht, jede mit Optionen und Empfehlung. Was die Anfrage schon beantwortet, wird nicht gefragt, sondern kurz bestätigt („Arbeitsblatt, A4, in Farbe – richtig?" ist nicht nötig, wenn es wörtlich so dasteht).
+Bevor es um Klasse, Thema oder Details geht, werden die Grundentscheidungen geklärt: zwei immer (Materialart, Medium), drei weitere je nach Materialart (Selbsteinschätzung, Churer Modell, Sternchenaufgabe). Sie bestimmen, welcher Material-Skill gilt, welches Format und welche Bausteine das Blatt hat. Nach Farbe oder s/w wird nicht gefragt: Material wird in Farbe angelegt (`gestaltung.md`, Abschnitt „Farbe“). **Einzeln nacheinander**, eine Frage pro Nachricht, jede mit Optionen und Empfehlung. Was die Anfrage schon beantwortet, wird nicht gefragt, sondern kurz bestätigt („Arbeitsblatt, A4 – richtig?" ist nicht nötig, wenn es wörtlich so dasteht).
 
 **1. Materialart**
 
@@ -30,7 +30,7 @@ Die Antwort legt den Material-Skill fest:
 | Lernplakat, Merkplakat, Anschauungsplakat | `lernplakat` |
 | Präsentation, Folien, Tafelbild am Beamer oder Whiteboard | `praesentation` |
 | Stationen, Lerntheke, Werkstatt, Wochenplan | `stationenlernen` |
-| Stunde oder Reihe planen | `unterrichtsplanung` (Medium und Farbe erst bei den Materialien der Stunde fragen) |
+| Stunde oder Reihe planen | `unterrichtsplanung` (Medium erst bei den Materialien der Stunde fragen) |
 
 **2. Medium und Format**
 
@@ -46,21 +46,11 @@ Nur die Optionen anbieten, die zur Materialart passen; die übliche als Empfehlu
 | Mini-Book | Faltbuch aus einem A4-Blatt, 8 Seiten (nicht fragen) | `minibuch` |
 | Präsentation | **Folien 16:9** für Beamer, Smartboard oder Display (nicht fragen) | `folie` |
 
-**3. Farbe oder Schwarz-Weiß**
-
-```
-Wird das Material farbig oder schwarz-weiß gedruckt?
-a) Schwarz-weiß (Kopierer)   ← Empfehlung für Arbeitsblätter, Klassenarbeiten, Lernzielkontrollen, Lesetexte
-b) Farbe
-```
-
-Empfehlung je nach Medium: **s/w** für Kopiervorlagen (Arbeitsblatt, Klassenarbeit, Lernzielkontrolle, Lesetext, Laufzettel); **Farbe** für Präsentation/Whiteboard, Plakat, laminierte Karten und Spiele. Bei Präsentation/Whiteboard nicht fragen, sondern Farbe annehmen. Die Antwort wählt das Druckprofil in `druck-und-platz.md` (`<body class="sw">` bzw. `class="farbe palette-…"`).
-
-**4.–6. Bausteine des Blatts**
+**3.–5. Bausteine des Blatts**
 
 Welche dieser Fragen gestellt wird, hängt von der Materialart ab. Bei allen anderen Materialarten (Karten, Plakat) entfallen sie; bei `unterrichtsplanung` erst bei den Materialien der Stunde fragen.
 
-| Materialart | 4. Selbsteinschätzung | 5. Churer Modell | 6. Sternchenaufgabe |
+| Materialart | 3. Selbsteinschätzung | 4. Churer Modell | 5. Sternchenaufgabe |
 |---|---|---|---|
 | Arbeitsblatt, Lesetext, Stationenlernen | ja | ja | ja |
 | Lernspiel | – | ja | – |
@@ -68,7 +58,7 @@ Welche dieser Fragen gestellt wird, hängt von der Materialart ab. Bei allen and
 | Klassenarbeit | ja (vor der Abgabe, nie benotet) | – (keine Niveau-Wahl) | ja (außerhalb der Wertung) |
 | Präsentation | ja, wenn eine Reflexionsfolie entsteht | ja, wenn eine Lernaufgaben-Folie entsteht | ja, wenn eine Lernaufgaben-Folie entsteht |
 
-**4. Selbsteinschätzung (Growth Mindset)**
+**3. Selbsteinschätzung (Growth Mindset)**
 
 ```
 Soll unten auf dem Blatt die Selbsteinschätzung stehen (Samen → Keimling → Pflanze → Blume + Reflexionsfrage)?
@@ -78,7 +68,7 @@ b) Nein
 
 Nein: Der Fußbereich mit Wachstumsgrafik und Reflexionsfrage entfällt, der Platz geht an Aufgaben. Ich-kann-Ziel oben, „noch"-Sprache, Strategietipps und lautes Denken der Leitfigur bleiben (das ist Qualität jeder Aufgabe, kein Baustein). Bei Stationenlernen entfällt die Wachstumsspalte auf dem Laufzettel, bei Lernzielkontrolle und Klassenarbeit der Selbsteinschätzungsteil am Ende.
 
-**5. Churer Modell (Niveaus zur Selbstwahl)**
+**4. Churer Modell (Niveaus zur Selbstwahl)**
 
 ```
 Sollen die Kinder aus drei Schwierigkeitsstufen wählen (● Grundlage / ●● Kern / ●●● Herausforderung, Churer Modell)?
@@ -88,7 +78,7 @@ b) Nein, alle bearbeiten dieselben Aufgaben
 
 Nein: keine Niveau-Punkte, keine Wahlhilfe, keine getrennten Niveau-Blätter oder -Kartensätze. Die Aufgaben steigen trotzdem im Anspruch und beginnen mit einem vorgelösten Beispiel.
 
-**6. Sternchenaufgabe**
+**5. Sternchenaufgabe**
 
 ```
 Soll es am Ende eine Sternchenaufgabe ★ geben (eine Knobelaufgabe für alle, die möchten)?
@@ -98,7 +88,7 @@ b) Nein ← Empfehlung, wenn Churer „ja" (●●● bietet schon die Herausfor
 
 Ja: genau eine Aufgabe ★ als letzte Aufgabe, zusätzlich zu den übrigen (auch zu ●●●). Offen, knobelnd, begründen oder erfinden, keine „mehr vom Gleichen". Gerahmt als Angebot für alle („Sternchenaufgabe: Wer mag, knobelt hier."), nie als „für die Schnellen". Freiwillig, nicht Teil des Pflichtpensums.
 
-Die Antworten gelten für die ganze Unterhaltung, bis die Lehrkraft etwas anderes sagt. Beim nächsten Material derselben Art nur kurz bestätigen („Wieder A4, s/w, mit Selbsteinschätzung und Niveaus?").
+Die Antworten gelten für die ganze Unterhaltung, bis die Lehrkraft etwas anderes sagt. Beim nächsten Material derselben Art nur kurz bestätigen („Wieder A4, mit Selbsteinschätzung und Niveaus?").
 
 ## Ablauf
 
@@ -106,7 +96,7 @@ Die Antworten gelten für die ganze Unterhaltung, bis die Lehrkraft etwas andere
    - Herleitbar (nicht fragen, als Annahme nennen): Zahlenraum aus Klassenstufe und Halbjahr, Schriftgröße aus Klassenstufe, Lineatur, übliche Bearbeitungszeit.
    - Nicht herleitbar (fragen): alles, was das Ergebnis sichtbar verändert und in der Anfrage fehlt.
 2. **Reihenfolge nach Abhängigkeit.** Frühere Antworten verändern spätere Fragen:
-   0. Start-Abfrage: Materialart → Medium/Format → Farbe oder s/w → je nach Materialart Selbsteinschätzung → Churer Modell → Sternchenaufgabe (siehe oben)
+   0. Start-Abfrage: Materialart → Medium/Format → je nach Materialart Selbsteinschätzung → Churer Modell → Sternchenaufgabe (siehe oben)
    1. Klassenstufe (und ggf. Halbjahr)
    2. Fach, Thema, konkretes Lernziel
    3. Funktion in der Reihe (Einführung / Übung / Vertiefung / Überprüfung)
@@ -141,4 +131,4 @@ Die Antworten gelten für die ganze Unterhaltung, bis die Lehrkraft etwas andere
 
 ## Wiederkehrende Nutzer
 
-Hat die Lehrkraft in derselben Unterhaltung schon Materialart, Medium, Farbe/s/w, Selbsteinschätzung, Niveaus, Sternchenaufgabe, Klasse, Schrift oder Symbolset genannt, gelten diese weiter. Kurz bestätigen statt neu fragen ("Wieder Klasse 2, s/w?").
+Hat die Lehrkraft in derselben Unterhaltung schon Materialart, Medium, Selbsteinschätzung, Niveaus, Sternchenaufgabe, Klasse, Schrift oder Symbolset genannt, gelten diese weiter. Kurz bestätigen statt neu fragen ("Wieder Klasse 2?").
