@@ -48,8 +48,8 @@ from pathlib import Path
 ASSETS = Path(__file__).resolve().parent.parent / "assets"
 # Abbildungen, die ihre Lösung selbst berechnen: Sie brauchen kein loesung= und trotzdem ein Lösungsblatt. Die alten
 # Elemente aus der ersten Fassung gehören nicht dazu, sonst bekämen Blätter ohne jede Lösung ein leeres Lösungsblatt.
-OHNE_LOESUNGSANGABE = r"<x-(?!uhr|menge|dienes|strichpunkt|stellentafel|zwanzigerfeld|zahlenstrahl|timer|probe|gluecksrad|wuerfel|urne|diagramm|gitter|figur|koerper|hunderterfeld|hundertertafel|rechenrahmen|punktfeld|geld|skala|kalender|lineatur|silben|wortarten|satzglieder|wortbausteine|zeitleiste|jahreskreis|windrose|plan)[a-z]"
-MIT_LOESUNG = r"<x-diagramm[^>]* offen=|<x-gitter[^>]* (?:aufgabe|zaehlen)=|<x-wuerfelbau[^>]* fragen=|<x-wuerfelnetz[^>]* aufgabe=|<x-koerper[^>]* markiere=|<x-hundertertafel[^>]* (?:luecken|zufall)=|<x-geld[^>]* aufgabe=|<x-skala[^>]* aufgabe=|<x-kalender[^>]* luecken=|<x-silben[^>]* aufgabe=|<x-wortarten[^>]* aufgabe=|<x-satzglieder[^>]* aufgabe=|<x-wortbausteine[^>]* aufgabe=|<x-zeitleiste[^>]*: ?offen|<x-jahreskreis[^>]* beschriftung=.leer|<x-windrose[^>]* beschriftung=.(?:leer|norden)|<x-plan[^>]* aufgabe="
+OHNE_LOESUNGSANGABE = r"<x-(?!uhr|menge|dienes|strichpunkt|stellentafel|zwanzigerfeld|zahlenstrahl|timer|probe|gluecksrad|wuerfel|urne|diagramm|gitter|figur|koerper|hunderterfeld|hundertertafel|rechenrahmen|punktfeld|geld|skala|kalender|lineatur|silben|wortarten|satzglieder|wortbausteine|zeitleiste|jahreskreis|windrose|plan|schaltplan|kreislauf|verkehrszeichen|wetter)[a-z]"
+MIT_LOESUNG = r"<x-diagramm[^>]* offen=|<x-gitter[^>]* (?:aufgabe|zaehlen)=|<x-wuerfelbau[^>]* fragen=|<x-wuerfelnetz[^>]* aufgabe=|<x-koerper[^>]* markiere=|<x-hundertertafel[^>]* (?:luecken|zufall)=|<x-geld[^>]* aufgabe=|<x-skala[^>]* aufgabe=|<x-kalender[^>]* luecken=|<x-silben[^>]* aufgabe=|<x-wortarten[^>]* aufgabe=|<x-satzglieder[^>]* aufgabe=|<x-wortbausteine[^>]* aufgabe=|<x-zeitleiste[^>]*: ?offen|<x-jahreskreis[^>]* beschriftung=.leer|<x-windrose[^>]* beschriftung=.(?:leer|norden)|<x-plan[^>]* aufgabe=|<x-schaltplan[^>]* aufgabe=.(?:leuchtet|vervollstaendigen|benennen)|<x-kreislauf[^>]* offen=|<x-verkehrszeichen[^>]* ausmalen=.ja"
 SEITE = {"a4-quer": "A4 landscape", "a3-hoch": "A3", "a5-hoch": "A5", "folie": "338.67mm 190.5mm"}
 
 
@@ -123,7 +123,8 @@ def einbetten(quelltext, quelle_dir, pruefen=False, loesung=False, modus=None):
 
     def bild_ersetzen(m):
         src = m.group(2)
-        if src.startswith(("data:", "http:", "https:")):
+        # `${` steht in Vorlagen aus dem eingebetteten abbildungen.js.
+        if src.startswith(("data:", "http:", "https:", "${")):
             return m.group(0)
         p = suche(src, quelle_dir)
         if not p:
@@ -131,9 +132,37 @@ def einbetten(quelltext, quelle_dir, pruefen=False, loesung=False, modus=None):
             return m.group(0)
         return f"{m.group(1)}{daten_uri(p)}{m.group(3)}"
 
+    # Diese Bilder setzt erst abbildungen.js ein; im eigenständigen HTML müssen sie schon am Element hängen.
+    def zeichen_ersetzen(m):
+        nummer = re.search(r'\snummer="(\d+)"', m.group(0))
+        if not nummer:
+            return m.group(0)
+        dazu = ""
+        for variante in ("", "-grau", "-kontur"):
+            p = suche(f"bilder/verkehrszeichen/{nummer.group(1)}{variante}.svg", quelle_dir)
+            if p:
+                dazu += f' data-bild{variante}="{daten_uri(p)}"'
+        return f"{m.group(0)[:-1]}{dazu}>"
+
+    def stationen_ersetzen(m):
+        stationen = re.search(r'\sstationen="([^"]*)"', m.group(0))
+        dazu = ""
+        for i, station in enumerate((stationen.group(1) if stationen else "").split(";")):
+            src = html.unescape(station.partition(":")[2].strip())
+            if not src or src.startswith(("data:", "http:", "https:")):
+                continue
+            p = suche(src, quelle_dir)
+            if p:
+                dazu += f' data-bild-{i}="{daten_uri(p)}"'
+            else:
+                print(f"FEHLER  Bild nicht gefunden: {src}", file=sys.stderr)
+        return f"{m.group(0)[:-1]}{dazu}>"
+
     t = re.sub(r'<link[^>]+href="([^"]+\.css)"[^>]*>', css_ersetzen, quelltext)
     t = re.sub(r'<script[^>]+src="([^"]+\.js)"[^>]*>\s*</script>', js_ersetzen, t)
     t = re.sub(r'(<img[^>]+src=")([^"]+)(")', bild_ersetzen, t)
+    t = re.sub(r"<x-verkehrszeichen\b[^>]*>", zeichen_ersetzen, t)
+    t = re.sub(r"<x-kreislauf\b[^>]*>", stationen_ersetzen, t)
     body = re.search(r'<body[^>]*class="([^"]*)"', t)
     fmt = next((SEITE[k] for k in (body.group(1).split() if body else []) if k in SEITE), None)
     if fmt and modus != "notizen":

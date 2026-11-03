@@ -61,6 +61,8 @@ export interface AuswahlFeld extends FeldBasis {
 	blaettern?: boolean;
 	/** Weitere Optionen aus einem Feld mit `|`-Teilen, z. B. die Bausteine eines Worts. */
 	optionenAus?: string;
+	/** Pfad eines kleinen Bilds zur gewählten Option; `{wert}` steht für den Wert. */
+	vorschau?: string;
 }
 
 export interface SchalterFeld extends FeldBasis {
@@ -102,7 +104,7 @@ export interface Option {
 
 export interface UnterFeld {
 	name: string;
-	art: 'text' | 'zahl' | 'auswahl' | 'muster' | 'schalter';
+	art: 'text' | 'zahl' | 'auswahl' | 'muster' | 'schalter' | 'bild';
 	optionen?: Option[];
 	min?: number;
 	max?: number;
@@ -558,6 +560,56 @@ const ROLLEN_OPTIONEN: Option[] = [
 	{ wert: 'DaO', name: 'Dativobjekt' },
 	{ wert: 'Ort', name: 'Ortsangabe' },
 	{ wert: 'Zeit', name: 'Zeitangabe' },
+];
+
+const STROM_TEILE: Option[] = [
+	{ wert: 'batterie', name: 'Batterie' },
+	{ wert: 'schalter:offen', name: 'Schalter offen' },
+	{ wert: 'schalter:zu', name: 'Schalter zu' },
+	{ wert: 'lampe', name: 'Lampe' },
+	{ wert: 'motor', name: 'Motor' },
+	{ wert: 'summer', name: 'Summer' },
+	{ wert: 'kabel', name: 'Kabel' },
+	{ wert: 'eisen', name: 'Eisen (Leiter)' },
+	{ wert: 'kupfer', name: 'Kupfer (Leiter)' },
+	{ wert: 'alufolie', name: 'Alufolie (Leiter)' },
+	{ wert: 'holz', name: 'Holz (Nichtleiter)' },
+	{ wert: 'gummi', name: 'Gummi (Nichtleiter)' },
+	{ wert: 'plastik', name: 'Plastik (Nichtleiter)' },
+	{ wert: 'glas', name: 'Glas (Nichtleiter)' },
+	{ wert: 'papier', name: 'Papier (Nichtleiter)' },
+];
+
+/** Auch `abbildungen.js` und `assets/bilder/verkehrszeichen/QUELLEN.md` führen diese Nummern; ein Test vergleicht sie. */
+export const VERKEHRSZEICHEN: Option[] = [
+	{ wert: '101', name: 'Gefahrstelle (101)' },
+	{ wert: '102', name: 'Kreuzung mit Vorfahrt von rechts (102)' },
+	{ wert: '136', name: 'Kinder (136)' },
+	{ wert: '138', name: 'Radverkehr (138)' },
+	{ wert: '205', name: 'Vorfahrt gewähren (205)' },
+	{ wert: '206', name: 'Halt! Vorfahrt gewähren (206)' },
+	{ wert: '220', name: 'Einbahnstraße (220)' },
+	{ wert: '237', name: 'Radweg (237)' },
+	{ wert: '239', name: 'Gehweg (239)' },
+	{ wert: '240', name: 'Gemeinsamer Geh- und Radweg (240)' },
+	{ wert: '250', name: 'Verbot für Fahrzeuge aller Art (250)' },
+	{ wert: '254', name: 'Verbot für Radverkehr (254)' },
+	{ wert: '267', name: 'Verbot der Einfahrt (267)' },
+	{ wert: '274', name: 'Höchstgeschwindigkeit 50 (274)' },
+	{ wert: '301', name: 'Vorfahrt (301)' },
+	{ wert: '306', name: 'Vorfahrtstraße (306)' },
+	{ wert: '350', name: 'Fußgängerüberweg (350)' },
+	{ wert: '357', name: 'Sackgasse (357)' },
+];
+
+const WETTER: Option[] = [
+	{ wert: 'sonne', name: 'Sonne' },
+	{ wert: 'heiter', name: 'Heiter' },
+	{ wert: 'wolke', name: 'Wolke' },
+	{ wert: 'regen', name: 'Regen' },
+	{ wert: 'schnee', name: 'Schnee' },
+	{ wert: 'gewitter', name: 'Gewitter' },
+	{ wert: 'nebel', name: 'Nebel' },
 ];
 
 export const ABBILDUNG_SCHEMA = {
@@ -1031,6 +1083,7 @@ export const ABBILDUNG_SCHEMA = {
 					{ wert: 'saeulen', name: 'Säulen' },
 					{ wert: 'balken', name: 'Balken' },
 					{ wert: 'bild', name: 'Bilder' },
+					{ wert: 'linie', name: 'Linie' },
 				],
 			},
 			{
@@ -1039,7 +1092,7 @@ export const ABBILDUNG_SCHEMA = {
 				name: 'Werte',
 				unter: [
 					{ name: 'Name', art: 'text', standard: 'Neu' },
-					{ name: 'Wert', art: 'zahl', min: 0, max: 100000, standard: '1' },
+					{ name: 'Wert', art: 'zahl', min: -100000, max: 100000, standard: '1', leer: true },
 				],
 				min: 1,
 				max: 12,
@@ -1052,6 +1105,15 @@ export const ABBILDUNG_SCHEMA = {
 				hilfe: 'Nummern der Einträge, die die Kinder selbst zeichnen.',
 			},
 			{ art: 'zahl', attribut: 'skala', name: 'Skalenschritt', min: 1, max: 100000, standard: 1 },
+			{
+				art: 'zahl',
+				attribut: 'von',
+				name: 'Von',
+				min: -1000,
+				max: 1000,
+				standard: 0,
+				hilfe: 'Nur beim Liniendiagramm, z. B. −10 für Temperaturen unter null.',
+			},
 			{ art: 'zahl', attribut: 'bis', name: 'Bis', min: 1, max: 100000, standard: 10 },
 			{ art: 'text', attribut: 'einheit', name: 'Achse', max: 20 },
 			{
@@ -1071,8 +1133,16 @@ export const ABBILDUNG_SCHEMA = {
 		],
 		regeln: (w): Fehler => {
 			const bis = w.text('bis');
-			const groesster = Math.max(0, ...w.zeilen('werte').map((z) => alsZahl(z[1] ?? '0')));
-			return bis !== null && groesster > alsZahl(bis) ? { bis: `Ein Wert ist größer als ${bis}.` } : {};
+			const zahlen = w.zeilen('werte').map((z) => alsZahl(z[1] || '0'));
+			if (w.text('art') !== 'linie' && zahlen.some((v) => v < 0)) {
+				return { werte: 'Werte unter null gehen nur beim Liniendiagramm.' };
+			}
+			if (w.text('art') !== 'linie' && w.zeilen('werte').some((z) => !z[1])) {
+				return { werte: 'Leere Werte gehen nur beim Liniendiagramm.' };
+			}
+			return bis !== null && Math.max(0, ...zahlen) > alsZahl(bis)
+				? { bis: `Ein Wert ist größer als ${bis}.` }
+				: {};
 		},
 	},
 	'x-urne': {
@@ -2010,6 +2080,143 @@ export const ABBILDUNG_SCHEMA = {
 			},
 			{ art: 'zahl', attribut: 'groesse', name: 'Größe', min: 120, max: 600, standard: 170, einheit: 'px' },
 		],
+	},
+	'x-schaltplan': {
+		name: 'Stromkreis',
+		felder: [
+			{
+				art: 'liste',
+				attribut: 'teile',
+				name: 'Teile im Kreis',
+				unter: [{ name: 'Teil', art: 'auswahl', optionen: STROM_TEILE, standard: 'lampe' }],
+				zeilenTrenner: ' ',
+				min: 1,
+				max: 6,
+			},
+			{
+				art: 'liste',
+				attribut: 'zweig',
+				name: 'Zweiter Zweig',
+				hilfe: 'Liegt parallel zu allen Teilen außer der Batterie.',
+				unter: [
+					{
+						name: 'Teil',
+						art: 'auswahl',
+						optionen: STROM_TEILE.filter((o) => o.wert !== 'batterie'),
+						standard: 'kabel',
+					},
+				],
+				zeilenTrenner: ' ',
+				max: 5,
+			},
+			{
+				art: 'auswahl',
+				attribut: 'art',
+				name: 'Darstellung',
+				standard: 'symbole',
+				optionen: [
+					{ wert: 'symbole', name: 'Schaltzeichen' },
+					{ wert: 'bild', name: 'Bildhaft' },
+				],
+			},
+			{
+				art: 'auswahl',
+				attribut: 'aufgabe',
+				name: 'Aufgabe',
+				standard: 'keine',
+				optionen: [
+					{ wert: 'keine', name: 'Keine' },
+					{ wert: 'leuchtet', name: 'Leuchtet die Lampe?' },
+					{ wert: 'vervollstaendigen', name: 'Kabel ergänzen' },
+					{ wert: 'benennen', name: 'Teile benennen' },
+				],
+			},
+		],
+		regeln: (w): Fehler =>
+			w.zeilen('teile').some((z) => z[0] === 'batterie') ? {} : { teile: 'Im Kreis fehlt die Batterie.' },
+	},
+	'x-kreislauf': {
+		name: 'Kreislauf',
+		felder: [
+			{
+				art: 'auswahl',
+				attribut: 'art',
+				name: 'Form',
+				standard: 'kreis',
+				optionen: [
+					{ wert: 'kreis', name: 'Kreis' },
+					{ wert: 'ablauf', name: 'Ablauf' },
+				],
+			},
+			{
+				art: 'liste',
+				attribut: 'stationen',
+				name: 'Stationen',
+				unter: [
+					{ name: 'Text', art: 'text', standard: 'Neu' },
+					{ name: 'Bild', art: 'bild', leer: true },
+				],
+				min: 3,
+				max: 8,
+			},
+			{
+				art: 'text',
+				attribut: 'pfeile',
+				name: 'Pfeile',
+				beispiel: 'verdunsten; aufsteigen; regnen',
+				hilfe: 'Beschriftung je Pfeil, mit Semikolon getrennt.',
+			},
+			{
+				art: 'text',
+				attribut: 'offen',
+				name: 'Offen zum Eintragen',
+				beispiel: '3 p2',
+				muster: '\\s*(p?\\d+\\s*)*',
+				musterHilfe: 'Nummern der Stationen, p und Nummer für einen Pfeil, z. B. 3 p2.',
+			},
+		],
+	},
+	'x-verkehrszeichen': {
+		name: 'Verkehrszeichen',
+		felder: [
+			{
+				art: 'auswahl',
+				attribut: 'nummer',
+				name: 'Zeichen',
+				standard: '205',
+				optionen: VERKEHRSZEICHEN,
+				vorschau: 'bilder/verkehrszeichen/{wert}.svg',
+			},
+			{ art: 'zahl', ...GROESSE, min: 40, max: 300, standard: 90, schritt: 10 },
+			{
+				art: 'schalter',
+				attribut: 'ausmalen',
+				name: 'Nur Umriss zum Ausmalen',
+				an: 'ja',
+				aus: 'nein',
+				standard: false,
+			},
+		],
+	},
+	'x-wetter': {
+		name: 'Wettersymbol',
+		felder: [
+			{
+				art: 'auswahl',
+				attribut: 'symbol',
+				name: 'Symbol',
+				optionen: [{ wert: null, name: 'Keins' }, ...WETTER],
+			},
+			{
+				art: 'auswahl',
+				attribut: 'loesung',
+				name: 'Symbol erst in der Lösung',
+				optionen: [{ wert: null, name: 'Keins' }, ...WETTER],
+			},
+			{ art: 'zahl', attribut: 'wind', name: 'Wind (Striche)', min: 0, max: 3, standard: 0 },
+			{ art: 'zahl', ...GROESSE, min: 24, max: 200, standard: 60, schritt: 4 },
+		],
+		regeln: (w): Fehler => (w.text('symbol') || w.text('loesung') ? {} : { symbol: 'Bitte ein Symbol wählen.' }),
 	},
 	'x-plan': {
 		name: 'Plan',

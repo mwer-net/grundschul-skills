@@ -40,9 +40,12 @@ import {
 import type { KeyboardEvent, ReactNode } from 'react';
 import { useEffect, useId, useRef, useState } from 'react';
 
+import { meldung, sende, sendeDatei } from '../api';
 import { Knopf } from '../bausteine/Knopf';
 import { Symbol } from '../bausteine/Symbol';
 import type { AbbildungSteuerung } from './abbildung';
+import { bereiteVor } from './bild';
+import { SammlungDialog } from './Bildpanel';
 
 const EINGABE =
 	'min-h-12 rounded-xl border-2 border-rand bg-white px-3 focus:border-brand-500 focus:outline-none disabled:opacity-50 aria-invalid:border-fehler';
@@ -286,6 +289,14 @@ const Auswahl = ({ abb, feld }: FeldEigenschaften<AuswahlFeld>) => {
 					</option>
 				))}
 			</select>
+			{feld.vorschau && wert !== null && (
+				<img
+					className="mt-2 h-16 w-auto"
+					alt=""
+					data-vorschau={wert}
+					src={`${abb.bildBasis}${feld.vorschau.replace('{wert}', encodeURIComponent(wert))}`}
+				/>
+			)}
 			{feld.blaettern && (
 				<div className="mt-2 flex gap-2">
 					<Knopf
@@ -577,6 +588,83 @@ const Mischen = ({ abb, feld }: FeldEigenschaften<MischenFeld>) => (
 	</div>
 );
 
+/** Bild einer Listenzeile: aus der Sammlung oder hochgeladen; gespeichert wird nur der Pfad. */
+const BildWahl = ({
+	abb,
+	aendere,
+	name,
+	wert,
+}: {
+	abb: AbbildungSteuerung;
+	aendere: (neu: string, sofort: boolean) => void;
+	name: string;
+	wert: string;
+}) => {
+	const [sammlung, setSammlung] = useState(false);
+	const [fehler, setFehler] = useState<string | null>(null);
+	const datei = useRef<HTMLInputElement>(null);
+	const arbeite = (schritt: () => Promise<{ src: string }>) => {
+		setFehler(null);
+		schritt().then(
+			({ src }) => aendere(src, true),
+			(e: unknown) => setFehler(meldung(e)),
+		);
+	};
+	const lade = async (d: File) => {
+		const { daten, name: dateiname } = await bereiteVor(d);
+		return sendeDatei<{ src: string }>(`${abb.adresse}/bilder`, daten, dateiname);
+	};
+	return (
+		<div className="flex flex-wrap items-center gap-2" role="group" aria-label={name}>
+			{wert && <img className="h-12 w-12 flex-none object-contain" alt="" src={`${abb.bildBasis}${wert}`} />}
+			<Knopf art="zweit" className="flex-1" onClick={() => setSammlung(true)}>
+				Aus der Sammlung
+			</Knopf>
+			<Knopf art="zweit" className="flex-1" onClick={() => datei.current?.click()}>
+				Hochladen
+			</Knopf>
+			{wert && (
+				<Knopf art="zweit" className="flex-1" onClick={() => aendere('', true)}>
+					Bild entfernen
+				</Knopf>
+			)}
+			<input
+				ref={datei}
+				type="file"
+				accept="image/*"
+				className="hidden"
+				aria-label={`${name} hochladen`}
+				onChange={(e) => {
+					const d = e.target.files?.[0];
+					e.target.value = '';
+					if (d) {
+						arbeite(() => lade(d));
+					}
+				}}
+			/>
+			{fehler && (
+				<p className="w-full text-fehler" role="alert">
+					{fehler}
+				</p>
+			)}
+			{sammlung && (
+				<SammlungDialog
+					adresse={abb.adresse}
+					schliessen={() => setSammlung(false)}
+					waehle={(eintrag) => {
+						setSammlung(false);
+						arbeite(() =>
+							sende<{ src: string }>(`${abb.adresse}/bilder/uebernehmen`, {
+								schluessel: eintrag.schluessel,
+							}),
+						);
+					}}
+				/>
+			)}
+		</div>
+	);
+};
+
 const UnterEingabe = ({
 	abb,
 	aendere,
@@ -608,6 +696,9 @@ const UnterEingabe = ({
 				))}
 			</select>
 		);
+	}
+	if (u.art === 'bild') {
+		return <BildWahl abb={abb} aendere={aendere} name={name} wert={wert} />;
 	}
 	if (u.art === 'muster') {
 		return (

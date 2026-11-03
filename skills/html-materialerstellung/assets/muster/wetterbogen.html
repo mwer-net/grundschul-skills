@@ -1,0 +1,25 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<title>Muster: Wetterbogen</title>
+<link rel="stylesheet" href="blatt.css">
+<script src="abbildungen.js"></script>
+</head>
+<body class="kl3 sw">
+<section class="seite">
+  <div class="kopf"><div class="titel"><h1>Wetterbeobachtung</h1></div></div>
+  <div class="aufgabe"><div class="nr">1</div><div class="anw"><div class="text">Beobachte das Wetter eine Woche lang, immer zur gleichen Zeit. Zeichne das passende Symbol.</div></div>
+    <div class="koerper"><div class="wetter-reihe"><x-wetter symbol="sonne" groesse="44"></x-wetter><x-wetter symbol="heiter" groesse="44"></x-wetter><x-wetter symbol="wolke" groesse="44"></x-wetter><x-wetter symbol="regen" groesse="44"></x-wetter><x-wetter symbol="schnee" groesse="44"></x-wetter><x-wetter symbol="gewitter" groesse="44"></x-wetter><x-wetter symbol="nebel" groesse="44"></x-wetter></div>
+    <table class="wetterbogen">
+<tr><th>Tag</th><th>Mo</th><th>Di</th><th>Mi</th><th>Do</th><th>Fr</th></tr>
+<tr><th>Temperatur</th><td><x-skala art="thermometer" von="-20" bis="40" groesse="150"></x-skala></td><td><x-skala art="thermometer" von="-20" bis="40" groesse="150"></x-skala></td><td><x-skala art="thermometer" von="-20" bis="40" groesse="150"></x-skala></td><td><x-skala art="thermometer" von="-20" bis="40" groesse="150"></x-skala></td><td><x-skala art="thermometer" von="-20" bis="40" groesse="150"></x-skala></td></tr>
+<tr><th>Wetter</th><td class="hoch"></td><td class="hoch"></td><td class="hoch"></td><td class="hoch"></td><td class="hoch"></td></tr>
+<tr><th>Wind</th><td>0 1 2 3</td><td>0 1 2 3</td><td>0 1 2 3</td><td>0 1 2 3</td><td>0 1 2 3</td></tr>
+<tr><th>Regen oder Schnee</th><td>ja &nbsp; nein</td><td>ja &nbsp; nein</td><td>ja &nbsp; nein</td><td>ja &nbsp; nein</td><td>ja &nbsp; nein</td></tr>
+    </table></div></div>
+  <div class="aufgabe"><div class="nr">2</div><div class="anw"><div class="text">Trage die Temperaturen ein und verbinde die Punkte.</div></div>
+    <div class="koerper"><x-diagramm art="linie" werte="Mo; Di; Mi; Do; Fr" von="-10" bis="30" skala="5" einheit="°C" groesse="190"></x-diagramm></div></div>
+</section>
+</body>
+</html>

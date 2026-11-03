@@ -26,6 +26,7 @@ import {
 	rasterVon,
 	schemaVon,
 	setzeAbbildung,
+	VERKEHRSZEICHEN,
 	werteVon,
 	zeilenText,
 	zeilenVon,
@@ -517,6 +518,12 @@ const rechenkerne = () => {
 		isoWoche: (jahr: number, monat: number, tag: number) => number;
 		zeitStationen: (von: number, bis: number, spruenge: string | null) => number[];
 		dauerText: (minuten: number) => string;
+		stromTeile: (woerter: string[]) => { art: string; zustand: string | null }[];
+		stromkreis: (
+			teile: { art: string; zustand: string | null }[],
+			zweig?: { art: string; zustand: string | null }[],
+		) => { ergebnis: string; laufen: { art: string }[] };
+		VERKEHRSZEICHEN: Record<string, string>;
 		rechnungsplan: (
 			art: string,
 			zahlen: number[],
@@ -1310,5 +1317,83 @@ describe('Sachunterricht: Zeit und Raum (033)', () => {
 		assert.ok(pruefe('x-plan', { spalten: '26' }).spalten);
 		assert.deepEqual(pruefe('x-plan', { aufgabe: 'weg', weg: 'A1 A2 B2' }), {});
 		assert.ok(pruefe('x-plan', { aufgabe: 'weg', weg: 'A1 C3' }).weg);
+	});
+});
+
+const schemaVonSicher = (tag: string) => {
+	const gefunden = schemaVon(tag);
+	assert.ok(gefunden);
+	return gefunden;
+};
+
+describe('Sachunterricht: Natur und Technik (034)', () => {
+	const { VERKEHRSZEICHEN: IM_JS, stromTeile, stromkreis } = rechenkerne();
+	const kreis = (teile: string, zweig = '') => {
+		const woerter = (t: string) => t.split(' ').filter(Boolean);
+		return stromkreis(stromTeile(woerter(teile)), stromTeile(woerter(zweig)));
+	};
+	const ZEICHEN = path.join(ASSETS, 'bilder', 'verkehrszeichen');
+
+	it('rechnet, ob die Lampe leuchtet', () => {
+		assert.equal(kreis('batterie schalter:offen lampe').ergebnis, 'nein');
+		assert.equal(kreis('batterie schalter:zu lampe').ergebnis, 'ja');
+		assert.equal(kreis('batterie lampe').ergebnis, 'ja');
+		assert.equal(kreis('batterie eisen lampe').ergebnis, 'ja');
+		assert.equal(kreis('batterie holz lampe').ergebnis, 'nein');
+		assert.equal(kreis('batterie schalter:zu motor').laufen[0]?.art, 'motor');
+	});
+
+	it('erkennt den Kurzschluss, auch ohne Verbraucher', () => {
+		assert.equal(kreis('batterie lampe', 'kabel').ergebnis, 'kurzschluss');
+		assert.equal(kreis('batterie lampe', 'kabel').laufen.length, 0);
+		assert.equal(kreis('batterie').ergebnis, 'kurzschluss');
+		assert.equal(kreis('batterie kabel').ergebnis, 'kurzschluss');
+		assert.equal(kreis('batterie schalter:zu').ergebnis, 'kurzschluss');
+		assert.equal(kreis('batterie schalter:offen').ergebnis, 'nein');
+		assert.equal(kreis('batterie lampe', 'schalter:offen').ergebnis, 'ja');
+		assert.equal(kreis('batterie lampe', 'schalter:zu').ergebnis, 'kurzschluss');
+	});
+
+	it('rechnet zwei Zweige getrennt', () => {
+		const beide = kreis('batterie lampe', 'motor');
+		assert.equal(beide.ergebnis, 'ja');
+		assert.deepEqual(Array.from(beide.laufen, (t) => t.art).sort(), ['lampe', 'motor']);
+		assert.deepEqual(
+			Array.from(kreis('batterie schalter:offen lampe', 'motor').laufen, (t) => t.art),
+			['motor'],
+		);
+		assert.equal(kreis('batterie schalter:offen lampe', 'holz motor').ergebnis, 'nein');
+	});
+
+	it('lehnt falsche Teile ab und verlangt die Batterie', () => {
+		assert.throws(() => kreis('batterie toaster'));
+		assert.throws(() => kreis('batterie schalter lampe'));
+		assert.throws(() => kreis('schalter:zu lampe'));
+		assert.ok(pruefeWerte(schemaVonSicher('x-schaltplan'), { teile: 'schalter:zu lampe' }).teile);
+		assert.deepEqual(pruefeWerte(schemaVonSicher('x-schaltplan'), { teile: 'batterie schalter:zu lampe' }), {});
+	});
+
+	it('jede Nummer hat alle Dateien und eine Quelle, Schema und Zeichnen führen dieselben', () => {
+		const quellen = readFileSync(path.join(ZEICHEN, 'QUELLEN.md'), 'utf8');
+		const nummern = VERKEHRSZEICHEN.map((o) => o.wert);
+		assert.deepEqual(Object.keys(IM_JS).sort(), [...nummern].sort());
+		for (const nr of nummern) {
+			assert.match(quellen, new RegExp(`^\\| ${nr} \\| .*commons\\.wikimedia\\.org`, 'mu'), nr);
+			for (const variante of ['', '-grau', '-kontur']) {
+				const datei = readFileSync(path.join(ZEICHEN, `${nr}${variante}.svg`), 'utf8');
+				assert.doesNotMatch(datei, /<script|<image|foreignObject|href="http/iu, `${nr}${variante}`);
+				if (variante) {
+					assert.doesNotMatch(datei, /#c1121c|#154889|#f7ba0b/iu, `${nr}${variante}: noch farbig`);
+				}
+			}
+		}
+	});
+
+	it('Temperaturen unter null nur beim Liniendiagramm', () => {
+		const s = schemaVonSicher('x-diagramm');
+		assert.deepEqual(pruefeWerte(s, { art: 'linie', werte: 'Mo: -5; Di: 3' }), {});
+		assert.deepEqual(pruefeWerte(s, { art: 'linie', werte: 'Mo; Di' }), {});
+		assert.ok(pruefeWerte(s, { werte: 'Mo: -5' }).werte);
+		assert.ok(pruefeWerte(s, { werte: 'Mo' }).werte);
 	});
 });

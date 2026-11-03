@@ -141,7 +141,7 @@ const Kachel = ({ eintrag, waehle }: { eintrag: SammlungsBild; waehle: () => voi
 );
 
 /** Bilder zum Austauschen: Leitfiguren und Grafiken aus assets/, Bilder dieser Mappe und aller anderen. */
-const SammlungDialog = ({
+export const SammlungDialog = ({
 	adresse,
 	schliessen,
 	waehle,

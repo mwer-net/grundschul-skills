@@ -82,7 +82,7 @@
     "x-urne": "Kugeln im Säckchen", "x-wahrscheinlichkeit": "Wahrscheinlichkeit", "x-kombinatorik": "Möglichkeiten",
     "x-gitter": "Gitter", "x-figur": "Figur", "x-tangram": "Tangram",
     "x-hunderterfeld": "Hunderterfeld", "x-hundertertafel": "Hundertertafel", "x-rechenrahmen": "Rechenrahmen", "x-rechenstrich": "Rechenstrich",
-    "x-lineatur": "Schreiblinien", "x-silben": "Silben", "x-wortarten": "Wortarten", "x-satzglieder": "Satzglieder", "x-wortbausteine": "Wortbausteine", "x-zeitleiste": "Zeitleiste", "x-jahreskreis": "Jahreskreis", "x-windrose": "Windrose", "x-plan": "Plan",
+    "x-lineatur": "Schreiblinien", "x-silben": "Silben", "x-wortarten": "Wortarten", "x-satzglieder": "Satzglieder", "x-wortbausteine": "Wortbausteine", "x-zeitleiste": "Zeitleiste", "x-jahreskreis": "Jahreskreis", "x-windrose": "Windrose", "x-plan": "Plan", "x-schaltplan": "Stromkreis", "x-kreislauf": "Kreislauf", "x-verkehrszeichen": "Verkehrszeichen", "x-wetter": "Wettersymbol",
     "x-geld": "Geld", "x-skala": "Messgerät", "x-strecke": "Strecke", "x-kalender": "Kalender", "x-zeitspanne": "Zeitspanne",
     "x-punktfeld": "Punktfeld", "x-malkreuz": "Malkreuz", "x-schriftlich": "Schriftliche Rechnung",
     "x-zahlenmauer": "Zahlenmauer", "x-rechendreieck": "Rechendreieck", "x-zahlenhaus": "Zahlenhaus", "x-zahlenkette": "Rechenkette", "x-zauberdreieck": "Zauberdreieck", "x-rechenrad": "Rechenrad",
@@ -667,7 +667,8 @@
     const je = num(el, "je", 1);
     if (werte.length < 1 || werte.length > 12) abbruch("Ein Diagramm hat 1 bis 12 Einträge.");
     const zahlen = werte.map((t) => Number(t.wert));
-    if (zahlen.some((v) => !Number.isFinite(v) || v < 0)) abbruch("Die Werte müssen Zahlen ab 0 sein.");
+    if (zahlen.some((v) => !Number.isFinite(v))) abbruch("Die Werte müssen Zahlen sein.");
+    if (art !== "linie" && zahlen.some((v) => v < 0)) abbruch("Die Werte müssen Zahlen ab 0 sein.");
     const istOffen = (i) => offen.includes(i + 1) && !loesungSichtbar(el);
     const f = fuellung(), grund = f.von(istSw() ? 1 : 0);
 
@@ -696,6 +697,42 @@
       s += `<g transform="translate(${r1(links + 18)} ${unten + 13})">${SYMBOLE[symbol](0, 0, r, grund)}</g>` +
         text(links + 40, unten + 13, `= ${zahl(je)}${einheit ? ` ${einheit}` : ""}`, { groesse: schrift, anker: "start" });
       el.innerHTML = svg(r1(links + 34 + anzahl * 32), unten + 30, f.defs() + s);
+      return;
+    }
+
+    if (art === "linie") {
+      const von = attr(el, "von", null) === null ? null : Number(attr(el, "von", null));
+      const leer = (i) => werte[i].wert === "" || istOffen(i), belegt = zahlen.filter((_, i) => werte[i].wert !== "");
+      const { schritt } = skalaVon(belegt.map(Math.abs), schrittRoh === null ? null : Number(schrittRoh), null);
+      const ende = bisRoh === null ? Math.max(schritt, Math.ceil(Math.max(0, ...belegt) / schritt) * schritt) : Number(bisRoh);
+      const start = von ?? Math.min(0, Math.floor(Math.min(0, ...belegt) / schritt) * schritt);
+      if (!(start < ende)) abbruch("„Von“ muss kleiner als „Bis“ sein.");
+      if (belegt.some((v) => v > ende || v < start)) abbruch(`Ein Wert liegt nicht zwischen ${zahl(start)} und ${zahl(ende)}.`);
+      if ((ende - start) / schritt > 12) abbruch("Das wären mehr als 12 Linien. Nimm einen größeren Skalenschritt.");
+      const schrift = 14, linien = [];
+      for (let v = start; v <= ende + 1e-9; v += schritt) linien.push(r1(v));
+      const links = Math.max(...linien.map((v) => textBreite(zahl(v), schrift))) + 12, oben = einheit ? 26 : 10;
+      const spalte = Math.max(48, ...werte.map((t) => textBreite(t.name, schrift) + 10)), unten = oben + groesse, breite = links + spalte * werte.length + 10;
+      const y = (v) => unten - ((v - start) / (ende - start)) * groesse, x = (i) => links + (i + 0.5) * spalte;
+      let s = einheit ? text(4, 8, einheit, { groesse: schrift, anker: "start" }) : "";
+      for (const v of linien) s += `<line class="${v === 0 && start < 0 ? "nulllinie" : "gitter"}" data-v="${v}" x1="${r1(links)}" y1="${r1(y(v))}" x2="${r1(breite - 4)}" y2="${r1(y(v))}" stroke="${v === 0 && start < 0 ? SCHWARZ : GRAU}" stroke-width="${v === 0 && start < 0 ? 3 : 1}"/>` + text(links - 7, y(v), zahl(v), { groesse: schrift, anker: "end", fett: v === 0 && start < 0 });
+      let strecke = [];
+      const zieheLinie = () => {
+        if (strecke.length > 1) s += `<polyline class="verlauf" points="${strecke.join(" ")}" fill="none" stroke="${SCHWARZ}" stroke-width="2.4"/>`;
+        strecke = [];
+      };
+      werte.forEach((t, i) => {
+        if (leer(i)) zieheLinie();
+        else strecke.push(`${r1(x(i))},${r1(y(zahlen[i]))}`);
+      });
+      zieheLinie();
+      werte.forEach((t, i) => {
+        if (!leer(i)) s += `<circle class="wert" data-wert="${zahlen[i]}" cx="${r1(x(i))}" cy="${r1(y(zahlen[i]))}" r="5" fill="${SCHWARZ}" stroke="#fff" stroke-width="1.5"/>`;
+        s += text(x(i), unten + 14, t.name, { groesse: schrift });
+      });
+      s += `<line x1="${r1(links)}" y1="${r1(oben - 6)}" x2="${r1(links)}" y2="${r1(unten)}" stroke-width="2"/><line x1="${r1(links)}" y1="${r1(unten)}" x2="${r1(breite - 2)}" y2="${r1(unten)}" stroke-width="2"/>`;
+      el.setAttribute("data-skala", String(schritt));
+      el.innerHTML = svg(r1(breite), r1(unten + 28), s);
       return;
     }
 
@@ -3765,6 +3802,207 @@
     el.innerHTML = svg(r1(breite), r1(y), defs + s);
   }
 
+  /* Natur und Technik */
+  const STROM_LAST = { lampe: "Lampe", motor: "Motor", summer: "Summer" };
+  const STROM_LEITER = { eisen: "Eisen", kupfer: "Kupfer", alufolie: "Alufolie" };
+  const STROM_NICHTLEITER = { holz: "Holz", gummi: "Gummi", plastik: "Plastik", glas: "Glas", papier: "Papier" };
+  const STROM_NAMEN = { batterie: "Batterie", schalter: "Schalter", kabel: "Kabel", ...STROM_LAST, ...STROM_LEITER, ...STROM_NICHTLEITER };
+  const stromTeile = (woerter) => woerter.map((w) => {
+    const [art, zustand = null] = w.split(":").map((t) => t.trim());
+    if (!STROM_NAMEN[art]) abbruch(`Das Teil „${art}“ gibt es nicht.`);
+    if (art === "schalter" && !["offen", "zu"].includes(zustand)) abbruch("Ein Schalter ist offen oder zu.");
+    return { art, zustand };
+  });
+  /** Ein Zweig leitet, wenn kein Schalter offen ist und kein Nichtleiter drinsteckt. Ohne Verbraucher ist er ein Kurzschluss. */
+  const stromLeitet = (t) => !STROM_NICHTLEITER[t.art] && !(t.art === "schalter" && t.zustand === "offen");
+  const stromkreis = (teile, zweig = []) => {
+    if (!teile.some((t) => t.art === "batterie")) abbruch("Im Kreis fehlt die Batterie.");
+    if (zweig.some((t) => t.art === "batterie")) abbruch("Die Batterie gehört in den Hauptkreis.");
+    const a = teile.filter((t) => t.art !== "batterie"), zweige = zweig.length > 0 ? [a, zweig] : [a];
+    const leitet = (z) => z.every(stromLeitet), hatLast = (z) => z.some((t) => STROM_LAST[t.art]);
+    const kurz = zweige.some((z) => leitet(z) && !hatLast(z));
+    const laufen = kurz ? [] : zweige.filter((z) => leitet(z) && hatLast(z)).flatMap((z) => z.filter((t) => STROM_LAST[t.art]));
+    return { ergebnis: kurz ? "kurzschluss" : laufen.length > 0 ? "ja" : "nein", laufen };
+  };
+
+  function schaltplan(el) {
+    const teile = stromTeile(liste(el, "teile")), zweig = stromTeile(liste(el, "zweig")), art = attr(el, "art", "symbole"), aufgabe = attr(el, "aufgabe", "keine");
+    if (!["symbole", "bild"].includes(art)) abbruch(`Die Art „${art}“ gibt es nicht.`);
+    if (!["keine", "leuchtet", "vervollstaendigen", "benennen"].includes(aufgabe)) abbruch(`Die Aufgabe „${aufgabe}“ gibt es nicht.`);
+    const { ergebnis, laufen } = stromkreis(teile, zweig), loesung = loesungSichtbar(el), bild = art === "bild", benennen = aufgabe === "benennen";
+    const stellen = Math.max(teile.length - 1, zweig.length), breit = Math.max(280, benennen ? 100 * (stellen + 1) + 48 : 96 * stellen + 48), abstand = benennen ? 118 : 88, links = 24, rechts = breit - 24;
+    const oben = 34, mitte = zweig.length ? oben + abstand : null, unten = oben + abstand * (zweig.length ? 2 : 1);
+    const zeigeWirkung = aufgabe === "keine" || (aufgabe === "leuchtet" && loesung);
+    const strahl = istSw() ? SCHWARZ : "var(--haupt)";
+    const zeichne = (t, x, y) => {
+      const hg = (b, h) => `<rect x="${r1(x - b / 2)}" y="${r1(y - h / 2)}" width="${b}" height="${h}" fill="#fff" stroke="none"/>`;
+      if (t.art === "kabel") return "";
+      if (t.art === "batterie") {
+        if (bild) return `${hg(62, 34)}<rect x="${x - 27}" y="${y - 15}" width="54" height="30" rx="3" fill="#fff" stroke="${SCHWARZ}" stroke-width="2"/>${text(x - 15, y, "+", { groesse: 18, fett: true })}${text(x + 15, y, "−", { groesse: 18, fett: true })}`;
+        return `${hg(30, 44)}<line x1="${x - 6}" y1="${y - 18}" x2="${x - 6}" y2="${y + 18}" stroke="${SCHWARZ}" stroke-width="2"/><line x1="${x + 6}" y1="${y - 9}" x2="${x + 6}" y2="${y + 9}" stroke="${SCHWARZ}" stroke-width="5"/>${text(x - 16, y - 16, "+", { groesse: 14, fett: true })}${text(x + 18, y - 16, "−", { groesse: 14, fett: true })}`;
+      }
+      if (t.art === "lampe") {
+        const hell = zeigeWirkung && laufen.includes(t);
+        const strahlen = hell ? Array.from({ length: 8 }, (_, i) => {
+          const w = (i * Math.PI) / 4, a = 19, z = 27;
+          return `<line class="lichtstrahl" x1="${r1(x + a * Math.cos(w))}" y1="${r1(y + a * Math.sin(w))}" x2="${r1(x + z * Math.cos(w))}" y2="${r1(y + z * Math.sin(w))}" stroke="${strahl}" stroke-width="2.5"/>`;
+        }).join("") : "";
+        if (bild) return `${hg(40, 40)}${strahlen}<circle cx="${x}" cy="${y - 3}" r="13" fill="#fff" stroke="${SCHWARZ}" stroke-width="2"/><path d="M${x - 5} ${y - 1}q2.5 -6 5 0q2.5 6 5 0" fill="none" stroke="${SCHWARZ}" stroke-width="1.5"/><rect x="${x - 8}" y="${y + 9}" width="16" height="9" fill="#fff" stroke="${SCHWARZ}" stroke-width="2"/>`;
+        return `${hg(36, 36)}${strahlen}<circle cx="${x}" cy="${y}" r="14" fill="#fff" stroke="${SCHWARZ}" stroke-width="2"/><path d="M${r1(x - 9.9)} ${r1(y - 9.9)}L${r1(x + 9.9)} ${r1(y + 9.9)}M${r1(x + 9.9)} ${r1(y - 9.9)}L${r1(x - 9.9)} ${r1(y + 9.9)}" stroke="${SCHWARZ}" stroke-width="2"/>`;
+      }
+      if (t.art === "schalter") {
+        const hebel = t.zustand === "offen" ? `L${x + 15} ${y - 15}` : `L${x + 18} ${y}`;
+        return `${hg(44, 34)}<circle cx="${x - 18}" cy="${y}" r="3" fill="${SCHWARZ}" stroke="none"/><circle cx="${x + 18}" cy="${y}" r="3" fill="${SCHWARZ}" stroke="none"/><path d="M${x - 22} ${y}H${x - 18}${hebel}M${x + 18} ${y}H${x + 22}" fill="none" stroke="${SCHWARZ}" stroke-width="2.2"/>`;
+      }
+      if (t.art === "motor") return `${hg(36, 36)}<circle cx="${x}" cy="${y}" r="14" fill="#fff" stroke="${SCHWARZ}" stroke-width="2"/>${text(x, y, "M", { groesse: 16, fett: true })}`;
+      if (t.art === "summer") return `${hg(36, 30)}<path d="M${x - 13} ${y + 8}A13 13 0 0 1 ${x + 13} ${y + 8}Z" fill="#fff" stroke="${SCHWARZ}" stroke-width="2"/>`;
+      return `${hg(64, 30)}<rect x="${x - 30}" y="${y - 12}" width="60" height="24" fill="#fff" stroke="${SCHWARZ}" stroke-width="1.8"/>${text(x, y, STROM_NAMEN[t.art], { groesse: 14 })}`;
+    };
+    const luecke = aufgabe === "vervollstaendigen", drahtUnten = (mitte ?? oben) + (unten - (mitte ?? oben)) / 2;
+    let s = `<g class="draht" fill="none" stroke="${SCHWARZ}" stroke-width="2"><path d="M${links} ${oben}H${rechts}V${luecke ? drahtUnten - 14 : unten}"/><path d="M${rechts} ${luecke ? drahtUnten + 14 : unten}V${unten}H${links}V${oben}"/>${mitte === null ? "" : `<path d="M${links} ${mitte}H${rechts}"/>`}</g>`;
+    if (luecke && loesung) s += `<line class="kabel-loesung" x1="${rechts}" y1="${drahtUnten - 14}" x2="${rechts}" y2="${drahtUnten + 14}" stroke="${SCHWARZ}" stroke-width="3.5"/>`;
+    const setze = (reihe, y, inSchritten) => {
+      const n = reihe.length;
+      reihe.forEach((t, i) => {
+        const x = inSchritten(i, n);
+        s += `<g class="teil" data-teil="${t.art}"${t.zustand ? ` data-zustand="${t.zustand}"` : ""}${STROM_LAST[t.art] ? ` data-laeuft="${laufen.includes(t) ? "ja" : "nein"}"` : ""}>${zeichne(t, x, y)}</g>`;
+        if (benennen && t.art !== "kabel") s += `<g class="name" data-name="${STROM_NAMEN[t.art]}" stroke="${SCHWARZ}">${antwortfeld(el, x - 44, y + 26, 88, 26, STROM_NAMEN[t.art], { groesse: 14 })}</g>`;
+      });
+    };
+    const verteilen = (i, n) => links + ((rechts - links) * (i + 1)) / (n + 1);
+    const batterien = teile.filter((t) => t.art === "batterie"), rest = teile.filter((t) => t.art !== "batterie");
+    setze(rest, oben, verteilen);
+    if (mitte !== null) setze(zweig, mitte, verteilen);
+    setze(batterien, unten, verteilen);
+    let h = unten + (benennen ? 60 : 26);
+    if (aufgabe === "leuchtet") {
+      const last = [...rest, ...zweig].find((t) => STROM_LAST[t.art])?.art ?? "lampe";
+      const frage = { lampe: "Leuchtet die Lampe?", motor: "Läuft der Motor?", summer: "Summt der Summer?" }[last];
+      s += text(links, h + 8, frage, { groesse: 16, anker: "start" });
+      h += 24;
+      const x0 = links;
+      const kreuz = (name, x, an) => `<g class="wahl" data-wahl="${name}"><rect x="${r1(x)}" y="${h}" width="18" height="18" fill="#fff" stroke="${SCHWARZ}" stroke-width="1.6"/>${an && loesung ? `<path d="M${r1(x + 3)} ${h + 3}L${r1(x + 15)} ${h + 15}M${r1(x + 15)} ${h + 3}L${r1(x + 3)} ${h + 15}" stroke="${SCHWARZ}" stroke-width="2.4"/>` : ""}${text(x + 24, h + 9, name, { groesse: 16, anker: "start" })}</g>`;
+      s += kreuz("ja", x0, ergebnis === "ja") + kreuz("nein", x0 + 66, ergebnis !== "ja");
+      h += 28;
+      if (ergebnis === "kurzschluss" && loesung) {
+        s += `<g class="kurzschluss">${text(links, h + 8, "Kurzschluss: Batterie wird heiß", { groesse: 16, fett: true, anker: "start" })}</g>`;
+        h += 26;
+      }
+    }
+    el.setAttribute("data-ergebnis", ergebnis);
+    el.innerHTML = svg(breit, h, s);
+  }
+
+  function kreislauf(el) {
+    const stationen = paare(el, "stationen"), art = attr(el, "art", "kreis"), offen = liste(el, "offen"), pfeile = (attr(el, "pfeile", "") || "").split(";").map((t) => t.trim());
+    if (!["kreis", "ablauf"].includes(art)) abbruch(`Die Art „${art}“ gibt es nicht.`);
+    if (stationen.length < 3 || stationen.length > 8) abbruch("Es sind 3 bis 8 Stationen.");
+    const loesung = loesungSichtbar(el), mitBild = stationen.some((t) => t.wert);
+    const n = stationen.length, pfeilZahl = art === "kreis" ? n : n - 1;
+    const pfeilText = (i) => {
+      const t = pfeile[i] ?? "";
+      return offen.includes(`p${i + 1}`) && !loesung ? "" : t;
+    };
+    const kasten = (t, i, stil) => {
+      const frei = offen.includes(String(i + 1)) && !loesung, quelle = el.getAttribute(`data-bild-${i}`) ?? t.wert;
+      const bild = t.wert ? `<img class="kl-bild" src="${maskiere(quelle)}" alt="${frei ? "" : maskiere(t.name)}">` : "";
+      return `<div class="kl-station${frei ? " leer" : ""}" data-station="${i + 1}" style="${stil}">${bild}<span>${frei ? "" : maskiere(t.name)}</span></div>`;
+    };
+    if (art === "ablauf") {
+      const teile = stationen.map((t, i) => {
+        const fest = `width:${mitBild ? 120 : 110}px`;
+        const pfeil = i < n - 1 ? `<div class="kl-pfeil" data-pfeil="${i + 1}"><span>${maskiere(pfeilText(i))}</span><svg width="44" height="14" viewBox="0 0 44 14"><path d="M1 7H34M32 1L43 7L32 13Z" fill="${SCHWARZ}" stroke="${SCHWARZ}" stroke-width="1.8"/></svg></div>` : "";
+        return kasten(t, i, fest) + pfeil;
+      });
+      el.innerHTML = `<div class="kl-ablauf">${teile.join("")}</div>`;
+      return;
+    }
+    const D = n > 5 || mitBild ? 560 : 440, w = n > 6 ? 118 : 130, h = mitBild ? 104 : 48, R = (D - w) / 2, H = 2 * R + h + 2, cx = D / 2, cy = H / 2;
+    const lage = (i) => {
+      const g = -Math.PI / 2 + (i * 2 * Math.PI) / n;
+      return [cx + R * Math.cos(g), cy + R * Math.sin(g), g];
+    };
+    if (n > 2) {
+      const [ax, ay] = lage(0), [bx, by] = lage(1);
+      if (Math.abs(ax - bx) < w + 4 && Math.abs(ay - by) < h + 4) abbruch("Zu viele Stationen für die Breite.");
+    }
+    const draussen = (x, y, i) => {
+      const [sx, sy] = lage(i);
+      return Math.abs(x - sx) > w / 2 + 7 || Math.abs(y - sy) > h / 2 + 7;
+    };
+    let s = "";
+    for (let i = 0; i < pfeilZahl; i++) {
+      const [, , g0] = lage(i), j = (i + 1) % n, ende = g0 + (2 * Math.PI) / n, schritt = 0.01;
+      let a = g0, z = ende;
+      while (a < ende && !draussen(cx + R * Math.cos(a), cy + R * Math.sin(a), i)) a += schritt;
+      while (z > g0 && !draussen(cx + R * Math.cos(z), cy + R * Math.sin(z), j)) z -= schritt;
+      if (z - a < 0.08) abbruch("Zu viele Stationen für die Breite.");
+      const p = (t) => [cx + R * Math.cos(t), cy + R * Math.sin(t)];
+      const [x1, y1] = p(a), [x2, y2] = p(z), tang = z + Math.PI / 2, [mx, my] = p((a + z) / 2);
+      const spitze = `M${r1(x2)} ${r1(y2)}L${r1(x2 - 11 * Math.cos(tang - 0.45))} ${r1(y2 - 11 * Math.sin(tang - 0.45))}L${r1(x2 - 11 * Math.cos(tang + 0.45))} ${r1(y2 - 11 * Math.sin(tang + 0.45))}Z`;
+      s += `<g class="kl-bogen" data-pfeil="${i + 1}"><path d="M${r1(x1)} ${r1(y1)}A${r1(R)} ${r1(R)} 0 0 1 ${r1(x2)} ${r1(y2)}" fill="none" stroke="${SCHWARZ}" stroke-width="2"/><path d="${spitze}" fill="${SCHWARZ}" stroke="none"/>`;
+      if (pfeile[i]) {
+        const innen = 0.76, tx = cx + (mx - cx) * innen, ty = cy + (my - cy) * innen, inhaltText = pfeilText(i), tb = textBreite(pfeile[i], 15);
+        s += inhaltText ? `<rect x="${r1(tx - tb / 2 - 2)}" y="${r1(ty - 10)}" width="${r1(tb + 4)}" height="20" fill="#fff" stroke="none"/>${text(tx, ty, inhaltText, { groesse: 15 })}` : `<line x1="${r1(tx - tb / 2)}" y1="${r1(ty + 8)}" x2="${r1(tx + tb / 2)}" y2="${r1(ty + 8)}" stroke="${SCHWARZ}" stroke-width="1.4"/>`;
+      }
+      s += "</g>";
+    }
+    const kaesten = stationen.map((t, i) => {
+      const [x, y] = lage(i);
+      return kasten(t, i, `left:${r1(x - w / 2)}px;top:${r1(y - h / 2)}px;width:${w}px;height:${h}px`);
+    }).join("");
+    el.innerHTML = `<div class="kl-kreis" style="width:${r1(D)}px;height:${r1(H)}px">${svg(r1(D), r1(H), s)}${kaesten}</div>`;
+  }
+
+  const VERKEHRSZEICHEN = { 101: "Gefahrstelle", 102: "Kreuzung mit Vorfahrt von rechts", 136: "Kinder", 138: "Radverkehr", 205: "Vorfahrt gewähren", 206: "Halt! Vorfahrt gewähren", 220: "Einbahnstraße", 237: "Radweg", 239: "Gehweg", 240: "Gemeinsamer Geh- und Radweg", 250: "Verbot für Fahrzeuge aller Art", 254: "Verbot für Radverkehr", 267: "Verbot der Einfahrt", 274: "Zulässige Höchstgeschwindigkeit", 301: "Vorfahrt", 306: "Vorfahrtstraße", 350: "Fußgängerüberweg", 357: "Sackgasse" };
+
+  function verkehrszeichen(el) {
+    const nummer = attr(el, "nummer", "205"), groesse = num(el, "groesse", 90), ausmalen = attr(el, "ausmalen", "nein") === "ja";
+    if (!VERKEHRSZEICHEN[nummer]) abbruch(`Das Verkehrszeichen ${nummer} gibt es hier nicht.`);
+    const variante = ausmalen && !loesungSichtbar(el) ? "-kontur" : istSw() ? "-grau" : "";
+    const quelle = el.getAttribute(`data-bild${variante}`) ?? `bilder/verkehrszeichen/${nummer}${variante}.svg`;
+    el.innerHTML = `<img class="vz-bild" src="${maskiere(quelle)}" alt="Zeichen ${nummer}: ${maskiere(VERKEHRSZEICHEN[nummer])}" style="height:${r1(groesse)}px">`;
+  }
+
+  const WETTER_FORMEN = {
+    sonne: { sonne: [30, 30, 12] },
+    heiter: { sonne: [20, 20, 10], wolke: true },
+    wolke: { wolke: true },
+    regen: { wolke: true, unten: "M20 46l-3 9M31 46l-3 9M42 46l-3 9" },
+    schnee: { wolke: true, unten: "M20 47v8M16.500 49l7 4M23.500 49l-7 4M40 47v8M36.500 49l7 4M43.500 49l-7 4" },
+    gewitter: { wolke: true, blitz: "M33 40L25 51H32L27 60L39 47H32L37 40Z" },
+    nebel: { unten: "M8 18H52M12 28H48M8 38H52M12 48H48" },
+  };
+
+  function wetter(el) {
+    const symbol = attr(el, "symbol", null), geheim = attr(el, "loesung", null), wind = num(el, "wind", 0), groesse = num(el, "groesse", 60);
+    const name = symbol ?? geheim;
+    if (name === null) abbruch("Ein Wettersymbol fehlt.");
+    const form = WETTER_FORMEN[name];
+    if (!form) abbruch(`Das Wettersymbol „${name}“ gibt es nicht.`);
+    if (![0, 1, 2, 3].includes(wind)) abbruch("Wind hat 0 bis 3 Striche.");
+    if (symbol === null && !loesungSichtbar(el)) {
+      el.innerHTML = svg(60, 60, `<rect class="wetter-leer" x="2" y="2" width="56" height="56" rx="4" fill="#fff" stroke="#808080" stroke-width="1.5" stroke-dasharray="4 4"/>`, [groesse, groesse]);
+      return;
+    }
+    const gelb = istSw() ? "#fff" : "#FFD23F", wolkenBild = 'M16 42A9 9 0 0 1 15 24A11 11 0 0 1 36 19A10 10 0 0 1 48 42Z';
+    let s = "";
+    if (form.sonne) {
+      const [x, y, r] = form.sonne;
+      const strahlen = Array.from({ length: 8 }, (_, i) => {
+        const w = (i * Math.PI) / 4;
+        return `M${r1(x + (r + 3) * Math.cos(w))} ${r1(y + (r + 3) * Math.sin(w))}L${r1(x + (r + 9) * Math.cos(w))} ${r1(y + (r + 9) * Math.sin(w))}`;
+      }).join("");
+      s += `<path d="${strahlen}" stroke="${SCHWARZ}" stroke-width="2" fill="none"/><circle cx="${x}" cy="${y}" r="${r}" fill="${gelb}" stroke="${SCHWARZ}" stroke-width="2"/>`;
+    }
+    if (form.wolke) s += `<path class="wetter-wolke" d="${wolkenBild}" fill="#fff" stroke="${SCHWARZ}" stroke-width="2" stroke-linejoin="round"/>`;
+    if (form.unten) s += `<path d="${form.unten}" fill="none" stroke="${SCHWARZ}" stroke-width="2" stroke-linecap="round"/>`;
+    if (form.blitz) s += `<path d="${form.blitz}" fill="${gelb}" stroke="${SCHWARZ}" stroke-width="1.6" stroke-linejoin="round"/>`;
+    for (let i = 0; i < wind; i++) s += `<line class="wetter-wind" x1="50" y1="${r1(12 + i * 6)}" x2="59" y2="${r1(12 + i * 6)}" stroke="${SCHWARZ}" stroke-width="2"/>`;
+    el.setAttribute("data-symbol", name);
+    el.innerHTML = svg(60, 60, s, [groesse, groesse]);
+  }
+
   /* == Test == */
   // x-probe gibt es nur für die Tests der Feldtypen im Panel (023); in Material kommt es nicht vor.
   function probe(el) {
@@ -3804,7 +4042,7 @@
     "x-gitter": gitter, "x-figur": figur, "x-tangram": tangram,
     "x-hunderterfeld": hunderterfeld, "x-hundertertafel": hundertertafel, "x-rechenrahmen": rechenrahmen, "x-rechenstrich": rechenstrich,
     "x-zahlenmauer": zahlenmauer, "x-rechendreieck": rechendreieck, "x-zahlenhaus": zahlenhaus, "x-zahlenkette": zahlenkette, "x-zauberdreieck": zauberdreieck, "x-rechenrad": rechenrad,
-    "x-lineatur": lineatur, "x-silben": silben, "x-wortarten": wortarten, "x-satzglieder": satzglieder, "x-wortbausteine": wortbausteine, "x-zeitleiste": zeitleiste, "x-jahreskreis": jahreskreis, "x-windrose": windrose, "x-plan": plan,
+    "x-lineatur": lineatur, "x-silben": silben, "x-wortarten": wortarten, "x-satzglieder": satzglieder, "x-wortbausteine": wortbausteine, "x-zeitleiste": zeitleiste, "x-jahreskreis": jahreskreis, "x-windrose": windrose, "x-plan": plan, "x-schaltplan": schaltplan, "x-kreislauf": kreislauf, "x-verkehrszeichen": verkehrszeichen, "x-wetter": wetter,
     "x-geld": geld, "x-skala": skala, "x-strecke": strecke, "x-kalender": kalender, "x-zeitspanne": zeitspanne,
     "x-punktfeld": punktfeld, "x-malkreuz": malkreuz, "x-schriftlich": schriftlich,
     "x-wuerfelbau": wuerfelbau, "x-wuerfelnetz": wuerfelnetz, "x-koerper": koerper };
@@ -3835,7 +4073,7 @@
     mauerWerte, mauerEindeutig, istEindeutig, RECHENDREIECK_GLEICHUNGEN, zauberLoesungen, ketteWerte, leseOperator,
     malkreuzRechnung, addiere, subtrahiereErweitern, subtrahiereEntbuendeln, multipliziere, dividiere, moeglicheFehler, rechnungsplan,
     MUENZEN, SCHEINE, betragText, mindestStueckelung, skalaStriche, kalenderMonat, isoWoche, zeitStationen, dauerText, uhrText,
-    ANDIKA_X_HOEHE, lineaturMass, silbenTeile, pruefeSilben, WORTARTEN, ROLLEN, wortartenTeile, satzLesen, satzUmstellen, kleinImSatz, pruefeBausteine, zeitPos, jahrText, KREISE, PLAN_SYMBOLE,
+    ANDIKA_X_HOEHE, lineaturMass, silbenTeile, pruefeSilben, WORTARTEN, ROLLEN, wortartenTeile, satzLesen, satzUmstellen, kleinImSatz, pruefeBausteine, zeitPos, jahrText, KREISE, PLAN_SYMBOLE, stromTeile, stromkreis, VERKEHRSZEICHEN, WETTER_FORMEN,
   };
   if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", () => window.zeichneAbbildungen());
   else window.zeichneAbbildungen();

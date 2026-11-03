@@ -343,7 +343,7 @@ const Bearbeitung = ({ dokument, mappe: mappenDaten }: { mappe: Mappe; dokument:
 		rueckgaengig: zurueck,
 	});
 
-	const abbildung = useAbbildung({ geladen, html, zerlegung, pfad, struktur });
+	const abbildung = useAbbildung({ geladen, html, zerlegung, pfad, struktur, adresse: b.adresse, basis });
 
 	const loes = useLoesung({ geladen, html, zerlegung, pfad, struktur, loesung, rueckgaengig: zurueck });
 

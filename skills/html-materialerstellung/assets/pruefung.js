@@ -69,7 +69,7 @@
       .forEach((e) => melde("FEHLER", nr, "abgeschnitten", `„${kurz(e)}“ ist abgeschnitten`, [ziel(e)]));
 
     // 3. Überlappungen zwischen Inhalten
-    const INHALT = "img,svg,.blase,.anw,h1,.ziel,.wahlhilfe,.zeile,.antwort,table,.nr,.schreiblinie,.kartentext,.item,.platzhalter,x-wortarten,x-satzglieder,x-wortbausteine,x-stellentafel,x-silben,.timer-text,.leerstelle,.vermutung";
+    const INHALT = "img,svg:not(.kl-kreis>svg),.blase,.anw,h1,.ziel,.wahlhilfe,.zeile,.antwort,table,.nr,.schreiblinie,.kartentext,.item,.platzhalter,x-wortarten,x-satzglieder,x-wortbausteine,.kl-station,.kl-pfeil,x-stellentafel,x-silben,.timer-text,.leerstelle,.vermutung";
     const teile = alle.filter((e) => e.matches(INHALT)), paare = [];
     const schneidet = (a, b) => {
       const A = a.getBoundingClientRect(), C = b.getBoundingClientRect();

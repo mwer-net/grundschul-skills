@@ -1577,3 +1577,137 @@ test.describe('Sachunterricht: Zeit und Raum (033)', () => {
 		expect(await readFile(datei, 'utf8')).toBe(stand);
 	});
 });
+
+test.describe('Sachunterricht: Natur und Technik (034)', () => {
+	test('Stromkreis: berechnet, ob die Lampe leuchtet, und meldet den Kurzschluss', async ({ page }) => {
+		const kreis = (teile: string, dazu = '') =>
+			`<x-schaltplan teile="${teile}" aufgabe="leuchtet"${dazu}></x-schaltplan>`;
+		const offen = await gezeichnet(page, kreis('batterie schalter:offen lampe'), 'kl3 sw loesung');
+		await expect(offen.locator('x-schaltplan')).toHaveAttribute('data-ergebnis', 'nein');
+		await expect(offen.locator('.lichtstrahl')).toHaveCount(0);
+		const zu = await gezeichnet(page, kreis('batterie schalter:zu lampe'), 'kl3 sw loesung');
+		await expect(zu.locator('x-schaltplan')).toHaveAttribute('data-ergebnis', 'ja');
+		await expect(zu.locator('.lichtstrahl')).toHaveCount(8);
+		const aufgabe = await gezeichnet(page, kreis('batterie schalter:zu lampe'));
+		await expect(aufgabe.locator('.lichtstrahl')).toHaveCount(0);
+		const kurz = await gezeichnet(page, kreis('batterie lampe', ' zweig="kabel"'), 'kl3 sw loesung');
+		await expect(kurz.locator('.kurzschluss')).toContainText('Kurzschluss: Batterie wird heiß');
+		await expect(kurz.locator('.lichtstrahl')).toHaveCount(0);
+		const ohne = await gezeichnet(page, '<x-schaltplan teile="schalter:zu lampe"></x-schaltplan>');
+		await expect(ohne.locator('x-schaltplan')).toHaveAttribute('data-fehler', /Batterie/);
+		const luecke = '<x-schaltplan teile="batterie lampe" aufgabe="vervollstaendigen"></x-schaltplan>';
+		await expect((await gezeichnet(page, luecke)).locator('.kabel-loesung')).toHaveCount(0);
+		await expect((await gezeichnet(page, luecke, 'kl3 sw loesung')).locator('.kabel-loesung')).toHaveCount(1);
+	});
+
+	test('Verkehrszeichen: Variante nach Druckprofil, unbekannte Nummer wird gemeldet', async ({ page }) => {
+		const src = async (tag: string, klasse: string) =>
+			(await gezeichnet(page, tag, klasse)).locator('img').getAttribute('src');
+		expect(await src('<x-verkehrszeichen nummer="205"></x-verkehrszeichen>', 'kl3 sw')).toBe(
+			'bilder/verkehrszeichen/205-grau.svg',
+		);
+		expect(await src('<x-verkehrszeichen nummer="205"></x-verkehrszeichen>', 'kl3 farbe')).toBe(
+			'bilder/verkehrszeichen/205.svg',
+		);
+		const aus = '<x-verkehrszeichen nummer="306" ausmalen="ja"></x-verkehrszeichen>';
+		expect(await src(aus, 'kl3 farbe')).toBe('bilder/verkehrszeichen/306-kontur.svg');
+		expect(await src(aus, 'kl3 farbe loesung')).toBe('bilder/verkehrszeichen/306.svg');
+		const falsch = await gezeichnet(page, '<x-verkehrszeichen nummer="999"></x-verkehrszeichen>');
+		await expect(falsch.locator('x-verkehrszeichen')).toHaveAttribute('data-fehler', /999/);
+	});
+
+	test('Kreislauf: offene Stationen, Grenzen, Pfeile ohne Überschneidung', async ({ page }) => {
+		const tag = (offen: string) =>
+			`<x-kreislauf stationen="Meer; Wolken; Regen; Fluss" pfeile="verdunsten; ziehen; fließen; münden" offen="${offen}"></x-kreislauf>`;
+		const blatt = await gezeichnet(page, tag('2 p3'));
+		await expect(blatt.locator('.kl-station')).toHaveCount(4);
+		await expect(blatt.locator('.kl-station.leer')).toHaveCount(1);
+		await expect(blatt.locator('.kl-bogen')).toHaveCount(4);
+		await expect(blatt.locator('.kl-kreis')).not.toContainText('fließen');
+		const loesung = await gezeichnet(page, tag('2 p3'), 'kl3 sw loesung');
+		await expect(loesung.locator('.kl-station.leer')).toHaveCount(0);
+		await expect(loesung.locator('.kl-kreis')).toContainText('fließen');
+		const zuWenig = await gezeichnet(page, '<x-kreislauf stationen="A; B"></x-kreislauf>');
+		await expect(zuWenig.locator('x-kreislauf')).toHaveAttribute('data-fehler', /3 bis 8/);
+		const ablauf = await gezeichnet(page, '<x-kreislauf art="ablauf" stationen="A; B; C"></x-kreislauf>');
+		await expect(ablauf.locator('.kl-pfeil')).toHaveCount(2);
+	});
+
+	test('Wettersymbol und Temperaturverlauf mit deutlicher Null-Linie', async ({ page }) => {
+		const geheim = '<x-wetter loesung="regen"></x-wetter>';
+		await expect((await gezeichnet(page, geheim)).locator('.wetter-leer')).toHaveCount(1);
+		await expect((await gezeichnet(page, geheim, 'kl3 sw loesung')).locator('x-wetter')).toHaveAttribute(
+			'data-symbol',
+			'regen',
+		);
+		const wind = await gezeichnet(page, '<x-wetter symbol="wolke" wind="3"></x-wetter>');
+		await expect(wind.locator('.wetter-wind')).toHaveCount(3);
+		const falsch = await gezeichnet(page, '<x-wetter symbol="hagel"></x-wetter>');
+		await expect(falsch.locator('x-wetter')).toHaveAttribute('data-fehler', /hagel/);
+
+		const linie = await gezeichnet(
+			page,
+			'<x-diagramm art="linie" werte="Mo: -5; Di: 0; Mi: 5" von="-10" bis="10" skala="5"></x-diagramm>',
+		);
+		await expect(linie.locator('.nulllinie')).toHaveAttribute('stroke-width', '3');
+		await expect(linie.locator('circle.wert')).toHaveCount(3);
+		await expect(linie.locator('polyline.verlauf')).toHaveCount(1);
+		const leer = await gezeichnet(
+			page,
+			'<x-diagramm art="linie" werte="Mo; Di" von="-10" bis="30" skala="5"></x-diagramm>',
+			'kl3 sw loesung',
+		);
+		await expect(leer.locator('circle.wert')).toHaveCount(0);
+		const saeulen = await gezeichnet(page, '<x-diagramm werte="Mo: -5"></x-diagramm>');
+		await expect(saeulen.locator('x-diagramm')).toHaveAttribute('data-fehler', /ab 0/);
+	});
+
+	test('Panel: Schalter schließen, Station mit Bild aus der Sammlung, je ein Rückgängig-Schritt', async ({
+		druecke,
+		page,
+	}) => {
+		test.slow();
+		const { dok, id, material: datei } = await uhrzeit();
+		await oeffne(page, id, dok);
+		await aendere(
+			page,
+			(await quelle(page)).replace(
+				/<x-uhr[^>]*><\/x-uhr>/,
+				'<x-schaltplan teile="batterie schalter:offen lampe" aufgabe="leuchtet"></x-schaltplan><x-kreislauf stationen="A; B; C"></x-kreislauf><x-verkehrszeichen nummer="205"></x-verkehrszeichen>',
+			),
+		);
+		await gespeichert(page, datei);
+		const stand = await readFile(datei, 'utf8');
+
+		const kreis = material(page).locator('x-schaltplan');
+		await expect(kreis).toHaveAttribute('data-ergebnis', 'nein');
+		await druecke(kreis);
+		await page.getByLabel('Teil in Zeile 2').first().selectOption({ label: 'Schalter zu' });
+		await gespeichert(page, datei);
+		expect(await readFile(datei, 'utf8')).toContain('teile="batterie schalter:zu lampe"');
+		await expect(kreis).toHaveAttribute('data-ergebnis', 'ja');
+		await druecke(zurueck(page));
+		await gespeichert(page, datei);
+		expect(await readFile(datei, 'utf8')).toBe(stand);
+
+		const lauf = material(page).locator('x-kreislauf');
+		await druecke(lauf);
+		const zeile = panel(page).locator('[data-liste="stationen"] [data-zeile="0"]');
+		await druecke(zeile.getByRole('button', { name: 'Aus der Sammlung' }));
+		const dialog = page.getByRole('dialog', { name: 'Bild aus der Sammlung' });
+		await druecke(dialog.locator('[data-sammlung-bild="_assets/bilder/wachstum.png"]'));
+		await expect(dialog).toBeHidden();
+		await expect.poll(() => readFile(datei, 'utf8')).toMatch(/stationen="A: [^;"]*wachstum[^;"]*\.png; B; C"/);
+		await expect(lauf.locator('.kl-station img')).toHaveCount(1);
+		await expect
+			.poll(() => lauf.locator('.kl-station img').evaluate((b: HTMLImageElement) => b.naturalWidth))
+			.toBeGreaterThan(0);
+		await druecke(zurueck(page));
+		await gespeichert(page, datei);
+		expect(await readFile(datei, 'utf8')).toBe(stand);
+
+		await druecke(material(page).locator('x-verkehrszeichen'));
+		const vorschau = panel(page).locator('img[data-vorschau="205"]');
+		await expect.poll(() => vorschau.evaluate((b: HTMLImageElement) => b.naturalWidth)).toBeGreaterThan(0);
+	});
+});

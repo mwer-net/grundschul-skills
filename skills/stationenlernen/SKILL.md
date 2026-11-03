@@ -54,6 +54,7 @@ Nach den Rückfragen 2–3 Entwürfe zeigen (Stationsübersicht + eine Musterkar
 Satzstreifen zum Umstellen als Station: `x-satzglieder` mit `ausschneiden="ja"` (`fach-deutsch`).
 
 - Typische Mathe-Stationen: Tangram (`<x-tangram bogen="ja">` zum Ausschneiden, `umriss="…"` als Karte), Symmetrie (`x-gitter`), Würfelbauten nachbauen (`x-wuerfelbau`), Netze falten (`x-wuerfelnetz`).
+- Sachunterricht: Stromkreis-Stationen „Leuchtet die Lampe?“ mit `x-schaltplan aufgabe="leuchtet"`, am besten neben echtem Material zum Nachbauen; das Element rechnet die Lösung (`fach-sachunterricht`).
 - Unterschiedliche Zugänge mischen: handelnd (Material legen), spielerisch (Spiel), schriftlich (AB), kreativ (Plakat, Zeichnen), digital (App/QR-Code), forschend.
 - Jede Station ca. 10–20 Minuten.
 - Stationen unabhängig voneinander (freie Reihenfolge), außer bewusst aufbauende Pflichtstationen ("erst Station 1").

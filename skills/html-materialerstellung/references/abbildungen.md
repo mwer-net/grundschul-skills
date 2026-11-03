@@ -532,7 +532,7 @@ Inhalt: Bausteine mit `|`, ein Wort ohne Leerzeichen; bei `art="familie"` nur de
 
 ## Sachunterricht
 
-Muster: `assets/muster/sachunterricht.html`.
+Muster: `assets/muster/sachunterricht.html`, Wetterbogen: `assets/muster/wetterbogen.html` und `wetterbogen-klein.html` (Kl. 1/2, nur Symbole).
 
 ### `x-zeitleiste`
 
@@ -568,3 +568,49 @@ Beginnt oben, im Uhrzeigersinn. `art` `jahr` (Januar oben), `woche`, `tag` (vier
 ```
 
 Draufsicht im Gitter, Planquadrate A, B, C … waagerecht und 1, 2, 3 … senkrecht (`planquadrate="nein"` lässt sie weg). `art` `ort` oder `raum`. `boden` Raster mit `leer`, `strasse`, `wasser`, `wald`, `wiese`, `platz`. `objekte` `Symbol: Planquadrate`, je Planquadrat ein Symbol. Symbole `ort`: `schule`, `kirche`, `rathaus`, `bahnhof`, `bushaltestelle`, `spielplatz`, `haus`, `baum`, `bruecke`, `post`, `krankenhaus`, `parkplatz`; `raum`: `tisch`, `stuhl`, `tafel`, `tuer`, `fenster`, `schrank`, `teppich`. Die Legende entsteht von selbst (`legende="nein"` lässt sie weg). `kaestchen` in cm, mindestens 0,8. `massstab` genau `1 Kästchen = 100 m`: Leiste von einem Kästchen, Druckhinweis „Originalgröße“. `nordpfeil="ja"`. `aufgabe` `keine`, `finden` (Planquadrate nur im Lösungsblatt), `einzeichnen` (Symbole nur im Lösungsblatt), `weg` mit `weg="A1 A2 B2"` (benachbarte Planquadrate; Start S und Ziel Z stehen da, die Linie nur im Lösungsblatt).
+
+### `x-schaltplan`
+
+```html
+<x-schaltplan teile="batterie schalter:offen lampe" aufgabe="leuchtet"></x-schaltplan>
+<x-schaltplan teile="batterie lampe" zweig="kabel" aufgabe="leuchtet"></x-schaltplan>
+<x-schaltplan art="bild" teile="batterie schalter:zu lampe" aufgabe="vervollstaendigen"></x-schaltplan>
+```
+
+Schaltzeichen nach DIN EN 60617 in Schulbuchform. `teile`: `batterie` (mindestens eine), `schalter:offen`, `schalter:zu`, `lampe`, `motor`, `summer`, `kabel`, Leiter `eisen`, `kupfer`, `alufolie`, Nichtleiter `holz`, `gummi`, `plastik`, `glas`, `papier`. `zweig`: zweiter Zweig, parallel zu allen Teilen außer der Batterie; mehr als zwei Zweige gibt es nicht. `art` `symbole` oder `bild`. `aufgabe`: `keine` (leuchtende Lampe sichtbar), `leuchtet` (Ja und Nein zum Ankreuzen, Lösung kreuzt an), `vervollstaendigen` (Lücke, Lösung zeigt das Kabel), `benennen` (Felder, Lösung nennt die Teile). Das Element rechnet: Ein Zweig leitet, wenn kein Schalter offen ist und kein Nichtleiter drinsteckt; ein leitender Zweig ohne Verbraucher ist ein Kurzschluss, dann bleibt alles dunkel und die Lösung sagt „Kurzschluss: Batterie wird heiß“. Nie selbst festlegen, ob etwas leuchtet.
+
+### `x-kreislauf`
+
+```html
+<x-kreislauf stationen="Meer; Wolken; Regen; Fluss" pfeile="verdunsten; ziehen; versickern; münden" offen="3 p1"></x-kreislauf>
+<x-kreislauf art="ablauf" stationen="Bohne: bilder/bohne.png; Keimling; Blüte" pfeile="keimt; blüht"></x-kreislauf>
+```
+
+`art` `kreis` oder `ablauf`. `stationen`: 3 bis 8, mit Semikolon getrennt, nach dem Doppelpunkt optional ein Bild aus `bilder/`. `pfeile`: Beschriftung je Übergang, mit Semikolon getrennt. `offen`: Nummern leerer Stationen, `p` und Nummer für leere Pfeiltexte; beides füllt nur das Lösungsblatt. Bilder nach Druckprofil wie jedes Bild (im s/w-Blatt Strich oder Graustufen).
+
+### `x-verkehrszeichen`
+
+```html
+<x-verkehrszeichen nummer="205"></x-verkehrszeichen>
+<x-verkehrszeichen nummer="306" ausmalen="ja" groesse="110"></x-verkehrszeichen>
+```
+
+Amtliche Zeichen, nie selbst zeichnen oder als KI-Bild. `nummer` (StVO): 101, 102, 136, 138, 205, 206, 220, 237, 239, 240, 250, 254, 267, 274 (zeigt 50), 301, 306, 350, 357. Andere Nummern melden einen Fehler. `groesse` Höhe in px, Standard 90. `ausmalen="ja"`: nur Umriss, das Lösungsblatt zeigt das Zeichen in Farbe bzw. Grau. Das s/w-Blatt zeigt Graustufen, die Form bleibt erkennbar. Herkunft: `assets/bilder/verkehrszeichen/QUELLEN.md`.
+
+### `x-wetter`
+
+```html
+<x-wetter symbol="regen" wind="2"></x-wetter>
+<x-wetter loesung="heiter"></x-wetter>
+```
+
+`symbol` oder `loesung` (erst im Lösungsblatt, davor ein leeres Feld): `sonne`, `heiter`, `wolke`, `regen`, `schnee`, `gewitter`, `nebel`. `wind` 0 bis 3 Striche. `groesse` Standard 60.
+
+### Temperaturverlauf mit `x-diagramm`
+
+```html
+<x-diagramm art="linie" werte="Mo: -5; Di: -2; Mi: 0; Do: 3" offen="3 4" von="-10" bis="10" skala="5" einheit="°C"></x-diagramm>
+<x-diagramm art="linie" werte="Mo; Di; Mi; Do; Fr" von="-10" bis="30" skala="5" einheit="°C"></x-diagramm>
+```
+
+Nur `art="linie"` nimmt Werte unter null; `von` setzt den Skalenbeginn, die Null-Linie ist dann kräftig. `offen`: Punkte erst im Lösungsblatt. Einträge ohne Wert bleiben auch dort leer, z. B. für einen Beobachtungsbogen ohne feste Lösung.

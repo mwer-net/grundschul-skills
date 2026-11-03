@@ -51,5 +51,34 @@
   <div class="aufgabe"><div class="nr">3</div><div class="anw"><div class="text">Zeichne den Weg von S nach Z.</div></div>
     <div class="koerper"><x-plan spalten="6" zeilen="3" kaestchen="0.9" aufgabe="weg" weg="A1 A2 B2 C2 D2 D3 E3" boden="leer leer leer leer leer leer / strasse strasse strasse strasse leer leer / leer leer leer strasse strasse leer"></x-plan></div></div>
 </section>
+<section class="seite">
+  <div class="kopf"><div class="titel"><h1>Stromkreise</h1></div></div>
+  <div class="aufgabe"><div class="nr">1</div><div class="anw"><div class="text">Leuchtet die Lampe? Kreuze an.</div></div>
+    <div class="koerper"><div class="zellen" style="display:flex;gap:18px;flex-wrap:wrap"><x-schaltplan teile="batterie schalter:offen lampe" aufgabe="leuchtet"></x-schaltplan><x-schaltplan teile="batterie schalter:zu lampe" aufgabe="leuchtet"></x-schaltplan></div></div></div>
+  <div class="aufgabe"><div class="nr">2</div><div class="anw"><div class="text">Das Kabel liegt parallel zur Lampe. Und jetzt?</div></div>
+    <div class="koerper"><x-schaltplan teile="batterie lampe" zweig="kabel" aufgabe="leuchtet"></x-schaltplan></div></div>
+  <div class="aufgabe"><div class="nr">3</div><div class="anw"><div class="text">Ein Kabel fehlt. Zeichne es ein.</div></div>
+    <div class="koerper"><x-schaltplan art="bild" teile="batterie schalter:zu lampe" aufgabe="vervollstaendigen"></x-schaltplan></div></div>
+</section>
+<section class="seite">
+  <div class="kopf"><div class="titel"><h1>Kreisläufe</h1></div></div>
+  <div class="aufgabe"><div class="nr">1</div><div class="anw"><div class="text">Der Wasserkreislauf. Was fehlt?</div></div>
+    <div class="koerper"><x-kreislauf stationen="Meer und Seen; Wolken; Regen; Bach und Fluss" pfeile="verdunsten; ziehen weiter; versickern und fließen; münden" offen="3 p1"></x-kreislauf></div></div>
+  <div class="aufgabe"><div class="nr">2</div><div class="anw"><div class="text">Wie aus der Bohne eine Pflanze wird.</div></div>
+    <div class="koerper"><x-kreislauf art="ablauf" stationen="Bohne; Keimling; Blüte; Hülse" pfeile="keimt; blüht; reift"></x-kreislauf></div></div>
+  <div class="aufgabe"><div class="nr">3</div><div class="anw"><div class="text">Wie heißen die Teile?</div></div>
+    <div class="koerper"><x-schaltplan teile="batterie schalter:zu lampe" aufgabe="benennen"></x-schaltplan></div></div>
+</section>
+<section class="seite">
+  <div class="kopf"><div class="titel"><h1>Verkehr und Wetter</h1></div></div>
+  <div class="aufgabe"><div class="nr">1</div><div class="anw"><div class="text">Wie heißen diese Zeichen?</div></div>
+    <div class="koerper"><div style="display:flex;gap:18px;flex-wrap:wrap;align-items:center"><x-verkehrszeichen nummer="205"></x-verkehrszeichen><x-verkehrszeichen nummer="206"></x-verkehrszeichen><x-verkehrszeichen nummer="237"></x-verkehrszeichen><x-verkehrszeichen nummer="267"></x-verkehrszeichen><x-verkehrszeichen nummer="350"></x-verkehrszeichen></div></div></div>
+  <div class="aufgabe"><div class="nr">2</div><div class="anw"><div class="text">Male die Zeichen richtig aus.</div></div>
+    <div class="koerper"><div style="display:flex;gap:18px;flex-wrap:wrap;align-items:center"><x-verkehrszeichen nummer="306" ausmalen="ja" groesse="110"></x-verkehrszeichen><x-verkehrszeichen nummer="274" ausmalen="ja" groesse="110"></x-verkehrszeichen></div></div></div>
+  <div class="aufgabe"><div class="nr">3</div><div class="anw"><div class="text">Das Wetter heute: Zeichne das Symbol.</div></div>
+    <div class="koerper"><div style="display:flex;gap:18px;align-items:center"><x-wetter symbol="regen" wind="2"></x-wetter><x-wetter loesung="heiter"></x-wetter></div></div></div>
+  <div class="aufgabe"><div class="nr">4</div><div class="anw"><div class="text">Der Temperaturverlauf im Januar.</div></div>
+    <div class="koerper"><x-diagramm art="linie" werte="Mo: -5; Di: -2; Mi: 0; Do: 3; Fr: 6" offen="4 5" von="-10" bis="10" skala="5" einheit="°C" groesse="170"></x-diagramm></div></div>
+</section>
 </body>
 </html>

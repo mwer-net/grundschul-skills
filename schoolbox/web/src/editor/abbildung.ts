@@ -40,6 +40,10 @@ interface Optionen {
 	zerlegung: Zerlegung | null;
 	pfad: PfadTeil[];
 	struktur: Struktur;
+	/** `/api/dokumente/<mappe>/<dok>`: Dorthin gehen Bilder einer Abbildung. */
+	adresse: string;
+	/** Adresse der Darstellung, gegen die Bildpfade aufgelöst werden. */
+	basis: string;
 }
 
 export interface Aenderung {
@@ -93,7 +97,7 @@ const liesVomBlatt = (doc: Document, nr: number): AusDemBlatt => {
  * übernommen: ein Schritt im Verlauf, der nur die geänderten Attribute in der Quelle setzt. Ein ungültiger Entwurf
  * bleibt Vorschau, bis er stimmt oder zurückgesetzt wird.
  */
-export const useAbbildung = ({ geladen, html, pfad, struktur, zerlegung }: Optionen) => {
+export const useAbbildung = ({ adresse, basis: bildBasis, geladen, html, pfad, struktur, zerlegung }: Optionen) => {
 	const doc = geladen?.html === html ? geladen.doc : null;
 	const gewaehlt = pfad.at(-1);
 	const nr = gewaehlt && kann(gewaehlt.baustein, 'abbildung') ? gewaehlt.nr : null;
@@ -194,6 +198,8 @@ export const useAbbildung = ({ geladen, html, pfad, struktur, zerlegung }: Optio
 
 	return {
 		aktiv: struktur.aktiv && schema !== undefined && werte !== null,
+		adresse,
+		bildBasis,
 		schema,
 		werte,
 		fehler,
