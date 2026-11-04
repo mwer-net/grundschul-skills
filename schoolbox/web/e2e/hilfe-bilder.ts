@@ -166,7 +166,7 @@ test.describe('Bildschirmfotos für die Hilfe', () => {
 		const { dok, id } = await uhrzeit();
 		await oeffne(page, id, dok);
 		await page.keyboard.press('ControlOrMeta+k');
-		await page.getByRole('combobox').fill('Spalten');
+		await page.locator('input[role="combobox"]').fill('Spalten');
 		await expect(page.locator('[data-palette-zeile]').first()).toBeVisible();
 		await foto(page, 'befehle-mac.jpg');
 	});

@@ -1651,7 +1651,7 @@ export const AbbildungHinweise = ({ abb }: { abb: AbbildungSteuerung }) => {
 			{abb.beispiel && (
 				<p className="flex gap-2 rounded-md bg-brand-50 p-2 text-xs" data-hinweis="beispiel">
 					<Symbol name="blatt" className="size-3.5 flex-none" />
-					Das ist das Beispiel. Die Lösung ist auf dem Arbeitsblatt sichtbar.
+					Das ist das Beispiel. Die Lösung bleibt sichtbar.
 				</p>
 			)}
 			{abb.info && (
