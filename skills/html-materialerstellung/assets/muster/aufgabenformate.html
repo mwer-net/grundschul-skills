@@ -19,5 +19,32 @@
   <x-richtigfalsch koepfe="janein" aussagen="Fische schwimmen: r"></x-richtigfalsch>
   <x-richtigfalsch koepfe="daumen" aussagen="Steine schwimmen: f"></x-richtigfalsch>
 </section>
+<section class="seite">
+  <x-zuordnen paare="Hund: bellt; Katze: miaut; Kuh: muht; Schaf: blökt" data-katalog="x-zuordnen"></x-zuordnen>
+  <x-sortieren eintraege="Zuerst keimt der Samen.; Dann wächst der Stängel.; Am Ende blüht die Blume." data-katalog="x-sortieren"></x-sortieren>
+  <x-beschriften bild="bilder/wachstum.png" alt="Samen, Keimling, Pflanze, Blume" punkte="12,70: Samen; 38,60: Keimling; 62,45: Pflanze; 88,25: Blume" data-katalog="x-beschriften"></x-beschriften>
+  <x-schreibrahmen satzanfaenge="Zuerst; Dann; Am Ende" wortspeicher="Samen; Keimling; Blume" data-katalog="x-schreibrahmen"></x-schreibrahmen>
+</section>
+<section class="seite">
+  <x-zuordnen darstellung="ziffern" paare="3 + 4: 7; 5 + 5: 10; 2 + 1: 3"></x-zuordnen>
+  <x-sortieren art="zahlen" darstellung="linien" eintraege="3; 7; 12; 20"></x-sortieren>
+  <x-beschriften darstellung="nummer" wortspeicher="1" bild="bilder/wachstum.png" alt="Samen, Keimling, Pflanze, Blume" punkte="12,70: Samen; 88,25: Blume"></x-beschriften>
+  <x-schreibrahmen planung="1" linien="1" lineatur="3" satzanfaenge="Ich sehe" beispiel="Ich sehe einen Hund."></x-schreibrahmen>
+</section>
+<section class="seite">
+  <p class="text" data-zeilennummern="5" data-katalog="lesetext-zeilennummern">Hier steht dein Lesetext. Die Nummern zählt das Blatt von selbst.</p>
+  <p class="text"><x-silben data-katalog="silbentext">Die Ro|si|ne ist süß.</x-silben></p>
+  <div class="aufgabe">
+    <span class="nr">1</span>
+    <div class="anw"><span class="text">Bewertung</span><span class="punkte">(4 P.)</span></div>
+    <div class="koerper">
+      <x-gesamtpunkte data-katalog="x-gesamtpunkte"></x-gesamtpunkte>
+      <x-notenschluessel data-katalog="x-notenschluessel"></x-notenschluessel>
+      <x-notenspiegel data-katalog="x-notenspiegel"></x-notenspiegel>
+      <x-unterschrift data-katalog="x-unterschrift"></x-unterschrift>
+      <x-erwartungshorizont data-katalog="x-erwartungshorizont"></x-erwartungshorizont>
+    </div>
+  </div>
+</section>
 </body>
 </html>

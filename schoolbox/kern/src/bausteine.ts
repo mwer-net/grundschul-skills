@@ -58,7 +58,11 @@ export interface Baustein {
 	ordnenNurKnopf?: boolean;
 	/** Nur mit `spalten`: was ohne `--spalten` gilt (wie in blatt.css). */
 	spaltenStandard?: number;
+	/** Gilt nur, wenn zusätzlich die Regel für frei gestaltetes Material passt (054); Selektoren allein reichen dafür nicht. */
+	frei?: FreieRegel;
 }
+
+export type FreieRegel = 'text' | 'block' | 'tabelle' | 'tabellenteil';
 
 /** Die eigenen Elemente aus `abbildungen.js`; ihren Inhalt zeichnet erst der Browser. */
 export const ABBILDUNGEN = Object.keys(ABBILDUNG_SCHEMA) as Abbildung[];
@@ -67,7 +71,7 @@ export const ABBILDUNGEN = Object.keys(ABBILDUNG_SCHEMA) as Abbildung[];
  * Teile eines Textträgers, die beim Tippen unverändert bleiben: Nummern, Niveau-Punkte, Antwortlinien und
  * Lösungen (019), Abbildungen (018), Bilder (017). Sie lassen sich weder ändern noch löschen.
  */
-export const GESCHUETZT = [
+const GESCHUETZT_OHNE_ATTRIBUT = [
 	'.nr',
 	'.niveau',
 	'.antwort',
@@ -76,12 +80,12 @@ export const GESCHUETZT = [
 	'.box',
 	'.nur-loesung',
 	'.nicht-loesung',
-	'[data-l]',
 	'img',
 	'svg',
 	'math',
 	...ABBILDUNGEN,
 ].join(', ');
+export const GESCHUETZT = `${GESCHUETZT_OHNE_ATTRIBUT}, [data-l]`;
 
 /** Das Mindeste für alles aus dem Katalog (046). Gezogen wird weiter der umgebende Baustein, sonst griffe man daneben. */
 const KLEIN = { ordnenNurKnopf: true } as const;
@@ -105,19 +109,21 @@ export const BAUSTEINE: readonly Baustein[] = [
 		sonderfall: { selektor: '.aufgabe:has(> .nr.stern)', name: 'Sternchenaufgabe', art: 'sternchenaufgabe' },
 		ordnenIn: '.seite',
 	},
-	{ art: 'tabelle', name: 'Tabelle', selektor: 'table.kit-tabelle', faehigkeiten: GRUND, ...KLEIN },
+	{ art: 'tabelle', name: 'Tabelle', selektor: 'table', faehigkeiten: GRUND, frei: 'tabelle', ...KLEIN },
 	{
 		art: 'tabellenzeile',
 		name: 'Zeile',
-		selektor: 'table.kit-tabelle tbody tr',
+		selektor: 'table tr',
 		faehigkeiten: ['ordnen', 'duplizieren', 'loeschen'],
 		zaehlen: true,
+		frei: 'tabellenteil',
 	},
 	{
 		art: 'tabellenzelle',
 		name: 'Zelle',
-		selektor: 'table.kit-tabelle th, table.kit-tabelle td',
+		selektor: 'table th, table td',
 		faehigkeiten: ['text'],
+		frei: 'tabellenteil',
 	},
 	{ art: 'namenszeile', name: 'Namenszeile', selektor: '.namenszeile', faehigkeiten: GRUND, ...KLEIN },
 	{ art: 'kopf', name: 'Kopf', selektor: '.kopf', faehigkeiten: GRUND, ...KLEIN },
@@ -201,7 +207,172 @@ export const BAUSTEINE: readonly Baustein[] = [
 	{ art: 'notiz', name: 'Notiz', selektor: '.notiz', faehigkeiten: GRUND, ...KLEIN },
 	{ art: 'absatz', name: 'Absatz', selektor: 'p, li', faehigkeiten: [...GRUND, 'text'], zeilen: 'absatz', ...KLEIN },
 	{ art: 'zeile', name: 'Rechenzeile', selektor: '.zeile', faehigkeiten: GRUND, ...KLEIN },
+	{
+		art: 'freitext',
+		name: 'Text',
+		selektor:
+			'div, td, th, h4, h5, h6, figcaption, caption, dt, dd, label, summary, blockquote, address, a, abbr, b, cite, code, em, font, i, kbd, mark, q, s, small, span, strong, sub, sup, u, var',
+		faehigkeiten: [...GRUND, 'text'],
+		zeilen: 'umbruch',
+		frei: 'text',
+		...KLEIN,
+	},
+	{
+		art: 'block',
+		name: 'Block',
+		selektor:
+			'div, section, article, aside, main, header, footer, nav, figure, ul, ol, dl, table, blockquote, pre, hr, center, form, details, h4, h5, h6, a, b, small, span, strong, label, svg',
+		faehigkeiten: GRUND,
+		frei: 'block',
+	},
 ];
+
+/** Sicht auf ein Element: dieselben Regeln gelten im Browser (DOM) und ohne Browser (Zerlegung der Quelle). */
+export interface Sicht<T> {
+	passt: (t: T, selektor: string) => boolean;
+	tag: (t: T) => string;
+	eltern: (t: T) => T | null;
+	kinder: (t: T) => readonly T[];
+	/** Text direkt im Element, ohne den seiner Kinder. */
+	eigenerText: (t: T) => boolean;
+	attribut: (t: T, name: string) => string | null;
+}
+
+const menge = (...teile: string[]) => new Set(teile.flatMap((t) => t.split(' ')));
+const INLINE = menge('a abbr b bdi bdo br cite code em font i kbd mark q s small span strong sub sup u var wbr');
+const RAHMEN = menge('div section article aside main');
+const TABELLE = 'kit-tabelle';
+
+const geschuetzt = <T>(s: Sicht<T>, t: T) => s.passt(t, GESCHUETZT_OHNE_ATTRIBUT) || s.attribut(t, 'data-l') !== null;
+
+const imGeschuetzten = <T>(s: Sicht<T>, t: T) => {
+	for (let a: T | null = t; a; a = s.eltern(a)) {
+		if (geschuetzt(s, a)) {
+			return true;
+		}
+	}
+	return false;
+};
+
+const inSeite = <T>(s: Sicht<T>, t: T) => {
+	for (let a = s.eltern(t); a; a = s.eltern(a)) {
+		if (s.passt(a, '.seite')) {
+			return true;
+		}
+	}
+	return false;
+};
+
+const hatBlockKind = <T>(s: Sicht<T>, t: T) => s.kinder(t).some((k) => !INLINE.has(s.tag(k)) && !geschuetzt(s, k));
+
+/** Ein Eintrag des Registers mit festen Regeln: Der Baustein ist schon, was er ist, und zählt nicht als freier Text. */
+const festerBaustein = <T>(s: Sicht<T>, t: T) => BAUSTEINE.some((b) => !b.frei && s.passt(t, b.selektor));
+
+const traegtText = <T>(s: Sicht<T>, t: T): boolean =>
+	s.eigenerText(t) ||
+	s.kinder(t).some((k) => INLINE.has(s.tag(k)) && !geschuetzt(s, k) && !festerBaustein(s, k) && traegtText(s, k));
+
+const unterTextTraeger = <T>(s: Sicht<T>, t: T) => {
+	for (let a = s.eltern(t); a; a = s.eltern(a)) {
+		const b = bausteinUeber(s, a);
+		if (b && kann(b, 'text')) {
+			return true;
+		}
+		if (!INLINE.has(s.tag(a))) {
+			return false;
+		}
+	}
+	return false;
+};
+
+/** Text ohne Block darunter, außerhalb von Abbildungen und allem, was beim Tippen unverändert bleibt. */
+const freierText = <T>(s: Sicht<T>, t: T) =>
+	inSeite(s, t) &&
+	!imGeschuetzten(s, t) &&
+	!hatBlockKind(s, t) &&
+	traegtText(s, t) &&
+	!(INLINE.has(s.tag(t)) && unterTextTraeger(s, t));
+
+/** Eine Hülle ohne eigenen Text und ohne feste Bedeutung, z. B. der Rahmen eines frei gestalteten Blatts. */
+const einfacherRahmen = <T>(s: Sicht<T>, t: T, tiefe = 0): boolean => {
+	const eltern = s.eltern(t);
+	return (
+		tiefe < 3 &&
+		eltern !== null &&
+		RAHMEN.has(s.tag(t)) &&
+		!geschuetzt(s, t) &&
+		!s.eigenerText(t) &&
+		hatBlockKind(s, t) &&
+		!festerBaustein(s, t) &&
+		(s.passt(eltern, '.seite') || einfacherRahmen(s, eltern, tiefe + 1))
+	);
+};
+
+/** Liegt das Element so, dass es als ganzer Block zwischen seine Geschwister gehört: direkt auf der Seite oder im Rahmen? */
+export const liegtFrei = <T>(s: Sicht<T>, t: T) => {
+	const eltern = s.eltern(t);
+	return (
+		eltern !== null &&
+		!s.passt(t, 'style, script, template, link, meta, br') &&
+		(s.passt(eltern, '.seite') || einfacherRahmen(s, eltern))
+	);
+};
+
+const tabelleVon = <T>(s: Sicht<T>, t: T) => {
+	for (let a = s.eltern(t); a; a = s.eltern(a)) {
+		if (s.tag(a) === 'table') {
+			return a;
+		}
+	}
+	return null;
+};
+
+/** Rechteckig, ohne verbundene Zellen, ohne Beschriftung: Die Befehle aus 047 lesen und schreiben sie vollständig. */
+const einfacheTabelle = <T>(s: Sicht<T>, t: T) => {
+	const zeilen = (e: T): T[] => s.kinder(e).flatMap((k) => (['thead', 'tbody'].includes(s.tag(k)) ? zeilen(k) : [k]));
+	const alle = zeilen(t);
+	if (alle.length === 0 || alle.some((z) => s.tag(z) !== 'tr')) {
+		return false;
+	}
+	const breite = s.kinder(alle[0] as T).length;
+	return alle.every((z) => {
+		const zellen = s.kinder(z);
+		return (
+			zellen.length === breite &&
+			zellen.every(
+				(c) =>
+					['td', 'th'].includes(s.tag(c)) &&
+					(s.attribut(c, 'colspan') ?? '1') === '1' &&
+					(s.attribut(c, 'rowspan') ?? '1') === '1',
+			)
+		);
+	});
+};
+
+const tabelleGilt = <T>(s: Sicht<T>, t: T) =>
+	s.passt(t, `.${TABELLE}`) || (inSeite(s, t) && !imGeschuetzten(s, t) && einfacheTabelle(s, t));
+
+const tabellenteil = <T>(s: Sicht<T>, t: T) => {
+	const tabelle = tabelleVon(s, t);
+	if (!tabelle || !tabelleGilt(s, tabelle)) {
+		return false;
+	}
+	if (s.tag(t) === 'tr') {
+		return s.tag(s.eltern(t) as T) !== 'thead';
+	}
+	return s.passt(tabelle, `.${TABELLE}`) || !hatBlockKind(s, t);
+};
+
+const REGELN: Record<FreieRegel, <T>(s: Sicht<T>, t: T) => boolean> = {
+	text: freierText,
+	block: liegtFrei,
+	tabelle: tabelleGilt,
+	tabellenteil,
+};
+
+/** Der erste passende Eintrag des Registers, mit den Regeln für frei gestaltetes Material. */
+export const bausteinUeber = <T>(s: Sicht<T>, t: T): Baustein | undefined =>
+	BAUSTEINE.find((b) => s.passt(t, b.selektor) && (!b.frei || REGELN[b.frei](s, t)));
 
 export const bausteinNach = (art: string) => BAUSTEINE.find((b) => b.art === art);
 
@@ -225,6 +396,22 @@ export interface KitEintrag extends KatalogAngaben {
 
 /** Die Kit-Bausteine für den Katalog (`katalog.ts`). Starter stehen in `assets/muster/bausteine.html` (`data-katalog`). */
 export const KIT_KATALOG: readonly KitEintrag[] = [
+	{
+		id: 'lesetext-zeilennummern',
+		name: 'Lesetext mit Zeilennummern',
+		kategorie: 'Sprache',
+		suchbegriffe: ['Absatz', 'Zeilen', 'Nummern', 'Lesen'],
+		ort: 'aufgabe',
+		faecher: ['deutsch'],
+	},
+	{
+		id: 'silbentext',
+		name: 'Silbentext',
+		kategorie: 'Sprache',
+		suchbegriffe: ['Silbenbögen', 'Lesen lernen', 'Text'],
+		ort: 'aufgabe',
+		faecher: ['deutsch'],
+	},
 	{
 		id: 'namenszeile',
 		name: 'Namenszeile',

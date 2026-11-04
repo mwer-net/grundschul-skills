@@ -23,7 +23,7 @@ Zuerst die Start-Abfrage (`grundschul-didaktik/references/rueckfragen.md`); von 
 Ablauf nach `grundschul-didaktik/references/entwurf-und-aufgabenplan.md`.
 
 - **Entwürfe unterscheiden sich** in Aufgabenauswahl und Gewichtung der Anforderungsbereiche (nur aus dem Unterricht bekannte Formate), bei Lernlandkarten in der Bildidee (Weg, Inseln, Garten).
-- **Aufgabenplan:** jede Aufgabe mit Items und Ich-kann-Ziel; Erwartungshorizont; Auswertungsraster je Ziel; ggf. Fassung mit Nachteilsausgleich.
+- **Aufgabenplan:** jede Aufgabe mit Items und Ich-kann-Ziel; Erwartungshorizont (Baustein `x-erwartungshorizont`); Auswertungsraster je Ziel; ggf. Fassung mit Nachteilsausgleich.
 
 ## Aufbau Lernzielkontrolle
 

@@ -1,3 +1,4 @@
+import type { EigeneVorlage } from '@schoolbox/kern/src/eigene';
 import { ART_KURZ, ART_NAME, FACH_NAME } from '@schoolbox/kern/src/namen';
 import type { Art, Fach, Format, Klasse } from '@schoolbox/kern/src/werte';
 import {
@@ -7,10 +8,11 @@ import {
 	FAECHER,
 	FORMAT_NAME,
 	KLASSEN,
+	VORLAGE_ART,
 	VORLAGE_FORMAT,
 } from '@schoolbox/kern/src/werte';
 import type { FormEvent, ReactNode } from 'react';
-import { useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 
 import { meldung, sende } from '../api';
@@ -158,6 +160,10 @@ const SCHRITTE = ['Art', 'Format', 'Titel', 'Start'] as const;
 
 const passendeVorlagen = (vorlagen: string[], art: Art, format: Format) =>
 	vorlagen.filter((v) => {
+		const nurFuer = VORLAGE_ART[v];
+		if (nurFuer) {
+			return nurFuer === art;
+		}
 		const fest = VORLAGE_FORMAT[v]?.format;
 		if (fest) {
 			return art === 'arbeitsblatt' || art === 'lesetext' || art === 'sonstiges';
@@ -167,6 +173,72 @@ const passendeVorlagen = (vorlagen: string[], art: Art, format: Format) =>
 		}
 		return format === 'a4-hoch' && art !== 'praesentation';
 	});
+
+/** Eigene Vorlage im Schritt „Start“: wählen, als Standard markieren, umbenennen, löschen (051). */
+const EigeneWahl = ({
+	aktiv,
+	neuLaden,
+	vorlage,
+	waehle,
+}: {
+	vorlage: EigeneVorlage;
+	aktiv: boolean;
+	waehle: () => void;
+	neuLaden: () => void;
+}) => {
+	const [neu, setNeu] = useState<string | null>(null);
+	const aendere = (pfad: string, daten: object) => {
+		void sende(`/api/eigene/vorlagen/${vorlage.id}/${pfad}`, daten).then(neuLaden);
+	};
+	return (
+		<div data-eigene-vorlage={vorlage.id}>
+			<Wahl id={`eigen-${vorlage.id}`} titel={`Eigene Vorlage: ${vorlage.name}`} aktiv={aktiv} waehle={waehle}>
+				<span className="block text-sm text-leise">
+					{vorlage.standard ? 'Dein Standard für diese Art' : 'Deine Vorlage'}
+				</span>
+			</Wahl>
+			<div className="mt-1 flex flex-wrap items-center gap-1">
+				<Knopf
+					art="zweit"
+					aria-pressed={vorlage.standard}
+					onClick={() => aendere('aendern', { standard: !vorlage.standard })}
+				>
+					Standard
+				</Knopf>
+				{neu === null ? (
+					<Knopf art="zweit" onClick={() => setNeu(vorlage.name)}>
+						Umbenennen
+					</Knopf>
+				) : (
+					<>
+						<input
+							aria-label="Neuer Name"
+							className="min-h-11 min-w-0 flex-1 rounded-lg border-2 border-rand px-2"
+							value={neu}
+							onChange={(e) => setNeu(e.target.value)}
+						/>
+						<Knopf
+							disabled={neu.trim() === ''}
+							onClick={() => {
+								setNeu(null);
+								aendere('aendern', { name: neu });
+							}}
+						>
+							Speichern
+						</Knopf>
+					</>
+				)}
+				<Knopf
+					art="gefahr"
+					aria-label={`Vorlage ${vorlage.name} löschen`}
+					onClick={() => aendere('loeschen', {})}
+				>
+					<Symbol name="papierkorb" />
+				</Knopf>
+			</div>
+		</div>
+	);
+};
 
 /** Assistent „Material anlegen“: Art, Format, Titel, Start. Abbrechen legt nichts an; erst der letzte Schritt schreibt. */
 export const MaterialAnlegen = ({ mappe }: { mappe: string }) => {
@@ -182,6 +254,15 @@ export const MaterialAnlegen = ({ mappe }: { mappe: string }) => {
 	const navigate = useNavigate();
 	const { daten } = useLaden<{ vorlagen: string[] }>('/api/mappen/vorlagen/liste');
 	const vorlagen = passendeVorlagen(daten?.vorlagen ?? [], art, format);
+	const eigen = useLaden<{ vorlagen: EigeneVorlage[] }>('/api/eigene/vorlagen');
+	const eigene = useMemo(() => (eigen.daten?.vorlagen ?? []).filter((v) => v.art === art), [eigen.daten, art]);
+	// Die als Standard markierte Vorlage ist vorgewählt, sobald die Art feststeht.
+	useEffect(() => {
+		const standard = eigene.find((v) => v.standard);
+		if (standard) {
+			setVorlage(`eigen-${standard.id}`);
+		}
+	}, [eigene]);
 	const zusaetze = zusatzVon(art);
 
 	const waehleArt = (a: Art) => {
@@ -288,6 +369,15 @@ export const MaterialAnlegen = ({ mappe }: { mappe: string }) => {
 											Du fügst die Bausteine selbst ein.
 										</span>
 									</Wahl>
+									{eigene.map((v) => (
+										<EigeneWahl
+											key={v.id}
+											vorlage={v}
+											aktiv={vorlage === `eigen-${v.id}`}
+											waehle={() => setVorlage(`eigen-${v.id}`)}
+											neuLaden={eigen.neuLaden}
+										/>
+									))}
 									{vorlagen.map((v) => (
 										<Wahl
 											key={v}
@@ -306,7 +396,7 @@ export const MaterialAnlegen = ({ mappe }: { mappe: string }) => {
 										</Wahl>
 									))}
 								</div>
-								{vorlagen.length === 0 && (
+								{vorlagen.length === 0 && eigene.length === 0 && (
 									<p className="mt-2 text-leise">
 										Für diese Art gibt es noch keine Vorlage. Du startest mit einem leeren Blatt.
 									</p>

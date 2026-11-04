@@ -183,15 +183,20 @@ test.describe('Editor: Lösungen', () => {
 		await expect(schalter).toBeChecked();
 		await expect(page.locator('[data-hinweis="anderes-beispiel"]')).toHaveCount(0);
 
+		// Text in einem Item ist seit 054 selbst wählbar; das Item liegt eine Stufe darüber.
 		await druecke(zelle(4).locator('b'));
+		await expect(breadcrumb(page)).toHaveText('Seite 1›Aufgabe 2›Reihe›Item 1›Text');
+		await druecke(breadcrumb(page).getByRole('button', { name: 'Item 1' }));
 		await expect(breadcrumb(page)).toHaveText('Seite 1›Aufgabe 2›Reihe›Item 1');
 		await expect(schalter).not.toBeChecked();
 		await druecke(zelle(6).locator('b'));
+		await druecke(breadcrumb(page).getByRole('button', { name: 'Item 3' }));
 		await expect(breadcrumb(page)).toHaveText('Seite 1›Aufgabe 2›Reihe›Item 3');
 		await expect(schalter).toHaveCount(0);
 
 		await druecke(fassung(page, 'Lösung'));
 		await druecke(zelle(4).locator('b'));
+		await druecke(breadcrumb(page).getByRole('button', { name: 'Item 1' }));
 		await expect(breadcrumb(page)).toHaveText('Seite 1›Aufgabe 2›Reihe›Item 1');
 		await expect(schalter).toHaveCount(0);
 

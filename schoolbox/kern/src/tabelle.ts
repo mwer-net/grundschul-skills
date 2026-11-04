@@ -1,5 +1,5 @@
 /**
- * Die Kit-Tabelle (047): Ein normales `<table class="kit-tabelle">`. Alle Befehle lesen die Tabelle in ein kleines
+ * Die Kit-Tabelle (047) und einfache fremde Tabellen (054). Alle Befehle lesen die Tabelle in ein kleines
  * Modell und schreiben sie als einen Patch zurück: ein Schritt im Verlauf, und der Rest der Quelle bleibt unberührt.
  */
 
@@ -7,8 +7,6 @@ import type { Knoten, Zerlegung } from './quelltext';
 import { innenVon, klassenVon, wendeAn, zerlege } from './quelltext';
 import type { Nummerierung, StrukturErgebnis } from './struktur';
 import { nummeriere } from './struktur';
-
-export const TABELLE_KLASSE = 'kit-tabelle';
 
 interface Zelle {
 	tag: 'th' | 'td';
@@ -32,7 +30,7 @@ const zeilenKnoten = (t: Knoten): Knoten[] => t.kinder.flatMap((k) => (k.tag ===
 
 export const tabelleVon = (z: Zerlegung, nr: number) => {
 	for (let e = z.knoten[nr] ?? null; e; e = e.eltern) {
-		if (e.tag === 'table' && klassenVon(e).includes(TABELLE_KLASSE)) {
+		if (e.tag === 'table') {
 			return e;
 		}
 	}

@@ -1,6 +1,6 @@
 import { schemaVon } from '@schoolbox/kern/src/abbildungen';
-import type { Baustein } from '@schoolbox/kern/src/bausteine';
-import { BAUSTEINE } from '@schoolbox/kern/src/bausteine';
+import type { Baustein, Sicht } from '@schoolbox/kern/src/bausteine';
+import { bausteinUeber, liegtFrei } from '@schoolbox/kern/src/bausteine';
 import { darstellungsHtml } from '@schoolbox/kern/src/html';
 import type { Zerlegung } from '@schoolbox/kern/src/quelltext';
 import { MARKE, markiere } from '@schoolbox/kern/src/quelltext';
@@ -53,8 +53,19 @@ export const nrVon = (element: Element) => {
 	return wert === null ? null : Number(wert);
 };
 
-export const bausteinVon = (element: Element) =>
-	nrVon(element) === null ? undefined : BAUSTEINE.find((b) => element.matches(b.selektor));
+const SICHT: Sicht<Element> = {
+	passt: (e, selektor) => e.matches(selektor),
+	tag: (e) => e.localName,
+	eltern: (e) => e.parentElement,
+	kinder: (e) => [...e.children],
+	eigenerText: (e) => [...e.childNodes].some((n) => n.nodeType === 3 && /[^\s\u00a0]/.test((n as Text).data)),
+	attribut: (e, name) => e.getAttribute(name),
+};
+
+export const bausteinVon = (element: Element) => (nrVon(element) === null ? undefined : bausteinUeber(SICHT, element));
+
+/** Direkt auf der Seite oder in einem einfachen Rahmen: ein Block zwischen seinen Geschwistern (054). */
+export const liegtAlsBlock = (element: Element) => liegtFrei(SICHT, element);
 
 /** Der innerste Baustein an dieser Stelle, auch aus einer gezeichneten Abbildung heraus (deren SVG trägt keine Nummer). */
 export const trefferAn = (start: Element | null): Treffer | null => {

@@ -341,3 +341,66 @@ x-richtigfalsch table{width:100%;border-collapse:collapse}
 x-richtigfalsch th,x-richtigfalsch td{border:1.5px solid var(--text);padding:.25em .4em;text-align:center}
 x-richtigfalsch th:first-child,x-richtigfalsch td:first-child{text-align:left;width:70%}
 x-richtigfalsch .box{margin-right:0}
+
+/* Zuordnen, Sortieren, Beschriften, Schreibrahmen (049): nur im eigenen Element, Material nutzt dieselben Namen. */
+x-zuordnen,x-sortieren,x-beschriften,x-schreibrahmen{display:block;break-inside:avoid}
+:is(x-zuordnen,x-sortieren) .eintrag img{height:2.4em;width:auto}
+:is(x-zuordnen,x-sortieren) .eintrag{display:flex;align-items:center;gap:.4em;min-height:2.2em}
+:is(x-zuordnen,x-sortieren) .feld{display:inline-flex;align-items:center;justify-content:center;flex:none;width:1.5em;height:1.5em;border:1.5px solid #000;font-weight:700}
+x-zuordnen .paarung{display:grid;grid-template-columns:1fr minmax(3em,22%) 1fr;grid-auto-rows:1fr}
+x-zuordnen .paarung.ziffern{grid-template-columns:1fr 1fr;column-gap:2em}
+x-zuordnen .links{justify-content:flex-end;text-align:right}
+x-zuordnen .ziffern .links{justify-content:flex-start;text-align:left}
+x-zuordnen .ziffer{flex:none}
+x-zuordnen .punkt{flex:none;width:.5em;height:.5em;border-radius:50%;background:#000}
+x-zuordnen .verbinder{grid-column:2;width:100%;height:100%;display:block}
+x-sortieren .sortier{display:flex;flex-direction:column;gap:.15em}
+x-sortieren .sortier:is(.woerter,.zahlen,.bilder){flex-direction:row;flex-wrap:wrap;gap:.3em 1.2em}
+:is(x-sortieren,x-beschriften,x-schreibrahmen) .zeile-frei{display:flex;align-items:flex-end;gap:.4em;min-height:1.9em}
+:is(x-sortieren,x-beschriften,x-schreibrahmen) .zeile-frei>span{flex:1;border-bottom:1.5px solid #000;min-height:1.3em}
+x-sortieren .abschreiben{margin-top:.4em}
+x-beschriften .beschriftung{position:relative}
+x-beschriften .beschriftung>.bildflaeche{margin:0 24%}
+x-beschriften .bildflaeche,x-beschriften .nummern .bildflaeche{position:relative;line-height:0}
+x-beschriften .vorlage{display:block;width:100%;height:auto;max-width:none}
+x-beschriften .woertespalte{position:absolute;top:0;bottom:0;width:24%;display:flex;flex-direction:column}
+x-beschriften .woertespalte.links{left:0}
+x-beschriften .woertespalte.rechts{right:0}
+x-beschriften .ziel{flex:1 1 0;min-height:0;display:flex;align-items:center}
+x-beschriften .ziel>span{position:relative;display:block;width:100%;height:0;border-bottom:1.5px solid #000}
+x-beschriften .ziel em{position:absolute;left:0;right:0;bottom:2px;font-style:normal;font-weight:700;text-align:center;line-height:1.1}
+x-beschriften .linien{position:absolute;inset:0;width:100%;height:100%;pointer-events:none}
+x-beschriften .ende{position:absolute;width:.4em;height:.4em;margin:-.2em 0 0 -.2em;border-radius:50%;background:#000}
+x-beschriften .nummern{width:60%;margin:0 auto}
+x-beschriften .marke{position:absolute;display:flex;align-items:center;justify-content:center;width:1.4em;height:1.4em;margin:-.7em 0 0 -.7em;border-radius:50%;background:#fff;border:1.5px solid #000;font-weight:700;line-height:1}
+x-beschriften .abschreiben.zweispaltig{display:grid;grid-template-columns:1fr 1fr;column-gap:1.5em;margin-top:.4em}
+:is(x-beschriften,x-schreibrahmen) .woerter{display:flex;flex-wrap:wrap;gap:.2em 1em;margin-top:.4em;padding:.3em .6em;border:1.5px solid #000;border-radius:6px}
+x-schreibrahmen .planung{margin-bottom:.5em;padding:.2em .6em .5em;border:1.5px solid #000;border-radius:6px}
+x-schreibrahmen .woerter{margin:0 0 .5em}
+x-schreibrahmen .satz{break-inside:avoid;margin-bottom:.4em}
+x-schreibrahmen .anfang{margin:0 0 .1em;font-weight:700}
+x-schreibrahmen .beispieltext{margin:.4em 0 0;font-weight:700}
+
+/* Rechenreihe (050) */
+x-rechenreihe{display:block}
+x-rechenreihe .aufgaben{display:grid;gap:.5em 1.5em}
+x-rechenreihe .rechnung{display:flex;align-items:center;gap:.3em;font-variant-numeric:tabular-nums;break-inside:avoid}
+x-rechenreihe .platz{display:inline-flex;align-items:center;justify-content:center;min-width:2.2em;min-height:1.5em;padding:0 .2em;border:1.5px solid #000;font-weight:700}
+x-rechenreihe .platz.breit{min-width:3.6em}
+
+/* Sprach-Werkzeuge (052) */
+x-silben[im-text]{display:inline;line-height:inherit}
+.zeilennummer{position:absolute;display:flex;align-items:center;font-size:calc(var(--fs)*.6);color:#444;pointer-events:none;font-variant-numeric:tabular-nums}
+
+/* Punkte und Noten (053) */
+x-gesamtpunkte,x-notenschluessel,x-notenspiegel,x-unterschrift{display:block;margin-top:12px}
+x-gesamtpunkte{display:flex;gap:.4em;align-items:baseline;justify-content:flex-end;font-weight:700}
+.gesamt-linie{display:inline-block;min-width:80px;border-bottom:2px solid var(--text)}
+.noten-vorschlag{font-size:calc(var(--fs)*.8);margin-top:4px}
+.noten-schnitt{margin-top:8px}
+x-unterschrift{display:flex;gap:32px;margin-top:32px}
+.unterschrift-feld{flex:1;display:flex;flex-direction:column;gap:2px;font-size:calc(var(--fs)*.8)}
+.unterschrift-feld .gesamt-linie{height:1.4em;width:100%;border-bottom-width:1.5px}
+x-erwartungshorizont{display:none}
+body.loesung x-erwartungshorizont{display:block;margin-top:12px}
+body.ohne-punkte .punkte,body.ohne-punkte x-gesamtpunkte{display:none}

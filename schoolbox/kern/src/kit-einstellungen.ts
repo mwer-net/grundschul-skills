@@ -78,7 +78,18 @@ export const KIT_FELDER: Readonly<Record<string, readonly KitFeld[]>> = {
 	aufgabe: [
 		{ typ: 'zahl', name: 'niveau', titel: 'Niveau-Punkte', min: 0, max: 3, schritt: 1, einheit: '', standard: 0 },
 		{ typ: 'schalter', name: 'stern', titel: 'Sternchenaufgabe' },
-		{ typ: 'zahl', name: 'punkte', titel: 'Punkte', min: 0, max: 50, schritt: 1, einheit: '', standard: 0 },
+		{ typ: 'zahl', name: 'punkte', titel: 'Punkte', min: 0, max: 50, schritt: 0.5, einheit: '', standard: 0 },
+		{
+			typ: 'wahl',
+			name: 'afb',
+			titel: 'Anforderungsbereich',
+			optionen: [
+				{ wert: '', titel: 'Keiner' },
+				{ wert: 'I', titel: 'I' },
+				{ wert: 'II', titel: 'II' },
+				{ wert: 'III', titel: 'III' },
+			],
+		},
 	],
 	kopf: [
 		{ typ: 'schalter', name: 'ziel', titel: 'Lernziel zeigen' },
@@ -279,7 +290,9 @@ const REGELN: Readonly<Record<string, Regel>> = {
 	'aufgabe.punkte': {
 		lies: (k, z) => {
 			const p = nachfahre(k, 'punkte');
-			return p ? parseInt(/\d+/.exec(innenVon(z, p))?.[0] ?? '0', 10) : 0;
+			const t = p ? innenVon(z, p) : '';
+			const m = /(\d+(?:[.,]\d+)?)\s*P/.exec(t) ?? /(\d+(?:[.,]\d+)?)/.exec(t);
+			return m?.[1] ? Number(m[1].replace(',', '.')) : 0;
 		},
 		setze: (z, k, wert) => {
 			const anw = kindMit(k, 'anw');
@@ -288,12 +301,16 @@ const REGELN: Readonly<Record<string, Regel>> = {
 			}
 			const da = kindMit(anw, 'punkte');
 			const n = Number(wert);
-			const html = n > 0 ? `<span class="punkte">(${n} P.)</span>` : '';
+			const html = n > 0 ? `<span class="punkte">(${String(n).replace('.', ',')} P.)</span>` : '';
 			if (da) {
 				return n > 0 ? [{ von: da.start, bis: da.ende, text: html }] : entferne(z, da);
 			}
 			return n > 0 ? fuegeInnenEin(z, anw, 'ende', html) : [];
 		},
+	},
+	'aufgabe.afb': {
+		lies: (k) => attribut(k, 'data-afb')?.wert ?? '',
+		setze: (z, k, wert) => setzeAttribut(z, k, 'data-afb', String(wert) === '' ? null : String(wert)),
 	},
 	'kopf.ziel': kindAnAus('ziel', '<div class="ziel">Ich kann …</div>'),
 	'kopf.wahlhilfe': kindAnAus('wahlhilfe', '<div class="wahlhilfe">Wähle deine Aufgaben.</div>'),
@@ -400,6 +417,8 @@ export interface BlattWerte {
 	palette: Palette | null;
 	format: Format;
 	trenner: boolean;
+	/** Punkte drucken (053). */
+	punkte: boolean;
 }
 
 const bodyVon = (z: Zerlegung) => {
@@ -419,6 +438,7 @@ export const leseBlatt = (quelle: string): BlattWerte => {
 		palette: (klassen.find((k) => k.startsWith('palette-'))?.slice(8) as Palette | undefined) ?? null,
 		format: formatAusHtml(quelle),
 		trenner: klassen.includes('trenner'),
+		punkte: !klassen.includes('ohne-punkte'),
 	};
 };
 
@@ -443,6 +463,9 @@ export const setzeBlatt = (quelle: string, neu: Partial<BlattWerte>) => {
 	}
 	if (neu.format !== undefined) {
 		tausche((k) => (FORMATE as readonly string[]).includes(k), neu.format === STANDARD_FORMAT ? null : neu.format);
+	}
+	if (neu.punkte !== undefined) {
+		tausche((k) => k === 'ohne-punkte', neu.punkte ? null : 'ohne-punkte');
 	}
 	if (neu.trenner !== undefined) {
 		tausche((k) => k === 'trenner', neu.trenner ? 'trenner' : null);

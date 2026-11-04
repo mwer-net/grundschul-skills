@@ -84,11 +84,18 @@ export const ruesteZiehen = (o: Optionen): ZiehenSteuerung => {
 		const nr = o.auswahl();
 		const gewaehlt = nr === null ? null : elementZu(doc, nr);
 		const baustein = gewaehlt ? bausteinVon(gewaehlt) : undefined;
-		if (gewaehlt && nr !== null && baustein && ziel && gewaehlt.contains(ziel) && ziehbarImBlatt(baustein)) {
+		if (
+			gewaehlt &&
+			nr !== null &&
+			baustein &&
+			ziel &&
+			gewaehlt.contains(ziel) &&
+			ziehbarImBlatt(baustein, gewaehlt)
+		) {
 			return { nr, element: gewaehlt, baustein };
 		}
 		for (let t = trefferAn(ziel); t; t = trefferAn(t.element.parentElement)) {
-			if (ziehbarImBlatt(t.baustein)) {
+			if (ziehbarImBlatt(t.baustein, t.element)) {
 				return t;
 			}
 		}

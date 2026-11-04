@@ -18,6 +18,7 @@ import {
 	markierungNeuerText,
 	markierungText,
 	miniTeile,
+	NOTEN_VORSCHLAG,
 	notenAnfuegen,
 	notenMitTon,
 	notenPunkt,
@@ -44,6 +45,9 @@ import { zerlege } from './quelltext';
 
 const JS = readFileSync(path.join(ASSETS, 'abbildungen.js'), 'utf8');
 
+/** Attribute, die kein Feld haben, weil ein eigener Knopf sie setzt: `seed` über „Neue Zahlen“. */
+const UEBER_KNOPF: Record<string, string[]> = { 'x-rechenreihe': ['seed'] };
+
 /** Tag → Name der Zeichenfunktion, aus `const ARTEN = { "x-uhr": uhr, … }`. */
 const arten = (): Record<string, string> => {
 	const liste = /const ARTEN = \{([^}]*)\}/.exec(JS)?.[1] ?? '';
@@ -65,6 +69,12 @@ const gelesen = (funktion: string) => {
 	}
 	if (/\bsamen\(el,/.test(rumpf)) {
 		namen.push('seed');
+	}
+	// Die Rechenreihe liest ihre Einstellungen über einen Kern, den auch der Test ruft (050).
+	if (/\brechenreiheEinstellungen\(/.test(rumpf)) {
+		const start2 = JS.indexOf('const rechenreiheEinstellungen');
+		const kern = JS.slice(start2, JS.indexOf('\n  });\n', start2));
+		namen.push(...[...kern.matchAll(/lies\("([a-z0-9-]+)"/g)].map((t) => t[1]));
 	}
 	return [...new Set(namen)].sort();
 };
@@ -92,7 +102,11 @@ describe('Schema der Abbildungen', () => {
 		for (const [tag, funktion] of Object.entries(arten())) {
 			const s = schemaVon(tag);
 			assert.ok(s, tag);
-			const imSchema = [...attributeVon(s), ...NUR_ZUR_LAUFZEIT.filter((a) => gelesen(funktion).includes(a))];
+			const imSchema = [
+				...attributeVon(s),
+				...NUR_ZUR_LAUFZEIT.filter((a) => gelesen(funktion).includes(a)),
+				...(UEBER_KNOPF[tag] ?? []),
+			];
 			assert.deepEqual([...new Set(imSchema)].sort(), gelesen(funktion), tag);
 		}
 	});
@@ -417,6 +431,12 @@ const liegtIn = (x: number, y: number, p: number[][]) => {
 	return drin;
 };
 
+interface BeschriftLinie {
+	wort: string;
+	von: { x: number; y: number };
+	bis: { x: number; y: number };
+}
+
 interface KreuzLage {
 	nr: number;
 	wort: string[];
@@ -514,6 +534,30 @@ const rechenkerne = () => {
 		ankreuzenFehler: (fragen: unknown[], mehrfach: boolean) => string | null;
 		aussagenLesen: (roh: string) => { text: string; wert: string }[];
 		aussagenFehler: (aussagen: unknown[]) => string | null;
+		rechenreiheEinstellungen: (lies: (name: string, standard: string | null) => string | null) => unknown;
+		rechenreiheAufgaben: (e: unknown, seed: string) => { aufgaben: string[]; fehler: string | null };
+		punkteAus: (text: string) => number;
+		notenGrenzen: (roh: string) => number[] | null;
+		notenZeilen: (gesamt: number, grenzen: number[]) => { note: number; von: number; bis: number }[];
+		NOTEN_VORSCHLAG: string;
+		rechnungLesen: (text: string) => { teile?: string[]; loesung?: string; fehler: string | null };
+		mitUebergang: (zeichen: string, a: number, b: number) => boolean;
+		neueZahlen: (tag: string, werte: Record<string, string>, seed: string) => Record<string, string> | null;
+		NEUE_ZAHLEN: string[];
+		zuordnenLesen: (roh: string) => { links: string; rechts: string; bildLinks: string; bildRechts: string }[];
+		zuordnenFehler: (paare: unknown[]) => string | null;
+		zuordnenFolge: (n: number, seed: string) => number[];
+		zuordnenKreuzungen: (folge: number[]) => number;
+		sortierenLesen: (roh: string) => { text: string; bild: string }[];
+		sortierenFehler: (eintraege: unknown[]) => string | null;
+		sortierenFolge: (n: number, seed: string) => number[];
+		punkteLesen: (roh: string) => { x: number; y: number; wort: string }[];
+		punkteFehler: (punkte: unknown[]) => string | null;
+		beschriftenPlan: (punkte: unknown[]) => {
+			links: BeschriftLinie[];
+			rechts: BeschriftLinie[];
+			kreuzen: (a: BeschriftLinie, b: BeschriftLinie) => boolean;
+		};
 		WORTARTEN: Record<string, { name: string; symbol: string; voll: boolean; linie: string }>;
 		ROLLEN: Record<string, { name: string; frage: string }>;
 		wortartenTeile: (text: string) => { wort?: string; marke?: string | null; text?: string }[];
@@ -1767,6 +1811,308 @@ describe('Spiele (037)', () => {
 	});
 });
 
+describe('Generatoren (050)', () => {
+	const schlicht = <T>(wert: T) => JSON.parse(JSON.stringify(wert)) as T;
+	// Einmal laden: Der Test ruft die Kerne hunderttausendmal.
+	const k = rechenkerne();
+	const reihe = (angaben: Record<string, string>, seed: string) => {
+		const e = k.rechenreiheEinstellungen((name, standard) => angaben[name] ?? standard);
+		return k.rechenreiheAufgaben(e, seed);
+	};
+	/** Liest `a op b = c` samt berechneter Lösung; prüft, dass die Gleichung stimmt, ohne dem Generator zu glauben. */
+	const lies = (text: string) => {
+		const r = k.rechnungLesen(text);
+		assert.equal(r.fehler, null, text);
+		const [a, zeichen, b, , c] = r.teile ?? [];
+		const wert = (t?: string) => (t === '_' ? Number((r.loesung ?? '').split(' ')[0]) : Number(t));
+		const [x, y, z] = [wert(a), wert(b), wert(c)];
+		const richtig: Record<string, () => boolean> = {
+			'+': () => x + y === z,
+			'−': () => x - y === z,
+			'·': () => x * y === z,
+			':': () => Math.floor(x / y) === z,
+		};
+		assert.ok(richtig[zeichen ?? '']?.(), `${text} ergibt ${r.loesung}`);
+		return { x, y, z, zeichen: zeichen ?? '', loesung: r.loesung ?? '' };
+	};
+
+	it('Rechenreihe: über 1000 Seeds im Zahlenraum, Bedingungen erfüllt, Lösung korrekt, keine Doppelten', () => {
+		const { mitUebergang } = k;
+		const faelle: { angaben: Record<string, string>; pruefe: (a: ReturnType<typeof lies>) => boolean }[] = [
+			{
+				angaben: { rechenart: '+', zahlenraum: '20', anzahl: '10', uebergang: 'mit' },
+				pruefe: (a) => mitUebergang('+', a.x, a.y) && a.z <= 20,
+			},
+			{
+				angaben: { rechenart: '+', zahlenraum: '20', anzahl: '10', uebergang: 'ohne' },
+				pruefe: (a) => !mitUebergang('+', a.x, a.y) && a.z <= 20,
+			},
+			{
+				angaben: { rechenart: '−', zahlenraum: '100', anzahl: '10', uebergang: 'mit' },
+				pruefe: (a) => mitUebergang('−', a.x, a.y) && a.x <= 100 && a.z >= 0,
+			},
+			{
+				angaben: { rechenart: '·', zahlenraum: '100', anzahl: '8', reihe: '7' },
+				pruefe: (a) => a.y === 7 && a.z <= 100,
+			},
+			{
+				angaben: { rechenart: ':', zahlenraum: '100', anzahl: '8', reihe: '6' },
+				pruefe: (a) => a.y === 6 && a.x % 6 === 0 && a.x <= 100,
+			},
+			{
+				angaben: { rechenart: ':', zahlenraum: '100', anzahl: '8', rest: '1' },
+				pruefe: (a) => a.x % a.y !== 0 && a.x <= 100,
+			},
+			{
+				angaben: { rechenart: '+', zahlenraum: '1000000', anzahl: '12', platzhalter: 'gemischt' },
+				pruefe: (a) => a.z <= 1000000,
+			},
+		];
+		for (const { angaben, pruefe: fall } of faelle) {
+			for (let seed = 0; seed < 1000; seed++) {
+				const { aufgaben, fehler } = reihe(angaben, String(seed));
+				assert.equal(fehler, null, JSON.stringify(angaben));
+				assert.equal(aufgaben.length, Number(angaben.anzahl));
+				assert.equal(new Set(aufgaben).size, aufgaben.length, `Doppelt: ${aufgaben.join('; ')}`);
+				for (const text of aufgaben) {
+					assert.ok(fall(lies(text)), `${JSON.stringify(angaben)}: ${text}`);
+				}
+			}
+		}
+		// Gegenprobe: Die Prüfung schlägt an, wenn die Bedingung nicht gilt.
+		assert.equal(mitUebergang('+', 3, 7), false);
+		assert.equal(mitUebergang('+', 5, 8), true);
+		assert.equal(mitUebergang('−', 13, 5), true);
+		assert.equal(mitUebergang('−', 20, 5), false);
+	});
+
+	it('Rechenreihe: Tausch und Umkehr stehen als Paare, Platzhalter an der gewählten Stelle', () => {
+		const tausch = reihe({ rechenart: '+', zahlenraum: '20', anzahl: '6', beziehung: 'tausch' }, 'a').aufgaben.map(
+			lies,
+		);
+		for (let i = 0; i < tausch.length; i += 2) {
+			assert.deepEqual([tausch[i]?.x, tausch[i]?.y], [tausch[i + 1]?.y, tausch[i + 1]?.x]);
+		}
+		const umkehr = reihe({ rechenart: '+', zahlenraum: '20', anzahl: '6', beziehung: 'umkehr' }, 'a').aufgaben.map(
+			lies,
+		);
+		for (let i = 0; i < umkehr.length; i += 2) {
+			assert.equal(umkehr[i + 1]?.zeichen, '−');
+			assert.equal(umkehr[i + 1]?.x, umkehr[i]?.z);
+		}
+		const { aufgaben } = reihe({ rechenart: '+', zahlenraum: '20', anzahl: '5', platzhalter: 'erste' }, 'a');
+		assert.ok(aufgaben.every((t) => t.startsWith('_ + ')));
+	});
+
+	it('Rechenreihe: Unerfüllbares meldet das Element, statt falsche Aufgaben zu liefern', () => {
+		assert.match(
+			reihe({ rechenart: '+', zahlenraum: '10', anzahl: '60' }, 'a').fehler ?? '',
+			/nur \d+ verschiedene/,
+		);
+		assert.match(
+			reihe({ rechenart: '−', zahlenraum: '10', anzahl: '3', uebergang: 'mit' }, 'a').fehler ?? '',
+			/nur 0 verschiedene/,
+		);
+		assert.match(
+			reihe({ rechenart: '·', zahlenraum: '100', anzahl: '3', uebergang: 'mit' }, 'a').fehler ?? '',
+			/nur für Plus/,
+		);
+		assert.match(
+			reihe({ rechenart: '+', zahlenraum: '100', anzahl: '3', rest: '1' }, 'a').fehler ?? '',
+			/nur beim Teilen/,
+		);
+		assert.match(
+			reihe({ rechenart: '−', zahlenraum: '100', anzahl: '3', beziehung: 'tausch' }, 'a').fehler ?? '',
+			/Plus und Mal/,
+		);
+		assert.deepEqual(schlicht(reihe({ rechenart: '+', zahlenraum: '10', anzahl: '60' }, 'a').aufgaben), []);
+	});
+
+	it('Rechnung lesen: Lösung berechnet, was nicht aufgeht, wird genannt', () => {
+		const { rechnungLesen } = rechenkerne();
+		assert.equal(rechnungLesen('3 + _ = 7').loesung, '4');
+		assert.equal(rechnungLesen('_ · 7 = 28').loesung, '4');
+		assert.equal(rechnungLesen('17 : 5 = _').loesung, '3 R 2');
+		assert.match(rechnungLesen('3 + 4 = 7').fehler ?? '', /genau einem _/);
+		assert.match(rechnungLesen('7 : _ = 3').fehler ?? '', /geht nicht auf/);
+		assert.match(rechnungLesen('_ + 5 = 3').fehler ?? '', /geht nicht auf/);
+		assert.match(rechnungLesen('7 : 0 = _').fehler ?? '', /durch 0/);
+	});
+
+	const fuer = (tag: string, werte: Record<string, string>) => {
+		const ergebnisse = Array.from({ length: 200 }, (_, i) => {
+			const neu = k.neueZahlen(tag, werte, `s${i}`);
+			assert.ok(neu, `${tag} Seed ${i}`);
+			return schlicht(neu);
+		});
+		assert.ok(new Set(ergebnisse.map((e) => JSON.stringify(e))).size > 5, `${tag}: Es kommen kaum neue Zahlen`);
+		return ergebnisse;
+	};
+
+	it('Neue Zahlen: Aufbau bleibt, Zahlen ändern sich, alles bleibt lösbar', () => {
+		for (const e of fuer('x-zahlenmauer', { basis: '3 5 2' })) {
+			assert.equal(e.basis?.split(' ').length, 3);
+		}
+		for (const e of fuer('x-zahlenkette', { start: '8', operatoren: '+5 −3 ·2' })) {
+			assert.deepEqual(
+				e.operatoren?.split(' ').map((o) => o[0]),
+				['+', '−', '·'],
+			);
+		}
+		for (const e of fuer('x-rechenrad', { mitte: ':4', zahlen: '4 8 12 16' })) {
+			const d = Number(e.mitte?.slice(1));
+			assert.ok(e.zahlen?.split(' ').every((z) => Number(z) % d === 0));
+			assert.equal(e.zahlen?.split(' ').length, 4);
+		}
+		for (const e of fuer('x-schriftlich', { art: 'minus', zahlen: '903 478', verfahren: 'abziehen-entbuendeln' })) {
+			const [a = 0, b = 0] = (e.zahlen ?? '').split(' ').map(Number);
+			assert.ok(a >= b && a >= 100 && a < 1000);
+		}
+		for (const e of fuer('x-schriftlich', { art: 'geteilt', zahlen: '936 4' })) {
+			const [a = 0, b = 0] = (e.zahlen ?? '').split(' ').map(Number);
+			assert.equal(a % b, 0);
+		}
+	});
+
+	it('Neue Zahlen: Größen bleiben im selben Aufbau', () => {
+		for (const e of fuer('x-uhr', { zeit: '4:30' })) {
+			assert.match(e.zeit ?? '', /^\d{1,2}:(00|30)$/);
+		}
+		for (const e of fuer('x-kalender', { monat: '2', jahr: '2027', markiert: '14', luecken: '8 22' })) {
+			assert.ok(
+				[...(e.markiert ?? '').split(' '), ...(e.luecken ?? '').split(' ')].every((t) => Number(t) <= 28),
+			);
+		}
+		for (const e of fuer('x-zahlenstrahl', {
+			von: '0',
+			bis: '100',
+			schritt: '10',
+			zahlen: '0 50 100',
+			pfeile: '30 70',
+		})) {
+			assert.ok(e.pfeile?.split(' ').every((t) => Number(t) % 10 === 0 && !['0', '50', '100'].includes(t)));
+		}
+		for (const tag of ['x-zahlenhaus', 'x-malkreuz', 'x-geld', 'x-rechendreieck', 'x-zeitspanne']) {
+			assert.ok(k.NEUE_ZAHLEN.includes(tag));
+		}
+		// Zusammenhängendes bleibt: Hier gibt es bewusst nichts zu würfeln.
+		assert.equal(k.neueZahlen('x-zeitspanne', { von: '8:20', bis: '10:00', spruenge: 'bis 9:00' }, 'a'), null);
+		assert.equal(k.neueZahlen('x-schriftlich', { art: 'plus', zahlen: '1 2', fehlerhaft: 'ja' }, 'a'), null);
+		assert.equal(k.neueZahlen('x-kalender', { art: 'jahr', jahr: '2028' }, 'a'), null);
+		assert.equal(k.neueZahlen('x-suchsel', {}, 'a'), null);
+	});
+});
+
+describe('Aufgabenformate (049)', () => {
+	const schlicht = <T>(wert: T) => JSON.parse(JSON.stringify(wert)) as T;
+
+	it('Zuordnen: nie schon gelöst, über viele Seeds und für jede Größe; die Mischung wählt wenige Kreuzungen', () => {
+		const { zuordnenFolge, zuordnenKreuzungen } = rechenkerne();
+		const einmal = (folge: number[]) => folge.reduce((n, p) => n + p, 0);
+		for (let n = 2; n <= 10; n++) {
+			for (let seed = 0; seed < 300; seed++) {
+				const folge = [...zuordnenFolge(n, String(seed))];
+				assert.ok(
+					folge.every((p, z) => p !== z),
+					`${n} Paare, Seed ${seed}: ${folge.join()}`,
+				);
+				assert.equal(new Set(folge).size, n);
+				assert.equal(einmal(folge), (n * (n - 1)) / 2);
+			}
+		}
+		// Gegenprobe: Der Zähler sieht Kreuzungen, und die Auswahl aus mehreren Mischungen drückt sie.
+		assert.equal(zuordnenKreuzungen([0, 1, 2]), 0);
+		assert.equal(zuordnenKreuzungen([2, 1, 0]), 3);
+		const mittel = (f: (seed: string) => number[]) =>
+			Array.from({ length: 200 }, (_, i) => zuordnenKreuzungen(f(String(i)))).reduce((a, b) => a + b, 0) / 200;
+		const zufaellig = (n: number) => (n * (n - 1)) / 4;
+		assert.ok(mittel((seed) => [...zuordnenFolge(8, seed)]) < zufaellig(8) * 0.8);
+	});
+
+	it('Zuordnen: Bilder sind freiwillig, zu wenig, leer und doppelt werden gemeldet', () => {
+		const { zuordnenFehler, zuordnenLesen } = rechenkerne();
+		assert.deepEqual(schlicht(zuordnenLesen('Apfel: Obst: a.png; Kohl: Gemüse')), [
+			{ links: 'Apfel', rechts: 'Obst', bildLinks: 'a.png', bildRechts: '' },
+			{ links: 'Kohl', rechts: 'Gemüse', bildLinks: '', bildRechts: '' },
+		]);
+		const f = (roh: string) => zuordnenFehler(zuordnenLesen(roh));
+		assert.equal(f('a: 1; b: 2'), null);
+		assert.match(f('a: 1') ?? '', /mindestens 2/);
+		assert.match(f('a: 1; b') ?? '', /fehlt die andere Seite/);
+		assert.match(f('a: 1; b: 1') ?? '', /doppelt/);
+	});
+
+	it('Sortieren: Die gemischte Reihenfolge ist über viele Seeds nie die Lösung', () => {
+		const { sortierenFehler, sortierenFolge, sortierenLesen } = rechenkerne();
+		for (let n = 2; n <= 12; n++) {
+			for (let seed = 0; seed < 300; seed++) {
+				const folge = [...sortierenFolge(n, String(seed))];
+				assert.ok(
+					folge.some((p, i) => p !== i),
+					`${n} Einträge, Seed ${seed}`,
+				);
+				assert.equal(new Set(folge).size, n);
+			}
+		}
+		assert.deepEqual(schlicht(sortierenLesen('Satz eins.; Samen: s.png')), [
+			{ text: 'Satz eins.', bild: '' },
+			{ text: 'Samen', bild: 's.png' },
+		]);
+		const f = (roh: string) => sortierenFehler(sortierenLesen(roh));
+		assert.equal(f('a; b'), null);
+		assert.match(f('a') ?? '', /mindestens 2/);
+		assert.match(f('a; a') ?? '', /doppelt/);
+	});
+
+	it('Beschriften: Keine Linie kreuzt eine andere, auch bei ungünstigen Punkten', () => {
+		const { beschriftenPlan } = rechenkerne();
+		const naechste = (start: number) => {
+			let z = start;
+			return () => {
+				z = (z * 48271) % 2147483647;
+				return z / 2147483647;
+			};
+		};
+		let vertauschtGekreuzt = 0;
+		for (let seed = 1; seed <= 300; seed++) {
+			const r = naechste(seed);
+			const punkte = Array.from({ length: 12 }, (_, i) => ({
+				x: i < 6 ? r() * 49 : 50 + r() * 50,
+				y: r() * 100,
+				wort: `W${i}`,
+			}));
+			const plan = beschriftenPlan(punkte);
+			assert.equal(plan.links.length + plan.rechts.length, 12);
+			for (const seite of [plan.links, plan.rechts]) {
+				assert.equal(new Set(seite.map((l) => l.wort)).size, seite.length);
+				for (let a = 0; a < seite.length; a++) {
+					for (let b = a + 1; b < seite.length; b++) {
+						const [la, lb] = [seite[a], seite[b]] as [BeschriftLinie, BeschriftLinie];
+						assert.equal(plan.kreuzen(la, lb), false, `Seed ${seed}: ${la.wort} und ${lb.wort}`);
+						// Gegenprobe: Mit vertauschten Zielen kreuzen sich die Linien, die Prüfung muss das sehen.
+						if (plan.kreuzen({ ...la, bis: lb.bis }, { ...lb, bis: la.bis })) {
+							vertauschtGekreuzt++;
+						}
+					}
+				}
+			}
+		}
+		assert.ok(vertauschtGekreuzt > 0, 'Gegenprobe: Die Prüfung erkennt gekreuzte Linien');
+	});
+
+	it('Beschriften: zu viele Punkte, außerhalb und ohne Wort werden gemeldet', () => {
+		const { punkteFehler, punkteLesen } = rechenkerne();
+		assert.deepEqual(schlicht(punkteLesen('12,70: Samen')), [{ x: 12, y: 70, wort: 'Samen' }]);
+		const f = (roh: string) => punkteFehler(punkteLesen(roh));
+		assert.equal(f('12,70: Samen; 88,25: Blume'), null);
+		assert.match(f('120,70: Samen') ?? '', /nicht im Bild/);
+		assert.match(f('12,70') ?? '', /kein Wort/);
+		const voll = Array.from({ length: 6 }, (_, i) => `10,${i * 10}: W${i}`).join('; ');
+		assert.equal(f(voll), null);
+		assert.match(f(`${voll}; 20,80: Zu viel`) ?? '', /höchstens 6/);
+	});
+});
+
 describe('Aufgabenformate (048)', () => {
 	// Die Werte kommen aus einem eigenen `vm`-Kontext; `deepEqual` vergleicht sonst auch die Prototypen.
 	const schlicht = <T>(wert: T) => JSON.parse(JSON.stringify(wert)) as T;
@@ -1818,5 +2164,43 @@ describe('Aufgabenformate (048)', () => {
 		assert.deepEqual(schlicht(aussagenLesen('Uhr: 3: r')[0]), { text: 'Uhr: 3', wert: 'r' });
 		assert.equal(aussagenFehler(aussagenLesen('A: r; B: f')), null);
 		assert.match(aussagenFehler(aussagenLesen('A')) ?? '', /richtig \(r\) oder falsch/);
+	});
+});
+
+describe('Punkte und Noten (053)', () => {
+	const k = rechenkerne();
+	it('Der Vorschlag steht in Schema und Zeichnung gleich', () => {
+		assert.equal(k.NOTEN_VORSCHLAG, NOTEN_VORSCHLAG);
+	});
+	it('liest alle Formen der Punkte', () => {
+		assert.equal(k.punkteAus('4 P'), 4);
+		assert.equal(k.punkteAus('(2,5 P.)'), 2.5);
+		assert.equal(k.punkteAus('/ 3 P'), 3);
+		assert.equal(k.punkteAus('ohne'), 0);
+	});
+	it('Der Schlüssel teilt 0 bis Gesamt lückenlos auf und passt sich an', () => {
+		const grenzen = k.notenGrenzen(NOTEN_VORSCHLAG) ?? [];
+		assert.deepEqual([...grenzen], [95, 80, 65, 50, 25]);
+		for (const gesamt of [10, 20, 24, 37, 50, 100, 12.5]) {
+			const z = k.notenZeilen(gesamt, grenzen);
+			assert.equal(z.length, 6);
+			assert.equal(z[0]?.bis, gesamt);
+			assert.equal(z[5]?.von, 0);
+			const schritt = Number.isInteger(gesamt) ? 1 : 0.5;
+			z.slice(1).forEach((zeile, i) => assert.equal(zeile.bis, (z[i]?.von ?? 0) - schritt));
+		}
+		assert.deepEqual(
+			[...k.notenZeilen(20, grenzen)].map((z) => z.von),
+			[19, 16, 13, 10, 5, 0],
+		);
+		assert.deepEqual(
+			[...k.notenZeilen(40, grenzen)].map((z) => z.von),
+			[38, 32, 26, 20, 10, 0],
+		);
+	});
+	it('Falsche Grenzen werden abgelehnt', () => {
+		assert.equal(k.notenGrenzen('1:95; 2:80'), null);
+		assert.equal(k.notenGrenzen('1:50; 2:80; 3:65; 4:50; 5:25'), null);
+		assert.equal(k.notenGrenzen('2:95; 2:80; 3:65; 4:50; 5:25'), null);
 	});
 });

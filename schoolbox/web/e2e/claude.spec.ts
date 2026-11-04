@@ -3,11 +3,11 @@ import { readFile, writeFile } from 'node:fs/promises';
 import path from 'node:path';
 
 import type { Page } from '@playwright/test';
-import { BAUSTEINE } from '@schoolbox/kern/src/bausteine';
 import { ASSETS } from '@schoolbox/kern/src/konfig';
 import { zerlege } from '@schoolbox/kern/src/quelltext';
 import { bausteinVonKnoten, liesReferenzen, loeseReferenz, pfadText } from '@schoolbox/kern/src/referenz';
 
+import type { TestZugriff } from './editorhilfe';
 import { material, oeffne, uhrzeit } from './editorhilfe';
 import { expect, test } from './hilfe';
 
@@ -105,7 +105,6 @@ test.describe('Claude fragen', () => {
 
 	test('kern erkennt dieselben Bausteine wie der Browser', async ({ druecke, page }) => {
 		const { dok, id, material: datei } = await uhrzeit();
-		const register = BAUSTEINE.map((b) => [b.art, b.selektor] as const);
 		const beispiele = [
 			readFileSync(path.join(ASSETS, 'beispiel-zehner-einer-kl2.html'), 'utf8'),
 			readFileSync(path.join(TESTDATEN, 'pruefung-blatt.html'), 'utf8'),
@@ -125,16 +124,15 @@ test.describe('Claude fragen', () => {
 					await druecke(loesungChip);
 					await expect(material(page).locator('body.loesung')).toHaveCount(1);
 				}
-				const imBrowser = await material(page)
-					.locator('body')
-					.evaluate(
-						(body, liste) =>
-							[...body.ownerDocument.querySelectorAll('[data-sb]')].map((e) => [
-								Number(e.getAttribute('data-sb')),
-								liste.find(([, selektor]) => e.matches(selektor))?.[0] ?? null,
-							]),
-						register,
-					);
+				// Über den Code des Editors: Die Regeln für frei gestaltetes Material (054) stecken nicht nur im Selektor.
+				const imBrowser = await page.evaluate(() => {
+					const rahmen = document.querySelector<HTMLIFrameElement>('[data-editor-rahmen="sichtbar"]');
+					const { schoolboxEditor } = window as unknown as { schoolboxEditor: TestZugriff };
+					return [...(rahmen?.contentDocument?.querySelectorAll('[data-sb]') ?? [])].map((e) => [
+						Number(e.getAttribute('data-sb')),
+						schoolboxEditor.art(e),
+					]);
+				});
 				const imKern = imBrowser.map(([nr]) => {
 					const k = z.knoten[nr as number];
 					return [nr, k ? (bausteinVonKnoten(k, loesung)?.art ?? null) : 'fehlt'];

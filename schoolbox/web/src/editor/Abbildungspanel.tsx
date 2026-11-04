@@ -1,5 +1,6 @@
 import type {
 	AuswahlFeld,
+	BildFeld,
 	Feld,
 	ListeFeld,
 	MarkierungFeld,
@@ -9,6 +10,7 @@ import type {
 	NotenFeld,
 	Option,
 	PlanFeld,
+	PunkteFeld,
 	RasterFeld,
 	SchalterFeld,
 	TextFeld,
@@ -47,7 +49,7 @@ import {
 	ziffernText,
 } from '@schoolbox/kern/src/abbildungen';
 import type { KeyboardEvent, ReactNode } from 'react';
-import { useEffect, useId, useRef, useState } from 'react';
+import { useEffect, useId, useMemo, useRef, useState } from 'react';
 
 import { meldung, sende, sendeDatei } from '../api';
 import { Knopf } from '../bausteine/Knopf';
@@ -55,6 +57,7 @@ import { Symbol } from '../bausteine/Symbol';
 import type { AbbildungSteuerung } from './abbildung';
 import { bereiteVor } from './bild';
 import { SammlungDialog } from './Bildpanel';
+import { elementZu } from './darstellung';
 
 const EINGABE =
 	'min-h-12 rounded-xl border-2 border-rand bg-white px-3 focus:border-brand-500 focus:outline-none disabled:opacity-50 aria-invalid:border-fehler';
@@ -1334,6 +1337,203 @@ const NotenEingabe = ({ abb, feld }: FeldEigenschaften<NotenFeld>) => {
 	);
 };
 
+const BildEingabe = ({ abb, feld }: FeldEigenschaften<BildFeld>) => {
+	const id = useId();
+	return (
+		<Rahmen feld={feld} abb={abb} id={id}>
+			<BildWahl
+				abb={abb}
+				aendere={(neu) => abb.aendere(feld, neu || null)}
+				name={feld.name}
+				wert={wertVon(feld, abb)?.wert ?? ''}
+			/>
+		</Rahmen>
+	);
+};
+
+interface BildPunkt {
+	x: number;
+	y: number;
+	wort: string;
+}
+
+const punkteAus = (wert: string): BildPunkt[] =>
+	wert
+		.split(';')
+		.map((z) => z.trim())
+		.filter(Boolean)
+		.map((z) => {
+			const i = z.indexOf(':');
+			const [x = '0', y = '0'] = (i < 0 ? z : z.slice(0, i)).split(',');
+			return { x: Number(x), y: Number(y), wort: i < 0 ? '' : z.slice(i + 1).trim() };
+		});
+
+const punkteText = (punkte: BildPunkt[]) => punkte.map((p) => `${p.x},${p.y}: ${p.wort}`).join('; ');
+
+/** So nah am Punkt (in Prozent) greift der Finger ihn, statt einen neuen zu setzen. */
+const PUNKT_GREIFEN = 6;
+
+/**
+ * Punkte auf dem Bild: Tippen setzt einen neuen, Ziehen verschiebt ihn, das Wort steht im Panel. Das sind Daten am
+ * Element, keine freie Ebene (Entscheidung 2). Nur solange „Punkte setzen“ an ist, gehört das Bild diesem Werkzeug.
+ */
+const PunkteEingabe = ({ abb, feld }: FeldEigenschaften<PunkteFeld>) => {
+	const id = useId();
+	const [setzen, setSetzen] = useState(false);
+	const wert = wertVon(feld, abb)?.wert ?? '';
+	const punkte = useMemo(() => punkteAus(wert), [wert]);
+	const aktuell = useRef({ abb, feld, punkte });
+	useEffect(() => {
+		aktuell.current = { abb, feld, punkte };
+	});
+	const { doc, nr } = abb;
+
+	useEffect(() => {
+		const element = doc && nr !== null ? (elementZu(doc, nr) as HTMLElement | null) : null;
+		if (!setzen || !element) {
+			return undefined;
+		}
+		const schreibe = (neu: BildPunkt[], uebernehmen: boolean) => {
+			const { abb: a, feld: f } = aktuell.current;
+			aktuell.current.punkte = neu;
+			a.aendere(f, punkteText(neu), { uebernehmen });
+		};
+		const flaeche = () => {
+			const r = element.querySelector('.bildflaeche')?.getBoundingClientRect();
+			return r && r.width > 0 && r.height > 0 ? r : null;
+		};
+		const lage = (e: PointerEvent, r: DOMRect) => {
+			const x = Math.round(((e.clientX - r.left) / r.width) * 100);
+			const y = Math.round(((e.clientY - r.top) / r.height) * 100);
+			return {
+				x: Math.min(100, Math.max(0, x)),
+				y: Math.min(100, Math.max(0, y)),
+				drin: x >= 0 && x <= 100 && y >= 0 && y <= 100,
+			};
+		};
+		let griff: number | null = null;
+		let bewegt = false;
+		// Beim Ziehen zeichnet das Element neu, dabei hat das Bild kurz keine Höhe: Es gilt die Fläche vom Aufsetzen.
+		let beimDruck: DOMRect | null = null;
+		const runter = (e: PointerEvent) => {
+			const r = flaeche();
+			const l = r && lage(e, r);
+			if (!r || !l?.drin) {
+				return;
+			}
+			beimDruck = r;
+			e.preventDefault();
+			e.stopPropagation();
+			element.setPointerCapture(e.pointerId);
+			const { punkte: alle } = aktuell.current;
+			const nah = alle.findIndex((p) => Math.hypot(p.x - l.x, p.y - l.y) <= PUNKT_GREIFEN);
+			bewegt = false;
+			griff = nah < 0 ? null : nah;
+			if (nah < 0) {
+				schreibe([...alle, { x: l.x, y: l.y, wort: 'Wort' }], true);
+			}
+		};
+		const bewege = (e: PointerEvent) => {
+			if (griff === null || !beimDruck) {
+				return;
+			}
+			const l = lage(e, beimDruck);
+			e.preventDefault();
+			e.stopPropagation();
+			bewegt = true;
+			const i = griff;
+			schreibe(
+				aktuell.current.punkte.map((p, j) => (j === i ? { ...p, x: l.x, y: l.y } : p)),
+				false,
+			);
+		};
+		const hoch = (e: PointerEvent) => {
+			if (!beimDruck) {
+				return;
+			}
+			e.stopPropagation();
+			// Der letzte Stand kommt vom Finger selbst: `aktuell` hinkt dem Zeichnen um einen Durchlauf nach.
+			if (griff !== null && bewegt) {
+				const l = lage(e, beimDruck);
+				const i = griff;
+				schreibe(
+					aktuell.current.punkte.map((p, j) => (j === i ? { ...p, x: l.x, y: l.y } : p)),
+					true,
+				);
+			}
+			griff = null;
+			beimDruck = null;
+		};
+		const klick = (e: MouseEvent) => {
+			e.stopPropagation();
+			e.preventDefault();
+		};
+		const stil = element.style;
+		const alt = stil.touchAction;
+		stil.touchAction = 'none';
+		element.addEventListener('pointerdown', runter, true);
+		element.addEventListener('pointermove', bewege, true);
+		element.addEventListener('pointerup', hoch, true);
+		element.addEventListener('click', klick, true);
+		return () => {
+			stil.touchAction = alt;
+			element.removeEventListener('pointerdown', runter, true);
+			element.removeEventListener('pointermove', bewege, true);
+			element.removeEventListener('pointerup', hoch, true);
+			element.removeEventListener('click', klick, true);
+		};
+	}, [doc, nr, setzen]);
+
+	const setze = (neu: BildPunkt[], uebernehmen: boolean) =>
+		abb.aendere(feld, punkteText(neu) || null, { uebernehmen });
+
+	const entferne = (i: number) => {
+		const uebrig = punkte.filter((_, j) => j !== i);
+		setze(uebrig, true);
+	};
+	return (
+		<Rahmen feld={feld} abb={abb} id={id}>
+			<p className="mb-2 text-leise">
+				Tippe aufs Bild, um einen Punkt zu setzen. Ziehe einen Punkt, um ihn zu verschieben.
+			</p>
+			<Knopf
+				id={id}
+				art={setzen ? 'haupt' : 'zweit'}
+				aria-pressed={setzen}
+				data-punkte-setzen
+				onClick={() => setSetzen((an) => !an)}
+			>
+				{setzen ? 'Punkte setzen beenden' : 'Punkte setzen'}
+			</Knopf>
+			<ul className="mt-2 flex flex-col gap-2" data-punkte-liste>
+				{punkte.map((p, i) => (
+					// Die Reihenfolge ist die Nummer des Punkts: Nur Löschen verschiebt sie, und dann soll das Feld neu entstehen.
+					<li key={`${i}-${punkte.length}`} className="flex items-center gap-2">
+						<b className="w-6 flex-none text-center">{i + 1}</b>
+						<input
+							aria-label={`Wort zu Punkt ${i + 1}`}
+							className={`${EINGABE} w-full min-w-0 flex-1`}
+							defaultValue={p.wort}
+							onChange={(e) => {
+								setze(
+									punkte.map((q, j) =>
+										j === i ? { ...q, wort: e.target.value.replace(/[;:]/g, ' ') } : q,
+									),
+									false,
+								);
+							}}
+							onBlur={() => abb.uebernimm()}
+						/>
+						<Knopf art="zweit" aria-label={`Punkt ${i + 1} entfernen`} onClick={() => entferne(i)}>
+							<Symbol name="papierkorb" />
+						</Knopf>
+					</li>
+				))}
+			</ul>
+		</Rahmen>
+	);
+};
+
 const Eingabe = ({ abb, feld }: FeldEigenschaften<Feld>) => {
 	switch (feld.art) {
 		case 'zahl':
@@ -1366,6 +1566,10 @@ const Eingabe = ({ abb, feld }: FeldEigenschaften<Feld>) => {
 			return <Markierung feld={feld} abb={abb} />;
 		case 'plan':
 			return <Plan feld={feld} abb={abb} />;
+		case 'bild':
+			return <BildEingabe feld={feld} abb={abb} />;
+		case 'punkte':
+			return <PunkteEingabe feld={feld} abb={abb} />;
 		default:
 			return null;
 	}
@@ -1390,6 +1594,23 @@ const gruppen = (felder: Feld[]) => {
  * Einstellungen der gewählten Abbildung nach ihrem Schema. Jede Änderung zeigt sich sofort im Blatt und ist ein
  * Schritt im Verlauf; was nicht stimmt, wird nicht gespeichert.
  */
+const NeueZahlen = ({ abb }: { abb: AbbildungSteuerung }) => {
+	const [hinweis, setHinweis] = useState(false);
+	return (
+		<div className="mt-3">
+			<Knopf art="zweit" data-neue-zahlen title="Neue Zahlen (⌥N)" onClick={() => setHinweis(!abb.neueZahlen())}>
+				<Symbol name="rueckgaengig" />
+				Neue Zahlen
+			</Knopf>
+			{hinweis && (
+				<p className="mt-2 text-leise" role="status" data-neue-zahlen-hinweis>
+					Hier gibt es gerade keine neuen Zahlen. Bei Sprüngen und Fehleraufgaben hängen die Zahlen zusammen.
+				</p>
+			)}
+		</div>
+	);
+};
+
 export const Abbildungswerkzeug = ({ abb }: { abb: AbbildungSteuerung }) => {
 	const { schema } = abb;
 	if (!abb.aktiv || !schema) {
@@ -1404,6 +1625,7 @@ export const Abbildungswerkzeug = ({ abb }: { abb: AbbildungSteuerung }) => {
 					Das ist das Beispiel. Die Lösung ist auf dem Arbeitsblatt sichtbar.
 				</p>
 			)}
+			{abb.hatNeueZahlen && <NeueZahlen abb={abb} />}
 			{gruppen(schema.felder).map(({ felder, name }, i) =>
 				name ? (
 					<details key={name} className="mt-4 border-t-2 border-rand pt-2" open={i === 0} data-gruppe={name}>

@@ -1,9 +1,11 @@
 import { KATALOG_KATEGORIEN } from '@schoolbox/kern/src/abbildungen';
-import { sucheImKatalog } from '@schoolbox/kern/src/katalog';
+import { MEINE_BAUSTEINE, sucheImKatalog } from '@schoolbox/kern/src/katalog';
 import type { Art, Fach, Klasse } from '@schoolbox/kern/src/werte';
 import type { PointerEvent as ReactPointerEvent } from 'react';
 import { useEffect, useRef, useState } from 'react';
 
+import { meldung, sende } from '../api';
+import { useHinweis } from '../bausteine/hinweis';
 import { klassen } from '../bausteine/klassen';
 import { Knopf } from '../bausteine/Knopf';
 import { Symbol } from '../bausteine/Symbol';
@@ -200,6 +202,50 @@ const stelleUnter = (doc: Document, x: number, y: number) => {
 	return t ? nrVon(t.element) : null;
 };
 
+/** Eigene Bausteine umbenennen und löschen (051). */
+const EigenVerwalten = ({ id, name, neuLaden }: { id: string; name: string; neuLaden: () => void }) => {
+	const [neu, setNeu] = useState<string | null>(null);
+	const zeige = useHinweis();
+	const sende2 = (pfad: string, daten: object) =>
+		sende(`/api/eigene/sammlung/${id}/${pfad}`, daten).then(neuLaden, (grund: unknown) =>
+			zeige({ text: meldung(grund), art: 'fehler' }),
+		);
+	return (
+		<div className="flex flex-wrap items-center gap-2 border-t border-rand p-1" data-eigen-verwalten={id}>
+			{neu === null ? (
+				<Knopf art="zweit" onClick={() => setNeu(name)}>
+					Umbenennen
+				</Knopf>
+			) : (
+				<>
+					<input
+						aria-label="Neuer Name"
+						className="min-h-11 min-w-0 flex-1 rounded-lg border-2 border-rand px-2"
+						value={neu}
+						onChange={(e) => setNeu(e.target.value)}
+					/>
+					<Knopf
+						disabled={neu.trim() === ''}
+						onClick={() => {
+							setNeu(null);
+							void sende2('aendern', { name: neu });
+						}}
+					>
+						Speichern
+					</Knopf>
+				</>
+			)}
+			<Knopf
+				art="gefahr"
+				aria-label={`${name} aus der Sammlung löschen`}
+				onClick={() => void sende2('loeschen', {})}
+			>
+				<Symbol name="papierkorb" />
+			</Knopf>
+		</div>
+	);
+};
+
 const Karte = ({
 	doc,
 	einfuegen,
@@ -240,13 +286,15 @@ const Karte = ({
 
 	return (
 		<li className="overflow-hidden rounded-xl border border-rand" data-bibliothek-eintrag={eintrag.id}>
-			<iframe
-				src={`/ansicht/_katalog/${eintrag.id}`}
-				title={`Vorschau: ${eintrag.name}`}
-				loading="lazy"
-				tabIndex={-1}
-				className="pointer-events-none h-44 w-[200%] origin-top-left scale-50 border-0 [margin-bottom:-5.5rem]"
-			/>
+			{!eintrag.eigen && (
+				<iframe
+					src={`/ansicht/_katalog/${eintrag.id}`}
+					title={`Vorschau: ${eintrag.name}`}
+					loading="lazy"
+					tabIndex={-1}
+					className="pointer-events-none h-44 w-[200%] origin-top-left scale-50 border-0 [margin-bottom:-5.5rem]"
+				/>
+			)}
 			<div className="flex items-center gap-1 border-t border-rand p-1">
 				<button
 					type="button"
@@ -273,6 +321,7 @@ const Karte = ({
 					<Symbol name="plus" />
 				</button>
 			</div>
+			{eintrag.eigen && <EigenVerwalten id={eintrag.eigen} name={eintrag.name} neuLaden={einfuegen.neuLaden} />}
 			{zug && (
 				<div
 					className="pointer-events-none fixed z-50 -translate-x-1/2 -translate-y-1/2 rounded-lg bg-brand-500 px-3 py-2 font-bold text-white"
@@ -306,6 +355,7 @@ export const Bibliothek = ({
 	const liste = (sucheImKatalog(suche, einfuegen.eintraege) as Posten[]).filter(
 		(e) => (!kategorie || e.kategorie === kategorie) && (!nurPassend || passtZu(e, mappe, art)),
 	);
+	const hatEigene = einfuegen.eintraege.some((e) => e.herkunft === 'eigen');
 	return (
 		<section data-bibliothek>
 			<h2 className="mb-3 text-xl">Bausteine</h2>
@@ -327,7 +377,7 @@ export const Bibliothek = ({
 				Nur passend zu Fach und Klasse
 			</label>
 			<div className="mb-3 flex flex-wrap gap-1">
-				{[null, ...KATALOG_KATEGORIEN].map((k) => (
+				{[null, ...KATALOG_KATEGORIEN, ...(hatEigene ? [MEINE_BAUSTEINE] : [])].map((k) => (
 					<button
 						key={k ?? 'alle'}
 						type="button"

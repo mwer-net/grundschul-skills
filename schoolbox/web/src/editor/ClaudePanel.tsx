@@ -17,7 +17,10 @@ const BEISPIELE = [
 	'Ergänze eine Aufgabe zum Weiterdenken',
 	'Korrigiere die Rechtschreibung',
 ];
-const AUSWAHL = BAUSTEINE.map((b) => b.selektor).join(',');
+const AUSWAHL = [
+	...BAUSTEINE.filter((b) => b.frei !== 'text' && b.frei !== 'block').map((b) => b.selektor),
+	'.seite > *',
+].join(',');
 
 type Umfang = 'baustein' | 'seite' | 'blatt';
 

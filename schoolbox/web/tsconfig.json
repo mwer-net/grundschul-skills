@@ -14,6 +14,7 @@
 		"types": ["node", "vite/client"]
 	},
 	"include": [
+		"../kern/src/hyphen.d.ts",
 		"src",
 		"e2e",
 		"vite.config.ts",

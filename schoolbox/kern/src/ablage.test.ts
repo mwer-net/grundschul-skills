@@ -294,7 +294,21 @@ describe('CLI', () => {
 		const html = await readFile(pfad, 'utf8');
 		assert.ok(bodyKlassen(html).includes('minibuch'));
 		assert.equal(html.match(/class="seite"/g)?.length, 8);
-		const alle = ['arbeitsblatt', 'forscherbogen-12', 'forscherbogen-34', 'minibuch', 'praesentation'];
+		const alle = [
+			'arbeitsblatt',
+			'forscherbogen-12',
+			'forscherbogen-34',
+			'karten',
+			'klassenarbeit',
+			'lernlandkarte',
+			'lernplakat',
+			'lernspiel',
+			'lernzielkontrolle',
+			'lesetext',
+			'minibuch',
+			'praesentation',
+			'stationen',
+		];
 		const hilfe = execFileSync(cli, ['hilfe'], umgebung);
 		assert.ok(hilfe.includes(`Vorlagen: ${alle.join(', ')}`), hilfe);
 		assert.ok(hilfe.includes('minibuch'));

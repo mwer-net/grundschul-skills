@@ -2,11 +2,13 @@ import { readFile } from 'node:fs/promises';
 
 import {
 	dokumentDir,
+	eigeneBausteine,
 	einfuegbarAus,
 	KATALOG,
 	leseMeta,
 	leseStarter,
 	listeVersionen,
+	MEINE_BAUSTEINE,
 	schreibeMeta,
 	sichereFassung,
 	versionsPfad,
@@ -16,6 +18,7 @@ import { json, Router } from 'express';
 
 import { bilderApi } from './bilder';
 import { istAusgabeVeraltet, leseQuelle, nimmFremdeAenderungAuf, schreibeQuelle, verlangeDokument } from './dokumente';
+import { eigeneApi } from './eigene';
 import type { Ereignis } from './ereignisse';
 import { HttpFehler } from './fehler';
 import { freigabenApi } from './freigaben';
@@ -88,11 +91,27 @@ export const apiRouter = (kontext: Kontext) => {
 		next(/^[0-9TZ_a-z-]+$/.test(wert) ? undefined : new HttpFehler(400, `Version „${wert}“ ist ungültig.`));
 	});
 
-	router.get('/katalog', (_req, res) => {
+	router.get('/katalog', async (_req, res) => {
 		const starter = leseStarter();
-		res.json({ eintraege: KATALOG.map((e) => ({ ...e, einfuegbar: einfuegbarAus(e, starter) })) });
+		const eigene = await eigeneBausteine(kontext.konfig.materialDir);
+		res.json({
+			eintraege: [
+				...KATALOG.map((e) => ({ ...e, einfuegbar: einfuegbarAus(e, starter) })),
+				...eigene.map((b) => ({
+					id: `eigen-${b.id}`,
+					name: b.name,
+					herkunft: 'eigen',
+					kategorie: MEINE_BAUSTEINE,
+					suchbegriffe: [],
+					ort: b.ort,
+					eigen: b.id,
+					einfuegbar: { id: `eigen-${b.id}`, ort: b.ort, html: b.html },
+				})),
+			],
+		});
 	});
 
+	router.use('/eigene', eigeneApi(kontext));
 	router.use('/mappen', mappenApi(kontext));
 	router.use('/papierkorb', papierkorbApi(kontext));
 

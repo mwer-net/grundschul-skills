@@ -13,6 +13,7 @@ import {
 	setzeSichtbarkeit,
 	SICHTBARKEITEN,
 } from '@schoolbox/kern/src/kit-einstellungen';
+import { quelleVon, zerlege } from '@schoolbox/kern/src/quelltext';
 import type { StrukturErgebnis } from '@schoolbox/kern/src/struktur';
 import { ABSTAND, SPALTEN } from '@schoolbox/kern/src/struktur';
 import {
@@ -26,16 +27,19 @@ import {
 } from '@schoolbox/kern/src/tabelle';
 import type { Format as Format2 } from '@schoolbox/kern/src/werte';
 import { FORMAT_NAME, KLASSEN } from '@schoolbox/kern/src/werte';
-import type { MouseEvent, ReactNode } from 'react';
+import type { ReactNode } from 'react';
 import { useEffect, useRef, useState } from 'react';
 
+import { meldung, sende } from '../api';
+import { useHinweis } from '../bausteine/hinweis';
 import { Knopf } from '../bausteine/Knopf';
 import { Symbol } from '../bausteine/Symbol';
 import { klasseName } from '../lib/text';
 import type { PfadTeil } from './darstellung';
+import { halteFokus } from './halteFokus';
 import type { Spalten, Struktur } from './struktur';
-import { TEXTWERKZEUG } from './text';
 import type { Format, TextZustand } from './textdom';
+import { leseAblage, schreibeAblage } from './zwischenablage';
 
 /** Nur für die Punkte im Panel; die Farben selbst stehen in `blatt.css`. */
 const PALETTEN_FARBE = { sonnig: '#F28C28', himmel: '#3A86FF', wiese: '#43AA8B', beere: '#E76F51' };
@@ -96,9 +100,6 @@ const FERTIG: Record<Zeilen, string> = {
 	umbruch: '⏎ macht eine neue Zeile. Fertig bist du, wenn du neben den Text tippst.',
 	absatz: '⏎ beginnt einen neuen Absatz. Fertig bist du, wenn du neben den Text tippst.',
 };
-
-/** Knöpfe, die beim Drücken den Cursor im Text lassen. */
-const halteFokus = { [TEXTWERKZEUG]: '', onMouseDown: (e: MouseEvent) => e.preventDefault() };
 
 interface TextEigenschaften {
 	pfad: PfadTeil[];
@@ -195,7 +196,94 @@ interface StrukturEigenschaften {
 	aktiv: boolean;
 	format: string;
 	struktur: Struktur;
+	dokument: { mappe: string; dok: string };
+	fuegeAblageEin: (nr?: number | null) => Promise<void>;
+	sammlungGeaendert: () => void;
 }
+
+/** Baustein in die Sammlung legen, kopieren und aus einem anderen Dokument einfügen (051). */
+const Wiederverwenden = ({
+	dokument,
+	fuegeAblageEin,
+	gewaehlt,
+	quelle,
+	sammlungGeaendert,
+}: {
+	dokument: { mappe: string; dok: string };
+	fuegeAblageEin: (nr?: number | null) => Promise<void>;
+	gewaehlt: PfadTeil;
+	quelle: string;
+	sammlungGeaendert: () => void;
+}) => {
+	const [name, setName] = useState<string | null>(null);
+	const [abgelegt, setAbgelegt] = useState(() => leseAblage());
+	const zeige = useHinweis();
+	const nimm = () => {
+		const z = zerlege(quelle);
+		const k = z.knoten[gewaehlt.nr];
+		return k ? quelleVon(z, k) : '';
+	};
+	const ort = gewaehlt.baustein.art === 'aufgabe' ? ('seite' as const) : ('aufgabe' as const);
+	const kopiere = () => {
+		const eintrag = { html: nimm(), ort, name: gewaehlt.name, ...dokument };
+		schreibeAblage(eintrag);
+		setAbgelegt(eintrag);
+		zeige({ text: `„${gewaehlt.name}“ kopiert. Du kannst es in jedem Dokument einfügen.` });
+	};
+	const sammle = async () => {
+		try {
+			await sende('/api/eigene/sammlung', { ...dokument, html: nimm(), name, ort });
+			setName(null);
+			sammlungGeaendert();
+			zeige({ text: 'In „Meine Bausteine“ gelegt.' });
+		} catch (grund) {
+			zeige({ text: meldung(grund), art: 'fehler' });
+		}
+	};
+	const fuegeEin = () => {
+		fuegeAblageEin(gewaehlt.nr).catch((grund: unknown) => zeige({ text: meldung(grund), art: 'fehler' }));
+	};
+	return (
+		<div className="flex flex-col gap-2" data-wiederverwenden>
+			<div className="flex flex-wrap gap-2">
+				{gewaehlt.baustein.art !== 'seite' && (
+					<>
+						<Knopf art="zweit" data-baustein-kopieren onClick={kopiere}>
+							<Symbol name="kopieren" />
+							Kopieren
+						</Knopf>
+						<Knopf art="zweit" data-in-sammlung onClick={() => setName(gewaehlt.name)}>
+							<Symbol name="plus" />
+							In Sammlung legen
+						</Knopf>
+					</>
+				)}
+				{abgelegt && (
+					<Knopf art="zweit" data-ablage-einfuegen onClick={fuegeEin}>
+						<Symbol name="kopieren" />
+						{`„${abgelegt.name}“ einfügen`}
+					</Knopf>
+				)}
+			</div>
+			{name !== null && (
+				<div className="flex flex-wrap items-end gap-2">
+					<label className="flex-1 font-bold">
+						Name
+						<input
+							className="mt-1 min-h-12 w-full rounded-xl border-2 border-rand bg-white px-3 font-normal"
+							value={name}
+							data-sammlung-name
+							onChange={(e) => setName(e.target.value)}
+						/>
+					</label>
+					<Knopf disabled={name.trim() === ''} data-sammlung-speichern onClick={() => void sammle()}>
+						Hineinlegen
+					</Knopf>
+				</div>
+			)}
+		</div>
+	);
+};
 
 const Spaltenwahl = ({ eigene, spalten, struktur }: { spalten: Spalten; eigene: boolean; struktur: Struktur }) => (
 	<div>
@@ -387,7 +475,16 @@ const TabellenWerkzeug = ({
 };
 
 /** Verschieben, Duplizieren, Löschen und Spalten für den gewählten Baustein. */
-export const Strukturwerkzeug = ({ aktiv, format, pfad, quelle, struktur }: StrukturEigenschaften) => {
+export const Strukturwerkzeug = ({
+	aktiv,
+	dokument,
+	format,
+	fuegeAblageEin,
+	pfad,
+	quelle,
+	sammlungGeaendert,
+	struktur,
+}: StrukturEigenschaften) => {
 	const gewaehlt = pfad.at(-1);
 	const w = struktur.werte;
 	if (!aktiv || !gewaehlt || !w) {
@@ -474,6 +571,15 @@ export const Strukturwerkzeug = ({ aktiv, format, pfad, quelle, struktur }: Stru
 					)}
 				</div>
 			)}
+			{quelle && (
+				<Wiederverwenden
+					dokument={dokument}
+					fuegeAblageEin={fuegeAblageEin}
+					gewaehlt={gewaehlt}
+					quelle={quelle}
+					sammlungGeaendert={sammlungGeaendert}
+				/>
+			)}
 			{w.spalten && <Spaltenwahl spalten={w.spalten} eigene={w.spalten.nr === nr} struktur={struktur} />}
 		</div>
 	);
@@ -556,6 +662,15 @@ const BlattWerte = ({ quelle, struktur }: { quelle: string; struktur: Struktur }
 					onChange={(e) => setze('Trennlinien', { trenner: e.target.checked })}
 				/>
 				Trennlinien zwischen Aufgaben
+			</label>
+			<label className="flex min-h-11 items-center gap-2 font-bold">
+				<input
+					type="checkbox"
+					className="size-5"
+					checked={w.punkte}
+					onChange={(e) => setze('Punkte drucken', { punkte: e.target.checked })}
+				/>
+				Punkte drucken
 			</label>
 		</div>
 	);

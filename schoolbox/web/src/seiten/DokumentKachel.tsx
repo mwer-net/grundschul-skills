@@ -4,6 +4,7 @@ import { Kachel, Marke } from '../bausteine/Kachel';
 import { Knopf, KnopfLink } from '../bausteine/Knopf';
 import { Symbol } from '../bausteine/Symbol';
 import { Vorschau } from '../bausteine/Vorschau';
+import { AlsVorlage } from '../editor/AlsVorlage';
 import { hatOffeneEntwuerfe } from '../entwuerfe/offen';
 import { anzahl, ART_NAME, FORMAT_NAME } from '../lib/text';
 import type { Zugang } from '../lib/zugang';
@@ -18,9 +19,11 @@ interface Eigenschaften {
 	dokument: DokumentEintrag;
 	/** Fehlt bei Teilen-Links: Weiterteilen kann nur die Lehrkraft. */
 	teile?: () => void;
+	/** Fehlt bei Teilen-Links: Eine Variante legt nur die Lehrkraft an. */
+	variante?: () => void;
 }
 
-export const DokumentKachel = ({ dokument, mappe, teile, zugang }: Eigenschaften) => {
+export const DokumentKachel = ({ dokument, mappe, teile, variante, zugang }: Eigenschaften) => {
 	const { id, meta } = dokument;
 	// Solange kein Entwurf gewählt ist, gibt es nur die Entwürfe zu sehen; material.html ist noch das leere Gerüst.
 	const waehlen = !istGeteilt(zugang) && hatOffeneEntwuerfe(meta);
@@ -79,6 +82,13 @@ export const DokumentKachel = ({ dokument, mappe, teile, zugang }: Eigenschaften
 								<Symbol name="stift" />
 								Bearbeiten
 							</KnopfLink>
+						)}
+						{teile && !waehlen && <AlsVorlage mappe={mappe.id} dok={id} titel={meta.titel} />}
+						{variante && !waehlen && (
+							<Knopf art="zweit" onClick={variante} data-variante>
+								<Symbol name="kopieren" />
+								Variante anlegen
+							</Knopf>
 						)}
 						{teile && (
 							<Knopf art="zweit" onClick={teile}>

@@ -32,7 +32,7 @@ Nach dem Rückfrage-Protokoll aus `grundschul-didaktik` (eine Frage pro Nachrich
 - Phonologische Bewusstheit: Reimen, Silben klatschen, Anlaute hören, Laute verbinden.
 - Buchstabeneinführung: Laut – Buchstabe – Schreibbewegung – Lesen von Silben/Wörtern mit nur bekannten Buchstaben.
 - Anlauttabelle als Hilfe beim Verschriften, aber **mit früher orthografischer Begleitung**: Systematischer Rechtschreibunterricht wirkt besser als reines "Lesen durch Schreiben" (Bonner Studie: deutlich mehr Fehler Ende Kl. 4).
-- Silbenorientierung (Silbenschwingen, Silbenbögen) nur, wenn die Klasse damit arbeitet; Evidenz für generelle Silbenfärbung ist uneinheitlich.
+- Silbenorientierung (Silbenschwingen, Silbenbögen, Baustein `x-silben`) nur, wenn die Klasse damit arbeitet; Evidenz für generelle Silbenfärbung ist uneinheitlich.
 
 ### Lesen
 - Leseflüssigkeit systematisch trainieren (Lautlesetandems, wiederholtes Lesen, Lesetheater) – Voraussetzung für Verstehen.
@@ -107,4 +107,4 @@ Kl. 1/2 unbenotet (`lernzielkontrolle`), Kl. 3/4 als Klassenarbeit (`klassenarbe
 - [ ] Bei Leseaufgaben: lösbar nur mit Text
 - [ ] Bei Schreibaufgaben: Planungshilfe vorhanden
 
-**Aufgabenformate:** Lückentext, Wortspeicher, Ankreuzen und Richtig/Falsch sind fertige Elemente, siehe `html-materialerstellung/references/abbildungen.md`, Abschnitt „Aufgabenformate“.
+**Aufgabenformate:** Lückentext, Wortspeicher, Ankreuzen, Richtig/Falsch, Zuordnen, Sortieren, Beschriften und Schreibrahmen sind fertige Elemente, siehe `html-materialerstellung/references/abbildungen.md`, Abschnitt „Aufgabenformate“.

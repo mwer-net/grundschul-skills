@@ -89,6 +89,19 @@ export const Mappenansicht = () => {
 		}
 	};
 
+	const legeVarianteAn = async (dok: string) => {
+		setLaeuft(true);
+		try {
+			const { titel } = await sende<{ titel: string }>(`/api/mappen/${mappe.id}/dokumente/${dok}/variante`);
+			melde({ typ: 'mappe-neu', mappe: mappe.id });
+			zeige({ text: `Variante angelegt: „${titel}“.` });
+		} catch (grund) {
+			zeige({ text: meldung(grund), art: 'fehler' });
+		} finally {
+			setLaeuft(false);
+		}
+	};
+
 	const dupliziere = async () => {
 		setLaeuft(true);
 		try {
@@ -158,6 +171,7 @@ export const Mappenansicht = () => {
 							mappe={mappe}
 							dokument={dokument}
 							teile={() => setTeilen({ dokument })}
+							variante={laeuft ? undefined : () => void legeVarianteAn(dokument.id)}
 						/>
 					))}
 				</ul>

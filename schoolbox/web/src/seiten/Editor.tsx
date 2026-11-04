@@ -5,7 +5,7 @@ import { zerlege } from '@schoolbox/kern/src/quelltext';
 import { hatNamenszeile } from '@schoolbox/kern/src/struktur';
 import type { Druckprofil, Format } from '@schoolbox/kern/src/werte';
 import type { ReactNode } from 'react';
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import type { SetURLSearchParams } from 'react-router-dom';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 
@@ -21,6 +21,7 @@ import { Symbol } from '../bausteine/Symbol';
 import { Zustand } from '../bausteine/Zustand';
 import { useAbbildung } from '../editor/abbildung';
 import { Abbildungswerkzeug } from '../editor/Abbildungspanel';
+import { AlsVorlage } from '../editor/AlsVorlage';
 import { Konfliktleiste, Speicheranzeige, Vorschauleiste } from '../editor/Anzeigen';
 import { useBearbeitung } from '../editor/bearbeitung';
 import { Bibliothek, Einfuegemarken, Gliederung } from '../editor/Bibliothek';
@@ -28,7 +29,7 @@ import { useBild } from '../editor/bild';
 import { Bildwerkzeug } from '../editor/Bildpanel';
 import { ClaudeFragen } from '../editor/ClaudeFragen';
 import { ClaudePanel } from '../editor/ClaudePanel';
-import { editorHtml, pfadZu } from '../editor/darstellung';
+import { bausteinVon, editorHtml, pfadZu } from '../editor/darstellung';
 import { useEinfuegen, useSlash, useTabelleTab } from '../editor/einfuegen';
 import { useKiZustand } from '../editor/ki';
 import { Leinwand } from '../editor/Leinwand';
@@ -40,6 +41,7 @@ import { Pruefhinweise, Pruefliste } from '../editor/Pruefliste';
 import type { Pruefpunkt } from '../editor/pruefung';
 import { usePruefung } from '../editor/pruefung';
 import { Seitenleiste } from '../editor/Seitenleiste';
+import { Sprachwerkzeug } from '../editor/Sprachwerkzeug';
 import type { Struktur } from '../editor/struktur';
 import { useStruktur } from '../editor/struktur';
 import { useText } from '../editor/text';
@@ -65,6 +67,7 @@ interface Eigenschaften {
 interface TestZugriff {
 	quelle: () => string | null;
 	aendere: (neu: string, beschreibung?: string) => void;
+	art: (element: Element) => string | null;
 }
 
 const SymbolKnopf = ({
@@ -304,6 +307,7 @@ const PanelKnopf = ({
 /** Bibliothek, Slash-Menü, Tab in Tabellen und „auf neue Seite“: alles, was auf dem gerade gezeigten Dokument arbeitet. */
 const useEinfuegeWerkzeuge = ({
 	auswahl,
+	dokument,
 	folien,
 	geladen,
 	html,
@@ -313,6 +317,7 @@ const useEinfuegeWerkzeuge = ({
 	text,
 }: {
 	auswahl: number | null;
+	dokument: { mappe: string; dok: string };
 	folien: boolean;
 	geladen: { doc: Document; html: string } | null;
 	html: string | null;
@@ -322,7 +327,7 @@ const useEinfuegeWerkzeuge = ({
 	text: ReturnType<typeof useText>;
 }) => {
 	const docJetzt = geladen?.html === html ? (geladen?.doc ?? null) : null;
-	const einfuegen = useEinfuegen({ struktur, auswahl, folien, nachher });
+	const einfuegen = useEinfuegen({ dokument, struktur, auswahl, folien, nachher });
 	const slash = useSlash({
 		// Das Dokument im Rahmen: Beim Tippen weicht die Quelle davon ab, das Menü muss trotzdem aufgehen.
 		doc: geladen?.doc ?? null,
@@ -444,13 +449,16 @@ const Bearbeitung = ({ dokument, mappe: mappenDaten }: { mappe: Mappe; dokument:
 		rueckgaengig: zurueck,
 	});
 
+	const neueZahlenTaste = useRef<(() => boolean) | null>(null);
 	const abbildung = useAbbildung({ geladen, html, zerlegung, pfad, struktur, adresse: b.adresse, basis });
+	neueZahlenTaste.current = abbildung.hatNeueZahlen ? abbildung.neueZahlen : null;
 
 	const loes = useLoesung({ geladen, html, zerlegung, pfad, struktur, loesung, rueckgaengig: zurueck });
 
 	useAuswahlFolgt(geladen, html, auswahl, pfad, setAuswahl);
 	const { docJetzt, einfuegen, slash, verschiebeUeberlauf } = useEinfuegeWerkzeuge({
 		auswahl,
+		dokument: { mappe, dok },
 		folien: format === 'folie',
 		geladen,
 		html,
@@ -473,6 +481,9 @@ const Bearbeitung = ({ dokument, mappe: mappenDaten }: { mappe: Mappe; dokument:
 			} else if (befehl && z) {
 				e.preventDefault();
 				zurueck();
+			} else if (e.altKey && e.code === 'KeyN' && neueZahlenTaste.current) {
+				e.preventDefault();
+				neueZahlenTaste.current();
 			}
 		},
 		[vor, zurueck],
@@ -497,6 +508,7 @@ const Bearbeitung = ({ dokument, mappe: mappenDaten }: { mappe: Mappe; dokument:
 		fenster.schoolboxEditor = {
 			quelle: () => b.verlauf?.quelle ?? null,
 			aendere: (neu, beschreibung = 'Test') => befehl(neu, beschreibung),
+			art: (element) => bausteinVon(element)?.art ?? null,
 		};
 		return () => {
 			delete fenster.schoolboxEditor;
@@ -605,6 +617,14 @@ const Bearbeitung = ({ dokument, mappe: mappenDaten }: { mappe: Mappe; dokument:
 					beende={text.beende}
 					fokussiere={text.fokussiere}
 				/>
+				<Sprachwerkzeug
+					pfad={pfad}
+					aktiv={frei}
+					geladen={geladen}
+					bearbeitet={text.bearbeitet}
+					beende={text.beende}
+					struktur={struktur}
+				/>
 				<Bildwerkzeug bild={bild} />
 				<Abbildungswerkzeug abb={abbildung} />
 				<Loesungswerkzeug l={loes} />
@@ -614,6 +634,9 @@ const Bearbeitung = ({ dokument, mappe: mappenDaten }: { mappe: Mappe; dokument:
 					format={format}
 					quelle={quelle}
 					struktur={struktur}
+					dokument={{ mappe, dok }}
+					fuegeAblageEin={einfuegen.fuegeAblageEin}
+					sammlungGeaendert={einfuegen.neuLaden}
 				/>
 				<ClaudeFragen {...frage} nr={auswahl} pfad={pfad} />
 			</AuswahlPanel>
@@ -672,6 +695,7 @@ const Bearbeitung = ({ dokument, mappe: mappenDaten }: { mappe: Mappe; dokument:
 						<Symbol name="uhr" />
 						Versionen
 					</Knopf>
+					<AlsVorlage mappe={mappe} dok={dok} titel={meta.titel} />
 					<PdfKnopf beschriftung="PDF" wahl={wahl} mappe={mappenDaten} warnen rechtsbuendig />
 					{format === 'folie' && (
 						<Knopf art="zweit" onClick={() => void verlassen(praesentationSeite(zugang, dok))}>

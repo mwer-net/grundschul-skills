@@ -48,7 +48,7 @@ Nach den Rückfragen 2–3 Entwürfe zeigen, erst nach Freigabe des Aufgabenplan
 | Malen nach Ergebnis / Bildpuzzle | Mathe-Übung mit Selbstkontrolle | Farbschlüssel als ausgeschriebene Farbnamen, Bild als Strichzeichnung |
 | Zahlenmauer, Rechendreieck, Zahlenhaus | Mathe, produktives Üben | Siehe `fach-mathematik` |
 | Beschriften | Sachunterricht (Körper, Pflanze) | Linien mit Wortspeicher |
-| Schreibrahmen | Texte, Protokolle | Satzanfänge vorgeben; in Deutsch auf `x-lineatur` statt `.schreiblinie` |
+| Schreibrahmen | Texte, Protokolle | Satzanfänge vorgeben, Element `x-schreibrahmen` (Lineatur nach der Klasse) |
 | Forscheraufgabe / offene Aufgabe | Alle Fächer, natürliche Differenzierung | "Finde möglichst viele …" |
 | Fehler finden („Willi hat sich vertan") | Rechnen ab Kl. 2, Rechtschreibung erst ab Kl. 3 | Fehleranzahl angeben ("Finde 3 Fehler.") |
 
@@ -83,4 +83,4 @@ Zusätzlich zur Basis-Checkliste:
 - Danach **visuelle Endkontrolle** (`html-materialerstellung/references/visuelle-endkontrolle.md`): jeden Aufgaben-Ausschnitt ansehen, Abbildungen nachzählen, Beispiel und Verständlichkeit für die Klasse prüfen, Befunde selbst beheben. Erst dann PDF und Vorschau zeigen.
 - Dateiname/Titel: `Kl{K}_{Fach}_{Thema}_AB{Nr}`.
 
-**Aufgabenformate:** Lückentext, Wortspeicher, Ankreuzen und Richtig/Falsch sind fertige Elemente, siehe `html-materialerstellung/references/abbildungen.md`, Abschnitt „Aufgabenformate“.
+**Aufgabenformate:** Lückentext, Wortspeicher, Ankreuzen, Richtig/Falsch, Zuordnen, Sortieren, Beschriften und Schreibrahmen sind fertige Elemente, siehe `html-materialerstellung/references/abbildungen.md`, Abschnitt „Aufgabenformate“.

@@ -38,6 +38,9 @@ interface FeldBasis {
 	quelle?: 'inhalt';
 }
 
+/** Vorschlag für den Notenschlüssel in Prozent (053); dieselbe Angabe steht in `abbildungen.js`, ein Test hält beide gleich. */
+export const NOTEN_VORSCHLAG = '1:95; 2:80; 3:65; 4:50; 5:25';
+
 export interface ZahlFeld extends FeldBasis {
 	art: 'zahl';
 	min: number;
@@ -196,6 +199,16 @@ export interface MischenFeld extends FeldBasis {
 type FeldAus018 = ZahlFeld | UhrzeitFeld | AuswahlFeld | SchalterFeld | ZahlenFeld | ZiffernFeld;
 type FeldAus023 = TextFeld | ListeFeld | MehrfachFeld | RasterFeld | MusterFeld | MischenFeld;
 
+/** Ein Bild aus der Sammlung oder hochgeladen (049); im Attribut steht nur der Pfad. */
+export interface BildFeld extends FeldBasis {
+	art: 'bild';
+}
+
+/** Punkte auf dem Bild `bild`, mit Maus oder Finger gesetzt: `x,y: Wort; …` in Prozent (049). */
+export interface PunkteFeld extends FeldBasis {
+	art: 'punkte';
+}
+
 /** Der Inhalt als Wort-Chips: Wort antippen, Markierung wählen; mit `gruppen` lassen sich Nachbarn verbinden. */
 export interface MarkierungFeld extends FeldBasis {
 	art: 'markierung';
@@ -221,7 +234,7 @@ export interface NotenFeld extends FeldBasis {
 	tonhoehe: boolean;
 }
 
-export type Feld = FeldAus018 | FeldAus023 | MarkierungFeld | PlanFeld | NotenFeld;
+export type Feld = BildFeld | PunkteFeld | FeldAus018 | FeldAus023 | MarkierungFeld | PlanFeld | NotenFeld;
 
 /** Attributname → Wert in der Quelle, `null` = fehlt. Enthält auch die Lösungs-Attribute. */
 export type Werte = Record<string, string | null>;
@@ -231,6 +244,7 @@ export type Fehler = Record<string, string>;
 
 export const KATALOG_KATEGORIEN = [
 	'Kopf und Rahmen',
+	'Bewerten',
 	'Aufgabe und Text',
 	'Schreiben',
 	'Bilder',
@@ -266,6 +280,8 @@ export interface AbbildungSchema {
 	/** Angaben für den Katalog (`katalog.ts`); fehlen nur bei `x-probe`, das es nur für Tests gibt. */
 	katalog?: KatalogAngaben;
 	felder: Feld[];
+	/** Dieses Attribut erzeugt „Neue Zahlen“ aus den übrigen Feldern; ändert sich ein anderes Feld, entsteht es neu (050). */
+	generiert?: string;
 	/** Regeln über mehrere Felder; laufen nur, wenn jedes Feld für sich gültig ist. */
 	regeln?: (w: Lesen) => Fehler;
 }
@@ -2026,6 +2042,153 @@ export const ABBILDUNG_SCHEMA = {
 			{ art: 'mischen', attribut: 'seed', name: 'Anordnung' },
 		],
 	},
+	'x-zuordnen': {
+		name: 'Zuordnen',
+		katalog: {
+			kategorie: 'Schreiben',
+			suchbegriffe: ['Verbinden', 'Paare', 'Linien', 'Was gehört zusammen', 'Zuordnung'],
+			ort: 'aufgabe',
+		},
+		felder: [
+			{
+				art: 'liste',
+				attribut: 'paare',
+				name: 'Paare',
+				unter: [
+					{ name: 'Links', art: 'text', standard: 'Neu' },
+					{ name: 'Rechts', art: 'text', standard: 'Neu' },
+					{ name: 'Bild links', art: 'bild', leer: true },
+					{ name: 'Bild rechts', art: 'bild', leer: true },
+				],
+				min: 2,
+				max: 10,
+			},
+			{
+				art: 'auswahl',
+				attribut: 'darstellung',
+				name: 'Darstellung',
+				standard: 'linien',
+				optionen: [
+					{ wert: 'linien', name: 'Mit Linien verbinden' },
+					{ wert: 'ziffern', name: 'Ziffer eintragen' },
+				],
+			},
+			{ art: 'mischen', attribut: 'seed', name: 'Anordnung' },
+		],
+	},
+	'x-sortieren': {
+		name: 'Sortieren',
+		katalog: {
+			kategorie: 'Schreiben',
+			suchbegriffe: ['Reihenfolge', 'Ordnen', 'Satz ordnen', 'Bilderfolge', 'Nummerieren'],
+			ort: 'aufgabe',
+		},
+		felder: [
+			{
+				art: 'liste',
+				attribut: 'eintraege',
+				name: 'Einträge in richtiger Reihenfolge',
+				unter: [
+					{ name: 'Text', art: 'text', standard: 'Neu' },
+					{ name: 'Bild', art: 'bild', leer: true },
+				],
+				min: 2,
+				max: 12,
+			},
+			{
+				art: 'auswahl',
+				attribut: 'art',
+				name: 'Art',
+				standard: 'saetze',
+				optionen: [
+					{ wert: 'saetze', name: 'Sätze' },
+					{ wert: 'woerter', name: 'Wörter' },
+					{ wert: 'bilder', name: 'Bilder' },
+					{ wert: 'zahlen', name: 'Zahlen' },
+				],
+			},
+			{
+				art: 'auswahl',
+				attribut: 'darstellung',
+				name: 'Darstellung',
+				standard: 'ziffer',
+				optionen: [
+					{ wert: 'ziffer', name: 'Ziffer im Kästchen' },
+					{ wert: 'linien', name: 'Linien zum Abschreiben' },
+				],
+			},
+			{ art: 'mischen', attribut: 'seed', name: 'Anordnung' },
+		],
+	},
+	'x-beschriften': {
+		name: 'Beschriften',
+		katalog: {
+			kategorie: 'Sachunterricht',
+			suchbegriffe: ['Bild beschriften', 'Pflanze', 'Körper', 'Fahrrad', 'Teile benennen'],
+			ort: 'aufgabe',
+		},
+		felder: [
+			{ art: 'bild', attribut: 'bild', name: 'Bild' },
+			{
+				art: 'text',
+				attribut: 'alt',
+				name: 'Was zeigt das Bild?',
+				hilfe: 'Für Vorlesegeräte und wenn das Bild fehlt.',
+			},
+			{ art: 'punkte', attribut: 'punkte', name: 'Punkte' },
+			{
+				art: 'auswahl',
+				attribut: 'darstellung',
+				name: 'Darstellung',
+				standard: 'linien',
+				optionen: [
+					{ wert: 'linien', name: 'Linien nach außen' },
+					{ wert: 'nummer', name: 'Nummern im Bild' },
+				],
+			},
+			{ art: 'schalter', attribut: 'wortspeicher', name: 'Wortspeicher', an: '1', aus: '0', standard: false },
+		],
+	},
+	'x-schreibrahmen': {
+		name: 'Schreibrahmen',
+		katalog: {
+			kategorie: 'Schreiben',
+			suchbegriffe: ['Satzanfänge', 'Schreibhilfe', 'Text schreiben', 'Aufsatz', 'Planung'],
+			ort: 'aufgabe',
+		},
+		felder: [
+			{
+				art: 'text',
+				attribut: 'satzanfaenge',
+				name: 'Satzanfänge',
+				zeilen: 4,
+				beispiel: 'Zuerst; Dann; Am Ende',
+				hilfe: '; trennt die Satzanfänge.',
+			},
+			{ art: 'zahl', attribut: 'linien', name: 'Linien je Satz', min: 1, max: 6, standard: 2 },
+			{
+				art: 'auswahl',
+				attribut: 'lineatur',
+				name: 'Lineatur',
+				optionen: [
+					{ wert: null, name: 'Nach der Klasse' },
+					{ wert: '1', name: 'Lineatur 1' },
+					{ wert: '2', name: 'Lineatur 2' },
+					{ wert: '3', name: 'Lineatur 3' },
+					{ wert: '4', name: 'Lineatur 4' },
+				],
+			},
+			{ art: 'text', attribut: 'wortspeicher', name: 'Wortspeicher', hilfe: '; trennt die Wörter.' },
+			{ art: 'schalter', attribut: 'planung', name: 'Planung', an: '1', aus: '0', standard: false },
+			{
+				art: 'text',
+				attribut: 'beispiel',
+				name: 'Beispieltext',
+				zeilen: 3,
+				hilfe: 'Steht nur auf dem Lösungsblatt.',
+			},
+		],
+	},
 	'x-richtigfalsch': {
 		name: 'Richtig oder falsch',
 		katalog: { kategorie: 'Schreiben', suchbegriffe: ['Aussagen', 'Stimmt', 'Ja Nein', 'Wahr'], ort: 'aufgabe' },
@@ -2050,6 +2213,71 @@ export const ABBILDUNG_SCHEMA = {
 				],
 			},
 		],
+	},
+	'x-gesamtpunkte': {
+		name: 'Gesamtpunkte',
+		katalog: { kategorie: 'Bewerten', suchbegriffe: ['Punkte', 'Summe', 'Klassenarbeit'], ort: 'aufgabe' },
+		felder: [],
+	},
+	'x-notenschluessel': {
+		name: 'Notenschlüssel',
+		katalog: { kategorie: 'Bewerten', suchbegriffe: ['Noten', 'Grenzen', 'Klassenarbeit'], ort: 'aufgabe' },
+		felder: [
+			{
+				art: 'text',
+				attribut: 'grenzen',
+				name: 'Grenzen in Prozent',
+				beispiel: NOTEN_VORSCHLAG,
+				muster: '(\\s*[1-5]:\\d+\\s*;?){5}\\s*',
+				musterHilfe: `Fünf Grenzen von oben nach unten, z. B. ${NOTEN_VORSCHLAG}.`,
+				hilfe: 'Leer lassen für den Vorschlag. Deine Grenzen bleiben, bis du sie löschst.',
+			},
+			{
+				art: 'zahl',
+				attribut: 'gesamt',
+				name: 'Gesamtpunkte',
+				min: 0,
+				max: 500,
+				standard: 0,
+				hilfe: '0 heißt: aus den Aufgaben zählen.',
+			},
+		],
+	},
+	'x-notenspiegel': {
+		name: 'Notenspiegel',
+		katalog: {
+			kategorie: 'Bewerten',
+			suchbegriffe: ['Verteilung', 'Durchschnitt', 'Klassenarbeit'],
+			ort: 'aufgabe',
+		},
+		felder: [],
+	},
+	'x-unterschrift': {
+		name: 'Unterschrift und Datum',
+		katalog: { kategorie: 'Bewerten', suchbegriffe: ['Eltern', 'Datumszeile', 'Klassenarbeit'], ort: 'aufgabe' },
+		felder: [
+			{
+				art: 'auswahl',
+				attribut: 'felder',
+				name: 'Felder',
+				standard: 'beides',
+				optionen: [
+					{ wert: 'beides', name: 'Datum und Unterschrift' },
+					{ wert: 'datum', name: 'Nur Datum' },
+					{ wert: 'unterschrift', name: 'Nur Unterschrift' },
+				],
+			},
+			{ art: 'text', attribut: 'text', name: 'Beschriftung', beispiel: 'Unterschrift' },
+		],
+	},
+	'x-erwartungshorizont': {
+		name: 'Erwartungshorizont',
+		katalog: {
+			kategorie: 'Bewerten',
+			suchbegriffe: ['Lösung', 'Teilpunkte', 'Anforderungsbereich', 'Klassenarbeit'],
+			ort: 'seite',
+		},
+		felder: [],
 	},
 	'x-silben': {
 		name: 'Silben',
@@ -3714,6 +3942,98 @@ export const ABBILDUNG_SCHEMA = {
 			const anzahl = w.zahlen('basis').length;
 			return anzahl < 2 || anzahl > 5 ? { basis: 'Eine Zahlenmauer hat unten 2 bis 5 Steine.' } : {};
 		},
+	},
+	'x-rechenreihe': {
+		name: 'Rechenreihe',
+		katalog: {
+			kategorie: 'Rechnen',
+			suchbegriffe: ['Päckchen', 'Plusaufgaben', 'Minusaufgaben', 'Einmaleins', 'Platzhalter', 'Zehnerübergang'],
+			ort: 'aufgabe',
+		},
+		generiert: 'aufgaben',
+		felder: [
+			{
+				art: 'auswahl',
+				attribut: 'rechenart',
+				name: 'Rechenart',
+				standard: '+',
+				optionen: [
+					{ wert: '+', name: 'Plus' },
+					{ wert: '−', name: 'Minus' },
+					{ wert: '·', name: 'Mal' },
+					{ wert: ':', name: 'Geteilt' },
+				],
+			},
+			{
+				art: 'auswahl',
+				attribut: 'zahlenraum',
+				name: 'Zahlenraum',
+				standard: '20',
+				optionen: [
+					{ wert: '10', name: 'bis 10' },
+					{ wert: '20', name: 'bis 20' },
+					{ wert: '100', name: 'bis 100' },
+					{ wert: '1000', name: 'bis 1000' },
+					{ wert: '1000000', name: 'bis 1 Million' },
+				],
+			},
+			{ art: 'zahl', attribut: 'anzahl', name: 'Anzahl', min: 1, max: 60, standard: 10 },
+			{ art: 'zahl', attribut: 'spalten', name: 'Spalten', min: 1, max: 4, standard: 2 },
+			{
+				art: 'auswahl',
+				attribut: 'uebergang',
+				name: 'Zehnerübergang',
+				standard: 'egal',
+				optionen: [
+					{ wert: 'egal', name: 'Egal' },
+					{ wert: 'mit', name: 'Mit Übergang' },
+					{ wert: 'ohne', name: 'Ohne Übergang' },
+				],
+			},
+			{
+				art: 'auswahl',
+				attribut: 'platzhalter',
+				name: 'Platzhalter',
+				standard: 'ergebnis',
+				optionen: [
+					{ wert: 'ergebnis', name: 'Beim Ergebnis' },
+					{ wert: 'erste', name: 'Erste Zahl' },
+					{ wert: 'zweite', name: 'Zweite Zahl' },
+					{ wert: 'gemischt', name: 'Gemischt' },
+				],
+			},
+			{
+				art: 'auswahl',
+				attribut: 'beziehung',
+				name: 'Aufgabenpaare',
+				standard: 'keine',
+				optionen: [
+					{ wert: 'keine', name: 'Keine' },
+					{ wert: 'tausch', name: 'Tauschaufgaben' },
+					{ wert: 'umkehr', name: 'Umkehraufgaben' },
+				],
+			},
+			{
+				art: 'auswahl',
+				attribut: 'reihe',
+				name: 'Einmaleins-Reihe',
+				optionen: [
+					{ wert: null, name: 'Alle' },
+					...['1', '2', '3', '4', '5', '6', '7', '8', '9', '10'].map((r) => ({
+						wert: r,
+						name: `${r}er-Reihe`,
+					})),
+				],
+			},
+			{ art: 'schalter', attribut: 'rest', name: 'Mit Rest', an: '1', aus: '0', standard: false },
+			{
+				art: 'text',
+				attribut: 'aufgaben',
+				name: 'Aufgaben',
+				zeilen: 4,
+				hilfe: 'Je Aufgabe genau ein _. ; trennt die Aufgaben. Die Lösung wird berechnet.',
+			},
+		],
 	},
 	'x-rechendreieck': {
 		name: 'Rechendreieck',

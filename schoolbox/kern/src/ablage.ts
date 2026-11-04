@@ -14,6 +14,7 @@ import { idsImPapierkorb } from './papierkorb';
 import type { DokumentMeta, Entwurf, Mappe } from './schema';
 import { ID_MUSTER, MAPPE_SCHEMA, META_SCHEMA, verlangeSchema } from './schema';
 import { eindeutigeId, lokalesDatum, mappenSlug, slug } from './slug';
+import { wuerfleNeu } from './variante';
 import type { Version } from './versionen';
 import { legeVersionAn } from './versionen';
 import type { Art, Druckprofil, Fach, Format, Klasse, Status, Urheber } from './werte';
@@ -149,21 +150,32 @@ export const neueMappe = async (
 	return { mappe, pfad: dir };
 };
 
-export const verfuegbareVorlagen = (): string[] =>
-	readdirSync(ASSETS)
-		.map((name) => /^vorlage-([a-z0-9-]+)\.html$/.exec(name)?.[1])
-		.filter((name): name is string => name !== undefined)
-		.sort();
+/** Mitgelieferte Vorlagen; mit `materialDir` auch die eigenen als `eigen-<id>` (051). */
+export const verfuegbareVorlagen = (materialDir?: string): string[] => {
+	const ablage = materialDir ? path.join(materialDir, '_vorlagen') : null;
+	const eigene = ablage && existsSync(ablage) ? readdirSync(ablage) : [];
+	return [
+		...readdirSync(ASSETS)
+			.map((name) => /^vorlage-([a-z0-9-]+)\.html$/.exec(name)?.[1])
+			.filter((name): name is string => name !== undefined)
+			.sort(),
+		...eigene.filter((n) => ID_REGEX.test(n)).map((n) => `eigen-${n}`),
+	];
+};
 
-const ladeVorlage = async (vorlage: string | undefined): Promise<string> => {
+const EIGEN = 'eigen-';
+
+const ladeVorlage = async (materialDir: string, vorlage: string | undefined): Promise<string> => {
 	if (vorlage === undefined) {
 		return GERUEST;
 	}
-	const vorhanden = verfuegbareVorlagen();
+	const vorhanden = verfuegbareVorlagen(materialDir);
 	if (!vorhanden.includes(vorlage)) {
 		throw new SchoolboxFehler(`Vorlage „${vorlage}“ gibt es nicht. Vorhanden: ${vorhanden.join(', ') || 'keine'}.`);
 	}
-	return readFile(path.join(ASSETS, `vorlage-${vorlage}.html`), 'utf8');
+	return vorlage.startsWith(EIGEN)
+		? readFile(path.join(materialDir, '_vorlagen', vorlage.slice(EIGEN.length), 'material.html'), 'utf8')
+		: readFile(path.join(ASSETS, `vorlage-${vorlage}.html`), 'utf8');
 };
 
 export interface NeuesDokument {
@@ -186,13 +198,25 @@ export const neuesDokument = async (
 	jetzt = new Date(),
 ) => {
 	const mappe = await leseMappe(materialDir, mappeId);
-	const { art, druckhinweise, druckprofil, format, titel, urheber = 'claude', vorlage, zusatz } = angaben;
+	const { art, druckhinweise, druckprofil, titel, urheber = 'claude', vorlage, zusatz } = angaben;
+	// Eine eigene Vorlage bringt ihr Format mit: Das Layout hängt daran.
+	const eigeneVorlage = vorlage?.startsWith(EIGEN)
+		? path.join(materialDir, '_vorlagen', vorlage.slice(EIGEN.length))
+		: null;
+	const format: Format =
+		eigeneVorlage && existsSync(path.join(eigeneVorlage, 'vorlage.json'))
+			? (JSON.parse(await readFile(path.join(eigeneVorlage, 'vorlage.json'), 'utf8')) as { format: Format })
+					.format
+			: angaben.format;
 	const dokumente = path.join(mappenDir(materialDir, mappeId), 'dokumente');
 	const id = eindeutigeId(slug(titel) || 'dokument', (k) => existsSync(path.join(dokumente, k)));
 	const dir = path.join(dokumente, id);
 	await mkdir(dir, { recursive: true });
 	await Promise.all(['bilder', 'entwuerfe', 'versionen', 'ausgabe'].map((d) => mkdir(path.join(dir, d))));
-	const roh = await ladeVorlage(vorlage);
+	const roh = await ladeVorlage(materialDir, vorlage);
+	if (eigeneVorlage && existsSync(path.join(eigeneVorlage, 'bilder'))) {
+		await cp(path.join(eigeneVorlage, 'bilder'), path.join(dir, 'bilder'), { recursive: true });
+	}
 	const klassen = setzeBodyKlassen(setzeTitel(roh, titel), { druckprofil, format, klasse: mappe.klasse });
 	const html = zusatz ? fuegeZusatzEin(klassen, zusatz, leseStarter(), { jeSeite: format === 'folie' }) : klassen;
 	await schreibeAtomar(path.join(dir, 'material.html'), html);
@@ -345,6 +369,74 @@ export const dupliziereMappe = async (materialDir: string, mappeId: string, jetz
 		await rm(bau, { recursive: true, force: true });
 		throw fehler;
 	}
+};
+
+/** Nächster freier Buchstabe: „Diktat“ wird „Diktat (B)“, aus „Diktat (B)“ wird „Diktat (C)“. */
+const variantenTitel = (titel: string, vergeben: string[]) => {
+	const grund = titel.replace(/\s\([B-Z]\)$/, '');
+	for (let c = 66; c <= 90; c++) {
+		const kandidat = `${grund} (${String.fromCharCode(c)})`;
+		if (!vergeben.includes(kandidat)) {
+			return kandidat;
+		}
+	}
+	throw new SchoolboxFehler('In dieser Mappe gibt es schon alle Varianten bis Z.');
+};
+
+/**
+ * Zweites Dokument gleichen Layouts mit anderen Zahlen (050), direkt hinter dem Original. Ohne Generierbares entsteht
+ * nichts, sonst läge eine bloße Kopie unter dem Namen einer Variante in der Mappe.
+ */
+export const legeVarianteAn = async (materialDir: string, mappeId: string, dok: string, jetzt = new Date()) => {
+	const { dokumente, mappe } = await leseMappenEintrag(materialDir, mappeId);
+	const eintrag = dokumente.find((d) => d.id === dok);
+	if (!eintrag) {
+		throw new SchoolboxFehler('Dieses Dokument gibt es nicht.');
+	}
+	const quelle = dokumentDir(materialDir, mappeId, dok);
+	const html = await readFile(path.join(quelle, 'material.html'), 'utf8');
+	const { geaendert, quelle: gewuerfelt } = wuerfleNeu(html, `${dok}-${jetzt.getTime()}`);
+	if (geaendert === 0) {
+		throw new SchoolboxFehler('In diesem Dokument gibt es keine Zahlen, die sich neu würfeln lassen.');
+	}
+	const titel = variantenTitel(
+		eintrag.meta.titel,
+		dokumente.map((d) => d.meta.titel),
+	);
+	const ablage = path.join(mappenDir(materialDir, mappeId), 'dokumente');
+	const id = eindeutigeId(slug(titel) || 'dokument', (k) => existsSync(path.join(ablage, k)));
+	const dir = path.join(ablage, id);
+	const bau = path.join(ablage, `.${id}.${randomBytes(4).toString('hex')}.tmp`);
+	const zeit = jetzt.toISOString();
+	try {
+		await cp(quelle, bau, {
+			recursive: true,
+			filter: (von) => {
+				const name = path.relative(quelle, von);
+				return ![...NICHT_KOPIEREN, ...NUR_IM_ORIGINAL].includes(name) && !istTempDatei(path.basename(von));
+			},
+		});
+		await Promise.all(NICHT_KOPIEREN.map((ordner) => mkdir(path.join(bau, ordner), { recursive: true })));
+		await schreibeAtomar(path.join(bau, 'material.html'), setzeTitel(gewuerfelt, titel));
+		const meta: DokumentMeta = {
+			...eintrag.meta,
+			titel,
+			pruefung: null,
+			status: 'entwurf',
+			erstellt: zeit,
+			geaendert: zeit,
+		};
+		await schreibeJson(path.join(bau, 'meta.json'), meta);
+		await legeVersionAn(bau, 'lehrkraft', jetzt);
+		await rename(bau, dir);
+	} catch (fehler) {
+		await rm(bau, { recursive: true, force: true });
+		throw fehler;
+	}
+	await aktualisiereMappe(materialDir, mappe.id, jetzt, (m) => {
+		m.dokumente.splice(m.dokumente.indexOf(dok) + 1, 0, id);
+	});
+	return { id, titel };
 };
 
 const faltung = (text: string) => slug(text, Infinity).replace(/-/g, ' ');

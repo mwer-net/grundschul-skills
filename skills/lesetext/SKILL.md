@@ -38,7 +38,7 @@ Regeln:
 - Ein Satz pro Zeile in Stufe A/B; Umbruch nach Sinneinheiten, nie mitten in einer Wortgruppe.
 - Keine Silbentrennung am Zeilenende, Flattersatz.
 - Hauptsätze, Präsens oder Präteritum konsequent, direkte Rede nur mit klarer Sprecherangabe.
-- Zeilennummern ab Stufe C (alle 5 Zeilen) für die Besprechung.
+- Zeilennummern ab Stufe C (alle 5 Zeilen) für die Besprechung: `data-zeilennummern="5"` an jedem `<p class="text">` des Lesetexts, das Blatt zählt selbst, auch über Seiten (`references/abbildungen.md` in `html-materialerstellung`).
 - Differenzierte Fassungen: gleicher Inhalt, gleiche Bilder, gleiche Überschrift – nur Länge und Komplexität variieren, damit alle gemeinsam darüber sprechen können.
 
 ## Aufgaben zum Text (nach Anforderungsbereich)

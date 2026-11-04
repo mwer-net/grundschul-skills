@@ -5,12 +5,17 @@ import { sucheImKatalog } from '@schoolbox/kern/src/katalog';
 import { fuegeZeileEin, naechsteZelle, teileTabelle } from '@schoolbox/kern/src/tabelle';
 import { useCallback, useEffect, useRef, useState } from 'react';
 
+import { meldung } from '../api';
+import { useHinweis } from '../bausteine/hinweis';
 import { useLaden } from '../lib/laden';
-import { nrVon } from './darstellung';
+import { bausteinVon, nrVon } from './darstellung';
 import type { Struktur } from './struktur';
+import { leseAblage, mitBildern } from './zwischenablage';
 
 export interface Posten extends KatalogEintrag {
 	einfuegbar: Einfuegbar;
+	/** Kennung in der Sammlung (051). */
+	eigen?: string;
 }
 
 const ZULETZT = 'schoolbox.zuletzt-eingefuegt';
@@ -62,6 +67,7 @@ export const tabelleZumTeilen = (seite: Element) => {
 };
 
 interface Optionen {
+	dokument: { mappe: string; dok: string };
 	struktur: Struktur;
 	auswahl: number | null;
 	folien: boolean;
@@ -69,15 +75,16 @@ interface Optionen {
 }
 
 /** Katalog und Befehle: jedes Einfügen ist ein Schritt im Verlauf, danach ist der neue Baustein gewählt. */
-export const useEinfuegen = ({ auswahl, folien, nachher, struktur }: Optionen) => {
-	const { daten } = useLaden<{ eintraege: Posten[] }>('/api/katalog');
+export const useEinfuegen = ({ auswahl, dokument, folien, nachher, struktur }: Optionen) => {
+	const { daten, neuLaden } = useLaden<{ eintraege: Posten[] }>('/api/katalog');
 	const [zuletzt, setZuletzt] = useState(leseZuletzt);
+	const zeige = useHinweis();
 	const eintraege = daten?.eintraege ?? [];
 
-	const fuegeEin = (e: Posten, nr: number | null = auswahl) => {
+	const setzeEin = (e: Posten, einfuegbar: Einfuegbar, nr: number | null) => {
 		const ok = struktur.fuehreAus(
 			`${e.name} eingefügt`,
-			(q) => fuegeBausteinEin(q, e.einfuegbar, nr, { jeSeite: folien }),
+			(q) => fuegeBausteinEin(q, einfuegbar, nr, { jeSeite: folien }),
 			true,
 		);
 		if (!ok) {
@@ -86,6 +93,32 @@ export const useEinfuegen = ({ auswahl, folien, nachher, struktur }: Optionen) =
 		const neu = [e.id, ...zuletzt.filter((id) => id !== e.id)].slice(0, ZULETZT_ANZAHL);
 		setZuletzt(neu);
 		localStorage.setItem(ZULETZT, JSON.stringify(neu));
+		nachher();
+	};
+
+	const fuegeEin = (e: Posten, nr: number | null = auswahl) => {
+		if (e.eigen) {
+			void mitBildern(dokument, { sammlung: e.eigen }, e.einfuegbar.html ?? '').then(
+				(html) => setzeEin(e, { ...e.einfuegbar, html }, nr),
+				(grund: unknown) => zeige({ text: meldung(grund), art: 'fehler' }),
+			);
+			return;
+		}
+		setzeEin(e, e.einfuegbar, nr);
+	};
+
+	/** Aus der Zwischenablage eines anderen Dokuments, samt Bildern. */
+	const fuegeAblageEin = async (nr: number | null = auswahl) => {
+		const a = leseAblage();
+		if (!a) {
+			return;
+		}
+		const html = await mitBildern(dokument, { mappe: a.mappe, dok: a.dok }, a.html);
+		struktur.fuehreAus(
+			`${a.name} eingefügt`,
+			(q) => fuegeBausteinEin(q, { id: 'ablage', ort: a.ort, html }, nr, { jeSeite: folien }),
+			true,
+		);
 		nachher();
 	};
 
@@ -111,7 +144,7 @@ export const useEinfuegen = ({ auswahl, folien, nachher, struktur }: Optionen) =
 	};
 
 	const vorne = zuletzt.flatMap((id) => eintraege.find((e) => e.id === id) ?? []);
-	return { eintraege, zuletzt: vorne, fuegeEin, verschiebe };
+	return { eintraege, zuletzt: vorne, fuegeEin, fuegeAblageEin, verschiebe, neuLaden };
 };
 
 export type Einfuegen = ReturnType<typeof useEinfuegen>;
@@ -274,9 +307,9 @@ export const useTabelleTab = ({
 		const taste = (e: KeyboardEvent) => {
 			// Das Ereignis kommt aus dem Rahmen: `instanceof` kennt dessen Klassen nicht.
 			const start = e.target as Partial<Element> | null;
-			const zelle = start?.closest?.('table.kit-tabelle th, table.kit-tabelle td') as HTMLTableCellElement | null;
+			const zelle = start?.closest?.('th, td') as HTMLTableCellElement | null;
 			const t = zelle?.closest('table');
-			if (e.key !== 'Tab' || e.shiftKey || !zelle || !t) {
+			if (e.key !== 'Tab' || e.shiftKey || !zelle || !t || bausteinVon(zelle)?.art !== 'tabellenzelle') {
 				return;
 			}
 			e.preventDefault();
@@ -287,7 +320,7 @@ export const useTabelleTab = ({
 				t.rows.length,
 				t.rows[zeile]?.cells.length ?? 1,
 			);
-			const tabelle = [...angezeigt.querySelectorAll('table.kit-tabelle')].indexOf(t);
+			const tabelle = [...angezeigt.querySelectorAll('table')].indexOf(t);
 			setZiel({ tabelle, zeile: weiter?.zeile ?? zeile + 1, spalte: weiter?.spalte ?? 0, neu: weiter === null });
 			aktuell.current.beende();
 		};
@@ -299,7 +332,7 @@ export const useTabelleTab = ({
 		if (!ziel || !doc || bearbeitet) {
 			return;
 		}
-		const t = doc.querySelectorAll<HTMLTableElement>('table.kit-tabelle')[ziel.tabelle];
+		const t = doc.querySelectorAll('table')[ziel.tabelle];
 		const zelle = t?.rows[ziel.zeile]?.cells[ziel.spalte];
 		if (ziel.neu && !zelle) {
 			const start = t?.rows[0]?.cells[0];

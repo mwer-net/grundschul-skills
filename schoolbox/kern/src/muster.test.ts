@@ -43,7 +43,21 @@ const erwarteteFehler = (html: string) =>
 	[...html.matchAll(/data-erwarteter-fehler="([^"]+)"/g)].map((t) => t[1] ?? '').sort();
 
 const dateien = readdirSync(MUSTER).filter((d) => d.endsWith('.html'));
-const VORLAGEN_036 = ['vorlage-minibuch.html', 'vorlage-forscherbogen-12.html', 'vorlage-forscherbogen-34.html'];
+const VORLAGEN_036 = [
+	'vorlage-minibuch.html',
+	'vorlage-forscherbogen-12.html',
+	'vorlage-forscherbogen-34.html',
+	...[
+		'lesetext',
+		'karten',
+		'lernspiel',
+		'stationen',
+		'lernzielkontrolle',
+		'lernlandkarte',
+		'klassenarbeit',
+		'lernplakat',
+	].map((v) => `vorlage-${v}.html`),
+];
 const pfade = [...dateien.map((d) => path.join(MUSTER, d)), ...VORLAGEN_036.map((d) => path.join(ASSETS, d))];
 
 describe('Musterblätter', { skip: browserSkip() }, () => {

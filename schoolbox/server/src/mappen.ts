@@ -9,6 +9,7 @@ import {
 	FAECHER,
 	KLASSEN,
 	legeInPapierkorb,
+	legeVarianteAn,
 	leseMappe,
 	leseMappenEintrag,
 	leseMeta,
@@ -24,6 +25,7 @@ import {
 } from '@schoolbox/kern';
 import { Router } from 'express';
 
+import { verlangeDokument } from './dokumente';
 import { HttpFehler } from './fehler';
 import type { Kontext } from './kontext';
 import { pdfAntwort, sendePdf, waehleMappenVariante, waehleProfil } from './pdf';
@@ -145,10 +147,14 @@ export const mappenApi = (kontext: Kontext) => {
 			throw new HttpFehler(400, 'Bitte wähle aus, was du anlegen möchtest.');
 		}
 		const fest = typeof vorlage === 'string' ? VORLAGE_FORMAT[vorlage]?.format : undefined;
-		if (fest !== format && !ART_FORMATE[art as Art].includes(format as Format)) {
+		const eigen = typeof vorlage === 'string' && vorlage.startsWith('eigen-');
+		if (!eigen && fest !== format && !ART_FORMATE[art as Art].includes(format as Format)) {
 			throw new HttpFehler(400, 'Dieses Format passt nicht zu dieser Art.');
 		}
-		if (vorlage !== undefined && (typeof vorlage !== 'string' || !verfuegbareVorlagen().includes(vorlage))) {
+		if (
+			vorlage !== undefined &&
+			(typeof vorlage !== 'string' || !verfuegbareVorlagen(materialDir).includes(vorlage))
+		) {
 			throw new HttpFehler(400, 'Diese Vorlage gibt es nicht.');
 		}
 		const daten = await leseMappe(materialDir, mappe);
@@ -173,6 +179,14 @@ export const mappenApi = (kontext: Kontext) => {
 		});
 		kontext.ereignisse.sende({ typ: 'mappe-neu', daten: { mappe } });
 		res.status(201).json({ id });
+	});
+
+	router.post('/:mappe/dokumente/:dok/variante', async (req, res) => {
+		const { dok, mappe } = req.params;
+		verlangeDokument(kontext, mappe, dok);
+		const { id, titel } = await legeVarianteAn(materialDir, mappe, dok);
+		kontext.ereignisse.sende({ typ: 'mappe-neu', daten: { mappe } });
+		res.status(201).json({ id, titel });
 	});
 
 	router.post('/:mappe/duplizieren', async (req, res) => {

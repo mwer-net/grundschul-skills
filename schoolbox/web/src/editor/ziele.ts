@@ -2,7 +2,7 @@ import type { Baustein } from '@schoolbox/kern/src/bausteine';
 import { kann } from '@schoolbox/kern/src/bausteine';
 import type { Ablage } from '@schoolbox/kern/src/struktur';
 
-import { bausteinVon, nrVon } from './darstellung';
+import { bausteinVon, liegtAlsBlock, nrVon } from './darstellung';
 
 /** Eine Einfügemarke in Koordinaten des Materials: waagerechte Linie zwischen Zeilen, senkrechte im Raster. */
 export interface Marke {
@@ -29,20 +29,44 @@ export interface Ordnung {
 	gruppen: Gruppe[];
 }
 
-/** Ziehen im Blatt: alles mit `ordnen`, außer was dafür in der Seitenleiste liegt. */
-export const ziehbarImBlatt = (baustein: Baustein) =>
-	kann(baustein, 'ordnen') && !baustein.ordnenInLeiste && !baustein.ordnenNurKnopf;
+/** Ziehen im Blatt: alles mit `ordnen`, außer was dafür in der Seitenleiste liegt; Kleines nur als Block der Seite (054). */
+export const ziehbarImBlatt = (baustein: Baustein, element: Element) =>
+	kann(baustein, 'ordnen') && !baustein.ordnenInLeiste && (!baustein.ordnenNurKnopf || liegtAlsBlock(element));
+
+const NIE_ZWISCHEN = 'style, script, template, link, meta, br, .fuss';
+
+/** Ein Block zwischen allen Geschwistern seiner Seite, auch auf anderen Seiten; im Rahmen nur innerhalb des Rahmens. */
+const ordnungAlsBlock = (element: Element, baustein: Baustein): Ordnung => {
+	const eltern = element.parentElement;
+	const aufSeite = eltern?.matches('.seite');
+	const bereiche = aufSeite ? [...element.ownerDocument.querySelectorAll('.seite:not([data-erzeugt])')] : [eltern];
+	const gruppen = bereiche
+		.filter((b): b is Element => b !== null && nrVon(b) !== null)
+		.map((bereich) => ({
+			bereich,
+			glieder: [...bereich.children].filter(
+				(k) => k === element || (nrVon(k) !== null && !k.matches(NIE_ZWISCHEN)),
+			),
+		}));
+	return { element, baustein, gruppen };
+};
 
 /** Wohin der Baustein darf (Register: `ordnenIn`, sonst das Elternelement) und zwischen welche Geschwister. */
 export const ordnungVon = (element: Element, baustein: Baustein): Ordnung => {
 	const doc = element.ownerDocument;
 	const { ordnenIn } = baustein;
+	if (!ordnenIn && !baustein.ordnenInLeiste && liegtAlsBlock(element)) {
+		return ordnungAlsBlock(element, baustein);
+	}
 	const bereiche = ordnenIn ? [...doc.querySelectorAll(ordnenIn)] : [element.parentElement];
 	const gleiche = [...doc.querySelectorAll(baustein.selektor)].filter(
 		(e) => nrVon(e) !== null && bausteinVon(e) === baustein && (e === element || !element.contains(e)),
 	);
 	const gruppen = bereiche
-		.filter((b): b is Element => b !== null && nrVon(b) !== null && !element.contains(b))
+		// Ein `<tbody>`, das erst der Browser ergänzt hat, trägt keine Nummer.
+		.filter(
+			(b): b is Element => b !== null && (nrVon(b) !== null || b.localName === 'tbody') && !element.contains(b),
+		)
 		.map((bereich) => ({
 			bereich,
 			glieder: gleiche.filter(

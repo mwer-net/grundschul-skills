@@ -75,10 +75,12 @@
   const samen = (el, inhalt) => attr(el, "seed", null) ?? inhalt;
 
   const NAMEN = {
+    "x-rechenreihe": "Rechenreihe", "x-zuordnen": "Zuordnen", "x-sortieren": "Sortieren", "x-beschriften": "Beschriften", "x-schreibrahmen": "Schreibrahmen",
     "x-suchsel": "Suchsel", "x-kreuzwort": "Kreuzworträtsel", "x-loesungswort": "Lösungswort",
     "x-bingo": "Bingo", "x-domino": "Domino", "x-spielplan": "Spielplan",
     "x-uhr": "Uhr", "x-menge": "Menge", "x-dienes": "Mehrsystemblöcke", "x-strichpunkt": "Strich-Punkt-Bild",
     "x-stellentafel": "Stellentafel", "x-zwanzigerfeld": "Zwanzigerfeld", "x-zahlenstrahl": "Zahlenstrahl", "x-timer": "Timer",
+    "x-gesamtpunkte": "Gesamtpunkte", "x-notenschluessel": "Notenschlüssel", "x-notenspiegel": "Notenspiegel", "x-unterschrift": "Unterschrift und Datum", "x-erwartungshorizont": "Erwartungshorizont",
     "x-probe": "Probe",
     "x-gluecksrad": "Glücksrad", "x-wuerfel": "Würfel", "x-strichliste": "Strichliste", "x-diagramm": "Diagramm",
     "x-urne": "Kugeln im Säckchen", "x-wahrscheinlichkeit": "Wahrscheinlichkeit", "x-kombinatorik": "Möglichkeiten",
@@ -5056,8 +5058,592 @@
     el.innerHTML = `<table><thead><tr><th></th><th>${koepfe[0]}</th><th>${koepfe[1]}</th></tr></thead><tbody>${aussagen.map((a) => `<tr><td>${maskiere(a.text)}</td>${kreuz(a.wert === "r")}${kreuz(a.wert === "f")}</tr>`).join("")}</tbody></table>`;
   }
 
+  /* -- Zuordnen, Sortieren, Beschriften, Schreibrahmen (049) -- */
+  /** Im eigenständigen HTML hängt blatt.py die eingebetteten Bilder als `data-bilder` ans Element. */
+  const bildQuelle = (el, pfad) => {
+    try {
+      return JSON.parse(el.getAttribute("data-bilder") || "{}")[pfad] ?? pfad;
+    } catch {
+      return pfad;
+    }
+  };
+  const eintragHtml = (el, text, bild) => `${bild ? `<img src="${maskiere(bildQuelle(el, bild))}" alt="${maskiere(text)}">` : ""}${text ? `<span>${maskiere(text)}</span>` : ""}`;
+
+  /** `links: rechts: Bild links: Bild rechts; …`, die Bilder sind freiwillig. */
+  const zuordnenLesen = (roh) => roh.split(";").map((z) => z.trim()).filter(Boolean).map((z) => {
+    const [links = "", rechts = "", bildLinks = "", bildRechts = ""] = z.split(":").map((t) => t.trim());
+    return { links, rechts, bildLinks, bildRechts };
+  });
+  const zuordnenFehler = (paare) => {
+    if (paare.length < 2) return "Zum Zuordnen braucht es mindestens 2 Paare.";
+    if (paare.length > 10) return "Es sind höchstens 10 Paare. Teile die Aufgabe.";
+    const leer = paare.find((p) => !(p.links || p.bildLinks) || !(p.rechts || p.bildRechts));
+    if (leer) return `Zu „${leer.links || leer.rechts}“ fehlt die andere Seite.`;
+    const rechts = paare.map((p) => p.rechts || p.bildRechts), doppelt = rechts.find((t, i) => rechts.indexOf(t) !== i);
+    return doppelt ? `„${doppelt}“ steht rechts doppelt. Dann gibt es zwei Lösungen.` : null;
+  };
+  /** Wie oft sich die Linien kreuzen: `folge[zeile]` ist das Paar, das rechts in dieser Zeile steht. */
+  const zuordnenKreuzungen = (folge) => {
+    const zeileVon = folge.map((_, i) => folge.indexOf(i));
+    let n = 0;
+    for (let a = 0; a < zeileVon.length; a++) for (let b = a + 1; b < zeileVon.length; b++) if (zeileVon[a] > zeileVon[b]) n++;
+    return n;
+  };
+  /** Kein Paar steht schon nebeneinander; von mehreren Mischungen die mit den wenigsten Kreuzungen. */
+  const zuordnenFolge = (n, seed) => {
+    const alle = Array.from({ length: n }, (_, i) => i);
+    let beste = null;
+    for (let versuch = 0; versuch < 12; versuch++) {
+      const folge = gemischt(alle, zufall(`${seed}|${versuch}`));
+      for (let i = 0; i < n; i++) {
+        if (folge[i] === i) {
+          const j = (i + 1) % n;
+          [folge[i], folge[j]] = [folge[j], folge[i]];
+        }
+      }
+      if (!beste || zuordnenKreuzungen(folge) < zuordnenKreuzungen(beste)) beste = folge;
+    }
+    return beste;
+  };
+
+  function zuordnen(el) {
+    const roh = attr(el, "paare", ""), paare = zuordnenLesen(roh), fehler = zuordnenFehler(paare);
+    if (fehler) abbruch(fehler);
+    const art = attr(el, "darstellung", "linien");
+    if (art !== "linien" && art !== "ziffern") abbruch(`Die Darstellung „${art}“ gibt es nicht.`);
+    const n = paare.length, folge = zuordnenFolge(n, samen(el, roh)), loesung = loesungSichtbar(el), ziffern = art === "ziffern";
+    let s = "";
+    for (let z = 0; z < n; z++) {
+      const a = paare[z], b = paare[folge[z]];
+      s += `<div class="eintrag links">${ziffern ? `<b class="ziffer">${z + 1}</b>` : ""}${eintragHtml(el, a.links, a.bildLinks)}${ziffern ? "" : `<i class="punkt"></i>`}</div>`;
+      s += ziffern ? "" : z === 0 ? "<svg-platz></svg-platz>" : "";
+      s += `<div class="eintrag rechts">${ziffern ? `<span class="feld">${loesung ? folge[z] + 1 : ""}</span>` : `<i class="punkt"></i>`}${eintragHtml(el, b.rechts, b.bildRechts)}</div>`;
+    }
+    const linien = !ziffern && loesung ? folge.map((p, z) => `<line x1="0" x2="100" y1="${p + 0.5}" y2="${z + 0.5}" vector-effect="non-scaling-stroke" stroke="${SCHWARZ}" stroke-width="1.5"/>`).join("") : "";
+    const mitte = `<svg class="verbinder" viewBox="0 0 100 ${n}" preserveAspectRatio="none" style="grid-row:1 / span ${n}">${linien}</svg>`;
+    el.innerHTML = `<div class="paarung ${art}">${s.replace("<svg-platz></svg-platz>", mitte)}</div>`;
+  }
+
+  /** `Text: Bild; …` in der richtigen Reihenfolge. */
+  const sortierenLesen = (roh) => roh.split(";").map((z) => z.trim()).filter(Boolean).map((z) => {
+    const i = z.indexOf(":");
+    return i < 0 ? { text: z, bild: "" } : { text: z.slice(0, i).trim(), bild: z.slice(i + 1).trim() };
+  });
+  const sortierenFehler = (eintraege) => {
+    if (eintraege.length < 2) return "Zum Sortieren braucht es mindestens 2 Einträge.";
+    if (eintraege.length > 12) return "Es sind höchstens 12 Einträge. Teile die Aufgabe.";
+    const namen = eintraege.map((e) => e.text || e.bild), doppelt = namen.find((t, i) => t && namen.indexOf(t) !== i);
+    if (doppelt) return `„${doppelt}“ steht doppelt. Dann gibt es zwei Lösungen.`;
+    return namen.some((t) => !t) ? "Ein Eintrag ist leer." : null;
+  };
+  /** Die gemischte Reihenfolge ist nie schon die Lösung. */
+  const sortierenFolge = (n, seed) => {
+    const alle = Array.from({ length: n }, (_, i) => i);
+    for (let versuch = 0; versuch < 20; versuch++) {
+      const folge = gemischt(alle, zufall(`${seed}|${versuch}`));
+      if (folge.some((p, i) => p !== i)) return folge;
+    }
+    return alle.map((_, i) => (i + 1) % n);
+  };
+
+  function sortieren(el) {
+    const roh = attr(el, "eintraege", ""), eintraege = sortierenLesen(roh), fehler = sortierenFehler(eintraege);
+    if (fehler) abbruch(fehler);
+    const art = attr(el, "art", "saetze"), darstellung = attr(el, "darstellung", "ziffer");
+    if (!["saetze", "woerter", "bilder", "zahlen"].includes(art)) abbruch(`Die Art „${art}“ gibt es nicht.`);
+    if (darstellung !== "ziffer" && darstellung !== "linien") abbruch(`Die Darstellung „${darstellung}“ gibt es nicht.`);
+    if (art === "bilder" && eintraege.some((e) => !e.bild)) abbruch("Bei der Art „Bilder“ braucht jeder Eintrag ein Bild.");
+    const loesung = loesungSichtbar(el), folge = sortierenFolge(eintraege.length, samen(el, roh)), ziffer = darstellung === "ziffer";
+    const teile = folge.map((p) => `<div class="eintrag">${ziffer ? `<span class="feld">${loesung ? p + 1 : ""}</span>` : ""}${eintragHtml(el, eintraege[p].text, eintraege[p].bild)}</div>`).join("");
+    const zeilen = ziffer ? "" : `<div class="abschreiben">${eintraege.map((e, i) => `<div class="zeile-frei"><b>${i + 1}.</b><span>${loesung ? maskiere(e.text) : ""}</span></div>`).join("")}</div>`;
+    el.innerHTML = `<div class="sortier ${art}">${teile}</div>${zeilen}`;
+  }
+
+  const BESCHRIFTEN_RAND = 24, BESCHRIFTEN_JE_SEITE = 6;
+  /** `x,y: Wort; …`, Position in Prozent des Bilds. */
+  const punkteLesen = (roh) => roh.split(";").map((z) => z.trim()).filter(Boolean).map((z) => {
+    const i = z.indexOf(":"), [x, y] = (i < 0 ? z : z.slice(0, i)).split(",").map((t) => Number(t.trim().replace(",", ".")));
+    return { x, y, wort: i < 0 ? "" : z.slice(i + 1).trim() };
+  });
+  const punkteFehler = (punkte) => {
+    const falsch = punkte.find((p) => !(p.x >= 0 && p.x <= 100 && p.y >= 0 && p.y <= 100));
+    if (falsch) return `Der Punkt „${falsch.wort}“ liegt nicht im Bild.`;
+    const ohne = punkte.find((p) => !p.wort);
+    if (ohne) return "Ein Punkt hat noch kein Wort. Trage es ein.";
+    const links = punkte.filter((p) => p.x < 50).length, rechts = punkte.length - links;
+    if (links > BESCHRIFTEN_JE_SEITE || rechts > BESCHRIFTEN_JE_SEITE) return `Auf jeder Bildhälfte gehen höchstens ${BESCHRIFTEN_JE_SEITE} Punkte, sonst wird es zu eng.`;
+    return null;
+  };
+  const linienKreuzen = (a, b) => {
+    const seite = (p, q, r) => (q.x - p.x) * (r.y - p.y) - (q.y - p.y) * (r.x - p.x);
+    return seite(a.von, a.bis, b.von) * seite(a.von, a.bis, b.bis) < 0 && seite(b.von, b.bis, a.von) * seite(b.von, b.bis, a.bis) < 0;
+  };
+  /** Linien von den Punkten zu den Wörtern außerhalb des Bilds, in Prozent des ganzen Elements; keine zwei kreuzen sich. */
+  const beschriftenPlan = (punkte) => {
+    const breite = 100 - 2 * BESCHRIFTEN_RAND;
+    const seite = (auswahl, kante) => {
+      const liste = [...auswahl].sort((a, b) => a.y - b.y);
+      const linien = liste.map((p, i) => ({ wort: p.wort, von: { x: BESCHRIFTEN_RAND + (p.x * breite) / 100, y: p.y }, bis: { x: kante, y: ((i + 0.5) / liste.length) * 100 } }));
+      // Tauscht zwei sich kreuzende Linien ihre Ziele, wird die Summe der Längen kleiner: Das endet immer.
+      for (let weiter = true; weiter;) {
+        weiter = false;
+        for (let a = 0; a < linien.length; a++) {
+          for (let b = a + 1; b < linien.length; b++) {
+            if (linienKreuzen(linien[a], linien[b])) {
+              [linien[a].bis, linien[b].bis] = [linien[b].bis, linien[a].bis];
+              weiter = true;
+            }
+          }
+        }
+      }
+      return linien.sort((a, b) => a.bis.y - b.bis.y);
+    };
+    return { links: seite(punkte.filter((p) => p.x < 50), BESCHRIFTEN_RAND), rechts: seite(punkte.filter((p) => p.x >= 50), 100 - BESCHRIFTEN_RAND), kreuzen: linienKreuzen };
+  };
+
+  function beschriften(el) {
+    const bild = attr(el, "bild", ""), punkte = punkteLesen(attr(el, "punkte", "")), fehler = punkteFehler(punkte);
+    if (!bild) abbruch("Wähle zuerst ein Bild aus.");
+    if (fehler) abbruch(fehler);
+    const art = attr(el, "darstellung", "linien"), speicher = attr(el, "wortspeicher", "0") === "1", loesung = loesungSichtbar(el);
+    if (art !== "linien" && art !== "nummer") abbruch(`Die Darstellung „${art}“ gibt es nicht.`);
+    const bildHtml = `<img class="vorlage" src="${maskiere(bildQuelle(el, bild))}" alt="${maskiere(attr(el, "alt", ""))}">`;
+    const woerter = speicher ? `<div class="woerter">${[...punkte].map((p) => p.wort).sort((a, b) => a.localeCompare(b, "de")).map((w) => `<span>${maskiere(w)}</span>`).join("")}</div>` : "";
+    const marke = (x, y, innen) => `<span class="marke" style="left:${r1(x)}%;top:${r1(y)}%">${innen}</span>`;
+    if (art === "nummer") {
+      const marken = punkte.map((p, i) => marke(p.x, p.y, i + 1)).join("");
+      const zeilen = punkte.map((p, i) => `<div class="zeile-frei"><b>${i + 1}</b><span>${loesung ? maskiere(p.wort) : ""}</span></div>`).join("");
+      el.innerHTML = `<div class="nummern"><div class="bildflaeche">${bildHtml}${marken}</div></div><div class="abschreiben zweispaltig">${zeilen}</div>${woerter}`;
+      return;
+    }
+    const plan = beschriftenPlan(punkte);
+    const spalte = (seite, name) => `<div class="woertespalte ${name}">${seite.map((l) => `<div class="ziel"><span>${loesung ? `<em>${maskiere(l.wort)}</em>` : ""}</span></div>`).join("")}</div>`;
+    const linie = (l) => `<line x1="${r1(l.von.x)}" y1="${r1(l.von.y)}" x2="${r1(l.bis.x)}" y2="${r1(l.bis.y)}" vector-effect="non-scaling-stroke" stroke="${SCHWARZ}" stroke-width="1.2"/>`;
+    const alle = [...plan.links, ...plan.rechts];
+    const punktHtml = (l) => `<i class="ende" style="left:${r1(l.von.x)}%;top:${r1(l.von.y)}%"></i>`;
+    el.innerHTML = `<div class="beschriftung"><div class="bildflaeche">${bildHtml}</div>${spalte(plan.links, "links")}${spalte(plan.rechts, "rechts")}<svg data-ueberlagert-ok class="linien" viewBox="0 0 100 100" preserveAspectRatio="none">${alle.map(linie).join("")}</svg>${alle.map(punktHtml).join("")}</div>${woerter}`;
+  }
+
+  const SCHREIB_LINEATUR = { kl1: "1", kl2: "2", kl3: "3", kl4: "4" };
+  /** Satzanfänge mit Linien nach der Klasse; auf Wunsch Planung, Wortspeicher und ein Beispieltext auf dem Lösungsblatt. */
+  function schreibrahmen(el) {
+    const anfaenge = attr(el, "satzanfaenge", "").split(";").map((t) => t.trim()).filter(Boolean), linien = num(el, "linien", 2);
+    if (anfaenge.length === 0) abbruch("Es gibt noch keinen Satzanfang. Trage einen ein.");
+    if (anfaenge.length > 10) abbruch("Es sind höchstens 10 Satzanfänge.");
+    if (!Number.isInteger(linien) || linien < 1 || linien > 6) abbruch("Es sind 1 bis 6 Linien je Satz.");
+    const klasse = [...(el.closest("body")?.classList ?? [])].find((k) => SCHREIB_LINEATUR[k]);
+    const art = attr(el, "lineatur", null) ?? SCHREIB_LINEATUR[klasse] ?? "3";
+    const woerter = liste(el, "wortspeicher"), beispiel = attr(el, "beispiel", "");
+    const planung = attr(el, "planung", "0") === "1" ? `<div class="planung">${["Einleitung", "Hauptteil", "Schluss"].map((t) => `<div class="zeile-frei"><b>${t}:</b><span></span></div>`).join("")}</div>` : "";
+    const speicher = woerter.length ? `<div class="woerter">${woerter.map((w) => `<span>${maskiere(w)}</span>`).join("")}</div>` : "";
+    const saetze = anfaenge.map((a) => `<div class="satz"><p class="anfang">${maskiere(a)} …</p><x-lineatur art="${maskiere(art)}" zeilen="${linien}"></x-lineatur></div>`).join("");
+    const muster = beispiel && loesungSichtbar(el) ? `<p class="beispieltext">${maskiere(beispiel)}</p>` : "";
+    el.innerHTML = `${planung}${speicher}${saetze}${muster}`;
+    el.querySelectorAll("x-lineatur").forEach((k) => lineatur(k));
+  }
+
+  /* -- Rechenreihe und „Neue Zahlen“ (050) -- */
+  const ZEICHEN_RECHNEN = { "+": "+", "-": "−", "−": "−", "·": "·", "*": "·", ":": ":" };
+  const RECHENRAEUME = [10, 20, 100, 1000, 1000000];
+  /** Überschreitet die Rechnung einen Zehner? `3 + 7` erreicht ihn nur, `5 + 8` geht darüber. Minus spiegelt Plus. */
+  const mitUebergang = (zeichen, a, b) => (zeichen === "+" ? a % 10 + b % 10 > 10 : (a - b) % 10 + b % 10 > 10);
+
+  const rechenreiheEinstellungen = (lies) => ({
+    zeichen: ZEICHEN_RECHNEN[lies("rechenart", "+")], raum: Number(lies("zahlenraum", "20")), anzahl: Number(lies("anzahl", "10")),
+    uebergang: lies("uebergang", "egal"), platzhalter: lies("platzhalter", "ergebnis"), beziehung: lies("beziehung", "keine"),
+    reihe: lies("reihe", null) === null ? null : Number(lies("reihe", null)), rest: lies("rest", "0") === "1",
+  });
+  const rechenreiheFehler = (e) => {
+    if (!e.zeichen) return "Diese Rechenart gibt es nicht.";
+    if (!RECHENRAEUME.includes(e.raum)) return "Den Zahlenraum gibt es nicht. Es gehen 10, 20, 100, 1000 und 1000000.";
+    if (!Number.isInteger(e.anzahl) || e.anzahl < 1 || e.anzahl > 60) return "Es sind 1 bis 60 Aufgaben.";
+    if (!["egal", "mit", "ohne"].includes(e.uebergang)) return "Beim Zehnerübergang gehen „egal“, „mit“ und „ohne“.";
+    if (!["ergebnis", "erste", "zweite", "gemischt"].includes(e.platzhalter)) return "Diese Stelle für den Platzhalter gibt es nicht.";
+    if (!["keine", "tausch", "umkehr"].includes(e.beziehung)) return "Diese Beziehung gibt es nicht.";
+    const punkt = e.zeichen === "·" || e.zeichen === ":";
+    if (e.uebergang !== "egal" && punkt) return "Der Zehnerübergang gilt nur für Plus und Minus.";
+    if (e.reihe !== null && (!punkt || !Number.isInteger(e.reihe) || e.reihe < 1 || e.reihe > 10)) return "Eine Einmaleins-Reihe von 1 bis 10 gibt es nur bei Mal und Geteilt.";
+    if (e.rest && e.zeichen !== ":") return "Mit Rest geht nur beim Teilen.";
+    if (e.rest && (e.platzhalter !== "ergebnis" || e.beziehung !== "keine")) return "Mit Rest steht der Platzhalter beim Ergebnis, ohne Tausch- und Umkehraufgaben.";
+    if (e.beziehung === "tausch" && (e.zeichen === "−" || e.zeichen === ":")) return "Tauschaufgaben gibt es nur bei Plus und Mal.";
+    return null;
+  };
+  /** Eine zufällige gültige Grundaufgabe `[a, b]` nach den Einstellungen, oder null. */
+  const grundaufgabe = (e, zz) => {
+    const { raum, reihe, zeichen } = e, zahl = (von, bis) => (bis < von ? null : zahlIn(zz, von, bis));
+    if (zeichen === "+") {
+      const a = zahl(1, raum - 1);
+      return a === null ? null : [a, zahlIn(zz, 1, raum - a)];
+    }
+    if (zeichen === "−") {
+      const a = zahl(2, raum);
+      return a === null ? null : [a, zahlIn(zz, 1, a - 1)];
+    }
+    if (zeichen === "·") {
+      if (reihe !== null) return reihe > raum ? null : [zahlIn(zz, 1, Math.min(10, Math.floor(raum / reihe))), reihe];
+      const a = zahl(1, Math.floor(raum / 2));
+      return a === null ? null : [a, zahlIn(zz, 1, Math.floor(raum / a))];
+    }
+    const b = reihe ?? zahl(e.rest ? 2 : 1, Math.max(1, Math.floor(raum / 2)));
+    if (b === null || b > raum) return null;
+    const c = reihe !== null ? zahlIn(zz, 1, Math.min(10, Math.floor(raum / b))) : zahlIn(zz, 1, Math.floor(raum / b));
+    const r = e.rest ? zahlIn(zz, 1, Math.max(1, b - 1)) : 0;
+    return b * c + r > raum || (e.rest && b < 2) ? null : [b * c + r, b];
+  };
+  const rechneAus = (zeichen, a, b) => (zeichen === "+" ? a + b : zeichen === "−" ? a - b : zeichen === "·" ? a * b : Math.floor(a / b));
+  const aufgabeText = (e, zz, zeichen, a, b) => {
+    const c = rechneAus(zeichen, a, b), stelle = e.platzhalter === "gemischt" ? ["ergebnis", "erste", "zweite"][Math.floor(zz() * 3)] : e.platzhalter;
+    return `${stelle === "erste" ? "_" : a} ${zeichen} ${stelle === "zweite" ? "_" : b} = ${stelle === "ergebnis" ? "_" : c}`;
+  };
+  /** `aufgaben` als Texte; `fehler` nennt, was nicht geht. Die Bedingungen werden bei jeder Aufgabe geprüft, nie angenommen. */
+  const rechenreiheAufgaben = (e, seed) => {
+    const fehler = rechenreiheFehler(e);
+    if (fehler) return { aufgaben: [], fehler };
+    const zz = zufall(seed), aufgaben = [], schon = new Set();
+    const nimm = (zeichen, a, b) => {
+      const kern = `${a} ${zeichen} ${b}`;
+      if (schon.has(kern) || aufgaben.length >= e.anzahl) return false;
+      schon.add(kern);
+      aufgaben.push(aufgabeText(e, zz, zeichen, a, b));
+      return true;
+    };
+    for (let versuch = 0; versuch < 40000 && aufgaben.length < e.anzahl; versuch++) {
+      const grund = grundaufgabe(e, zz);
+      if (!grund) continue;
+      const [a, b] = grund;
+      if ((e.zeichen === "+" || e.zeichen === "−") && e.uebergang !== "egal" && mitUebergang(e.zeichen, a, b) !== (e.uebergang === "mit")) continue;
+      if (e.beziehung === "tausch" && a === b) continue;
+      if (!nimm(e.zeichen, a, b)) continue;
+      if (e.beziehung === "tausch") nimm(e.zeichen, b, a);
+      if (e.beziehung === "umkehr") {
+        const c = rechneAus(e.zeichen, a, b), gegen = { "+": "−", "−": "+", "·": ":", ":": "·" }[e.zeichen];
+        nimm(gegen, c, b);
+      }
+    }
+    return aufgaben.length < e.anzahl
+      ? { aufgaben: [], fehler: `Mit diesen Einstellungen gibt es nur ${aufgaben.length} verschiedene Aufgaben, nicht ${e.anzahl}. Nimm weniger Aufgaben oder einen größeren Zahlenraum.` }
+      : { aufgaben, fehler: null };
+  };
+  /** `3 + _ = 7`: genau ein Platzhalter; die Lösung wird berechnet und muss aufgehen. */
+  const rechnungLesen = (text) => {
+    const m = text.trim().match(/^(\d+|_)\s*([+\-−·*:])\s*(\d+|_)\s*=\s*(\d+|_)$/);
+    if (!m || [m[1], m[3], m[4]].filter((t) => t === "_").length !== 1) return { fehler: `„${text.trim()}“ ist keine Aufgabe mit genau einem _.` };
+    const zeichen = ZEICHEN_RECHNEN[m[2]], [a, b, c] = [m[1], m[3], m[4]].map((t) => (t === "_" ? null : Number(t)));
+    let wert = null, rest = 0;
+    if (c === null) {
+      if (zeichen === ":" && b === 0) return { fehler: `In „${text.trim()}“ wird durch 0 geteilt.` };
+      wert = rechneAus(zeichen, a, b);
+      if (zeichen === ":") rest = a % b;
+    } else if (a === null) {
+      wert = zeichen === "+" ? c - b : zeichen === "−" ? c + b : zeichen === "·" ? c / b : c * b;
+    } else {
+      wert = zeichen === "+" ? c - a : zeichen === "−" ? a - c : zeichen === "·" ? c / a : a / c;
+    }
+    if (!Number.isInteger(wert) || wert < 0) return { fehler: `„${text.trim()}“ geht nicht auf.` };
+    const stimmt = c !== null ? rechneAus(zeichen, a ?? wert, b ?? wert) === c && (zeichen !== ":" || (a ?? wert) % (b ?? wert) === 0) : true;
+    if (!stimmt) return { fehler: `„${text.trim()}“ geht nicht auf.` };
+    return { teile: [m[1], zeichen, m[3], "=", m[4]], loesung: rest ? `${wert} R ${rest}` : String(wert), fehler: null };
+  };
+
+  function rechenreihe(el) {
+    const roh = attr(el, "aufgaben", null), spalten = num(el, "spalten", 2);
+    if (!Number.isInteger(spalten) || spalten < 1 || spalten > 4) abbruch("Es sind 1 bis 4 Spalten.");
+    const lies = (name, standard) => attr(el, name, standard);
+    let texte;
+    if (roh !== null && roh.trim()) {
+      texte = roh.split(";").map((t) => t.trim()).filter(Boolean);
+    } else {
+      const { aufgaben, fehler } = rechenreiheAufgaben(rechenreiheEinstellungen(lies), samen(el, JSON.stringify(rechenreiheEinstellungen(lies))));
+      if (fehler) abbruch(fehler);
+      texte = aufgaben;
+    }
+    const loesung = loesungSichtbar(el);
+    const zeilen = texte.map((t) => {
+      const r = rechnungLesen(t);
+      if (r.fehler) abbruch(r.fehler);
+      const breit = r.loesung.includes("R") ? " breit" : "";
+      return `<div class="rechnung">${r.teile.map((x) => (x === "_" ? `<span class="platz${breit}">${loesung ? r.loesung : ""}</span>` : `<span>${maskiere(x)}</span>`)).join(" ")}</div>`;
+    });
+    el.innerHTML = `<div class="aufgaben" style="grid-template-columns:repeat(${spalten},1fr)">${zeilen.join("")}</div>`;
+  }
+
+  const zahlIn = (zz, von, bis) => von + Math.floor(zz() * (bis - von + 1));
+  const raumVon = (n) => [10, 20, 100, 1000, 10000, 100000, 1000000].find((r) => n <= r) ?? n;
+  const zahlenVon = (t) => String(t ?? "").trim().split(/\s+/).filter(Boolean).map(Number);
+  const gleicheStellen = (zz, n) => {
+    const stellen = String(Math.abs(n)).length;
+    return stellen === 1 ? zahlIn(zz, 2, 9) : zahlIn(zz, 10 ** (stellen - 1), 10 ** stellen - 1);
+  };
+  const verschiedene = (zz, von, bis, n, schritt = 1) => gemischt(Array.from({ length: Math.floor((bis - von) / schritt) + 1 }, (_, i) => von + i * schritt), zz).slice(0, n);
+  const uhrzeitLesen = (t) => {
+    const m = String(t ?? "").match(/^(\d{1,2}):(\d{2})$/);
+    return m ? [Number(m[1]), Number(m[2])] : null;
+  };
+  const uhrzeitText = (h, min) => `${h}:${String(min).padStart(2, "0")}`;
+  /** Schrittweite der Minuten, die die Aufgabe schon hat: volle Stunden bleiben volle Stunden. */
+  const minutenSchritt = (minuten) => (minuten.every((m) => m === 0) ? 60 : minuten.every((m) => m % 30 === 0) ? 30 : minuten.every((m) => m % 15 === 0) ? 15 : minuten.every((m) => m % 5 === 0) ? 5 : 1);
+  const mauerSpitze = (basis) => {
+    let reihe = basis;
+    while (reihe.length > 1) reihe = reihe.slice(1).map((z, i) => z + reihe[i]);
+    return reihe[0];
+  };
+  /** Versucht, bis eine Belegung passt: Der Aufbau bleibt, die Zahlen bleiben im selben Zahlenraum. */
+  const bisEsPasst = (zz, erzeuge) => {
+    for (let i = 0; i < 500; i++) {
+      const neu = erzeuge(zz);
+      if (neu) return neu;
+    }
+    return null;
+  };
+  const anders = (neu, alt) => (String(neu) === String(alt) ? null : neu);
+
+  /** Neue Werte je Element aus den alten: nur Zahlen, nie Aufbau oder Stil. `null`: Hier geht es nicht. */
+  const NEUE_ZAHLEN = {
+    "x-rechenreihe": (w, seed) => {
+      const { aufgaben, fehler } = rechenreiheAufgaben(rechenreiheEinstellungen((name, standard) => w[name] ?? standard), seed);
+      return fehler ? null : { aufgaben: aufgaben.join("; ") };
+    },
+    "x-zahlenmauer": (w, zz) => {
+      const alt = zahlenVon(w.basis), oben = raumVon(mauerSpitze(alt));
+      const basis = bisEsPasst(zz, (z) => {
+        const neu = alt.map(() => zahlIn(z, 1, Math.max(2, Math.max(...alt) + 2)));
+        return mauerSpitze(neu) <= oben ? anders(neu.join(" "), w.basis) : null;
+      });
+      return basis && { basis };
+    },
+    "x-rechendreieck": (w, zz) => {
+      const alt = zahlenVon(w.innen), groesste = Math.max(...alt), oben = raumVon(2 * groesste);
+      const innen = bisEsPasst(zz, (z) => anders(alt.map(() => zahlIn(z, 1, Math.max(2, Math.floor(oben / 2)))).join(" "), w.innen));
+      return innen && { innen };
+    },
+    "x-zahlenhaus": (w, zz) => {
+      const alt = Number(w.dach), raum = raumVon(alt), dach = bisEsPasst(zz, (z) => anders(zahlIn(z, Math.max(3, Math.floor(raum / 2)), raum), alt));
+      if (dach === null) return null;
+      if (w.alle === "ja") return { dach: String(dach) };
+      const anzahl = (w.zerlegungen ?? "").split(";").filter((t) => t.trim()).length;
+      const teile = verschiedene(zz, 0, Math.floor(dach / 2), Math.min(anzahl, Math.floor(dach / 2) + 1));
+      return { dach: String(dach), zerlegungen: teile.map((a) => (zz() < 0.5 ? `${a} ${dach - a}` : `${dach - a} ${a}`)).join("; ") };
+    },
+    "x-zahlenkette": (w, zz) => {
+      const ops = String(w.operatoren ?? "").trim().split(/\s+/).filter(Boolean), start = Number(w.start);
+      const zeichen = ops.map((o) => o[0]), raum = raumVon(Math.max(start, ...ops.map((o) => Number(o.slice(1)) || 0)));
+      return bisEsPasst(zz, (z) => {
+        const anfang = zahlIn(z, 1, Math.max(2, Math.min(raum, start * 2 || raum)));
+        let stand = anfang;
+        const neu = [];
+        for (const zi of zeichen) {
+          const wert = zi === "·" || zi === ":" ? zahlIn(z, 2, 9) : zahlIn(z, 1, Math.max(2, Math.floor(raum / 4)));
+          const nach = zi === "+" ? stand + wert : zi === "−" || zi === "-" ? stand - wert : zi === "·" ? stand * wert : stand / wert;
+          if (!Number.isInteger(nach) || nach < 0 || nach > raum) return null;
+          stand = nach;
+          neu.push(`${zi}${wert}`);
+        }
+        return { start: String(anfang), operatoren: neu.join(" ") };
+      });
+    },
+    "x-rechenrad": (w, zz) => {
+      const zi = String(w.mitte ?? "").trim()[0], alt = zahlenVon(w.zahlen), m = Number(String(w.mitte ?? "").trim().slice(1));
+      const n = alt.length, wert = bisEsPasst(zz, (z) => anders(zahlIn(z, 2, 9), m));
+      if (wert === null) return null;
+      if (zi === ":") return { mitte: `:${wert}`, zahlen: verschiedene(zz, 1, Math.max(10, n), n).map((k) => k * wert).join(" ") };
+      if (zi === "·") return { mitte: `·${wert}`, zahlen: verschiedene(zz, 1, Math.max(10, n), n).join(" ") };
+      const raum = raumVon(Math.max(...alt) + m);
+      return { mitte: `${zi}${wert}`, zahlen: verschiedene(zz, zi === "+" ? 1 : wert + 1, zi === "+" ? raum - wert : raum, n).join(" ") };
+    },
+    "x-schriftlich": (w, zz) => {
+      if (w.fehlerhaft === "ja") return null;
+      const art = w.art ?? "plus", alt = zahlenVon(w.zahlen);
+      const zahlen = bisEsPasst(zz, (z) => {
+        const neu = alt.map((n) => gleicheStellen(z, n));
+        if (art === "minus" && neu[0] < neu[1]) return null;
+        if (art === "geteilt") {
+          neu[1] = zahlIn(z, 2, 9);
+          neu[0] -= neu[0] % neu[1];
+          if (String(neu[0]).length !== String(alt[0]).length) return null;
+        }
+        return neu.join(" ");
+      });
+      return zahlen && { zahlen };
+    },
+    "x-malkreuz": (w, zz) => ({ a: String(gleicheStellen(zz, Number(w.a))), b: String(gleicheStellen(zz, Number(w.b))) }),
+    "x-zahlenstrahl": (w, zz) => {
+      const von = Number(w.von ?? 0), bis = Number(w.bis ?? 100), schritt = Number(w.schritt ?? 10), n = zahlenVon(w.pfeile).length;
+      if (n === 0) return null;
+      const fest = zahlenVon(w.zahlen), frei = verschiedene(zz, von, bis, 1e6, schritt).filter((z) => !fest.includes(z));
+      return frei.length < n ? null : { pfeile: frei.slice(0, n).sort((a, b) => a - b).join(" ") };
+    },
+    "x-uhr": (w, zz) => {
+      const name = w.zeit ? "zeit" : "loesung", alt = uhrzeitLesen(w[name]);
+      if (!alt) return null;
+      const schritt = minutenSchritt([alt[1]]);
+      const neu = bisEsPasst(zz, (z) => anders(uhrzeitText(zahlIn(z, 1, 12), zahlIn(z, 0, Math.floor(59 / schritt)) * schritt), w[name]));
+      return neu && { [name]: neu };
+    },
+    "x-geld": (w, zz) => {
+      const neu = {};
+      const stuecke = String(w.stuecke ?? "").trim().split(/\s+/).filter(Boolean);
+      if (stuecke.length) {
+        const oben = Math.max(...stuecke.map((n) => stueckWert(n) ?? 0)), arten = Object.keys(MUENZEN).filter((n) => stueckWert(n) <= oben);
+        if (arten.length === 0) return null;
+        neu.stuecke = stuecke.map(() => arten[Math.floor(zz() * arten.length)]).sort((a, b) => stueckWert(b) - stueckWert(a)).join(" ");
+      }
+      if (w.betrag) {
+        const alt = Math.round(Number(String(w.betrag).replace(",", ".")) * 100), oben = Math.max(100, alt * 2);
+        const cent = zahlIn(zz, 1, Math.floor(oben / 5)) * 5;
+        neu.betrag = `${Math.floor(cent / 100)},${String(cent % 100).padStart(2, "0")}`;
+      }
+      return Object.keys(neu).length ? neu : null;
+    },
+    "x-kalender": (w, zz) => {
+      if (w.art === "jahr" || !w.monat || !w.jahr) return null;
+      const tage = new Date(Number(w.jahr), Number(w.monat), 0).getDate(), m = zahlenVon(w.markiert).length, l = zahlenVon(w.luecken).length;
+      if (m + l === 0) return null;
+      const neu = verschiedene(zz, 1, tage, m + l), aus = (t) => t.sort((a, b) => a - b).join(" "), r = {};
+      if (m) r.markiert = aus(neu.slice(0, m));
+      if (l) r.luecken = aus(neu.slice(m));
+      return r;
+    },
+    "x-zeitspanne": (w, zz) => {
+      if (w.spruenge) return null;
+      const von = uhrzeitLesen(w.von), bis = uhrzeitLesen(w.bis);
+      if (!von || !bis) return null;
+      const schritt = minutenSchritt([von[1], bis[1]]), dauer = (bis[0] - von[0]) * 60 + bis[1] - von[1];
+      const passt = bisEsPasst(zz, (z) => {
+        const anfang = (zahlIn(z, 7, 15) * 60) + zahlIn(z, 0, Math.floor(59 / schritt)) * schritt;
+        const lang = Math.max(schritt, Math.round((dauer * (0.5 + z())) / schritt) * schritt), ende = anfang + lang;
+        return ende >= 24 * 60 ? null : { von: uhrzeitText(Math.floor(anfang / 60), anfang % 60), bis: uhrzeitText(Math.floor(ende / 60), ende % 60) };
+      });
+      return passt;
+    },
+  };
+  const neueZahlen = (tag, werte, seed) => {
+    const regel = NEUE_ZAHLEN[tag];
+    if (!regel) return null;
+    return regel(werte, tag === "x-rechenreihe" ? seed : zufall(seed));
+  };
+
+  /* == Zeilennummern (052): Der Browser zählt, also stimmen sie bei jedem Umbruch und in jedem Format. == */
+  /** Fasst Rechtecke zu Zeilen zusammen: gleiche Zeile, wenn sie sich zu mehr als der Hälfte überlappen. */
+  const zeilenAusRechtecken = (rechtecke) => {
+    const zeilen = [];
+    for (const r of [...rechtecke].filter((x) => x.height > 0 && x.width > 0).sort((a, b) => a.top - b.top)) {
+      const z = zeilen.at(-1);
+      const ueberlappt = z && Math.min(z.bottom, r.bottom) - Math.max(z.top, r.top) > Math.min(z.bottom - z.top, r.height) / 2;
+      if (ueberlappt) {
+        z.top = Math.min(z.top, r.top);
+        z.bottom = Math.max(z.bottom, r.bottom);
+      } else zeilen.push({ top: r.top, bottom: r.bottom });
+    }
+    return zeilen;
+  };
+  function zeilennummern() {
+    document.querySelectorAll(".zeilennummer").forEach((n) => n.remove());
+    let zaehler = 0;
+    document.querySelectorAll("[data-zeilennummern]").forEach((el) => {
+      const schritt = Number(el.getAttribute("data-zeilennummern")) || 1, seite = el.closest(".seite");
+      if (!seite) return;
+      const bereich = document.createRange();
+      bereich.selectNodeContents(el);
+      const rahmen = seite.getBoundingClientRect(), links = el.getBoundingClientRect().left - rahmen.left;
+      for (const z of zeilenAusRechtecken(bereich.getClientRects())) {
+        zaehler += 1;
+        if (zaehler % schritt !== 0) continue;
+        const n = document.createElement("span");
+        n.className = "zeilennummer";
+        n.setAttribute("aria-hidden", "true");
+        n.textContent = String(zaehler);
+        n.style.top = `${z.top - rahmen.top}px`;
+        n.style.height = `${z.bottom - z.top}px`;
+        n.style.right = `${rahmen.width - links + 10}px`;
+        seite.append(n);
+      }
+    });
+  }
+
+  /* == Punkte und Noten (053) == */
+  /** Zählt die Zahl vor „P“; „/ 4 P“ und „(2,5 P.)“ sind beide Formen des Kits. */
+  const punkteAus = (text) => {
+    const t = /(\d+(?:[.,]\d+)?)\s*P/.exec(text) ?? /(\d+(?:[.,]\d+)?)/.exec(text);
+    return t ? Number(t[1].replace(",", ".")) : 0;
+  };
+  const AUFGABEN_MIT_PUNKTEN = ".seite:not([data-erzeugt]) .aufgabe";
+  /** Sternchenaufgaben zählen nicht zur Note (`klassenarbeit`). */
+  const punkteSumme = () => [...document.querySelectorAll(AUFGABEN_MIT_PUNKTEN)]
+    .filter((a) => !a.querySelector(":scope > .nr.stern"))
+    .reduce((summe, a) => summe + [...a.querySelectorAll(".punkte")].reduce((s, p) => s + punkteAus(p.textContent), 0), 0);
+  const punkteText = (n) => String(n).replace(".", ",");
+  /** Vorschlag, in der Oberfläche als solcher gekennzeichnet; Schema und Test halten ihn an einem Ort. */
+  const NOTEN_VORSCHLAG = "1:95; 2:80; 3:65; 4:50; 5:25";
+  const notenGrenzen = (roh) => {
+    const paare = roh.split(";").map((t) => t.trim()).filter(Boolean).map((t) => t.split(":").map((w) => Number(w)));
+    if (paare.length !== 5 || paare.some(([note], i) => note !== i + 1)) return null;
+    const werte = paare.map((p) => p[1]);
+    return werte.every((w, i) => w > 0 && w <= 100 && (i === 0 || w < werte[i - 1])) ? werte : null;
+  };
+  const notenZeilen = (gesamt, grenzen) => {
+    const schritt = Number.isInteger(gesamt) ? 1 : 0.5;
+    const zeilen = [];
+    let bis = gesamt;
+    grenzen.forEach((p, i) => {
+      const von = Math.ceil((gesamt * p) / 100 / schritt - 1e-9) * schritt;
+      zeilen.push({ note: i + 1, von, bis });
+      bis = von - schritt;
+    });
+    zeilen.push({ note: 6, von: 0, bis });
+    return zeilen;
+  };
+  function gesamtpunkte(el) {
+    const summe = punkteSumme();
+    el.innerHTML = `<span class="gesamt-text">Gesamt:</span> <span class="gesamt-linie"></span> <span>von ${punkteText(summe)} Punkten</span>`;
+  }
+  function notenschluessel(el) {
+    const eigene = el.getAttribute("grenzen"), grenzen = notenGrenzen(eigene || NOTEN_VORSCHLAG);
+    if (!grenzen) abbruch("Die Grenzen brauchen die Form 1:95; 2:80; 3:65; 4:50; 5:25, von oben nach unten kleiner.");
+    const fest = num(el, "gesamt", 0), gesamt = fest > 0 ? fest : punkteSumme();
+    if (gesamt <= 0) {
+      el.innerHTML = '<p class="noten-vorschlag">Im Blatt stehen noch keine Punkte. Gib sie bei den Aufgaben an.</p>';
+      return;
+    }
+    const reihen = notenZeilen(gesamt, grenzen).map((z) => {
+      const leer = z.bis < z.von, bereich = leer ? "–" : z.von === z.bis ? punkteText(z.von) : `${punkteText(z.bis)} bis ${punkteText(z.von)}`;
+      return `<tr><th>Note ${z.note}</th><td>${bereich}</td></tr>`;
+    }).join("");
+    el.innerHTML = `<table class="kit-tabelle kompakt"><thead><tr><th>Note</th><th>Punkte (von ${punkteText(gesamt)})</th></tr></thead><tbody>${reihen}</tbody></table>${eigene ? "" : '<p class="noten-vorschlag">Vorschlag: Prüfe die Grenzen.</p>'}`;
+  }
+  /** Nur zum Eintragen: keine Namen, keine Schülerdaten. */
+  function notenspiegel(el) {
+    const noten = [1, 2, 3, 4, 5, 6];
+    el.innerHTML = `<table class="kit-tabelle kompakt"><thead><tr><th>Note</th>${noten.map((n) => `<th>${n}</th>`).join("")}</tr></thead><tbody><tr><th>Anzahl</th>${noten.map(() => "<td></td>").join("")}</tr></tbody></table><p class="noten-schnitt">Durchschnitt: <span class="gesamt-linie"></span></p>`;
+  }
+  function unterschrift(el) {
+    const felder = attr(el, "felder", "beides");
+    if (!["beides", "datum", "unterschrift"].includes(felder)) abbruch(`Die Felder „${felder}“ gibt es nicht.`);
+    const feld = (t) => `<span class="unterschrift-feld"><span class="gesamt-linie"></span><span>${t}</span></span>`;
+    el.innerHTML = (felder !== "unterschrift" ? feld("Datum") : "") + (felder !== "datum" ? feld(maskiere(attr(el, "text", "Unterschrift"))) : "");
+  }
+  /** Sammelt, was im Blatt schon als Lösung steht. Eine eigene Kopie wäre beim nächsten Ändern falsch. */
+  const loesungenIn = (a) => {
+    const texte = [
+      ...[...a.querySelectorAll("[data-l]")].map((e) => e.getAttribute("data-l")),
+      ...[...a.querySelectorAll("[loesung]")].map((e) => e.getAttribute("loesung")),
+      ...[...a.querySelectorAll(".nur-loesung, x-lueckentext .luecke")].map((e) => e.textContent),
+    ].map((t) => (t ?? "").trim()).filter(Boolean);
+    return texte.length > 0 ? texte.join("; ") : "siehe Lösungsblatt";
+  };
+  const AFB = "data-afb";
+  function erwartungshorizont(el) {
+    if (!document.body.classList.contains("loesung")) { el.innerHTML = ""; return; }
+    const aufgaben = [...document.querySelectorAll(AUFGABEN_MIT_PUNKTEN)];
+    const mitAfb = aufgaben.some((a) => a.hasAttribute(AFB));
+    const zeilen = aufgaben.map((a) => {
+      const nr = a.querySelector(":scope > .nr")?.textContent.trim() ?? "", p = [...a.querySelectorAll(".punkte")].reduce((s, t) => s + punkteAus(t.textContent), 0);
+      return `<tr><th>${maskiere(nr)}</th><td>${maskiere(loesungenIn(a))}</td><td>${p > 0 ? punkteText(p) : ""}</td>${mitAfb ? `<td>${maskiere(a.getAttribute(AFB) ?? "")}</td>` : ""}</tr>`;
+    }).join("");
+    el.innerHTML = `<table class="kit-tabelle kompakt"><thead><tr><th>Aufgabe</th><th>Erwartung</th><th>Punkte</th>${mitAfb ? "<th>Bereich</th>" : ""}</tr></thead><tbody>${zeilen}</tbody></table>`;
+  }
+
   /* == Ende der Abschnitte == */
-  const ARTEN = { "x-suchsel": suchsel, "x-kreuzwort": kreuzwort, "x-loesungswort": loesungswort, "x-uhr": uhr, "x-menge": menge, "x-dienes": dienes, "x-strichpunkt": strichpunkt,
+  const ARTEN = { "x-rechenreihe": rechenreihe, "x-gesamtpunkte": gesamtpunkte, "x-notenschluessel": notenschluessel, "x-notenspiegel": notenspiegel, "x-unterschrift": unterschrift, "x-zuordnen": zuordnen, "x-sortieren": sortieren, "x-beschriften": beschriften, "x-schreibrahmen": schreibrahmen, "x-suchsel": suchsel, "x-kreuzwort": kreuzwort, "x-loesungswort": loesungswort, "x-uhr": uhr, "x-menge": menge, "x-dienes": dienes, "x-strichpunkt": strichpunkt,
     "x-stellentafel": stellentafel, "x-zwanzigerfeld": zwanzigerfeld, "x-zahlenstrahl": zahlenstrahl, "x-timer": timer,
     "x-probe": probe, "x-gluecksrad": gluecksrad, "x-wuerfel": wuerfel, "x-strichliste": strichliste, "x-diagramm": diagramm,
     "x-urne": urne, "x-wahrscheinlichkeit": wahrscheinlichkeit, "x-kombinatorik": kombinatorik,
@@ -5068,7 +5654,9 @@
     "x-lineatur": lineatur, "x-silben": silben, "x-wortarten": wortarten, "x-satzglieder": satzglieder, "x-wortbausteine": wortbausteine, "x-zeitleiste": zeitleiste, "x-jahreskreis": jahreskreis, "x-windrose": windrose, "x-plan": plan, "x-schaltplan": schaltplan, "x-kreislauf": kreislauf, "x-verkehrszeichen": verkehrszeichen, "x-wetter": wetter, "x-rhythmus": rhythmus, "x-noten": noten,
     "x-geld": geld, "x-skala": skala, "x-strecke": strecke, "x-kalender": kalender, "x-zeitspanne": zeitspanne,
     "x-punktfeld": punktfeld, "x-malkreuz": malkreuz, "x-schriftlich": schriftlich,
-    "x-wuerfelbau": wuerfelbau, "x-wuerfelnetz": wuerfelnetz, "x-koerper": koerper, "x-bingo": bingo, "x-domino": domino, "x-spielplan": spielplan };
+    "x-wuerfelbau": wuerfelbau, "x-wuerfelnetz": wuerfelnetz, "x-koerper": koerper, "x-bingo": bingo, "x-domino": domino, "x-spielplan": spielplan,
+    // Zuletzt: Er liest, was die anderen in der Lösung zeichnen.
+    "x-erwartungshorizont": erwartungshorizont };
 
   const zeichne = (f, el) => {
     el.removeAttribute("data-fehler");
@@ -5087,6 +5675,10 @@
       if (ort !== document && ort.matches(tag)) zeichne(f, ort);
       ort.querySelectorAll(tag).forEach((el) => zeichne(f, el));
     }
+    if (ort === document && document.querySelectorAll("[data-zeilennummern]").length > 0) {
+      zeilennummern();
+      document.fonts?.ready.then(zeilennummern);
+    }
   };
   window.abbildungsName = (tag) => NAMEN[tag] || tag;
   /* == Rechenkerne für Tests == */
@@ -5099,7 +5691,9 @@
     mauerWerte, mauerEindeutig, istEindeutig, RECHENDREIECK_GLEICHUNGEN, zauberLoesungen, ketteWerte, leseOperator,
     malkreuzRechnung, addiere, subtrahiereErweitern, subtrahiereEntbuendeln, multipliziere, dividiere, moeglicheFehler, rechnungsplan,
     MUENZEN, SCHEINE, betragText, mindestStueckelung, skalaStriche, kalenderMonat, isoWoche, zeitStationen, dauerText, uhrText,
-    lueckenLesen, lueckeFehler, wortspeicherFehler, ankreuzenLesen, ankreuzenFehler, aussagenLesen, aussagenFehler,
+    rechenreiheEinstellungen, rechenreiheAufgaben, rechnungLesen, mitUebergang, neueZahlen, NEUE_ZAHLEN: Object.keys(NEUE_ZAHLEN),
+    zuordnenLesen, zuordnenFehler, zuordnenFolge, zuordnenKreuzungen, sortierenLesen, sortierenFehler, sortierenFolge, punkteLesen, punkteFehler, beschriftenPlan,
+    punkteAus, notenGrenzen, notenZeilen, NOTEN_VORSCHLAG, zeilenAusRechtecken, lueckenLesen, lueckeFehler, wortspeicherFehler, ankreuzenLesen, ankreuzenFehler, aussagenLesen, aussagenFehler,
     ANDIKA_X_HOEHE, lineaturMass, silbenTeile, pruefeSilben, WORTARTEN, ROLLEN, wortartenTeile, satzLesen, satzUmstellen, kleinImSatz, pruefeBausteine, zeitPos, jahrText, KREISE, PLAN_SYMBOLE, stromTeile, stromkreis, VERKEHRSZEICHEN, WETTER_FORMEN, leseTakte, halsNachOben, balkenGruppen, gruppeNachOben, silbeStandard,
   };
   if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", () => window.zeichneAbbildungen());

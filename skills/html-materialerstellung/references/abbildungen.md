@@ -376,6 +376,15 @@ Muster: `assets/muster/rechenformate.html`. Die Lösung wird immer berechnet. Da
 
 `mitte` Rechenschritt; `zahlen` innerer Ring, 6 bis 10; `offen` `aussen` oder `innen`; `groesse` in px.
 
+### `x-rechenreihe`
+
+```html
+<x-rechenreihe rechenart="+" zahlenraum="20" anzahl="8" uebergang="mit"></x-rechenreihe>
+<x-rechenreihe aufgaben="7 + _ = 12; 3 + 4 = _; _ · 7 = 28; 17 : 5 = _"></x-rechenreihe>
+```
+
+`aufgaben` hält die Rechnungen, je mit genau einem `_`; die Lösung wird immer berechnet, `17 : 5 = _` ergibt „3 R 2“. Ohne `aufgaben` entstehen sie aus den Einstellungen und dem `seed`. `rechenart` `+`, `−`, `·`, `:`. `zahlenraum` 10, 20, 100, 1000, 1000000; welcher zur Klasse passt, steht in `fach-mathematik`. `anzahl` 1 bis 60, `spalten` 1 bis 4. `uebergang` `egal`, `mit`, `ohne` (nur Plus und Minus; `3 + 7` zählt als ohne). `platzhalter` `ergebnis`, `erste`, `zweite`, `gemischt`. `beziehung` `keine`, `tausch`, `umkehr`. `reihe` 1 bis 10 für Einmaleins-Reihen. `rest="1"` beim Teilen. Findet der Generator zu wenige verschiedene Aufgaben, meldet das Element es.
+
 ## Einmaleins und schriftliches Rechnen
 
 Muster: `assets/muster/einmaleins-und-schriftlich.html`. Lösung und Teilergebnisse werden immer berechnet. Der Zahlenraum der Klasse wird geprüft.
@@ -519,6 +528,44 @@ Ohne `woerter`: die Wörter aller Lücken derselben Aufgabe. Fehlt ein Lückenwo
 
 `koepfe`: `richtigfalsch` (Standard), `janein`, `daumen`. Lösung: Kreuz gesetzt.
 
+### `x-zuordnen`
+
+```html
+<x-zuordnen paare="Hund: bellt; Katze: miaut; Kuh: muht"></x-zuordnen>
+<x-zuordnen darstellung="ziffern" seed="a" paare="3 + 4: 7; 5 + 5: 10"></x-zuordnen>
+<x-zuordnen paare="Apfel: Obst: bilder/apfel.png; Möhre: Gemüse: bilder/moehre.png"></x-zuordnen>
+```
+
+`paare` ist `links: rechts: Bild links: Bild rechts`, die Bilder sind freiwillig; 2 bis 10 Paare. `darstellung`: `linien` (Standard), `ziffern`. Rechts ist nie ein Paar schon richtig, von mehreren Mischungen gilt die mit den wenigsten Kreuzungen. Lösung: Linien bzw. Ziffern. Rechts doppelte Einträge meldet das Element, weil es dann zwei Lösungen gäbe.
+
+### `x-sortieren`
+
+```html
+<x-sortieren eintraege="Zuerst keimt der Samen.; Dann wächst der Stängel."></x-sortieren>
+<x-sortieren art="bilder" eintraege="Samen: bilder/samen.png; Blume: bilder/blume.png"></x-sortieren>
+<x-sortieren art="zahlen" darstellung="linien" seed="a" eintraege="3; 7; 12"></x-sortieren>
+```
+
+`eintraege` in der richtigen Reihenfolge, je `Text` oder `Text: Bild`; 2 bis 12. `art`: `saetze` (Standard), `woerter`, `bilder`, `zahlen`. `darstellung`: `ziffer` (Standard), `linien` zum Abschreiben. Die gemischte Reihenfolge ist nie schon die Lösung. Lösung: Ziffern bzw. die Reihenfolge auf den Linien.
+
+### `x-beschriften`
+
+```html
+<x-beschriften bild="bilder/wachstum.png" alt="Pflanze" punkte="12,70: Samen; 88,25: Blume"></x-beschriften>
+<x-beschriften darstellung="nummer" wortspeicher="1" bild="bilder/wachstum.png" alt="Pflanze" punkte="12,70: Samen"></x-beschriften>
+```
+
+`punkte` ist `x,y: Wort` in Prozent des Bilds. `darstellung`: `linien` (Standard, Wörter außerhalb des Bilds, Linien kreuzen sich nicht), `nummer`. Höchstens 6 Punkte je Bildhälfte. `wortspeicher="1"` zeigt die Wörter sortiert. In der Schoolbox setzt die Lehrkraft die Punkte mit Maus oder Finger aufs Bild. Lösung: Wörter eingetragen.
+
+### `x-schreibrahmen`
+
+```html
+<x-schreibrahmen satzanfaenge="Zuerst; Dann; Am Ende" wortspeicher="Samen; Blume"></x-schreibrahmen>
+<x-schreibrahmen planung="1" linien="1" lineatur="3" satzanfaenge="Ich sehe" beispiel="Ich sehe einen Hund."></x-schreibrahmen>
+```
+
+`satzanfaenge` mit `;` getrennt, bis 10. `linien` je Satz 1 bis 6 (Standard 2). `lineatur` `1` bis `4`; ohne Angabe folgt sie der Klasse. `planung="1"` setzt Einleitung, Hauptteil und Schluss davor. `beispiel` steht nur auf dem Lösungsblatt.
+
 ## Deutsch
 
 Muster: `assets/muster/deutsch.html`.
@@ -540,6 +587,57 @@ Muster: `assets/muster/deutsch.html`.
 ```
 
 Inhalt: Text mit `|` an den Silbengrenzen; ein Wort ohne `|` ist eine Silbe. Nicht erlaubt: `||`, `|` am Wortanfang oder -ende, andere Zeichen als Buchstaben, Satzzeichen, Leerzeichen. `darstellung` `boegen`, `farbe`, `beides`; in s/w immer Bögen. `farben` zwei aus `blau`, `rot`, `gruen`, `lila`, `braun`, `schwarz`; je Wort beginnt die erste Farbe neu. `aufgabe` `keine`, `boegen` (Bögen nur im Lösungsblatt), `trennen` (Striche nur im Lösungsblatt). Silbenregeln: `fach-deutsch`.
+
+Im Fließtext: `<x-silben im-text>Ro|si|ne</x-silben>` bleibt in der Zeile.
+
+### Zeilennummern im Lesetext
+
+```html
+<p class="text" data-zeilennummern="5">Text des Lesetexts …</p>
+```
+
+`data-zeilennummern`: `1` jede Zeile, `5` alle 5 Zeilen. Der Browser zählt beim Zeichnen die echten Zeilen, über alle Absätze und Seiten des Dokuments. Keine Nummern von Hand setzen.
+
+### `x-gesamtpunkte`
+
+```html
+<x-gesamtpunkte></x-gesamtpunkte>
+```
+
+Zählt die `.punkte` aller Aufgaben ohne Sternchenaufgaben, also auch nach Umstellen und Löschen richtig. Am `<body>` blendet die Klasse `ohne-punkte` Punkte und Gesamtpunkte aus.
+
+### `x-notenschluessel`
+
+```html
+<x-notenschluessel></x-notenschluessel>
+<x-notenschluessel grenzen="1:90; 2:75; 3:60; 4:45; 5:20" gesamt="20"></x-notenschluessel>
+```
+
+`grenzen`: Prozent für Note 1 bis 5, von oben nach unten kleiner. Ohne `grenzen` gilt der Vorschlag, und das Blatt sagt das. `gesamt`: feste Summe; ohne sie zählt das Blatt wie `x-gesamtpunkte`.
+
+### `x-notenspiegel`
+
+```html
+<x-notenspiegel></x-notenspiegel>
+```
+
+Leere Verteilung und Durchschnitt zum Eintragen. Nie mit Namen von Kindern.
+
+### `x-unterschrift`
+
+```html
+<x-unterschrift felder="beides" text="Unterschrift"></x-unterschrift>
+```
+
+`felder`: `beides`, `datum`, `unterschrift`. `text`: Beschriftung der Unterschrift.
+
+### `x-erwartungshorizont`
+
+```html
+<x-erwartungshorizont></x-erwartungshorizont>
+```
+
+Erscheint nur in der Lösung. Sammelt je Aufgabe `data-l`, `loesung`, `nur-loesung` und Lücken, dazu die Punkte; `data-afb="I"` an der `.aufgabe` ergibt die Spalte Bereich. Rechnet das Blatt anderes (etwa `x-zuordnen`), steht dort „siehe Lösungsblatt“.
 
 ### `x-wortarten`
 

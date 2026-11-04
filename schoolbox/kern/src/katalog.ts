@@ -11,7 +11,7 @@ import { BAUSTEINE, KIT_KATALOG } from './bausteine';
 export interface KatalogEintrag extends KatalogAngaben {
 	id: string;
 	name: string;
-	herkunft: 'abbildung' | 'kit' | 'rezept';
+	herkunft: 'abbildung' | 'eigen' | 'kit' | 'rezept';
 	/** Kennung `data-katalog` im Muster; fehlt, wenn der Eintrag nur eine Klasse setzt. */
 	starter?: string;
 	klasse?: string;
@@ -121,6 +121,9 @@ const REZEPTE: readonly Omit<KatalogEintrag, 'herkunft'>[] = [
 		anweisung: 'Schreibe deine Antwort auf.',
 	},
 ];
+
+/** Kategorie der eigenen Bausteine (051); sie steht nur da, wenn es welche gibt. */
+export const MEINE_BAUSTEINE = 'Meine Bausteine';
 
 const nameImRegister = (art: string) => BAUSTEINE.find((b) => b.art === art)?.name;
 

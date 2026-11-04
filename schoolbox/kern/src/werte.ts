@@ -158,6 +158,18 @@ export const VORLAGE_FORMAT: Record<string, { name: string; format: Format; opti
 	minibuch: { name: 'Mini-Book', format: 'minibuch', optionen: ['Faltbuch aus einem A4-Blatt, 8 Seiten'] },
 };
 
+/** Startvorlagen, die nur zu einer Art passen (051). */
+export const VORLAGE_ART: Record<string, Art> = {
+	lesetext: 'lesetext',
+	karten: 'karten',
+	lernspiel: 'lernspiel',
+	stationen: 'stationen',
+	lernzielkontrolle: 'lernzielkontrolle',
+	lernlandkarte: 'lernzielkontrolle',
+	klassenarbeit: 'klassenarbeit',
+	lernplakat: 'lernplakat',
+};
+
 export const standardFormat = (art: Art, vorlage?: string): Format =>
 	(vorlage === undefined ? undefined : VORLAGE_FORMAT[vorlage]?.format) ?? ART_ANGABEN[art].format;
 

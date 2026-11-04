@@ -18,6 +18,10 @@ import type { Struktur } from './struktur';
 type Zeichner = Window & {
 	zeichneAbbildungen?: (wurzel: Element) => void;
 	setzeAbbildungsInhalt?: (element: Element, wert: string) => void;
+	schoolboxAbbildungen?: {
+		neueZahlen: (tag: string, werte: Werte, seed: string) => Werte | null;
+		NEUE_ZAHLEN: string[];
+	};
 };
 
 /** Was das Zeichnen am Element hinterlässt: Fehler, Felder eines Rasters in der Gestalt des Elements, Hinweis. */
@@ -179,12 +183,27 @@ export const useAbbildung = ({ adresse, basis: bildBasis, geladen, html, pfad, s
 		struktur.aendereAttribute(`${s.name}: ${was ?? 'geändert'}`, (alt) => setzeAbbildung(alt, n, attribute).quelle);
 	};
 
+	/** Neue Zahlen aus `abbildungen.js`, das auch das Blatt zeichnet; `null`, wenn es hier keine gibt. */
+	const gewuerfelt = (ausgang: Werte) => {
+		const { doc: d } = aktuell.current;
+		const fenster = d?.defaultView as Zeichner | null | undefined;
+		return tag && fenster?.schoolboxAbbildungen
+			? fenster.schoolboxAbbildungen.neueZahlen(tag, ausgang, `${Date.now()}-${Math.random()}`)
+			: null;
+	};
+
 	const aendere = (feld: Feld, wert: string | null, { nurLoesung, uebernehmen = true }: Aenderung = {}) => {
 		const { basis: b, schema: s, werte: w } = aktuell.current;
 		if (!s || !w || b === null) {
 			return;
 		}
-		const neu = aendereFeld(s, w, feld, wert, nurLoesung);
+		const geaendert = aendereFeld(s, w, feld, wert, nurLoesung);
+		// Die erzeugten Aufgaben gehören zu den Einstellungen: Ändert sich eine, entstehen sie neu.
+		const erzeugt = s.generiert && feld.attribut !== s.generiert ? gewuerfelt(geaendert) : null;
+		const neu =
+			s.generiert && feld.attribut !== s.generiert
+				? { ...geaendert, [s.generiert]: erzeugt?.[s.generiert] ?? null }
+				: geaendert;
 		aktuell.current = { ...aktuell.current, werte: neu };
 		setEntwurf({ basis: b, werte: neu });
 		if (uebernehmen) {
@@ -194,12 +213,34 @@ export const useAbbildung = ({ adresse, basis: bildBasis, geladen, html, pfad, s
 
 	const zuruecksetzen = () => setEntwurf(null);
 
+	const kerne = (doc?.defaultView as Zeichner | null)?.schoolboxAbbildungen;
+	const hatNeueZahlen = Boolean(tag && kerne?.NEUE_ZAHLEN.includes(tag));
+
+	/** Ein Schritt in „Rückgängig“; liefert, ob es geklappt hat. */
+	const neueZahlen = () => {
+		const { basis: b, schema: s, werte: w } = aktuell.current;
+		if (!s || !w || b === null) {
+			return false;
+		}
+		const werteNeu = gewuerfelt(w);
+		if (!werteNeu) {
+			return false;
+		}
+		const neu = { ...w, ...werteNeu };
+		aktuell.current = { ...aktuell.current, werte: neu };
+		setEntwurf({ basis: b, werte: neu });
+		uebernimm(neu, 'Neue Zahlen');
+		return true;
+	};
+
 	const offen = Boolean(quelle && werte && unterschiede(quelle, werte).length > 0);
 
 	return {
 		aktiv: struktur.aktiv && schema !== undefined && werte !== null,
 		adresse,
 		bildBasis,
+		doc,
+		nr,
 		schema,
 		werte,
 		fehler,
@@ -212,6 +253,8 @@ export const useAbbildung = ({ adresse, basis: bildBasis, geladen, html, pfad, s
 		aendere,
 		uebernimm: () => uebernimm(),
 		zuruecksetzen,
+		hatNeueZahlen,
+		neueZahlen,
 	};
 };
 

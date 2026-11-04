@@ -96,6 +96,7 @@ describe('Ganzes Blatt', () => {
 			palette: 'himmel',
 			format: 'a4-hoch',
 			trenner: false,
+			punkte: true,
 		});
 		const klasse = setzeBlatt(BLATT, { klasse: 4 });
 		assert.equal(klasse, BLATT.replace('kl2', 'kl4'));

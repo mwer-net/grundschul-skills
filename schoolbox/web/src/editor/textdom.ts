@@ -141,15 +141,142 @@ const normaleTexte = (wurzel: Element) => {
 	return ergebnis;
 };
 
+/** Dekodiert ein Stück Quelltext genau wie der Parser des Browsers. */
+const dekodierer = () => document.createElement('textarea');
+const liesWieBrowser = (roh: string) => {
+	if (!roh.includes('&')) {
+		return roh.replace(/\r\n?/g, '\n');
+	}
+	const feld = dekodierer();
+	// Das `x` schützt einen Zeilenumbruch am Anfang: Den würde das Textfeld verschlucken.
+	feld.innerHTML = `x${roh.replace(/</g, '&lt;')}`;
+	return feld.value.slice(1);
+};
+
+/** Wie viele Zeichen der Quelle die ersten `n` gelesenen Zeichen sind; nie mitten in einer Entität. */
+const rohLaenge = (roh: string, n: number) => {
+	let gelesen = 0;
+	let laenge = 0;
+	for (const teil of roh.matchAll(/&#?\w+;|[\s\S]/g)) {
+		const anzahl = liesWieBrowser(teil[0]).length;
+		if (gelesen + anzahl > n) {
+			break;
+		}
+		gelesen += anzahl;
+		laenge += teil[0].length;
+	}
+	return { gelesen, laenge };
+};
+
+const gleicherAnfang = (a: string, b: string) => {
+	let i = 0;
+	while (i < a.length && a[i] === b[i]) {
+		i += 1;
+	}
+	return i;
+};
+
+const gleichesEnde = (a: string, b: string, grenze: number) => {
+	let i = 0;
+	while (i < grenze && a[a.length - 1 - i] === b[b.length - 1 - i]) {
+		i += 1;
+	}
+	return i;
+};
+
+/**
+ * Ein geändertes Textstück: Vorn und hinten bleibt die Quelle wörtlich, nur der geänderte Teil dazwischen wird neu
+ * geschrieben. So führt eine Hin- und Rückänderung immer zur selben Quelle zurück.
+ */
+const flicke = (stuecke: Map<string, string>, neu: string, schreibe: (von: number, bis: number) => string) => {
+	let bestes: { roh: string; dekodiert: string; vorn: number; hinten: number } | null = null;
+	for (const [dekodiert, roh] of stuecke) {
+		const vorn = gleicherAnfang(dekodiert, neu);
+		const hinten = gleichesEnde(dekodiert, neu, Math.min(dekodiert.length, neu.length) - vorn);
+		if (vorn + hinten > (bestes ? bestes.vorn + bestes.hinten : 0)) {
+			bestes = { roh, dekodiert, vorn, hinten };
+		}
+	}
+	if (!bestes) {
+		return schreibe(0, neu.length);
+	}
+	const { dekodiert, hinten, roh, vorn } = bestes;
+	const anfang = rohLaenge(roh, vorn);
+	const rohGanz = rohLaenge(roh, dekodiert.length);
+	const bisEnde = rohLaenge(roh, dekodiert.length - hinten);
+	const rest = rohGanz.gelesen - bisEnde.gelesen;
+	const start = roh.slice(0, anfang.laenge);
+	const ende = roh.slice(Math.max(bisEnde.laenge, anfang.laenge));
+	return `${start}${schreibe(anfang.gelesen, neu.length - rest)}${ende}`;
+};
+
 const oeffnerVon = (z: Zerlegung, k: Knoten) => z.quelle.slice(k.start, k.oeffnerEnde);
 
+/** So, wie es im Blatt steht: Manche Quellen schreiben `&nbsp;`, andere das Zeichen selbst. */
+const geschuetztesLeerzeichen = (quelle: string) =>
+	quelle.split('\u00a0').length > quelle.split('&nbsp;').length ? '\u00a0' : '&nbsp;';
+
+const schliesserVon = (z: Zerlegung, k: Knoten) => z.quelle.slice(k.schliesserStart, k.ende);
+
+/** Markiert Tags aus der Quelle: Sie werden weder abgeschnitten (`<br>` am Ende) noch zusammengezogen (`</b><b>`). */
+const AUS_DER_QUELLE = '\u0001';
+
+/**
+ * Die Textstücke direkt in einem Quellelement, wörtlich und so, wie der Browser sie liest: Was nicht geändert wurde,
+ * kommt Byte für Byte zurück (`&auml;`, `&quot;`, Zeilenumbrüche). Frei gestaltetes Material ist keine Vorlage, und
+ * eine Änderung an einem Wort darf den Rest seiner Quelle nicht umschreiben (054).
+ */
+const textStuecke = (z: Zerlegung, k: Knoten) => {
+	const stuecke = new Map<string, string>();
+	const merke = (von: number, bis: number) => {
+		for (const roh of z.quelle.slice(von, bis).split(/<!--[\s\S]*?-->/)) {
+			if (roh) {
+				stuecke.set(liesWieBrowser(roh), roh);
+			}
+		}
+	};
+	let pos = k.oeffnerEnde;
+	for (const kind of k.kinder) {
+		merke(pos, kind.start);
+		pos = kind.ende;
+	}
+	merke(pos, k.schliesserStart);
+	return stuecke;
+};
+
 /** Quelltext für den Inhalt eines bearbeiteten Elements: Text, `<b>`, `<u>`, `<br>`, Geschütztes wörtlich. */
+/** Vom Browser erzeugte Formatierung: Doppeltes fällt weg, Fremdes verliert nur sein Element. */
+const formatKnoten = (tag: string, fett: boolean, unter: boolean, kinder: (f: boolean, u: boolean) => string) => {
+	if (tag === 'b' || tag === 'strong') {
+		return fett ? kinder(fett, unter) : `<b>${kinder(true, unter)}</b>`;
+	}
+	if (tag === 'u') {
+		return unter ? kinder(fett, unter) : `<u>${kinder(fett, true)}</u>`;
+	}
+	return tag === 'mark' ? `<mark>${kinder(fett, unter)}</mark>` : kinder(fett, unter);
+};
+
 export const textHtml = (element: Element, z: Zerlegung, zeilen: Zeilen) => {
 	const texte = normaleTexte(element);
+	const leerzeichen = geschuetztesLeerzeichen(z.quelle);
+	const stueckeVon = (el: Element | null) => {
+		const nr = el ? nrVon(el) : null;
+		const k = nr === null ? undefined : z.knoten[nr];
+		return k?.tag === el?.localName && k ? textStuecke(z, k) : null;
+	};
 	const knoten = (n: Node, fett: boolean, unter: boolean): string => {
 		const kinder = (f: boolean, u: boolean) => [...n.childNodes].map((kind) => knoten(kind, f, u)).join('');
 		if (n.nodeType === TEXT) {
-			return schuetzeText(texte.get(n) ?? (n as Text).data).replace(/\u00a0/g, '&nbsp;');
+			const { data } = n as Text;
+			const stuecke = stueckeVon(n.parentElement);
+			const roh = stuecke?.get(data);
+			if (roh !== undefined) {
+				return roh;
+			}
+			const lesbar = texte.get(n) ?? data;
+			const schreibe = (von: number, bis: number) =>
+				schuetzeText(lesbar.slice(von, bis)).replace(/\u00a0/g, leerzeichen);
+			return stuecke ? flicke(stuecke, data, schreibe) : schreibe(0, data.length);
 		}
 		if (n.nodeType === KOMMENTAR) {
 			return `<!--${(n as Comment).data}-->`;
@@ -165,19 +292,19 @@ export const textHtml = (element: Element, z: Zerlegung, zeilen: Zeilen) => {
 			return passt ? quelleVon(z, passt) : '';
 		}
 		if (tag === 'br') {
+			if (passt) {
+				return `${quelleVon(z, passt)}${AUS_DER_QUELLE}`;
+			}
 			return zeilen === 'eine' ? ' ' : '<br>';
 		}
-		if (tag === 'b' || tag === 'strong') {
-			return fett ? kinder(fett, unter) : `<b>${kinder(true, unter)}</b>`;
+		const fettNeu = fett || tag === 'b' || tag === 'strong';
+		const unterNeu = unter || tag === 'u';
+		// Was schon in der Quelle stand (z. B. `<span class="aufdecken">`, `<strong>`), bleibt; was der Browser erfunden
+		// hat, fällt weg.
+		if (passt) {
+			return `${oeffnerVon(z, passt)}${AUS_DER_QUELLE}${kinder(fettNeu, unterNeu)}${schliesserVon(z, passt)}${AUS_DER_QUELLE}`;
 		}
-		if (tag === 'u') {
-			return unter ? kinder(fett, unter) : `<u>${kinder(fett, true)}</u>`;
-		}
-		if (tag === 'mark') {
-			return `<mark>${kinder(fett, unter)}</mark>`;
-		}
-		// Was schon in der Quelle stand (z. B. `<span class="aufdecken">`), bleibt; was der Browser erfunden hat, fällt weg.
-		return passt ? `${oeffnerVon(z, passt)}${kinder(fett, unter)}</${tag}>` : kinder(fett, unter);
+		return formatKnoten(tag, fett, unter, kinder);
 	};
 	let html = [...element.childNodes].map((n) => knoten(n, false, false)).join('');
 	for (let vorher = ''; vorher !== html;) {
@@ -185,7 +312,7 @@ export const textHtml = (element: Element, z: Zerlegung, zeilen: Zeilen) => {
 		html = html.replace(/<(b|u|mark)><\/\1>/g, '').replace(/<\/(b|u|mark)><\1>/g, '');
 	}
 	// Ein leeres Feld hält der Browser mit einem `<br>` offen.
-	return html.replace(/(<br>\s*)+$/, '');
+	return html.replace(/(<br>\s*)+$/, '').replaceAll(AUS_DER_QUELLE, '');
 };
 
 const istLeer = (html: string) => html.replace(/<!--[\s\S]*?-->/g, '').trim() === '';
@@ -338,10 +465,14 @@ export const ruesteText = ({
 			.map((el) => ({ el, html: textHtml(el, z, zeilen), neu: !s.originale.some((k) => nrVon(el) === k.nr) }))
 			.filter((t, i, alle) => !t.neu || !istLeer(t.html) || alle.length === 1);
 		const tag = s.originale[0]?.tag ?? element.localName;
+		const schliesser = (el: HTMLElement) => {
+			const k = s.originale.find((o) => o.nr === nrVon(el));
+			return k ? schliesserVon(z, k) : `</${tag}>`;
+		};
 		const aenderung = ersetzeFolge(
 			z,
 			s.originale,
-			fassungen.map((t) => `${s.oeffner.get(t.el) ?? `<${tag}>`}${t.html}</${tag}>`),
+			fassungen.map((t) => `${s.oeffner.get(t.el) ?? `<${tag}>`}${t.html}${schliesser(t.el)}`),
 		)[0];
 		const quelle = aenderung ? wendeAn(z.quelle, [aenderung]) : z.quelle;
 		if (!aenderung || quelle === z.quelle) {

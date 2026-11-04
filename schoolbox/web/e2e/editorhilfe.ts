@@ -10,6 +10,7 @@ import { dokumentOrdner, expect, legeMappeAn } from './hilfe';
 export interface TestZugriff {
 	quelle: () => string | null;
 	aendere: (neu: string, beschreibung?: string) => void;
+	art: (element: Element) => string | null;
 }
 
 export const uhrzeit = async () => {

@@ -14,8 +14,8 @@
  */
 
 import { schemaVon } from './abbildungen';
-import type { Baustein } from './bausteine';
-import { BAUSTEINE } from './bausteine';
+import type { Baustein, Sicht } from './bausteine';
+import { bausteinUeber } from './bausteine';
 import { FACH_NAME } from './namen';
 import type { Knoten, Zerlegung } from './quelltext';
 import { attribut, entschluessele, klassenVon } from './quelltext';
@@ -146,8 +146,21 @@ const kettePasst = (k: Knoten, kette: Kette, i: number, loesung: boolean): boole
 export const passt = (k: Knoten, selektor: string, loesung: boolean) =>
 	ketten(selektor).some((kette) => kettePasst(k, kette, kette.teile.length - 1, loesung));
 
+const sichtVon = (loesung: boolean): Sicht<Knoten> => ({
+	passt: (k, selektor) => passt(k, selektor, loesung),
+	tag: (k) => k.tag,
+	eltern: (k) => k.eltern,
+	kinder: (k) => k.kinder,
+	eigenerText: (k) => k.eigenerText === true,
+	attribut: (k, name) => {
+		const a = attribut(k, name);
+		return a ? (a.wert ?? '') : null;
+	},
+});
+const SICHTEN = { mit: sichtVon(true), ohne: sichtVon(false) };
+
 export const bausteinVonKnoten = (k: Knoten, loesung: boolean): Baustein | undefined =>
-	BAUSTEINE.find((b) => passt(k, b.selektor, loesung));
+	bausteinUeber(loesung ? SICHTEN.mit : SICHTEN.ohne, k);
 
 // ── Pfad und Textprobe ──────────────────────────────────────────────────────
 

@@ -28,6 +28,8 @@ export interface Knoten {
 	ende: number;
 	eltern: Knoten | null;
 	kinder: Knoten[];
+	/** Steht Text direkt im Element, außerhalb seiner Kinder und Kommentare? */
+	eigenerText?: boolean;
 }
 
 export interface Zerlegung {
@@ -145,6 +147,19 @@ const leseAttribute = (quelle: string, ab: number): { attribute: Attribut[]; end
 	const schluss = quelle.indexOf('>', pos);
 	const ende = schluss === -1 ? quelle.length : schluss + 1;
 	return { attribute, ende, selbst: quelle.slice(pos, ende).trim().startsWith('/') };
+};
+
+const LEERE_ENTITAET = /&(nbsp|#160|#xa0);/gi;
+
+const hatEigenenText = (quelle: string, k: Knoten) => {
+	let pos = k.oeffnerEnde;
+	const stuecke: string[] = [];
+	for (const kind of k.kinder) {
+		stuecke.push(quelle.slice(pos, kind.start));
+		pos = kind.ende;
+	}
+	stuecke.push(quelle.slice(pos, k.schliesserStart));
+	return stuecke.some((t) => /[^\s\u00a0]/.test(t.replace(/<!--[\s\S]*?-->/g, '').replace(LEERE_ENTITAET, '')));
 };
 
 export const zerlege = (quelle: string): Zerlegung => {
@@ -275,6 +290,9 @@ export const zerlege = (quelle: string): Zerlegung => {
 		stapel.push(neu);
 	}
 	schliesse(0, quelle.length);
+	for (const k of knoten) {
+		k.eigenerText = hatEigenenText(quelle, k);
+	}
 	return { quelle, knoten, wurzeln };
 };
 
