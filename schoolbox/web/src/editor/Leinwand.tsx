@@ -14,6 +14,8 @@ import { ruesteZiehen } from './ziehen';
 interface Masse {
 	breite: number;
 	hoehe: number;
+	/** Höhe einer Seite samt Rand: das Maß fürs Einpassen. */
+	seite: number;
 }
 
 interface Rahmen {
@@ -41,7 +43,10 @@ interface Eigenschaften {
 	auswahlName: string | null;
 	waehle: (nr: number | null) => void;
 	/** 1 = auf die Breite eingepasst. */
-	zoom: number;
+	/** Faktor auf die Breite des Fensters, oder die ganze Seite im Sichtfeld. */
+	zoom: number | 'einpassen';
+	/** Meldet den echten Maßstab und den wirksamen Faktor, auch beim Einpassen. */
+	meldeMassstab?: (massstab: { skala: number; stufe: number }) => void;
 	/** Tasten aus dem Material, z. B. Cmd+Z, während der Fokus im `iframe` liegt. */
 	taste: (e: KeyboardEvent) => void;
 	/** Das sichtbare Dokument, sobald es fertig ist, mit dem HTML, aus dem es entstand. */
@@ -69,6 +74,7 @@ const ECKEN = [
 const GRIFF = 44;
 
 const RAND = 16;
+const MAX_EINGEPASST = 2;
 const LADE_BREITE = 1600;
 /** Weiter bewegt oder länger gedrückt ist kein Antippen mehr, sondern Wischen bzw. Halten. */
 const TIPP_WEG = 10;
@@ -89,7 +95,9 @@ const rollbarUm = (element: HTMLElement | null) => {
 const miss = (doc: Document): Masse => {
 	const seiten = [...doc.querySelectorAll<HTMLElement>('.seite')];
 	const blatt = Math.max(0, ...seiten.map((s) => s.offsetWidth)) || doc.documentElement.scrollWidth;
-	return { breite: blatt + 2 * RAND, hoehe: doc.documentElement.scrollHeight };
+	const erste = seiten[0];
+	const seite = erste ? erste.offsetHeight + 2 * erste.offsetTop : doc.documentElement.scrollHeight;
+	return { breite: blatt + 2 * RAND, hoehe: doc.documentElement.scrollHeight, seite };
 };
 
 interface GriffEigenschaften {
@@ -257,10 +265,12 @@ export const Leinwand = ({
 	waehle,
 	ziehbar,
 	zoom,
+	meldeMassstab,
 }: Eigenschaften) => {
 	const behaelter = useRef<HTMLDivElement>(null);
 	const naechste = useRef(0);
 	const [breite, setBreite] = useState(0);
+	const [sichtHoehe, setSichtHoehe] = useState(0);
 	const [rahmen, setRahmen] = useState<Rahmen[]>([]);
 	const [doc, setDoc] = useState<Document | null>(null);
 	const [zug, setZug] = useState<ZugAnzeige | null>(null);
@@ -295,8 +305,15 @@ export const Leinwand = ({
 		if (!element) {
 			return undefined;
 		}
-		const beobachter = new ResizeObserver(() => setBreite(element.clientWidth));
+		const ansicht = element.parentElement;
+		const beobachter = new ResizeObserver(() => {
+			setBreite(element.clientWidth);
+			setSichtHoehe(ansicht?.clientHeight ?? 0);
+		});
 		beobachter.observe(element);
+		if (ansicht) {
+			beobachter.observe(ansicht);
+		}
 		return () => beobachter.disconnect();
 	}, []);
 
@@ -389,8 +406,15 @@ export const Leinwand = ({
 	const sichtbar = rahmen.findLast((r) => r.masse !== null);
 	const masse = sichtbar?.masse ?? null;
 	const passend = masse && breite > 0 ? Math.min(1, breite / masse.breite) : 1;
-	const skala = passend * zoom;
+	const eingepasst =
+		masse && breite > 0 && sichtHoehe > 0
+			? Math.min(MAX_EINGEPASST, breite / masse.breite, sichtHoehe / masse.seite)
+			: passend;
+	const skala = zoom === 'einpassen' ? eingepasst : passend * zoom;
 	skalaJetzt.current = skala;
+	useEffect(() => {
+		meldeMassstab?.({ skala, stufe: skala / passend });
+	}, [meldeMassstab, skala, passend]);
 	const innenBreite = masse ? Math.max(breite, masse.breite * skala) : breite;
 	const links = masse ? Math.max(0, (innenBreite - masse.breite * skala) / 2) : 0;
 
@@ -400,7 +424,7 @@ export const Leinwand = ({
 	return (
 		<div
 			ref={behaelter}
-			className="relative w-full overflow-x-auto rounded-2xl bg-leinwand"
+			className="relative w-full overflow-x-auto bg-leinwand"
 			data-leinwand
 			data-geladen={masse ? 'ja' : undefined}
 			onClick={(e) => {

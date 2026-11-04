@@ -53,7 +53,7 @@ test.describe('Editor: ganzes Blatt und Einstellungen (046, 048)', () => {
 	test('Lückentext: einfügen, im Panel ändern, ohne Lücke ein Hinweis statt Speichern', async ({ druecke, page }) => {
 		const { dok, id } = await uhrzeit();
 		await oeffne(page, id, dok);
-		await page.getByRole('button', { name: 'Bausteine' }).click();
+		await page.getByRole('tab', { name: 'Bausteine' }).click();
 		await page.getByRole('searchbox', { name: 'Baustein suchen' }).fill('Lückentext');
 		await page.locator('[data-einfuegen="x-lueckentext"]').click();
 		const element = material(page).locator('x-lueckentext');

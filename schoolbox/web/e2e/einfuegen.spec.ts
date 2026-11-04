@@ -10,7 +10,7 @@ test.describe('Editor: Bausteine einfügen', () => {
 		const { dok, id } = await uhrzeit();
 		await oeffne(page, id, dok);
 		const vorher = await quelle(page);
-		await page.getByRole('button', { name: 'Bausteine' }).click();
+		await page.getByRole('tab', { name: 'Bausteine' }).click();
 		await page.getByRole('searchbox', { name: 'Baustein suchen' }).fill('Uhr');
 		await page.locator('[data-einfuegen="x-uhr"]').click();
 		await expect.poll(() => quelle(page)).not.toBe(vorher);
@@ -33,7 +33,7 @@ test.describe('Editor: Bausteine einfügen', () => {
 	test('Ziehen aus der Bibliothek legt an der Stelle unter dem Zeiger ab', async ({ page }) => {
 		const { dok, id } = await uhrzeit();
 		await oeffne(page, id, dok);
-		await page.getByRole('button', { name: 'Bausteine' }).click();
+		await page.getByRole('tab', { name: 'Bausteine' }).click();
 		await page.getByRole('searchbox', { name: 'Baustein suchen' }).fill('Schreiblinie');
 		const griff = await page.locator('[data-ziehgriff="schreiblinie"]').boundingBox();
 		const ziel = await page.locator('[data-editor-rahmen="sichtbar"]').boundingBox();
@@ -50,7 +50,7 @@ test.describe('Editor: Bausteine einfügen', () => {
 	test('Ziehen mit dem Finger (Pointer-Ereignisse mit Touch)', async ({ page }) => {
 		const { dok, id } = await uhrzeit();
 		await oeffne(page, id, dok);
-		await page.getByRole('button', { name: 'Bausteine' }).click();
+		await page.getByRole('tab', { name: 'Bausteine' }).click();
 		await page.getByRole('searchbox', { name: 'Baustein suchen' }).fill('Schreiblinie');
 		const griff = page.locator('[data-ziehgriff="schreiblinie"]');
 		const ziel = await page.locator('[data-editor-rahmen="sichtbar"]').boundingBox();
@@ -124,7 +124,7 @@ test.describe('Editor: Bausteine einfügen', () => {
 		const { dok, id } = await uhrzeit();
 		await oeffne(page, id, dok);
 		const vorher = await quelle(page);
-		await page.getByRole('button', { name: 'Gliederung' }).click();
+		await page.getByRole('tab', { name: 'Gliederung' }).click();
 		const zeilen = page.locator('[data-gliederung-aufgabe]');
 		await zeilen.nth(0).getByRole('button', { name: 'Nach unten' }).click();
 		await expect.poll(() => quelle(page)).not.toBe(vorher);

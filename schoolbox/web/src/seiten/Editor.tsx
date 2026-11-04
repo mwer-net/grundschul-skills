@@ -4,6 +4,7 @@ import type { Zerlegung } from '@schoolbox/kern/src/quelltext';
 import { zerlege } from '@schoolbox/kern/src/quelltext';
 import { hatNamenszeile } from '@schoolbox/kern/src/struktur';
 import type { Druckprofil, Format } from '@schoolbox/kern/src/werte';
+import { FORMAT_NAME } from '@schoolbox/kern/src/werte';
 import type { ReactNode } from 'react';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import type { SetURLSearchParams } from 'react-router-dom';
@@ -11,13 +12,13 @@ import { useLocation, useNavigate, useSearchParams } from 'react-router-dom';
 
 import type { ApiFehler } from '../api';
 import { lade, meldung } from '../api';
-import { Chip } from '../bausteine/Chip';
 import { useHinweis } from '../bausteine/hinweis';
-import { klassen } from '../bausteine/klassen';
 import { Knopf, KnopfLink } from '../bausteine/Knopf';
+import { Menue } from '../bausteine/Menue';
 import { ProfilSchalter } from '../bausteine/ProfilSchalter';
-import type { SymbolName } from '../bausteine/Symbol';
+import { Segment } from '../bausteine/Segment';
 import { Symbol } from '../bausteine/Symbol';
+import { SymbolKnopf } from '../bausteine/SymbolKnopf';
 import { Zustand } from '../bausteine/Zustand';
 import { useAbbildung } from '../editor/abbildung';
 import { Abbildungswerkzeug } from '../editor/Abbildungspanel';
@@ -34,14 +35,18 @@ import { useEinfuegen, useSlash, useTabelleTab } from '../editor/einfuegen';
 import { useKiZustand } from '../editor/ki';
 import { Leinwand } from '../editor/Leinwand';
 import { leistenHtml } from '../editor/leiste';
+import type { LinksName } from '../editor/LinkeLeiste';
+import { LinkeLeiste } from '../editor/LinkeLeiste';
 import { useLoesung } from '../editor/loesung';
 import { Loesungsuebersicht, Loesungswerkzeug } from '../editor/Loesungspanel';
 import { AuswahlPanel, Blattwerkzeug, Strukturwerkzeug, Textwerkzeug } from '../editor/Panel';
-import { Pruefhinweise, Pruefliste } from '../editor/Pruefliste';
+import { Pruefhinweise } from '../editor/Pruefliste';
 import type { Pruefpunkt } from '../editor/pruefung';
 import { usePruefung } from '../editor/pruefung';
 import { Seitenleiste } from '../editor/Seitenleiste';
 import { Sprachwerkzeug } from '../editor/Sprachwerkzeug';
+import type { ZoomWert } from '../editor/Statusleiste';
+import { gemerkterZoom, merkeZoom, Statusleiste, useSichtbareSeite } from '../editor/Statusleiste';
 import type { Struktur } from '../editor/struktur';
 import { useStruktur } from '../editor/struktur';
 import { useText } from '../editor/text';
@@ -56,8 +61,6 @@ import { PdfKnopf } from '../pdf/PdfKnopf';
 import { dokumentWahl, materialName } from '../pdf/wahl';
 import type { DokumentEintrag, Mappe, MappenEintrag } from '../typen';
 
-const ZOOM_STUFEN = [0.5, 0.75, 1, 1.25, 1.5, 2];
-
 interface Eigenschaften {
 	mappe: string;
 	dok: string;
@@ -70,77 +73,55 @@ interface TestZugriff {
 	art: (element: Element) => string | null;
 }
 
-const SymbolKnopf = ({
-	aktion,
-	aus,
-	name,
-	symbol,
-}: {
-	name: string;
-	symbol: SymbolName;
-	aus: boolean;
-	aktion: () => void;
-}) => (
-	<Knopf art="zweit" className="px-3" aria-label={name} title={name} disabled={aus} onClick={aktion}>
-		<Symbol name={symbol} />
-	</Knopf>
-);
-
-const Zoom = ({ setZoom, zoom }: { zoom: number; setZoom: (zoom: number) => void }) => {
-	const stufe = ZOOM_STUFEN.indexOf(zoom);
-	return (
-		<div className="mb-2 flex items-center justify-end gap-1" role="group" aria-label="Größe">
-			<SymbolKnopf
-				name="Kleiner"
-				symbol="minus"
-				aus={stufe <= 0}
-				aktion={() => setZoom(ZOOM_STUFEN[stufe - 1] ?? zoom)}
-			/>
-			<button
-				type="button"
-				className="h-knopf min-w-16 rounded-xl px-2 font-medium text-leise hover:bg-flaeche-2"
-				title="Auf die Breite einpassen"
-				onClick={() => setZoom(1)}
-			>
-				{`${Math.round(zoom * 100)} %`}
-			</button>
-			<SymbolKnopf
-				name="Größer"
-				symbol="plus"
-				aus={stufe >= ZOOM_STUFEN.length - 1}
-				aktion={() => setZoom(ZOOM_STUFEN[stufe + 1] ?? zoom)}
-			/>
-		</div>
-	);
-};
+const Trenner = () => <span aria-hidden className="mx-1 h-4 w-px flex-none bg-rand" />;
 
 interface KopfEigenschaften {
+	mappe: string;
 	titel: string;
 	stand: ReactNode;
 	verlassen: () => void;
-	kannZurueck: boolean;
-	kannVor: boolean;
-	zurueck: () => void;
-	vor: () => void;
+	mitte: ReactNode;
 	children: ReactNode;
 }
 
-const Kopfleiste = ({ children, kannVor, kannZurueck, stand, titel, verlassen, vor, zurueck }: KopfEigenschaften) => (
-	<header className="z-20 flex flex-wrap items-center gap-x-4 gap-y-2 border-b border-rand bg-flaeche px-6 py-3 max-lg:px-4">
-		<Knopf art="leise" className="-ml-3 px-3" onClick={verlassen}>
-			<Symbol name="zurueck" />
-			Zurück
-		</Knopf>
-		<div className="min-w-0 flex-1">
-			<h1 className="truncate text-xl">{titel}</h1>
-			{stand}
+/** Drei Zonen: links wo man ist, in der Mitte die Ansicht, rechts die Aktionen mit genau einer Hauptaktion. */
+const Kopfleiste = ({ children, mappe, mitte, stand, titel, verlassen }: KopfEigenschaften) => (
+	<header
+		className="@container z-kopf flex min-h-10 flex-none items-center gap-2 border-b border-rand bg-flaeche px-2 max-lg:flex-wrap max-lg:py-1"
+		data-kopf
+	>
+		<div className="flex min-w-0 flex-1 items-center gap-1.5">
+			<SymbolKnopf symbol="zurueck" beschriftung="Zurück" onClick={verlassen} />
+			<span className="truncate text-leise @max-[1150px]:hidden">{mappe}</span>
+			<span aria-hidden className="text-dezent @max-[1150px]:hidden">
+				/
+			</span>
+			<h1 className="min-w-0 truncate text-sm font-medium">{titel}</h1>
+			<div className="flex-none">{stand}</div>
 		</div>
-		<div className="flex gap-2">
-			<SymbolKnopf name="Rückgängig (⌘Z)" symbol="rueckgaengig" aus={!kannZurueck} aktion={zurueck} />
-			<SymbolKnopf name="Wiederholen (⇧⌘Z)" symbol="wiederholen" aus={!kannVor} aktion={vor} />
-		</div>
-		{children}
+		<div className="flex flex-none items-center gap-1.5">{mitte}</div>
+		<div className="flex min-w-max flex-1 items-center justify-end gap-1">{children}</div>
 	</header>
+);
+
+/** Knopf mit Symbol und Text im Kopf. Wird es eng, bleibt das Symbol; der Name bleibt für Hilfsmittel und Tooltip. */
+const KopfKnopf = ({
+	aktion,
+	aktiv,
+	name,
+	symbol,
+	titel,
+}: {
+	name: string;
+	titel: string;
+	symbol: 'sprechblase' | 'uhr';
+	aktiv: boolean;
+	aktion: () => void;
+}) => (
+	<Knopf art="leise" aria-label={name} aria-pressed={aktiv} className="aria-pressed:bg-flaeche-2" onClick={aktion}>
+		<Symbol name={symbol} />
+		<span className="@max-[1000px]:hidden">{titel}</span>
+	</Knopf>
 );
 
 /**
@@ -270,7 +251,11 @@ const Fehlt = ({ fehler }: { fehler: ApiFehler | null }) => (
 	</Zustand>
 );
 
-type PanelName = 'auswahl' | 'versionen' | 'bibliothek' | 'gliederung' | 'claude';
+type RechtsName = 'inspektor' | 'versionen' | 'claude';
+
+const SPEICHER_LINKS = 'schoolbox-panel-links';
+const SPEICHER_RECHTS = 'schoolbox-panel-rechts';
+const LINKS: LinksName[] = ['seiten', 'gliederung', 'bausteine'];
 
 /** Im Editor lässt sich das Format ändern (046): Es gilt, was in der Quelle steht. */
 const formatVon = (verlauf: { quelle: string } | null, sonst: Format) =>
@@ -281,28 +266,47 @@ const schritte = (verlauf: { zurueck: unknown[]; vor: unknown[] } | null, frei: 
 	kannZurueck: frei && Boolean(verlauf?.zurueck.length),
 });
 
-const PanelKnopf = ({
-	children,
-	disabled,
-	name,
-	panel,
-	setPanel,
-}: {
-	children: ReactNode;
-	disabled?: boolean;
-	name: PanelName;
-	panel: PanelName;
-	setPanel: (p: PanelName) => void;
-}) => (
-	<Knopf
-		art={panel === name ? 'haupt' : 'zweit'}
-		aria-pressed={panel === name}
-		disabled={disabled}
-		onClick={() => setPanel(panel === name ? 'auswahl' : name)}
-	>
-		{children}
-	</Knopf>
-);
+/**
+ * Zwei Plätze für Panels, je Gerät gemerkt. „Versionen“ und „Claude“ sind eine Aufgabe des Augenblicks: Sie gehen nach
+ * dem Öffnen eines Dokuments nicht von selbst wieder auf, es sei denn `?claude=1` verlangt es.
+ */
+const usePanels = (neu: boolean, claude: boolean) => {
+	const [links, setLinksName] = useState<LinksName>(() => {
+		if (neu) {
+			return 'bausteine';
+		}
+		return LINKS.find((l) => l === localStorage.getItem(SPEICHER_LINKS)) ?? 'seiten';
+	});
+	const [linksOffen, setLinksZustand] = useState(() => neu || localStorage.getItem(SPEICHER_LINKS) !== 'zu');
+	const [rechts, setRechts] = useState<RechtsName>(claude ? 'claude' : 'inspektor');
+	const [rechtsOffen, setRechtsZustand] = useState(() => claude || localStorage.getItem(SPEICHER_RECHTS) !== 'zu');
+	return {
+		links,
+		linksOffen,
+		rechts,
+		rechtsOffen,
+		setRechts,
+		setLinks: (name: LinksName) => {
+			setLinksName(name);
+			setLinksZustand(true);
+			localStorage.setItem(SPEICHER_LINKS, name);
+		},
+		setLinksOffen: (offen: boolean) => {
+			setLinksZustand(offen);
+			localStorage.setItem(SPEICHER_LINKS, offen ? links : 'zu');
+		},
+		setRechtsOffen: (offen: boolean) => {
+			setRechtsZustand(offen);
+			localStorage.setItem(SPEICHER_RECHTS, offen ? 'offen' : 'zu');
+		},
+		/** „Claude“ und „Versionen“ im Kopf: noch einmal drücken führt zurück zum Inspektor. */
+		wechsleRechts: (name: RechtsName) => {
+			const zurueck = rechts === name && rechtsOffen;
+			setRechts(zurueck ? 'inspektor' : name);
+			setRechtsZustand(true);
+		},
+	};
+};
 
 /** Bibliothek, Slash-Menü, Tab in Tabellen und „auf neue Seite“: alles, was auf dem gerade gezeigten Dokument arbeitet. */
 const useEinfuegeWerkzeuge = ({
@@ -362,12 +366,9 @@ const Bearbeitung = ({ dokument, mappe: mappenDaten }: { mappe: Mappe; dokument:
 	const { alles, stand } = b.speicher;
 	const [auswahl, setAuswahl] = useState<number | null>(null);
 	const [geladen, setGeladen] = useState<{ doc: Document; html: string } | null>(null);
-	const [panel, setPanel] = useState<PanelName>(() => {
-		if (suche.get('claude') === '1') {
-			return 'claude';
-		}
-		return suche.get('neu') === '1' ? 'bibliothek' : 'auswahl';
-	});
+	const panels = usePanels(suche.get('neu') === '1', suche.get('claude') === '1');
+	const [alsVorlage, setAlsVorlage] = useState(false);
+	const ansicht = useRef<HTMLElement>(null);
 	const kiFehler = (useLocation().state as { kiFehler?: string } | null)?.kiFehler;
 	useEffect(() => {
 		if (kiFehler) {
@@ -376,7 +377,12 @@ const Bearbeitung = ({ dokument, mappe: mappenDaten }: { mappe: Mappe; dokument:
 	}, [kiFehler, zeige]);
 	const ki = useKiZustand();
 	const [vorschau, setVorschau] = useState<{ version: VersionEintrag; quelle: string } | null>(null);
-	const [zoom, setZoom] = useState(1);
+	const [zoom, setZoomWert] = useState<ZoomWert>(gemerkterZoom);
+	const [massstab, setMassstab] = useState({ skala: 1, stufe: 1 });
+	const setZoom = (wert: ZoomWert) => {
+		setZoomWert(wert);
+		merkeZoom(wert);
+	};
 	const versionen = useLaden<{ versionen: VersionEintrag[] }>(`${b.adresse}/versionen`);
 	const { neuLaden: versionenNeu } = versionen;
 
@@ -473,12 +479,13 @@ const Bearbeitung = ({ dokument, mappe: mappenDaten }: { mappe: Mappe; dokument:
 		folien: format === 'folie',
 		geladen,
 		html,
-		nachher: () => setPanel('auswahl'),
+		nachher: () => panels.setRechtsOffen(true),
 		setAuswahl,
 		struktur,
 		text,
 	});
 	const zeigePunkt = useZeigePunkt({ loesung, geladen, html, zeigeAn: struktur.zeigeAn, setSuche });
+	const seite = useSichtbareSeite(geladen?.doc ?? null, ansicht, `${massstab.skala}/${geladen?.html.length ?? 0}`);
 
 	const taste = useCallback(
 		(e: KeyboardEvent) => {
@@ -596,19 +603,9 @@ const Bearbeitung = ({ dokument, mappe: mappenDaten }: { mappe: Mappe; dokument:
 				frei={frei}
 			/>
 		),
-		bibliothek: (
-			<Bibliothek
-				einfuegen={einfuegen}
-				mappe={mappenDaten}
-				art={meta.art}
-				doc={docJetzt}
-				setAuswahl={setAuswahl}
-			/>
-		),
-		gliederung: <Gliederung doc={docJetzt} auswahl={auswahl} aktiv={struktur.aktiv} struktur={struktur} />,
 		versionen: (
 			<>
-				<h2 className="mb-3 text-xl">Versionen</h2>
+				<h2 className="mb-2 text-base font-semibold">Versionen</h2>
 				<Versionen
 					versionen={versionen.daten?.versionen ?? null}
 					gewaehlt={vorschau?.version.id ?? null}
@@ -616,7 +613,7 @@ const Bearbeitung = ({ dokument, mappe: mappenDaten }: { mappe: Mappe; dokument:
 				/>
 			</>
 		),
-		auswahl: (
+		inspektor: (
 			<AuswahlPanel pfad={pfad} waehle={setAuswahl} leer={ohneAuswahl}>
 				<Pruefhinweise stand={pruefung.stand} nr={auswahl} />
 				<Textwerkzeug
@@ -655,72 +652,116 @@ const Bearbeitung = ({ dokument, mappe: mappenDaten }: { mappe: Mappe; dokument:
 	};
 	const { kannVor, kannZurueck } = schritte(b.verlauf, frei);
 
+	const links = panels.links === 'bausteine' && !frei ? 'seiten' : panels.links;
+	const linksInhalt = {
+		seiten: <Seiten html={html} zerlegung={zerlegung} struktur={struktur} festeSeiten={format === 'minibuch'} />,
+		gliederung: (
+			<div className="min-h-0 flex-1 overflow-y-auto p-2">
+				<Gliederung doc={docJetzt} auswahl={auswahl} aktiv={struktur.aktiv} struktur={struktur} />
+			</div>
+		),
+		bausteine: (
+			<div className="min-h-0 flex-1 overflow-y-auto p-2">
+				<Bibliothek
+					einfuegen={einfuegen}
+					mappe={mappenDaten}
+					art={meta.art}
+					doc={docJetzt}
+					setAuswahl={setAuswahl}
+				/>
+			</div>
+		),
+	};
+
 	return (
 		<div className="flex h-dvh flex-col bg-papier" data-editor>
 			<Kopfleiste
+				mappe={mappenDaten.titel}
 				titel={meta.titel}
 				stand={<Speicheranzeige stand={stand} erneut={() => void b.speicher.speichere()} />}
 				verlassen={() => void verlassen(dokumentSeite(zugang, dok))}
-				kannZurueck={kannZurueck}
-				kannVor={kannVor}
-				zurueck={zurueck}
-				vor={vor}
+				mitte={
+					<>
+						{mitLoesung && (
+							<Segment
+								beschriftung="Was zeigen?"
+								werte={[
+									{ wert: 'material', titel: materialName(dokument) },
+									{ wert: 'loesung', titel: 'Lösung' },
+								]}
+								wert={loesung ? 'loesung' : 'material'}
+								waehle={(w) => setSuche(w === 'loesung' ? { fassung: 'loesung' } : {}, { replace: true })}
+							/>
+						)}
+						<ProfilSchalter profil={profil} waehle={waehleProfil} />
+					</>
+				}
 			>
-				{mitLoesung && (
-					<div role="group" aria-label="Was zeigen?" className="flex gap-2">
-						<Chip
-							titel={materialName(dokument)}
-							aktiv={!loesung}
-							waehle={() => setSuche({}, { replace: true })}
-						/>
-						<Chip
-							titel="Lösung"
-							aktiv={loesung}
-							waehle={() => setSuche({ fassung: 'loesung' }, { replace: true })}
-						/>
-					</div>
+				<SymbolKnopf
+					symbol="rueckgaengig"
+					beschriftung="Rückgängig"
+					kuerzel="⌘Z"
+					disabled={!kannZurueck}
+					onClick={zurueck}
+				/>
+				<SymbolKnopf
+					symbol="wiederholen"
+					beschriftung="Wiederholen"
+					kuerzel="⇧⌘Z"
+					disabled={!kannVor}
+					onClick={vor}
+				/>
+				<Trenner />
+				{ki.zustand.verfuegbar && (
+					<KopfKnopf
+						name="Mit Claude"
+						titel="Claude"
+						symbol="sprechblase"
+						aktiv={panels.rechts === 'claude' && panels.rechtsOffen}
+						aktion={() => panels.wechsleRechts('claude')}
+					/>
 				)}
-				<ProfilSchalter profil={profil} waehle={waehleProfil} />
-				<div className="flex flex-wrap gap-2">
-					<PanelKnopf name="bibliothek" panel={panel} setPanel={setPanel} disabled={!frei}>
-						<Symbol name="plus" />
-						Bausteine
-					</PanelKnopf>
-					<PanelKnopf name="gliederung" panel={panel} setPanel={setPanel}>
-						Gliederung
-					</PanelKnopf>
-					{ki.zustand.verfuegbar && (
-						<PanelKnopf name="claude" panel={panel} setPanel={setPanel}>
-							<Symbol name="sprechblase" />
-							Mit Claude
-						</PanelKnopf>
-					)}
-					<Knopf
-						art={panel === 'versionen' ? 'haupt' : 'zweit'}
-						aria-pressed={panel === 'versionen'}
-						onClick={() => {
-							setPanel(panel === 'versionen' ? 'auswahl' : 'versionen');
-							setVorschau(null);
-						}}
-					>
-						<Symbol name="uhr" />
-						Versionen
-					</Knopf>
-					<AlsVorlage mappe={mappe} dok={dok} titel={meta.titel} />
-					<PdfKnopf beschriftung="PDF" wahl={wahl} mappe={mappenDaten} warnen rechtsbuendig />
-					{format === 'folie' && (
-						<Knopf art="zweit" onClick={() => void verlassen(praesentationSeite(zugang, dok))}>
-							<Symbol name="praesentieren" />
-							Präsentieren
+				<KopfKnopf
+					name="Versionen"
+					titel="Versionen"
+					symbol="uhr"
+					aktiv={panels.rechts === 'versionen' && panels.rechtsOffen}
+					aktion={() => {
+						panels.wechsleRechts('versionen');
+						setVorschau(null);
+					}}
+				/>
+				<Menue
+					name="Weitere Aktionen"
+					rechtsbuendig
+					ausloeser={
+						<Knopf art="leise" className="size-knopf px-0">
+							<Symbol name="mehr" />
 						</Knopf>
-					)}
-				</div>
+					}
+					eintraege={[{ titel: 'Als Vorlage speichern', symbol: 'blatt', waehle: () => setAlsVorlage(true) }]}
+				/>
+				<Trenner />
+				{format === 'folie' && (
+					<Knopf art="zweit" onClick={() => void verlassen(praesentationSeite(zugang, dok))}>
+						<Symbol name="praesentieren" />
+						Präsentieren
+					</Knopf>
+				)}
+				<PdfKnopf art="haupt" beschriftung="PDF" wahl={wahl} mappe={mappenDaten} warnen rechtsbuendig />
 			</Kopfleiste>
+			{alsVorlage && (
+				<AlsVorlage mappe={mappe} dok={dok} titel={meta.titel} schliessen={() => setAlsVorlage(false)} />
+			)}
 
 			<div className="flex min-h-0 flex-1 max-lg:flex-col">
-				<div className="flex min-h-0 flex-1">
-					<Seiten html={html} zerlegung={zerlegung} struktur={struktur} festeSeiten={format === 'minibuch'} />
-					<main className="min-h-0 flex-1 overflow-y-auto px-6 py-4 max-lg:px-4">
+				<div className="flex min-h-0 min-w-0 flex-1">
+					{panels.linksOffen && (
+						<LinkeLeiste panel={links} setPanel={panels.setLinks} bausteineAus={!frei}>
+							{linksInhalt[links]}
+						</LinkeLeiste>
+					)}
+					<main ref={ansicht} className="min-h-0 min-w-0 flex-1 overflow-y-auto bg-leinwand">
 						{b.konflikt && (
 							<Konfliktleiste
 								urheber={b.konflikt.urheber}
@@ -739,7 +780,6 @@ const Bearbeitung = ({ dokument, mappe: mappenDaten }: { mappe: Mappe; dokument:
 								schliessen={() => setVorschau(null)}
 							/>
 						)}
-						<Zoom zoom={zoom} setZoom={setZoom} />
 						{html !== null && (
 							<Leinwand
 								html={html}
@@ -748,6 +788,7 @@ const Bearbeitung = ({ dokument, mappe: mappenDaten }: { mappe: Mappe; dokument:
 								auswahlName={pfad.at(-1)?.name ?? null}
 								waehle={setAuswahl}
 								zoom={zoom}
+								meldeMassstab={setMassstab}
 								taste={taste}
 								geladen={merken}
 								nurAnsehen={vorschau !== null}
@@ -774,17 +815,31 @@ const Bearbeitung = ({ dokument, mappe: mappenDaten }: { mappe: Mappe; dokument:
 						)}
 					</main>
 				</div>
-				<aside
-					className={klassen(
-						'flex w-[22rem] flex-none flex-col border-l border-rand bg-flaeche',
-						'max-lg:h-[38vh] max-lg:w-auto max-lg:border-t max-lg:border-l-0',
-					)}
-					data-panel={panel}
-				>
-					<Pruefliste stand={pruefung.stand} zeige={zeigePunkt} verschiebe={verschiebeUeberlauf} />
-					<div className="min-h-0 flex-1 overflow-y-auto px-5 py-4 max-lg:px-4">{panelInhalt[panel]}</div>
-				</aside>
+				{panels.rechtsOffen && (
+					<aside
+						className="flex w-[248px] flex-none flex-col border-l border-rand bg-flaeche max-lg:h-[38vh] max-lg:w-auto max-lg:border-t max-lg:border-l-0"
+						data-panel={panels.rechts}
+					>
+						<div className="min-h-0 flex-1 overflow-y-auto p-3">{panelInhalt[panels.rechts]}</div>
+					</aside>
+				)}
 			</div>
+
+			<Statusleiste
+				seite={seite}
+				format={FORMAT_NAME[format]}
+				pruefung={pruefung.stand}
+				zeigePunkt={zeigePunkt}
+				verschiebe={verschiebeUeberlauf}
+				zoom={zoom}
+				stufe={massstab.stufe}
+				skala={massstab.skala}
+				setZoom={setZoom}
+				linksOffen={panels.linksOffen}
+				rechtsOffen={panels.rechtsOffen}
+				setLinksOffen={panels.setLinksOffen}
+				setRechtsOffen={panels.setRechtsOffen}
+			/>
 		</div>
 	);
 };

@@ -4,7 +4,7 @@ import { Kachel, Marke } from '../bausteine/Kachel';
 import { Knopf, KnopfLink } from '../bausteine/Knopf';
 import { Symbol } from '../bausteine/Symbol';
 import { Vorschau } from '../bausteine/Vorschau';
-import { AlsVorlage } from '../editor/AlsVorlage';
+import { AlsVorlageKnopf } from '../editor/AlsVorlage';
 import { hatOffeneEntwuerfe } from '../entwuerfe/offen';
 import { anzahl, ART_NAME, FORMAT_NAME } from '../lib/text';
 import type { Zugang } from '../lib/zugang';
@@ -83,7 +83,7 @@ export const DokumentKachel = ({ dokument, mappe, teile, variante, zugang }: Eig
 								Bearbeiten
 							</KnopfLink>
 						)}
-						{teile && !waehlen && <AlsVorlage mappe={mappe.id} dok={id} titel={meta.titel} />}
+						{teile && !waehlen && <AlsVorlageKnopf mappe={mappe.id} dok={id} titel={meta.titel} />}
 						{variante && !waehlen && (
 							<Knopf art="zweit" onClick={variante} data-variante>
 								<Symbol name="variante" />

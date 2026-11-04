@@ -10,15 +10,15 @@ import { versionTitel } from './version';
 export const Speicheranzeige = ({ erneut, stand }: { stand: SpeicherStand; erneut: () => void }) => {
 	if (stand.art === 'gespeichert') {
 		return (
-			<span className="flex items-center gap-1 text-leise" data-speicherstand="gespeichert">
+			<span className="flex items-center gap-1 text-xs whitespace-nowrap text-dezent" data-speicherstand="gespeichert">
+				<Symbol name="haken" className="size-3 flex-none" />
 				Gespeichert
-				<Symbol name="haken" className="size-3.5 flex-none text-gut" />
 			</span>
 		);
 	}
 	if (stand.art === 'wartet' || stand.art === 'speichert') {
 		return (
-			<span className="text-leise" data-speicherstand="speichert">
+			<span className="text-xs whitespace-nowrap text-dezent" data-speicherstand="speichert">
 				Speichert …
 			</span>
 		);
@@ -29,11 +29,16 @@ export const Speicheranzeige = ({ erneut, stand }: { stand: SpeicherStand; erneu
 		konflikt: 'Nicht gespeichert – das Material wurde geändert',
 	}[stand.art];
 	return (
-		<span className="flex flex-wrap items-center gap-x-2 font-medium text-fehler" data-speicherstand={stand.art}>
+		<span className="flex items-center gap-x-1 text-xs font-medium whitespace-nowrap text-fehler" data-speicherstand={stand.art}>
 			{text}
 			{stand.art !== 'konflikt' && (
-				<button type="button" className="h-knopf rounded-lg px-2 text-tinte underline" onClick={erneut}>
-					Erneut versuchen
+				<button
+					type="button"
+					className="h-knopf-status rounded-sm px-1 text-tinte underline"
+					aria-label="Erneut versuchen"
+					onClick={erneut}
+				>
+					Erneut
 				</button>
 			)}
 		</span>
@@ -49,7 +54,7 @@ interface LeistenEigenschaften {
 }
 
 const Leiste = ({ children, hinweis, merkmal, titel }: LeistenEigenschaften) => (
-	<div className="mb-4 flex flex-wrap items-center gap-x-4 gap-y-2 rounded-2xl border border-entwurf bg-warnung-hell px-5 py-3">
+	<div className="m-2 flex flex-wrap items-center gap-x-3 gap-y-1 rounded-lg border border-entwurf bg-warnung-hell px-3 py-2">
 		<div className="min-w-0 flex-1">
 			<p className="font-medium" {...merkmal}>
 				{titel}

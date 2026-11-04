@@ -1,7 +1,6 @@
-import { useState } from 'react';
-
 import { klassen } from '../bausteine/klassen';
 import { Knopf } from '../bausteine/Knopf';
+import { Popover } from '../bausteine/Popover';
 import { Symbol } from '../bausteine/Symbol';
 import type { Pruefpunkt, Pruefstand } from './pruefung';
 
@@ -72,13 +71,13 @@ interface Eigenschaften {
 	verschiebe?: ((p: Pruefpunkt) => void) | undefined;
 }
 
+const FARBE_STATUS = { ok: 'text-gut', warnung: 'text-warnung', fehler: 'text-fehler' } as const;
+
 /**
- * Oben im Panel: „Alles passt“ oder „2 Dinge prüfen“, aufgeklappt die Liste. Die Zeile bleibt gleich hoch, egal was
- * die Prüfung findet; so verschiebt sich am iPad hoch das Blatt nicht bei jeder Änderung. Hinweise stehen grau und
+ * In der Statusleiste: „Alles passt“ oder „2 Dinge prüfen“, die Liste geht als Popover auf. Hinweise stehen grau und
  * eingeklappt darunter.
  */
-export const Pruefliste = ({ stand, verschiebe, zeige }: Eigenschaften) => {
-	const [offen, setOffen] = useState(false);
+export const Pruefstatus = ({ stand, verschiebe, zeige }: Eigenschaften) => {
 	if (!stand) {
 		return null;
 	}
@@ -87,74 +86,74 @@ export const Pruefliste = ({ stand, verschiebe, zeige }: Eigenschaften) => {
 	const hinweise = punkte.filter((p) => p.stufe === 'HINWEIS');
 	const zustand = zustandVon(wichtig);
 	const titel = wichtig.length === 1 ? '1 Ding prüfen' : `${wichtig.length} Dinge prüfen`;
-	const waehle = (p: Pruefpunkt) => {
-		setOffen(false);
-		zeige(p);
-	};
 	return (
-		<section className="flex-none border-b border-rand bg-flaeche" aria-label="Prüfung" data-pruefung={zustand}>
-			<button
-				type="button"
-				className="flex h-knopf w-full items-center gap-3 px-5 text-left font-medium hover:bg-flaeche-2 max-lg:px-4"
-				aria-expanded={offen}
-				disabled={punkte.length === 0}
-				onClick={() => setOffen(!offen)}
-			>
-				<span
-					className={klassen(
-						'flex size-7 flex-none items-center justify-center rounded-full text-white',
-						zustand === 'fehler' && 'bg-fehler',
-						zustand === 'warnung' && 'bg-warnung',
-						zustand === 'ok' && 'bg-gut',
-					)}
-				>
-					<Symbol name={zustand === 'ok' ? 'haken' : 'achtung'} className="size-4" />
-				</span>
-				<span className="flex-1">
-					{wichtig.length === 0 ? 'Alles passt' : titel}
-					{hinweise.length > 0 && (
-						<span className="font-normal text-leise">
-							{` · ${hinweise.length} ${hinweise.length === 1 ? 'Hinweis' : 'Hinweise'}`}
+		<section className="flex min-w-0 items-center" aria-label="Prüfung" data-pruefung={zustand}>
+			<Popover
+				seite="top"
+				className="w-80"
+				ausloeser={
+					<button
+						type="button"
+						className="inline-flex h-knopf-status min-w-0 items-center gap-1 rounded-sm px-1 text-xs hover:bg-flaeche-2 disabled:hover:bg-transparent"
+						disabled={punkte.length === 0}
+					>
+						<Symbol
+							name={zustand === 'ok' ? 'haken' : 'achtung'}
+							className={klassen('size-3 flex-none', FARBE_STATUS[zustand])}
+						/>
+						<span className={klassen('truncate font-medium', FARBE_STATUS[zustand])}>
+							{wichtig.length === 0 ? 'Alles passt' : titel}
+							{hinweise.length > 0 && (
+								<span className="font-normal text-leise">
+									{` · ${hinweise.length} ${hinweise.length === 1 ? 'Hinweis' : 'Hinweise'}`}
+								</span>
+							)}
 						</span>
-					)}
-				</span>
-				{punkte.length > 0 && <Symbol name={offen ? 'hoch' : 'runter'} />}
-			</button>
-			{offen && (
-				<div className="max-h-[45vh] overflow-y-auto px-5 pb-3 max-lg:max-h-[24vh] max-lg:px-4" data-pruefliste>
-					{wichtig.length > 0 && (
-						<ul className="flex flex-col gap-1">
-							{wichtig.map((p, i) => (
-								<Eintrag
-									key={`${p.code}-${i}`}
-									p={p}
-									mitSeite={mehrereSeiten}
-									zeige={waehle}
-									verschiebe={verschiebe}
-								/>
-							))}
-						</ul>
-					)}
-					{hinweise.length > 0 && (
-						<details className="mt-2 text-leise" data-hinweise>
-							<summary className="flex h-knopf cursor-pointer items-center font-medium">
-								{hinweise.length === 1 ? '1 Hinweis' : `${hinweise.length} Hinweise`}
-							</summary>
-							<ul className="flex flex-col gap-1">
-								{hinweise.map((p, i) => (
-									<Eintrag
-										key={`${p.code}-${i}`}
-										p={p}
-										mitSeite={mehrereSeiten}
-										zeige={waehle}
-										verschiebe={verschiebe}
-									/>
-								))}
-							</ul>
-						</details>
-					)}
-				</div>
-			)}
+					</button>
+				}
+			>
+				{(schliessen) => {
+					const waehle = (p: Pruefpunkt) => {
+						schliessen();
+						zeige(p);
+					};
+					return (
+						<div data-pruefliste>
+							{wichtig.length > 0 && (
+								<ul className="flex flex-col gap-1">
+									{wichtig.map((p, i) => (
+										<Eintrag
+											key={`${p.code}-${i}`}
+											p={p}
+											mitSeite={mehrereSeiten}
+											zeige={waehle}
+											verschiebe={verschiebe}
+										/>
+									))}
+								</ul>
+							)}
+							{hinweise.length > 0 && (
+								<details className="mt-1 text-leise" data-hinweise>
+									<summary className="flex h-menue cursor-pointer items-center font-medium">
+										{hinweise.length === 1 ? '1 Hinweis' : `${hinweise.length} Hinweise`}
+									</summary>
+									<ul className="flex flex-col gap-1">
+										{hinweise.map((p, i) => (
+											<Eintrag
+												key={`${p.code}-${i}`}
+												p={p}
+												mitSeite={mehrereSeiten}
+												zeige={waehle}
+												verschiebe={verschiebe}
+											/>
+										))}
+									</ul>
+								</details>
+							)}
+						</div>
+					);
+				}}
+			</Popover>
 		</section>
 	);
 };
@@ -168,11 +167,11 @@ export const Pruefhinweise = ({ nr, stand }: { stand: Pruefstand | null; nr: num
 		return null;
 	}
 	return (
-		<ul className="mt-3 flex flex-col gap-2" data-pruefhinweise>
+		<ul className="mt-2 flex flex-col gap-1" data-pruefhinweise>
 			{eigene.map((p, i) => (
 				<li
 					key={`${p.code}-${i}`}
-					className={klassen('rounded-lg border-l-4 bg-papier py-2 pr-2 pl-3', FARBE[p.stufe])}
+					className={klassen('rounded-md border-l-2 bg-papier py-1 pr-2 pl-2', FARBE[p.stufe])}
 				>
 					<Satz p={p} mitSeite={false} />
 				</li>

@@ -576,3 +576,113 @@ test.describe('Dialoge (065)', () => {
 		await expect(ausloeser).toBeFocused();
 	});
 });
+
+test.describe('Editor-Rahmen (066)', () => {
+	const blattOben = (page: Page) =>
+		page.evaluate(() => {
+			const rahmen = document.querySelector<HTMLIFrameElement>('[data-editor-rahmen="sichtbar"]');
+			const seite = rahmen?.contentDocument?.querySelector('.seite');
+			if (!rahmen || !seite) {
+				return null;
+			}
+			const r = rahmen.getBoundingClientRect();
+			const skala = r.width / rahmen.offsetWidth;
+			const s = seite.getBoundingClientRect();
+			const unten = document.querySelector('[data-statusleiste]')?.getBoundingClientRect().top ?? 0;
+			return { oben: r.top + s.top * skala, unten: r.top + s.bottom * skala, grenze: unten };
+		});
+
+	const oeffneBlatt = async (page: Page) => {
+		const { dokumente, id } = await legeMappeAn('Rahmen', 'mathematik', 2, [
+			{ titel: 'Blatt', vorlage: 'arbeitsblatt' },
+		]);
+		await page.goto(`/m/${id}/${dokumente[0]}/bearbeiten`);
+		await expect(page.locator('[data-leinwand][data-geladen]')).toBeVisible();
+	};
+
+	test('Kopf höchstens 40 px, einzeilig, Blatt ab 52 px, bei 100 % mindestens 69 % sichtbar', async ({ page }) => {
+		test.skip(await page.evaluate(() => matchMedia('(any-pointer: coarse)').matches), 'nur mit Maus');
+		await page.setViewportSize({ width: 1512, height: 860 });
+		await oeffneBlatt(page);
+		expect((await page.locator('[data-kopf]').boundingBox())?.height).toBeLessThanOrEqual(40);
+		const mass = await blattOben(page);
+		expect(mass?.oben ?? 999).toBeLessThanOrEqual(52);
+		const sichtbar = ((mass?.grenze ?? 0) - (mass?.oben ?? 0)) / ((mass?.unten ?? 1) - (mass?.oben ?? 0));
+		expect(sichtbar).toBeGreaterThanOrEqual(0.69);
+		await expect(page.locator('[data-kopf]').getByRole('button', { name: /PDF/ })).toBeVisible();
+	});
+
+	for (const [breite, hoehe] of [
+		[1440, 790],
+		[1728, 1000],
+	] as const) {
+		test(`kein Überlauf im Kopf bei ${breite}×${hoehe}`, async ({ page }) => {
+			test.skip(await page.evaluate(() => matchMedia('(any-pointer: coarse)').matches), 'nur mit Maus');
+			await page.setViewportSize({ width: breite, height: hoehe });
+			await oeffneBlatt(page);
+			const kopf = page.locator('[data-kopf]');
+			expect(await kopf.evaluate((k) => k.scrollWidth <= k.clientWidth)).toBe(true);
+			expect((await kopf.boundingBox())?.height).toBeLessThanOrEqual(40);
+		});
+	}
+
+	test('Einpassen zeigt die ganze Seite, die Stufen gehen von dort weiter, Überlagerung sitzt', async ({
+		druecke,
+		page,
+	}) => {
+		await page.setViewportSize({ width: 1440, height: 790 });
+		await oeffneBlatt(page);
+		await druecke(page.getByRole('button', { name: 'Einpassen' }));
+		await expect.poll(async () => {
+			const m = await blattOben(page);
+			return m !== null && m.unten <= m.grenze + 1 && m.oben >= 40;
+		}).toBe(true);
+		const wert = page.locator('[data-zoom-wert]');
+		const eingepasst = parseInt((await wert.textContent()) ?? '0', 10);
+		expect(eingepasst).toBeLessThan(100);
+		await expect(page.getByRole('button', { name: 'Kleiner' })).toBeEnabled();
+		await druecke(page.getByRole('button', { name: 'Größer' }));
+		await expect.poll(async () => parseInt((await wert.textContent()) ?? '0', 10)).toBeGreaterThan(eingepasst);
+
+		await druecke(page.getByRole('button', { name: 'Einpassen' }));
+		const aufgabe = page.frameLocator('[data-editor-rahmen="sichtbar"]').locator('.aufgabe').first();
+		await aufgabe.click({ position: { x: 10, y: 10 } });
+		const rahmen = await page.locator('[data-auswahlrahmen]').boundingBox();
+		const ziel = await aufgabe.boundingBox();
+		expect(Math.abs((rahmen?.y ?? 0) - (ziel?.y ?? 99))).toBeLessThanOrEqual(6);
+		expect(Math.abs((rahmen?.x ?? 0) - (ziel?.x ?? 99))).toBeLessThanOrEqual(6);
+	});
+
+	test('Einpassen wird je Gerät gemerkt', async ({ druecke, page }) => {
+		await oeffneBlatt(page);
+		await druecke(page.getByRole('button', { name: 'Einpassen' }));
+		await page.reload();
+		await expect(page.locator('[data-leinwand][data-geladen]')).toBeVisible();
+		await expect(page.getByRole('button', { name: 'Einpassen' })).toHaveAttribute('aria-pressed', 'true');
+	});
+
+	test('nur PDF ist Hauptaktion, Zustände sind Segmente', async ({ page }) => {
+		await oeffneBlatt(page);
+		const gruppe = page.locator('[data-profilschalter]').getByRole('button', { name: 'Farbe' });
+		await expect(gruppe).toHaveAttribute('aria-pressed', /true|false/);
+		const haupt = await page
+			.locator('[data-kopf] button')
+			.evaluateAll((knoepfe) =>
+				knoepfe.filter((k) => getComputedStyle(k).color === 'rgb(255, 255, 255)').map((k) => k.textContent),
+			);
+		expect(haupt).toEqual(['PDF']);
+	});
+
+	test('beide Leisten lassen sich schließen und öffnen', async ({ druecke, page }) => {
+		await oeffneBlatt(page);
+		await expect(page.locator('[data-panel-links]')).toBeVisible();
+		await druecke(page.getByRole('button', { name: 'Linke Leiste' }));
+		await expect(page.locator('[data-panel-links]')).toHaveCount(0);
+		await druecke(page.getByRole('button', { name: 'Rechte Leiste' }));
+		await expect(page.locator('[data-panel]')).toHaveCount(0);
+		await druecke(page.getByRole('button', { name: 'Linke Leiste' }));
+		await druecke(page.getByRole('button', { name: 'Rechte Leiste' }));
+		await expect(page.locator('[data-panel-links]')).toBeVisible();
+		await expect(page.locator('[data-panel="inspektor"]')).toBeVisible();
+	});
+});

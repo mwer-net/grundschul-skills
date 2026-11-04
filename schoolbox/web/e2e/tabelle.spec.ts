@@ -5,7 +5,7 @@ test.describe('Editor: Tabelle', () => {
 	test('einfügen, Zeile im Panel, Tab springt, am Ende neue Zeile, Rückgängig', async ({ druecke, page }) => {
 		const { dok, id } = await uhrzeit();
 		await oeffne(page, id, dok);
-		await page.getByRole('button', { name: 'Bausteine' }).click();
+		await page.getByRole('tab', { name: 'Bausteine' }).click();
 		await page.getByRole('searchbox', { name: 'Baustein suchen' }).fill('Tabelle');
 		await page.locator('[data-einfuegen="tabelle"]').click();
 		const tabelle = material(page).locator('table.kit-tabelle');

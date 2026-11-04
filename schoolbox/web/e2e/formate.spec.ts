@@ -267,7 +267,8 @@ test.describe('Eigene Vorlagen und Sammlung (051)', () => {
 		test.slow();
 		const { dok, id } = await uhrzeit();
 		await oeffne(page, id, dok);
-		await page.locator('[data-als-vorlage]').click();
+		await page.getByRole('button', { name: 'Weitere Aktionen' }).click();
+		await page.getByRole('menuitem', { name: 'Als Vorlage speichern' }).click();
 		await page.locator('[data-vorlage-name]').fill('Uhr-Vorlage');
 		await page.locator('[data-vorlage-speichern]').click();
 		await expect(page.getByText('Vorlage „Uhr-Vorlage“ gespeichert.', { exact: false })).toBeVisible();
@@ -307,7 +308,7 @@ test.describe('Eigene Vorlagen und Sammlung (051)', () => {
 		await page.locator('[data-ablage-einfuegen]').click();
 		await expect.poll(async () => ((await quelle(page)).match(/<x-uhr/g) ?? []).length).toBe(uhren + 1);
 
-		await page.getByRole('button', { name: 'Bausteine' }).click();
+		await page.getByRole('tab', { name: 'Bausteine' }).click();
 		await page.getByRole('searchbox', { name: 'Baustein suchen' }).fill('Meine Uhr');
 		await page.locator('[data-einfuegen="eigen-meine-uhr"]').click();
 		await expect.poll(async () => ((await quelle(page)).match(/<x-uhr/g) ?? []).length).toBe(uhren + 2);

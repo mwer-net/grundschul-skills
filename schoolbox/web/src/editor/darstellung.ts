@@ -18,7 +18,8 @@ const EDITOR_STIL =
 	'body.loesung .antwort:not([data-l]),body.loesung .antwort[data-l=""]{border-bottom:2px dashed #d97706;' +
 	'background:repeating-linear-gradient(135deg,#fef3c7 0 5px,transparent 5px 10px)}' +
 	'body.loesung .antwort:not([data-l])::after,body.loesung .antwort[data-l=""]::after{content:"?";' +
-	'color:#b45309;font-weight:700}</style>';
+	'color:#b45309;font-weight:700}' +
+	'@media screen{body{background:transparent!important;padding:12px 0!important}}</style>';
 
 /** Die Prüfung aus blatt.py, hier ohne Selbststart: Der Editor ruft `pruefeBlatt` nach jeder Änderung (020). */
 const PRUEFUNG = '<script src="pruefung.js" data-manuell defer></script>';

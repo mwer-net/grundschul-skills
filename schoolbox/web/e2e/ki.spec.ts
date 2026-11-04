@@ -175,7 +175,7 @@ test.describe('Editor: Mit Claude ändern (058, 059)', () => {
 			r.fulfill({ json: { verfuegbar: false, limit: null, warnAb: 1, aktionen: [] } }),
 		);
 		await oeffne(page, mappe, dok);
-		await expect(page.getByRole('button', { name: 'Gliederung' })).toBeVisible();
+		await expect(page.getByRole('tab', { name: 'Gliederung' })).toBeVisible();
 		await expect(page.getByRole('button', { name: 'Mit Claude', exact: true })).toBeHidden();
 	});
 
