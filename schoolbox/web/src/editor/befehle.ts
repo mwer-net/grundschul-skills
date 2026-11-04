@@ -1,0 +1,876 @@
+import { kann, kannImFormat } from '@schoolbox/kern/src/bausteine';
+import { KIT_FELDER, leseKit, setzeKit, setzeSichtbarkeit, SICHTBARKEITEN } from '@schoolbox/kern/src/kit-einstellungen';
+import type { StrukturErgebnis } from '@schoolbox/kern/src/struktur';
+import { fuegeSpalteEin, fuegeZeileEin, loescheSpalte, loescheZeile } from '@schoolbox/kern/src/tabelle';
+import type { Druckprofil } from '@schoolbox/kern/src/werte';
+
+import { kuerzelAnzeige } from '../bausteine/kuerzel';
+import type { MenueEintrag } from '../bausteine/Menue';
+import type { SymbolName } from '../bausteine/Symbol';
+import type { PfadTeil } from './darstellung';
+import type { LinksName } from './LinkeLeiste';
+import type { Struktur, StrukturWerte } from './struktur';
+
+export type Ort = 'taste' | 'menue' | 'leiste' | 'palette';
+export type Gruppe = 'bearbeiten' | 'ablage' | 'ordnen' | 'baustein' | 'gefahr' | 'ansicht' | 'blatt' | 'dokument';
+/** In welchem Zustand des Editors ein Kürzel wirkt. Felder der Bedienung sind nie dabei, die gehören dem Feld. */
+export type Modus = 'auswahl' | 'ohne' | 'text';
+
+const GRUPPEN: Gruppe[] = ['bearbeiten', 'ablage', 'ordnen', 'baustein', 'ansicht', 'blatt', 'dokument', 'gefahr'];
+
+export interface Kuerzel {
+	/** `e.code` für Buchstaben und Ziffern mit ⌥ oder ⌘; `e.key` für Zeichen wie `/`, `?`, `+`. */
+	code?: string;
+	key?: string;
+	/** ⌘ oder Strg. */
+	befehl?: boolean;
+	/** ⌥ */
+	wahl?: boolean;
+	/** ⇧ */
+	umschalt?: boolean;
+	/** Nur unter dieser Bedingung, z. B. ⌥← nur bei nebeneinander liegenden Gliedern. */
+	wenn?: (k: Kontext) => boolean;
+}
+
+/** Was die Befehle tun können. Die Logik bleibt in den Hooks, das Register ruft sie nur. */
+export interface Aktionen {
+	struktur: Pick<Struktur, 'verschiebe' | 'dupliziere' | 'loesche' | 'neueSeite' | 'fuehreAus' | 'aendereAttribute'>;
+	fokussiereText: () => void;
+	waehle: (nr: number | null) => void;
+	eineEbeneHoch: () => void;
+	nachbar: (richtung: 1 | -1) => void;
+	erstesKind: () => void;
+	ersterBaustein: () => void;
+	kopiere: () => void;
+	schneideAus: () => void;
+	fuegeAblageEin: (nr: number | null) => void;
+	inSammlung: () => void;
+	neueZahlen: () => boolean;
+	oeffneSchnellauswahl: () => void;
+	zurLeiste: () => void;
+	fassung: (fassung: 'material' | 'loesung') => void;
+	profil: (profil: Druckprofil) => void;
+	zoomSchritt: (richtung: 1 | -1) => void;
+	zoom100: () => void;
+	einpassen: () => void;
+	links: (panel: LinksName) => void;
+	inspektor: () => void;
+	versionen: () => void;
+	claude: () => void;
+	claudeZurAuswahl: () => void;
+	palette: () => void;
+	tasten: () => void;
+	rueckgaengig: () => void;
+	wiederholen: () => void;
+	speichern: () => void;
+	pdf: () => void;
+	drucken: () => void;
+	alsVorlage: () => void;
+	praesentieren: () => void;
+	zurueck: () => void;
+}
+
+export interface Kontext {
+	pfad: PfadTeil[];
+	format: string;
+	/** Struktur darf geändert werden: keine Vorschau, kein Konflikt, keine Textsitzung. */
+	aktiv: boolean;
+	frei: boolean;
+	textsitzung: boolean;
+	quelle: string | null;
+	werte: StrukturWerte | null;
+	mitLoesung: boolean;
+	loesung: boolean;
+	profil: Druckprofil | undefined;
+	hatAblage: boolean;
+	hatNeueZahlen: boolean;
+	kiVerfuegbar: boolean;
+	namenszeile: boolean;
+	festeSeiten: boolean;
+	tu: Aktionen;
+}
+
+export interface Befehl {
+	id: string;
+	titel: string | ((k: Kontext) => string);
+	gruppe: Gruppe;
+	symbol?: SymbolName | ((k: Kontext) => SymbolName);
+	/** Der erste wird angezeigt, weitere sind Ausweichtasten. */
+	kuerzel?: Kuerzel[];
+	/** Ohne Angabe: mit und ohne Auswahl, nicht beim Tippen. */
+	modus?: Modus[];
+	suchwoerter?: string[];
+	orte: Ort[];
+	/** Wo das ohne Taste und Rechtsklick erreichbar ist. Pflicht: Grundsatz der Phase 9. */
+	sichtbarUnter: 'kopf' | 'statusleiste' | 'leiste' | 'mehr' | 'inspektor' | 'links' | 'blatt';
+	gefahr?: boolean;
+	verfuegbar: (k: Kontext) => boolean;
+	aus: (k: Kontext) => unknown;
+	/** Im Menü nur dann, auch wenn der Befehl sonst verfügbar ist. */
+	imMenue?: (k: Kontext) => boolean;
+	/** Eintrag gesperrt statt ausgeblendet: ↑ und ↓ bleiben an ihrem Platz. */
+	gesperrt?: (k: Kontext) => boolean;
+	/** Sagt, warum ein Kürzel gerade nichts tut, statt still zu bleiben. */
+	warumNicht?: (k: Kontext) => string | null;
+	/** Einträge mit gleichem Wert stehen im Menü in einem Untermenü. */
+	untermenue?: string;
+	aktiv?: (k: Kontext) => boolean;
+}
+
+const gewaehlt = (k: Kontext) => k.pfad.at(-1);
+const istSeite = (k: Kontext) => gewaehlt(k)?.baustein.art === 'seite';
+const einzigeSeite = (k: Kontext) => istSeite(k) && (k.werte?.seiten ?? 0) <= 1;
+const inZelle = (k: Kontext) => k.aktiv && gewaehlt(k)?.baustein.art === 'tabellenzelle';
+const kannText = (k: Kontext) => {
+	const g = gewaehlt(k);
+	return k.frei && Boolean(g && kann(g.baustein, 'text'));
+};
+const kannDas = (k: Kontext, was: 'loeschen' | 'duplizieren') => {
+	const g = gewaehlt(k);
+	return k.aktiv && Boolean(g && kannImFormat(g.baustein, was, k.format));
+};
+
+const tabelle =
+	(id: string, titel: string, beschreibung: string, rechne: (q: string, nr: number, n: { jeSeite: boolean }) => StrukturErgebnis) =>
+	(orte: Ort[], gefahr = false): Befehl => ({
+		id,
+		titel,
+		gruppe: gefahr ? 'gefahr' : 'bearbeiten',
+		symbol: gefahr ? 'minus' : 'plus',
+		orte,
+		sichtbarUnter: 'inspektor',
+		gefahr,
+		verfuegbar: inZelle,
+		aus: (k) => {
+			const g = gewaehlt(k);
+			if (g) {
+				k.tu.struktur.fuehreAus(beschreibung, (q) => rechne(q, g.nr, { jeSeite: k.format === 'folie' }));
+			}
+		},
+	});
+
+const SICHTBARKEIT: Befehl[] = SICHTBARKEITEN.map((s) => ({
+	id: `auswahl.sichtbarkeit.${s.wert || 'beide'}`,
+	titel: s.titel,
+	gruppe: 'ordnen',
+	orte: ['menue', 'palette'],
+	sichtbarUnter: 'inspektor',
+	untermenue: 'Sichtbarkeit',
+	verfuegbar: (k) => {
+		const g = gewaehlt(k);
+		return k.aktiv && Boolean(g && kann(g.baustein, 'ordnen') && g.baustein.art !== 'seite');
+	},
+	aus: (k) => {
+		const g = gewaehlt(k);
+		if (g) {
+			k.tu.struktur.aendereAttribute('Sichtbarkeit geändert', (q) => setzeSichtbarkeit(q, g.nr, s.wert));
+		}
+	},
+}));
+
+export const BEFEHLE: Befehl[] = [
+	// Auswahl
+	{
+		id: 'auswahl.bearbeiten',
+		titel: (k) => (kannText(k) ? 'Text bearbeiten' : 'Erstes Teil wählen'),
+		gruppe: 'bearbeiten',
+		symbol: 'stift',
+		kuerzel: [{ key: 'Enter' }],
+		modus: ['auswahl'],
+		orte: ['taste', 'menue', 'palette'],
+		sichtbarUnter: 'inspektor',
+		verfuegbar: (k) => Boolean(gewaehlt(k)),
+		imMenue: kannText,
+		aus: (k) => (kannText(k) ? k.tu.fokussiereText() : k.tu.erstesKind()),
+	},
+	{
+		id: 'auswahl.neue-zahlen',
+		titel: 'Neue Zahlen',
+		gruppe: 'bearbeiten',
+		symbol: 'neueZahlen',
+		kuerzel: [{ code: 'KeyN', wahl: true }],
+		modus: ['auswahl'],
+		suchwoerter: ['würfeln', 'neu', 'zufall'],
+		orte: ['taste', 'menue', 'leiste', 'palette'],
+		sichtbarUnter: 'leiste',
+		verfuegbar: (k) => k.aktiv && k.hatNeueZahlen,
+		aus: (k) => k.tu.neueZahlen(),
+	},
+	tabelle('tabelle.zeile-danach', 'Zeile danach', 'Zeile eingefügt', (q, nr, n) => fuegeZeileEin(q, nr, 'nach', n))([
+		'menue',
+		'leiste',
+		'palette',
+	]),
+	tabelle('tabelle.spalte-danach', 'Spalte danach', 'Spalte eingefügt', (q, nr, n) => fuegeSpalteEin(q, nr, 'nach', n))([
+		'menue',
+		'leiste',
+		'palette',
+	]),
+	tabelle('tabelle.zeile-davor', 'Zeile davor', 'Zeile eingefügt', (q, nr, n) => fuegeZeileEin(q, nr, 'vor', n))([
+		'palette',
+	]),
+	tabelle('tabelle.spalte-davor', 'Spalte davor', 'Spalte eingefügt', (q, nr, n) => fuegeSpalteEin(q, nr, 'vor', n))([
+		'palette',
+	]),
+	{
+		id: 'auswahl.duplizieren',
+		titel: 'Duplizieren',
+		gruppe: 'ablage',
+		symbol: 'duplizieren',
+		// Safari kann ⌘D für Lesezeichen behalten; die Tastenprobe am Mac steht aus (069).
+		kuerzel: [{ code: 'KeyD', befehl: true, umschalt: true }, { code: 'KeyD', befehl: true }],
+		modus: ['auswahl'],
+		suchwoerter: ['kopie', 'verdoppeln'],
+		orte: ['taste', 'menue', 'leiste', 'palette'],
+		sichtbarUnter: 'leiste',
+		verfuegbar: (k) => kannDas(k, 'duplizieren'),
+		warumNicht: (k) => (gewaehlt(k) && k.frei ? `${gewaehlt(k)?.name} lässt sich nicht duplizieren.` : null),
+		aus: (k) => {
+			const g = gewaehlt(k);
+			return g && k.tu.struktur.dupliziere(g.nr);
+		},
+	},
+	{
+		id: 'auswahl.ausschneiden',
+		titel: 'Ausschneiden',
+		gruppe: 'ablage',
+		symbol: 'ausschneiden',
+		kuerzel: [{ code: 'KeyX', befehl: true }],
+		modus: ['auswahl'],
+		orte: ['taste', 'menue', 'leiste', 'palette'],
+		sichtbarUnter: 'mehr',
+		verfuegbar: (k) => kannDas(k, 'loeschen') && !istSeite(k),
+		aus: (k) => k.tu.schneideAus(),
+	},
+	{
+		id: 'auswahl.kopieren',
+		titel: 'Kopieren',
+		gruppe: 'ablage',
+		symbol: 'kopieren',
+		kuerzel: [{ code: 'KeyC', befehl: true }],
+		modus: ['auswahl'],
+		orte: ['taste', 'menue', 'leiste', 'palette'],
+		sichtbarUnter: 'mehr',
+		verfuegbar: (k) => k.aktiv && Boolean(gewaehlt(k)) && !istSeite(k),
+		aus: (k) => k.tu.kopiere(),
+	},
+	{
+		id: 'auswahl.einfuegen',
+		titel: (k) => (gewaehlt(k) ? 'Darunter einfügen' : 'Hier einfügen'),
+		gruppe: 'ablage',
+		symbol: 'hochladen',
+		kuerzel: [{ code: 'KeyV', befehl: true }],
+		suchwoerter: ['ablage', 'zwischenablage'],
+		orte: ['taste', 'menue', 'leiste', 'palette'],
+		sichtbarUnter: 'mehr',
+		verfuegbar: (k) => k.aktiv && k.hatAblage,
+		warumNicht: (k) => (k.aktiv ? 'In der Ablage liegt nichts.' : null),
+		aus: (k) => k.tu.fuegeAblageEin(gewaehlt(k)?.nr ?? null),
+	},
+	{
+		id: 'auswahl.hoch',
+		titel: (k) => (k.werte?.nach?.quer ? 'Nach links' : 'Nach oben'),
+		gruppe: 'ordnen',
+		symbol: (k) => (k.werte?.nach?.quer ? 'links' : 'hoch'),
+		kuerzel: [
+			{ key: 'ArrowUp', wahl: true },
+			{ key: 'ArrowLeft', wahl: true, wenn: (k) => Boolean(k.werte?.nach?.quer) },
+		],
+		modus: ['auswahl'],
+		suchwoerter: ['verschieben', 'links', 'oben'],
+		orte: ['taste', 'menue', 'leiste', 'palette'],
+		sichtbarUnter: 'leiste',
+		verfuegbar: (k) => k.aktiv && Boolean(k.werte?.nach),
+		gesperrt: (k) => !k.werte?.nach?.zurueck,
+		aus: (k) => {
+			const g = gewaehlt(k);
+			const ziel = k.werte?.nach?.zurueck;
+			if (g && ziel) {
+				k.tu.struktur.verschiebe(g.nr, ziel, true);
+			}
+		},
+	},
+	{
+		id: 'auswahl.runter',
+		titel: (k) => (k.werte?.nach?.quer ? 'Nach rechts' : 'Nach unten'),
+		gruppe: 'ordnen',
+		symbol: (k) => (k.werte?.nach?.quer ? 'rechts' : 'runter'),
+		kuerzel: [
+			{ key: 'ArrowDown', wahl: true },
+			{ key: 'ArrowRight', wahl: true, wenn: (k) => Boolean(k.werte?.nach?.quer) },
+		],
+		modus: ['auswahl'],
+		suchwoerter: ['verschieben', 'rechts', 'unten'],
+		orte: ['taste', 'menue', 'leiste', 'palette'],
+		sichtbarUnter: 'leiste',
+		verfuegbar: (k) => k.aktiv && Boolean(k.werte?.nach),
+		gesperrt: (k) => !k.werte?.nach?.vor,
+		aus: (k) => {
+			const g = gewaehlt(k);
+			const ziel = k.werte?.nach?.vor;
+			if (g && ziel) {
+				k.tu.struktur.verschiebe(g.nr, ziel, true);
+			}
+		},
+	},
+	...SICHTBARKEIT,
+	{
+		id: 'auswahl.in-sammlung',
+		titel: 'In Sammlung legen',
+		gruppe: 'ordnen',
+		symbol: 'plus',
+		suchwoerter: ['meine bausteine', 'merken', 'speichern'],
+		orte: ['menue', 'leiste', 'palette'],
+		sichtbarUnter: 'mehr',
+		verfuegbar: (k) => k.aktiv && Boolean(gewaehlt(k)) && !istSeite(k),
+		aus: (k) => k.tu.inSammlung(),
+	},
+	{
+		id: 'auswahl.claude',
+		titel: 'Mit Claude ändern …',
+		gruppe: 'ordnen',
+		symbol: 'sprechblase',
+		orte: ['menue', 'leiste', 'palette'],
+		sichtbarUnter: 'kopf',
+		verfuegbar: (k) => k.kiVerfuegbar && k.frei && Boolean(gewaehlt(k)),
+		aus: (k) => k.tu.claudeZurAuswahl(),
+	},
+	{
+		id: 'auswahl.stern',
+		titel: 'Sternchenaufgabe',
+		gruppe: 'baustein',
+		symbol: 'stern',
+		orte: ['leiste', 'palette'],
+		sichtbarUnter: 'inspektor',
+		verfuegbar: (k) => {
+			const g = gewaehlt(k);
+			return k.aktiv && Boolean(g && KIT_FELDER[g.baustein.art]?.some((f) => f.name === 'stern'));
+		},
+		aktiv: (k) => {
+			const g = gewaehlt(k);
+			return Boolean(g && k.quelle && leseKit(k.quelle, g.nr, g.baustein.art)['stern'] === true);
+		},
+		aus: (k) => {
+			const g = gewaehlt(k);
+			if (!g || !k.quelle) {
+				return;
+			}
+			const an = leseKit(k.quelle, g.nr, g.baustein.art)['stern'] === true;
+			k.tu.struktur.aendereAttribute('Sternchenaufgabe geändert', (q) =>
+				setzeKit(q, g.nr, g.baustein.art, 'stern', !an, { jeSeite: k.format === 'folie' }),
+			);
+		},
+	},
+	{
+		id: 'auswahl.aufheben',
+		titel: 'Auswahl aufheben',
+		gruppe: 'baustein',
+		symbol: 'schliessen',
+		orte: ['palette'],
+		sichtbarUnter: 'inspektor',
+		verfuegbar: (k) => Boolean(gewaehlt(k)),
+		aus: (k) => k.tu.waehle(null),
+	},
+	{
+		id: 'auswahl.eltern',
+		titel: 'Eine Ebene höher',
+		gruppe: 'baustein',
+		kuerzel: [{ key: 'Escape' }],
+		modus: ['auswahl'],
+		orte: ['taste', 'palette'],
+		sichtbarUnter: 'inspektor',
+		verfuegbar: (k) => Boolean(gewaehlt(k)),
+		aus: (k) => k.tu.eineEbeneHoch(),
+	},
+	{
+		id: 'auswahl.vorheriger',
+		titel: 'Vorheriger Baustein',
+		gruppe: 'baustein',
+		kuerzel: [{ key: 'ArrowUp' }, { key: 'ArrowLeft' }],
+		modus: ['auswahl'],
+		orte: ['taste'],
+		sichtbarUnter: 'blatt',
+		verfuegbar: (k) => Boolean(gewaehlt(k)),
+		aus: (k) => k.tu.nachbar(-1),
+	},
+	{
+		id: 'auswahl.naechster',
+		titel: 'Nächster Baustein',
+		gruppe: 'baustein',
+		kuerzel: [{ key: 'ArrowDown' }, { key: 'ArrowRight' }],
+		modus: ['auswahl'],
+		orte: ['taste'],
+		sichtbarUnter: 'blatt',
+		verfuegbar: (k) => Boolean(gewaehlt(k)),
+		aus: (k) => k.tu.nachbar(1),
+	},
+	{
+		id: 'auswahl.zur-leiste',
+		titel: 'Zur Leiste am Baustein',
+		gruppe: 'baustein',
+		kuerzel: [{ key: 'Tab' }],
+		modus: ['auswahl'],
+		orte: ['taste'],
+		sichtbarUnter: 'leiste',
+		verfuegbar: (k) => Boolean(gewaehlt(k)),
+		aus: (k) => k.tu.zurLeiste(),
+	},
+	{
+		id: 'blatt.erster',
+		titel: 'Ersten Baustein wählen',
+		gruppe: 'blatt',
+		kuerzel: [{ key: 'ArrowDown' }, { key: 'Enter' }],
+		modus: ['ohne'],
+		orte: ['taste'],
+		sichtbarUnter: 'blatt',
+		verfuegbar: () => true,
+		aus: (k) => k.tu.ersterBaustein(),
+	},
+	{
+		id: 'auswahl.einfuegen-danach',
+		titel: 'Baustein einfügen',
+		gruppe: 'blatt',
+		symbol: 'plus',
+		kuerzel: [{ key: '/' }],
+		suchwoerter: ['neu', 'hinzufügen', 'slash'],
+		orte: ['taste', 'menue', 'palette'],
+		sichtbarUnter: 'links',
+		verfuegbar: (k) => k.aktiv,
+		aus: (k) => k.tu.oeffneSchnellauswahl(),
+	},
+	{
+		id: 'auswahl.loeschen',
+		titel: 'Löschen',
+		gruppe: 'gefahr',
+		symbol: 'papierkorb',
+		kuerzel: [{ key: 'Backspace' }, { key: 'Delete' }],
+		modus: ['auswahl'],
+		suchwoerter: ['entfernen', 'weg', 'wegmachen'],
+		orte: ['taste', 'menue', 'leiste', 'palette'],
+		sichtbarUnter: 'leiste',
+		gefahr: true,
+		verfuegbar: (k) => kannDas(k, 'loeschen') && !einzigeSeite(k),
+		warumNicht: (k) => {
+			const g = gewaehlt(k);
+			if (!g || !k.frei) {
+				return null;
+			}
+			return einzigeSeite(k) ? 'Die einzige Seite bleibt.' : `${g.name} lässt sich nicht löschen.`;
+		},
+		aus: (k) => {
+			const g = gewaehlt(k);
+			return g && k.tu.struktur.loesche(g.nr, g.name);
+		},
+	},
+	tabelle('tabelle.zeile-weg', 'Zeile löschen', 'Zeile gelöscht', (q, nr, n) => loescheZeile(q, nr, n))(['palette'], true),
+	tabelle('tabelle.spalte-weg', 'Spalte löschen', 'Spalte gelöscht', (q, nr, n) => loescheSpalte(q, nr, n))(['palette'], true),
+
+	// Ansicht
+	{
+		id: 'ansicht.arbeitsblatt',
+		titel: 'Arbeitsblatt zeigen',
+		gruppe: 'ansicht',
+		orte: ['palette'],
+		sichtbarUnter: 'kopf',
+		verfuegbar: (k) => k.mitLoesung && k.loesung,
+		aus: (k) => k.tu.fassung('material'),
+	},
+	{
+		id: 'ansicht.loesung',
+		titel: 'Lösung zeigen',
+		gruppe: 'ansicht',
+		orte: ['palette'],
+		sichtbarUnter: 'kopf',
+		verfuegbar: (k) => k.mitLoesung && !k.loesung,
+		aus: (k) => k.tu.fassung('loesung'),
+	},
+	{
+		id: 'ansicht.farbe',
+		titel: 'In Farbe zeigen',
+		gruppe: 'ansicht',
+		orte: ['palette'],
+		sichtbarUnter: 'kopf',
+		verfuegbar: (k) => k.profil === 'sw',
+		aus: (k) => k.tu.profil('farbe'),
+	},
+	{
+		id: 'ansicht.sw',
+		titel: 'In Schwarz-Weiß zeigen',
+		gruppe: 'ansicht',
+		suchwoerter: ['grau', 's/w'],
+		orte: ['palette'],
+		sichtbarUnter: 'kopf',
+		verfuegbar: (k) => k.profil === 'farbe',
+		aus: (k) => k.tu.profil('sw'),
+	},
+	{
+		id: 'ansicht.zoom-rein',
+		titel: 'Größer',
+		gruppe: 'ansicht',
+		symbol: 'plus',
+		kuerzel: [{ key: '+' }],
+		suchwoerter: ['zoom'],
+		orte: ['taste', 'palette'],
+		sichtbarUnter: 'statusleiste',
+		verfuegbar: () => true,
+		aus: (k) => k.tu.zoomSchritt(1),
+	},
+	{
+		id: 'ansicht.zoom-raus',
+		titel: 'Kleiner',
+		gruppe: 'ansicht',
+		symbol: 'minus',
+		kuerzel: [{ key: '-' }],
+		suchwoerter: ['zoom'],
+		orte: ['taste', 'palette'],
+		sichtbarUnter: 'statusleiste',
+		verfuegbar: () => true,
+		aus: (k) => k.tu.zoomSchritt(-1),
+	},
+	{
+		id: 'ansicht.zoom-100',
+		titel: 'Auf 100 %',
+		gruppe: 'ansicht',
+		kuerzel: [{ key: '1' }],
+		suchwoerter: ['zoom'],
+		orte: ['taste', 'palette'],
+		sichtbarUnter: 'statusleiste',
+		verfuegbar: () => true,
+		aus: (k) => k.tu.zoom100(),
+	},
+	{
+		id: 'ansicht.einpassen',
+		titel: 'Einpassen',
+		gruppe: 'ansicht',
+		symbol: 'vollbild',
+		kuerzel: [{ key: '0' }],
+		suchwoerter: ['zoom', 'ganze seite'],
+		orte: ['taste', 'menue', 'palette'],
+		sichtbarUnter: 'statusleiste',
+		verfuegbar: () => true,
+		aus: (k) => k.tu.einpassen(),
+	},
+	{
+		id: 'ansicht.links-seiten',
+		titel: 'Seiten',
+		gruppe: 'ansicht',
+		symbol: 'seiten',
+		kuerzel: [{ code: 'Digit1', wahl: true }],
+		orte: ['taste', 'palette'],
+		sichtbarUnter: 'links',
+		verfuegbar: () => true,
+		aus: (k) => k.tu.links('seiten'),
+	},
+	{
+		id: 'ansicht.links-gliederung',
+		titel: 'Gliederung',
+		gruppe: 'ansicht',
+		symbol: 'gliederung',
+		kuerzel: [{ code: 'Digit2', wahl: true }],
+		orte: ['taste', 'palette'],
+		sichtbarUnter: 'links',
+		verfuegbar: () => true,
+		aus: (k) => k.tu.links('gliederung'),
+	},
+	{
+		id: 'ansicht.links-bausteine',
+		titel: 'Bausteine',
+		gruppe: 'ansicht',
+		symbol: 'plus',
+		kuerzel: [{ code: 'Digit3', wahl: true }],
+		orte: ['taste', 'palette'],
+		sichtbarUnter: 'links',
+		verfuegbar: (k) => k.frei,
+		aus: (k) => k.tu.links('bausteine'),
+	},
+	{
+		id: 'ansicht.inspektor',
+		titel: 'Inspektor ein/aus',
+		gruppe: 'ansicht',
+		kuerzel: [{ code: 'KeyI', wahl: true }],
+		orte: ['taste', 'palette'],
+		sichtbarUnter: 'statusleiste',
+		verfuegbar: () => true,
+		aus: (k) => k.tu.inspektor(),
+	},
+	{
+		id: 'ansicht.versionen',
+		titel: 'Versionen',
+		gruppe: 'ansicht',
+		symbol: 'uhr',
+		suchwoerter: ['verlauf', 'früher', 'wiederherstellen'],
+		orte: ['palette'],
+		sichtbarUnter: 'kopf',
+		verfuegbar: () => true,
+		aus: (k) => k.tu.versionen(),
+	},
+	{
+		id: 'ansicht.claude',
+		titel: 'Claude',
+		gruppe: 'ansicht',
+		symbol: 'sprechblase',
+		kuerzel: [{ code: 'KeyJ', befehl: true }, { code: 'KeyJ', befehl: true, umschalt: true }, { code: 'KeyC', wahl: true }],
+		modus: ['auswahl', 'ohne', 'text'],
+		suchwoerter: ['ki', 'chat', 'fragen'],
+		orte: ['taste', 'palette'],
+		sichtbarUnter: 'kopf',
+		verfuegbar: (k) => k.kiVerfuegbar,
+		aus: (k) => k.tu.claude(),
+	},
+	{
+		id: 'ansicht.palette',
+		titel: 'Befehle',
+		gruppe: 'ansicht',
+		symbol: 'suche',
+		kuerzel: [{ code: 'KeyK', befehl: true }, { code: 'KeyK', befehl: true, umschalt: true }],
+		modus: ['auswahl', 'ohne', 'text'],
+		orte: ['taste'],
+		sichtbarUnter: 'statusleiste',
+		verfuegbar: () => true,
+		aus: (k) => k.tu.palette(),
+	},
+	{
+		id: 'ansicht.tasten',
+		titel: 'Tasten-Übersicht',
+		gruppe: 'ansicht',
+		symbol: 'hilfe',
+		kuerzel: [{ key: '?' }],
+		suchwoerter: ['kürzel', 'tastatur', 'hilfe'],
+		orte: ['taste', 'palette'],
+		sichtbarUnter: 'statusleiste',
+		verfuegbar: () => true,
+		aus: (k) => k.tu.tasten(),
+	},
+
+	// Dokument
+	{
+		id: 'dokument.rueckgaengig',
+		titel: 'Rückgängig',
+		gruppe: 'dokument',
+		symbol: 'rueckgaengig',
+		kuerzel: [{ code: 'KeyZ', befehl: true }],
+		orte: ['taste', 'palette'],
+		sichtbarUnter: 'kopf',
+		verfuegbar: () => true,
+		aus: (k) => k.tu.rueckgaengig(),
+	},
+	{
+		id: 'dokument.wiederholen',
+		titel: 'Wiederholen',
+		gruppe: 'dokument',
+		symbol: 'wiederholen',
+		kuerzel: [{ code: 'KeyZ', befehl: true, umschalt: true }, { code: 'KeyY', befehl: true }],
+		orte: ['taste', 'palette'],
+		sichtbarUnter: 'kopf',
+		verfuegbar: () => true,
+		aus: (k) => k.tu.wiederholen(),
+	},
+	{
+		id: 'dokument.speichern',
+		titel: 'Speichern',
+		gruppe: 'dokument',
+		kuerzel: [{ code: 'KeyS', befehl: true }],
+		orte: ['taste'],
+		sichtbarUnter: 'kopf',
+		verfuegbar: () => true,
+		aus: (k) => k.tu.speichern(),
+	},
+	{
+		id: 'dokument.pdf',
+		titel: 'PDF',
+		gruppe: 'dokument',
+		symbol: 'herunterladen',
+		kuerzel: [{ code: 'KeyP', befehl: true }],
+		suchwoerter: ['herunterladen', 'drucken', 'download'],
+		orte: ['taste', 'palette'],
+		sichtbarUnter: 'kopf',
+		verfuegbar: () => true,
+		aus: (k) => k.tu.pdf(),
+	},
+	{
+		id: 'dokument.drucken',
+		titel: 'Drucken',
+		gruppe: 'dokument',
+		symbol: 'drucker',
+		orte: ['palette'],
+		sichtbarUnter: 'kopf',
+		verfuegbar: () => true,
+		aus: (k) => k.tu.drucken(),
+	},
+	{
+		id: 'dokument.als-vorlage',
+		titel: 'Als Vorlage speichern',
+		gruppe: 'dokument',
+		symbol: 'blatt',
+		orte: ['palette'],
+		sichtbarUnter: 'kopf',
+		verfuegbar: () => true,
+		aus: (k) => k.tu.alsVorlage(),
+	},
+	{
+		id: 'dokument.praesentieren',
+		titel: 'Präsentieren',
+		gruppe: 'dokument',
+		symbol: 'praesentieren',
+		suchwoerter: ['beamer', 'folien'],
+		orte: ['palette'],
+		sichtbarUnter: 'kopf',
+		verfuegbar: (k) => k.format === 'folie',
+		aus: (k) => k.tu.praesentieren(),
+	},
+	{
+		id: 'dokument.neue-seite',
+		titel: 'Neue Seite',
+		gruppe: 'dokument',
+		symbol: 'plus',
+		orte: ['menue', 'palette'],
+		sichtbarUnter: 'links',
+		verfuegbar: (k) => k.aktiv && !k.festeSeiten,
+		aus: (k) => k.tu.struktur.neueSeite(false),
+	},
+	{
+		id: 'dokument.seite-mit-namenszeile',
+		titel: 'Neue Seite mit Namenszeile',
+		gruppe: 'dokument',
+		symbol: 'plus',
+		orte: ['menue', 'palette'],
+		sichtbarUnter: 'links',
+		verfuegbar: (k) => k.aktiv && !k.festeSeiten && k.namenszeile,
+		aus: (k) => k.tu.struktur.neueSeite(true),
+	},
+	{
+		id: 'dokument.zurueck',
+		titel: 'Zurück zum Dokument',
+		gruppe: 'dokument',
+		symbol: 'zurueck',
+		orte: ['palette'],
+		sichtbarUnter: 'kopf',
+		verfuegbar: () => true,
+		aus: (k) => k.tu.zurueck(),
+	},
+];
+
+export const titelVon = (b: Befehl, k: Kontext) => (typeof b.titel === 'function' ? b.titel(k) : b.titel);
+
+const symbolVon = (b: Befehl, k: Kontext) => (typeof b.symbol === 'function' ? b.symbol(k) : b.symbol);
+
+/** Nur Verfügbares, in der Reihenfolge der Gruppen. */
+export const befehleFuer = (ort: Ort, k: Kontext, alle: Befehl[] = BEFEHLE) =>
+	alle
+		.filter((b) => b.orte.includes(ort) && b.verfuegbar(k))
+		.sort((a, b) => GRUPPEN.indexOf(a.gruppe) - GRUPPEN.indexOf(b.gruppe));
+
+const TASTEN_NAME: Record<string, string> = {
+	ArrowUp: '↑',
+	ArrowDown: '↓',
+	ArrowLeft: '←',
+	ArrowRight: '→',
+	Backspace: '⌫',
+	Delete: 'Entf',
+	Enter: '⏎',
+	Escape: 'Esc',
+	Tab: 'Tab',
+};
+
+const tasteName = ({ code, key }: Kuerzel) => {
+	if (code) {
+		return code.replace(/^(Key|Digit)/, '');
+	}
+	return TASTEN_NAME[key ?? ''] ?? key ?? '';
+};
+
+/** `⇧⌘D` am Mac, `Strg+Umschalt+D` sonst. */
+export const kuerzelText = (k: Kuerzel, mac?: boolean) =>
+	kuerzelAnzeige(`${k.wahl ? '⌥' : ''}${k.umschalt ? '⇧' : ''}${k.befehl ? '⌘' : ''}${tasteName(k)}`, mac);
+
+type TastenEreignis = Pick<KeyboardEvent, 'code' | 'key' | 'metaKey' | 'ctrlKey' | 'altKey' | 'shiftKey'>;
+
+/** Zeichen wie `/` oder `?` entstehen auf der deutschen Tastatur erst mit ⇧: Dort zählt ⇧ nicht. */
+const zeichenOhneUmschalt = (key: string) => key.length === 1 && !/[a-z]/i.test(key);
+
+export const passtTaste = (k: Kuerzel, e: TastenEreignis) => {
+	if (Boolean(k.befehl) !== (e.metaKey || e.ctrlKey) || Boolean(k.wahl) !== e.altKey) {
+		return false;
+	}
+	if (k.code) {
+		return e.code === k.code && Boolean(k.umschalt) === e.shiftKey;
+	}
+	if (e.key !== k.key) {
+		return false;
+	}
+	return zeichenOhneUmschalt(e.key) || Boolean(k.umschalt) === e.shiftKey;
+};
+
+export const MODUS_VORGABE: Modus[] = ['auswahl', 'ohne'];
+
+/** Der Befehl zu einer Taste in diesem Zustand, verfügbar oder nicht: Wer nicht kann, sagt es (`warumNicht`). */
+export const befehlZuTaste = (e: TastenEreignis, modus: Modus, k: Kontext, alle: Befehl[] = BEFEHLE) =>
+	alle.find(
+		(b) =>
+			(b.modus ?? MODUS_VORGABE).includes(modus) &&
+			b.kuerzel?.some((t) => passtTaste(t, e) && (!t.wenn || t.wenn(k))),
+	);
+
+const alsEintrag = (b: Befehl, k: Kontext, fuehreAus: (id: string) => unknown): MenueEintrag => {
+	const [erstes] = b.kuerzel ?? [];
+	const symbol = symbolVon(b, k);
+	return {
+		titel: titelVon(b, k),
+		gruppe: b.gruppe,
+		...(symbol ? { symbol } : {}),
+		...(erstes ? { kuerzel: kuerzelText(erstes) } : {}),
+		...(b.gefahr ? { gefahr: true } : {}),
+		...(b.gesperrt?.(k) ? { aus: true } : {}),
+		waehle: () => {
+			fuehreAus(b.id);
+		},
+	};
+};
+
+/** Einträge für Rechtsklick und ⋯, dieselbe Liste an beiden Orten. Untermenüs entstehen aus `untermenue`. */
+export const menueAusBefehlen = (
+	liste: Befehl[],
+	k: Kontext,
+	fuehreAus: (id: string) => unknown,
+): MenueEintrag[] => {
+	const eintraege: MenueEintrag[] = [];
+	const unter = new Map<string, MenueEintrag>();
+	for (const b of liste) {
+		if (b.imMenue && !b.imMenue(k)) {
+			continue;
+		}
+		if (b.untermenue) {
+			let oben = unter.get(b.untermenue);
+			if (!oben) {
+				oben = { titel: b.untermenue, gruppe: b.gruppe, untermenue: [] };
+				unter.set(b.untermenue, oben);
+				eintraege.push(oben);
+			}
+			oben.untermenue?.push(alsEintrag(b, k, fuehreAus));
+		} else {
+			eintraege.push(alsEintrag(b, k, fuehreAus));
+		}
+	}
+	return eintraege;
+};
+
+/** Die eigene, kurze Liste für eine leere Stelle im Blatt (070): nicht mit Baustein-Befehlen gemischt. */
+export const MENUE_LEER = ['auswahl.einfuegen', 'auswahl.einfuegen-danach', 'dokument.neue-seite', 'ansicht.einpassen'];
+/** Für die Miniatur einer Seite (070). */
+export const MENUE_MINIATUR = [
+	'dokument.neue-seite',
+	'dokument.seite-mit-namenszeile',
+	'auswahl.duplizieren',
+	'auswahl.hoch',
+	'auswahl.runter',
+	'auswahl.loeschen',
+];
+
+/** Rechtsklick und ⋯ für einen Baustein: alles Bausteinbezogene, ohne Seitenbefehle. */
+export const menueZuBaustein = (k: Kontext) =>
+	befehleFuer('menue', k).filter(
+		(b) => !MENUE_LEER.includes(b.id) || b.id === 'auswahl.einfuegen',
+	);
+
+export const menueAusIds = (ids: string[], k: Kontext) =>
+	ids.flatMap((id) => BEFEHLE.find((b) => b.id === id && b.verfuegbar(k)) ?? []);

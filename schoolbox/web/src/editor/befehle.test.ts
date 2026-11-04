@@ -1,0 +1,91 @@
+import assert from 'node:assert/strict';
+import { describe, it } from 'node:test';
+
+import type { Kuerzel, Modus } from './befehle';
+import { BEFEHLE, kuerzelText, MODUS_VORGABE, passtTaste } from './befehle';
+
+/** Safari und deutsche Tastatur behalten diese für sich (069). */
+const SPERRLISTE = [
+	...['KeyL', 'KeyR', 'KeyW', 'KeyT', 'KeyN', 'KeyQ', 'KeyH', 'KeyM'],
+	...[1, 2, 3, 4, 5, 6, 7, 8, 9, 0].map((z) => `Digit${z}`),
+	...['[', ']', '\\', '/', '+', '-', '0'],
+];
+
+const schluessel = (k: Kuerzel) =>
+	`${k.befehl ? 'B' : ''}${k.wahl ? 'W' : ''}${k.umschalt ? 'U' : ''}:${k.code ?? k.key}`;
+
+describe('Befehlsregister', () => {
+	it('hat eindeutige ids', () => {
+		const ids = BEFEHLE.map((b) => b.id);
+		assert.deepEqual(
+			ids.filter((id, i) => ids.indexOf(id) !== i),
+			[],
+		);
+	});
+
+	it('hat in keinem Zustand zwei Befehle auf derselben Taste', () => {
+		for (const modus of ['auswahl', 'ohne', 'text'] as Modus[]) {
+			const belegt = new Map<string, string>();
+			for (const b of BEFEHLE) {
+				if ((b.modus ?? MODUS_VORGABE).includes(modus)) {
+					for (const k of b.kuerzel ?? []) {
+						const s = schluessel(k);
+						assert.equal(belegt.get(s), undefined, `${modus}: ${s} bei ${b.id} und ${belegt.get(s) ?? ''}`);
+						belegt.set(s, b.id);
+					}
+				}
+			}
+		}
+	});
+
+	it('zeigt jeden Befehl mit Taste oder Menü auch sichtbar', () => {
+		for (const b of BEFEHLE) {
+			if (b.orte.includes('taste') || b.orte.includes('menue')) {
+				assert.ok(b.sichtbarUnter, b.id);
+			}
+		}
+	});
+
+	it('jeder Befehl mit Kürzel steht auch am Ort „taste“', () => {
+		for (const b of BEFEHLE) {
+			assert.equal(Boolean(b.kuerzel?.length), b.orte.includes('taste'), b.id);
+		}
+	});
+
+	it('nutzt kein Kürzel, das Safari oder die Tastatur für sich behalten', () => {
+		for (const b of BEFEHLE) {
+			for (const k of b.kuerzel ?? []) {
+				if (k.befehl) {
+					assert.ok(!SPERRLISTE.includes(k.code ?? k.key ?? ''), `${b.id}: ${schluessel(k)}`);
+				}
+			}
+		}
+	});
+
+	it('kuerzelText zeigt ⌘ am Mac und Strg sonst', () => {
+		const k: Kuerzel = { code: 'KeyD', befehl: true, umschalt: true };
+		assert.equal(kuerzelText(k, true), '⇧⌘D');
+		assert.equal(kuerzelText(k, false), 'Umschalt+Strg+D');
+		assert.equal(kuerzelText({ key: 'Backspace' }, true), '⌫');
+	});
+});
+
+describe('passtTaste', () => {
+	const ohne = { metaKey: false, ctrlKey: false, altKey: false, shiftKey: false };
+
+	it('nimmt ⌥N über den Code, auch wenn die Taste am Mac „~“ liefert', () => {
+		assert.ok(passtTaste({ code: 'KeyN', wahl: true }, { ...ohne, altKey: true, code: 'KeyN', key: '~' }));
+	});
+
+	it('nimmt „?“ und „/“ mit ⇧, wie die deutsche Tastatur sie liefert', () => {
+		assert.ok(passtTaste({ key: '?' }, { ...ohne, shiftKey: true, code: 'Minus', key: '?' }));
+		assert.ok(passtTaste({ key: '/' }, { ...ohne, shiftKey: true, code: 'Digit7', key: '/' }));
+	});
+
+	it('unterscheidet ⌘Z von ⇧⌘Z und Pfeil von ⌥Pfeil', () => {
+		const z = { ...ohne, metaKey: true, code: 'KeyZ', key: 'z' };
+		assert.ok(passtTaste({ code: 'KeyZ', befehl: true }, z));
+		assert.ok(!passtTaste({ code: 'KeyZ', befehl: true }, { ...z, shiftKey: true }));
+		assert.ok(!passtTaste({ key: 'ArrowUp' }, { ...ohne, altKey: true, code: 'ArrowUp', key: 'ArrowUp' }));
+	});
+});

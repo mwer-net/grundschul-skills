@@ -65,10 +65,10 @@ interface ZoomEigenschaften {
 	stufe: number;
 	/** Der echte Maßstab des Blatts. */
 	skala: number;
-	setZoom: (zoom: ZoomWert) => void;
+	fuehreAus: (id: string) => unknown;
 }
 
-const Zoom = ({ setZoom, skala, stufe, zoom }: ZoomEigenschaften) => {
+const Zoom = ({ fuehreAus, skala, stufe, zoom }: ZoomEigenschaften) => {
 	const kleiner = naechsteStufe(stufe, -1);
 	const groesser = naechsteStufe(stufe, 1);
 	return (
@@ -79,7 +79,7 @@ const Zoom = ({ setZoom, skala, stufe, zoom }: ZoomEigenschaften) => {
 					className={KNOPF}
 					aria-label="Kleiner"
 					disabled={kleiner === undefined}
-					onClick={() => kleiner !== undefined && setZoom(kleiner)}
+					onClick={() => fuehreAus('ansicht.zoom-raus')}
 				>
 					<Symbol name="minus" className="size-3 flex-none" />
 				</button>
@@ -89,7 +89,7 @@ const Zoom = ({ setZoom, skala, stufe, zoom }: ZoomEigenschaften) => {
 					type="button"
 					className={klassen(KNOPF, 'min-w-10 justify-center tabular-nums')}
 					data-zoom-wert
-					onClick={() => setZoom(1)}
+					onClick={() => fuehreAus('ansicht.zoom-100')}
 				>
 					{`${Math.round(skala * 100)} %`}
 				</button>
@@ -100,7 +100,7 @@ const Zoom = ({ setZoom, skala, stufe, zoom }: ZoomEigenschaften) => {
 					className={KNOPF}
 					aria-label="Größer"
 					disabled={groesser === undefined}
-					onClick={() => groesser !== undefined && setZoom(groesser)}
+					onClick={() => fuehreAus('ansicht.zoom-rein')}
 				>
 					<Symbol name="plus" className="size-3 flex-none" />
 				</button>
@@ -109,7 +109,7 @@ const Zoom = ({ setZoom, skala, stufe, zoom }: ZoomEigenschaften) => {
 				type="button"
 				className={klassen(KNOPF, 'aria-pressed:text-tinte')}
 				aria-pressed={zoom === 'einpassen'}
-				onClick={() => setZoom('einpassen')}
+				onClick={() => fuehreAus('ansicht.einpassen')}
 			>
 				<Symbol name="vollbild" className="size-3 flex-none" />
 				Einpassen
@@ -133,13 +133,13 @@ interface Eigenschaften extends ZoomEigenschaften {
 /** Unterste Zeile des Editors: wo man ist, ob alles passt, wie groß das Blatt gezeigt wird. */
 export const Statusleiste = ({
 	format,
+	fuehreAus,
 	linksOffen,
 	pruefung,
 	rechtsOffen,
 	seite,
 	setLinksOffen,
 	setRechtsOffen,
-	setZoom,
 	skala,
 	stufe,
 	verschiebe,
@@ -165,7 +165,7 @@ export const Statusleiste = ({
 			<span className="truncate" data-seite-von>{`Seite ${seite.nr} von ${seite.von} · ${format}`}</span>
 			<Pruefstatus stand={pruefung} zeige={zeigePunkt} verschiebe={verschiebe} />
 		</div>
-		<Zoom zoom={zoom} stufe={stufe} skala={skala} setZoom={setZoom} />
+		<Zoom zoom={zoom} stufe={stufe} skala={skala} fuehreAus={fuehreAus} />
 		<div className="flex items-center justify-end gap-2">
 			<Tooltip text="Rechte Leiste">
 				<button

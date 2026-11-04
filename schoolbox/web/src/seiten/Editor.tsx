@@ -22,6 +22,7 @@ import { SymbolKnopf } from '../bausteine/SymbolKnopf';
 import { Zustand } from '../bausteine/Zustand';
 import { useAbbildung } from '../editor/abbildung';
 import { Abbildungswerkzeug } from '../editor/Abbildungspanel';
+import { useAblage } from '../editor/ablage';
 import { AlsVorlage } from '../editor/AlsVorlage';
 import { Konfliktleiste, Speicheranzeige, Vorschauleiste } from '../editor/Anzeigen';
 import { useBearbeitung } from '../editor/bearbeitung';
@@ -46,17 +47,18 @@ import { usePruefung } from '../editor/pruefung';
 import { Seitenleiste } from '../editor/Seitenleiste';
 import { Sprachwerkzeug } from '../editor/Sprachwerkzeug';
 import type { ZoomWert } from '../editor/Statusleiste';
-import { gemerkterZoom, merkeZoom, Statusleiste, useSichtbareSeite } from '../editor/Statusleiste';
+import { gemerkterZoom, merkeZoom, naechsteStufe, Statusleiste, useSichtbareSeite } from '../editor/Statusleiste';
 import type { Struktur } from '../editor/struktur';
 import { useStruktur } from '../editor/struktur';
 import { useText } from '../editor/text';
+import { useBefehle } from '../editor/useBefehle';
 import type { VersionEintrag } from '../editor/version';
 import { Versionen } from '../editor/Versionen';
 import { useEreignisse } from '../ereignisse';
 import { useLaden } from '../lib/laden';
 import { useAnsichtsProfil } from '../lib/profil';
 import { useTitel } from '../lib/titel';
-import { ansichtAdresse, dokumentSeite, inhaltAdresse, praesentationSeite } from '../lib/zugang';
+import { ansichtAdresse, dokumentSeite, druckSeite, inhaltAdresse, praesentationSeite } from '../lib/zugang';
 import { PdfKnopf } from '../pdf/PdfKnopf';
 import { dokumentWahl, materialName } from '../pdf/wahl';
 import type { DokumentEintrag, Mappe, MappenEintrag } from '../typen';
@@ -487,6 +489,106 @@ const Bearbeitung = ({ dokument, mappe: mappenDaten }: { mappe: Mappe; dokument:
 	const zeigePunkt = useZeigePunkt({ loesung, geladen, html, zeigeAn: struktur.zeigeAn, setSuche });
 	const seite = useSichtbareSeite(geladen?.doc ?? null, ansicht, `${massstab.skala}/${geladen?.html.length ?? 0}`);
 
+	const verlassen = async (ziel: string) => {
+		const gespeichert = await alles();
+		const trotzdem =
+			gespeichert ||
+			b.konflikt !== null ||
+			window.confirm('Deine letzten Änderungen sind noch nicht gespeichert. Trotzdem gehen?');
+		if (trotzdem) {
+			void navigate(ziel);
+		}
+	};
+
+	const ablage = useAblage({
+		dokument: { mappe, dok },
+		pfad,
+		quelle,
+		fuegeAblageEin: einfuegen.fuegeAblageEin,
+		sammlungGeaendert: einfuegen.neuLaden,
+		struktur,
+	});
+
+	const befehle = useBefehle(
+		{
+			pfad,
+			format,
+			aktiv: struktur.aktiv,
+			frei,
+			textsitzung: text.bearbeitet,
+			quelle,
+			werte: struktur.werte,
+			mitLoesung,
+			loesung,
+			profil,
+			hatAblage: ablage.abgelegt !== null,
+			hatNeueZahlen: abbildung.hatNeueZahlen,
+			kiVerfuegbar: ki.zustand.verfuegbar,
+			namenszeile: zerlegung ? hatNamenszeile(zerlegung) : false,
+			festeSeiten: format === 'minibuch',
+			tu: {
+				struktur,
+				fokussiereText: text.fokussiere,
+				waehle: setAuswahl,
+				eineEbeneHoch: () => setAuswahl(pfad.at(-2)?.nr ?? null),
+				nachbar: () => undefined,
+				erstesKind: () => undefined,
+				ersterBaustein: () => undefined,
+				kopiere: ablage.kopiere,
+				schneideAus: ablage.schneideAus,
+				fuegeAblageEin: ablage.fuegeEin,
+				inSammlung: () => {
+					panels.setRechts('inspektor');
+					panels.setRechtsOffen(true);
+					ablage.setSammlungName(pfad.at(-1)?.name ?? '');
+				},
+				neueZahlen: abbildung.neueZahlen,
+				oeffneSchnellauswahl: () => undefined,
+				zurLeiste: () => undefined,
+				fassung: (w) => setSuche(w === 'loesung' ? { fassung: 'loesung' } : {}, { replace: true }),
+				profil: waehleProfil,
+				zoomSchritt: (richtung) => {
+					const ziel = naechsteStufe(massstab.stufe, richtung);
+					if (ziel !== undefined) {
+						setZoom(ziel);
+					}
+				},
+				zoom100: () => setZoom(1),
+				einpassen: () => setZoom('einpassen'),
+				links: panels.setLinks,
+				inspektor: () => {
+					if (panels.rechts === 'inspektor') {
+						panels.setRechtsOffen(!panels.rechtsOffen);
+					} else {
+						panels.setRechts('inspektor');
+						panels.setRechtsOffen(true);
+					}
+				},
+				versionen: () => {
+					panels.wechsleRechts('versionen');
+					setVorschau(null);
+				},
+				claude: () => panels.wechsleRechts('claude'),
+				claudeZurAuswahl: () => {
+					panels.setRechts('claude');
+					panels.setRechtsOffen(true);
+				},
+				palette: () => undefined,
+				tasten: () => undefined,
+				rueckgaengig: zurueck,
+				wiederholen: vor,
+				speichern: () => zeige({ text: 'Wird automatisch gespeichert.' }),
+				pdf: () => document.querySelector<HTMLElement>('[data-pdf-knopf] button')?.click(),
+				drucken: () =>
+					void verlassen(druckSeite(zugang, dok, loesung ? 'loesung' : 'arbeitsblatt', profil)),
+				alsVorlage: () => setAlsVorlage(true),
+				praesentieren: () => void verlassen(praesentationSeite(zugang, dok)),
+				zurueck: () => void verlassen(dokumentSeite(zugang, dok)),
+			},
+		},
+		useCallback((text: string) => zeige({ text }), [zeige]),
+	);
+
 	const taste = useCallback(
 		(e: KeyboardEvent) => {
 			const befehl = e.metaKey || e.ctrlKey;
@@ -532,17 +634,6 @@ const Bearbeitung = ({ dokument, mappe: mappenDaten }: { mappe: Mappe; dokument:
 			delete fenster.schoolboxEditor;
 		};
 	}, [b.verlauf, befehl]);
-
-	const verlassen = async (ziel: string) => {
-		const gespeichert = await alles();
-		const trotzdem =
-			gespeichert ||
-			b.konflikt !== null ||
-			window.confirm('Deine letzten Änderungen sind noch nicht gespeichert. Trotzdem gehen?');
-		if (trotzdem) {
-			void navigate(ziel);
-		}
-	};
 
 	const zeigeVersion = async (version: VersionEintrag) => {
 		try {
@@ -623,7 +714,7 @@ const Bearbeitung = ({ dokument, mappe: mappenDaten }: { mappe: Mappe; dokument:
 					zustand={text.zustand}
 					formatiere={text.formatiere}
 					beende={text.beende}
-					fokussiere={text.fokussiere}
+					fokussiere={() => befehle.fuehreAus('auswahl.bearbeiten')}
 				/>
 				<Sprachwerkzeug
 					pfad={pfad}
@@ -634,7 +725,10 @@ const Bearbeitung = ({ dokument, mappe: mappenDaten }: { mappe: Mappe; dokument:
 					struktur={struktur}
 				/>
 				<Bildwerkzeug bild={bild} />
-				<Abbildungswerkzeug abb={abbildung} />
+				<Abbildungswerkzeug
+					abb={abbildung}
+					neueZahlen={() => befehle.fuehreAus('auswahl.neue-zahlen') !== false}
+				/>
 				<Loesungswerkzeug l={loes} />
 				<Strukturwerkzeug
 					pfad={pfad}
@@ -642,9 +736,8 @@ const Bearbeitung = ({ dokument, mappe: mappenDaten }: { mappe: Mappe; dokument:
 					format={format}
 					quelle={quelle}
 					struktur={struktur}
-					dokument={{ mappe, dok }}
-					fuegeAblageEin={einfuegen.fuegeAblageEin}
-					sammlungGeaendert={einfuegen.neuLaden}
+					befehle={befehle}
+					ablage={ablage}
 				/>
 				<ClaudeFragen {...frage} nr={auswahl} pfad={pfad} />
 			</AuswahlPanel>
@@ -679,7 +772,7 @@ const Bearbeitung = ({ dokument, mappe: mappenDaten }: { mappe: Mappe; dokument:
 				mappe={mappenDaten.titel}
 				titel={meta.titel}
 				stand={<Speicheranzeige stand={stand} erneut={() => void b.speicher.speichere()} />}
-				verlassen={() => void verlassen(dokumentSeite(zugang, dok))}
+				verlassen={() => befehle.fuehreAus('dokument.zurueck')}
 				mitte={
 					<>
 						{mitLoesung && (
@@ -690,10 +783,13 @@ const Bearbeitung = ({ dokument, mappe: mappenDaten }: { mappe: Mappe; dokument:
 									{ wert: 'loesung', titel: 'Lösung' },
 								]}
 								wert={loesung ? 'loesung' : 'material'}
-								waehle={(w) => setSuche(w === 'loesung' ? { fassung: 'loesung' } : {}, { replace: true })}
+								waehle={(w) => befehle.fuehreAus(w === 'loesung' ? 'ansicht.loesung' : 'ansicht.arbeitsblatt')}
 							/>
 						)}
-						<ProfilSchalter profil={profil} waehle={waehleProfil} />
+						<ProfilSchalter
+							profil={profil}
+							waehle={(p) => befehle.fuehreAus(p === 'sw' ? 'ansicht.sw' : 'ansicht.farbe')}
+						/>
 					</>
 				}
 			>
@@ -702,14 +798,14 @@ const Bearbeitung = ({ dokument, mappe: mappenDaten }: { mappe: Mappe; dokument:
 					beschriftung="Rückgängig"
 					kuerzel="⌘Z"
 					disabled={!kannZurueck}
-					onClick={zurueck}
+					onClick={() => befehle.fuehreAus('dokument.rueckgaengig')}
 				/>
 				<SymbolKnopf
 					symbol="wiederholen"
 					beschriftung="Wiederholen"
 					kuerzel="⇧⌘Z"
 					disabled={!kannVor}
-					onClick={vor}
+					onClick={() => befehle.fuehreAus('dokument.wiederholen')}
 				/>
 				<Trenner />
 				{ki.zustand.verfuegbar && (
@@ -718,7 +814,7 @@ const Bearbeitung = ({ dokument, mappe: mappenDaten }: { mappe: Mappe; dokument:
 						titel="Claude"
 						symbol="sprechblase"
 						aktiv={panels.rechts === 'claude' && panels.rechtsOffen}
-						aktion={() => panels.wechsleRechts('claude')}
+						aktion={() => befehle.fuehreAus('ansicht.claude')}
 					/>
 				)}
 				<KopfKnopf
@@ -726,10 +822,7 @@ const Bearbeitung = ({ dokument, mappe: mappenDaten }: { mappe: Mappe; dokument:
 					titel="Versionen"
 					symbol="uhr"
 					aktiv={panels.rechts === 'versionen' && panels.rechtsOffen}
-					aktion={() => {
-						panels.wechsleRechts('versionen');
-						setVorschau(null);
-					}}
+					aktion={() => befehle.fuehreAus('ansicht.versionen')}
 				/>
 				<Menue
 					name="Weitere Aktionen"
@@ -739,16 +832,18 @@ const Bearbeitung = ({ dokument, mappe: mappenDaten }: { mappe: Mappe; dokument:
 							<Symbol name="mehr" />
 						</Knopf>
 					}
-					eintraege={[{ titel: 'Als Vorlage speichern', symbol: 'blatt', waehle: () => setAlsVorlage(true) }]}
+					eintraege={[{ titel: 'Als Vorlage speichern', symbol: 'blatt', waehle: () => befehle.fuehreAus('dokument.als-vorlage') }]}
 				/>
 				<Trenner />
 				{format === 'folie' && (
-					<Knopf art="zweit" onClick={() => void verlassen(praesentationSeite(zugang, dok))}>
+					<Knopf art="zweit" onClick={() => befehle.fuehreAus('dokument.praesentieren')}>
 						<Symbol name="praesentieren" />
 						Präsentieren
 					</Knopf>
 				)}
-				<PdfKnopf art="haupt" beschriftung="PDF" wahl={wahl} mappe={mappenDaten} warnen rechtsbuendig />
+				<span className="contents" data-pdf-knopf>
+					<PdfKnopf art="haupt" beschriftung="PDF" wahl={wahl} mappe={mappenDaten} warnen rechtsbuendig />
+				</span>
 			</Kopfleiste>
 			{alsVorlage && (
 				<AlsVorlage mappe={mappe} dok={dok} titel={meta.titel} schliessen={() => setAlsVorlage(false)} />
@@ -834,7 +929,7 @@ const Bearbeitung = ({ dokument, mappe: mappenDaten }: { mappe: Mappe; dokument:
 				zoom={zoom}
 				stufe={massstab.stufe}
 				skala={massstab.skala}
-				setZoom={setZoom}
+				fuehreAus={befehle.fuehreAus}
 				linksOffen={panels.linksOffen}
 				rechtsOffen={panels.rechtsOffen}
 				setLinksOffen={panels.setLinksOffen}

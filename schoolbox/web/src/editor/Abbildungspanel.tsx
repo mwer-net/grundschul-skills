@@ -1594,11 +1594,11 @@ const gruppen = (felder: Feld[]) => {
  * Einstellungen der gewählten Abbildung nach ihrem Schema. Jede Änderung zeigt sich sofort im Blatt und ist ein
  * Schritt im Verlauf; was nicht stimmt, wird nicht gespeichert.
  */
-const NeueZahlen = ({ abb }: { abb: AbbildungSteuerung }) => {
+const NeueZahlen = ({ neueZahlen }: { neueZahlen: () => boolean }) => {
 	const [hinweis, setHinweis] = useState(false);
 	return (
 		<div className="mt-3">
-			<Knopf art="zweit" data-neue-zahlen title="Neue Zahlen (⌥N)" onClick={() => setHinweis(!abb.neueZahlen())}>
+			<Knopf art="zweit" data-neue-zahlen title="Neue Zahlen (⌥N)" onClick={() => setHinweis(!neueZahlen())}>
 				<Symbol name="neueZahlen" />
 				Neue Zahlen
 			</Knopf>
@@ -1611,7 +1611,7 @@ const NeueZahlen = ({ abb }: { abb: AbbildungSteuerung }) => {
 	);
 };
 
-export const Abbildungswerkzeug = ({ abb }: { abb: AbbildungSteuerung }) => {
+export const Abbildungswerkzeug = ({ abb, neueZahlen }: { abb: AbbildungSteuerung; neueZahlen: () => boolean }) => {
 	const { schema } = abb;
 	if (!abb.aktiv || !schema) {
 		return null;
@@ -1625,7 +1625,7 @@ export const Abbildungswerkzeug = ({ abb }: { abb: AbbildungSteuerung }) => {
 					Das ist das Beispiel. Die Lösung ist auf dem Arbeitsblatt sichtbar.
 				</p>
 			)}
-			{abb.hatNeueZahlen && <NeueZahlen abb={abb} />}
+			{abb.hatNeueZahlen && <NeueZahlen neueZahlen={neueZahlen} />}
 			{gruppen(schema.felder).map(({ felder, name }, i) =>
 				name ? (
 					<details key={name} className="mt-4 border-t-2 border-rand pt-2" open={i === 0} data-gruppe={name}>

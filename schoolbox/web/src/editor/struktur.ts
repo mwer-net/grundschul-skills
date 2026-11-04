@@ -195,9 +195,9 @@ export const useStruktur = (o: Optionen) => {
 
 	const dupliziere = (nr: number) => fuehreAus('Kopiert', (q) => dupliziereBaustein(q, nr, nummerierung()), true);
 
-	const loesche = (nr: number, name: string) => {
-		if (fuehreAus('Gelöscht', (q) => loescheBaustein(q, nr, nummerierung()))) {
-			zeige({ text: `${name} gelöscht.`, aktion: zurueckKnopf() });
+	const loesche = (nr: number, name: string, wie: 'Gelöscht' | 'Ausgeschnitten' = 'Gelöscht') => {
+		if (fuehreAus(wie, (q) => loescheBaustein(q, nr, nummerierung()))) {
+			zeige({ text: `${name} ${wie.toLowerCase()}.`, aktion: zurueckKnopf() });
 		}
 	};
 
