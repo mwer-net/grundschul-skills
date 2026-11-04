@@ -37,7 +37,12 @@ const nachricht = (text: string, rolle: ChatNachricht['rolle'] = 'lehrkraft'): C
 
 describe('Verlauf des Chats', () => {
 	it('hat je Dokument, je Mappe und einmal global einen eigenen Schlüssel', () => {
-		const alle = [verlaufSchluessel('m', 'd'), verlaufSchluessel('m', 'e'), verlaufSchluessel('m'), verlaufSchluessel()];
+		const alle = [
+			verlaufSchluessel('m', 'd'),
+			verlaufSchluessel('m', 'e'),
+			verlaufSchluessel('m'),
+			verlaufSchluessel(),
+		];
 		assert.equal(new Set(alle).size, 4);
 	});
 
@@ -72,8 +77,15 @@ describe('Verlauf des Chats', () => {
 		const kurz = verlaufFuerServer(viele);
 		assert.equal(kurz.length, SERVER_NACHRICHTEN);
 		assert.deepEqual(kurz.at(-1), { rolle: 'lehrkraft', text: '9' });
-		const lang = verlaufFuerServer([nachricht('alt'), nachricht('x'.repeat(SERVER_ZEICHEN + 10), 'claude'), nachricht('neu')]);
-		assert.equal(lang.reduce((n, m) => n + m.text.length, 0), SERVER_ZEICHEN);
+		const lang = verlaufFuerServer([
+			nachricht('alt'),
+			nachricht('x'.repeat(SERVER_ZEICHEN + 10), 'claude'),
+			nachricht('neu'),
+		]);
+		assert.equal(
+			lang.reduce((n, m) => n + m.text.length, 0),
+			SERVER_ZEICHEN,
+		);
 		assert.equal(lang.length, 2);
 		assert.equal(lang.at(-1)?.text, 'neu');
 	});

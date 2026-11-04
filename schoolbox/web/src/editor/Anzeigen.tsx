@@ -10,7 +10,10 @@ import { versionTitel } from './version';
 export const Speicheranzeige = ({ erneut, stand }: { stand: SpeicherStand; erneut: () => void }) => {
 	if (stand.art === 'gespeichert') {
 		return (
-			<span className="flex items-center gap-1 text-xs whitespace-nowrap text-dezent" data-speicherstand="gespeichert">
+			<span
+				className="flex items-center gap-1 text-xs whitespace-nowrap text-dezent"
+				data-speicherstand="gespeichert"
+			>
 				<Symbol name="haken" className="size-3 flex-none" />
 				Gespeichert
 			</span>
@@ -29,7 +32,10 @@ export const Speicheranzeige = ({ erneut, stand }: { stand: SpeicherStand; erneu
 		konflikt: 'Nicht gespeichert – das Material wurde geändert',
 	}[stand.art];
 	return (
-		<span className="flex items-center gap-x-1 text-xs font-medium whitespace-nowrap text-fehler" data-speicherstand={stand.art}>
+		<span
+			className="flex items-center gap-x-1 text-xs font-medium whitespace-nowrap text-fehler"
+			data-speicherstand={stand.art}
+		>
 			{text}
 			{stand.art !== 'konflikt' && (
 				<button

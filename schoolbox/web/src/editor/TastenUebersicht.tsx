@@ -19,7 +19,11 @@ export const TastenUebersicht = ({ kontext, schliessen }: { kontext: Kontext; sc
 					<h3 className="mb-1 font-medium">{titel}</h3>
 					<ul>
 						{BEFEHLE.filter((b) => gruppen.includes(b.gruppe) && b.kuerzel?.length).map((b) => (
-							<li key={b.id} className="flex h-zeile items-center justify-between gap-3" data-taste={b.id}>
+							<li
+								key={b.id}
+								className="flex h-zeile items-center justify-between gap-3"
+								data-taste={b.id}
+							>
 								<span className="truncate">{titelVon(b, kontext)}</span>
 								<span className="flex flex-none gap-1.5">
 									{(b.kuerzel ?? [])
@@ -34,6 +38,8 @@ export const TastenUebersicht = ({ kontext, schliessen }: { kontext: Kontext; sc
 				</section>
 			))}
 		</div>
-		<p className="mt-3 text-leise">Beim Tippen im Blatt oder in einem Feld gelten nur ⌘K und ⌘J, der Rest gehört dem Text.</p>
+		<p className="mt-3 text-leise">
+			Beim Tippen im Blatt oder in einem Feld gelten nur ⌘K und ⌘J, der Rest gehört dem Text.
+		</p>
 	</Dialog>
 );

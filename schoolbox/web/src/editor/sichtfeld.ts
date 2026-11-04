@@ -1,7 +1,8 @@
 import { useEffect, useState } from 'react';
 
 /** Was der Chat unten vom Sichtfeld belegt; die Leiste weicht ihm aus. */
-const chatPlatz = () => Number.parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--chat-platz')) || 0;
+const chatPlatz = () =>
+	Number.parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--chat-platz')) || 0;
 
 /** Der sichtbare Teil der Leinwand, gemessen ab der Ecke von `data-innen`: Dort liegen alle Einblendungen. */
 export const sichtfeldVon = (doc: Document) => {

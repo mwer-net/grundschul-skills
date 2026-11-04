@@ -1,15 +1,12 @@
 import { Menu } from '@base-ui/react/menu';
 import type { ReactNode } from 'react';
-import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 
 import type { MenueEintrag } from './Menue';
 import { MenueEintraege, POPUP_KLASSEN } from './Menue';
+import type { Punkt, ZeigeMenue } from './menue-kontext';
+import { MenueKontext } from './menue-kontext';
 import { useDaneben } from './ueberlagerung';
-
-export interface Punkt {
-	x: number;
-	y: number;
-}
 
 interface Offen {
 	punkt: Punkt;
@@ -17,13 +14,6 @@ interface Offen {
 	/** Wohin der Fokus beim Schließen zurückgeht. Das Blatt liegt im `iframe`, das findet Base UI nicht von selbst. */
 	fokusZurueck?: () => void;
 }
-
-export type ZeigeMenue = (punkt: Punkt, eintraege: MenueEintrag[], fokusZurueck?: () => void) => void;
-
-const MenueKontext = createContext<ZeigeMenue>(() => undefined);
-
-/** Öffnet ein Menü an Koordinaten im Elternfenster, zum Beispiel beim Rechtsklick. */
-export const useZeigeMenue = () => useContext(MenueKontext);
 
 export const MenueAnbieter = ({ children }: { children: ReactNode }) => {
 	const [offen, setOffen] = useState<Offen | null>(null);

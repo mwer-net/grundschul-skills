@@ -48,7 +48,9 @@ const leseMappe = (mappeId: unknown, neueMappe: unknown, mappen: readonly Einord
 	if (typeof mappeId === 'string') {
 		return mappen.find((m) => m.id === mappeId) ?? null;
 	}
-	return typeof neueMappe === 'string' ? (mappen.find((m) => gleichesWort(m.titel, neueMappe)) ?? neueMappe.trim()) : null;
+	return typeof neueMappe === 'string'
+		? (mappen.find((m) => gleichesWort(m.titel, neueMappe)) ?? neueMappe.trim())
+		: null;
 };
 
 /**

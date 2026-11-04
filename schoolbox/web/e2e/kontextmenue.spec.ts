@@ -91,7 +91,10 @@ test.describe('Kontextmenü (070)', () => {
 		await oeffne(page, id, dok);
 		const menue = page.getByRole('menu');
 
-		await material(page).locator('.seite').first().click({ button: 'right', position: { x: 4, y: 4 } });
+		await material(page)
+			.locator('.seite')
+			.first()
+			.click({ button: 'right', position: { x: 4, y: 4 } });
 		await expect(menue.getByRole('menuitem', { name: /Baustein einfügen/ })).toBeVisible();
 		await expect(menue.getByRole('menuitem', { name: /Löschen/ })).toHaveCount(0);
 		await page.keyboard.press('Escape');

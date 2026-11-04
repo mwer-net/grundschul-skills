@@ -164,7 +164,12 @@ const kannDas = (k: Kontext, was: 'loeschen' | 'duplizieren') => {
 };
 
 const tabelle =
-	(id: string, titel: string, beschreibung: string, rechne: (q: string, nr: number, n: { jeSeite: boolean }) => StrukturErgebnis) =>
+	(
+		id: string,
+		titel: string,
+		beschreibung: string,
+		rechne: (q: string, nr: number, n: { jeSeite: boolean }) => StrukturErgebnis,
+	) =>
 	(orte: Ort[], gefahr = false, mehr: Partial<Befehl> = {}): Befehl => ({
 		id,
 		titel,
@@ -286,21 +291,19 @@ export const BEFEHLE: Befehl[] = [
 						),
 		},
 	),
-	tabelle('tabelle.spalte-danach', 'Spalte danach', 'Spalte eingefügt', (q, nr, n) => fuegeSpalteEin(q, nr, 'nach', n))(
-		['menue', 'leiste', 'palette'],
-		false,
-		{
-			leisteTitel: 'Spalte',
-			leisteWenn: istTabelle,
-			verfuegbar: (k) => inZelle(k) || istTabelle(k),
-			aus: (k) =>
-				istTabelle(k)
-					? anTabelle('spalten')(k)
-					: k.tu.struktur.fuehreAus('Spalte eingefügt', (q) =>
-							fuegeSpalteEin(q, gewaehlt(k)?.nr ?? 0, 'nach', { jeSeite: k.format === 'folie' }),
-						),
-		},
-	),
+	tabelle('tabelle.spalte-danach', 'Spalte danach', 'Spalte eingefügt', (q, nr, n) =>
+		fuegeSpalteEin(q, nr, 'nach', n),
+	)(['menue', 'leiste', 'palette'], false, {
+		leisteTitel: 'Spalte',
+		leisteWenn: istTabelle,
+		verfuegbar: (k) => inZelle(k) || istTabelle(k),
+		aus: (k) =>
+			istTabelle(k)
+				? anTabelle('spalten')(k)
+				: k.tu.struktur.fuehreAus('Spalte eingefügt', (q) =>
+						fuegeSpalteEin(q, gewaehlt(k)?.nr ?? 0, 'nach', { jeSeite: k.format === 'folie' }),
+					),
+	}),
 	{
 		id: 'auswahl.bild-ersetzen',
 		titel: 'Bild ersetzen',
@@ -326,7 +329,10 @@ export const BEFEHLE: Befehl[] = [
 		gruppe: 'ablage',
 		symbol: 'duplizieren',
 		// Safari kann ⌘D für Lesezeichen behalten; die Tastenprobe am Mac steht aus (069).
-		kuerzel: [{ code: 'KeyD', befehl: true, umschalt: true }, { code: 'KeyD', befehl: true }],
+		kuerzel: [
+			{ code: 'KeyD', befehl: true, umschalt: true },
+			{ code: 'KeyD', befehl: true },
+		],
 		modus: ['auswahl'],
 		suchwoerter: ['kopie', 'verdoppeln'],
 		orte: ['taste', 'menue', 'leiste', 'palette'],
@@ -467,14 +473,14 @@ export const BEFEHLE: Befehl[] = [
 		},
 		aktiv: (k) => {
 			const g = gewaehlt(k);
-			return Boolean(g && k.quelle && leseKit(k.quelle, g.nr, g.baustein.art)['stern'] === true);
+			return Boolean(g && k.quelle && leseKit(k.quelle, g.nr, g.baustein.art).stern === true);
 		},
 		aus: (k) => {
 			const g = gewaehlt(k);
 			if (!g || !k.quelle) {
 				return;
 			}
-			const an = leseKit(k.quelle, g.nr, g.baustein.art)['stern'] === true;
+			const an = leseKit(k.quelle, g.nr, g.baustein.art).stern === true;
 			k.tu.struktur.aendereAttribute('Sternchenaufgabe geändert', (q) =>
 				setzeKit(q, g.nr, g.baustein.art, 'stern', !an, { jeSeite: k.format === 'folie' }),
 			);
@@ -746,7 +752,11 @@ export const BEFEHLE: Befehl[] = [
 		titel: 'Claude',
 		gruppe: 'ansicht',
 		symbol: 'sprechblase',
-		kuerzel: [{ code: 'KeyJ', befehl: true }, { code: 'KeyJ', befehl: true, umschalt: true }, { code: 'KeyC', wahl: true }],
+		kuerzel: [
+			{ code: 'KeyJ', befehl: true },
+			{ code: 'KeyJ', befehl: true, umschalt: true },
+			{ code: 'KeyC', wahl: true },
+		],
 		modus: ['auswahl', 'ohne', 'text'],
 		suchwoerter: ['ki', 'chat', 'frage', 'fragen'],
 		orte: ['taste', 'palette'],
@@ -759,7 +769,10 @@ export const BEFEHLE: Befehl[] = [
 		titel: 'Befehle',
 		gruppe: 'ansicht',
 		symbol: 'suche',
-		kuerzel: [{ code: 'KeyK', befehl: true }, { code: 'KeyK', befehl: true, umschalt: true }],
+		kuerzel: [
+			{ code: 'KeyK', befehl: true },
+			{ code: 'KeyK', befehl: true, umschalt: true },
+		],
 		modus: ['auswahl', 'ohne', 'text'],
 		orte: ['taste'],
 		sichtbarUnter: 'statusleiste',
@@ -796,7 +809,10 @@ export const BEFEHLE: Befehl[] = [
 		titel: 'Wiederholen',
 		gruppe: 'dokument',
 		symbol: 'wiederholen',
-		kuerzel: [{ code: 'KeyZ', befehl: true, umschalt: true }, { code: 'KeyY', befehl: true }],
+		kuerzel: [
+			{ code: 'KeyZ', befehl: true, umschalt: true },
+			{ code: 'KeyY', befehl: true },
+		],
 		orte: ['taste', 'palette'],
 		sichtbarUnter: 'kopf',
 		verfuegbar: () => true,
@@ -980,11 +996,7 @@ const alsEintrag = (b: Befehl, k: Kontext, fuehreAus: (id: string) => unknown): 
 };
 
 /** Einträge für Rechtsklick und ⋯, dieselbe Liste an beiden Orten. Untermenüs entstehen aus `untermenue`. */
-export const menueAusBefehlen = (
-	liste: Befehl[],
-	k: Kontext,
-	fuehreAus: (id: string) => unknown,
-): MenueEintrag[] => {
+export const menueAusBefehlen = (liste: Befehl[], k: Kontext, fuehreAus: (id: string) => unknown): MenueEintrag[] => {
 	const eintraege: MenueEintrag[] = [];
 	const unter = new Map<string, MenueEintrag>();
 	for (const b of liste) {

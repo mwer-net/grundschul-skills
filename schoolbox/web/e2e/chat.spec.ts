@@ -95,11 +95,13 @@ test.describe('Chat im Editor (074)', () => {
 		});
 		const letzte = material(page).locator('.seite > *').last();
 		await letzte.click({ position: { x: 5, y: 5 } });
-		await expect.poll(async () => {
-			const rahmen = await page.locator('[data-auswahlrahmen]').boundingBox();
-			const fenster = await chat(page).boundingBox();
-			return rahmen && fenster ? rahmen.y + rahmen.height <= fenster.y : false;
-		}).toBe(true);
+		await expect
+			.poll(async () => {
+				const rahmen = await page.locator('[data-auswahlrahmen]').boundingBox();
+				const fenster = await chat(page).boundingBox();
+				return rahmen && fenster ? rahmen.y + rahmen.height <= fenster.y : false;
+			})
+			.toBe(true);
 	});
 
 	test('Nachricht, Vergleich, Annehmen, Rückgängig; Verwerfen lässt die Quelle byteidentisch', async ({ page }) => {
@@ -271,7 +273,9 @@ test.describe('Neues Material aus dem Chat (077)', () => {
 		await auftrag(page, 'Noch ein Blatt zur Uhr');
 		await expect(chip(page)).toContainText('Neues Material in dieser Mappe');
 		await expect(neuKarte(page).locator('[data-chat-neu-mappe]')).toContainText('Mappe:');
-		await neuKarte(page).getByRole('button', { name: /Anlegen/ }).click();
+		await neuKarte(page)
+			.getByRole('button', { name: /Anlegen/ })
+			.click();
 		await expect(page).toHaveURL(new RegExp(`/m/${mappe}/[^/]+/bearbeiten`));
 		expect(await dokZahl(mappe)).toBe(vorher + 1);
 	});

@@ -613,7 +613,7 @@ export const erstelleKi = ({ ereignisse, konfig, pruefer }: Abhaengigkeiten) => 
 			mappe: a.mappe,
 			dok: a.dok,
 			status,
-			umfang: { 'Ganzes Blatt': 'blatt', einordnen: 'einordnen' }[umfang] ?? 'teil',
+			umfang: { 'Ganzes Blatt': 'blatt', 'einordnen': 'einordnen' }[umfang] ?? 'teil',
 			sekunden: Math.round((Date.now() - start) / 1000),
 			...verbrauch,
 		};
@@ -787,7 +787,10 @@ export const erstelleKi = ({ ereignisse, konfig, pruefer }: Abhaengigkeiten) => 
 	}): Promise<Einordnung> => {
 		const { aktuelle, mappen, text } = w;
 		if (!text.trim() || text.length > KI_GRENZEN.einordnenZeichen) {
-			throw new HttpFehler(400, `Der Wunsch muss zwischen 1 und ${KI_GRENZEN.einordnenZeichen} Zeichen lang sein.`);
+			throw new HttpFehler(
+				400,
+				`Der Wunsch muss zwischen 1 und ${KI_GRENZEN.einordnenZeichen} Zeichen lang sein.`,
+			);
 		}
 		const rueckfall = rueckfallEinordnung(text, aktuelle);
 		if (limitErreicht() || !(await angemeldet())) {

@@ -144,12 +144,7 @@ export const KATALOG: readonly KatalogEintrag[] = [
 
 /** Wer „loschen“ oder „grosse“ tippt, meint „Löschen“ und „Größe“. */
 export const suchform = (t: string) =>
-	t
-		.toLocaleLowerCase('de')
-		.replace(/ä/g, 'a')
-		.replace(/ö/g, 'o')
-		.replace(/ü/g, 'u')
-		.replace(/ß/g, 'ss');
+	t.toLocaleLowerCase('de').replace(/ä/g, 'a').replace(/ö/g, 'o').replace(/ü/g, 'u').replace(/ß/g, 'ss');
 
 /** Sucht über Name und Suchbegriffe, Name zuerst. Mehrere Wörter müssen alle passen. */
 export const sucheImKatalog = (anfrage: string, eintraege: readonly KatalogEintrag[] = KATALOG) => {

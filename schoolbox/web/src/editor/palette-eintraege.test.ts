@@ -58,14 +58,23 @@ describe('Inhalt der Palette im Editor', () => {
 
 	it('fügt jeden Katalogeintrag ein, auch die eigene Sammlung', () => {
 		const eingefuegt: string[] = [];
-		const eigen: Posten = { ...(KATALOG[0] as (typeof KATALOG)[number]), id: 'eigen-1', name: 'Mein Kasten', eigen: 'x', einfuegbar: {} as never };
+		const eigen: Posten = {
+			...(KATALOG[0] as (typeof KATALOG)[number]),
+			id: 'eigen-1',
+			name: 'Mein Kasten',
+			eigen: 'x',
+			einfuegbar: {} as never,
+		};
 		const z = ziele({ fuegeEin: (p) => eingefuegt.push(p.id) });
 		const liste = eintraegeImEditor(kontext({ pfad: gewaehlt('aufgabe') }), { ...z, posten: [...z.posten, eigen] });
 		const einfuegen = liste.filter((e) => e.gruppe === BAUSTEIN_EINFUEGEN);
 		assert.equal(einfuegen.length, KATALOG.length + 1);
 		for (const e of einfuegen) {
 			e.aus();
-			assert.ok(suchePalette(e.titel, liste).some((t) => t.id === e.id), e.titel);
+			assert.ok(
+				suchePalette(e.titel, liste).some((t) => t.id === e.id),
+				e.titel,
+			);
 		}
 		assert.deepEqual(eingefuegt, [...KATALOG.map((e) => e.id), 'eigen-1']);
 	});
@@ -100,7 +109,10 @@ describe('Inhalt der Palette im Editor', () => {
 	it('springt zu Seiten und Einstellungen', () => {
 		const orte: string[] = [];
 		const seiten: number[] = [];
-		const liste = eintraegeImEditor(kontext(), ziele({ zeigeEinstellung: (o) => orte.push(o), zeigeSeite: (n) => seiten.push(n) }));
+		const liste = eintraegeImEditor(
+			kontext(),
+			ziele({ zeigeEinstellung: (o) => orte.push(o), zeigeSeite: (n) => seiten.push(n) }),
+		);
 		liste.find((e) => e.id === 'einstellung:abstand')?.aus();
 		suchePalette('seite 3', liste)[0]?.aus();
 		assert.deepEqual(orte, ['abstand']);
@@ -117,7 +129,10 @@ describe('Inhalt der Palette im Editor', () => {
 			['herunterladen', 'dokument.pdf'],
 			['ki', 'ansicht.claude'],
 		] as const) {
-			assert.ok(suchePalette(wort, liste).some((e) => e.id === id), `${wort} → ${id}`);
+			assert.ok(
+				suchePalette(wort, liste).some((e) => e.id === id),
+				`${wort} → ${id}`,
+			);
 		}
 	});
 

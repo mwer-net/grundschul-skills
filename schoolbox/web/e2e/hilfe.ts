@@ -131,8 +131,11 @@ export const test = basis.extend<Hilfen>({
 
 /** WebKit unter Linux macht im Download-Namen aus Leerzeichen `_`; Umlaute und Gedankenstrich bleiben. */
 /** Öffnet das ⋯ einer Kachel oder des Kopfs der Dokumentansicht; die Einträge sind `menuitem`. */
-export const oeffneMehr = (druecke: (ziel: Locator) => Promise<void>, bereich: Page | Locator, name = 'Weitere Aktionen') =>
-	druecke(bereich.getByRole('button', { name, exact: true }));
+export const oeffneMehr = (
+	druecke: (ziel: Locator) => Promise<void>,
+	bereich: Page | Locator,
+	name = 'Weitere Aktionen',
+) => druecke(bereich.getByRole('button', { name, exact: true }));
 
 export const dateiname = async (download: Promise<Download>) =>
 	(await download).suggestedFilename().replaceAll('_', ' ');

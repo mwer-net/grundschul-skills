@@ -16,7 +16,7 @@ import { useHinweis } from '../bausteine/hinweis';
 import { klassen } from '../bausteine/klassen';
 import { Knopf, KnopfLink } from '../bausteine/Knopf';
 import { Menue } from '../bausteine/Menue';
-import { useZeigeMenue } from '../bausteine/MenueAmPunkt';
+import { useZeigeMenue } from '../bausteine/menue-kontext';
 import { ProfilSchalter } from '../bausteine/ProfilSchalter';
 import { Segment } from '../bausteine/Segment';
 import { Symbol } from '../bausteine/Symbol';
@@ -24,11 +24,11 @@ import { SymbolKnopf } from '../bausteine/SymbolKnopf';
 import { Zustand } from '../bausteine/Zustand';
 import { useAbbildung } from '../editor/abbildung';
 import { useAblage } from '../editor/ablage';
-import type { MenueArt } from '../editor/befehle';
 import { AlsVorlage } from '../editor/AlsVorlage';
 import { Konfliktleiste, Speicheranzeige, Vorschauleiste } from '../editor/Anzeigen';
-import { useBearbeitung } from '../editor/bearbeitung';
 import { Bausteinleiste } from '../editor/Bausteinleiste';
+import { useBearbeitung } from '../editor/bearbeitung';
+import type { MenueArt } from '../editor/befehle';
 import { Bibliothek, Einfuegemarken, Gliederung } from '../editor/Bibliothek';
 import { useBild } from '../editor/bild';
 import type { ChatHandlungen } from '../editor/chat-kontext';
@@ -37,30 +37,31 @@ import { useClaudeApp } from '../editor/ClaudeApp';
 import { bausteinVon, editorHtml, elementZu, nrVon, pfadZu } from '../editor/darstellung';
 import { useEinfuegen, useSlash, useTabelleTab } from '../editor/einfuegen';
 import { halteFokus } from '../editor/halteFokus';
+import { Einstellungen, Inspektor, Umriss } from '../editor/Inspektor';
 import { Leinwand } from '../editor/Leinwand';
 import { leistenHtml } from '../editor/leiste';
 import type { LinksName } from '../editor/LinkeLeiste';
 import { LinkeLeiste } from '../editor/LinkeLeiste';
 import { useLoesung } from '../editor/loesung';
 import { Loesungsuebersicht } from '../editor/Loesungspanel';
-import { erstesKindVon, ersterAufSeite, nachbarVon, seiteAn } from '../editor/navigation';
-import { Einstellungen, Inspektor, Umriss } from '../editor/Inspektor';
+import { ersterAufSeite, erstesKindVon, nachbarVon, seiteAn } from '../editor/navigation';
+import { Palette } from '../editor/Palette';
+import { eintraegeImEditor } from '../editor/palette-eintraege';
 import { Blattwerkzeug } from '../editor/Panel';
 import type { Pruefpunkt } from '../editor/pruefung';
 import { usePruefung } from '../editor/pruefung';
 import { Seitenleiste } from '../editor/Seitenleiste';
-import type { ZoomWert } from '../editor/Statusleiste';
-import { gemerkterZoom, merkeZoom, naechsteStufe, Statusleiste, useSichtbareSeite } from '../editor/Statusleiste';
+import { Statusleiste } from '../editor/Statusleiste';
 import type { Struktur } from '../editor/struktur';
 import { useStruktur } from '../editor/struktur';
-import { eintraegeImEditor } from '../editor/palette-eintraege';
-import { Palette } from '../editor/Palette';
 import { gehoertDemElement, istFeld, TASTEN_SPERRE } from '../editor/tasten';
 import { TastenUebersicht } from '../editor/TastenUebersicht';
 import { useText } from '../editor/text';
 import { useBefehle } from '../editor/useBefehle';
 import type { VersionEintrag } from '../editor/version';
 import { Versionen } from '../editor/Versionen';
+import type { ZoomWert } from '../editor/zoom';
+import { gemerkterZoom, merkeZoom, naechsteStufe, useSichtbareSeite } from '../editor/zoom';
 import { useEreignisse } from '../ereignisse';
 import { useLaden } from '../lib/laden';
 import { useAnsichtsProfil } from '../lib/profil';
@@ -69,6 +70,12 @@ import { ansichtAdresse, dokumentSeite, druckSeite, inhaltAdresse, praesentation
 import { PdfKnopf } from '../pdf/PdfKnopf';
 import { dokumentWahl, materialName } from '../pdf/wahl';
 import type { DokumentEintrag, Mappe, MappenEintrag } from '../typen';
+
+const MEHR_KNOPF = (
+	<Knopf art="leise" className="size-knopf px-0">
+		<Symbol name="mehr" />
+	</Knopf>
+);
 
 interface Eigenschaften {
 	mappe: string;
@@ -377,6 +384,45 @@ const useEinfuegeWerkzeuge = ({
 	return { docJetzt, einfuegen, slash, verschiebeUeberlauf };
 };
 
+const versionenWerte = (
+	daten: { versionen: VersionEintrag[] } | null | undefined,
+	vorschau: { version: { id: string } } | null,
+) => ({ versionen: daten?.versionen ?? null, gewaehlt: vorschau?.version.id ?? null });
+
+const linkerReiter = (wunsch: LinksName, frei: boolean): LinksName =>
+	wunsch === 'bausteine' && !frei ? 'seiten' : wunsch;
+
+const anClaudeWenn = (verfuegbar: boolean, fuelle: (text: string) => void) => (verfuegbar ? fuelle : undefined);
+
+const KopfMitte = ({
+	dokument,
+	fuehreAus,
+	loesung,
+	mitLoesung,
+	profil,
+}: {
+	dokument: DokumentEintrag;
+	fuehreAus: (id: string) => unknown;
+	loesung: boolean;
+	mitLoesung: boolean;
+	profil: Druckprofil | undefined;
+}) => (
+	<>
+		{mitLoesung && (
+			<Segment
+				beschriftung="Was zeigen?"
+				werte={[
+					{ wert: 'material', titel: materialName(dokument) },
+					{ wert: 'loesung', titel: 'Lösung' },
+				]}
+				wert={loesung ? 'loesung' : 'material'}
+				waehle={(w) => fuehreAus(w === 'loesung' ? 'ansicht.loesung' : 'ansicht.arbeitsblatt')}
+			/>
+		)}
+		<ProfilSchalter profil={profil} waehle={(p) => fuehreAus(p === 'sw' ? 'ansicht.sw' : 'ansicht.farbe')} />
+	</>
+);
+
 const Bearbeitung = ({ dokument, mappe: mappenDaten }: { mappe: Mappe; dokument: DokumentEintrag }) => {
 	const { id: dok, meta } = dokument;
 	const mappe = mappenDaten.id;
@@ -395,6 +441,12 @@ const Bearbeitung = ({ dokument, mappe: mappenDaten }: { mappe: Mappe; dokument:
 	const [zumBlatt, setZumBlatt] = useState(0);
 	const [umriss, setUmriss] = useState<number | null>(null);
 	const claudeApp = useClaudeApp();
+	const handlungen = useRef<ChatHandlungen>({
+		vorbereiten: () => Promise.resolve(),
+		holeZitat: () => '',
+		zumBlatt: () => undefined,
+		zurApp: () => undefined,
+	});
 	const chat = useChat();
 	const chatStand = useChatStand();
 	const [schnellWunsch, setSchnellWunsch] = useState<{ n: number; nr: number | null }>({ n: 0, nr: null });
@@ -507,7 +559,7 @@ const Bearbeitung = ({ dokument, mappe: mappenDaten }: { mappe: Mappe; dokument:
 		text,
 	});
 	const zeigePunkt = useZeigePunkt({ loesung, geladen, html, zeigeAn: struktur.zeigeAn, setSuche });
-	const seite = useSichtbareSeite(geladen?.doc ?? null, ansicht, `${massstab.skala}/${geladen?.html.length ?? 0}`);
+	const seite = useSichtbareSeite(geladen, ansicht, massstab.skala);
 
 	const verlassen = async (ziel: string) => {
 		const gespeichert = await alles();
@@ -591,11 +643,13 @@ const Bearbeitung = ({ dokument, mappe: mappenDaten }: { mappe: Mappe; dokument:
 				neueZahlen: () => {
 					const geklappt = abbildung.neueZahlen();
 					if (!geklappt) {
-						zeige({ text: 'Hier gibt es gerade keine neuen Zahlen. Bei Sprüngen und Fehleraufgaben hängen die Zahlen zusammen.' });
+						zeige({
+							text: 'Hier gibt es gerade keine neuen Zahlen. Bei Sprüngen und Fehleraufgaben hängen die Zahlen zusammen.',
+						});
 					}
 					return geklappt;
 				},
-				claudeApp: () => claudeApp.frage({ ...frage, nr: auswahl }),
+				claudeApp: () => handlungen.current.zurApp(auswahl),
 				oeffneSchnellauswahl: (nr = auswahl) => setSchnellWunsch((w) => ({ n: w.n + 1, nr })),
 				bildErsetzen: () => {
 					panels.setRechts('inspektor');
@@ -647,15 +701,14 @@ const Bearbeitung = ({ dokument, mappe: mappenDaten }: { mappe: Mappe; dokument:
 				wiederholen: vor,
 				speichern: () => zeige({ text: 'Wird automatisch gespeichert.' }),
 				pdf: () => document.querySelector<HTMLElement>('[data-pdf-knopf] button')?.click(),
-				drucken: () =>
-					void verlassen(druckSeite(zugang, dok, loesung ? 'loesung' : 'arbeitsblatt', profil)),
+				drucken: () => void verlassen(druckSeite(zugang, dok, loesung ? 'loesung' : 'arbeitsblatt', profil)),
 				alsVorlage: () => setAlsVorlage(true),
 				praesentieren: () => void verlassen(praesentationSeite(zugang, dok)),
 				zurueck: () => void verlassen(dokumentSeite(zugang, dok)),
 				hilfe: () => void verlassen('/hilfe'),
 			},
 		},
-		useCallback((text: string) => zeige({ text }), [zeige]),
+		useCallback((inhalt: string) => zeige({ text: inhalt }), [zeige]),
 	);
 
 	const zeigeEinstellung = (ort: string) => {
@@ -759,10 +812,6 @@ const Bearbeitung = ({ dokument, mappe: mappenDaten }: { mappe: Mappe; dokument:
 		versionenNeu();
 	};
 
-	if (b.ladeFehler) {
-		return <Fehlt fehler={b.ladeFehler} />;
-	}
-
 	const wahl = dokumentWahl(zugang, mitStand(dokument, b.verlauf), profil).map((w) => ({
 		...w,
 		vorbereiten: async () => {
@@ -775,13 +824,6 @@ const Bearbeitung = ({ dokument, mappe: mappenDaten }: { mappe: Mappe; dokument:
 		() => ({ mappe: mappenDaten, dokument: { id: dok, titel: meta.titel } }),
 		[mappenDaten, dok, meta.titel],
 	);
-	const frage = { zerlegung, ort, loesung, nachher: () => void alles() };
-	const handlungen = useRef<ChatHandlungen>({
-		vorbereiten: () => Promise.resolve(),
-		holeZitat: () => '',
-		zumBlatt: () => undefined,
-		zurApp: () => undefined,
-	});
 	useEffect(() => {
 		handlungen.current = {
 			vorbereiten: alles,
@@ -820,6 +862,11 @@ const Bearbeitung = ({ dokument, mappe: mappenDaten }: { mappe: Mappe; dokument:
 			[adresse, auswahl, dok, frei, loesung, mappe, meta.titel, ort, pfad, zerlegung],
 		),
 	);
+
+	if (b.ladeFehler) {
+		return <Fehlt fehler={b.ladeFehler} />;
+	}
+
 	const ohneAuswahl = (
 		<Blattwerkzeug
 			aktiv={frei}
@@ -833,11 +880,7 @@ const Bearbeitung = ({ dokument, mappe: mappenDaten }: { mappe: Mappe; dokument:
 		versionen: (
 			<>
 				<h2 className="mb-2 text-base font-semibold">Versionen</h2>
-				<Versionen
-					versionen={versionen.daten?.versionen ?? null}
-					gewaehlt={vorschau?.version.id ?? null}
-					waehle={(v) => void zeigeVersion(v)}
-				/>
+				<Versionen {...versionenWerte(versionen.daten, vorschau)} waehle={(v) => void zeigeVersion(v)} />
 			</>
 		),
 		inspektor: (
@@ -862,7 +905,7 @@ const Bearbeitung = ({ dokument, mappe: mappenDaten }: { mappe: Mappe; dokument:
 	};
 	const { kannVor, kannZurueck } = schritte(b.verlauf, frei);
 
-	const links = panels.links === 'bausteine' && !frei ? 'seiten' : panels.links;
+	const links = linkerReiter(panels.links, frei);
 	const linksInhalt = {
 		seiten: (
 			<Seiten
@@ -891,6 +934,17 @@ const Bearbeitung = ({ dokument, mappe: mappenDaten }: { mappe: Mappe; dokument:
 		),
 	};
 
+	const leinwandMenue = (treffer: { nr: number; art: string } | null, punkt: { x: number; y: number }) =>
+		menueAn(treffer?.nr ?? null, !treffer || treffer.art === 'seite' ? 'leer' : 'baustein', punkt);
+	const kopfMitte = (
+		<KopfMitte
+			dokument={dokument}
+			fuehreAus={befehle.fuehreAus}
+			loesung={loesung}
+			mitLoesung={mitLoesung}
+			profil={profil}
+		/>
+	);
 	return (
 		<div className="flex h-dvh flex-col bg-papier" data-editor>
 			<Kopfleiste
@@ -898,25 +952,7 @@ const Bearbeitung = ({ dokument, mappe: mappenDaten }: { mappe: Mappe; dokument:
 				titel={meta.titel}
 				stand={<Speicheranzeige stand={stand} erneut={() => void b.speicher.speichere()} />}
 				verlassen={() => befehle.fuehreAus('dokument.zurueck')}
-				mitte={
-					<>
-						{mitLoesung && (
-							<Segment
-								beschriftung="Was zeigen?"
-								werte={[
-									{ wert: 'material', titel: materialName(dokument) },
-									{ wert: 'loesung', titel: 'Lösung' },
-								]}
-								wert={loesung ? 'loesung' : 'material'}
-								waehle={(w) => befehle.fuehreAus(w === 'loesung' ? 'ansicht.loesung' : 'ansicht.arbeitsblatt')}
-							/>
-						)}
-						<ProfilSchalter
-							profil={profil}
-							waehle={(p) => befehle.fuehreAus(p === 'sw' ? 'ansicht.sw' : 'ansicht.farbe')}
-						/>
-					</>
-				}
+				mitte={kopfMitte}
 			>
 				<SymbolKnopf
 					symbol="rueckgaengig"
@@ -933,14 +969,14 @@ const Bearbeitung = ({ dokument, mappe: mappenDaten }: { mappe: Mappe; dokument:
 					onClick={() => befehle.fuehreAus('dokument.wiederholen')}
 				/>
 				<Trenner />
-					<KopfKnopf
-						name="Claude"
-						titel="Claude"
-						symbol="sprechblase"
-						aktiv={chatStand.fenster !== 'zu'}
-						aktion={() => chat.wechsle()}
-						halten
-					/>
+				<KopfKnopf
+					name="Claude"
+					titel="Claude"
+					symbol="sprechblase"
+					aktiv={chatStand.fenster !== 'zu'}
+					aktion={() => chat.wechsle()}
+					halten
+				/>
 				<KopfKnopf
 					name="Versionen"
 					titel="Versionen"
@@ -951,13 +987,13 @@ const Bearbeitung = ({ dokument, mappe: mappenDaten }: { mappe: Mappe; dokument:
 				<Menue
 					name="Weitere Aktionen"
 					rechtsbuendig
-					ausloeser={
-						<Knopf art="leise" className="size-knopf px-0">
-							<Symbol name="mehr" />
-						</Knopf>
-					}
+					ausloeser={MEHR_KNOPF}
 					eintraege={[
-						{ titel: 'Als Vorlage speichern', symbol: 'blatt', waehle: () => befehle.fuehreAus('dokument.als-vorlage') },
+						{
+							titel: 'Als Vorlage speichern',
+							symbol: 'blatt',
+							waehle: () => befehle.fuehreAus('dokument.als-vorlage'),
+						},
 					]}
 				/>
 				<Trenner />
@@ -975,10 +1011,11 @@ const Bearbeitung = ({ dokument, mappe: mappenDaten }: { mappe: Mappe; dokument:
 			{paletteOffen && (
 				<Palette
 					platzhalter="Befehl oder Baustein suchen"
-					anClaude={ki.zustand.verfuegbar ? chat.fuelle : undefined}
+					anClaude={anClaudeWenn(ki.zustand.verfuegbar, chat.fuelle)}
 					eintraege={eintraegeImEditor(befehle.jetzt.current, {
 						posten: einfuegen.eintraege,
-						fuegeEin: (p) => einfuegen.fuegeEin(p, auswahl ?? (docJetzt ? seiteAn(docJetzt, seite.nr) : null)),
+						fuegeEin: (p) =>
+							einfuegen.fuegeEin(p, auswahl ?? (docJetzt ? seiteAn(docJetzt, seite.nr) : null)),
 						zeigeSeite: (nr) => {
 							const ziel = docJetzt ? seiteAn(docJetzt, nr) : null;
 							if (ziel !== null) {
@@ -1015,7 +1052,10 @@ const Bearbeitung = ({ dokument, mappe: mappenDaten }: { mappe: Mappe; dokument:
 					<main
 						ref={ansicht}
 						className="min-h-0 min-w-0 flex-1 overflow-y-auto bg-leinwand"
-						style={{ paddingBottom: 'var(--chat-platz, 0px)', scrollPaddingBottom: 'var(--chat-platz, 0px)' }}
+						style={{
+							paddingBottom: 'var(--chat-platz, 0px)',
+							scrollPaddingBottom: 'var(--chat-platz, 0px)',
+						}}
 					>
 						{b.konflikt && (
 							<Konfliktleiste
@@ -1045,13 +1085,7 @@ const Bearbeitung = ({ dokument, mappe: mappenDaten }: { mappe: Mappe; dokument:
 								meldeMassstab={setMassstab}
 								taste={taste}
 								textsitzung={text.bearbeitet}
-								kontextmenue={(treffer, punkt) =>
-									menueAn(
-										treffer?.nr ?? null,
-										!treffer || treffer.art === 'seite' ? 'leer' : 'baustein',
-										punkt,
-									)
-								}
+								kontextmenue={leinwandMenue}
 								geladen={merken}
 								nurAnsehen={vorschau !== null}
 								ziehbar={struktur.aktiv}
@@ -1099,7 +1133,12 @@ const Bearbeitung = ({ dokument, mappe: mappenDaten }: { mappe: Mappe; dokument:
 						className="flex w-[248px] flex-none flex-col border-l border-rand bg-flaeche max-lg:h-[38vh] max-lg:w-auto max-lg:border-t max-lg:border-l-0"
 						data-panel={panels.rechts}
 					>
-						<div className={klassen('min-h-0 flex-1 overflow-y-auto', panels.rechts !== 'inspektor' && 'p-3')}>
+						<div
+							className={klassen(
+								'min-h-0 flex-1 overflow-y-auto',
+								panels.rechts !== 'inspektor' && 'p-3',
+							)}
+						>
 							{panelInhalt[panels.rechts]}
 						</div>
 					</aside>

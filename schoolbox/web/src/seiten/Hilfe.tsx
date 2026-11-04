@@ -93,13 +93,15 @@ const ABSCHNITTE: Abschnitt[] = [
 					<li>Unter „Meine Mappen“ auf „Mappe anlegen“: Eine Mappe gehört zu einem Thema.</li>
 					<li>
 						In der Mappe auf „Material anlegen“: Art, Format und Titel wählen, dann leer, mit einer Vorlage
-						oder „Mit Claude“ beginnen. Mit Claude schreibst du in einem Satz, worum es geht. Der Chat öffnet
-						sich im Editor, und am Ende steht ein Entwurf zum Vergleichen.
+						oder „Mit Claude“ beginnen. Mit Claude schreibst du in einem Satz, worum es geht. Der Chat
+						öffnet sich im Editor, und am Ende steht ein Entwurf zum Vergleichen.
 					</li>
 				</ol>
 				<h3>Bausteine einfügen</h3>
 				<ul>
-					<Punkt titel="Plus">einen Teil des Blatts antippen, dann das Plus an seinem Rand oder „+ Baustein“ in der Leiste.</Punkt>
+					<Punkt titel="Plus">
+						einen Teil des Blatts antippen, dann das Plus an seinem Rand oder „+ Baustein“ in der Leiste.
+					</Punkt>
 					<Punkt titel="Bausteine">links im Reiter „Bausteine“ suchen, ins Blatt ziehen oder antippen.</Punkt>
 					<Punkt titel="Schrägstrich">in einer leeren Zeile „/“ tippen und weiterschreiben.</Punkt>
 				</ul>
@@ -113,8 +115,8 @@ const ABSCHNITTE: Abschnitt[] = [
 		inhalt: (
 			<>
 				<p>
-					Ein einzelnes Blatt geht am schnellsten im Chat der Schoolbox, siehe „Mit Claude arbeiten“. Für alles
-					Größere nimmst du die Claude-App:
+					Ein einzelnes Blatt geht am schnellsten im Chat der Schoolbox, siehe „Mit Claude arbeiten“. Für
+					alles Größere nimmst du die Claude-App:
 				</p>
 				<ol>
 					<li>Öffne die Claude-App auf dem Mac oder iPad und wähle dort die Umgebung „schoolbox“.</li>
@@ -224,13 +226,16 @@ const ABSCHNITTE: Abschnitt[] = [
 			<>
 				<p>„Bearbeiten“ öffnet das Blatt zum Ändern. Alles speichert von selbst.</p>
 				<ul>
-					<Punkt titel="Text">antippen und lostippen. Fett und unterstrichen stehen in der Leiste über dem Text.</Punkt>
+					<Punkt titel="Text">
+						antippen und lostippen. Fett und unterstrichen stehen in der Leiste über dem Text.
+					</Punkt>
 					<Punkt titel="Umsortieren">
 						Aufgaben, Kärtchen und Seiten ziehen (am iPad kurz halten, dann ziehen) oder in der Leiste am
 						Baustein „Nach oben“ und „Nach unten“ tippen. Dort lassen sie sich auch verdoppeln und löschen.
 					</Punkt>
 					<Punkt titel="Einstellungen">
-						rechts im Inspektor: „Auswahl“ für den gewählten Baustein, „Blatt“ für Klasse, Farben und Format.
+						rechts im Inspektor: „Auswahl“ für den gewählten Baustein, „Blatt“ für Klasse, Farben und
+						Format.
 					</Punkt>
 					<Punkt titel="Bilder">
 						Bild antippen, dann austauschen, eigenes hochladen oder an den Ecken größer und kleiner ziehen.
@@ -255,7 +260,9 @@ const ABSCHNITTE: Abschnitt[] = [
 			<>
 				<ul>
 					<Punkt titel="Rechtsklick">auf einen Baustein zeigt alles, was mit ihm geht.</Punkt>
-					<Punkt titel="⋯">in der Leiste am Baustein und auf jeder Kachel zeigt dasselbe, auch am iPad.</Punkt>
+					<Punkt titel="⋯">
+						in der Leiste am Baustein und auf jeder Kachel zeigt dasselbe, auch am iPad.
+					</Punkt>
 					<Punkt titel="Suchen und Befehle">
 						⌘K öffnet ein Feld, in dem du jeden Befehl, jede Mappe und jedes Dokument findest. Du musst nur
 						ungefähr wissen, wie es heißt.
@@ -276,31 +283,31 @@ const ABSCHNITTE: Abschnitt[] = [
 				<ol>
 					<li>„Claude“ oben antippen oder ⌘J drücken. Der Chat liegt unten über dem Blatt.</li>
 					<li>
-						Der Knopf links im Feld zeigt, worauf sich dein Auftrag bezieht: den gewählten Baustein, das ganze
-						Blatt oder neues Material. Wähle einen anderen Teil, und er geht mit.
+						Der Knopf links im Feld zeigt, worauf sich dein Auftrag bezieht: den gewählten Baustein, das
+						ganze Blatt oder neues Material. Wähle einen anderen Teil, und er geht mit.
 					</li>
 					<li>Schreiben, Enter. Du kannst währenddessen weiterarbeiten, unten steht, wie weit Claude ist.</li>
 					<li>
-						Am Ende steht ein Vorschlag. „Vergleichen“ zeigt ihn neben dem Blatt, erst „Annehmen“ ändert etwas.
-						Schreibst du stattdessen weiter, bessert Claude den Vorschlag nach.
+						Am Ende steht ein Vorschlag. „Vergleichen“ zeigt ihn neben dem Blatt, erst „Annehmen“ ändert
+						etwas. Schreibst du stattdessen weiter, bessert Claude den Vorschlag nach.
 					</li>
 				</ol>
 				<h3>Neues Material</h3>
 				<p>
-					In der Übersicht oder einer Mappe wird aus deiner Nachricht neues Material, im Editor wählst du dafür
-					im Knopf links „Neues Material“. Claude zeigt erst eine Karte mit Titel, Format, Fach, Klasse und
-					Mappe. Erst Enter oder „Anlegen“ startet die Arbeit, „Ändern“ öffnet die Wahl von Hand.
+					In der Übersicht oder einer Mappe wird aus deiner Nachricht neues Material, im Editor wählst du
+					dafür im Knopf links „Neues Material“. Claude zeigt erst eine Karte mit Titel, Format, Fach, Klasse
+					und Mappe. Erst Enter oder „Anlegen“ startet die Arbeit, „Ändern“ öffnet die Wahl von Hand.
 				</p>
 				<h3>Was weiter die Claude-App braucht</h3>
 				<p>
-					Neue Bilder, ganze Reihen, mehrere Dokumente auf einmal. Für einen bestimmten Teil im Chat unter ⋯ „In
-					der Claude-App weiterarbeiten“, in der App einfügen und den Wunsch dahinterschreiben. Die zwei
+					Neue Bilder, ganze Reihen, mehrere Dokumente auf einmal. Für einen bestimmten Teil im Chat unter ⋯
+					„In der Claude-App weiterarbeiten“, in der App einfügen und den Wunsch dahinterschreiben. Die zwei
 					eingefügten Zeilen gehören so; die zweite ist für Claude.
 				</p>
 				<h3>Verbrauch</h3>
 				<p>
-					Alles zählt für das Limit deines Claude-Kontos, zusammen mit der Claude-App. Eine Änderung braucht wenig,
-					neues Material deutlich mehr und einige Minuten. Wird es knapp, steht das im Chat.
+					Alles zählt für das Limit deines Claude-Kontos, zusammen mit der Claude-App. Eine Änderung braucht
+					wenig, neues Material deutlich mehr und einige Minuten. Wird es knapp, steht das im Chat.
 				</p>
 			</>
 		),

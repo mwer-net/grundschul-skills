@@ -70,8 +70,15 @@ describe('Suche der Palette', () => {
 	});
 
 	it('gruppiert in der Reihenfolge des besten Treffers', () => {
-		const gruppen = gruppiere([eintrag('A', [], { gruppe: 'Zwei' }), eintrag('B', [], { gruppe: 'Eins' }), eintrag('C', [], { gruppe: 'Zwei' })]);
-		assert.deepEqual(gruppen.map((g) => g.titel), ['Zwei', 'Eins']);
+		const gruppen = gruppiere([
+			eintrag('A', [], { gruppe: 'Zwei' }),
+			eintrag('B', [], { gruppe: 'Eins' }),
+			eintrag('C', [], { gruppe: 'Zwei' }),
+		]);
+		assert.deepEqual(
+			gruppen.map((g) => g.titel),
+			['Zwei', 'Eins'],
+		);
 		assert.deepEqual(titel(gruppen[0]?.eintraege ?? []), ['A', 'C']);
 	});
 });

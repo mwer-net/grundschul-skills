@@ -1,38 +1,12 @@
 import type { Zerlegung } from '@schoolbox/kern/src/quelltext';
 import type { Ort } from '@schoolbox/kern/src/referenz';
 import { erzeugeReferenz } from '@schoolbox/kern/src/referenz';
-import { useEffect, useRef, useState } from 'react';
+import { useState } from 'react';
 
-import { Dialog } from '../bausteine/Dialog';
 import { useHinweis } from '../bausteine/hinweis';
-import { Knopf } from '../bausteine/Knopf';
+import { VonHand } from './ClaudeAppDialog';
 
 const KOPIERT = 'Kopiert. Füge es im Claude-Chat ein und schreib dahinter, was du ändern möchtest.';
-
-const VonHand = ({ schliessen, text }: { text: string; schliessen: () => void }) => {
-	const feld = useRef<HTMLTextAreaElement>(null);
-	useEffect(() => feld.current?.select(), []);
-	return (
-		<Dialog titel="In der Claude-App weiterarbeiten" schliessen={schliessen}>
-			<label className="flex flex-col gap-2">
-				<span>
-					Kopiere diesen Text und füge ihn im Claude-Chat ein. Schreib dahinter, was du ändern möchtest.
-				</span>
-				<textarea
-					ref={feld}
-					readOnly
-					rows={4}
-					className="rounded-xl border border-rand p-3 text-base"
-					value={text}
-					data-claude-text
-				/>
-			</label>
-			<div>
-				<Knopf onClick={schliessen}>Fertig</Knopf>
-			</div>
-		</Dialog>
-	);
-};
 
 interface Frage {
 	/** Die Quelle im Editor, nicht die Darstellung: Nach dem Tippen gilt schon der neue Text. */

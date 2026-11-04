@@ -766,7 +766,13 @@ export const ruesteText = ({
 	};
 
 	const beiFokusWeg = (e: FocusEvent) => {
-		if (!intern && !gehalten && sitzung && imSitzung(e.target as Node) && !imSitzung(e.relatedTarget as Node | null)) {
+		if (
+			!intern &&
+			!gehalten &&
+			sitzung &&
+			imSitzung(e.target as Node) &&
+			!imSitzung(e.relatedTarget as Node | null)
+		) {
 			beende();
 		}
 	};

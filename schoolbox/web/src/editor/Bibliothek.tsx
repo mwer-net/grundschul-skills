@@ -226,17 +226,11 @@ export const Einfuegemarken = ({
 						{!suche.trim() && einfuegen.zuletzt.length > 0 && (
 							<>
 								<h3 className="px-3 text-sm text-leise">Zuletzt genutzt</h3>
-								<Liste
-									posten={einfuegen.zuletzt}
-									waehle={nimm}
-								/>
+								<Liste posten={einfuegen.zuletzt} waehle={nimm} />
 								<h3 className="px-3 text-sm text-leise">Alle</h3>
 							</>
 						)}
-						<Liste
-							posten={liste}
-							waehle={nimm}
-						/>
+						<Liste posten={liste} waehle={nimm} />
 					</div>
 				</div>
 			)}
@@ -432,9 +426,7 @@ export const Bibliothek = ({
 	const hatEigene = einfuegen.eintraege.some((e) => e.herkunft === 'eigen');
 	const bereiche = [...KATALOG_KATEGORIEN, ...(hatEigene ? [MEINE_BAUSTEINE] : [])];
 	const sucht = suche.trim() !== '';
-	const liste = sucht
-		? (sucheImKatalog(suche, passend) as Posten[])
-		: passend.filter((e) => e.kategorie === bereich);
+	const liste = sucht ? (sucheImKatalog(suche, passend) as Posten[]) : passend.filter((e) => e.kategorie === bereich);
 	const zuletzt = einfuegen.zuletzt.slice(0, ZULETZT_ANZAHL);
 	return (
 		<section data-bibliothek className="flex flex-col gap-2">
@@ -484,7 +476,10 @@ export const Bibliothek = ({
 										onClick={() => setBereich(k)}
 									>
 										<span className="truncate">{k}</span>
-										<span className="flex-none text-xs text-dezent tabular-nums" data-bereich-anzahl>
+										<span
+											className="flex-none text-xs text-dezent tabular-nums"
+											data-bereich-anzahl
+										>
 											{passend.filter((e) => e.kategorie === k).length}
 										</span>
 									</button>

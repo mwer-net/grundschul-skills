@@ -1,4 +1,3 @@
-import type { AbschnittName } from '@schoolbox/kern/src/abschnitte';
 import type {
 	AuswahlFeld,
 	BildFeld,
@@ -50,6 +49,7 @@ import {
 	zeilenVon,
 	ziffernText,
 } from '@schoolbox/kern/src/abbildungen';
+import type { AbschnittName } from '@schoolbox/kern/src/abschnitte';
 import type { KeyboardEvent, ReactNode } from 'react';
 import { useEffect, useId, useMemo, useRef, useState } from 'react';
 
@@ -60,6 +60,7 @@ import { Schalter as Umschalter } from '../bausteine/Schalter';
 import { Symbol } from '../bausteine/Symbol';
 import { Zeile } from '../bausteine/Zeile';
 import type { AbbildungSteuerung } from './abbildung';
+import { leistenFelder } from './abbildung-felder';
 import { bereiteVor } from './bild';
 import { SammlungDialog } from './Bildpanel';
 import { elementZu } from './darstellung';
@@ -1636,11 +1637,6 @@ const UhrzeitInLeiste = ({ abb, feld }: FeldEigenschaften<UhrzeitFeld>) => {
 	);
 };
 
-const leistenFelder = (abb: AbbildungSteuerung) =>
-	(abb.schema?.felder ?? []).filter((f): f is UhrzeitFeld => f.art === 'uhrzeit' && f.leiste === true);
-
-export const hatLeistenfeld = (abb: AbbildungSteuerung) => leistenFelder(abb).length > 0;
-
 export const AbbildungLeiste = ({ abb }: { abb: AbbildungSteuerung }) =>
 	leistenFelder(abb).map((f) => <UhrzeitInLeiste key={f.attribut} abb={abb} feld={f} />);
 
@@ -1681,9 +1677,6 @@ export const AbbildungHinweise = ({ abb }: { abb: AbbildungSteuerung }) => {
 		</>
 	);
 };
-
-export const hatWeitere = (abb: AbbildungSteuerung) =>
-	abb.aktiv && (abb.schema?.felder ?? []).some((f) => abschnittVon(f) === 'weitere');
 
 /** Die Felder der gewählten Abbildung, die in diesen Abschnitt gehören. Jede Änderung zeigt sich sofort im Blatt. */
 export const AbbildungFelder = ({ abb, abschnitt }: { abb: AbbildungSteuerung; abschnitt: AbschnittName }) => {

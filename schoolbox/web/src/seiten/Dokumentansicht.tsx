@@ -44,6 +44,12 @@ interface Eigenschaften {
 	zurueckZurMappe: boolean;
 }
 
+const MEHR_KNOPF = (
+	<Knopf art="zweit" className="size-knopf px-0">
+		<Symbol name="mehr" />
+	</Knopf>
+);
+
 const Druckhinweise = ({ liste }: { liste: string[] }) => (
 	<div className="mt-3 flex items-start gap-3 rounded-lg border border-entwurf bg-warnung-hell px-4 py-2">
 		<Symbol name="drucker" className="mt-0.5 size-4 flex-none" />
@@ -82,7 +88,13 @@ const Knoepfe = ({ dokument, entwuerfe, loesung, mappe, profil, teilen, zugang }
 	const chatStand = useContext(ChatStandKontext);
 	const eintraege: MenueEintrag[] = [
 		...(entwuerfe
-			? [{ titel: 'Entwürfe', symbol: 'kopieren' as const, waehle: () => void navigate(entwuerfeSeite(zugang, dok)) }]
+			? [
+					{
+						titel: 'Entwürfe',
+						symbol: 'kopieren' as const,
+						waehle: () => void navigate(entwuerfeSeite(zugang, dok)),
+					},
+				]
 			: []),
 		...(praesentieren
 			? [
@@ -139,16 +151,7 @@ const Knoepfe = ({ dokument, entwuerfe, loesung, mappe, profil, teilen, zugang }
 				warnen={!geteilt}
 				rechtsbuendig
 			/>
-			<Menue
-				name="Weitere Aktionen"
-				rechtsbuendig
-				eintraege={eintraege}
-				ausloeser={
-					<Knopf art="zweit" className="size-knopf px-0">
-						<Symbol name="mehr" />
-					</Knopf>
-				}
-			/>
+			<Menue name="Weitere Aktionen" rechtsbuendig eintraege={eintraege} ausloeser={MEHR_KNOPF} />
 			{ohneInternet.dialog}
 		</div>
 	);
@@ -208,7 +211,11 @@ export const Dokumentansicht = ({ dok, zugang, zurueckZurMappe }: Eigenschaften)
 				<div className="flex min-w-0 flex-1 items-center gap-1 text-sm">
 					{zurueckZurMappe && (
 						<>
-							<KnopfLink to={mappenSeite(zugang)} art="leise" className="-ml-2.5 max-w-52 min-w-0 flex-none text-leise">
+							<KnopfLink
+								to={mappenSeite(zugang)}
+								art="leise"
+								className="-ml-2.5 max-w-52 min-w-0 flex-none text-leise"
+							>
 								<Symbol name="zurueck" />
 								<span className="truncate">{mappe.titel}</span>
 							</KnopfLink>

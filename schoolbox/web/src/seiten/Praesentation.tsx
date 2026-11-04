@@ -78,11 +78,7 @@ const Startseite = ({ folien, phase, starten, titel, zurueck }: StartEigenschaft
 			{folien !== null && (
 				<p className="mt-1 text-leise">{`Präsentation · ${anzahl(folien, 'Folie', 'Folien')}`}</p>
 			)}
-			<Knopf
-				className="mt-4 h-11 self-start px-5 text-base"
-				disabled={phase.art !== 'bereit'}
-				onClick={starten}
-			>
+			<Knopf className="mt-4 h-11 self-start px-5 text-base" disabled={phase.art !== 'bereit'} onClick={starten}>
 				<Symbol name="praesentieren" className="size-4 flex-none" />
 				Präsentation starten
 			</Knopf>

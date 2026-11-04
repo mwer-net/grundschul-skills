@@ -239,8 +239,11 @@ describe('Aufträge an Claude', () => {
 		assert.ok(offen);
 		await fall('nichts');
 		const c = await fertig(
-			((await (await starte({ auftrag: 'Wie viele?', aufVorschlag: true })).json()) as { auftrag: { id: string } })
-				.auftrag.id,
+			(
+				(await (await starte({ auftrag: 'Wie viele?', aufVorschlag: true })).json()) as {
+					auftrag: { id: string };
+				}
+			).auftrag.id,
 		);
 		assert.equal((c as unknown as { ergebnis: string }).ergebnis, 'antwort');
 		assert.deepEqual(await vorschlag(), offen);
@@ -294,7 +297,8 @@ describe('Aufträge an Claude', () => {
 		assert.ok(args.includes('--no-session-persistence'));
 		assert.equal(nach('--model'), KI_EINORDNEN_MODELL);
 		assert.ok(!args.join(' ').includes('PERSOENLICH'));
-		assert.ok(JSON.parse(nach('--json-schema') ?? '{}').properties.fach.enum.includes('mathematik'));
+		const schema = JSON.parse(nach('--json-schema') ?? '{}') as { properties: { fach: { enum: string[] } } };
+		assert.ok(schema.properties.fach.enum.includes('mathematik'));
 
 		const verbrauch = await readFile(path.join(server.materialDir, '_ki-verbrauch.jsonl'), 'utf8');
 		assert.ok(!verbrauch.includes('PERSOENLICH'));
@@ -312,7 +316,10 @@ describe('Aufträge an Claude', () => {
 		assert.equal(kaputt.titel, 'Arbeitsblatt Uhrzeiten volle und halbe Stunden');
 		const zuLang = await api('/ki/einordnen', { method: 'POST', body: JSON.stringify({ text: 'x'.repeat(4001) }) });
 		assert.equal(zuLang.status, 400);
-		const fremd = await api('/ki/einordnen', { method: 'POST', body: JSON.stringify({ text: 'x', mappe: 'fehlt' }) });
+		const fremd = await api('/ki/einordnen', {
+			method: 'POST',
+			body: JSON.stringify({ text: 'x', mappe: 'fehlt' }),
+		});
 		assert.equal(fremd.status, 404);
 	});
 

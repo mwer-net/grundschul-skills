@@ -86,32 +86,29 @@ export const Pruefstatus = ({ stand, verschiebe, zeige }: Eigenschaften) => {
 	const hinweise = punkte.filter((p) => p.stufe === 'HINWEIS');
 	const zustand = zustandVon(wichtig);
 	const titel = wichtig.length === 1 ? '1 Ding prüfen' : `${wichtig.length} Dinge prüfen`;
+	const ausloeser = (
+		<button
+			type="button"
+			className="inline-flex h-knopf-status min-w-0 items-center gap-1 rounded-sm px-1 text-xs hover:bg-flaeche-2 disabled:hover:bg-transparent"
+			disabled={punkte.length === 0}
+		>
+			<Symbol
+				name={zustand === 'ok' ? 'haken' : 'achtung'}
+				className={klassen('size-3 flex-none', FARBE_STATUS[zustand])}
+			/>
+			<span className={klassen('truncate font-medium', FARBE_STATUS[zustand])}>
+				{wichtig.length === 0 ? 'Alles passt' : titel}
+				{hinweise.length > 0 && (
+					<span className="font-normal text-leise">
+						{` · ${hinweise.length} ${hinweise.length === 1 ? 'Hinweis' : 'Hinweise'}`}
+					</span>
+				)}
+			</span>
+		</button>
+	);
 	return (
 		<section className="flex min-w-0 items-center" aria-label="Prüfung" data-pruefung={zustand}>
-			<Popover
-				seite="top"
-				className="w-80"
-				ausloeser={
-					<button
-						type="button"
-						className="inline-flex h-knopf-status min-w-0 items-center gap-1 rounded-sm px-1 text-xs hover:bg-flaeche-2 disabled:hover:bg-transparent"
-						disabled={punkte.length === 0}
-					>
-						<Symbol
-							name={zustand === 'ok' ? 'haken' : 'achtung'}
-							className={klassen('size-3 flex-none', FARBE_STATUS[zustand])}
-						/>
-						<span className={klassen('truncate font-medium', FARBE_STATUS[zustand])}>
-							{wichtig.length === 0 ? 'Alles passt' : titel}
-							{hinweise.length > 0 && (
-								<span className="font-normal text-leise">
-									{` · ${hinweise.length} ${hinweise.length === 1 ? 'Hinweis' : 'Hinweise'}`}
-								</span>
-							)}
-						</span>
-					</button>
-				}
-			>
+			<Popover seite="top" className="w-80" ausloeser={ausloeser}>
 				{(schliessen) => {
 					const waehle = (p: Pruefpunkt) => {
 						schliessen();

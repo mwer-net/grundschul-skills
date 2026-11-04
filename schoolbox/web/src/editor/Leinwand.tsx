@@ -244,8 +244,8 @@ const Ueberlagerung = ({
 	links,
 	masse,
 	skala,
-	zieht,
 	ziehen,
+	zieht,
 }: {
 	zieht: boolean;
 	ziehen: RefObject<ZiehenSteuerung | null>;
@@ -270,6 +270,30 @@ const Ueberlagerung = ({
 				ziehen,
 			});
 
+const massstabVon = ({
+	breite,
+	masse,
+	sichtHoehe,
+	verdeckt,
+	zoom,
+}: {
+	breite: number;
+	masse: Rahmen['masse'];
+	sichtHoehe: number;
+	verdeckt: number;
+	zoom: number | 'einpassen';
+}) => {
+	const passend = masse && breite > 0 ? Math.min(1, breite / masse.breite) : 1;
+	const eingepasst =
+		masse && breite > 0 && sichtHoehe > 0
+			? Math.min(MAX_EINGEPASST, breite / masse.breite, Math.max(1, sichtHoehe - verdeckt) / masse.seite)
+			: passend;
+	const skala = zoom === 'einpassen' ? eingepasst : passend * zoom;
+	const innenBreite = masse ? Math.max(breite, masse.breite * skala) : breite;
+	const links = masse ? Math.max(0, (innenBreite - masse.breite * skala) / 2) : 0;
+	return { innenBreite, links, passend, skala };
+};
+
 export const Leinwand = ({
 	ablegen,
 	auswahl,
@@ -278,6 +302,7 @@ export const Leinwand = ({
 	groesse,
 	html,
 	kontextmenue,
+	meldeMassstab,
 	nurAnsehen,
 	pruefung,
 	springe,
@@ -288,7 +313,6 @@ export const Leinwand = ({
 	waehle,
 	ziehbar,
 	zoom,
-	meldeMassstab,
 }: Eigenschaften) => {
 	const behaelter = useRef<HTMLDivElement>(null);
 	const naechste = useRef(0);
@@ -482,18 +506,11 @@ export const Leinwand = ({
 
 	const sichtbar = rahmen.findLast((r) => r.masse !== null);
 	const masse = sichtbar?.masse ?? null;
-	const passend = masse && breite > 0 ? Math.min(1, breite / masse.breite) : 1;
-	const eingepasst =
-		masse && breite > 0 && sichtHoehe > 0
-			? Math.min(MAX_EINGEPASST, breite / masse.breite, Math.max(1, sichtHoehe - verdeckt) / masse.seite)
-			: passend;
-	const skala = zoom === 'einpassen' ? eingepasst : passend * zoom;
+	const { innenBreite, links, passend, skala } = massstabVon({ breite, masse, sichtHoehe, verdeckt, zoom });
 	skalaJetzt.current = skala;
 	useEffect(() => {
 		meldeMassstab?.({ skala, stufe: skala / passend });
 	}, [meldeMassstab, skala, passend]);
-	const innenBreite = masse ? Math.max(breite, masse.breite * skala) : breite;
-	const links = masse ? Math.max(0, (innenBreite - masse.breite * skala) / 2) : 0;
 
 	const gewaehlt = doc && auswahl !== null ? elementZu(doc, auswahl) : null;
 	const box = gewaehlt?.getBoundingClientRect();

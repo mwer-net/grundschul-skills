@@ -56,28 +56,28 @@ export const App = () => (
 	<BrowserRouter>
 		<HinweisAnbieter>
 			<TooltipAnbieter>
-			<MenueAnbieter>
-			<Routes>
-				<Route path={ANMELDE_SEITE} element={<Anmeldung />} />
-				{import.meta.env.DEV && <Route path="_bausteine" element={<Bausteine />} />}
-				<Route path="/f/:token/*" element={<Geteilt />} />
-				<Route path="m/:mappe/:dok/drucken" element={<DruckSeite />} />
-				<Route path="m/:mappe/:dok/praesentation" element={<PraesentationSeite />} />
-				<Route element={<ChatRahmen />}>
-					<Route path="m/:mappe/:dok/bearbeiten" element={<EditorSeite />} />
-					<Route element={<Rahmen />}>
-						<Route index element={<Uebersicht />} />
-						<Route path="m/:mappe" element={<Mappenansicht />} />
-						<Route path="m/:mappe/:dok" element={<DokumentSeite />} />
-						<Route path="m/:mappe/:dok/entwuerfe" element={<EntwuerfeSeite />} />
-						<Route path="m/:mappe/:dok/entwuerfe/:name" element={<EntwurfSeite />} />
-						<Route path="papierkorb" element={<Papierkorb />} />
-						<Route path="hilfe" element={<Hilfe />} />
-						<Route path="*" element={<NichtGefunden />} />
-					</Route>
-				</Route>
-			</Routes>
-			</MenueAnbieter>
+				<MenueAnbieter>
+					<Routes>
+						<Route path={ANMELDE_SEITE} element={<Anmeldung />} />
+						{import.meta.env.DEV && <Route path="_bausteine" element={<Bausteine />} />}
+						<Route path="/f/:token/*" element={<Geteilt />} />
+						<Route path="m/:mappe/:dok/drucken" element={<DruckSeite />} />
+						<Route path="m/:mappe/:dok/praesentation" element={<PraesentationSeite />} />
+						<Route element={<ChatRahmen />}>
+							<Route path="m/:mappe/:dok/bearbeiten" element={<EditorSeite />} />
+							<Route element={<Rahmen />}>
+								<Route index element={<Uebersicht />} />
+								<Route path="m/:mappe" element={<Mappenansicht />} />
+								<Route path="m/:mappe/:dok" element={<DokumentSeite />} />
+								<Route path="m/:mappe/:dok/entwuerfe" element={<EntwuerfeSeite />} />
+								<Route path="m/:mappe/:dok/entwuerfe/:name" element={<EntwurfSeite />} />
+								<Route path="papierkorb" element={<Papierkorb />} />
+								<Route path="hilfe" element={<Hilfe />} />
+								<Route path="*" element={<NichtGefunden />} />
+							</Route>
+						</Route>
+					</Routes>
+				</MenueAnbieter>
 			</TooltipAnbieter>
 		</HinweisAnbieter>
 	</BrowserRouter>

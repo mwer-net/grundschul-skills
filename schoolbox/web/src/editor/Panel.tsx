@@ -93,7 +93,12 @@ const ZeileWahl = ({
 	const id = useId();
 	return (
 		<Zeile titel={titel} fuer={id} hilfe={hilfe} einstellung={einstellung}>
-			<select id={id} className={klassen(FELD_KLASSEN, 'w-fit! max-w-36 pr-5!')} value={wert} onChange={(e) => setze(e.target.value)}>
+			<select
+				id={id}
+				className={klassen(FELD_KLASSEN, 'w-fit! max-w-36 pr-5!')}
+				value={wert}
+				onChange={(e) => setze(e.target.value)}
+			>
 				{optionen.map((o) => (
 					<option key={o.wert} value={o.wert}>
 						{o.titel}
@@ -247,6 +252,8 @@ export const TabellenWerkzeug = ({
 	}
 	const n = { jeSeite: folien };
 	const g = groesseVon(quelle, nr);
+	const groesse = (was: 'zeilen' | 'spalten', wert: number) =>
+		struktur.fuehreAus('Tabellengröße geändert', (q) => setzeGroesse(q, nr, { [was]: wert }, n));
 	return (
 		<div className="flex flex-col gap-1" data-tabelle-werkzeug>
 			<ZeileSchalter
@@ -261,14 +268,15 @@ export const TabellenWerkzeug = ({
 					wert={g[was]}
 					min={1}
 					max={30}
-					setze={(wert) =>
-						struktur.fuehreAus('Tabellengröße geändert', (q) => setzeGroesse(q, nr, { [was]: wert }, n))
-					}
+					setze={(wert) => groesse(was, wert)}
 				/>
 			))}
 		</div>
 	);
 };
+
+const aendereSichtbarkeit = (struktur: Struktur, nr: number, wert: string) =>
+	struktur.aendereAttribute('Sichtbarkeit geändert', (q) => setzeSichtbarkeit(q, nr, wert));
 
 export const Sichtbarkeit = ({ nr, quelle, struktur }: { nr: number; quelle: string; struktur: Struktur }) => (
 	<select
@@ -276,9 +284,7 @@ export const Sichtbarkeit = ({ nr, quelle, struktur }: { nr: number; quelle: str
 		aria-label="Sichtbarkeit"
 		data-sichtbarkeit
 		value={leseSichtbarkeit(quelle, nr)}
-		onChange={(e) =>
-			struktur.aendereAttribute('Sichtbarkeit geändert', (q) => setzeSichtbarkeit(q, nr, e.target.value))
-		}
+		onChange={({ target: { value } }) => aendereSichtbarkeit(struktur, nr, value)}
 	>
 		{SICHTBARKEITEN.map((s) => (
 			<option key={s.wert} value={s.wert}>
@@ -381,7 +387,13 @@ export const Blattwerkzeug = ({
 									<span
 										aria-hidden
 										className="block size-full min-h-4 rounded-full"
-										style={f ? { background: `linear-gradient(135deg, ${f.haupt} 50%, ${f.akzent} 50%)` } : undefined}
+										style={
+											f
+												? {
+														background: `linear-gradient(135deg, ${f.haupt} 50%, ${f.akzent} 50%)`,
+													}
+												: undefined
+										}
 									/>
 								</button>
 							);

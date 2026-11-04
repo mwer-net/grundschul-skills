@@ -17,9 +17,10 @@ interface Herkunft {
 	imDokument: boolean;
 }
 
-export type NeuStand =
-	| (Herkunft & { phase: 'ordnet' })
-	| (Herkunft & { phase: 'karte' | 'legtAn'; einordnung: Einordnung; fehler: string | null });
+type NeuOrdnet = Herkunft & { phase: 'ordnet' };
+type NeuKarte = Herkunft & { phase: 'karte' | 'legtAn'; einordnung: Einordnung; fehler: string | null };
+
+export type NeuStand = NeuOrdnet | NeuKarte;
 
 const mappeZu = async (id: string | null): Promise<EinordnungMappe | null> => {
 	if (!id) {

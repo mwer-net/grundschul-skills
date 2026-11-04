@@ -7,7 +7,10 @@ const auswahlName = (page: Page) => page.locator('[data-auswahl] h2');
 const bereit = (page: Page) => expect(page.locator('[data-auswahlrahmen]')).toBeVisible();
 
 test.describe('Tastatur (069)', () => {
-	test('⌫ löscht und wählt den Nachbarn, dreimal in Folge; ⌘Z holt byteidentisch zurück', async ({ druecke, page }) => {
+	test('⌫ löscht und wählt den Nachbarn, dreimal in Folge; ⌘Z holt byteidentisch zurück', async ({
+		druecke,
+		page,
+	}) => {
 		const { dok, id } = await uhrzeit();
 		await oeffne(page, id, dok);
 		const vorher = await quelle(page);

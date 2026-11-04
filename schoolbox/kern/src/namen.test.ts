@@ -123,8 +123,11 @@ describe('verstaendlich', () => {
 			'Auf der Seite stehen 6 Aufgaben. Für Klasse 2 sind höchstens 4 übersichtlich.',
 		);
 		assert.equal(
-			erklaere({ stufe: 'WARNUNG', seite: 1, code: 'schrift-klein', text: '…' }, ['Absatz 1', 'Eintrag 2', 'Eintrag 3'])
-				.satz,
+			erklaere({ stufe: 'WARNUNG', seite: 1, code: 'schrift-klein', text: '…' }, [
+				'Absatz 1',
+				'Eintrag 2',
+				'Eintrag 3',
+			]).satz,
 			'Die Schrift bei Absatz 1, Eintrag 2 und Eintrag 3 ist sehr klein.',
 		);
 		assert.match(

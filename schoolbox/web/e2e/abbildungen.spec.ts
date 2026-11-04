@@ -2043,7 +2043,10 @@ test.describe('Rätsel (038)', () => {
 		await page.getByLabel('Richtige Antwort').fill('48');
 		await page.getByLabel('Richtige Antwort').press('Enter');
 		await gespeichert(page, datei);
-		await expect(inhalt.locator('x-loesungswort')).toHaveAttribute('data-fehler', /Eintrag 2 hat jetzt die Lösung 48/);
+		await expect(inhalt.locator('x-loesungswort')).toHaveAttribute(
+			'data-fehler',
+			/Eintrag 2 hat jetzt die Lösung 48/,
+		);
 
 		await druecke(inhalt.locator('x-loesungswort').first());
 		await expect(page.locator('[data-fehler="_element"]')).toContainText('Eintrag 2 hat jetzt die Lösung 48');

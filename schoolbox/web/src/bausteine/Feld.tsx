@@ -16,10 +16,7 @@ interface Eigenschaften {
 /** Einheitlich für Eingabe und Select: Label, Wert, darunter die Fehlerzeile. */
 export const Feld = ({ children, className, fehler, lage = 'darueber', titel, zusatz }: Eigenschaften) => (
 	<label
-		className={klassen(
-			lage === 'daneben' ? 'flex h-zeile items-center justify-between gap-2' : 'block',
-			className,
-		)}
+		className={klassen(lage === 'daneben' ? 'flex h-zeile items-center justify-between gap-2' : 'block', className)}
 	>
 		<span
 			className={klassen(

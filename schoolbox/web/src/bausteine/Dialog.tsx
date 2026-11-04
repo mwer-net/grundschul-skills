@@ -12,12 +12,17 @@ interface Eigenschaften {
 	breit?: boolean;
 }
 
-const ERSTER_FOKUS = '[autofocus],input:not([type=hidden]):not(:disabled),select:not(:disabled),textarea:not(:disabled)';
+const ERSTER_FOKUS =
+	'[autofocus],input:not([type=hidden]):not(:disabled),select:not(:disabled),textarea:not(:disabled)';
 
 /** Ohne Feld die Hauptaktion: Sie steht zuletzt im Inhalt. Das × steht danach im DOM und zählt nicht. */
 const hauptaktion = (dialog: HTMLElement) =>
 	dialog.querySelector<HTMLElement>('[data-hauptaktion]') ??
-	[...dialog.querySelectorAll<HTMLElement>('[data-dialog-inhalt] button:not(:disabled):not([data-dialog-schliessen])')].at(-1);
+	[
+		...dialog.querySelectorAll<HTMLElement>(
+			'[data-dialog-inhalt] button:not(:disabled):not([data-dialog-schliessen])',
+		),
+	].at(-1);
 
 /**
  * Fenster über der Seite, mit dem `<dialog>` des Browsers: Der hält den Fokus im Fenster, schließt mit Esc und

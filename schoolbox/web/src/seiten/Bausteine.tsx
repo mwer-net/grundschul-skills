@@ -8,7 +8,7 @@ import { FELD_KLASSEN } from '../bausteine/klassen';
 import { Knopf } from '../bausteine/Knopf';
 import { Kuerzel } from '../bausteine/Kuerzel';
 import { Menue } from '../bausteine/Menue';
-import { useZeigeMenue } from '../bausteine/MenueAmPunkt';
+import { useZeigeMenue } from '../bausteine/menue-kontext';
 import { Popover } from '../bausteine/Popover';
 import { Reiter } from '../bausteine/Reiter';
 import { Schalter } from '../bausteine/Schalter';
@@ -72,7 +72,8 @@ export const Bausteine = () => {
 				</Knopf>
 				<Popover ausloeser={<Knopf art="zweit">Popover</Knopf>}>Kleines Fenster an einem Anker.</Popover>
 				<span className="flex items-center gap-1">
-					Label <Hilfetipp name="Label">Erklärt, was dauerhaft nicht dastehen soll.</Hilfetipp>
+					<span>Label</span>
+					<Hilfetipp name="Label">Erklärt, was dauerhaft nicht dastehen soll.</Hilfetipp>
 				</span>
 			</Karte>
 			<Karte className="flex flex-wrap items-center gap-3 p-3">

@@ -572,9 +572,13 @@ test.describe('Menü (064)', () => {
 		await expect(page.locator('[data-leinwand][data-geladen]')).toBeVisible();
 		await druecke(page.getByRole('button', { name: 'PDF', exact: true }));
 		await expect(page.getByRole('menu')).toBeVisible();
-		await page.frameLocator('[data-editor-rahmen="sichtbar"]').locator('.seite').first().click({
-			position: { x: 5, y: 5 },
-		});
+		await page
+			.frameLocator('[data-editor-rahmen="sichtbar"]')
+			.locator('.seite')
+			.first()
+			.click({
+				position: { x: 5, y: 5 },
+			});
 		await expect(page.getByRole('menu')).toBeHidden();
 	});
 
@@ -661,10 +665,12 @@ test.describe('Editor-Rahmen (066)', () => {
 		await page.setViewportSize({ width: 1440, height: 790 });
 		await oeffneBlatt(page);
 		await druecke(page.getByRole('button', { name: 'Einpassen' }));
-		await expect.poll(async () => {
-			const m = await blattOben(page);
-			return m !== null && m.unten <= m.grenze + 1 && m.oben >= 40;
-		}).toBe(true);
+		await expect
+			.poll(async () => {
+				const m = await blattOben(page);
+				return m !== null && m.unten <= m.grenze + 1 && m.oben >= 40;
+			})
+			.toBe(true);
 		const wert = page.locator('[data-zoom-wert]');
 		const eingepasst = parseInt((await wert.textContent()) ?? '0', 10);
 		expect(eingepasst).toBeLessThan(100);
@@ -890,7 +896,16 @@ test.describe('Leisten im Blatt (071)', () => {
 
 test.describe('Inspektor (072)', () => {
 	const blatt = (page: Page) => page.frameLocator('[data-editor-rahmen="sichtbar"]');
-	const REIHENFOLGE = ['hinweise', 'inhalt', 'darstellung', 'loesung', 'bewertung', 'sichtbarkeit', 'eltern', 'weitere'];
+	const REIHENFOLGE = [
+		'hinweise',
+		'inhalt',
+		'darstellung',
+		'loesung',
+		'bewertung',
+		'sichtbarkeit',
+		'eltern',
+		'weitere',
+	];
 
 	const oeffneBlatt = async (page: Page) => {
 		const { dokumente, id } = await legeMappeAn('Inspektor', 'mathematik', 2, [
@@ -924,7 +939,9 @@ test.describe('Inspektor (072)', () => {
 			}
 			const worte = await page
 				.locator('[data-panel] [data-auswahl] p:visible:not([data-hinweis])')
-				.evaluateAll((liste) => liste.flatMap((e) => (e.textContent ?? '').split(/\s+/).filter(Boolean)).length);
+				.evaluateAll(
+					(liste) => liste.flatMap((e) => (e.textContent ?? '').split(/\s+/).filter(Boolean)).length,
+				);
 			expect(worte).toBeLessThanOrEqual(10);
 		}
 	});
@@ -982,7 +999,6 @@ test.describe('Inspektor (072)', () => {
 	});
 });
 
-
 test.describe('Mappe und Dokumentansicht (075)', () => {
 	const neunDokumente = () =>
 		legeMappeAn(
@@ -1037,7 +1053,9 @@ test.describe('Mappe und Dokumentansicht (075)', () => {
 	test('das Blatt beginnt oben im Fenster, die Mappe bleibt erreichbar', async ({ druecke, page }, info) => {
 		test.skip(info.project.name !== 'mac-safari', 'Maß gilt für den Mac');
 		await page.setViewportSize({ width: 1512, height: 860 });
-		const { dokumente, id } = await legeMappeAn('Maß', 'mathematik', 2, [{ titel: 'Blatt', vorlage: 'arbeitsblatt' }]);
+		const { dokumente, id } = await legeMappeAn('Maß', 'mathematik', 2, [
+			{ titel: 'Blatt', vorlage: 'arbeitsblatt' },
+		]);
 		await page.goto(`/m/${id}/${dokumente[0]}`);
 		await blattGeladen(page);
 		const oben = await page.locator('[data-blattansicht] iframe').last().boundingBox();

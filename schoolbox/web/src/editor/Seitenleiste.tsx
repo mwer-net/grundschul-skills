@@ -39,6 +39,12 @@ interface Eigenschaften {
 	festeSeiten: boolean;
 }
 
+const ART_KNOPF = (
+	<Knopf art="zweit" className="size-knopf rounded-l-none border-l-0 px-0">
+		<Symbol name="runter" className="size-3 flex-none" />
+	</Knopf>
+);
+
 const SPEICHER_SEITE = 'schoolbox-neue-seite';
 const FINGER_WEG = 10;
 const MAUS_WEG = 6;
@@ -229,72 +235,70 @@ export const Seitenleiste = ({
 	};
 
 	return (
-		<nav
-			aria-label="Seiten"
-			className="flex min-h-0 flex-1 flex-col"
-			data-seitenleiste
-		>
+		<nav aria-label="Seiten" className="flex min-h-0 flex-1 flex-col" data-seitenleiste>
 			<div className="min-h-0 flex-1 overflow-y-auto px-9 pt-3 pb-7 max-lg:px-3">
-			<div ref={leiste} className="relative" style={{ height: hoehe || 160 }}>
-				{rahmen.map((r) => (
-					<iframe
-						key={r.nr}
-						srcDoc={r.html}
-						title="Seiten"
-						tabIndex={-1}
-						aria-hidden
-						scrolling="no"
-						className="pointer-events-none absolute top-0 left-0 origin-top-left border-0"
-						style={
-							r === sichtbar && r.seiten
-								? { width: r.breite, height: hoehe / (skala || 1), transform: `scale(${skala})` }
-								: { width: 1600, height: 800, visibility: 'hidden' }
-						}
-						onLoad={(e) => fertig(r, e.currentTarget)}
-					/>
-				))}
-				{seiten.map((s, i) => (
-					<button
-						key={s.nr}
-						type="button"
-						className={klassen(
-							'absolute inset-x-0 rounded-sm border shadow-1 select-none',
-							s.nr === gewaehlt ? 'border-brand-500 ring-2 ring-brand-500' : 'border-rand',
-							zug?.index === i && 'opacity-40',
-						)}
-						style={{ top: s.top * skala, height: s.hoehe * skala, WebkitTouchCallout: 'none' }}
-						aria-label={`Seite ${i + 1}`}
-						aria-current={s.nr === gewaehlt}
-						data-seite-miniatur={i + 1}
-						onPointerDown={(e) => druecke(e, i)}
-						onPointerMove={bewege}
-						onPointerUp={(e) => lasseLos(e)}
-						onPointerCancel={(e) => lasseLos(e, true)}
-						onContextMenu={(e) => {
-							e.preventDefault();
-							// Beim Finger läuft hier schon das Halten zum Ziehen.
-							if (aktuell && !druck.current && !zug) {
-								kontextmenue?.(s.nr, { x: e.clientX, y: e.clientY });
+				<div ref={leiste} className="relative" style={{ height: hoehe || 160 }}>
+					{rahmen.map((r) => (
+						<iframe
+							key={r.nr}
+							srcDoc={r.html}
+							title="Seiten"
+							tabIndex={-1}
+							aria-hidden
+							scrolling="no"
+							className="pointer-events-none absolute top-0 left-0 origin-top-left border-0"
+							style={
+								r === sichtbar && r.seiten
+									? { width: r.breite, height: hoehe / (skala || 1), transform: `scale(${skala})` }
+									: { width: 1600, height: 800, visibility: 'hidden' }
 							}
-						}}
-						onClick={(e) => {
-							// Tastatur: Enter bzw. Leertaste wählt die Seite (Zeiger erledigt `pointerup`).
-							if (e.detail === 0 && aktuell) {
-								waehle(s.nr);
-							}
-						}}
-					>
-						<span className="absolute inset-x-0 top-full mt-0.5 text-center text-xs text-leise">{i + 1}</span>
-					</button>
-				))}
-				{zug && zug.ziel !== null && (
-					<div
-						className="pointer-events-none absolute inset-x-0 h-1.5 -translate-y-1/2 rounded-full bg-brand-500"
-						data-einfuegemarke
-						style={{ top: markeOben(zug.ziel) }}
-					/>
-				)}
-			</div>
+							onLoad={(e) => fertig(r, e.currentTarget)}
+						/>
+					))}
+					{seiten.map((s, i) => (
+						<button
+							key={s.nr}
+							type="button"
+							className={klassen(
+								'absolute inset-x-0 rounded-sm border shadow-1 select-none',
+								s.nr === gewaehlt ? 'border-brand-500 ring-2 ring-brand-500' : 'border-rand',
+								zug?.index === i && 'opacity-40',
+							)}
+							style={{ top: s.top * skala, height: s.hoehe * skala, WebkitTouchCallout: 'none' }}
+							aria-label={`Seite ${i + 1}`}
+							aria-current={s.nr === gewaehlt}
+							data-seite-miniatur={i + 1}
+							onPointerDown={(e) => druecke(e, i)}
+							onPointerMove={bewege}
+							onPointerUp={(e) => lasseLos(e)}
+							onPointerCancel={(e) => lasseLos(e, true)}
+							onContextMenu={(e) => {
+								e.preventDefault();
+								// Beim Finger läuft hier schon das Halten zum Ziehen.
+								if (aktuell && !druck.current && !zug) {
+									kontextmenue?.(s.nr, { x: e.clientX, y: e.clientY });
+								}
+							}}
+							onClick={(e) => {
+								// Tastatur: Enter bzw. Leertaste wählt die Seite (Zeiger erledigt `pointerup`).
+								if (e.detail === 0 && aktuell) {
+									waehle(s.nr);
+								}
+							}}
+						>
+							<span className="absolute inset-x-0 top-full mt-0.5 text-center text-xs text-leise">
+								{i + 1}
+							</span>
+						</button>
+					))}
+					{zug && zug.ziel !== null && (
+						<div
+							className="pointer-events-none absolute inset-x-0 h-1.5 -translate-y-1/2 rounded-full bg-brand-500"
+							data-einfuegemarke
+							style={{ top: markeOben(zug.ziel) }}
+						/>
+					)}
+				</div>
 			</div>
 			<div className="flex-none border-t border-rand p-2">
 				{festeSeiten ? (
@@ -317,11 +321,7 @@ export const Seitenleiste = ({
 							<Menue
 								name="Art der neuen Seite"
 								disabled={!aktiv}
-								ausloeser={
-									<Knopf art="zweit" className="size-knopf rounded-l-none border-l-0 px-0">
-										<Symbol name="runter" className="size-3 flex-none" />
-									</Knopf>
-								}
+								ausloeser={ART_KNOPF}
 								eintraege={[
 									{
 										titel: 'Leere Seite',

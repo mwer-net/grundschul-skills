@@ -109,8 +109,10 @@ describe('Was aus dem Inspektor gewandert ist', () => {
 			'tabelle.spalte-weg',
 		]) {
 			const befehl = BEFEHLE.find((b) => b.id === id);
-			assert.ok(befehl?.orte.some((o) => o === 'menue' || o === 'leiste'), id);
+			assert.ok(
+				befehl?.orte.some((o) => o === 'menue' || o === 'leiste'),
+				id,
+			);
 		}
 	});
 });
-

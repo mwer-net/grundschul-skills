@@ -1,8 +1,8 @@
 import { useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 
-import type { PalettenEintrag } from '../editor/palette-suche';
 import { Palette } from '../editor/Palette';
+import type { PalettenEintrag } from '../editor/palette-suche';
 import { useLaden } from '../lib/laden';
 import { ART_NAME, FACH_NAME, klasseName } from '../lib/text';
 import type { MappenListe } from '../typen';
@@ -23,10 +23,41 @@ export const Seitenpalette = ({ abmelden, anClaude, neueMappe, schliessen }: Eig
 
 	const eintraege = useMemo(() => {
 		const liste: PalettenEintrag[] = [
-			{ id: 'seite:neue-mappe', titel: 'Neue Mappe', gruppe: 'Aktionen', symbol: 'plus', start: true, suchwoerter: ['anlegen', 'erstellen'], aus: neueMappe },
-			{ id: 'seite:papierkorb', titel: 'Papierkorb', gruppe: 'Aktionen', symbol: 'papierkorb', start: true, suchwoerter: ['gelöscht', 'wiederherstellen'], aus: () => void navigate('/papierkorb') },
-			{ id: 'seite:hilfe', titel: 'Hilfe', gruppe: 'Aktionen', symbol: 'hilfe', start: true, suchwoerter: ['anleitung', 'so geht'], aus: () => void navigate('/hilfe') },
-			{ id: 'seite:abmelden', titel: 'Abmelden', gruppe: 'Aktionen', symbol: 'abmelden', suchwoerter: ['ausloggen'], aus: abmelden },
+			{
+				id: 'seite:neue-mappe',
+				titel: 'Neue Mappe',
+				gruppe: 'Aktionen',
+				symbol: 'plus',
+				start: true,
+				suchwoerter: ['anlegen', 'erstellen'],
+				aus: neueMappe,
+			},
+			{
+				id: 'seite:papierkorb',
+				titel: 'Papierkorb',
+				gruppe: 'Aktionen',
+				symbol: 'papierkorb',
+				start: true,
+				suchwoerter: ['gelöscht', 'wiederherstellen'],
+				aus: () => void navigate('/papierkorb'),
+			},
+			{
+				id: 'seite:hilfe',
+				titel: 'Hilfe',
+				gruppe: 'Aktionen',
+				symbol: 'hilfe',
+				start: true,
+				suchwoerter: ['anleitung', 'so geht'],
+				aus: () => void navigate('/hilfe'),
+			},
+			{
+				id: 'seite:abmelden',
+				titel: 'Abmelden',
+				gruppe: 'Aktionen',
+				symbol: 'abmelden',
+				suchwoerter: ['ausloggen'],
+				aus: abmelden,
+			},
 		];
 		(daten?.mappen ?? []).forEach(({ dokumente, mappe }, stelle) => {
 			const angabe = `${FACH_NAME[mappe.fach]} · ${klasseName(mappe.klasse)}`;

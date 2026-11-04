@@ -9,7 +9,8 @@ import { Menue } from '../bausteine/Menue';
 import { Reiter } from '../bausteine/Reiter';
 import { SymbolKnopf } from '../bausteine/SymbolKnopf';
 import type { AbbildungSteuerung } from './abbildung';
-import { AbbildungFelder, AbbildungHinweise, hatWeitere } from './Abbildungspanel';
+import { hatWeitere } from './abbildung-felder';
+import { AbbildungFelder, AbbildungHinweise } from './Abbildungspanel';
 import type { Ablage } from './ablage';
 import type { BildSteuerung } from './bild';
 import { BildDarstellung, Bildwerkzeug } from './Bildpanel';
@@ -19,8 +20,8 @@ import type { Einblendung } from './Leinwand';
 import type { LoesungSteuerung } from './loesung';
 import { Loesungswerkzeug } from './Loesungspanel';
 import { KitWerkzeug, SammlungName, Sichtbarkeit, Spaltenwahl, TabellenWerkzeug } from './Panel';
-import type { Pruefstand } from './pruefung';
 import { Pruefhinweise } from './Pruefliste';
+import type { Pruefstand } from './pruefung';
 import { Sprachwerkzeug } from './Sprachwerkzeug';
 import type { Struktur } from './struktur';
 import type { useText } from './text';
@@ -97,7 +98,12 @@ const Pfad = ({
 			</div>
 			{eltern.length > 0 && <span className="sr-only">›</span>}
 			<h2 className="min-w-0 truncate pr-7 text-base font-semibold">
-				<button type="button" className="max-w-full truncate" aria-current="true" onClick={() => waehle(gewaehlt.nr)}>
+				<button
+					type="button"
+					className="max-w-full truncate"
+					aria-current="true"
+					onClick={() => waehle(gewaehlt.nr)}
+				>
 					{gewaehlt.name}
 				</button>
 			</h2>
@@ -176,7 +182,9 @@ export const Umriss = ({ e, nr }: { e: Einblendung; nr: number | null }) => {
 	}
 	return (
 		<div
-			className={klassen('umriss pointer-events-none absolute rounded-[2px] border border-dashed border-brand-500')}
+			className={klassen(
+				'umriss pointer-events-none absolute rounded-[2px] border border-dashed border-brand-500',
+			)}
 			data-umriss={nr}
 			style={{
 				left: e.links + r.left * e.skala - 4,
@@ -204,6 +212,24 @@ interface EinstellungenEigenschaften {
 	pruefung: Pruefstand | null;
 }
 
+const eintraegeIn = (doc: Document | null, nr: number | undefined) =>
+	(doc && nr !== undefined ? elementZu(doc, nr)?.children.length : 0) ?? 0;
+
+const SichtbarkeitWenn = ({
+	baustein,
+	nr,
+	quelle,
+	struktur,
+}: {
+	baustein: PfadTeil['baustein'];
+	nr: number;
+	quelle: string | null;
+	struktur: Struktur;
+}) =>
+	quelle && kann(baustein, 'ordnen') && baustein.art !== 'seite' ? (
+		<Sichtbarkeit nr={nr} quelle={quelle} struktur={struktur} />
+	) : null;
+
 /** Feste Abschnitte in fester Reihenfolge; was leer bleibt, blendet `Abschnitt` aus. */
 export const Einstellungen = ({
 	abb,
@@ -229,7 +255,7 @@ export const Einstellungen = ({
 	const folien = format === 'folie';
 	const kit = { art: baustein.art, folien, nr, quelle, struktur };
 	const spalten = aktiv ? struktur.werte?.spalten : null;
-	const anzahl = spalten && doc ? (elementZu(doc, spalten.nr)?.children.length ?? 0) : 0;
+	const anzahl = eintraegeIn(doc, spalten?.nr);
 	return (
 		<div {...(abb.aktiv ? { 'data-abbildungswerkzeug': '' } : {})}>
 			<div className="flex flex-col gap-2 px-3 pb-2 empty:hidden" data-abschnitt="hinweise">
@@ -271,9 +297,7 @@ export const Einstellungen = ({
 				{aktiv && <KitWerkzeug {...kit} abschnitt="bewertung" />}
 			</Abschnitt>
 			<Abschnitt name="sichtbarkeit" titel="Sichtbarkeit">
-				{aktiv && quelle && kann(baustein, 'ordnen') && baustein.art !== 'seite' && (
-					<Sichtbarkeit nr={nr} quelle={quelle} struktur={struktur} />
-				)}
+				{aktiv && <SichtbarkeitWenn baustein={baustein} nr={nr} quelle={quelle} struktur={struktur} />}
 			</Abschnitt>
 			<Abschnitt
 				name="eltern"

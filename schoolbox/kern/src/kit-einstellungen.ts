@@ -3,7 +3,6 @@ import type { AbschnittName } from './abschnitte';
  * Einstellungen der Kit-Bausteine und des ganzen Blatts (046), als Daten: Das Panel zeichnet die Felder, hier stehen die
  * Grenzen und die Wirkung auf die Quelle. Jede Änderung ist ein Text-Patch, also ein Schritt im Verlauf.
  */
-
 import { formatAusHtml, setzeTitel, titelAusHtml } from './html';
 import type { Aenderung, Knoten, Zerlegung } from './quelltext';
 import {
@@ -64,7 +63,17 @@ const BREITE = {
 
 export const KIT_FELDER: Readonly<Record<string, readonly KitFeld[]>> = {
 	schreiblinie: [
-		{ typ: 'zahl', name: 'anzahl', titel: 'Anzahl', min: 1, max: 12, schritt: 1, einheit: '', standard: 1, leiste: true },
+		{
+			typ: 'zahl',
+			name: 'anzahl',
+			titel: 'Anzahl',
+			min: 1,
+			max: 12,
+			schritt: 1,
+			einheit: '',
+			standard: 1,
+			leiste: true,
+		},
 		{ typ: 'zahl', name: 'abstand', titel: 'Abstand', min: 20, max: 60, schritt: 2, einheit: 'px', standard: 34 },
 	],
 	antwort: [
@@ -86,7 +95,14 @@ export const KIT_FELDER: Readonly<Record<string, readonly KitFeld[]>> = {
 	leerstelle: [{ ...HOEHE, standard: 80 }, BREITE],
 	box: [{ typ: 'zahl', name: 'groesse', titel: 'Größe', min: 12, max: 60, schritt: 2, einheit: 'px', standard: 20 }],
 	aufgabe: [
-		{ typ: 'schalter', name: 'stern', titel: 'Sternchenaufgabe', leiste: true, leisteName: 'Sternchen', abschnitt: 'inhalt' },
+		{
+			typ: 'schalter',
+			name: 'stern',
+			titel: 'Sternchenaufgabe',
+			leiste: true,
+			leisteName: 'Sternchen',
+			abschnitt: 'inhalt',
+		},
 		{
 			typ: 'zahl',
 			name: 'niveau',

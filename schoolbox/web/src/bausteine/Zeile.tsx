@@ -25,7 +25,7 @@ export const Zeile = ({ children, einstellung, fuer, hilfe, name, titel }: Eigen
 			<label htmlFor={fuer} className="min-w-0">
 				{titel}
 			</label>
-			{hilfe && <Hilfetipp name={name ?? String(titel)}>{hilfe}</Hilfetipp>}
+			{hilfe && <Hilfetipp name={name ?? (typeof titel === 'string' ? titel : '')}>{hilfe}</Hilfetipp>}
 		</span>
 		<span className="ml-auto flex flex-none items-center gap-1">{children}</span>
 	</div>

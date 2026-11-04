@@ -6,7 +6,7 @@ import { pathToFileURL } from 'node:url';
 import type { Locator, Page } from '@playwright/test';
 import { ASSETS } from '@schoolbox/kern/src/konfig';
 
-import { aendere, gespeichert, material, oeffne, quelle, uhrzeit, imMehr } from './editorhilfe';
+import { aendere, gespeichert, imMehr, material, oeffne, quelle, uhrzeit } from './editorhilfe';
 import { expect, test } from './hilfe';
 
 const zeichne = async (page: Page, html: string, klasse = 'kl3 sw') => {

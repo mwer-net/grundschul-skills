@@ -15,7 +15,14 @@ interface Eigenschaften {
 }
 
 /** Kleines Fenster an einem Anker. Esc und Klick daneben schließen, auch im `iframe`; der Fokus kommt zurück. */
-export const Popover = ({ ausloeser, ausrichtung = 'start', children, className, name, seite = 'bottom' }: Eigenschaften) => {
+export const Popover = ({
+	ausloeser,
+	ausrichtung = 'start',
+	children,
+	className,
+	name,
+	seite = 'bottom',
+}: Eigenschaften) => {
 	const [offen, setOffen] = useState(false);
 	const schliessen = useCallback(() => setOffen(false), []);
 	useDaneben(offen, schliessen);

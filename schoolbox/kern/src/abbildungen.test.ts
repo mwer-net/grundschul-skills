@@ -2210,16 +2210,17 @@ describe('Punkte und Noten (053)', () => {
 describe('Abschnitte im Inspektor', () => {
 	it('Jede Gruppe des Schemas hat einen Abschnitt, die Uhr steht wie im Zielbild', () => {
 		const felder = Object.values(ABBILDUNG_SCHEMA).flatMap((s) => s.felder);
-		for (const feld of felder) {
-			if (feld.gruppe) {
-				assert.ok(GRUPPEN_ABSCHNITT[feld.gruppe], `Gruppe ohne Abschnitt: ${feld.gruppe}`);
+		for (const f of felder) {
+			if (f.gruppe) {
+				assert.ok(GRUPPEN_ABSCHNITT[f.gruppe], `Gruppe ohne Abschnitt: ${f.gruppe}`);
 			}
 		}
-		const uhr = Object.fromEntries((ABBILDUNG_SCHEMA['x-uhr']?.felder ?? []).map((f) => [f.attribut, abschnittVon(f)]));
+		const uhr = Object.fromEntries(
+			(ABBILDUNG_SCHEMA['x-uhr']?.felder ?? []).map((f) => [f.attribut, abschnittVon(f)]),
+		);
 		assert.equal(uhr.zeit, 'inhalt');
 		assert.equal(uhr.ziffern, 'darstellung');
 		assert.equal(uhr.groesse, 'darstellung');
 		assert.equal(uhr.digital, 'weitere');
 	});
 });
-

@@ -135,7 +135,9 @@ export const Sprachwerkzeug = ({
 			>
 				Sprach-Werkzeuge
 			</Knopf>
-			<Hilfetipp name="Sprach-Werkzeuge">Sie wirken auf den markierten Text, sonst auf den ganzen Text hier.</Hilfetipp>
+			<Hilfetipp name="Sprach-Werkzeuge">
+				Sie wirken auf den markierten Text, sonst auf den ganzen Text hier.
+			</Hilfetipp>
 			{offen && (
 				<>
 					<div className="mt-2 flex flex-wrap gap-2">

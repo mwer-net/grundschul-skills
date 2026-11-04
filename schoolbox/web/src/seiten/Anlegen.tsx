@@ -255,6 +255,64 @@ interface MaterialDialogEigenschaften {
 	vorDemSprung?: (mappe: string, dok: string) => void;
 }
 
+const NeueMappeFelder = ({
+	fach,
+	klasse,
+	setFach,
+	setKlasse,
+	setTitel,
+	titel,
+}: {
+	fach: Fach;
+	klasse: Klasse;
+	setFach: (fach: Fach) => void;
+	setKlasse: (klasse: Klasse) => void;
+	setTitel: (titel: string) => void;
+	titel: string;
+}) => (
+	<>
+		<Feld name="Neue Mappe">
+			<input className={FELD} value={titel} onChange={(e) => setTitel(e.target.value)} />
+		</Feld>
+		<Feld name="Fach">
+			<select className={FELD} value={fach} onChange={(e) => setFach(e.target.value as Fach)}>
+				{FAECHER.map((f) => (
+					<option key={f} value={f}>
+						{FACH_NAME[f]}
+					</option>
+				))}
+			</select>
+		</Feld>
+		<Feld name="Klasse">
+			<select
+				className={FELD}
+				value={String(klasse)}
+				onChange={(e) => setKlasse(KLASSEN.find((k) => String(k) === e.target.value) ?? 1)}
+			>
+				{KLASSEN.map((k) => (
+					<option key={k} value={String(k)}>
+						{klasseName(k)}
+					</option>
+				))}
+			</select>
+		</Feld>
+	</>
+);
+
+const startWerte = (einordnung?: Einordnung, festeMappe?: string, wunsch?: string) => {
+	const ziel = einordnung?.mappe;
+	return {
+		mappe: festeMappe ?? (ziel && 'id' in ziel ? ziel.id : null),
+		mappeTitel: ziel && 'neu' in ziel ? ziel.neu : '',
+		fach: einordnung?.fach ?? 'deutsch',
+		klasse: einordnung?.klasse ?? 1,
+		art: einordnung?.art ?? 'arbeitsblatt',
+		format: einordnung?.format ?? ART_ANGABEN.arbeitsblatt.format,
+		titel: einordnung?.titel ?? '',
+		wunsch: wunsch ?? '',
+	};
+};
+
 /** Assistent „Material anlegen“: Art, Format, Titel, Start. Abbrechen legt nichts an; erst der letzte Schritt schreibt. */
 export const MaterialDialog = ({
 	einordnung,
@@ -263,21 +321,21 @@ export const MaterialDialog = ({
 	vorDemSprung,
 	wunsch: wunschVorher,
 }: MaterialDialogEigenschaften) => {
-	const einordnungMappe = einordnung?.mappe;
-	const mappe = festeMappe ?? (einordnungMappe && 'id' in einordnungMappe ? einordnungMappe.id : null);
-	const [mappeTitel, setMappeTitel] = useState(einordnungMappe && 'neu' in einordnungMappe ? einordnungMappe.neu : '');
-	const [fach, setFach] = useState<Fach>(einordnung?.fach ?? 'deutsch');
-	const [klasse, setKlasse] = useState<Klasse>(einordnung?.klasse ?? 1);
+	const start = startWerte(einordnung, festeMappe, wunschVorher);
+	const { mappe } = start;
+	const [mappeTitel, setMappeTitel] = useState(start.mappeTitel);
+	const [fach, setFach] = useState<Fach>(start.fach);
+	const [klasse, setKlasse] = useState<Klasse>(start.klasse);
 	const [schritt, setSchritt] = useState(0);
-	const [art, setArt] = useState<Art>(einordnung?.art ?? 'arbeitsblatt');
-	const [format, setFormat] = useState<Format>(einordnung?.format ?? ART_ANGABEN.arbeitsblatt.format);
-	const [titel, setTitel] = useState(einordnung?.titel ?? '');
+	const [art, setArt] = useState<Art>(start.art);
+	const [format, setFormat] = useState<Format>(start.format);
+	const [titel, setTitel] = useState(start.titel);
 	const [vorlage, setVorlage] = useState<string | null>(null);
 	const [zusatz, setZusatz] = useState<Partial<Record<ZusatzName, boolean>>>({});
 	const [fehler, setFehler] = useState<string | null>(null);
 	const [laeuft, setLaeuft] = useState(false);
 	const [mitClaude, setMitClaude] = useState(Boolean(einordnung));
-	const [wunsch, setWunsch] = useState(wunschVorher ?? '');
+	const [wunsch, setWunsch] = useState(start.wunsch);
 	const ausDemChat = Boolean(einordnung);
 	const ki = useKiZustand().zustand;
 	const navigate = useNavigate();
@@ -318,7 +376,11 @@ export const MaterialDialog = ({
 		try {
 			const endFormat = vorlage ? (VORLAGE_FORMAT[vorlage]?.format ?? format) : format;
 			const ziel = mappe ?? (await legeMappeAn({ titel: mappeTitel, fach, klasse }));
-			const { id, state, ziel: adresse } = await legeMaterialAn({
+			const {
+				id,
+				state,
+				ziel: adresse,
+			} = await legeMaterialAn({
 				mappe: ziel,
 				titel,
 				art,
@@ -339,210 +401,173 @@ export const MaterialDialog = ({
 
 	return (
 		<Dialog titel={`Material anlegen: ${name}`} schliessen={schliessen}>
-					<div data-assistent={name}>
-						<Fehler text={fehler} />
-						{name === 'Art' && (
-							<div className="grid grid-cols-2 gap-2 max-md:grid-cols-1">
-								{ARTEN.map((a) => (
-									<Wahl
-										key={a}
-										id={a}
-										titel={ART_NAME[a]}
-										aktiv={a === art}
-										waehle={() => waehleArt(a)}
-									>
-										<span className="block text-sm text-leise">{ART_KURZ[a]}</span>
-									</Wahl>
-								))}
-							</div>
-						)}
-						{name === 'Format' && (
-							<div className="flex flex-col gap-2">
-								{ART_FORMATE[art].map((f, i) => (
-									<Wahl
-										key={f}
-										id={f}
-										titel={FORMAT_NAME[f]}
-										aktiv={f === format}
-										waehle={() => setFormat(f)}
-									>
-										{i === 0 && <span className="block text-sm text-leise">Empfehlung</span>}
-									</Wahl>
-								))}
-							</div>
-						)}
-						{name === 'Titel' && (
-							<>
-								<Feld name="Titel">
-									<input
-										className={FELD}
-										value={titel}
-										autoFocus
-										onChange={(e) => setTitel(e.target.value)}
-									/>
-								</Feld>
-								{!mappe && (
-									<>
-										<Feld name="Neue Mappe">
-											<input
-												className={FELD}
-												value={mappeTitel}
-												onChange={(e) => setMappeTitel(e.target.value)}
-											/>
-										</Feld>
-										<Feld name="Fach">
-											<select
-												className={FELD}
-												value={fach}
-												onChange={(e) => setFach(e.target.value as Fach)}
-											>
-												{FAECHER.map((f) => (
-													<option key={f} value={f}>
-														{FACH_NAME[f]}
-													</option>
-												))}
-											</select>
-										</Feld>
-										<Feld name="Klasse">
-											<select
-												className={FELD}
-												value={String(klasse)}
-												onChange={(e) =>
-													setKlasse(KLASSEN.find((k) => String(k) === e.target.value) ?? 1)
-												}
-											>
-												{KLASSEN.map((k) => (
-													<option key={k} value={String(k)}>
-														{klasseName(k)}
-													</option>
-												))}
-											</select>
-										</Feld>
-									</>
-								)}
-							</>
-						)}
-						{name === 'Start' && (
-							<>
-								<div className="grid grid-cols-2 gap-2 max-md:grid-cols-1">
-									<Wahl
-										id="leer"
-										titel="Leer"
-										aktiv={vorlage === null && !mitClaude}
-										waehle={() => {
-											setVorlage(null);
-											setMitClaude(false);
-										}}
-									>
-										<span className="block text-sm text-leise">
-											Du fügst die Bausteine selbst ein.
-										</span>
-									</Wahl>
-									{ki.verfuegbar && (
-										<Wahl
-											id="mit-claude"
-											titel="Mit Claude"
-											aktiv={mitClaude}
-											waehle={() => {
-												setVorlage(null);
-												setMitClaude(true);
-											}}
-										>
-											<span className="block text-sm text-leise">
-												Claude schreibt einen Entwurf, du bearbeitest ihn weiter.
-											</span>
-										</Wahl>
-									)}
-									{eigene.map((v) => (
-										<EigeneWahl
-											key={v.id}
-											vorlage={v}
-											aktiv={vorlage === `eigen-${v.id}`}
-											waehle={() => {
-												setVorlage(`eigen-${v.id}`);
-												setMitClaude(false);
-											}}
-											neuLaden={eigen.neuLaden}
-										/>
-									))}
-									{vorlagen.map((v) => (
-										<Wahl
-											key={v}
-											id={v}
-											titel={`Vorlage: ${v}`}
-											aktiv={vorlage === v}
-											waehle={() => {
-												setVorlage(v);
-												setMitClaude(false);
-											}}
-										>
-											<iframe
-												src={`/ansicht/_assets/vorlage-${v}.html`}
-												title={`Vorschau ${v}`}
-												loading="lazy"
-												tabIndex={-1}
-												className="pointer-events-none mt-2 h-64 w-[250%] origin-top-left scale-[0.4] border-0 [margin-bottom:-9.6rem]"
-											/>
-										</Wahl>
-									))}
-								</div>
-								{vorlagen.length === 0 && eigene.length === 0 && (
-									<p className="mt-2 text-leise">
-										Für diese Art gibt es noch keine Vorlage. Du startest mit einem leeren Blatt.
-									</p>
-								)}
-								{mitClaude && (
-									<label className="mt-4 block font-medium">
-										Worum geht es, und was sollen die Kinder können?
-										<textarea
-											className={`${FELD_KLASSEN} mt-1 h-auto w-full py-1.5 font-normal`}
-											rows={3}
-											maxLength={2000}
-											value={wunsch}
-											onChange={(e) => setWunsch(e.target.value)}
-										/>
-										<span className="mt-1 block text-sm font-normal text-leise">
-											Keine Namen von Kindern eintragen. Reihen, mehrere Dokumente und neue Bilder
-											gehen in der Claude-App.
-										</span>
-									</label>
-								)}
-								{!mitClaude && zusaetze.length > 0 && (
-									<fieldset className="mt-4">
-										<legend className="font-medium">Gleich dazu (kannst du überspringen)</legend>
-										{zusaetze.map(([z, titelZ]) => (
-											<label key={z} className="flex h-knopf items-center gap-2">
-												<input
-													type="checkbox"
-													className="size-4"
-													checked={zusatz[z] === true}
-													onChange={(e) => setZusatz({ ...zusatz, [z]: e.target.checked })}
-												/>
-												{titelZ}
-											</label>
-										))}
-									</fieldset>
-								)}
-							</>
-						)}
-						<div className="mt-4 flex justify-end gap-2">
-							<Knopf art="leise" onClick={schliessen}>
-								Abbrechen
-							</Knopf>
-							{schritt > 0 && (
-								<Knopf art="zweit" onClick={() => setSchritt(schritt - 1)}>
-									Zurück
-								</Knopf>
-							)}
-							{letzter ? (
-								<Knopf disabled={laeuft} onClick={() => void anlegen()}>
-									Anlegen
-								</Knopf>
-							) : (
-								<Knopf onClick={weiter}>Weiter</Knopf>
-							)}
-						</div>
+			<div data-assistent={name}>
+				<Fehler text={fehler} />
+				{name === 'Art' && (
+					<div className="grid grid-cols-2 gap-2 max-md:grid-cols-1">
+						{ARTEN.map((a) => (
+							<Wahl key={a} id={a} titel={ART_NAME[a]} aktiv={a === art} waehle={() => waehleArt(a)}>
+								<span className="block text-sm text-leise">{ART_KURZ[a]}</span>
+							</Wahl>
+						))}
 					</div>
+				)}
+				{name === 'Format' && (
+					<div className="flex flex-col gap-2">
+						{ART_FORMATE[art].map((f, i) => (
+							<Wahl
+								key={f}
+								id={f}
+								titel={FORMAT_NAME[f]}
+								aktiv={f === format}
+								waehle={() => setFormat(f)}
+							>
+								{i === 0 && <span className="block text-sm text-leise">Empfehlung</span>}
+							</Wahl>
+						))}
+					</div>
+				)}
+				{name === 'Titel' && (
+					<>
+						<Feld name="Titel">
+							<input
+								className={FELD}
+								value={titel}
+								autoFocus
+								onChange={(e) => setTitel(e.target.value)}
+							/>
+						</Feld>
+						{!mappe && (
+							<NeueMappeFelder
+								fach={fach}
+								klasse={klasse}
+								setFach={setFach}
+								setKlasse={setKlasse}
+								setTitel={setMappeTitel}
+								titel={mappeTitel}
+							/>
+						)}
+					</>
+				)}
+				{name === 'Start' && (
+					<>
+						<div className="grid grid-cols-2 gap-2 max-md:grid-cols-1">
+							<Wahl
+								id="leer"
+								titel="Leer"
+								aktiv={vorlage === null && !mitClaude}
+								waehle={() => {
+									setVorlage(null);
+									setMitClaude(false);
+								}}
+							>
+								<span className="block text-sm text-leise">Du fügst die Bausteine selbst ein.</span>
+							</Wahl>
+							{ki.verfuegbar && (
+								<Wahl
+									id="mit-claude"
+									titel="Mit Claude"
+									aktiv={mitClaude}
+									waehle={() => {
+										setVorlage(null);
+										setMitClaude(true);
+									}}
+								>
+									<span className="block text-sm text-leise">
+										Claude schreibt einen Entwurf, du bearbeitest ihn weiter.
+									</span>
+								</Wahl>
+							)}
+							{eigene.map((v) => (
+								<EigeneWahl
+									key={v.id}
+									vorlage={v}
+									aktiv={vorlage === `eigen-${v.id}`}
+									waehle={() => {
+										setVorlage(`eigen-${v.id}`);
+										setMitClaude(false);
+									}}
+									neuLaden={eigen.neuLaden}
+								/>
+							))}
+							{vorlagen.map((v) => (
+								<Wahl
+									key={v}
+									id={v}
+									titel={`Vorlage: ${v}`}
+									aktiv={vorlage === v}
+									waehle={() => {
+										setVorlage(v);
+										setMitClaude(false);
+									}}
+								>
+									<iframe
+										src={`/ansicht/_assets/vorlage-${v}.html`}
+										title={`Vorschau ${v}`}
+										loading="lazy"
+										tabIndex={-1}
+										className="pointer-events-none mt-2 h-64 w-[250%] origin-top-left scale-[0.4] border-0 [margin-bottom:-9.6rem]"
+									/>
+								</Wahl>
+							))}
+						</div>
+						{vorlagen.length === 0 && eigene.length === 0 && (
+							<p className="mt-2 text-leise">
+								Für diese Art gibt es noch keine Vorlage. Du startest mit einem leeren Blatt.
+							</p>
+						)}
+						{mitClaude && (
+							<label className="mt-4 block font-medium">
+								Worum geht es, und was sollen die Kinder können?
+								<textarea
+									className={`${FELD_KLASSEN} mt-1 h-auto w-full py-1.5 font-normal`}
+									rows={3}
+									maxLength={2000}
+									value={wunsch}
+									onChange={(e) => setWunsch(e.target.value)}
+								/>
+								<span className="mt-1 block text-sm font-normal text-leise">
+									Keine Namen von Kindern eintragen. Reihen, mehrere Dokumente und neue Bilder gehen
+									in der Claude-App.
+								</span>
+							</label>
+						)}
+						{!mitClaude && zusaetze.length > 0 && (
+							<fieldset className="mt-4">
+								<legend className="font-medium">Gleich dazu (kannst du überspringen)</legend>
+								{zusaetze.map(([z, titelZ]) => (
+									<label key={z} className="flex h-knopf items-center gap-2">
+										<input
+											type="checkbox"
+											className="size-4"
+											checked={zusatz[z] === true}
+											onChange={(e) => setZusatz({ ...zusatz, [z]: e.target.checked })}
+										/>
+										{titelZ}
+									</label>
+								))}
+							</fieldset>
+						)}
+					</>
+				)}
+				<div className="mt-4 flex justify-end gap-2">
+					<Knopf art="leise" onClick={schliessen}>
+						Abbrechen
+					</Knopf>
+					{schritt > 0 && (
+						<Knopf art="zweit" onClick={() => setSchritt(schritt - 1)}>
+							Zurück
+						</Knopf>
+					)}
+					{letzter ? (
+						<Knopf disabled={laeuft} onClick={() => void anlegen()}>
+							Anlegen
+						</Knopf>
+					) : (
+						<Knopf onClick={weiter}>Weiter</Knopf>
+					)}
+				</div>
+			</div>
 		</Dialog>
 	);
 };

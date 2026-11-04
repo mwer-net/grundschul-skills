@@ -107,7 +107,11 @@ test.describe('Inventur Editor', () => {
 		for (const name of ['Nach oben', 'Nach unten', 'Duplizieren', 'Löschen', 'Mehr zu diesem Baustein']) {
 			await expect(leiste(page).getByRole('button', { name })).toBeVisible();
 		}
-		await expect(leiste(page).getByRole('button', { name: /Baustein/ }).first()).toBeVisible();
+		await expect(
+			leiste(page)
+				.getByRole('button', { name: /Baustein/ })
+				.first(),
+		).toBeVisible();
 
 		await leiste(page).getByRole('button', { name: 'Mehr zu diesem Baustein' }).click();
 		for (const name of [/Kopieren/, /Ausschneiden/, /In Sammlung legen/, /Mit Claude ändern/]) {

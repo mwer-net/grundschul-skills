@@ -1,8 +1,8 @@
 import type { KeyboardEvent, MouseEvent } from 'react';
 import { useEffect, useId, useMemo, useRef, useState } from 'react';
 
-import { Kuerzel } from '../bausteine/Kuerzel';
 import { klassen } from '../bausteine/klassen';
+import { Kuerzel } from '../bausteine/Kuerzel';
 import { Symbol } from '../bausteine/Symbol';
 import type { PalettenEintrag } from './palette-suche';
 import { gruppiere, merkeBenutzt, startliste, suchePalette, zuletztBenutzt } from './palette-suche';
@@ -191,7 +191,11 @@ export const Palette = ({ anClaude, eintraege, platzhalter, schliessen }: Eigens
 										{e.symbol && <Symbol name={e.symbol} className="size-3.5" />}
 									</span>
 									<span className="min-w-0 truncate">{e.titel}</span>
-									{e.notiz && <span className="min-w-0 flex-none truncate text-xs text-dezent">{e.notiz}</span>}
+									{e.notiz && (
+										<span className="min-w-0 flex-none truncate text-xs text-dezent">
+											{e.notiz}
+										</span>
+									)}
 									{e.kuerzel && <Kuerzel text={e.kuerzel} className="ml-auto flex-none pl-3" />}
 								</div>
 							);

@@ -3,8 +3,7 @@ import { useEffect, useId, useMemo, useRef, useState } from 'react';
 
 import { Chip } from '../bausteine/Chip';
 import { Dialog } from '../bausteine/Dialog';
-import { knopfKlassen } from '../bausteine/klassen';
-import { FELD_KLASSEN } from '../bausteine/klassen';
+import { FELD_KLASSEN, knopfKlassen } from '../bausteine/klassen';
 import { Knopf } from '../bausteine/Knopf';
 import { Symbol } from '../bausteine/Symbol';
 import { Zeile } from '../bausteine/Zeile';

@@ -19,6 +19,12 @@ import type { DokumentEintrag, Mappe, MappenEintrag, PapierkorbEintrag } from '.
 import { MaterialAnlegen } from './Anlegen';
 import { DokumentKachel } from './DokumentKachel';
 
+const MEHR_KNOPF = (
+	<Knopf art="zweit" className="size-knopf px-0">
+		<Symbol name="mehr" />
+	</Knopf>
+);
+
 const ZurUebersicht = () => (
 	<KnopfLink to="/" art="leise" className="-ml-2.5 text-leise">
 		<Symbol name="zurueck" />
@@ -127,7 +133,10 @@ export const Mappenansicht = () => {
 						{mappe.status === 'entwurf' && <Marke>Entwurf</Marke>}
 					</h1>
 					<p className="flex flex-wrap items-center gap-2 text-sm text-leise">
-						<span className="size-2 flex-none rounded-full" style={{ background: FACH_FARBE[mappe.fach] }} />
+						<span
+							className="size-2 flex-none rounded-full"
+							style={{ background: FACH_FARBE[mappe.fach] }}
+						/>
 						{`${FACH_NAME[mappe.fach]} · ${klasseName(mappe.klasse)} · ${anzahl(dokumente.length, 'Dokument', 'Dokumente')} · ${datum(mappe.geaendert).replace(/^(Heute|Gestern)$/, (t) => t.toLowerCase())} geändert`}
 					</p>
 				</div>
@@ -149,11 +158,7 @@ export const Mappenansicht = () => {
 						name="Mappe: weitere Aktionen"
 						rechtsbuendig
 						disabled={laeuft}
-						ausloeser={
-							<Knopf art="zweit" className="size-knopf px-0">
-								<Symbol name="mehr" />
-							</Knopf>
-						}
+						ausloeser={MEHR_KNOPF}
 						eintraege={[
 							{ titel: 'Duplizieren', symbol: 'duplizieren', waehle: () => void dupliziere() },
 							{ titel: 'Löschen', symbol: 'papierkorb', gefahr: true, waehle: () => void loesche() },

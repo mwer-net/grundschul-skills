@@ -75,7 +75,12 @@ const wertVon = (wort: string, titel: string, woerter: readonly string[]) => {
 };
 
 /** 0 heißt: passt nicht. Mehrere Wörter müssen alle passen. */
-export const bewerte = (anfrage: string, e: Pick<PalettenEintrag, 'titel' | 'suchwoerter'>, zuletzt: readonly string[] = [], id = '') => {
+export const bewerte = (
+	anfrage: string,
+	e: Pick<PalettenEintrag, 'titel' | 'suchwoerter'>,
+	zuletzt: readonly string[] = [],
+	id = '',
+) => {
 	const ganz = suchform(anfrage).trim();
 	const woerter = ganz.split(/\s+/).filter(Boolean);
 	if (woerter.length === 0) {
@@ -98,7 +103,11 @@ export const bewerte = (anfrage: string, e: Pick<PalettenEintrag, 'titel' | 'suc
 };
 
 /** Die Treffer, die besten zuerst, in der Reihenfolge der Eingabe bei Gleichstand. */
-export const suchePalette = <T extends PalettenEintrag>(anfrage: string, eintraege: readonly T[], zuletzt: readonly string[] = []) =>
+export const suchePalette = <T extends PalettenEintrag>(
+	anfrage: string,
+	eintraege: readonly T[],
+	zuletzt: readonly string[] = [],
+) =>
 	eintraege
 		.map((eintrag, stelle) => ({ eintrag, stelle, wert: bewerte(anfrage, eintrag, zuletzt, eintrag.id) }))
 		.filter((t) => t.wert > 0)
@@ -108,7 +117,11 @@ export const suchePalette = <T extends PalettenEintrag>(anfrage: string, eintrae
 export const ZULETZT_TITEL = 'Zuletzt benutzt';
 
 /** Leere Eingabe: zuletzt Benutztes, dann was für den Moment vorgesehen ist. */
-export const startliste = <T extends PalettenEintrag>(eintraege: readonly T[], zuletzt: readonly string[], anzahl = 5) => {
+export const startliste = <T extends PalettenEintrag>(
+	eintraege: readonly T[],
+	zuletzt: readonly string[],
+	anzahl = 5,
+) => {
 	const vorne = zuletzt.flatMap((id) => eintraege.find((e) => e.id === id) ?? []).slice(0, anzahl);
 	const schon = new Set(vorne.map((e) => e.id));
 	return [

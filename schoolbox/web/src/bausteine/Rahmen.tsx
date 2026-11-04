@@ -11,13 +11,19 @@ import { Seitenpalette } from '../seiten/Seitenpalette';
 import { useHinweis } from './hinweis';
 import { klassen } from './klassen';
 import { Knopf, KnopfLink } from './Knopf';
-import { Kuerzel } from './Kuerzel';
 import { useKopfHoehe } from './kopf';
+import { Kuerzel } from './Kuerzel';
 import { Menue } from './Menue';
 import type { SucheKontext } from './suche';
 import { Symbol } from './Symbol';
 
 /** Kopfzeile aller Seiten nach der Anmeldung: Name, Suche, Hilfe, Papierkorb, Abmelden. */
+const KONTO_KNOPF = (
+	<Knopf art="leise" className="size-knopf px-0">
+		<Symbol name="mehr" />
+	</Knopf>
+);
+
 export const Rahmen = () => {
 	const [suche, setSuche] = useState('');
 	const { pathname } = useLocation();
@@ -151,11 +157,7 @@ export const Rahmen = () => {
 						<Menue
 							name="Konto"
 							rechtsbuendig
-							ausloeser={
-								<Knopf art="leise" className="size-knopf px-0">
-									<Symbol name="mehr" />
-								</Knopf>
-							}
+							ausloeser={KONTO_KNOPF}
 							eintraege={[{ titel: 'Abmelden', symbol: 'abmelden', waehle: () => void abmelden() }]}
 						/>
 					</div>

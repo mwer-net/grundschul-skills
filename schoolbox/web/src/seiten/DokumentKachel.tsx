@@ -6,7 +6,7 @@ import { Marke } from '../bausteine/Kachel';
 import { Knopf, KnopfLink } from '../bausteine/Knopf';
 import type { MenueEintrag } from '../bausteine/Menue';
 import { Menue } from '../bausteine/Menue';
-import { useZeigeMenue } from '../bausteine/MenueAmPunkt';
+import { useZeigeMenue } from '../bausteine/menue-kontext';
 import { Symbol } from '../bausteine/Symbol';
 import { Vorschau } from '../bausteine/Vorschau';
 import { AlsVorlage } from '../editor/AlsVorlage';
@@ -28,6 +28,12 @@ interface Eigenschaften {
 	/** Fehlt bei Teilen-Links: Eine Variante legt nur die Lehrkraft an. */
 	variante?: () => void;
 }
+
+const MEHR_KNOPF = (
+	<Knopf art="leise" groesse="klein" className="size-knopf-klein px-0">
+		<Symbol name="mehr" />
+	</Knopf>
+);
 
 /** Zu sehen ist das Material. Ein Klick darauf sieht es an, zwei Knöpfe bleiben sichtbar, der Rest liegt im ⋯. */
 export const DokumentKachel = ({ dokument, mappe, teile, variante, zugang }: Eigenschaften) => {
@@ -112,20 +118,19 @@ export const DokumentKachel = ({ dokument, mappe, teile, variante, zugang }: Eig
 					</KnopfLink>
 				)}
 				{!waehlen && !folie && (
-					<PdfKnopf knapp art="leise" groesse="klein" beschriftung="PDF" wahl={wahl} mappe={mappe} warnen={!geteilt} />
+					<PdfKnopf
+						knapp
+						art="leise"
+						groesse="klein"
+						beschriftung="PDF"
+						wahl={wahl}
+						mappe={mappe}
+						warnen={!geteilt}
+					/>
 				)}
 				{mehr.length > 0 && (
 					<span className="ml-auto">
-						<Menue
-							name="Weitere Aktionen"
-							rechtsbuendig
-							eintraege={mehr}
-							ausloeser={
-								<Knopf art="leise" groesse="klein" className="size-knopf-klein px-0">
-									<Symbol name="mehr" />
-								</Knopf>
-							}
-						/>
+						<Menue name="Weitere Aktionen" rechtsbuendig eintraege={mehr} ausloeser={MEHR_KNOPF} />
 					</span>
 				)}
 			</div>

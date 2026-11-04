@@ -4,7 +4,6 @@ import type { AbschnittName } from './abschnitte';
  * Werte gelten und welche Regeln zwischen ihnen. Das Abbildungs-Panel baut daraus seine Eingaben; ein neues Element
  * braucht nur einen Eintrag hier. Rechnet nur über Text-Patches auf der Quelle, wie die anderen Editor-Befehle.
  */
-
 import type { Knoten, Zerlegung } from './quelltext';
 import {
 	attribut,
@@ -4926,19 +4925,19 @@ export const setzeAbbildung = (quelle: string, nr: number, werte: Werte): Strukt
 
 /** Welche Gruppe des Schemas in welchen Abschnitt des Inspektors gehört; ein Test prüft, dass keine fehlt. */
 export const GRUPPEN_ABSCHNITT: Readonly<Record<string, AbschnittName>> = {
-	Aufgabe: 'inhalt',
-	Einfach: 'inhalt',
-	Figur: 'inhalt',
-	Listen: 'inhalt',
-	Lücken: 'inhalt',
-	Markierung: 'inhalt',
-	Raster: 'inhalt',
-	Bastelvorlage: 'darstellung',
-	Gitter: 'darstellung',
-	Maße: 'darstellung',
-	Skala: 'darstellung',
+	'Aufgabe': 'inhalt',
+	'Einfach': 'inhalt',
+	'Figur': 'inhalt',
+	'Listen': 'inhalt',
+	'Lücken': 'inhalt',
+	'Markierung': 'inhalt',
+	'Raster': 'inhalt',
+	'Bastelvorlage': 'darstellung',
+	'Gitter': 'darstellung',
+	'Maße': 'darstellung',
+	'Skala': 'darstellung',
 	'Weitere Angaben': 'darstellung',
-	Mehr: 'weitere',
+	'Mehr': 'weitere',
 };
 
 const DARSTELLUNG = new Set([
