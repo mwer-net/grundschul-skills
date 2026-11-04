@@ -1,9 +1,11 @@
 import type { RefObject } from 'react';
 import { useEffect, useState } from 'react';
 
+import { Kuerzel } from '../bausteine/Kuerzel';
 import { klassen } from '../bausteine/klassen';
 import { Symbol } from '../bausteine/Symbol';
 import { Tooltip } from '../bausteine/Tooltip';
+import { halteFokus } from './halteFokus';
 import type { Pruefpunkt, Pruefstand } from './pruefung';
 import { Pruefstatus } from './Pruefliste';
 
@@ -167,6 +169,11 @@ export const Statusleiste = ({
 		</div>
 		<Zoom zoom={zoom} stufe={stufe} skala={skala} fuehreAus={fuehreAus} />
 		<div className="flex items-center justify-end gap-2">
+			<button type="button" className={KNOPF} data-palette-knopf {...halteFokus} onClick={() => fuehreAus('ansicht.palette')}>
+				<Symbol name="suche" className="size-3 flex-none" />
+				Befehle
+				<Kuerzel text="⌘K" />
+			</button>
 			<button type="button" className={KNOPF} data-tasten-knopf onClick={() => fuehreAus('ansicht.tasten')}>
 				<Symbol name="hilfe" className="size-3 flex-none" />
 				Tasten

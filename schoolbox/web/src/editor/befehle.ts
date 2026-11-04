@@ -8,6 +8,7 @@ import {
 	SICHTBARKEITEN,
 } from '@schoolbox/kern/src/kit-einstellungen';
 import type { StrukturErgebnis } from '@schoolbox/kern/src/struktur';
+import { SPALTEN } from '@schoolbox/kern/src/struktur';
 import {
 	fuegeSpalteEin,
 	fuegeZeileEin,
@@ -48,7 +49,10 @@ export interface Kuerzel {
 
 /** Was die Befehle tun können. Die Logik bleibt in den Hooks, das Register ruft sie nur. */
 export interface Aktionen {
-	struktur: Pick<Struktur, 'verschiebe' | 'dupliziere' | 'loesche' | 'neueSeite' | 'fuehreAus' | 'aendereAttribute'>;
+	struktur: Pick<
+		Struktur,
+		'verschiebe' | 'dupliziere' | 'loesche' | 'neueSeite' | 'fuehreAus' | 'aendereAttribute' | 'spalten'
+	>;
 	fokussiereText: () => void;
 	waehle: (nr: number | null) => void;
 	eineEbeneHoch: () => void;
@@ -85,6 +89,7 @@ export interface Aktionen {
 	alsVorlage: () => void;
 	praesentieren: () => void;
 	zurueck: () => void;
+	hilfe: () => void;
 }
 
 export interface Kontext {
@@ -140,6 +145,8 @@ export interface Befehl {
 	/** Einträge mit gleichem Wert stehen im Menü in einem Untermenü. */
 	untermenue?: string;
 	aktiv?: (k: Kontext) => boolean;
+	/** Leise neben dem Titel in der Palette, z. B. `4 → 5`. */
+	notiz?: (k: Kontext) => string;
 }
 
 const gewaehlt = (k: Kontext) => k.pfad.at(-1);
@@ -197,6 +204,8 @@ const SICHTBARKEIT: Befehl[] = SICHTBARKEITEN.map((s) => ({
 	orte: ['menue', 'palette'],
 	sichtbarUnter: 'inspektor',
 	untermenue: 'Sichtbarkeit',
+	suchwoerter: ['sichtbarkeit', 'verstecken', 'ausblenden', 'zeigen'],
+	notiz: () => 'Sichtbarkeit',
 	aktiv: (k) => {
 		const g = gewaehlt(k);
 		return Boolean(g && k.quelle !== null && leseSichtbarkeit(k.quelle, g.nr) === s.wert);
@@ -212,6 +221,25 @@ const SICHTBARKEIT: Befehl[] = SICHTBARKEITEN.map((s) => ({
 		}
 	},
 }));
+
+const spaltenBefehl = (id: string, titel: string, schritt: 1 | -1, suchwoerter: string[]): Befehl => {
+	const ziel = (k: Kontext) => (k.werte?.spalten?.wert ?? 0) + schritt;
+	return {
+		id,
+		titel,
+		gruppe: 'bearbeiten',
+		symbol: schritt > 0 ? 'plus' : 'minus',
+		suchwoerter,
+		orte: ['palette'],
+		sichtbarUnter: 'inspektor',
+		notiz: (k) => `${k.werte?.spalten?.wert ?? ''} → ${ziel(k)}`,
+		verfuegbar: (k) => k.aktiv && Boolean(k.werte?.spalten) && ziel(k) >= SPALTEN.min && ziel(k) <= SPALTEN.max,
+		aus: (k) => {
+			const spalten = k.werte?.spalten;
+			return spalten && k.tu.struktur.spalten(spalten.nr, ziel(k));
+		},
+	};
+};
 
 export const BEFEHLE: Befehl[] = [
 	// Auswahl
@@ -242,6 +270,8 @@ export const BEFEHLE: Befehl[] = [
 		verfuegbar: (k) => k.aktiv && k.hatNeueZahlen,
 		aus: (k) => k.tu.neueZahlen(),
 	},
+	spaltenBefehl('auswahl.spalten-mehr', 'Spalten erhöhen', 1, ['mehr', 'breiter', 'nebeneinander']),
+	spaltenBefehl('auswahl.spalten-weniger', 'Spalten verringern', -1, ['weniger', 'schmaler']),
 	tabelle('tabelle.zeile-danach', 'Zeile danach', 'Zeile eingefügt', (q, nr, n) => fuegeZeileEin(q, nr, 'nach', n))(
 		['menue', 'leiste', 'palette'],
 		false,
@@ -338,7 +368,7 @@ export const BEFEHLE: Befehl[] = [
 		gruppe: 'ablage',
 		symbol: 'hochladen',
 		kuerzel: [{ code: 'KeyV', befehl: true }],
-		suchwoerter: ['ablage', 'zwischenablage'],
+		suchwoerter: ['ablage', 'zwischenablage', 'hinzufügen', 'neu'],
 		orte: ['taste', 'menue', 'leiste', 'palette'],
 		sichtbarUnter: 'mehr',
 		verfuegbar: (k) => k.aktiv && k.hatAblage,
@@ -418,6 +448,7 @@ export const BEFEHLE: Befehl[] = [
 		titel: 'Mit Claude ändern …',
 		gruppe: 'ordnen',
 		symbol: 'sprechblase',
+		suchwoerter: ['ki', 'chat', 'frage'],
 		orte: ['menue', 'leiste', 'palette'],
 		sichtbarUnter: 'kopf',
 		verfuegbar: (k) => k.kiVerfuegbar && k.frei && Boolean(gewaehlt(k)),
@@ -704,6 +735,7 @@ export const BEFEHLE: Befehl[] = [
 		titel: 'Claude fragen',
 		gruppe: 'dokument',
 		symbol: 'sprechblase',
+		suchwoerter: ['ki', 'chat', 'frage'],
 		orte: ['palette'],
 		sichtbarUnter: 'kopf',
 		verfuegbar: (k) => k.frei,
@@ -716,7 +748,7 @@ export const BEFEHLE: Befehl[] = [
 		symbol: 'sprechblase',
 		kuerzel: [{ code: 'KeyJ', befehl: true }, { code: 'KeyJ', befehl: true, umschalt: true }, { code: 'KeyC', wahl: true }],
 		modus: ['auswahl', 'ohne', 'text'],
-		suchwoerter: ['ki', 'chat', 'fragen'],
+		suchwoerter: ['ki', 'chat', 'frage', 'fragen'],
 		orte: ['taste', 'palette'],
 		sichtbarUnter: 'kopf',
 		verfuegbar: (k) => k.kiVerfuegbar,
@@ -855,11 +887,22 @@ export const BEFEHLE: Befehl[] = [
 		verfuegbar: () => true,
 		aus: (k) => k.tu.zurueck(),
 	},
+	{
+		id: 'dokument.hilfe',
+		titel: 'Hilfe',
+		gruppe: 'dokument',
+		symbol: 'hilfe',
+		suchwoerter: ['anleitung', 'so geht'],
+		orte: ['palette'],
+		sichtbarUnter: 'kopf',
+		verfuegbar: () => true,
+		aus: (k) => k.tu.hilfe(),
+	},
 ];
 
 export const titelVon = (b: Befehl, k: Kontext) => (typeof b.titel === 'function' ? b.titel(k) : b.titel);
 
-const symbolVon = (b: Befehl, k: Kontext) => (typeof b.symbol === 'function' ? b.symbol(k) : b.symbol);
+export const symbolVon = (b: Befehl, k: Kontext) => (typeof b.symbol === 'function' ? b.symbol(k) : b.symbol);
 
 /** Nur Verfügbares, in der Reihenfolge der Gruppen. */
 export const befehleFuer = (ort: Ort, k: Kontext, alle: Befehl[] = BEFEHLE) =>

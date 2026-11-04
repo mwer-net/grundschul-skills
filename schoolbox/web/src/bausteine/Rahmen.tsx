@@ -1,8 +1,12 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Link, Outlet, useLocation, useNavigate } from 'react-router-dom';
 
 import { meldung, sende } from '../api';
+import { TASTEN_SPERRE } from '../editor/tasten';
+import { MappeDialog } from '../seiten/Anlegen';
+import { Seitenpalette } from '../seiten/Seitenpalette';
 import { useHinweis } from './hinweis';
+import { Kuerzel } from './Kuerzel';
 import { useKopfHoehe } from './kopf';
 import type { SucheKontext } from './suche';
 import { Symbol } from './Symbol';
@@ -17,6 +21,19 @@ export const Rahmen = () => {
 	const navigate = useNavigate();
 	const zeige = useHinweis();
 	const kopf = useKopfHoehe<HTMLElement>();
+	const [palette, setPalette] = useState(false);
+	const [neueMappe, setNeueMappe] = useState(false);
+
+	useEffect(() => {
+		const taste = (e: KeyboardEvent) => {
+			if ((e.metaKey || e.ctrlKey) && e.code === 'KeyK' && !document.querySelector(TASTEN_SPERRE)) {
+				e.preventDefault();
+				setPalette(true);
+			}
+		};
+		window.addEventListener('keydown', taste);
+		return () => window.removeEventListener('keydown', taste);
+	}, []);
 
 	const sucheNach = (wert: string) => {
 		setSuche(wert);
@@ -37,6 +54,14 @@ export const Rahmen = () => {
 	const kontext: SucheKontext = { suche, setSuche };
 	return (
 		<div className="flex min-h-dvh flex-col">
+			{palette && (
+				<Seitenpalette
+					schliessen={() => setPalette(false)}
+					neueMappe={() => setNeueMappe(true)}
+					abmelden={() => void abmelden()}
+				/>
+			)}
+			{neueMappe && <MappeDialog schliessen={() => setNeueMappe(false)} />}
 			<header ref={kopf} className="sticky top-0 z-30 border-b border-rand bg-flaeche/95 backdrop-blur">
 				<div className="mx-auto flex max-w-[90rem] items-center gap-4 px-8 py-3 max-lg:px-4 max-md:gap-2">
 					<Link
@@ -55,7 +80,7 @@ export const Rahmen = () => {
 						<input
 							type="search"
 							name="suche"
-							className="h-knopf w-full rounded-lg border border-rand bg-papier pr-4 pl-12 placeholder:text-leise focus:border-brand-500 focus:bg-flaeche focus:outline-none"
+							className="h-knopf w-full rounded-lg border border-rand bg-papier pr-14 pl-12 placeholder:text-leise focus:border-brand-500 focus:bg-flaeche focus:outline-none"
 							placeholder="Suchen, z. B. Kartoffel oder Mathe"
 							enterKeyHint="search"
 							autoComplete="off"
@@ -64,6 +89,18 @@ export const Rahmen = () => {
 							value={suche}
 							onChange={(e) => sucheNach(e.target.value)}
 						/>
+						<button
+							type="button"
+							className="absolute top-1/2 right-1 flex h-knopf-klein -translate-y-1/2 items-center rounded-md px-2 hover:bg-flaeche-2"
+							aria-label="Befehle"
+							data-palette-knopf
+							onClick={(e) => {
+								e.preventDefault();
+								setPalette(true);
+							}}
+						>
+							<Kuerzel text="⌘K" />
+						</button>
 					</label>
 					<Link to="/hilfe" className={KOPF_KNOPF} aria-label="Hilfe">
 						<Symbol name="hilfe" />

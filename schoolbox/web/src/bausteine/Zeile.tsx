@@ -9,12 +9,18 @@ interface Eigenschaften {
 	/** Name für „Hilfe zu …“, wenn `titel` kein Text ist. */
 	name?: string;
 	hilfe?: ReactNode;
+	/** Sprungziel aus der Palette. */
+	einstellung?: string;
 	children: ReactNode;
 }
 
 /** Inspektor-Zeile: Label links, Wert rechts. Bei knappem Platz bricht der Wert unter das Label. */
-export const Zeile = ({ children, fuer, hilfe, name, titel }: Eigenschaften) => (
-	<div className="flex h-zeile flex-wrap items-center justify-between gap-x-2" data-zeile>
+export const Zeile = ({ children, einstellung, fuer, hilfe, name, titel }: Eigenschaften) => (
+	<div
+		className="flex h-zeile flex-wrap items-center justify-between gap-x-2"
+		data-zeile
+		data-einstellung={einstellung}
+	>
 		<span className="flex min-w-0 items-center gap-1 text-leise">
 			<label htmlFor={fuer} className="min-w-0">
 				{titel}

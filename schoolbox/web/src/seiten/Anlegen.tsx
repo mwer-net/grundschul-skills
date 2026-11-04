@@ -70,9 +70,8 @@ const Wahl = ({
 	</button>
 );
 
-/** Knopf und Dialog „Mappe anlegen“: Titel, Fach, Klasse. Danach direkt in der Mappe. */
-export const MappeAnlegen = () => {
-	const [offen, setOffen] = useState(false);
+/** Dialog „Mappe anlegen“: Titel, Fach, Klasse. Danach direkt in der Mappe. */
+export const MappeDialog = ({ schliessen }: { schliessen: () => void }) => {
 	const [titel, setTitel] = useState('');
 	const [fach, setFach] = useState<Fach>('deutsch');
 	const [klasse, setKlasse] = useState<Klasse>(1);
@@ -95,51 +94,57 @@ export const MappeAnlegen = () => {
 	};
 
 	return (
+		<Dialog titel="Mappe anlegen" schliessen={schliessen}>
+			<form onSubmit={(e) => void anlegen(e)}>
+				<Fehler text={fehler} />
+				<Feld name="Titel">
+					<input className={FELD} value={titel} required onChange={(e) => setTitel(e.target.value)} />
+				</Feld>
+				<Feld name="Fach">
+					<select className={FELD} value={fach} onChange={(e) => setFach(e.target.value as Fach)}>
+						{FAECHER.map((f) => (
+							<option key={f} value={f}>
+								{FACH_NAME[f]}
+							</option>
+						))}
+					</select>
+				</Feld>
+				<Feld name="Klasse">
+					<select
+						className={FELD}
+						value={String(klasse)}
+						onChange={(e) => setKlasse(KLASSEN.find((k) => String(k) === e.target.value) ?? 1)}
+					>
+						{KLASSEN.map((k) => (
+							<option key={k} value={String(k)}>
+								{klasseName(k)}
+							</option>
+						))}
+					</select>
+				</Feld>
+				<div className="flex justify-end gap-2">
+					<Knopf art="zweit" onClick={schliessen}>
+						Abbrechen
+					</Knopf>
+					<Knopf type="submit" disabled={laeuft}>
+						Anlegen
+					</Knopf>
+				</div>
+			</form>
+		</Dialog>
+	);
+};
+
+/** Knopf zum Dialog. */
+export const MappeAnlegen = () => {
+	const [offen, setOffen] = useState(false);
+	return (
 		<>
 			<Knopf onClick={() => setOffen(true)}>
 				<Symbol name="plus" />
 				Mappe anlegen
 			</Knopf>
-			{offen && (
-				<Dialog titel="Mappe anlegen" schliessen={() => setOffen(false)}>
-					<form onSubmit={(e) => void anlegen(e)}>
-						<Fehler text={fehler} />
-						<Feld name="Titel">
-							<input className={FELD} value={titel} required onChange={(e) => setTitel(e.target.value)} />
-						</Feld>
-						<Feld name="Fach">
-							<select className={FELD} value={fach} onChange={(e) => setFach(e.target.value as Fach)}>
-								{FAECHER.map((f) => (
-									<option key={f} value={f}>
-										{FACH_NAME[f]}
-									</option>
-								))}
-							</select>
-						</Feld>
-						<Feld name="Klasse">
-							<select
-								className={FELD}
-								value={String(klasse)}
-								onChange={(e) => setKlasse(KLASSEN.find((k) => String(k) === e.target.value) ?? 1)}
-							>
-								{KLASSEN.map((k) => (
-									<option key={k} value={String(k)}>
-										{klasseName(k)}
-									</option>
-								))}
-							</select>
-						</Feld>
-						<div className="flex justify-end gap-2">
-							<Knopf art="zweit" onClick={() => setOffen(false)}>
-								Abbrechen
-							</Knopf>
-							<Knopf type="submit" disabled={laeuft}>
-								Anlegen
-							</Knopf>
-						</div>
-					</form>
-				</Dialog>
-			)}
+			{offen && <MappeDialog schliessen={() => setOffen(false)} />}
 		</>
 	);
 };

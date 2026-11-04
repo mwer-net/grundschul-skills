@@ -143,7 +143,7 @@ export const KATALOG: readonly KatalogEintrag[] = [
 ];
 
 /** Wer „loschen“ oder „grosse“ tippt, meint „Löschen“ und „Größe“. */
-const klein = (t: string) =>
+export const suchform = (t: string) =>
 	t
 		.toLocaleLowerCase('de')
 		.replace(/ä/g, 'a')
@@ -153,14 +153,14 @@ const klein = (t: string) =>
 
 /** Sucht über Name und Suchbegriffe, Name zuerst. Mehrere Wörter müssen alle passen. */
 export const sucheImKatalog = (anfrage: string, eintraege: readonly KatalogEintrag[] = KATALOG) => {
-	const woerter = klein(anfrage).split(/\s+/).filter(Boolean);
+	const woerter = suchform(anfrage).split(/\s+/).filter(Boolean);
 	if (woerter.length === 0) {
 		return [...eintraege];
 	}
 	const treffer = eintraege.filter((e) => {
-		const text = klein([e.name, ...e.suchbegriffe].join(' '));
+		const text = suchform([e.name, ...e.suchbegriffe].join(' '));
 		return woerter.every((w) => text.includes(w));
 	});
-	const imNamen = (e: KatalogEintrag) => woerter.every((w) => klein(e.name).includes(w));
+	const imNamen = (e: KatalogEintrag) => woerter.every((w) => suchform(e.name).includes(w));
 	return [...treffer.filter(imNamen), ...treffer.filter((e) => !imNamen(e))];
 };

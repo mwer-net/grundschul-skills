@@ -52,6 +52,8 @@ import type { ZoomWert } from '../editor/Statusleiste';
 import { gemerkterZoom, merkeZoom, naechsteStufe, Statusleiste, useSichtbareSeite } from '../editor/Statusleiste';
 import type { Struktur } from '../editor/struktur';
 import { useStruktur } from '../editor/struktur';
+import { eintraegeImEditor } from '../editor/palette-eintraege';
+import { Palette } from '../editor/Palette';
 import { gehoertDemElement, istFeld, TASTEN_SPERRE } from '../editor/tasten';
 import { TastenUebersicht } from '../editor/TastenUebersicht';
 import { useText } from '../editor/text';
@@ -78,6 +80,8 @@ interface TestZugriff {
 	aendere: (neu: string, beschreibung?: string) => void;
 	art: (element: Element) => string | null;
 }
+
+const BEDIENBAR = 'input, select, textarea, button';
 
 const Trenner = () => <span aria-hidden className="mx-1 h-4 w-px flex-none bg-rand" />;
 
@@ -375,6 +379,8 @@ const Bearbeitung = ({ dokument, mappe: mappenDaten }: { mappe: Mappe; dokument:
 	const panels = usePanels(suche.get('neu') === '1', suche.get('claude') === '1');
 	const [alsVorlage, setAlsVorlage] = useState(false);
 	const [tastenOffen, setTastenOffen] = useState(false);
+	const [paletteOffen, setPaletteOffen] = useState(false);
+	const [zumBlatt, setZumBlatt] = useState(0);
 	const [umriss, setUmriss] = useState<number | null>(null);
 	const claudeFragen = useClaudeFragen();
 	const [schnellWunsch, setSchnellWunsch] = useState<{ n: number; nr: number | null }>({ n: 0, nr: null });
@@ -627,7 +633,10 @@ const Bearbeitung = ({ dokument, mappe: mappenDaten }: { mappe: Mappe; dokument:
 					panels.setRechts('claude');
 					panels.setRechtsOffen(true);
 				},
-				palette: () => undefined,
+				palette: () => {
+					text.halte(true);
+					setPaletteOffen(true);
+				},
 				tasten: () => setTastenOffen(true),
 				rueckgaengig: zurueck,
 				wiederholen: vor,
@@ -638,10 +647,25 @@ const Bearbeitung = ({ dokument, mappe: mappenDaten }: { mappe: Mappe; dokument:
 				alsVorlage: () => setAlsVorlage(true),
 				praesentieren: () => void verlassen(praesentationSeite(zugang, dok)),
 				zurueck: () => void verlassen(dokumentSeite(zugang, dok)),
+				hilfe: () => void verlassen('/hilfe'),
 			},
 		},
 		useCallback((text: string) => zeige({ text }), [zeige]),
 	);
+
+	const zeigeEinstellung = (ort: string) => {
+		panels.setRechts('inspektor');
+		panels.setRechtsOffen(true);
+		setZumBlatt((n) => n + 1);
+		window.setTimeout(() => {
+			const ziel = document.querySelector(`[data-einstellung="${ort}"]`);
+			const feld = ziel?.matches(BEDIENBAR) ? ziel : ziel?.querySelector(BEDIENBAR);
+			if (feld instanceof HTMLElement) {
+				feld.scrollIntoView({ block: 'nearest' });
+				feld.focus();
+			}
+		});
+	};
 
 	const zeigeMenue = useZeigeMenue();
 	const [menueWunsch, setMenueWunsch] = useState<{ art: MenueArt; punkt: { x: number; y: number } } | null>(null);
@@ -785,7 +809,7 @@ const Bearbeitung = ({ dokument, mappe: mappenDaten }: { mappe: Mappe; dokument:
 			</>
 		),
 		inspektor: (
-			<Inspektor pfad={pfad} waehle={setAuswahl} umriss={setUmriss} blatt={ohneAuswahl}>
+			<Inspektor pfad={pfad} waehle={setAuswahl} umriss={setUmriss} blatt={ohneAuswahl} zumBlatt={zumBlatt}>
 				<Einstellungen
 					pfad={pfad}
 					quelle={quelle}
@@ -923,6 +947,31 @@ const Bearbeitung = ({ dokument, mappe: mappenDaten }: { mappe: Mappe; dokument:
 				</span>
 			</Kopfleiste>
 			{claudeFragen.dialog}
+			{paletteOffen && (
+				<Palette
+					platzhalter="Befehl oder Baustein suchen"
+					eintraege={eintraegeImEditor(befehle.jetzt.current, {
+						posten: einfuegen.eintraege,
+						fuegeEin: (p) => einfuegen.fuegeEin(p, auswahl ?? (docJetzt ? seiteAn(docJetzt, seite.nr) : null)),
+						zeigeSeite: (nr) => {
+							const ziel = docJetzt ? seiteAn(docJetzt, nr) : null;
+							if (ziel !== null) {
+								struktur.zeigeAn(ziel);
+							}
+						},
+						zeigeEinstellung,
+						fuehreAus: befehle.fuehreAus,
+					})}
+					schliessen={(ausgefuehrt) => {
+						text.halte(false);
+						if (ausgefuehrt) {
+							// Die Aktion arbeitet mit dem fertigen Text, wie bei jedem Knopf außerhalb des Blatts.
+							text.beende();
+						}
+						setPaletteOffen(false);
+					}}
+				/>
+			)}
 			{tastenOffen && (
 				<TastenUebersicht kontext={befehle.jetzt.current} schliessen={() => setTastenOffen(false)} />
 			)}

@@ -75,6 +75,8 @@ export interface TextSteuerung {
 	beende: () => void;
 	/** Bearbeitung von außen starten, Cursor ans Ende. */
 	fokussiere: () => void;
+	/** Solange die Palette offen ist: Der Fokus geht weg, die Sitzung bleibt. */
+	halte: (an: boolean) => void;
 	formatiere: (format: Format) => void;
 	markiereAlles: () => void;
 	zustand: () => TextZustand;
@@ -344,6 +346,7 @@ export const ruesteText = ({
 	const original = nr === null ? undefined : z.knoten[nr];
 	let sitzung: Sitzung | null = null;
 	let intern = false;
+	let gehalten = false;
 	const geruestet = new Set<HTMLElement>();
 	const sprache = new Set<HTMLElement>();
 
@@ -763,7 +766,7 @@ export const ruesteText = ({
 	};
 
 	const beiFokusWeg = (e: FocusEvent) => {
-		if (!intern && sitzung && imSitzung(e.target as Node) && !imSitzung(e.relatedTarget as Node | null)) {
+		if (!intern && !gehalten && sitzung && imSitzung(e.target as Node) && !imSitzung(e.relatedTarget as Node | null)) {
 			beende();
 		}
 	};
@@ -806,6 +809,9 @@ export const ruesteText = ({
 	return {
 		aktiv: () => sitzung !== null,
 		beende,
+		halte: (an: boolean) => {
+			gehalten = an;
+		},
 		fokussiere: () => {
 			const ziel = element.lastChild?.nodeType === TEXT ? element.lastChild : element;
 			element.focus({ preventScroll: true });

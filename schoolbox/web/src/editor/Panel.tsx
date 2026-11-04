@@ -35,6 +35,7 @@ import type { Spalten, Struktur } from './struktur';
 
 const ZeileSchalter = ({
 	an,
+	einstellung,
 	hilfe,
 	setze,
 	titel,
@@ -43,10 +44,11 @@ const ZeileSchalter = ({
 	an: boolean;
 	setze: (an: boolean) => void;
 	hilfe?: string;
+	einstellung?: string;
 }) => {
 	const id = useId();
 	return (
-		<Zeile titel={titel} fuer={id} hilfe={hilfe}>
+		<Zeile titel={titel} fuer={id} hilfe={hilfe} einstellung={einstellung}>
 			<Schalter id={id} name={titel} an={an} setze={setze} />
 		</Zeile>
 	);
@@ -74,6 +76,7 @@ const ZeileStepper = ({
 };
 
 const ZeileWahl = ({
+	einstellung,
 	hilfe,
 	optionen,
 	setze,
@@ -82,13 +85,14 @@ const ZeileWahl = ({
 }: {
 	titel: string;
 	hilfe?: string;
+	einstellung?: string;
 	wert: string;
 	optionen: readonly { wert: string; titel: string }[];
 	setze: (wert: string) => void;
 }) => {
 	const id = useId();
 	return (
-		<Zeile titel={titel} fuer={id} hilfe={hilfe}>
+		<Zeile titel={titel} fuer={id} hilfe={hilfe} einstellung={einstellung}>
 			<select id={id} className={klassen(FELD_KLASSEN, 'w-fit! max-w-36 pr-5!')} value={wert} onChange={(e) => setze(e.target.value)}>
 				{optionen.map((o) => (
 					<option key={o.wert} value={o.wert}>
@@ -342,19 +346,25 @@ export const Blattwerkzeug = ({
 					<input
 						key={w.titel}
 						className={FELD_KLASSEN}
+						data-einstellung="titel"
 						defaultValue={w.titel}
 						onBlur={(e) => e.target.value.trim() && setze('Titel', { titel: e.target.value.trim() })}
 					/>
 				</Feld>
 				<ZeileWahl
 					titel="Klasse"
+					einstellung="klasse"
 					wert={String(w.klasse)}
 					optionen={KLASSEN.map((k) => ({ wert: String(k), titel: klasseName(k) }))}
 					setze={(neu) => setze('Klasse', { klasse: KLASSEN.find((k) => String(k) === neu) ?? 'gemischt' })}
 				/>
 			</Abschnitt>
 			<Abschnitt name="aussehen" titel="Aussehen">
-				<Zeile titel="Farbschema" hilfe="Farben von Titel, Nummern und Markierungen im Blatt">
+				<Zeile
+					titel="Farbschema"
+					einstellung="farbschema"
+					hilfe="Farben von Titel, Nummern und Markierungen im Blatt"
+				>
 					<div role="group" aria-label="Farbschema" className="flex gap-1" data-palette>
 						{PALETTEN.map((p) => {
 							const f = farben[p];
@@ -380,6 +390,7 @@ export const Blattwerkzeug = ({
 				</Zeile>
 				<ZeileWahl
 					titel="Format"
+					einstellung="format"
 					hilfe="Passt danach etwas nicht mehr, meldet es die Prüfung."
 					wert={w.format}
 					optionen={(w.format === 'minibuch' ? ['minibuch' as const] : BLATT_FORMATE).map((f) => ({
@@ -397,6 +408,7 @@ export const Blattwerkzeug = ({
 						ref={regler}
 						type="range"
 						aria-label="Abstand zwischen Aufgaben"
+						data-einstellung="abstand"
 						className="h-zeile w-full accent-brand-500"
 						min={ABSTAND.min}
 						max={ABSTAND.max}
@@ -411,6 +423,7 @@ export const Blattwerkzeug = ({
 				</label>
 				<ZeileSchalter
 					titel="Trennlinien"
+					einstellung="trennlinien"
 					hilfe="Linien zwischen den Aufgaben"
 					an={w.trenner}
 					setze={(an) => setze('Trennlinien', { trenner: an })}
@@ -419,6 +432,7 @@ export const Blattwerkzeug = ({
 			<Abschnitt name="loesung-und-punkte" titel="Lösung und Punkte">
 				<ZeileSchalter
 					titel="Punkte drucken"
+					einstellung="punkte"
 					an={w.punkte}
 					setze={(an) => setze('Punkte drucken', { punkte: an })}
 				/>

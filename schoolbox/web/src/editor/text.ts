@@ -142,6 +142,7 @@ export const useText = ({
 	}, []);
 	const beende = useCallback(() => steuerung.current?.beende(), []);
 	const fokussiere = useCallback(() => steuerung.current?.fokussiere(), []);
+	const halte = useCallback((an: boolean) => steuerung.current?.halte(an), []);
 
-	return { bearbeitet, zustand, formatiere, formatiereGanz, beende, fokussiere, pruefeSpaeter };
+	return { bearbeitet, zustand, formatiere, formatiereGanz, beende, fokussiere, halte, pruefeSpaeter };
 };

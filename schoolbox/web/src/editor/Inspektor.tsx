@@ -111,11 +111,13 @@ interface Eigenschaften {
 	umriss: (nr: number | null) => void;
 	/** Der Inhalt des Reiters „Blatt“. */
 	blatt: ReactNode;
+	/** Zählt hoch, wenn die Palette zu einer Einstellung des Blatts springt. */
+	zumBlatt: number;
 	children: ReactNode;
 }
 
 /** Rechts neben dem Blatt: zwei Reiter, damit immer klar ist, worauf sich eine Einstellung bezieht. */
-export const Inspektor = ({ blatt, children, pfad, umriss, waehle }: Eigenschaften) => {
+export const Inspektor = ({ blatt, children, pfad, umriss, waehle, zumBlatt }: Eigenschaften) => {
 	const gewaehlt = pfad.at(-1);
 	const nr = gewaehlt?.nr ?? null;
 	const [wunsch, setWunsch] = useState<ReiterName>('auswahl');
@@ -125,6 +127,11 @@ export const Inspektor = ({ blatt, children, pfad, umriss, waehle }: Eigenschaft
 		if (nr !== null) {
 			setWunsch('auswahl');
 		}
+	}
+	const [blattZuletzt, setBlattZuletzt] = useState(zumBlatt);
+	if (blattZuletzt !== zumBlatt) {
+		setBlattZuletzt(zumBlatt);
+		setWunsch('blatt');
 	}
 	const reiter = gewaehlt ? wunsch : 'blatt';
 	return (
