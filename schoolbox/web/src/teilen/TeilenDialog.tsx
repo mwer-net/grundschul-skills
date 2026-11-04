@@ -49,10 +49,10 @@ const LinkZeile = ({ freigabe, gesperrt, titel, widerrufe }: ZeileEigenschaften)
 	};
 
 	return (
-		<li className="flex flex-col gap-3 rounded-2xl border-2 border-rand p-4" data-freigabe={freigabe.token}>
+		<li className="flex flex-col gap-3 rounded-2xl border border-rand p-4" data-freigabe={freigabe.token}>
 			<input
 				ref={feld}
-				className="min-h-12 w-full rounded-xl border-2 border-rand bg-papier px-3 text-sm"
+				className="h-knopf w-full rounded-xl border border-rand bg-papier px-3 text-sm"
 				type="text"
 				readOnly
 				aria-label="Link zum Teilen"

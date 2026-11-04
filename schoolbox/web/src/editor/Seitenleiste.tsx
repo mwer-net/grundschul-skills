@@ -222,7 +222,7 @@ export const Seitenleiste = ({
 	return (
 		<nav
 			aria-label="Seiten"
-			className="w-36 flex-none overflow-y-auto border-r border-rand bg-white px-4 py-4 max-lg:w-28 max-lg:px-3"
+			className="w-36 flex-none overflow-y-auto border-r border-rand bg-flaeche px-4 py-4 max-lg:w-28 max-lg:px-3"
 			data-seitenleiste
 		>
 			<div ref={leiste} className="relative" style={{ height: hoehe || 160 }}>
@@ -248,7 +248,7 @@ export const Seitenleiste = ({
 						key={s.nr}
 						type="button"
 						className={klassen(
-							'absolute inset-x-0 rounded-sm border-2 shadow-[0_1px_4px_rgba(0,0,0,.25)] select-none',
+							'absolute inset-x-0 rounded-sm border shadow-[0_1px_4px_rgba(0,0,0,.25)] select-none',
 							s.nr === gewaehlt ? 'border-brand-500 ring-2 ring-brand-500' : 'border-rand',
 							zug?.index === i && 'opacity-40',
 						)}
@@ -268,7 +268,7 @@ export const Seitenleiste = ({
 							}
 						}}
 					>
-						<span className="absolute right-1 bottom-1 rounded bg-tinte/80 px-1.5 text-sm font-bold text-white">
+						<span className="absolute right-1 bottom-1 rounded bg-tinte/80 px-1.5 text-sm font-medium text-white">
 							{i + 1}
 						</span>
 					</button>
@@ -299,7 +299,7 @@ export const Seitenleiste = ({
 				</Knopf>
 			)}
 			{namenszeile && !festeSeiten && (
-				<label className="mt-2 flex min-h-11 items-center gap-2 text-sm text-leise">
+				<label className="mt-2 flex h-knopf items-center gap-2 text-sm text-leise">
 					<input
 						type="checkbox"
 						className="size-5 accent-brand-500"

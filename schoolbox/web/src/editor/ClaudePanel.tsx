@@ -100,24 +100,24 @@ const Vergleich = ({
 		<Dialog titel="Vorschlag von Claude" schliessen={schliessen} breit>
 			<div className="grid h-[70dvh] grid-cols-2 gap-3">
 				<figure className="flex min-h-0 flex-col">
-					<figcaption className="mb-1 font-bold">Jetzt</figcaption>
+					<figcaption className="mb-1 font-medium">Jetzt</figcaption>
 					<iframe
 						ref={alt}
 						src={adresse}
 						title="Jetzt"
 						onLoad={fertig}
-						className="min-h-0 flex-1 rounded-xl border border-rand bg-white"
+						className="min-h-0 flex-1 rounded-xl border border-rand bg-flaeche"
 					/>
 				</figure>
 				<figure className="flex min-h-0 flex-col">
-					<figcaption className="mb-1 font-bold">Vorschlag</figcaption>
+					<figcaption className="mb-1 font-medium">Vorschlag</figcaption>
 					<iframe
 						ref={neu}
 						src={`${adresse}${trenner}vorschlag=1`}
 						title="Vorschlag"
 						onLoad={fertig}
 						data-vorschlag-rahmen
-						className="min-h-0 flex-1 rounded-xl border border-rand bg-white"
+						className="min-h-0 flex-1 rounded-xl border border-rand bg-flaeche"
 					/>
 				</figure>
 			</div>
@@ -145,8 +145,8 @@ const VorschlagKarte = ({
 	vergleichen: () => void;
 	verwerfen: () => void;
 }) => (
-	<div className="mb-4 rounded-xl border-2 border-brand-500 bg-white p-3" data-ki-vorschlag>
-		<p className="font-bold">{`Vorschlag: ${v.auftrag}`}</p>
+	<div className="mb-4 rounded-xl border border-brand-500 bg-flaeche p-3" data-ki-vorschlag>
+		<p className="font-medium">{`Vorschlag: ${v.auftrag}`}</p>
 		<p className="text-leise">{v.umfang}</p>
 		{v.antwort && <p className="mt-2 whitespace-pre-line">{v.antwort}</p>}
 		{v.meldungen.length > 0 && (
@@ -157,7 +157,7 @@ const VorschlagKarte = ({
 			</ul>
 		)}
 		{v.konflikt && (
-			<p role="alert" className="mt-2 font-bold">
+			<p role="alert" className="mt-2 font-medium">
 				Das Blatt wurde seit dem Auftrag geändert. Starte den Auftrag bitte neu.
 			</p>
 		)}
@@ -171,8 +171,8 @@ const VorschlagKarte = ({
 );
 
 const LaufKarte = ({ abbrechen, auftrag }: { auftrag: KiAuftrag; abbrechen: () => void }) => (
-	<div className="mb-4 rounded-xl border-2 border-rand bg-white p-3" data-ki-lauf role="status">
-		<p className="font-bold">
+	<div className="mb-4 rounded-xl border border-rand bg-flaeche p-3" data-ki-lauf role="status">
+		<p className="font-medium">
 			{auftrag.status === 'wartet' ? 'Wartet auf den vorigen Auftrag' : 'Claude arbeitet'}
 		</p>
 		<ul className="mt-1 text-leise">
@@ -225,7 +225,7 @@ const AuftragFeld = ({
 	starte: () => void;
 }) => (
 	<>
-		<label className="block font-bold" htmlFor="ki-auftrag">
+		<label className="block font-medium" htmlFor="ki-auftrag">
 			{nachbessern ? 'Was soll Claude am Vorschlag ändern?' : 'Was soll Claude ändern?'}
 		</label>
 		<textarea
@@ -235,9 +235,9 @@ const AuftragFeld = ({
 			rows={4}
 			maxLength={4000}
 			onChange={(e) => setText(e.target.value)}
-			className="mt-1 w-full rounded-xl border-2 border-rand bg-white p-3"
+			className="mt-1 w-full rounded-xl border border-rand bg-flaeche p-3"
 		/>
-		<p className="mt-1 font-bold">Keine Namen von Kindern eintragen.</p>
+		<p className="mt-1 font-medium">Keine Namen von Kindern eintragen.</p>
 		{!text && !nachbessern && (
 			<div className="mt-2 flex flex-wrap gap-2" data-ki-beispiele>
 				{BEISPIELE.map((b) => (
@@ -313,7 +313,7 @@ export const ClaudePanel = ({
 			{hinweis && (
 				<p
 					role="status"
-					className="mb-3 rounded-xl border-2 border-rand bg-white p-3"
+					className="mb-3 rounded-xl border border-rand bg-flaeche p-3"
 					data-ki-limit={hinweis.art}
 				>
 					{hinweis.text}
@@ -348,7 +348,7 @@ export const ClaudePanel = ({
 			)}
 			{ki.laeuft && ki.auftrag && <LaufKarte auftrag={ki.auftrag} abbrechen={() => void ki.abbrechen()} />}
 			{ki.fehler && (
-				<p role="alert" className="mb-3 font-bold" data-ki-fehler>
+				<p role="alert" className="mb-3 font-medium" data-ki-fehler>
 					{ki.fehler}
 				</p>
 			)}

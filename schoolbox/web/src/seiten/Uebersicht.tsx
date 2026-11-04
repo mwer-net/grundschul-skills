@@ -82,7 +82,7 @@ const MappenKachel = ({ dokumente, mappe }: MappenEintrag) => (
 );
 
 const Defekte = ({ defekt }: { defekt: DefekteMappe[] }) => (
-	<aside className="mt-10 rounded-2xl border-2 border-entwurf bg-white p-5">
+	<aside className="mt-10 rounded-2xl border border-entwurf bg-flaeche p-5">
 		<h2 className="text-lg">
 			{defekt.length === 1
 				? 'Eine Mappe lässt sich gerade nicht öffnen'
@@ -128,7 +128,7 @@ export const Uebersicht = () => {
 			<>
 				<Zustand symbol="blatt" titel="Noch kein Material">
 					<p className="text-lg">Schreib Claude, was du brauchst, zum Beispiel:</p>
-					<p className="rounded-2xl bg-white px-6 py-4 text-lg shadow-karte">
+					<p className="rounded-2xl bg-flaeche px-6 py-4 text-lg shadow-2">
 						„Ich brauche ein Arbeitsblatt zur Uhrzeit für Klasse 2.“
 					</p>
 					<p className="text-leise">Sobald Claude etwas angelegt hat, erscheint es hier von selbst.</p>
@@ -178,7 +178,7 @@ export const Uebersicht = () => {
 			<div className="mt-4 flex flex-wrap items-center gap-x-8 gap-y-3">
 				{auswahlen(mappen).map(({ name, titel, werte }) => (
 					<div key={name} className="flex flex-wrap items-center gap-2" role="group" aria-label={titel}>
-						<span className="text-sm font-bold text-leise">{titel}</span>
+						<span className="text-sm font-medium text-leise">{titel}</span>
 						{werte.map(({ farbe, titel: wertTitel, wert }) => (
 							<Chip
 								key={wert}

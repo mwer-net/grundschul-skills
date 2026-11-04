@@ -64,14 +64,14 @@ export const Menue = ({ art = 'zweit', beschriftung, disabled, eintraege, rechts
 				onClick={() => setOffen((o) => !o)}
 			>
 				{beschriftung}
-				<Symbol name="runter" className="size-5 flex-none" />
+				<Symbol name="runter" className="size-3.5 flex-none" />
 			</Knopf>
 			{offen && (
 				<ul
 					id={id}
 					role="menu"
 					className={klassen(
-						'absolute top-full z-20 mt-2 flex min-w-full flex-col gap-1 rounded-xl border border-rand bg-white p-2 shadow-karte',
+						'absolute top-full z-20 mt-2 flex min-w-full flex-col gap-1 rounded-xl border border-rand bg-flaeche p-2 shadow-2',
 						rechtsbuendig ? 'right-0' : 'left-0',
 						eintraege.some((e) => e.beschreibung) && 'w-96 max-w-[calc(100vw-2rem)]',
 					)}
@@ -82,7 +82,7 @@ export const Menue = ({ art = 'zweit', beschriftung, disabled, eintraege, rechts
 								type="button"
 								role="menuitem"
 								className={klassen(
-									'min-h-12 w-full rounded-lg px-4 text-left font-bold text-brand-600 hover:bg-brand-50 active:bg-brand-100',
+									'h-knopf w-full rounded-lg px-4 text-left font-medium text-tinte hover:bg-flaeche-2 active:bg-rand',
 									beschreibung ? 'py-2' : 'whitespace-nowrap',
 								)}
 								onClick={() => {

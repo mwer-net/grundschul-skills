@@ -60,7 +60,7 @@ import { SammlungDialog } from './Bildpanel';
 import { elementZu } from './darstellung';
 
 const EINGABE =
-	'min-h-12 rounded-xl border-2 border-rand bg-white px-3 focus:border-brand-500 focus:outline-none disabled:opacity-50 aria-invalid:border-fehler';
+	'h-knopf rounded-xl border border-rand bg-flaeche px-3 focus:border-brand-500 focus:outline-none disabled:opacity-50 aria-invalid:border-fehler';
 
 interface FeldEigenschaften<F extends Feld> {
 	feld: F;
@@ -100,7 +100,7 @@ const Haken = ({
 	aus?: boolean;
 	setze: (an: boolean) => void;
 }) => (
-	<label className="mt-1 flex min-h-11 cursor-pointer items-center gap-3 has-disabled:cursor-default has-disabled:opacity-50">
+	<label className="mt-1 flex h-knopf cursor-pointer items-center gap-3 has-disabled:cursor-default has-disabled:opacity-50">
 		<input
 			type="checkbox"
 			className="size-6 flex-none accent-brand-500"
@@ -142,15 +142,15 @@ const Rahmen = ({
 	const fehler = abb.fehler[feld.attribut];
 	return (
 		<div className="mt-5" data-feld={feld.attribut}>
-			<label htmlFor={id} className="font-bold">
+			<label htmlFor={id} className="font-medium">
 				{feld.name}
 			</label>
 			<div className="mt-2">{children}</div>
 			{feld.hilfe && <p className="mt-1 text-leise">{feld.hilfe}</p>}
 			{feld.loesung && <LoesungSchalter feld={feld} abb={abb} />}
 			{fehler && (
-				<p className="mt-2 flex gap-2 font-bold text-fehler" role="alert" data-fehler={feld.attribut}>
-					<Symbol name="achtung" className="size-5 flex-none" />
+				<p className="mt-2 flex gap-2 font-medium text-fehler" role="alert" data-fehler={feld.attribut}>
+					<Symbol name="achtung" className="size-3.5 flex-none" />
 					{fehler}
 				</p>
 			)}
@@ -193,7 +193,7 @@ const Zahl = ({ abb, feld }: FeldEigenschaften<ZahlFeld>) => {
 					inputMode="numeric"
 					enterKeyHint="done"
 					autoComplete="off"
-					className={`${EINGABE} w-24 text-center text-lg font-bold`}
+					className={`${EINGABE} w-24 text-center text-lg font-medium`}
 					aria-invalid={Boolean(abb.fehler[feld.attribut])}
 					value={text}
 					onChange={(e) => {
@@ -244,7 +244,7 @@ const Uhrzeit = ({ abb, feld }: FeldEigenschaften<UhrzeitFeld>) => {
 				<select
 					id={id}
 					aria-label="Stunde"
-					className={`${EINGABE} w-24 text-lg font-bold`}
+					className={`${EINGABE} w-24 text-lg font-medium`}
 					aria-invalid={Boolean(abb.fehler[feld.attribut])}
 					value={stunde ?? ''}
 					onChange={(e) => setze(e.target.value === '' ? null : Number(e.target.value), minute)}
@@ -256,10 +256,10 @@ const Uhrzeit = ({ abb, feld }: FeldEigenschaften<UhrzeitFeld>) => {
 						</option>
 					))}
 				</select>
-				<span className="text-xl font-bold">:</span>
+				<span className="text-xl font-medium">:</span>
 				<select
 					aria-label="Minuten"
-					className={`${EINGABE} w-24 text-lg font-bold`}
+					className={`${EINGABE} w-24 text-lg font-medium`}
 					disabled={stunde === null}
 					value={minute ?? ''}
 					onChange={(e) => setze(stunde, Number(e.target.value))}
@@ -404,7 +404,7 @@ const Ziffern = ({ abb, feld }: FeldEigenschaften<ZiffernFeld>) => {
 			<div className="flex flex-wrap gap-2" data-ziffern>
 				{stellen.map((stelle, i) => (
 					<label key={`${stelle}-${String(i)}`} className="flex flex-col items-center gap-1">
-						<span className="font-bold text-leise">{stelle}</span>
+						<span className="font-medium text-leise">{stelle}</span>
 						<input
 							id={i === 0 ? id : undefined}
 							type="text"
@@ -413,7 +413,7 @@ const Ziffern = ({ abb, feld }: FeldEigenschaften<ZiffernFeld>) => {
 							autoComplete="off"
 							maxLength={2}
 							aria-label={`${feld.name}: ${stelle}`}
-							className={`${EINGABE} w-14 px-0 text-center text-lg font-bold`}
+							className={`${EINGABE} w-14 px-0 text-center text-lg font-medium`}
 							aria-invalid={Boolean(abb.fehler[feld.attribut])}
 							value={zellen[i] ?? ''}
 							onChange={(e) => setze(i, e.target.value, false)}
@@ -537,7 +537,7 @@ const Muster = ({
 				aria-label={o.name}
 				title={o.name}
 				data-muster={o.wert}
-				className={`size-11 rounded-xl border-2 ${aktiv === o.wert ? 'border-brand-500 ring-2 ring-brand-500' : 'border-rand'}`}
+				className={`size-11 rounded-xl border ${aktiv === o.wert ? 'border-brand-500 ring-2 ring-brand-500' : 'border-rand'}`}
 				style={{ background: (sw ? MUSTER_BILD : FARB_BILD)[o.wert] ?? '#fff' }}
 				onClick={() => setze(o.wert)}
 			/>
@@ -595,7 +595,7 @@ const Mischen = ({ abb, feld }: FeldEigenschaften<MischenFeld>) => (
 			onClick={() => abb.aendere(feld, String(Math.floor(Math.random() * 1_000_000) + 1))}
 			data-mischen={feld.attribut}
 		>
-			<Symbol name="rueckgaengig" />
+			<Symbol name="neueZahlen" />
 			{feld.knopf ?? 'Neu mischen'}
 		</Knopf>
 		{feld.hilfe && <p className="mt-1 text-leise">{feld.hilfe}</p>}
@@ -836,7 +836,7 @@ const Liste = ({ abb, feld }: FeldEigenschaften<ListeFeld>) => {
 			<div className="flex flex-col gap-3" data-liste={feld.attribut}>
 				{zeilen.map((zeile, i) => (
 					// Zeilen tragen keine eigene Kennung; beim Verschieben folgen die Werte dem Entwurf.
-					<div key={String(i)} className="rounded-xl border-2 border-rand p-2" data-zeile={i}>
+					<div key={String(i)} className="rounded-xl border border-rand p-2" data-zeile={i}>
 						<div className="flex flex-wrap gap-2">
 							{feld.unter.map((u, j) => (
 								<div key={u.name} className={u.art === 'zahl' ? 'w-20 flex-none' : 'min-w-28 flex-1'}>
@@ -898,7 +898,7 @@ const Liste = ({ abb, feld }: FeldEigenschaften<ListeFeld>) => {
 };
 
 const ZELLE =
-	'flex min-h-11 min-w-11 items-center justify-center rounded-md border-2 border-rand bg-white text-base font-bold';
+	'flex h-knopf min-w-11 items-center justify-center rounded-md border border-rand bg-flaeche text-base font-medium';
 
 const rasterMass = (angabe: string | number | undefined, abb: AbbildungSteuerung, sonst: number) => {
 	if (typeof angabe === 'number') {
@@ -1106,7 +1106,7 @@ const Markierung = ({ abb, feld }: FeldEigenschaften<MarkierungFeld>) => {
 							data-chip={i}
 							data-marke={w.marke ?? ''}
 							aria-pressed={gewaehlt === i}
-							className={`min-h-11 border-2 px-2 ${anfang ? 'rounded-l-xl' : '-ml-1.5 border-l-0'} ${schluss ? 'rounded-r-xl' : 'border-r-0'} ${gewaehlt === i ? 'border-brand-500 bg-brand-50' : 'border-rand bg-white'}`}
+							className={`h-knopf border px-2 ${anfang ? 'rounded-l-xl' : '-ml-1.5 border-l-0'} ${schluss ? 'rounded-r-xl' : 'border-r-0'} ${gewaehlt === i ? 'border-brand-500 bg-brand-50' : 'border-rand bg-flaeche'}`}
 							onClick={() => setGewaehlt(gewaehlt === i ? null : i)}
 						>
 							<span className="block">{w.wort}</span>
@@ -1211,7 +1211,7 @@ const Plan = ({ abb, feld }: FeldEigenschaften<PlanFeld>) => {
 								data-flaeche={flaecheVon(z.x, z.y)}
 								aria-label={`Planquadrat ${z.q}${symbol ? `: ${symbol.name}` : ''}`}
 								aria-pressed={gewaehlt === z.q}
-								className={`size-11 overflow-hidden rounded border-2 text-xs ${gewaehlt === z.q ? 'border-brand-500' : 'border-rand'}`}
+								className={`size-11 overflow-hidden rounded border text-xs ${gewaehlt === z.q ? 'border-brand-500' : 'border-rand'}`}
 								style={{ background: PLAN_TOENE[flaecheVon(z.x, z.y)] ?? '#fff' }}
 								onClick={() => setGewaehlt(gewaehlt === z.q ? null : z.q)}
 							>
@@ -1305,7 +1305,7 @@ const NotenEingabe = ({ abb, feld }: FeldEigenschaften<NotenFeld>) => {
 								key={String(i)}
 								type="button"
 								aria-pressed={i === stelle}
-								className={`min-h-11 min-w-11 rounded-lg border-2 px-1 ${i === stelle ? 'border-brand-500 font-bold' : 'border-rand'}`}
+								className={`h-knopf min-w-11 rounded-lg border px-1 ${i === stelle ? 'border-brand-500 font-medium' : 'border-rand'}`}
 								onClick={() => setGewaehlt(i)}
 							>
 								{w}
@@ -1599,7 +1599,7 @@ const NeueZahlen = ({ abb }: { abb: AbbildungSteuerung }) => {
 	return (
 		<div className="mt-3">
 			<Knopf art="zweit" data-neue-zahlen title="Neue Zahlen (⌥N)" onClick={() => setHinweis(!abb.neueZahlen())}>
-				<Symbol name="rueckgaengig" />
+				<Symbol name="neueZahlen" />
 				Neue Zahlen
 			</Knopf>
 			{hinweis && (
@@ -1621,7 +1621,7 @@ export const Abbildungswerkzeug = ({ abb }: { abb: AbbildungSteuerung }) => {
 		<div className="mt-1" data-abbildungswerkzeug>
 			{abb.beispiel && (
 				<p className="mt-2 flex gap-2 rounded-xl bg-brand-50 p-3" data-hinweis="beispiel">
-					<Symbol name="blatt" className="size-5 flex-none" />
+					<Symbol name="blatt" className="size-3.5 flex-none" />
 					Das ist das Beispiel. Die Lösung ist auf dem Arbeitsblatt sichtbar.
 				</p>
 			)}
@@ -1629,7 +1629,7 @@ export const Abbildungswerkzeug = ({ abb }: { abb: AbbildungSteuerung }) => {
 			{gruppen(schema.felder).map(({ felder, name }, i) =>
 				name ? (
 					<details key={name} className="mt-4 border-t-2 border-rand pt-2" open={i === 0} data-gruppe={name}>
-						<summary className="flex min-h-11 cursor-pointer items-center font-bold">{name}</summary>
+						<summary className="flex h-knopf cursor-pointer items-center font-medium">{name}</summary>
 						{felder.map((feld) => (
 							<Eingabe key={feld.attribut} feld={feld} abb={abb} />
 						))}
@@ -1644,13 +1644,13 @@ export const Abbildungswerkzeug = ({ abb }: { abb: AbbildungSteuerung }) => {
 				</p>
 			)}
 			{abb.fehler._element && (
-				<p className="mt-4 flex gap-2 font-bold text-fehler" role="alert" data-fehler="_element">
-					<Symbol name="achtung" className="size-5 flex-none" />
+				<p className="mt-4 flex gap-2 font-medium text-fehler" role="alert" data-fehler="_element">
+					<Symbol name="achtung" className="size-3.5 flex-none" />
 					{abb.fehler._element}
 				</p>
 			)}
 			{ungueltig && abb.offen && (
-				<div className="mt-5 rounded-xl bg-[#fff8e1] p-3" role="status" data-nicht-uebernommen>
+				<div className="mt-5 rounded-xl bg-warnung-hell p-3" role="status" data-nicht-uebernommen>
 					<p>Noch nicht gespeichert, weil eine Angabe nicht passt.</p>
 					<Knopf art="zweit" className="mt-2" onClick={abb.zuruecksetzen}>
 						<Symbol name="rueckgaengig" />

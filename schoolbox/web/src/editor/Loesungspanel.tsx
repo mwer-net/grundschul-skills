@@ -5,11 +5,11 @@ import { Symbol } from '../bausteine/Symbol';
 import type { LoesungSteuerung } from './loesung';
 
 const EINGABE =
-	'min-h-12 w-full rounded-xl border-2 border-rand bg-white px-3 text-lg focus:border-brand-500 focus:outline-none';
+	'h-knopf w-full rounded-xl border border-rand bg-flaeche px-3 text-lg focus:border-brand-500 focus:outline-none';
 
 const Fehlt = ({ children }: { children: string }) => (
-	<p className="flex gap-2 rounded-xl bg-[#fff8e1] p-3" role="status" data-hinweis="fehlt">
-		<Symbol name="achtung" className="size-5 flex-none text-[#b45309]" />
+	<p className="flex gap-2 rounded-xl bg-warnung-hell p-3" role="status" data-hinweis="fehlt">
+		<Symbol name="achtung" className="size-3.5 flex-none text-warnung" />
 		{children}
 	</p>
 );
@@ -20,7 +20,7 @@ const Antwort = ({ l }: { l: LoesungSteuerung }) => {
 	const weitere = l.fehlend.filter((nr) => nr !== l.antwort).length;
 	return (
 		<div className="mt-3" data-loesungswerkzeug="antwort">
-			<label htmlFor={id} className="font-bold">
+			<label htmlFor={id} className="font-medium">
 				Richtige Antwort
 			</label>
 			<input
@@ -50,7 +50,7 @@ const Antwort = ({ l }: { l: LoesungSteuerung }) => {
 				</Knopf>
 			)}
 			{/* Gleich hoch mit und ohne Lösung: Am iPad hoch wächst das Panel mit, und ein Antippen ginge daneben. */}
-			<div className="mt-2 min-h-12">
+			<div className="mt-2 h-knopf">
 				{l.wert.trim() ? (
 					<p className="text-leise">
 						{l.imBeispiel
@@ -72,7 +72,7 @@ const Beispiel = ({ l }: { l: LoesungSteuerung }) => {
 	}
 	return (
 		<div className="mt-4" data-loesungswerkzeug="beispiel">
-			<label className="flex min-h-11 cursor-pointer items-center gap-3 font-bold">
+			<label className="flex h-knopf cursor-pointer items-center gap-3 font-medium">
 				<input
 					type="checkbox"
 					className="size-6 flex-none accent-brand-500"
@@ -88,7 +88,7 @@ const Beispiel = ({ l }: { l: LoesungSteuerung }) => {
 			</p>
 			{!beispiel.an && beispiel.andere.length > 0 && (
 				<p className="mt-2 flex gap-2 rounded-xl bg-brand-50 p-3" data-hinweis="anderes-beispiel">
-					<Symbol name="blatt" className="size-5 flex-none" />
+					<Symbol name="blatt" className="size-3.5 flex-none" />
 					{`In dieser Aufgabe ist schon ${beispiel.andere.join(', ')} das Beispiel. Es gibt nur eines je Aufgabe.`}
 				</p>
 			)}
@@ -115,7 +115,7 @@ export const Loesungsuebersicht = ({ l }: { l: LoesungSteuerung }) => {
 			<h2 className="text-xl">Lösungen</h2>
 			{anzahl === 0 ? (
 				<p className="mt-2 flex gap-2">
-					<Symbol name="haken" className="size-5 flex-none text-brand-600" />
+					<Symbol name="haken" className="size-3.5 flex-none text-tinte" />
 					Jede Antwortlinie hat eine Lösung.
 				</p>
 			) : (

@@ -18,7 +18,7 @@ const REGELN: { wert: LueckenRegel; name: string }[] = [
 	{ wert: 'anfang', name: 'Anfangsbuchstaben (groß oder klein)' },
 ];
 
-const FELD = 'min-h-11 rounded-lg border border-linie bg-white px-2';
+const FELD = 'h-knopf rounded-lg border border-linie bg-flaeche px-2';
 const eng = (t: string) => t.replace(/\s+/g, ' ').replace(/^ /, '');
 
 /** Bleibt beim Wechsel der Auswahl offen: Wer mit den Werkzeugen arbeitet, will sie nicht jedes Mal aufklappen. */

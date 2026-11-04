@@ -84,7 +84,7 @@ export const Blattansicht = ({ adresse, stand, titel }: Eigenschaften) => {
 	return (
 		<div
 			ref={behaelter}
-			className="relative w-full overflow-hidden rounded-2xl bg-[#e9e9e6]"
+			className="relative w-full overflow-hidden rounded-2xl bg-leinwand"
 			style={{ height: masse ? Math.ceil(masse.hoehe * skala) : '60vh' }}
 			data-blattansicht
 			data-geladen={masse ? 'ja' : undefined}
@@ -111,7 +111,7 @@ export const Blattansicht = ({ adresse, stand, titel }: Eigenschaften) => {
 			))}
 			{!masse && (
 				<div className="absolute inset-0 flex items-center justify-center text-leise">
-					<Symbol name="laden" className="size-10 animate-spin" />
+					<Symbol name="laden" className="size-6 animate-spin" />
 				</div>
 			)}
 		</div>

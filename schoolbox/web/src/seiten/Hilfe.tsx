@@ -27,7 +27,7 @@ const Foto = ({ alt, datei, geraet }: Bild) => (
 				src={`${BILDER}/${datei}`}
 				alt={alt}
 				loading="lazy"
-				className="w-full rounded-xl border border-rand bg-white shadow-karte"
+				className="w-full rounded-xl border border-rand bg-flaeche shadow-2"
 			/>
 		</a>
 		<figcaption className="text-sm text-leise">{`Am ${geraet}`}</figcaption>
@@ -42,7 +42,7 @@ const Punkt = ({ children, titel }: { titel: string; children: ReactNode }) => (
 );
 
 const Beispiel = ({ children }: { children: ReactNode }) => (
-	<li className="rounded-2xl bg-white px-5 py-3 shadow-karte">{children}</li>
+	<li className="rounded-2xl bg-flaeche px-5 py-3 shadow-2">{children}</li>
 );
 
 interface Abschnitt {
@@ -262,7 +262,7 @@ const Kurzanleitung = () => {
 		return null;
 	}
 	return (
-		<div className="mt-6 flex flex-wrap items-center gap-4 rounded-2xl bg-white px-6 py-4 shadow-karte">
+		<div className="mt-6 flex flex-wrap items-center gap-4 rounded-2xl bg-flaeche px-6 py-4 shadow-2">
 			<Symbol name="drucker" className="size-8 flex-none text-brand-500" />
 			<p className="min-w-0 flex-1">
 				<strong>Kurzanleitung zum Ausdrucken</strong>
@@ -287,7 +287,7 @@ export const Hilfe = () => {
 					<a
 						key={id}
 						href={`#${id}`}
-						className="inline-flex min-h-11 items-center rounded-full border-2 border-rand bg-white px-4 font-bold text-brand-600 no-underline hover:border-brand-200 hover:bg-brand-50"
+						className="inline-flex h-knopf items-center rounded-lg border border-rand bg-flaeche px-4 font-medium text-tinte no-underline hover:border-brand-200 hover:bg-flaeche-2"
 					>
 						{titel}
 					</a>

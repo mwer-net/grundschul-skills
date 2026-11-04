@@ -15,7 +15,7 @@ import type { Einblendung } from './Leinwand';
 import type { Struktur } from './struktur';
 import { TEXTWERKZEUG } from './text';
 
-const ZEILE = 'min-h-11 w-full rounded-lg px-3 py-2 text-left hover:bg-brand-50';
+const ZEILE = 'h-knopf w-full rounded-lg px-3 py-2 text-left hover:bg-flaeche-2';
 
 const passtZu = (e: Posten, m: { fach: Fach; klasse: Klasse }, art: Art) =>
 	(!e.faecher || e.faecher.includes(m.fach)) &&
@@ -81,7 +81,7 @@ export const Einfuegemarken = ({
 				return (
 					<span
 						key={nrVon(m)}
-						className="pointer-events-none absolute rounded-md bg-amber-200 px-2 py-0.5 text-sm font-bold"
+						className="pointer-events-none absolute rounded-md bg-amber-200 px-2 py-0.5 text-sm font-medium"
 						data-sichtbarkeit-marke
 						style={{ left: links + r.left * skala, top: r.top * skala - 12 }}
 					>
@@ -131,7 +131,7 @@ export const Einfuegemarken = ({
 				})}
 			{schnell && (
 				<div
-					className="absolute z-20 w-80 rounded-xl border border-rand bg-white p-2 shadow-lg"
+					className="absolute z-20 w-80 rounded-xl border border-rand bg-flaeche p-2 shadow-lg"
 					data-schnellauswahl
 					style={{ left: schnell.left, top: schwebend(schnell.top, hoehe) }}
 				>
@@ -139,7 +139,7 @@ export const Einfuegemarken = ({
 						type="search"
 						aria-label="Baustein suchen"
 						placeholder="Suchen …"
-						className="mb-2 min-h-11 w-full rounded-lg border border-rand px-3"
+						className="mb-2 h-knopf w-full rounded-lg border border-rand px-3"
 						value={suche}
 						autoFocus
 						onChange={(ev) => setSuche(ev.target.value)}
@@ -171,7 +171,7 @@ export const Einfuegemarken = ({
 			)}
 			{slash && (
 				<div
-					className="absolute z-20 max-h-72 w-72 overflow-y-auto rounded-xl border border-rand bg-white p-1 shadow-lg"
+					className="absolute z-20 max-h-72 w-72 overflow-y-auto rounded-xl border border-rand bg-flaeche p-1 shadow-lg"
 					data-slash-menue
 					{...{ [TEXTWERKZEUG]: '' }}
 					style={{ left: links + slash.x * skala, top: schwebend(slash.y * skala + 4, hoehe) }}
@@ -220,7 +220,7 @@ const EigenVerwalten = ({ id, name, neuLaden }: { id: string; name: string; neuL
 				<>
 					<input
 						aria-label="Neuer Name"
-						className="min-h-11 min-w-0 flex-1 rounded-lg border-2 border-rand px-2"
+						className="h-knopf min-w-0 flex-1 rounded-lg border border-rand px-2"
 						value={neu}
 						onChange={(e) => setNeu(e.target.value)}
 					/>
@@ -298,7 +298,7 @@ const Karte = ({
 			<div className="flex items-center gap-1 border-t border-rand p-1">
 				<button
 					type="button"
-					className={klassen(ZEILE, 'flex-1 font-bold')}
+					className={klassen(ZEILE, 'flex-1 font-medium')}
 					data-einfuegen={eintrag.id}
 					onClick={() => einfuegen.fuegeEin(eintrag)}
 				>
@@ -308,7 +308,7 @@ const Karte = ({
 					type="button"
 					aria-label={`${eintrag.name} ins Blatt ziehen`}
 					title="Ins Blatt ziehen"
-					className="flex size-11 flex-none cursor-grab touch-none items-center justify-center rounded-lg hover:bg-brand-50"
+					className="flex size-11 flex-none cursor-grab touch-none items-center justify-center rounded-lg hover:bg-flaeche-2"
 					data-ziehgriff={eintrag.id}
 					onPointerDown={druck}
 					onPointerMove={bewege}
@@ -324,7 +324,7 @@ const Karte = ({
 			{eintrag.eigen && <EigenVerwalten id={eintrag.eigen} name={eintrag.name} neuLaden={einfuegen.neuLaden} />}
 			{zug && (
 				<div
-					className="pointer-events-none fixed z-50 -translate-x-1/2 -translate-y-1/2 rounded-lg bg-brand-500 px-3 py-2 font-bold text-white"
+					className="pointer-events-none fixed z-50 -translate-x-1/2 -translate-y-1/2 rounded-lg bg-brand-500 px-3 py-2 font-medium text-white"
 					data-zug-anzeige
 					style={{ left: zug.x, top: zug.y }}
 				>
@@ -363,11 +363,11 @@ export const Bibliothek = ({
 				type="search"
 				aria-label="Baustein suchen"
 				placeholder="Suchen …"
-				className="mb-2 min-h-11 w-full rounded-lg border border-rand px-3"
+				className="mb-2 h-knopf w-full rounded-lg border border-rand px-3"
 				value={suche}
 				onChange={(ev) => setSuche(ev.target.value)}
 			/>
-			<label className="mb-2 flex min-h-11 items-center gap-2">
+			<label className="mb-2 flex h-knopf items-center gap-2">
 				<input
 					type="checkbox"
 					className="size-5"
@@ -383,7 +383,7 @@ export const Bibliothek = ({
 						type="button"
 						aria-pressed={kategorie === k}
 						className={klassen(
-							'min-h-11 rounded-full border border-rand px-3',
+							'h-knopf rounded-lg border border-rand px-3',
 							kategorie === k && 'bg-brand-500 text-white',
 						)}
 						onClick={() => setKategorie(k)}
@@ -432,7 +432,7 @@ export const Gliederung = ({
 						<div key={nr ?? i}>
 							<button
 								type="button"
-								className={klassen(ZEILE, 'font-bold')}
+								className={klassen(ZEILE, 'font-medium')}
 								{...(auswahl === nr ? { 'aria-current': true as const } : {})}
 								onClick={() => nr !== null && struktur.zeigeAn(nr)}
 							>

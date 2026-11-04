@@ -36,7 +36,7 @@ export const Dialog = ({ breit, children, schliessen, titel }: Eigenschaften) =>
 		<dialog
 			ref={dialog}
 			className={klassen(
-				'm-auto max-h-[calc(100dvh-2rem)] overflow-y-auto rounded-2xl bg-white p-0 text-tinte shadow-karte',
+				'm-auto max-h-[calc(100dvh-2rem)] overflow-y-auto rounded-2xl bg-flaeche p-0 text-tinte shadow-2',
 				breit ? 'w-[min(60rem,calc(100vw-2rem))]' : 'w-[min(38rem,calc(100vw-2rem))]',
 			)}
 			aria-labelledby="dialog-titel"
@@ -50,7 +50,7 @@ export const Dialog = ({ breit, children, schliessen, titel }: Eigenschaften) =>
 					</h2>
 					<button
 						type="button"
-						className="-mt-1 -mr-2 flex size-12 flex-none items-center justify-center rounded-full text-leise hover:bg-brand-50"
+						className="-mt-1 -mr-2 flex size-knopf flex-none items-center justify-center rounded-md text-leise hover:bg-flaeche-2"
 						aria-label="Schließen"
 						onClick={schliessen}
 					>

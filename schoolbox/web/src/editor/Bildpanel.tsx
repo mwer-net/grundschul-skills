@@ -31,7 +31,7 @@ const merkeGesehen = () => {
 
 const Laeuft = ({ text }: { text: string }) => (
 	<p className="flex items-center gap-2 text-leise" role="status">
-		<Symbol name="laden" className="size-5 animate-spin" />
+		<Symbol name="laden" className="size-3.5 animate-spin" />
 		{text}
 	</p>
 );
@@ -63,9 +63,9 @@ const Hochladen = ({ bild }: { bild: BildSteuerung }) => {
 	);
 	if (hinweis) {
 		return (
-			<div className="basis-full rounded-xl border-2 border-entwurf bg-[#fff8e1] p-4" role="note">
+			<div className="basis-full rounded-xl border border-entwurf bg-warnung-hell p-4" role="note">
 				{eingabe}
-				<p className="font-bold">Bitte keine Fotos, auf denen Kinder zu erkennen sind.</p>
+				<p className="font-medium">Bitte keine Fotos, auf denen Kinder zu erkennen sind.</p>
 				<div className="mt-3 flex flex-wrap gap-2">
 					<label htmlFor={feld} className={knopfKlassen('haupt', 'cursor-pointer')} onClick={merkeGesehen}>
 						Verstanden, Foto wählen
@@ -124,7 +124,7 @@ const Kachel = ({ eintrag, waehle }: { eintrag: SammlungsBild; waehle: () => voi
 	<li>
 		<button
 			type="button"
-			className="flex w-full flex-col gap-1 rounded-xl border-2 border-rand bg-white p-2 text-left hover:border-brand-200 hover:bg-brand-50"
+			className="flex w-full flex-col gap-1 rounded-xl border border-rand bg-flaeche p-2 text-left hover:border-brand-200 hover:bg-flaeche-2"
 			data-sammlung-bild={eintrag.schluessel}
 			onClick={waehle}
 		>
@@ -134,7 +134,7 @@ const Kachel = ({ eintrag, waehle }: { eintrag: SammlungsBild; waehle: () => voi
 				loading="lazy"
 				className="h-28 w-full rounded-lg bg-papier object-contain"
 			/>
-			<span className="truncate font-bold">{eintrag.alt[0] ?? eintrag.name}</span>
+			<span className="truncate font-medium">{eintrag.alt[0] ?? eintrag.name}</span>
 			{eintrag.mappe && <span className="truncate text-sm text-leise">{eintrag.mappe}</span>}
 		</button>
 	</li>
@@ -175,7 +175,7 @@ export const SammlungDialog = ({
 				/>
 				<input
 					type="search"
-					className="min-h-12 w-full rounded-full border-2 border-rand bg-papier pr-4 pl-12 placeholder:text-leise focus:border-brand-500 focus:bg-white focus:outline-none"
+					className="h-knopf w-full rounded-lg border border-rand bg-papier pr-4 pl-12 placeholder:text-leise focus:border-brand-500 focus:bg-flaeche focus:outline-none"
 					placeholder="Suchen, z. B. Willi oder Kartoffel"
 					autoComplete="off"
 					spellCheck={false}
@@ -183,7 +183,7 @@ export const SammlungDialog = ({
 					onChange={(e) => setSuche(e.target.value)}
 				/>
 			</label>
-			{fehler && <p className="font-bold text-fehler">{fehler.message}</p>}
+			{fehler && <p className="font-medium text-fehler">{fehler.message}</p>}
 			{!daten && !fehler && <Laeuft text="Bilder werden geladen …" />}
 			{daten && liste.length === 0 && (
 				<p className="text-leise">{suche ? 'Kein Bild passt zur Suche.' : 'Hier gibt es noch keine Bilder.'}</p>
@@ -218,7 +218,7 @@ const Druckfassung = ({ adresse, src }: { adresse: string; src: string }) => {
 	}
 	return (
 		<p className="flex gap-2 rounded-xl bg-brand-50 p-3" data-hinweis="druckfassung">
-			<Symbol name="drucker" className="size-5 flex-none" />
+			<Symbol name="drucker" className="size-3.5 flex-none" />
 			{daten.strich
 				? `Im s/w-PDF erscheint hier die Strichzeichnung „${daten.strich}“.`
 				: 'Im s/w-PDF erscheint dieses Bild in Graustufen.'}
@@ -234,8 +234,8 @@ const Hinweise = ({ adresse, w }: { adresse: string; w: BildWerte }) => {
 		<div className="mt-3 flex flex-col gap-3" data-bild-hinweise>
 			{w.sw && <Druckfassung adresse={adresse} src={w.src} />}
 			{w.unscharf && (
-				<p className="flex gap-2 rounded-xl bg-[#fff8e1] p-3" data-hinweis="dpi">
-					<Symbol name="achtung" className="size-5 flex-none" />
+				<p className="flex gap-2 rounded-xl bg-warnung-hell p-3" data-hinweis="dpi">
+					<Symbol name="achtung" className="size-3.5 flex-none" />
 					{`Das Bild ist für diese Größe zu klein und wird im Druck unscharf (${w.dpi ?? 0} dpi). Mach es kleiner oder nimm ein größeres Bild.`}
 				</p>
 			)}
@@ -275,7 +275,7 @@ const Groesse = ({ bild, w }: { bild: BildSteuerung; w: BildWerte }) => {
 
 	return (
 		<label className="mt-5 block">
-			<span className="flex justify-between font-bold">
+			<span className="flex justify-between font-medium">
 				Größe
 				<span className="font-normal text-leise">{`${jetzt} px`}</span>
 			</span>
@@ -309,10 +309,10 @@ const Beschreibung = ({ bild, w }: { bild: BildSteuerung; w: BildWerte }) => {
 
 	return (
 		<label className="mt-5 block">
-			<span className="font-bold">Beschreibung</span>
+			<span className="font-medium">Beschreibung</span>
 			<input
 				type="text"
-				className="mt-2 min-h-12 w-full rounded-xl border-2 border-rand px-3 focus:border-brand-500 focus:outline-none"
+				className="mt-2 h-knopf w-full rounded-xl border border-rand px-3 focus:border-brand-500 focus:outline-none"
 				placeholder="Was zeigt das Bild?"
 				value={text}
 				data-bild-beschreibung
@@ -344,7 +344,7 @@ export const Bildwerkzeug = ({ bild }: { bild: BildSteuerung }) => {
 		<div className="mt-3" data-bildwerkzeug={w.platzhalter ? 'platzhalter' : 'bild'}>
 			{w.platzhalter ? <p className="text-leise">{`Hier soll ein Bild hin: ${w.alt}`}</p> : <Vorschau w={w} />}
 			{!w.platzhalter && <Hinweise adresse={bild.adresse} w={w} />}
-			<h3 className="mt-5 font-bold">{w.platzhalter ? 'Bild einsetzen' : 'Austauschen'}</h3>
+			<h3 className="mt-5 font-medium">{w.platzhalter ? 'Bild einsetzen' : 'Austauschen'}</h3>
 			<div className="mt-2 flex flex-wrap gap-2">
 				{bild.arbeit === 'hochladen' || bild.arbeit === 'sammlung' ? (
 					<Laeuft text={bild.arbeit === 'hochladen' ? 'Foto wird hochgeladen …' : 'Bild wird eingesetzt …'} />

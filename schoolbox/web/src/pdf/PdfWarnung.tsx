@@ -52,7 +52,7 @@ export const PdfWarnung = ({ ganzeMappe, mappe, meldungen, schliessen, weiter, w
 				))}
 			</div>
 			{kopiert === 'ja' && (
-				<p className="flex items-center gap-2 font-bold text-brand-600" role="status">
+				<p className="flex items-center gap-2 font-medium text-tinte" role="status">
 					<Symbol name="haken" />
 					Kopiert. Füge den Text in der Claude-App ein und schick ihn ab.
 				</p>
@@ -64,7 +64,7 @@ export const PdfWarnung = ({ ganzeMappe, mappe, meldungen, schliessen, weiter, w
 						ref={feld}
 						readOnly
 						rows={5}
-						className="rounded-xl border-2 border-rand p-3 text-base"
+						className="rounded-xl border border-rand p-3 text-base"
 						value={bitte}
 					/>
 				</label>

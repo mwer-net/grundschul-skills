@@ -71,7 +71,7 @@ export const EntwurfGross = ({ dok, name, zugang }: Eigenschaften) => {
 
 			<div className="mt-3 flex flex-col gap-3">
 				{meldungen.length > 0 && (
-					<div className="rounded-2xl border-2 border-entwurf bg-[#fff8e1] px-5 py-3" data-meldungen>
+					<div className="rounded-2xl border border-entwurf bg-warnung-hell px-5 py-3" data-meldungen>
 						<h2 className="text-lg">Das fällt auf</h2>
 						<ul className="mt-1 list-disc pl-5">
 							{meldungen.slice(0, MAX_MELDUNGEN).map((m, i) => (

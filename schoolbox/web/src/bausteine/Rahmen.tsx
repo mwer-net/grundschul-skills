@@ -8,7 +8,7 @@ import type { SucheKontext } from './suche';
 import { Symbol } from './Symbol';
 
 const KOPF_KNOPF =
-	'flex min-h-12 flex-none items-center gap-2 rounded-xl px-3 font-bold text-brand-600 no-underline hover:bg-brand-50';
+	'flex h-knopf flex-none items-center gap-2 rounded-xl px-3 font-medium text-tinte no-underline hover:bg-flaeche-2';
 
 /** Kopfzeile aller Seiten nach der Anmeldung: Name, Suche, Hilfe, Papierkorb, Abmelden. */
 export const Rahmen = () => {
@@ -37,11 +37,11 @@ export const Rahmen = () => {
 	const kontext: SucheKontext = { suche, setSuche };
 	return (
 		<div className="flex min-h-dvh flex-col">
-			<header ref={kopf} className="sticky top-0 z-30 border-b border-rand bg-white/95 backdrop-blur">
+			<header ref={kopf} className="sticky top-0 z-30 border-b border-rand bg-flaeche/95 backdrop-blur">
 				<div className="mx-auto flex max-w-[90rem] items-center gap-4 px-8 py-3 max-lg:px-4 max-md:gap-2">
 					<Link
 						to="/"
-						className="flex min-h-12 flex-none items-center rounded-xl font-display text-3xl text-brand-600 no-underline max-md:text-2xl"
+						className="flex h-knopf flex-none items-center rounded-xl text-3xl text-tinte no-underline max-md:text-2xl"
 						onClick={() => setSuche('')}
 					>
 						Schoolbox
@@ -55,7 +55,7 @@ export const Rahmen = () => {
 						<input
 							type="search"
 							name="suche"
-							className="min-h-12 w-full rounded-full border-2 border-rand bg-papier pr-4 pl-12 placeholder:text-leise focus:border-brand-500 focus:bg-white focus:outline-none"
+							className="h-knopf w-full rounded-lg border border-rand bg-papier pr-4 pl-12 placeholder:text-leise focus:border-brand-500 focus:bg-flaeche focus:outline-none"
 							placeholder="Suchen, z. B. Kartoffel oder Mathe"
 							enterKeyHint="search"
 							autoComplete="off"

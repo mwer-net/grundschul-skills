@@ -46,7 +46,7 @@ const Eintrag = ({
 		<button
 			type="button"
 			className={klassen(
-				'min-h-12 w-full rounded-lg border-l-4 py-2 pr-2 pl-3 text-left hover:bg-brand-50 disabled:hover:bg-transparent',
+				'h-knopf w-full rounded-lg border-l-4 py-2 pr-2 pl-3 text-left hover:bg-flaeche-2 disabled:hover:bg-transparent',
 				FARBE[p.stufe],
 			)}
 			data-pruefpunkt={p.code ?? ''}
@@ -92,10 +92,10 @@ export const Pruefliste = ({ stand, verschiebe, zeige }: Eigenschaften) => {
 		zeige(p);
 	};
 	return (
-		<section className="flex-none border-b border-rand bg-white" aria-label="Prüfung" data-pruefung={zustand}>
+		<section className="flex-none border-b border-rand bg-flaeche" aria-label="Prüfung" data-pruefung={zustand}>
 			<button
 				type="button"
-				className="flex min-h-14 w-full items-center gap-3 px-5 text-left font-bold hover:bg-brand-50 max-lg:px-4"
+				className="flex h-knopf w-full items-center gap-3 px-5 text-left font-medium hover:bg-flaeche-2 max-lg:px-4"
 				aria-expanded={offen}
 				disabled={punkte.length === 0}
 				onClick={() => setOffen(!offen)}
@@ -137,7 +137,7 @@ export const Pruefliste = ({ stand, verschiebe, zeige }: Eigenschaften) => {
 					)}
 					{hinweise.length > 0 && (
 						<details className="mt-2 text-leise" data-hinweise>
-							<summary className="flex min-h-11 cursor-pointer items-center font-bold">
+							<summary className="flex h-knopf cursor-pointer items-center font-medium">
 								{hinweise.length === 1 ? '1 Hinweis' : `${hinweise.length} Hinweise`}
 							</summary>
 							<ul className="flex flex-col gap-1">

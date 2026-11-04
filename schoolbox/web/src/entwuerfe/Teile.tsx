@@ -10,7 +10,7 @@ import type { DokumentEintrag, Entwurf } from '../typen';
 export const Buchstabe = ({ className, name }: { name: string; className?: string }) => (
 	<span
 		className={klassen(
-			'inline-flex flex-none items-center justify-center rounded-full bg-brand-500 font-display text-white',
+			'inline-flex flex-none items-center justify-center rounded-full bg-brand-500 text-white',
 			className ?? 'size-14 text-3xl',
 		)}
 		aria-hidden="true"
@@ -27,12 +27,12 @@ export const EntwurfStatus = ({ entwurf, format }: { entwurf: Entwurf; format: F
 	}
 	const seite = format === 'folie' ? 'die Folie' : 'die Seite';
 	return pruefung.passt ? (
-		<span className="inline-flex items-center gap-1.5 font-bold text-[#2e7d32]" data-status="passt">
-			<Symbol name="haken" className="size-5 flex-none" />
+		<span className="inline-flex items-center gap-1.5 font-medium text-gut" data-status="passt">
+			<Symbol name="haken" className="size-3.5 flex-none" />
 			{`Passt auf ${seite}`}
 		</span>
 	) : (
-		<span className="inline-flex items-start gap-1.5 font-bold text-[#7a5200]" data-status="passt-nicht">
+		<span className="inline-flex items-start gap-1.5 font-medium text-warnung" data-status="passt-nicht">
 			<span className="flex size-6 flex-none items-center justify-center rounded-full bg-entwurf">
 				<Symbol name="achtung" className="size-4 flex-none" />
 			</span>
@@ -63,7 +63,7 @@ export const EntwurfBild = ({ className, dokument, entwurf, zugang }: BildEigens
 		/>
 	) : (
 		<div
-			className="flex aspect-[210/297] h-full max-w-full items-center justify-center bg-white text-[#bdb8ad]"
+			className="flex aspect-[210/297] h-full max-w-full items-center justify-center bg-flaeche text-rand-feld"
 			data-platzhalter
 		>
 			<Symbol name="blatt" className="size-12" />
@@ -85,10 +85,10 @@ export const EntwurfMinis = ({ dokument, zugang }: { zugang: Zugang; dokument: D
 );
 
 export const ClaudeHinweis = ({ children }: { children?: ReactNode }) => (
-	<div className="flex items-start gap-3 rounded-2xl border-2 border-brand-200 bg-brand-50 px-5 py-3">
-		<Symbol name="sprechblase" className="mt-0.5 size-6 flex-none text-brand-600" />
+	<div className="flex items-start gap-3 rounded-2xl border border-brand-200 bg-brand-50 px-5 py-3">
+		<Symbol name="sprechblase" className="mt-0.5 size-4 flex-none text-tinte" />
 		<div>
-			<p className="font-bold">Schreib Claude, welcher Entwurf es werden soll, und was anders sein soll.</p>
+			<p className="font-medium">Schreib Claude, welcher Entwurf es werden soll, und was anders sein soll.</p>
 			{children}
 		</div>
 	</div>

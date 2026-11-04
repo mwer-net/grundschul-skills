@@ -32,7 +32,7 @@ interface Eigenschaften {
 
 export const PdfLaeuft = ({ text = 'PDF wird erstellt …' }: { text?: string }) => (
 	<>
-		<Symbol name="laden" className="size-6 flex-none animate-spin" />
+		<Symbol name="laden" className="size-4 flex-none animate-spin" />
 		{text}
 	</>
 );

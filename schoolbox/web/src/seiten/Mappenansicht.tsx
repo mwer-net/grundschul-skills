@@ -149,7 +149,7 @@ export const Mappenansicht = () => {
 						Mappe teilen
 					</Knopf>
 					<Knopf art="zweit" disabled={laeuft} onClick={() => void dupliziere()}>
-						<Symbol name="kopieren" />
+						<Symbol name="duplizieren" />
 						Duplizieren
 					</Knopf>
 					<Knopf art="gefahr" disabled={laeuft} onClick={() => void loesche()}>

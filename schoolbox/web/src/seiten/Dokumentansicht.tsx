@@ -41,11 +41,11 @@ interface Eigenschaften {
 }
 
 const Druckhinweise = ({ liste }: { liste: string[] }) => (
-	<div className="mt-4 flex items-start gap-3 rounded-2xl border-2 border-entwurf bg-[#fff8e1] px-5 py-3">
-		<Symbol name="drucker" className="mt-0.5 size-6 flex-none" />
+	<div className="mt-4 flex items-start gap-3 rounded-2xl border border-entwurf bg-warnung-hell px-5 py-3">
+		<Symbol name="drucker" className="mt-0.5 size-4 flex-none" />
 		<div>
 			<h2 className="sr-only">Druckhinweise</h2>
-			<ul className="flex flex-col gap-1 font-bold">
+			<ul className="flex flex-col gap-1 font-medium">
 				{liste.map((hinweis) => (
 					<li key={hinweis}>{hinweis}</li>
 				))}

@@ -1,46 +1,123 @@
 @import 'tailwindcss';
 
-/* Dieselben Schriften wie im Material; die Dateien liegen beim Skill und werden mit der Oberfläche gebaut. */
-@font-face {
-	font-family: 'Andika';
-	font-weight: 400;
-	font-display: swap;
-	src: url('../../../skills/html-materialerstellung/assets/fonts/Andika-Regular.woff2') format('woff2');
-}
-@font-face {
-	font-family: 'Andika';
-	font-weight: 700;
-	font-display: swap;
-	src: url('../../../skills/html-materialerstellung/assets/fonts/Andika-Bold.woff2') format('woff2');
-}
-@font-face {
-	font-family: 'Fredoka';
-	font-weight: 600;
-	font-display: swap;
-	src: url('../../../skills/html-materialerstellung/assets/fonts/Fredoka-SemiBold.woff2') format('woff2');
-}
-
+/*
+ * Bedienung und Material sind getrennt (Entscheidung 29): Hier steht nur die Optik des Werkzeugs. Das Material bringt
+ * in seinen iframes eigene Schriften und Farben mit. Dichte am Mac, 44 px bei Fingerbedienung (Entscheidungen 28, 33).
+ */
 @theme {
-	--font-sans: 'Andika', system-ui, -apple-system, 'Segoe UI', sans-serif;
-	--font-display: 'Fredoka', 'Andika', system-ui, sans-serif;
+	--font-sans: 'Inter Variable', system-ui, -apple-system, 'Segoe UI', sans-serif;
 
-	--color-brand-50: #eef4fb;
-	--color-brand-100: #dbe8f6;
-	--color-brand-200: #b9d2ec;
-	--color-brand-500: #2e6fb7;
-	--color-brand-600: #24588f;
-	--color-brand-700: #1c4672;
+	--color-brand-50: #eff5ff;
+	--color-brand-100: #dbe7fe;
+	--color-brand-200: #bfd3fd;
+	--color-brand-500: #2563eb;
+	--color-brand-600: #1d4ed8;
+	--color-brand-700: #1e40af;
 
-	--color-papier: #f6f4ef;
-	--color-tinte: #26323d;
-	--color-leise: #5d6b78;
-	--color-rand: #d9d5cb;
+	--color-papier: #f7f7f8;
+	--color-flaeche: #ffffff;
+	--color-flaeche-2: #f1f1f3;
+	--color-leinwand: #ececef;
+	--color-rand: #e4e4e7;
+	--color-rand-feld: #d1d1d6;
+	--color-tinte: #1c1c1f;
+	--color-leise: #5b5b66;
+	--color-dezent: #6e6e78;
 	--color-entwurf: #ffe08a;
-	--color-fehler: #b3261e;
-	--color-warnung: #b45309;
-	--color-gut: #2e7d32;
+	--color-fehler: #c81e1e;
+	--color-warnung: #a34a07;
+	--color-warnung-hell: #fff8eb;
+	--color-gut: #15803d;
 
-	--shadow-karte: 0 1px 3px rgb(38 50 61 / 10%), 0 4px 14px rgb(38 50 61 / 6%);
+	--text-xs: 11px;
+	--text-xs--line-height: 14px;
+	--text-sm: 12px;
+	--text-sm--line-height: 16px;
+	--text-base: 13px;
+	--text-base--line-height: 18px;
+	--text-lg: 14px;
+	--text-lg--line-height: 20px;
+	--text-xl: 16px;
+	--text-xl--line-height: 22px;
+	--text-2xl: 18px;
+	--text-2xl--line-height: 24px;
+	--text-3xl: 24px;
+	--text-3xl--line-height: 30px;
+
+	--radius-sm: 3px;
+	--radius-md: 5px;
+	--radius-lg: 5px;
+	--radius-xl: 7px;
+	--radius-2xl: 10px;
+
+	--shadow-1: 0 1px 2px rgb(16 16 20 / 6%), 0 2px 8px rgb(16 16 20 / 8%);
+	--shadow-2: 0 2px 4px rgb(16 16 20 / 6%), 0 12px 32px rgb(16 16 20 / 16%);
+
+	/* Überlagerung im Blatt < Leiste < Kopf < Chat < Menü und Popover < Meldung. Dialoge liegen im Top Layer. */
+	--z-index-ueberlagerung: 10;
+	--z-index-leiste: 15;
+	--z-index-kopf: 20;
+	--z-index-chat: 30;
+	--z-index-menue: 40;
+	--z-index-meldung: 50;
+}
+
+:root {
+	--hoehe-knopf: 26px;
+	--hoehe-knopf-klein: 24px;
+	--hoehe-knopf-status: 20px;
+	--hoehe-feld: 22px;
+	--hoehe-zeile: 26px;
+	--hoehe-menue: 24px;
+}
+
+@media (any-pointer: coarse) {
+	:root {
+		--hoehe-knopf: 44px;
+		--hoehe-knopf-klein: 44px;
+		--hoehe-knopf-status: 44px;
+		--hoehe-feld: 44px;
+		--hoehe-zeile: 44px;
+		--hoehe-menue: 44px;
+		--text-sm: 14px;
+		--text-sm--line-height: 20px;
+		--text-xs: 12px;
+		--text-xs--line-height: 16px;
+	}
+}
+
+@utility h-knopf {
+	min-height: var(--hoehe-knopf);
+}
+
+@utility h-knopf-klein {
+	min-height: var(--hoehe-knopf-klein);
+}
+
+@utility h-knopf-status {
+	min-height: var(--hoehe-knopf-status);
+}
+
+@utility h-feld {
+	min-height: var(--hoehe-feld);
+}
+
+@utility h-zeile {
+	min-height: var(--hoehe-zeile);
+}
+
+@utility h-menue {
+	min-height: var(--hoehe-menue);
+}
+
+@utility size-knopf {
+	min-width: var(--hoehe-knopf);
+	min-height: var(--hoehe-knopf);
+}
+
+@utility size-knopf-klein {
+	min-width: var(--hoehe-knopf-klein);
+	min-height: var(--hoehe-knopf-klein);
 }
 
 @layer base {
@@ -48,18 +125,20 @@
 		background: var(--color-papier);
 		color: var(--color-tinte);
 		font-family: var(--font-sans);
-		font-size: 17px;
-		line-height: 1.45;
+		font-size: 16px;
 		-webkit-text-size-adjust: 100%;
 		-webkit-tap-highlight-color: transparent;
+	}
+
+	body {
+		font-size: var(--text-sm);
+		line-height: var(--text-sm--line-height);
 	}
 
 	h1,
 	h2,
 	h3 {
-		font-family: var(--font-display);
 		font-weight: 600;
-		line-height: 1.2;
 	}
 
 	button,
@@ -75,32 +154,58 @@
 	}
 
 	:focus-visible {
-		outline: 3px solid var(--color-brand-500);
+		outline: 2px solid var(--color-brand-500);
 		outline-offset: 2px;
 	}
 
 	dialog::backdrop {
-		background: rgb(38 50 61 / 45%);
+		background: rgb(16 16 20 / 22%);
+	}
+
+	/* Einheitliche Felder: Das Aufklappmenü bleibt das des Systems, nur der Chevron ist eigen. */
+	select {
+		appearance: none;
+		-webkit-appearance: none;
+		padding-right: 22px;
+		background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%235b5b66' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E");
+		background-repeat: no-repeat;
+		background-position: right 6px center;
+	}
+
+	@media (any-pointer: coarse) {
+		button,
+		select,
+		summary,
+		input:not([type='hidden'], [type='range'], [type='file']) {
+			min-width: 44px;
+			min-height: 44px;
+		}
 	}
 }
 
 /* Fließtext der Hilfeseite: Tailwind setzt Listen und Abstände zurück */
 @layer components {
+	.hilfe-text {
+		font-size: var(--text-base);
+		line-height: var(--text-base--line-height);
+	}
+
 	.hilfe-text > * + * {
-		margin-top: 0.75rem;
+		margin-top: 0.5rem;
 	}
 
 	.hilfe-text h3 {
-		margin-top: 1.25rem;
-		font-size: 1.25rem;
+		margin-top: 1rem;
+		font-size: var(--text-lg);
+		line-height: var(--text-lg--line-height);
 	}
 
 	.hilfe-text ol,
 	.hilfe-text ul:not(.pl-0) {
 		display: flex;
 		flex-direction: column;
-		gap: 0.4rem;
-		padding-left: 1.5rem;
+		gap: 0.25rem;
+		padding-left: 1.25rem;
 	}
 
 	.hilfe-text ol {

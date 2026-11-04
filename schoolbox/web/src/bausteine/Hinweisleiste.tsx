@@ -35,7 +35,7 @@ export const HinweisAnbieter = ({ children }: { children: ReactNode }) => {
 					<div
 						key={hinweis.nr}
 						className={klassen(
-							'pointer-events-auto flex max-w-2xl items-center gap-2 rounded-2xl py-2 pr-2 pl-5 text-white shadow-karte',
+							'pointer-events-auto flex max-w-2xl items-center gap-2 rounded-2xl py-2 pr-2 pl-5 text-white shadow-2',
 							hinweis.art === 'fehler' ? 'bg-fehler' : 'bg-tinte',
 						)}
 					>
@@ -43,7 +43,7 @@ export const HinweisAnbieter = ({ children }: { children: ReactNode }) => {
 						{aktion && (
 							<button
 								type="button"
-								className="min-h-12 flex-none rounded-xl px-4 font-bold text-entwurf hover:bg-white/10"
+								className="h-knopf flex-none rounded-xl px-4 font-medium text-entwurf hover:bg-flaeche/10"
 								onClick={() => {
 									setHinweis(null);
 									aktion.ausfuehren();
@@ -54,7 +54,7 @@ export const HinweisAnbieter = ({ children }: { children: ReactNode }) => {
 						)}
 						<button
 							type="button"
-							className="flex size-12 flex-none items-center justify-center rounded-full hover:bg-white/10"
+							className="flex size-knopf flex-none items-center justify-center rounded-md hover:bg-flaeche/10"
 							aria-label="Meldung schließen"
 							onClick={() => setHinweis(null)}
 						>

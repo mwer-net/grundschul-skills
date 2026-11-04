@@ -33,12 +33,12 @@ type Phase = { art: 'laedt'; fertig: number; gesamt: number } | { art: 'bereit' 
 
 const Ladestand = ({ phase }: { phase: Phase }) => {
 	if (phase.art === 'ohne-folien') {
-		return <p className="font-bold text-fehler">Dieses Dokument hat keine Folien zum Präsentieren.</p>;
+		return <p className="font-medium text-fehler">Dieses Dokument hat keine Folien zum Präsentieren.</p>;
 	}
 	if (phase.art === 'bereit') {
 		return (
-			<p className="flex items-start gap-2 font-bold text-[#2e7d32]">
-				<Symbol name="haken" className="mt-0.5 size-6 flex-none" />
+			<p className="flex items-start gap-2 font-medium text-gut">
+				<Symbol name="haken" className="mt-0.5 size-4 flex-none" />
 				Alles geladen. Die Präsentation läuft weiter, auch wenn das WLAN kurz weg ist.
 			</p>
 		);
@@ -46,7 +46,7 @@ const Ladestand = ({ phase }: { phase: Phase }) => {
 	const prozent = phase.gesamt > 0 ? Math.round((phase.fertig / phase.gesamt) * 100) : 0;
 	return (
 		<p className="flex items-center gap-2 text-leise">
-			<Symbol name="laden" className="size-6 flex-none animate-spin text-brand-500" />
+			<Symbol name="laden" className="size-4 flex-none animate-spin text-brand-500" />
 			{`Bilder und Schriften werden geladen … ${prozent} %`}
 		</p>
 	);
@@ -54,7 +54,7 @@ const Ladestand = ({ phase }: { phase: Phase }) => {
 
 const Zeile = ({ children, was }: { was: string; children: ReactNode }) => (
 	<div className="grid grid-cols-[9rem_1fr] gap-3 py-1.5 max-md:grid-cols-1 max-md:gap-0">
-		<dt className="font-bold">{was}</dt>
+		<dt className="font-medium">{was}</dt>
 		<dd>{children}</dd>
 	</div>
 );
@@ -89,7 +89,7 @@ const Startseite = ({ folien, phase, starten, titel, zurueck }: StartEigenschaft
 			<div className="mt-4 min-h-7" role="status">
 				<Ladestand phase={phase} />
 			</div>
-			<section className="mt-8 rounded-2xl border border-rand bg-white px-5 py-4">
+			<section className="mt-8 rounded-2xl border border-rand bg-flaeche px-5 py-4">
 				<h2 className="text-xl">So steuerst du</h2>
 				<dl className="mt-2">
 					<Zeile was="Weiter">
@@ -134,7 +134,7 @@ const LeistenKnopf = ({ gedrueckt, knapp, onClick, symbol, titel }: LeistenKnopf
 		onClick={onClick}
 		aria-label={knapp ? titel : undefined}
 		aria-pressed={gedrueckt}
-		className="inline-flex min-h-12 min-w-12 items-center justify-center gap-2 rounded-xl px-3 font-bold hover:bg-white/15 active:bg-white/25 aria-pressed:bg-white/25"
+		className="inline-flex h-knopf min-w-12 items-center justify-center gap-2 rounded-xl px-3 font-medium hover:bg-flaeche/15 active:bg-flaeche/25 aria-pressed:bg-flaeche/25"
 	>
 		<Symbol name={symbol} />
 		{!knapp && titel}
@@ -321,11 +321,11 @@ export const Praesentation = ({ dok, zugang }: Eigenschaften) => {
 							knapp
 							onClick={mit(() => laufzeit()?.zurueck())}
 						/>
-						<span className="min-w-16 px-1 text-center font-bold tabular-nums" data-folie>
+						<span className="min-w-16 px-1 text-center font-medium tabular-nums" data-folie>
 							{stand ? `${stand.folie} / ${stand.folien}` : ''}
 						</span>
 						<LeistenKnopf symbol="weiter" titel="Weiter" knapp onClick={mit(() => laufzeit()?.weiter())} />
-						<span className="mx-1 h-8 w-px bg-white/30" aria-hidden="true" />
+						<span className="mx-1 h-8 w-px bg-flaeche/30" aria-hidden="true" />
 						<LeistenKnopf
 							symbol="bildschirm"
 							titel="Schwarz"

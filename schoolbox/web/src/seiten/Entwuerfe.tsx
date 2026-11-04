@@ -51,8 +51,8 @@ export const Entwuerfe = ({ dok, zugang }: Eigenschaften) => {
 			<h1 className="mt-2 text-3xl max-md:text-2xl">{`Entwürfe: ${meta.titel}`}</h1>
 			<div className="mt-3">
 				{gewaehlt ? (
-					<div className="flex flex-wrap items-center gap-x-6 gap-y-3 rounded-2xl border-2 border-rand bg-white px-5 py-3">
-						<p className="font-bold">{`Entwurf ${gewaehlt.name} ist gewählt. Claude arbeitet damit weiter.`}</p>
+					<div className="flex flex-wrap items-center gap-x-6 gap-y-3 rounded-2xl border border-rand bg-flaeche px-5 py-3">
+						<p className="font-medium">{`Entwurf ${gewaehlt.name} ist gewählt. Claude arbeitet damit weiter.`}</p>
 						<KnopfLink to={dokumentSeite(zugang, dok)} art="zweit" className="ml-auto max-md:ml-0">
 							Zum Material
 							<Symbol name="weiter" />
@@ -96,15 +96,15 @@ export const Entwuerfe = ({ dok, zugang }: Eigenschaften) => {
 										<div className="mt-1 flex flex-wrap gap-2">
 											<EntwurfStatus entwurf={entwurf} format={meta.format} />
 											{entwurf.name === meta.gewaehlt && (
-												<span className="inline-flex items-center gap-1.5 font-bold text-brand-600">
-													<Symbol name="haken" className="size-5 flex-none" />
+												<span className="inline-flex items-center gap-1.5 font-medium text-tinte">
+													<Symbol name="haken" className="size-3.5 flex-none" />
 													Gewählt
 												</span>
 											)}
 										</div>
 									</div>
 								</div>
-								<div className="flex min-h-0 flex-1 justify-center bg-[#e9e6df] p-4 max-lg:h-[max(14rem,calc(100dvh-var(--kopf,0px)-24rem))] max-lg:flex-none">
+								<div className="flex min-h-0 flex-1 justify-center bg-leinwand p-4 max-lg:h-[max(14rem,calc(100dvh-var(--kopf,0px)-24rem))] max-lg:flex-none">
 									<EntwurfBild zugang={zugang} dokument={dokument} entwurf={entwurf} />
 								</div>
 							</Kachel>

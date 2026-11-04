@@ -25,10 +25,10 @@ import { melde } from '../ereignisse';
 import { useLaden } from '../lib/laden';
 import { klasseName } from '../lib/text';
 
-const FELD = 'min-h-12 w-full rounded-xl border border-rand px-3';
+const FELD = 'h-knopf w-full rounded-xl border border-rand px-3';
 
 const Feld = ({ children, name }: { name: string; children: ReactNode }) => (
-	<label className="mb-3 block font-bold">
+	<label className="mb-3 block font-medium">
 		<span className="mb-1 block">{name}</span>
 		{children}
 	</label>
@@ -60,12 +60,12 @@ const Wahl = ({
 		aria-pressed={aktiv}
 		data-wahl={id}
 		className={klassen(
-			'min-h-12 w-full rounded-xl border-2 p-3 text-left',
-			aktiv ? 'border-brand-500 bg-brand-50' : 'border-rand bg-white hover:bg-brand-50',
+			'h-knopf w-full rounded-xl border p-3 text-left',
+			aktiv ? 'border-brand-500 bg-brand-50' : 'border-rand bg-flaeche hover:bg-flaeche-2',
 		)}
 		onClick={waehle}
 	>
-		<span className="block font-bold">{titel}</span>
+		<span className="block font-medium">{titel}</span>
 		{children}
 	</button>
 );
@@ -214,7 +214,7 @@ const EigeneWahl = ({
 					<>
 						<input
 							aria-label="Neuer Name"
-							className="min-h-11 min-w-0 flex-1 rounded-lg border-2 border-rand px-2"
+							className="h-knopf min-w-0 flex-1 rounded-lg border border-rand px-2"
 							value={neu}
 							onChange={(e) => setNeu(e.target.value)}
 						/>
@@ -446,7 +446,7 @@ export const MaterialAnlegen = ({ mappe }: { mappe: string }) => {
 									</p>
 								)}
 								{mitClaude && (
-									<label className="mt-4 block font-bold">
+									<label className="mt-4 block font-medium">
 										Worum geht es, und was sollen die Kinder können?
 										<textarea
 											className={`${FELD} mt-1 py-2 font-normal`}
@@ -463,9 +463,9 @@ export const MaterialAnlegen = ({ mappe }: { mappe: string }) => {
 								)}
 								{!mitClaude && zusaetze.length > 0 && (
 									<fieldset className="mt-4">
-										<legend className="font-bold">Gleich dazu (kannst du überspringen)</legend>
+										<legend className="font-medium">Gleich dazu (kannst du überspringen)</legend>
 										{zusaetze.map(([z, titelZ]) => (
-											<label key={z} className="flex min-h-11 items-center gap-2">
+											<label key={z} className="flex h-knopf items-center gap-2">
 												<input
 													type="checkbox"
 													className="size-5"

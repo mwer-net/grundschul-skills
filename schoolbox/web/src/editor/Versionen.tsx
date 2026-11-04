@@ -27,7 +27,7 @@ export const Versionen = ({ gewaehlt, versionen, waehle }: Eigenschaften) => {
 		<div className="flex flex-col gap-4">
 			{[...tage].map(([tag, liste]) => (
 				<section key={tag}>
-					<h3 className="mb-1 text-sm font-bold text-leise">{tag}</h3>
+					<h3 className="mb-1 text-sm font-medium text-leise">{tag}</h3>
 					<ul className="flex flex-col gap-1" data-versionen>
 						{liste.map((v) => (
 							<li key={v.id}>
@@ -36,10 +36,10 @@ export const Versionen = ({ gewaehlt, versionen, waehle }: Eigenschaften) => {
 									aria-pressed={v.id === gewaehlt}
 									data-version={v.id}
 									className={klassen(
-										'flex min-h-12 w-full items-center gap-3 rounded-xl border-2 px-3 text-left',
+										'flex h-knopf w-full items-center gap-3 rounded-xl border px-3 text-left',
 										v.id === gewaehlt
 											? 'border-brand-500 bg-brand-50'
-											: 'border-transparent hover:bg-brand-50',
+											: 'border-transparent hover:bg-flaeche-2',
 									)}
 									onClick={() => waehle(v)}
 								>
@@ -47,7 +47,7 @@ export const Versionen = ({ gewaehlt, versionen, waehle }: Eigenschaften) => {
 										name={v.urheber === 'claude' ? 'sprechblase' : 'stift'}
 										className="size-5 flex-none text-leise"
 									/>
-									<span className="font-bold">{uhrzeit(v.zeit)}</span>
+									<span className="font-medium">{uhrzeit(v.zeit)}</span>
 									<span className="text-leise">{URHEBER_NAME[v.urheber]}</span>
 								</button>
 							</li>

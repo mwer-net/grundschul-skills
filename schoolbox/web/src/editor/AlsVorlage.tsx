@@ -28,10 +28,10 @@ export const AlsVorlage = ({ dok, mappe, titel }: { mappe: string; dok: string; 
 			</Knopf>
 			{offen && (
 				<Dialog titel="Als Vorlage speichern" schliessen={() => setOffen(false)}>
-					<label className="block font-bold">
+					<label className="block font-medium">
 						Name
 						<input
-							className="mt-1 min-h-12 w-full rounded-xl border-2 border-rand bg-white px-3 font-normal"
+							className="mt-1 h-knopf w-full rounded-xl border border-rand bg-flaeche px-3 font-normal"
 							value={name}
 							data-vorlage-name
 							onChange={(e) => setName(e.target.value)}

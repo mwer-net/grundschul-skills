@@ -24,7 +24,7 @@ const VonHand = ({ schliessen, text }: { text: string; schliessen: () => void })
 					ref={feld}
 					readOnly
 					rows={4}
-					className="rounded-xl border-2 border-rand p-3 text-base"
+					className="rounded-xl border border-rand p-3 text-base"
 					value={text}
 					data-claude-text
 				/>

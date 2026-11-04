@@ -76,7 +76,7 @@ export const AuswahlPanel = ({ children, leer, pfad, waehle }: Eigenschaften) =>
 						{i > 0 && <span className="px-0.5 text-leise">›</span>}
 						<button
 							type="button"
-							className="min-h-11 rounded-lg px-2 font-bold text-brand-600 hover:bg-brand-50 aria-[current=true]:text-tinte"
+							className="h-knopf rounded-lg px-2 font-medium text-tinte hover:bg-flaeche-2 aria-[current=true]:text-tinte"
 							aria-current={teil === gewaehlt}
 							onClick={() => waehle(teil.nr)}
 						>
@@ -143,7 +143,7 @@ export const Textwerkzeug = ({
 				<div role="group" aria-label="Schrift" className="flex gap-2">
 					<Knopf
 						art={zustand.fett ? 'haupt' : 'zweit'}
-						className="w-12 px-0 text-lg font-black"
+						className="size-knopf px-0 text-lg font-semibold"
 						aria-label="Fett"
 						title={zustand.fettMoeglich ? 'Fett (⌘B)' : 'Dieser Text ist schon fett'}
 						aria-pressed={zustand.fett}
@@ -155,7 +155,7 @@ export const Textwerkzeug = ({
 					</Knopf>
 					<Knopf
 						art={zustand.unterstrichen ? 'haupt' : 'zweit'}
-						className="w-12 px-0 text-lg underline"
+						className="size-knopf px-0 text-lg underline"
 						aria-label="Unterstrichen"
 						title="Unterstrichen (⌘U)"
 						aria-pressed={zustand.unterstrichen}
@@ -267,10 +267,10 @@ const Wiederverwenden = ({
 			</div>
 			{name !== null && (
 				<div className="flex flex-wrap items-end gap-2">
-					<label className="flex-1 font-bold">
+					<label className="flex-1 font-medium">
 						Name
 						<input
-							className="mt-1 min-h-12 w-full rounded-xl border-2 border-rand bg-white px-3 font-normal"
+							className="mt-1 h-knopf w-full rounded-xl border border-rand bg-flaeche px-3 font-normal"
 							value={name}
 							data-sammlung-name
 							onChange={(e) => setName(e.target.value)}
@@ -287,21 +287,21 @@ const Wiederverwenden = ({
 
 const Spaltenwahl = ({ eigene, spalten, struktur }: { spalten: Spalten; eigene: boolean; struktur: Struktur }) => (
 	<div>
-		<h3 className="font-bold">{eigene ? 'Spalten' : `Spalten (${spalten.name})`}</h3>
+		<h3 className="font-medium">{eigene ? 'Spalten' : `Spalten (${spalten.name})`}</h3>
 		<div role="group" aria-label="Spalten" className="mt-2 flex items-center gap-2" data-spalten={spalten.wert}>
 			<Knopf
 				art="zweit"
-				className="w-12 px-0"
+				className="size-knopf px-0"
 				aria-label="Eine Spalte weniger"
 				disabled={spalten.wert <= SPALTEN.min}
 				onClick={() => struktur.spalten(spalten.nr, spalten.wert - 1)}
 			>
 				<Symbol name="minus" />
 			</Knopf>
-			<span className="min-w-8 text-center text-xl font-bold">{spalten.wert}</span>
+			<span className="min-w-8 text-center text-xl font-medium">{spalten.wert}</span>
 			<Knopf
 				art="zweit"
-				className="w-12 px-0"
+				className="size-knopf px-0"
 				aria-label="Eine Spalte mehr"
 				disabled={spalten.wert >= SPALTEN.max}
 				onClick={() => struktur.spalten(spalten.nr, spalten.wert + 1)}
@@ -312,7 +312,7 @@ const Spaltenwahl = ({ eigene, spalten, struktur }: { spalten: Spalten; eigene: 
 	</div>
 );
 
-const FELD = 'mt-1 min-h-12 w-full rounded-xl border-2 border-rand bg-white px-3 font-normal';
+const FELD = 'mt-1 h-knopf w-full rounded-xl border border-rand bg-flaeche px-3 font-normal';
 
 /** Zeichnet die Felder aus `KIT_FELDER`; Grenzen und Wirkung stehen dort, nicht hier. */
 const KitWerkzeug = ({
@@ -341,7 +341,7 @@ const KitWerkzeug = ({
 				const wert = werte[f.name];
 				if (f.typ === 'schalter') {
 					return (
-						<label key={f.name} className="flex min-h-11 items-center gap-2 font-bold">
+						<label key={f.name} className="flex h-knopf items-center gap-2 font-medium">
 							<input
 								type="checkbox"
 								className="size-5"
@@ -353,7 +353,7 @@ const KitWerkzeug = ({
 					);
 				}
 				return (
-					<label key={f.name} className="block font-bold">
+					<label key={f.name} className="block font-medium">
 						{f.titel}
 						{f.typ === 'zahl' && (
 							<input
@@ -418,7 +418,7 @@ const TabellenWerkzeug = ({
 	const inZelle = pfad.at(-1)?.baustein.art === 'tabellenzelle';
 	return (
 		<div className="flex flex-col gap-3" data-tabelle-werkzeug>
-			<label className="flex min-h-11 items-center gap-2 font-bold">
+			<label className="flex h-knopf items-center gap-2 font-medium">
 				<input
 					type="checkbox"
 					className="size-5"
@@ -429,7 +429,7 @@ const TabellenWerkzeug = ({
 			</label>
 			<div className="flex gap-2">
 				{(['zeilen', 'spalten'] as const).map((was) => (
-					<label key={was} className="block flex-1 font-bold">
+					<label key={was} className="block flex-1 font-medium">
 						{was === 'zeilen' ? 'Zeilen' : 'Spalten'}
 						<input
 							key={g[was]}
@@ -529,10 +529,10 @@ export const Strukturwerkzeug = ({
 			<TabellenWerkzeug folien={format === 'folie'} nr={nr} pfad={pfad} quelle={quelle} struktur={struktur} />
 			<KitWerkzeug art={baustein.art} folien={format === 'folie'} nr={nr} quelle={quelle} struktur={struktur} />
 			{kann(baustein, 'ordnen') && baustein.art !== 'seite' && (
-				<label className="block font-bold">
+				<label className="block font-medium">
 					Sichtbarkeit
 					<select
-						className="mt-1 min-h-12 w-full rounded-xl border-2 border-rand bg-white px-3 font-normal"
+						className="mt-1 h-knopf w-full rounded-xl border border-rand bg-flaeche px-3 font-normal"
 						aria-label="Sichtbarkeit"
 						data-sichtbarkeit
 						value={quelle ? leseSichtbarkeit(quelle, nr) : ''}
@@ -554,7 +554,7 @@ export const Strukturwerkzeug = ({
 				<div className="flex flex-wrap gap-2">
 					{duplizierbar && (
 						<Knopf art="zweit" onClick={() => struktur.dupliziere(nr)}>
-							<Symbol name="kopieren" />
+							<Symbol name="duplizieren" />
 							Duplizieren
 						</Knopf>
 					)}
@@ -596,7 +596,7 @@ const BlattWerte = ({ quelle, struktur }: { quelle: string; struktur: Struktur }
 		struktur.aendereAttribute(`${titel} geändert`, (q) => setzeBlatt(q, neu));
 	return (
 		<div className="mt-3 flex flex-col gap-3">
-			<label className="block font-bold">
+			<label className="block font-medium">
 				Titel
 				<input
 					key={w.titel}
@@ -605,7 +605,7 @@ const BlattWerte = ({ quelle, struktur }: { quelle: string; struktur: Struktur }
 					onBlur={(e) => e.target.value.trim() && setze('Titel', { titel: e.target.value.trim() })}
 				/>
 			</label>
-			<label className="block font-bold">
+			<label className="block font-medium">
 				Klasse
 				<select
 					className={FELD}
@@ -636,7 +636,7 @@ const BlattWerte = ({ quelle, struktur }: { quelle: string; struktur: Struktur }
 					</Knopf>
 				))}
 			</div>
-			<label className="block font-bold">
+			<label className="block font-medium">
 				Format
 				<select
 					className={FELD}
@@ -654,7 +654,7 @@ const BlattWerte = ({ quelle, struktur }: { quelle: string; struktur: Struktur }
 					Passt danach etwas nicht mehr, meldet es die Prüfung.
 				</span>
 			</label>
-			<label className="flex min-h-11 items-center gap-2 font-bold">
+			<label className="flex h-knopf items-center gap-2 font-medium">
 				<input
 					type="checkbox"
 					className="size-5"
@@ -663,7 +663,7 @@ const BlattWerte = ({ quelle, struktur }: { quelle: string; struktur: Struktur }
 				/>
 				Trennlinien zwischen Aufgaben
 			</label>
-			<label className="flex min-h-11 items-center gap-2 font-bold">
+			<label className="flex h-knopf items-center gap-2 font-medium">
 				<input
 					type="checkbox"
 					className="size-5"
@@ -718,7 +718,7 @@ export const Blattwerkzeug = ({
 			<h2 className="text-xl">Ganzes Blatt</h2>
 			{quelle && <BlattWerte quelle={quelle} struktur={struktur} />}
 			<label className="mt-3 block">
-				<span className="flex justify-between font-bold">
+				<span className="flex justify-between font-medium">
 					Abstand zwischen Aufgaben
 					<span className="font-normal text-leise">{`${jetzt} px`}</span>
 				</span>

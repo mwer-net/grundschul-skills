@@ -5,7 +5,8 @@ import type { Page } from '@playwright/test';
 
 import { dateiname, expect, legeEntwuerfeAn, legeMappeAn, PASSWORT, test, waehle } from './hilfe';
 
-const KLEINSTE_TIPPFLAECHE = 44;
+/** Mit Finger 44 px, am Mac die Höhe der kleinsten Knöpfe (Issue 063, Entscheidungen 28 und 33). */
+const KLEINSTE_TIPPFLAECHE = { finger: 44, maus: 20 };
 
 const dreiMappen = async () => {
 	const kartoffel = await legeMappeAn('Die Kartoffel', 'sachunterricht', 3, [
@@ -26,7 +27,8 @@ const herbst = () =>
 
 /** Sichtbare Links, Knöpfe und Felder, die kleiner sind als eine Fingerspitze. */
 const zuKleinAuf = (page: Page) =>
-	page.evaluate((minimum) => {
+	page.evaluate((grenzen) => {
+		const minimum = matchMedia('(any-pointer: coarse)').matches ? grenzen.finger : grenzen.maus;
 		const sichtbar = [...document.querySelectorAll<HTMLElement>('a, button, input')].filter(
 			(e) => e.getClientRects().length > 0 && !e.classList.contains('sr-only'),
 		);
@@ -485,5 +487,28 @@ test.describe('Bedienung', () => {
 		await page.getByLabel('Passwort').fill(PASSWORT);
 		await druecke(page.getByRole('button', { name: 'Anmelden' }));
 		await expect(page.getByRole('heading', { level: 1, name: 'Die Kartoffel' })).toBeVisible();
+	});
+});
+
+test.describe('Bedienoptik (063)', () => {
+	test('Bedienung in Inter und dicht am Mac, 44 px mit Finger; das Material behält seine Schrift', async ({
+		page,
+	}) => {
+		const { dokumente, id } = await legeMappeAn('Optik', 'mathematik', 2, [
+			{ titel: 'Blatt', vorlage: 'arbeitsblatt' },
+		]);
+		await page.goto(`/m/${id}/${dokumente[0]}`);
+		await blattGeladen(page);
+		expect(await page.evaluate(() => getComputedStyle(document.body).fontFamily)).toContain('Inter Variable');
+		const knopf = page.getByRole('button', { name: 'PDF herunterladen' });
+		const finger = await page.evaluate(() => matchMedia('(any-pointer: coarse)').matches);
+		expect((await knopf.boundingBox())?.height).toBe(finger ? 44 : 26);
+		const rahmen = await knopf.evaluate((e) => getComputedStyle(e).borderTopWidth);
+		expect(['0px', '1px']).toContain(rahmen);
+
+		await page.goto(`/m/${id}/${dokumente[0]}/bearbeiten`);
+		await expect(page.locator('[data-leinwand][data-geladen]')).toBeVisible();
+		const blatt = page.frameLocator('[data-editor-rahmen="sichtbar"]').locator('.seite').first();
+		expect(await blatt.evaluate((s) => getComputedStyle(s).fontFamily)).toContain('Andika');
 	});
 });

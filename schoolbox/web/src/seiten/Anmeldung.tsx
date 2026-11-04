@@ -43,7 +43,7 @@ export const Anmeldung = () => {
 		<main className="flex min-h-dvh items-center justify-center p-4">
 			<Kachel className="w-full max-w-md">
 				<form className="flex flex-col gap-4 p-8 max-md:p-5" onSubmit={(e) => void absenden(e)}>
-					<h1 className="text-4xl text-brand-600">Schoolbox</h1>
+					<h1 className="text-4xl text-tinte">Schoolbox</h1>
 					<p>Schön, dass du da bist! Bitte gib dein Passwort ein.</p>
 					{/* Safari speichert Passwörter zu einem Benutzernamen; diesen sieht niemand. */}
 					<input
@@ -56,10 +56,10 @@ export const Anmeldung = () => {
 						tabIndex={-1}
 						aria-hidden="true"
 					/>
-					<label className="flex flex-col gap-1 font-bold">
+					<label className="flex flex-col gap-1 font-medium">
 						Passwort
 						<input
-							className="min-h-12 rounded-xl border-2 border-rand px-3 font-normal focus:border-brand-500 focus:outline-none"
+							className="h-knopf rounded-xl border border-rand px-3 font-normal focus:border-brand-500 focus:outline-none"
 							name="password"
 							type="password"
 							autoComplete="current-password"
@@ -72,7 +72,7 @@ export const Anmeldung = () => {
 							onChange={(e) => setPasswort(e.target.value)}
 						/>
 					</label>
-					<label className="flex min-h-12 items-start gap-3">
+					<label className="flex h-knopf items-start gap-3">
 						<input
 							className="mt-1 size-6 flex-none accent-brand-500"
 							type="checkbox"

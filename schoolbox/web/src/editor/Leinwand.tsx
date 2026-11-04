@@ -162,12 +162,12 @@ const Griffe = ({ gewaehlt, groesse, links, setZiehBreite, skala, ziehBreite }: 
 					}}
 					onPointerDown={(e) => ziehGriff(e, ecke)}
 				>
-					<span className="size-4 rounded-sm border-[3px] border-brand-500 bg-white shadow" />
+					<span className="size-4 rounded-sm border-[3px] border-brand-500 bg-flaeche shadow" />
 				</button>
 			))}
 			{ziehBreite !== null && (
 				<span
-					className="pointer-events-none absolute rounded-lg bg-tinte px-3 py-1 font-bold whitespace-nowrap text-white"
+					className="pointer-events-none absolute rounded-lg bg-tinte px-3 py-1 font-medium whitespace-nowrap text-white"
 					style={{ left: links + box.left * skala, top: box.bottom * skala + 12 }}
 				>
 					{`${ziehBreite} px`}
@@ -398,7 +398,7 @@ export const Leinwand = ({
 	return (
 		<div
 			ref={behaelter}
-			className="relative w-full overflow-x-auto rounded-2xl bg-[#e9e9e6]"
+			className="relative w-full overflow-x-auto rounded-2xl bg-leinwand"
 			data-leinwand
 			data-geladen={masse ? 'ja' : undefined}
 			onClick={(e) => {
@@ -448,7 +448,7 @@ export const Leinwand = ({
 						}}
 					>
 						{auswahlName && (
-							<span className="absolute -top-8 left-[-3px] rounded-t-md bg-brand-500 px-2 py-1 text-sm font-bold whitespace-nowrap text-white">
+							<span className="absolute -top-8 left-[-3px] rounded-t-md bg-brand-500 px-2 py-1 text-sm font-medium whitespace-nowrap text-white">
 								{auswahlName}
 							</span>
 						)}
@@ -475,7 +475,7 @@ export const Leinwand = ({
 				)}
 				{zug?.platz && (
 					<div
-						className="pointer-events-none absolute rounded-full bg-brand-500 shadow-[0_0_0_2px_#fff]"
+						className="pointer-events-none absolute rounded-full bg-brand-500 shadow-[0_0_0_2px_white]"
 						data-einfuegemarke
 						style={
 							zug.platz.marke.senkrecht
@@ -496,7 +496,7 @@ export const Leinwand = ({
 				)}
 				{zug && (
 					<span
-						className="pointer-events-none absolute rounded-lg bg-tinte px-3 py-2 font-bold whitespace-nowrap text-white shadow-karte"
+						className="pointer-events-none absolute rounded-lg bg-tinte px-3 py-2 font-medium whitespace-nowrap text-white shadow-2"
 						data-zug
 						style={{ left: links + zug.x * skala + 18, top: zug.y * skala + 18 }}
 					>
@@ -506,7 +506,7 @@ export const Leinwand = ({
 			</div>
 			{!masse && (
 				<div className="absolute inset-0 flex items-center justify-center text-leise">
-					<Symbol name="laden" className="size-10 animate-spin" />
+					<Symbol name="laden" className="size-6 animate-spin" />
 				</div>
 			)}
 		</div>

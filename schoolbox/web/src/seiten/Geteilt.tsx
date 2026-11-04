@@ -68,8 +68,8 @@ const GeteiltRahmen = ({ children }: { children: ReactNode }) => {
 	const kopf = useKopfHoehe<HTMLElement>();
 	return (
 		<div className="flex min-h-dvh flex-col">
-			<header ref={kopf} className="sticky top-0 z-30 border-b border-rand bg-white/95 backdrop-blur">
-				<div className="mx-auto flex min-h-12 max-w-[90rem] items-center px-8 py-3 font-display text-3xl text-brand-600 max-lg:px-4 max-md:text-2xl">
+			<header ref={kopf} className="sticky top-0 z-30 border-b border-rand bg-flaeche/95 backdrop-blur">
+				<div className="mx-auto flex h-knopf max-w-[90rem] items-center px-8 py-3 text-3xl text-tinte max-lg:px-4 max-md:text-2xl">
 					Schoolbox
 				</div>
 			</header>

@@ -86,7 +86,7 @@ export const DokumentKachel = ({ dokument, mappe, teile, variante, zugang }: Eig
 						{teile && !waehlen && <AlsVorlage mappe={mappe.id} dok={id} titel={meta.titel} />}
 						{variante && !waehlen && (
 							<Knopf art="zweit" onClick={variante} data-variante>
-								<Symbol name="kopieren" />
+								<Symbol name="variante" />
 								Variante anlegen
 							</Knopf>
 						)}

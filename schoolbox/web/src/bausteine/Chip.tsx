@@ -13,10 +13,10 @@ export const Chip = ({ aktiv, farbe, titel, waehle }: Eigenschaften) => (
 		type="button"
 		aria-pressed={aktiv}
 		className={klassen(
-			'inline-flex min-h-11 items-center gap-2 rounded-full border-2 px-4 whitespace-nowrap transition-colors',
+			'inline-flex h-knopf items-center gap-2 rounded-lg border px-4 whitespace-nowrap transition-colors',
 			aktiv
-				? 'border-brand-500 bg-brand-500 font-bold text-white'
-				: 'border-rand bg-white hover:border-brand-200 hover:bg-brand-50',
+				? 'border-brand-500 bg-brand-500 font-medium text-white'
+				: 'border-rand bg-flaeche hover:border-brand-200 hover:bg-flaeche-2',
 		)}
 		onClick={waehle}
 	>

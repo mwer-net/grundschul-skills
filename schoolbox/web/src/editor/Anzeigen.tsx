@@ -12,7 +12,7 @@ export const Speicheranzeige = ({ erneut, stand }: { stand: SpeicherStand; erneu
 		return (
 			<span className="flex items-center gap-1 text-leise" data-speicherstand="gespeichert">
 				Gespeichert
-				<Symbol name="haken" className="size-5 flex-none text-[#2e7d32]" />
+				<Symbol name="haken" className="size-3.5 flex-none text-gut" />
 			</span>
 		);
 	}
@@ -29,10 +29,10 @@ export const Speicheranzeige = ({ erneut, stand }: { stand: SpeicherStand; erneu
 		konflikt: 'Nicht gespeichert – das Material wurde geändert',
 	}[stand.art];
 	return (
-		<span className="flex flex-wrap items-center gap-x-2 font-bold text-fehler" data-speicherstand={stand.art}>
+		<span className="flex flex-wrap items-center gap-x-2 font-medium text-fehler" data-speicherstand={stand.art}>
 			{text}
 			{stand.art !== 'konflikt' && (
-				<button type="button" className="min-h-11 rounded-lg px-2 text-brand-600 underline" onClick={erneut}>
+				<button type="button" className="h-knopf rounded-lg px-2 text-tinte underline" onClick={erneut}>
 					Erneut versuchen
 				</button>
 			)}
@@ -49,9 +49,9 @@ interface LeistenEigenschaften {
 }
 
 const Leiste = ({ children, hinweis, merkmal, titel }: LeistenEigenschaften) => (
-	<div className="mb-4 flex flex-wrap items-center gap-x-4 gap-y-2 rounded-2xl border-2 border-entwurf bg-[#fff8e1] px-5 py-3">
+	<div className="mb-4 flex flex-wrap items-center gap-x-4 gap-y-2 rounded-2xl border border-entwurf bg-warnung-hell px-5 py-3">
 		<div className="min-w-0 flex-1">
-			<p className="font-bold" {...merkmal}>
+			<p className="font-medium" {...merkmal}>
 				{titel}
 			</p>
 			<p className="text-leise">{hinweis}</p>
@@ -79,7 +79,7 @@ export const Konfliktleiste = ({ laeuft, neuLaden, urheber }: KonfliktEigenschaf
 			hinweis="Deine letzten Änderungen bleiben erhalten: Du findest sie unter „Versionen“."
 		>
 			<Knopf onClick={neuLaden} disabled={laeuft}>
-				{laeuft ? <Symbol name="laden" className="size-6 animate-spin" /> : <Symbol name="zurueckholen" />}
+				{laeuft ? <Symbol name="laden" className="size-4 animate-spin" /> : <Symbol name="zurueckholen" />}
 				Neu laden
 			</Knopf>
 		</Leiste>

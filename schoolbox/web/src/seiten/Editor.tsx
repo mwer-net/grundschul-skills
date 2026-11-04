@@ -98,7 +98,7 @@ const Zoom = ({ setZoom, zoom }: { zoom: number; setZoom: (zoom: number) => void
 			/>
 			<button
 				type="button"
-				className="min-h-12 min-w-16 rounded-xl px-2 font-bold text-leise hover:bg-brand-50"
+				className="h-knopf min-w-16 rounded-xl px-2 font-medium text-leise hover:bg-flaeche-2"
 				title="Auf die Breite einpassen"
 				onClick={() => setZoom(1)}
 			>
@@ -126,7 +126,7 @@ interface KopfEigenschaften {
 }
 
 const Kopfleiste = ({ children, kannVor, kannZurueck, stand, titel, verlassen, vor, zurueck }: KopfEigenschaften) => (
-	<header className="z-20 flex flex-wrap items-center gap-x-4 gap-y-2 border-b border-rand bg-white px-6 py-3 max-lg:px-4">
+	<header className="z-20 flex flex-wrap items-center gap-x-4 gap-y-2 border-b border-rand bg-flaeche px-6 py-3 max-lg:px-4">
 		<Knopf art="leise" className="-ml-3 px-3" onClick={verlassen}>
 			<Symbol name="zurueck" />
 			Zurück
@@ -776,7 +776,7 @@ const Bearbeitung = ({ dokument, mappe: mappenDaten }: { mappe: Mappe; dokument:
 				</div>
 				<aside
 					className={klassen(
-						'flex w-[22rem] flex-none flex-col border-l border-rand bg-white',
+						'flex w-[22rem] flex-none flex-col border-l border-rand bg-flaeche',
 						'max-lg:h-[38vh] max-lg:w-auto max-lg:border-t max-lg:border-l-0',
 					)}
 					data-panel={panel}
