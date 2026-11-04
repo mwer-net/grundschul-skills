@@ -46,7 +46,7 @@ const Eintrag = ({
 		<button
 			type="button"
 			className={klassen(
-				'h-knopf w-full rounded-lg border-l-4 py-2 pr-2 pl-3 text-left hover:bg-flaeche-2 disabled:hover:bg-transparent',
+				'w-full rounded-md border-l-2 py-1 pr-2 pl-2 text-left hover:bg-flaeche-2 disabled:hover:bg-transparent',
 				FARBE[p.stufe],
 			)}
 			data-pruefpunkt={p.code ?? ''}

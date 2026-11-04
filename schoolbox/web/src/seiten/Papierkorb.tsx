@@ -67,29 +67,29 @@ export const Papierkorb = () => {
 	const { eintraege, tage } = daten;
 	return (
 		<>
-			<KnopfLink to="/" art="leise" className="-ml-5">
+			<KnopfLink to="/" art="leise" className="-ml-2">
 				<Symbol name="zurueck" />
 				Alle Mappen
 			</KnopfLink>
-			<h1 className="mt-2 text-3xl max-md:text-2xl">Papierkorb</h1>
+			<h1 className="mt-2 text-2xl">Papierkorb</h1>
 			<p className="mt-1 text-leise">
 				{`Gelöschte Mappen bleiben ${tage} Tage hier. So lange kannst du sie zurückholen.`}
 			</p>
 			{eintraege.length === 0 ? (
 				<Zustand symbol="papierkorb" titel="Der Papierkorb ist leer" />
 			) : (
-				<ul className="mt-6 flex max-w-4xl flex-col gap-4">
+				<ul className="mt-4 flex max-w-3xl flex-col gap-2">
 					{eintraege.map((eintrag) => (
 						<li key={eintrag.eintrag}>
-							<Kachel className="flex items-center justify-between gap-4 p-5 max-md:flex-col max-md:items-stretch">
+							<Kachel className="flex items-center justify-between gap-3 px-3 py-2 max-md:flex-col max-md:items-stretch">
 								<div>
-									<h2 className="text-xl">{eintrag.mappe?.titel ?? eintrag.id}</h2>
+									<h2 className="font-semibold">{eintrag.mappe?.titel ?? eintrag.id}</h2>
 									{eintrag.mappe && (
 										<p className="text-leise">
 											{`${FACH_NAME[eintrag.mappe.fach]} · ${klasseName(eintrag.mappe.klasse)}`}
 										</p>
 									)}
-									<p className="mt-1 text-sm text-leise">
+									<p className="text-xs text-leise">
 										{`Gelöscht: ${datum(eintrag.geloescht)} · ${frist(eintrag.bis)}`}
 									</p>
 								</div>

@@ -67,7 +67,7 @@ export const Entwuerfe = ({ dok, zugang }: Eigenschaften) => {
 			{/* Mac und iPad quer: so hoch wie der Rest des Fensters, damit alle Entwürfe ohne Scrollen zu sehen sind. */}
 			<ul
 				ref={liste}
-				className="mt-5 grid h-[max(22rem,var(--rest,40rem))] grid-cols-[repeat(var(--spalten),minmax(0,1fr))] gap-6 max-lg:-mx-4 max-lg:flex max-lg:h-auto max-lg:snap-x max-lg:snap-mandatory max-lg:gap-4 max-lg:overflow-x-auto max-lg:px-4 max-lg:pb-3"
+				className="mt-5 grid h-[max(22rem,var(--rest,40rem))] grid-cols-[repeat(var(--spalten),minmax(0,1fr))] gap-4 max-lg:-mx-4 max-lg:flex max-lg:h-auto max-lg:snap-x max-lg:snap-mandatory max-lg:gap-4 max-lg:overflow-x-auto max-lg:px-4 max-lg:pb-3"
 				style={{ '--spalten': meta.entwuerfe.length } as CSSProperties}
 				data-entwuerfe
 			>
@@ -81,14 +81,14 @@ export const Entwuerfe = ({ dok, zugang }: Eigenschaften) => {
 							<Kachel
 								className={
 									entwurf.pruefung?.passt === false
-										? 'flex h-full flex-col ring-4 ring-entwurf'
+										? 'flex h-full flex-col ring-2 ring-entwurf'
 										: 'flex h-full flex-col'
 								}
 							>
-								<div className="flex flex-none items-start gap-3 p-4">
+								<div className="flex flex-none items-start gap-2 p-3">
 									<Buchstabe name={entwurf.name} />
 									<div className="min-w-0">
-										<h2 className="text-xl">
+										<h2 className="text-base font-semibold">
 											<span className="sr-only">{`Entwurf ${entwurf.name}: `}</span>
 											{entwurf.titel}
 										</h2>
@@ -104,7 +104,7 @@ export const Entwuerfe = ({ dok, zugang }: Eigenschaften) => {
 										</div>
 									</div>
 								</div>
-								<div className="flex min-h-0 flex-1 justify-center bg-leinwand p-4 max-lg:h-[max(14rem,calc(100dvh-var(--kopf,0px)-24rem))] max-lg:flex-none">
+								<div className="flex min-h-0 flex-1 justify-center bg-leinwand p-3 max-lg:h-[max(14rem,calc(100dvh-var(--kopf,0px)-24rem))] max-lg:flex-none">
 									<EntwurfBild zugang={zugang} dokument={dokument} entwurf={entwurf} />
 								</div>
 							</Kachel>

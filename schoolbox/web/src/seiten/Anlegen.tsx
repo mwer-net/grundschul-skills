@@ -17,7 +17,7 @@ import { useNavigate } from 'react-router-dom';
 
 import { meldung, sende } from '../api';
 import { Dialog } from '../bausteine/Dialog';
-import { klassen } from '../bausteine/klassen';
+import { FELD_KLASSEN, klassen } from '../bausteine/klassen';
 import { Knopf } from '../bausteine/Knopf';
 import { Symbol } from '../bausteine/Symbol';
 import { useKiZustand } from '../editor/ki';
@@ -25,18 +25,18 @@ import { melde } from '../ereignisse';
 import { useLaden } from '../lib/laden';
 import { klasseName } from '../lib/text';
 
-const FELD = 'h-knopf w-full rounded-xl border border-rand px-3';
+const FELD = `${FELD_KLASSEN} w-full`;
 
 const Feld = ({ children, name }: { name: string; children: ReactNode }) => (
-	<label className="mb-3 block font-medium">
-		<span className="mb-1 block">{name}</span>
+	<label className="mb-2 block font-medium">
+		<span className="mb-0.5 block">{name}</span>
 		{children}
 	</label>
 );
 
 const Fehler = ({ text }: { text: string | null }) =>
 	text ? (
-		<p role="alert" className="mb-3 rounded-lg bg-red-50 p-3 text-fehler" data-anlegen-fehler>
+		<p role="alert" className="mb-3 rounded-md bg-red-50 px-3 py-2 text-fehler" data-anlegen-fehler>
 			{text}
 		</p>
 	) : null;
@@ -60,7 +60,7 @@ const Wahl = ({
 		aria-pressed={aktiv}
 		data-wahl={id}
 		className={klassen(
-			'h-knopf w-full rounded-xl border p-3 text-left',
+			'w-full rounded-md border px-2.5 py-1.5 text-left',
 			aktiv ? 'border-brand-500 bg-brand-50' : 'border-rand bg-flaeche hover:bg-flaeche-2',
 		)}
 		onClick={waehle}
@@ -214,7 +214,7 @@ const EigeneWahl = ({
 					<>
 						<input
 							aria-label="Neuer Name"
-							className="h-knopf min-w-0 flex-1 rounded-lg border border-rand px-2"
+							className={`${FELD_KLASSEN} min-w-0 flex-1`}
 							value={neu}
 							onChange={(e) => setNeu(e.target.value)}
 						/>
@@ -449,7 +449,7 @@ export const MaterialAnlegen = ({ mappe }: { mappe: string }) => {
 									<label className="mt-4 block font-medium">
 										Worum geht es, und was sollen die Kinder können?
 										<textarea
-											className={`${FELD} mt-1 py-2 font-normal`}
+											className={`${FELD_KLASSEN} mt-1 h-auto w-full py-1.5 font-normal`}
 											rows={3}
 											maxLength={2000}
 											value={wunsch}
@@ -468,7 +468,7 @@ export const MaterialAnlegen = ({ mappe }: { mappe: string }) => {
 											<label key={z} className="flex h-knopf items-center gap-2">
 												<input
 													type="checkbox"
-													className="size-5"
+													className="size-4"
 													checked={zusatz[z] === true}
 													onChange={(e) => setZusatz({ ...zusatz, [z]: e.target.checked })}
 												/>

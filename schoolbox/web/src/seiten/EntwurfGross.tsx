@@ -40,10 +40,10 @@ export const EntwurfGross = ({ dok, name, zugang }: Eigenschaften) => {
 				<Symbol name="zurueck" />
 				Alle Entwürfe
 			</KnopfLink>
-			<div className="mt-2 flex items-start gap-4">
+			<div className="mt-2 flex items-start gap-2">
 				<Buchstabe name={entwurf.name} />
 				<div className="min-w-0">
-					<h1 className="text-3xl max-md:text-2xl">
+					<h1 className="text-2xl">
 						<span className="sr-only">{`Entwurf ${entwurf.name}: `}</span>
 						{entwurf.titel}
 					</h1>
@@ -54,7 +54,7 @@ export const EntwurfGross = ({ dok, name, zugang }: Eigenschaften) => {
 				</div>
 			</div>
 
-			<div className="sticky top-[var(--kopf,0px)] z-20 -mx-8 mt-3 flex flex-wrap items-center gap-2 bg-papier/95 px-8 py-3 backdrop-blur max-lg:-mx-4 max-lg:px-4">
+			<div className="sticky top-[var(--kopf,0px)] z-ueberlagerung -mx-8 mt-3 flex flex-wrap items-center gap-2 bg-papier px-8 py-2 max-lg:-mx-4 max-lg:px-4">
 				{vorher && (
 					<KnopfLink to={entwuerfeSeite(zugang, dok, vorher.name)} art="zweit" replace>
 						<Symbol name="zurueck" />
@@ -71,8 +71,8 @@ export const EntwurfGross = ({ dok, name, zugang }: Eigenschaften) => {
 
 			<div className="mt-3 flex flex-col gap-3">
 				{meldungen.length > 0 && (
-					<div className="rounded-2xl border border-entwurf bg-warnung-hell px-5 py-3" data-meldungen>
-						<h2 className="text-lg">Das fällt auf</h2>
+					<div className="rounded-lg border border-entwurf bg-warnung-hell px-3 py-2" data-meldungen>
+						<h2 className="font-semibold">Das fällt auf</h2>
 						<ul className="mt-1 list-disc pl-5">
 							{meldungen.slice(0, MAX_MELDUNGEN).map((m, i) => (
 								<li key={`${i}-${m.text}`}>{verstaendlich(m)}</li>

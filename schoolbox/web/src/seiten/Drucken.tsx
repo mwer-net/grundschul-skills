@@ -66,7 +66,7 @@ export const Drucken = ({ dok, zugang }: { zugang: Zugang; dok: string }) => {
 		<main className="flex min-h-dvh items-center justify-center">
 			{stand.art === 'laeuft' && (
 				<Zustand symbol="drucker" titel="PDF wird erstellt …">
-					<Symbol name="laden" className="size-6 animate-spin text-brand-500" />
+					<Symbol name="laden" className="size-5 animate-spin text-brand-500" />
 					<p className="text-leise">
 						Gleich öffnet sich das PDF hier. Drucken kannst du dann über das Drucker-Symbol oder ⌘P, auf dem
 						iPad über „Teilen“ und „Drucken“.

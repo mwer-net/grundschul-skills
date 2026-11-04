@@ -74,23 +74,23 @@ const Startseite = ({ folien, phase, starten, titel, zurueck }: StartEigenschaft
 				<Symbol name="zurueck" />
 				Zurück zum Dokument
 			</KnopfLink>
-			<h1 className="mt-2 text-3xl max-md:text-2xl">{titel}</h1>
+			<h1 className="mt-2 text-2xl">{titel}</h1>
 			{folien !== null && (
 				<p className="mt-1 text-leise">{`Präsentation · ${anzahl(folien, 'Folie', 'Folien')}`}</p>
 			)}
 			<Knopf
-				className="mt-8 min-h-20 self-start px-10 text-2xl"
+				className="mt-4 h-11 self-start px-5 text-base"
 				disabled={phase.art !== 'bereit'}
 				onClick={starten}
 			>
-				<Symbol name="praesentieren" className="size-8 flex-none" />
+				<Symbol name="praesentieren" className="size-4 flex-none" />
 				Präsentation starten
 			</Knopf>
 			<div className="mt-4 min-h-7" role="status">
 				<Ladestand phase={phase} />
 			</div>
-			<section className="mt-8 rounded-2xl border border-rand bg-flaeche px-5 py-4">
-				<h2 className="text-xl">So steuerst du</h2>
+			<section className="mt-4 rounded-lg border border-rand bg-flaeche px-3 py-2">
+				<h2 className="font-semibold">So steuerst du</h2>
 				<dl className="mt-2">
 					<Zeile was="Weiter">
 						Pfeiltaste → oder Leertaste, Klicker · rechts antippen oder nach links wischen
@@ -134,7 +134,7 @@ const LeistenKnopf = ({ gedrueckt, knapp, onClick, symbol, titel }: LeistenKnopf
 		onClick={onClick}
 		aria-label={knapp ? titel : undefined}
 		aria-pressed={gedrueckt}
-		className="inline-flex h-knopf min-w-12 items-center justify-center gap-2 rounded-xl px-3 font-medium hover:bg-flaeche/15 active:bg-flaeche/25 aria-pressed:bg-flaeche/25"
+		className="inline-flex h-9 min-w-9 items-center justify-center gap-1.5 rounded-md px-2.5 text-sm font-medium hover:bg-white/15 active:bg-white/25 aria-pressed:bg-white/25"
 	>
 		<Symbol name={symbol} />
 		{!knapp && titel}

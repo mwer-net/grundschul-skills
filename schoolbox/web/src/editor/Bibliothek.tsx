@@ -15,7 +15,7 @@ import type { Einblendung } from './Leinwand';
 import type { Struktur } from './struktur';
 import { TEXTWERKZEUG } from './text';
 
-const ZEILE = 'h-knopf w-full rounded-lg px-3 py-2 text-left hover:bg-flaeche-2';
+const ZEILE = 'w-full rounded-md px-2 py-1 text-left hover:bg-flaeche-2';
 
 const passtZu = (e: Posten, m: { fach: Fach; klasse: Klasse }, art: Art) =>
 	(!e.faecher || e.faecher.includes(m.fach)) &&

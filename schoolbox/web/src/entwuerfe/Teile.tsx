@@ -11,7 +11,7 @@ export const Buchstabe = ({ className, name }: { name: string; className?: strin
 	<span
 		className={klassen(
 			'inline-flex flex-none items-center justify-center rounded-full bg-brand-500 text-white',
-			className ?? 'size-14 text-3xl',
+			className ?? 'size-9 text-xl',
 		)}
 		aria-hidden="true"
 	>
@@ -33,8 +33,8 @@ export const EntwurfStatus = ({ entwurf, format }: { entwurf: Entwurf; format: F
 		</span>
 	) : (
 		<span className="inline-flex items-start gap-1.5 font-medium text-warnung" data-status="passt-nicht">
-			<span className="flex size-6 flex-none items-center justify-center rounded-full bg-entwurf">
-				<Symbol name="achtung" className="size-4 flex-none" />
+			<span className="flex size-4 flex-none items-center justify-center rounded-full bg-entwurf">
+				<Symbol name="achtung" className="size-3 flex-none" />
 			</span>
 			{`Passt nicht ganz auf ${seite}`}
 		</span>
@@ -66,7 +66,7 @@ export const EntwurfBild = ({ className, dokument, entwurf, zugang }: BildEigens
 			className="flex aspect-[210/297] h-full max-w-full items-center justify-center bg-flaeche text-rand-feld"
 			data-platzhalter
 		>
-			<Symbol name="blatt" className="size-12" />
+			<Symbol name="blatt" className="size-8" />
 		</div>
 	);
 
@@ -78,14 +78,14 @@ export const EntwurfMinis = ({ dokument, zugang }: { zugang: Zugang; dokument: D
 				<div className="flex min-h-0 w-full flex-1 justify-center">
 					<EntwurfBild zugang={zugang} dokument={dokument} entwurf={entwurf} />
 				</div>
-				<Buchstabe name={entwurf.name} className="size-8 text-lg" />
+				<Buchstabe name={entwurf.name} className="size-6 text-sm" />
 			</div>
 		))}
 	</div>
 );
 
 export const ClaudeHinweis = ({ children }: { children?: ReactNode }) => (
-	<div className="flex items-start gap-3 rounded-2xl border border-brand-200 bg-brand-50 px-5 py-3">
+	<div className="flex items-start gap-3 rounded-lg border border-rand bg-flaeche px-3 py-2">
 		<Symbol name="sprechblase" className="mt-0.5 size-4 flex-none text-tinte" />
 		<div>
 			<p className="font-medium">Schreib Claude, welcher Entwurf es werden soll, und was anders sein soll.</p>

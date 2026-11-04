@@ -3,6 +3,7 @@ import { useState } from 'react';
 import { meldung, sende } from '../api';
 import { Dialog } from '../bausteine/Dialog';
 import { useHinweis } from '../bausteine/hinweis';
+import { FELD_KLASSEN } from '../bausteine/klassen';
 import { Knopf } from '../bausteine/Knopf';
 import { Symbol } from '../bausteine/Symbol';
 
@@ -31,18 +32,18 @@ export const AlsVorlage = ({ dok, mappe, titel }: { mappe: string; dok: string; 
 					<label className="block font-medium">
 						Name
 						<input
-							className="mt-1 h-knopf w-full rounded-xl border border-rand bg-flaeche px-3 font-normal"
+							className={`${FELD_KLASSEN} mt-1 w-full font-normal`}
 							value={name}
 							data-vorlage-name
 							onChange={(e) => setName(e.target.value)}
 						/>
 					</label>
-					<div className="mt-4 flex gap-2">
-						<Knopf disabled={name.trim() === ''} data-vorlage-speichern onClick={() => void speichere()}>
-							Speichern
-						</Knopf>
+					<div className="flex justify-end gap-2">
 						<Knopf art="zweit" onClick={() => setOffen(false)}>
 							Abbrechen
+						</Knopf>
+						<Knopf disabled={name.trim() === ''} data-vorlage-speichern onClick={() => void speichere()}>
+							Speichern
 						</Knopf>
 					</div>
 				</Dialog>

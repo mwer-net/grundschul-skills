@@ -26,9 +26,9 @@ const GeteilteMappe = ({ inhalt, zugang }: { zugang: Zugang; inhalt: Inhalt }) =
 	useTitel(mappe.titel);
 	return (
 		<>
-			<div className="flex items-start justify-between gap-6 max-lg:flex-col max-lg:gap-4">
+			<div className="flex items-start justify-between gap-4 max-lg:flex-col max-lg:gap-3">
 				<div>
-					<h1 className="text-3xl max-md:text-2xl">{mappe.titel}</h1>
+					<h1 className="text-2xl">{mappe.titel}</h1>
 					<p className="mt-1 text-leise">{`${FACH_NAME[mappe.fach]} · ${klasseName(mappe.klasse)}`}</p>
 				</div>
 				{dokumente.length > 0 && (
@@ -40,7 +40,7 @@ const GeteilteMappe = ({ inhalt, zugang }: { zugang: Zugang; inhalt: Inhalt }) =
 					/>
 				)}
 			</div>
-			<ul className="mt-6 grid grid-cols-[repeat(auto-fill,minmax(19rem,1fr))] gap-6 max-md:gap-4">
+			<ul className="mt-4 grid grid-cols-[repeat(auto-fill,minmax(19rem,1fr))] gap-4">
 				{dokumente.map((dokument) => (
 					<DokumentKachel key={dokument.id} zugang={zugang} mappe={mappe} dokument={dokument} />
 				))}
@@ -68,12 +68,12 @@ const GeteiltRahmen = ({ children }: { children: ReactNode }) => {
 	const kopf = useKopfHoehe<HTMLElement>();
 	return (
 		<div className="flex min-h-dvh flex-col">
-			<header ref={kopf} className="sticky top-0 z-30 border-b border-rand bg-flaeche/95 backdrop-blur">
-				<div className="mx-auto flex h-knopf max-w-[90rem] items-center px-8 py-3 text-3xl text-tinte max-lg:px-4 max-md:text-2xl">
+			<header ref={kopf} className="sticky top-0 z-kopf border-b border-rand bg-flaeche">
+				<div className="mx-auto flex h-10 max-w-[90rem] items-center px-8 text-base font-semibold text-tinte max-lg:px-4">
 					Schoolbox
 				</div>
 			</header>
-			<main className="mx-auto w-full max-w-[90rem] flex-1 px-8 pt-8 pb-24 max-lg:px-4 max-md:pt-5">
+			<main className="mx-auto w-full max-w-[90rem] flex-1 px-8 pt-5 pb-16 max-lg:px-4">
 				{children}
 			</main>
 		</div>
