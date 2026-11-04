@@ -35,6 +35,8 @@ export const useBearbeitung = (mappe: string, dok: string) => {
 	const [konflikt, setKonflikt] = useState<Konflikt | null>(null);
 	const [laeuft, setLaeuft] = useState(false);
 	const quelle = useRef<string | null>(null);
+	/** Solange ein Vorschlag angenommen wird, ist die Änderung vom Server ein Schritt in Rückgängig. */
+	const alsSchritt = useRef<string | null>(null);
 
 	useEffect(() => {
 		quelle.current = verlauf?.quelle ?? null;
@@ -81,7 +83,15 @@ export const useBearbeitung = (mappe: string, dok: string) => {
 				return;
 			}
 			if (!offen()) {
-				uebernimm(aktuell);
+				const schritt = alsSchritt.current;
+				if (schritt) {
+					setzeBasis(aktuell);
+					quelle.current = aktuell.quelle;
+					setVerlauf((v) => (v ? nimmAuf(v, aktuell.quelle, schritt) : neuerVerlauf(aktuell.quelle)));
+					setAusgang(aktuell.quelle);
+				} else {
+					uebernimm(aktuell);
+				}
 				zeige({ text: GEAENDERT[urheber ?? 'claude'] });
 				return;
 			}
@@ -89,7 +99,20 @@ export const useBearbeitung = (mappe: string, dok: string) => {
 			setKonflikt({ urheber });
 			await sichere();
 		},
-		[adresse, basis, meldeKonflikt, offen, ruhig, sichere, uebernimm, zeige],
+		[adresse, basis, meldeKonflikt, offen, ruhig, setzeBasis, sichere, uebernimm, zeige],
+	);
+
+	const annimm = useCallback(
+		async (arbeit: () => Promise<unknown>) => {
+			alsSchritt.current = 'Vorschlag von Claude';
+			try {
+				await arbeit();
+				await pruefe('claude');
+			} finally {
+				alsSchritt.current = null;
+			}
+		},
+		[pruefe],
 	);
 
 	const befehl = useCallback(
@@ -144,6 +167,7 @@ export const useBearbeitung = (mappe: string, dok: string) => {
 		rueckgaengig,
 		wiederholen,
 		pruefe,
+		annimm,
 		neuLaden,
 		wiederherstellen,
 	};

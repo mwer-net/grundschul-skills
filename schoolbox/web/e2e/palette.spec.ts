@@ -1,4 +1,4 @@
-import { aendere, material, oeffne, quelle, uhrzeit } from './editorhilfe';
+import { material, oeffne, quelle, uhrzeit } from './editorhilfe';
 import { expect, legeMappeAn, test } from './hilfe';
 
 const palette = (page: import('@playwright/test').Page) => page.locator('[data-befehlspalette]');
@@ -36,7 +36,7 @@ test.describe('Befehlspalette (073)', () => {
 	test('führt einen Befehl aus und merkt ihn sich', async ({ page }) => {
 		const { dok, id } = await uhrzeit();
 		await oeffne(page, id, dok);
-		await material(page).locator('.aufgabe').first().click();
+		await material(page).locator('.aufgabe').first().locator('.nr').click();
 		const vorher = await material(page).locator('.aufgabe').count();
 		await page.keyboard.press('ControlOrMeta+k');
 		await feld(page).fill('duplizieren');
@@ -54,14 +54,7 @@ test.describe('Befehlspalette (073)', () => {
 	test('zeigt die Spalten als Befehl mit Wirkung', async ({ page }) => {
 		const { dok, id } = await uhrzeit();
 		await oeffne(page, id, dok);
-		await aendere(
-			page,
-			(await quelle(page)).replace(
-				/<\/section>(?![\s\S]*<\/section>)/,
-				'<div class="uhren-reihe" data-abb="uhr-reihe"></div></section>',
-			),
-		);
-		await material(page).locator('.uhren-reihe').first().click({ force: true });
+		await material(page).locator('.reihe').first().locator('x-uhr').first().click();
 		await page.keyboard.press('ControlOrMeta+k');
 		await feld(page).fill('spal');
 		await expect(palette(page).getByRole('option').first()).toContainText('Spalten');
@@ -74,7 +67,7 @@ test.describe('Befehlspalette (073)', () => {
 		await material(page).locator('.aufgabe').first().click();
 		const vorher = (await quelle(page)).length;
 		await page.keyboard.press('ControlOrMeta+k');
-		await feld(page).fill('merkkasten');
+		await feld(page).fill('schreiblinie');
 		const zeile = palette(page).locator('[data-palette-gruppe="Baustein einfügen"]').getByRole('option').first();
 		await expect(zeile).toBeVisible();
 		await zeile.click();
@@ -96,7 +89,7 @@ test.describe('Befehlspalette (073)', () => {
 	test('in der Textsitzung läuft die Sitzung nach Esc weiter', async ({ page }) => {
 		const { dok, id } = await uhrzeit();
 		await oeffne(page, id, dok);
-		await material(page).locator('.anweisung').first().dblclick();
+		await material(page).locator('.anw .text').first().dblclick();
 		await expect(page.locator('[data-textbearbeitung]')).toBeVisible();
 		await page.keyboard.press('ControlOrMeta+k');
 		await expect(palette(page)).toBeVisible();
@@ -104,7 +97,8 @@ test.describe('Befehlspalette (073)', () => {
 		await expect(palette(page)).toBeHidden();
 		await expect(page.locator('[data-textbearbeitung]')).toBeVisible();
 		await page.keyboard.type('X');
-		await expect.poll(() => quelle(page)).toContain('X');
+		await expect(material(page).locator('.anw .text').first()).toContainText('X');
+		await expect(page.locator('[data-textbearbeitung]')).toBeVisible();
 	});
 
 	test('außerhalb des Editors öffnet sie eine Mappe', async ({ page }) => {

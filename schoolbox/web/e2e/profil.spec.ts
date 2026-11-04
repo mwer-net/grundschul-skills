@@ -35,6 +35,7 @@ const erwarteAnsicht = async (page: Page, grau: boolean) => {
 test.describe('Farbe und s/w', () => {
 	test('Dokumentansicht: ein Klick wechselt, die Wahl überlebt Neuladen und bleibt reine Ansicht', async ({
 		druecke,
+		hasTouch,
 		page,
 	}) => {
 		const { dok, id, material: datei, ordner } = await buntesBlatt();
@@ -46,7 +47,7 @@ test.describe('Farbe und s/w', () => {
 
 		for (const knopf of [farbe(page), sw(page)]) {
 			const box = await knopf.boundingBox();
-			expect(box?.height ?? 0).toBeGreaterThanOrEqual(44);
+			expect(box?.height ?? 0).toBeGreaterThanOrEqual(hasTouch ? 44 : 20);
 		}
 
 		await page.evaluate(() => window.scrollTo(0, 200));

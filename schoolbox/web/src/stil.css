@@ -116,6 +116,11 @@
 	min-height: var(--hoehe-knopf);
 }
 
+@utility size-knopf-status {
+	min-width: var(--hoehe-knopf-status);
+	min-height: var(--hoehe-knopf-status);
+}
+
 @utility size-knopf-klein {
 	min-width: var(--hoehe-knopf-klein);
 	min-height: var(--hoehe-knopf-klein);

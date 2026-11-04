@@ -46,8 +46,8 @@ test.describe('Editor: Abbildungen', () => {
 		await expect(page.locator('[data-hinweis="beispiel"]')).toHaveCount(0);
 		expect(await minutenzeiger(page, 1)).toBe('50 77');
 
-		await page.getByLabel('Stunde').selectOption('5');
-		await page.getByLabel('Minuten').selectOption('45');
+		await page.locator('[data-inspektor]').getByLabel('Stunde').selectOption('5');
+		await page.locator('[data-inspektor]').getByLabel('Minuten').selectOption('45');
 		await expect.poll(() => minutenzeiger(page, 1)).toBe('23 50');
 		await gespeichert(page, datei);
 		const nachher = await readFile(datei, 'utf8');
@@ -927,7 +927,7 @@ test.describe('Einmaleins und schriftliches Rechnen (029)', () => {
 
 		await druecke(element);
 		await expect(page.getByLabel('Zahlen')).toHaveValue('93 48');
-		await page.getByLabel('Verfahren bei Minus').selectOption({ label: 'Ergänzen, Erweitern' });
+		await page.getByLabel('Verfahren bei Minus', { exact: true }).selectOption({ label: 'Ergänzen, Erweitern' });
 		await gespeichert(page, datei);
 		await expect(element).toHaveAttribute('verfahren', 'ergaenzen-erweitern');
 		await expect(info).toContainText('8 + 5 = 13, 1 gemerkt');

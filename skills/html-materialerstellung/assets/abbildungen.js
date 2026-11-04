@@ -4867,7 +4867,7 @@
   const loesungswortFehler = (buchstaben, antworten, legende, bezug) => {
     if (antworten.length !== buchstaben.length) return `Aufgabe ${bezug} hat ${antworten.length} Lösungen, das Lösungswort aber ${buchstaben.length} Buchstaben.`;
     for (const [i, antwort] of antworten.entries()) {
-      if (legende.get(antwort) !== buchstaben[i]) return `Aufgabe ${bezug}, Item ${i + 1} hat jetzt die Lösung ${antwort || "(keine)"}; das Lösungswort stimmt nicht mehr.`;
+      if (legende.get(antwort) !== buchstaben[i]) return `Aufgabe ${bezug}, Eintrag ${i + 1} hat jetzt die Lösung ${antwort || "(keine)"}; das Lösungswort stimmt nicht mehr.`;
     }
     return null;
   };

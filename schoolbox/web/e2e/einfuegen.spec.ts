@@ -21,7 +21,7 @@ test.describe('Editor: Bausteine einfügen', () => {
 	test('„+ Baustein“ in der Leiste öffnet die Schnellauswahl', async ({ druecke, page }) => {
 		const { dok, id } = await uhrzeit();
 		await oeffne(page, id, dok);
-		await druecke(material(page).locator('.aufgabe').first());
+		await druecke(material(page).locator('.aufgabe').first().locator('.nr'));
 		await wartePlus(page);
 		await page.locator('[data-einfuegen-plus]').click();
 		const fenster = page.locator('[data-schnellauswahl]');

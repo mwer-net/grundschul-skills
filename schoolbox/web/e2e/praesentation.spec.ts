@@ -235,6 +235,8 @@ test.describe('Präsentation', () => {
 		await expect(eintraege.nth(1)).toContainText(ipad ? 'auf dem iPad läuft die Datei nicht' : 'in Safari öffnen');
 		await expect(eintraege.nth(2)).toContainText('daneben deine Notizen');
 		await page.keyboard.press('Escape');
+		await page.keyboard.press('Escape');
+		await expect(page.getByRole('menu')).toHaveCount(0);
 
 		const name = 'Kl3 Sachunterricht Kreisinput Kartoffel';
 		// Die Offline-Präsentation liegt schon fertig im Bau; die beiden PDFs entstehen erst auf Anfrage.
@@ -243,14 +245,15 @@ test.describe('Präsentation', () => {
 			['Offline-Präsentation', `${name} – Präsentation.html`, false],
 			['Folien mit Notizen', `${name} – Folien mit Notizen.pdf`, true],
 		] as const) {
+			await oeffneMehr(druecke, page);
+			await expect(knopf).toBeEnabled();
 			await druecke(knopf);
 			const download = page.waitForEvent('download');
 			await druecke(page.getByRole('menuitem', { name: new RegExp(`^${titel}`) }));
 			if (gebaut) {
-				await expect(page.getByRole('button', { name: 'Wird erstellt …' })).toBeVisible();
+				await expect(page.getByText('Wird erstellt …')).toBeVisible();
 			}
 			expect(await dateiname(download)).toBe(datei);
-			await expect(knopf).toBeEnabled();
 		}
 	});
 

@@ -779,7 +779,7 @@ Muster: `assets/muster/raetsel.html`, `assets/muster/raetsel-kl1.html`. Suchsel,
 <x-loesungswort wort="SONNE" bezug="3" zuordnung="42: S; 64: O; 27: N; 28: N; 45: E" ablenker="24: U; 72: K"></x-loesungswort>
 ```
 
-Selbstkontrolle zu einer Aufgabe: `bezug` ist die Nummer der Aufgabe auf demselben Blatt, ihre `.antwort` liefern in Reihenfolge die Buchstaben. `zuordnung` hält fest, welches Ergebnis zu welchem Buchstaben gehört, auch mit `bezug`: Nur so fällt auf, wenn sich später eine Lösung ändert („Aufgabe 3, Item 2 hat jetzt die Lösung 48; das Lösungswort stimmt nicht mehr.“). Fehlt sie, nennt die Meldung, was einzutragen ist. Ohne `bezug` nur `wort` und `zuordnung`. `ablenker` sind typische falsche Ergebnisse (±1, Zahlendreher; `fach-mathematik`) mit eigenem Buchstaben. Ein Ergebnis gehört immer zu genau einem Buchstaben.
+Selbstkontrolle zu einer Aufgabe: `bezug` ist die Nummer der Aufgabe auf demselben Blatt, ihre `.antwort` liefern in Reihenfolge die Buchstaben. `zuordnung` hält fest, welches Ergebnis zu welchem Buchstaben gehört, auch mit `bezug`: Nur so fällt auf, wenn sich später eine Lösung ändert („Aufgabe 3, Eintrag 2 hat jetzt die Lösung 48; das Lösungswort stimmt nicht mehr.“). Fehlt sie, nennt die Meldung, was einzutragen ist. Ohne `bezug` nur `wort` und `zuordnung`. `ablenker` sind typische falsche Ergebnisse (±1, Zahlendreher; `fach-mathematik`) mit eigenem Buchstaben. Ein Ergebnis gehört immer zu genau einem Buchstaben.
 
 ## Spiele
 

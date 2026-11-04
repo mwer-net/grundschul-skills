@@ -19,7 +19,7 @@ test.describe('Editor: ganzes Blatt und Einstellungen (046, 048)', () => {
 		await expect.poll(() => quelle(page)).not.toBe(vorher);
 		await druecke(zurueck(page));
 		await expect.poll(() => quelle(page)).toBe(vorher);
-		await page.getByLabel('Format').selectOption('a4-quer');
+		await page.getByLabel('Format', { exact: true }).selectOption('a4-quer');
 		await expect.poll(() => quelle(page)).toContain('a4-quer');
 		await druecke(zurueck(page));
 		await expect.poll(() => quelle(page)).toBe(vorher);

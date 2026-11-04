@@ -1010,7 +1010,7 @@ export const ChatInhalt = ({
 					schliessen={() => setVergleich(false)}
 					annehmen={() => {
 						setVergleich(false);
-						void auftragKi.annehmen();
+						void dokument.handlungen.current.annimm(auftragKi.annehmen);
 					}}
 					verwerfen={() => {
 						setVergleich(false);

@@ -445,6 +445,7 @@ const Bearbeitung = ({ dokument, mappe: mappenDaten }: { mappe: Mappe; dokument:
 		vorbereiten: () => Promise.resolve(),
 		holeZitat: () => '',
 		zumBlatt: () => undefined,
+		annimm: () => Promise.resolve(),
 		zurApp: () => undefined,
 	});
 	const chat = useChat();
@@ -838,6 +839,7 @@ const Bearbeitung = ({ dokument, mappe: mappenDaten }: { mappe: Mappe; dokument:
 			zumBlatt: () => {
 				document.querySelector<HTMLIFrameElement>('[data-editor-rahmen="sichtbar"]')?.contentWindow?.focus();
 			},
+			annimm: b.annimm,
 			zurApp: (nr) => claudeApp.frage({ zerlegung, ort, loesung, nachher: () => void alles(), nr }),
 		};
 	});

@@ -100,7 +100,7 @@ const Pfad = ({
 			<h2 className="min-w-0 truncate pr-7 text-base font-semibold">
 				<button
 					type="button"
-					className="max-w-full truncate"
+					className="h-knopf-status max-w-full truncate"
 					aria-current="true"
 					onClick={() => waehle(gewaehlt.nr)}
 				>

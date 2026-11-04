@@ -150,7 +150,7 @@ test.describe('Editor: Struktur', () => {
 
 		await druecke(page.getByRole('button', { name: 'Löschen' }));
 		await expect(hinweis(page)).toContainText('Eintrag 3 gelöscht.');
-		await expect(page.locator('[data-inspektor="blatt"]')).toBeVisible();
+		await expect(page.locator('[data-auswahl="item"] h2')).toHaveText('Eintrag 3');
 		await gespeichert(page, datei);
 		expect(await readFile(datei, 'utf8')).toBe(vorher);
 		await druecke(hinweis(page).getByRole('button', { name: 'Rückgängig' }));
@@ -165,7 +165,7 @@ test.describe('Editor: Struktur', () => {
 		await druecke(material(page).locator('.reihe').first().locator('x-uhr').first());
 		const spalten = page.locator('[data-spalten]');
 		await expect(spalten).toHaveAttribute('data-spalten', '4');
-		await expect(page.getByText('Spalten (Reihe)')).toBeVisible();
+		await expect(page.locator('[data-abschnitt="eltern"]')).toContainText('Reihe');
 		const mehr = page.getByRole('button', { name: 'Eine Spalte mehr' });
 		await druecke(mehr);
 		await expect(spalten).toHaveAttribute('data-spalten', '5');
@@ -226,7 +226,10 @@ test.describe('Editor: Struktur', () => {
 		await druecke(page.getByRole('button', { name: 'Kleiner' }));
 		await druecke(page.getByRole('button', { name: 'Kleiner' }));
 		const zweite = material(page).locator('.seite').nth(1);
-		await ziehe(page, hasTouch, material(page).locator('.aufgabe').nth(1).locator('.anw .text'), zweite, 'oben');
+		const aufgabe = material(page).locator('.aufgabe').nth(1).locator('.anw .text');
+		const oben = (await aufgabe.boundingBox())?.y ?? 0;
+		await page.locator('main').evaluate((el, weg) => el.scrollBy(0, weg), oben - 100);
+		await ziehe(page, hasTouch, aufgabe, zweite, 'oben');
 		await gespeichert(page, datei);
 		const verschoben = await readFile(datei, 'utf8');
 		expect(nummern(verschoben)).toEqual(['1', '2', '★', '3']);

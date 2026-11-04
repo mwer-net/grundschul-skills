@@ -159,8 +159,14 @@ describe('dupliziereBaustein und loescheBaustein', () => {
 
 	it('wählt nach dem Löschen das nächste Geschwister, sonst das vorige, sonst die Eltern', () => {
 		const anzahl = mitKlasse(zerlege(ARBEITSBLATT), 'aufgabe').length;
-		const letzte = loescheBaustein(ARBEITSBLATT, aufgabe(ARBEITSBLATT, anzahl - 1).nr, BLATT);
-		assert.equal(letzte.nr, aufgabe(letzte.quelle, anzahl - 2).nr);
+		const vorDemFuss = loescheBaustein(ARBEITSBLATT, aufgabe(ARBEITSBLATT, anzahl - 1).nr, BLATT);
+		assert.equal(vorDemFuss.nr, mitKlasse(zerlege(vorDemFuss.quelle), 'fuss')[0]?.nr);
+
+		const zwei =
+			'<div class="seite"><div class="aufgabe"><span class="text">x</span></div>' +
+			'<div class="aufgabe"><span class="text">y</span></div></div>';
+		const letzte = loescheBaustein(zwei, aufgabe(zwei, 1).nr, BLATT);
+		assert.equal(letzte.nr, aufgabe(letzte.quelle, 0).nr);
 
 		const nurEine = '<div class="seite"><div class="aufgabe"><span class="text">x</span></div></div>';
 		const einzig = loescheBaustein(nurEine, aufgabe(nurEine, 0).nr, BLATT);

@@ -17,12 +17,12 @@ test.describe('Anlegen ohne Claude', () => {
 		await page.getByRole('button', { name: 'Material anlegen' }).click();
 		await expect(page.locator('[data-assistent="Art"]')).toBeVisible();
 		await expect(page.locator('dialog')).not.toContainText('Farbe');
-		await page.getByRole('button', { name: 'Weiter' }).click();
-		await page.getByRole('button', { name: 'Weiter' }).click();
-		await page.getByRole('button', { name: 'Weiter' }).click();
+		await page.getByRole('button', { name: 'Weiter', exact: true }).click();
+		await page.getByRole('button', { name: 'Weiter', exact: true }).click();
+		await page.getByRole('button', { name: 'Weiter', exact: true }).click();
 		await expect(page.locator('[data-anlegen-fehler]')).toContainText('Titel');
 		await page.getByRole('textbox', { name: 'Titel' }).fill('Mein Blatt');
-		await page.getByRole('button', { name: 'Weiter' }).click();
+		await page.getByRole('button', { name: 'Weiter', exact: true }).click();
 		await page.getByRole('button', { name: 'Anlegen', exact: true }).click();
 		await expect(page).toHaveURL(/bearbeiten\?neu=1/);
 		await expect(page.locator('[data-bibliothek]')).toBeVisible();
@@ -81,10 +81,10 @@ test.describe('Anlegen ohne Claude', () => {
 			await page.goto(mappe);
 			await page.getByRole('button', { name: 'Material anlegen' }).click();
 			await page.locator(`[data-wahl="${art}"]`).click();
-			await page.getByRole('button', { name: 'Weiter' }).click();
-			await page.getByRole('button', { name: 'Weiter' }).click();
+			await page.getByRole('button', { name: 'Weiter', exact: true }).click();
+			await page.getByRole('button', { name: 'Weiter', exact: true }).click();
 			await page.getByRole('textbox', { name: 'Titel' }).fill(art);
-			await page.getByRole('button', { name: 'Weiter' }).click();
+			await page.getByRole('button', { name: 'Weiter', exact: true }).click();
 			await page.getByRole('button', { name: 'Anlegen', exact: true }).click();
 			await expect(page.locator('[data-leinwand][data-geladen]')).toBeVisible();
 		}

@@ -118,7 +118,7 @@ const NeuHinweis = () => {
 	return (
 		<span className="flex min-w-0 items-center gap-1 text-tinte" data-neu-hinweis>
 			<span className="truncate">Neu: Die Werkzeuge sind jetzt direkt am Baustein.</span>
-			<Link to="/hilfe#schneller" className="flex-none underline" onClick={fertig}>
+			<Link to="/hilfe#schneller" className="inline-flex h-knopf-status flex-none items-center underline" onClick={fertig}>
 				Zur Hilfe
 			</Link>
 			<button type="button" className={KNOPF} aria-label="Hinweis ausblenden" onClick={fertig}>

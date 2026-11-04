@@ -436,8 +436,11 @@ export const Leinwand = ({
 		});
 		ziehen.current = steuerung;
 		let start: { x: number; y: number; zeit: number; id: number } | null = null;
+		let markiertBeimDruecken = false;
 		dokument.addEventListener('pointerdown', (e) => {
 			meldeDaneben();
+			const markiert = dokument.getSelection();
+			markiertBeimDruecken = Boolean(markiert && !markiert.isCollapsed);
 			const haupttaste = e.pointerType !== 'mouse' || (e.button === 0 && !e.ctrlKey);
 			start =
 				e.isPrimary && haupttaste ? { x: e.clientX, y: e.clientY, zeit: e.timeStamp, id: e.pointerId } : null;
@@ -463,11 +466,12 @@ export const Leinwand = ({
 		});
 		dokument.addEventListener('keydown', (e) => rueckrufe.current.taste(e));
 		dokument.addEventListener('contextmenu', (e) => {
-			const markiert = dokument.getSelection();
-			if (rueckrufe.current.textsitzung || (markiert && !markiert.isCollapsed)) {
+			if (rueckrufe.current.textsitzung || markiertBeimDruecken) {
 				return;
 			}
 			e.preventDefault();
+			// Safari markiert beim Rechtsklick das Wort darunter; das hat niemand gewollt.
+			dokument.getSelection()?.removeAllRanges();
 			// Am iPad startet langes Drücken das Ziehen; dort ist ⋯ der Weg.
 			const finger = (e as Partial<PointerEvent>).pointerType === 'touch';
 			if (finger || rueckrufe.current.nurAnsehen || dokument.documentElement.hasAttribute(VERALTET)) {

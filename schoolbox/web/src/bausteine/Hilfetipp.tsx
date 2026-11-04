@@ -6,7 +6,7 @@ import { Symbol } from './Symbol';
 const AUSLOESER = (
 	<button
 		type="button"
-		className="inline-flex size-4 flex-none items-center justify-center rounded-full text-dezent hover:text-tinte"
+		className="inline-flex size-knopf-status flex-none items-center justify-center rounded-full text-dezent hover:text-tinte"
 		data-hilfetipp
 	>
 		<Symbol name="info" className="size-3" />

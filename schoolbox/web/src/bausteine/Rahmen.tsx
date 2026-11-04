@@ -98,7 +98,7 @@ export const Rahmen = () => {
 				<div className="flex min-h-[39px] items-center gap-3 px-4">
 					<Link
 						to="/"
-						className="flex flex-none items-center text-base font-semibold text-tinte no-underline"
+						className="flex h-knopf flex-none items-center text-base font-semibold text-tinte no-underline"
 						onClick={() => setSuche('')}
 					>
 						Schoolbox

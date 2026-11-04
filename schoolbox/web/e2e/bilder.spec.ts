@@ -202,7 +202,7 @@ test.describe('Editor: Bilder', () => {
 			'0 (1200, 900)',
 		);
 		await expect(page.locator('[data-auswahl="bild"]')).toBeVisible();
-		await expect(page.getByText('Beschreibe das Bild in ein paar Worten.')).toBeVisible();
+		await expect(page.getByPlaceholder('Was zeigt das Bild?')).toBeVisible();
 		await expect(material(page).locator('img[src="bilder/foto.jpg"]')).toHaveJSProperty('naturalWidth', 1200);
 
 		// In derselben Sitzung kein Hinweis mehr: „Foto hochladen“ öffnet gleich die Auswahl.

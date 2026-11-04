@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 
 import { lade, meldung, sende } from '../api';
 import { useEreignisse } from '../ereignisse';
@@ -101,6 +101,7 @@ export const useKiAuftrag = (mappe: string | null, dok: string | null, nachLauf:
 	const [auftrag, setAuftrag] = useState<KiAuftrag | null>(null);
 	const [vorschlag, setVorschlag] = useState<Vorschlag | null>(null);
 	const [fehler, setFehler] = useState<string | null>(null);
+	const letzteFrage = useRef(0);
 
 	const ladeVorschlag = useCallback(async () => {
 		if (!basis) {
@@ -112,8 +113,14 @@ export const useKiAuftrag = (mappe: string | null, dok: string | null, nachLauf:
 
 	const pruefe = useCallback(
 		async (id: string) => {
+			letzteFrage.current += 1;
+			const frage = letzteFrage.current;
 			try {
 				const { auftrag: neu } = await lade<{ auftrag: KiAuftrag }>(`/api/ki/${id}`);
+				// Eine spätere Frage kennt den neueren Stand; „läuft“ darf ein schon gemeldetes Ende nicht überschreiben.
+				if (frage !== letzteFrage.current) {
+					return;
+				}
 				if (neu.status === 'fertig' || neu.status === 'fehler' || neu.status === 'abgebrochen') {
 					setFehler(neu.fehler);
 					// Erst der Vorschlag, dann das Ende: Wer das Ende sieht, soll auch den Vorschlag sehen.
@@ -138,11 +145,15 @@ export const useKiAuftrag = (mappe: string | null, dok: string | null, nachLauf:
 		void ladeVorschlag().catch(() => undefined);
 		lade<{ auftraege: KiAuftrag[] }>(`${basis}/ki`).then(
 			({ auftraege }) => {
-				setAuftrag(auftraege[0] ?? null);
+				const zuletzt = auftraege[0] ?? null;
+				setAuftrag((alt) => alt ?? zuletzt);
+				if (zuletzt) {
+					void pruefe(zuletzt.id);
+				}
 			},
 			() => undefined,
 		);
-	}, [basis, ladeVorschlag]);
+	}, [basis, ladeVorschlag, pruefe]);
 
 	// Aus dem Assistenten: Der Auftrag kann schon zu Ende sein, bevor der Editor offen ist.
 	useEffect(() => {
@@ -155,9 +166,10 @@ export const useKiAuftrag = (mappe: string | null, dok: string | null, nachLauf:
 		if (e.typ === 'ki-stand' && e.id && e.mappe === mappe && e.dok === dok) {
 			void pruefe(e.id);
 		}
-		// Nach einem Neustart des Servers kommt kein Ende mehr: dann den Stand selbst nachsehen.
-		if (e.typ === 'verbunden' && e.wieder && auftrag) {
-			void pruefe(auftrag.id);
+		// Ein Ende vor dem Verbinden hat niemand gehört, nach einem Neustart des Servers kommt gar keins mehr.
+		const bekannt = auftrag?.id ?? gestartet;
+		if (e.typ === 'verbunden' && bekannt) {
+			void pruefe(bekannt);
 		}
 		if (e.typ === 'dokument-geaendert' && e.mappe === mappe && e.dok === dok) {
 			void ladeVorschlag().catch(() => undefined);

@@ -105,7 +105,7 @@ export interface PfadTeil {
 	baustein: Baustein;
 }
 
-/** Vom äußersten Baustein bis zum gewählten, z. B. „Seite 1 › Aufgabe 2 › Item 3“. */
+/** Vom äußersten Baustein bis zum gewählten, z. B. „Seite 1 › Aufgabe 2 › Eintrag 3“. */
 export const pfadZu = (doc: Document, nr: number): PfadTeil[] => {
 	const kette: Treffer[] = [];
 	for (let treffer = trefferAn(elementZu(doc, nr)); treffer; treffer = trefferAn(treffer.element.parentElement)) {

@@ -49,7 +49,7 @@ const rechteckVon = (element: Element): Rechteck => {
 };
 
 /**
- * Wie die Lehrkraft das Element kennt: „Aufgabe 4“, „Item 2 in Aufgabe 3“, sonst der Text aus dem Bericht, mit dem
+ * Wie die Lehrkraft das Element kennt: „Aufgabe 4“, „Eintrag 2 in Aufgabe 3“, sonst der Text aus dem Bericht, mit dem
  * Baustein, in dem er steht.
  */
 const nameIm = (doc: Document, ziel: MeldungZiel) => {

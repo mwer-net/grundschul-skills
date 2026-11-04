@@ -21,10 +21,10 @@ const beauftrage = async (page: Page, text = 'Mach es schöner') => {
 const startSchritt = async (page: Page, mappe: string) => {
 	await page.goto(`/m/${mappe}`);
 	await page.getByRole('button', { name: 'Material anlegen' }).click();
-	await page.getByRole('button', { name: 'Weiter' }).click();
-	await page.getByRole('button', { name: 'Weiter' }).click();
+	await page.getByRole('button', { name: 'Weiter', exact: true }).click();
+	await page.getByRole('button', { name: 'Weiter', exact: true }).click();
 	await page.getByRole('textbox', { name: 'Titel' }).fill('Igel');
-	await page.getByRole('button', { name: 'Weiter' }).click();
+	await page.getByRole('button', { name: 'Weiter', exact: true }).click();
 };
 
 test.describe('Assistent: Mit Claude (060)', () => {
@@ -139,7 +139,6 @@ test.describe('Editor: Mit Claude ändern (058, 059)', () => {
 		const datei = path.join(dokumentOrdner(mappe, dok), 'material.html');
 		await writeFile(datei, (await readFile(datei, 'utf8')).replace('</h1>', ' Eigenes</h1>'));
 		await page.reload();
-		await oeffnePanel(page);
 		await expect(panel(page).getByRole('alert')).toContainText('seit dem Auftrag geändert');
 		await expect(panel(page).getByRole('button', { name: 'Vergleichen' })).toHaveCount(0);
 		await expect(panel(page).getByRole('button', { name: 'Neu starten' })).toBeVisible();
@@ -166,7 +165,6 @@ test.describe('Editor: Mit Claude ändern (058, 059)', () => {
 		await page.unroute('**/api/ki/status');
 		await page.route('**/api/ki/status', (r) => r.fulfill({ json: antwort('rejected', 1) }));
 		await page.reload();
-		await oeffnePanel(page);
 		await expect(panel(page).locator('[data-ki-limit="gesperrt"]')).toContainText('Wieder möglich ab');
 		await panel(page).getByLabel('Was soll Claude ändern?').fill('Geht nicht');
 		await expect(panel(page).getByRole('button', { name: 'Senden' })).toBeDisabled();

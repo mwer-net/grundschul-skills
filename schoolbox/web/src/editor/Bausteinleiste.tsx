@@ -503,7 +503,7 @@ export const Bausteinleiste = ({
 						<BefehlKnopf platz befehle={befehle} id="auswahl.runter" />
 					</div>
 				)}
-				{nachWerte && (
+				{nachWerte && !sitzung && (
 					<div className="flex items-center">
 						<Trenner />
 						<BefehlKnopf befehle={befehle} id="auswahl.hoch" />

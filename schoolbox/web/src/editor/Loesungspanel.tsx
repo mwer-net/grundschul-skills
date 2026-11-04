@@ -1,3 +1,4 @@
+import type { MouseEvent } from 'react';
 import { useId } from 'react';
 
 import { Knopf } from '../bausteine/Knopf';
@@ -5,6 +6,9 @@ import { Schalter } from '../bausteine/Schalter';
 import { Symbol } from '../bausteine/Symbol';
 import { Zeile } from '../bausteine/Zeile';
 import type { LoesungSteuerung } from './loesung';
+
+/** Sonst übernimmt das Feld schon beim Drücken, der Hinweis darüber verschwindet, und der Knopf springt weg. */
+const HALTE = { onMouseDown: (e: MouseEvent) => e.preventDefault() };
 
 const EINGABE =
 	'h-feld w-full rounded-md border border-rand-feld bg-flaeche px-1.5 text-sm focus:border-brand-500 focus:outline-none';
@@ -46,7 +50,7 @@ const Antwort = ({ l }: { l: LoesungSteuerung }) => {
 				}}
 			/>
 			{weitere > 0 && (
-				<Knopf art="zweit" className="mt-2" onClick={l.naechsteFehlende}>
+				<Knopf art="zweit" className="mt-2" {...HALTE} onClick={l.naechsteFehlende}>
 					<Symbol name="weiter" />
 					{weitere === 1 ? 'Zur anderen fehlenden Lösung' : `Nächste fehlende Lösung (${weitere})`}
 				</Knopf>

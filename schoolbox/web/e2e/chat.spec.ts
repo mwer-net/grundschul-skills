@@ -209,7 +209,7 @@ test.describe('Chat im Editor (074)', () => {
 	test('Die Palette schreibt ins Feld und schickt nichts ab', async ({ page }) => {
 		await offenesBlatt(page);
 		await page.keyboard.press('ControlOrMeta+k');
-		await page.getByRole('combobox').fill('Mach die Uhren größer');
+		await page.locator('[data-befehlspalette]').getByRole('combobox').fill('Mach die Uhren größer');
 		const zeile = page.locator('[data-palette-zeile="claude:schicken"]');
 		await expect(zeile).toContainText('An Claude schicken: Mach die Uhren größer');
 		await zeile.click();
@@ -234,12 +234,14 @@ test.describe('Neues Material aus dem Chat (077)', () => {
 	test.afterEach(() => fall('gut'));
 
 	const neuKarte = (page: Page) => chat(page).locator('[data-chat-neu]');
-	const mappenZahl = async () => (await readdir(MATERIAL_DIR)).length;
+	const mappenZahl = async () =>
+		(await readdir(MATERIAL_DIR, { withFileTypes: true })).filter((e) => e.isDirectory()).length;
 	const dokZahl = async (mappe: string) => {
-		const eintraege = await readdir(path.join(MATERIAL_DIR, mappe), { withFileTypes: true });
-		return eintraege.filter((e) => e.isDirectory() && !e.name.startsWith('.') && !e.name.startsWith('_')).length;
+		const eintraege = await readdir(path.join(MATERIAL_DIR, mappe, 'dokumente'), { withFileTypes: true });
+		return eintraege.filter((e) => e.isDirectory()).length;
 	};
 	const auftrag = async (page: Page, text: string) => {
+		await expect(page.getByRole('button', { name: 'Claude', exact: true })).toBeVisible();
 		await page.keyboard.press('ControlOrMeta+j');
 		await expect(feld(page)).toBeFocused();
 		await feld(page).fill(text);

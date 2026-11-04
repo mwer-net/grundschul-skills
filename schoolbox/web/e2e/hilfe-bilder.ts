@@ -181,6 +181,8 @@ test.describe('Bildschirmfotos für die Hilfe', () => {
 		await feld.fill('Nimm auch Viertelstunden dazu');
 		await feld.press('Enter');
 		await expect(page.locator('[data-ki-vorschlag]')).toBeVisible({ timeout: 30_000 });
+		// WebKit unter Linux zeichnet den Weichzeichner nicht, das Blatt schiene sonst durch die Schrift.
+		await page.addStyleTag({ content: '.chat-glas { background: rgb(255 255 255 / 0.97) !important; }' });
 		await foto(page, 'chat-mac.jpg');
 	});
 

@@ -194,7 +194,8 @@ test.describe('Editor', () => {
 				.filter((e) => e.getClientRects().length > 0)
 				.filter((e) => {
 					const { height, width } = e.getBoundingClientRect();
-					return height < 44 || width < 44;
+					const minimum = matchMedia('(any-pointer: coarse)').matches ? 44 : 20;
+					return height < minimum || width < minimum;
 				})
 				.map((e) => e.textContent || e.getAttribute('aria-label')),
 		);

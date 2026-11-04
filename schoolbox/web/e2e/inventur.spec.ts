@@ -43,7 +43,8 @@ test.describe('Inventur Editor', () => {
 
 		await kopf(page).getByRole('button', { name: 'Claude', exact: true }).click();
 		await expect(page.locator('[data-chat]')).toBeVisible();
-		await page.locator('[data-chat]').getByRole('button', { name: 'Chat schließen' }).click();
+		await kopf(page).getByRole('button', { name: 'Claude', exact: true }).click();
+		await expect(page.locator('[data-chat]')).toBeHidden();
 
 		await kopf(page).getByRole('button', { name: 'Versionen' }).click();
 		await expect(page.locator('[data-panel="versionen"]')).toBeVisible();
@@ -77,7 +78,7 @@ test.describe('Inventur Editor', () => {
 		await expect(page.locator('[data-tasten-uebersicht]')).toBeVisible();
 		await page.keyboard.press('Escape');
 		await status(page).getByRole('button', { name: 'Befehle' }).click();
-		await expect(page.getByRole('combobox')).toBeFocused();
+		await expect(page.locator('[data-befehlspalette]').getByRole('combobox')).toBeFocused();
 	});
 
 	test('Linke Leiste: Seiten, Gliederung, Bausteine, „+ Seite“', async ({ page }) => {
@@ -179,6 +180,7 @@ test.describe('Inventur Editor', () => {
 test.describe('Inventur außerhalb des Editors', () => {
 	test('Übersicht: Suche, Filter, Mappe anlegen; Kopf: Hilfe, Papierkorb, Abmelden', async ({ druecke, page }) => {
 		await legeMappeAn('Die Kartoffel', 'sachunterricht', 3, [{ titel: 'Teile der Kartoffel' }]);
+		await legeMappeAn('Größen', 'mathematik', 4, [{ titel: 'Meterstab', art: 'lernspiel' }]);
 		await page.goto('/');
 		await expect(page.getByPlaceholder('Mappen und Material suchen')).toBeVisible();
 		await expect(page.getByRole('button', { name: /Fach/ })).toBeVisible();
@@ -187,7 +189,7 @@ test.describe('Inventur außerhalb des Editors', () => {
 		await expect(page.getByRole('button', { name: 'Mappe anlegen' })).toBeVisible();
 		await expect(page.getByRole('link', { name: 'Hilfe' })).toBeVisible();
 		await expect(page.getByRole('link', { name: 'Papierkorb' })).toBeVisible();
-		await oeffneMehr(druecke, page.locator('[data-kopf-rechts]'));
+		await druecke(page.locator('[data-kopf-rechts]').getByRole('button', { name: 'Konto' }));
 		await expect(page.getByRole('menuitem', { name: 'Abmelden' })).toBeVisible();
 	});
 
@@ -206,13 +208,16 @@ test.describe('Inventur außerhalb des Editors', () => {
 	test('Kachel: Bild öffnet, Bearbeiten und PDF sichtbar, der Rest im ⋯', async ({ druecke, page }) => {
 		const { dokumente, id } = await legeMappeAn('Kartoffeln', 'sachunterricht', 3, [
 			{ titel: 'Kreisinput', art: 'praesentation', format: 'folie' },
+			{ titel: 'Teile der Kartoffel' },
 		]);
 		await page.goto(`/m/${id}`);
-		const kachel = page.locator('main').getByRole('listitem').first();
-		await expect(kachel.getByRole('link', { name: 'Bearbeiten' })).toBeVisible();
-		await expect(kachel.getByRole('button', { name: 'PDF' })).toBeVisible();
+		const blatt = page.locator(`[data-dokument="${dokumente[1]}"]`);
+		await expect(blatt.getByRole('link', { name: 'Bearbeiten' })).toBeVisible();
+		await expect(blatt.getByRole('button', { name: 'PDF' })).toBeVisible();
+		const kachel = page.locator(`[data-dokument="${dokumente[0]}"]`);
+		await expect(kachel.getByRole('link', { name: 'Präsentieren' })).toBeVisible();
 		await oeffneMehr(druecke, kachel);
-		for (const name of [/Präsentieren/, /Als Vorlage/, /Variante/, /Teilen/]) {
+		for (const name of [/^PDF/, /Als Vorlage/, /Variante/, /Teilen/]) {
 			await expect(page.getByRole('menuitem', { name })).toBeVisible();
 		}
 		await page.keyboard.press('Escape');

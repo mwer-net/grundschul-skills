@@ -16,6 +16,8 @@ export interface ChatHandlungen {
 	holeZitat: () => string;
 	/** Gibt der Tastatur das Blatt zurück. */
 	zumBlatt: () => void;
+	/** Nimmt einen Vorschlag an, sodass Rückgängig ihn wieder zurücknimmt. */
+	annimm: (arbeit: () => Promise<unknown>) => Promise<void>;
 	/** Kopiert die Referenz für die Claude-App. */
 	zurApp: (nr: number | null) => void;
 }

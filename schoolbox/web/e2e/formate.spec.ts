@@ -190,7 +190,7 @@ test.describe('Aufgabenformate (049)', () => {
 			['x-beschriften', 'Beschriften'],
 			['x-schreibrahmen', 'Schreibrahmen'],
 		] as const) {
-			await druecke(material(page).locator('.aufgabe').first());
+			await druecke(material(page).locator('.aufgabe').first().locator('.nr'));
 			await expect(page.locator('[data-einfuegen-plus]')).toBeVisible();
 			await page.locator('[data-einfuegen-plus]').click();
 			const fenster = page.locator('[data-schnellauswahl]');
@@ -276,10 +276,10 @@ test.describe('Eigene Vorlagen und Sammlung (051)', () => {
 
 		await page.goto(`/m/${id}`);
 		await page.getByRole('button', { name: 'Material anlegen' }).first().click();
-		await page.getByRole('button', { name: 'Weiter' }).click();
-		await page.getByRole('button', { name: 'Weiter' }).click();
+		await page.getByRole('button', { name: 'Weiter', exact: true }).click();
+		await page.getByRole('button', { name: 'Weiter', exact: true }).click();
 		await page.getByRole('textbox', { name: 'Titel' }).fill('Aus Vorlage');
-		await page.getByRole('button', { name: 'Weiter' }).click();
+		await page.getByRole('button', { name: 'Weiter', exact: true }).click();
 		await page.locator('[data-eigene-vorlage="uhr-vorlage"] button').first().click();
 		await page.getByRole('button', { name: 'Anlegen', exact: true }).click();
 		await page.waitForURL(/bearbeiten/);
@@ -515,15 +515,15 @@ test.describe('Punkte und Noten (053)', () => {
 		await oeffne(page, id, dok);
 		const m = material(page);
 		await druecke(m.locator('x-notenschluessel'));
-		await page.getByLabel('Grenzen in Prozent').fill('1:90; 2:75; 3:60; 4:45; 5:20');
-		await page.getByLabel('Grenzen in Prozent').press('Tab');
+		await page.getByLabel('Grenzen in Prozent', { exact: true }).fill('1:90; 2:75; 3:60; 4:45; 5:20');
+		await page.getByLabel('Grenzen in Prozent', { exact: true }).press('Tab');
 		await expect.poll(() => quelle(page)).toContain('grenzen="1:90; 2:75; 3:60; 4:45; 5:20"');
 		await expect(m.locator('x-notenschluessel')).not.toContainText('Vorschlag');
 		await page.getByRole('button', { name: 'Auswahl aufheben' }).click();
 
 		await expect(m.locator('x-erwartungshorizont')).toBeHidden();
 		await druecke(m.locator('.aufgabe').first());
-		await page.locator('[data-panel]').getByLabel('Anforderung').selectOption('II');
+		await page.locator('[data-panel]').getByLabel('Anforderung', { exact: true }).selectOption('II');
 		await expect.poll(() => quelle(page)).toContain('data-afb="II"');
 		await page
 			.getByRole('group', { name: 'Was zeigen?' })

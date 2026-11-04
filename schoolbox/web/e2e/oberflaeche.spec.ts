@@ -825,10 +825,12 @@ test.describe('Leisten im Blatt (071)', () => {
 		}
 	});
 
-	test('bleibt beim Scrollen eines hohen Bausteins sichtbar', async ({ druecke, page }) => {
+	test('bleibt beim Scrollen eines hohen Bausteins sichtbar', async ({ hasTouch, page }) => {
 		await oeffneBlatt(page);
 		await page.setViewportSize({ width: 1280, height: 600 });
-		await druecke(blatt(page).locator('.seite').first());
+		const rand = { position: { x: 6, y: 6 } };
+		const seite = blatt(page).locator('.seite').first();
+		await (hasTouch ? seite.tap(rand) : seite.click(rand));
 		await expect(leiste(page)).toHaveAttribute('data-bausteinleiste', 'seite');
 		await page.locator('main').evaluate((el) => el.scrollTo(0, 500));
 		const flaeche = await page.locator('main').boundingBox();

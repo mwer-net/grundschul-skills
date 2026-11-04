@@ -10,11 +10,13 @@ test.describe('Kontextmenü (070)', () => {
 		const menue = page.getByRole('menu');
 
 		await material(page).locator('x-uhr').first().click({ button: 'right' });
-		await expect(page.locator('[data-auswahl="uhr"]')).toBeVisible();
+		await expect(page.locator('[data-auswahl="abbildung"]')).toBeVisible();
 		await expect(menue.getByRole('menuitem', { name: /Neue Zahlen/ })).toBeVisible();
 		await page.keyboard.press('Escape');
 		await expect(menue).toBeHidden();
 
+		// Die Leiste über der gewählten Uhr deckt am kleinen Bildschirm die Nummer ab.
+		await page.getByRole('button', { name: 'Auswahl aufheben' }).click();
 		await material(page).locator('.aufgabe').first().locator('.nr').click({ button: 'right' });
 		await expect(menue.getByRole('menuitem', { name: /Duplizieren/ })).toBeVisible();
 		await expect(menue.getByRole('menuitem', { name: /Neue Zahlen/ })).toHaveCount(0);

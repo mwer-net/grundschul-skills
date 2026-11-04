@@ -87,7 +87,8 @@ test.describe('Editor: Lösungen', () => {
 		await expect(page.locator('[data-hinweis="fehlt"]')).toHaveText('Hier fehlt noch die Lösung.');
 		await antwort(page).fill('7 Uhr');
 		await druecke(page.getByRole('button', { name: 'Zur anderen fehlenden Lösung' }));
-		await expect(breadcrumb(page)).toHaveText('Seite 1›Sternchenaufgabe›Rechenzeile›Antwortlinie');
+		// Die vorderen Stufen fassen sich zu „…“ zusammen, wenn der Pfad nicht in die Zeile passt.
+		await expect(breadcrumb(page)).toHaveText(/›Rechenzeile›Antwortlinie$/);
 		await expect(antwort(page)).toHaveValue('');
 		await gespeichert(page, datei);
 		expect(await readFile(datei, 'utf8')).toContain('data-l="7 Uhr"');
@@ -160,7 +161,7 @@ test.describe('Editor: Lösungen', () => {
 		const vorher = await readFile(datei, 'utf8');
 		await oeffne(page, id, dok);
 		const zelle = (nr: number) => material(page).locator('.reihe > .zelle').nth(nr);
-		const schalter = page.getByLabel('Als Beispiel zeigen');
+		const schalter = page.locator('[data-inspektor]').getByLabel('Als Beispiel zeigen', { exact: true });
 
 		await druecke(zelle(1).locator('.antwort'));
 		await druecke(breadcrumb(page).getByRole('button', { name: 'Eintrag 2' }));

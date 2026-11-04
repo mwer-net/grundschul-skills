@@ -1038,8 +1038,8 @@ export const befehleFuerMenue = (art: MenueArt, k: Kontext) => {
 	if (art === 'baustein') {
 		const liste = befehleFuer('menue', k).filter((b) => MENUE_BAUSTEIN.includes(b.gruppe));
 		const eintraege = new Set(liste.map((b) => b.untermenue ?? b.id)).size;
-		// Beides steht auch sichtbar anderswo: der Inspektor bzw. „+ Baustein“.
-		const entbehrlich = ['auswahl.in-sammlung', 'auswahl.einfuegen-davor'].slice(0, eintraege - MENUE_MAX);
+		// „Davor einfügen“ steht auch unter „+ Baustein“. Die Sammlung weicht nur, wenn es sonst nicht passt, und bleibt in der Palette.
+		const entbehrlich = ['auswahl.einfuegen-davor', 'auswahl.in-sammlung'].slice(0, eintraege - MENUE_MAX);
 		return liste.filter((b) => !entbehrlich.includes(b.id));
 	}
 	const ids = art === 'leer' ? MENUE_LEER : MENUE_MINIATUR;
