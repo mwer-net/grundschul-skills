@@ -1,7 +1,11 @@
 import type { ReactNode } from 'react';
+import { useEffect } from 'react';
+import { useLocation } from 'react-router-dom';
 
 import { KnopfLink } from '../bausteine/Knopf';
+import { Kuerzel } from '../bausteine/Kuerzel';
 import { Symbol } from '../bausteine/Symbol';
+import { BEFEHLE, kuerzelText } from '../editor/befehle';
 import { useLaden } from '../lib/laden';
 import { useTitel } from '../lib/titel';
 import { dokumentSeite, inhaltAdresse } from '../lib/zugang';
@@ -45,6 +49,33 @@ const Beispiel = ({ children }: { children: ReactNode }) => (
 	<li className="rounded-2xl bg-flaeche px-5 py-3 shadow-2">{children}</li>
 );
 
+/** Die wichtigsten Tasten. Name und Kürzel kommen aus dem Register, damit die Hilfe nie etwas anderes sagt. */
+const WICHTIGE_TASTEN = [
+	'ansicht.palette',
+	'ansicht.claude',
+	'dokument.rueckgaengig',
+	'auswahl.duplizieren',
+	'auswahl.loeschen',
+	'auswahl.einfuegen-danach',
+	'ansicht.einpassen',
+	'ansicht.tasten',
+];
+
+const Tastenliste = () => (
+	<ul className="my-3 grid max-w-xl grid-cols-2 gap-x-6 gap-y-1 pl-0 max-md:grid-cols-1" data-hilfe-tasten>
+		{WICHTIGE_TASTEN.map((id) => {
+			const befehl = BEFEHLE.find((b) => b.id === id);
+			const taste = befehl?.kuerzel?.[0];
+			return befehl && taste && typeof befehl.titel === 'string' ? (
+				<li key={id} className="flex list-none items-center justify-between gap-3" data-hilfe-taste={id}>
+					<span>{befehl.titel}</span>
+					<Kuerzel text={kuerzelText(taste)} />
+				</li>
+			) : null;
+		})}
+	</ul>
+);
+
 interface Abschnitt {
 	id: string;
 	titel: string;
@@ -62,14 +93,14 @@ const ABSCHNITTE: Abschnitt[] = [
 					<li>Unter „Meine Mappen“ auf „Mappe anlegen“: Eine Mappe gehört zu einem Thema.</li>
 					<li>
 						In der Mappe auf „Material anlegen“: Art, Format und Titel wählen, dann leer, mit einer Vorlage
-						oder „Mit Claude“ beginnen. Mit Claude schreibst du in einem Satz, worum es geht, und bekommst
-						im Editor einen Entwurf zum Vergleichen.
+						oder „Mit Claude“ beginnen. Mit Claude schreibst du in einem Satz, worum es geht. Der Chat öffnet
+						sich im Editor, und am Ende steht ein Entwurf zum Vergleichen.
 					</li>
 				</ol>
 				<h3>Bausteine einfügen</h3>
 				<ul>
-					<Punkt titel="Plus">einen Teil des Blatts antippen, darunter auf das Plus tippen und wählen.</Punkt>
-					<Punkt titel="Bausteine">in der Seitenleiste suchen, ins Blatt ziehen oder antippen.</Punkt>
+					<Punkt titel="Plus">einen Teil des Blatts antippen, dann das Plus an seinem Rand oder „+ Baustein“ in der Leiste.</Punkt>
+					<Punkt titel="Bausteine">links im Reiter „Bausteine“ suchen, ins Blatt ziehen oder antippen.</Punkt>
 					<Punkt titel="Schrägstrich">in einer leeren Zeile „/“ tippen und weiterschreiben.</Punkt>
 				</ul>
 			</>
@@ -81,6 +112,10 @@ const ABSCHNITTE: Abschnitt[] = [
 		titel: 'Material von Claude',
 		inhalt: (
 			<>
+				<p>
+					Ein einzelnes Blatt geht am schnellsten im Chat der Schoolbox, siehe „Mit Claude arbeiten“. Für alles
+					Größere nimmst du die Claude-App:
+				</p>
 				<ol>
 					<li>Öffne die Claude-App auf dem Mac oder iPad und wähle dort die Umgebung „schoolbox“.</li>
 					<li>Schreib in deinen Worten, was du brauchst: Fach, Klasse, Thema. Zum Beispiel:</li>
@@ -129,7 +164,7 @@ const ABSCHNITTE: Abschnitt[] = [
 		inhalt: (
 			<ul>
 				<li>
-					Im Dokument speichert „PDF herunterladen“ das Blatt, auf Wunsch mit Lösung. „Drucken“ öffnet den
+					Im Dokument speichert „PDF“ das Blatt, auf Wunsch mit Lösung. „Drucken“ unter ⋯ öffnet den
 					Druckdialog.
 				</li>
 				<li>„Lösung“ oben zeigt das Lösungsblatt.</li>
@@ -163,7 +198,7 @@ const ABSCHNITTE: Abschnitt[] = [
 					</li>
 				</ul>
 				<h3>Ohne Internet</h3>
-				<p>Lade die Präsentation vorher herunter, unter „Ohne Internet“:</p>
+				<p>Lade die Präsentation vorher herunter, unter ⋯ „Ohne Internet“:</p>
 				<ul>
 					<Punkt titel="iPad">
 						„PDF zum Präsentieren“, in der Dateien-App öffnen. Jeder Schritt ist eine Seite; einfach
@@ -189,10 +224,13 @@ const ABSCHNITTE: Abschnitt[] = [
 			<>
 				<p>„Bearbeiten“ öffnet das Blatt zum Ändern. Alles speichert von selbst.</p>
 				<ul>
-					<Punkt titel="Text">antippen und lostippen. Fett und unterstrichen gibt es rechts daneben.</Punkt>
+					<Punkt titel="Text">antippen und lostippen. Fett und unterstrichen stehen in der Leiste über dem Text.</Punkt>
 					<Punkt titel="Umsortieren">
-						Aufgaben, Kärtchen und Seiten ziehen (am iPad kurz halten, dann ziehen) oder rechts „Nach oben“
-						und „Nach unten“ tippen. Dort lassen sie sich auch verdoppeln und löschen.
+						Aufgaben, Kärtchen und Seiten ziehen (am iPad kurz halten, dann ziehen) oder in der Leiste am
+						Baustein „Nach oben“ und „Nach unten“ tippen. Dort lassen sie sich auch verdoppeln und löschen.
+					</Punkt>
+					<Punkt titel="Einstellungen">
+						rechts im Inspektor: „Auswahl“ für den gewählten Baustein, „Blatt“ für Klasse, Farben und Format.
 					</Punkt>
 					<Punkt titel="Bilder">
 						Bild antippen, dann austauschen, eigenes hochladen oder an den Ecken größer und kleiner ziehen.
@@ -203,19 +241,6 @@ const ABSCHNITTE: Abschnitt[] = [
 						und zurückholen.
 					</Punkt>
 				</ul>
-				<h3>Claude im Editor oder in der Claude-App?</h3>
-				<ul>
-					<Punkt titel="Mit Claude ändern">
-						für einen Teil oder ein Blatt, etwa „Mach die Aufgabe schwerer“: Teil antippen, im Panel rechts
-						Auftrag wählen oder schreiben. Du vergleichst den Vorschlag und übernimmst ihn nur, wenn er dir
-						gefällt.
-					</Punkt>
-					<Punkt titel="Claude-App">
-						für Neues und Großes: ganze Reihen, mehrere Dokumente, neue Bilder. Für einen bestimmten Teil
-						im Chat unter ⋯ „In der Claude-App weiterarbeiten“, in der App einfügen und den Wunsch dahinterschreiben. Die zwei
-						eingefügten Zeilen gehören so; die zweite ist für Claude.
-					</Punkt>
-				</ul>
 			</>
 		),
 		bilder: [
@@ -224,11 +249,69 @@ const ABSCHNITTE: Abschnitt[] = [
 		],
 	},
 	{
+		id: 'schneller',
+		titel: 'Schneller arbeiten',
+		inhalt: (
+			<>
+				<ul>
+					<Punkt titel="Rechtsklick">auf einen Baustein zeigt alles, was mit ihm geht.</Punkt>
+					<Punkt titel="⋯">in der Leiste am Baustein und auf jeder Kachel zeigt dasselbe, auch am iPad.</Punkt>
+					<Punkt titel="Suchen und Befehle">
+						⌘K öffnet ein Feld, in dem du jeden Befehl, jede Mappe und jedes Dokument findest. Du musst nur
+						ungefähr wissen, wie es heißt.
+					</Punkt>
+				</ul>
+				<h3>Die wichtigsten Tasten</h3>
+				<Tastenliste />
+				<p>Alle Tasten stehen im Editor unten unter „Tasten“.</p>
+			</>
+		),
+		bilder: [{ datei: 'befehle-mac.jpg', alt: 'Das Feld für Befehle im Editor', geraet: 'Mac' }],
+	},
+	{
+		id: 'claude',
+		titel: 'Mit Claude arbeiten',
+		inhalt: (
+			<>
+				<ol>
+					<li>„Claude“ oben antippen oder ⌘J drücken. Der Chat liegt unten über dem Blatt.</li>
+					<li>
+						Der Knopf links im Feld zeigt, worauf sich dein Auftrag bezieht: den gewählten Baustein, das ganze
+						Blatt oder neues Material. Wähle einen anderen Teil, und er geht mit.
+					</li>
+					<li>Schreiben, Enter. Du kannst währenddessen weiterarbeiten, unten steht, wie weit Claude ist.</li>
+					<li>
+						Am Ende steht ein Vorschlag. „Vergleichen“ zeigt ihn neben dem Blatt, erst „Annehmen“ ändert etwas.
+						Schreibst du stattdessen weiter, bessert Claude den Vorschlag nach.
+					</li>
+				</ol>
+				<h3>Neues Material</h3>
+				<p>
+					In der Übersicht oder einer Mappe wird aus deiner Nachricht neues Material, im Editor wählst du dafür
+					im Knopf links „Neues Material“. Claude zeigt erst eine Karte mit Titel, Format, Fach, Klasse und
+					Mappe. Erst Enter oder „Anlegen“ startet die Arbeit, „Ändern“ öffnet die Wahl von Hand.
+				</p>
+				<h3>Was weiter die Claude-App braucht</h3>
+				<p>
+					Neue Bilder, ganze Reihen, mehrere Dokumente auf einmal. Für einen bestimmten Teil im Chat unter ⋯ „In
+					der Claude-App weiterarbeiten“, in der App einfügen und den Wunsch dahinterschreiben. Die zwei
+					eingefügten Zeilen gehören so; die zweite ist für Claude.
+				</p>
+				<h3>Verbrauch</h3>
+				<p>
+					Alles zählt für das Limit deines Claude-Kontos, zusammen mit der Claude-App. Eine Änderung braucht wenig,
+					neues Material deutlich mehr und einige Minuten. Wird es knapp, steht das im Chat.
+				</p>
+			</>
+		),
+		bilder: [{ datei: 'chat-mac.jpg', alt: 'Der Chat mit einem Vorschlag über dem Blatt', geraet: 'Mac' }],
+	},
+	{
 		id: 'teilen',
 		titel: 'Teilen mit Kolleginnen',
 		inhalt: (
 			<ul>
-				<li>„Teilen“ in der Mappe oder im Dokument, dann „Link erstellen“ und „Link kopieren“.</li>
+				<li>„Teilen“ in der Mappe oder im Dokument unter ⋯, dann „Link erstellen“ und „Link kopieren“.</li>
 				<li>
 					Wer den Link hat, kann ansehen, präsentieren und das PDF herunterladen. Ändern kann sie nichts, und
 					deine anderen Mappen sieht sie nicht.
@@ -277,6 +360,12 @@ const Kurzanleitung = () => {
 /** Hilfeseite für die Lehrkraft: kurz, in ihren Worten, mit Bildschirmfotos von Mac und iPad. */
 export const Hilfe = () => {
 	useTitel('Hilfe');
+	const { hash } = useLocation();
+	useEffect(() => {
+		if (hash) {
+			document.getElementById(hash.slice(1))?.scrollIntoView();
+		}
+	}, [hash]);
 	return (
 		<div className="mx-auto max-w-5xl">
 			<h1 className="text-3xl max-md:text-2xl">Hilfe</h1>

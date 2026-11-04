@@ -89,6 +89,8 @@ const foto = async (page: Page, name: string) => {
 const nurAuf = (geraet: 'mac' | 'ipad') => test.skip(test.info().project.name !== geraet, `nur ${geraet}`);
 
 test.describe('Bildschirmfotos für die Hilfe', () => {
+	test.beforeEach(({ page }) => page.addInitScript(() => localStorage.setItem('schoolbox-neu-gesehen', '1')));
+
 	test('Übersicht', async ({ page }) => {
 		nurAuf('mac');
 		await kartoffeln();
@@ -158,6 +160,29 @@ test.describe('Bildschirmfotos für die Hilfe', () => {
 			await foto(page, `editor-${geraet}.jpg`);
 		});
 	}
+
+	test('Befehle', async ({ page }) => {
+		nurAuf('mac');
+		const { dok, id } = await uhrzeit();
+		await oeffne(page, id, dok);
+		await page.keyboard.press('ControlOrMeta+k');
+		await page.getByRole('combobox').fill('Spalten');
+		await expect(page.locator('[data-palette-zeile]').first()).toBeVisible();
+		await foto(page, 'befehle-mac.jpg');
+	});
+
+	test('Chat', async ({ page }) => {
+		nurAuf('mac');
+		const { dok, id } = await uhrzeit();
+		await oeffne(page, id, dok);
+		await material(page).locator('.aufgabe').first().locator('.nr').click();
+		await page.keyboard.press('ControlOrMeta+j');
+		const feld = page.locator('[data-chat] #ki-auftrag');
+		await feld.fill('Nimm auch Viertelstunden dazu');
+		await feld.press('Enter');
+		await expect(page.locator('[data-ki-vorschlag]')).toBeVisible({ timeout: 30_000 });
+		await foto(page, 'chat-mac.jpg');
+	});
 
 	test('Teilen', async ({ druecke, page }) => {
 		nurAuf('mac');

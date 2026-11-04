@@ -526,7 +526,7 @@ export const Bibliothek = ({
 	);
 };
 
-/** Alle Seiten und Aufgaben: Klick springt, ↑ ↓ ordnet um, auch über die Seitengrenze. */
+/** Alle Seiten und Aufgaben: Klick springt, das Menü ordnet um, auch über die Seitengrenze. */
 export const Gliederung = ({
 	auswahl,
 	doc,

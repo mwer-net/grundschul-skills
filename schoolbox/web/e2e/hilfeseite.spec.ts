@@ -10,6 +10,8 @@ const ABSCHNITTE = [
 	'Drucken und PDF',
 	'Präsentieren',
 	'Bearbeiten',
+	'Schneller arbeiten',
+	'Mit Claude arbeiten',
 	'Teilen mit Kolleginnen',
 	'Wenn etwas nicht klappt',
 ];
@@ -29,11 +31,20 @@ test.describe('Hilfe', () => {
 		await expect(page.locator('[data-abschnitt="teilen"]')).toBeInViewport();
 
 		const bilder = page.locator('main img');
-		await expect(bilder).toHaveCount(8);
+		await expect(bilder).toHaveCount(10);
 		for (const bild of await bilder.all()) {
 			await bild.scrollIntoViewIfNeeded();
 			await expect.poll(() => bild.evaluate((b) => (b as HTMLImageElement).naturalWidth)).toBeGreaterThan(500);
 		}
+	});
+
+	test('die Tasten kommen aus dem Register und stehen auch in der Tasten-Übersicht', async ({ page }) => {
+		await page.goto('/hilfe#schneller');
+		const zeilen = page.locator('[data-hilfe-taste]');
+		await expect(zeilen).toHaveCount(8);
+		await expect(page.locator('[data-abschnitt="schneller"]')).toBeInViewport();
+		await expect(page.locator('[data-hilfe-taste="ansicht.palette"]')).toContainText(/Befehle.*K/);
+		await expect(page.locator('[data-hilfe-taste="ansicht.claude"]')).toContainText(/Claude.*J/);
 	});
 
 	test('verweist auf die Kurzanleitung, sobald es sie gibt', async ({ druecke, page }) => {
