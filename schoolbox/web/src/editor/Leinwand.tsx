@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from 'react';
 
 import { klassen } from '../bausteine/klassen';
 import { Symbol } from '../bausteine/Symbol';
+import { meldeDaneben } from '../bausteine/ueberlagerung';
 import type { Groesse } from './bild';
 import { elementZu, nrVon, trefferAn, VERALTET } from './darstellung';
 import type { Pruefstand } from './pruefung';
@@ -340,6 +341,7 @@ export const Leinwand = ({
 		ziehen.current = steuerung;
 		let start: { x: number; y: number; zeit: number; id: number } | null = null;
 		dokument.addEventListener('pointerdown', (e) => {
+			meldeDaneben();
 			start = e.isPrimary ? { x: e.clientX, y: e.clientY, zeit: e.timeStamp, id: e.pointerId } : null;
 		});
 		dokument.addEventListener('pointercancel', () => {

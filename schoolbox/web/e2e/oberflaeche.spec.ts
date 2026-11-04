@@ -512,3 +512,67 @@ test.describe('Bedienoptik (063)', () => {
 		expect(await blatt.evaluate((s) => getComputedStyle(s).fontFamily)).toContain('Andika');
 	});
 });
+
+test.describe('Menü (064)', () => {
+	test('PDF-Menü geht per Tastatur, der Fokus kommt zurück', async ({ page }) => {
+		const { dokumente, id } = await legeMappeAn('Menü', 'mathematik', 2, [
+			{ titel: 'Blatt', vorlage: 'arbeitsblatt', loesung: true },
+		]);
+		await page.goto(`/m/${id}/${dokumente[0]}`);
+		await blattGeladen(page);
+		const knopf = page.getByRole('button', { name: 'PDF herunterladen' });
+		await knopf.focus();
+		await page.keyboard.press('Enter');
+		const menue = page.getByRole('menu');
+		await expect(menue).toBeVisible();
+		const eintraege = menue.getByRole('menuitem');
+		await expect(eintraege.first()).toBeFocused();
+		await page.keyboard.press('ArrowDown');
+		await expect(eintraege.nth(1)).toBeFocused();
+		await page.keyboard.press('Home');
+		await expect(eintraege.first()).toBeFocused();
+		await page.keyboard.press('Escape');
+		await expect(menue).toBeHidden();
+		await expect(knopf).toBeFocused();
+	});
+
+	test('ein Klick ins Blatt schließt ein offenes Menü', async ({ druecke, page }) => {
+		const { dokumente, id } = await legeMappeAn('Menü', 'mathematik', 2, [
+			{ titel: 'Blatt', vorlage: 'arbeitsblatt' },
+		]);
+		await page.goto(`/m/${id}/${dokumente[0]}/bearbeiten`);
+		await expect(page.locator('[data-leinwand][data-geladen]')).toBeVisible();
+		await druecke(page.getByRole('button', { name: 'PDF', exact: true }));
+		await expect(page.getByRole('menu')).toBeVisible();
+		await page.frameLocator('[data-editor-rahmen="sichtbar"]').locator('.seite').first().click({
+			position: { x: 5, y: 5 },
+		});
+		await expect(page.getByRole('menu')).toBeHidden();
+	});
+
+	test('mit dem Finger sind Menüeinträge mindestens 44 px hoch', async ({ druecke, page }) => {
+		const { dokumente, id } = await legeMappeAn('Menü', 'mathematik', 2, [
+			{ titel: 'Blatt', vorlage: 'arbeitsblatt', loesung: true },
+		]);
+		await page.goto(`/m/${id}/${dokumente[0]}`);
+		await blattGeladen(page);
+		await druecke(page.getByRole('button', { name: 'PDF herunterladen' }));
+		const finger = await page.evaluate(() => matchMedia('(any-pointer: coarse)').matches);
+		const hoehe = (await page.getByRole('menuitem').first().boundingBox())?.height ?? 0;
+		expect(hoehe).toBeGreaterThanOrEqual(finger ? 44 : 20);
+	});
+});
+
+test.describe('Dialoge (065)', () => {
+	test('„Mappe anlegen“ fokussiert das Titelfeld, Schließen gibt den Fokus zurück', async ({ druecke, page }) => {
+		await page.goto('/');
+		const ausloeser = page.getByRole('button', { name: 'Mappe anlegen' });
+		await druecke(ausloeser);
+		const dialog = page.getByRole('dialog');
+		await expect(dialog.getByLabel('Titel')).toBeFocused();
+		await expect(dialog.getByRole('button', { name: 'Schließen' })).not.toBeFocused();
+		await page.keyboard.press('Escape');
+		await expect(dialog).toBeHidden();
+		await expect(ausloeser).toBeFocused();
+	});
+});

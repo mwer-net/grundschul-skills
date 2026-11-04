@@ -4,7 +4,8 @@ import { useCallback, useEffect, useState } from 'react';
 import type { Hinweis } from './hinweis';
 import { HinweisKontext } from './hinweis';
 import { klassen } from './klassen';
-import { Symbol } from './Symbol';
+import { Knopf } from './Knopf';
+import { SymbolKnopf } from './SymbolKnopf';
 
 const DAUER_MS = 6000;
 const DAUER_MIT_AKTION_MS = 10_000;
@@ -27,7 +28,7 @@ export const HinweisAnbieter = ({ children }: { children: ReactNode }) => {
 		<HinweisKontext value={zeige}>
 			{children}
 			<div
-				className="pointer-events-none fixed inset-x-0 bottom-0 z-50 flex justify-center p-6 max-md:p-3"
+				className="pointer-events-none fixed inset-x-0 bottom-8 z-meldung flex justify-center px-3"
 				role="status"
 				aria-live="polite"
 			>
@@ -35,31 +36,30 @@ export const HinweisAnbieter = ({ children }: { children: ReactNode }) => {
 					<div
 						key={hinweis.nr}
 						className={klassen(
-							'pointer-events-auto flex max-w-2xl items-center gap-2 rounded-2xl py-2 pr-2 pl-5 text-white shadow-2',
-							hinweis.art === 'fehler' ? 'bg-fehler' : 'bg-tinte',
+							'pointer-events-auto flex max-w-xl items-center gap-1 rounded-xl border border-rand bg-flaeche py-1 pr-1 pl-3 text-sm shadow-2',
+							hinweis.art === 'fehler' ? 'text-fehler' : 'text-tinte',
 						)}
 					>
-						<span className="py-2">{hinweis.text}</span>
+						<span className="py-1">{hinweis.text}</span>
 						{aktion && (
-							<button
-								type="button"
-								className="h-knopf flex-none rounded-xl px-4 font-medium text-entwurf hover:bg-flaeche/10"
+							<Knopf
+								art="leise"
+								groesse="klein"
+								className="flex-none font-semibold"
 								onClick={() => {
 									setHinweis(null);
 									aktion.ausfuehren();
 								}}
 							>
 								{aktion.titel}
-							</button>
+							</Knopf>
 						)}
-						<button
-							type="button"
-							className="flex size-knopf flex-none items-center justify-center rounded-md hover:bg-flaeche/10"
-							aria-label="Meldung schließen"
+						<SymbolKnopf
+							symbol="schliessen"
+							beschriftung="Meldung schließen"
+							groesse="klein"
 							onClick={() => setHinweis(null)}
-						>
-							<Symbol name="schliessen" />
-						</button>
+						/>
 					</div>
 				)}
 			</div>

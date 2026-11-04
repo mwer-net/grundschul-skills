@@ -216,3 +216,8 @@
 		list-style: disc;
 	}
 }
+
+@utility size-knopf-feld {
+	min-width: var(--hoehe-feld);
+	min-height: var(--hoehe-feld);
+}

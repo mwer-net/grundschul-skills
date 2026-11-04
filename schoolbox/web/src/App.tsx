@@ -2,8 +2,11 @@ import { BrowserRouter, Route, Routes, useParams } from 'react-router-dom';
 
 import { ANMELDE_SEITE } from './api';
 import { HinweisAnbieter } from './bausteine/Hinweisleiste';
+import { MenueAnbieter } from './bausteine/MenueAmPunkt';
 import { Rahmen } from './bausteine/Rahmen';
+import { TooltipAnbieter } from './bausteine/Tooltip';
 import { Anmeldung } from './seiten/Anmeldung';
+import { Bausteine } from './seiten/Bausteine';
 import { Dokumentansicht } from './seiten/Dokumentansicht';
 import { Drucken } from './seiten/Drucken';
 import { Editor } from './seiten/Editor';
@@ -51,8 +54,11 @@ const PraesentationSeite = () => {
 export const App = () => (
 	<BrowserRouter>
 		<HinweisAnbieter>
+			<TooltipAnbieter>
+			<MenueAnbieter>
 			<Routes>
 				<Route path={ANMELDE_SEITE} element={<Anmeldung />} />
+				{import.meta.env.DEV && <Route path="_bausteine" element={<Bausteine />} />}
 				<Route path="/f/:token/*" element={<Geteilt />} />
 				<Route path="m/:mappe/:dok/drucken" element={<DruckSeite />} />
 				<Route path="m/:mappe/:dok/praesentation" element={<PraesentationSeite />} />
@@ -68,6 +74,8 @@ export const App = () => (
 					<Route path="*" element={<NichtGefunden />} />
 				</Route>
 			</Routes>
+			</MenueAnbieter>
+			</TooltipAnbieter>
 		</HinweisAnbieter>
 	</BrowserRouter>
 );

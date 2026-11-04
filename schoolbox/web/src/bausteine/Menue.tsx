@@ -1,106 +1,156 @@
-import type { ReactNode } from 'react';
-import { useEffect, useId, useRef, useState } from 'react';
+import { Menu } from '@base-ui/react/menu';
+import type { ReactElement, ReactNode } from 'react';
+import { useCallback, useState } from 'react';
 
-import type { KnopfArt } from './klassen';
+import type { KnopfArt, KnopfGroesse } from './klassen';
 import { klassen } from './klassen';
 import { Knopf } from './Knopf';
-import { Symbol } from './Symbol';
+import { Kuerzel } from './Kuerzel';
+import { Symbol, type SymbolName } from './Symbol';
+import { useDaneben } from './ueberlagerung';
 
 export interface MenueEintrag {
 	titel: string;
 	/** Ein Satz unter dem Titel: wofür der Eintrag gut ist. */
 	beschreibung?: string;
-	waehle: () => void;
+	symbol?: SymbolName;
+	kuerzel?: string;
+	gefahr?: boolean;
+	/** Bleibt an seinem Platz, ist aber gesperrt. */
+	aus?: boolean;
+	/** Haken davor: der gerade gültige Wert. */
+	aktiv?: boolean;
+	/** Einträge gleicher Gruppe stehen zusammen, zwischen Gruppen liegt eine Linie. */
+	gruppe?: string;
+	waehle?: () => void;
+	/** Höchstens eine Ebene. */
+	untermenue?: MenueEintrag[];
 }
 
+export const POPUP_KLASSEN =
+	'z-menue max-h-[var(--available-height)] min-w-40 overflow-y-auto rounded-xl border border-rand bg-flaeche p-1 text-sm text-tinte shadow-2 outline-none';
+
+const EINTRAG_KLASSEN =
+	'flex h-menue w-full items-center gap-2 rounded-md px-2 text-left outline-none select-none data-[disabled]:opacity-50 data-[highlighted]:bg-flaeche-2 data-[popup-open]:bg-flaeche-2';
+
+const Inhalt = ({ eintrag }: { eintrag: MenueEintrag }) => (
+	<>
+		{eintrag.symbol ? (
+			<Symbol name={eintrag.symbol} />
+		) : (
+			eintrag.aktiv !== undefined && (
+				<span className="flex size-3.5 flex-none items-center justify-center">
+					{eintrag.aktiv && <Symbol name="haken" />}
+				</span>
+			)
+		)}
+		<span className="min-w-0 flex-1 py-1">
+			<span className="block">{eintrag.titel}</span>
+			{eintrag.beschreibung && <span className="mt-0.5 block text-xs text-leise">{eintrag.beschreibung}</span>}
+		</span>
+		{eintrag.kuerzel && <Kuerzel text={eintrag.kuerzel} className="ml-4" />}
+	</>
+);
+
+/** Einträge samt Linien zwischen den Gruppen und Untermenüs: dieselbe Liste für Knopf, Rechtsklick und ⋯. */
+export const MenueEintraege = ({ eintraege }: { eintraege: MenueEintrag[] }) =>
+	eintraege.map((eintrag, i) => {
+		const vorher = eintraege[i - 1];
+		const linie = vorher && vorher.gruppe !== eintrag.gruppe;
+		const schluessel = `${eintrag.gruppe ?? ''}/${eintrag.titel}`;
+		return (
+			<div key={schluessel} className="contents">
+				{linie && <Menu.Separator className="mx-1 my-1 h-px bg-rand" />}
+				{eintrag.untermenue ? (
+					<Menu.SubmenuRoot>
+						<Menu.SubmenuTrigger disabled={eintrag.aus} className={EINTRAG_KLASSEN}>
+							<Inhalt eintrag={eintrag} />
+							<Symbol name="rechts" className="size-3 flex-none text-dezent" />
+						</Menu.SubmenuTrigger>
+						<Menu.Portal>
+							<Menu.Positioner className="z-menue outline-none" sideOffset={2} collisionPadding={8}>
+								<Menu.Popup className={POPUP_KLASSEN}>
+									<MenueEintraege eintraege={eintrag.untermenue} />
+								</Menu.Popup>
+							</Menu.Positioner>
+						</Menu.Portal>
+					</Menu.SubmenuRoot>
+				) : (
+					<Menu.Item
+						disabled={eintrag.aus}
+						className={klassen(EINTRAG_KLASSEN, eintrag.gefahr && 'text-fehler')}
+						onClick={() => {
+							// Erst schließen, dann ausführen: Der Befehl darf den Fokus neu setzen.
+							window.setTimeout(() => eintrag.waehle?.(), 0);
+						}}
+					>
+						<Inhalt eintrag={eintrag} />
+					</Menu.Item>
+				)}
+			</div>
+		);
+	});
+
 interface Eigenschaften {
-	beschriftung: ReactNode;
+	/** Inhalt des Knopfs. Ohne `ausloeser` entsteht daraus ein Knopf mit Pfeil. */
+	beschriftung?: ReactNode;
+	/** Name für Hilfsmittel und Tests, wenn der Knopf nur ein Symbol zeigt. */
+	name?: string;
 	eintraege: MenueEintrag[];
 	art?: KnopfArt;
+	groesse?: KnopfGroesse;
 	disabled?: boolean;
 	/** Klappt nach links auf, wenn der Knopf am rechten Rand steht. */
 	rechtsbuendig?: boolean;
+	/** Eigener Auslöser statt des Standardknopfs. */
+	ausloeser?: ReactElement<Record<string, unknown>>;
 }
 
 /**
- * Knopf mit einer kleinen Auswahl darunter. Öffnet per Tippen oder Klick, nie per Hover; ein Tipp daneben oder Esc
- * schließt sie wieder.
+ * Knopf mit Auswahl: ↑↓ Home End, Tippen zum Finden, → ← für Untermenüs, Esc, ⏎. Öffnet per Klick oder Tippen, nie
+ * per Hover. Klick daneben schließt, auch im `iframe` des Editors (`meldeDaneben`).
  */
-export const Menue = ({ art = 'zweit', beschriftung, disabled, eintraege, rechtsbuendig }: Eigenschaften) => {
+export const Menue = ({
+	art = 'zweit',
+	ausloeser,
+	beschriftung,
+	disabled,
+	eintraege,
+	groesse,
+	name,
+	rechtsbuendig,
+}: Eigenschaften) => {
 	const [offen, setOffen] = useState(false);
-	const wurzel = useRef<HTMLDivElement>(null);
-	const id = useId();
-
-	useEffect(() => {
-		if (!offen) {
-			return undefined;
-		}
-		const daneben = (ereignis: PointerEvent) => {
-			if (!wurzel.current?.contains(ereignis.target as Node)) {
-				setOffen(false);
-			}
-		};
-		const taste = (ereignis: KeyboardEvent) => {
-			if (ereignis.key === 'Escape') {
-				setOffen(false);
-			}
-		};
-		document.addEventListener('pointerdown', daneben);
-		document.addEventListener('keydown', taste);
-		return () => {
-			document.removeEventListener('pointerdown', daneben);
-			document.removeEventListener('keydown', taste);
-		};
-	}, [offen]);
-
+	const schliessen = useCallback(() => setOffen(false), []);
+	useDaneben(offen, schliessen);
 	return (
-		<div ref={wurzel} className="relative">
-			<Knopf
-				art={art}
+		<Menu.Root open={offen} modal={false} onOpenChange={setOffen}>
+			<Menu.Trigger
 				disabled={disabled}
-				aria-haspopup="menu"
-				aria-expanded={offen}
-				aria-controls={offen ? id : undefined}
-				onClick={() => setOffen((o) => !o)}
-			>
-				{beschriftung}
-				<Symbol name="runter" className="size-3.5 flex-none" />
-			</Knopf>
-			{offen && (
-				<ul
-					id={id}
-					role="menu"
-					className={klassen(
-						'absolute top-full z-20 mt-2 flex min-w-full flex-col gap-1 rounded-xl border border-rand bg-flaeche p-2 shadow-2',
-						rechtsbuendig ? 'right-0' : 'left-0',
-						eintraege.some((e) => e.beschreibung) && 'w-96 max-w-[calc(100vw-2rem)]',
-					)}
+				aria-label={name}
+				render={
+					ausloeser ?? (
+						<Knopf art={art} groesse={groesse}>
+							{beschriftung}
+							<Symbol name="runter" className="size-3 flex-none" />
+						</Knopf>
+					)
+				}
+			/>
+			<Menu.Portal>
+				<Menu.Positioner
+					className="z-menue outline-none"
+					sideOffset={4}
+					align={rechtsbuendig ? 'end' : 'start'}
+					collisionPadding={8}
 				>
-					{eintraege.map(({ beschreibung, titel, waehle }) => (
-						<li key={titel} role="none">
-							<button
-								type="button"
-								role="menuitem"
-								className={klassen(
-									'h-knopf w-full rounded-lg px-4 text-left font-medium text-tinte hover:bg-flaeche-2 active:bg-rand',
-									beschreibung ? 'py-2' : 'whitespace-nowrap',
-								)}
-								onClick={() => {
-									setOffen(false);
-									waehle();
-								}}
-							>
-								{titel}
-								{beschreibung && (
-									<span className="mt-0.5 block text-base font-normal text-leise">
-										{beschreibung}
-									</span>
-								)}
-							</button>
-						</li>
-					))}
-				</ul>
-			)}
-		</div>
+					<Menu.Popup
+						className={klassen(POPUP_KLASSEN, eintraege.some((e) => e.beschreibung) && 'w-80 max-w-[90vw]')}
+					>
+						<MenueEintraege eintraege={eintraege} />
+					</Menu.Popup>
+				</Menu.Positioner>
+			</Menu.Portal>
+		</Menu.Root>
 	);
 };
