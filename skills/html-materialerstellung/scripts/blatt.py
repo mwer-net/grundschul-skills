@@ -271,7 +271,7 @@ def einbetten(quelltext, quelle_dir, pruefen=False, loesung=False, modus=None, p
         css = re.sub(r"url\((?!data:)([^)]+)\)",
                      lambda u: f"url({url_uri(suche(u.group(1).strip(chr(34) + chr(39)), p.parent))})"
                      if suche(u.group(1).strip(chr(34) + chr(39)), p.parent) else u.group(0), css)
-        return f"<style>\n{css}\n</style>"
+        return f'<style data-quelle="{html.escape(Path(m.group(1)).name, quote=True)}">\n{css}\n</style>'
 
     def js_ersetzen(m):
         p = suche(m.group(1), quelle_dir)

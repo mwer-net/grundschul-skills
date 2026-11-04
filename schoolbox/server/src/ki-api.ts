@@ -34,8 +34,13 @@ export const kiApi = (router: RouterTyp, kontext: Kontext) => {
 					art: (await leseMeta(materialDir, mappe, dok)).art,
 				})
 			: { auftrag: text(body.auftrag) ?? '' };
+		const eingabe = text(body.auftrag);
+		if (aktion?.eingabe && !eingabe) {
+			throw new HttpFehler(400, 'Bitte schreib, worum es geht.');
+		}
 		const auftrag = await ki.starte({
 			...inhalt,
+			auftrag: aktion?.eingabe ? `${inhalt.auftrag}\n\nWunsch der Lehrkraft: ${eingabe}` : inhalt.auftrag,
 			mappe,
 			dok,
 			referenz: text(body.referenz),

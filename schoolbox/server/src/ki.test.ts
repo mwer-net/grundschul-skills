@@ -343,6 +343,12 @@ describe('Aufträge an Claude', () => {
 		const zweite = await readFile(path.join(path.dirname(bin), 'prompts.txt'), 'utf8');
 		assert.match(zweite.split('---').at(-2) ?? '', /grundschul-didaktik, fach-mathematik, arbeitsblatt/);
 		assert.equal((await starte({ aktion: 'gibt-es-nicht' })).status, 400);
+		await api(`/dokumente/${mappe}/${dok}/vorschlag/verwerfen`, { method: 'POST' });
+		assert.equal((await starte({ aktion: 'neu-entwurf' })).status, 400);
+		const neu = await starte({ aktion: 'neu-entwurf', auftrag: 'Igel im Herbst' });
+		await fertig(((await neu.json()) as { auftrag: { id: string } }).auftrag.id);
+		const dritte = await readFile(path.join(path.dirname(bin), 'prompts.txt'), 'utf8');
+		assert.match(dritte.split('---').at(-2) ?? '', /Wunsch der Lehrkraft: Igel im Herbst/);
 	});
 
 	it('Prompts: Jede Aktion hat einen, ohne Regeln, Pfade oder Namen', async () => {

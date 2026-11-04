@@ -11,7 +11,7 @@ Ein Lernplakat sichert Wissen dauerhaft im Raum. Es wird im Unterricht gemeinsam
 
 ## Rückfragen
 
-Zuerst die Start-Abfrage (`grundschul-didaktik/references/rueckfragen.md`): Medium (A3 oder A2 aus A4-Kacheln) und Farbe; die Bausteine entfallen. Folien für Beamer oder Whiteboard (Kreisinput, Tafelbild, Reflexion) macht der Skill `praesentation`. Danach:
+Zuerst die Start-Abfrage (`grundschul-didaktik/references/rueckfragen.md`): Medium (A3 oder A2 aus A4-Kacheln), Farbe wird angenommen; die Bausteine entfallen. Folien für Beamer oder Whiteboard (Kreisinput, Tafelbild, Reflexion) macht der Skill `praesentation`. Danach:
 
 1. **Zweck:** Merkplakat (Regel/Strategie), Anschauung (Zahlenstrahl, Uhr, Alphabet), Wortspeicher, Klassenregeln/Rituale oder Lernkultur (Wachstumsstufen, „noch"-Sätze, Hilfe-Regel)?
 2. **Kernaussage:** Welche eine Regel/Strategie soll hängen bleiben? Gibt es Lehrwerksformulierungen, die übernommen werden sollen?
@@ -50,5 +50,5 @@ Entsteht zum Plakat auch eine Präsentation (Skill `praesentation`), Merksatz, B
 ## Umsetzung (`html-materialerstellung`)
 
 - Merkplakat: `<body class="… a3-hoch">`; A2 im Copyshop aus dem A3-PDF hochskalieren.
-- Schriftgrößen für die Leseentfernung über eigenes `<style>` (z. B. `--fs:40px`).
+- Schriftgrößen für die Leseentfernung über ein kurzes `<style>` nur mit `--fs` (z. B. `--fs:40px`); Aussehen sonst über Kit und Thema (`html-materialerstellung/references/layout.md`, Abschnitt „Baukasten und Thema“).
 - Mit Schoolbox die Druckhinweise am Dokument hinterlegen (`schoolbox dokument … --druckhinweis "…"`), z. B. „In A3 drucken“ oder „Für A2 im Copyshop aus dem A3-PDF vergrößern“.

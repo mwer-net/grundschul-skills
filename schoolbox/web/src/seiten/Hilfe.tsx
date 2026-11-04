@@ -54,8 +54,31 @@ interface Abschnitt {
 
 const ABSCHNITTE: Abschnitt[] = [
 	{
+		id: 'anlegen',
+		titel: 'Selbst anlegen',
+		inhalt: (
+			<>
+				<ol>
+					<li>Unter „Meine Mappen“ auf „Mappe anlegen“: Eine Mappe gehört zu einem Thema.</li>
+					<li>
+						In der Mappe auf „Material anlegen“: Art, Format und Titel wählen, dann leer, mit einer Vorlage
+						oder „Mit Claude“ beginnen. Mit Claude schreibst du in einem Satz, worum es geht, und bekommst
+						im Editor einen Entwurf zum Vergleichen.
+					</li>
+				</ol>
+				<h3>Bausteine einfügen</h3>
+				<ul>
+					<Punkt titel="Plus">einen Teil des Blatts antippen, darunter auf das Plus tippen und wählen.</Punkt>
+					<Punkt titel="Bausteine">in der Seitenleiste suchen, ins Blatt ziehen oder antippen.</Punkt>
+					<Punkt titel="Schrägstrich">in einer leeren Zeile „/“ tippen und weiterschreiben.</Punkt>
+				</ul>
+			</>
+		),
+		bilder: [],
+	},
+	{
 		id: 'material',
-		titel: 'So bekommst du Material',
+		titel: 'Material von Claude',
 		inhalt: (
 			<>
 				<ol>
@@ -110,6 +133,10 @@ const ABSCHNITTE: Abschnitt[] = [
 					Druckdialog.
 				</li>
 				<li>„Lösung“ oben zeigt das Lösungsblatt.</li>
+				<li>
+					Der Schalter „Farbe | s/w“ zeigt das Blatt in Farbe oder für den Kopierer. Das Material selbst
+					bleibt gleich, du musst dich nicht vorher festlegen.
+				</li>
 				<li>
 					Steht ein gelber Kasten über dem Blatt, sind das Druckhinweise, zum Beispiel „auf festes Papier“.
 				</li>
@@ -176,12 +203,19 @@ const ABSCHNITTE: Abschnitt[] = [
 						und zurückholen.
 					</Punkt>
 				</ul>
-				<h3>Was im Editor nicht geht</h3>
-				<p>
-					„Mach die Aufgabe schwerer“ oder „Noch zwei Aufgaben dazu“: Teil antippen, rechts auf „Claude
-					fragen“ (ohne Auswahl gilt es für das ganze Blatt). Dann in der Claude-App einfügen und deinen
-					Wunsch dahinterschreiben. Die zwei eingefügten Zeilen gehören so; die zweite ist für Claude.
-				</p>
+				<h3>Claude im Editor oder in der Claude-App?</h3>
+				<ul>
+					<Punkt titel="Mit Claude ändern">
+						für einen Teil oder ein Blatt, etwa „Mach die Aufgabe schwerer“: Teil antippen, im Panel rechts
+						Auftrag wählen oder schreiben. Du vergleichst den Vorschlag und übernimmst ihn nur, wenn er dir
+						gefällt.
+					</Punkt>
+					<Punkt titel="Claude-App">
+						für Neues und Großes: ganze Reihen, mehrere Dokumente, neue Bilder. Für einen bestimmten Teil
+						rechts auf „Claude fragen“, in der App einfügen und den Wunsch dahinterschreiben. Die zwei
+						eingefügten Zeilen gehören so; die zweite ist für Claude.
+					</Punkt>
+				</ul>
 			</>
 		),
 		bilder: [
@@ -246,7 +280,7 @@ export const Hilfe = () => {
 	return (
 		<div className="mx-auto max-w-5xl">
 			<h1 className="text-3xl max-md:text-2xl">Hilfe</h1>
-			<p className="mt-1 text-lg text-leise">So kommst du vom Wunsch in der Claude-App zum fertigen Material.</p>
+			<p className="mt-1 text-lg text-leise">So kommst du selbst oder mit Claude zum fertigen Material.</p>
 			<Kurzanleitung />
 			<nav aria-label="Inhalt" className="mt-6 flex flex-wrap gap-2">
 				{ABSCHNITTE.map(({ id, titel }) => (

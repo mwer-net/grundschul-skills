@@ -404,3 +404,8 @@ x-unterschrift{display:flex;gap:32px;margin-top:32px}
 x-erwartungshorizont{display:none}
 body.loesung x-erwartungshorizont{display:block;margin-top:12px}
 body.ohne-punkte .punkte,body.ohne-punkte x-gesamtpunkte{display:none}
+
+/* Bausteine für ein Thema (055): Aussehen kommt aus thema.css */
+.thema-band{height:14px;margin-bottom:12px;background:var(--haupt);border-radius:7px}
+.thema-kopf{padding:12px 20px;margin-bottom:16px;background:var(--fuell);border:2px solid var(--haupt);border-radius:16px}
+.thema-kopf h1{margin:0}

@@ -92,7 +92,7 @@ interface Wunsch {
 }
 
 /** Auftrag und Vorschlag eines Dokuments. Beides überlebt Neuladen: Der Server hält den Stand. */
-export const useKiAuftrag = (mappe: string, dok: string, nachLauf: () => void) => {
+export const useKiAuftrag = (mappe: string, dok: string, nachLauf: () => void, gestartet?: string) => {
 	const basis = `/api/dokumente/${mappe}/${dok}`;
 	const [auftrag, setAuftrag] = useState<KiAuftrag | null>(null);
 	const [vorschlag, setVorschlag] = useState<Vorschlag | null>(null);
@@ -130,6 +130,13 @@ export const useKiAuftrag = (mappe: string, dok: string, nachLauf: () => void) =
 			() => undefined,
 		);
 	}, [basis, ladeVorschlag]);
+
+	// Aus dem Assistenten: Der Auftrag kann schon zu Ende sein, bevor der Editor offen ist.
+	useEffect(() => {
+		if (gestartet) {
+			void pruefe(gestartet);
+		}
+	}, [gestartet, pruefe]);
 
 	useEreignisse((e) => {
 		if (e.typ === 'ki-stand' && e.id && e.mappe === mappe && e.dok === dok) {

@@ -4,6 +4,7 @@ import type { Ort } from '@schoolbox/kern/src/referenz';
 import { erzeugeReferenz } from '@schoolbox/kern/src/referenz';
 import type { RefObject } from 'react';
 import { useEffect, useRef, useState } from 'react';
+import { useLocation } from 'react-router-dom';
 
 import { Chip } from '../bausteine/Chip';
 import { Dialog } from '../bausteine/Dialog';
@@ -276,7 +277,8 @@ export const ClaudePanel = ({
 	zerlegung,
 	zustand,
 }: Eigenschaften) => {
-	const ki = useKiAuftrag(mappe, dok, neuLaden);
+	const gestartet = (useLocation().state as { kiAuftrag?: string } | null)?.kiAuftrag;
+	const ki = useKiAuftrag(mappe, dok, neuLaden, gestartet);
 	const [text, setText] = useState('');
 	const seite = pfad?.[0] ?? null;
 	const baustein = nr === null ? null : (pfad?.at(-1) ?? null);
@@ -376,7 +378,7 @@ export const ClaudePanel = ({
 				starte={() => void starte({ auftrag: text })}
 			/>
 			<p className="mt-4 text-leise">
-				Für neues Material und Bilder bleibt „Claude fragen“ der Weg über die Claude-App.
+				Für Reihen und neue Bilder bleibt „Claude fragen“ der Weg über die Claude-App.
 			</p>
 		</div>
 	);

@@ -179,6 +179,8 @@ export const BAUSTEINE: readonly Baustein[] = [
 	// Den Lösungstext ändern geht nur in der Lösungsansicht (loesung.ts): Auf dem Arbeitsblatt ist die Linie leer.
 	{ art: 'antwort', name: 'Antwortlinie', selektor: '.antwort', faehigkeiten: [...GRUND, 'loesung'], ...KLEIN },
 	{ art: 'box', name: 'Kästchen', selektor: '.box', faehigkeiten: GRUND, ...KLEIN },
+	{ art: 'themaband', name: 'Band des Themas', selektor: '.thema-band', faehigkeiten: GRUND, ...KLEIN },
+	{ art: 'themakopf', name: 'Kopf des Themas', selektor: '.thema-kopf', faehigkeiten: GRUND, ...KLEIN },
 	{ art: 'punkte', name: 'Punkte', selektor: '.punkte', faehigkeiten: GRUND, ...KLEIN },
 	{ art: 'schreiblinie', name: 'Schreiblinie', selektor: '.schreiblinie', faehigkeiten: GRUND, ...KLEIN },
 	{ art: 'malfeld', name: 'Malfeld', selektor: '.malfeld', faehigkeiten: GRUND, ...KLEIN },
@@ -396,6 +398,20 @@ export interface KitEintrag extends KatalogAngaben {
 
 /** Die Kit-Bausteine für den Katalog (`katalog.ts`). Starter stehen in `assets/muster/bausteine.html` (`data-katalog`). */
 export const KIT_KATALOG: readonly KitEintrag[] = [
+	{
+		id: 'thema-band',
+		name: 'Band des Themas',
+		kategorie: 'Kopf und Rahmen',
+		suchbegriffe: ['Schmuck', 'Reihe', 'Thema'],
+		ort: 'seite',
+	},
+	{
+		id: 'thema-kopf',
+		name: 'Kopf des Themas',
+		kategorie: 'Kopf und Rahmen',
+		suchbegriffe: ['Titel', 'Reihe', 'Thema'],
+		ort: 'seite',
+	},
 	{
 		id: 'lesetext-zeilennummern',
 		name: 'Lesetext mit Zeilennummern',

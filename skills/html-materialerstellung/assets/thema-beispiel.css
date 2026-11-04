@@ -1,0 +1,26 @@
+/* Beispiel für eine Reihe: Detektiv-Thema. Nur Variablen und Schmuck an Kit-Klassen. */
+body.farbe {
+	--haupt: #24406e;
+	--dunkel: #24406e;
+	--akzent: #ffc83d;
+	--linie: #24406e;
+	--fuell: #fff7e6;
+}
+.seite {
+	outline: 3px dashed var(--haupt);
+	outline-offset: -26px;
+}
+h1 {
+	font-family: Fredoka, sans-serif;
+	color: var(--haupt);
+}
+.thema-band {
+	background: repeating-linear-gradient(135deg, var(--haupt) 0 14px, var(--akzent) 14px 28px);
+}
+.thema-kopf {
+	border-style: dashed;
+	border-radius: 26px;
+}
+.ziel {
+	border-left: 6px solid var(--akzent);
+}

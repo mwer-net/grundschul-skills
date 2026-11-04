@@ -4,7 +4,8 @@ import { expect, test } from './hilfe';
 
 const MATERIAL_DIR = process.env.E2E_MATERIAL_DIR ?? '';
 const ABSCHNITTE = [
-	'So bekommst du Material',
+	'Selbst anlegen',
+	'Material von Claude',
 	'Entwürfe auswählen',
 	'Drucken und PDF',
 	'Präsentieren',

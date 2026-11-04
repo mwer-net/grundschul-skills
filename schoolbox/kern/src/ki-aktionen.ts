@@ -12,6 +12,8 @@ export interface KiAktion {
 	skills: string[];
 	/** Reine Sprachaufgabe: Fach- und Material-Skill brauchen nur Limit. */
 	ohneFachSkill?: boolean;
+	/** Braucht einen Wunsch der Lehrkraft, der an den Prompt angehängt wird. */
+	eingabe?: boolean;
 }
 
 export const KI_AKTIONEN: readonly KiAktion[] = [
@@ -34,4 +36,12 @@ export const KI_AKTIONEN: readonly KiAktion[] = [
 	},
 	{ id: 'drei-niveaus', name: 'Drei Niveaus', auf: ['blatt'], skills: ['grundschul-didaktik'] },
 	{ id: 'thema-tauschen', name: 'Thema tauschen', auf: ['blatt'], skills: ['grundschul-didaktik'] },
+	// Nur aus dem Assistenten (060), darum ohne Umfang im Panel.
+	{
+		id: 'neu-entwurf',
+		name: 'Neues Blatt',
+		auf: [],
+		skills: ['grundschul-didaktik', 'html-materialerstellung'],
+		eingabe: true,
+	},
 ];

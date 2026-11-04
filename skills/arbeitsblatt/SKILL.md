@@ -42,17 +42,19 @@ Nach den Rückfragen 2–3 Entwürfe zeigen, erst nach Freigabe des Aufgabenplan
 
 | Format | Geeignet für | Hinweis |
 |---|---|---|
-| Zuordnen / Verbinden | Kl. 1–2, Begriffe, Bild-Wort | Max. 6 Paare, Punkte als Startmarke |
-| Lückentext mit Wortauswahl | Deutsch, Sachunterricht | Wortauswahl im Kasten über dem Text |
-| Ankreuzen / Einkreisen | Verständnis, Wortarten | Klare Kästchen ☐ |
+| Zuordnen / Verbinden | Kl. 1–2, Begriffe, Bild-Wort | Max. 6 Paare, `x-zuordnen` |
+| Lückentext mit Wortauswahl | Deutsch, Sachunterricht | `x-lueckentext`, `x-wortspeicher` |
+| Ankreuzen / Einkreisen | Verständnis, Wortarten | `x-ankreuzen`, `x-richtigfalsch` |
 | Malen nach Ergebnis / Bildpuzzle | Mathe-Übung mit Selbstkontrolle | Farbschlüssel als ausgeschriebene Farbnamen, Bild als Strichzeichnung |
 | Zahlenmauer, Rechendreieck, Zahlenhaus | Mathe, produktives Üben | Siehe `fach-mathematik` |
-| Beschriften | Sachunterricht (Körper, Pflanze) | Linien mit Wortspeicher |
+| Beschriften | Sachunterricht (Körper, Pflanze) | `x-beschriften` mit Wortspeicher |
 | Schreibrahmen | Texte, Protokolle | Satzanfänge vorgeben, Element `x-schreibrahmen` (Lineatur nach der Klasse) |
 | Forscheraufgabe / offene Aufgabe | Alle Fächer, natürliche Differenzierung | "Finde möglichst viele …" |
 | Fehler finden („Willi hat sich vertan") | Rechnen ab Kl. 2, Rechtschreibung erst ab Kl. 3 | Fehleranzahl angeben ("Finde 3 Fehler.") |
 
 Mathe-Rechenformate (`x-zahlenmauer`, `x-rechendreieck`, `x-zahlenhaus`) als Item-Reihen in `.reihe`, alle gleich groß.
+
+Die Elemente beschreibt `html-materialerstellung/references/abbildungen.md`, Abschnitt „Aufgabenformate“; eigenes Aussehen einer Reihe: `html-materialerstellung/references/layout.md`, Abschnitt „Baukasten und Thema“.
 
 ## Kontrolle durch Kinder (Selbstkontrolle)
 

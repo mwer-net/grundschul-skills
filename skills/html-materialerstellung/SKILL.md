@@ -74,7 +74,7 @@ Ist im Projekt eine Schoolbox eingerichtet (Ordner `schoolbox/`, Projektanweisun
 - Fuß (nur mit Selbsteinschätzung): `.fuss` mit Text, Wachstumsgrafik, `.reflexion`.
 - Karten: `.karten` mit `--spalten`, `.karte`, `.kartentext`, `.ecke`.
 - Folien: Abschnitt „Folien“.
-- Eigene Gestaltung ist erlaubt (zusätzliches `<style>` im Kopf), solange `references/layout.md` eingehalten wird.
+- Eigene Gestaltung kommt als Thema über die Kit-Bausteine, nicht als eigene Struktur: `references/layout.md`, Abschnitt „Baukasten und Thema“. Eigene Klassen und `<style>` sind die begründete Ausnahme.
 
 ## Folien
 

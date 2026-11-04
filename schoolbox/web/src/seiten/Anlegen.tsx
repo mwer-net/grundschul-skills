@@ -20,6 +20,7 @@ import { Dialog } from '../bausteine/Dialog';
 import { klassen } from '../bausteine/klassen';
 import { Knopf } from '../bausteine/Knopf';
 import { Symbol } from '../bausteine/Symbol';
+import { useKiZustand } from '../editor/ki';
 import { melde } from '../ereignisse';
 import { useLaden } from '../lib/laden';
 import { klasseName } from '../lib/text';
@@ -251,6 +252,9 @@ export const MaterialAnlegen = ({ mappe }: { mappe: string }) => {
 	const [zusatz, setZusatz] = useState<Partial<Record<ZusatzName, boolean>>>({});
 	const [fehler, setFehler] = useState<string | null>(null);
 	const [laeuft, setLaeuft] = useState(false);
+	const [mitClaude, setMitClaude] = useState(false);
+	const [wunsch, setWunsch] = useState('');
+	const ki = useKiZustand().zustand;
 	const navigate = useNavigate();
 	const { daten } = useLaden<{ vorlagen: string[] }>('/api/mappen/vorlagen/liste');
 	const vorlagen = passendeVorlagen(daten?.vorlagen ?? [], art, format);
@@ -285,6 +289,10 @@ export const MaterialAnlegen = ({ mappe }: { mappe: string }) => {
 		setSchritt(schritt + 1);
 	};
 	const anlegen = async () => {
+		if (mitClaude && wunsch.trim() === '') {
+			setFehler('Bitte schreib, worum es geht.');
+			return;
+		}
 		setLaeuft(true);
 		setFehler(null);
 		try {
@@ -294,10 +302,22 @@ export const MaterialAnlegen = ({ mappe }: { mappe: string }) => {
 				art,
 				format: endFormat,
 				...(vorlage ? { vorlage } : {}),
-				zusatz,
+				zusatz: mitClaude ? {} : zusatz,
 			});
 			melde({ typ: 'mappe-neu', mappe });
-			void navigate(`/m/${mappe}/${id}/bearbeiten?neu=1`);
+			if (!mitClaude) {
+				void navigate(`/m/${mappe}/${id}/bearbeiten?neu=1`);
+				return;
+			}
+			// Das Blatt steht schon: Startet Claude nicht, geht es leer weiter, mit der Meldung im Editor.
+			const state = await sende<{ auftrag: { id: string } }>(`/api/dokumente/${mappe}/${id}/ki`, {
+				aktion: 'neu-entwurf',
+				auftrag: wunsch,
+			}).then(
+				({ auftrag }) => ({ kiAuftrag: auftrag.id }),
+				(grund: unknown) => ({ kiFehler: meldung(grund) }),
+			);
+			void navigate(`/m/${mappe}/${id}/bearbeiten?claude=1`, { state });
 		} catch (grund) {
 			setFehler(meldung(grund));
 			setLaeuft(false);
@@ -362,19 +382,40 @@ export const MaterialAnlegen = ({ mappe }: { mappe: string }) => {
 									<Wahl
 										id="leer"
 										titel="Leer"
-										aktiv={vorlage === null}
-										waehle={() => setVorlage(null)}
+										aktiv={vorlage === null && !mitClaude}
+										waehle={() => {
+											setVorlage(null);
+											setMitClaude(false);
+										}}
 									>
 										<span className="block text-sm text-leise">
 											Du fügst die Bausteine selbst ein.
 										</span>
 									</Wahl>
+									{ki.verfuegbar && (
+										<Wahl
+											id="mit-claude"
+											titel="Mit Claude"
+											aktiv={mitClaude}
+											waehle={() => {
+												setVorlage(null);
+												setMitClaude(true);
+											}}
+										>
+											<span className="block text-sm text-leise">
+												Claude schreibt einen Entwurf, du bearbeitest ihn weiter.
+											</span>
+										</Wahl>
+									)}
 									{eigene.map((v) => (
 										<EigeneWahl
 											key={v.id}
 											vorlage={v}
 											aktiv={vorlage === `eigen-${v.id}`}
-											waehle={() => setVorlage(`eigen-${v.id}`)}
+											waehle={() => {
+												setVorlage(`eigen-${v.id}`);
+												setMitClaude(false);
+											}}
 											neuLaden={eigen.neuLaden}
 										/>
 									))}
@@ -384,7 +425,10 @@ export const MaterialAnlegen = ({ mappe }: { mappe: string }) => {
 											id={v}
 											titel={`Vorlage: ${v}`}
 											aktiv={vorlage === v}
-											waehle={() => setVorlage(v)}
+											waehle={() => {
+												setVorlage(v);
+												setMitClaude(false);
+											}}
 										>
 											<iframe
 												src={`/ansicht/_assets/vorlage-${v}.html`}
@@ -401,7 +445,23 @@ export const MaterialAnlegen = ({ mappe }: { mappe: string }) => {
 										Für diese Art gibt es noch keine Vorlage. Du startest mit einem leeren Blatt.
 									</p>
 								)}
-								{zusaetze.length > 0 && (
+								{mitClaude && (
+									<label className="mt-4 block font-bold">
+										Worum geht es, und was sollen die Kinder können?
+										<textarea
+											className={`${FELD} mt-1 py-2 font-normal`}
+											rows={3}
+											maxLength={2000}
+											value={wunsch}
+											onChange={(e) => setWunsch(e.target.value)}
+										/>
+										<span className="mt-1 block text-sm font-normal text-leise">
+											Keine Namen von Kindern eintragen. Reihen, mehrere Dokumente und neue Bilder
+											gehen in der Claude-App.
+										</span>
+									</label>
+								)}
+								{!mitClaude && zusaetze.length > 0 && (
 									<fieldset className="mt-4">
 										<legend className="font-bold">Gleich dazu (kannst du überspringen)</legend>
 										{zusaetze.map(([z, titelZ]) => (

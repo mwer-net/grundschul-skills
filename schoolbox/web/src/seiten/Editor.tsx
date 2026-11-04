@@ -7,7 +7,7 @@ import type { Druckprofil, Format } from '@schoolbox/kern/src/werte';
 import type { ReactNode } from 'react';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import type { SetURLSearchParams } from 'react-router-dom';
-import { useNavigate, useSearchParams } from 'react-router-dom';
+import { useLocation, useNavigate, useSearchParams } from 'react-router-dom';
 
 import type { ApiFehler } from '../api';
 import { lade, meldung } from '../api';
@@ -362,7 +362,18 @@ const Bearbeitung = ({ dokument, mappe: mappenDaten }: { mappe: Mappe; dokument:
 	const { alles, stand } = b.speicher;
 	const [auswahl, setAuswahl] = useState<number | null>(null);
 	const [geladen, setGeladen] = useState<{ doc: Document; html: string } | null>(null);
-	const [panel, setPanel] = useState<PanelName>(suche.get('neu') === '1' ? 'bibliothek' : 'auswahl');
+	const [panel, setPanel] = useState<PanelName>(() => {
+		if (suche.get('claude') === '1') {
+			return 'claude';
+		}
+		return suche.get('neu') === '1' ? 'bibliothek' : 'auswahl';
+	});
+	const kiFehler = (useLocation().state as { kiFehler?: string } | null)?.kiFehler;
+	useEffect(() => {
+		if (kiFehler) {
+			zeige({ text: kiFehler, art: 'fehler' });
+		}
+	}, [kiFehler, zeige]);
 	const ki = useKiZustand();
 	const [vorschau, setVorschau] = useState<{ version: VersionEintrag; quelle: string } | null>(null);
 	const [zoom, setZoom] = useState(1);

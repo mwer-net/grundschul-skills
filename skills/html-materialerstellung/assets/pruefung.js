@@ -5,6 +5,38 @@
    dem Editor der Schoolbox, sonst null. Mit data-manuell am <script> prüft es nicht von selbst: Dann ruft der
    Editor window.pruefeBlatt({ warten: false }) und bekommt den Bericht zurück. */
 (function () {
+/* Baukasten und Thema (055). Die Listen sind die Quelle für den erzeugten Abschnitt in references/layout.md. */
+ const THEMA_VARIABLEN = ["--haupt", "--akzent", "--dunkel", "--linie", "--fuell", "--text", "--strich"];
+ const THEMA_SCHMUCK = ["color", "background", "border", "outline", "box-shadow", "font-family", "font-weight", "font-style", "text-decoration", "text-shadow", "opacity", "fill", "stroke", "letter-spacing"];
+ const KIT_MINDEST = 90; // Prozent; Abnahme aus Issue 055
+ const pruefeBaukasten = (melde) => {
+  const regelnVon = (sheet) => { try { return [...sheet.cssRules]; } catch { return null; } };
+  const sheets = [...document.styleSheets];
+  // blatt.py bettet Stylesheets ein und nennt die Datei in data-quelle.
+  const datei = (x) => x.ownerNode?.dataset?.quelle || (x.href || "").split("/").pop();
+  const blatt = sheets.find((x) => datei(x) === "blatt.css");
+  const regeln = blatt && regelnVon(blatt);
+  if (!regeln) return null; // Ohne Lesezugriff lieber nichts melden als Falsches.
+  const klassenIn = (text) => [...text.matchAll(/\.(-?[_a-zA-Z][\w-]*)/g)].map((t) => t[1]);
+  const kit = new Set();
+  const sammle = (liste) => liste.forEach((r) => { if (r.selectorText) klassenIn(r.selectorText).forEach((k) => kit.add(k)); if (r.cssRules) sammle([...r.cssRules]); });
+  sammle(regeln);
+  const thema = sheets.find((x) => datei(x) === "thema.css");
+  for (const r of (thema && regelnVon(thema)) || []) {
+   if (!r.selectorText) continue;
+   const fremd = klassenIn(r.selectorText).filter((k) => !kit.has(k));
+   if (fremd.length > 0) melde("HINWEIS", 0, "thema-klasse", `thema.css: Klasse ohne Registereintrag: ${fremd.join(", ")} → Kit-Klasse nehmen oder in das Register aufnehmen`);
+   const falsch = [...r.style].filter((n) => (n.startsWith("--") ? !THEMA_VARIABLEN.includes(n) : !THEMA_SCHMUCK.some((e) => n === e || n.startsWith(`${e}-`))));
+   if (falsch.length > 0) melde("HINWEIS", 0, "thema-layout", `thema.css: „${r.selectorText}“ setzt ${[...new Set(falsch)].join(", ")} → ein Thema ändert nur das Aussehen, nicht das Layout`);
+  }
+  const el = [...document.querySelectorAll(".seite *")].filter((e) => e.classList.length > 0 && !e.closest("svg") && !istInAbbildung(e) && !e.hasAttribute("data-erzeugt"));
+  if (el.length === 0) return null;
+  const imKit = el.filter((e) => [...e.classList].every((k) => kit.has(k))).length, anteil = Math.round((imKit / el.length) * 100);
+  if (anteil < KIT_MINDEST) melde("HINWEIS", 0, "kit-anteil", `Kit-Anteil ${anteil} % (Ziel ${KIT_MINDEST} %) → Kit-Bausteine statt eigener Klassen, Aussehen über thema.css`);
+  return anteil;
+ };
+ const istInAbbildung = (e) => { for (let p = e.parentElement; p; p = p.parentElement) if (p.localName.startsWith("x-")) return true; return e.localName.startsWith("x-"); };
+
  const pruefe = async ({ warten = true } = {}) => {
  const M = [];
  let ergebnis;
@@ -22,6 +54,7 @@
   const melde = (stufe, seite, code, text, ziele = []) => M.push({ stufe, seite, code, text, ziele });
   const kl = +((B.className.match(/kl(\d)/) || [0, 2])[1]);
   const RICHTWERT = { 1: 3, 2: 4, 3: 5, 4: 6 }[kl] || 6;
+  if (warten) window.kitAnteil = pruefeBaukasten(melde); // Nur beim Bauen: Im Editor hilft der Hinweis der Lehrkraft nicht.
   const fs = parseFloat(getComputedStyle(B).fontSize);
   const folie = B.classList.contains("folie"), mitNotizen = !!document.querySelector(".seite .notiz");
   const kurz = (el) => el.dataset.name || (el.matches(".antwort") && !el.textContent.trim() ? "Antwortlinie" : (el.textContent || el.getAttribute("alt") || el.tagName.toLowerCase()).trim().replace(/\s+/g, " ").slice(0, 40));

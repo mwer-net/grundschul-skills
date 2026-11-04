@@ -158,6 +158,7 @@ describe('Erzeugte Abschnitte', () => {
 		for (const datei of [
 			...new Set(ABSCHNITTE.map((a) => a.datei)),
 			'skills/html-materialerstellung/assets/blatt.css',
+			'skills/html-materialerstellung/assets/pruefung.js',
 		]) {
 			mkdirSync(path.dirname(path.join(ziel, datei)), { recursive: true });
 			cpSync(path.join(WURZEL, datei), path.join(ziel, datei));

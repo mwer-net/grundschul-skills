@@ -18,6 +18,46 @@ const beauftrage = async (page: Page, text = 'Mach es schöner') => {
 	await expect(panel(page).locator('[data-ki-vorschlag]')).toBeVisible();
 };
 
+const startSchritt = async (page: Page, mappe: string) => {
+	await page.goto(`/m/${mappe}`);
+	await page.getByRole('button', { name: 'Material anlegen' }).click();
+	await page.getByRole('button', { name: 'Weiter' }).click();
+	await page.getByRole('button', { name: 'Weiter' }).click();
+	await page.getByRole('textbox', { name: 'Titel' }).fill('Igel');
+	await page.getByRole('button', { name: 'Weiter' }).click();
+};
+
+test.describe('Assistent: Mit Claude (060)', () => {
+	test.afterEach(() => fall('gut'));
+
+	test('Aus einem Satz wird ein Vorschlag im Editor', async ({ page }) => {
+		const { id: mappe } = await uhrzeit();
+		await startSchritt(page, mappe);
+		await page.locator('[data-wahl="mit-claude"]').click();
+		await page.getByRole('button', { name: 'Anlegen', exact: true }).click();
+		await expect(page.getByText('Bitte schreib, worum es geht.')).toBeVisible();
+		await page.getByLabel('Worum geht es').fill('Igel im Herbst');
+		await page.getByRole('button', { name: 'Anlegen', exact: true }).click();
+		await expect(page).toHaveURL(/bearbeiten\?claude=1/);
+		await expect(panel(page).locator('[data-ki-vorschlag]')).toBeVisible();
+		await panel(page).getByRole('button', { name: 'Vergleichen' }).click();
+		await page.getByRole('button', { name: 'Annehmen' }).click();
+		await expect(panel(page).locator('[data-ki-vorschlag]')).toBeHidden();
+		const dok = new URL(page.url()).pathname.split('/')[3] ?? '';
+		await expect.poll(() => quelleAufPlatte(mappe, dok)).toContain('von Claude');
+	});
+
+	test('Ohne angemeldetes claude fehlt die Option', async ({ page }) => {
+		await page.route('**/api/ki/status', (r) =>
+			r.fulfill({ json: { verfuegbar: false, limit: null, warnAb: 1, aktionen: [] } }),
+		);
+		const { id: mappe } = await uhrzeit();
+		await startSchritt(page, mappe);
+		await expect(page.locator('[data-wahl="leer"]')).toBeVisible();
+		await expect(page.locator('[data-wahl="mit-claude"]')).toHaveCount(0);
+	});
+});
+
 test.describe('Editor: Mit Claude ändern (058, 059)', () => {
 	test.afterEach(() => fall('gut'));
 

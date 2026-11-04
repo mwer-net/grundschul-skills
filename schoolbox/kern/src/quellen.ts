@@ -16,6 +16,8 @@ const WURZEL = path.resolve(__dirname, '..', '..', '..');
 const RUECKFRAGEN = 'skills/grundschul-didaktik/references/rueckfragen.md';
 const DRUCK = 'skills/grundschul-didaktik/references/druck-und-platz.md';
 const BLATT_CSS = 'skills/html-materialerstellung/assets/blatt.css';
+const PRUEFUNG_JS = 'skills/html-materialerstellung/assets/pruefung.js';
+const LAYOUT = 'skills/html-materialerstellung/references/layout.md';
 
 const tabelle = (kopf: string[], zeilen: string[][]) =>
 	[
@@ -92,6 +94,25 @@ const lueckenBreite = (wurzel: string) => {
 	return tabelle(['Klasse', 'Lücke mindestens'], zeilen);
 };
 
+const themaRegeln = (wurzel: string) => {
+	const js = readFileSync(path.join(wurzel, PRUEFUNG_JS), 'utf8');
+	const liste = (name: string) => {
+		const text = new RegExp(`const ${name} = \\[([^\\]]*)\\]`).exec(js)?.[1];
+		if (!text) {
+			throw new Error(`${PRUEFUNG_JS}: ${name} nicht gefunden.`);
+		}
+		return [...text.matchAll(/"([^"]+)"/g)].map((t) => `\`${t[1]}\``);
+	};
+	const mindest = /const KIT_MINDEST = (\d+)/.exec(js)?.[1];
+	return [
+		`Erlaubte Variablen: ${liste('THEMA_VARIABLEN').join(', ')}.`,
+		'',
+		`Erlaubte Eigenschaften (auch ihre Unterformen wie \`border-radius\`): ${liste('THEMA_SCHMUCK').join(', ')}.`,
+		'',
+		`Der Kit-Anteil eines Blatts soll mindestens ${mindest} % sein.`,
+	].join('\n');
+};
+
 interface Abschnitt {
 	datei: string;
 	marke: string;
@@ -103,6 +124,7 @@ export const ABSCHNITTE: Abschnitt[] = [
 	{ datei: RUECKFRAGEN, marke: 'bausteine-je-art', inhalt: bausteineJeArt },
 	{ datei: DRUCK, marke: 'schrift-und-abstand', inhalt: klassenWerte },
 	{ datei: DRUCK, marke: 'luecken-breite', inhalt: lueckenBreite },
+	{ datei: LAYOUT, marke: 'thema-regeln', inhalt: themaRegeln },
 ];
 
 /** Setzt den Inhalt zwischen `<!-- erzeugt: marke -->` und `<!-- /erzeugt: marke -->`. */

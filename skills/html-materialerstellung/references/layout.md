@@ -43,7 +43,29 @@ Faustwerte Kl. 2 (24 px Schrift): Aufgabenzeile 34 px, Uhr 88 px + Antwortlinie 
    - `data-klein-ok`: Schrift darf kleiner sein als für die Klasse (Fußzeile, Hinweise für die Lehrkraft).
    - `data-flaeche-ok`: Fläche ist gewollt (Titelband, Szenenkarte), nicht hinter einer Aufgabe.
 
-## 4. Checkliste
+## 4. Baukasten und Thema
+
+Kit-Bausteine (`SKILL.md`, `references/abbildungen.md`) sind Pflicht. Eine eigene Klasse ist die begründete Ausnahme, die im Aufgabenplan steht: Der Editor, die s/w-Ansicht und der Katalog kennen sie nicht.
+
+Eine Reihe bekommt ihr eigenes Aussehen über eine Datei `thema.css` im Mappenordner:
+
+```html
+<link rel="stylesheet" href="blatt.css"><link rel="stylesheet" href="../../thema.css">
+```
+
+`thema.css` setzt nur Variablen und Schmuck an Kit-Klassen, Farben unter `body.farbe`. Struktur bleibt beim Kit; für Titel und Bänder gibt es `.thema-kopf` und `.thema-band`. Ein Beispiel steht in `assets/thema-beispiel.css`.
+
+<!-- erzeugt: thema-regeln -->
+Erlaubte Variablen: `--haupt`, `--akzent`, `--dunkel`, `--linie`, `--fuell`, `--text`, `--strich`.
+
+Erlaubte Eigenschaften (auch ihre Unterformen wie `border-radius`): `color`, `background`, `border`, `outline`, `box-shadow`, `font-family`, `font-weight`, `font-style`, `text-decoration`, `text-shadow`, `opacity`, `fill`, `stroke`, `letter-spacing`.
+
+Der Kit-Anteil eines Blatts soll mindestens 90 % sein.
+<!-- /erzeugt: thema-regeln -->
+
+Das Bauen meldet Abweichungen als Hinweis (`thema-layout`, `thema-klasse`, `kit-anteil`).
+
+## 5. Checkliste
 
 - [ ] `blatt.py bauen` ohne FEHLER, WARNUNGEN geprüft
 - [ ] Eine Spalte, Aufgaben ohne Kasten, Abstände einheitlich
