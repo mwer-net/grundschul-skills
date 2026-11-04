@@ -686,3 +686,68 @@ test.describe('Editor-Rahmen (066)', () => {
 		await expect(page.locator('[data-panel="inspektor"]')).toBeVisible();
 	});
 });
+
+test.describe('Linke Leiste (067)', () => {
+	const oeffneBausteine = async (page: Page) => {
+		const { dokumente, id } = await legeMappeAn('Leiste', 'mathematik', 2, [
+			{ titel: 'Blatt', vorlage: 'arbeitsblatt' },
+		]);
+		await page.goto(`/m/${id}/${dokumente[0]}/bearbeiten`);
+		await expect(page.locator('[data-leinwand][data-geladen]')).toBeVisible();
+		await page.getByRole('tab', { name: 'Bausteine' }).click();
+		await expect(page.locator('[data-bereich]').first()).toBeVisible();
+	};
+
+	test('Startansicht ohne Scrollen, jeder Katalogeintrag liegt in genau einem Bereich', async ({ page }) => {
+		test.skip(await page.evaluate(() => matchMedia('(any-pointer: coarse)').matches), 'nur mit Maus');
+		await page.setViewportSize({ width: 1512, height: 860 });
+		await oeffneBausteine(page);
+		const panel = page.locator('[data-panel-links] > div').last();
+		expect(await panel.evaluate((p) => p.scrollHeight <= p.clientHeight)).toBe(true);
+
+		await page.getByLabel('Nur passend zu Fach und Klasse').uncheck();
+		const anzahlen = await page.locator('[data-bereich-anzahl]').allTextContents();
+		const summe = anzahlen.reduce((s, a) => s + Number(a), 0);
+		const { eintraege } = (await (await page.request.get('/api/katalog')).json()) as { eintraege: unknown[] };
+		expect(summe).toBe(eintraege.length);
+		await expect(page.locator('[data-panel="inspektor"]')).toBeVisible();
+	});
+
+	test('Bereich auf und zurück; „Zuletzt benutzt“ erscheint erst nach dem Einfügen', async ({ page }) => {
+		await oeffneBausteine(page);
+		await expect(page.locator('[data-zuletzt-benutzt]')).toHaveCount(0);
+		await page.locator('[data-bereich="Aufgabe und Text"]').click();
+		await expect(page.locator('[data-bereich]')).toHaveCount(0);
+		await page.locator('[data-einfuegen="aufgabe"]').click();
+		await page.getByRole('button', { name: 'Aufgabe und Text' }).click();
+		await expect(page.locator('[data-zuletzt="aufgabe"]')).toBeVisible();
+	});
+
+	test('„+ Seite ▾“ legt beide Seitenarten an und merkt sich die Wahl', async ({ druecke, page }) => {
+		const { dokumente, id } = await legeMappeAn('Leiste', 'mathematik', 2, [
+			{ titel: 'Blatt', vorlage: 'arbeitsblatt' },
+		]);
+		await page.goto(`/m/${id}/${dokumente[0]}/bearbeiten`);
+		await expect(page.locator('[data-leinwand][data-geladen]')).toBeVisible();
+		const blatt = page.frameLocator('[data-editor-rahmen="sichtbar"]');
+		const namen = () => blatt.locator('.seite .namenszeile');
+		const vorher = await namen().count();
+		const miniaturen = page.locator('[data-seite-miniatur]');
+		await expect(miniaturen).toHaveCount(1);
+
+		await druecke(page.getByRole('button', { name: 'Art der neuen Seite' }));
+		await druecke(page.getByRole('menuitem', { name: 'Leere Seite' }));
+		await expect(miniaturen).toHaveCount(2);
+		expect(await namen().count()).toBe(vorher);
+
+		await druecke(page.getByRole('button', { name: 'Art der neuen Seite' }));
+		await druecke(page.getByRole('menuitem', { name: 'Seite mit Namenszeile' }));
+		await expect(miniaturen).toHaveCount(3);
+		await expect.poll(() => namen().count()).toBeGreaterThan(vorher);
+
+		const mit = await namen().count();
+		await druecke(page.getByRole('button', { name: 'Seite hinzufügen' }));
+		await expect(miniaturen).toHaveCount(4);
+		await expect.poll(() => namen().count()).toBeGreaterThan(mit);
+	});
+});

@@ -30,6 +30,7 @@ test.describe('Anlegen ohne Claude', () => {
 		const [, , mappe = '', dok = ''] = new URL(page.url()).pathname.split('/');
 		const versionen = await readdir(path.join(MATERIAL_DIR, mappe, 'dokumente', dok, 'versionen'));
 		expect(versionen.some((v) => v.includes('lehrkraft'))).toBe(true);
+		await page.locator('[data-bereich="Aufgabe und Text"]').click();
 		await page.locator('[data-einfuegen="aufgabe"]').click();
 		await expect(page.frameLocator('[data-editor-rahmen="sichtbar"]').locator('.aufgabe')).toHaveCount(1);
 		await expect

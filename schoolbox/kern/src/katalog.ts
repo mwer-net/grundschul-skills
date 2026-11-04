@@ -142,7 +142,14 @@ export const KATALOG: readonly KatalogEintrag[] = [
 	...REZEPTE.map((r): KatalogEintrag => ({ ...r, herkunft: 'rezept' })),
 ];
 
-const klein = (t: string) => t.toLocaleLowerCase('de');
+/** Wer „loschen“ oder „grosse“ tippt, meint „Löschen“ und „Größe“. */
+const klein = (t: string) =>
+	t
+		.toLocaleLowerCase('de')
+		.replace(/ä/g, 'a')
+		.replace(/ö/g, 'o')
+		.replace(/ü/g, 'u')
+		.replace(/ß/g, 'ss');
 
 /** Sucht über Name und Suchbegriffe, Name zuerst. Mehrere Wörter müssen alle passen. */
 export const sucheImKatalog = (anfrage: string, eintraege: readonly KatalogEintrag[] = KATALOG) => {

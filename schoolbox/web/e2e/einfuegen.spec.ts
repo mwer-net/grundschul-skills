@@ -126,6 +126,7 @@ test.describe('Editor: Bausteine einfügen', () => {
 		const vorher = await quelle(page);
 		await page.getByRole('tab', { name: 'Gliederung' }).click();
 		const zeilen = page.locator('[data-gliederung-aufgabe]');
+		await zeilen.nth(0).getByRole('button').first().click();
 		await zeilen.nth(0).getByRole('button', { name: 'Nach unten' }).click();
 		await expect.poll(() => quelle(page)).not.toBe(vorher);
 	});

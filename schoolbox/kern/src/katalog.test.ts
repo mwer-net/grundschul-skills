@@ -182,6 +182,20 @@ describe('Suche', () => {
 		assert.equal(treffer('').length, KATALOG.length);
 		assert.deepEqual(treffer('gibtsnicht'), []);
 	});
+
+	it('findet auch ohne Umlaute und ß', () => {
+		const [muster] = KATALOG;
+		assert.ok(muster);
+		const eintrag = { ...muster, id: 'probe', name: 'Löschen und Größen', suchbegriffe: [] };
+		for (const anfrage of ['loschen', 'grosse', 'Größen', 'löschen']) {
+			assert.deepEqual(
+				sucheImKatalog(anfrage, [eintrag]).map((e) => e.id),
+				['probe'],
+				anfrage,
+			);
+		}
+		assert.ok(treffer('Saulendiagramm').includes('x-diagramm'));
+	});
 });
 
 describe('Starter im Browser', { skip: browserSkip() }, () => {

@@ -6,9 +6,11 @@ import { useEffect, useRef, useState } from 'react';
 
 import { meldung, sende } from '../api';
 import { useHinweis } from '../bausteine/hinweis';
-import { klassen } from '../bausteine/klassen';
+import { FELD_KLASSEN, klassen } from '../bausteine/klassen';
 import { Knopf } from '../bausteine/Knopf';
 import { Symbol } from '../bausteine/Symbol';
+import { SymbolKnopf } from '../bausteine/SymbolKnopf';
+import { Tooltip } from '../bausteine/Tooltip';
 import { nrVon, trefferAn } from './darstellung';
 import type { Einfuegen, Posten, SlashMenue } from './einfuegen';
 import type { Einblendung } from './Leinwand';
@@ -16,6 +18,7 @@ import type { Struktur } from './struktur';
 import { TEXTWERKZEUG } from './text';
 
 const ZEILE = 'w-full rounded-md px-2 py-1 text-left hover:bg-flaeche-2';
+const GLIEDERUNG_ZEILE = 'h-menue w-full rounded-md px-2 text-left hover:bg-flaeche-2 aria-[current]:bg-flaeche-2';
 
 const passtZu = (e: Posten, m: { fach: Fach; klasse: Klasse }, art: Art) =>
 	(!e.faecher || e.faecher.includes(m.fach)) &&
@@ -220,7 +223,7 @@ const EigenVerwalten = ({ id, name, neuLaden }: { id: string; name: string; neuL
 				<>
 					<input
 						aria-label="Neuer Name"
-						className="h-knopf min-w-0 flex-1 rounded-lg border border-rand px-2"
+						className={`${FELD_KLASSEN} min-w-0 flex-1`}
 						value={neu}
 						onChange={(e) => setNeu(e.target.value)}
 					/>
@@ -285,7 +288,7 @@ const Karte = ({
 	};
 
 	return (
-		<li className="overflow-hidden rounded-xl border border-rand" data-bibliothek-eintrag={eintrag.id}>
+		<li className="overflow-hidden rounded-lg border border-rand" data-bibliothek-eintrag={eintrag.id}>
 			{!eintrag.eigen && (
 				<iframe
 					src={`/ansicht/_katalog/${eintrag.id}`}
@@ -308,7 +311,7 @@ const Karte = ({
 					type="button"
 					aria-label={`${eintrag.name} ins Blatt ziehen`}
 					title="Ins Blatt ziehen"
-					className="flex size-11 flex-none cursor-grab touch-none items-center justify-center rounded-lg hover:bg-flaeche-2"
+					className="flex size-knopf flex-none cursor-grab touch-none items-center justify-center rounded-md hover:bg-flaeche-2"
 					data-ziehgriff={eintrag.id}
 					onPointerDown={druck}
 					onPointerMove={bewege}
@@ -324,7 +327,7 @@ const Karte = ({
 			{eintrag.eigen && <EigenVerwalten id={eintrag.eigen} name={eintrag.name} neuLaden={einfuegen.neuLaden} />}
 			{zug && (
 				<div
-					className="pointer-events-none fixed z-50 -translate-x-1/2 -translate-y-1/2 rounded-lg bg-brand-500 px-3 py-2 font-medium text-white"
+					className="pointer-events-none fixed z-meldung -translate-x-1/2 -translate-y-1/2 rounded-md bg-brand-500 px-2 py-1 font-medium text-white"
 					data-zug-anzeige
 					style={{ left: zug.x, top: zug.y }}
 				>
@@ -335,7 +338,12 @@ const Karte = ({
 	);
 };
 
-/** Rechts im Panel: alle Bausteine mit Suche, Kategorien und Vorschau. Einfügen per Klick oder über den Griff. */
+const ZULETZT_ANZAHL = 4;
+
+/**
+ * Links in der Leiste, in zwei Stufen: Suche, „Zuletzt benutzt“ und die Bereiche aus dem Katalog; ein Bereich zeigt
+ * seine Einträge mit Vorschau. Einfügen per Klick oder über den Griff.
+ */
 export const Bibliothek = ({
 	art,
 	doc,
@@ -350,53 +358,102 @@ export const Bibliothek = ({
 	setAuswahl: (nr: number | null) => void;
 }) => {
 	const [suche, setSuche] = useState('');
-	const [kategorie, setKategorie] = useState<string | null>(null);
+	const [bereich, setBereich] = useState<string | null>(null);
 	const [nurPassend, setNurPassend] = useState(true);
-	const liste = (sucheImKatalog(suche, einfuegen.eintraege) as Posten[]).filter(
-		(e) => (!kategorie || e.kategorie === kategorie) && (!nurPassend || passtZu(e, mappe, art)),
-	);
+	const passend = einfuegen.eintraege.filter((e) => !nurPassend || passtZu(e, mappe, art));
 	const hatEigene = einfuegen.eintraege.some((e) => e.herkunft === 'eigen');
+	const bereiche = [...KATALOG_KATEGORIEN, ...(hatEigene ? [MEINE_BAUSTEINE] : [])];
+	const sucht = suche.trim() !== '';
+	const liste = sucht
+		? (sucheImKatalog(suche, passend) as Posten[])
+		: passend.filter((e) => e.kategorie === bereich);
+	const zuletzt = einfuegen.zuletzt.slice(0, ZULETZT_ANZAHL);
 	return (
-		<section data-bibliothek>
-			<h2 className="mb-3 text-xl">Bausteine</h2>
-			<input
-				type="search"
-				aria-label="Baustein suchen"
-				placeholder="Suchen …"
-				className="mb-2 h-knopf w-full rounded-lg border border-rand px-3"
-				value={suche}
-				onChange={(ev) => setSuche(ev.target.value)}
-			/>
-			<label className="mb-2 flex h-knopf items-center gap-2">
+		<section data-bibliothek className="flex flex-col gap-2">
+			<div className="relative">
+				<Symbol name="suche" className="absolute top-1/2 left-2 size-3.5 -translate-y-1/2 text-dezent" />
+				<input
+					type="search"
+					aria-label="Baustein suchen"
+					placeholder="Baustein suchen …"
+					className={`${FELD_KLASSEN} w-full pl-7`}
+					value={suche}
+					onChange={(ev) => setSuche(ev.target.value)}
+				/>
+			</div>
+			{!sucht && bereich === null && (
+				<>
+					{zuletzt.length > 0 && (
+						<div data-zuletzt-benutzt>
+							<h2 className="mb-1 text-xs font-semibold text-leise">Zuletzt benutzt</h2>
+							<ul className="grid grid-cols-2 gap-1">
+								{zuletzt.map((e) => (
+									<li key={e.id}>
+										<Tooltip text={e.name}>
+											<button
+												type="button"
+												className="h-knopf w-full truncate rounded-md border border-rand px-2 text-left hover:bg-flaeche-2"
+												data-zuletzt={e.id}
+												onClick={() => einfuegen.fuegeEin(e)}
+											>
+												{e.name}
+											</button>
+										</Tooltip>
+									</li>
+								))}
+							</ul>
+						</div>
+					)}
+					<div>
+						<h2 className="mb-1 text-xs font-semibold text-leise">Alle Bereiche</h2>
+						<ul className="flex flex-col">
+							{bereiche.map((k) => (
+								<li key={k}>
+									<button
+										type="button"
+										className="flex h-zeile w-full items-center justify-between gap-2 rounded-md px-2 text-left hover:bg-flaeche-2"
+										data-bereich={k}
+										onClick={() => setBereich(k)}
+									>
+										<span className="truncate">{k}</span>
+										<span className="flex-none text-xs text-dezent tabular-nums" data-bereich-anzahl>
+											{passend.filter((e) => e.kategorie === k).length}
+										</span>
+									</button>
+								</li>
+							))}
+						</ul>
+					</div>
+				</>
+			)}
+			{(sucht || bereich !== null) && (
+				<>
+					{!sucht && (
+						<Knopf art="leise" className="-ml-1 self-start px-1" onClick={() => setBereich(null)}>
+							<Symbol name="zurueck" />
+							{bereich}
+						</Knopf>
+					)}
+					{liste.length === 0 ? (
+						<p className="text-leise">Nichts gefunden.</p>
+					) : (
+						<ul className="flex flex-col gap-2">
+							{liste.map((e) => (
+								<Karte key={e.id} eintrag={e} doc={doc} einfuegen={einfuegen} setAuswahl={setAuswahl} />
+							))}
+						</ul>
+					)}
+				</>
+			)}
+			<label className="flex items-center gap-1.5 text-xs text-leise">
 				<input
 					type="checkbox"
-					className="size-5"
+					className="size-3.5 flex-none accent-brand-500"
 					checked={nurPassend}
 					onChange={(ev) => setNurPassend(ev.target.checked)}
 				/>
 				Nur passend zu Fach und Klasse
 			</label>
-			<div className="mb-3 flex flex-wrap gap-1">
-				{[null, ...KATALOG_KATEGORIEN, ...(hatEigene ? [MEINE_BAUSTEINE] : [])].map((k) => (
-					<button
-						key={k ?? 'alle'}
-						type="button"
-						aria-pressed={kategorie === k}
-						className={klassen(
-							'h-knopf rounded-lg border border-rand px-3',
-							kategorie === k && 'bg-brand-500 text-white',
-						)}
-						onClick={() => setKategorie(k)}
-					>
-						{k ?? 'Alle'}
-					</button>
-				))}
-			</div>
-			<ul className="flex flex-col gap-2">
-				{liste.map((e) => (
-					<Karte key={e.id} eintrag={e} doc={doc} einfuegen={einfuegen} setAuswahl={setAuswahl} />
-				))}
-			</ul>
 		</section>
 	);
 };
@@ -424,7 +481,6 @@ export const Gliederung = ({
 	const aufgaben = [...doc.querySelectorAll('.seite:not([data-erzeugt]) > .aufgabe')];
 	return (
 		<section data-gliederung>
-			<h2 className="mb-3 text-xl">Gliederung</h2>
 			<div ref={liste} className="flex flex-col gap-1">
 				{seiten.map((s, i) => {
 					const nr = nrVon(s);
@@ -432,7 +488,7 @@ export const Gliederung = ({
 						<div key={nr ?? i}>
 							<button
 								type="button"
-								className={klassen(ZEILE, 'font-medium')}
+								className={klassen(GLIEDERUNG_ZEILE, 'font-medium')}
 								{...(auswahl === nr ? { 'aria-current': true as const } : {})}
 								onClick={() => nr !== null && struktur.zeigeAn(nr)}
 							>
@@ -452,36 +508,41 @@ export const Gliederung = ({
 												struktur.verschiebe(knr, { nr: znr, wo }, true);
 											}
 										};
+										const titel = k.querySelector('.anw')?.textContent?.trim() || 'Aufgabe';
 										return (
 											<li
 												key={knr}
-												className="flex items-center gap-1 pl-2"
+												className="flex items-center gap-0.5 pl-2"
 												data-gliederung-aufgabe
 											>
-												<button
-													type="button"
-													className={klassen(ZEILE, 'min-w-0 flex-1 truncate')}
-													{...(auswahl === knr ? { 'aria-current': true as const } : {})}
-													onClick={() => knr !== null && struktur.zeigeAn(knr)}
-												>
-													{k.querySelector('.anw')?.textContent?.trim() || 'Aufgabe'}
-												</button>
-												<Knopf
-													art="zweit"
-													aria-label="Nach oben"
-													disabled={!aktiv || !vorher}
-													onClick={() => nach(vorher, 'vor')}
-												>
-													<Symbol name="hoch" />
-												</Knopf>
-												<Knopf
-													art="zweit"
-													aria-label="Nach unten"
-													disabled={!aktiv || !nachher}
-													onClick={() => nach(nachher, 'nach')}
-												>
-													<Symbol name="runter" />
-												</Knopf>
+												<Tooltip text={titel}>
+													<button
+														type="button"
+														className={klassen(GLIEDERUNG_ZEILE, 'min-w-0 flex-1 truncate')}
+														{...(auswahl === knr ? { 'aria-current': true as const } : {})}
+														onClick={() => knr !== null && struktur.zeigeAn(knr)}
+													>
+														{titel}
+													</button>
+												</Tooltip>
+												{auswahl === knr && (
+													<>
+														<SymbolKnopf
+															symbol="hoch"
+															beschriftung="Nach oben"
+															groesse="klein"
+															disabled={!aktiv || !vorher}
+															onClick={() => nach(vorher, 'vor')}
+														/>
+														<SymbolKnopf
+															symbol="runter"
+															beschriftung="Nach unten"
+															groesse="klein"
+															disabled={!aktiv || !nachher}
+															onClick={() => nach(nachher, 'nach')}
+														/>
+													</>
+												)}
 											</li>
 										);
 									})}

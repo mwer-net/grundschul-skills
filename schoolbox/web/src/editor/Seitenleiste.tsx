@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from 'react';
 
 import { klassen } from '../bausteine/klassen';
 import { Knopf } from '../bausteine/Knopf';
+import { Menue } from '../bausteine/Menue';
 import { Symbol } from '../bausteine/Symbol';
 import { nrVon } from './darstellung';
 import { LUECKE } from './leiste';
@@ -37,6 +38,7 @@ interface Eigenschaften {
 	festeSeiten: boolean;
 }
 
+const SPEICHER_SEITE = 'schoolbox-neue-seite';
 const FINGER_WEG = 10;
 const MAUS_WEG = 6;
 
@@ -75,7 +77,12 @@ export const Seitenleiste = ({
 	const naechste = useRef(0);
 	const [rahmen, setRahmen] = useState<Rahmen[]>([]);
 	const [platzBreite, setPlatzBreite] = useState(0);
-	const [mitNamenszeile, setMitNamenszeile] = useState(true);
+	const [mitNamenszeile, setMitNamenszeile] = useState(() => localStorage.getItem(SPEICHER_SEITE) !== 'leer');
+	const neueSeiteMit = (mit: boolean) => {
+		setMitNamenszeile(mit);
+		localStorage.setItem(SPEICHER_SEITE, mit ? 'namenszeile' : 'leer');
+		hinzufuegen(mit);
+	};
 	const [zug, setZug] = useState<{ index: number; ziel: number | null } | null>(null);
 	const druck = useRef<Druck | null>(null);
 	const zieht = useRef(false);
@@ -222,9 +229,10 @@ export const Seitenleiste = ({
 	return (
 		<nav
 			aria-label="Seiten"
-			className="min-h-0 flex-1 overflow-y-auto px-8 py-3 max-lg:px-3"
+			className="flex min-h-0 flex-1 flex-col"
 			data-seitenleiste
 		>
+			<div className="min-h-0 flex-1 overflow-y-auto px-9 pt-3 pb-7 max-lg:px-3">
 			<div ref={leiste} className="relative" style={{ height: hoehe || 160 }}>
 				{rahmen.map((r) => (
 					<iframe
@@ -268,9 +276,7 @@ export const Seitenleiste = ({
 							}
 						}}
 					>
-						<span className="absolute right-1 bottom-1 rounded-sm bg-tinte/80 px-1 text-xs font-medium text-white">
-							{i + 1}
-						</span>
+						<span className="absolute inset-x-0 top-full mt-0.5 text-center text-xs text-leise">{i + 1}</span>
 					</button>
 				))}
 				{zug && zug.ziel !== null && (
@@ -281,34 +287,50 @@ export const Seitenleiste = ({
 					/>
 				)}
 			</div>
-			{festeSeiten ? (
-				<p className="mt-2 text-xs text-leise" data-feste-seiten>
-					Ein Mini-Book hat immer acht Seiten.
-				</p>
-			) : (
-				<Knopf
-					art="zweit"
-					className="mt-2 w-full px-2"
-					aria-label="Seite hinzufügen"
-					title="Seite hinzufügen"
-					disabled={!aktiv}
-					onClick={() => hinzufuegen(namenszeile && mitNamenszeile)}
-				>
-					<Symbol name="plus" />
-					Seite
-				</Knopf>
-			)}
-			{namenszeile && !festeSeiten && (
-				<label className="mt-1 flex h-knopf items-center gap-1.5 text-xs text-leise">
-					<input
-						type="checkbox"
-						className="size-3.5 accent-brand-500"
-						checked={mitNamenszeile}
-						onChange={(e) => setMitNamenszeile(e.target.checked)}
-					/>
-					mit Namenszeile
-				</label>
-			)}
+			</div>
+			<div className="flex-none border-t border-rand p-2">
+				{festeSeiten ? (
+					<p className="text-xs text-leise" data-feste-seiten>
+						Ein Mini-Book hat immer acht Seiten.
+					</p>
+				) : (
+					<div className="flex">
+						<Knopf
+							art="zweit"
+							className={klassen('flex-1 px-2', namenszeile && 'rounded-r-none')}
+							aria-label="Seite hinzufügen"
+							disabled={!aktiv}
+							onClick={() => hinzufuegen(namenszeile && mitNamenszeile)}
+						>
+							<Symbol name="plus" />
+							Seite
+						</Knopf>
+						{namenszeile && (
+							<Menue
+								name="Art der neuen Seite"
+								disabled={!aktiv}
+								ausloeser={
+									<Knopf art="zweit" className="size-knopf rounded-l-none border-l-0 px-0">
+										<Symbol name="runter" className="size-3 flex-none" />
+									</Knopf>
+								}
+								eintraege={[
+									{
+										titel: 'Leere Seite',
+										aktiv: !mitNamenszeile,
+										waehle: () => neueSeiteMit(false),
+									},
+									{
+										titel: 'Seite mit Namenszeile',
+										aktiv: mitNamenszeile,
+										waehle: () => neueSeiteMit(true),
+									},
+								]}
+							/>
+						)}
+					</div>
+				)}
+			</div>
 		</nav>
 	);
 };

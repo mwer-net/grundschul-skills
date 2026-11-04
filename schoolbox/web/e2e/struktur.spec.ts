@@ -212,7 +212,6 @@ test.describe('Editor: Struktur', () => {
 		await oeffne(page, id, dok);
 		const leiste = page.locator('[data-seitenleiste]');
 		await expect(leiste.locator('[data-seite-miniatur]')).toHaveCount(1);
-		await expect(leiste.getByLabel('mit Namenszeile')).toBeChecked();
 		await druecke(leiste.getByRole('button', { name: 'Seite hinzufügen' }));
 		await expect(leiste.locator('[data-seite-miniatur]')).toHaveCount(2);
 		await expect(page.locator('[data-auswahl="seite"] h2')).toHaveText('Seite 2');
@@ -289,7 +288,7 @@ test.describe('Mini-Book (036)', () => {
 		const leiste = page.locator('[data-seitenleiste]');
 		await expect(leiste.locator('[data-seite-miniatur]')).toHaveCount(8);
 		await expect(leiste.getByRole('button', { name: 'Seite hinzufügen' })).toHaveCount(0);
-		await expect(leiste.getByLabel('mit Namenszeile')).toHaveCount(0);
+		await expect(leiste.getByRole('button', { name: 'Art der neuen Seite' })).toHaveCount(0);
 		await expect(leiste.locator('[data-feste-seiten]')).toHaveText('Ein Mini-Book hat immer acht Seiten.');
 
 		await druecke(leiste.getByRole('button', { name: 'Seite 3' }));
