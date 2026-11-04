@@ -1,3 +1,4 @@
+import type { AbschnittName } from '@schoolbox/kern/src/abschnitte';
 import type {
 	AuswahlFeld,
 	BildFeld,
@@ -21,6 +22,7 @@ import type {
 	ZiffernFeld,
 } from '@schoolbox/kern/src/abbildungen';
 import {
+	abschnittVon,
 	alsZahl,
 	feldWert,
 	listeVon,
@@ -52,15 +54,18 @@ import type { KeyboardEvent, ReactNode } from 'react';
 import { useEffect, useId, useMemo, useRef, useState } from 'react';
 
 import { meldung, sende, sendeDatei } from '../api';
+import { Hilfetipp } from '../bausteine/Hilfetipp';
 import { Knopf } from '../bausteine/Knopf';
+import { Schalter as Umschalter } from '../bausteine/Schalter';
 import { Symbol } from '../bausteine/Symbol';
+import { Zeile } from '../bausteine/Zeile';
 import type { AbbildungSteuerung } from './abbildung';
 import { bereiteVor } from './bild';
 import { SammlungDialog } from './Bildpanel';
 import { elementZu } from './darstellung';
 
 const EINGABE =
-	'h-knopf rounded-xl border border-rand bg-flaeche px-3 focus:border-brand-500 focus:outline-none disabled:opacity-50 aria-invalid:border-fehler';
+	'h-feld rounded-md border border-rand-feld bg-flaeche px-1.5 text-sm focus:border-brand-500 focus:outline-none disabled:opacity-50 aria-invalid:border-fehler';
 
 interface FeldEigenschaften<F extends Feld> {
 	feld: F;
@@ -99,18 +104,14 @@ const Haken = ({
 	aktiv: boolean;
 	aus?: boolean;
 	setze: (an: boolean) => void;
-}) => (
-	<label className="mt-1 flex h-knopf cursor-pointer items-center gap-3 has-disabled:cursor-default has-disabled:opacity-50">
-		<input
-			type="checkbox"
-			className="size-6 flex-none accent-brand-500"
-			checked={aktiv}
-			disabled={aus}
-			onChange={(e) => setze(e.target.checked)}
-		/>
-		{name}
-	</label>
-);
+}) => {
+	const id = useId();
+	return (
+		<Zeile titel={name} fuer={id}>
+			<Umschalter id={id} name={name} an={aktiv} aus={aus} setze={setze} />
+		</Zeile>
+	);
+};
 
 /** „Zeiger nur in der Lösung“ usw.: verschiebt den Wert zwischen sichtbarem und Lösungs-Attribut. */
 const LoesungSchalter = ({ abb, feld }: FeldEigenschaften<Feld>) => {
@@ -131,22 +132,33 @@ const LoesungSchalter = ({ abb, feld }: FeldEigenschaften<Feld>) => {
 const Rahmen = ({
 	abb,
 	children,
+	daneben = false,
 	feld,
 	id,
 }: {
 	feld: Feld;
 	abb: AbbildungSteuerung;
 	id: string;
+	/** Kurze Werte stehen rechts neben dem Namen; Listen und Raster brauchen die ganze Breite. */
+	daneben?: boolean;
 	children: ReactNode;
 }) => {
 	const fehler = abb.fehler[feld.attribut];
 	return (
-		<div className="mt-5" data-feld={feld.attribut}>
-			<label htmlFor={id} className="font-medium">
-				{feld.name}
-			</label>
-			<div className="mt-2">{children}</div>
-			{feld.hilfe && <p className="mt-1 text-leise">{feld.hilfe}</p>}
+		<div data-feld={feld.attribut}>
+			{daneben ? (
+				<Zeile titel={feld.name} fuer={id} hilfe={feld.hilfe}>
+					{children}
+				</Zeile>
+			) : (
+				<>
+					<span className="flex h-zeile items-center gap-1 text-leise">
+						<label htmlFor={id}>{feld.name}</label>
+						{feld.hilfe && <Hilfetipp name={feld.name}>{feld.hilfe}</Hilfetipp>}
+					</span>
+					<div>{children}</div>
+				</>
+			)}
 			{feld.loesung && <LoesungSchalter feld={feld} abb={abb} />}
 			{fehler && (
 				<p className="mt-2 flex gap-2 font-medium text-fehler" role="alert" data-fehler={feld.attribut}>
@@ -175,11 +187,12 @@ const Zahl = ({ abb, feld }: FeldEigenschaften<ZahlFeld>) => {
 		abb.aendere(feld, String(neu));
 	};
 	return (
-		<Rahmen feld={feld} abb={abb} id={id}>
-			<div className="flex items-center gap-2">
+		<Rahmen daneben feld={feld} abb={abb} id={id}>
+			<div className="flex items-center gap-1">
 				<Knopf
 					art="zweit"
-					className="w-12 flex-none px-0"
+					groesse="klein"
+					className="size-knopf-klein flex-none px-0"
 					aria-label={`${feld.name}: weniger`}
 					disabled={Number.isFinite(jetzt) && jetzt <= feld.min}
 					onClick={() => springe(-1)}
@@ -193,7 +206,7 @@ const Zahl = ({ abb, feld }: FeldEigenschaften<ZahlFeld>) => {
 					inputMode="numeric"
 					enterKeyHint="done"
 					autoComplete="off"
-					className={`${EINGABE} w-24 text-center text-lg font-medium`}
+					className={`${EINGABE} w-11 text-center tabular-nums`}
 					aria-invalid={Boolean(abb.fehler[feld.attribut])}
 					value={text}
 					onChange={(e) => {
@@ -209,7 +222,8 @@ const Zahl = ({ abb, feld }: FeldEigenschaften<ZahlFeld>) => {
 				/>
 				<Knopf
 					art="zweit"
-					className="w-12 flex-none px-0"
+					groesse="klein"
+					className="size-knopf-klein flex-none px-0"
 					aria-label={`${feld.name}: mehr`}
 					disabled={Number.isFinite(jetzt) && jetzt >= feld.max}
 					onClick={() => springe(1)}
@@ -247,12 +261,12 @@ const Uhrzeit = ({ abb, feld }: FeldEigenschaften<UhrzeitFeld>) => {
 	const id = useId();
 	const { minute, minuten, setze, stunde, stunden } = uhrzeitVon({ abb, feld });
 	return (
-		<Rahmen feld={feld} abb={abb} id={id}>
-			<div className="flex items-center gap-2" data-uhrzeit>
+		<Rahmen daneben feld={feld} abb={abb} id={id}>
+			<div className="flex items-center gap-1" data-uhrzeit>
 				<select
 					id={id}
 					aria-label="Stunde"
-					className={`${EINGABE} w-24 text-lg font-medium`}
+					className={EINGABE}
 					aria-invalid={Boolean(abb.fehler[feld.attribut])}
 					value={stunde ?? ''}
 					onChange={(e) => setze(e.target.value === '' ? null : Number(e.target.value), minute)}
@@ -264,10 +278,10 @@ const Uhrzeit = ({ abb, feld }: FeldEigenschaften<UhrzeitFeld>) => {
 						</option>
 					))}
 				</select>
-				<span className="text-xl font-medium">:</span>
+				<span className="text-leise">:</span>
 				<select
 					aria-label="Minuten"
-					className={`${EINGABE} w-24 text-lg font-medium`}
+					className={EINGABE}
 					disabled={stunde === null}
 					value={minute ?? ''}
 					onChange={(e) => setze(stunde, Number(e.target.value))}
@@ -279,7 +293,6 @@ const Uhrzeit = ({ abb, feld }: FeldEigenschaften<UhrzeitFeld>) => {
 						</option>
 					))}
 				</select>
-				<span className="text-leise">Uhr</span>
 			</div>
 		</Rahmen>
 	);
@@ -296,10 +309,10 @@ const Auswahl = ({ abb, feld }: FeldEigenschaften<AuswahlFeld>) => {
 	const index = optionen.findIndex((o) => o.wert === wert);
 	const blaettere = (schritt: number) => abb.aendere(feld, optionen[index + schritt]?.wert ?? null);
 	return (
-		<Rahmen feld={feld} abb={abb} id={id}>
+		<Rahmen daneben={!feld.vorschau && !feld.blaettern} feld={feld} abb={abb} id={id}>
 			<select
 				id={id}
-				className={`${EINGABE} w-full`}
+				className={`${EINGABE} ${feld.vorschau || feld.blaettern ? 'w-full' : 'w-auto max-w-32'}`}
 				aria-invalid={Boolean(abb.fehler[feld.attribut])}
 				value={index}
 				onChange={(e) => abb.aendere(feld, optionen[Number(e.target.value)]?.wert ?? null)}
@@ -356,7 +369,7 @@ const Schalter = ({ abb, feld }: FeldEigenschaften<SchalterFeld>) => {
 	const wert = wertVon(feld, abb)?.wert ?? null;
 	const an = wert === null ? feld.standard : wert === feld.an;
 	return (
-		<div className="mt-4" data-feld={feld.attribut}>
+		<div data-feld={feld.attribut}>
 			<Haken name={feld.name} aktiv={an} setze={(neu) => abb.aendere(feld, schalterWert(feld, neu))} />
 		</div>
 	);
@@ -1583,42 +1596,6 @@ const Eingabe = ({ abb, feld }: FeldEigenschaften<Feld>) => {
 	}
 };
 
-/** Felder der Reihe nach, gleiche `gruppe` zusammen; Felder ohne Gruppe stehen für sich. */
-const gruppen = (felder: Feld[]) => {
-	const liste: { name: string | null; felder: Feld[] }[] = [];
-	for (const feld of felder) {
-		const name = feld.gruppe ?? null;
-		const letzte = liste.at(-1);
-		if (letzte && letzte.name === name) {
-			letzte.felder.push(feld);
-		} else {
-			liste.push({ name, felder: [feld] });
-		}
-	}
-	return liste;
-};
-
-/**
- * Einstellungen der gewählten Abbildung nach ihrem Schema. Jede Änderung zeigt sich sofort im Blatt und ist ein
- * Schritt im Verlauf; was nicht stimmt, wird nicht gespeichert.
- */
-const NeueZahlen = ({ neueZahlen }: { neueZahlen: () => boolean }) => {
-	const [hinweis, setHinweis] = useState(false);
-	return (
-		<div className="mt-3">
-			<Knopf art="zweit" data-neue-zahlen title="Neue Zahlen (⌥N)" onClick={() => setHinweis(!neueZahlen())}>
-				<Symbol name="neueZahlen" />
-				Neue Zahlen
-			</Knopf>
-			{hinweis && (
-				<p className="mt-2 text-leise" role="status" data-neue-zahlen-hinweis>
-					Hier gibt es gerade keine neuen Zahlen. Bei Sprüngen und Fehleraufgaben hängen die Zahlen zusammen.
-				</p>
-			)}
-		</div>
-	);
-};
-
 const LEISTE_AUSWAHL = 'h-feld rounded-md border border-rand-feld bg-flaeche px-1 text-xs text-tinte';
 
 /** Dieselben Werte wie im Inspektor, nur kompakt: `aendere` hält beide auf demselben Stand. */
@@ -1667,46 +1644,33 @@ export const hatLeistenfeld = (abb: AbbildungSteuerung) => leistenFelder(abb).le
 export const AbbildungLeiste = ({ abb }: { abb: AbbildungSteuerung }) =>
 	leistenFelder(abb).map((f) => <UhrzeitInLeiste key={f.attribut} abb={abb} feld={f} />);
 
-export const Abbildungswerkzeug = ({ abb, neueZahlen }: { abb: AbbildungSteuerung; neueZahlen: () => boolean }) => {
-	const { schema } = abb;
-	if (!abb.aktiv || !schema) {
+/** Beispiel, Hinweise und was gerade nicht übernommen wird: Zustände stehen über den Abschnitten. */
+export const AbbildungHinweise = ({ abb }: { abb: AbbildungSteuerung }) => {
+	if (!abb.aktiv || !abb.schema) {
 		return null;
 	}
 	const ungueltig = Object.keys(abb.fehler).length > 0;
 	return (
-		<div className="mt-1" data-abbildungswerkzeug>
+		<>
 			{abb.beispiel && (
-				<p className="mt-2 flex gap-2 rounded-xl bg-brand-50 p-3" data-hinweis="beispiel">
+				<p className="flex gap-2 rounded-md bg-brand-50 p-2 text-xs" data-hinweis="beispiel">
 					<Symbol name="blatt" className="size-3.5 flex-none" />
 					Das ist das Beispiel. Die Lösung ist auf dem Arbeitsblatt sichtbar.
 				</p>
 			)}
-			{abb.hatNeueZahlen && <NeueZahlen neueZahlen={neueZahlen} />}
-			{gruppen(schema.felder).map(({ felder, name }, i) =>
-				name ? (
-					<details key={name} className="mt-4 border-t-2 border-rand pt-2" open={i === 0} data-gruppe={name}>
-						<summary className="flex h-knopf cursor-pointer items-center font-medium">{name}</summary>
-						{felder.map((feld) => (
-							<Eingabe key={feld.attribut} feld={feld} abb={abb} />
-						))}
-					</details>
-				) : (
-					felder.map((feld) => <Eingabe key={feld.attribut} feld={feld} abb={abb} />)
-				),
-			)}
 			{abb.info && (
-				<p className="mt-4 text-leise" data-abbildung-info>
+				<p className="text-xs text-leise" data-abbildung-info>
 					{abb.info}
 				</p>
 			)}
 			{abb.fehler._element && (
-				<p className="mt-4 flex gap-2 font-medium text-fehler" role="alert" data-fehler="_element">
+				<p className="flex gap-2 font-medium text-fehler" role="alert" data-fehler="_element">
 					<Symbol name="achtung" className="size-3.5 flex-none" />
 					{abb.fehler._element}
 				</p>
 			)}
 			{ungueltig && abb.offen && (
-				<div className="mt-5 rounded-xl bg-warnung-hell p-3" role="status" data-nicht-uebernommen>
+				<div className="rounded-md bg-warnung-hell p-2" role="status" data-nicht-uebernommen>
 					<p>Noch nicht gespeichert, weil eine Angabe nicht passt.</p>
 					<Knopf art="zweit" className="mt-2" onClick={abb.zuruecksetzen}>
 						<Symbol name="rueckgaengig" />
@@ -1714,6 +1678,24 @@ export const Abbildungswerkzeug = ({ abb, neueZahlen }: { abb: AbbildungSteuerun
 					</Knopf>
 				</div>
 			)}
+		</>
+	);
+};
+
+export const hatWeitere = (abb: AbbildungSteuerung) =>
+	abb.aktiv && (abb.schema?.felder ?? []).some((f) => abschnittVon(f) === 'weitere');
+
+/** Die Felder der gewählten Abbildung, die in diesen Abschnitt gehören. Jede Änderung zeigt sich sofort im Blatt. */
+export const AbbildungFelder = ({ abb, abschnitt }: { abb: AbbildungSteuerung; abschnitt: AbschnittName }) => {
+	if (!abb.aktiv || !abb.schema) {
+		return null;
+	}
+	const felder = abb.schema.felder.filter((f) => abschnittVon(f) === abschnitt);
+	return felder.length === 0 ? null : (
+		<div className="flex flex-col gap-1">
+			{felder.map((feld) => (
+				<Eingabe key={feld.attribut} feld={feld} abb={abb} />
+			))}
 		</div>
 	);
 };

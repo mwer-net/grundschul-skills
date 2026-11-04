@@ -71,7 +71,7 @@ export interface Erklaerung {
 
 type Uebersetzung = (namen: string[], text: string) => Erklaerung;
 
-const KUERZEN = 'Text kürzen, ein Item löschen oder die Spalten erhöhen. Oder eine neue Seite anlegen.';
+const KUERZEN = 'Text kürzen, einen Eintrag löschen oder die Spalten erhöhen. Oder eine neue Seite anlegen.';
 
 /** Code → verständlicher Satz. `namen` sind die betroffenen Elemente, schon so geschrieben, wie sie dastehen sollen. */
 const TABELLE: Record<MeldungCode, Uebersetzung> = {
@@ -140,7 +140,7 @@ const TABELLE: Record<MeldungCode, Uebersetzung> = {
 		satz: 'Unten auf der Seite ist noch viel Platz frei.',
 		tipp: text.includes('--abstand')
 			? 'Ohne Auswahl unter „Ganzes Blatt“ den Abstand vergrößern.'
-			: 'Ein Item oder eine Aufgabe ergänzen, zum Beispiel durch Duplizieren.',
+			: 'Einen Eintrag oder eine Aufgabe ergänzen, zum Beispiel durch Duplizieren.',
 	}),
 	'notiz-fehlt': () => ({ satz: 'Diese Folie hat keine Notiz für dich.', tipp: null }),
 	'platzhalter': (namen) => ({

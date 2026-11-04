@@ -147,7 +147,7 @@ export const BAUSTEINE: readonly Baustein[] = [
 	},
 	{
 		art: 'item',
-		name: 'Item',
+		name: 'Eintrag',
 		selektor: '.reihe > .zelle',
 		faehigkeiten: ['ordnen', 'duplizieren', 'loeschen', 'beispiel'],
 		zaehlen: true,
@@ -189,7 +189,7 @@ export const BAUSTEINE: readonly Baustein[] = [
 	{ art: 'ueberschrift', name: 'Überschrift', selektor: 'h1, h2, h3', faehigkeiten: [...GRUND, 'text'], ...KLEIN },
 	{ art: 'ziel', name: 'Lernziel', selektor: '.ziel', faehigkeiten: [...GRUND, 'text'], ...KLEIN },
 	{ art: 'wahlhilfe', name: 'Wahlhilfe', selektor: '.wahlhilfe', faehigkeiten: [...GRUND, 'text'], ...KLEIN },
-	{ art: 'anweisung', name: 'Anweisung', selektor: '.anw .text', faehigkeiten: [...GRUND, 'text'], ...KLEIN },
+	{ art: 'anweisung', name: 'Aufgabentext', selektor: '.anw .text', faehigkeiten: [...GRUND, 'text'], ...KLEIN },
 	{
 		art: 'blase',
 		name: 'Sprechblase',
@@ -483,7 +483,7 @@ export const KIT_KATALOG: readonly KitEintrag[] = [
 		id: 'anweisung',
 		art: 'anweisung',
 		kategorie: 'Aufgabe und Text',
-		suchbegriffe: ['Arbeitsauftrag'],
+		suchbegriffe: ['Arbeitsauftrag', 'Anweisung'],
 		ort: 'zeile',
 	},
 	{ id: 'text', art: 'absatz', kategorie: 'Aufgabe und Text', suchbegriffe: ['Absatz', 'Fließtext'], ort: 'aufgabe' },

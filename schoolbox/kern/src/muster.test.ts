@@ -214,7 +214,7 @@ describe('Rätsel (038)', { skip: browserSkip() }, () => {
 		assert.ok(buchstaben(pdf.replace(/\.pdf$/, '-loesung.pdf')).includes('SONNE'));
 		const falsch = pruefe(blatt(['42', '48', '27', '28', '45'], sonne), 'sonne-falsch');
 		assert.ok(
-			falsch.some((m) => /Aufgabe 3, Item 2 hat jetzt die Lösung 48/.test(m.text)),
+			falsch.some((m) => /Aufgabe 3, Eintrag 2 hat jetzt die Lösung 48/.test(m.text)),
 			JSON.stringify(falsch),
 		);
 	});

@@ -13,6 +13,7 @@ import { useLocation, useNavigate, useSearchParams } from 'react-router-dom';
 import type { ApiFehler } from '../api';
 import { lade, meldung } from '../api';
 import { useHinweis } from '../bausteine/hinweis';
+import { klassen } from '../bausteine/klassen';
 import { Knopf, KnopfLink } from '../bausteine/Knopf';
 import { Menue } from '../bausteine/Menue';
 import { useZeigeMenue } from '../bausteine/MenueAmPunkt';
@@ -22,7 +23,6 @@ import { Symbol } from '../bausteine/Symbol';
 import { SymbolKnopf } from '../bausteine/SymbolKnopf';
 import { Zustand } from '../bausteine/Zustand';
 import { useAbbildung } from '../editor/abbildung';
-import { Abbildungswerkzeug } from '../editor/Abbildungspanel';
 import { useAblage } from '../editor/ablage';
 import type { MenueArt } from '../editor/befehle';
 import { AlsVorlage } from '../editor/AlsVorlage';
@@ -31,8 +31,7 @@ import { useBearbeitung } from '../editor/bearbeitung';
 import { Bausteinleiste } from '../editor/Bausteinleiste';
 import { Bibliothek, Einfuegemarken, Gliederung } from '../editor/Bibliothek';
 import { useBild } from '../editor/bild';
-import { Bildwerkzeug } from '../editor/Bildpanel';
-import { ClaudeFragen } from '../editor/ClaudeFragen';
+import { useClaudeFragen } from '../editor/ClaudeFragen';
 import { ClaudePanel } from '../editor/ClaudePanel';
 import { bausteinVon, editorHtml, elementZu, nrVon, pfadZu } from '../editor/darstellung';
 import { useEinfuegen, useSlash, useTabelleTab } from '../editor/einfuegen';
@@ -42,14 +41,13 @@ import { leistenHtml } from '../editor/leiste';
 import type { LinksName } from '../editor/LinkeLeiste';
 import { LinkeLeiste } from '../editor/LinkeLeiste';
 import { useLoesung } from '../editor/loesung';
-import { Loesungsuebersicht, Loesungswerkzeug } from '../editor/Loesungspanel';
+import { Loesungsuebersicht } from '../editor/Loesungspanel';
 import { erstesKindVon, ersterAufSeite, nachbarVon, seiteAn } from '../editor/navigation';
-import { AuswahlPanel, Blattwerkzeug, Strukturwerkzeug } from '../editor/Panel';
-import { Pruefhinweise } from '../editor/Pruefliste';
+import { Einstellungen, Inspektor, Umriss } from '../editor/Inspektor';
+import { Blattwerkzeug } from '../editor/Panel';
 import type { Pruefpunkt } from '../editor/pruefung';
 import { usePruefung } from '../editor/pruefung';
 import { Seitenleiste } from '../editor/Seitenleiste';
-import { Sprachwerkzeug } from '../editor/Sprachwerkzeug';
 import type { ZoomWert } from '../editor/Statusleiste';
 import { gemerkterZoom, merkeZoom, naechsteStufe, Statusleiste, useSichtbareSeite } from '../editor/Statusleiste';
 import type { Struktur } from '../editor/struktur';
@@ -377,6 +375,8 @@ const Bearbeitung = ({ dokument, mappe: mappenDaten }: { mappe: Mappe; dokument:
 	const panels = usePanels(suche.get('neu') === '1', suche.get('claude') === '1');
 	const [alsVorlage, setAlsVorlage] = useState(false);
 	const [tastenOffen, setTastenOffen] = useState(false);
+	const [umriss, setUmriss] = useState<number | null>(null);
+	const claudeFragen = useClaudeFragen();
 	const [schnellWunsch, setSchnellWunsch] = useState<{ n: number; nr: number | null }>({ n: 0, nr: null });
 	const ansicht = useRef<HTMLElement>(null);
 	const kiFehler = (useLocation().state as { kiFehler?: string } | null)?.kiFehler;
@@ -574,7 +574,14 @@ const Bearbeitung = ({ dokument, mappe: mappenDaten }: { mappe: Mappe; dokument:
 					panels.setRechtsOffen(true);
 					ablage.setSammlungName(pfad.at(-1)?.name ?? '');
 				},
-				neueZahlen: abbildung.neueZahlen,
+				neueZahlen: () => {
+					const geklappt = abbildung.neueZahlen();
+					if (!geklappt) {
+						zeige({ text: 'Hier gibt es gerade keine neuen Zahlen. Bei Sprüngen und Fehleraufgaben hängen die Zahlen zusammen.' });
+					}
+					return geklappt;
+				},
+				claudeFragen: () => claudeFragen.frage({ ...frage, nr: auswahl }),
 				oeffneSchnellauswahl: (nr = auswahl) => setSchnellWunsch((w) => ({ n: w.n + 1, nr })),
 				bildErsetzen: () => {
 					panels.setRechts('inspektor');
@@ -736,18 +743,19 @@ const Bearbeitung = ({ dokument, mappe: mappenDaten }: { mappe: Mappe; dokument:
 	}));
 	// Aus der Quelle im Editor, nicht aus der Darstellung: Nach dem Tippen gilt schon der neue Text.
 	const frage = {
-		aktiv: frei,
 		zerlegung,
 		ort: { mappe: mappenDaten, dokument: { id: dok, titel: meta.titel } },
 		loesung,
 		nachher: () => void alles(),
 	};
 	const ohneAuswahl = (
-		<>
-			{loesung && <Loesungsuebersicht l={loes} />}
-			<Blattwerkzeug aktiv={frei} quelle={quelle} struktur={struktur} />
-			<ClaudeFragen {...frage} nr={null} />
-		</>
+		<Blattwerkzeug
+			aktiv={frei}
+			doc={docJetzt}
+			quelle={quelle}
+			struktur={struktur}
+			loesung={loesung ? <Loesungsuebersicht l={loes} /> : null}
+		/>
 	);
 	const panelInhalt = {
 		claude: (
@@ -777,33 +785,23 @@ const Bearbeitung = ({ dokument, mappe: mappenDaten }: { mappe: Mappe; dokument:
 			</>
 		),
 		inspektor: (
-			<AuswahlPanel pfad={pfad} waehle={setAuswahl} leer={ohneAuswahl}>
-				<Pruefhinweise stand={pruefung.stand} nr={auswahl} />
-				<Sprachwerkzeug
+			<Inspektor pfad={pfad} waehle={setAuswahl} umriss={setUmriss} blatt={ohneAuswahl}>
+				<Einstellungen
 					pfad={pfad}
-					aktiv={frei}
-					geladen={geladen}
-					bearbeitet={text.bearbeitet}
-					beende={text.beende}
-					struktur={struktur}
-				/>
-				<Bildwerkzeug bild={bild} />
-				<Abbildungswerkzeug
-					abb={abbildung}
-					neueZahlen={() => befehle.fuehreAus('auswahl.neue-zahlen') !== false}
-				/>
-				<Loesungswerkzeug l={loes} />
-				<Strukturwerkzeug
-					pfad={pfad}
-					aktiv={struktur.aktiv}
-					format={format}
 					quelle={quelle}
+					format={format}
+					frei={frei}
+					doc={docJetzt}
+					geladen={geladen}
 					struktur={struktur}
-					befehle={befehle}
 					ablage={ablage}
+					abb={abbildung}
+					bild={bild}
+					loes={loes}
+					text={text}
+					pruefung={pruefung.stand}
 				/>
-				<ClaudeFragen {...frage} nr={auswahl} pfad={pfad} />
-			</AuswahlPanel>
+			</Inspektor>
 		),
 	};
 	const { kannVor, kannZurueck } = schritte(b.verlauf, frei);
@@ -903,7 +901,15 @@ const Bearbeitung = ({ dokument, mappe: mappenDaten }: { mappe: Mappe; dokument:
 							<Symbol name="mehr" />
 						</Knopf>
 					}
-					eintraege={[{ titel: 'Als Vorlage speichern', symbol: 'blatt', waehle: () => befehle.fuehreAus('dokument.als-vorlage') }]}
+					eintraege={[
+						{ titel: 'Als Vorlage speichern', symbol: 'blatt', waehle: () => befehle.fuehreAus('dokument.als-vorlage') },
+						{
+							titel: 'Claude fragen',
+							symbol: 'sprechblase',
+							aus: !frei,
+							waehle: () => befehle.fuehreAus('dokument.claude-fragen'),
+						},
+					]}
 				/>
 				<Trenner />
 				{format === 'folie' && (
@@ -916,6 +922,7 @@ const Bearbeitung = ({ dokument, mappe: mappenDaten }: { mappe: Mappe; dokument:
 					<PdfKnopf art="haupt" beschriftung="PDF" wahl={wahl} mappe={mappenDaten} warnen rechtsbuendig />
 				</span>
 			</Kopfleiste>
+			{claudeFragen.dialog}
 			{tastenOffen && (
 				<TastenUebersicht kontext={befehle.jetzt.current} schliessen={() => setTastenOffen(false)} />
 			)}
@@ -982,6 +989,7 @@ const Bearbeitung = ({ dokument, mappe: mappenDaten }: { mappe: Mappe; dokument:
 														slash={slash.menue}
 														schnellWunsch={schnellWunsch}
 													/>
+													<Umriss e={e} nr={umriss} />
 													<Bausteinleiste
 														e={e}
 														pfad={pfad}
@@ -1011,7 +1019,9 @@ const Bearbeitung = ({ dokument, mappe: mappenDaten }: { mappe: Mappe; dokument:
 						className="flex w-[248px] flex-none flex-col border-l border-rand bg-flaeche max-lg:h-[38vh] max-lg:w-auto max-lg:border-t max-lg:border-l-0"
 						data-panel={panels.rechts}
 					>
-						<div className="min-h-0 flex-1 overflow-y-auto p-3">{panelInhalt[panels.rechts]}</div>
+						<div className={klassen('min-h-0 flex-1 overflow-y-auto', panels.rechts !== 'inspektor' && 'p-3')}>
+							{panelInhalt[panels.rechts]}
+						</div>
 					</aside>
 				)}
 			</div>

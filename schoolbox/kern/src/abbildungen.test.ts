@@ -7,9 +7,11 @@ import { runInNewContext } from 'node:vm';
 import type { AbbildungSchema, Feld, ListeFeld, Werte } from './abbildungen';
 import {
 	ABBILDUNG_SCHEMA,
+	abschnittVon,
 	aendereFeld,
 	attributeVon,
 	feldWert,
+	GRUPPEN_ABSCHNITT,
 	markeSetzen,
 	markeTrennen,
 	markeVerbinden,
@@ -1699,7 +1701,7 @@ describe('Rätsel (038)', () => {
 		assert.equal(loesungswortFehler(wort, ['42', '64', '27', '28', '45'], legende, '3'), null);
 		assert.equal(
 			loesungswortFehler(wort, ['42', '48', '27', '28', '45'], legende, '3'),
-			'Aufgabe 3, Item 2 hat jetzt die Lösung 48; das Lösungswort stimmt nicht mehr.',
+			'Aufgabe 3, Eintrag 2 hat jetzt die Lösung 48; das Lösungswort stimmt nicht mehr.',
 		);
 		assert.match(loesungswortFehler(wort, ['42'], legende, '3') ?? '', /hat 1 Lösungen/);
 	});
@@ -2204,3 +2206,20 @@ describe('Punkte und Noten (053)', () => {
 		assert.equal(k.notenGrenzen('2:95; 2:80; 3:65; 4:50; 5:25'), null);
 	});
 });
+
+describe('Abschnitte im Inspektor', () => {
+	it('Jede Gruppe des Schemas hat einen Abschnitt, die Uhr steht wie im Zielbild', () => {
+		const felder = Object.values(ABBILDUNG_SCHEMA).flatMap((s) => s.felder);
+		for (const feld of felder) {
+			if (feld.gruppe) {
+				assert.ok(GRUPPEN_ABSCHNITT[feld.gruppe], `Gruppe ohne Abschnitt: ${feld.gruppe}`);
+			}
+		}
+		const uhr = Object.fromEntries((ABBILDUNG_SCHEMA['x-uhr']?.felder ?? []).map((f) => [f.attribut, abschnittVon(f)]));
+		assert.equal(uhr.zeit, 'inhalt');
+		assert.equal(uhr.ziffern, 'darstellung');
+		assert.equal(uhr.groesse, 'darstellung');
+		assert.equal(uhr.digital, 'weitere');
+	});
+});
+

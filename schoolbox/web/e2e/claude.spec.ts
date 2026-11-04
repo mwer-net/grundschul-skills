@@ -2,7 +2,7 @@ import { readFileSync } from 'node:fs';
 import { readFile, writeFile } from 'node:fs/promises';
 import path from 'node:path';
 
-import type { Page } from '@playwright/test';
+import type { Locator, Page } from '@playwright/test';
 import { ASSETS } from '@schoolbox/kern/src/konfig';
 import { zerlege } from '@schoolbox/kern/src/quelltext';
 import { bausteinVonKnoten, liesReferenzen, loeseReferenz, pfadText } from '@schoolbox/kern/src/referenz';
@@ -35,7 +35,10 @@ const fangeZwischenablage = (page: Page, geht: boolean) =>
 	}, geht);
 
 const kopiert = (page: Page) => page.evaluate(() => (window as unknown as { ablage: Ablage }).ablage.kopiert);
-const claudeFragen = (page: Page) => page.getByRole('button', { name: 'Claude fragen' });
+const claudeFragen = async (page: Page, druecke: (ziel: Locator) => Promise<void>) => {
+	await druecke(page.getByRole('button', { name: 'Weitere Aktionen' }));
+	await druecke(page.getByRole('menuitem', { name: 'Claude fragen' }));
+};
 const breadcrumb = (page: Page) => page.locator('[data-breadcrumb]');
 
 test.describe('Claude fragen', () => {
@@ -46,7 +49,7 @@ test.describe('Claude fragen', () => {
 
 		await druecke(material(page).locator('.aufgabe').nth(1).locator('.nr'));
 		await expect(breadcrumb(page)).toHaveText('Seite 1›Aufgabe 2');
-		await druecke(claudeFragen(page));
+		await claudeFragen(page, druecke);
 		await expect(page.getByText(KOPIERT)).toBeVisible();
 
 		const [text = ''] = await kopiert(page);
@@ -63,7 +66,7 @@ test.describe('Claude fragen', () => {
 		expect(pfadText(ergebnis?.ziel?.pfad ?? [])).toBe('Seite 1 › Aufgabe 2');
 
 		await druecke(page.getByRole('button', { name: 'Auswahl aufheben' }));
-		await druecke(claudeFragen(page));
+		await claudeFragen(page, druecke);
 		await expect.poll(async () => (await kopiert(page)).at(-1)?.split('\n')[1]).toBe(`[sb:${id}/${dok}]`);
 	});
 
@@ -81,7 +84,7 @@ test.describe('Claude fragen', () => {
 		await expect(page.locator('[data-textbearbeitung]')).toBeVisible();
 		await ueberschrift.evaluate((el) => el.ownerDocument.getSelection()?.selectAllChildren(el));
 		await page.keyboard.type('Wie spät ist es jetzt?');
-		await druecke(claudeFragen(page));
+		await claudeFragen(page, druecke);
 
 		await expect
 			.poll(async () => (await kopiert(page)).at(-1) ?? '')
@@ -95,7 +98,7 @@ test.describe('Claude fragen', () => {
 		await oeffne(page, id, dok);
 
 		await druecke(material(page).locator('.aufgabe').first().locator('.nr'));
-		await druecke(claudeFragen(page));
+		await claudeFragen(page, druecke);
 		const feld = page.locator('[data-claude-text]');
 		await expect(feld).toBeVisible();
 		await expect(feld).toHaveValue(new RegExp(`\\[sb:${id}/${dok}#seite1/aufgabe1\\]$`));

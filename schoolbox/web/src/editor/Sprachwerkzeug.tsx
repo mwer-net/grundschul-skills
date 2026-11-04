@@ -2,6 +2,7 @@ import { kann } from '@schoolbox/kern/src/bausteine';
 import type { Bereich, LueckenRegel, SprachWerkzeug } from '@schoolbox/kern/src/sprache';
 import { useEffect, useRef, useState } from 'react';
 
+import { Hilfetipp } from '../bausteine/Hilfetipp';
 import { useHinweis } from '../bausteine/hinweis';
 import { Knopf } from '../bausteine/Knopf';
 import type { PfadTeil } from './darstellung';
@@ -121,7 +122,7 @@ export const Sprachwerkzeug = ({
 	const nummern = doc ? (elementZu(doc, nr)?.getAttribute('data-zeilennummern') ?? '') : '';
 
 	return (
-		<div className="mt-3" data-sprachwerkzeug>
+		<div data-sprachwerkzeug>
 			<Knopf
 				art="zweit"
 				aria-expanded={offen}
@@ -134,11 +135,9 @@ export const Sprachwerkzeug = ({
 			>
 				Sprach-Werkzeuge
 			</Knopf>
+			<Hilfetipp name="Sprach-Werkzeuge">Sie wirken auf den markierten Text, sonst auf den ganzen Text hier.</Hilfetipp>
 			{offen && (
 				<>
-					<p className="mt-2 text-leise">
-						Sie wirken auf den markierten Text, sonst auf den ganzen Text hier.
-					</p>
 					<div className="mt-2 flex flex-wrap gap-2">
 						<Knopf
 							art="zweit"

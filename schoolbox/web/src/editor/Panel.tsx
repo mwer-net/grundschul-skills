@@ -1,4 +1,4 @@
-import { kann, kannImFormat } from '@schoolbox/kern/src/bausteine';
+import type { AbschnittName } from '@schoolbox/kern/src/abschnitte';
 import type { BlattWerte as BlattWerteTyp } from '@schoolbox/kern/src/kit-einstellungen';
 import {
 	BLATT_FORMATE,
@@ -7,264 +7,231 @@ import {
 	leseKit,
 	leseSichtbarkeit,
 	PALETTEN,
+	PALETTEN_FARBNAME,
 	setzeBlatt,
 	setzeKit,
 	setzeSichtbarkeit,
 	SICHTBARKEITEN,
 } from '@schoolbox/kern/src/kit-einstellungen';
-import type { StrukturErgebnis } from '@schoolbox/kern/src/struktur';
 import { ABSTAND, SPALTEN } from '@schoolbox/kern/src/struktur';
 import { groesseVon, setzeGroesse, setzeKopfzeile } from '@schoolbox/kern/src/tabelle';
 import type { Format as Format2 } from '@schoolbox/kern/src/werte';
 import { FORMAT_NAME, KLASSEN } from '@schoolbox/kern/src/werte';
 import type { ReactNode } from 'react';
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useId, useMemo, useRef, useState } from 'react';
 
+import { Abschnitt } from '../bausteine/Abschnitt';
+import { Feld } from '../bausteine/Feld';
+import { FELD_KLASSEN, klassen } from '../bausteine/klassen';
 import { Knopf } from '../bausteine/Knopf';
-import { Symbol } from '../bausteine/Symbol';
+import { Schalter } from '../bausteine/Schalter';
+import { Stepper } from '../bausteine/Stepper';
+import { Zeile } from '../bausteine/Zeile';
 import { klasseName } from '../lib/text';
 import type { Ablage } from './ablage';
 import type { PfadTeil } from './darstellung';
+import { palettenFarben } from './palettenfarben';
 import type { Spalten, Struktur } from './struktur';
-import type { Befehle } from './useBefehle';
 
-/** Nur für die Punkte im Panel; die Farben selbst stehen in `blatt.css`. */
-const PALETTEN_FARBE = { sonnig: '#F28C28', himmel: '#3A86FF', wiese: '#43AA8B', beere: '#E76F51' };
+const ZeileSchalter = ({
+	an,
+	hilfe,
+	setze,
+	titel,
+}: {
+	titel: string;
+	an: boolean;
+	setze: (an: boolean) => void;
+	hilfe?: string;
+}) => {
+	const id = useId();
+	return (
+		<Zeile titel={titel} fuer={id} hilfe={hilfe}>
+			<Schalter id={id} name={titel} an={an} setze={setze} />
+		</Zeile>
+	);
+};
 
-interface Eigenschaften {
-	pfad: PfadTeil[];
-	waehle: (nr: number | null) => void;
-	/** Was die folgenden Issues hier einhängen: Text, Bilder, Abbildungen … */
-	children?: ReactNode;
-	/** Ohne Auswahl: Einstellungen für das ganze Blatt. */
-	leer?: ReactNode;
-}
+const ZeileStepper = ({
+	hilfe,
+	titel,
+	...stepper
+}: {
+	titel: string;
+	hilfe?: string;
+	wert: number;
+	setze: (wert: number) => void;
+	min?: number;
+	max?: number;
+	schritt?: number;
+}) => {
+	const id = useId();
+	return (
+		<Zeile titel={titel} fuer={id} hilfe={hilfe}>
+			<Stepper id={id} name={titel} {...stepper} />
+		</Zeile>
+	);
+};
 
-/** Rechts neben dem Blatt (iPad hoch: darunter): was gewählt ist und was sich damit tun lässt. */
-export const AuswahlPanel = ({ children, leer, pfad, waehle }: Eigenschaften) => {
-	const gewaehlt = pfad.at(-1);
-	if (!gewaehlt) {
-		return (
-			<div>
-				<h2 className="text-xl">Auswahl</h2>
-				<p className="mt-2 text-leise">
-					Tippe auf einen Teil des Blatts, zum Beispiel eine Aufgabe oder eine Überschrift, um ihn
-					auszuwählen.
-				</p>
-				{leer}
-			</div>
-		);
+const ZeileWahl = ({
+	hilfe,
+	optionen,
+	setze,
+	titel,
+	wert,
+}: {
+	titel: string;
+	hilfe?: string;
+	wert: string;
+	optionen: readonly { wert: string; titel: string }[];
+	setze: (wert: string) => void;
+}) => {
+	const id = useId();
+	return (
+		<Zeile titel={titel} fuer={id} hilfe={hilfe}>
+			<select id={id} className={klassen(FELD_KLASSEN, 'w-fit! max-w-36 pr-5!')} value={wert} onChange={(e) => setze(e.target.value)}>
+				{optionen.map((o) => (
+					<option key={o.wert} value={o.wert}>
+						{o.titel}
+					</option>
+				))}
+			</select>
+		</Zeile>
+	);
+};
+
+/** Name fürs Hineinlegen in die Sammlung; die Aktion selbst steht im ⋯ (051). */
+export const SammlungName = ({ ablage }: { ablage: Ablage }) => {
+	const { sammle, sammlungName: name, setSammlungName: setName } = ablage;
+	if (name === null) {
+		return null;
 	}
 	return (
-		<div data-auswahl={gewaehlt.baustein.art}>
-			<nav aria-label="Wo im Blatt" className="-ml-2 flex flex-wrap items-center" data-breadcrumb>
-				{pfad.map((teil, i) => (
-					<span key={teil.nr} className="flex items-center">
-						{i > 0 && <span className="px-0.5 text-leise">›</span>}
-						<button
-							type="button"
-							className="h-knopf rounded-lg px-2 font-medium text-tinte hover:bg-flaeche-2 aria-[current=true]:text-tinte"
-							aria-current={teil === gewaehlt}
-							onClick={() => waehle(teil.nr)}
-						>
-							{teil.name}
-						</button>
-					</span>
-				))}
-			</nav>
-			<h2 className="mt-2 text-xl">{gewaehlt.name}</h2>
-			{children}
-			<Knopf art="leise" className="mt-4 -ml-5" onClick={() => waehle(null)}>
-				<Symbol name="schliessen" />
-				Auswahl aufheben
+		<div className="flex items-end gap-2" data-wiederverwenden>
+			<Feld titel="Name in der Sammlung" className="min-w-0 flex-1">
+				<input
+					className={FELD_KLASSEN}
+					value={name}
+					data-sammlung-name
+					onChange={(e) => setName(e.target.value)}
+				/>
+			</Feld>
+			<Knopf disabled={name.trim() === ''} data-sammlung-speichern onClick={() => void sammle()}>
+				Hineinlegen
 			</Knopf>
 		</div>
 	);
 };
 
-interface StrukturEigenschaften {
-	quelle: string | null;
-	pfad: PfadTeil[];
-	aktiv: boolean;
-	format: string;
-	struktur: Struktur;
-	befehle: Befehle;
-	ablage: Ablage;
-}
-
-/** Baustein in die Sammlung legen, kopieren und aus einem anderen Dokument einfügen (051). */
-const Wiederverwenden = ({
-	ablage,
-	befehle,
-	gewaehlt,
-}: {
-	ablage: Ablage;
-	befehle: Befehle;
-	gewaehlt: PfadTeil;
-}) => {
-	const { abgelegt, sammle, sammlungName: name, setSammlungName: setName } = ablage;
+export const Spaltenwahl = ({ spalten, struktur }: { spalten: Spalten; struktur: Struktur }) => {
+	const id = useId();
 	return (
-		<div className="flex flex-col gap-2" data-wiederverwenden>
-			<div className="flex flex-wrap gap-2">
-				{gewaehlt.baustein.art !== 'seite' && (
-					<>
-						<Knopf art="zweit" data-baustein-kopieren onClick={() => befehle.fuehreAus('auswahl.kopieren')}>
-							<Symbol name="kopieren" />
-							Kopieren
-						</Knopf>
-						<Knopf art="zweit" data-in-sammlung onClick={() => befehle.fuehreAus('auswahl.in-sammlung')}>
-							<Symbol name="plus" />
-							In Sammlung legen
-						</Knopf>
-					</>
-				)}
-				{abgelegt && (
-					<Knopf art="zweit" data-ablage-einfuegen onClick={() => befehle.fuehreAus('auswahl.einfuegen')}>
-						<Symbol name="kopieren" />
-						{`„${abgelegt.name}“ einfügen`}
-					</Knopf>
-				)}
+		<Zeile titel="Spalten" fuer={id}>
+			<div role="group" aria-label="Spalten" data-spalten={spalten.wert}>
+				<Stepper
+					id={id}
+					name="Anzahl der Spalten"
+					wert={spalten.wert}
+					min={SPALTEN.min}
+					max={SPALTEN.max}
+					minusName="Eine Spalte weniger"
+					plusName="Eine Spalte mehr"
+					setze={(n) => struktur.spalten(spalten.nr, n)}
+				/>
 			</div>
-			{name !== null && (
-				<div className="flex flex-wrap items-end gap-2">
-					<label className="flex-1 font-medium">
-						Name
-						<input
-							className="mt-1 h-knopf w-full rounded-xl border border-rand bg-flaeche px-3 font-normal"
-							value={name}
-							data-sammlung-name
-							onChange={(e) => setName(e.target.value)}
-						/>
-					</label>
-					<Knopf disabled={name.trim() === ''} data-sammlung-speichern onClick={() => void sammle()}>
-						Hineinlegen
-					</Knopf>
-				</div>
-			)}
-		</div>
+		</Zeile>
 	);
 };
 
-const Spaltenwahl = ({ eigene, spalten, struktur }: { spalten: Spalten; eigene: boolean; struktur: Struktur }) => (
-	<div>
-		<h3 className="font-medium">{eigene ? 'Spalten' : `Spalten (${spalten.name})`}</h3>
-		<div role="group" aria-label="Spalten" className="mt-2 flex items-center gap-2" data-spalten={spalten.wert}>
-			<Knopf
-				art="zweit"
-				className="size-knopf px-0"
-				aria-label="Eine Spalte weniger"
-				disabled={spalten.wert <= SPALTEN.min}
-				onClick={() => struktur.spalten(spalten.nr, spalten.wert - 1)}
-			>
-				<Symbol name="minus" />
-			</Knopf>
-			<span className="min-w-8 text-center text-xl font-medium">{spalten.wert}</span>
-			<Knopf
-				art="zweit"
-				className="size-knopf px-0"
-				aria-label="Eine Spalte mehr"
-				disabled={spalten.wert >= SPALTEN.max}
-				onClick={() => struktur.spalten(spalten.nr, spalten.wert + 1)}
-			>
-				<Symbol name="plus" />
-			</Knopf>
-		</div>
-	</div>
-);
-
-const FELD = 'mt-1 h-knopf w-full rounded-xl border border-rand bg-flaeche px-3 font-normal';
-
-/** Zeichnet die Felder aus `KIT_FELDER`; Grenzen und Wirkung stehen dort, nicht hier. */
-const KitWerkzeug = ({
+/** Zeichnet die Felder aus `KIT_FELDER`; Grenzen, Wirkung und Abschnitt stehen dort, nicht hier. */
+export const KitWerkzeug = ({
+	abschnitt,
 	art,
 	folien,
 	nr,
 	quelle,
 	struktur,
 }: {
+	abschnitt: AbschnittName;
 	art: string;
 	folien: boolean;
 	nr: number;
 	quelle: string | null;
 	struktur: Struktur;
 }) => {
-	const felder = KIT_FELDER[art];
-	if (!felder || !quelle) {
+	const felder = (KIT_FELDER[art] ?? []).filter((f) => (f.abschnitt ?? 'darstellung') === abschnitt);
+	if (felder.length === 0 || !quelle) {
 		return null;
 	}
 	const werte = leseKit(quelle, nr, art);
 	const setze = (name: string, titel: string, wert: string | number | boolean) =>
 		struktur.aendereAttribute(`${titel} geändert`, (q) => setzeKit(q, nr, art, name, wert, { jeSeite: folien }));
 	return (
-		<div className="flex flex-col gap-3" data-kit={art}>
+		<div className="flex flex-col gap-1" data-kit={art}>
 			{felder.map((f) => {
 				const wert = werte[f.name];
+				const { hilfe, titel } = f;
+				const dazu = hilfe ? { hilfe } : {};
 				if (f.typ === 'schalter') {
 					return (
-						<label key={f.name} className="flex h-knopf items-center gap-2 font-medium">
-							<input
-								type="checkbox"
-								className="size-5"
-								checked={wert === true}
-								onChange={(e) => setze(f.name, f.titel, e.target.checked)}
-							/>
-							{f.titel}
-						</label>
+						<ZeileSchalter
+							key={f.name}
+							titel={titel}
+							{...dazu}
+							an={wert === true}
+							setze={(an) => setze(f.name, titel, an)}
+						/>
+					);
+				}
+				if (f.typ === 'zahl') {
+					return (
+						<ZeileStepper
+							key={f.name}
+							titel={titel}
+							{...dazu}
+							wert={Number(wert)}
+							min={f.min}
+							max={f.max}
+							schritt={f.schritt}
+							setze={(n) => setze(f.name, titel, n)}
+						/>
+					);
+				}
+				if (f.typ === 'wahl') {
+					return (
+						<ZeileWahl
+							key={f.name}
+							titel={titel}
+							{...dazu}
+							wert={String(wert)}
+							optionen={f.optionen}
+							setze={(w) => setze(f.name, titel, w)}
+						/>
 					);
 				}
 				return (
-					<label key={f.name} className="block font-medium">
-						{f.titel}
-						{f.typ === 'zahl' && (
-							<input
-								key={String(wert)}
-								type="number"
-								className={FELD}
-								min={f.min}
-								max={f.max}
-								step={f.schritt}
-								defaultValue={Number(wert)}
-								onBlur={(e) => setze(f.name, f.titel, Number(e.target.value))}
-							/>
-						)}
-						{f.typ === 'wahl' && (
-							<select
-								className={FELD}
-								value={String(wert)}
-								onChange={(e) => setze(f.name, f.titel, e.target.value)}
-							>
-								{f.optionen.map((o) => (
-									<option key={o.wert} value={o.wert}>
-										{o.titel}
-									</option>
-								))}
-							</select>
-						)}
-						{f.typ === 'text' && (
-							<input
-								key={String(wert)}
-								className={FELD}
-								defaultValue={String(wert)}
-								onBlur={(e) => setze(f.name, f.titel, e.target.value)}
-							/>
-						)}
-					</label>
+					<Feld key={f.name} titel={titel}>
+						<input
+							key={String(wert)}
+							className={FELD_KLASSEN}
+							defaultValue={String(wert)}
+							onBlur={(e) => setze(f.name, titel, e.target.value)}
+						/>
+					</Feld>
 				);
 			})}
 		</div>
 	);
 };
 
-/** Zeilen und Spalten der Kit-Tabelle (047), gewählt ist die Tabelle oder etwas darin. */
-const TabellenWerkzeug = ({
-	befehle,
+/** Größe und Kopfzeile der Kit-Tabelle (047). Einfügen und Löschen an einer Stelle stehen in der Leiste und im ⋯. */
+export const TabellenWerkzeug = ({
 	folien,
 	nr,
 	pfad,
 	quelle,
 	struktur,
 }: {
-	befehle: Befehle;
 	folien: boolean;
 	nr: number;
 	pfad: PfadTeil[];
@@ -276,282 +243,70 @@ const TabellenWerkzeug = ({
 	}
 	const n = { jeSeite: folien };
 	const g = groesseVon(quelle, nr);
-	const tu = (name: string, rechne: (q: string) => StrukturErgebnis) => struktur.fuehreAus(name, rechne);
-	const inZelle = pfad.at(-1)?.baustein.art === 'tabellenzelle';
 	return (
-		<div className="flex flex-col gap-3" data-tabelle-werkzeug>
-			<label className="flex h-knopf items-center gap-2 font-medium">
-				<input
-					type="checkbox"
-					className="size-5"
-					checked={g.kopf}
-					onChange={(e) => tu('Kopfzeile geändert', (q) => setzeKopfzeile(q, nr, e.target.checked, n))}
-				/>
-				Kopfzeile
-			</label>
-			<div className="flex gap-2">
-				{(['zeilen', 'spalten'] as const).map((was) => (
-					<label key={was} className="block flex-1 font-medium">
-						{was === 'zeilen' ? 'Zeilen' : 'Spalten'}
-						<input
-							key={g[was]}
-							type="number"
-							className={FELD}
-							min={1}
-							max={30}
-							defaultValue={g[was]}
-							onBlur={(e) => {
-								const wert = Math.max(1, Math.min(30, Number(e.target.value)));
-								if (wert !== g[was]) {
-									tu('Tabellengröße geändert', (q) => setzeGroesse(q, nr, { [was]: wert }, n));
-								}
-							}}
-						/>
-					</label>
-				))}
-			</div>
-			{inZelle && (
-				<div className="grid grid-cols-2 gap-2">
-					<Knopf art="zweit" onClick={() => befehle.fuehreAus('tabelle.zeile-davor')}>
-						Zeile davor
-					</Knopf>
-					<Knopf art="zweit" onClick={() => befehle.fuehreAus('tabelle.zeile-danach')}>
-						Zeile danach
-					</Knopf>
-					<Knopf art="zweit" onClick={() => befehle.fuehreAus('tabelle.spalte-davor')}>
-						Spalte davor
-					</Knopf>
-					<Knopf art="zweit" onClick={() => befehle.fuehreAus('tabelle.spalte-danach')}>
-						Spalte danach
-					</Knopf>
-					<Knopf art="gefahr" onClick={() => befehle.fuehreAus('tabelle.zeile-weg')}>
-						Zeile löschen
-					</Knopf>
-					<Knopf art="gefahr" onClick={() => befehle.fuehreAus('tabelle.spalte-weg')}>
-						Spalte löschen
-					</Knopf>
-				</div>
-			)}
-		</div>
-	);
-};
-
-/** Verschieben, Duplizieren, Löschen und Spalten für den gewählten Baustein. */
-export const Strukturwerkzeug = ({
-	ablage,
-	aktiv,
-	befehle,
-	format,
-	pfad,
-	quelle,
-	struktur,
-}: StrukturEigenschaften) => {
-	const gewaehlt = pfad.at(-1);
-	const w = struktur.werte;
-	if (!aktiv || !gewaehlt || !w) {
-		return null;
-	}
-	const { baustein, nr } = gewaehlt;
-	const { nach } = w;
-	const einzigeSeite = baustein.art === 'seite' && w.seiten <= 1;
-	const loeschbar = kannImFormat(baustein, 'loeschen', format);
-	const duplizierbar = kannImFormat(baustein, 'duplizieren', format);
-	return (
-		<div className="mt-4 flex flex-col gap-5" data-struktur>
-			{nach && (
-				<div>
-					<div role="group" aria-label="Verschieben" className="flex flex-wrap gap-2">
-						<Knopf
-							art="zweit"
-							className="px-4"
-							disabled={!nach.zurueck}
-							onClick={() => befehle.fuehreAus('auswahl.hoch')}
-						>
-							<Symbol name={nach.quer ? 'links' : 'hoch'} />
-							{nach.quer ? 'Nach links' : 'Nach oben'}
-						</Knopf>
-						<Knopf
-							art="zweit"
-							className="px-4"
-							disabled={!nach.vor}
-							onClick={() => befehle.fuehreAus('auswahl.runter')}
-						>
-							<Symbol name={nach.quer ? 'rechts' : 'runter'} />
-							{nach.quer ? 'Nach rechts' : 'Nach unten'}
-						</Knopf>
-					</div>
-					<p className="mt-2 text-leise">
-						{baustein.ordnenInLeiste
-							? 'Oder links in der Seitenleiste gedrückt halten und ziehen.'
-							: 'Oder im Blatt gedrückt halten und ziehen.'}
-					</p>
-				</div>
-			)}
-			<TabellenWerkzeug
-				befehle={befehle}
-				folien={format === 'folie'}
-				nr={nr}
-				pfad={pfad}
-				quelle={quelle}
-				struktur={struktur}
+		<div className="flex flex-col gap-1" data-tabelle-werkzeug>
+			<ZeileSchalter
+				titel="Kopfzeile"
+				an={g.kopf}
+				setze={(an) => struktur.fuehreAus('Kopfzeile geändert', (q) => setzeKopfzeile(q, nr, an, n))}
 			/>
-			<KitWerkzeug art={baustein.art} folien={format === 'folie'} nr={nr} quelle={quelle} struktur={struktur} />
-			{kann(baustein, 'ordnen') && baustein.art !== 'seite' && (
-				<label className="block font-medium">
-					Sichtbarkeit
-					<select
-						className="mt-1 h-knopf w-full rounded-xl border border-rand bg-flaeche px-3 font-normal"
-						aria-label="Sichtbarkeit"
-						data-sichtbarkeit
-						value={quelle ? leseSichtbarkeit(quelle, nr) : ''}
-						onChange={(e) => {
-							struktur.aendereAttribute('Sichtbarkeit geändert', (q) =>
-								setzeSichtbarkeit(q, nr, e.target.value),
-							);
-						}}
-					>
-						{SICHTBARKEITEN.map((s) => (
-							<option key={s.wert} value={s.wert}>
-								{s.titel}
-							</option>
-						))}
-					</select>
-				</label>
-			)}
-			{(duplizierbar || loeschbar) && (
-				<div className="flex flex-wrap gap-2">
-					{duplizierbar && (
-						<Knopf art="zweit" onClick={() => befehle.fuehreAus('auswahl.duplizieren')}>
-							<Symbol name="duplizieren" />
-							Duplizieren
-						</Knopf>
-					)}
-					{loeschbar && (
-						<Knopf
-							art="gefahr"
-							disabled={einzigeSeite}
-							title={einzigeSeite ? 'Die einzige Seite bleibt.' : undefined}
-							onClick={() => befehle.fuehreAus('auswahl.loeschen')}
-						>
-							<Symbol name="papierkorb" />
-							Löschen
-						</Knopf>
-					)}
-				</div>
-			)}
-			{quelle && <Wiederverwenden ablage={ablage} befehle={befehle} gewaehlt={gewaehlt} />}
-			{w.spalten && <Spaltenwahl spalten={w.spalten} eigene={w.spalten.nr === nr} struktur={struktur} />}
+			{(['zeilen', 'spalten'] as const).map((was) => (
+				<ZeileStepper
+					key={was}
+					titel={was === 'zeilen' ? 'Zeilen' : 'Spalten'}
+					wert={g[was]}
+					min={1}
+					max={30}
+					setze={(wert) =>
+						struktur.fuehreAus('Tabellengröße geändert', (q) => setzeGroesse(q, nr, { [was]: wert }, n))
+					}
+				/>
+			))}
 		</div>
 	);
 };
 
-/**
- * Abstand zwischen den Aufgaben für das ganze Blatt. Beim Ziehen zeigt das Blatt den Abstand sofort, die Quelle
- * ändert sich erst beim Loslassen: ein Schritt zum Rückgängigmachen.
- */
-/** Titel, Klasse, Palette, Format und Trennlinien; jede Änderung ist ein Schritt im Verlauf (046). */
-const BlattWerte = ({ quelle, struktur }: { quelle: string; struktur: Struktur }) => {
-	const w = leseBlatt(quelle);
-	const setze = (titel: string, neu: Partial<BlattWerteTyp>) =>
-		struktur.aendereAttribute(`${titel} geändert`, (q) => setzeBlatt(q, neu));
-	return (
-		<div className="mt-3 flex flex-col gap-3">
-			<label className="block font-medium">
-				Titel
-				<input
-					key={w.titel}
-					className={FELD}
-					defaultValue={w.titel}
-					onBlur={(e) => e.target.value.trim() && setze('Titel', { titel: e.target.value.trim() })}
-				/>
-			</label>
-			<label className="block font-medium">
-				Klasse
-				<select
-					className={FELD}
-					value={String(w.klasse)}
-					onChange={(e) => {
-						setze('Klasse', { klasse: KLASSEN.find((k) => String(k) === e.target.value) ?? 'gemischt' });
-					}}
-				>
-					{KLASSEN.map((k) => (
-						<option key={k} value={String(k)}>
-							{klasseName(k)}
-						</option>
-					))}
-				</select>
-			</label>
-			<div role="group" aria-label="Palette" className="flex flex-wrap gap-2" data-palette>
-				{PALETTEN.map((p) => (
-					<Knopf
-						key={p}
-						art={w.palette === p ? 'haupt' : 'zweit'}
-						aria-pressed={w.palette === p}
-						className="px-3"
-						onClick={() => setze('Palette', { palette: p })}
-					>
-						<span aria-hidden className="size-4 rounded-full" style={{ background: PALETTEN_FARBE[p] }} />
-						{p[0]?.toUpperCase()}
-						{p.slice(1)}
-					</Knopf>
-				))}
-			</div>
-			<label className="block font-medium">
-				Format
-				<select
-					className={FELD}
-					value={w.format}
-					disabled={w.format === 'minibuch'}
-					onChange={(e) => setze('Format', { format: e.target.value as Format2 })}
-				>
-					{(w.format === 'minibuch' ? ['minibuch' as const] : BLATT_FORMATE).map((f) => (
-						<option key={f} value={f}>
-							{FORMAT_NAME[f]}
-						</option>
-					))}
-				</select>
-				<span className="mt-1 block font-normal text-leise">
-					Passt danach etwas nicht mehr, meldet es die Prüfung.
-				</span>
-			</label>
-			<label className="flex h-knopf items-center gap-2 font-medium">
-				<input
-					type="checkbox"
-					className="size-5"
-					checked={w.trenner}
-					onChange={(e) => setze('Trennlinien', { trenner: e.target.checked })}
-				/>
-				Trennlinien zwischen Aufgaben
-			</label>
-			<label className="flex h-knopf items-center gap-2 font-medium">
-				<input
-					type="checkbox"
-					className="size-5"
-					checked={w.punkte}
-					onChange={(e) => setze('Punkte drucken', { punkte: e.target.checked })}
-				/>
-				Punkte drucken
-			</label>
-		</div>
-	);
-};
+export const Sichtbarkeit = ({ nr, quelle, struktur }: { nr: number; quelle: string; struktur: Struktur }) => (
+	<select
+		className={FELD_KLASSEN}
+		aria-label="Sichtbarkeit"
+		data-sichtbarkeit
+		value={leseSichtbarkeit(quelle, nr)}
+		onChange={(e) =>
+			struktur.aendereAttribute('Sichtbarkeit geändert', (q) => setzeSichtbarkeit(q, nr, e.target.value))
+		}
+	>
+		{SICHTBARKEITEN.map((s) => (
+			<option key={s.wert} value={s.wert}>
+				{s.titel}
+			</option>
+		))}
+	</select>
+);
 
+/** Titel, Klasse, Farbschema, Format, Abstand, Trennlinien, Punkte: Jede Änderung ist ein Schritt im Verlauf (046). */
 export const Blattwerkzeug = ({
 	aktiv,
+	doc,
+	loesung,
 	quelle,
 	struktur,
 }: {
 	aktiv: boolean;
+	doc: Document | null;
+	/** Die Übersicht der Lösungen, wenn gerade die Lösung zu sehen ist. */
+	loesung: ReactNode;
 	quelle: string | null;
 	struktur: Struktur;
 }) => {
 	const wert = struktur.werte?.abstand ?? null;
 	const [jetzt, setJetzt] = useState(wert ?? ABSTAND.min);
 	const regler = useRef<HTMLInputElement>(null);
-	const setze = useRef(struktur.abstand);
+	const setzeAbstand = useRef(struktur.abstand);
+	const farben = useMemo(() => palettenFarben(doc), [doc]);
 
 	useEffect(() => {
-		setze.current = struktur.abstand;
+		setzeAbstand.current = struktur.abstand;
 	});
 
 	useEffect(() => {
@@ -565,39 +320,110 @@ export const Blattwerkzeug = ({
 		if (!element) {
 			return undefined;
 		}
-		const fertig = () => setze.current(Number(element.value));
+		const fertig = () => setzeAbstand.current(Number(element.value));
 		element.addEventListener('change', fertig);
 		return () => element.removeEventListener('change', fertig);
 	}, [aktiv, wert]);
 
-	if (!aktiv || wert === null) {
-		return null;
+	if (!aktiv || wert === null || !quelle) {
+		return loesung ? <div data-blatt>{loesung}</div> : null;
 	}
+	const w = leseBlatt(quelle);
+	const setze = (titel: string, neu: Partial<BlattWerteTyp>) =>
+		struktur.aendereAttribute(`${titel} geändert`, (q) => setzeBlatt(q, neu));
 	return (
-		<div className="mt-6 border-t border-rand pt-4" data-blatt>
-			<h2 className="text-xl">Ganzes Blatt</h2>
-			{quelle && <BlattWerte quelle={quelle} struktur={struktur} />}
-			<label className="mt-3 block">
-				<span className="flex justify-between font-medium">
-					Abstand zwischen Aufgaben
-					<span className="font-normal text-leise">{`${jetzt} px`}</span>
-				</span>
-				<input
-					ref={regler}
-					type="range"
-					aria-label="Abstand zwischen Aufgaben"
-					className="mt-2 h-11 w-full accent-brand-500"
-					min={ABSTAND.min}
-					max={ABSTAND.max}
-					step={ABSTAND.schritt}
-					value={jetzt}
-					onChange={(e) => {
-						const px = Number(e.target.value);
-						setJetzt(px);
-						struktur.zeigeAbstand(px);
-					}}
+		<div data-blatt>
+			<div className="px-3 py-2">
+				<p className="text-xs text-leise">Dokument</p>
+				<h2 className="text-base font-semibold">Ganzes Blatt</h2>
+			</div>
+			<Abschnitt name="angaben" titel="Angaben">
+				<Feld titel="Titel" lage="daneben">
+					<input
+						key={w.titel}
+						className={FELD_KLASSEN}
+						defaultValue={w.titel}
+						onBlur={(e) => e.target.value.trim() && setze('Titel', { titel: e.target.value.trim() })}
+					/>
+				</Feld>
+				<ZeileWahl
+					titel="Klasse"
+					wert={String(w.klasse)}
+					optionen={KLASSEN.map((k) => ({ wert: String(k), titel: klasseName(k) }))}
+					setze={(neu) => setze('Klasse', { klasse: KLASSEN.find((k) => String(k) === neu) ?? 'gemischt' })}
 				/>
-			</label>
+			</Abschnitt>
+			<Abschnitt name="aussehen" titel="Aussehen">
+				<Zeile titel="Farbschema" hilfe="Farben von Titel, Nummern und Markierungen im Blatt">
+					<div role="group" aria-label="Farbschema" className="flex gap-1" data-palette>
+						{PALETTEN.map((p) => {
+							const f = farben[p];
+							return (
+								<button
+									key={p}
+									type="button"
+									aria-pressed={w.palette === p}
+									aria-label={`${p[0]?.toUpperCase()}${p.slice(1)}: ${PALETTEN_FARBNAME[p]}`}
+									title={PALETTEN_FARBNAME[p]}
+									className="size-knopf-klein rounded-full border border-rand p-0.5 aria-pressed:border-tinte"
+									onClick={() => setze('Farbschema', { palette: p })}
+								>
+									<span
+										aria-hidden
+										className="block size-full min-h-4 rounded-full"
+										style={f ? { background: `linear-gradient(135deg, ${f.haupt} 50%, ${f.akzent} 50%)` } : undefined}
+									/>
+								</button>
+							);
+						})}
+					</div>
+				</Zeile>
+				<ZeileWahl
+					titel="Format"
+					hilfe="Passt danach etwas nicht mehr, meldet es die Prüfung."
+					wert={w.format}
+					optionen={(w.format === 'minibuch' ? ['minibuch' as const] : BLATT_FORMATE).map((f) => ({
+						wert: f,
+						titel: FORMAT_NAME[f],
+					}))}
+					setze={(neu) => setze('Format', { format: neu as Format2 })}
+				/>
+				<label className="block">
+					<span className="flex h-zeile items-center justify-between text-leise">
+						Abstand
+						<span className="tabular-nums">{`${jetzt} px`}</span>
+					</span>
+					<input
+						ref={regler}
+						type="range"
+						aria-label="Abstand zwischen Aufgaben"
+						className="h-zeile w-full accent-brand-500"
+						min={ABSTAND.min}
+						max={ABSTAND.max}
+						step={ABSTAND.schritt}
+						value={jetzt}
+						onChange={(e) => {
+							const px = Number(e.target.value);
+							setJetzt(px);
+							struktur.zeigeAbstand(px);
+						}}
+					/>
+				</label>
+				<ZeileSchalter
+					titel="Trennlinien"
+					hilfe="Linien zwischen den Aufgaben"
+					an={w.trenner}
+					setze={(an) => setze('Trennlinien', { trenner: an })}
+				/>
+			</Abschnitt>
+			<Abschnitt name="loesung-und-punkte" titel="Lösung und Punkte">
+				<ZeileSchalter
+					titel="Punkte drucken"
+					an={w.punkte}
+					setze={(an) => setze('Punkte drucken', { punkte: an })}
+				/>
+				{loesung}
+			</Abschnitt>
 		</div>
 	);
 };

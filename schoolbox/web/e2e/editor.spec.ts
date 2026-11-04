@@ -46,7 +46,7 @@ test.describe('Editor', () => {
 		await expect(page.locator('[data-auswahlrahmen]')).toBeVisible();
 
 		await druecke(material(page).locator('x-uhr').nth(1));
-		await expect(page.locator('[data-breadcrumb]')).toHaveText('Seite 1›Aufgabe 1›Reihe›Item 2›Uhr');
+		await expect(page.locator('[data-breadcrumb]')).toHaveText('Seite 1›Aufgabe 1›Reihe›Eintrag 2›Uhr');
 		await druecke(page.locator('[data-breadcrumb]').getByRole('button', { name: 'Aufgabe 1' }));
 		await expect(page.locator('[data-auswahl="aufgabe"] h2')).toHaveText('Aufgabe 1');
 
@@ -57,7 +57,7 @@ test.describe('Editor', () => {
 		await expect(page.locator('[data-breadcrumb]')).toHaveText('Seite 1');
 		await page.keyboard.press('Escape');
 		await expect(page.locator('[data-auswahlrahmen]')).toHaveCount(0);
-		await expect(page.getByText('Tippe auf einen Teil des Blatts')).toBeVisible();
+		await expect(page.locator('[data-inspektor="blatt"]')).toBeVisible();
 
 		await druecke(material(page).locator('.blase'));
 		await expect(page.locator('[data-auswahl="blase"]')).toBeVisible();

@@ -44,3 +44,9 @@ export const gespeichert = async (page: Page, datei: string) => {
 	await expect.poll(() => readFile(datei, 'utf8'), { timeout: 10_000 }).toBe(stand);
 	await expect(page.locator('[data-speicherstand="gespeichert"]')).toBeVisible();
 };
+
+/** Ein Befehl aus dem ⋯ der Leiste am gewählten Baustein. */
+export const imMehr = async (page: Page, name: string | RegExp) => {
+	await page.locator('[data-bausteinleiste]').getByRole('button', { name: 'Mehr zu diesem Baustein' }).click();
+	await page.getByRole('menuitem', { name }).click();
+};

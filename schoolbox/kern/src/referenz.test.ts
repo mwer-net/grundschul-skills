@@ -73,7 +73,7 @@ describe('Pfad und Probe', () => {
 	it('benennt wie die Breadcrumb des Editors', () => {
 		const z = zerlege(BEISPIEL);
 		const zelle = mitKlasse(z, 'zelle')[5] as Knoten;
-		assert.equal(pfadText(pfadVon(z, zelle.nr, false)), 'Seite 1 › Aufgabe 2 › Reihe › Item 3');
+		assert.equal(pfadText(pfadVon(z, zelle.nr, false)), 'Seite 1 › Aufgabe 2 › Reihe › Eintrag 3');
 		const uhr = z.knoten.find((k) => k.tag === 'x-stellentafel') as Knoten;
 		assert.equal(pfadVon(z, uhr.nr, false).at(-1)?.name, 'Stellentafel');
 		const stern = mitKlasse(z, 'aufgabe')[3] as Knoten;

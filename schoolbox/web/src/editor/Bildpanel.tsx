@@ -4,8 +4,10 @@ import { useEffect, useId, useMemo, useRef, useState } from 'react';
 import { Chip } from '../bausteine/Chip';
 import { Dialog } from '../bausteine/Dialog';
 import { knopfKlassen } from '../bausteine/klassen';
+import { FELD_KLASSEN } from '../bausteine/klassen';
 import { Knopf } from '../bausteine/Knopf';
 import { Symbol } from '../bausteine/Symbol';
+import { Zeile } from '../bausteine/Zeile';
 import { useLaden } from '../lib/laden';
 import type { BildSteuerung, BildWerte } from './bild';
 import { beschreibungAus } from './bild';
@@ -274,16 +276,15 @@ const Groesse = ({ bild, w }: { bild: BildSteuerung; w: BildWerte }) => {
 	}, []);
 
 	return (
-		<label className="mt-5 block">
-			<span className="flex justify-between font-medium">
-				Größe
-				<span className="font-normal text-leise">{`${jetzt} px`}</span>
-			</span>
+		<div>
+			<Zeile titel="Größe" hilfe="Geht auch im Blatt: an einer Ecke ziehen.">
+				<span className="text-xs text-leise tabular-nums">{`${jetzt} px`}</span>
+			</Zeile>
 			<input
 				ref={regler}
 				type="range"
 				aria-label="Größe des Bildes"
-				className="mt-2 h-11 w-full accent-brand-500"
+				className="h-zeile w-full accent-brand-500"
 				min={Math.min(24, vorher)}
 				max={Math.max(w.max, vorher)}
 				step={1}
@@ -295,8 +296,7 @@ const Groesse = ({ bild, w }: { bild: BildSteuerung; w: BildWerte }) => {
 					bild.zeigeBreite(px);
 				}}
 			/>
-			<span className="text-leise">Oder im Blatt an einer Ecke ziehen.</span>
-		</label>
+		</div>
 	);
 };
 
@@ -308,11 +308,11 @@ const Beschreibung = ({ bild, w }: { bild: BildSteuerung; w: BildWerte }) => {
 	}, [w.alt, w.nr]);
 
 	return (
-		<label className="mt-5 block">
-			<span className="font-medium">Beschreibung</span>
+		<label className="block">
+			<span className="flex h-zeile items-center text-leise">Beschreibung</span>
 			<input
 				type="text"
-				className="mt-2 h-knopf w-full rounded-xl border border-rand px-3 focus:border-brand-500 focus:outline-none"
+				className={FELD_KLASSEN}
 				placeholder="Was zeigt das Bild?"
 				value={text}
 				data-bild-beschreibung
@@ -325,14 +325,16 @@ const Beschreibung = ({ bild, w }: { bild: BildSteuerung; w: BildWerte }) => {
 					}
 				}}
 			/>
-			<span className="mt-1 block text-leise">
-				{w.alt.trim() ? 'Hilft beim Prüfen und beim Vorlesen.' : 'Beschreibe das Bild in ein paar Worten.'}
-			</span>
 		</label>
 	);
 };
 
-/** Für Bilder und Bildplatzhalter: austauschen bzw. einsetzen, Größe, Beschreibung, Entfernen. */
+export const BildDarstellung = ({ bild }: { bild: BildSteuerung }) => {
+	const w = bild.werte;
+	return bild.aktiv && w && !w.platzhalter ? <Groesse bild={bild} w={w} /> : null;
+};
+
+/** Für Bilder und Bildplatzhalter: austauschen bzw. einsetzen, Beschreibung, Entfernen. Die Größe steht unter „Darstellung“. */
 export const Bildwerkzeug = ({ bild }: { bild: BildSteuerung }) => {
 	const [sammlung, setSammlung] = useState(false);
 	const w = bild.werte;
@@ -341,11 +343,11 @@ export const Bildwerkzeug = ({ bild }: { bild: BildSteuerung }) => {
 	}
 	const beschaeftigt = bild.arbeit !== null;
 	return (
-		<div className="mt-3" data-bildwerkzeug={w.platzhalter ? 'platzhalter' : 'bild'}>
+		<div data-bildwerkzeug={w.platzhalter ? 'platzhalter' : 'bild'}>
 			{w.platzhalter ? <p className="text-leise">{`Hier soll ein Bild hin: ${w.alt}`}</p> : <Vorschau w={w} />}
 			{!w.platzhalter && <Hinweise adresse={bild.adresse} w={w} />}
-			<h3 className="mt-5 font-medium">{w.platzhalter ? 'Bild einsetzen' : 'Austauschen'}</h3>
-			<div className="mt-2 flex flex-wrap gap-2">
+			<h3 className="flex h-zeile items-center text-leise">{w.platzhalter ? 'Bild einsetzen' : 'Austauschen'}</h3>
+			<div className="flex flex-wrap gap-1">
 				{bild.arbeit === 'hochladen' || bild.arbeit === 'sammlung' ? (
 					<Laeuft text={bild.arbeit === 'hochladen' ? 'Foto wird hochgeladen …' : 'Bild wird eingesetzt …'} />
 				) : (
@@ -360,9 +362,8 @@ export const Bildwerkzeug = ({ bild }: { bild: BildSteuerung }) => {
 			</div>
 			{!w.platzhalter && (
 				<>
-					<Groesse bild={bild} w={w} />
 					<Beschreibung bild={bild} w={w} />
-					<Knopf art="gefahr" className="mt-4 -ml-5" disabled={beschaeftigt} onClick={bild.entferne}>
+					<Knopf art="gefahr" className="mt-2 self-start" disabled={beschaeftigt} onClick={bild.entferne}>
 						<Symbol name="papierkorb" />
 						Bild entfernen
 					</Knopf>

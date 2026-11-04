@@ -5,11 +5,13 @@ interface Eigenschaften {
 	setze: (an: boolean) => void;
 	name: string;
 	aus?: boolean;
+	id?: string;
 }
 
 /** Ein/Aus. Sichtbar 24×14; der Knopf drum herum trägt die Trefferfläche, damit sie bei Touch 44 px misst. */
-export const Schalter = ({ an, aus, name, setze }: Eigenschaften) => (
+export const Schalter = ({ an, aus, id, name, setze }: Eigenschaften) => (
 	<button
+		id={id}
 		type="button"
 		role="switch"
 		aria-checked={an}

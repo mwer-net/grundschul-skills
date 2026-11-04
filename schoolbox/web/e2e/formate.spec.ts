@@ -6,7 +6,7 @@ import { pathToFileURL } from 'node:url';
 import type { Locator, Page } from '@playwright/test';
 import { ASSETS } from '@schoolbox/kern/src/konfig';
 
-import { aendere, gespeichert, material, oeffne, quelle, uhrzeit } from './editorhilfe';
+import { aendere, gespeichert, material, oeffne, quelle, uhrzeit, imMehr } from './editorhilfe';
 import { expect, test } from './hilfe';
 
 const zeichne = async (page: Page, html: string, klasse = 'kl3 sw') => {
@@ -219,7 +219,7 @@ test.describe('Generatoren (050)', () => {
 		const { datei } = await mitElement(page, '<x-zahlenmauer basis="3 5 2" offen="0-1"></x-zahlenmauer>');
 		const vorher = await quelle(page);
 		await druecke(material(page).locator('x-zahlenmauer'));
-		await page.locator('[data-neue-zahlen]').click();
+		await page.locator('[data-bausteinleiste]').getByRole('button', { name: 'Neue Zahlen' }).click();
 		await expect.poll(() => quelle(page)).not.toBe(vorher);
 		const nachher = await quelle(page);
 		expect(nachher.replace(/basis="[^"]*"/, '')).toBe(vorher.replace(/basis="[^"]*"/, ''));
@@ -294,18 +294,18 @@ test.describe('Eigene Vorlagen und Sammlung (051)', () => {
 		const { dok, id } = await uhrzeit();
 		await oeffne(page, id, dok);
 		await druecke(material(page).locator('x-uhr').first());
-		await page.locator('[data-in-sammlung]').click();
+		await imMehr(page, 'In Sammlung legen');
 		await page.locator('[data-sammlung-name]').fill('Meine Uhr');
 		await page.locator('[data-sammlung-speichern]').click();
 		await expect(page.getByText('In „Meine Bausteine“ gelegt.')).toBeVisible();
-		await page.locator('[data-baustein-kopieren]').click();
+		await imMehr(page, 'Kopieren');
 
 		const anderes = await uhrzeit();
 		await oeffne(page, anderes.id, anderes.dok);
 		const vorher = await quelle(page);
 		const uhren = (vorher.match(/<x-uhr/g) ?? []).length;
 		await druecke(material(page).locator('.aufgabe').first());
-		await page.locator('[data-ablage-einfuegen]').click();
+		await imMehr(page, /einfügen/i);
 		await expect.poll(async () => ((await quelle(page)).match(/<x-uhr/g) ?? []).length).toBe(uhren + 1);
 
 		await page.getByRole('tab', { name: 'Bausteine' }).click();
@@ -522,7 +522,7 @@ test.describe('Punkte und Noten (053)', () => {
 
 		await expect(m.locator('x-erwartungshorizont')).toBeHidden();
 		await druecke(m.locator('.aufgabe').first());
-		await page.getByLabel('Anforderungsbereich').selectOption('II');
+		await page.locator('[data-panel]').getByLabel('Anforderung').selectOption('II');
 		await expect.poll(() => quelle(page)).toContain('data-afb="II"');
 		await page
 			.getByRole('group', { name: 'Was zeigen?' })

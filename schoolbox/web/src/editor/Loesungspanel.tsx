@@ -1,14 +1,16 @@
 import { useId } from 'react';
 
 import { Knopf } from '../bausteine/Knopf';
+import { Schalter } from '../bausteine/Schalter';
 import { Symbol } from '../bausteine/Symbol';
+import { Zeile } from '../bausteine/Zeile';
 import type { LoesungSteuerung } from './loesung';
 
 const EINGABE =
-	'h-knopf w-full rounded-xl border border-rand bg-flaeche px-3 text-lg focus:border-brand-500 focus:outline-none';
+	'h-feld w-full rounded-md border border-rand-feld bg-flaeche px-1.5 text-sm focus:border-brand-500 focus:outline-none';
 
 const Fehlt = ({ children }: { children: string }) => (
-	<p className="flex gap-2 rounded-xl bg-warnung-hell p-3" role="status" data-hinweis="fehlt">
+	<p className="flex gap-2 rounded-md bg-warnung-hell p-2 text-xs" role="status" data-hinweis="fehlt">
 		<Symbol name="achtung" className="size-3.5 flex-none text-warnung" />
 		{children}
 	</p>
@@ -19,8 +21,8 @@ const Antwort = ({ l }: { l: LoesungSteuerung }) => {
 	const id = useId();
 	const weitere = l.fehlend.filter((nr) => nr !== l.antwort).length;
 	return (
-		<div className="mt-3" data-loesungswerkzeug="antwort">
-			<label htmlFor={id} className="font-medium">
+		<div data-loesungswerkzeug="antwort">
+			<label htmlFor={id} className="flex h-zeile items-center text-leise">
 				Richtige Antwort
 			</label>
 			<input
@@ -30,7 +32,7 @@ const Antwort = ({ l }: { l: LoesungSteuerung }) => {
 				enterKeyHint="done"
 				autoComplete="off"
 				autoFocus
-				className={`${EINGABE} mt-2`}
+				className={EINGABE}
 				value={l.wert}
 				onChange={(e) => l.tippe(e.target.value)}
 				onBlur={l.uebernimm}
@@ -50,9 +52,9 @@ const Antwort = ({ l }: { l: LoesungSteuerung }) => {
 				</Knopf>
 			)}
 			{/* Gleich hoch mit und ohne Lösung: Am iPad hoch wächst das Panel mit, und ein Antippen ginge daneben. */}
-			<div className="mt-2 h-knopf">
+			<div className="mt-1 h-knopf">
 				{l.wert.trim() ? (
-					<p className="text-leise">
+					<p className="text-xs text-leise">
 						{l.imBeispiel
 							? 'Das ist das Beispiel: Die Antwort steht auch auf dem Arbeitsblatt.'
 							: 'Steht nur auf dem Lösungsblatt.'}
@@ -66,26 +68,20 @@ const Antwort = ({ l }: { l: LoesungSteuerung }) => {
 };
 
 const Beispiel = ({ l }: { l: LoesungSteuerung }) => {
+	const id = useId();
 	const { beispiel } = l;
 	if (!beispiel) {
 		return null;
 	}
 	return (
-		<div className="mt-4" data-loesungswerkzeug="beispiel">
-			<label className="flex h-knopf cursor-pointer items-center gap-3 font-medium">
-				<input
-					type="checkbox"
-					className="size-6 flex-none accent-brand-500"
-					checked={beispiel.an}
-					onChange={(e) => l.setzeAlsBeispiel(e.target.checked)}
-				/>
-				Als Beispiel zeigen
-			</label>
-			<p className="mt-1 text-leise">
-				{beispiel.an
-					? 'Die Lösung dieses Items steht schon auf dem Arbeitsblatt.'
-					: 'Die Lösung dieses Items steht dann schon auf dem Arbeitsblatt, als Vorbild für die Kinder.'}
-			</p>
+		<div data-loesungswerkzeug="beispiel">
+			<Zeile
+				titel="Als Beispiel zeigen"
+				fuer={id}
+				hilfe="Die Lösung dieses Eintrags steht dann schon auf dem Arbeitsblatt, als Vorbild für die Kinder."
+			>
+				<Schalter id={id} name="Als Beispiel zeigen" an={beispiel.an} setze={l.setzeAlsBeispiel} />
+			</Zeile>
 			{!beispiel.an && beispiel.andere.length > 0 && (
 				<p className="mt-2 flex gap-2 rounded-xl bg-brand-50 p-3" data-hinweis="anderes-beispiel">
 					<Symbol name="blatt" className="size-3.5 flex-none" />
@@ -111,29 +107,30 @@ export const Loesungsuebersicht = ({ l }: { l: LoesungSteuerung }) => {
 	}
 	const anzahl = l.fehlend.length;
 	return (
-		<div className="mt-6 border-t border-rand pt-4" data-loesungsuebersicht>
-			<h2 className="text-xl">Lösungen</h2>
+		<div data-loesungsuebersicht>
+			<Zeile titel="Lösungsübersicht" hilfe="Tippe auf eine Antwortlinie, um ihre Lösung zu ändern.">
+				<span />
+			</Zeile>
 			{anzahl === 0 ? (
-				<p className="mt-2 flex gap-2">
+				<p className="flex gap-2 text-xs">
 					<Symbol name="haken" className="size-3.5 flex-none text-tinte" />
 					Jede Antwortlinie hat eine Lösung.
 				</p>
 			) : (
 				<>
-					<div className="mt-2">
+					<div>
 						<Fehlt>
 							{anzahl === 1
 								? 'Bei einer Antwortlinie fehlt noch die Lösung.'
 								: `Bei ${anzahl} Antwortlinien fehlt noch die Lösung.`}
 						</Fehlt>
 					</div>
-					<Knopf art="zweit" className="mt-3" onClick={l.naechsteFehlende}>
+					<Knopf art="zweit" className="mt-1" onClick={l.naechsteFehlende}>
 						<Symbol name="weiter" />
 						Zeigen
 					</Knopf>
 				</>
 			)}
-			<p className="mt-3 text-leise">Tippe auf eine Antwortlinie, um ihre Lösung zu ändern.</p>
 		</div>
 	);
 };

@@ -140,17 +140,17 @@ test.describe('Editor: Struktur', () => {
 		const vorher = await readFile(datei, 'utf8');
 		await oeffne(page, id, dok);
 		await druecke(material(page).locator('.reihe').first().locator('x-uhr').nth(1));
-		await druecke(page.locator('[data-breadcrumb]').getByRole('button', { name: 'Item 2' }));
+		await druecke(page.locator('[data-breadcrumb]').getByRole('button', { name: 'Eintrag 2' }));
 		await druecke(page.getByRole('button', { name: 'Duplizieren' }));
-		await expect(page.locator('[data-auswahl="item"] h2')).toHaveText('Item 3');
+		await expect(page.locator('[data-auswahl="item"] h2')).toHaveText('Eintrag 3');
 		await gespeichert(page, datei);
 		const kopiert = await readFile(datei, 'utf8');
 		expect(kopiert.split('data-l="halb 5"').length - 1).toBe(2);
 		expect(kopiert.split('\n').length).toBe(vorher.split('\n').length + 1);
 
 		await druecke(page.getByRole('button', { name: 'Löschen' }));
-		await expect(hinweis(page)).toContainText('Item 3 gelöscht.');
-		await expect(page.getByText('Tippe auf einen Teil des Blatts')).toBeVisible();
+		await expect(hinweis(page)).toContainText('Eintrag 3 gelöscht.');
+		await expect(page.locator('[data-inspektor="blatt"]')).toBeVisible();
 		await gespeichert(page, datei);
 		expect(await readFile(datei, 'utf8')).toBe(vorher);
 		await druecke(hinweis(page).getByRole('button', { name: 'Rückgängig' }));
@@ -268,10 +268,10 @@ test.describe('Editor: Struktur', () => {
 		await druecke(material(page).locator('.nr').first());
 		await expect(page.getByRole('button', { name: 'Nach oben' })).toBeDisabled();
 		await druecke(material(page).locator('x-uhr').first());
-		await druecke(page.locator('[data-breadcrumb]').getByRole('button', { name: 'Item 1' }));
+		await druecke(page.locator('[data-breadcrumb]').getByRole('button', { name: 'Eintrag 1' }));
 		await expect(page.getByRole('button', { name: 'Nach links' })).toBeDisabled();
 		await druecke(page.getByRole('button', { name: 'Nach rechts' }));
-		await expect(page.locator('[data-auswahl="item"] h2')).toHaveText('Item 2');
+		await expect(page.locator('[data-auswahl="item"] h2')).toHaveText('Eintrag 2');
 		await gespeichert(page, datei);
 		expect(await readFile(datei, 'utf8')).toMatch(/zeit="4:30".*\n.*zelle beispiel.*zeit="3:00"/);
 	});
@@ -293,7 +293,7 @@ test.describe('Mini-Book (036)', () => {
 
 		await druecke(leiste.getByRole('button', { name: 'Seite 3' }));
 		await expect(page.locator('[data-auswahl="seite"] h2')).toHaveText('Seite 3');
-		const werkzeug = page.locator('[data-struktur]');
+		const werkzeug = page.locator('[data-bausteinleiste]');
 		await expect(werkzeug.getByRole('button', { name: 'Löschen' })).toHaveCount(0);
 		await expect(werkzeug.getByRole('button', { name: 'Duplizieren' })).toHaveCount(0);
 		await expect(werkzeug.getByRole('button', { name: 'Nach unten' })).toBeEnabled();

@@ -11,6 +11,7 @@ interface Eigenschaften {
 	max?: number;
 	schritt?: number;
 	aus?: boolean;
+	id?: string;
 	/** Namen der Knöpfe, sonst „<Name> kleiner“ und „<Name> größer“. */
 	minusName?: string;
 	plusName?: string;
@@ -25,6 +26,7 @@ const STUFE =
 export const Stepper = ({
 	aus,
 	className,
+	id,
 	max,
 	min,
 	minusName,
@@ -52,8 +54,6 @@ export const Stepper = ({
 	const rund = (n: number) => Number(n.toFixed(4));
 	return (
 		<div
-			role="group"
-			aria-label={name}
 			className={klassen(
 				'inline-flex h-feld flex-none items-stretch overflow-hidden rounded-md border border-rand-feld bg-flaeche',
 				aus && 'opacity-50',
@@ -69,6 +69,7 @@ export const Stepper = ({
 				<Symbol name="minus" className="size-3 flex-none" />
 			</button>
 			<input
+				id={id}
 				type="text"
 				inputMode="decimal"
 				aria-label={name}

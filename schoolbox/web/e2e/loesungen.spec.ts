@@ -47,7 +47,7 @@ test.describe('Editor: Lösungen', () => {
 		await druecke(fassung(page, 'Lösung'));
 		const linie = material(page).locator('.antwort').nth(1);
 		await druecke(linie);
-		await expect(breadcrumb(page)).toHaveText('Seite 1›Aufgabe 1›Reihe›Item 2›Antwortlinie');
+		await expect(breadcrumb(page)).toHaveText('Seite 1›Aufgabe 1›Reihe›Eintrag 2›Antwortlinie');
 		await expect(antwort(page)).toHaveValue('halb 5');
 		await antwort(page).fill('halb fünf');
 		await expect.poll(() => sichtbar(material(page).locator('.antwort').nth(1))).toBe('"halb fünf"');
@@ -59,7 +59,7 @@ test.describe('Editor: Lösungen', () => {
 		]);
 
 		await druecke(fassung(page, 'Arbeitsblatt'));
-		await expect(breadcrumb(page)).toHaveText('Seite 1›Aufgabe 1›Reihe›Item 2›Antwortlinie');
+		await expect(breadcrumb(page)).toHaveText('Seite 1›Aufgabe 1›Reihe›Eintrag 2›Antwortlinie');
 		await expect.poll(() => sichtbar(material(page).locator('.antwort').nth(1))).toBe('" "');
 
 		await druecke(zurueck(page));
@@ -106,7 +106,7 @@ test.describe('Editor: Lösungen', () => {
 		await druecke(fassung(page, 'Arbeitsblatt'));
 		await gespeichert(page, datei);
 		expect(await readFile(datei, 'utf8')).toContain('data-l="sieben Uhr"');
-		await expect(breadcrumb(page)).toHaveText('Seite 1›Aufgabe 1›Reihe›Item 3›Antwortlinie');
+		await expect(breadcrumb(page)).toHaveText('Seite 1›Aufgabe 1›Reihe›Eintrag 3›Antwortlinie');
 
 		await druecke(fassung(page, 'Lösung'));
 		await druecke(material(page).locator('.antwort').nth(3));
@@ -163,15 +163,15 @@ test.describe('Editor: Lösungen', () => {
 		const schalter = page.getByLabel('Als Beispiel zeigen');
 
 		await druecke(zelle(1).locator('.antwort'));
-		await druecke(breadcrumb(page).getByRole('button', { name: 'Item 2' }));
-		await expect(breadcrumb(page)).toHaveText('Seite 1›Aufgabe 1›Reihe›Item 2');
+		await druecke(breadcrumb(page).getByRole('button', { name: 'Eintrag 2' }));
+		await expect(breadcrumb(page)).toHaveText('Seite 1›Aufgabe 1›Reihe›Eintrag 2');
 		await expect(schalter).not.toBeChecked();
 		await expect(page.locator('[data-hinweis="anderes-beispiel"]')).toContainText(
-			'In dieser Aufgabe ist schon Item 1 das Beispiel.',
+			'In dieser Aufgabe ist schon Eintrag 1 das Beispiel.',
 		);
 		await schalter.check();
 		await expect(
-			page.getByRole('status').filter({ hasText: 'Item 1 ist jetzt kein Beispiel mehr.' }),
+			page.getByRole('status').filter({ hasText: 'Eintrag 1 ist jetzt kein Beispiel mehr.' }),
 		).toBeVisible();
 		await gespeichert(page, datei);
 		expect(geaendert(vorher, await readFile(datei, 'utf8'))).toEqual([
@@ -185,19 +185,19 @@ test.describe('Editor: Lösungen', () => {
 
 		// Text in einem Item ist seit 054 selbst wählbar; das Item liegt eine Stufe darüber.
 		await druecke(zelle(4).locator('b'));
-		await expect(breadcrumb(page)).toHaveText('Seite 1›Aufgabe 2›Reihe›Item 1›Text');
-		await druecke(breadcrumb(page).getByRole('button', { name: 'Item 1' }));
-		await expect(breadcrumb(page)).toHaveText('Seite 1›Aufgabe 2›Reihe›Item 1');
+		await expect(breadcrumb(page)).toHaveText('Seite 1›Aufgabe 2›Reihe›Eintrag 1›Text');
+		await druecke(breadcrumb(page).getByRole('button', { name: 'Eintrag 1' }));
+		await expect(breadcrumb(page)).toHaveText('Seite 1›Aufgabe 2›Reihe›Eintrag 1');
 		await expect(schalter).not.toBeChecked();
 		await druecke(zelle(6).locator('b'));
-		await druecke(breadcrumb(page).getByRole('button', { name: 'Item 3' }));
-		await expect(breadcrumb(page)).toHaveText('Seite 1›Aufgabe 2›Reihe›Item 3');
+		await druecke(breadcrumb(page).getByRole('button', { name: 'Eintrag 3' }));
+		await expect(breadcrumb(page)).toHaveText('Seite 1›Aufgabe 2›Reihe›Eintrag 3');
 		await expect(schalter).toHaveCount(0);
 
 		await druecke(fassung(page, 'Lösung'));
 		await druecke(zelle(4).locator('b'));
-		await druecke(breadcrumb(page).getByRole('button', { name: 'Item 1' }));
-		await expect(breadcrumb(page)).toHaveText('Seite 1›Aufgabe 2›Reihe›Item 1');
+		await druecke(breadcrumb(page).getByRole('button', { name: 'Eintrag 1' }));
+		await expect(breadcrumb(page)).toHaveText('Seite 1›Aufgabe 2›Reihe›Eintrag 1');
 		await expect(schalter).toHaveCount(0);
 
 		await druecke(zurueck(page));

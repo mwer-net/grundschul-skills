@@ -1,3 +1,4 @@
+import type { AbschnittName } from './abschnitte';
 /**
  * Schema der Abbildungen aus `abbildungen.js` (018): welche Attribute ein `x-…`-Element hat, wie sie heißen, welche
  * Werte gelten und welche Regeln zwischen ihnen. Das Abbildungs-Panel baut daraus seine Eingaben; ein neues Element
@@ -38,6 +39,8 @@ interface FeldBasis {
 	quelle?: 'inhalt';
 	/** Steht auch in der Leiste am Baustein: was man beim Durchgehen eines Blatts am häufigsten ändert (071). */
 	leiste?: boolean;
+	/** Abschnitt im Inspektor, wenn die Regel in `abschnittVon` nicht passt. */
+	abschnitt?: AbschnittName;
 }
 
 /** Vorschlag für den Notenschlüssel in Prozent (053); dieselbe Angabe steht in `abbildungen.js`, ein Test hält beide gleich. */
@@ -4919,4 +4922,56 @@ export const setzeAbbildung = (quelle: string, nr: number, werte: Werte): Strukt
 		}
 	}
 	return { quelle: neu, nr };
+};
+
+/** Welche Gruppe des Schemas in welchen Abschnitt des Inspektors gehört; ein Test prüft, dass keine fehlt. */
+export const GRUPPEN_ABSCHNITT: Readonly<Record<string, AbschnittName>> = {
+	Aufgabe: 'inhalt',
+	Einfach: 'inhalt',
+	Figur: 'inhalt',
+	Listen: 'inhalt',
+	Lücken: 'inhalt',
+	Markierung: 'inhalt',
+	Raster: 'inhalt',
+	Bastelvorlage: 'darstellung',
+	Gitter: 'darstellung',
+	Maße: 'darstellung',
+	Skala: 'darstellung',
+	'Weitere Angaben': 'darstellung',
+	Mehr: 'weitere',
+};
+
+const DARSTELLUNG = new Set([
+	'anordnung',
+	'ansicht',
+	'beschriftung',
+	'breite',
+	'darstellung',
+	'drehung',
+	'groesse',
+	'je-seite',
+	'kaestchen',
+	'legende',
+	'lineatur',
+	'linien',
+	'massstab',
+	'projektion',
+	'rahmen',
+	'schrift',
+	'umriss',
+	'ziffern',
+]);
+
+/** Ohne Gruppe entscheidet das Attribut: Größe, Rahmen und Ansicht sind Darstellung, alles andere ist Inhalt. */
+export const abschnittVon = (feld: Feld): AbschnittName => {
+	if (feld.abschnitt) {
+		return feld.abschnitt;
+	}
+	if (feld.gruppe) {
+		return GRUPPEN_ABSCHNITT[feld.gruppe] ?? 'darstellung';
+	}
+	if (feld.attribut === 'loesung') {
+		return 'loesung';
+	}
+	return DARSTELLUNG.has(feld.attribut) ? 'darstellung' : 'inhalt';
 };

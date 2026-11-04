@@ -41,7 +41,7 @@ export const Abschnitt = ({ children, className, einklappbar, name, notiz, titel
 		}
 	};
 	return (
-		<section className={klassen('border-t border-rand px-3 py-2', className)} data-abschnitt={name}>
+		<section className={klassen('border-t border-rand px-3 py-2 has-[>div:empty]:hidden', className)} data-abschnitt={name}>
 			{einklappbar ? (
 				<button
 					type="button"

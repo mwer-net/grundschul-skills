@@ -861,3 +861,98 @@ test.describe('Leisten im Blatt (071)', () => {
 		await expect(page.getByRole('menu')).toBeVisible();
 	});
 });
+
+test.describe('Inspektor (072)', () => {
+	const blatt = (page: Page) => page.frameLocator('[data-editor-rahmen="sichtbar"]');
+	const REIHENFOLGE = ['hinweise', 'inhalt', 'darstellung', 'loesung', 'bewertung', 'sichtbarkeit', 'eltern', 'weitere'];
+
+	const oeffneBlatt = async (page: Page) => {
+		const { dokumente, id } = await legeMappeAn('Inspektor', 'mathematik', 2, [
+			{ titel: 'Blatt', vorlage: 'arbeitsblatt' },
+		]);
+		await page.goto(`/m/${id}/${dokumente[0]}/bearbeiten`);
+		await expect(page.locator('[data-leinwand][data-geladen]')).toBeVisible();
+	};
+
+	test('Abschnitte in fester Reihenfolge, Aufgabe und Uhr ohne Scrollen, wenig Hilfetext', async ({
+		druecke,
+		hasTouch,
+		page,
+	}) => {
+		await page.setViewportSize({ width: 1512, height: 860 });
+		await oeffneBlatt(page);
+		for (const ziel of [blatt(page).locator('.aufgabe').first(), blatt(page).locator('x-uhr').first()]) {
+			await druecke(ziel);
+			const namen = await page
+				.locator('[data-panel] [data-abschnitt]:visible')
+				.evaluateAll((liste) => liste.map((e) => (e as HTMLElement).dataset.abschnitt ?? ''));
+			const stellen = namen.map((n) => REIHENFOLGE.indexOf(n));
+			expect(stellen).toEqual([...stellen].sort((a, b) => a - b));
+			expect(stellen).not.toContain(-1);
+			if (!hasTouch) {
+				const { innen, sichtbar } = await page
+					.locator('[data-panel] > div')
+					.first()
+					.evaluate((e) => ({ innen: e.scrollHeight, sichtbar: e.clientHeight }));
+				expect(innen).toBeLessThanOrEqual(sichtbar);
+			}
+			const worte = await page
+				.locator('[data-panel] [data-auswahl] p:visible:not([data-hinweis])')
+				.evaluateAll((liste) => liste.flatMap((e) => (e.textContent ?? '').split(/\s+/).filter(Boolean)).length);
+			expect(worte).toBeLessThanOrEqual(10);
+		}
+	});
+
+	test('Überfahren einer Stufe rahmt genau diese Ebene, auch eingepasst; Klick wählt sie', async ({
+		druecke,
+		hasTouch,
+		page,
+	}) => {
+		test.skip(hasTouch, 'Überfahren gibt es nur mit Maus');
+		await oeffneBlatt(page);
+		for (const einpassen of [false, true]) {
+			if (einpassen) {
+				await druecke(page.getByRole('button', { name: 'Einpassen' }));
+			}
+			await druecke(blatt(page).locator('x-uhr').first());
+			const stufe = page.locator('[data-breadcrumb]').getByRole('button', { name: 'Aufgabe 1' });
+			await stufe.hover();
+			const umriss = await page.locator('[data-umriss]').boundingBox();
+			const aufgabe = await blatt(page).locator('.aufgabe').first().boundingBox();
+			expect(Math.abs((umriss?.x ?? 0) - (aufgabe?.x ?? 99))).toBeLessThanOrEqual(6);
+			expect(Math.abs((umriss?.y ?? 0) - (aufgabe?.y ?? 99))).toBeLessThanOrEqual(6);
+			expect(Math.abs((umriss?.width ?? 0) - (aufgabe?.width ?? 99))).toBeLessThanOrEqual(10);
+			await stufe.click();
+			await expect(page.locator('[data-auswahl="aufgabe"]')).toBeVisible();
+			await expect(page.locator('[data-umriss]')).toHaveCount(0);
+		}
+	});
+
+	test('Reiter: ohne Auswahl nur Blatt, mit Auswahl frei wählbar, ohne die Auswahl zu verlieren', async ({
+		druecke,
+		page,
+	}) => {
+		await oeffneBlatt(page);
+		await expect(page.locator('[data-inspektor="blatt"]')).toBeVisible();
+		await expect(page.getByRole('tab', { name: 'Auswahl' })).toBeDisabled();
+		await druecke(blatt(page).locator('.aufgabe').first());
+		await expect(page.locator('[data-inspektor="auswahl"]')).toBeVisible();
+		await druecke(page.getByRole('tab', { name: 'Blatt' }));
+		await expect(page.locator('[data-inspektor="blatt"]')).toBeVisible();
+		await expect(page.locator('[data-auswahlrahmen]')).toBeVisible();
+		await druecke(blatt(page).locator('x-uhr').first());
+		await expect(page.locator('[data-inspektor="auswahl"]')).toBeVisible();
+	});
+
+	test('Farbschema zeigt zwei Farben mit Namen; die Klassen im Material bleiben', async ({ druecke, page }) => {
+		await oeffneBlatt(page);
+		const knoepfe = page.locator('[data-palette]').getByRole('button');
+		await expect(knoepfe).toHaveCount(4);
+		await expect(knoepfe.first()).toHaveAttribute('title', 'Orange und Türkis');
+		await expect(knoepfe.first().locator('span')).toHaveAttribute('style', /linear-gradient/);
+		await druecke(knoepfe.nth(2));
+		await expect(blatt(page).locator('body')).toHaveClass(/palette-wiese/);
+		await expect(page.getByText('Niveau-Punkte')).toHaveCount(0);
+	});
+});
+

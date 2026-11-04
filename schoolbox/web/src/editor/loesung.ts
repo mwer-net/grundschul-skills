@@ -143,7 +143,7 @@ export const useLoesung = ({ geladen, html, loesung, pfad, rueckgaengig, struktu
 			return null;
 		}
 		const andere = andereBeispiele(zerlegung, item).map((k) => k.nr);
-		const namen = doc ? andere.map((nr) => pfadZu(doc, nr).at(-1)?.name ?? 'Ein anderes Item') : [];
+		const namen = doc ? andere.map((nr) => pfadZu(doc, nr).at(-1)?.name ?? 'Ein anderer Eintrag') : [];
 		return { an, andere: namen };
 	}, [item, zerlegung, knoten, loesung, doc]);
 

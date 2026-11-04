@@ -38,7 +38,7 @@ test.describe('Editor: Abbildungen', () => {
 		await oeffne(page, id, dok);
 
 		await druecke(material(page).locator('x-uhr').first());
-		await expect(page.locator('[data-breadcrumb]')).toHaveText('Seite 1›Aufgabe 1›Reihe›Item 1›Uhr');
+		await expect(page.locator('[data-breadcrumb]')).toHaveText('Seite 1›Aufgabe 1›Reihe›Eintrag 1›Uhr');
 		await expect(page.locator('[data-hinweis="beispiel"]')).toContainText('Das ist das Beispiel.');
 
 		await druecke(material(page).locator('x-uhr').nth(1));
@@ -190,7 +190,6 @@ test.describe('Editor: Feldtypen (023)', () => {
 		test.slow();
 		const { datei } = await mitProbe(page, 'eintraege="Hund: 7; Katze: 4"');
 		await druecke(probe(page));
-		await page.locator('[data-gruppe="Listen"] summary').click();
 		const liste = page.locator('[data-liste="eintraege"]');
 		await expect(liste.locator('[data-zeile]')).toHaveCount(2);
 
@@ -215,7 +214,6 @@ test.describe('Editor: Feldtypen (023)', () => {
 		await gespeichert(page, datei);
 		expect(await tagVon(datei)).toContain('eintraege="Katze: 4; Hund: 8"');
 
-		await page.locator('[data-gruppe="Raster"] summary').click();
 		await druecke(page.locator('[data-raster="feld"] [data-zelle="0-1"]'));
 		await gespeichert(page, datei);
 		expect(await tagVon(datei)).toContain('feld="0 1 0 / 0 0 0"');
@@ -224,7 +222,6 @@ test.describe('Editor: Feldtypen (023)', () => {
 		expect(await tagVon(datei)).not.toContain('feld=');
 
 		await druecke(probe(page));
-		await page.locator('[data-gruppe="Raster"] summary').click();
 		await page.locator('[data-raster="hoehen"] [data-zelle="0-0"]').fill('3');
 		await page.locator('[data-raster="hoehen"] [data-zelle="0-0"]').press('Enter');
 		await gespeichert(page, datei);
@@ -438,7 +435,6 @@ test.describe('Ebene Geometrie (025)', () => {
 		await gespeichert(page, datei);
 		const stand = await readFile(datei, 'utf8');
 		await druecke(material(page).locator('x-gitter'));
-		await page.locator('[data-gruppe="Figur"] summary').click();
 		await druecke(page.locator('[data-raster="figur"] [data-zelle="1-2"]'));
 		await gespeichert(page, datei);
 		await druecke(page.locator('[data-raster="figur"] [data-zelle="2-1"]'));
@@ -462,7 +458,6 @@ test.describe('Ebene Geometrie (025)', () => {
 		expect(await readFile(datei, 'utf8')).toBe(stand);
 
 		await druecke(material(page).locator('x-gitter'));
-		await page.locator('[data-gruppe="Aufgabe"] summary').click();
 		await page.getByLabel('Achse nach Kästchen', { exact: true }).fill('3');
 		await page.getByLabel('Achse nach Kästchen', { exact: true }).press('Enter');
 		await expect(page.locator('[data-fehler="_element"]')).toContainText('kreuzt die Achse');
@@ -696,7 +691,6 @@ test.describe('Zahldarstellungen (027)', () => {
 		expect(orte).toEqual(['35,1,0', '44,0,1', '45,1,1', '46,2,1', '55,1,2']);
 
 		await druecke(material(page).locator('x-hundertertafel'));
-		await page.locator('[data-gruppe="Lücken"] summary').click();
 		await druecke(page.locator('[data-form-raster="luecken"] [data-zelle="44"]'));
 		await gespeichert(page, datei);
 		const mitLuecke = await readFile(datei, 'utf8');
@@ -2049,10 +2043,10 @@ test.describe('Rätsel (038)', () => {
 		await page.getByLabel('Richtige Antwort').fill('48');
 		await page.getByLabel('Richtige Antwort').press('Enter');
 		await gespeichert(page, datei);
-		await expect(inhalt.locator('x-loesungswort')).toHaveAttribute('data-fehler', /Item 2 hat jetzt die Lösung 48/);
+		await expect(inhalt.locator('x-loesungswort')).toHaveAttribute('data-fehler', /Eintrag 2 hat jetzt die Lösung 48/);
 
 		await druecke(inhalt.locator('x-loesungswort').first());
-		await expect(page.locator('[data-fehler="_element"]')).toContainText('Item 2 hat jetzt die Lösung 48');
+		await expect(page.locator('[data-fehler="_element"]')).toContainText('Eintrag 2 hat jetzt die Lösung 48');
 
 		await druecke(zurueck(page));
 		await expect(inhalt.locator('x-loesungswort')).not.toHaveAttribute('data-fehler');

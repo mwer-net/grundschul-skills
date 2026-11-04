@@ -72,6 +72,8 @@ export interface Aktionen {
 	inspektor: () => void;
 	versionen: () => void;
 	claude: () => void;
+	/** Kopiert die Referenz fürs Einfügen im Chat, bis 074 den Chat ans Gewählte bindet. */
+	claudeFragen: () => void;
 	claudeZurAuswahl: () => void;
 	palette: () => void;
 	tasten: () => void;
@@ -281,9 +283,11 @@ export const BEFEHLE: Befehl[] = [
 		aus: (k) => k.tu.bildErsetzen(),
 	},
 	tabelle('tabelle.zeile-davor', 'Zeile davor', 'Zeile eingefügt', (q, nr, n) => fuegeZeileEin(q, nr, 'vor', n))([
+		'menue',
 		'palette',
 	]),
 	tabelle('tabelle.spalte-davor', 'Spalte davor', 'Spalte eingefügt', (q, nr, n) => fuegeSpalteEin(q, nr, 'vor', n))([
+		'menue',
 		'palette',
 	]),
 	{
@@ -547,11 +551,14 @@ export const BEFEHLE: Befehl[] = [
 		},
 	},
 	tabelle('tabelle.zeile-weg', 'Zeile löschen', 'Zeile gelöscht', (q, nr, n) => loescheZeile(q, nr, n))(
-		['leiste', 'palette'],
+		['menue', 'leiste', 'palette'],
 		true,
 		{ leisteTitel: 'Zeile' },
 	),
-	tabelle('tabelle.spalte-weg', 'Spalte löschen', 'Spalte gelöscht', (q, nr, n) => loescheSpalte(q, nr, n))(['palette'], true),
+	tabelle('tabelle.spalte-weg', 'Spalte löschen', 'Spalte gelöscht', (q, nr, n) => loescheSpalte(q, nr, n))(
+		['menue', 'palette'],
+		true,
+	),
 
 	// Ansicht
 	{
@@ -691,6 +698,16 @@ export const BEFEHLE: Befehl[] = [
 		sichtbarUnter: 'kopf',
 		verfuegbar: () => true,
 		aus: (k) => k.tu.versionen(),
+	},
+	{
+		id: 'dokument.claude-fragen',
+		titel: 'Claude fragen',
+		gruppe: 'dokument',
+		symbol: 'sprechblase',
+		orte: ['palette'],
+		sichtbarUnter: 'kopf',
+		verfuegbar: (k) => k.frei,
+		aus: (k) => k.tu.claudeFragen(),
 	},
 	{
 		id: 'ansicht.claude',

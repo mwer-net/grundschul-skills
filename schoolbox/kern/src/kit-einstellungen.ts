@@ -1,3 +1,4 @@
+import type { AbschnittName } from './abschnitte';
 /**
  * Einstellungen der Kit-Bausteine und des ganzen Blatts (046), als Daten: Das Panel zeichnet die Felder, hier stehen die
  * Grenzen und die Wirkung auf die Quelle. Jede Änderung ist ein Text-Patch, also ein Schritt im Verlauf.
@@ -29,6 +30,10 @@ interface FeldBasis {
 	leiste?: boolean;
 	/** Kürzerer Name für die Leiste; im Inspektor bleibt `titel`. */
 	leisteName?: string;
+	/** Wo das Feld im Inspektor steht; ohne Angabe unter „Darstellung“. */
+	abschnitt?: AbschnittName;
+	/** Erklärt das Feld hinter dem ⓘ. */
+	hilfe?: string;
 }
 type ZahlFeld = FeldBasis & {
 	typ: 'zahl';
@@ -75,14 +80,25 @@ export const KIT_FELDER: Readonly<Record<string, readonly KitFeld[]>> = {
 				{ wert: 'lang', titel: 'Ganze Zeile' },
 			],
 		},
-		{ typ: 'text', name: 'loesung', titel: 'Lösung' },
+		{ typ: 'text', name: 'loesung', titel: 'Lösung', abschnitt: 'loesung' },
 	],
 	malfeld: [{ ...HOEHE, standard: 160, leiste: true }, BREITE],
 	leerstelle: [{ ...HOEHE, standard: 80 }, BREITE],
 	box: [{ typ: 'zahl', name: 'groesse', titel: 'Größe', min: 12, max: 60, schritt: 2, einheit: 'px', standard: 20 }],
 	aufgabe: [
-		{ typ: 'zahl', name: 'niveau', titel: 'Niveau-Punkte', min: 0, max: 3, schritt: 1, einheit: '', standard: 0 },
-		{ typ: 'schalter', name: 'stern', titel: 'Sternchenaufgabe', leiste: true, leisteName: 'Sternchen' },
+		{ typ: 'schalter', name: 'stern', titel: 'Sternchenaufgabe', leiste: true, leisteName: 'Sternchen', abschnitt: 'inhalt' },
+		{
+			typ: 'zahl',
+			name: 'niveau',
+			titel: 'Schwierigkeit',
+			min: 0,
+			max: 3,
+			schritt: 1,
+			einheit: '',
+			standard: 0,
+			abschnitt: 'inhalt',
+			hilfe: 'Punkte oben rechts an der Aufgabe, von leicht bis schwer',
+		},
 		{
 			typ: 'zahl',
 			name: 'punkte',
@@ -93,11 +109,14 @@ export const KIT_FELDER: Readonly<Record<string, readonly KitFeld[]>> = {
 			einheit: '',
 			standard: 0,
 			leiste: true,
+			abschnitt: 'bewertung',
 		},
 		{
 			typ: 'wahl',
 			name: 'afb',
-			titel: 'Anforderungsbereich',
+			titel: 'Anforderung',
+			abschnitt: 'bewertung',
+			hilfe: 'Anforderungsbereich I bis III aus dem Bildungsplan',
 			optionen: [
 				{ wert: '', titel: 'Keiner' },
 				{ wert: 'I', titel: 'I' },
@@ -275,7 +294,7 @@ const REGELN: Readonly<Record<string, Regel>> = {
 		setze: (z, k, wert) => {
 			const anw = kindMit(k, 'anw');
 			if (!anw) {
-				throw new Error('Diese Aufgabe hat keine Anweisung.');
+				throw new Error('Diese Aufgabe hat keinen Aufgabentext.');
 			}
 			const da = kindMit(anw, 'niveau');
 			const n = Number(wert);
@@ -312,7 +331,7 @@ const REGELN: Readonly<Record<string, Regel>> = {
 		setze: (z, k, wert) => {
 			const anw = kindMit(k, 'anw');
 			if (!anw) {
-				throw new Error('Diese Aufgabe hat keine Anweisung.');
+				throw new Error('Diese Aufgabe hat keinen Aufgabentext.');
 			}
 			const da = kindMit(anw, 'punkte');
 			const n = Number(wert);
@@ -404,7 +423,7 @@ export const setzeKit = (
 };
 
 export const SICHTBARKEITEN = [
-	{ wert: '', titel: 'Auf dem Arbeitsblatt und in der Lösung', klasse: '' },
+	{ wert: '', titel: 'Arbeitsblatt und Lösung', klasse: '' },
 	{ wert: 'arbeitsblatt', titel: 'Nur Arbeitsblatt', klasse: 'nicht-loesung' },
 	{ wert: 'loesung', titel: 'Nur Lösung', klasse: 'nur-loesung' },
 ] as const;
@@ -424,6 +443,13 @@ export const setzeSichtbarkeit = (quelle: string, nr: number, wert: string) => {
 
 export const PALETTEN = ['sonnig', 'himmel', 'wiese', 'beere'] as const;
 export type Palette = (typeof PALETTEN)[number];
+
+export const PALETTEN_FARBNAME: Record<Palette, string> = {
+	sonnig: 'Orange und Türkis',
+	himmel: 'Blau und Gelb',
+	wiese: 'Grün und Orange',
+	beere: 'Koralle und Violett',
+};
 export const BLATT_FORMATE: readonly Format[] = FORMATE.filter((f) => f !== 'minibuch');
 
 export interface BlattWerte {

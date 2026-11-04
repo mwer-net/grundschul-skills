@@ -89,3 +89,28 @@ describe('passtTaste', () => {
 		assert.ok(!passtTaste({ key: 'ArrowUp' }, { ...ohne, altKey: true, code: 'ArrowUp', key: 'ArrowUp' }));
 	});
 });
+
+describe('Was aus dem Inspektor gewandert ist', () => {
+	it('liegt in Leiste oder Menü (072)', () => {
+		for (const id of [
+			'auswahl.hoch',
+			'auswahl.runter',
+			'auswahl.duplizieren',
+			'auswahl.loeschen',
+			'auswahl.kopieren',
+			'auswahl.in-sammlung',
+			'auswahl.einfuegen',
+			'auswahl.neue-zahlen',
+			'tabelle.zeile-davor',
+			'tabelle.zeile-danach',
+			'tabelle.spalte-davor',
+			'tabelle.spalte-danach',
+			'tabelle.zeile-weg',
+			'tabelle.spalte-weg',
+		]) {
+			const befehl = BEFEHLE.find((b) => b.id === id);
+			assert.ok(befehl?.orte.some((o) => o === 'menue' || o === 'leiste'), id);
+		}
+	});
+});
+
