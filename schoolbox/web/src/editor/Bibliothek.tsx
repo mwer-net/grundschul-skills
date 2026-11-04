@@ -57,9 +57,11 @@ export const Einfuegemarken = ({
 	auswahl,
 	e,
 	einfuegen,
+	schnellSignal,
 	setAuswahl,
 	slash,
 }: {
+	schnellSignal: number;
 	e: Einblendung;
 	auswahl: number | null;
 	aktiv: boolean;
@@ -76,6 +78,27 @@ export const Einfuegemarken = ({
 		setSuche('');
 		setSchnell(schnell ? null : { nr, left, top });
 	};
+	const schliesse = () => {
+		setSchnell(null);
+		doc.defaultView?.focus();
+	};
+
+	// `/` im Blatt: dort, wo gerade hingeschaut wird, auch wenn der Baustein aus dem Bild gerollt ist.
+	const zuletzt = useRef(schnellSignal);
+	useEffect(() => {
+		if (zuletzt.current === schnellSignal) {
+			return;
+		}
+		zuletzt.current = schnellSignal;
+		const rahmen = doc.defaultView?.frameElement;
+		const sicht = rahmen?.closest('main');
+		const oben = sicht?.scrollTop ?? 0;
+		const hoch = sicht?.clientHeight ?? hoehe;
+		const wunsch = box ? box.bottom * skala + 46 : oben + hoch / 3;
+		const top = Math.max(oben + 8, Math.min(wunsch, oben + hoch - 340));
+		setSuche('');
+		setSchnell({ nr: auswahl, left: links + (box ? box.left * skala : 40), top });
+	}, [schnellSignal, auswahl, box, doc, hoehe, links, skala]);
 
 	return (
 		<>
@@ -146,7 +169,7 @@ export const Einfuegemarken = ({
 						value={suche}
 						autoFocus
 						onChange={(ev) => setSuche(ev.target.value)}
-						onKeyDown={(ev) => ev.key === 'Escape' && setSchnell(null)}
+						onKeyDown={(ev) => ev.key === 'Escape' && schliesse()}
 					/>
 					<div className="max-h-64 overflow-y-auto">
 						{!suche.trim() && einfuegen.zuletzt.length > 0 && (
@@ -155,7 +178,7 @@ export const Einfuegemarken = ({
 								<Liste
 									posten={einfuegen.zuletzt}
 									waehle={(p) => {
-										setSchnell(null);
+										schliesse();
 										einfuegen.fuegeEin(p, schnell.nr);
 									}}
 								/>
@@ -165,7 +188,7 @@ export const Einfuegemarken = ({
 						<Liste
 							posten={liste}
 							waehle={(p) => {
-								setSchnell(null);
+								schliesse();
 								einfuegen.fuegeEin(p, schnell.nr);
 							}}
 						/>

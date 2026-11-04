@@ -151,10 +151,20 @@ describe('dupliziereBaustein und loescheBaustein', () => {
 
 	it('löscht eine Aufgabe samt ihrer Zeilen und zählt neu', () => {
 		const { nr, quelle } = loescheBaustein(ARBEITSBLATT, aufgabe(ARBEITSBLATT, 0).nr, BLATT);
-		assert.equal(nr, null);
 		assert.deepEqual(nummern(quelle), ['1', '2', '★']);
 		assert.equal(quelle.includes('Lies ab.'), false);
+		assert.equal(nr, aufgabe(quelle, 0).nr);
 		einSchritt(ARBEITSBLATT, quelle);
+	});
+
+	it('wählt nach dem Löschen das nächste Geschwister, sonst das vorige, sonst die Eltern', () => {
+		const anzahl = mitKlasse(zerlege(ARBEITSBLATT), 'aufgabe').length;
+		const letzte = loescheBaustein(ARBEITSBLATT, aufgabe(ARBEITSBLATT, anzahl - 1).nr, BLATT);
+		assert.equal(letzte.nr, aufgabe(letzte.quelle, anzahl - 2).nr);
+
+		const nurEine = '<div class="seite"><div class="aufgabe"><span class="text">x</span></div></div>';
+		const einzig = loescheBaustein(nurEine, aufgabe(nurEine, 0).nr, BLATT);
+		assert.equal(einzig.nr, seite(einzig.quelle, 0).nr);
 	});
 
 	it('löscht nie die einzige Seite', () => {

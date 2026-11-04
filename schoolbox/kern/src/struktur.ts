@@ -183,7 +183,16 @@ export const loescheBaustein = (quelle: string, nr: number, n: Nummerierung) => 
 	if (hat(k, 'seite') && seitenVon(z).length <= 1) {
 		throw new Error('Die einzige Seite lässt sich nicht löschen.');
 	}
-	return ergebnis(quelle, entferne(z, k), undefined, n);
+	const geschwister = k.eltern?.kinder ?? [];
+	const stelle = geschwister.indexOf(k);
+	const folge = geschwister[stelle + 1] ?? geschwister[stelle - 1] ?? k.eltern;
+	const neu = ergebnis(quelle, entferne(z, k), undefined, n);
+	if (!folge) {
+		return neu;
+	}
+	// Dahinter rückt alles um das Gelöschte samt Inhalt auf.
+	const weg = z.knoten.length - zerlege(neu.quelle).knoten.length;
+	return { ...neu, nr: folge.nr > k.nr ? folge.nr - weg : folge.nr };
 };
 
 /** Was eine neue Seite von der ersten übernimmt: Namenszeile und die Marke „Lösung“. */

@@ -54,6 +54,8 @@ test.describe('Editor', () => {
 		await expect(page.locator('[data-auswahl] h2')).toHaveText('Sternchenaufgabe');
 
 		await page.keyboard.press('Escape');
+		await expect(page.locator('[data-breadcrumb]')).toHaveText('Seite 1');
+		await page.keyboard.press('Escape');
 		await expect(page.locator('[data-auswahlrahmen]')).toHaveCount(0);
 		await expect(page.getByText('Tippe auf einen Teil des Blatts')).toBeVisible();
 

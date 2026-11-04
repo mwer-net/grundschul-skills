@@ -40,6 +40,7 @@ import type { LinksName } from '../editor/LinkeLeiste';
 import { LinkeLeiste } from '../editor/LinkeLeiste';
 import { useLoesung } from '../editor/loesung';
 import { Loesungsuebersicht, Loesungswerkzeug } from '../editor/Loesungspanel';
+import { erstesKindVon, ersterAufSeite, nachbarVon, seiteAn } from '../editor/navigation';
 import { AuswahlPanel, Blattwerkzeug, Strukturwerkzeug, Textwerkzeug } from '../editor/Panel';
 import { Pruefhinweise } from '../editor/Pruefliste';
 import type { Pruefpunkt } from '../editor/pruefung';
@@ -50,6 +51,8 @@ import type { ZoomWert } from '../editor/Statusleiste';
 import { gemerkterZoom, merkeZoom, naechsteStufe, Statusleiste, useSichtbareSeite } from '../editor/Statusleiste';
 import type { Struktur } from '../editor/struktur';
 import { useStruktur } from '../editor/struktur';
+import { gehoertDemElement, istFeld, TASTEN_SPERRE } from '../editor/tasten';
+import { TastenUebersicht } from '../editor/TastenUebersicht';
 import { useText } from '../editor/text';
 import { useBefehle } from '../editor/useBefehle';
 import type { VersionEintrag } from '../editor/version';
@@ -241,9 +244,6 @@ const Seiten = ({
 	);
 };
 
-const istEingabe = (ziel: EventTarget | null) =>
-	ziel instanceof HTMLElement && (ziel.isContentEditable || ['INPUT', 'TEXTAREA', 'SELECT'].includes(ziel.tagName));
-
 const Fehlt = ({ fehler }: { fehler: ApiFehler | null }) => (
 	<Zustand symbol="suche" titel="Dieses Dokument gibt es nicht mehr">
 		<p className="text-leise">
@@ -370,6 +370,8 @@ const Bearbeitung = ({ dokument, mappe: mappenDaten }: { mappe: Mappe; dokument:
 	const [geladen, setGeladen] = useState<{ doc: Document; html: string } | null>(null);
 	const panels = usePanels(suche.get('neu') === '1', suche.get('claude') === '1');
 	const [alsVorlage, setAlsVorlage] = useState(false);
+	const [tastenOffen, setTastenOffen] = useState(false);
+	const [schnellSignal, setSchnellSignal] = useState(0);
 	const ansicht = useRef<HTMLElement>(null);
 	const kiFehler = (useLocation().state as { kiFehler?: string } | null)?.kiFehler;
 	useEffect(() => {
@@ -468,9 +470,7 @@ const Bearbeitung = ({ dokument, mappe: mappenDaten }: { mappe: Mappe; dokument:
 		rueckgaengig: zurueck,
 	});
 
-	const neueZahlenTaste = useRef<(() => boolean) | null>(null);
 	const abbildung = useAbbildung({ geladen, html, zerlegung, pfad, struktur, adresse: b.adresse, basis });
-	neueZahlenTaste.current = abbildung.hatNeueZahlen ? abbildung.neueZahlen : null;
 
 	const loes = useLoesung({ geladen, html, zerlegung, pfad, struktur, loesung, rueckgaengig: zurueck });
 
@@ -526,25 +526,50 @@ const Bearbeitung = ({ dokument, mappe: mappenDaten }: { mappe: Mappe; dokument:
 			kiVerfuegbar: ki.zustand.verfuegbar,
 			namenszeile: zerlegung ? hatNamenszeile(zerlegung) : false,
 			festeSeiten: format === 'minibuch',
+			textMarkiert: () =>
+				[document, geladen?.doc].some((d) => {
+					const markiert = d?.getSelection();
+					return Boolean(markiert && !markiert.isCollapsed);
+				}),
 			tu: {
 				struktur,
 				fokussiereText: text.fokussiere,
 				waehle: setAuswahl,
 				eineEbeneHoch: () => setAuswahl(pfad.at(-2)?.nr ?? null),
-				nachbar: () => undefined,
-				erstesKind: () => undefined,
-				ersterBaustein: () => undefined,
+				nachbar: (richtung) => {
+					const ziel = docJetzt && auswahl !== null ? nachbarVon(docJetzt, auswahl, richtung) : null;
+					if (ziel !== null) {
+						struktur.zeigeAn(ziel);
+					}
+				},
+				erstesKind: () => {
+					const ziel = docJetzt && auswahl !== null ? erstesKindVon(docJetzt, auswahl) : null;
+					if (ziel !== null) {
+						struktur.zeigeAn(ziel);
+					}
+				},
+				ersterBaustein: () => {
+					const ziel = docJetzt ? ersterAufSeite(docJetzt, seite.nr) : null;
+					if (ziel !== null) {
+						struktur.zeigeAn(ziel);
+					}
+				},
 				kopiere: ablage.kopiere,
 				schneideAus: ablage.schneideAus,
-				fuegeAblageEin: ablage.fuegeEin,
+				fuegeAblageEin: (nr) => ablage.fuegeEin(nr ?? (docJetzt ? seiteAn(docJetzt, seite.nr) : null)),
 				inSammlung: () => {
 					panels.setRechts('inspektor');
 					panels.setRechtsOffen(true);
 					ablage.setSammlungName(pfad.at(-1)?.name ?? '');
 				},
 				neueZahlen: abbildung.neueZahlen,
-				oeffneSchnellauswahl: () => undefined,
-				zurLeiste: () => undefined,
+				oeffneSchnellauswahl: () => setSchnellSignal((n) => n + 1),
+				zurLeiste: () =>
+					document
+						.querySelector<HTMLElement>(
+							'[data-panel] input, [data-panel] select, [data-panel] textarea, [data-panel] button',
+						)
+						?.focus(),
 				fassung: (w) => setSuche(w === 'loesung' ? { fassung: 'loesung' } : {}, { replace: true }),
 				profil: waehleProfil,
 				zoomSchritt: (richtung) => {
@@ -574,7 +599,7 @@ const Bearbeitung = ({ dokument, mappe: mappenDaten }: { mappe: Mappe; dokument:
 					panels.setRechtsOffen(true);
 				},
 				palette: () => undefined,
-				tasten: () => undefined,
+				tasten: () => setTastenOffen(true),
 				rueckgaengig: zurueck,
 				wiederholen: vor,
 				speichern: () => zeige({ text: 'Wird automatisch gespeichert.' }),
@@ -589,34 +614,43 @@ const Bearbeitung = ({ dokument, mappe: mappenDaten }: { mappe: Mappe; dokument:
 		useCallback((text: string) => zeige({ text }), [zeige]),
 	);
 
+	const { jetzt: befehlsKontext, zuTaste } = befehle;
 	const taste = useCallback(
 		(e: KeyboardEvent) => {
-			const befehl = e.metaKey || e.ctrlKey;
-			const z = e.key.toLowerCase() === 'z';
-			if (e.key === 'Escape') {
-				setAuswahl(null);
-			} else if (befehl && ((z && e.shiftKey) || e.key.toLowerCase() === 'y')) {
+			// Schon vergeben: Die Textsitzung hört vorher hin und beendet sich bei Esc selbst.
+			if (e.defaultPrevented || document.querySelector(TASTEN_SPERRE) || gehoertDemElement(e)) {
+				return;
+			}
+			const { pfad: kette, textsitzung } = befehlsKontext.current;
+			let modus: 'text' | 'auswahl' | 'ohne' = kette.length > 0 ? 'auswahl' : 'ohne';
+			if (textsitzung || istFeld(e.target)) {
+				modus = 'text';
+			}
+			if (!zuTaste(e, modus) && modus !== 'text' && (e.metaKey || e.ctrlKey) && e.code === 'KeyA') {
+				// Sonst markiert der Browser die ganze Bedienoberfläche blau.
 				e.preventDefault();
-				vor();
-			} else if (befehl && z) {
-				e.preventDefault();
-				zurueck();
-			} else if (e.altKey && e.code === 'KeyN' && neueZahlenTaste.current) {
-				e.preventDefault();
-				neueZahlenTaste.current();
 			}
 		},
-		[vor, zurueck],
+		[befehlsKontext, zuTaste],
 	);
 
 	useEffect(() => {
+		// Beim Schließen eines Menüs ist es unten am Fenster schon weg: Esc ginge sonst zusätzlich eine Ebene hoch.
+		let offenBeimDruck = false;
+		const vorher = () => {
+			offenBeimDruck = Boolean(document.querySelector(TASTEN_SPERRE));
+		};
 		const amFenster = (e: KeyboardEvent) => {
-			if (!istEingabe(e.target)) {
+			if (!offenBeimDruck) {
 				taste(e);
 			}
 		};
+		window.addEventListener('keydown', vorher, true);
 		window.addEventListener('keydown', amFenster);
-		return () => window.removeEventListener('keydown', amFenster);
+		return () => {
+			window.removeEventListener('keydown', vorher, true);
+			window.removeEventListener('keydown', amFenster);
+		};
 	}, [taste]);
 
 	// Verlassen ohne „Zurück“ (Zurück-Taste des Browsers): Offenes trotzdem speichern.
@@ -845,6 +879,9 @@ const Bearbeitung = ({ dokument, mappe: mappenDaten }: { mappe: Mappe; dokument:
 					<PdfKnopf art="haupt" beschriftung="PDF" wahl={wahl} mappe={mappenDaten} warnen rechtsbuendig />
 				</span>
 			</Kopfleiste>
+			{tastenOffen && (
+				<TastenUebersicht kontext={befehle.jetzt.current} schliessen={() => setTastenOffen(false)} />
+			)}
 			{alsVorlage && (
 				<AlsVorlage mappe={mappe} dok={dok} titel={meta.titel} schliessen={() => setAlsVorlage(false)} />
 			)}
@@ -899,6 +936,7 @@ const Bearbeitung = ({ dokument, mappe: mappenDaten }: { mappe: Mappe; dokument:
 													setAuswahl={setAuswahl}
 													einfuegen={einfuegen}
 													slash={slash.menue}
+													schnellSignal={schnellSignal}
 												/>
 											)
 										: undefined

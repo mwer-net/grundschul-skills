@@ -1,6 +1,6 @@
 import type { Ablage } from '@schoolbox/kern/src/struktur';
 import type { PointerEvent as ReactPointerEvent, ReactNode } from 'react';
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useLayoutEffect, useRef, useState } from 'react';
 
 import { klassen } from '../bausteine/klassen';
 import { Symbol } from '../bausteine/Symbol';
@@ -279,6 +279,16 @@ export const Leinwand = ({
 	const skalaJetzt = useRef(1);
 	const ziehen = useRef<ZiehenSteuerung | null>(null);
 	const auswahlRahmen = useRef<HTMLDivElement>(null);
+	const fokusFolgt = useRef<HTMLIFrameElement | null>(null);
+
+	// Der alte Rahmen verschwindet mitsamt dem Fokus; sonst täte die Tastatur nach dem ersten Befehl nichts mehr.
+	useLayoutEffect(() => {
+		const frame = fokusFolgt.current;
+		if (frame && frame.dataset.editorRahmen === 'sichtbar') {
+			fokusFolgt.current = null;
+			frame.contentWindow?.focus();
+		}
+	}, [rahmen]);
 
 	useEffect(() => {
 		rueckrufe.current = { waehle, taste, geladen, nurAnsehen, ziehbar, ablegen, html, auswahl };
@@ -378,13 +388,9 @@ export const Leinwand = ({
 			// `instanceof Element` gilt im `iframe` nicht: Es hat eigene Klassen.
 			const ziel = (e.target as Node | null)?.nodeType === 1 ? (e.target as Element) : null;
 			rueckrufe.current.waehle(trefferAn(ziel)?.nr ?? null);
+			frame.contentWindow?.focus();
 		});
-		dokument.addEventListener('keydown', (e) => {
-			// Beim Tippen gehören Esc und ⌘Z dem Textfeld.
-			if (!(e.target as HTMLElement | null)?.isContentEditable) {
-				rueckrufe.current.taste(e);
-			}
-		});
+		dokument.addEventListener('keydown', (e) => rueckrufe.current.taste(e));
 	};
 
 	const fertig = ({ html: inhalt, nr }: Rahmen, frame: HTMLIFrameElement) => {
@@ -395,6 +401,10 @@ export const Leinwand = ({
 		const zeigen = () => {
 			const masse = miss(dokument);
 			verbinde(dokument, inhalt, frame);
+			const fokus = document.activeElement;
+			if (fokus instanceof HTMLIFrameElement && fokus !== frame && behaelter.current?.contains(fokus)) {
+				fokusFolgt.current = frame;
+			}
 			setZug(null);
 			setRahmen((alt) => alt.filter((r) => r.nr >= nr).map((r) => (r.nr === nr ? { ...r, masse } : r)));
 			setDoc(dokument);
@@ -427,6 +437,7 @@ export const Leinwand = ({
 			className="relative w-full overflow-x-auto bg-leinwand"
 			data-leinwand
 			data-geladen={masse ? 'ja' : undefined}
+			data-zieht={zug ? 'ja' : undefined}
 			onClick={(e) => {
 				// Tippen neben das Blatt hebt die Auswahl auf; Tippen ins Blatt kommt aus dem `iframe`.
 				if (e.target === e.currentTarget || (e.target as HTMLElement).dataset.innen !== undefined) {

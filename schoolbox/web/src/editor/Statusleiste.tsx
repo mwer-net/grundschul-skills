@@ -167,6 +167,10 @@ export const Statusleiste = ({
 		</div>
 		<Zoom zoom={zoom} stufe={stufe} skala={skala} fuehreAus={fuehreAus} />
 		<div className="flex items-center justify-end gap-2">
+			<button type="button" className={KNOPF} data-tasten-knopf onClick={() => fuehreAus('ansicht.tasten')}>
+				<Symbol name="hilfe" className="size-3 flex-none" />
+				Tasten
+			</button>
 			<Tooltip text="Rechte Leiste">
 				<button
 					type="button"

@@ -16,7 +16,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { meldung } from '../api';
 import { useHinweis } from '../bausteine/hinweis';
 import type { PfadTeil } from './darstellung';
-import { elementZu, nrVon, VERALTET } from './darstellung';
+import { elementZu, nrVon, trefferAn, VERALTET } from './darstellung';
 import { nachbarAblage, nebeneinander, ordnungVon } from './ziele';
 
 interface Optionen {
@@ -126,7 +126,9 @@ export const useStruktur = (o: Optionen) => {
 		if (quelle !== folge.quelle) {
 			setFolge(null);
 		} else if (doc) {
-			setAuswahl(folge.nr);
+			// Nicht alles ist wählbar (z. B. ein Fuß): dann der Baustein darum.
+			const ziel = folge.nr === null ? null : trefferAn(elementZu(doc, folge.nr))?.nr;
+			setAuswahl(ziel ?? folge.nr);
 			if (folge.springen) {
 				setSpringe((n) => n + 1);
 			}

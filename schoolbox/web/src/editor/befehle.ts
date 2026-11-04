@@ -87,6 +87,8 @@ export interface Kontext {
 	kiVerfuegbar: boolean;
 	namenszeile: boolean;
 	festeSeiten: boolean;
+	/** Text ist markiert: ⌘C und ⌘X bleiben dann dem Browser. */
+	textMarkiert: () => boolean;
 	tu: Aktionen;
 }
 
@@ -235,7 +237,7 @@ export const BEFEHLE: Befehl[] = [
 		titel: 'Ausschneiden',
 		gruppe: 'ablage',
 		symbol: 'ausschneiden',
-		kuerzel: [{ code: 'KeyX', befehl: true }],
+		kuerzel: [{ code: 'KeyX', befehl: true, wenn: (k) => !k.textMarkiert() }],
 		modus: ['auswahl'],
 		orte: ['taste', 'menue', 'leiste', 'palette'],
 		sichtbarUnter: 'mehr',
@@ -247,7 +249,7 @@ export const BEFEHLE: Befehl[] = [
 		titel: 'Kopieren',
 		gruppe: 'ablage',
 		symbol: 'kopieren',
-		kuerzel: [{ code: 'KeyC', befehl: true }],
+		kuerzel: [{ code: 'KeyC', befehl: true, wenn: (k) => !k.textMarkiert() }],
 		modus: ['auswahl'],
 		orte: ['taste', 'menue', 'leiste', 'palette'],
 		sichtbarUnter: 'mehr',
@@ -808,7 +810,8 @@ export const befehlZuTaste = (e: TastenEreignis, modus: Modus, k: Kontext, alle:
 	alle.find(
 		(b) =>
 			(b.modus ?? MODUS_VORGABE).includes(modus) &&
-			b.kuerzel?.some((t) => passtTaste(t, e) && (!t.wenn || t.wenn(k))),
+			// ⌥ tippt in der Textsitzung Zeichen: ⌥C ist dort „ç“.
+			b.kuerzel?.some((t) => passtTaste(t, e) && !(modus === 'text' && t.wahl) && (!t.wenn || t.wenn(k))),
 	);
 
 const alsEintrag = (b: Befehl, k: Kontext, fuehreAus: (id: string) => unknown): MenueEintrag => {
