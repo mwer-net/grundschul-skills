@@ -15,6 +15,7 @@ import { lade, meldung } from '../api';
 import { useHinweis } from '../bausteine/hinweis';
 import { Knopf, KnopfLink } from '../bausteine/Knopf';
 import { Menue } from '../bausteine/Menue';
+import { useZeigeMenue } from '../bausteine/MenueAmPunkt';
 import { ProfilSchalter } from '../bausteine/ProfilSchalter';
 import { Segment } from '../bausteine/Segment';
 import { Symbol } from '../bausteine/Symbol';
@@ -23,6 +24,7 @@ import { Zustand } from '../bausteine/Zustand';
 import { useAbbildung } from '../editor/abbildung';
 import { Abbildungswerkzeug } from '../editor/Abbildungspanel';
 import { useAblage } from '../editor/ablage';
+import type { MenueArt } from '../editor/befehle';
 import { AlsVorlage } from '../editor/AlsVorlage';
 import { Konfliktleiste, Speicheranzeige, Vorschauleiste } from '../editor/Anzeigen';
 import { useBearbeitung } from '../editor/bearbeitung';
@@ -217,9 +219,11 @@ const mitStand = (dokument: DokumentEintrag, verlauf: { quelle: string } | null)
 const Seiten = ({
 	festeSeiten,
 	html,
+	kontextmenue,
 	struktur,
 	zerlegung,
 }: {
+	kontextmenue: (nr: number, punkt: { x: number; y: number }) => void;
 	festeSeiten: boolean;
 	html: string | null;
 	zerlegung: Zerlegung | null;
@@ -238,6 +242,7 @@ const Seiten = ({
 			waehle={struktur.zeigeAn}
 			verschiebe={(nr, ablage) => struktur.verschiebe(nr, ablage, true)}
 			hinzufuegen={(mitNamenszeile) => void struktur.neueSeite(mitNamenszeile)}
+			kontextmenue={kontextmenue}
 			namenszeile={namenszeile}
 			festeSeiten={festeSeiten}
 		/>
@@ -614,6 +619,22 @@ const Bearbeitung = ({ dokument, mappe: mappenDaten }: { mappe: Mappe; dokument:
 		useCallback((text: string) => zeige({ text }), [zeige]),
 	);
 
+	const zeigeMenue = useZeigeMenue();
+	const [menueWunsch, setMenueWunsch] = useState<{ art: MenueArt; punkt: { x: number; y: number } } | null>(null);
+	const blattFokus = geladen?.doc.defaultView;
+	const { menue: menueFuer } = befehle;
+	// Erst nach der Auswahl: Das Menü richtet sich nach dem Baustein, den der Rechtsklick gerade gewählt hat.
+	useEffect(() => {
+		if (menueWunsch) {
+			setMenueWunsch(null);
+			zeigeMenue(menueWunsch.punkt, menueFuer(menueWunsch.art), () => blattFokus?.focus());
+		}
+	}, [menueWunsch, zeigeMenue, menueFuer, blattFokus]);
+	const menueAn = (nr: number | null, art: MenueArt, punkt: { x: number; y: number }) => {
+		setAuswahl(nr);
+		setMenueWunsch({ art, punkt });
+	};
+
 	const { jetzt: befehlsKontext, zuTaste } = befehle;
 	const taste = useCallback(
 		(e: KeyboardEvent) => {
@@ -781,10 +802,18 @@ const Bearbeitung = ({ dokument, mappe: mappenDaten }: { mappe: Mappe; dokument:
 
 	const links = panels.links === 'bausteine' && !frei ? 'seiten' : panels.links;
 	const linksInhalt = {
-		seiten: <Seiten html={html} zerlegung={zerlegung} struktur={struktur} festeSeiten={format === 'minibuch'} />,
+		seiten: (
+			<Seiten
+				html={html}
+				zerlegung={zerlegung}
+				struktur={struktur}
+				festeSeiten={format === 'minibuch'}
+				kontextmenue={(nr, punkt) => menueAn(nr, 'miniatur', punkt)}
+			/>
+		),
 		gliederung: (
 			<div className="min-h-0 flex-1 overflow-y-auto p-2">
-				<Gliederung doc={docJetzt} auswahl={auswahl} aktiv={struktur.aktiv} struktur={struktur} />
+				<Gliederung doc={docJetzt} auswahl={auswahl} kontextmenue={menueAn} struktur={struktur} />
 			</div>
 		),
 		bausteine: (
@@ -922,6 +951,14 @@ const Bearbeitung = ({ dokument, mappe: mappenDaten }: { mappe: Mappe; dokument:
 								zoom={zoom}
 								meldeMassstab={setMassstab}
 								taste={taste}
+								textsitzung={text.bearbeitet}
+								kontextmenue={(treffer, punkt) =>
+									menueAn(
+										treffer?.nr ?? null,
+										!treffer || treffer.art === 'seite' ? 'leer' : 'baustein',
+										punkt,
+									)
+								}
 								geladen={merken}
 								nurAnsehen={vorschau !== null}
 								ziehbar={struktur.aktiv}

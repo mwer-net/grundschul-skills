@@ -49,6 +49,10 @@ interface Eigenschaften {
 	meldeMassstab?: (massstab: { skala: number; stufe: number }) => void;
 	/** Tasten aus dem Material, z. B. Cmd+Z, während der Fokus im `iframe` liegt. */
 	taste: (e: KeyboardEvent) => void;
+	/** Rechtsklick ins Blatt, Punkt in Koordinaten des Elternfensters. `treffer` ist leer neben dem Blatt. */
+	kontextmenue?: (treffer: { nr: number; art: string } | null, punkt: { x: number; y: number }) => void;
+	/** Beim Tippen bleibt das Browsermenü: Rechtschreibung und Einfügen brauchen es. */
+	textsitzung?: boolean;
 	/** Das sichtbare Dokument, sobald es fertig ist, mit dem HTML, aus dem es entstand. */
 	geladen: (doc: Document, html: string) => void;
 	/** Vorschau einer Version: nichts auswählbar. */
@@ -257,10 +261,12 @@ export const Leinwand = ({
 	geladen,
 	groesse,
 	html,
+	kontextmenue,
 	nurAnsehen,
 	pruefung,
 	springe,
 	taste,
+	textsitzung,
 	titel,
 	waehle,
 	ziehbar,
@@ -275,7 +281,18 @@ export const Leinwand = ({
 	const [doc, setDoc] = useState<Document | null>(null);
 	const [zug, setZug] = useState<ZugAnzeige | null>(null);
 	const [ziehBreite, setZiehBreite] = useState<number | null>(null);
-	const rueckrufe = useRef({ waehle, taste, geladen, nurAnsehen, ziehbar, ablegen, html, auswahl });
+	const rueckrufe = useRef({
+		waehle,
+		taste,
+		geladen,
+		nurAnsehen,
+		ziehbar,
+		ablegen,
+		html,
+		auswahl,
+		kontextmenue,
+		textsitzung,
+	});
 	const skalaJetzt = useRef(1);
 	const ziehen = useRef<ZiehenSteuerung | null>(null);
 	const auswahlRahmen = useRef<HTMLDivElement>(null);
@@ -291,8 +308,19 @@ export const Leinwand = ({
 	}, [rahmen]);
 
 	useEffect(() => {
-		rueckrufe.current = { waehle, taste, geladen, nurAnsehen, ziehbar, ablegen, html, auswahl };
-	}, [waehle, taste, geladen, nurAnsehen, ziehbar, ablegen, html, auswahl]);
+		rueckrufe.current = {
+			waehle,
+			taste,
+			geladen,
+			nurAnsehen,
+			ziehbar,
+			ablegen,
+			html,
+			auswahl,
+			kontextmenue,
+			textsitzung,
+		};
+	}, [waehle, taste, geladen, nurAnsehen, ziehbar, ablegen, html, auswahl, kontextmenue, textsitzung]);
 
 	// Losgelassen außerhalb des Materials: Das `iframe` bekommt das nicht immer mit.
 	useEffect(() => {
@@ -369,7 +397,9 @@ export const Leinwand = ({
 		let start: { x: number; y: number; zeit: number; id: number } | null = null;
 		dokument.addEventListener('pointerdown', (e) => {
 			meldeDaneben();
-			start = e.isPrimary ? { x: e.clientX, y: e.clientY, zeit: e.timeStamp, id: e.pointerId } : null;
+			const haupttaste = e.pointerType !== 'mouse' || (e.button === 0 && !e.ctrlKey);
+			start =
+				e.isPrimary && haupttaste ? { x: e.clientX, y: e.clientY, zeit: e.timeStamp, id: e.pointerId } : null;
 		});
 		dokument.addEventListener('pointercancel', () => {
 			start = null;
@@ -391,6 +421,26 @@ export const Leinwand = ({
 			frame.contentWindow?.focus();
 		});
 		dokument.addEventListener('keydown', (e) => rueckrufe.current.taste(e));
+		dokument.addEventListener('contextmenu', (e) => {
+			const markiert = dokument.getSelection();
+			if (rueckrufe.current.textsitzung || (markiert && !markiert.isCollapsed)) {
+				return;
+			}
+			e.preventDefault();
+			// Am iPad startet langes Drücken das Ziehen; dort ist ⋯ der Weg.
+			const finger = (e as Partial<PointerEvent>).pointerType === 'touch';
+			if (finger || rueckrufe.current.nurAnsehen || dokument.documentElement.hasAttribute(VERALTET)) {
+				return;
+			}
+			const ziel = (e.target as Node | null)?.nodeType === 1 ? (e.target as Element) : null;
+			const treffer = trefferAn(ziel);
+			const r = frame.getBoundingClientRect();
+			rueckrufe.current.kontextmenue?.(treffer && { nr: treffer.nr, art: treffer.baustein.art }, {
+				x: r.left + e.clientX * skalaJetzt.current,
+				y: r.top + e.clientY * skalaJetzt.current,
+			});
+			frame.contentWindow?.focus();
+		});
 	};
 
 	const fertig = ({ html: inhalt, nr }: Rahmen, frame: HTMLIFrameElement) => {

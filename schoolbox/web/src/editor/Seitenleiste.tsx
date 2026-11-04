@@ -32,6 +32,7 @@ interface Eigenschaften {
 	waehle: (nr: number) => void;
 	verschiebe: (nr: number, ablage: Ablage) => void;
 	hinzufuegen: (mitNamenszeile: boolean) => void;
+	kontextmenue?: (nr: number, punkt: { x: number; y: number }) => void;
 	/** Die erste Seite hat eine Namenszeile, die eine neue Seite übernehmen kann. */
 	namenszeile: boolean;
 	/** Im Mini-Book steht die Zahl der Seiten fest. */
@@ -69,6 +70,7 @@ export const Seitenleiste = ({
 	gewaehlt,
 	hinzufuegen,
 	html,
+	kontextmenue,
 	namenszeile,
 	verschiebe,
 	waehle,
@@ -153,10 +155,10 @@ export const Seitenleiste = ({
 	};
 
 	const druecke = (e: ReactPointerEvent, index: number) => {
-		if (!e.isPrimary || !aktuell) {
+		const maus = e.pointerType === 'mouse';
+		if (!e.isPrimary || !aktuell || (maus && (e.button !== 0 || e.ctrlKey))) {
 			return;
 		}
-		const maus = e.pointerType === 'mouse';
 		const y = yIn(e);
 		const flaeche = e.currentTarget as HTMLElement;
 		const id = e.pointerId;
@@ -268,7 +270,13 @@ export const Seitenleiste = ({
 						onPointerMove={bewege}
 						onPointerUp={(e) => lasseLos(e)}
 						onPointerCancel={(e) => lasseLos(e, true)}
-						onContextMenu={(e) => e.preventDefault()}
+						onContextMenu={(e) => {
+							e.preventDefault();
+							// Beim Finger läuft hier schon das Halten zum Ziehen.
+							if (aktuell && !druck.current && !zug) {
+								kontextmenue?.(s.nr, { x: e.clientX, y: e.clientY });
+							}
+						}}
 						onClick={(e) => {
 							// Tastatur: Enter bzw. Leertaste wählt die Seite (Zeiger erledigt `pointerup`).
 							if (e.detail === 0 && aktuell) {

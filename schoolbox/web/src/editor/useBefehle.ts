@@ -1,7 +1,7 @@
 import { useCallback, useMemo, useRef } from 'react';
 
-import type { Kontext, Modus, Ort } from './befehle';
-import { BEFEHLE, befehleFuer, befehlZuTaste } from './befehle';
+import type { Kontext, MenueArt, Modus, Ort } from './befehle';
+import { BEFEHLE, befehleFuer, befehleFuerMenue, befehlZuTaste, menueAusBefehlen } from './befehle';
 
 /** Bedienwege greifen über dieses Objekt aufs Register zu. Es bleibt gleich; der Kontext ist immer der aktuelle. */
 export const useBefehle = (kontext: Kontext, melde: (text: string) => void) => {
@@ -36,7 +36,12 @@ export const useBefehle = (kontext: Kontext, melde: (text: string) => void) => {
 		[melde],
 	);
 
-	return useMemo(() => ({ fuehreAus, fuer, zuTaste, jetzt }), [fuehreAus, fuer, zuTaste]);
+	const menue = useCallback(
+		(art: MenueArt) => menueAusBefehlen(befehleFuerMenue(art, jetzt.current), jetzt.current, fuehreAus),
+		[fuehreAus],
+	);
+
+	return useMemo(() => ({ fuehreAus, fuer, zuTaste, menue, jetzt }), [fuehreAus, fuer, zuTaste, menue]);
 };
 
 export type Befehle = ReturnType<typeof useBefehle>;

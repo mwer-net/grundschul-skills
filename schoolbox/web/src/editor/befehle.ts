@@ -1,5 +1,12 @@
 import { kann, kannImFormat } from '@schoolbox/kern/src/bausteine';
-import { KIT_FELDER, leseKit, setzeKit, setzeSichtbarkeit, SICHTBARKEITEN } from '@schoolbox/kern/src/kit-einstellungen';
+import {
+	KIT_FELDER,
+	leseKit,
+	leseSichtbarkeit,
+	setzeKit,
+	setzeSichtbarkeit,
+	SICHTBARKEITEN,
+} from '@schoolbox/kern/src/kit-einstellungen';
 import type { StrukturErgebnis } from '@schoolbox/kern/src/struktur';
 import { fuegeSpalteEin, fuegeZeileEin, loescheSpalte, loescheZeile } from '@schoolbox/kern/src/tabelle';
 import type { Druckprofil } from '@schoolbox/kern/src/werte';
@@ -158,6 +165,10 @@ const SICHTBARKEIT: Befehl[] = SICHTBARKEITEN.map((s) => ({
 	orte: ['menue', 'palette'],
 	sichtbarUnter: 'inspektor',
 	untermenue: 'Sichtbarkeit',
+	aktiv: (k) => {
+		const g = gewaehlt(k);
+		return Boolean(g && k.quelle !== null && leseSichtbarkeit(k.quelle, g.nr) === s.wert);
+	},
 	verfuegbar: (k) => {
 		const g = gewaehlt(k);
 		return k.aktiv && Boolean(g && kann(g.baustein, 'ordnen') && g.baustein.art !== 'seite');
@@ -258,7 +269,7 @@ export const BEFEHLE: Befehl[] = [
 	},
 	{
 		id: 'auswahl.einfuegen',
-		titel: (k) => (gewaehlt(k) ? 'Darunter einfügen' : 'Hier einfügen'),
+		titel: (k) => (gewaehlt(k) && !istSeite(k) ? 'Darunter einfügen' : 'Hier einfügen'),
 		gruppe: 'ablage',
 		symbol: 'hochladen',
 		kuerzel: [{ code: 'KeyV', befehl: true }],
@@ -722,7 +733,7 @@ export const BEFEHLE: Befehl[] = [
 	},
 	{
 		id: 'dokument.neue-seite',
-		titel: 'Neue Seite',
+		titel: (k) => (istSeite(k) ? 'Neue Seite danach' : 'Neue Seite'),
 		gruppe: 'dokument',
 		symbol: 'plus',
 		orte: ['menue', 'palette'],
@@ -732,7 +743,7 @@ export const BEFEHLE: Befehl[] = [
 	},
 	{
 		id: 'dokument.seite-mit-namenszeile',
-		titel: 'Neue Seite mit Namenszeile',
+		titel: (k) => (istSeite(k) ? 'Mit Namenszeile danach' : 'Neue Seite mit Namenszeile'),
 		gruppe: 'dokument',
 		symbol: 'plus',
 		orte: ['menue', 'palette'],
@@ -824,6 +835,7 @@ const alsEintrag = (b: Befehl, k: Kontext, fuehreAus: (id: string) => unknown): 
 		...(erstes ? { kuerzel: kuerzelText(erstes) } : {}),
 		...(b.gefahr ? { gefahr: true } : {}),
 		...(b.gesperrt?.(k) ? { aus: true } : {}),
+		...(b.aktiv ? { aktiv: b.aktiv(k) } : {}),
 		waehle: () => {
 			fuehreAus(b.id);
 		},
@@ -857,10 +869,11 @@ export const menueAusBefehlen = (
 	return eintraege;
 };
 
-/** Die eigene, kurze Liste für eine leere Stelle im Blatt (070): nicht mit Baustein-Befehlen gemischt. */
-export const MENUE_LEER = ['auswahl.einfuegen', 'auswahl.einfuegen-danach', 'dokument.neue-seite', 'ansicht.einpassen'];
-/** Für die Miniatur einer Seite (070). */
-export const MENUE_MINIATUR = [
+export type MenueArt = 'baustein' | 'leer' | 'miniatur';
+
+/** Für eine leere Stelle im Blatt die eigene kurze Liste, nicht mit Baustein-Befehlen gemischt. */
+const MENUE_LEER = ['auswahl.einfuegen', 'auswahl.einfuegen-danach', 'dokument.neue-seite', 'ansicht.einpassen'];
+const MENUE_MINIATUR = [
 	'dokument.neue-seite',
 	'dokument.seite-mit-namenszeile',
 	'auswahl.duplizieren',
@@ -868,12 +881,13 @@ export const MENUE_MINIATUR = [
 	'auswahl.runter',
 	'auswahl.loeschen',
 ];
+const MENUE_BAUSTEIN: Gruppe[] = ['bearbeiten', 'ablage', 'ordnen', 'gefahr'];
 
-/** Rechtsklick und ⋯ für einen Baustein: alles Bausteinbezogene, ohne Seitenbefehle. */
-export const menueZuBaustein = (k: Kontext) =>
-	befehleFuer('menue', k).filter(
-		(b) => !MENUE_LEER.includes(b.id) || b.id === 'auswahl.einfuegen',
-	);
-
-export const menueAusIds = (ids: string[], k: Kontext) =>
-	ids.flatMap((id) => BEFEHLE.find((b) => b.id === id && b.verfuegbar(k)) ?? []);
+/** Dieselbe Liste für Rechtsklick und ⋯. */
+export const befehleFuerMenue = (art: MenueArt, k: Kontext) => {
+	if (art === 'baustein') {
+		return befehleFuer('menue', k).filter((b) => MENUE_BAUSTEIN.includes(b.gruppe));
+	}
+	const ids = art === 'leer' ? MENUE_LEER : MENUE_MINIATUR;
+	return ids.flatMap((id) => BEFEHLE.find((b) => b.id === id && b.verfuegbar(k)) ?? []);
+};

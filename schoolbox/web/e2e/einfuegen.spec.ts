@@ -120,14 +120,16 @@ test.describe('Editor: Bausteine einfügen', () => {
 		await expect(material(page).locator('.seite')).toHaveCount(2);
 	});
 
-	test('Gliederung: Klick springt, Pfeile ordnen', async ({ page }) => {
+	test('Gliederung: Klick springt, das Menü ordnet', async ({ hasTouch, page }) => {
+		test.skip(hasTouch, 'am iPad ordnet die Leiste am Baustein');
 		const { dok, id } = await uhrzeit();
 		await oeffne(page, id, dok);
 		const vorher = await quelle(page);
 		await page.getByRole('tab', { name: 'Gliederung' }).click();
 		const zeilen = page.locator('[data-gliederung-aufgabe]');
 		await zeilen.nth(0).getByRole('button').first().click();
-		await zeilen.nth(0).getByRole('button', { name: 'Nach unten' }).click();
+		await zeilen.nth(0).getByRole('button').first().click({ button: 'right' });
+		await page.getByRole('menuitem', { name: /Nach unten/ }).click();
 		await expect.poll(() => quelle(page)).not.toBe(vorher);
 	});
 });

@@ -9,7 +9,6 @@ import { useHinweis } from '../bausteine/hinweis';
 import { FELD_KLASSEN, klassen } from '../bausteine/klassen';
 import { Knopf } from '../bausteine/Knopf';
 import { Symbol } from '../bausteine/Symbol';
-import { SymbolKnopf } from '../bausteine/SymbolKnopf';
 import { Tooltip } from '../bausteine/Tooltip';
 import { nrVon, trefferAn } from './darstellung';
 import type { Einfuegen, Posten, SlashMenue } from './einfuegen';
@@ -483,14 +482,14 @@ export const Bibliothek = ({
 
 /** Alle Seiten und Aufgaben: Klick springt, ↑ ↓ ordnet um, auch über die Seitengrenze. */
 export const Gliederung = ({
-	aktiv,
 	auswahl,
 	doc,
+	kontextmenue,
 	struktur,
 }: {
 	doc: Document | null;
 	auswahl: number | null;
-	aktiv: boolean;
+	kontextmenue?: (nr: number, art: 'baustein' | 'miniatur', punkt: { x: number; y: number }) => void;
 	struktur: Struktur;
 }) => {
 	const liste = useRef<HTMLDivElement>(null);
@@ -501,7 +500,6 @@ export const Gliederung = ({
 		return null;
 	}
 	const seiten = [...doc.querySelectorAll('.seite:not([data-erzeugt])')];
-	const aufgaben = [...doc.querySelectorAll('.seite:not([data-erzeugt]) > .aufgabe')];
 	return (
 		<section data-gliederung>
 			<div ref={liste} className="flex flex-col gap-1">
@@ -514,6 +512,12 @@ export const Gliederung = ({
 								className={klassen(GLIEDERUNG_ZEILE, 'font-medium')}
 								{...(auswahl === nr ? { 'aria-current': true as const } : {})}
 								onClick={() => nr !== null && struktur.zeigeAn(nr)}
+								onContextMenu={(ev) => {
+									ev.preventDefault();
+									if (nr !== null) {
+										kontextmenue?.(nr, 'miniatur', { x: ev.clientX, y: ev.clientY });
+									}
+								}}
 							>
 								{`Seite ${i + 1}`}
 							</button>
@@ -522,15 +526,6 @@ export const Gliederung = ({
 									.filter((k) => k.classList.contains('aufgabe'))
 									.map((k) => {
 										const knr = nrVon(k);
-										const stelle = aufgaben.indexOf(k);
-										const vorher = aufgaben[stelle - 1];
-										const nachher = aufgaben[stelle + 1];
-										const nach = (ziel: Element | undefined, wo: 'vor' | 'nach') => {
-											const znr = ziel ? nrVon(ziel) : null;
-											if (knr !== null && znr !== null) {
-												struktur.verschiebe(knr, { nr: znr, wo }, true);
-											}
-										};
 										const titel = k.querySelector('.anw')?.textContent?.trim() || 'Aufgabe';
 										return (
 											<li
@@ -544,28 +539,19 @@ export const Gliederung = ({
 														className={klassen(GLIEDERUNG_ZEILE, 'min-w-0 flex-1 truncate')}
 														{...(auswahl === knr ? { 'aria-current': true as const } : {})}
 														onClick={() => knr !== null && struktur.zeigeAn(knr)}
+														onContextMenu={(ev) => {
+															ev.preventDefault();
+															if (knr !== null) {
+																kontextmenue?.(knr, 'baustein', {
+																	x: ev.clientX,
+																	y: ev.clientY,
+																});
+															}
+														}}
 													>
 														{titel}
 													</button>
 												</Tooltip>
-												{auswahl === knr && (
-													<>
-														<SymbolKnopf
-															symbol="hoch"
-															beschriftung="Nach oben"
-															groesse="klein"
-															disabled={!aktiv || !vorher}
-															onClick={() => nach(vorher, 'vor')}
-														/>
-														<SymbolKnopf
-															symbol="runter"
-															beschriftung="Nach unten"
-															groesse="klein"
-															disabled={!aktiv || !nachher}
-															onClick={() => nach(nachher, 'nach')}
-														/>
-													</>
-												)}
 											</li>
 										);
 									})}

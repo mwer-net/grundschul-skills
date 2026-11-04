@@ -182,7 +182,9 @@ export const ruesteZiehen = (o: Optionen): ZiehenSteuerung => {
 		loese();
 		const ziel = (e.target as Node | null)?.nodeType === 1 ? (e.target as Element) : null;
 		const maus = e.pointerType === 'mouse';
-		const kandidat = o.erlaubt() && !imText(ziel) && (!maus || e.button === 0) ? kandidatAn(ziel) : null;
+		// Ctrl-Klick ist am Mac ein Rechtsklick: Er startet weder einen Zug noch ein Antippen.
+		const kandidat =
+			o.erlaubt() && !imText(ziel) && (!maus || (e.button === 0 && !e.ctrlKey)) ? kandidatAn(ziel) : null;
 		if (!kandidat || nrVon(kandidat.element) === null) {
 			return;
 		}
