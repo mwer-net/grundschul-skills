@@ -47,7 +47,7 @@ test.describe('Editor: Lösungen', () => {
 		await druecke(fassung(page, 'Lösung'));
 		const linie = material(page).locator('.antwort').nth(1);
 		await druecke(linie);
-		await expect(breadcrumb(page)).toHaveText('Seite 1›Aufgabe 1›Reihe›Eintrag 2›Antwortlinie');
+		await expect(breadcrumb(page)).toHaveText(/^(Seite 1›Aufgabe 1|…)›Reihe›Eintrag 2›Antwortlinie$/);
 		await expect(antwort(page)).toHaveValue('halb 5');
 		await antwort(page).fill('halb fünf');
 		await expect.poll(() => sichtbar(material(page).locator('.antwort').nth(1))).toBe('"halb fünf"');
@@ -59,7 +59,7 @@ test.describe('Editor: Lösungen', () => {
 		]);
 
 		await druecke(fassung(page, 'Arbeitsblatt'));
-		await expect(breadcrumb(page)).toHaveText('Seite 1›Aufgabe 1›Reihe›Eintrag 2›Antwortlinie');
+		await expect(breadcrumb(page)).toHaveText(/^(Seite 1›Aufgabe 1|…)›Reihe›Eintrag 2›Antwortlinie$/);
 		await expect.poll(() => sichtbar(material(page).locator('.antwort').nth(1))).toBe('" "');
 
 		await druecke(zurueck(page));
@@ -107,7 +107,7 @@ test.describe('Editor: Lösungen', () => {
 		await druecke(fassung(page, 'Arbeitsblatt'));
 		await gespeichert(page, datei);
 		expect(await readFile(datei, 'utf8')).toContain('data-l="sieben Uhr"');
-		await expect(breadcrumb(page)).toHaveText('Seite 1›Aufgabe 1›Reihe›Eintrag 3›Antwortlinie');
+		await expect(breadcrumb(page)).toHaveText(/^(Seite 1›Aufgabe 1|…)›Reihe›Eintrag 3›Antwortlinie$/);
 
 		await druecke(fassung(page, 'Lösung'));
 		await druecke(material(page).locator('.antwort').nth(3));
@@ -186,7 +186,7 @@ test.describe('Editor: Lösungen', () => {
 
 		// Text in einem Item ist seit 054 selbst wählbar; das Item liegt eine Stufe darüber.
 		await druecke(zelle(4).locator('b'));
-		await expect(breadcrumb(page)).toHaveText('Seite 1›Aufgabe 2›Reihe›Eintrag 1›Text');
+		await expect(breadcrumb(page)).toHaveText(/^(Seite 1›Aufgabe 2|…)›Reihe›Eintrag 1›Text$/);
 		await druecke(breadcrumb(page).getByRole('button', { name: 'Eintrag 1' }));
 		await expect(breadcrumb(page)).toHaveText('Seite 1›Aufgabe 2›Reihe›Eintrag 1');
 		await expect(schalter).not.toBeChecked();

@@ -37,9 +37,8 @@ const kontext = (mehr: Partial<Kontext> = {}): Kontext => ({
 	...mehr,
 });
 
-const gewaehlt = (art: string, name = 'Uhr'): Kontext['pfad'] => [
-	{ nr: 9, name, baustein: bausteinNach(art) as Baustein },
-] as never;
+const gewaehlt = (art: string, name = 'Uhr'): Kontext['pfad'] =>
+	[{ nr: 9, name, baustein: bausteinNach(art) as Baustein }] as never;
 
 const ziele = (mehr: Partial<PalettenZiele> = {}): PalettenZiele => ({
 	posten: KATALOG.map((e): Posten => ({ ...e, einfuegbar: {} as never })),

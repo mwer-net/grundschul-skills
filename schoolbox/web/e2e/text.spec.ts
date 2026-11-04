@@ -46,8 +46,10 @@ const fertig = async (page: Page) => {
 test.describe('Editor: Text', () => {
 	test('Schrift am gewählten Text wirkt auf das Ganze, bleibt an ihrem Platz, ein Schritt zurück', async ({
 		druecke,
+		hasTouch,
 		page,
 	}) => {
+		test.skip(hasTouch, 'Am iPad beginnt Antippen die Sitzung, die Schriftknöpfe gibt es nur dort (071).');
 		const { dok, id } = await uhrzeit();
 		await oeffne(page, id, dok);
 		const blase = material(page).locator('.blase');

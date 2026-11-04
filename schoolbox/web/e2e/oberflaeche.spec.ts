@@ -840,7 +840,7 @@ test.describe('Leisten im Blatt (071)', () => {
 		await expect(leiste(page)).toBeInViewport();
 	});
 
-	test('jede Art zeigt ihre Einträge, die Leiste bleibt schmal', async ({ druecke, page }) => {
+	test('jede Art zeigt ihre Einträge, die Leiste bleibt schmal', async ({ druecke, hasTouch, page }) => {
 		await oeffneBlatt(page);
 		const pruefe = async (ziel: Locator, art: string, namen: string[]) => {
 			await druecke(ziel);
@@ -851,13 +851,19 @@ test.describe('Leisten im Blatt (071)', () => {
 			expect((await leiste(page).boundingBox())?.width ?? 999).toBeLessThanOrEqual(560);
 		};
 		await pruefe(blatt(page).locator('x-uhr').first(), 'abbildung', ['Mehr zu diesem Baustein', 'Duplizieren']);
+		if (hasTouch) {
+			// Am iPad passt das Feld nicht mehr in die Leiste; es bleibt im Inspektor (071).
+			await expect(page.locator('[data-panel]').getByRole('combobox', { name: 'Stunde' })).toBeVisible();
+			return;
+		}
 		await expect(leiste(page).getByRole('combobox', { name: 'Stunde' })).toBeVisible();
 		await page.keyboard.press('Escape');
 		await pruefe(blatt(page).locator('.anw .text').first(), 'anweisung', ['Unterstrichen', 'Hervorheben']);
 		await expect(leiste(page).getByRole('button', { name: 'Fertig' })).toHaveCount(0);
 	});
 
-	test('Änderung in der Leiste steht auch im Inspektor und umgekehrt', async ({ druecke, page }) => {
+	test('Änderung in der Leiste steht auch im Inspektor und umgekehrt', async ({ druecke, hasTouch, page }) => {
+		test.skip(hasTouch, 'Am iPad steht das Feld nur im Inspektor (071).');
 		await oeffneBlatt(page);
 		await druecke(blatt(page).locator('x-uhr').first());
 		const stunde = leiste(page).getByRole('combobox', { name: 'Stunde' });
@@ -874,7 +880,12 @@ test.describe('Leisten im Blatt (071)', () => {
 		const letzte = blatt(page).locator('.aufgabe').last();
 		await letzte.scrollIntoViewIfNeeded();
 		await druecke(letzte);
-		await druecke(page.locator('[data-einfuegen-plus]'));
+		// Der Treffer kann ein Text oder ein Eintrag sein: Esc führt hoch bis zur Aufgabe, dort gibt es „+ Baustein“.
+		const plus = page.locator('[data-einfuegen-plus]');
+		for (let i = 0; i < 4 && (await plus.count()) === 0; i++) {
+			await page.keyboard.press('Escape');
+		}
+		await druecke(plus);
 		const fenster = page.locator('[data-schnellauswahl]');
 		await expect(fenster).toBeInViewport({ ratio: 1 });
 		await page.keyboard.press('Escape');

@@ -28,7 +28,7 @@ export const Segment = <T extends string>({ aus, beschriftung, className, waehle
 				aria-pressed={w.wert === wert}
 				disabled={aus}
 				className={klassen(
-					'min-h-[calc(var(--hoehe-knopf)-4px)] rounded-sm px-2 text-sm font-medium whitespace-nowrap transition-colors duration-[120ms] disabled:opacity-50',
+					'min-h-[max(22px,var(--hoehe-knopf-status))] min-w-[var(--hoehe-knopf-status)] rounded-sm px-2 text-sm font-medium whitespace-nowrap transition-colors duration-[120ms] disabled:opacity-50',
 					w.wert === wert ? 'bg-flaeche text-tinte shadow-1' : 'text-leise hover:text-tinte',
 				)}
 				onClick={() => waehle(w.wert)}

@@ -214,12 +214,19 @@ test.describe('Generatoren (050)', () => {
 		return { dok, id, datei };
 	};
 
-	test('Neue Zahlen: nur die Zahlen ändern sich, ein Schritt in Rückgängig', async ({ druecke, page }) => {
+	test('Neue Zahlen: nur die Zahlen ändern sich, ein Schritt in Rückgängig', async ({ druecke, hasTouch, page }) => {
 		test.slow();
 		const { datei } = await mitElement(page, '<x-zahlenmauer basis="3 5 2" offen="0-1"></x-zahlenmauer>');
 		const vorher = await quelle(page);
 		await druecke(material(page).locator('x-zahlenmauer'));
-		await page.locator('[data-bausteinleiste]').getByRole('button', { name: 'Neue Zahlen' }).click();
+		const leiste = page.locator('[data-bausteinleiste]');
+		// Am iPad passt die Leiste nur ohne die spezifischen Einträge; Befehle stehen dann im ⋯ (071).
+		if (hasTouch) {
+			await druecke(leiste.getByRole('button', { name: 'Mehr zu diesem Baustein' }));
+			await druecke(page.getByRole('menuitem', { name: /Neue Zahlen/ }));
+		} else {
+			await druecke(leiste.getByRole('button', { name: 'Neue Zahlen' }));
+		}
 		await expect.poll(() => quelle(page)).not.toBe(vorher);
 		const nachher = await quelle(page);
 		expect(nachher.replace(/basis="[^"]*"/, '')).toBe(vorher.replace(/basis="[^"]*"/, ''));

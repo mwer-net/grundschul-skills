@@ -17,7 +17,7 @@ export const Schalter = ({ an, aus, id, name, setze }: Eigenschaften) => (
 		aria-checked={an}
 		aria-label={name}
 		disabled={aus}
-		className="inline-flex min-h-5 min-w-6 flex-none items-center justify-center disabled:opacity-50"
+		className="inline-flex size-knopf-status flex-none items-center justify-center disabled:opacity-50"
 		onClick={() => setze(!an)}
 	>
 		<span

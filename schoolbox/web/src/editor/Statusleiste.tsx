@@ -43,7 +43,10 @@ const Zoom = ({ fuehreAus, skala, stufe, zoom }: ZoomEigenschaften) => {
 			<Tooltip text="Auf 100 %">
 				<button
 					type="button"
-					className={klassen(KNOPF, 'min-w-10 justify-center tabular-nums')}
+					className={klassen(
+						KNOPF,
+						'min-w-[max(40px,var(--hoehe-knopf-status))] justify-center tabular-nums',
+					)}
 					data-zoom-wert
 					onClick={() => fuehreAus('ansicht.zoom-100')}
 				>
@@ -118,7 +121,11 @@ const NeuHinweis = () => {
 	return (
 		<span className="flex min-w-0 items-center gap-1 text-tinte" data-neu-hinweis>
 			<span className="truncate">Neu: Die Werkzeuge sind jetzt direkt am Baustein.</span>
-			<Link to="/hilfe#schneller" className="inline-flex h-knopf-status flex-none items-center underline" onClick={fertig}>
+			<Link
+				to="/hilfe#schneller"
+				className="inline-flex h-knopf-status flex-none items-center underline"
+				onClick={fertig}
+			>
 				Zur Hilfe
 			</Link>
 			<button type="button" className={KNOPF} aria-label="Hinweis ausblenden" onClick={fertig}>

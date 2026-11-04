@@ -137,10 +137,17 @@ test.describe('Inventur Editor', () => {
 		await expect(page.locator('[data-abschnitt="sichtbarkeit"]')).toBeVisible();
 	});
 
-	test('Tabelle, Spalten und Neue Zahlen haben ihren Platz', async ({ page }) => {
+	test('Tabelle, Spalten und Neue Zahlen haben ihren Platz', async ({ druecke, hasTouch, page }) => {
 		await offenesBlatt(page);
-		await material(page).locator('x-uhr').first().click();
-		await expect(leiste(page).getByRole('button', { name: 'Neue Zahlen' })).toBeVisible();
+		await druecke(material(page).locator('x-uhr').first());
+		// Am iPad stehen die Befehle der Leiste im ⋯ (071).
+		if (hasTouch) {
+			await druecke(leiste(page).getByRole('button', { name: 'Mehr zu diesem Baustein' }));
+			await expect(page.getByRole('menuitem', { name: /Neue Zahlen/ })).toBeVisible();
+			await page.keyboard.press('Escape');
+		} else {
+			await expect(leiste(page).getByRole('button', { name: 'Neue Zahlen' })).toBeVisible();
+		}
 		await expect(page.locator('[data-abschnitt="eltern"]')).toBeVisible();
 	});
 

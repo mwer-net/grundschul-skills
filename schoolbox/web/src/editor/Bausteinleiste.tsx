@@ -207,6 +207,15 @@ const punktIm = (ereignis: ReactPointerEvent, e: Einblendung) => {
 	return { x: (ereignis.clientX - (r?.left ?? 0)) / e.skala, y: (ereignis.clientY - (r?.top ?? 0)) / e.skala };
 };
 
+/** In der Sitzung nur als unsichtbarer Platzhalter: Die Schriftknöpfe bleiben dann, wo sie waren. */
+const Pfeile = ({ befehle, platzhalter }: { befehle: Befehle; platzhalter: boolean }) => (
+	<div className={klassen('flex items-center', platzhalter && 'invisible')}>
+		<Trenner />
+		<BefehlKnopf platz={platzhalter} befehle={befehle} id="auswahl.hoch" />
+		<BefehlKnopf platz={platzhalter} befehle={befehle} id="auswahl.runter" />
+	</div>
+);
+
 const griffDruecken = (ereignis: ReactPointerEvent<HTMLButtonElement>, e: Einblendung, nr: number) => {
 	if (!ereignis.isPrimary || ereignis.button !== 0) {
 		return;
@@ -496,20 +505,7 @@ export const Bausteinleiste = ({
 						waehle: () => waehle(t.nr),
 					}))}
 				/>
-				{platz.pfeile && (
-					<div className="invisible flex items-center">
-						<Trenner />
-						<BefehlKnopf platz befehle={befehle} id="auswahl.hoch" />
-						<BefehlKnopf platz befehle={befehle} id="auswahl.runter" />
-					</div>
-				)}
-				{nachWerte && !sitzung && (
-					<div className="flex items-center">
-						<Trenner />
-						<BefehlKnopf befehle={befehle} id="auswahl.hoch" />
-						<BefehlKnopf befehle={befehle} id="auswahl.runter" />
-					</div>
-				)}
+				{(sitzung ? platz.pfeile : nachWerte) && <Pfeile befehle={befehle} platzhalter={sitzung} />}
 				{spezifisch.length > 0 && <Trenner />}
 				{spezifisch
 					.filter((s) => !sitzung || s.schluessel === 'text')

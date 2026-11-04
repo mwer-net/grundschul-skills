@@ -28,7 +28,7 @@ import type { useText } from './text';
 
 type ReiterName = 'auswahl' | 'blatt';
 
-const STUFE = 'h-zeile min-w-0 truncate rounded px-1 text-xs text-leise hover:bg-flaeche-2 hover:text-tinte';
+const STUFE = 'size-knopf-status h-zeile truncate rounded px-1 text-xs text-leise hover:bg-flaeche-2 hover:text-tinte';
 
 /**
  * Wo im Blatt: die Elternkette in einer Zeile, der Baustein darunter. Überfahren rahmt die Ebene im Blatt, damit man

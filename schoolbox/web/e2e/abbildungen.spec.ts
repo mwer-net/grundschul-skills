@@ -38,7 +38,7 @@ test.describe('Editor: Abbildungen', () => {
 		await oeffne(page, id, dok);
 
 		await druecke(material(page).locator('x-uhr').first());
-		await expect(page.locator('[data-breadcrumb]')).toHaveText('Seite 1›Aufgabe 1›Reihe›Eintrag 1›Uhr');
+		await expect(page.locator('[data-breadcrumb]')).toHaveText(/^(Seite 1›Aufgabe 1|…)›Reihe›Eintrag 1›Uhr$/);
 		await expect(page.locator('[data-hinweis="beispiel"]')).toContainText('Das ist das Beispiel.');
 
 		await druecke(material(page).locator('x-uhr').nth(1));

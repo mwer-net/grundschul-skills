@@ -38,7 +38,7 @@ test.describe('Editor', () => {
 		expect(await versionen(ordner)).toEqual(versionenVorher);
 	});
 
-	test('wählt per Antippen den innersten Baustein und zeigt, wo er liegt', async ({ druecke, page }) => {
+	test('wählt per Antippen den innersten Baustein und zeigt, wo er liegt', async ({ druecke, hasTouch, page }) => {
 		const { dok, id } = await uhrzeit();
 		await oeffne(page, id, dok);
 		await druecke(material(page).locator('h1'));
@@ -46,8 +46,14 @@ test.describe('Editor', () => {
 		await expect(page.locator('[data-auswahlrahmen]')).toBeVisible();
 
 		await druecke(material(page).locator('x-uhr').nth(1));
-		await expect(page.locator('[data-breadcrumb]')).toHaveText('Seite 1›Aufgabe 1›Reihe›Eintrag 2›Uhr');
-		await druecke(page.locator('[data-breadcrumb]').getByRole('button', { name: 'Aufgabe 1' }));
+		await expect(page.locator('[data-breadcrumb]')).toHaveText(/^(Seite 1›Aufgabe 1|…)›Reihe›Eintrag 2›Uhr$/);
+		// Am iPad passt der Pfad nicht in die Zeile, die vorderen Stufen stehen dann unter „…“.
+		if (hasTouch) {
+			await druecke(page.locator('[data-breadcrumb]').getByRole('button', { name: 'Weitere Ebenen' }));
+			await druecke(page.getByRole('menuitem', { name: 'Aufgabe 1' }));
+		} else {
+			await druecke(page.locator('[data-breadcrumb]').getByRole('button', { name: 'Aufgabe 1' }));
+		}
 		await expect(page.locator('[data-auswahl="aufgabe"] h2')).toHaveText('Aufgabe 1');
 
 		await druecke(material(page).locator('.nr.stern'));

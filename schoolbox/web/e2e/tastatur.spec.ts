@@ -1,10 +1,20 @@
-import type { Page } from '@playwright/test';
+import type { Locator, Page } from '@playwright/test';
 
 import { material, oeffne, quelle, uhrzeit } from './editorhilfe';
 import { expect, test } from './hilfe';
 
 const auswahlName = (page: Page) => page.locator('[data-auswahl] h2');
 const bereit = (page: Page) => expect(page.locator('[data-auswahlrahmen]')).toBeVisible();
+
+/** Am iPad startet Antippen gleich die Textsitzung, mit der Maus erst der zweite Klick. Danach ist der Text gewählt. */
+const waehleText = async (druecke: (ziel: Locator) => Promise<void>, page: Page, ziel: Locator) => {
+	await druecke(ziel);
+	if (test.info().project.use.hasTouch) {
+		await expect(page.locator('[data-textbearbeitung]')).toBeVisible();
+		await page.keyboard.press('Escape');
+		await expect(page.locator('[data-textbearbeitung]')).toHaveCount(0);
+	}
+};
 
 test.describe('Tastatur (069)', () => {
 	test('⌫ löscht und wählt den Nachbarn, dreimal in Folge; ⌘Z holt byteidentisch zurück', async ({
@@ -17,7 +27,7 @@ test.describe('Tastatur (069)', () => {
 		const aufgaben = material(page).locator('.aufgabe');
 		const anzahl = await aufgaben.count();
 
-		await druecke(aufgaben.first().locator('.anw .text'));
+		await waehleText(druecke, page, aufgaben.first().locator('.anw .text'));
 		await page.keyboard.press('Escape');
 		await expect(page.locator('[data-auswahl="aufgabe"]')).toBeVisible();
 
@@ -50,7 +60,7 @@ test.describe('Tastatur (069)', () => {
 	}) => {
 		const { dok, id } = await uhrzeit();
 		await oeffne(page, id, dok);
-		await druecke(material(page).locator('.aufgabe').first().locator('.anw .text'));
+		await waehleText(druecke, page, material(page).locator('.aufgabe').first().locator('.anw .text'));
 		await page.keyboard.press('Escape');
 		await expect(auswahlName(page)).toHaveText('Aufgabe 1');
 
@@ -59,7 +69,7 @@ test.describe('Tastatur (069)', () => {
 		await page.keyboard.press('ArrowUp');
 		await expect(auswahlName(page)).toHaveText('Aufgabe 1');
 
-		await druecke(material(page).locator('.aufgabe').first().locator('.anw .text'));
+		await waehleText(druecke, page, material(page).locator('.aufgabe').first().locator('.anw .text'));
 		await expect(page.locator('[data-auswahl="anweisung"]')).toBeVisible();
 		await page.keyboard.press('Enter');
 		await expect(page.locator('[data-textbearbeitung]')).toBeVisible();
@@ -86,7 +96,7 @@ test.describe('Tastatur (069)', () => {
 		const aufgaben = material(page).locator('.aufgabe');
 		const anzahl = await aufgaben.count();
 		const wahlAufgabe = async (i: number) => {
-			await druecke(aufgaben.nth(i).locator('.anw .text'));
+			await waehleText(druecke, page, aufgaben.nth(i).locator('.anw .text'));
 			await page.keyboard.press('Escape');
 			await expect(page.locator('[data-auswahl="aufgabe"]')).toBeVisible();
 		};
@@ -125,7 +135,7 @@ test.describe('Tastatur (069)', () => {
 		await oeffne(page, id, dok);
 		const vorher = await quelle(page);
 		const seiten = material(page).locator('.seite');
-		await druecke(seiten.first().locator('.aufgabe').first().locator('.anw .text'));
+		await waehleText(druecke, page, seiten.first().locator('.aufgabe').first().locator('.anw .text'));
 		await page.keyboard.press('Escape');
 		await page.keyboard.press('Escape');
 		await expect(page.locator('[data-auswahl="seite"]')).toBeVisible();
@@ -159,7 +169,7 @@ test.describe('Tastatur (069)', () => {
 	test('`/` öffnet die Schnellauswahl sichtbar, `0` und `1` ändern die Größe', async ({ druecke, page }) => {
 		const { dok, id } = await uhrzeit();
 		await oeffne(page, id, dok);
-		await druecke(material(page).locator('.aufgabe').first().locator('.anw .text'));
+		await waehleText(druecke, page, material(page).locator('.aufgabe').first().locator('.anw .text'));
 		await page.keyboard.press('Slash');
 		const schnell = page.locator('[data-schnellauswahl]');
 		await expect(schnell).toBeInViewport();
