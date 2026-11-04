@@ -5,6 +5,7 @@ import { Kuerzel } from '../bausteine/Kuerzel';
 import { klassen } from '../bausteine/klassen';
 import { Symbol } from '../bausteine/Symbol';
 import { Tooltip } from '../bausteine/Tooltip';
+import type { ChatLauf } from './chat-kontext';
 import { halteFokus } from './halteFokus';
 import type { Pruefpunkt, Pruefstand } from './pruefung';
 import { Pruefstatus } from './Pruefliste';
@@ -120,7 +121,34 @@ const Zoom = ({ fuehreAus, skala, stufe, zoom }: ZoomEigenschaften) => {
 	);
 };
 
+/** Bei geschlossenem Chat sagt die Leiste, was Claude tut. Ein Klick öffnet den Chat. */
+const ClaudeStand = ({ lauf, oeffne }: { lauf: ChatLauf; oeffne: () => void }) => {
+	const [jetzt, setJetzt] = useState(() => Date.now());
+	useEffect(() => {
+		if (lauf.art !== 'arbeitet') {
+			return undefined;
+		}
+		const uhr = window.setInterval(() => setJetzt(Date.now()), 1000);
+		return () => window.clearInterval(uhr);
+	}, [lauf.art]);
+	const sekunden = Math.max(0, Math.round((jetzt - lauf.seit) / 1000));
+	const titel = {
+		arbeitet: `Claude arbeitet … ${Math.floor(sekunden / 60)}:${String(sekunden % 60).padStart(2, '0')}`,
+		bereit: 'Vorschlag bereit',
+		antwort: 'Claude hat geantwortet',
+	}[lauf.art];
+	return (
+		<button type="button" className={klassen(KNOPF, 'text-brand-700 tabular-nums')} data-claude-stand={lauf.art} onClick={oeffne}>
+			<Symbol name={lauf.art === 'arbeitet' ? 'laden' : 'sprechblase'} className="size-3 flex-none" />
+			{titel}
+		</button>
+	);
+};
+
 interface Eigenschaften extends ZoomEigenschaften {
+	/** Nur bei geschlossenem Chat gesetzt. */
+	claude: ChatLauf | null;
+	zeigeClaude: () => void;
 	seite: { nr: number; von: number };
 	format: string;
 	pruefung: Pruefstand | null;
@@ -134,6 +162,7 @@ interface Eigenschaften extends ZoomEigenschaften {
 
 /** Unterste Zeile des Editors: wo man ist, ob alles passt, wie groß das Blatt gezeigt wird. */
 export const Statusleiste = ({
+	claude,
 	format,
 	fuehreAus,
 	linksOffen,
@@ -145,6 +174,7 @@ export const Statusleiste = ({
 	skala,
 	stufe,
 	verschiebe,
+	zeigeClaude,
 	zeigePunkt,
 	zoom,
 }: Eigenschaften) => (
@@ -166,6 +196,7 @@ export const Statusleiste = ({
 			</Tooltip>
 			<span className="truncate" data-seite-von>{`Seite ${seite.nr} von ${seite.von} · ${format}`}</span>
 			<Pruefstatus stand={pruefung} zeige={zeigePunkt} verschiebe={verschiebe} />
+			{claude && <ClaudeStand lauf={claude} oeffne={zeigeClaude} />}
 		</div>
 		<Zoom zoom={zoom} stufe={stufe} skala={skala} fuehreAus={fuehreAus} />
 		<div className="flex items-center justify-end gap-2">

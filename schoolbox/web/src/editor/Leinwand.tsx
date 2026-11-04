@@ -64,6 +64,8 @@ interface Eigenschaften {
 	ablegen: (nr: number, ablage: Ablage) => void;
 	/** Ändert sich die Zahl, rollt die Ansicht zum gewählten Baustein. */
 	springe: number;
+	/** So viel verdeckt der offene Chat-Verlauf; beim Einpassen zählt das Blatt nur den Rest. */
+	verdeckt: number;
 	/** Ein gewähltes Bild bekommt Ziehpunkte an den Ecken. */
 	groesse: Groesse | null;
 	/** Fehler rot, Warnungen orange umrandet, solange das geprüfte Dokument zu sehen ist (020). */
@@ -282,6 +284,7 @@ export const Leinwand = ({
 	taste,
 	textsitzung,
 	titel,
+	verdeckt,
 	waehle,
 	ziehbar,
 	zoom,
@@ -482,7 +485,7 @@ export const Leinwand = ({
 	const passend = masse && breite > 0 ? Math.min(1, breite / masse.breite) : 1;
 	const eingepasst =
 		masse && breite > 0 && sichtHoehe > 0
-			? Math.min(MAX_EINGEPASST, breite / masse.breite, sichtHoehe / masse.seite)
+			? Math.min(MAX_EINGEPASST, breite / masse.breite, Math.max(1, sichtHoehe - verdeckt) / masse.seite)
 			: passend;
 	const skala = zoom === 'einpassen' ? eingepasst : passend * zoom;
 	skalaJetzt.current = skala;

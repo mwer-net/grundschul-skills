@@ -1,6 +1,6 @@
 /**
  * Baustein-Register: welche Teile des Materials der Editor kennt und was sich mit ihnen tun lässt. Editor, Server und
- * „Claude fragen“ benutzen dieselben Namen. Ein neuer Baustein ist ein neuer Eintrag, kein neuer Code. Die Reihenfolge
+ * der Chat mit Claude benutzen dieselben Namen. Ein neuer Baustein ist ein neuer Eintrag, kein neuer Code. Die Reihenfolge
  * zählt: Passt ein Element auf mehrere Einträge, gilt der erste.
  */
 

@@ -8,7 +8,7 @@ import { FORMAT_NAME } from '@schoolbox/kern/src/werte';
 import type { ReactNode } from 'react';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import type { SetURLSearchParams } from 'react-router-dom';
-import { useLocation, useNavigate, useSearchParams } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 
 import type { ApiFehler } from '../api';
 import { lade, meldung } from '../api';
@@ -31,11 +31,12 @@ import { useBearbeitung } from '../editor/bearbeitung';
 import { Bausteinleiste } from '../editor/Bausteinleiste';
 import { Bibliothek, Einfuegemarken, Gliederung } from '../editor/Bibliothek';
 import { useBild } from '../editor/bild';
-import { useClaudeFragen } from '../editor/ClaudeFragen';
-import { ClaudePanel } from '../editor/ClaudePanel';
+import type { ChatHandlungen } from '../editor/chat-kontext';
+import { useChat, useChatKontext, useChatStand } from '../editor/chat-kontext';
+import { useClaudeApp } from '../editor/ClaudeApp';
 import { bausteinVon, editorHtml, elementZu, nrVon, pfadZu } from '../editor/darstellung';
 import { useEinfuegen, useSlash, useTabelleTab } from '../editor/einfuegen';
-import { useKiZustand } from '../editor/ki';
+import { halteFokus } from '../editor/halteFokus';
 import { Leinwand } from '../editor/Leinwand';
 import { leistenHtml } from '../editor/leiste';
 import type { LinksName } from '../editor/LinkeLeiste';
@@ -118,6 +119,7 @@ const Kopfleiste = ({ children, mappe, mitte, stand, titel, verlassen }: KopfEig
 const KopfKnopf = ({
 	aktion,
 	aktiv,
+	halten,
 	name,
 	symbol,
 	titel,
@@ -127,8 +129,17 @@ const KopfKnopf = ({
 	symbol: 'sprechblase' | 'uhr';
 	aktiv: boolean;
 	aktion: () => void;
+	/** Die Textsitzung läuft weiter, bis die Aktion ihre Markierung geholt hat. */
+	halten?: boolean;
 }) => (
-	<Knopf art="leise" aria-label={name} aria-pressed={aktiv} className="aria-pressed:bg-flaeche-2" onClick={aktion}>
+	<Knopf
+		art="leise"
+		aria-label={name}
+		aria-pressed={aktiv}
+		className="aria-pressed:bg-flaeche-2"
+		onClick={aktion}
+		{...(halten ? halteFokus : {})}
+	>
 		<Symbol name={symbol} />
 		<span className="@max-[1000px]:hidden">{titel}</span>
 	</Knopf>
@@ -261,8 +272,9 @@ const Fehlt = ({ fehler }: { fehler: ApiFehler | null }) => (
 	</Zustand>
 );
 
-type RechtsName = 'inspektor' | 'versionen' | 'claude';
+type RechtsName = 'inspektor' | 'versionen';
 
+const ZITAT_ZEICHEN = 500;
 const SPEICHER_LINKS = 'schoolbox-panel-links';
 const SPEICHER_RECHTS = 'schoolbox-panel-rechts';
 const LINKS: LinksName[] = ['seiten', 'gliederung', 'bausteine'];
@@ -277,10 +289,10 @@ const schritte = (verlauf: { zurueck: unknown[]; vor: unknown[] } | null, frei: 
 });
 
 /**
- * Zwei Plätze für Panels, je Gerät gemerkt. „Versionen“ und „Claude“ sind eine Aufgabe des Augenblicks: Sie gehen nach
- * dem Öffnen eines Dokuments nicht von selbst wieder auf, es sei denn `?claude=1` verlangt es.
+ * Zwei Plätze für Panels, je Gerät gemerkt. „Versionen“ ist eine Aufgabe des Augenblicks: Das Panel geht nach dem
+ * Öffnen eines Dokuments nicht von selbst wieder auf.
  */
-const usePanels = (neu: boolean, claude: boolean) => {
+const usePanels = (neu: boolean) => {
 	const [links, setLinksName] = useState<LinksName>(() => {
 		if (neu) {
 			return 'bausteine';
@@ -288,8 +300,8 @@ const usePanels = (neu: boolean, claude: boolean) => {
 		return LINKS.find((l) => l === localStorage.getItem(SPEICHER_LINKS)) ?? 'seiten';
 	});
 	const [linksOffen, setLinksZustand] = useState(() => neu || localStorage.getItem(SPEICHER_LINKS) !== 'zu');
-	const [rechts, setRechts] = useState<RechtsName>(claude ? 'claude' : 'inspektor');
-	const [rechtsOffen, setRechtsZustand] = useState(() => claude || localStorage.getItem(SPEICHER_RECHTS) !== 'zu');
+	const [rechts, setRechts] = useState<RechtsName>('inspektor');
+	const [rechtsOffen, setRechtsZustand] = useState(() => localStorage.getItem(SPEICHER_RECHTS) !== 'zu');
 	return {
 		links,
 		linksOffen,
@@ -309,7 +321,7 @@ const usePanels = (neu: boolean, claude: boolean) => {
 			setRechtsZustand(offen);
 			localStorage.setItem(SPEICHER_RECHTS, offen ? 'offen' : 'zu');
 		},
-		/** „Claude“ und „Versionen“ im Kopf: noch einmal drücken führt zurück zum Inspektor. */
+		/** „Versionen“ im Kopf: noch einmal drücken führt zurück zum Inspektor. */
 		wechsleRechts: (name: RechtsName) => {
 			const zurueck = rechts === name && rechtsOffen;
 			setRechts(zurueck ? 'inspektor' : name);
@@ -376,22 +388,18 @@ const Bearbeitung = ({ dokument, mappe: mappenDaten }: { mappe: Mappe; dokument:
 	const { alles, stand } = b.speicher;
 	const [auswahl, setAuswahl] = useState<number | null>(null);
 	const [geladen, setGeladen] = useState<{ doc: Document; html: string } | null>(null);
-	const panels = usePanels(suche.get('neu') === '1', suche.get('claude') === '1');
+	const panels = usePanels(suche.get('neu') === '1');
 	const [alsVorlage, setAlsVorlage] = useState(false);
 	const [tastenOffen, setTastenOffen] = useState(false);
 	const [paletteOffen, setPaletteOffen] = useState(false);
 	const [zumBlatt, setZumBlatt] = useState(0);
 	const [umriss, setUmriss] = useState<number | null>(null);
-	const claudeFragen = useClaudeFragen();
+	const claudeApp = useClaudeApp();
+	const chat = useChat();
+	const chatStand = useChatStand();
 	const [schnellWunsch, setSchnellWunsch] = useState<{ n: number; nr: number | null }>({ n: 0, nr: null });
 	const ansicht = useRef<HTMLElement>(null);
-	const kiFehler = (useLocation().state as { kiFehler?: string } | null)?.kiFehler;
-	useEffect(() => {
-		if (kiFehler) {
-			zeige({ text: kiFehler, art: 'fehler' });
-		}
-	}, [kiFehler, zeige]);
-	const ki = useKiZustand();
+	const ki = chatStand.ki;
 	const [vorschau, setVorschau] = useState<{ version: VersionEintrag; quelle: string } | null>(null);
 	const [zoom, setZoomWert] = useState<ZoomWert>(gemerkterZoom);
 	const [massstab, setMassstab] = useState({ skala: 1, stufe: 1 });
@@ -587,7 +595,7 @@ const Bearbeitung = ({ dokument, mappe: mappenDaten }: { mappe: Mappe; dokument:
 					}
 					return geklappt;
 				},
-				claudeFragen: () => claudeFragen.frage({ ...frage, nr: auswahl }),
+				claudeApp: () => claudeApp.frage({ ...frage, nr: auswahl }),
 				oeffneSchnellauswahl: (nr = auswahl) => setSchnellWunsch((w) => ({ n: w.n + 1, nr })),
 				bildErsetzen: () => {
 					panels.setRechts('inspektor');
@@ -628,11 +636,8 @@ const Bearbeitung = ({ dokument, mappe: mappenDaten }: { mappe: Mappe; dokument:
 					panels.wechsleRechts('versionen');
 					setVorschau(null);
 				},
-				claude: () => panels.wechsleRechts('claude'),
-				claudeZurAuswahl: () => {
-					panels.setRechts('claude');
-					panels.setRechtsOffen(true);
-				},
+				claude: () => chat.taste(),
+				claudeZurAuswahl: () => chat.oeffne(),
 				palette: () => {
 					text.halte(true);
 					setPaletteOffen(true);
@@ -766,12 +771,55 @@ const Bearbeitung = ({ dokument, mappe: mappenDaten }: { mappe: Mappe; dokument:
 		},
 	}));
 	// Aus der Quelle im Editor, nicht aus der Darstellung: Nach dem Tippen gilt schon der neue Text.
-	const frage = {
-		zerlegung,
-		ort: { mappe: mappenDaten, dokument: { id: dok, titel: meta.titel } },
-		loesung,
-		nachher: () => void alles(),
-	};
+	const ort = useMemo(
+		() => ({ mappe: mappenDaten, dokument: { id: dok, titel: meta.titel } }),
+		[mappenDaten, dok, meta.titel],
+	);
+	const frage = { zerlegung, ort, loesung, nachher: () => void alles() };
+	const handlungen = useRef<ChatHandlungen>({
+		vorbereiten: () => Promise.resolve(),
+		holeZitat: () => '',
+		zumBlatt: () => undefined,
+		zurApp: () => undefined,
+	});
+	useEffect(() => {
+		handlungen.current = {
+			vorbereiten: alles,
+			holeZitat: () => {
+				if (!befehle.jetzt.current.textsitzung) {
+					return '';
+				}
+				const stelle = docJetzt?.getSelection()?.toString().trim() ?? '';
+				text.beende();
+				return stelle.slice(0, ZITAT_ZEICHEN);
+			},
+			zumBlatt: () => {
+				document.querySelector<HTMLIFrameElement>('[data-editor-rahmen="sichtbar"]')?.contentWindow?.focus();
+			},
+			zurApp: (nr) => claudeApp.frage({ zerlegung, ort, loesung, nachher: () => void alles(), nr }),
+		};
+	});
+	const adresse = ansichtAdresse(zugang, dok, loesung, profil);
+	useChatKontext(
+		useMemo(
+			() => ({
+				art: 'dokument' as const,
+				mappe,
+				dok,
+				titel: meta.titel,
+				adresse,
+				zerlegung,
+				ort,
+				loesung,
+				nr: auswahl,
+				pfad,
+				frei,
+				anker: ansicht,
+				handlungen,
+			}),
+			[adresse, auswahl, dok, frei, loesung, mappe, meta.titel, ort, pfad, zerlegung],
+		),
+	);
 	const ohneAuswahl = (
 		<Blattwerkzeug
 			aktiv={frei}
@@ -782,22 +830,6 @@ const Bearbeitung = ({ dokument, mappe: mappenDaten }: { mappe: Mappe; dokument:
 		/>
 	);
 	const panelInhalt = {
-		claude: (
-			<ClaudePanel
-				adresse={ansichtAdresse(zugang, dok, loesung, profil)}
-				mappe={mappe}
-				dok={dok}
-				zustand={ki.zustand}
-				neuLaden={ki.neu}
-				vorbereiten={alles}
-				zerlegung={zerlegung}
-				ort={frage.ort}
-				loesung={loesung}
-				nr={auswahl}
-				pfad={pfad}
-				frei={frei}
-			/>
-		),
 		versionen: (
 			<>
 				<h2 className="mb-2 text-base font-semibold">Versionen</h2>
@@ -901,15 +933,14 @@ const Bearbeitung = ({ dokument, mappe: mappenDaten }: { mappe: Mappe; dokument:
 					onClick={() => befehle.fuehreAus('dokument.wiederholen')}
 				/>
 				<Trenner />
-				{ki.zustand.verfuegbar && (
 					<KopfKnopf
-						name="Mit Claude"
+						name="Claude"
 						titel="Claude"
 						symbol="sprechblase"
-						aktiv={panels.rechts === 'claude' && panels.rechtsOffen}
-						aktion={() => befehle.fuehreAus('ansicht.claude')}
+						aktiv={chatStand.fenster !== 'zu'}
+						aktion={() => chat.wechsle()}
+						halten
 					/>
-				)}
 				<KopfKnopf
 					name="Versionen"
 					titel="Versionen"
@@ -927,12 +958,6 @@ const Bearbeitung = ({ dokument, mappe: mappenDaten }: { mappe: Mappe; dokument:
 					}
 					eintraege={[
 						{ titel: 'Als Vorlage speichern', symbol: 'blatt', waehle: () => befehle.fuehreAus('dokument.als-vorlage') },
-						{
-							titel: 'Claude fragen',
-							symbol: 'sprechblase',
-							aus: !frei,
-							waehle: () => befehle.fuehreAus('dokument.claude-fragen'),
-						},
 					]}
 				/>
 				<Trenner />
@@ -946,10 +971,11 @@ const Bearbeitung = ({ dokument, mappe: mappenDaten }: { mappe: Mappe; dokument:
 					<PdfKnopf art="haupt" beschriftung="PDF" wahl={wahl} mappe={mappenDaten} warnen rechtsbuendig />
 				</span>
 			</Kopfleiste>
-			{claudeFragen.dialog}
+			{claudeApp.dialog}
 			{paletteOffen && (
 				<Palette
 					platzhalter="Befehl oder Baustein suchen"
+					anClaude={ki.zustand.verfuegbar ? chat.fuelle : undefined}
 					eintraege={eintraegeImEditor(befehle.jetzt.current, {
 						posten: einfuegen.eintraege,
 						fuegeEin: (p) => einfuegen.fuegeEin(p, auswahl ?? (docJetzt ? seiteAn(docJetzt, seite.nr) : null)),
@@ -986,7 +1012,11 @@ const Bearbeitung = ({ dokument, mappe: mappenDaten }: { mappe: Mappe; dokument:
 							{linksInhalt[links]}
 						</LinkeLeiste>
 					)}
-					<main ref={ansicht} className="min-h-0 min-w-0 flex-1 overflow-y-auto bg-leinwand">
+					<main
+						ref={ansicht}
+						className="min-h-0 min-w-0 flex-1 overflow-y-auto bg-leinwand"
+						style={{ paddingBottom: 'var(--chat-platz, 0px)', scrollPaddingBottom: 'var(--chat-platz, 0px)' }}
+					>
 						{b.konflikt && (
 							<Konfliktleiste
 								urheber={b.konflikt.urheber}
@@ -1057,6 +1087,7 @@ const Bearbeitung = ({ dokument, mappe: mappenDaten }: { mappe: Mappe; dokument:
 										: undefined
 								}
 								springe={struktur.springe}
+								verdeckt={chatStand.verlaufHoehe}
 								groesse={bild.groesse}
 								pruefung={pruefung.stand}
 							/>
@@ -1089,6 +1120,8 @@ const Bearbeitung = ({ dokument, mappe: mappenDaten }: { mappe: Mappe; dokument:
 				rechtsOffen={panels.rechtsOffen}
 				setLinksOffen={panels.setLinksOffen}
 				setRechtsOffen={panels.setRechtsOffen}
+				claude={chatStand.fenster === 'zu' ? chatStand.lauf : null}
+				zeigeClaude={() => chat.oeffne('verlauf')}
 			/>
 		</div>
 	);

@@ -7,14 +7,14 @@ import { oeffne, uhrzeit } from './editorhilfe';
 import { dokumentOrdner, expect, MATERIAL_DIR, test } from './hilfe';
 
 const fall = (name: string) => writeFile(path.join(`${MATERIAL_DIR}-ki`, 'fall.txt'), name);
-const panel = (page: Page) => page.locator('[data-ki-panel]');
-const oeffnePanel = (page: Page) => page.getByRole('button', { name: 'Mit Claude', exact: true }).click();
+const panel = (page: Page) => page.locator('[data-chat]');
+const oeffnePanel = (page: Page) => page.getByRole('button', { name: 'Claude', exact: true }).click();
 const quelleAufPlatte = (mappe: string, dok: string) =>
 	readFile(path.join(dokumentOrdner(mappe, dok), 'material.html'), 'utf8');
 
 const beauftrage = async (page: Page, text = 'Mach es schöner') => {
 	await panel(page).getByLabel('Was soll Claude ändern?').fill(text);
-	await panel(page).getByRole('button', { name: 'Auftrag starten' }).click();
+	await panel(page).getByRole('button', { name: 'Senden' }).click();
 	await expect(panel(page).locator('[data-ki-vorschlag]')).toBeVisible();
 };
 
@@ -101,7 +101,7 @@ test.describe('Editor: Mit Claude ändern (058, 059)', () => {
 		await oeffne(page, mappe, dok);
 		await oeffnePanel(page);
 		await panel(page).getByLabel('Was soll Claude ändern?').fill('Dauert');
-		await panel(page).getByRole('button', { name: 'Auftrag starten' }).click();
+		await panel(page).getByRole('button', { name: 'Senden' }).click();
 		const lauf = panel(page).locator('[data-ki-lauf]');
 		await expect(lauf.getByText('Ändert das Blatt')).toBeVisible();
 		await lauf.getByRole('button', { name: 'Abbrechen' }).click();
@@ -114,18 +114,21 @@ test.describe('Editor: Mit Claude ändern (058, 059)', () => {
 		await oeffne(page, mappe, dok);
 		await oeffnePanel(page);
 		const aktionen = panel(page).locator('[data-ki-aktionen]');
-		await panel(page).getByRole('button', { name: 'Ganzes Blatt' }).click();
-		await expect(panel(page).getByText('verbraucht deutlich mehr')).toBeVisible();
+		await panel(page).getByRole('button', { name: 'Worauf bezieht sich der Auftrag?' }).click();
+		await expect(page.getByRole('menuitem').getByText('verbraucht deutlich mehr')).toBeVisible();
+		await page.keyboard.press('Escape');
 		await expect(aktionen.getByRole('button', { name: 'Drei Niveaus' })).toBeVisible();
 		await expect(aktionen.getByRole('button', { name: 'Baustein füllen' })).toBeHidden();
 		await aktionen.getByRole('button', { name: 'Leichter' }).click();
-		await expect(panel(page).locator('[data-ki-vorschlag]').getByText('Vorschlag: Leichter')).toBeVisible();
+		await expect(panel(page).locator('[data-ki-vorschlag]')).toBeVisible();
+		await expect(panel(page).locator('[data-chat-nachricht="lehrkraft"]').getByText('Leichter')).toBeVisible();
 
 		await panel(page).getByRole('button', { name: 'Vergleichen' }).click();
 		await page.getByRole('button', { name: 'Nachbessern' }).click();
 		await panel(page).getByLabel('Was soll Claude am Vorschlag ändern?').fill('Noch etwas');
-		await panel(page).getByRole('button', { name: 'Auftrag starten' }).click();
-		await expect(panel(page).locator('[data-ki-vorschlag]').getByText('Vorschlag: Noch etwas')).toBeVisible();
+		await panel(page).getByRole('button', { name: 'Senden' }).click();
+		await expect(panel(page).locator('[data-chat-nachricht="lehrkraft"]').getByText('Noch etwas')).toBeVisible();
+		await expect(panel(page).locator('[data-ki-vorschlag]')).toBeVisible();
 	});
 
 	test('Geändertes Blatt: Der Vorschlag lässt sich nicht annehmen', async ({ page }) => {
@@ -138,8 +141,8 @@ test.describe('Editor: Mit Claude ändern (058, 059)', () => {
 		await page.reload();
 		await oeffnePanel(page);
 		await expect(panel(page).getByRole('alert')).toContainText('seit dem Auftrag geändert');
-		await panel(page).getByRole('button', { name: 'Vergleichen' }).click();
-		await expect(page.getByRole('button', { name: 'Annehmen' })).toBeDisabled();
+		await expect(panel(page).getByRole('button', { name: 'Vergleichen' })).toHaveCount(0);
+		await expect(panel(page).getByRole('button', { name: 'Neu starten' })).toBeVisible();
 	});
 
 	test('Limit: Hinweis davor, gesperrt danach', async ({ page }) => {
@@ -166,20 +169,23 @@ test.describe('Editor: Mit Claude ändern (058, 059)', () => {
 		await oeffnePanel(page);
 		await expect(panel(page).locator('[data-ki-limit="gesperrt"]')).toContainText('Wieder möglich ab');
 		await panel(page).getByLabel('Was soll Claude ändern?').fill('Geht nicht');
-		await expect(panel(page).getByRole('button', { name: 'Auftrag starten' })).toBeDisabled();
+		await expect(panel(page).getByRole('button', { name: 'Senden' })).toBeDisabled();
 	});
 
-	test('Ohne angemeldetes claude ist nichts davon sichtbar', async ({ page }) => {
+	test('Ohne angemeldetes claude bleibt nur der Weg über die Claude-App', async ({ page }) => {
 		const { dok, id: mappe } = await uhrzeit();
 		await page.route('**/api/ki/status', (r) =>
 			r.fulfill({ json: { verfuegbar: false, limit: null, warnAb: 1, aktionen: [] } }),
 		);
 		await oeffne(page, mappe, dok);
 		await expect(page.getByRole('tab', { name: 'Gliederung' })).toBeVisible();
-		await expect(page.getByRole('button', { name: 'Mit Claude', exact: true })).toBeHidden();
+		await oeffnePanel(page);
+		await expect(panel(page).locator('#ki-auftrag')).toHaveCount(0);
+		await expect(panel(page).getByRole('button', { name: 'In der Claude-App weiterarbeiten' })).toBeVisible();
 	});
 
-	test('Knöpfe im Panel sind groß genug für den Finger', async ({ page }) => {
+	test('Knöpfe im Chat sind groß genug für den Finger', async ({ hasTouch, page }) => {
+		test.skip(!hasTouch, 'nur mit dem Finger');
 		const { dok, id: mappe } = await uhrzeit();
 		await oeffne(page, mappe, dok);
 		await oeffnePanel(page);

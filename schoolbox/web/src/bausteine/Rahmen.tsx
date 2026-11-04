@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { Link, Outlet, useLocation, useMatch, useNavigate } from 'react-router-dom';
 
 import { meldung, sende } from '../api';
+import { loescheAlleVerlaeufe } from '../editor/chat-verlauf';
 import { TASTEN_SPERRE } from '../editor/tasten';
 import { MappeDialog } from '../seiten/Anlegen';
 import { Seitenpalette } from '../seiten/Seitenpalette';
@@ -47,6 +48,7 @@ export const Rahmen = () => {
 	const abmelden = async () => {
 		try {
 			await sende('/api/abmelden');
+			loescheAlleVerlaeufe(localStorage);
 			window.location.assign('/anmelden');
 		} catch (fehler) {
 			zeige({ text: meldung(fehler), art: 'fehler' });

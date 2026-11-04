@@ -575,14 +575,16 @@ test('7c · Editor: Prüfen, Zoom, Versionen', async ({ browser }) => {
 	await szene.ende();
 });
 
-test('7d · Editor: Claude fragen', async ({ browser }) => {
+test('7d · Editor: In der Claude-App weiterarbeiten', async ({ browser }) => {
 	const uhrzeit = await uhrzeitFertig();
 	const { m, seite, szene, ziel } = await imEditor(browser, 'k07d-claude', await kopieZuruecksetzen());
 	const chatSeite = await szene.neueSeite();
 	const chat = await oeffneChat(szene, chatSeite, verlaufBisFertig(uhrzeit));
-	szene.text('Parallelklasse: Claude fragen');
+	szene.text('Parallelklasse: in der Claude-App');
 	await szene.klicke(m.locator('.aufgabe').nth(1).locator('.nr'), { pause: 700 });
-	await szene.klicke(seite.getByRole('button', { name: 'Claude fragen' }), { pause: 200 });
+	await szene.klicke(seite.getByRole('button', { name: 'Claude', exact: true }), { pause: 200 });
+	await szene.klicke(seite.getByRole('button', { name: 'Chat: weitere Aktionen' }), { pause: 200 });
+	await szene.klicke(seite.getByRole('menuitem', { name: 'In der Claude-App weiterarbeiten' }), { pause: 200 });
 	szene.textAus();
 	await szene.pause(1500);
 	szene.zeige(chatSeite);

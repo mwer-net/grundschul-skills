@@ -3,11 +3,28 @@ import type { Router as RouterTyp } from 'express';
 
 import { leseQuelle, schreibeQuelle, verlangeDokument } from './dokumente';
 import { HttpFehler } from './fehler';
+import type { KiNachricht } from './ki';
 import { aktionWunsch, KI_WARN_AB, leseVorschlag, verwirfVorschlag } from './ki';
 import type { Kontext } from './kontext';
 import { dokSchluessel, kennung } from './kontext';
 
 const text = (wert: unknown) => (typeof wert === 'string' ? wert : undefined);
+
+const nachrichten = (wert: unknown): KiNachricht[] | undefined => {
+	if (wert === undefined) {
+		return undefined;
+	}
+	if (!Array.isArray(wert)) {
+		throw new HttpFehler(400, 'Der Verlauf ist ungültig.');
+	}
+	return wert.map((n: unknown) => {
+		const { rolle, text: inhalt } = (n ?? {}) as Record<string, unknown>;
+		if ((rolle !== 'lehrkraft' && rolle !== 'claude') || typeof inhalt !== 'string') {
+			throw new HttpFehler(400, 'Der Verlauf ist ungültig.');
+		}
+		return { rolle, text: inhalt };
+	});
+};
 
 const kennungDerQuelle = async (dir: string) => kennung(await leseQuelle(dir));
 
@@ -45,6 +62,9 @@ export const kiApi = (router: RouterTyp, kontext: Kontext) => {
 			dok,
 			referenz: text(body.referenz),
 			aufVorschlag: body.aufVorschlag === true,
+			verlauf: nachrichten(body.verlauf),
+			zitat: text(body.zitat),
+			ohneRueckfragen: aktion !== undefined,
 		});
 		res.status(202).json({ auftrag });
 	});

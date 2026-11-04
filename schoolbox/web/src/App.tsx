@@ -5,6 +5,7 @@ import { HinweisAnbieter } from './bausteine/Hinweisleiste';
 import { MenueAnbieter } from './bausteine/MenueAmPunkt';
 import { Rahmen } from './bausteine/Rahmen';
 import { TooltipAnbieter } from './bausteine/Tooltip';
+import { ChatRahmen } from './editor/ChatRahmen';
 import { Anmeldung } from './seiten/Anmeldung';
 import { Bausteine } from './seiten/Bausteine';
 import { Dokumentansicht } from './seiten/Dokumentansicht';
@@ -62,16 +63,18 @@ export const App = () => (
 				<Route path="/f/:token/*" element={<Geteilt />} />
 				<Route path="m/:mappe/:dok/drucken" element={<DruckSeite />} />
 				<Route path="m/:mappe/:dok/praesentation" element={<PraesentationSeite />} />
-				<Route path="m/:mappe/:dok/bearbeiten" element={<EditorSeite />} />
-				<Route element={<Rahmen />}>
-					<Route index element={<Uebersicht />} />
-					<Route path="m/:mappe" element={<Mappenansicht />} />
-					<Route path="m/:mappe/:dok" element={<DokumentSeite />} />
-					<Route path="m/:mappe/:dok/entwuerfe" element={<EntwuerfeSeite />} />
-					<Route path="m/:mappe/:dok/entwuerfe/:name" element={<EntwurfSeite />} />
-					<Route path="papierkorb" element={<Papierkorb />} />
-					<Route path="hilfe" element={<Hilfe />} />
-					<Route path="*" element={<NichtGefunden />} />
+				<Route element={<ChatRahmen />}>
+					<Route path="m/:mappe/:dok/bearbeiten" element={<EditorSeite />} />
+					<Route element={<Rahmen />}>
+						<Route index element={<Uebersicht />} />
+						<Route path="m/:mappe" element={<Mappenansicht />} />
+						<Route path="m/:mappe/:dok" element={<DokumentSeite />} />
+						<Route path="m/:mappe/:dok/entwuerfe" element={<EntwuerfeSeite />} />
+						<Route path="m/:mappe/:dok/entwuerfe/:name" element={<EntwurfSeite />} />
+						<Route path="papierkorb" element={<Papierkorb />} />
+						<Route path="hilfe" element={<Hilfe />} />
+						<Route path="*" element={<NichtGefunden />} />
+					</Route>
 				</Route>
 			</Routes>
 			</MenueAnbieter>

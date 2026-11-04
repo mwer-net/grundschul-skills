@@ -212,7 +212,7 @@ const ABSCHNITTE: Abschnitt[] = [
 					</Punkt>
 					<Punkt titel="Claude-App">
 						für Neues und Großes: ganze Reihen, mehrere Dokumente, neue Bilder. Für einen bestimmten Teil
-						rechts auf „Claude fragen“, in der App einfügen und den Wunsch dahinterschreiben. Die zwei
+						im Chat unter ⋯ „In der Claude-App weiterarbeiten“, in der App einfügen und den Wunsch dahinterschreiben. Die zwei
 						eingefügten Zeilen gehören so; die zweite ist für Claude.
 					</Punkt>
 				</ul>

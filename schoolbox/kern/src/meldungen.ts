@@ -153,7 +153,7 @@ const TABELLE: Record<MeldungCode, Uebersetzung> = {
 	}),
 	'abbildung': (_n, text) => ({
 		satz: text.replace(/^Abbildung „(.*?)“: /, '$1: '),
-		tipp: 'Die Abbildung antippen und die Angaben im Panel ändern. Oder Claude fragen.',
+		tipp: 'Die Abbildung antippen und die Angaben im Panel ändern. Oder im Chat Claude darum bitten.',
 	}),
 	'masstab': () => ({
 		satz: 'Dieses Blatt hat echte Maße. Bitte in Originalgröße drucken (100 %, nicht „An Seite anpassen“).',

@@ -35,13 +35,16 @@ const fangeZwischenablage = (page: Page, geht: boolean) =>
 	}, geht);
 
 const kopiert = (page: Page) => page.evaluate(() => (window as unknown as { ablage: Ablage }).ablage.kopiert);
-const claudeFragen = async (page: Page, druecke: (ziel: Locator) => Promise<void>) => {
-	await druecke(page.getByRole('button', { name: 'Weitere Aktionen' }));
-	await druecke(page.getByRole('menuitem', { name: 'Claude fragen' }));
+const zurClaudeApp = async (page: Page, druecke: (ziel: Locator) => Promise<void>) => {
+	if (!(await page.locator('[data-chat]').isVisible())) {
+		await druecke(page.getByRole('button', { name: 'Claude', exact: true }));
+	}
+	await druecke(page.getByRole('button', { name: 'Chat: weitere Aktionen' }));
+	await druecke(page.getByRole('menuitem', { name: 'In der Claude-App weiterarbeiten' }));
 };
 const breadcrumb = (page: Page) => page.locator('[data-breadcrumb]');
 
-test.describe('Claude fragen', () => {
+test.describe('In der Claude-App weiterarbeiten', () => {
 	test('kopiert die Referenz der Auswahl, sie führt zurück auf dasselbe Element', async ({ druecke, page }) => {
 		await fangeZwischenablage(page, true);
 		const { dok, id, material: datei } = await uhrzeit();
@@ -49,7 +52,7 @@ test.describe('Claude fragen', () => {
 
 		await druecke(material(page).locator('.aufgabe').nth(1).locator('.nr'));
 		await expect(breadcrumb(page)).toHaveText('Seite 1›Aufgabe 2');
-		await claudeFragen(page, druecke);
+		await zurClaudeApp(page, druecke);
 		await expect(page.getByText(KOPIERT)).toBeVisible();
 
 		const [text = ''] = await kopiert(page);
@@ -66,7 +69,7 @@ test.describe('Claude fragen', () => {
 		expect(pfadText(ergebnis?.ziel?.pfad ?? [])).toBe('Seite 1 › Aufgabe 2');
 
 		await druecke(page.getByRole('button', { name: 'Auswahl aufheben' }));
-		await claudeFragen(page, druecke);
+		await zurClaudeApp(page, druecke);
 		await expect.poll(async () => (await kopiert(page)).at(-1)?.split('\n')[1]).toBe(`[sb:${id}/${dok}]`);
 	});
 
@@ -84,7 +87,7 @@ test.describe('Claude fragen', () => {
 		await expect(page.locator('[data-textbearbeitung]')).toBeVisible();
 		await ueberschrift.evaluate((el) => el.ownerDocument.getSelection()?.selectAllChildren(el));
 		await page.keyboard.type('Wie spät ist es jetzt?');
-		await claudeFragen(page, druecke);
+		await zurClaudeApp(page, druecke);
 
 		await expect
 			.poll(async () => (await kopiert(page)).at(-1) ?? '')
@@ -98,7 +101,7 @@ test.describe('Claude fragen', () => {
 		await oeffne(page, id, dok);
 
 		await druecke(material(page).locator('.aufgabe').first().locator('.nr'));
-		await claudeFragen(page, druecke);
+		await zurClaudeApp(page, druecke);
 		const feld = page.locator('[data-claude-text]');
 		await expect(feld).toBeVisible();
 		await expect(feld).toHaveValue(new RegExp(`\\[sb:${id}/${dok}#seite1/aufgabe1\\]$`));

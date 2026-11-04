@@ -77,7 +77,7 @@ export interface Aktionen {
 	versionen: () => void;
 	claude: () => void;
 	/** Kopiert die Referenz fürs Einfügen im Chat, bis 074 den Chat ans Gewählte bindet. */
-	claudeFragen: () => void;
+	claudeApp: () => void;
 	claudeZurAuswahl: () => void;
 	palette: () => void;
 	tasten: () => void;
@@ -731,15 +731,15 @@ export const BEFEHLE: Befehl[] = [
 		aus: (k) => k.tu.versionen(),
 	},
 	{
-		id: 'dokument.claude-fragen',
-		titel: 'Claude fragen',
+		id: 'dokument.claude-app',
+		titel: 'In der Claude-App weiterarbeiten',
 		gruppe: 'dokument',
-		symbol: 'sprechblase',
-		suchwoerter: ['ki', 'chat', 'frage'],
+		symbol: 'kopieren',
+		suchwoerter: ['ki', 'chat', 'frage', 'referenz', 'kopieren'],
 		orte: ['palette'],
 		sichtbarUnter: 'kopf',
 		verfuegbar: (k) => k.frei,
-		aus: (k) => k.tu.claudeFragen(),
+		aus: (k) => k.tu.claudeApp(),
 	},
 	{
 		id: 'ansicht.claude',
@@ -751,7 +751,7 @@ export const BEFEHLE: Befehl[] = [
 		suchwoerter: ['ki', 'chat', 'frage', 'fragen'],
 		orte: ['taste', 'palette'],
 		sichtbarUnter: 'kopf',
-		verfuegbar: (k) => k.kiVerfuegbar,
+		verfuegbar: () => true,
 		aus: (k) => k.tu.claude(),
 	},
 	{

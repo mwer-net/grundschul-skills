@@ -10,6 +10,8 @@ export interface KiAuftrag {
 	status: KiStatus;
 	schritte: string[];
 	fehler: string | null;
+	ergebnis: 'vorschlag' | 'antwort' | null;
+	antwort: string | null;
 }
 
 export interface KiFenster {
@@ -89,6 +91,8 @@ interface Wunsch {
 	aktion?: string;
 	referenz?: string;
 	aufVorschlag?: boolean;
+	verlauf?: { rolle: 'lehrkraft' | 'claude'; text: string }[];
+	zitat?: string;
 }
 
 /** Auftrag und Vorschlag eines Dokuments. Beides überlebt Neuladen: Der Server hält den Stand. */
@@ -107,11 +111,14 @@ export const useKiAuftrag = (mappe: string, dok: string, nachLauf: () => void, g
 		async (id: string) => {
 			try {
 				const { auftrag: neu } = await lade<{ auftrag: KiAuftrag }>(`/api/ki/${id}`);
-				setAuftrag(neu);
 				if (neu.status === 'fertig' || neu.status === 'fehler' || neu.status === 'abgebrochen') {
 					setFehler(neu.fehler);
+					// Erst der Vorschlag, dann das Ende: Wer das Ende sieht, soll auch den Vorschlag sehen.
 					await ladeVorschlag();
+					setAuftrag(neu);
 					nachLauf();
+				} else {
+					setAuftrag(neu);
 				}
 			} catch (grund) {
 				setAuftrag(null);
@@ -179,6 +186,7 @@ export const useKiAuftrag = (mappe: string, dok: string, nachLauf: () => void, g
 		fehler,
 		starte,
 		laeuft: auftrag?.status === 'laeuft' || auftrag?.status === 'wartet',
+		setFehler,
 		abbrechen: () => (auftrag ? handle(() => sende(`/api/ki/${auftrag.id}/abbrechen`)) : Promise.resolve()),
 		annehmen: () => handle(() => sende(`${basis}/vorschlag/annehmen`)),
 		verwerfen: () => handle(() => sende(`${basis}/vorschlag/verwerfen`)),

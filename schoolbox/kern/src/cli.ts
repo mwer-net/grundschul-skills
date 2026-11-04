@@ -51,7 +51,7 @@ const hilfe = () => `schoolbox – Mappen und Dokumente der Schoolbox anlegen un
   schoolbox fertig <mappe>/<dok>
   schoolbox link <mappe>[/<dok>]
   schoolbox liste [--fach …] [--suche …]
-  schoolbox finde "<Text mit [sb:…]>"   (Referenz aus „Claude fragen“ auflösen)
+  schoolbox finde "<Text mit [sb:…]>"   (Referenz aus dem Editor auflösen)
   schoolbox wunsch "…"
   schoolbox status
   schoolbox passwort      (Passwort der Anmeldung setzen oder ändern)

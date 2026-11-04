@@ -11,6 +11,8 @@ import { TEXTWERKZEUG } from './text';
 interface Eigenschaften {
 	eintraege: readonly PalettenEintrag[];
 	platzhalter: string;
+	/** Letzte Zeile, sobald etwas getippt ist: Schreibt den Text ins Feld des Chats, abgeschickt wird von Hand. */
+	anClaude?: ((text: string) => void) | undefined;
 	/** `true`: Es folgt gleich die Aktion der Zeile. */
 	schliessen: (ausgefuehrt: boolean) => void;
 }
@@ -24,7 +26,7 @@ const gibFokusZurueck = (ziel: Element | null) => {
 };
 
 /** Das Sicherheitsnetz: Wer etwas nicht findet, tippt es. Die Zeilen zeigen nebenbei die Tasten. */
-export const Palette = ({ eintraege, platzhalter, schliessen }: Eigenschaften) => {
+export const Palette = ({ anClaude, eintraege, platzhalter, schliessen }: Eigenschaften) => {
 	const dialog = useRef<HTMLDialogElement>(null);
 	const feld = useRef<HTMLInputElement>(null);
 	const ausloeser = useRef<Element | null>(null);
@@ -35,11 +37,22 @@ export const Palette = ({ eintraege, platzhalter, schliessen }: Eigenschaften) =
 	const [stelle, setStelle] = useState(0);
 	const [zuletzt] = useState(zuletztBenutzt);
 
-	const gruppen = useMemo(
-		() =>
-			gruppiere(anfrage.trim() ? suchePalette(anfrage, eintraege, zuletzt) : startliste(eintraege, zuletzt)),
-		[anfrage, eintraege, zuletzt],
-	);
+	const gruppen = useMemo(() => {
+		const text = anfrage.trim();
+		const treffer = gruppiere(text ? suchePalette(anfrage, eintraege, zuletzt) : startliste(eintraege, zuletzt));
+		if (!text || !anClaude) {
+			return treffer;
+		}
+		const zeile: PalettenEintrag = {
+			id: 'claude:schicken',
+			titel: `An Claude schicken: ${text}`,
+			gruppe: 'Claude',
+			symbol: 'sprechblase',
+			suchwoerter: [],
+			aus: () => anClaude(text),
+		};
+		return [...treffer, { titel: 'Claude', eintraege: [zeile] }];
+	}, [anClaude, anfrage, eintraege, zuletzt]);
 	const zeilen = useMemo(() => gruppen.flatMap((g) => g.eintraege), [gruppen]);
 	const aktiv = zeilen[Math.min(stelle, zeilen.length - 1)];
 

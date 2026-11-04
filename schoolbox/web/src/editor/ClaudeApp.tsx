@@ -13,7 +13,7 @@ const VonHand = ({ schliessen, text }: { text: string; schliessen: () => void })
 	const feld = useRef<HTMLTextAreaElement>(null);
 	useEffect(() => feld.current?.select(), []);
 	return (
-		<Dialog titel="Claude fragen" schliessen={schliessen}>
+		<Dialog titel="In der Claude-App weiterarbeiten" schliessen={schliessen}>
 			<label className="flex flex-col gap-2">
 				<span>
 					Kopiere diesen Text und füge ihn im Claude-Chat ein. Schreib dahinter, was du ändern möchtest.
@@ -49,7 +49,7 @@ interface Frage {
  * Kopiert eine Referenz auf das Gewählte für den Claude-Chat (021). Safari erlaubt die Zwischenablage nur direkt im
  * Klick; geht sie nicht, steht der Text markiert zum Kopieren von Hand da.
  */
-export const useClaudeFragen = () => {
+export const useClaudeApp = () => {
 	const zeige = useHinweis();
 	const [vonHand, setVonHand] = useState<string | null>(null);
 	const frage = ({ loesung, nachher, nr, ort, zerlegung }: Frage) => {

@@ -1,5 +1,5 @@
 /**
- * Referenzen für „Claude fragen“ (021): Die Lehrkraft kopiert im Editor eine Zeile wie
+ * Referenzen für die Claude-App (021): Die Lehrkraft kopiert im Editor eine Zeile wie
  *
  *   Schoolbox · „Uhrzeit“ (Mathematik Kl. 2) · Wie spät ist es? · Seite 1 › Aufgabe 3 („Zeichne die Zeiger …“)
  *   [sb:2026-10-08-uhrzeit-ma-kl2/wie-spaet-ist-es#seite1/aufgabe3]
