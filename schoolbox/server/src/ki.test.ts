@@ -122,6 +122,7 @@ describe('Aufträge an Claude', () => {
 		const nach = (name: string) => args[args.indexOf(name) + 1];
 		assert.equal(nach('--model'), 'opus');
 		assert.equal(nach('--effort'), 'medium');
+		assert.equal(nach('--max-budget-usd'), '5');
 		assert.equal(nach('--tools'), 'Read,Edit,Skill');
 		assert.equal(nach('--setting-sources'), 'project');
 		assert.equal(args.includes('--strict-mcp-config'), true);

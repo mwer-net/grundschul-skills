@@ -19,7 +19,7 @@ import { HttpFehler } from './fehler';
 export const KI_GRENZEN = {
 	zeitMs: 8 * 60_000,
 	runden: 40,
-	budgetUsd: 1.5,
+	budgetUsd: 5,
 	auftragZeichen: 4000,
 	materialBytes: 5 * 1024 * 1024,
 	ausgabeBytes: 50 * 1024 * 1024,
