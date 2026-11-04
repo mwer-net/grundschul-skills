@@ -1,18 +1,18 @@
 import { useEffect, useState } from 'react';
-import { Link, Outlet, useLocation, useNavigate } from 'react-router-dom';
+import { Link, Outlet, useLocation, useMatch, useNavigate } from 'react-router-dom';
 
 import { meldung, sende } from '../api';
 import { TASTEN_SPERRE } from '../editor/tasten';
 import { MappeDialog } from '../seiten/Anlegen';
 import { Seitenpalette } from '../seiten/Seitenpalette';
 import { useHinweis } from './hinweis';
+import { klassen } from './klassen';
+import { Knopf, KnopfLink } from './Knopf';
 import { Kuerzel } from './Kuerzel';
 import { useKopfHoehe } from './kopf';
+import { Menue } from './Menue';
 import type { SucheKontext } from './suche';
 import { Symbol } from './Symbol';
-
-const KOPF_KNOPF =
-	'flex h-knopf flex-none items-center gap-2 rounded-xl px-3 font-medium text-tinte no-underline hover:bg-flaeche-2';
 
 /** Kopfzeile aller Seiten nach der Anmeldung: Name, Suche, Hilfe, Papierkorb, Abmelden. */
 export const Rahmen = () => {
@@ -22,6 +22,8 @@ export const Rahmen = () => {
 	const zeige = useHinweis();
 	const kopf = useKopfHoehe<HTMLElement>();
 	const [palette, setPalette] = useState(false);
+	// Die Dokumentansicht hat ihren eigenen einzeiligen Kopf: Das Blatt soll oben im Fenster beginnen.
+	const ohneKopf = useMatch('/m/:mappe/:dok') !== null;
 	const [neueMappe, setNeueMappe] = useState(false);
 
 	useEffect(() => {
@@ -62,61 +64,71 @@ export const Rahmen = () => {
 				/>
 			)}
 			{neueMappe && <MappeDialog schliessen={() => setNeueMappe(false)} />}
-			<header ref={kopf} className="sticky top-0 z-30 border-b border-rand bg-flaeche/95 backdrop-blur">
-				<div className="mx-auto flex max-w-[90rem] items-center gap-4 px-8 py-3 max-lg:px-4 max-md:gap-2">
+			<header
+				ref={kopf}
+				className={klassen('sticky top-0 z-kopf border-b border-rand bg-flaeche', ohneKopf && 'hidden')}
+			>
+				<div className="flex min-h-[39px] items-center gap-3 px-4">
 					<Link
 						to="/"
-						className="flex h-knopf flex-none items-center rounded-xl text-3xl text-tinte no-underline max-md:text-2xl"
+						className="flex flex-none items-center text-base font-semibold text-tinte no-underline"
 						onClick={() => setSuche('')}
 					>
 						Schoolbox
 					</Link>
-					<label className="relative mx-auto block w-full max-w-xl">
-						<span className="sr-only">Material suchen</span>
-						<Symbol
-							name="suche"
-							className="pointer-events-none absolute top-1/2 left-4 size-5 -translate-y-1/2 text-leise"
-						/>
-						<input
-							type="search"
-							name="suche"
-							className="h-knopf w-full rounded-lg border border-rand bg-papier pr-14 pl-12 placeholder:text-leise focus:border-brand-500 focus:bg-flaeche focus:outline-none"
-							placeholder="Suchen, z. B. Kartoffel oder Mathe"
-							enterKeyHint="search"
-							autoComplete="off"
-							autoCorrect="off"
-							spellCheck={false}
-							value={suche}
-							onChange={(e) => sucheNach(e.target.value)}
-						/>
+					<div className="relative w-[300px] min-w-0 max-md:flex-1">
+						<label>
+							<span className="sr-only">Material suchen</span>
+							<Symbol
+								name="suche"
+								className="pointer-events-none absolute top-1/2 left-2 size-4 -translate-y-1/2 text-leise"
+							/>
+							<input
+								type="search"
+								name="suche"
+								className="h-knopf w-full rounded-md bg-flaeche-2 pr-12 pl-7 text-sm placeholder:text-leise focus:bg-flaeche focus:outline-1 focus:outline-brand-500"
+								placeholder="Mappen und Material suchen"
+								enterKeyHint="search"
+								autoComplete="off"
+								autoCorrect="off"
+								spellCheck={false}
+								value={suche}
+								onChange={(e) => sucheNach(e.target.value)}
+							/>
+						</label>
 						<button
 							type="button"
-							className="absolute top-1/2 right-1 flex h-knopf-klein -translate-y-1/2 items-center rounded-md px-2 hover:bg-flaeche-2"
+							className="absolute top-1/2 right-0.5 flex h-knopf-klein -translate-y-1/2 items-center rounded-sm px-1.5 hover:bg-rand"
 							aria-label="Befehle"
 							data-palette-knopf
-							onClick={(e) => {
-								e.preventDefault();
-								setPalette(true);
-							}}
+							onClick={() => setPalette(true)}
 						>
 							<Kuerzel text="⌘K" />
 						</button>
-					</label>
-					<Link to="/hilfe" className={KOPF_KNOPF} aria-label="Hilfe">
-						<Symbol name="hilfe" />
-						<span className="max-lg:hidden">Hilfe</span>
-					</Link>
-					<Link to="/papierkorb" className={KOPF_KNOPF} aria-label="Papierkorb">
-						<Symbol name="papierkorb" />
-						<span className="max-lg:hidden">Papierkorb</span>
-					</Link>
-					<button type="button" className={KOPF_KNOPF} aria-label="Abmelden" onClick={() => void abmelden()}>
-						<Symbol name="abmelden" />
-						<span className="max-lg:hidden">Abmelden</span>
-					</button>
+					</div>
+					<div className="ml-auto flex flex-none items-center gap-1" data-kopf-rechts>
+						<KnopfLink to="/hilfe" art="leise" aria-label="Hilfe">
+							<Symbol name="hilfe" className="md:hidden" />
+							<span className="max-md:hidden">Hilfe</span>
+						</KnopfLink>
+						<KnopfLink to="/papierkorb" art="leise" aria-label="Papierkorb">
+							<Symbol name="papierkorb" className="md:hidden" />
+							<span className="max-md:hidden">Papierkorb</span>
+						</KnopfLink>
+						<Menue
+							name="Konto"
+							rechtsbuendig
+							ausloeser={
+								<Knopf art="leise" className="size-knopf px-0">
+									<Symbol name="mehr" />
+								</Knopf>
+							}
+							eintraege={[{ titel: 'Abmelden', symbol: 'abmelden', waehle: () => void abmelden() }]}
+						/>
+					</div>
 				</div>
 			</header>
-			<main className="mx-auto w-full max-w-[90rem] flex-1 px-8 pt-8 pb-24 max-lg:px-4 max-md:pt-5">
+			<main className={klassen('w-full flex-1 px-4 pb-16', ohneKopf ? 'pt-0' : 'pt-3')}>
 				<Outlet context={kontext} />
 			</main>
 		</div>

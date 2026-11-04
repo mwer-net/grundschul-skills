@@ -4,7 +4,7 @@ import type { Page } from '@playwright/test';
 import { legeFreigabeAn, leseMeta } from '@schoolbox/kern';
 
 import { material, oeffne, quelle, uhrzeit, versionen } from './editorhilfe';
-import { expect, legeMappeAn, test } from './hilfe';
+import { expect, legeMappeAn, oeffneMehr, test } from './hilfe';
 
 const MATERIAL_DIR = process.env.E2E_MATERIAL_DIR ?? '';
 
@@ -74,8 +74,13 @@ test.describe('Farbe und s/w', () => {
 		await page.goto(`/m/${id}/${dok}`);
 		await druecke(sw(page));
 		await erwarteAnsicht(page, true);
-		await expect(page.getByRole('link', { name: 'Drucken' })).toHaveAttribute('href', /profil=sw/);
-		await druecke(page.getByRole('button', { name: 'PDF herunterladen' }));
+		const tab = page.context().waitForEvent('page');
+		await oeffneMehr(druecke, page);
+		await druecke(page.getByRole('menuitem', { name: 'Drucken' }));
+		const druck = await tab;
+		expect(druck.url()).toMatch(/profil=sw/);
+		await druck.close();
+		await druecke(page.getByRole('button', { name: 'PDF', exact: true }));
 		await expect(page.getByRole('menuitem', { name: /in Farbe/ }).first()).toBeVisible();
 		await page.keyboard.press('Escape');
 	});

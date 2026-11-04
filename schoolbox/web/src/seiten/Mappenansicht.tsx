@@ -5,11 +5,12 @@ import { meldung, sende } from '../api';
 import { useHinweis } from '../bausteine/hinweis';
 import { Marke } from '../bausteine/Kachel';
 import { Knopf, KnopfLink } from '../bausteine/Knopf';
+import { Menue } from '../bausteine/Menue';
 import { Symbol } from '../bausteine/Symbol';
 import { Zustand } from '../bausteine/Zustand';
 import { melde, useEreignisse } from '../ereignisse';
 import { useLaden } from '../lib/laden';
-import { datum, FACH_FARBE, FACH_NAME, klasseName } from '../lib/text';
+import { anzahl, datum, FACH_FARBE, FACH_NAME, klasseName } from '../lib/text';
 import { useTitel } from '../lib/titel';
 import { PdfKnopf } from '../pdf/PdfKnopf';
 import { mappenWahl } from '../pdf/wahl';
@@ -19,7 +20,7 @@ import { MaterialAnlegen } from './Anlegen';
 import { DokumentKachel } from './DokumentKachel';
 
 const ZurUebersicht = () => (
-	<KnopfLink to="/" art="leise" className="-ml-5">
+	<KnopfLink to="/" art="leise" className="-ml-2.5 text-leise">
 		<Symbol name="zurueck" />
 		Alle Mappen
 	</KnopfLink>
@@ -119,22 +120,22 @@ export const Mappenansicht = () => {
 	return (
 		<>
 			<ZurUebersicht />
-			<div className="mt-2 flex items-start justify-between gap-6 max-lg:flex-col max-lg:gap-4">
-				<div>
-					<h1 className="flex flex-wrap items-center gap-3 text-3xl max-md:text-2xl">
+			<div className="flex items-end justify-between gap-6 max-lg:flex-col max-lg:items-start max-lg:gap-3">
+				<div className="min-w-0">
+					<h1 className="flex flex-wrap items-center gap-3 text-2xl">
 						{mappe.titel}
 						{mappe.status === 'entwurf' && <Marke>Entwurf</Marke>}
 					</h1>
-					<p className="mt-1 flex flex-wrap items-center gap-2 text-leise">
-						<span
-							className="size-3 flex-none rounded-full"
-							style={{ background: FACH_FARBE[mappe.fach] }}
-						/>
-						{`${FACH_NAME[mappe.fach]} · ${klasseName(mappe.klasse)} · Zuletzt geändert: ${datum(mappe.geaendert)}`}
+					<p className="flex flex-wrap items-center gap-2 text-sm text-leise">
+						<span className="size-2 flex-none rounded-full" style={{ background: FACH_FARBE[mappe.fach] }} />
+						{`${FACH_NAME[mappe.fach]} · ${klasseName(mappe.klasse)} · ${anzahl(dokumente.length, 'Dokument', 'Dokumente')} · ${datum(mappe.geaendert).replace(/^(Heute|Gestern)$/, (t) => t.toLowerCase())} geändert`}
 					</p>
 				</div>
-				<div className="flex flex-none flex-wrap gap-2">
-					<MaterialAnlegen mappe={mappe.id} />
+				<div className="flex flex-none flex-wrap items-center gap-1.5">
+					<Knopf art="zweit" aria-label="Mappe teilen" onClick={() => setTeilen({})}>
+						<Symbol name="teilen" />
+						Teilen
+					</Knopf>
 					{dokumente.length > 0 && (
 						<PdfKnopf
 							beschriftung="Alles als PDF"
@@ -144,18 +145,21 @@ export const Mappenansicht = () => {
 							ganzeMappe
 						/>
 					)}
-					<Knopf art="zweit" onClick={() => setTeilen({})}>
-						<Symbol name="teilen" />
-						Mappe teilen
-					</Knopf>
-					<Knopf art="zweit" disabled={laeuft} onClick={() => void dupliziere()}>
-						<Symbol name="duplizieren" />
-						Duplizieren
-					</Knopf>
-					<Knopf art="gefahr" disabled={laeuft} onClick={() => void loesche()}>
-						<Symbol name="papierkorb" />
-						Löschen
-					</Knopf>
+					<Menue
+						name="Mappe: weitere Aktionen"
+						rechtsbuendig
+						disabled={laeuft}
+						ausloeser={
+							<Knopf art="zweit" className="size-knopf px-0">
+								<Symbol name="mehr" />
+							</Knopf>
+						}
+						eintraege={[
+							{ titel: 'Duplizieren', symbol: 'duplizieren', waehle: () => void dupliziere() },
+							{ titel: 'Löschen', symbol: 'papierkorb', gefahr: true, waehle: () => void loesche() },
+						]}
+					/>
+					<MaterialAnlegen mappe={mappe.id} />
 				</div>
 			</div>
 			{dokumente.length === 0 ? (
@@ -163,7 +167,7 @@ export const Mappenansicht = () => {
 					<p className="text-leise">Schreib Claude, was hinein soll.</p>
 				</Zustand>
 			) : (
-				<ul className="mt-6 grid grid-cols-[repeat(auto-fill,minmax(19rem,1fr))] gap-6 max-md:gap-4">
+				<ul className="mt-3 grid grid-cols-[repeat(auto-fill,minmax(190px,1fr))] gap-3">
 					{dokumente.map((dokument) => (
 						<DokumentKachel
 							key={dokument.id}

@@ -54,7 +54,7 @@ export const EntwurfGross = ({ dok, name, zugang }: Eigenschaften) => {
 				</div>
 			</div>
 
-			<div className="sticky top-[var(--kopf,0px)] z-ueberlagerung -mx-8 mt-3 flex flex-wrap items-center gap-2 bg-papier px-8 py-2 max-lg:-mx-4 max-lg:px-4">
+			<div className="sticky top-[var(--kopf,0px)] z-ueberlagerung -mx-4 mt-3 flex flex-wrap items-center gap-2 bg-papier px-4 py-2">
 				{vorher && (
 					<KnopfLink to={entwuerfeSeite(zugang, dok, vorher.name)} art="zweit" replace>
 						<Symbol name="zurueck" />

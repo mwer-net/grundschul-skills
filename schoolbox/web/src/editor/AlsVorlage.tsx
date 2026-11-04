@@ -5,7 +5,6 @@ import { Dialog } from '../bausteine/Dialog';
 import { useHinweis } from '../bausteine/hinweis';
 import { FELD_KLASSEN } from '../bausteine/klassen';
 import { Knopf } from '../bausteine/Knopf';
-import { Symbol } from '../bausteine/Symbol';
 
 /** „Als Vorlage speichern“: Name; Art und Format kommen vom Dokument, Texte und Bilder bleiben (051). */
 export const AlsVorlage = ({
@@ -50,19 +49,5 @@ export const AlsVorlage = ({
 				</Knopf>
 			</div>
 		</Dialog>
-	);
-};
-
-/** Knopf samt Dialog, für Orte ohne eigenes Menü. */
-export const AlsVorlageKnopf = (angaben: { mappe: string; dok: string; titel: string }) => {
-	const [offen, setOffen] = useState(false);
-	return (
-		<>
-			<Knopf art="zweit" data-als-vorlage onClick={() => setOffen(true)}>
-				<Symbol name="blatt" />
-				Als Vorlage
-			</Knopf>
-			{offen && <AlsVorlage {...angaben} schliessen={() => setOffen(false)} />}
-		</>
 	);
 };

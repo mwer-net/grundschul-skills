@@ -1,20 +1,11 @@
-import { useState } from 'react';
-
-import { meldung } from '../api';
-import { useHinweis } from '../bausteine/hinweis';
-import type { KnopfArt } from '../bausteine/klassen';
+import type { KnopfArt, KnopfGroesse } from '../bausteine/klassen';
 import { Knopf } from '../bausteine/Knopf';
 import { Menue } from '../bausteine/Menue';
 import { Symbol } from '../bausteine/Symbol';
-import type { PdfAntwort } from '../typen';
-import { PdfWarnung } from './PdfWarnung';
+import type { PdfWahl } from './usePdf';
+import { usePdf } from './usePdf';
 
-export interface PdfWahl {
-	titel: string;
-	/** Wofür die Datei gut ist; steht im Menü unter dem Titel. */
-	hinweis?: string;
-	vorbereiten: () => Promise<PdfAntwort>;
-}
+export type { PdfWahl } from './usePdf';
 
 interface Eigenschaften {
 	beschriftung: string;
@@ -25,9 +16,12 @@ interface Eigenschaften {
 	warnen: boolean;
 	ganzeMappe?: boolean;
 	art?: KnopfArt;
+	groesse?: KnopfGroesse;
 	rechtsbuendig?: boolean;
 	/** Was der Knopf zeigt, solange der Server baut. */
 	laeuft?: string;
+	/** Ohne Pfeil am Menü und mit wenig Rand, für die enge Kachel. */
+	knapp?: boolean;
 }
 
 export const PdfLaeuft = ({ text = 'PDF wird erstellt …' }: { text?: string }) => (
@@ -37,44 +31,20 @@ export const PdfLaeuft = ({ text = 'PDF wird erstellt …' }: { text?: string })
 	</>
 );
 
-/**
- * Lädt ein PDF herunter. Der Server baut es bei Bedarf erst (das dauert einige Sekunden); bis dahin dreht sich der
- * Knopf. Hat die Prüfung Fehler gefunden, fragt ein Dialog vorher nach.
- */
+/** Solange der Server baut, dreht sich der Knopf. */
 export const PdfKnopf = ({
 	art = 'zweit',
 	beschriftung,
 	ganzeMappe,
+	groesse,
+	knapp,
 	laeuft: laeuftText,
 	mappe,
 	rechtsbuendig,
 	wahl,
 	warnen,
 }: Eigenschaften) => {
-	const [laeuft, setLaeuft] = useState(false);
-	const [warnung, setWarnung] = useState<PdfAntwort | null>(null);
-	const zeige = useHinweis();
-
-	const herunterladen = ({ adresse }: PdfAntwort) => {
-		window.location.assign(adresse);
-	};
-
-	const hole = async ({ vorbereiten }: PdfWahl) => {
-		setLaeuft(true);
-		try {
-			const antwort = await vorbereiten();
-			if (warnen && antwort.meldungen.length > 0) {
-				setWarnung(antwort);
-			} else {
-				herunterladen(antwort);
-			}
-		} catch (grund) {
-			zeige({ text: meldung(grund), art: 'fehler' });
-		} finally {
-			setLaeuft(false);
-		}
-	};
-
+	const { dialog, hole, laeuft } = usePdf({ mappe, warnen, ganzeMappe });
 	const [erste] = wahl;
 	const inhalt = laeuft ? (
 		<PdfLaeuft text={laeuftText} />
@@ -89,9 +59,17 @@ export const PdfKnopf = ({
 			{wahl.length > 1 ? (
 				<Menue
 					art={art}
+					groesse={groesse}
 					beschriftung={inhalt}
 					disabled={laeuft}
 					rechtsbuendig={rechtsbuendig}
+					ausloeser={
+						knapp ? (
+							<Knopf art={art} groesse={groesse} className="px-1.5!">
+								{inhalt}
+							</Knopf>
+						) : undefined
+					}
 					eintraege={wahl.map((w) => ({
 						titel: w.titel,
 						beschreibung: w.hinweis,
@@ -99,20 +77,17 @@ export const PdfKnopf = ({
 					}))}
 				/>
 			) : (
-				<Knopf art={art} disabled={laeuft || !erste} onClick={() => erste && void hole(erste)}>
+				<Knopf
+					art={art}
+					groesse={groesse}
+					className={knapp ? 'px-1.5!' : undefined}
+					disabled={laeuft || !erste}
+					onClick={() => erste && void hole(erste)}
+				>
 					{inhalt}
 				</Knopf>
 			)}
-			{warnung && (
-				<PdfWarnung
-					mappe={mappe}
-					ganzeMappe={ganzeMappe}
-					meldungen={warnung.meldungen}
-					weiterTitel="Trotzdem herunterladen"
-					weiter={() => herunterladen(warnung)}
-					schliessen={() => setWarnung(null)}
-				/>
-			)}
+			{dialog}
 		</>
 	);
 };

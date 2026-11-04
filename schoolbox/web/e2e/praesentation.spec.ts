@@ -1,6 +1,6 @@
 import type { Frame, Locator, Page } from '@playwright/test';
 
-import { dateiname, expect, legeMappeAn, test } from './hilfe';
+import { dateiname, expect, legeMappeAn, oeffneMehr, test } from './hilfe';
 
 /** Der Kartoffel-Kreisinput aus der Vorlage: Folie 3 mit drei Schritten, 4 mit Aufdecken, 5 mit Timer, 6 mit Schritt. */
 const kreisinput = () =>
@@ -218,12 +218,16 @@ test.describe('Präsentation', () => {
 		const { dokumente, id } = await kreisinput();
 		await page.goto(`/m/${id}/${dokumente[1]}`);
 		await expect(page.getByRole('heading', { level: 1 })).toContainText('Teile der Kartoffel');
-		await expect(page.getByRole('button', { name: 'Ohne Internet' })).toHaveCount(0);
+		await oeffneMehr(druecke, page);
+		await expect(page.getByRole('menuitem', { name: 'Drucken' })).toBeVisible();
+		await expect(page.getByRole('menuitem', { name: 'Ohne Internet' })).toHaveCount(0);
+		await page.keyboard.press('Escape');
 
 		await page.goto(`/m/${id}/${dokumente[0]}`);
-		const knopf = page.getByRole('button', { name: 'Ohne Internet' });
+		const knopf = page.getByRole('menuitem', { name: 'Ohne Internet' });
+		await oeffneMehr(druecke, page);
 		await druecke(knopf);
-		const eintraege = page.getByRole('menu').getByRole('menuitem');
+		const eintraege = page.getByRole('menu').last().getByRole('menuitem');
 		await expect(eintraege).toHaveCount(3);
 		await expect(eintraege.nth(0)).toContainText('PDF zum PräsentierenFürs iPad');
 		await expect(eintraege.nth(0)).toContainText('Jeder Schritt ist eine eigene Seite.');
@@ -270,7 +274,9 @@ test.describe('Präsentation', () => {
 		const fremd = await browser.newContext({ hasTouch: test.info().project.use.hasTouch });
 		const besuch = await fremd.newPage();
 		await besuch.goto(`/f/${dokLink}`);
-		await expect(besuch.getByRole('button', { name: 'Ohne Internet' })).toBeVisible();
+		await oeffneMehr(druecke, besuch);
+		await expect(besuch.getByRole('menuitem', { name: 'Ohne Internet' })).toBeVisible();
+		await besuch.keyboard.press('Escape');
 		await druecke(besuch.getByRole('link', { name: 'Präsentieren' }));
 		await expect(besuch).toHaveURL(new RegExp(`/f/${dokLink}/d/${dokumente[0]}/praesentation$`));
 		const folie = await starte(besuch, druecke);

@@ -1,13 +1,15 @@
 import type { Druckprofil } from '@schoolbox/kern/src/werte';
 import { useState } from 'react';
-import { useSearchParams } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 
 import { Blattansicht } from '../bausteine/Blattansicht';
-import { Chip } from '../bausteine/Chip';
 import { useHinweis } from '../bausteine/hinweis';
 import { Marke } from '../bausteine/Kachel';
-import { Knopf, KnopfAdresse, KnopfLink } from '../bausteine/Knopf';
+import { Knopf, KnopfLink } from '../bausteine/Knopf';
+import type { MenueEintrag } from '../bausteine/Menue';
+import { Menue } from '../bausteine/Menue';
 import { ProfilSchalter } from '../bausteine/ProfilSchalter';
+import { Segment } from '../bausteine/Segment';
 import { Symbol } from '../bausteine/Symbol';
 import { Zustand } from '../bausteine/Zustand';
 import { hatOffeneEntwuerfe } from '../entwuerfe/offen';
@@ -29,6 +31,7 @@ import {
 	praesentationSeite,
 } from '../lib/zugang';
 import { PdfKnopf } from '../pdf/PdfKnopf';
+import { pdfEintrag, usePdf } from '../pdf/usePdf';
 import { dokumentWahl, folienWahl, materialName } from '../pdf/wahl';
 import { TeilenDialog } from '../teilen/TeilenDialog';
 import type { DokumentEintrag, Mappe, MappenEintrag } from '../typen';
@@ -41,7 +44,7 @@ interface Eigenschaften {
 }
 
 const Druckhinweise = ({ liste }: { liste: string[] }) => (
-	<div className="mt-4 flex items-start gap-3 rounded-2xl border border-entwurf bg-warnung-hell px-5 py-3">
+	<div className="mt-3 flex items-start gap-3 rounded-lg border border-entwurf bg-warnung-hell px-4 py-2">
 		<Symbol name="drucker" className="mt-0.5 size-4 flex-none" />
 		<div>
 			<h2 className="sr-only">Druckhinweise</h2>
@@ -65,24 +68,46 @@ interface KnoepfeEigenschaften {
 	teilen: () => void;
 }
 
-/** Was sich mit dem Dokument tun lässt. Bei Folien ist Präsentieren das Wichtigste; PDF und Drucken treten zurück. */
+/** Was sich mit dem Dokument tun lässt. Bei Folien ist Präsentieren das Wichtigste, sonst Bearbeiten. */
 const Knoepfe = ({ dokument, entwuerfe, loesung, mappe, profil, teilen, zugang }: KnoepfeEigenschaften) => {
 	const { id: dok, meta } = dokument;
 	const geteilt = istGeteilt(zugang);
 	const offen = entwuerfe && hatOffeneEntwuerfe(meta);
 	const praesentieren = meta.format === 'folie' && !offen;
+	const navigate = useNavigate();
+	const zeige = useHinweis();
+	const ohneInternet = usePdf({ mappe, warnen: !geteilt });
+	const eintraege: MenueEintrag[] = [
+		...(entwuerfe
+			? [{ titel: 'Entwürfe', symbol: 'kopieren' as const, waehle: () => void navigate(entwuerfeSeite(zugang, dok)) }]
+			: []),
+		...(praesentieren
+			? [
+					pdfEintrag(
+						ohneInternet.laeuft ? 'Wird erstellt …' : 'Ohne Internet',
+						'herunterladen',
+						folienWahl(zugang, dokument),
+						(w) => void ohneInternet.hole(w),
+						() => zeige({ text: 'Wird erstellt …' }),
+					),
+				]
+			: []),
+		{
+			titel: 'Drucken',
+			symbol: 'drucker',
+			waehle: () => {
+				window.open(druckSeite(zugang, dok, loesung ? 'loesung' : 'arbeitsblatt', profil), '_blank');
+			},
+		},
+		...(geteilt ? [] : [{ titel: 'Teilen', symbol: 'teilen' as const, waehle: teilen }]),
+		...(geteilt ? [] : [{ titel: 'Hilfe', symbol: 'hilfe' as const, waehle: () => void navigate('/hilfe') }]),
+	];
 	return (
-		<div className="ml-auto flex flex-wrap gap-2 max-md:ml-0">
+		<div className="ml-auto flex flex-none flex-wrap items-center gap-1.5 max-md:ml-0">
 			{!geteilt && !offen && (
-				<KnopfLink to={editorSeite(zugang, dok)} art="zweit">
+				<KnopfLink to={editorSeite(zugang, dok)} art={praesentieren ? 'zweit' : 'haupt'}>
 					<Symbol name="stift" />
 					Bearbeiten
-				</KnopfLink>
-			)}
-			{entwuerfe && (
-				<KnopfLink to={entwuerfeSeite(zugang, dok)} art="zweit">
-					<Symbol name="kopieren" />
-					Entwürfe
 				</KnopfLink>
 			)}
 			{praesentieren && (
@@ -92,38 +117,24 @@ const Knoepfe = ({ dokument, entwuerfe, loesung, mappe, profil, teilen, zugang }
 				</KnopfLink>
 			)}
 			<PdfKnopf
-				art={praesentieren ? 'zweit' : 'haupt'}
-				beschriftung="PDF herunterladen"
+				art={geteilt && !praesentieren ? 'haupt' : 'zweit'}
+				beschriftung="PDF"
 				wahl={dokumentWahl(zugang, dokument, profil)}
 				mappe={mappe}
 				warnen={!geteilt}
 				rechtsbuendig
 			/>
-			{praesentieren && (
-				<PdfKnopf
-					beschriftung="Ohne Internet"
-					laeuft="Wird erstellt …"
-					wahl={folienWahl(zugang, dokument)}
-					mappe={mappe}
-					warnen={!geteilt}
-					rechtsbuendig
-				/>
-			)}
-			<KnopfAdresse
-				art="zweit"
-				href={druckSeite(zugang, dok, loesung ? 'loesung' : 'arbeitsblatt', profil)}
-				target="_blank"
-				rel="noopener"
-			>
-				<Symbol name="drucker" />
-				Drucken
-			</KnopfAdresse>
-			{!geteilt && (
-				<Knopf art="zweit" onClick={teilen}>
-					<Symbol name="teilen" />
-					Teilen
-				</Knopf>
-			)}
+			<Menue
+				name="Weitere Aktionen"
+				rechtsbuendig
+				eintraege={eintraege}
+				ausloeser={
+					<Knopf art="zweit" className="size-knopf px-0">
+						<Symbol name="mehr" />
+					</Knopf>
+				}
+			/>
+			{ohneInternet.dialog}
 		</div>
 	);
 };
@@ -178,32 +189,45 @@ export const Dokumentansicht = ({ dok, zugang, zurueckZurMappe }: Eigenschaften)
 
 	return (
 		<>
-			{zurueckZurMappe && (
-				<KnopfLink to={mappenSeite(zugang)} art="leise" className="-ml-5">
-					<Symbol name="zurueck" />
-					{mappe.titel}
-				</KnopfLink>
-			)}
-			<h1 className="mt-2 flex flex-wrap items-center gap-3 text-3xl max-md:text-2xl">
-				{meta.titel}
-				{meta.status === 'entwurf' && <Marke>Entwurf</Marke>}
-			</h1>
-			<p className="mt-1 text-leise">
-				{[
-					ART_NAME[meta.art],
-					FORMAT_NAME[meta.format],
-					...(meta.seiten > 0 ? [anzahl(meta.seiten, 'Seite', 'Seiten')] : []),
-				].join(' · ')}
-			</p>
-
-			<div className="sticky top-[var(--kopf,0px)] z-20 -mx-8 mt-3 flex flex-wrap items-center gap-x-6 gap-y-3 bg-papier/95 px-8 py-3 backdrop-blur max-lg:-mx-4 max-lg:px-4">
-				{meta.hatLoesung && (
-					<div role="group" aria-label="Was zeigen?" className="flex gap-2">
-						<Chip titel={materialName(dokument)} aktiv={!loesung} waehle={() => zeigeLoesung(false)} />
-						<Chip titel="Lösung" aktiv={loesung} waehle={() => zeigeLoesung(true)} />
-					</div>
-				)}
-				<ProfilSchalter profil={profil} waehle={ansicht.waehle} />
+			<div className="sticky top-[var(--kopf,0px)] z-kopf -mx-4 flex min-h-10 flex-wrap items-center gap-x-3 gap-y-1 border-b border-rand bg-flaeche px-4 py-0.5">
+				<div className="flex min-w-0 flex-1 items-center gap-1 text-sm">
+					{zurueckZurMappe && (
+						<>
+							<KnopfLink to={mappenSeite(zugang)} art="leise" className="-ml-2.5 max-w-52 min-w-0 flex-none text-leise">
+								<Symbol name="zurueck" />
+								<span className="truncate">{mappe.titel}</span>
+							</KnopfLink>
+							<span aria-hidden className="text-dezent">
+								/
+							</span>
+						</>
+					)}
+					<h1 className="flex min-w-0 items-center gap-2 text-sm font-semibold">
+						<span className="truncate">{meta.titel}</span>
+						{meta.status === 'entwurf' && <Marke>Entwurf</Marke>}
+					</h1>
+					<p className="ml-1 truncate text-xs text-leise max-lg:hidden">
+						{[
+							ART_NAME[meta.art],
+							FORMAT_NAME[meta.format],
+							...(meta.seiten > 0 ? [anzahl(meta.seiten, 'Seite', 'Seiten')] : []),
+						].join(' · ')}
+					</p>
+				</div>
+				<div className="flex flex-none items-center gap-1.5">
+					{meta.hatLoesung && (
+						<Segment
+							beschriftung="Was zeigen?"
+							werte={[
+								{ wert: 'material', titel: materialName(dokument) },
+								{ wert: 'loesung', titel: 'Lösung' },
+							]}
+							wert={loesung ? 'loesung' : 'material'}
+							waehle={(w) => zeigeLoesung(w === 'loesung')}
+						/>
+					)}
+					<ProfilSchalter profil={profil} waehle={ansicht.waehle} />
+				</div>
 				<Knoepfe
 					zugang={zugang}
 					dokument={dokument}
@@ -229,7 +253,7 @@ export const Dokumentansicht = ({ dok, zugang, zurueckZurMappe }: Eigenschaften)
 				</div>
 			)}
 			{meta.druckhinweise.length > 0 && <Druckhinweise liste={meta.druckhinweise} />}
-			<div className="mt-4">
+			<div className="mt-2">
 				<Blattansicht
 					adresse={ansichtAdresse(zugang, dok, loesung, profil)}
 					stand={stand}

@@ -69,11 +69,11 @@ const GeteiltRahmen = ({ children }: { children: ReactNode }) => {
 	return (
 		<div className="flex min-h-dvh flex-col">
 			<header ref={kopf} className="sticky top-0 z-kopf border-b border-rand bg-flaeche">
-				<div className="mx-auto flex h-10 max-w-[90rem] items-center px-8 text-base font-semibold text-tinte max-lg:px-4">
+				<div className="flex h-10 items-center px-4 text-base font-semibold text-tinte">
 					Schoolbox
 				</div>
 			</header>
-			<main className="mx-auto w-full max-w-[90rem] flex-1 px-8 pt-5 pb-16 max-lg:px-4">
+			<main className="w-full flex-1 px-4 pt-3 pb-16">
 				{children}
 			</main>
 		</div>

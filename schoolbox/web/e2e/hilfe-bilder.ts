@@ -17,7 +17,7 @@ import {
 } from '@schoolbox/kern';
 
 import { material, oeffne } from './editorhilfe';
-import { dokumentOrdner, expect, legeMappeAn, test } from './hilfe';
+import { dokumentOrdner, expect, legeMappeAn, oeffneMehr, test } from './hilfe';
 
 const MATERIAL_DIR = process.env.E2E_MATERIAL_DIR ?? '';
 const ZIEL = path.join(__dirname, '..', 'public', 'hilfe-bilder');
@@ -135,7 +135,8 @@ test.describe('Bildschirmfotos für die Hilfe', () => {
 		nurAuf('ipad');
 		const { dok, id } = await kartoffeln();
 		await page.goto(`/m/${id}/${dok}`);
-		await druecke(page.getByRole('button', { name: 'Ohne Internet' }));
+		await oeffneMehr(druecke, page);
+		await druecke(page.getByRole('menuitem', { name: 'Ohne Internet' }));
 		await expect(page.getByRole('menu')).toBeVisible();
 		await foto(page, 'ohne-internet-ipad.jpg');
 
@@ -162,7 +163,8 @@ test.describe('Bildschirmfotos für die Hilfe', () => {
 		nurAuf('mac');
 		const { dok, id } = await uhrzeit();
 		await page.goto(`/m/${id}/${dok}`);
-		await druecke(page.getByRole('button', { name: 'Teilen' }));
+		await oeffneMehr(druecke, page);
+		await druecke(page.getByRole('menuitem', { name: 'Teilen' }));
 		const dialog = page.getByRole('dialog');
 		await druecke(dialog.getByRole('button', { name: 'Link erstellen' }).first());
 		await expect(dialog.getByRole('textbox', { name: 'Link zum Teilen' }).first()).toBeVisible();

@@ -1,8 +1,8 @@
 import { Link, useSearchParams } from 'react-router-dom';
 
-import { Chip } from '../bausteine/Chip';
-import { Kachel, Marke } from '../bausteine/Kachel';
+import { Marke } from '../bausteine/Kachel';
 import { Knopf, KnopfLink } from '../bausteine/Knopf';
+import { Menue } from '../bausteine/Menue';
 import { useSuche } from '../bausteine/suche';
 import { Symbol } from '../bausteine/Symbol';
 import { Vorschau } from '../bausteine/Vorschau';
@@ -58,25 +58,27 @@ const umfang = (dokumente: number) => (dokumente === 0 ? 'Noch leer' : anzahl(do
 
 const MappenKachel = ({ dokumente, mappe }: MappenEintrag) => (
 	<li>
-		<Link to={`/m/${mappe.id}`} className="block h-full rounded-2xl text-tinte no-underline" data-mappe={mappe.id}>
-			<Kachel className="flex h-full flex-col transition-shadow hover:shadow-lg">
-				<div className="h-2 flex-none" style={{ background: FACH_FARBE[mappe.fach] }} />
-				<div className="relative">
-					<Vorschau zugang={{ mappe: mappe.id, token: null }} dokument={dokumente[0]} />
-					{mappe.status === 'entwurf' && (
-						<span className="absolute top-3 left-3">
-							<Marke>Entwurf</Marke>
-						</span>
-					)}
-				</div>
-				<div className="flex flex-1 flex-col gap-1 border-t border-rand p-4">
-					<h2 className="text-xl">{mappe.titel}</h2>
-					<p className="text-leise">{`${FACH_NAME[mappe.fach]} · ${klasseName(mappe.klasse)}`}</p>
-					<p className="mt-auto pt-1 text-sm text-leise">
-						{`${umfang(dokumente.length)} · ${datum(mappe.geaendert)}`}
-					</p>
-				</div>
-			</Kachel>
+		<Link
+			to={`/m/${mappe.id}`}
+			className="block h-full overflow-hidden rounded-[10px] border border-rand bg-flaeche text-tinte no-underline hover:border-rand-feld"
+			data-mappe={mappe.id}
+		>
+			<div className="relative">
+				<Vorschau zugang={{ mappe: mappe.id, token: null }} dokument={dokumente[0]} />
+				{mappe.status === 'entwurf' && (
+					<span className="absolute top-2 left-2">
+						<Marke>Entwurf</Marke>
+					</span>
+				)}
+			</div>
+			<div className="border-t border-rand px-2.5 py-2">
+				<h2 className="flex items-center gap-1.5 text-sm font-medium">
+					<span className="size-2 flex-none rounded-full" style={{ background: FACH_FARBE[mappe.fach] }} />
+					<span className="truncate">{mappe.titel}</span>
+				</h2>
+				<p className="truncate text-xs text-leise">{`${FACH_NAME[mappe.fach]} · ${klasseName(mappe.klasse)}`}</p>
+				<p className="truncate text-xs text-leise">{`${umfang(dokumente.length)} · ${datum(mappe.geaendert)}`}</p>
+			</div>
 		</Link>
 	</li>
 );
@@ -164,32 +166,35 @@ export const Uebersicht = () => {
 
 	return (
 		<>
-			<div className="flex items-end justify-between gap-4">
-				<div className="flex flex-wrap items-center gap-4">
-					<h1 className="text-3xl max-md:text-2xl">Meine Mappen</h1>
-					<MappeAnlegen />
-				</div>
-				<p className="text-leise" aria-live="polite">
+			<div className="flex items-center justify-between gap-4">
+				<h1 className="text-2xl">Meine Mappen</h1>
+				<MappeAnlegen />
+			</div>
+			<div className="mt-2 flex flex-wrap items-center gap-1.5">
+				{auswahlen(mappen).map(({ name, titel, werte }) => {
+					const jetzt = werte.find((w) => w.wert === gewaehlt(name));
+					return (
+						<Menue
+							key={name}
+							beschriftung={jetzt ? `${titel}: ${jetzt.titel}` : titel}
+							eintraege={werte.map(({ titel: wertTitel, wert }) => ({
+								titel: wertTitel,
+								aktiv: gewaehlt(name) === wert,
+								waehle: () => waehle(name, wert),
+							}))}
+						/>
+					);
+				})}
+				{(filter.fach !== null || filter.klasse !== null || filter.art !== null) && (
+					<Knopf art="leise" onClick={() => setParameter({}, { replace: true })}>
+						Zurücksetzen
+					</Knopf>
+				)}
+				<p className="ml-auto text-sm text-leise" aria-live="polite">
 					{gefiltert
 						? `${treffer.length} von ${mappen.length} ${mappen.length === 1 ? 'Mappe' : 'Mappen'}`
 						: anzahl(mappen.length, 'Mappe', 'Mappen')}
 				</p>
-			</div>
-			<div className="mt-4 flex flex-wrap items-center gap-x-8 gap-y-3">
-				{auswahlen(mappen).map(({ name, titel, werte }) => (
-					<div key={name} className="flex flex-wrap items-center gap-2" role="group" aria-label={titel}>
-						<span className="text-sm font-medium text-leise">{titel}</span>
-						{werte.map(({ farbe, titel: wertTitel, wert }) => (
-							<Chip
-								key={wert}
-								titel={wertTitel}
-								farbe={farbe}
-								aktiv={gewaehlt(name) === wert}
-								waehle={() => waehle(name, wert)}
-							/>
-						))}
-					</div>
-				))}
 			</div>
 			{treffer.length === 0 ? (
 				<Zustand symbol="suche" titel="Dazu habe ich nichts gefunden">
@@ -197,7 +202,7 @@ export const Uebersicht = () => {
 					<Knopf onClick={allesZeigen}>Alle Mappen zeigen</Knopf>
 				</Zustand>
 			) : (
-				<ul className="mt-6 grid grid-cols-[repeat(auto-fill,minmax(17rem,1fr))] gap-6 max-md:gap-4">
+				<ul className="mt-3 grid grid-cols-[repeat(auto-fill,minmax(190px,1fr))] gap-3">
 					{treffer.map((eintrag) => (
 						<MappenKachel key={eintrag.mappe.id} {...eintrag} />
 					))}

@@ -255,10 +255,11 @@ test.describe('Generatoren (050)', () => {
 		test.slow();
 		const { id } = await mitElement(page, '<x-zahlenmauer basis="3 5 2"></x-zahlenmauer>');
 		await page.goto(`/m/${id}`);
-		await expect(page.locator('[data-variante]')).toHaveCount(1);
-		await page.locator('[data-variante]').click();
+		await expect(page.locator('[data-dokument]')).toHaveCount(1);
+		await page.locator('[data-dokument]').getByRole('button', { name: 'Weitere Aktionen' }).click();
+		await page.getByRole('menuitem', { name: 'Variante anlegen' }).click();
 		await expect(page.getByText('Wie spät ist es? (B)', { exact: true }).first()).toBeVisible();
-		await expect(page.locator('[data-variante]')).toHaveCount(2);
+		await expect(page.locator('[data-dokument]')).toHaveCount(2);
 	});
 });
 

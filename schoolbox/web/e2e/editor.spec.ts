@@ -214,7 +214,7 @@ test.describe('Editor', () => {
 		await expect(besuch.locator('[data-dokument]')).toHaveCount(1);
 		await expect(besuch.getByRole('link', { name: 'Bearbeiten' })).toHaveCount(0);
 		await besuch.goto(`/f/${token}/d/${dok}`);
-		await expect(besuch.getByRole('button', { name: 'PDF herunterladen' })).toBeVisible();
+		await expect(besuch.getByRole('button', { name: 'PDF', exact: true })).toBeVisible();
 		await expect(besuch.getByRole('link', { name: 'Bearbeiten' })).toHaveCount(0);
 		await fremd.close();
 	});

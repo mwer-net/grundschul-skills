@@ -26,9 +26,9 @@ const Bild = ({ dokument, zugang }: { zugang: Zugang; dokument: DokumentEintrag 
 	}
 	const quer = QUERFORMATE.includes(dokument.meta.format);
 	return (
-		<div className={quer ? 'flex size-full items-center justify-center p-5' : 'px-10 pt-5'}>
+		<div className={quer ? 'flex size-full items-center justify-center p-3' : 'px-[12%]'}>
 			<img
-				className={klassen('bg-flaeche shadow-md', quer ? 'max-h-full max-w-full' : 'w-full')}
+				className={klassen('bg-flaeche shadow-1', quer ? 'max-h-full max-w-full' : 'w-full')}
 				src={vorschauAdresse(zugang, dokument.id, dokument.vorschau)}
 				alt=""
 				loading="lazy"
@@ -46,7 +46,7 @@ const Bild = ({ dokument, zugang }: { zugang: Zugang; dokument: DokumentEintrag 
  * Lehrkraft; Teilen-Links sehen keine Entwürfe).
  */
 export const Vorschau = ({ className, dokument, zugang }: Eigenschaften) => (
-	<div className={klassen('relative aspect-[4/3] overflow-hidden bg-leinwand', className)}>
+	<div className={klassen('relative aspect-[8/7] overflow-hidden bg-leinwand', className)}>
 		<Bild zugang={zugang} dokument={dokument} />
 	</div>
 );

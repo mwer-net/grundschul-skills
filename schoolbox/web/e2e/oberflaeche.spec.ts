@@ -3,11 +3,13 @@ import path from 'node:path';
 
 import type { Locator, Page } from '@playwright/test';
 
-import { dateiname, expect, legeEntwuerfeAn, legeMappeAn, PASSWORT, test, waehle } from './hilfe';
+import { dateiname, expect, legeEntwuerfeAn, legeMappeAn, oeffneMehr, PASSWORT, test, waehle } from './hilfe';
 
 type Box = NonNullable<Awaited<ReturnType<Locator['boundingBox']>>>;
 
 /** Mit Finger 44 px, am Mac die Höhe der kleinsten Knöpfe (Issue 063, Entscheidungen 28 und 33). */
+const MAPPE_MEHR = 'Mappe: weitere Aktionen';
+
 const KLEINSTE_TIPPFLAECHE = { finger: 44, maus: 20 };
 
 const dreiMappen = async () => {
@@ -102,15 +104,23 @@ test.describe('Übersicht', () => {
 		await expect(kacheln).toHaveCount(3);
 		await expect(suche).toHaveValue('');
 
-		const mathe = page.getByRole('button', { name: 'Mathematik' });
-		await druecke(mathe);
-		await expect(mathe).toHaveAttribute('aria-pressed', 'true');
+		const filter = async (knopf: string, eintrag: string) => {
+			await druecke(page.getByRole('button', { name: knopf }));
+			await druecke(page.getByRole('menuitem', { name: eintrag }));
+		};
+		await filter('Fach', 'Mathematik');
+		await expect(page.getByRole('button', { name: 'Fach: Mathematik' })).toBeVisible();
+		await expect(page).toHaveURL(/fach=mathematik/);
 		await expect(kacheln).toHaveCount(2);
-		await druecke(page.getByRole('button', { name: 'Klasse 4' }));
+		await filter('Klasse', 'Klasse 4');
 		await expect(kacheln).toHaveCount(1);
-		await druecke(page.getByRole('button', { name: 'Klasse 4' }));
-		await druecke(mathe);
-		await druecke(page.getByRole('button', { name: 'Präsentation' }));
+		await page.reload();
+		await expect(page.getByRole('button', { name: 'Fach: Mathematik' })).toBeVisible();
+		await expect(kacheln).toHaveCount(1);
+		await druecke(page.getByRole('button', { name: 'Zurücksetzen' }));
+		await expect(kacheln).toHaveCount(3);
+		await expect(page.getByRole('button', { name: 'Zurücksetzen' })).toHaveCount(0);
+		await filter('Art', 'Präsentation');
 		await expect(kacheln).toHaveCount(1);
 		await expect(kacheln).toContainText('Die Kartoffel');
 	});
@@ -142,12 +152,14 @@ test.describe('Mappe', () => {
 		await druecke(page.locator(`[data-mappe="${id}"]`));
 		await expect(page).toHaveURL(new RegExp(`/m/${id}$`));
 
-		await druecke(page.getByRole('button', { name: 'Duplizieren' }));
+		await oeffneMehr(druecke, page, MAPPE_MEHR);
+		await druecke(page.getByRole('menuitem', { name: 'Duplizieren' }));
 		await expect(page.getByRole('heading', { level: 1, name: 'Die Kartoffel (Kopie)' })).toBeVisible();
 		await expect(page).toHaveURL(/kartoffel-kopie/);
 		await expect(page.locator('[data-dokument]')).toHaveCount(2);
 
-		await druecke(page.getByRole('button', { name: 'Löschen' }));
+		await oeffneMehr(druecke, page, MAPPE_MEHR);
+		await druecke(page.getByRole('menuitem', { name: 'Löschen' }));
 		await expect(page).toHaveURL(/\/$/);
 		const meldung = page.getByRole('status');
 		await expect(meldung).toContainText('„Die Kartoffel (Kopie)“ liegt jetzt im Papierkorb.');
@@ -158,7 +170,8 @@ test.describe('Mappe', () => {
 		await expect(meldung).toContainText('ist wieder da');
 
 		await druecke(page.locator('[data-mappe*="kartoffel-kopie"]'));
-		await druecke(page.getByRole('button', { name: 'Löschen' }));
+		await oeffneMehr(druecke, page, MAPPE_MEHR);
+		await druecke(page.getByRole('menuitem', { name: 'Löschen' }));
 		await expect(kacheln).toHaveCount(3);
 		await druecke(page.getByRole('link', { name: 'Papierkorb' }));
 		await expect(page.getByRole('heading', { level: 1, name: 'Papierkorb' })).toBeVisible();
@@ -207,7 +220,8 @@ test.describe('Teilen', () => {
 		// Ein Link nur für ein Dokument steht für sich und zeigt nur dieses
 		await druecke(dialog.getByRole('button', { name: 'Schließen' }));
 		await expect(dialog).toBeHidden();
-		await druecke(page.locator('[data-dokument]').first().getByRole('button', { name: 'Teilen' }));
+		await oeffneMehr(druecke, page.locator('[data-dokument]').first());
+		await druecke(page.getByRole('menuitem', { name: 'Teilen' }));
 		const einzeln = page.getByRole('dialog', { name: '„Teile der Kartoffel“ teilen' });
 		await expect(einzeln.getByRole('textbox')).toHaveCount(0);
 		await druecke(einzeln.getByRole('button', { name: 'Link erstellen', exact: true }));
@@ -247,7 +261,12 @@ test.describe('Dokument und PDF', () => {
 		await expect(loesung).toHaveAttribute('aria-pressed', 'true');
 		await expect(page).toHaveURL(/\?fassung=loesung$/);
 		await expect(blatt).toHaveAttribute('src', /\?loesung=1&profil=sw$/);
-		await expect(page.getByRole('link', { name: 'Drucken' })).toHaveAttribute('href', /fassung=loesung&profil=sw$/);
+		const druckTab = page.context().waitForEvent('page');
+		await oeffneMehr(druecke, page);
+		await druecke(page.getByRole('menuitem', { name: 'Drucken' }));
+		const gedruckt = await druckTab;
+		expect(gedruckt.url()).toMatch(/fassung=loesung&profil=sw/);
+		await gedruckt.close();
 
 		// Claude ändert das Material: Die Ansicht lädt neu, ohne die Seite neu zu laden
 		await page.evaluate(() => {
@@ -269,7 +288,7 @@ test.describe('Dokument und PDF', () => {
 	test('lädt PDFs mit lesbarem Namen herunter', async ({ druecke, page }) => {
 		const { dokumente, id } = await herbst();
 		await page.goto(`/m/${id}/${dokumente[0]}`);
-		await druecke(page.getByRole('button', { name: 'PDF herunterladen' }));
+		await druecke(page.getByRole('button', { name: 'PDF', exact: true }));
 		const menue = page.getByRole('menu');
 		await expect(menue.getByRole('menuitem')).toHaveText([
 			'Arbeitsblatt',
@@ -307,7 +326,8 @@ test.describe('Dokument und PDF', () => {
 		);
 		await page.goto(`/m/${id}/${dokumente[0]}`);
 		const tab = context.waitForEvent('page');
-		await druecke(page.getByRole('link', { name: 'Drucken' }));
+		await oeffneMehr(druecke, page);
+		await druecke(page.getByRole('menuitem', { name: 'Drucken' }));
 		const druck = await tab;
 		await expect(druck.getByText('Hier ist das PDF')).toBeVisible();
 		expect(decodeURIComponent(druck.url())).toMatch(
@@ -316,7 +336,8 @@ test.describe('Dokument und PDF', () => {
 
 		await page.goto(`/m/${id}/${dokumente[1]}`);
 		const zweiter = context.waitForEvent('page');
-		await druecke(page.getByRole('link', { name: 'Drucken' }));
+		await oeffneMehr(druecke, page);
+		await druecke(page.getByRole('menuitem', { name: 'Drucken' }));
 		const warnung = (await zweiter).getByRole('dialog', { name: 'Beim Prüfen ist etwas aufgefallen' });
 		await expect(warnung).toBeVisible();
 		await druecke(warnung.getByRole('button', { name: 'Schließen' }));
@@ -340,9 +361,12 @@ test.describe('Dokument und PDF', () => {
 		await druecke(besuch.locator('[data-dokument]').nth(1).getByRole('link', { name: 'Ansehen' }));
 		await expect(besuch.getByRole('heading', { level: 1, name: 'Kastanien zählen' })).toBeVisible();
 		await blattGeladen(besuch);
-		await expect(besuch.getByRole('button', { name: 'Teilen' })).toHaveCount(0);
+		await oeffneMehr(druecke, besuch);
+		await expect(besuch.getByRole('menuitem', { name: 'Drucken' })).toBeVisible();
+		await expect(besuch.getByRole('menuitem', { name: 'Teilen' })).toHaveCount(0);
+		await besuch.keyboard.press('Escape');
 		const download = besuch.waitForEvent('download');
-		await druecke(besuch.getByRole('button', { name: 'PDF herunterladen' }));
+		await druecke(besuch.getByRole('button', { name: 'PDF', exact: true }));
 		await druecke(besuch.getByRole('menuitem', { name: 'Arbeitsblatt (in Farbe)' }));
 		expect(await dateiname(download)).toBe('Kl2 Sachunterricht Kastanien zählen – Arbeitsblatt.pdf');
 		await druecke(besuch.getByRole('link', { name: 'Bäume im Herbst' }));
@@ -432,7 +456,8 @@ test.describe('Entwürfe', () => {
 		await expect(page.locator('[data-entwuerfe-offen]')).toHaveCount(0);
 		await expect(page.frameLocator('[data-blattansicht] iframe').last().getByText('Inhalt B')).toBeVisible();
 
-		await druecke(page.getByRole('link', { name: 'Entwürfe', exact: true }));
+		await oeffneMehr(druecke, page);
+		await druecke(page.getByRole('menuitem', { name: 'Entwürfe', exact: true }));
 		await expect(page).toHaveURL(new RegExp(`/m/${id}/${dok}/entwuerfe$`));
 		await expect(page.getByText('Entwurf B ist gewählt.')).toBeVisible();
 		await expect(page.locator('[data-entwurf="B"]')).toContainText('Gewählt');
@@ -466,12 +491,12 @@ test.describe('Bedienung', () => {
 		await page.goto(`/m/${herbstId}/${dokumente[0]}`);
 		await blattGeladen(page);
 		expect(await zuKlein()).toEqual([]);
-		await druecke(page.getByRole('button', { name: 'PDF herunterladen' }));
+		await druecke(page.getByRole('button', { name: 'PDF', exact: true }));
 		await expect(page.getByRole('menu')).toBeVisible();
 		expect(await zuKlein()).toEqual([]);
 		expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true);
 		await page.goto(`/m/${herbstId}/${dokumente[1]}`);
-		await druecke(page.getByRole('button', { name: 'PDF herunterladen' }));
+		await druecke(page.getByRole('button', { name: 'PDF', exact: true }));
 		await druecke(page.getByRole('menuitem', { name: 'Arbeitsblatt', exact: true }));
 		await expect(page.getByRole('dialog')).toBeVisible();
 		expect(await zuKlein()).toEqual([]);
@@ -482,7 +507,8 @@ test.describe('Bedienung', () => {
 	test('abmelden führt zur Anmeldung, anmelden zurück zur gewünschten Seite', async ({ druecke, page }) => {
 		const { id } = await dreiMappen();
 		await page.goto('/');
-		await druecke(page.getByRole('button', { name: 'Abmelden' }));
+		await oeffneMehr(druecke, page, 'Konto');
+		await druecke(page.getByRole('menuitem', { name: 'Abmelden' }));
 		await expect(page).toHaveURL(/\/anmelden$/);
 		await page.goto(`/m/${id}`);
 		await expect(page).toHaveURL(/\/anmelden\?weiter=/);
@@ -502,7 +528,7 @@ test.describe('Bedienoptik (063)', () => {
 		await page.goto(`/m/${id}/${dokumente[0]}`);
 		await blattGeladen(page);
 		expect(await page.evaluate(() => getComputedStyle(document.body).fontFamily)).toContain('Inter Variable');
-		const knopf = page.getByRole('button', { name: 'PDF herunterladen' });
+		const knopf = page.getByRole('button', { name: 'PDF', exact: true });
 		const finger = await page.evaluate(() => matchMedia('(any-pointer: coarse)').matches);
 		expect((await knopf.boundingBox())?.height).toBe(finger ? 44 : 26);
 		const rahmen = await knopf.evaluate((e) => getComputedStyle(e).borderTopWidth);
@@ -522,7 +548,7 @@ test.describe('Menü (064)', () => {
 		]);
 		await page.goto(`/m/${id}/${dokumente[0]}`);
 		await blattGeladen(page);
-		const knopf = page.getByRole('button', { name: 'PDF herunterladen' });
+		const knopf = page.getByRole('button', { name: 'PDF', exact: true });
 		await knopf.focus();
 		await page.keyboard.press('Enter');
 		const menue = page.getByRole('menu');
@@ -558,7 +584,7 @@ test.describe('Menü (064)', () => {
 		]);
 		await page.goto(`/m/${id}/${dokumente[0]}`);
 		await blattGeladen(page);
-		await druecke(page.getByRole('button', { name: 'PDF herunterladen' }));
+		await druecke(page.getByRole('button', { name: 'PDF', exact: true }));
 		const finger = await page.evaluate(() => matchMedia('(any-pointer: coarse)').matches);
 		const hoehe = (await page.getByRole('menuitem').first().boundingBox())?.height ?? 0;
 		expect(hoehe).toBeGreaterThanOrEqual(finger ? 44 : 20);
@@ -956,3 +982,69 @@ test.describe('Inspektor (072)', () => {
 	});
 });
 
+
+test.describe('Mappe und Dokumentansicht (075)', () => {
+	const neunDokumente = () =>
+		legeMappeAn(
+			'Neun Blätter',
+			'mathematik',
+			3,
+			Array.from({ length: 9 }, (_, i) => ({ titel: `Blatt ${i + 1}`, vorlage: 'arbeitsblatt' })),
+		);
+
+	test('eine Mappe mit neun Dokumenten kommt mit wenigen Knöpfen aus', async ({ page }) => {
+		const { id } = await neunDokumente();
+		await page.goto(`/m/${id}`);
+		const kacheln = page.locator('[data-dokument]');
+		await expect(kacheln).toHaveCount(9);
+		// Bild und Titel sind ein Link, kein Knopf: Gezählt werden wie in Issue 075 die Knöpfe in der Seite.
+		const knoepfe = page.locator('main').locator('button, a[href]:not([aria-label^="Ansehen:"])');
+		expect(await knoepfe.count()).toBeLessThanOrEqual(35);
+		for (const kachel of await kacheln.all()) {
+			const eigene = kachel.locator('button, a[href]:not([aria-label^="Ansehen:"])');
+			expect(await eigene.count()).toBeLessThanOrEqual(3);
+		}
+	});
+
+	test('Rechtsklick auf die Kachel zeigt dieselbe Liste wie das ⋯', async ({ druecke, page }) => {
+		const { id } = await neunDokumente();
+		await page.goto(`/m/${id}`);
+		const kachel = page.locator('[data-dokument]').first();
+		await oeffneMehr(druecke, kachel);
+		const namen = await page.getByRole('menuitem').allInnerTexts();
+		await page.keyboard.press('Escape');
+		await expect(page.getByRole('menu')).toHaveCount(0);
+		expect(namen.join()).toContain('Variante anlegen');
+		await kachel.click({ button: 'right' });
+		await expect(page.getByRole('menuitem')).toHaveCount(namen.length);
+		expect(await page.getByRole('menuitem').allInnerTexts()).toEqual(namen);
+		await page.keyboard.press('Escape');
+	});
+
+	test('das ⋯ der Kachel ist auch mit dem Finger groß genug', async ({ page }, info) => {
+		test.skip(!info.project.name.startsWith('ipad'), 'nur mit Finger');
+		const { id } = await neunDokumente();
+		await page.goto(`/m/${id}`);
+		const box = await page
+			.locator('[data-dokument]')
+			.first()
+			.getByRole('button', { name: 'Weitere Aktionen' })
+			.boundingBox();
+		expect(box?.height).toBeGreaterThanOrEqual(44);
+		expect(box?.width).toBeGreaterThanOrEqual(44);
+	});
+
+	test('das Blatt beginnt oben im Fenster, die Mappe bleibt erreichbar', async ({ druecke, page }, info) => {
+		test.skip(info.project.name !== 'mac-safari', 'Maß gilt für den Mac');
+		await page.setViewportSize({ width: 1512, height: 860 });
+		const { dokumente, id } = await legeMappeAn('Maß', 'mathematik', 2, [{ titel: 'Blatt', vorlage: 'arbeitsblatt' }]);
+		await page.goto(`/m/${id}/${dokumente[0]}`);
+		await blattGeladen(page);
+		const oben = await page.locator('[data-blattansicht] iframe').last().boundingBox();
+		expect(oben?.y).toBeLessThanOrEqual(64);
+		await druecke(page.getByRole('link', { name: 'Maß' }));
+		await expect(page).toHaveURL(new RegExp(`/m/${id}$`));
+		const kopf = await page.locator('header').boundingBox();
+		expect(kopf?.height).toBeLessThanOrEqual(41);
+	});
+});
