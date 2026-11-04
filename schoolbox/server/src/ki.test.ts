@@ -120,6 +120,8 @@ describe('Aufträge an Claude', () => {
 		const zeilen = (await readFile(path.join(path.dirname(bin), 'aufrufe.jsonl'), 'utf8')).trim().split('\n');
 		const { args, cwd, env } = JSON.parse(zeilen.at(-1) ?? '{}') as { args: string[]; cwd: string; env: string[] };
 		const nach = (name: string) => args[args.indexOf(name) + 1];
+		assert.equal(nach('--model'), 'opus');
+		assert.equal(nach('--effort'), 'medium');
 		assert.equal(nach('--tools'), 'Read,Edit,Skill');
 		assert.equal(nach('--setting-sources'), 'project');
 		assert.equal(args.includes('--strict-mcp-config'), true);

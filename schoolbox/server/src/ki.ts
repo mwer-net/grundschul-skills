@@ -26,6 +26,7 @@ export const KI_GRENZEN = {
 	warten: 5,
 };
 /** Der Status `allowed_warning` kam in 056 schon bei 43 %: Für den Hinweis zählt darum die Auslastung. */
+export const KI_EFFORT = 'medium';
 export const KI_WARN_AB = 0.8;
 const ANMELDUNG_GILT_MS = 60_000;
 const BEENDEN_MS = 4000;
@@ -100,6 +101,8 @@ export const kiArgumente = (o: { ablage: string; auftragDatei: string; modell: s
 	'--verbose',
 	'--model',
 	o.modell,
+	'--effort',
+	KI_EFFORT,
 	'--setting-sources',
 	'project',
 	'--add-dir',

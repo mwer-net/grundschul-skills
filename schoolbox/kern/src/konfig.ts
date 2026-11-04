@@ -47,7 +47,7 @@ export const ladeKonfig = (env: Umgebung = process.env, wurzel = WURZEL): Konfig
 		passwortHash: wert('PASSWORT_HASH') ?? null,
 		sitzungGeheimnis: wert('SITZUNG_GEHEIMNIS') ?? null,
 		claudeBin: wert('CLAUDE_BIN') ?? null,
-		kiModell: wert('SCHOOLBOX_KI_MODELL') ?? 'sonnet',
+		kiModell: wert('SCHOOLBOX_KI_MODELL') ?? 'opus',
 		kiAn: wert('SCHOOLBOX_KI') !== 'aus',
 	};
 };
