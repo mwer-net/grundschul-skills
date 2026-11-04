@@ -76,6 +76,7 @@ export interface TextSteuerung {
 	/** Bearbeitung von außen starten, Cursor ans Ende. */
 	fokussiere: () => void;
 	formatiere: (format: Format) => void;
+	markiereAlles: () => void;
 	zustand: () => TextZustand;
 	abbauen: () => void;
 }
@@ -812,6 +813,7 @@ export const ruesteText = ({
 			setzeCursor(ziel, ziel.nodeType === TEXT ? (ziel as Text).length : element.childNodes.length);
 		},
 		formatiere,
+		markiereAlles: () => doc.getSelection()?.selectAllChildren(element),
 		zustand: () => ({
 			fett: sitzung !== null && doc.queryCommandState('bold'),
 			unterstrichen: sitzung !== null && doc.queryCommandState('underline'),

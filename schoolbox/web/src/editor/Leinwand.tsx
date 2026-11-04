@@ -1,5 +1,5 @@
 import type { Ablage } from '@schoolbox/kern/src/struktur';
-import type { PointerEvent as ReactPointerEvent, ReactNode } from 'react';
+import type { PointerEvent as ReactPointerEvent, ReactNode, RefObject } from 'react';
 import { useEffect, useLayoutEffect, useRef, useState } from 'react';
 
 import { klassen } from '../bausteine/klassen';
@@ -31,6 +31,10 @@ export interface Einblendung {
 	skala: number;
 	box: DOMRect | null;
 	hoehe: number;
+	/** Breite des Blatts in der Ansicht. */
+	breite: number;
+	zieht: boolean;
+	ziehen: RefObject<ZiehenSteuerung | null>;
 }
 
 interface Eigenschaften {
@@ -39,8 +43,6 @@ interface Eigenschaften {
 	titel: string;
 	/** `data-sb` des gewählten Bausteins. */
 	auswahl: number | null;
-	/** Name des gewählten Bausteins, steht am Rahmen. */
-	auswahlName: string | null;
 	waehle: (nr: number | null) => void;
 	/** 1 = auf die Breite eingepasst. */
 	/** Faktor auf die Breite des Fensters, oder die ganze Seite im Sichtfeld. */
@@ -240,7 +242,11 @@ const Ueberlagerung = ({
 	links,
 	masse,
 	skala,
+	zieht,
+	ziehen,
 }: {
+	zieht: boolean;
+	ziehen: RefObject<ZiehenSteuerung | null>;
 	aus: boolean | undefined;
 	box: DOMRect | undefined;
 	doc: Document | null;
@@ -251,12 +257,20 @@ const Ueberlagerung = ({
 }) =>
 	aus || !doc || !masse || !einblendung
 		? null
-		: einblendung({ doc, links, skala, box: box ?? null, hoehe: masse.hoehe * skala });
+		: einblendung({
+				doc,
+				links,
+				skala,
+				box: box ?? null,
+				hoehe: masse.hoehe * skala,
+				breite: masse.breite * skala,
+				zieht,
+				ziehen,
+			});
 
 export const Leinwand = ({
 	ablegen,
 	auswahl,
-	auswahlName,
 	einblendung,
 	geladen,
 	groesse,
@@ -525,21 +539,15 @@ export const Leinwand = ({
 				{box && gewaehlt && nrVon(gewaehlt) !== null && (
 					<div
 						ref={auswahlRahmen}
-						className="pointer-events-none absolute rounded-md border-[3px] border-brand-500 shadow-[0_0_0_3px_rgba(255,255,255,.8)]"
+						className="pointer-events-none absolute rounded-[2px] border-[1.5px] border-brand-500"
 						data-auswahlrahmen
 						style={{
-							left: links + box.left * skala - 4,
-							top: box.top * skala - 4,
-							width: box.width * skala + 8,
-							height: box.height * skala + 8,
+							left: links + box.left * skala - 4.5,
+							top: box.top * skala - 4.5,
+							width: box.width * skala + 9,
+							height: box.height * skala + 9,
 						}}
-					>
-						{auswahlName && (
-							<span className="absolute -top-8 left-[-3px] rounded-t-md bg-brand-500 px-2 py-1 text-sm font-medium whitespace-nowrap text-white">
-								{auswahlName}
-							</span>
-						)}
-					</div>
+					/>
 				)}
 				<Ueberlagerung
 					aus={nurAnsehen}
@@ -549,6 +557,8 @@ export const Leinwand = ({
 					links={links}
 					masse={masse}
 					skala={skala}
+					zieht={zug !== null}
+					ziehen={ziehen}
 				/>
 				{!nurAnsehen && (
 					<Griffe

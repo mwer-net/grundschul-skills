@@ -13,6 +13,9 @@ import { Tooltip } from '../bausteine/Tooltip';
 import { nrVon, trefferAn } from './darstellung';
 import type { Einfuegen, Posten, SlashMenue } from './einfuegen';
 import type { Einblendung } from './Leinwand';
+import type { Luecke } from './navigation';
+import { lueckeAn } from './navigation';
+import { sichtfeldVon } from './sichtfeld';
 import type { Struktur } from './struktur';
 import { TEXTWERKZEUG } from './text';
 
@@ -48,21 +51,22 @@ const Liste = ({ aktiv, posten, waehle }: { posten: Posten[]; aktiv?: number; wa
 	</ul>
 );
 
+const SCHNELL_BREITE = 320;
+const SCHNELL_HOEHE = 340;
+
 const schwebend = (top: number, hoehe: number) => (top + 320 > hoehe ? Math.max(0, top - 330) : top);
 
-/** Plus unter dem gewählten Baustein, Aufforderung auf leeren Seiten, Schnellauswahl und Slash-Menü (044). */
+/** Linie in den Lücken, Aufforderung auf leeren Seiten, Schnellauswahl und Slash-Menü (044, 071). */
 export const Einfuegemarken = ({
 	aktiv,
-	auswahl,
 	e,
 	einfuegen,
-	schnellSignal,
+	schnellWunsch,
 	setAuswahl,
 	slash,
 }: {
-	schnellSignal: number;
+	schnellWunsch: { n: number; nr: number | null };
 	e: Einblendung;
-	auswahl: number | null;
 	aktiv: boolean;
 	setAuswahl: (nr: number | null) => void;
 	einfuegen: Einfuegen;
@@ -70,34 +74,63 @@ export const Einfuegemarken = ({
 }) => {
 	const [schnell, setSchnell] = useState<{ nr: number | null; left: number; top: number } | null>(null);
 	const [suche, setSuche] = useState('');
+	const [luecke, setLuecke] = useState<Luecke | null>(null);
 	const { box, doc, hoehe, links, skala } = e;
 	const leer = [...doc.querySelectorAll('.seite:not([data-erzeugt])')].filter((s) => s.children.length === 0);
 	const liste = suche.trim() ? (sucheImKatalog(suche, einfuegen.eintraege) as Posten[]) : einfuegen.eintraege;
-	const oeffne = (nr: number | null, left: number, top: number) => {
+	/** Immer ganz im Sichtfeld, auch am unteren Rand (B15) und wenn der Baustein aus dem Bild gerollt ist. */
+	const oeffne = (nr: number | null, wunschLinks: number, wunschOben: number) => {
+		const sicht = sichtfeldVon(doc);
+		const oben = sicht?.oben ?? 0;
+		const unten = Math.min(sicht?.unten ?? hoehe, hoehe);
+		const rechts = sicht?.rechts ?? wunschLinks + SCHNELL_BREITE;
+		const left = Math.max(8, Math.min(wunschLinks, rechts - SCHNELL_BREITE - 8));
+		const top = Math.max(oben + 8, Math.min(wunschOben, unten - SCHNELL_HOEHE - 8));
 		setSuche('');
-		setSchnell(schnell ? null : { nr, left, top });
+		setLuecke(null);
+		setSchnell({ nr, left, top });
 	};
 	const schliesse = () => {
 		setSchnell(null);
 		doc.defaultView?.focus();
 	};
+	const nimm = (p: Posten) => {
+		const nr = schnell?.nr ?? null;
+		schliesse();
+		einfuegen.fuegeEin(p, nr);
+	};
 
-	// `/` im Blatt: dort, wo gerade hingeschaut wird, auch wenn der Baustein aus dem Bild gerollt ist.
-	const zuletzt = useRef(schnellSignal);
+	// `/` und „+ Baustein“ aus Leiste, Menü und Palette: dort, wo gerade hingeschaut wird.
+	const zuletzt = useRef(schnellWunsch.n);
 	useEffect(() => {
-		if (zuletzt.current === schnellSignal) {
+		if (zuletzt.current === schnellWunsch.n) {
 			return;
 		}
-		zuletzt.current = schnellSignal;
-		const rahmen = doc.defaultView?.frameElement;
-		const sicht = rahmen?.closest('main');
-		const oben = sicht?.scrollTop ?? 0;
-		const hoch = sicht?.clientHeight ?? hoehe;
-		const wunsch = box ? box.bottom * skala + 46 : oben + hoch / 3;
-		const top = Math.max(oben + 8, Math.min(wunsch, oben + hoch - 340));
-		setSuche('');
-		setSchnell({ nr: auswahl, left: links + (box ? box.left * skala : 40), top });
-	}, [schnellSignal, auswahl, box, doc, hoehe, links, skala]);
+		zuletzt.current = schnellWunsch.n;
+		const sicht = sichtfeldVon(doc);
+		oeffne(
+			schnellWunsch.nr,
+			links + (box ? box.left * skala : 40),
+			box ? box.bottom * skala + 8 : (sicht?.oben ?? 0) + 80,
+		);
+	});
+
+	// Mit der Maus über einer Lücke: Linie und Pille. Am iPad gibt es kein Überfahren, dort genügt die Leiste.
+	useEffect(() => {
+		if (!aktiv) {
+			setLuecke(null);
+			return undefined;
+		}
+		const bewege = (ereignis: PointerEvent) => {
+			const neu =
+				ereignis.pointerType === 'mouse' && ereignis.buttons === 0
+					? lueckeAn(doc, ereignis.clientX, ereignis.clientY)
+					: null;
+			setLuecke((alt) => (alt?.nr === neu?.nr && alt?.y === neu?.y ? alt : neu));
+		};
+		doc.addEventListener('pointermove', bewege);
+		return () => doc.removeEventListener('pointermove', bewege);
+	}, [aktiv, doc]);
 
 	return (
 		<>
@@ -114,17 +147,27 @@ export const Einfuegemarken = ({
 					</span>
 				);
 			})}
-			{aktiv && box && auswahl !== null && (
-				<button
-					type="button"
-					aria-label="Baustein einfügen"
-					className="absolute flex size-11 -translate-x-1/2 items-center justify-center rounded-full bg-brand-500 text-white shadow-md"
-					data-einfuegen-plus
-					style={{ left: links + box.left * skala - 26, top: ((box.top + box.bottom) / 2) * skala - 22 }}
-					onClick={() => oeffne(auswahl, links + box.left * skala, box.bottom * skala + 46)}
+			{aktiv && luecke && !schnell && !e.zieht && (
+				<div
+					className="absolute z-ueberlagerung"
+					data-einfuege-luecke
+					style={{
+						left: links + luecke.x * skala,
+						top: luecke.y * skala - 1,
+						width: luecke.laenge * skala,
+					}}
 				>
-					<Symbol name="plus" />
-				</button>
+					<div className="pointer-events-none h-0.5 rounded-full bg-brand-500" />
+					<button
+						type="button"
+						className="absolute top-1/2 left-1/2 inline-flex h-knopf-klein -translate-x-1/2 -translate-y-1/2 items-center gap-1 rounded-full bg-brand-500 px-2 text-xs font-medium whitespace-nowrap text-white"
+						data-einfuegen-luecke
+						onClick={() => oeffne(luecke.nr, links + luecke.x * skala, luecke.y * skala + 12)}
+					>
+						<Symbol name="plus" />
+						Baustein
+					</button>
+				</div>
 			)}
 			{aktiv &&
 				leer.map((s) => {
@@ -158,7 +201,7 @@ export const Einfuegemarken = ({
 				<div
 					className="absolute z-20 w-80 rounded-xl border border-rand bg-flaeche p-2 shadow-lg"
 					data-schnellauswahl
-					style={{ left: schnell.left, top: schwebend(schnell.top, hoehe) }}
+					style={{ left: schnell.left, top: schnell.top }}
 				>
 					<input
 						type="search"
@@ -168,7 +211,16 @@ export const Einfuegemarken = ({
 						value={suche}
 						autoFocus
 						onChange={(ev) => setSuche(ev.target.value)}
-						onKeyDown={(ev) => ev.key === 'Escape' && schliesse()}
+						onKeyDown={(ev) => {
+							if (ev.key === 'Escape') {
+								schliesse();
+							} else if (ev.key === 'Enter') {
+								const erster = suche.trim() ? liste[0] : (einfuegen.zuletzt[0] ?? liste[0]);
+								if (erster) {
+									nimm(erster);
+								}
+							}
+						}}
 					/>
 					<div className="max-h-64 overflow-y-auto">
 						{!suche.trim() && einfuegen.zuletzt.length > 0 && (
@@ -176,20 +228,14 @@ export const Einfuegemarken = ({
 								<h3 className="px-3 text-sm text-leise">Zuletzt genutzt</h3>
 								<Liste
 									posten={einfuegen.zuletzt}
-									waehle={(p) => {
-										schliesse();
-										einfuegen.fuegeEin(p, schnell.nr);
-									}}
+									waehle={nimm}
 								/>
 								<h3 className="px-3 text-sm text-leise">Alle</h3>
 							</>
 						)}
 						<Liste
 							posten={liste}
-							waehle={(p) => {
-								schliesse();
-								einfuegen.fuegeEin(p, schnell.nr);
-							}}
+							waehle={nimm}
 						/>
 					</div>
 				</div>

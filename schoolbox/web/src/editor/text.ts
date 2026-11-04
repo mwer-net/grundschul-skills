@@ -81,7 +81,7 @@ export const useText = ({
 			},
 			endet: (ergebnis) => {
 				setBearbeitet(false);
-				setZustand(RUHE);
+				setZustand({ ...RUHE, fettMoeglich: s.zustand().fettMoeglich });
 				if (ergebnis) {
 					rueckrufe.current.befehl(ergebnis.quelle, 'Text geändert');
 					rueckrufe.current.setAuswahl((alt) => (alt === null ? null : ergebnis.umrechnen(alt)));
@@ -89,6 +89,8 @@ export const useText = ({
 			},
 		});
 		steuerung.current = s;
+		// Schon bei der Auswahl: Der Knopf ist dort gesperrt, wo Fett nicht geht.
+		setZustand({ ...RUHE, fettMoeglich: s.zustand().fettMoeglich });
 		return () => {
 			steuerung.current = null;
 			s.abbauen();
@@ -126,8 +128,20 @@ export const useText = ({
 	};
 
 	const formatiere = useCallback((format: Format) => steuerung.current?.formatiere(format), []);
+	/** Aus der Auswahl: Sitzung starten, alles markieren, formatieren. Am Ende bleibt das ein Schritt im Verlauf. */
+	const formatiereGanz = useCallback((format: Format) => {
+		const s = steuerung.current;
+		if (!s) {
+			return;
+		}
+		if (!s.aktiv()) {
+			s.fokussiere();
+			s.markiereAlles();
+		}
+		s.formatiere(format);
+	}, []);
 	const beende = useCallback(() => steuerung.current?.beende(), []);
 	const fokussiere = useCallback(() => steuerung.current?.fokussiere(), []);
 
-	return { bearbeitet, zustand, formatiere, beende, fokussiere, pruefeSpaeter };
+	return { bearbeitet, zustand, formatiere, formatiereGanz, beende, fokussiere, pruefeSpaeter };
 };

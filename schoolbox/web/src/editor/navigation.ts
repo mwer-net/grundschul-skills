@@ -30,3 +30,31 @@ export const ersterAufSeite = (doc: Document, seitenNr: number) => {
 	const seite = [...doc.querySelectorAll('.seite:not([data-erzeugt])')][seitenNr - 1];
 	return seite ? (waehlbareUnter(seite)[0] ?? null) : null;
 };
+
+export interface Luecke {
+	nr: number;
+	x: number;
+	y: number;
+	laenge: number;
+}
+
+/** Zeigt die Maus auf den freien Raum zwischen zwei Teilen einer Seite? Der Baustein davor ist die Einfügestelle. */
+export const lueckeAn = (doc: Document, x: number, y: number): Luecke | null => {
+	const unter = doc.elementFromPoint(x, y);
+	if (!unter?.matches('.seite:not([data-erzeugt])')) {
+		return null;
+	}
+	const kinder = [...unter.children].filter(
+		(k) => nrVon(k) !== null && bausteinVon(k) && !k.matches('.fuss') && k.getClientRects().length > 0,
+	);
+	for (const [i, k] of kinder.entries()) {
+		const unten = k.getBoundingClientRect();
+		const naechstes = kinder[i + 1]?.getBoundingClientRect();
+		const ende = naechstes?.top ?? unten.bottom + 28;
+		if (y >= unten.bottom - 2 && y <= ende + 2) {
+			const nr = nrVon(k);
+			return nr === null ? null : { nr, x: unten.left, y: (unten.bottom + ende) / 2, laenge: unten.width };
+		}
+	}
+	return null;
+};

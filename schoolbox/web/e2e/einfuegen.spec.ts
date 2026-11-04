@@ -18,7 +18,7 @@ test.describe('Editor: Bausteine einfügen', () => {
 		await expect.poll(() => quelle(page)).toBe(vorher);
 	});
 
-	test('Plus unter dem gewählten Baustein öffnet die Schnellauswahl', async ({ druecke, page }) => {
+	test('„+ Baustein“ in der Leiste öffnet die Schnellauswahl', async ({ druecke, page }) => {
 		const { dok, id } = await uhrzeit();
 		await oeffne(page, id, dok);
 		await druecke(material(page).locator('.aufgabe').first());

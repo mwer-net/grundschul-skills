@@ -44,6 +44,34 @@ const fertig = async (page: Page) => {
 };
 
 test.describe('Editor: Text', () => {
+	test('Schrift am gewählten Text wirkt auf das Ganze, bleibt an ihrem Platz, ein Schritt zurück', async ({
+		druecke,
+		page,
+	}) => {
+		const { dok, id } = await uhrzeit();
+		await oeffne(page, id, dok);
+		const blase = material(page).locator('.blase');
+		const knoepfe = page.locator('[data-textknoepfe]');
+		await druecke(blase);
+		const fertigKnopf = page.getByRole('button', { name: 'Fertig' });
+		if (await fertigKnopf.isVisible()) {
+			await fertigKnopf.click();
+		}
+		await expect(page.locator('[data-textbearbeitung]')).toHaveCount(0);
+		const vorher = await quelle(page);
+		const ort = await knoepfe.boundingBox();
+
+		await druecke(page.getByRole('button', { name: 'Hervorheben' }));
+		await expect(page.locator('[data-textbearbeitung]')).toBeVisible();
+		expect((await knoepfe.boundingBox())?.x).toBe(ort?.x);
+		await fertig(page);
+		await expect.poll(() => quelle(page)).toContain('<mark>');
+		expect(await blase.locator('mark').textContent()).toBe(await blase.textContent());
+
+		await page.keyboard.press('ControlOrMeta+z');
+		await expect.poll(() => quelle(page)).toBe(vorher);
+	});
+
 	test('zweimal antippen, tippen, daneben tippen: gespeichert als ein Schritt und nur an dieser Stelle', async ({
 		druecke,
 		page,

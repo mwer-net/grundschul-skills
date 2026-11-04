@@ -153,12 +153,8 @@ test.describe('Editor: frei gestaltetes Material (054)', () => {
 		const zelle = material(page).locator('#zelle');
 		await druecke(zelle);
 		await expect(page.locator('[data-auswahl="tabellenzelle"]')).toBeVisible();
-		const werkzeuge = page.getByRole('button', { name: 'Zeilen und Spalten' });
-		const zeile = page.getByRole('button', { name: 'Zeile danach' });
-		await expect(werkzeuge.or(zeile)).toBeVisible();
-		if (await werkzeuge.isVisible()) {
-			await werkzeuge.click();
-		}
+		const zeile = page.locator('[data-bausteinleiste]').getByRole('button', { name: 'Zeile danach' });
+		await zuDenWerkzeugen(page, zeile);
 		await zeile.click();
 		await gespeichert(page, datei);
 		await expect(material(page).locator('#plan tr')).toHaveCount(3);

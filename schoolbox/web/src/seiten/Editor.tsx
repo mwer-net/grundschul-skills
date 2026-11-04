@@ -28,12 +28,13 @@ import type { MenueArt } from '../editor/befehle';
 import { AlsVorlage } from '../editor/AlsVorlage';
 import { Konfliktleiste, Speicheranzeige, Vorschauleiste } from '../editor/Anzeigen';
 import { useBearbeitung } from '../editor/bearbeitung';
+import { Bausteinleiste } from '../editor/Bausteinleiste';
 import { Bibliothek, Einfuegemarken, Gliederung } from '../editor/Bibliothek';
 import { useBild } from '../editor/bild';
 import { Bildwerkzeug } from '../editor/Bildpanel';
 import { ClaudeFragen } from '../editor/ClaudeFragen';
 import { ClaudePanel } from '../editor/ClaudePanel';
-import { bausteinVon, editorHtml, pfadZu } from '../editor/darstellung';
+import { bausteinVon, editorHtml, elementZu, nrVon, pfadZu } from '../editor/darstellung';
 import { useEinfuegen, useSlash, useTabelleTab } from '../editor/einfuegen';
 import { useKiZustand } from '../editor/ki';
 import { Leinwand } from '../editor/Leinwand';
@@ -43,7 +44,7 @@ import { LinkeLeiste } from '../editor/LinkeLeiste';
 import { useLoesung } from '../editor/loesung';
 import { Loesungsuebersicht, Loesungswerkzeug } from '../editor/Loesungspanel';
 import { erstesKindVon, ersterAufSeite, nachbarVon, seiteAn } from '../editor/navigation';
-import { AuswahlPanel, Blattwerkzeug, Strukturwerkzeug, Textwerkzeug } from '../editor/Panel';
+import { AuswahlPanel, Blattwerkzeug, Strukturwerkzeug } from '../editor/Panel';
 import { Pruefhinweise } from '../editor/Pruefliste';
 import type { Pruefpunkt } from '../editor/pruefung';
 import { usePruefung } from '../editor/pruefung';
@@ -376,7 +377,7 @@ const Bearbeitung = ({ dokument, mappe: mappenDaten }: { mappe: Mappe; dokument:
 	const panels = usePanels(suche.get('neu') === '1', suche.get('claude') === '1');
 	const [alsVorlage, setAlsVorlage] = useState(false);
 	const [tastenOffen, setTastenOffen] = useState(false);
-	const [schnellSignal, setSchnellSignal] = useState(0);
+	const [schnellWunsch, setSchnellWunsch] = useState<{ n: number; nr: number | null }>({ n: 0, nr: null });
 	const ansicht = useRef<HTMLElement>(null);
 	const kiFehler = (useLocation().state as { kiFehler?: string } | null)?.kiFehler;
 	useEffect(() => {
@@ -531,6 +532,12 @@ const Bearbeitung = ({ dokument, mappe: mappenDaten }: { mappe: Mappe; dokument:
 			kiVerfuegbar: ki.zustand.verfuegbar,
 			namenszeile: zerlegung ? hatNamenszeile(zerlegung) : false,
 			festeSeiten: format === 'minibuch',
+			hatBild: bild.werte !== null,
+			davor: (() => {
+				const element = docJetzt && auswahl !== null ? elementZu(docJetzt, auswahl) : null;
+				const vorher = element?.previousElementSibling;
+				return vorher && bausteinVon(vorher) ? nrVon(vorher) : null;
+			})(),
 			textMarkiert: () =>
 				[document, geladen?.doc].some((d) => {
 					const markiert = d?.getSelection();
@@ -568,7 +575,17 @@ const Bearbeitung = ({ dokument, mappe: mappenDaten }: { mappe: Mappe; dokument:
 					ablage.setSammlungName(pfad.at(-1)?.name ?? '');
 				},
 				neueZahlen: abbildung.neueZahlen,
-				oeffneSchnellauswahl: () => setSchnellSignal((n) => n + 1),
+				oeffneSchnellauswahl: (nr = auswahl) => setSchnellWunsch((w) => ({ n: w.n + 1, nr })),
+				bildErsetzen: () => {
+					panels.setRechts('inspektor');
+					panels.setRechtsOffen(true);
+					// Dort steht auch der Hinweis zu Fotos von Kindern: Es gibt nur diesen einen Weg zum Hochladen.
+					window.setTimeout(() => {
+						const ort = document.querySelector('[data-bildwerkzeug]');
+						ort?.scrollIntoView({ block: 'start' });
+						ort?.querySelector<HTMLElement>('label, button')?.focus();
+					});
+				},
 				zurLeiste: () =>
 					document
 						.querySelector<HTMLElement>(
@@ -762,15 +779,6 @@ const Bearbeitung = ({ dokument, mappe: mappenDaten }: { mappe: Mappe; dokument:
 		inspektor: (
 			<AuswahlPanel pfad={pfad} waehle={setAuswahl} leer={ohneAuswahl}>
 				<Pruefhinweise stand={pruefung.stand} nr={auswahl} />
-				<Textwerkzeug
-					pfad={pfad}
-					aktiv={frei}
-					bearbeitet={text.bearbeitet}
-					zustand={text.zustand}
-					formatiere={text.formatiere}
-					beende={text.beende}
-					fokussiere={() => befehle.fuehreAus('auswahl.bearbeiten')}
-				/>
 				<Sprachwerkzeug
 					pfad={pfad}
 					aktiv={frei}
@@ -946,7 +954,6 @@ const Bearbeitung = ({ dokument, mappe: mappenDaten }: { mappe: Mappe; dokument:
 								html={html}
 								titel={meta.titel}
 								auswahl={auswahl}
-								auswahlName={pfad.at(-1)?.name ?? null}
 								waehle={setAuswahl}
 								zoom={zoom}
 								meldeMassstab={setMassstab}
@@ -966,15 +973,29 @@ const Bearbeitung = ({ dokument, mappe: mappenDaten }: { mappe: Mappe; dokument:
 								einblendung={
 									frei
 										? (e) => (
-												<Einfuegemarken
-													e={e}
-													auswahl={auswahl}
-													aktiv={struktur.aktiv}
-													setAuswahl={setAuswahl}
-													einfuegen={einfuegen}
-													slash={slash.menue}
-													schnellSignal={schnellSignal}
-												/>
+												<>
+													<Einfuegemarken
+														e={e}
+														aktiv={struktur.aktiv}
+														setAuswahl={setAuswahl}
+														einfuegen={einfuegen}
+														slash={slash.menue}
+														schnellWunsch={schnellWunsch}
+													/>
+													<Bausteinleiste
+														e={e}
+														pfad={pfad}
+														quelle={quelle}
+														format={format}
+														struktur={struktur}
+														befehle={befehle}
+														text={text}
+														abb={abbildung}
+														bild={bild}
+														loes={loes}
+														waehle={setAuswahl}
+													/>
+												</>
 											)
 										: undefined
 								}

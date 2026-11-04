@@ -62,6 +62,10 @@ interface Zug {
 export interface ZiehenSteuerung {
 	/** Ist in der laufenden Berührung gezogen worden? Dann ist sie kein Antippen. */
 	gezogen: () => boolean;
+	/** Vom Griff in der Leiste, also aus dem Elternfenster; Koordinaten des Materials. Losgelassen wird über `loslassen`. */
+	griffStart: (nr: number, x: number, y: number, id: number) => void;
+	griffBewege: (x: number, y: number) => void;
+	griffEnde: (ablegen: boolean) => void;
 	/** Loslassen außerhalb des Materials. */
 	loslassen: () => void;
 }
@@ -242,5 +246,24 @@ export const ruesteZiehen = (o: Optionen): ZiehenSteuerung => {
 		}
 	});
 
-	return { gezogen: () => gezogen, loslassen: () => beende(true) };
+	return {
+		gezogen: () => gezogen,
+		loslassen: () => beende(true),
+		griffStart: (nr, x, y, id) => {
+			const gewaehlt = elementZu(doc, nr);
+			const baustein = gewaehlt ? bausteinVon(gewaehlt) : undefined;
+			if (gewaehlt && baustein && !zug && o.erlaubt() && ziehbarImBlatt(baustein, gewaehlt)) {
+				druck = { id, x, y, maus: true, kandidat: { nr, element: gewaehlt, baustein }, timer: 0 };
+				beginne(x, y);
+			}
+		},
+		griffBewege: (x, y) => {
+			if (zug) {
+				zug.x = x;
+				zug.y = y;
+				aktualisiere();
+			}
+		},
+		griffEnde: (ablegen) => beende(ablegen),
+	};
 };

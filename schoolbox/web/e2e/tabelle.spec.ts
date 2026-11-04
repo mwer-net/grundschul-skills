@@ -12,12 +12,12 @@ test.describe('Editor: Tabelle', () => {
 		await expect(tabelle).toHaveCount(1);
 		const zelle = tabelle.locator('tbody td').first();
 		await druecke(zelle);
-		// Während des Tippens führt ein Knopf zu den Werkzeugen der Tabelle.
-		const zuDenWerkzeugen = page.getByRole('button', { name: 'Zeilen und Spalten' });
-		const zeileDanach = page.getByRole('button', { name: 'Zeile danach' });
-		await expect(zuDenWerkzeugen.or(zeileDanach)).toBeVisible();
-		if (await zuDenWerkzeugen.isVisible()) {
-			await zuDenWerkzeugen.click();
+		// Mit dem Finger beginnt das Tippen schon beim Antippen; „Fertig“ führt zurück zur Leiste der Zelle.
+		const fertig = page.getByRole('button', { name: 'Fertig' });
+		const zeileDanach = page.locator('[data-bausteinleiste]').getByRole('button', { name: 'Zeile danach' });
+		await expect(fertig.or(zeileDanach)).toBeVisible();
+		if (await fertig.isVisible()) {
+			await fertig.click();
 		}
 		await zeileDanach.click();
 		await expect(tabelle.locator('tbody tr')).toHaveCount(3);

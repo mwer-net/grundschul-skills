@@ -36,6 +36,8 @@ interface FeldBasis {
 	gruppe?: string;
 	/** Der Wert ist der Text im Element (`<x-silben>Ro|si|ne</x-silben>`), nicht ein Attribut. */
 	quelle?: 'inhalt';
+	/** Steht auch in der Leiste am Baustein: was man beim Durchgehen eines Blatts am häufigsten ändert (071). */
+	leiste?: boolean;
 }
 
 /** Vorschlag für den Notenschlüssel in Prozent (053); dieselbe Angabe steht in `abbildungen.js`, ein Test hält beide gleich. */
@@ -779,6 +781,7 @@ export const ABBILDUNG_SCHEMA = {
 				art: 'uhrzeit',
 				attribut: 'zeit',
 				name: 'Uhrzeit',
+				leiste: true,
 				hilfe: 'Ohne Uhrzeit bleibt die Uhr leer, zum Einzeichnen.',
 				loesung: { attribut: 'loesung', name: 'Zeiger nur in der Lösung' },
 			},

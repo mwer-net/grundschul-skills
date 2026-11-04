@@ -8,7 +8,14 @@ import {
 	SICHTBARKEITEN,
 } from '@schoolbox/kern/src/kit-einstellungen';
 import type { StrukturErgebnis } from '@schoolbox/kern/src/struktur';
-import { fuegeSpalteEin, fuegeZeileEin, loescheSpalte, loescheZeile } from '@schoolbox/kern/src/tabelle';
+import {
+	fuegeSpalteEin,
+	fuegeZeileEin,
+	groesseVon,
+	loescheSpalte,
+	loescheZeile,
+	setzeGroesse,
+} from '@schoolbox/kern/src/tabelle';
 import type { Druckprofil } from '@schoolbox/kern/src/werte';
 
 import { kuerzelAnzeige } from '../bausteine/kuerzel';
@@ -53,7 +60,8 @@ export interface Aktionen {
 	fuegeAblageEin: (nr: number | null) => void;
 	inSammlung: () => void;
 	neueZahlen: () => boolean;
-	oeffneSchnellauswahl: () => void;
+	oeffneSchnellauswahl: (nr?: number | null) => void;
+	bildErsetzen: () => void;
 	zurLeiste: () => void;
 	fassung: (fassung: 'material' | 'loesung') => void;
 	profil: (profil: Druckprofil) => void;
@@ -94,6 +102,9 @@ export interface Kontext {
 	kiVerfuegbar: boolean;
 	namenszeile: boolean;
 	festeSeiten: boolean;
+	hatBild: boolean;
+	/** Das Geschwister davor: „Baustein davor“ fügt dahinter ein. */
+	davor: number | null;
 	/** Text ist markiert: ⌘C und ⌘X bleiben dann dem Browser. */
 	textMarkiert: () => boolean;
 	tu: Aktionen;
@@ -121,6 +132,9 @@ export interface Befehl {
 	gesperrt?: (k: Kontext) => boolean;
 	/** Sagt, warum ein Kürzel gerade nichts tut, statt still zu bleiben. */
 	warumNicht?: (k: Kontext) => string | null;
+	/** Spezifischer Eintrag der Leiste am Baustein, mit diesem kurzen Namen. */
+	leisteTitel?: string;
+	leisteWenn?: (k: Kontext) => boolean;
 	/** Einträge mit gleichem Wert stehen im Menü in einem Untermenü. */
 	untermenue?: string;
 	aktiv?: (k: Kontext) => boolean;
@@ -129,7 +143,8 @@ export interface Befehl {
 const gewaehlt = (k: Kontext) => k.pfad.at(-1);
 const istSeite = (k: Kontext) => gewaehlt(k)?.baustein.art === 'seite';
 const einzigeSeite = (k: Kontext) => istSeite(k) && (k.werte?.seiten ?? 0) <= 1;
-const inZelle = (k: Kontext) => k.aktiv && gewaehlt(k)?.baustein.art === 'tabellenzelle';
+const inZelle = (k: Kontext) => k.aktiv && ['tabellenzelle', 'tabellenzeile'].includes(gewaehlt(k)?.baustein.art ?? '');
+const istTabelle = (k: Kontext) => k.aktiv && gewaehlt(k)?.baustein.art === 'tabelle';
 const kannText = (k: Kontext) => {
 	const g = gewaehlt(k);
 	return k.frei && Boolean(g && kann(g.baustein, 'text'));
@@ -141,7 +156,7 @@ const kannDas = (k: Kontext, was: 'loeschen' | 'duplizieren') => {
 
 const tabelle =
 	(id: string, titel: string, beschreibung: string, rechne: (q: string, nr: number, n: { jeSeite: boolean }) => StrukturErgebnis) =>
-	(orte: Ort[], gefahr = false): Befehl => ({
+	(orte: Ort[], gefahr = false, mehr: Partial<Befehl> = {}): Befehl => ({
 		id,
 		titel,
 		gruppe: gefahr ? 'gefahr' : 'bearbeiten',
@@ -156,7 +171,22 @@ const tabelle =
 				k.tu.struktur.fuehreAus(beschreibung, (q) => rechne(q, g.nr, { jeSeite: k.format === 'folie' }));
 			}
 		},
+		...mehr,
 	});
+
+/** Die ganze Tabelle ist gewählt: Es gibt keine Stelle, also kommt die neue Zeile bzw. Spalte ans Ende. */
+const anTabelle =
+	(was: 'zeilen' | 'spalten') =>
+	(k: Kontext): void => {
+		const g = gewaehlt(k);
+		if (!g) {
+			return;
+		}
+		const n = { jeSeite: k.format === 'folie' };
+		k.tu.struktur.fuehreAus('Tabellengröße geändert', (q) =>
+			setzeGroesse(q, g.nr, { [was]: groesseVon(q, g.nr)[was] + 1 }, n),
+		);
+	};
 
 const SICHTBARKEIT: Befehl[] = SICHTBARKEITEN.map((s) => ({
 	id: `auswahl.sichtbarkeit.${s.wert || 'beide'}`,
@@ -206,19 +236,50 @@ export const BEFEHLE: Befehl[] = [
 		suchwoerter: ['würfeln', 'neu', 'zufall'],
 		orte: ['taste', 'menue', 'leiste', 'palette'],
 		sichtbarUnter: 'leiste',
+		leisteTitel: 'Neue Zahlen',
 		verfuegbar: (k) => k.aktiv && k.hatNeueZahlen,
 		aus: (k) => k.tu.neueZahlen(),
 	},
-	tabelle('tabelle.zeile-danach', 'Zeile danach', 'Zeile eingefügt', (q, nr, n) => fuegeZeileEin(q, nr, 'nach', n))([
-		'menue',
-		'leiste',
-		'palette',
-	]),
-	tabelle('tabelle.spalte-danach', 'Spalte danach', 'Spalte eingefügt', (q, nr, n) => fuegeSpalteEin(q, nr, 'nach', n))([
-		'menue',
-		'leiste',
-		'palette',
-	]),
+	tabelle('tabelle.zeile-danach', 'Zeile danach', 'Zeile eingefügt', (q, nr, n) => fuegeZeileEin(q, nr, 'nach', n))(
+		['menue', 'leiste', 'palette'],
+		false,
+		{
+			leisteTitel: 'Zeile',
+			verfuegbar: (k) => inZelle(k) || istTabelle(k),
+			aus: (k) =>
+				istTabelle(k)
+					? anTabelle('zeilen')(k)
+					: k.tu.struktur.fuehreAus('Zeile eingefügt', (q) =>
+							fuegeZeileEin(q, gewaehlt(k)?.nr ?? 0, 'nach', { jeSeite: k.format === 'folie' }),
+						),
+		},
+	),
+	tabelle('tabelle.spalte-danach', 'Spalte danach', 'Spalte eingefügt', (q, nr, n) => fuegeSpalteEin(q, nr, 'nach', n))(
+		['menue', 'leiste', 'palette'],
+		false,
+		{
+			leisteTitel: 'Spalte',
+			leisteWenn: istTabelle,
+			verfuegbar: (k) => inZelle(k) || istTabelle(k),
+			aus: (k) =>
+				istTabelle(k)
+					? anTabelle('spalten')(k)
+					: k.tu.struktur.fuehreAus('Spalte eingefügt', (q) =>
+							fuegeSpalteEin(q, gewaehlt(k)?.nr ?? 0, 'nach', { jeSeite: k.format === 'folie' }),
+						),
+		},
+	),
+	{
+		id: 'auswahl.bild-ersetzen',
+		titel: 'Bild ersetzen',
+		gruppe: 'bearbeiten',
+		symbol: 'bild',
+		orte: ['menue', 'leiste', 'palette'],
+		sichtbarUnter: 'inspektor',
+		leisteTitel: 'Ersetzen',
+		verfuegbar: (k) => k.aktiv && k.hatBild,
+		aus: (k) => k.tu.bildErsetzen(),
+	},
 	tabelle('tabelle.zeile-davor', 'Zeile davor', 'Zeile eingefügt', (q, nr, n) => fuegeZeileEin(q, nr, 'vor', n))([
 		'palette',
 	]),
@@ -279,6 +340,16 @@ export const BEFEHLE: Befehl[] = [
 		verfuegbar: (k) => k.aktiv && k.hatAblage,
 		warumNicht: (k) => (k.aktiv ? 'In der Ablage liegt nichts.' : null),
 		aus: (k) => k.tu.fuegeAblageEin(gewaehlt(k)?.nr ?? null),
+	},
+	{
+		id: 'auswahl.einfuegen-davor',
+		titel: 'Baustein davor',
+		gruppe: 'ablage',
+		symbol: 'plus',
+		orte: ['menue', 'palette'],
+		sichtbarUnter: 'mehr',
+		verfuegbar: (k) => k.aktiv && k.davor !== null,
+		aus: (k) => k.tu.oeffneSchnellauswahl(k.davor),
 	},
 	{
 		id: 'auswahl.hoch',
@@ -351,10 +422,10 @@ export const BEFEHLE: Befehl[] = [
 	{
 		id: 'auswahl.stern',
 		titel: 'Sternchenaufgabe',
-		gruppe: 'baustein',
+		gruppe: 'bearbeiten',
 		symbol: 'stern',
-		orte: ['leiste', 'palette'],
-		sichtbarUnter: 'inspektor',
+		orte: ['menue', 'palette'],
+		sichtbarUnter: 'leiste',
 		verfuegbar: (k) => {
 			const g = gewaehlt(k);
 			return k.aktiv && Boolean(g && KIT_FELDER[g.baustein.art]?.some((f) => f.name === 'stern'));
@@ -475,7 +546,11 @@ export const BEFEHLE: Befehl[] = [
 			return g && k.tu.struktur.loesche(g.nr, g.name);
 		},
 	},
-	tabelle('tabelle.zeile-weg', 'Zeile löschen', 'Zeile gelöscht', (q, nr, n) => loescheZeile(q, nr, n))(['palette'], true),
+	tabelle('tabelle.zeile-weg', 'Zeile löschen', 'Zeile gelöscht', (q, nr, n) => loescheZeile(q, nr, n))(
+		['leiste', 'palette'],
+		true,
+		{ leisteTitel: 'Zeile' },
+	),
 	tabelle('tabelle.spalte-weg', 'Spalte löschen', 'Spalte gelöscht', (q, nr, n) => loescheSpalte(q, nr, n))(['palette'], true),
 
 	// Ansicht
@@ -736,7 +811,9 @@ export const BEFEHLE: Befehl[] = [
 		titel: (k) => (istSeite(k) ? 'Neue Seite danach' : 'Neue Seite'),
 		gruppe: 'dokument',
 		symbol: 'plus',
-		orte: ['menue', 'palette'],
+		orte: ['menue', 'leiste', 'palette'],
+		leisteTitel: 'Seite danach',
+		leisteWenn: istSeite,
 		sichtbarUnter: 'links',
 		verfuegbar: (k) => k.aktiv && !k.festeSeiten,
 		aus: (k) => k.tu.struktur.neueSeite(false),
@@ -882,11 +959,16 @@ const MENUE_MINIATUR = [
 	'auswahl.loeschen',
 ];
 const MENUE_BAUSTEIN: Gruppe[] = ['bearbeiten', 'ablage', 'ordnen', 'gefahr'];
+const MENUE_MAX = 12;
 
 /** Dieselbe Liste für Rechtsklick und ⋯. */
 export const befehleFuerMenue = (art: MenueArt, k: Kontext) => {
 	if (art === 'baustein') {
-		return befehleFuer('menue', k).filter((b) => MENUE_BAUSTEIN.includes(b.gruppe));
+		const liste = befehleFuer('menue', k).filter((b) => MENUE_BAUSTEIN.includes(b.gruppe));
+		const eintraege = new Set(liste.map((b) => b.untermenue ?? b.id)).size;
+		// Beides steht auch sichtbar anderswo: der Inspektor bzw. „+ Baustein“.
+		const entbehrlich = ['auswahl.in-sammlung', 'auswahl.einfuegen-davor'].slice(0, eintraege - MENUE_MAX);
+		return liste.filter((b) => !entbehrlich.includes(b.id));
 	}
 	const ids = art === 'leer' ? MENUE_LEER : MENUE_MINIATUR;
 	return ids.flatMap((id) => BEFEHLE.find((b) => b.id === id && b.verfuegbar(k)) ?? []);

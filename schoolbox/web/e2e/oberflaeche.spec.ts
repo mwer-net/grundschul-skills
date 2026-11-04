@@ -1,9 +1,11 @@
 import { readFile, writeFile } from 'node:fs/promises';
 import path from 'node:path';
 
-import type { Page } from '@playwright/test';
+import type { Locator, Page } from '@playwright/test';
 
 import { dateiname, expect, legeEntwuerfeAn, legeMappeAn, PASSWORT, test, waehle } from './hilfe';
+
+type Box = NonNullable<Awaited<ReturnType<Locator['boundingBox']>>>;
 
 /** Mit Finger 44 px, am Mac die Höhe der kleinsten Knöpfe (Issue 063, Entscheidungen 28 und 33). */
 const KLEINSTE_TIPPFLAECHE = { finger: 44, maus: 20 };
@@ -749,5 +751,113 @@ test.describe('Linke Leiste (067)', () => {
 		await druecke(page.getByRole('button', { name: 'Seite hinzufügen' }));
 		await expect(miniaturen).toHaveCount(4);
 		await expect.poll(() => namen().count()).toBeGreaterThan(mit);
+	});
+});
+
+test.describe('Leisten im Blatt (071)', () => {
+	const blatt = (page: Page) => page.frameLocator('[data-editor-rahmen="sichtbar"]');
+	const leiste = (page: Page) => page.locator('[data-bausteinleiste]');
+
+	const oeffneBlatt = async (page: Page) => {
+		const { dokumente, id } = await legeMappeAn('Leisten', 'mathematik', 2, [
+			{ titel: 'Blatt', vorlage: 'arbeitsblatt' },
+		]);
+		await page.goto(`/m/${id}/${dokumente[0]}/bearbeiten`);
+		await expect(page.locator('[data-leinwand][data-geladen]')).toBeVisible();
+	};
+
+	const uberlappt = (a: Box, b: Box) =>
+		a.x < b.x + b.width && b.x < a.x + a.width && a.y < b.y + b.height && b.y < a.y + a.height;
+
+	test('verdeckt den gewählten Baustein nicht und liegt in der Leinwand, auch eingepasst', async ({
+		druecke,
+		page,
+	}) => {
+		await oeffneBlatt(page);
+		for (const einpassen of [false, true]) {
+			if (einpassen) {
+				await druecke(page.getByRole('button', { name: 'Einpassen' }));
+			}
+			await druecke(blatt(page).locator('.aufgabe').first());
+			await expect(leiste(page)).toBeVisible();
+			const eigene = await leiste(page).boundingBox();
+			const rahmen = await page.locator('[data-auswahlrahmen]').boundingBox();
+			const flaeche = await page.locator('main').boundingBox();
+			if (!eigene || !rahmen || !flaeche) {
+				throw new Error('nicht zu sehen');
+			}
+			expect(uberlappt(eigene, rahmen)).toBe(false);
+			expect(eigene.x).toBeGreaterThanOrEqual(flaeche.x);
+			expect(eigene.x + eigene.width).toBeLessThanOrEqual(flaeche.x + flaeche.width);
+			expect(eigene.y).toBeGreaterThanOrEqual(flaeche.y);
+		}
+	});
+
+	test('bleibt beim Scrollen eines hohen Bausteins sichtbar', async ({ druecke, page }) => {
+		await oeffneBlatt(page);
+		await page.setViewportSize({ width: 1280, height: 600 });
+		await druecke(blatt(page).locator('.seite').first());
+		await expect(leiste(page)).toHaveAttribute('data-bausteinleiste', 'seite');
+		await page.locator('main').evaluate((el) => el.scrollTo(0, 500));
+		const flaeche = await page.locator('main').boundingBox();
+		await expect
+			.poll(async () => ((await leiste(page).boundingBox())?.y ?? 0) - (flaeche?.y ?? 0))
+			.toBeGreaterThanOrEqual(0);
+		await expect(leiste(page)).toBeInViewport();
+	});
+
+	test('jede Art zeigt ihre Einträge, die Leiste bleibt schmal', async ({ druecke, page }) => {
+		await oeffneBlatt(page);
+		const pruefe = async (ziel: Locator, art: string, namen: string[]) => {
+			await druecke(ziel);
+			await expect(leiste(page)).toHaveAttribute('data-bausteinleiste', art);
+			for (const name of namen) {
+				await expect(leiste(page).getByRole('button', { name })).toBeVisible();
+			}
+			expect((await leiste(page).boundingBox())?.width ?? 999).toBeLessThanOrEqual(560);
+		};
+		await pruefe(blatt(page).locator('x-uhr').first(), 'abbildung', ['Mehr zu diesem Baustein', 'Duplizieren']);
+		await expect(leiste(page).getByRole('combobox', { name: 'Stunde' })).toBeVisible();
+		await page.keyboard.press('Escape');
+		await pruefe(blatt(page).locator('.anw .text').first(), 'anweisung', ['Unterstrichen', 'Hervorheben']);
+		await expect(leiste(page).getByRole('button', { name: 'Fertig' })).toHaveCount(0);
+	});
+
+	test('Änderung in der Leiste steht auch im Inspektor und umgekehrt', async ({ druecke, page }) => {
+		await oeffneBlatt(page);
+		await druecke(blatt(page).locator('x-uhr').first());
+		const stunde = leiste(page).getByRole('combobox', { name: 'Stunde' });
+		const imInspektor = page.locator('[data-panel]').getByRole('combobox', { name: 'Stunde' });
+		await stunde.selectOption('7');
+		await expect(imInspektor).toHaveValue('7');
+		await imInspektor.selectOption('11');
+		await expect(stunde).toHaveValue('11');
+	});
+
+	test('Schnellauswahl am unteren Rand ist ganz sichtbar', async ({ druecke, page }) => {
+		await oeffneBlatt(page);
+		await page.setViewportSize({ width: 1280, height: 600 });
+		const letzte = blatt(page).locator('.aufgabe').last();
+		await letzte.scrollIntoViewIfNeeded();
+		await druecke(letzte);
+		await druecke(page.locator('[data-einfuegen-plus]'));
+		const fenster = page.locator('[data-schnellauswahl]');
+		await expect(fenster).toBeInViewport({ ratio: 1 });
+		await page.keyboard.press('Escape');
+		await expect(fenster).toHaveCount(0);
+	});
+
+	test('Am iPad: Antippen zeigt die Leiste, ⋯ ist erreichbar, Ziele mindestens 44 px', async ({ hasTouch, page }) => {
+		test.skip(!hasTouch, 'nur mit Finger');
+		await oeffneBlatt(page);
+		await blatt(page).locator('.aufgabe').first().tap();
+		await expect(leiste(page)).toBeVisible();
+		for (const knopf of await leiste(page).locator('button:visible').all()) {
+			if ((await knopf.getAttribute('data-leiste-griff')) === null) {
+				expect((await knopf.boundingBox())?.height ?? 0).toBeGreaterThanOrEqual(44);
+			}
+		}
+		await leiste(page).getByRole('button', { name: 'Mehr zu diesem Baustein' }).tap();
+		await expect(page.getByRole('menu')).toBeVisible();
 	});
 });

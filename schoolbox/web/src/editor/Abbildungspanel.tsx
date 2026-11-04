@@ -227,17 +227,25 @@ const MINUTEN = Array.from({ length: 12 }, (_, i) => i * 5);
 
 const zweistellig = (n: number) => String(n).padStart(2, '0');
 
-/** Stunde und Minute (in 5er-Schritten) als Auswahl; Werte aus der Quelle außerhalb davon bleiben wählbar. */
-const Uhrzeit = ({ abb, feld }: FeldEigenschaften<UhrzeitFeld>) => {
-	const id = useId();
+const uhrzeitVon = ({ abb, feld }: FeldEigenschaften<UhrzeitFeld>) => {
 	const wert = wertVon(feld, abb)?.wert ?? null;
 	const teile = /^(\d{1,2}):(\d{2})$/.exec(wert ?? '');
 	const stunde = teile ? Number(teile[1]) : null;
 	const minute = teile ? Number(teile[2]) : null;
-	const stunden = stunde === null || STUNDEN.includes(stunde) ? STUNDEN : [stunde, ...STUNDEN];
-	const minuten = minute === null || MINUTEN.includes(minute) ? MINUTEN : [...MINUTEN, minute].sort((a, b) => a - b);
-	const setze = (h: number | null, m: number | null) =>
-		abb.aendere(feld, h === null ? null : `${h}:${zweistellig(m ?? 0)}`);
+	return {
+		stunde,
+		minute,
+		stunden: stunde === null || STUNDEN.includes(stunde) ? STUNDEN : [stunde, ...STUNDEN],
+		minuten: minute === null || MINUTEN.includes(minute) ? MINUTEN : [...MINUTEN, minute].sort((a, b) => a - b),
+		setze: (h: number | null, m: number | null) =>
+			abb.aendere(feld, h === null ? null : `${h}:${zweistellig(m ?? 0)}`),
+	};
+};
+
+/** Stunde und Minute (in 5er-Schritten) als Auswahl; Werte aus der Quelle außerhalb davon bleiben wählbar. */
+const Uhrzeit = ({ abb, feld }: FeldEigenschaften<UhrzeitFeld>) => {
+	const id = useId();
+	const { minute, minuten, setze, stunde, stunden } = uhrzeitVon({ abb, feld });
 	return (
 		<Rahmen feld={feld} abb={abb} id={id}>
 			<div className="flex items-center gap-2" data-uhrzeit>
@@ -1610,6 +1618,54 @@ const NeueZahlen = ({ neueZahlen }: { neueZahlen: () => boolean }) => {
 		</div>
 	);
 };
+
+const LEISTE_AUSWAHL = 'h-feld rounded-md border border-rand-feld bg-flaeche px-1 text-xs text-tinte';
+
+/** Dieselben Werte wie im Inspektor, nur kompakt: `aendere` hält beide auf demselben Stand. */
+const UhrzeitInLeiste = ({ abb, feld }: FeldEigenschaften<UhrzeitFeld>) => {
+	const { minute, minuten, setze, stunde, stunden } = uhrzeitVon({ abb, feld });
+	return (
+		<span className="flex flex-none items-center gap-1 text-xs text-leise" data-leiste-uhrzeit>
+			{feld.name}
+			<select
+				aria-label="Stunde"
+				className={LEISTE_AUSWAHL}
+				value={stunde ?? ''}
+				onChange={(e) => setze(e.target.value === '' ? null : Number(e.target.value), minute)}
+			>
+				<option value="">–</option>
+				{stunden.map((h) => (
+					<option key={h} value={h}>
+						{h}
+					</option>
+				))}
+			</select>
+			:
+			<select
+				aria-label="Minuten"
+				className={LEISTE_AUSWAHL}
+				disabled={stunde === null}
+				value={minute ?? ''}
+				onChange={(e) => setze(stunde, Number(e.target.value))}
+			>
+				{minute === null && <option value="">–</option>}
+				{minuten.map((m) => (
+					<option key={m} value={m}>
+						{zweistellig(m)}
+					</option>
+				))}
+			</select>
+		</span>
+	);
+};
+
+const leistenFelder = (abb: AbbildungSteuerung) =>
+	(abb.schema?.felder ?? []).filter((f): f is UhrzeitFeld => f.art === 'uhrzeit' && f.leiste === true);
+
+export const hatLeistenfeld = (abb: AbbildungSteuerung) => leistenFelder(abb).length > 0;
+
+export const AbbildungLeiste = ({ abb }: { abb: AbbildungSteuerung }) =>
+	leistenFelder(abb).map((f) => <UhrzeitInLeiste key={f.attribut} abb={abb} feld={f} />);
 
 export const Abbildungswerkzeug = ({ abb, neueZahlen }: { abb: AbbildungSteuerung; neueZahlen: () => boolean }) => {
 	const { schema } = abb;

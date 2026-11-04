@@ -1,5 +1,4 @@
-import type { Zeilen } from '@schoolbox/kern/src/bausteine';
-import { kann, kannImFormat, zeilenVon } from '@schoolbox/kern/src/bausteine';
+import { kann, kannImFormat } from '@schoolbox/kern/src/bausteine';
 import type { BlattWerte as BlattWerteTyp } from '@schoolbox/kern/src/kit-einstellungen';
 import {
 	BLATT_FORMATE,
@@ -26,9 +25,7 @@ import { Symbol } from '../bausteine/Symbol';
 import { klasseName } from '../lib/text';
 import type { Ablage } from './ablage';
 import type { PfadTeil } from './darstellung';
-import { halteFokus } from './halteFokus';
 import type { Spalten, Struktur } from './struktur';
-import type { Format, TextZustand } from './textdom';
 import type { Befehle } from './useBefehle';
 
 /** Nur für die Punkte im Panel; die Farben selbst stehen in `blatt.css`. */
@@ -81,101 +78,6 @@ export const AuswahlPanel = ({ children, leer, pfad, waehle }: Eigenschaften) =>
 				<Symbol name="schliessen" />
 				Auswahl aufheben
 			</Knopf>
-		</div>
-	);
-};
-
-const FERTIG: Record<Zeilen, string> = {
-	eine: 'Fertig bist du mit ⏎ oder wenn du neben den Text tippst.',
-	umbruch: '⏎ macht eine neue Zeile. Fertig bist du, wenn du neben den Text tippst.',
-	absatz: '⏎ beginnt einen neuen Absatz. Fertig bist du, wenn du neben den Text tippst.',
-};
-
-interface TextEigenschaften {
-	pfad: PfadTeil[];
-	/** Nicht in der Vorschau einer Version und nicht bei einem Konflikt. */
-	aktiv: boolean;
-	bearbeitet: boolean;
-	zustand: TextZustand;
-	formatiere: (format: Format) => void;
-	beende: () => void;
-	fokussiere: () => void;
-}
-
-/** Für Textträger: Text ändern, dabei nur fett und unterstrichen; Schrift und Größe bestimmt das Blatt. */
-export const Textwerkzeug = ({
-	aktiv,
-	bearbeitet,
-	beende,
-	fokussiere,
-	formatiere,
-	pfad,
-	zustand,
-}: TextEigenschaften) => {
-	const baustein = pfad.at(-1)?.baustein;
-	if (!aktiv || !baustein || !kann(baustein, 'text')) {
-		return null;
-	}
-	if (!bearbeitet) {
-		return (
-			<div className="mt-3">
-				<Knopf art="zweit" onClick={fokussiere}>
-					<Symbol name="stift" />
-					Text ändern
-				</Knopf>
-				<p className="mt-2 text-leise">Oder tippe noch einmal in den Text.</p>
-			</div>
-		);
-	}
-	return (
-		<div className="mt-3" data-textbearbeitung>
-			<div className="flex flex-wrap gap-2">
-				<div role="group" aria-label="Schrift" className="flex gap-2">
-					<Knopf
-						art={zustand.fett ? 'haupt' : 'zweit'}
-						className="size-knopf px-0 text-lg font-semibold"
-						aria-label="Fett"
-						title={zustand.fettMoeglich ? 'Fett (⌘B)' : 'Dieser Text ist schon fett'}
-						aria-pressed={zustand.fett}
-						disabled={!zustand.fettMoeglich}
-						{...halteFokus}
-						onClick={() => formatiere('bold')}
-					>
-						B
-					</Knopf>
-					<Knopf
-						art={zustand.unterstrichen ? 'haupt' : 'zweit'}
-						className="size-knopf px-0 text-lg underline"
-						aria-label="Unterstrichen"
-						title="Unterstrichen (⌘U)"
-						aria-pressed={zustand.unterstrichen}
-						{...halteFokus}
-						onClick={() => formatiere('underline')}
-					>
-						U
-					</Knopf>
-					<Knopf
-						art="zweit"
-						className="px-3"
-						aria-label="Hervorheben"
-						title="Markierten Text hervorheben; in s/w fett und unterstrichen"
-						{...halteFokus}
-						onClick={() => formatiere('mark')}
-					>
-						<mark className="rounded bg-amber-200 px-1">A</mark>
-					</Knopf>
-				</div>
-				<Knopf {...halteFokus} onClick={beende}>
-					<Symbol name="haken" />
-					Fertig
-				</Knopf>
-				{pfad.some((t) => t.baustein.art === 'tabelle') && (
-					<Knopf art="zweit" {...halteFokus} onClick={beende}>
-						Zeilen und Spalten
-					</Knopf>
-				)}
-			</div>
-			<p className="mt-2 text-leise">{FERTIG[zeilenVon(baustein)]}</p>
 		</div>
 	);
 };

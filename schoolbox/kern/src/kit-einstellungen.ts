@@ -25,6 +25,10 @@ import { FORMATE, STANDARD_FORMAT } from './werte';
 interface FeldBasis {
 	name: string;
 	titel: string;
+	/** Steht auch in der Leiste am Baustein: was man beim Durchgehen eines Blatts am häufigsten ändert (071). */
+	leiste?: boolean;
+	/** Kürzerer Name für die Leiste; im Inspektor bleibt `titel`. */
+	leisteName?: string;
 }
 type ZahlFeld = FeldBasis & {
 	typ: 'zahl';
@@ -55,7 +59,7 @@ const BREITE = {
 
 export const KIT_FELDER: Readonly<Record<string, readonly KitFeld[]>> = {
 	schreiblinie: [
-		{ typ: 'zahl', name: 'anzahl', titel: 'Anzahl', min: 1, max: 12, schritt: 1, einheit: '', standard: 1 },
+		{ typ: 'zahl', name: 'anzahl', titel: 'Anzahl', min: 1, max: 12, schritt: 1, einheit: '', standard: 1, leiste: true },
 		{ typ: 'zahl', name: 'abstand', titel: 'Abstand', min: 20, max: 60, schritt: 2, einheit: 'px', standard: 34 },
 	],
 	antwort: [
@@ -63,6 +67,7 @@ export const KIT_FELDER: Readonly<Record<string, readonly KitFeld[]>> = {
 			typ: 'wahl',
 			name: 'breite',
 			titel: 'Breite',
+			leiste: true,
 			optionen: [
 				{ wert: 'kurz', titel: 'Kurz' },
 				{ wert: '', titel: 'Normal' },
@@ -72,13 +77,23 @@ export const KIT_FELDER: Readonly<Record<string, readonly KitFeld[]>> = {
 		},
 		{ typ: 'text', name: 'loesung', titel: 'Lösung' },
 	],
-	malfeld: [{ ...HOEHE, standard: 160 }, BREITE],
+	malfeld: [{ ...HOEHE, standard: 160, leiste: true }, BREITE],
 	leerstelle: [{ ...HOEHE, standard: 80 }, BREITE],
 	box: [{ typ: 'zahl', name: 'groesse', titel: 'Größe', min: 12, max: 60, schritt: 2, einheit: 'px', standard: 20 }],
 	aufgabe: [
 		{ typ: 'zahl', name: 'niveau', titel: 'Niveau-Punkte', min: 0, max: 3, schritt: 1, einheit: '', standard: 0 },
-		{ typ: 'schalter', name: 'stern', titel: 'Sternchenaufgabe' },
-		{ typ: 'zahl', name: 'punkte', titel: 'Punkte', min: 0, max: 50, schritt: 0.5, einheit: '', standard: 0 },
+		{ typ: 'schalter', name: 'stern', titel: 'Sternchenaufgabe', leiste: true, leisteName: 'Sternchen' },
+		{
+			typ: 'zahl',
+			name: 'punkte',
+			titel: 'Punkte',
+			min: 0,
+			max: 50,
+			schritt: 0.5,
+			einheit: '',
+			standard: 0,
+			leiste: true,
+		},
 		{
 			typ: 'wahl',
 			name: 'afb',

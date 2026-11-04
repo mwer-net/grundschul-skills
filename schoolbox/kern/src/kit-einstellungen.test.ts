@@ -1,7 +1,15 @@
 import assert from 'node:assert/strict';
 import { describe, it } from 'node:test';
 
-import { leseBlatt, leseKit, leseSichtbarkeit, setzeBlatt, setzeKit, setzeSichtbarkeit } from './kit-einstellungen';
+import {
+	KIT_FELDER,
+	leseBlatt,
+	leseKit,
+	leseSichtbarkeit,
+	setzeBlatt,
+	setzeKit,
+	setzeSichtbarkeit,
+} from './kit-einstellungen';
 import { klassenVon, zerlege } from './quelltext';
 
 const BLATT = `<!doctype html><html><head><title>Alt</title></head>
@@ -120,5 +128,16 @@ describe('Tabelle: Klassen und Lösung', () => {
 		assert.equal(setzeKit(a, t, 'tabelle', 'zeilenhoehe', ''), T);
 		assert.equal(setzeKit(setzeKit(T, t, 'tabelle', 'kopfspalte', true), t, 'tabelle', 'kopfspalte', false), T);
 		assert.match(setzeKit(T, kn(T, 'td'), 'tabellenzelle', 'loesung', '4'), /<td data-l="4">/);
+	});
+});
+
+describe('Felder für die Leiste am Baustein', () => {
+	it('Jeder Baustein hat höchstens drei, und sie stehen dort, wo auch der Inspektor sie liest', () => {
+		for (const [art, felder] of Object.entries(KIT_FELDER)) {
+			assert.ok(felder.filter((f) => f.leiste).length <= 3, art);
+		}
+		const namen = (art: string) => (KIT_FELDER[art] ?? []).filter((f) => f.leiste).map((f) => f.name);
+		assert.deepEqual(namen('aufgabe'), ['stern', 'punkte']);
+		assert.deepEqual(namen('schreiblinie'), ['anzahl']);
 	});
 });
