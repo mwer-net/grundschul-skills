@@ -51,7 +51,7 @@ describe('Verlauf des Chats', () => {
 		const viele = Array.from({ length: MAX_NACHRICHTEN + 5 }, (_, i) => nachricht(String(i)));
 		schreibeVerlauf(s, 'k', viele);
 		const gelesen = liesVerlauf(s, 'k');
-		assert.equal(gelesen.length, MAX_NACHRICHTEN);
+		assert.equal(gelesen.length, 50);
 		assert.equal(gelesen.at(-1)?.text, String(MAX_NACHRICHTEN + 4));
 	});
 

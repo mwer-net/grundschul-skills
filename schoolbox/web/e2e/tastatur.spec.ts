@@ -48,8 +48,10 @@ test.describe('Tastatur (069)', () => {
 		await bereit(page);
 		expect(name).toBeTruthy();
 
-		for (let i = 0; i < 3; i += 1) {
+		// Im Tempo einer Hand: Ein Druck im selben Augenblick, in dem der `iframe` wechselt, erreicht kein Dokument.
+		for (let i = 2; i >= 0; i -= 1) {
 			await page.keyboard.press('ControlOrMeta+z');
+			await expect(aufgaben).toHaveCount(anzahl - i);
 		}
 		await expect.poll(() => quelle(page)).toBe(vorher);
 	});
