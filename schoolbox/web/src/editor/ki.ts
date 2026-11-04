@@ -96,13 +96,16 @@ interface Wunsch {
 }
 
 /** Auftrag und Vorschlag eines Dokuments. Beides überlebt Neuladen: Der Server hält den Stand. */
-export const useKiAuftrag = (mappe: string, dok: string, nachLauf: () => void, gestartet?: string) => {
-	const basis = `/api/dokumente/${mappe}/${dok}`;
+export const useKiAuftrag = (mappe: string | null, dok: string | null, nachLauf: () => void, gestartet?: string) => {
+	const basis = mappe && dok ? `/api/dokumente/${mappe}/${dok}` : null;
 	const [auftrag, setAuftrag] = useState<KiAuftrag | null>(null);
 	const [vorschlag, setVorschlag] = useState<Vorschlag | null>(null);
 	const [fehler, setFehler] = useState<string | null>(null);
 
 	const ladeVorschlag = useCallback(async () => {
+		if (!basis) {
+			return;
+		}
 		const { vorschlag: neu } = await lade<{ vorschlag: Vorschlag | null }>(`${basis}/vorschlag`);
 		setVorschlag(neu);
 	}, [basis]);
@@ -129,6 +132,9 @@ export const useKiAuftrag = (mappe: string, dok: string, nachLauf: () => void, g
 	);
 
 	useEffect(() => {
+		if (!basis) {
+			return;
+		}
 		void ladeVorschlag().catch(() => undefined);
 		lade<{ auftraege: KiAuftrag[] }>(`${basis}/ki`).then(
 			({ auftraege }) => {
@@ -159,6 +165,9 @@ export const useKiAuftrag = (mappe: string, dok: string, nachLauf: () => void, g
 	});
 
 	const starte = async (wunsch: Wunsch) => {
+		if (!basis) {
+			return;
+		}
 		setFehler(null);
 		try {
 			const { auftrag: neu } = await sende<{ auftrag: KiAuftrag }>(`${basis}/ki`, wunsch);

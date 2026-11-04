@@ -1,4 +1,5 @@
 import type { EigeneVorlage } from '@schoolbox/kern/src/eigene';
+import type { Einordnung } from '@schoolbox/kern/src/einordnung';
 import { ART_KURZ, ART_NAME, FACH_NAME } from '@schoolbox/kern/src/namen';
 import type { Art, Fach, Format, Klasse } from '@schoolbox/kern/src/werte';
 import {
@@ -21,9 +22,9 @@ import { FELD_KLASSEN, klassen } from '../bausteine/klassen';
 import { Knopf } from '../bausteine/Knopf';
 import { Symbol } from '../bausteine/Symbol';
 import { useKiZustand } from '../editor/ki';
-import { melde } from '../ereignisse';
 import { useLaden } from '../lib/laden';
 import { klasseName } from '../lib/text';
+import { legeMappeAn, legeMaterialAn } from './material-anlegen';
 
 const FELD = `${FELD_KLASSEN} w-full`;
 
@@ -84,9 +85,7 @@ export const MappeDialog = ({ schliessen }: { schliessen: () => void }) => {
 		setLaeuft(true);
 		setFehler(null);
 		try {
-			const { mappe } = await sende<{ mappe: { id: string } }>('/api/mappen', { titel, fach, klasse });
-			melde({ typ: 'mappe-neu', mappe: mappe.id });
-			void navigate(`/m/${mappe.id}`);
+			void navigate(`/m/${await legeMappeAn({ titel, fach, klasse })}`);
 		} catch (grund) {
 			setFehler(meldung(grund));
 			setLaeuft(false);
@@ -246,19 +245,40 @@ const EigeneWahl = ({
 	);
 };
 
+interface MaterialDialogEigenschaften {
+	/** Die Mappe des Assistenten; sonst die aus der Einordnung, oder eine neue. */
+	mappe?: string;
+	/** Aus dem Chat (077): alles vorbelegt, Claude schreibt den Entwurf. */
+	einordnung?: Einordnung;
+	wunsch?: string;
+	schliessen: () => void;
+	vorDemSprung?: (mappe: string, dok: string) => void;
+}
+
 /** Assistent „Material anlegen“: Art, Format, Titel, Start. Abbrechen legt nichts an; erst der letzte Schritt schreibt. */
-export const MaterialAnlegen = ({ mappe }: { mappe: string }) => {
-	const [offen, setOffen] = useState(false);
+export const MaterialDialog = ({
+	einordnung,
+	mappe: festeMappe,
+	schliessen,
+	vorDemSprung,
+	wunsch: wunschVorher,
+}: MaterialDialogEigenschaften) => {
+	const einordnungMappe = einordnung?.mappe;
+	const mappe = festeMappe ?? (einordnungMappe && 'id' in einordnungMappe ? einordnungMappe.id : null);
+	const [mappeTitel, setMappeTitel] = useState(einordnungMappe && 'neu' in einordnungMappe ? einordnungMappe.neu : '');
+	const [fach, setFach] = useState<Fach>(einordnung?.fach ?? 'deutsch');
+	const [klasse, setKlasse] = useState<Klasse>(einordnung?.klasse ?? 1);
 	const [schritt, setSchritt] = useState(0);
-	const [art, setArt] = useState<Art>('arbeitsblatt');
-	const [format, setFormat] = useState<Format>(ART_ANGABEN.arbeitsblatt.format);
-	const [titel, setTitel] = useState('');
+	const [art, setArt] = useState<Art>(einordnung?.art ?? 'arbeitsblatt');
+	const [format, setFormat] = useState<Format>(einordnung?.format ?? ART_ANGABEN.arbeitsblatt.format);
+	const [titel, setTitel] = useState(einordnung?.titel ?? '');
 	const [vorlage, setVorlage] = useState<string | null>(null);
 	const [zusatz, setZusatz] = useState<Partial<Record<ZusatzName, boolean>>>({});
 	const [fehler, setFehler] = useState<string | null>(null);
 	const [laeuft, setLaeuft] = useState(false);
-	const [mitClaude, setMitClaude] = useState(false);
-	const [wunsch, setWunsch] = useState('');
+	const [mitClaude, setMitClaude] = useState(Boolean(einordnung));
+	const [wunsch, setWunsch] = useState(wunschVorher ?? '');
+	const ausDemChat = Boolean(einordnung);
 	const ki = useKiZustand().zustand;
 	const navigate = useNavigate();
 	const { daten } = useLaden<{ vorlagen: string[] }>('/api/mappen/vorlagen/liste');
@@ -268,10 +288,10 @@ export const MaterialAnlegen = ({ mappe }: { mappe: string }) => {
 	// Die als Standard markierte Vorlage ist vorgewählt, sobald die Art feststeht.
 	useEffect(() => {
 		const standard = eigene.find((v) => v.standard);
-		if (standard) {
+		if (standard && !ausDemChat) {
 			setVorlage(`eigen-${standard.id}`);
 		}
-	}, [eigene]);
+	}, [ausDemChat, eigene]);
 	const zusaetze = zusatzVon(art);
 
 	const waehleArt = (a: Art) => {
@@ -280,13 +300,8 @@ export const MaterialAnlegen = ({ mappe }: { mappe: string }) => {
 		setVorlage(null);
 		setZusatz({});
 	};
-	const zu = () => {
-		setOffen(false);
-		setSchritt(0);
-		setFehler(null);
-	};
 	const weiter = () => {
-		if (SCHRITTE[schritt] === 'Titel' && titel.trim() === '') {
+		if (SCHRITTE[schritt] === 'Titel' && (titel.trim() === '' || (!mappe && mappeTitel.trim() === ''))) {
 			setFehler('Bitte gib einen Titel ein.');
 			return;
 		}
@@ -302,27 +317,18 @@ export const MaterialAnlegen = ({ mappe }: { mappe: string }) => {
 		setFehler(null);
 		try {
 			const endFormat = vorlage ? (VORLAGE_FORMAT[vorlage]?.format ?? format) : format;
-			const { id } = await sende<{ id: string }>(`/api/mappen/${mappe}/dokumente`, {
+			const ziel = mappe ?? (await legeMappeAn({ titel: mappeTitel, fach, klasse }));
+			const { id, state, ziel: adresse } = await legeMaterialAn({
+				mappe: ziel,
 				titel,
 				art,
 				format: endFormat,
-				...(vorlage ? { vorlage } : {}),
+				vorlage,
 				zusatz: mitClaude ? {} : zusatz,
+				wunsch: mitClaude ? wunsch : null,
 			});
-			melde({ typ: 'mappe-neu', mappe });
-			if (!mitClaude) {
-				void navigate(`/m/${mappe}/${id}/bearbeiten?neu=1`);
-				return;
-			}
-			// Das Blatt steht schon: Startet Claude nicht, geht es leer weiter, mit der Meldung im Editor.
-			const state = await sende<{ auftrag: { id: string } }>(`/api/dokumente/${mappe}/${id}/ki`, {
-				aktion: 'neu-entwurf',
-				auftrag: wunsch,
-			}).then(
-				({ auftrag }) => ({ kiAuftrag: auftrag.id }),
-				(grund: unknown) => ({ kiFehler: meldung(grund) }),
-			);
-			void navigate(`/m/${mappe}/${id}/bearbeiten?claude=1`, { state });
+			vorDemSprung?.(ziel, id);
+			void navigate(adresse, { state });
 		} catch (grund) {
 			setFehler(meldung(grund));
 			setLaeuft(false);
@@ -332,13 +338,7 @@ export const MaterialAnlegen = ({ mappe }: { mappe: string }) => {
 	const letzter = schritt === SCHRITTE.length - 1;
 
 	return (
-		<>
-			<Knopf onClick={() => setOffen(true)} data-material-anlegen>
-				<Symbol name="plus" />
-				Material anlegen
-			</Knopf>
-			{offen && (
-				<Dialog titel={`Material anlegen: ${name}`} schliessen={zu}>
+		<Dialog titel={`Material anlegen: ${name}`} schliessen={schliessen}>
 					<div data-assistent={name}>
 						<Fehler text={fehler} />
 						{name === 'Art' && (
@@ -372,14 +372,55 @@ export const MaterialAnlegen = ({ mappe }: { mappe: string }) => {
 							</div>
 						)}
 						{name === 'Titel' && (
-							<Feld name="Titel">
-								<input
-									className={FELD}
-									value={titel}
-									autoFocus
-									onChange={(e) => setTitel(e.target.value)}
-								/>
-							</Feld>
+							<>
+								<Feld name="Titel">
+									<input
+										className={FELD}
+										value={titel}
+										autoFocus
+										onChange={(e) => setTitel(e.target.value)}
+									/>
+								</Feld>
+								{!mappe && (
+									<>
+										<Feld name="Neue Mappe">
+											<input
+												className={FELD}
+												value={mappeTitel}
+												onChange={(e) => setMappeTitel(e.target.value)}
+											/>
+										</Feld>
+										<Feld name="Fach">
+											<select
+												className={FELD}
+												value={fach}
+												onChange={(e) => setFach(e.target.value as Fach)}
+											>
+												{FAECHER.map((f) => (
+													<option key={f} value={f}>
+														{FACH_NAME[f]}
+													</option>
+												))}
+											</select>
+										</Feld>
+										<Feld name="Klasse">
+											<select
+												className={FELD}
+												value={String(klasse)}
+												onChange={(e) =>
+													setKlasse(KLASSEN.find((k) => String(k) === e.target.value) ?? 1)
+												}
+											>
+												{KLASSEN.map((k) => (
+													<option key={k} value={String(k)}>
+														{klasseName(k)}
+													</option>
+												))}
+											</select>
+										</Feld>
+									</>
+								)}
+							</>
 						)}
 						{name === 'Start' && (
 							<>
@@ -485,7 +526,7 @@ export const MaterialAnlegen = ({ mappe }: { mappe: string }) => {
 							</>
 						)}
 						<div className="mt-4 flex justify-end gap-2">
-							<Knopf art="leise" onClick={zu}>
+							<Knopf art="leise" onClick={schliessen}>
 								Abbrechen
 							</Knopf>
 							{schritt > 0 && (
@@ -502,8 +543,19 @@ export const MaterialAnlegen = ({ mappe }: { mappe: string }) => {
 							)}
 						</div>
 					</div>
-				</Dialog>
-			)}
+		</Dialog>
+	);
+};
+
+export const MaterialAnlegen = ({ mappe }: { mappe: string }) => {
+	const [offen, setOffen] = useState(false);
+	return (
+		<>
+			<Knopf onClick={() => setOffen(true)} data-material-anlegen>
+				<Symbol name="plus" />
+				Material anlegen
+			</Knopf>
+			{offen && <MaterialDialog mappe={mappe} schliessen={() => setOffen(false)} />}
 		</>
 	);
 };

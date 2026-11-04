@@ -5,6 +5,8 @@ import type { ChatFensterZustand, ChatKontext, ChatLauf, ChatSteuerung } from '.
 import { ChatStandKontext, ChatSteuerungKontext } from './chat-kontext';
 import { ChatInhalt } from './ChatFenster';
 import { useKiZustand } from './ki';
+import { TASTEN_SPERRE } from './tasten';
+import { useNeuMaterial } from './useNeuMaterial';
 
 const SPEICHER = 'schoolbox-chat-fenster';
 
@@ -26,6 +28,7 @@ export const ChatRahmen = () => {
 	const [entwurf, setEntwurf] = useState('');
 	const [zitat, setZitat] = useState<string | null>(null);
 	const [fokus, setFokus] = useState(0);
+	const neu = useNeuMaterial();
 	const jetzt = useRef({ fenster, kontext });
 	useEffect(() => {
 		jetzt.current = { fenster, kontext };
@@ -38,7 +41,8 @@ export const ChatRahmen = () => {
 
 	/** Beim Wechsel ins Fenster, nicht beim Absenden: Danach ist die Markierung im Blatt weg. */
 	const sichereZitat = useCallback(() => {
-		const stelle = jetzt.current.kontext?.handlungen.current.holeZitat();
+		const { kontext: k } = jetzt.current;
+		const stelle = k?.art === 'dokument' ? k.handlungen.current.holeZitat() : '';
 		if (stelle) {
 			setZitat(stelle);
 		}
@@ -55,7 +59,10 @@ export const ChatRahmen = () => {
 		};
 		const schliesse = () => {
 			setFenster('zu');
-			jetzt.current.kontext?.handlungen.current.zumBlatt();
+			const { kontext: k } = jetzt.current;
+			if (k?.art === 'dokument') {
+				k.handlungen.current.zumBlatt();
+			}
 		};
 		return {
 			melde,
@@ -84,18 +91,38 @@ export const ChatRahmen = () => {
 		}
 	}, [ausAssistent, location.key, setFenster]);
 
+	// Außerhalb des Editors gibt es kein Befehlsregister; ⌘J gilt trotzdem.
+	const artJetzt = kontext?.art;
+	const verfuegbar = ki.zustand.verfuegbar;
+	useEffect(() => {
+		if (!artJetzt || artJetzt === 'dokument' || !verfuegbar) {
+			return undefined;
+		}
+		const druck = (e: KeyboardEvent) => {
+			const befehl = (e.metaKey || e.ctrlKey) && e.code === 'KeyJ';
+			const wahl = e.altKey && !e.metaKey && !e.ctrlKey && e.code === 'KeyC';
+			if ((befehl || wahl) && !document.querySelector(TASTEN_SPERRE)) {
+				e.preventDefault();
+				steuerung.taste();
+			}
+		};
+		window.addEventListener('keydown', druck);
+		return () => window.removeEventListener('keydown', druck);
+	}, [artJetzt, steuerung, verfuegbar]);
+
 	return (
 		<ChatSteuerungKontext.Provider value={steuerung}>
 			<ChatStandKontext.Provider value={stand}>
 				<Outlet />
 				{kontext && (
 					<ChatInhalt
-						key={`${kontext.mappe}/${kontext.dok}`}
+						key={`${kontext.art}/${kontext.mappe ?? ''}/${kontext.art === 'neu' ? '' : kontext.dok}`}
 						entwurf={entwurf}
 						fenster={fenster}
 						fokus={fokus}
 						kontext={kontext}
 						ki={ki}
+						neu={neu}
 						meldeLauf={setLauf}
 						meldeVerlaufHoehe={setVerlaufHoehe}
 						setEntwurf={setEntwurf}
@@ -105,6 +132,7 @@ export const ChatRahmen = () => {
 						zitat={zitat}
 					/>
 				)}
+				{neu.dialog}
 			</ChatStandKontext.Provider>
 		</ChatSteuerungKontext.Provider>
 	);

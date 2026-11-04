@@ -6,11 +6,11 @@ import { homedir, tmpdir } from 'node:os';
 import path from 'node:path';
 import { after, afterEach, before, describe, it } from 'node:test';
 
-import type { Pruefbericht } from '@schoolbox/kern';
+import type { Einordnung, Pruefbericht } from '@schoolbox/kern';
 import { attribut, dokumentDir, KI_AKTIONEN, listeVersionen, WURZEL, zerlege } from '@schoolbox/kern';
 import { erzeugeReferenz } from '@schoolbox/kern/src/referenz';
 
-import { kiArgumente, kiTempWurzel, kiUmgebung, liesLimit } from './ki';
+import { KI_EINORDNEN_MODELL, kiArgumente, kiTempWurzel, kiUmgebung, liesLimit } from './ki';
 import { CSRF_HEADER } from './schutz';
 import type { TestServer } from './testhilfe';
 import { KI_ATTRAPPE, legeDokumentAn, starteTestServer } from './testhilfe';
@@ -272,6 +272,48 @@ describe('Aufträge an Claude', () => {
 		assert.equal(zuLang.status, 400);
 		assert.equal((await starte({ auftrag: 'a', zitat: 'x'.repeat(501) })).status, 400);
 		assert.equal((await starte({ auftrag: 'a', verlauf: [{ rolle: 'system', text: 'x' }] })).status, 400);
+	});
+
+	it('Einordnen: gültig aus den Listen, sonst Rückfall; ohne Werkzeuge, MCP und Skills; nichts im Verbrauch', async () => {
+		const ordnen = async (body: object) =>
+			(await (await api('/ki/einordnen', { method: 'POST', body: JSON.stringify(body) })).json()) as Einordnung;
+		const aufrufe = path.join(path.dirname(bin), 'aufrufe.jsonl');
+		await writeFile(aufrufe, '');
+		const wunsch = 'PERSOENLICH Uhrzeiten üben';
+		const e = await ordnen({ text: wunsch });
+		assert.equal(e.rueckfall, false);
+		assert.equal(e.art, 'arbeitsblatt');
+		assert.deepEqual(e.mappe, { neu: 'Uhrzeit aus dem Chat' });
+
+		const zeilen = (await readFile(aufrufe, 'utf8')).trim().split('\n');
+		const { args } = JSON.parse(zeilen.at(-1) ?? '{}') as { args: string[] };
+		const nach = (name: string) => args[args.indexOf(name) + 1];
+		assert.equal(nach('--tools'), '');
+		assert.equal(nach('--setting-sources'), '');
+		assert.ok(args.includes('--strict-mcp-config'));
+		assert.ok(args.includes('--no-session-persistence'));
+		assert.equal(nach('--model'), KI_EINORDNEN_MODELL);
+		assert.ok(!args.join(' ').includes('PERSOENLICH'));
+		assert.ok(JSON.parse(nach('--json-schema') ?? '{}').properties.fach.enum.includes('mathematik'));
+
+		const verbrauch = await readFile(path.join(server.materialDir, '_ki-verbrauch.jsonl'), 'utf8');
+		assert.ok(!verbrauch.includes('PERSOENLICH'));
+
+		const inMappe = await ordnen({ text: wunsch, mappe });
+		assert.equal('id' in inMappe.mappe && inMappe.mappe.id, mappe);
+
+		await fall('einordnen-film');
+		const film = await ordnen({ text: 'Einen Film' });
+		assert.equal(film.rueckfall, true);
+		assert.equal(film.art, 'arbeitsblatt');
+		await fall('einordnen-fehler');
+		const kaputt = await ordnen({ text: 'Arbeitsblatt Uhrzeiten volle und halbe Stunden Klasse 2' });
+		assert.equal(kaputt.rueckfall, true);
+		assert.equal(kaputt.titel, 'Arbeitsblatt Uhrzeiten volle und halbe Stunden');
+		const zuLang = await api('/ki/einordnen', { method: 'POST', body: JSON.stringify({ text: 'x'.repeat(4001) }) });
+		assert.equal(zuLang.status, 400);
+		const fremd = await api('/ki/einordnen', { method: 'POST', body: JSON.stringify({ text: 'x', mappe: 'fehlt' }) });
+		assert.equal(fremd.status, 404);
 	});
 
 	it('Ausschnitt: Claude sieht nur den Teil, der Rest des Blatts bleibt byteidentisch', async () => {

@@ -37,7 +37,20 @@ export interface DokumentKontext {
 	handlungen: RefObject<ChatHandlungen>;
 }
 
-export type ChatKontext = DokumentKontext;
+/** Dokumentansicht und Entwürfe: Auftrag aufs Dokument, das Ergebnis sieht man im Editor. */
+export interface AnsichtKontext {
+	art: 'ansicht';
+	mappe: string;
+	dok: string;
+}
+
+/** Übersicht, Mappe, Papierkorb, Hilfe: Eine Nachricht wird neues Material (077). */
+export interface NeuKontext {
+	art: 'neu';
+	mappe: string | null;
+}
+
+export type ChatKontext = DokumentKontext | AnsichtKontext | NeuKontext;
 
 export interface ChatLauf {
 	art: 'arbeitet' | 'bereit' | 'antwort';

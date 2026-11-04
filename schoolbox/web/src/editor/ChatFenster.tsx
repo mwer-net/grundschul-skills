@@ -1,7 +1,11 @@
+import type { Einordnung } from '@schoolbox/kern/src/einordnung';
+import { FACH_NAME } from '@schoolbox/kern/src/namen';
 import { erzeugeReferenz } from '@schoolbox/kern/src/referenz';
+import type { Art } from '@schoolbox/kern/src/werte';
+import { FORMAT_NAME } from '@schoolbox/kern/src/werte';
 import type { KeyboardEvent, RefObject } from 'react';
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
-import { useLocation } from 'react-router-dom';
+import { useLocation, useNavigate } from 'react-router-dom';
 
 import { Knopf } from '../bausteine/Knopf';
 import { klassen } from '../bausteine/klassen';
@@ -9,15 +13,18 @@ import { Menue } from '../bausteine/Menue';
 import type { MenueEintrag } from '../bausteine/Menue';
 import { Symbol } from '../bausteine/Symbol';
 import { SymbolKnopf } from '../bausteine/SymbolKnopf';
-import type { ChatFensterZustand, ChatLauf, DokumentKontext } from './chat-kontext';
+import { klasseName } from '../lib/text';
+import type { ChatFensterZustand, ChatKontext, ChatLauf } from './chat-kontext';
 import type { ChatNachricht } from './chat-verlauf';
 import { liesVerlauf, schreibeVerlauf, verlaufFuerServer, verlaufSchluessel } from './chat-verlauf';
 import type { PfadTeil } from './darstellung';
 import type { KiAuftrag, useKiZustand, Vorschlag } from './ki';
 import { limitHinweis, useKiAuftrag } from './ki';
 import { TEXTWERKZEUG } from './text';
+import type { NeuMaterial, NeuStand } from './useNeuMaterial';
 import { Vergleich } from './Vergleich';
 
+const NEU_ENTWURF = 'neu-entwurf';
 const ABSTAND_UNTEN = 6;
 const SCHMAL_AB = 1100;
 const FELD_MAX = 120;
@@ -26,10 +33,10 @@ const CHIP =
 	'inline-flex h-[22px] max-w-56 flex-none items-center gap-1 rounded-md bg-brand-50 px-1.5 text-xs font-medium text-brand-700 [@media(any-pointer:coarse)]:h-11';
 
 /** Ankert das Fenster über dem Blatt und über der Bildschirmtastatur des iPads. */
-const useLage = (anker: RefObject<HTMLElement | null>) => {
+const useLage = (anker: RefObject<HTMLElement | null> | null) => {
 	const [lage, setLage] = useState({ left: 0, width: 600, bottom: 10 });
 	useLayoutEffect(() => {
-		const element = anker.current;
+		const element = anker?.current ?? null;
 		const sicht = window.visualViewport;
 		const miss = () => {
 			const tastatur = sicht ? Math.max(0, window.innerHeight - sicht.height - sicht.offsetTop) : 0;
@@ -91,6 +98,7 @@ const Sprechblase = ({ n }: { n: ChatNachricht }) =>
 	);
 
 const VorschlagKarte = ({
+	imEditor,
 	neuStarten,
 	v,
 	vergleichen,
@@ -99,6 +107,8 @@ const VorschlagKarte = ({
 }: {
 	v: Vorschlag;
 	zeigeText: boolean;
+	/** Außerhalb des Editors: dort geht es weiter. */
+	imEditor: (() => void) | null;
 	vergleichen: () => void;
 	verwerfen: () => void;
 	neuStarten: () => void;
@@ -122,9 +132,9 @@ const VorschlagKarte = ({
 			</p>
 		)}
 		<div className="mt-2 flex flex-wrap gap-1.5">
-			{v.konflikt ? (
-				<Knopf onClick={neuStarten}>Neu starten</Knopf>
-			) : (
+			{v.konflikt && <Knopf onClick={neuStarten}>Neu starten</Knopf>}
+			{!v.konflikt && imEditor && <Knopf onClick={imEditor}>Im Editor ansehen</Knopf>}
+			{!v.konflikt && !imEditor && (
 				<Knopf onClick={vergleichen}>
 					<Symbol name="seiten" />
 					Vergleichen
@@ -136,6 +146,74 @@ const VorschlagKarte = ({
 		</div>
 	</div>
 );
+
+const NEU_NAME: Record<Art, string> = {
+	arbeitsblatt: 'Neues Arbeitsblatt',
+	klassenarbeit: 'Neue Klassenarbeit',
+	lernzielkontrolle: 'Neue Lernzielkontrolle',
+	lesetext: 'Neuer Lesetext',
+	lernspiel: 'Neues Lernspiel',
+	karten: 'Neue Karten',
+	lernplakat: 'Neues Lernplakat',
+	praesentation: 'Neue Präsentation',
+	stationen: 'Neue Stationen',
+	unterrichtsplanung: 'Neue Unterrichtsplanung',
+	sonstiges: 'Neues Material',
+};
+
+const mappeText = (mappe: Einordnung['mappe']) => {
+	if ('neu' in mappe) {
+		return `Mappe: ${mappe.neu} (neu)`;
+	}
+	return `Mappe: ${mappe.titel}${mappe.vorhanden ? ' (gibt es schon)' : ''}`;
+};
+
+/** Erst die Karte, dann der teure Lauf (077). Ein Tippfehler kostet so keine Minuten. */
+const NeuKarte = ({
+	neu,
+	stand,
+	warnung,
+}: {
+	neu: NeuMaterial;
+	stand: Exclude<NeuStand, { phase: 'ordnet' }>;
+	warnung: string | null;
+}) => {
+	const { art, fach, format, klasse, mappe, rueckfall, titel } = stand.einordnung;
+	const belegt = stand.phase === 'legtAn';
+	return (
+		<div className="rounded-lg border border-tinte/15 bg-white/50 p-2.5" data-chat-neu>
+			<p className="flex items-center gap-1.5 font-semibold">
+				<Symbol name="blatt" />
+				{NEU_NAME[art]}
+			</p>
+			<p className="text-xs text-leise">
+				{`${titel} · ${FORMAT_NAME[format]} · ${FACH_NAME[fach]} · ${klasseName(klasse)}`}
+			</p>
+			<p className="text-xs text-leise" data-chat-neu-mappe>
+				{mappeText(mappe)}
+			</p>
+			{rueckfall && <p className="mt-1 font-medium">Bitte kurz prüfen.</p>}
+			<p className="mt-1 text-xs text-leise">Verbraucht deutlich mehr als eine Änderung und dauert einige Minuten.</p>
+			{warnung && <p className="mt-1 text-xs font-medium">{warnung}</p>}
+			{stand.fehler && (
+				<p role="alert" className="mt-1 font-medium">
+					{stand.fehler}
+				</p>
+			)}
+			<div className="mt-2 flex flex-wrap gap-1.5">
+				<Knopf disabled={belegt} onClick={() => void neu.anlegen()}>
+					{belegt ? 'Wird angelegt …' : 'Anlegen ⏎'}
+				</Knopf>
+				<Knopf art="zweit" disabled={belegt} onClick={neu.aendern}>
+					Ändern
+				</Knopf>
+				<Knopf art="leise" disabled={belegt} onClick={neu.abbrechen}>
+					Abbrechen
+				</Knopf>
+			</div>
+		</div>
+	);
+};
 
 const Lauf = ({
 	abbrechen,
@@ -166,7 +244,8 @@ const Lauf = ({
 };
 
 interface Eigenschaften {
-	kontext: DokumentKontext;
+	kontext: ChatKontext;
+	neu: NeuMaterial;
 	ki: ReturnType<typeof useKiZustand>;
 	fenster: ChatFensterZustand;
 	setFenster: (f: ChatFensterZustand) => void;
@@ -190,6 +269,7 @@ export const ChatInhalt = ({
 	fokus,
 	ki: kiStatus,
 	kontext,
+	neu,
 	meldeLauf,
 	meldeVerlaufHoehe,
 	setEntwurf,
@@ -198,13 +278,19 @@ export const ChatInhalt = ({
 	sichereZitat,
 	zitat,
 }: Eigenschaften) => {
-	const { dok, frei, handlungen, loesung, mappe, nr, ort, pfad, zerlegung } = kontext;
+	const dokument = kontext.art === 'dokument' ? kontext : null;
+	const { mappe } = kontext;
+	const dok = kontext.art === 'neu' ? null : kontext.dok;
+	const frei = dokument?.frei ?? true;
+	const nr = dokument?.nr ?? null;
+	const pfad = useMemo(() => dokument?.pfad ?? [], [dokument?.pfad]);
+	const navigate = useNavigate();
 	const { state } = useLocation();
 	const ankunft = state as { kiAuftrag?: string; kiFehler?: string } | null;
 	const auftragKi = useKiAuftrag(mappe, dok, kiStatus.neu, ankunft?.kiAuftrag);
 	const { zustand } = kiStatus;
-	const lage = useLage(kontext.anker);
-	const schluessel = verlaufSchluessel(mappe, dok);
+	const lage = useLage(dokument?.anker ?? null);
+	const schluessel = verlaufSchluessel(mappe ?? undefined, dok ?? undefined);
 	const [verlauf, setVerlaufWert] = useState(() => liesVerlauf(localStorage, schluessel));
 	const setVerlauf = useCallback(
 		(neu: (alt: ChatNachricht[]) => ChatNachricht[]) =>
@@ -224,14 +310,28 @@ export const ChatInhalt = ({
 	const erledigt = useRef(new Set<string>());
 
 	// Der Chip folgt der Auswahl; wer darin etwas anderes wählt, gilt nur bis zur nächsten Auswahl.
-	const [wahl, setWahl] = useState<{ fuer: number | null; ziel: number | null } | null>(null);
-	const ziel = wahl?.fuer === nr ? wahl.ziel : nr;
+	const [wahl, setWahl] = useState<{ fuer: number | null; ziel: number | null | 'neu' } | null>(null);
+	const gewaehlt = wahl?.fuer === nr ? wahl.ziel : nr;
+	const ziel = gewaehlt === 'neu' ? null : gewaehlt;
+	const neuModus = kontext.art === 'neu' || gewaehlt === 'neu';
+	const ausNeuEntwurf = Boolean(ankunft?.kiAuftrag || ankunft?.kiFehler);
+	const [leerGeblieben, setLeerGeblieben] = useState(false);
 	useEffect(() => setZitat(null), [nr, setZitat]);
 
 	const { auftrag, laeuft, setFehler, vorschlag } = auftragKi;
 	const offenerVorschlag = vorschlag && !vorschlag.konflikt ? vorschlag : null;
 	const hinweis = limitHinweis(zustand.limit, zustand.warnAb);
 	const umfang = umfangVon(ziel, pfad);
+	const neuBelegt = neu.stand?.phase === 'ordnet' || neu.stand?.phase === 'legtAn';
+	const chipName = () => {
+		if (kontext.art === 'ansicht') {
+			return 'Dieses Dokument';
+		}
+		if (neuModus) {
+			return kontext.art === 'neu' && mappe ? 'Neues Material in dieser Mappe' : 'Neues Material';
+		}
+		return chipText(ziel, pfad);
+	};
 	const offen = fenster !== 'zu';
 	const letzte = verlauf.findLast((n) => n.rolle === 'lehrkraft');
 
@@ -354,14 +454,32 @@ export const ChatInhalt = ({
 		}
 	}, [verlauf.length, laeuft, fenster, vorschlag]);
 
-	const referenz = () => (zerlegung && ziel !== null ? erzeugeReferenz(zerlegung, ziel, ort, loesung) : undefined);
+	const referenz = () =>
+		dokument?.zerlegung && ziel !== null
+			? erzeugeReferenz(dokument.zerlegung, ziel, dokument.ort, dokument.loesung)
+			: undefined;
+
+	const sendeNeu = (text: string) => {
+		setVerlauf((alt) => [
+			...alt,
+			{ rolle: 'lehrkraft', text, kontext: chipName(), zeit: new Date().toISOString(), auftragId: null },
+		]);
+		setEntwurf('');
+		setFenster('verlauf');
+		// Ist das Limit nah, kostet schon das Einordnen zu viel: Die Karte kommt trotzdem.
+		void neu.starte({ wunsch: text, mappe, schluessel, imDokument: Boolean(dokument) }, Boolean(hinweis));
+	};
 
 	const sende = async (inhalt: { text: string; aktion?: string }) => {
-		if (laeuft || !frei || hinweis?.art === 'gesperrt') {
+		if (laeuft || !frei || hinweis?.art === 'gesperrt' || neuBelegt) {
+			return;
+		}
+		if (neuModus) {
+			sendeNeu(inhalt.text);
 			return;
 		}
 		const aufVorschlag = Boolean(offenerVorschlag);
-		const kontextText = aufVorschlag ? (letzte?.kontext ?? offenerVorschlag?.umfang ?? null) : chipText(ziel, pfad);
+		const kontextText = aufVorschlag ? (letzte?.kontext ?? offenerVorschlag?.umfang ?? null) : chipName();
 		const vorher = verlaufFuerServer(verlauf);
 		const stelle = zitat;
 		setVerlauf((alt) => [
@@ -372,9 +490,11 @@ export const ChatInhalt = ({
 		setZitat(null);
 		setFenster('verlauf');
 		setUngelesen(false);
-		await handlungen.current.vorbereiten();
+		await dokument?.handlungen.current.vorbereiten();
+		setLeerGeblieben(false);
 		await auftragKi.starte({
-			...(inhalt.aktion ? { aktion: inhalt.aktion } : { auftrag: inhalt.text }),
+			...(inhalt.aktion ? { aktion: inhalt.aktion } : {}),
+			...(!inhalt.aktion || inhalt.aktion === NEU_ENTWURF ? { auftrag: inhalt.text } : {}),
 			referenz: aufVorschlag ? undefined : referenz(),
 			aufVorschlag,
 			...(vorher.length > 0 ? { verlauf: vorher } : {}),
@@ -385,8 +505,8 @@ export const ChatInhalt = ({
 	const neuStarten = () => {
 		const text = letzte?.text ?? vorschlag?.auftrag;
 		if (text) {
-			const aktion = zustand.aktionen.find((a) => a.name === text);
-			void sende({ text, ...(aktion ? { aktion: aktion.id } : {}) });
+			const aktion = ausNeuEntwurf ? NEU_ENTWURF : zustand.aktionen.find((a) => a.name === text)?.id;
+			void sende({ text, ...(aktion ? { aktion } : {}) });
 		}
 	};
 
@@ -395,7 +515,7 @@ export const ChatInhalt = ({
 			setFenster('zeile');
 		} else {
 			setFenster('zu');
-			handlungen.current.zumBlatt();
+			dokument?.handlungen.current.zumBlatt();
 		}
 	};
 
@@ -410,6 +530,8 @@ export const ChatInhalt = ({
 			e.preventDefault();
 			if (entwurf.trim()) {
 				void sende({ text: entwurf.trim() });
+			} else if (neu.stand?.phase === 'karte') {
+				void neu.anlegen();
 			}
 		}
 	};
@@ -433,8 +555,18 @@ export const ChatInhalt = ({
 					feld.current?.focus();
 				},
 			},
+			{
+				titel: 'Neues Material',
+				beschreibung: 'Ein neues Dokument in dieser Mappe',
+				symbol: 'plus',
+				aktiv: gewaehlt === 'neu',
+				waehle: () => {
+					setWahl({ fuer: nr, ziel: 'neu' });
+					feld.current?.focus();
+				},
+			},
 		],
-		[nr, pfad, ziel],
+		[gewaehlt, nr, pfad, ziel],
 	);
 
 	const mehr: MenueEintrag[] = [
@@ -444,24 +576,45 @@ export const ChatInhalt = ({
 			aus: verlauf.length === 0,
 			waehle: () => setVerlauf(() => []),
 		},
-		{
-			titel: 'In der Claude-App weiterarbeiten',
-			symbol: 'kopieren',
-			waehle: () => handlungen.current.zurApp(ziel),
-		},
+		...(dokument
+			? [
+					{
+						titel: 'In der Claude-App weiterarbeiten',
+						symbol: 'kopieren' as const,
+						waehle: () => dokument.handlungen.current.zurApp(ziel),
+					},
+				]
+			: []),
 	];
 
-	const aktionen = zustand.aktionen.filter((a) => a.auf.includes(umfang));
+	const aktionen = neuModus ? [] : zustand.aktionen.filter((a) => a.auf.includes(umfang));
 	const gesperrt = laeuft || Boolean(offenerVorschlag);
-	const text = offenerVorschlag ? 'Was soll Claude am Vorschlag ändern?' : 'Was soll Claude ändern?';
+	const neuKarte = neu.stand && neu.stand.phase !== 'ordnet' ? neu.stand : null;
+	const text = () => {
+		if (neuModus) {
+			return 'Was soll entstehen?';
+		}
+		return offenerVorschlag ? 'Was soll Claude am Vorschlag ändern?' : 'Was soll Claude ändern?';
+	};
 	const schonGesagt = verlauf.some((n) => n.rolle === 'claude' && n.text === vorschlag?.antwort);
-	const hatVerlauf = verlauf.length > 0 || laeuft || Boolean(vorschlag) || Boolean(auftragKi.fehler);
+	const hatVerlauf =
+		verlauf.length > 0 || laeuft || Boolean(vorschlag) || Boolean(auftragKi.fehler) || Boolean(neu.stand);
+	const tasteName = () => {
+		if (neuKarte && !entwurf.trim()) {
+			return 'anlegen';
+		}
+		return offenerVorschlag ? 'nachbessern' : 'senden';
+	};
+	const verwirf = () => {
+		setLeerGeblieben(ausNeuEntwurf);
+		void auftragKi.verwerfen();
+	};
 
 	return (
 		<>
-			{vergleich && vorschlag && (
+			{vergleich && vorschlag && dokument && (
 				<Vergleich
-					adresse={kontext.adresse}
+					adresse={dokument.adresse}
 					konflikt={vorschlag.konflikt}
 					schliessen={() => setVergleich(false)}
 					annehmen={() => {
@@ -470,7 +623,7 @@ export const ChatInhalt = ({
 					}}
 					verwerfen={() => {
 						setVergleich(false);
-						void auftragKi.verwerfen();
+						verwirf();
 					}}
 					nachbessern={() => {
 						setVergleich(false);
@@ -507,7 +660,7 @@ export const ChatInhalt = ({
 										groesse="klein"
 										onClick={() => {
 											setFenster('zu');
-											handlungen.current.zumBlatt();
+											dokument?.handlungen.current.zumBlatt();
 										}}
 									/>
 								</span>
@@ -532,15 +685,41 @@ export const ChatInhalt = ({
 										v={vorschlag}
 										zeigeText={!schonGesagt}
 										vergleichen={() => setVergleich(true)}
-										verwerfen={() => void auftragKi.verwerfen()}
+										imEditor={
+											dokument
+												? null
+												: () => void navigate(`/m/${mappe ?? ''}/${dok ?? ''}/bearbeiten?claude=1`)
+										}
+										verwerfen={verwirf}
 										neuStarten={neuStarten}
 									/>
 								)}
-								{auftragKi.fehler && (
-									<p role="alert" className="font-medium" data-ki-fehler>
-										{auftragKi.fehler}
+								{leerGeblieben && !vorschlag && (
+									<p className="text-leise" data-chat-leer>
+										Das Blatt bleibt leer in der Mappe. Du kannst es selbst füllen oder hier neu beauftragen.
 									</p>
 								)}
+								{auftragKi.fehler && (
+									<div
+										className="rounded-lg border border-tinte/15 bg-white/50 p-2.5"
+										data-ki-fehler
+									>
+										<p role="alert" className="font-medium">
+											{auftragKi.fehler}
+										</p>
+										{letzte && !laeuft && (
+											<Knopf art="zweit" className="mt-1.5" onClick={neuStarten}>
+												Nochmal
+											</Knopf>
+										)}
+									</div>
+								)}
+								{neu.stand?.phase === 'ordnet' && (
+									<p className="text-leise" role="status" data-chat-ordnet>
+										Claude ordnet ein …
+									</p>
+								)}
+								{neuKarte && <NeuKarte neu={neu} stand={neuKarte} warnung={hinweis?.text ?? null} />}
 							</div>
 						</>
 					)}
@@ -578,10 +757,12 @@ export const ChatInhalt = ({
 								</div>
 							)}
 							<div className="flex min-h-[34px] items-center gap-1.5 pt-1 pr-1 pb-0.5 pl-2">
-								{gesperrt ? (
+								{gesperrt || !dokument ? (
 									<span className={CHIP} data-chat-chip>
 										<span className="truncate">
-											{letzte?.kontext ?? offenerVorschlag?.umfang ?? 'Ganzes Blatt'}
+											{gesperrt
+												? (letzte?.kontext ?? offenerVorschlag?.umfang ?? 'Ganzes Blatt')
+												: chipName()}
 										</span>
 									</span>
 								) : (
@@ -590,14 +771,14 @@ export const ChatInhalt = ({
 										eintraege={stufen}
 										ausloeser={
 											<button type="button" className={CHIP} data-chat-chip>
-												<span className="truncate">{chipText(ziel, pfad)}</span>
+												<span className="truncate">{chipName()}</span>
 												<Symbol name="runter" className="size-3 flex-none" />
 											</button>
 										}
 									/>
 								)}
 								<label className="sr-only" htmlFor="ki-auftrag">
-									{text}
+									{text()}
 								</label>
 								<textarea
 									id="ki-auftrag"
@@ -605,7 +786,7 @@ export const ChatInhalt = ({
 									rows={1}
 									maxLength={4000}
 									value={entwurf}
-									placeholder={offenerVorschlag ? text : 'Was soll sich ändern?'}
+									placeholder={offenerVorschlag || neuModus ? text() : 'Was soll sich ändern?'}
 									className="min-w-0 flex-1 resize-none bg-transparent leading-5 outline-none placeholder:text-leise"
 									onChange={(e) => setEntwurf(e.target.value)}
 								/>
@@ -642,7 +823,7 @@ export const ChatInhalt = ({
 										groesse="klein"
 										aria-label="Senden"
 										className="size-knopf-klein rounded-full px-0"
-										disabled={!entwurf.trim() || !frei || hinweis?.art === 'gesperrt'}
+										disabled={!entwurf.trim() || !frei || hinweis?.art === 'gesperrt' || neuBelegt}
 										onClick={() => void sende({ text: entwurf.trim() })}
 									>
 										<Symbol name="senden" />
@@ -652,7 +833,7 @@ export const ChatInhalt = ({
 							<div className="flex justify-between gap-2 px-2.5 pb-1 text-[11px] leading-[14px] text-leise">
 								<span>Keine Namen von Kindern eintragen.</span>
 								<span className="flex-none">
-									{`⏎ ${offenerVorschlag ? 'nachbessern' : 'senden'} · esc ${fenster === 'verlauf' ? 'einklappen' : 'schließen'}`}
+									{`⏎ ${tasteName()} · esc ${fenster === 'verlauf' ? 'einklappen' : 'schließen'}`}
 								</span>
 							</div>
 						</div>
@@ -662,10 +843,12 @@ export const ChatInhalt = ({
 								Auf diesem Server ist Claude nicht angemeldet. Über die Claude-App kannst du trotzdem an
 								diesem Blatt arbeiten.
 							</p>
-							<Knopf onClick={() => handlungen.current.zurApp(ziel)}>
-								<Symbol name="kopieren" />
-								In der Claude-App weiterarbeiten
-							</Knopf>
+							{dokument && (
+								<Knopf onClick={() => dokument.handlungen.current.zurApp(ziel)}>
+									<Symbol name="kopieren" />
+									In der Claude-App weiterarbeiten
+								</Knopf>
+							)}
 						</div>
 					)}
 				</section>

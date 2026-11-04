@@ -1,4 +1,4 @@
-import { readFile, writeFile } from 'node:fs/promises';
+import { readdir, readFile, writeFile } from 'node:fs/promises';
 import path from 'node:path';
 
 import type { Page } from '@playwright/test';
@@ -225,5 +225,148 @@ test.describe('Chat im Editor (074)', () => {
 		await page.goto(`/m/${mappe}/${dok}/praesentation`);
 		await page.keyboard.press('ControlOrMeta+j');
 		await expect(page.locator('[data-chat]')).toHaveCount(0);
+	});
+});
+
+test.describe('Neues Material aus dem Chat (077)', () => {
+	test.afterEach(() => fall('gut'));
+
+	const neuKarte = (page: Page) => chat(page).locator('[data-chat-neu]');
+	const mappenZahl = async () => (await readdir(MATERIAL_DIR)).length;
+	const dokZahl = async (mappe: string) => {
+		const eintraege = await readdir(path.join(MATERIAL_DIR, mappe), { withFileTypes: true });
+		return eintraege.filter((e) => e.isDirectory() && !e.name.startsWith('.') && !e.name.startsWith('_')).length;
+	};
+	const auftrag = async (page: Page, text: string) => {
+		await page.keyboard.press('ControlOrMeta+j');
+		await expect(feld(page)).toBeFocused();
+		await feld(page).fill(text);
+		await feld(page).press('Enter');
+	};
+
+	test('Übersicht: Nachricht, Karte, Enter; Mappe und Dokument entstehen, am Ende steht ein Vorschlag', async ({
+		page,
+	}) => {
+		await page.goto('/');
+		const vorher = await mappenZahl();
+		await auftrag(page, 'Arbeitsblatt Uhrzeiten, Klasse 2');
+		await expect(neuKarte(page)).toContainText('Uhrzeiten üben');
+		await expect(neuKarte(page)).toContainText('Mappe: Uhrzeit aus dem Chat (neu)');
+		expect(await mappenZahl()).toBe(vorher);
+
+		await feld(page).press('Enter');
+		await expect(page).toHaveURL(/\/bearbeiten\?claude=1/);
+		await expect(chat(page)).toBeVisible();
+		await expect(chat(page).locator('[data-chat-nachricht]').first()).toContainText('Arbeitsblatt Uhrzeiten');
+		await expect(karte(page)).toBeVisible();
+		expect(await mappenZahl()).toBe(vorher + 1);
+		await page.goBack();
+		await expect(page).toHaveURL(/\/$/);
+	});
+
+	test('Mappe: Das Dokument landet in dieser Mappe', async ({ page }) => {
+		const { id: mappe } = await uhrzeit();
+		await page.goto(`/m/${mappe}`);
+		const vorher = await dokZahl(mappe);
+		await auftrag(page, 'Noch ein Blatt zur Uhr');
+		await expect(chip(page)).toContainText('Neues Material in dieser Mappe');
+		await expect(neuKarte(page).locator('[data-chat-neu-mappe]')).toContainText('Mappe:');
+		await neuKarte(page).getByRole('button', { name: /Anlegen/ }).click();
+		await expect(page).toHaveURL(new RegExp(`/m/${mappe}/[^/]+/bearbeiten`));
+		expect(await dokZahl(mappe)).toBe(vorher + 1);
+	});
+
+	test('„Ändern“ öffnet den Assistenten vorbelegt, der Wunsch bleibt', async ({ page }) => {
+		await page.goto('/');
+		await auftrag(page, 'Arbeitsblatt Uhrzeiten, Klasse 2');
+		await neuKarte(page).getByRole('button', { name: 'Ändern' }).click();
+		const dialog = page.getByRole('dialog');
+		await expect(dialog).toContainText('Material anlegen');
+		for (let i = 0; i < 2; i += 1) {
+			await dialog.getByRole('button', { name: 'Weiter' }).click();
+		}
+		await expect(dialog.getByLabel('Titel', { exact: true })).toHaveValue('Uhrzeiten üben');
+		await expect(dialog.getByLabel('Neue Mappe')).toHaveValue('Uhrzeit aus dem Chat');
+		await dialog.getByRole('button', { name: 'Weiter' }).click();
+		await expect(dialog.getByLabel('Worum geht es')).toHaveValue('Arbeitsblatt Uhrzeiten, Klasse 2');
+	});
+
+	test('Schlägt das Einordnen fehl, kommt die Karte trotzdem: In der Mappe legt sie an, ohne Mappe fragt der Dialog', async ({
+		page,
+	}) => {
+		await fall('einordnen-fehler');
+		await page.goto('/');
+		await auftrag(page, 'Arbeitsblatt Uhrzeiten, Klasse 2');
+		await expect(neuKarte(page)).toContainText('Bitte kurz prüfen.');
+		const vorher = await mappenZahl();
+		await feld(page).press('Enter');
+		await expect(page.getByRole('dialog')).toContainText('Material anlegen');
+		expect(await mappenZahl()).toBe(vorher);
+		await page.getByRole('dialog').getByRole('button', { name: 'Abbrechen' }).click();
+
+		const { id: mappe } = await uhrzeit();
+		await page.goto(`/m/${mappe}`);
+		await auftrag(page, 'Noch ein Blatt zur Uhr');
+		await expect(neuKarte(page)).toContainText('Bitte kurz prüfen.');
+		await feld(page).press('Enter');
+		await expect(page).toHaveURL(new RegExp(`/m/${mappe}/[^/]+/bearbeiten`));
+	});
+
+	test('Eine unbekannte Art wird nicht still ersetzt', async ({ page }) => {
+		await fall('einordnen-film');
+		await page.goto('/');
+		await auftrag(page, 'Ein Film über Igel');
+		await expect(neuKarte(page)).toContainText('Bitte kurz prüfen.');
+	});
+
+	test('Abbrechen legt nichts an, Enter zweimal legt nur eines an', async ({ page }) => {
+		const { id: mappe } = await uhrzeit();
+		await page.goto(`/m/${mappe}`);
+		const vorher = await dokZahl(mappe);
+		await auftrag(page, 'Noch ein Blatt zur Uhr');
+		await neuKarte(page).getByRole('button', { name: 'Abbrechen' }).click();
+		await expect(neuKarte(page)).toHaveCount(0);
+		expect(await dokZahl(mappe)).toBe(vorher);
+
+		await auftrag(page, 'Noch ein Blatt zur Uhr');
+		await expect(neuKarte(page)).toBeVisible();
+		await feld(page).press('Enter');
+		await feld(page)
+			.press('Enter', { timeout: 1000 })
+			.catch(() => undefined);
+		await expect(page).toHaveURL(new RegExp(`/m/${mappe}/[^/]+/bearbeiten`));
+		expect(await dokZahl(mappe)).toBe(vorher + 1);
+	});
+
+	test('Dokumentansicht: Auftrag aufs Dokument, die Karte führt in den Editor', async ({ page }) => {
+		const { dok, id: mappe } = await uhrzeit();
+		await page.goto(`/m/${mappe}/${dok}`);
+		await page.getByRole('button', { name: 'Claude', exact: true }).click();
+		await expect(chip(page)).toContainText('Dieses Dokument');
+		await feld(page).fill('Mach es schöner');
+		await feld(page).press('Enter');
+		await expect(karte(page)).toBeVisible();
+		await chat(page).getByRole('button', { name: 'Im Editor ansehen' }).click();
+		await expect(page).toHaveURL(new RegExp(`/m/${mappe}/${dok}/bearbeiten\\?claude=1`));
+		await expect(karte(page)).toBeVisible();
+	});
+
+	test('Im Editor wählt man „Neues Material“ im Chip', async ({ page }) => {
+		const { dok, mappe } = await offenesBlatt(page);
+		await page.keyboard.press('ControlOrMeta+j');
+		await chat(page).getByRole('button', { name: 'Worauf bezieht sich der Auftrag?' }).click();
+		await page.getByRole('menuitem', { name: /Neues Material/ }).click();
+		await expect(chip(page)).toContainText('Neues Material');
+		await feld(page).fill('Noch ein Blatt zur Uhr');
+		await feld(page).press('Enter');
+		await expect(neuKarte(page)).toBeVisible();
+		expect(page.url()).toContain(`/m/${mappe}/${dok}/bearbeiten`);
+	});
+
+	test('Geteilte Seiten haben keinen Chat', async ({ page }) => {
+		await page.goto('/f/gibt-es-nicht');
+		await page.keyboard.press('ControlOrMeta+j');
+		await expect(page.locator('[data-chat]')).toHaveCount(0);
+		await expect(page.getByRole('button', { name: 'Claude', exact: true })).toHaveCount(0);
 	});
 });

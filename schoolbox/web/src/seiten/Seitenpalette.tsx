@@ -11,12 +11,13 @@ interface Eigenschaften {
 	schliessen: () => void;
 	neueMappe: () => void;
 	abmelden: () => void;
+	anClaude?: ((text: string) => void) | undefined;
 }
 
 const MAPPEN_ZU_BEGINN = 5;
 
 /** Palette außerhalb des Editors: Mappen und Dokumente aus derselben Quelle wie die Übersicht, dazu die Wege im Kopf. */
-export const Seitenpalette = ({ abmelden, neueMappe, schliessen }: Eigenschaften) => {
+export const Seitenpalette = ({ abmelden, anClaude, neueMappe, schliessen }: Eigenschaften) => {
 	const { daten } = useLaden<MappenListe>('/api/mappen');
 	const navigate = useNavigate();
 
@@ -55,5 +56,12 @@ export const Seitenpalette = ({ abmelden, neueMappe, schliessen }: Eigenschaften
 		return liste;
 	}, [abmelden, daten, navigate, neueMappe]);
 
-	return <Palette platzhalter="Mappe, Dokument oder Befehl suchen" eintraege={eintraege} schliessen={schliessen} />;
+	return (
+		<Palette
+			platzhalter="Mappe, Dokument oder Befehl suchen"
+			eintraege={eintraege}
+			schliessen={schliessen}
+			anClaude={anClaude}
+		/>
+	);
 };

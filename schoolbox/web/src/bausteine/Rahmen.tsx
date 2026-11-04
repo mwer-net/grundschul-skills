@@ -1,7 +1,9 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { Link, Outlet, useLocation, useMatch, useNavigate } from 'react-router-dom';
 
 import { meldung, sende } from '../api';
+import type { ChatKontext } from '../editor/chat-kontext';
+import { useChat, useChatKontext, useChatStand } from '../editor/chat-kontext';
 import { loescheAlleVerlaeufe } from '../editor/chat-verlauf';
 import { TASTEN_SPERRE } from '../editor/tasten';
 import { MappeDialog } from '../seiten/Anlegen';
@@ -56,6 +58,22 @@ export const Rahmen = () => {
 	};
 
 	const kontext: SucheKontext = { suche, setSuche };
+	const chat = useChat();
+	const chatStand = useChatStand();
+	const imDokument = useMatch('/m/:mappe/:dok/*');
+	const inMappe = useMatch('/m/:mappe');
+	const dokMappe = imDokument?.params.mappe;
+	const dokName = imDokument?.params.dok;
+	const mappeName = inMappe?.params.mappe;
+	useChatKontext(
+		useMemo<ChatKontext>(
+			() =>
+				dokMappe && dokName
+					? { art: 'ansicht', mappe: dokMappe, dok: dokName }
+					: { art: 'neu', mappe: mappeName ?? null },
+			[dokMappe, dokName, mappeName],
+		),
+	);
 	return (
 		<div className="flex min-h-dvh flex-col">
 			{palette && (
@@ -63,6 +81,7 @@ export const Rahmen = () => {
 					schliessen={() => setPalette(false)}
 					neueMappe={() => setNeueMappe(true)}
 					abmelden={() => void abmelden()}
+					anClaude={chatStand.ki.zustand.verfuegbar ? chat.fuelle : undefined}
 				/>
 			)}
 			{neueMappe && <MappeDialog schliessen={() => setNeueMappe(false)} />}
@@ -109,6 +128,18 @@ export const Rahmen = () => {
 						</button>
 					</div>
 					<div className="ml-auto flex flex-none items-center gap-1" data-kopf-rechts>
+						{chatStand.ki.zustand.verfuegbar && (
+							<Knopf
+								art="leise"
+								aria-label="Claude"
+								aria-pressed={chatStand.fenster !== 'zu'}
+								className="aria-pressed:bg-flaeche-2"
+								onClick={() => chat.wechsle()}
+							>
+								<Symbol name="sprechblase" />
+								<span className="max-md:hidden">Claude</span>
+							</Knopf>
+						)}
 						<KnopfLink to="/hilfe" art="leise" aria-label="Hilfe">
 							<Symbol name="hilfe" className="md:hidden" />
 							<span className="max-md:hidden">Hilfe</span>
@@ -130,7 +161,10 @@ export const Rahmen = () => {
 					</div>
 				</div>
 			</header>
-			<main className={klassen('w-full flex-1 px-4 pb-16', ohneKopf ? 'pt-0' : 'pt-3')}>
+			<main
+				className={klassen('w-full flex-1 px-4', ohneKopf ? 'pt-0' : 'pt-3')}
+				style={{ paddingBottom: 'max(4rem, var(--chat-platz, 0px))' }}
+			>
 				<Outlet context={kontext} />
 			</main>
 		</div>

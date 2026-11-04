@@ -1,4 +1,4 @@
-import { KI_AKTIONEN, leseMappe, leseMeta } from '@schoolbox/kern';
+import { KI_AKTIONEN, leseMappe, leseMeta, listeMappen } from '@schoolbox/kern';
 import type { Router as RouterTyp } from 'express';
 
 import { leseQuelle, schreibeQuelle, verlangeDokument } from './dokumente';
@@ -35,6 +35,22 @@ export const kiApi = (router: RouterTyp, kontext: Kontext) => {
 
 	router.get('/ki/status', async (_req, res) => {
 		res.json({ verfuegbar: await ki.angemeldet(), limit: ki.limit(), warnAb: KI_WARN_AB, aktionen: KI_AKTIONEN });
+	});
+
+	router.post('/ki/einordnen', async (req, res) => {
+		const body = (req.body ?? {}) as Record<string, unknown>;
+		const mappen = (await listeMappen(materialDir)).map(({ mappe: m }) => ({
+			id: m.id,
+			titel: m.titel,
+			fach: m.fach,
+			klasse: m.klasse,
+		}));
+		const wunschMappe = text(body.mappe);
+		const aktuelle = mappen.find((m) => m.id === wunschMappe);
+		if (wunschMappe && !aktuelle) {
+			throw new HttpFehler(404, 'Diese Mappe gibt es nicht mehr.');
+		}
+		res.json(await ki.einordne({ text: text(body.text) ?? '', mappen, aktuelle }));
 	});
 
 	router.post('/dokumente/:mappe/:dok/ki', async (req, res) => {
