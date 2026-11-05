@@ -790,7 +790,8 @@ describe('Aufträge an Claude', () => {
 				await auftrag({ auftrag: 'Zwei', gespraechId: id });
 				const arbeit = await readFile(path.join(ordner(id), 'arbeit', 'material.html'), 'utf8');
 				assert.ok(arbeit.includes('VON-HAND'));
-				assert.ok(!arbeit.includes('von Claude'));
+				// Die Quelle kann aus früheren Tests schon „von Claude“ tragen; der erste Lauf darf nichts dazutun.
+				assert.equal(arbeit.split('von Claude').length, vorher.split('von Claude').length);
 			} finally {
 				await writeFile(datei, vorher);
 			}
@@ -897,7 +898,11 @@ describe('Aufträge an Claude', () => {
 			await auftrag({ auftrag: 'Noch größer', gespraechId: id, aufVorschlag: true });
 			assert.match(await letzterPrompt(), /deinen offenen Vorschlag/);
 			const datei = path.join(dokumentDir(server.materialDir, mappe, dok), 'vorschlag', 'material.html');
-			assert.equal((await readFile(datei, 'utf8')).split('von Claude').length, 3);
+			// Zwei Läufe, zwei Zusätze, gezählt gegen die Quelle (sie kann aus früheren Tests schon einen tragen).
+			assert.equal(
+				(await readFile(datei, 'utf8')).split('von Claude').length,
+				vorher.split('von Claude').length + 2,
+			);
 			assert.equal((await vorschlag())?.basis, basis);
 			assert.equal((await vorschlag())?.konflikt, false);
 			assert.equal(await quelle(), vorher);
