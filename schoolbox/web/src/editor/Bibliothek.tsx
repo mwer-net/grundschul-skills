@@ -5,8 +5,8 @@ import type { PointerEvent as ReactPointerEvent } from 'react';
 import { useEffect, useRef, useState } from 'react';
 
 import { meldung, sende } from '../api';
-import { useHinweis } from '../bausteine/hinweis';
 import { Griff } from '../bausteine/Griff';
+import { useHinweis } from '../bausteine/hinweis';
 import { FELD_KLASSEN, klassen } from '../bausteine/klassen';
 import { Knopf } from '../bausteine/Knopf';
 import { Segment } from '../bausteine/Segment';
@@ -472,9 +472,7 @@ const Karte = ({
 						className="pointer-events-none absolute top-1 right-1 size-3.5 text-brand-500 opacity-0 group-hover:opacity-100 [@media(any-pointer:coarse)]:hidden"
 					/>
 					{/* Eigene haben keine Katalog-Adresse, ein Eintrag mit nur `klasse` hat keinen Inhalt zum Zeigen. */}
-					{!eintrag.eigen && !eintrag.klasse && (
-						<KartenVorschau id={eintrag.id} name={eintrag.name} />
-					)}
+					{!eintrag.eigen && !eintrag.klasse && <KartenVorschau id={eintrag.id} name={eintrag.name} />}
 				</div>
 			</div>
 			{eintrag.eigen && <EigenVerwalten id={eintrag.eigen} name={eintrag.name} neuLaden={einfuegen.neuLaden} />}
@@ -658,7 +656,9 @@ export const Bibliothek = ({
 					)}
 					{verborgen > 0 && (
 						<Knopf art="leise" className="self-start" data-weitere onClick={() => waehleFilter('alle')}>
-							{verborgen === 1 ? '1 weiterer' : `${verborgen} weitere`} unter Alle
+							{verborgen === 1 ? '1 weiterer' : `${verborgen} weitere`}
+{' '}
+unter Alle
 						</Knopf>
 					)}
 				</>
@@ -671,7 +671,9 @@ export const Bibliothek = ({
 						{trefferPassend.length > 0 && karten(trefferPassend, true)}
 						{trefferAnderswo.length > 0 && (
 							<div data-treffer-anderswo>
-								<h2 className="mb-1 text-xs font-semibold text-leise">Aus anderen Fächern und Klassen</h2>
+								<h2 className="mb-1 text-xs font-semibold text-leise">
+									Aus anderen Fächern und Klassen
+								</h2>
 								{karten(trefferAnderswo, true)}
 							</div>
 						)}

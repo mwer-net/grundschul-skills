@@ -105,10 +105,7 @@ test.describe('Kontextmenü (070)', () => {
 		await expect(menue.getByRole('menuitem', { name: /Neue Seite danach/ })).toBeVisible();
 		await page.keyboard.press('Escape');
 
-		await page
-			.locator('[data-gliederung-aufgabe] [data-gliederung-titel]')
-			.first()
-			.click({ button: 'right' });
+		await page.locator('[data-gliederung-aufgabe] [data-gliederung-titel]').first().click({ button: 'right' });
 		await expect(menue.getByRole('menuitem', { name: /Nach unten/ })).toBeVisible();
 		await expect(page.locator('[data-auswahl="aufgabe"]')).toBeVisible();
 	});

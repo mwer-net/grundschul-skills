@@ -80,7 +80,11 @@ const listenWerte = (feld: Feld & { art: 'liste' }, roh: string | null): [string
 	return faelle;
 };
 
-const rasterWerte = (feld: Feld & { art: 'raster' }, roh: string | null, zellen: string[]): [string, string | null][] => {
+const rasterWerte = (
+	feld: Feld & { art: 'raster' },
+	roh: string | null,
+	zellen: string[],
+): [string, string | null][] => {
 	if (feld.form) {
 		const [erste] = zellen;
 		if (!erste) {
@@ -167,7 +171,7 @@ const roheWerte = (
 				: [];
 		}
 		case 'noten':
-			return [['eine Note', `${roh ?? ''} ${feld.tonhoehe ? "g'4" : '4'}`.trim()]];
+			return [['eine Note', `${roh ?? ''} ${feld.tonhoehe ? 'g\'4' : '4'}`.trim()]];
 		case 'plan':
 			return [['eine Fläche', rasterText([[feld.flaechen.at(-1)?.wert ?? 'wiese']])]];
 		case 'bild':

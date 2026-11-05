@@ -65,8 +65,8 @@ import { Menue } from '../bausteine/Menue';
 import { Popover } from '../bausteine/Popover';
 import { Schalter as Umschalter } from '../bausteine/Schalter';
 import { Symbol } from '../bausteine/Symbol';
-import { Zeile } from '../bausteine/Zeile';
 import { folgeZeiger, rolleAmRand, schluckeKlick } from '../bausteine/zeigerzug';
+import { Zeile } from '../bausteine/Zeile';
 import type { AbbildungSteuerung } from './abbildung';
 import { leistenFelder } from './abbildung-felder';
 import { bereiteVor } from './bild';
@@ -740,7 +740,7 @@ const BildKnopf = (e: BildWahlEigenschaften) => {
 					{ titel: 'Hochladen', waehle: oeffneDatei },
 					...(wert ? [{ titel: 'Bild entfernen', gefahr: true, waehle: () => aendere('', true) }] : []),
 				]}
-				ausloeser={
+				ausloeser={(
 					<button
 						type="button"
 						className="flex size-(--hoehe-feld) flex-none items-center justify-center overflow-hidden rounded-md border border-rand-feld bg-flaeche text-leise hover:bg-flaeche-2"
@@ -752,7 +752,7 @@ const BildKnopf = (e: BildWahlEigenschaften) => {
 							<Symbol name="bild" />
 						)}
 					</button>
-				}
+				)}
 			/>
 			{dazu}
 		</>
@@ -848,14 +848,14 @@ const MusterKnopf = ({
 	<Popover
 		name={name}
 		className="w-auto"
-		ausloeser={
+		ausloeser={(
 			<button
 				type="button"
 				className="size-(--hoehe-feld) flex-none rounded-md border border-rand-feld"
 				style={{ background: (sw ? MUSTER_BILD : FARB_BILD)[wert] ?? '#fff' }}
 				data-muster-knopf={wert}
 			/>
-		}
+		)}
 	>
 		{(schliessen) => (
 			<div className="w-52">
@@ -1040,7 +1040,7 @@ const ZeilenMenue = ({
 	<Popover
 		name={`Zeile ${i + 1}: mehr`}
 		ausrichtung="end"
-		ausloeser={
+		ausloeser={(
 			<button
 				type="button"
 				className="flex size-(--hoehe-feld) flex-none items-center justify-center rounded-md text-leise hover:bg-flaeche-2"
@@ -1048,7 +1048,7 @@ const ZeilenMenue = ({
 			>
 				<Symbol name="mehr" />
 			</button>
-		}
+		)}
 	>
 		<div className="flex flex-col gap-2">
 			{u.map((unter, j) =>
@@ -1093,7 +1093,12 @@ const ZeilenMenue = ({
 					↓
 				</Knopf>
 			</div>
-			<Knopf art="zweit" aria-label={`Zeile ${i + 1} löschen`} disabled={!entfernen} onClick={() => entfernen?.()}>
+			<Knopf
+				art="zweit"
+				aria-label={`Zeile ${i + 1} löschen`}
+				disabled={!entfernen}
+				onClick={() => entfernen?.()}
+			>
 				<Symbol name="papierkorb" />
 				Entfernen
 			</Knopf>
@@ -1193,7 +1198,9 @@ const Liste = ({ abb, feld }: FeldEigenschaften<ListeFeld>) => {
 								'flex items-center gap-1 rounded-sm',
 								zug?.von === i && 'opacity-40',
 								zug?.nach === i && 'shadow-[0_-2px_0_0_var(--color-brand-500)]',
-								zug?.nach === zeilen.length && i === zeilen.length - 1 && 'shadow-[0_2px_0_0_var(--color-brand-500)]',
+								zug?.nach === zeilen.length &&
+								i === zeilen.length - 1 &&
+								'shadow-[0_2px_0_0_var(--color-brand-500)]',
 							)}
 							data-zeile={i}
 						>
@@ -1251,7 +1258,12 @@ const Liste = ({ abb, feld }: FeldEigenschaften<ListeFeld>) => {
 					</Knopf>
 				)}
 				{feld.alsText && (
-					<Knopf art="zweit" groesse="klein" onClick={() => setAlsText(!alsText)} data-liste-als-text={feld.attribut}>
+					<Knopf
+						art="zweit"
+						groesse="klein"
+						onClick={() => setAlsText(!alsText)}
+						data-liste-als-text={feld.attribut}
+					>
 						{alsText ? 'Als Liste bearbeiten' : 'Als Text bearbeiten'}
 					</Knopf>
 				)}
@@ -1266,7 +1278,8 @@ const ZELLE =
 const ZELLE_RASTER = 'h-6 [@media(any-pointer:coarse)]:h-knopf';
 const ZELLEN_SPALTEN =
 	'[--zellen-spalte:minmax(14px,1fr)] [@media(any-pointer:coarse)]:[--zellen-spalte:minmax(44px,44px)]';
-const ZELLEN_ROLLEN = 'max-w-full overflow-x-auto [scrollbar-width:thin] [scrollbar-color:var(--color-rand-feld)_transparent]';
+const ZELLEN_ROLLEN =
+	'max-w-full overflow-x-auto [scrollbar-width:thin] [scrollbar-color:var(--color-rand-feld)_transparent]';
 
 const rasterMass = (angabe: string | number | undefined, abb: AbbildungSteuerung, sonst: number) => {
 	if (typeof angabe === 'number') {
@@ -1310,7 +1323,9 @@ const FormRaster = ({ abb, feld }: FeldEigenschaften<RasterFeld>) => {
 						className={klassen(
 							ZELLE,
 							'absolute box-border',
-							gewaehlt.includes(z.id) ? 'border-brand-500 bg-brand-500 text-white' : 'bg-flaeche text-leise',
+							gewaehlt.includes(z.id)
+								? 'border-brand-500 bg-brand-500 text-white'
+								: 'bg-flaeche text-leise',
 						)}
 						style={{
 							left: anteil(z.x, breite),

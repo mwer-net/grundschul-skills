@@ -455,7 +455,8 @@ export const Blattwerkzeug = ({
 							<label htmlFor={reglerId}>Abstand</label>
 							<Hilfetipp name="Abstand">
 								Platz zwischen den Aufgaben, auf allen Seiten.
-								{vorgabeImRegler && ` Die Marke am Regler zeigt die Vorgabe für dieses Blatt: ${vorgabe} px.`}
+								{vorgabeImRegler &&
+									` Die Marke am Regler zeigt die Vorgabe für dieses Blatt: ${vorgabe} px.`}
 							</Hilfetipp>
 						</span>
 						<span className="ml-auto flex flex-none items-center gap-2">
@@ -465,7 +466,9 @@ export const Blattwerkzeug = ({
 									data-abstand-vorgabe
 									className="text-xs text-leise underline hover:text-tinte"
 									title={
-										vorgabe === null ? 'Eigenen Abstand entfernen' : `Zurück zur Vorgabe: ${vorgabe} px`
+										vorgabe === null
+											? 'Eigenen Abstand entfernen'
+											: `Zurück zur Vorgabe: ${vorgabe} px`
 									}
 									onClick={struktur.abstandZurVorgabe}
 								>

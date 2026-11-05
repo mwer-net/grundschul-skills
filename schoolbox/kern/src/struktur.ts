@@ -295,5 +295,8 @@ export const gesetzterAbstand = (quelle: string) => {
 export const entferneAbstand = (quelle: string) => {
 	const z = zerlege(quelle);
 	const body = bodyIn(z);
-	return wendeAn(quelle, setzeAttribut(z, body, 'style', ohneStilWert(attribut(body, 'style')?.wert ?? null, '--abstand')));
+	return wendeAn(
+		quelle,
+		setzeAttribut(z, body, 'style', ohneStilWert(attribut(body, 'style')?.wert ?? null, '--abstand')),
+	);
 };

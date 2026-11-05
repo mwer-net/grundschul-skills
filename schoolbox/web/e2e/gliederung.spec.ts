@@ -56,7 +56,7 @@ const zeiger = (page: Page, hasTouch: boolean) => {
 	const zu = async (p: Punkt) => {
 		for (let i = 1; i <= 5; i += 1) {
 			const schritt = { x: wo.x + ((p.x - wo.x) * i) / 5, y: wo.y + ((p.y - wo.y) * i) / 5 };
-			// eslint-disable-next-line no-await-in-loop -- Schritte nacheinander, wie eine Hand.
+
 			await (hasTouch ? sende('pointermove', schritt) : page.mouse.move(schritt.x, schritt.y));
 		}
 		wo = p;
@@ -93,7 +93,10 @@ const neueSeite = async (page: Page, druecke: (z: Locator) => Promise<void>, zah
 
 test.describe('Gliederung (080)', () => {
 	test.beforeEach(() => {
-		test.skip(!GERAETE.includes(test.info().project.name), 'läuft in Chromium, Safari am Mac und auf dem iPad quer');
+		test.skip(
+			!GERAETE.includes(test.info().project.name),
+			'läuft in Chromium, Safari am Mac und auf dem iPad quer',
+		);
 	});
 
 	const blatt = async (page: Page) => {
@@ -106,7 +109,6 @@ test.describe('Gliederung (080)', () => {
 		const zeilen = page.locator('[data-gliederung-zeile]');
 		await expect(zeilen).toHaveCount(4);
 		for (const zeile of await zeilen.all()) {
-			// eslint-disable-next-line no-await-in-loop -- Zeile für Zeile.
 			await expect(griffVon(zeile)).toBeVisible();
 		}
 		await expect(page.locator('[data-gliederung-fest]')).toHaveText(['Namenszeile', 'Kopf', 'Fuß']);
@@ -134,12 +136,9 @@ test.describe('Gliederung (080)', () => {
 		await expect(page.locator('[data-zug]')).toHaveText('Aufgabe 3');
 		await expect(aufgaben(page).nth(2)).toHaveCSS('opacity', '0.35');
 		await hand.los();
-		await expect.poll(async () => anweisungen(await quelle(page))).toEqual([
-			'Willi sagt: ',
-			'Lies ab. Sch',
-			'Zeichne die ',
-			'Sternchenauf',
-		]);
+		await expect
+			.poll(async () => anweisungen(await quelle(page)))
+			.toEqual(['Willi sagt: ', 'Lies ab. Sch', 'Zeichne die ', 'Sternchenauf']);
 		expect(nummern(await quelle(page))).toEqual(['1', '2', '3', '★']);
 		await expect(marke(page)).toHaveCount(0);
 		await expect(page.locator('[data-zug]')).toHaveCount(0);
@@ -179,7 +178,9 @@ test.describe('Gliederung (080)', () => {
 		// Zwischen Zeilen der anderen Seite: Linie, und sie steht danach dort.
 		const hand2 = zeiger(page, hasTouch);
 		await hand2.runter(await mitte(griffVon(aufgaben(page).nth(0))));
-		await hand2.zu(await an(page.locator('[data-gliederung-seite="2"] [data-gliederung-aufgabe]').first(), 'unten'));
+		await hand2.zu(
+			await an(page.locator('[data-gliederung-seite="2"] [data-gliederung-aufgabe]').first(), 'unten'),
+		);
 		await expect(marke(page)).toBeVisible();
 		await hand2.los();
 		await expect(page.locator('[data-gliederung-seite="2"] [data-gliederung-aufgabe]')).toHaveCount(2);
@@ -267,7 +268,10 @@ test.describe('Gliederung (080)', () => {
 
 	test('Freier Block erscheint und lässt sich ziehen', async ({ hasTouch, page }) => {
 		await blatt(page);
-		const mitBlock = (await quelle(page)).replace('<div class="aufgabe"', '<h2>Zwischen</h2>\n<div class="aufgabe"');
+		const mitBlock = (await quelle(page)).replace(
+			'<div class="aufgabe"',
+			'<h2>Zwischen</h2>\n<div class="aufgabe"',
+		);
 		await page.evaluate((t) => {
 			(window as unknown as { schoolboxEditor: { aendere: (neu: string) => void } }).schoolboxEditor.aendere(t);
 		}, mitBlock);
@@ -278,10 +282,12 @@ test.describe('Gliederung (080)', () => {
 		await hand.zu(await an(aufgaben(page).nth(1), 'unten'));
 		await expect(page.locator('[data-zug]')).toHaveText('Überschrift');
 		await hand.los();
-		await expect.poll(async () => {
-			const q = await quelle(page);
-			return q.indexOf('Zwischen') > q.indexOf('Zeichne die ');
-		}).toBe(true);
+		await expect
+			.poll(async () => {
+				const q = await quelle(page);
+				return q.indexOf('Zwischen') > q.indexOf('Zeichne die ');
+			})
+			.toBe(true);
 		await expect(zurueck(page)).toHaveAttribute('data-schritt', 'Überschrift verschoben');
 	});
 

@@ -52,7 +52,10 @@ describe('Verlauf des Chats', () => {
 			nachricht('x'.repeat(SERVER_ZEICHEN + 10), 'claude'),
 			nachricht('neu'),
 		]);
-		assert.equal(lang.slice(0, -1).reduce((n, m) => n + m.text.length, 0), SERVER_ZEICHEN);
+		assert.equal(
+			lang.slice(0, -1).reduce((n, m) => n + m.text.length, 0),
+			SERVER_ZEICHEN,
+		);
 		assert.equal(lang.length, 2);
 		assert.equal(lang.at(-1)?.text, 'neu');
 		assert.deepEqual(verlaufFuerServer([]), []);

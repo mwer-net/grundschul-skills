@@ -17,12 +17,12 @@ import {
 } from './quelltext';
 import {
 	dupliziereBaustein,
+	entferneAbstand,
 	fuegeSeiteEin,
+	gesetzterAbstand,
 	hatNamenszeile,
 	loescheBaustein,
 	nummeriere,
-	entferneAbstand,
-	gesetzterAbstand,
 	setzeAbstand,
 	setzeSpalten,
 	setzeStilWert,
@@ -71,7 +71,12 @@ describe('verschiebeBaustein', () => {
 		].join('\n');
 		const z = zerlege(folien);
 		const zweite = mitKlasse(z, 'seite')[1] as Knoten;
-		const { quelle } = verschiebeBaustein(folien, (mitKlasse(z, 'aufgabe')[0] as Knoten).nr, { in: zweite.nr }, FOLIEN);
+		const { quelle } = verschiebeBaustein(
+			folien,
+			(mitKlasse(z, 'aufgabe')[0] as Knoten).nr,
+			{ in: zweite.nr },
+			FOLIEN,
+		);
 		assert.deepEqual(nummern(quelle), ['1', '1', '2']);
 		const inBlatt = verschiebeBaustein(folien, (mitKlasse(z, 'aufgabe')[0] as Knoten).nr, { in: zweite.nr }, BLATT);
 		assert.deepEqual(nummern(inBlatt.quelle), ['1', '2', '3']);

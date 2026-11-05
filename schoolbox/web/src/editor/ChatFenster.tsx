@@ -454,11 +454,11 @@ const VerlaufBereich = ({
 	hinweisText,
 	imEditor,
 	leerGeblieben,
+	limitGesperrt,
 	liste,
 	neu,
 	neuBeginnen,
 	neuStarten,
-	limitGesperrt,
 	schliessen,
 	vergleichen,
 	verlauf,
@@ -1070,10 +1070,7 @@ export const ChatInhalt = ({
 			gespraech.sichereId();
 			merke(inhalt.text, chipName);
 			// Ist das Limit nah, kostet schon das Einordnen zu viel: Die Karte kommt trotzdem.
-			void neu.starte(
-				{ wunsch: inhalt.text, ordner, imDokument: Boolean(dokument) },
-				hinweis?.art === 'warnung',
-			);
+			void neu.starte({ wunsch: inhalt.text, ordner, imDokument: Boolean(dokument) }, hinweis?.art === 'warnung');
 			return;
 		}
 		void sendeAuftrag(inhalt);

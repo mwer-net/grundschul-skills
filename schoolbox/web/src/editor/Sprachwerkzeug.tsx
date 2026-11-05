@@ -1,7 +1,7 @@
-import type { SilbenDarstellung, SilbenStand } from '@schoolbox/kern/src/sprachstand';
-import { leseSprachstand } from '@schoolbox/kern/src/sprachstand';
 import type * as SprachKern from '@schoolbox/kern/src/sprache';
 import type { Bereich, LueckenRegel, SprachErgebnis, SprachWerkzeug } from '@schoolbox/kern/src/sprache';
+import type { SilbenDarstellung, SilbenStand } from '@schoolbox/kern/src/sprachstand';
+import { leseSprachstand } from '@schoolbox/kern/src/sprachstand';
 import type { ReactNode } from 'react';
 import { useEffect, useMemo, useState } from 'react';
 
@@ -202,7 +202,9 @@ export const Sprachwerkzeug = ({
 			<Abschnitt name="lesehilfen" titel="Lesehilfen">
 				{markiert && (
 					<p className="truncate text-xs text-leise" data-sprache-markierung title={markiert.text}>
-						Wirkt auf die Markierung: „{markiert.text}“
+						Wirkt auf die Markierung: „
+{markiert.text}
+“
 					</p>
 				)}
 				<Regler titel="Silben">
@@ -234,12 +236,15 @@ export const Sprachwerkzeug = ({
 									setze={() =>
 										void wende(stand.vokale ? 'Vokale aus' : 'Vokale', (s, q) =>
 											s.schalteMarkierung(q, nr, 'vokale', bereich),
-										)
-									}
+										)}
 								/>
 							</span>
 						</Zeile>
-						<Zeile titel="Buchstaben" fuer="sprache-buchstaben" hilfe="Hebt diese Buchstaben im Text hervor.">
+						<Zeile
+							titel="Buchstaben"
+							fuer="sprache-buchstaben"
+							hilfe="Hebt diese Buchstaben im Text hervor."
+						>
 							<input
 								{...EIGENE_GESCHICHTE}
 								id="sprache-buchstaben"

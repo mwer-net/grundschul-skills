@@ -89,7 +89,9 @@ const zeichneFaelle = async (
 			type Z = Window & {
 				zeichneAbbildungen: (e: Element) => void;
 				setzeAbbildungsInhalt: (e: Element, w: string) => void;
-				schoolboxAbbildungen: { neueZahlen: (t: string, w: unknown, s: string) => Record<string, string> | null };
+				schoolboxAbbildungen: {
+					neueZahlen: (t: string, w: unknown, s: string) => Record<string, string> | null;
+				};
 			};
 			const f = window as unknown as Z;
 			const el = document.querySelector(`[data-sb="${n}"]`) as HTMLElement & { _abbInhalt?: string };
@@ -166,7 +168,16 @@ const zeichneFaelle = async (
 					ausnahme = String(e);
 				}
 				const fehlerPruefung = fehlerVonPruefung();
-				zeichnungen.push({ feld: fall.feld, wert: fall.wert, blatt, loesung, fehler, ausnahme, bild, fehlerPruefung });
+				zeichnungen.push({
+					feld: fall.feld,
+					wert: fall.wert,
+					blatt,
+					loesung,
+					fehler,
+					ausnahme,
+					bild,
+					fehlerPruefung,
+				});
 				for (const [a, w] of [...alt, ...dazu]) {
 					setze(a, w);
 				}
@@ -181,7 +192,8 @@ const zeichneFaelle = async (
 
 const zellenVon = (rahmen: Frame, nr: number) =>
 	rahmen.evaluate((n) => {
-		const el = document.querySelector(`[data-sb="${n}"]`) as (Element & { _abbZellen?: Record<string, { id: string }[]> }) | null;
+		const el = document.querySelector(`[data-sb="${n}"]`) as
+			(Element & { _abbZellen?: Record<string, { id: string }[]> }) | null;
 		return Object.fromEntries(Object.entries(el?._abbZellen ?? {}).map(([k, v]) => [k, v.map((z) => z.id)]));
 	}, nr);
 
@@ -232,12 +244,18 @@ const rahmenVon = async (page: Page): Promise<Frame> => {
 
 const seitenUndFehler = async (rahmen: Frame) =>
 	rahmen.evaluate(async () => {
-		type P = { pruefeBlatt?: (o: { warten: boolean }) => Promise<{ meldungen: { stufe: string; code: string; text: string }[] }> };
+		type P = {
+			pruefeBlatt?: (o: {
+				warten: boolean;
+			}) => Promise<{ meldungen: { stufe: string; code: string; text: string }[] }>;
+		};
 		const bericht = await (window as unknown as P).pruefeBlatt?.({ warten: false });
 		return {
 			// Mit den Folgeseiten: Genau die sprengt ein zu großer Start (Bingo mit 28 Karten).
 			seiten: document.querySelectorAll('.seite').length,
-			fehler: (bericht?.meldungen ?? []).filter((m) => m.stufe === 'FEHLER').map((m) => ({ code: m.code, text: m.text })),
+			fehler: (bericht?.meldungen ?? [])
+				.filter((m) => m.stufe === 'FEHLER')
+				.map((m) => ({ code: m.code, text: m.text })),
 		};
 	});
 
@@ -251,7 +269,10 @@ const leeresBlatt = async (klasse: 2 | 4 = 2) => {
 	]);
 	const dok = dokumente[0] ?? '';
 	const datei = path.join(dokumentOrdner(id, dok), 'material.html');
-	const leer = (await readFile(datei, 'utf8')).replace(LEERE_SEITE, '<body$1>\n<section class="seite">\n</section>\n</body>');
+	const leer = (await readFile(datei, 'utf8')).replace(
+		LEERE_SEITE,
+		'<body$1>\n<section class="seite">\n</section>\n</body>',
+	);
 	await writeFile(datei, leer);
 	return { id, dok, leer };
 };
@@ -324,9 +345,11 @@ const sucheAbhaengige = async (
 	inhaltFelder: string[],
 	verstoesse: Verstoss[],
 ) => {
-	const felder = schema.felder as Feld[];
+	const felder = schema.felder;
 	const stumm = [
-		...new Set(verstoesse.filter((v) => v.regel === 'W2').map((v) => v.schluessel.split('.')[1]?.split('=')[0] ?? '')),
+		...new Set(
+			verstoesse.filter((v) => v.regel === 'W2').map((v) => v.schluessel.split('.')[1]?.split('=')[0] ?? ''),
+		),
 	];
 	const ergebnis: Record<string, string[]> = {};
 	for (const attr of stumm) {
@@ -341,7 +364,10 @@ const sucheAbhaengige = async (
 				const mit = proben.map((p) => ({ ...p, aenderung: diff(basis, p.werte) }));
 				const stand = { aenderung: diff(basis, kontext.werte), feld: '_', wert: 'Stand', werte: kontext.werte };
 				const [bezug, ...rest] = await zeichneFaelle(rahmen, nr, [stand, ...mit], inhaltFelder, null, e.id);
-				if (!bezug?.fehler && rest.some((z) => !z.fehler && (z.blatt !== bezug?.blatt || z.loesung !== bezug?.loesung))) {
+				if (
+					!bezug?.fehler &&
+					rest.some((z) => !z.fehler && (z.blatt !== bezug?.blatt || z.loesung !== bezug?.loesung))
+				) {
 					wirktUnter.push(`${anderes.attribut}=${kontext.wert}`);
 				}
 			}
@@ -382,7 +408,7 @@ const pruefeFelder = async (
 	let ohne = 0;
 	const abgewiesen: string[] = [];
 	const kontakt: { feld: string; wert: string; bild: string; wirkt: boolean }[] = [];
-	const felder = schema.felder as Feld[];
+	const felder = schema.felder;
 	for (const feld of felder) {
 		const sichtbar = !feld.nurWenn || feld.nurWenn(basis);
 		// Hängt das Feld an einem anderen: dort einen Stand suchen, in dem es gilt, und zusätzlich prüfen, dass es
@@ -392,7 +418,7 @@ const pruefeFelder = async (
 			const kandidaten = felder.flatMap((f) =>
 				f === feld || f.art !== 'auswahl'
 					? []
-					: f.optionen.map((o) => ({ ...basis, [f.attribut]: o.wert || null }) as Werte),
+					: f.optionen.map((o) => ({ ...basis, [f.attribut]: o.wert || null })),
 			);
 			const treffer = kandidaten.find((w) => feld.nurWenn?.(w));
 			// Hängt die Bedingung am Inhalt (gleiche Wörter, gemischte Sprünge), bleibt nur die Probe im Ausgangsstand.
@@ -400,9 +426,11 @@ const pruefeFelder = async (
 		}
 		const erreichbar = sichtbar || stand !== basis;
 		const { faelle } = erreichbar ? faelleVon(schema, feld, stand, zellen) : { faelle: [] };
-		const mitStand = stand === basis ? faelle : faelle.map((f) => ({ ...f, aenderung: { ...diff(basis, f.werte) } }));
+		const mitStand =
+			stand === basis ? faelle : faelle.map((f) => ({ ...f, aenderung: { ...diff(basis, f.werte) } }));
 		const standFall = { aenderung: diff(basis, stand), feld: '_', wert: 'Stand', werte: stand };
-		const [bezug] = stand === basis ? [anfang] : await zeichneFaelle(rahmen, nr, [standFall], inhaltFelder, null, e.id);
+		const [bezug] =
+			stand === basis ? [anfang] : await zeichneFaelle(rahmen, nr, [standFall], inhaltFelder, null, e.id);
 		const ergebnisse = await zeichneFaelle(rahmen, nr, mitStand, inhaltFelder, gen, e.id);
 		// Text und Zahlen reichen mit einem wirksamen Wert: Der andere ist oft der Standard oder wird abgewiesen.
 		const einerReicht = feld.art === 'text' || feld.art === 'zahlen';
@@ -450,13 +478,7 @@ const diff = (alt: Werte, neu: Werte): Werte =>
 			.map((a) => [a, neu[a] ?? null]),
 	);
 
-const pruefeW1 = async (
-	page: Page,
-	e: KatalogEintrag,
-	nr: number,
-	schema: AbbildungSchema,
-	verstoesse: Verstoss[],
-) => {
+const pruefeW1 = async (page: Page, e: KatalogEintrag, nr: number, schema: AbbildungSchema, verstoesse: Verstoss[]) => {
 	const q = await quelle(page);
 	const z = zerlege(q);
 	const knoten = z.knoten[nr];
@@ -464,7 +486,7 @@ const pruefeW1 = async (
 		return;
 	}
 	const basis = werteVon(schema, knoten, z);
-	for (const feld of schema.felder as Feld[]) {
+	for (const feld of schema.felder) {
 		for (const fall of faelleVon(schema, feld, basis, {}).faelle) {
 			try {
 				if (setzeAbbildung(q, nr, fall.aenderung).quelle === q) {
@@ -475,7 +497,11 @@ const pruefeW1 = async (
 					});
 				}
 			} catch (fehler) {
-				verstoesse.push({ regel: 'W1', schluessel: `${e.id}.${feld.attribut}=${fall.wert}`, text: String(fehler) });
+				verstoesse.push({
+					regel: 'W1',
+					schluessel: `${e.id}.${feld.attribut}=${fall.wert}`,
+					text: String(fehler),
+				});
 			}
 		}
 	}
@@ -484,13 +510,17 @@ const pruefeW1 = async (
 /** W9: Innerhalb eines Abschnitts kein Name doppelt, kein Feld heißt wie sein Abschnitt. */
 const pruefeNamen = (e: KatalogEintrag, schema: AbbildungSchema | undefined, verstoesse: Verstoss[]) => {
 	const titel = new Map<string, Set<string>>();
-	for (const f of ((schema?.felder ?? []) as Feld[]).filter((x) => !x.ohneFeld)) {
+	for (const f of ((schema?.felder ?? [])).filter((x) => !x.ohneFeld)) {
 		const abschnitt = ABSCHNITT_TITEL[abschnittVon(f)];
 		if (!f.name.trim()) {
 			verstoesse.push({ regel: 'W9', schluessel: `${e.id}.${f.attribut}`, text: 'Feld ohne Namen.' });
 		}
 		if (f.name === abschnitt) {
-			verstoesse.push({ regel: 'W9', schluessel: `${e.id}.${f.attribut}`, text: `Feld heißt wie sein Abschnitt „${abschnitt}“.` });
+			verstoesse.push({
+				regel: 'W9',
+				schluessel: `${e.id}.${f.attribut}`,
+				text: `Feld heißt wie sein Abschnitt „${abschnitt}“.`,
+			});
 		}
 		const schluessel = `${abschnitt}/${f.gruppe ?? ''}`;
 		const namen = titel.get(schluessel) ?? new Set<string>();
@@ -523,22 +553,22 @@ const pruefeKit = async (page: Page, e: KatalogEintrag, art: string, verstoesse:
 		Number(document.querySelector('[data-pfad-stufe]:last-of-type')?.getAttribute('data-pfad-stufe') ?? -1),
 	);
 	const rahmen = await rahmenVon(page);
-	const auswahl = await rahmen.evaluate(
-		(a) => {
-			type T = { schoolboxEditor?: { art: (el: Element) => string | null } };
-			const ed = (window.parent as unknown as T).schoolboxEditor;
-			const treffer = [...document.querySelectorAll('[data-sb]')].filter((el) => ed?.art(el) === a);
-			return treffer.at(-1)?.getAttribute('data-sb') ?? null;
-		},
-		art,
-	);
+	const auswahl = await rahmen.evaluate((a) => {
+		type T = { schoolboxEditor?: { art: (el: Element) => string | null } };
+		const ed = (window.parent as unknown as T).schoolboxEditor;
+		const treffer = [...document.querySelectorAll('[data-sb]')].filter((el) => ed?.art(el) === a);
+		return treffer.at(-1)?.getAttribute('data-sb') ?? null;
+	}, art);
 	const n = auswahl === null ? nr : Number(auswahl);
 	const werte = leseKit(q, n, art);
 	const seite = async () => {
 		await expect
 			.poll(async () => {
 				const r = await rahmenVon(page);
-				return r.locator('.seite').count().catch(() => 0);
+				return r
+					.locator('.seite')
+					.count()
+					.catch(() => 0);
 			})
 			.toBeGreaterThan(0);
 		return (await rahmenVon(page)).locator('.seite').first().screenshot();
@@ -561,7 +591,11 @@ const pruefeKit = async (page: Page, e: KatalogEintrag, art: string, verstoesse:
 			zahl += 1;
 			const neu = setzeKit(q, n, art, f.name, w, { jeSeite: false });
 			if (neu === q) {
-				verstoesse.push({ regel: 'W1', schluessel: `${e.id}.${f.name}=${String(w)}`, text: 'Die Quelle ändert sich nicht.' });
+				verstoesse.push({
+					regel: 'W1',
+					schluessel: `${e.id}.${f.name}=${String(w)}`,
+					text: 'Die Quelle ändert sich nicht.',
+				});
 				continue;
 			}
 			// Kit-Bausteine haben keinen Schnellweg: Einmal je Art und Feld wirklich neu laden und das Bild vergleichen.
@@ -570,7 +604,11 @@ const pruefeKit = async (page: Page, e: KatalogEintrag, art: string, verstoesse:
 				KIT_GEPRUEFT.add(schluessel);
 				await aendere(page, neu);
 				if ((await seite()).equals(bezug)) {
-					verstoesse.push({ regel: 'W2', schluessel: `${e.id}.${f.name}=${String(w)}`, text: 'Das Gezeichnete ändert sich nicht.' });
+					verstoesse.push({
+						regel: 'W2',
+						schluessel: `${e.id}.${f.name}=${String(w)}`,
+						text: 'Das Gezeichnete ändert sich nicht.',
+					});
 				}
 				await aendere(page, q);
 			}
@@ -661,7 +699,10 @@ const schreibeBericht = () => {
 type Kasten = ReturnType<Page['locator']>;
 const eingabeWert = (k: Kasten) => k.locator('input, textarea').first().inputValue();
 /** Je Feldart ein Vertreter über die echte Oberfläche; der Schnellweg deckt alle Werte ab, nicht aber W3 bis W5. */
-const VOLLER_WEG: Record<string, { tu: (k: Kasten) => Promise<void>; lese: (k: Kasten) => Promise<string>; fokus: boolean }> = {
+const VOLLER_WEG: Record<
+	string,
+	{ tu: (k: Kasten) => Promise<void>; lese: (k: Kasten) => Promise<string>; fokus: boolean }
+> = {
 	auswahl: {
 		tu: async (k) => {
 			const s = k.locator('select').first();
@@ -757,7 +798,9 @@ test.describe('Prüfmaschine', () => {
 			const ergebnisse: Ergebnis[] = [];
 			let blatt4: Awaited<ReturnType<typeof leeresBlatt>> | null = null;
 			let auf4 = false;
-			for (const e of KATALOG.filter((k) => k.kategorie === bereich && !k.klasse && (!FILTER || FILTER.includes(k.id)))) {
+			for (const e of KATALOG.filter(
+				(k) => k.kategorie === bereich && !k.klasse && (!FILTER || FILTER.includes(k.id)),
+			)) {
 				if (auf4) {
 					await oeffne(page, id, dok);
 					await page.getByRole('tab', { name: 'Bausteine' }).click();
@@ -797,7 +840,11 @@ test.describe('Prüfmaschine', () => {
 				const letzte = pfad.split('›').at(-1) ?? '';
 				const stimmt = soll ? soll.test(letzte) : schema ? letzte === schema.name : !/^Aufgabe \d/.test(letzte);
 				if (!stimmt) {
-					verstoesse.push({ regel: 'G1', schluessel: e.id, text: `Nach dem Einfügen gewählt: ${pfad || '(nichts)'}` });
+					verstoesse.push({
+						regel: 'G1',
+						schluessel: e.id,
+						text: `Nach dem Einfügen gewählt: ${pfad || '(nichts)'}`,
+					});
 				}
 				if (stand.seiten > 1 || stand.fehler.length > 0) {
 					verstoesse.push({
@@ -807,7 +854,11 @@ test.describe('Prüfmaschine', () => {
 					});
 				}
 				if (inspektor && inspektor.raus > 0) {
-					verstoesse.push({ regel: 'W8', schluessel: e.id, text: `${inspektor.raus} Elemente: ${inspektor.rausBeispiel.join(', ')}` });
+					verstoesse.push({
+						regel: 'W8',
+						schluessel: e.id,
+						text: `${inspektor.raus} Elemente: ${inspektor.rausBeispiel.join(', ')}`,
+					});
 				}
 				if (inspektor && inspektor.hoehe > ZU_HOCH) {
 					verstoesse.push({ regel: 'G3', schluessel: e.id, text: `Inspektor ${inspektor.hoehe} px hoch` });
@@ -923,9 +974,10 @@ test.describe('Prüfmaschine', () => {
 	});
 
 	test('Liste BEKANNT schrumpft nur', () => {
-		expect(Object.keys(BEKANNT).length, 'Neue Einträge sind nicht erlaubt: beheben statt eintragen').toBeLessThanOrEqual(
-			BEKANNT_HOECHSTENS,
-		);
+		expect(
+			Object.keys(BEKANNT).length,
+			'Neue Einträge sind nicht erlaubt: beheben statt eintragen',
+		).toBeLessThanOrEqual(BEKANNT_HOECHSTENS);
 		for (const [schluessel, grund] of Object.entries(BEKANNT)) {
 			expect(grund.length, `${schluessel} braucht eine Begründung`).toBeGreaterThan(20);
 		}

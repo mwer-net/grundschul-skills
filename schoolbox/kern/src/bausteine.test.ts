@@ -61,9 +61,15 @@ describe('Freies Element (Entscheidung 38)', () => {
 
 	it('Der Name kommt aus data-frei-titel, sonst „Freies Element“, auch im Pfad für den Auftrag', () => {
 		const benannt = treffer('<figure data-frei data-frei-titel="Tangram Waschbär"><svg></svg></figure>');
-		assert.deepEqual(pfadVon(benannt.z, benannt.k.nr, false).map((s) => s.name), ['Seite 1', 'Tangram Waschbär']);
+		assert.deepEqual(
+			pfadVon(benannt.z, benannt.k.nr, false).map((s) => s.name),
+			['Seite 1', 'Tangram Waschbär'],
+		);
 		const ohne = treffer('<svg data-frei></svg>');
-		assert.deepEqual(pfadVon(ohne.z, ohne.k.nr, false).map((s) => s.name), ['Seite 1', 'Freies Element']);
+		assert.deepEqual(
+			pfadVon(ohne.z, ohne.k.nr, false).map((s) => s.name),
+			['Seite 1', 'Freies Element'],
+		);
 	});
 });
 

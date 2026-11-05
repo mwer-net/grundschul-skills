@@ -26,21 +26,45 @@ const erlaubt = (name: string, html: string) =>
 
 describe('pruefeFreiesHtml: was bleibt', () => {
 	erlaubt('SVG mit viewBox', SVG);
-	erlaubt('figure mit Kennzeichnung', `<figure data-frei data-frei-titel="Tangram Waschbär">${SVG}<figcaption>Text</figcaption></figure>`);
-	erlaubt('style-Attribut', '<div style="color:red;width:calc(100% - 2px);background:linear-gradient(#000,#fff)">x</div>');
+	erlaubt(
+		'figure mit Kennzeichnung',
+		`<figure data-frei data-frei-titel="Tangram Waschbär">${SVG}<figcaption>Text</figcaption></figure>`,
+	);
+	erlaubt(
+		'style-Attribut',
+		'<div style="color:red;width:calc(100% - 2px);background:linear-gradient(#000,#fff)">x</div>',
+	);
 	erlaubt('style-Element', '<style>.a{color:rgb(0,0,0)}.a:not(.b){margin:0}@media print{.a{color:#000}}</style>');
-	erlaubt('use auf eine Stelle im Blatt', '<svg><defs><path id="a" d="M0 0"/></defs><use href="#a"/><use xlink:href="#a"/></svg>');
-	erlaubt('Muster als Attribut', '<svg><defs><pattern id="m" width="4" height="4"/></defs><rect fill="url(#m)" stroke="url(#m)" width="4" height="4"/></svg>');
+	erlaubt(
+		'use auf eine Stelle im Blatt',
+		'<svg><defs><path id="a" d="M0 0"/></defs><use href="#a"/><use xlink:href="#a"/></svg>',
+	);
+	erlaubt(
+		'Muster als Attribut',
+		'<svg><defs><pattern id="m" width="4" height="4"/></defs><rect fill="url(#m)" stroke="url(#m)" width="4" height="4"/></svg>',
+	);
 	erlaubt('Bild aus der Mappe', '<img src="../../bilder/wilma.png" alt="Wilma">');
 	erlaubt('eingebettetes Pixelbild', '<img src="data:image/png;base64,iVBORw0KGgo=" alt="">');
 	erlaubt('Sprung im Blatt', '<a href="#oben">Oben</a>');
 	erlaubt('eigene Abbildung aus dem Katalog', '<x-uhr zeit="4:30" groesse="88" class="a" data-name="Uhr"></x-uhr>');
 	erlaubt('Kommentar mit Tags darin', '<!-- <x-uhr> Beispiel: 1 < 2 --><p>a < b</p>');
-	erlaubt('Doctype und Rahmen', '<!doctype html><html lang="de"><head><title>A &amp; B</title></head><body class="kl2"><p>x</p></body></html>');
-	erlaubt('Tabelle', '<table><thead><tr><th scope="col" colspan="2">a</th></tr></thead><tr><td rowspan="1">b</td></tr></table>');
+	erlaubt(
+		'Doctype und Rahmen',
+		'<!doctype html><html lang="de"><head><title>A &amp; B</title></head><body class="kl2"><p>x</p></body></html>',
+	);
+	erlaubt(
+		'Tabelle',
+		'<table><thead><tr><th scope="col" colspan="2">a</th></tr></thead><tr><td rowspan="1">b</td></tr></table>',
+	);
 	erlaubt('geschlossenes SVG-Element', '<svg><circle cx="1" cy="1" r="1"/></svg><p>x</p>');
-	erlaubt('Entitäten aus dem Alltag', '<div title="K&auml;fer &amp; Co &#8211; 3 &lt; 4 und A & B" class="a">x</div>');
-	erlaubt('Text in SVG mit Titel', '<svg><title>Waschbär</title><desc>Umriss</desc><text x="1" y="1">Hallo <tspan>du</tspan></text></svg>');
+	erlaubt(
+		'Entitäten aus dem Alltag',
+		'<div title="K&auml;fer &amp; Co &#8211; 3 &lt; 4 und A & B" class="a">x</div>',
+	);
+	erlaubt(
+		'Text in SVG mit Titel',
+		'<svg><title>Waschbär</title><desc>Umriss</desc><text x="1" y="1">Hallo <tspan>du</tspan></text></svg>',
+	);
 });
 
 describe('pruefeFreiesHtml: die Sperren aus Entscheidung 38', () => {
@@ -54,10 +78,35 @@ describe('pruefeFreiesHtml: die Sperren aus Entscheidung 38', () => {
 	gesperrt('javascript in href', '<a href="javascript:alert(1)">x</a>');
 	gesperrt('fremde Adresse in href', '<a href="https://boese.example/">x</a>');
 	gesperrt('Adresse ohne Schema', '<a href="//boese.example/">x</a>');
-	for (const tag of ['iframe', 'object', 'embed', 'form', 'base', 'meta', 'link', 'audio', 'video', 'source', 'applet']) {
+	for (const tag of [
+		'iframe',
+		'object',
+		'embed',
+		'form',
+		'base',
+		'meta',
+		'link',
+		'audio',
+		'video',
+		'source',
+		'applet',
+	]) {
 		gesperrt(tag, `<${tag} src="a" href="a"></${tag}>`);
 	}
-	for (const tag of ['button', 'input', 'select', 'textarea', 'details', 'dialog', 'template', 'noscript', 'math', 'plaintext', 'xmp', 'marquee']) {
+	for (const tag of [
+		'button',
+		'input',
+		'select',
+		'textarea',
+		'details',
+		'dialog',
+		'template',
+		'noscript',
+		'math',
+		'plaintext',
+		'xmp',
+		'marquee',
+	]) {
 		gesperrt(tag, `<${tag}>x</${tag}>`);
 	}
 	gesperrt('style mit @import', '<style>@import "https://boese.example/a.css";</style>');
@@ -72,7 +121,10 @@ describe('pruefeFreiesHtml: die Sperren aus Entscheidung 38', () => {
 
 describe('pruefeFreiesHtml: SVG kommt nicht an der Liste vorbei', () => {
 	gesperrt('script im SVG', '<svg><script>alert(1)</script></svg>');
-	gesperrt('style im SVG liest der Browser anders', '<svg><style>@im&#112;ort "https://boese.example/a.css";</style></svg>');
+	gesperrt(
+		'style im SVG liest der Browser anders',
+		'<svg><style>@im&#112;ort "https://boese.example/a.css";</style></svg>',
+	);
 	gesperrt('onload am SVG', '<svg onload="alert(1)"></svg>');
 	gesperrt('Ereignis an einer Form', '<svg><rect onmouseover="alert(1)"/></svg>');
 	gesperrt('foreignObject', '<svg><foreignObject><div>x</div></foreignObject></svg>');
@@ -127,7 +179,10 @@ describe('pruefeFreiesHtml: Umgehungen', () => {
 	gesperrt('@import mit Kommentar', '<style>@/**/import "https://boese.example/a.css";</style>');
 	gesperrt('@import in anderer Schreibung', '<style>@IMPORT "https://boese.example/a.css";</style>');
 	gesperrt('@font-face', '<style>@font-face{font-family:a;src:local(a)}</style>');
-	gesperrt('image-set ohne url', '<div style="background:image-set(&quot;https://boese.example/x.png&quot; 1x)">x</div>');
+	gesperrt(
+		'image-set ohne url',
+		'<div style="background:image-set(&quot;https://boese.example/x.png&quot; 1x)">x</div>',
+	);
 	gesperrt('falsches Ende von style', '<style>a{}</stylex>@import "https://boese.example/a.css";</style>');
 	gesperrt('offener CSS-Kommentar', '<style>a{}/* </style>');
 	gesperrt('style ohne Ende', '<style>a{}');
@@ -151,7 +206,8 @@ describe('pruefeFreiesHtml: Umgehungen', () => {
 
 describe('Der Zerleger lässt freies SVG, wie es ist', () => {
 	it('Groß- und Kleinschreibung bleibt beim Markieren', () => {
-		const html = '<svg viewBox="0 0 1 1"><clipPath id="a"><linearGradient gradientUnits="userSpaceOnUse"/></clipPath></svg>';
+		const html =
+			'<svg viewBox="0 0 1 1"><clipPath id="a"><linearGradient gradientUnits="userSpaceOnUse"/></clipPath></svg>';
 		const markiert = markiere(zerlege(html));
 		assert.match(markiert, /viewBox="0 0 1 1"/);
 		assert.match(markiert, /<clipPath /);
@@ -175,7 +231,10 @@ describe('neueFunde: nur was dazukam (Entscheidung 26)', () => {
 	});
 
 	it('Verschoben ist nicht neu', () => {
-		const neu = BESTAND.replace('<script src="abbildungen.js"></script>', '').replace('</body>', '<script src="abbildungen.js"></script></body>');
+		const neu = BESTAND.replace('<script src="abbildungen.js"></script>', '').replace(
+			'</body>',
+			'<script src="abbildungen.js"></script></body>',
+		);
 		assert.deepEqual(neueFunde(BESTAND, neu), []);
 	});
 
@@ -185,7 +244,10 @@ describe('neueFunde: nur was dazukam (Entscheidung 26)', () => {
 	});
 
 	it('Inhalt in einem alten leeren Skript ist neu', () => {
-		const neu = BESTAND.replace('<script src="abbildungen.js"></script>', '<script src="abbildungen.js">alert(1)</script>');
+		const neu = BESTAND.replace(
+			'<script src="abbildungen.js"></script>',
+			'<script src="abbildungen.js">alert(1)</script>',
+		);
 		assert.notEqual(neueFunde(BESTAND, neu).length, 0);
 	});
 
@@ -245,7 +307,8 @@ describe('Vorhandenes Material besteht die Prüfung', () => {
 });
 
 describe('istEinElement', () => {
-	const eins = (html: string, wert: boolean) => it(`${wert ? 'ja' : 'nein'}: ${html}`, () => assert.equal(istEinElement(html), wert));
+	const eins = (html: string, wert: boolean) =>
+		it(`${wert ? 'ja' : 'nein'}: ${html}`, () => assert.equal(istEinElement(html), wert));
 	eins('<figure data-frei><svg></svg></figure>', true);
 	eins('  <div>x</div>\n', true);
 	eins('<svg data-frei/>', true);

@@ -204,7 +204,7 @@ const ruhig = async (page: Page, adresse: string) => {
 };
 
 const lauf = async (fall: Fall, weg: (typeof WEGE)[keyof typeof WEGE], u: Pick<Umgebung, 'page' | 'druecke'>) => {
-	const { page, druecke } = u;
+	const { druecke, page } = u;
 	const { dok, id, material: datei } = await uhrzeit();
 	if (fall.material) {
 		await writeFile(datei, fall.material(await readFile(datei, 'utf8')));
@@ -225,10 +225,7 @@ const lauf = async (fall: Fall, weg: (typeof WEGE)[keyof typeof WEGE], u: Pick<U
 
 test.describe('Rückgängig: Pfeil und Taste (085)', () => {
 	for (const fall of FAELLE) {
-		test(`${fall.name}: Taste und Pfeil tun dasselbe, vor bringt die Quelle zurück`, async ({
-			druecke,
-			page,
-		}) => {
+		test(`${fall.name}: Taste und Pfeil tun dasselbe, vor bringt die Quelle zurück`, async ({ druecke, page }) => {
 			test.slow();
 			const u = { page, druecke };
 			const taste = await lauf(fall, WEGE.taste, u);

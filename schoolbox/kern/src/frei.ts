@@ -112,7 +112,7 @@ const ENTITAETEN: Record<string, string> = {
 	lt: '<',
 	gt: '>',
 	quot: '"',
-	apos: "'",
+	apos: '\'',
 	nbsp: String.fromCharCode(160),
 	auml: 'ä',
 	ouml: 'ö',
@@ -217,10 +217,14 @@ const wertProblem = (ort: Ort, name: string, wert: string): string | null => {
 		return stilProbleme(wert)[0]?.text ?? null;
 	}
 	if (ort.tag === 'a' && name === 'href') {
-		return SPRUNG.test(wert) ? null : `Links dürfen nur innerhalb des Blatts zeigen (#…), nicht auf „${kurz(wert)}“`;
+		return SPRUNG.test(wert)
+			? null
+			: `Links dürfen nur innerhalb des Blatts zeigen (#…), nicht auf „${kurz(wert)}“`;
 	}
 	if (ort.tag === 'img' && name === 'src') {
-		return BILD_PFAD.test(wert) || BILD_DATEN.test(wert) ? null : `Die Bildadresse „${kurz(wert)}“ ist nicht erlaubt`;
+		return BILD_PFAD.test(wert) || BILD_DATEN.test(wert)
+			? null
+			: `Die Bildadresse „${kurz(wert)}“ ist nicht erlaubt`;
 	}
 	if (NUR_DURCH_USE.has(name)) {
 		return SPRUNG.test(wert) ? null : `<use> darf nur auf #… im selben Blatt zeigen, nicht auf „${kurz(wert)}“`;
@@ -263,7 +267,10 @@ const pruefeAttribute = (ort: Ort, teil: string): Fund[] => {
 			continue;
 		}
 		const wert = entschluesseleEng(treffer[2] ?? treffer[3] ?? treffer[4] ?? '');
-		const problem = wert === null ? `Der Wert von ${name} an <${ort.tag}> enthält eine unbekannte Entität` : wertProblem(ort, name, wert);
+		const problem =
+			wert === null
+				? `Der Wert von ${name} an <${ort.tag}> enthält eine unbekannte Entität`
+				: wertProblem(ort, name, wert);
 		if (problem) {
 			funde.push(attributFund(ort, name, problem));
 		}

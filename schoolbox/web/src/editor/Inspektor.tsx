@@ -284,7 +284,9 @@ const UnsichtbarHinweis = ({
 	return (
 		<div className="flex flex-col items-start gap-1.5" data-hinweis="unsichtbar">
 			<p className="text-sm text-leise">
-				{loesung ? 'Das steht nur im Arbeitsblatt.' : 'Das steht nur in der Lösung.'} Hier siehst du es nicht.
+				{loesung ? 'Das steht nur im Arbeitsblatt.' : 'Das steht nur in der Lösung.'}
+{' '}
+Hier siehst du es nicht.
 			</p>
 			<Knopf art="zweit" groesse="klein" onClick={schalte}>
 				{loesung ? 'Zum Arbeitsblatt' : 'Zur Lösung'}

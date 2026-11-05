@@ -2,7 +2,8 @@
  * Was die Prüfmaschine meldet und was trotzdem stimmt, je mit Grund. Schlüssel: `Regel baustein.feld` oder
  * `Regel baustein.feld=Wert`. Die Liste darf nur schrumpfen; verwaiste Einträge schlagen an.
  */
-const AM_ANSCHLAG = 'Am oberen Anschlag passt es nicht auf eine Seite; die Prüfung sagt das und bietet das Verschieben an.';
+const AM_ANSCHLAG =
+	'Am oberen Anschlag passt es nicht auf eine Seite; die Prüfung sagt das und bietet das Verschieben an.';
 const WIE_STANDARD = 'Diese Option ist im Starter (Klasse 2) schon der Standardwert, also ändert sich nichts.';
 const NUR_MIT_FORM = 'Wirkt erst bei einer Form, die so etwas hat; dieses Dreieck hat das nicht.';
 const NUR_MIT_NOTEN = 'Wirkt nur, wenn der erste Takt unvollständig ist; die Starter-Noten füllen ihn.';
@@ -32,7 +33,8 @@ export const BEKANNT: Readonly<Record<string, string>> = {
 	'W2 x-noten.auftakt=an': NUR_MIT_NOTEN,
 	'W2 x-rhythmus.auftakt=an': NUR_MIT_NOTEN,
 	'W2 x-schaltplan.teile=umsortieren': 'Der Stromkreis bleibt derselbe, wenn man nur Batterie und Schalter tauscht.',
-	'W2 x-spielplan.inhalt=hinzufügen': 'Der Plan hat so viele Felder wie „Felder“ sagt; weitere Zeilen warten, bis der Plan wächst.',
+	'W2 x-spielplan.inhalt=hinzufügen':
+		'Der Plan hat so viele Felder wie „Felder“ sagt; weitere Zeilen warten, bis der Plan wächst.',
 };
 
 /** Darf nur sinken. Steigt die Zahl, schlägt die Maschine an. */

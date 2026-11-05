@@ -270,10 +270,24 @@ test.describe('Freies Element von Claude (088)', () => {
 		const vorschlag = path.join(ordner, 'vorschlag');
 		await mkdir(vorschlag, { recursive: true });
 		// So käme es nur an der Prüfung vorbei: Die zweite Schicht muss es trotzdem aufhalten.
-		await writeFile(path.join(vorschlag, 'material.html'), alt.replace('</section>', '<script>window.boese = 1</script><x-uhr zeit="4:30"></x-uhr></section>'));
-		await writeFile(path.join(vorschlag, 'vorschlag.json'), JSON.stringify({ auftrag: 'a', umfang: 'Ganzes Blatt', zeit: new Date().toISOString(), basis: 'x', antwort: '', meldungen: [], fehler: 0 }));
+		await writeFile(
+			path.join(vorschlag, 'material.html'),
+			alt.replace('</section>', '<script>window.boese = 1</script><x-uhr zeit="4:30"></x-uhr></section>'),
+		);
+		await writeFile(
+			path.join(vorschlag, 'vorschlag.json'),
+			JSON.stringify({
+				auftrag: 'a',
+				umfang: 'Ganzes Blatt',
+				zeit: new Date().toISOString(),
+				basis: 'x',
+				antwort: '',
+				meldungen: [],
+				fehler: 0,
+			}),
+		);
 		const seite = await page.goto(`/ansicht/${id}/dokumente/${dok}/?vorschlag=1`);
-		expect(seite?.headers()['content-security-policy']).toContain("script-src 'self'");
+		expect(seite?.headers()['content-security-policy']).toContain('script-src \'self\'');
 		await expect(page.locator('x-uhr svg').last()).toBeVisible();
 		expect(await page.evaluate(() => (window as unknown as { boese?: number }).boese)).toBeUndefined();
 	});
@@ -298,7 +312,10 @@ test.describe('Freies Element von Claude (088)', () => {
 		await page.goto(`/ansicht/${id}/dokumente/${dok}/?praesentation=1`);
 		await expect(page.locator('#umriss').first()).toBeAttached();
 
-		const antwort = await page.request.post('/api/freigaben', { headers: { 'x-schoolbox': '1' }, data: { mappe: id } });
+		const antwort = await page.request.post('/api/freigaben', {
+			headers: { 'x-schoolbox': '1' },
+			data: { mappe: id },
+		});
 		const { token } = (await antwort.json()) as { token: string };
 		const fremd = await browser.newContext();
 		const besuch = await fremd.newPage();

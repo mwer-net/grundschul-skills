@@ -549,7 +549,10 @@ test.describe('Sprach-Werkzeuge (052, 083)', () => {
 		await aktivIn(silben(page), 'Aus');
 	});
 
-	test('Aufgabentext: keine Übung, keine Zeilennummern; Silben auch mit Zahlen im Text', async ({ druecke, page }) => {
+	test('Aufgabentext: keine Übung, keine Zeilennummern; Silben auch mit Zahlen im Text', async ({
+		druecke,
+		page,
+	}) => {
 		test.slow();
 		const { dok, id } = await uhrzeit();
 		await oeffne(page, id, dok);
@@ -584,7 +587,10 @@ test.describe('Sprach-Werkzeuge (052, 083)', () => {
 		await waehleAbsatz(page, druecke);
 		await expect(page.locator('[data-sprache="luecken"]'), 'Eingeklappt').toHaveCount(0);
 		for (const [knopf, erwartet] of [
-			['woerter-mischen', '<x-sortieren art="woerter" eintraege="Die; Biene; fliegt; zur; Blume."></x-sortieren>'],
+			[
+				'woerter-mischen',
+				'<x-sortieren art="woerter" eintraege="Die; Biene; fliegt; zur; Blume."></x-sortieren>',
+			],
 			['luecken', '<x-lueckentext>Die Biene fliegt zur [Blume]. Der Hund bellt laut.</x-lueckentext>'],
 		] as const) {
 			await oeffneUebung(page, druecke);

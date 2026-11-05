@@ -33,14 +33,14 @@ const CSS_URL = /url\((?!data:)([^)]+)\)/g;
  * Code vom Server und nichts lädt von außen. `script-src 'self'` statt `sandbox`, denn `abbildungen.js` zeichnet die Elemente.
  */
 export const VORSCHLAG_CSP = [
-	"default-src 'none'",
-	"script-src 'self'",
-	"style-src 'self' 'unsafe-inline'",
-	"img-src 'self' data:",
-	"font-src 'self' data:",
-	"base-uri 'none'",
-	"form-action 'none'",
-	"frame-ancestors 'self'",
+	'default-src \'none\'',
+	'script-src \'self\'',
+	'style-src \'self\' \'unsafe-inline\'',
+	'img-src \'self\' data:',
+	'font-src \'self\' data:',
+	'base-uri \'none\'',
+	'form-action \'none\'',
+	'frame-ancestors \'self\'',
 ].join('; ');
 
 const nichtGefunden = () => new HttpFehler(404, 'Nicht gefunden.');

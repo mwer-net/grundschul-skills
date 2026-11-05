@@ -216,7 +216,8 @@ describe('Lesehilfen: Stand und Umschalten (083)', () => {
 				'Vokale': TEXT,
 				'Vokale, Silben': '<x-silben>Die Bie|ne auf</x-silben>',
 				'Fett': 'D<mark>ie</mark> <b>B<mark>ie</mark>n<mark>e</mark></b> <mark>au</mark>f',
-				'Teilsilben': 'D<mark>ie</mark> <x-silben im-text>B<mark>ie</mark>|n<mark>e</mark></x-silben> <mark>au</mark>f',
+				'Teilsilben':
+					'D<mark>ie</mark> <x-silben im-text>B<mark>ie</mark>|n<mark>e</mark></x-silben> <mark>au</mark>f',
 			},
 		],
 	];
@@ -267,18 +268,31 @@ describe('Lesehilfen: Stand und Umschalten (083)', () => {
 			const zuerstVokale = setzeSilben(schalteMarkierung(q(text), nr, 'vokale').quelle, nr, 'boegen').quelle;
 			assert.equal(zuerstSilben, zuerstVokale);
 		}
-		assert.ok(setzeSilben(schalteMarkierung(q('Feuer'), nr, 'vokale').quelle, nr, 'boegen').quelle.includes('F<mark>eu|e</mark>r'));
+		assert.ok(
+			setzeSilben(schalteMarkierung(q('Feuer'), nr, 'vokale').quelle, nr, 'boegen').quelle.includes(
+				'F<mark>eu|e</mark>r',
+			),
+		);
 	});
 
 	it('Wort über Knoten hinweg: wird zusammengesetzt, getrennt und wieder verteilt', () => {
-		assert.equal(innen(setzeSilben(q('<b>Ro</b>sine'), nr, 'boegen').quelle), '<x-silben><b>Ro</b>|si|ne</x-silben>');
-		assert.equal(innen(setzeSilben(q('Ro<b>si</b>ne'), nr, 'boegen').quelle), '<x-silben>Ro|<b>si</b>|ne</x-silben>');
+		assert.equal(
+			innen(setzeSilben(q('<b>Ro</b>sine'), nr, 'boegen').quelle),
+			'<x-silben><b>Ro</b>|si|ne</x-silben>',
+		);
+		assert.equal(
+			innen(setzeSilben(q('Ro<b>si</b>ne'), nr, 'boegen').quelle),
+			'<x-silben>Ro|<b>si</b>|ne</x-silben>',
+		);
 	});
 
 	it('Darstellung wechseln: nur das Attribut; Striche von Hand und `aufgabe` bleiben', () => {
 		const hand = q('<x-silben aufgabe="boegen">Thea|ter</x-silben>');
 		assert.equal(stand(hand)?.silben, 'boegen');
-		assert.equal(innen(setzeSilben(hand, nr, 'farbe').quelle), '<x-silben darstellung="farbe" aufgabe="boegen">Thea|ter</x-silben>');
+		assert.equal(
+			innen(setzeSilben(hand, nr, 'farbe').quelle),
+			'<x-silben darstellung="farbe" aufgabe="boegen">Thea|ter</x-silben>',
+		);
 		assert.equal(setzeSilben(setzeSilben(hand, nr, 'farbe').quelle, nr, 'boegen').quelle, hand);
 		assert.equal(innen(setzeSilben(hand, nr, null).quelle), 'Theater');
 	});
@@ -291,7 +305,10 @@ describe('Lesehilfen: Stand und Umschalten (083)', () => {
 			const eine = setzeSilben(q(text), nr, 'boegen', biene).quelle;
 			assert.equal(innen(eine), 'Die <x-silben im-text>Bie|ne</x-silben> fliegt.');
 			const zwei = setzeSilben(eine, nr, 'farbe', fliegt).quelle;
-			assert.equal(innen(zwei), 'Die <x-silben im-text>Bie|ne</x-silben> <x-silben im-text darstellung="farbe">fliegt</x-silben>.');
+			assert.equal(
+				innen(zwei),
+				'Die <x-silben im-text>Bie|ne</x-silben> <x-silben im-text darstellung="farbe">fliegt</x-silben>.',
+			);
 			assert.equal(stand(zwei)?.silben, 'teilweise');
 			const rest = setzeSilben(zwei, nr, null, { von: 5, bis: 6 }).quelle;
 			assert.equal(innen(rest), 'Die Biene <x-silben im-text darstellung="farbe">fliegt</x-silben>.');
@@ -304,11 +321,20 @@ describe('Lesehilfen: Stand und Umschalten (083)', () => {
 		});
 		it('Eine Markierung in einer Stelle wechselt nur deren Darstellung; überlappend gehen beide zusammen', () => {
 			const eine = setzeSilben(q(text), nr, 'boegen', biene).quelle;
-			assert.equal(innen(setzeSilben(eine, nr, 'farbe', { von: 5, bis: 7 }).quelle), 'Die <x-silben darstellung="farbe" im-text>Bie|ne</x-silben> fliegt.');
-			assert.equal(innen(setzeSilben(eine, nr, 'boegen', { von: 6, bis: 16 }).quelle), 'Die <x-silben im-text>Bie|ne fliegt</x-silben>.');
+			assert.equal(
+				innen(setzeSilben(eine, nr, 'farbe', { von: 5, bis: 7 }).quelle),
+				'Die <x-silben darstellung="farbe" im-text>Bie|ne</x-silben> fliegt.',
+			);
+			assert.equal(
+				innen(setzeSilben(eine, nr, 'boegen', { von: 6, bis: 16 }).quelle),
+				'Die <x-silben im-text>Bie|ne fliegt</x-silben>.',
+			);
 		});
 		it('Leerraum am Rand der Markierung bleibt draußen, sonst klebten die Wörter zusammen', () => {
-			assert.equal(innen(setzeSilben(q(text), nr, 'boegen', { von: 3, bis: 10 }).quelle), 'Die <x-silben im-text>Bie|ne</x-silben> fliegt.');
+			assert.equal(
+				innen(setzeSilben(q(text), nr, 'boegen', { von: 3, bis: 10 }).quelle),
+				'Die <x-silben im-text>Bie|ne</x-silben> fliegt.',
+			);
 		});
 		it('Offsets zählen ohne Striche, im Text davor und in Marken', () => {
 			const eine = setzeSilben(q(text), nr, 'boegen', biene).quelle;
@@ -331,7 +357,9 @@ describe('Lesehilfen: Stand und Umschalten (083)', () => {
 	});
 
 	describe('Gewähltes x-silben', () => {
-		const q2 = q('Die <x-silben im-text>Bie|ne</x-silben> und <x-silben im-text darstellung="farbe">Blu|me</x-silben>');
+		const q2 = q(
+			'Die <x-silben im-text>Bie|ne</x-silben> und <x-silben im-text darstellung="farbe">Blu|me</x-silben>',
+		);
 		const zerlegt = zerlege(q2);
 		const kinder = zerlegt.knoten.filter((k) => k.tag === 'x-silben');
 		const erste = kinder[0]?.nr as number;
@@ -354,7 +382,9 @@ describe('Lesehilfen: Stand und Umschalten (083)', () => {
 			assert.ok(e.quelle.includes('<x-silben im-text>Bie|ne</x-silben>'));
 		});
 		it('Allein auf der Seite: Aus lässt einen Absatz mit demselben Text stehen, Attribute des Bausteins bleiben', () => {
-			const allein = seite('<div class="koerper"><x-silben data-nur="ab" aufgabe="boegen">Ta|<mark>f</mark>el</x-silben></div>');
+			const allein = seite(
+				'<div class="koerper"><x-silben data-nur="ab" aufgabe="boegen">Ta|<mark>f</mark>el</x-silben></div>',
+			);
 			const n = nrVon(allein, 'x-silben');
 			assert.equal(leseSprachstand(allein, n)?.ziel, n);
 			assert.equal(leseSprachstand(allein, n)?.buchstaben, 'f');
@@ -379,7 +409,10 @@ describe('Lesehilfen: Stand und Umschalten (083)', () => {
 			] as const) {
 				assert.equal(lies(html, tag)?.umwandelbar, true, html);
 				const quelle = seite(html);
-				assert.doesNotThrow(() => wendeSprachwerkzeugAn(quelle, nrVon(quelle, tag), { art: 'woerter-mischen' }), html);
+				assert.doesNotThrow(
+					() => wendeSprachwerkzeugAn(quelle, nrVon(quelle, tag), { art: 'woerter-mischen' }),
+					html,
+				);
 			}
 		});
 		it('Aufgabentext, Überschrift, Lernziel, Sprechblase sind es nicht, und das scheitert nicht erst beim Klick', () => {
@@ -391,7 +424,10 @@ describe('Lesehilfen: Stand und Umschalten (083)', () => {
 			] as const) {
 				assert.equal(lies(html, tag)?.umwandelbar, false, html);
 				const quelle = seite(html);
-				assert.throws(() => wendeSprachwerkzeugAn(quelle, nrVon(quelle, tag), { art: 'woerter-mischen' }), html);
+				assert.throws(
+					() => wendeSprachwerkzeugAn(quelle, nrVon(quelle, tag), { art: 'woerter-mischen' }),
+					html,
+				);
 			}
 		});
 		it('Überschrift und Lernziel nur Silben; Zeilennummern nur am Absatz', () => {
@@ -400,7 +436,10 @@ describe('Lesehilfen: Stand und Umschalten (083)', () => {
 			assert.equal(lies('<p class="text">Lesen.</p>', 'p')?.nurSilben, false);
 			assert.equal(lies('<p class="text">Lesen.</p>', 'p')?.mitZeilennummern, true);
 			assert.equal(lies('<ul><li>Lesen.</li></ul>', 'li')?.mitZeilennummern, false);
-			assert.equal(lies('<div class="anw"><span class="text">Lesen.</span></div>', 'span')?.mitZeilennummern, false);
+			assert.equal(
+				lies('<div class="anw"><span class="text">Lesen.</span></div>', 'span')?.mitZeilennummern,
+				false,
+			);
 		});
 		it('Kein Text oder eine andere Abbildung darin: nichts anbieten', () => {
 			assert.equal(lies('<p class="text"></p>', 'p'), null);
@@ -426,7 +465,10 @@ describe('Lesehilfen: Stand und Umschalten (083)', () => {
 		});
 		it('`soll: false` nimmt weg, auch wenn nur ein Teil markiert ist; Hand-Marken anderer Buchstaben bleiben', () => {
 			const teil = q('Biene T<mark>ie</mark>r <mark>a</mark>');
-			assert.equal(innen(schalteMarkierung(teil, nr, 'ie', undefined, false).quelle), 'Biene Tier <mark>a</mark>');
+			assert.equal(
+				innen(schalteMarkierung(teil, nr, 'ie', undefined, false).quelle),
+				'Biene Tier <mark>a</mark>',
+			);
 		});
 		it('Treffer gibt es nicht: eine Meldung, keine Änderung', () => {
 			assert.throws(() => schalteMarkierung(q(TEXT), nr, 'xy'), /kommen hier nicht vor/);
@@ -450,14 +492,23 @@ describe('Lesehilfen: Stand und Umschalten (083)', () => {
 			assert.equal(werteVon(schema, k, z).inhalt, 'Bie|ne auf');
 		});
 		it('Neue Striche: Marke bleibt', () => {
-			assert.equal(innen(setzeAbbildung(q2, kind, { inhalt: 'Bi|e|ne auf' }).quelle), '<x-silben>Bi|e|<mark>n</mark>e auf</x-silben>');
+			assert.equal(
+				innen(setzeAbbildung(q2, kind, { inhalt: 'Bi|e|ne auf' }).quelle),
+				'<x-silben>Bi|e|<mark>n</mark>e auf</x-silben>',
+			);
 		});
 		it('Neuer Text: Marke bleibt, wo Anfang und Ende gleich sind', () => {
-			assert.equal(innen(setzeAbbildung(q2, kind, { inhalt: 'Bie|ne fort' }).quelle), '<x-silben>Bie|<mark>n</mark>e fort</x-silben>');
+			assert.equal(
+				innen(setzeAbbildung(q2, kind, { inhalt: 'Bie|ne fort' }).quelle),
+				'<x-silben>Bie|<mark>n</mark>e fort</x-silben>',
+			);
 		});
 		it('Ohne Auszeichnung wie bisher', () => {
 			const ohne = q('<x-silben>Ta|fel</x-silben>');
-			assert.equal(innen(setzeAbbildung(ohne, kind, { inhalt: 'Ta|fel & Co' }).quelle), '<x-silben>Ta|fel &amp; Co</x-silben>');
+			assert.equal(
+				innen(setzeAbbildung(ohne, kind, { inhalt: 'Ta|fel & Co' }).quelle),
+				'<x-silben>Ta|fel &amp; Co</x-silben>',
+			);
 		});
 	});
 });

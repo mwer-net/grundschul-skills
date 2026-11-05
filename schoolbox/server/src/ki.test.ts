@@ -10,7 +10,15 @@ import type { Einordnung, Pruefbericht } from '@schoolbox/kern';
 import { attribut, dokumentDir, KI_AKTIONEN, listeVersionen, WURZEL, zerlege } from '@schoolbox/kern';
 import { erzeugeReferenz } from '@schoolbox/kern/src/referenz';
 
-import { KI_EINORDNEN_MODELL, KI_GRENZEN, kiArgumente, kiTempWurzel, kiUmgebung, limitErreichtText, liesLimit } from './ki';
+import {
+	KI_EINORDNEN_MODELL,
+	KI_GRENZEN,
+	kiArgumente,
+	kiTempWurzel,
+	kiUmgebung,
+	liesLimit,
+	limitErreichtText,
+} from './ki';
 import { CSRF_HEADER } from './schutz';
 import type { TestServer } from './testhilfe';
 import { KI_ATTRAPPE, legeDokumentAn, ordnerVon, starteTestServer } from './testhilfe';
@@ -721,7 +729,9 @@ describe('Aufträge an Claude', () => {
 		const letzterPrompt = async () =>
 			(await readFile(path.join(path.dirname(bin), 'prompts.txt'), 'utf8')).split('\n---\n').at(-2) ?? '';
 		const letzterVerbrauch = async () => {
-			const zeilen = (await readFile(path.join(server.materialDir, '_ki-verbrauch.jsonl'), 'utf8')).trim().split('\n');
+			const zeilen = (await readFile(path.join(server.materialDir, '_ki-verbrauch.jsonl'), 'utf8'))
+				.trim()
+				.split('\n');
 			return JSON.parse(zeilen.at(-1) ?? '{}') as Record<string, unknown>;
 		};
 
@@ -738,7 +748,10 @@ describe('Aufträge an Claude', () => {
 			assert.equal(erst.cwd, path.join(ordner(id), 'arbeit'));
 			assert.ok(!(await letzterPrompt()).includes('jetzige Stand'));
 
-			const stand = JSON.parse(await readFile(path.join(ordner(id), 'sitzung.json'), 'utf8')) as Record<string, unknown>;
+			const stand = JSON.parse(await readFile(path.join(ordner(id), 'sitzung.json'), 'utf8')) as Record<
+				string,
+				unknown
+			>;
 			assert.equal(stand.sitzung, 's1');
 			assert.equal(stand.mappe, mappe);
 			assert.equal(stand.dok, dok);
@@ -826,7 +839,9 @@ describe('Aufträge an Claude', () => {
 			assert.ok(text.indexOf('Soll ich auch Lösungen') < text.indexOf('Ja, mach das'));
 			assert.ok(!text.includes('keine Anweisung'), 'Der Chat ist Gespräch, kein fremder Inhalt');
 			assert.equal((await letzterVerbrauch()).rueckfall, true);
-			assert.ok(!(await readFile(path.join(server.materialDir, '_ki-verbrauch.jsonl'), 'utf8')).includes('Lösungen'));
+			assert.ok(
+				!(await readFile(path.join(server.materialDir, '_ki-verbrauch.jsonl'), 'utf8')).includes('Lösungen'),
+			);
 
 			await auftrag({ auftrag: 'Weiter', gespraechId: id });
 			assert.equal(resumeVon(await letzterAufruf()), 's1', 'Der Rückfall bringt eine neue Sitzung');
@@ -924,9 +939,7 @@ describe('Aufträge an Claude', () => {
 			try {
 				const res = await starte({ auftrag: 'Eins', gespraechId: id });
 				const { auftrag: a } = (await res.json()) as { auftrag: { id: string } };
-				await warte(async () =>
-					(await (await api(`/ki/${a.id}`)).text()).includes('Prüft das Ergebnis'),
-				);
+				await warte(async () => (await (await api(`/ki/${a.id}`)).text()).includes('Prüft das Ergebnis'));
 				assert.equal((await beende(id)).status, 200);
 				assert.ok(existsSync(ordner(id)), 'Erst am Ende des Laufs');
 				weiter();

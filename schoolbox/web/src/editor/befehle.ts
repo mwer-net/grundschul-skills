@@ -5,8 +5,8 @@ import {
 	leseSichtbarkeit,
 	setzeKit,
 	setzeSichtbarkeit,
-	sichtbarkeitFest,
 	SICHTBARKEITEN,
+	sichtbarkeitFest,
 } from '@schoolbox/kern/src/kit-einstellungen';
 import type { StrukturErgebnis } from '@schoolbox/kern/src/struktur';
 import { SPALTEN } from '@schoolbox/kern/src/struktur';
@@ -222,7 +222,16 @@ const SICHTBARKEIT: Befehl[] = SICHTBARKEITEN.map((s) => ({
 	},
 	verfuegbar: (k) => {
 		const g = gewaehlt(k);
-		return k.aktiv && Boolean(g && kann(g.baustein, 'ordnen') && g.baustein.art !== 'seite' && k.quelle !== null && !sichtbarkeitFest(k.quelle, g.nr));
+		return (
+			k.aktiv &&
+			Boolean(
+				g &&
+				kann(g.baustein, 'ordnen') &&
+				g.baustein.art !== 'seite' &&
+				k.quelle !== null &&
+				!sichtbarkeitFest(k.quelle, g.nr),
+			)
+		);
 	},
 	aus: (k) => {
 		const g = gewaehlt(k);
@@ -806,7 +815,10 @@ export const BEFEHLE: Befehl[] = [
 		titel: 'Wiederholen',
 		gruppe: 'dokument',
 		symbol: 'wiederholen',
-		kuerzel: [{ code: 'KeyZ', befehl: true, umschalt: true }, ...(istMac() ? [] : [{ code: 'KeyY', befehl: true }])],
+		kuerzel: [
+			{ code: 'KeyZ', befehl: true, umschalt: true },
+			...(istMac() ? [] : [{ code: 'KeyY', befehl: true }]),
+		],
 		modus: ['auswahl', 'ohne', 'text'],
 		tasteWenn: (k) => !k.feldBehaeltUndo(),
 		orte: ['taste', 'palette'],

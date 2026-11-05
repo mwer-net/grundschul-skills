@@ -37,17 +37,17 @@ import {
 	rasterText,
 	rasterVon,
 	rechenreiheMoeglich,
-	schemaVon,
 	SATZSPIEGEL,
+	schemaVon,
 	setzeAbbildung,
 	SKALA_STANDARD,
 	tafelAusschnitt,
 	VERKEHRSZEICHEN,
 	vornMoeglich,
 	werteVon,
+	zahlStandard,
 	zeilenAlsText,
 	zeilenAusText,
-	zahlStandard,
 	zeilenText,
 	zeilenVon,
 	ziffernText,
@@ -262,7 +262,12 @@ describe('Felder ändern', () => {
 		const starter = neu({ luecken: '7 23 58 94', markiert: '5 10 45 50' }, 'zeile');
 		assert.deepEqual([starter.luecken, starter.markiert], [null, '45 50']);
 		const mitte = feld(s, 'mitte');
-		const geruckt = aendereFeld(s, { ausschnitt: 'kreuz', mitte: '45', luecken: '35 46', markiert: '55' }, mitte, '46');
+		const geruckt = aendereFeld(
+			s,
+			{ ausschnitt: 'kreuz', mitte: '45', luecken: '35 46', markiert: '55' },
+			mitte,
+			'46',
+		);
 		assert.deepEqual([geruckt.luecken, geruckt.markiert], ['46', null]);
 		const rand = aendereFeld(s, { ausschnitt: 'kreuz', mitte: '45', markiert: '45' }, mitte, '41');
 		assert.equal(rand.markiert, '45', 'Geht der Ausschnitt nicht, bleibt alles, bis die Zahl passt');
@@ -279,7 +284,12 @@ describe('Felder ändern', () => {
 		for (const basis of ['3 5 2', '4 2 6 1', '9 5 4 1', '1 2 3 4 5', '7 7']) {
 			const zahlen = (neu(basis, 'minus') ?? '').split(' ').map(Number);
 			assert.equal(zahlen.length, basis.split(' ').length, basis);
-			assert.ok(mauerWerte(zahlen, 'minus').flat().every((z) => z >= 0), `${basis} wird ${zahlen.join(' ')}`);
+			assert.ok(
+				mauerWerte(zahlen, 'minus')
+					.flat()
+					.every((z) => z >= 0),
+				`${basis} wird ${zahlen.join(' ')}`,
+			);
 		}
 	});
 
@@ -374,7 +384,10 @@ describe('Felder ändern', () => {
 		assert.equal(Object.keys(f.optionenJe.werte)[0], 'lineal');
 		for (const liste of Object.values(f.optionenJe.werte)) {
 			for (const o of liste) {
-				assert.ok(f.optionen.some((x) => x.wert === o.wert), o.name);
+				assert.ok(
+					f.optionen.some((x) => x.wert === o.wert),
+					o.name,
+				);
 			}
 		}
 		assert.equal(f.nurWenn?.({ art: 'thermometer' }), false);
@@ -423,7 +436,10 @@ describe('Felder ändern', () => {
 		assert.ok(vorn.art === 'auswahl');
 		const satz = '[Am Morgen]Zeit [bringt]P [der Briefträger]S [dem Kind]DaO [ein Paket]AkO.';
 		const namen = (inhalt: string) => auswahlOptionen(vorn, { inhalt, aufgabe: 'umstellen' }).map((o) => o.name);
-		assert.deepEqual(namen('[Der Hund]S [bellt]P [den Briefträger]AkO [an]P.'), ['Nächstes Satzglied', 'Akkusativobjekt']);
+		assert.deepEqual(namen('[Der Hund]S [bellt]P [den Briefträger]AkO [an]P.'), [
+			'Nächstes Satzglied',
+			'Akkusativobjekt',
+		]);
 		assert.deepEqual(namen(satz), ['Nächstes Satzglied', 'Subjekt', 'Akkusativobjekt', 'Dativobjekt']);
 
 		// Dieselbe Regel wie `satzUmstellen` in abbildungen.js: angeboten heißt, das Umstellen gelingt.
@@ -453,7 +469,10 @@ describe('Felder ändern', () => {
 		const inhalt = feld(s, 'inhalt');
 		const start: Werte = { inhalt: satz, aufgabe: 'umstellen', vorn: 'DaO' };
 		assert.equal(aendereFeld(s, start, inhalt, '[Der Hund]S [bellt]P [den Briefträger]AkO [an]P.').vorn, null);
-		assert.equal(aendereFeld(s, start, inhalt, '[Heute]Zeit [gibt]P [Oma]S [dem Kind]DaO [ein Buch]AkO.').vorn, 'DaO');
+		assert.equal(
+			aendereFeld(s, start, inhalt, '[Heute]Zeit [gibt]P [Oma]S [dem Kind]DaO [ein Buch]AkO.').vorn,
+			'DaO',
+		);
 	});
 
 	it('Sortieren: Art „Bilder“ ohne Bild meldet an der Liste, in welchen Zeilen es fehlt', () => {
@@ -474,7 +493,10 @@ describe('Felder ändern', () => {
 		// Jeder Mini-Inhalt gilt als Bild, wie in der Referenz.
 		assert.deepEqual(pruefe('x-suchsel', { woerter: 'Oma: bild:a.png; Opa: wuerfel:3', wortliste: 'bilder' }), {});
 		// Erst die Wörter selbst, dann die Bilder.
-		assert.match(pruefe('x-suchsel', { woerter: 'Oma1; Opa', wortliste: 'bilder' }).woerter ?? '', /nur aus Buchstaben/);
+		assert.match(
+			pruefe('x-suchsel', { woerter: 'Oma1; Opa', wortliste: 'bilder' }).woerter ?? '',
+			/nur aus Buchstaben/,
+		);
 	});
 
 	it('Kreuzworträtsel: Lösungswort senkrecht meldet am Lösungswort, was fehlt, und nennt den Weg', () => {
@@ -482,7 +504,10 @@ describe('Felder ändern', () => {
 		assert.deepEqual(pruefe('x-kreuzwort', { eintraege, loesungswort: 'HEFT' }), {});
 		const zuKurz = pruefe('x-kreuzwort', { eintraege, loesungswort: 'HEFT', art: 'senkrecht' });
 		assert.deepEqual(Object.keys(zuKurz), ['loesungswort']);
-		assert.match(zuKurz.loesungswort ?? '', /4 Buchstaben, es sind aber 8 Wörter\..*8 Buchstaben\..*oder 4 Wörter\.$/);
+		assert.match(
+			zuKurz.loesungswort ?? '',
+			/4 Buchstaben, es sind aber 8 Wörter\..*8 Buchstaben\..*oder 4 Wörter\.$/,
+		);
 		assert.match(
 			pruefe('x-kreuzwort', { eintraege, art: 'senkrecht' }).loesungswort ?? '',
 			/^Hier fehlt das Lösungswort\. .*8 Buchstaben\.$/,
@@ -495,7 +520,10 @@ describe('Felder ändern', () => {
 		const passend = 'a: STUHL; b: TAFEL; c: STIFT; d: TAFEL';
 		assert.deepEqual(pruefe('x-kreuzwort', { eintraege: passend, loesungswort: 'heft', art: 'senkrecht' }), {});
 		// ß zählt wie in abbildungen.js als SS.
-		assert.deepEqual(pruefe('x-kreuzwort', { eintraege: 'a: SONNE; b: STERN', loesungswort: 'ß', art: 'senkrecht' }), {});
+		assert.deepEqual(
+			pruefe('x-kreuzwort', { eintraege: 'a: SONNE; b: STERN', loesungswort: 'ß', art: 'senkrecht' }),
+			{},
+		);
 	});
 
 	it('Spielplan: Die Lernlandkarte nimmt Platzhalter, wenn die Inhalte nicht 2 bis 12 Ziele sind', () => {
@@ -515,7 +543,14 @@ describe('Felder ändern', () => {
 		const aufgabe = feld(s, 'aufgabe');
 		const neu = (w: Werte, wert: string) => aendereFeld(s, w, aufgabe, wert);
 		const figur = '0 0 0 0 0 0 / 0 0 0 1 1 1 / 0 0 1 1 0 0 / 0 1 1 1 0 0 / 0 0 0 1 1 1 / 0 0 0 0 0 0';
-		const start: Werte = { spalten: '12', zeilen: '6', aufgabe: 'spiegeln', achse: 'senkrecht', 'achse-bei': '6', figur };
+		const start: Werte = {
+			'spalten': '12',
+			'zeilen': '6',
+			'aufgabe': 'spiegeln',
+			'achse': 'senkrecht',
+			'achse-bei': '6',
+			figur,
+		};
 		const fort = neu(start, 'fortsetzen');
 		assert.deepEqual([fort.spalten, fort.zeilen, fort.kaestchen], ['24', '6', '0.5']);
 		const gross = neu(start, 'vergroessern');
@@ -545,7 +580,12 @@ describe('Felder ändern', () => {
 		assert.equal(anders.spalten, '12');
 		const fort = aendereFeld(s, { spalten: '12', figur, aufgabe: 'fortsetzen' }, feld(s, 'rapportart'), 'drehen');
 		assert.equal(fort.spalten, '24');
-		const zurueck = aendereFeld(s, { spalten: '12', zeilen: '6', figur, aufgabe: 'vergroessern', faktor: '0.5' }, feld(s, 'faktor'), '2');
+		const zurueck = aendereFeld(
+			s,
+			{ spalten: '12', zeilen: '6', figur, aufgabe: 'vergroessern', faktor: '0.5' },
+			feld(s, 'faktor'),
+			'2',
+		);
 		assert.deepEqual([zurueck.spalten, zurueck.zeilen], ['12', '6']);
 	});
 
@@ -573,7 +613,12 @@ describe('Felder ändern', () => {
 	it('Würfelnetz: „Kein Netz“ nimmt die Aufgabe mit, der Quader seine Maße', () => {
 		const s = schema('x-wuerfelnetz');
 		const netz = feld(s, 'netz');
-		const kein = aendereFeld(s, { aufgabe: 'gegenueber', markiere: '2', bastel: 'ja', laschen: 'ja', art: 'quader' }, netz, 'n3');
+		const kein = aendereFeld(
+			s,
+			{ aufgabe: 'gegenueber', markiere: '2', bastel: 'ja', laschen: 'ja', art: 'quader' },
+			netz,
+			'n3',
+		);
 		assert.deepEqual(
 			[kein.aufgabe, kein.bastel, kein.laschen, kein.art, kein.markiere],
 			['netz-oder-nicht', null, null, null, '2'],
@@ -1319,7 +1364,11 @@ describe('Zahldarstellungen (027)', () => {
 					} catch {
 						erwartet = null;
 					}
-					assert.deepEqual(tafelAusschnitt(von, bis, art, mitte), erwartet, `${art} ${mitte} (${von}-${bis})`);
+					assert.deepEqual(
+						tafelAusschnitt(von, bis, art, mitte),
+						erwartet,
+						`${art} ${mitte} (${von}-${bis})`,
+					);
 				}
 			}
 		}
@@ -1657,7 +1706,11 @@ describe('Lineatur und Silben (031)', () => {
 		assert.deepEqual(fuer('Ro|si|ne.'), {});
 		assert.ok(fuer('Ro||si').inhalt);
 		assert.ok(fuer('|Ro').inhalt);
-		assert.deepEqual(fuer('Um 8 Uhr'), {}, 'Der Text kommt auch aus den Lesehilfen, und dort darf nichts scheitern.');
+		assert.deepEqual(
+			fuer('Um 8 Uhr'),
+			{},
+			'Der Text kommt auch aus den Lesehilfen, und dort darf nichts scheitern.',
+		);
 	});
 });
 
@@ -2690,7 +2743,7 @@ describe('Schema: Namen, Gruppen und Bedingungen (084)', () => {
 			const gueltig = new Set(schema.felder.map((f) => f.attribut));
 			for (const f of schema.felder.filter((x) => x.nurWenn)) {
 				const gelesen = new Set<string>();
-				const werte = new Proxy({} as Werte, {
+				const werte = new Proxy({}, {
 					get: (_, name) => {
 						gelesen.add(String(name));
 						return null;

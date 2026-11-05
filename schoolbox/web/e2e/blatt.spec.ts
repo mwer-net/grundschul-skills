@@ -195,7 +195,10 @@ test.describe('Reiter „Blatt“: Abstand, Punkte (082)', () => {
 		expect(await page.evaluate(() => (window as unknown as { leerGesehen: number }).leerGesehen)).toBe(0);
 	});
 
-	test('mit gewähltem Baustein bleibt der Reiter „Blatt“ offen, und die Auswahl bleibt', async ({ druecke, page }) => {
+	test('mit gewähltem Baustein bleibt der Reiter „Blatt“ offen, und die Auswahl bleibt', async ({
+		druecke,
+		page,
+	}) => {
 		const { dok, id } = await uhrzeit();
 		await oeffne(page, id, dok);
 		await druecke(material(page).locator('.aufgabe').first().locator('.nr'));

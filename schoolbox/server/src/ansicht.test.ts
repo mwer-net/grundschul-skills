@@ -36,7 +36,10 @@ describe('/ansicht', () => {
 	it('Ein Vorschlag kommt mit CSP, das Blatt selbst bleibt, wie es war', async () => {
 		const dir = path.join(s.materialDir, mappe, 'dokumente', dokId, 'vorschlag');
 		await mkdir(dir, { recursive: true });
-		await writeFile(path.join(dir, 'material.html'), '<!doctype html><html><body class="kl2"><script>1</script></body></html>');
+		await writeFile(
+			path.join(dir, 'material.html'),
+			'<!doctype html><html><body class="kl2"><script>1</script></body></html>',
+		);
 		await writeFile(path.join(dir, 'vorschlag.json'), '{}');
 		const vorschlag = await s.holen(`${basis}?vorschlag=1`);
 		assert.equal(vorschlag.status, 200);

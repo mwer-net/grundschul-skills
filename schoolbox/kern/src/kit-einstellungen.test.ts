@@ -97,7 +97,10 @@ describe('Einstellungen der Kit-Bausteine', () => {
 	});
 
 	it('Sichtbarkeit: fest bei Erwartungshorizont und Notiz, sonst wählbar (084, E-B1)', () => {
-		const q = BLATT.replace('<p>Absatz</p>', '<p>Absatz</p><x-erwartungshorizont></x-erwartungshorizont><div class="notiz">N</div>');
+		const q = BLATT.replace(
+			'<p>Absatz</p>',
+			'<p>Absatz</p><x-erwartungshorizont></x-erwartungshorizont><div class="notiz">N</div>',
+		);
 		assert.equal(sichtbarkeitFest(q, tag(q, 'x-erwartungshorizont')), true);
 		assert.equal(sichtbarkeitFest(q, nr(q, 'notiz')), true);
 		assert.equal(sichtbarkeitFest(q, nr(q, 'aufgabe')), false);

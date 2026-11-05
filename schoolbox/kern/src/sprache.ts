@@ -25,8 +25,8 @@ import {
 	textVon,
 } from './textstuecke';
 
-export { leseSprachstand } from './sprachstand';
 export type { Sprachstand } from './sprachstand';
+export { leseSprachstand } from './sprachstand';
 export type { Bereich } from './textstuecke';
 export { maskiere, reinerText } from './textstuecke';
 
@@ -241,7 +241,7 @@ const trefferIn = (stuecke: Stueck[], was: string, bereich?: Bereich) => {
 	if (liste.length === 0) {
 		throw new Error('Gib die Buchstaben an, die du markieren willst.');
 	}
-	for (let a = 0; a < sichtbar.length; ) {
+	for (let a = 0; a < sichtbar.length;) {
 		const passend = liste.find((g) => {
 			const folge = sichtbar.slice(a, a + [...g].length);
 			const letztes = folge.at(-1);
@@ -251,7 +251,7 @@ const trefferIn = (stuecke: Stueck[], was: string, bereich?: Bereich) => {
 					.map((f) => f.zeichen)
 					.join('')
 					.toLowerCase() === g &&
-				imBereich(folge[0]?.ort ?? 0, letztes.ort + letztes.zeichen.length)
+					imBereich(folge[0]?.ort ?? 0, letztes.ort + letztes.zeichen.length)
 			);
 		});
 		if (passend) {

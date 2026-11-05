@@ -3,8 +3,8 @@ import { kann } from '@schoolbox/kern/src/bausteine';
 import type { Ablage, StrukturErgebnis } from '@schoolbox/kern/src/struktur';
 import {
 	ABSTAND,
-	entferneAbstand,
 	dupliziereBaustein,
+	entferneAbstand,
 	fuegeSeiteEin,
 	loescheBaustein,
 	setzeAbstand,

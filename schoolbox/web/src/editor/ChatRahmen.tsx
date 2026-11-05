@@ -3,8 +3,8 @@ import { Outlet, useLocation, useSearchParams } from 'react-router-dom';
 
 import type { ChatFensterZustand, ChatKontext, ChatLauf, ChatSteuerung } from './chat-kontext';
 import { ChatStandKontext, ChatSteuerungKontext } from './chat-kontext';
-import { ChatInhalt } from './ChatFenster';
 import { loescheAlteVerlaeufe } from './chat-verlauf';
+import { ChatInhalt } from './ChatFenster';
 import { useKiZustand } from './ki';
 import { TASTEN_SPERRE } from './tasten';
 import { useGespraech } from './useGespraech';

@@ -13,10 +13,7 @@ interface Eigenschaften {
 
 /** Gliederung oder Bausteine. Immer nur eines; zu geht die Leiste über die Statusleiste. */
 export const LinkeLeiste = ({ bausteineAus, children, panel, setPanel }: Eigenschaften) => (
-	<aside
-		className="flex min-h-0 w-60 flex-none flex-col border-r border-rand bg-flaeche"
-		data-panel-links={panel}
-	>
+	<aside className="flex min-h-0 w-60 flex-none flex-col border-r border-rand bg-flaeche" data-panel-links={panel}>
 		<Reiter
 			beschriftung="Linke Leiste"
 			className="flex-none gap-3 border-b border-rand px-2 pt-1"

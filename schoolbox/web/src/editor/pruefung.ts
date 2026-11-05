@@ -40,9 +40,11 @@ export interface Pruefstand {
 
 /** Seiten, auf denen etwas aus dem Blatt oder in den Rand ragt; aufsteigend, ohne Doppelte. */
 export const ueberlaufendeSeiten = (stand: Pruefstand | null) =>
-	[...new Set((stand?.punkte ?? []).filter((p) => p.code === 'ueberlauf' || p.code === 'rand').map((p) => p.seite))].sort(
-		(a, b) => a - b,
-	);
+	[
+		...new Set(
+			(stand?.punkte ?? []).filter((p) => p.code === 'ueberlauf' || p.code === 'rand').map((p) => p.seite),
+		),
+	].sort((a, b) => a - b);
 
 type PruefeBlatt = (optionen: { warten: boolean }) => Promise<{ meldungen: Meldung[] }>;
 

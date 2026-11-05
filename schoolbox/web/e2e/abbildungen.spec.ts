@@ -221,7 +221,10 @@ test.describe('Editor: Feldtypen (023)', () => {
 		await oeffne(page, id, dok);
 		await aendere(
 			page,
-			(await quelle(page)).replace(/<x-uhr[^>]*><\/x-uhr>/, '<x-suchsel woerter="HUND; MAUS" seed="1"></x-suchsel>'),
+			(await quelle(page)).replace(
+				/<x-uhr[^>]*><\/x-uhr>/,
+				'<x-suchsel woerter="HUND; MAUS" seed="1"></x-suchsel>',
+			),
 		);
 		await gespeichert(page, datei);
 		await druecke(material(page).locator('x-suchsel'));
@@ -241,7 +244,10 @@ test.describe('Editor: Feldtypen (023)', () => {
 		await oeffne(page, id, dok);
 		await aendere(
 			page,
-			(await quelle(page)).replace(/<x-uhr[^>]*><\/x-uhr>/, '<x-gitter spalten="6" zeilen="4" faktor="0.5"></x-gitter>'),
+			(await quelle(page)).replace(
+				/<x-uhr[^>]*><\/x-uhr>/,
+				'<x-gitter spalten="6" zeilen="4" faktor="0.5"></x-gitter>',
+			),
 		);
 		await gespeichert(page, datei);
 		await druecke(material(page).locator('x-gitter'));
@@ -786,15 +792,15 @@ test.describe('Zahldarstellungen (027)', () => {
 		await expect(material(page).locator('.strich-wert')).toHaveCount(4);
 	});
 
-	test('Zahlen: Art und Ausschnitt nehmen mit, was sie brauchen, die Felder zeigen es (084)', async ({ druecke, page }) => {
+	test('Zahlen: Art und Ausschnitt nehmen mit, was sie brauchen, die Felder zeigen es (084)', async ({
+		druecke,
+		page,
+	}) => {
 		const { dok, id, material: datei } = await uhrzeit();
 		await oeffne(page, id, dok);
 		await aendere(
 			page,
-			(await quelle(page)).replace(
-				/<x-uhr[^>]*><\/x-uhr>/,
-				'<x-zwanzigerfeld n="13"></x-zwanzigerfeld>',
-			),
+			(await quelle(page)).replace(/<x-uhr[^>]*><\/x-uhr>/, '<x-zwanzigerfeld n="13"></x-zwanzigerfeld>'),
 		);
 		await gespeichert(page, datei);
 		const stand = await readFile(datei, 'utf8');
@@ -988,7 +994,9 @@ test.describe('Rechnen: Wahlen nehmen mit, was sie brauchen (084)', () => {
 		await druecke(material(page).locator('x-zahlenkette'));
 		const haken = (name: string) => page.locator('[data-feld="zeige"]').getByRole('switch', { name, exact: true });
 		await druecke(haken('Start'));
-		await expect(page.locator('[data-fehler="_element"]')).toContainText('der Start, das Ziel oder die Zwischenergebnisse');
+		await expect(page.locator('[data-fehler="_element"]')).toContainText(
+			'der Start, das Ziel oder die Zwischenergebnisse',
+		);
 		await druecke(haken('Start'));
 		await druecke(haken('Rechenschritte'));
 		await expect(page.locator('[data-fehler="_element"]')).toContainText(
@@ -1122,10 +1130,7 @@ test.describe('Schreiben und Sprache: Wahlen zeigen den Weg (084)', () => {
 		druecke,
 		page,
 	}) => {
-		const { datei, stand } = await mitTag(
-			page,
-			'<x-sortieren eintraege="Samen; Stängel; Blume"></x-sortieren>',
-		);
+		const { datei, stand } = await mitTag(page, '<x-sortieren eintraege="Samen; Stängel; Blume"></x-sortieren>');
 		await druecke(material(page).locator('x-sortieren'));
 		await page.locator('[data-feld="art"] select').selectOption({ label: 'Bilder' });
 		const meldung = page.locator('[data-fehler="eintraege"]');
@@ -1313,7 +1318,10 @@ test.describe('Geometrie: Wahlen nehmen mit, was sie brauchen (084)', () => {
 	});
 
 	test('Gitter: Die Meldung nennt die nötige Größe in Zahlen', async ({ page }) => {
-		const klein = await gezeichnet(page, '<x-gitter spalten="2" zeilen="1" figur="0 0 1 / 0 0 0 / 1 0 0"></x-gitter>');
+		const klein = await gezeichnet(
+			page,
+			'<x-gitter spalten="2" zeilen="1" figur="0 0 1 / 0 0 0 / 1 0 0"></x-gitter>',
+		);
 		await expect(klein.locator('x-gitter')).toHaveAttribute('data-fehler', /3 Spalten und 3 Zeilen/);
 		const ziel = await gezeichnet(
 			page,
@@ -1323,13 +1331,22 @@ test.describe('Geometrie: Wahlen nehmen mit, was sie brauchen (084)', () => {
 		await expect(ziel.locator('x-gitter')).toHaveAttribute('data-fehler', /4 Spalten und 4 Zeilen/);
 	});
 
-	test('Würfelgebäude: Eine Frage nimmt die Vorgabe weg, jede Wahl unter „Gefragt“ geht', async ({ druecke, page }) => {
+	test('Würfelgebäude: Eine Frage nimmt die Vorgabe weg, jede Wahl unter „Gefragt“ geht', async ({
+		druecke,
+		page,
+	}) => {
 		const { datei, stand } = await mitTag(
 			page,
 			'<x-wuerfelbau bauplan="2 1 / 3 1" zeige="schraegbild bauplan vorne rechts links oben"></x-wuerfelbau>',
 		);
 		const gefragt = page.locator('[data-feld="fragen"]');
-		for (const name of ['Bauplan', 'Ansicht von vorne', 'Ansicht von rechts', 'Ansicht von links', 'Ansicht von oben']) {
+		for (const name of [
+			'Bauplan',
+			'Ansicht von vorne',
+			'Ansicht von rechts',
+			'Ansicht von links',
+			'Ansicht von oben',
+		]) {
 			await druecke(material(page).locator('x-wuerfelbau'));
 			await druecke(gefragt.getByRole('switch', { name, exact: true }));
 			await gespeichert(page, datei);
@@ -1353,7 +1370,10 @@ test.describe('Geometrie: Wahlen nehmen mit, was sie brauchen (084)', () => {
 	});
 
 	test('Würfelnetz: „Kein Netz“ setzt die Aufgabe, der Quader seine Maße', async ({ druecke, page }) => {
-		const { datei, stand } = await mitTag(page, '<x-wuerfelnetz netz="3" aufgabe="gegenueber" markiere="2"></x-wuerfelnetz>');
+		const { datei, stand } = await mitTag(
+			page,
+			'<x-wuerfelnetz netz="3" aufgabe="gegenueber" markiere="2"></x-wuerfelnetz>',
+		);
 		await druecke(material(page).locator('x-wuerfelnetz'));
 		await page.locator('[data-feld="netz"] select').selectOption({ label: 'Kein Netz 3' });
 		await gespeichert(page, datei);

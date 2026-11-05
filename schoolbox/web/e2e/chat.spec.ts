@@ -296,7 +296,9 @@ test.describe('Chat als Gespräch (087)', () => {
 		await expect(feld(page)).toHaveAttribute('placeholder', 'Was soll sich ändern?');
 	});
 
-	test('Schließen und wieder Öffnen: Verlauf leer, neue Id, Ordner weg, Vorschlag steht noch da', async ({ page }) => {
+	test('Schließen und wieder Öffnen: Verlauf leer, neue Id, Ordner weg, Vorschlag steht noch da', async ({
+		page,
+	}) => {
 		const { auftraege, enden } = beobachte(page);
 		await offenesBlatt(page);
 		await schreibe(page, 'Mach es schöner');
@@ -380,7 +382,9 @@ test.describe('Chat als Gespräch (087)', () => {
 		expect(auftraege[1]?.gespraechId).not.toBe(auftraege[0]?.gespraechId);
 	});
 
-	test('Neu laden: leer, das Ende kam auf dem Server an, und alte Einträge im Speicher sind weg', async ({ page }) => {
+	test('Neu laden: leer, das Ende kam auf dem Server an, und alte Einträge im Speicher sind weg', async ({
+		page,
+	}) => {
 		await page.addInitScript(() => {
 			if (!sessionStorage.getItem('gesetzt')) {
 				sessionStorage.setItem('gesetzt', '1');
@@ -407,9 +411,7 @@ test.describe('Chat als Gespräch (087)', () => {
 		await feld(page).fill('Noch größer');
 		await feld(page).press('Enter');
 		const vorschlag = path.join(dokumentOrdner(mappe, dok), 'vorschlag', 'material.html');
-		await expect
-			.poll(async () => (await readFile(vorschlag, 'utf8')).split('von Claude').length)
-			.toBe(3);
+		await expect.poll(async () => (await readFile(vorschlag, 'utf8')).split('von Claude').length).toBe(3);
 		expect(auftraege[1]?.aufVorschlag).toBe(true);
 		expect(auftraege[1]?.gespraechId).toBe(auftraege[0]?.gespraechId);
 		expect(await quelleAufPlatte(mappe, dok)).not.toContain('von Claude');

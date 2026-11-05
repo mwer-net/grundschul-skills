@@ -269,8 +269,8 @@ const ABSCHNITTE: Abschnitt[] = [
 						links zeigt alle Seiten und was auf ihnen liegt. Klick springt zur Stelle. Am Griff ziehst du
 						Aufgaben innerhalb der Seite oder auf eine andere, Seiten untereinander. Auf eine Seitenzeile
 						abgelegt, landet die Aufgabe am Ende dieser Seite. Kopf und Fuß bleiben fest. Der Pfeil klappt
-						eine Seite ein, „Alle einklappen“ macht die Liste kurz, „Miniaturen aus“ zeigt nur Zeilen.
-						Esc bricht das Ziehen ab, ⌘Z nimmt es zurück.
+						eine Seite ein, „Alle einklappen“ macht die Liste kurz, „Miniaturen aus“ zeigt nur Zeilen. Esc
+						bricht das Ziehen ab, ⌘Z nimmt es zurück.
 					</Punkt>
 					<Punkt titel="Einstellungen">
 						rechts im Inspektor: „Auswahl“ für den gewählten Baustein, „Blatt“ für Klasse, Farben, Format
@@ -288,9 +288,9 @@ const ABSCHNITTE: Abschnitt[] = [
 					</Punkt>
 					<Punkt titel="Lesehilfen">
 						Text antippen, dann im Inspektor unter „Lesehilfen“: Silben als Bögen, in Farbe oder beides,
-						Vokale, einzelne Buchstaben, bei Absätzen auch Zeilennummern. Die Regler zeigen, was gerade gilt,
-						und schalten es dort wieder aus; der Text bleibt. Ist Text markiert, steht darunter, worauf der
-						Klick wirkt. Trennstriche korrigierst du an den Silben unter „Weitere“, „Text“.
+						Vokale, einzelne Buchstaben, bei Absätzen auch Zeilennummern. Die Regler zeigen, was gerade
+						gilt, und schalten es dort wieder aus; der Text bleibt. Ist Text markiert, steht darunter,
+						worauf der Klick wirkt. Trennstriche korrigierst du an den Silben unter „Weitere“, „Text“.
 					</Punkt>
 					<Punkt titel="Übung daraus machen">
 						bei Absätzen, Zellen und Listenpunkten: Lücken, Wörter mischen, Buchstaben mischen. Daraus wird
@@ -375,8 +375,8 @@ const ABSCHNITTE: Abschnitt[] = [
 				</p>
 				<p>
 					Material lässt sich drucken, aber nicht anklicken: Skripte, Klick-Ereignisse und Adressen von außen
-					baut Claude nicht ein. Rutscht so etwas doch in einen Lauf, entsteht kein Vorschlag, im Chat steht der
-					Grund, und dein Blatt bleibt, wie es ist.
+					baut Claude nicht ein. Rutscht so etwas doch in einen Lauf, entsteht kein Vorschlag, im Chat steht
+					der Grund, und dein Blatt bleibt, wie es ist.
 				</p>
 				<h3>Neues Material</h3>
 				<p>

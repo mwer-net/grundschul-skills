@@ -186,9 +186,7 @@ test.describe('Editor: Bausteine einfügen', () => {
 		const karte = page.locator('[data-einfuegen="schreiblinie"]');
 		await expect(karte).toHaveAttribute('aria-label', 'Schreiblinie einfügen');
 		// Mitten in die Vorschau: Auch dort klickt die Karte.
-		await page
-			.locator('[data-bibliothek-eintrag="schreiblinie"] [data-karten-vorschau]')
-			.click({ force: true });
+		await page.locator('[data-bibliothek-eintrag="schreiblinie"] [data-karten-vorschau]').click({ force: true });
 		await expect.poll(() => quelle(page)).not.toBe(vorher);
 	});
 
@@ -196,7 +194,9 @@ test.describe('Editor: Bausteine einfügen', () => {
 		test.skip(hasTouch, 'am Finger zieht nur der Griff');
 		await oeffneBausteine(page);
 		await suche(page).fill('Schreiblinie');
-		const karte = await page.locator('[data-bibliothek-eintrag="schreiblinie"] [data-karten-vorschau]').boundingBox();
+		const karte = await page
+			.locator('[data-bibliothek-eintrag="schreiblinie"] [data-karten-vorschau]')
+			.boundingBox();
 		const ziel = await page.locator('[data-editor-rahmen="sichtbar"]').boundingBox();
 		if (!karte || !ziel) {
 			throw new Error('nicht zu sehen');
