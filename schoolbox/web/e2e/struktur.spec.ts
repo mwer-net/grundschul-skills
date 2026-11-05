@@ -158,7 +158,7 @@ test.describe('Editor: Struktur', () => {
 		expect(await readFile(datei, 'utf8')).toBe(kopiert);
 	});
 
-	test('ändert Spalten von 1 bis 6 und den Abstand nie unter 24 px', async ({ druecke, page }) => {
+	test('ändert Spalten von 1 bis 6 und den Abstand nie unter die Grenze', async ({ druecke, page }) => {
 		const { dok, id, material: datei } = await uhrzeit();
 		const vorher = await readFile(datei, 'utf8');
 		await oeffne(page, id, dok);
@@ -182,20 +182,20 @@ test.describe('Editor: Struktur', () => {
 		await page.keyboard.press('Escape');
 		const regler = page.getByRole('slider', { name: 'Abstand zwischen Aufgaben' });
 		await expect(regler).toHaveValue('28');
-		await expect(regler).toHaveAttribute('min', '24');
+		await expect(regler).toHaveAttribute('min', '16');
 		await regler.fill('36');
 		await gespeichert(page, datei);
 		expect(await readFile(datei, 'utf8')).toContain('<body style="--abstand:36px" class="kl2');
 		await regler.press('Home');
-		await expect(regler).toHaveValue('24');
+		await expect(regler).toHaveValue('16');
 		await regler.press('ArrowLeft');
-		await expect(regler).toHaveValue('24');
+		await expect(regler).toHaveValue('16');
 		await gespeichert(page, datei);
-		expect(await readFile(datei, 'utf8')).toContain('<body style="--abstand:24px" class="kl2');
+		expect(await readFile(datei, 'utf8')).toContain('<body style="--abstand:16px" class="kl2');
 		const abstand = await material(page)
 			.locator('body')
 			.evaluate((b) => getComputedStyle(b).getPropertyValue('--abstand').trim());
-		expect(abstand).toBe('24px');
+		expect(abstand).toBe('16px');
 
 		await druecke(zurueck(page));
 		await druecke(zurueck(page));

@@ -103,17 +103,32 @@ describe('Ganzes Blatt', () => {
 			klasse: 2,
 			palette: 'himmel',
 			format: 'a4-hoch',
-			trenner: false,
 			punkte: true,
+			hatPunkte: false,
 		});
 		const klasse = setzeBlatt(BLATT, { klasse: 4 });
 		assert.equal(klasse, BLATT.replace('kl2', 'kl4'));
 		assert.equal(setzeBlatt(BLATT, { palette: 'wiese' }), BLATT.replace('palette-himmel', 'palette-wiese'));
 		assert.equal(setzeBlatt(BLATT, { format: 'a4-quer' }).includes('palette-himmel a4-quer'), true);
 		assert.equal(setzeBlatt(setzeBlatt(BLATT, { format: 'a4-quer' }), { format: 'a4-hoch' }), BLATT);
-		assert.equal(setzeBlatt(BLATT, { trenner: true }), BLATT.replace('palette-himmel"', 'palette-himmel trenner"'));
 		assert.match(setzeBlatt(BLATT, { titel: 'Neu & gut' }), /<title>Neu &amp; gut<\/title>/);
 		assert.equal(leseBlatt(setzeBlatt(BLATT, { klasse: 'gemischt' })).klasse, 'gemischt');
+	});
+
+	it('hatPunkte: bei Bewertungspunkten, Gesamtpunkten oder ausgeblendeten Punkten, nie bei den Kreisen von .niveau', () => {
+		const mit = (html: string) => BLATT.replace('</body>', `${html}</body>`);
+		assert.equal(leseBlatt(mit('<span class="niveau"><i></i><i></i></span>')).hatPunkte, false);
+		assert.equal(leseBlatt(mit('<span class="punkte">(2 P.)</span>')).hatPunkte, true);
+		assert.equal(leseBlatt(mit('<x-gesamtpunkte></x-gesamtpunkte>')).hatPunkte, true);
+		const aus = setzeBlatt(BLATT, { punkte: false });
+		assert.match(aus, /ohne-punkte/);
+		assert.equal(leseBlatt(aus).punkte, false);
+		assert.equal(leseBlatt(aus).hatPunkte, true);
+	});
+
+	it('eine alte Klasse trenner bleibt beim Ändern erhalten', () => {
+		const alt = BLATT.replace('palette-himmel"', 'palette-himmel trenner"');
+		assert.equal(setzeBlatt(alt, { klasse: 4 }), alt.replace('kl2', 'kl4'));
 	});
 });
 

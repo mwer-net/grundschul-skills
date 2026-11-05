@@ -465,14 +465,6 @@ export const KIT_KATALOG: readonly KitEintrag[] = [
 		ort: 'zeile',
 	},
 	{
-		id: 'trenner',
-		name: 'Trennlinien',
-		kategorie: 'Kopf und Rahmen',
-		suchbegriffe: ['Linie', 'Trennung'],
-		ort: 'blatt',
-		klasse: 'trenner',
-	},
-	{
 		id: 'aufgabe',
 		art: 'aufgabe',
 		kategorie: 'Aufgabe und Text',

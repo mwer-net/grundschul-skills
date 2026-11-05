@@ -1,4 +1,4 @@
-import { material, oeffne, quelle, uhrzeit } from './editorhilfe';
+import { aendere, material, oeffne, quelle, uhrzeit } from './editorhilfe';
 import { expect, legeMappeAn, test } from './hilfe';
 
 const palette = (page: import('@playwright/test').Page) => page.locator('[data-befehlspalette]');
@@ -84,6 +84,21 @@ test.describe('Befehlspalette (073)', () => {
 		await page.keyboard.press('Enter');
 		await expect(page.locator('[data-inspektor="blatt"]')).toBeVisible();
 		await expect(page.getByLabel('Abstand zwischen Aufgaben')).toBeFocused();
+	});
+
+	test('kennt keine Trennlinien und „Punkte zeigen“ nur, wenn das Blatt Punkte hat (082)', async ({ page }) => {
+		const { dok, id } = await uhrzeit();
+		await oeffne(page, id, dok);
+		await page.keyboard.press('ControlOrMeta+k');
+		await feld(page).fill('Trennlinien');
+		await expect(palette(page).getByRole('option', { name: /Trennlinien/ })).toHaveCount(0);
+		await feld(page).fill('Punkte zeigen');
+		await expect(palette(page).getByRole('option', { name: /Punkte zeigen/ })).toHaveCount(0);
+		await page.keyboard.press('Escape');
+		await aendere(page, (await quelle(page)).replace('</section>', '<span class="punkte">(2 P.)</span></section>'));
+		await page.keyboard.press('ControlOrMeta+k');
+		await feld(page).fill('Punkte zeigen');
+		await expect(palette(page).getByRole('option', { name: /Punkte zeigen/ })).toBeVisible();
 	});
 
 	test('in der Textsitzung läuft die Sitzung nach Esc weiter', async ({ page }) => {

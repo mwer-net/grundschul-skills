@@ -134,12 +134,12 @@ const TABELLE: Record<MeldungCode, Uebersetzung> = {
 	},
 	'abstand-knapp': ([a, b]) => ({
 		satz: a && b ? `${a} und ${b} stehen sehr dicht beieinander.` : 'Zwei Aufgaben stehen sehr dicht beieinander.',
-		tipp: 'Ohne Auswahl unter „Ganzes Blatt“ den Abstand vergrößern.',
+		tipp: 'Im Reiter „Blatt“ den Abstand vergrößern.',
 	}),
 	'platz-frei': (_n, text) => ({
 		satz: 'Unten auf der Seite ist noch viel Platz frei.',
 		tipp: text.includes('--abstand')
-			? 'Ohne Auswahl unter „Ganzes Blatt“ den Abstand vergrößern.'
+			? 'Im Reiter „Blatt“ den Abstand vergrößern.'
 			: 'Einen Eintrag oder eine Aufgabe ergänzen, zum Beispiel durch Duplizieren.',
 	}),
 	'notiz-fehlt': () => ({ satz: 'Diese Folie hat keine Notiz für dich.', tipp: null }),

@@ -21,6 +21,8 @@ import {
 	hatNamenszeile,
 	loescheBaustein,
 	nummeriere,
+	entferneAbstand,
+	gesetzterAbstand,
 	setzeAbstand,
 	setzeSpalten,
 	setzeStilWert,
@@ -255,10 +257,28 @@ describe('Spalten und Abstand', () => {
 		const neu = setzeAbstand(ARBEITSBLATT, 32);
 		assert.match(neu, /<body style="--abstand:32px" class="kl2 farbe palette-himmel">/);
 		einSchritt(ARBEITSBLATT, neu);
-		assert.match(setzeAbstand(ARBEITSBLATT, 10), /--abstand:24px/);
-		assert.match(setzeAbstand(ARBEITSBLATT, 23.4), /--abstand:24px/);
-		assert.match(setzeAbstand(ARBEITSBLATT, 100), /--abstand:48px/);
-		assert.match(setzeAbstand(neu, 26), /<body style="--abstand:26px" class=/);
+		assert.match(setzeAbstand(ARBEITSBLATT, 10), /--abstand:16px/);
+		assert.match(setzeAbstand(ARBEITSBLATT, 15.6), /--abstand:16px/);
+		assert.match(setzeAbstand(ARBEITSBLATT, 100), /--abstand:100px/);
+		assert.match(setzeAbstand(ARBEITSBLATT, 500), /--abstand:120px/);
+	});
+
+	it('ein Abstand aus der alten Spanne bleibt gültig, auch außerhalb des Rasters', () => {
+		const alt = setzeAbstand(ARBEITSBLATT, 26);
+		assert.match(alt, /<body style="--abstand:26px" class=/);
+		assert.equal(gesetzterAbstand(alt), 26);
+		assert.equal(setzeAbstand(alt, 26), alt);
+	});
+
+	it('entfernt --abstand wieder, byte-genau und nur diese Angabe', () => {
+		assert.equal(gesetzterAbstand(ARBEITSBLATT), null);
+		const gesetzt = setzeAbstand(ARBEITSBLATT, 60);
+		assert.equal(gesetzterAbstand(gesetzt), 60);
+		assert.equal(entferneAbstand(gesetzt), ARBEITSBLATT);
+		einSchritt(gesetzt, entferneAbstand(gesetzt));
+		assert.equal(entferneAbstand(ARBEITSBLATT), ARBEITSBLATT);
+		const mitFarbe = '<html><body style="color:red;--abstand:60px" class="kl2"></body></html>';
+		assert.equal(entferneAbstand(mitFarbe), '<html><body style="color:red" class="kl2"></body></html>');
 	});
 
 	it('liest und setzt einzelne Angaben im style-Wert', () => {

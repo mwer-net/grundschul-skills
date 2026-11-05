@@ -23,8 +23,8 @@ import {
 } from './quelltext';
 
 export const SPALTEN = { min: 1, max: 6 } as const;
-/** `html-materialerstellung/references/layout.md`: Abstand zwischen Aufgaben nie unter 24 px. */
-export const ABSTAND = { min: 24, max: 48, schritt: 2 } as const;
+/** Was die Lehrkraft einstellen kann. Die Mindestwerte für Claude stehen in `grundschul-didaktik/references/druck-und-platz.md`. */
+export const ABSTAND = { min: 16, max: 120, schritt: 4 } as const;
 
 /** Wohin ein Baustein kommt: vor bzw. hinter ein anderes Element oder ans Ende eines Elements ohne Geschwister. */
 export type Ablage = { nr: number; wo: 'vor' | 'nach' } | { in: number };
@@ -270,12 +270,30 @@ export const setzeSpalten = (quelle: string, nr: number, spalten: number) => {
 	return setzeStil(z, knotenAn(z, nr), '--spalten', String(begrenze(spalten, SPALTEN)));
 };
 
-/** `--abstand` zwischen den Aufgaben, am `<body>`, 24 bis 48 px. */
-export const setzeAbstand = (quelle: string, px: number) => {
-	const z = zerlege(quelle);
+const bodyIn = (z: Zerlegung) => {
 	const body = z.knoten.find((k) => k.tag === 'body');
 	if (!body) {
 		throw new Error('Das Material hat kein <body>.');
 	}
-	return setzeStil(z, body, '--abstand', `${begrenze(px, ABSTAND)}px`);
+	return body;
+};
+
+/** `--abstand` zwischen den Aufgaben, am `<body>`, in den Grenzen von `ABSTAND`. */
+export const setzeAbstand = (quelle: string, px: number) => {
+	const z = zerlege(quelle);
+	return setzeStil(z, bodyIn(z), '--abstand', `${begrenze(px, ABSTAND)}px`);
+};
+
+/** Der am `<body>` gesetzte Abstand; `null`, wenn das Blatt der Vorgabe seiner Klasse folgt. */
+export const gesetzterAbstand = (quelle: string) => {
+	const z = zerlege(quelle);
+	const px = parseFloat(stilWert(attribut(bodyIn(z), 'style')?.wert ?? null, '--abstand') ?? '');
+	return Number.isFinite(px) ? px : null;
+};
+
+/** Nimmt `--abstand` vom `<body>`: Das Blatt folgt wieder der Vorgabe seiner Klasse. */
+export const entferneAbstand = (quelle: string) => {
+	const z = zerlege(quelle);
+	const body = bodyIn(z);
+	return wendeAn(quelle, setzeAttribut(z, body, 'style', ohneStilWert(attribut(body, 'style')?.wert ?? null, '--abstand')));
 };

@@ -29,7 +29,7 @@ Farbe ist **Akzent**, das Layout bleibt kompakt:
 2. **Eine Palette** (Hauptfarbe + Akzent, Tabelle in `kindgerecht-gestalten.md`). Farbe bekommen:
    - Nummernkreise: gefüllt in der dunklen Variante der Hauptfarbe, weiße fette Ziffer,
    - Überschrift in der dunklen Variante der Hauptfarbe (Kontrast zu Weiß ≥ 3:1, Spalte in der Palettentabelle),
-   - Trennlinien zwischen Aufgaben, Kontur der Tipp-Sprechblase, Unterstreichung im Beispiel in der Akzentfarbe,
+   - Kontur der Tipp-Sprechblase, Unterstreichung im Beispiel in der Akzentfarbe,
    - Willi oder Wilma, Wachstumsgrafik und Abbildungen in der farbigen Version,
    - Farbcodes der Klasse (Wortarten, Stellenwerte, Wendeplättchen) direkt farbig.
 3. **Text bleibt schwarz** (`#1D1D1B`). Farbige Schrift nur für die Überschrift und kurze Hervorhebungen, nie für Anweisungen oder Fließtext. Einzige Ausnahme: Silbenfarben aus `x-silben`, wenn die Klasse damit arbeitet (Kontrast mindestens 4,5:1).
@@ -55,7 +55,7 @@ Ziel: **Übersicht vor Menge.** Ein Kind muss jede Aufgabe auf einen Blick verst
 
 - **Hängende Nummer:** Nummernkreis (32–36 px, in der Hauptfarbe) links, Anweisung 12–16 px rechts daneben, die Arbeitsfläche beginnt bündig unter der Anweisung. Die Nummer markiert den Aufgabenbeginn, ein Kasten ist nicht nötig.
 - **Niveau-Punkte** (falls gewählt) rechtsbündig in der Anweisungszeile. Die Sternchenaufgabe trägt ★ an der Stelle der Nummer.
-- **Trennung durch Abstand:** zwischen Aufgaben wie in der Tabelle unter „Mindestgrößen“ (nie weniger), 12–16 px zwischen Anweisung und Arbeitsfläche. Optional eine dünne Trennlinie (1–1,5 px; s/w `#808080`, Farbe in der Akzentfarbe) über die Spaltenbreite. Einheitlich im ganzen Material.
+- **Trennung durch Abstand:** zwischen Aufgaben wie in der Tabelle unter „Mindestgrößen“ (nie weniger), 12–16 px zwischen Anweisung und Arbeitsfläche. Einheitlich im ganzen Material.
 - **Rahmen nur mit Funktion:** Wortspeicher, Tipp-Sprechblase der Leitfigur, Ergebnis- oder Antwortkästchen, Ausschneideteile (gestrichelt), Lösungsstreifen. Rahmen dann als dünne Kontur ohne Füllung, Ecken gerundet.
 
 ### Kopf und Fuß schlank

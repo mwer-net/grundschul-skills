@@ -39,7 +39,6 @@ const KIT_KLASSEN = [
 	'namenszeile',
 	'fuss',
 	'reflexion',
-	'trenner',
 	'beispiel',
 	'zeile',
 ];
