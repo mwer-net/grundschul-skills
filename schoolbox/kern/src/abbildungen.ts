@@ -4397,7 +4397,7 @@ export const ABBILDUNG_SCHEMA = {
 			{
 				art: 'schalter',
 				attribut: 'bastel',
-				name: 'Bastelvorlage',
+				name: 'Zum Ausschneiden',
 				an: 'ja',
 				aus: 'nein',
 				standard: false,

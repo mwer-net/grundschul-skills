@@ -229,7 +229,8 @@ const seitenUndFehler = async (rahmen: Frame) =>
 		type P = { pruefeBlatt?: (o: { warten: boolean }) => Promise<{ meldungen: { stufe: string; code: string; text: string }[] }> };
 		const bericht = await (window as unknown as P).pruefeBlatt?.({ warten: false });
 		return {
-			seiten: document.querySelectorAll('.seite:not([data-erzeugt])').length,
+			// Mit den Folgeseiten: Genau die sprengt ein zu großer Start (Bingo mit 28 Karten).
+			seiten: document.querySelectorAll('.seite').length,
 			fehler: (bericht?.meldungen ?? []).filter((m) => m.stufe === 'FEHLER').map((m) => ({ code: m.code, text: m.text })),
 		};
 	});
@@ -238,7 +239,7 @@ const seitenUndFehler = async (rahmen: Frame) =>
 
 const LEERE_SEITE = /<body([^>]*)>[\s\S]*<\/body>/;
 
-const leeresBlatt = async (klasse = 2) => {
+const leeresBlatt = async (klasse: 2 | 4 = 2) => {
 	const { dokumente, id } = await legeMappeAn('Audit', 'mathematik', klasse, [
 		{ titel: 'Leeres Blatt', vorlage: 'arbeitsblatt' },
 	]);
@@ -263,15 +264,17 @@ const kinderAufDerSeite = async (page: Page) => {
 };
 
 const aufLeeresBlatt = async (page: Page, leer: string) => {
-	if ((await quelle(page)) !== leer) {
-		// Die alte Auswahl gibt es im leeren Blatt nicht mehr.
-		const weg = page.getByRole('button', { name: 'Auswahl aufheben' });
-		if (await weg.isVisible()) {
-			await weg.click();
+	await expect(async () => {
+		if ((await quelle(page)) !== leer) {
+			// Die alte Auswahl gibt es im leeren Blatt nicht mehr.
+			const weg = page.getByRole('button', { name: 'Auswahl aufheben' });
+			if (await weg.isVisible()) {
+				await weg.click();
+			}
+			await aendere(page, leer);
 		}
-		await aendere(page, leer);
-	}
-	await expect.poll(() => kinderAufDerSeite(page)).toBe(0);
+		await expect.poll(() => kinderAufDerSeite(page), { timeout: 2000 }).toBe(0);
+	}).toPass({ timeout: 15_000 });
 };
 
 const fuegeEin = async (page: Page, e: KatalogEintrag) => {
@@ -524,7 +527,10 @@ const pruefeKit = async (page: Page, e: KatalogEintrag, art: string, verstoesse:
 	);
 	const n = auswahl === null ? nr : Number(auswahl);
 	const werte = leseKit(q, n, art);
-	const seite = () => rahmenVon(page).then((r) => r.locator('.seite').first().screenshot());
+	const seite = async () => {
+		await expect.poll(() => rahmenVon(page).then(() => true).catch(() => false)).toBe(true);
+		return (await rahmenVon(page)).locator('.seite').first().screenshot();
+	};
 	const bezug = await seite();
 	let zahl = 0;
 	for (const f of felder) {
@@ -686,9 +692,13 @@ const VOLLER_WEG: Record<string, { tu: (k: Kasten) => Promise<void>; lese: (k: K
 		fokus: true,
 	},
 	liste: {
-		tu: (k) => k.locator('[data-zeile-neu]').click(),
-		lese: async (k) => String(await k.locator('[data-zeile]').count()),
-		fokus: false,
+		// Der Griff tauscht per Pfeiltaste; eine neue, leere Zeile wäre noch ungültig und bliebe Entwurf.
+		tu: async (k) => {
+			await k.locator('[data-zeile-griff="0"]').focus();
+			await k.page().keyboard.press('ArrowDown');
+		},
+		lese: (k) => k.locator('[data-zeile="0"] input').first().inputValue(),
+		fokus: true,
 	},
 	mehrfach: {
 		tu: (k) => k.locator('input[type=checkbox], [role=switch]').first().click({ force: true }),
@@ -697,7 +707,7 @@ const VOLLER_WEG: Record<string, { tu: (k: Kasten) => Promise<void>; lese: (k: K
 	},
 	raster: {
 		tu: (k) => k.locator('[data-zelle], [data-raster] button').first().click(),
-		lese: async (k) => (await k.locator('[data-zelle], [data-raster] button').first().getAttribute('aria-pressed')) ?? '',
+		lese: async (k) => (await k.locator('[data-zelle], [data-raster] button').first().getAttribute('class')) ?? '',
 		fokus: false,
 	},
 	muster: {
@@ -749,15 +759,6 @@ test.describe('Prüfmaschine', () => {
 				const schema = schemaVon(e.id);
 				const nurLoesung = ['x-erwartungshorizont', 'notiz'].includes(e.id);
 				pruefeNamen(e, schema, verstoesse);
-				const inspektor = await leseInspektor(page);
-				const pfad = inspektor?.pfad ?? '';
-				// G1: Der Baustein selbst ist gewählt, bei Rezepten die Aufgabe.
-				const soll = ist(e, nurLoesung);
-				const letzte = pfad.split('›').at(-1) ?? '';
-				const stimmt = soll ? soll.test(letzte) : schema ? letzte === schema.name : !/^Aufgabe \d/.test(letzte);
-				if (!stimmt) {
-					verstoesse.push({ regel: 'G1', schluessel: e.id, text: `Nach dem Einfügen gewählt: ${pfad || '(nichts)'}` });
-				}
 				let rahmen = await rahmenVon(page);
 				let stand = await seitenUndFehler(rahmen);
 				// Manche Starter gehören in höhere Klassen (Malkreuz, schriftlich): Dort einsetzen, sonst sagt die Prüfung nichts.
@@ -772,6 +773,15 @@ test.describe('Prüfmaschine', () => {
 					await page.waitForTimeout(120);
 					rahmen = await rahmenVon(page);
 					stand = await seitenUndFehler(rahmen);
+				}
+				const inspektor = await leseInspektor(page);
+				const pfad = inspektor?.pfad ?? '';
+				// G1: Der Baustein selbst ist gewählt, bei Rezepten die Aufgabe.
+				const soll = ist(e, nurLoesung);
+				const letzte = pfad.split('›').at(-1) ?? '';
+				const stimmt = soll ? soll.test(letzte) : schema ? letzte === schema.name : !/^Aufgabe \d/.test(letzte);
+				if (!stimmt) {
+					verstoesse.push({ regel: 'G1', schluessel: e.id, text: `Nach dem Einfügen gewählt: ${pfad || '(nichts)'}` });
 				}
 				if (stand.seiten > 1 || stand.fehler.length > 0) {
 					verstoesse.push({
@@ -848,7 +858,17 @@ test.describe('Prüfmaschine', () => {
 		for (const [art, fall] of Object.entries(VOLLER_WEG)) {
 			const treffer = KATALOG.flatMap((e) => {
 				const schema = schemaVon(e.id);
-				const feld = schema?.felder.find((f) => f.art === art && !f.ohneFeld && !f.nurWenn && abschnittVon(f) !== 'weitere');
+				const feld = schema?.felder.find(
+					(f) =>
+						f.art === art &&
+						!f.ohneFeld &&
+						!f.nurWenn &&
+						abschnittVon(f) !== 'weitere' &&
+						// Freier Text: Ein Feld mit festem Muster würde die Probe zu Recht abweisen.
+						(f.art !== 'text' || (!f.muster && e.id === 'x-unterschrift')) &&
+						(f.art !== 'zahlen' || abschnittVon(f) === 'inhalt') &&
+						e.id !== 'x-probe',
+				);
 				return schema && feld ? [{ e, feld, schema }] : [];
 			}).find(({ e }) => !FILTER || FILTER.includes(e.id));
 			if (!treffer) {
@@ -881,6 +901,8 @@ test.describe('Prüfmaschine', () => {
 			expect.soft(pfad?.pfad.split('›').at(-1), `W5 ${art}: Baustein bleibt gewählt`).toBe(name);
 			await page.getByRole('button', { name: 'Rückgängig' }).first().click();
 			await expect.poll(() => quelle(page), `W4 ${art}: Rückgängig ist zeichengleich`).toBe(vorher);
+			// Nach dem Schritt wählt der Editor den betroffenen Baustein; die Nummer gilt nur in dieser Fassung.
+			await page.waitForTimeout(400);
 		}
 	});
 

@@ -186,6 +186,72 @@ test.describe('Editor: Feldtypen (023)', () => {
 		expect(start).toContain('Ro|si');
 	});
 
+	test('Griff: Ziehen sortiert in einem Schritt um, Esc bricht ab', async ({ hasTouch, page }) => {
+		test.skip(hasTouch, 'Am Finger gehen ↑ und ↓ im Menü der Zeile.');
+		const { datei } = await mitProbe(page, 'eintraege="Hund: 7; Katze: 4; Maus: 2"');
+		await probe(page).click();
+		const griff = page.getByRole('button', { name: 'Zeile 1 verschieben' });
+		const ziel = page.locator('[data-liste="eintraege"] [data-zeile="2"]');
+		const a = await griff.boundingBox();
+		const b = await ziel.boundingBox();
+		if (!a || !b) {
+			throw new Error('Griff oder Ziel fehlt');
+		}
+		const zieheZu = async () => {
+			await page.mouse.move(a.x + a.width / 2, a.y + a.height / 2);
+			await page.mouse.down();
+			await page.mouse.move(a.x + a.width / 2, b.y + b.height - 1, { steps: 6 });
+		};
+		await zieheZu();
+		await page.keyboard.press('Escape');
+		await page.mouse.up();
+		expect(await tagVon(datei)).toContain('eintraege="Hund: 7; Katze: 4; Maus: 2"');
+
+		await zieheZu();
+		await page.mouse.up();
+		await gespeichert(page, datei);
+		expect(await tagVon(datei)).toContain('eintraege="Katze: 4; Maus: 2; Hund: 7"');
+		await zurueck(page).click();
+		await gespeichert(page, datei);
+		expect(await tagVon(datei)).toContain('eintraege="Hund: 7; Katze: 4; Maus: 2"');
+	});
+
+	test('Als Text bearbeiten: eine Zeile je Eintrag, zurück zur Liste', async ({ druecke, page }) => {
+		const { dok, id, material: datei } = await uhrzeit();
+		await oeffne(page, id, dok);
+		await aendere(
+			page,
+			(await quelle(page)).replace(/<x-uhr[^>]*><\/x-uhr>/, '<x-suchsel woerter="HUND; MAUS" seed="1"></x-suchsel>'),
+		);
+		await gespeichert(page, datei);
+		await druecke(material(page).locator('x-suchsel'));
+		await druecke(page.locator('[data-liste-als-text="woerter"]'));
+		const text = page.locator('[data-liste-text="woerter"]');
+		await expect(text).toHaveValue('HUND\nMAUS');
+		await text.fill('HUND\nMAUS\nIGEL');
+		await text.blur();
+		await gespeichert(page, datei);
+		expect(await readFile(datei, 'utf8')).toContain('woerter="HUND; MAUS; IGEL"');
+		await druecke(page.locator('[data-liste-als-text="woerter"]'));
+		await expect(page.locator('[data-liste="woerter"] [data-zeile]')).toHaveCount(3);
+	});
+
+	test('Felder ohne Wirkung sind verborgen, ihr Wert bleibt stehen', async ({ druecke, page }) => {
+		const { dok, id, material: datei } = await uhrzeit();
+		await oeffne(page, id, dok);
+		await aendere(
+			page,
+			(await quelle(page)).replace(/<x-uhr[^>]*><\/x-uhr>/, '<x-gitter spalten="6" zeilen="4" faktor="0.5"></x-gitter>'),
+		);
+		await gespeichert(page, datei);
+		await druecke(material(page).locator('x-gitter'));
+		await expect(panel(page).locator('[data-feld="faktor"]')).toHaveCount(0);
+		await panel(page).locator('[data-feld="aufgabe"] select').selectOption('weg');
+		await expect(panel(page).locator('[data-feld="wegart"]')).toBeVisible();
+		await expect(panel(page).locator('[data-feld="faktor"]')).toHaveCount(0);
+		expect(await readFile(datei, 'utf8')).toContain('faktor="0.5"');
+	});
+
 	test('Liste, Raster und Form', async ({ druecke, page }) => {
 		test.slow();
 		const { datei } = await mitProbe(page, 'eintraege="Hund: 7; Katze: 4"');
@@ -202,7 +268,11 @@ test.describe('Editor: Feldtypen (023)', () => {
 		await expect(page.locator('[data-fehler="eintraege"]')).toContainText('0 bis 99');
 		await liste.getByLabel('Zahl in Zeile 1').fill('8');
 
-		await druecke(page.getByRole('button', { name: 'Zeile 2 nach oben' }));
+		// Der Griff tauscht auch per Pfeiltaste und behält den Fokus.
+		const griff = page.getByRole('button', { name: 'Zeile 2 verschieben' });
+		await griff.focus();
+		await griff.press('ArrowUp');
+		await expect(page.getByRole('button', { name: 'Zeile 1 verschieben' })).toBeFocused();
 		await gespeichert(page, datei);
 		expect(await tagVon(datei)).toContain('eintraege="Katze: 4; Hund: 8"');
 
@@ -210,6 +280,7 @@ test.describe('Editor: Feldtypen (023)', () => {
 		await gespeichert(page, datei);
 		expect(await tagVon(datei)).toContain('eintraege="Katze: 4; Hund: 8; Neu: 1"');
 
+		await druecke(page.getByRole('button', { name: 'Zeile 3: mehr' }));
 		await druecke(page.getByRole('button', { name: 'Zeile 3 löschen' }));
 		await gespeichert(page, datei);
 		expect(await tagVon(datei)).toContain('eintraege="Katze: 4; Hund: 8"');
@@ -1696,7 +1767,8 @@ test.describe('Sachunterricht: Natur und Technik (034)', () => {
 		const lauf = material(page).locator('x-kreislauf');
 		await druecke(lauf);
 		const zeile = panel(page).locator('[data-liste="stationen"] [data-zeile="0"]');
-		await druecke(zeile.getByRole('button', { name: 'Aus der Sammlung' }));
+		await druecke(zeile.locator('[data-bild-knopf]').first());
+		await druecke(page.getByRole('menuitem', { name: 'Aus der Sammlung' }));
 		const dialog = page.getByRole('dialog', { name: 'Bild aus der Sammlung' });
 		await druecke(dialog.locator('[data-sammlung-bild="_assets/bilder/wachstum.png"]'));
 		await expect(dialog).toBeHidden();

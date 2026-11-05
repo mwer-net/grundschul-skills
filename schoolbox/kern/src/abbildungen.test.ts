@@ -37,10 +37,13 @@ import {
 	setzeAbbildung,
 	VERKEHRSZEICHEN,
 	werteVon,
+	zeilenAlsText,
+	zeilenAusText,
 	zeilenText,
 	zeilenVon,
 	ziffernText,
 } from './abbildungen';
+import { ABSCHNITT_TITEL } from './abschnitte';
 import { ASSETS, BLATT_PY } from './konfig';
 import { hatLoesung, MIT_LOESUNG, OHNE_LOESUNGSANGABE } from './loesungen';
 import { zerlege } from './quelltext';
@@ -2222,5 +2225,76 @@ describe('Abschnitte im Inspektor', () => {
 		assert.equal(uhr.ziffern, 'darstellung');
 		assert.equal(uhr.groesse, 'darstellung');
 		assert.equal(uhr.digital, 'weitere');
+	});
+});
+
+describe('Schema: Namen, Gruppen und Bedingungen (084)', () => {
+	const feldVon = (tag: string, attribut: string) => {
+		const feld = schemaVon(tag)?.felder.find((f) => f.attribut === attribut);
+		assert.ok(feld, `${tag}.${attribut}`);
+		return feld;
+	};
+	const alle = Object.entries(ABBILDUNG_SCHEMA as Readonly<Record<string, AbbildungSchema>>);
+
+	it('Kein Feld heißt wie sein Abschnitt, innerhalb eines Abschnitts kein Name doppelt', () => {
+		for (const [tag, schema] of alle.filter(([t]) => t !== 'x-probe')) {
+			const gesehen = new Set<string>();
+			for (const f of schema.felder.filter((x) => !x.ohneFeld)) {
+				const abschnitt = ABSCHNITT_TITEL[abschnittVon(f)];
+				assert.notEqual(f.name, abschnitt, `${tag}.${f.attribut} heißt wie sein Abschnitt`);
+				const schluessel = `${abschnitt}/${f.gruppe ?? ''}/${f.name}`;
+				assert.ok(!gesehen.has(schluessel), `${tag}.${f.attribut}: „${f.name}“ doppelt`);
+				gesehen.add(schluessel);
+			}
+		}
+	});
+
+	it('Keine Gruppenüberschrift wiederholt den Namen eines ihrer Felder', () => {
+		for (const [tag, schema] of alle.filter(([t]) => t !== 'x-probe')) {
+			for (const f of schema.felder.filter((x) => !x.ohneFeld && x.gruppe && x.gruppe !== 'Mehr')) {
+				assert.notEqual(f.name, f.gruppe, `${tag}.${f.attribut}`);
+			}
+		}
+	});
+
+	it('`nurWenn` liest nur Felder, die es im Schema gibt', () => {
+		for (const [tag, schema] of alle) {
+			const gueltig = new Set(schema.felder.map((f) => f.attribut));
+			for (const f of schema.felder.filter((x) => x.nurWenn)) {
+				const gelesen = new Set<string>();
+				const werte = new Proxy({} as Werte, {
+					get: (_, name) => {
+						gelesen.add(String(name));
+						return null;
+					},
+				});
+				f.nurWenn?.(werte);
+				assert.ok(gelesen.size > 0, `${tag}.${f.attribut} liest kein Feld`);
+				for (const g of gelesen) {
+					assert.ok(gueltig.has(g), `${tag}.${f.attribut} liest „${g}“, das gibt es nicht`);
+				}
+			}
+		}
+	});
+
+	it('Regel Inhalt und Darstellung: Größe und Breite gehören nie zum Inhalt', () => {
+		for (const [tag, schema] of alle) {
+			for (const f of schema.felder.filter((x) => ['groesse', 'breite'].includes(x.attribut))) {
+				assert.notEqual(abschnittVon(f), 'inhalt', `${tag}.${f.attribut}`);
+				assert.notEqual(abschnittVon(f), 'weitere', `${tag}.${f.attribut}`);
+			}
+		}
+		assert.equal(abschnittVon(feldVon('x-tangram', 'umriss')), 'inhalt');
+		assert.equal(abschnittVon(feldVon('x-wuerfelbau', 'einheit')), 'darstellung');
+	});
+
+	it('Als Text: Hin und zurück ändert nichts; leere Zeilen fallen weg', () => {
+		const feld = feldVon('x-domino', 'paare') as ListeFeld;
+		const zeilen = [
+			['3·3', '9'],
+			['4·4', '16'],
+		];
+		assert.deepEqual(zeilenAusText(feld, zeilenAlsText(feld, zeilen)), zeilen);
+		assert.deepEqual(zeilenAusText(feld, '\n3·3 | 9\n\n'), [['3·3', '9']]);
 	});
 });
