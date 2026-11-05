@@ -34,14 +34,17 @@ export interface AblageStand {
 
 export type Knoten = { ordner: string } | { mappe: string; dok: string };
 
-export type Aktion =
-	| { art: 'neu'; eltern: string | null; name?: string; inhalt?: Knoten[]; id?: string }
-	| { art: 'umbenennen'; knoten: Knoten; name: string }
-	| { art: 'bewegen'; knoten: Knoten[]; ziel: string | null; namen?: Record<string, string> }
-	| { art: 'kopieren'; knoten: Knoten[]; ziel: string | null }
-	| { art: 'papierkorb'; knoten: Knoten[] }
-	| { art: 'zuruecklegen'; knoten: Knoten[] }
-	| { art: 'entfernen'; ordner: string };
+interface AktionsAngaben {
+	neu: { eltern: string | null; name?: string; inhalt?: Knoten[]; id?: string };
+	umbenennen: { knoten: Knoten; name: string };
+	bewegen: { knoten: Knoten[]; ziel: string | null; namen?: Record<string, string> };
+	kopieren: { knoten: Knoten[]; ziel: string | null };
+	papierkorb: { knoten: Knoten[] };
+	zuruecklegen: { knoten: Knoten[] };
+	entfernen: { ordner: string };
+}
+
+export type Aktion = { [A in keyof AktionsAngaben]: { art: A } & AktionsAngaben[A] }[keyof AktionsAngaben];
 
 export interface AktionsAntwort {
 	rev: number;
@@ -81,9 +84,6 @@ export interface DokObjekt extends Gemeinsam {
 export type Objekt = OrdnerObjekt | DokObjekt;
 
 export type Seite =
-	| { art: 'ordner'; ordner: string | null }
-	| { art: 'zuletzt' }
-	| { art: 'suche' }
-	| { art: 'papierkorb' };
+	{ art: 'ordner'; ordner: string | null } | { art: 'zuletzt' } | { art: 'suche' } | { art: 'papierkorb' };
 
 export type Darstellung = 'kacheln' | 'liste';

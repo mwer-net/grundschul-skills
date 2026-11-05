@@ -195,7 +195,12 @@ export const ordnerApi = (kontext: Kontext) => {
 			};
 			const r =
 				aktion.art === 'kopieren'
-					? await kopiereKnoten(materialDir, baum, { knoten: nurLebende(aktion.knoten), ziel: aktion.ziel }, u)
+					? await kopiereKnoten(
+							materialDir,
+							baum,
+							{ knoten: nurLebende(aktion.knoten), ziel: aktion.ziel },
+							u,
+						)
 					: wendeAktionAn(
 							baum,
 							aktion.art === 'bewegen' ? { ...aktion, knoten: nurLebende(aktion.knoten) } : aktion,
@@ -259,7 +264,10 @@ export const ordnerApi = (kontext: Kontext) => {
 		if (!eigen && fest !== format && !ART_FORMATE[art as Art].includes(format as Format)) {
 			throw new HttpFehler(400, 'Dieses Format passt nicht zu dieser Art.');
 		}
-		if (vorlage !== undefined && (typeof vorlage !== 'string' || !verfuegbareVorlagen(materialDir).includes(vorlage))) {
+		if (
+			vorlage !== undefined &&
+			(typeof vorlage !== 'string' || !verfuegbareVorlagen(materialDir).includes(vorlage))
+		) {
 			throw new HttpFehler(400, 'Diese Vorlage gibt es nicht.');
 		}
 		const w = (zusatz ?? {}) as Record<string, unknown>;
@@ -295,8 +303,9 @@ export const ordnerApi = (kontext: Kontext) => {
 				if (!FAECHER.includes(b.fach as Fach) || !KLASSEN.includes(b.klasse as Klasse)) {
 					throw new HttpFehler(400, 'Bitte wähle Fach und Klasse aus.');
 				}
-				mappe = (await neueMappe(materialDir, { titel: name, fach: b.fach as Fach, klasse: b.klasse as Klasse }))
-					.mappe.id;
+				mappe = (
+					await neueMappe(materialDir, { titel: name, fach: b.fach as Fach, klasse: b.klasse as Klasse })
+				).mappe.id;
 			}
 			const { id } = await neuesDokument(materialDir, mappe, angaben);
 			const neu = structuredClone(baum);
@@ -344,4 +353,3 @@ export const verlangeLebendenOrdner = (kontext: Kontext, ordner: string) => {
 		throw new HttpFehler(404, 'Diesen Ordner gibt es nicht mehr.');
 	}
 };
-

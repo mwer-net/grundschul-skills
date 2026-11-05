@@ -388,7 +388,6 @@ test.describe('Dokument und PDF', () => {
 
 test.describe('Entwürfe', () => {
 	test('drei Entwürfe nebeneinander bzw. zum Wischen, ohne Auswahlknopf; was nicht passt, ist markiert', async ({
-		druecke,
 		page,
 	}) => {
 		const { dok, id } = await uhrzeitMitEntwuerfen();
@@ -1039,11 +1038,17 @@ test.describe('Ordner und Dokumentansicht (075)', () => {
 		await expect(kacheln).toHaveCount(9);
 		for (const kachel of await kacheln.all()) {
 			// Am Mac gar keine, am iPad nur das ⋯
-			expect(await kachel.locator('button:visible, a[href]:visible').count()).toBeLessThanOrEqual(hasTouch ? 1 : 0);
+			expect(await kachel.locator('button:visible, a[href]:visible').count()).toBeLessThanOrEqual(
+				hasTouch ? 1 : 0,
+			);
 		}
 	});
 
-	test('Rechtsklick auf die Kachel zeigt dieselbe Liste wie das ⋯ der Leiste', async ({ druecke, hasTouch, page }) => {
+	test('Rechtsklick auf die Kachel zeigt dieselbe Liste wie das ⋯ der Leiste', async ({
+		druecke,
+		hasTouch,
+		page,
+	}) => {
 		test.skip(hasTouch, 'Rechtsklick gibt es nur mit Maus');
 		const { id } = await neunDokumente();
 		await page.goto(`/m/${id}`);

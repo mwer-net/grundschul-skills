@@ -802,7 +802,11 @@ export const erstelleKi = ({ ereignisse, konfig, pruefer }: Abhaengigkeiten) => 
 		let verbrauch: Record<string, unknown> = {};
 		try {
 			const ergebnis = await frageEinordnung(
-				[`Wunsch: ${text}`, `Vorhandene Ordner:\n${liste}`, aktuelle ? `Aktueller Ordner: ${aktuelle.id}` : null]
+				[
+					`Wunsch: ${text}`,
+					`Vorhandene Ordner:\n${liste}`,
+					aktuelle ? `Aktueller Ordner: ${aktuelle.id}` : null,
+				]
 					.filter(Boolean)
 					.join('\n\n'),
 				einordnungSchema(ordner.map((o) => o.id)),

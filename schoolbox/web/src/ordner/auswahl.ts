@@ -88,7 +88,11 @@ export const bewege = (
 	} else {
 		ziel = jetzt + schritt;
 		// Im Raster bleibt eine kurze letzte Zeile erreichbar; sonst bleibt die Auswahl stehen.
-		if (richtung === 'runter' && ziel >= reihenfolge.length && Math.floor(jetzt / spalten) < Math.floor((reihenfolge.length - 1) / spalten)) {
+		if (
+			richtung === 'runter' &&
+			ziel >= reihenfolge.length &&
+			Math.floor(jetzt / spalten) < Math.floor((reihenfolge.length - 1) / spalten)
+		) {
 			ziel = reihenfolge.length - 1;
 		}
 		if (ziel < 0 || ziel >= reihenfolge.length) {

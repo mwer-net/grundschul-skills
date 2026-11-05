@@ -33,6 +33,8 @@ const RahmenInnen = () => {
 	const [palette, setPalette] = useState(false);
 	// Die Dokumentansicht hat ihren eigenen einzeiligen Kopf: Das Blatt soll oben im Fenster beginnen.
 	const ohneKopf = useMatch('/m/:mappe/:dok') !== null;
+	const inOrdner = useMatch('/o/:ordner');
+	const ordnerId = inOrdner?.params.ordner;
 
 	useEffect(() => {
 		const taste = (e: KeyboardEvent) => {
@@ -71,10 +73,8 @@ const RahmenInnen = () => {
 	const chat = useChat();
 	const chatStand = useChatStand();
 	const imDokument = useMatch('/m/:mappe/:dok/*');
-	const inOrdner = useMatch('/o/:ordner');
 	const dokMappe = imDokument?.params.mappe;
 	const dokName = imDokument?.params.dok;
-	const ordnerId = inOrdner?.params.ordner;
 	useChatKontext(
 		useMemo<ChatKontext>(
 			() =>

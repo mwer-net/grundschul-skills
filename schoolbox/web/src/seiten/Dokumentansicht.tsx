@@ -2,6 +2,7 @@ import type { Druckprofil } from '@schoolbox/kern/src/werte';
 import { useContext, useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 
+import type { ApiFehler } from '../api';
 import { Blattansicht } from '../bausteine/Blattansicht';
 import { useHinweis } from '../bausteine/hinweis';
 import { Marke } from '../bausteine/Kachel';
@@ -16,11 +17,9 @@ import { ChatStandKontext, useChat } from '../editor/chat-kontext';
 import { hatOffeneEntwuerfe } from '../entwuerfe/offen';
 import { ClaudeHinweis } from '../entwuerfe/Teile';
 import { useEreignisse } from '../ereignisse';
-import { useLaden } from '../lib/laden';
+import { useInhalt } from '../lib/inhalt';
 import { useAnsichtsProfil } from '../lib/profil';
 import { anzahl, ART_NAME, FORMAT_NAME } from '../lib/text';
-import { useInhalt } from '../lib/inhalt';
-import { useOrdnerDesDokuments } from '../ordner/kontext';
 import { useTitel } from '../lib/titel';
 import type { Zugang } from '../lib/zugang';
 import {
@@ -32,11 +31,12 @@ import {
 	mappenSeite,
 	praesentationSeite,
 } from '../lib/zugang';
+import { useOrdnerDesDokuments } from '../ordner/kontext';
 import { PdfKnopf } from '../pdf/PdfKnopf';
 import { pdfEintrag, usePdf } from '../pdf/usePdf';
 import { dokumentWahl, folienWahl, materialName } from '../pdf/wahl';
 import { TeilenDialog } from '../teilen/TeilenDialog';
-import type { DokumentEintrag, Mappe, MappenEintrag } from '../typen';
+import type { DokumentEintrag, Mappe } from '../typen';
 
 interface Eigenschaften {
 	zugang: Zugang;
@@ -158,6 +158,29 @@ const Knoepfe = ({ dokument, entwuerfe, loesung, mappe, profil, teilen, zugang }
 	);
 };
 
+const EntwuerfeOffen = ({ adresse, anzahlEntwuerfe }: { adresse: string; anzahlEntwuerfe: number }) => (
+	<div className="mt-4" data-entwuerfe-offen>
+		<ClaudeHinweis>
+			<p className="text-leise">
+				{`Für dieses Material gibt es ${anzahlEntwuerfe === 1 ? 'einen Entwurf' : `${anzahlEntwuerfe} Entwürfe`}. Sobald Claude deine Wahl übernommen hat, steht es hier.`}
+			</p>
+			<KnopfLink to={adresse} className="mt-2">
+				Entwürfe vergleichen
+				<Symbol name="weiter" />
+			</KnopfLink>
+		</ClaudeHinweis>
+	</div>
+);
+
+const DokumentFehlt = ({ fehler, geteilt }: { fehler: ApiFehler | null; geteilt: boolean }) => (
+	<Zustand symbol="suche" titel="Dieses Dokument gibt es nicht mehr">
+		<p className="text-leise">
+			{fehler && fehler.status !== 404 ? fehler.message : 'Vielleicht wurde es gelöscht.'}
+		</p>
+		{!geteilt && <KnopfLink to="/">Zu meinem Material</KnopfLink>}
+	</Zustand>
+);
+
 /**
  * Ein Dokument ansehen, als PDF herunterladen, drucken und teilen; für die Lehrkraft und genauso hinter Teilen-Links.
  * Ändert Claude das Material, lädt die Ansicht von selbst neu.
@@ -190,14 +213,7 @@ export const Dokumentansicht = ({ dok, zugang, zurueckZurMappe }: Eigenschaften)
 		if (!fehler && !daten) {
 			return null;
 		}
-		return (
-			<Zustand symbol="suche" titel="Dieses Dokument gibt es nicht mehr">
-				<p className="text-leise">
-					{fehler && fehler.status !== 404 ? fehler.message : 'Vielleicht wurde es gelöscht.'}
-				</p>
-				{!geteilt && <KnopfLink to="/">Zu meinem Material</KnopfLink>}
-			</Zustand>
-		);
+		return <DokumentFehlt fehler={fehler} geteilt={geteilt} />;
 	}
 
 	const { mappe } = daten;
@@ -264,17 +280,7 @@ export const Dokumentansicht = ({ dok, zugang, zurueckZurMappe }: Eigenschaften)
 			</div>
 
 			{entwuerfe && hatOffeneEntwuerfe(meta) && (
-				<div className="mt-4" data-entwuerfe-offen>
-					<ClaudeHinweis>
-						<p className="text-leise">
-							{`Für dieses Material gibt es ${meta.entwuerfe.length === 1 ? 'einen Entwurf' : `${meta.entwuerfe.length} Entwürfe`}. Sobald Claude deine Wahl übernommen hat, steht es hier.`}
-						</p>
-						<KnopfLink to={entwuerfeSeite(zugang, dok)} className="mt-2">
-							Entwürfe vergleichen
-							<Symbol name="weiter" />
-						</KnopfLink>
-					</ClaudeHinweis>
-				</div>
+				<EntwuerfeOffen anzahlEntwuerfe={meta.entwuerfe.length} adresse={entwuerfeSeite(zugang, dok)} />
 			)}
 			{meta.druckhinweise.length > 0 && <Druckhinweise liste={meta.druckhinweise} />}
 			<div className="mt-2">

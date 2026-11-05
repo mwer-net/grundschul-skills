@@ -1,12 +1,10 @@
 import type { PointerEvent as ReactPointerEvent, ReactNode, RefObject } from 'react';
 import { useEffect, useRef, useState } from 'react';
-import { createPortal } from 'react-dom';
 import { useLocation, useNavigate } from 'react-router-dom';
 
-import { Symbol } from '../bausteine/Symbol';
 import { FINGER_WEG, HALTEN_MS, MAUS_WEG } from '../editor/ziehen';
-import { vorschauAdresse } from '../lib/zugang';
 import type { AuswahlStand } from './auswahl';
+import { Geist } from './Geist';
 import { useAblage } from './kontext';
 import { bewegtText, geloeschtText, kopiertText } from './meldungen';
 import { ortName, zielGueltig } from './objekte';
@@ -35,7 +33,8 @@ interface Zug {
 	finger: boolean;
 	startAdresse: string;
 	ziel: HTMLElement | null;
-	zielId: string | null | 'papierkorb' | undefined;
+	/** Ordner-Id, `null` für die Wurzel, `papierkorb`, oder `undefined`, wenn hier nichts abgelegt werden kann. */
+	zielId: string | null | undefined;
 	kopiert: boolean;
 	federn: number | null;
 	x: number;
@@ -49,40 +48,6 @@ const zielVon = (el: HTMLElement) => {
 
 const zielAn = (x: number, y: number) =>
 	document.elementFromPoint(x, y)?.closest<HTMLElement>('[data-ablage-ziel]') ?? null;
-
-const Geist = ({ objekte, x, y }: { objekte: Objekt[]; x: number; y: number }) =>
-	createPortal(
-		<div
-			className="pointer-events-none fixed top-0 left-0 z-meldung"
-			style={{ transform: `translate(${x + 8}px, ${y + 8}px)` }}
-			data-geist
-		>
-			{objekte.slice(0, 3).map((o, i) => (
-				<div
-					key={o.schluessel}
-					className="absolute flex h-16 w-12 items-center justify-center overflow-hidden rounded-sm border border-rand bg-flaeche shadow-2"
-					style={{ left: i * 5, top: i * 5, zIndex: 3 - i }}
-				>
-					{!o.istOrdner && o.dok.vorschau ? (
-						<img
-							src={vorschauAdresse({ mappe: o.dok.mappe, token: null }, o.dok.id, o.dok.vorschau)}
-							alt=""
-							className="size-full object-cover object-top"
-							draggable={false}
-						/>
-					) : (
-						<Symbol name={o.istOrdner ? 'ordner' : 'blatt'} className="size-6 text-brand-500" />
-					)}
-				</div>
-			))}
-			{objekte.length > 1 && (
-				<span className="absolute -top-2 left-9 z-10 flex h-5 min-w-5 items-center justify-center rounded-full bg-brand-500 px-1 text-xs font-medium text-white">
-					{objekte.length}
-				</span>
-			)}
-		</div>,
-		document.body,
-	);
 
 /** Ziehen und Lasso. Beides lauscht an `window`: Beim Federn verschwindet die Kachel, an der das Ziehen begann. */
 export const useZiehen = (o: Optionen) => {
@@ -115,7 +80,8 @@ export const useZiehen = (o: Optionen) => {
 	};
 
 	const setzeZeiger = (z: Zug) => {
-		document.documentElement.style.cursor = z.zielId === undefined ? 'not-allowed' : z.kopiert ? 'copy' : 'grabbing';
+		const gezogen = z.kopiert ? 'copy' : 'grabbing';
+		document.documentElement.style.cursor = z.zielId === undefined ? 'not-allowed' : gezogen;
 	};
 
 	const federe = (z: Zug) => {
@@ -198,7 +164,7 @@ export const useZiehen = (o: Optionen) => {
 		document.body.removeAttribute('data-zieht');
 		setZug(null);
 		setStatus(null);
-		const { navigate: nav, stand: s, tu: machen, adresse } = neu.current;
+		const { adresse, navigate: nav, stand: s, tu: machen } = neu.current;
 		if (!ablegen) {
 			if (adresse !== z.startAdresse) {
 				void nav(z.startAdresse, { replace: true });
@@ -265,6 +231,8 @@ export const useZiehen = (o: Optionen) => {
 		let rollen: number | null = null;
 		const basis = e.metaKey || e.shiftKey ? o.auswahl.gewaehlt : [];
 
+		const lauscher = new AbortController();
+
 		const zeichneLasso = () => {
 			const links = Math.min(startX, x);
 			const oben = Math.min(startY - (window.scrollY - scrollStart), y);
@@ -321,12 +289,7 @@ export const useZiehen = (o: Optionen) => {
 		};
 
 		const raeumeAuf = () => {
-			window.removeEventListener('pointermove', bewegen);
-			window.removeEventListener('pointerup', hoch);
-			window.removeEventListener('pointercancel', abbruch);
-			window.removeEventListener('keydown', taste, true);
-			window.removeEventListener('keyup', tasteLos, true);
-			document.removeEventListener('touchmove', sperreRollen);
+			lauscher.abort();
 			if (halten !== null) {
 				window.clearTimeout(halten);
 			}
@@ -393,12 +356,13 @@ export const useZiehen = (o: Optionen) => {
 			}
 		};
 
-		window.addEventListener('pointermove', bewegen);
-		window.addEventListener('pointerup', hoch);
-		window.addEventListener('pointercancel', abbruch);
-		window.addEventListener('keydown', taste, true);
-		window.addEventListener('keyup', tasteLos, true);
-		document.addEventListener('touchmove', sperreRollen, { passive: false });
+		const { signal } = lauscher;
+		window.addEventListener('pointermove', bewegen, { signal });
+		window.addEventListener('pointerup', hoch, { signal });
+		window.addEventListener('pointercancel', abbruch, { signal });
+		window.addEventListener('keydown', taste, { capture: true, signal });
+		window.addEventListener('keyup', tasteLos, { capture: true, signal });
+		document.addEventListener('touchmove', sperreRollen, { passive: false, signal });
 		rollen = requestAnimationFrame(schleife);
 		aufraeumen.current = abbruch;
 		if (finger && objekt) {

@@ -6,7 +6,6 @@ import { afterEach, describe, it } from 'node:test';
 import { ladeBaum, ORDNER_DATEI } from '@schoolbox/kern';
 
 import { kennung } from './kontext';
-
 import type { TestServer } from './testhilfe';
 import {
 	fuehreAus,
@@ -177,8 +176,13 @@ describe('Ablage: Aktionen über /api/ordner (079)', () => {
 			404,
 		);
 		assert.equal(
-			(await s.holen(`${api}/pdf`, { method: 'POST', headers: schreibKoepfe, body: '{"variante":"arbeitsblatt"}' }))
-				.status,
+			(
+				await s.holen(`${api}/pdf`, {
+					method: 'POST',
+					headers: schreibKoepfe,
+					body: '{"variante":"arbeitsblatt"}',
+				})
+			).status,
 			404,
 		);
 		assert.equal((await s.holen(`${s.url}/ansicht/${mappe}/dokumente/${dok}/`)).status, 404);
@@ -211,7 +215,9 @@ describe('Ablage: Aktionen über /api/ordner (079)', () => {
 		await strom.bereit;
 		const r = await tu(s, { art: 'neu', eltern: null, name: 'X' });
 		await warte(50);
-		assert.ok(strom.ereignisse.some((e) => e.typ === 'ordner-geaendert' && (e.daten as { rev: number }).rev === r.rev));
+		assert.ok(
+			strom.ereignisse.some((e) => e.typ === 'ordner-geaendert' && (e.daten as { rev: number }).rev === r.rev),
+		);
 	});
 
 	it('Hineinbewegen in einen geteilten Ordner sagt das', async () => {

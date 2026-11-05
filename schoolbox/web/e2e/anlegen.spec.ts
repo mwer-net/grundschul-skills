@@ -45,7 +45,9 @@ test.describe('Anlegen ohne Claude', () => {
 			.toContain('class="aufgabe"');
 	});
 
-	test('Abbrechen hinterlässt nichts; gleicher Ordnername bekommt eine Nummer, nichts wird ersetzt', async ({ page }) => {
+	test('Abbrechen hinterlässt nichts; gleicher Ordnername bekommt eine Nummer, nichts wird ersetzt', async ({
+		page,
+	}) => {
 		await page.goto('/');
 		const vorher = await mappenzahl();
 		await page.locator('[data-werkzeugleiste] [data-material-anlegen]').click();
@@ -53,7 +55,7 @@ test.describe('Anlegen ohne Claude', () => {
 		expect(await mappenzahl()).toBe(vorher);
 
 		const titel = `Doppelt ${Date.now()}`;
-		for (const _ of [1, 2]) {
+		for (let runde = 0; runde < 2; runde += 1) {
 			await page.locator('[data-werkzeugleiste] [data-neuer-ordner]').click();
 			await page.keyboard.type(titel);
 			await page.keyboard.press('Enter');

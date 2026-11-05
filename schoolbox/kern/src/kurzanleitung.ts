@@ -9,7 +9,7 @@ import type { Fertig } from './bauen';
 import { fertigstellen } from './bauen';
 import type { Konfig } from './konfig';
 import { WURZEL } from './konfig';
-import { leseBaumNachsichtig, dokumentGeloescht, ordnerGeloescht } from './ordner';
+import { dokumentGeloescht, leseBaumNachsichtig, ordnerGeloescht } from './ordner';
 import { idsImPapierkorb } from './papierkorb';
 import { legeVersionAn } from './versionen';
 

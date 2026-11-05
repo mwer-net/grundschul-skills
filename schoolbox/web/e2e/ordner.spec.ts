@@ -1,6 +1,7 @@
-import type { Locator, Page } from '@playwright/test';
 import { lstat, readFile, writeFile } from 'node:fs/promises';
 import path from 'node:path';
+
+import type { Locator, Page } from '@playwright/test';
 
 import { expect, legeMappeAn, MATERIAL_DIR, objekt, objektMenue, oeffneObjekt, test, waehleObjekt } from './hilfe';
 
@@ -44,7 +45,10 @@ const zieheBis = async (page: Page, von: Locator, nach: Locator) => {
 };
 
 test.describe('Kerngeschichte', () => {
-	test('Ordner anlegen, ziehen, in die Tiefe, ausschneiden, einfügen, alles per ⌘Z zurück', async ({ hasTouch, page }) => {
+	test('Ordner anlegen, ziehen, in die Tiefe, ausschneiden, einfügen, alles per ⌘Z zurück', async ({
+		hasTouch,
+		page,
+	}) => {
 		test.skip(hasTouch, 'Am Finger: eigener Test unten');
 		await reihe();
 		await legeMappeAn('Herbst', 'sachunterricht', 1, [{ titel: 'Igel' }]);
@@ -125,7 +129,11 @@ test.describe('Kerngeschichte', () => {
 });
 
 test.describe('Ansicht', () => {
-	test('Kacheln und Liste per Knopf und Taste, gemerkt über Neuladen, Auswahl bleibt', async ({ druecke, hasTouch, page }) => {
+	test('Kacheln und Liste per Knopf und Taste, gemerkt über Neuladen, Auswahl bleibt', async ({
+		druecke,
+		hasTouch,
+		page,
+	}) => {
 		await reihe();
 		await page.goto('/');
 		await oeffneObjekt(page, 'Reihe');
@@ -145,7 +153,10 @@ test.describe('Ansicht', () => {
 		}
 	});
 
-	test('Reihe steht in Erstellt-Reihenfolge, Spaltenkopf sortiert natürlich, Dreieck klappt auf', async ({ druecke, page }) => {
+	test('Reihe steht in Erstellt-Reihenfolge, Spaltenkopf sortiert natürlich, Dreieck klappt auf', async ({
+		druecke,
+		page,
+	}) => {
 		await reihe();
 		await page.goto('/');
 		await druecke(leiste(page).getByRole('button', { name: 'Liste' }));
@@ -315,7 +326,7 @@ test.describe('Ohne Ziehen', () => {
 test.describe('Übersicht und Informationen', () => {
 	test('Leertaste öffnet, ←→ wechselt, Esc schließt; Informationen per ⌥I', async ({ hasTouch, page }) => {
 		test.skip(hasTouch, 'Am Finger über das Menü, siehe unten');
-		const { id, dokumente } = await reihe();
+		const { dokumente, id } = await reihe();
 		await page.goto(`/m/${id}`);
 		await objekt(page, 'Station 1').click();
 		await page.keyboard.press(' ');
@@ -374,7 +385,9 @@ test.describe('Suche, Zuletzt, Papierkorb', () => {
 });
 
 test.describe('Bestand', () => {
-	test('„Alles als PDF“ nennt den Ordner; Material im Ordner ohne Behälter fragt Fach und Klasse', async ({ page }) => {
+	test('„Alles als PDF“ nennt den Ordner; Material im Ordner ohne Behälter fragt Fach und Klasse', async ({
+		page,
+	}) => {
 		await page.goto('/');
 		await neuerOrdner(page, 'Leer');
 		await oeffneObjekt(page, 'Leer');
@@ -424,7 +437,9 @@ test.describe('Bestand', () => {
 		await writeFile(baumDatei, '{ kaputt');
 		await page.reload();
 		await expect(objekt(page, 'Sicher')).toBeVisible();
-		await expect(page.getByRole('alert').or(meldung(page))).toContainText(/Sicherung|wiederhergestellt|geordnet|Ablage/);
+		await expect(page.getByRole('alert').or(meldung(page))).toContainText(
+			/Sicherung|wiederhergestellt|geordnet|Ablage/,
+		);
 	});
 });
 
@@ -499,29 +514,49 @@ test.describe('Am Finger', () => {
 			throw new Error('nicht zu sehen');
 		}
 		// Zeigerereignisse direkt an die Fläche, wie sie der Finger in Safari auslöst (pointerType touch)
-		await page.locator('[data-objekt]').filter({ hasText: 'Quelle' }).evaluate(
-			async (el, { a, b }) => {
-				const sende = (ziel: Element | Window, typ: string, x: number, y: number) =>
-					ziel.dispatchEvent(
-						new PointerEvent(typ, { bubbles: true, pointerType: 'touch', pointerId: 7, isPrimary: true, clientX: x, clientY: y, button: 0, buttons: 1 }),
-					);
-				sende(el, 'pointerdown', a.x, a.y);
-				await new Promise((r) => setTimeout(r, 650));
-				sende(el, 'pointermove', a.x + 12, a.y + 12);
-				await new Promise((r) => setTimeout(r, 50));
-				sende(el, 'pointermove', b.x, b.y);
-				await new Promise((r) => setTimeout(r, 100));
-				sende(el, 'pointerup', b.x, b.y);
-			},
-			{ a: { x: von.x + 60, y: von.y + 60 }, b: { x: nach.x + 60, y: nach.y + 20 } },
-		);
+		await page
+			.locator('[data-objekt]')
+			.filter({ hasText: 'Quelle' })
+			.evaluate(
+				async (el, { a, b }) => {
+					const sende = (ziel: Element | Window, typ: string, x: number, y: number) =>
+						ziel.dispatchEvent(
+							new PointerEvent(typ, {
+								bubbles: true,
+								pointerType: 'touch',
+								pointerId: 7,
+								isPrimary: true,
+								clientX: x,
+								clientY: y,
+								button: 0,
+								buttons: 1,
+							}),
+						);
+					sende(el, 'pointerdown', a.x, a.y);
+					await new Promise((r) => setTimeout(r, 650));
+					sende(el, 'pointermove', a.x + 12, a.y + 12);
+					await new Promise((r) => setTimeout(r, 50));
+					sende(el, 'pointermove', b.x, b.y);
+					await new Promise((r) => setTimeout(r, 100));
+					sende(el, 'pointerup', b.x, b.y);
+				},
+				{ a: { x: von.x + 60, y: von.y + 60 }, b: { x: nach.x + 60, y: nach.y + 20 } },
+			);
 		await expect(kacheln(page)).toHaveCount(1);
 	});
 });
 
 test('Kein Text „Mappe“ auf den Seiten der Lehrkraft', async ({ page }) => {
-	const { id, dokumente } = await legeMappeAn('Blätter', 'mathematik', 2, [{ titel: 'Blatt' }]);
-	for (const adresse of ['/', '/zuletzt', '/suche?q=bl', '/papierkorb', '/hilfe', `/m/${id}`, `/m/${id}/${dokumente[0]}`]) {
+	const { dokumente, id } = await legeMappeAn('Blätter', 'mathematik', 2, [{ titel: 'Blatt' }]);
+	for (const adresse of [
+		'/',
+		'/zuletzt',
+		'/suche?q=bl',
+		'/papierkorb',
+		'/hilfe',
+		`/m/${id}`,
+		`/m/${id}/${dokumente[0]}`,
+	]) {
 		await page.goto(adresse);
 		await page.waitForLoadState('networkidle');
 		await expect(page.locator('body')).not.toContainText(/\bMappen?\b/);

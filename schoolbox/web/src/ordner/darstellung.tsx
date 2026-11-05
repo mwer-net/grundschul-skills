@@ -1,12 +1,15 @@
+import type { MouseEvent } from 'react';
+
 import { Marke } from '../bausteine/Kachel';
 import { klassen } from '../bausteine/klassen';
 import { Knopf } from '../bausteine/Knopf';
 import { Symbol } from '../bausteine/Symbol';
 import { Vorschau } from '../bausteine/Vorschau';
 import { hatOffeneEntwuerfe } from '../entwuerfe/offen';
-import { anzahl, ART_NAME, datum, FACH_FARBE, FACH_NAME, FORMAT_NAME, klasseName } from '../lib/text';
+import { ART_NAME, datum, FACH_FARBE, FACH_NAME, FORMAT_NAME, klasseName } from '../lib/text';
 import { vorschauAdresse } from '../lib/zugang';
 import { NamensFeld } from './NamensFeld';
+import { objekteZahl } from './objekte';
 import type { DokObjekt, Objekt } from './typen';
 
 /** Was Kachel und Zeile gemeinsam brauchen. Alle Ereignisse behandelt die Ablage über `data-objekt`. */
@@ -17,12 +20,10 @@ export interface ObjektAnsicht {
 	benennt: boolean;
 	ort?: string;
 	/** Das ⋯ am Finger (Regel aus 070: kein Halten fürs Menü). */
-	menue: (e: React.MouseEvent) => void;
+	menue: (e: MouseEvent) => void;
 	/** Nur im Auswahlmodus am iPad: Haken statt Öffnen. */
 	haken: boolean;
 }
-
-export const objekteText = (n: number) => anzahl(n, 'Objekt', 'Objekte');
 
 const GeteiltMarke = () => (
 	<span title="Geteilt" className="inline-flex flex-none items-center text-dezent" data-marke-geteilt>
@@ -31,7 +32,7 @@ const GeteiltMarke = () => (
 	</span>
 );
 
-const FingerMenue = ({ menue, name }: { menue: (e: React.MouseEvent) => void; name: string }) => (
+const FingerMenue = ({ menue, name }: { menue: (e: MouseEvent) => void; name: string }) => (
 	<Knopf
 		art="leise"
 		groesse="klein"
@@ -68,7 +69,9 @@ export const Kachel = ({ benennt, blass, gewaehlt, haken, menue, objekt, ort }: 
 		{...(objekt.istOrdner ? { 'data-ablage-ziel': objekt.ordner.id } : {})}
 		className={klassen(
 			'ablage-objekt relative flex flex-col overflow-hidden rounded-[10px] border bg-flaeche',
-			gewaehlt ? 'border-brand-500 bg-brand-50 outline outline-1 outline-brand-500' : 'border-rand hover:border-rand-feld',
+			gewaehlt
+				? 'border-brand-500 bg-brand-50 outline outline-1 outline-brand-500'
+				: 'border-rand hover:border-rand-feld',
 			blass && 'opacity-50',
 		)}
 	>
@@ -100,7 +103,10 @@ export const Kachel = ({ benennt, blass, gewaehlt, haken, menue, objekt, ort }: 
 				) : (
 					<h2 className="flex items-center gap-1.5 text-sm font-medium" data-objekt-name>
 						{!objekt.istOrdner && (
-							<span className="size-2 flex-none rounded-full" style={{ background: FACH_FARBE[objekt.dok.fach] }} />
+							<span
+								className="size-2 flex-none rounded-full"
+								style={{ background: FACH_FARBE[objekt.dok.fach] }}
+							/>
 						)}
 						<span className="truncate">{objekt.name}</span>
 						{objekt.geteilt && <GeteiltMarke />}
@@ -108,7 +114,7 @@ export const Kachel = ({ benennt, blass, gewaehlt, haken, menue, objekt, ort }: 
 				)}
 				<p className="truncate text-xs text-leise">
 					{objekt.istOrdner
-						? objekteText(objekt.anzahl).replace(/^Ein Objekt$/, '1 Objekt')
+						? objekteZahl(objekt.anzahl)
 						: `${ART_NAME[objekt.dok.meta.art]} · ${FORMAT_NAME[objekt.dok.meta.format]}`}
 				</p>
 				{ort && <p className="truncate text-xs text-dezent">{ort}</p>}
@@ -216,7 +222,7 @@ export const Zeile = ({ benennt, blass, gewaehlt, haken, klappe, menue, objekt, 
 			{objekt.istOrdner ? STRICH : FORMAT_NAME[objekt.dok.meta.format]}
 		</span>
 		<span className="truncate text-xs text-leise @max-4xl:hidden">
-			{objekt.istOrdner ? objekteText(objekt.anzahl).replace(/^Ein Objekt$/, '1 Objekt') : objekt.dok.meta.seiten || STRICH}
+			{objekt.istOrdner ? objekteZahl(objekt.anzahl) : objekt.dok.meta.seiten || STRICH}
 		</span>
 	</div>
 );

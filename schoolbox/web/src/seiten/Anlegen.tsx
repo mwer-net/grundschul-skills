@@ -12,7 +12,7 @@ import {
 	VORLAGE_ART,
 	VORLAGE_FORMAT,
 } from '@schoolbox/kern/src/werte';
-import type { FormEvent, ReactNode } from 'react';
+import type { ReactNode } from 'react';
 import { useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 
@@ -25,7 +25,6 @@ import { useKiZustand } from '../editor/ki';
 import { useLaden } from '../lib/laden';
 import { klasseName } from '../lib/text';
 import { useAblage } from '../ordner/kontext';
-import { pfadText } from '../ordner/pfad';
 import type { AblageStand } from '../ordner/typen';
 import { legeMaterialAn } from './material-anlegen';
 
@@ -73,7 +72,6 @@ const Wahl = ({
 		{children}
 	</button>
 );
-
 
 const ZUSATZ = [
 	['selbsteinschaetzung', 'Selbsteinschätzung'],
@@ -241,6 +239,144 @@ const vorbelegung = (stand: AblageStand | null, ordner: string | null): { fach: 
 };
 
 /** Assistent „Material anlegen“: Art, Format, Titel, Start. Abbrechen legt nichts an; erst der letzte Schritt schreibt. */
+interface SchrittStartEigenschaften {
+	eigene: EigeneVorlage[];
+	mitClaude: boolean;
+	neuLaden: () => void;
+	setMitClaude: (an: boolean) => void;
+	setVorlage: (v: string | null) => void;
+	setWunsch: (w: string) => void;
+	setZusatz: (z: Partial<Record<ZusatzName, boolean>>) => void;
+	verfuegbar: boolean;
+	vorlage: string | null;
+	vorlagen: string[];
+	wunsch: string;
+	zusaetze: ReturnType<typeof zusatzVon>;
+	zusatz: Partial<Record<ZusatzName, boolean>>;
+}
+
+/** Ein Ordner mit Behälter gibt Fach und Klasse vor. Das entscheidet der Server genauso. */
+const hatBehaelter = (stand: AblageStand | null, eintrag: AblageStand['ordner'][number] | undefined) =>
+	Boolean(eintrag?.behaelter && stand?.dokumente.some((d) => d.mappe === eintrag.behaelter));
+
+const ordnerAusEinordnung = (einordnung: MaterialDialogEigenschaften['einordnung']) => einordnung?.ordner?.id ?? null;
+
+const SchrittStart = ({
+	eigene,
+	mitClaude,
+	neuLaden,
+	setMitClaude,
+	setVorlage,
+	setWunsch,
+	setZusatz,
+	verfuegbar,
+	vorlage,
+	vorlagen,
+	wunsch,
+	zusaetze,
+	zusatz,
+}: SchrittStartEigenschaften) => (
+	<>
+		<div className="grid grid-cols-2 gap-2 max-md:grid-cols-1">
+			<Wahl
+				id="leer"
+				titel="Leer"
+				aktiv={vorlage === null && !mitClaude}
+				waehle={() => {
+					setVorlage(null);
+					setMitClaude(false);
+				}}
+			>
+				<span className="block text-sm text-leise">Du fügst die Bausteine selbst ein.</span>
+			</Wahl>
+			{verfuegbar && (
+				<Wahl
+					id="mit-claude"
+					titel="Mit Claude"
+					aktiv={mitClaude}
+					waehle={() => {
+						setVorlage(null);
+						setMitClaude(true);
+					}}
+				>
+					<span className="block text-sm text-leise">
+						Claude schreibt einen Entwurf, du bearbeitest ihn weiter.
+					</span>
+				</Wahl>
+			)}
+			{eigene.map((v) => (
+				<EigeneWahl
+					key={v.id}
+					vorlage={v}
+					aktiv={vorlage === `eigen-${v.id}`}
+					waehle={() => {
+						setVorlage(`eigen-${v.id}`);
+						setMitClaude(false);
+					}}
+					neuLaden={neuLaden}
+				/>
+			))}
+			{vorlagen.map((v) => (
+				<Wahl
+					key={v}
+					id={v}
+					titel={`Vorlage: ${v}`}
+					aktiv={vorlage === v}
+					waehle={() => {
+						setVorlage(v);
+						setMitClaude(false);
+					}}
+				>
+					<iframe
+						src={`/ansicht/_assets/vorlage-${v}.html`}
+						title={`Vorschau ${v}`}
+						loading="lazy"
+						tabIndex={-1}
+						className="pointer-events-none mt-2 h-64 w-[250%] origin-top-left scale-[0.4] border-0 [margin-bottom:-9.6rem]"
+					/>
+				</Wahl>
+			))}
+		</div>
+		{vorlagen.length === 0 && eigene.length === 0 && (
+			<p className="mt-2 text-leise">
+				Für diese Art gibt es noch keine Vorlage. Du startest mit einem leeren Blatt.
+			</p>
+		)}
+		{mitClaude && (
+			<label className="mt-4 block font-medium">
+				Worum geht es, und was sollen die Kinder können?
+				<textarea
+					className={`${FELD_KLASSEN} mt-1 h-auto w-full py-1.5 font-normal`}
+					rows={3}
+					maxLength={2000}
+					value={wunsch}
+					onChange={(e) => setWunsch(e.target.value)}
+				/>
+				<span className="mt-1 block text-sm font-normal text-leise">
+					Keine Namen von Kindern eintragen. Reihen, mehrere Dokumente und neue Bilder gehen in der
+					Claude-App.
+				</span>
+			</label>
+		)}
+		{!mitClaude && zusaetze.length > 0 && (
+			<fieldset className="mt-4">
+				<legend className="font-medium">Gleich dazu (kannst du überspringen)</legend>
+				{zusaetze.map(([z, titelZ]) => (
+					<label key={z} className="flex h-knopf items-center gap-2">
+						<input
+							type="checkbox"
+							className="size-4"
+							checked={zusatz[z] === true}
+							onChange={(e) => setZusatz({ ...zusatz, [z]: e.target.checked })}
+						/>
+						{titelZ}
+					</label>
+				))}
+			</fieldset>
+		)}
+	</>
+);
+
 export const MaterialDialog = ({
 	einordnung,
 	ordner: festerOrdner,
@@ -249,10 +385,9 @@ export const MaterialDialog = ({
 	wunsch: wunschVorher,
 }: MaterialDialogEigenschaften) => {
 	const { stand } = useAblage();
-	const ordner = festerOrdner !== undefined ? festerOrdner : (einordnung?.ordner?.id ?? null);
+	const ordner = festerOrdner === undefined ? ordnerAusEinordnung(einordnung) : festerOrdner;
 	const eintrag = stand?.ordner.find((o) => o.id === ordner);
-	// Ein Ordner mit Behälter gibt Fach und Klasse vor. Das entscheidet der Server genauso.
-	const mitBehaelter = Boolean(einordnung?.fest || (eintrag?.behaelter && stand?.dokumente.some((d) => d.mappe === eintrag.behaelter)));
+	const mitBehaelter = Boolean(einordnung?.fest) || hatBehaelter(stand, eintrag);
 	const vorher = einordnung ?? vorbelegung(stand, ordner);
 	const [fach, setFach] = useState<Fach>(vorher.fach);
 	const [klasse, setKlasse] = useState<Klasse>(vorher.klasse);
@@ -376,105 +511,21 @@ export const MaterialDialog = ({
 					</>
 				)}
 				{name === 'Start' && (
-					<>
-						<div className="grid grid-cols-2 gap-2 max-md:grid-cols-1">
-							<Wahl
-								id="leer"
-								titel="Leer"
-								aktiv={vorlage === null && !mitClaude}
-								waehle={() => {
-									setVorlage(null);
-									setMitClaude(false);
-								}}
-							>
-								<span className="block text-sm text-leise">Du fügst die Bausteine selbst ein.</span>
-							</Wahl>
-							{ki.verfuegbar && (
-								<Wahl
-									id="mit-claude"
-									titel="Mit Claude"
-									aktiv={mitClaude}
-									waehle={() => {
-										setVorlage(null);
-										setMitClaude(true);
-									}}
-								>
-									<span className="block text-sm text-leise">
-										Claude schreibt einen Entwurf, du bearbeitest ihn weiter.
-									</span>
-								</Wahl>
-							)}
-							{eigene.map((v) => (
-								<EigeneWahl
-									key={v.id}
-									vorlage={v}
-									aktiv={vorlage === `eigen-${v.id}`}
-									waehle={() => {
-										setVorlage(`eigen-${v.id}`);
-										setMitClaude(false);
-									}}
-									neuLaden={eigen.neuLaden}
-								/>
-							))}
-							{vorlagen.map((v) => (
-								<Wahl
-									key={v}
-									id={v}
-									titel={`Vorlage: ${v}`}
-									aktiv={vorlage === v}
-									waehle={() => {
-										setVorlage(v);
-										setMitClaude(false);
-									}}
-								>
-									<iframe
-										src={`/ansicht/_assets/vorlage-${v}.html`}
-										title={`Vorschau ${v}`}
-										loading="lazy"
-										tabIndex={-1}
-										className="pointer-events-none mt-2 h-64 w-[250%] origin-top-left scale-[0.4] border-0 [margin-bottom:-9.6rem]"
-									/>
-								</Wahl>
-							))}
-						</div>
-						{vorlagen.length === 0 && eigene.length === 0 && (
-							<p className="mt-2 text-leise">
-								Für diese Art gibt es noch keine Vorlage. Du startest mit einem leeren Blatt.
-							</p>
-						)}
-						{mitClaude && (
-							<label className="mt-4 block font-medium">
-								Worum geht es, und was sollen die Kinder können?
-								<textarea
-									className={`${FELD_KLASSEN} mt-1 h-auto w-full py-1.5 font-normal`}
-									rows={3}
-									maxLength={2000}
-									value={wunsch}
-									onChange={(e) => setWunsch(e.target.value)}
-								/>
-								<span className="mt-1 block text-sm font-normal text-leise">
-									Keine Namen von Kindern eintragen. Reihen, mehrere Dokumente und neue Bilder gehen
-									in der Claude-App.
-								</span>
-							</label>
-						)}
-						{!mitClaude && zusaetze.length > 0 && (
-							<fieldset className="mt-4">
-								<legend className="font-medium">Gleich dazu (kannst du überspringen)</legend>
-								{zusaetze.map(([z, titelZ]) => (
-									<label key={z} className="flex h-knopf items-center gap-2">
-										<input
-											type="checkbox"
-											className="size-4"
-											checked={zusatz[z] === true}
-											onChange={(e) => setZusatz({ ...zusatz, [z]: e.target.checked })}
-										/>
-										{titelZ}
-									</label>
-								))}
-							</fieldset>
-						)}
-					</>
+					<SchrittStart
+						eigene={eigene}
+						mitClaude={mitClaude}
+						neuLaden={eigen.neuLaden}
+						setMitClaude={setMitClaude}
+						setVorlage={setVorlage}
+						setWunsch={setWunsch}
+						setZusatz={setZusatz}
+						verfuegbar={ki.verfuegbar}
+						vorlage={vorlage}
+						vorlagen={vorlagen}
+						wunsch={wunsch}
+						zusaetze={zusaetze}
+						zusatz={zusatz}
+					/>
 				)}
 				<div className="mt-4 flex justify-end gap-2">
 					<Knopf art="leise" onClick={schliessen}>

@@ -1,12 +1,12 @@
-import type { AktionsAntwort, AblageStand, Objekt } from './typen';
 import { ortName } from './objekte';
+import type { AblageStand, AktionsAntwort, Objekt } from './typen';
 
 const anzahlText = (objekte: readonly Pick<Objekt, 'name'>[], knotenzahl: number) => {
 	const [erstes] = objekte;
 	return knotenzahl === 1 && erstes ? `„${erstes.name}“` : `${knotenzahl} Objekte`;
 };
 
-const zusatz = (stand: AblageStand, { ergebnis: { geteilt, umbenannt, uebersprungen } }: AktionsAntwort) => {
+const zusatz = (stand: AblageStand, { ergebnis: { geteilt, uebersprungen, umbenannt } }: AktionsAntwort) => {
 	const teile: string[] = [];
 	const [erstes] = umbenannt;
 	if (umbenannt.length === 1 && erstes) {

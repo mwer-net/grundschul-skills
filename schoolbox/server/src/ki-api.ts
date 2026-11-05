@@ -47,7 +47,9 @@ export const kiApi = (router: RouterTyp, kontext: Kontext) => {
 				const behaelter = mappen.find((m) => m.mappe.id === o.behaelter)?.mappe;
 				return {
 					id: o.id,
-					pfad: ordnerPfad(baum, o.id).map((p) => p.name).join(' > '),
+					pfad: ordnerPfad(baum, o.id)
+						.map((p) => p.name)
+						.join(' > '),
 					...(behaelter ? { fach: behaelter.fach, klasse: behaelter.klasse } : {}),
 				};
 			});

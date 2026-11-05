@@ -19,7 +19,17 @@ interface NeuesMaterial {
 }
 
 /** Legt das Dokument an und startet, falls gewünscht, Claude. Das Ergebnis sagt, wohin es danach geht. */
-export const legeMaterialAn = async ({ art, fach, format, klasse, ordner, titel, vorlage, wunsch, zusatz }: NeuesMaterial) => {
+export const legeMaterialAn = async ({
+	art,
+	fach,
+	format,
+	klasse,
+	ordner,
+	titel,
+	vorlage,
+	wunsch,
+	zusatz,
+}: NeuesMaterial) => {
 	const { id, mappe } = await sende<{ id: string; mappe: string }>('/api/ordner/material', {
 		ordner,
 		titel,

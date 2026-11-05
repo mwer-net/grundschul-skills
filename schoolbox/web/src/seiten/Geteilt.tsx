@@ -9,9 +9,9 @@ import { Zustand } from '../bausteine/Zustand';
 import { useLaden } from '../lib/laden';
 import { useTitel } from '../lib/titel';
 import type { Zugang } from '../lib/zugang';
-import { PdfKnopf } from '../pdf/PdfKnopf';
 import { kinder } from '../ordner/objekte';
 import type { AblageDok, AblageOrdner, AblageStand } from '../ordner/typen';
+import { PdfKnopf } from '../pdf/PdfKnopf';
 import { mappenWahl } from '../pdf/wahl';
 import type { DokumentEintrag, Mappe } from '../typen';
 import { Dokumentansicht } from './Dokumentansicht';
@@ -86,10 +86,17 @@ const GeteilteAblage = ({ inhalt, token }: { inhalt: Inhalt; token: string }) =>
 		<>
 			<div className="flex items-start justify-between gap-4 max-lg:flex-col max-lg:gap-3">
 				<div className="min-w-0">
-					<nav aria-label="Pfad" className="flex flex-wrap items-center gap-1 text-sm text-leise" data-geteilt-pfad>
+					<nav
+						aria-label="Pfad"
+						className="flex flex-wrap items-center gap-1 text-sm text-leise"
+						data-geteilt-pfad
+					>
 						{pfad.slice(0, -1).map((o) => (
 							<span key={o.id} className="flex items-center gap-1">
-								<Link className="text-leise" to={o.id === inhalt.wurzel ? `/f/${token}` : `/f/${token}/o/${o.id}`}>
+								<Link
+									className="text-leise"
+									to={o.id === inhalt.wurzel ? `/f/${token}` : `/f/${token}/o/${o.id}`}
+								>
 									{o.name}
 								</Link>
 								<Symbol name="rechts" className="size-3 text-dezent" />
@@ -113,14 +120,20 @@ const GeteilteAblage = ({ inhalt, token }: { inhalt: Inhalt; token: string }) =>
 				<ul className="mt-4 grid grid-cols-[repeat(auto-fill,minmax(19rem,1fr))] gap-4">
 					{objekte.map((o) =>
 						o.istOrdner ? (
-							<li key={o.schluessel} data-geteilt-ordner={o.ordner.id} className="overflow-hidden rounded-[10px] border border-rand bg-flaeche">
+							<li
+								key={o.schluessel}
+								data-geteilt-ordner={o.ordner.id}
+								className="overflow-hidden rounded-[10px] border border-rand bg-flaeche"
+							>
 								<Link to={`/f/${token}/o/${o.ordner.id}`} className="block text-tinte no-underline">
 									<div className="flex aspect-[8/5] items-center justify-center bg-leinwand">
 										<Symbol name="ordner" className="size-20 text-brand-200" />
 									</div>
 									<div className="border-t border-rand px-2.5 py-2">
 										<h2 className="truncate text-sm font-medium">{o.name}</h2>
-										<p className="truncate text-xs text-leise">{o.anzahl === 1 ? '1 Objekt' : `${o.anzahl} Objekte`}</p>
+										<p className="truncate text-xs text-leise">
+											{o.anzahl === 1 ? '1 Objekt' : `${o.anzahl} Objekte`}
+										</p>
 									</div>
 								</Link>
 							</li>

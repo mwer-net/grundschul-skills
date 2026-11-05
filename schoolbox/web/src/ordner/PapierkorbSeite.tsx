@@ -53,7 +53,10 @@ const Zeile = ({
 	titel: string;
 	unter?: string;
 }) => (
-	<li className={`${RASTER} min-h-[var(--hoehe-listenzeile)] rounded-md py-0.5 text-sm hover:bg-flaeche-2`} data-korb-eintrag={titel}>
+	<li
+		className={`${RASTER} min-h-[var(--hoehe-listenzeile)] rounded-md py-0.5 text-sm hover:bg-flaeche-2`}
+		data-korb-eintrag={titel}
+	>
 		<span className="flex min-w-0 items-center gap-1.5">
 			<Symbol name={symbol} className="size-3.5 flex-none text-leise" />
 			<span className="truncate">{titel}</span>
@@ -97,10 +100,7 @@ export const PapierkorbSeite = () => {
 
 	const legeZurueck = async (o: KorbObjekt, schluessel: string) => {
 		setLaeuft(schluessel);
-		await tu(
-			{ art: 'zuruecklegen', knoten: [o.knoten] },
-			{ text: () => `„${o.name}“ ist wieder da.` },
-		);
+		await tu({ art: 'zuruecklegen', knoten: [o.knoten] }, { text: () => `„${o.name}“ ist wieder da.` });
 		setLaeuft(null);
 		neuLaden();
 	};
@@ -148,7 +148,9 @@ export const PapierkorbSeite = () => {
 							key={schluessel}
 							titel={o.name}
 							symbol={'ordner' in o.knoten ? 'ordner' : 'blatt'}
-							{...(o.objekte === undefined ? {} : { unter: anzahl(o.objekte, 'Objekt', 'Objekte').replace('Ein Objekt', '1 Objekt') })}
+							{...(o.objekte === undefined
+								? {}
+								: { unter: anzahl(o.objekte, 'Objekt', 'Objekte').replace('Ein Objekt', '1 Objekt') })}
 							herkunft={[WURZEL_NAME, ...o.geloescht.herkunft].join(' › ')}
 							geloescht={o.geloescht.zeit}
 							bis={o.bis}

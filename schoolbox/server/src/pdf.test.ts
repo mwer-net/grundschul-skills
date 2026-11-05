@@ -9,35 +9,35 @@ import { promisify } from 'node:util';
 
 import {
 	BLATT_PY,
-	PAPIERKORB_TAGE,
 	dokumentDir,
 	legeFreigabeAn,
 	leseMeta,
 	mappenDir,
 	neueMappe,
 	neuesDokument,
+	PAPIERKORB_TAGE,
 	schreibeMeta,
 	widerrufeFreigabe,
 } from '@schoolbox/kern';
 import { BROWSER_HINWEIS, browserFehlt } from '@schoolbox/kern/src/browsertest';
 
+import { raeumePapierkorbAuf } from './papierkorb';
 import { inhaltsAngabe } from './pdf';
 import type { TestServer } from './testhilfe';
 import {
-	BEISPIEL,
-	NOTIZ_ZU_LANG,
-	UEBERLAUF,
 	baueErsatzAusgabe,
 	baueErsatzFolien,
+	BEISPIEL,
 	fuehreAus,
 	legeDokumentAn,
+	NOTIZ_ZU_LANG,
 	ordnerVon,
 	sammleEreignisse,
 	schreibKoepfe,
 	starteTestServer,
+	UEBERLAUF,
 	warte,
 } from './testhilfe';
-import { raeumePapierkorbAuf } from './papierkorb';
 
 const ausfuehren = promisify(execFile);
 
@@ -468,7 +468,7 @@ describe('PDF: Ablauf', () => {
 		assert.equal((await vorbereiten(s, pfad, 'loesung')).daten.fehler, 'Zu diesem Dokument gibt es keine Lösung.');
 		assert.equal((await vorbereiten(s, pfad, 'alles')).status, 400);
 		assert.equal((await vorbereiten(s, `/api/dokumente/${mappe}/gibt-es-nicht/pdf`, 'arbeitsblatt')).status, 404);
-		assert.equal((await sammle(s, [{ mappe: 'gibt-es-nicht', dok: dok }], 'alles')).status, 404);
+		assert.equal((await sammle(s, [{ mappe: 'gibt-es-nicht', dok }], 'alles')).status, 404);
 		assert.equal((await sammle(s, [], 'alles')).status, 404);
 		const zuViele = Array.from({ length: 101 }, () => ({ mappe, dok }));
 		const antwort = await sammle(s, zuViele, 'alles');

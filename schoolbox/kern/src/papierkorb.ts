@@ -109,7 +109,9 @@ export const stelleWiederHer = async (materialDir: string, eintrag: string): Pro
 	}
 	const ziel = path.join(materialDir, beschrieben.id);
 	if (existsSync(ziel)) {
-		throw new SchoolboxFehler(`Es gibt schon einen Ordner „${beschrieben.id}“. Wiederherstellen geht deshalb nicht.`);
+		throw new SchoolboxFehler(
+			`Es gibt schon einen Ordner „${beschrieben.id}“. Wiederherstellen geht deshalb nicht.`,
+		);
 	}
 	await rename(quelle, ziel);
 	return beschrieben;

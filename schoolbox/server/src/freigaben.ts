@@ -1,8 +1,8 @@
 import type { Baum, Druckprofil, Freigabe, FreigabeZiel, MappenVariante, OrdnerEintrag } from '@schoolbox/kern';
 import {
 	dokKnotenSchluessel,
-	dokumentGeloescht,
 	dokumenteVonZiel,
+	dokumentGeloescht,
 	ENTWURF_QUELLE,
 	findeFreigabe,
 	ID_MUSTER,
@@ -259,7 +259,14 @@ export const teilenRouter = (kontext: Kontext, sendeSeite: (status: number) => R
 					.filter((id) => id !== wurzel.id)
 					.map((id) => baum.ordner.find((o) => o.id === id))
 					.filter((o): o is OrdnerEintrag => o !== undefined)
-					.map(({ behaelter, eltern, erstellt, geaendert, id, name }) => ({ behaelter, eltern, erstellt, geaendert, id, name }))
+					.map(({ behaelter, eltern, erstellt, geaendert, id, name }) => ({
+						behaelter,
+						eltern,
+						erstellt,
+						geaendert,
+						id,
+						name,
+					}))
 			: [];
 		const mappe = 'ordner' in ziel ? null : await leseMappe(materialDir, ziel.mappe);
 		res.json({

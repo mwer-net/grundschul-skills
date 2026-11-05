@@ -134,6 +134,12 @@ const freieMappenId = (materialDir: string, basis: string) => {
 	return eindeutigeId(basis, (k) => imPapierkorb.has(k) || existsSync(path.join(materialDir, k)));
 };
 
+const ohneAblage = (mappe: Mappe): Mappe => {
+	const kopie = { ...mappe };
+	delete kopie.ablage;
+	return kopie;
+};
+
 export const neueMappe = async (
 	materialDir: string,
 	{ ablage, fach, id: festeId, klasse, titel }: NeueMappe,
@@ -394,9 +400,8 @@ export const dupliziereMappe = async (
 			await schreibeJson(path.join(dir, 'meta.json'), { ...meta, erstellt, geaendert: zeit });
 			await legeVersionAn(dir, 'lehrkraft', jetzt);
 		}
-		const { ablage: _ablage, ...rest } = vorlage;
 		const mappe: Mappe = {
-			...rest,
+			...ohneAblage(vorlage),
 			id,
 			titel,
 			erstellt: zeit,

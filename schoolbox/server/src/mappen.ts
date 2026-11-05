@@ -1,7 +1,14 @@
 import { existsSync } from 'node:fs';
 import path from 'node:path';
 
-import { dokKnotenSchluessel, dokumentGeloescht, legeVarianteAn, leseMappenEintrag, mappenDir, verfuegbareVorlagen } from '@schoolbox/kern';
+import {
+	dokKnotenSchluessel,
+	dokumentGeloescht,
+	legeVarianteAn,
+	leseMappenEintrag,
+	mappenDir,
+	verfuegbareVorlagen,
+} from '@schoolbox/kern';
 import { Router } from 'express';
 
 import { verlangeDokument } from './dokumente';

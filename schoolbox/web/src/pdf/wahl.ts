@@ -94,7 +94,11 @@ export const sammlungWahl = (
 		vorbereiten: () => sende<PdfAntwort>('/api/ordner/pdf', { teile, name, variante, profil }),
 	});
 	return (['farbe', 'sw'] as const).flatMap((profil) => [
-		wahl(mitLoesungen ? `Ohne Lösungen, ${PROFILE_NAME[profil]}` : `Alles ${PROFILE_NAME[profil]}`, 'alles', profil),
+		wahl(
+			mitLoesungen ? `Ohne Lösungen, ${PROFILE_NAME[profil]}` : `Alles ${PROFILE_NAME[profil]}`,
+			'alles',
+			profil,
+		),
 		...(mitLoesungen ? [wahl(`Mit Lösungen am Ende, ${PROFILE_NAME[profil]}`, 'alles-mit-loesungen', profil)] : []),
 	]);
 };

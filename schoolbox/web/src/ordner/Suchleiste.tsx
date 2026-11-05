@@ -25,7 +25,9 @@ export const Suchleiste = ({ anzahl, stand }: { stand: AblageStand; anzahl: numb
 			{
 				name: 'fach' as const,
 				titel: 'Fach',
-				werte: (Object.keys(FACH_NAME) as Fach[]).filter((f) => faecher.has(f)).map((f) => ({ wert: f, titel: FACH_NAME[f] })),
+				werte: (Object.keys(FACH_NAME) as Fach[])
+					.filter((f) => faecher.has(f))
+					.map((f) => ({ wert: f, titel: FACH_NAME[f] })),
 			},
 			{
 				name: 'klasse' as const,
@@ -37,7 +39,9 @@ export const Suchleiste = ({ anzahl, stand }: { stand: AblageStand; anzahl: numb
 			{
 				name: 'art' as const,
 				titel: 'Art',
-				werte: (Object.keys(ART_NAME) as Art[]).filter((a) => arten.has(a)).map((a) => ({ wert: a, titel: ART_NAME[a] })),
+				werte: (Object.keys(ART_NAME) as Art[])
+					.filter((a) => arten.has(a))
+					.map((a) => ({ wert: a, titel: ART_NAME[a] })),
 			},
 		];
 	}, [stand.dokumente]);
@@ -57,21 +61,25 @@ export const Suchleiste = ({ anzahl, stand }: { stand: AblageStand; anzahl: numb
 		});
 	const gefiltert = gruppen.some((g) => parameter.has(g.name));
 
+	const waehleBereich = (w: string) =>
+		setze((p) => {
+			if (w === 'hier' && von) {
+				p.set('in', von);
+			} else {
+				p.delete('in');
+			}
+		});
+
 	return (
-		<div className="flex flex-wrap items-center gap-1.5 border-b border-rand bg-flaeche px-3 py-1.5" data-suchleiste>
+		<div
+			className="flex flex-wrap items-center gap-1.5 border-b border-rand bg-flaeche px-3 py-1.5"
+			data-suchleiste
+		>
 			{von && (
 				<Segment
 					beschriftung="Bereich"
 					wert={bereich ? 'hier' : 'ueberall'}
-					waehle={(w) =>
-						setze((p) => {
-							if (w === 'hier') {
-								p.set('in', von);
-							} else {
-								p.delete('in');
-							}
-						})
-					}
+					waehle={waehleBereich}
 					werte={[
 						{ wert: 'ueberall', titel: 'Überall' },
 						{ wert: 'hier', titel: `In „${ortName(stand, von)}“` },

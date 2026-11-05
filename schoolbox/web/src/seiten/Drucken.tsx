@@ -5,13 +5,12 @@ import { meldung } from '../api';
 import { Knopf } from '../bausteine/Knopf';
 import { Symbol } from '../bausteine/Symbol';
 import { Zustand } from '../bausteine/Zustand';
-import { useLaden } from '../lib/laden';
 import { useInhalt } from '../lib/inhalt';
 import { useTitel } from '../lib/titel';
 import type { Zugang } from '../lib/zugang';
 import { bereiteDokumentVor, istGeteilt } from '../lib/zugang';
 import { PdfWarnung } from '../pdf/PdfWarnung';
-import type { MappenEintrag, PdfAntwort } from '../typen';
+import type { PdfAntwort } from '../typen';
 
 interface MitPdf {
 	art: 'warnung' | 'abgebrochen';

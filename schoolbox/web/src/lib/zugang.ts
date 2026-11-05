@@ -73,7 +73,9 @@ const profilSuche = (profil?: Druckprofil) => (profil ? `?profil=${profil}` : ''
 export const bereiteDokumentVor = (zugang: Zugang, dok: string, variante: AusgabeVariante, profil?: Druckprofil) =>
 	zugang.token === null
 		? sende<PdfAntwort>(`/api/dokumente/${zugang.mappe}/${dok}/pdf`, { variante, profil })
-		: lade<PdfAntwort>(`/f/${zugang.token}/api/pdf/${teilenAdresse(zugang, dok)}/${variante}${profilSuche(profil)}`);
+		: lade<PdfAntwort>(
+				`/f/${zugang.token}/api/pdf/${teilenAdresse(zugang, dok)}/${variante}${profilSuche(profil)}`,
+			);
 
 export const bereiteMappeVor = (zugang: Zugang, variante: MappenVariante, profil?: Druckprofil) =>
 	zugang.token === null

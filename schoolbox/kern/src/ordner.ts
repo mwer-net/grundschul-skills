@@ -56,15 +56,18 @@ export interface Baum {
 
 export type AblageKnoten = { ordner: string } | { mappe: string; dok: string };
 
-export type Aktion =
-	| { art: 'neu'; eltern: string | null; name?: string; inhalt?: AblageKnoten[]; id?: string }
-	| { art: 'umbenennen'; knoten: AblageKnoten; name: string }
-	| { art: 'bewegen'; knoten: AblageKnoten[]; ziel: string | null; namen?: Record<string, string> }
-	| { art: 'kopieren'; knoten: AblageKnoten[]; ziel: string | null }
-	| { art: 'papierkorb'; knoten: AblageKnoten[] }
-	| { art: 'zuruecklegen'; knoten: AblageKnoten[] }
+interface AktionsAngaben {
+	neu: { eltern: string | null; name?: string; inhalt?: AblageKnoten[]; id?: string };
+	umbenennen: { knoten: AblageKnoten; name: string };
+	bewegen: { knoten: AblageKnoten[]; ziel: string | null; namen?: Record<string, string> };
+	kopieren: { knoten: AblageKnoten[]; ziel: string | null };
+	papierkorb: { knoten: AblageKnoten[] };
+	zuruecklegen: { knoten: AblageKnoten[] };
 	/** Nur als Umkehr von `neu`: entfernt einen Ordner, in dem nichts Lebendes mehr liegt. */
-	| { art: 'entfernen'; ordner: string };
+	entfernen: { ordner: string };
+}
+
+export type Aktion = { [A in keyof AktionsAngaben]: { art: A } & AktionsAngaben[A] }[keyof AktionsAngaben];
 
 const GELOESCHT_SCHEMA: JsonSchema = {
 	type: ['object', 'null'],
@@ -317,7 +320,8 @@ export const ladeBaum = (materialDir: string, jetzt = new Date()): GeladenerBaum
 	}
 	return {
 		baum: null,
-		hinweis: 'Die Ordnerstruktur ließ sich nicht lesen und musste neu aufgebaut werden. Dein Material ist vollständig.',
+		hinweis:
+			'Die Ordnerstruktur ließ sich nicht lesen und musste neu aufgebaut werden. Dein Material ist vollständig.',
 	};
 };
 
@@ -425,7 +429,9 @@ const repariereVerweise = (baum: Baum, meldungen: string[]) => {
 	for (const o of baum.ordner) {
 		if (o.eltern !== null && !index.has(o.eltern)) {
 			if (!o.geloescht) {
-				meldungen.push(`Ordner „${o.name}“ zeigte auf einen unbekannten Ordner und liegt jetzt in „Mein Material“.`);
+				meldungen.push(
+					`Ordner „${o.name}“ zeigte auf einen unbekannten Ordner und liegt jetzt in „Mein Material“.`,
+				);
 			}
 			o.eltern = null;
 			geaendert = true;
@@ -448,7 +454,9 @@ const repariereVerweise = (baum: Baum, meldungen: string[]) => {
 	for (const [schluessel, platz] of Object.entries(baum.dokumente)) {
 		if (platz.ordner !== null && !index.has(platz.ordner)) {
 			if (!platz.geloescht) {
-				meldungen.push(`Dokument „${schluessel}“ zeigte auf einen unbekannten Ordner und liegt jetzt in „Mein Material“.`);
+				meldungen.push(
+					`Dokument „${schluessel}“ zeigte auf einen unbekannten Ordner und liegt jetzt in „Mein Material“.`,
+				);
 			}
 			platz.ordner = null;
 			geaendert = true;
@@ -465,7 +473,7 @@ const entferneVerschwundene = (baum: Baum, bestand: Bestand) => {
 		const { dok, mappe } = zerlegeSchluessel(schluessel);
 		if (!unlesbar.has(mappe) && !auf.get(mappe)?.has(dok)) {
 			// `baum` ist hier schon der eigene Klon: Der Eintrag entfällt, die Datei gibt es ja nicht mehr.
-			// eslint-disable-next-line @typescript-eslint/no-dynamic-delete
+
 			delete baum.dokumente[schluessel];
 			geaendert = true;
 		}
@@ -528,9 +536,18 @@ export interface Umgebung {
 	titel: (mappe: string, dok: string) => string | undefined;
 }
 
-export type Effekt =
-	| { art: 'dokument-titel'; mappe: string; dok: string; titel: string }
-	| { art: 'mappe-titel'; mappe: string; titel: string };
+interface DokumentTitelAenderung {
+	art: 'dokument-titel';
+	mappe: string;
+	dok: string;
+	titel: string;
+}
+interface MappeTitelAenderung {
+	art: 'mappe-titel';
+	mappe: string;
+	titel: string;
+}
+export type Effekt = DokumentTitelAenderung | MappeTitelAenderung;
 
 export interface NamensAenderung {
 	knoten: AblageKnoten;
@@ -720,7 +737,15 @@ const neu = (baum: Baum, a: Extract<Aktion, { art: 'neu' }>, u: Umgebung): Aktio
 	}
 	const umkehrEntfernen: Aktion = { art: 'entfernen', ordner: o.id };
 	if (!a.inhalt?.length) {
-		return { baum, umkehr: [umkehrEntfernen], effekte: [], neu: o.id, knoten: [{ ordner: o.id }], umbenannt: [], loescht: false };
+		return {
+			baum,
+			umkehr: [umkehrEntfernen],
+			effekte: [],
+			neu: o.id,
+			knoten: [{ ordner: o.id }],
+			umbenannt: [],
+			loescht: false,
+		};
 	}
 	const bewegt = bewege(baum, { art: 'bewegen', knoten: a.inhalt, ziel: o.id }, u);
 	return { ...bewegt, umkehr: [...bewegt.umkehr, umkehrEntfernen], neu: o.id, knoten: [{ ordner: o.id }] };
@@ -731,7 +756,10 @@ const umbenenne = (baum: Baum, a: Extract<Aktion, { art: 'umbenennen' }>, u: Umg
 	const name = pruefeName(a.name);
 	const alt = nameVon(baum, a.knoten, u);
 	const ort = ortVon(baum, a.knoten);
-	const lebt = 'ordner' in a.knoten ? lebenderOrdner(baum, a.knoten.ordner) : !dokumentGeloescht(baum, a.knoten.mappe, a.knoten.dok);
+	const lebt =
+		'ordner' in a.knoten
+			? lebenderOrdner(baum, a.knoten.ordner)
+			: !dokumentGeloescht(baum, a.knoten.mappe, a.knoten.dok);
 	const effekte: Effekt[] = [];
 	if (lebt && namenIn(baum, ort, u, new Set([knotenSchluessel(a.knoten)])).some((v) => gleicherName(v, name))) {
 		throw nichtMoeglich(NAME_BELEGT);
@@ -739,7 +767,14 @@ const umbenenne = (baum: Baum, a: Extract<Aktion, { art: 'umbenennen' }>, u: Umg
 	if (name !== alt) {
 		setzeName(baum, a.knoten, name, zeit, effekte);
 	}
-	return { baum, umkehr: [{ art: 'umbenennen', knoten: a.knoten, name: alt }], effekte, knoten: [a.knoten], umbenannt: [], loescht: false };
+	return {
+		baum,
+		umkehr: [{ art: 'umbenennen', knoten: a.knoten, name: alt }],
+		effekte,
+		knoten: [a.knoten],
+		umbenannt: [],
+		loescht: false,
+	};
 };
 
 const inPapierkorb = (baum: Baum, a: Extract<Aktion, { art: 'papierkorb' }>, u: Umgebung): AktionsErgebnis => {
@@ -753,7 +788,14 @@ const inPapierkorb = (baum: Baum, a: Extract<Aktion, { art: 'papierkorb' }>, u: 
 			verlangePlatz(baum, k.mappe, k.dok).geloescht = geloescht;
 		}
 	}
-	return { baum, umkehr: [{ art: 'zuruecklegen', knoten: a.knoten }], effekte: [], knoten: a.knoten, umbenannt: [], loescht: true };
+	return {
+		baum,
+		umkehr: [{ art: 'zuruecklegen', knoten: a.knoten }],
+		effekte: [],
+		knoten: a.knoten,
+		umbenannt: [],
+		loescht: true,
+	};
 };
 
 /**
@@ -853,6 +895,13 @@ export const wendeAktionAn = (vorher: Baum, aktion: Aktion, u: Umgebung): Aktion
 const istText = (w: unknown): w is string => typeof w === 'string';
 const istId = (w: unknown): w is string => istText(w) && ID_REGEX.test(w);
 
+const leseOrdnerId = (roh: unknown) => {
+	if (istText(roh) && ORDNER_ID.test(roh)) {
+		return roh;
+	}
+	throw nichtMoeglich('Ein Objekt der Aktion ist ungültig.');
+};
+
 const leseKnoten = (roh: unknown): AblageKnoten => {
 	const k = (roh ?? {}) as Record<string, unknown>;
 	if (istText(k.ordner) && ORDNER_ID.test(k.ordner)) {
@@ -900,7 +949,7 @@ export const leseAktion = (roh: unknown): Aktion => {
 				eltern: leseZiel(a.eltern ?? null),
 				...(a.name === undefined ? {} : { name: pruefeName(a.name) }),
 				...(a.inhalt === undefined ? {} : { inhalt: leseKnotenListe(a.inhalt) }),
-				...(a.id === undefined ? {} : { id: leseKnoten({ ordner: a.id }) && String(a.id) }),
+				...(a.id === undefined ? {} : { id: leseOrdnerId(a.id) }),
 			};
 		case 'umbenennen':
 			return { art: 'umbenennen', knoten: leseKnoten(a.knoten), name: pruefeName(a.name) };

@@ -91,7 +91,9 @@ describe('Ablage: Übersicht, Vorschau, Papierkorb', () => {
 			}),
 		);
 		const ordner = await ordnerVon(s, mappe);
-		const { umkehr } = await json<{ umkehr: unknown[] }>(await fuehreAus(s, { art: 'papierkorb', knoten: [{ ordner }] }));
+		const { umkehr } = await json<{ umkehr: unknown[] }>(
+			await fuehreAus(s, { art: 'papierkorb', knoten: [{ ordner }] }),
+		);
 
 		assert.equal(existsSync(dir), true);
 		assert.deepEqual((await leseAblage(s)).ordner, []);

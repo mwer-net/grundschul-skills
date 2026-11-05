@@ -7,9 +7,8 @@ import { Knopf, KnopfLink } from '../bausteine/Knopf';
 import type { SymbolName } from '../bausteine/Symbol';
 import { Symbol } from '../bausteine/Symbol';
 import { Zustand } from '../bausteine/Zustand';
-import { useLaden } from '../lib/laden';
-import { anzahl } from '../lib/text';
 import { useInhalt } from '../lib/inhalt';
+import { anzahl } from '../lib/text';
 import { useTitel } from '../lib/titel';
 import type { Zugang } from '../lib/zugang';
 import { dokumentSeite, praesentationAnsicht } from '../lib/zugang';
@@ -24,7 +23,6 @@ import {
 	vollbildMoeglich,
 	wachHaltenMoeglich,
 } from '../praesentation/laufzeit';
-import type { MappenEintrag } from '../typen';
 
 /** So lange bleibt die Steuerleiste nach der letzten Bewegung stehen. */
 const LEISTE_MS = 2000;

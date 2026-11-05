@@ -56,6 +56,9 @@ describe('Sortierung', () => {
 
 	it('zweiter Klick dreht die Richtung; Geändert beginnt mit dem Neuesten', () => {
 		assert.deepEqual(naechsteSortierung({ feld: 'name', auf: true }, 'name'), { feld: 'name', auf: false });
-		assert.deepEqual(naechsteSortierung({ feld: 'name', auf: true }, 'geaendert'), { feld: 'geaendert', auf: false });
+		assert.deepEqual(naechsteSortierung({ feld: 'name', auf: true }, 'geaendert'), {
+			feld: 'geaendert',
+			auf: false,
+		});
 	});
 });

@@ -9,10 +9,9 @@ import { ART_NAME, datum, FACH_NAME, FORMAT_NAME, klasseName } from '../lib/text
 import { vorschauAdresse } from '../lib/zugang';
 import { Baum } from './Baum';
 import { tastenAbschnitte } from './befehle';
-import { objekteText } from './darstellung';
 import { useAblage } from './kontext';
 import { bewegtText } from './meldungen';
-import { WURZEL_NAME, zielGueltig } from './objekte';
+import { elternVon, objekteZahl, WURZEL_NAME, zielGueltig } from './objekte';
 import { pfadText } from './pfad';
 import type { AblageOrdner, Objekt } from './typen';
 
@@ -82,7 +81,11 @@ export const BewegenDialog = ({ objekte, schliessen }: { objekte: Objekt[]; schl
 					<Knopf art="leise" onClick={schliessen}>
 						Abbrechen
 					</Knopf>
-					<Knopf data-hauptaktion disabled={ziel === undefined || gesperrt(ziel)} onClick={() => void bewege()}>
+					<Knopf
+						data-hauptaktion
+						disabled={ziel === undefined || gesperrt(ziel)}
+						onClick={() => void bewege()}
+					>
 						Hierher bewegen
 					</Knopf>
 				</span>
@@ -111,7 +114,7 @@ export const InfoDialog = ({
 	if (!stand) {
 		return null;
 	}
-	const eltern = objekt ? (objekt.istOrdner ? objekt.ordner.eltern : objekt.dok.ordner) : (ordner?.eltern ?? null);
+	const eltern = objekt ? elternVon(objekt) : (ordner?.eltern ?? null);
 	const ort = pfadText(stand, eltern);
 	const anzahl = (id: string | null) =>
 		stand.ordner.filter((o) => o.eltern === id).length + stand.dokumente.filter((d) => d.ordner === id).length;
@@ -138,11 +141,13 @@ export const InfoDialog = ({
 		<Dialog titel={`Informationen: ${ziel?.name ?? WURZEL_NAME}`} schliessen={schliessen}>
 			<dl data-informationen>
 				<Angabe name="Art" wert="Ordner" />
-				<Angabe name="Inhalt" wert={objekteText(anzahl(ziel?.id ?? null)).replace('Ein Objekt', '1 Objekt')} />
+				<Angabe name="Inhalt" wert={objekteZahl(anzahl(ziel?.id ?? null))} />
 				{ziel && <Angabe name="Erstellt" wert={datum(ziel.erstellt)} />}
 				{ziel && <Angabe name="Geändert" wert={datum(ziel.geaendert)} />}
 				{ziel && <Angabe name="Ort" wert={ort} />}
-				{ziel && <Angabe name="Geteilt" wert={stand.geteilt.ordner.includes(ziel.id) ? 'Ja, mit Link' : 'Nein'} />}
+				{ziel && (
+					<Angabe name="Geteilt" wert={stand.geteilt.ordner.includes(ziel.id) ? 'Ja, mit Link' : 'Nein'} />
+				)}
 			</dl>
 		</Dialog>
 	);
@@ -151,16 +156,21 @@ export const InfoDialog = ({
 /** Leertaste: große Vorschau, ←→ wechselt, Esc schließt (das macht der Dialog). */
 export const UebersichtDialog = ({
 	objekte,
-	start,
-	schliessen,
 	oeffne,
+	schliessen,
+	start,
 }: {
 	objekte: Objekt[];
 	start: string | null;
 	schliessen: () => void;
 	oeffne: (o: Objekt) => void;
 }) => {
-	const [stelle, setStelle] = useState(() => Math.max(0, objekte.findIndex((o) => o.schluessel === start)));
+	const [stelle, setStelle] = useState(() =>
+		Math.max(
+			0,
+			objekte.findIndex((o) => o.schluessel === start),
+		),
+	);
 	const objekt = objekte[stelle];
 	useEffect(() => {
 		const taste = (e: KeyboardEvent) => {
@@ -185,7 +195,10 @@ export const UebersichtDialog = ({
 			: null;
 	return (
 		<Dialog titel={objekt.name} breit schliessen={schliessen}>
-			<div className="flex h-[65dvh] items-center justify-center rounded-lg bg-leinwand p-3" data-uebersicht={objekt.schluessel}>
+			<div
+				className="flex h-[65dvh] items-center justify-center rounded-lg bg-leinwand p-3"
+				data-uebersicht={objekt.schluessel}
+			>
 				{bild ? (
 					<img src={bild} alt="" className="h-full max-w-full bg-white object-contain shadow-2" />
 				) : (
@@ -194,7 +207,12 @@ export const UebersichtDialog = ({
 			</div>
 			<div className="flex items-center justify-between gap-2">
 				<span className="flex items-center gap-1">
-					<Knopf art="leise" disabled={stelle === 0} aria-label="Vorheriges" onClick={() => setStelle(stelle - 1)}>
+					<Knopf
+						art="leise"
+						disabled={stelle === 0}
+						aria-label="Vorheriges"
+						onClick={() => setStelle(stelle - 1)}
+					>
 						<Symbol name="links" />
 					</Knopf>
 					<Knopf
@@ -223,7 +241,11 @@ export const TastenDialog = ({ schliessen }: { schliessen: () => void }) => (
 					<h3 className="mb-1 font-medium">{titel}</h3>
 					<ul>
 						{befehle.map((b) => (
-							<li key={b.id} data-taste={b.id} className="flex h-zeile items-center justify-between gap-3">
+							<li
+								key={b.id}
+								data-taste={b.id}
+								className="flex h-zeile items-center justify-between gap-3"
+							>
 								<span className="truncate">{b.titel}</span>
 								<Kuerzel text={b.taste === ' ' ? 'Leertaste' : b.taste} />
 							</li>
@@ -232,7 +254,8 @@ export const TastenDialog = ({ schliessen }: { schliessen: () => void }) => (
 				</section>
 			))}
 		</div>
-		<p className="mt-3 text-leise">Dazu: Pfeile bewegen die Auswahl, ⇧ erweitert. Buchstaben springen zum Namen. Esc hebt auf.</p>
+		<p className="mt-3 text-leise">
+			Dazu: Pfeile bewegen die Auswahl, ⇧ erweitert. Buchstaben springen zum Namen. Esc hebt auf.
+		</p>
 	</Dialog>
 );
-

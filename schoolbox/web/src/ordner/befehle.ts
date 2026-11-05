@@ -21,6 +21,8 @@ export interface Lage {
 	quelle: 'inhalt' | 'baum';
 }
 
+const PDF_TITEL: Partial<Record<MenueArt, string>> = { material: 'PDF', mehrere: 'Als PDF' };
+
 export const lageArt = (objekte: readonly Objekt[]): MenueArt => {
 	const [erstes] = objekte;
 	if (!erstes) {
@@ -61,11 +63,20 @@ export const BEFEHLE: Befehl[] = [
 		id: 'oeffnen',
 		titel: (l) => (l.art === 'material' ? 'Ansehen' : 'Öffnen'),
 		symbol: 'auge',
-		kuerzel: [{ code: 'ArrowDown', wahl: true }, { code: 'ArrowDown', befehl: true }],
+		kuerzel: [
+			{ code: 'ArrowDown', wahl: true },
+			{ code: 'ArrowDown', befehl: true },
+		],
 		wenn: (l) => l.objekte.length === 1,
 		abschnitt: 'Gehe zu',
 	},
-	{ id: 'bearbeiten', titel: 'Bearbeiten', symbol: 'stift', wenn: (l) => Boolean(fertigesDok(l)), abschnitt: 'Ablage' },
+	{
+		id: 'bearbeiten',
+		titel: 'Bearbeiten',
+		symbol: 'stift',
+		wenn: (l) => Boolean(fertigesDok(l)),
+		abschnitt: 'Ablage',
+	},
 	{
 		id: 'praesentieren',
 		titel: 'Präsentieren',
@@ -73,7 +84,13 @@ export const BEFEHLE: Befehl[] = [
 		wenn: (l) => fertigesDok(l)?.meta.format === 'folie',
 		abschnitt: 'Ablage',
 	},
-	{ id: 'neuerTab', titel: 'In neuem Tab öffnen', symbol: 'neuerTab', wenn: (l) => l.objekte.length === 1, abschnitt: 'Gehe zu' },
+	{
+		id: 'neuerTab',
+		titel: 'In neuem Tab öffnen',
+		symbol: 'neuerTab',
+		wenn: (l) => l.objekte.length === 1,
+		abschnitt: 'Gehe zu',
+	},
 	{
 		id: 'imOrdnerZeigen',
 		titel: 'Im Ordner zeigen',
@@ -84,14 +101,20 @@ export const BEFEHLE: Befehl[] = [
 	{
 		id: 'hoch',
 		titel: 'Übergeordneter Ordner',
-		kuerzel: [{ code: 'ArrowUp', wahl: true }, { code: 'ArrowUp', befehl: true }],
+		kuerzel: [
+			{ code: 'ArrowUp', wahl: true },
+			{ code: 'ArrowUp', befehl: true },
+		],
 		abschnitt: 'Gehe zu',
 	},
 	{
 		id: 'neuerOrdner',
 		titel: 'Neuer Ordner',
 		symbol: 'ordnerNeu',
-		kuerzel: [{ code: 'KeyN', wahl: true }, { code: 'KeyN', befehl: true, umschalt: true }],
+		kuerzel: [
+			{ code: 'KeyN', wahl: true },
+			{ code: 'KeyN', befehl: true, umschalt: true },
+		],
 		wenn: (l) => !l.fremd,
 		abschnitt: 'Ablage',
 	},
@@ -101,7 +124,7 @@ export const BEFEHLE: Befehl[] = [
 	{ id: 'materialHier', titel: 'Material hier anlegen', symbol: 'plus', abschnitt: 'Ablage' },
 	{
 		id: 'pdf',
-		titel: (l) => (l.art === 'material' ? 'PDF' : l.art === 'mehrere' ? 'Als PDF' : 'Alles als PDF'),
+		titel: (l) => PDF_TITEL[l.art] ?? 'Alles als PDF',
 		symbol: 'herunterladen',
 		wenn: (l) => l.art !== 'material' || Boolean(fertigesDok(l)),
 		abschnitt: 'Ablage',
@@ -113,8 +136,20 @@ export const BEFEHLE: Befehl[] = [
 		wenn: (l) => l.objekte.length === 1 || (l.art === 'leer' && l.ort !== null && !l.fremd),
 		abschnitt: 'Ablage',
 	},
-	{ id: 'alsVorlage', titel: 'Als Vorlage speichern', symbol: 'blatt', wenn: (l) => Boolean(fertigesDok(l)), abschnitt: 'Ablage' },
-	{ id: 'variante', titel: 'Variante anlegen', symbol: 'variante', wenn: (l) => Boolean(fertigesDok(l)), abschnitt: 'Ablage' },
+	{
+		id: 'alsVorlage',
+		titel: 'Als Vorlage speichern',
+		symbol: 'blatt',
+		wenn: (l) => Boolean(fertigesDok(l)),
+		abschnitt: 'Ablage',
+	},
+	{
+		id: 'variante',
+		titel: 'Variante anlegen',
+		symbol: 'variante',
+		wenn: (l) => Boolean(fertigesDok(l)),
+		abschnitt: 'Ablage',
+	},
 	{
 		id: 'entwuerfe',
 		titel: 'Entwürfe vergleichen',
@@ -122,17 +157,41 @@ export const BEFEHLE: Befehl[] = [
 		wenn: (l) => (einDok(l)?.meta.entwuerfe.length ?? 0) > 0,
 		abschnitt: 'Ablage',
 	},
-	{ id: 'umbenennen', titel: 'Umbenennen', symbol: 'stift', kuerzel: [{ key: 'Enter' }], wenn: (l) => l.objekte.length === 1, abschnitt: 'Ablage' },
+	{
+		id: 'umbenennen',
+		titel: 'Umbenennen',
+		symbol: 'stift',
+		kuerzel: [{ key: 'Enter' }],
+		wenn: (l) => l.objekte.length === 1,
+		abschnitt: 'Ablage',
+	},
 	{
 		id: 'duplizieren',
 		titel: 'Duplizieren',
 		symbol: 'kopieren',
-		kuerzel: [{ code: 'KeyD', wahl: true }, { code: 'KeyD', befehl: true }],
+		kuerzel: [
+			{ code: 'KeyD', wahl: true },
+			{ code: 'KeyD', befehl: true },
+		],
 		wenn: belegt,
 		abschnitt: 'Ablage',
 	},
-	{ id: 'ausschneiden', titel: 'Ausschneiden', symbol: 'ausschneiden', kuerzel: [{ code: 'KeyX', befehl: true }], wenn: belegt, abschnitt: 'Ablage' },
-	{ id: 'kopieren', titel: 'Kopieren', symbol: 'kopieren', kuerzel: [{ code: 'KeyC', befehl: true }], wenn: belegt, abschnitt: 'Ablage' },
+	{
+		id: 'ausschneiden',
+		titel: 'Ausschneiden',
+		symbol: 'ausschneiden',
+		kuerzel: [{ code: 'KeyX', befehl: true }],
+		wenn: belegt,
+		abschnitt: 'Ablage',
+	},
+	{
+		id: 'kopieren',
+		titel: 'Kopieren',
+		symbol: 'kopieren',
+		kuerzel: [{ code: 'KeyC', befehl: true }],
+		wenn: belegt,
+		abschnitt: 'Ablage',
+	},
 	{ id: 'bewegenNach', titel: 'Bewegen nach …', symbol: 'bewegen', wenn: belegt, abschnitt: 'Ablage' },
 	{
 		id: 'einfuegen',
@@ -149,12 +208,22 @@ export const BEFEHLE: Befehl[] = [
 		wenn: (l) => l.merkzettel !== null && !l.fremd,
 		abschnitt: 'Ablage',
 	},
-	{ id: 'uebersicht', titel: 'Übersicht', symbol: 'auge', kuerzel: [{ key: ' ' }], wenn: belegt, abschnitt: 'Ansicht' },
+	{
+		id: 'uebersicht',
+		titel: 'Übersicht',
+		symbol: 'auge',
+		kuerzel: [{ key: ' ' }],
+		wenn: belegt,
+		abschnitt: 'Ansicht',
+	},
 	{
 		id: 'informationen',
 		titel: 'Informationen',
 		symbol: 'info',
-		kuerzel: [{ code: 'KeyI', wahl: true }, { code: 'KeyI', befehl: true }],
+		kuerzel: [
+			{ code: 'KeyI', wahl: true },
+			{ code: 'KeyI', befehl: true },
+		],
 		wenn: (l) => l.objekte.length <= 1 && !(l.fremd && l.objekte.length === 0),
 		abschnitt: 'Ansicht',
 	},
@@ -169,12 +238,47 @@ export const BEFEHLE: Befehl[] = [
 	},
 	{ id: 'darstellung', titel: 'Darstellung', abschnitt: 'Ansicht' },
 	{ id: 'sortieren', titel: 'Sortieren', symbol: 'sortieren', wenn: (l) => !l.fremd, abschnitt: 'Ansicht' },
-	{ id: 'allesWaehlen', titel: 'Alles auswählen', symbol: 'auswaehlen', kuerzel: [{ code: 'KeyA', befehl: true }], abschnitt: 'Auswahl' },
-	{ id: 'kacheln', titel: 'Als Kacheln', kuerzel: [{ code: 'Digit1', wahl: true }, { code: 'Digit1', befehl: true }], abschnitt: 'Ansicht' },
-	{ id: 'liste', titel: 'Als Liste', kuerzel: [{ code: 'Digit2', wahl: true }, { code: 'Digit2', befehl: true }], abschnitt: 'Ansicht' },
-	{ id: 'seitenleiste', titel: 'Seitenleiste ein oder aus', kuerzel: [{ code: 'KeyS', wahl: true }, { code: 'KeyS', befehl: true, wahl: true }], abschnitt: 'Ansicht' },
+	{
+		id: 'allesWaehlen',
+		titel: 'Alles auswählen',
+		symbol: 'auswaehlen',
+		kuerzel: [{ code: 'KeyA', befehl: true }],
+		abschnitt: 'Auswahl',
+	},
+	{
+		id: 'kacheln',
+		titel: 'Als Kacheln',
+		kuerzel: [
+			{ code: 'Digit1', wahl: true },
+			{ code: 'Digit1', befehl: true },
+		],
+		abschnitt: 'Ansicht',
+	},
+	{
+		id: 'liste',
+		titel: 'Als Liste',
+		kuerzel: [
+			{ code: 'Digit2', wahl: true },
+			{ code: 'Digit2', befehl: true },
+		],
+		abschnitt: 'Ansicht',
+	},
+	{
+		id: 'seitenleiste',
+		titel: 'Seitenleiste ein oder aus',
+		kuerzel: [
+			{ code: 'KeyS', wahl: true },
+			{ code: 'KeyS', befehl: true, wahl: true },
+		],
+		abschnitt: 'Ansicht',
+	},
 	{ id: 'rueckgaengig', titel: 'Rückgängig', kuerzel: [{ code: 'KeyZ', befehl: true }], abschnitt: 'Ablage' },
-	{ id: 'wiederholen', titel: 'Wiederholen', kuerzel: [{ code: 'KeyZ', befehl: true, umschalt: true }], abschnitt: 'Ablage' },
+	{
+		id: 'wiederholen',
+		titel: 'Wiederholen',
+		kuerzel: [{ code: 'KeyZ', befehl: true, umschalt: true }],
+		abschnitt: 'Ablage',
+	},
 	{ id: 'suchen', titel: 'Suchen', kuerzel: [{ code: 'KeyF', befehl: true }], abschnitt: 'Gehe zu' },
 	{ id: 'tasten', titel: 'Tasten zeigen', kuerzel: [{ key: '?' }], abschnitt: 'Ansicht' },
 ];
@@ -197,12 +301,7 @@ export const MENUE: Record<MenueArt, string[][]> = {
 		['informationen'],
 		['papierkorb'],
 	],
-	mehrere: [
-		['mitAuswahl'],
-		['pdf'],
-		['duplizieren', 'ausschneiden', 'kopieren', 'bewegenNach'],
-		['papierkorb'],
-	],
+	mehrere: [['mitAuswahl'], ['pdf'], ['duplizieren', 'ausschneiden', 'kopieren', 'bewegenNach'], ['papierkorb']],
 	leer: [
 		['neuerOrdner', 'materialAnlegen', 'einfuegen'],
 		['darstellung', 'sortieren', 'allesWaehlen'],
@@ -259,12 +358,19 @@ export const befehlZuTaste = (e: KeyboardEvent, l: Lage) =>
 	BEFEHLE.find((b) => b.kuerzel?.some((k) => passtTaste(k, e)) && verfuegbar(b, l));
 
 /** Für die Tastenliste. Sie liest das Register, damit dort nichts Falsches steht. */
+const tastenTitel = (b: Befehl) => {
+	if (typeof b.titel === 'string') {
+		return b.titel;
+	}
+	return b.id === 'oeffnen' ? 'Öffnen' : b.id;
+};
+
 export const tastenAbschnitte = () =>
 	(['Ablage', 'Auswahl', 'Ansicht', 'Gehe zu'] as const).map((titel) => ({
 		titel,
 		befehle: BEFEHLE.filter((b) => b.abschnitt === titel && (b.kuerzel?.length ?? 0) > 0).map((b) => ({
 			id: b.id,
-			titel: typeof b.titel === 'string' ? b.titel : b.id === 'oeffnen' ? 'Öffnen' : b.id,
+			titel: tastenTitel(b),
 			taste: kuerzelText((b.kuerzel as [Kuerzel])[0]),
 		})),
 	}));

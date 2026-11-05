@@ -4,7 +4,7 @@ import path from 'node:path';
 
 import { aktualisiereMappe, dokumentDir, dupliziereMappe, leseMappe, mappenDir, sammleMappen } from './ablage';
 import { SchoolboxFehler } from './fehler';
-import type { AktionsErgebnis, Baum, Bestand, Effekt, Faellig, AblageKnoten, Umgebung } from './ordner';
+import type { AblageKnoten, AktionsErgebnis, Baum, Bestand, Effekt, Faellig, Umgebung } from './ordner';
 import {
 	entferneAusBaum,
 	faelligImPapierkorb,
@@ -256,4 +256,3 @@ export const loescheFaelligeAusBaum = async (
 	}
 	return { baum, faellig: wirklich, mappen };
 };
-

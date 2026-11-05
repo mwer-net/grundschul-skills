@@ -19,7 +19,9 @@ type Speicher = Pick<Storage, 'getItem' | 'setItem'>;
 
 export const leseSortierung = (ordner: AblageOrdner | null, speicher: Speicher = localStorage): Sortierung => {
 	try {
-		const roh = JSON.parse(speicher.getItem(`${SORTIERUNG}${ordner?.id ?? WURZEL}`) ?? 'null') as Partial<Sortierung> | null;
+		const roh = JSON.parse(
+			speicher.getItem(`${SORTIERUNG}${ordner?.id ?? WURZEL}`) ?? 'null',
+		) as Partial<Sortierung> | null;
 		if (roh && FELDER.includes(roh.feld as SortierFeld) && typeof roh.auf === 'boolean') {
 			return { feld: roh.feld as SortierFeld, auf: roh.auf };
 		}

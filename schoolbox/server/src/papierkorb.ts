@@ -42,12 +42,22 @@ const objekteImBaum = async (materialDir: string, baum: Baum): Promise<Papierkor
 	const anzahl = (id: string) => {
 		const unter = new Set(ordnerUnter(baum, id));
 		const ordner = unter.size - 1;
-		const doks = Object.values(baum.dokumente).filter((p) => p.ordner && unter.has(p.ordner) && !p.geloescht).length;
+		const doks = Object.values(baum.dokumente).filter(
+			(p) => p.ordner && unter.has(p.ordner) && !p.geloescht,
+		).length;
 		return ordner + doks;
 	};
 	const ordner: PapierkorbObjekt[] = baum.ordner.flatMap((o) =>
 		o.geloescht
-			? [{ knoten: { ordner: o.id }, name: o.name, geloescht: o.geloescht, bis: bisDatum(o.geloescht), objekte: anzahl(o.id) }]
+			? [
+					{
+						knoten: { ordner: o.id },
+						name: o.name,
+						geloescht: o.geloescht,
+						bis: bisDatum(o.geloescht),
+						objekte: anzahl(o.id),
+					},
+				]
 			: [],
 	);
 	const dokumente: PapierkorbObjekt[] = Object.entries(baum.dokumente).flatMap(([schluessel, p]) => {

@@ -236,11 +236,20 @@ export const erstellePdf = ({
 		const mitLoesungen = variante === 'alles-mit-loesungen';
 		const teile = await Promise.all(
 			auswahl.map(async ({ dok, mappe }) => {
-				const [meta, behaelter] = await Promise.all([leseMeta(materialDir, mappe, dok), leseMappe(materialDir, mappe)]);
+				const [meta, behaelter] = await Promise.all([
+					leseMeta(materialDir, mappe, dok),
+					leseMappe(materialDir, mappe),
+				]);
 				return sperre(pdfSperre(mappe, dok), async () => {
 					const gebaut = await stelleSicher(mappe, dok, profil);
 					const fehler = await leseFehler(gebaut.ausgabe, mitLoesungen);
-					return { dok, mappe, behaelter, ...gebaut, meldungen: mitTitel(dok, meta.titel, fehler).map((m) => ({ ...m, mappe })) };
+					return {
+						dok,
+						mappe,
+						behaelter,
+						...gebaut,
+						meldungen: mitTitel(dok, meta.titel, fehler).map((m) => ({ ...m, mappe })),
+					};
 				});
 			}),
 		);
@@ -265,7 +274,10 @@ export const erstellePdf = ({
 		});
 		const [erste] = teile;
 		const gleich =
-			erste && teile.every((t) => t.behaelter.fach === erste.behaelter.fach && t.behaelter.klasse === erste.behaelter.klasse);
+			erste &&
+			teile.every(
+				(t) => t.behaelter.fach === erste.behaelter.fach && t.behaelter.klasse === erste.behaelter.klasse,
+			);
 		return {
 			datei,
 			schluessel,

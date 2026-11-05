@@ -80,7 +80,10 @@ export const NamensFeld = ({ className, objekt }: Eigenschaften) => {
 				}}
 			/>
 			{fehler && (
-				<span role="alert" className="absolute top-full left-0 z-menue mt-1 w-max max-w-60 rounded-md border border-rand bg-flaeche px-2 py-1 text-xs text-fehler shadow-2">
+				<span
+					role="alert"
+					className="absolute top-full left-0 z-menue mt-1 w-max max-w-60 rounded-md border border-rand bg-flaeche px-2 py-1 text-xs text-fehler shadow-2"
+				>
 					{fehler}
 				</span>
 			)}

@@ -1,7 +1,6 @@
 import { ART_NAME, FACH_NAME } from '@schoolbox/kern/src/namen';
 import type { Art, Fach, Format, Klasse } from '@schoolbox/kern/src/werte';
 
-
 export type { Art, Fach, Format, Klasse };
 export { ART_NAME, FACH_NAME };
 

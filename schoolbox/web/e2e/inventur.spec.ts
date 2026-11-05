@@ -30,7 +30,7 @@ const offenesBlatt = async (page: Page) => {
 
 test.describe('Inventur Editor', () => {
 	test('Kopf: Zurück, Titel, Stand, Rückgängig, Ansichten, Claude, Versionen, Vorlage, PDF', async ({ page }) => {
-		const { id } = await offenesBlatt(page);
+		await offenesBlatt(page);
 		await expect(kopf(page).getByRole('heading', { level: 1 })).toContainText('Wie spät ist es?');
 		await expect(page.locator('[data-speicherstand="gespeichert"]')).toBeVisible();
 		await expect(kopf(page).getByRole('button', { name: 'Rückgängig' })).toBeVisible();
@@ -193,10 +193,10 @@ test.describe('Inventur außerhalb des Editors', () => {
 		await legeMappeAn('Größen', 'mathematik', 4, [{ titel: 'Meterstab', art: 'lernspiel' }]);
 		await page.goto('/');
 		await expect(page.getByPlaceholder('Material und Ordner suchen')).toBeVisible();
-		const leiste = page.locator('[data-werkzeugleiste]');
-		await expect(leiste.getByRole('button', { name: 'Filter' })).toBeVisible();
-		await expect(leiste.getByRole('button', { name: 'Neuer Ordner' })).toBeVisible();
-		await expect(leiste.getByRole('button', { name: 'Material anlegen' })).toBeVisible();
+		const werkzeug = page.locator('[data-werkzeugleiste]');
+		await expect(werkzeug.getByRole('button', { name: 'Filter' })).toBeVisible();
+		await expect(werkzeug.getByRole('button', { name: 'Neuer Ordner' })).toBeVisible();
+		await expect(werkzeug.getByRole('button', { name: 'Material anlegen' })).toBeVisible();
 		await expect(page.getByRole('link', { name: 'Hilfe' })).toBeVisible();
 		await expect(page.locator('[data-ablage-ziel="papierkorb"]')).toBeVisible();
 		await druecke(page.locator('[data-kopf-rechts]').getByRole('button', { name: 'Konto' }));
@@ -236,10 +236,10 @@ test.describe('Inventur außerhalb des Editors', () => {
 			{ titel: 'Teile der Kartoffel' },
 		]);
 		await page.goto(`/m/${id}`);
-		const leiste = page.locator('[data-werkzeugleiste]');
+		const werkzeug = page.locator('[data-werkzeugleiste]');
 		await waehleObjekt(page, 'Teile der Kartoffel');
-		await expect(leiste.getByRole('button', { name: 'Bearbeiten' })).toBeVisible();
-		await expect(leiste.getByRole('button', { name: 'PDF' })).toBeVisible();
+		await expect(werkzeug.getByRole('button', { name: 'Bearbeiten' })).toBeVisible();
+		await expect(werkzeug.getByRole('button', { name: 'PDF' })).toBeVisible();
 		if (test.info().project.use.hasTouch) {
 			await druecke(page.locator('[data-auswaehlen]'));
 		} else {

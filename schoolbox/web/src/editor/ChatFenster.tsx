@@ -14,6 +14,7 @@ import { Menue } from '../bausteine/Menue';
 import { Symbol } from '../bausteine/Symbol';
 import { SymbolKnopf } from '../bausteine/SymbolKnopf';
 import { klasseName } from '../lib/text';
+import { useAblage } from '../ordner/kontext';
 import type { ChatFensterZustand, ChatKontext, ChatLauf } from './chat-kontext';
 import type { ChatNachricht } from './chat-verlauf';
 import { liesVerlauf, schreibeVerlauf, verlaufFuerServer, verlaufSchluessel } from './chat-verlauf';
@@ -22,7 +23,6 @@ import type { KiAuftrag, useKiZustand, Vorschlag } from './ki';
 import { limitHinweis, useKiAuftrag } from './ki';
 import { TEXTWERKZEUG } from './text';
 import type { NeuMaterial, NeuStand } from './useNeuMaterial';
-import { useAblage } from '../ordner/kontext';
 import { Vergleich } from './Vergleich';
 
 const NEU_ENTWURF = 'neu-entwurf';
@@ -790,6 +790,19 @@ const eingabeWerte = ({
 	};
 };
 
+const useChatOrt = (kontext: ChatKontext, mappe: string | null | undefined, dok: string | null | undefined) => {
+	const { stand: ablage } = useAblage();
+	const ordner =
+		kontext.art === 'neu'
+			? (kontext.ordner ?? null)
+			: (ablage?.dokumente.find((d) => d.mappe === mappe && d.id === dok)?.ordner ?? null);
+	const schluessel = verlaufSchluessel(
+		kontext.art === 'neu' ? (ordner ?? undefined) : (mappe ?? undefined),
+		dok ?? undefined,
+	);
+	return { ordner, schluessel };
+};
+
 export const ChatInhalt = ({
 	entwurf,
 	fenster,
@@ -814,12 +827,7 @@ export const ChatInhalt = ({
 	const auftragKi = useKiAuftrag(mappe, dok, kiStatus.neu, kiAuftrag);
 	const { zustand } = kiStatus;
 	const lage = useLage(anker);
-	const { stand: ablage } = useAblage();
-	const ordner =
-		kontext.art === 'neu'
-			? (kontext.ordner ?? null)
-			: (ablage?.dokumente.find((d) => d.mappe === mappe && d.id === dok)?.ordner ?? null);
-	const schluessel = verlaufSchluessel(kontext.art === 'neu' ? (ordner ?? undefined) : (mappe ?? undefined), dok ?? undefined);
+	const { ordner, schluessel } = useChatOrt(kontext, mappe, dok);
 	const [verlauf, setVerlauf] = useVerlauf(schluessel);
 	const [vergleich, setVergleich] = useState(false);
 	const [ungelesen, setUngelesen] = useState(false);

@@ -22,11 +22,15 @@ export const Ordnerleiste = ({ gehe, klappe, kontext, offen, seite, stand }: Eig
 	<nav
 		aria-label="Ablage"
 		data-ordnerleiste
-		data-seitenleiste className="sticky top-[var(--kopf,0px)] flex h-[calc(100dvh-var(--kopf,0px)-var(--chat-platz,0px))] w-[220px] flex-none flex-col gap-1 border-r border-rand bg-flaeche p-1.5"
+		data-seitenleiste
+		className="sticky top-[var(--kopf,0px)] flex h-[calc(100dvh-var(--kopf,0px)-var(--chat-platz,0px))] w-[220px] flex-none flex-col gap-1 border-r border-rand bg-flaeche p-1.5"
 	>
 		<button
 			type="button"
-			className={klassen(FESTE_ZEILE, seite.art === 'zuletzt' ? 'bg-brand-100 font-medium' : 'hover:bg-flaeche-2')}
+			className={klassen(
+				FESTE_ZEILE,
+				seite.art === 'zuletzt' ? 'bg-brand-100 font-medium' : 'hover:bg-flaeche-2',
+			)}
 			onClick={() => gehe('/zuletzt')}
 		>
 			<Symbol name="uhr" className="size-3.5 flex-none text-leise" />
@@ -45,7 +49,10 @@ export const Ordnerleiste = ({ gehe, klappe, kontext, offen, seite, stand }: Eig
 		<button
 			type="button"
 			data-ablage-ziel="papierkorb"
-			className={klassen(FESTE_ZEILE, seite.art === 'papierkorb' ? 'bg-brand-100 font-medium' : 'hover:bg-flaeche-2')}
+			className={klassen(
+				FESTE_ZEILE,
+				seite.art === 'papierkorb' ? 'bg-brand-100 font-medium' : 'hover:bg-flaeche-2',
+			)}
 			onClick={() => gehe('/papierkorb')}
 		>
 			<Symbol name="papierkorb" className="size-3.5 flex-none text-leise" />

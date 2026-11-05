@@ -32,11 +32,7 @@ export interface OrdnerSpeicher {
 	aendere: <T>(arbeit: (baum: Baum) => Promise<Aenderung<T>>) => Promise<T>;
 }
 
-export const erstelleOrdnerSpeicher = (
-	materialDir: string,
-	sperre: Sperre,
-	ereignisse: Ereignisse,
-): OrdnerSpeicher => {
+export const erstelleOrdnerSpeicher = (materialDir: string, sperre: Sperre, ereignisse: Ereignisse): OrdnerSpeicher => {
 	let geladen = false;
 	let aktuell: Baum | null = null;
 	let hinweis: string | undefined;

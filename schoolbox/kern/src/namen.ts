@@ -122,7 +122,9 @@ export const sammlungPdfDateiname = (
 ) => {
 	const zusatz = variante === 'alles' ? 'Alles' : 'Alles mit Lösungen';
 	return mitProfil(
-		gemeinsam ? dateiname(gemeinsam.fach, gemeinsam.klasse, name, zusatz) : `${sauber(name) || 'Material'} – ${zusatz}.pdf`,
+		gemeinsam
+			? dateiname(gemeinsam.fach, gemeinsam.klasse, name, zusatz)
+			: `${sauber(name) || 'Material'} – ${zusatz}.pdf`,
 		profil,
 	);
 };

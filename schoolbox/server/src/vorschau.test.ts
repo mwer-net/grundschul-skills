@@ -8,7 +8,16 @@ import { baueVorschau, neuesDokument, VORSCHAU_DATEI } from '@schoolbox/kern';
 import { BROWSER_HINWEIS, browserFehlt } from '@schoolbox/kern/src/browsertest';
 
 import type { TestServer } from './testhilfe';
-import { fuehreAus, legeDokumentAn, leseAblage, ordnerVon, sammleEreignisse, schreibKoepfe, starteTestServer, warte } from './testhilfe';
+import {
+	fuehreAus,
+	legeDokumentAn,
+	leseAblage,
+	ordnerVon,
+	sammleEreignisse,
+	schreibKoepfe,
+	starteTestServer,
+	warte,
+} from './testhilfe';
 
 const PNG_KOPF = Buffer.from([0x89, 0x50, 0x4e, 0x47]);
 

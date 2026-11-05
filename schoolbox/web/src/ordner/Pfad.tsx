@@ -56,7 +56,11 @@ export const Pfad = ({ gehe, pfad }: Eigenschaften) => {
 						beschriftung="…"
 						art="leise"
 						groesse="klein"
-						eintraege={mitte.map((o) => ({ titel: o.name, symbol: 'ordner' as const, waehle: () => gehe(adresse(o.id)) }))}
+						eintraege={mitte.map((o) => ({
+							titel: o.name,
+							symbol: 'ordner' as const,
+							waehle: () => gehe(adresse(o.id)),
+						}))}
 					/>
 				</>
 			)}

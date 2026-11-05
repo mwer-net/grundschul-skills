@@ -8,11 +8,15 @@ import { useLaden } from '../lib/laden';
 import { datum } from '../lib/text';
 import type { DokumentEintrag, Freigabe, Mappe } from '../typen';
 
-type Eigenschaften = { schliessen: () => void } & (
-	| { mappe: Pick<Mappe, 'id' | 'titel'>; dokument: Pick<DokumentEintrag, 'id' | 'meta'> }
-	/** Ein Ordner-Link zeigt, was jetzt darin liegt, mit Unterordnern (079). */
-	| { ordner: { id: string; name: string } }
-);
+interface DokumentZiel {
+	mappe: Pick<Mappe, 'id' | 'titel'>;
+	dokument: Pick<DokumentEintrag, 'id' | 'meta'>;
+}
+/** Ein Ordner-Link zeigt, was jetzt darin liegt, mit Unterordnern (079). */
+interface OrdnerZiel {
+	ordner: { id: string; name: string };
+}
+type Eigenschaften = { schliessen: () => void } & (DokumentZiel | OrdnerZiel);
 
 const adresse = ({ pfad, url }: Freigabe) => url ?? `${window.location.origin}${pfad}`;
 const kannSenden = typeof navigator.share === 'function';

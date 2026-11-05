@@ -1,7 +1,16 @@
 import { sortiereObjekte, standardSortierung } from '@schoolbox/kern/src/ordner-sortierung';
 
-import { ART_NAME, falte, FACH_NAME, klasseName } from '../lib/text';
-import type { AblageDok, AblageOrdner, AblageStand, DokObjekt, Knoten, Objekt, OrdnerObjekt, Sortierung } from './typen';
+import { anzahl, ART_NAME, FACH_NAME, falte, klasseName } from '../lib/text';
+import type {
+	AblageDok,
+	AblageOrdner,
+	AblageStand,
+	DokObjekt,
+	Knoten,
+	Objekt,
+	OrdnerObjekt,
+	Sortierung,
+} from './typen';
 
 export const WURZEL_NAME = 'Mein Material';
 export const ZULETZT_ANZAHL = 50;
@@ -72,7 +81,7 @@ export const kinder = (stand: AblageStand, id: string | null, sortierung: Sortie
 /** Alle Nachkommen: Ein Ordner kann nicht in sich selbst, und nicht in etwas, das in ihm liegt. */
 export const nachkommen = (stand: AblageStand, id: string) => {
 	const alle = new Set([id]);
-	for (let neu = true; neu; ) {
+	for (let neu = true; neu;) {
 		neu = false;
 		for (const o of stand.ordner) {
 			if (o.eltern !== null && alle.has(o.eltern) && !alle.has(o.id)) {
@@ -205,3 +214,7 @@ export const erwarteterStand = (stand: AblageStand, aktion: { art: string } & Re
 			return stand;
 	}
 };
+
+export const objekteText = (n: number) => anzahl(n, 'Objekt', 'Objekte');
+/** Für Zahlen in Spalten und Zeilen: „1 Objekt“ statt „Ein Objekt“. */
+export const objekteZahl = (n: number) => objekteText(n).replace('Ein Objekt', '1 Objekt');

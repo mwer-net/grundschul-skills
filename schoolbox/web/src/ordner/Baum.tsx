@@ -41,7 +41,19 @@ interface ZeileEigenschaften {
 	kontext?: (e: MouseEvent) => void;
 }
 
-const BaumZeile = ({ aktiv, aus, dreieck, geteilt, id, kontext, klappe, name, symbol, tiefe, waehle }: ZeileEigenschaften) => (
+const BaumZeile = ({
+	aktiv,
+	aus,
+	dreieck,
+	geteilt,
+	id,
+	klappe,
+	kontext,
+	name,
+	symbol,
+	tiefe,
+	waehle,
+}: ZeileEigenschaften) => (
 	<div
 		role="treeitem"
 		aria-selected={aktiv}
@@ -95,7 +107,24 @@ const BaumZeile = ({ aktiv, aus, dreieck, geteilt, id, kontext, klappe, name, sy
 );
 
 /** Der ganze Ordnerbaum: in der Seitenleiste und im Dialog „Bewegen nach …“. */
-export const Baum = ({ aktuell, benennWo = 'baum', gesperrt, klappe, kontext, offen, stand, waehle, wurzelGesperrt }: Eigenschaften) => {
+const dreieckVon = (unter: boolean, auf: boolean) => {
+	if (!unter) {
+		return null;
+	}
+	return auf ? 'auf' : 'zu';
+};
+
+export const Baum = ({
+	aktuell,
+	benennWo = 'baum',
+	gesperrt,
+	klappe,
+	kontext,
+	offen,
+	stand,
+	waehle,
+	wurzelGesperrt,
+}: Eigenschaften) => {
 	const { benennen } = useAblage();
 	const kinderVon = useMemo(() => {
 		const karte = new Map<string | null, AblageOrdner[]>();
@@ -122,7 +151,7 @@ export const Baum = ({ aktuell, benennWo = 'baum', gesperrt, klappe, kontext, of
 						aktiv={aktuell === o.id}
 						aus={gesperrt?.(o.id) ?? false}
 						geteilt={stand.geteilt.ordner.includes(o.id)}
-						dreieck={unter ? (auf ? 'auf' : 'zu') : null}
+						dreieck={dreieckVon(unter, auf)}
 						symbol="ordner"
 						klappe={(alles) => klappe(o.id, alles)}
 						waehle={() => waehle(o.id)}

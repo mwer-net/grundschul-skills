@@ -51,7 +51,10 @@ describe('Anlegen ohne Claude (045, 079) und Katalog (044)', () => {
 		const ohne = await lege(s, { ...gut, ordner });
 		assert.equal(ohne.status, 400);
 		assert.match(((await ohne.json()) as { fehler: string }).fehler, /Fach und Klasse/);
-		assert.deepEqual((await readdir(s.materialDir)).filter((n) => !n.startsWith('_')), vorher.filter((n) => !n.startsWith('_')));
+		assert.deepEqual(
+			(await readdir(s.materialDir)).filter((n) => !n.startsWith('_')),
+			vorher.filter((n) => !n.startsWith('_')),
+		);
 
 		const a = await lege(s, { ...gut, ordner, fach: 'mathematik', klasse: 3 });
 		assert.equal(a.status, 201);
@@ -97,7 +100,11 @@ describe('Anlegen ohne Claude (045, 079) und Katalog (044)', () => {
 		assert.equal((await lege(s, { ...hier, ordner: 'o-gibtesnicht' })).status, 404);
 		assert.equal(existsSync(path.join(s.materialDir, mappe, 'dokumente', 'b')), false);
 		const anderer = await neuerOrdner(s, 'Anderer');
-		assert.equal((await lege(s, { ...gut, ordner: anderer, fach: 'mathematik', klasse: 2 })).status, 201, 'gleicher Titel, anderer Ordner');
+		assert.equal(
+			(await lege(s, { ...gut, ordner: anderer, fach: 'mathematik', klasse: 2 })).status,
+			201,
+			'gleicher Titel, anderer Ordner',
+		);
 	});
 
 	it('Zusatzbausteine landen im Material', async () => {

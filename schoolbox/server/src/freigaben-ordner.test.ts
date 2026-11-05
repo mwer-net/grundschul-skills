@@ -218,6 +218,6 @@ describe('Teilen: Ordner-Links', () => {
 		const { neu, server, teile } = await lauf();
 		const f = await teile({ ordner: await neu('Leer') });
 		const { mappe } = await neueMappe(server.materialDir, { titel: 'Heimlich', fach: 'deutsch', klasse: 1 });
-		assert.equal((await fetch(`${f}/ansicht/${mappe}/mappe.json`)).status, 404);
+		assert.equal((await fetch(`${f}/ansicht/${mappe.id}/mappe.json`)).status, 404);
 	});
 });

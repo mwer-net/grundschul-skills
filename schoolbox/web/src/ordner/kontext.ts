@@ -1,6 +1,6 @@
 import { createContext, useContext } from 'react';
 
-import type { Knoten, Aktion, AktionsAntwort, AblageStand } from './typen';
+import type { AblageStand, Aktion, AktionsAntwort, Knoten } from './typen';
 
 export interface Merkzettel {
 	modus: 'ausschneiden' | 'kopieren';

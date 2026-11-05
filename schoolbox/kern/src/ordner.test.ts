@@ -5,22 +5,14 @@ import { tmpdir } from 'node:os';
 import path from 'node:path';
 import { describe, it } from 'node:test';
 
-import {
-	dokumentDir,
-	leseMappe,
-	leseMappenEintrag,
-	mappenDir,
-	neueMappe,
-	neuesDokument,
-	sammleMappen,
-} from './ablage';
+import { dokumentDir, leseMappe, leseMappenEintrag, mappenDir, neueMappe, neuesDokument, sammleMappen } from './ablage';
 import { FREIGABEN_SCHEMA, legeFreigabeAn, leseFreigaben } from './freigaben';
-import { richteKurzanleitungEin, HILFE_MAPPE, KURZANLEITUNG } from './kurzanleitung';
+import { HILFE_MAPPE, KURZANLEITUNG, richteKurzanleitungEin } from './kurzanleitung';
 import type { AblageKnoten, Aktion, Baum, Bestand, Umgebung } from './ordner';
 import {
 	alleOrdnerPfade,
-	dokumentGeloescht,
 	dokumenteVonZiel,
+	dokumentGeloescht,
 	faelligImPapierkorb,
 	gleicheAb,
 	ladeBaum,
@@ -87,7 +79,10 @@ describe('Abgleich', () => {
 	it('Erststart: je Mappe ein Ordner mit ihrem Titel, Dokumente darin', () => {
 		const { baum, geaendert } = gleicheAb(
 			null,
-			{ mappen: [mappeBestand('a', 'Kartoffeln', ['eins', 'zwei']), mappeBestand('b', 'Uhr', ['drei'])], unlesbar: [] },
+			{
+				mappen: [mappeBestand('a', 'Kartoffeln', ['eins', 'zwei']), mappeBestand('b', 'Uhr', ['drei'])],
+				unlesbar: [],
+			},
 			JETZT,
 		);
 		assert.equal(geaendert, true);
@@ -126,7 +121,11 @@ describe('Abgleich', () => {
 
 	it('neue Mappe: in „Mein Material“ oder am Ziel aus mappe.json, nur einmal', () => {
 		const erst = neuerBaum({ mappen: [], unlesbar: [] });
-		const mit = gleicheAb(erst, { mappen: [mappeBestand('a', 'Uhr', ['d'], 'Klasse 3/Mathe')], unlesbar: [] }, JETZT).baum;
+		const mit = gleicheAb(
+			erst,
+			{ mappen: [mappeBestand('a', 'Uhr', ['d'], 'Klasse 3/Mathe')], unlesbar: [] },
+			JETZT,
+		).baum;
 		assert.deepEqual(
 			alleOrdnerPfade(mit).map((p) => p.pfad),
 			['Klasse 3', 'Klasse 3/Mathe', 'Klasse 3/Mathe/Uhr'],
@@ -135,8 +134,16 @@ describe('Abgleich', () => {
 		assert.equal(mit.dokumente['a/d']?.ordner, uhr?.id);
 		// Die Lehrkraft räumt um: Der Abgleich legt es nicht zurück, obwohl `ablage` noch dasteht.
 		const umg = u({ 'a/d': 'D' });
-		const bewegt = wendeAktionAn(mit, { art: 'bewegen', knoten: [{ ordner: uhr?.id ?? '' }], ziel: null }, umg).baum;
-		const danach = gleicheAb(bewegt, { mappen: [mappeBestand('a', 'Uhr', ['d'], 'Klasse 3/Mathe')], unlesbar: [] }, JETZT);
+		const bewegt = wendeAktionAn(
+			mit,
+			{ art: 'bewegen', knoten: [{ ordner: uhr?.id ?? '' }], ziel: null },
+			umg,
+		).baum;
+		const danach = gleicheAb(
+			bewegt,
+			{ mappen: [mappeBestand('a', 'Uhr', ['d'], 'Klasse 3/Mathe')], unlesbar: [] },
+			JETZT,
+		);
 		assert.equal(danach.geaendert, false);
 		assert.equal(danach.baum.ordner.find((o) => o.behaelter === 'a')?.eltern, null);
 	});
@@ -179,19 +186,26 @@ describe('Abgleich', () => {
 		);
 		assert.ok(meldungen.length >= 2);
 		assert.equal(heil.dokumente['reihe/a']?.ordner, null);
-		assert.ok(heil.ordner.some((o) => o.id === k3 && o.eltern === null) || heil.ordner.some((o) => o.id === mathe && o.eltern === null));
+		const obenAuf = (id: string) => heil.ordner.some((o) => o.id === id && o.eltern === null);
+		assert.ok(obenAuf(k3) || obenAuf(mathe));
 	});
 });
 
 describe('Bewegen', () => {
 	it('lehnt sich selbst und Nachkommen ab', () => {
 		const { baum, k3, mathe, umg } = beispiel();
-		assert.throws(() => wendeAktionAn(baum, { art: 'bewegen', knoten: [{ ordner: k3 }], ziel: k3 }, umg), /in sich selbst/);
-		assert.throws(() => wendeAktionAn(baum, { art: 'bewegen', knoten: [{ ordner: k3 }], ziel: mathe }, umg), /in sich selbst/);
+		assert.throws(
+			() => wendeAktionAn(baum, { art: 'bewegen', knoten: [{ ordner: k3 }], ziel: k3 }, umg),
+			/in sich selbst/,
+		);
+		assert.throws(
+			() => wendeAktionAn(baum, { art: 'bewegen', knoten: [{ ordner: k3 }], ziel: mathe }, umg),
+			/in sich selbst/,
+		);
 	});
 
 	it('bei gleichem Namen bleiben beide, auch bei anderer Schreibweise', () => {
-		const { baum, mathe, umg, reihe } = beispiel();
+		const { baum, mathe, reihe, umg } = beispiel();
 		const umbenannt = wendeAktionAn(baum, { art: 'neu', eltern: mathe, name: 'REIHE' }, umg).baum;
 		const r = wendeAktionAn(umbenannt, { art: 'bewegen', knoten: [{ ordner: reihe }], ziel: mathe }, umg);
 		assert.equal(r.baum.ordner.find((o) => o.id === reihe)?.name, 'Reihe 2');
@@ -220,7 +234,10 @@ describe('Bewegen', () => {
 	it('Ein Ziel im Papierkorb gibt es nicht', () => {
 		const { baum, k3, umg } = beispiel();
 		const weg = wendeAktionAn(baum, { art: 'papierkorb', knoten: [{ ordner: k3 }] }, umg).baum;
-		assert.throws(() => wendeAktionAn(weg, { art: 'bewegen', knoten: [{ mappe: 'los', dok: 'x' }], ziel: k3 }, umg), /gibt es nicht mehr/);
+		assert.throws(
+			() => wendeAktionAn(weg, { art: 'bewegen', knoten: [{ mappe: 'los', dok: 'x' }], ziel: k3 }, umg),
+			/gibt es nicht mehr/,
+		);
 	});
 });
 
@@ -251,10 +268,13 @@ describe('Namen', () => {
 		assert.throws(() => leseAktion({ art: 'sprengen' }));
 		assert.throws(() => leseAktion({ art: 'bewegen', knoten: [{ mappe: '../x', dok: 'a' }], ziel: null }));
 		assert.throws(() => leseAktion({ art: 'bewegen', knoten: [{ ordner: 'x' }], ziel: null }));
-		assert.deepEqual(leseAktion({ art: 'papierkorb', knoten: [{ ordner: 'o-12345678' }, { ordner: 'o-12345678' }] }), {
-			art: 'papierkorb',
-			knoten: [{ ordner: 'o-12345678' }],
-		});
+		assert.deepEqual(
+			leseAktion({ art: 'papierkorb', knoten: [{ ordner: 'o-12345678' }, { ordner: 'o-12345678' }] }),
+			{
+				art: 'papierkorb',
+				knoten: [{ ordner: 'o-12345678' }],
+			},
+		);
 	});
 });
 
@@ -265,7 +285,14 @@ describe('Aktion plus Umkehr ergibt denselben Baum', () => {
 		{ art: 'umbenennen', knoten: { ordner: b.mathe }, name: 'Rechnen' },
 		{ art: 'umbenennen', knoten: { ordner: b.reihe }, name: 'Eine Reihe' },
 		{ art: 'bewegen', knoten: [{ ordner: b.mathe }], ziel: null },
-		{ art: 'bewegen', knoten: [{ mappe: 'reihe', dok: 'a' }, { mappe: 'los', dok: 'x' }], ziel: b.mathe },
+		{
+			art: 'bewegen',
+			knoten: [
+				{ mappe: 'reihe', dok: 'a' },
+				{ mappe: 'los', dok: 'x' },
+			],
+			ziel: b.mathe,
+		},
 		{ art: 'papierkorb', knoten: [{ ordner: b.reihe }, { mappe: 'los', dok: 'x' }] },
 	];
 
@@ -274,7 +301,7 @@ describe('Aktion plus Umkehr ergibt denselben Baum', () => {
 			const b = beispiel();
 			const aktion = faelle(b)[i];
 			assert.ok(aktion);
-			const { umkehr, baum } = wendeAktionAn(b.baum, aktion, b.umg);
+			const { baum, umkehr } = wendeAktionAn(b.baum, aktion, b.umg);
 			assert.notDeepEqual(inhalt(baum), inhalt(b.baum));
 			assert.deepEqual(inhalt(fuehreAus(baum, umkehr, b.umg)), inhalt(b.baum));
 		});
@@ -302,17 +329,18 @@ describe('Papierkorb', () => {
 
 	it('Zurücklegen ohne Eltern: Der Pfad entsteht neu aus den Namen', () => {
 		const { baum, k3, mathe, umg } = beispiel();
-		const reinlegen = wendeAktionAn(baum, { art: 'bewegen', knoten: [{ mappe: 'los', dok: 'x' }], ziel: mathe }, umg).baum;
+		const reinlegen = wendeAktionAn(
+			baum,
+			{ art: 'bewegen', knoten: [{ mappe: 'los', dok: 'x' }], ziel: mathe },
+			umg,
+		).baum;
 		const dokWeg = wendeAktionAn(reinlegen, { art: 'papierkorb', knoten: [{ mappe: 'los', dok: 'x' }] }, umg).baum;
 		assert.deepEqual(dokWeg.dokumente['los/x']?.geloescht?.herkunft, ['Klasse 3', 'Mathe']);
 		const allesWeg = wendeAktionAn(dokWeg, { art: 'papierkorb', knoten: [{ ordner: k3 }] }, umg).baum;
 		const zurueck = wendeAktionAn(allesWeg, { art: 'zuruecklegen', knoten: [{ mappe: 'los', dok: 'x' }] }, umg);
 		const ort = zurueck.baum.dokumente['los/x']?.ordner ?? '';
 		assert.notEqual(ort, mathe);
-		assert.deepEqual(
-			alleOrdnerPfade(zurueck.baum).find((p) => p.id === ort)?.pfad,
-			'Klasse 3/Mathe',
-		);
+		assert.deepEqual(alleOrdnerPfade(zurueck.baum).find((p) => p.id === ort)?.pfad, 'Klasse 3/Mathe');
 		assert.equal(zurueck.baum.dokumente['los/x']?.geloescht, null);
 	});
 
@@ -335,7 +363,10 @@ describe('Papierkorb', () => {
 			],
 			umg,
 		);
-		assert.deepEqual(faelligImPapierkorb(bewegt, 30, new Date(JETZT.getTime() + 29 * TAG_MS)), { dokumente: [], ordner: [] });
+		assert.deepEqual(faelligImPapierkorb(bewegt, 30, new Date(JETZT.getTime() + 29 * TAG_MS)), {
+			dokumente: [],
+			ordner: [],
+		});
 		const faellig = faelligImPapierkorb(bewegt, 30, new Date(JETZT.getTime() + 30 * TAG_MS));
 		assert.deepEqual(new Set(faellig.ordner), new Set([k3, mathe, reihe]));
 		assert.equal(faellig.dokumente.length, 3);
@@ -366,7 +397,10 @@ describe('Papierkorb', () => {
 		assert.equal(existsSync(dokumentDir(materialDir, reste.id, b.id)), true);
 		assert.deepEqual((await leseMappe(materialDir, reste.id)).dokumente, [b.id]);
 		assert.equal(r.baum.dokumente[`${reste.id}/${a.id}`], undefined);
-		assert.equal(r.baum.ordner.some((o) => o.id === leerOrdner), false);
+		assert.equal(
+			r.baum.ordner.some((o) => o.id === leerOrdner),
+			false,
+		);
 	});
 
 	it('`sammleMappen` zeigt Gelöschtes nicht, `mitGeloeschten` schon', async () => {
