@@ -1,13 +1,16 @@
-import { KATALOG_KATEGORIEN } from '@schoolbox/kern/src/abbildungen';
-import { MEINE_BAUSTEINE, sucheImKatalog } from '@schoolbox/kern/src/katalog';
+import { BEREICH_SYMBOL, KATALOG_BEREICHE, KATALOG_KATEGORIEN } from '@schoolbox/kern/src/abbildungen';
+import { MEINE_BAUSTEINE, MEINE_BAUSTEINE_SYMBOL, sucheImKatalog } from '@schoolbox/kern/src/katalog';
 import type { Art, Fach, Klasse } from '@schoolbox/kern/src/werte';
 import type { PointerEvent as ReactPointerEvent } from 'react';
 import { useEffect, useRef, useState } from 'react';
 
 import { meldung, sende } from '../api';
 import { useHinweis } from '../bausteine/hinweis';
+import { Griff } from '../bausteine/Griff';
 import { FELD_KLASSEN, klassen } from '../bausteine/klassen';
 import { Knopf } from '../bausteine/Knopf';
+import { Segment } from '../bausteine/Segment';
+import type { SymbolName } from '../bausteine/Symbol';
 import { Symbol } from '../bausteine/Symbol';
 import { Tooltip } from '../bausteine/Tooltip';
 import { nrVon, trefferAn } from './darstellung';
@@ -19,6 +22,7 @@ import { sichtfeldVon } from './sichtfeld';
 import type { Struktur } from './struktur';
 import { EIGENE_GESCHICHTE } from './tasten';
 import { TEXTWERKZEUG } from './text';
+import { MAUS_WEG } from './ziehen';
 
 const ZEILE = 'w-full rounded-md px-2 py-1 text-left hover:bg-flaeche-2';
 const GLIEDERUNG_ZEILE = 'h-menue w-full rounded-md px-2 text-left hover:bg-flaeche-2 aria-[current]:bg-flaeche-2';
@@ -314,26 +318,93 @@ const EigenVerwalten = ({ id, name, neuLaden }: { id: string; name: string; neuL
 	);
 };
 
+/**
+ * Jede Vorschau rechnet `abbildungen.js` und `blatt.css` neu durch. `loading="lazy"` allein lädt im Bereich alle zugleich,
+ * weil Browser weit vorausladen; darum wartet die Adresse, bis die Karte zu sehen ist (Messung im Ticket 081).
+ */
+const KartenVorschau = ({ id, name }: { id: string; name: string }) => {
+	const rahmen = useRef<HTMLIFrameElement>(null);
+	const [zuSehen, setZuSehen] = useState(false);
+	useEffect(() => {
+		const element = rahmen.current;
+		if (!element) {
+			return undefined;
+		}
+		const beobachter = new IntersectionObserver(([eintrag]) => {
+			if (eintrag?.isIntersecting) {
+				setZuSehen(true);
+				beobachter.disconnect();
+			}
+		});
+		beobachter.observe(element);
+		return () => beobachter.disconnect();
+	}, []);
+	return (
+		<iframe
+			ref={rahmen}
+			{...(zuSehen ? { src: `/ansicht/_katalog/${id}?fit=1` } : {})}
+			title={`Vorschau: ${name}`}
+			loading="lazy"
+			tabIndex={-1}
+			className="pointer-events-none block h-24 w-full border-0 bg-white"
+			data-karten-vorschau
+		/>
+	);
+};
+
+/**
+ * Einheitlich: Griff links, Name, ganze Vorschau. Die ganze Karte klickt und fügt ein (der Name streckt seine Klickfläche
+ * über die Karte), ziehen geht mit der Maus von überall, mit dem Finger nur am Griff, damit Wischen die Liste rollt.
+ */
 const Karte = ({
+	bereich,
 	doc,
 	einfuegen,
 	eintrag,
 	setAuswahl,
 }: {
 	eintrag: Posten;
+	/** Bei Suchtreffern: der Bereich neben dem Namen. */
+	bereich?: string;
 	doc: Document | null;
 	einfuegen: Einfuegen;
 	setAuswahl: (nr: number | null) => void;
 }) => {
 	const [zug, setZug] = useState<{ x: number; y: number } | null>(null);
 	const ziel = useRef<number | null>(null);
+	/** Gedrückt, aber noch unter der Schwelle von `MAUS_WEG`. */
+	const druckAn = useRef<{ x: number; y: number } | null>(null);
+	const gezogen = useRef(false);
 
-	const druck = (ev: ReactPointerEvent<HTMLButtonElement>) => {
-		ev.currentTarget.setPointerCapture(ev.pointerId);
+	const beginne = (ev: ReactPointerEvent<HTMLElement>) => {
+		druckAn.current = null;
+		gezogen.current = true;
 		ziel.current = null;
+		// Fängt erst hier: Vorher ginge der Klick sonst nicht mehr an den Namen.
+		try {
+			ev.currentTarget.setPointerCapture(ev.pointerId);
+		} catch {
+			// Ohne Fangen endet das Ziehen am Rand der Karte.
+		}
 		setZug({ x: ev.clientX, y: ev.clientY });
 	};
-	const bewege = (ev: ReactPointerEvent<HTMLButtonElement>) => {
+	const druck = (ev: ReactPointerEvent<HTMLElement>) => {
+		const amGriff = ev.target instanceof Element && ev.target.closest('[data-ziehgriff]') !== null;
+		gezogen.current = false;
+		if (ev.pointerType !== 'mouse') {
+			if (amGriff) {
+				beginne(ev);
+			}
+		} else if (ev.button === 0 && !ev.ctrlKey) {
+			druckAn.current = { x: ev.clientX, y: ev.clientY };
+		}
+	};
+	const bewege = (ev: ReactPointerEvent<HTMLElement>) => {
+		const start = druckAn.current;
+		if (start && Math.hypot(ev.clientX - start.x, ev.clientY - start.y) > MAUS_WEG) {
+			beginne(ev);
+			return;
+		}
 		if (!zug || !doc) {
 			return;
 		}
@@ -345,49 +416,67 @@ const Karte = ({
 		}
 	};
 	const los = () => {
+		druckAn.current = null;
 		setZug(null);
 		if (ziel.current !== null) {
 			einfuegen.fuegeEin(eintrag, ziel.current);
 		}
 		ziel.current = null;
 	};
+	const abbruch = () => {
+		druckAn.current = null;
+		ziel.current = null;
+		setZug(null);
+	};
 
 	return (
-		<li className="overflow-hidden rounded-lg border border-rand" data-bibliothek-eintrag={eintrag.id}>
-			{!eintrag.eigen && (
-				<iframe
-					src={`/ansicht/_katalog/${eintrag.id}`}
-					title={`Vorschau: ${eintrag.name}`}
-					loading="lazy"
-					tabIndex={-1}
-					className="pointer-events-none h-44 w-[200%] origin-top-left scale-50 border-0 [margin-bottom:-5.5rem]"
-				/>
-			)}
-			<div className="flex items-center gap-1 border-t border-rand p-1">
-				<button
-					type="button"
-					className={klassen(ZEILE, 'flex-1 font-medium')}
-					data-einfuegen={eintrag.id}
-					onClick={() => einfuegen.fuegeEin(eintrag)}
-				>
-					{eintrag.name}
-				</button>
-				<button
-					type="button"
-					aria-label={`${eintrag.name} ins Blatt ziehen`}
-					title="Ins Blatt ziehen"
-					className="flex size-knopf flex-none cursor-grab touch-none items-center justify-center rounded-md hover:bg-flaeche-2"
-					data-ziehgriff={eintrag.id}
-					onPointerDown={druck}
-					onPointerMove={bewege}
-					onPointerUp={los}
-					onPointerCancel={() => {
-						ziel.current = null;
-						setZug(null);
-					}}
-				>
-					<Symbol name="plus" />
-				</button>
+		<li className="overflow-hidden rounded-lg border border-rand bg-flaeche" data-bibliothek-eintrag={eintrag.id}>
+			<div
+				className={klassen('group relative flex select-none', zug && 'cursor-grabbing')}
+				onPointerDown={druck}
+				onPointerMove={bewege}
+				// Wer schnell zieht, ist schon aus der Karte, bevor die Schwelle gemessen wurde.
+				onPointerLeave={(ev) => {
+					if (druckAn.current) {
+						beginne(ev);
+					}
+				}}
+				onPointerUp={los}
+				onPointerCancel={abbruch}
+			>
+				<Griff beschriftung="Ins Blatt ziehen" className="relative z-10" data-ziehgriff={eintrag.id} />
+				<div className="min-w-0 flex-1">
+					<div className="flex flex-wrap items-baseline gap-x-1.5 py-1 pr-5 pl-1">
+						<button
+							type="button"
+							aria-label={`${eintrag.name} einfügen`}
+							title={`${eintrag.name} einfügen`}
+							className="cursor-pointer text-left leading-tight font-medium after:absolute after:inset-0 after:content-['']"
+							data-einfuegen={eintrag.id}
+							onClick={(ev) => {
+								// `detail` ist 0 bei Enter und Leertaste: Die Tastatur hat nichts gezogen.
+								if (ev.detail === 0 || !gezogen.current) {
+									einfuegen.fuegeEin(eintrag);
+								}
+							}}
+						>
+							{eintrag.name}
+						</button>
+						{bereich && (
+							<span className="text-xs leading-tight text-dezent" data-treffer-bereich>
+								{bereich}
+							</span>
+						)}
+					</div>
+					<Symbol
+						name="plus"
+						className="pointer-events-none absolute top-1 right-1 size-3.5 text-brand-500 opacity-0 group-hover:opacity-100 [@media(any-pointer:coarse)]:hidden"
+					/>
+					{/* Eigene haben keine Katalog-Adresse, ein Eintrag mit nur `klasse` hat keinen Inhalt zum Zeigen. */}
+					{!eintrag.eigen && !eintrag.klasse && (
+						<KartenVorschau id={eintrag.id} name={eintrag.name} />
+					)}
+				</div>
 			</div>
 			{eintrag.eigen && <EigenVerwalten id={eintrag.eigen} name={eintrag.name} neuLaden={einfuegen.neuLaden} />}
 			{zug && (
@@ -404,10 +493,44 @@ const Karte = ({
 };
 
 const ZULETZT_ANZAHL = 4;
+const FILTER = 'schoolbox.bausteine-filter';
+type Filter = 'blatt' | 'alle';
+const FILTER_WERTE: { wert: Filter; titel: string }[] = [
+	{ wert: 'blatt', titel: 'Für dieses Blatt' },
+	{ wert: 'alle', titel: 'Alle' },
+];
+
+const BereichZeile = ({
+	anzahl,
+	name,
+	symbol,
+	waehle,
+}: {
+	name: string;
+	symbol: SymbolName;
+	anzahl: number;
+	waehle: () => void;
+}) => (
+	<li>
+		<button
+			type="button"
+			className="flex h-zeile w-full items-center gap-2 rounded-md px-2 text-left hover:bg-flaeche-2"
+			data-bereich={name}
+			onClick={waehle}
+		>
+			<Symbol name={symbol} className="size-3.5 flex-none text-leise" />
+			<span className="min-w-0 flex-1 truncate">{name}</span>
+			<span className="flex-none text-xs text-dezent tabular-nums" data-bereich-anzahl>
+				{anzahl}
+			</span>
+		</button>
+	</li>
+);
 
 /**
- * Links in der Leiste, in zwei Stufen: Suche, „Zuletzt benutzt“ und die Bereiche aus dem Katalog; ein Bereich zeigt
- * seine Einträge mit Vorschau. Einfügen per Klick oder über den Griff.
+ * Links in der Leiste, in zwei Stufen: Suche, Umschalter, „Zuletzt benutzt“ und die Bereiche aus dem Katalog; ein Bereich
+ * zeigt seine Einträge mit Vorschau. Der Umschalter gilt für die Bereiche. Die Suche geht immer über alles, damit das
+ * Finden nie am Filter scheitert (081).
  */
 export const Bibliothek = ({
 	art,
@@ -424,13 +547,45 @@ export const Bibliothek = ({
 }) => {
 	const [suche, setSuche] = useState('');
 	const [bereich, setBereich] = useState<string | null>(null);
-	const [nurPassend, setNurPassend] = useState(true);
-	const passend = einfuegen.eintraege.filter((e) => !nurPassend || passtZu(e, mappe, art));
-	const hatEigene = einfuegen.eintraege.some((e) => e.herkunft === 'eigen');
-	const bereiche = [...KATALOG_KATEGORIEN, ...(hatEigene ? [MEINE_BAUSTEINE] : [])];
+	const [filter, setFilter] = useState<Filter>(() => (localStorage.getItem(FILTER) === 'alle' ? 'alle' : 'blatt'));
+	const waehleFilter = (neu: Filter) => {
+		setFilter(neu);
+		localStorage.setItem(FILTER, neu);
+	};
+	const { eintraege } = einfuegen;
+	const passt = (e: Posten) => passtZu(e, mappe, art);
+	const passend = eintraege.filter(passt);
+	const gezeigt = filter === 'alle' ? eintraege : passend;
+	const anzahl = (liste: readonly Posten[], k: string) => liste.filter((e) => e.kategorie === k).length;
+	const gruppen = KATALOG_BEREICHE.map(({ bereiche, gruppe }) => ({
+		gruppe,
+		bereiche: bereiche.filter((k) => filter === 'alle' || anzahl(passend, k) > 0),
+	})).filter((g) => g.bereiche.length > 0);
+	const verborgen =
+		filter === 'alle'
+			? 0
+			: KATALOG_KATEGORIEN.filter((k) => anzahl(passend, k) === 0 && anzahl(eintraege, k) > 0).length;
+	const hatEigene = eintraege.some((e) => e.herkunft === 'eigen');
 	const sucht = suche.trim() !== '';
-	const liste = sucht ? (sucheImKatalog(suche, passend) as Posten[]) : passend.filter((e) => e.kategorie === bereich);
+	const treffer = sucht ? (sucheImKatalog(suche, eintraege) as Posten[]) : [];
+	const trefferPassend = treffer.filter(passt);
+	const trefferAnderswo = treffer.filter((e) => !passt(e));
+	const imBereich = gezeigt.filter((e) => e.kategorie === bereich);
 	const zuletzt = einfuegen.zuletzt.slice(0, ZULETZT_ANZAHL);
+	const karten = (liste: Posten[], mitBereich: boolean) => (
+		<ul className="flex flex-col gap-2">
+			{liste.map((e) => (
+				<Karte
+					key={e.id}
+					eintrag={e}
+					{...(mitBereich ? { bereich: e.kategorie } : {})}
+					doc={doc}
+					einfuegen={einfuegen}
+					setAuswahl={setAuswahl}
+				/>
+			))}
+		</ul>
+	);
 	return (
 		<section data-bibliothek className="flex flex-col gap-2">
 			<div className="relative">
@@ -445,6 +600,14 @@ export const Bibliothek = ({
 					onChange={(ev) => setSuche(ev.target.value)}
 				/>
 			</div>
+			<Segment
+				beschriftung="Welche Bausteine"
+				className="w-full [&>button]:flex-1"
+				werte={FILTER_WERTE}
+				wert={filter}
+				waehle={waehleFilter}
+				aus={sucht}
+			/>
 			{!sucht && bereich === null && (
 				<>
 					{zuletzt.length > 0 && (
@@ -468,59 +631,73 @@ export const Bibliothek = ({
 							</ul>
 						</div>
 					)}
-					<div>
-						<h2 className="mb-1 text-xs font-semibold text-leise">Alle Bereiche</h2>
+					{gruppen.map(({ bereiche, gruppe }) => (
+						<div key={gruppe} data-bereich-gruppe={gruppe}>
+							<h2 className="px-2 text-xs font-semibold text-leise">{gruppe}</h2>
+							<ul className="flex flex-col">
+								{bereiche.map((k) => (
+									<BereichZeile
+										key={k}
+										name={k}
+										symbol={BEREICH_SYMBOL[k]}
+										anzahl={anzahl(gezeigt, k)}
+										waehle={() => setBereich(k)}
+									/>
+								))}
+							</ul>
+						</div>
+					))}
+					{hatEigene && (
 						<ul className="flex flex-col">
-							{bereiche.map((k) => (
-								<li key={k}>
-									<button
-										type="button"
-										className="flex h-zeile w-full items-center justify-between gap-2 rounded-md px-2 text-left hover:bg-flaeche-2"
-										data-bereich={k}
-										onClick={() => setBereich(k)}
-									>
-										<span className="truncate">{k}</span>
-										<span
-											className="flex-none text-xs text-dezent tabular-nums"
-											data-bereich-anzahl
-										>
-											{passend.filter((e) => e.kategorie === k).length}
-										</span>
-									</button>
-								</li>
-							))}
+							<BereichZeile
+								name={MEINE_BAUSTEINE}
+								symbol={MEINE_BAUSTEINE_SYMBOL}
+								anzahl={anzahl(gezeigt, MEINE_BAUSTEINE)}
+								waehle={() => setBereich(MEINE_BAUSTEINE)}
+							/>
 						</ul>
-					</div>
-				</>
-			)}
-			{(sucht || bereich !== null) && (
-				<>
-					{!sucht && (
-						<Knopf art="leise" className="-ml-1 self-start px-1" onClick={() => setBereich(null)}>
-							<Symbol name="zurueck" />
-							{bereich}
+					)}
+					{verborgen > 0 && (
+						<Knopf art="leise" className="self-start" data-weitere onClick={() => waehleFilter('alle')}>
+							{verborgen === 1 ? '1 weiterer' : `${verborgen} weitere`} unter Alle
 						</Knopf>
 					)}
-					{liste.length === 0 ? (
-						<p className="text-leise">Nichts gefunden.</p>
+				</>
+			)}
+			{sucht &&
+				(treffer.length === 0 ? (
+					<p className="text-leise">{`Nichts zu „${suche.trim()}“. Suche prüfen.`}</p>
+				) : (
+					<>
+						{trefferPassend.length > 0 && karten(trefferPassend, true)}
+						{trefferAnderswo.length > 0 && (
+							<div data-treffer-anderswo>
+								<h2 className="mb-1 text-xs font-semibold text-leise">Aus anderen Fächern und Klassen</h2>
+								{karten(trefferAnderswo, true)}
+							</div>
+						)}
+					</>
+				))}
+			{!sucht && bereich !== null && (
+				<>
+					<Knopf art="leise" className="-ml-1 self-start px-1" onClick={() => setBereich(null)}>
+						<Symbol name="zurueck" />
+						{bereich}
+					</Knopf>
+					{imBereich.length === 0 ? (
+						<>
+							<p className="text-leise">Hier passt nichts zu diesem Blatt.</p>
+							{filter === 'blatt' && (
+								<Knopf art="zweit" className="self-start" onClick={() => waehleFilter('alle')}>
+									Alle zeigen
+								</Knopf>
+							)}
+						</>
 					) : (
-						<ul className="flex flex-col gap-2">
-							{liste.map((e) => (
-								<Karte key={e.id} eintrag={e} doc={doc} einfuegen={einfuegen} setAuswahl={setAuswahl} />
-							))}
-						</ul>
+						karten(imBereich, false)
 					)}
 				</>
 			)}
-			<label className="flex items-center gap-1.5 text-xs text-leise">
-				<input
-					type="checkbox"
-					className="size-3.5 flex-none accent-brand-500"
-					checked={nurPassend}
-					onChange={(ev) => setNurPassend(ev.target.checked)}
-				/>
-				Nur passend zu Fach und Klasse
-			</label>
 		</section>
 	);
 };

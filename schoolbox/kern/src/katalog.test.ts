@@ -5,7 +5,15 @@ import path from 'node:path';
 import { after, describe, it } from 'node:test';
 
 import type { AbbildungSchema, Werte } from './abbildungen';
-import { ABBILDUNG_SCHEMA, attributeVon, KATALOG_KATEGORIEN, NUR_ZUR_LAUFZEIT, pruefeWerte } from './abbildungen';
+import {
+	ABBILDUNG_SCHEMA,
+	attributeVon,
+	BEREICH_SYMBOL,
+	KATALOG_BEREICHE,
+	KATALOG_KATEGORIEN,
+	NUR_ZUR_LAUFZEIT,
+	pruefeWerte,
+} from './abbildungen';
 import { KIT_KATALOG } from './bausteine';
 import { browserSkip, pruefeStapel } from './browsertest';
 import { KATALOG, sucheImKatalog } from './katalog';
@@ -153,8 +161,41 @@ describe('Katalog', () => {
 	});
 });
 
+describe('Bereiche', () => {
+	it('jede Kategorie steht genau einmal in einer Gruppe', () => {
+		const inGruppen: string[] = KATALOG_BEREICHE.flatMap((g) => [...g.bereiche]);
+		assert.equal(new Set(inGruppen).size, inGruppen.length);
+		assert.deepEqual([...inGruppen].sort(), [...KATALOG_KATEGORIEN].sort());
+	});
+
+	it('jede Kategorie hat ein Symbol, und es gibt keine anderen', () => {
+		assert.deepEqual(Object.keys(BEREICH_SYMBOL).sort(), [...KATALOG_KATEGORIEN].sort());
+	});
+});
+
 describe('Suche', () => {
 	const treffer = (anfrage: string) => sucheImKatalog(anfrage).map((e) => e.id);
+
+	it('mehrere Wörter müssen alle passen, auch über Name und Suchbegriffe verteilt', () => {
+		const [muster] = KATALOG;
+		assert.ok(muster);
+		const probe = { ...muster, id: 'probe', name: 'Zahlenmauer', suchbegriffe: ['Pyramide'] };
+		const ids = (anfrage: string) => sucheImKatalog(anfrage, [probe]).map((e) => e.id);
+		assert.deepEqual(ids('zahlen pyramide'), ['probe']);
+		assert.deepEqual(ids('pyramide zahlen'), ['probe']);
+		assert.deepEqual(ids('zahlen silben'), []);
+	});
+
+	it('Treffer im Namen stehen vor Treffern in den Suchbegriffen, auch wenn sie später in der Liste kommen', () => {
+		const [muster] = KATALOG;
+		assert.ok(muster);
+		const imBegriff = { ...muster, id: 'im-begriff', name: 'Anderes', suchbegriffe: ['Domino'] };
+		const imNamen = { ...muster, id: 'im-namen', name: 'Domino', suchbegriffe: [] };
+		assert.deepEqual(
+			sucheImKatalog('domino', [imBegriff, imNamen]).map((e) => e.id),
+			['im-namen', 'im-begriff'],
+		);
+	});
 
 	it('findet die Fachsprache der Skills', () => {
 		for (const [anfrage, id] of [

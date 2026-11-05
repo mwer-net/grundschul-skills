@@ -73,12 +73,68 @@ const pruefeGrenzen = async (datei: string | null, mappeDir: string | null): Pro
 	return datei;
 };
 
-const katalogVorschau = (e: KatalogEintrag, starter: ReadonlyMap<string, string>, assets: string) => {
+/**
+ * Passt den Inhalt ganz in den Rahmen (081). Gemessen wird erst, wenn `abbildungen.js` gezeichnet hat (das geschieht bei
+ * `DOMContentLoaded`, dieser Lauschaufruf kommt danach) und die Schriften stehen. Bis dahin bleibt der Rahmen leer, damit
+ * nichts springt. Notiz und Erwartungshorizont stehen sonst nur auf dem Lösungsblatt oder der Folie und wären hier leer.
+ * Dazu `kl4`: Klasse 2 lehnte Starter mit größeren Zahlen ab, und die Vorschau zeigte die Fehlermeldung.
+ */
+const VORSCHAU_FIT = {
+	stil: '<style>html{visibility:hidden}html,body{height:100%}body{padding:0}body>.koerper{position:absolute;left:0;top:0;width:max-content;max-width:400px;transform-origin:0 0}.notiz,x-erwartungshorizont{display:block}</style>',
+	skript: `<script>(function () {
+	var rand = 4;
+	var koerper = document.querySelector('body > .koerper');
+	var miss = function (mitKoerper) {
+		var flaechen = (mitKoerper ? [koerper] : []).concat(Array.from(koerper.querySelectorAll('*:not(svg *)')))
+			.map(function (e) { return e.getBoundingClientRect(); })
+			.filter(function (r) { return r.width > 0 && r.height > 0; });
+		var links = Math.min.apply(null, flaechen.map(function (r) { return r.left; }));
+		var oben = Math.min.apply(null, flaechen.map(function (r) { return r.top; }));
+		return {
+			links: links,
+			oben: oben,
+			b: Math.max.apply(null, flaechen.map(function (r) { return r.right; })) - links,
+			h: Math.max.apply(null, flaechen.map(function (r) { return r.bottom; })) - oben,
+		};
+	};
+	var passe = function () {
+		var frei = { b: innerWidth - 2 * rand, h: innerHeight - 2 * rand };
+		if (frei.b <= 0 || frei.h <= 0) return;
+		koerper.style.transform = 'none';
+		koerper.style.width = '';
+		// Linien und anderes ohne eigene Breite wären sonst fast unsichtbar; was von selbst schmal ist, bleibt schmal.
+		var m = miss(true);
+		if (m.b < 120) {
+			koerper.style.width = '400px';
+			if (miss(false).b <= m.b + 1) koerper.style.width = '';
+			m = miss(true);
+		}
+		if (m.b > 0 && m.h > 0) {
+			var s = Math.min(1, frei.b / m.b, frei.h / m.h);
+			var x = rand + (frei.b - m.b * s) / 2 - m.links * s;
+			var y = rand + (frei.h - m.h * s) / 2 - m.oben * s;
+			koerper.style.transform = 'translate(' + x + 'px,' + y + 'px) scale(' + s + ')';
+		}
+		document.documentElement.style.visibility = 'visible';
+		document.documentElement.dataset.fit = '1';
+	};
+	addEventListener('resize', passe);
+	// Bilder kennen ihre Größe erst danach.
+	addEventListener('load', passe);
+	addEventListener('DOMContentLoaded', function () {
+		// Die Messung löst das Laden der Schriften aus, sonst wäre \`fonts.ready\` schon erfüllt.
+		koerper.getBoundingClientRect();
+		(document.fonts ? document.fonts.ready : Promise.resolve()).then(passe);
+	});
+})();</script>`,
+} as const;
+
+const katalogVorschau = (e: KatalogEintrag, starter: ReadonlyMap<string, string>, assets: string, fit: boolean) => {
 	const b = einfuegbarAus(e, starter);
 	const innen = b.teile ? b.teile.join('') : (b.html ?? '');
 	return `<!doctype html><html lang="de"><head><meta charset="utf-8"><title>Vorschau</title><base href="${assets}">
-<link rel="stylesheet" href="blatt.css"><style>html,body{background:#fff;overflow:hidden}body{margin:0;padding:12px}</style></head>
-<body class="kl2 farbe"><div class="koerper">${innen}</div><script src="abbildungen.js"></script></body></html>`;
+<link rel="stylesheet" href="blatt.css"><style>html,body{background:#fff;overflow:hidden}body{margin:0;padding:12px}</style>${fit ? VORSCHAU_FIT.stil : ''}</head>
+<body class="${fit ? 'kl4' : 'kl2'} farbe"><div class="koerper">${innen}</div><script src="abbildungen.js"></script>${fit ? VORSCHAU_FIT.skript : ''}</body></html>`;
 };
 
 const urlPfad = (teile: string[]) => teile.map(encodeURIComponent).join('/');
@@ -154,7 +210,7 @@ export const ansichtRouter = (kontext: Kontext) => {
 		}
 		res.set('Cache-Control', 'no-cache')
 			.type('html')
-			.send(katalogVorschau(eintrag, leseStarter(), `${req.baseUrl}/${ASSETS_PFAD}/`));
+			.send(katalogVorschau(eintrag, leseStarter(), `${req.baseUrl}/${ASSETS_PFAD}/`, req.query.fit === '1'));
 	});
 
 	router.get('/:mappe/dokumente/:dok', (req, res) => {
