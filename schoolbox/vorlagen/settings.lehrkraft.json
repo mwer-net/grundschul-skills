@@ -28,7 +28,9 @@
 			"Edit(/skills/**)",
 			"Edit(/schoolbox/**)",
 			"Edit(/scripts/**)",
-			"Edit(/lokal/**)"
+			"Edit(/lokal/**)",
+			"Edit(/materialien/_ordner.json)",
+			"Edit(/materialien/_ordner-sicherung/**)"
 		],
 		"allow": [
 			"Bash(schoolbox/bin/schoolbox *)",

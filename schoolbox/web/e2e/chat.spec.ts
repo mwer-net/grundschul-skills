@@ -248,14 +248,14 @@ test.describe('Neues Material aus dem Chat (077)', () => {
 		await feld(page).press('Enter');
 	};
 
-	test('Übersicht: Nachricht, Karte, Enter; Mappe und Dokument entstehen, am Ende steht ein Vorschlag', async ({
+	test('Mein Material: Nachricht, Karte, Enter; das Dokument entsteht, am Ende steht ein Vorschlag', async ({
 		page,
 	}) => {
 		await page.goto('/');
 		const vorher = await mappenZahl();
 		await auftrag(page, 'Arbeitsblatt Uhrzeiten, Klasse 2');
 		await expect(neuKarte(page)).toContainText('Uhrzeiten üben');
-		await expect(neuKarte(page)).toContainText('Mappe: Uhrzeit aus dem Chat (neu)');
+		await expect(neuKarte(page)).toContainText('Ablage: Mein Material');
 		expect(await mappenZahl()).toBe(vorher);
 
 		await feld(page).press('Enter');
@@ -268,13 +268,13 @@ test.describe('Neues Material aus dem Chat (077)', () => {
 		await expect(page).toHaveURL(/\/$/);
 	});
 
-	test('Mappe: Das Dokument landet in dieser Mappe', async ({ page }) => {
+	test('Ordner: Das Dokument landet in diesem Ordner', async ({ page }) => {
 		const { id: mappe } = await uhrzeit();
 		await page.goto(`/m/${mappe}`);
 		const vorher = await dokZahl(mappe);
 		await auftrag(page, 'Noch ein Blatt zur Uhr');
-		await expect(chip(page)).toContainText('Neues Material in dieser Mappe');
-		await expect(neuKarte(page).locator('[data-chat-neu-mappe]')).toContainText('Mappe:');
+		await expect(chip(page)).toContainText('Neues Material in diesem Ordner');
+		await expect(neuKarte(page).locator('[data-chat-neu-ort]')).toContainText('Ablage:');
 		await neuKarte(page)
 			.getByRole('button', { name: /Anlegen/ })
 			.click();
@@ -292,12 +292,11 @@ test.describe('Neues Material aus dem Chat (077)', () => {
 			await dialog.getByRole('button', { name: 'Weiter' }).click();
 		}
 		await expect(dialog.getByLabel('Titel', { exact: true })).toHaveValue('Uhrzeiten üben');
-		await expect(dialog.getByLabel('Neue Mappe')).toHaveValue('Uhrzeit aus dem Chat');
 		await dialog.getByRole('button', { name: 'Weiter' }).click();
 		await expect(dialog.getByLabel('Worum geht es')).toHaveValue('Arbeitsblatt Uhrzeiten, Klasse 2');
 	});
 
-	test('Schlägt das Einordnen fehl, kommt die Karte trotzdem: In der Mappe legt sie an, ohne Mappe fragt der Dialog', async ({
+	test('Schlägt das Einordnen fehl, kommt die Karte trotzdem: Im Ordner legt sie an, ohne Ordner fragt der Dialog', async ({
 		page,
 	}) => {
 		await fall('einordnen-fehler');

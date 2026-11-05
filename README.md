@@ -104,7 +104,7 @@ Empfehlung: Immer alle Skills installieren, da sie aufeinander verweisen.
 
 ### Schoolbox (im Aufbau)
 
-Die Schoolbox (`schoolbox/`) macht das Material für die Lehrkraft nutzbar: Ablage in Mappen, im Browser eine Übersicht mit Suche, Papierkorb und Teilen-Links; später Ansicht, PDF, Präsentation und Bearbeiten. Claude legt Material über das CLI an und gibt am Ende einen Link aus. Braucht Node 22 und pnpm.
+Die Schoolbox (`schoolbox/`) macht das Material für die Lehrkraft nutzbar: Ablage in Ordnern wie im Finder (`MATERIAL_DIR/_ordner.json`, einziger Schreiber ist der Server; „Mappe“ bleibt der unsichtbare Behälter auf der Platte und das Fachwort des CLI), im Browser eine Übersicht mit Suche, Papierkorb und Teilen-Links; später Ansicht, PDF, Präsentation und Bearbeiten. Claude legt Material über das CLI an und gibt am Ende einen Link aus. Braucht Node 22 und pnpm.
 
 ```bash
 cp .env.example .env                  # SCHOOLBOX_URL, MATERIAL_DIR, NODE_BIN, PYTHON_BIN anpassen
@@ -130,7 +130,7 @@ Der Server (`schoolbox/server`, Express) liefert API, Darstellung und Oberfläch
 
 Ohne `PASSWORT_HASH` und `SITZUNG_GEHEIMNIS` startet er nicht. Anmeldung mit einem Passwort, wahlweise „angemeldet bleiben“ (ein Jahr); nach fünf Fehlversuchen von einer Adresse ist sie gebremst, jeder Fehlversuch steht als `Anmeldung fehlgeschlagen: ip=<Adresse>` im Log (passt für einen fail2ban-Filter). Ein neues Passwort gilt nach dem Neustart des Servers und meldet alle Geräte ab. Teilen-Links (`/f/<token>`) zeigen ein Dokument oder eine Mappe ohne Anmeldung, nur lesend, und lassen sich widerrufen. Der Reverse Proxy sollte `X-Forwarded-Proto` setzen; ist `SCHOOLBOX_URL` eine https-Adresse, ist das Cookie ohnehin `Secure`.
 
-Die Oberfläche (`schoolbox/web`, React, Tailwind) ist für Safari auf Mac und iPad gebaut, Desktop zuerst und vollständig mit dem Finger bedienbar. Die Übersicht zeigt alle Mappen mit Vorschau, Suche und Filtern nach Fach, Klasse und Materialart; was Claude neu anlegt, erscheint ohne Neuladen. Fehlt einem Dokument die Vorschau der ersten Seite (`ausgabe/material-s1.png`) oder ist sie älter als `material.html`, baut der Server sie im Hintergrund mit `blatt.py` (eine nach der anderen, Chromium nötig). Gelöschte Mappen liegen 30 Tage in `MATERIAL_DIR/_papierkorb/` und lassen sich dort wiederherstellen; danach löscht der Server sie beim Start bzw. einmal täglich endgültig, samt ihren Teilen-Links.
+Die Oberfläche (`schoolbox/web`, React, Tailwind) ist für Safari auf Mac und iPad gebaut, Desktop zuerst und vollständig mit dem Finger bedienbar. Die Ablage zeigt Ordner und Material als Kacheln oder Liste, mit Baum, Pfad, Rechtsklick, Ziehen und ⌘Z, dazu Suche und Filter nach Fach, Klasse und Materialart; was Claude neu anlegt, erscheint ohne Neuladen. Fehlt einem Dokument die Vorschau der ersten Seite (`ausgabe/material-s1.png`) oder ist sie älter als `material.html`, baut der Server sie im Hintergrund mit `blatt.py` (eine nach der anderen, Chromium nötig). Gelöschtes bleibt 30 Tage im Papierkorb (ein Zustand im Baum) und lässt sich an den alten Ort zurücklegen; danach löscht der Server es beim Start bzw. einmal täglich endgültig, samt seinen Teilen-Links. Alte Einträge in `MATERIAL_DIR/_papierkorb/` bleiben wiederherstellbar.
 
 Jedes Dokument hat eine eigene Seite: das Material, wie es gedruckt aussieht, umschaltbar auf die Lösung, mit „PDF herunterladen“ und „Drucken“ (öffnet das PDF in einem neuen Tab, gedruckt wird aus dem PDF-Betrachter des Browsers). PDFs baut der Server bei Bedarf mit `blatt.py` und hebt sie in `ausgabe/` auf, bis sich Material, Bilder, Stylesheets oder `blatt.py` ändern (`ausgabe/stand.json`); Vorschauen und PDFs bauen höchstens zu zweit gleichzeitig. Findet die Prüfung Fehler, warnt die Oberfläche mit verständlichen Sätzen und lässt das PDF trotzdem zu. „Alles als PDF“ fügt die Blätter einer Mappe zusammen, wahlweise mit den Lösungen am Ende; dafür braucht der Server `pdfunite` (Debian/Ubuntu: `poppler-utils`). Teilen-Links bieten Ansicht, PDF und Drucken genauso, ohne Warnung.
 
@@ -166,7 +166,7 @@ Die Browser-Tests starten einen eigenen Server mit leerer Ablage in `/tmp`. Brow
 | 0:04 | 1 · Anmelden |
 | 0:12 | 2 · Ein Wunsch an Claude |
 | 0:34 | 3 · Entwürfe vergleichen |
-| 1:02 | 4 · Alle Mappen |
+| 1:02 | 4 · Alle Mappen (Video zeigt noch den Stand vor den Ordnern) |
 | 1:20 | 5 · Eine Mappe |
 | 1:40 | 6 · Ansehen, PDF, Drucken |
 | 1:57 | 7 · Selbst ändern im Editor |

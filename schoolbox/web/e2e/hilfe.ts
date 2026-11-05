@@ -137,6 +137,37 @@ export const oeffneMehr = (
 	name = 'Weitere Aktionen',
 ) => druecke(bereich.getByRole('button', { name, exact: true }));
 
+/** Eine Kachel oder Zeile der Ablage. */
+export const objekt = (page: Page, name: string) => page.locator('[data-objekt]').filter({ hasText: name });
+
+const amFinger = () => Boolean(test.info().project.use.hasTouch);
+
+/** Mit Maus Doppelklick, am Finger Tippen. */
+export const oeffneObjekt = async (page: Page, name: string) => {
+	const ziel = objekt(page, name).first();
+	await (amFinger() ? ziel.tap() : ziel.dblclick());
+};
+
+/** Mit Maus ein Klick; am Finger geht es über „Auswählen“, das Danach-Beenden bleibt beim Test. */
+export const waehleObjekt = async (page: Page, name: string) => {
+	if (!amFinger()) {
+		await objekt(page, name).first().click();
+		return;
+	}
+	const knopf = page.locator('[data-auswaehlen]');
+	if ((await knopf.getAttribute('aria-label')) === 'Auswählen') {
+		await knopf.tap();
+	}
+	await objekt(page, name).first().tap();
+};
+
+/** Das Kontextmenü: mit Maus Rechtsklick, am Finger das ⋯ des Objekts. */
+export const objektMenue = async (page: Page, name: string) => {
+	const ziel = objekt(page, name).first();
+	await (amFinger() ? ziel.locator('[data-finger-menue]').tap() : ziel.click({ button: 'right' }));
+	await expect(page.getByRole('menu').first()).toBeVisible();
+};
+
 export const dateiname = async (download: Promise<Download>) =>
 	(await download).suggestedFilename().replaceAll('_', ' ');
 

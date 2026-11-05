@@ -97,7 +97,7 @@ test.describe('Bildschirmfotos für die Hilfe', () => {
 		await einmaleins();
 		await uhrzeit();
 		await page.goto('/');
-		await vorschauenDa(page, 3);
+		await expect(page.locator('[data-objekt]')).toHaveCount(3);
 		await foto(page, 'uebersicht-mac.jpg');
 	});
 

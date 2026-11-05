@@ -7,7 +7,7 @@ import type { Locator, Page } from '@playwright/test';
 import { ASSETS } from '@schoolbox/kern/src/konfig';
 
 import { aendere, gespeichert, imMehr, material, oeffne, quelle, uhrzeit } from './editorhilfe';
-import { expect, test } from './hilfe';
+import { expect, objektMenue, test } from './hilfe';
 
 const zeichne = async (page: Page, html: string, klasse = 'kl3 sw') => {
 	const ordner = await mkdtemp(path.join(tmpdir(), 'formate-'));
@@ -262,11 +262,11 @@ test.describe('Generatoren (050)', () => {
 		test.slow();
 		const { id } = await mitElement(page, '<x-zahlenmauer basis="3 5 2"></x-zahlenmauer>');
 		await page.goto(`/m/${id}`);
-		await expect(page.locator('[data-dokument]')).toHaveCount(1);
-		await page.locator('[data-dokument]').getByRole('button', { name: 'Weitere Aktionen' }).click();
+		await expect(page.locator('[data-objekt]')).toHaveCount(1);
+		await objektMenue(page, 'Wie spät ist es?');
 		await page.getByRole('menuitem', { name: 'Variante anlegen' }).click();
 		await expect(page.getByText('Wie spät ist es? (B)', { exact: true }).first()).toBeVisible();
-		await expect(page.locator('[data-dokument]')).toHaveCount(2);
+		await expect(page.locator('[data-objekt]')).toHaveCount(2);
 	});
 });
 

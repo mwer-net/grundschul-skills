@@ -3,10 +3,10 @@ import path from 'node:path';
 
 import type { TestZugriff } from './editorhilfe';
 import { aendere, gespeichert, material, oeffne, quelle, uhrzeit, versionen } from './editorhilfe';
-import { expect, test } from './hilfe';
+import { expect, test, waehleObjekt } from './hilfe';
 
 test.describe('Editor', () => {
-	test('öffnet aus Dokument und Mappe und speichert nichts, solange nichts geändert ist', async ({
+	test('öffnet aus Dokument und Ordner und speichert nichts, solange nichts geändert ist', async ({
 		druecke,
 		page,
 	}) => {
@@ -21,7 +21,8 @@ test.describe('Editor', () => {
 		});
 
 		await page.goto(`/m/${id}`);
-		await druecke(page.locator(`[data-dokument="${dok}"]`).getByRole('link', { name: 'Bearbeiten' }));
+		await waehleObjekt(page, 'Wie spät ist es?');
+		await druecke(page.locator('[data-werkzeugleiste]').getByRole('button', { name: 'Bearbeiten' }));
 		await expect(page.locator('[data-leinwand][data-geladen]')).toBeVisible();
 		await expect(page.getByRole('heading', { level: 1, name: 'Wie spät ist es?' })).toBeVisible();
 		await expect(page.getByText('Gespeichert')).toBeVisible();

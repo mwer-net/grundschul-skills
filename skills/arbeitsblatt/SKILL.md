@@ -12,7 +12,7 @@ Laden zusammen mit: `grundschul-didaktik` (Pflicht), dem passenden `fach-*`-Skil
 Zuerst die Start-Abfrage (`grundschul-didaktik/references/rueckfragen.md`): Materialart steht fest, Medium meist A4 hoch, dann Selbsteinschätzung unten *(Empfehlung: ja)*, Churer Modell mit Niveaus zur Selbstwahl *(Empfehlung: ja)*, Sternchenaufgabe *(Empfehlung: nein mit Niveaus, ja ohne)*. Danach nach dem Rückfrage-Protokoll, eine Frage pro Nachricht, jeweils mit Empfehlung:
 
 1. **Funktion:** Einführung (mit Beispiel, viel Anschauung), Übung (viele gleichartige Items, Selbstkontrolle), Vertiefung/Transfer (offene Aufgaben) oder Wiederholung? *Empfehlung meist: Übung.*
-2. **Umfang:** 1 Seite oder Mappe? Bearbeitungszeit (10 / 20 / 45 min)? *Empfehlung: 1 Seite, ca. 20 min.*
+2. **Umfang:** 1 Seite oder mehrere Blätter? Bearbeitungszeit (10 / 20 / 45 min)? *Empfehlung: 1 Seite, ca. 20 min.*
 3. **Sozialform:** frei wählbar (Standard), Einzel- oder Partnerarbeit?
 
 Nicht fragen, sondern als Varianten in die Entwürfe legen: Differenzierungsform (Standard: 1 Blatt mit drei Bereichen ● / ●● / ●●●; bei großer Spanne 3 Blätter in gleichem Layout) und Rahmen/Geschichte (Leitfigur ist immer Willi oder Wilma Waschbär).

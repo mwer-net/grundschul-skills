@@ -85,14 +85,39 @@ interface Abschnitt {
 
 const ABSCHNITTE: Abschnitt[] = [
 	{
+		id: 'ordnen',
+		titel: 'Ordner und Material ordnen',
+		inhalt: (
+			<>
+				<ul>
+					<Punkt titel="Anlegen">Rechtsklick auf die Fläche oder einen Ordner, Namen tippen, fertig.</Punkt>
+					<Punkt titel="Wählen">
+						Ein Klick wählt, ein Doppelklick öffnet. Mit ⇧ oder ⌘ wählst du mehrere, oder du ziehst einen Rahmen
+						auf der freien Fläche. Am iPad: „Auswählen“.
+					</Punkt>
+					<Punkt titel="Bewegen">
+						In einen Ordner, den Baum links oder den Pfad oben ziehen. Mit ⌥ entsteht eine Kopie. Oder ⌘X und
+						⌘V, oder im Menü „Bewegen nach …“. Am iPad: halten, dann ziehen.
+					</Punkt>
+					<Punkt titel="Rückgängig">⌘Z nimmt jedes Bewegen, Umbenennen und Löschen zurück.</Punkt>
+					<Punkt titel="Löschen">
+						Gelöschtes bleibt 30 Tage im Papierkorb und kommt von dort an seinen alten Ort zurück.
+					</Punkt>
+				</ul>
+				<p>Links sind die Ordner, „Zuletzt geändert“ und der Papierkorb. Leertaste zeigt eine große Vorschau.</p>
+			</>
+		),
+		bilder: [],
+	},
+	{
 		id: 'anlegen',
 		titel: 'Selbst anlegen',
 		inhalt: (
 			<>
 				<ol>
-					<li>Unter „Meine Mappen“ auf „Mappe anlegen“: Eine Mappe gehört zu einem Thema.</li>
+					<li>Einen Ordner öffnen oder mit „Neuer Ordner“ anlegen. Fach und Klasse fragt erst das Material.</li>
 					<li>
-						In der Mappe auf „Material anlegen“: Art, Format und Titel wählen, dann leer, mit einer Vorlage
+						Im Ordner auf „Material anlegen“: Art, Format und Titel wählen, dann leer, mit einer Vorlage
 						oder „Mit Claude“ beginnen. Mit Claude schreibst du in einem Satz, worum es geht. Der Chat
 						öffnet sich im Editor, und am Ende steht ein Entwurf zum Vergleichen.
 					</li>
@@ -135,13 +160,13 @@ const ABSCHNITTE: Abschnitt[] = [
 						alles fertig, schickt Claude dir einen Link in die Schoolbox.
 					</li>
 					<li>
-						Alles, was Claude für dich gemacht hat, steht hier unter „Meine Mappen“. Eine Anfrage ist eine
-						Mappe; darin liegen das Arbeitsblatt, Karten, die Präsentation …
+						Alles, was Claude für dich gemacht hat, steht hier unter „Mein Material“. Eine Anfrage ist ein
+						Ordner; darin liegen das Arbeitsblatt, Karten, die Präsentation …
 					</li>
 				</ol>
 			</>
 		),
-		bilder: [{ datei: 'uebersicht-mac.jpg', alt: 'Übersicht mit drei Mappen', geraet: 'Mac' }],
+		bilder: [{ datei: 'uebersicht-mac.jpg', alt: 'Mein Material mit drei Ordnern', geraet: 'Mac' }],
 	},
 	{
 		id: 'entwuerfe',
@@ -177,7 +202,7 @@ const ABSCHNITTE: Abschnitt[] = [
 				<li>
 					Steht ein gelber Kasten über dem Blatt, sind das Druckhinweise, zum Beispiel „auf festes Papier“.
 				</li>
-				<li>Die ganze Mappe auf einmal: in der Mappe „Alles als PDF“.</li>
+				<li>Ein ganzer Ordner auf einmal: Ordner auswählen, dann „Alles als PDF“.</li>
 				<li>
 					Warnt die Schoolbox vor dem Herunterladen, passt etwas nicht ganz aufs Blatt. Du kannst trotzdem
 					drucken oder Claude bitten, es zu reparieren.
@@ -264,7 +289,7 @@ const ABSCHNITTE: Abschnitt[] = [
 						in der Leiste am Baustein und auf jeder Kachel zeigt dasselbe, auch am iPad.
 					</Punkt>
 					<Punkt titel="Suchen und Befehle">
-						⌘K öffnet ein Feld, in dem du jeden Befehl, jede Mappe und jedes Dokument findest. Du musst nur
+						⌘K öffnet ein Feld, in dem du jeden Befehl, jeden Ordner und jedes Dokument findest. Du musst nur
 						ungefähr wissen, wie es heißt.
 					</Punkt>
 				</ul>
@@ -294,9 +319,9 @@ const ABSCHNITTE: Abschnitt[] = [
 				</ol>
 				<h3>Neues Material</h3>
 				<p>
-					In der Übersicht oder einer Mappe wird aus deiner Nachricht neues Material, im Editor wählst du
+					In „Mein Material“ oder einem Ordner wird aus deiner Nachricht neues Material, im Editor wählst du
 					dafür im Knopf links „Neues Material“. Claude zeigt erst eine Karte mit Titel, Format, Fach, Klasse
-					und Mappe. Erst Enter oder „Anlegen“ startet die Arbeit, „Ändern“ öffnet die Wahl von Hand.
+					und Ablage. Erst Enter oder „Anlegen“ startet die Arbeit, „Ändern“ öffnet die Wahl von Hand.
 				</p>
 				<h3>Was weiter die Claude-App braucht</h3>
 				<p>
@@ -318,10 +343,10 @@ const ABSCHNITTE: Abschnitt[] = [
 		titel: 'Teilen mit Kolleginnen',
 		inhalt: (
 			<ul>
-				<li>„Teilen“ in der Mappe oder im Dokument unter ⋯, dann „Link erstellen“ und „Link kopieren“.</li>
+				<li>Ordner oder Dokument auswählen, „Teilen“, dann „Link erstellen“ und „Link kopieren“.</li>
 				<li>
 					Wer den Link hat, kann ansehen, präsentieren und das PDF herunterladen. Ändern kann sie nichts, und
-					deine anderen Mappen sieht sie nicht.
+					deine anderen Ordner sieht sie nicht. Legst du etwas in den geteilten Ordner, sieht sie es auch; nimmst du es heraus, ist es für sie weg.
 				</li>
 				<li>Im selben Fenster schaltest du den Link wieder ab.</li>
 			</ul>

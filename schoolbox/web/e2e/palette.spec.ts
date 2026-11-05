@@ -101,14 +101,15 @@ test.describe('Befehlspalette (073)', () => {
 		await expect(page.locator('[data-textbearbeitung]')).toBeVisible();
 	});
 
-	test('außerhalb des Editors öffnet sie eine Mappe', async ({ page }) => {
-		const { id } = await legeMappeAn('Kartoffelernte', 'sachunterricht', 3, []);
+	test('außerhalb des Editors öffnet sie einen Ordner', async ({ page }) => {
+		await legeMappeAn('Kartoffelernte', 'sachunterricht', 3, []);
 		await page.goto('/');
 		await page.locator('[data-palette-knopf]').click();
 		await feld(page).fill('kartoffeler');
 		await expect(palette(page).getByRole('option').first()).toContainText('Kartoffelernte');
 		await page.keyboard.press('Enter');
-		await expect(page).toHaveURL(new RegExp(`/m/${id}$`));
+		await expect(page).toHaveURL(/\/o\//);
+		await expect(page.getByRole('heading', { level: 1, name: 'Kartoffelernte' })).toBeVisible();
 	});
 
 	test('Zeilen sind auf dem iPad groß genug', async ({ page }, info) => {

@@ -16,7 +16,7 @@ Belege: `grundschul-didaktik/references/quellen.md`, Abschnitt „Präsentation 
 Zuerst die Start-Abfrage (`grundschul-didaktik/references/rueckfragen.md`). Medium ist immer Folie 16:9, Farbe wird angenommen. Die Bausteine werden zu Folien und werden erst nach dem Zweck gefragt, nur für die Folien, die entstehen: Selbsteinschätzung → Reflexionsfolie mit Wachstumsgrafik, Niveaus → Lernaufgaben-Folie mit ● / ●● / ●●●, Sternchenaufgabe → ★ auf der Lernaufgaben-Folie. Sonst höchstens:
 
 1. **Zweck:** Einstieg in ein neues Thema (Kreisinput), Ergebnissicherung nach einer Erarbeitung oder nur die Reflexion am Ende? *Empfehlung: Kreisinput, wenn „Einstieg“ oder „Kreis“ in der Anfrage steht.*
-2. **Lernaufgaben danach:** Gibt es sie schon (z. B. das Arbeitsblatt dieser Mappe), oder soll ich 2–4 vorschlagen? *Empfehlung: Ich schlage passende vor; das Material dazu entsteht danach mit dem jeweiligen Skill.*
+2. **Lernaufgaben danach:** Gibt es sie schon (z. B. das Arbeitsblatt in diesem Ordner), oder soll ich 2–4 vorschlagen? *Empfehlung: Ich schlage passende vor; das Material dazu entsteht danach mit dem jeweiligen Skill.*
 3. **Vorwissen der Klasse**, nur wenn der Fach-Skill es nicht herleiten lässt. Typische Fehlvorstellungen nimmt man aus dem Fach-Skill und nennt sie als Annahme.
 
 Wünscht die Lehrkraft eine lange Präsentation (15 Folien zu einem Thema), nicht kürzen, sondern vorschlagen: je Stunde ein Kreisinput mit höchstens 6 Folien, der Rest als Lernaufgaben, Lesetext oder Plakat.
