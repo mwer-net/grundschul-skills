@@ -4115,10 +4115,11 @@
     const soll = NOTEN_TAKTE[takt];
     if (!soll) abbruch(`Die Taktart ${takt} gibt es hier nicht.`);
     const takte = String(text).split("|").map((t) => t.trim().split(/\s+/).filter(Boolean)).filter((t) => t.length > 0).map((t) => t.map((w) => leseNote(w, mitTon)));
-    takte.forEach((noten, i) => {
+    const falsch = takte.map((noten, i) => {
       const summe = noten.reduce((s, n) => s + n.achtel, 0), rand = auftakt && (i === 0 || i === takte.length - 1);
-      if (rand ? summe > soll : summe !== soll) abbruch(`Takt ${i + 1} hat ${viertelText(summe)} Viertel statt ${viertelText(soll)}.`);
-    });
+      return (rand ? summe > soll : summe !== soll) ? `Takt ${i + 1} hat ${viertelText(summe)} Viertel statt ${viertelText(soll)}` : null;
+    }).filter(Boolean);
+    if (falsch.length) abbruch(`${falsch.join(", ")}. Passe die Noten an: Jeder Takt braucht ${viertelText(soll)} Viertel.`);
     return takte;
   };
   /** Hals nach oben unter der Mittellinie (h' = Stufe 6), ab der Mittellinie nach unten. */

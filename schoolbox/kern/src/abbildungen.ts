@@ -759,6 +759,65 @@ export const notenAnfuegen = (text: string, wort: string, takt: string) => {
 	return summe >= (NOTEN_TAKT_ACHTEL[takt] ?? 8) ? `${roh} | ${wort}` : `${roh} ${wort}`;
 };
 
+/**
+ * Ordnet die Noten neu in Takte der Taktart `takt`, wie `notenAnfuegen` sie schriebe; Pausen am Ende fallen weg, neue füllen
+ * den letzten Takt. `null`, wenn eine Note über einen Taktstrich ragte oder ein Wort keine Note ist.
+ */
+export const notenInTakt = (text: string, takt: string): string | null => {
+	const soll = NOTEN_TAKT_ACHTEL[takt];
+	const woerter = text.split(/[\s|]+/).filter(Boolean);
+	while (woerter.length > 0 && /^r/.test(woerter.at(-1) ?? '')) {
+		woerter.pop();
+	}
+	if (!soll || woerter.length === 0) {
+		return null;
+	}
+	const takte: string[][] = [];
+	let summe = soll;
+	for (const wort of woerter) {
+		const achtel = wortAchtel(wort);
+		if (achtel === 0) {
+			return null;
+		}
+		if (summe === soll) {
+			takte.push([]);
+			summe = 0;
+		}
+		if (summe + achtel > soll) {
+			return null;
+		}
+		takte.at(-1)?.push(wort);
+		summe += achtel;
+	}
+	const letzter = takte.at(-1) ?? [];
+	if (summe % 2 === 1) {
+		letzter.push('r8');
+		summe += 1;
+	}
+	while (summe < soll) {
+		const halbe = summe % 4 === 0 && soll - summe >= 4;
+		letzter.push(halbe ? 'r2' : 'r4');
+		summe += halbe ? 4 : 2;
+	}
+	return takte.map((t) => t.join(' ')).join(' | ');
+};
+
+/** Die Taktart nimmt die Noten mit, wenn sie sich ohne Bindebogen neu ordnen lassen; mit Auftakt bleibt alles, wie es ist. */
+const notenFuerTakt = (w: Werte): Werte => {
+	const roh = w.noten ?? '';
+	const soll = NOTEN_TAKT_ACHTEL[w.takt ?? '4/4'] ?? 8;
+	const takte = roh.split('|').map((t) => t.trim().split(/\s+/).filter(Boolean));
+	const passt = takte.every((t) => t.reduce((s, wort) => s + wortAchtel(wort), 0) === soll);
+	if (!roh.trim() || passt || w.auftakt === 'ja') {
+		return {};
+	}
+	const neu = notenInTakt(roh, w.takt ?? '4/4');
+	if (neu === null || (w.art === 'karte' && neu.includes('|'))) {
+		return {};
+	}
+	return { noten: neu };
+};
+
 export const notenZuruecknehmen = (text: string) =>
 	text
 		.trim()
@@ -3196,7 +3255,8 @@ export const ABBILDUNG_SCHEMA = {
 			{
 				art: 'zahl',
 				attribut: 'schritt',
-				name: 'Markierung alle',
+				name: 'Strich alle',
+				hilfe: 'Abstand der Striche auf der Leiste. Passen nicht alle Zahlen, steht nur an manchen eine.',
 				min: 1,
 				max: 1000,
 				standard: 10,
@@ -3855,7 +3915,14 @@ export const ABBILDUNG_SCHEMA = {
 			faecher: ['musik'],
 		},
 		felder: [
-			{ art: 'auswahl', attribut: 'takt', name: 'Takt', standard: '4/4', optionen: NOTEN_TAKTARTEN },
+			{
+				art: 'auswahl',
+				attribut: 'takt',
+				name: 'Takt',
+				standard: '4/4',
+				optionen: NOTEN_TAKTARTEN,
+				mitnehmen: notenFuerTakt,
+			},
 			{ art: 'noten', attribut: 'noten', name: 'Noten', tonhoehe: false },
 			{
 				art: 'auswahl',
@@ -3908,7 +3975,14 @@ export const ABBILDUNG_SCHEMA = {
 			faecher: ['musik'],
 		},
 		felder: [
-			{ art: 'auswahl', attribut: 'takt', name: 'Takt', standard: '4/4', optionen: NOTEN_TAKTARTEN },
+			{
+				art: 'auswahl',
+				attribut: 'takt',
+				name: 'Takt',
+				standard: '4/4',
+				optionen: NOTEN_TAKTARTEN,
+				mitnehmen: notenFuerTakt,
+			},
 			{ art: 'noten', attribut: 'noten', name: 'Noten', tonhoehe: true },
 			{ art: 'schalter', attribut: 'namen', name: 'Notennamen darunter', an: 'ja', aus: 'nein', standard: false },
 			{
@@ -3929,7 +4003,15 @@ export const ABBILDUNG_SCHEMA = {
 					{ wert: 'zeichnen', name: 'Noten zeichnen' },
 				],
 			},
-			{ art: 'zahl', attribut: 'systeme', name: 'Leere Notenzeilen', min: 0, max: 8, standard: 0 },
+			{
+				art: 'zahl',
+				attribut: 'systeme',
+				name: 'Leere Zeilen',
+				hilfe: 'So viele leere Notenzeilen kommen unter die Noten.',
+				min: 0,
+				max: 8,
+				standard: 0,
+			},
 			{
 				art: 'auswahl',
 				attribut: 'vorzeichen',

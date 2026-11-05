@@ -1137,6 +1137,60 @@ test.describe('Schreiben und Sprache: Wahlen zeigen den Weg (084)', () => {
 	});
 });
 
+test.describe('Sachunterricht und Musik: Die Taktart nimmt die Noten mit (084)', () => {
+	const mitTag = async (page: Page, tag: string) => {
+		const { dok, id, material: datei } = await uhrzeit();
+		await oeffne(page, id, dok);
+		await aendere(page, (await quelle(page)).replace(/<x-uhr[^>]*><\/x-uhr>/, tag));
+		await gespeichert(page, datei);
+		return { datei, stand: await readFile(datei, 'utf8') };
+	};
+
+	test('Rhythmus und Noten: Jede Taktart geht vom Starter aus, ein Schritt zurück stellt alles her', async ({
+		druecke,
+		page,
+	}) => {
+		const { datei, stand } = await mitTag(
+			page,
+			String.raw`<x-rhythmus art="karte" takt="2/4" noten="4 8 8" silben="ta"></x-rhythmus><x-noten takt="4/4" noten="c'4 d'4 e'4 f'4 | g'4 a'4 h'4 c''4" namen="ja"></x-noten>`,
+		);
+		const rhythmus = material(page).locator('x-rhythmus');
+		await druecke(rhythmus);
+		await page.locator('[data-feld="takt"] select').selectOption('3/4');
+		await gespeichert(page, datei);
+		await expect(rhythmus).not.toHaveAttribute('data-fehler', /./);
+		expect(await readFile(datei, 'utf8')).toContain('noten="4 8 8 r4"');
+
+		const noten = material(page).locator('x-noten');
+		await druecke(noten);
+		await expect(page.locator('[data-feld="systeme"]')).toContainText('Leere Zeilen');
+		await page.locator('[data-feld="takt"] select').selectOption('2/4');
+		await gespeichert(page, datei);
+		await expect(noten).not.toHaveAttribute('data-fehler', /./);
+		expect(await readFile(datei, 'utf8')).toContain(String.raw`noten="c'4 d'4 | e'4 f'4 | g'4 a'4 | h'4 c''4"`);
+
+		for (let i = 0; i < 2; i++) {
+			await druecke(zurueck(page));
+			await gespeichert(page, datei);
+		}
+		expect(await readFile(datei, 'utf8')).toBe(stand);
+	});
+
+	test('Rhythmuskarte: Passt der Takt nicht auf eine Karte, nennt die Meldung den Weg', async ({ druecke, page }) => {
+		const { datei, stand } = await mitTag(page, '<x-rhythmus art="karte" takt="4/4" noten="4 2 4"></x-rhythmus>');
+		await druecke(material(page).locator('x-rhythmus'));
+		await page.locator('[data-feld="takt"] select').selectOption('2/4');
+		await expect(panel(page).locator('[data-fehler="_element"]')).toContainText('Passe die Noten an');
+		expect(await readFile(datei, 'utf8')).toBe(stand);
+	});
+
+	test('Zeitleiste: Der Abstand der Striche heißt kurz', async ({ druecke, page }) => {
+		await mitTag(page, '<x-zeitleiste von="1900" bis="2020" schritt="10"></x-zeitleiste>');
+		await druecke(material(page).locator('x-zeitleiste'));
+		await expect(page.locator('[data-feld="schritt"]')).toContainText('Strich alle');
+	});
+});
+
 test.describe('Geometrie: Wahlen nehmen mit, was sie brauchen (084)', () => {
 	const mitTag = async (page: Page, tag: string) => {
 		const { dok, id, material: datei } = await uhrzeit();

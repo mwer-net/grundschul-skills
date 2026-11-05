@@ -23,6 +23,7 @@ import {
 	miniTeile,
 	NOTEN_VORSCHLAG,
 	notenAnfuegen,
+	notenInTakt,
 	notenMitTon,
 	notenPunkt,
 	notenTon,
@@ -377,6 +378,42 @@ describe('Felder ändern', () => {
 		}
 		assert.equal(f.nurWenn?.({ art: 'thermometer' }), false);
 		assert.equal(f.nurWenn?.({}), true);
+	});
+
+	it('Taktart: nimmt die Noten mit, wenn keine über einen Taktstrich ragt; die Zeichnung nimmt das Ergebnis an', () => {
+		const { leseTakte } = rechenkerne();
+		const rhythmus = schema('x-rhythmus');
+		const takt = (s: AbbildungSchema, w: Werte, wert: string) => aendereFeld(s, w, feld(s, 'takt'), wert);
+		const karte: Werte = { art: 'karte', takt: '2/4', noten: '4 8 8', silben: 'ta' };
+		assert.equal(takt(rhythmus, karte, '3/4').noten, '4 8 8 r4');
+		assert.equal(takt(rhythmus, karte, '4/4').noten, '4 8 8 r2');
+		assert.equal(takt(rhythmus, takt(rhythmus, karte, '4/4'), '2/4').noten, '4 8 8', 'Pausen am Ende fallen weg');
+		// Die Karte hat genau einen Takt: Was nicht hineinpasst, bleibt, und die Meldung nennt den Weg.
+		assert.equal(takt(rhythmus, { art: 'karte', takt: '4/4', noten: '2 4 4' }, '2/4').noten, '2 4 4');
+		assert.equal(takt(rhythmus, { takt: '4/4', noten: '2 4 4' }, '2/4').noten, '2 | 4 4');
+		// Eine Halbe über dem Taktstrich und ein Auftakt bleiben unverändert.
+		assert.equal(takt(rhythmus, { takt: '4/4', noten: '4 2 4' }, '2/4').noten, '4 2 4');
+		assert.equal(takt(rhythmus, { takt: '4/4', noten: '4 | 4 4 4 4', auftakt: 'ja' }, '3/4').noten, '4 | 4 4 4 4');
+		// Passt schon: Nichts ändert sich.
+		assert.deepEqual(takt(rhythmus, { takt: '2/4', noten: '2 4' }, '3/4'), { takt: '3/4', noten: '2 4' });
+
+		const noten = schema('x-noten');
+		const melodie: Werte = { takt: '4/4', noten: String.raw`c'4 d'4 e'4 f'4 | g'4 a'4 h'4 c''4`, namen: 'ja' };
+		assert.equal(takt(noten, melodie, '2/4').noten, String.raw`c'4 d'4 | e'4 f'4 | g'4 a'4 | h'4 c''4`);
+		assert.equal(takt(noten, melodie, '3/4').noten, String.raw`c'4 d'4 e'4 | f'4 g'4 a'4 | h'4 c''4 r4`);
+		assert.equal(notenInTakt('4 8', '4/4'), '4 8 r8 r2');
+		assert.equal(notenInTakt('4 x', '4/4'), null);
+
+		for (const [text, ziel] of [
+			['4 8 8', '3/4'],
+			['4 8', '4/4'],
+			['8 8 8 8 4 4 | 4 4 4 4', '3/4'],
+			['4 4 4 | 4 4 4', '4/4'],
+		] as const) {
+			const neu = notenInTakt(text, ziel);
+			assert.ok(neu !== null, `${text} in ${ziel}`);
+			assert.doesNotThrow(() => leseTakte(neu, ziel, false), `${text} in ${ziel}: ${neu}`);
+		}
 	});
 
 	it('Satzglieder: Nach vorn stehen nur Satzglieder zur Wahl, die das Umstellen findet', () => {
@@ -1830,6 +1867,11 @@ describe('Musik (035)', () => {
 		assert.throws(() => leseTakte('4 4 8 8 4 4 | 4 4 2', '4/4', false), /Takt 1 hat 5 Viertel statt 4/);
 		assert.throws(() => leseTakte('4 4 | 4', '2/4', false), /Takt 2 hat 1 Viertel statt 2/);
 		assert.throws(() => leseTakte('4 8', '2/4', false), /Takt 1 hat 1,5 Viertel statt 2/);
+		assert.throws(
+			() => leseTakte('4 | 4 4 | 2.', '2/4', false),
+			/Takt 1 hat 1 Viertel statt 2, Takt 3 hat 3 Viertel statt 2\. Passe die Noten an: Jeder Takt braucht 2 Viertel\.$/,
+			'Die Meldung nennt jeden falschen Takt und den Weg (084, E-U1)',
+		);
 		assert.equal(leseTakte('4 8 8 4 r4 | 2.  4', '4/4', false).length, 2);
 		assert.throws(() => leseTakte('4', '4/4', false), /Takt 1/);
 		assert.equal(leseTakte('4 | 4 4 4 4 | 4 4 4', '4/4', false, true).length, 3);
