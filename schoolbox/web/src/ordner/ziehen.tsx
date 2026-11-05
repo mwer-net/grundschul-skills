@@ -7,7 +7,7 @@ import type { AuswahlStand } from './auswahl';
 import { Geist } from './Geist';
 import { useAblage } from './kontext';
 import { bewegtText, geloeschtText, kopiertText } from './meldungen';
-import { ortName, zielGueltig } from './objekte';
+import { nachkommen, ortName, zielGueltig } from './objekte';
 import type { Objekt } from './typen';
 
 const FEDERN_MS = 700;
@@ -36,6 +36,8 @@ interface Zug {
 	/** Ordner-Id, `null` für die Wurzel, `papierkorb`, oder `undefined`, wenn hier nichts abgelegt werden kann. */
 	zielId: string | null | undefined;
 	kopiert: boolean;
+	/** Ein Ordner über sich selbst oder einem seiner Nachkommen: Das steht schon vor dem Loslassen in der Statuszeile. */
+	inSichSelbst: boolean;
 	federn: number | null;
 	x: number;
 	y: number;
@@ -70,7 +72,9 @@ export const useZiehen = (o: Optionen) => {
 			return;
 		}
 		const was = z.objekte.length === 1 ? `„${z.objekte[0]?.name ?? ''}“` : `${z.objekte.length} Objekte`;
-		if (z.zielId === undefined) {
+		if (z.inSichSelbst) {
+			setStatus('Ein Ordner kann nicht in sich selbst liegen.');
+		} else if (z.zielId === undefined) {
 			setStatus(`${was} ${z.kopiert ? 'kopieren' : 'bewegen'}: Ziel wählen`);
 		} else if (z.zielId === 'papierkorb') {
 			setStatus(`${was} in den Papierkorb legen`);
@@ -128,6 +132,7 @@ export const useZiehen = (o: Optionen) => {
 			}
 		}
 		z.zielId = neueId;
+		z.inSichSelbst = Boolean(s && id && z.objekte.some((x) => x.istOrdner && nachkommen(s, x.ordner.id).has(id)));
 		zeigeStatus(z);
 		setzeZeiger(z);
 	};
@@ -199,6 +204,7 @@ export const useZiehen = (o: Optionen) => {
 			ziel: null,
 			zielId: undefined,
 			kopiert,
+			inSichSelbst: false,
 			federn: null,
 			x,
 			y,
@@ -310,8 +316,14 @@ export const useZiehen = (o: Optionen) => {
 			window.setTimeout(() => window.removeEventListener('click', schlucke, true), 300);
 		};
 
-		const hoch = () => {
+		const hoch = (m: PointerEvent) => {
 			const warZug = lauf.current !== null;
+			// Es zählt, wo losgelassen wird: Die Schleife kann ein Bild hinterher sein.
+			if (lauf.current) {
+				lauf.current.x = m.clientX;
+				lauf.current.y = m.clientY;
+				waehleZiel(lauf.current);
+			}
 			raeumeAuf();
 			if (warZug) {
 				schluckeKlick();

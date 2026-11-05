@@ -1,8 +1,8 @@
 /** Offen ist etwas, das die Tastatur für sich braucht. Dann ruhen die Tasten des Blatts. */
 export const TASTEN_SPERRE_OHNE_LISTE =
 	'dialog[open], [role="dialog"], [role="menu"], [data-kontextmenue], [data-zieht]';
-/** Die Ablage ist selbst eine `listbox`, deshalb gilt dort die Fassung ohne Liste. */
-export const TASTEN_SPERRE = `${TASTEN_SPERRE_OHNE_LISTE}, [role="listbox"]`;
+/** Die Fläche der Ablage ist selbst eine `listbox`, aber kein offenes Auswahlfeld: ⌘K und ⌘J gelten dort weiter. */
+export const TASTEN_SPERRE = `${TASTEN_SPERRE_OHNE_LISTE}, [role="listbox"]:not([data-ablage-liste])`;
 
 /** Ereignisse kommen auch aus dem `iframe`: `instanceof` kennt dessen Klassen nicht. */
 const element = (ziel: EventTarget | null) => {

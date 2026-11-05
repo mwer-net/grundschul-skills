@@ -45,6 +45,18 @@ const zieheBis = async (page: Page, von: Locator, nach: Locator) => {
 };
 
 test.describe('Kerngeschichte', () => {
+	test('⌘K und ⌘J gelten auch in der Ablage', async ({ hasTouch, page }) => {
+		test.skip(hasTouch, 'Tasten nur mit Maus und Tastatur');
+		await page.goto('/');
+		await expect(leiste(page)).toBeVisible();
+		await page.keyboard.press('ControlOrMeta+k');
+		await expect(page.getByRole('dialog')).toBeVisible();
+		await page.keyboard.press('Escape');
+		await expect(page.getByRole('dialog')).toHaveCount(0);
+		await page.keyboard.press('ControlOrMeta+j');
+		await expect(page.locator('[data-chat] #ki-auftrag')).toBeFocused();
+	});
+
 	test('Ordner anlegen, ziehen, in die Tiefe, ausschneiden, einfügen, alles per ⌘Z zurück', async ({
 		hasTouch,
 		page,
@@ -95,7 +107,7 @@ test.describe('Kerngeschichte', () => {
 		await oeffneObjekt(page, 'Reihe');
 
 		// 3 Blätter ausschneiden, woanders einfügen
-		await objekt(page, 'Station 1').click();
+		await objekt(page, 'Station 1').first().click();
 		await objekt(page, 'Station 3').click({ modifiers: ['Shift'] });
 		await page.keyboard.press('ControlOrMeta+x');
 		await expect(meldung(page)).toContainText('gemerkt');
@@ -163,7 +175,8 @@ test.describe('Ansicht', () => {
 		await druecke(objekt(page, 'Reihe').locator('[data-dreieck]'));
 		await expect(kacheln(page)).toHaveCount(5);
 		await oeffneObjekt(page, 'Reihe');
-		const namen = () => page.locator('[data-objekt] [data-objekt-name]').allInnerTexts();
+		const namen = async () =>
+			(await page.locator('[data-objekt] [data-objekt-name]').allInnerTexts()).map((t) => t.split('\n')[0]);
 		await expect.poll(namen).toEqual(['Station 1', 'Station 2', 'Station 3', 'Station 10']);
 		await druecke(page.getByRole('button', { name: /^Name/ }));
 		await expect.poll(namen).toEqual(['Station 1', 'Station 2', 'Station 3', 'Station 10']);
@@ -289,7 +302,7 @@ test.describe('Ohne Ziehen', () => {
 		await expect(kacheln(page)).toHaveCount(1);
 	});
 
-	test('Umbenennen über das Menü; gleiche Namen bleiben beide', async ({ druecke, page }) => {
+	test('Umbenennen über das Menü; bei gleichem Namen bleibt das Feld offen', async ({ druecke, page }) => {
 		await legeMappeAn('Eins', 'mathematik', 3, [{ titel: 'Blatt A' }]);
 		await legeMappeAn('Zwei', 'mathematik', 3, [{ titel: 'Blatt B' }]);
 		await page.goto('/');
@@ -297,9 +310,12 @@ test.describe('Ohne Ziehen', () => {
 		await druecke(eintrag(page, /^Umbenennen/));
 		await page.locator('[data-namensfeld] input').fill('Eins');
 		await page.keyboard.press('Enter');
+		await expect(page.getByRole('alert')).toContainText('Diesen Namen gibt es hier schon.');
+		await expect(page.locator('[data-namensfeld] input')).toBeFocused();
+		await page.locator('[data-namensfeld] input').fill('Drei');
+		await page.keyboard.press('Enter');
 		await expect(meldung(page)).toContainText('heißt jetzt');
-		await expect(kacheln(page)).toHaveCount(2);
-		await expect(objekt(page, 'Eins')).toHaveCount(2);
+		await expect(objekt(page, 'Drei')).toHaveCount(1);
 	});
 
 	test('Tasten: F2-freies Umbenennen, ⌘C/⌘V kopieren, ⌘⌫ löschen, Esc bricht ab', async ({ hasTouch, page }) => {
@@ -328,7 +344,7 @@ test.describe('Übersicht und Informationen', () => {
 		test.skip(hasTouch, 'Am Finger über das Menü, siehe unten');
 		const { dokumente, id } = await reihe();
 		await page.goto(`/m/${id}`);
-		await objekt(page, 'Station 1').click();
+		await objekt(page, 'Station 1').first().click();
 		await page.keyboard.press(' ');
 		const dialog = page.getByRole('dialog');
 		await expect(dialog.locator(`[data-uebersicht="${id}/${dokumente[0]}"]`)).toBeVisible();
@@ -428,7 +444,7 @@ test.describe('Bestand', () => {
 		await expect(pfad(page)).toContainText('Ziel');
 	});
 
-	test('kaputter Baum: sichtbare Meldung, Sicherung greift, kein Material betroffen', async ({ page }) => {
+	test('kaputter Baum ohne Sicherung: sichtbare Meldung, kein Material betroffen', async ({ page }) => {
 		await legeMappeAn('Sicher', 'mathematik', 2, [{ titel: 'Blatt' }]);
 		await page.goto('/');
 		await expect(objekt(page, 'Sicher')).toBeVisible();
@@ -437,9 +453,7 @@ test.describe('Bestand', () => {
 		await writeFile(baumDatei, '{ kaputt');
 		await page.reload();
 		await expect(objekt(page, 'Sicher')).toBeVisible();
-		await expect(page.getByRole('alert').or(meldung(page))).toContainText(
-			/Sicherung|wiederhergestellt|geordnet|Ablage/,
-		);
+		await expect(meldung(page)).toContainText('Dein Material ist vollständig.');
 	});
 });
 

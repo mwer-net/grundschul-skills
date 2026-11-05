@@ -484,6 +484,7 @@ export const Ablage = () => {
 	const ziehtHier = seite.art === 'ordner';
 	const flaeche = {
 		'role': 'listbox',
+		'data-ablage-liste': true,
 		'aria-multiselectable': true,
 		'aria-label': hier?.name ?? WURZEL_NAME,
 		'onPointerDown': zeigerUnten,

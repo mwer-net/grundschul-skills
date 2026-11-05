@@ -281,7 +281,7 @@ test.describe('Präsentation', () => {
 		await expect(besuch.getByRole('menuitem', { name: 'Ohne Internet' })).toBeVisible();
 		await besuch.keyboard.press('Escape');
 		await druecke(besuch.getByRole('link', { name: 'Präsentieren' }));
-		await expect(besuch).toHaveURL(new RegExp(`/f/${dokLink}/d/${dokumente[0]}/praesentation$`));
+		await expect(besuch).toHaveURL(new RegExp(`/f/${dokLink}/d/[^/]*${dokumente[0]}/praesentation$`));
 		const folie = await starte(besuch, druecke);
 		await besuch.keyboard.press('ArrowRight');
 		await expect(folie.locator('.praesentation-nummer')).toHaveText('2 / 6');

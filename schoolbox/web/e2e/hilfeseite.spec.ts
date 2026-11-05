@@ -4,6 +4,7 @@ import { expect, test } from './hilfe';
 
 const MATERIAL_DIR = process.env.E2E_MATERIAL_DIR ?? '';
 const ABSCHNITTE = [
+	'Ordner und Material ordnen',
 	'Selbst anlegen',
 	'Material von Claude',
 	'Entwürfe auswählen',

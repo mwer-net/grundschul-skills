@@ -8,7 +8,7 @@ import type { Objekt } from './typen';
 export const Geist = ({ objekte, x, y }: { objekte: Objekt[]; x: number; y: number }) =>
 	createPortal(
 		<div
-			className="pointer-events-none fixed top-0 left-0 z-meldung"
+			className="pointer-events-none fixed top-0 left-0 z-meldung h-16 w-12"
 			style={{ transform: `translate(${x + 8}px, ${y + 8}px)` }}
 			data-geist
 		>

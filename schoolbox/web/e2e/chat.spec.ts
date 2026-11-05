@@ -235,7 +235,8 @@ test.describe('Neues Material aus dem Chat (077)', () => {
 
 	const neuKarte = (page: Page) => chat(page).locator('[data-chat-neu]');
 	const mappenZahl = async () =>
-		(await readdir(MATERIAL_DIR, { withFileTypes: true })).filter((e) => e.isDirectory()).length;
+		(await readdir(MATERIAL_DIR, { withFileTypes: true })).filter((e) => e.isDirectory() && !e.name.startsWith('_'))
+			.length;
 	const dokZahl = async (mappe: string) => {
 		const eintraege = await readdir(path.join(MATERIAL_DIR, mappe, 'dokumente'), { withFileTypes: true });
 		return eintraege.filter((e) => e.isDirectory()).length;

@@ -15,7 +15,8 @@ test.describe('Editor', () => {
 		const versionenVorher = await versionen(ordner);
 		const schreibend: string[] = [];
 		page.on('request', (anfrage) => {
-			if (anfrage.method() !== 'GET') {
+			// Vorschauen anfordern ändert kein Material.
+			if (anfrage.method() !== 'GET' && !anfrage.url().endsWith('/api/ordner/vorschauen')) {
 				schreibend.push(`${anfrage.method()} ${anfrage.url()}`);
 			}
 		});

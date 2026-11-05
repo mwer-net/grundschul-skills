@@ -166,27 +166,27 @@ test.describe('Ordner', () => {
 		await objektMenue(page, 'Die Kartoffel');
 		await druecke(page.getByRole('menuitem', { name: 'Duplizieren' }));
 		await expect(kacheln).toHaveCount(4);
-		await expect(objekt(page, 'Die Kartoffel Kopie')).toBeVisible();
+		await expect(objekt(page, 'Die Kartoffel (Kopie)')).toBeVisible();
 
-		await objektMenue(page, 'Die Kartoffel Kopie');
+		await objektMenue(page, 'Die Kartoffel (Kopie)');
 		await druecke(page.getByRole('menuitem', { name: 'In den Papierkorb' }));
 		const meldung = page.getByRole('status');
-		await expect(meldung).toContainText('„Die Kartoffel Kopie“ in den Papierkorb gelegt.');
+		await expect(meldung).toContainText('„Die Kartoffel (Kopie)“ in den Papierkorb gelegt.');
 		await expect(kacheln).toHaveCount(3);
 		await druecke(meldung.getByRole('button', { name: 'Rückgängig' }));
 		await expect(kacheln).toHaveCount(4);
 
-		await objektMenue(page, 'Die Kartoffel Kopie');
+		await objektMenue(page, 'Die Kartoffel (Kopie)');
 		await druecke(page.getByRole('menuitem', { name: 'In den Papierkorb' }));
 		await expect(kacheln).toHaveCount(3);
 		await druecke(page.locator('[data-ablage-ziel="papierkorb"]'));
 		await expect(page.getByRole('heading', { level: 1, name: 'Papierkorb' })).toBeVisible();
-		const eintrag = page.locator('[data-korb-eintrag="Die Kartoffel Kopie"]');
+		const eintrag = page.locator('[data-korb-eintrag="Die Kartoffel (Kopie)"]');
 		await expect(eintrag).toContainText('Noch 30 Tage');
-		await druecke(eintrag.getByRole('button', { name: 'Die Kartoffel Kopie wiederherstellen' }));
+		await druecke(eintrag.getByRole('button', { name: 'Die Kartoffel (Kopie) wiederherstellen' }));
 		await expect(page.getByRole('heading', { name: 'Der Papierkorb ist leer' })).toBeVisible();
 		await page.goto('/');
-		await expect(objekt(page, 'Die Kartoffel Kopie')).toBeVisible();
+		await expect(objekt(page, 'Die Kartoffel (Kopie)')).toBeVisible();
 	});
 
 	test('ein unbekannter Ordner führt nicht ins Leere', async ({ page }) => {

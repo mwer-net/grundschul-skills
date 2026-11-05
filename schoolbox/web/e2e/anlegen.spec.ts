@@ -9,6 +9,7 @@ const mappenzahl = async () => (await readdir(MATERIAL_DIR)).length;
 
 const neuerOrdner = async (page: Page, name: string) => {
 	await page.locator('[data-werkzeugleiste] [data-neuer-ordner]').click();
+	await expect(page.locator('[data-namensfeld] input')).toBeFocused();
 	await page.keyboard.type(name);
 	await page.keyboard.press('Enter');
 	await expect(objekt(page, name)).toBeVisible();
@@ -45,7 +46,7 @@ test.describe('Anlegen ohne Claude', () => {
 			.toContain('class="aufgabe"');
 	});
 
-	test('Abbrechen hinterlässt nichts; gleicher Ordnername bekommt eine Nummer, nichts wird ersetzt', async ({
+	test('Abbrechen hinterlässt nichts; gleicher Ordnername: Das Feld bleibt offen, nichts wird ersetzt', async ({
 		page,
 	}) => {
 		await page.goto('/');
@@ -55,13 +56,19 @@ test.describe('Anlegen ohne Claude', () => {
 		expect(await mappenzahl()).toBe(vorher);
 
 		const titel = `Doppelt ${Date.now()}`;
-		for (let runde = 0; runde < 2; runde += 1) {
+		const nenne = async () => {
 			await page.locator('[data-werkzeugleiste] [data-neuer-ordner]').click();
+			await expect(page.locator('[data-namensfeld] input')).toBeFocused();
 			await page.keyboard.type(titel);
 			await page.keyboard.press('Enter');
-			await expect(objekt(page, titel).first()).toBeVisible();
-		}
-		await expect(objekt(page, titel)).toHaveCount(2);
+		};
+		await nenne();
+		await expect(objekt(page, titel)).toBeVisible();
+		await nenne();
+		await expect(page.getByRole('alert')).toContainText('Diesen Namen gibt es hier schon.');
+		await page.keyboard.press('Escape');
+		await expect(objekt(page, titel)).toHaveCount(1);
+		await expect(objekt(page, 'Neuer Ordner')).toHaveCount(1);
 	});
 
 	test('Jede Art führt zu einem bearbeitbaren Dokument', async ({ page }) => {

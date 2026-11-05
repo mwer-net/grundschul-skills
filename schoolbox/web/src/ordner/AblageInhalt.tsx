@@ -1,6 +1,6 @@
 import { useNavigate, useSearchParams } from 'react-router-dom';
 
-import { Knopf } from '../bausteine/Knopf';
+import { Knopf, KnopfLink } from '../bausteine/Knopf';
 import { Symbol } from '../bausteine/Symbol';
 import { Zustand } from '../bausteine/Zustand';
 import type { ObjektAnsicht, ZeileAnsicht } from './darstellung';
@@ -67,6 +67,12 @@ const LeererOrdner = ({
 				Material anlegen
 			</Knopf>
 		</div>
+		{!hier && (
+			<KnopfLink to="/hilfe" art="zweit">
+				<Symbol name="hilfe" />
+				So geht’s
+			</KnopfLink>
+		)}
 	</Zustand>
 );
 
