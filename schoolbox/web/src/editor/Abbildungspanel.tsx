@@ -1258,7 +1258,7 @@ const Liste = ({ abb, feld }: FeldEigenschaften<ListeFeld>) => {
 
 /** Am Mac teilen sich die Zellen die Breite, bis 14 px herunter: So passen 16 Spalten ohne Bildlauf. Am Finger bleiben sie 44 px, dann mit sichtbarem Bildlauf (G2). */
 const ZELLE =
-	'flex min-w-0 items-center justify-center overflow-hidden rounded-sm border border-rand bg-flaeche text-xs font-medium tabular-nums [@media(any-pointer:coarse)]:rounded-md [@media(any-pointer:coarse)]:text-base';
+	'flex min-w-0 items-center justify-center overflow-hidden rounded-sm border border-rand text-xs font-medium tabular-nums [@media(any-pointer:coarse)]:rounded-md [@media(any-pointer:coarse)]:text-base';
 const ZELLE_RASTER = 'h-6 [@media(any-pointer:coarse)]:h-knopf';
 const ZELLEN_SPALTEN =
 	'[--zellen-spalte:minmax(14px,1fr)] [@media(any-pointer:coarse)]:[--zellen-spalte:minmax(44px,44px)]';
@@ -1306,7 +1306,7 @@ const FormRaster = ({ abb, feld }: FeldEigenschaften<RasterFeld>) => {
 						className={klassen(
 							ZELLE,
 							'absolute box-border',
-							gewaehlt.includes(z.id) ? 'border-brand-500 bg-brand-500 text-white' : 'text-leise',
+							gewaehlt.includes(z.id) ? 'border-brand-500 bg-brand-500 text-white' : 'bg-flaeche text-leise',
 						)}
 						style={{
 							left: anteil(z.x, breite),
@@ -1374,7 +1374,7 @@ const GitterRaster = ({ abb, feld }: FeldEigenschaften<RasterFeld>) => {
 									className={klassen(
 										ZELLE,
 										ZELLE_RASTER,
-										'w-full text-center focus:border-brand-500 focus:outline-none',
+										'w-full bg-flaeche text-center focus:border-brand-500 focus:outline-none',
 									)}
 									value={zelle}
 									onChange={(e) => setze(r, c, e.target.value.trim() || leer, false)}
@@ -1391,7 +1391,7 @@ const GitterRaster = ({ abb, feld }: FeldEigenschaften<RasterFeld>) => {
 									className={klassen(
 										ZELLE,
 										ZELLE_RASTER,
-										zelle !== leer && 'border-brand-500 bg-brand-500 text-white',
+										zelle === leer ? 'bg-flaeche' : 'border-brand-500 bg-brand-500 text-white',
 									)}
 									onClick={() => setze(r, c, naechster(zelle))}
 								>

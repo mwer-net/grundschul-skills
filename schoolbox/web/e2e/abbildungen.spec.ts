@@ -288,6 +288,11 @@ test.describe('Editor: Feldtypen (023)', () => {
 		await druecke(page.locator('[data-raster="feld"] [data-zelle="0-1"]'));
 		await gespeichert(page, datei);
 		expect(await tagVon(datei)).toContain('feld="0 1 0 / 0 0 0"');
+		// Die Farbe des gewählten Felds gewinnt gegen den Grund der leeren Zelle.
+		await expect(page.locator('[data-raster="feld"] [data-zelle="0-1"]')).not.toHaveCSS(
+			'background-color',
+			'rgb(255, 255, 255)',
+		);
 		await druecke(zurueck(page));
 		await gespeichert(page, datei);
 		expect(await tagVon(datei)).not.toContain('feld=');
