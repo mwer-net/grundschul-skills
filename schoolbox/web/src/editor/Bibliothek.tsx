@@ -17,6 +17,7 @@ import type { Luecke } from './navigation';
 import { lueckeAn } from './navigation';
 import { sichtfeldVon } from './sichtfeld';
 import type { Struktur } from './struktur';
+import { EIGENE_GESCHICHTE } from './tasten';
 import { TEXTWERKZEUG } from './text';
 
 const ZEILE = 'w-full rounded-md px-2 py-1 text-left hover:bg-flaeche-2';
@@ -204,6 +205,7 @@ export const Einfuegemarken = ({
 					style={{ left: schnell.left, top: schnell.top }}
 				>
 					<input
+						{...EIGENE_GESCHICHTE}
 						type="search"
 						aria-label="Baustein suchen"
 						placeholder="Suchen …"
@@ -284,6 +286,7 @@ const EigenVerwalten = ({ id, name, neuLaden }: { id: string; name: string; neuL
 			) : (
 				<>
 					<input
+						{...EIGENE_GESCHICHTE}
 						aria-label="Neuer Name"
 						className={`${FELD_KLASSEN} min-w-0 flex-1`}
 						value={neu}
@@ -433,6 +436,7 @@ export const Bibliothek = ({
 			<div className="relative">
 				<Symbol name="suche" className="absolute top-1/2 left-2 size-3.5 -translate-y-1/2 text-dezent" />
 				<input
+					{...EIGENE_GESCHICHTE}
 					type="search"
 					aria-label="Baustein suchen"
 					placeholder="Baustein suchen …"

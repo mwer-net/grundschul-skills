@@ -22,6 +22,7 @@ import { liesVerlauf, schreibeVerlauf, verlaufFuerServer, verlaufSchluessel } fr
 import type { PfadTeil } from './darstellung';
 import type { KiAuftrag, useKiZustand, Vorschlag } from './ki';
 import { limitHinweis, useKiAuftrag } from './ki';
+import { EIGENE_GESCHICHTE } from './tasten';
 import { TEXTWERKZEUG } from './text';
 import type { NeuMaterial, NeuStand } from './useNeuMaterial';
 import { Vergleich } from './Vergleich';
@@ -1110,6 +1111,7 @@ export const ChatInhalt = ({
 					aria-label="Claude"
 					className="chat-glas fixed z-chat flex max-h-[50dvh] flex-col overflow-hidden text-sm text-tinte"
 					data-chat
+					{...EIGENE_GESCHICHTE}
 					data-chat-fenster={fenster}
 					style={lage}
 					onKeyDown={taste}

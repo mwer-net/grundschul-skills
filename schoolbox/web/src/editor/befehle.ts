@@ -19,7 +19,7 @@ import {
 } from '@schoolbox/kern/src/tabelle';
 import type { Druckprofil } from '@schoolbox/kern/src/werte';
 
-import { kuerzelAnzeige } from '../bausteine/kuerzel';
+import { istMac, kuerzelAnzeige } from '../bausteine/kuerzel';
 import type { MenueEintrag } from '../bausteine/Menue';
 import type { SymbolName } from '../bausteine/Symbol';
 import type { PfadTeil } from './darstellung';
@@ -28,7 +28,7 @@ import type { Struktur, StrukturWerte } from './struktur';
 
 export type Ort = 'taste' | 'menue' | 'leiste' | 'palette';
 export type Gruppe = 'bearbeiten' | 'ablage' | 'ordnen' | 'baustein' | 'gefahr' | 'ansicht' | 'blatt' | 'dokument';
-/** In welchem Zustand des Editors ein Kürzel wirkt. Felder der Bedienung sind nie dabei, die gehören dem Feld. */
+/** In welchem Zustand des Editors ein Kürzel wirkt. `text` gilt auch für Felder der Bedienung. */
 export type Modus = 'auswahl' | 'ohne' | 'text';
 
 const GRUPPEN: Gruppe[] = ['bearbeiten', 'ablage', 'ordnen', 'baustein', 'ansicht', 'blatt', 'dokument', 'gefahr'];
@@ -114,6 +114,8 @@ export interface Kontext {
 	davor: number | null;
 	/** Text ist markiert: ⌘C und ⌘X bleiben dann dem Browser. */
 	textMarkiert: () => boolean;
+	/** Der Fokus steht in einem Feld, das ⌘Z selbst braucht: Chat, Suche oder ein geändertes Textfeld. */
+	feldBehaeltUndo: () => boolean;
 	tu: Aktionen;
 }
 
@@ -126,6 +128,8 @@ export interface Befehl {
 	kuerzel?: Kuerzel[];
 	/** Ohne Angabe: mit und ohne Auswahl, nicht beim Tippen. */
 	modus?: Modus[];
+	/** Sonst bleibt die Taste beim Browser. Anders als `verfuegbar` gilt das nur für die Taste, nicht für den Pfeil. */
+	tasteWenn?: (k: Kontext) => boolean;
 	suchwoerter?: string[];
 	orte: Ort[];
 	/** Wo das ohne Taste und Rechtsklick erreichbar ist. Pflicht: Grundsatz der Phase 9. */
@@ -799,9 +803,11 @@ export const BEFEHLE: Befehl[] = [
 		gruppe: 'dokument',
 		symbol: 'rueckgaengig',
 		kuerzel: [{ code: 'KeyZ', befehl: true }],
+		modus: ['auswahl', 'ohne', 'text'],
+		tasteWenn: (k) => !k.feldBehaeltUndo(),
 		orte: ['taste', 'palette'],
 		sichtbarUnter: 'kopf',
-		verfuegbar: () => true,
+		verfuegbar: (k) => k.frei,
 		aus: (k) => k.tu.rueckgaengig(),
 	},
 	{
@@ -809,13 +815,12 @@ export const BEFEHLE: Befehl[] = [
 		titel: 'Wiederholen',
 		gruppe: 'dokument',
 		symbol: 'wiederholen',
-		kuerzel: [
-			{ code: 'KeyZ', befehl: true, umschalt: true },
-			{ code: 'KeyY', befehl: true },
-		],
+		kuerzel: [{ code: 'KeyZ', befehl: true, umschalt: true }, ...(istMac() ? [] : [{ code: 'KeyY', befehl: true }])],
+		modus: ['auswahl', 'ohne', 'text'],
+		tasteWenn: (k) => !k.feldBehaeltUndo(),
 		orte: ['taste', 'palette'],
 		sichtbarUnter: 'kopf',
-		verfuegbar: () => true,
+		verfuegbar: (k) => k.frei,
 		aus: (k) => k.tu.wiederholen(),
 	},
 	{
@@ -974,6 +979,7 @@ export const befehlZuTaste = (e: TastenEreignis, modus: Modus, k: Kontext, alle:
 	alle.find(
 		(b) =>
 			(b.modus ?? MODUS_VORGABE).includes(modus) &&
+			(!b.tasteWenn || b.tasteWenn(k)) &&
 			// ⌥ tippt in der Textsitzung Zeichen: ⌥C ist dort „ç“.
 			b.kuerzel?.some((t) => passtTaste(t, e) && !(modus === 'text' && t.wahl) && (!t.wenn || t.wenn(k))),
 	);

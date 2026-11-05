@@ -10,7 +10,10 @@ import { ruesteText } from './textdom';
 /** Knöpfe im Panel mit diesem Attribut nehmen dem Text den Fokus nicht weg. */
 export const TEXTWERKZEUG = 'data-textwerkzeug';
 
-const RUHE: TextZustand = { fett: false, unterstrichen: false, fettMoeglich: true };
+/** So heißt der Schritt, den eine Textsitzung hinterlässt. */
+export const TEXT_GEAENDERT = 'Text geändert';
+
+const RUHE: TextZustand = { fett: false, unterstrichen: false, fettMoeglich: true, geaendert: false };
 
 interface Optionen {
 	/** Das sichtbare Dokument im `iframe` mit dem HTML, aus dem es entstand. */
@@ -26,6 +29,8 @@ interface Optionen {
 	pruefe: (urheber: Urheber) => Promise<void>;
 	/** Bei jeder Eingabe, z. B. für die Live-Prüfung: Die Quelle ändert sich erst am Ende. */
 	getippt?: () => void;
+	/** Rückgängig oder Wiederholen aus dem Menü des Browsers, während der Text bearbeitbar ist. */
+	geschichte: (richtung: 'zurueck' | 'vor') => void;
 }
 
 /**
@@ -37,6 +42,7 @@ export const useText = ({
 	bearbeitbar,
 	befehl,
 	geladen,
+	geschichte,
 	getippt,
 	html,
 	pruefe,
@@ -47,11 +53,11 @@ export const useText = ({
 	const [bearbeitet, setBearbeitet] = useState(false);
 	const [zustand, setZustand] = useState<TextZustand>(RUHE);
 	const steuerung = useRef<TextSteuerung | null>(null);
-	const rueckrufe = useRef({ befehl, setAuswahl, getippt });
+	const rueckrufe = useRef({ befehl, setAuswahl, getippt, geschichte });
 
 	useEffect(() => {
-		rueckrufe.current = { befehl, setAuswahl, getippt };
-	}, [befehl, setAuswahl, getippt]);
+		rueckrufe.current = { befehl, setAuswahl, getippt, geschichte };
+	}, [befehl, setAuswahl, getippt, geschichte]);
 
 	useEffect(() => {
 		const element = doc && auswahl !== null ? elementZu(doc, auswahl) : null;
@@ -71,6 +77,7 @@ export const useText = ({
 			element: treffer.element as HTMLElement,
 			baustein: treffer.baustein,
 			zerlegung,
+			geschichte: (richtung) => rueckrufe.current.geschichte(richtung),
 			beginnt: () => {
 				setBearbeitet(true);
 				setZustand(s.zustand());
@@ -83,7 +90,7 @@ export const useText = ({
 				setBearbeitet(false);
 				setZustand({ ...RUHE, fettMoeglich: s.zustand().fettMoeglich });
 				if (ergebnis) {
-					rueckrufe.current.befehl(ergebnis.quelle, 'Text geändert');
+					rueckrufe.current.befehl(ergebnis.quelle, TEXT_GEAENDERT);
 					rueckrufe.current.setAuswahl((alt) => (alt === null ? null : ergebnis.umrechnen(alt)));
 				}
 			},
@@ -97,7 +104,7 @@ export const useText = ({
 		};
 	}, [auswahl, bearbeitbar, doc, zerlegung]);
 
-	// Ein Knopf außerhalb des Materials (Rückgängig, Zoom, Zurück …) beendet zuerst die Bearbeitung, damit er mit dem
+	// Ein Knopf außerhalb des Materials (Zoom, Zurück …) beendet zuerst die Bearbeitung, damit er mit dem
 	// fertigen Text arbeitet. Pointer-Ereignisse kommen vor `click`, das Ergebnis ist also schon im Verlauf.
 	useEffect(() => {
 		const druck = (e: PointerEvent) => {

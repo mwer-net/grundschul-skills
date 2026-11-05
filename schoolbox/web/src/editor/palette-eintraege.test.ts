@@ -33,6 +33,7 @@ const kontext = (mehr: Partial<Kontext> = {}): Kontext => ({
 	hatBild: true,
 	davor: 3,
 	textMarkiert: () => false,
+	feldBehaeltUndo: () => false,
 	tu,
 	...mehr,
 });

@@ -9,6 +9,7 @@ import type { PfadTeil } from './darstellung';
 import { elementZu } from './darstellung';
 import { halteFokus } from './halteFokus';
 import type { Struktur } from './struktur';
+import { EIGENE_GESCHICHTE } from './tasten';
 
 const REGELN: { wert: LueckenRegel; name: string }[] = [
 	{ wert: 'nte', name: 'Jedes n-te Wort' },
@@ -186,6 +187,7 @@ export const Sprachwerkzeug = ({
 						<label className="block">
 							Buchstaben
 							<input
+								{...EIGENE_GESCHICHTE}
 								className={`${FELD} mt-1 block w-24`}
 								value={buchstaben}
 								data-sprache-buchstaben
@@ -222,6 +224,7 @@ export const Sprachwerkzeug = ({
 							<label className="block">
 								n
 								<input
+									{...EIGENE_GESCHICHTE}
 									className={`${FELD} mt-1 block w-16`}
 									type="number"
 									min={2}

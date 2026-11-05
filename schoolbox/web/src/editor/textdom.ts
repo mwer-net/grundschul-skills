@@ -37,8 +37,6 @@ const ERLAUBT = new Set([
 	'deleteHardLineForward',
 	'deleteEntireSoftLine',
 	'deleteByCut',
-	'historyUndo',
-	'historyRedo',
 	'formatBold',
 	'formatUnderline',
 ]);
@@ -50,6 +48,8 @@ export interface TextZustand {
 	unterstrichen: boolean;
 	/** Überschriften sind schon fett; dort gibt es kein Fett-Umschalten. */
 	fettMoeglich: boolean;
+	/** Die Sitzung hat die Quelle geändert, sie wird also am Ende ein Schritt. */
+	geaendert: boolean;
 }
 
 export interface TextErgebnis {
@@ -68,6 +68,8 @@ interface Optionen {
 	aendert: () => void;
 	/** `null`: nichts geändert. */
 	endet: (ergebnis: TextErgebnis | null) => void;
+	/** Rückgängig oder Wiederholen aus dem Menü des Browsers: Auch das geht den einen Weg über den Befehl. */
+	geschichte: (richtung: 'zurueck' | 'vor') => void;
 }
 
 export interface TextSteuerung {
@@ -339,6 +341,7 @@ export const ruesteText = ({
 	doc,
 	element,
 	endet,
+	geschichte,
 	zerlegung: z,
 }: Optionen): TextSteuerung => {
 	const zeilen = zeilenVon(baustein);
@@ -456,15 +459,8 @@ export const ruesteText = ({
 		beginnt();
 	};
 
-	const beende = () => {
-		const s = sitzung;
-		if (!s) {
-			return;
-		}
-		sitzung = null;
-		if (s.elemente.some((el) => el === doc.activeElement)) {
-			still(() => (doc.activeElement as HTMLElement).blur());
-		}
+	/** Was die Sitzung gerade aus der Quelle macht, ohne etwas anzufassen. */
+	const entwurf = (s: Sitzung) => {
 		const fassungen = s.elemente
 			.map((el) => ({ el, html: textHtml(el, z, zeilen), neu: !s.originale.some((k) => nrVon(el) === k.nr) }))
 			.filter((t, i, alle) => !t.neu || !istLeer(t.html) || alle.length === 1);
@@ -478,7 +474,19 @@ export const ruesteText = ({
 			s.originale,
 			fassungen.map((t) => `${s.oeffner.get(t.el) ?? `<${tag}>`}${t.html}${schliesser(t.el)}`),
 		)[0];
-		const quelle = aenderung ? wendeAn(z.quelle, [aenderung]) : z.quelle;
+		return { fassungen, aenderung, quelle: aenderung ? wendeAn(z.quelle, [aenderung]) : z.quelle };
+	};
+
+	const beende = () => {
+		const s = sitzung;
+		if (!s) {
+			return;
+		}
+		sitzung = null;
+		if (s.elemente.some((el) => el === doc.activeElement)) {
+			still(() => (doc.activeElement as HTMLElement).blur());
+		}
+		const { aenderung, fassungen, quelle } = entwurf(s);
 		if (!aenderung || quelle === z.quelle) {
 			endet(null);
 			return;
@@ -676,6 +684,12 @@ export const ruesteText = ({
 	};
 
 	const beiEingabe = (e: InputEvent) => {
+		// Vor allem anderen: Auch ein Rest im Rückgängig-Speicher des Browsers kommt so nicht mehr ins Blatt.
+		if (e.inputType === 'historyUndo' || e.inputType === 'historyRedo') {
+			e.preventDefault();
+			geschichte(e.inputType === 'historyUndo' ? 'zurueck' : 'vor');
+			return;
+		}
 		if (intern || !imSitzung(e.target as Node)) {
 			return;
 		}
@@ -830,6 +844,7 @@ export const ruesteText = ({
 			fett: sitzung !== null && doc.queryCommandState('bold'),
 			unterstrichen: sitzung !== null && doc.queryCommandState('underline'),
 			fettMoeglich: fettMoeglich(),
+			geaendert: sitzung !== null && entwurf(sitzung).quelle !== z.quelle,
 		}),
 		abbauen: () => {
 			beende();

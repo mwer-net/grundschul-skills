@@ -1,5 +1,6 @@
 import type { Verlauf } from '@schoolbox/kern/src/quelltext';
 import { macheRueckgaengig, neuerVerlauf, nimmAuf, wiederhole } from '@schoolbox/kern/src/quelltext';
+import type { RefObject } from 'react';
 import { useCallback, useEffect, useRef, useState } from 'react';
 
 import type { ApiFehler } from '../api';
@@ -25,7 +26,7 @@ const GEAENDERT: Record<'claude' | 'lehrkraft', string> = {
  * eigene Stand wird als Version gesichert, und die Lehrkraft entscheidet, wann sie neu lädt. So verliert keine der
  * beiden Fassungen.
  */
-export const useBearbeitung = (mappe: string, dok: string) => {
+export const useBearbeitung = (mappe: string, dok: string, auswahl: RefObject<number | null>) => {
 	const adresse = `/api/dokumente/${mappe}/${dok}`;
 	const zeige = useHinweis();
 	const [verlauf, setVerlauf] = useState<Verlauf | null>(null);
@@ -87,7 +88,10 @@ export const useBearbeitung = (mappe: string, dok: string) => {
 				if (schritt) {
 					setzeBasis(aktuell);
 					quelle.current = aktuell.quelle;
-					setVerlauf((v) => (v ? nimmAuf(v, aktuell.quelle, schritt) : neuerVerlauf(aktuell.quelle)));
+					const gewaehlt = auswahl.current;
+					setVerlauf((v) =>
+						v ? nimmAuf(v, aktuell.quelle, schritt, gewaehlt) : neuerVerlauf(aktuell.quelle),
+					);
 					setAusgang(aktuell.quelle);
 				} else {
 					uebernimm(aktuell);
@@ -99,7 +103,7 @@ export const useBearbeitung = (mappe: string, dok: string) => {
 			setKonflikt({ urheber });
 			await sichere();
 		},
-		[adresse, basis, meldeKonflikt, offen, ruhig, setzeBasis, sichere, uebernimm, zeige],
+		[adresse, auswahl, basis, meldeKonflikt, offen, ruhig, setzeBasis, sichere, uebernimm, zeige],
 	);
 
 	const annimm = useCallback(
@@ -118,14 +122,22 @@ export const useBearbeitung = (mappe: string, dok: string) => {
 	const befehl = useCallback(
 		(neu: string, beschreibung: string) => {
 			if (!konflikt) {
-				setVerlauf((v) => v && nimmAuf(v, neu, beschreibung));
+				const gewaehlt = auswahl.current;
+				setVerlauf((v) => v && nimmAuf(v, neu, beschreibung, gewaehlt));
 			}
 		},
-		[konflikt],
+		[auswahl, konflikt],
 	);
 
-	const rueckgaengig = useCallback(() => setVerlauf((v) => v && macheRueckgaengig(v)), []);
-	const wiederholen = useCallback(() => setVerlauf((v) => v && wiederhole(v)), []);
+	const rueckgaengig = useCallback(() => {
+		const gewaehlt = auswahl.current;
+		setVerlauf((v) => v && macheRueckgaengig(v, gewaehlt));
+	}, [auswahl]);
+	const wiederholen = useCallback(() => {
+		const gewaehlt = auswahl.current;
+		setVerlauf((v) => v && wiederhole(v, gewaehlt));
+	}, [auswahl]);
+	const quelleJetzt = useCallback(() => quelle.current, []);
 
 	const arbeite = async (arbeit: () => Promise<void>) => {
 		setLaeuft(true);
@@ -158,6 +170,7 @@ export const useBearbeitung = (mappe: string, dok: string) => {
 	return {
 		adresse,
 		verlauf,
+		quelleJetzt,
 		ausgang,
 		ladeFehler,
 		konflikt,

@@ -2,8 +2,8 @@ import { schemaVon } from '@schoolbox/kern/src/abbildungen';
 import type { Baustein, Sicht } from '@schoolbox/kern/src/bausteine';
 import { bausteinUeber, liegtFrei } from '@schoolbox/kern/src/bausteine';
 import { darstellungsHtml } from '@schoolbox/kern/src/html';
-import type { Zerlegung } from '@schoolbox/kern/src/quelltext';
-import { MARKE, markiere } from '@schoolbox/kern/src/quelltext';
+import type { LetzterSchritt, Zerlegung } from '@schoolbox/kern/src/quelltext';
+import { MARKE, markiere, stelleDesSchritts } from '@schoolbox/kern/src/quelltext';
 import type { Druckprofil } from '@schoolbox/kern/src/werte';
 
 /**
@@ -116,4 +116,21 @@ export const pfadZu = (doc: Document, nr: number): PfadTeil[] => {
 		baustein: treffer.baustein,
 		name: name(treffer, kette[i - 1]?.element ?? null),
 	}));
+};
+
+/**
+ * Welcher Baustein nach Rückgängig oder Wiederholen gewählt ist. Der innerste Baustein um die Änderung, oder der darum,
+ * wenn es ihn nicht mehr gibt. Steht die gemerkte Auswahl auf derselben Seite, gilt sie: Wer eine Aufgabe verschoben hat,
+ * meint diese Aufgabe, nicht die ganze Seite, die der geänderte Bereich umschließt.
+ */
+export const zielNachSchritt = (doc: Document, z: Zerlegung, letzter: LetzterSchritt) => {
+	let stelle: Treffer | null = null;
+	for (let k = stelleDesSchritts(z, letzter); k && !stelle; k = k.eltern) {
+		stelle = trefferAn(elementZu(doc, k.nr));
+	}
+	const { auswahlNachher, auswahlVorher } = letzter.schritt;
+	const nr = letzter.richtung === 'zurueck' ? auswahlVorher : auswahlNachher;
+	const gemerkt = nr === null || nr === undefined ? null : trefferAn(elementZu(doc, nr));
+	const gleicheSeite = gemerkt && stelle && gemerkt.element.closest('.seite') === stelle.element.closest('.seite');
+	return (gemerkt && (!stelle || gleicheSeite) ? gemerkt : stelle)?.nr ?? null;
 };

@@ -506,6 +506,10 @@ export interface Schritt {
 	von: number;
 	alt: string;
 	neu: string;
+	/** Die Auswahl in der Fassung vor dem Schritt. Ihre Nummer gilt nur dort, also nach dem Zurücknehmen. */
+	auswahlVorher?: number | null;
+	/** Die Auswahl in der Fassung nach dem Schritt, gemerkt beim Zurücknehmen; sie gilt nach dem Wiederholen. */
+	auswahlNachher?: number | null;
 }
 
 export const unterschied = (alt: string, neu: string, beschreibung: string): Schritt | null => {
@@ -538,10 +542,17 @@ export const vorwaerts = (quelle: string, s: Schritt) =>
 export const rueckwaerts = (quelle: string, s: Schritt) =>
 	quelle.slice(0, s.von) + s.alt + quelle.slice(s.von + s.neu.length);
 
+export interface LetzterSchritt {
+	richtung: 'zurueck' | 'vor';
+	schritt: Schritt;
+}
+
 export interface Verlauf {
 	quelle: string;
 	zurueck: Schritt[];
 	vor: Schritt[];
+	/** Was Rückgängig oder Wiederholen eben getan haben: Danach zeigt der Editor die Stelle. */
+	zuletzt?: LetzterSchritt;
 }
 
 export const MAX_SCHRITTE = 200;
@@ -549,21 +560,56 @@ export const MAX_SCHRITTE = 200;
 export const neuerVerlauf = (quelle: string): Verlauf => ({ quelle, zurueck: [], vor: [] });
 
 /** Ein Befehl: neue Fassung aufnehmen. Wiederholen ist danach nicht mehr möglich. */
-export const nimmAuf = (v: Verlauf, neu: string, beschreibung: string): Verlauf => {
+export const nimmAuf = (v: Verlauf, neu: string, beschreibung: string, auswahl: number | null = null): Verlauf => {
 	const schritt = unterschied(v.quelle, neu, beschreibung);
-	return schritt ? { quelle: neu, zurueck: [...v.zurueck, schritt].slice(-MAX_SCHRITTE), vor: [] } : v;
+	return schritt
+		? {
+				quelle: neu,
+				zurueck: [...v.zurueck, { ...schritt, auswahlVorher: auswahl }].slice(-MAX_SCHRITTE),
+				vor: [],
+			}
+		: v;
 };
 
-export const macheRueckgaengig = (v: Verlauf): Verlauf => {
+export const macheRueckgaengig = (v: Verlauf, auswahl: number | null = null): Verlauf => {
 	const schritt = v.zurueck.at(-1);
-	return schritt
-		? { quelle: rueckwaerts(v.quelle, schritt), zurueck: v.zurueck.slice(0, -1), vor: [...v.vor, schritt] }
-		: v;
+	if (!schritt) {
+		return v;
+	}
+	const gemerkt = { ...schritt, auswahlNachher: auswahl };
+	return {
+		quelle: rueckwaerts(v.quelle, schritt),
+		zurueck: v.zurueck.slice(0, -1),
+		vor: [...v.vor, gemerkt],
+		zuletzt: { richtung: 'zurueck', schritt: gemerkt },
+	};
 };
 
-export const wiederhole = (v: Verlauf): Verlauf => {
+export const wiederhole = (v: Verlauf, auswahl: number | null = null): Verlauf => {
 	const schritt = v.vor.at(-1);
-	return schritt
-		? { quelle: vorwaerts(v.quelle, schritt), zurueck: [...v.zurueck, schritt], vor: v.vor.slice(0, -1) }
-		: v;
+	if (!schritt) {
+		return v;
+	}
+	const gemerkt = { ...schritt, auswahlVorher: auswahl };
+	return {
+		quelle: vorwaerts(v.quelle, schritt),
+		zurueck: [...v.zurueck, gemerkt],
+		vor: v.vor.slice(0, -1),
+		zuletzt: { richtung: 'vor', schritt: gemerkt },
+	};
+};
+
+/**
+ * Das innerste Element, das die Änderung eines Schritts in der Fassung danach umschließt. Fiel dabei nur etwas weg,
+ * ist der Bereich leer und zählt nur im Inhalt eines Elements. Im Start-Tag liegt er oft nur, weil zwei Nachbarn gleich
+ * anfangen (`unterschied` kürzt das Gemeinsame): Dann gilt das Element darum.
+ */
+export const stelleDesSchritts = (z: Zerlegung, { richtung, schritt }: LetzterSchritt): Knoten | null => {
+	const von = schritt.von;
+	const bis = von + (richtung === 'zurueck' ? schritt.alt : schritt.neu).length;
+	return (
+		z.knoten.findLast((k) =>
+			von === bis ? k.oeffnerEnde < von && von <= k.schliesserStart : k.start <= von && bis <= k.ende,
+		) ?? null
+	);
 };

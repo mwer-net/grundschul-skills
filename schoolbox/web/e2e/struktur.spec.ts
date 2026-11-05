@@ -179,7 +179,8 @@ test.describe('Editor: Struktur', () => {
 		expect(await readFile(datei, 'utf8')).toContain('<div class="reihe" style="--spalten:5">');
 		await druecke(zurueck(page));
 
-		await page.keyboard.press('Escape');
+		// Die Auswahl bleibt nach dem Schritt stehen (085).
+		await druecke(page.locator('[data-panel="inspektor"]').getByRole('button', { name: 'Blatt', exact: true }));
 		const regler = page.getByRole('slider', { name: 'Abstand zwischen Aufgaben' });
 		await expect(regler).toHaveValue('28');
 		await expect(regler).toHaveAttribute('min', '24');

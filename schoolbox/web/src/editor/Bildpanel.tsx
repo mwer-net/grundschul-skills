@@ -10,6 +10,7 @@ import { Zeile } from '../bausteine/Zeile';
 import { useLaden } from '../lib/laden';
 import type { BildSteuerung, BildWerte } from './bild';
 import { beschreibungAus } from './bild';
+import { EIGENE_GESCHICHTE } from './tasten';
 
 /** Der Hinweis zum Datenschutz kommt einmal je Sitzung im Browser (Leitlinie aus 007). */
 const HINWEIS_GESEHEN = 'schoolbox-foto-hinweis';
@@ -175,6 +176,7 @@ export const SammlungDialog = ({
 					className="pointer-events-none absolute top-1/2 left-4 size-5 -translate-y-1/2 text-leise"
 				/>
 				<input
+					{...EIGENE_GESCHICHTE}
 					type="search"
 					className="h-knopf w-full rounded-lg border border-rand bg-papier pr-4 pl-12 placeholder:text-leise focus:border-brand-500 focus:bg-flaeche focus:outline-none"
 					placeholder="Suchen, z. B. Willi oder Kartoffel"

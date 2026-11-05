@@ -5,7 +5,7 @@ import { describe, it } from 'node:test';
 
 import { ABBILDUNGEN, BAUSTEINE } from './bausteine';
 import { ASSETS } from './konfig';
-import type { Knoten, Zerlegung } from './quelltext';
+import type { Knoten, Verlauf, Zerlegung } from './quelltext';
 import {
 	dupliziere,
 	eingesetzt,
@@ -21,6 +21,7 @@ import {
 	nummerNach,
 	quelleVon,
 	setzeAttribut,
+	stelleDesSchritts,
 	unterschied,
 	verschiebe,
 	wendeAn,
@@ -255,6 +256,41 @@ describe('Text in mehreren Absätzen', () => {
 });
 
 describe('Verlauf', () => {
+	it('merkt die Auswahl je Schritt: vorher beim Aufnehmen, nachher beim Zurücknehmen', () => {
+		let v = nimmAuf(neuerVerlauf('<p>a</p>'), '<p>b</p>', 'b', 3);
+		v = macheRueckgaengig(v, 7);
+		assert.equal(v.zuletzt?.richtung, 'zurueck');
+		assert.equal(v.zuletzt?.schritt.auswahlVorher, 3);
+		assert.equal(v.zuletzt?.schritt.auswahlNachher, 7);
+		v = wiederhole(v, 3);
+		assert.equal(v.zuletzt?.richtung, 'vor');
+		assert.equal(v.zuletzt?.schritt.auswahlNachher, 7);
+		assert.equal(nimmAuf(v, '<p>c</p>', 'c').zuletzt, undefined);
+	});
+
+	it('findet das innerste Element um die Änderung, und das Element darum, wenn nur etwas wegfiel', () => {
+		const alt = '<div><p>ein</p><p>zwei</p></div>';
+		const neu = '<div><p>ein</p><p>zwei!</p></div>';
+		const stelle = (quelle: string, v: Verlauf) => {
+			const letzter = v.zuletzt;
+			assert.ok(letzter);
+			return stelleDesSchritts(zerlege(quelle), letzter);
+		};
+		const zurueck = macheRueckgaengig(nimmAuf(neuerVerlauf(alt), neu, 'Text'));
+		assert.equal(stelle(zurueck.quelle, zurueck)?.nr, zerlege(alt).knoten.findLast((k) => k.tag === 'p')?.nr);
+		assert.equal(stelle(neu, wiederhole(zurueck))?.tag, 'p');
+
+		const kurz = '<div><p>ein</p> </div>';
+		const lang = '<div><p>ein</p><p>zwei</p> </div>';
+		const weg = macheRueckgaengig(nimmAuf(neuerVerlauf(kurz), lang, 'Neu'));
+		assert.equal(stelle(weg.quelle, weg)?.tag, 'div');
+
+		// `unterschied` kürzt `<p>` als gemeinsamen Anfang: Die Stelle liegt scheinbar im Nachbarn dahinter.
+		const nachbar = '<div><p>b</p></div>';
+		const davor = macheRueckgaengig(nimmAuf(neuerVerlauf(nachbar), '<div><p>a</p><p>b</p></div>', 'Neu'));
+		assert.equal(stelle(davor.quelle, davor)?.tag, 'div');
+	});
+
 	it('stellt nach 60 Schritten mit Rückgängig exakt den Ausgangszustand her und mit Wiederholen das Ende', () => {
 		for (const [nr, { name, quelle }] of BEISPIELE.entries()) {
 			const wuerfel = zufall(nr + 7);
