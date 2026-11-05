@@ -536,7 +536,7 @@ describe('Sicherung', () => {
 		assert.equal(baum?.rev, 1);
 		assert.match(hinweis ?? '', /aus der Sicherung von/);
 		assert.ok((await readdir(materialDir)).some((n) => n.startsWith('_ordner.defekt-')));
-		assert.equal(existsSync(path.join(materialDir, ORDNER_DATEI)), false);
+		assert.equal(ladeBaum(materialDir, JETZT).baum?.rev, 1, 'die Sicherung übersteht auch den nächsten Start');
 	});
 
 	it('kaputt und keine Sicherung: neu aufbauen, aber sagen', async () => {

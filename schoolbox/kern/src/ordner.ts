@@ -1,5 +1,5 @@
 import { randomBytes } from 'node:crypto';
-import { existsSync, readdirSync, readFileSync, renameSync } from 'node:fs';
+import { copyFileSync, existsSync, readdirSync, readFileSync, renameSync } from 'node:fs';
 import { copyFile, mkdir, readdir, rm } from 'node:fs/promises';
 import path from 'node:path';
 
@@ -309,8 +309,11 @@ export const ladeBaum = (materialDir: string, jetzt = new Date()): GeladenerBaum
 	}
 	renameSync(datei, path.join(materialDir, `_ordner.defekt-${zeitName(jetzt)}.json`));
 	for (const name of sicherungen(materialDir).reverse()) {
-		const gesichert = leseBaumRoh(path.join(sicherungsDir(materialDir), name));
+		const sicherung = path.join(sicherungsDir(materialDir), name);
+		const gesichert = leseBaumRoh(sicherung);
 		if (gesichert) {
+			// Gleich zurückschreiben: Sonst baut der nächste Start ohne Datei alles neu auf und die Struktur ist weg.
+			copyFileSync(sicherung, datei);
 			const zeit = zeitAusName(name);
 			return {
 				baum: gesichert,

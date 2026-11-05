@@ -328,10 +328,15 @@ export const ordnerApi = (kontext: Kontext) => {
 		if (roh.length === 0) {
 			throw new HttpFehler(404, 'Hier gibt es noch kein Material.');
 		}
-		const baum = kontext.ordner.baum();
+		const baum = await kontext.ordner.abgleichen();
 		const teile = roh.map((t) => {
 			const { dok, mappe } = (t ?? {}) as { dok?: unknown; mappe?: unknown };
-			if (typeof mappe !== 'string' || typeof dok !== 'string' || dokumentGeloescht(baum, mappe, dok)) {
+			const gibtEs =
+				typeof mappe === 'string' &&
+				typeof dok === 'string' &&
+				dokKnotenSchluessel(mappe, dok) in baum.dokumente &&
+				!dokumentGeloescht(baum, mappe, dok);
+			if (!gibtEs) {
 				throw new HttpFehler(404, 'Dieses Material gibt es nicht mehr.');
 			}
 			return { mappe, dok };

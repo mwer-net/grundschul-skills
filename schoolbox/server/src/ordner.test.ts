@@ -146,7 +146,11 @@ describe('Ablage: Aktionen über /api/ordner (079)', () => {
 
 	it('die Variante liegt logisch neben dem Original, nicht im Ordner des Behälters', async () => {
 		s = await starteTestServer();
-		const { dok, mappe } = await legeDokumentAn(s.materialDir);
+		const { dir, dok, mappe } = await legeDokumentAn(s.materialDir);
+		await writeFile(
+			path.join(dir, 'material.html'),
+			'<!doctype html><html><head><title>T</title></head><body><section class="seite"><x-zahlenmauer basis="3 5 2" offen="0-1"></x-zahlenmauer></section></body></html>',
+		);
 		const ziel = await neu(s, 'Klasse 3');
 		await tu(s, { art: 'bewegen', knoten: [{ mappe, dok }], ziel });
 		const a = await s.holen(`${s.url}/api/mappen/${mappe}/dokumente/${dok}/variante`, {

@@ -1,11 +1,11 @@
 import assert from 'node:assert/strict';
 import { existsSync } from 'node:fs';
-import { mkdir, rename, writeFile } from 'node:fs/promises';
+import { mkdir, writeFile } from 'node:fs/promises';
 import path from 'node:path';
 import { afterEach, describe, it } from 'node:test';
 
 import type { PapierkorbEintrag } from '@schoolbox/kern';
-import { leseFreigaben, PAPIERKORB_TAGE, VORSCHAU_DATEI } from '@schoolbox/kern';
+import { legeInPapierkorb, leseFreigaben, PAPIERKORB_TAGE, VORSCHAU_DATEI } from '@schoolbox/kern';
 
 import type { PapierkorbObjekt } from './papierkorb';
 import { raeumePapierkorbAuf } from './papierkorb';
@@ -117,9 +117,7 @@ describe('Ablage: Übersicht, Vorschau, Papierkorb', () => {
 	it('alte Einträge im Papierkorb bleiben wiederherstellbar', async () => {
 		s = await starteTestServer();
 		const { dir, mappe } = await legeDokumentAn(s.materialDir);
-		const eintrag = `2026-10-01T10-00-00-000Z-${mappe}`;
-		await mkdir(path.join(s.materialDir, '_papierkorb'), { recursive: true });
-		await rename(path.join(s.materialDir, mappe), path.join(s.materialDir, '_papierkorb', eintrag));
+		await legeInPapierkorb(s.materialDir, mappe);
 		const alte = (await korb(s)).eintraege;
 		assert.deepEqual(
 			alte.map((e) => e.id),

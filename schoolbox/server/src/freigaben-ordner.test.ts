@@ -28,8 +28,9 @@ describe('Teilen: Ordner-Links', () => {
 		await s?.stop();
 	});
 	const lauf = async () => {
-		const server = await starteTestServer({ pdfBauer: baueErsatzAusgabe });
+		const server = await starteTestServer({ pdfBauer: baueErsatzAusgabe, webDist: true });
 		s = server;
+		await writeFile(path.join(server.webDist, 'index.html'), '<!doctype html>');
 		const neu = async (name: string, eltern: string | null = null) => {
 			const a = await fuehreAus(server, { art: 'neu', eltern, name });
 			assert.equal(a.status, 200);

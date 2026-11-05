@@ -428,7 +428,7 @@ describe('PDF: Ablauf', () => {
 		assert.equal(status, 200);
 		assert.equal(hoechstens, 2);
 		assert.deepEqual(daten.meldungen, [
-			{ stufe: 'FEHLER', seite: 1, text: UEBERLAUF, dok: ids[1], titel: 'Zu lang' },
+			{ stufe: 'FEHLER', seite: 1, text: UEBERLAUF, mappe, dok: ids[1], titel: 'Zu lang' },
 		]);
 	});
 

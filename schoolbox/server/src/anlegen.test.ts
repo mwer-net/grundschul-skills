@@ -25,7 +25,7 @@ describe('Anlegen ohne Claude (045, 079) und Katalog (044)', () => {
 			headers: schreibKoepfe,
 			body: JSON.stringify(daten),
 		});
-	const gut = { titel: 'Blatt', art: 'arbeitsblatt', format: 'a4-hoch' };
+	const gut = { titel: 'Neues Blatt', art: 'arbeitsblatt', format: 'a4-hoch' };
 	const neuerOrdner = async (server: TestServer, name: string, eltern: string | null = null) => {
 		const a = await fuehreAus(server, { art: 'neu', eltern, name });
 		assert.equal(a.status, 200);
@@ -93,7 +93,7 @@ describe('Anlegen ohne Claude (045, 079) und Katalog (044)', () => {
 		const ordner = await ordnerVon(s, mappe);
 		const hier = { ...gut, ordner };
 		assert.equal((await lege(s, hier)).status, 201);
-		assert.equal((await lege(s, { ...hier, titel: ' BLATT ' })).status, 409);
+		assert.equal((await lege(s, { ...hier, titel: ' NEUES BLATT ' })).status, 409);
 		assert.equal((await lege(s, { ...hier, titel: ' ' })).status, 400);
 		assert.equal((await lege(s, { ...hier, titel: 'B', format: 'folie' })).status, 400);
 		assert.equal((await lege(s, { ...hier, titel: 'C', vorlage: '../x' })).status, 400);

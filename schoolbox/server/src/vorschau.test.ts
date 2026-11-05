@@ -56,18 +56,19 @@ describe('Vorschauen', () => {
 		s = await starteTestServer({
 			vorschauBauer: async (dokDir) => {
 				gebaut.push(dokDir);
-				await warte(150);
+				await warte(500);
 				await writeFile(path.join(dokDir, 'ausgabe', VORSCHAU_DATEI), 'PNG');
 			},
 		});
 		const { dir, dok, mappe } = await legeDokumentAn(s.materialDir);
+		await leseAblage(s);
 		strom = sammleEreignisse(s.url, s.cookie);
 		await strom.bereit;
 
 		assert.equal(await erstesDokument(s), null);
 		assert.equal(await erstesDokument(s), null);
 		assert.equal(await erstesDokument(s, `/api/mappen/${mappe}`), null);
-		await warte(400);
+		await warte(900);
 		assert.deepEqual(gebaut, [dir]);
 		assert.deepEqual(
 			strom.ereignisse.map((e) => [e.typ, e.daten]),
@@ -104,7 +105,7 @@ describe('Vorschauen', () => {
 		assert.deepEqual(gebaut, ['blatt', 'zweites']);
 	});
 
-	it('legt nichts neu an, wenn die Mappe während des Baus gelöscht wird; nach dem Wiederherstellen baut sie neu', async () => {
+	it('wird der Ordner während des Baus gelöscht: keine Vorschau, kein neuer Bau; zurückgelegt ist sie da', async () => {
 		let versuche = 0;
 		s = await starteTestServer({
 			vorschauBauer: async (dokDir) => {
@@ -127,10 +128,9 @@ describe('Vorschauen', () => {
 		for (const schritt of umkehr) {
 			assert.equal((await fuehreAus(s, schritt)).status, 200);
 		}
-		assert.equal(await erstesDokument(s), null);
-		await warte(400);
-		assert.equal(versuche, 2);
 		assert.match((await erstesDokument(s)) ?? '', /^[0-9a-z]+$/);
+		await warte(400);
+		assert.equal(versuche, 1);
 	});
 
 	it('versucht einen gescheiterten Bau erst wieder, wenn sich das Material geändert hat', async () => {
@@ -146,6 +146,7 @@ describe('Vorschauen', () => {
 				},
 			});
 			const { dir } = await legeDokumentAn(s.materialDir);
+			await leseAblage(s);
 			strom = sammleEreignisse(s.url, s.cookie);
 			await strom.bereit;
 			assert.equal(await erstesDokument(s), null);
