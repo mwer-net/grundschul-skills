@@ -91,6 +91,12 @@ export const GESCHUETZT = `${GESCHUETZT_OHNE_ATTRIBUT}, [data-l]`;
 const KLEIN = { ordnenNurKnopf: true } as const;
 const GRUND = ['ordnen', 'duplizieren', 'loeschen'] as const;
 
+/** Was Claude ohne Baustein gebaut hat (Entscheidung 38): Keine Einstellungen, Änderungen laufen über den Chat. */
+const FREI_NAME = 'Freies Element';
+export const FREI_TITEL = 'data-frei-titel';
+export const FREIES_ELEMENT = new Set(['freiestext', 'freieselement']);
+export const nameFreiesElement = (titel: string | null | undefined) => titel?.trim() || FREI_NAME;
+
 export const BAUSTEINE: readonly Baustein[] = [
 	{
 		art: 'seite',
@@ -109,6 +115,16 @@ export const BAUSTEINE: readonly Baustein[] = [
 		sonderfall: { selektor: '.aufgabe:has(> .nr.stern)', name: 'Sternchenaufgabe', art: 'sternchenaufgabe' },
 		ordnenIn: '.seite',
 	},
+	// Vor allem anderen, was auf dasselbe `div` oder `table` passte: Die Kennzeichnung gilt, nicht die Form.
+	{
+		art: 'freiestext',
+		name: FREI_NAME,
+		selektor: '[data-frei]',
+		faehigkeiten: [...GRUND, 'text'],
+		zeilen: 'umbruch',
+		frei: 'text',
+	},
+	{ art: 'freieselement', name: FREI_NAME, selektor: '[data-frei]', faehigkeiten: GRUND },
 	{ art: 'tabelle', name: 'Tabelle', selektor: 'table', faehigkeiten: GRUND, frei: 'tabelle', ...KLEIN },
 	{
 		art: 'tabellenzeile',

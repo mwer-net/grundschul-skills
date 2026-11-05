@@ -32,7 +32,7 @@ Faustwerte Kl. 2 (24 px Schrift): Aufgabenzeile 34 px, Uhr 88 px + Antwortlinie 
 1. **Text bleibt Text**, nie in Bildern. Keine Schrift, Zahlen oder Uhren in KI-Bildern.
 2. **Kein Layout mit Leerzeichen, `<br>`-Ketten oder Unterstrichen.** Antwortplätze sind `.antwort` oder `.schreiblinie` (kurze Antworten in anderen Fächern), Schreibaufgaben in Deutsch `x-lineatur`; Ausnahme ist nur die Namenszeile (CSS-Linien).
 3. **Abstände über CSS** (Klassen, `--abstand`, `gap`), nicht über leere Elemente.
-4. **Exakte Abbildungen** als `x-…`-Element aus `abbildungen.js`. Fehlt eine Art, SVG berechnen (Python/JS), nicht freihand. Mengen geordnet (Fünferstruktur, Zehnerreihen), Bündel umschließen genau ihre Elemente.
+4. **Exakte Abbildungen** als `x-…`-Element aus `abbildungen.js`. Fehlt eine Art: freies Element aus berechnetem SVG (`references/abbildungen.md`, „Freies Element“). Mengen geordnet (Fünferstruktur, Zehnerreihen), Bündel umschließen genau ihre Elemente.
 5. **Bilder mit `alt`** und fester Breite (`style="--figur:72px"` bzw. `width`), nie über die Spalte hinaus.
 6. **Lösungen im selben Dokument** (`data-l`, `loesung=`, `nur-loesung`); keine zweite Kopie pflegen.
 7. **Varianten** (Niveau-Blätter) als weitere `.seite` in derselben Datei; Titel nach Schema `Kl2_Mathe_Uhrzeit_AB1`.

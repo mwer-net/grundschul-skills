@@ -1,10 +1,11 @@
 import { ABSCHNITT_TITEL } from '@schoolbox/kern/src/abschnitte';
-import { kann } from '@schoolbox/kern/src/bausteine';
+import { FREIES_ELEMENT, kann } from '@schoolbox/kern/src/bausteine';
 import type { ReactNode } from 'react';
 import { useLayoutEffect, useRef, useState } from 'react';
 
 import { Abschnitt } from '../bausteine/Abschnitt';
 import { klassen } from '../bausteine/klassen';
+import { Knopf } from '../bausteine/Knopf';
 import { Menue } from '../bausteine/Menue';
 import { Reiter } from '../bausteine/Reiter';
 import { SymbolKnopf } from '../bausteine/SymbolKnopf';
@@ -14,6 +15,7 @@ import { AbbildungFelder, AbbildungHinweise } from './Abbildungspanel';
 import type { Ablage } from './ablage';
 import type { BildSteuerung } from './bild';
 import { BildDarstellung, Bildwerkzeug } from './Bildpanel';
+import { useChat } from './chat-kontext';
 import type { PfadTeil } from './darstellung';
 import { elementZu } from './darstellung';
 import type { Einblendung } from './Leinwand';
@@ -230,6 +232,19 @@ const SichtbarkeitWenn = ({
 		<Sichtbarkeit nr={nr} quelle={quelle} struktur={struktur} />
 	) : null;
 
+/** Der Chip im Chat folgt der Auswahl: Geöffnet ist das Element also schon der Kontext des Auftrags (Entscheidung 38). */
+const FreiesElementHinweis = () => {
+	const chat = useChat();
+	return (
+		<div className="flex flex-col items-start gap-1.5" data-frei-hinweis>
+			<p className="text-sm text-leise">Von Claude gebaut. Hier gibt es keine Einstellungen.</p>
+			<Knopf art="zweit" groesse="klein" onClick={() => chat.oeffne()}>
+				Claude fragen
+			</Knopf>
+		</div>
+	);
+};
+
 /** Feste Abschnitte in fester Reihenfolge; was leer bleibt, blendet `Abschnitt` aus. */
 export const Einstellungen = ({
 	abb,
@@ -259,6 +274,7 @@ export const Einstellungen = ({
 	return (
 		<div {...(abb.aktiv ? { 'data-abbildungswerkzeug': '' } : {})}>
 			<div className="flex flex-col gap-2 px-3 pb-2 empty:hidden" data-abschnitt="hinweise">
+				{FREIES_ELEMENT.has(baustein.art) && <FreiesElementHinweis />}
 				<Pruefhinweise stand={pruefung} nr={nr} />
 				<AbbildungHinweise abb={abb} />
 				{aktiv && quelle && <SammlungName ablage={ablage} />}

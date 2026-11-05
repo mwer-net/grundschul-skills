@@ -35,6 +35,7 @@ describe('Aufträge an Claude', () => {
 	let dok: string;
 	let pruefbericht: Pruefbericht = { seiten: [], meldungen: [], fehler: 0 };
 	let pruefungKaputt = false;
+	let pruefungZaehlt: () => void = () => undefined;
 	let pruefungHaelt: Promise<void> | null = null;
 	const fall = (name: string) => writeFile(path.join(path.dirname(bin), 'fall.txt'), name);
 	const api = (pfad: string, init: { method?: string; body?: string } = {}) =>
@@ -62,6 +63,10 @@ describe('Aufträge an Claude', () => {
 		return fertig(((await res.json()) as { auftrag: { id: string } }).auftrag.id);
 	};
 	const quelle = () => readFile(path.join(dokumentDir(server.materialDir, mappe, dok), 'material.html'), 'utf8');
+	const vorschlagQuelle = () =>
+		readFile(path.join(dokumentDir(server.materialDir, mappe, dok), 'vorschlag', 'material.html'), 'utf8');
+	const aufrufe = async () =>
+		(await readFile(path.join(path.dirname(bin), 'aufrufe.jsonl'), 'utf8')).trim().split('\n').length;
 	const vorschlag = async () =>
 		(
 			(await (await api(`/dokumente/${mappe}/${dok}/vorschlag`)).json()) as {
@@ -85,6 +90,7 @@ describe('Aufträge an Claude', () => {
 			env: { CLAUDE_BIN: bin },
 			kiPruefer: async () => {
 				await pruefungHaelt;
+				pruefungZaehlt();
 				if (pruefungKaputt) {
 					throw new Error('blatt.py kaputt');
 				}
@@ -334,6 +340,152 @@ describe('Aufträge an Claude', () => {
 			body: JSON.stringify({ text: 'x', ordner: 'fehlt' }),
 		});
 		assert.equal(fremd.status, 404);
+	});
+
+	it('Freies Element: ganzes Blatt, wird ein Vorschlag, läuft durch die Blattprüfung', async () => {
+		await fall('frei');
+		const a = await auftrag({ auftrag: 'Mach ein Tangram in Form eines Waschbärs' });
+		assert.equal(a.status, 'fertig', a.fehler ?? '');
+		assert.equal(a.schritte.includes('Bessert nach'), false);
+		const neu = await vorschlagQuelle();
+		assert.match(neu, /data-frei-titel="Tangram Waschbär"/);
+		assert.match(neu, /viewBox="0 0 100 100"/);
+	});
+
+	for (const [art, muster] of [
+		['frei-skript', /<script>/],
+		['frei-ereignis', /onload/],
+		['frei-extern', /boese\.example/],
+		['frei-use', /boese\.example/],
+	] as const) {
+		it(`${art}: kein Vorschlag, eine Korrekturrunde, Meldung im Chat, nichts still entfernt`, async () => {
+			const vorher = await quelle();
+			await fall(art);
+			const laeufe = await aufrufe();
+			const a = await auftrag();
+			assert.equal(a.status, 'fehler');
+			assert.match(a.fehler ?? '', /keinen Vorschlag/);
+			assert.equal(a.schritte.includes('Bessert nach'), true);
+			assert.equal(await vorschlag(), null);
+			assert.equal(await quelle(), vorher);
+			assert.equal((await aufrufe()) - laeufe, 2);
+			const prompts = await readFile(path.join(path.dirname(bin), 'prompts.txt'), 'utf8');
+			assert.match(prompts.split('---').at(-2) ?? '', /Sicherheitsprüfung/);
+			assert.doesNotMatch(await quelle(), muster);
+		});
+	}
+
+	it('Die Blattprüfung öffnet gesperrtes HTML nie im Browser', async () => {
+		let geprueft = 0;
+		const alt = pruefungZaehlt;
+		pruefungZaehlt = () => {
+			geprueft += 1;
+		};
+		try {
+			await fall('frei-skript');
+			await auftrag();
+			assert.equal(geprueft, 0);
+		} finally {
+			pruefungZaehlt = alt;
+		}
+	});
+
+	it('Korrekturrunde behebt den Fund: Der Vorschlag entsteht sauber', async () => {
+		await fall('frei-nachgebessert');
+		const a = await auftrag();
+		assert.equal(a.status, 'fertig', a.fehler ?? '');
+		assert.equal(a.schritte.includes('Bessert nach'), true);
+		const neu = await vorschlagQuelle();
+		assert.doesNotMatch(neu, /<script>window/);
+		assert.match(neu, /data-frei/);
+		assert.equal((await vorschlag())?.antwort, 'Ohne Skript gebaut.');
+	});
+
+	it('Claude stellt das Blatt wieder her und erklärt: Antwort statt Vorschlag', async () => {
+		await fall('frei-absage');
+		const a = await auftrag();
+		assert.equal(a.status, 'fertig', a.fehler ?? '');
+		assert.equal((a as unknown as { ergebnis: string }).ergebnis, 'antwort');
+		assert.equal((a as unknown as { antwort: string }).antwort, 'Etwas zum Anklicken geht hier nicht.');
+		assert.equal(await vorschlag(), null);
+	});
+
+	it('Ein offener Vorschlag bleibt, wenn Nachbessern an der Sperre scheitert', async () => {
+		await auftrag();
+		const offen = await vorschlagQuelle();
+		await fall('frei-skript');
+		const a = await auftrag({ auftrag: 'Noch etwas', aufVorschlag: true });
+		assert.equal(a.status, 'fehler');
+		assert.equal(await vorschlagQuelle(), offen);
+	});
+
+	it('Bestands-Skript bleibt beim Tipp-Vorschlag, die Quelle wird nicht bereinigt', async () => {
+		const pfad = path.join(dokumentDir(server.materialDir, mappe, dok), 'material.html');
+		const alt = await quelle();
+		const mitSkript = alt.replace('</head>', '<script>window.bestand = 1</script></head>');
+		assert.notEqual(mitSkript, alt);
+		await writeFile(pfad, mitSkript);
+		try {
+			const a = await auftrag({ auftrag: 'Tippfehler' });
+			assert.equal(a.status, 'fertig', a.fehler ?? '');
+			const neu = await vorschlagQuelle();
+			assert.match(neu, /<script>window\.bestand = 1<\/script>/);
+			assert.match(neu, / von Claude<\/h1>/);
+		} finally {
+			await writeFile(pfad, alt);
+		}
+	});
+
+	const teilReferenz = async (tag: string) => {
+		const z = zerlege(await quelle());
+		const k = z.knoten.find((n) => n.tag === tag || attribut(n, 'class')?.wert?.split(' ').includes(tag));
+		assert.ok(k);
+		return erzeugeReferenz(
+			z,
+			k.nr,
+			{ mappe: { id: mappe, titel: 'M', fach: 'mathematik', klasse: 2 }, dokument: { id: dok, titel: 'D' } },
+			false,
+		);
+	};
+
+	it('Ausschnitt: Das äußere Element darf ersetzt werden, der Rest bleibt byteidentisch', async () => {
+		const vorher = await quelle();
+		const z = zerlege(vorher);
+		const k = z.knoten.find((n) => attribut(n, 'class')?.wert?.split(' ').includes('aufgabe'));
+		assert.ok(k);
+		await fall('frei');
+		const a = await auftrag({ auftrag: 'Waschbär', referenz: await teilReferenz('aufgabe') });
+		assert.equal(a.status, 'fertig', a.fehler ?? '');
+		const neu = await vorschlagQuelle();
+		assert.ok(neu.startsWith(`${vorher.slice(0, k.start)}<figure data-frei`));
+		assert.ok(neu.endsWith(`</figure>${vorher.slice(k.ende)}`));
+		const prompts = await readFile(path.join(path.dirname(bin), 'prompts.txt'), 'utf8');
+		assert.match(prompts.split('---').at(-2) ?? '', /durch ein freies Element ersetzen/);
+		assert.equal(zerlege(neu).knoten.filter((n) => attribut(n, 'data-frei')).length, 1);
+	});
+
+	it('Ausschnitt: Zwei Elemente statt einem gehen in die Korrekturrunde', async () => {
+		await fall('frei-zwei');
+		const a = await auftrag({ auftrag: 'Waschbär', referenz: await teilReferenz('aufgabe') });
+		assert.equal(a.status, 'fertig', a.fehler ?? '');
+		assert.equal(a.schritte.includes('Bessert nach'), true);
+		const prompts = await readFile(path.join(path.dirname(bin), 'prompts.txt'), 'utf8');
+		assert.match(prompts.split('---').at(-2) ?? '', /genau ein Element/);
+		assert.equal(zerlege(await vorschlagQuelle()).knoten.filter((n) => attribut(n, 'data-frei')).length, 1);
+	});
+
+	it('Das Werkzeug bleibt: Der Quellcode ist für freie Elemente nicht freigegeben', () => {
+		const args = kiArgumente({ ablage: '/a', auftragDatei: '/b', modell: 'm' });
+		assert.equal(args[args.indexOf('--tools') + 1], 'Read,Edit,Skill');
+		assert.equal(args[args.indexOf('--allowedTools') + 1], 'Edit(./material.html)');
+	});
+
+	it('Der Auftrag sagt: nicht absagen, frei bauen, und verweist auf den Skill', async () => {
+		const text = await readFile(path.join(WURZEL, 'schoolbox', 'vorlagen', 'ki', 'auftrag.md'), 'utf8');
+		assert.match(text, /nie ab/);
+		assert.match(text, /Freies Element/);
+		// Eine Quelle (Entscheidung 27): Die Liste steht im Kern, nicht im Prompt.
+		assert.doesNotMatch(text, /foreignObject|<iframe>/);
 	});
 
 	it('Ausschnitt: Claude sieht nur den Teil, der Rest des Blatts bleibt byteidentisch', async () => {

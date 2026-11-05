@@ -11,6 +11,7 @@ export * from './einfuegen';
 export * from './einordnung';
 export * from './fehler';
 export * from './freigaben';
+export * from './frei';
 export * from './html';
 export * from './katalog';
 export * from './katalog-starter';

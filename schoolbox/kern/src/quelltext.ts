@@ -57,7 +57,7 @@ const LEER = new Set([
 	'track',
 	'wbr',
 ]);
-const ROHTEXT = new Set(['script', 'style', 'textarea', 'title', 'xmp', 'iframe', 'noembed', 'noframes']);
+export const ROHTEXT = new Set(['script', 'style', 'textarea', 'title', 'xmp', 'iframe', 'noembed', 'noframes']);
 const FREMD = new Set(['svg', 'math']);
 /** Start-Tags, die ein offenes `<p>` schließen. */
 const SCHLIESST_P = new Set([

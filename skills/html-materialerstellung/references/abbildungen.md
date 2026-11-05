@@ -220,7 +220,7 @@ Die Lösung wird berechnet, nie angegeben. Fehler: Figur kreuzt die Achse, Spieg
 <x-tangram bogen="ja"></x-tangram>
 ```
 
-`umriss` `haus`, `katze`, `schiff`, `fisch`, `kerze`; `teile` schon eingezeichnet: `gross1`, `gross2`, `mittel`, `klein1`, `klein2`, `quadrat`, `raute`; `groesse` px je Einheit; `bogen="ja"` Quadrat von 12 cm zum Ausschneiden. Die Lösung zeigt alle sieben Teile in einer gültigen Lage.
+`umriss` `haus`, `katze`, `schiff`, `fisch`, `kerze`; `teile` schon eingezeichnet: `gross1`, `gross2`, `mittel`, `klein1`, `klein2`, `quadrat`, `raute`; `groesse` px je Einheit; `bogen="ja"` Quadrat von 12 cm zum Ausschneiden. Die Lösung zeigt alle sieben Teile in einer gültigen Lage. Andere Umrisse: als [freies Element](#freies-element), siehe das Tangram dort; `umriss` bleibt bei dieser Liste.
 
 ## Räumliche Geometrie
 
@@ -835,3 +835,39 @@ Muster: `assets/muster/musik.html`. Noten nie als Text oder KI-Bild setzen: Das 
 ```
 
 `noten` mit Tonhöhe, Oktaven mit Strichen: `c'` bis `h'`, `c''` bis `a''`; mehr geht nicht. Deutsche Namen: `h` ist die weiße Taste über `a` (`b` meint dasselbe, ein erniedrigtes h kommt über die Vorzeichnung). `namen="ja"` Notennamen darunter. `text` Liedsilben mit Leerzeichen, eine je Note. `aufgabe` `keine`, `benennen` (Felder, Lösung nennt die Namen), `zeichnen` (Namen gegeben, Noten im Lösungsblatt). `systeme` leere Notenzeilen. `vorzeichen` `keine`, `b` (F-Dur), `kreuz` (G-Dur), ab Kl. 4. `auftakt`, `takt` und `breite` wie oben; zu lange Stücke brechen nach einem Takt um.
+
+## Freies Element
+
+Gibt es für einen Wunsch kein Element, baue im Chat ein eigenes aus statischem HTML und SVG. Sage nicht ab, weil ein Element fehlt. Es hat im Editor keine Einstellungen, geändert wird es über den Chat; darum geht ein passendes Element immer vor.
+
+- **Außen** ein `figure`, `div` oder `svg` mit `data-frei` und einem Namen in `data-frei-titel`. Der Name steht in der Gliederung und im Inspektor. Keine eigenen `x-`-Namen: Unbekannte `x-…` bleiben leer.
+- **Ist ein Teil des Blatts gewählt,** bleibt das Ergebnis genau ein Element. Passt das gewählte nicht, ersetze es durch das freie.
+- **Erlaubt:** was sich drucken lässt, also HTML-Grundelemente, SVG-Formen, `<use href="#…">`, `fill="url(#…)"` als Attribut für Verläufe und Muster aus `<defs>`, `style` und `<style>` ohne `url()` und `@import`.
+- **Nicht erlaubt:** Skripte, `on…`-Attribute, `javascript:`, `<iframe>`, `<object>`, `<embed>`, `<form>`, `<base>`, `<meta>`, `<link>`, `<foreignObject>`, `<image>`, Animationen und jede Adresse nach außen. Bilder nur als Pfad aus der Mappe; Formen zeichnest du als SVG. Rückstriche in CSS und seltene Entitäten gehen auch nicht, schreibe das Zeichen direkt. Der Server prüft das nach jedem Lauf gegen eine Liste. Bei einem Fund entsteht kein Vorschlag. Etwas zum Anklicken geht hier nicht, und das sagst du auch so.
+- **Es bleibt Material:** Linien ≥ 1,5 px, tauglich für s/w, Farbe nie als einziger Träger, Text schwarz, Maße relativ zum Blatt (`viewBox` und `width="100%"` oder eine Breite innerhalb des Satzspiegels). Lösung über dieselben Wege wie sonst: `class="nur-loesung"` zeigt einen Teil nur auf dem Lösungsblatt, auch an einem `<g>`.
+- **Klein halten:** Hunderte Pfade sprengen Budget und Dateigröße. Lieber weniger Punkte.
+
+### Beispiel: Tangram mit eigenem Umriss
+
+Ein Umriss, den `x-tangram` nicht kennt, ist ein freies Element, kein neuer Eintrag in dessen Liste. Der Umriss ist ein `<polygon>`, die Lösung sind die sieben Steine als Polygone, kein Bild.
+
+<!-- frei-beispiel -->
+```html
+<figure data-frei data-frei-titel="Tangram Quadrat">
+  <svg viewBox="-2 -2 124 124" width="360" height="360">
+    <polygon points="0,0 120,0 120,120 0,120" fill="#ddd" stroke="#000" stroke-width="2"/>
+    <g class="nur-loesung" fill="none" stroke="#000" stroke-width="2">
+      <polygon points="0,0 120,0 60,60"/>
+      <polygon points="0,0 0,120 60,60"/>
+      <polygon points="120,120 120,60 60,120"/>
+      <polygon points="120,0 120,60 90,30"/>
+      <polygon points="60,60 90,90 30,90"/>
+      <polygon points="60,60 90,30 120,60 90,90"/>
+      <polygon points="0,120 30,90 90,90 60,120"/>
+    </g>
+  </svg>
+  <figcaption>Lege die Form mit allen sieben Steinen.</figcaption>
+</figure>
+```
+
+Ein Umriss muss lösbar sein. Nimm die sieben echten Steine, bei Seitenlänge 4 der Einheit: 2 große Dreiecke (Fläche 4), 1 mittleres (2), 2 kleine (1), Quadrat (2), Parallelogramm (2), zusammen 16. Lege zuerst die Steine in Zielform, jeder gedreht in 45°-Schritten, und nimm ihre Außenkante als Umriss. So bleibt die Fläche von selbst 16. Nenne in der Antwort offen, wenn eine Form nur ungefähr zum Wunsch passt.

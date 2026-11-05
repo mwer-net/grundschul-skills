@@ -110,7 +110,11 @@ Ausgaben von `blatt.py bauen` für Folien, zum Präsentieren ohne Internet und z
 
 Bevor ein Element, ein Format oder ein Maß dazukommt: [Quellen](references/quellen.md) lesen, dort steht, wo was gilt.
 
-Fehlt eine Darstellung: nie freihand und nie per KI, sondern als neues Element. **Neues Element = Zeichenfunktion in `abbildungen.js` + Eintrag in `ABBILDUNG_SCHEMA` (`schoolbox/kern/src/abbildungen.ts`) + Katalogeintrag + Musterblatt.** Ohne Schema lässt es sich im Editor nicht einstellen, und der Test dazu schlägt fehl.
+Fehlt eine Darstellung, kommt es darauf an, wo du arbeitest. Nie gilt: von Hand zurechtgeschobenes Layout statt eines Elements, ein KI-Bild statt einer exakten Abbildung, oder eine Absage, weil es das Element nicht gibt.
+
+**Im Chat und in Lehrkraft-Sitzungen:** Vorhandene Elemente zuerst, denn sie lassen sich einstellen. Sonst baue die Darstellung als freies Element aus HTML und SVG mit `data-frei`: [Freies Element](references/abbildungen.md#freies-element). Den Code der Schoolbox änderst du dabei nicht. Wiederholt sich ein freies Element, merkt der Admin es sich für ein neues Element.
+
+**Im Repo:** als neues Element. **Neues Element = Zeichenfunktion in `abbildungen.js` + Eintrag in `ABBILDUNG_SCHEMA` (`schoolbox/kern/src/abbildungen.ts`) + Katalogeintrag + Musterblatt.** Ohne Schema lässt es sich im Editor nicht einstellen, und der Test dazu schlägt fehl.
 
 1. Zeichenfunktion im passenden Abschnitt, nur mit den Helfern aus dem Kern.
 2. Palette, Gelb nie für Linien oder Schrift, Unterschiede auch über Form und Muster. Text immer schwarz. Linien ≥ 1,5 px.

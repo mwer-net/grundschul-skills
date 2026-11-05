@@ -1,10 +1,10 @@
-import { readFile, writeFile } from 'node:fs/promises';
+import { mkdir, readFile, writeFile } from 'node:fs/promises';
 import path from 'node:path';
 
 import type { Locator, Page } from '@playwright/test';
 
 import { gespeichert, material, oeffne, quelle, uhrzeit } from './editorhilfe';
-import { expect, test } from './hilfe';
+import { expect, MATERIAL_DIR, test } from './hilfe';
 
 /** Wie ein frei gestaltetes Blatt: eigene Klassen, Entitäten, ungewöhnliche Schreibweisen. Alles soll so bleiben. */
 const FREI = `<!DOCTYPE html>
@@ -186,5 +186,124 @@ test.describe('Editor: frei gestaltetes Material (054)', () => {
 				return { borderTopWidth, outlineWidth };
 			});
 		expect(stil).toEqual({ borderTopWidth: '2px', outlineWidth: '3px' });
+	});
+});
+
+const kiFall = (name: string) => writeFile(path.join(`${MATERIAL_DIR}-ki`, 'fall.txt'), name);
+const chat = (page: Page) => page.locator('[data-chat]');
+
+const beauftrage = async (page: Page, text: string) => {
+	await page.getByRole('button', { name: 'Claude', exact: true }).click();
+	await chat(page).getByLabel('Was soll Claude ändern?').fill(text);
+	await chat(page).getByRole('button', { name: 'Senden' }).click();
+};
+
+const nimmAn = async (page: Page, datei: string) => {
+	await expect(chat(page).locator('[data-ki-vorschlag]')).toBeVisible();
+	await chat(page).getByRole('button', { name: 'Vergleichen' }).click();
+	await expect(page.frameLocator('[data-vorschlag-rahmen]').locator('figure[data-frei] svg')).toBeAttached();
+	await page.getByRole('dialog').getByRole('button', { name: 'Annehmen' }).click();
+	await expect(material(page).locator('[data-frei]')).toBeVisible();
+	await gespeichert(page, datei);
+};
+
+test.describe('Freies Element von Claude (088)', () => {
+	test.afterEach(async () => {
+		await kiFall('gut');
+	});
+
+	test('Vorschlag annehmen, Hinweis im Inspektor, ordnen, löschen, Rückgängig', async ({ druecke, page }) => {
+		const { dok, id, material: datei } = await uhrzeit();
+		await kiFall('frei');
+		await oeffne(page, id, dok);
+		await beauftrage(page, 'Mach ein Tangram in Form eines Waschbärs');
+		await nimmAn(page, datei);
+		const stand = await readFile(datei, 'utf8');
+
+		const figur = material(page).locator('figure[data-frei]');
+		await druecke(figur.locator('svg'));
+		await expect(page.locator('[data-auswahl="freieselement"]')).toBeVisible();
+		await expect(page.locator('[data-breadcrumb]')).toContainText('Tangram Waschbär');
+		const hinweis = page.locator('[data-frei-hinweis]');
+		await expect(hinweis).toContainText('Von Claude gebaut. Hier gibt es keine Einstellungen.');
+
+		// Text im SVG bleibt zu, sonst bräche das Tippen seine Struktur.
+		await expect(figur.locator('svg text')).not.toHaveAttribute('contenteditable', 'true');
+
+		await druecke(hinweis.getByRole('button', { name: 'Claude fragen' }));
+		await expect(chat(page)).toBeVisible();
+		await expect(chat(page).locator('[data-chat-chip]')).toContainText('Tangram Waschbär');
+		await page.keyboard.press('Escape');
+
+		await zuDenWerkzeugen(page, page.getByRole('button', { name: 'Nach oben' }));
+		await druecke(page.getByRole('button', { name: 'Nach oben' }));
+		await gespeichert(page, datei);
+		expect(await readFile(datei, 'utf8')).not.toBe(stand);
+		await druecke(zurueck(page));
+		await gespeichert(page, datei);
+		expect(await readFile(datei, 'utf8')).toBe(stand);
+
+		await druecke(figur.locator('svg'));
+		await zuDenWerkzeugen(page, page.getByRole('button', { name: 'Löschen' }));
+		await druecke(page.getByRole('button', { name: 'Löschen' }));
+		await gespeichert(page, datei);
+		await expect(figur).toHaveCount(0);
+		await druecke(zurueck(page));
+		await gespeichert(page, datei);
+		expect(await readFile(datei, 'utf8')).toBe(stand);
+	});
+
+	test('Skript führt zu keinem Vorschlag: Meldung im Chat, Blatt unverändert', async ({ page }) => {
+		const { dok, id, material: datei } = await uhrzeit();
+		const vorher = await readFile(datei, 'utf8');
+		await kiFall('frei-skript');
+		await oeffne(page, id, dok);
+		await beauftrage(page, 'Mach etwas zum Anklicken');
+		await expect(chat(page).getByText(/keinen Vorschlag/)).toBeVisible();
+		await expect(chat(page).locator('[data-ki-vorschlag]')).toHaveCount(0);
+		expect(await readFile(datei, 'utf8')).toBe(vorher);
+	});
+
+	test('Im Vergleich läuft kein fremdes Skript, Abbildungen zeichnen trotzdem', async ({ page }) => {
+		const { dok, id, material: datei, ordner } = await uhrzeit();
+		const alt = await readFile(datei, 'utf8');
+		const vorschlag = path.join(ordner, 'vorschlag');
+		await mkdir(vorschlag, { recursive: true });
+		// So käme es nur an der Prüfung vorbei: Die zweite Schicht muss es trotzdem aufhalten.
+		await writeFile(path.join(vorschlag, 'material.html'), alt.replace('</section>', '<script>window.boese = 1</script><x-uhr zeit="4:30"></x-uhr></section>'));
+		await writeFile(path.join(vorschlag, 'vorschlag.json'), JSON.stringify({ auftrag: 'a', umfang: 'Ganzes Blatt', zeit: new Date().toISOString(), basis: 'x', antwort: '', meldungen: [], fehler: 0 }));
+		const seite = await page.goto(`/ansicht/${id}/dokumente/${dok}/?vorschlag=1`);
+		expect(seite?.headers()['content-security-policy']).toContain("script-src 'self'");
+		await expect(page.locator('x-uhr svg').last()).toBeVisible();
+		expect(await page.evaluate(() => (window as unknown as { boese?: number }).boese)).toBeUndefined();
+	});
+
+	test('Druckansicht in s/w, Teilen-Link und Präsentation zeigen das Element', async ({ browser, page }) => {
+		const { dok, id, material: datei } = await uhrzeit();
+		const alt = await readFile(datei, 'utf8');
+		const frei =
+			'<figure data-frei data-frei-titel="Tangram Waschbär"><svg viewBox="0 0 100 100" width="300" height="300"><polygon id="umriss" points="0,0 100,0 50,50" fill="#c33" stroke="#000" stroke-width="2"/></svg></figure>';
+		await writeFile(datei, alt.replace('</section>', `${frei}</section>`));
+
+		await page.goto(`/ansicht/${id}/dokumente/${dok}/?profil=sw`);
+		await page.emulateMedia({ media: 'print' });
+		const umriss = page.locator('#umriss');
+		await expect(umriss).toBeVisible();
+		const farbe = await umriss.evaluate((e) => getComputedStyle(e).fill);
+		const [r, g, b] = (farbe.match(/\d+/g) ?? []).map(Number);
+		expect(r).toBe(g);
+		expect(g).toBe(b);
+		await page.emulateMedia({ media: 'screen' });
+
+		await page.goto(`/ansicht/${id}/dokumente/${dok}/?praesentation=1`);
+		await expect(page.locator('#umriss').first()).toBeAttached();
+
+		const antwort = await page.request.post('/api/freigaben', { headers: { 'x-schoolbox': '1' }, data: { mappe: id } });
+		const { token } = (await antwort.json()) as { token: string };
+		const fremd = await browser.newContext();
+		const besuch = await fremd.newPage();
+		await besuch.goto(`/f/${token}/ansicht/${id}/dokumente/${dok}/`);
+		await expect(besuch.locator('#umriss')).toBeVisible();
+		await fremd.close();
 	});
 });

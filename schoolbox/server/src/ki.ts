@@ -7,12 +7,14 @@ import { homedir, tmpdir } from 'node:os';
 import path from 'node:path';
 import { createInterface } from 'node:readline';
 
-import type { Einordnung, EinordnungOrdner, KiAktion, Konfig, Meldung, Pruefbericht } from '@schoolbox/kern';
+import type { Einordnung, EinordnungOrdner, Fund, KiAktion, Konfig, Meldung, Pruefbericht } from '@schoolbox/kern';
 import {
 	dokumentDir,
 	einordnungSchema,
 	ID_MUSTER,
+	istEinElement,
 	leseMeta,
+	neueFunde,
 	pruefeEinordnung,
 	quelleVon,
 	rueckfallEinordnung,
@@ -491,6 +493,31 @@ const waehleAusschnitt = (quelle: string, w: KiWunsch): Ausschnitt => {
 	};
 };
 
+/** Was neu ist und nicht ins Material darf. Das ganze Blatt zählt: Ein offenes Tag am Ende des Teils träfe den Rest. */
+const sperrFunde = (quelle: string, ausschnitt: Ausschnitt, neu: string): Fund[] => [
+	// Ein Teil ohne End-Tag (`<li>`) war schon vorher nicht streng genug für die Probe: Dann gilt sie nicht.
+	...(istEinElement(ausschnitt.text) && !istEinElement(neu) && ausschnitt.umfang !== 'Ganzes Blatt'
+		? [{ text: 'material.html muss genau ein Element bleiben, ohne Text oder Elemente daneben', stelle: 'teil' }]
+		: []),
+	...neueFunde(quelle, ausschnitt.einsetzen(neu)),
+];
+
+const sperrKorrektur = (funde: Fund[]) =>
+	[
+		'Die Sicherheitsprüfung der Schoolbox hat dein Ergebnis abgelehnt, es gibt noch keinen Vorschlag:',
+		...funde.map((f) => `- ${f.text}`),
+		'Ändere material.html so, dass nur statisches HTML und SVG bleibt, wie im Skill html-materialerstellung unter references/abbildungen.md, Abschnitt „Freies Element“. Geht der Wunsch so nicht, stelle das Blatt wieder her und erkläre es.',
+	].join('\n');
+
+const GRENZE_SPERRTEXT = 3;
+
+const sperrText = (funde: Fund[]) => {
+	const saetze = [...new Set(funde.map((f) => f.text))];
+	const gezeigt = saetze.slice(0, GRENZE_SPERRTEXT).join('; ');
+	const mehr = saetze.length > GRENZE_SPERRTEXT ? ` und ${saetze.length - GRENZE_SPERRTEXT} weitere` : '';
+	return `Claude wollte etwas einbauen, das im Material nicht geht: ${gezeigt}${mehr}. Darum gibt es keinen Vorschlag, dein Blatt ist unverändert. Material kann man drucken, aber nicht anklicken.`;
+};
+
 const ROLLE_NAME = { lehrkraft: 'Lehrkraft', claude: 'Claude' };
 
 /** Der Chat stammt von der Lehrkraft und ist Gespräch: „Ja, mach das“ antwortet auf das, was davor steht (087). */
@@ -521,7 +548,7 @@ const prompt = (
 			: null,
 		ausschnitt.umfang === 'Ganzes Blatt'
 			? null
-			: `material.html enthält nur diesen Teil des Blatts: ${ausschnitt.umfang}. Ändere nur ihn und lass das äußere Element bestehen.`,
+			: `material.html enthält nur diesen Teil des Blatts: ${ausschnitt.umfang}. Bleib in diesem Teil des Blatts, und er bleibt genau ein Element. Passt das gewählte Element nicht, darfst du es durch ein freies Element ersetzen.`,
 	]
 		.filter(Boolean)
 		.join('\n\n');
@@ -1004,16 +1031,22 @@ export const erstelleKi = ({ ereignisse, konfig, pruefer }: Abhaengigkeiten) => 
 			}
 			a.schritte.push('Prüft das Ergebnis');
 			melde(a);
-			let bericht = await pruefeSicher(dir, ausschnitt.einsetzen(neu));
+			// Die Sperre zuerst: Die Blattprüfung öffnet das Ergebnis im Browser, und was hier hängen bleibt, soll dort nie laufen.
+			const blattPruefung = (html: string) =>
+				pruefeSicher(dir, ausschnitt.einsetzen(html));
+			let funde = sperrFunde(quelle, ausschnitt, neu);
+			let bericht = funde.length > 0 ? null : await blattPruefung(neu);
 			let antwort = erst.antwort;
 			// Höchstens eine Korrekturrunde: Sie geht wie alles ans geteilte Limit.
-			if (bericht.fehler > 0 && erst.sitzung) {
+			if ((funde.length > 0 || (bericht?.fehler ?? 0) > 0) && erst.sitzung) {
 				a.schritte.push('Bessert nach');
 				melde(a);
 				const zweit = await lauf(
 					arbeit,
 					ablage,
-					`Die Prüfung meldet diese Fehler. Behebe sie in material.html:\n${berichtText(bericht.meldungen)}`,
+					funde.length > 0
+						? sperrKorrektur(funde)
+						: `Die Prüfung meldet diese Fehler. Behebe sie in material.html:\n${berichtText(bericht?.meldungen ?? [])}`,
 					erst.sitzung,
 					a,
 				);
@@ -1024,9 +1057,22 @@ export const erstelleKi = ({ ereignisse, konfig, pruefer }: Abhaengigkeiten) => 
 				}
 				if (!zweit.fehler) {
 					neu = await leseErgebnis(arbeit);
-					bericht = await pruefeSicher(dir, ausschnitt.einsetzen(neu));
 					antwort = zweit.antwort || antwort;
+					if (neu === ausschnitt.text && antwort.trim()) {
+						// Claude nimmt es zurück und erklärt, warum es so nicht geht.
+						a.ergebnis = 'antwort';
+						a.antwort = antwort;
+						ende = 'fertig';
+						return;
+					}
+					funde = sperrFunde(quelle, ausschnitt, neu);
+					bericht = funde.length > 0 ? null : await blattPruefung(neu);
 				}
+			}
+			// Nichts wird still entfernt: Ein Blatt mit fehlendem Teil fiele erst beim Drucken auf (Entscheidung 38).
+			if (funde.length > 0 || !bericht) {
+				verbrauch = { ...verbrauch, gesperrt: funde.length };
+				throw new HttpFehler(422, sperrText(funde));
 			}
 			const ziel = vorschlagDir(konfig.materialDir, w.mappe, w.dok);
 			await rm(ziel, { recursive: true, force: true });

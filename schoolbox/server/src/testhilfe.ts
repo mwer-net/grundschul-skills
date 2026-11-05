@@ -99,6 +99,17 @@ process.stdin.on('end', () => {
 	if (eingabe.includes('FRAGE')) { ende({ result: 'Das Blatt hat vier Uhren.' }); return; }
 	if (fall === 'gross') { fs.writeFileSync('material.html', 'x'.repeat(6 * 1024 * 1024)); ende({}); return; }
 	if (fall === 'aussen') { aendere(); fs.writeFileSync('andere.txt', 'boese'); fs.writeFileSync(path.join(__dirname, 'aussen.txt'), 'gelaufen'); ende({}); return; }
+	const FREI = '<figure data-frei data-frei-titel="Tangram Waschbär"><svg viewBox="0 0 100 100" width="300" height="300"><polygon points="0,0 100,0 50,50" fill="none" stroke="#000" stroke-width="2"/><text x="50" y="90">Waschbär</text></svg><figcaption>Lege den Waschbären.</figcaption></figure>';
+	const SPERRE = { 'frei-skript': '<script>window.boese = 1</script>', 'frei-ereignis': '<svg onload="window.boese = 1"></svg>', 'frei-extern': '<img src="https://boese.example/x.png">', 'frei-use': '<svg><use href="https://boese.example/x.svg#a"/></svg>', 'frei-absage': '<script>window.boese = 1</script>', 'frei-nachgebessert': '<script>window.boese = 1</script>' };
+	const baue = (html) => { const d = 'material.html'; const alt = fs.readFileSync(d, 'utf8'); fs.writeFileSync(d, /<html/i.test(alt) ? alt.replace('</section>', html + '</section>') : html); };
+	if (fall === 'frei') { baue(FREI); ende({ result: 'Annahme: sieben Steine.' }); return; }
+	if (fall === 'frei-zwei') { baue(eingabe.includes('Sicherheitsprüfung') ? FREI : FREI + FREI); ende({}); return; }
+	if (SPERRE[fall]) {
+		if (!eingabe.includes('Sicherheitsprüfung')) { fs.writeFileSync(path.join(__dirname, 'vorher.html'), fs.readFileSync('material.html')); baue(FREI + SPERRE[fall]); ende({}); return; }
+		if (fall === 'frei-nachgebessert') { fs.writeFileSync('material.html', fs.readFileSync(path.join(__dirname, 'vorher.html'))); baue(FREI); ende({ result: 'Ohne Skript gebaut.' }); return; }
+		if (fall === 'frei-absage') { fs.writeFileSync('material.html', fs.readFileSync(path.join(__dirname, 'vorher.html'))); ende({ result: 'Etwas zum Anklicken geht hier nicht.' }); return; }
+		ende({}); return;
+	}
 	aendere(); ende({});
 });
 `;

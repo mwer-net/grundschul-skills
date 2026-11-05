@@ -28,6 +28,21 @@ const ID_REGEX = new RegExp(ID_MUSTER);
 const ASSETS_PFAD = '_assets';
 const CSS_URL = /url\((?!data:)([^)]+)\)/g;
 
+/**
+ * Ein Vorschlag ist noch nicht angenommen und kommt von Claude: Selbst wenn die Prüfung etwas übersieht, läuft hier nur
+ * Code vom Server und nichts lädt von außen. `script-src 'self'` statt `sandbox`, denn `abbildungen.js` zeichnet die Elemente.
+ */
+export const VORSCHLAG_CSP = [
+	"default-src 'none'",
+	"script-src 'self'",
+	"style-src 'self' 'unsafe-inline'",
+	"img-src 'self' data:",
+	"font-src 'self' data:",
+	"base-uri 'none'",
+	"form-action 'none'",
+	"frame-ancestors 'self'",
+].join('; ');
+
 const nichtGefunden = () => new HttpFehler(404, 'Nicht gefunden.');
 
 const leseEntwurf = async (dokDir: string, name: unknown) => {
@@ -231,6 +246,9 @@ export const ansichtRouter = (kontext: Kontext) => {
 			praesentation: praesentation === '1',
 			profil: profil === 'sw' || profil === 'farbe' ? profil : undefined,
 		});
+		if (vorschlag !== undefined) {
+			res.set('Content-Security-Policy', VORSCHLAG_CSP);
+		}
 		res.set('Cache-Control', 'no-store').type('html').send(html);
 	});
 
