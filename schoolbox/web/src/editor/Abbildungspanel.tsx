@@ -818,7 +818,7 @@ const MiniEingabe = ({
 		<input
 			type="text"
 			aria-label={name}
-			placeholder={MINI_BEISPIEL[art] ?? name}
+			placeholder={MINI_BEISPIEL[art] ?? name.replace(/ in Zeile \d+$/, '')}
 			enterKeyHint="done"
 			autoComplete="off"
 			className={`${EINGABE} w-full min-w-0`}

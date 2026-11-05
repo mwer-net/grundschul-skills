@@ -758,14 +758,14 @@ test.describe('Prüfmaschine', () => {
 			let blatt4: Awaited<ReturnType<typeof leeresBlatt>> | null = null;
 			let auf4 = false;
 			for (const e of KATALOG.filter((k) => k.kategorie === bereich && !k.klasse && (!FILTER || FILTER.includes(k.id)))) {
-				await aufLeeresBlatt(page, leer);
-				await fuegeEin(page, e);
-				await page.waitForTimeout(120);
 				if (auf4) {
 					await oeffne(page, id, dok);
 					await page.getByRole('tab', { name: 'Bausteine' }).click();
 					auf4 = false;
 				}
+				await aufLeeresBlatt(page, leer);
+				await fuegeEin(page, e);
+				await page.waitForTimeout(120);
 				const verstoesse: Verstoss[] = [];
 				const gesehen = new Set<string>();
 				const schema = schemaVon(e.id);

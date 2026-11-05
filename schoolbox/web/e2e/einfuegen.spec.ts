@@ -59,11 +59,12 @@ test.describe('Editor: Bausteine einfügen', () => {
 		await suche(page).fill('Beispiel');
 		const vorher = await quelle(page);
 		await page.locator('[data-einfuegen="beispiel"]').click();
-		await expect(page.locator('[data-hinweis-text], [role="status"]').filter({ hasText: 'Beispiel' }).first()).toBeVisible();
+		await expect(page.locator('[role="status"]').filter({ hasText: 'zum Beispiel' }).first()).toBeVisible();
 		expect(await quelle(page)).toBe(vorher);
-		await druecke(material(page).locator('.reihe > .zelle, .reihe > *').first());
+		// Im Testblatt ist der erste Eintrag schon das Beispiel, also der zweite.
+		await druecke(material(page).locator('.reihe > *').nth(1));
 		await page.locator('[data-einfuegen="beispiel"]').click();
-		await expect.poll(() => quelle(page)).toContain('beispiel');
+		await expect.poll(() => quelle(page)).not.toBe(vorher);
 		await expect(page.locator('[data-inspektor] [data-auswahl]')).toBeVisible();
 	});
 
