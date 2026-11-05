@@ -655,7 +655,7 @@ export const Bibliothek = ({
 					)}
 					{verborgen > 0 && (
 						<Knopf art="leise" className="self-start" data-weitere onClick={() => waehleFilter('alle')}>
-							{verborgen === 1 ? '1 weiterer' : `${verborgen} weitere`} unter Alle
+							{`${verborgen === 1 ? '1 weiterer' : `${verborgen} weitere`} unter Alle`}
 						</Knopf>
 					)}
 				</>

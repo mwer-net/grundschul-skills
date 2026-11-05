@@ -167,6 +167,9 @@ export const Sprachwerkzeug = ({
 			});
 		}
 	};
+	const schalteVokale = () => {
+		void wende(stand.vokale ? 'Vokale aus' : 'Vokale', (s, q) => s.schalteMarkierung(q, nr, 'vokale', bereich));
+	};
 	const setzeSilben = (wert: SilbenDarstellung | null) =>
 		void wende(wert ? 'Silben' : 'Silben entfernt', (s, q) => s.setzeSilben(q, nr, wert, bereich));
 	const entferneUeberall = () => void wende('Silben entfernt', (s, q) => s.setzeSilben(q, stand.ziel, null));
@@ -209,7 +212,7 @@ export const Sprachwerkzeug = ({
 			<Abschnitt name="lesehilfen" titel="Lesehilfen">
 				{markiert && (
 					<p className="truncate text-xs text-leise" data-sprache-markierung title={markiert.text}>
-						Wirkt auf die Markierung: „{markiert.text}“
+						{`Wirkt auf die Markierung: „${markiert.text}“`}
 					</p>
 				)}
 				<Regler titel="Silben">
@@ -234,16 +237,7 @@ export const Sprachwerkzeug = ({
 					<>
 						<Zeile titel="Vokale" fuer="sprache-vokale">
 							<span {...halteFokus} data-sprache-vokale>
-								<Schalter
-									id="sprache-vokale"
-									name="Vokale"
-									an={stand.vokale}
-									setze={() =>
-										void wende(stand.vokale ? 'Vokale aus' : 'Vokale', (s, q) =>
-											s.schalteMarkierung(q, nr, 'vokale', bereich),
-										)
-									}
-								/>
+								<Schalter id="sprache-vokale" name="Vokale" an={stand.vokale} setze={schalteVokale} />
 							</span>
 						</Zeile>
 						<Zeile

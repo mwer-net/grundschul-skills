@@ -245,14 +245,14 @@ const trefferIn = (stuecke: Stueck[], was: string, bereich?: Bereich) => {
 		const passend = liste.find((g) => {
 			const folge = sichtbar.slice(a, a + [...g].length);
 			const letztes = folge.at(-1);
-			return (
-				letztes &&
-				folge
-					.map((f) => f.zeichen)
-					.join('')
-					.toLowerCase() === g &&
-					imBereich(folge[0]?.ort ?? 0, letztes.ort + letztes.zeichen.length)
-			);
+			if (!letztes) {
+				return false;
+			}
+			const text = folge
+				.map((f) => f.zeichen)
+				.join('')
+				.toLowerCase();
+			return text === g && imBereich(folge[0]?.ort ?? 0, letztes.ort + letztes.zeichen.length);
 		});
 		if (passend) {
 			sichtbar.slice(a, a + [...passend].length).forEach((f) => treffer.add(f.i));

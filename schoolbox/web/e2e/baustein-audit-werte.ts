@@ -179,7 +179,7 @@ const roheWerte = (
 		case 'markierung':
 			return markierungWerte(feld, roh);
 		case 'noten':
-			return [['eine Note', `${roh ?? ''} ${feld.tonhoehe ? "g'4" : '4'}`.trim()]];
+			return [['eine Note', `${roh ?? ''} ${feld.tonhoehe ? `g${String.fromCharCode(39)}4` : '4'}`.trim()]];
 		case 'plan':
 			return [['eine Fläche', rasterText([[feld.flaechen.at(-1)?.wert ?? 'wiese']])]];
 		case 'bild':

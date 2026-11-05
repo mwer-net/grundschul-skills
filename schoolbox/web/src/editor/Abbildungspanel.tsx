@@ -731,6 +731,19 @@ const BildWahl = (e: BildWahlEigenschaften) => {
 const BildKnopf = (e: BildWahlEigenschaften) => {
 	const { abb, aendere, name, wert } = e;
 	const { dazu, oeffneDatei, oeffneSammlung } = useBildWahl(e);
+	const ausloeser = (
+		<button
+			type="button"
+			className="flex size-(--hoehe-feld) flex-none items-center justify-center overflow-hidden rounded-md border border-rand-feld bg-flaeche text-leise hover:bg-flaeche-2"
+			data-bild-knopf={wert ? 'gesetzt' : 'leer'}
+		>
+			{wert ? (
+				<img className="size-full object-contain" alt="" src={`${abb.bildBasis}${wert}`} />
+			) : (
+				<Symbol name="bild" />
+			)}
+		</button>
+	);
 	return (
 		<>
 			<Menue
@@ -740,19 +753,7 @@ const BildKnopf = (e: BildWahlEigenschaften) => {
 					{ titel: 'Hochladen', waehle: oeffneDatei },
 					...(wert ? [{ titel: 'Bild entfernen', gefahr: true, waehle: () => aendere('', true) }] : []),
 				]}
-				ausloeser={(
-					<button
-						type="button"
-						className="flex size-(--hoehe-feld) flex-none items-center justify-center overflow-hidden rounded-md border border-rand-feld bg-flaeche text-leise hover:bg-flaeche-2"
-						data-bild-knopf={wert ? 'gesetzt' : 'leer'}
-					>
-						{wert ? (
-							<img className="size-full object-contain" alt="" src={`${abb.bildBasis}${wert}`} />
-						) : (
-							<Symbol name="bild" />
-						)}
-					</button>
-				)}
+				ausloeser={ausloeser}
 			/>
 			{dazu}
 		</>
@@ -844,35 +845,34 @@ const MusterKnopf = ({
 	sw: boolean;
 	wert: string;
 	aendere: (neu: string, sofort: boolean) => void;
-}) => (
-	<Popover
-		name={name}
-		className="w-auto"
-		ausloeser={(
-			<button
-				type="button"
-				className="size-(--hoehe-feld) flex-none rounded-md border border-rand-feld"
-				style={{ background: (sw ? MUSTER_BILD : FARB_BILD)[wert] ?? '#fff' }}
-				data-muster-knopf={wert}
-			/>
-		)}
-	>
-		{(schliessen) => (
-			<div className="w-52">
-				<Muster
-					optionen={optionen}
-					aktiv={wert}
-					name={name}
-					sw={sw}
-					setze={(w) => {
-						aendere(w, true);
-						schliessen();
-					}}
-				/>
-			</div>
-		)}
-	</Popover>
-);
+}) => {
+	const ausloeser = (
+		<button
+			type="button"
+			className="size-(--hoehe-feld) flex-none rounded-md border border-rand-feld"
+			style={{ background: (sw ? MUSTER_BILD : FARB_BILD)[wert] ?? '#fff' }}
+			data-muster-knopf={wert}
+		/>
+	);
+	return (
+		<Popover name={name} className="w-auto" ausloeser={ausloeser}>
+			{(schliessen) => (
+				<div className="w-52">
+					<Muster
+						optionen={optionen}
+						aktiv={wert}
+						name={name}
+						sw={sw}
+						setze={(w) => {
+							aendere(w, true);
+							schliessen();
+						}}
+					/>
+				</div>
+			)}
+		</Popover>
+	);
+};
 
 const UnterEingabe = ({
 	abb,
@@ -1036,75 +1036,74 @@ const ZeilenMenue = ({
 	entfernen: (() => void) | null;
 	nachOben: (() => void) | null;
 	nachUnten: (() => void) | null;
-}) => (
-	<Popover
-		name={`Zeile ${i + 1}: mehr`}
-		ausrichtung="end"
-		ausloeser={(
-			<button
-				type="button"
-				className="flex size-(--hoehe-feld) flex-none items-center justify-center rounded-md text-leise hover:bg-flaeche-2"
-				data-zeile-mehr={i}
-			>
-				<Symbol name="mehr" />
-			</button>
-		)}
-	>
-		<div className="flex flex-col gap-2">
-			{u.map((unter, j) =>
-				unter.art === 'mini' ? (
-					<MiniArt
-						key={unter.name}
-						name={`${unter.name} in Zeile ${i + 1}`}
-						wert={zeile[j] ?? ''}
-						aendere={(w, sofort) => aendere(j, w, sofort)}
-					/>
-				) : (
-					unter.art === 'schalter' && (
-						<UnterEingabe
+}) => {
+	const ausloeser = (
+		<button
+			type="button"
+			className="flex size-(--hoehe-feld) flex-none items-center justify-center rounded-md text-leise hover:bg-flaeche-2"
+			data-zeile-mehr={i}
+		>
+			<Symbol name="mehr" />
+		</button>
+	);
+	return (
+		<Popover name={`Zeile ${i + 1}: mehr`} ausrichtung="end" ausloeser={ausloeser}>
+			<div className="flex flex-col gap-2">
+				{u.map((unter, j) =>
+					unter.art === 'mini' ? (
+						<MiniArt
 							key={unter.name}
-							u={unter}
-							abb={abb}
 							name={`${unter.name} in Zeile ${i + 1}`}
 							wert={zeile[j] ?? ''}
 							aendere={(w, sofort) => aendere(j, w, sofort)}
-							uebernimm={uebernimm}
 						/>
-					)
-				),
-			)}
-			<div className="hidden gap-2 [@media(any-pointer:coarse)]:flex">
+					) : (
+						unter.art === 'schalter' && (
+							<UnterEingabe
+								key={unter.name}
+								u={unter}
+								abb={abb}
+								name={`${unter.name} in Zeile ${i + 1}`}
+								wert={zeile[j] ?? ''}
+								aendere={(w, sofort) => aendere(j, w, sofort)}
+								uebernimm={uebernimm}
+							/>
+						)
+					),
+				)}
+				<div className="hidden gap-2 [@media(any-pointer:coarse)]:flex">
+					<Knopf
+						art="zweit"
+						className="flex-1"
+						aria-label={`Zeile ${i + 1} nach oben`}
+						disabled={!nachOben}
+						onClick={() => nachOben?.()}
+					>
+						↑
+					</Knopf>
+					<Knopf
+						art="zweit"
+						className="flex-1"
+						aria-label={`Zeile ${i + 1} nach unten`}
+						disabled={!nachUnten}
+						onClick={() => nachUnten?.()}
+					>
+						↓
+					</Knopf>
+				</div>
 				<Knopf
 					art="zweit"
-					className="flex-1"
-					aria-label={`Zeile ${i + 1} nach oben`}
-					disabled={!nachOben}
-					onClick={() => nachOben?.()}
+					aria-label={`Zeile ${i + 1} löschen`}
+					disabled={!entfernen}
+					onClick={() => entfernen?.()}
 				>
-					↑
-				</Knopf>
-				<Knopf
-					art="zweit"
-					className="flex-1"
-					aria-label={`Zeile ${i + 1} nach unten`}
-					disabled={!nachUnten}
-					onClick={() => nachUnten?.()}
-				>
-					↓
+					<Symbol name="papierkorb" />
+					Entfernen
 				</Knopf>
 			</div>
-			<Knopf
-				art="zweit"
-				aria-label={`Zeile ${i + 1} löschen`}
-				disabled={!entfernen}
-				onClick={() => entfernen?.()}
-			>
-				<Symbol name="papierkorb" />
-				Entfernen
-			</Knopf>
-		</div>
-	</Popover>
-);
+		</Popover>
+	);
+};
 
 /** Viele Einträge auf einmal: eine Zeile je Eintrag. Ersetzt das Klicken durch 30 Felder. */
 const ListeAlsText = ({
@@ -1151,6 +1150,8 @@ const Liste = ({ abb, feld }: FeldEigenschaften<ListeFeld>) => {
 		}
 	};
 	const { behaelter, greife, zug } = useZeilenZug(verschiebe);
+	/** Die Einfügemarke steht unter der letzten Zeile. */
+	const unterLetzter = (i: number) => zug?.nach === zeilen.length && i === zeilen.length - 1;
 	const griffTaste = (i: number, e: KeyboardEvent<HTMLButtonElement>) => {
 		const ziel = { ArrowUp: i - 1, ArrowDown: i + 1 }[e.key];
 		if (ziel === undefined || ziel < 0 || ziel >= zeilen.length) {
@@ -1198,9 +1199,7 @@ const Liste = ({ abb, feld }: FeldEigenschaften<ListeFeld>) => {
 								'flex items-center gap-1 rounded-sm',
 								zug?.von === i && 'opacity-40',
 								zug?.nach === i && 'shadow-[0_-2px_0_0_var(--color-brand-500)]',
-								zug?.nach === zeilen.length &&
-								i === zeilen.length - 1 &&
-								'shadow-[0_2px_0_0_var(--color-brand-500)]',
+								unterLetzter(i) && 'shadow-[0_2px_0_0_var(--color-brand-500)]',
 							)}
 							data-zeile={i}
 						>

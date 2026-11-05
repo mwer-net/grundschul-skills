@@ -112,7 +112,7 @@ const ENTITAETEN: Record<string, string> = {
 	lt: '<',
 	gt: '>',
 	quot: '"',
-	apos: '\'',
+	apos: String.fromCharCode(39),
 	nbsp: String.fromCharCode(160),
 	auml: 'ä',
 	ouml: 'ö',

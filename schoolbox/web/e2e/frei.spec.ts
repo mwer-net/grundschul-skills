@@ -287,7 +287,7 @@ test.describe('Freies Element von Claude (088)', () => {
 			}),
 		);
 		const seite = await page.goto(`/ansicht/${id}/dokumente/${dok}/?vorschlag=1`);
-		expect(seite?.headers()['content-security-policy']).toContain('script-src \'self\'');
+		expect(seite?.headers()['content-security-policy']).toMatch(/script-src 'self'/);
 		await expect(page.locator('x-uhr svg').last()).toBeVisible();
 		expect(await page.evaluate(() => (window as unknown as { boese?: number }).boese)).toBeUndefined();
 	});

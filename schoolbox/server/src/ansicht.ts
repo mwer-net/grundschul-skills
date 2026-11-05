@@ -32,15 +32,18 @@ const CSS_URL = /url\((?!data:)([^)]+)\)/g;
  * Ein Vorschlag ist noch nicht angenommen und kommt von Claude: Selbst wenn die Prüfung etwas übersieht, läuft hier nur
  * Code vom Server und nichts lädt von außen. `script-src 'self'` statt `sandbox`, denn `abbildungen.js` zeichnet die Elemente.
  */
+/** Setzt ein CSP-Schlüsselwort in einfache Anführungszeichen, etwa `'self'`. */
+const wort = (name: string) => `'${name}'`;
+
 export const VORSCHLAG_CSP = [
-	'default-src \'none\'',
-	'script-src \'self\'',
-	'style-src \'self\' \'unsafe-inline\'',
-	'img-src \'self\' data:',
-	'font-src \'self\' data:',
-	'base-uri \'none\'',
-	'form-action \'none\'',
-	'frame-ancestors \'self\'',
+	`default-src ${wort('none')}`,
+	`script-src ${wort('self')}`,
+	`style-src ${wort('self')} ${wort('unsafe-inline')}`,
+	`img-src ${wort('self')} data:`,
+	`font-src ${wort('self')} data:`,
+	`base-uri ${wort('none')}`,
+	`form-action ${wort('none')}`,
+	`frame-ancestors ${wort('self')}`,
 ].join('; ');
 
 const nichtGefunden = () => new HttpFehler(404, 'Nicht gefunden.');
