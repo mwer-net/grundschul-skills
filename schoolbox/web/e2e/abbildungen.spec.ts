@@ -1191,6 +1191,80 @@ test.describe('Sachunterricht und Musik: Die Taktart nimmt die Noten mit (084)',
 	});
 });
 
+test.describe('Spiele und Rätsel: Wahlen zeigen den Weg (084)', () => {
+	const mitTag = async (page: Page, tag: string) => {
+		const { dok, id, material: datei } = await uhrzeit();
+		await oeffne(page, id, dok);
+		await aendere(page, (await quelle(page)).replace(/<x-uhr[^>]*><\/x-uhr>/, tag));
+		await gespeichert(page, datei);
+		return { datei, stand: await readFile(datei, 'utf8') };
+	};
+
+	test('Suchsel: Bei der Wortliste „Bilder“ steht die Meldung an der Liste und nennt das Menü der Zeile', async ({
+		druecke,
+		page,
+	}) => {
+		const { datei, stand } = await mitTag(page, '<x-suchsel seed="1" woerter="Oma; Opa; Mama"></x-suchsel>');
+		await druecke(material(page).locator('x-suchsel'));
+		await page.locator('[data-feld="wortliste"] select').selectOption({ label: 'Bilder' });
+		const meldung = page.locator('[data-fehler="woerter"]');
+		await expect(meldung).toContainText('Menü ⋯ der Zeile');
+		await expect(meldung).toContainText('Zeile 1, 2 und 3');
+		expect(await readFile(datei, 'utf8')).toBe(stand);
+	});
+
+	test('Kreuzworträtsel: Hinweis breiter als Wort, senkrecht meldet am Lösungswort den Weg', async ({
+		druecke,
+		page,
+	}) => {
+		const { datei, stand } = await mitTag(
+			page,
+			'<x-kreuzwort seed="1" loesungswort="HEFT" eintraege="Darauf sitzt du.: STUHL; Damit schreibst du.: STIFT; Hier lernst du.: SCHULE; Damit radierst du.: RADIERER; Darin ist dein Essen.: DOSE"></x-kreuzwort>',
+		);
+		await druecke(material(page).locator('x-kreuzwort'));
+		const zeile = page.locator('[data-feld="eintraege"] [data-zeile="0"]');
+		const hinweis = await zeile.getByRole('textbox', { name: 'Hinweis in Zeile 1' }).boundingBox();
+		const wort = await zeile.getByRole('textbox', { name: 'Wort in Zeile 1' }).boundingBox();
+		expect(hinweis?.width ?? 0).toBeGreaterThan((wort?.width ?? 0) * 1.3);
+
+		await page.locator('[data-feld="art"] select').selectOption({ label: 'Lösungswort senkrecht' });
+		const meldung = page.locator('[data-fehler="loesungswort"]');
+		await expect(meldung).toContainText('es sind aber 5 Wörter');
+		await expect(meldung).toContainText('5 Buchstaben');
+		expect(await readFile(datei, 'utf8')).toBe(stand);
+	});
+
+	test('Spielplan: Die Lernlandkarte nimmt Platzhalter statt der Aufgaben, ein Schritt zurück stellt sie her', async ({
+		druecke,
+		page,
+	}) => {
+		const inhalt = `; ${Array.from({ length: 19 }, (_, i) => `${i}+1`).join('; ')}`;
+		const { datei, stand } = await mitTag(page, `<x-spielplan felder="20" inhalt="${inhalt}"></x-spielplan>`);
+		const plan = material(page).locator('x-spielplan');
+		await druecke(plan);
+		await page.locator('[data-feld="art"] select').selectOption({ label: 'Lernlandkarte' });
+		await gespeichert(page, datei);
+		await expect(plan).not.toHaveAttribute('data-fehler', /./);
+		await expect(plan.locator('.land-station')).toHaveCount(3);
+		expect(await readFile(datei, 'utf8')).toContain('inhalt="Ich kann …; Ich kann …; Ich kann …"');
+		await druecke(zurueck(page));
+		await gespeichert(page, datei);
+		expect(await readFile(datei, 'utf8')).toBe(stand);
+	});
+
+	test('Spielplan: „Start“ passt beim Rundweg mit 30 Feldern in Klasse 2 ins Feld', async ({ page }) => {
+		const seite = await gezeichnet(
+			page,
+			'<style>body{--fs:24px}</style><x-spielplan felder="30" form="rundweg"></x-spielplan>',
+			'kl2',
+		);
+		const plan = seite.locator('x-spielplan');
+		await expect(plan).not.toHaveAttribute('data-fehler', /./);
+		await expect(plan.locator('[data-feld]')).toHaveCount(30);
+		await expect(plan.locator('[data-feld="1"]')).toContainText('Start');
+	});
+});
+
 test.describe('Geometrie: Wahlen nehmen mit, was sie brauchen (084)', () => {
 	const mitTag = async (page: Page, tag: string) => {
 		const { dok, id, material: datei } = await uhrzeit();

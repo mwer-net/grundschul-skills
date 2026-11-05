@@ -946,7 +946,10 @@ const spaltenKlasse = (u: UnterFeld) => {
 	if (u.art === 'zahl') {
 		return 'w-12 flex-none';
 	}
-	return u.art === 'bild' || u.art === 'muster' ? 'flex-none' : 'min-w-0 flex-1';
+	if (u.art === 'bild' || u.art === 'muster') {
+		return 'flex-none';
+	}
+	return u.breit ? 'min-w-0 flex-[1.5]' : 'min-w-0 flex-1';
 };
 
 /** Griff zum Umsortieren: Der Zug sagt nur, wohin; geschrieben wird erst beim Loslassen, ein Schritt im Verlauf. */

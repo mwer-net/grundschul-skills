@@ -13,6 +13,7 @@ import {
 	auswahlOptionen,
 	feldWert,
 	GRUPPEN_ABSCHNITT,
+	LERNLANDKARTE_PLATZHALTER,
 	markeSetzen,
 	markeTrennen,
 	markeVerbinden,
@@ -462,6 +463,51 @@ describe('Felder ändern', () => {
 		assert.deepEqual(Object.keys(fehler), ['eintraege']);
 		assert.match(fehler.eintraege ?? '', /Bild-Knopf.*Zeile 1 und 3\.$/);
 		assert.deepEqual(pruefe('x-sortieren', { eintraege: 'A: a.png; B: b.png', art: 'bilder' }), {});
+	});
+
+	it('Suchsel: Wortliste „Bilder“ ohne Bild meldet an der Liste und nennt den Weg über das Menü der Zeile', () => {
+		const woerter = 'Oma: bild:bilder/oma.png; Opa; Mama: uhr:7:30; Papa: bild:';
+		assert.deepEqual(pruefe('x-suchsel', { woerter }), {});
+		const fehler = pruefe('x-suchsel', { woerter, wortliste: 'bilder' });
+		assert.deepEqual(Object.keys(fehler), ['woerter']);
+		assert.match(fehler.woerter ?? '', /^Bei der Wortliste „Bilder“ .*Menü ⋯ der Zeile.*„Bild“.*Zeile 2 und 4\.$/);
+		// Jeder Mini-Inhalt gilt als Bild, wie in der Referenz.
+		assert.deepEqual(pruefe('x-suchsel', { woerter: 'Oma: bild:a.png; Opa: wuerfel:3', wortliste: 'bilder' }), {});
+		// Erst die Wörter selbst, dann die Bilder.
+		assert.match(pruefe('x-suchsel', { woerter: 'Oma1; Opa', wortliste: 'bilder' }).woerter ?? '', /nur aus Buchstaben/);
+	});
+
+	it('Kreuzworträtsel: Lösungswort senkrecht meldet am Lösungswort, was fehlt, und nennt den Weg', () => {
+		const eintraege = 'a: STUHL; b: STIFT; c: SCHULE; d: LINEAL; e: RADIERER; f: DOSE; g: TAFEL; h: RANZEN';
+		assert.deepEqual(pruefe('x-kreuzwort', { eintraege, loesungswort: 'HEFT' }), {});
+		const zuKurz = pruefe('x-kreuzwort', { eintraege, loesungswort: 'HEFT', art: 'senkrecht' });
+		assert.deepEqual(Object.keys(zuKurz), ['loesungswort']);
+		assert.match(zuKurz.loesungswort ?? '', /4 Buchstaben, es sind aber 8 Wörter\..*8 Buchstaben\..*oder 4 Wörter\.$/);
+		assert.match(
+			pruefe('x-kreuzwort', { eintraege, art: 'senkrecht' }).loesungswort ?? '',
+			/^Hier fehlt das Lösungswort\. .*8 Buchstaben\.$/,
+		);
+		const vier = 'a: STUHL; b: TAFEL; c: STIFT; d: DOSE';
+		assert.match(
+			pruefe('x-kreuzwort', { eintraege: vier, loesungswort: 'HEFT', art: 'senkrecht' }).loesungswort ?? '',
+			/^„DOSE“ enthält kein T, den 4\. Buchstaben .*Reihenfolge\.$/,
+		);
+		const passend = 'a: STUHL; b: TAFEL; c: STIFT; d: TAFEL';
+		assert.deepEqual(pruefe('x-kreuzwort', { eintraege: passend, loesungswort: 'heft', art: 'senkrecht' }), {});
+		// ß zählt wie in abbildungen.js als SS.
+		assert.deepEqual(pruefe('x-kreuzwort', { eintraege: 'a: SONNE; b: STERN', loesungswort: 'ß', art: 'senkrecht' }), {});
+	});
+
+	it('Spielplan: Die Lernlandkarte nimmt Platzhalter, wenn die Inhalte nicht 2 bis 12 Ziele sind', () => {
+		const s = schema('x-spielplan');
+		const art = feld(s, 'art');
+		const aufgaben = `; ${Array.from({ length: 28 }, (_, i) => `${i}+1`).join('; ')}`;
+		assert.equal(aendereFeld(s, { inhalt: aufgaben }, art, 'lernlandkarte').inhalt, LERNLANDKARTE_PLATZHALTER);
+		assert.equal(aendereFeld(s, { inhalt: null }, art, 'lernlandkarte').inhalt, LERNLANDKARTE_PLATZHALTER);
+		const ziele = 'Ich kann zählen.; ; Ich kann ergänzen.';
+		assert.equal(aendereFeld(s, { inhalt: ziele }, art, 'lernlandkarte').inhalt, ziele);
+		// Zurück zum Spielplan bleibt alles.
+		assert.equal(aendereFeld(s, { art: 'lernlandkarte', inhalt: ziele }, art, 'spiel').inhalt, ziele);
 	});
 
 	it('Gitter: Die Aufgabe nimmt Spalten, Zeilen, Kästchen und Achse mit', () => {

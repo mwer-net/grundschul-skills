@@ -4372,18 +4372,21 @@
     return { b: 620, h: 870 };
   };
   const spielSchrift = () => parseFloat(getComputedStyle(document.body).getPropertyValue("--fs")) || 20;
-  /** Passt der Text umbrochen in die Fläche? Mit der mittleren Zeichenbreite, wie die anderen Platzrechnungen. */
+  /**
+   * Passt der Text umbrochen in die Fläche? Mit der mittleren Zeichenbreite, wie die anderen Platzrechnungen.
+   * Ein Leerzeichen steht nur zwischen zwei Wörtern einer Zeile; ein Wort allein bricht nicht um.
+   */
   const textPasst = (t, b, h, g) => {
-    const woerter = String(t).split(/\s+/);
+    const woerter = String(t).split(/\s+/), luecke = textBreite(" ", g);
     if (woerter.some((w) => textBreite(w, g) > b)) return false;
-    let zeilen = 1, frei = b;
+    let zeilen = 1, belegt = 0;
     for (const w of woerter) {
-      const noetig = textBreite(w, g) + textBreite(" ", g);
-      if (noetig > frei) {
+      const breite = textBreite(w, g);
+      if (belegt > 0 && belegt + luecke + breite > b) {
         zeilen++;
-        frei = b;
+        belegt = 0;
       }
-      frei -= noetig;
+      belegt += (belegt > 0 ? luecke : 0) + breite;
     }
     return zeilen * g * 1.2 <= h;
   };
@@ -4861,11 +4864,12 @@
     const maxSpalten = Math.floor(SATZSPIEGEL / z), maxZeilen = Math.floor(800 / z);
     let lagen, spalten, zeilen, spalteLoesung = -1;
     if (art === "senkrecht") {
-      if (!geheim) abbruch("Beim senkrechten Rätsel fehlt das Lösungswort.");
-      if (geheim.length !== eintraege.length) abbruch(`Das Lösungswort hat ${geheim.length} Buchstaben, es sind aber ${eintraege.length} Wörter.`);
+      const weg = `Aus jedem Wort kommt der Reihe nach ein Buchstabe, es braucht also ${eintraege.length} Buchstaben.`;
+      if (!geheim) abbruch(`Beim senkrechten Rätsel fehlt das Lösungswort. ${weg}`);
+      if (geheim.length !== eintraege.length) abbruch(`Das Lösungswort hat ${geheim.length} Buchstaben, es sind aber ${eintraege.length} Wörter. ${weg} Nimm ein anderes Lösungswort oder ${geheim.length} Wörter.`);
       const stellen = eintraege.map((e, i) => {
         const s = e.wort.indexOf(geheim[i]);
-        if (s < 0) abbruch(`„${e.roh}“ enthält kein ${geheim[i]}. Bitte ein anderes Wort nehmen.`);
+        if (s < 0) abbruch(`„${e.roh}“ enthält kein ${geheim[i]}, den ${i + 1}. Buchstaben des Lösungsworts. Nimm ein anderes Wort oder ziehe die Wörter in eine passende Reihenfolge.`);
         return s;
       });
       spalteLoesung = Math.max(...stellen);

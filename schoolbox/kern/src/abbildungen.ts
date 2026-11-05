@@ -139,6 +139,8 @@ export interface UnterFeld {
 	leer?: boolean;
 	/** Nur `art: 'schalter'`: Wert, wenn der Haken gesetzt ist. */
 	an?: string;
+	/** Lange Einträge wie ein Hinweis: Die Spalte bekommt im Panel anderthalbmal so viel Platz. */
+	breit?: boolean;
 }
 
 /** Zeilen aus Unterfeldern: `Hund: 7; Katze: 4`. Zeilen hinzufügen, löschen, verschieben. */
@@ -973,11 +975,19 @@ const vornFolgtSatz = (w: Werte): Werte => (vornAngeboten(w.vorn ?? null, w) ? {
  */
 const bilderFehlen = (
 	w: Lesen,
-	{ liste, spalte, wahl, istBild = (z: string) => z.trim() !== '' }: {
+	{
+		liste,
+		spalte,
+		wahl,
+		istBild = (z: string) => z.trim() !== '',
+		weg = 'Wähle es mit dem Bild-Knopf in der Zeile',
+	}: {
 		liste: string;
 		spalte: number;
 		wahl: string;
 		istBild?: (zelle: string) => boolean;
+		/** Wie die Zeile zu ihrem Bild kommt; ohne Angabe steht der Bild-Knopf schon in der Zeile. */
+		weg?: string;
 	},
 ): Fehler => {
 	const ohne = w.zeilen(liste).flatMap((z, i) => (istBild(z[spalte] ?? '') ? [] : [i + 1]));
@@ -985,7 +995,50 @@ const bilderFehlen = (
 		return {};
 	}
 	const wo = ohne.length === 1 ? `Zeile ${ohne[0]}` : `Zeile ${ohne.slice(0, -1).join(', ')} und ${ohne.at(-1)}`;
-	return { [liste]: `${wahl} braucht jeder Eintrag ein Bild. Wähle es mit dem Bild-Knopf in der Zeile, es fehlt in ${wo}.` };
+	return { [liste]: `${wahl} braucht jeder Eintrag ein Bild. ${weg}, es fehlt in ${wo}.` };
+};
+
+/** Buchstaben eines Rätselworts wie `raetselWort` in `abbildungen.js`: groß, ß wird SS. */
+const raetselBuchstaben = (wort: string) => [...wort.replace(/ß/g, 'SS').toUpperCase()];
+
+/**
+ * Lösungswort senkrecht: Aus jedem Wort kommt der Reihe nach ein Buchstabe. Die Meldung steht am Lösungswort und
+ * nennt den Weg; die Wahl der Art bleibt Entwurf, bis es passt (E-X3). Dieselben Prüfungen wie in `abbildungen.js`.
+ */
+const senkrechtFehlt = (eintraege: string[][], geheimRoh: string | null): Fehler => {
+	const n = eintraege.length;
+	const weg = `Aus jedem Wort kommt der Reihe nach ein Buchstabe, es braucht also ${n} Buchstaben.`;
+	if (!geheimRoh) {
+		return { loesungswort: `Hier fehlt das Lösungswort. ${weg}` };
+	}
+	const geheim = raetselBuchstaben(geheimRoh);
+	if (geheim.length !== n) {
+		return {
+			loesungswort: `Das Lösungswort hat ${geheim.length} Buchstaben, es sind aber ${n} Wörter. ${weg} Nimm ein anderes Lösungswort oder ${geheim.length} Wörter.`,
+		};
+	}
+	const i = eintraege.findIndex(([, wort = ''], j) => !raetselBuchstaben(wort).includes(geheim[j] ?? ''));
+	const [, wort = ''] = eintraege[i] ?? [];
+	return i < 0
+		? {}
+		: {
+				loesungswort: `„${wort}“ enthält kein ${geheim[i]}, den ${i + 1}. Buchstaben des Lösungsworts. Nimm ein anderes Wort oder ziehe die Wörter in eine passende Reihenfolge.`,
+			};
+};
+
+/** Platzhalter, wenn die Inhalte eines Spielplans nicht als Ziele taugen. */
+export const LERNLANDKARTE_PLATZHALTER = 'Ich kann …; Ich kann …; Ich kann …';
+
+/**
+ * Zur Lernlandkarte: Sie hat 2 bis 12 Ziele wie `lernlandkarte` in `abbildungen.js`. Passt die Zahl der Inhalte nicht,
+ * etwa die Aufgaben eines Spielplans, kommen drei Platzhalter; was passt, bleibt (E-X4).
+ */
+const zieleFuerLernlandkarte = (w: Werte): Werte => {
+	if (w.art !== 'lernlandkarte') {
+		return {};
+	}
+	const ziele = (w.inhalt ?? '').split(';').filter((t) => t.trim() !== '').length;
+	return ziele >= 2 && ziele <= 12 ? {} : { inhalt: LERNLANDKARTE_PLATZHALTER };
 };
 
 const FELDER_JE_ART: Readonly<Record<string, number>> = { fuenfer: 5, zehner: 10, zwanziger: 20 };
@@ -3639,7 +3692,16 @@ export const ABBILDUNG_SCHEMA = {
 					return { woerter: `„${wort}“ ist länger als das Gitter.` };
 				}
 			}
-			return {};
+			// Jeder Mini-Inhalt gilt als Bild, wie in `abbildungen.js` und der Referenz; die Art steht im ⋯ der Zeile.
+			return w.text('wortliste') === 'bilder'
+				? bilderFehlen(w, {
+						liste: 'woerter',
+						spalte: 1,
+						wahl: 'Bei der Wortliste „Bilder“',
+						istBild: (z) => miniTeile(z).inhalt.trim() !== '',
+						weg: 'Stelle im Menü ⋯ der Zeile die Art auf „Bild“ und wähle es',
+					})
+				: {};
 		},
 	},
 	'x-kreuzwort': {
@@ -3657,7 +3719,7 @@ export const ABBILDUNG_SCHEMA = {
 				name: 'Einträge',
 				hilfe: 'Hinweis als Text oder Bild, dazu das Wort. Höchstens 12.',
 				unter: [
-					{ name: 'Hinweis', art: 'mini', standard: 'Hinweis' },
+					{ name: 'Hinweis', art: 'mini', standard: 'Hinweis', breit: true },
 					{ name: 'Wort', art: 'text', standard: 'Wort' },
 				],
 				feldTrenner: ': ',
@@ -3686,7 +3748,7 @@ export const ABBILDUNG_SCHEMA = {
 			if (geheim && !NUR_BUCHSTABEN.test(geheim)) {
 				return { loesungswort: 'Das Lösungswort darf nur aus Buchstaben bestehen.' };
 			}
-			return w.text('art') === 'senkrecht' && !geheim ? { loesungswort: 'Hier fehlt das Lösungswort.' } : {};
+			return w.text('art') === 'senkrecht' ? senkrechtFehlt(w.zeilen('eintraege'), geheim) : {};
 		},
 	},
 	'x-loesungswort': {
@@ -3859,6 +3921,7 @@ export const ABBILDUNG_SCHEMA = {
 					{ wert: 'spiel', name: 'Spielplan' },
 					{ wert: 'lernlandkarte', name: 'Lernlandkarte' },
 				],
+				mitnehmen: zieleFuerLernlandkarte,
 			},
 			{ art: 'zahl', attribut: 'felder', name: 'Felder', min: 20, max: 40, standard: 30 },
 			{
