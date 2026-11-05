@@ -271,8 +271,9 @@ const ABSCHNITTE: Abschnitt[] = [
 					</Punkt>
 					<Punkt titel="Lösung">oben auf „Lösung“ wechseln und die Lösungen eintragen.</Punkt>
 					<Punkt titel="Rückgängig">
-						der Pfeil oben (am Mac auch ⌘Z). „Versionen“ zeigt ältere Stände; jeden kannst du dir ansehen
-						und zurückholen.
+						der Pfeil oben oder ⌘Z, beides tut dasselbe. Der betroffene Baustein ist danach gewählt. Ein
+						noch offener Text gilt als ein Schritt und ist mit ⇧⌘Z sofort wieder da. „Versionen“ zeigt
+						ältere Stände; jeden kannst du dir ansehen und zurückholen.
 					</Punkt>
 				</ul>
 			</>

@@ -1,12 +1,13 @@
 import { formatAusHtml } from '@schoolbox/kern/src/html';
 import { hatLoesung, kannLoesungHaben } from '@schoolbox/kern/src/loesungen';
-import type { Zerlegung } from '@schoolbox/kern/src/quelltext';
+import type { Verlauf, Zerlegung } from '@schoolbox/kern/src/quelltext';
 import { zerlege } from '@schoolbox/kern/src/quelltext';
 import { hatNamenszeile } from '@schoolbox/kern/src/struktur';
 import type { Druckprofil, Format } from '@schoolbox/kern/src/werte';
 import { FORMAT_NAME } from '@schoolbox/kern/src/werte';
 import type { ReactNode } from 'react';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { flushSync } from 'react-dom';
 import type { SetURLSearchParams } from 'react-router-dom';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 
@@ -34,7 +35,7 @@ import { useBild } from '../editor/bild';
 import type { ChatHandlungen } from '../editor/chat-kontext';
 import { useChat, useChatKontext, useChatStand } from '../editor/chat-kontext';
 import { useClaudeApp } from '../editor/ClaudeApp';
-import { bausteinVon, editorHtml, elementZu, nrVon, pfadZu } from '../editor/darstellung';
+import { bausteinVon, editorHtml, elementZu, nrVon, pfadZu, zielNachSchritt } from '../editor/darstellung';
 import { useEinfuegen, useSlash, useTabelleTab } from '../editor/einfuegen';
 import { halteFokus } from '../editor/halteFokus';
 import { Einstellungen, Inspektor, Umriss } from '../editor/Inspektor';
@@ -54,9 +55,9 @@ import { Seitenleiste } from '../editor/Seitenleiste';
 import { Statusleiste } from '../editor/Statusleiste';
 import type { Struktur } from '../editor/struktur';
 import { useStruktur } from '../editor/struktur';
-import { gehoertDemElement, istFeld, TASTEN_SPERRE } from '../editor/tasten';
+import { behaeltUndo, beobachteFelder, gehoertDemElement, istFeld, loeseFeld, TASTEN_SPERRE } from '../editor/tasten';
 import { TastenUebersicht } from '../editor/TastenUebersicht';
-import { useText } from '../editor/text';
+import { TEXT_GEAENDERT, useText } from '../editor/text';
 import { useBefehle } from '../editor/useBefehle';
 import type { VersionEintrag } from '../editor/version';
 import { Versionen } from '../editor/Versionen';
@@ -290,10 +291,22 @@ const LINKS: LinksName[] = ['seiten', 'gliederung', 'bausteine'];
 const formatVon = (verlauf: { quelle: string } | null, sonst: Format) =>
 	verlauf ? formatAusHtml(verlauf.quelle) : sonst;
 
-const schritte = (verlauf: { zurueck: unknown[]; vor: unknown[] } | null, frei: boolean) => ({
-	kannVor: frei && Boolean(verlauf?.vor.length),
-	kannZurueck: frei && Boolean(verlauf?.zurueck.length),
-});
+/**
+ * Was die Pfeile gerade tun. Ein geänderter offener Text wird beim Beenden ein Schritt: Dann geht es zurück, und
+ * Wiederholen ist schon jetzt vorbei, wie nach jedem neuen Befehl.
+ */
+const schritte = (verlauf: Verlauf | null, frei: boolean, textGeaendert: boolean) => {
+	const zurueckName = textGeaendert ? TEXT_GEAENDERT : verlauf?.zurueck.at(-1)?.beschreibung;
+	const vorName = textGeaendert ? undefined : verlauf?.vor.at(-1)?.beschreibung;
+	return {
+		kannZurueck: frei && Boolean(zurueckName),
+		kannVor: frei && Boolean(vorName),
+		zurueckName: frei ? zurueckName : undefined,
+		vorName: frei ? vorName : undefined,
+	};
+};
+
+const mitSchritt = (titel: string, name: string | undefined) => (name ? `${titel}: ${name}` : titel);
 
 /**
  * Zwei Plätze für Panels, je Gerät gemerkt. „Versionen“ ist eine Aufgabe des Augenblicks: Das Panel geht nach dem
@@ -430,9 +443,13 @@ const Bearbeitung = ({ dokument, mappe: mappenDaten }: { mappe: Mappe; dokument:
 	const navigate = useNavigate();
 	const zeige = useHinweis();
 	const [suche, setSuche] = useSearchParams();
-	const b = useBearbeitung(mappe, dok);
-	const { alles, stand } = b.speicher;
 	const [auswahl, setAuswahl] = useState<number | null>(null);
+	const auswahlJetzt = useRef(auswahl);
+	useEffect(() => {
+		auswahlJetzt.current = auswahl;
+	}, [auswahl]);
+	const b = useBearbeitung(mappe, dok, auswahlJetzt);
+	const { alles, stand } = b.speicher;
 	const [geladen, setGeladen] = useState<{ doc: Document; html: string } | null>(null);
 	const panels = usePanels(suche.get('neu') === '1');
 	const [alsVorlage, setAlsVorlage] = useState(false);
@@ -481,7 +498,10 @@ const Bearbeitung = ({ dokument, mappe: mappenDaten }: { mappe: Mappe; dokument:
 
 	const frei = vorschau === null && b.konflikt === null;
 	const pruefung = usePruefung({ geladen, html, zerlegung, ausgang: b.ausgang, aus: vorschau !== null });
+	const schrittWeg = useRef<(richtung: 'zurueck' | 'vor') => void>(() => undefined);
+	const geschichte = useCallback((richtung: 'zurueck' | 'vor') => schrittWeg.current(richtung), []);
 	const text = useText({
+		geschichte,
 		geladen,
 		html,
 		zerlegung,
@@ -510,15 +530,33 @@ const Bearbeitung = ({ dokument, mappe: mappenDaten }: { mappe: Mappe; dokument:
 		}
 	});
 
-	const { rueckgaengig, wiederholen } = b;
+	const { quelleJetzt, rueckgaengig, wiederholen } = b;
+	const { beende: beendeText } = text;
+	/**
+	 * Erst wird Offenes zu einem Schritt, und die neue Quelle muss gerendert sein. Sonst entstünde sofort wieder das HTML
+	 * von vorher, der Rahmen würde nicht neu geladen und zeigte weiter den getippten Text. Darum gilt auch das gezeigte
+	 * Dokument nicht mehr, bis die Fassung nach dem Schritt da ist.
+	 */
+	const schliesseOffenes = useCallback(() => {
+		const vorher = quelleJetzt();
+		flushSync(() => {
+			beendeText();
+			loeseFeld(document.activeElement);
+		});
+		if (quelleJetzt() !== vorher) {
+			setGeladen(null);
+		}
+	}, [beendeText, quelleJetzt]);
 	const zurueck = useCallback(() => {
+		schliesseOffenes();
 		setAuswahl(null);
 		rueckgaengig();
-	}, [rueckgaengig]);
+	}, [rueckgaengig, schliesseOffenes]);
 	const vor = useCallback(() => {
+		schliesseOffenes();
 		setAuswahl(null);
 		wiederholen();
-	}, [wiederholen]);
+	}, [schliesseOffenes, wiederholen]);
 
 	const struktur = useStruktur({
 		geladen,
@@ -559,6 +597,20 @@ const Bearbeitung = ({ dokument, mappe: mappenDaten }: { mappe: Mappe; dokument:
 		struktur,
 		text,
 	});
+	// Nach dem Schritt ist zu sehen, was er zurückgenommen hat. Die Nummern stimmen erst in der neuen Fassung.
+	const zuletzt = b.verlauf?.zuletzt;
+	const gezeigterSchritt = useRef(zuletzt);
+	useEffect(() => {
+		if (zuletzt && zuletzt !== gezeigterSchritt.current && docJetzt && zerlegung && frei) {
+			gezeigterSchritt.current = zuletzt;
+			const ziel = zielNachSchritt(docJetzt, zerlegung, zuletzt);
+			if (ziel !== null) {
+				struktur.zeigeAn(ziel);
+			}
+		}
+	});
+	useEffect(() => beobachteFelder(window), []);
+
 	const zeigePunkt = useZeigePunkt({ loesung, geladen, html, zeigeAn: struktur.zeigeAn, setSuche });
 	const seite = useSichtbareSeite(geladen, ansicht, massstab.skala);
 
@@ -605,6 +657,7 @@ const Bearbeitung = ({ dokument, mappe: mappenDaten }: { mappe: Mappe; dokument:
 				const vorher = element?.previousElementSibling;
 				return vorher && bausteinVon(vorher) ? nrVon(vorher) : null;
 			})(),
+			feldBehaeltUndo: () => behaeltUndo(document.activeElement),
 			textMarkiert: () =>
 				[document, geladen?.doc].some((d) => {
 					const markiert = d?.getSelection();
@@ -711,6 +764,12 @@ const Bearbeitung = ({ dokument, mappe: mappenDaten }: { mappe: Mappe; dokument:
 		},
 		useCallback((inhalt: string) => zeige({ text: inhalt }), [zeige]),
 	);
+
+	const { fuehreAus: befehlAusfuehren } = befehle;
+	useEffect(() => {
+		schrittWeg.current = (richtung) =>
+			befehlAusfuehren(richtung === 'zurueck' ? 'dokument.rueckgaengig' : 'dokument.wiederholen');
+	}, [befehlAusfuehren]);
 
 	const zeigeEinstellung = (ort: string) => {
 		panels.setRechts('inspektor');
@@ -905,7 +964,7 @@ const Bearbeitung = ({ dokument, mappe: mappenDaten }: { mappe: Mappe; dokument:
 			</Inspektor>
 		),
 	};
-	const { kannVor, kannZurueck } = schritte(b.verlauf, frei);
+	const { kannVor, kannZurueck, vorName, zurueckName } = schritte(b.verlauf, frei, text.zustand.geaendert);
 
 	const links = linkerReiter(panels.links, frei);
 	const linksInhalt = {
@@ -959,16 +1018,22 @@ const Bearbeitung = ({ dokument, mappe: mappenDaten }: { mappe: Mappe; dokument:
 				<SymbolKnopf
 					symbol="rueckgaengig"
 					beschriftung="Rückgängig"
+					tooltip={mitSchritt('Rückgängig', zurueckName)}
 					kuerzel="⌘Z"
 					disabled={!kannZurueck}
+					data-schritt={zurueckName}
 					onClick={() => befehle.fuehreAus('dokument.rueckgaengig')}
+					{...halteFokus}
 				/>
 				<SymbolKnopf
 					symbol="wiederholen"
 					beschriftung="Wiederholen"
+					tooltip={mitSchritt('Wiederholen', vorName)}
 					kuerzel="⇧⌘Z"
 					disabled={!kannVor}
+					data-schritt={vorName}
 					onClick={() => befehle.fuehreAus('dokument.wiederholen')}
+					{...halteFokus}
 				/>
 				<Trenner />
 				<KopfKnopf

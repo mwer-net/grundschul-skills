@@ -13,6 +13,8 @@ interface Eigenschaften extends ButtonHTMLAttributes<HTMLButtonElement> {
 	/** Name für Hilfsmittel und Tooltip. Pflicht, denn der Knopf zeigt nur ein Symbol. */
 	beschriftung: string;
 	kuerzel?: string;
+	/** Tooltip, wenn er mehr sagen soll als der Name, etwa „Rückgängig: Silben“. */
+	tooltip?: string;
 	art?: KnopfArt;
 	groesse?: KnopfGroesse;
 }
@@ -25,9 +27,10 @@ export const SymbolKnopf = ({
 	groesse = 'standard',
 	kuerzel,
 	symbol,
+	tooltip,
 	...rest
 }: Eigenschaften) => (
-	<Tooltip text={beschriftung} kuerzel={kuerzel}>
+	<Tooltip text={tooltip ?? beschriftung} kuerzel={kuerzel}>
 		<Knopf
 			art={art}
 			groesse={groesse}

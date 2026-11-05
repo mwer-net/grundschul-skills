@@ -39,7 +39,7 @@ export const TastenUebersicht = ({ kontext, schliessen }: { kontext: Kontext; sc
 			))}
 		</div>
 		<p className="mt-3 text-leise">
-			Beim Tippen im Blatt oder in einem Feld gelten nur ⌘K und ⌘J, der Rest gehört dem Text.
+			Beim Tippen im Blatt oder in einem Feld gelten nur ⌘K, ⌘J, ⌘Z und ⇧⌘Z, der Rest gehört dem Text.
 		</p>
 	</Dialog>
 );

@@ -32,6 +32,7 @@ import type { Ablage } from './ablage';
 import type { PfadTeil } from './darstellung';
 import { palettenFarben } from './palettenfarben';
 import type { Spalten, Struktur } from './struktur';
+import { EIGENE_GESCHICHTE } from './tasten';
 
 const ZeileSchalter = ({
 	an,
@@ -119,6 +120,7 @@ export const SammlungName = ({ ablage }: { ablage: Ablage }) => {
 		<div className="flex items-end gap-2" data-wiederverwenden>
 			<Feld titel="Name in der Sammlung" className="min-w-0 flex-1">
 				<input
+					{...EIGENE_GESCHICHTE}
 					className={FELD_KLASSEN}
 					value={name}
 					data-sammlung-name

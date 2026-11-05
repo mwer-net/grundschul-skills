@@ -1,8 +1,8 @@
 import assert from 'node:assert/strict';
 import { describe, it } from 'node:test';
 
-import type { Kuerzel, Modus } from './befehle';
-import { BEFEHLE, kuerzelText, MODUS_VORGABE, passtTaste } from './befehle';
+import type { Kontext, Kuerzel, Modus } from './befehle';
+import { BEFEHLE, befehlZuTaste, kuerzelText, MODUS_VORGABE, passtTaste } from './befehle';
 
 /** Safari und deutsche Tastatur behalten diese für sich (069). */
 const SPERRLISTE = [
@@ -15,6 +15,16 @@ const schluessel = (k: Kuerzel) =>
 	`${k.befehl ? 'B' : ''}${k.wahl ? 'W' : ''}${k.umschalt ? 'U' : ''}:${k.code ?? k.key}`;
 
 describe('Befehlsregister', () => {
+	it('⌘Z und ⇧⌘Z gelten in jedem Zustand, nur nicht in einem Feld, das sie selbst braucht', () => {
+		const z = { code: 'KeyZ', key: 'z', metaKey: true, ctrlKey: false, altKey: false, shiftKey: false };
+		const kontext = (feldBehaeltUndo: boolean) => ({ feldBehaeltUndo: () => feldBehaeltUndo }) as Kontext;
+		for (const modus of ['auswahl', 'ohne', 'text'] as Modus[]) {
+			assert.equal(befehlZuTaste(z, modus, kontext(false))?.id, 'dokument.rueckgaengig', modus);
+			assert.equal(befehlZuTaste({ ...z, shiftKey: true }, modus, kontext(false))?.id, 'dokument.wiederholen');
+			assert.equal(befehlZuTaste(z, modus, kontext(true)), undefined, modus);
+		}
+	});
+
 	it('hat eindeutige ids', () => {
 		const ids = BEFEHLE.map((b) => b.id);
 		assert.deepEqual(
