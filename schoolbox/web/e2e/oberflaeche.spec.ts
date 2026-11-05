@@ -921,6 +921,8 @@ test.describe('Inspektor (072)', () => {
 	const blatt = (page: Page) => page.frameLocator('[data-editor-rahmen="sichtbar"]');
 	const REIHENFOLGE = [
 		'hinweise',
+		'lesehilfen',
+		'uebung',
 		'inhalt',
 		'darstellung',
 		'loesung',

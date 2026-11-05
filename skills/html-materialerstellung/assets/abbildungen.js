@@ -3278,12 +3278,37 @@
   const pruefeSilben = (wort) => {
     if (/\|\|/.test(wort)) abbruch("Zwei Silbenstriche stehen direkt nebeneinander.");
     if (/(^|[\s„"'(])\||\|($|[\s.,;:!?“"')])/.test(wort)) abbruch("Ein Silbenstrich steht am Anfang oder Ende eines Worts.");
-    if (!/^[\p{L}\s|.,;:!?„“"'()\-–…]*$/u.test(wort)) abbruch("Erlaubt sind Buchstaben, Satzzeichen, Leerzeichen und der Silbenstrich.");
   };
   /** Zerlegt in Teile: Wörter mit ihren Silben, dazwischen Satzzeichen und Leerraum. */
   const silbenTeile = (wort) => (wort.match(/[\p{L}|\-]+|[^\p{L}|\-]+/gu) ?? []).map((t) => (/\p{L}/u.test(t) ? { silben: t.split("|") } : { text: t }));
 
+  /** `<mark>`, Fett und Co. im Silbentext: je Zeichen die Tags darum. Striche zählen nicht, eine neue Trennung ändert also nichts daran. */
+  const silbenHuellen = (el) => {
+    if (el._abbHuellen) return el._abbHuellen;
+    const zeichen = [];
+    const gehe = (eltern, huelle) => {
+      for (const n of eltern.childNodes) {
+        if (n.nodeType === 3) {
+          for (const z of n.data) if (z !== "|") zeichen.push({ z, huelle });
+        } else if (n.nodeType === 1 && n.localName !== "svg") {
+          if (n.matches(".wort, .silbe, .silbenstrich")) gehe(n, huelle);
+          else {
+            const kopie = n.cloneNode(false);
+            kopie.removeAttribute("data-sb");
+            gehe(n, [...huelle, { auf: kopie.outerHTML.replace(/<\/[^>]*>$/, ""), zu: `</${n.localName}>` }]);
+          }
+        }
+      }
+    };
+    gehe(el, []);
+    const roh = zeichen.map((t) => t.z).join("");
+    const vorn = [...roh.slice(0, roh.length - roh.trimStart().length)].length;
+    el._abbHuellen = { text: roh.trim(), huellen: zeichen.slice(vorn).map((t) => t.huelle) };
+    return el._abbHuellen;
+  };
+
   function silben(el) {
+    const { text: gemerkt, huellen } = silbenHuellen(el);
     const wort = inhalt(el), darstellung = attr(el, "darstellung", "boegen"), farben = trenneListe(attr(el, "farben", "blau rot")), aufgabe = attr(el, "aufgabe", "keine");
     if (!["boegen", "farbe", "beides"].includes(darstellung)) abbruch(`Die Darstellung „${darstellung}“ gibt es nicht.`);
     if (!["keine", "boegen", "trennen"].includes(aufgabe)) abbruch(`Die Aufgabe „${aufgabe}“ gibt es nicht.`);
@@ -3294,11 +3319,32 @@
     const mitFarbe = aufgabe === "keine" && !sw && darstellung !== "boegen";
     const mitStrich = aufgabe === "trennen" && loesung;
     const bogen = '<svg class="bogen" viewBox="0 0 100 20" preserveAspectRatio="none" aria-hidden="true"><path d="M3 2Q50 34 97 2" fill="none" stroke="currentColor" stroke-width="1.6" vector-effect="non-scaling-stroke"/></svg>';
+    // Eine Vorschau mit anderen Buchstaben hat noch keine Auszeichnung; die kommt mit der Quelle zurück.
+    const mitAuszeichnung = wort.replace(/\|/g, "") === gemerkt;
+    let stelle = 0;
+    const gehuellt = (t) => {
+      if (!mitAuszeichnung) return maskiere(t);
+      let aus = "", lauf = "", offen = [];
+      const fertig = () => {
+        aus += offen.map((h) => h.auf).join("") + maskiere(lauf) + [...offen].reverse().map((h) => h.zu).join("");
+        lauf = "";
+      };
+      for (const z of t) {
+        const huelle = huellen[stelle++] ?? [];
+        if (huelle !== offen) {
+          fertig();
+          offen = huelle;
+        }
+        lauf += z;
+      }
+      fertig();
+      return aus;
+    };
     const html = silbenTeile(wort).map((t) => {
-      if (t.text !== undefined) return maskiere(t.text);
+      if (t.text !== undefined) return gehuellt(t.text);
       const stuecke = t.silben.map((silbe, i) => {
         const farbe = mitFarbe ? ` style="color:${SILBEN_FARBEN[farben[i % 2]]}"` : "";
-        return `<span class="silbe${mitBogen ? " mit-bogen" : ""}" data-farbe="${mitFarbe ? farben[i % 2] : ""}"${farbe}>${maskiere(silbe)}${mitBogen ? bogen : ""}</span>`;
+        return `<span class="silbe${mitBogen ? " mit-bogen" : ""}" data-farbe="${mitFarbe ? farben[i % 2] : ""}"${farbe}>${gehuellt(silbe)}${mitBogen ? bogen : ""}</span>`;
       });
       return `<span class="wort">${stuecke.join(mitStrich ? '<span class="silbenstrich">|</span>' : "")}</span>`;
     }).join("");

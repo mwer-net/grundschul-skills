@@ -1154,6 +1154,15 @@ test.describe('Lineatur und Silben (031)', () => {
 		await expect((await gezeichnet(page, tag, 'kl1 farbe')).locator('.getoent')).toHaveCount(1);
 	});
 
+	test('Silben: Marke und Fett bleiben im Bild, je Silbe; Zahlen stehen ohne Bogen', async ({ page }) => {
+		const seite = await gezeichnet(page, '<x-silben>Um 8 B<mark>ie</mark>|<b>ne</b></x-silben>');
+		await expect(seite.locator('x-silben')).not.toHaveAttribute('data-fehler');
+		await expect(seite.locator('x-silben')).toHaveText('Um 8 Biene');
+		await expect(seite.locator('.silbe mark')).toHaveText('ie');
+		await expect(seite.locator('.silbe b')).toHaveText('ne');
+		await expect(seite.locator('.silbe')).toHaveCount(3);
+	});
+
 	test('Silben: s/w Bögen, Farbe blau-rot-blau, Aufgaben erst in der Lösung', async ({ page }) => {
 		const tag = '<x-silben>Ro|si|ne</x-silben>';
 		const sw = await gezeichnet(page, tag);

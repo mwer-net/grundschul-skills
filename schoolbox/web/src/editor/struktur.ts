@@ -153,7 +153,7 @@ export const useStruktur = (o: Optionen) => {
 	}, [folge, doc, quelle, setAuswahl]);
 
 	const fuehreAus = useCallback(
-		(beschreibung: string, rechne: (q: string) => StrukturErgebnis, springen = false) => {
+		(beschreibung: string, rechne: (q: string) => StrukturErgebnis, springen = false, halten = false) => {
 			const { aktiv: bereit, befehl, folien, geladen, quelle: alt } = aktuell.current;
 			if (!alt || !bereit) {
 				return null;
@@ -165,7 +165,8 @@ export const useStruktur = (o: Optionen) => {
 				}
 				befehl(ergebnis.quelle, beschreibung);
 				geladen?.doc.documentElement.setAttribute(VERALTET, '');
-				aktuell.current.setAuswahl(null);
+				// `halten`: Der Inspektor bleibt stehen, statt kurz auf den Reiter „Blatt“ zu fallen (Regler im Inspektor).
+				aktuell.current.setAuswahl(halten ? ergebnis.nr : null);
 				setFolge({ quelle: ergebnis.quelle, nr: ergebnis.nr, springen });
 				return { alt, folien, ...ergebnis };
 			} catch (fehler) {

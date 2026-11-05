@@ -267,6 +267,16 @@ const ABSCHNITTE: Abschnitt[] = [
 						und den Abstand zwischen den Aufgaben. Die Marke am Regler zeigt die Vorgabe, „Vorgabe“ stellt
 						sie wieder her. „Punkte zeigen“ gibt es, sobald das Blatt Bewertungspunkte hat.
 					</Punkt>
+					<Punkt titel="Lesehilfen">
+						Text antippen, dann im Inspektor unter „Lesehilfen“: Silben als Bögen, in Farbe oder beides,
+						Vokale, einzelne Buchstaben, bei Absätzen auch Zeilennummern. Die Regler zeigen, was gerade gilt,
+						und schalten es dort wieder aus; der Text bleibt. Ist Text markiert, steht darunter, worauf der
+						Klick wirkt. Trennstriche korrigierst du an den Silben unter „Weitere“, „Text“.
+					</Punkt>
+					<Punkt titel="Übung daraus machen">
+						bei Absätzen, Zellen und Listenpunkten: Lücken, Wörter mischen, Buchstaben mischen. Daraus wird
+						ein neuer Baustein, Rückgängig holt den Text zurück.
+					</Punkt>
 					<Punkt titel="Bilder">
 						Bild antippen, dann austauschen, eigenes hochladen oder an den Ecken größer und kleiner ziehen.
 					</Punkt>

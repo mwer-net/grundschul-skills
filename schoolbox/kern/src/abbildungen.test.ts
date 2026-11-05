@@ -1243,7 +1243,7 @@ describe('Lineatur und Silben (031)', () => {
 		assert.throws(() => pruefeSilben('|Rosine'), /Anfang oder Ende/);
 		assert.throws(() => pruefeSilben('Ro|si| ne'), /Anfang oder Ende/);
 		assert.throws(() => pruefeSilben('Rosine|.'), /Anfang oder Ende/);
-		assert.throws(() => pruefeSilben('Ro5si'), /Erlaubt sind/);
+		pruefeSilben('Um 8 Uhr: 3 + 4 = 7 €');
 	});
 
 	it('Schema sperrt dieselben Silbenfehler', () => {
@@ -1260,7 +1260,7 @@ describe('Lineatur und Silben (031)', () => {
 		assert.deepEqual(fuer('Ro|si|ne.'), {});
 		assert.ok(fuer('Ro||si').inhalt);
 		assert.ok(fuer('|Ro').inhalt);
-		assert.ok(fuer('Ro5').inhalt);
+		assert.deepEqual(fuer('Um 8 Uhr'), {}, 'Der Text kommt auch aus den Lesehilfen, und dort darf nichts scheitern.');
 	});
 });
 

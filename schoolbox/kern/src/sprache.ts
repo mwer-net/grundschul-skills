@@ -2,18 +2,37 @@ import { hyphenateSync } from 'hyphen/de-1996';
 
 import type { Knoten, Zerlegung } from './quelltext';
 import { ersetzeInnen, innenVon, klassenVon, setzeAttribut, wendeAn, zerlege } from './quelltext';
+import type { SilbenDarstellung, Stelle } from './sprachstand';
+import {
+	beruehrt,
+	decktAlles,
+	hatFremdeAbbildung,
+	istUmwandelbar,
+	ohneMarken,
+	stellenIn,
+	textZielVon,
+	VOKAL,
+} from './sprachstand';
+import type { Bereich, Stueck } from './textstuecke';
+import {
+	maskiere,
+	offeneTags,
+	reinerText,
+	schliesser,
+	SILBEN_AUF,
+	SILBEN_ZU,
+	stueckeVon,
+	textVon,
+} from './textstuecke';
 
-/** Sprach-Werkzeuge (052): Sie erzeugen normale Bausteine, nichts Eigenes im Datenmodell. */
+export { leseSprachstand } from './sprachstand';
+export type { Sprachstand } from './sprachstand';
+export type { Bereich } from './textstuecke';
+export { maskiere, reinerText } from './textstuecke';
+
+/** Lesehilfen und Übungen aus Text (052, 083): Sie erzeugen normale Bausteine, nichts Eigenes im Datenmodell. */
 export type LueckenRegel = 'nte' | 'nomen' | 'vokale' | 'konsonanten' | 'ie-ei' | 'anfang';
 
-interface SilbenWerkzeug {
-	art: 'silben';
-	darstellung: 'boegen' | 'farbe';
-}
-interface MarkierWerkzeug {
-	art: 'markieren';
-	buchstaben: string;
-}
 interface LueckenWerkzeug {
 	art: 'luecken';
 	regel: LueckenRegel;
@@ -22,13 +41,7 @@ interface LueckenWerkzeug {
 interface MischWerkzeug {
 	art: 'woerter-mischen' | 'buchstaben-mischen';
 }
-export type SprachWerkzeug = SilbenWerkzeug | MarkierWerkzeug | LueckenWerkzeug | MischWerkzeug;
-
-/** Zeichen im sichtbaren Text, mit zusammengefasstem Leerraum. */
-export interface Bereich {
-	von: number;
-	bis: number;
-}
+export type SprachWerkzeug = LueckenWerkzeug | MischWerkzeug;
 
 export interface SprachErgebnis {
 	quelle: string;
@@ -37,7 +50,6 @@ export interface SprachErgebnis {
 	unsicher: string[];
 }
 
-const VOKAL = 'aeiouäöüyAEIOUÄÖÜY';
 const istVokal = (z: string) => VOKAL.includes(z);
 /** Laute aus zwei Vokalbuchstaben: Sie bleiben in einer Silbe. */
 const EIN_LAUT = new Set(['au', 'äu', 'ei', 'eu', 'ai', 'ie', 'aa', 'ee', 'oo', 'oi', 'ui', 'ey', 'ay']);
@@ -64,53 +76,6 @@ export const istUnsicher = (getrennt: string) =>
 	});
 
 const WORT = /[\p{L}]+(?:-[\p{L}]+)*/gu;
-
-const ENTITAETEN: Record<string, string> = {
-	'&amp;': '&',
-	'&lt;': '<',
-	'&gt;': '>',
-	'&quot;': '"',
-	'&nbsp;': ' ',
-	'&shy;': '',
-};
-const entschluessele = (e: string) => {
-	if (ENTITAETEN[e] !== undefined) {
-		return ENTITAETEN[e];
-	}
-	const z = /^&#(x?)([0-9a-f]+);$/i.exec(e);
-	return z?.[2] ? String.fromCodePoint(Number.parseInt(z[2], z[1] ? 16 : 10)) : e;
-};
-export const maskiere = (t: string) =>
-	t.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
-
-/** Zerlegt HTML in Tags und Zeichen. Der Leerraum ist zusammengefasst wie im Browser, die Zählung passt zur Auswahl. */
-interface Stueck {
-	roh: string;
-	zeichen: string;
-	tag: boolean;
-}
-const stueckeVon = (html: string) => {
-	const stuecke: Stueck[] = [];
-	let leer = true;
-	for (const m of html.matchAll(/<[^>]*>|&[#\w]+;|\s+|[\s\S]/gu)) {
-		const roh = m[0];
-		if (roh.startsWith('<')) {
-			stuecke.push({ roh, zeichen: '', tag: true });
-			continue;
-		}
-		const istLeer = /^\s+$/.test(roh);
-		const zeichen = roh.startsWith('&') ? entschluessele(roh) : (istLeer && ' ') || roh;
-		const weg = zeichen === ' ' && leer;
-		stuecke.push({ roh, zeichen: weg ? '' : zeichen, tag: false });
-		leer = zeichen === ' ';
-	}
-	return stuecke;
-};
-export const reinerText = (html: string) =>
-	stueckeVon(html)
-		.map((s) => s.zeichen)
-		.join('')
-		.trimEnd();
 
 /** Gleichmäßig, aber ohne Zufall: Dasselbe Wort sieht bei jedem Zeichnen gleich aus. */
 const zahlVon = (t: string) => [...t].reduce((h, z) => (h * 31 + (z.codePointAt(0) ?? 0)) >>> 0, 7);
@@ -241,61 +206,70 @@ export const buchstabenMischen = (text: string) => {
 	return woerter.map((w) => `${mischeBuchstaben(w).join(' ')} → [${w}]`).join(' · ');
 };
 
-/** Markiert Buchstaben mit `<mark>`, Tags bleiben stehen; in s/w ist `mark` fett und unterstrichen (046). */
-export const markiereBuchstaben = (html: string, buchstaben: string, bereich?: Bereich) => {
-	const gesucht = buchstaben === 'vokale' ? null : buchstaben.toLowerCase();
-	if (gesucht === '') {
-		throw new Error('Gib die Buchstaben an, die du markieren willst.');
-	}
-	const stuecke = stueckeVon(html);
-	const text = stuecke.map((s) => s.zeichen);
-	const treffer = new Set<number>();
+/** Getrennte Angabe wie „ie, ei“. */
+const suchListe = (buchstaben: string) =>
+	[
+		...new Set(
+			buchstaben
+				.toLowerCase()
+				.split(/[,;\s]+/)
+				.filter(Boolean),
+		),
+	].sort((a, b) => b.length - a.length);
+
+/** Welche Stücke zu den gesuchten Buchstaben gehören. Tags und Silbenstriche unterbrechen ein „ie“ nicht. */
+const trefferIn = (stuecke: Stueck[], was: string, bereich?: Bereich) => {
+	const sichtbar: { i: number; zeichen: string; ort: number }[] = [];
 	let ort = 0;
-	let offen = 0;
-	const laenge = gesucht?.length ?? 1;
 	stuecke.forEach((s, i) => {
-		if (s.tag) {
-			return;
+		if (s.zeichen) {
+			sichtbar.push({ i, zeichen: s.zeichen, ort });
+			ort += s.zeichen.length;
 		}
-		if (!s.zeichen) {
-			return;
-		}
-		const imBereich = !bereich || (ort >= bereich.von && ort + laenge <= bereich.bis);
-		if (imBereich && i >= offen) {
-			if (gesucht === null) {
-				if (istVokal(s.zeichen)) {
-					treffer.add(i);
-				}
-			} else {
-				const folge: number[] = [];
-				for (let j = i; j < stuecke.length && folge.length < laenge; j++) {
-					if ((stuecke[j] as Stueck).tag) {
-						break;
-					}
-					if (text[j]) {
-						folge.push(j);
-					}
-				}
-				if (
-					folge
-						.map((j) => text[j])
-						.join('')
-						.toLowerCase() === gesucht
-				) {
-					folge.forEach((j) => treffer.add(j));
-					offen = (folge.at(-1) as number) + 1;
-				}
+	});
+	const imBereich = (von: number, bis: number) => !bereich || (von >= bereich.von && bis <= bereich.bis);
+	const treffer = new Set<number>();
+	if (was === 'vokale') {
+		for (const z of sichtbar) {
+			if (VOKAL.includes(z.zeichen) && imBereich(z.ort, z.ort + 1)) {
+				treffer.add(z.i);
 			}
 		}
-		ort += s.zeichen.length;
-	});
-	if (treffer.size === 0) {
-		throw new Error('Diese Buchstaben kommen hier nicht vor.');
+		return treffer;
 	}
+	const liste = suchListe(was);
+	if (liste.length === 0) {
+		throw new Error('Gib die Buchstaben an, die du markieren willst.');
+	}
+	for (let a = 0; a < sichtbar.length; ) {
+		const passend = liste.find((g) => {
+			const folge = sichtbar.slice(a, a + [...g].length);
+			const letztes = folge.at(-1);
+			return (
+				letztes &&
+				folge
+					.map((f) => f.zeichen)
+					.join('')
+					.toLowerCase() === g &&
+				imBereich(folge[0]?.ort ?? 0, letztes.ort + letztes.zeichen.length)
+			);
+		});
+		if (passend) {
+			sichtbar.slice(a, a + [...passend].length).forEach((f) => treffer.add(f.i));
+			a += [...passend].length;
+		} else {
+			a += 1;
+		}
+	}
+	return treffer;
+};
+
+/** Schreibt die Stücke mit `<mark>`. Tags beenden eine Marke, so bleibt die Schachtelung gültig. Ein Strich bleibt drin, wenn beide Seiten markiert sind. */
+const mitMarken = (stuecke: Stueck[], markiert: ReadonlySet<number>) => {
 	let aus = '';
 	let auf = false;
 	stuecke.forEach((s, i) => {
-		const soll = treffer.has(i);
+		const soll = s.strich ? markiert.has(i - 1) && markiert.has(i + 1) : markiert.has(i);
 		if (soll !== auf) {
 			aus += soll ? '<mark>' : '</mark>';
 			auf = soll;
@@ -305,19 +279,288 @@ export const markiereBuchstaben = (html: string, buchstaben: string, bereich?: B
 	return auf ? `${aus}</mark>` : aus;
 };
 
-const BLOCK_ERSETZT = new Set(['p', 'div']);
-const BLOCK_INNEN = new Set(['td', 'th', 'li']);
+/** Markiert Buchstaben mit `<mark>`, Tags bleiben stehen; in s/w ist `mark` fett und unterstrichen (046). */
+export const markiereBuchstaben = (html: string, buchstaben: string, bereich?: Bereich) => {
+	const { markiert, stuecke } = ohneMarken(html);
+	const treffer = trefferIn(stuecke, buchstaben, bereich);
+	if (treffer.size === 0) {
+		throw new Error('Diese Buchstaben kommen hier nicht vor.');
+	}
+	return mitMarken(stuecke, new Set([...markiert, ...treffer]));
+};
+
+const nurGueltig = (bereich?: Bereich) => (bereich && bereich.bis > bereich.von ? bereich : undefined);
+
+/** Das Ziel eines Werkzeugs, mit dem, was überall gilt. */
+const zielIn = (quelle: string, nr: number) => {
+	const z = zerlege(quelle);
+	const k = z.knoten[nr];
+	if (!k) {
+		throw new Error('Dieser Text ist nicht mehr da.');
+	}
+	const ziel = textZielVon(k);
+	const innen = innenVon(z, ziel);
+	if (hatFremdeAbbildung(innen)) {
+		throw new Error('In diesem Text steckt schon eine Abbildung. Markiere einen anderen Text.');
+	}
+	return { z, k, ziel, innen };
+};
+
+/**
+ * Schaltet Buchstaben oder `'vokale'` um: an, wenn sie im Text oder Bereich nicht überall markiert sind; sonst aus. Mit
+ * `soll` steht die Richtung fest, das braucht der Schalter, wenn nur ein Teil markiert ist. Die Quelle kommt zeichengleich
+ * zurück, und andere Marken bleiben.
+ */
+export const schalteMarkierung = (
+	quelle: string,
+	nr: number,
+	was: string,
+	bereich?: Bereich,
+	soll?: boolean,
+): SprachErgebnis => {
+	const { innen, z, ziel } = zielIn(quelle, nr);
+	const gueltig = nurGueltig(bereich);
+	const { markiert, stuecke } = ohneMarken(innen, ziel.tag === 'x-silben');
+	const treffer = trefferIn(stuecke, was, gueltig);
+	if (treffer.size === 0) {
+		throw new Error('Diese Buchstaben kommen hier nicht vor.');
+	}
+	const an = soll ?? [...treffer].some((i) => !markiert.has(i));
+	const neu = new Set(markiert);
+	for (const i of treffer) {
+		if (an) {
+			neu.add(i);
+		} else {
+			neu.delete(i);
+		}
+	}
+	return { quelle: wendeAn(quelle, ersetzeInnen(z, ziel, mitMarken(stuecke, neu))), nr: ziel.nr, unsicher: [] };
+};
+
+/** Die Stelle, vor der ein neues Tag oder ein Strich steht: vor den Tags, die den Buchstaben gerade öffnen. */
+const vorOeffnern = (stuecke: Stueck[], i: number) => {
+	let j = i;
+	while (j > 0 && stuecke[j - 1]?.tag && !stuecke[j - 1]?.roh.startsWith('</')) {
+		j -= 1;
+	}
+	return j;
+};
+
+/** Trennt die Wörter im Bereich, Wort für Wort über Tags hinweg. Was schon in `x-silben` stand, behält seine Striche. */
+const mitStrichen = (stuecke: Stueck[], von: number, bis: number) => {
+	const ort: number[] = [];
+	let lauf = 0;
+	stuecke.forEach((s, i) => {
+		for (let n = 0; n < s.zeichen.length; n += 1) {
+			ort[lauf + n] = i;
+		}
+		lauf += s.zeichen.length;
+	});
+	const text = textVon(stuecke);
+	const unsicher: string[] = [];
+	const davor = new Set<number>();
+	for (const m of text.slice(von, bis).matchAll(WORT)) {
+		const start = von + m.index;
+		if (stuecke[ort[start] ?? 0]?.inSilben) {
+			continue;
+		}
+		const getrennt = m[0]
+			.split('-')
+			.map((t) => silbenVon(t))
+			.join('-');
+		if (istUnsicher(getrennt)) {
+			unsicher.push(getrennt);
+		}
+		let buchstabe = 0;
+		for (const z of getrennt) {
+			if (z === '|') {
+				davor.add(vorOeffnern(stuecke, ort[start + buchstabe] ?? 0));
+			} else {
+				buchstabe += z.length;
+			}
+		}
+	}
+	const neu: Stueck[] = [];
+	stuecke.forEach((s, i) => {
+		if (davor.has(i)) {
+			neu.push({ roh: '|', zeichen: '', tag: false, strich: true });
+		}
+		neu.push(s);
+	});
+	return { stuecke: neu, unsicher };
+};
+
+const silbenTag = (darstellung: SilbenDarstellung, imText: boolean) =>
+	`<x-silben${imText ? ' im-text' : ''}${darstellung === 'boegen' ? '' : ` darstellung="${darstellung}"`}>`;
+
+/** Legt `x-silben` um den Bereich; berührte Stellen gehen darin auf und behalten ihre Striche. */
+const wickle = (innen: string, darstellung: SilbenDarstellung, stellen: Stelle[], bereich: Bereich) => {
+	const roh = stueckeVon(innen);
+	const text = textVon(roh);
+	let von = Math.min(bereich.von, ...stellen.map((s) => s.von));
+	let bis = Math.max(bereich.bis, ...stellen.map((s) => s.bis));
+	// `abbildungen.js` nimmt den Leerraum am Rand weg, im Fließtext gehört er also davor und dahinter.
+	while (von < bis && /\s/.test(text[von] ?? '')) {
+		von += 1;
+	}
+	while (bis > von && /\s/.test(text[bis - 1] ?? '')) {
+		bis -= 1;
+	}
+	// Die Tags der berührten Stellen fallen weg, ihre Zeichen bleiben als `inSilben` erkennbar.
+	const weg = new Set<number>();
+	let auf = -1;
+	roh.forEach((s, i) => {
+		if (s.tag && SILBEN_AUF.test(s.roh)) {
+			auf = i;
+		} else if (s.tag && SILBEN_ZU.test(s.roh)) {
+			const anfangsOrt = textVon(roh.slice(0, auf)).length;
+			if (stellen.some((t) => t.von === anfangsOrt)) {
+				weg.add(auf).add(i);
+			}
+		}
+	});
+	const erhalten = roh.filter((_, i) => !weg.has(i));
+	const { stuecke, unsicher } = mitStrichen(erhalten, von, bis);
+	let ort = 0;
+	let anfang = stuecke.length;
+	let ende = stuecke.length;
+	let davorFertig = false;
+	for (let i = 0; i < stuecke.length; i += 1) {
+		const laenge = (stuecke[i] as Stueck).zeichen.length;
+		if (!davorFertig && laenge > 0 && ort >= von) {
+			anfang = vorOeffnern(stuecke, i);
+			davorFertig = true;
+		}
+		ort += laenge;
+		if (laenge > 0 && ort >= bis) {
+			ende = i + 1;
+			break;
+		}
+	}
+	// Dahinter schließen, was im Bereich aufging: so entsteht kein leeres `<b></b>`.
+	while (stuecke[ende]?.tag && stuecke[ende]?.roh.startsWith('</')) {
+		ende += 1;
+	}
+	const offenVorn = offeneTags(stuecke.slice(0, anfang));
+	const offenHinten = offeneTags(stuecke.slice(0, ende));
+	const zu = (t: string[]) => t.map(schliesser).reverse().join('');
+	const imText = /\S/.test(text.slice(0, von) + text.slice(bis));
+	const teil = (a: number, b: number) =>
+		stuecke
+			.slice(a, b)
+			.map((s) => s.roh)
+			.join('');
+	return {
+		html: [
+			teil(0, anfang),
+			zu(offenVorn),
+			silbenTag(darstellung, imText),
+			offenVorn.join(''),
+			teil(anfang, ende),
+			zu(offenHinten),
+			'</x-silben>',
+			offenHinten.join(''),
+			teil(ende, stuecke.length),
+		].join(''),
+		unsicher,
+	};
+};
+
+const ohneStriche = (html: string) => html.replace(/<[^>]*>|\|/g, (t) => (t === '|' ? '' : t));
+
+/** Hatte `wickle` ein `<b>` aufgetrennt, wächst es hier wieder zusammen. */
+const fuege = (links: string, rechts: string) => {
+	const zu = /<\/([a-z][\w-]*)>$/i.exec(links);
+	const auf = zu && new RegExp(`^<${zu[1]}>`, 'i').exec(rechts);
+	return zu && auf ? links.slice(0, -zu[0].length) + rechts.slice(auf[0].length) : links + rechts;
+};
+
+const nimmStellenWeg = (z: Zerlegung, ziel: Knoten, stellen: Stelle[]) => {
+	let aus = '';
+	let ort = ziel.oeffnerEnde;
+	for (const { k } of stellen) {
+		aus = fuege(aus + z.quelle.slice(ort, k.start), ohneStriche(innenVon(z, k)));
+		ort = k.ende;
+	}
+	return fuege(aus, z.quelle.slice(ort, ziel.schliesserStart));
+};
+
+const BLOSS_SILBEN = new Set(['darstellung', 'farben', 'aufgabe', 'im-text']);
+
+/** Ein `x-silben` allein auf der Seite: Ohne Silben bleibt ein Absatz mit demselben Text. */
+const zuAbsatz = (z: Zerlegung, k: Knoten) => {
+	const rest = k.attribute.filter((a) => !BLOSS_SILBEN.has(a.name));
+	const klasse = rest.some((a) => a.name === 'class') ? '' : ' class="text"';
+	const attribute = rest.map((a) => ` ${z.quelle.slice(a.start, a.ende)}`).join('');
+	return `<p${klasse}${attribute}>${ohneStriche(innenVon(z, k)).trim()}</p>`;
+};
+
+/**
+ * Silben an, in anderer Darstellung, oder mit `null` weg. Der Text bleibt, `mark` und Fett auch. Ist `x-silben` gewählt,
+ * wirkt es auf diese Stelle, sonst mit Bereich auf die berührten und ohne auf alle. Ein Wechsel ändert nur das Attribut,
+ * die Trennstriche bleiben, auch die von Hand.
+ */
+export const setzeSilben = (
+	quelle: string,
+	nr: number,
+	darstellung: SilbenDarstellung | null,
+	bereich?: Bereich,
+): SprachErgebnis => {
+	const { innen, k, z, ziel } = zielIn(quelle, nr);
+	if (reinerText(innen).trim() === '') {
+		throw new Error(WERKZEUG_TEXT_FEHLT);
+	}
+	const fertig = (neu: string, knoten: Knoten, unsicher: string[] = []) => ({
+		quelle: neu,
+		nr: knoten.nr,
+		unsicher,
+	});
+	const gueltig = nurGueltig(bereich);
+	const alle = stellenIn(z, ziel);
+	const eigene = k !== ziel ? alle.filter((s) => s.k === k) : null;
+	const eineGewaehlt = eigene !== null && !gueltig;
+	const getroffen = eigene && !gueltig ? eigene : alle.filter((s) => !gueltig || beruehrt(s, gueltig));
+
+	if (darstellung === null) {
+		if (getroffen.length === 0) {
+			return fertig(quelle, ziel);
+		}
+		if (ziel.tag === 'x-silben') {
+			return fertig(wendeAn(quelle, [{ von: ziel.start, bis: ziel.ende, text: zuAbsatz(z, ziel) }]), ziel);
+		}
+		return fertig(wendeAn(quelle, ersetzeInnen(z, ziel, nimmStellenWeg(z, ziel, getroffen))), ziel);
+	}
+
+	const umfasst = (s: Stelle, b: Bereich) => s.von <= b.von && b.bis <= s.bis;
+	const nurAttribut =
+		getroffen.length > 0 &&
+		(eineGewaehlt ||
+			(gueltig ? getroffen.length === 1 && umfasst(getroffen[0] as Stelle, gueltig) : decktAlles(z, ziel, alle)));
+	if (nurAttribut) {
+		const wert = darstellung === 'boegen' ? null : darstellung;
+		return fertig(
+			wendeAn(
+				quelle,
+				getroffen.flatMap((s) => setzeAttribut(z, s.k, 'darstellung', wert)),
+			),
+			eigene ? k : ziel,
+		);
+	}
+	const text = textVon(stueckeVon(innen));
+	const { html, unsicher } = wickle(innen, darstellung, getroffen, gueltig ?? { von: 0, bis: text.length });
+	return fertig(wendeAn(quelle, ersetzeInnen(z, ziel, html)), ziel, unsicher);
+};
 
 /** Ein Block (`x-lueckentext`, `x-sortieren`) statt des Textes: `p` wird ersetzt, Zellen und Listenpunkte behalten ihn. */
 const setzeBlock = (z: Zerlegung, k: Knoten, davor: string, block: string, danach: string) => {
-	if (BLOCK_INNEN.has(k.tag)) {
+	if (!istUmwandelbar(k)) {
+		throw new Error('Das geht nur bei einem Absatz, einer Zelle oder einem Listenpunkt.');
+	}
+	if (k.tag === 'td' || k.tag === 'th' || k.tag === 'li') {
 		return wendeAn(
 			z.quelle,
 			ersetzeInnen(z, k, [maskiere(davor), block, maskiere(danach)].filter(Boolean).join('\n')),
 		);
-	}
-	if (!BLOCK_ERSETZT.has(k.tag)) {
-		throw new Error('Das geht nur bei einem Absatz, einer Zelle oder einem Listenpunkt.');
 	}
 	const offen = z.quelle.slice(k.start, k.oeffnerEnde);
 	const absatz = (t: string) => (t.trim() ? `${offen}${maskiere(t.trim())}</${k.tag}>` : '');
@@ -328,59 +571,42 @@ const setzeBlock = (z: Zerlegung, k: Knoten, davor: string, block: string, danac
 
 const WERKZEUG_TEXT_FEHLT = 'Hier steht kein Text.';
 
+/** Macht aus Text eine Übung, einen neuen Baustein. Silben und Hervorhebung bleiben dabei nicht erhalten, Rückgängig holt sie zurück. */
 export const wendeSprachwerkzeugAn = (
 	quelle: string,
 	nr: number,
 	werkzeug: SprachWerkzeug,
 	bereich?: Bereich,
 ): SprachErgebnis => {
-	const z = zerlege(quelle);
-	const k = z.knoten[nr];
-	if (!k) {
-		throw new Error('Dieser Text ist nicht mehr da.');
-	}
-	const innen = innenVon(z, k);
-	if (/<x-/.test(innen) && werkzeug.art !== 'markieren') {
-		throw new Error('In diesem Text steckt schon eine Abbildung. Markiere einen anderen Text.');
-	}
+	const { innen, z, ziel } = zielIn(quelle, nr);
 	const text = reinerText(innen);
 	if (text.trim() === '') {
 		throw new Error(WERKZEUG_TEXT_FEHLT);
 	}
-	const gueltig = bereich && bereich.bis > bereich.von ? bereich : undefined;
+	const gueltig = nurGueltig(bereich);
 	const von = gueltig?.von ?? 0;
 	const bis = gueltig?.bis ?? text.length;
 	const davor = text.slice(0, von);
 	const mitte = text.slice(von, bis);
 	const danach = text.slice(bis);
-	const fertig = (neu: string, unsicher: string[] = []) => ({ quelle: neu, nr, unsicher });
+	const fertig = (neu: string) => ({ quelle: neu, nr: ziel.nr, unsicher: [] });
 
 	switch (werkzeug.art) {
-		case 'markieren':
-			return fertig(wendeAn(quelle, ersetzeInnen(z, k, markiereBuchstaben(innen, werkzeug.buchstaben, gueltig))));
-		case 'silben': {
-			const { inhalt, unsicher } = silbentext(mitte);
-			const farbe = werkzeug.darstellung === 'farbe' ? ' darstellung="farbe"' : '';
-			if (!gueltig || (davor.trim() === '' && danach.trim() === '')) {
-				// Das Element bleibt: Sein Abstand und seine Zeilennummern gelten weiter.
-				const element = `<x-silben${farbe}>${maskiere(inhalt.trim())}</x-silben>`;
-				return fertig(wendeAn(quelle, ersetzeInnen(z, k, element)), unsicher);
-			}
-			const element = `<x-silben im-text${farbe}>${maskiere(inhalt)}</x-silben>`;
-			return fertig(
-				wendeAn(quelle, ersetzeInnen(z, k, `${maskiere(davor)}${element}${maskiere(danach)}`)),
-				unsicher,
-			);
-		}
 		case 'luecken': {
 			const inhalt = lueckenText(text, werkzeug.regel, werkzeug.n, gueltig);
-			return fertig(setzeBlock(z, k, '', `<x-lueckentext>${maskiere(inhalt)}</x-lueckentext>`, ''));
+			return fertig(setzeBlock(z, ziel, '', `<x-lueckentext>${maskiere(inhalt)}</x-lueckentext>`, ''));
 		}
 		case 'woerter-mischen':
-			return fertig(setzeBlock(z, k, davor, woerterMischen(mitte), danach));
+			return fertig(setzeBlock(z, ziel, davor, woerterMischen(mitte), danach));
 		case 'buchstaben-mischen':
 			return fertig(
-				setzeBlock(z, k, davor, `<x-lueckentext>${maskiere(buchstabenMischen(mitte))}</x-lueckentext>`, danach),
+				setzeBlock(
+					z,
+					ziel,
+					davor,
+					`<x-lueckentext>${maskiere(buchstabenMischen(mitte))}</x-lueckentext>`,
+					danach,
+				),
 			);
 	}
 };
@@ -392,16 +618,17 @@ const istLesetext = (k: Knoten) =>
 /** Zeilennummern: Der Browser zählt sie beim Zeichnen, deshalb stimmen sie bei jedem Umbruch. `null` nimmt sie weg. */
 export const setzeZeilennummern = (quelle: string, nr: number, schritt: 1 | 5 | null) => {
 	const z = zerlege(quelle);
-	const k = z.knoten[nr];
-	if (!k) {
+	const gewaehlt = z.knoten[nr];
+	if (!gewaehlt) {
 		throw new Error('Dieser Text ist nicht mehr da.');
 	}
+	const k = textZielVon(gewaehlt);
 	const ziele = istLesetext(k) ? z.knoten.filter(istLesetext) : [k];
 	return {
 		quelle: wendeAn(
 			quelle,
 			ziele.flatMap((t) => setzeAttribut(z, t, 'data-zeilennummern', schritt === null ? null : String(schritt))),
 		),
-		nr,
+		nr: k.nr,
 	};
 };

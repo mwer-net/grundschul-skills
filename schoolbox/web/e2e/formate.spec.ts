@@ -336,7 +336,7 @@ test.describe('Eigene Vorlagen und Sammlung (051)', () => {
 
 const zurueck = (page: Page) => page.getByRole('button', { name: 'Rückgängig (⌘Z)' });
 
-test.describe('Sprach-Werkzeuge (052)', () => {
+test.describe('Sprach-Werkzeuge (052, 083)', () => {
 	const absatz = 'Die Biene fliegt zur Blume. Der Hund bellt laut.';
 	const lesetext = async (wiederholung = 1) => {
 		const { dok, id, material: pfad } = await uhrzeit();
@@ -345,71 +345,285 @@ test.describe('Sprach-Werkzeuge (052)', () => {
 		await writeFile(pfad, alt.replace(/(<section class="seite"[^>]*>)/, `$1${text}`));
 		return { dok, id };
 	};
-	const oeffneWerkzeug = async (page: Page, druecke: (z: Locator) => Promise<void>, nr = 0) => {
+	const silben = (page: Page) => page.locator('[data-sprache-silben]');
+	const silbenKnopf = (page: Page, name: string) => silben(page).getByRole('button', { name, exact: true });
+	const aktivIn = (bereich: Locator, name: string) =>
+		expect(bereich.getByRole('button', { name, exact: true })).toHaveAttribute('aria-pressed', 'true');
+	const keinesAktiv = (page: Page) => expect(silben(page).locator('[aria-pressed="true"]')).toHaveCount(0);
+	const vokale = (page: Page) => page.locator('[data-sprache-vokale] [role="switch"]');
+	const waehleAbsatz = async (page: Page, druecke: (z: Locator) => Promise<void>, nr = 0) => {
 		await druecke(material(page).locator('p.text').nth(nr));
-		const werkzeug = page.locator('[data-sprachwerkzeug]');
-		await expect(werkzeug).toBeVisible();
-		const knopf = werkzeug.locator('[data-sprache-oeffnen]');
-		if ((await knopf.getAttribute('aria-expanded')) !== 'true') {
-			await knopf.click();
-		}
-		await expect(page.locator('[data-sprache="vokale"]')).toBeVisible();
+		await expect(page.locator('[data-sprachwerkzeug]')).toBeVisible();
 	};
+	const oeffneUebung = async (page: Page, druecke: (z: Locator) => Promise<void>) => {
+		const knopf = page.locator('[data-abschnitt="uebung"] > button');
+		if ((await knopf.getAttribute('aria-expanded')) !== 'true') {
+			await druecke(knopf);
+		}
+		await expect(page.locator('[data-sprache="luecken"]')).toBeVisible();
+	};
+	const pfad = (page: Page) => page.locator('[data-breadcrumb] h2');
 
-	test('Silben, Lücken, Mischen: ganzer Text, je ein Schritt rückgängig', async ({ druecke, page }) => {
+	test('Bögen an und aus: Das Segment zeigt den Stand, der Text bleibt zeichengleich', async ({ druecke, page }) => {
 		test.slow();
 		const { dok, id } = await lesetext();
 		await oeffne(page, id, dok);
 		const anfang = await quelle(page);
+		await waehleAbsatz(page, druecke);
+		await aktivIn(silben(page), 'Aus');
+		await druecke(silbenKnopf(page, 'Bögen'));
+		await expect.poll(() => quelle(page)).toContain('<x-silben>Die Bie|ne');
+		await aktivIn(silben(page), 'Bögen');
+		await expect(material(page).locator('x-silben .silbe').first()).toBeVisible();
+		await druecke(silbenKnopf(page, 'Farbe'));
+		await expect.poll(() => quelle(page)).toContain('<x-silben darstellung="farbe">Die Bie|ne');
+		await aktivIn(silben(page), 'Farbe');
+		await druecke(silbenKnopf(page, 'Beides'));
+		await expect.poll(() => quelle(page)).toContain('<x-silben darstellung="beides">Die Bie|ne');
+		await aktivIn(silben(page), 'Beides');
+		await druecke(silbenKnopf(page, 'Aus'));
+		await expect.poll(() => quelle(page)).toBe(anfang);
+		await aktivIn(silben(page), 'Aus');
+		await expect(pfad(page), 'Die Auswahl steht noch auf dem Absatz').toHaveText('Absatz');
+	});
+
+	test('Klick ins Blatt wählt die Silben: dieselben Regler; Aus lässt den Text und wählt das Elternteil', async ({
+		druecke,
+		page,
+	}) => {
+		test.slow();
+		const { dok, id } = await lesetext();
+		await oeffne(page, id, dok);
+		const anfang = await quelle(page);
+		await waehleAbsatz(page, druecke);
+		await druecke(silbenKnopf(page, 'Farbe'));
+		await aktivIn(silben(page), 'Farbe');
+		await druecke(page.getByRole('button', { name: 'Auswahl aufheben' }));
+		await druecke(material(page).locator('p.text x-silben'));
+		await expect(pfad(page)).toHaveText('Silben');
+		await aktivIn(silben(page), 'Farbe');
+		await expect(vokale(page)).toBeVisible();
+		await expect(page.getByLabel('Darstellung', { exact: true }), 'Das Segment ersetzt das Feld').toHaveCount(0);
+		await expect(page.locator('[data-abschnitt="weitere"]')).toBeVisible();
+		await druecke(silbenKnopf(page, 'Bögen'));
+		await aktivIn(silben(page), 'Bögen');
+		await expect(pfad(page), 'Ein Wechsel lässt die Silben gewählt').toHaveText('Silben');
+		await druecke(silbenKnopf(page, 'Aus'));
+		await expect.poll(() => quelle(page)).toBe(anfang);
+		await expect(pfad(page)).toHaveText('Absatz');
+		await aktivIn(silben(page), 'Aus');
+	});
+
+	for (const [name, zurueckWeg, vorWeg] of [
+		[
+			'Taste',
+			(page: Page) => page.keyboard.press('ControlOrMeta+z'),
+			(page: Page) => page.keyboard.press('ControlOrMeta+Shift+z'),
+		],
+		[
+			'Pfeil',
+			(page: Page) => zurueck(page).click(),
+			(page: Page) => page.getByRole('button', { name: 'Wiederholen (⇧⌘Z)' }).click(),
+		],
+	] as const) {
+		test(`Rückgängig und Wiederholen per ${name}: Das Segment folgt`, async ({ druecke, page }) => {
+			test.slow();
+			const { dok, id } = await lesetext();
+			await oeffne(page, id, dok);
+			const anfang = await quelle(page);
+			await waehleAbsatz(page, druecke);
+			await druecke(silbenKnopf(page, 'Bögen'));
+			await aktivIn(silben(page), 'Bögen');
+			await zurueckWeg(page);
+			await expect.poll(() => quelle(page)).toBe(anfang);
+			await aktivIn(silben(page), 'Aus');
+			await vorWeg(page);
+			await expect.poll(() => quelle(page)).toContain('<x-silben>');
+			await aktivIn(silben(page), 'Bögen');
+		});
+	}
+
+	test('Vokale an und aus; zusammen mit Silben in beiden Reihenfolgen gleich, und sie bleiben sichtbar', async ({
+		druecke,
+		page,
+	}) => {
+		test.slow();
+		const { dok, id } = await lesetext();
+		await oeffne(page, id, dok);
+		const anfang = await quelle(page);
+		await waehleAbsatz(page, druecke);
+		await druecke(vokale(page));
+		await expect.poll(() => quelle(page)).toContain('D<mark>ie</mark> B<mark>ie</mark>n<mark>e</mark>');
+		await expect(vokale(page)).toHaveAttribute('aria-checked', 'true');
+		await druecke(vokale(page));
+		await expect.poll(() => quelle(page)).toBe(anfang);
+		await expect(vokale(page)).toHaveAttribute('aria-checked', 'false');
+
+		await druecke(vokale(page));
+		await expect(vokale(page)).toHaveAttribute('aria-checked', 'true');
+		await druecke(silbenKnopf(page, 'Bögen'));
+		await aktivIn(silben(page), 'Bögen');
+		const erst = await quelle(page);
+		expect(erst).toContain('B<mark>ie</mark>|n<mark>e</mark>');
+		await expect(material(page).locator('x-silben mark').first()).toBeVisible();
+		await expect(material(page).locator('x-silben .silbe mark').first()).toHaveText('ie');
+
+		await druecke(silbenKnopf(page, 'Aus'));
+		await aktivIn(silben(page), 'Aus');
+		await druecke(vokale(page));
+		await expect.poll(() => quelle(page)).toBe(anfang);
+		await druecke(silbenKnopf(page, 'Bögen'));
+		await aktivIn(silben(page), 'Bögen');
+		await druecke(vokale(page));
+		await expect.poll(() => quelle(page)).toBe(erst);
+	});
+
+	test('Buchstaben: Feld, Schalter, Stand', async ({ druecke, page }) => {
+		test.slow();
+		const { dok, id } = await lesetext();
+		await oeffne(page, id, dok);
+		const anfang = await quelle(page);
+		await waehleAbsatz(page, druecke);
+		const feld = page.locator('[data-sprache-buchstaben]');
+		const schalter = page.locator('[data-sprache-buchstaben-an] [role="switch"]');
+		await expect(schalter).toBeDisabled();
+		await feld.fill('ie, au');
+		await druecke(schalter);
+		await expect.poll(() => quelle(page)).toContain('B<mark>ie</mark>ne');
+		await expect.poll(() => quelle(page)).toContain('l<mark>au</mark>t');
+		await expect(schalter).toHaveAttribute('aria-checked', 'true');
+		await druecke(schalter);
+		await expect.poll(() => quelle(page)).toBe(anfang);
+		await expect(feld).toHaveValue('ie, au');
+	});
+
+	const markiere = (page: Page, wort: string) =>
+		material(page)
+			.locator('p.text')
+			.first()
+			.evaluate((p, gesucht) => {
+				const gang = p.ownerDocument.createTreeWalker(p, NodeFilter.SHOW_TEXT);
+				for (let t = gang.nextNode() as Text | null; t; t = gang.nextNode() as Text | null) {
+					const i = t.data.indexOf(gesucht);
+					if (i >= 0) {
+						const r = p.ownerDocument.createRange();
+						r.setStart(t, i);
+						r.setEnd(t, i + gesucht.length);
+						const s = p.ownerDocument.getSelection();
+						s?.removeAllRanges();
+						s?.addRange(r);
+						return;
+					}
+				}
+				throw new Error(`„${gesucht}“ steht hier nicht.`);
+			}, wort);
+
+	test('Teilmarkierung: Hinweis, zwei Stellen, eine entfernen, dann überall entfernen', async ({ druecke, page }) => {
+		test.slow();
+		const { dok, id } = await lesetext();
+		await oeffne(page, id, dok);
+		const anfang = await quelle(page);
+		await waehleAbsatz(page, druecke);
+		await expect(page.locator('[data-sprache-markierung]')).toHaveCount(0);
+		await markiere(page, 'Biene');
+		await expect(page.locator('[data-sprache-markierung]')).toHaveText('Wirkt auf die Markierung: „Biene“');
+		await druecke(silbenKnopf(page, 'Bögen'));
+		await expect.poll(() => quelle(page)).toContain('Die <x-silben im-text>Bie|ne</x-silben> fliegt');
+		await keinesAktiv(page);
+		await expect(page.locator('[data-sprache-teilweise]')).toContainText('In einem Teil des Texts');
+		await expect(page.locator('[data-sprache-markierung]')).toHaveCount(0);
+
+		await markiere(page, 'Blume');
+		await druecke(silbenKnopf(page, 'Farbe'));
+		await expect.poll(() => quelle(page)).toContain('<x-silben im-text darstellung="farbe">Blu|me</x-silben>');
+		await expect.poll(() => quelle(page)).toContain('<x-silben im-text>Bie|ne</x-silben>');
+
+		await markiere(page, 'Bie');
+		await druecke(silbenKnopf(page, 'Aus'));
+		await expect.poll(() => quelle(page)).not.toContain('Bie|ne');
+		await expect.poll(() => quelle(page)).toContain('Blu|me');
+
+		await druecke(page.locator('[data-sprache-teilweise]').getByRole('button', { name: 'Überall entfernen' }));
+		await expect.poll(() => quelle(page)).toBe(anfang);
+		await aktivIn(silben(page), 'Aus');
+	});
+
+	test('Aufgabentext: keine Übung, keine Zeilennummern; Silben auch mit Zahlen im Text', async ({ druecke, page }) => {
+		test.slow();
+		const { dok, id } = await uhrzeit();
+		await oeffne(page, id, dok);
+		await druecke(material(page).locator('.anw .text').nth(2));
+		await expect(page.locator('[data-sprachwerkzeug]')).toBeVisible();
+		await expect(page.locator('[data-abschnitt="uebung"]')).toHaveCount(0);
+		await expect(page.locator('[data-sprache-zeilennummern]')).toHaveCount(0);
+		await druecke(silbenKnopf(page, 'Bögen'));
+		await aktivIn(silben(page), 'Bögen');
+		await expect(material(page).locator('.anw .text x-silben').first()).not.toHaveAttribute('data-fehler');
+	});
+
+	test('Überschrift: nur Silben', async ({ druecke, page }) => {
+		const { dok, id } = await uhrzeit();
+		await oeffne(page, id, dok);
+		await druecke(material(page).locator('h1').first());
+		await expect(silben(page)).toBeVisible();
+		await expect(vokale(page)).toHaveCount(0);
+		await expect(page.locator('[data-sprache-buchstaben]')).toHaveCount(0);
+		await expect(page.locator('[data-sprache-zeilennummern]')).toHaveCount(0);
+		await expect(page.locator('[data-abschnitt="uebung"]')).toHaveCount(0);
+	});
+
+	test('Absatz: Jede Übung wirkt, ist ein Schritt rückgängig und zeigt vorher, was wegfällt', async ({
+		druecke,
+		page,
+	}) => {
+		test.slow();
+		const { dok, id } = await lesetext();
+		await oeffne(page, id, dok);
+		const anfang = await quelle(page);
+		await waehleAbsatz(page, druecke);
+		await expect(page.locator('[data-sprache="luecken"]'), 'Eingeklappt').toHaveCount(0);
 		for (const [knopf, erwartet] of [
-			['silben-boegen', '<x-silben>Die Bie|ne'],
-			['silben-farbe', '<x-silben darstellung="farbe">Die Bie|ne'],
-			[
-				'woerter-mischen',
-				'<x-sortieren art="woerter" eintraege="Die; Biene; fliegt; zur; Blume."></x-sortieren>',
-			],
-			['vokale', 'D<mark>ie</mark> B<mark>ie</mark>n<mark>e</mark>'],
+			['woerter-mischen', '<x-sortieren art="woerter" eintraege="Die; Biene; fliegt; zur; Blume."></x-sortieren>'],
+			['luecken', '<x-lueckentext>Die Biene fliegt zur [Blume]. Der Hund bellt laut.</x-lueckentext>'],
 		] as const) {
-			await oeffneWerkzeug(page, druecke);
+			await oeffneUebung(page, druecke);
 			await page.locator(`[data-sprache="${knopf}"]`).click();
 			await expect.poll(() => quelle(page)).toContain(erwartet);
 			await druecke(zurueck(page));
 			await expect.poll(() => quelle(page)).toBe(anfang);
+			await expect(page.locator('[data-sprachwerkzeug]')).toBeVisible();
 		}
-		await oeffneWerkzeug(page, druecke);
+		await oeffneUebung(page, druecke);
 		await page.locator('[data-sprache-regel]').selectOption('nomen');
 		await page.locator('[data-sprache="luecken"]').click();
 		await expect.poll(() => quelle(page)).toContain('Die [Biene] fliegt zur [Blume]. Der [Hund] bellt laut.');
 		await expect(material(page).locator('x-lueckentext [data-fehler]')).toHaveCount(0);
+		await druecke(zurueck(page));
+		await expect.poll(() => quelle(page)).toBe(anfang);
+
+		await oeffneUebung(page, druecke);
+		await expect(page.locator('[data-sprache-folge]')).not.toContainText('fallen dabei weg');
+		await druecke(silbenKnopf(page, 'Bögen'));
+		await aktivIn(silben(page), 'Bögen');
+		await expect(page.locator('[data-sprache-folge]')).toContainText('fallen dabei weg');
 	});
 
-	const markiereBiene = (page: Page) =>
-		material(page)
-			.locator('p.text')
-			.first()
-			.evaluate((p) => {
-				const t = p.firstChild as Text;
-				const r = p.ownerDocument.createRange();
-				r.setStart(t, 4);
-				r.setEnd(t, 9);
-				const s = p.ownerDocument.getSelection();
-				s?.removeAllRanges();
-				s?.addRange(r);
-			});
+	const markiereBiene = (page: Page) => markiere(page, 'Biene');
 
 	test('Nur markierter Text; s/w bleibt erkennbar', async ({ druecke, page }) => {
 		test.slow();
 		const { dok, id } = await lesetext();
 		await oeffne(page, id, dok);
-		await oeffneWerkzeug(page, druecke);
+		await waehleAbsatz(page, druecke);
+		await oeffneUebung(page, druecke);
 		await markiereBiene(page);
 		await page.locator('[data-sprache="buchstaben-mischen"]').click();
 		await expect.poll(() => quelle(page)).toContain('→ [Biene]</x-lueckentext>');
 		await druecke(zurueck(page));
 		await expect.poll(() => quelle(page)).not.toContain('→ [Biene]');
-		await oeffneWerkzeug(page, druecke);
+		await waehleAbsatz(page, druecke);
 		await markiereBiene(page);
-		await page.locator('[data-sprache="vokale"]').click();
+		await druecke(vokale(page));
 		await expect.poll(() => quelle(page)).toContain('Die B<mark>ie</mark>n<mark>e</mark> fliegt');
 		const stil = await material(page)
 			.locator('mark')
@@ -427,9 +641,12 @@ test.describe('Sprach-Werkzeuge (052)', () => {
 		test.slow();
 		const { dok, id } = await lesetext(2);
 		await oeffne(page, id, dok);
-		await oeffneWerkzeug(page, druecke);
-		await page.locator('[data-sprache-zeilennummern]').selectOption('1');
+		await waehleAbsatz(page, druecke);
+		const nummern = page.locator('[data-sprache-zeilennummern]');
+		await aktivIn(nummern, 'Aus');
+		await druecke(nummern.getByRole('button', { name: 'Jede Zeile' }));
 		await expect.poll(() => quelle(page)).toContain('data-zeilennummern="1"');
+		await aktivIn(nummern, 'Jede Zeile');
 		const m = material(page);
 		await expect(m.locator('.zeilennummer').first()).toBeVisible();
 		const zaehle = () =>

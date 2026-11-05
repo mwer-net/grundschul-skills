@@ -263,15 +263,16 @@ export const Einstellungen = ({
 				<AbbildungHinweise abb={abb} />
 				{aktiv && quelle && <SammlungName ablage={ablage} />}
 			</div>
+			<Sprachwerkzeug
+				pfad={pfad}
+				aktiv={frei}
+				geladen={geladen}
+				quelle={quelle}
+				bearbeitet={text.bearbeitet}
+				beende={text.beende}
+				struktur={struktur}
+			/>
 			<Abschnitt name="inhalt" titel={ABSCHNITT_TITEL.inhalt}>
-				<Sprachwerkzeug
-					pfad={pfad}
-					aktiv={frei}
-					geladen={geladen}
-					bearbeitet={text.bearbeitet}
-					beende={text.beende}
-					struktur={struktur}
-				/>
 				<Bildwerkzeug bild={bild} />
 				<AbbildungFelder abb={abb} abschnitt="inhalt" />
 				{aktiv && (
