@@ -5,6 +5,7 @@ import {
 	leseSichtbarkeit,
 	setzeKit,
 	setzeSichtbarkeit,
+	sichtbarkeitFest,
 	SICHTBARKEITEN,
 } from '@schoolbox/kern/src/kit-einstellungen';
 import type { StrukturErgebnis } from '@schoolbox/kern/src/struktur';
@@ -221,7 +222,7 @@ const SICHTBARKEIT: Befehl[] = SICHTBARKEITEN.map((s) => ({
 	},
 	verfuegbar: (k) => {
 		const g = gewaehlt(k);
-		return k.aktiv && Boolean(g && kann(g.baustein, 'ordnen') && g.baustein.art !== 'seite');
+		return k.aktiv && Boolean(g && kann(g.baustein, 'ordnen') && g.baustein.art !== 'seite' && k.quelle !== null && !sichtbarkeitFest(k.quelle, g.nr));
 	},
 	aus: (k) => {
 		const g = gewaehlt(k);

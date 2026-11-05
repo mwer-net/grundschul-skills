@@ -49,9 +49,12 @@ test.describe('Editor: Bausteine einfügen', () => {
 		await page.locator('[data-einfuegen="x-erwartungshorizont"]').click();
 		const hinweis = page.locator('[data-hinweis="unsichtbar"]');
 		await expect(hinweis).toContainText('nur in der Lösung');
+		// E-B1: Die Sichtbarkeit gibt blatt.css vor, eine Auswahl darunter widerspräche dem Hinweis.
+		await expect(page.locator('[data-abschnitt="sichtbarkeit"]')).toBeHidden();
 		await hinweis.getByRole('button', { name: 'Zur Lösung' }).click();
 		await expect(material(page).locator('body.loesung x-erwartungshorizont')).toBeVisible();
 		await expect(hinweis).toBeHidden();
+		await expect(page.locator('[data-abschnitt="sichtbarkeit"]')).toBeHidden();
 	});
 
 	test('„Beispiel“ wählt den Eintrag oder sagt, was zu wählen ist', async ({ druecke, page }) => {

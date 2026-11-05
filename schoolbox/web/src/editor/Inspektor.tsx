@@ -1,5 +1,6 @@
 import { ABSCHNITT_TITEL } from '@schoolbox/kern/src/abschnitte';
 import { FREIES_ELEMENT, kann } from '@schoolbox/kern/src/bausteine';
+import { sichtbarkeitFest } from '@schoolbox/kern/src/kit-einstellungen';
 import type { ReactNode } from 'react';
 import { useEffect, useLayoutEffect, useRef, useState } from 'react';
 
@@ -231,7 +232,7 @@ const SichtbarkeitWenn = ({
 	quelle: string | null;
 	struktur: Struktur;
 }) =>
-	quelle && kann(baustein, 'ordnen') && baustein.art !== 'seite' ? (
+	quelle && kann(baustein, 'ordnen') && baustein.art !== 'seite' && !sichtbarkeitFest(quelle, nr) ? (
 		<Sichtbarkeit nr={nr} quelle={quelle} struktur={struktur} />
 	) : null;
 

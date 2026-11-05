@@ -9,6 +9,7 @@ import {
 	setzeBlatt,
 	setzeKit,
 	setzeSichtbarkeit,
+	sichtbarkeitFest,
 } from './kit-einstellungen';
 import { klassenVon, zerlege } from './quelltext';
 
@@ -93,6 +94,14 @@ describe('Einstellungen der Kit-Bausteine', () => {
 		const nurA = setzeSichtbarkeit(nurL, a, 'arbeitsblatt');
 		assert.match(nurA, /class="aufgabe nicht-loesung"/);
 		assert.equal(setzeSichtbarkeit(nurA, a, ''), BLATT);
+	});
+
+	it('Sichtbarkeit: fest bei Erwartungshorizont und Notiz, sonst wählbar (084, E-B1)', () => {
+		const q = BLATT.replace('<p>Absatz</p>', '<p>Absatz</p><x-erwartungshorizont></x-erwartungshorizont><div class="notiz">N</div>');
+		assert.equal(sichtbarkeitFest(q, tag(q, 'x-erwartungshorizont')), true);
+		assert.equal(sichtbarkeitFest(q, nr(q, 'notiz')), true);
+		assert.equal(sichtbarkeitFest(q, nr(q, 'aufgabe')), false);
+		assert.equal(sichtbarkeitFest(q, tag(q, 'p')), false);
 	});
 });
 

@@ -450,6 +450,15 @@ export const leseSichtbarkeit = (quelle: string, nr: number) => {
 	return SICHTBARKEITEN.find((s) => s.klasse && hat(k, s.klasse))?.wert ?? '';
 };
 
+/**
+ * Wo `blatt.css` die Sichtbarkeit fest vorgibt, wirkt die Wahl nicht: Der Erwartungshorizont steht nur in der Lösung,
+ * die Notiz nur in der Präsentation. Panel und Menü bieten sie dort nicht an, die Quelle bleibt, wie sie ist (084, E-B1).
+ */
+export const sichtbarkeitFest = (quelle: string, nr: number) => {
+	const k = knotenVon(zerlege(quelle), nr);
+	return k.tag === 'x-erwartungshorizont' || hat(k, 'notiz');
+};
+
 export const setzeSichtbarkeit = (quelle: string, nr: number, wert: string) => {
 	const z = zerlege(quelle);
 	const k = knotenVon(z, nr);
