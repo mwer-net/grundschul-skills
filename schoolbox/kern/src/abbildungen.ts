@@ -931,6 +931,177 @@ const ausschnittFolgtMitte = (w: Werte): Werte => {
 	return zahlen ? nurImAusschnitt(w, zahlen) : {};
 };
 
+/** Geht jede Reihe der Minus-Mauer auf, ohne dass ein Stein unter 0 fällt? */
+const minusMauerGeht = (basis: number[]): boolean => {
+	if (basis.length < 2) {
+		return true;
+	}
+	const reihe = basis.slice(1).map((z, i) => (basis[i] ?? 0) - z);
+	return reihe.every((z) => z >= 0) && minusMauerGeht(reihe);
+};
+
+const anordnungen = (zahlen: number[]): number[][] =>
+	zahlen.length < 2
+		? [zahlen]
+		: zahlen.flatMap((z, i) => anordnungen(zahlen.filter((_, j) => j !== i)).map((rest) => [z, ...rest]));
+
+/** Minus nimmt eine Reihenfolge mit, in der kein Stein unter 0 fällt; was aufgeht, bleibt zeichengleich. */
+const basisFuerRechnung = (w: Werte): Werte => {
+	const basis = (w.basis ?? '').trim().split(/[;\s]+/).filter(Boolean).map(Number);
+	if (w.art !== 'minus' || basis.length > 5 || basis.some(Number.isNaN) || minusMauerGeht(basis)) {
+		return {};
+	}
+	const passend =
+		anordnungen([...basis].sort((a, b) => b - a)).find(minusMauerGeht) ?? [16, 8, 4, 2, 1].slice(-basis.length);
+	return { basis: passend.join(' ') };
+};
+
+const REIHE_OBERGRENZE = 60;
+
+/** Die Grundaufgaben der Rechenreihe wie `grundaufgabe` in `abbildungen.js`. */
+function* rechenreiheGrund(zeichen: string, raum: number, reihe: number | null, rest: boolean) {
+	if (zeichen === '+') {
+		for (let a = 1; a < raum; a += 1) {
+			for (let b = 1; b <= raum - a; b += 1) {
+				yield [a, b] as const;
+			}
+		}
+	} else if (zeichen === '−') {
+		for (let a = 2; a <= raum; a += 1) {
+			for (let b = 1; b < a; b += 1) {
+				yield [a, b] as const;
+			}
+		}
+	} else if (zeichen === '·') {
+		for (let a = 1; a <= (reihe === null ? Math.floor(raum / 2) : Math.min(10, Math.floor(raum / reihe))); a += 1) {
+			for (const b of reihe === null ? Array.from({ length: Math.floor(raum / a) }, (_, i) => i + 1) : [reihe]) {
+				yield [a, b] as const;
+			}
+		}
+	} else {
+		const teiler =
+			reihe === null ? Array.from({ length: Math.max(1, Math.floor(raum / 2)) }, (_, i) => i + 1) : [reihe];
+		for (const b of teiler.filter((t) => !rest || t >= 2)) {
+			const hoechstens = Math.floor(raum / b);
+			for (let c = 1; c <= (reihe === null ? hoechstens : Math.min(10, hoechstens)); c += 1) {
+				for (let r = rest ? 1 : 0; r <= (rest ? Math.max(1, b - 1) : 0); r += 1) {
+					if (b * c + r <= raum) {
+						yield [b * c + r, b] as const;
+					}
+				}
+			}
+		}
+	}
+}
+
+/**
+ * Wie viele verschiedene Aufgaben `rechenreiheAufgaben` in `abbildungen.js` bei diesen Werten finden kann, ein Test hält
+ * beide gleich. Zählt nur bis zur Obergrenze der Anzahl.
+ */
+export const rechenreiheMoeglich = (w: Werte): number => {
+	const zeichen = w.rechenart ?? '+';
+	const uebergang = w.uebergang ?? 'egal';
+	const beziehung = w.beziehung ?? 'keine';
+	const gegen: Readonly<Record<string, string>> = { '+': '−', '−': '+', '·': ':', ':': '·' };
+	const rechne: Readonly<Record<string, (a: number, b: number) => number>> = {
+		'+': (a, b) => a + b,
+		'−': (a, b) => a - b,
+		'·': (a, b) => a * b,
+		':': (a, b) => Math.floor(a / b),
+	};
+	const schon = new Set<string>();
+	const grund = rechenreiheGrund(zeichen, Number(w.zahlenraum ?? 20), w.reihe ? Number(w.reihe) : null, w.rest === '1');
+	for (const [a, b] of grund) {
+		const ueber = zeichen === '+' ? (a % 10) + (b % 10) > 10 : ((a - b) % 10) + (b % 10) > 10;
+		const punkt = zeichen === '·' || zeichen === ':';
+		if ((!punkt && uebergang !== 'egal' && ueber !== (uebergang === 'mit')) || (beziehung === 'tausch' && a === b)) {
+			continue;
+		}
+		schon.add(`${a} ${zeichen} ${b}`);
+		if (beziehung === 'tausch') {
+			schon.add(`${b} ${zeichen} ${a}`);
+		}
+		if (beziehung === 'umkehr') {
+			schon.add(`${rechne[zeichen]?.(a, b) ?? 0} ${gegen[zeichen] ?? ''} ${b}`);
+		}
+		if (schon.size >= REIHE_OBERGRENZE) {
+			break;
+		}
+	}
+	return schon.size;
+};
+
+/**
+ * Was zur Rechenart nicht passt, fällt weg, und die Anzahl sinkt auf das, was es gibt. Sonst scheitert die Wahl am Starter.
+ * `dazu` nennt, was die jeweilige Wahl darüber hinaus braucht.
+ */
+const rechenreiheNimmt =
+	(dazu?: (w: Werte) => Werte) =>
+	(w: Werte): Werte => {
+		const zeichen = w.rechenart ?? '+';
+		const punkt = zeichen === '·' || zeichen === ':';
+		const neu: Werte = {};
+		if (punkt && (w.uebergang ?? 'egal') !== 'egal') {
+			neu.uebergang = null;
+		}
+		if (!punkt && w.reihe) {
+			neu.reihe = null;
+		}
+		if (zeichen !== ':' && w.rest === '1') {
+			neu.rest = null;
+		}
+		if (w.beziehung === 'tausch' && (zeichen === '−' || zeichen === ':')) {
+			neu.beziehung = null;
+		}
+		const stand = { ...w, ...neu, ...dazu?.({ ...w, ...neu }) };
+		const moeglich = rechenreiheMoeglich(stand);
+		return moeglich > 0 && Number(stand.anzahl ?? 10) > moeglich ? { ...stand, anzahl: String(moeglich) } : stand;
+	};
+
+/** Eine Reihe braucht den Zahlenraum, in dem ihre zehn Aufgaben liegen; die 1er-Reihe hat keinen Rest. */
+const raumFuerReihe = (w: Werte): Werte => {
+	const reihe = Number(w.reihe ?? 0);
+	const raum = [10, 20, 100].find((r) => r >= reihe * 10) ?? 100;
+	return {
+		...(reihe > 0 && Number(w.zahlenraum ?? 20) < raum ? { zahlenraum: String(raum) } : {}),
+		...(reihe === 1 && w.rest === '1' ? { rest: null } : {}),
+	};
+};
+
+/** Rest geht nur mit dem Platzhalter beim Ergebnis, ohne Aufgabenpaare und nicht in der 1er-Reihe. */
+const passendZumRest = (w: Werte): Werte => {
+	if (w.rest !== '1') {
+		return {};
+	}
+	return {
+		...((w.platzhalter ?? 'ergebnis') !== 'ergebnis' ? { platzhalter: null } : {}),
+		...((w.beziehung ?? 'keine') !== 'keine' ? { beziehung: null } : {}),
+		...(w.reihe === '1' ? { reihe: null } : {}),
+	};
+};
+
+const ZAUBER_START: Readonly<Record<string, { felder: number; ids: RegExp; summe: string; vorgegeben: string }>> = {
+	dreieck: { felder: 6, ids: /^[es]\d$/, summe: '9', vorgegeben: 'e0 e1' },
+	quadrat: { felder: 9, ids: /^z\d$/, summe: '15', vorgegeben: 'z0 z4 z5' },
+};
+
+/** Die Form nimmt ihre Zahlen mit, die Summe, die dazu aufgeht, und Vorgaben, die es in ihr gibt, wie im Musterblatt. */
+const zahlenFuerZauberform = (w: Werte): Werte => {
+	const start = ZAUBER_START[w.art ?? 'dreieck'];
+	const zahlen = (w.zahlen ?? '').trim().split(/[;\s]+/).filter(Boolean);
+	if (!start || zahlen.length === start.felder) {
+		return {};
+	}
+	const mitSumme = Number(w.summe ?? 0) > 0;
+	const vorgegeben = (w.vorgegeben ?? '').trim().split(/\s+/).filter(Boolean);
+	const fremd = vorgegeben.some((id) => !start.ids.test(id));
+	return {
+		...(w.zahlen ? { zahlen: null } : {}),
+		...(mitSumme ? { summe: start.summe } : {}),
+		...(fremd ? { vorgegeben: mitSumme ? start.vorgegeben : null } : {}),
+	};
+};
+
 export const ABBILDUNG_SCHEMA = {
 	'x-uhr': {
 		name: 'Uhr',
@@ -4120,6 +4291,7 @@ export const ABBILDUNG_SCHEMA = {
 				attribut: 'art',
 				name: 'Rechnung',
 				standard: 'plus',
+				mitnehmen: basisFuerRechnung,
 				optionen: [
 					{ wert: 'plus', name: 'Plus' },
 					{ wert: 'minus', name: 'Minus' },
@@ -4146,6 +4318,7 @@ export const ABBILDUNG_SCHEMA = {
 				attribut: 'rechenart',
 				name: 'Rechenart',
 				standard: '+',
+				mitnehmen: rechenreiheNimmt(),
 				optionen: [
 					{ wert: '+', name: 'Plus' },
 					{ wert: '−', name: 'Minus' },
@@ -4158,6 +4331,7 @@ export const ABBILDUNG_SCHEMA = {
 				attribut: 'zahlenraum',
 				name: 'Zahlenraum',
 				standard: '20',
+				mitnehmen: rechenreiheNimmt((w): Werte => (w.zahlenraum === '10' && w.uebergang === 'mit' ? { uebergang: null } : {})),
 				optionen: [
 					{ wert: '10', name: 'bis 10' },
 					{ wert: '20', name: 'bis 20' },
@@ -4173,6 +4347,7 @@ export const ABBILDUNG_SCHEMA = {
 				attribut: 'uebergang', nurWenn: wenn('rechenart', '+', '+', '−'),
 				name: 'Zehnerübergang',
 				standard: 'egal',
+				mitnehmen: rechenreiheNimmt((w): Werte => (w.zahlenraum === '10' && w.uebergang === 'mit' ? { zahlenraum: '20' } : {})),
 				optionen: [
 					{ wert: 'egal', name: 'Egal' },
 					{ wert: 'mit', name: 'Mit Übergang' },
@@ -4206,6 +4381,7 @@ export const ABBILDUNG_SCHEMA = {
 				art: 'auswahl',
 				attribut: 'reihe', nurWenn: wenn('rechenart', '+', '·', ':'),
 				name: 'Einmaleins-Reihe',
+				mitnehmen: rechenreiheNimmt(raumFuerReihe),
 				optionen: [
 					{ wert: null, name: 'Alle' },
 					...['1', '2', '3', '4', '5', '6', '7', '8', '9', '10'].map((r) => ({
@@ -4214,7 +4390,16 @@ export const ABBILDUNG_SCHEMA = {
 					})),
 				],
 			},
-			{ art: 'schalter', attribut: 'rest', nurWenn: wenn('rechenart', '+', ':'), name: 'Mit Rest', an: '1', aus: '0', standard: false },
+			{
+				art: 'schalter',
+				attribut: 'rest',
+				nurWenn: wenn('rechenart', '+', ':'),
+				mitnehmen: rechenreiheNimmt(passendZumRest),
+				name: 'Mit Rest',
+				an: '1',
+				aus: '0',
+				standard: false,
+			},
 			{
 				art: 'text',
 				attribut: 'aufgaben',
@@ -4347,6 +4532,7 @@ export const ABBILDUNG_SCHEMA = {
 				attribut: 'art',
 				name: 'Form',
 				standard: 'dreieck',
+				mitnehmen: zahlenFuerZauberform,
 				optionen: [
 					{ wert: 'dreieck', name: 'Zauberdreieck (6 Zahlen)' },
 					{ wert: 'quadrat', name: 'Magisches Quadrat (9 Zahlen)' },

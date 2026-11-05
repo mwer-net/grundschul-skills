@@ -33,6 +33,7 @@ import {
 	pruefeWerte,
 	rasterText,
 	rasterVon,
+	rechenreiheMoeglich,
 	schemaVon,
 	setzeAbbildung,
 	tafelAusschnitt,
@@ -258,6 +259,70 @@ describe('Felder ändern', () => {
 		assert.deepEqual([geruckt.luecken, geruckt.markiert], ['46', null]);
 		const rand = aendereFeld(s, { ausschnitt: 'kreuz', mitte: '45', markiert: '45' }, mitte, '41');
 		assert.equal(rand.markiert, '45', 'Geht der Ausschnitt nicht, bleibt alles, bis die Zahl passt');
+	});
+
+	it('Zahlenmauer: Minus nimmt eine Reihenfolge ohne Stein unter 0 mit, was aufgeht, bleibt', () => {
+		const s = schema('x-zahlenmauer');
+		const art = feld(s, 'art');
+		const neu = (basis: string, wert: string) => aendereFeld(s, { basis }, art, wert).basis;
+		assert.equal(neu('3 5 2', 'minus'), '5 3 2');
+		assert.equal(neu('20 7 3', 'minus'), '20 7 3');
+		assert.equal(neu('3 5 2', 'plus'), '3 5 2');
+		const { mauerWerte } = rechenkerne() as unknown as { mauerWerte: (b: number[], a: string) => number[][] };
+		for (const basis of ['3 5 2', '4 2 6 1', '9 5 4 1', '1 2 3 4 5', '7 7']) {
+			const zahlen = (neu(basis, 'minus') ?? '').split(' ').map(Number);
+			assert.equal(zahlen.length, basis.split(' ').length, basis);
+			assert.ok(mauerWerte(zahlen, 'minus').flat().every((z) => z >= 0), `${basis} wird ${zahlen.join(' ')}`);
+		}
+	});
+
+	it('Rechenreihe: die Wahl nimmt mit, was sonst am Starter scheitert', () => {
+		const s = schema('x-rechenreihe');
+		const neu = (w: Werte, attribut: string, wert: string | null) => aendereFeld(s, w, feld(s, attribut), wert);
+		const starter = { rechenart: '+', zahlenraum: '20', anzahl: '8', uebergang: 'mit' };
+		assert.deepEqual(neu(starter, 'rechenart', '·'), { ...starter, rechenart: '·', uebergang: null });
+		assert.deepEqual(neu(starter, 'rechenart', ':'), { ...starter, rechenart: ':', uebergang: null });
+		assert.equal(neu(starter, 'rechenart', '−').uebergang, 'mit', 'Bei Minus gilt der Übergang weiter');
+		const mal = { rechenart: '·', zahlenraum: '100', anzahl: '8', reihe: '7' };
+		assert.equal(neu(mal, 'rechenart', '+').reihe, null);
+		assert.equal(neu({ ...mal, rechenart: ':', rest: '1' }, 'rechenart', '·').rest, null);
+		assert.equal(neu({ beziehung: 'tausch' }, 'rechenart', '−').beziehung, null);
+
+		const raum = neu(starter, 'zahlenraum', '10');
+		assert.deepEqual([raum.uebergang, raum.anzahl], [null, '8']);
+		assert.equal(neu({ uebergang: 'mit', zahlenraum: '10' }, 'uebergang', 'mit').zahlenraum, '20');
+		assert.equal(neu({ ...mal, reihe: '7' }, 'zahlenraum', '10').anzahl, '1', 'Bis 10 gibt es nur 7 · 1');
+
+		const reihe = neu({ rechenart: '·', zahlenraum: '20', anzahl: '8' }, 'reihe', '7');
+		assert.deepEqual([reihe.zahlenraum, reihe.anzahl], ['100', '8']);
+		assert.equal(neu({ rechenart: '·', zahlenraum: '20' }, 'reihe', '2').zahlenraum, '20', 'Passt, bleibt');
+		assert.equal(neu({ rechenart: ':', rest: '1' }, 'reihe', '1').rest, null);
+
+		const rest = neu({ rechenart: ':', platzhalter: 'erste', beziehung: 'umkehr', reihe: '1' }, 'rest', '1');
+		assert.deepEqual([rest.platzhalter, rest.beziehung, rest.reihe], [null, null, null]);
+		assert.equal(neu({ rechenart: ':', platzhalter: 'erste' }, 'rest', '0').platzhalter, 'erste');
+	});
+
+	it('Zauberdreieck: die Form nimmt Zahlen, Summe und Vorgaben mit', () => {
+		const s = schema('x-zauberdreieck');
+		const art = feld(s, 'art');
+		const neu = (w: Werte, wert: string) => aendereFeld(s, w, art, wert);
+		assert.deepEqual(neu({ summe: '9', vorgegeben: 'e0 e1' }, 'quadrat'), {
+			art: 'quadrat',
+			summe: '15',
+			vorgegeben: 'z0 z4 z5',
+		});
+		assert.deepEqual(neu({ art: 'quadrat', summe: '15', vorgegeben: 'z0 z4 z5' }, 'dreieck'), {
+			art: 'dreieck',
+			summe: '9',
+			vorgegeben: 'e0 e1',
+		});
+		assert.deepEqual(neu({ zahlen: '1 2 3 4 5 6', vorgegeben: 'e0' }, 'quadrat'), {
+			art: 'quadrat',
+			vorgegeben: null,
+			zahlen: null,
+		});
+		assert.deepEqual(neu({}, 'quadrat'), { art: 'quadrat' });
 	});
 
 	it('Stellen ändern: Zahlen bleiben rechtsbündig an ihrer Stelle', () => {
@@ -1962,6 +2027,35 @@ describe('Generatoren (050)', () => {
 		}
 		const { aufgaben } = reihe({ rechenart: '+', zahlenraum: '20', anzahl: '5', platzhalter: 'erste' }, 'a');
 		assert.ok(aufgaben.every((t) => t.startsWith('_ + ')));
+	});
+
+	it('Rechenreihe: das Schema zählt die Aufgaben wie der Generator', () => {
+		const faelle: Record<string, string>[] = [
+			{ rechenart: '+', zahlenraum: '10' },
+			{ rechenart: '+', zahlenraum: '10', uebergang: 'mit' },
+			{ rechenart: '+', zahlenraum: '10', uebergang: 'ohne' },
+			{ rechenart: '−', zahlenraum: '10' },
+			{ rechenart: '+', zahlenraum: '20', uebergang: 'mit' },
+			{ rechenart: '−', zahlenraum: '20', uebergang: 'mit' },
+			{ rechenart: '+', zahlenraum: '10', beziehung: 'tausch' },
+			{ rechenart: '+', zahlenraum: '10', beziehung: 'umkehr' },
+			{ rechenart: '·', zahlenraum: '10' },
+			{ rechenart: '·', zahlenraum: '20' },
+			{ rechenart: '·', zahlenraum: '10', beziehung: 'umkehr' },
+			{ rechenart: ':', zahlenraum: '10' },
+			{ rechenart: ':', zahlenraum: '20' },
+			{ rechenart: ':', zahlenraum: '10', rest: '1' },
+			...['1', '2', '3', '7', '10'].flatMap((r) => [
+				{ rechenart: '·', zahlenraum: '20', reihe: r },
+				{ rechenart: ':', zahlenraum: '100', reihe: r },
+			]),
+			{ rechenart: ':', zahlenraum: '20', reihe: '7', rest: '1' },
+		];
+		for (const angaben of faelle) {
+			const { aufgaben, fehler } = reihe({ ...angaben, anzahl: '60' }, 'zaehlen');
+			const gefunden = fehler ? Number(/nur (\d+) verschiedene/.exec(fehler)?.[1]) : aufgaben.length;
+			assert.equal(rechenreiheMoeglich(angaben), gefunden, JSON.stringify(angaben));
+		}
 	});
 
 	it('Rechenreihe: Unerfüllbares meldet das Element, statt falsche Aufgaben zu liefern', () => {

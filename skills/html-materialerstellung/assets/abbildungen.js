@@ -2203,8 +2203,8 @@
     const rueckwaerts = attr(el, "rueckwaerts", "nein") === "ja";
     const standard = rueckwaerts ? ["ziel", "operatoren"] : ["start", "operatoren"];
     const zeige = attr(el, "zeige", null) === null ? standard : liste(el, "zeige");
-    if (!["start", "ziel", "zwischen"].some((z) => zeige.includes(z))) abbruch("Mindestens eine Zahl muss vorgegeben sein, sonst lässt sich nichts rechnen.");
-    if (!zeige.includes("operatoren") && ops.length > 1 && !zeige.includes("zwischen")) abbruch(MEHRERE);
+    if (!["start", "ziel", "zwischen"].some((z) => zeige.includes(z))) abbruch("Mindestens eine Zahl muss vorgegeben sein, sonst lässt sich nichts rechnen: der Start, das Ziel oder die Zwischenergebnisse.");
+    if (!zeige.includes("operatoren") && ops.length > 1 && !zeige.includes("zwischen")) abbruch(`${MEHRERE} Gib auch die Rechenschritte oder die Zwischenergebnisse vor.`);
     const werte = ketteWerte(start, ops);
     pruefeRaum(werte);
     const pfeilbild = attr(el, "art", "kette") === "pfeilbild";

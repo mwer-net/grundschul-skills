@@ -922,6 +922,91 @@ test.describe('Rechenformate (028)', () => {
 	});
 });
 
+test.describe('Rechnen: Wahlen nehmen mit, was sie brauchen (084)', () => {
+	const mitTag = async (page: Page, tag: string) => {
+		const { dok, id, material: datei } = await uhrzeit();
+		await oeffne(page, id, dok);
+		await aendere(page, (await quelle(page)).replace(/<x-uhr[^>]*><\/x-uhr>/, tag));
+		await gespeichert(page, datei);
+		return { datei, stand: await readFile(datei, 'utf8') };
+	};
+
+	test('Zahlenmauer: Minus stellt die Reihe um, ein Schritt zurück stellt alles her', async ({ druecke, page }) => {
+		const { datei, stand } = await mitTag(page, '<x-zahlenmauer basis="3 5 2"></x-zahlenmauer>');
+		await druecke(material(page).locator('x-zahlenmauer'));
+		await page.locator('[data-feld="art"] select').selectOption({ label: 'Minus' });
+		await gespeichert(page, datei);
+		await expect(page.locator('[data-fehler]')).toHaveCount(0);
+		expect(await readFile(datei, 'utf8')).toMatch(/<x-zahlenmauer [^>]*basis="5 3 2"/);
+		await expect(page.getByLabel('Unterste Reihe')).toHaveValue('5 3 2');
+		await druecke(zurueck(page));
+		await gespeichert(page, datei);
+		expect(await readFile(datei, 'utf8')).toBe(stand);
+	});
+
+	test('Rechenreihe: Rechenart, Reihe, Rest und Zahlenraum gehen vom Starter aus', async ({ druecke, page }) => {
+		const { datei } = await mitTag(
+			page,
+			'<x-rechenreihe rechenart="+" zahlenraum="20" anzahl="8" uebergang="mit" aufgaben="7 + 5 = _; 8 + 6 = _"></x-rechenreihe>',
+		);
+		await druecke(material(page).locator('x-rechenreihe'));
+		const feld = (name: string) => page.locator(`[data-feld="${name}"] select`);
+		const tag = async () => /<x-rechenreihe[^>]*>/.exec(await readFile(datei, 'utf8'))?.[0] ?? '';
+
+		await feld('zahlenraum').selectOption({ label: 'bis 10' });
+		await gespeichert(page, datei);
+		await expect(page.locator('[data-fehler]')).toHaveCount(0);
+		expect(await tag()).toContain('zahlenraum="10"');
+		expect(await tag()).not.toContain('uebergang=');
+
+		await feld('zahlenraum').selectOption({ label: 'bis 20' });
+		await feld('uebergang').selectOption({ label: 'Mit Übergang' });
+		await feld('rechenart').selectOption({ label: 'Mal' });
+		await gespeichert(page, datei);
+		await expect(page.locator('[data-fehler]')).toHaveCount(0);
+		expect(await tag()).not.toContain('uebergang=');
+
+		await feld('reihe').selectOption({ label: '7er-Reihe' });
+		await gespeichert(page, datei);
+		await expect(page.locator('[data-fehler]')).toHaveCount(0);
+		expect(await tag()).toContain('zahlenraum="100"');
+		expect(await tag()).toContain('reihe="7"');
+
+		await feld('rechenart').selectOption({ label: 'Plus' });
+		await gespeichert(page, datei);
+		await expect(page.locator('[data-fehler]')).toHaveCount(0);
+		expect(await tag()).not.toContain('reihe=');
+	});
+
+	test('Rechenkette: Die Meldung sagt, was vorgegeben sein muss', async ({ druecke, page }) => {
+		await mitTag(page, '<x-zahlenkette start="8" operatoren="+5 −3 ·2"></x-zahlenkette>');
+		await druecke(material(page).locator('x-zahlenkette'));
+		const haken = (name: string) => page.locator('[data-feld="zeige"]').getByRole('switch', { name, exact: true });
+		await druecke(haken('Start'));
+		await expect(page.locator('[data-fehler="_element"]')).toContainText('der Start, das Ziel oder die Zwischenergebnisse');
+		await druecke(haken('Start'));
+		await druecke(haken('Rechenschritte'));
+		await expect(page.locator('[data-fehler="_element"]')).toContainText(
+			'Gib auch die Rechenschritte oder die Zwischenergebnisse vor.',
+		);
+	});
+
+	test('Zauberdreieck: Das magische Quadrat nimmt seine Summe und Vorgaben mit', async ({ druecke, page }) => {
+		const { datei, stand } = await mitTag(page, '<x-zauberdreieck summe="9" vorgegeben="e0 e1"></x-zauberdreieck>');
+		await druecke(material(page).locator('x-zauberdreieck'));
+		await page.locator('[data-feld="art"] select').selectOption({ label: 'Magisches Quadrat (9 Zahlen)' });
+		await gespeichert(page, datei);
+		await expect(page.locator('[data-fehler]')).toHaveCount(0);
+		const neu = await readFile(datei, 'utf8');
+		expect(neu).toMatch(/<x-zauberdreieck [^>]*summe="15"/);
+		expect(neu).toMatch(/<x-zauberdreieck [^>]*vorgegeben="z0 z4 z5"/);
+		await expect(material(page).locator('x-zauberdreieck .rechenfeld')).toHaveCount(9);
+		await druecke(zurueck(page));
+		await gespeichert(page, datei);
+		expect(await readFile(datei, 'utf8')).toBe(stand);
+	});
+});
+
 test.describe('Einmaleins und schriftliches Rechnen (029)', () => {
 	const ziffern = (seite: Page, rolle: string) =>
 		seite.locator(`.stelle[data-rolle="${rolle}"]`).evaluateAll((l) =>
