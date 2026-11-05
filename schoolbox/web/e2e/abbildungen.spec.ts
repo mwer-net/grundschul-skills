@@ -1012,6 +1012,78 @@ test.describe('Rechnen: Wahlen nehmen mit, was sie brauchen (084)', () => {
 	});
 });
 
+test.describe('Größen: Wahlen nehmen mit, was sie brauchen (084)', () => {
+	const mitTag = async (page: Page, tag: string) => {
+		const { dok, id, material: datei } = await uhrzeit();
+		await oeffne(page, id, dok);
+		await aendere(page, (await quelle(page)).replace(/<x-uhr[^>]*><\/x-uhr>/, tag));
+		await gespeichert(page, datei);
+		return { datei, stand: await readFile(datei, 'utf8') };
+	};
+
+	test('Messgerät: Jedes Gerät geht vom Starter aus, Einheiten passen zum Gerät, ein Schritt zurück stellt alles her', async ({
+		druecke,
+		page,
+	}) => {
+		const { datei, stand } = await mitTag(
+			page,
+			'<x-skala art="lineal" von="0" bis="12" wert="7.5" aufgabe="ablesen"></x-skala>',
+		);
+		const skala = material(page).locator('x-skala');
+		await druecke(skala);
+		const geraet = page.locator('[data-feld="art"] select');
+		const einheit = page.locator('[data-feld="einheit"] select');
+		await expect(einheit.locator('option')).toHaveText(['Passend zum Gerät', 'cm', 'mm']);
+
+		await geraet.selectOption({ label: 'Messbecher' });
+		await gespeichert(page, datei);
+		await expect(page.locator('[data-fehler]')).toHaveCount(0);
+		await expect(skala).not.toHaveAttribute('data-fehler', /./);
+		const tag = /<x-skala[^>]*>/.exec(await readFile(datei, 'utf8'))?.[0] ?? '';
+		expect(tag).toContain('art="messbecher"');
+		expect(tag).toContain('wert="260"');
+		expect(tag).not.toMatch(/\b(von|bis|teilung)=/);
+		await expect(einheit.locator('option')).toHaveText(['Passend zum Gerät', 'ml', 'l']);
+		await expect(page.locator('[data-feld="bis"] input')).toHaveValue('500');
+
+		await einheit.selectOption({ label: 'l' });
+		await gespeichert(page, datei);
+		await expect(skala).not.toHaveAttribute('data-fehler', /./);
+		await geraet.selectOption({ label: 'Waage' });
+		await gespeichert(page, datei);
+		await expect(skala).not.toHaveAttribute('data-fehler', /./);
+		expect(await readFile(datei, 'utf8')).not.toMatch(/<x-skala[^>]*einheit=/);
+		await geraet.selectOption({ label: 'Thermometer' });
+		await gespeichert(page, datei);
+		await expect(skala).not.toHaveAttribute('data-fehler', /./);
+		await expect(page.locator('[data-feld="einheit"]')).toHaveCount(0);
+
+		for (let i = 0; i < 4; i++) {
+			await druecke(zurueck(page));
+			await gespeichert(page, datei);
+		}
+		expect(await readFile(datei, 'utf8')).toBe(stand);
+	});
+
+	test('Geld und Zeitspanne: Das Beispiel im Feld geht am Starter, die Meldung nennt den Weg', async ({ page }) => {
+		const zuKurz = await gezeichnet(
+			page,
+			'<x-zeitspanne von="8:20" bis="9:45" spruenge="bis 9:00, +40 min"></x-zeitspanne>',
+		);
+		await expect(zuKurz.locator('x-zeitspanne')).toHaveAttribute('data-fehler', /etwa „bis 9:45“/);
+		const beispiel = await gezeichnet(
+			page,
+			'<x-zeitspanne von="8:20" bis="9:45" spruenge="bis 9:00, +30 min, +15 min"></x-zeitspanne>',
+		);
+		await expect(beispiel.locator('x-zeitspanne')).not.toHaveAttribute('data-fehler', /./);
+		const geld = await gezeichnet(
+			page,
+			'<x-geld stuecke="1ct 2ct 5ct 10ct 20ct 50ct 1€ 2€" aufgabe="legen" betrag="3,85"></x-geld>',
+		);
+		await expect(geld.locator('x-geld')).not.toHaveAttribute('data-fehler', /./);
+	});
+});
+
 test.describe('Geometrie: Wahlen nehmen mit, was sie brauchen (084)', () => {
 	const mitTag = async (page: Page, tag: string) => {
 		const { dok, id, material: datei } = await uhrzeit();
@@ -1293,7 +1365,10 @@ test.describe('Größen (030)', () => {
 		await expect(legen.locator('x-geld')).toHaveAttribute('data-stueckelung', '2€ 1€ 20ct 20ct 5ct');
 		await expect(legen.locator('.stueck')).toHaveCount(5);
 		const nicht = await gezeichnet(page, '<x-geld stuecke="20ct" aufgabe="legen" betrag="0,30"></x-geld>');
-		await expect(nicht.locator('x-geld')).toHaveAttribute('data-fehler', /nicht legen/);
+		await expect(nicht.locator('x-geld')).toHaveAttribute(
+			'data-fehler',
+			/nicht legen\. Füge unter „Stücke“ passende hinzu/,
+		);
 	});
 
 	test('Skala und Strecke: Originalgröße, Wert erst in der Lösung, unpassende Einheit abgelehnt', async ({

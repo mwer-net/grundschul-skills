@@ -47,8 +47,8 @@ interface FeldBasis {
 	auszeichnung?: boolean;
 	/** Nur wenn es wirkt: Das Panel blendet das Feld sonst aus. Der Wert im Attribut bleibt, am Blatt ändert sich nichts. */
 	nurWenn?: (w: Werte) => boolean;
-	/** Was die Wahl sonst am Blatt scheitern ließe, nimmt sie mit: bekommt die neuen Werte, liefert die dazu geänderten. */
-	mitnehmen?: (w: Werte) => Werte;
+	/** Was die Wahl sonst am Blatt scheitern ließe, nimmt sie mit: bekommt die neuen und die alten Werte, liefert die dazu geänderten. */
+	mitnehmen?: (w: Werte, alt: Werte) => Werte;
 }
 
 /** Vorschlag für den Notenschlüssel in Prozent (053); dieselbe Angabe steht in `abbildungen.js`, ein Test hält beide gleich. */
@@ -80,6 +80,8 @@ export interface AuswahlFeld extends FeldBasis {
 	blaettern?: boolean;
 	/** Weitere Optionen aus einem Feld mit `|`-Teilen, z. B. die Bausteine eines Worts. */
 	optionenAus?: string;
+	/** Im Panel stehen nur diese, je nach anderem Feld; der erste Eintrag gilt, solange es fehlt. `optionen` bleibt die Liste aller gültigen Werte. */
+	optionenJe?: { feld: string; werte: Record<string, { wert: string | null; name: string }[]> };
 	/** Pfad eines kleinen Bilds zur gewählten Option; `{wert}` steht für den Wert. */
 	vorschau?: string;
 }
@@ -811,6 +813,57 @@ const skalaStandard = (w: Werte): [number, number, string] => {
 			.find((k) => k.startsWith(`${art}|`))
 			?.split('|')[1];
 	return SKALA_STANDARD[`${art}|${einheit}`] ?? [0, 15, '1 0.1'];
+};
+
+const skalaEinheitVon = (art: string) =>
+	Object.keys(SKALA_STANDARD)
+		.filter((k) => k.startsWith(`${art}|`))
+		.map((k) => k.split('|')[1] ?? '');
+
+/** Im Panel nur die Einheiten des Geräts; die Reihenfolge ist die in `SKALA_STANDARD`, das Lineal zuerst. */
+const SKALA_EINHEITEN = Object.fromEntries(
+	[...new Set(Object.keys(SKALA_STANDARD).map((k) => k.split('|')[0] ?? ''))].map((art) => [
+		art,
+		[{ wert: null, name: 'Passend zum Gerät' }, ...skalaEinheitVon(art).map((e) => ({ wert: e, name: e }))],
+	]),
+);
+
+const skalaSchluessel = (w: Werte) => {
+	const art = w.art ?? 'lineal';
+	return `${art}|${w.einheit ?? skalaEinheitVon(art)[0] ?? ''}`;
+};
+
+/** Liegt die Zahl auf einem Strich der neuen Skala, bleibt sie; sonst kommt ein Strich in der Mitte. */
+const skalaWert = (roh: string, [von, bis, teilung]: [number, number, string]) => {
+	const klein = Number(teilung.split(' ')[1]);
+	const zahl = Number(roh.replace(',', '.'));
+	const schritte = (zahl - von) / klein;
+	if (zahl >= von && zahl <= bis && Math.abs(schritte - Math.round(schritte)) < 1e-6) {
+		return roh;
+	}
+	const mitte = von + Math.round((bis - von) / 2 / klein) * klein;
+	return String(Math.round(mitte * 1e6) / 1e6).replace('.', ',');
+};
+
+/**
+ * Anderes Gerät oder andere Einheit: Die Einheit muss zum Gerät passen, Von, Bis und Striche folgen dem Standard des
+ * Geräts, der Wert kommt auf einen Strich. Bleibt die wirksame Einheit dieselbe, ändert sich nichts.
+ */
+const skalaFolgt = (w: Werte, alt: Werte): Werte => {
+	const einheit = skalaEinheitVon(w.art ?? 'lineal').includes(w.einheit ?? '') ? w.einheit : null;
+	const neu = { ...w, einheit: einheit ?? null };
+	if (skalaSchluessel(neu) === skalaSchluessel(alt)) {
+		return {};
+	}
+	const standard = skalaStandard(neu);
+	return {
+		einheit: einheit ?? null,
+		von: null,
+		bis: null,
+		teilung: null,
+		...(w.wert ? { wert: skalaWert(w.wert, standard) } : {}),
+		...(w.loesung ? { loesung: skalaWert(w.loesung, standard) } : {}),
+	};
 };
 
 /** Der wirksame Standard eines Zahlenfeldes bei den übrigen Werten. */
@@ -4009,7 +4062,7 @@ export const ABBILDUNG_SCHEMA = {
 				art: 'text',
 				attribut: 'betrag', nurWenn: wenn('aufgabe', 'keine', 'legen'),
 				name: 'Betrag zum Legen',
-				beispiel: '3,45',
+				beispiel: '3,85',
 				muster: '\\d+([.,]\\d{1,2})?',
 				musterHilfe: 'Ein Betrag wie 3,45.',
 			},
@@ -4064,6 +4117,7 @@ export const ABBILDUNG_SCHEMA = {
 				attribut: 'art',
 				name: 'Gerät',
 				standard: 'lineal',
+				mitnehmen: skalaFolgt,
 				optionen: [
 					{ wert: 'lineal', name: 'Lineal' },
 					{ wert: 'massband', name: 'Maßband' },
@@ -4075,8 +4129,10 @@ export const ABBILDUNG_SCHEMA = {
 			{
 				art: 'auswahl',
 				attribut: 'einheit',
+				nurWenn: (w) => w.art !== 'thermometer',
 				name: 'Einheit',
-				hilfe: 'Lineal: cm, mm; Maßband: cm, m; Messbecher: ml, l; Thermometer: °C; Waage: g, kg.',
+				mitnehmen: skalaFolgt,
+				optionenJe: { feld: 'art', werte: SKALA_EINHEITEN },
 				optionen: [
 					{ wert: null, name: 'Passend zum Gerät' },
 					{ wert: 'cm', name: 'cm' },
@@ -4213,8 +4269,8 @@ export const ABBILDUNG_SCHEMA = {
 				art: 'text',
 				attribut: 'spruenge',
 				name: 'Sprünge',
-				beispiel: 'bis 9:00, +40 min',
-				hilfe: 'Leer: zur vollen Stunde und dann weiter.',
+				beispiel: 'bis 9:00, +30 min, +15 min',
+				hilfe: 'Mit Komma getrennt: „bis 9:00“, „+40 min“ oder „+1 h“. Der letzte endet bei „Bis“. Leer: zur vollen Stunde und dann weiter.',
 			},
 			{
 				art: 'mehrfach',
@@ -5233,7 +5289,7 @@ export const aendereFeld = (
 		const gerueckt = jetzt > alt ? [...Array<string>(jetzt - alt).fill(''), ...liste] : liste.slice(alt - jetzt);
 		Object.assign(neu, aendereFeld(schema, neu, f, ziffernText(gerueckt), nur));
 	}
-	return feld.mitnehmen ? { ...neu, ...feld.mitnehmen(neu) } : neu;
+	return feld.mitnehmen ? { ...neu, ...feld.mitnehmen(neu, w) } : neu;
 };
 
 /** Die Attribute, die sich zwischen zwei Fassungen unterscheiden. */

@@ -37,6 +37,7 @@ import {
 	schemaVon,
 	SATZSPIEGEL,
 	setzeAbbildung,
+	SKALA_STANDARD,
 	tafelAusschnitt,
 	VERKEHRSZEICHEN,
 	werteVon,
@@ -325,6 +326,55 @@ describe('Felder ändern', () => {
 			zahlen: null,
 		});
 		assert.deepEqual(neu({}, 'quadrat'), { art: 'quadrat' });
+	});
+
+	it('Messgerät: Gerät und Einheit nehmen Einheit, Striche und einen Wert auf einem Strich mit', () => {
+		const s = schema('x-skala');
+		const start: Werte = { art: 'lineal', von: '0', bis: '12', wert: '7.5', aufgabe: 'ablesen' };
+		const art = (w: Werte, wert: string) => aendereFeld(s, w, feld(s, 'art'), wert);
+		const einheit = (w: Werte, wert: string | null) => aendereFeld(s, w, feld(s, 'einheit'), wert);
+
+		const becher = art(start, 'messbecher');
+		assert.deepEqual([becher.von, becher.bis, becher.teilung, becher.wert], [null, null, null, '260']);
+		assert.equal(art({ ...start, einheit: 'mm' }, 'waage').einheit, null);
+		assert.equal(art({ art: 'lineal', einheit: 'cm' }, 'massband').einheit, 'cm');
+		assert.equal(art({ art: 'messbecher', wert: '300' }, 'waage').wert, '300');
+		assert.equal(art({ art: 'messbecher', loesung: '300' }, 'thermometer').loesung, '10');
+		assert.equal(einheit({ art: 'waage', wert: '350' }, 'kg').wert, '2,5');
+
+		// Dieselbe wirksame Einheit: Der eigene Bereich bleibt.
+		assert.deepEqual(einheit(start, 'cm'), { ...start, einheit: 'cm' });
+
+		// Aus jedem Gerät und jeder Einheit: Die Zeichnung findet ihre Striche, der Wert liegt auf einem.
+		const { skalaStriche } = rechenkerne();
+		for (const [schluessel, [von, bis, teilung]] of Object.entries(SKALA_STANDARD)) {
+			const [geraet = '', wahl = ''] = schluessel.split('|');
+			const neu = einheit(art({ ...start, art: geraet === 'lineal' ? 'waage' : 'lineal' }, geraet), wahl);
+			const [haupt = 0, klein = 0] = teilung.split(' ').map(Number);
+			const zahl = Number((neu.wert ?? '').replace(',', '.'));
+			assert.deepEqual([neu.von, neu.bis, neu.teilung], [null, null, null], schluessel);
+			assert.ok(
+				skalaStriche(von, bis, haupt, klein).some((x) => Math.abs(x.wert - zahl) < 1e-6),
+				`${schluessel}: ${neu.wert}`,
+			);
+		}
+	});
+
+	it('Messgerät: Das Panel bietet je Gerät die Einheiten aus SKALA_STANDARD an', () => {
+		const s = schema('x-skala');
+		const f = feld(s, 'einheit');
+		assert.ok(f.art === 'auswahl' && f.optionenJe);
+		const namen = (art: string) => f.optionenJe?.werte[art]?.map((o) => o.name);
+		assert.deepEqual(namen('lineal'), ['Passend zum Gerät', 'cm', 'mm']);
+		assert.deepEqual(namen('messbecher'), ['Passend zum Gerät', 'ml', 'l']);
+		assert.equal(Object.keys(f.optionenJe.werte)[0], 'lineal');
+		for (const liste of Object.values(f.optionenJe.werte)) {
+			for (const o of liste) {
+				assert.ok(f.optionen.some((x) => x.wert === o.wert), o.name);
+			}
+		}
+		assert.equal(f.nurWenn?.({ art: 'thermometer' }), false);
+		assert.equal(f.nurWenn?.({}), true);
 	});
 
 	it('Gitter: Die Aufgabe nimmt Spalten, Zeilen, Kästchen und Achse mit', () => {
@@ -1373,6 +1423,11 @@ describe('Größen (030)', () => {
 			['20ct', '20ct', '20ct'],
 		);
 		assert.equal(mindestStueckelung(30, ['20ct', '20ct']), null);
+		// Das Beispiel im Feld geht mit den Stücken des Starters.
+		assert.equal(
+			(mindestStueckelung(385, ['1ct', '2ct', '5ct', '10ct', '20ct', '50ct', '1€', '2€']) ?? []).length,
+			6,
+		);
 	});
 
 	it('Skala: gleiche Abstände, auch bei Kommateilung', () => {
@@ -1419,7 +1474,10 @@ describe('Größen (030)', () => {
 		assert.deepEqual([...zeitStationen(500, 705, null)], [500, 540, 660, 705]);
 		assert.deepEqual([...zeitStationen(540, 660, null)], [540, 660]);
 		assert.deepEqual([...zeitStationen(500, 580, 'bis 9:00, +40 min')], [500, 540, 580]);
-		assert.throws(() => zeitStationen(500, 590, 'bis 9:00, +40 min'), /enden bei/);
+		assert.throws(() => zeitStationen(500, 590, 'bis 9:00, +40 min'), /enden bei 9:40, nicht bei 9:50.*„bis 9:50“/);
+		const beispiel = schema('x-zeitspanne').felder.find((f) => f.attribut === 'spruenge');
+		assert.ok(beispiel?.art === 'text' && beispiel.beispiel);
+		assert.deepEqual([...zeitStationen(500, 585, beispiel.beispiel)], [500, 540, 570, 585]);
 		assert.equal(dauerText(85), '1 h 25 min');
 		assert.equal(dauerText(60), '1 h');
 		assert.equal(dauerText(5), '5 min');

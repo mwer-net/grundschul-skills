@@ -314,7 +314,9 @@ const Auswahl = ({ abb, feld }: FeldEigenschaften<AuswahlFeld>) => {
 	const wert = wertVon(feld, abb)?.wert ?? feld.standard ?? null;
 	const aus = feld.optionenAus && abb.werte ? (abb.werte[feld.optionenAus] ?? '') : '';
 	const dazu = aus.split('|').flatMap((t) => (t.trim() ? [{ wert: t.trim(), name: t.trim() }] : []));
-	const moeglich = [...feld.optionen, ...dazu];
+	const je = feld.optionenJe;
+	const grund = je ? (je.werte[abb.werte?.[je.feld] ?? Object.keys(je.werte)[0] ?? ''] ?? feld.optionen) : feld.optionen;
+	const moeglich = [...grund, ...dazu];
 	const bekannt = moeglich.some((o) => o.wert === wert);
 	const optionen = bekannt ? moeglich : [...moeglich, { wert, name: wert ?? '–' }];
 	const index = optionen.findIndex((o) => o.wert === wert);

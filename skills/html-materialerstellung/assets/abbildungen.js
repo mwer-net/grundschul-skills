@@ -2906,7 +2906,7 @@
       const cent = leseBetrag(betragRoh);
       pruefeRaum([Math.ceil(cent / 100)]);
       const loesung = mindestStueckelung(cent, namen);
-      if (!loesung) abbruch(`Mit diesen Stücken lässt sich ${betragText(cent, kl)} nicht legen.`);
+      if (!loesung) abbruch(`Mit diesen Stücken lässt sich ${betragText(cent, kl)} nicht legen. Füge unter „Stücke“ passende hinzu.`);
       const anfang = unten + (namen.length > 0 ? 12 : 0);
       s += text(0, anfang + 10, `Lege ${betragText(cent, kl)}.`, { groesse: 16, fett: true, anker: "start" });
       const bild = legeAus(loesung, mass, false, false, anfang + 30);
@@ -3150,7 +3150,7 @@
         } else if (plus) orte.push(letzter + Number(plus[1]) * (plus[2] === "h" ? 60 : 1));
         else abbruch(`„${teil}“ ist kein Sprung wie „bis 9:00“ oder „+40 min“.`);
       }
-      if (orte[orte.length - 1] !== bis) abbruch(`Die Sprünge enden bei ${zeitText(orte[orte.length - 1])}, nicht bei ${zeitText(bis)}.`);
+      if (orte[orte.length - 1] !== bis) abbruch(`Die Sprünge enden bei ${zeitText(orte[orte.length - 1])}, nicht bei ${zeitText(bis)}. Der letzte muss dort enden, etwa „bis ${zeitText(bis)}“.`);
       return orte;
     }
     const naechste = Math.ceil(von / 60) * 60;
