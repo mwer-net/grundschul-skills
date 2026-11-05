@@ -586,7 +586,7 @@ Muster: `assets/muster/deutsch.html`.
 <x-silben aufgabe="boegen">Ta|fel</x-silben>
 ```
 
-Inhalt: Text mit `|` an den Silbengrenzen; ein Wort ohne `|` ist eine Silbe. Nicht erlaubt: `||`, `|` am Wortanfang oder -ende, andere Zeichen als Buchstaben, Satzzeichen, Leerzeichen. `darstellung` `boegen`, `farbe`, `beides`; in s/w immer Bögen. `farben` zwei aus `blau`, `rot`, `gruen`, `lila`, `braun`, `schwarz`; je Wort beginnt die erste Farbe neu. `aufgabe` `keine`, `boegen` (Bögen nur im Lösungsblatt), `trennen` (Striche nur im Lösungsblatt). Silbenregeln: `fach-deutsch`.
+Inhalt: Text mit `|` an den Silbengrenzen; ein Wort ohne `|` ist eine Silbe. Ziffern und andere Zeichen bleiben ohne Bogen stehen. Nicht erlaubt: `||`, `|` am Wortanfang oder -ende. `<mark>` und `<b>` im Text bleiben sichtbar: `<x-silben>B<mark>ie</mark>|n<mark>e</mark></x-silben>`. `darstellung` `boegen`, `farbe`, `beides`; in s/w immer Bögen. `farben` zwei aus `blau`, `rot`, `gruen`, `lila`, `braun`, `schwarz`; je Wort beginnt die erste Farbe neu. `aufgabe` `keine`, `boegen` (Bögen nur im Lösungsblatt), `trennen` (Striche nur im Lösungsblatt). Silbenregeln: `fach-deutsch`.
 
 Im Fließtext: `<x-silben im-text>Ro|si|ne</x-silben>` bleibt in der Zeile.
 

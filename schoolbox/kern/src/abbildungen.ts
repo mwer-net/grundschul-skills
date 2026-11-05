@@ -16,6 +16,7 @@ import {
 	zerlege,
 } from './quelltext';
 import type { StrukturErgebnis } from './struktur';
+import { uebertrageAuszeichnung } from './textstuecke';
 import type { Art, Fach, Klasse } from './werte';
 
 /** Ein zweites Attribut für denselben Wert, das `abbildungen.js` nur im Beispiel und auf dem Lösungsblatt zeichnet. */
@@ -40,6 +41,10 @@ interface FeldBasis {
 	leiste?: boolean;
 	/** Abschnitt im Inspektor, wenn die Regel in `abschnittVon` nicht passt. */
 	abschnitt?: AbschnittName;
+	/** Der Inspektor hat dafür einen eigenen Regler (083, Silben), das Feld erschiene sonst doppelt. */
+	ohneFeld?: boolean;
+	/** Der Inhalt darf `<mark>` und Fett enthalten: Das Feld zeigt den Text, beim Ändern bleibt die Auszeichnung. */
+	auszeichnung?: boolean;
 }
 
 /** Vorschlag für den Notenschlüssel in Prozent (053); dieselbe Angabe steht in `abbildungen.js`, ein Test hält beide gleich. */
@@ -2298,6 +2303,8 @@ export const ABBILDUNG_SCHEMA = {
 				attribut: 'inhalt',
 				name: 'Text',
 				quelle: 'inhalt',
+				abschnitt: 'weitere',
+				auszeichnung: true,
 				zeilen: 4,
 				beispiel: 'Die Ro|si|ne ist süß.',
 				einfuegen: { zeichen: '|', name: 'Silbenstrich einfügen' },
@@ -2308,6 +2315,7 @@ export const ABBILDUNG_SCHEMA = {
 				attribut: 'darstellung',
 				name: 'Darstellung',
 				standard: 'boegen',
+				ohneFeld: true,
 				optionen: [
 					{ wert: 'boegen', name: 'Bögen' },
 					{ wert: 'farbe', name: 'Farben' },
@@ -2318,6 +2326,7 @@ export const ABBILDUNG_SCHEMA = {
 				art: 'text',
 				attribut: 'farben',
 				name: 'Farben der Klasse',
+				abschnitt: 'weitere',
 				beispiel: 'blau rot',
 				hilfe: 'Zwei aus blau, rot, gruen, lila, braun, schwarz.',
 			},
@@ -2325,6 +2334,7 @@ export const ABBILDUNG_SCHEMA = {
 				art: 'auswahl',
 				attribut: 'aufgabe',
 				name: 'Aufgabe',
+				abschnitt: 'weitere',
 				standard: 'keine',
 				optionen: [
 					{ wert: 'keine', name: 'Nur zeigen' },
@@ -2341,9 +2351,7 @@ export const ABBILDUNG_SCHEMA = {
 			if (/(^|[\s„"'(])\||\|($|[\s.,;:!?“"')])/.test(wort)) {
 				return { inhalt: 'Ein Silbenstrich steht am Anfang oder Ende eines Worts.' };
 			}
-			return /^[\p{L}\s|.,;:!?„“"'()\-–…]*$/u.test(wort)
-				? {}
-				: { inhalt: 'Erlaubt sind Buchstaben, Satzzeichen, Leerzeichen und der Silbenstrich.' };
+			return {};
 		},
 	},
 	'x-wortarten': {
@@ -4528,7 +4536,9 @@ export const werteVon = (schema: AbbildungSchema, k: Knoten, z?: Zerlegung): Wer
 	Object.fromEntries(
 		attributeVon(schema).map((a) => {
 			if (amInhalt(schema, a)) {
-				const roh = z ? entschluessele(innenVon(z, k)).trim() : '';
+				const feld = schema.felder.find((f) => f.attribut === a);
+				const innen = z ? innenVon(z, k) : '';
+				const roh = entschluessele(feld?.auszeichnung ? innen.replace(/<[^>]*>/g, '') : innen).trim();
 				return [a, roh === '' ? null : roh];
 			}
 			return [a, attribut(k, a)?.wert ?? null];
@@ -4897,6 +4907,12 @@ export const pruefeWerte = (schema: AbbildungSchema, w: Werte): Fehler => {
  * Setzt die Attribute einer Abbildung (`null` entfernt eines). Nur diese Attribute ändern sich in der Quelle; die
  * Nummern der Elemente bleiben, die Auswahl auch.
  */
+const inhaltFuer = (schema: AbbildungSchema, name: string, altInnen: string, wert: string | null) => {
+	const neu = schuetzeText(wert ?? '');
+	const mitAuszeichnung = schema.felder.some((f) => f.attribut === name && f.auszeichnung) && altInnen.includes('<');
+	return mitAuszeichnung ? uebertrageAuszeichnung(altInnen, neu) : neu;
+};
+
 export const setzeAbbildung = (quelle: string, nr: number, werte: Werte): StrukturErgebnis => {
 	const k = zerlege(quelle).knoten[nr];
 	const schema = k ? schemaVon(k.tag) : undefined;
@@ -4915,7 +4931,7 @@ export const setzeAbbildung = (quelle: string, nr: number, werte: Werte): Strukt
 			neu = wendeAn(
 				neu,
 				amInhalt(schema, name)
-					? ersetzeInnen(z, knoten, schuetzeText(wert ?? ''))
+					? ersetzeInnen(z, knoten, inhaltFuer(schema, name, innenVon(z, knoten), wert))
 					: setzeAttribut(z, knoten, name, wert),
 			);
 		}

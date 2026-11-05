@@ -123,11 +123,7 @@ const FAELLE: Fall[] = [
 		material: absatz,
 		bereite: async ({ druecke, page }) => {
 			await druecke(material(page).locator('p.text').first());
-			const knopf = page.locator('[data-sprache-oeffnen]');
-			if ((await knopf.getAttribute('aria-expanded')) !== 'true') {
-				await knopf.click();
-			}
-			await page.locator('[data-sprache="silben-boegen"]').click();
+			await page.locator('[data-sprache-silben]').getByRole('button', { name: 'Bögen', exact: true }).click();
 			await expect.poll(() => quelle(page)).toContain('<x-silben>');
 		},
 	},

@@ -1683,7 +1683,7 @@ export const AbbildungFelder = ({ abb, abschnitt }: { abb: AbbildungSteuerung; a
 	if (!abb.aktiv || !abb.schema) {
 		return null;
 	}
-	const felder = abb.schema.felder.filter((f) => abschnittVon(f) === abschnitt);
+	const felder = abb.schema.felder.filter((f) => abschnittVon(f) === abschnitt && !f.ohneFeld);
 	return felder.length === 0 ? null : (
 		<div className="flex flex-col gap-1">
 			{felder.map((feld) => (
