@@ -26,6 +26,51 @@ test.describe('Editor: Bausteine einfügen', () => {
 		await expect.poll(() => quelle(page)).toBe(vorher);
 	});
 
+	test('Nach dem Einfügen ist der Baustein gewählt, bei Rezept und Aufgabe die Aufgabe', async ({ page }) => {
+		await oeffneBausteine(page);
+		const titel = page.locator('[data-inspektor] [data-auswahl]');
+		for (const [id, soll] of [
+			['x-tangram', 'Tangram'],
+			['rezept-uhr', 'Aufgabe'],
+			['aufgabe', 'Aufgabe'],
+		] as const) {
+			await suche(page).fill(id === 'x-tangram' ? 'Tangram' : id === 'aufgabe' ? 'Aufgabe' : 'Uhr');
+			const vorher = await quelle(page);
+			await page.locator(`[data-einfuegen="${id}"]`).click();
+			await expect.poll(() => quelle(page)).not.toBe(vorher);
+			await expect(titel).toBeVisible();
+			await expect(titel).toContainText(soll);
+		}
+	});
+
+	test('Baustein nur in der Lösung: Der Hinweis sagt es und schaltet um', async ({ page }) => {
+		await oeffneBausteine(page);
+		await suche(page).fill('Erwartungshorizont');
+		await page.locator('[data-einfuegen="x-erwartungshorizont"]').click();
+		const hinweis = page.locator('[data-hinweis="unsichtbar"]');
+		await expect(hinweis).toContainText('nur in der Lösung');
+		// E-B1: Die Sichtbarkeit gibt blatt.css vor, eine Auswahl darunter widerspräche dem Hinweis.
+		await expect(page.locator('[data-abschnitt="sichtbarkeit"]')).toBeHidden();
+		await hinweis.getByRole('button', { name: 'Zur Lösung' }).click();
+		await expect(material(page).locator('body.loesung x-erwartungshorizont')).toBeVisible();
+		await expect(hinweis).toBeHidden();
+		await expect(page.locator('[data-abschnitt="sichtbarkeit"]')).toBeHidden();
+	});
+
+	test('„Beispiel“ wählt den Eintrag oder sagt, was zu wählen ist', async ({ druecke, page }) => {
+		await oeffneBausteine(page);
+		await suche(page).fill('Beispiel');
+		const vorher = await quelle(page);
+		await page.locator('[data-einfuegen="beispiel"]').click();
+		await expect(page.locator('[role="status"]').filter({ hasText: 'zum Beispiel' }).first()).toBeVisible();
+		expect(await quelle(page)).toBe(vorher);
+		// Im Testblatt ist der erste Eintrag schon das Beispiel, also der zweite.
+		await druecke(material(page).locator('.reihe > *').nth(1));
+		await page.locator('[data-einfuegen="beispiel"]').click();
+		await expect.poll(() => quelle(page)).not.toBe(vorher);
+		await expect(page.locator('[data-inspektor] [data-auswahl]')).toBeVisible();
+	});
+
 	test('„+ Baustein“ in der Leiste öffnet die Schnellauswahl', async ({ druecke, page }) => {
 		const { dok, id } = await uhrzeit();
 		await oeffne(page, id, dok);

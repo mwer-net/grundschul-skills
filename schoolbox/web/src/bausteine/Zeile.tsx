@@ -17,7 +17,7 @@ interface Eigenschaften {
 /** Inspektor-Zeile: Label links, Wert rechts. Bei knappem Platz bricht der Wert unter das Label. */
 export const Zeile = ({ children, einstellung, fuer, hilfe, name, titel }: Eigenschaften) => (
 	<div
-		className="flex h-zeile flex-wrap items-center justify-between gap-x-2"
+		className="flex min-h-zeile flex-wrap items-center justify-between gap-x-2"
 		data-zeile
 		data-einstellung={einstellung}
 	>

@@ -16,6 +16,8 @@ process.env.E2E_MATERIAL_DIR = MATERIAL_DIR;
  */
 export default defineConfig({
 	testDir: 'e2e',
+	// Die Prüfmaschine (084) läuft nur mit `pnpm test:audit`.
+	testIgnore: 'baustein-audit.spec.ts',
 	outputDir: 'test-results',
 	fullyParallel: false,
 	workers: 1,

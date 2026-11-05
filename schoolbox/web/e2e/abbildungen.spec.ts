@@ -110,7 +110,7 @@ test.describe('Editor: Abbildungen', () => {
 		await druecke(material(page).locator('x-menge'));
 		const buendel = page.locator('[data-feld="buendel"]');
 		for (let i = 0; i < 3; i += 1) {
-			await druecke(page.getByRole('button', { name: 'Eingekreiste Zehner: mehr' }));
+			await druecke(page.getByRole('button', { name: 'Zehnerbündel: mehr' }));
 		}
 		await expect(page.locator('[data-fehler="buendel"]')).toHaveText('Es gibt nur 2 volle Zehnerreihen.');
 		await expect(buendel.locator('input[type="text"]')).toHaveValue('3');
@@ -186,6 +186,72 @@ test.describe('Editor: Feldtypen (023)', () => {
 		expect(start).toContain('Ro|si');
 	});
 
+	test('Griff: Ziehen sortiert in einem Schritt um, Esc bricht ab', async ({ hasTouch, page }) => {
+		test.skip(hasTouch, 'Am Finger gehen ↑ und ↓ im Menü der Zeile.');
+		const { datei } = await mitProbe(page, 'eintraege="Hund: 7; Katze: 4; Maus: 2"');
+		await probe(page).click();
+		const griff = page.getByRole('button', { name: 'Zeile 1 verschieben' });
+		const ziel = page.locator('[data-liste="eintraege"] [data-zeile="2"]');
+		const a = await griff.boundingBox();
+		const b = await ziel.boundingBox();
+		if (!a || !b) {
+			throw new Error('Griff oder Ziel fehlt');
+		}
+		const zieheZu = async () => {
+			await page.mouse.move(a.x + a.width / 2, a.y + a.height / 2);
+			await page.mouse.down();
+			await page.mouse.move(a.x + a.width / 2, b.y + b.height - 1, { steps: 6 });
+		};
+		await zieheZu();
+		await page.keyboard.press('Escape');
+		await page.mouse.up();
+		expect(await tagVon(datei)).toContain('eintraege="Hund: 7; Katze: 4; Maus: 2"');
+
+		await zieheZu();
+		await page.mouse.up();
+		await gespeichert(page, datei);
+		expect(await tagVon(datei)).toContain('eintraege="Katze: 4; Maus: 2; Hund: 7"');
+		await zurueck(page).click();
+		await gespeichert(page, datei);
+		expect(await tagVon(datei)).toContain('eintraege="Hund: 7; Katze: 4; Maus: 2"');
+	});
+
+	test('Als Text bearbeiten: eine Zeile je Eintrag, zurück zur Liste', async ({ druecke, page }) => {
+		const { dok, id, material: datei } = await uhrzeit();
+		await oeffne(page, id, dok);
+		await aendere(
+			page,
+			(await quelle(page)).replace(/<x-uhr[^>]*><\/x-uhr>/, '<x-suchsel woerter="HUND; MAUS" seed="1"></x-suchsel>'),
+		);
+		await gespeichert(page, datei);
+		await druecke(material(page).locator('x-suchsel'));
+		await druecke(page.locator('[data-liste-als-text="woerter"]'));
+		const text = page.locator('[data-liste-text="woerter"]');
+		await expect(text).toHaveValue('HUND\nMAUS');
+		await text.fill('HUND\nMAUS\nIGEL');
+		await text.blur();
+		await gespeichert(page, datei);
+		expect(await readFile(datei, 'utf8')).toContain('woerter="HUND; MAUS; IGEL"');
+		await druecke(page.locator('[data-liste-als-text="woerter"]'));
+		await expect(page.locator('[data-liste="woerter"] [data-zeile]')).toHaveCount(3);
+	});
+
+	test('Felder ohne Wirkung sind verborgen, ihr Wert bleibt stehen', async ({ druecke, page }) => {
+		const { dok, id, material: datei } = await uhrzeit();
+		await oeffne(page, id, dok);
+		await aendere(
+			page,
+			(await quelle(page)).replace(/<x-uhr[^>]*><\/x-uhr>/, '<x-gitter spalten="6" zeilen="4" faktor="0.5"></x-gitter>'),
+		);
+		await gespeichert(page, datei);
+		await druecke(material(page).locator('x-gitter'));
+		await expect(panel(page).locator('[data-feld="faktor"]')).toHaveCount(0);
+		await panel(page).locator('[data-feld="aufgabe"] select').selectOption('weg');
+		await expect(panel(page).locator('[data-feld="wegart"]')).toBeVisible();
+		await expect(panel(page).locator('[data-feld="faktor"]')).toHaveCount(0);
+		expect(await readFile(datei, 'utf8')).toContain('faktor="0.5"');
+	});
+
 	test('Liste, Raster und Form', async ({ druecke, page }) => {
 		test.slow();
 		const { datei } = await mitProbe(page, 'eintraege="Hund: 7; Katze: 4"');
@@ -202,7 +268,11 @@ test.describe('Editor: Feldtypen (023)', () => {
 		await expect(page.locator('[data-fehler="eintraege"]')).toContainText('0 bis 99');
 		await liste.getByLabel('Zahl in Zeile 1').fill('8');
 
-		await druecke(page.getByRole('button', { name: 'Zeile 2 nach oben' }));
+		// Der Griff tauscht auch per Pfeiltaste und behält den Fokus.
+		const griff = page.getByRole('button', { name: 'Zeile 2 verschieben' });
+		await griff.focus();
+		await griff.press('ArrowUp');
+		await expect(page.getByRole('button', { name: 'Zeile 1 verschieben' })).toBeFocused();
 		await gespeichert(page, datei);
 		expect(await tagVon(datei)).toContain('eintraege="Katze: 4; Hund: 8"');
 
@@ -210,6 +280,7 @@ test.describe('Editor: Feldtypen (023)', () => {
 		await gespeichert(page, datei);
 		expect(await tagVon(datei)).toContain('eintraege="Katze: 4; Hund: 8; Neu: 1"');
 
+		await druecke(page.getByRole('button', { name: 'Zeile 3: mehr' }));
 		await druecke(page.getByRole('button', { name: 'Zeile 3 löschen' }));
 		await gespeichert(page, datei);
 		expect(await tagVon(datei)).toContain('eintraege="Katze: 4; Hund: 8"');
@@ -217,6 +288,11 @@ test.describe('Editor: Feldtypen (023)', () => {
 		await druecke(page.locator('[data-raster="feld"] [data-zelle="0-1"]'));
 		await gespeichert(page, datei);
 		expect(await tagVon(datei)).toContain('feld="0 1 0 / 0 0 0"');
+		// Die Farbe des gewählten Felds gewinnt gegen den Grund der leeren Zelle.
+		await expect(page.locator('[data-raster="feld"] [data-zelle="0-1"]')).not.toHaveCSS(
+			'background-color',
+			'rgb(255, 255, 255)',
+		);
 		await druecke(zurueck(page));
 		await gespeichert(page, datei);
 		expect(await tagVon(datei)).not.toContain('feld=');
@@ -458,8 +534,8 @@ test.describe('Ebene Geometrie (025)', () => {
 		expect(await readFile(datei, 'utf8')).toBe(stand);
 
 		await druecke(material(page).locator('x-gitter'));
-		await page.getByLabel('Achse nach Kästchen', { exact: true }).fill('3');
-		await page.getByLabel('Achse nach Kästchen', { exact: true }).press('Enter');
+		await page.getByLabel('Achse nach', { exact: true }).fill('3');
+		await page.getByLabel('Achse nach', { exact: true }).press('Enter');
 		await expect(page.locator('[data-fehler="_element"]')).toContainText('kreuzt die Achse');
 		expect(await readFile(datei, 'utf8')).toBe(stand);
 	});
@@ -709,6 +785,51 @@ test.describe('Zahldarstellungen (027)', () => {
 		expect(await readFile(datei, 'utf8')).toContain('spruenge="+30 +4 +5"');
 		await expect(material(page).locator('.strich-wert')).toHaveCount(4);
 	});
+
+	test('Zahlen: Art und Ausschnitt nehmen mit, was sie brauchen, die Felder zeigen es (084)', async ({ druecke, page }) => {
+		const { dok, id, material: datei } = await uhrzeit();
+		await oeffne(page, id, dok);
+		await aendere(
+			page,
+			(await quelle(page)).replace(
+				/<x-uhr[^>]*><\/x-uhr>/,
+				'<x-zwanzigerfeld n="13"></x-zwanzigerfeld>',
+			),
+		);
+		await gespeichert(page, datei);
+		const stand = await readFile(datei, 'utf8');
+
+		await druecke(material(page).locator('x-zwanzigerfeld'));
+		await page.locator('[data-feld="art"] select').selectOption({ label: 'Fünferfeld' });
+		await gespeichert(page, datei);
+		expect(await readFile(datei, 'utf8')).toMatch(/<x-zwanzigerfeld [^>]*art="fuenfer"/);
+		expect(await readFile(datei, 'utf8')).toMatch(/<x-zwanzigerfeld [^>]*n="3"/);
+		await expect(page.locator('[data-feld="n"] input')).toHaveValue('3');
+		await expect(page.locator('[data-fehler]')).toHaveCount(0);
+		await expect(material(page).locator('x-zwanzigerfeld circle')).toHaveCount(3);
+		await druecke(zurueck(page));
+		await gespeichert(page, datei);
+		expect(await readFile(datei, 'utf8')).toBe(stand);
+
+		await aendere(
+			page,
+			(await quelle(page)).replace(
+				/<x-zwanzigerfeld[^>]*><\/x-zwanzigerfeld>/,
+				'<x-hundertertafel luecken="7 23" markiert="5 45"></x-hundertertafel>',
+			),
+		);
+		await gespeichert(page, datei);
+		await druecke(material(page).locator('x-hundertertafel'));
+		await page.locator('[data-feld="ausschnitt"] select').selectOption({ label: 'Kreuz' });
+		await gespeichert(page, datei);
+		const kreuz = await readFile(datei, 'utf8');
+		expect(kreuz).toMatch(/<x-hundertertafel [^>]*mitte="45"/);
+		expect(kreuz).toMatch(/<x-hundertertafel [^>]*markiert="45"/);
+		expect(kreuz).not.toContain('luecken="');
+		await expect(page.locator('[data-feld="mitte"] input')).toHaveValue('45');
+		await expect(page.locator('[data-fehler]')).toHaveCount(0);
+		await expect(material(page).locator('.tafel-zelle')).toHaveCount(5);
+	});
 });
 
 test.describe('Rechenformate (028)', () => {
@@ -803,6 +924,466 @@ test.describe('Rechenformate (028)', () => {
 		await druecke(stein('0-0'));
 		await expect(page.locator('[data-fehler="_element"]')).toContainText('mehrere Lösungen');
 		expect(await readFile(datei, 'utf8')).toBe(stand);
+	});
+});
+
+test.describe('Rechnen: Wahlen nehmen mit, was sie brauchen (084)', () => {
+	const mitTag = async (page: Page, tag: string) => {
+		const { dok, id, material: datei } = await uhrzeit();
+		await oeffne(page, id, dok);
+		await aendere(page, (await quelle(page)).replace(/<x-uhr[^>]*><\/x-uhr>/, tag));
+		await gespeichert(page, datei);
+		return { datei, stand: await readFile(datei, 'utf8') };
+	};
+
+	test('Zahlenmauer: Minus stellt die Reihe um, ein Schritt zurück stellt alles her', async ({ druecke, page }) => {
+		const { datei, stand } = await mitTag(page, '<x-zahlenmauer basis="3 5 2"></x-zahlenmauer>');
+		await druecke(material(page).locator('x-zahlenmauer'));
+		await page.locator('[data-feld="art"] select').selectOption({ label: 'Minus' });
+		await gespeichert(page, datei);
+		await expect(page.locator('[data-fehler]')).toHaveCount(0);
+		expect(await readFile(datei, 'utf8')).toMatch(/<x-zahlenmauer [^>]*basis="5 3 2"/);
+		await expect(page.getByLabel('Unterste Reihe')).toHaveValue('5 3 2');
+		await druecke(zurueck(page));
+		await gespeichert(page, datei);
+		expect(await readFile(datei, 'utf8')).toBe(stand);
+	});
+
+	test('Rechenreihe: Rechenart, Reihe, Rest und Zahlenraum gehen vom Starter aus', async ({ druecke, page }) => {
+		const { datei } = await mitTag(
+			page,
+			'<x-rechenreihe rechenart="+" zahlenraum="20" anzahl="8" uebergang="mit" aufgaben="7 + 5 = _; 8 + 6 = _"></x-rechenreihe>',
+		);
+		await druecke(material(page).locator('x-rechenreihe'));
+		const feld = (name: string) => page.locator(`[data-feld="${name}"] select`);
+		const tag = async () => /<x-rechenreihe[^>]*>/.exec(await readFile(datei, 'utf8'))?.[0] ?? '';
+
+		await feld('zahlenraum').selectOption({ label: 'bis 10' });
+		await gespeichert(page, datei);
+		await expect(page.locator('[data-fehler]')).toHaveCount(0);
+		expect(await tag()).toContain('zahlenraum="10"');
+		expect(await tag()).not.toContain('uebergang=');
+
+		await feld('zahlenraum').selectOption({ label: 'bis 20' });
+		await feld('uebergang').selectOption({ label: 'Mit Übergang' });
+		await feld('rechenart').selectOption({ label: 'Mal' });
+		await gespeichert(page, datei);
+		await expect(page.locator('[data-fehler]')).toHaveCount(0);
+		expect(await tag()).not.toContain('uebergang=');
+
+		await feld('reihe').selectOption({ label: '7er-Reihe' });
+		await gespeichert(page, datei);
+		await expect(page.locator('[data-fehler]')).toHaveCount(0);
+		expect(await tag()).toContain('zahlenraum="100"');
+		expect(await tag()).toContain('reihe="7"');
+
+		await feld('rechenart').selectOption({ label: 'Plus' });
+		await gespeichert(page, datei);
+		await expect(page.locator('[data-fehler]')).toHaveCount(0);
+		expect(await tag()).not.toContain('reihe=');
+	});
+
+	test('Rechenkette: Die Meldung sagt, was vorgegeben sein muss', async ({ druecke, page }) => {
+		await mitTag(page, '<x-zahlenkette start="8" operatoren="+5 −3 ·2"></x-zahlenkette>');
+		await druecke(material(page).locator('x-zahlenkette'));
+		const haken = (name: string) => page.locator('[data-feld="zeige"]').getByRole('switch', { name, exact: true });
+		await druecke(haken('Start'));
+		await expect(page.locator('[data-fehler="_element"]')).toContainText('der Start, das Ziel oder die Zwischenergebnisse');
+		await druecke(haken('Start'));
+		await druecke(haken('Rechenschritte'));
+		await expect(page.locator('[data-fehler="_element"]')).toContainText(
+			'Gib auch die Rechenschritte oder die Zwischenergebnisse vor.',
+		);
+	});
+
+	test('Zauberdreieck: Das magische Quadrat nimmt seine Summe und Vorgaben mit', async ({ druecke, page }) => {
+		const { datei, stand } = await mitTag(page, '<x-zauberdreieck summe="9" vorgegeben="e0 e1"></x-zauberdreieck>');
+		await druecke(material(page).locator('x-zauberdreieck'));
+		await page.locator('[data-feld="art"] select').selectOption({ label: 'Magisches Quadrat (9 Zahlen)' });
+		await gespeichert(page, datei);
+		await expect(page.locator('[data-fehler]')).toHaveCount(0);
+		const neu = await readFile(datei, 'utf8');
+		expect(neu).toMatch(/<x-zauberdreieck [^>]*summe="15"/);
+		expect(neu).toMatch(/<x-zauberdreieck [^>]*vorgegeben="z0 z4 z5"/);
+		await expect(material(page).locator('x-zauberdreieck .rechenfeld')).toHaveCount(9);
+		await druecke(zurueck(page));
+		await gespeichert(page, datei);
+		expect(await readFile(datei, 'utf8')).toBe(stand);
+	});
+});
+
+test.describe('Größen: Wahlen nehmen mit, was sie brauchen (084)', () => {
+	const mitTag = async (page: Page, tag: string) => {
+		const { dok, id, material: datei } = await uhrzeit();
+		await oeffne(page, id, dok);
+		await aendere(page, (await quelle(page)).replace(/<x-uhr[^>]*><\/x-uhr>/, tag));
+		await gespeichert(page, datei);
+		return { datei, stand: await readFile(datei, 'utf8') };
+	};
+
+	test('Messgerät: Jedes Gerät geht vom Starter aus, Einheiten passen zum Gerät, ein Schritt zurück stellt alles her', async ({
+		druecke,
+		page,
+	}) => {
+		const { datei, stand } = await mitTag(
+			page,
+			'<x-skala art="lineal" von="0" bis="12" wert="7.5" aufgabe="ablesen"></x-skala>',
+		);
+		const skala = material(page).locator('x-skala');
+		await druecke(skala);
+		const geraet = page.locator('[data-feld="art"] select');
+		const einheit = page.locator('[data-feld="einheit"] select');
+		await expect(einheit.locator('option')).toHaveText(['Passend zum Gerät', 'cm', 'mm']);
+
+		await geraet.selectOption({ label: 'Messbecher' });
+		await gespeichert(page, datei);
+		await expect(page.locator('[data-fehler]')).toHaveCount(0);
+		await expect(skala).not.toHaveAttribute('data-fehler', /./);
+		const tag = /<x-skala[^>]*>/.exec(await readFile(datei, 'utf8'))?.[0] ?? '';
+		expect(tag).toContain('art="messbecher"');
+		expect(tag).toContain('wert="260"');
+		expect(tag).not.toMatch(/\b(von|bis|teilung)=/);
+		await expect(einheit.locator('option')).toHaveText(['Passend zum Gerät', 'ml', 'l']);
+		await expect(page.locator('[data-feld="bis"] input')).toHaveValue('500');
+
+		await einheit.selectOption({ label: 'l' });
+		await gespeichert(page, datei);
+		await expect(skala).not.toHaveAttribute('data-fehler', /./);
+		await geraet.selectOption({ label: 'Waage' });
+		await gespeichert(page, datei);
+		await expect(skala).not.toHaveAttribute('data-fehler', /./);
+		expect(await readFile(datei, 'utf8')).not.toMatch(/<x-skala[^>]*einheit=/);
+		await geraet.selectOption({ label: 'Thermometer' });
+		await gespeichert(page, datei);
+		await expect(skala).not.toHaveAttribute('data-fehler', /./);
+		await expect(page.locator('[data-feld="einheit"]')).toHaveCount(0);
+
+		for (let i = 0; i < 4; i++) {
+			await druecke(zurueck(page));
+			await gespeichert(page, datei);
+		}
+		expect(await readFile(datei, 'utf8')).toBe(stand);
+	});
+
+	test('Geld und Zeitspanne: Das Beispiel im Feld geht am Starter, die Meldung nennt den Weg', async ({ page }) => {
+		const zuKurz = await gezeichnet(
+			page,
+			'<x-zeitspanne von="8:20" bis="9:45" spruenge="bis 9:00, +40 min"></x-zeitspanne>',
+		);
+		await expect(zuKurz.locator('x-zeitspanne')).toHaveAttribute('data-fehler', /etwa „bis 9:45“/);
+		const beispiel = await gezeichnet(
+			page,
+			'<x-zeitspanne von="8:20" bis="9:45" spruenge="bis 9:00, +30 min, +15 min"></x-zeitspanne>',
+		);
+		await expect(beispiel.locator('x-zeitspanne')).not.toHaveAttribute('data-fehler', /./);
+		const geld = await gezeichnet(
+			page,
+			'<x-geld stuecke="1ct 2ct 5ct 10ct 20ct 50ct 1€ 2€" aufgabe="legen" betrag="3,85"></x-geld>',
+		);
+		await expect(geld.locator('x-geld')).not.toHaveAttribute('data-fehler', /./);
+	});
+});
+
+test.describe('Schreiben und Sprache: Wahlen zeigen den Weg (084)', () => {
+	const mitTag = async (page: Page, tag: string) => {
+		const { dok, id, material: datei } = await uhrzeit();
+		await oeffne(page, id, dok);
+		await aendere(page, (await quelle(page)).replace(/<x-uhr[^>]*><\/x-uhr>/, tag));
+		await gespeichert(page, datei);
+		return { datei, stand: await readFile(datei, 'utf8') };
+	};
+
+	test('Satzglieder: Nach vorn stehen nur Satzglieder, die sich vorn stellen lassen', async ({ druecke, page }) => {
+		const { datei } = await mitTag(
+			page,
+			'<x-satzglieder aufgabe="umstellen">[Am Morgen]Zeit [bringt]P [der Briefträger]S [dem Kind]DaO [ein Paket]AkO.</x-satzglieder>',
+		);
+		const satz = material(page).locator('x-satzglieder');
+		await druecke(satz);
+		// „Beim Umstellen nach vorn“ steht unter „Weitere“, das zunächst zu ist.
+		const weitere = page.locator('[data-abschnitt="weitere"] > button');
+		if ((await weitere.getAttribute('aria-expanded')) !== 'true') {
+			await druecke(weitere);
+		}
+		const vorn = page.locator('[data-feld="vorn"] select');
+		await expect(vorn.locator('option')).toHaveText([
+			'Nächstes Satzglied',
+			'Subjekt',
+			'Akkusativobjekt',
+			'Dativobjekt',
+		]);
+		await vorn.selectOption({ label: 'Dativobjekt' });
+		await gespeichert(page, datei);
+		await expect(satz).not.toHaveAttribute('data-fehler', /./);
+		await expect(satz.locator('.sg-umstellung .sg-kasten').first()).toHaveAttribute('data-rolle', 'DaO');
+	});
+
+	test('Sortieren: Bei „Bilder“ steht die Meldung an der Liste, mit Bildern wird es übernommen', async ({
+		druecke,
+		page,
+	}) => {
+		const { datei, stand } = await mitTag(
+			page,
+			'<x-sortieren eintraege="Samen; Stängel; Blume"></x-sortieren>',
+		);
+		await druecke(material(page).locator('x-sortieren'));
+		await page.locator('[data-feld="art"] select').selectOption({ label: 'Bilder' });
+		const meldung = page.locator('[data-fehler="eintraege"]');
+		await expect(meldung).toContainText('Bild-Knopf');
+		await expect(meldung).toContainText('Zeile 1, 2 und 3');
+		await expect(page.locator('[data-feld="eintraege"] [data-zeile]')).toHaveCount(3);
+		// Nichts gespeichert, solange Bilder fehlen.
+		expect(await readFile(datei, 'utf8')).toBe(stand);
+	});
+});
+
+test.describe('Sachunterricht und Musik: Die Taktart nimmt die Noten mit (084)', () => {
+	const mitTag = async (page: Page, tag: string) => {
+		const { dok, id, material: datei } = await uhrzeit();
+		await oeffne(page, id, dok);
+		await aendere(page, (await quelle(page)).replace(/<x-uhr[^>]*><\/x-uhr>/, tag));
+		await gespeichert(page, datei);
+		return { datei, stand: await readFile(datei, 'utf8') };
+	};
+
+	test('Rhythmus und Noten: Jede Taktart geht vom Starter aus, ein Schritt zurück stellt alles her', async ({
+		druecke,
+		page,
+	}) => {
+		const { datei, stand } = await mitTag(
+			page,
+			String.raw`<x-rhythmus art="karte" takt="2/4" noten="4 8 8" silben="ta"></x-rhythmus><x-noten takt="4/4" noten="c'4 d'4 e'4 f'4 | g'4 a'4 h'4 c''4" namen="ja"></x-noten>`,
+		);
+		const rhythmus = material(page).locator('x-rhythmus');
+		await druecke(rhythmus);
+		await page.locator('[data-feld="takt"] select').selectOption('3/4');
+		await gespeichert(page, datei);
+		await expect(rhythmus).not.toHaveAttribute('data-fehler', /./);
+		expect(await readFile(datei, 'utf8')).toContain('noten="4 8 8 r4"');
+
+		const noten = material(page).locator('x-noten');
+		await druecke(noten);
+		await expect(page.locator('[data-feld="systeme"]')).toContainText('Leere Zeilen');
+		await page.locator('[data-feld="takt"] select').selectOption('2/4');
+		await gespeichert(page, datei);
+		await expect(noten).not.toHaveAttribute('data-fehler', /./);
+		expect(await readFile(datei, 'utf8')).toContain(String.raw`noten="c'4 d'4 | e'4 f'4 | g'4 a'4 | h'4 c''4"`);
+
+		for (let i = 0; i < 2; i++) {
+			await druecke(zurueck(page));
+			await gespeichert(page, datei);
+		}
+		expect(await readFile(datei, 'utf8')).toBe(stand);
+	});
+
+	test('Rhythmuskarte: Passt der Takt nicht auf eine Karte, nennt die Meldung den Weg', async ({ druecke, page }) => {
+		const { datei, stand } = await mitTag(page, '<x-rhythmus art="karte" takt="4/4" noten="4 2 4"></x-rhythmus>');
+		await druecke(material(page).locator('x-rhythmus'));
+		await page.locator('[data-feld="takt"] select').selectOption('2/4');
+		await expect(panel(page).locator('[data-fehler="_element"]')).toContainText('Passe die Noten an');
+		expect(await readFile(datei, 'utf8')).toBe(stand);
+	});
+
+	test('Zeitleiste: Der Abstand der Striche heißt kurz', async ({ druecke, page }) => {
+		await mitTag(page, '<x-zeitleiste von="1900" bis="2020" schritt="10"></x-zeitleiste>');
+		await druecke(material(page).locator('x-zeitleiste'));
+		await expect(page.locator('[data-feld="schritt"]')).toContainText('Strich alle');
+	});
+});
+
+test.describe('Spiele und Rätsel: Wahlen zeigen den Weg (084)', () => {
+	const mitTag = async (page: Page, tag: string) => {
+		const { dok, id, material: datei } = await uhrzeit();
+		await oeffne(page, id, dok);
+		await aendere(page, (await quelle(page)).replace(/<x-uhr[^>]*><\/x-uhr>/, tag));
+		await gespeichert(page, datei);
+		return { datei, stand: await readFile(datei, 'utf8') };
+	};
+
+	test('Suchsel: Bei der Wortliste „Bilder“ steht die Meldung an der Liste und nennt das Menü der Zeile', async ({
+		druecke,
+		page,
+	}) => {
+		const { datei, stand } = await mitTag(page, '<x-suchsel seed="1" woerter="Oma; Opa; Mama"></x-suchsel>');
+		await druecke(material(page).locator('x-suchsel'));
+		await page.locator('[data-feld="wortliste"] select').selectOption({ label: 'Bilder' });
+		const meldung = page.locator('[data-fehler="woerter"]');
+		await expect(meldung).toContainText('Menü ⋯ der Zeile');
+		await expect(meldung).toContainText('Zeile 1, 2 und 3');
+		expect(await readFile(datei, 'utf8')).toBe(stand);
+	});
+
+	test('Kreuzworträtsel: Hinweis breiter als Wort, senkrecht meldet am Lösungswort den Weg', async ({
+		druecke,
+		page,
+	}) => {
+		const { datei, stand } = await mitTag(
+			page,
+			'<x-kreuzwort seed="1" loesungswort="HEFT" eintraege="Darauf sitzt du.: STUHL; Damit schreibst du.: STIFT; Hier lernst du.: SCHULE; Damit radierst du.: RADIERER; Darin ist dein Essen.: DOSE"></x-kreuzwort>',
+		);
+		await druecke(material(page).locator('x-kreuzwort'));
+		const zeile = page.locator('[data-feld="eintraege"] [data-zeile="0"]');
+		const hinweis = await zeile.getByRole('textbox', { name: 'Hinweis in Zeile 1' }).boundingBox();
+		const wort = await zeile.getByRole('textbox', { name: 'Wort in Zeile 1' }).boundingBox();
+		expect(hinweis?.width ?? 0).toBeGreaterThan((wort?.width ?? 0) * 1.3);
+
+		await page.locator('[data-feld="art"] select').selectOption({ label: 'Lösungswort senkrecht' });
+		const meldung = page.locator('[data-fehler="loesungswort"]');
+		await expect(meldung).toContainText('es sind aber 5 Wörter');
+		await expect(meldung).toContainText('5 Buchstaben');
+		expect(await readFile(datei, 'utf8')).toBe(stand);
+	});
+
+	test('Spielplan: Die Lernlandkarte nimmt Platzhalter statt der Aufgaben, ein Schritt zurück stellt sie her', async ({
+		druecke,
+		page,
+	}) => {
+		const inhalt = `; ${Array.from({ length: 19 }, (_, i) => `${i}+1`).join('; ')}`;
+		const { datei, stand } = await mitTag(page, `<x-spielplan felder="20" inhalt="${inhalt}"></x-spielplan>`);
+		const plan = material(page).locator('x-spielplan');
+		await druecke(plan);
+		await page.locator('[data-feld="art"] select').selectOption({ label: 'Lernlandkarte' });
+		await gespeichert(page, datei);
+		await expect(plan).not.toHaveAttribute('data-fehler', /./);
+		await expect(plan.locator('.land-station')).toHaveCount(3);
+		expect(await readFile(datei, 'utf8')).toContain('inhalt="Ich kann …; Ich kann …; Ich kann …"');
+		await druecke(zurueck(page));
+		await gespeichert(page, datei);
+		expect(await readFile(datei, 'utf8')).toBe(stand);
+	});
+
+	test('Spielplan: „Start“ passt beim Rundweg mit 30 Feldern in Klasse 2 ins Feld', async ({ page }) => {
+		const seite = await gezeichnet(
+			page,
+			'<style>body{--fs:24px}</style><x-spielplan felder="30" form="rundweg"></x-spielplan>',
+			'kl2',
+		);
+		const plan = seite.locator('x-spielplan');
+		await expect(plan).not.toHaveAttribute('data-fehler', /./);
+		await expect(plan.locator('[data-feld]')).toHaveCount(30);
+		await expect(plan.locator('[data-feld="1"]')).toContainText('Start');
+	});
+});
+
+test.describe('Geometrie: Wahlen nehmen mit, was sie brauchen (084)', () => {
+	const mitTag = async (page: Page, tag: string) => {
+		const { dok, id, material: datei } = await uhrzeit();
+		await oeffne(page, id, dok);
+		await aendere(page, (await quelle(page)).replace(/<x-uhr[^>]*><\/x-uhr>/, tag));
+		await gespeichert(page, datei);
+		return { datei, stand: await readFile(datei, 'utf8') };
+	};
+	const STARTER =
+		'<x-gitter spalten="12" zeilen="6" aufgabe="spiegeln" achse="senkrecht" achse-bei="6" figur="0 0 0 0 0 0 / 0 0 0 1 1 1 / 0 0 1 1 0 0 / 0 1 1 1 0 0 / 0 0 0 1 1 1 / 0 0 0 0 0 0"></x-gitter>';
+
+	test('Gitter: Fortsetzen und Vergrößern gehen vom Starter aus, ein Schritt zurück stellt alles her', async ({
+		druecke,
+		page,
+	}) => {
+		const { datei, stand } = await mitTag(page, STARTER);
+		await druecke(material(page).locator('x-gitter'));
+		const aufgabe = page.locator('[data-feld="aufgabe"] select');
+		await aufgabe.selectOption({ label: 'Fortsetzen' });
+		await gespeichert(page, datei);
+		await expect(page.locator('[data-fehler]')).toHaveCount(0);
+		expect(await readFile(datei, 'utf8')).toMatch(/<x-gitter [^>]*spalten="24"/);
+		await expect(page.locator('[data-feld="spalten"] input')).toHaveValue('24');
+		await expect(page.locator('[data-feld="rapport"] input')).toHaveValue('6');
+		await page.locator('[data-feld="rapportart"] select').selectOption({ label: 'Drehen im Wechsel' });
+		await gespeichert(page, datei);
+		await expect(page.locator('[data-fehler]')).toHaveCount(0);
+		await druecke(zurueck(page));
+		await gespeichert(page, datei);
+		await druecke(zurueck(page));
+		await gespeichert(page, datei);
+		expect(await readFile(datei, 'utf8')).toBe(stand);
+
+		await druecke(material(page).locator('x-gitter'));
+		await aufgabe.selectOption({ label: 'Vergrößern' });
+		await gespeichert(page, datei);
+		await expect(page.locator('[data-fehler]')).toHaveCount(0);
+		const tag = /<x-gitter[^>]*>/.exec(await readFile(datei, 'utf8'))?.[0] ?? '';
+		expect(tag).toContain('zeilen="8"');
+		expect(tag).not.toContain('achse');
+		await expect(material(page).locator('x-gitter .achse')).toHaveCount(0);
+		await expect(page.locator('[data-feld="faktor"] option')).toHaveText(['Doppelt so groß', 'Halb so groß']);
+		await druecke(zurueck(page));
+		await gespeichert(page, datei);
+		expect(await readFile(datei, 'utf8')).toBe(stand);
+	});
+
+	test('Gitter: Die Meldung nennt die nötige Größe in Zahlen', async ({ page }) => {
+		const klein = await gezeichnet(page, '<x-gitter spalten="2" zeilen="1" figur="0 0 1 / 0 0 0 / 1 0 0"></x-gitter>');
+		await expect(klein.locator('x-gitter')).toHaveAttribute('data-fehler', /3 Spalten und 3 Zeilen/);
+		const ziel = await gezeichnet(
+			page,
+			'<x-gitter spalten="4" zeilen="2" aufgabe="vergroessern" figur="1 1 / 1 1"></x-gitter>',
+			'kl3 sw',
+		);
+		await expect(ziel.locator('x-gitter')).toHaveAttribute('data-fehler', /4 Spalten und 4 Zeilen/);
+	});
+
+	test('Würfelgebäude: Eine Frage nimmt die Vorgabe weg, jede Wahl unter „Gefragt“ geht', async ({ druecke, page }) => {
+		const { datei, stand } = await mitTag(
+			page,
+			'<x-wuerfelbau bauplan="2 1 / 3 1" zeige="schraegbild bauplan vorne rechts links oben"></x-wuerfelbau>',
+		);
+		const gefragt = page.locator('[data-feld="fragen"]');
+		for (const name of ['Bauplan', 'Ansicht von vorne', 'Ansicht von rechts', 'Ansicht von links', 'Ansicht von oben']) {
+			await druecke(material(page).locator('x-wuerfelbau'));
+			await druecke(gefragt.getByRole('switch', { name, exact: true }));
+			await gespeichert(page, datei);
+			await expect(page.locator('[data-fehler]')).toHaveCount(0);
+			await druecke(zurueck(page));
+			await gespeichert(page, datei);
+			expect(await readFile(datei, 'utf8')).toBe(stand);
+		}
+		await druecke(material(page).locator('x-wuerfelbau'));
+		await druecke(gefragt.getByRole('switch', { name: 'Bauplan', exact: true }));
+		await gespeichert(page, datei);
+		const tag = /<x-wuerfelbau[^>]*>/.exec(await readFile(datei, 'utf8'))?.[0] ?? '';
+		expect(tag).toContain('fragen="bauplan"');
+		expect(tag).toContain('zeige="schraegbild vorne rechts links oben"');
+		await expect(material(page).locator('x-wuerfelbau .verdeckt').first()).toBeAttached();
+	});
+
+	test('Würfelbau: Die Meldung zum verdeckten Würfel nennt den Ausweg', async ({ page }) => {
+		const blatt = await gezeichnet(page, '<x-wuerfelbau bauplan="2 1 / 3 1" fragen="anzahl"></x-wuerfelbau>');
+		await expect(blatt.locator('x-wuerfelbau')).toHaveAttribute('data-fehler', /Zeige die verdeckten Würfel/);
+	});
+
+	test('Würfelnetz: „Kein Netz“ setzt die Aufgabe, der Quader seine Maße', async ({ druecke, page }) => {
+		const { datei, stand } = await mitTag(page, '<x-wuerfelnetz netz="3" aufgabe="gegenueber" markiere="2"></x-wuerfelnetz>');
+		await druecke(material(page).locator('x-wuerfelnetz'));
+		await page.locator('[data-feld="netz"] select').selectOption({ label: 'Kein Netz 3' });
+		await gespeichert(page, datei);
+		await expect(page.locator('[data-fehler]')).toHaveCount(0);
+		expect(await readFile(datei, 'utf8')).toMatch(/<x-wuerfelnetz [^>]*aufgabe="netz-oder-nicht"/);
+		await expect(page.locator('[data-feld="markiere"]')).toHaveCount(0);
+		await druecke(zurueck(page));
+		await gespeichert(page, datei);
+		expect(await readFile(datei, 'utf8')).toBe(stand);
+
+		await druecke(material(page).locator('x-wuerfelnetz'));
+		await page.locator('[data-feld="art"] select').selectOption({ label: 'Quader' });
+		await gespeichert(page, datei);
+		await expect(page.locator('[data-fehler]')).toHaveCount(0);
+		expect(await readFile(datei, 'utf8')).toMatch(/<x-wuerfelnetz [^>]*masse="4 2 1"/);
+		await expect(page.getByLabel('Maße des Quaders')).toHaveValue('4 2 1');
+		await druecke(zurueck(page));
+		await gespeichert(page, datei);
+		expect(await readFile(datei, 'utf8')).toBe(stand);
+	});
+
+	test('Körper: Die Maße wirken auch bei Kugel und Kegel', async ({ page }) => {
+		const breite = async (tag: string) =>
+			(await gezeichnet(page, tag)).locator('svg').first().getAttribute('width');
+		expect(await breite('<x-koerper form="kugel" masse="2"></x-koerper>')).not.toBe(
+			await breite('<x-koerper form="kugel" masse="4"></x-koerper>'),
+		);
+		expect(await breite('<x-koerper form="kegel" masse="2 3"></x-koerper>')).not.toBe(
+			await breite('<x-koerper form="kegel" masse="4 3"></x-koerper>'),
+		);
 	});
 });
 
@@ -965,7 +1546,10 @@ test.describe('Größen (030)', () => {
 		await expect(legen.locator('x-geld')).toHaveAttribute('data-stueckelung', '2€ 1€ 20ct 20ct 5ct');
 		await expect(legen.locator('.stueck')).toHaveCount(5);
 		const nicht = await gezeichnet(page, '<x-geld stuecke="20ct" aufgabe="legen" betrag="0,30"></x-geld>');
-		await expect(nicht.locator('x-geld')).toHaveAttribute('data-fehler', /nicht legen/);
+		await expect(nicht.locator('x-geld')).toHaveAttribute(
+			'data-fehler',
+			/nicht legen\. Füge unter „Stücke“ passende hinzu/,
+		);
 	});
 
 	test('Skala und Strecke: Originalgröße, Wert erst in der Lösung, unpassende Einheit abgelehnt', async ({
@@ -1696,7 +2280,8 @@ test.describe('Sachunterricht: Natur und Technik (034)', () => {
 		const lauf = material(page).locator('x-kreislauf');
 		await druecke(lauf);
 		const zeile = panel(page).locator('[data-liste="stationen"] [data-zeile="0"]');
-		await druecke(zeile.getByRole('button', { name: 'Aus der Sammlung' }));
+		await druecke(zeile.locator('[data-bild-knopf]').first());
+		await druecke(page.getByRole('menuitem', { name: 'Aus der Sammlung' }));
 		const dialog = page.getByRole('dialog', { name: 'Bild aus der Sammlung' });
 		await druecke(dialog.locator('[data-sammlung-bild="_assets/bilder/wachstum.png"]'));
 		await expect(dialog).toBeHidden();

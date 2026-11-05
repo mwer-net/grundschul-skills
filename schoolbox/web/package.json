@@ -11,6 +11,7 @@
 		"test": "tsx --test \"src/**/*.test.ts\"",
 		"test:alles": "SCHOOLBOX_TESTS=alles tsx --test --test-concurrency=2 \"src/**/*.test.ts\"",
 		"e2e": "pnpm run build && playwright test",
+		"test:audit": "pnpm run build && playwright test -c playwright.audit.config.ts",
 		"hilfe:bilder": "pnpm run build && playwright test -c playwright.hilfe.config.ts",
 		"video": "pnpm run build && playwright test -c playwright.video.config.ts",
 		"e2e:browser": "PLAYWRIGHT_SKIP_BROWSER_GC=1 playwright install webkit chromium"

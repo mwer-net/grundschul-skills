@@ -958,6 +958,13 @@
     form.zellen.every(([x, y]) => x >= 0 && y >= 0 && x < spalten && y < zeilen) &&
     form.polys.flat().every(([x, y]) => x >= 0 && y >= 0 && x <= spalten && y <= zeilen);
 
+  /** Für die Meldung: So groß muss das Gitter sein, damit die Form hineinpasst. */
+  const gitterBraucht = (form) => {
+    const spalten = Math.max(0, ...form.zellen.map((z) => z[0] + 1), ...form.polys.flat().map((p) => p[0]));
+    const zeilen = Math.max(0, ...form.zellen.map((z) => z[1] + 1), ...form.polys.flat().map((p) => p[1]));
+    return `Es braucht ${zahl(spalten)} Spalten und ${zahl(zeilen)} Zeilen.`;
+  };
+
   /** Vergrößern um 2 oder Halbieren: Beim Halbieren muss jedes 2×2-Feld ganz voll oder ganz leer sein. */
   const skaliere = (form, faktor) => {
     const xs = [...form.zellen.map((z) => z[0]), ...form.polys.flat().map((p) => p[0])];
@@ -1042,7 +1049,7 @@
       form.polys = linienRoh.split(";").map((t) => t.trim()).filter(Boolean).map((t) => t.split(/\s+/).map((p) => p.split(",").map(Number)));
       if (form.polys.flat().flat().some((v) => !Number.isFinite(v))) abbruch("Linien schreibt man als Punkte, zum Beispiel 0,0 3,0 3,2.");
     }
-    if (!passtInsGitter(form, spalten, zeilen)) abbruch("Die Figur passt nicht ins Gitter. Mach das Gitter größer.");
+    if (!passtInsGitter(form, spalten, zeilen)) abbruch(`Die Figur passt nicht ins Gitter. ${gitterBraucht(form)}`);
     const istLeer = form.zellen.length === 0 && form.polys.length === 0;
     if (["spiegeln", "fortsetzen", "vergroessern"].includes(aufgabe) && istLeer) abbruch("Die Figur ist noch leer.");
     const f = fuellung(), grund = HELL_ODER_MUSTER(f);
@@ -1087,7 +1094,7 @@
     if (aufgabe === "vergroessern") {
       zielGitter = true;
       loesung = skaliere(form, faktor);
-      if (!passtInsGitter(loesung, spalten, zeilen)) abbruch("Die Figur passt in dieser Größe nicht ins Zielgitter. Mach das Gitter größer.");
+      if (!passtInsGitter(loesung, spalten, zeilen)) abbruch(`Die Figur passt in dieser Größe nicht ins Zielgitter. ${gitterBraucht(loesung)}`);
     }
 
     const breiteGitter = spalten * k, hoeheGitter = zeilen * k, abstand = zielGitter ? 28 : 0;
@@ -1429,8 +1436,8 @@
     const art = attr(el, "projektion", "schraeg");
     if (!PROJEKTION[art]) abbruch(`Die Projektion „${art}“ gibt es nicht.`);
     const verdeckt = verdeckteWuerfel(plan, art);
-    if (gezeigt.includes("schraegbild") && !gezeigt.includes("bauplan") && verdeckt.length && fragen.some((f) => f === "bauplan" || f === "anzahl")) {
-      abbruch("Ein Würfel ist von hier nicht zu sehen; die Aufgabe ist nicht eindeutig.");
+    if (gezeigt.includes("schraegbild") && !gezeigt.includes("bauplan") && verdeckt.length && attr(el, "verdeckt", "nicht") !== "zeigen" && fragen.some((f) => f === "bauplan" || f === "anzahl")) {
+      abbruch("Ein Würfel ist von hier nicht zu sehen; die Aufgabe ist nicht eindeutig. Zeige die verdeckten Würfel oder gib den Bauplan vor.");
     }
     const e = num(el, "einheit", 26), zelle = 22;
     const toene = istSw() ? TOENE.sw : TOENE.farbe;
@@ -2203,8 +2210,8 @@
     const rueckwaerts = attr(el, "rueckwaerts", "nein") === "ja";
     const standard = rueckwaerts ? ["ziel", "operatoren"] : ["start", "operatoren"];
     const zeige = attr(el, "zeige", null) === null ? standard : liste(el, "zeige");
-    if (!["start", "ziel", "zwischen"].some((z) => zeige.includes(z))) abbruch("Mindestens eine Zahl muss vorgegeben sein, sonst lässt sich nichts rechnen.");
-    if (!zeige.includes("operatoren") && ops.length > 1 && !zeige.includes("zwischen")) abbruch(MEHRERE);
+    if (!["start", "ziel", "zwischen"].some((z) => zeige.includes(z))) abbruch("Mindestens eine Zahl muss vorgegeben sein, sonst lässt sich nichts rechnen: der Start, das Ziel oder die Zwischenergebnisse.");
+    if (!zeige.includes("operatoren") && ops.length > 1 && !zeige.includes("zwischen")) abbruch(`${MEHRERE} Gib auch die Rechenschritte oder die Zwischenergebnisse vor.`);
     const werte = ketteWerte(start, ops);
     pruefeRaum(werte);
     const pfeilbild = attr(el, "art", "kette") === "pfeilbild";
@@ -2899,7 +2906,7 @@
       const cent = leseBetrag(betragRoh);
       pruefeRaum([Math.ceil(cent / 100)]);
       const loesung = mindestStueckelung(cent, namen);
-      if (!loesung) abbruch(`Mit diesen Stücken lässt sich ${betragText(cent, kl)} nicht legen.`);
+      if (!loesung) abbruch(`Mit diesen Stücken lässt sich ${betragText(cent, kl)} nicht legen. Füge unter „Stücke“ passende hinzu.`);
       const anfang = unten + (namen.length > 0 ? 12 : 0);
       s += text(0, anfang + 10, `Lege ${betragText(cent, kl)}.`, { groesse: 16, fett: true, anker: "start" });
       const bild = legeAus(loesung, mass, false, false, anfang + 30);
@@ -3143,7 +3150,7 @@
         } else if (plus) orte.push(letzter + Number(plus[1]) * (plus[2] === "h" ? 60 : 1));
         else abbruch(`„${teil}“ ist kein Sprung wie „bis 9:00“ oder „+40 min“.`);
       }
-      if (orte[orte.length - 1] !== bis) abbruch(`Die Sprünge enden bei ${zeitText(orte[orte.length - 1])}, nicht bei ${zeitText(bis)}.`);
+      if (orte[orte.length - 1] !== bis) abbruch(`Die Sprünge enden bei ${zeitText(orte[orte.length - 1])}, nicht bei ${zeitText(bis)}. Der letzte muss dort enden, etwa „bis ${zeitText(bis)}“.`);
       return orte;
     }
     const naechste = Math.ceil(von / 60) * 60;
@@ -4108,10 +4115,11 @@
     const soll = NOTEN_TAKTE[takt];
     if (!soll) abbruch(`Die Taktart ${takt} gibt es hier nicht.`);
     const takte = String(text).split("|").map((t) => t.trim().split(/\s+/).filter(Boolean)).filter((t) => t.length > 0).map((t) => t.map((w) => leseNote(w, mitTon)));
-    takte.forEach((noten, i) => {
+    const falsch = takte.map((noten, i) => {
       const summe = noten.reduce((s, n) => s + n.achtel, 0), rand = auftakt && (i === 0 || i === takte.length - 1);
-      if (rand ? summe > soll : summe !== soll) abbruch(`Takt ${i + 1} hat ${viertelText(summe)} Viertel statt ${viertelText(soll)}.`);
-    });
+      return (rand ? summe > soll : summe !== soll) ? `Takt ${i + 1} hat ${viertelText(summe)} Viertel statt ${viertelText(soll)}` : null;
+    }).filter(Boolean);
+    if (falsch.length) abbruch(`${falsch.join(", ")}. Passe die Noten an: Jeder Takt braucht ${viertelText(soll)} Viertel.`);
     return takte;
   };
   /** Hals nach oben unter der Mittellinie (h' = Stufe 6), ab der Mittellinie nach unten. */
@@ -4364,18 +4372,21 @@
     return { b: 620, h: 870 };
   };
   const spielSchrift = () => parseFloat(getComputedStyle(document.body).getPropertyValue("--fs")) || 20;
-  /** Passt der Text umbrochen in die Fläche? Mit der mittleren Zeichenbreite, wie die anderen Platzrechnungen. */
+  /**
+   * Passt der Text umbrochen in die Fläche? Mit der mittleren Zeichenbreite, wie die anderen Platzrechnungen.
+   * Ein Leerzeichen steht nur zwischen zwei Wörtern einer Zeile; ein Wort allein bricht nicht um.
+   */
   const textPasst = (t, b, h, g) => {
-    const woerter = String(t).split(/\s+/);
+    const woerter = String(t).split(/\s+/), luecke = textBreite(" ", g);
     if (woerter.some((w) => textBreite(w, g) > b)) return false;
-    let zeilen = 1, frei = b;
+    let zeilen = 1, belegt = 0;
     for (const w of woerter) {
-      const noetig = textBreite(w, g) + textBreite(" ", g);
-      if (noetig > frei) {
+      const breite = textBreite(w, g);
+      if (belegt > 0 && belegt + luecke + breite > b) {
         zeilen++;
-        frei = b;
+        belegt = 0;
       }
-      frei -= noetig;
+      belegt += (belegt > 0 ? luecke : 0) + breite;
     }
     return zeilen * g * 1.2 <= h;
   };
@@ -4853,11 +4864,12 @@
     const maxSpalten = Math.floor(SATZSPIEGEL / z), maxZeilen = Math.floor(800 / z);
     let lagen, spalten, zeilen, spalteLoesung = -1;
     if (art === "senkrecht") {
-      if (!geheim) abbruch("Beim senkrechten Rätsel fehlt das Lösungswort.");
-      if (geheim.length !== eintraege.length) abbruch(`Das Lösungswort hat ${geheim.length} Buchstaben, es sind aber ${eintraege.length} Wörter.`);
+      const weg = `Aus jedem Wort kommt der Reihe nach ein Buchstabe, es braucht also ${eintraege.length} Buchstaben.`;
+      if (!geheim) abbruch(`Beim senkrechten Rätsel fehlt das Lösungswort. ${weg}`);
+      if (geheim.length !== eintraege.length) abbruch(`Das Lösungswort hat ${geheim.length} Buchstaben, es sind aber ${eintraege.length} Wörter. ${weg} Nimm ein anderes Lösungswort oder ${geheim.length} Wörter.`);
       const stellen = eintraege.map((e, i) => {
         const s = e.wort.indexOf(geheim[i]);
-        if (s < 0) abbruch(`„${e.roh}“ enthält kein ${geheim[i]}. Bitte ein anderes Wort nehmen.`);
+        if (s < 0) abbruch(`„${e.roh}“ enthält kein ${geheim[i]}, den ${i + 1}. Buchstaben des Lösungsworts. Nimm ein anderes Wort oder ziehe die Wörter in eine passende Reihenfolge.`);
         return s;
       });
       spalteLoesung = Math.max(...stellen);

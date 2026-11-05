@@ -251,10 +251,11 @@ test.describe('Generatoren (050)', () => {
 		await gespeichert(page, datei);
 		const stand = await quelle(page);
 		await page.getByLabel('Zehnerübergang').selectOption({ label: 'Mit Übergang' });
-		await page.getByLabel('Zahlenraum').selectOption({ label: 'bis 10' });
+		await page.locator('[data-feld="anzahl"] input').fill('60');
+		await page.locator('[data-feld="anzahl"] input').press('Enter');
 		await expect(page.locator('[data-fehler="_element"]')).toContainText('verschiedene Aufgaben');
 		// Keine falschen Aufgaben: Ob die Einstellung schon in der Quelle steht, hängt am Neuladen des Rahmens, Aufgaben stehen dort nie.
-		expect(await quelle(page)).not.toMatch(/zahlenraum="10"[^>]*aufgaben=/);
+		expect(await quelle(page)).not.toMatch(/anzahl="60"[^>]*aufgaben=/);
 		expect(stand).toContain('rechenart="−"');
 	});
 

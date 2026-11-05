@@ -4,14 +4,16 @@ import path from 'node:path';
 import { describe, it } from 'node:test';
 import { runInNewContext } from 'node:vm';
 
-import type { AbbildungSchema, Feld, ListeFeld, Werte } from './abbildungen';
+import type { AbbildungSchema, Feld, ListeFeld, Werte, ZahlFeld } from './abbildungen';
 import {
 	ABBILDUNG_SCHEMA,
 	abschnittVon,
 	aendereFeld,
 	attributeVon,
+	auswahlOptionen,
 	feldWert,
 	GRUPPEN_ABSCHNITT,
+	LERNLANDKARTE_PLATZHALTER,
 	markeSetzen,
 	markeTrennen,
 	markeVerbinden,
@@ -22,6 +24,7 @@ import {
 	miniTeile,
 	NOTEN_VORSCHLAG,
 	notenAnfuegen,
+	notenInTakt,
 	notenMitTon,
 	notenPunkt,
 	notenTon,
@@ -33,14 +36,23 @@ import {
 	pruefeWerte,
 	rasterText,
 	rasterVon,
+	rechenreiheMoeglich,
 	schemaVon,
+	SATZSPIEGEL,
 	setzeAbbildung,
+	SKALA_STANDARD,
+	tafelAusschnitt,
 	VERKEHRSZEICHEN,
+	vornMoeglich,
 	werteVon,
+	zeilenAlsText,
+	zeilenAusText,
+	zahlStandard,
 	zeilenText,
 	zeilenVon,
 	ziffernText,
 } from './abbildungen';
+import { ABSCHNITT_TITEL } from './abschnitte';
 import { ASSETS, BLATT_PY } from './konfig';
 import { hatLoesung, MIT_LOESUNG, OHNE_LOESUNGSANGABE } from './loesungen';
 import { zerlege } from './quelltext';
@@ -221,6 +233,362 @@ describe('Felder ändern', () => {
 			wert: '3',
 			nurLoesung: true,
 		});
+	});
+
+	it('Zwanzigerfeld: die Art nimmt passende Anzahlen mit, was passt, bleibt', () => {
+		const s = schema('x-zwanzigerfeld');
+		const art = feld(s, 'art');
+		const neu = (w: Werte, wert: string | null) => aendereFeld(s, w, art, wert);
+		assert.deepEqual(neu({ n: '13' }, 'fuenfer'), { art: 'fuenfer', n: '3', n2: null });
+		assert.deepEqual(neu({ n: '13' }, 'zehner'), { art: 'zehner', n: '5', n2: null });
+		assert.deepEqual(neu({ n: '13', n2: '2' }, 'fuenfer'), { art: 'fuenfer', n: '3', n2: '2' });
+		assert.deepEqual(neu({ n: '4', n2: '3' }, 'fuenfer'), { art: 'fuenfer', n: '4', n2: '1' });
+		assert.deepEqual(neu({ n: '3' }, 'fuenfer'), { art: 'fuenfer', n: '3' });
+		assert.deepEqual(neu({ n: '5', n2: '2' }, 'zehner'), { art: 'zehner', n: '5', n2: '2' });
+		assert.deepEqual(neu({ loesung: '12 3' }, 'zehner'), { art: 'zehner', loesung: '5 3' });
+		assert.deepEqual(neu({ art: 'fuenfer', n: '3' }, null), { art: null, n: '3' });
+	});
+
+	it('Hundertertafel: der Ausschnitt schreibt die gezeigte Mittelzahl mit', () => {
+		const s = schema('x-hundertertafel');
+		const ausschnitt = feld(s, 'ausschnitt');
+		const neu = (w: Werte, wert: string) => aendereFeld(s, w, ausschnitt, wert);
+		assert.equal(neu({}, 'kreuz').mitte, '45');
+		assert.equal(neu({ mitte: '68' }, 'block').mitte, '68');
+		assert.equal(neu({ von: '301', bis: '400' }, 'kreuz').mitte, '345');
+		assert.equal(neu({ mitte: '41' }, 'kreuz').mitte, '42', 'Am Rand geht es nicht, die nächste Zahl schon');
+		assert.equal(neu({ von: '1', bis: '5' }, 'kreuz').mitte, undefined, 'Geht es gar nicht, sagt das die Meldung');
+		assert.equal(neu({}, 'ganz').mitte, undefined);
+		const starter = neu({ luecken: '7 23 58 94', markiert: '5 10 45 50' }, 'zeile');
+		assert.deepEqual([starter.luecken, starter.markiert], [null, '45 50']);
+		const mitte = feld(s, 'mitte');
+		const geruckt = aendereFeld(s, { ausschnitt: 'kreuz', mitte: '45', luecken: '35 46', markiert: '55' }, mitte, '46');
+		assert.deepEqual([geruckt.luecken, geruckt.markiert], ['46', null]);
+		const rand = aendereFeld(s, { ausschnitt: 'kreuz', mitte: '45', markiert: '45' }, mitte, '41');
+		assert.equal(rand.markiert, '45', 'Geht der Ausschnitt nicht, bleibt alles, bis die Zahl passt');
+	});
+
+	it('Zahlenmauer: Minus nimmt eine Reihenfolge ohne Stein unter 0 mit, was aufgeht, bleibt', () => {
+		const s = schema('x-zahlenmauer');
+		const art = feld(s, 'art');
+		const neu = (basis: string, wert: string) => aendereFeld(s, { basis }, art, wert).basis;
+		assert.equal(neu('3 5 2', 'minus'), '5 3 2');
+		assert.equal(neu('20 7 3', 'minus'), '20 7 3');
+		assert.equal(neu('3 5 2', 'plus'), '3 5 2');
+		const { mauerWerte } = rechenkerne() as unknown as { mauerWerte: (b: number[], a: string) => number[][] };
+		for (const basis of ['3 5 2', '4 2 6 1', '9 5 4 1', '1 2 3 4 5', '7 7']) {
+			const zahlen = (neu(basis, 'minus') ?? '').split(' ').map(Number);
+			assert.equal(zahlen.length, basis.split(' ').length, basis);
+			assert.ok(mauerWerte(zahlen, 'minus').flat().every((z) => z >= 0), `${basis} wird ${zahlen.join(' ')}`);
+		}
+	});
+
+	it('Rechenreihe: die Wahl nimmt mit, was sonst am Starter scheitert', () => {
+		const s = schema('x-rechenreihe');
+		const neu = (w: Werte, attribut: string, wert: string | null) => aendereFeld(s, w, feld(s, attribut), wert);
+		const starter = { rechenart: '+', zahlenraum: '20', anzahl: '8', uebergang: 'mit' };
+		assert.deepEqual(neu(starter, 'rechenart', '·'), { ...starter, rechenart: '·', uebergang: null });
+		assert.deepEqual(neu(starter, 'rechenart', ':'), { ...starter, rechenart: ':', uebergang: null });
+		assert.equal(neu(starter, 'rechenart', '−').uebergang, 'mit', 'Bei Minus gilt der Übergang weiter');
+		const mal = { rechenart: '·', zahlenraum: '100', anzahl: '8', reihe: '7' };
+		assert.equal(neu(mal, 'rechenart', '+').reihe, null);
+		assert.equal(neu({ ...mal, rechenart: ':', rest: '1' }, 'rechenart', '·').rest, null);
+		assert.equal(neu({ beziehung: 'tausch' }, 'rechenart', '−').beziehung, null);
+
+		const raum = neu(starter, 'zahlenraum', '10');
+		assert.deepEqual([raum.uebergang, raum.anzahl], [null, '8']);
+		assert.equal(neu({ uebergang: 'mit', zahlenraum: '10' }, 'uebergang', 'mit').zahlenraum, '20');
+		assert.equal(neu({ ...mal, reihe: '7' }, 'zahlenraum', '10').anzahl, '1', 'Bis 10 gibt es nur 7 · 1');
+
+		const reihe = neu({ rechenart: '·', zahlenraum: '20', anzahl: '8' }, 'reihe', '7');
+		assert.deepEqual([reihe.zahlenraum, reihe.anzahl], ['100', '8']);
+		assert.equal(neu({ rechenart: '·', zahlenraum: '20' }, 'reihe', '2').zahlenraum, '20', 'Passt, bleibt');
+		assert.equal(neu({ rechenart: ':', rest: '1' }, 'reihe', '1').rest, null);
+
+		const rest = neu({ rechenart: ':', platzhalter: 'erste', beziehung: 'umkehr', reihe: '1' }, 'rest', '1');
+		assert.deepEqual([rest.platzhalter, rest.beziehung, rest.reihe], [null, null, null]);
+		assert.equal(neu({ rechenart: ':', platzhalter: 'erste' }, 'rest', '0').platzhalter, 'erste');
+	});
+
+	it('Zauberdreieck: die Form nimmt Zahlen, Summe und Vorgaben mit', () => {
+		const s = schema('x-zauberdreieck');
+		const art = feld(s, 'art');
+		const neu = (w: Werte, wert: string) => aendereFeld(s, w, art, wert);
+		assert.deepEqual(neu({ summe: '9', vorgegeben: 'e0 e1' }, 'quadrat'), {
+			art: 'quadrat',
+			summe: '15',
+			vorgegeben: 'z0 z4 z5',
+		});
+		assert.deepEqual(neu({ art: 'quadrat', summe: '15', vorgegeben: 'z0 z4 z5' }, 'dreieck'), {
+			art: 'dreieck',
+			summe: '9',
+			vorgegeben: 'e0 e1',
+		});
+		assert.deepEqual(neu({ zahlen: '1 2 3 4 5 6', vorgegeben: 'e0' }, 'quadrat'), {
+			art: 'quadrat',
+			vorgegeben: null,
+			zahlen: null,
+		});
+		assert.deepEqual(neu({}, 'quadrat'), { art: 'quadrat' });
+	});
+
+	it('Messgerät: Gerät und Einheit nehmen Einheit, Striche und einen Wert auf einem Strich mit', () => {
+		const s = schema('x-skala');
+		const start: Werte = { art: 'lineal', von: '0', bis: '12', wert: '7.5', aufgabe: 'ablesen' };
+		const art = (w: Werte, wert: string) => aendereFeld(s, w, feld(s, 'art'), wert);
+		const einheit = (w: Werte, wert: string | null) => aendereFeld(s, w, feld(s, 'einheit'), wert);
+
+		const becher = art(start, 'messbecher');
+		assert.deepEqual([becher.von, becher.bis, becher.teilung, becher.wert], [null, null, null, '260']);
+		assert.equal(art({ ...start, einheit: 'mm' }, 'waage').einheit, null);
+		assert.equal(art({ art: 'lineal', einheit: 'cm' }, 'massband').einheit, 'cm');
+		assert.equal(art({ art: 'messbecher', wert: '300' }, 'waage').wert, '300');
+		assert.equal(art({ art: 'messbecher', loesung: '300' }, 'thermometer').loesung, '10');
+		assert.equal(einheit({ art: 'waage', wert: '350' }, 'kg').wert, '2,5');
+
+		// Dieselbe wirksame Einheit: Der eigene Bereich bleibt.
+		assert.deepEqual(einheit(start, 'cm'), { ...start, einheit: 'cm' });
+
+		// Aus jedem Gerät und jeder Einheit: Die Zeichnung findet ihre Striche, der Wert liegt auf einem.
+		const { skalaStriche } = rechenkerne();
+		for (const [schluessel, [von, bis, teilung]] of Object.entries(SKALA_STANDARD)) {
+			const [geraet = '', wahl = ''] = schluessel.split('|');
+			const neu = einheit(art({ ...start, art: geraet === 'lineal' ? 'waage' : 'lineal' }, geraet), wahl);
+			const [haupt = 0, klein = 0] = teilung.split(' ').map(Number);
+			const zahl = Number((neu.wert ?? '').replace(',', '.'));
+			assert.deepEqual([neu.von, neu.bis, neu.teilung], [null, null, null], schluessel);
+			assert.ok(
+				skalaStriche(von, bis, haupt, klein).some((x) => Math.abs(x.wert - zahl) < 1e-6),
+				`${schluessel}: ${neu.wert}`,
+			);
+		}
+	});
+
+	it('Messgerät: Das Panel bietet je Gerät die Einheiten aus SKALA_STANDARD an', () => {
+		const s = schema('x-skala');
+		const f = feld(s, 'einheit');
+		assert.ok(f.art === 'auswahl' && f.optionenJe);
+		const namen = (art: string) => f.optionenJe?.werte[art]?.map((o) => o.name);
+		assert.deepEqual(namen('lineal'), ['Passend zum Gerät', 'cm', 'mm']);
+		assert.deepEqual(namen('messbecher'), ['Passend zum Gerät', 'ml', 'l']);
+		assert.equal(Object.keys(f.optionenJe.werte)[0], 'lineal');
+		for (const liste of Object.values(f.optionenJe.werte)) {
+			for (const o of liste) {
+				assert.ok(f.optionen.some((x) => x.wert === o.wert), o.name);
+			}
+		}
+		assert.equal(f.nurWenn?.({ art: 'thermometer' }), false);
+		assert.equal(f.nurWenn?.({}), true);
+	});
+
+	it('Taktart: nimmt die Noten mit, wenn keine über einen Taktstrich ragt; die Zeichnung nimmt das Ergebnis an', () => {
+		const { leseTakte } = rechenkerne();
+		const rhythmus = schema('x-rhythmus');
+		const takt = (s: AbbildungSchema, w: Werte, wert: string) => aendereFeld(s, w, feld(s, 'takt'), wert);
+		const karte: Werte = { art: 'karte', takt: '2/4', noten: '4 8 8', silben: 'ta' };
+		assert.equal(takt(rhythmus, karte, '3/4').noten, '4 8 8 r4');
+		assert.equal(takt(rhythmus, karte, '4/4').noten, '4 8 8 r2');
+		assert.equal(takt(rhythmus, takt(rhythmus, karte, '4/4'), '2/4').noten, '4 8 8', 'Pausen am Ende fallen weg');
+		// Die Karte hat genau einen Takt: Was nicht hineinpasst, bleibt, und die Meldung nennt den Weg.
+		assert.equal(takt(rhythmus, { art: 'karte', takt: '4/4', noten: '2 4 4' }, '2/4').noten, '2 4 4');
+		assert.equal(takt(rhythmus, { takt: '4/4', noten: '2 4 4' }, '2/4').noten, '2 | 4 4');
+		// Eine Halbe über dem Taktstrich und ein Auftakt bleiben unverändert.
+		assert.equal(takt(rhythmus, { takt: '4/4', noten: '4 2 4' }, '2/4').noten, '4 2 4');
+		assert.equal(takt(rhythmus, { takt: '4/4', noten: '4 | 4 4 4 4', auftakt: 'ja' }, '3/4').noten, '4 | 4 4 4 4');
+		// Passt schon: Nichts ändert sich.
+		assert.deepEqual(takt(rhythmus, { takt: '2/4', noten: '2 4' }, '3/4'), { takt: '3/4', noten: '2 4' });
+
+		const noten = schema('x-noten');
+		const melodie: Werte = { takt: '4/4', noten: String.raw`c'4 d'4 e'4 f'4 | g'4 a'4 h'4 c''4`, namen: 'ja' };
+		assert.equal(takt(noten, melodie, '2/4').noten, String.raw`c'4 d'4 | e'4 f'4 | g'4 a'4 | h'4 c''4`);
+		assert.equal(takt(noten, melodie, '3/4').noten, String.raw`c'4 d'4 e'4 | f'4 g'4 a'4 | h'4 c''4 r4`);
+		assert.equal(notenInTakt('4 8', '4/4'), '4 8 r8 r2');
+		assert.equal(notenInTakt('4 x', '4/4'), null);
+
+		for (const [text, ziel] of [
+			['4 8 8', '3/4'],
+			['4 8', '4/4'],
+			['8 8 8 8 4 4 | 4 4 4 4', '3/4'],
+			['4 4 4 | 4 4 4', '4/4'],
+		] as const) {
+			const neu = notenInTakt(text, ziel);
+			assert.ok(neu !== null, `${text} in ${ziel}`);
+			assert.doesNotThrow(() => leseTakte(neu, ziel, false), `${text} in ${ziel}: ${neu}`);
+		}
+	});
+
+	it('Satzglieder: Nach vorn stehen nur Satzglieder zur Wahl, die das Umstellen findet', () => {
+		const s = schema('x-satzglieder');
+		const vorn = feld(s, 'vorn');
+		assert.ok(vorn.art === 'auswahl');
+		const satz = '[Am Morgen]Zeit [bringt]P [der Briefträger]S [dem Kind]DaO [ein Paket]AkO.';
+		const namen = (inhalt: string) => auswahlOptionen(vorn, { inhalt, aufgabe: 'umstellen' }).map((o) => o.name);
+		assert.deepEqual(namen('[Der Hund]S [bellt]P [den Briefträger]AkO [an]P.'), ['Nächstes Satzglied', 'Akkusativobjekt']);
+		assert.deepEqual(namen(satz), ['Nächstes Satzglied', 'Subjekt', 'Akkusativobjekt', 'Dativobjekt']);
+
+		// Dieselbe Regel wie `satzUmstellen` in abbildungen.js: angeboten heißt, das Umstellen gelingt.
+		const { satzUmstellen } = rechenkerne();
+		const saetze = [
+			satz,
+			'[Der Hund]S [bellt]P [den Briefträger]AkO [an]P.',
+			'[Wir]S [gehen]P [morgen]Zeit [ins Kino]Ort.',
+			'[Im Garten]Ort [wächst]P [eine Blume]S.',
+			'[Er]S [schenkt]P [ihr]DaO [eine Rose]AkO.',
+		];
+		for (const text of saetze) {
+			for (const rolle of vorn.optionen.flatMap((o) => (o.wert ? [o.wert] : []))) {
+				const geht = (() => {
+					try {
+						satzUmstellen(text, rolle);
+						return true;
+					} catch {
+						return false;
+					}
+				})();
+				assert.equal(vornMoeglich(text).has(rolle), geht, `${text} ${rolle}`);
+			}
+		}
+
+		// Ändert sich der Satz, fällt ein Satzglied weg, das es dort nicht mehr gibt; sonst bleibt es.
+		const inhalt = feld(s, 'inhalt');
+		const start: Werte = { inhalt: satz, aufgabe: 'umstellen', vorn: 'DaO' };
+		assert.equal(aendereFeld(s, start, inhalt, '[Der Hund]S [bellt]P [den Briefträger]AkO [an]P.').vorn, null);
+		assert.equal(aendereFeld(s, start, inhalt, '[Heute]Zeit [gibt]P [Oma]S [dem Kind]DaO [ein Buch]AkO.').vorn, 'DaO');
+	});
+
+	it('Sortieren: Art „Bilder“ ohne Bild meldet an der Liste, in welchen Zeilen es fehlt', () => {
+		const eintraege = 'Samen; Stängel: bilder/stengel.png; Blume';
+		assert.deepEqual(pruefe('x-sortieren', { eintraege }), {});
+		const fehler = pruefe('x-sortieren', { eintraege, art: 'bilder' });
+		assert.deepEqual(Object.keys(fehler), ['eintraege']);
+		assert.match(fehler.eintraege ?? '', /Bild-Knopf.*Zeile 1 und 3\.$/);
+		assert.deepEqual(pruefe('x-sortieren', { eintraege: 'A: a.png; B: b.png', art: 'bilder' }), {});
+	});
+
+	it('Suchsel: Wortliste „Bilder“ ohne Bild meldet an der Liste und nennt den Weg über das Menü der Zeile', () => {
+		const woerter = 'Oma: bild:bilder/oma.png; Opa; Mama: uhr:7:30; Papa: bild:';
+		assert.deepEqual(pruefe('x-suchsel', { woerter }), {});
+		const fehler = pruefe('x-suchsel', { woerter, wortliste: 'bilder' });
+		assert.deepEqual(Object.keys(fehler), ['woerter']);
+		assert.match(fehler.woerter ?? '', /^Bei der Wortliste „Bilder“ .*Menü ⋯ der Zeile.*„Bild“.*Zeile 2 und 4\.$/);
+		// Jeder Mini-Inhalt gilt als Bild, wie in der Referenz.
+		assert.deepEqual(pruefe('x-suchsel', { woerter: 'Oma: bild:a.png; Opa: wuerfel:3', wortliste: 'bilder' }), {});
+		// Erst die Wörter selbst, dann die Bilder.
+		assert.match(pruefe('x-suchsel', { woerter: 'Oma1; Opa', wortliste: 'bilder' }).woerter ?? '', /nur aus Buchstaben/);
+	});
+
+	it('Kreuzworträtsel: Lösungswort senkrecht meldet am Lösungswort, was fehlt, und nennt den Weg', () => {
+		const eintraege = 'a: STUHL; b: STIFT; c: SCHULE; d: LINEAL; e: RADIERER; f: DOSE; g: TAFEL; h: RANZEN';
+		assert.deepEqual(pruefe('x-kreuzwort', { eintraege, loesungswort: 'HEFT' }), {});
+		const zuKurz = pruefe('x-kreuzwort', { eintraege, loesungswort: 'HEFT', art: 'senkrecht' });
+		assert.deepEqual(Object.keys(zuKurz), ['loesungswort']);
+		assert.match(zuKurz.loesungswort ?? '', /4 Buchstaben, es sind aber 8 Wörter\..*8 Buchstaben\..*oder 4 Wörter\.$/);
+		assert.match(
+			pruefe('x-kreuzwort', { eintraege, art: 'senkrecht' }).loesungswort ?? '',
+			/^Hier fehlt das Lösungswort\. .*8 Buchstaben\.$/,
+		);
+		const vier = 'a: STUHL; b: TAFEL; c: STIFT; d: DOSE';
+		assert.match(
+			pruefe('x-kreuzwort', { eintraege: vier, loesungswort: 'HEFT', art: 'senkrecht' }).loesungswort ?? '',
+			/^„DOSE“ enthält kein T, den 4\. Buchstaben .*Reihenfolge\.$/,
+		);
+		const passend = 'a: STUHL; b: TAFEL; c: STIFT; d: TAFEL';
+		assert.deepEqual(pruefe('x-kreuzwort', { eintraege: passend, loesungswort: 'heft', art: 'senkrecht' }), {});
+		// ß zählt wie in abbildungen.js als SS.
+		assert.deepEqual(pruefe('x-kreuzwort', { eintraege: 'a: SONNE; b: STERN', loesungswort: 'ß', art: 'senkrecht' }), {});
+	});
+
+	it('Spielplan: Die Lernlandkarte nimmt Platzhalter, wenn die Inhalte nicht 2 bis 12 Ziele sind', () => {
+		const s = schema('x-spielplan');
+		const art = feld(s, 'art');
+		const aufgaben = `; ${Array.from({ length: 28 }, (_, i) => `${i}+1`).join('; ')}`;
+		assert.equal(aendereFeld(s, { inhalt: aufgaben }, art, 'lernlandkarte').inhalt, LERNLANDKARTE_PLATZHALTER);
+		assert.equal(aendereFeld(s, { inhalt: null }, art, 'lernlandkarte').inhalt, LERNLANDKARTE_PLATZHALTER);
+		const ziele = 'Ich kann zählen.; ; Ich kann ergänzen.';
+		assert.equal(aendereFeld(s, { inhalt: ziele }, art, 'lernlandkarte').inhalt, ziele);
+		// Zurück zum Spielplan bleibt alles.
+		assert.equal(aendereFeld(s, { art: 'lernlandkarte', inhalt: ziele }, art, 'spiel').inhalt, ziele);
+	});
+
+	it('Gitter: Die Aufgabe nimmt Spalten, Zeilen, Kästchen und Achse mit', () => {
+		const s = schema('x-gitter');
+		const aufgabe = feld(s, 'aufgabe');
+		const neu = (w: Werte, wert: string) => aendereFeld(s, w, aufgabe, wert);
+		const figur = '0 0 0 0 0 0 / 0 0 0 1 1 1 / 0 0 1 1 0 0 / 0 1 1 1 0 0 / 0 0 0 1 1 1 / 0 0 0 0 0 0';
+		const start: Werte = { spalten: '12', zeilen: '6', aufgabe: 'spiegeln', achse: 'senkrecht', 'achse-bei': '6', figur };
+		const fort = neu(start, 'fortsetzen');
+		assert.deepEqual([fort.spalten, fort.zeilen, fort.kaestchen], ['24', '6', '0.5']);
+		const gross = neu(start, 'vergroessern');
+		assert.deepEqual([gross.spalten, gross.zeilen, gross.kaestchen], ['12', '8', '0.5']);
+		assert.deepEqual([gross.achse, gross['achse-bei']], [null, null]);
+		assert.deepEqual(neu(gross, 'spiegeln').achse, 'senkrecht');
+		assert.deepEqual(neu(gross, 'spiegeln')['achse-bei'], '6');
+		assert.equal(zahlStandard(feld(s, 'rapport') as ZahlFeld, fort), 6);
+		assert.equal(zahlStandard(feld(s, 'rapport') as ZahlFeld, {}), 4);
+
+		const passt: Werte = { spalten: '24', zeilen: '4', kaestchen: '0.5', rapport: '4', figur: '1 1 0 0 / 1 0 0 0' };
+		assert.deepEqual(neu(passt, 'fortsetzen'), { ...passt, aufgabe: 'fortsetzen' });
+		const breit = neu({ spalten: '12', figur: '1 1 1 1 1 1 1 1 1 1' }, 'fortsetzen');
+		assert.deepEqual([breit.spalten, breit.rapporte], ['30', '1']);
+		const zuBreit = { spalten: '12', figur: '1 1 1 1 1 1 1 1 1 1 1 1' };
+		assert.deepEqual(neu(zuBreit, 'fortsetzen'), { ...zuBreit, aufgabe: 'fortsetzen' });
+		const leer = { spalten: '12' };
+		assert.deepEqual(neu(leer, 'vergroessern'), { ...leer, aufgabe: 'vergroessern' });
+		const nachLangem = neu({ spalten: '24', zeilen: '6', figur }, 'vergroessern');
+		assert.equal(nachLangem.spalten, '10');
+	});
+
+	it('Gitter: Fortsetzen durch und Größe wirken nur in ihrer Aufgabe', () => {
+		const s = schema('x-gitter');
+		const figur = '1 1 1 1 1 1 / 1 1 1 1 1 1';
+		const anders = aendereFeld(s, { spalten: '12', figur, aufgabe: 'keine' }, feld(s, 'rapportart'), 'drehen');
+		assert.equal(anders.spalten, '12');
+		const fort = aendereFeld(s, { spalten: '12', figur, aufgabe: 'fortsetzen' }, feld(s, 'rapportart'), 'drehen');
+		assert.equal(fort.spalten, '24');
+		const zurueck = aendereFeld(s, { spalten: '12', zeilen: '6', figur, aufgabe: 'vergroessern', faktor: '0.5' }, feld(s, 'faktor'), '2');
+		assert.deepEqual([zurueck.spalten, zurueck.zeilen], ['12', '6']);
+	});
+
+	it('Satzspiegel im Schema und in `abbildungen.js` sind gleich', () => {
+		assert.equal(/const SATZSPIEGEL = (\d+)/.exec(JS)?.[1], String(SATZSPIEGEL));
+	});
+
+	it('Würfelgebäude: Die Frage nimmt die Vorgabe weg, nicht umgekehrt', () => {
+		const s = schema('x-wuerfelbau');
+		const fragen = feld(s, 'fragen');
+		const zeige = 'schraegbild bauplan vorne rechts links oben';
+		assert.equal(aendereFeld(s, { zeige }, fragen, 'vorne').zeige, 'schraegbild bauplan rechts links oben');
+		assert.equal(aendereFeld(s, { zeige }, fragen, 'bauplan oben').zeige, 'schraegbild vorne rechts links');
+		assert.equal(aendereFeld(s, { zeige }, fragen, 'anzahl').zeige, zeige);
+		assert.equal(aendereFeld(s, { zeige: 'bauplan vorne' }, fragen, 'bauplan').zeige, 'schraegbild vorne');
+		assert.equal(aendereFeld(s, { zeige: 'bauplan' }, fragen, 'bauplan').zeige, null);
+		assert.equal(aendereFeld(s, {}, fragen, 'bauplan').zeige ?? null, null);
+		assert.equal(aendereFeld(s, { fragen: 'vorne' }, feld(s, 'zeige'), 'vorne').fragen, 'vorne');
+		assert.equal(aendereFeld(s, { zeige }, fragen, 'bauplan').verdeckt, 'zeigen');
+		assert.equal(aendereFeld(s, { zeige: 'schraegbild' }, fragen, 'anzahl').verdeckt, 'zeigen');
+		assert.equal(aendereFeld(s, { zeige }, fragen, 'anzahl').verdeckt ?? null, null);
+		assert.equal(aendereFeld(s, { zeige }, fragen, 'vorne').verdeckt ?? null, null);
+	});
+
+	it('Würfelnetz: „Kein Netz“ nimmt die Aufgabe mit, der Quader seine Maße', () => {
+		const s = schema('x-wuerfelnetz');
+		const netz = feld(s, 'netz');
+		const kein = aendereFeld(s, { aufgabe: 'gegenueber', markiere: '2', bastel: 'ja', laschen: 'ja', art: 'quader' }, netz, 'n3');
+		assert.deepEqual(
+			[kein.aufgabe, kein.bastel, kein.laschen, kein.art, kein.markiere],
+			['netz-oder-nicht', null, null, null, '2'],
+		);
+		assert.equal(aendereFeld(s, {}, netz, 'n1').aufgabe, 'netz-oder-nicht');
+		assert.equal(aendereFeld(s, { aufgabe: 'gegenueber' }, netz, '4').aufgabe, 'gegenueber');
+		assert.equal(aendereFeld(s, { netz: 'n3' }, feld(s, 'aufgabe'), 'gegenueber').netz, '1');
+		assert.equal(aendereFeld(s, { netz: '4' }, feld(s, 'aufgabe'), 'gegenueber').netz, '4');
+
+		const art = feld(s, 'art');
+		assert.equal(aendereFeld(s, { netz: '3' }, art, 'quader').masse, '4 2 1');
+		assert.equal(aendereFeld(s, { netz: '3' }, art, 'quader').netz, '3');
+		assert.equal(aendereFeld(s, { netz: '9' }, art, 'quader').netz, '1');
+		assert.equal(aendereFeld(s, { netz: '3', masse: '5 3 2' }, art, 'quader').masse, '5 3 2');
+		assert.equal(aendereFeld(s, { netz: '3', masse: '5 3 2' }, art, null).masse, '5 3 2');
 	});
 
 	it('Stellen ändern: Zahlen bleiben rechtsbündig an ihrer Stelle', () => {
@@ -936,6 +1304,27 @@ describe('Zahldarstellungen (027)', () => {
 		assert.throws(() => ausschnittZahlen(1, 100, 'kreuz', null), /fehlt die Mittelzahl/);
 	});
 
+	it('Hundertertafel: der Ausschnitt im Schema rechnet wie abbildungen.js', () => {
+		const { ausschnittZahlen } = rechenkerne();
+		for (const [von, bis] of [
+			[1, 100],
+			[301, 400],
+			[1, 20],
+		] as const) {
+			for (const art of ['zeile', 'spalte', 'kreuz', 'block', 'treppe']) {
+				for (let mitte = von; mitte <= bis; mitte += 1) {
+					let erwartet: number[] | null = null;
+					try {
+						erwartet = [...ausschnittZahlen(von, bis, art, mitte)];
+					} catch {
+						erwartet = null;
+					}
+					assert.deepEqual(tafelAusschnitt(von, bis, art, mitte), erwartet, `${art} ${mitte} (${von}-${bis})`);
+				}
+			}
+		}
+	});
+
 	it('Rechenstrich rechnet und liest Sprünge', () => {
 		const { leseSprung, rechenstrichWerte } = rechenkerne();
 		assert.deepEqual([...rechenstrichWerte(47, [30, 4])], [47, 77, 81]);
@@ -1167,6 +1556,11 @@ describe('Größen (030)', () => {
 			['20ct', '20ct', '20ct'],
 		);
 		assert.equal(mindestStueckelung(30, ['20ct', '20ct']), null);
+		// Das Beispiel im Feld geht mit den Stücken des Starters.
+		assert.equal(
+			(mindestStueckelung(385, ['1ct', '2ct', '5ct', '10ct', '20ct', '50ct', '1€', '2€']) ?? []).length,
+			6,
+		);
 	});
 
 	it('Skala: gleiche Abstände, auch bei Kommateilung', () => {
@@ -1213,7 +1607,10 @@ describe('Größen (030)', () => {
 		assert.deepEqual([...zeitStationen(500, 705, null)], [500, 540, 660, 705]);
 		assert.deepEqual([...zeitStationen(540, 660, null)], [540, 660]);
 		assert.deepEqual([...zeitStationen(500, 580, 'bis 9:00, +40 min')], [500, 540, 580]);
-		assert.throws(() => zeitStationen(500, 590, 'bis 9:00, +40 min'), /enden bei/);
+		assert.throws(() => zeitStationen(500, 590, 'bis 9:00, +40 min'), /enden bei 9:40, nicht bei 9:50.*„bis 9:50“/);
+		const beispiel = schema('x-zeitspanne').felder.find((f) => f.attribut === 'spruenge');
+		assert.ok(beispiel?.art === 'text' && beispiel.beispiel);
+		assert.deepEqual([...zeitStationen(500, 585, beispiel.beispiel)], [500, 540, 570, 585]);
 		assert.equal(dauerText(85), '1 h 25 min');
 		assert.equal(dauerText(60), '1 h');
 		assert.equal(dauerText(5), '5 min');
@@ -1516,6 +1913,11 @@ describe('Musik (035)', () => {
 		assert.throws(() => leseTakte('4 4 8 8 4 4 | 4 4 2', '4/4', false), /Takt 1 hat 5 Viertel statt 4/);
 		assert.throws(() => leseTakte('4 4 | 4', '2/4', false), /Takt 2 hat 1 Viertel statt 2/);
 		assert.throws(() => leseTakte('4 8', '2/4', false), /Takt 1 hat 1,5 Viertel statt 2/);
+		assert.throws(
+			() => leseTakte('4 | 4 4 | 2.', '2/4', false),
+			/Takt 1 hat 1 Viertel statt 2, Takt 3 hat 3 Viertel statt 2\. Passe die Noten an: Jeder Takt braucht 2 Viertel\.$/,
+			'Die Meldung nennt jeden falschen Takt und den Weg (084, E-U1)',
+		);
 		assert.equal(leseTakte('4 8 8 4 r4 | 2.  4', '4/4', false).length, 2);
 		assert.throws(() => leseTakte('4', '4/4', false), /Takt 1/);
 		assert.equal(leseTakte('4 | 4 4 4 4 | 4 4 4', '4/4', false, true).length, 3);
@@ -1906,6 +2308,35 @@ describe('Generatoren (050)', () => {
 		assert.ok(aufgaben.every((t) => t.startsWith('_ + ')));
 	});
 
+	it('Rechenreihe: das Schema zählt die Aufgaben wie der Generator', () => {
+		const faelle: Record<string, string>[] = [
+			{ rechenart: '+', zahlenraum: '10' },
+			{ rechenart: '+', zahlenraum: '10', uebergang: 'mit' },
+			{ rechenart: '+', zahlenraum: '10', uebergang: 'ohne' },
+			{ rechenart: '−', zahlenraum: '10' },
+			{ rechenart: '+', zahlenraum: '20', uebergang: 'mit' },
+			{ rechenart: '−', zahlenraum: '20', uebergang: 'mit' },
+			{ rechenart: '+', zahlenraum: '10', beziehung: 'tausch' },
+			{ rechenart: '+', zahlenraum: '10', beziehung: 'umkehr' },
+			{ rechenart: '·', zahlenraum: '10' },
+			{ rechenart: '·', zahlenraum: '20' },
+			{ rechenart: '·', zahlenraum: '10', beziehung: 'umkehr' },
+			{ rechenart: ':', zahlenraum: '10' },
+			{ rechenart: ':', zahlenraum: '20' },
+			{ rechenart: ':', zahlenraum: '10', rest: '1' },
+			...['1', '2', '3', '7', '10'].flatMap((r) => [
+				{ rechenart: '·', zahlenraum: '20', reihe: r },
+				{ rechenart: ':', zahlenraum: '100', reihe: r },
+			]),
+			{ rechenart: ':', zahlenraum: '20', reihe: '7', rest: '1' },
+		];
+		for (const angaben of faelle) {
+			const { aufgaben, fehler } = reihe({ ...angaben, anzahl: '60' }, 'zaehlen');
+			const gefunden = fehler ? Number(/nur (\d+) verschiedene/.exec(fehler)?.[1]) : aufgaben.length;
+			assert.equal(rechenreiheMoeglich(angaben), gefunden, JSON.stringify(angaben));
+		}
+	});
+
 	it('Rechenreihe: Unerfüllbares meldet das Element, statt falsche Aufgaben zu liefern', () => {
 		assert.match(
 			reihe({ rechenart: '+', zahlenraum: '10', anzahl: '60' }, 'a').fehler ?? '',
@@ -2222,5 +2653,76 @@ describe('Abschnitte im Inspektor', () => {
 		assert.equal(uhr.ziffern, 'darstellung');
 		assert.equal(uhr.groesse, 'darstellung');
 		assert.equal(uhr.digital, 'weitere');
+	});
+});
+
+describe('Schema: Namen, Gruppen und Bedingungen (084)', () => {
+	const feldVon = (tag: string, attribut: string) => {
+		const feld = schemaVon(tag)?.felder.find((f) => f.attribut === attribut);
+		assert.ok(feld, `${tag}.${attribut}`);
+		return feld;
+	};
+	const alle = Object.entries(ABBILDUNG_SCHEMA as Readonly<Record<string, AbbildungSchema>>);
+
+	it('Kein Feld heißt wie sein Abschnitt, innerhalb eines Abschnitts kein Name doppelt', () => {
+		for (const [tag, schema] of alle.filter(([t]) => t !== 'x-probe')) {
+			const gesehen = new Set<string>();
+			for (const f of schema.felder.filter((x) => !x.ohneFeld)) {
+				const abschnitt = ABSCHNITT_TITEL[abschnittVon(f)];
+				assert.notEqual(f.name, abschnitt, `${tag}.${f.attribut} heißt wie sein Abschnitt`);
+				const schluessel = `${abschnitt}/${f.gruppe ?? ''}/${f.name}`;
+				assert.ok(!gesehen.has(schluessel), `${tag}.${f.attribut}: „${f.name}“ doppelt`);
+				gesehen.add(schluessel);
+			}
+		}
+	});
+
+	it('Keine Gruppenüberschrift wiederholt den Namen eines ihrer Felder', () => {
+		for (const [tag, schema] of alle.filter(([t]) => t !== 'x-probe')) {
+			for (const f of schema.felder.filter((x) => !x.ohneFeld && x.gruppe && x.gruppe !== 'Mehr')) {
+				assert.notEqual(f.name, f.gruppe, `${tag}.${f.attribut}`);
+			}
+		}
+	});
+
+	it('`nurWenn` liest nur Felder, die es im Schema gibt', () => {
+		for (const [tag, schema] of alle) {
+			const gueltig = new Set(schema.felder.map((f) => f.attribut));
+			for (const f of schema.felder.filter((x) => x.nurWenn)) {
+				const gelesen = new Set<string>();
+				const werte = new Proxy({} as Werte, {
+					get: (_, name) => {
+						gelesen.add(String(name));
+						return null;
+					},
+				});
+				f.nurWenn?.(werte);
+				assert.ok(gelesen.size > 0, `${tag}.${f.attribut} liest kein Feld`);
+				for (const g of gelesen) {
+					assert.ok(gueltig.has(g), `${tag}.${f.attribut} liest „${g}“, das gibt es nicht`);
+				}
+			}
+		}
+	});
+
+	it('Regel Inhalt und Darstellung: Größe und Breite gehören nie zum Inhalt', () => {
+		for (const [tag, schema] of alle) {
+			for (const f of schema.felder.filter((x) => ['groesse', 'breite'].includes(x.attribut))) {
+				assert.notEqual(abschnittVon(f), 'inhalt', `${tag}.${f.attribut}`);
+				assert.notEqual(abschnittVon(f), 'weitere', `${tag}.${f.attribut}`);
+			}
+		}
+		assert.equal(abschnittVon(feldVon('x-tangram', 'umriss')), 'inhalt');
+		assert.equal(abschnittVon(feldVon('x-wuerfelbau', 'einheit')), 'darstellung');
+	});
+
+	it('Als Text: Hin und zurück ändert nichts; leere Zeilen fallen weg', () => {
+		const feld = feldVon('x-domino', 'paare') as ListeFeld;
+		const zeilen = [
+			['3·3', '9'],
+			['4·4', '16'],
+		];
+		assert.deepEqual(zeilenAusText(feld, zeilenAlsText(feld, zeilen)), zeilen);
+		assert.deepEqual(zeilenAusText(feld, '\n3·3 | 9\n\n'), [['3·3', '9']]);
 	});
 });

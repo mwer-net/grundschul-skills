@@ -45,6 +45,10 @@ interface FeldBasis {
 	ohneFeld?: boolean;
 	/** Der Inhalt darf `<mark>` und Fett enthalten: Das Feld zeigt den Text, beim Ändern bleibt die Auszeichnung. */
 	auszeichnung?: boolean;
+	/** Nur wenn es wirkt: Das Panel blendet das Feld sonst aus. Der Wert im Attribut bleibt, am Blatt ändert sich nichts. */
+	nurWenn?: (w: Werte) => boolean;
+	/** Was die Wahl sonst am Blatt scheitern ließe, nimmt sie mit: bekommt die neuen und die alten Werte, liefert die dazu geänderten. */
+	mitnehmen?: (w: Werte, alt: Werte) => Werte;
 }
 
 /** Vorschlag für den Notenschlüssel in Prozent (053); dieselbe Angabe steht in `abbildungen.js`, ein Test hält beide gleich. */
@@ -76,6 +80,10 @@ export interface AuswahlFeld extends FeldBasis {
 	blaettern?: boolean;
 	/** Weitere Optionen aus einem Feld mit `|`-Teilen, z. B. die Bausteine eines Worts. */
 	optionenAus?: string;
+	/** Im Panel stehen nur diese, je nach anderem Feld; der erste Eintrag gilt, solange es fehlt. `optionen` bleibt die Liste aller gültigen Werte. */
+	optionenJe?: { feld: string; werte: Record<string, { wert: string | null; name: string }[]> };
+	/** Im Panel stehen nur Optionen, für die das gilt, z. B. nur Satzglieder, die es im Satz gibt. `optionen` bleibt die Liste aller gültigen Werte. */
+	angeboten?: (wert: string | null, w: Werte) => boolean;
 	/** Pfad eines kleinen Bilds zur gewählten Option; `{wert}` steht für den Wert. */
 	vorschau?: string;
 }
@@ -131,6 +139,8 @@ export interface UnterFeld {
 	leer?: boolean;
 	/** Nur `art: 'schalter'`: Wert, wenn der Haken gesetzt ist. */
 	an?: string;
+	/** Lange Einträge wie ein Hinweis: Die Spalte bekommt im Panel anderthalbmal so viel Platz. */
+	breit?: boolean;
 }
 
 /** Zeilen aus Unterfeldern: `Hund: 7; Katze: 4`. Zeilen hinzufügen, löschen, verschieben. */
@@ -143,6 +153,10 @@ export interface ListeFeld extends FeldBasis {
 	zeilenTrenner?: ';' | ' ' | '/';
 	/** Zwischen den Unterfeldern einer Zeile; Standard `:`. */
 	feldTrenner?: ':' | ': ' | '-' | ' ' | '';
+	/** Viele Einträge: Knopf „Als Text bearbeiten“, eine Zeile je Eintrag. */
+	alsText?: boolean;
+	/** `false`: Die Reihenfolge wirkt nicht (die Zeichnung ordnet selbst), also kein Griff. */
+	sortierbar?: boolean;
 }
 
 /** Mehrere Haken aus festen Optionen; im Attribut mit Leerzeichen getrennt. */
@@ -747,6 +761,65 @@ export const notenAnfuegen = (text: string, wort: string, takt: string) => {
 	return summe >= (NOTEN_TAKT_ACHTEL[takt] ?? 8) ? `${roh} | ${wort}` : `${roh} ${wort}`;
 };
 
+/**
+ * Ordnet die Noten neu in Takte der Taktart `takt`, wie `notenAnfuegen` sie schriebe; Pausen am Ende fallen weg, neue füllen
+ * den letzten Takt. `null`, wenn eine Note über einen Taktstrich ragte oder ein Wort keine Note ist.
+ */
+export const notenInTakt = (text: string, takt: string): string | null => {
+	const soll = NOTEN_TAKT_ACHTEL[takt];
+	const woerter = text.split(/[\s|]+/).filter(Boolean);
+	while (woerter.length > 0 && /^r/.test(woerter.at(-1) ?? '')) {
+		woerter.pop();
+	}
+	if (!soll || woerter.length === 0) {
+		return null;
+	}
+	const takte: string[][] = [];
+	let summe = soll;
+	for (const wort of woerter) {
+		const achtel = wortAchtel(wort);
+		if (achtel === 0) {
+			return null;
+		}
+		if (summe === soll) {
+			takte.push([]);
+			summe = 0;
+		}
+		if (summe + achtel > soll) {
+			return null;
+		}
+		takte.at(-1)?.push(wort);
+		summe += achtel;
+	}
+	const letzter = takte.at(-1) ?? [];
+	if (summe % 2 === 1) {
+		letzter.push('r8');
+		summe += 1;
+	}
+	while (summe < soll) {
+		const halbe = summe % 4 === 0 && soll - summe >= 4;
+		letzter.push(halbe ? 'r2' : 'r4');
+		summe += halbe ? 4 : 2;
+	}
+	return takte.map((t) => t.join(' ')).join(' | ');
+};
+
+/** Die Taktart nimmt die Noten mit, wenn sie sich ohne Bindebogen neu ordnen lassen; mit Auftakt bleibt alles, wie es ist. */
+const notenFuerTakt = (w: Werte): Werte => {
+	const roh = w.noten ?? '';
+	const soll = NOTEN_TAKT_ACHTEL[w.takt ?? '4/4'] ?? 8;
+	const takte = roh.split('|').map((t) => t.trim().split(/\s+/).filter(Boolean));
+	const passt = takte.every((t) => t.reduce((s, wort) => s + wortAchtel(wort), 0) === soll);
+	if (!roh.trim() || passt || w.auftakt === 'ja') {
+		return {};
+	}
+	const neu = notenInTakt(roh, w.takt ?? '4/4');
+	if (neu === null || (w.art === 'karte' && neu.includes('|'))) {
+		return {};
+	}
+	return { noten: neu };
+};
+
 export const notenZuruecknehmen = (text: string) =>
 	text
 		.trim()
@@ -805,9 +878,577 @@ const skalaStandard = (w: Werte): [number, number, string] => {
 	return SKALA_STANDARD[`${art}|${einheit}`] ?? [0, 15, '1 0.1'];
 };
 
+const skalaEinheitVon = (art: string) =>
+	Object.keys(SKALA_STANDARD)
+		.filter((k) => k.startsWith(`${art}|`))
+		.map((k) => k.split('|')[1] ?? '');
+
+/** Im Panel nur die Einheiten des Geräts; die Reihenfolge ist die in `SKALA_STANDARD`, das Lineal zuerst. */
+const SKALA_EINHEITEN = Object.fromEntries(
+	[...new Set(Object.keys(SKALA_STANDARD).map((k) => k.split('|')[0] ?? ''))].map((art) => [
+		art,
+		[{ wert: null, name: 'Passend zum Gerät' }, ...skalaEinheitVon(art).map((e) => ({ wert: e, name: e }))],
+	]),
+);
+
+const skalaSchluessel = (w: Werte) => {
+	const art = w.art ?? 'lineal';
+	return `${art}|${w.einheit ?? skalaEinheitVon(art)[0] ?? ''}`;
+};
+
+/** Liegt die Zahl auf einem Strich der neuen Skala, bleibt sie; sonst kommt ein Strich in der Mitte. */
+const skalaWert = (roh: string, [von, bis, teilung]: [number, number, string]) => {
+	const klein = Number(teilung.split(' ')[1]);
+	const zahl = Number(roh.replace(',', '.'));
+	const schritte = (zahl - von) / klein;
+	if (zahl >= von && zahl <= bis && Math.abs(schritte - Math.round(schritte)) < 1e-6) {
+		return roh;
+	}
+	const mitte = von + Math.round((bis - von) / 2 / klein) * klein;
+	return String(Math.round(mitte * 1e6) / 1e6).replace('.', ',');
+};
+
+/**
+ * Anderes Gerät oder andere Einheit: Die Einheit muss zum Gerät passen, Von, Bis und Striche folgen dem Standard des
+ * Geräts, der Wert kommt auf einen Strich. Bleibt die wirksame Einheit dieselbe, ändert sich nichts.
+ */
+const skalaFolgt = (w: Werte, alt: Werte): Werte => {
+	const einheit = skalaEinheitVon(w.art ?? 'lineal').includes(w.einheit ?? '') ? w.einheit : null;
+	const neu = { ...w, einheit: einheit ?? null };
+	if (skalaSchluessel(neu) === skalaSchluessel(alt)) {
+		return {};
+	}
+	const standard = skalaStandard(neu);
+	return {
+		einheit: einheit ?? null,
+		von: null,
+		bis: null,
+		teilung: null,
+		...(w.wert ? { wert: skalaWert(w.wert, standard) } : {}),
+		...(w.loesung ? { loesung: skalaWert(w.loesung, standard) } : {}),
+	};
+};
+
 /** Der wirksame Standard eines Zahlenfeldes bei den übrigen Werten. */
 export const zahlStandard = (feld: ZahlFeld, w: Werte | null | undefined) =>
 	feld.standardJe && w ? feld.standardJe(w) : feld.standard;
+
+/** Was das Panel zur Wahl anbietet: die Optionen je nach anderem Feld (`optionenJe`), davon die `angeboten`en. */
+export const auswahlOptionen = (feld: AuswahlFeld, w: Werte | null | undefined) => {
+	const je = feld.optionenJe;
+	const grund = je ? (je.werte[w?.[je.feld] ?? Object.keys(je.werte)[0] ?? ''] ?? feld.optionen) : feld.optionen;
+	const angeboten = feld.angeboten;
+	return angeboten && w ? grund.filter((o) => angeboten(o.wert, w)) : grund;
+};
+
+/** Für `nurWenn`: Das Feld gilt nur bei diesen Werten eines anderen Felds. Ein leeres Attribut zählt als `standard`. */
+const wenn =
+	(attribut: string, standard: string, ...werte: string[]) =>
+	(w: Werte) =>
+		werte.includes(w[attribut] ?? standard);
+const wennNicht =
+	(attribut: string, standard: string, ...werte: string[]) =>
+	(w: Werte) =>
+		!werte.includes(w[attribut] ?? standard);
+/** Wiederholung und Reihenfolge ändern nur etwas, wenn dasselbe Wort auf mehreren Stufen steht. */
+const gleicheWoerter = (w: Werte) => {
+	const stufen = (w.stufen ?? '').split(';').map((s) => s.split(',').map((t) => t.trim()));
+	return stufen.some((s, i) => stufen.some((t, j) => i !== j && s.some((x) => x && t.includes(x))));
+};
+
+/**
+ * Satzglieder, die sich beim Umstellen nach vorn stellen lassen: wie `satzUmstellen` in `abbildungen.js` jedes außer dem
+ * Prädikat und dem ersten Satzglied.
+ */
+export const vornMoeglich = (satz: string) => {
+	const { woerter } = markierungLesen(satz, true);
+	const erstes = woerter[0]?.gruppe;
+	return new Set(woerter.flatMap((t) => (t.gruppe !== erstes && t.marke && t.marke !== 'P' ? [t.marke] : [])));
+};
+const vornAngeboten = (wert: string | null, w: Werte) => wert === null || vornMoeglich(w.inhalt ?? '').has(wert);
+/** Ändert sich der Satz, fällt ein Satzglied für vorn weg, das es dort nicht mehr gibt. */
+const vornFolgtSatz = (w: Werte): Werte => (vornAngeboten(w.vorn ?? null, w) ? {} : { vorn: null });
+
+/**
+ * Art „Bilder“: Jeder Eintrag braucht ein Bild. Die Meldung steht an der Liste, also bei den Bild-Knöpfen, und nennt
+ * die Zeilen. Die Wahl bleibt so lange Entwurf, die Knöpfe sind schon da (E-S2; Suchsel mit `istBild` für `mini`).
+ */
+const bilderFehlen = (
+	w: Lesen,
+	{
+		liste,
+		spalte,
+		wahl,
+		istBild = (z: string) => z.trim() !== '',
+		weg = 'Wähle es mit dem Bild-Knopf in der Zeile',
+	}: {
+		liste: string;
+		spalte: number;
+		wahl: string;
+		istBild?: (zelle: string) => boolean;
+		/** Wie die Zeile zu ihrem Bild kommt; ohne Angabe steht der Bild-Knopf schon in der Zeile. */
+		weg?: string;
+	},
+): Fehler => {
+	const ohne = w.zeilen(liste).flatMap((z, i) => (istBild(z[spalte] ?? '') ? [] : [i + 1]));
+	if (ohne.length === 0) {
+		return {};
+	}
+	const wo = ohne.length === 1 ? `Zeile ${ohne[0]}` : `Zeile ${ohne.slice(0, -1).join(', ')} und ${ohne.at(-1)}`;
+	return { [liste]: `${wahl} braucht jeder Eintrag ein Bild. ${weg}, es fehlt in ${wo}.` };
+};
+
+/** Buchstaben eines Rätselworts wie `raetselWort` in `abbildungen.js`: groß, ß wird SS. */
+const raetselBuchstaben = (wort: string) => [...wort.replace(/ß/g, 'SS').toUpperCase()];
+
+/**
+ * Lösungswort senkrecht: Aus jedem Wort kommt der Reihe nach ein Buchstabe. Die Meldung steht am Lösungswort und
+ * nennt den Weg; die Wahl der Art bleibt Entwurf, bis es passt (E-X3). Dieselben Prüfungen wie in `abbildungen.js`.
+ */
+const senkrechtFehlt = (eintraege: string[][], geheimRoh: string | null): Fehler => {
+	const n = eintraege.length;
+	const weg = `Aus jedem Wort kommt der Reihe nach ein Buchstabe, es braucht also ${n} Buchstaben.`;
+	if (!geheimRoh) {
+		return { loesungswort: `Hier fehlt das Lösungswort. ${weg}` };
+	}
+	const geheim = raetselBuchstaben(geheimRoh);
+	if (geheim.length !== n) {
+		return {
+			loesungswort: `Das Lösungswort hat ${geheim.length} Buchstaben, es sind aber ${n} Wörter. ${weg} Nimm ein anderes Lösungswort oder ${geheim.length} Wörter.`,
+		};
+	}
+	const i = eintraege.findIndex(([, wort = ''], j) => !raetselBuchstaben(wort).includes(geheim[j] ?? ''));
+	const [, wort = ''] = eintraege[i] ?? [];
+	return i < 0
+		? {}
+		: {
+				loesungswort: `„${wort}“ enthält kein ${geheim[i]}, den ${i + 1}. Buchstaben des Lösungsworts. Nimm ein anderes Wort oder ziehe die Wörter in eine passende Reihenfolge.`,
+			};
+};
+
+/** Platzhalter, wenn die Inhalte eines Spielplans nicht als Ziele taugen. */
+export const LERNLANDKARTE_PLATZHALTER = 'Ich kann …; Ich kann …; Ich kann …';
+
+/**
+ * Zur Lernlandkarte: Sie hat 2 bis 12 Ziele wie `lernlandkarte` in `abbildungen.js`. Passt die Zahl der Inhalte nicht,
+ * etwa die Aufgaben eines Spielplans, kommen drei Platzhalter; was passt, bleibt (E-X4).
+ */
+const zieleFuerLernlandkarte = (w: Werte): Werte => {
+	if (w.art !== 'lernlandkarte') {
+		return {};
+	}
+	const ziele = (w.inhalt ?? '').split(';').filter((t) => t.trim() !== '').length;
+	return ziele >= 2 && ziele <= 12 ? {} : { inhalt: LERNLANDKARTE_PLATZHALTER };
+};
+
+const FELDER_JE_ART: Readonly<Record<string, number>> = { fuenfer: 5, zehner: 10, zwanziger: 20 };
+
+/** Plättchen, die ins Feld passen. Sind es zu viele, füllt die erste Sorte das halbe Feld wie im Musterblatt. */
+const passendePlaettchen = (n: number, n2: number, felder: number) => {
+	const erste = n > felder ? Math.ceil(felder / 2) : n;
+	return [erste, Math.min(n2, felder - erste)] as const;
+};
+
+/** Die Art des Zwanzigerfelds nimmt passende Anzahlen mit, auch die der Lösung; was passt, bleibt zeichengleich. */
+const plaettchenFuerArt = (w: Werte): Werte => {
+	const felder = FELDER_JE_ART[w.art ?? 'zwanziger'] ?? 20;
+	const neu: Werte = {};
+	const [n, n2] = [Number(w.n ?? 0), Number(w.n2 ?? 0)];
+	if (n + n2 > felder) {
+		const [erste, zweite] = passendePlaettchen(n, n2, felder);
+		neu.n = String(erste);
+		neu.n2 = zweite > 0 ? String(zweite) : null;
+	}
+	const loesung = (w.loesung ?? '').trim().split(/\s+/).filter(Boolean).map(Number);
+	if ((loesung[0] ?? 0) + (loesung[1] ?? 0) > felder) {
+		const [erste, zweite] = passendePlaettchen(loesung[0] ?? 0, loesung[1] ?? 0, felder);
+		neu.loesung = zweite > 0 ? `${erste} ${zweite}` : String(erste);
+	}
+	return neu;
+};
+
+const TAFEL_VERSATZ: Readonly<Record<string, readonly number[]>> = {
+	kreuz: [-10, -1, 0, 1, 10],
+	block: [-11, -10, -9, -1, 0, 1, 9, 10, 11],
+	treppe: [0, 1, 11, 12, 22, 23],
+};
+
+/** Die Zahlen eines Ausschnitts wie `ausschnittZahlen` in `abbildungen.js`, ein Test hält beide gleich; `null`, wenn er dort scheitert. */
+export const tafelAusschnitt = (von: number, bis: number, art: string, mitte: number): number[] | null => {
+	if (mitte < von || mitte > bis) {
+		return null;
+	}
+	const spalte = (mitte - von) % 10;
+	const alle = Array.from({ length: bis - von + 1 }, (_, i) => von + i);
+	if (art === 'zeile') {
+		return alle.filter((z) => Math.floor((z - von) / 10) === Math.floor((mitte - von) / 10));
+	}
+	if (art === 'spalte') {
+		return alle.filter((z) => (z - von) % 10 === spalte);
+	}
+	const versatz = TAFEL_VERSATZ[art];
+	if (!versatz || spalte < (art === 'treppe' ? 0 : 1) || spalte + 1 > 9) {
+		return null;
+	}
+	const zahlen = versatz.map((v) => mitte + v);
+	return zahlen.every((z) => z >= von && z <= bis) ? zahlen : null;
+};
+
+const tafelGrenzen = (w: Werte) => {
+	const von = Number(w.von ?? 1);
+	return { bis: Number(w.bis ?? von + 99), von };
+};
+
+/** Lücken und Markierungen außerhalb des Ausschnitts ließen das Zeichnen scheitern und wären im Raster nicht mehr zu erreichen. */
+const nurImAusschnitt = (w: Werte, zahlen: number[]): Werte => {
+	const neu: Werte = {};
+	for (const attribut of ['luecken', 'markiert']) {
+		const alt = (w[attribut] ?? '').trim().split(/\s+/).filter(Boolean);
+		const bleibt = alt.filter((z) => zahlen.includes(Number(z)));
+		if (bleibt.length < alt.length) {
+			neu[attribut] = bleibt.length > 0 ? bleibt.join(' ') : null;
+		}
+	}
+	return neu;
+};
+
+/** Die Wahl des Ausschnitts schreibt die gezeigte Mittelzahl mit; passt sie nicht, die nächste, um die er geht. */
+const mitteFuerAusschnitt = (w: Werte): Werte => {
+	const art = w.ausschnitt ?? 'ganz';
+	if (art === 'ganz') {
+		return {};
+	}
+	const { bis, von } = tafelGrenzen(w);
+	const gezeigt = Number(w.mitte ?? 45);
+	const wunsch = gezeigt >= von && gezeigt <= bis ? gezeigt : von + 44;
+	const passend = Array.from({ length: Math.max(bis - von + 1, 0) }, (_, i) => von + i)
+		.sort((a, b) => Math.abs(a - wunsch) - Math.abs(b - wunsch))
+		.find((z) => tafelAusschnitt(von, bis, art, z));
+	if (passend === undefined) {
+		return {};
+	}
+	return {
+		mitte: String(passend),
+		...nurImAusschnitt(w, tafelAusschnitt(von, bis, art, passend) ?? []),
+	};
+};
+
+/** Rückt die Mittelzahl, fällt heraus, was nicht mehr im Ausschnitt steht. Geht er um diese Zahl nicht, sagt das die Meldung. */
+const ausschnittFolgtMitte = (w: Werte): Werte => {
+	const { bis, von } = tafelGrenzen(w);
+	const zahlen = tafelAusschnitt(von, bis, w.ausschnitt ?? 'ganz', Number(w.mitte ?? 45));
+	return zahlen ? nurImAusschnitt(w, zahlen) : {};
+};
+
+/** Geht jede Reihe der Minus-Mauer auf, ohne dass ein Stein unter 0 fällt? */
+const minusMauerGeht = (basis: number[]): boolean => {
+	if (basis.length < 2) {
+		return true;
+	}
+	const reihe = basis.slice(1).map((z, i) => (basis[i] ?? 0) - z);
+	return reihe.every((z) => z >= 0) && minusMauerGeht(reihe);
+};
+
+const anordnungen = (zahlen: number[]): number[][] =>
+	zahlen.length < 2
+		? [zahlen]
+		: zahlen.flatMap((z, i) => anordnungen(zahlen.filter((_, j) => j !== i)).map((rest) => [z, ...rest]));
+
+/** Minus nimmt eine Reihenfolge mit, in der kein Stein unter 0 fällt; was aufgeht, bleibt zeichengleich. */
+const basisFuerRechnung = (w: Werte): Werte => {
+	const basis = (w.basis ?? '').trim().split(/[;\s]+/).filter(Boolean).map(Number);
+	if (w.art !== 'minus' || basis.length > 5 || basis.some(Number.isNaN) || minusMauerGeht(basis)) {
+		return {};
+	}
+	const passend =
+		anordnungen([...basis].sort((a, b) => b - a)).find(minusMauerGeht) ?? [16, 8, 4, 2, 1].slice(-basis.length);
+	return { basis: passend.join(' ') };
+};
+
+const REIHE_OBERGRENZE = 60;
+
+/** Die Grundaufgaben der Rechenreihe wie `grundaufgabe` in `abbildungen.js`. */
+function* rechenreiheGrund(zeichen: string, raum: number, reihe: number | null, rest: boolean) {
+	if (zeichen === '+') {
+		for (let a = 1; a < raum; a += 1) {
+			for (let b = 1; b <= raum - a; b += 1) {
+				yield [a, b] as const;
+			}
+		}
+	} else if (zeichen === '−') {
+		for (let a = 2; a <= raum; a += 1) {
+			for (let b = 1; b < a; b += 1) {
+				yield [a, b] as const;
+			}
+		}
+	} else if (zeichen === '·') {
+		for (let a = 1; a <= (reihe === null ? Math.floor(raum / 2) : Math.min(10, Math.floor(raum / reihe))); a += 1) {
+			for (const b of reihe === null ? Array.from({ length: Math.floor(raum / a) }, (_, i) => i + 1) : [reihe]) {
+				yield [a, b] as const;
+			}
+		}
+	} else {
+		const teiler =
+			reihe === null ? Array.from({ length: Math.max(1, Math.floor(raum / 2)) }, (_, i) => i + 1) : [reihe];
+		for (const b of teiler.filter((t) => !rest || t >= 2)) {
+			const hoechstens = Math.floor(raum / b);
+			for (let c = 1; c <= (reihe === null ? hoechstens : Math.min(10, hoechstens)); c += 1) {
+				for (let r = rest ? 1 : 0; r <= (rest ? Math.max(1, b - 1) : 0); r += 1) {
+					if (b * c + r <= raum) {
+						yield [b * c + r, b] as const;
+					}
+				}
+			}
+		}
+	}
+}
+
+/**
+ * Wie viele verschiedene Aufgaben `rechenreiheAufgaben` in `abbildungen.js` bei diesen Werten finden kann, ein Test hält
+ * beide gleich. Zählt nur bis zur Obergrenze der Anzahl.
+ */
+export const rechenreiheMoeglich = (w: Werte): number => {
+	const zeichen = w.rechenart ?? '+';
+	const uebergang = w.uebergang ?? 'egal';
+	const beziehung = w.beziehung ?? 'keine';
+	const gegen: Readonly<Record<string, string>> = { '+': '−', '−': '+', '·': ':', ':': '·' };
+	const rechne: Readonly<Record<string, (a: number, b: number) => number>> = {
+		'+': (a, b) => a + b,
+		'−': (a, b) => a - b,
+		'·': (a, b) => a * b,
+		':': (a, b) => Math.floor(a / b),
+	};
+	const schon = new Set<string>();
+	const grund = rechenreiheGrund(zeichen, Number(w.zahlenraum ?? 20), w.reihe ? Number(w.reihe) : null, w.rest === '1');
+	for (const [a, b] of grund) {
+		const ueber = zeichen === '+' ? (a % 10) + (b % 10) > 10 : ((a - b) % 10) + (b % 10) > 10;
+		const punkt = zeichen === '·' || zeichen === ':';
+		if ((!punkt && uebergang !== 'egal' && ueber !== (uebergang === 'mit')) || (beziehung === 'tausch' && a === b)) {
+			continue;
+		}
+		schon.add(`${a} ${zeichen} ${b}`);
+		if (beziehung === 'tausch') {
+			schon.add(`${b} ${zeichen} ${a}`);
+		}
+		if (beziehung === 'umkehr') {
+			schon.add(`${rechne[zeichen]?.(a, b) ?? 0} ${gegen[zeichen] ?? ''} ${b}`);
+		}
+		if (schon.size >= REIHE_OBERGRENZE) {
+			break;
+		}
+	}
+	return schon.size;
+};
+
+/**
+ * Was zur Rechenart nicht passt, fällt weg, und die Anzahl sinkt auf das, was es gibt. Sonst scheitert die Wahl am Starter.
+ * `dazu` nennt, was die jeweilige Wahl darüber hinaus braucht.
+ */
+const rechenreiheNimmt =
+	(dazu?: (w: Werte) => Werte) =>
+	(w: Werte): Werte => {
+		const zeichen = w.rechenart ?? '+';
+		const punkt = zeichen === '·' || zeichen === ':';
+		const neu: Werte = {};
+		if (punkt && (w.uebergang ?? 'egal') !== 'egal') {
+			neu.uebergang = null;
+		}
+		if (!punkt && w.reihe) {
+			neu.reihe = null;
+		}
+		if (zeichen !== ':' && w.rest === '1') {
+			neu.rest = null;
+		}
+		if (w.beziehung === 'tausch' && (zeichen === '−' || zeichen === ':')) {
+			neu.beziehung = null;
+		}
+		const stand = { ...w, ...neu, ...dazu?.({ ...w, ...neu }) };
+		const moeglich = rechenreiheMoeglich(stand);
+		return moeglich > 0 && Number(stand.anzahl ?? 10) > moeglich ? { ...stand, anzahl: String(moeglich) } : stand;
+	};
+
+/** Eine Reihe braucht den Zahlenraum, in dem ihre zehn Aufgaben liegen; die 1er-Reihe hat keinen Rest. */
+const raumFuerReihe = (w: Werte): Werte => {
+	const reihe = Number(w.reihe ?? 0);
+	const raum = [10, 20, 100].find((r) => r >= reihe * 10) ?? 100;
+	return {
+		...(reihe > 0 && Number(w.zahlenraum ?? 20) < raum ? { zahlenraum: String(raum) } : {}),
+		...(reihe === 1 && w.rest === '1' ? { rest: null } : {}),
+	};
+};
+
+/** Rest geht nur mit dem Platzhalter beim Ergebnis, ohne Aufgabenpaare und nicht in der 1er-Reihe. */
+const passendZumRest = (w: Werte): Werte => {
+	if (w.rest !== '1') {
+		return {};
+	}
+	return {
+		...((w.platzhalter ?? 'ergebnis') !== 'ergebnis' ? { platzhalter: null } : {}),
+		...((w.beziehung ?? 'keine') !== 'keine' ? { beziehung: null } : {}),
+		...(w.reihe === '1' ? { reihe: null } : {}),
+	};
+};
+
+const ZAUBER_START: Readonly<Record<string, { felder: number; ids: RegExp; summe: string; vorgegeben: string }>> = {
+	dreieck: { felder: 6, ids: /^[es]\d$/, summe: '9', vorgegeben: 'e0 e1' },
+	quadrat: { felder: 9, ids: /^z\d$/, summe: '15', vorgegeben: 'z0 z4 z5' },
+};
+
+/** Die Form nimmt ihre Zahlen mit, die Summe, die dazu aufgeht, und Vorgaben, die es in ihr gibt, wie im Musterblatt. */
+const zahlenFuerZauberform = (w: Werte): Werte => {
+	const start = ZAUBER_START[w.art ?? 'dreieck'];
+	const zahlen = (w.zahlen ?? '').trim().split(/[;\s]+/).filter(Boolean);
+	if (!start || zahlen.length === start.felder) {
+		return {};
+	}
+	const mitSumme = Number(w.summe ?? 0) > 0;
+	const vorgegeben = (w.vorgegeben ?? '').trim().split(/\s+/).filter(Boolean);
+	const fremd = vorgegeben.some((id) => !start.ids.test(id));
+	return {
+		...(w.zahlen ? { zahlen: null } : {}),
+		...(mitSumme ? { summe: start.summe } : {}),
+		...(fremd ? { vorgegeben: mitSumme ? start.vorgegeben : null } : {}),
+	};
+};
+
+/** Nutzbare Breite eines Blatts in px; dieselbe Zahl steht in `abbildungen.js`, ein Test hält beide gleich. */
+export const SATZSPIEGEL = 620;
+const PX_JE_CM = 96 / 2.54;
+
+/** Der Rand der Figur im Gitter in Kästchen, aus dem Raster und den Linien; ohne Figur `null`. */
+const gitterFigur = (w: Werte) => {
+	const zellen = rasterVon(w.figur ?? null).flatMap((zeile, y) =>
+		zeile.flatMap((z, x) => (z === '0' ? [] : [[x, y], [x + 1, y + 1]])),
+	);
+	const punkte = (w.linien ?? '')
+		.split(/[;\s]+/)
+		.filter(Boolean)
+		.map((p) => p.split(',').map(Number));
+	const xs = [...zellen, ...punkte].map((p) => p[0] ?? 0);
+	const ys = [...zellen, ...punkte].map((p) => p[1] ?? 0);
+	return xs.length === 0
+		? null
+		: { links: Math.min(...xs), oben: Math.min(...ys), rechts: Math.max(...xs), unten: Math.max(...ys) };
+};
+
+/** Passt die Breite bei 1 cm nicht aufs Blatt, nimmt die Wahl die kleinen Kästchen. Ohne Angabe sind es in Klasse 1 und 2 1 cm. */
+const kaestchenFuer = (w: Werte, breite: (kaestchenPx: number) => number): Werte =>
+	w.kaestchen !== '0.5' && breite(PX_JE_CM) > SATZSPIEGEL ? { kaestchen: '0.5' } : {};
+
+const GITTER_ABSTAND = 28;
+const breiteMitZiel = (spalten: number) => (px: number) => spalten * px * 2 + GITTER_ABSTAND;
+
+/** Fortsetzen zeigt die vorgegebenen Muster und zwei weitere: Das Gitter wächst, wenn es sonst zu schmal wäre. */
+const gitterFuerFortsetzen = (w: Werte): Werte => {
+	const figur = gitterFigur(w);
+	if (!figur) {
+		return {};
+	}
+	const breite = Number(w.rapport ?? figur.rechts);
+	const vorgegeben = Number(w.rapporte ?? 2);
+	const hoechstens = Math.floor(SATZSPIEGEL / (PX_JE_CM / 2));
+	const einMuster = vorgegeben > 1 && (vorgegeben + 2) * breite > hoechstens && 3 * breite <= hoechstens;
+	const noetig = ((einMuster ? 1 : vorgegeben) + 2) * breite;
+	const spalten = Math.max(Number(w.spalten ?? 10), noetig);
+	if (noetig > hoechstens) {
+		return {};
+	}
+	return {
+		...(spalten !== Number(w.spalten ?? 10) ? { spalten: String(spalten) } : {}),
+		...(einMuster ? { rapporte: '1' } : {}),
+		...kaestchenFuer(w, (px) => spalten * px),
+	};
+};
+
+/** Das Zielgitter ist so groß wie das Gitter und steht daneben: Es muss die Figur fassen, beide zusammen das Blatt. */
+const gitterFuerVergroessern = (w: Werte): Werte => {
+	const figur = gitterFigur(w);
+	if (!figur) {
+		return {};
+	}
+	const faktor = w.faktor === '0.5' ? 0.5 : 2;
+	const noetigSpalten = Math.max(figur.rechts, Math.ceil((figur.rechts - figur.links) * faktor));
+	const noetigZeilen = Math.max(figur.unten, Math.ceil((figur.unten - figur.oben) * faktor));
+	const jetzt = Number(w.spalten ?? 10);
+	const gewachsen = Math.max(jetzt, noetigSpalten);
+	const passtKlein = breiteMitZiel(gewachsen)(PX_JE_CM / 2) <= SATZSPIEGEL;
+	const spalten = passtKlein ? gewachsen : noetigSpalten;
+	const zeilen = Math.max(Number(w.zeilen ?? 8), noetigZeilen);
+	return {
+		...(spalten !== jetzt ? { spalten: String(spalten) } : {}),
+		...(zeilen !== Number(w.zeilen ?? 8) ? { zeilen: String(zeilen) } : {}),
+		...kaestchenFuer(w, breiteMitZiel(spalten)),
+		...(w.achse ? { achse: null, 'achse-bei': null } : {}),
+	};
+};
+
+/** Spiegeln braucht eine Achse: Fehlt sie, kommt sie an den rechten Rand der Figur, ohne Figur in die Mitte. */
+const achseFuerSpiegeln = (w: Werte): Werte =>
+	w.achse
+		? {}
+		: {
+				achse: 'senkrecht',
+				'achse-bei': String(gitterFigur(w)?.rechts ?? Math.floor(Number(w.spalten ?? 10) / 2)),
+			};
+
+/** Die Aufgabe des Gitters nimmt mit, was sie am Gitter braucht; was schon passt, bleibt zeichengleich. */
+const gitterFuerAufgabe = (w: Werte): Werte => {
+	switch (w.aufgabe) {
+		case 'spiegeln':
+			return achseFuerSpiegeln(w);
+		case 'fortsetzen':
+			return gitterFuerFortsetzen(w);
+		case 'vergroessern':
+			return gitterFuerVergroessern(w);
+		default:
+			return {};
+	}
+};
+
+/**
+ * Was gefragt ist, steht nicht mehr als Vorgabe da. Bleibt dann weder Schrägbild noch Bauplan, kommt das Schrägbild
+ * dazu, denn sonst lässt sich die Frage nicht beantworten. Andersherum nimmt eine Vorgabe die Frage nicht weg. Wer
+ * Bauplan oder Anzahl aus dem Schrägbild erschließt, muss jeden Würfel sehen: Verdeckte werden gezeigt; hat der Bau
+ * keine, ändert das am Blatt nichts.
+ */
+const vorgabeOhneFrage = (w: Werte): Werte => {
+	const fragen = listeVon(w.fragen ?? null);
+	const zeige = listeVon(w.zeige ?? null);
+	const bleibt = zeige.filter((z) => !fragen.includes(z));
+	const ohneGrundlage = fragen.length > 0 && bleibt.length > 0 && !bleibt.some((z) => ['schraegbild', 'bauplan'].includes(z));
+	const neu = ohneGrundlage ? ['schraegbild', ...bleibt] : bleibt;
+	const nurSchraegbild = !neu.includes('bauplan') && fragen.some((f) => ['bauplan', 'anzahl'].includes(f));
+	return {
+		...(neu.join(' ') === zeige.join(' ') ? {} : { zeige: neu.length > 0 ? neu.join(' ') : null }),
+		...(nurSchraegbild && w.verdeckt !== 'zeigen' ? { verdeckt: 'zeigen' } : {}),
+	};
+};
+
+const NETZ_NUR_ECHT = ['gegenueber', 'augen-ergaenzen'];
+const istKeinNetz = (w: Werte) => (w.netz ?? '').startsWith('n');
+
+/** „Kein Netz“ ergibt nur als Frage „Netz oder nicht?“ Sinn; was einen faltbaren Würfel braucht, fällt mit der Wahl weg. */
+const aufgabeFuerNetz = (w: Werte): Werte =>
+	istKeinNetz(w)
+		? {
+				...(w.aufgabe === 'netz-oder-nicht' ? {} : { aufgabe: 'netz-oder-nicht' }),
+				...(w.art === 'quader' ? { art: null } : {}),
+				...(w.bastel === 'ja' ? { bastel: null } : {}),
+				...(w.laschen === 'ja' ? { laschen: null } : {}),
+			}
+		: {};
+
+/** Aufgaben am gefalteten Würfel brauchen ein echtes Netz. */
+const netzFuerAufgabe = (w: Werte): Werte => (istKeinNetz(w) && NETZ_NUR_ECHT.includes(w.aufgabe ?? '') ? { netz: '1' } : {});
+
+/** Der Quader braucht drei Maße und eines der Netze 1 bis 6. */
+const masseFuerQuader = (w: Werte): Werte =>
+	w.art === 'quader'
+		? {
+				...(listeVon(w.masse ?? null).length === 3 ? {} : { masse: '4 2 1' }),
+				...(['1', '2', '3', '4', '5', '6'].includes(w.netz ?? '1') ? {} : { netz: '1' }),
+			}
+		: {};
 
 export const ABBILDUNG_SCHEMA = {
 	'x-uhr': {
@@ -843,7 +1484,7 @@ export const ABBILDUNG_SCHEMA = {
 			},
 			{
 				art: 'auswahl',
-				attribut: 'format',
+				attribut: 'format', nurWenn: wenn('digital', 'nein', 'ja', 'nur'),
 				name: 'Digital im Format',
 				gruppe: 'Mehr',
 				standard: '24',
@@ -907,7 +1548,7 @@ export const ABBILDUNG_SCHEMA = {
 			{
 				art: 'zahl',
 				attribut: 'buendel',
-				name: 'Eingekreiste Zehner',
+				name: 'Zehnerbündel',
 				min: 0,
 				max: 10,
 				standard: 0,
@@ -999,7 +1640,7 @@ export const ABBILDUNG_SCHEMA = {
 			{
 				art: 'auswahl',
 				attribut: 'art',
-				name: 'Darstellung',
+				name: 'Zahlen als',
 				standard: 'ziffern',
 				optionen: [
 					{ wert: 'ziffern', name: 'Ziffern' },
@@ -1008,7 +1649,7 @@ export const ABBILDUNG_SCHEMA = {
 			},
 			{
 				art: 'zahlen',
-				attribut: 'plaettchen',
+				attribut: 'plaettchen', nurWenn: wenn('art', 'ziffern', 'plaettchen'),
 				name: 'Plättchen je Stelle',
 				beispiel: '3 0 12',
 				hilfe: 'Von links nach rechts, bis 15 je Stelle. In der Lösung steht dieselbe Angabe unter „Nur in der Lösung zeigen“.',
@@ -1037,6 +1678,7 @@ export const ABBILDUNG_SCHEMA = {
 				attribut: 'art',
 				name: 'Feld',
 				standard: 'zwanziger',
+				mitnehmen: plaettchenFuerArt,
 				optionen: [
 					{ wert: 'fuenfer', name: 'Fünferfeld' },
 					{ wert: 'zehner', name: 'Zehnerfeld' },
@@ -1044,7 +1686,7 @@ export const ABBILDUNG_SCHEMA = {
 				],
 			},
 			{ art: 'zahl', attribut: 'n', name: 'Plättchen', min: 0, max: 20, standard: 0 },
-			{ art: 'zahl', attribut: 'n2', name: 'Plättchen, zweite Sorte', min: 0, max: 20, standard: 0 },
+			{ art: 'zahl', attribut: 'n2', name: 'Zweite Sorte', min: 0, max: 20, standard: 0 },
 			{
 				art: 'zahlen',
 				attribut: 'loesung',
@@ -1066,8 +1708,16 @@ export const ABBILDUNG_SCHEMA = {
 		felder: [
 			{ art: 'zahl', attribut: 'von', name: 'Von', min: 0, max: 1000000, standard: 0 },
 			{ art: 'zahl', attribut: 'bis', name: 'Bis', min: 1, max: 1000000, standard: 20 },
-			{ art: 'zahl', attribut: 'schritt', name: 'Abstand der Striche', min: 1, max: 100000, standard: 1 },
-			{ art: 'zahl', attribut: 'marken', name: 'Mittlere Striche alle', min: 1, max: 100, standard: 5 },
+			{ art: 'zahl', attribut: 'schritt', name: 'Strichabstand', min: 1, max: 100000, standard: 1 },
+			{
+				art: 'zahl',
+				attribut: 'marken',
+				name: 'Längere alle',
+				hilfe: 'Alle so viele Striche kommt ein längerer.',
+				min: 1,
+				max: 100,
+				standard: 5,
+			},
 			{
 				art: 'zahlen',
 				attribut: 'zahlen',
@@ -1241,7 +1891,7 @@ export const ABBILDUNG_SCHEMA = {
 			{ art: 'schalter', attribut: 'legende', name: 'Legende', an: 'ja', aus: 'nein', standard: true },
 			{
 				art: 'schalter',
-				attribut: 'bastel',
+				attribut: 'bastel', abschnitt: 'darstellung',
 				name: 'Bastelvorlage (12 cm)',
 				an: 'ja',
 				aus: 'nein',
@@ -1272,7 +1922,7 @@ export const ABBILDUNG_SCHEMA = {
 		felder: [
 			{
 				art: 'auswahl',
-				attribut: 'art',
+				attribut: 'art', nurWenn: wenn('ansicht', 'flach', 'flach'),
 				name: 'Seite zeigt',
 				standard: 'augen',
 				optionen: [
@@ -1282,8 +1932,8 @@ export const ABBILDUNG_SCHEMA = {
 					{ wert: 'text', name: 'Text' },
 				],
 			},
-			{ art: 'zahl', attribut: 'augen', name: 'Augen', min: 0, max: 6, standard: 0 },
-			{ art: 'text', attribut: 'inhalt', name: 'Zahl, Text oder Füllung', max: 6 },
+			{ art: 'zahl', attribut: 'augen', nurWenn: (w) => (w.ansicht ?? 'flach') === 'flach' && (w.art ?? 'augen') === 'augen', name: 'Augen', min: 0, max: 6, standard: 0 },
+			{ art: 'text', attribut: 'inhalt', nurWenn: (w) => (w.ansicht ?? 'flach') === 'flach' && (w.art ?? 'augen') !== 'augen', name: 'Zahl, Text oder Füllung', max: 6 },
 			{ art: 'text', attribut: 'loesung', name: 'Nur in der Lösung', max: 6 },
 			{
 				art: 'auswahl',
@@ -1295,9 +1945,9 @@ export const ABBILDUNG_SCHEMA = {
 					{ wert: 'raeumlich', name: 'Räumlich' },
 				],
 			},
-			{ art: 'zahl', attribut: 'oben', name: 'Oben', min: 0, max: 6, standard: 1 },
-			{ art: 'zahl', attribut: 'vorne', name: 'Vorne', min: 0, max: 6, standard: 2 },
-			{ art: 'zahl', attribut: 'rechts', name: 'Rechts', min: 0, max: 6, standard: 3 },
+			{ art: 'zahl', attribut: 'oben', nurWenn: wenn('ansicht', 'flach', 'raeumlich'), name: 'Oben', min: 0, max: 6, standard: 1 },
+			{ art: 'zahl', attribut: 'vorne', nurWenn: wenn('ansicht', 'flach', 'raeumlich'), name: 'Vorne', min: 0, max: 6, standard: 2 },
+			{ art: 'zahl', attribut: 'rechts', nurWenn: wenn('ansicht', 'flach', 'raeumlich'), name: 'Rechts', min: 0, max: 6, standard: 3 },
 			{ art: 'zahl', ...GROESSE, min: 32, max: 200, standard: 60, schritt: 4 },
 		],
 	},
@@ -1377,7 +2027,7 @@ export const ABBILDUNG_SCHEMA = {
 			{ art: 'zahl', attribut: 'skala', name: 'Skalenschritt', min: 1, max: 100000, standard: 1 },
 			{
 				art: 'zahl',
-				attribut: 'von',
+				attribut: 'von', nurWenn: wenn('art', 'saeulen', 'linie'),
 				name: 'Von',
 				min: -1000,
 				max: 1000,
@@ -1388,7 +2038,7 @@ export const ABBILDUNG_SCHEMA = {
 			{ art: 'text', attribut: 'einheit', name: 'Achse', max: 20 },
 			{
 				art: 'auswahl',
-				attribut: 'symbol',
+				attribut: 'symbol', nurWenn: wenn('art', 'saeulen', 'bild'),
 				name: 'Symbol',
 				standard: 'kreis',
 				optionen: [
@@ -1398,7 +2048,7 @@ export const ABBILDUNG_SCHEMA = {
 					{ wert: 'herz', name: 'Herz' },
 				],
 			},
-			{ art: 'zahl', attribut: 'je', name: 'Ein Symbol steht für', min: 1, max: 1000, standard: 1 },
+			{ art: 'zahl', attribut: 'je', nurWenn: wenn('art', 'saeulen', 'bild'), name: 'Ein Symbol steht für', min: 1, max: 1000, standard: 1 },
 			{ art: 'zahl', ...GROESSE, min: 100, max: 400, standard: 200, schritt: 20 },
 		],
 		regeln: (w): Fehler => {
@@ -1481,7 +2131,7 @@ export const ABBILDUNG_SCHEMA = {
 			},
 			{
 				art: 'liste',
-				attribut: 'ereignisse',
+				attribut: 'ereignisse', sortierbar: false,
 				name: 'Ereignisse',
 				unter: [
 					{ name: 'Buchstabe', art: 'text', standard: 'A' },
@@ -1508,7 +2158,7 @@ export const ABBILDUNG_SCHEMA = {
 			{
 				art: 'auswahl',
 				attribut: 'art',
-				name: 'Darstellung',
+				name: 'Zeigen als',
 				standard: 'baum',
 				optionen: [
 					{ wert: 'baum', name: 'Baum' },
@@ -1528,7 +2178,7 @@ export const ABBILDUNG_SCHEMA = {
 			},
 			{
 				art: 'schalter',
-				attribut: 'wiederholung',
+				attribut: 'wiederholung', nurWenn: gleicheWoerter,
 				name: 'Mit Wiederholung',
 				an: 'ja',
 				aus: 'nein',
@@ -1536,7 +2186,7 @@ export const ABBILDUNG_SCHEMA = {
 			},
 			{
 				art: 'schalter',
-				attribut: 'reihenfolge',
+				attribut: 'reihenfolge', nurWenn: gleicheWoerter,
 				name: 'Reihenfolge zählt',
 				an: 'ja',
 				aus: 'nein',
@@ -1588,11 +2238,11 @@ export const ABBILDUNG_SCHEMA = {
 					{ wert: '1', name: '1 cm' },
 				],
 			},
-			{ art: 'raster', attribut: 'figur', name: 'Figur', spalten: 'spalten', zeilen: 'zeilen', gruppe: 'Figur' },
+			{ art: 'raster', attribut: 'figur', name: 'Aus Kästchen', spalten: 'spalten', zeilen: 'zeilen', gruppe: 'Figur' },
 			{
 				art: 'text',
 				attribut: 'linien',
-				name: 'Figur aus Linien',
+				name: 'Aus Linien',
 				gruppe: 'Figur',
 				muster: '[-0-9.,; ]*',
 				musterHilfe: 'Punkte wie 0,0 3,0 3,2; mehrere Figuren mit ; trennen.',
@@ -1601,9 +2251,10 @@ export const ABBILDUNG_SCHEMA = {
 			{
 				art: 'auswahl',
 				attribut: 'aufgabe',
-				name: 'Aufgabe',
+				name: 'Kinder sollen',
 				standard: 'keine',
 				gruppe: 'Aufgabe',
+				mitnehmen: gitterFuerAufgabe,
 				optionen: [
 					{ wert: 'keine', name: 'Keine' },
 					{ wert: 'spiegeln', name: 'Spiegeln' },
@@ -1614,7 +2265,7 @@ export const ABBILDUNG_SCHEMA = {
 			},
 			{
 				art: 'auswahl',
-				attribut: 'achse',
+				attribut: 'achse', nurWenn: wennNicht('aufgabe', 'keine', 'fortsetzen'),
 				name: 'Achse',
 				gruppe: 'Aufgabe',
 				optionen: [
@@ -1625,8 +2276,9 @@ export const ABBILDUNG_SCHEMA = {
 			},
 			{
 				art: 'zahl',
-				attribut: 'achse-bei',
-				name: 'Achse nach Kästchen',
+				attribut: 'achse-bei', nurWenn: (w) => !!w.achse && (w.aufgabe ?? 'keine') !== 'fortsetzen',
+				name: 'Achse nach',
+				hilfe: 'So viele Kästchen von links, bei waagerechter Achse von oben.',
 				min: 1,
 				max: 39,
 				standard: 5,
@@ -1634,16 +2286,17 @@ export const ABBILDUNG_SCHEMA = {
 			},
 			{
 				art: 'zahl',
-				attribut: 'rapport',
+				attribut: 'rapport', nurWenn: wenn('aufgabe', 'keine', 'fortsetzen'),
 				name: 'Breite eines Musters',
 				min: 1,
 				max: 40,
 				standard: 4,
+				standardJe: (w) => gitterFigur(w)?.rechts ?? 4,
 				gruppe: 'Aufgabe',
 			},
 			{
 				art: 'zahl',
-				attribut: 'rapporte',
+				attribut: 'rapporte', nurWenn: wenn('aufgabe', 'keine', 'fortsetzen'),
 				name: 'Muster vorgegeben',
 				min: 1,
 				max: 10,
@@ -1652,10 +2305,11 @@ export const ABBILDUNG_SCHEMA = {
 			},
 			{
 				art: 'auswahl',
-				attribut: 'rapportart',
+				attribut: 'rapportart', nurWenn: wenn('aufgabe', 'keine', 'fortsetzen'),
 				name: 'Fortsetzen durch',
 				standard: 'schieben',
 				gruppe: 'Aufgabe',
+				mitnehmen: gitterFuerAufgabe,
 				optionen: [
 					{ wert: 'schieben', name: 'Schieben' },
 					{ wert: 'spiegeln', name: 'Spiegeln im Wechsel' },
@@ -1664,19 +2318,19 @@ export const ABBILDUNG_SCHEMA = {
 			},
 			{
 				art: 'auswahl',
-				attribut: 'faktor',
+				attribut: 'faktor', nurWenn: wenn('aufgabe', 'keine', 'vergroessern'),
 				name: 'Größe',
 				standard: '2',
 				gruppe: 'Aufgabe',
+				mitnehmen: gitterFuerAufgabe,
 				optionen: [
 					{ wert: '2', name: 'Doppelt so groß' },
-					{ wert: '0.3', name: 'Klein' },
 					{ wert: '0.5', name: 'Halb so groß' },
 				],
 			},
 			{
 				art: 'liste',
-				attribut: 'weg',
+				attribut: 'weg', nurWenn: wenn('aufgabe', 'keine', 'weg'),
 				name: 'Weg',
 				zeilenTrenner: ' ',
 				feldTrenner: '',
@@ -1698,7 +2352,7 @@ export const ABBILDUNG_SCHEMA = {
 			},
 			{
 				art: 'auswahl',
-				attribut: 'wegart',
+				attribut: 'wegart', nurWenn: wenn('aufgabe', 'keine', 'weg'),
 				name: 'Beim Weg',
 				standard: 'gehen',
 				gruppe: 'Aufgabe',
@@ -1709,7 +2363,7 @@ export const ABBILDUNG_SCHEMA = {
 			},
 			{
 				art: 'text',
-				attribut: 'start',
+				attribut: 'start', nurWenn: wenn('aufgabe', 'keine', 'weg'),
 				name: 'Start (Spalte,Zeile)',
 				gruppe: 'Aufgabe',
 				muster: '\\d+,\\d+',
@@ -1755,7 +2409,7 @@ export const ABBILDUNG_SCHEMA = {
 			},
 			{
 				art: 'auswahl',
-				attribut: 'typ',
+				attribut: 'typ', nurWenn: wenn('form', 'quadrat', 'dreieck'),
 				name: 'Dreieck',
 				standard: 'rechtwinklig',
 				optionen: [
@@ -1795,7 +2449,7 @@ export const ABBILDUNG_SCHEMA = {
 		},
 		felder: [
 			{ art: 'zahl', attribut: 'n', name: 'Plättchen', min: 0, max: 100, standard: 0 },
-			{ art: 'zahl', attribut: 'n2', name: 'Plättchen, zweite Sorte', min: 0, max: 100, standard: 0 },
+			{ art: 'zahl', attribut: 'n2', name: 'Zweite Sorte', min: 0, max: 100, standard: 0 },
 			{ art: 'zahl', attribut: 'zeilen', name: 'Zeilen', min: 1, max: 10, standard: 10 },
 			{ art: 'zahl', attribut: 'spalten', name: 'Spalten', min: 1, max: 10, standard: 10 },
 			{
@@ -1831,6 +2485,7 @@ export const ABBILDUNG_SCHEMA = {
 				attribut: 'ausschnitt',
 				name: 'Ausschnitt',
 				standard: 'ganz',
+				mitnehmen: mitteFuerAusschnitt,
 				optionen: [
 					{ wert: 'ganz', name: 'Ganze Tafel' },
 					{ wert: 'zeile', name: 'Zeile' },
@@ -1840,8 +2495,17 @@ export const ABBILDUNG_SCHEMA = {
 					{ wert: 'treppe', name: 'Treppe' },
 				],
 			},
-			{ art: 'zahl', attribut: 'mitte', name: 'Mittelzahl', min: 1, max: 10000, standard: 45 },
-			{ art: 'raster', attribut: 'luecken', name: 'Lücken', form: true, gruppe: 'Lücken' },
+			{
+				art: 'zahl',
+				attribut: 'mitte',
+				nurWenn: wennNicht('ausschnitt', 'ganz', 'ganz'),
+				mitnehmen: ausschnittFolgtMitte,
+				name: 'Mittelzahl',
+				min: 1,
+				max: 10000,
+				standard: 45,
+			},
+			{ art: 'raster', attribut: 'luecken', name: 'Zahlen antippen', form: true, gruppe: 'Lücken' },
 			{
 				art: 'zahl',
 				attribut: 'zufall',
@@ -1922,7 +2586,7 @@ export const ABBILDUNG_SCHEMA = {
 			{ art: 'schalter', attribut: 'massstab', name: 'Bögen im Maßstab', an: 'ja', aus: 'nein', standard: false },
 			{
 				art: 'schalter',
-				attribut: 'gemischt',
+				attribut: 'gemischt', nurWenn: (w) => w.gemischt === 'ja' || (/\+/.test(w.spruenge ?? '') && /[-−]/.test(w.spruenge ?? '')),
 				name: 'Gemischte Sprünge',
 				an: 'ja',
 				aus: 'nein',
@@ -1965,7 +2629,15 @@ export const ABBILDUNG_SCHEMA = {
 			},
 			{ art: 'zahl', attribut: 'zeilen', name: 'Zeilen', min: 1, max: 30, standard: 3 },
 			{ art: 'text', attribut: 'vorlage', name: 'Zum Nachspuren', beispiel: 'Rosine' },
-			{ art: 'zahl', attribut: 'vorlage-zeilen', name: 'Zeilen mit Vorlage', min: 1, max: 30, standard: 1 },
+			{
+				art: 'zahl',
+				attribut: 'vorlage-zeilen',
+				name: 'Graue Zeilen',
+				hilfe: 'So viele Zeilen zeigen den Text zum Nachspuren.',
+				min: 1,
+				max: 30,
+				standard: 1,
+			},
 			{ art: 'text', attribut: 'anfang', name: 'Vorbild am Zeilenanfang', beispiel: 'Ro' },
 			{ art: 'text', attribut: 'loesung', name: 'Text in der Lösung', beispiel: 'Der Hund bellt.' },
 			{
@@ -2019,7 +2691,7 @@ export const ABBILDUNG_SCHEMA = {
 			{
 				art: 'auswahl',
 				attribut: 'darstellung',
-				name: 'Darstellung',
+				name: 'Lücke als',
 				standard: 'linie',
 				optionen: [
 					{ wert: 'linie', name: 'Linie' },
@@ -2051,7 +2723,7 @@ export const ABBILDUNG_SCHEMA = {
 				beispiel: 'Hund; Maus; Pferd',
 				hilfe: 'Leer: die Wörter aus den Lücken dieser Aufgabe.',
 			},
-			{ art: 'zahl', attribut: 'spalten', name: 'Spalten', min: 1, max: 6, standard: 4 },
+			{ art: 'zahl', attribut: 'spalten', abschnitt: 'darstellung', name: 'Spalten', min: 1, max: 6, standard: 4 },
 			{
 				art: 'auswahl',
 				attribut: 'reihenfolge',
@@ -2062,7 +2734,7 @@ export const ABBILDUNG_SCHEMA = {
 					{ wert: 'gemischt', name: 'Gemischt' },
 				],
 			},
-			{ art: 'mischen', attribut: 'seed', name: 'Anordnung' },
+			{ art: 'mischen', attribut: 'seed', nurWenn: wenn('reihenfolge', 'alphabetisch', 'gemischt'), name: 'Anordnung' },
 			{ art: 'schalter', attribut: 'rahmen', name: 'Rahmen', an: '1', aus: '0', standard: true },
 		],
 	},
@@ -2082,8 +2754,8 @@ export const ABBILDUNG_SCHEMA = {
 				beispiel: 'Wie viele Beine hat ein Hund?: *4, 3, 6',
 				hilfe: 'Frage: Antworten mit Komma; * markiert die richtige; ; trennt die Fragen.',
 			},
-			{ art: 'schalter', attribut: 'mehrfach', name: 'Mehrere richtig', an: '1', aus: '0', standard: false },
-			{ art: 'zahl', attribut: 'spalten', name: 'Spalten', min: 1, max: 4, standard: 1 },
+			{ art: 'schalter', attribut: 'mehrfach', nurWenn: (w) => w.mehrfach === '1' || (w.fragen ?? '').split(';').some((f) => f.split('*').length > 2), name: 'Mehrere richtig', an: '1', aus: '0', standard: false },
+			{ art: 'zahl', attribut: 'spalten', abschnitt: 'darstellung', name: 'Spalten', min: 1, max: 4, standard: 1 },
 			{ art: 'mischen', attribut: 'seed', name: 'Anordnung' },
 		],
 	},
@@ -2111,7 +2783,7 @@ export const ABBILDUNG_SCHEMA = {
 			{
 				art: 'auswahl',
 				attribut: 'darstellung',
-				name: 'Darstellung',
+				name: 'Lösen durch',
 				standard: 'linien',
 				optionen: [
 					{ wert: 'linien', name: 'Mit Linien verbinden' },
@@ -2155,7 +2827,7 @@ export const ABBILDUNG_SCHEMA = {
 			{
 				art: 'auswahl',
 				attribut: 'darstellung',
-				name: 'Darstellung',
+				name: 'Lösen durch',
 				standard: 'ziffer',
 				optionen: [
 					{ wert: 'ziffer', name: 'Ziffer im Kästchen' },
@@ -2164,6 +2836,8 @@ export const ABBILDUNG_SCHEMA = {
 			},
 			{ art: 'mischen', attribut: 'seed', name: 'Anordnung' },
 		],
+		regeln: (w): Fehler =>
+			w.text('art') === 'bilder' ? bilderFehlen(w, { liste: 'eintraege', spalte: 1, wahl: 'Bei der Art „Bilder“' }) : {},
 	},
 	'x-beschriften': {
 		name: 'Beschriften',
@@ -2184,7 +2858,7 @@ export const ABBILDUNG_SCHEMA = {
 			{
 				art: 'auswahl',
 				attribut: 'darstellung',
-				name: 'Darstellung',
+				name: 'Beschriften mit',
 				standard: 'linien',
 				optionen: [
 					{ wert: 'linien', name: 'Linien nach außen' },
@@ -2359,7 +3033,7 @@ export const ABBILDUNG_SCHEMA = {
 			},
 			{
 				art: 'text',
-				attribut: 'farben',
+				attribut: 'farben', nurWenn: wenn('darstellung', 'boegen', 'farbe', 'beides'),
 				name: 'Farben der Klasse',
 				abschnitt: 'weitere',
 				beispiel: 'blau rot',
@@ -2411,7 +3085,7 @@ export const ABBILDUNG_SCHEMA = {
 			{
 				art: 'auswahl',
 				attribut: 'darstellung',
-				name: 'Darstellung',
+				name: 'Wortarten als',
 				standard: 'symbole',
 				optionen: [
 					{ wert: 'symbole', name: 'Symbole' },
@@ -2481,6 +3155,7 @@ export const ABBILDUNG_SCHEMA = {
 				beispiel: 'Der Hund bellt den Briefträger an.',
 				optionen: ROLLEN_OPTIONEN,
 				hilfe: 'Wort antippen, Nachbarn verbinden und das Satzglied wählen.',
+				mitnehmen: vornFolgtSatz,
 			},
 			{
 				art: 'auswahl',
@@ -2496,9 +3171,10 @@ export const ABBILDUNG_SCHEMA = {
 			},
 			{
 				art: 'auswahl',
-				attribut: 'vorn',
+				attribut: 'vorn', nurWenn: wenn('aufgabe', 'keine', 'umstellen'),
 				name: 'Beim Umstellen nach vorn',
 				gruppe: 'Mehr',
+				angeboten: vornAngeboten,
 				optionen: [
 					{ wert: null, name: 'Nächstes Satzglied' },
 					...ROLLEN_OPTIONEN.filter((o) => o.wert !== 'P'),
@@ -2568,7 +3244,7 @@ export const ABBILDUNG_SCHEMA = {
 			},
 			{
 				art: 'liste',
-				attribut: 'woerter',
+				attribut: 'woerter', nurWenn: wenn('art', 'wort', 'familie'),
 				name: 'Wörter der Familie',
 				max: 8,
 				unter: [{ name: 'Wort', art: 'text', standard: 'Wort' }],
@@ -2632,7 +3308,8 @@ export const ABBILDUNG_SCHEMA = {
 			{
 				art: 'zahl',
 				attribut: 'schritt',
-				name: 'Markierung alle',
+				name: 'Strich alle',
+				hilfe: 'Abstand der Striche auf der Leiste. Passen nicht alle Zahlen, steht nur an manchen eine.',
 				min: 1,
 				max: 1000,
 				standard: 10,
@@ -2640,7 +3317,7 @@ export const ABBILDUNG_SCHEMA = {
 			},
 			{
 				art: 'liste',
-				attribut: 'ereignisse',
+				attribut: 'ereignisse', sortierbar: false,
 				name: 'Ereignisse',
 				hilfe: 'Jahr oder Zeitraum: 1914 oder 1900-1914, vor Christus mit Minus: -500.',
 				unter: [
@@ -2660,7 +3337,7 @@ export const ABBILDUNG_SCHEMA = {
 			},
 			{
 				art: 'zahl',
-				attribut: 'breite',
+				attribut: 'breite', abschnitt: 'darstellung',
 				name: 'Breite',
 				min: 200,
 				max: 1600,
@@ -2734,7 +3411,7 @@ export const ABBILDUNG_SCHEMA = {
 			},
 			{
 				art: 'zahl',
-				attribut: 'groesse',
+				attribut: 'groesse', abschnitt: 'darstellung',
 				name: 'Größe',
 				min: 200,
 				max: 1200,
@@ -2823,7 +3500,7 @@ export const ABBILDUNG_SCHEMA = {
 			{
 				art: 'auswahl',
 				attribut: 'art',
-				name: 'Darstellung',
+				name: 'Zeichnen als',
 				standard: 'symbole',
 				optionen: [
 					{ wert: 'symbole', name: 'Schaltzeichen' },
@@ -2938,7 +3615,7 @@ export const ABBILDUNG_SCHEMA = {
 			},
 			{
 				art: 'auswahl',
-				attribut: 'loesung',
+				attribut: 'loesung', nurWenn: (w) => !w.symbol,
 				name: 'Symbol erst in der Lösung',
 				optionen: [{ wert: null, name: 'Keins' }, ...WETTER],
 			},
@@ -2958,7 +3635,7 @@ export const ABBILDUNG_SCHEMA = {
 			{ art: 'mischen', attribut: 'seed', name: 'Gitter' },
 			{
 				art: 'liste',
-				attribut: 'woerter',
+				attribut: 'woerter', alsText: true,
 				name: 'Wörter',
 				hilfe: 'Nur Buchstaben. Das Bild braucht nur die Wortliste „Bilder“.',
 				unter: [
@@ -3015,7 +3692,16 @@ export const ABBILDUNG_SCHEMA = {
 					return { woerter: `„${wort}“ ist länger als das Gitter.` };
 				}
 			}
-			return {};
+			// Jeder Mini-Inhalt gilt als Bild, wie in `abbildungen.js` und der Referenz; die Art steht im ⋯ der Zeile.
+			return w.text('wortliste') === 'bilder'
+				? bilderFehlen(w, {
+						liste: 'woerter',
+						spalte: 1,
+						wahl: 'Bei der Wortliste „Bilder“',
+						istBild: (z) => miniTeile(z).inhalt.trim() !== '',
+						weg: 'Stelle im Menü ⋯ der Zeile die Art auf „Bild“ und wähle es',
+					})
+				: {};
 		},
 	},
 	'x-kreuzwort': {
@@ -3029,11 +3715,11 @@ export const ABBILDUNG_SCHEMA = {
 			{ art: 'mischen', attribut: 'seed', name: 'Gitter' },
 			{
 				art: 'liste',
-				attribut: 'eintraege',
+				attribut: 'eintraege', alsText: true,
 				name: 'Einträge',
 				hilfe: 'Hinweis als Text oder Bild, dazu das Wort. Höchstens 12.',
 				unter: [
-					{ name: 'Hinweis', art: 'mini', standard: 'Hinweis' },
+					{ name: 'Hinweis', art: 'mini', standard: 'Hinweis', breit: true },
 					{ name: 'Wort', art: 'text', standard: 'Wort' },
 				],
 				feldTrenner: ': ',
@@ -3062,7 +3748,7 @@ export const ABBILDUNG_SCHEMA = {
 			if (geheim && !NUR_BUCHSTABEN.test(geheim)) {
 				return { loesungswort: 'Das Lösungswort darf nur aus Buchstaben bestehen.' };
 			}
-			return w.text('art') === 'senkrecht' && !geheim ? { loesungswort: 'Hier fehlt das Lösungswort.' } : {};
+			return w.text('art') === 'senkrecht' ? senkrechtFehlt(w.zeilen('eintraege'), geheim) : {};
 		},
 	},
 	'x-loesungswort': {
@@ -3082,7 +3768,7 @@ export const ABBILDUNG_SCHEMA = {
 			},
 			{
 				art: 'liste',
-				attribut: 'zuordnung',
+				attribut: 'zuordnung', alsText: true,
 				name: 'Legende',
 				hilfe: 'Jedes richtige Ergebnis mit seinem Buchstaben.',
 				unter: [
@@ -3118,10 +3804,10 @@ export const ABBILDUNG_SCHEMA = {
 			ort: 'seite',
 		},
 		felder: [
-			{ art: 'mischen', attribut: 'seed', name: 'Karten' },
+			{ art: 'mischen', attribut: 'seed', name: 'Karten mischen' },
 			{
 				art: 'liste',
-				attribut: 'eintraege',
+				attribut: 'eintraege', alsText: true,
 				name: 'Einträge',
 				hilfe: 'Ruf und Feld, zum Beispiel 7·8 und 56. Nötig sind Felder × Felder + 4 Einträge.',
 				unter: [
@@ -3145,7 +3831,7 @@ export const ABBILDUNG_SCHEMA = {
 					{ wert: '4', name: '4' },
 				],
 			},
-			{ art: 'schalter', attribut: 'frei', name: 'Joker in der Mitte', an: 'ja', aus: 'nein', standard: false },
+			{ art: 'schalter', attribut: 'frei', nurWenn: (w) => Number(w.felder ?? 4) % 2 === 1, name: 'Joker in der Mitte', an: 'ja', aus: 'nein', standard: false },
 			{ art: 'schalter', attribut: 'rufliste', name: 'Rufliste', an: 'ja', aus: 'nein', standard: true },
 		],
 		regeln: (w): Fehler => {
@@ -3168,7 +3854,7 @@ export const ABBILDUNG_SCHEMA = {
 			{ art: 'mischen', attribut: 'seed', name: 'Lage der Steine' },
 			{
 				art: 'liste',
-				attribut: 'paare',
+				attribut: 'paare', alsText: true,
 				name: 'Paare',
 				unter: [
 					{ name: 'Aufgabe', art: 'mini', standard: 'Neu' },
@@ -3235,6 +3921,7 @@ export const ABBILDUNG_SCHEMA = {
 					{ wert: 'spiel', name: 'Spielplan' },
 					{ wert: 'lernlandkarte', name: 'Lernlandkarte' },
 				],
+				mitnehmen: zieleFuerLernlandkarte,
 			},
 			{ art: 'zahl', attribut: 'felder', name: 'Felder', min: 20, max: 40, standard: 30 },
 			{
@@ -3291,7 +3978,14 @@ export const ABBILDUNG_SCHEMA = {
 			faecher: ['musik'],
 		},
 		felder: [
-			{ art: 'auswahl', attribut: 'takt', name: 'Takt', standard: '4/4', optionen: NOTEN_TAKTARTEN },
+			{
+				art: 'auswahl',
+				attribut: 'takt',
+				name: 'Takt',
+				standard: '4/4',
+				optionen: NOTEN_TAKTARTEN,
+				mitnehmen: notenFuerTakt,
+			},
 			{ art: 'noten', attribut: 'noten', name: 'Noten', tonhoehe: false },
 			{
 				art: 'auswahl',
@@ -3325,7 +4019,7 @@ export const ABBILDUNG_SCHEMA = {
 			},
 			{
 				art: 'zahlen',
-				attribut: 'offen',
+				attribut: 'offen', nurWenn: wenn('aufgabe', 'keine', 'ergaenzen'),
 				name: 'Fehlende Noten',
 				beispiel: '5',
 				hilfe: 'Nummern der Noten zum Ergänzen; ohne Angabe die letzte.',
@@ -3344,7 +4038,14 @@ export const ABBILDUNG_SCHEMA = {
 			faecher: ['musik'],
 		},
 		felder: [
-			{ art: 'auswahl', attribut: 'takt', name: 'Takt', standard: '4/4', optionen: NOTEN_TAKTARTEN },
+			{
+				art: 'auswahl',
+				attribut: 'takt',
+				name: 'Takt',
+				standard: '4/4',
+				optionen: NOTEN_TAKTARTEN,
+				mitnehmen: notenFuerTakt,
+			},
 			{ art: 'noten', attribut: 'noten', name: 'Noten', tonhoehe: true },
 			{ art: 'schalter', attribut: 'namen', name: 'Notennamen darunter', an: 'ja', aus: 'nein', standard: false },
 			{
@@ -3365,7 +4066,15 @@ export const ABBILDUNG_SCHEMA = {
 					{ wert: 'zeichnen', name: 'Noten zeichnen' },
 				],
 			},
-			{ art: 'zahl', attribut: 'systeme', name: 'Leere Notenzeilen', min: 0, max: 8, standard: 0 },
+			{
+				art: 'zahl',
+				attribut: 'systeme',
+				name: 'Leere Zeilen',
+				hilfe: 'So viele leere Notenzeilen kommen unter die Noten.',
+				min: 0,
+				max: 8,
+				standard: 0,
+			},
 			{
 				art: 'auswahl',
 				attribut: 'vorzeichen',
@@ -3425,7 +4134,7 @@ export const ABBILDUNG_SCHEMA = {
 			},
 			{
 				art: 'text',
-				attribut: 'weg',
+				attribut: 'weg', nurWenn: wenn('aufgabe', 'keine', 'weg'),
 				name: 'Weg',
 				beispiel: 'A1 A2 B2',
 				hilfe: 'Planquadrate von Start bis Ziel.',
@@ -3460,7 +4169,7 @@ export const ABBILDUNG_SCHEMA = {
 			{ art: 'text', attribut: 'massstab', name: 'Maßstab', beispiel: '1 Kästchen = 100 m', gruppe: 'Mehr' },
 			{
 				art: 'zahl',
-				attribut: 'kaestchen',
+				attribut: 'kaestchen', abschnitt: 'darstellung',
 				name: 'Kästchen',
 				min: 0.8,
 				max: 3,
@@ -3552,9 +4261,9 @@ export const ABBILDUNG_SCHEMA = {
 			},
 			{
 				art: 'text',
-				attribut: 'betrag',
+				attribut: 'betrag', nurWenn: wenn('aufgabe', 'keine', 'legen'),
 				name: 'Betrag zum Legen',
-				beispiel: '3,45',
+				beispiel: '3,85',
 				muster: '\\d+([.,]\\d{1,2})?',
 				musterHilfe: 'Ein Betrag wie 3,45.',
 			},
@@ -3609,6 +4318,7 @@ export const ABBILDUNG_SCHEMA = {
 				attribut: 'art',
 				name: 'Gerät',
 				standard: 'lineal',
+				mitnehmen: skalaFolgt,
 				optionen: [
 					{ wert: 'lineal', name: 'Lineal' },
 					{ wert: 'massband', name: 'Maßband' },
@@ -3620,8 +4330,10 @@ export const ABBILDUNG_SCHEMA = {
 			{
 				art: 'auswahl',
 				attribut: 'einheit',
+				nurWenn: (w) => w.art !== 'thermometer',
 				name: 'Einheit',
-				hilfe: 'Lineal: cm, mm; Maßband: cm, m; Messbecher: ml, l; Thermometer: °C; Waage: g, kg.',
+				mitnehmen: skalaFolgt,
+				optionenJe: { feld: 'art', werte: SKALA_EINHEITEN },
 				optionen: [
 					{ wert: null, name: 'Passend zum Gerät' },
 					{ wert: 'cm', name: 'cm' },
@@ -3676,7 +4388,7 @@ export const ABBILDUNG_SCHEMA = {
 			},
 			{
 				art: 'auswahl',
-				attribut: 'massstab',
+				attribut: 'massstab', nurWenn: wenn('art', 'lineal', 'lineal'),
 				name: 'Lineal',
 				gruppe: 'Skala',
 				optionen: [
@@ -3684,7 +4396,7 @@ export const ABBILDUNG_SCHEMA = {
 					{ wert: 'nein', name: 'Verkleinert, nicht zum Messen' },
 				],
 			},
-			{ art: 'zahl', ...GROESSE, min: 120, max: 600, standard: 240, schritt: 20, gruppe: 'Skala' },
+			{ art: 'zahl', nurWenn: (w) => (w.art ?? 'lineal') !== 'lineal' || w.massstab === 'nein', ...GROESSE, min: 120, max: 600, standard: 240, schritt: 20, gruppe: 'Skala' },
 		],
 	},
 	'x-strecke': {
@@ -3736,7 +4448,7 @@ export const ABBILDUNG_SCHEMA = {
 					{ wert: 'jahr', name: 'Ganzes Jahr' },
 				],
 			},
-			{ art: 'zahl', attribut: 'monat', name: 'Monat', min: 1, max: 12, standard: 1 },
+			{ art: 'zahl', attribut: 'monat', nurWenn: wenn('art', 'monat', 'monat'), name: 'Monat', min: 1, max: 12, standard: 1 },
 			{ art: 'zahl', attribut: 'jahr', name: 'Jahr', min: 1900, max: 2100, standard: 2026 },
 			{ art: 'raster', attribut: 'markiert', name: 'Markierte Tage', form: true },
 			{ art: 'raster', attribut: 'luecken', name: 'Tage ohne Zahl', form: true },
@@ -3758,8 +4470,8 @@ export const ABBILDUNG_SCHEMA = {
 				art: 'text',
 				attribut: 'spruenge',
 				name: 'Sprünge',
-				beispiel: 'bis 9:00, +40 min',
-				hilfe: 'Leer: zur vollen Stunde und dann weiter.',
+				beispiel: 'bis 9:00, +30 min, +15 min',
+				hilfe: 'Mit Komma getrennt: „bis 9:00“, „+40 min“ oder „+1 h“. Der letzte endet bei „Bis“. Leer: zur vollen Stunde und dann weiter.',
 			},
 			{
 				art: 'mehrfach',
@@ -3884,7 +4596,7 @@ export const ABBILDUNG_SCHEMA = {
 			{ art: 'zahlen', attribut: 'zahlen', name: 'Zahlen', beispiel: '345 278' },
 			{
 				art: 'auswahl',
-				attribut: 'verfahren',
+				attribut: 'verfahren', nurWenn: wenn('art', 'plus', 'minus'),
 				name: 'Verfahren bei Minus',
 				hilfe: 'So, wie es die Klasse gelernt hat.',
 				optionen: [
@@ -3979,6 +4691,7 @@ export const ABBILDUNG_SCHEMA = {
 				attribut: 'art',
 				name: 'Rechnung',
 				standard: 'plus',
+				mitnehmen: basisFuerRechnung,
 				optionen: [
 					{ wert: 'plus', name: 'Plus' },
 					{ wert: 'minus', name: 'Minus' },
@@ -4005,6 +4718,7 @@ export const ABBILDUNG_SCHEMA = {
 				attribut: 'rechenart',
 				name: 'Rechenart',
 				standard: '+',
+				mitnehmen: rechenreiheNimmt(),
 				optionen: [
 					{ wert: '+', name: 'Plus' },
 					{ wert: '−', name: 'Minus' },
@@ -4017,6 +4731,7 @@ export const ABBILDUNG_SCHEMA = {
 				attribut: 'zahlenraum',
 				name: 'Zahlenraum',
 				standard: '20',
+				mitnehmen: rechenreiheNimmt((w): Werte => (w.zahlenraum === '10' && w.uebergang === 'mit' ? { uebergang: null } : {})),
 				optionen: [
 					{ wert: '10', name: 'bis 10' },
 					{ wert: '20', name: 'bis 20' },
@@ -4026,12 +4741,13 @@ export const ABBILDUNG_SCHEMA = {
 				],
 			},
 			{ art: 'zahl', attribut: 'anzahl', name: 'Anzahl', min: 1, max: 60, standard: 10 },
-			{ art: 'zahl', attribut: 'spalten', name: 'Spalten', min: 1, max: 4, standard: 2 },
+			{ art: 'zahl', attribut: 'spalten', abschnitt: 'darstellung', name: 'Spalten', min: 1, max: 4, standard: 2 },
 			{
 				art: 'auswahl',
-				attribut: 'uebergang',
+				attribut: 'uebergang', nurWenn: wenn('rechenart', '+', '+', '−'),
 				name: 'Zehnerübergang',
 				standard: 'egal',
+				mitnehmen: rechenreiheNimmt((w): Werte => (w.zahlenraum === '10' && w.uebergang === 'mit' ? { zahlenraum: '20' } : {})),
 				optionen: [
 					{ wert: 'egal', name: 'Egal' },
 					{ wert: 'mit', name: 'Mit Übergang' },
@@ -4063,8 +4779,9 @@ export const ABBILDUNG_SCHEMA = {
 			},
 			{
 				art: 'auswahl',
-				attribut: 'reihe',
+				attribut: 'reihe', nurWenn: wenn('rechenart', '+', '·', ':'),
 				name: 'Einmaleins-Reihe',
+				mitnehmen: rechenreiheNimmt(raumFuerReihe),
 				optionen: [
 					{ wert: null, name: 'Alle' },
 					...['1', '2', '3', '4', '5', '6', '7', '8', '9', '10'].map((r) => ({
@@ -4073,7 +4790,16 @@ export const ABBILDUNG_SCHEMA = {
 					})),
 				],
 			},
-			{ art: 'schalter', attribut: 'rest', name: 'Mit Rest', an: '1', aus: '0', standard: false },
+			{
+				art: 'schalter',
+				attribut: 'rest',
+				nurWenn: wenn('rechenart', '+', ':'),
+				mitnehmen: rechenreiheNimmt(passendZumRest),
+				name: 'Mit Rest',
+				an: '1',
+				aus: '0',
+				standard: false,
+			},
 			{
 				art: 'text',
 				attribut: 'aufgaben',
@@ -4175,7 +4901,7 @@ export const ABBILDUNG_SCHEMA = {
 			{
 				art: 'auswahl',
 				attribut: 'art',
-				name: 'Darstellung',
+				name: 'Zeigen als',
 				standard: 'kette',
 				optionen: [
 					{ wert: 'kette', name: 'Kette' },
@@ -4206,6 +4932,7 @@ export const ABBILDUNG_SCHEMA = {
 				attribut: 'art',
 				name: 'Form',
 				standard: 'dreieck',
+				mitnehmen: zahlenFuerZauberform,
 				optionen: [
 					{ wert: 'dreieck', name: 'Zauberdreieck (6 Zahlen)' },
 					{ wert: 'quadrat', name: 'Magisches Quadrat (9 Zahlen)' },
@@ -4290,6 +5017,7 @@ export const ABBILDUNG_SCHEMA = {
 				art: 'mehrfach',
 				attribut: 'fragen',
 				name: 'Gefragt',
+				mitnehmen: vorgabeOhneFrage,
 				optionen: [{ wert: 'anzahl', name: 'Anzahl der Würfel' }, ...WUERFELBAU_TEILE.slice(1)],
 			},
 			{
@@ -4312,7 +5040,7 @@ export const ABBILDUNG_SCHEMA = {
 			},
 			{
 				art: 'zahl',
-				attribut: 'einheit',
+				attribut: 'einheit', abschnitt: 'darstellung',
 				name: 'Würfelkante',
 				min: 14,
 				max: 50,
@@ -4337,6 +5065,7 @@ export const ABBILDUNG_SCHEMA = {
 				name: 'Netz',
 				standard: '1',
 				blaettern: true,
+				mitnehmen: aufgabeFuerNetz,
 				optionen: [
 					...Array.from({ length: 11 }, (_, i) => ({ wert: String(i + 1), name: `Netz ${i + 1}` })),
 					...Array.from({ length: 8 }, (_, i) => ({ wert: `n${i + 1}`, name: `Kein Netz ${i + 1}` })),
@@ -4347,6 +5076,7 @@ export const ABBILDUNG_SCHEMA = {
 				attribut: 'aufgabe',
 				name: 'Aufgabe',
 				standard: 'keine',
+				mitnehmen: netzFuerAufgabe,
 				optionen: [
 					{ wert: 'keine', name: 'Keine' },
 					{ wert: 'netz-oder-nicht', name: 'Netz oder nicht?' },
@@ -4354,7 +5084,15 @@ export const ABBILDUNG_SCHEMA = {
 					{ wert: 'augen-ergaenzen', name: 'Augen ergänzen' },
 				],
 			},
-			{ art: 'zahl', attribut: 'markiere', name: 'Markierte Fläche', min: 1, max: 6, standard: 1 },
+			{
+				art: 'zahl',
+				attribut: 'markiere',
+				nurWenn: wenn('aufgabe', 'keine', 'gegenueber'),
+				name: 'Markierte Fläche',
+				min: 1,
+				max: 6,
+				standard: 1,
+			},
 			{
 				art: 'schalter',
 				attribut: 'augen',
@@ -4378,7 +5116,7 @@ export const ABBILDUNG_SCHEMA = {
 			{
 				art: 'schalter',
 				attribut: 'bastel',
-				name: 'Bastelvorlage',
+				name: 'Zum Ausschneiden',
 				an: 'ja',
 				aus: 'nein',
 				standard: false,
@@ -4386,7 +5124,7 @@ export const ABBILDUNG_SCHEMA = {
 			},
 			{
 				art: 'zahl',
-				attribut: 'kante',
+				attribut: 'kante', nurWenn: wenn('bastel', 'nein', 'ja'),
 				name: 'Kante',
 				min: 1,
 				max: 8,
@@ -4397,10 +5135,11 @@ export const ABBILDUNG_SCHEMA = {
 			},
 			{
 				art: 'auswahl',
-				attribut: 'art',
+				attribut: 'art', abschnitt: 'inhalt',
 				name: 'Körper',
 				standard: 'wuerfel',
 				gruppe: 'Weitere Angaben',
+				mitnehmen: masseFuerQuader,
 				optionen: [
 					{ wert: 'wuerfel', name: 'Würfel' },
 					{ wert: 'quader', name: 'Quader' },
@@ -4408,7 +5147,7 @@ export const ABBILDUNG_SCHEMA = {
 			},
 			{
 				art: 'zahlen',
-				attribut: 'masse',
+				attribut: 'masse', nurWenn: wenn('art', 'wuerfel', 'quader'),
 				name: 'Maße des Quaders',
 				beispiel: '4 2 1',
 				gruppe: 'Weitere Angaben',
@@ -4424,7 +5163,7 @@ export const ABBILDUNG_SCHEMA = {
 				gruppe: 'Weitere Angaben',
 			},
 			{ art: 'zahl', ...GROESSE, min: 16, max: 80, standard: 30, schritt: 2, gruppe: 'Weitere Angaben' },
-			{ art: 'text', attribut: 'seed', name: 'Mischung', gruppe: 'Weitere Angaben' },
+			{ art: 'text', attribut: 'seed', nurWenn: wenn('aufgabe', 'keine', 'augen-ergaenzen'), name: 'Mischung', gruppe: 'Weitere Angaben' },
 		],
 	},
 	'x-koerper': {
@@ -4479,7 +5218,14 @@ export const ABBILDUNG_SCHEMA = {
 					{ wert: 'flaechen', name: 'Flächen' },
 				],
 			},
-			{ art: 'zahlen', attribut: 'masse', name: 'Maße', beispiel: '4 2 2', gruppe: 'Weitere Angaben' },
+			{
+				art: 'zahlen',
+				attribut: 'masse',
+				name: 'Maße',
+				beispiel: '4 2 2',
+				hilfe: 'Würfel und Kugel: eine Zahl. Zylinder und Kegel: Durchmesser und Höhe. Sonst: Länge, Breite und Höhe.',
+				gruppe: 'Weitere Angaben',
+			},
 			{
 				art: 'zahl',
 				attribut: 'drehung',
@@ -4670,6 +5416,24 @@ export const zeilenText = (feld: ListeFeld, zeilen: string[][]): string | null =
 		.join(trenner);
 };
 
+
+const LISTEN_SPALTE = ' | ';
+
+/** Eine Liste als Text: eine Zeile je Eintrag, Unterfelder mit ` | ` getrennt. Nur für `alsText`-Listen im Panel. */
+export const zeilenAlsText = (feld: ListeFeld, zeilen: string[][]) =>
+	zeilen.map((z) => feld.unter.map((_, j) => z[j] ?? '').join(LISTEN_SPALTE).replace(/( \| )+$/, '')).join('\n');
+
+/** Gegenstück zu `zeilenAlsText`. Leere Zeilen fallen weg; was im Text fehlt, bleibt leer oder kommt aus `standard`. */
+export const zeilenAusText = (feld: ListeFeld, text: string) =>
+	text
+		.split('\n')
+		.map((z) => z.trim())
+		.filter(Boolean)
+		.map((z) => {
+			const teile = z.split('|').map((t) => t.trim());
+			return feld.unter.map((u, j) => teile[j] ?? u.standard ?? '');
+		});
+
 export const rasterVon = (wert: string | null): string[][] =>
 	(wert ?? '')
 		.split('/')
@@ -4695,7 +5459,8 @@ export const ziffernText = (liste: string[]) => {
 
 /**
  * Ändert ein Feld. Mit Lösungs-Gegenstück steht der Wert danach in genau einem der beiden Attribute. Ändern sich die
- * Stellen einer Stellentafel, bleiben die Zahlen rechtsbündig an ihrer Stelle (der Einer bleibt der Einer).
+ * Stellen einer Stellentafel, bleiben die Zahlen rechtsbündig an ihrer Stelle (der Einer bleibt der Einer). Was das Feld
+ * sonst braucht, nimmt es per `mitnehmen` mit.
  */
 export const aendereFeld = (
 	schema: AbbildungSchema,
@@ -4725,7 +5490,7 @@ export const aendereFeld = (
 		const gerueckt = jetzt > alt ? [...Array<string>(jetzt - alt).fill(''), ...liste] : liste.slice(alt - jetzt);
 		Object.assign(neu, aendereFeld(schema, neu, f, ziffernText(gerueckt), nur));
 	}
-	return neu;
+	return feld.mitnehmen ? { ...neu, ...feld.mitnehmen(neu, w) } : neu;
 };
 
 /** Die Attribute, die sich zwischen zwei Fassungen unterscheiden. */
@@ -5008,7 +5773,6 @@ const DARSTELLUNG = new Set([
 	'projektion',
 	'rahmen',
 	'schrift',
-	'umriss',
 	'ziffern',
 ]);
 

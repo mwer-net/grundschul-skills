@@ -1,7 +1,8 @@
 import { ABSCHNITT_TITEL } from '@schoolbox/kern/src/abschnitte';
 import { FREIES_ELEMENT, kann } from '@schoolbox/kern/src/bausteine';
+import { sichtbarkeitFest } from '@schoolbox/kern/src/kit-einstellungen';
 import type { ReactNode } from 'react';
-import { useLayoutEffect, useRef, useState } from 'react';
+import { useEffect, useLayoutEffect, useRef, useState } from 'react';
 
 import { Abschnitt } from '../bausteine/Abschnitt';
 import { klassen } from '../bausteine/klassen';
@@ -199,6 +200,9 @@ export const Umriss = ({ e, nr }: { e: Einblendung; nr: number | null }) => {
 };
 
 interface EinstellungenEigenschaften {
+	/** Zeigt der Editor gerade die Lösung? */
+	loesung: boolean;
+	schalteAnsicht: () => void;
 	pfad: PfadTeil[];
 	quelle: string | null;
 	format: string;
@@ -228,7 +232,7 @@ const SichtbarkeitWenn = ({
 	quelle: string | null;
 	struktur: Struktur;
 }) =>
-	quelle && kann(baustein, 'ordnen') && baustein.art !== 'seite' ? (
+	quelle && kann(baustein, 'ordnen') && baustein.art !== 'seite' && !sichtbarkeitFest(quelle, nr) ? (
 		<Sichtbarkeit nr={nr} quelle={quelle} struktur={struktur} />
 	) : null;
 
@@ -245,6 +249,50 @@ const FreiesElementHinweis = () => {
 	);
 };
 
+/**
+ * Das gewählte Element ist in dieser Ansicht nicht zu sehen (nur in der Lösung, nur auf der Folie): Ohne Hinweis sähe
+ * es aus, als wäre nichts passiert. Bewusst ein Hinweis und kein Umschalten, das würde beim Einfügen überraschen (G9).
+ */
+const UnsichtbarHinweis = ({
+	doc,
+	loesung,
+	nr,
+	quelle,
+	schalte,
+}: {
+	doc: Document | null;
+	loesung: boolean;
+	nr: number;
+	quelle: string | null;
+	schalte: () => void;
+}) => {
+	const [element, setElement] = useState<Element | null>(null);
+	useEffect(() => {
+		const el = doc ? (elementZu(doc, nr) ?? null) : null;
+		setElement(el && el.getClientRects().length === 0 ? el : null);
+	}, [doc, nr, quelle, loesung]);
+	if (!element) {
+		return null;
+	}
+	if (element.matches('.notiz')) {
+		return (
+			<p className="text-sm text-leise" data-hinweis="unsichtbar">
+				Die Notiz siehst du nur in der Präsentation, nicht auf dem Blatt.
+			</p>
+		);
+	}
+	return (
+		<div className="flex flex-col items-start gap-1.5" data-hinweis="unsichtbar">
+			<p className="text-sm text-leise">
+				{loesung ? 'Das steht nur im Arbeitsblatt.' : 'Das steht nur in der Lösung.'} Hier siehst du es nicht.
+			</p>
+			<Knopf art="zweit" groesse="klein" onClick={schalte}>
+				{loesung ? 'Zum Arbeitsblatt' : 'Zur Lösung'}
+			</Knopf>
+		</div>
+	);
+};
+
 /** Feste Abschnitte in fester Reihenfolge; was leer bleibt, blendet `Abschnitt` aus. */
 export const Einstellungen = ({
 	abb,
@@ -255,9 +303,11 @@ export const Einstellungen = ({
 	frei,
 	geladen,
 	loes,
+	loesung,
 	pfad,
 	pruefung,
 	quelle,
+	schalteAnsicht,
 	struktur,
 	text,
 }: EinstellungenEigenschaften) => {
@@ -275,6 +325,7 @@ export const Einstellungen = ({
 		<div {...(abb.aktiv ? { 'data-abbildungswerkzeug': '' } : {})}>
 			<div className="flex flex-col gap-2 px-3 pb-2 empty:hidden" data-abschnitt="hinweise">
 				{FREIES_ELEMENT.has(baustein.art) && <FreiesElementHinweis />}
+				<UnsichtbarHinweis doc={doc} loesung={loesung} nr={nr} quelle={quelle} schalte={schalteAnsicht} />
 				<Pruefhinweise stand={pruefung} nr={nr} />
 				<AbbildungHinweise abb={abb} />
 				{aktiv && quelle && <SammlungName ablage={ablage} />}

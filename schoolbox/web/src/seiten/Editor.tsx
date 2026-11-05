@@ -927,6 +927,8 @@ const Bearbeitung = ({ dokument, mappe: mappenDaten }: { mappe: Mappe; dokument:
 					abb={abbildung}
 					bild={bild}
 					loes={loes}
+					loesung={loesung}
+					schalteAnsicht={() => befehle.fuehreAus(loesung ? 'ansicht.arbeitsblatt' : 'ansicht.loesung')}
 					text={text}
 					pruefung={pruefung.stand}
 				/>

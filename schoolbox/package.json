@@ -15,6 +15,7 @@
 		"quellen:pruefen": "tsx kern/src/quellen.ts --pruefen",
 		"test": "pnpm -r run test",
 		"test:alles": "pnpm -r run test:alles",
+		"test:audit": "pnpm --filter @schoolbox/web run test:audit",
 		"prettier:check": "prettier --check \"**/*.{js,mjs,cjs,ts,tsx,json}\"",
 		"prettier:fix": "prettier --write \"**/*.{js,mjs,cjs,ts,tsx,json}\"",
 		"eslint:check": "eslint \"**/*.{js,mjs,cjs,ts,tsx}\"",

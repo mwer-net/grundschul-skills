@@ -277,6 +277,15 @@ const ABSCHNITTE: Abschnitt[] = [
 						und den Abstand zwischen den Aufgaben. Die Marke am Regler zeigt die Vorgabe, „Vorgabe“ stellt
 						sie wieder her. „Punkte zeigen“ gibt es, sobald das Blatt Bewertungspunkte hat.
 					</Punkt>
+					<Punkt titel="Listen">
+						jeder Eintrag steht in einer Zeile. Am Griff links ziehst du ihn an eine andere Stelle, ⋯ öffnet
+						die Art und das Entfernen. Bei langen Listen wie Bingo oder Kreuzworträtsel schreibt „Als Text
+						bearbeiten“ alles auf einmal, eine Zeile je Eintrag. Felder, die gerade nichts bewirken, sind
+						ausgeblendet; ihr Wert bleibt erhalten.
+					</Punkt>
+					<Punkt titel="Nur in der Lösung">
+						steht etwas nur in der Lösung, sagt es der Inspektor und bringt dich mit „Zur Lösung“ dorthin.
+					</Punkt>
 					<Punkt titel="Lesehilfen">
 						Text antippen, dann im Inspektor unter „Lesehilfen“: Silben als Bögen, in Farbe oder beides,
 						Vokale, einzelne Buchstaben, bei Absätzen auch Zeilennummern. Die Regler zeigen, was gerade gilt,
