@@ -237,9 +237,9 @@ test.describe('Editor: Struktur', () => {
 		await expect(hinweis(page)).toContainText('Sternchenaufgabe steht jetzt nicht mehr am Ende');
 		await expect(zweite.locator('.aufgabe')).toContainText('Zeichne die Zeiger ein.');
 
-		// In der Seitenleiste Seite 2 vor Seite 1 ziehen: Die verschobene Aufgabe ist danach Aufgabe 1.
-		const miniaturen = leiste.locator('[data-seite-miniatur]');
-		await ziehe(page, hasTouch, miniaturen.nth(1), miniaturen.nth(0), 'oben');
+		// In der Gliederung Seite 2 vor Seite 1 ziehen: Die verschobene Aufgabe ist danach Aufgabe 1.
+		const griffe = leiste.getByRole('button', { name: 'Seite ziehen' });
+		await ziehe(page, hasTouch, griffe.nth(1), griffe.nth(0), 'oben');
 		await gespeichert(page, datei);
 		const geordnet = await readFile(datei, 'utf8');
 		expect(nummern(geordnet)).toEqual(['1', '2', '3', '★']);

@@ -88,7 +88,7 @@ test.describe('Kontextmenü (070)', () => {
 		expect(Math.abs((m?.x ?? 0) - (box.x + box.width / 2))).toBeLessThan(40);
 	});
 
-	test('Leere Stelle, Miniatur und Gliederung haben ihr Menü', async ({ druecke, page }) => {
+	test('Leere Stelle, Miniatur und Gliederung haben ihr Menü', async ({ page }) => {
 		const { dok, id } = await uhrzeit();
 		await oeffne(page, id, dok);
 		const menue = page.getByRole('menu');
@@ -105,8 +105,10 @@ test.describe('Kontextmenü (070)', () => {
 		await expect(menue.getByRole('menuitem', { name: /Neue Seite danach/ })).toBeVisible();
 		await page.keyboard.press('Escape');
 
-		await druecke(page.getByRole('tab', { name: 'Gliederung' }));
-		await page.locator('[data-gliederung-aufgabe]').first().getByRole('button').click({ button: 'right' });
+		await page
+			.locator('[data-gliederung-aufgabe] [data-gliederung-titel]')
+			.first()
+			.click({ button: 'right' });
 		await expect(menue.getByRole('menuitem', { name: /Nach unten/ })).toBeVisible();
 		await expect(page.locator('[data-auswahl="aufgabe"]')).toBeVisible();
 	});

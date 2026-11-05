@@ -249,10 +249,9 @@ test.describe('Editor: Bausteine einfügen', () => {
 		const { dok, id } = await uhrzeit();
 		await oeffne(page, id, dok);
 		const vorher = await quelle(page);
-		await page.getByRole('tab', { name: 'Gliederung' }).click();
-		const zeilen = page.locator('[data-gliederung-aufgabe]');
-		await zeilen.nth(0).getByRole('button').first().click();
-		await zeilen.nth(0).getByRole('button').first().click({ button: 'right' });
+		const zeilen = page.locator('[data-gliederung-aufgabe] [data-gliederung-titel]');
+		await zeilen.nth(0).click();
+		await zeilen.nth(0).click({ button: 'right' });
 		await page.getByRole('menuitem', { name: /Nach unten/ }).click();
 		await expect.poll(() => quelle(page)).not.toBe(vorher);
 	});

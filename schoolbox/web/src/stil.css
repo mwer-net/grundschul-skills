@@ -134,6 +134,13 @@
 body[data-zieht] * {
 	user-select: none;
 	-webkit-user-select: none;
+	/* Der Zeiger steht am `<html>`: grabbing oder not-allowed, auch über Knöpfen. */
+	cursor: inherit !important;
+}
+
+/* Sonst schluckt das Blatt die Zeigerereignisse, sobald der Zug darüber kommt. */
+body[data-zieht] iframe {
+	pointer-events: none;
 }
 
 [data-ziel-aktiv] {

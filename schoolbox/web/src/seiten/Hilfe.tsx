@@ -262,8 +262,15 @@ const ABSCHNITTE: Abschnitt[] = [
 						antippen und lostippen. Fett und unterstrichen stehen in der Leiste über dem Text.
 					</Punkt>
 					<Punkt titel="Umsortieren">
-						Aufgaben, Kärtchen und Seiten ziehen (am iPad kurz halten, dann ziehen) oder in der Leiste am
+						Aufgaben und Kärtchen im Blatt ziehen (am iPad kurz halten, dann ziehen) oder in der Leiste am
 						Baustein „Nach oben“ und „Nach unten“ tippen. Dort lassen sie sich auch verdoppeln und löschen.
+					</Punkt>
+					<Punkt titel="Gliederung">
+						links zeigt alle Seiten und was auf ihnen liegt. Klick springt zur Stelle. Am Griff ziehst du
+						Aufgaben innerhalb der Seite oder auf eine andere, Seiten untereinander. Auf eine Seitenzeile
+						abgelegt, landet die Aufgabe am Ende dieser Seite. Kopf und Fuß bleiben fest. Der Pfeil klappt
+						eine Seite ein, „Alle einklappen“ macht die Liste kurz, „Miniaturen aus“ zeigt nur Zeilen.
+						Esc bricht das Ziehen ab, ⌘Z nimmt es zurück.
 					</Punkt>
 					<Punkt titel="Einstellungen">
 						rechts im Inspektor: „Auswahl“ für den gewählten Baustein, „Blatt“ für Klasse, Farben, Format

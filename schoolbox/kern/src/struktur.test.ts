@@ -62,6 +62,29 @@ const einSchritt = (alt: string, neu: string) => {
 };
 
 describe('verschiebeBaustein', () => {
+	it('zählt Folien nach dem Verschieben auf beiden Seiten je Folie neu', () => {
+		const folien = [
+			'<body>',
+			'<section class="seite"><div class="aufgabe"><span class="nr">1</span></div><div class="aufgabe"><span class="nr">2</span></div></section>',
+			'<section class="seite"><div class="aufgabe"><span class="nr">1</span></div></section>',
+			'</body>',
+		].join('\n');
+		const z = zerlege(folien);
+		const zweite = mitKlasse(z, 'seite')[1] as Knoten;
+		const { quelle } = verschiebeBaustein(folien, (mitKlasse(z, 'aufgabe')[0] as Knoten).nr, { in: zweite.nr }, FOLIEN);
+		assert.deepEqual(nummern(quelle), ['1', '1', '2']);
+		const inBlatt = verschiebeBaustein(folien, (mitKlasse(z, 'aufgabe')[0] as Knoten).nr, { in: zweite.nr }, BLATT);
+		assert.deepEqual(nummern(inBlatt.quelle), ['1', '2', '3']);
+	});
+
+	it('lehnt ab, was nicht geht: ein Element in sich selbst', () => {
+		const z = zerlege(ARBEITSBLATT);
+		const erste = aufgabe(ARBEITSBLATT, 0);
+		const seite0 = mitKlasse(z, 'seite')[0] as Knoten;
+		assert.throws(() => verschiebeBaustein(ARBEITSBLATT, seite0.nr, { nr: erste.nr, wo: 'vor' }, BLATT));
+		assert.throws(() => verschiebeBaustein(ARBEITSBLATT, erste.nr, { in: seite0.nr }, BLATT));
+	});
+
 	it('zieht Aufgabe 3 nach vorn, zählt neu und liefert die neue Nummer des Elements', () => {
 		const dritte = aufgabe(ARBEITSBLATT, 2);
 		const ziel = aufgabe(ARBEITSBLATT, 0);

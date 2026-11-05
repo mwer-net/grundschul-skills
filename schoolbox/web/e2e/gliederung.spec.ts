@@ -1,0 +1,399 @@
+import type { Locator, Page } from '@playwright/test';
+
+import { material, oeffne, quelle, uhrzeit } from './editorhilfe';
+import { expect, legeMappeAn, test } from './hilfe';
+
+interface Punkt {
+	x: number;
+	y: number;
+}
+
+const GERAETE = ['chromium', 'mac-safari', 'ipad-quer'];
+
+const mitte = async (ziel: Locator): Promise<Punkt> => {
+	const b = await ziel.boundingBox();
+	if (!b) {
+		throw new Error('Nicht sichtbar');
+	}
+	return { x: b.x + b.width / 2, y: b.y + b.height / 2 };
+};
+
+/** Oberes bzw. unteres Viertel einer Zeile, Mitte ist für die Seitenzeile. */
+const an = async (ziel: Locator, wo: 'oben' | 'unten' | 'mitte'): Promise<Punkt> => {
+	const b = await ziel.boundingBox();
+	if (!b) {
+		throw new Error('Nicht sichtbar');
+	}
+	const faktor = { oben: 0.25, mitte: 0.5, unten: 0.75 }[wo];
+	return { x: b.x + b.width / 2, y: b.y + b.height * faktor };
+};
+
+/**
+ * Ein Zeiger für Maus und Finger. Playwright kennt für Touch nur `tap`; die Pointer-Ereignisse entstehen im Dokument,
+ * so wie Safari sie schickt. Der Zug läuft in Schritten, damit sich mittendrin prüfen lässt, was zu sehen ist.
+ */
+const zeiger = (page: Page, hasTouch: boolean) => {
+	const sende = (typ: string, p: Punkt) =>
+		page.evaluate(
+			({ p: { x, y }, typ: art }) => {
+				const unter = document.elementFromPoint(x, y) ?? document.body;
+				unter.dispatchEvent(
+					new PointerEvent(art, {
+						bubbles: true,
+						cancelable: true,
+						composed: true,
+						clientX: x,
+						clientY: y,
+						pointerId: 7,
+						pointerType: 'touch',
+						isPrimary: true,
+					}),
+				);
+			},
+			{ p, typ },
+		);
+	let wo: Punkt = { x: 0, y: 0 };
+	const zu = async (p: Punkt) => {
+		for (let i = 1; i <= 5; i += 1) {
+			const schritt = { x: wo.x + ((p.x - wo.x) * i) / 5, y: wo.y + ((p.y - wo.y) * i) / 5 };
+			// eslint-disable-next-line no-await-in-loop -- Schritte nacheinander, wie eine Hand.
+			await (hasTouch ? sende('pointermove', schritt) : page.mouse.move(schritt.x, schritt.y));
+		}
+		wo = p;
+	};
+	return {
+		runter: async (p: Punkt) => {
+			wo = p;
+			if (hasTouch) {
+				await sende('pointerdown', p);
+			} else {
+				await page.mouse.move(p.x, p.y);
+				await page.mouse.down();
+			}
+			await zu({ x: p.x + 2, y: p.y + 10 });
+		},
+		zu,
+		los: () => (hasTouch ? sende('pointerup', wo) : page.mouse.up()),
+	};
+};
+
+const aufgaben = (page: Page) => page.locator('[data-gliederung-aufgabe]');
+const griffVon = (zeile: Locator) => zeile.getByRole('button', { name: /ziehen$/ });
+const seitenZeile = (page: Page, n: number) => page.locator(`[data-seite-zeile="${n}"]`);
+const marke = (page: Page) => page.locator('[data-gliederung] [data-einfuegemarke]');
+const zurueck = (page: Page) => page.getByRole('button', { name: /^Rückgängig/ }).first();
+const anweisungen = (html: string) => [...html.matchAll(/<span class="text">([^<]{0,12})/g)].map((m) => m[1]);
+const nummern = (html: string) => [...html.matchAll(/<span class="nr( stern)?">([^<]*)</g)].map((m) => m[2]);
+const ANFANG = ['Lies ab. Sch', 'Zeichne die ', 'Willi sagt: ', 'Sternchenauf'];
+
+const neueSeite = async (page: Page, druecke: (z: Locator) => Promise<void>, zahl: number) => {
+	await druecke(page.getByRole('button', { name: 'Seite hinzufügen' }));
+	await expect(page.locator('[data-seite-zeile]')).toHaveCount(zahl);
+};
+
+test.describe('Gliederung (080)', () => {
+	test.beforeEach(() => {
+		test.skip(!GERAETE.includes(test.info().project.name), 'läuft in Chromium, Safari am Mac und auf dem iPad quer');
+	});
+
+	const blatt = async (page: Page) => {
+		const { dok, id } = await uhrzeit();
+		await oeffne(page, id, dok);
+	};
+
+	test('Griff ohne Hover sichtbar, an jeder Zeile außer den festen Teilen', async ({ page }) => {
+		await blatt(page);
+		const zeilen = page.locator('[data-gliederung-zeile]');
+		await expect(zeilen).toHaveCount(4);
+		for (const zeile of await zeilen.all()) {
+			// eslint-disable-next-line no-await-in-loop -- Zeile für Zeile.
+			await expect(griffVon(zeile)).toBeVisible();
+		}
+		await expect(page.locator('[data-gliederung-fest]')).toHaveText(['Namenszeile', 'Kopf', 'Fuß']);
+		await expect(page.locator('[data-gliederung-fest]').getByRole('button', { name: /ziehen$/ })).toHaveCount(0);
+		await expect(griffVon(seitenZeile(page, 1))).toBeVisible();
+	});
+
+	test('Klick auf eine feste Zeile wählt sie, auch im Blatt', async ({ druecke, page }) => {
+		await blatt(page);
+		await druecke(page.locator('[data-gliederung-fest]').nth(1).locator('[data-gliederung-titel]'));
+		await expect(page.locator('[data-auswahl="kopf"]')).toBeVisible();
+	});
+
+	test('Aufgabe innerhalb der Seite ziehen: Quelle und Nummern stimmen, ein Schritt macht es rückgängig', async ({
+		druecke,
+		hasTouch,
+		page,
+	}) => {
+		await blatt(page);
+		const vorher = await quelle(page);
+		const hand = zeiger(page, hasTouch);
+		await hand.runter(await mitte(griffVon(aufgaben(page).nth(2))));
+		await hand.zu(await an(aufgaben(page).nth(0), 'oben'));
+		await expect(marke(page)).toBeVisible();
+		await expect(page.locator('[data-zug]')).toHaveText('Aufgabe 3');
+		await expect(aufgaben(page).nth(2)).toHaveCSS('opacity', '0.35');
+		await hand.los();
+		await expect.poll(async () => anweisungen(await quelle(page))).toEqual([
+			'Willi sagt: ',
+			'Lies ab. Sch',
+			'Zeichne die ',
+			'Sternchenauf',
+		]);
+		expect(nummern(await quelle(page))).toEqual(['1', '2', '3', '★']);
+		await expect(marke(page)).toHaveCount(0);
+		await expect(page.locator('[data-zug]')).toHaveCount(0);
+		await expect(aufgaben(page).nth(0).locator('[data-gliederung-titel]')).toContainText('Willi');
+		await expect(aufgaben(page).nth(0).locator('[data-gliederung-titel]')).toHaveAttribute('aria-current', 'true');
+		await expect(page.locator('[data-auswahl="aufgabe"]')).toBeVisible();
+
+		await expect(zurueck(page)).toHaveAttribute('data-schritt', 'Aufgabe verschoben');
+		await druecke(zurueck(page));
+		await expect.poll(() => quelle(page)).toBe(vorher);
+	});
+
+	test('Aufgabe auf eine andere Seite: Linie zwischen den Zeilen, auf die eingeklappte ans Ende', async ({
+		druecke,
+		hasTouch,
+		page,
+	}) => {
+		await blatt(page);
+		await neueSeite(page, druecke, 2);
+		await druecke(page.getByRole('button', { name: 'Miniaturen aus' }));
+		const hand = zeiger(page, hasTouch);
+
+		// Auf die Seitenzeile: ans Ende, die Zeile färbt sich, keine Linie.
+		await druecke(seitenZeile(page, 2).getByRole('button', { name: 'Einklappen' }));
+		await hand.runter(await mitte(griffVon(aufgaben(page).nth(1))));
+		await hand.zu(await an(seitenZeile(page, 2), 'mitte'));
+		await expect(marke(page)).toHaveCount(0);
+		await expect(seitenZeile(page, 2)).toHaveClass(/bg-brand-50/);
+		await hand.los();
+		await expect.poll(async () => (await quelle(page)).lastIndexOf('Zeichne die ')).toBeGreaterThan(0);
+		const nach = await quelle(page);
+		expect(nach.lastIndexOf('class="seite"')).toBeLessThan(nach.indexOf('Zeichne die '));
+		// Sie liegt jetzt dort und ist gewählt, die Seite ging dafür auf.
+		await expect(seitenZeile(page, 2)).not.toHaveAttribute('data-zu');
+		await expect(page.locator('[data-gliederung-seite="2"] [data-gliederung-aufgabe]')).toHaveCount(1);
+
+		// Zwischen Zeilen der anderen Seite: Linie, und sie steht danach dort.
+		const hand2 = zeiger(page, hasTouch);
+		await hand2.runter(await mitte(griffVon(aufgaben(page).nth(0))));
+		await hand2.zu(await an(page.locator('[data-gliederung-seite="2"] [data-gliederung-aufgabe]').first(), 'unten'));
+		await expect(marke(page)).toBeVisible();
+		await hand2.los();
+		await expect(page.locator('[data-gliederung-seite="2"] [data-gliederung-aufgabe]')).toHaveCount(2);
+		await expect.poll(async () => nummern(await quelle(page))).toEqual(['1', '★', '2', '3']);
+	});
+
+	test('Über einer eingeklappten Seite klappt sie nach kurzer Zeit auf', async ({ druecke, hasTouch, page }) => {
+		await blatt(page);
+		await neueSeite(page, druecke, 2);
+		await druecke(seitenZeile(page, 2).getByRole('button', { name: 'Einklappen' }));
+		const hand = zeiger(page, hasTouch);
+		await hand.runter(await mitte(griffVon(aufgaben(page).nth(0))));
+		await hand.zu(await an(seitenZeile(page, 2), 'mitte'));
+		await expect(seitenZeile(page, 2)).not.toHaveAttribute('data-zu', { timeout: 2000 });
+		await hand.zu(await mitte(griffVon(aufgaben(page).nth(0))));
+		await hand.los();
+	});
+
+	test('Seite ziehen: Liste klappt zu, Reihenfolge stimmt, der Zustand kehrt zurück', async ({
+		druecke,
+		hasTouch,
+		page,
+	}) => {
+		await blatt(page);
+		await neueSeite(page, druecke, 2);
+		await neueSeite(page, druecke, 3);
+		await druecke(seitenZeile(page, 1).getByRole('button', { name: 'Einklappen' }));
+		const hand = zeiger(page, hasTouch);
+		await hand.runter(await mitte(griffVon(seitenZeile(page, 3))));
+		await expect(page.locator('[data-seite-miniatur]')).toHaveCount(0);
+		await expect(aufgaben(page)).toHaveCount(0);
+		await expect(page.locator('[data-seite-anzahl]')).toHaveText(['4', '0', '0']);
+		await hand.zu(await an(seitenZeile(page, 2), 'oben'));
+		await expect(marke(page)).toBeVisible();
+		await hand.los();
+
+		await expect.poll(async () => anweisungen(await quelle(page))).toEqual(ANFANG);
+		await expect(zurueck(page)).toHaveAttribute('data-schritt', 'Seite verschoben');
+		// Seite 1 mit den Aufgaben blieb zu, die anderen beiden stehen wieder offen.
+		await expect(seitenZeile(page, 1)).toHaveAttribute('data-zu');
+		await expect(page.locator('[data-seite-miniatur]')).toHaveCount(2);
+
+		// Jetzt wandert die eingeklappte Seite selbst: Sie bleibt zu, nicht die Zeile, die jetzt oben steht.
+		const hand2 = zeiger(page, hasTouch);
+		await hand2.runter(await mitte(griffVon(seitenZeile(page, 1))));
+		await hand2.zu(await an(seitenZeile(page, 3), 'unten'));
+		await hand2.los();
+		await expect(seitenZeile(page, 3)).toHaveAttribute('data-zu');
+		await expect(seitenZeile(page, 1)).not.toHaveAttribute('data-zu');
+		expect((await quelle(page)).lastIndexOf('class="seite"')).toBeLessThan(
+			(await quelle(page)).indexOf('Lies ab. Sch'),
+		);
+	});
+
+	test('Esc bricht ab, die Quelle bleibt gleich', async ({ hasTouch, page }) => {
+		await blatt(page);
+		const vorher = await quelle(page);
+		const hand = zeiger(page, hasTouch);
+		await hand.runter(await mitte(griffVon(aufgaben(page).nth(2))));
+		await hand.zu(await an(aufgaben(page).nth(0), 'oben'));
+		await expect(marke(page)).toBeVisible();
+		await page.keyboard.press('Escape');
+		await expect(marke(page)).toHaveCount(0);
+		await expect(page.locator('[data-zug]')).toHaveCount(0);
+		await hand.los();
+		expect(await quelle(page)).toBe(vorher);
+	});
+
+	test('Ungültiges Ziel: keine Linie, verbotener Zeiger, Ablegen ändert nichts', async ({ hasTouch, page }) => {
+		await blatt(page);
+		const vorher = await quelle(page);
+		const hand = zeiger(page, hasTouch);
+		await hand.runter(await mitte(griffVon(aufgaben(page).nth(1))));
+
+		await hand.zu(await an(page.locator('[data-gliederung-fest]').nth(1), 'mitte'));
+		await expect(marke(page)).toHaveCount(0);
+		await expect.poll(() => page.evaluate(() => document.documentElement.style.cursor)).toBe('not-allowed');
+
+		await hand.zu({ x: 700, y: 400 });
+		await expect(marke(page)).toHaveCount(0);
+		await hand.los();
+		await expect.poll(() => page.evaluate(() => document.documentElement.style.cursor)).toBe('');
+		expect(await quelle(page)).toBe(vorher);
+	});
+
+	test('Freier Block erscheint und lässt sich ziehen', async ({ hasTouch, page }) => {
+		await blatt(page);
+		const mitBlock = (await quelle(page)).replace('<div class="aufgabe"', '<h2>Zwischen</h2>\n<div class="aufgabe"');
+		await page.evaluate((t) => {
+			(window as unknown as { schoolboxEditor: { aendere: (neu: string) => void } }).schoolboxEditor.aendere(t);
+		}, mitBlock);
+		const block = page.locator('[data-gliederung-zeile]').filter({ hasText: 'Überschrift' });
+		await expect(block).toHaveCount(1);
+		const hand = zeiger(page, hasTouch);
+		await hand.runter(await mitte(griffVon(block)));
+		await hand.zu(await an(aufgaben(page).nth(1), 'unten'));
+		await expect(page.locator('[data-zug]')).toHaveText('Überschrift');
+		await hand.los();
+		await expect.poll(async () => {
+			const q = await quelle(page);
+			return q.indexOf('Zwischen') > q.indexOf('Zeichne die ');
+		}).toBe(true);
+		await expect(zurueck(page)).toHaveAttribute('data-schritt', 'Überschrift verschoben');
+	});
+
+	test('Einklappen: Seite zu, „Alle einklappen“, Klick im Blatt klappt auf', async ({ druecke, page }) => {
+		await blatt(page);
+		await druecke(seitenZeile(page, 1).getByRole('button', { name: 'Einklappen' }));
+		await expect(aufgaben(page)).toHaveCount(0);
+		await expect(page.locator('[data-seite-anzahl]')).toHaveText('4');
+		await druecke(seitenZeile(page, 1).getByRole('button', { name: 'Aufklappen' }));
+		await expect(aufgaben(page)).toHaveCount(4);
+
+		await druecke(page.getByRole('button', { name: 'Alle einklappen' }));
+		await expect(aufgaben(page)).toHaveCount(0);
+		await expect(page.getByRole('button', { name: 'Alle aufklappen' })).toBeVisible();
+
+		// Die Zeile der Seite wählt, ohne sie aufzuklappen.
+		await druecke(seitenZeile(page, 1).getByRole('button', { name: 'Seite 1', exact: true }));
+		await expect(page.locator('[data-auswahl="seite"]')).toBeVisible();
+		await expect(aufgaben(page)).toHaveCount(0);
+
+		await druecke(material(page).locator('.aufgabe .nr').first());
+		await expect(aufgaben(page)).toHaveCount(4);
+	});
+
+	test('Der Stand bleibt, wenn der Reiter wechselt', async ({ druecke, page }) => {
+		await blatt(page);
+		await druecke(seitenZeile(page, 1).getByRole('button', { name: 'Einklappen' }));
+		await druecke(page.getByRole('tab', { name: 'Bausteine' }));
+		await druecke(page.getByRole('tab', { name: 'Gliederung' }));
+		await expect(seitenZeile(page, 1)).toHaveAttribute('data-zu');
+	});
+
+	test('Miniaturen aus: Reiter zeigt nur Zeilen, Einstellung bleibt nach Neuladen', async ({ druecke, page }) => {
+		await blatt(page);
+		await expect(page.locator('[data-seite-miniatur]')).toHaveCount(1);
+		await druecke(page.getByRole('button', { name: 'Miniaturen aus' }));
+		await expect(page.locator('[data-seite-miniatur]')).toHaveCount(0);
+		await expect(page.locator('[data-miniaturen-rahmen]')).toHaveCount(0);
+		await expect(aufgaben(page)).toHaveCount(4);
+		await page.reload();
+		await expect(page.locator('[data-leinwand][data-geladen]')).toBeVisible();
+		await expect(aufgaben(page)).toHaveCount(4);
+		await expect(page.locator('[data-seite-miniatur]')).toHaveCount(0);
+		await druecke(page.getByRole('button', { name: 'Miniaturen an' }));
+		await expect(page.locator('[data-seite-miniatur]')).toHaveCount(1);
+	});
+
+	test('Nur noch zwei Reiter, ⌥1 und ⌥2 passen, alter Speicherwert öffnet „Gliederung“', async ({ page }) => {
+		await blatt(page);
+		const panel = page.locator('[data-panel-links]');
+		await expect(page.getByRole('tab', { name: 'Seiten', exact: true })).toHaveCount(0);
+		await page.evaluate(() => localStorage.setItem('schoolbox-panel-links', 'seiten'));
+		await page.reload();
+		await expect(panel).toHaveAttribute('data-panel-links', 'gliederung');
+		await expect(panel).toHaveCSS('width', '240px');
+		await page.keyboard.press('Alt+Digit2');
+		await expect(panel).toHaveAttribute('data-panel-links', 'bausteine');
+		await page.keyboard.press('Alt+Digit1');
+		await expect(panel).toHaveAttribute('data-panel-links', 'gliederung');
+	});
+
+	test('Mini-Book: kein Griff an Seiten, kein „+ Seite“', async ({ page }) => {
+		const { dokumente, id } = await legeMappeAn('Farben', 'englisch', 3, [
+			{ titel: 'Farben', format: 'minibuch', vorlage: 'minibuch' },
+		]);
+		await oeffne(page, id, dokumente[0] ?? '');
+		await expect(page.locator('[data-seite-zeile]')).toHaveCount(8);
+		await expect(page.getByRole('button', { name: 'Seite ziehen' })).toHaveCount(0);
+		await expect(page.getByRole('button', { name: 'Seite hinzufügen' })).toHaveCount(0);
+		await expect(page.locator('[data-feste-seiten]')).toBeVisible();
+	});
+
+	test('Finger: Der Griff zieht, die Zeile lässt die Liste rollen', async ({ hasTouch, page }) => {
+		test.skip(!hasTouch, 'nur mit Finger');
+		await blatt(page);
+		const griff = griffVon(aufgaben(page).nth(0));
+		await expect(griff).toHaveCSS('touch-action', 'none');
+		const titel = aufgaben(page).nth(0).locator('[data-gliederung-titel]');
+		await expect(titel).not.toHaveCSS('touch-action', 'none');
+		const box = await griff.boundingBox();
+		expect(box?.width).toBeGreaterThanOrEqual(44);
+		expect(box?.height).toBeGreaterThanOrEqual(44);
+
+		const vorher = await quelle(page);
+		const hand = zeiger(page, true);
+		await hand.runter(await mitte(titel));
+		await hand.zu(await an(aufgaben(page).nth(2), 'unten'));
+		await expect(page.locator('[data-zug]')).toHaveCount(0);
+		await hand.los();
+		expect(await quelle(page)).toBe(vorher);
+
+		const griffHand = zeiger(page, true);
+		await griffHand.runter(await mitte(griff));
+		await griffHand.zu(await an(aufgaben(page).nth(2), 'unten'));
+		await expect(page.locator('[data-zug]')).toBeVisible();
+		await griffHand.los();
+		await expect.poll(() => quelle(page)).not.toBe(vorher);
+	});
+
+	test('Maus zieht auch von der Zeile, ein Klick dort wählt nur', async ({ hasTouch, page }) => {
+		test.skip(hasTouch, 'nur mit Maus');
+		await blatt(page);
+		const vorher = await quelle(page);
+		const titel = aufgaben(page).nth(0).locator('[data-gliederung-titel]');
+		await titel.click();
+		await expect(page.locator('[data-auswahl="aufgabe"]')).toBeVisible();
+		expect(await quelle(page)).toBe(vorher);
+		const hand = zeiger(page, false);
+		await hand.runter(await mitte(titel));
+		await hand.zu(await an(aufgaben(page).nth(2), 'unten'));
+		await expect(marke(page)).toBeVisible();
+		await hand.los();
+		await expect.poll(async () => anweisungen(await quelle(page))[0]).toBe('Zeichne die ');
+	});
+});
