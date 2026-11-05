@@ -30,6 +30,8 @@ export const KI_GRENZEN = {
 	zeitMs: 8 * 60_000,
 	runden: 40,
 	budgetUsd: 5,
+	/** Über das Guthaben ist es echtes Geld (Entscheidung 35). */
+	budgetGuthabenUsd: 1,
 	auftragZeichen: 4000,
 	materialBytes: 5 * 1024 * 1024,
 	ausgabeBytes: 50 * 1024 * 1024,
@@ -68,6 +70,11 @@ export interface KiLimit {
 	status: string;
 	fenster: { fuenfStunden: KiFenster; sieben: KiFenster };
 	zurueck: string | null;
+	/** Darf das Konto über gekauftes Guthaben weiterlaufen? `null`: Das Konto sagt es nicht, dann entscheidet der Lauf. */
+	guthaben: 'erlaubt' | 'abgelehnt' | null;
+	laeuftUeberGuthaben: boolean;
+	/** Welches Fenster den Stand bestimmt, für den Hinweis. */
+	fensterArt: 'fuenfStunden' | 'woche' | null;
 }
 
 export interface KiAuftrag {
@@ -80,6 +87,8 @@ export interface KiAuftrag {
 	/** Wie der Lauf endete: ein Vorschlag fürs Blatt oder nur eine Antwort im Chat (074). */
 	ergebnis: 'vorschlag' | 'antwort' | null;
 	antwort: string | null;
+	/** Das Konto hat den Lauf am Limit abgelehnt. */
+	limitErreicht?: boolean;
 }
 
 export interface VorschlagMeta {
@@ -128,7 +137,13 @@ interface Abhaengigkeiten {
 }
 
 /** Der Aufruf aus Issue 056: Skills ja, sonst nichts. Der Prompt kommt über stdin, weil `--tools` Werte schluckt. */
-export const kiArgumente = (o: { ablage: string; auftragDatei: string; modell: string; sitzung?: string | null }) => [
+export const kiArgumente = (o: {
+	ablage: string;
+	auftragDatei: string;
+	budgetUsd?: number;
+	modell: string;
+	sitzung?: string | null;
+}) => [
 	'-p',
 	'--output-format',
 	'stream-json',
@@ -154,7 +169,7 @@ export const kiArgumente = (o: { ablage: string; auftragDatei: string; modell: s
 	'--max-turns',
 	String(KI_GRENZEN.runden),
 	'--max-budget-usd',
-	String(KI_GRENZEN.budgetUsd),
+	String(o.budgetUsd ?? KI_GRENZEN.budgetUsd),
 	'--append-system-prompt-file',
 	o.auftragDatei,
 	...(o.sitzung ? ['--resume', o.sitzung] : []),
@@ -207,6 +222,31 @@ export const einordnenArgumente = (schema: object) => [
 	EINORDNEN_ANWEISUNG,
 ];
 
+/** Der kleinste Aufruf, der den Stand des Kontos liefert: Am Limit abgelehnt kostet er nichts, sonst Bruchteile eines Cents. */
+export const limitPruefenArgumente = () => [
+	'-p',
+	'--output-format',
+	'stream-json',
+	'--verbose',
+	'--model',
+	KI_EINORDNEN_MODELL,
+	'--setting-sources',
+	'',
+	'--strict-mcp-config',
+	'--tools',
+	'',
+	'--disable-slash-commands',
+	'--no-session-persistence',
+	'--permission-mode',
+	'dontAsk',
+	'--max-turns',
+	'1',
+	'--max-budget-usd',
+	String(KI_GRENZEN.einordnenBudgetUsd),
+	'--system-prompt',
+	'Antworte nur mit „ok“.',
+];
+
 const kennung = (inhalt: string) => createHash('sha256').update(inhalt).digest('hex').slice(0, 16);
 
 const SCHRITT_NAMEN: Record<string, string> = {
@@ -227,12 +267,31 @@ const fenster = (roh: { utilization?: unknown; resetsAt?: unknown } | undefined)
 	zurueck: zeitpunkt(roh?.resetsAt),
 });
 
+const guthabenStand = (roh: unknown): KiLimit['guthaben'] => {
+	if (roh === 'allowed') {
+		return 'erlaubt';
+	}
+	return roh === 'rejected' ? 'abgelehnt' : null;
+};
+
+const fensterArtVon = (roh: unknown): KiLimit['fensterArt'] => {
+	if (roh === 'five_hour') {
+		return 'fuenfStunden';
+	}
+	// Auch die Varianten je Modell, etwa `seven_day_opus`.
+	return typeof roh === 'string' && roh.startsWith('seven_day') ? 'woche' : null;
+};
+
 export const liesLimit = (info: Record<string, unknown>): KiLimit => {
 	const fenster2 = (info.unifiedWindows ?? {}) as Record<string, { utilization?: unknown; resetsAt?: unknown }>;
 	return {
 		status: typeof info.status === 'string' ? info.status : 'unbekannt',
 		fenster: { fuenfStunden: fenster(fenster2.five_hour), sieben: fenster(fenster2.seven_day) },
+		// `overageResetsAt` gehört zum Guthaben-Limit, nicht zum Abo: Das Datum kommt nur aus `resetsAt`.
 		zurueck: zeitpunkt(info.resetsAt),
+		guthaben: guthabenStand(info.overageStatus),
+		laeuftUeberGuthaben: info.isUsingOverage === true,
+		fensterArt: fensterArtVon(info.rateLimitType),
 	};
 };
 
@@ -240,6 +299,8 @@ const uhrzeit = (iso: string | null) =>
 	iso
 		? new Date(iso).toLocaleString('de-DE', {
 				weekday: 'long',
+				day: 'numeric',
+				month: 'numeric',
 				hour: '2-digit',
 				minute: '2-digit',
 				timeZone: 'Europe/Berlin',
@@ -248,13 +309,14 @@ const uhrzeit = (iso: string | null) =>
 
 export const limitErreichtText = (zurueck: string | null) => {
 	const wann = uhrzeit(zurueck);
-	return `Das Limit des Claude-Kontos ist erreicht${wann ? `. Wieder möglich ab ${wann} Uhr` : ''}. Auch die Claude-App ist so lange betroffen.`;
+	return `Das Limit des Claude-Kontos ist erreicht${wann ? `. Wieder möglich ab ${wann} Uhr` : ''}.`;
 };
 
 const FEHLER_TEXTE: Record<string, string> = {
 	authentication_failed: 'Claude ist auf dem Server nicht angemeldet. Der Admin meldet es dort mit „claude“ an.',
 	error_max_turns: 'Der Auftrag war zu umfangreich. Wähle einen kleineren Teil des Blatts.',
 	error_max_budget_usd: 'Der Auftrag war zu umfangreich. Wähle einen kleineren Teil des Blatts.',
+	error_max_budget_guthaben: `Der Auftrag hat die Grenze von ${KI_GRENZEN.budgetGuthabenUsd} $ für einen Lauf über dein Guthaben erreicht. Wähle einen kleineren Teil des Blatts.`,
 };
 const FEHLER_UNBEKANNT = 'Claude konnte den Auftrag nicht ausführen. Bitte versuch es noch einmal.';
 
@@ -505,8 +567,37 @@ export const erstelleKi = ({ ereignisse, konfig, pruefer }: Abhaengigkeiten) => 
 		return wert;
 	};
 
-	const limitErreicht = () =>
-		limit?.status === 'rejected' && (!limit.zurueck || new Date(limit.zurueck).getTime() > Date.now());
+	const limitGilt = () => !limit?.zurueck || new Date(limit.zurueck).getTime() > Date.now();
+
+	/** Vorab gesperrt wird nur, was das Konto selbst abgelehnt hat (Entscheidung 35). */
+	const limitErreicht = () => limit?.status === 'rejected' && limit.guthaben === 'abgelehnt' && limitGilt();
+
+	/** Limit erreicht: Was jetzt noch läuft, läuft über Guthaben oder wird ohnehin abgelehnt. */
+	const budgetJetzt = () =>
+		(limit?.status === 'rejected' || limit?.laeuftUeberGuthaben) && limitGilt()
+			? KI_GRENZEN.budgetGuthabenUsd
+			: KI_GRENZEN.budgetUsd;
+
+	/**
+	 * Das Ende eines Laufs ist die Antwort des Kontos: Der Limit-Fehler ist der neue Stand. Ein Lauf ohne Fehler und
+	 * ohne eigenes Ereignis widerlegt zumindest eine alte Ablehnung.
+	 */
+	const uebernimmEnde = (fehler: string | null, gemeldet: boolean) => {
+		if (fehler === 'rate_limit') {
+			limit = {
+				...(limit ?? {
+					fenster: { fuenfStunden: fenster(undefined), sieben: fenster(undefined) },
+					zurueck: null,
+					fensterArt: null,
+				}),
+				status: 'rejected',
+				guthaben: 'abgelehnt',
+				laeuftUeberGuthaben: false,
+			};
+		} else if (!fehler && !gemeldet && limit?.status === 'rejected') {
+			limit = null;
+		}
+	};
 
 	const beendeKind = (kind: ChildProcessWithoutNullStreams) => {
 		kind.kill('SIGINT');
@@ -527,7 +618,8 @@ export const erstelleKi = ({ ereignisse, konfig, pruefer }: Abhaengigkeiten) => 
 				resolve({ fehler: null, sitzung, antwort: '', verbrauch: {} });
 				return;
 			}
-			const kind = spawn(bin, kiArgumente({ ablage, auftragDatei, modell: konfig.kiModell, sitzung }), {
+			const budgetUsd = budgetJetzt();
+			const kind = spawn(bin, kiArgumente({ ablage, auftragDatei, budgetUsd, modell: konfig.kiModell, sitzung }), {
 				cwd: arbeit,
 				env: kiUmgebung(bin),
 			});
@@ -539,6 +631,7 @@ export const erstelleKi = ({ ereignisse, konfig, pruefer }: Abhaengigkeiten) => 
 			}
 			let grund: string | null = null;
 			let bytes = 0;
+			let gemeldet = false;
 			const stoppe = (warum: string) => {
 				grund = warum;
 				beendeKind(kind);
@@ -566,6 +659,7 @@ export const erstelleKi = ({ ereignisse, konfig, pruefer }: Abhaengigkeiten) => 
 						},
 						limit: (neu) => {
 							limit = neu;
+							gemeldet = true;
 						},
 					});
 				} catch {
@@ -582,8 +676,12 @@ export const erstelleKi = ({ ereignisse, konfig, pruefer }: Abhaengigkeiten) => 
 					(stand.fehlerCode && !stand.ergebnis.fehler ? stand.fehlerCode : null) ??
 					stand.ergebnis.fehler ??
 					(code === 0 ? null : (stand.fehlerCode ?? 'unbekannt'));
+				uebernimmEnde(fehler, gemeldet);
 				resolve({
-					fehler,
+					fehler:
+						fehler === 'error_max_budget_usd' && budgetUsd === KI_GRENZEN.budgetGuthabenUsd
+							? 'error_max_budget_guthaben'
+							: fehler,
 					sitzung: stand.sitzung,
 					antwort: stand.ergebnis.antwort ?? '',
 					verbrauch: stand.ergebnis.verbrauch ?? {},
@@ -593,9 +691,6 @@ export const erstelleKi = ({ ereignisse, konfig, pruefer }: Abhaengigkeiten) => 
 
 	const fehlerText = (code: string) => {
 		if (code === 'rate_limit' || limitErreicht()) {
-			if (limit && !limitErreicht()) {
-				limit = { ...limit, status: 'rejected' };
-			}
 			return limitErreichtText(limit?.zurueck ?? null);
 		}
 		return FEHLER_TEXTE[code] ?? (code.includes(' ') ? code : FEHLER_UNBEKANNT);
@@ -613,7 +708,7 @@ export const erstelleKi = ({ ereignisse, konfig, pruefer }: Abhaengigkeiten) => 
 			mappe: a.mappe,
 			dok: a.dok,
 			status,
-			umfang: { 'Ganzes Blatt': 'blatt', 'einordnen': 'einordnen' }[umfang] ?? 'teil',
+			umfang: { 'Ganzes Blatt': 'blatt', 'einordnen': 'einordnen', 'limit': 'limit' }[umfang] ?? 'teil',
 			sekunden: Math.round((Date.now() - start) / 1000),
 			...verbrauch,
 		};
@@ -685,6 +780,7 @@ export const erstelleKi = ({ ereignisse, konfig, pruefer }: Abhaengigkeiten) => 
 				return;
 			}
 			if (erst.fehler) {
+				a.limitErreicht = erst.fehler === 'rate_limit' || limitErreicht();
 				throw new HttpFehler(500, fehlerText(erst.fehler));
 			}
 			let neu = await leseErgebnis(arbeit);
@@ -822,6 +918,61 @@ export const erstelleKi = ({ ereignisse, konfig, pruefer }: Abhaengigkeiten) => 
 		}
 	};
 
+	/** Holt den Stand beim Konto, auf Klick. Sonst käme eine Sperre nach dem Kauf von Guthaben nie von selbst weg. */
+	const fragLimitAb = async () => {
+		await mkdir(wurzelTmp, { recursive: true, mode: 0o700 });
+		const tmp = await mkdtemp(path.join(wurzelTmp, 'limit-'));
+		const start = Date.now();
+		const stand = { sitzung: null as string | null, fehlerCode: null as string | null, ergebnis: {} as Partial<Ergebnis> };
+		let gemeldet = false;
+		try {
+			await new Promise<void>((resolve, reject) => {
+				const kind = spawn(bin, limitPruefenArgumente(), { cwd: tmp, env: kiUmgebung(bin) });
+				const frist = setTimeout(() => beendeKind(kind), KI_GRENZEN.einordnenMs);
+				kind.stdin.on('error', () => undefined);
+				kind.stdin.end('ok');
+				kind.stderr.resume();
+				createInterface({ input: kind.stdout }).on('line', (zeile) => {
+					try {
+						werteAus(JSON.parse(zeile) as Record<string, unknown>, stand, {
+							schritt: () => undefined,
+							limit: (neu) => {
+								limit = neu;
+								gemeldet = true;
+							},
+						});
+					} catch {
+						// Keine JSON-Zeile: gehört nicht zum Protokoll.
+					}
+				});
+				kind.on('error', reject);
+				kind.on('close', () => {
+					clearTimeout(frist);
+					resolve();
+				});
+			});
+			const { fehler } = stand.ergebnis;
+			// Ohne Ergebnis (Netz, Absturz) sagt der Aufruf nichts über das Konto: Der alte Stand bleibt.
+			if (fehler !== undefined || stand.fehlerCode) {
+				uebernimmEnde(stand.fehlerCode ?? fehler ?? null, gemeldet);
+			}
+			await notiereVerbrauch({ mappe: '', dok: '' }, fehler ? 'fehler' : 'fertig', 'limit', start, stand.ergebnis.verbrauch ?? {});
+		} catch (fehler) {
+			console.error('Stand des Limits:', fehler);
+		} finally {
+			await rm(tmp, { recursive: true, force: true });
+		}
+	};
+
+	let limitFrage: Promise<void> | null = null;
+	const pruefeLimit = async () => {
+		// Ein Doppelklick startet keinen zweiten Aufruf.
+		limitFrage ??= fragLimitAb().finally(() => {
+			limitFrage = null;
+		});
+		await limitFrage;
+	};
+
 	const naechster = () => {
 		if (aktiv) {
 			return;
@@ -857,6 +1008,7 @@ export const erstelleKi = ({ ereignisse, konfig, pruefer }: Abhaengigkeiten) => 
 		angemeldet,
 		einordne,
 		limit: () => limit,
+		pruefeLimit,
 		auftrag: (id: string) => auftraege.get(id) ?? null,
 		/** Laufende und wartende Aufträge eines Dokuments, damit ein neu geöffneter Editor sie wiederfindet. */
 		offene: (mappe: string, dok: string) =>

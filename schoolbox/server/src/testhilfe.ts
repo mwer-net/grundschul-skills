@@ -70,13 +70,23 @@ process.stdin.on('end', () => {
 		return;
 	}
 	sag({ type: 'system', subtype: 'init', session_id: 's1' });
-	sag({ type: 'rate_limit_event', rate_limit_info: { status: 'allowed', resetsAt: 1900000000, unifiedWindows: { five_hour: { utilization: 0.5, resetsAt: 1900000000 }, seven_day: { utilization: 0.2, resetsAt: 1900000000 } } } });
+	const amLimit = { status: 'rejected', resetsAt: 1900000000, rateLimitType: 'seven_day', overageResetsAt: 1950000000, unifiedWindows: { five_hour: { utilization: 0.83, status: 'allowed' }, seven_day: { utilization: 1, status: 'rejected' } } };
+	const limitJe = {
+		'limit-guthaben': { ...amLimit, overageStatus: 'allowed', isUsingOverage: true },
+		'limit-budget': { ...amLimit, overageStatus: 'allowed', isUsingOverage: true },
+		'limit-gesperrt': { ...amLimit, overageStatus: 'rejected', isUsingOverage: false },
+		'limit-ohne-feld': amLimit,
+	};
+	sag({ type: 'rate_limit_event', rate_limit_info: limitJe[fall] ?? { status: 'allowed', resetsAt: 1900000000, unifiedWindows: { five_hour: { utilization: 0.5, resetsAt: 1900000000 }, seven_day: { utilization: 0.2, resetsAt: 1900000000 } } } });
+	if (fall === 'limit-gesperrt') { sag({ type: 'assistant', error: 'rate_limit', message: { content: [] } }); sag({ type: 'result', subtype: 'success', is_error: true, result: 'limit', num_turns: 1, total_cost_usd: 0 }); process.exit(1); }
+	if (args.includes('--no-session-persistence')) { sag({ type: 'result', subtype: 'success', is_error: false, result: 'ok', num_turns: 1, total_cost_usd: 0.0006 }); return; }
 	sag({ type: 'assistant', message: { content: [{ type: 'tool_use', name: 'Skill', input: { skill: 'fach-mathematik' } }, { type: 'tool_use', name: 'Edit', input: {} }] } });
 	const ende = (extra) => sag({ type: 'result', subtype: 'success', is_error: false, result: 'Annahme: Klasse 2', num_turns: 2, total_cost_usd: 0.01, usage: { output_tokens: 5 }, permission_denials: [], ...extra });
 	const aendere = () => { const d = 'material.html'; const alt = fs.readFileSync(d, 'utf8'); fs.writeFileSync(d, alt.includes('</h1>') ? alt.replace('</h1>', ' von Claude</h1>') : alt.includes('</section>') ? alt.replace('</section>', '<p>von Claude</p></section>') : alt.replace(/^\s*<[a-z-]+/, '$& data-von-claude')); };
 	if (fall === 'haenger') { setInterval(() => {}, 1000); return; }
 	if (fall === 'fehler') { sag({ type: 'assistant', error: 'rate_limit', message: { content: [] } }); ende({ is_error: true, result: 'limit' }); process.exit(1); }
 	if (fall === 'abmeldung') { sag({ type: 'assistant', error: 'authentication_failed', message: { content: [] } }); ende({ is_error: true, result: 'Not logged in' }); process.exit(1); }
+	if (fall === 'limit-budget') { ende({ subtype: 'error_max_budget_usd', is_error: true, result: '' }); process.exit(1); }
 	if (fall === 'nichts') { ende({}); return; }
 	if (fall === 'leer') { ende({ result: '' }); return; }
 	if (eingabe.includes('FRAGE')) { ende({ result: 'Das Blatt hat vier Uhren.' }); return; }

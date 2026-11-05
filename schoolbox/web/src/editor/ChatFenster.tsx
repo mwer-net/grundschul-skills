@@ -7,6 +7,7 @@ import type { KeyboardEvent, RefObject } from 'react';
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 
+import { meldung } from '../api';
 import { klassen } from '../bausteine/klassen';
 import { Knopf } from '../bausteine/Knopf';
 import type { MenueEintrag } from '../bausteine/Menue';
@@ -427,6 +428,7 @@ interface VerlaufBereichEigenschaften {
 	leerGeblieben: boolean;
 	liste: RefObject<HTMLDivElement | null>;
 	neu: NeuMaterial;
+	limitGesperrt: boolean;
 	neuStarten: () => void;
 	schliessen: () => void;
 	einklappen: () => void;
@@ -444,6 +446,7 @@ const VerlaufBereich = ({
 	liste,
 	neu,
 	neuStarten,
+	limitGesperrt,
 	schliessen,
 	vergleichen,
 	verlauf,
@@ -498,12 +501,12 @@ const VerlaufBereich = ({
 						Das Blatt bleibt leer im Ordner. Du kannst es selbst füllen oder hier neu beauftragen.
 					</p>
 				)}
-				{fehler && (
+				{fehler && fehler !== hinweisText && (
 					<div className="rounded-lg border border-tinte/15 bg-white/50 p-2.5" data-ki-fehler>
 						<p role="alert" className="font-medium">
 							{fehler}
 						</p>
-						{hatLehrkraft && !laeuft && (
+						{hatLehrkraft && !laeuft && !limitGesperrt && (
 							<Knopf art="zweit" className="mt-1.5" onClick={neuStarten}>
 								Nochmal
 							</Knopf>
@@ -663,6 +666,51 @@ const Eingabe = ({
 				<span>Keine Namen von Kindern eintragen.</span>
 				<span className="flex-none">{`⏎ ${taste} · esc ${fenster === 'verlauf' ? 'einklappen' : 'schließen'}`}</span>
 			</div>
+		</div>
+	);
+};
+
+/** Der Stand des Limits am Chat. Auch gesperrt kein toter Zustand: Der Knopf fragt das Konto neu. */
+const LimitZeile = ({
+	hinweis,
+	pruefeLimit,
+}: {
+	hinweis: NonNullable<ReturnType<typeof limitHinweis>>;
+	pruefeLimit: () => Promise<void>;
+}) => {
+	const [frage, setFrage] = useState<'ruhe' | 'fragt' | 'gefragt'>('ruhe');
+	const [fehler, setFehler] = useState<string | null>(null);
+	const versuche = async () => {
+		setFrage('fragt');
+		setFehler(null);
+		try {
+			await pruefeLimit();
+		} catch (grund) {
+			setFehler(meldung(grund));
+		}
+		setFrage('gefragt');
+	};
+	return (
+		<div
+			role="status"
+			className="flex flex-none items-center justify-between gap-2 border-b border-tinte/12 px-3 py-1 text-xs"
+			data-ki-limit={hinweis.art}
+		>
+			<p>
+				{hinweis.text}
+				{frage === 'gefragt' && ` ${fehler ?? 'Gerade neu gefragt: Es bleibt noch gesperrt.'}`}
+			</p>
+			{hinweis.art === 'gesperrt' && (
+				<Knopf
+					art="zweit"
+					groesse="klein"
+					className="flex-none"
+					disabled={frage === 'fragt'}
+					onClick={() => void versuche()}
+				>
+					Noch einmal versuchen
+				</Knopf>
+			)}
 		</div>
 	);
 };
@@ -850,6 +898,29 @@ export const ChatInhalt = ({
 	const chipName = chipFuer({ art: kontext.art, neuModus, ordner, pfad, ziel });
 	const offen = fenster !== 'zu';
 	const letzte = verlauf.findLast((n) => n.rolle === 'lehrkraft');
+	const gesendet = useRef<string | null>(null);
+	const ablehnungen = useRef(0);
+
+	// Abgelehnt: Der getippte Auftrag kommt zurück ins Feld, sofern dort nicht schon Neues steht.
+	useEffect(() => {
+		if (auftragKi.abgelehnt === ablehnungen.current) {
+			return;
+		}
+		ablehnungen.current = auftragKi.abgelehnt;
+		if (gesendet.current && !entwurf.trim()) {
+			setEntwurf(gesendet.current);
+		}
+		gesendet.current = null;
+	}, [auftragKi.abgelehnt, entwurf, setEntwurf]);
+
+	// Ist die Sperre weg, stimmt auch die alte Meldung nicht mehr.
+	const warGesperrt = useRef(false);
+	useEffect(() => {
+		if (warGesperrt.current && !gesperrtLimit) {
+			setFehler(null);
+		}
+		warGesperrt.current = gesperrtLimit;
+	}, [gesperrtLimit, setFehler]);
 
 	useEffect(() => {
 		if (kiFehler) {
@@ -904,6 +975,7 @@ export const ChatInhalt = ({
 		const kontextText = aufVorschlag ? (letzte?.kontext ?? offenerVorschlag?.umfang ?? null) : chipName;
 		const vorher = verlaufFuerServer(verlauf);
 		const stelle = zitat;
+		gesendet.current = inhalt.aktion ? null : inhalt.text;
 		merke(inhalt.text, kontextText);
 		setZitat(null);
 		setUngelesen(false);
@@ -932,7 +1004,7 @@ export const ChatInhalt = ({
 			// Ist das Limit nah, kostet schon das Einordnen zu viel: Die Karte kommt trotzdem.
 			void neu.starte(
 				{ wunsch: inhalt.text, ordner, schluessel, imDokument: Boolean(dokument) },
-				Boolean(hinweis),
+				hinweis?.art === 'warnung',
 			);
 			return;
 		}
@@ -1049,6 +1121,7 @@ export const ChatInhalt = ({
 							auftragKi={auftragKi}
 							einklappen={() => setFenster('zeile')}
 							hinweisText={hinweis?.text ?? null}
+							limitGesperrt={gesperrtLimit}
 							imEditor={
 								dokument
 									? null
@@ -1064,15 +1137,7 @@ export const ChatInhalt = ({
 							verwerfen={verwirf}
 						/>
 					)}
-					{hinweis && (
-						<p
-							role="status"
-							className="flex-none border-b border-tinte/12 px-3 py-1 text-xs"
-							data-ki-limit={hinweis.art}
-						>
-							{hinweis.text}
-						</p>
-					)}
+					{hinweis && <LimitZeile key={hinweis.art} hinweis={hinweis} pruefeLimit={kiStatus.pruefeLimit} />}
 					{zustand.verfuegbar ? (
 						<Eingabe
 							abbrechen={() => void auftragKi.abbrechen()}

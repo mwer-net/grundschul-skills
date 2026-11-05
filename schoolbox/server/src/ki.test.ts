@@ -10,7 +10,7 @@ import type { Einordnung, Pruefbericht } from '@schoolbox/kern';
 import { attribut, dokumentDir, KI_AKTIONEN, listeVersionen, WURZEL, zerlege } from '@schoolbox/kern';
 import { erzeugeReferenz } from '@schoolbox/kern/src/referenz';
 
-import { KI_EINORDNEN_MODELL, kiArgumente, kiTempWurzel, kiUmgebung, liesLimit } from './ki';
+import { KI_EINORDNEN_MODELL, kiArgumente, kiTempWurzel, kiUmgebung, limitErreichtText, liesLimit } from './ki';
 import { CSRF_HEADER } from './schutz';
 import type { TestServer } from './testhilfe';
 import { KI_ATTRAPPE, legeDokumentAn, ordnerVon, starteTestServer } from './testhilfe';
@@ -481,6 +481,8 @@ describe('Aufträge an Claude', () => {
 		assert.equal(await aufrufe(), vorher + 1);
 		const { limit } = (await (await api('/ki/status')).json()) as { limit: { status: string } };
 		assert.equal(limit.status, 'rejected');
+		await fall('gut');
+		await api('/ki/limit/pruefen', { method: 'POST' });
 	});
 
 	it('Limit-Ereignis: Auslastung und Zeitpunkt', () => {
@@ -496,6 +498,163 @@ describe('Aufträge an Claude', () => {
 		assert.equal(l.fenster.fuenfStunden.auslastung, 0.25);
 		assert.equal(l.fenster.sieben.zurueck, null);
 		assert.equal(l.zurueck, new Date(1794265200 * 1000).toISOString());
+		assert.equal(l.guthaben, null);
+		assert.equal(l.laeuftUeberGuthaben, false);
+		assert.equal(l.fensterArt, null);
+	});
+
+	it('Limit-Ereignis: Guthaben aus dem Konto, Unbekanntes gilt nicht als erlaubt', () => {
+		const gemessen = {
+			status: 'rejected',
+			resetsAt: 1794265200,
+			rateLimitType: 'seven_day',
+			overageStatus: 'allowed',
+			overageResetsAt: 1796083200,
+			isUsingOverage: true,
+		};
+		const l = liesLimit(gemessen);
+		assert.equal(l.guthaben, 'erlaubt');
+		assert.equal(l.laeuftUeberGuthaben, true);
+		assert.equal(l.fensterArt, 'woche');
+		// Das Guthaben-Limit hat ein eigenes Datum, das des Abos zählt.
+		assert.equal(l.zurueck, new Date(1794265200 * 1000).toISOString());
+		assert.equal(liesLimit({ ...gemessen, overageStatus: 'rejected' }).guthaben, 'abgelehnt');
+		assert.equal(liesLimit({ ...gemessen, overageStatus: 'irgendwas' }).guthaben, null);
+		assert.equal(liesLimit({ ...gemessen, overageStatus: 1 }).guthaben, null);
+		assert.equal(liesLimit({ ...gemessen, isUsingOverage: 'true' }).laeuftUeberGuthaben, false);
+		assert.equal(liesLimit({ ...gemessen, rateLimitType: 'five_hour' }).fensterArt, 'fuenfStunden');
+	});
+
+	it('limitErreichtText: mit Datum, ohne Aussage über die Claude-App', () => {
+		const text = limitErreichtText('2030-03-17T23:00:00.000Z');
+		assert.match(text, /Wieder möglich ab Montag, 18\.3\., 00:00 Uhr/);
+		assert.doesNotMatch(text, /Claude-App/);
+		assert.doesNotMatch(limitErreichtText(null), /Claude-App|ab /);
+	});
+
+	describe('Am Limit, mit und ohne Guthaben (086)', () => {
+		const letzteArgumente = async () => {
+			const zeilen = (await readFile(path.join(path.dirname(bin), 'aufrufe.jsonl'), 'utf8')).trim().split('\n');
+			return (JSON.parse(zeilen.at(-1) ?? '{}') as { args: string[] }).args;
+		};
+		const budget = async () => {
+			const args = await letzteArgumente();
+			return args[args.indexOf('--max-budget-usd') + 1];
+		};
+		const stand = async () =>
+			((await (await api('/ki/status')).json()) as { limit: { status: string; guthaben: string | null } | null })
+				.limit;
+		const frageNeu = () => api('/ki/limit/pruefen', { method: 'POST' });
+		const einordnen = async () =>
+			(await (
+				await api('/ki/einordnen', { method: 'POST', body: JSON.stringify({ text: 'Uhrzeiten üben' }) })
+			).json()) as Einordnung;
+		const anzahlAufrufe = async () =>
+			(await readFile(path.join(path.dirname(bin), 'aufrufe.jsonl'), 'utf8')).trim().split('\n').length;
+
+		afterEach(async () => {
+			await fall('gut');
+			await frageNeu();
+		});
+
+		it('rejected und allowed: startet, auch der nächste Auftrag; das Budget sinkt auf den Guthaben-Wert', async () => {
+			await fall('limit-guthaben');
+			assert.equal((await auftrag()).status, 'fertig');
+			assert.equal((await stand())?.guthaben, 'erlaubt');
+			assert.equal((await auftrag()).status, 'fertig');
+			assert.equal(await budget(), '1');
+		});
+
+		it('Ohne Guthaben-Lauf bleibt das Budget', async () => {
+			await auftrag();
+			assert.equal(await budget(), '5');
+		});
+
+		it('Budget über Guthaben erschöpft: Die Meldung nennt das Guthaben', async () => {
+			await fall('limit-guthaben');
+			await auftrag();
+			await fall('limit-budget');
+			const a = await auftrag();
+			assert.equal(a.status, 'fehler');
+			assert.match(a.fehler ?? '', /Guthaben/);
+		});
+
+		it('rejected und rejected: Der Lauf meldet es, der nächste Auftrag bekommt 429 ohne Aufruf', async () => {
+			await fall('limit-gesperrt');
+			const a = await auftrag();
+			assert.match(a.fehler ?? '', /Limit des Claude-Kontos ist erreicht/);
+			assert.equal((a as { limitErreicht?: boolean }).limitErreicht, true);
+			const vorher = await anzahlAufrufe();
+			const zweiter = await starte({ auftrag: 'noch einer' });
+			assert.equal(zweiter.status, 429);
+			assert.equal(await anzahlAufrufe(), vorher);
+		});
+
+		it('rejected ohne Feld: wird nicht vorab gesperrt', async () => {
+			await fall('limit-ohne-feld');
+			assert.equal((await auftrag()).status, 'fertig');
+			assert.equal((await stand())?.guthaben, null);
+			assert.equal((await starte({ auftrag: 'noch einer' })).status, 202);
+		});
+
+		it('Nach einem Lauf mit allowed ist eine alte Ablehnung weg', async () => {
+			await fall('limit-guthaben');
+			await auftrag();
+			assert.equal((await stand())?.status, 'rejected');
+			await fall('gut');
+			await auftrag();
+			assert.equal((await stand())?.status, 'allowed');
+		});
+
+		it('Neu fragen löst eine Sperre ohne Neustart und ohne Auftrag', async () => {
+			await fall('limit-gesperrt');
+			await auftrag();
+			assert.equal((await starte({ auftrag: 'gesperrt' })).status, 429);
+
+			// Das Konto lehnt weiter ab: Es bleibt gesperrt.
+			await frageNeu();
+			assert.equal((await starte({ auftrag: 'gesperrt' })).status, 429);
+
+			// Guthaben gekauft.
+			await fall('limit-guthaben');
+			const res = await frageNeu();
+			const { limit } = (await res.json()) as { limit: { guthaben: string } };
+			assert.equal(limit.guthaben, 'erlaubt');
+			const args = await letzteArgumente();
+			assert.equal(args[args.indexOf('--tools') + 1], '');
+			assert.ok(args.includes('--no-session-persistence'));
+			assert.equal(args[args.indexOf('--max-budget-usd') + 1], '0.1');
+			assert.equal((await auftrag()).status, 'fertig');
+		});
+
+		it('Warteschlange: Ein Auftrag hinter einem sperrenden Lauf endet, statt zu hängen', async () => {
+			await fall('limit-gesperrt');
+			const erster = await starte({ auftrag: 'eins' });
+			const zweiter = await starte({ auftrag: 'zwei' });
+			assert.equal(erster.status, 202);
+			assert.equal(zweiter.status, 202);
+			const ids = await Promise.all(
+				[erster, zweiter].map(async (r) => ((await r.json()) as { auftrag: { id: string } }).auftrag.id),
+			);
+			const [a, b] = await Promise.all(ids.map(fertig));
+			assert.equal(a?.status, 'fehler');
+			assert.equal(b?.status, 'fehler');
+			assert.match(b?.fehler ?? '', /Limit des Claude-Kontos/);
+		});
+
+		it('Einordnen: mit Guthaben ein Aufruf, echt gesperrt der Rückfall ohne Aufruf', async () => {
+			await fall('limit-guthaben');
+			await auftrag();
+			let vorher = await anzahlAufrufe();
+			assert.equal((await einordnen()).rueckfall, false);
+			assert.equal(await anzahlAufrufe(), vorher + 1);
+
+			await fall('limit-gesperrt');
+			await auftrag();
+			vorher = await anzahlAufrufe();
+			assert.equal((await einordnen()).rueckfall, true);
+			assert.equal(await anzahlAufrufe(), vorher);
+		});
 	});
 });
 
@@ -552,6 +711,7 @@ describe('Aufträge an Claude: Zugang', () => {
 		for (const [url, init] of [
 			[`${f}/api/dokumente/${mappe}/${dok}/ki`, { method: 'POST', headers: { [CSRF_HEADER]: '1' } }],
 			[`${f}/api/ki/status`, {}],
+			[`${f}/api/ki/limit/pruefen`, { method: 'POST', headers: { [CSRF_HEADER]: '1' } }],
 			[`${f}/api/dokumente/${mappe}/${dok}/vorschlag`, {}],
 			[`${f}/ansicht/${mappe}/dokumente/${dok}/?vorschlag=1`, {}],
 			[`${f}/ansicht/${mappe}/dokumente/${dok}/vorschlag/material.html`, {}],

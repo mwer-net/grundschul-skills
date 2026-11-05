@@ -230,6 +230,62 @@ test.describe('Chat im Editor (074)', () => {
 	});
 });
 
+test.describe('Chat am Limit (086)', () => {
+	const hinweis = (page: Page, art: string) => chat(page).locator(`[data-ki-limit="${art}"]`);
+	const sendenKnopf = (page: Page) => chat(page).getByRole('button', { name: 'Senden' });
+
+	/** Der Stand lebt im Server und überlebt den Test: Das Konto neu fragen, die Attrappe meldet wieder Luft. */
+	test.afterEach(async ({ page }) => {
+		await fall('gut');
+		await page.evaluate(() =>
+			fetch('/api/ki/limit/pruefen', { method: 'POST', headers: { 'x-schoolbox': '1' } }),
+		);
+	});
+
+	test('Limit erreicht, Guthaben erlaubt: Hinweis nennt das Guthaben, Senden geht weiter', async ({ page }) => {
+		await offenesBlatt(page);
+		await fall('limit-guthaben');
+		await schreibe(page, 'Mach es schöner');
+		await expect(karte(page)).toBeVisible();
+		await expect(hinweis(page, 'guthaben')).toContainText('Wochenlimit erreicht');
+		await expect(hinweis(page, 'guthaben')).toContainText('über dein Guthaben');
+		await expect(hinweis(page, 'guthaben').getByRole('button')).toHaveCount(0);
+
+		await schreibe(page, 'Noch etwas schöner');
+		await expect(chat(page).locator('[data-ki-fehler]')).toHaveCount(0);
+		await expect(karte(page)).toBeVisible();
+		await feld(page).fill('Weiter');
+		await expect(sendenKnopf(page)).toBeEnabled();
+	});
+
+	test('Echt gesperrt: Text bleibt im Feld, „Noch einmal versuchen“ fragt das Konto neu', async ({ page }) => {
+		await offenesBlatt(page);
+		await fall('limit-gesperrt');
+		await schreibe(page, 'Mach es schöner');
+		await expect(hinweis(page, 'gesperrt')).toContainText('Wieder möglich ab');
+		await expect(hinweis(page, 'gesperrt')).not.toContainText('Claude-App');
+		await expect(feld(page)).toHaveValue('Mach es schöner');
+		await expect(sendenKnopf(page)).toBeDisabled();
+		await expect(chat(page).locator('[data-ki-fehler]').getByRole('button')).toHaveCount(0);
+
+		// Noch kein Guthaben: Die Antwort des Kontos bleibt dieselbe, der Knopf sagt das auch.
+		await hinweis(page, 'gesperrt').getByRole('button', { name: 'Noch einmal versuchen' }).click();
+		await expect(hinweis(page, 'gesperrt')).toContainText('noch gesperrt');
+		await expect(feld(page)).toHaveValue('Mach es schöner');
+
+		// Guthaben gekauft: Die Sperre löst sich ohne Neustart.
+		await fall('limit-guthaben');
+		await hinweis(page, 'gesperrt').getByRole('button', { name: 'Noch einmal versuchen' }).click();
+		await expect(hinweis(page, 'guthaben')).toBeVisible();
+		await expect(chat(page).locator('[data-ki-fehler]')).toHaveCount(0);
+		await expect(feld(page)).toHaveValue('Mach es schöner');
+		await expect(sendenKnopf(page)).toBeEnabled();
+		await sendenKnopf(page).click();
+		await expect(karte(page)).toBeVisible();
+		await expect(feld(page)).toHaveValue('');
+	});
+});
+
 test.describe('Neues Material aus dem Chat (077)', () => {
 	test.afterEach(() => fall('gut'));
 
