@@ -242,7 +242,7 @@ Muster: `assets/muster/raeumliche-geometrie.html`. Schrägbild, Bauplan und Ansi
 | `verdeckt` | `zeigen`: verdeckte Würfel gestrichelt |
 | `einheit` | Würfelkante in px |
 
-Fehler: Frage ist zugleich Vorgabe; Fragen ohne Schrägbild oder Bauplan; nach Bauplan oder Anzahl gefragt, während das Schrägbild einen Würfel verdeckt.
+Fehler: Frage ist zugleich Vorgabe; Fragen ohne Schrägbild oder Bauplan; nach Bauplan oder Anzahl gefragt, während das Schrägbild einen Würfel verdeckt und `verdeckt` nicht `zeigen` ist.
 
 ### `x-wuerfelnetz`: Würfel- und Quadernetz
 

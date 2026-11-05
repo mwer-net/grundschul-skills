@@ -4,7 +4,7 @@ import path from 'node:path';
 import { describe, it } from 'node:test';
 import { runInNewContext } from 'node:vm';
 
-import type { AbbildungSchema, Feld, ListeFeld, Werte } from './abbildungen';
+import type { AbbildungSchema, Feld, ListeFeld, Werte, ZahlFeld } from './abbildungen';
 import {
 	ABBILDUNG_SCHEMA,
 	abschnittVon,
@@ -35,12 +35,14 @@ import {
 	rasterVon,
 	rechenreiheMoeglich,
 	schemaVon,
+	SATZSPIEGEL,
 	setzeAbbildung,
 	tafelAusschnitt,
 	VERKEHRSZEICHEN,
 	werteVon,
 	zeilenAlsText,
 	zeilenAusText,
+	zahlStandard,
 	zeilenText,
 	zeilenVon,
 	ziffernText,
@@ -323,6 +325,87 @@ describe('Felder ändern', () => {
 			zahlen: null,
 		});
 		assert.deepEqual(neu({}, 'quadrat'), { art: 'quadrat' });
+	});
+
+	it('Gitter: Die Aufgabe nimmt Spalten, Zeilen, Kästchen und Achse mit', () => {
+		const s = schema('x-gitter');
+		const aufgabe = feld(s, 'aufgabe');
+		const neu = (w: Werte, wert: string) => aendereFeld(s, w, aufgabe, wert);
+		const figur = '0 0 0 0 0 0 / 0 0 0 1 1 1 / 0 0 1 1 0 0 / 0 1 1 1 0 0 / 0 0 0 1 1 1 / 0 0 0 0 0 0';
+		const start: Werte = { spalten: '12', zeilen: '6', aufgabe: 'spiegeln', achse: 'senkrecht', 'achse-bei': '6', figur };
+		const fort = neu(start, 'fortsetzen');
+		assert.deepEqual([fort.spalten, fort.zeilen, fort.kaestchen], ['24', '6', '0.5']);
+		const gross = neu(start, 'vergroessern');
+		assert.deepEqual([gross.spalten, gross.zeilen, gross.kaestchen], ['12', '8', '0.5']);
+		assert.deepEqual([gross.achse, gross['achse-bei']], [null, null]);
+		assert.deepEqual(neu(gross, 'spiegeln').achse, 'senkrecht');
+		assert.deepEqual(neu(gross, 'spiegeln')['achse-bei'], '6');
+		assert.equal(zahlStandard(feld(s, 'rapport') as ZahlFeld, fort), 6);
+		assert.equal(zahlStandard(feld(s, 'rapport') as ZahlFeld, {}), 4);
+
+		const passt: Werte = { spalten: '24', zeilen: '4', kaestchen: '0.5', rapport: '4', figur: '1 1 0 0 / 1 0 0 0' };
+		assert.deepEqual(neu(passt, 'fortsetzen'), { ...passt, aufgabe: 'fortsetzen' });
+		const breit = neu({ spalten: '12', figur: '1 1 1 1 1 1 1 1 1 1' }, 'fortsetzen');
+		assert.deepEqual([breit.spalten, breit.rapporte], ['30', '1']);
+		const zuBreit = { spalten: '12', figur: '1 1 1 1 1 1 1 1 1 1 1 1' };
+		assert.deepEqual(neu(zuBreit, 'fortsetzen'), { ...zuBreit, aufgabe: 'fortsetzen' });
+		const leer = { spalten: '12' };
+		assert.deepEqual(neu(leer, 'vergroessern'), { ...leer, aufgabe: 'vergroessern' });
+		const nachLangem = neu({ spalten: '24', zeilen: '6', figur }, 'vergroessern');
+		assert.equal(nachLangem.spalten, '10');
+	});
+
+	it('Gitter: Fortsetzen durch und Größe wirken nur in ihrer Aufgabe', () => {
+		const s = schema('x-gitter');
+		const figur = '1 1 1 1 1 1 / 1 1 1 1 1 1';
+		const anders = aendereFeld(s, { spalten: '12', figur, aufgabe: 'keine' }, feld(s, 'rapportart'), 'drehen');
+		assert.equal(anders.spalten, '12');
+		const fort = aendereFeld(s, { spalten: '12', figur, aufgabe: 'fortsetzen' }, feld(s, 'rapportart'), 'drehen');
+		assert.equal(fort.spalten, '24');
+		const zurueck = aendereFeld(s, { spalten: '12', zeilen: '6', figur, aufgabe: 'vergroessern', faktor: '0.5' }, feld(s, 'faktor'), '2');
+		assert.deepEqual([zurueck.spalten, zurueck.zeilen], ['12', '6']);
+	});
+
+	it('Satzspiegel im Schema und in `abbildungen.js` sind gleich', () => {
+		assert.equal(/const SATZSPIEGEL = (\d+)/.exec(JS)?.[1], String(SATZSPIEGEL));
+	});
+
+	it('Würfelgebäude: Die Frage nimmt die Vorgabe weg, nicht umgekehrt', () => {
+		const s = schema('x-wuerfelbau');
+		const fragen = feld(s, 'fragen');
+		const zeige = 'schraegbild bauplan vorne rechts links oben';
+		assert.equal(aendereFeld(s, { zeige }, fragen, 'vorne').zeige, 'schraegbild bauplan rechts links oben');
+		assert.equal(aendereFeld(s, { zeige }, fragen, 'bauplan oben').zeige, 'schraegbild vorne rechts links');
+		assert.equal(aendereFeld(s, { zeige }, fragen, 'anzahl').zeige, zeige);
+		assert.equal(aendereFeld(s, { zeige: 'bauplan vorne' }, fragen, 'bauplan').zeige, 'schraegbild vorne');
+		assert.equal(aendereFeld(s, { zeige: 'bauplan' }, fragen, 'bauplan').zeige, null);
+		assert.equal(aendereFeld(s, {}, fragen, 'bauplan').zeige ?? null, null);
+		assert.equal(aendereFeld(s, { fragen: 'vorne' }, feld(s, 'zeige'), 'vorne').fragen, 'vorne');
+		assert.equal(aendereFeld(s, { zeige }, fragen, 'bauplan').verdeckt, 'zeigen');
+		assert.equal(aendereFeld(s, { zeige: 'schraegbild' }, fragen, 'anzahl').verdeckt, 'zeigen');
+		assert.equal(aendereFeld(s, { zeige }, fragen, 'anzahl').verdeckt ?? null, null);
+		assert.equal(aendereFeld(s, { zeige }, fragen, 'vorne').verdeckt ?? null, null);
+	});
+
+	it('Würfelnetz: „Kein Netz“ nimmt die Aufgabe mit, der Quader seine Maße', () => {
+		const s = schema('x-wuerfelnetz');
+		const netz = feld(s, 'netz');
+		const kein = aendereFeld(s, { aufgabe: 'gegenueber', markiere: '2', bastel: 'ja', laschen: 'ja', art: 'quader' }, netz, 'n3');
+		assert.deepEqual(
+			[kein.aufgabe, kein.bastel, kein.laschen, kein.art, kein.markiere],
+			['netz-oder-nicht', null, null, null, '2'],
+		);
+		assert.equal(aendereFeld(s, {}, netz, 'n1').aufgabe, 'netz-oder-nicht');
+		assert.equal(aendereFeld(s, { aufgabe: 'gegenueber' }, netz, '4').aufgabe, 'gegenueber');
+		assert.equal(aendereFeld(s, { netz: 'n3' }, feld(s, 'aufgabe'), 'gegenueber').netz, '1');
+		assert.equal(aendereFeld(s, { netz: '4' }, feld(s, 'aufgabe'), 'gegenueber').netz, '4');
+
+		const art = feld(s, 'art');
+		assert.equal(aendereFeld(s, { netz: '3' }, art, 'quader').masse, '4 2 1');
+		assert.equal(aendereFeld(s, { netz: '3' }, art, 'quader').netz, '3');
+		assert.equal(aendereFeld(s, { netz: '9' }, art, 'quader').netz, '1');
+		assert.equal(aendereFeld(s, { netz: '3', masse: '5 3 2' }, art, 'quader').masse, '5 3 2');
+		assert.equal(aendereFeld(s, { netz: '3', masse: '5 3 2' }, art, null).masse, '5 3 2');
 	});
 
 	it('Stellen ändern: Zahlen bleiben rechtsbündig an ihrer Stelle', () => {

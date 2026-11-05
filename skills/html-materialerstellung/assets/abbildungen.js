@@ -958,6 +958,13 @@
     form.zellen.every(([x, y]) => x >= 0 && y >= 0 && x < spalten && y < zeilen) &&
     form.polys.flat().every(([x, y]) => x >= 0 && y >= 0 && x <= spalten && y <= zeilen);
 
+  /** Für die Meldung: So groß muss das Gitter sein, damit die Form hineinpasst. */
+  const gitterBraucht = (form) => {
+    const spalten = Math.max(0, ...form.zellen.map((z) => z[0] + 1), ...form.polys.flat().map((p) => p[0]));
+    const zeilen = Math.max(0, ...form.zellen.map((z) => z[1] + 1), ...form.polys.flat().map((p) => p[1]));
+    return `Es braucht ${zahl(spalten)} Spalten und ${zahl(zeilen)} Zeilen.`;
+  };
+
   /** Vergrößern um 2 oder Halbieren: Beim Halbieren muss jedes 2×2-Feld ganz voll oder ganz leer sein. */
   const skaliere = (form, faktor) => {
     const xs = [...form.zellen.map((z) => z[0]), ...form.polys.flat().map((p) => p[0])];
@@ -1042,7 +1049,7 @@
       form.polys = linienRoh.split(";").map((t) => t.trim()).filter(Boolean).map((t) => t.split(/\s+/).map((p) => p.split(",").map(Number)));
       if (form.polys.flat().flat().some((v) => !Number.isFinite(v))) abbruch("Linien schreibt man als Punkte, zum Beispiel 0,0 3,0 3,2.");
     }
-    if (!passtInsGitter(form, spalten, zeilen)) abbruch("Die Figur passt nicht ins Gitter. Mach das Gitter größer.");
+    if (!passtInsGitter(form, spalten, zeilen)) abbruch(`Die Figur passt nicht ins Gitter. ${gitterBraucht(form)}`);
     const istLeer = form.zellen.length === 0 && form.polys.length === 0;
     if (["spiegeln", "fortsetzen", "vergroessern"].includes(aufgabe) && istLeer) abbruch("Die Figur ist noch leer.");
     const f = fuellung(), grund = HELL_ODER_MUSTER(f);
@@ -1087,7 +1094,7 @@
     if (aufgabe === "vergroessern") {
       zielGitter = true;
       loesung = skaliere(form, faktor);
-      if (!passtInsGitter(loesung, spalten, zeilen)) abbruch("Die Figur passt in dieser Größe nicht ins Zielgitter. Mach das Gitter größer.");
+      if (!passtInsGitter(loesung, spalten, zeilen)) abbruch(`Die Figur passt in dieser Größe nicht ins Zielgitter. ${gitterBraucht(loesung)}`);
     }
 
     const breiteGitter = spalten * k, hoeheGitter = zeilen * k, abstand = zielGitter ? 28 : 0;
@@ -1429,8 +1436,8 @@
     const art = attr(el, "projektion", "schraeg");
     if (!PROJEKTION[art]) abbruch(`Die Projektion „${art}“ gibt es nicht.`);
     const verdeckt = verdeckteWuerfel(plan, art);
-    if (gezeigt.includes("schraegbild") && !gezeigt.includes("bauplan") && verdeckt.length && fragen.some((f) => f === "bauplan" || f === "anzahl")) {
-      abbruch("Ein Würfel ist von hier nicht zu sehen; die Aufgabe ist nicht eindeutig.");
+    if (gezeigt.includes("schraegbild") && !gezeigt.includes("bauplan") && verdeckt.length && attr(el, "verdeckt", "nicht") !== "zeigen" && fragen.some((f) => f === "bauplan" || f === "anzahl")) {
+      abbruch("Ein Würfel ist von hier nicht zu sehen; die Aufgabe ist nicht eindeutig. Zeige die verdeckten Würfel oder gib den Bauplan vor.");
     }
     const e = num(el, "einheit", 26), zelle = 22;
     const toene = istSw() ? TOENE.sw : TOENE.farbe;

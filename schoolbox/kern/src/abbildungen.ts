@@ -1102,6 +1102,145 @@ const zahlenFuerZauberform = (w: Werte): Werte => {
 	};
 };
 
+/** Nutzbare Breite eines Blatts in px; dieselbe Zahl steht in `abbildungen.js`, ein Test hält beide gleich. */
+export const SATZSPIEGEL = 620;
+const PX_JE_CM = 96 / 2.54;
+
+/** Der Rand der Figur im Gitter in Kästchen, aus dem Raster und den Linien; ohne Figur `null`. */
+const gitterFigur = (w: Werte) => {
+	const zellen = rasterVon(w.figur ?? null).flatMap((zeile, y) =>
+		zeile.flatMap((z, x) => (z === '0' ? [] : [[x, y], [x + 1, y + 1]])),
+	);
+	const punkte = (w.linien ?? '')
+		.split(/[;\s]+/)
+		.filter(Boolean)
+		.map((p) => p.split(',').map(Number));
+	const xs = [...zellen, ...punkte].map((p) => p[0] ?? 0);
+	const ys = [...zellen, ...punkte].map((p) => p[1] ?? 0);
+	return xs.length === 0
+		? null
+		: { links: Math.min(...xs), oben: Math.min(...ys), rechts: Math.max(...xs), unten: Math.max(...ys) };
+};
+
+/** Passt die Breite bei 1 cm nicht aufs Blatt, nimmt die Wahl die kleinen Kästchen. Ohne Angabe sind es in Klasse 1 und 2 1 cm. */
+const kaestchenFuer = (w: Werte, breite: (kaestchenPx: number) => number): Werte =>
+	w.kaestchen !== '0.5' && breite(PX_JE_CM) > SATZSPIEGEL ? { kaestchen: '0.5' } : {};
+
+const GITTER_ABSTAND = 28;
+const breiteMitZiel = (spalten: number) => (px: number) => spalten * px * 2 + GITTER_ABSTAND;
+
+/** Fortsetzen zeigt die vorgegebenen Muster und zwei weitere: Das Gitter wächst, wenn es sonst zu schmal wäre. */
+const gitterFuerFortsetzen = (w: Werte): Werte => {
+	const figur = gitterFigur(w);
+	if (!figur) {
+		return {};
+	}
+	const breite = Number(w.rapport ?? figur.rechts);
+	const vorgegeben = Number(w.rapporte ?? 2);
+	const hoechstens = Math.floor(SATZSPIEGEL / (PX_JE_CM / 2));
+	const einMuster = vorgegeben > 1 && (vorgegeben + 2) * breite > hoechstens && 3 * breite <= hoechstens;
+	const noetig = ((einMuster ? 1 : vorgegeben) + 2) * breite;
+	const spalten = Math.max(Number(w.spalten ?? 10), noetig);
+	if (noetig > hoechstens) {
+		return {};
+	}
+	return {
+		...(spalten !== Number(w.spalten ?? 10) ? { spalten: String(spalten) } : {}),
+		...(einMuster ? { rapporte: '1' } : {}),
+		...kaestchenFuer(w, (px) => spalten * px),
+	};
+};
+
+/** Das Zielgitter ist so groß wie das Gitter und steht daneben: Es muss die Figur fassen, beide zusammen das Blatt. */
+const gitterFuerVergroessern = (w: Werte): Werte => {
+	const figur = gitterFigur(w);
+	if (!figur) {
+		return {};
+	}
+	const faktor = w.faktor === '0.5' ? 0.5 : 2;
+	const noetigSpalten = Math.max(figur.rechts, Math.ceil((figur.rechts - figur.links) * faktor));
+	const noetigZeilen = Math.max(figur.unten, Math.ceil((figur.unten - figur.oben) * faktor));
+	const jetzt = Number(w.spalten ?? 10);
+	const gewachsen = Math.max(jetzt, noetigSpalten);
+	const passtKlein = breiteMitZiel(gewachsen)(PX_JE_CM / 2) <= SATZSPIEGEL;
+	const spalten = passtKlein ? gewachsen : noetigSpalten;
+	const zeilen = Math.max(Number(w.zeilen ?? 8), noetigZeilen);
+	return {
+		...(spalten !== jetzt ? { spalten: String(spalten) } : {}),
+		...(zeilen !== Number(w.zeilen ?? 8) ? { zeilen: String(zeilen) } : {}),
+		...kaestchenFuer(w, breiteMitZiel(spalten)),
+		...(w.achse ? { achse: null, 'achse-bei': null } : {}),
+	};
+};
+
+/** Spiegeln braucht eine Achse: Fehlt sie, kommt sie an den rechten Rand der Figur, ohne Figur in die Mitte. */
+const achseFuerSpiegeln = (w: Werte): Werte =>
+	w.achse
+		? {}
+		: {
+				achse: 'senkrecht',
+				'achse-bei': String(gitterFigur(w)?.rechts ?? Math.floor(Number(w.spalten ?? 10) / 2)),
+			};
+
+/** Die Aufgabe des Gitters nimmt mit, was sie am Gitter braucht; was schon passt, bleibt zeichengleich. */
+const gitterFuerAufgabe = (w: Werte): Werte => {
+	switch (w.aufgabe) {
+		case 'spiegeln':
+			return achseFuerSpiegeln(w);
+		case 'fortsetzen':
+			return gitterFuerFortsetzen(w);
+		case 'vergroessern':
+			return gitterFuerVergroessern(w);
+		default:
+			return {};
+	}
+};
+
+/**
+ * Was gefragt ist, steht nicht mehr als Vorgabe da. Bleibt dann weder Schrägbild noch Bauplan, kommt das Schrägbild
+ * dazu, denn sonst lässt sich die Frage nicht beantworten. Andersherum nimmt eine Vorgabe die Frage nicht weg. Wer
+ * Bauplan oder Anzahl aus dem Schrägbild erschließt, muss jeden Würfel sehen: Verdeckte werden gezeigt; hat der Bau
+ * keine, ändert das am Blatt nichts.
+ */
+const vorgabeOhneFrage = (w: Werte): Werte => {
+	const fragen = listeVon(w.fragen ?? null);
+	const zeige = listeVon(w.zeige ?? null);
+	const bleibt = zeige.filter((z) => !fragen.includes(z));
+	const ohneGrundlage = fragen.length > 0 && bleibt.length > 0 && !bleibt.some((z) => ['schraegbild', 'bauplan'].includes(z));
+	const neu = ohneGrundlage ? ['schraegbild', ...bleibt] : bleibt;
+	const nurSchraegbild = !neu.includes('bauplan') && fragen.some((f) => ['bauplan', 'anzahl'].includes(f));
+	return {
+		...(neu.join(' ') === zeige.join(' ') ? {} : { zeige: neu.length > 0 ? neu.join(' ') : null }),
+		...(nurSchraegbild && w.verdeckt !== 'zeigen' ? { verdeckt: 'zeigen' } : {}),
+	};
+};
+
+const NETZ_NUR_ECHT = ['gegenueber', 'augen-ergaenzen'];
+const istKeinNetz = (w: Werte) => (w.netz ?? '').startsWith('n');
+
+/** „Kein Netz“ ergibt nur als Frage „Netz oder nicht?“ Sinn; was einen faltbaren Würfel braucht, fällt mit der Wahl weg. */
+const aufgabeFuerNetz = (w: Werte): Werte =>
+	istKeinNetz(w)
+		? {
+				...(w.aufgabe === 'netz-oder-nicht' ? {} : { aufgabe: 'netz-oder-nicht' }),
+				...(w.art === 'quader' ? { art: null } : {}),
+				...(w.bastel === 'ja' ? { bastel: null } : {}),
+				...(w.laschen === 'ja' ? { laschen: null } : {}),
+			}
+		: {};
+
+/** Aufgaben am gefalteten Würfel brauchen ein echtes Netz. */
+const netzFuerAufgabe = (w: Werte): Werte => (istKeinNetz(w) && NETZ_NUR_ECHT.includes(w.aufgabe ?? '') ? { netz: '1' } : {});
+
+/** Der Quader braucht drei Maße und eines der Netze 1 bis 6. */
+const masseFuerQuader = (w: Werte): Werte =>
+	w.art === 'quader'
+		? {
+				...(listeVon(w.masse ?? null).length === 3 ? {} : { masse: '4 2 1' }),
+				...(['1', '2', '3', '4', '5', '6'].includes(w.netz ?? '1') ? {} : { netz: '1' }),
+			}
+		: {};
+
 export const ABBILDUNG_SCHEMA = {
 	'x-uhr': {
 		name: 'Uhr',
@@ -1906,6 +2045,7 @@ export const ABBILDUNG_SCHEMA = {
 				name: 'Kinder sollen',
 				standard: 'keine',
 				gruppe: 'Aufgabe',
+				mitnehmen: gitterFuerAufgabe,
 				optionen: [
 					{ wert: 'keine', name: 'Keine' },
 					{ wert: 'spiegeln', name: 'Spiegeln' },
@@ -1928,7 +2068,8 @@ export const ABBILDUNG_SCHEMA = {
 			{
 				art: 'zahl',
 				attribut: 'achse-bei', nurWenn: (w) => !!w.achse && (w.aufgabe ?? 'keine') !== 'fortsetzen',
-				name: 'Achse nach Kästchen',
+				name: 'Achse nach',
+				hilfe: 'So viele Kästchen von links, bei waagerechter Achse von oben.',
 				min: 1,
 				max: 39,
 				standard: 5,
@@ -1941,6 +2082,7 @@ export const ABBILDUNG_SCHEMA = {
 				min: 1,
 				max: 40,
 				standard: 4,
+				standardJe: (w) => gitterFigur(w)?.rechts ?? 4,
 				gruppe: 'Aufgabe',
 			},
 			{
@@ -1958,6 +2100,7 @@ export const ABBILDUNG_SCHEMA = {
 				name: 'Fortsetzen durch',
 				standard: 'schieben',
 				gruppe: 'Aufgabe',
+				mitnehmen: gitterFuerAufgabe,
 				optionen: [
 					{ wert: 'schieben', name: 'Schieben' },
 					{ wert: 'spiegeln', name: 'Spiegeln im Wechsel' },
@@ -1970,9 +2113,9 @@ export const ABBILDUNG_SCHEMA = {
 				name: 'Größe',
 				standard: '2',
 				gruppe: 'Aufgabe',
+				mitnehmen: gitterFuerAufgabe,
 				optionen: [
 					{ wert: '2', name: 'Doppelt so groß' },
-					{ wert: '0.3', name: 'Klein' },
 					{ wert: '0.5', name: 'Halb so groß' },
 				],
 			},
@@ -4617,6 +4760,7 @@ export const ABBILDUNG_SCHEMA = {
 				art: 'mehrfach',
 				attribut: 'fragen',
 				name: 'Gefragt',
+				mitnehmen: vorgabeOhneFrage,
 				optionen: [{ wert: 'anzahl', name: 'Anzahl der Würfel' }, ...WUERFELBAU_TEILE.slice(1)],
 			},
 			{
@@ -4664,6 +4808,7 @@ export const ABBILDUNG_SCHEMA = {
 				name: 'Netz',
 				standard: '1',
 				blaettern: true,
+				mitnehmen: aufgabeFuerNetz,
 				optionen: [
 					...Array.from({ length: 11 }, (_, i) => ({ wert: String(i + 1), name: `Netz ${i + 1}` })),
 					...Array.from({ length: 8 }, (_, i) => ({ wert: `n${i + 1}`, name: `Kein Netz ${i + 1}` })),
@@ -4674,6 +4819,7 @@ export const ABBILDUNG_SCHEMA = {
 				attribut: 'aufgabe',
 				name: 'Aufgabe',
 				standard: 'keine',
+				mitnehmen: netzFuerAufgabe,
 				optionen: [
 					{ wert: 'keine', name: 'Keine' },
 					{ wert: 'netz-oder-nicht', name: 'Netz oder nicht?' },
@@ -4681,7 +4827,15 @@ export const ABBILDUNG_SCHEMA = {
 					{ wert: 'augen-ergaenzen', name: 'Augen ergänzen' },
 				],
 			},
-			{ art: 'zahl', attribut: 'markiere', name: 'Markierte Fläche', min: 1, max: 6, standard: 1 },
+			{
+				art: 'zahl',
+				attribut: 'markiere',
+				nurWenn: wenn('aufgabe', 'keine', 'gegenueber'),
+				name: 'Markierte Fläche',
+				min: 1,
+				max: 6,
+				standard: 1,
+			},
 			{
 				art: 'schalter',
 				attribut: 'augen',
@@ -4728,6 +4882,7 @@ export const ABBILDUNG_SCHEMA = {
 				name: 'Körper',
 				standard: 'wuerfel',
 				gruppe: 'Weitere Angaben',
+				mitnehmen: masseFuerQuader,
 				optionen: [
 					{ wert: 'wuerfel', name: 'Würfel' },
 					{ wert: 'quader', name: 'Quader' },
@@ -4806,7 +4961,14 @@ export const ABBILDUNG_SCHEMA = {
 					{ wert: 'flaechen', name: 'Flächen' },
 				],
 			},
-			{ art: 'zahlen', attribut: 'masse', name: 'Maße', beispiel: '4 2 2', gruppe: 'Weitere Angaben' },
+			{
+				art: 'zahlen',
+				attribut: 'masse',
+				name: 'Maße',
+				beispiel: '4 2 2',
+				hilfe: 'Würfel und Kugel: eine Zahl. Zylinder und Kegel: Durchmesser und Höhe. Sonst: Länge, Breite und Höhe.',
+				gruppe: 'Weitere Angaben',
+			},
 			{
 				art: 'zahl',
 				attribut: 'drehung',

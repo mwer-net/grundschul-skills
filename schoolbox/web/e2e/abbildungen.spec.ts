@@ -534,8 +534,8 @@ test.describe('Ebene Geometrie (025)', () => {
 		expect(await readFile(datei, 'utf8')).toBe(stand);
 
 		await druecke(material(page).locator('x-gitter'));
-		await page.getByLabel('Achse nach Kästchen', { exact: true }).fill('3');
-		await page.getByLabel('Achse nach Kästchen', { exact: true }).press('Enter');
+		await page.getByLabel('Achse nach', { exact: true }).fill('3');
+		await page.getByLabel('Achse nach', { exact: true }).press('Enter');
 		await expect(page.locator('[data-fehler="_element"]')).toContainText('kreuzt die Achse');
 		expect(await readFile(datei, 'utf8')).toBe(stand);
 	});
@@ -1009,6 +1009,128 @@ test.describe('Rechnen: Wahlen nehmen mit, was sie brauchen (084)', () => {
 		await druecke(zurueck(page));
 		await gespeichert(page, datei);
 		expect(await readFile(datei, 'utf8')).toBe(stand);
+	});
+});
+
+test.describe('Geometrie: Wahlen nehmen mit, was sie brauchen (084)', () => {
+	const mitTag = async (page: Page, tag: string) => {
+		const { dok, id, material: datei } = await uhrzeit();
+		await oeffne(page, id, dok);
+		await aendere(page, (await quelle(page)).replace(/<x-uhr[^>]*><\/x-uhr>/, tag));
+		await gespeichert(page, datei);
+		return { datei, stand: await readFile(datei, 'utf8') };
+	};
+	const STARTER =
+		'<x-gitter spalten="12" zeilen="6" aufgabe="spiegeln" achse="senkrecht" achse-bei="6" figur="0 0 0 0 0 0 / 0 0 0 1 1 1 / 0 0 1 1 0 0 / 0 1 1 1 0 0 / 0 0 0 1 1 1 / 0 0 0 0 0 0"></x-gitter>';
+
+	test('Gitter: Fortsetzen und Vergrößern gehen vom Starter aus, ein Schritt zurück stellt alles her', async ({
+		druecke,
+		page,
+	}) => {
+		const { datei, stand } = await mitTag(page, STARTER);
+		await druecke(material(page).locator('x-gitter'));
+		const aufgabe = page.locator('[data-feld="aufgabe"] select');
+		await aufgabe.selectOption({ label: 'Fortsetzen' });
+		await gespeichert(page, datei);
+		await expect(page.locator('[data-fehler]')).toHaveCount(0);
+		expect(await readFile(datei, 'utf8')).toMatch(/<x-gitter [^>]*spalten="24"/);
+		await expect(page.locator('[data-feld="spalten"] input')).toHaveValue('24');
+		await expect(page.locator('[data-feld="rapport"] input')).toHaveValue('6');
+		await page.locator('[data-feld="rapportart"] select').selectOption({ label: 'Drehen im Wechsel' });
+		await gespeichert(page, datei);
+		await expect(page.locator('[data-fehler]')).toHaveCount(0);
+		await druecke(zurueck(page));
+		await gespeichert(page, datei);
+		await druecke(zurueck(page));
+		await gespeichert(page, datei);
+		expect(await readFile(datei, 'utf8')).toBe(stand);
+
+		await druecke(material(page).locator('x-gitter'));
+		await aufgabe.selectOption({ label: 'Vergrößern' });
+		await gespeichert(page, datei);
+		await expect(page.locator('[data-fehler]')).toHaveCount(0);
+		const tag = /<x-gitter[^>]*>/.exec(await readFile(datei, 'utf8'))?.[0] ?? '';
+		expect(tag).toContain('zeilen="8"');
+		expect(tag).not.toContain('achse');
+		await expect(material(page).locator('x-gitter .achse')).toHaveCount(0);
+		await expect(page.locator('[data-feld="faktor"] option')).toHaveText(['Doppelt so groß', 'Halb so groß']);
+		await druecke(zurueck(page));
+		await gespeichert(page, datei);
+		expect(await readFile(datei, 'utf8')).toBe(stand);
+	});
+
+	test('Gitter: Die Meldung nennt die nötige Größe in Zahlen', async ({ page }) => {
+		const klein = await gezeichnet(page, '<x-gitter spalten="2" zeilen="1" figur="0 0 1 / 0 0 0 / 1 0 0"></x-gitter>');
+		await expect(klein.locator('x-gitter')).toHaveAttribute('data-fehler', /3 Spalten und 3 Zeilen/);
+		const ziel = await gezeichnet(
+			page,
+			'<x-gitter spalten="4" zeilen="2" aufgabe="vergroessern" figur="1 1 / 1 1"></x-gitter>',
+			'kl3 sw',
+		);
+		await expect(ziel.locator('x-gitter')).toHaveAttribute('data-fehler', /4 Spalten und 4 Zeilen/);
+	});
+
+	test('Würfelgebäude: Eine Frage nimmt die Vorgabe weg, jede Wahl unter „Gefragt“ geht', async ({ druecke, page }) => {
+		const { datei, stand } = await mitTag(
+			page,
+			'<x-wuerfelbau bauplan="2 1 / 3 1" zeige="schraegbild bauplan vorne rechts links oben"></x-wuerfelbau>',
+		);
+		const gefragt = page.locator('[data-feld="fragen"]');
+		for (const name of ['Bauplan', 'Ansicht von vorne', 'Ansicht von rechts', 'Ansicht von links', 'Ansicht von oben']) {
+			await druecke(material(page).locator('x-wuerfelbau'));
+			await druecke(gefragt.getByRole('switch', { name, exact: true }));
+			await gespeichert(page, datei);
+			await expect(page.locator('[data-fehler]')).toHaveCount(0);
+			await druecke(zurueck(page));
+			await gespeichert(page, datei);
+			expect(await readFile(datei, 'utf8')).toBe(stand);
+		}
+		await druecke(material(page).locator('x-wuerfelbau'));
+		await druecke(gefragt.getByRole('switch', { name: 'Bauplan', exact: true }));
+		await gespeichert(page, datei);
+		const tag = /<x-wuerfelbau[^>]*>/.exec(await readFile(datei, 'utf8'))?.[0] ?? '';
+		expect(tag).toContain('fragen="bauplan"');
+		expect(tag).toContain('zeige="schraegbild vorne rechts links oben"');
+		await expect(material(page).locator('x-wuerfelbau .verdeckt').first()).toBeAttached();
+	});
+
+	test('Würfelbau: Die Meldung zum verdeckten Würfel nennt den Ausweg', async ({ page }) => {
+		const blatt = await gezeichnet(page, '<x-wuerfelbau bauplan="2 1 / 3 1" fragen="anzahl"></x-wuerfelbau>');
+		await expect(blatt.locator('x-wuerfelbau')).toHaveAttribute('data-fehler', /Zeige die verdeckten Würfel/);
+	});
+
+	test('Würfelnetz: „Kein Netz“ setzt die Aufgabe, der Quader seine Maße', async ({ druecke, page }) => {
+		const { datei, stand } = await mitTag(page, '<x-wuerfelnetz netz="3" aufgabe="gegenueber" markiere="2"></x-wuerfelnetz>');
+		await druecke(material(page).locator('x-wuerfelnetz'));
+		await page.locator('[data-feld="netz"] select').selectOption({ label: 'Kein Netz 3' });
+		await gespeichert(page, datei);
+		await expect(page.locator('[data-fehler]')).toHaveCount(0);
+		expect(await readFile(datei, 'utf8')).toMatch(/<x-wuerfelnetz [^>]*aufgabe="netz-oder-nicht"/);
+		await expect(page.locator('[data-feld="markiere"]')).toHaveCount(0);
+		await druecke(zurueck(page));
+		await gespeichert(page, datei);
+		expect(await readFile(datei, 'utf8')).toBe(stand);
+
+		await druecke(material(page).locator('x-wuerfelnetz'));
+		await page.locator('[data-feld="art"] select').selectOption({ label: 'Quader' });
+		await gespeichert(page, datei);
+		await expect(page.locator('[data-fehler]')).toHaveCount(0);
+		expect(await readFile(datei, 'utf8')).toMatch(/<x-wuerfelnetz [^>]*masse="4 2 1"/);
+		await expect(page.getByLabel('Maße des Quaders')).toHaveValue('4 2 1');
+		await druecke(zurueck(page));
+		await gespeichert(page, datei);
+		expect(await readFile(datei, 'utf8')).toBe(stand);
+	});
+
+	test('Körper: Die Maße wirken auch bei Kugel und Kegel', async ({ page }) => {
+		const breite = async (tag: string) =>
+			(await gezeichnet(page, tag)).locator('svg').first().getAttribute('width');
+		expect(await breite('<x-koerper form="kugel" masse="2"></x-koerper>')).not.toBe(
+			await breite('<x-koerper form="kugel" masse="4"></x-koerper>'),
+		);
+		expect(await breite('<x-koerper form="kegel" masse="2 3"></x-koerper>')).not.toBe(
+			await breite('<x-koerper form="kegel" masse="4 3"></x-koerper>'),
+		);
 	});
 });
 
