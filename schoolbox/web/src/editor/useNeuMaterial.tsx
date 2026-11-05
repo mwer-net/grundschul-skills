@@ -1,6 +1,6 @@
 import type { Einordnung, EinordnungOrdner } from '@schoolbox/kern/src/einordnung';
 import { rueckfallEinordnung } from '@schoolbox/kern/src/einordnung';
-import { useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 
 import { meldung, sende } from '../api';
@@ -8,14 +8,13 @@ import { useAblage } from '../ordner/kontext';
 import { pfadVon } from '../ordner/objekte';
 import { MaterialDialog } from '../seiten/Anlegen';
 import { legeMaterialAn } from '../seiten/material-anlegen';
-import { liesVerlauf, schreibeVerlauf, verlaufSchluessel } from './chat-verlauf';
+import { beendeGespraechAufServer, neueGespraechId } from './ki';
+import type { Gespraech } from './useGespraech';
 
 interface Herkunft {
 	wunsch: string;
 	/** Der Ordner, in dem die Nachricht entstand. Die Karte bleibt ihm treu, auch wenn man die Seite wechselt. */
 	ordner: string | null;
-	/** Der Verlauf, in dem die Nachricht steht. */
-	schluessel: string;
 	imDokument: boolean;
 }
 
@@ -28,9 +27,10 @@ export type NeuStand = NeuOrdnet | NeuKarte;
  * Neues Material aus einer Nachricht (077): erst einordnen, dann eine Karte, erst nach ihrer Bestätigung anlegen und
  * Claude starten. Der Stand liegt im Rahmen, damit er einen Seitenwechsel übersteht.
  */
-export const useNeuMaterial = () => {
+export const useNeuMaterial = (gespraech: Gespraech) => {
 	const [stand, setStand] = useState<NeuStand | null>(null);
-	const [aendern, setAendern] = useState(false);
+	/** Die Kennung des Gesprächs, das mit dem Dialog weitergeht; `null`: Dialog zu. */
+	const [aendern, setAendern] = useState<string | null>(null);
 	const navigate = useNavigate();
 	const lauf = useRef(0);
 	const belegt = useRef(false);
@@ -51,14 +51,28 @@ export const useNeuMaterial = () => {
 		};
 	};
 
-	/** Der Verlauf zieht zum neuen Dokument um. Aus einem anderen Dokument kommt nur die Nachricht selbst mit. */
-	const zieheUm = (h: Herkunft, mappe: string, dok: string) => {
-		const alt = liesVerlauf(localStorage, h.schluessel);
-		schreibeVerlauf(localStorage, verlaufSchluessel(mappe, dok), h.imDokument ? alt.slice(-1) : alt);
-		if (!h.imDokument) {
-			schreibeVerlauf(localStorage, h.schluessel, []);
+	/**
+	 * Das Gespräch zieht zum neuen Dokument um. Aus einem anderen Dokument kommt nur die Nachricht selbst mit: Dessen
+	 * Gespräch endet, und das neue Dokument bekommt ein eigenes.
+	 */
+	const gespraechFuer = (h: Herkunft) => (h.imDokument ? neueGespraechId() : gespraech.sichereId());
+
+	const zieheUm = (h: Herkunft, ort: { mappe: string; dok: string }, id: string, endeVorher: number) => {
+		if (gespraech.endeZahl() === endeVorher) {
+			gespraech.uebernimm(ort, id, h.imDokument);
+		} else {
+			// Unterwegs geschlossen: Das Dokument bleibt, das Gespräch nicht. Der Lauf kannte das Ende noch nicht.
+			beendeGespraechAufServer(id);
 		}
 	};
+
+	// Schließen und „Neu beginnen“ nehmen die Karte mit. Wird schon angelegt, läuft das zu Ende.
+	const { nummer } = gespraech;
+	useEffect(() => {
+		lauf.current += 1;
+		setStand((alt) => (alt?.phase === 'legtAn' ? alt : null));
+		setAendern(null);
+	}, [nummer]);
 
 	const starte = async (herkunft: Herkunft, ohneAufruf: boolean) => {
 		lauf.current += 1;
@@ -92,11 +106,13 @@ export const useNeuMaterial = () => {
 		const { einordnung } = stand;
 		// Ohne Behälter und ohne Einordnung gäbe es nur geratene Werte für Fach und Klasse.
 		if (einordnung.rueckfall && !einordnung.fest) {
-			setAendern(true);
+			setAendern(gespraechFuer(stand));
 			return;
 		}
 		belegt.current = true;
 		setStand({ ...stand, phase: 'legtAn' });
+		const gespraechId = gespraechFuer(stand);
+		const endeVorher = gespraech.endeZahl();
 		try {
 			const { id, mappe, state, ziel } = await legeMaterialAn({
 				ordner: einordnung.ordner?.id ?? null,
@@ -106,8 +122,9 @@ export const useNeuMaterial = () => {
 				fach: einordnung.fach,
 				klasse: einordnung.klasse,
 				wunsch: stand.wunsch,
+				gespraechId,
 			});
-			zieheUm(stand, mappe, id);
+			zieheUm(stand, { mappe, dok: id }, gespraechId, endeVorher);
 			setStand(null);
 			void navigate(ziel, { state });
 		} catch (grund) {
@@ -118,20 +135,27 @@ export const useNeuMaterial = () => {
 	};
 
 	const dialog =
-		aendern && stand && stand.phase !== 'ordnet' ? (
+		aendern !== null && stand && stand.phase !== 'ordnet' ? (
 			<MaterialDialog
 				einordnung={stand.einordnung}
 				wunsch={stand.wunsch}
-				schliessen={() => setAendern(false)}
+				gespraechId={aendern}
+				schliessen={() => setAendern(null)}
 				vorDemSprung={(mappe, dok) => {
-					zieheUm(stand, mappe, dok);
+					zieheUm(stand, { mappe, dok }, aendern, gespraech.endeZahl());
 					setStand(null);
-					setAendern(false);
+					setAendern(null);
 				}}
 			/>
 		) : null;
 
-	return { stand, starte, abbrechen, anlegen, aendern: () => setAendern(true), dialog };
+	const oeffneDialog = () => {
+		if (stand) {
+			setAendern(gespraechFuer(stand));
+		}
+	};
+
+	return { stand, starte, abbrechen, anlegen, aendern: oeffneDialog, dialog };
 };
 
 export type NeuMaterial = ReturnType<typeof useNeuMaterial>;

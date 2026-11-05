@@ -4,7 +4,6 @@ import { Link, Outlet, useLocation, useMatch, useNavigate, useSearchParams } fro
 import { meldung, sende } from '../api';
 import type { ChatKontext } from '../editor/chat-kontext';
 import { useChat, useChatKontext, useChatStand } from '../editor/chat-kontext';
-import { loescheAlleVerlaeufe } from '../editor/chat-verlauf';
 import { TASTEN_SPERRE } from '../editor/tasten';
 import { AblageAnbieter } from '../ordner/useOrdner';
 import { Seitenpalette } from '../seiten/Seitenpalette';
@@ -62,8 +61,8 @@ const RahmenInnen = () => {
 
 	const abmelden = async () => {
 		try {
+			chat.beendeGespraech();
 			await sende('/api/abmelden');
-			loescheAlleVerlaeufe(localStorage);
 			window.location.assign('/anmelden');
 		} catch (fehler) {
 			zeige({ text: meldung(fehler), art: 'fehler' });

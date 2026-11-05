@@ -13,6 +13,7 @@ export interface KiAuftrag {
 	ergebnis: 'vorschlag' | 'antwort' | null;
 	antwort: string | null;
 	limitErreicht?: boolean;
+	kontextGross?: boolean;
 }
 
 export interface KiFenster {
@@ -136,9 +137,29 @@ interface Wunsch {
 	aktion?: string;
 	referenz?: string;
 	aufVorschlag?: boolean;
+	gespraechId?: string;
 	verlauf?: { rolle: 'lehrkraft' | 'claude'; text: string }[];
 	zitat?: string;
 }
+
+/** Passt zum `ID_MUSTER` des Servers. `randomUUID` gibt es nur auf sicheren Seiten. */
+export const neueGespraechId = () =>
+	Array.from(crypto.getRandomValues(new Uint8Array(16)), (b) => b.toString(16).padStart(2, '0')).join('');
+
+/**
+ * Sitzung auf dem Server löschen. `keepalive`, damit es auch beim Schließen des Tabs noch abgeht; `sendBeacon` kann den
+ * Kopf des CSRF-Schutzes nicht setzen. Der Inhalt muss sein: Ohne ihn gilt die Anfrage nicht als JSON. Kommt sie nie an,
+ * läuft die Sitzung nach zwei Stunden ab.
+ */
+export const beendeGespraechAufServer = (id: string) => {
+	void fetch(`/api/ki/gespraech/${id}`, {
+		method: 'DELETE',
+		keepalive: true,
+		credentials: 'same-origin',
+		headers: { 'Content-Type': 'application/json', 'x-schoolbox': '1' },
+		body: '{}',
+	}).catch(() => undefined);
+};
 
 /** Auftrag und Vorschlag eines Dokuments. Beides überlebt Neuladen: Der Server hält den Stand. */
 export const useKiAuftrag = (mappe: string | null, dok: string | null, nachLauf: () => void, gestartet?: string) => {

@@ -18,12 +18,13 @@ import { klasseName } from '../lib/text';
 import { useAblage } from '../ordner/kontext';
 import type { ChatFensterZustand, ChatKontext, ChatLauf } from './chat-kontext';
 import type { ChatNachricht } from './chat-verlauf';
-import { liesVerlauf, schreibeVerlauf, verlaufFuerServer, verlaufSchluessel } from './chat-verlauf';
+import { istRueckfrage, verlaufFuerServer } from './chat-verlauf';
 import type { PfadTeil } from './darstellung';
 import type { KiAuftrag, useKiZustand, Vorschlag } from './ki';
-import { limitHinweis, useKiAuftrag } from './ki';
+import { beendeGespraechAufServer, limitHinweis, useKiAuftrag } from './ki';
 import { EIGENE_GESCHICHTE } from './tasten';
 import { TEXTWERKZEUG } from './text';
+import type { Gespraech } from './useGespraech';
 import type { NeuMaterial, NeuStand } from './useNeuMaterial';
 import { Vergleich } from './Vergleich';
 
@@ -254,6 +255,7 @@ interface Eigenschaften {
 	ki: ReturnType<typeof useKiZustand>;
 	fenster: ChatFensterZustand;
 	setFenster: (f: ChatFensterZustand) => void;
+	gespraech: Gespraech;
 	fokus: number;
 	entwurf: string;
 	setEntwurf: (t: string) => void;
@@ -279,20 +281,6 @@ const ausKontext = (kontext: ChatKontext) => {
 		pfad: dokument?.pfad,
 		anker: dokument?.anker ?? null,
 	};
-};
-
-const useVerlauf = (schluessel: string) => {
-	const [verlauf, setWert] = useState(() => liesVerlauf(localStorage, schluessel));
-	const setVerlauf = useCallback(
-		(aendere: (alt: ChatNachricht[]) => ChatNachricht[]) =>
-			setWert((alt) => {
-				const stand = aendere(alt);
-				schreibeVerlauf(localStorage, schluessel, stand);
-				return stand;
-			}),
-		[schluessel],
-	);
-	return [verlauf, setVerlauf] as const;
 };
 
 /** Das Blatt rollt am Fenster vorbei, bis zum letzten Baustein. Die Höhe gilt für Rand, Leiste und Einpassen. */
@@ -386,13 +374,23 @@ interface AuftragsEnde {
 	fenster: ChatFensterZustand;
 	setFenster: (fenster: ChatFensterZustand) => void;
 	setUngelesen: (ungelesen: boolean) => void;
-	setVerlauf: ReturnType<typeof useVerlauf>[1];
+	setVerlauf: Gespraech['setVerlauf'];
+	gespraechNummer: number;
+	feld: RefObject<HTMLTextAreaElement | null>;
 }
+
+/** Nur wenn gerade nichts anderes die Tastatur hat: Wer im Blatt schreibt, soll nicht plötzlich im Chat tippen. */
+const fokusFrei = () => {
+	const aktiv = document.activeElement;
+	return !aktiv || aktiv === document.body || Boolean(aktiv.closest('[data-chat]'));
+};
 
 /** Das Ende eines Laufs einmal in den Verlauf schreiben, ganz gleich, wie es hier ankam. */
 const useAuftragsEnde = ({
 	auftrag,
+	feld,
 	fenster,
+	gespraechNummer,
 	laeuft,
 	setFenster,
 	setUngelesen,
@@ -400,6 +398,14 @@ const useAuftragsEnde = ({
 	vorschlag,
 }: AuftragsEnde) => {
 	const erledigt = useRef(new Set<string>());
+	// Das Gespräch endete, während der Auftrag lief: Er läuft zu Ende, seine Antwort gehört zu nichts mehr. Ein Vorschlag bleibt.
+	const nummer = useRef(gespraechNummer);
+	useEffect(() => {
+		if (nummer.current !== gespraechNummer && auftrag) {
+			erledigt.current.add(auftrag.id);
+		}
+		nummer.current = gespraechNummer;
+	}, [auftrag, gespraechNummer]);
 	useEffect(() => {
 		if (!auftrag || laeuft || erledigt.current.has(auftrag.id)) {
 			return;
@@ -417,9 +423,12 @@ const useAuftragsEnde = ({
 				setUngelesen(auftrag.ergebnis === 'antwort');
 			} else {
 				setFenster('verlauf');
+				if (auftrag.ergebnis === 'antwort' && istRueckfrage(text ?? undefined) && fokusFrei()) {
+					feld.current?.focus();
+				}
 			}
 		}
-	}, [auftrag, fenster, laeuft, setFenster, setUngelesen, setVerlauf, vorschlag]);
+	}, [auftrag, feld, fenster, laeuft, setFenster, setUngelesen, setVerlauf, vorschlag]);
 };
 
 interface VerlaufBereichEigenschaften {
@@ -430,6 +439,7 @@ interface VerlaufBereichEigenschaften {
 	liste: RefObject<HTMLDivElement | null>;
 	neu: NeuMaterial;
 	limitGesperrt: boolean;
+	neuBeginnen: () => void;
 	neuStarten: () => void;
 	schliessen: () => void;
 	einklappen: () => void;
@@ -446,6 +456,7 @@ const VerlaufBereich = ({
 	leerGeblieben,
 	liste,
 	neu,
+	neuBeginnen,
 	neuStarten,
 	limitGesperrt,
 	schliessen,
@@ -514,6 +525,14 @@ const VerlaufBereich = ({
 						)}
 					</div>
 				)}
+				{hatLehrkraft && !laeuft && auftrag?.kontextGross && (
+					<div className="flex items-center justify-between gap-2 text-xs text-leise" data-chat-lang>
+						<p>Das Gespräch ist lang, jede Nachricht verbraucht jetzt mehr vom Limit.</p>
+						<Knopf art="zweit" groesse="klein" className="flex-none" onClick={neuBeginnen}>
+							Neu beginnen
+						</Knopf>
+					</div>
+				)}
 				{neu.stand?.phase === 'ordnet' && (
 					<p className="text-leise" role="status" data-chat-ordnet>
 						Claude ordnet ein …
@@ -562,6 +581,7 @@ interface EingabeEigenschaften {
 	entwurf: string;
 	feld: RefObject<HTMLTextAreaElement | null>;
 	fenster: ChatFensterZustand;
+	gespraechLaeuft: boolean;
 	frei: boolean;
 	kannSenden: boolean;
 	laeuft: boolean;
@@ -584,6 +604,7 @@ const Eingabe = ({
 	feld,
 	fenster,
 	frei,
+	gespraechLaeuft,
 	kannSenden,
 	laeuft,
 	mehr,
@@ -596,6 +617,12 @@ const Eingabe = ({
 	verlaufZeigen,
 	zitat,
 }: EingabeEigenschaften) => {
+	const escText = () => {
+		if (fenster === 'verlauf') {
+			return 'einklappen';
+		}
+		return gespraechLaeuft ? 'beendet das Gespräch' : 'schließen';
+	};
 	const chipKnopf = (
 		<button type="button" className={CHIP} data-chat-chip>
 			<span className="truncate">{chip.text}</span>
@@ -665,7 +692,7 @@ const Eingabe = ({
 			</div>
 			<div className="flex justify-between gap-2 px-2.5 pb-1 text-[11px] leading-[14px] text-leise">
 				<span>Keine Namen von Kindern eintragen.</span>
-				<span className="flex-none">{`⏎ ${taste} · esc ${fenster === 'verlauf' ? 'einklappen' : 'schließen'}`}</span>
+				<span className="flex-none" data-chat-tasten>{`⏎ ${taste} · esc ${escText()}`}</span>
 			</div>
 		</div>
 	);
@@ -806,6 +833,8 @@ interface EingabeAngaben {
 	frei: boolean;
 	ki: KiAuftragStand;
 	letzte: ChatNachricht | undefined;
+	/** Die jüngste Nachricht überhaupt, ob von der Lehrkraft oder von Claude. */
+	juengste: ChatNachricht | undefined;
 	neu: NeuMaterial;
 	neuModus: boolean;
 	stand: ReturnType<typeof laufStand>;
@@ -818,6 +847,7 @@ const eingabeWerte = ({
 	entwurf,
 	fenster,
 	frei,
+	juengste,
 	ki,
 	letzte,
 	neu,
@@ -829,9 +859,11 @@ const eingabeWerte = ({
 	const aufVorschlag = Boolean(offenerVorschlag);
 	const titel = titelFuer(neuModus, aufVorschlag);
 	const hatVerlauf = verlaufLaenge > 0 || ki.laeuft || Boolean(ki.vorschlag ?? ki.fehler ?? neu.stand);
+	const rueckfrage = !ki.laeuft && juengste?.rolle === 'claude' && istRueckfrage(juengste.text);
+	const ohneFrage = aufVorschlag || neuModus ? titel : 'Was soll sich ändern?';
 	return {
 		titel,
-		platzhalter: aufVorschlag || neuModus ? titel : 'Was soll sich ändern?',
+		platzhalter: rueckfrage ? 'Antworten…' : ohneFrage,
 		kannSenden: Boolean(entwurf.trim()) && frei && !gesperrtLimit && !neuBelegt,
 		taste: tasteFuer(neu.stand?.phase === 'karte' && !entwurf.trim(), aufVorschlag),
 		chipFest: gesperrt ? (letzte?.kontext ?? offenerVorschlag?.umfang ?? 'Ganzes Blatt') : chipName,
@@ -845,17 +877,14 @@ const useChatOrt = (kontext: ChatKontext, mappe: string | null | undefined, dok:
 		kontext.art === 'neu'
 			? (kontext.ordner ?? null)
 			: (ablage?.dokumente.find((d) => d.mappe === mappe && d.id === dok)?.ordner ?? null);
-	const schluessel = verlaufSchluessel(
-		kontext.art === 'neu' ? (ordner ?? undefined) : (mappe ?? undefined),
-		dok ?? undefined,
-	);
-	return { ordner, schluessel };
+	return { ordner };
 };
 
 export const ChatInhalt = ({
 	entwurf,
 	fenster,
 	fokus,
+	gespraech,
 	ki: kiStatus,
 	kontext,
 	meldeLauf,
@@ -876,8 +905,8 @@ export const ChatInhalt = ({
 	const auftragKi = useKiAuftrag(mappe, dok, kiStatus.neu, kiAuftrag);
 	const { zustand } = kiStatus;
 	const lage = useLage(anker);
-	const { ordner, schluessel } = useChatOrt(kontext, mappe, dok);
-	const [verlauf, setVerlauf] = useVerlauf(schluessel);
+	const { ordner } = useChatOrt(kontext, mappe, dok);
+	const { setVerlauf, verlauf } = gespraech;
 	const [vergleich, setVergleich] = useState(false);
 	const [ungelesen, setUngelesen] = useState(false);
 	const flaeche = useRef<HTMLElement>(null);
@@ -929,7 +958,37 @@ export const ChatInhalt = ({
 		}
 	}, [kiFehler, setFehler]);
 
-	useAuftragsEnde({ auftrag: auftragKi.auftrag, laeuft, vorschlag, fenster, setFenster, setUngelesen, setVerlauf });
+	useAuftragsEnde({
+		auftrag: auftragKi.auftrag,
+		feld,
+		gespraechNummer: gespraech.nummer,
+		laeuft,
+		vorschlag,
+		fenster,
+		setFenster,
+		setUngelesen,
+		setVerlauf,
+	});
+
+	// Neues Gespräch: Auch Meldungen des alten gehören nicht mehr hierher.
+	const gespraechVorher = useRef(gespraech.nummer);
+	useEffect(() => {
+		if (gespraechVorher.current !== gespraech.nummer) {
+			gespraechVorher.current = gespraech.nummer;
+			gesendet.current = null;
+			setFehler(null);
+			setLeerGeblieben(false);
+		}
+	}, [gespraech.nummer, setFehler]);
+
+	// Wer wieder öffnet, sieht den offenen Vorschlag: Er hat das Schließen überlebt.
+	const warZu = useRef(fenster === 'zu');
+	useEffect(() => {
+		if (warZu.current && fenster === 'zeile' && vorschlag) {
+			setFenster('verlauf');
+		}
+		warZu.current = fenster === 'zu';
+	}, [fenster, setFenster, vorschlag]);
 
 	useEffect(() => {
 		if (offen) {
@@ -976,6 +1035,8 @@ export const ChatInhalt = ({
 		const kontextText = aufVorschlag ? (letzte?.kontext ?? offenerVorschlag?.umfang ?? null) : chipName;
 		const vorher = verlaufFuerServer(verlauf);
 		const stelle = zitat;
+		const gespraechId = gespraech.sichereId();
+		const endeVorher = gespraech.endeZahl();
 		gesendet.current = inhalt.aktion ? null : inhalt.text;
 		merke(inhalt.text, kontextText);
 		setZitat(null);
@@ -991,9 +1052,14 @@ export const ChatInhalt = ({
 			...(!inhalt.aktion || inhalt.aktion === NEU_ENTWURF ? { auftrag: inhalt.text } : {}),
 			referenz,
 			aufVorschlag,
+			gespraechId,
 			...(vorher.length > 0 ? { verlauf: vorher } : {}),
 			...(stelle ? { zitat: stelle } : {}),
 		});
+		// Unterwegs geschlossen: Das Ende kam vor dem Auftrag am Server an und hat nichts gefunden.
+		if (gespraech.endeZahl() !== endeVorher) {
+			beendeGespraechAufServer(gespraechId);
+		}
 	};
 
 	const sende = (inhalt: { text: string; aktion?: string }) => {
@@ -1001,10 +1067,11 @@ export const ChatInhalt = ({
 			return;
 		}
 		if (neuModus) {
+			gespraech.sichereId();
 			merke(inhalt.text, chipName);
 			// Ist das Limit nah, kostet schon das Einordnen zu viel: Die Karte kommt trotzdem.
 			void neu.starte(
-				{ wunsch: inhalt.text, ordner, schluessel, imDokument: Boolean(dokument) },
+				{ wunsch: inhalt.text, ordner, imDokument: Boolean(dokument) },
 				hinweis?.art === 'warnung',
 			);
 			return;
@@ -1061,7 +1128,7 @@ export const ChatInhalt = ({
 			titel: 'Neu beginnen',
 			symbol: 'rueckgaengig',
 			aus: verlauf.length === 0,
-			waehle: () => setVerlauf(() => []),
+			waehle: gespraech.beende,
 		},
 		...(zurApp ? [{ titel: 'In der Claude-App weiterarbeiten', symbol: 'kopieren' as const, waehle: zurApp }] : []),
 	];
@@ -1076,6 +1143,7 @@ export const ChatInhalt = ({
 		entwurf,
 		fenster,
 		frei,
+		juengste: verlauf.at(-1),
 		ki: auftragKi,
 		letzte,
 		neu,
@@ -1132,6 +1200,7 @@ export const ChatInhalt = ({
 							leerGeblieben={leerGeblieben}
 							liste={liste}
 							neu={neu}
+							neuBeginnen={gespraech.beende}
 							neuStarten={neuStarten}
 							schliessen={schliessen}
 							vergleichen={() => setVergleich(true)}
@@ -1149,6 +1218,7 @@ export const ChatInhalt = ({
 							feld={feld}
 							fenster={fenster}
 							frei={frei}
+							gespraechLaeuft={verlauf.length > 0}
 							kannSenden={eingabe.kannSenden}
 							laeuft={laeuft}
 							mehr={mehr}

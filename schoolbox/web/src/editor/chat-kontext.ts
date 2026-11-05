@@ -1,7 +1,7 @@
 import type { Zerlegung } from '@schoolbox/kern/src/quelltext';
 import type { Ort } from '@schoolbox/kern/src/referenz';
 import type { RefObject } from 'react';
-import { createContext, useContext, useEffect, useLayoutEffect } from 'react';
+import { createContext, useContext, useLayoutEffect } from 'react';
 
 import type { PfadTeil } from './darstellung';
 import type { useKiZustand } from './ki';
@@ -81,6 +81,8 @@ export interface ChatSteuerung {
 	oeffne: (fenster?: 'zeile' | 'verlauf') => void;
 	/** Schreibt ins Feld; abgeschickt wird nur von Hand. */
 	fuelle: (text: string) => void;
+	/** Beim Abmelden: Danach dürfte der Browser die Sitzung auf dem Server nicht mehr löschen. */
+	beendeGespraech: () => void;
 }
 
 const nichts = () => undefined;
@@ -91,6 +93,7 @@ export const ChatSteuerungKontext = createContext<ChatSteuerung>({
 	wechsle: nichts,
 	oeffne: nichts,
 	fuelle: nichts,
+	beendeGespraech: nichts,
 });
 
 export const ChatStandKontext = createContext<ChatStand | null>(null);
@@ -109,5 +112,6 @@ export const useChatStand = () => {
 export const useChatKontext = (kontext: ChatKontext | null) => {
 	const { melde } = useChat();
 	useLayoutEffect(() => melde(kontext), [kontext, melde]);
-	useEffect(() => () => melde(null), [melde]);
+	// Auch das Ende im Layout-Schritt: Sonst käme es beim Seitenwechsel nach der Meldung der neuen Seite und löschte sie.
+	useLayoutEffect(() => () => melde(null), [melde]);
 };

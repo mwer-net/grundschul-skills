@@ -1,18 +1,21 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import { Outlet, useLocation, useSearchParams } from 'react-router-dom';
 
 import type { ChatFensterZustand, ChatKontext, ChatLauf, ChatSteuerung } from './chat-kontext';
 import { ChatStandKontext, ChatSteuerungKontext } from './chat-kontext';
 import { ChatInhalt } from './ChatFenster';
+import { loescheAlteVerlaeufe } from './chat-verlauf';
 import { useKiZustand } from './ki';
 import { TASTEN_SPERRE } from './tasten';
+import { useGespraech } from './useGespraech';
 import { useNeuMaterial } from './useNeuMaterial';
 
-const SPEICHER = 'schoolbox-chat-fenster';
-
-const gemerkt = (): ChatFensterZustand => {
-	const wert = localStorage.getItem(SPEICHER);
-	return wert === 'zeile' || wert === 'verlauf' ? wert : 'zu';
+/** Worauf sich ein Gespräch bezieht. Ansicht und Editor desselben Dokuments sind dasselbe; Seiten ohne Dokument auch. */
+const bezugVon = (kontext: ChatKontext | null) => {
+	if (!kontext) {
+		return null;
+	}
+	return kontext.art === 'neu' ? 'neu' : `${kontext.mappe}/${kontext.dok}`;
 };
 
 /**
@@ -22,22 +25,40 @@ const gemerkt = (): ChatFensterZustand => {
 export const ChatRahmen = () => {
 	const ki = useKiZustand();
 	const [kontext, melde] = useState<ChatKontext | null>(null);
-	const [fenster, setFensterWert] = useState(gemerkt);
+	const [fenster, setFensterWert] = useState<ChatFensterZustand>('zu');
 	const [lauf, setLauf] = useState<ChatLauf | null>(null);
 	const [verlaufHoehe, setVerlaufHoehe] = useState(0);
 	const [entwurf, setEntwurf] = useState('');
 	const [zitat, setZitat] = useState<string | null>(null);
 	const [fokus, setFokus] = useState(0);
-	const neu = useNeuMaterial();
+	const gespraech = useGespraech();
+	const neu = useNeuMaterial(gespraech);
 	const jetzt = useRef({ fenster, kontext });
 	useEffect(() => {
 		jetzt.current = { fenster, kontext };
 	}, [fenster, kontext]);
 
-	const setFenster = useCallback((wert: ChatFensterZustand) => {
-		setFensterWert(wert);
-		localStorage.setItem(SPEICHER, wert);
-	}, []);
+	useEffect(() => loescheAlteVerlaeufe(localStorage), []);
+
+	// Das Fenster schließen heißt: Das Gespräch ist zu Ende (Entscheidung 37). Einklappen ist etwas anderes.
+	const { beende: beendeGespraech, folge: folgeBezug } = gespraech;
+	const setFenster = useCallback(
+		(wert: ChatFensterZustand) => {
+			setFensterWert(wert);
+			if (wert === 'zu') {
+				beendeGespraech();
+			}
+		},
+		[beendeGespraech],
+	);
+
+	// Ohne Kontext (Präsentation, Druck, der Moment des Seitenwechsels) bleibt der Bezug, wie er war.
+	const bezug = bezugVon(kontext);
+	useLayoutEffect(() => {
+		if (bezug) {
+			folgeBezug(bezug);
+		}
+	}, [bezug, folgeBezug]);
 
 	/** Beim Wechsel ins Fenster, nicht beim Absenden: Danach ist die Markierung im Blatt weg. */
 	const sichereZitat = useCallback(() => {
@@ -76,8 +97,9 @@ export const ChatRahmen = () => {
 				setEntwurf(text);
 				oeffne();
 			},
+			beendeGespraech,
 		};
-	}, [setFenster, sichereZitat]);
+	}, [beendeGespraech, setFenster, sichereZitat]);
 
 	const stand = useMemo(() => ({ fenster, lauf, verlaufHoehe, ki }), [fenster, lauf, verlaufHoehe, ki]);
 
@@ -120,6 +142,7 @@ export const ChatRahmen = () => {
 						entwurf={entwurf}
 						fenster={fenster}
 						fokus={fokus}
+						gespraech={gespraech}
 						kontext={kontext}
 						ki={ki}
 						neu={neu}

@@ -39,6 +39,7 @@ const starte = async () => {
 		vorschau: (dokDir) => baueVorschau(konfig, dokDir),
 	});
 	await kontext.ki.beendeReste();
+	kontext.ki.starteAufraeumen();
 	await kontext.ordner.abgleichen();
 	const ueberwachung = await starteUeberwachung(kontext);
 	const aufraeumen = starteAufraeumen(kontext);

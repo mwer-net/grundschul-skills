@@ -56,6 +56,11 @@ if (args[0] === 'auth') {
 fs.writeFileSync(path.join(__dirname, 'pid'), String(process.pid));
 const sag = (o) => console.log(JSON.stringify(o));
 const projekt = path.join(process.env.HOME, '.claude', 'projects', process.cwd().replace(/[^a-zA-Z0-9]/g, '-'));
+// Wie das echte claude: Eine Sitzung findet es nur in der Ablage des Arbeitsordners, sonst endet es ohne Ergebnis.
+if (args.includes('--resume') && (fall === 'resume-fehlt' || !fs.existsSync(path.join(projekt, 'sitzung.jsonl')))) {
+	console.error('No conversation found with session ID');
+	process.exit(1);
+}
 fs.mkdirSync(projekt, { recursive: true });
 fs.writeFileSync(path.join(projekt, 'sitzung.jsonl'), 'materialtext');
 let eingabe = '';
@@ -80,7 +85,8 @@ process.stdin.on('end', () => {
 	sag({ type: 'rate_limit_event', rate_limit_info: limitJe[fall] ?? { status: 'allowed', resetsAt: 1900000000, unifiedWindows: { five_hour: { utilization: 0.5, resetsAt: 1900000000 }, seven_day: { utilization: 0.2, resetsAt: 1900000000 } } } });
 	if (fall === 'limit-gesperrt') { sag({ type: 'assistant', error: 'rate_limit', message: { content: [] } }); sag({ type: 'result', subtype: 'success', is_error: true, result: 'limit', num_turns: 1, total_cost_usd: 0 }); process.exit(1); }
 	if (args.includes('--no-session-persistence')) { sag({ type: 'result', subtype: 'success', is_error: false, result: 'ok', num_turns: 1, total_cost_usd: 0.0006 }); return; }
-	sag({ type: 'assistant', message: { content: [{ type: 'tool_use', name: 'Skill', input: { skill: 'fach-mathematik' } }, { type: 'tool_use', name: 'Edit', input: {} }] } });
+	const nutzung = fall === 'kontext-gross' ? { usage: { input_tokens: 10, cache_read_input_tokens: 120000, cache_creation_input_tokens: 500 } } : {};
+	sag({ type: 'assistant', message: { ...nutzung, content: [{ type: 'tool_use', name: 'Skill', input: { skill: 'fach-mathematik' } }, { type: 'tool_use', name: 'Edit', input: {} }] } });
 	const ende = (extra) => sag({ type: 'result', subtype: 'success', is_error: false, result: 'Annahme: Klasse 2', num_turns: 2, total_cost_usd: 0.01, usage: { output_tokens: 5 }, permission_denials: [], ...extra });
 	const aendere = () => { const d = 'material.html'; const alt = fs.readFileSync(d, 'utf8'); fs.writeFileSync(d, alt.includes('</h1>') ? alt.replace('</h1>', ' von Claude</h1>') : alt.includes('</section>') ? alt.replace('</section>', '<p>von Claude</p></section>') : alt.replace(/^\s*<[a-z-]+/, '$& data-von-claude')); };
 	if (fall === 'haenger') { setInterval(() => {}, 1000); return; }
@@ -89,6 +95,7 @@ process.stdin.on('end', () => {
 	if (fall === 'limit-budget') { ende({ subtype: 'error_max_budget_usd', is_error: true, result: '' }); process.exit(1); }
 	if (fall === 'nichts') { ende({}); return; }
 	if (fall === 'leer') { ende({ result: '' }); return; }
+	if (eingabe.includes('RUECKFRAGE')) { ende({ result: 'Für welche Klasse soll das Rätsel sein?' }); return; }
 	if (eingabe.includes('FRAGE')) { ende({ result: 'Das Blatt hat vier Uhren.' }); return; }
 	if (fall === 'gross') { fs.writeFileSync('material.html', 'x'.repeat(6 * 1024 * 1024)); ende({}); return; }
 	if (fall === 'aussen') { aendere(); fs.writeFileSync('andere.txt', 'boese'); fs.writeFileSync(path.join(__dirname, 'aussen.txt'), 'gelaufen'); ende({}); return; }
