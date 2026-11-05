@@ -110,15 +110,22 @@ export const ausgabeDateiname = (
 };
 
 /** „Kl3 Sachunterricht Die Kartoffel – Alles.pdf“ bzw. „… – Alles mit Lösungen.pdf“. */
-export const mappenPdfDateiname = (
-	mappe: { titel: string; fach: Fach; klasse: Klasse },
+/**
+ * „Alles als PDF“ eines Ordners: `<Ordnername> – Alles.pdf`, mit „Kl3 Mathe“ davor nur, wenn alle Dokumente darin
+ * übereinstimmen.
+ */
+export const sammlungPdfDateiname = (
+	name: string,
+	gemeinsam: { fach: Fach; klasse: Klasse } | null,
 	variante: MappenVariante,
 	profil?: Druckprofil,
-) =>
-	mitProfil(
-		dateiname(mappe.fach, mappe.klasse, mappe.titel, variante === 'alles' ? 'Alles' : 'Alles mit Lösungen'),
+) => {
+	const zusatz = variante === 'alles' ? 'Alles' : 'Alles mit Lösungen';
+	return mitProfil(
+		gemeinsam ? dateiname(gemeinsam.fach, gemeinsam.klasse, name, zusatz) : `${sauber(name) || 'Material'} – ${zusatz}.pdf`,
 		profil,
 	);
+};
 
 /** Vorschau der ersten Seite eines Entwurfs, neben ihm in `entwuerfe/`: `B-s1.png`. */
 export const entwurfVorschauDatei = (name: string) => `${name}-s1.png`;

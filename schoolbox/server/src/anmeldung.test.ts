@@ -31,7 +31,7 @@ describe('Anmeldung', () => {
 	after(() => s.stop());
 
 	it('ohne Anmeldung: API 401, Seiten und Darstellung leiten zur Anmeldung', async () => {
-		for (const pfad of ['/api/mappen', '/api/ereignisse', '/api/freigaben', '/api/dokumente/a/b']) {
+		for (const pfad of ['/api/ordner', '/api/ereignisse', '/api/freigaben', '/api/dokumente/a/b']) {
 			const antwort = await fetch(`${s.url}${pfad}`);
 			assert.equal(antwort.status, 401, pfad);
 			assert.deepEqual(await antwort.json(), { fehler: 'Bitte melde dich an.' });
@@ -65,7 +65,7 @@ describe('Anmeldung', () => {
 		assert.match(cookie, /HttpOnly/);
 		assert.match(cookie, /SameSite=Lax/);
 		assert.doesNotMatch(cookie, /Secure/, 'http ohne https-SCHOOLBOX_URL');
-		const mitCookie = await fetch(`${s.url}/api/mappen`, { headers: { cookie: cookie.split(';')[0] ?? '' } });
+		const mitCookie = await fetch(`${s.url}/api/ordner`, { headers: { cookie: cookie.split(';')[0] ?? '' } });
 		assert.equal(mitCookie.status, 200);
 
 		const kurz = cookieAus(await anmelden({ passwort: TEST_PASSWORT, angemeldetBleiben: false }));
@@ -121,7 +121,7 @@ describe('Anmeldung', () => {
 		const alt = sitzungsCookie(konfig, { ausgestellt: Date.now() - DAUER.sitzung.gueltig - 1, dauerhaft: false });
 		const fremd = sitzungsCookie({ ...konfig, sitzungGeheimnis: 'x'.repeat(64) });
 		for (const cookie of [alt, fremd, `${s.cookie}x`]) {
-			assert.equal((await fetch(`${s.url}/api/mappen`, { headers: { cookie } })).status, 401);
+			assert.equal((await fetch(`${s.url}/api/ordner`, { headers: { cookie } })).status, 401);
 		}
 		const ab = await s.holen(`${s.url}/api/abmelden`, { method: 'POST', headers: schreibKoepfe, body: '{}' });
 		assert.match(cookieAus(ab), /^schoolbox_sitzung=;.*Expires=Thu, 01 Jan 1970/);
@@ -129,10 +129,10 @@ describe('Anmeldung', () => {
 
 	it('stellt eine genutzte Sitzung nach einem Tag neu aus', async () => {
 		const gestern = sitzungsCookie(s.kontext.konfig, { ausgestellt: Date.now() - DAUER.dauerhaft.erneuern - 1000 });
-		const antwort = await fetch(`${s.url}/api/mappen`, { headers: { cookie: gestern } });
+		const antwort = await fetch(`${s.url}/api/ordner`, { headers: { cookie: gestern } });
 		assert.equal(antwort.status, 200);
 		assert.match(cookieAus(antwort), /^schoolbox_sitzung=v1\..*Max-Age=31536000/);
-		const frisch = await s.holen(`${s.url}/api/mappen`);
+		const frisch = await s.holen(`${s.url}/api/ordner`);
 		assert.equal(frisch.headers.get('set-cookie'), null);
 	});
 

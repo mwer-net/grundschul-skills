@@ -8,7 +8,7 @@ import { baueVorschau, neuesDokument, VORSCHAU_DATEI } from '@schoolbox/kern';
 import { BROWSER_HINWEIS, browserFehlt } from '@schoolbox/kern/src/browsertest';
 
 import type { TestServer } from './testhilfe';
-import { legeDokumentAn, sammleEreignisse, schreibKoepfe, starteTestServer, warte } from './testhilfe';
+import { fuehreAus, legeDokumentAn, leseAblage, ordnerVon, sammleEreignisse, schreibKoepfe, starteTestServer, warte } from './testhilfe';
 
 const PNG_KOPF = Buffer.from([0x89, 0x50, 0x4e, 0x47]);
 
@@ -20,12 +20,26 @@ describe('Vorschauen', () => {
 		await s?.stop();
 	});
 
-	const erstesDokument = async (server: TestServer, pfad = '/api/mappen') => {
-		const daten = (await (await server.holen(`${server.url}${pfad}`)).json()) as {
-			mappen?: { dokumente: { vorschau: string | null }[] }[];
-			dokumente?: { vorschau: string | null }[];
-		};
-		return (daten.mappen?.[0]?.dokumente ?? daten.dokumente ?? [])[0]?.vorschau;
+	/** Baut wie die Oberfläche nur, was sichtbar ist: Die Liste allein baut nichts (079). */
+	const erstesDokument = async (server: TestServer, pfad?: string) => {
+		if (pfad) {
+			const daten = (await (await server.holen(`${server.url}${pfad}`)).json()) as {
+				dokumente: { vorschau: string | null }[];
+			};
+			return daten.dokumente[0]?.vorschau;
+		}
+		const { dokumente } = await leseAblage(server);
+		const [erstes] = dokumente;
+		if (!erstes) {
+			return undefined;
+		}
+		const antwort = await server.holen(`${server.url}/api/ordner/vorschauen`, {
+			method: 'POST',
+			headers: schreibKoepfe,
+			body: JSON.stringify({ dokumente: [{ mappe: erstes.mappe, dok: erstes.id }] }),
+		});
+		const { staende } = (await antwort.json()) as { staende: Record<string, string | null> };
+		return staende[`${erstes.mappe}/${erstes.id}`];
 	};
 
 	it('baut eine fehlende Vorschau einmal im Hintergrund und meldet sie', async () => {
@@ -90,20 +104,20 @@ describe('Vorschauen', () => {
 				await writeFile(path.join(dokDir, 'ausgabe', VORSCHAU_DATEI), 'PNG');
 			},
 		});
-		const { mappe } = await legeDokumentAn(s.materialDir);
-		const sende = (pfad: string) =>
-			s?.holen(`${s.url}${pfad}`, { method: 'POST', headers: schreibKoepfe, body: '{}' });
+		const { dir, mappe } = await legeDokumentAn(s.materialDir);
 		assert.equal(await erstesDokument(s), null);
 		await warte(50);
-		const geloescht = (await (await sende(`/api/mappen/${mappe}/loeschen`))?.json()) as {
-			eintrag: { eintrag: string };
-		};
+		const ordner = await ordnerVon(s, mappe);
+		const geloescht = await fuehreAus(s, { art: 'papierkorb', knoten: [{ ordner }] });
+		assert.equal(geloescht.status, 200);
+		const { umkehr } = (await geloescht.json()) as { umkehr: unknown[] };
 		await warte(400);
 		assert.equal(versuche, 1);
-		assert.equal(existsSync(path.join(s.materialDir, mappe)), false, 'der Bau legt den Ordner nicht wieder an');
-
-		const zurueck = await sende(`/api/papierkorb/${geloescht.eintrag.eintrag}/wiederherstellen`);
-		assert.equal(zurueck?.status, 200);
+		assert.equal(existsSync(dir), true, 'der Papierkorb ist ein Zustand: die Dateien bleiben liegen');
+		assert.equal(await erstesDokument(s), undefined, 'gelöscht: keine Vorschau, kein neuer Bau');
+		for (const schritt of umkehr) {
+			assert.equal((await fuehreAus(s, schritt)).status, 200);
+		}
 		assert.equal(await erstesDokument(s), null);
 		await warte(400);
 		assert.equal(versuche, 2);

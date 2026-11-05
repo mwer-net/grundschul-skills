@@ -2,7 +2,7 @@ import assert from 'node:assert/strict';
 import { describe, it } from 'node:test';
 
 import { erklaere, verstaendlich } from './meldungen';
-import { ausgabeDateiname, mappenPdfDateiname, pdfDateiname } from './namen';
+import { ausgabeDateiname, pdfDateiname, sammlungPdfDateiname } from './namen';
 
 describe('pdfDateiname', () => {
 	const mathe = { fach: 'mathematik', klasse: 2 } as const;
@@ -43,9 +43,9 @@ describe('pdfDateiname', () => {
 
 	it('benennt „Alles als PDF“ nach der Mappe', () => {
 		const mappe = { titel: 'Die Kartoffel', fach: 'sachunterricht', klasse: 3 } as const;
-		assert.equal(mappenPdfDateiname(mappe, 'alles'), 'Kl3 Sachunterricht Die Kartoffel – Alles.pdf');
+		assert.equal(sammlungPdfDateiname(mappe.titel, mappe, 'alles'), 'Kl3 Sachunterricht Die Kartoffel – Alles.pdf');
 		assert.equal(
-			mappenPdfDateiname(mappe, 'alles-mit-loesungen'),
+			sammlungPdfDateiname(mappe.titel, mappe, 'alles-mit-loesungen'),
 			'Kl3 Sachunterricht Die Kartoffel – Alles mit Lösungen.pdf',
 		);
 	});

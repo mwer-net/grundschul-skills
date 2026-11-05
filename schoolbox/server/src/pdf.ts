@@ -1,6 +1,6 @@
 import { createHash } from 'node:crypto';
 import { existsSync } from 'node:fs';
-import { mkdir, readFile } from 'node:fs/promises';
+import { mkdir, readdir, readFile, rm, stat } from 'node:fs/promises';
 import path from 'node:path';
 
 import type {
@@ -26,11 +26,9 @@ import {
 	leseStand,
 	LOESUNG_PDF_DATEI,
 	MAPPEN_VARIANTEN,
-	mappenDir,
-	mappenPdfDateiname,
 	ohneZiele,
 	PDF_DATEI,
-	schreibeStand,
+	sammlungPdfDateiname,
 	zusatzBerichtDatei,
 	zusatzPdfDatei,
 	zusatzStandDatei,
@@ -63,9 +61,29 @@ export interface PdfDatei {
 export interface Pdf {
 	/** `profil`: Ansicht in Farbe oder s/w; ohne Angabe gilt, was die Quelle vorgibt (042). */
 	dokument: (mappe: string, dok: string, variante: AusgabeVariante, profil?: Druckprofil) => Promise<PdfDatei>;
-	/** Alle Dokumente der Mappe in Mappenreihenfolge, wahlweise mit den Lösungen am Ende. */
-	mappe: (mappe: string, variante: MappenVariante, profil?: Druckprofil) => Promise<PdfDatei>;
+	/**
+	 * Mehrere Dokumente in der übergebenen Reihenfolge (der sichtbaren Sortierung), wahlweise mit den Lösungen am Ende.
+	 * Die Zugehörigkeit prüft der Aufrufer.
+	 */
+	sammlung: (
+		teile: readonly { mappe: string; dok: string }[],
+		variante: MappenVariante,
+		profil: Druckprofil | undefined,
+		name: string,
+	) => Promise<PdfSammlung>;
+	/** Die fertige Datei zu einem Schlüssel aus `sammlung`; fehlt sie (aufgeräumt): 404. */
+	sammlungsDatei: (schluessel: string) => string;
 }
+
+export interface PdfSammlung extends PdfDatei {
+	schluessel: string;
+}
+
+/** Mehr als das baut die Oberfläche nicht auf einmal: Jedes Dokument braucht unter Umständen einen eigenen Bau. */
+export const MAX_SAMMLUNG = 100;
+const SAMMLUNG_ORDNER = '_ausgabe';
+const SAMMLUNG_BEHALTEN = 20;
+const SCHLUESSEL = /^[0-9a-f]{32}$/;
 
 interface Abhaengigkeiten {
 	materialDir: string;
@@ -202,19 +220,27 @@ export const erstellePdf = ({
 		});
 	};
 
-	const mappePdf: Pdf['mappe'] = async (mappeId, variante, profil) => {
-		const mappe = await leseMappe(materialDir, mappeId);
-		if (mappe.dokumente.length === 0) {
-			throw new HttpFehler(404, 'In dieser Mappe gibt es noch keine Dokumente.');
+	const raeumeSammlungenAuf = async (dir: string) => {
+		const namen = (await readdir(dir)).filter((n) => /^[0-9a-f]{32}\.pdf$/.test(n));
+		const mitZeit = await Promise.all(
+			namen.map(async (n) => ({ n, zeit: (await stat(path.join(dir, n))).mtimeMs })),
+		);
+		const alt = mitZeit.sort((a, b) => b.zeit - a.zeit).slice(SAMMLUNG_BEHALTEN);
+		await Promise.all(alt.map(({ n }) => rm(path.join(dir, n), { force: true })));
+	};
+
+	const sammlung: Pdf['sammlung'] = async (auswahl, variante, profil, name) => {
+		if (auswahl.length === 0) {
+			throw new HttpFehler(404, 'Hier gibt es noch kein Material.');
 		}
 		const mitLoesungen = variante === 'alles-mit-loesungen';
 		const teile = await Promise.all(
-			mappe.dokumente.map(async (dok) => {
-				const meta = await leseMeta(materialDir, mappeId, dok);
-				return sperre(pdfSperre(mappeId, dok), async () => {
-					const gebaut = await stelleSicher(mappeId, dok, profil);
+			auswahl.map(async ({ dok, mappe }) => {
+				const [meta, behaelter] = await Promise.all([leseMeta(materialDir, mappe, dok), leseMappe(materialDir, mappe)]);
+				return sperre(pdfSperre(mappe, dok), async () => {
+					const gebaut = await stelleSicher(mappe, dok, profil);
 					const fehler = await leseFehler(gebaut.ausgabe, mitLoesungen);
-					return { dok, ...gebaut, meldungen: mitTitel(dok, meta.titel, fehler) };
+					return { dok, mappe, behaelter, ...gebaut, meldungen: mitTitel(dok, meta.titel, fehler) };
 				});
 			}),
 		);
@@ -222,38 +248,41 @@ export const erstellePdf = ({
 			...teile.map((t) => path.join(t.ausgabe, PDF_DATEI)),
 			...(mitLoesungen ? teile.filter((t) => t.loesung).map((t) => path.join(t.ausgabe, LOESUNG_PDF_DATEI)) : []),
 		];
+		// Der Schlüssel enthält die Mappe: Dokument-IDs sind nur je Behälter eindeutig.
 		const schluessel = createHash('sha256')
-			.update(JSON.stringify([variante, profil ?? null, teile.map((t) => [t.dok, t.stand, t.loesung])]))
+			.update(JSON.stringify([variante, profil ?? null, teile.map((t) => [t.mappe, t.dok, t.stand, t.loesung])]))
 			.digest('hex')
 			.slice(0, 32);
-
-		const dir = mappenDir(materialDir, mappeId);
-		const ausgabe = path.join(dir, 'ausgabe');
-		const stamm = profil === undefined ? variante : `${variante}-${profil}`;
-		const datei = path.join(ausgabe, `${stamm}.pdf`);
-		const standDatei = `${stamm}.json`;
-		await sperre(pdfSperre(mappeId), async () => {
-			if ((await leseStand(ausgabe, standDatei)) === schluessel && existsSync(datei)) {
+		const dir = path.join(materialDir, SAMMLUNG_ORDNER);
+		const datei = path.join(dir, `${schluessel}.pdf`);
+		await sperre(pdfSperre(SAMMLUNG_ORDNER), async () => {
+			if (existsSync(datei)) {
 				return;
 			}
-			// Nie rekursiv anlegen: Liegt die Mappe inzwischen im Papierkorb, darf ihr Ordner nicht neu entstehen.
-			if (!existsSync(path.join(dir, 'mappe.json'))) {
-				throw new HttpFehler(404, 'Diese Mappe gibt es nicht mehr.');
-			}
-			if (!existsSync(ausgabe)) {
-				await mkdir(ausgabe);
-			}
+			await mkdir(dir, { recursive: true });
 			await fuegePdfsZusammen(reihenfolge, datei);
-			await schreibeStand(ausgabe, schluessel, standDatei);
+			await raeumeSammlungenAuf(dir);
 		});
+		const [erste] = teile;
+		const gleich =
+			erste && teile.every((t) => t.behaelter.fach === erste.behaelter.fach && t.behaelter.klasse === erste.behaelter.klasse);
 		return {
 			datei,
-			dateiname: mappenPdfDateiname(mappe, variante, profil),
+			schluessel,
+			dateiname: sammlungPdfDateiname(name, gleich ? erste.behaelter : null, variante, profil),
 			meldungen: teile.flatMap((t) => t.meldungen),
 		};
 	};
 
-	return { dokument, mappe: mappePdf };
+	const sammlungsDatei: Pdf['sammlungsDatei'] = (schluessel) => {
+		const datei = path.join(materialDir, SAMMLUNG_ORDNER, `${schluessel}.pdf`);
+		if (!SCHLUESSEL.test(schluessel) || !existsSync(datei)) {
+			throw new HttpFehler(404, 'Dieses PDF gibt es nicht mehr. Bitte erstelle es noch einmal.');
+		}
+		return datei;
+	};
+
+	return { dokument, sammlung, sammlungsDatei };
 };
 
 const ASCII_ERSATZ: Record<string, string> = {
@@ -304,6 +333,12 @@ export const sendePdf = (req: Request, res: Response, { datei, dateiname }: PdfD
 			},
 		);
 	});
+
+/** Der Name steht in der Adresse, ohne Pfadanteil: Der Browser nennt die Datei so. */
+export const sendeSammlung = (req: Request, res: Response, datei: string) => {
+	const { datei: name } = req.params as { datei?: string };
+	return sendePdf(req, res, { datei, dateiname: (name ?? 'Alles.pdf').replace(/[/\\]/g, ' '), meldungen: [] });
+};
 
 const waehle = <T extends string>(wert: unknown, gueltig: readonly T[]): T => {
 	const treffer = gueltig.find((g) => g === wert);

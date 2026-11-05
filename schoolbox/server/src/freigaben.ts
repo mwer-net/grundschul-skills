@@ -1,14 +1,22 @@
-import type { Freigabe, Ziel } from '@schoolbox/kern';
+import type { Baum, Druckprofil, Freigabe, FreigabeZiel, MappenVariante, OrdnerEintrag } from '@schoolbox/kern';
 import {
+	dokKnotenSchluessel,
+	dokumentGeloescht,
+	dokumenteVonZiel,
 	ENTWURF_QUELLE,
 	findeFreigabe,
 	ID_MUSTER,
 	istToken,
 	KI_PRUEFDATEI,
+	lebenderOrdner,
 	legeFreigabeAn,
 	leseFreigaben,
 	leseMappe,
 	leseMeta,
+	ordneNachFolge,
+	ordnerMitBehaelter,
+	ordnerUnter,
+	ordnerVonZiel,
 	widerrufeFreigabe,
 	zielGibtEs,
 } from '@schoolbox/kern';
@@ -19,7 +27,7 @@ import { ansichtRouter } from './ansicht';
 import { HttpFehler } from './fehler';
 import type { Kontext } from './kontext';
 import { FREIGABEN_SPERRE } from './kontext';
-import { pdfAntwort, sendePdf, waehleMappenVariante, waehlePdfVariante, waehleProfil } from './pdf';
+import { MAX_SAMMLUNG, pdfAntwort, sendePdf, waehleMappenVariante, waehlePdfVariante, waehleProfil } from './pdf';
 
 const ID_REGEX = new RegExp(ID_MUSTER);
 const SICHERE_METHODEN = new Set(['GET', 'HEAD']);
@@ -35,8 +43,11 @@ const mitLink = (kontext: Kontext, freigabe: Freigabe) => ({
 	url: kontext.konfig.schoolboxUrl ? `${kontext.konfig.schoolboxUrl}${freigabePfad(freigabe.token)}` : null,
 });
 
-const leseZiel = (body: unknown): Ziel => {
-	const { dok, mappe } = (body ?? {}) as { dok?: unknown; mappe?: unknown };
+const leseZiel = (body: unknown): FreigabeZiel => {
+	const { dok, mappe, ordner } = (body ?? {}) as { dok?: unknown; mappe?: unknown; ordner?: unknown };
+	if (typeof ordner === 'string') {
+		return { ordner };
+	}
 	if (typeof mappe !== 'string' || !ID_REGEX.test(mappe)) {
 		throw new HttpFehler(400, '„mappe“ fehlt oder ist ungültig.');
 	}
@@ -56,16 +67,29 @@ export const freigabenApi = (kontext: Kontext) => {
 	router.get('/', async (req, res) => {
 		const mappe = text(req.query.mappe);
 		const dok = text(req.query.dok);
-		const freigaben = (await leseFreigaben(materialDir))
-			.filter((f) => mappe === undefined || f.ziel.mappe === mappe)
-			.filter((f) => dok === undefined || f.ziel.dok === dok)
-			.map((f) => mitLink(kontext, f));
+		const ordner = text(req.query.ordner);
+		const baum = kontext.ordner.baum();
+		const passt = ({ ziel }: Freigabe) => {
+			if ('ordner' in ziel) {
+				return ordner === undefined ? mappe === undefined && dok === undefined : ziel.ordner === ordner;
+			}
+			if (ordner !== undefined) {
+				// Ein alter Link auf die Mappe gehört zu dem Ordner, der aus ihr entstand.
+				return ziel.dok === null && ordnerMitBehaelter(baum, ziel.mappe)?.id === ordner;
+			}
+			return (mappe === undefined || ziel.mappe === mappe) && (dok === undefined || ziel.dok === dok);
+		};
+		const freigaben = (await leseFreigaben(materialDir)).filter(passt).map((f) => mitLink(kontext, f));
 		res.json({ freigaben });
 	});
 
 	router.post('/', async (req, res) => {
 		const ziel = leseZiel(req.body);
+		if ('ordner' in ziel && !lebenderOrdner(kontext.ordner.baum(), ziel.ordner)) {
+			throw new HttpFehler(404, 'Diesen Ordner gibt es nicht mehr.');
+		}
 		const freigabe = await kontext.sperre(FREIGABEN_SPERRE, () => legeFreigabeAn(materialDir, ziel));
+		kontext.ereignisse.sende({ typ: 'ordner-geaendert', daten: { rev: kontext.ordner.baum().rev } });
 		res.status(201).json(mitLink(kontext, freigabe));
 	});
 
@@ -77,6 +101,7 @@ export const freigabenApi = (kontext: Kontext) => {
 		if (!freigabe) {
 			throw new HttpFehler(404, 'Diesen Link gibt es nicht.');
 		}
+		kontext.ereignisse.sende({ typ: 'ordner-geaendert', daten: { rev: kontext.ordner.baum().rev } });
 		res.json(mitLink(kontext, freigabe));
 	});
 
@@ -93,12 +118,13 @@ const freigabeVon = (req: Request): Freigabe => {
 	return freigabe;
 };
 
-/** Dokumente, die ein Teilen-Link zeigt: das eine Dokument oder alle Dokumente der Mappe (Reihenfolge der Mappe). */
-const erlaubteDokumente = async (materialDir: string, { dok, mappe }: Ziel) => {
-	if (dok !== null) {
-		return [dok];
+/** Dokument-IDs sind nur je Behälter eindeutig. Darum heißt es bei Ordner-Links `d/<mappe>~<dok>`. */
+const zerlegeDokAdresse = (adresse: string, ziel: FreigabeZiel) => {
+	const [links = '', rechts] = adresse.split('~');
+	if (rechts !== undefined) {
+		return { mappe: links, dok: rechts };
 	}
-	return (await leseMappe(materialDir, mappe)).dokumente;
+	return 'ordner' in ziel ? null : { mappe: ziel.mappe, dok: links };
 };
 
 const zerlegePfad = (pfad: string): string[] => {
@@ -114,30 +140,55 @@ const zerlegePfad = (pfad: string): string[] => {
 };
 
 /**
- * Erlaubt in der Darstellung nur das freigegebene Ziel: die Dokumentordner (ohne Versionen, Entwürfe, meta.json),
- * die Bilder der Mappe (`../../bilder/` aus dem Dokument) und `_assets/`. Alles andere ist 404, als gäbe es es nicht.
+ * Erlaubt in der Darstellung nur das freigegebene Ziel: die Dokumentordner (ohne Versionen, Entwürfe, meta.json), die
+ * Bilder und Thema-CSS der Behälter, in denen ein erlaubtes Dokument liegt (`../../bilder/`, `../../detektiv.css` aus
+ * dem Dokument), und `_assets/`. Alles andere ist 404, als gäbe es es nicht.
  */
 const ansichtWaechter =
-	(materialDir: string): RequestHandler =>
-	async (req, _res, next) => {
+	(kontext: Kontext): RequestHandler =>
+	(req, _res, next) => {
 		const { ziel } = freigabeVon(req);
 		const [mappe, ordner, dok, erster] = zerlegePfad(req.path);
 		if (mappe === '_assets') {
 			next();
 			return;
 		}
-		const inMappe = mappe === ziel.mappe;
+		const erlaubte = dokumenteVonZiel(kontext.ordner.baum(), ziel);
+		const inBehaelter = erlaubte.some((d) => d.mappe === mappe);
+		const gemeinsam = ordner === 'bilder' || (ordner?.endsWith('.css') === true && dok === undefined);
 		const erlaubt =
-			inMappe &&
-			(ordner === 'bilder' ||
+			inBehaelter &&
+			(gemeinsam ||
 				(ordner === 'dokumente' &&
-					dok !== undefined &&
-					(await erlaubteDokumente(materialDir, ziel)).includes(dok) &&
+					erlaubte.some((d) => d.mappe === mappe && d.dok === dok) &&
 					req.query.entwurf === undefined &&
 					req.query.vorschlag === undefined &&
 					(erster === undefined || !(GESPERRT_IM_DOKUMENT.has(erster) || ENTWURF_QUELLE.test(erster)))));
 		next(erlaubt ? undefined : new HttpFehler(404, 'Nicht gefunden.'));
 	};
+
+/** Ziel lebt: Ein Link auf etwas im Papierkorb ist tot (410), wie auf etwas endgültig Gelöschtes. */
+const zielLebt = (kontext: Kontext, ziel: FreigabeZiel) => {
+	const baum = kontext.ordner.baum();
+	if ('ordner' in ziel) {
+		return lebenderOrdner(baum, ziel.ordner) !== null;
+	}
+	if (!zielGibtEs(kontext.konfig.materialDir, ziel)) {
+		return false;
+	}
+	return ziel.dok === null
+		? ordnerMitBehaelter(baum, ziel.mappe) !== null
+		: !dokumentGeloescht(baum, ziel.mappe, ziel.dok);
+};
+
+const kenntZiel = (baum: Baum, ziel: FreigabeZiel) => {
+	if ('ordner' in ziel) {
+		return true;
+	}
+	return ziel.dok === null
+		? baum.ordner.some((o) => o.behaelter === ziel.mappe)
+		: baum.dokumente[dokKnotenSchluessel(ziel.mappe, ziel.dok)] !== undefined;
+};
 
 /**
  * Teilen-Links unter `/f/:token`: Seiten (Ansicht, Präsentation), eine nur lesende API, die Darstellung und die PDFs,
@@ -154,7 +205,11 @@ export const teilenRouter = (kontext: Kontext, sendeSeite: (status: number) => R
 		}
 		const { token = '' } = req.params as { token?: string };
 		const freigabe = await findeFreigabe(materialDir, token);
-		const gueltig = freigabe !== null && freigabe.widerrufen === null && zielGibtEs(materialDir, freigabe.ziel);
+		// Claude schreibt an der Platte vorbei: Was der Baum noch nicht kennt, gleicht der erste Zugriff ab.
+		if (freigabe && !kenntZiel(kontext.ordner.baum(), freigabe.ziel)) {
+			await kontext.ordner.abgleichen();
+		}
+		const gueltig = freigabe !== null && freigabe.widerrufen === null && zielLebt(kontext, freigabe.ziel);
 		if (gueltig) {
 			freigaben.set(req, freigabe);
 			next();
@@ -167,53 +222,96 @@ export const teilenRouter = (kontext: Kontext, sendeSeite: (status: number) => R
 		sendeSeite(status)(req, res, next);
 	});
 
-	router.get('/api/inhalt', async (req, res) => {
-		const { ziel } = freigabeVon(req);
-		const ids = await erlaubteDokumente(materialDir, ziel);
-		const mappe = await leseMappe(materialDir, ziel.mappe);
-		const dokumente = await Promise.all(
-			ids.map(async (id) => ({
-				id,
-				meta: await leseMeta(materialDir, mappe.id, id),
-				vorschau: await kontext.vorschau.stand(mappe.id, id, true),
+	/** Die Metas der erlaubten Dokumente in der Reihenfolge, die auch die Oberfläche zeigt. */
+	const leseErlaubte = async (baum: Baum, ziel: FreigabeZiel) => {
+		const erlaubte = dokumenteVonZiel(baum, ziel);
+		const eintraege = await Promise.all(
+			erlaubte.map(async ({ dok, mappe }) => ({
+				mappe,
+				id: dok,
+				meta: await leseMeta(materialDir, mappe, dok),
+				behaelter: await leseMappe(materialDir, mappe),
+				ordner: baum.dokumente[dokKnotenSchluessel(mappe, dok)]?.ordner ?? null,
 			})),
 		);
-		res.json({ ziel, mappe: { ...mappe, dokumente: ids }, dokumente });
-	});
-
-	const verlangeDok = async (req: Request) => {
-		const { ziel } = freigabeVon(req);
-		const { dok = '' } = req.params as { dok?: string };
-		if (!(await erlaubteDokumente(materialDir, ziel)).includes(dok)) {
-			throw new HttpFehler(404, 'Nicht gefunden.');
-		}
-		return { mappe: ziel.mappe, dok };
+		const wurzel = ordnerVonZiel(baum, ziel);
+		return wurzel ? ordneNachFolge(baum, wurzel.id, eintraege) : eintraege;
 	};
 
-	/** „Alles als PDF“ nur für Links auf eine ganze Mappe. */
-	const verlangeMappe = (req: Request) => {
+	router.get('/api/inhalt', async (req, res) => {
 		const { ziel } = freigabeVon(req);
-		if (ziel.dok !== null) {
+		const baum = await kontext.ordner.abgleichen();
+		const wurzel = ordnerVonZiel(baum, ziel);
+		const eintraege = await leseErlaubte(baum, ziel);
+		const dokumente = await Promise.all(
+			eintraege.map(async ({ behaelter, id, mappe, meta, ordner }) => ({
+				mappe,
+				id,
+				meta,
+				fach: behaelter.fach,
+				klasse: behaelter.klasse,
+				ordner,
+				vorschau: await kontext.vorschau.stand(mappe, id, true),
+			})),
+		);
+		const unterordner = wurzel
+			? ordnerUnter(baum, wurzel.id)
+					.filter((id) => id !== wurzel.id)
+					.map((id) => baum.ordner.find((o) => o.id === id))
+					.filter((o): o is OrdnerEintrag => o !== undefined)
+					.map(({ eltern, erstellt, geaendert, id, name }) => ({ eltern, erstellt, geaendert, id, name }))
+			: [];
+		const mappe = 'ordner' in ziel ? null : await leseMappe(materialDir, ziel.mappe);
+		res.json({
+			ziel,
+			titel: wurzel?.name ?? dokumente[0]?.meta.titel ?? '',
+			wurzel: wurzel ? wurzel.id : null,
+			ordner: unterordner,
+			dokumente,
+			...(mappe ? { mappe: { ...mappe, dokumente: dokumente.map((d) => d.id) } } : {}),
+		});
+	});
+
+	const verlangeDok = (req: Request) => {
+		const { ziel } = freigabeVon(req);
+		const { dok: adresse = '' } = req.params as { dok?: string };
+		const gemeint = zerlegeDokAdresse(adresse, ziel);
+		const erlaubt = dokumenteVonZiel(kontext.ordner.baum(), ziel);
+		if (!gemeint || !erlaubt.some((d) => d.mappe === gemeint.mappe && d.dok === gemeint.dok)) {
 			throw new HttpFehler(404, 'Nicht gefunden.');
 		}
-		return ziel.mappe;
+		return { ...gemeint, adresse };
+	};
+
+	/** „Alles als PDF“ nur für Links auf einen Ordner oder eine ganze Mappe. */
+	const sammlungVon = async (req: Request, variante: MappenVariante, profil: Druckprofil | undefined) => {
+		const { ziel } = freigabeVon(req);
+		const baum = kontext.ordner.baum();
+		const wurzel = ordnerVonZiel(baum, ziel);
+		if (!wurzel) {
+			throw new HttpFehler(404, 'Nicht gefunden.');
+		}
+		const teile = (await leseErlaubte(baum, ziel)).map(({ id, mappe }) => ({ mappe, dok: id }));
+		if (teile.length > MAX_SAMMLUNG) {
+			throw new HttpFehler(400, `Das sind zu viele Dokumente für ein PDF (höchstens ${MAX_SAMMLUNG}).`);
+		}
+		return kontext.pdf.sammlung(teile, variante, profil, wurzel.name);
 	};
 
 	const tokenVon = (req: Request) => (req.params as { token?: string }).token ?? '';
 
 	router.get('/api/pdf/:dok/:variante', async (req, res) => {
-		const { dok, mappe } = await verlangeDok(req);
+		const { adresse, dok, mappe } = verlangeDok(req);
 		const variante = waehlePdfVariante(req.params.variante);
 		const profil = waehleProfil(req.query.profil);
 		const pdf = await kontext.pdf.dokument(mappe, dok, variante, profil);
-		res.json(pdfAntwort(`${freigabePfad(tokenVon(req))}/pdf/${dok}/${variante}`, pdf, profil));
+		res.json(pdfAntwort(`${freigabePfad(tokenVon(req))}/pdf/${adresse}/${variante}`, pdf, profil));
 	});
 
 	router.get('/api/alles/:variante', async (req, res) => {
-		const mappe = verlangeMappe(req);
 		const variante = waehleMappenVariante(req.params.variante);
 		const profil = waehleProfil(req.query.profil);
-		const pdf = await kontext.pdf.mappe(mappe, variante, profil);
+		const pdf = await sammlungVon(req, variante, profil);
 		res.json(pdfAntwort(`${freigabePfad(tokenVon(req))}/alles/${variante}`, pdf, profil));
 	});
 
@@ -221,10 +319,10 @@ export const teilenRouter = (kontext: Kontext, sendeSeite: (status: number) => R
 		throw new HttpFehler(404, 'Nicht gefunden.');
 	});
 
-	router.use('/ansicht', ansichtWaechter(materialDir), ansichtRouter(kontext));
+	router.use('/ansicht', ansichtWaechter(kontext), ansichtRouter(kontext));
 
 	router.get('/pdf/:dok/:variante{/:datei}', async (req, res) => {
-		const { dok, mappe } = await verlangeDok(req);
+		const { dok, mappe } = verlangeDok(req);
 		const profil = waehleProfil(req.query.profil);
 		await sendePdf(
 			req,
@@ -234,9 +332,8 @@ export const teilenRouter = (kontext: Kontext, sendeSeite: (status: number) => R
 	});
 
 	router.get('/alles/:variante{/:datei}', async (req, res) => {
-		const mappe = verlangeMappe(req);
 		const profil = waehleProfil(req.query.profil);
-		await sendePdf(req, res, await kontext.pdf.mappe(mappe, waehleMappenVariante(req.params.variante), profil));
+		await sendePdf(req, res, await sammlungVon(req, waehleMappenVariante(req.params.variante), profil));
 	});
 
 	router.get('/{*seite}', sendeSeite(200));

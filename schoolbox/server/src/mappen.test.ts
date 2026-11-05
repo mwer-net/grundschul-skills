@@ -1,45 +1,42 @@
 import assert from 'node:assert/strict';
 import { existsSync } from 'node:fs';
-import { mkdir, readFile, writeFile } from 'node:fs/promises';
+import { mkdir, rename, writeFile } from 'node:fs/promises';
 import path from 'node:path';
 import { afterEach, describe, it } from 'node:test';
 
-import type { Mappe, PapierkorbEintrag } from '@schoolbox/kern';
+import type { PapierkorbEintrag } from '@schoolbox/kern';
 import { leseFreigaben, PAPIERKORB_TAGE, VORSCHAU_DATEI } from '@schoolbox/kern';
 
+import type { PapierkorbObjekt } from './papierkorb';
 import { raeumePapierkorbAuf } from './papierkorb';
 import type { TestServer } from './testhilfe';
-import { legeDokumentAn, sammleEreignisse, schreibKoepfe, starteTestServer, warte } from './testhilfe';
-
-interface Liste {
-	mappen: { mappe: Mappe; dokumente: { id: string; vorschau: string | null }[] }[];
-	defekt: { id: string; fehler: string }[];
-}
+import { fuehreAus, legeDokumentAn, leseAblage, ordnerVon, schreibKoepfe, starteTestServer } from './testhilfe';
 
 const TAG_MS = 24 * 60 * 60 * 1000;
 
-describe('Mappen: Übersicht, Duplizieren, Papierkorb', () => {
+describe('Ablage: Übersicht, Vorschau, Papierkorb', () => {
 	let s: TestServer | undefined;
-	let strom: ReturnType<typeof sammleEreignisse> | undefined;
 	afterEach(async () => {
-		strom?.stop();
 		await s?.stop();
 	});
 
 	const json = async <T>(antwort: Response) => (await antwort.json()) as T;
 	const sende = (server: TestServer, pfad: string) =>
 		server.holen(`${server.url}${pfad}`, { method: 'POST', headers: schreibKoepfe, body: '{}' });
-	const liste = async (server: TestServer) => json<Liste>(await server.holen(`${server.url}/api/mappen`));
+	const korb = async (server: TestServer) =>
+		json<{ eintraege: PapierkorbEintrag[]; objekte: PapierkorbObjekt[]; tage: number }>(
+			await server.holen(`${server.url}/api/papierkorb`),
+		);
 
-	it('die Übersicht überspringt kaputte Mappen und nennt sie, ohne Pfade des Servers', async () => {
+	it('die Übersicht überspringt kaputte Behälter und nennt sie, ohne Pfade des Servers', async () => {
 		s = await starteTestServer();
 		const { mappe } = await legeDokumentAn(s.materialDir);
 		const kaputt = path.join(s.materialDir, 'kaputte-mappe');
 		await mkdir(kaputt);
 		await writeFile(path.join(kaputt, 'mappe.json'), '{ "titel": ');
-		const { defekt, mappen } = await liste(s);
+		const { defekt, ordner } = await leseAblage(s);
 		assert.deepEqual(
-			mappen.map((e) => e.mappe.id),
+			ordner.map((o) => o.behaelter),
 			[mappe],
 		);
 		assert.equal(defekt.length, 1);
@@ -47,14 +44,16 @@ describe('Mappen: Übersicht, Duplizieren, Papierkorb', () => {
 		assert.ok(!defekt[0]?.fehler.includes(s.materialDir));
 	});
 
-	it('nennt die Kennung der Vorschau, sobald das Bild da ist', async () => {
+	it('nennt die Kennung der Vorschau, sobald das Bild da ist; die Liste baut selbst keine', async () => {
 		s = await starteTestServer();
 		const { dir, dok, mappe } = await legeDokumentAn(s.materialDir);
-		assert.equal((await liste(s)).mappen[0]?.dokumente[0]?.vorschau, null);
+		assert.equal((await leseAblage(s)).dokumente[0]?.vorschau, null);
 		await writeFile(path.join(dir, 'ausgabe', VORSCHAU_DATEI), 'PNG');
-		const kennung = (await liste(s)).mappen[0]?.dokumente[0]?.vorschau;
+		const kennung = (await leseAblage(s)).dokumente[0]?.vorschau;
 		assert.match(kennung ?? '', /^[0-9a-z]+$/);
-		const eintrag = await json<Liste['mappen'][number]>(await s.holen(`${s.url}/api/mappen/${mappe}`));
+		const eintrag = await json<{ dokumente: { id: string; vorschau: string | null }[] }>(
+			await s.holen(`${s.url}/api/mappen/${mappe}`),
+		);
 		assert.deepEqual(
 			eintrag.dokumente.map((d) => [d.id, d.vorschau]),
 			[[dok, kennung]],
@@ -64,29 +63,26 @@ describe('Mappen: Übersicht, Duplizieren, Papierkorb', () => {
 		assert.equal(await bild.text(), 'PNG');
 	});
 
-	it('dupliziert eine Mappe; unbekannte Mappen 404, ohne CSRF-Kopf 403', async () => {
+	it('kopiert einen Ordner unabhängig; ohne CSRF-Kopf 403, ohne Anmeldung 401', async () => {
 		s = await starteTestServer();
 		const { dok, mappe } = await legeDokumentAn(s.materialDir);
-		const antwort = await sende(s, `/api/mappen/${mappe}/duplizieren`);
-		assert.equal(antwort.status, 201);
-		const { mappe: kopie } = await json<{ mappe: Mappe }>(antwort);
-		assert.equal(kopie.titel, 'Zehner und Einer (Kopie)');
-		assert.notEqual(kopie.id, mappe);
-		assert.deepEqual(kopie.dokumente, [dok]);
-		assert.equal((await liste(s)).mappen.length, 2);
-		assert.equal((await s.holen(`${s.url}/ansicht/${kopie.id}/dokumente/${dok}/`)).status, 200);
+		const ordner = await ordnerVon(s, mappe);
+		const antwort = await fuehreAus(s, { art: 'kopieren', knoten: [{ ordner }], ziel: null });
+		assert.equal(antwort.status, 200);
+		const ablage = await leseAblage(s);
+		const kopie = ablage.ordner.find((o) => o.id !== ordner);
+		assert.equal(kopie?.name, 'Zehner und Einer (Kopie)');
+		assert.notEqual(kopie?.behaelter, mappe);
+		assert.equal((await s.holen(`${s.url}/ansicht/${kopie?.behaelter}/dokumente/${dok}/`)).status, 200);
 
-		assert.equal((await sende(s, '/api/mappen/gibt-es-nicht/duplizieren')).status, 404);
-		assert.equal((await sende(s, '/api/mappen/gibt-es-nicht/loeschen')).status, 404);
-		const ohneKopf = await s.holen(`${s.url}/api/mappen/${mappe}/loeschen`, { method: 'POST' });
+		const ohneKopf = await s.holen(`${s.url}/api/ordner/aktion`, { method: 'POST' });
 		assert.equal(ohneKopf.status, 403);
-		assert.equal((await fetch(`${s.url}/api/mappen/${mappe}/loeschen`, { method: 'POST' })).status, 401);
+		assert.equal((await fetch(`${s.url}/api/ordner/aktion`, { method: 'POST' })).status, 401);
 	});
 
-	it('löschen legt in den Papierkorb, wiederherstellen holt zurück; Teilen-Links folgen', async () => {
-		s = await starteTestServer({ ueberwachung: true, ruheMs: 200 });
+	it('Papierkorb: ein Zustand im Baum, Dateien bleiben; die Umkehr holt alles zurück, Teilen-Links folgen', async () => {
+		s = await starteTestServer();
 		const { dir, dok, mappe } = await legeDokumentAn(s.materialDir);
-		const quelle = await readFile(path.join(dir, 'material.html'), 'utf8');
 		const { token } = await json<{ token: string }>(
 			await s.holen(`${s.url}/api/freigaben`, {
 				method: 'POST',
@@ -94,48 +90,49 @@ describe('Mappen: Übersicht, Duplizieren, Papierkorb', () => {
 				body: JSON.stringify({ mappe, dok }),
 			}),
 		);
-		await warte(600);
-		strom = sammleEreignisse(s.url, s.cookie);
-		await strom.bereit;
+		const ordner = await ordnerVon(s, mappe);
+		const { umkehr } = await json<{ umkehr: unknown[] }>(await fuehreAus(s, { art: 'papierkorb', knoten: [{ ordner }] }));
 
-		const geloescht = await sende(s, `/api/mappen/${mappe}/loeschen`);
-		assert.equal(geloescht.status, 200);
-		const { eintrag } = await json<{ eintrag: PapierkorbEintrag }>(geloescht);
-		assert.equal(eintrag.id, mappe);
-		assert.equal(existsSync(dir), false);
-		assert.deepEqual((await liste(s)).mappen, []);
-		assert.equal((await s.holen(`${s.url}/api/mappen/${mappe}`)).status, 404);
+		assert.equal(existsSync(dir), true);
+		assert.deepEqual((await leseAblage(s)).ordner, []);
+		assert.deepEqual((await leseAblage(s)).dokumente, []);
 		assert.equal((await fetch(`${s.url}/f/${token}/api/inhalt`)).status, 410);
-
-		const korb = await json<{ eintraege: PapierkorbEintrag[]; tage: number }>(
-			await s.holen(`${s.url}/api/papierkorb`),
-		);
-		assert.equal(korb.tage, PAPIERKORB_TAGE);
+		const { objekte, tage } = await korb(s);
+		assert.equal(tage, PAPIERKORB_TAGE);
 		assert.deepEqual(
-			korb.eintraege.map((e) => [e.eintrag, e.mappe?.titel]),
-			[[eintrag.eintrag, 'Zehner und Einer']],
+			objekte.map((o) => [o.name, o.objekte]),
+			[['Zehner und Einer', 1]],
 		);
-		await warte(600);
 
-		const zurueck = await sende(s, `/api/papierkorb/${eintrag.eintrag}/wiederherstellen`);
-		assert.equal(zurueck.status, 200);
-		assert.equal(await readFile(path.join(dir, 'material.html'), 'utf8'), quelle);
-		assert.equal((await liste(s)).mappen.length, 1);
+		for (const schritt of umkehr) {
+			assert.equal((await fuehreAus(s, schritt)).status, 200);
+		}
+		assert.equal((await leseAblage(s)).dokumente.length, 1);
 		assert.equal((await fetch(`${s.url}/f/${token}/api/inhalt`)).status, 200);
-		assert.equal((await sende(s, `/api/papierkorb/${eintrag.eintrag}/wiederherstellen`)).status, 404);
-		assert.equal((await sende(s, '/api/papierkorb/..%2f..%2fetc/wiederherstellen')).status, 404);
-		await warte(600);
-
-		const typen = strom.ereignisse.filter((e) => e.typ.startsWith('mappe-')).map((e) => [e.typ, e.daten]);
-		assert.deepEqual(typen, [
-			['mappe-entfernt', { mappe }],
-			['mappe-neu', { mappe }],
-		]);
+		assert.deepEqual((await korb(s)).objekte, []);
 	});
 
-	it('nach 30 Tagen ist die Mappe samt ihren Teilen-Links weg (simulierte Zeit)', async () => {
+	it('alte Einträge im Papierkorb bleiben wiederherstellbar', async () => {
 		s = await starteTestServer();
-		const { mappe } = await legeDokumentAn(s.materialDir);
+		const { dir, mappe } = await legeDokumentAn(s.materialDir);
+		const eintrag = `2026-10-01T10-00-00-000Z-${mappe}`;
+		await mkdir(path.join(s.materialDir, '_papierkorb'), { recursive: true });
+		await rename(path.join(s.materialDir, mappe), path.join(s.materialDir, '_papierkorb', eintrag));
+		const alte = (await korb(s)).eintraege;
+		assert.deepEqual(
+			alte.map((e) => e.id),
+			[mappe],
+		);
+		assert.equal((await sende(s, `/api/papierkorb/${alte[0]?.eintrag}/wiederherstellen`)).status, 200);
+		assert.equal(existsSync(dir), true);
+		assert.equal((await leseAblage(s)).dokumente.length, 1);
+		assert.equal((await sende(s, `/api/papierkorb/${alte[0]?.eintrag}/wiederherstellen`)).status, 404);
+		assert.equal((await sende(s, '/api/papierkorb/..%2f..%2fetc/wiederherstellen')).status, 404);
+	});
+
+	it('nach 30 Tagen ist der Ordner samt Behälter und Teilen-Links weg (simulierte Zeit)', async () => {
+		s = await starteTestServer();
+		const { dir, mappe } = await legeDokumentAn(s.materialDir);
 		const andere = await legeDokumentAn(s.materialDir);
 		for (const ziel of [mappe, andere.mappe]) {
 			await s.holen(`${s.url}/api/freigaben`, {
@@ -144,19 +141,20 @@ describe('Mappen: Übersicht, Duplizieren, Papierkorb', () => {
 				body: JSON.stringify({ mappe: ziel }),
 			});
 		}
-		const { eintrag } = await json<{ eintrag: PapierkorbEintrag }>(await sende(s, `/api/mappen/${mappe}/loeschen`));
-		const geloescht = new Date(eintrag.geloescht).getTime();
+		const ordner = await ordnerVon(s, mappe);
+		await fuehreAus(s, { art: 'papierkorb', knoten: [{ ordner }] });
+		const geloescht = Date.now();
 
 		assert.deepEqual(await raeumePapierkorbAuf(s.kontext, new Date(geloescht + 29 * TAG_MS)), []);
 		assert.equal((await leseFreigaben(s.materialDir)).length, 2);
 
-		assert.deepEqual(await raeumePapierkorbAuf(s.kontext, new Date(geloescht + PAPIERKORB_TAGE * TAG_MS)), [mappe]);
-		const korb = await json<{ eintraege: unknown[] }>(await s.holen(`${s.url}/api/papierkorb`));
-		assert.deepEqual(korb.eintraege, []);
+		const entfernt = await raeumePapierkorbAuf(s.kontext, new Date(geloescht + (PAPIERKORB_TAGE + 1) * TAG_MS));
+		assert.deepEqual(entfernt, [mappe]);
+		assert.equal(existsSync(dir), false);
+		assert.deepEqual((await korb(s)).objekte, []);
 		assert.deepEqual(
-			(await leseFreigaben(s.materialDir)).map((f) => f.ziel.mappe),
+			(await leseFreigaben(s.materialDir)).map((f) => ('mappe' in f.ziel ? f.ziel.mappe : '')),
 			[andere.mappe],
 		);
-		assert.equal((await sende(s, `/api/papierkorb/${eintrag.eintrag}/wiederherstellen`)).status, 404);
 	});
 });

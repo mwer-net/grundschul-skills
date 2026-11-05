@@ -570,7 +570,7 @@ const pruefeName = (name: unknown): string => {
 const NAME_BELEGT = 'Diesen Namen gibt es hier schon.';
 
 /** Was direkt in einem Ordner lebt. Ordner und Material teilen sich die Namen wie im Finder. */
-const namenIn = (baum: Baum, ziel: string | null, u: Umgebung, ausser: ReadonlySet<string> = new Set()) => {
+export const namenIn = (baum: Baum, ziel: string | null, u: Umgebung, ausser: ReadonlySet<string> = new Set()) => {
 	const namen: string[] = [];
 	for (const o of baum.ordner) {
 		if (o.eltern === ziel && !o.geloescht && !ausser.has(o.id)) {
@@ -794,6 +794,9 @@ const zuruecklegen = (baum: Baum, a: Extract<Aktion, { art: 'zuruecklegen' }>, u
 
 const entferne = (baum: Baum, a: Extract<Aktion, { art: 'entfernen' }>): AktionsErgebnis => {
 	const o = verlangeOrdner(baum, a.ordner);
+	if (o.behaelter !== null) {
+		throw nichtMoeglich('Dieser Ordner enthält Material und lässt sich nicht entfernen.');
+	}
 	const lebtDarin =
 		baum.ordner.some((e) => e.eltern === o.id && !e.geloescht) ||
 		Object.values(baum.dokumente).some((p) => p.ordner === o.id && !p.geloescht);

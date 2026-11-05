@@ -6,6 +6,7 @@ import type { Urheber, Version } from '@schoolbox/kern';
 import {
 	aktualisiereMappe,
 	dokumentDir,
+	dokumentGeloescht,
 	formatAusHtml,
 	hatLoesung,
 	legeVersionAn,
@@ -21,7 +22,9 @@ import { dokSchluessel, kennung, leseBekannt } from './kontext';
 
 export const verlangeDokument = (kontext: Kontext, mappe: string, dok: string): string => {
 	const dir = dokumentDir(kontext.konfig.materialDir, mappe, dok);
-	if (!existsSync(path.join(dir, 'meta.json')) || !existsSync(path.join(dir, 'material.html'))) {
+	const fehlt = !existsSync(path.join(dir, 'meta.json')) || !existsSync(path.join(dir, 'material.html'));
+	// Der Papierkorb ist ein Zustand im Baum: Die Dateien liegen noch da, das Dokument gibt es für niemanden mehr.
+	if (fehlt || dokumentGeloescht(kontext.ordner.baum(), mappe, dok)) {
 		throw new HttpFehler(404, `Das Dokument „${mappe}/${dok}“ gibt es nicht.`);
 	}
 	return dir;

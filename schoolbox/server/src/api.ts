@@ -26,6 +26,7 @@ import { kiApi } from './ki-api';
 import type { Kontext } from './kontext';
 import { dokSchluessel, kennung, leseBekannt } from './kontext';
 import { mappenApi } from './mappen';
+import { ordnerApi } from './ordner';
 import { papierkorbApi } from './papierkorb';
 import { pdfAntwort, sendePdf, waehlePdfVariante, waehleProfil } from './pdf';
 import { csrfSchutz, pruefeIdParam } from './schutz';
@@ -113,6 +114,7 @@ export const apiRouter = (kontext: Kontext) => {
 
 	router.use('/eigene', eigeneApi(kontext));
 	router.use('/mappen', mappenApi(kontext));
+	router.use('/ordner', ordnerApi(kontext));
 	router.use('/papierkorb', papierkorbApi(kontext));
 
 	router.use('/dokumente/:mappe/:dok/bilder', bilderApi(kontext));

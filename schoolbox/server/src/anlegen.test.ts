@@ -7,80 +7,111 @@ import { afterEach, describe, it } from 'node:test';
 import { ART_FORMATE, ARTEN } from '@schoolbox/kern';
 
 import type { TestServer } from './testhilfe';
-import { schreibKoepfe, starteTestServer } from './testhilfe';
+import { fuehreAus, legeDokumentAn, leseAblage, ordnerVon, schreibKoepfe, starteTestServer } from './testhilfe';
 
-describe('Anlegen ohne Claude (045) und Katalog (044)', () => {
+interface Neu {
+	mappe: string;
+	id: string;
+}
+
+describe('Anlegen ohne Claude (045, 079) und Katalog (044)', () => {
 	let s: TestServer | undefined;
 	afterEach(async () => {
 		await s?.stop();
 	});
-	const sende = (server: TestServer, pfad: string, daten: unknown) =>
-		server.holen(`${server.url}${pfad}`, { method: 'POST', headers: schreibKoepfe, body: JSON.stringify(daten) });
-	const mappe = async (server: TestServer, titel = 'Uhrzeit') => {
-		const a = await sende(server, '/api/mappen', { titel, fach: 'mathematik', klasse: 2 });
-		assert.equal(a.status, 201);
-		return ((await a.json()) as { mappe: { id: string } }).mappe.id;
+	const lege = (server: TestServer, daten: unknown) =>
+		server.holen(`${server.url}/api/ordner/material`, {
+			method: 'POST',
+			headers: schreibKoepfe,
+			body: JSON.stringify(daten),
+		});
+	const gut = { titel: 'Blatt', art: 'arbeitsblatt', format: 'a4-hoch' };
+	const neuerOrdner = async (server: TestServer, name: string, eltern: string | null = null) => {
+		const a = await fuehreAus(server, { art: 'neu', eltern, name });
+		assert.equal(a.status, 200);
+		return ((await a.json()) as { ergebnis: { neu: string } }).ergebnis.neu;
 	};
 
-	it('Mappe: legt an; leerer Titel, falsches Fach und doppelter Titel ergeben eine klare Meldung, keine Dateien', async () => {
+	it('Ordner mit Behälter: Das Material kommt in diesen Behälter, Fach und Klasse daraus', async () => {
 		s = await starteTestServer();
-		await mappe(s);
-		const vorher = await readdir(s.materialDir);
-		for (const [daten, status, text] of [
-			[{ titel: ' ', fach: 'mathematik', klasse: 2 }, 400, /Titel/],
-			[{ titel: 'x', fach: 'latein', klasse: 2 }, 400, /Fach/],
-			[{ titel: ' uhrzeit ', fach: 'mathematik', klasse: 2 }, 409, /gibt es schon/],
-		] as const) {
-			const a = await sende(s, '/api/mappen', daten);
-			assert.equal(a.status, status);
-			assert.match(((await a.json()) as { fehler: string }).fehler, text);
-		}
-		assert.deepEqual(await readdir(s.materialDir), vorher);
+		const { mappe } = await legeDokumentAn(s.materialDir);
+		const ordner = await ordnerVon(s, mappe);
+		const a = await lege(s, { ...gut, ordner });
+		assert.equal(a.status, 201);
+		const neu = (await a.json()) as Neu;
+		assert.equal(neu.mappe, mappe);
+		const eintrag = (await leseAblage(s)).dokumente.find((d) => d.id === neu.id);
+		assert.equal(eintrag?.ordner, ordner);
 	});
 
-	it('Dokument: jede Art mit jedem Format; erste Version von der Lehrkraft; keine Farbe im Spiel', async () => {
+	it('Ordner ohne Behälter: eigener neuer Behälter, Fach und Klasse sind Pflicht', async () => {
 		s = await starteTestServer();
-		const id = await mappe(s);
+		const ordner = await neuerOrdner(s, 'Klasse 3');
+		const vorher = await readdir(s.materialDir);
+		const ohne = await lege(s, { ...gut, ordner });
+		assert.equal(ohne.status, 400);
+		assert.match(((await ohne.json()) as { fehler: string }).fehler, /Fach und Klasse/);
+		assert.deepEqual((await readdir(s.materialDir)).filter((n) => !n.startsWith('_')), vorher.filter((n) => !n.startsWith('_')));
+
+		const a = await lege(s, { ...gut, ordner, fach: 'mathematik', klasse: 3 });
+		assert.equal(a.status, 201);
+		const neu = (await a.json()) as Neu;
+		const { dokumente, ordner: alle } = await leseAblage(s);
+		assert.equal(dokumente.find((d) => d.id === neu.id)?.ordner, ordner);
+		assert.equal(alle.length, 1, 'der neue Behälter macht keinen sichtbaren Ordner');
+	});
+
+	it('Ohne Ordner: direkt in „Mein Material“', async () => {
+		s = await starteTestServer();
+		const a = await lege(s, { ...gut, ordner: null, fach: 'deutsch', klasse: 1 });
+		assert.equal(a.status, 201);
+		assert.equal((await leseAblage(s)).dokumente[0]?.ordner, null);
+	});
+
+	it('jede Art mit jedem Format; erste Version von der Lehrkraft', async () => {
+		s = await starteTestServer();
+		const { mappe } = await legeDokumentAn(s.materialDir);
+		const ordner = await ordnerVon(s, mappe);
 		for (const art of ARTEN) {
 			for (const format of ART_FORMATE[art]) {
-				const a = await sende(s, `/api/mappen/${id}/dokumente`, { titel: `${art} ${format}`, art, format });
+				const a = await lege(s, { titel: `${art} ${format}`, art, format, ordner });
 				assert.equal(a.status, 201, `${art} ${format}`);
-				const dok = ((await a.json()) as { id: string }).id;
-				const dir = path.join(s.materialDir, id, 'dokumente', dok);
+				const dok = ((await a.json()) as Neu).id;
+				const dir = path.join(s.materialDir, mappe, 'dokumente', dok);
 				assert.ok((await readdir(path.join(dir, 'versionen'))).every((v) => v.includes('lehrkraft')));
 				assert.match(await readFile(path.join(dir, 'material.html'), 'utf8'), /class="seite"/);
 			}
 		}
 	});
 
-	it('Dokument: falsches Format, unbekannte Vorlage und doppelter Titel werden abgelehnt', async () => {
+	it('falsches Format, unbekannte Vorlage, leerer Titel und doppelter Titel je Ordner werden abgelehnt', async () => {
 		s = await starteTestServer();
-		const id = await mappe(s);
-		const gut = { titel: 'Blatt', art: 'arbeitsblatt', format: 'a4-hoch' };
-		assert.equal((await sende(s, `/api/mappen/${id}/dokumente`, gut)).status, 201);
-		assert.equal((await sende(s, `/api/mappen/${id}/dokumente`, gut)).status, 409);
-		assert.equal(
-			(await sende(s, `/api/mappen/${id}/dokumente`, { ...gut, titel: 'B', format: 'folie' })).status,
-			400,
-		);
-		assert.equal(
-			(await sende(s, `/api/mappen/${id}/dokumente`, { ...gut, titel: 'C', vorlage: '../x' })).status,
-			400,
-		);
-		assert.equal(existsSync(path.join(s.materialDir, id, 'dokumente', 'b')), false);
+		const { mappe } = await legeDokumentAn(s.materialDir);
+		const ordner = await ordnerVon(s, mappe);
+		const hier = { ...gut, ordner };
+		assert.equal((await lege(s, hier)).status, 201);
+		assert.equal((await lege(s, { ...hier, titel: ' BLATT ' })).status, 409);
+		assert.equal((await lege(s, { ...hier, titel: ' ' })).status, 400);
+		assert.equal((await lege(s, { ...hier, titel: 'B', format: 'folie' })).status, 400);
+		assert.equal((await lege(s, { ...hier, titel: 'C', vorlage: '../x' })).status, 400);
+		assert.equal((await lege(s, { ...hier, ordner: 'o-gibtesnicht' })).status, 404);
+		assert.equal(existsSync(path.join(s.materialDir, mappe, 'dokumente', 'b')), false);
+		const anderer = await neuerOrdner(s, 'Anderer');
+		assert.equal((await lege(s, { ...gut, ordner: anderer, fach: 'mathematik', klasse: 2 })).status, 201, 'gleicher Titel, anderer Ordner');
 	});
 
 	it('Zusatzbausteine landen im Material', async () => {
 		s = await starteTestServer();
-		const id = await mappe(s);
-		const a = await sende(s, `/api/mappen/${id}/dokumente`, {
+		const { mappe } = await legeDokumentAn(s.materialDir);
+		const a = await lege(s, {
 			titel: 'Mit allem',
 			art: 'arbeitsblatt',
 			format: 'a4-hoch',
+			ordner: await ordnerVon(s, mappe),
 			zusatz: { selbsteinschaetzung: true, niveaus: true, sternchen: true },
 		});
-		const dok = ((await a.json()) as { id: string }).id;
-		const html = await readFile(path.join(s.materialDir, id, 'dokumente', dok, 'material.html'), 'utf8');
+		const dok = ((await a.json()) as Neu).id;
+		const html = await readFile(path.join(s.materialDir, mappe, 'dokumente', dok, 'material.html'), 'utf8');
 		for (const k of ['class="fuss"', 'class="wahlhilfe"', 'nr stern']) {
 			assert.ok(html.includes(k), k);
 		}

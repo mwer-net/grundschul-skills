@@ -15,7 +15,10 @@ type VorschauEreignis = { typ: 'vorschau-fertig'; daten: { mappe: string; dok: s
 /** Ein Auftrag an Claude (057): kein Text aus dem Material, nur Schritte und Status. */
 type KiEreignis = { typ: 'ki-stand'; daten: { mappe: string; dok: string; id: string } };
 
-export type Ereignis = DokumentEreignis | KiEreignis | MappeEreignis | PdfEreignis | VorschauEreignis;
+/** Der Ordnerbaum hat sich geändert (079). Der eigene Tab vergleicht `rev`, sonst spränge ein Stand zurück. */
+type OrdnerEreignis = { typ: 'ordner-geaendert'; daten: { rev: number } };
+
+export type Ereignis = DokumentEreignis | KiEreignis | MappeEreignis | OrdnerEreignis | PdfEreignis | VorschauEreignis;
 
 export type Hoerer = (ereignis: Ereignis) => void;
 

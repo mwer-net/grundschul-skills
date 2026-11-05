@@ -9,6 +9,7 @@ import { promisify } from 'node:util';
 
 import {
 	BLATT_PY,
+	PAPIERKORB_TAGE,
 	dokumentDir,
 	legeFreigabeAn,
 	leseMeta,
@@ -23,17 +24,20 @@ import { BROWSER_HINWEIS, browserFehlt } from '@schoolbox/kern/src/browsertest';
 import { inhaltsAngabe } from './pdf';
 import type { TestServer } from './testhilfe';
 import {
+	BEISPIEL,
+	NOTIZ_ZU_LANG,
+	UEBERLAUF,
 	baueErsatzAusgabe,
 	baueErsatzFolien,
-	BEISPIEL,
+	fuehreAus,
 	legeDokumentAn,
-	NOTIZ_ZU_LANG,
+	ordnerVon,
 	sammleEreignisse,
 	schreibKoepfe,
 	starteTestServer,
-	UEBERLAUF,
 	warte,
 } from './testhilfe';
+import { raeumePapierkorbAuf } from './papierkorb';
 
 const ausfuehren = promisify(execFile);
 
@@ -78,6 +82,16 @@ const vergleichbar = (pdf: Buffer) =>
 const seitenGroessen = async (datei: string) => {
 	const { stdout } = await ausfuehren('pdfinfo', ['-f', '1', '-l', '999', datei]);
 	return [...stdout.matchAll(/^Page\s+\d+ size:\s+([\d.]+) x ([\d.]+)/gm)].map((m) => `${m[1]}x${m[2]}`);
+};
+
+/** „Alles als PDF“ in der Reihenfolge, die der Client schickt. */
+const sammle = async (s: TestServer, teile: readonly { mappe: string; dok: string }[], variante: string) => {
+	const antwort = await s.holen(`${s.url}/api/ordner/pdf`, {
+		method: 'POST',
+		headers: schreibKoepfe,
+		body: JSON.stringify({ teile, variante, name: 'Zehner und Einer' }),
+	});
+	return { status: antwort.status, daten: (await antwort.json()) as Vorbereitet & { fehler?: string } };
 };
 
 const vorbereiten = async (s: TestServer, pfad: string, variante: string) => {
@@ -248,8 +262,9 @@ describe('PDF mit blatt.py', () => {
 			t.skip(BROWSER_HINWEIS);
 			return;
 		}
-		const ohne = await vorbereiten(s, `/api/mappen/${mappe}/pdf`, 'alles');
-		const mit = await vorbereiten(s, `/api/mappen/${mappe}/pdf`, 'alles-mit-loesungen');
+		const teile = ids.map((dok) => ({ mappe, dok }));
+		const ohne = await sammle(s, teile, 'alles');
+		const mit = await sammle(s, teile, 'alles-mit-loesungen');
 		assert.equal(mit.daten.dateiname, 'Kl2 Mathe Zehner und Einer – Alles mit Lösungen.pdf');
 		assert.ok(mit.daten.meldungen.some((m) => m.dok === ids[1]));
 
@@ -405,7 +420,11 @@ describe('PDF: Ablauf', () => {
 		});
 		const { ids, mappe } = await legeDreiAn(s.materialDir);
 		await s.holen(`${s.url}/api/mappen/${mappe}`);
-		const { daten, status } = await vorbereiten(s, `/api/mappen/${mappe}/pdf`, 'alles');
+		const { daten, status } = await sammle(
+			s,
+			ids.map((dok) => ({ mappe, dok })),
+			'alles',
+		);
 		assert.equal(status, 200);
 		assert.equal(hoechstens, 2);
 		assert.deepEqual(daten.meldungen, [
@@ -449,13 +468,18 @@ describe('PDF: Ablauf', () => {
 		assert.equal((await vorbereiten(s, pfad, 'loesung')).daten.fehler, 'Zu diesem Dokument gibt es keine Lösung.');
 		assert.equal((await vorbereiten(s, pfad, 'alles')).status, 400);
 		assert.equal((await vorbereiten(s, `/api/dokumente/${mappe}/gibt-es-nicht/pdf`, 'arbeitsblatt')).status, 404);
-		assert.equal((await vorbereiten(s, '/api/mappen/gibt-es-nicht/pdf', 'alles')).status, 404);
+		assert.equal((await sammle(s, [{ mappe: 'gibt-es-nicht', dok: dok }], 'alles')).status, 404);
+		assert.equal((await sammle(s, [], 'alles')).status, 404);
+		const zuViele = Array.from({ length: 101 }, () => ({ mappe, dok }));
+		const antwort = await sammle(s, zuViele, 'alles');
+		assert.equal(antwort.status, 400);
+		assert.match(antwort.daten.fehler ?? '', /höchstens 100/);
 		const ohneKopf = await s.holen(`${s.url}${pfad}`, { method: 'POST', body: '{}' });
 		assert.equal(ohneKopf.status, 403);
 		assert.equal((await fetch(`${s.url}${pfad}/arbeitsblatt/x.pdf`)).status, 401);
 	});
 
-	it('baut für eine Mappe, die währenddessen in den Papierkorb wandert, keinen Ordner neu', async () => {
+	it('baut für ein Dokument, das währenddessen endgültig verschwindet, keinen Ordner neu', async () => {
 		let weiter: () => void = () => undefined;
 		const halt = new Promise<void>((resolve) => {
 			weiter = resolve;
@@ -469,12 +493,9 @@ describe('PDF: Ablauf', () => {
 		const { dok, mappe } = await legeDokumentAn(s.materialDir, { beispiel: true });
 		const anfrage = vorbereiten(s, `/api/dokumente/${mappe}/${dok}/pdf`, 'arbeitsblatt');
 		await warte(50);
-		const geloescht = await s.holen(`${s.url}/api/mappen/${mappe}/loeschen`, {
-			method: 'POST',
-			headers: schreibKoepfe,
-			body: '{}',
-		});
-		assert.equal(geloescht.status, 200);
+		const ordner = await ordnerVon(s, mappe);
+		assert.equal((await fuehreAus(s, { art: 'papierkorb', knoten: [{ ordner }] })).status, 200);
+		await raeumePapierkorbAuf(s.kontext, new Date(Date.now() + (PAPIERKORB_TAGE + 1) * 24 * 60 * 60 * 1000));
 		weiter();
 		assert.equal((await anfrage).status, 404);
 		assert.equal(existsSync(mappenDir(s.materialDir, mappe)), false);

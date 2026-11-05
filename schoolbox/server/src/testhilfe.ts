@@ -1,3 +1,4 @@
+import assert from 'node:assert/strict';
 import { copyFile, mkdtemp, readFile, rm, writeFile } from 'node:fs/promises';
 import http from 'node:http';
 import type { AddressInfo } from 'node:net';
@@ -242,6 +243,27 @@ export const sammleEreignisse = (url: string, cookie: string) => {
 		})();
 	});
 	return { bereit, ereignisse, stop: () => steuerung.abort() };
+};
+
+export interface Ablage {
+	rev: number;
+	ordner: { id: string; name: string; eltern: string | null; behaelter: string | null }[];
+	dokumente: { mappe: string; id: string; ordner: string | null; vorschau: string | null; meta: { titel: string } }[];
+	defekt: { id: string; fehler: string }[];
+	geteilt: { ordner: string[]; dokumente: string[] };
+	hinweis?: string;
+}
+
+export const leseAblage = async (s: Pick<TestServer, 'holen' | 'url'>) =>
+	(await (await s.holen(`${s.url}/api/ordner`)).json()) as Ablage;
+
+export const fuehreAus = (s: Pick<TestServer, 'holen' | 'url'>, aktion: unknown) =>
+	s.holen(`${s.url}/api/ordner/aktion`, { method: 'POST', headers: schreibKoepfe, body: JSON.stringify(aktion) });
+
+export const ordnerVon = async (s: Pick<TestServer, 'holen' | 'url'>, mappe: string) => {
+	const ordner = (await leseAblage(s)).ordner.find((o) => o.behaelter === mappe);
+	assert.ok(ordner, `kein Ordner zu ${mappe}`);
+	return ordner.id;
 };
 
 export const warte = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));

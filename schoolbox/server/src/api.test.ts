@@ -35,17 +35,20 @@ describe('API', () => {
 		assert.deepEqual(await antwort.json(), { status: 'ok', version: 'test' });
 	});
 
-	it('listet Mappen und filtert nach Fach, Klasse und Suche', async () => {
-		const alle = (await (await s.holen(`${s.url}/api/mappen`)).json()) as { mappen: unknown[] };
-		assert.equal(alle.mappen.length, 1);
-		const filter = async (query: string) =>
-			((await (await s.holen(`${s.url}/api/mappen?${query}`)).json()) as { mappen: unknown[] }).mappen.length;
-		assert.equal(await filter('fach=mathematik&klasse=2&suche=zehner'), 1);
-		assert.equal(await filter('fach=deutsch'), 0);
-		assert.equal(await filter('suche=kartoffel'), 0);
-		const falsch = await s.holen(`${s.url}/api/mappen?fach=mathe`);
-		assert.equal(falsch.status, 400);
-		assert.match(((await falsch.json()) as { fehler: string }).fehler, /Gültige Werte: deutsch/);
+	it('listet die Ablage mit Fach und Klasse je Dokument; die alte Liste gibt es nicht mehr', async () => {
+		const { dokumente, ordner } = (await (await s.holen(`${s.url}/api/ordner`)).json()) as {
+			dokumente: { mappe: string; fach: string; klasse: number }[];
+			ordner: { behaelter: string | null }[];
+		};
+		assert.deepEqual(
+			ordner.map((o) => o.behaelter),
+			[mappe],
+		);
+		assert.deepEqual(
+			dokumente.map((d) => [d.mappe, d.fach, d.klasse]),
+			[[mappe, 'mathematik', 2]],
+		);
+		assert.equal((await s.holen(`${s.url}/api/mappen`)).status, 404);
 	});
 
 	it('liefert Mappe und Dokument, unbekannte als 404, ungültige IDs als 400', async () => {

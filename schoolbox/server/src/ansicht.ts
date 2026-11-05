@@ -6,6 +6,7 @@ import type { KatalogEintrag } from '@schoolbox/kern';
 import {
 	ASSETS,
 	darstellungsHtml,
+	dokumentGeloescht,
 	einfuegbarAus,
 	ID_MUSTER,
 	KATALOG,
@@ -185,6 +186,9 @@ export const ansichtRouter = (kontext: Kontext) => {
 		}
 		const teile = pruefeTeile(req.params.teile);
 		const [ordner, dok, ...rest] = teile;
+		if (ordner === 'dokumente' && dok !== undefined && dokumentGeloescht(kontext.ordner.baum(), mappe, dok)) {
+			throw nichtGefunden();
+		}
 		let datei: string | null;
 		if (ordner === 'dokumente' && dok !== undefined && ID_REGEX.test(dok) && rest.length > 0) {
 			datei = sucheRessource(rest.join('/'), path.join(mappeDir, 'dokumente', dok));

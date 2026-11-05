@@ -9,7 +9,7 @@ import { dokumentDir, fertigstellen, legeFreigabeAn, leseMeta } from '@schoolbox
 import { browserSkip } from '@schoolbox/kern/src/browsertest';
 
 import type { TestServer } from './testhilfe';
-import { legeDokumentAn, sammleEreignisse, schreibKoepfe, starteTestServer, warte } from './testhilfe';
+import { legeDokumentAn, leseAblage, sammleEreignisse, schreibKoepfe, starteTestServer, warte } from './testhilfe';
 
 interface Vorbereitet {
 	adresse: string;
@@ -188,10 +188,12 @@ describe('Ansichten Farbe und s/w', { skip: browserSkip() }, () => {
 
 	it('baut „Alles als PDF“ je Ansicht in eine eigene Datei', { timeout: FARBIGER_PDF_BAU }, async () => {
 		const hole = async (profil: string) => {
-			const antwort = await s.holen(`${s.url}/api/mappen/${mappe}/pdf`, {
+			const { dokumente } = await leseAblage(s);
+			const teile = dokumente.filter((d) => d.mappe === mappe).map((d) => ({ mappe: d.mappe, dok: d.id }));
+			const antwort = await s.holen(`${s.url}/api/ordner/pdf`, {
 				method: 'POST',
 				headers: schreibKoepfe,
-				body: JSON.stringify({ variante: 'alles', profil }),
+				body: JSON.stringify({ teile, name: 'Zehner und Einer', variante: 'alles', profil }),
 			});
 			assert.equal(antwort.status, 200);
 			return (await antwort.json()) as Vorbereitet;

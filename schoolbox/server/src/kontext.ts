@@ -13,6 +13,8 @@ import { erstelleEreignisse } from './ereignisse';
 import type { Ki, KiPruefer } from './ki';
 import { erstelleKi } from './ki';
 import type { ServerKonfig } from './konfig';
+import type { OrdnerSpeicher } from './ordner-speicher';
+import { erstelleOrdnerSpeicher } from './ordner-speicher';
 import type { FolienBauer, Pdf, PdfBauer } from './pdf';
 import { erstellePdf } from './pdf';
 import type { Sperre } from './sperre';
@@ -35,6 +37,7 @@ export interface Kontext {
 	vorschau: Vorschau;
 	pdf: Pdf;
 	ki: Ki;
+	ordner: OrdnerSpeicher;
 	version: string;
 }
 
@@ -77,6 +80,7 @@ export const erstelleKontext = (konfig: ServerKonfig, version: string, bauer: Ba
 			ereignisse,
 			pruefer: bauer.kiPruefer ?? ((dokDir, html) => pruefeFassung(konfig, dokDir, html)),
 		}),
+		ordner: erstelleOrdnerSpeicher(materialDir, sperre, ereignisse),
 		version,
 	};
 };
