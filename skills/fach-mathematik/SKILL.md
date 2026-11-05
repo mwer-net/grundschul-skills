@@ -151,6 +151,6 @@ Zur Leitidee „Raum und Form“: Kl. 1/2 Formen (`x-figur`), Wege und Auslegen 
 
 Zur Leitidee „Daten, Häufigkeit, Wahrscheinlichkeit“: Kl. 1/2 Strichliste, Würfel, Glücksrad; Kl. 3/4 Diagramm, Wahrscheinlichkeit, Möglichkeiten.
 
-Fehlt eine andere Darstellung, als neues Element ergänzen, nie freihand oder per KI: `html-materialerstellung/SKILL.md`, Abschnitt „Neues Element“.
+Fehlt eine andere Darstellung, nie absagen und nie per KI: `html-materialerstellung/SKILL.md`, Abschnitt „Neues Element“.
 
 **Bündeln mit Gegenständen:** Ungebündelte Mengen sind hier ausnahmsweise erlaubt, aber geordnet (`x-menge`, Zehnerreihen mit Fünferlücke), in Kl. 2 bis ca. 45 Gegenstände.

@@ -1,6 +1,6 @@
 import { schemaVon } from '@schoolbox/kern/src/abbildungen';
 import type { Baustein, Sicht } from '@schoolbox/kern/src/bausteine';
-import { bausteinUeber, liegtFrei } from '@schoolbox/kern/src/bausteine';
+import { bausteinUeber, FREI_TITEL, FREIES_ELEMENT, nameFreiesElement, liegtFrei } from '@schoolbox/kern/src/bausteine';
 import { darstellungsHtml } from '@schoolbox/kern/src/html';
 import type { LetzterSchritt, Zerlegung } from '@schoolbox/kern/src/quelltext';
 import { MARKE, markiere, stelleDesSchritts } from '@schoolbox/kern/src/quelltext';
@@ -89,6 +89,9 @@ const name = ({ baustein, element }: Treffer, umgebung: Element | null) => {
 	}
 	if (baustein.art === 'abbildung') {
 		return schemaVon(element.localName)?.name ?? baustein.name;
+	}
+	if (FREIES_ELEMENT.has(baustein.art)) {
+		return nameFreiesElement(element.getAttribute(FREI_TITEL));
 	}
 	if (!baustein.zaehlen) {
 		return baustein.name;

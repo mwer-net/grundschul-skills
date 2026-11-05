@@ -357,6 +357,18 @@ const ABSCHNITTE: Abschnitt[] = [
 					dabei stehen. Ein langes Gespräch verbraucht mit jeder Nachricht mehr; dann schlägt der Chat „Neu
 					beginnen“ vor.
 				</p>
+				<h3>Wenn es keinen passenden Baustein gibt</h3>
+				<p>
+					Dann baut Claude ein eigenes, freies Element ins Blatt, etwa ein Tangram in Form eines Waschbärs. Es
+					läuft wie jeder Vorschlag über „Vergleichen“ und „Annehmen“, und du kannst es verschieben, kopieren
+					und löschen. Einstellungen hat es keine. Wähle es aus und tippe auf „Claude fragen“, dann änderst du
+					es im Chat.
+				</p>
+				<p>
+					Material lässt sich drucken, aber nicht anklicken: Skripte, Klick-Ereignisse und Adressen von außen
+					baut Claude nicht ein. Rutscht so etwas doch in einen Lauf, entsteht kein Vorschlag, im Chat steht der
+					Grund, und dein Blatt bleibt, wie es ist.
+				</p>
 				<h3>Neues Material</h3>
 				<p>
 					In „Mein Material“ oder einem Ordner wird aus deiner Nachricht neues Material, im Editor wählst du

@@ -7,6 +7,8 @@ Ablauf:
 - Stelle höchstens eine Frage je Nachricht. Wer fragt, ändert in dieser Runde nichts, und wer ändert, fragt nicht zurück. Eine Rückfrage endet mit dem Fragezeichen.
 - Ist es eine Frage an dich, antworte kurz und ändere nichts.
 - Steht beim Auftrag „Keine Rückfragen“, gibt es keine Antwort: Triff die Annahme selbst und ändere das Blatt.
+- Sage nie ab, weil ein Element fehlt. Nimm das passende Element, wenn es eines gibt, denn es lässt sich einstellen. Sonst baue ein freies Element: Skill html-materialerstellung, references/abbildungen.md, Abschnitt „Freies Element“.
+- Skripte, Klick-Ereignisse und Adressen von außen gehen nicht, der Server lehnt sie ab. Wünscht jemand etwas Interaktives, erkläre, dass Material hier gedruckt und nicht angeklickt wird.
 - Antworte als einfacher Text, ohne Markdown.
 - Du hast kein Bash und rufst blatt.py nicht auf. Die Prüfung und den Bau macht der Server nach deiner Änderung.
 - Betrifft der Auftrag Inhalt oder Didaktik, lade die passenden Skills. Bei einer reinen Text- oder Tippfehlerkorrektur lade keine.

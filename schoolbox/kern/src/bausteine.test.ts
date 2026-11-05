@@ -1,9 +1,9 @@
 import assert from 'node:assert/strict';
 import { describe, it } from 'node:test';
 
-import { bausteinNach, kannImFormat } from './bausteine';
+import { bausteinNach, kann, kannImFormat } from './bausteine';
 import { klassenVon, zerlege } from './quelltext';
-import { bausteinVonKnoten } from './referenz';
+import { bausteinVonKnoten, pfadVon } from './referenz';
 
 describe('kannImFormat', () => {
 	const seite = bausteinNach('seite');
@@ -21,6 +21,49 @@ describe('kannImFormat', () => {
 		assert.equal(kannImFormat(seite, 'loeschen', 'a4-hoch'), true);
 		assert.equal(kannImFormat(seite, 'hinzufuegen', 'folie'), true);
 		assert.equal(kannImFormat(aufgabe, 'loeschen', 'minibuch'), true);
+	});
+});
+
+describe('Freies Element (Entscheidung 38)', () => {
+	const treffer = (html: string) => {
+		const z = zerlege(`<!doctype html><html><body class="kl3 sw"><div class="seite">${html}</div></body></html>`);
+		const k = z.knoten.find((n) => n.attribute.some((a) => a.name === 'data-frei'));
+		assert.ok(k);
+		return { b: bausteinVonKnoten(k, false), z, k };
+	};
+
+	it('figure, svg und Tabelle sind freie Elemente, nicht Tabelle oder Block', () => {
+		for (const html of [
+			'<figure data-frei><svg></svg></figure>',
+			'<svg data-frei></svg>',
+			'<div data-frei><div>a</div><div>b</div></div>',
+			'<table data-frei><tr><td>a</td></tr></table>',
+		]) {
+			assert.equal(treffer(html).b?.art, 'freieselement', html);
+		}
+	});
+
+	it('kann ordnen, duplizieren, löschen, aber keine Einstellungen', () => {
+		const { b } = treffer('<svg data-frei></svg>');
+		assert.ok(b);
+		assert.deepEqual([...b.faehigkeiten], ['ordnen', 'duplizieren', 'loeschen']);
+	});
+
+	it('Text im div geht wie bei freiem Material, Text im SVG nicht', () => {
+		const { b } = treffer('<div data-frei>Text</div>');
+		assert.equal(b?.art, 'freiestext');
+		assert.equal(b && kann(b, 'text'), true);
+		const svg = treffer('<svg data-frei><text>Text</text></svg>').b;
+		assert.equal(svg && kann(svg, 'text'), false);
+		const figur = treffer('<figure data-frei><svg><text>Text</text></svg></figure>').b;
+		assert.equal(figur && kann(figur, 'text'), false);
+	});
+
+	it('Der Name kommt aus data-frei-titel, sonst „Freies Element“, auch im Pfad für den Auftrag', () => {
+		const benannt = treffer('<figure data-frei data-frei-titel="Tangram Waschbär"><svg></svg></figure>');
+		assert.deepEqual(pfadVon(benannt.z, benannt.k.nr, false).map((s) => s.name), ['Seite 1', 'Tangram Waschbär']);
+		const ohne = treffer('<svg data-frei></svg>');
+		assert.deepEqual(pfadVon(ohne.z, ohne.k.nr, false).map((s) => s.name), ['Seite 1', 'Freies Element']);
 	});
 });
 

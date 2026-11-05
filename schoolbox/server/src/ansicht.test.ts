@@ -12,11 +12,13 @@ describe('/ansicht', () => {
 	let s: TestServer;
 	let mappe: string;
 	let basis: string;
+	let dokId: string;
 
 	before(async () => {
 		s = await starteTestServer();
 		const angelegt = await legeDokumentAn(s.materialDir, { beispiel: true });
 		mappe = angelegt.mappe;
+		dokId = angelegt.dok;
 		basis = `${s.url}/ansicht/${mappe}/dokumente/${angelegt.dok}/`;
 		const mappeDir = path.join(s.materialDir, mappe);
 		await copyFile(path.join(ASSETS, 'bilder', 'wilma.png'), path.join(mappeDir, 'bilder', 'gemeinsam.png'));
@@ -30,6 +32,20 @@ describe('/ansicht', () => {
 		await mkdir(path.join(s.materialDir, 'zweite'));
 	});
 	after(() => s.stop());
+
+	it('Ein Vorschlag kommt mit CSP, das Blatt selbst bleibt, wie es war', async () => {
+		const dir = path.join(s.materialDir, mappe, 'dokumente', dokId, 'vorschlag');
+		await mkdir(dir, { recursive: true });
+		await writeFile(path.join(dir, 'material.html'), '<!doctype html><html><body class="kl2"><script>1</script></body></html>');
+		await writeFile(path.join(dir, 'vorschlag.json'), '{}');
+		const vorschlag = await s.holen(`${basis}?vorschlag=1`);
+		assert.equal(vorschlag.status, 200);
+		const csp = vorschlag.headers.get('content-security-policy') ?? '';
+		assert.match(csp, /default-src 'none'/);
+		assert.match(csp, /script-src 'self'(;|$)/);
+		assert.doesNotMatch(csp, /script-src[^;]*unsafe/);
+		assert.equal((await s.holen(basis)).headers.get('content-security-policy'), null);
+	});
 
 	it('leitet ohne Schrägstrich am Ende um, damit relative Pfade stimmen', async () => {
 		const antwort = await s.holen(`${basis.slice(0, -1)}?loesung=1`, { redirect: 'manual' });

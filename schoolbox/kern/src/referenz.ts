@@ -15,7 +15,7 @@
 
 import { schemaVon } from './abbildungen';
 import type { Baustein, Sicht } from './bausteine';
-import { bausteinUeber } from './bausteine';
+import { bausteinUeber, FREI_TITEL, FREIES_ELEMENT, nameFreiesElement } from './bausteine';
 import { FACH_NAME } from './namen';
 import type { Knoten, Zerlegung } from './quelltext';
 import { attribut, entschluessele, klassenVon } from './quelltext';
@@ -26,6 +26,8 @@ import type { Fach, Klasse } from './werte';
 interface Teil {
 	tag: string | null;
 	klassen: string[];
+	/** `[name]` */
+	attribut: string | null;
 	/** `:has(> …)` */
 	kind: Teil | null;
 }
@@ -36,17 +38,18 @@ interface Kette {
 	direkt: boolean[];
 }
 
-const TEIL = /^([a-z][a-z0-9-]*)?((?:\.[\w-]+)*)(?::has\(>\s*([^)]+)\))?$/i;
+const TEIL = /^([a-z][a-z0-9-]*)?((?:\.[\w-]+)*)(?:\[([\w-]+)\])?(?::has\(>\s*([^)]+)\))?$/i;
 
 const liesTeil = (text: string): Teil => {
 	const treffer = TEIL.exec(text.trim());
 	if (!treffer) {
 		throw new Error(`Selektor „${text}“ wird ohne Browser nicht verstanden.`);
 	}
-	const [, tag, klassen = '', kind] = treffer;
+	const [, tag, klassen = '', name, kind] = treffer;
 	return {
 		tag: tag?.toLowerCase() ?? null,
 		klassen: klassen.split('.').filter(Boolean),
+		attribut: name?.toLowerCase() ?? null,
 		kind: kind ? liesTeil(kind) : null,
 	};
 };
@@ -117,6 +120,9 @@ const teilPasst = (k: Knoten, teil: Teil, loesung: boolean): boolean => {
 	}
 	const klassen = klassenMit(k, loesung);
 	if (!teil.klassen.every((c) => klassen.includes(c))) {
+		return false;
+	}
+	if (teil.attribut && !attribut(k, teil.attribut)) {
 		return false;
 	}
 	const { kind } = teil;
@@ -217,6 +223,9 @@ const nameVon = ({ baustein, k }: Treffer, art: string, index: number) => {
 	}
 	if (baustein.art === 'abbildung') {
 		return schemaVon(k.tag)?.name ?? baustein.name;
+	}
+	if (FREIES_ELEMENT.has(baustein.art)) {
+		return nameFreiesElement(attribut(k, FREI_TITEL)?.wert);
 	}
 	return baustein.zaehlen ? `${baustein.name} ${index}` : baustein.name;
 };
