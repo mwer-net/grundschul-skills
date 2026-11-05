@@ -9,69 +9,38 @@ export interface ChatNachricht {
 	auftragId: string | null;
 }
 
-export type ChatSpeicher = Pick<Storage, 'getItem' | 'key' | 'length' | 'removeItem' | 'setItem'>;
+export type ChatSpeicher = Pick<Storage, 'key' | 'length' | 'removeItem'>;
 
-const PRAEFIX = 'schoolbox-chat-verlauf:';
+/** Früher lagen hier Verlauf und Fenster; der Verlauf enthielt Materialtext. */
+const ALTER_PRAEFIX = 'schoolbox-chat-';
 export const MAX_NACHRICHTEN = 50;
 /** Dieselben Grenzen wie `KI_GRENZEN` am Server; der Server prüft sie noch einmal. */
-export const SERVER_NACHRICHTEN = 6;
-export const SERVER_ZEICHEN = 2000;
+export const SERVER_NACHRICHTEN = 20;
+export const SERVER_ZEICHEN = 8000;
+export const SERVER_LETZTE_ZEICHEN = 32_000;
 
-export const verlaufSchluessel = (mappe?: string, dok?: string) => {
-	if (mappe && dok) {
-		return `${PRAEFIX}${mappe}/${dok}`;
-	}
-	return mappe ? `${PRAEFIX}${mappe}` : `${PRAEFIX}global`;
-};
-
-const istNachricht = (n: unknown): n is ChatNachricht => {
-	const { auftragId, kontext, rolle, text, zeit } = (n ?? {}) as Record<string, unknown>;
-	return (
-		(rolle === 'lehrkraft' || rolle === 'claude') &&
-		typeof text === 'string' &&
-		typeof zeit === 'string' &&
-		(kontext === null || typeof kontext === 'string') &&
-		(auftragId === null || typeof auftragId === 'string')
-	);
-};
-
-/** Kaputtes im Speicher ist ein leerer Verlauf, nie ein Fehler. */
-export const liesVerlauf = (speicher: ChatSpeicher, schluessel: string): ChatNachricht[] => {
-	try {
-		const daten: unknown = JSON.parse(speicher.getItem(schluessel) ?? '[]');
-		return Array.isArray(daten) && daten.every(istNachricht) ? daten.slice(-MAX_NACHRICHTEN) : [];
-	} catch {
-		return [];
-	}
-};
-
-export const schreibeVerlauf = (speicher: ChatSpeicher, schluessel: string, verlauf: readonly ChatNachricht[]) => {
-	try {
-		if (verlauf.length === 0) {
-			speicher.removeItem(schluessel);
-		} else {
-			speicher.setItem(schluessel, JSON.stringify(verlauf.slice(-MAX_NACHRICHTEN)));
-		}
-	} catch {
-		// Voller Speicher: Der Verlauf ist Bequemlichkeit, die Arbeit geht vor.
-	}
-};
-
-/** Beim Abmelden: Auf diesem Gerät bleibt nichts vom Gespräch. */
-export const loescheAlleVerlaeufe = (speicher: ChatSpeicher) => {
+/** Das Gespräch lebt nur im Speicher der Seite (Entscheidung 37). Was ältere Fassungen abgelegt haben, kommt weg. */
+export const loescheAlteVerlaeufe = (speicher: ChatSpeicher) => {
 	const schluessel = Array.from({ length: speicher.length }, (_, i) => speicher.key(i));
 	for (const s of schluessel) {
-		if (s?.startsWith(PRAEFIX)) {
+		if (s?.startsWith(ALTER_PRAEFIX)) {
 			speicher.removeItem(s);
 		}
 	}
 };
 
-/** Was vom Verlauf an den Server geht: die jüngsten Nachrichten; was nicht mehr passt, fällt vorn weg. */
+/**
+ * Was vom Verlauf an den Server geht, für den Rückfall: die jüngsten Nachrichten; was nicht mehr passt, fällt vorn weg.
+ * Die Nachricht vor der neuen bleibt ganz, denn auf sie antwortet die neue.
+ */
 export const verlaufFuerServer = (verlauf: readonly ChatNachricht[]) => {
-	const kurz: { rolle: ChatRolle; text: string }[] = [];
+	const [letzte, ...aeltere] = verlauf.slice(-SERVER_NACHRICHTEN).reverse();
+	if (!letzte) {
+		return [];
+	}
+	const kurz = [{ rolle: letzte.rolle, text: letzte.text.slice(-SERVER_LETZTE_ZEICHEN) }];
 	let frei = SERVER_ZEICHEN;
-	for (const { rolle, text } of verlauf.slice(-SERVER_NACHRICHTEN).reverse()) {
+	for (const { rolle, text } of aeltere) {
 		if (frei <= 0) {
 			break;
 		}
@@ -80,3 +49,6 @@ export const verlaufFuerServer = (verlauf: readonly ChatNachricht[]) => {
 	}
 	return kurz;
 };
+
+/** Keine Kennzeichnung und kein Parser: Der Text reicht. */
+export const istRueckfrage = (text: string | undefined) => /\?\s*$/.test(text ?? '');

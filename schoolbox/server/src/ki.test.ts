@@ -10,7 +10,7 @@ import type { Einordnung, Pruefbericht } from '@schoolbox/kern';
 import { attribut, dokumentDir, KI_AKTIONEN, listeVersionen, WURZEL, zerlege } from '@schoolbox/kern';
 import { erzeugeReferenz } from '@schoolbox/kern/src/referenz';
 
-import { KI_EINORDNEN_MODELL, kiArgumente, kiTempWurzel, kiUmgebung, limitErreichtText, liesLimit } from './ki';
+import { KI_EINORDNEN_MODELL, KI_GRENZEN, kiArgumente, kiTempWurzel, kiUmgebung, limitErreichtText, liesLimit } from './ki';
 import { CSRF_HEADER } from './schutz';
 import type { TestServer } from './testhilfe';
 import { KI_ATTRAPPE, legeDokumentAn, ordnerVon, starteTestServer } from './testhilfe';
@@ -35,6 +35,7 @@ describe('Aufträge an Claude', () => {
 	let dok: string;
 	let pruefbericht: Pruefbericht = { seiten: [], meldungen: [], fehler: 0 };
 	let pruefungKaputt = false;
+	let pruefungHaelt: Promise<void> | null = null;
 	const fall = (name: string) => writeFile(path.join(path.dirname(bin), 'fall.txt'), name);
 	const api = (pfad: string, init: { method?: string; body?: string } = {}) =>
 		server.holen(`${server.url}/api${pfad}`, {
@@ -82,8 +83,13 @@ describe('Aufträge an Claude', () => {
 		await writeFile(path.join(ordner, 'fall.txt'), 'gut');
 		server = await starteTestServer({
 			env: { CLAUDE_BIN: bin },
-			kiPruefer: () =>
-				pruefungKaputt ? Promise.reject(new Error('blatt.py kaputt')) : Promise.resolve(pruefbericht),
+			kiPruefer: async () => {
+				await pruefungHaelt;
+				if (pruefungKaputt) {
+					throw new Error('blatt.py kaputt');
+				}
+				return pruefbericht;
+			},
 		});
 		({ dok, mappe } = await legeDokumentAn(server.materialDir, { beispiel: true }));
 	});
@@ -269,10 +275,15 @@ describe('Aufträge an Claude', () => {
 		assert.ok(!verbrauch.includes(geheim) && !verbrauch.includes(zitat) && !verbrauch.includes('Annahme'));
 
 		const nachricht = { rolle: 'lehrkraft', text: 'x' };
-		const zuViele = await starte({ auftrag: 'a', verlauf: Array.from({ length: 7 }, () => nachricht) });
+		const zuViele = await starte({ auftrag: 'a', verlauf: Array.from({ length: 21 }, () => nachricht) });
 		assert.equal(zuViele.status, 400);
-		const zuLang = await starte({ auftrag: 'a', verlauf: [{ rolle: 'claude', text: 'x'.repeat(2001) }] });
+		const zuLang = await starte({
+			auftrag: 'a',
+			verlauf: [{ rolle: 'claude', text: 'x'.repeat(8001) }, nachricht],
+		});
 		assert.equal(zuLang.status, 400);
+		const letzteZuLang = await starte({ auftrag: 'a', verlauf: [{ rolle: 'claude', text: 'x'.repeat(32_001) }] });
+		assert.equal(letzteZuLang.status, 400);
 		assert.equal((await starte({ auftrag: 'a', zitat: 'x'.repeat(501) })).status, 400);
 		assert.equal((await starte({ auftrag: 'a', verlauf: [{ rolle: 'system', text: 'x' }] })).status, 400);
 	});
@@ -530,6 +541,313 @@ describe('Aufträge an Claude', () => {
 		assert.match(text, /Wieder möglich ab Montag, 18\.3\., 00:00 Uhr/);
 		assert.doesNotMatch(text, /Claude-App/);
 		assert.doesNotMatch(limitErreichtText(null), /Claude-App|ab /);
+	});
+
+	describe('Gespräch (087)', () => {
+		const benutzt = new Set<string>();
+		const gespraech = (name: string) => {
+			benutzt.add(name);
+			return name;
+		};
+		const ordner = (id: string) => path.join(kiTempWurzel(server.materialDir), `gespraech-${id}`);
+		const projektVon = (cwd: string) => path.join(home, '.claude', 'projects', cwd.replace(/[^a-zA-Z0-9]/g, '-'));
+		const projektDer = (id: string) => projektVon(path.join(ordner(id), 'arbeit'));
+		const beende = (id: string) => api(`/ki/gespraech/${id}`, { method: 'DELETE', body: '{}' });
+		const aufrufe = async () =>
+			(await readFile(path.join(path.dirname(bin), 'aufrufe.jsonl'), 'utf8'))
+				.trim()
+				.split('\n')
+				.map((z) => JSON.parse(z) as { args: string[]; cwd: string })
+				.filter((a) => a.args[0] !== 'auth');
+		const letzterAufruf = async () => {
+			const a = (await aufrufe()).at(-1);
+			assert.ok(a);
+			return a;
+		};
+		const resumeVon = ({ args }: { args: string[] }) =>
+			args.includes('--resume') ? args[args.indexOf('--resume') + 1] : null;
+		const letzterPrompt = async () =>
+			(await readFile(path.join(path.dirname(bin), 'prompts.txt'), 'utf8')).split('\n---\n').at(-2) ?? '';
+		const letzterVerbrauch = async () => {
+			const zeilen = (await readFile(path.join(server.materialDir, '_ki-verbrauch.jsonl'), 'utf8')).trim().split('\n');
+			return JSON.parse(zeilen.at(-1) ?? '{}') as Record<string, unknown>;
+		};
+
+		afterEach(async () => {
+			await Promise.all([...benutzt].map(beende));
+			benutzt.clear();
+		});
+
+		it('Zweiter Auftrag setzt fort: dieselbe Sitzung, derselbe Ordner. Ein anderes Gespräch nicht', async () => {
+			const id = gespraech('erstes-gespraech');
+			await auftrag({ auftrag: 'Mach es schöner', gespraechId: id });
+			const erst = await letzterAufruf();
+			assert.equal(resumeVon(erst), null);
+			assert.equal(erst.cwd, path.join(ordner(id), 'arbeit'));
+			assert.ok(!(await letzterPrompt()).includes('jetzige Stand'));
+
+			const stand = JSON.parse(await readFile(path.join(ordner(id), 'sitzung.json'), 'utf8')) as Record<string, unknown>;
+			assert.equal(stand.sitzung, 's1');
+			assert.equal(stand.mappe, mappe);
+			assert.equal(stand.dok, dok);
+			assert.equal(typeof stand.zuletzt, 'string');
+
+			await auftrag({
+				auftrag: 'Ja, mach das',
+				gespraechId: id,
+				verlauf: [{ rolle: 'claude', text: 'NUR-IM-RUECKFALL' }],
+			});
+			const zweit = await letzterAufruf();
+			assert.equal(resumeVon(zweit), 's1');
+			assert.equal(zweit.cwd, erst.cwd);
+			const text = await letzterPrompt();
+			assert.ok(text.includes('material.html ist der jetzige Stand'));
+			assert.ok(!text.includes('NUR-IM-RUECKFALL'), 'Fortsetzen braucht den Verlauf nicht');
+			const verbrauch = await letzterVerbrauch();
+			assert.equal(verbrauch.fortgesetzt, true);
+			assert.equal(verbrauch.rueckfall, false);
+
+			await auftrag({ auftrag: 'Anderes', gespraechId: gespraech('zweites-gespraech') });
+			const anderes = await letzterAufruf();
+			assert.equal(resumeVon(anderes), null);
+			assert.notEqual(anderes.cwd, erst.cwd);
+			assert.ok(existsSync(projektDer(id)), 'Das Ende eines anderen Laufs räumt dieses Gespräch nicht weg');
+		});
+
+		it('material.html wird vor jedem Lauf frisch aus der Quelle geschrieben', async () => {
+			const id = gespraech('frisch');
+			await auftrag({ auftrag: 'Eins', gespraechId: id });
+			const datei = path.join(dokumentDir(server.materialDir, mappe, dok), 'material.html');
+			const vorher = await readFile(datei, 'utf8');
+			try {
+				await writeFile(datei, vorher.replace('</h1>', ' VON-HAND</h1>'));
+				await fall('nichts');
+				await auftrag({ auftrag: 'Zwei', gespraechId: id });
+				const arbeit = await readFile(path.join(ordner(id), 'arbeit', 'material.html'), 'utf8');
+				assert.ok(arbeit.includes('VON-HAND'));
+				assert.ok(!arbeit.includes('von Claude'));
+			} finally {
+				await writeFile(datei, vorher);
+			}
+		});
+
+		it('Der jeweils aktuelle Ausschnitt geht mit, auch wenn die Auswahl wechselt', async () => {
+			const id = gespraech('ausschnitt');
+			await fall('nichts');
+			await auftrag({ auftrag: 'Eins', gespraechId: id });
+			const voll = (await readFile(path.join(ordner(id), 'arbeit', 'material.html'), 'utf8')).length;
+			const q = await quelle();
+			const z = zerlege(q);
+			const seite = z.knoten.find((k) => k.tag === 'section' || attribut(k, 'class')?.wert?.includes('seite'));
+			assert.ok(seite);
+			const referenz = erzeugeReferenz(
+				z,
+				seite.nr,
+				{ mappe: { id: mappe, titel: 'M', fach: 'mathematik', klasse: 2 }, dokument: { id: dok, titel: 'D' } },
+				false,
+			);
+			await auftrag({ auftrag: 'Zwei', gespraechId: id, referenz });
+			const teil = await readFile(path.join(ordner(id), 'arbeit', 'material.html'), 'utf8');
+			assert.ok(teil.length < voll);
+			assert.match(await letzterPrompt(), /enthält nur diesen Teil/);
+			assert.equal(resumeVon(await letzterAufruf()), 's1');
+		});
+
+		it('Rückfall: Scheitert das Fortsetzen, läuft es ohne weiter, mit dem Verlauf und ohne Fehler', async () => {
+			const id = gespraech('rueckfall');
+			await auftrag({ auftrag: 'Eins', gespraechId: id });
+			await rm(projektDer(id), { recursive: true, force: true });
+			const verlauf = [
+				{ rolle: 'claude', text: 'Für welche Klasse?' },
+				{ rolle: 'lehrkraft', text: 'Klasse 2' },
+				{ rolle: 'claude', text: 'Soll ich auch Lösungen machen?' },
+			];
+			const vorher = (await aufrufe()).length;
+			const a = await auftrag({ auftrag: 'Ja, mach das', gespraechId: id, verlauf });
+			assert.equal(a.status, 'fertig', a.fehler ?? '');
+			const neue = (await aufrufe()).slice(vorher);
+			assert.deepEqual(neue.map(resumeVon), ['s1', null]);
+			assert.equal(neue[0]?.cwd, neue[1]?.cwd);
+			const text = await letzterPrompt();
+			assert.ok(text.includes('So lief das Gespräch bisher. Die letzte Nachricht antwortet darauf.'));
+			assert.ok(text.includes('Claude: Soll ich auch Lösungen machen?'));
+			assert.ok(text.indexOf('Soll ich auch Lösungen') < text.indexOf('Ja, mach das'));
+			assert.ok(!text.includes('keine Anweisung'), 'Der Chat ist Gespräch, kein fremder Inhalt');
+			assert.equal((await letzterVerbrauch()).rueckfall, true);
+			assert.ok(!(await readFile(path.join(server.materialDir, '_ki-verbrauch.jsonl'), 'utf8')).includes('Lösungen'));
+
+			await auftrag({ auftrag: 'Weiter', gespraechId: id });
+			assert.equal(resumeVon(await letzterAufruf()), 's1', 'Der Rückfall bringt eine neue Sitzung');
+		});
+
+		it('Rückfall auch ohne Ablage und Sitzungsdatei, wie nach einem Neustart des Servers', async () => {
+			const id = gespraech('neustart');
+			await auftrag({ auftrag: 'Eins', gespraechId: id });
+			await rm(ordner(id), { recursive: true, force: true });
+			await rm(projektDer(id), { recursive: true, force: true });
+			const a = await auftrag({
+				auftrag: 'Ja',
+				gespraechId: id,
+				verlauf: [{ rolle: 'claude', text: 'Soll ich?' }],
+			});
+			assert.equal(a.status, 'fertig', a.fehler ?? '');
+			assert.equal(resumeVon(await letzterAufruf()), null);
+			assert.ok((await letzterPrompt()).includes('Claude: Soll ich?'));
+		});
+
+		it('Ein Fehler des Kontos ist kein Fall für den Rückfall: kein zweiter Lauf', async () => {
+			const id = gespraech('abgemeldet');
+			await auftrag({ auftrag: 'Eins', gespraechId: id });
+			await fall('abmeldung');
+			const vorher = (await aufrufe()).length;
+			const a = await auftrag({ auftrag: 'Zwei', gespraechId: id });
+			assert.match(a.fehler ?? '', /nicht angemeldet/);
+			assert.equal((await aufrufe()).length, vorher + 1);
+		});
+
+		it('Abgebrochener Lauf: Die Sitzung bleibt, der nächste setzt fort', async () => {
+			const id = gespraech('abbruch');
+			await auftrag({ auftrag: 'Eins', gespraechId: id });
+			await fall('haenger');
+			const pidDatei = path.join(path.dirname(bin), 'pid');
+			await rm(pidDatei, { force: true });
+			const res = await starte({ auftrag: 'Häng', gespraechId: id });
+			const { auftrag: a } = (await res.json()) as { auftrag: { id: string } };
+			await warte(() => existsSync(pidDatei));
+			await new Promise((r) => setTimeout(r, 200));
+			await api(`/ki/${a.id}/abbrechen`, { method: 'POST' });
+			assert.equal((await fertig(a.id)).status, 'abgebrochen');
+			await fall('gut');
+			assert.equal((await auftrag({ auftrag: 'Weiter', gespraechId: id })).status, 'fertig');
+			assert.equal(resumeVon(await letzterAufruf()), 's1');
+		});
+
+		it('Folgenachricht baut auf dem offenen Vorschlag auf, die Basis bleibt die alte Quelle', async () => {
+			const id = gespraech('nachbessern');
+			const vorher = await quelle();
+			await auftrag({ auftrag: 'Die Ohren größer', gespraechId: id });
+			const basis = (await vorschlag())?.basis;
+			await auftrag({ auftrag: 'Noch größer', gespraechId: id, aufVorschlag: true });
+			assert.match(await letzterPrompt(), /deinen offenen Vorschlag/);
+			const datei = path.join(dokumentDir(server.materialDir, mappe, dok), 'vorschlag', 'material.html');
+			assert.equal((await readFile(datei, 'utf8')).split('von Claude').length, 3);
+			assert.equal((await vorschlag())?.basis, basis);
+			assert.equal((await vorschlag())?.konflikt, false);
+			assert.equal(await quelle(), vorher);
+		});
+
+		it('Ein Gespräch gehört zu einem Dokument: Mit einem anderen beginnt es neu', async () => {
+			const id = gespraech('ein-dokument');
+			await auftrag({ auftrag: 'Eins', gespraechId: id });
+			const anderes = await legeDokumentAn(server.materialDir, { beispiel: true });
+			const res = await api(`/dokumente/${anderes.mappe}/${anderes.dok}/ki`, {
+				method: 'POST',
+				body: JSON.stringify({ auftrag: 'Zwei', gespraechId: id }),
+			});
+			const { auftrag: a } = (await res.json()) as { auftrag: { id: string } };
+			assert.equal((await fertig(a.id)).status, 'fertig');
+			assert.equal(resumeVon(await letzterAufruf()), null);
+			const stand = JSON.parse(await readFile(path.join(ordner(id), 'sitzung.json'), 'utf8')) as { dok: string };
+			assert.equal(stand.dok, anderes.dok);
+		});
+
+		it('DELETE löscht Ordner und Sitzungsablage sofort, ein offener Vorschlag bleibt', async () => {
+			const id = 'loeschen';
+			await auftrag({ auftrag: 'Eins', gespraechId: id });
+			assert.ok(existsSync(ordner(id)));
+			assert.ok(existsSync(projektDer(id)));
+			assert.equal((await beende(id)).status, 200);
+			assert.ok(!existsSync(ordner(id)));
+			assert.ok(!existsSync(projektDer(id)));
+			assert.ok(await vorschlag());
+			assert.equal((await beende(id)).status, 200, 'Zweimal beenden ist kein Fehler');
+		});
+
+		it('DELETE während eines Auftrags: Er läuft zu Ende, sein Vorschlag bleibt, gelöscht wird danach', async () => {
+			const id = 'laeuft-noch';
+			let weiter = () => undefined as void;
+			pruefungHaelt = new Promise<void>((r) => {
+				weiter = r;
+			});
+			try {
+				const res = await starte({ auftrag: 'Eins', gespraechId: id });
+				const { auftrag: a } = (await res.json()) as { auftrag: { id: string } };
+				await warte(async () =>
+					(await (await api(`/ki/${a.id}`)).text()).includes('Prüft das Ergebnis'),
+				);
+				assert.equal((await beende(id)).status, 200);
+				assert.ok(existsSync(ordner(id)), 'Erst am Ende des Laufs');
+				weiter();
+				assert.equal((await fertig(a.id)).status, 'fertig');
+				await warte(() => !existsSync(ordner(id)) && !existsSync(projektDer(id)));
+				assert.ok(await vorschlag());
+			} finally {
+				pruefungHaelt = null;
+				weiter();
+			}
+		});
+
+		it('Ungültige Kennungen ergeben 400 und berühren nichts', async () => {
+			for (const falsch of ['../raus', 'A-B', 'a b', 'a/b', '', 'x'.repeat(65), 7]) {
+				const res = await starte({ auftrag: 'a', gespraechId: falsch });
+				assert.equal(res.status, 400, String(falsch));
+			}
+			assert.equal((await beende('..%2F..%2Fraus')).status, 400);
+			assert.equal((await beende('GROSS')).status, 400);
+		});
+
+		it('Aufräumen löscht nur Abgelaufene und nur mit eigenem Prefix', async () => {
+			const alt = 'abgelaufen';
+			const frisch = gespraech('noch-frisch');
+			await auftrag({ auftrag: 'Eins', gespraechId: alt });
+			await auftrag({ auftrag: 'Zwei', gespraechId: frisch });
+			const datei = path.join(ordner(alt), 'sitzung.json');
+			const stand = JSON.parse(await readFile(datei, 'utf8')) as Record<string, unknown>;
+			const vorGrenze = Date.now() - KI_GRENZEN.gespraechMs - 1000;
+			await writeFile(datei, JSON.stringify({ ...stand, zuletzt: new Date(vorGrenze).toISOString() }));
+			const fremd = path.join(home, '.claude', 'projects', '-tmp-schoolbox-ki-fremdeablage-gespraech-x-arbeit');
+			await mkdir(fremd, { recursive: true });
+			const fremderOrdner = path.join(tmpdir(), 'schoolbox-ki-fremdeablage', 'gespraech-x');
+			await mkdir(fremderOrdner, { recursive: true });
+			try {
+				await server.kontext.ki.raeumeAuf();
+				assert.ok(!existsSync(ordner(alt)));
+				assert.ok(!existsSync(projektDer(alt)));
+				assert.ok(existsSync(ordner(frisch)));
+				assert.ok(existsSync(projektDer(frisch)));
+				assert.ok(existsSync(fremd), 'Fremdes Projekt bleibt');
+				assert.ok(existsSync(fremderOrdner), 'Fremder Ordner bleibt');
+			} finally {
+				await rm(fremd, { recursive: true, force: true });
+				await rm(path.dirname(fremderOrdner), { recursive: true, force: true });
+			}
+		});
+
+		it('Beim Serverstart verschwinden alle eigenen Gespräche', async () => {
+			const id = 'vor-dem-neustart';
+			await auftrag({ auftrag: 'Eins', gespraechId: id });
+			await server.kontext.ki.beendeReste();
+			assert.ok(!existsSync(ordner(id)));
+			assert.ok(!existsSync(projektDer(id)));
+		});
+
+		it('Verbrauch: Cache getrennt gezählt; ab 100.000 Token im Kontext ein Hinweis, nichts automatisch', async () => {
+			const id = gespraech('sehr-langes-gespraech');
+			await fall('kontext-gross');
+			const a = (await auftrag({ auftrag: 'Eins', gespraechId: id })) as unknown as {
+				kontextGross: boolean;
+				status: string;
+			};
+			assert.equal(a.status, 'fertig');
+			assert.equal(a.kontextGross, true);
+			assert.ok(existsSync(ordner(id)), 'Das Gespräch bleibt');
+			const verbrauch = await letzterVerbrauch();
+			assert.equal(verbrauch.fortgesetzt, false);
+			assert.ok(!Object.values(verbrauch).some((w) => String(w).includes(id)));
+			await fall('gut');
+			const b = (await auftrag({ auftrag: 'Zwei', gespraechId: id })) as unknown as { kontextGross: boolean };
+			assert.equal(b.kontextGross, false);
+		});
 	});
 
 	describe('Am Limit, mit und ohne Guthaben (086)', () => {

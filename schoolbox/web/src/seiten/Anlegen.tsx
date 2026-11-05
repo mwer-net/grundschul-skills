@@ -176,6 +176,8 @@ interface MaterialDialogEigenschaften {
 	/** Aus dem Chat (077): alles vorbelegt, Claude schreibt den Entwurf. */
 	einordnung?: Einordnung;
 	wunsch?: string;
+	/** Das Gespräch, aus dem der Wunsch kommt. */
+	gespraechId?: string;
 	schliessen: () => void;
 	vorDemSprung?: (mappe: string, dok: string) => void;
 }
@@ -379,6 +381,7 @@ const SchrittStart = ({
 
 export const MaterialDialog = ({
 	einordnung,
+	gespraechId,
 	ordner: festerOrdner,
 	schliessen,
 	vorDemSprung,
@@ -456,6 +459,7 @@ export const MaterialDialog = ({
 				vorlage,
 				zusatz: mitClaude ? {} : zusatz,
 				wunsch: mitClaude ? wunsch : null,
+				gespraechId,
 			});
 			vorDemSprung?.(mappe, id);
 			void navigate(adresse, { state });

@@ -16,6 +16,8 @@ interface NeuesMaterial {
 	zusatz?: Record<string, boolean | undefined>;
 	/** Mit Text startet Claude gleich den Entwurf. */
 	wunsch?: string | null;
+	/** Aus dem Chat: Der Entwurf ist die erste Nachricht dieses Gesprächs (087). */
+	gespraechId?: string | undefined;
 }
 
 /** Legt das Dokument an und startet, falls gewünscht, Claude. Das Ergebnis sagt, wohin es danach geht. */
@@ -23,6 +25,7 @@ export const legeMaterialAn = async ({
 	art,
 	fach,
 	format,
+	gespraechId,
 	klasse,
 	ordner,
 	titel,
@@ -48,6 +51,7 @@ export const legeMaterialAn = async ({
 	const state = await sende<{ auftrag: { id: string } }>(`/api/dokumente/${mappe}/${id}/ki`, {
 		aktion: 'neu-entwurf',
 		auftrag: wunsch,
+		...(gespraechId ? { gespraechId } : {}),
 	}).then(
 		({ auftrag }) => ({ kiAuftrag: auftrag.id }),
 		(grund: unknown) => ({ kiFehler: meldung(grund) }),

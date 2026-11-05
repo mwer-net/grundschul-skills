@@ -323,6 +323,20 @@ const ABSCHNITTE: Abschnitt[] = [
 						etwas. Schreibst du stattdessen weiter, bessert Claude den Vorschlag nach.
 					</li>
 				</ol>
+				<h3>Ein Gespräch</h3>
+				<p>
+					Claude merkt sich, worüber ihr gesprochen habt, und du kannst einfach antworten, auch mit „Ja, mach
+					das“ oder „das zweite“. Ist dein Wunsch offen, fragt Claude kurz zurück, sonst macht es und nennt
+					seine Annahme. Weitere Nachrichten bauen auf dem offenen Vorschlag auf: „Noch etwas größer“ meint
+					das, was gerade dort steht.
+				</p>
+				<p>
+					Einklappen lässt das Gespräch weiterlaufen. Schließen beendet es, ohne Nachfrage: Der Verlauf ist
+					weg, und Claude fängt beim nächsten Mal von vorn an. Das gilt auch für Esc in der einzelnen Zeile,
+					für „Neu beginnen“ unter ⋯, für ein anderes Dokument und für Neuladen. Ein offener Vorschlag bleibt
+					dabei stehen. Ein langes Gespräch verbraucht mit jeder Nachricht mehr; dann schlägt der Chat „Neu
+					beginnen“ vor.
+				</p>
 				<h3>Neues Material</h3>
 				<p>
 					In „Mein Material“ oder einem Ordner wird aus deiner Nachricht neues Material, im Editor wählst du

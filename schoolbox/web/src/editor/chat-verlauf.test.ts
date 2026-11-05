@@ -3,14 +3,12 @@ import { describe, it } from 'node:test';
 
 import type { ChatNachricht, ChatSpeicher } from './chat-verlauf';
 import {
-	liesVerlauf,
-	loescheAlleVerlaeufe,
-	MAX_NACHRICHTEN,
-	schreibeVerlauf,
+	istRueckfrage,
+	loescheAlteVerlaeufe,
+	SERVER_LETZTE_ZEICHEN,
 	SERVER_NACHRICHTEN,
 	SERVER_ZEICHEN,
 	verlaufFuerServer,
-	verlaufSchluessel,
 } from './chat-verlauf';
 
 const speicher = (): ChatSpeicher & { daten: Map<string, string> } => {
@@ -21,8 +19,6 @@ const speicher = (): ChatSpeicher & { daten: Map<string, string> } => {
 			return daten.size;
 		},
 		key: (i) => [...daten.keys()][i] ?? null,
-		getItem: (k) => daten.get(k) ?? null,
-		setItem: (k, w) => void daten.set(k, w),
 		removeItem: (k) => void daten.delete(k),
 	};
 };
@@ -36,57 +32,45 @@ const nachricht = (text: string, rolle: ChatNachricht['rolle'] = 'lehrkraft'): C
 });
 
 describe('Verlauf des Chats', () => {
-	it('hat je Dokument, je Mappe und einmal global einen eigenen Schlüssel', () => {
-		const alle = [
-			verlaufSchluessel('m', 'd'),
-			verlaufSchluessel('m', 'e'),
-			verlaufSchluessel('m'),
-			verlaufSchluessel(),
-		];
-		assert.equal(new Set(alle).size, 4);
-	});
-
-	it('hält höchstens 50 Nachrichten und hebt die jüngsten auf', () => {
+	it('Alte Einträge verschwinden aus dem Speicher, alles andere bleibt', () => {
 		const s = speicher();
-		const viele = Array.from({ length: MAX_NACHRICHTEN + 5 }, (_, i) => nachricht(String(i)));
-		schreibeVerlauf(s, 'k', viele);
-		const gelesen = liesVerlauf(s, 'k');
-		assert.equal(gelesen.length, 50);
-		assert.equal(gelesen.at(-1)?.text, String(MAX_NACHRICHTEN + 4));
-	});
-
-	it('Kaputtes wird zu einem leeren Verlauf', () => {
-		const s = speicher();
-		for (const kaputt of ['{', 'null', '{"a":1}', '[{"rolle":"system","text":"x"}]', '[1]']) {
-			s.setItem('k', kaputt);
-			assert.deepEqual(liesVerlauf(s, 'k'), [], kaputt);
-		}
-	});
-
-	it('Abmelden löscht alle Verläufe und nur sie', () => {
-		const s = speicher();
-		schreibeVerlauf(s, verlaufSchluessel('m', 'd'), [nachricht('a')]);
-		schreibeVerlauf(s, verlaufSchluessel(), [nachricht('b')]);
-		s.setItem('schoolbox-zoom', '1');
-		loescheAlleVerlaeufe(s);
+		s.daten.set('schoolbox-chat-verlauf:m/d', '[{"text":"Materialtext"}]');
+		s.daten.set('schoolbox-chat-verlauf:global', '[]');
+		s.daten.set('schoolbox-chat-fenster', 'verlauf');
+		s.daten.set('schoolbox-zoom', '1');
+		loescheAlteVerlaeufe(s);
 		assert.deepEqual([...s.daten.keys()], ['schoolbox-zoom']);
 	});
 
 	it('an den Server gehen die letzten Nachrichten innerhalb der Grenzen, ohne Kontext und Zeit', () => {
-		const viele = Array.from({ length: 10 }, (_, i) => nachricht(String(i)));
+		const viele = Array.from({ length: SERVER_NACHRICHTEN + 5 }, (_, i) => nachricht(String(i)));
 		const kurz = verlaufFuerServer(viele);
 		assert.equal(kurz.length, SERVER_NACHRICHTEN);
-		assert.deepEqual(kurz.at(-1), { rolle: 'lehrkraft', text: '9' });
+		assert.deepEqual(kurz.at(-1), { rolle: 'lehrkraft', text: String(SERVER_NACHRICHTEN + 4) });
 		const lang = verlaufFuerServer([
 			nachricht('alt'),
 			nachricht('x'.repeat(SERVER_ZEICHEN + 10), 'claude'),
 			nachricht('neu'),
 		]);
-		assert.equal(
-			lang.reduce((n, m) => n + m.text.length, 0),
-			SERVER_ZEICHEN,
-		);
+		assert.equal(lang.slice(0, -1).reduce((n, m) => n + m.text.length, 0), SERVER_ZEICHEN);
 		assert.equal(lang.length, 2);
 		assert.equal(lang.at(-1)?.text, 'neu');
+		assert.deepEqual(verlaufFuerServer([]), []);
+	});
+
+	it('die Nachricht vor der neuen bleibt ganz, auch wenn sie allein länger ist als die Grenze', () => {
+		const lang = 'y'.repeat(SERVER_ZEICHEN + 500);
+		const kurz = verlaufFuerServer([nachricht('davor'), nachricht(lang, 'claude')]);
+		assert.equal(kurz.at(-1)?.text, lang);
+		assert.equal(kurz[0]?.text, 'davor');
+		const riesig = verlaufFuerServer([nachricht('z'.repeat(SERVER_LETZTE_ZEICHEN + 1), 'claude')]);
+		assert.equal(riesig[0]?.text.length, SERVER_LETZTE_ZEICHEN);
+	});
+
+	it('Rückfrage: eine Antwort, die mit einer Frage endet', () => {
+		assert.equal(istRueckfrage('Für welche Klasse?'), true);
+		assert.equal(istRueckfrage('Für welche Klasse?\n'), true);
+		assert.equal(istRueckfrage('Das Blatt hat vier Uhren.'), false);
+		assert.equal(istRueckfrage(undefined), false);
 	});
 });

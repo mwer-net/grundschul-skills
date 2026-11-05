@@ -1,3 +1,4 @@
+import { existsSync } from 'node:fs';
 import { readdir, readFile, writeFile } from 'node:fs/promises';
 import path from 'node:path';
 
@@ -161,23 +162,22 @@ test.describe('Chat im Editor (074)', () => {
 		await expect(karte(page).getByRole('alert')).toHaveCount(0);
 	});
 
-	test('Neu laden: Verlauf, Vorschlag und laufender Auftrag sind wieder da', async ({ page }) => {
+	test('Neu laden: Der Verlauf ist weg, Vorschlag und laufender Auftrag sind wieder da', async ({ page }) => {
 		await offenesBlatt(page);
 		await schreibe(page, 'Mach es schöner');
 		await expect(karte(page)).toBeVisible();
 		await page.reload();
 		await expect(page.locator('[data-leinwand][data-geladen]')).toBeVisible();
-		await expect(chat(page).locator('[data-chat-nachricht="lehrkraft"]')).toHaveText(/Mach es schöner/);
+		await expect(chat(page)).toHaveCount(0);
+		await page.getByRole('button', { name: 'Claude', exact: true }).click();
 		await expect(karte(page)).toBeVisible();
-		await expect.poll(() => fokusIm(page)).not.toBe('TEXTAREA');
+		await expect(chat(page).locator('[data-chat-nachricht]')).toHaveCount(0);
 
 		await fall('haenger');
-		await schreibe(page, 'Dauert');
+		await feld(page).fill('Dauert');
+		await feld(page).press('Enter');
 		await expect(chat(page).locator('[data-ki-lauf]')).toBeVisible();
 		await page.reload();
-		await expect(chat(page).locator('[data-ki-lauf]')).toBeVisible();
-		await page.keyboard.press('Escape');
-		await chat(page).getByRole('button', { name: 'Chat schließen' }).click();
 		await expect(page.locator('[data-claude-stand="arbeitet"]')).toContainText('Claude arbeitet');
 		await page.locator('[data-claude-stand]').click();
 		await expect(chat(page).locator('[data-ki-lauf]')).toBeVisible();
@@ -230,6 +230,260 @@ test.describe('Chat im Editor (074)', () => {
 	});
 });
 
+test.describe('Chat als Gespräch (087)', () => {
+	test.afterEach(() => fall('gut'));
+
+	const aufrufe = path.join(kiOrdner, 'aufrufe.jsonl');
+	const nachrichten = (page: Page) => chat(page).locator('[data-chat-nachricht]');
+
+	/** Was der Browser an den Server schickt, von Anfang bis Ende des Tests. */
+	const beobachte = (page: Page) => {
+		const auftraege: { gespraechId?: string; aufVorschlag?: boolean; auftrag?: string; verlauf?: unknown[] }[] = [];
+		const enden: string[] = [];
+		page.on('request', (r) => {
+			if (r.method() === 'POST' && /\/api\/dokumente\/[^/]+\/[^/]+\/ki$/.test(r.url())) {
+				auftraege.push(r.postDataJSON() as (typeof auftraege)[number]);
+			}
+			const ende = /\/api\/ki\/gespraech\/([^/]+)$/.exec(r.url());
+			if (r.method() === 'DELETE' && ende?.[1]) {
+				enden.push(ende[1]);
+			}
+		});
+		return { auftraege, enden };
+	};
+
+	const letzterAufruf = async () => {
+		const zeilen = (await readFile(aufrufe, 'utf8')).trim().split('\n');
+		const laeufe = zeilen
+			.map((z) => JSON.parse(z) as { args: string[]; cwd: string })
+			.filter((a) => a.args[0] !== 'auth');
+		const letzter = laeufe.at(-1);
+		expect(letzter).toBeTruthy();
+		return letzter as { args: string[]; cwd: string };
+	};
+
+	/** `…/gespraech-<id>/arbeit`: Den Ordner darüber nimmt das Ende des Gesprächs mit. */
+	const gespraechOrdner = (cwd: string) => path.dirname(cwd);
+
+	const chatSchluessel = (page: Page) =>
+		page.evaluate(() => Object.keys(localStorage).filter((k) => k.startsWith('schoolbox-chat')));
+
+	test('Rückfrage, Antwort, Vorschlag: „Ja, mach das“ erreicht den Server mit derselben Id', async ({ page }) => {
+		const { auftraege } = beobachte(page);
+		await offenesBlatt(page);
+		await schreibe(page, 'RUECKFRAGE: Mach mir ein Rätsel');
+		await expect(nachrichten(page).last()).toHaveText('Für welche Klasse soll das Rätsel sein?');
+		await expect(karte(page)).toHaveCount(0);
+		await expect(feld(page)).toHaveAttribute('placeholder', 'Antworten…');
+		await expect(feld(page)).toBeFocused();
+
+		await page.keyboard.type('Ja, mach das');
+		await page.keyboard.press('Enter');
+		await expect(karte(page)).toBeVisible();
+		await expect(feld(page)).not.toHaveAttribute('placeholder', 'Antworten…');
+		expect(auftraege).toHaveLength(2);
+		expect(auftraege[1]?.auftrag).toBe('Ja, mach das');
+		expect(auftraege[1]?.gespraechId).toBe(auftraege[0]?.gespraechId);
+		expect(auftraege[0]?.gespraechId).toMatch(/^[a-z0-9]+$/);
+		expect(auftraege[1]?.verlauf?.length).toBe(2);
+		expect((await letzterAufruf()).args).toContain('--resume');
+	});
+
+	test('Eine Antwort ohne Frage ändert den Platzhalter nicht', async ({ page }) => {
+		await offenesBlatt(page);
+		await schreibe(page, 'FRAGE: Wie viele Uhren?');
+		await expect(nachrichten(page).last()).toHaveText('Das Blatt hat vier Uhren.');
+		await expect(feld(page)).toHaveAttribute('placeholder', 'Was soll sich ändern?');
+	});
+
+	test('Schließen und wieder Öffnen: Verlauf leer, neue Id, Ordner weg, Vorschlag steht noch da', async ({ page }) => {
+		const { auftraege, enden } = beobachte(page);
+		await offenesBlatt(page);
+		await schreibe(page, 'Mach es schöner');
+		await expect(karte(page)).toBeVisible();
+		const ordner = gespraechOrdner((await letzterAufruf()).cwd);
+		expect(existsSync(ordner)).toBe(true);
+		expect(await chatSchluessel(page)).toEqual([]);
+
+		await chat(page).getByRole('button', { name: 'Chat schließen' }).click();
+		await expect(chat(page)).toHaveCount(0);
+		await expect.poll(() => enden).toEqual([auftraege[0]?.gespraechId]);
+		await expect.poll(() => existsSync(ordner)).toBe(false);
+
+		await page.keyboard.press('ControlOrMeta+j');
+		await expect(karte(page)).toBeVisible();
+		await expect(nachrichten(page)).toHaveCount(0);
+		expect(await chatSchluessel(page)).toEqual([]);
+
+		await schreibe(page, 'Noch etwas');
+		await expect(nachrichten(page).first()).toHaveText(/Noch etwas/);
+		await expect.poll(() => auftraege.length).toBe(2);
+		expect(auftraege[1]?.gespraechId).not.toBe(auftraege[0]?.gespraechId);
+		expect((await letzterAufruf()).args).not.toContain('--resume');
+	});
+
+	test('Esc aus der Zeile beendet das Gespräch, die Fußzeile sagt es; Esc im Menü nicht', async ({ page }) => {
+		const { enden } = beobachte(page);
+		await offenesBlatt(page);
+		await page.keyboard.press('ControlOrMeta+j');
+		const tasten = chat(page).locator('[data-chat-tasten]');
+		await expect(tasten).toContainText('esc schließen');
+		await schreibe(page, 'FRAGE: Wie viele?');
+		await expect(nachrichten(page)).toHaveCount(2);
+		await expect(tasten).toContainText('esc einklappen');
+		await chat(page).getByRole('button', { name: 'Chat: weitere Aktionen' }).click();
+		await page.keyboard.press('Escape');
+		await expect(page.getByRole('menu')).toHaveCount(0);
+		await expect(nachrichten(page)).toHaveCount(2);
+
+		await feld(page).focus();
+		await page.keyboard.press('Escape');
+		await expect(chat(page)).toHaveAttribute('data-chat-fenster', 'zeile');
+		await expect(tasten).toContainText('esc beendet das Gespräch');
+		expect(enden).toEqual([]);
+		await page.keyboard.press('Escape');
+		await expect(chat(page)).toHaveCount(0);
+		await expect.poll(() => enden.length).toBe(1);
+	});
+
+	test('Einklappen und Ausklappen: dieselbe Id, der Verlauf bleibt', async ({ page }) => {
+		const { auftraege, enden } = beobachte(page);
+		await offenesBlatt(page);
+		await schreibe(page, 'FRAGE: Wie viele?');
+		await expect(nachrichten(page)).toHaveCount(2);
+		await chat(page).getByRole('button', { name: 'Verlauf einklappen' }).click();
+		await expect(chat(page)).toHaveAttribute('data-chat-fenster', 'zeile');
+		await chat(page).getByRole('button', { name: 'Verlauf zeigen' }).click();
+		await expect(nachrichten(page)).toHaveCount(2);
+		await schreibe(page, 'FRAGE: Und jetzt?');
+		await expect(nachrichten(page)).toHaveCount(4);
+		expect(auftraege[1]?.gespraechId).toBe(auftraege[0]?.gespraechId);
+		expect(enden).toEqual([]);
+		expect((await letzterAufruf()).args).toContain('--resume');
+	});
+
+	test('„Neu beginnen“ verhält sich wie Schließen, das Fenster bleibt offen', async ({ page }) => {
+		const { auftraege, enden } = beobachte(page);
+		await offenesBlatt(page);
+		await schreibe(page, 'Mach es schöner');
+		await expect(karte(page)).toBeVisible();
+		const ordner = gespraechOrdner((await letzterAufruf()).cwd);
+		await chat(page).getByRole('button', { name: 'Chat: weitere Aktionen' }).click();
+		await page.getByRole('menuitem', { name: 'Neu beginnen' }).click();
+		await expect(nachrichten(page)).toHaveCount(0);
+		await expect(chat(page)).toBeVisible();
+		await expect(karte(page)).toBeVisible();
+		await expect.poll(() => enden).toEqual([auftraege[0]?.gespraechId]);
+		await expect.poll(() => existsSync(ordner)).toBe(false);
+		await schreibe(page, 'Noch einmal');
+		await expect.poll(() => auftraege.length).toBe(2);
+		expect(auftraege[1]?.gespraechId).not.toBe(auftraege[0]?.gespraechId);
+	});
+
+	test('Neu laden: leer, das Ende kam auf dem Server an, und alte Einträge im Speicher sind weg', async ({ page }) => {
+		await page.addInitScript(() => {
+			if (!sessionStorage.getItem('gesetzt')) {
+				sessionStorage.setItem('gesetzt', '1');
+				localStorage.setItem('schoolbox-chat-verlauf:m/d', '[{"text":"Alter Materialtext"}]');
+			}
+		});
+		await offenesBlatt(page);
+		await expect.poll(() => chatSchluessel(page)).toEqual([]);
+		await schreibe(page, 'FRAGE: Wie viele?');
+		await expect(nachrichten(page)).toHaveCount(2);
+		const ordner = gespraechOrdner((await letzterAufruf()).cwd);
+		await page.reload();
+		await expect.poll(() => existsSync(ordner)).toBe(false);
+		await page.getByRole('button', { name: 'Claude', exact: true }).click();
+		await expect(nachrichten(page)).toHaveCount(0);
+		expect(await chatSchluessel(page)).toEqual([]);
+	});
+
+	test('Folgenachricht baut auf dem offenen Vorschlag auf', async ({ page }) => {
+		const { auftraege } = beobachte(page);
+		const { dok, mappe } = await offenesBlatt(page);
+		await schreibe(page, 'Die Ohren größer');
+		await expect(karte(page)).toBeVisible();
+		await feld(page).fill('Noch größer');
+		await feld(page).press('Enter');
+		const vorschlag = path.join(dokumentOrdner(mappe, dok), 'vorschlag', 'material.html');
+		await expect
+			.poll(async () => (await readFile(vorschlag, 'utf8')).split('von Claude').length)
+			.toBe(3);
+		expect(auftraege[1]?.aufVorschlag).toBe(true);
+		expect(auftraege[1]?.gespraechId).toBe(auftraege[0]?.gespraechId);
+		expect(await quelleAufPlatte(mappe, dok)).not.toContain('von Claude');
+	});
+
+	test('Von der Ansicht in den Editor: dasselbe Dokument, dasselbe Gespräch', async ({ page }) => {
+		const { auftraege, enden } = beobachte(page);
+		const { dok, id: mappe } = await uhrzeit();
+		await page.goto(`/m/${mappe}/${dok}`);
+		await page.getByRole('button', { name: 'Claude', exact: true }).click();
+		await feld(page).fill('Mach es schöner');
+		await feld(page).press('Enter');
+		await expect(karte(page)).toBeVisible();
+		await chat(page).getByRole('button', { name: 'Im Editor ansehen' }).click();
+		await expect(page).toHaveURL(new RegExp(`/m/${mappe}/${dok}/bearbeiten`));
+		await expect(nachrichten(page).first()).toContainText('Mach es schöner');
+		expect(enden).toEqual([]);
+		await feld(page).fill('Noch etwas');
+		await feld(page).press('Enter');
+		await expect.poll(() => auftraege.length).toBe(2);
+		expect(auftraege[1]?.gespraechId).toBe(auftraege[0]?.gespraechId);
+	});
+
+	test('Editor verlassen beendet das Gespräch, Seiten ohne Dokument teilen sich eines', async ({ page }) => {
+		const { enden } = beobachte(page);
+		await offenesBlatt(page);
+		await schreibe(page, 'FRAGE: Wie viele?');
+		await expect(nachrichten(page)).toHaveCount(2);
+		await page.evaluate(() => {
+			window.history.pushState({}, '', '/');
+			window.dispatchEvent(new PopStateEvent('popstate'));
+		});
+		await expect(page).toHaveURL(/\/$/);
+		await expect.poll(() => enden.length).toBe(1);
+		await expect(nachrichten(page)).toHaveCount(0);
+	});
+
+	test('Neues Material: Das Gespräch geht im neuen Dokument weiter', async ({ page }) => {
+		const { auftraege, enden } = beobachte(page);
+		await page.goto('/');
+		await expect(page.getByRole('button', { name: 'Claude', exact: true })).toBeVisible();
+		await page.keyboard.press('ControlOrMeta+j');
+		await feld(page).fill('Arbeitsblatt Uhrzeiten, Klasse 2');
+		await feld(page).press('Enter');
+		await expect(chat(page).locator('[data-chat-neu]')).toBeVisible();
+		await feld(page).press('Enter');
+		await expect(page).toHaveURL(/\/bearbeiten\?claude=1/);
+		await expect(karte(page)).toBeVisible();
+		await expect(nachrichten(page).first()).toContainText('Arbeitsblatt Uhrzeiten');
+		await feld(page).fill('Mach die Uhren größer');
+		await feld(page).press('Enter');
+		await expect.poll(() => auftraege.length).toBe(2);
+		expect(auftraege[0]?.gespraechId).toBeTruthy();
+		expect(auftraege[1]?.gespraechId).toBe(auftraege[0]?.gespraechId);
+		expect(enden).toEqual([]);
+		await expect.poll(async () => (await letzterAufruf()).args.includes('--resume')).toBe(true);
+	});
+
+	test('Ein sehr langes Gespräch schlägt „Neu beginnen“ vor und tut nichts von selbst', async ({ page }) => {
+		const { enden } = beobachte(page);
+		await offenesBlatt(page);
+		await fall('kontext-gross');
+		await schreibe(page, 'Mach es schöner');
+		const hinweis = chat(page).locator('[data-chat-lang]');
+		await expect(hinweis).toBeVisible();
+		expect(enden).toEqual([]);
+		await expect(nachrichten(page)).not.toHaveCount(0);
+		await hinweis.getByRole('button', { name: 'Neu beginnen' }).click();
+		await expect(nachrichten(page)).toHaveCount(0);
+		await expect(hinweis).toHaveCount(0);
+		await expect.poll(() => enden.length).toBe(1);
+	});
+});
+
 test.describe('Chat am Limit (086)', () => {
 	const hinweis = (page: Page, art: string) => chat(page).locator(`[data-ki-limit="${art}"]`);
 	const sendenKnopf = (page: Page) => chat(page).getByRole('button', { name: 'Senden' });
@@ -238,7 +492,11 @@ test.describe('Chat am Limit (086)', () => {
 	test.afterEach(async ({ page }) => {
 		await fall('gut');
 		await page.evaluate(() =>
-			fetch('/api/ki/limit/pruefen', { method: 'POST', headers: { 'x-schoolbox': '1' } }),
+			fetch('/api/ki/limit/pruefen', {
+				method: 'POST',
+				headers: { 'Content-Type': 'application/json', 'x-schoolbox': '1' },
+				body: '{}',
+			}),
 		);
 	});
 

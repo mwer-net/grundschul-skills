@@ -168,6 +168,7 @@ test.describe('Editor: Mit Claude ändern (058, 059)', () => {
 		await page.unroute('**/api/ki/status');
 		await page.route('**/api/ki/status', (r) => r.fulfill({ json: antwort('rejected', 1) }));
 		await page.reload();
+		await oeffnePanel(page);
 		await expect(panel(page).locator('[data-ki-limit="gesperrt"]')).toContainText('Wieder möglich ab');
 		await panel(page).getByLabel('Was soll Claude ändern?').fill('Geht nicht');
 		await expect(panel(page).getByRole('button', { name: 'Senden' })).toBeDisabled();

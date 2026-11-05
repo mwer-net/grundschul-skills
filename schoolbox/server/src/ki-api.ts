@@ -4,7 +4,7 @@ import type { Router as RouterTyp } from 'express';
 import { leseQuelle, schreibeQuelle, verlangeDokument } from './dokumente';
 import { HttpFehler } from './fehler';
 import type { KiNachricht } from './ki';
-import { aktionWunsch, KI_WARN_AB, leseVorschlag, verwirfVorschlag } from './ki';
+import { aktionWunsch, KI_WARN_AB, leseVorschlag, pruefeGespraechId, verwirfVorschlag } from './ki';
 import type { Kontext } from './kontext';
 import { dokSchluessel, kennung } from './kontext';
 
@@ -100,6 +100,7 @@ export const kiApi = (router: RouterTyp, kontext: Kontext) => {
 			dok,
 			referenz: text(body.referenz),
 			aufVorschlag: body.aufVorschlag === true,
+			gespraechId: pruefeGespraechId(body.gespraechId),
 			verlauf: nachrichten(body.verlauf),
 			zitat: text(body.zitat),
 			ohneRueckfragen: aktion !== undefined,
@@ -111,6 +112,14 @@ export const kiApi = (router: RouterTyp, kontext: Kontext) => {
 		const { dok, mappe } = req.params;
 		verlangeDokument(kontext, mappe, dok);
 		res.json({ auftraege: ki.offene(mappe, dok) });
+	});
+
+	router.delete('/ki/gespraech/:id', async (req, res) => {
+		const id = pruefeGespraechId(req.params.id);
+		if (id) {
+			await ki.beendeGespraech(id);
+		}
+		res.json({ beendet: true });
 	});
 
 	router.get('/ki/:id', (req, res) => {
