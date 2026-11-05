@@ -45,6 +45,8 @@ interface FeldBasis {
 	ohneFeld?: boolean;
 	/** Der Inhalt darf `<mark>` und Fett enthalten: Das Feld zeigt den Text, beim Ändern bleibt die Auszeichnung. */
 	auszeichnung?: boolean;
+	/** Nur wenn es wirkt: Das Panel blendet das Feld sonst aus. Der Wert im Attribut bleibt, am Blatt ändert sich nichts. */
+	nurWenn?: (w: Werte) => boolean;
 }
 
 /** Vorschlag für den Notenschlüssel in Prozent (053); dieselbe Angabe steht in `abbildungen.js`, ein Test hält beide gleich. */
