@@ -24,7 +24,7 @@ Zwei Befunde scheinen sich zu widersprechen, passen aber zusammen:
 
 Wurde in der Start-Abfrage Farbe gewählt:
 
-- **1 Hauptfarbe + 1 Akzentfarbe** aus derselben Familie, warme, freundliche Töne; keine Neonfarben. Farbe auf Nummernkreise, Überschrift, Trennlinien, Sprechblase, Leitfigur und Bilder, **keine Flächen hinter Aufgaben, Kopf oder Fuß**. Details: `druck-und-platz.md`, Abschnitt 3.
+- **1 Hauptfarbe + 1 Akzentfarbe** aus derselben Familie, warme, freundliche Töne; keine Neonfarben. Farbe auf Nummernkreise, Überschrift, Sprechblase, Leitfigur und Bilder, **keine Flächen hinter Aufgaben, Kopf oder Fuß**. Details: `druck-und-platz.md`, Abschnitt 3.
 - Farbe bedeutet überall dasselbe: z. B. jede Station eine Farbe; Klassenkonventionen (Wortarten, Stellenwerte) haben Vorrang. Niveaus bekommen keine eigene Farbe, nur Punkte ● / ●● / ●●●.
 - Farbe nie als einzige Information; Graustufen-Vorschau prüfen.
 

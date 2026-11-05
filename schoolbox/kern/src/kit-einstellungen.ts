@@ -113,7 +113,7 @@ export const KIT_FELDER: Readonly<Record<string, readonly KitFeld[]>> = {
 			einheit: '',
 			standard: 0,
 			abschnitt: 'inhalt',
-			hilfe: 'Punkte oben rechts an der Aufgabe, von leicht bis schwer',
+			hilfe: 'Ein bis drei Kreise oben rechts an der Aufgabe.',
 		},
 		{
 			typ: 'zahl',
@@ -473,9 +473,10 @@ export interface BlattWerte {
 	klasse: Klasse;
 	palette: Palette | null;
 	format: Format;
-	trenner: boolean;
-	/** Punkte drucken (053). */
+	/** Punkte zeigen (053, 082). */
 	punkte: boolean;
+	/** Der Schalter wirkt: Das Blatt hat Bewertungspunkte oder blendet sie aus. Die Kreise von `.niveau` zählen nicht. */
+	hatPunkte: boolean;
 }
 
 const bodyVon = (z: Zerlegung) => {
@@ -487,15 +488,18 @@ const bodyVon = (z: Zerlegung) => {
 };
 
 export const leseBlatt = (quelle: string): BlattWerte => {
-	const klassen = klassenVon(bodyVon(zerlege(quelle)));
+	const z = zerlege(quelle);
+	const klassen = klassenVon(bodyVon(z));
 	const kl = klassen.find((k) => /^kl[1-4]$/.test(k));
 	return {
 		titel: titelAusHtml(quelle) ?? '',
 		klasse: kl ? (Number(kl.slice(2)) as Klasse) : 'gemischt',
 		palette: (klassen.find((k) => k.startsWith('palette-'))?.slice(8) as Palette | undefined) ?? null,
 		format: formatAusHtml(quelle),
-		trenner: klassen.includes('trenner'),
 		punkte: !klassen.includes('ohne-punkte'),
+		hatPunkte:
+			klassen.includes('ohne-punkte') ||
+			z.knoten.some((k) => k.tag === 'x-gesamtpunkte' || klassenVon(k).includes('punkte')),
 	};
 };
 
@@ -523,9 +527,6 @@ export const setzeBlatt = (quelle: string, neu: Partial<BlattWerte>) => {
 	}
 	if (neu.punkte !== undefined) {
 		tausche((k) => k === 'ohne-punkte', neu.punkte ? null : 'ohne-punkte');
-	}
-	if (neu.trenner !== undefined) {
-		tausche((k) => k === 'trenner', neu.trenner ? 'trenner' : null);
 	}
 	const mitKlassen = wendeAn(quelle, setzeAttribut(z, body, 'class', klassen.join(' ')));
 	return neu.titel === undefined ? mitKlassen : setzeTitel(mitKlassen, neu.titel);

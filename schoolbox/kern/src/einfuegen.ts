@@ -133,7 +133,7 @@ const inZeile = (z: Zerlegung, ziel: Knoten | null, html: string): Aenderung[] =
 const setzeKlasse = (z: Zerlegung, k: Knoten, klasse: string) =>
 	klassenVon(k).includes(klasse) ? [] : setzeAttribut(z, k, 'class', [...klassenVon(k), klasse].join(' '));
 
-/** Eine Klasse setzt: `trenner` am `<body>`, `beispiel` am Item. Beides ändert keine Elementzahl. */
+/** Eine Klasse setzt: am `<body>` oder, wie `beispiel`, am Item. Beides ändert keine Elementzahl. */
 const mitKlasse = (quelle: string, z: Zerlegung, b: Einfuegbar, ziel: Knoten | null): StrukturErgebnis => {
 	const k = b.ort === 'blatt' ? z.knoten.find((n) => n.tag === 'body') : aufwaerts(ziel, 'zelle');
 	if (!k || !b.klasse) {

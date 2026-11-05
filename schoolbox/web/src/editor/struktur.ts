@@ -3,6 +3,7 @@ import { kann } from '@schoolbox/kern/src/bausteine';
 import type { Ablage, StrukturErgebnis } from '@schoolbox/kern/src/struktur';
 import {
 	ABSTAND,
+	entferneAbstand,
 	dupliziereBaustein,
 	fuegeSeiteEin,
 	loescheBaustein,
@@ -53,6 +54,8 @@ export interface StrukturWerte {
 	nach: { zurueck: Ablage | null; vor: Ablage | null; quer: boolean } | null;
 	spalten: Spalten | null;
 	abstand: number;
+	/** Was das Blatt ohne eigenen Abstand hätte (Klasse, Format); `null` ohne `blatt.css`. */
+	abstandVorgabe: number | null;
 	seite: number | null;
 	seiten: number;
 }
@@ -60,6 +63,18 @@ export interface StrukturWerte {
 const zahl = (wert: string | undefined, sonst: number) => {
 	const n = parseFloat(wert ?? '');
 	return Number.isFinite(n) ? n : sonst;
+};
+
+/** Liest den Stil ohne die Überschreibung am `<body>`: Die Vorgabe steht in `blatt.css`, nicht in einer zweiten Tabelle. */
+const abstandOhneUeberschreibung = (doc: Document) => {
+	const { style } = doc.body;
+	const gesetzt = style.getPropertyValue('--abstand');
+	style.removeProperty('--abstand');
+	const px = parseFloat(doc.defaultView?.getComputedStyle(doc.body).getPropertyValue('--abstand') ?? '');
+	if (gesetzt) {
+		style.setProperty('--abstand', gesetzt);
+	}
+	return Number.isFinite(px) ? px : null;
 };
 
 const werteVon = (doc: Document, pfad: PfadTeil[]): StrukturWerte => {
@@ -95,6 +110,7 @@ const werteVon = (doc: Document, pfad: PfadTeil[]): StrukturWerte => {
 		nach,
 		spalten,
 		abstand: zahl(fenster?.getComputedStyle(doc.body).getPropertyValue('--abstand'), ABSTAND.min),
+		abstandVorgabe: abstandOhneUeberschreibung(doc),
 		seite: seite ? nrVon(seite) : null,
 		seiten: doc.querySelectorAll('.seite:not([data-erzeugt])').length,
 	};
@@ -216,8 +232,11 @@ export const useStruktur = (o: Optionen) => {
 	const spalten = (nr: number, anzahl: number) =>
 		fuehreAus('Spalten', (q) => ({ quelle: setzeSpalten(q, nr, anzahl), nr: o.pfad.at(-1)?.nr ?? null }));
 
-	const abstand = (px: number) =>
-		fuehreAus('Abstand', (q) => ({ quelle: setzeAbstand(q, px), nr: o.pfad.at(-1)?.nr ?? null }));
+	/** Nur ein Attribut am `<body>`: Die Auswahl bleibt, und der Reiter „Blatt“ springt nicht zurück auf „Auswahl“. */
+	const abstand = (px: number) => aendereAttribute('Abstand', (q) => setzeAbstand(q, px));
+
+	/** Das Blatt folgt wieder der Vorgabe seiner Klasse. */
+	const abstandZurVorgabe = () => aendereAttribute('Abstand', entferneAbstand);
 
 	/** Nur zum Ansehen, während der Regler gezogen wird; die Quelle ändert erst das Loslassen. */
 	const zeigeAbstand = (px: number) => doc?.body.style.setProperty('--abstand', `${px}px`);
@@ -241,6 +260,7 @@ export const useStruktur = (o: Optionen) => {
 		neueSeite,
 		spalten,
 		abstand,
+		abstandZurVorgabe,
 		zeigeAbstand,
 	};
 };

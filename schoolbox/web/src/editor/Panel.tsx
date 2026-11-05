@@ -13,7 +13,7 @@ import {
 	setzeSichtbarkeit,
 	SICHTBARKEITEN,
 } from '@schoolbox/kern/src/kit-einstellungen';
-import { ABSTAND, SPALTEN } from '@schoolbox/kern/src/struktur';
+import { ABSTAND, gesetzterAbstand, SPALTEN } from '@schoolbox/kern/src/struktur';
 import { groesseVon, setzeGroesse, setzeKopfzeile } from '@schoolbox/kern/src/tabelle';
 import type { Format as Format2 } from '@schoolbox/kern/src/werte';
 import { FORMAT_NAME, KLASSEN } from '@schoolbox/kern/src/werte';
@@ -22,6 +22,7 @@ import { useEffect, useId, useMemo, useRef, useState } from 'react';
 
 import { Abschnitt } from '../bausteine/Abschnitt';
 import { Feld } from '../bausteine/Feld';
+import { Hilfetipp } from '../bausteine/Hilfetipp';
 import { FELD_KLASSEN, klassen } from '../bausteine/klassen';
 import { Knopf } from '../bausteine/Knopf';
 import { Schalter } from '../bausteine/Schalter';
@@ -296,13 +297,28 @@ export const Sichtbarkeit = ({ nr, quelle, struktur }: { nr: number; quelle: str
 	</select>
 );
 
-/** Titel, Klasse, Farbschema, Format, Abstand, Trennlinien, Punkte: Jede Änderung ist ein Schritt im Verlauf (046). */
+/** Mitte des Griffs bei diesem Wert: Der Griff (16 px) bleibt in der Breite des Reglers. */
+const markeBei = (px: number) => {
+	const anteil = (px - ABSTAND.min) / (ABSTAND.max - ABSTAND.min);
+	return `calc(8px + (100% - 16px) * ${anteil})`;
+};
+
+/** „Seite 1 läuft über.“ */
+const ueberlaufSatz = (seiten: number[]) => {
+	if (seiten.length < 2) {
+		return `Seite ${seiten[0] ?? ''} läuft über.`;
+	}
+	return `Seiten ${seiten.slice(0, -1).join(', ')} und ${seiten.at(-1) ?? ''} laufen über.`;
+};
+
+/** Titel, Klasse, Farbschema, Format, Abstand, Punkte: Jede Änderung ist ein Schritt im Verlauf (046). */
 export const Blattwerkzeug = ({
 	aktiv,
 	doc,
 	loesung,
 	quelle,
 	struktur,
+	ueberlauf,
 }: {
 	aktiv: boolean;
 	doc: Document | null;
@@ -310,12 +326,25 @@ export const Blattwerkzeug = ({
 	loesung: ReactNode;
 	quelle: string | null;
 	struktur: Struktur;
+	/** Seiten, die laut Prüfung überlaufen. */
+	ueberlauf: number[];
 }) => {
 	const wert = struktur.werte?.abstand ?? null;
+	const abstandVorgabe = struktur.werte?.abstandVorgabe ?? null;
 	const [jetzt, setJetzt] = useState(wert ?? ABSTAND.min);
 	const regler = useRef<HTMLInputElement>(null);
+	const reglerId = useId();
 	const setzeAbstand = useRef(struktur.abstand);
-	const farben = useMemo(() => palettenFarben(doc), [doc]);
+	const farbenJetzt = useMemo(() => palettenFarben(doc), [doc]);
+
+	/**
+	 * Nach jeder Änderung ist kurz nichts zu messen, bis die neue Fassung im `iframe` steht. Dasselbe Dokument bleibt
+	 * offen, also gilt so lange der letzte Stand, und der Reiter wird nicht leer.
+	 */
+	const zuletzt = useRef<{ farben: typeof farbenJetzt; vorgabe: number | null; quelle: string } | null>(null);
+	if (aktiv && wert !== null && quelle) {
+		zuletzt.current = { farben: farbenJetzt, vorgabe: abstandVorgabe, quelle };
+	}
 
 	useEffect(() => {
 		setzeAbstand.current = struktur.abstand;
@@ -327,6 +356,9 @@ export const Blattwerkzeug = ({
 		}
 	}, [wert]);
 
+	const stand = zuletzt.current;
+	const zeigt = aktiv && stand !== null;
+
 	useEffect(() => {
 		const element = regler.current;
 		if (!element) {
@@ -335,12 +367,16 @@ export const Blattwerkzeug = ({
 		const fertig = () => setzeAbstand.current(Number(element.value));
 		element.addEventListener('change', fertig);
 		return () => element.removeEventListener('change', fertig);
-	}, [aktiv, wert]);
+	}, [zeigt]);
 
-	if (!aktiv || wert === null || !quelle) {
+	if (!zeigt) {
 		return loesung ? <div data-blatt>{loesung}</div> : null;
 	}
-	const w = leseBlatt(quelle);
+	const { farben, vorgabe } = stand;
+	const aktuelleQuelle = quelle ?? stand.quelle;
+	const gesetzt = gesetzterAbstand(aktuelleQuelle) !== null;
+	const vorgabeImRegler = vorgabe !== null && vorgabe >= ABSTAND.min && vorgabe <= ABSTAND.max;
+	const w = leseBlatt(aktuelleQuelle);
 	const setze = (titel: string, neu: Partial<BlattWerteTyp>) =>
 		struktur.aendereAttribute(`${titel} geändert`, (q) => setzeBlatt(q, neu));
 	return (
@@ -413,45 +449,81 @@ export const Blattwerkzeug = ({
 					}))}
 					setze={(neu) => setze('Format', { format: neu as Format2 })}
 				/>
-				<label className="block">
-					<span className="flex h-zeile items-center justify-between text-leise">
-						Abstand
-						<span className="tabular-nums">{`${jetzt} px`}</span>
-					</span>
-					<input
-						ref={regler}
-						type="range"
-						aria-label="Abstand zwischen Aufgaben"
-						data-einstellung="abstand"
-						className="h-zeile w-full accent-brand-500"
-						min={ABSTAND.min}
-						max={ABSTAND.max}
-						step={ABSTAND.schritt}
-						value={jetzt}
-						onChange={(e) => {
-							const px = Number(e.target.value);
-							setJetzt(px);
-							struktur.zeigeAbstand(px);
-						}}
-					/>
-				</label>
-				<ZeileSchalter
-					titel="Trennlinien"
-					einstellung="trennlinien"
-					hilfe="Linien zwischen den Aufgaben"
-					an={w.trenner}
-					setze={(an) => setze('Trennlinien', { trenner: an })}
-				/>
+				<div>
+					<div className="flex h-zeile items-center justify-between gap-x-2">
+						<span className="flex min-w-0 items-center gap-1 text-leise">
+							<label htmlFor={reglerId}>Abstand</label>
+							<Hilfetipp name="Abstand">
+								Platz zwischen den Aufgaben, auf allen Seiten.
+								{vorgabeImRegler && ` Die Marke am Regler zeigt die Vorgabe für dieses Blatt: ${vorgabe} px.`}
+							</Hilfetipp>
+						</span>
+						<span className="ml-auto flex flex-none items-center gap-2">
+							{gesetzt && (
+								<button
+									type="button"
+									data-abstand-vorgabe
+									className="text-xs text-leise underline hover:text-tinte"
+									title={
+										vorgabe === null ? 'Eigenen Abstand entfernen' : `Zurück zur Vorgabe: ${vorgabe} px`
+									}
+									onClick={struktur.abstandZurVorgabe}
+								>
+									Vorgabe
+								</button>
+							)}
+							<span className="text-leise tabular-nums" data-abstand-wert>{`${jetzt} px`}</span>
+						</span>
+					</div>
+					<div className="relative">
+						<input
+							ref={regler}
+							id={reglerId}
+							type="range"
+							aria-label="Abstand zwischen Aufgaben"
+							data-einstellung="abstand"
+							className="h-zeile w-full accent-brand-500"
+							min={ABSTAND.min}
+							max={ABSTAND.max}
+							step={ABSTAND.schritt}
+							value={jetzt}
+							onChange={(e) => {
+								const px = Number(e.target.value);
+								setJetzt(px);
+								struktur.zeigeAbstand(px);
+							}}
+						/>
+						{vorgabeImRegler && (
+							<span
+								aria-hidden
+								data-abstand-marke={vorgabe}
+								title={`Vorgabe: ${vorgabe} px`}
+								className="absolute bottom-0 h-2 w-0.5 -translate-x-1/2 bg-leise"
+								style={{ left: markeBei(vorgabe) }}
+							/>
+						)}
+					</div>
+					{ueberlauf.length > 0 && (
+						<p className="pb-1 text-xs font-medium text-warnung" data-abstand-ueberlauf>
+							{ueberlaufSatz(ueberlauf)}
+						</p>
+					)}
+				</div>
 			</Abschnitt>
-			<Abschnitt name="loesung-und-punkte" titel="Lösung und Punkte">
-				<ZeileSchalter
-					titel="Punkte drucken"
-					einstellung="punkte"
-					an={w.punkte}
-					setze={(an) => setze('Punkte drucken', { punkte: an })}
-				/>
-				{loesung}
-			</Abschnitt>
+			{(w.hatPunkte || loesung) && (
+				<Abschnitt name="loesung-und-punkte" titel="Lösung und Punkte">
+					{w.hatPunkte && (
+						<ZeileSchalter
+							titel="Punkte zeigen"
+							einstellung="punkte"
+							hilfe="Bewertungspunkte an den Aufgaben und die Gesamtpunkte. Aus: im Blatt und im Druck ausgeblendet."
+							an={w.punkte}
+							setze={(an) => setze('Punkte zeigen', { punkte: an })}
+						/>
+					)}
+					{loesung}
+				</Abschnitt>
+			)}
 		</div>
 	);
 };

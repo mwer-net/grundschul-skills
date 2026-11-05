@@ -91,12 +91,12 @@ test.describe('Inventur Editor', () => {
 		await expect(page.locator('[data-bereich]').first()).toBeVisible();
 	});
 
-	test('Reiter „Blatt“: Lösungsübersicht, Klasse, Farbschema, Format, Trennlinien, Punkte', async ({ page }) => {
+	test('Reiter „Blatt“: Lösungsübersicht, Klasse, Farbschema, Format, Abstand', async ({ page }) => {
 		await offenesBlatt(page);
 		for (const name of ['Klasse', 'Format']) {
 			await expect(page.locator('[data-panel]').getByLabel(name, { exact: true })).toBeVisible();
 		}
-		for (const text of ['Farbschema', 'Trennlinien', 'Punkte drucken']) {
+		for (const text of ['Farbschema', 'Abstand']) {
 			await expect(page.locator('[data-panel]').getByText(text, { exact: true })).toBeVisible();
 		}
 	});

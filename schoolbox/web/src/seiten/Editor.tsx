@@ -50,7 +50,7 @@ import { Palette } from '../editor/Palette';
 import { eintraegeImEditor } from '../editor/palette-eintraege';
 import { Blattwerkzeug } from '../editor/Panel';
 import type { Pruefpunkt } from '../editor/pruefung';
-import { usePruefung } from '../editor/pruefung';
+import { ueberlaufendeSeiten, usePruefung } from '../editor/pruefung';
 import { Seitenleiste } from '../editor/Seitenleiste';
 import { Statusleiste } from '../editor/Statusleiste';
 import type { Struktur } from '../editor/struktur';
@@ -934,6 +934,7 @@ const Bearbeitung = ({ dokument, mappe: mappenDaten }: { mappe: Mappe; dokument:
 			doc={docJetzt}
 			quelle={quelle}
 			struktur={struktur}
+			ueberlauf={ueberlaufendeSeiten(pruefung.stand)}
 			loesung={loesung ? <Loesungsuebersicht l={loes} /> : null}
 		/>
 	);

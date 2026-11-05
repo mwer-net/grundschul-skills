@@ -1,4 +1,5 @@
 import { MEINE_BAUSTEINE } from '@schoolbox/kern/src/katalog';
+import { leseBlatt } from '@schoolbox/kern/src/kit-einstellungen';
 
 import type { Gruppe, Kontext } from './befehle';
 import { befehleFuer, kuerzelText, symbolVon, titelVon } from './befehle';
@@ -12,8 +13,7 @@ export const BLATT_EINSTELLUNGEN = [
 	{ ort: 'farbschema', titel: 'Farbschema', suchwoerter: ['farbe', 'palette'] },
 	{ ort: 'format', titel: 'Format des Blatts', suchwoerter: ['a4', 'quer', 'hoch', 'karten'] },
 	{ ort: 'abstand', titel: 'Abstand zwischen Aufgaben', suchwoerter: ['luft', 'platz', 'dichte'] },
-	{ ort: 'trennlinien', titel: 'Trennlinien', suchwoerter: ['linien', 'trenner'] },
-	{ ort: 'punkte', titel: 'Punkte drucken', suchwoerter: ['bewertung'] },
+	{ ort: 'punkte', titel: 'Punkte zeigen', suchwoerter: ['bewertung', 'ausblenden'] },
 ] as const;
 
 export const GANZES_BLATT = 'Ganzes Blatt';
@@ -87,7 +87,8 @@ export const eintraegeImEditor = (k: Kontext, z: PalettenZiele): PalettenEintrag
 		}
 	}
 	if (k.frei && k.aktiv) {
-		for (const e of BLATT_EINSTELLUNGEN) {
+		const mitPunkten = Boolean(k.quelle) && leseBlatt(k.quelle ?? '').hatPunkte;
+		for (const e of BLATT_EINSTELLUNGEN.filter((b) => b.ort !== 'punkte' || mitPunkten)) {
 			liste.push({
 				id: `einstellung:${e.ort}`,
 				titel: e.titel,

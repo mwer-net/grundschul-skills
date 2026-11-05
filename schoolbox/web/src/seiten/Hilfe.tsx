@@ -263,8 +263,9 @@ const ABSCHNITTE: Abschnitt[] = [
 						Baustein „Nach oben“ und „Nach unten“ tippen. Dort lassen sie sich auch verdoppeln und löschen.
 					</Punkt>
 					<Punkt titel="Einstellungen">
-						rechts im Inspektor: „Auswahl“ für den gewählten Baustein, „Blatt“ für Klasse, Farben und
-						Format.
+						rechts im Inspektor: „Auswahl“ für den gewählten Baustein, „Blatt“ für Klasse, Farben, Format
+						und den Abstand zwischen den Aufgaben. Die Marke am Regler zeigt die Vorgabe, „Vorgabe“ stellt
+						sie wieder her. „Punkte zeigen“ gibt es, sobald das Blatt Bewertungspunkte hat.
 					</Punkt>
 					<Punkt titel="Bilder">
 						Bild antippen, dann austauschen, eigenes hochladen oder an den Ecken größer und kleiner ziehen.

@@ -26,7 +26,7 @@ Die Bausteine (Selbsteinschätzung, Niveaus, Sternchenaufgabe) legt die Start-Ab
 - Ränder: 60 px (≈ 1,6 cm) rundum (`blatt.css`).
 - Pro A4-Seite (Richtwert): Klasse 1: 2–3 Aufgaben, Klasse 2: 3–4, Klasse 3: 4–5, Klasse 4: 5–6. Übersicht vor Menge; Items je Aufgabe (Tabelle in `druck-und-platz.md`).
 - Lesefluss von oben nach unten, links nach rechts. Keine schräg platzierten Elemente, keine Zwei-Spalten-Texte in Klasse 1/2.
-- Aufgaben **ohne Kasten**: hängende Nummer, Abstand zur nächsten Aufgabe nach Klasse (`druck-und-platz.md`), optional eine dünne graue Trennlinie. Rahmen nur, wo er eine Funktion hat (Wortspeicher, Sprechblase, Antwortkästchen, Ausschneideteile). Einheitlich im ganzen Material.
+- Aufgaben **ohne Kasten**: hängende Nummer, Abstand zur nächsten Aufgabe nach Klasse (`druck-und-platz.md`). Rahmen nur, wo er eine Funktion hat (Wortspeicher, Sprechblase, Antwortkästchen, Ausschneideteile). Einheitlich im ganzen Material.
 - Weißraum gezielt einsetzen: zwischen Aufgaben und als Schreibfläche, nicht als Innenabstand in Rahmen. In Kl. 1/2 ist sichtbare Luft gewollt; in Kl. 3/4 kein ungenutzter Leerstreifen.
 
 ## Schrift

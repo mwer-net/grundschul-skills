@@ -21,7 +21,7 @@ const kontext = (mehr: Partial<Kontext> = {}): Kontext => ({
 	frei: true,
 	textsitzung: false,
 	quelle: '',
-	werte: { nach: null, spalten: { nr: 7, wert: 4 } as never, abstand: 10, seite: 1, seiten: 3 },
+	werte: { nach: null, spalten: { nr: 7, wert: 4 } as never, abstand: 10, abstandVorgabe: 28, seite: 1, seiten: 3 },
 	mitLoesung: true,
 	loesung: false,
 	profil: 'farbe',
@@ -121,6 +121,17 @@ describe('Inhalt der Palette im Editor', () => {
 		suchePalette('seite 3', liste)[0]?.aus();
 		assert.deepEqual(orte, ['abstand']);
 		assert.deepEqual(seiten, [3]);
+	});
+
+	it('bietet „Punkte zeigen“ nur an, wenn der Schalter wirkt, und keine Trennlinien', () => {
+		const orte = (quelle: string) =>
+			eintraegeImEditor(kontext({ quelle }), ziele())
+				.map((e) => e.id)
+				.filter((id) => id === 'einstellung:punkte' || id === 'einstellung:trennlinien');
+		assert.deepEqual(orte(''), []);
+		assert.deepEqual(orte('<body class="kl2"><span class="niveau"><i></i></span></body>'), []);
+		assert.deepEqual(orte('<body class="kl2"><span class="punkte">(2 P.)</span></body>'), ['einstellung:punkte']);
+		assert.deepEqual(orte('<body class="kl2 ohne-punkte"></body>'), ['einstellung:punkte']);
 	});
 
 	it('hat die Synonyme aus dem Ticket', () => {
