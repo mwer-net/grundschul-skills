@@ -455,8 +455,10 @@ export const leseSichtbarkeit = (quelle: string, nr: number) => {
  * die Notiz nur in der Präsentation. Panel und Menü bieten sie dort nicht an, die Quelle bleibt, wie sie ist (084, E-B1).
  */
 export const sichtbarkeitFest = (quelle: string, nr: number) => {
-	const k = knotenVon(zerlege(quelle), nr);
-	return k.tag === 'x-erwartungshorizont' || hat(k, 'notiz');
+	// Ohne Element (Auswahl und Quelle kurz nicht im Gleichtakt) gibt es nichts festzuhalten; Menü und Panel fragen das
+	// beim Aufbau, ein Fehler hier risse die ganze Liste mit.
+	const k = zerlege(quelle).knoten[nr];
+	return Boolean(k && (k.tag === 'x-erwartungshorizont' || hat(k, 'notiz')));
 };
 
 export const setzeSichtbarkeit = (quelle: string, nr: number, wert: string) => {
