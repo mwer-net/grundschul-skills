@@ -337,6 +337,36 @@ test.describe('Ohne Ziehen', () => {
 		await page.keyboard.press('ControlOrMeta+z');
 		await expect(kacheln(page)).toHaveCount(1);
 	});
+
+	test('⌘C und ⌥⌘V bewegen; Esc bricht ⌘X ab', async ({ hasTouch, page }) => {
+		test.skip(hasTouch, 'Tasten nur mit Maus und Tastatur');
+		await legeMappeAn('Quelle', 'mathematik', 3, [{ titel: 'Blatt A' }]);
+		await legeMappeAn('Ziel', 'mathematik', 3, [{ titel: 'Blatt B' }]);
+		await page.goto('/');
+		await oeffneObjekt(page, 'Quelle');
+		await expect(kacheln(page)).toHaveCount(1);
+
+		await objekt(page, 'Blatt A').click();
+		await page.keyboard.press('ControlOrMeta+x');
+		await expect(meldung(page)).toContainText('gemerkt');
+		await page.keyboard.press('Escape');
+		await baum(page, 'Ziel').click();
+		await expect(page.getByRole('heading', { level: 1, name: 'Ziel' })).toBeVisible();
+		await page.keyboard.press('ControlOrMeta+v');
+		await expect(kacheln(page)).toHaveCount(1);
+
+		await baum(page, 'Quelle').click();
+		await expect(page.getByRole('heading', { level: 1, name: 'Quelle' })).toBeVisible();
+		await objekt(page, 'Blatt A').click();
+		await page.keyboard.press('ControlOrMeta+c');
+		await baum(page, 'Ziel').click();
+		await expect(page.getByRole('heading', { level: 1, name: 'Ziel' })).toBeVisible();
+		await page.keyboard.press('ControlOrMeta+Alt+KeyV');
+		await expect(kacheln(page)).toHaveCount(2);
+		await baum(page, 'Quelle').click();
+		await expect(page.getByRole('heading', { level: 1, name: 'Quelle' })).toBeVisible();
+		await expect(kacheln(page)).toHaveCount(0);
+	});
 });
 
 test.describe('Übersicht und Informationen', () => {
