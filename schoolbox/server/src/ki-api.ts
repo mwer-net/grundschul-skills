@@ -33,8 +33,22 @@ export const kiApi = (router: RouterTyp, kontext: Kontext) => {
 	const { ki, konfig } = kontext;
 	const { materialDir } = konfig;
 
+	const kiStatus = async () => ({
+		verfuegbar: await ki.angemeldet(),
+		limit: ki.limit(),
+		warnAb: KI_WARN_AB,
+		aktionen: KI_AKTIONEN,
+	});
+
 	router.get('/ki/status', async (_req, res) => {
-		res.json({ verfuegbar: await ki.angemeldet(), limit: ki.limit(), warnAb: KI_WARN_AB, aktionen: KI_AKTIONEN });
+		res.json(await kiStatus());
+	});
+
+	router.post('/ki/limit/pruefen', async (_req, res) => {
+		if (await ki.angemeldet()) {
+			await ki.pruefeLimit();
+		}
+		res.json(await kiStatus());
 	});
 
 	router.post('/ki/einordnen', async (req, res) => {

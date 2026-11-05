@@ -153,6 +153,9 @@ test.describe('Editor: Mit Claude ändern (058, 059)', () => {
 			limit: {
 				status,
 				zurueck: '2030-03-17T18:00:00.000Z',
+				guthaben: status === 'rejected' ? 'abgelehnt' : null,
+				laeuftUeberGuthaben: false,
+				fensterArt: 'fuenfStunden',
 				fenster: { fuenfStunden: { auslastung, zurueck: null }, sieben: { auslastung: 0.1, zurueck: null } },
 			},
 		});

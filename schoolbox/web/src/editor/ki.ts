@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 
-import { lade, meldung, sende } from '../api';
+import { ApiFehler, lade, meldung, sende } from '../api';
 import { useEreignisse } from '../ereignisse';
 
 export type KiStatus = 'wartet' | 'laeuft' | 'fertig' | 'fehler' | 'abgebrochen';
@@ -12,6 +12,7 @@ export interface KiAuftrag {
 	fehler: string | null;
 	ergebnis: 'vorschlag' | 'antwort' | null;
 	antwort: string | null;
+	limitErreicht?: boolean;
 }
 
 export interface KiFenster {
@@ -23,6 +24,9 @@ export interface KiLimit {
 	status: string;
 	fenster: { fuenfStunden: KiFenster; sieben: KiFenster };
 	zurueck: string | null;
+	guthaben: 'erlaubt' | 'abgelehnt' | null;
+	laeuftUeberGuthaben: boolean;
+	fensterArt: 'fuenfStunden' | 'woche' | null;
 }
 
 export interface KiAktion {
@@ -57,11 +61,36 @@ export const useKiZustand = () => {
 		lade<KiZustand>('/api/ki/status').then(setZustand, () => setZustand(LEER));
 	}, []);
 	useEffect(neu, [neu]);
-	return { zustand, neu };
+	/** Fragt das Konto selbst: Nur so löst sich eine Sperre, zum Beispiel nach dem Kauf von Guthaben. */
+	const pruefeLimit = useCallback(async () => {
+		setZustand(await sende<KiZustand>('/api/ki/limit/pruefen'));
+	}, []);
+	return { zustand, neu, pruefeLimit };
 };
 
 const zeit = (iso: string | null) =>
-	iso ? new Date(iso).toLocaleString('de-DE', { weekday: 'long', hour: '2-digit', minute: '2-digit' }) : null;
+	iso
+		? new Date(iso).toLocaleString('de-DE', {
+				weekday: 'long',
+				day: 'numeric',
+				month: 'numeric',
+				hour: '2-digit',
+				minute: '2-digit',
+			})
+		: null;
+
+/** Kurz wie gesprochen: „Dienstag“ für 0 Uhr, sonst mit Uhrzeit, und am selben Tag nur die Uhrzeit. */
+const bisWann = (iso: string) => {
+	const d = new Date(iso);
+	const tag = d.toLocaleDateString('de-DE', { weekday: 'long' });
+	const uhr = d.toLocaleTimeString('de-DE', { hour: '2-digit', minute: '2-digit' });
+	if (uhr === '00:00') {
+		return tag;
+	}
+	return d.toDateString() === new Date().toDateString() ? `${uhr} Uhr` : `${tag} ${uhr} Uhr`;
+};
+
+const LIMIT_NAMEN = { woche: 'Wochenlimit', fuenfStunden: 'Fünf-Stunden-Limit' };
 
 /** Die Meldung zum Limit in einfachen Worten; `null`, solange genug Luft ist. */
 export const limitHinweis = (limit: KiLimit | null, warnAb: number) => {
@@ -69,18 +98,34 @@ export const limitHinweis = (limit: KiLimit | null, warnAb: number) => {
 		return null;
 	}
 	const { fuenfStunden, sieben } = limit.fenster;
-	if (limit.status === 'rejected') {
-		const wann = zeit(limit.zurueck);
+	// Ein Stand von vor dem Reset gilt nicht mehr, auch wenn seither kein Lauf ihn ersetzt hat.
+	const gilt = !limit.zurueck || new Date(limit.zurueck).getTime() > Date.now();
+	const name = limit.fensterArt ? LIMIT_NAMEN[limit.fensterArt] : 'Limit';
+	const wann = zeit(limit.zurueck);
+	if (gilt && limit.status === 'rejected' && limit.guthaben === 'abgelehnt') {
 		return {
 			art: 'gesperrt' as const,
-			text: `Das Limit des Claude-Kontos ist erreicht${wann ? `. Wieder möglich ab ${wann} Uhr` : ''}. Auch die Claude-App ist so lange betroffen.`,
+			text: `Das Limit des Claude-Kontos ist erreicht${wann ? `. Wieder möglich ab ${wann} Uhr` : ''}.`,
+		};
+	}
+	if (gilt && (limit.laeuftUeberGuthaben || (limit.status === 'rejected' && limit.guthaben === 'erlaubt'))) {
+		return {
+			art: 'guthaben' as const,
+			text: `${name} erreicht. Läuft${limit.zurueck ? ` bis ${bisWann(limit.zurueck)}` : ''} über dein Guthaben.`,
+		};
+	}
+	if (gilt && limit.status === 'rejected') {
+		// Das Konto hat nichts zum Guthaben gesagt: Erst der nächste Lauf zeigt, ob es weitergeht.
+		return {
+			art: 'warnung' as const,
+			text: `${name} erreicht${wann ? `, wieder frei ab ${wann} Uhr` : ''}. Du kannst es trotzdem versuchen.`,
 		};
 	}
 	const hoechste = Math.max(fuenfStunden.auslastung ?? 0, sieben.auslastung ?? 0);
 	if (hoechste >= warnAb) {
 		return {
 			art: 'warnung' as const,
-			text: `Das Limit des Claude-Kontos ist zu ${Math.round(hoechste * 100)} % ausgeschöpft. Ist es erreicht, ist auch die Claude-App betroffen.`,
+			text: `Das Limit des Claude-Kontos ist zu ${Math.round(hoechste * 100)} % ausgeschöpft. Die Claude-App zählt mit.`,
 		};
 	}
 	return null;
@@ -101,6 +146,8 @@ export const useKiAuftrag = (mappe: string | null, dok: string | null, nachLauf:
 	const [auftrag, setAuftrag] = useState<KiAuftrag | null>(null);
 	const [vorschlag, setVorschlag] = useState<Vorschlag | null>(null);
 	const [fehler, setFehler] = useState<string | null>(null);
+	// Zählt jede Ablehnung, damit der Chat den Auftrag zurück ins Feld legen kann.
+	const [abgelehnt, setAbgelehnt] = useState(0);
 	const letzteFrage = useRef(0);
 
 	const ladeVorschlag = useCallback(async () => {
@@ -123,6 +170,9 @@ export const useKiAuftrag = (mappe: string | null, dok: string | null, nachLauf:
 				}
 				if (neu.status === 'fertig' || neu.status === 'fehler' || neu.status === 'abgebrochen') {
 					setFehler(neu.fehler);
+					if (neu.limitErreicht) {
+						setAbgelehnt((n) => n + 1);
+					}
 					// Erst der Vorschlag, dann das Ende: Wer das Ende sieht, soll auch den Vorschlag sehen.
 					await ladeVorschlag();
 					setAuftrag(neu);
@@ -187,6 +237,9 @@ export const useKiAuftrag = (mappe: string | null, dok: string | null, nachLauf:
 			await pruefe(neu.id);
 		} catch (grund) {
 			setFehler(meldung(grund));
+			if (grund instanceof ApiFehler && grund.status === 429) {
+				setAbgelehnt((n) => n + 1);
+			}
 			nachLauf();
 		}
 	};
@@ -205,6 +258,7 @@ export const useKiAuftrag = (mappe: string | null, dok: string | null, nachLauf:
 		auftrag,
 		vorschlag,
 		fehler,
+		abgelehnt,
 		starte,
 		laeuft: auftrag?.status === 'laeuft' || auftrag?.status === 'wartet',
 		setFehler,

@@ -336,7 +336,9 @@ const ABSCHNITTE: Abschnitt[] = [
 				<h3>Verbrauch</h3>
 				<p>
 					Alles zählt für das Limit deines Claude-Kontos, zusammen mit der Claude-App. Eine Änderung braucht
-					wenig, neues Material deutlich mehr und einige Minuten. Wird es knapp, steht das im Chat.
+					wenig, neues Material deutlich mehr und einige Minuten. Wird es knapp, steht das im Chat. Hast du
+					Guthaben gekauft, arbeitet Claude am erreichten Limit darüber weiter, das ist echtes Geld. Auch das
+					steht dann im Chat.
 				</p>
 			</>
 		),
