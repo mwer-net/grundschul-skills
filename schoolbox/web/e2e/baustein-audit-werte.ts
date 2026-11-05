@@ -73,7 +73,7 @@ const listenWerte = (feld: Feld & { art: 'liste' }, roh: string | null): [string
 		faelle.push(['entfernen', zeilenText(feld, z.slice(0, -1))]);
 	}
 	const [a, b] = z;
-	if (a && b && a.join() !== b.join()) {
+	if (a && b && a.join() !== b.join() && feld.sortierbar !== false) {
 		faelle.push(['umsortieren', zeilenText(feld, [b, a, ...z.slice(2)])]);
 	}
 	return faelle;

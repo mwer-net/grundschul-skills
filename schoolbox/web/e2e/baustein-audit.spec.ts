@@ -216,12 +216,18 @@ const leseInspektor = (page: Page) =>
 	});
 
 const rahmenVon = async (page: Page): Promise<Frame> => {
-	const griff = await page.locator('[data-editor-rahmen="sichtbar"]').elementHandle();
-	const rahmen = await griff?.contentFrame();
-	if (!rahmen) {
-		throw new Error('Rahmen fehlt');
+	// Jede neue Quelle lädt in einem neuen Rahmen, der alte verschwindet erst danach.
+	const griff = page.locator('iframe[data-editor-rahmen="sichtbar"]').first();
+	await griff.waitFor({ state: 'attached', timeout: 15_000 });
+	for (let i = 0; i < 100; i += 1) {
+		const griffElement = await griff.elementHandle().catch(() => null);
+		const rahmen = await griffElement?.contentFrame().catch(() => null);
+		if (rahmen) {
+			return rahmen;
+		}
+		await page.waitForTimeout(100);
 	}
-	return rahmen;
+	throw new Error('Rahmen fehlt');
 };
 
 const seitenUndFehler = async (rahmen: Frame) =>
@@ -497,7 +503,8 @@ const pruefeNamen = (e: KatalogEintrag, schema: AbbildungSchema | undefined, ver
 };
 
 const ist = (e: KatalogEintrag, nurLoesung: boolean) => {
-	if (e.herkunft === 'rezept' || e.id === 'aufgabe') {
+	// Die Anweisung ist Teil der Aufgabe und hat keine eigene Auswahl.
+	if (e.herkunft === 'rezept' || e.id === 'aufgabe' || e.id === 'anweisung') {
 		return /^Aufgabe/;
 	}
 	return nurLoesung ? /./ : null;
@@ -528,7 +535,12 @@ const pruefeKit = async (page: Page, e: KatalogEintrag, art: string, verstoesse:
 	const n = auswahl === null ? nr : Number(auswahl);
 	const werte = leseKit(q, n, art);
 	const seite = async () => {
-		await expect.poll(() => rahmenVon(page).then(() => true).catch(() => false)).toBe(true);
+		await expect
+			.poll(async () => {
+				const r = await rahmenVon(page);
+				return r.locator('.seite').count().catch(() => 0);
+			})
+			.toBeGreaterThan(0);
 		return (await rahmenVon(page)).locator('.seite').first().screenshot();
 	};
 	const bezug = await seite();
@@ -774,6 +786,10 @@ test.describe('Prüfmaschine', () => {
 					rahmen = await rahmenVon(page);
 					stand = await seitenUndFehler(rahmen);
 				}
+				await expect
+					.poll(() => leseInspektor(page).then((i) => i?.pfad ?? ''), { timeout: 3000 })
+					.not.toBe('')
+					.catch(() => undefined);
 				const inspektor = await leseInspektor(page);
 				const pfad = inspektor?.pfad ?? '';
 				// G1: Der Baustein selbst ist gewählt, bei Rezepten die Aufgabe.

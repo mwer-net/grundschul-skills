@@ -1153,6 +1153,7 @@ const Liste = ({ abb, feld }: FeldEigenschaften<ListeFeld>) => {
 		griffe?.[ziel]?.focus();
 	};
 	const spalten = feld.unter.filter((u) => u.art !== 'schalter');
+	const sortierbar = feld.sortierbar !== false;
 	const voll = feld.max !== undefined && zeilen.length >= feld.max;
 	const ohneZeile = feld.min !== undefined && zeilen.length <= feld.min;
 	return (
@@ -1162,7 +1163,13 @@ const Liste = ({ abb, feld }: FeldEigenschaften<ListeFeld>) => {
 			) : (
 				<div ref={behaelter} className="flex flex-col gap-0.5" data-liste={feld.attribut}>
 					{spalten.length > 1 && zeilen.length > 0 && (
-						<div className="flex items-center gap-1 pr-[calc(var(--hoehe-feld)+0.25rem)] pl-6 text-xs text-leise" data-liste-kopf>
+						<div
+							className={klassen(
+								'flex items-center gap-1 pr-[calc(var(--hoehe-feld)+0.25rem)] text-xs text-leise',
+								sortierbar && 'pl-6',
+							)}
+							data-liste-kopf
+						>
 							{spalten.map((u) =>
 								u.art === 'bild' || u.art === 'muster' ? (
 									<span key={u.name} className="w-(--hoehe-feld) flex-none" title={u.name} />
@@ -1186,13 +1193,15 @@ const Liste = ({ abb, feld }: FeldEigenschaften<ListeFeld>) => {
 							)}
 							data-zeile={i}
 						>
-							<Griff
-								beschriftung={`Zeile ${i + 1} verschieben`}
-								className="h-feld"
-								data-zeile-griff={i}
-								onPointerDown={(e) => greife(i, e)}
-								onKeyDown={(e) => griffTaste(i, e)}
-							/>
+							{sortierbar && (
+								<Griff
+									beschriftung={`Zeile ${i + 1} verschieben`}
+									className="h-feld"
+									data-zeile-griff={i}
+									onPointerDown={(e) => greife(i, e)}
+									onKeyDown={(e) => griffTaste(i, e)}
+								/>
+							)}
 							{feld.unter.flatMap((u, j) =>
 								u.art === 'schalter'
 									? []
@@ -1217,8 +1226,8 @@ const Liste = ({ abb, feld }: FeldEigenschaften<ListeFeld>) => {
 								aendere={(j, w, sofort) => schreibe(mitZelle(i, j, w), sofort)}
 								uebernimm={abb.uebernimm}
 								entfernen={ohneZeile ? null : () => schreibe(zeilen.filter((_, n) => n !== i))}
-								nachOben={i === 0 ? null : () => verschiebe(i, i - 1)}
-								nachUnten={i === zeilen.length - 1 ? null : () => verschiebe(i, i + 2)}
+								nachOben={!sortierbar || i === 0 ? null : () => verschiebe(i, i - 1)}
+								nachUnten={!sortierbar || i === zeilen.length - 1 ? null : () => verschiebe(i, i + 2)}
 							/>
 						</div>
 					))}

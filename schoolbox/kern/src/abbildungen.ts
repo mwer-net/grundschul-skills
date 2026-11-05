@@ -147,6 +147,8 @@ export interface ListeFeld extends FeldBasis {
 	feldTrenner?: ':' | ': ' | '-' | ' ' | '';
 	/** Viele Einträge: Knopf „Als Text bearbeiten“, eine Zeile je Eintrag. */
 	alsText?: boolean;
+	/** `false`: Die Reihenfolge wirkt nicht (die Zeichnung ordnet selbst), also kein Griff. */
+	sortierbar?: boolean;
 }
 
 /** Mehrere Haken aus festen Optionen; im Attribut mit Leerzeichen getrennt. */
@@ -1500,7 +1502,7 @@ export const ABBILDUNG_SCHEMA = {
 			},
 			{
 				art: 'liste',
-				attribut: 'ereignisse',
+				attribut: 'ereignisse', sortierbar: false,
 				name: 'Ereignisse',
 				unter: [
 					{ name: 'Buchstabe', art: 'text', standard: 'A' },
@@ -2659,7 +2661,7 @@ export const ABBILDUNG_SCHEMA = {
 			},
 			{
 				art: 'liste',
-				attribut: 'ereignisse',
+				attribut: 'ereignisse', sortierbar: false,
 				name: 'Ereignisse',
 				hilfe: 'Jahr oder Zeitraum: 1914 oder 1900-1914, vor Christus mit Minus: -500.',
 				unter: [
@@ -3164,7 +3166,7 @@ export const ABBILDUNG_SCHEMA = {
 					{ wert: '4', name: '4' },
 				],
 			},
-			{ art: 'schalter', attribut: 'frei', name: 'Joker in der Mitte', an: 'ja', aus: 'nein', standard: false },
+			{ art: 'schalter', attribut: 'frei', nurWenn: (w) => Number(w.felder ?? 4) % 2 === 1, name: 'Joker in der Mitte', an: 'ja', aus: 'nein', standard: false },
 			{ art: 'schalter', attribut: 'rufliste', name: 'Rufliste', an: 'ja', aus: 'nein', standard: true },
 		],
 		regeln: (w): Fehler => {
@@ -4443,7 +4445,7 @@ export const ABBILDUNG_SCHEMA = {
 				gruppe: 'Weitere Angaben',
 			},
 			{ art: 'zahl', ...GROESSE, min: 16, max: 80, standard: 30, schritt: 2, gruppe: 'Weitere Angaben' },
-			{ art: 'text', attribut: 'seed', name: 'Mischung', gruppe: 'Weitere Angaben' },
+			{ art: 'text', attribut: 'seed', nurWenn: wenn('aufgabe', 'keine', 'augen-ergaenzen'), name: 'Mischung', gruppe: 'Weitere Angaben' },
 		],
 	},
 	'x-koerper': {
