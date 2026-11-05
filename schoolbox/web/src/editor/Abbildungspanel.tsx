@@ -45,20 +45,27 @@ import {
 	rasterVon,
 	stellenVon,
 	zahlStandard,
+	zeilenAlsText,
+	zeilenAusText,
 	zeilenText,
 	zeilenVon,
 	ziffernText,
 } from '@schoolbox/kern/src/abbildungen';
 import type { AbschnittName } from '@schoolbox/kern/src/abschnitte';
-import type { KeyboardEvent, ReactNode } from 'react';
-import { useEffect, useId, useMemo, useRef, useState } from 'react';
+import type { CSSProperties, KeyboardEvent, PointerEvent as ReactPointerEvent, ReactNode } from 'react';
+import { Fragment, useEffect, useId, useMemo, useRef, useState } from 'react';
 
 import { meldung, sende, sendeDatei } from '../api';
+import { Griff } from '../bausteine/Griff';
 import { Hilfetipp } from '../bausteine/Hilfetipp';
+import { klassen } from '../bausteine/klassen';
 import { Knopf } from '../bausteine/Knopf';
+import { Menue } from '../bausteine/Menue';
+import { Popover } from '../bausteine/Popover';
 import { Schalter as Umschalter } from '../bausteine/Schalter';
 import { Symbol } from '../bausteine/Symbol';
 import { Zeile } from '../bausteine/Zeile';
+import { folgeZeiger, rolleAmRand, schluckeKlick } from '../bausteine/zeigerzug';
 import type { AbbildungSteuerung } from './abbildung';
 import { leistenFelder } from './abbildung-felder';
 import { bereiteVor } from './bild';
@@ -153,7 +160,7 @@ const Rahmen = ({
 				</Zeile>
 			) : (
 				<>
-					<span className="flex h-zeile items-center gap-1 text-leise">
+					<span className="flex h-zeile items-center gap-1 text-xs font-medium text-tinte">
 						<label htmlFor={id}>{feld.name}</label>
 						{feld.hilfe && <Hilfetipp name={feld.name}>{feld.hilfe}</Hilfetipp>}
 					</span>
@@ -267,7 +274,7 @@ const Uhrzeit = ({ abb, feld }: FeldEigenschaften<UhrzeitFeld>) => {
 				<select
 					id={id}
 					aria-label="Stunde"
-					className={EINGABE}
+					className={`${EINGABE} pr-4`}
 					aria-invalid={Boolean(abb.fehler[feld.attribut])}
 					value={stunde ?? ''}
 					onChange={(e) => setze(e.target.value === '' ? null : Number(e.target.value), minute)}
@@ -282,7 +289,7 @@ const Uhrzeit = ({ abb, feld }: FeldEigenschaften<UhrzeitFeld>) => {
 				<span className="text-leise">:</span>
 				<select
 					aria-label="Minuten"
-					className={EINGABE}
+					className={`${EINGABE} pr-4`}
 					disabled={stunde === null}
 					value={minute ?? ''}
 					onChange={(e) => setze(stunde, Number(e.target.value))}
@@ -299,6 +306,9 @@ const Uhrzeit = ({ abb, feld }: FeldEigenschaften<UhrzeitFeld>) => {
 	);
 };
 
+/** So viele Zeichen passen mit Pfeil neben einen Feldnamen. */
+const AUSWAHL_DANEBEN = 12;
+
 const Auswahl = ({ abb, feld }: FeldEigenschaften<AuswahlFeld>) => {
 	const id = useId();
 	const wert = wertVon(feld, abb)?.wert ?? feld.standard ?? null;
@@ -309,11 +319,13 @@ const Auswahl = ({ abb, feld }: FeldEigenschaften<AuswahlFeld>) => {
 	const optionen = bekannt ? moeglich : [...moeglich, { wert, name: wert ?? '–' }];
 	const index = optionen.findIndex((o) => o.wert === wert);
 	const blaettere = (schritt: number) => abb.aendere(feld, optionen[index + schritt]?.wert ?? null);
+	// Lange Texte bekämen neben dem Namen zu wenig Platz: Sie stehen über die ganze Breite (G6).
+	const breit = feld.vorschau || feld.blaettern || optionen.some((o) => o.name.length > AUSWAHL_DANEBEN);
 	return (
-		<Rahmen daneben={!feld.vorschau && !feld.blaettern} feld={feld} abb={abb} id={id}>
+		<Rahmen daneben={!breit} feld={feld} abb={abb} id={id}>
 			<select
 				id={id}
-				className={`${EINGABE} ${feld.vorschau || feld.blaettern ? 'w-full' : 'w-auto max-w-32'}`}
+				className={`${EINGABE} ${breit ? 'w-full' : 'w-auto min-w-14 pr-5'}`}
 				aria-invalid={Boolean(abb.fehler[feld.attribut])}
 				value={index}
 				onChange={(e) => abb.aendere(feld, optionen[Number(e.target.value)]?.wert ?? null)}
@@ -610,8 +622,9 @@ const Mehrfach = ({ abb, feld }: FeldEigenschaften<MehrfachFeld>) => {
 	);
 };
 
+/** Bleibt beim Rollen oben: Man mischt, während man auf lange Listen schaut. */
 const Mischen = ({ abb, feld }: FeldEigenschaften<MischenFeld>) => (
-	<div className="mt-5" data-feld={feld.attribut}>
+	<div className="sticky top-0 z-10 flex items-center gap-1 bg-flaeche py-1" data-feld={feld.attribut}>
 		<Knopf
 			art="zweit"
 			onClick={() => abb.aendere(feld, String(Math.floor(Math.random() * 1_000_000) + 1))}
@@ -620,22 +633,19 @@ const Mischen = ({ abb, feld }: FeldEigenschaften<MischenFeld>) => (
 			<Symbol name="neueZahlen" />
 			{feld.knopf ?? 'Neu mischen'}
 		</Knopf>
-		{feld.hilfe && <p className="mt-1 text-leise">{feld.hilfe}</p>}
+		{feld.hilfe && <Hilfetipp name={feld.knopf ?? 'Neu mischen'}>{feld.hilfe}</Hilfetipp>}
 	</div>
 );
 
-/** Bild einer Listenzeile: aus der Sammlung oder hochgeladen; gespeichert wird nur der Pfad. */
-const BildWahl = ({
-	abb,
-	aendere,
-	name,
-	wert,
-}: {
+interface BildWahlEigenschaften {
 	abb: AbbildungSteuerung;
 	aendere: (neu: string, sofort: boolean) => void;
 	name: string;
 	wert: string;
-}) => {
+}
+
+/** Bild aus der Sammlung oder hochgeladen; gespeichert wird nur der Pfad. Beide Darstellungen teilen das. */
+const useBildWahl = ({ abb, aendere, name }: BildWahlEigenschaften) => {
 	const [sammlung, setSammlung] = useState(false);
 	const [fehler, setFehler] = useState<string | null>(null);
 	const datei = useRef<HTMLInputElement>(null);
@@ -650,13 +660,60 @@ const BildWahl = ({
 		const { daten, name: dateiname } = await bereiteVor(d);
 		return sendeDatei<{ src: string }>(`${abb.adresse}/bilder`, daten, dateiname);
 	};
+	return {
+		oeffneSammlung: () => setSammlung(true),
+		oeffneDatei: () => datei.current?.click(),
+		dazu: (
+			<>
+				<input
+					ref={datei}
+					type="file"
+					accept="image/*"
+					className="hidden"
+					aria-label={`${name} hochladen`}
+					onChange={(e) => {
+						const d = e.target.files?.[0];
+						e.target.value = '';
+						if (d) {
+							arbeite(() => lade(d));
+						}
+					}}
+				/>
+				{fehler && (
+					<p className="w-full text-fehler" role="alert">
+						{fehler}
+					</p>
+				)}
+				{sammlung && (
+					<SammlungDialog
+						adresse={abb.adresse}
+						schliessen={() => setSammlung(false)}
+						waehle={(eintrag) => {
+							setSammlung(false);
+							arbeite(() =>
+								sende<{ src: string }>(`${abb.adresse}/bilder/uebernehmen`, {
+									schluessel: eintrag.schluessel,
+								}),
+							);
+						}}
+					/>
+				)}
+			</>
+		),
+	};
+};
+
+/** Ein Bild-Feld für sich: alle Wege als Knöpfe. */
+const BildWahl = (e: BildWahlEigenschaften) => {
+	const { abb, aendere, name, wert } = e;
+	const { dazu, oeffneDatei, oeffneSammlung } = useBildWahl(e);
 	return (
 		<div className="flex flex-wrap items-center gap-2" role="group" aria-label={name}>
 			{wert && <img className="h-12 w-12 flex-none object-contain" alt="" src={`${abb.bildBasis}${wert}`} />}
-			<Knopf art="zweit" className="flex-1" onClick={() => setSammlung(true)}>
+			<Knopf art="zweit" className="flex-1" onClick={oeffneSammlung}>
 				Aus der Sammlung
 			</Knopf>
-			<Knopf art="zweit" className="flex-1" onClick={() => datei.current?.click()}>
+			<Knopf art="zweit" className="flex-1" onClick={oeffneDatei}>
 				Hochladen
 			</Knopf>
 			{wert && (
@@ -664,40 +721,40 @@ const BildWahl = ({
 					Bild entfernen
 				</Knopf>
 			)}
-			<input
-				ref={datei}
-				type="file"
-				accept="image/*"
-				className="hidden"
-				aria-label={`${name} hochladen`}
-				onChange={(e) => {
-					const d = e.target.files?.[0];
-					e.target.value = '';
-					if (d) {
-						arbeite(() => lade(d));
-					}
-				}}
-			/>
-			{fehler && (
-				<p className="w-full text-fehler" role="alert">
-					{fehler}
-				</p>
-			)}
-			{sammlung && (
-				<SammlungDialog
-					adresse={abb.adresse}
-					schliessen={() => setSammlung(false)}
-					waehle={(eintrag) => {
-						setSammlung(false);
-						arbeite(() =>
-							sende<{ src: string }>(`${abb.adresse}/bilder/uebernehmen`, {
-								schluessel: eintrag.schluessel,
-							}),
-						);
-					}}
-				/>
-			)}
+			{dazu}
 		</div>
+	);
+};
+
+/** In einer Listenzeile: ein Symbol, das die Wege als Menü öffnet (G3). Ist ein Bild gesetzt, zeigt es das Bild. */
+const BildKnopf = (e: BildWahlEigenschaften) => {
+	const { abb, aendere, name, wert } = e;
+	const { dazu, oeffneDatei, oeffneSammlung } = useBildWahl(e);
+	return (
+		<>
+			<Menue
+				name={name}
+				eintraege={[
+					{ titel: 'Aus der Sammlung', waehle: oeffneSammlung },
+					{ titel: 'Hochladen', waehle: oeffneDatei },
+					...(wert ? [{ titel: 'Bild entfernen', gefahr: true, waehle: () => aendere('', true) }] : []),
+				]}
+				ausloeser={
+					<button
+						type="button"
+						className="flex size-(--hoehe-feld) flex-none items-center justify-center overflow-hidden rounded-md border border-rand-feld bg-flaeche text-leise hover:bg-flaeche-2"
+						data-bild-knopf={wert ? 'gesetzt' : 'leer'}
+					>
+						{wert ? (
+							<img className="size-full object-contain" alt="" src={`${abb.bildBasis}${wert}`} />
+						) : (
+							<Symbol name="bild" />
+						)}
+					</button>
+				}
+			/>
+			{dazu}
+		</>
 	);
 };
 
@@ -709,7 +766,38 @@ const MINI_BEISPIEL: Record<string, string> = {
 	rhythmus: '4 8 8 4',
 };
 
-/** Ein Feldinhalt: Art wählen, dazu die passende Eingabe. Im Attribut steht `uhr:7:30`, Text ohne Vorsatz. */
+const mitMiniArt = (art: string, inhalt: string) => (art ? `${art}:${inhalt}` : inhalt);
+
+/** Art eines Feldinhalts: Im Attribut steht `uhr:7:30`, Text ohne Vorsatz. Steht im ⋯ der Zeile (G3). */
+const MiniArt = ({
+	aendere,
+	name,
+	wert,
+}: {
+	wert: string;
+	name: string;
+	aendere: (neu: string, sofort: boolean) => void;
+}) => {
+	const { art, inhalt } = miniTeile(wert);
+	return (
+		<select
+			aria-label={`Art: ${name}`}
+			className={`${EINGABE} w-full`}
+			value={art}
+			onChange={(e) => {
+				const neu = e.target.value;
+				aendere(mitMiniArt(neu, neu === art ? inhalt : (MINI_BEISPIEL[neu] ?? '')), true);
+			}}
+		>
+			{MINI_ARTEN.map((o) => (
+				<option key={o.wert} value={o.wert}>
+					{o.name}
+				</option>
+			))}
+		</select>
+	);
+};
+
 const MiniEingabe = ({
 	abb,
 	aendere,
@@ -724,48 +812,66 @@ const MiniEingabe = ({
 	uebernimm: () => void;
 }) => {
 	const { art, inhalt } = miniTeile(wert);
-	const mitArt = (neu: string, neuInhalt: string) => (neu ? `${neu}:${neuInhalt}` : neuInhalt);
-	return (
-		<div className="flex flex-col gap-2">
-			<select
-				aria-label={`Art: ${name}`}
-				className={`${EINGABE} w-full`}
-				value={art}
-				onChange={(e) => {
-					const neu = e.target.value;
-					aendere(mitArt(neu, neu === art ? inhalt : (MINI_BEISPIEL[neu] ?? '')), true);
-				}}
-			>
-				{MINI_ARTEN.map((o) => (
-					<option key={o.wert} value={o.wert}>
-						{o.name}
-					</option>
-				))}
-			</select>
-			{art === 'bild' ? (
-				<BildWahl
-					abb={abb}
-					aendere={(w, sofort) => aendere(mitArt(art, w), sofort)}
-					name={name}
-					wert={inhalt}
-				/>
-			) : (
-				<input
-					type="text"
-					aria-label={name}
-					placeholder={MINI_BEISPIEL[art] ?? name}
-					enterKeyHint="done"
-					autoComplete="off"
-					className={`${EINGABE} w-full min-w-0`}
-					value={inhalt}
-					onChange={(e) => aendere(mitArt(art, e.target.value), false)}
-					onBlur={uebernimm}
-					onKeyDown={fertigMitEnter}
-				/>
-			)}
-		</div>
+	return art === 'bild' ? (
+		<BildKnopf abb={abb} aendere={(w, sofort) => aendere(mitMiniArt(art, w), sofort)} name={name} wert={inhalt} />
+	) : (
+		<input
+			type="text"
+			aria-label={name}
+			placeholder={MINI_BEISPIEL[art] ?? name}
+			enterKeyHint="done"
+			autoComplete="off"
+			className={`${EINGABE} w-full min-w-0`}
+			value={inhalt}
+			onChange={(e) => aendere(mitMiniArt(art, e.target.value), false)}
+			onBlur={uebernimm}
+			onKeyDown={fertigMitEnter}
+		/>
 	);
 };
+
+/** Füllung in einer Zeile: ein kleines Feld, das die Muster aufklappt. */
+const MusterKnopf = ({
+	aendere,
+	name,
+	optionen,
+	sw,
+	wert,
+}: {
+	optionen: Option[];
+	name: string;
+	sw: boolean;
+	wert: string;
+	aendere: (neu: string, sofort: boolean) => void;
+}) => (
+	<Popover
+		name={name}
+		className="w-auto"
+		ausloeser={
+			<button
+				type="button"
+				className="size-(--hoehe-feld) flex-none rounded-md border border-rand-feld"
+				style={{ background: (sw ? MUSTER_BILD : FARB_BILD)[wert] ?? '#fff' }}
+				data-muster-knopf={wert}
+			/>
+		}
+	>
+		{(schliessen) => (
+			<div className="w-52">
+				<Muster
+					optionen={optionen}
+					aktiv={wert}
+					name={name}
+					sw={sw}
+					setze={(w) => {
+						aendere(w, true);
+						schliessen();
+					}}
+				/>
+			</div>
+		)}
+	</Popover>
+);
 
 const UnterEingabe = ({
 	abb,
@@ -800,15 +906,13 @@ const UnterEingabe = ({
 		);
 	}
 	if (u.art === 'bild') {
-		return <BildWahl abb={abb} aendere={aendere} name={name} wert={wert} />;
+		return <BildKnopf abb={abb} aendere={aendere} name={name} wert={wert} />;
 	}
 	if (u.art === 'mini') {
 		return <MiniEingabe abb={abb} aendere={aendere} name={name} uebernimm={uebernimm} wert={wert} />;
 	}
 	if (u.art === 'muster') {
-		return (
-			<Muster optionen={u.optionen ?? []} aktiv={wert} name={name} sw={abb.sw} setze={(w) => aendere(w, true)} />
-		);
+		return <MusterKnopf optionen={u.optionen ?? []} wert={wert} name={name} sw={abb.sw} aendere={aendere} />;
 	}
 	if (u.art === 'schalter') {
 		return (
@@ -836,91 +940,320 @@ const UnterEingabe = ({
 	);
 };
 
+/** Breite einer Spalte in der Zeile: Zahlen und Symbole so schmal wie möglich, Text teilt sich den Rest. */
+const spaltenKlasse = (u: UnterFeld) => {
+	if (u.art === 'zahl') {
+		return 'w-12 flex-none';
+	}
+	return u.art === 'bild' || u.art === 'muster' ? 'flex-none' : 'min-w-0 flex-1';
+};
+
+/** Griff zum Umsortieren: Der Zug sagt nur, wohin; geschrieben wird erst beim Loslassen, ein Schritt im Verlauf. */
+const useZeilenZug = (verschiebe: (von: number, nach: number) => void) => {
+	const behaelter = useRef<HTMLDivElement>(null);
+	const [zug, setZug] = useState<{ von: number; nach: number } | null>(null);
+	const zielBei = (y: number) => {
+		const zeilen = [...(behaelter.current?.querySelectorAll(':scope > [data-zeile]') ?? [])];
+		const i = zeilen.findIndex((z) => {
+			const r = z.getBoundingClientRect();
+			return y < r.top + r.height / 2;
+		});
+		return i < 0 ? zeilen.length : i;
+	};
+	const greife = (von: number, e: ReactPointerEvent<HTMLButtonElement>) => {
+		if (e.button !== 0) {
+			return;
+		}
+		e.preventDefault();
+		const start = e.clientY;
+		let y = start;
+		let laeuft = false;
+		const rolle = behaelter.current?.closest('.overflow-y-auto') ?? null;
+		const hoereAuf = folgeZeiger({
+			bewegen: (m) => {
+				y = m.clientY;
+				if (!laeuft && Math.abs(y - start) >= 4) {
+					laeuft = true;
+					setZug({ von, nach: zielBei(y) });
+				}
+			},
+			los: (m) => {
+				hoereAuf();
+				setZug(null);
+				if (laeuft) {
+					schluckeKlick();
+					verschiebe(von, zielBei(m.clientY));
+				}
+			},
+			abbruch: () => {
+				hoereAuf();
+				setZug(null);
+			},
+			taste: (k) => {
+				if (k.key === 'Escape') {
+					k.preventDefault();
+					k.stopPropagation();
+					hoereAuf();
+					setZug(null);
+				}
+			},
+			bild: () => {
+				if (laeuft) {
+					if (rolle) {
+						rolleAmRand(rolle, y);
+					}
+					setZug({ von, nach: zielBei(y) });
+				}
+			},
+			sperrtRollen: () => laeuft,
+		});
+	};
+	return { behaelter, zug, greife };
+};
+
+/** Was nicht in die Zeile passt: Art, Schalter, Entfernen. ↑ ↓ nur am Finger, die Maus nimmt den Griff. */
+const ZeilenMenue = ({
+	abb,
+	aendere,
+	entfernen,
+	i,
+	nachOben,
+	nachUnten,
+	u,
+	uebernimm,
+	zeile,
+}: {
+	abb: AbbildungSteuerung;
+	u: UnterFeld[];
+	zeile: string[];
+	i: number;
+	aendere: (j: number, wert: string, sofort: boolean) => void;
+	uebernimm: () => void;
+	entfernen: (() => void) | null;
+	nachOben: (() => void) | null;
+	nachUnten: (() => void) | null;
+}) => (
+	<Popover
+		name={`Zeile ${i + 1}: mehr`}
+		ausrichtung="end"
+		ausloeser={
+			<button
+				type="button"
+				className="flex size-(--hoehe-feld) flex-none items-center justify-center rounded-md text-leise hover:bg-flaeche-2"
+				data-zeile-mehr={i}
+			>
+				<Symbol name="mehr" />
+			</button>
+		}
+	>
+		<div className="flex flex-col gap-2">
+			{u.map((unter, j) =>
+				unter.art === 'mini' ? (
+					<MiniArt
+						key={unter.name}
+						name={`${unter.name} in Zeile ${i + 1}`}
+						wert={zeile[j] ?? ''}
+						aendere={(w, sofort) => aendere(j, w, sofort)}
+					/>
+				) : (
+					unter.art === 'schalter' && (
+						<UnterEingabe
+							key={unter.name}
+							u={unter}
+							abb={abb}
+							name={`${unter.name} in Zeile ${i + 1}`}
+							wert={zeile[j] ?? ''}
+							aendere={(w, sofort) => aendere(j, w, sofort)}
+							uebernimm={uebernimm}
+						/>
+					)
+				),
+			)}
+			<div className="hidden gap-2 [@media(any-pointer:coarse)]:flex">
+				<Knopf
+					art="zweit"
+					className="flex-1"
+					aria-label={`Zeile ${i + 1} nach oben`}
+					disabled={!nachOben}
+					onClick={() => nachOben?.()}
+				>
+					↑
+				</Knopf>
+				<Knopf
+					art="zweit"
+					className="flex-1"
+					aria-label={`Zeile ${i + 1} nach unten`}
+					disabled={!nachUnten}
+					onClick={() => nachUnten?.()}
+				>
+					↓
+				</Knopf>
+			</div>
+			<Knopf art="zweit" aria-label={`Zeile ${i + 1} löschen`} disabled={!entfernen} onClick={() => entfernen?.()}>
+				<Symbol name="papierkorb" />
+				Entfernen
+			</Knopf>
+		</div>
+	</Popover>
+);
+
+/** Viele Einträge auf einmal: eine Zeile je Eintrag. Ersetzt das Klicken durch 30 Felder. */
+const ListeAlsText = ({
+	abb,
+	feld,
+	schreibe,
+	zeilen,
+}: FeldEigenschaften<ListeFeld> & { zeilen: string[][]; schreibe: (neu: string[][], sofort: boolean) => void }) => {
+	const [text, setText] = useState(() => zeilenAlsText(feld, zeilen));
+	return (
+		<textarea
+			aria-label={`${feld.name} als Text`}
+			rows={Math.min(14, zeilen.length + 2)}
+			autoComplete="off"
+			autoFocus
+			className={`${EINGABE} h-auto w-full py-2`}
+			data-liste-text={feld.attribut}
+			value={text}
+			onChange={(e) => {
+				setText(e.target.value);
+				schreibe(zeilenAusText(feld, e.target.value), false);
+			}}
+			onBlur={abb.uebernimm}
+		/>
+	);
+};
+
+/** Eine Zeile je Eintrag: Griff, Text, ⋯. Was die Zeile sonst sprengt, liegt im ⋯ oder hinter einem Symbol (G3). */
 const Liste = ({ abb, feld }: FeldEigenschaften<ListeFeld>) => {
 	const id = useId();
+	const [alsText, setAlsText] = useState(false);
 	const zeilen = zeilenVon(feld, wertVon(feld, abb)?.wert ?? null);
 	const schreibe = (neu: string[][], sofort = true) =>
 		abb.aendere(feld, zeilenText(feld, neu), { uebernehmen: sofort });
 	const mitZelle = (i: number, j: number, wert: string) =>
 		zeilen.map((z, n) => (n === i ? feld.unter.map((_, m) => (m === j ? wert : (z[m] ?? ''))) : z));
-	const tausche = (i: number, j: number) => {
+	const verschiebe = (von: number, nach: number) => {
+		const ziel = nach > von ? nach - 1 : nach;
 		const neu = [...zeilen];
-		const [a, b] = [neu[i], neu[j]];
-		if (a && b) {
-			neu[i] = b;
-			neu[j] = a;
+		const [zeile] = neu.splice(von, 1);
+		if (zeile && ziel !== von) {
+			neu.splice(ziel, 0, zeile);
 			schreibe(neu);
 		}
 	};
+	const { behaelter, greife, zug } = useZeilenZug(verschiebe);
+	const griffTaste = (i: number, e: KeyboardEvent<HTMLButtonElement>) => {
+		const ziel = { ArrowUp: i - 1, ArrowDown: i + 1 }[e.key];
+		if (ziel === undefined || ziel < 0 || ziel >= zeilen.length) {
+			return;
+		}
+		e.preventDefault();
+		verschiebe(i, ziel > i ? ziel + 1 : ziel);
+		const griffe = behaelter.current?.querySelectorAll<HTMLButtonElement>('[data-zeile-griff]');
+		griffe?.[ziel]?.focus();
+	};
+	const spalten = feld.unter.filter((u) => u.art !== 'schalter');
 	const voll = feld.max !== undefined && zeilen.length >= feld.max;
+	const ohneZeile = feld.min !== undefined && zeilen.length <= feld.min;
 	return (
 		<Rahmen feld={feld} abb={abb} id={id}>
-			<div className="flex flex-col gap-3" data-liste={feld.attribut}>
-				{zeilen.map((zeile, i) => (
-					// Zeilen tragen keine eigene Kennung; beim Verschieben folgen die Werte dem Entwurf.
-					<div key={String(i)} className="rounded-xl border border-rand p-2" data-zeile={i}>
-						<div className="flex flex-wrap gap-2">
-							{feld.unter.map((u, j) => (
-								<div key={u.name} className={u.art === 'zahl' ? 'w-20 flex-none' : 'min-w-28 flex-1'}>
-									<UnterEingabe
-										u={u}
-										abb={abb}
-										name={`${u.name} in Zeile ${i + 1}`}
-										wert={zeile[j] ?? ''}
-										aendere={(w, sofort) => schreibe(mitZelle(i, j, w), sofort)}
-										uebernimm={abb.uebernimm}
-									/>
-								</div>
-							))}
+			{alsText ? (
+				<ListeAlsText abb={abb} feld={feld} zeilen={zeilen} schreibe={schreibe} />
+			) : (
+				<div ref={behaelter} className="flex flex-col gap-0.5" data-liste={feld.attribut}>
+					{spalten.length > 1 && zeilen.length > 0 && (
+						<div className="flex items-center gap-1 pr-[calc(var(--hoehe-feld)+0.25rem)] pl-6 text-xs text-leise" data-liste-kopf>
+							{spalten.map((u) =>
+								u.art === 'bild' || u.art === 'muster' ? (
+									<span key={u.name} className="w-(--hoehe-feld) flex-none" title={u.name} />
+								) : (
+									<span key={u.name} className={klassen(spaltenKlasse(u), 'truncate')}>
+										{u.name}
+									</span>
+								),
+							)}
 						</div>
-						<div className="mt-2 flex gap-2">
-							<Knopf
-								art="zweit"
-								className="w-12 flex-none px-0"
-								aria-label={`Zeile ${i + 1} nach oben`}
-								disabled={i === 0}
-								onClick={() => tausche(i, i - 1)}
-							>
-								↑
-							</Knopf>
-							<Knopf
-								art="zweit"
-								className="w-12 flex-none px-0"
-								aria-label={`Zeile ${i + 1} nach unten`}
-								disabled={i === zeilen.length - 1}
-								onClick={() => tausche(i, i + 1)}
-							>
-								↓
-							</Knopf>
-							<Knopf
-								art="zweit"
-								className="w-12 flex-none px-0"
-								aria-label={`Zeile ${i + 1} löschen`}
-								disabled={feld.min !== undefined && zeilen.length <= feld.min}
-								onClick={() => schreibe(zeilen.filter((_, n) => n !== i))}
-							>
-								<Symbol name="minus" />
-							</Knopf>
+					)}
+					{zeilen.map((zeile, i) => (
+						// Zeilen tragen keine eigene Kennung; beim Verschieben folgen die Werte dem Entwurf.
+						<div
+							key={String(i)}
+							className={klassen(
+								'flex items-center gap-1 rounded-sm',
+								zug?.von === i && 'opacity-40',
+								zug?.nach === i && 'shadow-[0_-2px_0_0_var(--color-brand-500)]',
+								zug?.nach === zeilen.length && i === zeilen.length - 1 && 'shadow-[0_2px_0_0_var(--color-brand-500)]',
+							)}
+							data-zeile={i}
+						>
+							<Griff
+								beschriftung={`Zeile ${i + 1} verschieben`}
+								className="h-feld"
+								data-zeile-griff={i}
+								onPointerDown={(e) => greife(i, e)}
+								onKeyDown={(e) => griffTaste(i, e)}
+							/>
+							{feld.unter.flatMap((u, j) =>
+								u.art === 'schalter'
+									? []
+									: [
+											<div key={u.name} className={spaltenKlasse(u)}>
+												<UnterEingabe
+													u={u}
+													abb={abb}
+													name={`${u.name} in Zeile ${i + 1}`}
+													wert={zeile[j] ?? ''}
+													aendere={(w, sofort) => schreibe(mitZelle(i, j, w), sofort)}
+													uebernimm={abb.uebernimm}
+												/>
+											</div>,
+										],
+							)}
+							<ZeilenMenue
+								abb={abb}
+								u={feld.unter}
+								zeile={zeile}
+								i={i}
+								aendere={(j, w, sofort) => schreibe(mitZelle(i, j, w), sofort)}
+								uebernimm={abb.uebernimm}
+								entfernen={ohneZeile ? null : () => schreibe(zeilen.filter((_, n) => n !== i))}
+								nachOben={i === 0 ? null : () => verschiebe(i, i - 1)}
+								nachUnten={i === zeilen.length - 1 ? null : () => verschiebe(i, i + 2)}
+							/>
 						</div>
-					</div>
-				))}
+					))}
+				</div>
+			)}
+			<div className="mt-1 flex flex-wrap gap-1">
+				{!alsText && (
+					<Knopf
+						art="zweit"
+						groesse="klein"
+						disabled={voll}
+						onClick={() => schreibe([...zeilen, feld.unter.map((u) => u.standard ?? '')])}
+						data-zeile-neu={feld.attribut}
+					>
+						<Symbol name="plus" />
+						Zeile hinzufügen
+					</Knopf>
+				)}
+				{feld.alsText && (
+					<Knopf art="zweit" groesse="klein" onClick={() => setAlsText(!alsText)} data-liste-als-text={feld.attribut}>
+						{alsText ? 'Als Liste bearbeiten' : 'Als Text bearbeiten'}
+					</Knopf>
+				)}
 			</div>
-			<Knopf
-				art="zweit"
-				className="mt-3"
-				disabled={voll}
-				onClick={() => schreibe([...zeilen, feld.unter.map((u) => u.standard ?? '')])}
-				data-zeile-neu={feld.attribut}
-			>
-				<Symbol name="plus" />
-				Zeile hinzufügen
-			</Knopf>
 		</Rahmen>
 	);
 };
 
+/** Am Mac teilen sich die Zellen die Breite, bis 14 px herunter: So passen 16 Spalten ohne Bildlauf. Am Finger bleiben sie 44 px, dann mit sichtbarem Bildlauf (G2). */
 const ZELLE =
-	'flex h-knopf min-w-11 items-center justify-center rounded-md border border-rand bg-flaeche text-base font-medium';
+	'flex min-w-0 items-center justify-center overflow-hidden rounded-sm border border-rand bg-flaeche text-xs font-medium tabular-nums [@media(any-pointer:coarse)]:rounded-md [@media(any-pointer:coarse)]:text-base';
+const ZELLE_RASTER = 'h-6 [@media(any-pointer:coarse)]:h-knopf';
+const ZELLEN_SPALTEN =
+	'[--zellen-spalte:minmax(14px,1fr)] [@media(any-pointer:coarse)]:[--zellen-spalte:minmax(44px,44px)]';
+const ZELLEN_ROLLEN = 'max-w-full overflow-x-auto [scrollbar-width:thin] [scrollbar-color:var(--color-rand-feld)_transparent]';
 
 const rasterMass = (angabe: string | number | undefined, abb: AbbildungSteuerung, sonst: number) => {
 	if (typeof angabe === 'number') {
@@ -946,31 +1279,38 @@ const FormRaster = ({ abb, feld }: FeldEigenschaften<RasterFeld>) => {
 	};
 	const breite = Math.max(1, ...zellen.map((z) => z.x + (z.b ?? 1)));
 	const hoehe = Math.max(1, ...zellen.map((z) => z.y + (z.h ?? 1)));
+	const anteil = (n: number, von: number) => `${(n / von) * 100}%`;
 	return (
-		<div
-			className="relative w-full overflow-x-auto"
-			style={{ height: `${hoehe * 46}px`, minWidth: `${Math.min(breite * 46, 280)}px` }}
-			data-form-raster={feld.attribut}
-		>
-			{zellen.map((z) => (
-				<button
-					key={z.id}
-					type="button"
-					aria-pressed={gewaehlt.includes(z.id)}
-					aria-label={`Feld ${z.text ?? z.id}`}
-					data-zelle={z.id}
-					className={`${ZELLE} absolute ${gewaehlt.includes(z.id) ? 'border-brand-500 bg-brand-500 text-white' : 'text-leise'}`}
-					style={{
-						left: `${z.x * 46}px`,
-						top: `${z.y * 46}px`,
-						width: `${(z.b ?? 1) * 46 - 2}px`,
-						height: `${(z.h ?? 1) * 46 - 2}px`,
-					}}
-					onClick={() => setze(z.id)}
-				>
-					{z.text}
-				</button>
-			))}
+		<div className={ZELLEN_ROLLEN}>
+			<div
+				className="relative max-w-(--voll) min-w-(--min) [--min:calc(var(--spalten)*14px)] [@media(any-pointer:coarse)]:min-w-(--voll) [--voll:calc(var(--spalten)*46px)]"
+				style={{ '--spalten': breite, 'aspectRatio': `${breite} / ${hoehe}` } as CSSProperties}
+				data-form-raster={feld.attribut}
+			>
+				{zellen.map((z) => (
+					<button
+						key={z.id}
+						type="button"
+						aria-pressed={gewaehlt.includes(z.id)}
+						aria-label={`Feld ${z.text ?? z.id}`}
+						data-zelle={z.id}
+						className={klassen(
+							ZELLE,
+							'absolute box-border',
+							gewaehlt.includes(z.id) ? 'border-brand-500 bg-brand-500 text-white' : 'text-leise',
+						)}
+						style={{
+							left: anteil(z.x, breite),
+							top: anteil(z.y, hoehe),
+							width: `calc(${anteil(z.b ?? 1, breite)} - 2px)`,
+							height: `calc(${anteil(z.h ?? 1, hoehe)} - 2px)`,
+						}}
+						onClick={() => setze(z.id)}
+					>
+						{z.text}
+					</button>
+				))}
+			</div>
 		</div>
 	);
 };
@@ -1006,10 +1346,10 @@ const GitterRaster = ({ abb, feld }: FeldEigenschaften<RasterFeld>) => {
 	};
 	return (
 		<>
-			<div className="max-w-full overflow-x-auto" data-raster={feld.attribut}>
+			<div className={ZELLEN_ROLLEN} data-raster={feld.attribut}>
 				<div
-					className="grid w-fit gap-0.5"
-					style={{ gridTemplateColumns: `repeat(${spalten}, minmax(44px, 44px))` }}
+					className={klassen('grid gap-0.5 [@media(any-pointer:coarse)]:w-fit', ZELLEN_SPALTEN)}
+					style={{ gridTemplateColumns: `repeat(${spalten}, var(--zellen-spalte))` }}
 				>
 					{voll.map((zeile, r) =>
 						zeile.map((zelle, c) =>
@@ -1022,7 +1362,11 @@ const GitterRaster = ({ abb, feld }: FeldEigenschaften<RasterFeld>) => {
 									autoComplete="off"
 									aria-label={`Zeile ${r + 1}, Spalte ${c + 1}`}
 									data-zelle={`${r}-${c}`}
-									className={`${ZELLE} w-11 text-center focus:border-brand-500 focus:outline-none`}
+									className={klassen(
+										ZELLE,
+										ZELLE_RASTER,
+										'w-full text-center focus:border-brand-500 focus:outline-none',
+									)}
 									value={zelle}
 									onChange={(e) => setze(r, c, e.target.value.trim() || leer, false)}
 									onBlur={abb.uebernimm}
@@ -1035,7 +1379,11 @@ const GitterRaster = ({ abb, feld }: FeldEigenschaften<RasterFeld>) => {
 									aria-label={`Zeile ${r + 1}, Spalte ${c + 1}: ${zustaende.find((z) => z.wert === zelle)?.name ?? zelle}`}
 									data-zelle={`${r}-${c}`}
 									data-wert={zelle}
-									className={`${ZELLE} ${zelle === leer ? '' : 'border-brand-500 bg-brand-500 text-white'}`}
+									className={klassen(
+										ZELLE,
+										ZELLE_RASTER,
+										zelle !== leer && 'border-brand-500 bg-brand-500 text-white',
+									)}
 									onClick={() => setze(r, c, naechster(zelle))}
 								>
 									{zustaende.find((z) => z.wert === zelle)?.zeichen ?? zelle}
@@ -1221,8 +1569,11 @@ const Plan = ({ abb, feld }: FeldEigenschaften<PlanFeld>) => {
 	};
 	return (
 		<Rahmen feld={feld} abb={abb} id={id}>
-			<div className="overflow-x-auto" id={id} data-plan>
-				<div className="grid w-max gap-0.5" style={{ gridTemplateColumns: `repeat(${spalten}, 2.75rem)` }}>
+			<div className={ZELLEN_ROLLEN} id={id} data-plan>
+				<div
+					className={klassen('grid gap-0.5 [@media(any-pointer:coarse)]:w-max', ZELLEN_SPALTEN)}
+					style={{ gridTemplateColumns: `repeat(${spalten}, var(--zellen-spalte))` }}
+				>
 					{quadrate.flat().map((z) => {
 						const symbol = symbole.find((o) => o.wert === orte.get(z.q));
 						return (
@@ -1233,7 +1584,7 @@ const Plan = ({ abb, feld }: FeldEigenschaften<PlanFeld>) => {
 								data-flaeche={flaecheVon(z.x, z.y)}
 								aria-label={`Planquadrat ${z.q}${symbol ? `: ${symbol.name}` : ''}`}
 								aria-pressed={gewaehlt === z.q}
-								className={`size-11 overflow-hidden rounded border text-xs ${gewaehlt === z.q ? 'border-brand-500' : 'border-rand'}`}
+								className={`aspect-square min-w-0 overflow-hidden rounded border text-[10px] ${gewaehlt === z.q ? 'border-brand-500' : 'border-rand'}`}
 								style={{ background: PLAN_TOENE[flaecheVon(z.x, z.y)] ?? '#fff' }}
 								onClick={() => setGewaehlt(gewaehlt === z.q ? null : z.q)}
 							>
@@ -1678,17 +2029,42 @@ export const AbbildungHinweise = ({ abb }: { abb: AbbildungSteuerung }) => {
 	);
 };
 
+const sichtbarWenn = (feld: Feld, abb: AbbildungSteuerung) => !feld.nurWenn || !abb.werte || feld.nurWenn(abb.werte);
+
 /** Die Felder der gewählten Abbildung, die in diesen Abschnitt gehören. Jede Änderung zeigt sich sofort im Blatt. */
 export const AbbildungFelder = ({ abb, abschnitt }: { abb: AbbildungSteuerung; abschnitt: AbschnittName }) => {
 	if (!abb.aktiv || !abb.schema) {
 		return null;
 	}
-	const felder = abb.schema.felder.filter((f) => abschnittVon(f) === abschnitt && !f.ohneFeld);
+	const felder = abb.schema.felder.filter(
+		(f) => abschnittVon(f) === abschnitt && !f.ohneFeld && sichtbarWenn(f, abb),
+	);
+	// Der Knopf „Neu mischen“ steht oben und bleibt beim Rollen stehen.
+	const oben = felder.filter((f) => f.art === 'mischen');
+	const rest = felder.filter((f) => f.art !== 'mischen');
+	// Eine Überschrift lohnt erst ab zwei Feldern; „Mehr“ ist nur der Sammelplatz.
+	const ueberschrift = (feld: Feld) =>
+		feld.gruppe && feld.gruppe !== 'Mehr' && rest.filter((f) => f.gruppe === feld.gruppe).length > 1
+			? feld.gruppe
+			: undefined;
 	return felder.length === 0 ? null : (
 		<div className="flex flex-col gap-1">
-			{felder.map((feld) => (
+			{oben.map((feld) => (
 				<Eingabe key={feld.attribut} feld={feld} abb={abb} />
 			))}
+			{rest.map((feld, i) => {
+				const gruppe = ueberschrift(feld);
+				return (
+					<Fragment key={feld.attribut}>
+						{gruppe && rest[i - 1]?.gruppe !== feld.gruppe && (
+							<h4 className="mt-2 text-xs font-semibold text-tinte" data-feldgruppe={gruppe}>
+								{gruppe}
+							</h4>
+						)}
+						<Eingabe feld={feld} abb={abb} />
+					</Fragment>
+				);
+			})}
 		</div>
 	);
 };

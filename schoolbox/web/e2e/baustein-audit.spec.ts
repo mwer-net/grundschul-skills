@@ -18,7 +18,7 @@ import { KATALOG } from '@schoolbox/kern/src/katalog';
 import { KIT_FELDER, leseKit, setzeKit } from '@schoolbox/kern/src/kit-einstellungen';
 import { zerlege } from '@schoolbox/kern/src/quelltext';
 
-import { BEKANNT } from './baustein-audit-bekannt';
+import { BEKANNT, BEKANNT_HOECHSTENS } from './baustein-audit-bekannt';
 import type { Fall } from './baustein-audit-werte';
 import { faelleVon } from './baustein-audit-werte';
 import { aendere, oeffne, quelle } from './editorhilfe';
@@ -54,6 +54,8 @@ interface Ergebnis {
 	ohneWirkung: number;
 	verstoesse: Verstoss[];
 	kontakt: boolean;
+	abgewiesen: string[];
+	bekannt: string[];
 }
 
 // ── Im Rahmen ────────────────────────────────────────────────────────────────
@@ -106,7 +108,15 @@ const zeichneFaelle = async (
 				body.classList.toggle('loesung', loesung);
 				el.removeAttribute('data-fehler');
 				f.zeichneAbbildungen(el);
-				return `${el.innerHTML}|${el.getAttribute('style') ?? ''}`;
+				// Bingo, Domino und Spielplan legen Folgeseiten hinter die Seite des Elements.
+				const folge = [...document.querySelectorAll(`.seite[data-erzeugt][data-sb="${n}"]`)]
+					.map((s) => s.innerHTML)
+					.join('|');
+				// Zeichnungen zählen ihre Kennungen (Muster, Schnittpfade) je Aufruf hoch; das ist keine Wirkung.
+				return `${el.innerHTML}|${el.getAttribute('style') ?? ''}|${folge}`.replace(
+					/(\bid="|url\(#|href="#)[^")]*/g,
+					'$1',
+				);
 			};
 			// Die volle Prüfung wartet auf Schriften und dauert je Fall zu lang; die Fehler aus Optionen sind Überläufe.
 			const fehlerVonPruefung = () => {
@@ -228,8 +238,8 @@ const seitenUndFehler = async (rahmen: Frame) =>
 
 const LEERE_SEITE = /<body([^>]*)>[\s\S]*<\/body>/;
 
-const leeresBlatt = async () => {
-	const { dokumente, id } = await legeMappeAn('Audit', 'mathematik', 2, [
+const leeresBlatt = async (klasse = 2) => {
+	const { dokumente, id } = await legeMappeAn('Audit', 'mathematik', klasse, [
 		{ titel: 'Leeres Blatt', vorlage: 'arbeitsblatt' },
 	]);
 	const dok = dokumente[0] ?? '';
@@ -291,6 +301,48 @@ const bekannt = (v: Verstoss, gesehen: Set<string>) => {
 	return false;
 };
 
+/**
+ * Nur auf Wunsch (`AUDIT_ABHAENGIG=1`): Für jedes Feld ohne Wirkung steht in `abhaengig/<id>.json`, unter welchem Wert
+ * eines anderen Felds es doch wirkt. Das ist die Vorlage für `nurWenn`.
+ */
+const sucheAbhaengige = async (
+	rahmen: Frame,
+	e: KatalogEintrag,
+	schema: AbbildungSchema,
+	nr: number,
+	basis: Werte,
+	zellen: Record<string, string[]>,
+	inhaltFelder: string[],
+	verstoesse: Verstoss[],
+) => {
+	const felder = schema.felder as Feld[];
+	const stumm = [
+		...new Set(verstoesse.filter((v) => v.regel === 'W2').map((v) => v.schluessel.split('.')[1]?.split('=')[0] ?? '')),
+	];
+	const ergebnis: Record<string, string[]> = {};
+	for (const attr of stumm) {
+		const feld = felder.find((f) => f.attribut === attr);
+		if (!feld) {
+			continue;
+		}
+		const wirktUnter: string[] = [];
+		for (const anderes of felder.filter((f) => f !== feld && ['auswahl', 'schalter', 'zahl'].includes(f.art))) {
+			for (const kontext of faelleVon(schema, anderes, basis, zellen).faelle) {
+				const proben = faelleVon(schema, feld, kontext.werte, zellen).faelle.slice(0, 4);
+				const mit = proben.map((p) => ({ ...p, aenderung: diff(basis, p.werte) }));
+				const stand = { aenderung: diff(basis, kontext.werte), feld: '_', wert: 'Stand', werte: kontext.werte };
+				const [bezug, ...rest] = await zeichneFaelle(rahmen, nr, [stand, ...mit], inhaltFelder, null, e.id);
+				if (!bezug?.fehler && rest.some((z) => !z.fehler && (z.blatt !== bezug?.blatt || z.loesung !== bezug?.loesung))) {
+					wirktUnter.push(`${anderes.attribut}=${kontext.wert}`);
+				}
+			}
+		}
+		ergebnis[attr] = wirktUnter;
+	}
+	mkdirSync(path.join(ZIEL, 'abhaengig'), { recursive: true });
+	writeFileSync(path.join(ZIEL, 'abhaengig', `${e.id}.json`), JSON.stringify(ergebnis, null, 1));
+};
+
 const pruefeFelder = async (
 	rahmen: Frame,
 	e: KatalogEintrag,
@@ -310,12 +362,16 @@ const pruefeFelder = async (
 	if (!anfang || !nochmal) {
 		throw new Error('Keine Zeichnung');
 	}
+	if (anfang.fehler) {
+		melde('W7', '_', null, `Der Starter bricht ab: ${anfang.fehler}`);
+	}
 	if (anfang.blatt !== nochmal.blatt) {
 		melde('W2', '_', null, 'Zeichnet bei gleichen Werten verschieden (Zufall ohne seed).');
 	}
 
 	let zahl = 0;
 	let ohne = 0;
+	const abgewiesen: string[] = [];
 	const kontakt: { feld: string; wert: string; bild: string; wirkt: boolean }[] = [];
 	const felder = schema.felder as Feld[];
 	for (const feld of felder) {
@@ -324,20 +380,24 @@ const pruefeFelder = async (
 		// im Ausgangsstand wirklich nichts tut.
 		let stand = basis;
 		if (!sichtbar) {
-			const treffer = felder
-				.flatMap((f) => (f === feld ? [] : faelleVon(schema, f, basis, zellen).faelle))
-				.find((fall) => feld.nurWenn?.(fall.werte));
-			if (!treffer) {
-				melde('W2', feld.attribut, null, '`nurWenn` lässt sich mit einem einzelnen anderen Feld nicht erfüllen.');
-				continue;
-			}
-			stand = treffer.werte;
+			const kandidaten = felder.flatMap((f) =>
+				f === feld || f.art !== 'auswahl'
+					? []
+					: f.optionen.map((o) => ({ ...basis, [f.attribut]: o.wert || null }) as Werte),
+			);
+			const treffer = kandidaten.find((w) => feld.nurWenn?.(w));
+			// Hängt die Bedingung am Inhalt (gleiche Wörter, gemischte Sprünge), bleibt nur die Probe im Ausgangsstand.
+			stand = treffer ?? basis;
 		}
-		const { faelle } = faelleVon(schema, feld, stand, zellen);
+		const erreichbar = sichtbar || stand !== basis;
+		const { faelle } = erreichbar ? faelleVon(schema, feld, stand, zellen) : { faelle: [] };
 		const mitStand = stand === basis ? faelle : faelle.map((f) => ({ ...f, aenderung: { ...diff(basis, f.werte) } }));
 		const standFall = { aenderung: diff(basis, stand), feld: '_', wert: 'Stand', werte: stand };
 		const [bezug] = stand === basis ? [anfang] : await zeichneFaelle(rahmen, nr, [standFall], inhaltFelder, null, e.id);
 		const ergebnisse = await zeichneFaelle(rahmen, nr, mitStand, inhaltFelder, gen, e.id);
+		// Text und Zahlen reichen mit einem wirksamen Wert: Der andere ist oft der Standard oder wird abgewiesen.
+		const einerReicht = feld.art === 'text' || feld.art === 'zahlen';
+		const wirktEiner = ergebnisse.some((z) => z.blatt !== bezug?.blatt || z.loesung !== bezug?.loesung);
 		for (const z of ergebnisse) {
 			zahl += 1;
 			const wirkt = z.blatt !== bezug?.blatt || z.loesung !== bezug?.loesung;
@@ -347,8 +407,9 @@ const pruefeFelder = async (
 			if (z.ausnahme) {
 				melde('W7', feld.attribut, z.wert, z.ausnahme);
 			} else if (z.fehler) {
-				melde('W7', feld.attribut, z.wert, z.fehler);
-			} else if (!wirkt && feld.art !== 'mischen' && z.wert !== 'standard') {
+				// Eine verständliche Meldung auf eine Kombination ist kein Zeichenfehler: Das Feld zeigt sie und übernimmt nichts.
+				abgewiesen.push(`\`${feld.attribut}=${z.wert}\`: ${z.fehler}`);
+			} else if (!wirkt && !(einerReicht && wirktEiner) && feld.art !== 'mischen' && z.wert !== 'standard') {
 				ohne += 1;
 				melde('W2', feld.attribut, z.wert, 'Das Gezeichnete ändert sich nicht.');
 			}
@@ -359,15 +420,18 @@ const pruefeFelder = async (
 		}
 		if (!sichtbar) {
 			const verborgen = faelleVon(schema, feld, basis, zellen).faelle;
-			const proben = await zeichneFaelle(rahmen, nr, verborgen, inhaltFelder, gen, e.id);
+			const proben = await zeichneFaelle(rahmen, nr, verborgen, inhaltFelder, null, e.id);
 			for (const z of proben) {
-				if (z.blatt !== anfang.blatt || z.loesung !== anfang.loesung) {
+				if (!z.fehler && (z.blatt !== anfang.blatt || z.loesung !== anfang.loesung)) {
 					melde('W2', feld.attribut, z.wert, 'Ist per `nurWenn` verborgen, wirkt aber.');
 				}
 			}
 		}
 	}
-	return { zahl, ohne, kontakt };
+	if (process.env.AUDIT_ABHAENGIG) {
+		await sucheAbhaengige(rahmen, e, schema, nr, basis, zellen, inhaltFelder, verstoesse);
+	}
+	return { zahl, ohne, kontakt, abgewiesen };
 };
 
 const diff = (alt: Werte, neu: Werte): Werte =>
@@ -411,7 +475,7 @@ const pruefeW1 = async (
 /** W9: Innerhalb eines Abschnitts kein Name doppelt, kein Feld heißt wie sein Abschnitt. */
 const pruefeNamen = (e: KatalogEintrag, schema: AbbildungSchema | undefined, verstoesse: Verstoss[]) => {
 	const titel = new Map<string, Set<string>>();
-	for (const f of (schema?.felder ?? []) as Feld[]) {
+	for (const f of ((schema?.felder ?? []) as Feld[]).filter((x) => !x.ohneFeld)) {
 		const abschnitt = ABSCHNITT_TITEL[abschnittVon(f)];
 		if (!f.name.trim()) {
 			verstoesse.push({ regel: 'W9', schluessel: `${e.id}.${f.attribut}`, text: 'Feld ohne Namen.' });
@@ -436,6 +500,8 @@ const ist = (e: KatalogEintrag, nurLoesung: boolean) => {
 	return nurLoesung ? /./ : null;
 };
 
+const KIT_GEPRUEFT = new Set<string>();
+
 const pruefeKit = async (page: Page, e: KatalogEintrag, art: string, verstoesse: Verstoss[]) => {
 	const felder = KIT_FELDER[art] ?? [];
 	const q = await quelle(page);
@@ -458,6 +524,8 @@ const pruefeKit = async (page: Page, e: KatalogEintrag, art: string, verstoesse:
 	);
 	const n = auswahl === null ? nr : Number(auswahl);
 	const werte = leseKit(q, n, art);
+	const seite = () => rahmenVon(page).then((r) => r.locator('.seite').first().screenshot());
+	const bezug = await seite();
 	let zahl = 0;
 	for (const f of felder) {
 		const kandidaten: (string | number | boolean)[] =
@@ -473,8 +541,20 @@ const pruefeKit = async (page: Page, e: KatalogEintrag, art: string, verstoesse:
 				continue;
 			}
 			zahl += 1;
-			if (setzeKit(q, n, art, f.name, w, { jeSeite: false }) === q) {
+			const neu = setzeKit(q, n, art, f.name, w, { jeSeite: false });
+			if (neu === q) {
 				verstoesse.push({ regel: 'W1', schluessel: `${e.id}.${f.name}=${String(w)}`, text: 'Die Quelle ändert sich nicht.' });
+				continue;
+			}
+			// Kit-Bausteine haben keinen Schnellweg: Einmal je Art und Feld wirklich neu laden und das Bild vergleichen.
+			const schluessel = `${art}.${f.name}`;
+			if (!KIT_GEPRUEFT.has(schluessel) && f.typ !== 'text') {
+				KIT_GEPRUEFT.add(schluessel);
+				await aendere(page, neu);
+				if ((await seite()).equals(bezug)) {
+					verstoesse.push({ regel: 'W2', schluessel: `${e.id}.${f.name}=${String(w)}`, text: 'Das Gezeichnete ändert sich nicht.' });
+				}
+				await aendere(page, q);
 			}
 		}
 	}
@@ -548,11 +628,86 @@ const schreibeBericht = () => {
 			e.verstoesse.map((v) => `- ${v.regel} \`${v.schluessel}\`: ${v.text.replace(/\n/g, ' ').slice(0, 160)}`),
 		),
 		'',
+		'## Abgewiesen mit Meldung',
+		'',
+		'Kein Verstoß: Die Oberfläche zeigt die Meldung und übernimmt den Wert nicht. Trotzdem lesen, denn hier stolpert man.',
+		'',
+		...alle.flatMap((e) => (e.abgewiesen ?? []).map((a) => `- \`${e.id}\` ${a.replace(/\n/g, ' ').slice(0, 160)}`)),
+		'',
 	];
 	writeFileSync(path.join(ZIEL, 'bericht.md'), zeilen.join('\n'));
 };
 
 // ── Tests ────────────────────────────────────────────────────────────────────
+
+type Kasten = ReturnType<Page['locator']>;
+const eingabeWert = (k: Kasten) => k.locator('input, textarea').first().inputValue();
+/** Je Feldart ein Vertreter über die echte Oberfläche; der Schnellweg deckt alle Werte ab, nicht aber W3 bis W5. */
+const VOLLER_WEG: Record<string, { tu: (k: Kasten) => Promise<void>; lese: (k: Kasten) => Promise<string>; fokus: boolean }> = {
+	auswahl: {
+		tu: async (k) => {
+			const s = k.locator('select').first();
+			const werte = await s.locator('option').evaluateAll((o) => o.map((x) => (x as HTMLOptionElement).value));
+			const jetzt = await s.inputValue();
+			await s.focus();
+			await s.selectOption(werte.find((w) => w !== jetzt) ?? jetzt);
+		},
+		lese: (k) => k.locator('select').first().inputValue(),
+		fokus: true,
+	},
+	schalter: {
+		tu: (k) => k.locator('input[type=checkbox], [role=switch]').first().click({ force: true }),
+		lese: async (k) => String(await k.locator('input[type=checkbox], [role=switch]').first().isChecked()),
+		fokus: false,
+	},
+	zahl: {
+		tu: async (k) => {
+			await k.locator('input').first().focus();
+			await k.locator('input').first().press('ArrowUp');
+			await k.locator('button:not([disabled])').last().click();
+		},
+		lese: eingabeWert,
+		fokus: false,
+	},
+	text: {
+		tu: async (k) => {
+			const e = k.locator('input, textarea').first();
+			await e.fill(`${await e.inputValue()}x`);
+		},
+		lese: eingabeWert,
+		fokus: true,
+	},
+	zahlen: {
+		tu: async (k) => {
+			const e = k.locator('input').first();
+			await e.fill(`${await e.inputValue()} 1`);
+		},
+		lese: eingabeWert,
+		fokus: true,
+	},
+	liste: {
+		tu: (k) => k.locator('[data-zeile-neu]').click(),
+		lese: async (k) => String(await k.locator('[data-zeile]').count()),
+		fokus: false,
+	},
+	mehrfach: {
+		tu: (k) => k.locator('input[type=checkbox], [role=switch]').first().click({ force: true }),
+		lese: async (k) => String(await k.locator('input[type=checkbox], [role=switch]').first().isChecked()),
+		fokus: false,
+	},
+	raster: {
+		tu: (k) => k.locator('[data-zelle], [data-raster] button').first().click(),
+		lese: async (k) => (await k.locator('[data-zelle], [data-raster] button').first().getAttribute('aria-pressed')) ?? '',
+		fokus: false,
+	},
+	muster: {
+		tu: async (k) => {
+			await k.locator('button[aria-pressed="false"]').first().click();
+		},
+		lese: async (k) => (await k.locator('button[aria-pressed="true"]').first().getAttribute('data-muster')) ?? '',
+		fokus: false,
+	},
+};
 
 const BEREICHE = [...new Set(KATALOG.map((e) => e.kategorie))];
 const FILTER = process.env.AUDIT_NUR?.split(',');
@@ -564,8 +719,6 @@ test.beforeAll(() => {
 });
 
 test.describe('Prüfmaschine', () => {
-	const gesehen = new Set<string>();
-
 	for (const bereich of BEREICHE) {
 		test(`Bereich ${bereich}`, async ({ page }) => {
 			const fehlerImFenster: string[] = [];
@@ -580,14 +733,19 @@ test.describe('Prüfmaschine', () => {
 			await page.getByRole('tab', { name: 'Bausteine' }).click();
 			const kontaktSeite = await page.context().newPage();
 			const ergebnisse: Ergebnis[] = [];
+			let blatt4: Awaited<ReturnType<typeof leeresBlatt>> | null = null;
+			let auf4 = false;
 			for (const e of KATALOG.filter((k) => k.kategorie === bereich && !k.klasse && (!FILTER || FILTER.includes(k.id)))) {
-				if (process.env.AUDIT_LAUT) {
-					console.log(e.id, Date.now());
-				}
 				await aufLeeresBlatt(page, leer);
 				await fuegeEin(page, e);
 				await page.waitForTimeout(120);
+				if (auf4) {
+					await oeffne(page, id, dok);
+					await page.getByRole('tab', { name: 'Bausteine' }).click();
+					auf4 = false;
+				}
 				const verstoesse: Verstoss[] = [];
+				const gesehen = new Set<string>();
 				const schema = schemaVon(e.id);
 				const nurLoesung = ['x-erwartungshorizont', 'notiz'].includes(e.id);
 				pruefeNamen(e, schema, verstoesse);
@@ -600,8 +758,21 @@ test.describe('Prüfmaschine', () => {
 				if (!stimmt) {
 					verstoesse.push({ regel: 'G1', schluessel: e.id, text: `Nach dem Einfügen gewählt: ${pfad || '(nichts)'}` });
 				}
-				const rahmen = await rahmenVon(page);
-				const stand = await seitenUndFehler(rahmen);
+				let rahmen = await rahmenVon(page);
+				let stand = await seitenUndFehler(rahmen);
+				// Manche Starter gehören in höhere Klassen (Malkreuz, schriftlich): Dort einsetzen, sonst sagt die Prüfung nichts.
+				if (stand.fehler.some((f) => /Klasse|über 100|Zahlenraum/.test(f.text))) {
+					await aufLeeresBlatt(page, leer);
+					blatt4 ??= await leeresBlatt(4);
+					await oeffne(page, blatt4.id, blatt4.dok);
+					await page.getByRole('tab', { name: 'Bausteine' }).click();
+					auf4 = true;
+					await aufLeeresBlatt(page, blatt4.leer);
+					await fuegeEin(page, e);
+					await page.waitForTimeout(120);
+					rahmen = await rahmenVon(page);
+					stand = await seitenUndFehler(rahmen);
+				}
 				if (stand.seiten > 1 || stand.fehler.length > 0) {
 					verstoesse.push({
 						regel: 'G4',
@@ -615,6 +786,7 @@ test.describe('Prüfmaschine', () => {
 				if (inspektor && inspektor.hoehe > ZU_HOCH) {
 					verstoesse.push({ regel: 'G3', schluessel: e.id, text: `Inspektor ${inspektor.hoehe} px hoch` });
 				}
+				let abgewiesen: string[] = [];
 				let faelle = 0;
 				let ohneWirkung = 0;
 				let kontakt = false;
@@ -627,6 +799,7 @@ test.describe('Prüfmaschine', () => {
 						const r = await pruefeFelder(rahmen, e, schema, nr, werteVon(schema, knoten, q), verstoesse);
 						faelle = r.zahl;
 						ohneWirkung = r.ohne;
+						abgewiesen = r.abgewiesen;
 						if (BILDER && r.kontakt.length > 0) {
 							await schreibeKontakt(kontaktSeite, rahmen, e.id, r.kontakt);
 							kontakt = true;
@@ -654,6 +827,8 @@ test.describe('Prüfmaschine', () => {
 					ohneWirkung,
 					verstoesse: verstoesse.filter((v) => !bekannt(v, gesehen)),
 					kontakt,
+					abgewiesen,
+					bekannt: [...gesehen],
 				});
 			}
 			await kontaktSeite.close();
@@ -665,4 +840,66 @@ test.describe('Prüfmaschine', () => {
 			expect.soft(offen.map((v) => `${v.regel} ${v.schluessel}: ${v.text}`)).toEqual([]);
 		});
 	}
+
+	test('Voller Weg je Feldart', async ({ page }) => {
+		const { dok, id, leer } = await leeresBlatt();
+		await oeffne(page, id, dok);
+		await page.getByRole('tab', { name: 'Bausteine' }).click();
+		for (const [art, fall] of Object.entries(VOLLER_WEG)) {
+			const treffer = KATALOG.flatMap((e) => {
+				const schema = schemaVon(e.id);
+				const feld = schema?.felder.find((f) => f.art === art && !f.ohneFeld && !f.nurWenn && abschnittVon(f) !== 'weitere');
+				return schema && feld ? [{ e, feld, schema }] : [];
+			}).find(({ e }) => !FILTER || FILTER.includes(e.id));
+			if (!treffer) {
+				continue;
+			}
+			const { e, feld, schema } = treffer;
+			await aufLeeresBlatt(page, leer);
+			await fuegeEin(page, e);
+			const name = schema.name;
+			const kasten = page.locator(`[data-inspektor] [data-feld="${feld.attribut}"]`);
+			await kasten.first().scrollIntoViewIfNeeded();
+			const vorher = await quelle(page);
+			const lesen = () => fall.lese(kasten.first());
+			const alt = await lesen();
+			await fall.tu(kasten.first());
+			await page.waitForTimeout(300);
+			if (fall.fokus) {
+				const imFeld = await page.evaluate(
+					(a) => !!document.activeElement?.closest(`[data-feld="${a}"]`),
+					feld.attribut,
+				);
+				expect.soft(imFeld, `W5 ${art}: Fokus bleibt im Feld`).toBe(true);
+			}
+			// Text landet beim Verlassen des Felds im Verlauf.
+			await page.evaluate(() => (document.activeElement as HTMLElement | null)?.blur());
+			await expect.poll(() => quelle(page), `W1 ${art}: Quelle ändert sich`).not.toBe(vorher);
+			const wert = await lesen();
+			expect.soft(wert, `W3 ${art}: Der Inspektor zeigt den neuen Wert`).not.toBe(alt);
+			const pfad = await leseInspektor(page);
+			expect.soft(pfad?.pfad.split('›').at(-1), `W5 ${art}: Baustein bleibt gewählt`).toBe(name);
+			await page.getByRole('button', { name: 'Rückgängig' }).first().click();
+			await expect.poll(() => quelle(page), `W4 ${art}: Rückgängig ist zeichengleich`).toBe(vorher);
+		}
+	});
+
+	test('Liste BEKANNT schrumpft nur', () => {
+		expect(Object.keys(BEKANNT).length, 'Neue Einträge sind nicht erlaubt: beheben statt eintragen').toBeLessThanOrEqual(
+			BEKANNT_HOECHSTENS,
+		);
+		for (const [schluessel, grund] of Object.entries(BEKANNT)) {
+			expect(grund.length, `${schluessel} braucht eine Begründung`).toBeGreaterThan(20);
+		}
+		const roh = path.join(ZIEL, 'roh');
+		if (FILTER || !existsSync(roh)) {
+			return;
+		}
+		const alle = readdirSync(roh).flatMap((d) => JSON.parse(readFileSync(path.join(roh, d), 'utf8')) as Ergebnis[]);
+		const benutzt = new Set(alle.flatMap((e) => e.bekannt ?? []));
+		expect(
+			Object.keys(BEKANNT).filter((k) => !benutzt.has(k)),
+			'Verwaist: Dieser Eintrag trifft nichts mehr und muss raus',
+		).toEqual([]);
+	});
 });

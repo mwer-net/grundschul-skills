@@ -145,6 +145,8 @@ export interface ListeFeld extends FeldBasis {
 	zeilenTrenner?: ';' | ' ' | '/';
 	/** Zwischen den Unterfeldern einer Zeile; Standard `:`. */
 	feldTrenner?: ':' | ': ' | '-' | ' ' | '';
+	/** Viele Einträge: Knopf „Als Text bearbeiten“, eine Zeile je Eintrag. */
+	alsText?: boolean;
 }
 
 /** Mehrere Haken aus festen Optionen; im Attribut mit Leerzeichen getrennt. */
@@ -811,6 +813,21 @@ const skalaStandard = (w: Werte): [number, number, string] => {
 export const zahlStandard = (feld: ZahlFeld, w: Werte | null | undefined) =>
 	feld.standardJe && w ? feld.standardJe(w) : feld.standard;
 
+/** Für `nurWenn`: Das Feld gilt nur bei diesen Werten eines anderen Felds. Ein leeres Attribut zählt als `standard`. */
+const wenn =
+	(attribut: string, standard: string, ...werte: string[]) =>
+	(w: Werte) =>
+		werte.includes(w[attribut] ?? standard);
+const wennNicht =
+	(attribut: string, standard: string, ...werte: string[]) =>
+	(w: Werte) =>
+		!werte.includes(w[attribut] ?? standard);
+/** Wiederholung und Reihenfolge ändern nur etwas, wenn dasselbe Wort auf mehreren Stufen steht. */
+const gleicheWoerter = (w: Werte) => {
+	const stufen = (w.stufen ?? '').split(';').map((s) => s.split(',').map((t) => t.trim()));
+	return stufen.some((s, i) => stufen.some((t, j) => i !== j && s.some((x) => x && t.includes(x))));
+};
+
 export const ABBILDUNG_SCHEMA = {
 	'x-uhr': {
 		name: 'Uhr',
@@ -845,7 +862,7 @@ export const ABBILDUNG_SCHEMA = {
 			},
 			{
 				art: 'auswahl',
-				attribut: 'format',
+				attribut: 'format', nurWenn: wenn('digital', 'nein', 'ja', 'nur'),
 				name: 'Digital im Format',
 				gruppe: 'Mehr',
 				standard: '24',
@@ -1001,7 +1018,7 @@ export const ABBILDUNG_SCHEMA = {
 			{
 				art: 'auswahl',
 				attribut: 'art',
-				name: 'Darstellung',
+				name: 'Zahlen als',
 				standard: 'ziffern',
 				optionen: [
 					{ wert: 'ziffern', name: 'Ziffern' },
@@ -1010,7 +1027,7 @@ export const ABBILDUNG_SCHEMA = {
 			},
 			{
 				art: 'zahlen',
-				attribut: 'plaettchen',
+				attribut: 'plaettchen', nurWenn: wenn('art', 'ziffern', 'plaettchen'),
 				name: 'Plättchen je Stelle',
 				beispiel: '3 0 12',
 				hilfe: 'Von links nach rechts, bis 15 je Stelle. In der Lösung steht dieselbe Angabe unter „Nur in der Lösung zeigen“.',
@@ -1243,7 +1260,7 @@ export const ABBILDUNG_SCHEMA = {
 			{ art: 'schalter', attribut: 'legende', name: 'Legende', an: 'ja', aus: 'nein', standard: true },
 			{
 				art: 'schalter',
-				attribut: 'bastel',
+				attribut: 'bastel', abschnitt: 'darstellung',
 				name: 'Bastelvorlage (12 cm)',
 				an: 'ja',
 				aus: 'nein',
@@ -1274,7 +1291,7 @@ export const ABBILDUNG_SCHEMA = {
 		felder: [
 			{
 				art: 'auswahl',
-				attribut: 'art',
+				attribut: 'art', nurWenn: wenn('ansicht', 'flach', 'flach'),
 				name: 'Seite zeigt',
 				standard: 'augen',
 				optionen: [
@@ -1284,8 +1301,8 @@ export const ABBILDUNG_SCHEMA = {
 					{ wert: 'text', name: 'Text' },
 				],
 			},
-			{ art: 'zahl', attribut: 'augen', name: 'Augen', min: 0, max: 6, standard: 0 },
-			{ art: 'text', attribut: 'inhalt', name: 'Zahl, Text oder Füllung', max: 6 },
+			{ art: 'zahl', attribut: 'augen', nurWenn: (w) => (w.ansicht ?? 'flach') === 'flach' && (w.art ?? 'augen') === 'augen', name: 'Augen', min: 0, max: 6, standard: 0 },
+			{ art: 'text', attribut: 'inhalt', nurWenn: (w) => (w.ansicht ?? 'flach') === 'flach' && (w.art ?? 'augen') !== 'augen', name: 'Zahl, Text oder Füllung', max: 6 },
 			{ art: 'text', attribut: 'loesung', name: 'Nur in der Lösung', max: 6 },
 			{
 				art: 'auswahl',
@@ -1297,9 +1314,9 @@ export const ABBILDUNG_SCHEMA = {
 					{ wert: 'raeumlich', name: 'Räumlich' },
 				],
 			},
-			{ art: 'zahl', attribut: 'oben', name: 'Oben', min: 0, max: 6, standard: 1 },
-			{ art: 'zahl', attribut: 'vorne', name: 'Vorne', min: 0, max: 6, standard: 2 },
-			{ art: 'zahl', attribut: 'rechts', name: 'Rechts', min: 0, max: 6, standard: 3 },
+			{ art: 'zahl', attribut: 'oben', nurWenn: wenn('ansicht', 'flach', 'raeumlich'), name: 'Oben', min: 0, max: 6, standard: 1 },
+			{ art: 'zahl', attribut: 'vorne', nurWenn: wenn('ansicht', 'flach', 'raeumlich'), name: 'Vorne', min: 0, max: 6, standard: 2 },
+			{ art: 'zahl', attribut: 'rechts', nurWenn: wenn('ansicht', 'flach', 'raeumlich'), name: 'Rechts', min: 0, max: 6, standard: 3 },
 			{ art: 'zahl', ...GROESSE, min: 32, max: 200, standard: 60, schritt: 4 },
 		],
 	},
@@ -1379,7 +1396,7 @@ export const ABBILDUNG_SCHEMA = {
 			{ art: 'zahl', attribut: 'skala', name: 'Skalenschritt', min: 1, max: 100000, standard: 1 },
 			{
 				art: 'zahl',
-				attribut: 'von',
+				attribut: 'von', nurWenn: wenn('art', 'saeulen', 'linie'),
 				name: 'Von',
 				min: -1000,
 				max: 1000,
@@ -1390,7 +1407,7 @@ export const ABBILDUNG_SCHEMA = {
 			{ art: 'text', attribut: 'einheit', name: 'Achse', max: 20 },
 			{
 				art: 'auswahl',
-				attribut: 'symbol',
+				attribut: 'symbol', nurWenn: wenn('art', 'saeulen', 'bild'),
 				name: 'Symbol',
 				standard: 'kreis',
 				optionen: [
@@ -1400,7 +1417,7 @@ export const ABBILDUNG_SCHEMA = {
 					{ wert: 'herz', name: 'Herz' },
 				],
 			},
-			{ art: 'zahl', attribut: 'je', name: 'Ein Symbol steht für', min: 1, max: 1000, standard: 1 },
+			{ art: 'zahl', attribut: 'je', nurWenn: wenn('art', 'saeulen', 'bild'), name: 'Ein Symbol steht für', min: 1, max: 1000, standard: 1 },
 			{ art: 'zahl', ...GROESSE, min: 100, max: 400, standard: 200, schritt: 20 },
 		],
 		regeln: (w): Fehler => {
@@ -1510,7 +1527,7 @@ export const ABBILDUNG_SCHEMA = {
 			{
 				art: 'auswahl',
 				attribut: 'art',
-				name: 'Darstellung',
+				name: 'Zeigen als',
 				standard: 'baum',
 				optionen: [
 					{ wert: 'baum', name: 'Baum' },
@@ -1530,7 +1547,7 @@ export const ABBILDUNG_SCHEMA = {
 			},
 			{
 				art: 'schalter',
-				attribut: 'wiederholung',
+				attribut: 'wiederholung', nurWenn: gleicheWoerter,
 				name: 'Mit Wiederholung',
 				an: 'ja',
 				aus: 'nein',
@@ -1538,7 +1555,7 @@ export const ABBILDUNG_SCHEMA = {
 			},
 			{
 				art: 'schalter',
-				attribut: 'reihenfolge',
+				attribut: 'reihenfolge', nurWenn: gleicheWoerter,
 				name: 'Reihenfolge zählt',
 				an: 'ja',
 				aus: 'nein',
@@ -1590,11 +1607,11 @@ export const ABBILDUNG_SCHEMA = {
 					{ wert: '1', name: '1 cm' },
 				],
 			},
-			{ art: 'raster', attribut: 'figur', name: 'Figur', spalten: 'spalten', zeilen: 'zeilen', gruppe: 'Figur' },
+			{ art: 'raster', attribut: 'figur', name: 'Aus Kästchen', spalten: 'spalten', zeilen: 'zeilen', gruppe: 'Figur' },
 			{
 				art: 'text',
 				attribut: 'linien',
-				name: 'Figur aus Linien',
+				name: 'Aus Linien',
 				gruppe: 'Figur',
 				muster: '[-0-9.,; ]*',
 				musterHilfe: 'Punkte wie 0,0 3,0 3,2; mehrere Figuren mit ; trennen.',
@@ -1603,7 +1620,7 @@ export const ABBILDUNG_SCHEMA = {
 			{
 				art: 'auswahl',
 				attribut: 'aufgabe',
-				name: 'Aufgabe',
+				name: 'Kinder sollen',
 				standard: 'keine',
 				gruppe: 'Aufgabe',
 				optionen: [
@@ -1616,7 +1633,7 @@ export const ABBILDUNG_SCHEMA = {
 			},
 			{
 				art: 'auswahl',
-				attribut: 'achse',
+				attribut: 'achse', nurWenn: wennNicht('aufgabe', 'keine', 'fortsetzen'),
 				name: 'Achse',
 				gruppe: 'Aufgabe',
 				optionen: [
@@ -1627,7 +1644,7 @@ export const ABBILDUNG_SCHEMA = {
 			},
 			{
 				art: 'zahl',
-				attribut: 'achse-bei',
+				attribut: 'achse-bei', nurWenn: (w) => !!w.achse && (w.aufgabe ?? 'keine') !== 'fortsetzen',
 				name: 'Achse nach Kästchen',
 				min: 1,
 				max: 39,
@@ -1636,7 +1653,7 @@ export const ABBILDUNG_SCHEMA = {
 			},
 			{
 				art: 'zahl',
-				attribut: 'rapport',
+				attribut: 'rapport', nurWenn: wenn('aufgabe', 'keine', 'fortsetzen'),
 				name: 'Breite eines Musters',
 				min: 1,
 				max: 40,
@@ -1645,7 +1662,7 @@ export const ABBILDUNG_SCHEMA = {
 			},
 			{
 				art: 'zahl',
-				attribut: 'rapporte',
+				attribut: 'rapporte', nurWenn: wenn('aufgabe', 'keine', 'fortsetzen'),
 				name: 'Muster vorgegeben',
 				min: 1,
 				max: 10,
@@ -1654,7 +1671,7 @@ export const ABBILDUNG_SCHEMA = {
 			},
 			{
 				art: 'auswahl',
-				attribut: 'rapportart',
+				attribut: 'rapportart', nurWenn: wenn('aufgabe', 'keine', 'fortsetzen'),
 				name: 'Fortsetzen durch',
 				standard: 'schieben',
 				gruppe: 'Aufgabe',
@@ -1666,7 +1683,7 @@ export const ABBILDUNG_SCHEMA = {
 			},
 			{
 				art: 'auswahl',
-				attribut: 'faktor',
+				attribut: 'faktor', nurWenn: wenn('aufgabe', 'keine', 'vergroessern'),
 				name: 'Größe',
 				standard: '2',
 				gruppe: 'Aufgabe',
@@ -1678,7 +1695,7 @@ export const ABBILDUNG_SCHEMA = {
 			},
 			{
 				art: 'liste',
-				attribut: 'weg',
+				attribut: 'weg', nurWenn: wenn('aufgabe', 'keine', 'weg'),
 				name: 'Weg',
 				zeilenTrenner: ' ',
 				feldTrenner: '',
@@ -1700,7 +1717,7 @@ export const ABBILDUNG_SCHEMA = {
 			},
 			{
 				art: 'auswahl',
-				attribut: 'wegart',
+				attribut: 'wegart', nurWenn: wenn('aufgabe', 'keine', 'weg'),
 				name: 'Beim Weg',
 				standard: 'gehen',
 				gruppe: 'Aufgabe',
@@ -1711,7 +1728,7 @@ export const ABBILDUNG_SCHEMA = {
 			},
 			{
 				art: 'text',
-				attribut: 'start',
+				attribut: 'start', nurWenn: wenn('aufgabe', 'keine', 'weg'),
 				name: 'Start (Spalte,Zeile)',
 				gruppe: 'Aufgabe',
 				muster: '\\d+,\\d+',
@@ -1757,7 +1774,7 @@ export const ABBILDUNG_SCHEMA = {
 			},
 			{
 				art: 'auswahl',
-				attribut: 'typ',
+				attribut: 'typ', nurWenn: wenn('form', 'quadrat', 'dreieck'),
 				name: 'Dreieck',
 				standard: 'rechtwinklig',
 				optionen: [
@@ -1842,8 +1859,8 @@ export const ABBILDUNG_SCHEMA = {
 					{ wert: 'treppe', name: 'Treppe' },
 				],
 			},
-			{ art: 'zahl', attribut: 'mitte', name: 'Mittelzahl', min: 1, max: 10000, standard: 45 },
-			{ art: 'raster', attribut: 'luecken', name: 'Lücken', form: true, gruppe: 'Lücken' },
+			{ art: 'zahl', attribut: 'mitte', nurWenn: wennNicht('ausschnitt', 'ganz', 'ganz'), name: 'Mittelzahl', min: 1, max: 10000, standard: 45 },
+			{ art: 'raster', attribut: 'luecken', name: 'Zahlen antippen', form: true, gruppe: 'Lücken' },
 			{
 				art: 'zahl',
 				attribut: 'zufall',
@@ -1924,7 +1941,7 @@ export const ABBILDUNG_SCHEMA = {
 			{ art: 'schalter', attribut: 'massstab', name: 'Bögen im Maßstab', an: 'ja', aus: 'nein', standard: false },
 			{
 				art: 'schalter',
-				attribut: 'gemischt',
+				attribut: 'gemischt', nurWenn: (w) => w.gemischt === 'ja' || (/\+/.test(w.spruenge ?? '') && /[-−]/.test(w.spruenge ?? '')),
 				name: 'Gemischte Sprünge',
 				an: 'ja',
 				aus: 'nein',
@@ -2021,7 +2038,7 @@ export const ABBILDUNG_SCHEMA = {
 			{
 				art: 'auswahl',
 				attribut: 'darstellung',
-				name: 'Darstellung',
+				name: 'Lücke als',
 				standard: 'linie',
 				optionen: [
 					{ wert: 'linie', name: 'Linie' },
@@ -2053,7 +2070,7 @@ export const ABBILDUNG_SCHEMA = {
 				beispiel: 'Hund; Maus; Pferd',
 				hilfe: 'Leer: die Wörter aus den Lücken dieser Aufgabe.',
 			},
-			{ art: 'zahl', attribut: 'spalten', name: 'Spalten', min: 1, max: 6, standard: 4 },
+			{ art: 'zahl', attribut: 'spalten', abschnitt: 'darstellung', name: 'Spalten', min: 1, max: 6, standard: 4 },
 			{
 				art: 'auswahl',
 				attribut: 'reihenfolge',
@@ -2064,7 +2081,7 @@ export const ABBILDUNG_SCHEMA = {
 					{ wert: 'gemischt', name: 'Gemischt' },
 				],
 			},
-			{ art: 'mischen', attribut: 'seed', name: 'Anordnung' },
+			{ art: 'mischen', attribut: 'seed', nurWenn: wenn('reihenfolge', 'alphabetisch', 'gemischt'), name: 'Anordnung' },
 			{ art: 'schalter', attribut: 'rahmen', name: 'Rahmen', an: '1', aus: '0', standard: true },
 		],
 	},
@@ -2084,8 +2101,8 @@ export const ABBILDUNG_SCHEMA = {
 				beispiel: 'Wie viele Beine hat ein Hund?: *4, 3, 6',
 				hilfe: 'Frage: Antworten mit Komma; * markiert die richtige; ; trennt die Fragen.',
 			},
-			{ art: 'schalter', attribut: 'mehrfach', name: 'Mehrere richtig', an: '1', aus: '0', standard: false },
-			{ art: 'zahl', attribut: 'spalten', name: 'Spalten', min: 1, max: 4, standard: 1 },
+			{ art: 'schalter', attribut: 'mehrfach', nurWenn: (w) => w.mehrfach === '1' || (w.fragen ?? '').split(';').some((f) => f.split('*').length > 2), name: 'Mehrere richtig', an: '1', aus: '0', standard: false },
+			{ art: 'zahl', attribut: 'spalten', abschnitt: 'darstellung', name: 'Spalten', min: 1, max: 4, standard: 1 },
 			{ art: 'mischen', attribut: 'seed', name: 'Anordnung' },
 		],
 	},
@@ -2113,7 +2130,7 @@ export const ABBILDUNG_SCHEMA = {
 			{
 				art: 'auswahl',
 				attribut: 'darstellung',
-				name: 'Darstellung',
+				name: 'Lösen durch',
 				standard: 'linien',
 				optionen: [
 					{ wert: 'linien', name: 'Mit Linien verbinden' },
@@ -2157,7 +2174,7 @@ export const ABBILDUNG_SCHEMA = {
 			{
 				art: 'auswahl',
 				attribut: 'darstellung',
-				name: 'Darstellung',
+				name: 'Lösen durch',
 				standard: 'ziffer',
 				optionen: [
 					{ wert: 'ziffer', name: 'Ziffer im Kästchen' },
@@ -2186,7 +2203,7 @@ export const ABBILDUNG_SCHEMA = {
 			{
 				art: 'auswahl',
 				attribut: 'darstellung',
-				name: 'Darstellung',
+				name: 'Beschriften mit',
 				standard: 'linien',
 				optionen: [
 					{ wert: 'linien', name: 'Linien nach außen' },
@@ -2361,7 +2378,7 @@ export const ABBILDUNG_SCHEMA = {
 			},
 			{
 				art: 'text',
-				attribut: 'farben',
+				attribut: 'farben', nurWenn: wenn('darstellung', 'boegen', 'farbe', 'beides'),
 				name: 'Farben der Klasse',
 				abschnitt: 'weitere',
 				beispiel: 'blau rot',
@@ -2413,7 +2430,7 @@ export const ABBILDUNG_SCHEMA = {
 			{
 				art: 'auswahl',
 				attribut: 'darstellung',
-				name: 'Darstellung',
+				name: 'Wortarten als',
 				standard: 'symbole',
 				optionen: [
 					{ wert: 'symbole', name: 'Symbole' },
@@ -2498,7 +2515,7 @@ export const ABBILDUNG_SCHEMA = {
 			},
 			{
 				art: 'auswahl',
-				attribut: 'vorn',
+				attribut: 'vorn', nurWenn: wenn('aufgabe', 'keine', 'umstellen'),
 				name: 'Beim Umstellen nach vorn',
 				gruppe: 'Mehr',
 				optionen: [
@@ -2570,7 +2587,7 @@ export const ABBILDUNG_SCHEMA = {
 			},
 			{
 				art: 'liste',
-				attribut: 'woerter',
+				attribut: 'woerter', nurWenn: wenn('art', 'wort', 'familie'),
 				name: 'Wörter der Familie',
 				max: 8,
 				unter: [{ name: 'Wort', art: 'text', standard: 'Wort' }],
@@ -2662,7 +2679,7 @@ export const ABBILDUNG_SCHEMA = {
 			},
 			{
 				art: 'zahl',
-				attribut: 'breite',
+				attribut: 'breite', abschnitt: 'darstellung',
 				name: 'Breite',
 				min: 200,
 				max: 1600,
@@ -2736,7 +2753,7 @@ export const ABBILDUNG_SCHEMA = {
 			},
 			{
 				art: 'zahl',
-				attribut: 'groesse',
+				attribut: 'groesse', abschnitt: 'darstellung',
 				name: 'Größe',
 				min: 200,
 				max: 1200,
@@ -2825,7 +2842,7 @@ export const ABBILDUNG_SCHEMA = {
 			{
 				art: 'auswahl',
 				attribut: 'art',
-				name: 'Darstellung',
+				name: 'Zeichnen als',
 				standard: 'symbole',
 				optionen: [
 					{ wert: 'symbole', name: 'Schaltzeichen' },
@@ -2940,7 +2957,7 @@ export const ABBILDUNG_SCHEMA = {
 			},
 			{
 				art: 'auswahl',
-				attribut: 'loesung',
+				attribut: 'loesung', nurWenn: (w) => !w.symbol,
 				name: 'Symbol erst in der Lösung',
 				optionen: [{ wert: null, name: 'Keins' }, ...WETTER],
 			},
@@ -2960,7 +2977,7 @@ export const ABBILDUNG_SCHEMA = {
 			{ art: 'mischen', attribut: 'seed', name: 'Gitter' },
 			{
 				art: 'liste',
-				attribut: 'woerter',
+				attribut: 'woerter', alsText: true,
 				name: 'Wörter',
 				hilfe: 'Nur Buchstaben. Das Bild braucht nur die Wortliste „Bilder“.',
 				unter: [
@@ -3031,7 +3048,7 @@ export const ABBILDUNG_SCHEMA = {
 			{ art: 'mischen', attribut: 'seed', name: 'Gitter' },
 			{
 				art: 'liste',
-				attribut: 'eintraege',
+				attribut: 'eintraege', alsText: true,
 				name: 'Einträge',
 				hilfe: 'Hinweis als Text oder Bild, dazu das Wort. Höchstens 12.',
 				unter: [
@@ -3084,7 +3101,7 @@ export const ABBILDUNG_SCHEMA = {
 			},
 			{
 				art: 'liste',
-				attribut: 'zuordnung',
+				attribut: 'zuordnung', alsText: true,
 				name: 'Legende',
 				hilfe: 'Jedes richtige Ergebnis mit seinem Buchstaben.',
 				unter: [
@@ -3120,10 +3137,10 @@ export const ABBILDUNG_SCHEMA = {
 			ort: 'seite',
 		},
 		felder: [
-			{ art: 'mischen', attribut: 'seed', name: 'Karten' },
+			{ art: 'mischen', attribut: 'seed', name: 'Karten mischen' },
 			{
 				art: 'liste',
-				attribut: 'eintraege',
+				attribut: 'eintraege', alsText: true,
 				name: 'Einträge',
 				hilfe: 'Ruf und Feld, zum Beispiel 7·8 und 56. Nötig sind Felder × Felder + 4 Einträge.',
 				unter: [
@@ -3170,7 +3187,7 @@ export const ABBILDUNG_SCHEMA = {
 			{ art: 'mischen', attribut: 'seed', name: 'Lage der Steine' },
 			{
 				art: 'liste',
-				attribut: 'paare',
+				attribut: 'paare', alsText: true,
 				name: 'Paare',
 				unter: [
 					{ name: 'Aufgabe', art: 'mini', standard: 'Neu' },
@@ -3327,7 +3344,7 @@ export const ABBILDUNG_SCHEMA = {
 			},
 			{
 				art: 'zahlen',
-				attribut: 'offen',
+				attribut: 'offen', nurWenn: wenn('aufgabe', 'keine', 'ergaenzen'),
 				name: 'Fehlende Noten',
 				beispiel: '5',
 				hilfe: 'Nummern der Noten zum Ergänzen; ohne Angabe die letzte.',
@@ -3427,7 +3444,7 @@ export const ABBILDUNG_SCHEMA = {
 			},
 			{
 				art: 'text',
-				attribut: 'weg',
+				attribut: 'weg', nurWenn: wenn('aufgabe', 'keine', 'weg'),
 				name: 'Weg',
 				beispiel: 'A1 A2 B2',
 				hilfe: 'Planquadrate von Start bis Ziel.',
@@ -3462,7 +3479,7 @@ export const ABBILDUNG_SCHEMA = {
 			{ art: 'text', attribut: 'massstab', name: 'Maßstab', beispiel: '1 Kästchen = 100 m', gruppe: 'Mehr' },
 			{
 				art: 'zahl',
-				attribut: 'kaestchen',
+				attribut: 'kaestchen', abschnitt: 'darstellung',
 				name: 'Kästchen',
 				min: 0.8,
 				max: 3,
@@ -3554,7 +3571,7 @@ export const ABBILDUNG_SCHEMA = {
 			},
 			{
 				art: 'text',
-				attribut: 'betrag',
+				attribut: 'betrag', nurWenn: wenn('aufgabe', 'keine', 'legen'),
 				name: 'Betrag zum Legen',
 				beispiel: '3,45',
 				muster: '\\d+([.,]\\d{1,2})?',
@@ -3678,7 +3695,7 @@ export const ABBILDUNG_SCHEMA = {
 			},
 			{
 				art: 'auswahl',
-				attribut: 'massstab',
+				attribut: 'massstab', nurWenn: wenn('art', 'lineal', 'lineal'),
 				name: 'Lineal',
 				gruppe: 'Skala',
 				optionen: [
@@ -3686,7 +3703,7 @@ export const ABBILDUNG_SCHEMA = {
 					{ wert: 'nein', name: 'Verkleinert, nicht zum Messen' },
 				],
 			},
-			{ art: 'zahl', ...GROESSE, min: 120, max: 600, standard: 240, schritt: 20, gruppe: 'Skala' },
+			{ art: 'zahl', nurWenn: (w) => (w.art ?? 'lineal') !== 'lineal' || w.massstab === 'nein', ...GROESSE, min: 120, max: 600, standard: 240, schritt: 20, gruppe: 'Skala' },
 		],
 	},
 	'x-strecke': {
@@ -3738,7 +3755,7 @@ export const ABBILDUNG_SCHEMA = {
 					{ wert: 'jahr', name: 'Ganzes Jahr' },
 				],
 			},
-			{ art: 'zahl', attribut: 'monat', name: 'Monat', min: 1, max: 12, standard: 1 },
+			{ art: 'zahl', attribut: 'monat', nurWenn: wenn('art', 'monat', 'monat'), name: 'Monat', min: 1, max: 12, standard: 1 },
 			{ art: 'zahl', attribut: 'jahr', name: 'Jahr', min: 1900, max: 2100, standard: 2026 },
 			{ art: 'raster', attribut: 'markiert', name: 'Markierte Tage', form: true },
 			{ art: 'raster', attribut: 'luecken', name: 'Tage ohne Zahl', form: true },
@@ -3886,7 +3903,7 @@ export const ABBILDUNG_SCHEMA = {
 			{ art: 'zahlen', attribut: 'zahlen', name: 'Zahlen', beispiel: '345 278' },
 			{
 				art: 'auswahl',
-				attribut: 'verfahren',
+				attribut: 'verfahren', nurWenn: wenn('art', 'plus', 'minus'),
 				name: 'Verfahren bei Minus',
 				hilfe: 'So, wie es die Klasse gelernt hat.',
 				optionen: [
@@ -4028,10 +4045,10 @@ export const ABBILDUNG_SCHEMA = {
 				],
 			},
 			{ art: 'zahl', attribut: 'anzahl', name: 'Anzahl', min: 1, max: 60, standard: 10 },
-			{ art: 'zahl', attribut: 'spalten', name: 'Spalten', min: 1, max: 4, standard: 2 },
+			{ art: 'zahl', attribut: 'spalten', abschnitt: 'darstellung', name: 'Spalten', min: 1, max: 4, standard: 2 },
 			{
 				art: 'auswahl',
-				attribut: 'uebergang',
+				attribut: 'uebergang', nurWenn: wenn('rechenart', '+', '+', '−'),
 				name: 'Zehnerübergang',
 				standard: 'egal',
 				optionen: [
@@ -4065,7 +4082,7 @@ export const ABBILDUNG_SCHEMA = {
 			},
 			{
 				art: 'auswahl',
-				attribut: 'reihe',
+				attribut: 'reihe', nurWenn: wenn('rechenart', '+', '·', ':'),
 				name: 'Einmaleins-Reihe',
 				optionen: [
 					{ wert: null, name: 'Alle' },
@@ -4075,7 +4092,7 @@ export const ABBILDUNG_SCHEMA = {
 					})),
 				],
 			},
-			{ art: 'schalter', attribut: 'rest', name: 'Mit Rest', an: '1', aus: '0', standard: false },
+			{ art: 'schalter', attribut: 'rest', nurWenn: wenn('rechenart', '+', ':'), name: 'Mit Rest', an: '1', aus: '0', standard: false },
 			{
 				art: 'text',
 				attribut: 'aufgaben',
@@ -4177,7 +4194,7 @@ export const ABBILDUNG_SCHEMA = {
 			{
 				art: 'auswahl',
 				attribut: 'art',
-				name: 'Darstellung',
+				name: 'Zeigen als',
 				standard: 'kette',
 				optionen: [
 					{ wert: 'kette', name: 'Kette' },
@@ -4314,7 +4331,7 @@ export const ABBILDUNG_SCHEMA = {
 			},
 			{
 				art: 'zahl',
-				attribut: 'einheit',
+				attribut: 'einheit', abschnitt: 'darstellung',
 				name: 'Würfelkante',
 				min: 14,
 				max: 50,
@@ -4388,7 +4405,7 @@ export const ABBILDUNG_SCHEMA = {
 			},
 			{
 				art: 'zahl',
-				attribut: 'kante',
+				attribut: 'kante', nurWenn: wenn('bastel', 'nein', 'ja'),
 				name: 'Kante',
 				min: 1,
 				max: 8,
@@ -4399,7 +4416,7 @@ export const ABBILDUNG_SCHEMA = {
 			},
 			{
 				art: 'auswahl',
-				attribut: 'art',
+				attribut: 'art', abschnitt: 'inhalt',
 				name: 'Körper',
 				standard: 'wuerfel',
 				gruppe: 'Weitere Angaben',
@@ -4410,7 +4427,7 @@ export const ABBILDUNG_SCHEMA = {
 			},
 			{
 				art: 'zahlen',
-				attribut: 'masse',
+				attribut: 'masse', nurWenn: wenn('art', 'wuerfel', 'quader'),
 				name: 'Maße des Quaders',
 				beispiel: '4 2 1',
 				gruppe: 'Weitere Angaben',
@@ -4671,6 +4688,24 @@ export const zeilenText = (feld: ListeFeld, zeilen: string[][]): string | null =
 		})
 		.join(trenner);
 };
+
+
+const LISTEN_SPALTE = ' | ';
+
+/** Eine Liste als Text: eine Zeile je Eintrag, Unterfelder mit ` | ` getrennt. Nur für `alsText`-Listen im Panel. */
+export const zeilenAlsText = (feld: ListeFeld, zeilen: string[][]) =>
+	zeilen.map((z) => feld.unter.map((_, j) => z[j] ?? '').join(LISTEN_SPALTE).replace(/( \| )+$/, '')).join('\n');
+
+/** Gegenstück zu `zeilenAlsText`. Leere Zeilen fallen weg; was im Text fehlt, bleibt leer oder kommt aus `standard`. */
+export const zeilenAusText = (feld: ListeFeld, text: string) =>
+	text
+		.split('\n')
+		.map((z) => z.trim())
+		.filter(Boolean)
+		.map((z) => {
+			const teile = z.split('|').map((t) => t.trim());
+			return feld.unter.map((u, j) => teile[j] ?? u.standard ?? '');
+		});
 
 export const rasterVon = (wert: string | null): string[][] =>
 	(wert ?? '')
@@ -5010,7 +5045,6 @@ const DARSTELLUNG = new Set([
 	'projektion',
 	'rahmen',
 	'schrift',
-	'umriss',
 	'ziffern',
 ]);
 

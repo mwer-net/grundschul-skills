@@ -9,4 +9,6 @@ export const leistenFelder = (abb: AbbildungSteuerung) =>
 export const hatLeistenfeld = (abb: AbbildungSteuerung) => leistenFelder(abb).length > 0;
 
 export const hatWeitere = (abb: AbbildungSteuerung) =>
-	abb.aktiv && (abb.schema?.felder ?? []).some((f) => abschnittVon(f) === 'weitere');
+	abb.aktiv && (abb.schema?.felder ?? []).some(
+		(f) => abschnittVon(f) === 'weitere' && !f.ohneFeld && (!f.nurWenn || !abb.werte || f.nurWenn(abb.werte)),
+	);

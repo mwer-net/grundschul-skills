@@ -98,6 +98,10 @@ const rasterWerte = (feld: Feld & { art: 'raster' }, roh: string | null, zellen:
 	return [['eine Zelle', rasterText(neu)]];
 };
 
+/** Dieselbe Form, ein anderer Inhalt: Die erste Ziffer steigt, ohne Ziffer kommt ein Buchstabe dazu. */
+const anders = (wert: string) =>
+	/\d/.test(wert) ? wert.replace(/\d/, (d) => String((Number(d) + 1) % 10)) : `${wert}x`;
+
 const roheWerte = (
 	schema: AbbildungSchema,
 	feld: Feld,
@@ -123,9 +127,16 @@ const roheWerte = (
 		case 'uhrzeit':
 			return [['3:15', '3:15']];
 		case 'text':
-			return [['Text', feld.beispiel ?? (feld.muster ? roh : 'Ab')]];
+			// Das Beispiel ist oft zugleich der Standard: Darum zusätzlich ein Wert, der sicher anders ist.
+			return [
+				['Text', feld.beispiel ?? (feld.muster ? roh : 'Ab')],
+				['Text anders', anders(feld.beispiel ?? 'Ab')],
+			];
 		case 'zahlen':
-			return [['Liste', feld.beispiel]];
+			return [
+				['Liste', feld.beispiel],
+				['Liste anders', anders(feld.beispiel)],
+			];
 		case 'ziffern': {
 			const n = stellenVon(w, feld.stellen).length;
 			return [['Ziffern', ziffernText(Array.from({ length: n }, (_, i) => String(i + 1)))]];
