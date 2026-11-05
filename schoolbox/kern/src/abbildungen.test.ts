@@ -35,6 +35,7 @@ import {
 	rasterVon,
 	schemaVon,
 	setzeAbbildung,
+	tafelAusschnitt,
 	VERKEHRSZEICHEN,
 	werteVon,
 	zeilenAlsText,
@@ -224,6 +225,39 @@ describe('Felder ändern', () => {
 			wert: '3',
 			nurLoesung: true,
 		});
+	});
+
+	it('Zwanzigerfeld: die Art nimmt passende Anzahlen mit, was passt, bleibt', () => {
+		const s = schema('x-zwanzigerfeld');
+		const art = feld(s, 'art');
+		const neu = (w: Werte, wert: string | null) => aendereFeld(s, w, art, wert);
+		assert.deepEqual(neu({ n: '13' }, 'fuenfer'), { art: 'fuenfer', n: '3', n2: null });
+		assert.deepEqual(neu({ n: '13' }, 'zehner'), { art: 'zehner', n: '5', n2: null });
+		assert.deepEqual(neu({ n: '13', n2: '2' }, 'fuenfer'), { art: 'fuenfer', n: '3', n2: '2' });
+		assert.deepEqual(neu({ n: '4', n2: '3' }, 'fuenfer'), { art: 'fuenfer', n: '4', n2: '1' });
+		assert.deepEqual(neu({ n: '3' }, 'fuenfer'), { art: 'fuenfer', n: '3' });
+		assert.deepEqual(neu({ n: '5', n2: '2' }, 'zehner'), { art: 'zehner', n: '5', n2: '2' });
+		assert.deepEqual(neu({ loesung: '12 3' }, 'zehner'), { art: 'zehner', loesung: '5 3' });
+		assert.deepEqual(neu({ art: 'fuenfer', n: '3' }, null), { art: null, n: '3' });
+	});
+
+	it('Hundertertafel: der Ausschnitt schreibt die gezeigte Mittelzahl mit', () => {
+		const s = schema('x-hundertertafel');
+		const ausschnitt = feld(s, 'ausschnitt');
+		const neu = (w: Werte, wert: string) => aendereFeld(s, w, ausschnitt, wert);
+		assert.equal(neu({}, 'kreuz').mitte, '45');
+		assert.equal(neu({ mitte: '68' }, 'block').mitte, '68');
+		assert.equal(neu({ von: '301', bis: '400' }, 'kreuz').mitte, '345');
+		assert.equal(neu({ mitte: '41' }, 'kreuz').mitte, '42', 'Am Rand geht es nicht, die nächste Zahl schon');
+		assert.equal(neu({ von: '1', bis: '5' }, 'kreuz').mitte, undefined, 'Geht es gar nicht, sagt das die Meldung');
+		assert.equal(neu({}, 'ganz').mitte, undefined);
+		const starter = neu({ luecken: '7 23 58 94', markiert: '5 10 45 50' }, 'zeile');
+		assert.deepEqual([starter.luecken, starter.markiert], [null, '45 50']);
+		const mitte = feld(s, 'mitte');
+		const geruckt = aendereFeld(s, { ausschnitt: 'kreuz', mitte: '45', luecken: '35 46', markiert: '55' }, mitte, '46');
+		assert.deepEqual([geruckt.luecken, geruckt.markiert], ['46', null]);
+		const rand = aendereFeld(s, { ausschnitt: 'kreuz', mitte: '45', markiert: '45' }, mitte, '41');
+		assert.equal(rand.markiert, '45', 'Geht der Ausschnitt nicht, bleibt alles, bis die Zahl passt');
 	});
 
 	it('Stellen ändern: Zahlen bleiben rechtsbündig an ihrer Stelle', () => {
@@ -937,6 +971,27 @@ describe('Zahldarstellungen (027)', () => {
 		assert.throws(() => ausschnittZahlen(1, 100, 'kreuz', 41), /am Rand/);
 		assert.throws(() => ausschnittZahlen(1, 100, 'kreuz', 5), /steht nicht auf dieser Tafel/);
 		assert.throws(() => ausschnittZahlen(1, 100, 'kreuz', null), /fehlt die Mittelzahl/);
+	});
+
+	it('Hundertertafel: der Ausschnitt im Schema rechnet wie abbildungen.js', () => {
+		const { ausschnittZahlen } = rechenkerne();
+		for (const [von, bis] of [
+			[1, 100],
+			[301, 400],
+			[1, 20],
+		] as const) {
+			for (const art of ['zeile', 'spalte', 'kreuz', 'block', 'treppe']) {
+				for (let mitte = von; mitte <= bis; mitte += 1) {
+					let erwartet: number[] | null = null;
+					try {
+						erwartet = [...ausschnittZahlen(von, bis, art, mitte)];
+					} catch {
+						erwartet = null;
+					}
+					assert.deepEqual(tafelAusschnitt(von, bis, art, mitte), erwartet, `${art} ${mitte} (${von}-${bis})`);
+				}
+			}
+		}
 	});
 
 	it('Rechenstrich rechnet und liest Sprünge', () => {

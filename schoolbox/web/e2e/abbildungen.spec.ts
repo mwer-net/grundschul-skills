@@ -110,7 +110,7 @@ test.describe('Editor: Abbildungen', () => {
 		await druecke(material(page).locator('x-menge'));
 		const buendel = page.locator('[data-feld="buendel"]');
 		for (let i = 0; i < 3; i += 1) {
-			await druecke(page.getByRole('button', { name: 'Eingekreiste Zehner: mehr' }));
+			await druecke(page.getByRole('button', { name: 'Zehnerbündel: mehr' }));
 		}
 		await expect(page.locator('[data-fehler="buendel"]')).toHaveText('Es gibt nur 2 volle Zehnerreihen.');
 		await expect(buendel.locator('input[type="text"]')).toHaveValue('3');
@@ -779,6 +779,51 @@ test.describe('Zahldarstellungen (027)', () => {
 		await gespeichert(page, datei);
 		expect(await readFile(datei, 'utf8')).toContain('spruenge="+30 +4 +5"');
 		await expect(material(page).locator('.strich-wert')).toHaveCount(4);
+	});
+
+	test('Zahlen: Art und Ausschnitt nehmen mit, was sie brauchen, die Felder zeigen es (084)', async ({ druecke, page }) => {
+		const { dok, id, material: datei } = await uhrzeit();
+		await oeffne(page, id, dok);
+		await aendere(
+			page,
+			(await quelle(page)).replace(
+				/<x-uhr[^>]*><\/x-uhr>/,
+				'<x-zwanzigerfeld n="13"></x-zwanzigerfeld>',
+			),
+		);
+		await gespeichert(page, datei);
+		const stand = await readFile(datei, 'utf8');
+
+		await druecke(material(page).locator('x-zwanzigerfeld'));
+		await page.locator('[data-feld="art"] select').selectOption({ label: 'Fünferfeld' });
+		await gespeichert(page, datei);
+		expect(await readFile(datei, 'utf8')).toMatch(/<x-zwanzigerfeld [^>]*art="fuenfer"/);
+		expect(await readFile(datei, 'utf8')).toMatch(/<x-zwanzigerfeld [^>]*n="3"/);
+		await expect(page.locator('[data-feld="n"] input')).toHaveValue('3');
+		await expect(page.locator('[data-fehler]')).toHaveCount(0);
+		await expect(material(page).locator('x-zwanzigerfeld circle')).toHaveCount(3);
+		await druecke(zurueck(page));
+		await gespeichert(page, datei);
+		expect(await readFile(datei, 'utf8')).toBe(stand);
+
+		await aendere(
+			page,
+			(await quelle(page)).replace(
+				/<x-zwanzigerfeld[^>]*><\/x-zwanzigerfeld>/,
+				'<x-hundertertafel luecken="7 23" markiert="5 45"></x-hundertertafel>',
+			),
+		);
+		await gespeichert(page, datei);
+		await druecke(material(page).locator('x-hundertertafel'));
+		await page.locator('[data-feld="ausschnitt"] select').selectOption({ label: 'Kreuz' });
+		await gespeichert(page, datei);
+		const kreuz = await readFile(datei, 'utf8');
+		expect(kreuz).toMatch(/<x-hundertertafel [^>]*mitte="45"/);
+		expect(kreuz).toMatch(/<x-hundertertafel [^>]*markiert="45"/);
+		expect(kreuz).not.toContain('luecken="');
+		await expect(page.locator('[data-feld="mitte"] input')).toHaveValue('45');
+		await expect(page.locator('[data-fehler]')).toHaveCount(0);
+		await expect(material(page).locator('.tafel-zelle')).toHaveCount(5);
 	});
 });
 

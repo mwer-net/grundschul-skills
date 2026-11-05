@@ -47,6 +47,8 @@ interface FeldBasis {
 	auszeichnung?: boolean;
 	/** Nur wenn es wirkt: Das Panel blendet das Feld sonst aus. Der Wert im Attribut bleibt, am Blatt ändert sich nichts. */
 	nurWenn?: (w: Werte) => boolean;
+	/** Was die Wahl sonst am Blatt scheitern ließe, nimmt sie mit: bekommt die neuen Werte, liefert die dazu geänderten. */
+	mitnehmen?: (w: Werte) => Werte;
 }
 
 /** Vorschlag für den Notenschlüssel in Prozent (053); dieselbe Angabe steht in `abbildungen.js`, ein Test hält beide gleich. */
@@ -830,6 +832,105 @@ const gleicheWoerter = (w: Werte) => {
 	return stufen.some((s, i) => stufen.some((t, j) => i !== j && s.some((x) => x && t.includes(x))));
 };
 
+const FELDER_JE_ART: Readonly<Record<string, number>> = { fuenfer: 5, zehner: 10, zwanziger: 20 };
+
+/** Plättchen, die ins Feld passen. Sind es zu viele, füllt die erste Sorte das halbe Feld wie im Musterblatt. */
+const passendePlaettchen = (n: number, n2: number, felder: number) => {
+	const erste = n > felder ? Math.ceil(felder / 2) : n;
+	return [erste, Math.min(n2, felder - erste)] as const;
+};
+
+/** Die Art des Zwanzigerfelds nimmt passende Anzahlen mit, auch die der Lösung; was passt, bleibt zeichengleich. */
+const plaettchenFuerArt = (w: Werte): Werte => {
+	const felder = FELDER_JE_ART[w.art ?? 'zwanziger'] ?? 20;
+	const neu: Werte = {};
+	const [n, n2] = [Number(w.n ?? 0), Number(w.n2 ?? 0)];
+	if (n + n2 > felder) {
+		const [erste, zweite] = passendePlaettchen(n, n2, felder);
+		neu.n = String(erste);
+		neu.n2 = zweite > 0 ? String(zweite) : null;
+	}
+	const loesung = (w.loesung ?? '').trim().split(/\s+/).filter(Boolean).map(Number);
+	if ((loesung[0] ?? 0) + (loesung[1] ?? 0) > felder) {
+		const [erste, zweite] = passendePlaettchen(loesung[0] ?? 0, loesung[1] ?? 0, felder);
+		neu.loesung = zweite > 0 ? `${erste} ${zweite}` : String(erste);
+	}
+	return neu;
+};
+
+const TAFEL_VERSATZ: Readonly<Record<string, readonly number[]>> = {
+	kreuz: [-10, -1, 0, 1, 10],
+	block: [-11, -10, -9, -1, 0, 1, 9, 10, 11],
+	treppe: [0, 1, 11, 12, 22, 23],
+};
+
+/** Die Zahlen eines Ausschnitts wie `ausschnittZahlen` in `abbildungen.js`, ein Test hält beide gleich; `null`, wenn er dort scheitert. */
+export const tafelAusschnitt = (von: number, bis: number, art: string, mitte: number): number[] | null => {
+	if (mitte < von || mitte > bis) {
+		return null;
+	}
+	const spalte = (mitte - von) % 10;
+	const alle = Array.from({ length: bis - von + 1 }, (_, i) => von + i);
+	if (art === 'zeile') {
+		return alle.filter((z) => Math.floor((z - von) / 10) === Math.floor((mitte - von) / 10));
+	}
+	if (art === 'spalte') {
+		return alle.filter((z) => (z - von) % 10 === spalte);
+	}
+	const versatz = TAFEL_VERSATZ[art];
+	if (!versatz || spalte < (art === 'treppe' ? 0 : 1) || spalte + 1 > 9) {
+		return null;
+	}
+	const zahlen = versatz.map((v) => mitte + v);
+	return zahlen.every((z) => z >= von && z <= bis) ? zahlen : null;
+};
+
+const tafelGrenzen = (w: Werte) => {
+	const von = Number(w.von ?? 1);
+	return { bis: Number(w.bis ?? von + 99), von };
+};
+
+/** Lücken und Markierungen außerhalb des Ausschnitts ließen das Zeichnen scheitern und wären im Raster nicht mehr zu erreichen. */
+const nurImAusschnitt = (w: Werte, zahlen: number[]): Werte => {
+	const neu: Werte = {};
+	for (const attribut of ['luecken', 'markiert']) {
+		const alt = (w[attribut] ?? '').trim().split(/\s+/).filter(Boolean);
+		const bleibt = alt.filter((z) => zahlen.includes(Number(z)));
+		if (bleibt.length < alt.length) {
+			neu[attribut] = bleibt.length > 0 ? bleibt.join(' ') : null;
+		}
+	}
+	return neu;
+};
+
+/** Die Wahl des Ausschnitts schreibt die gezeigte Mittelzahl mit; passt sie nicht, die nächste, um die er geht. */
+const mitteFuerAusschnitt = (w: Werte): Werte => {
+	const art = w.ausschnitt ?? 'ganz';
+	if (art === 'ganz') {
+		return {};
+	}
+	const { bis, von } = tafelGrenzen(w);
+	const gezeigt = Number(w.mitte ?? 45);
+	const wunsch = gezeigt >= von && gezeigt <= bis ? gezeigt : von + 44;
+	const passend = Array.from({ length: Math.max(bis - von + 1, 0) }, (_, i) => von + i)
+		.sort((a, b) => Math.abs(a - wunsch) - Math.abs(b - wunsch))
+		.find((z) => tafelAusschnitt(von, bis, art, z));
+	if (passend === undefined) {
+		return {};
+	}
+	return {
+		mitte: String(passend),
+		...nurImAusschnitt(w, tafelAusschnitt(von, bis, art, passend) ?? []),
+	};
+};
+
+/** Rückt die Mittelzahl, fällt heraus, was nicht mehr im Ausschnitt steht. Geht er um diese Zahl nicht, sagt das die Meldung. */
+const ausschnittFolgtMitte = (w: Werte): Werte => {
+	const { bis, von } = tafelGrenzen(w);
+	const zahlen = tafelAusschnitt(von, bis, w.ausschnitt ?? 'ganz', Number(w.mitte ?? 45));
+	return zahlen ? nurImAusschnitt(w, zahlen) : {};
+};
+
 export const ABBILDUNG_SCHEMA = {
 	'x-uhr': {
 		name: 'Uhr',
@@ -928,7 +1029,7 @@ export const ABBILDUNG_SCHEMA = {
 			{
 				art: 'zahl',
 				attribut: 'buendel',
-				name: 'Eingekreiste Zehner',
+				name: 'Zehnerbündel',
 				min: 0,
 				max: 10,
 				standard: 0,
@@ -1058,6 +1159,7 @@ export const ABBILDUNG_SCHEMA = {
 				attribut: 'art',
 				name: 'Feld',
 				standard: 'zwanziger',
+				mitnehmen: plaettchenFuerArt,
 				optionen: [
 					{ wert: 'fuenfer', name: 'Fünferfeld' },
 					{ wert: 'zehner', name: 'Zehnerfeld' },
@@ -1065,7 +1167,7 @@ export const ABBILDUNG_SCHEMA = {
 				],
 			},
 			{ art: 'zahl', attribut: 'n', name: 'Plättchen', min: 0, max: 20, standard: 0 },
-			{ art: 'zahl', attribut: 'n2', name: 'Plättchen, zweite Sorte', min: 0, max: 20, standard: 0 },
+			{ art: 'zahl', attribut: 'n2', name: 'Zweite Sorte', min: 0, max: 20, standard: 0 },
 			{
 				art: 'zahlen',
 				attribut: 'loesung',
@@ -1087,8 +1189,16 @@ export const ABBILDUNG_SCHEMA = {
 		felder: [
 			{ art: 'zahl', attribut: 'von', name: 'Von', min: 0, max: 1000000, standard: 0 },
 			{ art: 'zahl', attribut: 'bis', name: 'Bis', min: 1, max: 1000000, standard: 20 },
-			{ art: 'zahl', attribut: 'schritt', name: 'Abstand der Striche', min: 1, max: 100000, standard: 1 },
-			{ art: 'zahl', attribut: 'marken', name: 'Mittlere Striche alle', min: 1, max: 100, standard: 5 },
+			{ art: 'zahl', attribut: 'schritt', name: 'Strichabstand', min: 1, max: 100000, standard: 1 },
+			{
+				art: 'zahl',
+				attribut: 'marken',
+				name: 'Längere alle',
+				hilfe: 'Alle so viele Striche kommt ein längerer.',
+				min: 1,
+				max: 100,
+				standard: 5,
+			},
 			{
 				art: 'zahlen',
 				attribut: 'zahlen',
@@ -1816,7 +1926,7 @@ export const ABBILDUNG_SCHEMA = {
 		},
 		felder: [
 			{ art: 'zahl', attribut: 'n', name: 'Plättchen', min: 0, max: 100, standard: 0 },
-			{ art: 'zahl', attribut: 'n2', name: 'Plättchen, zweite Sorte', min: 0, max: 100, standard: 0 },
+			{ art: 'zahl', attribut: 'n2', name: 'Zweite Sorte', min: 0, max: 100, standard: 0 },
 			{ art: 'zahl', attribut: 'zeilen', name: 'Zeilen', min: 1, max: 10, standard: 10 },
 			{ art: 'zahl', attribut: 'spalten', name: 'Spalten', min: 1, max: 10, standard: 10 },
 			{
@@ -1852,6 +1962,7 @@ export const ABBILDUNG_SCHEMA = {
 				attribut: 'ausschnitt',
 				name: 'Ausschnitt',
 				standard: 'ganz',
+				mitnehmen: mitteFuerAusschnitt,
 				optionen: [
 					{ wert: 'ganz', name: 'Ganze Tafel' },
 					{ wert: 'zeile', name: 'Zeile' },
@@ -1861,7 +1972,16 @@ export const ABBILDUNG_SCHEMA = {
 					{ wert: 'treppe', name: 'Treppe' },
 				],
 			},
-			{ art: 'zahl', attribut: 'mitte', nurWenn: wennNicht('ausschnitt', 'ganz', 'ganz'), name: 'Mittelzahl', min: 1, max: 10000, standard: 45 },
+			{
+				art: 'zahl',
+				attribut: 'mitte',
+				nurWenn: wennNicht('ausschnitt', 'ganz', 'ganz'),
+				mitnehmen: ausschnittFolgtMitte,
+				name: 'Mittelzahl',
+				min: 1,
+				max: 10000,
+				standard: 45,
+			},
 			{ art: 'raster', attribut: 'luecken', name: 'Zahlen antippen', form: true, gruppe: 'Lücken' },
 			{
 				art: 'zahl',
@@ -4734,7 +4854,8 @@ export const ziffernText = (liste: string[]) => {
 
 /**
  * Ändert ein Feld. Mit Lösungs-Gegenstück steht der Wert danach in genau einem der beiden Attribute. Ändern sich die
- * Stellen einer Stellentafel, bleiben die Zahlen rechtsbündig an ihrer Stelle (der Einer bleibt der Einer).
+ * Stellen einer Stellentafel, bleiben die Zahlen rechtsbündig an ihrer Stelle (der Einer bleibt der Einer). Was das Feld
+ * sonst braucht, nimmt es per `mitnehmen` mit.
  */
 export const aendereFeld = (
 	schema: AbbildungSchema,
@@ -4764,7 +4885,7 @@ export const aendereFeld = (
 		const gerueckt = jetzt > alt ? [...Array<string>(jetzt - alt).fill(''), ...liste] : liste.slice(alt - jetzt);
 		Object.assign(neu, aendereFeld(schema, neu, f, ziffernText(gerueckt), nur));
 	}
-	return neu;
+	return feld.mitnehmen ? { ...neu, ...feld.mitnehmen(neu) } : neu;
 };
 
 /** Die Attribute, die sich zwischen zwei Fassungen unterscheiden. */
