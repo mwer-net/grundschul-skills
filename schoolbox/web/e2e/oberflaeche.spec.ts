@@ -749,7 +749,8 @@ test.describe('Linke Leiste (067)', () => {
 		const panel = page.locator('[data-panel-links] > div').last();
 		expect(await panel.evaluate((p) => p.scrollHeight <= p.clientHeight)).toBe(true);
 
-		await page.getByLabel('Nur passend zu Fach und Klasse').uncheck();
+		await page.getByRole('button', { name: 'Alle', exact: true }).click();
+		expect(await panel.evaluate((p) => p.scrollHeight <= p.clientHeight)).toBe(true);
 		const anzahlen = await page.locator('[data-bereich-anzahl]').allTextContents();
 		const summe = anzahlen.reduce((s, a) => s + Number(a), 0);
 		const { eintraege } = (await (await page.request.get('/api/katalog')).json()) as { eintraege: unknown[] };

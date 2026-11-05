@@ -131,7 +131,10 @@ const ABSCHNITTE: Abschnitt[] = [
 					<Punkt titel="Plus">
 						einen Teil des Blatts antippen, dann das Plus an seinem Rand oder „+ Baustein“ in der Leiste.
 					</Punkt>
-					<Punkt titel="Bausteine">links im Reiter „Bausteine“ suchen, ins Blatt ziehen oder antippen.</Punkt>
+					<Punkt titel="Bausteine">
+						links im Reiter „Bausteine“. Die Suche findet alles. Oben wählst du „Für dieses Blatt“ oder
+						„Alle“. Karte antippen fügt ein, am Griff links ziehst du sie ins Blatt.
+					</Punkt>
 					<Punkt titel="Schrägstrich">in einer leeren Zeile „/“ tippen und weiterschreiben.</Punkt>
 				</ul>
 			</>

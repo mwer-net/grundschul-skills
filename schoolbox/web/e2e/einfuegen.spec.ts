@@ -3,6 +3,14 @@ import type { Page } from '@playwright/test';
 import { material, oeffne, quelle, uhrzeit } from './editorhilfe';
 import { expect, test } from './hilfe';
 
+const oeffneBausteine = async (page: Page) => {
+	const { dok, id } = await uhrzeit();
+	await oeffne(page, id, dok);
+	await page.getByRole('tab', { name: 'Bausteine' }).click();
+	await expect(page.locator('[data-bereich]').first()).toBeVisible();
+};
+const suche = (page: Page) => page.getByRole('searchbox', { name: 'Baustein suchen' });
+
 const wartePlus = (page: Page) => expect(page.locator('[data-einfuegen-plus]')).toBeVisible();
 
 test.describe('Editor: Bausteine einfügen', () => {
@@ -40,7 +48,7 @@ test.describe('Editor: Bausteine einfügen', () => {
 		if (!griff || !ziel) {
 			throw new Error('nicht zu sehen');
 		}
-		await page.mouse.move(griff.x + 20, griff.y + 20);
+		await page.mouse.move(griff.x + griff.width / 2, griff.y + griff.height / 2);
 		await page.mouse.down();
 		await page.mouse.move(ziel.x + ziel.width / 2, ziel.y + 300, { steps: 5 });
 		await page.mouse.up();
@@ -62,6 +70,122 @@ test.describe('Editor: Bausteine einfügen', () => {
 		await griff.dispatchEvent('pointermove', { ...punkt, clientX: ziel.x + ziel.width / 2, clientY: ziel.y + 300 });
 		await griff.dispatchEvent('pointerup', { ...punkt, clientX: ziel.x + ziel.width / 2, clientY: ziel.y + 300 });
 		await expect.poll(() => quelle(page)).toContain('schreiblinie');
+	});
+
+	test('Suche im Mathe-Blatt findet „Silben“ unter „Aus anderen Fächern“, Einfügen wirkt', async ({ page }) => {
+		await oeffneBausteine(page);
+		await suche(page).fill('Silben');
+		const anderswo = page.locator('[data-treffer-anderswo]');
+		await expect(anderswo.getByRole('heading', { name: 'Aus anderen Fächern und Klassen' })).toBeVisible();
+		const karte = anderswo.locator('[data-bibliothek-eintrag="x-silben"]');
+		await expect(karte.locator('[data-treffer-bereich]')).toHaveText('Sprache');
+		await anderswo.locator('[data-einfuegen="x-silben"]').click();
+		await expect.poll(() => quelle(page)).toContain('x-silben');
+	});
+
+	test('Null-Ergebnis nennt die Anfrage', async ({ page }) => {
+		await oeffneBausteine(page);
+		await suche(page).fill('gibtsnicht');
+		await expect(page.getByText('Nichts zu „gibtsnicht“. Suche prüfen.')).toBeVisible();
+	});
+
+	test('Umschalter steht über der Liste und bleibt nach dem Neuladen', async ({ page }) => {
+		await oeffneBausteine(page);
+		const alle = page.getByRole('button', { name: 'Alle', exact: true });
+		const umschalter = await page.getByRole('group', { name: 'Welche Bausteine' }).boundingBox();
+		const erste = await page.locator('[data-bereich]').first().boundingBox();
+		expect(umschalter && erste && umschalter.y < erste.y).toBe(true);
+		await expect(alle).toHaveAttribute('aria-pressed', 'false');
+		await alle.click();
+		await page.reload();
+		await expect(page.locator('[data-leinwand][data-geladen]')).toBeVisible();
+		await page.getByRole('tab', { name: 'Bausteine' }).click();
+		await expect(alle).toHaveAttribute('aria-pressed', 'true');
+	});
+
+	test('Null-Bereiche nur unter „Alle“, „weitere“ schaltet um', async ({ page }) => {
+		await oeffneBausteine(page);
+		const sprache = page.locator('[data-bereich="Sprache"]');
+		await expect(sprache).toHaveCount(0);
+		const weitere = page.locator('[data-weitere]');
+		const gesamt = await page.request.get('/api/katalog');
+		const { eintraege } = (await gesamt.json()) as { eintraege: { kategorie: string }[] };
+		const alleBereiche = new Set(eintraege.map((e) => e.kategorie)).size;
+		const verborgen = alleBereiche - (await page.locator('[data-bereich]').count());
+		await expect(weitere).toHaveText(`${verborgen} weitere unter Alle`);
+		await weitere.click();
+		await expect(page.getByRole('button', { name: 'Alle', exact: true })).toHaveAttribute('aria-pressed', 'true');
+		await expect(sprache).toBeVisible();
+		await expect(weitere).toHaveCount(0);
+	});
+
+	test('Vollständig: Über alle Bereiche unter „Alle“ gezählt ist der ganze Katalog', async ({ page }) => {
+		await oeffneBausteine(page);
+		await page.getByRole('button', { name: 'Alle', exact: true }).click();
+		const anzahlen = await page.locator('[data-bereich-anzahl]').allTextContents();
+		const { eintraege } = (await (await page.request.get('/api/katalog')).json()) as { eintraege: unknown[] };
+		expect(anzahlen.reduce((s, a) => s + Number(a), 0)).toBe(eintraege.length);
+	});
+
+	test('Klick auf die Karte fügt ein, Klick auf den Griff nicht', async ({ hasTouch, page }) => {
+		test.skip(hasTouch, 'der Griff zieht am Finger sofort');
+		await oeffneBausteine(page);
+		await suche(page).fill('Schreiblinie');
+		const vorher = await quelle(page);
+		const griff = page.locator('[data-ziehgriff="schreiblinie"]');
+		await expect(griff).toHaveAttribute('title', 'Ins Blatt ziehen');
+		await griff.click();
+		await page.waitForTimeout(200);
+		expect(await quelle(page)).toBe(vorher);
+
+		const karte = page.locator('[data-einfuegen="schreiblinie"]');
+		await expect(karte).toHaveAttribute('aria-label', 'Schreiblinie einfügen');
+		// Mitten in die Vorschau: Auch dort klickt die Karte.
+		await page
+			.locator('[data-bibliothek-eintrag="schreiblinie"] [data-karten-vorschau]')
+			.click({ force: true });
+		await expect.poll(() => quelle(page)).not.toBe(vorher);
+	});
+
+	test('Maus: Ziehen von der Karte legt ab und fügt nicht zusätzlich per Klick ein', async ({ hasTouch, page }) => {
+		test.skip(hasTouch, 'am Finger zieht nur der Griff');
+		await oeffneBausteine(page);
+		await suche(page).fill('Schreiblinie');
+		const karte = await page.locator('[data-bibliothek-eintrag="schreiblinie"] [data-karten-vorschau]').boundingBox();
+		const ziel = await page.locator('[data-editor-rahmen="sichtbar"]').boundingBox();
+		if (!karte || !ziel) {
+			throw new Error('nicht zu sehen');
+		}
+		const vorher = (await quelle(page)).match(/schreiblinie/g)?.length ?? 0;
+		await page.mouse.move(karte.x + karte.width / 2, karte.y + karte.height / 2);
+		await page.mouse.down();
+		await page.mouse.move(ziel.x + ziel.width / 2, ziel.y + 300, { steps: 5 });
+		await page.mouse.up();
+		await expect.poll(async () => (await quelle(page)).match(/schreiblinie/g)?.length ?? 0).toBeGreaterThan(vorher);
+		const danach = await quelle(page);
+		await page.waitForTimeout(200);
+		expect(await quelle(page)).toBe(danach);
+	});
+
+	test('Vorschau jeder Karte passt ganz in den Rahmen', async ({ page }) => {
+		test.setTimeout(120_000);
+		await oeffneBausteine(page);
+		const { eintraege } = (await (await page.request.get('/api/katalog')).json()) as {
+			eintraege: { id: string; eigen?: string }[];
+		};
+		await page.setViewportSize({ width: 202, height: 96 });
+		for (const { eigen, id } of eintraege) {
+			if (eigen) {
+				continue;
+			}
+			await page.goto(`/ansicht/_katalog/${id}?fit=1`);
+			await page.locator('html[data-fit]').waitFor({ state: 'attached' });
+			const passt = await page.evaluate(() => {
+				const h = document.documentElement;
+				return h.scrollHeight <= h.clientHeight && h.scrollWidth <= h.clientWidth;
+			});
+			expect(passt, id).toBe(true);
+		}
 	});
 
 	test('Slash: / allein in einer Zeile öffnet das Menü, Esc lässt den Text stehen, mitten im Text nichts', async ({

@@ -124,6 +124,8 @@ const REZEPTE: readonly Omit<KatalogEintrag, 'herkunft'>[] = [
 
 /** Kategorie der eigenen Bausteine (051); sie steht nur da, wenn es welche gibt. */
 export const MEINE_BAUSTEINE = 'Meine Bausteine';
+/** Die Zeile der eigenen Bausteine; Namen wie in `BEREICH_SYMBOL`. */
+export const MEINE_BAUSTEINE_SYMBOL = 'stern';
 
 const nameImRegister = (art: string) => BAUSTEINE.find((b) => b.art === art)?.name;
 

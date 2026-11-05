@@ -270,11 +270,46 @@ export const KATALOG_KATEGORIEN = [
 	'Folien',
 ] as const;
 
+export type Kategorie = (typeof KATALOG_KATEGORIEN)[number];
+
+/** Gliederung der Bereiche in der Bibliothek (081). `KATALOG_KATEGORIEN` bleibt die Quelle der Namen. */
+export const KATALOG_BEREICHE = [
+	{
+		gruppe: 'Grundgerüst',
+		bereiche: ['Kopf und Rahmen', 'Aufgabe und Text', 'Schreiben', 'Bilder', 'Bewerten', 'Selbstkontrolle'],
+	},
+	{
+		gruppe: 'Fächer',
+		bereiche: ['Zahlen', 'Rechnen', 'Geometrie', 'Größen', 'Daten und Zufall', 'Sprache', 'Sachunterricht', 'Musik'],
+	},
+	{ gruppe: 'Mehr', bereiche: ['Spiele und Rätsel', 'Folien'] },
+] as const satisfies readonly { gruppe: string; bereiche: readonly Kategorie[] }[];
+
+/** Symbol je Bereich. Hier nur der Name; `web/src/bausteine/Symbol.tsx` bildet ihn auf das Bild ab. */
+export const BEREICH_SYMBOL = {
+	'Kopf und Rahmen': 'kopfUndRahmen',
+	Bewerten: 'bewerten',
+	'Aufgabe und Text': 'schrift',
+	Schreiben: 'schreiben',
+	Bilder: 'bild',
+	Zahlen: 'nummer',
+	Rechnen: 'rechnen',
+	Geometrie: 'formen',
+	Größen: 'lineal',
+	'Daten und Zufall': 'diagramm',
+	Sprache: 'buch',
+	Sachunterricht: 'natur',
+	Musik: 'musik',
+	'Spiele und Rätsel': 'puzzle',
+	Selbstkontrolle: 'erledigt',
+	Folien: 'praesentieren',
+} as const satisfies Record<Kategorie, string>;
+
 /** Wo ein Baustein stehen darf: im Blatt als Ganzem, auf der Seite, in einer Aufgabe (`.koerper`) oder einer Zeile. */
 export const KATALOG_ORTE = ['blatt', 'seite', 'aufgabe', 'zeile'] as const;
 
 export interface KatalogAngaben {
-	kategorie: (typeof KATALOG_KATEGORIEN)[number];
+	kategorie: Kategorie;
 	suchbegriffe: readonly string[];
 	ort: (typeof KATALOG_ORTE)[number];
 	/** Nur als Filter; was wofür taugt, entscheidet der Skill. Ohne Angabe: alle. */
