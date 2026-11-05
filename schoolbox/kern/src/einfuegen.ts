@@ -46,13 +46,18 @@ const aufwaerts = (k: Knoten | null | undefined, klasse: string): Knoten | null 
 const neueAufgabe = (innen: string, anweisung = 'Anweisung') =>
 	`<div class="aufgabe"><span class="nr">0</span><div class="anw"><span class="text">${anweisung}</span></div><div class="koerper">${innen}</div></div>`;
 
-const ergebnis = (quelle: string, a: Aenderung[], n: Nummerierung): StrukturErgebnis => {
+/**
+ * `baustein`: das HTML, das gewählt sein soll. Liegt es in einer neuen Hülle (Aufgabe, Zeile, Eintrag), meldet das
+ * Ergebnis trotzdem den Baustein selbst, denn dessen Einstellungen will man als Nächstes sehen. Ohne Angabe das Äußere.
+ */
+const ergebnis = (quelle: string, a: Aenderung[], n: Nummerierung, baustein?: string): StrukturErgebnis => {
 	const neu = wendeAn(quelle, a);
 	const erste = a[0];
 	if (!erste) {
 		return { quelle, nr: null };
 	}
-	const start = erste.von + erste.text.indexOf('<');
+	const innen = baustein ? erste.text.indexOf(baustein) : -1;
+	const start = erste.von + (innen < 0 ? erste.text.indexOf('<') : innen);
 	const nr = zerlege(neu).knoten.find((k) => k.start === start)?.nr ?? null;
 	return { quelle: nummeriere(neu, n), nr };
 };
@@ -135,11 +140,21 @@ const setzeKlasse = (z: Zerlegung, k: Knoten, klasse: string) =>
 
 /** Eine Klasse setzt: am `<body>` oder, wie `beispiel`, am Item. Beides ändert keine Elementzahl. */
 const mitKlasse = (quelle: string, z: Zerlegung, b: Einfuegbar, ziel: Knoten | null): StrukturErgebnis => {
-	const k = b.ort === 'blatt' ? z.knoten.find((n) => n.tag === 'body') : aufwaerts(ziel, 'zelle');
-	if (!k || !b.klasse) {
-		throw new Error('Wähle zuerst ein Feld in einer Reihe aus.');
+	if (b.ort === 'blatt') {
+		const body = z.knoten.find((n) => n.tag === 'body');
+		if (!body || !b.klasse) {
+			throw new Error('Das Material hat keinen Inhalt.');
+		}
+		return { quelle: wendeAn(quelle, setzeKlasse(z, body, b.klasse)), nr: ziel?.nr ?? null };
 	}
-	return { quelle: wendeAn(quelle, setzeKlasse(z, k, b.klasse)), nr: ziel?.nr ?? null };
+	const k = aufwaerts(ziel, 'zelle');
+	if (!k || !b.klasse) {
+		throw new Error('Wähle zuerst einen Eintrag in einer Reihe, dann wird er zum Beispiel.');
+	}
+	if (klassenVon(k).includes(b.klasse)) {
+		throw new Error('Dieser Eintrag ist schon das Beispiel.');
+	}
+	return { quelle: wendeAn(quelle, setzeKlasse(z, k, b.klasse)), nr: k.nr };
 };
 
 /** Was der Katalog über einen Eintrag weiß, plus sein Starter-HTML. `aufgabe` in einem Rezept ist die Hülle, kein Teil. */
@@ -195,7 +210,7 @@ export const fuegeBausteinEin = (
 	if (b.ort === 'seite') {
 		return ergebnis(quelle, aufSeite(z, ziel, html), n);
 	}
-	return ergebnis(quelle, b.ort === 'zeile' ? inZeile(z, ziel, html) : inAufgabe(z, ziel, html), n);
+	return ergebnis(quelle, b.ort === 'zeile' ? inZeile(z, ziel, html) : inAufgabe(z, ziel, html), n, html);
 };
 
 export interface Zusatz {
