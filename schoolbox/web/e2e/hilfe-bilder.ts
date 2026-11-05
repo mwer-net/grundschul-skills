@@ -139,7 +139,7 @@ test.describe('Bildschirmfotos für die Hilfe', () => {
 		await page.goto(`/m/${id}/${dok}`);
 		await oeffneMehr(druecke, page);
 		await druecke(page.getByRole('menuitem', { name: 'Ohne Internet' }));
-		await expect(page.getByRole('menu')).toBeVisible();
+		await expect(page.getByRole('menu').last()).toBeVisible();
 		await foto(page, 'ohne-internet-ipad.jpg');
 
 		await page.goto(`/m/${id}/${dok}/praesentation`);
