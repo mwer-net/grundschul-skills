@@ -82,6 +82,8 @@ export interface AuswahlFeld extends FeldBasis {
 	optionenAus?: string;
 	/** Im Panel stehen nur diese, je nach anderem Feld; der erste Eintrag gilt, solange es fehlt. `optionen` bleibt die Liste aller gültigen Werte. */
 	optionenJe?: { feld: string; werte: Record<string, { wert: string | null; name: string }[]> };
+	/** Im Panel stehen nur Optionen, für die das gilt, z. B. nur Satzglieder, die es im Satz gibt. `optionen` bleibt die Liste aller gültigen Werte. */
+	angeboten?: (wert: string | null, w: Werte) => boolean;
 	/** Pfad eines kleinen Bilds zur gewählten Option; `{wert}` steht für den Wert. */
 	vorschau?: string;
 }
@@ -870,6 +872,14 @@ const skalaFolgt = (w: Werte, alt: Werte): Werte => {
 export const zahlStandard = (feld: ZahlFeld, w: Werte | null | undefined) =>
 	feld.standardJe && w ? feld.standardJe(w) : feld.standard;
 
+/** Was das Panel zur Wahl anbietet: die Optionen je nach anderem Feld (`optionenJe`), davon die `angeboten`en. */
+export const auswahlOptionen = (feld: AuswahlFeld, w: Werte | null | undefined) => {
+	const je = feld.optionenJe;
+	const grund = je ? (je.werte[w?.[je.feld] ?? Object.keys(je.werte)[0] ?? ''] ?? feld.optionen) : feld.optionen;
+	const angeboten = feld.angeboten;
+	return angeboten && w ? grund.filter((o) => angeboten(o.wert, w)) : grund;
+};
+
 /** Für `nurWenn`: Das Feld gilt nur bei diesen Werten eines anderen Felds. Ein leeres Attribut zählt als `standard`. */
 const wenn =
 	(attribut: string, standard: string, ...werte: string[]) =>
@@ -883,6 +893,40 @@ const wennNicht =
 const gleicheWoerter = (w: Werte) => {
 	const stufen = (w.stufen ?? '').split(';').map((s) => s.split(',').map((t) => t.trim()));
 	return stufen.some((s, i) => stufen.some((t, j) => i !== j && s.some((x) => x && t.includes(x))));
+};
+
+/**
+ * Satzglieder, die sich beim Umstellen nach vorn stellen lassen: wie `satzUmstellen` in `abbildungen.js` jedes außer dem
+ * Prädikat und dem ersten Satzglied.
+ */
+export const vornMoeglich = (satz: string) => {
+	const { woerter } = markierungLesen(satz, true);
+	const erstes = woerter[0]?.gruppe;
+	return new Set(woerter.flatMap((t) => (t.gruppe !== erstes && t.marke && t.marke !== 'P' ? [t.marke] : [])));
+};
+const vornAngeboten = (wert: string | null, w: Werte) => wert === null || vornMoeglich(w.inhalt ?? '').has(wert);
+/** Ändert sich der Satz, fällt ein Satzglied für vorn weg, das es dort nicht mehr gibt. */
+const vornFolgtSatz = (w: Werte): Werte => (vornAngeboten(w.vorn ?? null, w) ? {} : { vorn: null });
+
+/**
+ * Art „Bilder“: Jeder Eintrag braucht ein Bild. Die Meldung steht an der Liste, also bei den Bild-Knöpfen, und nennt
+ * die Zeilen. Die Wahl bleibt so lange Entwurf, die Knöpfe sind schon da (E-S2; Suchsel mit `istBild` für `mini`).
+ */
+const bilderFehlen = (
+	w: Lesen,
+	{ liste, spalte, wahl, istBild = (z: string) => z.trim() !== '' }: {
+		liste: string;
+		spalte: number;
+		wahl: string;
+		istBild?: (zelle: string) => boolean;
+	},
+): Fehler => {
+	const ohne = w.zeilen(liste).flatMap((z, i) => (istBild(z[spalte] ?? '') ? [] : [i + 1]));
+	if (ohne.length === 0) {
+		return {};
+	}
+	const wo = ohne.length === 1 ? `Zeile ${ohne[0]}` : `Zeile ${ohne.slice(0, -1).join(', ')} und ${ohne.at(-1)}`;
+	return { [liste]: `${wahl} braucht jeder Eintrag ein Bild. Wähle es mit dem Bild-Knopf in der Zeile, es fehlt in ${wo}.` };
 };
 
 const FELDER_JE_ART: Readonly<Record<string, number>> = { fuenfer: 5, zehner: 10, zwanziger: 20 };
@@ -2473,7 +2517,15 @@ export const ABBILDUNG_SCHEMA = {
 			},
 			{ art: 'zahl', attribut: 'zeilen', name: 'Zeilen', min: 1, max: 30, standard: 3 },
 			{ art: 'text', attribut: 'vorlage', name: 'Zum Nachspuren', beispiel: 'Rosine' },
-			{ art: 'zahl', attribut: 'vorlage-zeilen', name: 'Zeilen mit Vorlage', min: 1, max: 30, standard: 1 },
+			{
+				art: 'zahl',
+				attribut: 'vorlage-zeilen',
+				name: 'Graue Zeilen',
+				hilfe: 'So viele Zeilen zeigen den Text zum Nachspuren.',
+				min: 1,
+				max: 30,
+				standard: 1,
+			},
 			{ art: 'text', attribut: 'anfang', name: 'Vorbild am Zeilenanfang', beispiel: 'Ro' },
 			{ art: 'text', attribut: 'loesung', name: 'Text in der Lösung', beispiel: 'Der Hund bellt.' },
 			{
@@ -2672,6 +2724,8 @@ export const ABBILDUNG_SCHEMA = {
 			},
 			{ art: 'mischen', attribut: 'seed', name: 'Anordnung' },
 		],
+		regeln: (w): Fehler =>
+			w.text('art') === 'bilder' ? bilderFehlen(w, { liste: 'eintraege', spalte: 1, wahl: 'Bei der Art „Bilder“' }) : {},
 	},
 	'x-beschriften': {
 		name: 'Beschriften',
@@ -2989,6 +3043,7 @@ export const ABBILDUNG_SCHEMA = {
 				beispiel: 'Der Hund bellt den Briefträger an.',
 				optionen: ROLLEN_OPTIONEN,
 				hilfe: 'Wort antippen, Nachbarn verbinden und das Satzglied wählen.',
+				mitnehmen: vornFolgtSatz,
 			},
 			{
 				art: 'auswahl',
@@ -3007,6 +3062,7 @@ export const ABBILDUNG_SCHEMA = {
 				attribut: 'vorn', nurWenn: wenn('aufgabe', 'keine', 'umstellen'),
 				name: 'Beim Umstellen nach vorn',
 				gruppe: 'Mehr',
+				angeboten: vornAngeboten,
 				optionen: [
 					{ wert: null, name: 'Nächstes Satzglied' },
 					...ROLLEN_OPTIONEN.filter((o) => o.wert !== 'P'),

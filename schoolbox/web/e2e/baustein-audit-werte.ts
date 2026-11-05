@@ -3,6 +3,7 @@
 import type { AbbildungSchema, Feld, Werte } from '@schoolbox/kern/src/abbildungen';
 import {
 	aendereFeld,
+	auswahlOptionen,
 	feldWert,
 	listeVon,
 	markeSetzen,
@@ -111,11 +112,9 @@ const roheWerte = (
 	const roh = feldWert(feld, w).wert;
 	switch (feld.art) {
 		case 'auswahl':
-		case 'muster': {
-			const je = feld.art === 'auswahl' ? feld.optionenJe : undefined;
-			const optionen = je ? (je.werte[w[je.feld] ?? Object.keys(je.werte)[0] ?? ''] ?? []) : feld.optionen;
-			return optionen.map((o) => [o.name, o.wert]);
-		}
+			return auswahlOptionen(feld, w).map((o) => [o.name, o.wert]);
+		case 'muster':
+			return feld.optionen.map((o) => [o.name, o.wert]);
 		case 'schalter':
 			return [
 				['an', feld.standard ? null : feld.an],

@@ -1084,6 +1084,59 @@ test.describe('Größen: Wahlen nehmen mit, was sie brauchen (084)', () => {
 	});
 });
 
+test.describe('Schreiben und Sprache: Wahlen zeigen den Weg (084)', () => {
+	const mitTag = async (page: Page, tag: string) => {
+		const { dok, id, material: datei } = await uhrzeit();
+		await oeffne(page, id, dok);
+		await aendere(page, (await quelle(page)).replace(/<x-uhr[^>]*><\/x-uhr>/, tag));
+		await gespeichert(page, datei);
+		return { datei, stand: await readFile(datei, 'utf8') };
+	};
+
+	test('Satzglieder: Nach vorn stehen nur Satzglieder, die sich vorn stellen lassen', async ({ druecke, page }) => {
+		const { datei } = await mitTag(
+			page,
+			'<x-satzglieder aufgabe="umstellen">[Am Morgen]Zeit [bringt]P [der Briefträger]S [dem Kind]DaO [ein Paket]AkO.</x-satzglieder>',
+		);
+		const satz = material(page).locator('x-satzglieder');
+		await druecke(satz);
+		// „Beim Umstellen nach vorn“ steht unter „Weitere“, das zunächst zu ist.
+		const weitere = page.locator('[data-abschnitt="weitere"] > button');
+		if ((await weitere.getAttribute('aria-expanded')) !== 'true') {
+			await druecke(weitere);
+		}
+		const vorn = page.locator('[data-feld="vorn"] select');
+		await expect(vorn.locator('option')).toHaveText([
+			'Nächstes Satzglied',
+			'Subjekt',
+			'Akkusativobjekt',
+			'Dativobjekt',
+		]);
+		await vorn.selectOption({ label: 'Dativobjekt' });
+		await gespeichert(page, datei);
+		await expect(satz).not.toHaveAttribute('data-fehler', /./);
+		await expect(satz.locator('.sg-umstellung .sg-kasten').first()).toHaveAttribute('data-rolle', 'DaO');
+	});
+
+	test('Sortieren: Bei „Bilder“ steht die Meldung an der Liste, mit Bildern wird es übernommen', async ({
+		druecke,
+		page,
+	}) => {
+		const { datei, stand } = await mitTag(
+			page,
+			'<x-sortieren eintraege="Samen; Stängel; Blume"></x-sortieren>',
+		);
+		await druecke(material(page).locator('x-sortieren'));
+		await page.locator('[data-feld="art"] select').selectOption({ label: 'Bilder' });
+		const meldung = page.locator('[data-fehler="eintraege"]');
+		await expect(meldung).toContainText('Bild-Knopf');
+		await expect(meldung).toContainText('Zeile 1, 2 und 3');
+		await expect(page.locator('[data-feld="eintraege"] [data-zeile]')).toHaveCount(3);
+		// Nichts gespeichert, solange Bilder fehlen.
+		expect(await readFile(datei, 'utf8')).toBe(stand);
+	});
+});
+
 test.describe('Geometrie: Wahlen nehmen mit, was sie brauchen (084)', () => {
 	const mitTag = async (page: Page, tag: string) => {
 		const { dok, id, material: datei } = await uhrzeit();

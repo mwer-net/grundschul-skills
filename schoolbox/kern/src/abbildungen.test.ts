@@ -10,6 +10,7 @@ import {
 	abschnittVon,
 	aendereFeld,
 	attributeVon,
+	auswahlOptionen,
 	feldWert,
 	GRUPPEN_ABSCHNITT,
 	markeSetzen,
@@ -40,6 +41,7 @@ import {
 	SKALA_STANDARD,
 	tafelAusschnitt,
 	VERKEHRSZEICHEN,
+	vornMoeglich,
 	werteVon,
 	zeilenAlsText,
 	zeilenAusText,
@@ -375,6 +377,54 @@ describe('Felder ändern', () => {
 		}
 		assert.equal(f.nurWenn?.({ art: 'thermometer' }), false);
 		assert.equal(f.nurWenn?.({}), true);
+	});
+
+	it('Satzglieder: Nach vorn stehen nur Satzglieder zur Wahl, die das Umstellen findet', () => {
+		const s = schema('x-satzglieder');
+		const vorn = feld(s, 'vorn');
+		assert.ok(vorn.art === 'auswahl');
+		const satz = '[Am Morgen]Zeit [bringt]P [der Briefträger]S [dem Kind]DaO [ein Paket]AkO.';
+		const namen = (inhalt: string) => auswahlOptionen(vorn, { inhalt, aufgabe: 'umstellen' }).map((o) => o.name);
+		assert.deepEqual(namen('[Der Hund]S [bellt]P [den Briefträger]AkO [an]P.'), ['Nächstes Satzglied', 'Akkusativobjekt']);
+		assert.deepEqual(namen(satz), ['Nächstes Satzglied', 'Subjekt', 'Akkusativobjekt', 'Dativobjekt']);
+
+		// Dieselbe Regel wie `satzUmstellen` in abbildungen.js: angeboten heißt, das Umstellen gelingt.
+		const { satzUmstellen } = rechenkerne();
+		const saetze = [
+			satz,
+			'[Der Hund]S [bellt]P [den Briefträger]AkO [an]P.',
+			'[Wir]S [gehen]P [morgen]Zeit [ins Kino]Ort.',
+			'[Im Garten]Ort [wächst]P [eine Blume]S.',
+			'[Er]S [schenkt]P [ihr]DaO [eine Rose]AkO.',
+		];
+		for (const text of saetze) {
+			for (const rolle of vorn.optionen.flatMap((o) => (o.wert ? [o.wert] : []))) {
+				const geht = (() => {
+					try {
+						satzUmstellen(text, rolle);
+						return true;
+					} catch {
+						return false;
+					}
+				})();
+				assert.equal(vornMoeglich(text).has(rolle), geht, `${text} ${rolle}`);
+			}
+		}
+
+		// Ändert sich der Satz, fällt ein Satzglied weg, das es dort nicht mehr gibt; sonst bleibt es.
+		const inhalt = feld(s, 'inhalt');
+		const start: Werte = { inhalt: satz, aufgabe: 'umstellen', vorn: 'DaO' };
+		assert.equal(aendereFeld(s, start, inhalt, '[Der Hund]S [bellt]P [den Briefträger]AkO [an]P.').vorn, null);
+		assert.equal(aendereFeld(s, start, inhalt, '[Heute]Zeit [gibt]P [Oma]S [dem Kind]DaO [ein Buch]AkO.').vorn, 'DaO');
+	});
+
+	it('Sortieren: Art „Bilder“ ohne Bild meldet an der Liste, in welchen Zeilen es fehlt', () => {
+		const eintraege = 'Samen; Stängel: bilder/stengel.png; Blume';
+		assert.deepEqual(pruefe('x-sortieren', { eintraege }), {});
+		const fehler = pruefe('x-sortieren', { eintraege, art: 'bilder' });
+		assert.deepEqual(Object.keys(fehler), ['eintraege']);
+		assert.match(fehler.eintraege ?? '', /Bild-Knopf.*Zeile 1 und 3\.$/);
+		assert.deepEqual(pruefe('x-sortieren', { eintraege: 'A: a.png; B: b.png', art: 'bilder' }), {});
 	});
 
 	it('Gitter: Die Aufgabe nimmt Spalten, Zeilen, Kästchen und Achse mit', () => {
