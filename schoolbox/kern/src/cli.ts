@@ -26,6 +26,8 @@ import { ladeKonfig } from './konfig';
 import type { KurzanleitungStand } from './kurzanleitung';
 import { HILFE_MAPPE, KURZANLEITUNG, richteKurzanleitungEin } from './kurzanleitung';
 import { entwurfVorschauDatei } from './namen';
+import { alleOrdnerPfade, dokumenteUnter } from './ordner';
+import { baumZumLesen, pruefeAblagePfad } from './ordner-ablage';
 import type { Knoten } from './quelltext';
 import { zerlege } from './quelltext';
 import type { Aufloesung, Kandidat, Referenz } from './referenz';
@@ -43,7 +45,7 @@ import {
 
 const hilfe = () => `schoolbox – Mappen und Dokumente der Schoolbox anlegen und fertigstellen
 
-  schoolbox neu --titel … --fach … --klasse …
+  schoolbox neu --titel … --fach … --klasse … [--ordner "Klasse 3/Mathe"]
   schoolbox dokument <mappe> --titel … --art … [--druckprofil sw|farbe] [--format …] [--vorlage …]
                      [--druckhinweis "…"]…
   schoolbox entwuerfe <mappe>/<dok> A.html B.html [C.html]
@@ -51,6 +53,7 @@ const hilfe = () => `schoolbox – Mappen und Dokumente der Schoolbox anlegen un
   schoolbox fertig <mappe>/<dok>
   schoolbox link <mappe>[/<dok>]
   schoolbox liste [--fach …] [--suche …]
+  schoolbox ordner        (die Ordnerpfade der Lehrkraft, nur lesend)
   schoolbox finde "<Text mit [sb:…]>"   (Referenz aus dem Editor auflösen)
   schoolbox wunsch "…"
   schoolbox status
@@ -101,12 +104,20 @@ const befehlNeu = async (konfig: Konfig, argumente: string[]): Promise<Ergebnis>
 		titel: { type: 'string' },
 		fach: { type: 'string' },
 		klasse: { type: 'string' },
+		ordner: { type: 'string' },
 	});
 	const titel = pflicht(values.titel, 'titel');
 	const fach = waehleWert('Fach', values.fach, FAECHER);
 	const klasse = waehleKlasse(values.klasse);
-	const { mappe, pfad } = await neueMappe(konfig.materialDir, { titel, fach, klasse });
-	return { daten: { id: mappe.id, pfad }, text: `Mappe angelegt: ${mappe.id}\nOrdner: ${pfad}` };
+	const ablage = pruefeAblagePfad(values.ordner);
+	const { mappe, pfad } = await neueMappe(konfig.materialDir, {
+		titel,
+		fach,
+		klasse,
+		...(ablage ? { ablage } : {}),
+	});
+	const ort = ablage ? `\nAblage in der Schoolbox: ${ablage}` : '';
+	return { daten: { id: mappe.id, pfad }, text: `Mappe angelegt: ${mappe.id}\nOrdner: ${pfad}${ort}` };
 };
 
 const befehlDokument = async (konfig: Konfig, argumente: string[]): Promise<Ergebnis> => {
@@ -229,6 +240,18 @@ const befehlListe = async (konfig: Konfig, argumente: string[]): Promise<Ergebni
 	return {
 		daten: { mappen, defekt },
 		text: [...(zeilen.length > 0 ? zeilen : ['Keine Mappen gefunden.']), ...kaputt].join('\n'),
+	};
+};
+
+const befehlOrdner = async (konfig: Konfig, argumente: string[]): Promise<Ergebnis> => {
+	lies(argumente, {});
+	const baum = await baumZumLesen(konfig.materialDir);
+	const ordner = alleOrdnerPfade(baum);
+	const anzahl = (id: string) => dokumenteUnter(baum, id).length;
+	const zeilen = ordner.map((o) => `${o.pfad}  (${anzahl(o.id)} Dokumente)`);
+	return {
+		daten: { ordner: ordner.map((o) => ({ ...o, dokumente: anzahl(o.id) })) },
+		text: zeilen.length > 0 ? zeilen.join('\n') : 'Noch keine Ordner.',
 	};
 };
 
@@ -434,6 +457,7 @@ const BEFEHLE: Record<string, (konfig: Konfig, argumente: string[]) => Promise<E
 	fertig: befehlFertig,
 	link: befehlLink,
 	liste: befehlListe,
+	ordner: befehlOrdner,
 	finde: befehlFinde,
 	wunsch: befehlWunsch,
 	status: befehlStatus,

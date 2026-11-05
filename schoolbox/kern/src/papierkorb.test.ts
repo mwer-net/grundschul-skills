@@ -124,9 +124,9 @@ describe('Papierkorb', () => {
 		await legeFreigabeAn(materialDir, { mappe, dok: null });
 		await legeFreigabeAn(materialDir, { mappe, dok });
 		const bleibt = await legeFreigabeAn(materialDir, { mappe: zweite.id, dok: null });
-		assert.equal(await entferneFreigabenVon(materialDir, [mappe]), 2);
+		assert.equal(await entferneFreigabenVon(materialDir, { mappen: [mappe] }), 2);
 		assert.deepEqual(await leseFreigaben(materialDir), [bleibt]);
-		assert.equal(await entferneFreigabenVon(materialDir, [mappe]), 0);
+		assert.equal(await entferneFreigabenVon(materialDir, { mappen: [mappe] }), 0);
 	});
 });
 

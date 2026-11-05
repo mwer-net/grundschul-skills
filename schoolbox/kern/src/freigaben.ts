@@ -7,6 +7,7 @@ import type { Ziel } from './ablage';
 import { dokumentDir, mappenDir } from './ablage';
 import { schreibeJson } from './atomar';
 import { SchoolboxFehler } from './fehler';
+import { lebenderOrdner, leseBaumNachsichtig } from './ordner';
 import type { JsonSchema } from './schema';
 import { ID_MUSTER, verlangeSchema } from './schema';
 
@@ -14,9 +15,15 @@ export const FREIGABEN_DATEI = '_freigaben.json';
 export const TOKEN_MUSTER = '^[A-Za-z0-9_-]{22}$';
 const TOKEN_REGEX = new RegExp(TOKEN_MUSTER);
 
+/**
+ * Ein Ordner-Link. Steht in einer zweiten Liste `ordnerFreigaben`: `FREIGABEN_SCHEMA` verlangt in `freigaben` Mappe und
+ * Dokument, und ein älterer Stand (Revert) soll die Datei weiter lesen können.
+ */
+export type FreigabeZiel = Ziel | { ordner: string };
+
 export interface Freigabe {
 	token: string;
-	ziel: Ziel;
+	ziel: FreigabeZiel;
 	erstellt: string;
 	widerrufen: string | null;
 }
@@ -59,7 +66,12 @@ export const istToken = (token: string) => TOKEN_REGEX.test(token);
 /** 128 Bit aus dem Zufallsgenerator, URL-sicher (22 Zeichen Base64url). */
 export const neuesToken = () => randomBytes(16).toString('base64url');
 
-export const leseFreigaben = async (materialDir: string): Promise<Freigabe[]> => {
+interface FreigabenDatei {
+	freigaben: Freigabe[];
+	ordnerFreigaben?: Freigabe[];
+}
+
+const leseDatei = async (materialDir: string): Promise<FreigabenDatei> => {
 	const text = await readFile(datei(materialDir), 'utf8').catch((fehler: unknown) => {
 		if ((fehler as { code?: unknown }).code === 'ENOENT') {
 			return null;
@@ -67,7 +79,7 @@ export const leseFreigaben = async (materialDir: string): Promise<Freigabe[]> =>
 		throw fehler;
 	});
 	if (text === null) {
-		return [];
+		return { freigaben: [] };
 	}
 	let daten: unknown;
 	try {
@@ -75,25 +87,53 @@ export const leseFreigaben = async (materialDir: string): Promise<Freigabe[]> =>
 	} catch {
 		throw new SchoolboxFehler(`${FREIGABEN_DATEI} ist kein gültiges JSON.`);
 	}
-	return verlangeSchema<{ freigaben: Freigabe[] }>(FREIGABEN_SCHEMA, daten, FREIGABEN_DATEI).freigaben;
+	return verlangeSchema<FreigabenDatei>(FREIGABEN_SCHEMA, daten, FREIGABEN_DATEI);
 };
 
-const schreibeFreigaben = (materialDir: string, freigaben: Freigabe[]) =>
-	schreibeJson(datei(materialDir), { freigaben });
+export const leseFreigaben = async (materialDir: string): Promise<Freigabe[]> => {
+	const { freigaben, ordnerFreigaben = [] } = await leseDatei(materialDir);
+	return [...freigaben, ...ordnerFreigaben];
+};
+
+const istOrdnerLink = (f: Freigabe) => 'ordner' in f.ziel;
+
+const schreibeFreigaben = (materialDir: string, liste: Freigabe[]) => {
+	const ordnerFreigaben = liste.filter(istOrdnerLink);
+	return schreibeJson(datei(materialDir), {
+		freigaben: liste.filter((f) => !istOrdnerLink(f)),
+		...(ordnerFreigaben.length > 0 ? { ordnerFreigaben } : {}),
+	});
+};
 
 export const findeFreigabe = async (materialDir: string, token: string): Promise<Freigabe | null> =>
 	istToken(token) ? ((await leseFreigaben(materialDir)).find((f) => f.token === token) ?? null) : null;
 
-export const zielGibtEs = (materialDir: string, { dok, mappe }: Ziel) =>
-	dok === null
+export const zielGibtEs = (materialDir: string, ziel: FreigabeZiel) => {
+	if ('ordner' in ziel) {
+		const baum = leseBaumNachsichtig(materialDir);
+		return baum !== null && lebenderOrdner(baum, ziel.ordner) !== null;
+	}
+	const { dok, mappe } = ziel;
+	return dok === null
 		? existsSync(path.join(mappenDir(materialDir, mappe), 'mappe.json'))
 		: existsSync(path.join(dokumentDir(materialDir, mappe, dok), 'meta.json'));
+};
+
+const zielName = (ziel: FreigabeZiel) => {
+	if ('ordner' in ziel) {
+		return 'Diesen Ordner';
+	}
+	return ziel.dok === null ? `Die Mappe „${ziel.mappe}“` : `Das Dokument „${ziel.mappe}/${ziel.dok}“`;
+};
 
 /** Liest, ändert und schreibt die ganze Datei. Aufrufer, die parallel schreiben können, müssen das serialisieren. */
-export const legeFreigabeAn = async (materialDir: string, ziel: Ziel, jetzt = new Date()): Promise<Freigabe> => {
+export const legeFreigabeAn = async (
+	materialDir: string,
+	ziel: FreigabeZiel,
+	jetzt = new Date(),
+): Promise<Freigabe> => {
 	if (!zielGibtEs(materialDir, ziel)) {
-		const was = ziel.dok === null ? `Die Mappe „${ziel.mappe}“` : `Das Dokument „${ziel.mappe}/${ziel.dok}“`;
-		throw new SchoolboxFehler(`${was} gibt es nicht.`);
+		throw new SchoolboxFehler(`${zielName(ziel)} gibt es nicht.`);
 	}
 	const freigaben = await leseFreigaben(materialDir);
 	const freigabe: Freigabe = { token: neuesToken(), ziel, erstellt: jetzt.toISOString(), widerrufen: null };
@@ -118,10 +158,26 @@ export const widerrufeFreigabe = async (
 	return freigabe;
 };
 
-/** Entfernt alle Teilen-Links dieser Mappen, z. B. nachdem sie endgültig gelöscht wurden. Gibt die Anzahl zurück. */
-export const entferneFreigabenVon = async (materialDir: string, mappen: readonly string[]): Promise<number> => {
+export interface EndgueltigWeg {
+	mappen?: readonly string[];
+	dokumente?: readonly { mappe: string; dok: string }[];
+	ordner?: readonly string[];
+}
+
+/** Entfernt alle Teilen-Links auf endgültig Gelöschtes. Gibt die Anzahl zurück. */
+export const entferneFreigabenVon = async (
+	materialDir: string,
+	{ dokumente = [], mappen = [], ordner = [] }: EndgueltigWeg,
+): Promise<number> => {
 	const freigaben = await leseFreigaben(materialDir);
-	const bleiben = freigaben.filter((f) => !mappen.includes(f.ziel.mappe));
+	const trifft = ({ ziel }: Freigabe) => {
+		if ('ordner' in ziel) {
+			return ordner.includes(ziel.ordner);
+		}
+		const { dok, mappe } = ziel;
+		return mappen.includes(mappe) || (dok !== null && dokumente.some((d) => d.mappe === mappe && d.dok === dok));
+	};
+	const bleiben = freigaben.filter((f) => !trifft(f));
 	if (bleiben.length < freigaben.length) {
 		await schreibeFreigaben(materialDir, bleiben);
 	}

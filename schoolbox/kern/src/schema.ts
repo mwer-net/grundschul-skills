@@ -12,6 +12,8 @@ export interface Mappe {
 	geaendert: string;
 	status: Status;
 	dokumente: string[];
+	/** Ordnerpfad aus `schoolbox neu --ordner`, gilt nur für die erste Einordnung (079). */
+	ablage?: string;
 }
 
 export interface Pruefung {
@@ -86,6 +88,7 @@ export const MAPPE_SCHEMA: JsonSchema = {
 		geaendert: ZEIT,
 		status: { enum: STATUS },
 		dokumente: { type: 'array', items: { type: 'string', pattern: ID_MUSTER } },
+		ablage: { type: 'string' },
 	},
 };
 

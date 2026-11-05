@@ -21,6 +21,8 @@ export * from './kurzanleitung';
 export * from './loesungen';
 export * from './meldungen';
 export * from './namen';
+export * from './ordner';
+export * from './ordner-ablage';
 export * from './papierkorb';
 export * from './pfade';
 export * from './quelltext';

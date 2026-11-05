@@ -9,6 +9,7 @@ import type { Fertig } from './bauen';
 import { fertigstellen } from './bauen';
 import type { Konfig } from './konfig';
 import { WURZEL } from './konfig';
+import { leseBaumNachsichtig, dokumentGeloescht, ordnerGeloescht } from './ordner';
 import { idsImPapierkorb } from './papierkorb';
 import { legeVersionAn } from './versionen';
 
@@ -17,6 +18,16 @@ export const KURZANLEITUNG = 'kurzanleitung';
 export const KURZANLEITUNG_VORLAGE = path.join(WURZEL, 'schoolbox', 'vorlagen', 'kurzanleitung.html');
 /** Prüfsumme der Vorlage, aus der material.html zuletzt geschrieben wurde. */
 const STAND_DATEI = '.vorlage-stand';
+
+/** Auch im Ordnerbaum kann die Hilfe im Papierkorb liegen; dann bleibt sie dort. */
+const imBaumGeloescht = (materialDir: string) => {
+	const baum = leseBaumNachsichtig(materialDir);
+	return (
+		baum !== null &&
+		(dokumentGeloescht(baum, HILFE_MAPPE, KURZANLEITUNG) ||
+			baum.ordner.some((o) => o.behaelter === HILFE_MAPPE && ordnerGeloescht(baum, o.id)))
+	);
+};
 
 export type KurzanleitungStand = 'angelegt' | 'aktualisiert' | 'aktuell' | 'im-papierkorb';
 
@@ -33,7 +44,7 @@ export const richteKurzanleitungEin = async (
 ): Promise<{ stand: KurzanleitungStand; fertig: Fertig | null }> => {
 	const { materialDir } = konfig;
 	const mappeDa = existsSync(mappenDir(materialDir, HILFE_MAPPE));
-	if (!mappeDa && idsImPapierkorb(materialDir).has(HILFE_MAPPE)) {
+	if (imBaumGeloescht(materialDir) || (!mappeDa && idsImPapierkorb(materialDir).has(HILFE_MAPPE))) {
 		return { stand: 'im-papierkorb', fertig: null };
 	}
 	if (!mappeDa) {
