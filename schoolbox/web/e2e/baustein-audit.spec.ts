@@ -15,6 +15,7 @@ import { abschnittVon, schemaVon, setzeAbbildung, werteVon } from '@schoolbox/ke
 import { ABSCHNITT_TITEL } from '@schoolbox/kern/src/abschnitte';
 import type { KatalogEintrag } from '@schoolbox/kern/src/katalog';
 import { KATALOG } from '@schoolbox/kern/src/katalog';
+import type { KitFeld } from '@schoolbox/kern/src/kit-einstellungen';
 import { KIT_FELDER, leseKit, setzeKit } from '@schoolbox/kern/src/kit-einstellungen';
 import { zerlege } from '@schoolbox/kern/src/quelltext';
 
@@ -137,10 +138,10 @@ const zeichneFaelle = async (
 			};
 			const zeichnungen: unknown[] = [];
 			for (const fall of alle) {
-				const alt = Object.keys(fall.aenderung).map((a) => [
+				const alt = Object.keys(fall.aenderung).map<[string, string | null]>((a) => [
 					a,
 					inhalt.includes(a) ? (el._abbInhalt ?? '') : el.getAttribute(a),
-				]) as [string, string | null][];
+				]);
 				const dazu: [string, string | null][] = [];
 				let ausnahme: string | null = null;
 				try {
@@ -192,8 +193,9 @@ const zeichneFaelle = async (
 
 const zellenVon = (rahmen: Frame, nr: number) =>
 	rahmen.evaluate((n) => {
-		const el = document.querySelector(`[data-sb="${n}"]`) as
-			(Element & { _abbZellen?: Record<string, { id: string }[]> }) | null;
+		const el = document.querySelector<Element & { _abbZellen?: Record<string, { id: string }[]> }>(
+			`[data-sb="${n}"]`,
+		);
 		return Object.fromEntries(Object.entries(el?._abbZellen ?? {}).map(([k, v]) => [k, v.map((z) => z.id)]));
 	}, nr);
 
@@ -378,6 +380,17 @@ const sucheAbhaengige = async (
 	writeFileSync(path.join(ZIEL, 'abhaengig', `${e.id}.json`), JSON.stringify(ergebnis, null, 1));
 };
 
+/**
+ * Hängt das Feld an einem anderen: dort einen Stand suchen, in dem es gilt. Hängt die Bedingung am Inhalt (gleiche
+ * Wörter, gemischte Sprünge), bleibt nur die Probe im Ausgangsstand.
+ */
+const standFuer = (felder: readonly Feld[], feld: Feld, basis: Werte): Werte => {
+	const kandidaten = felder.flatMap((f) =>
+		f === feld || f.art !== 'auswahl' ? [] : f.optionen.map((o) => ({ ...basis, [f.attribut]: o.wert || null })),
+	);
+	return kandidaten.find((w) => feld.nurWenn?.(w)) ?? basis;
+};
+
 const pruefeFelder = async (
 	rahmen: Frame,
 	e: KatalogEintrag,
@@ -409,30 +422,7 @@ const pruefeFelder = async (
 	const abgewiesen: string[] = [];
 	const kontakt: { feld: string; wert: string; bild: string; wirkt: boolean }[] = [];
 	const felder = schema.felder;
-	for (const feld of felder) {
-		const sichtbar = !feld.nurWenn || feld.nurWenn(basis);
-		// Hängt das Feld an einem anderen: dort einen Stand suchen, in dem es gilt, und zusätzlich prüfen, dass es
-		// im Ausgangsstand wirklich nichts tut.
-		let stand = basis;
-		if (!sichtbar) {
-			const kandidaten = felder.flatMap((f) =>
-				f === feld || f.art !== 'auswahl'
-					? []
-					: f.optionen.map((o) => ({ ...basis, [f.attribut]: o.wert || null })),
-			);
-			const treffer = kandidaten.find((w) => feld.nurWenn?.(w));
-			// Hängt die Bedingung am Inhalt (gleiche Wörter, gemischte Sprünge), bleibt nur die Probe im Ausgangsstand.
-			stand = treffer ?? basis;
-		}
-		const erreichbar = sichtbar || stand !== basis;
-		const { faelle } = erreichbar ? faelleVon(schema, feld, stand, zellen) : { faelle: [] };
-		const mitStand =
-			stand === basis ? faelle : faelle.map((f) => ({ ...f, aenderung: { ...diff(basis, f.werte) } }));
-		const standFall = { aenderung: diff(basis, stand), feld: '_', wert: 'Stand', werte: stand };
-		const [bezug] =
-			stand === basis ? [anfang] : await zeichneFaelle(rahmen, nr, [standFall], inhaltFelder, null, e.id);
-		const ergebnisse = await zeichneFaelle(rahmen, nr, mitStand, inhaltFelder, gen, e.id);
-		// Text und Zahlen reichen mit einem wirksamen Wert: Der andere ist oft der Standard oder wird abgewiesen.
+	const pruefeErgebnisse = (feld: Feld, ergebnisse: Zeichnung[], bezug: Zeichnung | undefined) => {
 		const einerReicht = feld.art === 'text' || feld.art === 'zahlen';
 		const wirktEiner = ergebnisse.some((z) => z.blatt !== bezug?.blatt || z.loesung !== bezug?.loesung);
 		for (const z of ergebnisse) {
@@ -455,6 +445,22 @@ const pruefeFelder = async (
 				melde('W6', feld.attribut, z.wert, `Prüfung meldet neu: ${neu.join(', ')}`);
 			}
 		}
+	};
+	for (const feld of felder) {
+		const sichtbar = !feld.nurWenn || feld.nurWenn(basis);
+		// Hängt das Feld an einem anderen: dort einen Stand suchen, in dem es gilt, und zusätzlich prüfen, dass es
+		// im Ausgangsstand wirklich nichts tut.
+		const stand = sichtbar ? basis : standFuer(felder, feld, basis);
+		const erreichbar = sichtbar || stand !== basis;
+		const { faelle } = erreichbar ? faelleVon(schema, feld, stand, zellen) : { faelle: [] };
+		const mitStand =
+			stand === basis ? faelle : faelle.map((f) => ({ ...f, aenderung: { ...diff(basis, f.werte) } }));
+		const standFall = { aenderung: diff(basis, stand), feld: '_', wert: 'Stand', werte: stand };
+		const [bezug] =
+			stand === basis ? [anfang] : await zeichneFaelle(rahmen, nr, [standFall], inhaltFelder, null, e.id);
+		const ergebnisse = await zeichneFaelle(rahmen, nr, mitStand, inhaltFelder, gen, e.id);
+		// Text und Zahlen reichen mit einem wirksamen Wert: Der andere ist oft der Standard oder wird abgewiesen.
+		pruefeErgebnisse(feld, ergebnisse, bezug);
 		if (!sichtbar) {
 			const verborgen = faelleVon(schema, feld, basis, zellen).faelle;
 			const proben = await zeichneFaelle(rahmen, nr, verborgen, inhaltFelder, null, e.id);
@@ -510,7 +516,7 @@ const pruefeW1 = async (page: Page, e: KatalogEintrag, nr: number, schema: Abbil
 /** W9: Innerhalb eines Abschnitts kein Name doppelt, kein Feld heißt wie sein Abschnitt. */
 const pruefeNamen = (e: KatalogEintrag, schema: AbbildungSchema | undefined, verstoesse: Verstoss[]) => {
 	const titel = new Map<string, Set<string>>();
-	for (const f of ((schema?.felder ?? [])).filter((x) => !x.ohneFeld)) {
+	for (const f of (schema?.felder ?? []).filter((x) => !x.ohneFeld)) {
 		const abschnitt = ABSCHNITT_TITEL[abschnittVon(f)];
 		if (!f.name.trim()) {
 			verstoesse.push({ regel: 'W9', schluessel: `${e.id}.${f.attribut}`, text: 'Feld ohne Namen.' });
@@ -541,6 +547,19 @@ const ist = (e: KatalogEintrag, nurLoesung: boolean) => {
 };
 
 const KIT_GEPRUEFT = new Set<string>();
+
+const kitKandidaten = (f: KitFeld): (string | number | boolean)[] => {
+	if (f.typ === 'zahl') {
+		return [f.min, f.max];
+	}
+	if (f.typ === 'wahl') {
+		return f.optionen.map((o) => o.wert);
+	}
+	if (f.typ === 'schalter') {
+		return [true, false];
+	}
+	return ['Ab'];
+};
 
 const pruefeKit = async (page: Page, e: KatalogEintrag, art: string, verstoesse: Verstoss[]) => {
 	const felder = KIT_FELDER[art] ?? [];
@@ -576,14 +595,7 @@ const pruefeKit = async (page: Page, e: KatalogEintrag, art: string, verstoesse:
 	const bezug = await seite();
 	let zahl = 0;
 	for (const f of felder) {
-		const kandidaten: (string | number | boolean)[] =
-			f.typ === 'zahl'
-				? [f.min, f.max]
-				: f.typ === 'wahl'
-					? f.optionen.map((o) => o.wert)
-					: f.typ === 'schalter'
-						? [true, false]
-						: ['Ab'];
+		const kandidaten = kitKandidaten(f);
 		for (const w of kandidaten) {
 			if (w === werte[f.name]) {
 				continue;
@@ -772,6 +784,89 @@ const VOLLER_WEG: Record<
 	},
 };
 
+type Inspektor = Awaited<ReturnType<typeof leseInspektor>>;
+
+/** G1: Der Baustein selbst ist gewählt, bei Rezepten die Aufgabe. */
+const stimmtAuswahl = (e: KatalogEintrag, schema: AbbildungSchema | undefined, nurLoesung: boolean, pfad: string) => {
+	const soll = ist(e, nurLoesung);
+	const letzte = pfad.split('›').at(-1) ?? '';
+	if (soll) {
+		return soll.test(letzte);
+	}
+	return schema ? letzte === schema.name : !/^Aufgabe \d/.test(letzte);
+};
+
+/** G1, G4, W8, G3: Was gleich nach dem Einfügen gilt. */
+const pruefeEinfuegen = (
+	e: KatalogEintrag,
+	schema: AbbildungSchema | undefined,
+	nurLoesung: boolean,
+	pfad: string,
+	stand: Awaited<ReturnType<typeof seitenUndFehler>>,
+	inspektor: Inspektor,
+	verstoesse: Verstoss[],
+) => {
+	if (!stimmtAuswahl(e, schema, nurLoesung, pfad)) {
+		verstoesse.push({
+			regel: 'G1',
+			schluessel: e.id,
+			text: `Nach dem Einfügen gewählt: ${pfad || '(nichts)'}`,
+		});
+	}
+	if (stand.seiten > 1 || stand.fehler.length > 0) {
+		verstoesse.push({
+			regel: 'G4',
+			schluessel: e.id,
+			text: `Leeres Blatt: ${stand.seiten} Seiten, ${stand.fehler.map((f) => f.text).join(' / ')}`,
+		});
+	}
+	if (inspektor && inspektor.raus > 0) {
+		verstoesse.push({
+			regel: 'W8',
+			schluessel: e.id,
+			text: `${inspektor.raus} Elemente: ${inspektor.rausBeispiel.join(', ')}`,
+		});
+	}
+	if (inspektor && inspektor.hoehe > ZU_HOCH) {
+		verstoesse.push({ regel: 'G3', schluessel: e.id, text: `Inspektor ${inspektor.hoehe} px hoch` });
+	}
+};
+
+/** Abbildungen über ihr Schema (W1, Felder), Kit-Bausteine über ihre Einstellungen. */
+const pruefeInhalt = async (
+	page: Page,
+	rahmen: Frame,
+	kontaktSeite: Page,
+	e: KatalogEintrag,
+	schema: AbbildungSchema | undefined,
+	inspektor: Inspektor,
+	verstoesse: Verstoss[],
+) => {
+	let abgewiesen: string[] = [];
+	let faelle = 0;
+	let ohneWirkung = 0;
+	let kontakt = false;
+	if (schema) {
+		const nr = await nrDesElements(page, e.id);
+		const q = zerlege(await quelle(page));
+		const knoten = nr === null ? undefined : q.knoten[nr];
+		if (nr !== null && knoten) {
+			await pruefeW1(page, e, nr, schema, verstoesse);
+			const r = await pruefeFelder(rahmen, e, schema, nr, werteVon(schema, knoten, q), verstoesse);
+			faelle = r.zahl;
+			ohneWirkung = r.ohne;
+			abgewiesen = r.abgewiesen;
+			if (BILDER && r.kontakt.length > 0) {
+				await schreibeKontakt(kontaktSeite, rahmen, e.id, r.kontakt);
+				kontakt = true;
+			}
+		}
+	} else if (inspektor?.art) {
+		faelle = await pruefeKit(page, e, inspektor.art, verstoesse);
+	}
+	return { abgewiesen, faelle, ohneWirkung, kontakt };
+};
+
 const BEREICHE = [...new Set(KATALOG.map((e) => e.kategorie))];
 const FILTER = process.env.AUDIT_NUR?.split(',');
 
@@ -835,56 +930,16 @@ test.describe('Prüfmaschine', () => {
 					.catch(() => undefined);
 				const inspektor = await leseInspektor(page);
 				const pfad = inspektor?.pfad ?? '';
-				// G1: Der Baustein selbst ist gewählt, bei Rezepten die Aufgabe.
-				const soll = ist(e, nurLoesung);
-				const letzte = pfad.split('›').at(-1) ?? '';
-				const stimmt = soll ? soll.test(letzte) : schema ? letzte === schema.name : !/^Aufgabe \d/.test(letzte);
-				if (!stimmt) {
-					verstoesse.push({
-						regel: 'G1',
-						schluessel: e.id,
-						text: `Nach dem Einfügen gewählt: ${pfad || '(nichts)'}`,
-					});
-				}
-				if (stand.seiten > 1 || stand.fehler.length > 0) {
-					verstoesse.push({
-						regel: 'G4',
-						schluessel: e.id,
-						text: `Leeres Blatt: ${stand.seiten} Seiten, ${stand.fehler.map((f) => f.text).join(' / ')}`,
-					});
-				}
-				if (inspektor && inspektor.raus > 0) {
-					verstoesse.push({
-						regel: 'W8',
-						schluessel: e.id,
-						text: `${inspektor.raus} Elemente: ${inspektor.rausBeispiel.join(', ')}`,
-					});
-				}
-				if (inspektor && inspektor.hoehe > ZU_HOCH) {
-					verstoesse.push({ regel: 'G3', schluessel: e.id, text: `Inspektor ${inspektor.hoehe} px hoch` });
-				}
-				let abgewiesen: string[] = [];
-				let faelle = 0;
-				let ohneWirkung = 0;
-				let kontakt = false;
-				if (schema) {
-					const nr = await nrDesElements(page, e.id);
-					const q = zerlege(await quelle(page));
-					const knoten = nr === null ? undefined : q.knoten[nr];
-					if (nr !== null && knoten) {
-						await pruefeW1(page, e, nr, schema, verstoesse);
-						const r = await pruefeFelder(rahmen, e, schema, nr, werteVon(schema, knoten, q), verstoesse);
-						faelle = r.zahl;
-						ohneWirkung = r.ohne;
-						abgewiesen = r.abgewiesen;
-						if (BILDER && r.kontakt.length > 0) {
-							await schreibeKontakt(kontaktSeite, rahmen, e.id, r.kontakt);
-							kontakt = true;
-						}
-					}
-				} else if (inspektor?.art) {
-					faelle = await pruefeKit(page, e, inspektor.art, verstoesse);
-				}
+				pruefeEinfuegen(e, schema, nurLoesung, pfad, stand, inspektor, verstoesse);
+				const { abgewiesen, faelle, kontakt, ohneWirkung } = await pruefeInhalt(
+					page,
+					rahmen,
+					kontaktSeite,
+					e,
+					schema,
+					inspektor,
+					verstoesse,
+				);
 				if (BILDER && inspektor) {
 					await fotoInspektor(page, e.id, inspektor.hoehe);
 				}

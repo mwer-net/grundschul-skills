@@ -1,5 +1,5 @@
+import { AmZeiger } from '../bausteine/AmZeiger';
 import { Symbol } from '../bausteine/Symbol';
-import { AmZeiger } from '../bausteine/zeigerzug';
 import { vorschauAdresse } from '../lib/zugang';
 import type { Objekt } from './typen';
 

@@ -39,6 +39,13 @@ const ZEILENNUMMERN: { wert: NummernWert; titel: string }[] = [
 	{ wert: '5', titel: 'Alle 5' },
 ];
 
+const nummernWertVon = (schritt: number | null): NummernWert => {
+	if (schritt === null) {
+		return 'aus';
+	}
+	return schritt === 1 ? '1' : '5';
+};
+
 const FELD = 'h-knopf rounded-lg border border-linie bg-flaeche px-2';
 const eng = (t: string) => t.replace(/\s+/g, ' ').replace(/^ /, '');
 
@@ -195,16 +202,14 @@ export const Sprachwerkzeug = ({
 			});
 		}
 	};
-	const nummern: NummernWert = stand.zeilennummern === null ? 'aus' : stand.zeilennummern === 1 ? '1' : '5';
+	const nummern = nummernWertVon(stand.zeilennummern);
 
 	return (
 		<div className="contents" data-sprachwerkzeug>
 			<Abschnitt name="lesehilfen" titel="Lesehilfen">
 				{markiert && (
 					<p className="truncate text-xs text-leise" data-sprache-markierung title={markiert.text}>
-						Wirkt auf die Markierung: „
-{markiert.text}
-“
+						Wirkt auf die Markierung: „{markiert.text}“
 					</p>
 				)}
 				<Regler titel="Silben">
@@ -236,7 +241,8 @@ export const Sprachwerkzeug = ({
 									setze={() =>
 										void wende(stand.vokale ? 'Vokale aus' : 'Vokale', (s, q) =>
 											s.schalteMarkierung(q, nr, 'vokale', bereich),
-										)}
+										)
+									}
 								/>
 							</span>
 						</Zeile>

@@ -663,13 +663,13 @@ test.describe('Sprach-Werkzeuge (052, 083)', () => {
 					const hoehe = Number.parseFloat(getComputedStyle(a).lineHeight);
 					return summe + Math.round(a.getBoundingClientRect().height / hoehe);
 				}, 0);
-				const nummern = [...document.querySelectorAll('.zeilennummer')].map((n) => Number(n.textContent));
-				return { zeilen, nummern };
+				const gezeigt = [...document.querySelectorAll('.zeilennummer')].map((n) => Number(n.textContent));
+				return { zeilen, nummern: gezeigt };
 			});
 		const pruefe = async () => {
-			const { nummern, zeilen } = await zaehle();
+			const { nummern: gezeigt, zeilen } = await zaehle();
 			expect(zeilen).toBeGreaterThan(1);
-			expect(nummern).toEqual(Array.from({ length: zeilen }, (_, i) => i + 1));
+			expect(gezeigt).toEqual(Array.from({ length: zeilen }, (_, i) => i + 1));
 			return zeilen;
 		};
 		const kl3 = await pruefe();

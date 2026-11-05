@@ -634,7 +634,7 @@ export const erstelleKi = ({ ereignisse, konfig, pruefer }: Abhaengigkeiten) => 
 	const beendetNachLauf = new Set<string>();
 	/** Die Sitzung eines einzelnen Laufs, solange er läuft. */
 	let laufProjekt: string | null = null;
-	let takt: NodeJS.Timeout | null = null;
+	let takt: ReturnType<typeof setInterval> | null = null;
 	let limit: KiLimit | null = null;
 	let anmeldung: { wert: boolean; bis: number } | null = null;
 	const bin = kiPfad(konfig);
@@ -1009,7 +1009,13 @@ export const erstelleKi = ({ ereignisse, konfig, pruefer }: Abhaengigkeiten) => 
 		let ende: KiStatus = 'fehler';
 		let letzteSitzung: string | null = null;
 		let rueckfall = !platz.sitzung && Boolean(w.verlauf?.length);
-		try {
+		/** Eine Frage oder Rückfrage statt einer Änderung: Ein offener Vorschlag bleibt davon unberührt. */
+		const alsAntwort = (antwort: string) => {
+			a.ergebnis = 'antwort';
+			a.antwort = antwort;
+			ende = 'fertig';
+		};
+		const ersterLauf = async () => {
 			// Immer frisch aus der Quelle: Die Lehrkraft kann seit der letzten Nachricht geändert haben.
 			await writeFile(path.join(arbeit, WORKFILE), ausschnitt.text);
 			const kopf = `Das Blatt: „${meta.titel}“, Art ${meta.art}.`;
@@ -1024,29 +1030,13 @@ export const erstelleKi = ({ ereignisse, konfig, pruefer }: Abhaengigkeiten) => 
 			letzteSitzung = erst.sitzung;
 			verbrauch = erst.verbrauch;
 			a.kontextGross = Boolean(w.gespraechId) && erst.kontext > KI_GRENZEN.gespraechKontextToken;
-			if (aktiv?.abbruch) {
-				ende = 'abgebrochen';
-				return;
-			}
-			if (erst.fehler) {
-				a.limitErreicht = erst.fehler === 'rate_limit' || limitErreicht();
-				throw new HttpFehler(500, fehlerText(erst.fehler));
-			}
-			let neu = await leseErgebnis(arbeit);
-			if (neu === ausschnitt.text) {
-				if (!erst.antwort.trim()) {
-					throw new HttpFehler(422, 'Claude hat nichts am Blatt geändert.');
-				}
-				// Eine Frage oder Rückfrage: Ein offener Vorschlag bleibt davon unberührt.
-				a.ergebnis = 'antwort';
-				a.antwort = erst.antwort;
-				ende = 'fertig';
-				return;
-			}
-			a.schritte.push('Prüft das Ergebnis');
-			melde(a);
+			return erst;
+		};
+		/** Prüft das Ergebnis mit höchstens einer Korrekturrunde. `null`: Der Auftrag endet ohne Vorschlag. */
+		const pruefeMitKorrektur = async (erst: Ergebnis, erstesErgebnis: string) => {
 			// Die Sperre zuerst: Die Blattprüfung öffnet das Ergebnis im Browser, und was hier hängen bleibt, soll dort nie laufen.
 			const blattPruefung = (html: string) => pruefeSicher(dir, ausschnitt.einsetzen(html));
+			let neu = erstesErgebnis;
 			let funde = sperrFunde(quelle, ausschnitt, neu);
 			let bericht = funde.length > 0 ? null : await blattPruefung(neu);
 			let antwort = erst.antwort;
@@ -1066,27 +1056,23 @@ export const erstelleKi = ({ ereignisse, konfig, pruefer }: Abhaengigkeiten) => 
 				letzteSitzung = zweit.sitzung ?? letzteSitzung;
 				if (aktiv?.abbruch) {
 					ende = 'abgebrochen';
-					return;
+					return null;
 				}
 				if (!zweit.fehler) {
 					neu = await leseErgebnis(arbeit);
 					antwort = zweit.antwort || antwort;
 					if (neu === ausschnitt.text && antwort.trim()) {
 						// Claude nimmt es zurück und erklärt, warum es so nicht geht.
-						a.ergebnis = 'antwort';
-						a.antwort = antwort;
-						ende = 'fertig';
-						return;
+						alsAntwort(antwort);
+						return null;
 					}
 					funde = sperrFunde(quelle, ausschnitt, neu);
 					bericht = funde.length > 0 ? null : await blattPruefung(neu);
 				}
 			}
-			// Nichts wird still entfernt: Ein Blatt mit fehlendem Teil fiele erst beim Drucken auf (Entscheidung 38).
-			if (funde.length > 0 || !bericht) {
-				verbrauch = { ...verbrauch, gesperrt: funde.length };
-				throw new HttpFehler(422, sperrText(funde));
-			}
+			return { neu, funde, bericht, antwort };
+		};
+		const schreibeVorschlag = async (neu: string, antwort: string, bericht: Pruefbericht) => {
 			const ziel = vorschlagDir(konfig.materialDir, w.mappe, w.dok);
 			await rm(ziel, { recursive: true, force: true });
 			await mkdir(ziel);
@@ -1106,6 +1092,38 @@ export const erstelleKi = ({ ereignisse, konfig, pruefer }: Abhaengigkeiten) => 
 			};
 			await schreibeAtomar(path.join(ziel, WORKFILE), ausschnitt.einsetzen(neu));
 			await schreibeAtomar(path.join(ziel, VORSCHLAG_META), JSON.stringify(vorschlag, null, '\t'));
+		};
+		try {
+			const erst = await ersterLauf();
+			if (aktiv?.abbruch) {
+				ende = 'abgebrochen';
+				return;
+			}
+			if (erst.fehler) {
+				a.limitErreicht = erst.fehler === 'rate_limit' || limitErreicht();
+				throw new HttpFehler(500, fehlerText(erst.fehler));
+			}
+			const neu = await leseErgebnis(arbeit);
+			if (neu === ausschnitt.text) {
+				if (!erst.antwort.trim()) {
+					throw new HttpFehler(422, 'Claude hat nichts am Blatt geändert.');
+				}
+				alsAntwort(erst.antwort);
+				return;
+			}
+			a.schritte.push('Prüft das Ergebnis');
+			melde(a);
+			const stand = await pruefeMitKorrektur(erst, neu);
+			if (!stand) {
+				return;
+			}
+			const { bericht, funde } = stand;
+			// Nichts wird still entfernt: Ein Blatt mit fehlendem Teil fiele erst beim Drucken auf (Entscheidung 38).
+			if (funde.length > 0 || !bericht) {
+				verbrauch = { ...verbrauch, gesperrt: funde.length };
+				throw new HttpFehler(422, sperrText(funde));
+			}
+			await schreibeVorschlag(stand.neu, stand.antwort, bericht);
 			a.ergebnis = 'vorschlag';
 			ende = 'fertig';
 		} finally {

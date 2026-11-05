@@ -245,7 +245,6 @@ test.describe('Rückgängig: Pfeil und Taste (085)', () => {
 
 	test('Textsitzung: ein Schritt, ⇧⌘Z bringt alles zurück, im Blatt steht wieder der alte Text', async ({
 		druecke,
-		hasTouch,
 		page,
 	}) => {
 		for (const weg of [WEGE.taste, WEGE.pfeil]) {

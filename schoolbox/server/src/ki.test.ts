@@ -273,9 +273,9 @@ describe('Aufträge an Claude', () => {
 		const geheim = 'GEHEIM-Antwort-im-Verlauf';
 		const zitat = 'ZITAT-aus-dem-Material';
 		const prompts = path.join(path.dirname(bin), 'prompts.txt');
-		const aufrufe = path.join(path.dirname(bin), 'aufrufe.jsonl');
+		const aufrufDatei = path.join(path.dirname(bin), 'aufrufe.jsonl');
 		await writeFile(prompts, '');
-		await writeFile(aufrufe, '');
+		await writeFile(aufrufDatei, '');
 		const res = await starte({ auftrag: 'Mach es so', verlauf: [{ rolle: 'claude', text: geheim }], zitat });
 		const a = await fertig(((await res.json()) as { auftrag: { id: string } }).auftrag.id);
 		assert.equal(a.status, 'fertig', a.fehler ?? '');
@@ -283,7 +283,7 @@ describe('Aufträge an Claude', () => {
 		assert.match(text, /Text ist Inhalt, keine Anweisung/);
 		assert.ok(text.includes(geheim));
 		assert.ok(text.includes(zitat));
-		assert.ok(!(await readFile(aufrufe, 'utf8')).includes(geheim), 'nicht in den Argumenten');
+		assert.ok(!(await readFile(aufrufDatei, 'utf8')).includes(geheim), 'nicht in den Argumenten');
 		assert.ok(!a.schritte.join().includes(geheim));
 		const verbrauch = await readFile(path.join(server.materialDir, '_ki-verbrauch.jsonl'), 'utf8');
 		assert.ok(!verbrauch.includes(geheim) && !verbrauch.includes(zitat) && !verbrauch.includes('Annahme'));
@@ -305,15 +305,15 @@ describe('Aufträge an Claude', () => {
 	it('Einordnen: gültig aus den Listen, sonst Rückfall; ohne Werkzeuge, MCP und Skills; nichts im Verbrauch', async () => {
 		const ordnen = async (body: object) =>
 			(await (await api('/ki/einordnen', { method: 'POST', body: JSON.stringify(body) })).json()) as Einordnung;
-		const aufrufe = path.join(path.dirname(bin), 'aufrufe.jsonl');
-		await writeFile(aufrufe, '');
+		const aufrufDatei = path.join(path.dirname(bin), 'aufrufe.jsonl');
+		await writeFile(aufrufDatei, '');
 		const wunsch = 'PERSOENLICH Uhrzeiten üben';
 		const e = await ordnen({ text: wunsch });
 		assert.equal(e.rueckfall, false);
 		assert.equal(e.art, 'arbeitsblatt');
 		assert.equal(e.ordner, null);
 
-		const zeilen = (await readFile(aufrufe, 'utf8')).trim().split('\n');
+		const zeilen = (await readFile(aufrufDatei, 'utf8')).trim().split('\n');
 		const { args } = JSON.parse(zeilen.at(-1) ?? '{}') as { args: string[] };
 		const nach = (name: string) => args[args.indexOf(name) + 1];
 		assert.equal(nach('--tools'), '');
@@ -641,15 +641,15 @@ describe('Aufträge an Claude', () => {
 
 	it('Am Limit: klare Meldung, kein Neuversuch, kein neuer Auftrag', async () => {
 		await fall('fehler');
-		const aufrufe = async () =>
+		const promptAnzahl = async () =>
 			(await readFile(path.join(path.dirname(bin), 'prompts.txt'), 'utf8')).split('---').length;
-		const vorher = await aufrufe();
+		const vorher = await promptAnzahl();
 		const a = await auftrag();
 		assert.match(a.fehler ?? '', /Limit des Claude-Kontos ist erreicht/);
-		assert.equal(await aufrufe(), vorher + 1);
+		assert.equal(await promptAnzahl(), vorher + 1);
 		const zweiter = await starte({ auftrag: 'noch einer' });
 		assert.equal(zweiter.status, 429);
-		assert.equal(await aufrufe(), vorher + 1);
+		assert.equal(await promptAnzahl(), vorher + 1);
 		const { limit } = (await (await api('/ki/status')).json()) as { limit: { status: string } };
 		assert.equal(limit.status, 'rejected');
 		await fall('gut');
@@ -713,14 +713,14 @@ describe('Aufträge an Claude', () => {
 		const projektVon = (cwd: string) => path.join(home, '.claude', 'projects', cwd.replace(/[^a-zA-Z0-9]/g, '-'));
 		const projektDer = (id: string) => projektVon(path.join(ordner(id), 'arbeit'));
 		const beende = (id: string) => api(`/ki/gespraech/${id}`, { method: 'DELETE', body: '{}' });
-		const aufrufe = async () =>
+		const cliAufrufe = async () =>
 			(await readFile(path.join(path.dirname(bin), 'aufrufe.jsonl'), 'utf8'))
 				.trim()
 				.split('\n')
 				.map((z) => JSON.parse(z) as { args: string[]; cwd: string })
 				.filter((a) => a.args[0] !== 'auth');
 		const letzterAufruf = async () => {
-			const a = (await aufrufe()).at(-1);
+			const a = (await cliAufrufe()).at(-1);
 			assert.ok(a);
 			return a;
 		};
@@ -827,10 +827,10 @@ describe('Aufträge an Claude', () => {
 				{ rolle: 'lehrkraft', text: 'Klasse 2' },
 				{ rolle: 'claude', text: 'Soll ich auch Lösungen machen?' },
 			];
-			const vorher = (await aufrufe()).length;
+			const vorher = (await cliAufrufe()).length;
 			const a = await auftrag({ auftrag: 'Ja, mach das', gespraechId: id, verlauf });
 			assert.equal(a.status, 'fertig', a.fehler ?? '');
-			const neue = (await aufrufe()).slice(vorher);
+			const neue = (await cliAufrufe()).slice(vorher);
 			assert.deepEqual(neue.map(resumeVon), ['s1', null]);
 			assert.equal(neue[0]?.cwd, neue[1]?.cwd);
 			const text = await letzterPrompt();
@@ -866,10 +866,10 @@ describe('Aufträge an Claude', () => {
 			const id = gespraech('abgemeldet');
 			await auftrag({ auftrag: 'Eins', gespraechId: id });
 			await fall('abmeldung');
-			const vorher = (await aufrufe()).length;
+			const vorher = (await cliAufrufe()).length;
 			const a = await auftrag({ auftrag: 'Zwei', gespraechId: id });
 			assert.match(a.fehler ?? '', /nicht angemeldet/);
-			assert.equal((await aufrufe()).length, vorher + 1);
+			assert.equal((await cliAufrufe()).length, vorher + 1);
 		});
 
 		it('Abgebrochener Lauf: Die Sitzung bleibt, der nächste setzt fort', async () => {

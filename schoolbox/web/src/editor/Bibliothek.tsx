@@ -19,7 +19,6 @@ import type { Einblendung } from './Leinwand';
 import type { Luecke } from './navigation';
 import { lueckeAn } from './navigation';
 import { sichtfeldVon } from './sichtfeld';
-import type { Struktur } from './struktur';
 import { EIGENE_GESCHICHTE } from './tasten';
 import { TEXTWERKZEUG } from './text';
 import { MAUS_WEG } from './ziehen';
@@ -656,9 +655,7 @@ export const Bibliothek = ({
 					)}
 					{verborgen > 0 && (
 						<Knopf art="leise" className="self-start" data-weitere onClick={() => waehleFilter('alle')}>
-							{verborgen === 1 ? '1 weiterer' : `${verborgen} weitere`}
-{' '}
-unter Alle
+							{verborgen === 1 ? '1 weiterer' : `${verborgen} weitere`} unter Alle
 						</Knopf>
 					)}
 				</>

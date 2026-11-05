@@ -4,24 +4,24 @@ import { hatNamenszeile } from '@schoolbox/kern/src/struktur';
 import type { MouseEvent as ReactMouseEvent, PointerEvent as ReactPointerEvent, RefObject } from 'react';
 import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 
+import { AmZeiger } from '../bausteine/AmZeiger';
 import { Griff } from '../bausteine/Griff';
 import { klassen } from '../bausteine/klassen';
 import { Knopf } from '../bausteine/Knopf';
 import { Menue } from '../bausteine/Menue';
 import { Symbol } from '../bausteine/Symbol';
 import { Tooltip } from '../bausteine/Tooltip';
-import { AmZeiger, folgeZeiger, rolleAmRand, schluckeKlick } from '../bausteine/zeigerzug';
-import type { GliederungSeite, GliederungZeile, SeitenSpur } from './gliederung-modell';
-import { gliederungVon, seitenAbgleich, seitenStelle, seitenTexte, zeileZurAuswahl } from './gliederung-modell';
+import { folgeZeiger, rolleAmRand, schluckeKlick } from '../bausteine/zeigerzug';
+import type { GliederungSeite, GliederungZeile } from './gliederung-modell';
+import { gliederungVon, zeileZurAuswahl } from './gliederung-modell';
+import type { GliederungStand } from './gliederung-stand';
 import { leistenHtml } from './leiste';
 import type { Struktur } from './struktur';
 import { MAUS_WEG } from './ziehen';
 
 const SPEICHER_SEITE = 'schoolbox-neue-seite';
-const SPEICHER_MINIATUREN = 'schoolbox-gliederung-miniaturen';
 const MINIATUR_BREITE = 96;
 const FEDERN_MS = 600;
-const LEUCHTEN_MS = 1200;
 const ETWA_A4 = 1.414;
 /** Griff und Pfeil: So weit rücken Miniatur und Zeilen ein. */
 const EINZUG = 'pl-5 [@media(any-pointer:coarse)]:pl-11';
@@ -31,80 +31,6 @@ const ART_KNOPF = (
 		<Symbol name="runter" className="size-3 flex-none" />
 	</Knopf>
 );
-
-/**
- * Was vom Reiter bleibt, wenn er zugeht: eingeklappte Seiten (für die Sitzung, nie in der Quelle) und ob Miniaturen zu
- * sehen sind (je Gerät). Liegt darum beim Editor. Ein Klick im Blatt klappt die Seite auf, in der er landet.
- */
-export const useGliederungStand = (zerlegung: Zerlegung | null, auswahl: number | null) => {
-	const spuren = useRef<SeitenSpur[]>([]);
-	const naechsteId = useRef(1);
-	const ids = useMemo(() => {
-		if (!zerlegung) {
-			return [];
-		}
-		spuren.current = seitenAbgleich(spuren.current, seitenTexte(zerlegung), () => {
-			naechsteId.current += 1;
-			return naechsteId.current;
-		});
-		return spuren.current.map((s) => s.id);
-	}, [zerlegung]);
-	const [zu, setZu] = useState<ReadonlySet<number>>(new Set());
-	const [miniaturen, setMiniaturenZustand] = useState(() => localStorage.getItem(SPEICHER_MINIATUREN) !== 'aus');
-	const [leuchtet, setLeuchtet] = useState<number | null>(null);
-	/** Was die Gliederung gerade selbst ausgelöst hat, gilt nicht als Klick im Blatt. */
-	const eigene = useRef({ bleibtZu: false, leuchten: false });
-	const zerlegungJetzt = useRef(zerlegung);
-	zerlegungJetzt.current = zerlegung;
-	const idsJetzt = useRef(ids);
-	idsJetzt.current = ids;
-
-	useEffect(() => {
-		if (auswahl === null) {
-			return undefined;
-		}
-		const { bleibtZu, leuchten } = eigene.current;
-		eigene.current = { bleibtZu: false, leuchten: false };
-		if (!bleibtZu) {
-			const stelle = seitenStelle(zerlegungJetzt.current, auswahl);
-			const id = stelle === null ? undefined : idsJetzt.current[stelle];
-			if (id !== undefined) {
-				setZu((alt) => (alt.has(id) ? new Set([...alt].filter((x) => x !== id)) : alt));
-			}
-		}
-		if (!leuchten) {
-			return undefined;
-		}
-		setLeuchtet(auswahl);
-		const timer = window.setTimeout(() => setLeuchtet(null), LEUCHTEN_MS);
-		return () => window.clearTimeout(timer);
-	}, [auswahl]);
-
-	return {
-		zu,
-		ids,
-		miniaturen,
-		leuchtet,
-		eigene,
-		setzeMiniaturen: (an: boolean) => {
-			setMiniaturenZustand(an);
-			localStorage.setItem(SPEICHER_MINIATUREN, an ? 'an' : 'aus');
-		},
-		klappe: (id: number, oeffnen: boolean) =>
-			setZu((alt) => {
-				const neu = new Set(alt);
-				if (oeffnen) {
-					neu.delete(id);
-				} else {
-					neu.add(id);
-				}
-				return neu;
-			}),
-		klappeAlle: (schliessen: boolean) => setZu(new Set(schliessen ? ids : [])),
-	};
-};
-
-export type GliederungStand = ReturnType<typeof useGliederungStand>;
 
 interface Masse {
 	breite: number;

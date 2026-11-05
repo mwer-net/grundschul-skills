@@ -952,13 +952,13 @@ export const auswahlOptionen = (feld: AuswahlFeld, w: Werte | null | undefined) 
 
 /** Für `nurWenn`: Das Feld gilt nur bei diesen Werten eines anderen Felds. Ein leeres Attribut zählt als `standard`. */
 const wenn =
-	(attribut: string, standard: string, ...werte: string[]) =>
+	(feldName: string, standard: string, ...werte: string[]) =>
 	(w: Werte) =>
-		werte.includes(w[attribut] ?? standard);
+		werte.includes(w[feldName] ?? standard);
 const wennNicht =
-	(attribut: string, standard: string, ...werte: string[]) =>
+	(feldName: string, standard: string, ...werte: string[]) =>
 	(w: Werte) =>
-		!werte.includes(w[attribut] ?? standard);
+		!werte.includes(w[feldName] ?? standard);
 /** Wiederholung und Reihenfolge ändern nur etwas, wenn dasselbe Wort auf mehreren Stufen steht. */
 const gleicheWoerter = (w: Werte) => {
 	const stufen = (w.stufen ?? '').split(';').map((s) => s.split(',').map((t) => t.trim()));
@@ -1111,11 +1111,11 @@ const tafelGrenzen = (w: Werte) => {
 /** Lücken und Markierungen außerhalb des Ausschnitts ließen das Zeichnen scheitern und wären im Raster nicht mehr zu erreichen. */
 const nurImAusschnitt = (w: Werte, zahlen: number[]): Werte => {
 	const neu: Werte = {};
-	for (const attribut of ['luecken', 'markiert']) {
-		const alt = (w[attribut] ?? '').trim().split(/\s+/).filter(Boolean);
+	for (const name of ['luecken', 'markiert']) {
+		const alt = (w[name] ?? '').trim().split(/\s+/).filter(Boolean);
 		const bleibt = alt.filter((z) => zahlen.includes(Number(z)));
 		if (bleibt.length < alt.length) {
-			neu[attribut] = bleibt.length > 0 ? bleibt.join(' ') : null;
+			neu[name] = bleibt.length > 0 ? bleibt.join(' ') : null;
 		}
 	}
 	return neu;
@@ -1181,7 +1181,7 @@ const basisFuerRechnung = (w: Werte): Werte => {
 const REIHE_OBERGRENZE = 60;
 
 /** Die Grundaufgaben der Rechenreihe wie `grundaufgabe` in `abbildungen.js`. */
-function* rechenreiheGrund(zeichen: string, raum: number, reihe: number | null, rest: boolean) {
+const rechenreiheGrund = function* (zeichen: string, raum: number, reihe: number | null, rest: boolean) {
 	if (zeichen === '+') {
 		for (let a = 1; a < raum; a += 1) {
 			for (let b = 1; b <= raum - a; b += 1) {
@@ -1214,7 +1214,7 @@ function* rechenreiheGrund(zeichen: string, raum: number, reihe: number | null, 
 			}
 		}
 	}
-}
+};
 
 /**
  * Wie viele verschiedene Aufgaben `rechenreiheAufgaben` in `abbildungen.js` bei diesen Werten finden kann, ein Test hält
@@ -5640,8 +5640,8 @@ export const zeilenAusText = (feld: ListeFeld, text: string) =>
 		.map((z) => z.trim())
 		.filter(Boolean)
 		.map((z) => {
-			const teile = z.split('|').map((t) => t.trim());
-			return feld.unter.map((u, j) => teile[j] ?? u.standard ?? '');
+			const spalten = z.split('|').map((t) => t.trim());
+			return feld.unter.map((u, j) => spalten[j] ?? u.standard ?? '');
 		});
 
 export const rasterVon = (wert: string | null): string[][] =>

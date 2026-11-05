@@ -4,7 +4,7 @@ import { erzeugeReferenz } from '@schoolbox/kern/src/referenz';
 import type { Art } from '@schoolbox/kern/src/werte';
 import { FORMAT_NAME } from '@schoolbox/kern/src/werte';
 import type { KeyboardEvent, RefObject } from 'react';
-import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
+import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 
 import { meldung } from '../api';

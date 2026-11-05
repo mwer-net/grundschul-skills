@@ -107,6 +107,34 @@ const rasterWerte = (
 const anders = (wert: string) =>
 	/\d/.test(wert) ? wert.replace(/\d/, (d) => String((Number(d) + 1) % 10)) : `${wert}x`;
 
+const schalterWerte = (feld: Feld & { art: 'schalter' }): [string, string | null][] => [
+	['an', feld.standard ? null : feld.an],
+	['aus', feld.standard ? feld.aus : null],
+];
+
+// Das Beispiel ist oft zugleich der Standard: Darum zusätzlich ein Wert, der sicher anders ist.
+const textWerte = (feld: Feld & { art: 'text' }, roh: string | null): [string, string | null][] => [
+	['Text', feld.beispiel ?? (feld.muster ? roh : 'Ab')],
+	['Text anders', anders(feld.beispiel ?? 'Ab')],
+];
+
+const mehrfachWerte = (feld: Feld & { art: 'mehrfach' }, w: Werte): [string, string | null][] => {
+	const optionen = feld.optionenJe
+		? (feld.optionenJe.werte[w[feld.optionenJe.feld] ?? Object.keys(feld.optionenJe.werte)[0] ?? ''] ?? [])
+		: feld.optionen;
+	const jetzt = listeVon(wirksam(feld, w));
+	return optionen.map((o) => {
+		const neu = jetzt.includes(o.wert) ? jetzt.filter((x) => x !== o.wert) : [...jetzt, o.wert];
+		return [o.name, neu.join(' ') || null];
+	});
+};
+
+const markierungWerte = (feld: Feld & { art: 'markierung' }, roh: string | null): [string, string | null][] => {
+	const satz = markierungLesen(roh ?? '', feld.gruppen);
+	const marke = feld.optionen.find((o) => o.wert !== satz.woerter[0]?.marke)?.wert ?? null;
+	return satz.woerter.length > 0 ? [['eine Marke', markierungText(markeSetzen(satz, 0, marke), feld.gruppen)]] : [];
+};
+
 const roheWerte = (
 	schema: AbbildungSchema,
 	feld: Feld,
@@ -120,10 +148,7 @@ const roheWerte = (
 		case 'muster':
 			return feld.optionen.map((o) => [o.name, o.wert]);
 		case 'schalter':
-			return [
-				['an', feld.standard ? null : feld.an],
-				['aus', feld.standard ? feld.aus : null],
-			];
+			return schalterWerte(feld);
 		case 'zahl':
 			return [
 				['min', String(feld.min)],
@@ -133,11 +158,7 @@ const roheWerte = (
 		case 'uhrzeit':
 			return [['3:15', '3:15']];
 		case 'text':
-			// Das Beispiel ist oft zugleich der Standard: Darum zusätzlich ein Wert, der sicher anders ist.
-			return [
-				['Text', feld.beispiel ?? (feld.muster ? roh : 'Ab')],
-				['Text anders', anders(feld.beispiel ?? 'Ab')],
-			];
+			return textWerte(feld, roh);
 		case 'zahlen':
 			return [
 				['Liste', feld.beispiel],
@@ -149,29 +170,16 @@ const roheWerte = (
 		}
 		case 'liste':
 			return listenWerte(feld, roh);
-		case 'mehrfach': {
-			const optionen = feld.optionenJe
-				? (feld.optionenJe.werte[w[feld.optionenJe.feld] ?? Object.keys(feld.optionenJe.werte)[0] ?? ''] ?? [])
-				: feld.optionen;
-			const jetzt = listeVon(wirksam(feld, w));
-			return optionen.map((o) => {
-				const neu = jetzt.includes(o.wert) ? jetzt.filter((x) => x !== o.wert) : [...jetzt, o.wert];
-				return [o.name, neu.join(' ') || null];
-			});
-		}
+		case 'mehrfach':
+			return mehrfachWerte(feld, w);
 		case 'raster':
 			return rasterWerte(feld, roh, zellen[feld.attribut] ?? []);
 		case 'mischen':
 			return [['neu mischen', '424242']];
-		case 'markierung': {
-			const satz = markierungLesen(roh ?? '', feld.gruppen);
-			const marke = feld.optionen.find((o) => o.wert !== satz.woerter[0]?.marke)?.wert ?? null;
-			return satz.woerter.length > 0
-				? [['eine Marke', markierungText(markeSetzen(satz, 0, marke), feld.gruppen)]]
-				: [];
-		}
+		case 'markierung':
+			return markierungWerte(feld, roh);
 		case 'noten':
-			return [['eine Note', `${roh ?? ''} ${feld.tonhoehe ? 'g\'4' : '4'}`.trim()]];
+			return [['eine Note', `${roh ?? ''} ${feld.tonhoehe ? "g'4" : '4'}`.trim()]];
 		case 'plan':
 			return [['eine Fläche', rasterText([[feld.flaechen.at(-1)?.wert ?? 'wiese']])]];
 		case 'bild':
