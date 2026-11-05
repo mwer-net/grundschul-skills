@@ -7,6 +7,7 @@ const SERVER_TYPEN = [
 	'vorschau-fertig',
 	'pdf-fertig',
 	'ki-stand',
+	'ordner-geaendert',
 ] as const;
 
 /** `verbunden`: Die Verbindung steht (wieder), z. B. nach dem Aufwachen des iPads. Es kann etwas verpasst worden sein. */
@@ -21,6 +22,8 @@ export interface Ereignis {
 	urheber?: 'claude' | 'lehrkraft' | null;
 	/** Bei `ki-stand`: der Auftrag, der sich geändert hat. */
 	id?: string;
+	/** Bei `ordner-geaendert`: Stand des Baums. */
+	rev?: number;
 	/** Bei `verbunden`: Die Verbindung war schon einmal da und ist wieder da (nicht der erste Aufbau). */
 	wieder?: boolean;
 }
@@ -56,6 +59,7 @@ const oeffne = () => {
 				version: daten.version,
 				urheber: daten.urheber,
 				id: daten.id,
+				rev: daten.rev,
 			});
 		});
 	}

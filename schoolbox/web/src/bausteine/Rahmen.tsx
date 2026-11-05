@@ -1,12 +1,12 @@
 import { useEffect, useMemo, useState } from 'react';
-import { Link, Outlet, useLocation, useMatch, useNavigate } from 'react-router-dom';
+import { Link, Outlet, useLocation, useMatch, useNavigate, useSearchParams } from 'react-router-dom';
 
 import { meldung, sende } from '../api';
 import type { ChatKontext } from '../editor/chat-kontext';
 import { useChat, useChatKontext, useChatStand } from '../editor/chat-kontext';
 import { loescheAlleVerlaeufe } from '../editor/chat-verlauf';
 import { TASTEN_SPERRE } from '../editor/tasten';
-import { MappeDialog } from '../seiten/Anlegen';
+import { AblageAnbieter } from '../ordner/useOrdner';
 import { Seitenpalette } from '../seiten/Seitenpalette';
 import { useHinweis } from './hinweis';
 import { klassen } from './klassen';
@@ -14,7 +14,6 @@ import { Knopf, KnopfLink } from './Knopf';
 import { useKopfHoehe } from './kopf';
 import { Kuerzel } from './Kuerzel';
 import { Menue } from './Menue';
-import type { SucheKontext } from './suche';
 import { Symbol } from './Symbol';
 
 /** Kopfzeile aller Seiten nach der Anmeldung: Name, Suche, Hilfe, Papierkorb, Abmelden. */
@@ -25,15 +24,15 @@ const KONTO_KNOPF = (
 );
 
 export const Rahmen = () => {
-	const [suche, setSuche] = useState('');
+	const [parameter] = useSearchParams();
 	const { pathname } = useLocation();
+	const suche = pathname === '/suche' ? (parameter.get('q') ?? '') : '';
 	const navigate = useNavigate();
 	const zeige = useHinweis();
 	const kopf = useKopfHoehe<HTMLElement>();
 	const [palette, setPalette] = useState(false);
 	// Die Dokumentansicht hat ihren eigenen einzeiligen Kopf: Das Blatt soll oben im Fenster beginnen.
 	const ohneKopf = useMatch('/m/:mappe/:dok') !== null;
-	const [neueMappe, setNeueMappe] = useState(false);
 
 	useEffect(() => {
 		const taste = (e: KeyboardEvent) => {
@@ -47,10 +46,13 @@ export const Rahmen = () => {
 	}, []);
 
 	const sucheNach = (wert: string) => {
-		setSuche(wert);
-		if (pathname !== '/') {
-			void navigate('/');
+		const neu = new URLSearchParams(pathname === '/suche' ? parameter : undefined);
+		if (wert) {
+			neu.set('q', wert);
+		} else {
+			neu.delete('q');
 		}
+		void navigate(`/suche?${neu.toString()}`, { replace: pathname === '/suche' });
 	};
 
 	const abmelden = async () => {
@@ -63,34 +65,33 @@ export const Rahmen = () => {
 		}
 	};
 
-	const kontext: SucheKontext = { suche, setSuche };
 	const chat = useChat();
 	const chatStand = useChatStand();
 	const imDokument = useMatch('/m/:mappe/:dok/*');
-	const inMappe = useMatch('/m/:mappe');
+	const inOrdner = useMatch('/o/:ordner');
 	const dokMappe = imDokument?.params.mappe;
 	const dokName = imDokument?.params.dok;
-	const mappeName = inMappe?.params.mappe;
+	const ordnerId = inOrdner?.params.ordner;
 	useChatKontext(
 		useMemo<ChatKontext>(
 			() =>
 				dokMappe && dokName
 					? { art: 'ansicht', mappe: dokMappe, dok: dokName }
-					: { art: 'neu', mappe: mappeName ?? null },
-			[dokMappe, dokName, mappeName],
+					: { art: 'neu', mappe: null, ordner: ordnerId ?? null },
+			[dokMappe, dokName, ordnerId],
 		),
 	);
 	return (
+		<AblageAnbieter>
 		<div className="flex min-h-dvh flex-col">
 			{palette && (
 				<Seitenpalette
 					schliessen={() => setPalette(false)}
-					neueMappe={() => setNeueMappe(true)}
+					neuerOrdner={() => window.dispatchEvent(new Event('schoolbox-neuer-ordner'))}
 					abmelden={() => void abmelden()}
 					anClaude={chatStand.ki.zustand.verfuegbar ? chat.fuelle : undefined}
 				/>
 			)}
-			{neueMappe && <MappeDialog schliessen={() => setNeueMappe(false)} />}
 			<header
 				ref={kopf}
 				className={klassen('sticky top-0 z-kopf border-b border-rand bg-flaeche', ohneKopf && 'hidden')}
@@ -99,7 +100,6 @@ export const Rahmen = () => {
 					<Link
 						to="/"
 						className="flex h-knopf flex-none items-center text-base font-semibold text-tinte no-underline"
-						onClick={() => setSuche('')}
 					>
 						Schoolbox
 					</Link>
@@ -114,7 +114,7 @@ export const Rahmen = () => {
 								type="search"
 								name="suche"
 								className="h-knopf w-full rounded-md bg-flaeche-2 pr-12 pl-7 text-sm placeholder:text-leise focus:bg-flaeche focus:outline-1 focus:outline-brand-500"
-								placeholder="Mappen und Material suchen"
+								placeholder="Material und Ordner suchen"
 								enterKeyHint="search"
 								autoComplete="off"
 								autoCorrect="off"
@@ -150,10 +150,6 @@ export const Rahmen = () => {
 							<Symbol name="hilfe" className="md:hidden" />
 							<span className="max-md:hidden">Hilfe</span>
 						</KnopfLink>
-						<KnopfLink to="/papierkorb" art="leise" aria-label="Papierkorb">
-							<Symbol name="papierkorb" className="md:hidden" />
-							<span className="max-md:hidden">Papierkorb</span>
-						</KnopfLink>
 						<Menue
 							name="Konto"
 							rechtsbuendig
@@ -167,8 +163,9 @@ export const Rahmen = () => {
 				className={klassen('w-full flex-1 px-4', ohneKopf ? 'pt-0' : 'pt-3')}
 				style={{ paddingBottom: 'max(4rem, var(--chat-platz, 0px))' }}
 			>
-				<Outlet context={kontext} />
+				<Outlet />
 			</main>
 		</div>
+		</AblageAnbieter>
 	);
 };

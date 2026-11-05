@@ -55,6 +55,9 @@
 	--shadow-2: 0 2px 4px rgb(16 16 20 / 6%), 0 12px 32px rgb(16 16 20 / 16%);
 
 	/* Überlagerung im Blatt < Leiste < Kopf < Chat < Menü und Popover < Meldung. Dialoge liegen im Top Layer. */
+	--hoehe-baumzeile: 26px;
+	--hoehe-werkzeug: 40px;
+	--hoehe-listenzeile: 28px;
 	--z-index-ueberlagerung: 10;
 	--z-index-leiste: 15;
 	--z-index-kopf: 20;
@@ -74,6 +77,9 @@
 
 @media (any-pointer: coarse) {
 	:root {
+		--hoehe-baumzeile: 44px;
+		--hoehe-werkzeug: 52px;
+		--hoehe-listenzeile: 44px;
 		--hoehe-knopf: 44px;
 		--hoehe-knopf-klein: 44px;
 		--hoehe-knopf-status: 44px;
@@ -109,6 +115,23 @@
 
 @utility h-menue {
 	min-height: var(--hoehe-menue);
+}
+
+/* Ablage (079): Objekte sind wählbar, nicht markierbar. Am Finger gibt es das ⋯, an der Maus den Rechtsklick. */
+.ablage-objekt {
+	user-select: none;
+	-webkit-user-select: none;
+	-webkit-touch-callout: none;
+}
+
+.nur-finger {
+	display: none;
+}
+
+@media (any-pointer: coarse) {
+	.nur-finger {
+		display: inline-flex;
+	}
 }
 
 @utility size-knopf {

@@ -50,6 +50,8 @@ export interface AnsichtKontext {
 export interface NeuKontext {
 	art: 'neu';
 	mappe: string | null;
+	/** Der offene Ordner; `null`: „Mein Material“ oder eine Seite ohne Ordner. */
+	ordner?: string | null;
 }
 
 export type ChatKontext = DokumentKontext | AnsichtKontext | NeuKontext;

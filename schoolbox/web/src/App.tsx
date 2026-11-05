@@ -6,6 +6,8 @@ import { MenueAnbieter } from './bausteine/MenueAmPunkt';
 import { Rahmen } from './bausteine/Rahmen';
 import { TooltipAnbieter } from './bausteine/Tooltip';
 import { ChatRahmen } from './editor/ChatRahmen';
+import { Ablage } from './ordner/Ablage';
+import { MappeWeiter } from './ordner/MappeWeiter';
 import { Anmeldung } from './seiten/Anmeldung';
 import { Bausteine } from './seiten/Bausteine';
 import { Dokumentansicht } from './seiten/Dokumentansicht';
@@ -15,11 +17,8 @@ import { Entwuerfe } from './seiten/Entwuerfe';
 import { EntwurfGross } from './seiten/EntwurfGross';
 import { Geteilt } from './seiten/Geteilt';
 import { Hilfe } from './seiten/Hilfe';
-import { Mappenansicht } from './seiten/Mappenansicht';
 import { NichtGefunden } from './seiten/NichtGefunden';
-import { Papierkorb } from './seiten/Papierkorb';
 import { Praesentation } from './seiten/Praesentation';
-import { Uebersicht } from './seiten/Uebersicht';
 
 /** `key`: Ein anderes Dokument ist eine andere Seite, ohne Reste der vorigen (Ansicht, Fassung, Dialoge). */
 const DokumentSeite = () => {
@@ -66,12 +65,17 @@ export const App = () => (
 						<Route element={<ChatRahmen />}>
 							<Route path="m/:mappe/:dok/bearbeiten" element={<EditorSeite />} />
 							<Route element={<Rahmen />}>
-								<Route index element={<Uebersicht />} />
-								<Route path="m/:mappe" element={<Mappenansicht />} />
+								<Route element={<Ablage />}>
+									<Route index />
+									<Route path="o/:ordner" />
+									<Route path="zuletzt" />
+									<Route path="suche" />
+									<Route path="papierkorb" />
+								</Route>
+								<Route path="m/:mappe" element={<MappeWeiter />} />
 								<Route path="m/:mappe/:dok" element={<DokumentSeite />} />
 								<Route path="m/:mappe/:dok/entwuerfe" element={<EntwuerfeSeite />} />
 								<Route path="m/:mappe/:dok/entwuerfe/:name" element={<EntwurfSeite />} />
-								<Route path="papierkorb" element={<Papierkorb />} />
 								<Route path="hilfe" element={<Hilfe />} />
 								<Route path="*" element={<NichtGefunden />} />
 							</Route>
