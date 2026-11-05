@@ -19,6 +19,8 @@ import { useEreignisse } from '../ereignisse';
 import { useLaden } from '../lib/laden';
 import { useAnsichtsProfil } from '../lib/profil';
 import { anzahl, ART_NAME, FORMAT_NAME } from '../lib/text';
+import { useInhalt } from '../lib/inhalt';
+import { useOrdnerDesDokuments } from '../ordner/kontext';
 import { useTitel } from '../lib/titel';
 import type { Zugang } from '../lib/zugang';
 import {
@@ -26,7 +28,6 @@ import {
 	druckSeite,
 	editorSeite,
 	entwuerfeSeite,
-	inhaltAdresse,
 	istGeteilt,
 	mappenSeite,
 	praesentationSeite,
@@ -163,12 +164,13 @@ const Knoepfe = ({ dokument, entwuerfe, loesung, mappe, profil, teilen, zugang }
  */
 export const Dokumentansicht = ({ dok, zugang, zurueckZurMappe }: Eigenschaften) => {
 	const geteilt = istGeteilt(zugang);
-	const { daten, fehler, neuLaden } = useLaden<MappenEintrag>(inhaltAdresse(zugang));
+	const { daten, fehler, neuLaden } = useInhalt(zugang);
 	const [suche, setSuche] = useSearchParams();
 	const [stand, setStand] = useState(0);
 	const [teilen, setTeilen] = useState(false);
 	const zeige = useHinweis();
 	const dokument = daten?.dokumente.find((d) => d.id === dok);
+	const zurueckOrt = useOrdnerDesDokuments(geteilt ? null : zugang.mappe, dok);
 	useTitel(dokument?.meta.titel);
 	const ansicht = useAnsichtsProfil(zugang, dok, dokument?.meta);
 
@@ -193,7 +195,7 @@ export const Dokumentansicht = ({ dok, zugang, zurueckZurMappe }: Eigenschaften)
 				<p className="text-leise">
 					{fehler && fehler.status !== 404 ? fehler.message : 'Vielleicht wurde es gelöscht.'}
 				</p>
-				{!geteilt && <KnopfLink to="/">Zu meinen Mappen</KnopfLink>}
+				{!geteilt && <KnopfLink to="/">Zu meinem Material</KnopfLink>}
 			</Zustand>
 		);
 	}
@@ -212,12 +214,12 @@ export const Dokumentansicht = ({ dok, zugang, zurueckZurMappe }: Eigenschaften)
 					{zurueckZurMappe && (
 						<>
 							<KnopfLink
-								to={mappenSeite(zugang)}
+								to={zurueckOrt ? zurueckOrt.adresse : mappenSeite(zugang)}
 								art="leise"
 								className="-ml-2.5 max-w-52 min-w-0 flex-none text-leise"
 							>
 								<Symbol name="zurueck" />
-								<span className="truncate">{mappe.titel}</span>
+								<span className="truncate">{zurueckOrt ? zurueckOrt.name : mappe.titel}</span>
 							</KnopfLink>
 							<span aria-hidden className="text-dezent">
 								/

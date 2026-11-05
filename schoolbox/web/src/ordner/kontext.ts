@@ -20,7 +20,7 @@ export interface Benennen {
 	schluessel: string;
 	/** Frisch angelegt: Esc behält den Vorschlag, das Objekt sortiert sich erst danach ein. */
 	neu: boolean;
-	wo: 'feld' | 'baum';
+	wo: 'feld' | 'baum' | 'dialog';
 }
 
 export interface AblageWerte {
@@ -57,3 +57,14 @@ const leer: AblageWerte = {
 export const AblageKontext = createContext<AblageWerte>(leer);
 
 export const useAblage = () => useContext(AblageKontext);
+
+/** Wohin „←“ im Dokument führt. `null`: Teilen-Link oder der Stand ist noch nicht da. */
+export const useOrdnerDesDokuments = (mappe: string | null, dok: string) => {
+	const { stand } = useAblage();
+	const eintrag = stand?.dokumente.find((d) => d.mappe === mappe && d.id === dok);
+	if (!stand || !eintrag) {
+		return null;
+	}
+	const ordner = stand.ordner.find((o) => o.id === eintrag.ordner);
+	return ordner ? { adresse: `/o/${ordner.id}`, name: ordner.name } : { adresse: '/', name: 'Mein Material' };
+};

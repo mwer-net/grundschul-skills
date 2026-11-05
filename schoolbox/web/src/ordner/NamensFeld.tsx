@@ -35,7 +35,10 @@ export const NamensFeld = ({ className, objekt }: Eigenschaften) => {
 		}
 		fertig.current = true;
 		try {
-			await tu({ art: 'umbenennen', knoten: objekt.knoten, name }, { stillerFehler: true });
+			await tu(
+				{ art: 'umbenennen', knoten: objekt.knoten, name },
+				{ stillerFehler: true, text: () => `„${objekt.name}“ heißt jetzt „${name}“.` },
+			);
 			setBenennen(null);
 		} catch (grund) {
 			fertig.current = false;

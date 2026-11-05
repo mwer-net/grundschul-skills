@@ -64,9 +64,9 @@ process.stdin.on('end', () => {
 	fs.appendFileSync(path.join(__dirname, 'prompts.txt'), eingabe + '\n---\n');
 	if (args.includes('--json-schema')) {
 		if (fall === 'einordnen-fehler') { process.exit(1); }
-		const inMappe = /Aktuelle Mappe: (.+)/.exec(eingabe);
+		const imOrdner = /Aktueller Ordner: (.+)/.exec(eingabe);
 		const art = fall === 'einordnen-film' ? 'unbekannt' : 'arbeitsblatt';
-		sag({ type: 'result', subtype: 'success', is_error: false, num_turns: 1, total_cost_usd: 0.001, structured_output: { titel: 'Uhrzeiten üben', fach: 'mathematik', klasse: 2, art, format: 'a4-hoch', mappeId: inMappe ? inMappe[1] : null, neueMappe: inMappe ? null : 'Uhrzeit aus dem Chat' } });
+		sag({ type: 'result', subtype: 'success', is_error: false, num_turns: 1, total_cost_usd: 0.001, structured_output: { titel: 'Uhrzeiten üben', fach: 'mathematik', klasse: 2, art, format: 'a4-hoch', ordnerId: imOrdner ? imOrdner[1] : null } });
 		return;
 	}
 	sag({ type: 'system', subtype: 'init', session_id: 's1' });

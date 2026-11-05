@@ -1,10 +1,11 @@
 import type { PdfVariante } from '@schoolbox/kern/src/namen';
 import type { Druckprofil } from '@schoolbox/kern/src/werte';
 
+import { sende } from '../api';
 import { ART_NAME } from '../lib/text';
 import type { Zugang } from '../lib/zugang';
 import { bereiteDokumentVor, bereiteMappeVor } from '../lib/zugang';
-import type { DokumentEintrag } from '../typen';
+import type { DokumentEintrag, PdfAntwort } from '../typen';
 import type { PdfWahl } from './PdfKnopf';
 
 /** Wie das Material heißt: „Arbeitsblatt“, „Lesetext“ …, bei „sonstiges“ schlicht „Material“. */
@@ -78,5 +79,22 @@ export const mappenWahl = (zugang: Zugang, dokumente: Pick<DokumentEintrag, 'met
 					},
 				]
 			: []),
+	]);
+};
+
+/** Ordner und mehrere Objekte: dieselbe Wahl wie bei einer Mappe, in der sichtbaren Reihenfolge. */
+export const sammlungWahl = (
+	dokumente: readonly (Pick<DokumentEintrag, 'id' | 'meta'> & { mappe: string })[],
+	name: string,
+): PdfWahl[] => {
+	const mitLoesungen = dokumente.some((d) => d.meta.hatLoesung);
+	const teile = dokumente.map((d) => ({ mappe: d.mappe, dok: d.id }));
+	const wahl = (titel: string, variante: 'alles' | 'alles-mit-loesungen', profil: Druckprofil): PdfWahl => ({
+		titel,
+		vorbereiten: () => sende<PdfAntwort>('/api/ordner/pdf', { teile, name, variante, profil }),
+	});
+	return (['farbe', 'sw'] as const).flatMap((profil) => [
+		wahl(mitLoesungen ? `Ohne Lösungen, ${PROFILE_NAME[profil]}` : `Alles ${PROFILE_NAME[profil]}`, 'alles', profil),
+		...(mitLoesungen ? [wahl(`Mit Lösungen am Ende, ${PROFILE_NAME[profil]}`, 'alles-mit-loesungen', profil)] : []),
 	]);
 };

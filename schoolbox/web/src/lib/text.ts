@@ -1,7 +1,6 @@
 import { ART_NAME, FACH_NAME } from '@schoolbox/kern/src/namen';
 import type { Art, Fach, Format, Klasse } from '@schoolbox/kern/src/werte';
 
-import type { MappenEintrag } from '../typen';
 
 export type { Art, Fach, Format, Klasse };
 export { ART_NAME, FACH_NAME };
@@ -74,32 +73,3 @@ export const falte = (text: string) =>
 		.replace(/ß/g, 'ss')
 		.normalize('NFKD')
 		.replace(/\p{M}/gu, '');
-
-export interface Filter {
-	suche: string;
-	fach: string | null;
-	klasse: string | null;
-	art: string | null;
-}
-
-const suchtext = ({ dokumente, mappe }: MappenEintrag) =>
-	falte(
-		[
-			mappe.titel,
-			FACH_NAME[mappe.fach],
-			klasseName(mappe.klasse),
-			...dokumente.flatMap((d) => [d.meta.titel, ART_NAME[d.meta.art]]),
-		].join(' '),
-	);
-
-export const filtere = (mappen: MappenEintrag[], { art, fach, klasse, suche }: Filter) => {
-	const worte = falte(suche).split(/\s+/).filter(Boolean);
-	return mappen
-		.filter(({ mappe }) => fach === null || mappe.fach === fach)
-		.filter(({ mappe }) => klasse === null || String(mappe.klasse) === klasse)
-		.filter(({ dokumente }) => art === null || dokumente.some((d) => d.meta.art === art))
-		.filter((eintrag) => {
-			const text = suchtext(eintrag);
-			return worte.every((wort) => text.includes(wort));
-		});
-};

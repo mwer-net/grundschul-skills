@@ -67,7 +67,7 @@ describe('Papierkorb', () => {
 
 		const { eintrag } = await legeInPapierkorb(materialDir, mappe, JETZT);
 		await mkdir(path.join(materialDir, mappe));
-		await assert.rejects(stelleWiederHer(materialDir, eintrag), /Es gibt schon eine Mappe/);
+		await assert.rejects(stelleWiederHer(materialDir, eintrag), /Es gibt schon einen Ordner/);
 		assert.equal((await listePapierkorb(materialDir)).length, 1);
 	});
 

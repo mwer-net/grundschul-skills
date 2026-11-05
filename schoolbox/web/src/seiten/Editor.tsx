@@ -275,7 +275,7 @@ const Fehlt = ({ fehler }: { fehler: ApiFehler | null }) => (
 		<p className="text-leise">
 			{fehler && fehler.status !== 404 ? fehler.message : 'Vielleicht wurde es gelöscht.'}
 		</p>
-		<KnopfLink to="/">Zu meinen Mappen</KnopfLink>
+		<KnopfLink to="/">Zu meinem Material</KnopfLink>
 	</Zustand>
 );
 

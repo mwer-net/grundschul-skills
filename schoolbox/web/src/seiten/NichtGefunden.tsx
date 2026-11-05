@@ -7,7 +7,7 @@ export const NichtGefunden = () => {
 	return (
 		<Zustand symbol="suche" titel="Diese Seite gibt es nicht">
 			<p className="text-leise">Vielleicht ist der Link alt oder es hat sich ein Tippfehler eingeschlichen.</p>
-			<KnopfLink to="/">Zu meinen Mappen</KnopfLink>
+			<KnopfLink to="/">Zu meinem Material</KnopfLink>
 		</Zustand>
 	);
 };

@@ -28,9 +28,9 @@ interface Optionen {
 /** Auf dem iPad startet Ziehen erst nach kurzem Halten, damit Wischen weiter rollt. */
 export const HALTEN_MS = 300;
 /** Wer vorher so weit wischt, rollt. */
-const FINGER_WEG = 10;
+export const FINGER_WEG = 10;
 /** Mit der Maus beginnt Ziehen ab dieser Bewegung. */
-const MAUS_WEG = 6;
+export const MAUS_WEG = 6;
 
 interface Kandidat {
 	nr: number;

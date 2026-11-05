@@ -11,7 +11,7 @@ import { pruefeIdParam } from './schutz';
 
 const verlangeMappe = (kontext: Kontext, mappe: string) => {
 	if (!existsSync(path.join(mappenDir(kontext.konfig.materialDir, mappe), 'mappe.json'))) {
-		throw new HttpFehler(404, `Die Mappe „${mappe}“ gibt es nicht.`);
+		throw new HttpFehler(404, `Den Ordner „${mappe}“ gibt es nicht.`);
 	}
 };
 

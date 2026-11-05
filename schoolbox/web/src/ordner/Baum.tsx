@@ -23,6 +23,8 @@ interface Eigenschaften {
 	/** Nur diese Ordner sind Ziele (Dialog „Bewegen nach …“). */
 	gesperrt?: (id: string | null) => boolean;
 	wurzelGesperrt?: boolean;
+	/** Wo das Namensfeld steht: Baum der Leiste oder des Dialogs. */
+	benennWo?: 'baum' | 'dialog';
 }
 
 interface ZeileEigenschaften {
@@ -70,7 +72,7 @@ const BaumZeile = ({ aktiv, aus, dreieck, geteilt, id, kontext, klappe, name, sy
 			<button
 				type="button"
 				aria-label={dreieck === 'auf' ? 'Zuklappen' : 'Aufklappen'}
-				className="flex size-4 flex-none items-center justify-center rounded-sm text-dezent hover:bg-rand"
+				className="baum-dreieck flex size-4 flex-none items-center justify-center rounded-sm text-dezent hover:bg-rand"
 				onClick={(e) => {
 					e.stopPropagation();
 					klappe?.(e.altKey);
@@ -93,7 +95,7 @@ const BaumZeile = ({ aktiv, aus, dreieck, geteilt, id, kontext, klappe, name, sy
 );
 
 /** Der ganze Ordnerbaum: in der Seitenleiste und im Dialog „Bewegen nach …“. */
-export const Baum = ({ aktuell, gesperrt, klappe, kontext, offen, stand, waehle, wurzelGesperrt }: Eigenschaften) => {
+export const Baum = ({ aktuell, benennWo = 'baum', gesperrt, klappe, kontext, offen, stand, waehle, wurzelGesperrt }: Eigenschaften) => {
 	const { benennen } = useAblage();
 	const kinderVon = useMemo(() => {
 		const karte = new Map<string | null, AblageOrdner[]>();
@@ -110,7 +112,7 @@ export const Baum = ({ aktuell, gesperrt, klappe, kontext, offen, stand, waehle,
 		(kinderVon.get(eltern) ?? []).map((o) => {
 			const unter = (kinderVon.get(o.id)?.length ?? 0) > 0;
 			const auf = offen.has(o.id);
-			const imFeld = benennen?.schluessel === o.id && benennen.wo === 'baum';
+			const imFeld = benennen?.schluessel === o.id && benennen.wo === benennWo;
 			return (
 				<div key={o.id} role="none">
 					<BaumZeile

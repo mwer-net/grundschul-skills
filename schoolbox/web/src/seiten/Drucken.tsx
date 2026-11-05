@@ -6,9 +6,10 @@ import { Knopf } from '../bausteine/Knopf';
 import { Symbol } from '../bausteine/Symbol';
 import { Zustand } from '../bausteine/Zustand';
 import { useLaden } from '../lib/laden';
+import { useInhalt } from '../lib/inhalt';
 import { useTitel } from '../lib/titel';
 import type { Zugang } from '../lib/zugang';
-import { bereiteDokumentVor, inhaltAdresse, istGeteilt } from '../lib/zugang';
+import { bereiteDokumentVor, istGeteilt } from '../lib/zugang';
 import { PdfWarnung } from '../pdf/PdfWarnung';
 import type { MappenEintrag, PdfAntwort } from '../typen';
 
@@ -34,7 +35,7 @@ export const Drucken = ({ dok, zugang }: { zugang: Zugang; dok: string }) => {
 	const profil = gewuenscht === 'sw' || gewuenscht === 'farbe' ? gewuenscht : undefined;
 	const [stand, setStand] = useState<Stand>({ art: 'laeuft' });
 	const { mappe, token } = zugang;
-	const { daten } = useLaden<MappenEintrag>(inhaltAdresse(zugang));
+	const { daten } = useInhalt(zugang);
 	useTitel('Drucken');
 
 	useEffect(() => {

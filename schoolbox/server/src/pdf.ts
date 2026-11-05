@@ -240,7 +240,7 @@ export const erstellePdf = ({
 				return sperre(pdfSperre(mappe, dok), async () => {
 					const gebaut = await stelleSicher(mappe, dok, profil);
 					const fehler = await leseFehler(gebaut.ausgabe, mitLoesungen);
-					return { dok, mappe, behaelter, ...gebaut, meldungen: mitTitel(dok, meta.titel, fehler) };
+					return { dok, mappe, behaelter, ...gebaut, meldungen: mitTitel(dok, meta.titel, fehler).map((m) => ({ ...m, mappe })) };
 				});
 			}),
 		);

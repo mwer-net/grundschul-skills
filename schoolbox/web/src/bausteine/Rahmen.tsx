@@ -23,7 +23,7 @@ const KONTO_KNOPF = (
 	</Knopf>
 );
 
-export const Rahmen = () => {
+const RahmenInnen = () => {
 	const [parameter] = useSearchParams();
 	const { pathname } = useLocation();
 	const suche = pathname === '/suche' ? (parameter.get('q') ?? '') : '';
@@ -47,6 +47,9 @@ export const Rahmen = () => {
 
 	const sucheNach = (wert: string) => {
 		const neu = new URLSearchParams(pathname === '/suche' ? parameter : undefined);
+		if (ordnerId) {
+			neu.set('von', ordnerId);
+		}
 		if (wert) {
 			neu.set('q', wert);
 		} else {
@@ -82,12 +85,14 @@ export const Rahmen = () => {
 		),
 	);
 	return (
-		<AblageAnbieter>
 		<div className="flex min-h-dvh flex-col">
 			{palette && (
 				<Seitenpalette
 					schliessen={() => setPalette(false)}
-					neuerOrdner={() => window.dispatchEvent(new Event('schoolbox-neuer-ordner'))}
+					neuerOrdner={() => {
+						const inOrdnerSeite = pathname === '/' || pathname.startsWith('/o/');
+						void navigate(inOrdnerSeite ? pathname : '/', { state: { neuerOrdner: true } });
+					}}
 					abmelden={() => void abmelden()}
 					anClaude={chatStand.ki.zustand.verfuegbar ? chat.fuelle : undefined}
 				/>
@@ -166,6 +171,11 @@ export const Rahmen = () => {
 				<Outlet />
 			</main>
 		</div>
-		</AblageAnbieter>
 	);
 };
+
+export const Rahmen = () => (
+	<AblageAnbieter>
+		<RahmenInnen />
+	</AblageAnbieter>
+);

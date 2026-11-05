@@ -1,22 +1,26 @@
 import type { Art, Fach, Format, Klasse } from './werte';
 import { ART_ANGABEN, ART_FORMATE, ARTEN, FAECHER, FORMATE, KLASSEN } from './werte';
 
-export interface EinordnungMappe {
+/** Ein Ordner, in den neues Material kommen kann. Mit `fach` und `klasse`: Er hat einen Behälter, das Fach steht fest. */
+export interface EinordnungOrdner {
 	id: string;
-	titel: string;
-	fach: Fach;
-	klasse: Klasse;
+	pfad: string;
+	fach?: Fach | undefined;
+	klasse?: Klasse | undefined;
 }
 
-/** Was aus einer Nachricht werden soll (077). Der Vorschlag für eine Karte, angelegt ist damit noch nichts. */
+/** Was aus einer Nachricht werden soll (077, 079). Der Vorschlag für eine Karte, angelegt ist damit noch nichts. */
 export interface Einordnung {
 	titel: string;
 	fach: Fach;
 	klasse: Klasse;
 	art: Art;
 	format: Format;
-	mappe: { id: string; titel: string; vorhanden?: boolean } | { neu: string };
-	/** Claude hat nicht eingeordnet: Vorbelegung aus der Mappe, bitte prüfen. */
+	/** `null`: „Mein Material“. Aus einer Nachricht entsteht kein neuer Ordner. */
+	ordner: { id: string; pfad: string; vorhanden?: boolean } | null;
+	/** Fach und Klasse kommen aus dem Behälter des Ordners, die Karte fragt nicht danach. */
+	fest: boolean;
+	/** Claude hat nicht eingeordnet: Vorbelegung, bitte prüfen. */
 	rueckfall: boolean;
 }
 
@@ -25,42 +29,37 @@ const TITEL_WOERTER = 6;
 const UNBEKANNT = 'unbekannt';
 
 /** Die erlaubten Werte stehen nur hier, aus den Listen von `kern`. So kann das Schema sie nicht verfehlen. */
-export const einordnungSchema = (mappen: readonly string[]) => ({
+export const einordnungSchema = (ordner: readonly string[]) => ({
 	type: 'object',
 	additionalProperties: false,
-	required: ['titel', 'fach', 'klasse', 'art', 'format', 'mappeId', 'neueMappe'],
+	required: ['titel', 'fach', 'klasse', 'art', 'format', 'ordnerId'],
 	properties: {
 		titel: { type: 'string' },
 		fach: { enum: [...FAECHER] },
 		klasse: { enum: [...KLASSEN] },
 		art: { enum: [...ARTEN, UNBEKANNT] },
 		format: { enum: [...FORMATE] },
-		mappeId: { enum: [...mappen, null] },
-		neueMappe: { type: ['string', 'null'] },
+		ordnerId: { enum: [...ordner, null] },
 	},
 });
 
 const aus = <T>(liste: readonly T[], wert: unknown): T | undefined => liste.find((w) => w === wert);
 
-const gleichesWort = (a: string, b: string) => a.trim().toLocaleLowerCase('de') === b.trim().toLocaleLowerCase('de');
-
-const leseMappe = (mappeId: unknown, neueMappe: unknown, mappen: readonly EinordnungMappe[]) => {
-	if (typeof mappeId === 'string') {
-		return mappen.find((m) => m.id === mappeId) ?? null;
-	}
-	return typeof neueMappe === 'string'
-		? (mappen.find((m) => gleichesWort(m.titel, neueMappe)) ?? neueMappe.trim())
-		: null;
-};
+const mitOrdner = (o: EinordnungOrdner, vorhanden: boolean, fach: Fach, klasse: Klasse) => ({
+	fach: o.fach ?? fach,
+	klasse: o.klasse ?? klasse,
+	ordner: { id: o.id, pfad: o.pfad, ...(vorhanden ? { vorhanden: true } : {}) },
+	fest: o.fach !== undefined,
+});
 
 /**
  * Prüft die Antwort von Claude gegen dieselben Listen wie das Schema. Ungültiges gibt `null`: Dann gilt der Rückfall.
- * In einer Mappe gehört das Dokument in diese Mappe, mit ihrem Fach und ihrer Klasse.
+ * In einem Ordner steht das Ziel fest. In „Mein Material“ darf Claude einen vorhandenen Ordner vorschlagen.
  */
 export const pruefeEinordnung = (
 	roh: unknown,
-	mappen: readonly EinordnungMappe[],
-	aktuelle?: EinordnungMappe,
+	ordner: readonly EinordnungOrdner[],
+	aktuelle?: EinordnungOrdner,
 ): Einordnung | null => {
 	const w = (roh ?? {}) as Record<string, unknown>;
 	const titel = typeof w.titel === 'string' ? w.titel.trim() : '';
@@ -76,34 +75,20 @@ export const pruefeEinordnung = (
 	}
 	const grund = { titel, art, format, rueckfall: false };
 	if (aktuelle) {
-		const { fach: f, id, klasse: k, titel: t } = aktuelle;
-		return { ...grund, fach: f, klasse: k, mappe: { id, titel: t } };
+		return { ...grund, ...mitOrdner(aktuelle, false, fach, klasse) };
 	}
-	const mappe = leseMappe(w.mappeId, w.neueMappe, mappen);
-	if (!mappe) {
-		return null;
+	if (typeof w.ordnerId === 'string') {
+		const vorschlag = ordner.find((o) => o.id === w.ordnerId);
+		return vorschlag ? { ...grund, ...mitOrdner(vorschlag, true, fach, klasse) } : null;
 	}
-	if (typeof mappe === 'string') {
-		return mappe ? { ...grund, fach, klasse, mappe: { neu: mappe } } : null;
-	}
-	return {
-		...grund,
-		fach: mappe.fach,
-		klasse: mappe.klasse,
-		mappe: { id: mappe.id, titel: mappe.titel, vorhanden: true },
-	};
+	return { ...grund, fach, klasse, ordner: null, fest: false };
 };
 
 /** Ohne Einordnung geht es trotzdem weiter: Titel aus den ersten Wörtern, Standard für Art und Format. */
-export const rueckfallEinordnung = (text: string, aktuelle?: EinordnungMappe | null): Einordnung => {
+export const rueckfallEinordnung = (text: string, aktuelle?: EinordnungOrdner | null): Einordnung => {
 	const titel = text.trim().split(/\s+/).slice(0, TITEL_WOERTER).join(' ').slice(0, TITEL_MAX) || 'Neues Material';
 	const grund = { titel, art: 'arbeitsblatt' as const, format: ART_ANGABEN.arbeitsblatt.format, rueckfall: true };
 	return aktuelle
-		? {
-				...grund,
-				fach: aktuelle.fach,
-				klasse: aktuelle.klasse,
-				mappe: { id: aktuelle.id, titel: aktuelle.titel },
-			}
-		: { ...grund, fach: 'deutsch', klasse: 1, mappe: { neu: titel } };
+		? { ...grund, ...mitOrdner(aktuelle, false, 'deutsch', 1) }
+		: { ...grund, fach: 'deutsch', klasse: 1, ordner: null, fest: false };
 };

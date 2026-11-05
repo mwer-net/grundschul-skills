@@ -1,13 +1,17 @@
+import { standardSortierung } from '@schoolbox/kern/src/ordner-sortierung';
 import type { ReactNode } from 'react';
-import { Route, Routes, useParams } from 'react-router-dom';
+import { useMemo } from 'react';
+import { Link, Route, Routes, useParams } from 'react-router-dom';
 
 import { useKopfHoehe } from '../bausteine/kopf';
+import { Symbol } from '../bausteine/Symbol';
 import { Zustand } from '../bausteine/Zustand';
 import { useLaden } from '../lib/laden';
-import { FACH_NAME, klasseName } from '../lib/text';
 import { useTitel } from '../lib/titel';
 import type { Zugang } from '../lib/zugang';
 import { PdfKnopf } from '../pdf/PdfKnopf';
+import { kinder } from '../ordner/objekte';
+import type { AblageDok, AblageOrdner, AblageStand } from '../ordner/typen';
 import { mappenWahl } from '../pdf/wahl';
 import type { DokumentEintrag, Mappe } from '../typen';
 import { Dokumentansicht } from './Dokumentansicht';
@@ -15,53 +19,142 @@ import { DokumentKachel } from './DokumentKachel';
 import { Drucken } from './Drucken';
 import { Praesentation } from './Praesentation';
 
-interface Inhalt {
-	ziel: { mappe: string; dok: string | null };
-	mappe: Mappe;
-	dokumente: DokumentEintrag[];
+interface InhaltDok extends DokumentEintrag {
+	mappe: string;
+	fach: AblageDok['fach'];
+	klasse: AblageDok['klasse'];
+	ordner: string | null;
 }
 
-const GeteilteMappe = ({ inhalt, zugang }: { zugang: Zugang; inhalt: Inhalt }) => {
-	const { dokumente, mappe } = inhalt;
-	useTitel(mappe.titel);
+interface Inhalt {
+	ziel: { mappe: string; dok: string | null } | { ordner: string };
+	titel: string;
+	wurzel: string | null;
+	wurzelBehaelter: string | null;
+	wurzelName: string | null;
+	ordner: Omit<AblageOrdner, never>[];
+	dokumente: InhaltDok[];
+	mappe?: Mappe;
+}
+
+/** `d/<mappe>~<dok>`; das alte `d/<dok>` gehört zum Behälter des Links. */
+const zugangVon = (token: string, adresse: string, standard: string): { zugang: Zugang; dok: string } => {
+	const [links = '', rechts] = adresse.split('~');
+	return rechts === undefined
+		? { zugang: { mappe: standard, token }, dok: links }
+		: { zugang: { mappe: links, token }, dok: rechts };
+};
+
+/** Nur lesend: Ein Klick öffnet, es gibt keine Auswahl. Unterordner und Pfad wie in der Ablage. */
+const GeteilteAblage = ({ inhalt, token }: { inhalt: Inhalt; token: string }) => {
+	const { ordner: offen } = useParams();
+	const wurzelOrdner: AblageOrdner | null = inhalt.wurzel
+		? {
+				id: inhalt.wurzel,
+				name: inhalt.wurzelName ?? inhalt.titel,
+				eltern: null,
+				behaelter: inhalt.wurzelBehaelter,
+				erstellt: '',
+				geaendert: '',
+			}
+		: null;
+	const ordner = useMemo<AblageOrdner[]>(
+		() => [...(wurzelOrdner ? [wurzelOrdner] : []), ...inhalt.ordner],
+		// eslint-disable-next-line react-hooks/exhaustive-deps -- wurzelOrdner entsteht aus `inhalt`
+		[inhalt],
+	);
+	const stand: AblageStand = {
+		rev: 0,
+		ordner,
+		dokumente: inhalt.dokumente.map((d) => d),
+		defekt: [],
+		geteilt: { ordner: [], dokumente: [] },
+	};
+	const hier = ordner.find((o) => o.id === offen) ?? wurzelOrdner;
+	useTitel(hier?.name ?? inhalt.titel);
+	const objekte = kinder(stand, hier?.id ?? null, standardSortierung(hier));
+	const pfad: AblageOrdner[] = [];
+	for (let o = hier; o; o = ordner.find((x) => x.id === o?.eltern) ?? null) {
+		pfad.unshift(o);
+		if (o.id === inhalt.wurzel) {
+			break;
+		}
+	}
+	const zugangWurzel: Zugang = { mappe: inhalt.dokumente[0]?.mappe ?? '', token };
+	const pdfBezug = { id: '', titel: inhalt.titel };
 	return (
 		<>
 			<div className="flex items-start justify-between gap-4 max-lg:flex-col max-lg:gap-3">
-				<div>
-					<h1 className="text-2xl">{mappe.titel}</h1>
-					<p className="mt-1 text-leise">{`${FACH_NAME[mappe.fach]} · ${klasseName(mappe.klasse)}`}</p>
+				<div className="min-w-0">
+					<nav aria-label="Pfad" className="flex flex-wrap items-center gap-1 text-sm text-leise" data-geteilt-pfad>
+						{pfad.slice(0, -1).map((o) => (
+							<span key={o.id} className="flex items-center gap-1">
+								<Link className="text-leise" to={o.id === inhalt.wurzel ? `/f/${token}` : `/f/${token}/o/${o.id}`}>
+									{o.name}
+								</Link>
+								<Symbol name="rechts" className="size-3 text-dezent" />
+							</span>
+						))}
+					</nav>
+					<h1 className="text-2xl">{hier?.name ?? inhalt.titel}</h1>
 				</div>
-				{dokumente.length > 0 && (
+				{inhalt.dokumente.length > 0 && (
 					<PdfKnopf
 						beschriftung="Alles als PDF"
-						wahl={mappenWahl(zugang, dokumente)}
-						mappe={mappe}
+						wahl={mappenWahl(zugangWurzel, inhalt.dokumente)}
+						mappe={pdfBezug}
 						warnen={false}
 					/>
 				)}
 			</div>
-			<ul className="mt-4 grid grid-cols-[repeat(auto-fill,minmax(19rem,1fr))] gap-4">
-				{dokumente.map((dokument) => (
-					<DokumentKachel key={dokument.id} zugang={zugang} mappe={mappe} dokument={dokument} />
-				))}
-			</ul>
+			{objekte.length === 0 ? (
+				<Zustand symbol="ordner" titel="Dieser Ordner ist leer" />
+			) : (
+				<ul className="mt-4 grid grid-cols-[repeat(auto-fill,minmax(19rem,1fr))] gap-4">
+					{objekte.map((o) =>
+						o.istOrdner ? (
+							<li key={o.schluessel} data-geteilt-ordner={o.ordner.id} className="overflow-hidden rounded-[10px] border border-rand bg-flaeche">
+								<Link to={`/f/${token}/o/${o.ordner.id}`} className="block text-tinte no-underline">
+									<div className="flex aspect-[8/5] items-center justify-center bg-leinwand">
+										<Symbol name="ordner" className="size-20 text-brand-200" />
+									</div>
+									<div className="border-t border-rand px-2.5 py-2">
+										<h2 className="truncate text-sm font-medium">{o.name}</h2>
+										<p className="truncate text-xs text-leise">{o.anzahl === 1 ? '1 Objekt' : `${o.anzahl} Objekte`}</p>
+									</div>
+								</Link>
+							</li>
+						) : (
+							<DokumentKachel
+								key={o.schluessel}
+								zugang={{ mappe: o.dok.mappe, token }}
+								mappe={{ id: o.dok.mappe, titel: inhalt.titel }}
+								dokument={o.dok}
+							/>
+						),
+					)}
+				</ul>
+			)}
 		</>
 	);
 };
 
-const GeteiltesDokument = ({ einzeln, zugang }: { zugang: Zugang; einzeln: boolean }) => {
+const GeteiltesDokument = ({ einzeln, standard, token }: { token: string; standard: string; einzeln: boolean }) => {
 	const { dok = '' } = useParams();
-	return <Dokumentansicht zugang={zugang} dok={dok} zurueckZurMappe={!einzeln} />;
+	const ort = zugangVon(token, dok, standard);
+	return <Dokumentansicht zugang={ort.zugang} dok={ort.dok} zurueckZurMappe={!einzeln} />;
 };
 
-const GeteiltDrucken = ({ zugang }: { zugang: Zugang }) => {
+const GeteiltDrucken = ({ standard, token }: { token: string; standard: string }) => {
 	const { dok = '' } = useParams();
-	return <Drucken zugang={zugang} dok={dok} />;
+	const ort = zugangVon(token, dok, standard);
+	return <Drucken zugang={ort.zugang} dok={ort.dok} />;
 };
 
-const GeteiltPraesentieren = ({ zugang }: { zugang: Zugang }) => {
+const GeteiltPraesentieren = ({ standard, token }: { token: string; standard: string }) => {
 	const { dok = '' } = useParams();
-	return <Praesentation key={dok} zugang={zugang} dok={dok} />;
+	const ort = zugangVon(token, dok, standard);
+	return <Praesentation key={dok} zugang={ort.zugang} dok={ort.dok} />;
 };
 
 const GeteiltRahmen = ({ children }: { children: ReactNode }) => {
@@ -77,7 +170,7 @@ const GeteiltRahmen = ({ children }: { children: ReactNode }) => {
 };
 
 /**
- * Teilen-Links: ein Dokument oder eine ganze Mappe ansehen, als PDF holen und drucken, ohne Anmeldung. Weiterteilen
+ * Teilen-Links: ein Dokument oder einen ganzen Ordner ansehen, als PDF holen und drucken, ohne Anmeldung. Weiterteilen
  * und Ändern gehen hier nicht.
  */
 export const Geteilt = () => {
@@ -93,11 +186,12 @@ export const Geteilt = () => {
 		) : null;
 	}
 
-	const zugang: Zugang = { mappe: daten.mappe.id, token };
-	const einzeln = daten.ziel.dok;
+	const standard = 'mappe' in daten.ziel ? daten.ziel.mappe : '';
+	const einzeln = 'dok' in daten.ziel ? daten.ziel.dok : null;
+	const zugang: Zugang = { mappe: standard, token };
 	const start =
 		einzeln === null ? (
-			<GeteilteMappe zugang={zugang} inhalt={daten} />
+			<GeteilteAblage token={token} inhalt={daten} />
 		) : (
 			<Dokumentansicht zugang={zugang} dok={einzeln} zurueckZurMappe={false} />
 		);
@@ -105,14 +199,18 @@ export const Geteilt = () => {
 		<GeteiltRahmen>
 			<Routes>
 				<Route index element={start} />
-				<Route path="d/:dok" element={<GeteiltesDokument zugang={zugang} einzeln={einzeln !== null} />} />
+				<Route path="o/:ordner" element={<GeteilteAblage token={token} inhalt={daten} />} />
+				<Route
+					path="d/:dok"
+					element={<GeteiltesDokument token={token} standard={standard} einzeln={einzeln !== null} />}
+				/>
 			</Routes>
 		</GeteiltRahmen>
 	);
 	return (
 		<Routes>
-			<Route path="d/:dok/drucken" element={<GeteiltDrucken zugang={zugang} />} />
-			<Route path="d/:dok/praesentation" element={<GeteiltPraesentieren zugang={zugang} />} />
+			<Route path="d/:dok/drucken" element={<GeteiltDrucken token={token} standard={standard} />} />
+			<Route path="d/:dok/praesentation" element={<GeteiltPraesentieren token={token} standard={standard} />} />
 			{einzeln !== null && (
 				<Route path="praesentation" element={<Praesentation zugang={zugang} dok={einzeln} />} />
 			)}

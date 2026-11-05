@@ -3,17 +3,15 @@ import type { Art, Fach, Format, Klasse } from '@schoolbox/kern/src/werte';
 import { meldung, sende } from '../api';
 import { melde } from '../ereignisse';
 
-export const legeMappeAn = async (daten: { titel: string; fach: Fach; klasse: Klasse }) => {
-	const { mappe } = await sende<{ mappe: { id: string } }>('/api/mappen', daten);
-	melde({ typ: 'mappe-neu', mappe: mappe.id });
-	return mappe.id;
-};
-
 interface NeuesMaterial {
-	mappe: string;
+	/** `null`: „Mein Material“. */
+	ordner: string | null;
 	titel: string;
 	art: Art;
 	format: Format;
+	/** Nur nötig, wenn der Ordner keinen Behälter hat; sonst gilt dessen Fach und Klasse. */
+	fach: Fach;
+	klasse: Klasse;
 	vorlage?: string | null;
 	zusatz?: Record<string, boolean | undefined>;
 	/** Mit Text startet Claude gleich den Entwurf. */
@@ -21,17 +19,20 @@ interface NeuesMaterial {
 }
 
 /** Legt das Dokument an und startet, falls gewünscht, Claude. Das Ergebnis sagt, wohin es danach geht. */
-export const legeMaterialAn = async ({ art, format, mappe, titel, vorlage, wunsch, zusatz }: NeuesMaterial) => {
-	const { id } = await sende<{ id: string }>(`/api/mappen/${mappe}/dokumente`, {
+export const legeMaterialAn = async ({ art, fach, format, klasse, ordner, titel, vorlage, wunsch, zusatz }: NeuesMaterial) => {
+	const { id, mappe } = await sende<{ id: string; mappe: string }>('/api/ordner/material', {
+		ordner,
 		titel,
 		art,
 		format,
+		fach,
+		klasse,
 		...(vorlage ? { vorlage } : {}),
 		zusatz: zusatz ?? {},
 	});
 	melde({ typ: 'mappe-neu', mappe });
 	if (!wunsch) {
-		return { id, ziel: `/m/${mappe}/${id}/bearbeiten?neu=1`, state: null };
+		return { mappe, id, ziel: `/m/${mappe}/${id}/bearbeiten?neu=1`, state: null };
 	}
 	// Das Blatt steht schon: Startet Claude nicht, geht es leer weiter, mit der Meldung im Editor.
 	const state = await sende<{ auftrag: { id: string } }>(`/api/dokumente/${mappe}/${id}/ki`, {
@@ -41,5 +42,5 @@ export const legeMaterialAn = async ({ art, format, mappe, titel, vorlage, wunsc
 		({ auftrag }) => ({ kiAuftrag: auftrag.id }),
 		(grund: unknown) => ({ kiFehler: meldung(grund) }),
 	);
-	return { id, ziel: `/m/${mappe}/${id}/bearbeiten?claude=1`, state };
+	return { mappe, id, ziel: `/m/${mappe}/${id}/bearbeiten?claude=1`, state };
 };

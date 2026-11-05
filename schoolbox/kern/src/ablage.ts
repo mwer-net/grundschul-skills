@@ -421,7 +421,7 @@ const variantenTitel = (titel: string, vergeben: string[]) => {
 			return kandidat;
 		}
 	}
-	throw new SchoolboxFehler('In dieser Mappe gibt es schon alle Varianten bis Z.');
+	throw new SchoolboxFehler('In diesem Ordner gibt es schon alle Varianten bis Z.');
 };
 
 /**

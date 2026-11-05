@@ -46,10 +46,11 @@ export interface AnsichtKontext {
 	dok: string;
 }
 
-/** Übersicht, Mappe, Papierkorb, Hilfe: Eine Nachricht wird neues Material (077). */
+/** Ablage, Papierkorb, Hilfe: Eine Nachricht wird neues Material (077). */
 export interface NeuKontext {
 	art: 'neu';
-	mappe: string | null;
+	/** Immer `null`: Neues Material hängt am Ordner, nicht an einem Behälter. */
+	mappe: null;
 	/** Der offene Ordner; `null`: „Mein Material“ oder eine Seite ohne Ordner. */
 	ordner?: string | null;
 }

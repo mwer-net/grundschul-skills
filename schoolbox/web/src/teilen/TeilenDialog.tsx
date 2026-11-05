@@ -8,12 +8,11 @@ import { useLaden } from '../lib/laden';
 import { datum } from '../lib/text';
 import type { DokumentEintrag, Freigabe, Mappe } from '../typen';
 
-interface Eigenschaften {
-	mappe: Mappe;
-	/** Fehlt es, gilt der Link für die ganze Mappe. */
-	dokument?: DokumentEintrag;
-	schliessen: () => void;
-}
+type Eigenschaften = { schliessen: () => void } & (
+	| { mappe: Pick<Mappe, 'id' | 'titel'>; dokument: Pick<DokumentEintrag, 'id' | 'meta'> }
+	/** Ein Ordner-Link zeigt, was jetzt darin liegt, mit Unterordnern (079). */
+	| { ordner: { id: string; name: string } }
+);
 
 const adresse = ({ pfad, url }: Freigabe) => url ?? `${window.location.origin}${pfad}`;
 const kannSenden = typeof navigator.share === 'function';
@@ -98,11 +97,13 @@ const LinkZeile = ({ freigabe, gesperrt, titel, widerrufe }: ZeileEigenschaften)
 };
 
 /** Links zum Ansehen ohne Anmeldung: anlegen, kopieren, weitergeben und wieder abschalten. */
-export const TeilenDialog = ({ dokument, mappe, schliessen }: Eigenschaften) => {
-	const dok = dokument?.id ?? null;
-	const titel = dokument?.meta.titel ?? mappe.titel;
+export const TeilenDialog = (e: Eigenschaften) => {
+	const { schliessen } = e;
+	const imOrdner = 'ordner' in e;
+	const titel = imOrdner ? e.ordner.name : e.dokument.meta.titel;
+	const ziel = imOrdner ? { ordner: e.ordner.id } : { mappe: e.mappe.id, dok: e.dokument.id };
 	const { daten, fehler, neuLaden } = useLaden<{ freigaben: Freigabe[] }>(
-		`/api/freigaben?mappe=${mappe.id}${dok ? `&dok=${dok}` : ''}`,
+		imOrdner ? `/api/freigaben?ordner=${e.ordner.id}` : `/api/freigaben?mappe=${e.mappe.id}&dok=${e.dokument.id}`,
 	);
 	const [laeuft, setLaeuft] = useState(false);
 	const [panne, setPanne] = useState<string | null>(null);
@@ -119,14 +120,14 @@ export const TeilenDialog = ({ dokument, mappe, schliessen }: Eigenschaften) => 
 			setLaeuft(false);
 		}
 	};
-	const erstelle = () => fuehreAus(() => sende('/api/freigaben', { mappe: mappe.id, dok }));
+	const erstelle = () => fuehreAus(() => sende('/api/freigaben', ziel));
 	const widerrufe = (token: string) => fuehreAus(() => sende(`/api/freigaben/${token}/widerrufen`));
 
 	const aktive = (daten?.freigaben ?? [])
-		.filter((f) => f.ziel.dok === dok && f.widerrufen === null)
+		.filter((f) => f.widerrufen === null && (imOrdner || ('dok' in f.ziel && f.ziel.dok === e.dokument.id)))
 		.sort((a, b) => b.erstellt.localeCompare(a.erstellt));
 	const meldungText = panne ?? fehler?.message;
-	const umfang = dokument ? 'dieses Dokument' : 'alle Dokumente dieser Mappe';
+	const umfang = imOrdner ? 'alles in diesem Ordner, auch in den Unterordnern,' : 'dieses Dokument';
 
 	return (
 		<Dialog titel={`„${titel}“ teilen`} schliessen={schliessen}>

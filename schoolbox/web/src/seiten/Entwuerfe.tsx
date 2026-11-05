@@ -12,6 +12,7 @@ import { Buchstabe, ClaudeHinweis, EntwurfBild, EntwurfStatus } from '../entwuer
 import { useTitel } from '../lib/titel';
 import type { Zugang } from '../lib/zugang';
 import { dokumentSeite, entwuerfeSeite, mappenSeite } from '../lib/zugang';
+import { useOrdnerDesDokuments } from '../ordner/kontext';
 
 interface Eigenschaften {
 	zugang: Zugang;
@@ -21,7 +22,7 @@ interface Eigenschaften {
 export const NichtDa = () => (
 	<Zustand symbol="suche" titel="Diese Entwürfe gibt es nicht mehr">
 		<p className="text-leise">Vielleicht wurde das Material gelöscht.</p>
-		<KnopfLink to="/">Zu meinen Mappen</KnopfLink>
+		<KnopfLink to="/">Zu meinem Material</KnopfLink>
 	</Zustand>
 );
 
@@ -32,6 +33,7 @@ export const NichtDa = () => (
  */
 export const Entwuerfe = ({ dok, zugang }: Eigenschaften) => {
 	const { daten, dokument, fehler } = useEntwuerfe(zugang, dok);
+	const zurueckOrt = useOrdnerDesDokuments(zugang.mappe, dok);
 	const liste = useRef<HTMLUListElement>(null);
 	useRestHoehe(liste, Boolean(dokument?.meta.entwuerfe.length));
 	useTitel(dokument ? `Entwürfe: ${dokument.meta.titel}` : undefined);
@@ -44,9 +46,9 @@ export const Entwuerfe = ({ dok, zugang }: Eigenschaften) => {
 	const gewaehlt = meta.entwuerfe.find((e) => e.name === meta.gewaehlt);
 	return (
 		<>
-			<KnopfLink to={mappenSeite(zugang)} art="leise" className="-ml-5">
+			<KnopfLink to={zurueckOrt?.adresse ?? mappenSeite(zugang)} art="leise" className="-ml-5">
 				<Symbol name="zurueck" />
-				{daten.mappe.titel}
+				{zurueckOrt?.name ?? daten.mappe.titel}
 			</KnopfLink>
 			<h1 className="mt-2 text-3xl max-md:text-2xl">{`Entwürfe: ${meta.titel}`}</h1>
 			<div className="mt-3">

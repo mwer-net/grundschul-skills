@@ -13,7 +13,7 @@ import { erzeugeReferenz } from '@schoolbox/kern/src/referenz';
 import { KI_EINORDNEN_MODELL, kiArgumente, kiTempWurzel, kiUmgebung, liesLimit } from './ki';
 import { CSRF_HEADER } from './schutz';
 import type { TestServer } from './testhilfe';
-import { KI_ATTRAPPE, legeDokumentAn, starteTestServer } from './testhilfe';
+import { KI_ATTRAPPE, legeDokumentAn, ordnerVon, starteTestServer } from './testhilfe';
 
 const warte = async (bedingung: () => Promise<boolean> | boolean, ms = 15_000) => {
 	const ende = Date.now() + ms;
@@ -286,7 +286,7 @@ describe('Aufträge an Claude', () => {
 		const e = await ordnen({ text: wunsch });
 		assert.equal(e.rueckfall, false);
 		assert.equal(e.art, 'arbeitsblatt');
-		assert.deepEqual(e.mappe, { neu: 'Uhrzeit aus dem Chat' });
+		assert.equal(e.ordner, null);
 
 		const zeilen = (await readFile(aufrufe, 'utf8')).trim().split('\n');
 		const { args } = JSON.parse(zeilen.at(-1) ?? '{}') as { args: string[] };
@@ -303,8 +303,10 @@ describe('Aufträge an Claude', () => {
 		const verbrauch = await readFile(path.join(server.materialDir, '_ki-verbrauch.jsonl'), 'utf8');
 		assert.ok(!verbrauch.includes('PERSOENLICH'));
 
-		const inMappe = await ordnen({ text: wunsch, mappe });
-		assert.equal('id' in inMappe.mappe && inMappe.mappe.id, mappe);
+		const ordner = await ordnerVon(server, mappe);
+		const imOrdner = await ordnen({ text: wunsch, ordner });
+		assert.equal(imOrdner.ordner?.id, ordner);
+		assert.equal(imOrdner.fest, true);
 
 		await fall('einordnen-film');
 		const film = await ordnen({ text: 'Einen Film' });
@@ -318,7 +320,7 @@ describe('Aufträge an Claude', () => {
 		assert.equal(zuLang.status, 400);
 		const fremd = await api('/ki/einordnen', {
 			method: 'POST',
-			body: JSON.stringify({ text: 'x', mappe: 'fehlt' }),
+			body: JSON.stringify({ text: 'x', ordner: 'fehlt' }),
 		});
 		assert.equal(fremd.status, 404);
 	});

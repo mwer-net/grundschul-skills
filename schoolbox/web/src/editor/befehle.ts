@@ -940,7 +940,7 @@ const TASTEN_NAME: Record<string, string> = {
 
 const tasteName = ({ code, key }: Kuerzel) => {
 	if (code) {
-		return code.replace(/^(Key|Digit)/, '');
+		return TASTEN_NAME[code] ?? code.replace(/^(Key|Digit)/, '');
 	}
 	return TASTEN_NAME[key ?? ''] ?? key ?? '';
 };

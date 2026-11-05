@@ -22,6 +22,7 @@ import type { KiAuftrag, useKiZustand, Vorschlag } from './ki';
 import { limitHinweis, useKiAuftrag } from './ki';
 import { TEXTWERKZEUG } from './text';
 import type { NeuMaterial, NeuStand } from './useNeuMaterial';
+import { useAblage } from '../ordner/kontext';
 import { Vergleich } from './Vergleich';
 
 const NEU_ENTWURF = 'neu-entwurf';
@@ -165,12 +166,8 @@ const NEU_NAME: Record<Art, string> = {
 	sonstiges: 'Neues Material',
 };
 
-const mappeText = (mappe: Einordnung['mappe']) => {
-	if ('neu' in mappe) {
-		return `Mappe: ${mappe.neu} (neu)`;
-	}
-	return `Mappe: ${mappe.titel}${mappe.vorhanden ? ' (gibt es schon)' : ''}`;
-};
+const ortText = (ordner: Einordnung['ordner']) =>
+	ordner ? `Ablage: ${ordner.pfad}${ordner.vorhanden ? ' (gibt es schon)' : ''}` : 'Ablage: Mein Material';
 
 /** Erst die Karte, dann der teure Lauf (077). Ein Tippfehler kostet so keine Minuten. */
 const NeuKarte = ({
@@ -182,7 +179,7 @@ const NeuKarte = ({
 	stand: Exclude<NeuStand, { phase: 'ordnet' }>;
 	warnung: string | null;
 }) => {
-	const { art, fach, format, klasse, mappe, rueckfall, titel } = stand.einordnung;
+	const { art, fach, format, klasse, ordner, rueckfall, titel } = stand.einordnung;
 	const belegt = stand.phase === 'legtAn';
 	return (
 		<div className="rounded-lg border border-tinte/15 bg-white/50 p-2.5" data-chat-neu>
@@ -193,8 +190,8 @@ const NeuKarte = ({
 			<p className="text-xs text-leise">
 				{`${titel} · ${FORMAT_NAME[format]} · ${FACH_NAME[fach]} · ${klasseName(klasse)}`}
 			</p>
-			<p className="text-xs text-leise" data-chat-neu-mappe>
-				{mappeText(mappe)}
+			<p className="text-xs text-leise" data-chat-neu-ort>
+				{ortText(ordner)}
 			</p>
 			{rueckfall && <p className="mt-1 font-medium">Bitte kurz prüfen.</p>}
 			<p className="mt-1 text-xs text-leise">
@@ -498,7 +495,7 @@ const VerlaufBereich = ({
 				)}
 				{leerGeblieben && !vorschlag && (
 					<p className="text-leise" data-chat-leer>
-						Das Blatt bleibt leer in der Mappe. Du kannst es selbst füllen oder hier neu beauftragen.
+						Das Blatt bleibt leer im Ordner. Du kannst es selbst füllen oder hier neu beauftragen.
 					</p>
 				)}
 				{fehler && (
@@ -687,18 +684,18 @@ const OhneAnmeldung = ({ zurApp }: { zurApp: (() => void) | null }) => (
 
 interface ChipAngaben {
 	art: ChatKontext['art'];
-	mappe: string | null;
+	ordner: string | null;
 	neuModus: boolean;
 	ziel: number | null;
 	pfad: PfadTeil[];
 }
 
-const chipFuer = ({ art, mappe, neuModus, pfad, ziel }: ChipAngaben) => {
+const chipFuer = ({ art, neuModus, ordner, pfad, ziel }: ChipAngaben) => {
 	if (art === 'ansicht') {
 		return 'Dieses Dokument';
 	}
 	if (neuModus) {
-		return art === 'neu' && mappe ? 'Neues Material in dieser Mappe' : 'Neues Material';
+		return art === 'neu' && ordner ? 'Neues Material in diesem Ordner' : 'Neues Material';
 	}
 	return chipText(ziel, pfad);
 };
@@ -731,7 +728,7 @@ const stufenFuer = (
 	},
 	{
 		titel: 'Neues Material',
-		beschreibung: 'Ein neues Dokument in dieser Mappe',
+		beschreibung: 'Ein neues Dokument in diesem Ordner',
 		symbol: 'plus',
 		aktiv: gewaehlt === 'neu',
 		waehle: () => waehle('neu'),
@@ -817,7 +814,12 @@ export const ChatInhalt = ({
 	const auftragKi = useKiAuftrag(mappe, dok, kiStatus.neu, kiAuftrag);
 	const { zustand } = kiStatus;
 	const lage = useLage(anker);
-	const schluessel = verlaufSchluessel(mappe ?? undefined, dok ?? undefined);
+	const { stand: ablage } = useAblage();
+	const ordner =
+		kontext.art === 'neu'
+			? (kontext.ordner ?? null)
+			: (ablage?.dokumente.find((d) => d.mappe === mappe && d.id === dok)?.ordner ?? null);
+	const schluessel = verlaufSchluessel(kontext.art === 'neu' ? (ordner ?? undefined) : (mappe ?? undefined), dok ?? undefined);
 	const [verlauf, setVerlauf] = useVerlauf(schluessel);
 	const [vergleich, setVergleich] = useState(false);
 	const [ungelesen, setUngelesen] = useState(false);
@@ -837,7 +839,7 @@ export const ChatInhalt = ({
 	const hinweis = limitHinweis(zustand.limit, zustand.warnAb);
 	const stand = laufStand(auftragKi, neu, hinweis);
 	const { gesperrt, gesperrtLimit, neuBelegt, offenerVorschlag } = stand;
-	const chipName = chipFuer({ art: kontext.art, mappe, neuModus, pfad, ziel });
+	const chipName = chipFuer({ art: kontext.art, neuModus, ordner, pfad, ziel });
 	const offen = fenster !== 'zu';
 	const letzte = verlauf.findLast((n) => n.rolle === 'lehrkraft');
 
@@ -921,7 +923,7 @@ export const ChatInhalt = ({
 			merke(inhalt.text, chipName);
 			// Ist das Limit nah, kostet schon das Einordnen zu viel: Die Karte kommt trotzdem.
 			void neu.starte(
-				{ wunsch: inhalt.text, mappe, schluessel, imDokument: Boolean(dokument) },
+				{ wunsch: inhalt.text, ordner, schluessel, imDokument: Boolean(dokument) },
 				Boolean(hinweis),
 			);
 			return;

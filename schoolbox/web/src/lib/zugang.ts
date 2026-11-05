@@ -47,11 +47,14 @@ export const entwurfVorschauAdresse = (zugang: Zugang, dok: string, name: string
 export const entwuerfeSeite = (zugang: Zugang, dok: string, name?: string) =>
 	`/m/${zugang.mappe}/${dok}/entwuerfe${name ? `/${name}` : ''}`;
 
-/** Seite der Mappe; bei einem Link auf ein einzelnes Dokument gibt es sie nicht. */
+/** Startseite eines Teilen-Links; bei einem Link auf ein einzelnes Dokument gibt es sie nicht. */
 export const mappenSeite = (zugang: Zugang) => (zugang.token === null ? `/m/${zugang.mappe}` : `/f/${zugang.token}`);
 
+/** Dokument-IDs sind nur je Behälter eindeutig, und ein Ordner-Link spannt mehrere: darum `<mappe>~<dok>`. Alte `d/<dok>` gelten weiter. */
+export const teilenAdresse = (zugang: Zugang, dok: string) => `${zugang.mappe}~${dok}`;
+
 export const dokumentSeite = (zugang: Zugang, dok: string) =>
-	zugang.token === null ? `/m/${zugang.mappe}/${dok}` : `/f/${zugang.token}/d/${dok}`;
+	zugang.token === null ? `/m/${zugang.mappe}/${dok}` : `/f/${zugang.token}/d/${teilenAdresse(zugang, dok)}`;
 
 /** Startseite und Hülle der Präsentation; die Folien selbst zeigt `praesentationAnsicht` im Iframe. */
 export const praesentationSeite = (zugang: Zugang, dok: string) => `${dokumentSeite(zugang, dok)}/praesentation`;
@@ -70,7 +73,7 @@ const profilSuche = (profil?: Druckprofil) => (profil ? `?profil=${profil}` : ''
 export const bereiteDokumentVor = (zugang: Zugang, dok: string, variante: AusgabeVariante, profil?: Druckprofil) =>
 	zugang.token === null
 		? sende<PdfAntwort>(`/api/dokumente/${zugang.mappe}/${dok}/pdf`, { variante, profil })
-		: lade<PdfAntwort>(`/f/${zugang.token}/api/pdf/${dok}/${variante}${profilSuche(profil)}`);
+		: lade<PdfAntwort>(`/f/${zugang.token}/api/pdf/${teilenAdresse(zugang, dok)}/${variante}${profilSuche(profil)}`);
 
 export const bereiteMappeVor = (zugang: Zugang, variante: MappenVariante, profil?: Druckprofil) =>
 	zugang.token === null

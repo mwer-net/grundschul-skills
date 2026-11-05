@@ -259,13 +259,15 @@ export const teilenRouter = (kontext: Kontext, sendeSeite: (status: number) => R
 					.filter((id) => id !== wurzel.id)
 					.map((id) => baum.ordner.find((o) => o.id === id))
 					.filter((o): o is OrdnerEintrag => o !== undefined)
-					.map(({ eltern, erstellt, geaendert, id, name }) => ({ eltern, erstellt, geaendert, id, name }))
+					.map(({ behaelter, eltern, erstellt, geaendert, id, name }) => ({ behaelter, eltern, erstellt, geaendert, id, name }))
 			: [];
 		const mappe = 'ordner' in ziel ? null : await leseMappe(materialDir, ziel.mappe);
 		res.json({
 			ziel,
 			titel: wurzel?.name ?? dokumente[0]?.meta.titel ?? '',
 			wurzel: wurzel ? wurzel.id : null,
+			wurzelBehaelter: wurzel?.behaelter ?? null,
+			wurzelName: wurzel?.name ?? null,
 			ordner: unterordner,
 			dokumente,
 			...(mappe ? { mappe: { ...mappe, dokumente: dokumente.map((d) => d.id) } } : {}),

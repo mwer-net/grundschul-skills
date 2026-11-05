@@ -98,7 +98,7 @@ const Hochladen = ({ bild }: { bild: BildSteuerung }) => {
 
 const GRUPPEN = [
 	{ art: 'sammlung', titel: 'Willi & Co.' },
-	{ art: 'mappe', titel: 'Diese Mappe' },
+	{ art: 'mappe', titel: 'Dieser Ordner' },
 	{ art: 'meine', titel: 'Meine Bilder' },
 ] as const;
 

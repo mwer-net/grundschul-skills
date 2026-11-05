@@ -35,7 +35,7 @@ export interface PapierkorbEintrag {
 
 export interface Freigabe {
 	token: string;
-	ziel: { mappe: string; dok: string | null };
+	ziel: { mappe: string; dok: string | null } | { ordner: string };
 	erstellt: string;
 	widerrufen: string | null;
 	pfad: string;
@@ -44,6 +44,8 @@ export interface Freigabe {
 
 export interface PdfMeldung extends Meldung {
 	dok: string;
+	/** Nur in einer Sammlung über mehrere Behälter. */
+	mappe?: string;
 	titel: string;
 }
 

@@ -84,7 +84,7 @@ export const listePapierkorb = async (materialDir: string): Promise<PapierkorbEi
 export const legeInPapierkorb = async (materialDir: string, id: string, jetzt = new Date()) => {
 	const quelle = path.join(materialDir, id);
 	if (!ID_REGEX.test(id) || !existsSync(path.join(quelle, 'mappe.json'))) {
-		throw new SchoolboxFehler(`Die Mappe „${id}“ gibt es nicht.`);
+		throw new SchoolboxFehler(`Den Ordner „${id}“ gibt es nicht.`);
 	}
 	const dir = papierkorbDir(materialDir);
 	await mkdir(dir, { recursive: true });
@@ -105,11 +105,11 @@ export const stelleWiederHer = async (materialDir: string, eintrag: string): Pro
 	const beschrieben = await beschreibe(materialDir, eintrag);
 	const quelle = path.join(papierkorbDir(materialDir), eintrag);
 	if (!beschrieben || !existsSync(quelle)) {
-		throw new SchoolboxFehler('Diese Mappe liegt nicht mehr im Papierkorb.');
+		throw new SchoolboxFehler('Dieser Ordner liegt nicht mehr im Papierkorb.');
 	}
 	const ziel = path.join(materialDir, beschrieben.id);
 	if (existsSync(ziel)) {
-		throw new SchoolboxFehler(`Es gibt schon eine Mappe „${beschrieben.id}“. Wiederherstellen geht deshalb nicht.`);
+		throw new SchoolboxFehler(`Es gibt schon einen Ordner „${beschrieben.id}“. Wiederherstellen geht deshalb nicht.`);
 	}
 	await rename(quelle, ziel);
 	return beschrieben;

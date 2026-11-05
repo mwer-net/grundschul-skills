@@ -124,6 +124,27 @@
 	-webkit-touch-callout: none;
 }
 
+/* Am Finger bleibt die Trefferfläche 44 px, die Zeile rückt aber ein wie ohne Dreieck. */
+@media (any-pointer: coarse) {
+	.baum-dreieck {
+		margin-inline: -16px -12px;
+	}
+}
+
+body[data-zieht] * {
+	user-select: none;
+	-webkit-user-select: none;
+}
+
+[data-ziel-aktiv] {
+	outline: 2px solid var(--color-brand-500);
+	outline-offset: -2px;
+}
+
+[data-ablage-ziel][data-flaeche][data-ziel-aktiv] {
+	background: var(--color-brand-50);
+}
+
 .nur-finger {
 	display: none;
 }

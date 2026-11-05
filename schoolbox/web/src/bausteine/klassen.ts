@@ -20,7 +20,7 @@ const KNOPF_GROESSE: Record<KnopfGroesse, string> = {
 /** Am Mac 26 px (Leisten 24 px), mit Finger 44 px: Die Höhen stehen als Variablen in `stil.css`. */
 export const knopfKlassen = (art: KnopfArt = 'haupt', zusatz?: string, groesse: KnopfGroesse = 'standard') =>
 	klassen(
-		'inline-flex items-center justify-center gap-1.5 rounded-md border font-medium no-underline',
+		'inline-flex flex-none items-center justify-center gap-1.5 rounded-md border font-medium whitespace-nowrap no-underline',
 		'transition-colors duration-[120ms] select-none disabled:cursor-default disabled:opacity-50',
 		KNOPF_GROESSE[groesse],
 		KNOPF_ART[art],

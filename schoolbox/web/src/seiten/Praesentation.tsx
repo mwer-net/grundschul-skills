@@ -9,9 +9,10 @@ import { Symbol } from '../bausteine/Symbol';
 import { Zustand } from '../bausteine/Zustand';
 import { useLaden } from '../lib/laden';
 import { anzahl } from '../lib/text';
+import { useInhalt } from '../lib/inhalt';
 import { useTitel } from '../lib/titel';
 import type { Zugang } from '../lib/zugang';
-import { dokumentSeite, inhaltAdresse, praesentationAnsicht } from '../lib/zugang';
+import { dokumentSeite, praesentationAnsicht } from '../lib/zugang';
 import type { FolienStand } from '../praesentation/laufzeit';
 import {
 	beendeVollbild,
@@ -147,7 +148,7 @@ interface Eigenschaften {
  * steuert `praesentation.js` im Iframe; die Hülle lädt nie neu, auch wenn Claude das Material gerade ändert.
  */
 export const Praesentation = ({ dok, zugang }: Eigenschaften) => {
-	const { daten } = useLaden<MappenEintrag>(inhaltAdresse(zugang));
+	const { daten } = useInhalt(zugang);
 	const dokument = daten?.dokumente.find((d) => d.id === dok);
 	const titel = dokument?.meta.titel ?? null;
 	useTitel(titel ? `Präsentation: ${titel}` : 'Präsentation');

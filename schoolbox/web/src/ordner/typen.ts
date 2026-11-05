@@ -3,6 +3,8 @@ import type { Fach, Klasse } from '@schoolbox/kern/src/werte';
 
 import type { DefekteMappe, DokumentEintrag } from '../typen';
 
+export type DefektEintrag = DefekteMappe;
+
 export type { Sortierung };
 
 export interface AblageOrdner {

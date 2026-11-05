@@ -24,7 +24,10 @@ import { Symbol } from '../bausteine/Symbol';
 import { useKiZustand } from '../editor/ki';
 import { useLaden } from '../lib/laden';
 import { klasseName } from '../lib/text';
-import { legeMappeAn, legeMaterialAn } from './material-anlegen';
+import { useAblage } from '../ordner/kontext';
+import { pfadText } from '../ordner/pfad';
+import type { AblageStand } from '../ordner/typen';
+import { legeMaterialAn } from './material-anlegen';
 
 const FELD = `${FELD_KLASSEN} w-full`;
 
@@ -71,82 +74,6 @@ const Wahl = ({
 	</button>
 );
 
-/** Dialog „Mappe anlegen“: Titel, Fach, Klasse. Danach direkt in der Mappe. */
-export const MappeDialog = ({ schliessen }: { schliessen: () => void }) => {
-	const [titel, setTitel] = useState('');
-	const [fach, setFach] = useState<Fach>('deutsch');
-	const [klasse, setKlasse] = useState<Klasse>(1);
-	const [fehler, setFehler] = useState<string | null>(null);
-	const [laeuft, setLaeuft] = useState(false);
-	const navigate = useNavigate();
-
-	const anlegen = async (e: FormEvent) => {
-		e.preventDefault();
-		setLaeuft(true);
-		setFehler(null);
-		try {
-			void navigate(`/m/${await legeMappeAn({ titel, fach, klasse })}`);
-		} catch (grund) {
-			setFehler(meldung(grund));
-			setLaeuft(false);
-		}
-	};
-
-	return (
-		<Dialog titel="Mappe anlegen" schliessen={schliessen}>
-			<form onSubmit={(e) => void anlegen(e)}>
-				<Fehler text={fehler} />
-				<Feld name="Titel">
-					<input className={FELD} value={titel} required onChange={(e) => setTitel(e.target.value)} />
-				</Feld>
-				<Feld name="Fach">
-					<select className={FELD} value={fach} onChange={(e) => setFach(e.target.value as Fach)}>
-						{FAECHER.map((f) => (
-							<option key={f} value={f}>
-								{FACH_NAME[f]}
-							</option>
-						))}
-					</select>
-				</Feld>
-				<Feld name="Klasse">
-					<select
-						className={FELD}
-						value={String(klasse)}
-						onChange={(e) => setKlasse(KLASSEN.find((k) => String(k) === e.target.value) ?? 1)}
-					>
-						{KLASSEN.map((k) => (
-							<option key={k} value={String(k)}>
-								{klasseName(k)}
-							</option>
-						))}
-					</select>
-				</Feld>
-				<div className="flex justify-end gap-2">
-					<Knopf art="zweit" onClick={schliessen}>
-						Abbrechen
-					</Knopf>
-					<Knopf type="submit" disabled={laeuft}>
-						Anlegen
-					</Knopf>
-				</div>
-			</form>
-		</Dialog>
-	);
-};
-
-/** Knopf zum Dialog. */
-export const MappeAnlegen = () => {
-	const [offen, setOffen] = useState(false);
-	return (
-		<>
-			<Knopf onClick={() => setOffen(true)}>
-				<Symbol name="plus" />
-				Mappe anlegen
-			</Knopf>
-			{offen && <MappeDialog schliessen={() => setOffen(false)} />}
-		</>
-	);
-};
 
 const ZUSATZ = [
 	['selbsteinschaetzung', 'Selbsteinschätzung'],
@@ -246,8 +173,8 @@ const EigeneWahl = ({
 };
 
 interface MaterialDialogEigenschaften {
-	/** Die Mappe des Assistenten; sonst die aus der Einordnung, oder eine neue. */
-	mappe?: string;
+	/** Der Ordner des Assistenten; `null`: „Mein Material“. Sonst der aus der Einordnung. */
+	ordner?: string | null;
 	/** Aus dem Chat (077): alles vorbelegt, Claude schreibt den Entwurf. */
 	einordnung?: Einordnung;
 	wunsch?: string;
@@ -255,25 +182,18 @@ interface MaterialDialogEigenschaften {
 	vorDemSprung?: (mappe: string, dok: string) => void;
 }
 
-const NeueMappeFelder = ({
+const FachKlasseFelder = ({
 	fach,
 	klasse,
 	setFach,
 	setKlasse,
-	setTitel,
-	titel,
 }: {
 	fach: Fach;
 	klasse: Klasse;
 	setFach: (fach: Fach) => void;
 	setKlasse: (klasse: Klasse) => void;
-	setTitel: (titel: string) => void;
-	titel: string;
 }) => (
 	<>
-		<Feld name="Neue Mappe">
-			<input className={FELD} value={titel} onChange={(e) => setTitel(e.target.value)} />
-		</Feld>
 		<Feld name="Fach">
 			<select className={FELD} value={fach} onChange={(e) => setFach(e.target.value as Fach)}>
 				{FAECHER.map((f) => (
@@ -299,43 +219,53 @@ const NeueMappeFelder = ({
 	</>
 );
 
-const startWerte = (einordnung?: Einordnung, festeMappe?: string, wunsch?: string) => {
-	const ziel = einordnung?.mappe;
-	return {
-		mappe: festeMappe ?? (ziel && 'id' in ziel ? ziel.id : null),
-		mappeTitel: ziel && 'neu' in ziel ? ziel.neu : '',
-		fach: einordnung?.fach ?? 'deutsch',
-		klasse: einordnung?.klasse ?? 1,
-		art: einordnung?.art ?? 'arbeitsblatt',
-		format: einordnung?.format ?? ART_ANGABEN.arbeitsblatt.format,
-		titel: einordnung?.titel ?? '',
-		wunsch: wunsch ?? '',
-	};
+const LETZTE = 'schoolbox.zuletzt-fach-klasse';
+
+/** Vorbelegt vom jüngsten Dokument im Ordner, sonst zuletzt genutzt (Ticket, Behälter neuer Dokumente). */
+const vorbelegung = (stand: AblageStand | null, ordner: string | null): { fach: Fach; klasse: Klasse } => {
+	const juengstes = (stand?.dokumente ?? [])
+		.filter((d) => d.ordner === ordner)
+		.sort((a, b) => b.meta.geaendert.localeCompare(a.meta.geaendert))[0];
+	if (juengstes) {
+		return { fach: juengstes.fach, klasse: juengstes.klasse };
+	}
+	try {
+		const roh = JSON.parse(localStorage.getItem(LETZTE) ?? 'null') as { fach?: Fach; klasse?: Klasse } | null;
+		if (roh?.fach && roh.klasse !== undefined) {
+			return { fach: roh.fach, klasse: roh.klasse };
+		}
+	} catch {
+		// Kaputtes im Speicher zählt nicht.
+	}
+	return { fach: 'deutsch', klasse: 1 };
 };
 
 /** Assistent „Material anlegen“: Art, Format, Titel, Start. Abbrechen legt nichts an; erst der letzte Schritt schreibt. */
 export const MaterialDialog = ({
 	einordnung,
-	mappe: festeMappe,
+	ordner: festerOrdner,
 	schliessen,
 	vorDemSprung,
 	wunsch: wunschVorher,
 }: MaterialDialogEigenschaften) => {
-	const start = startWerte(einordnung, festeMappe, wunschVorher);
-	const { mappe } = start;
-	const [mappeTitel, setMappeTitel] = useState(start.mappeTitel);
-	const [fach, setFach] = useState<Fach>(start.fach);
-	const [klasse, setKlasse] = useState<Klasse>(start.klasse);
+	const { stand } = useAblage();
+	const ordner = festerOrdner !== undefined ? festerOrdner : (einordnung?.ordner?.id ?? null);
+	const eintrag = stand?.ordner.find((o) => o.id === ordner);
+	// Ein Ordner mit Behälter gibt Fach und Klasse vor. Das entscheidet der Server genauso.
+	const mitBehaelter = Boolean(einordnung?.fest || (eintrag?.behaelter && stand?.dokumente.some((d) => d.mappe === eintrag.behaelter)));
+	const vorher = einordnung ?? vorbelegung(stand, ordner);
+	const [fach, setFach] = useState<Fach>(vorher.fach);
+	const [klasse, setKlasse] = useState<Klasse>(vorher.klasse);
 	const [schritt, setSchritt] = useState(0);
-	const [art, setArt] = useState<Art>(start.art);
-	const [format, setFormat] = useState<Format>(start.format);
-	const [titel, setTitel] = useState(start.titel);
+	const [art, setArt] = useState<Art>(einordnung?.art ?? 'arbeitsblatt');
+	const [format, setFormat] = useState<Format>(einordnung?.format ?? ART_ANGABEN.arbeitsblatt.format);
+	const [titel, setTitel] = useState(einordnung?.titel ?? '');
 	const [vorlage, setVorlage] = useState<string | null>(null);
 	const [zusatz, setZusatz] = useState<Partial<Record<ZusatzName, boolean>>>({});
 	const [fehler, setFehler] = useState<string | null>(null);
 	const [laeuft, setLaeuft] = useState(false);
 	const [mitClaude, setMitClaude] = useState(Boolean(einordnung));
-	const [wunsch, setWunsch] = useState(start.wunsch);
+	const [wunsch, setWunsch] = useState(wunschVorher ?? '');
 	const ausDemChat = Boolean(einordnung);
 	const ki = useKiZustand().zustand;
 	const navigate = useNavigate();
@@ -359,7 +289,7 @@ export const MaterialDialog = ({
 		setZusatz({});
 	};
 	const weiter = () => {
-		if (SCHRITTE[schritt] === 'Titel' && (titel.trim() === '' || (!mappe && mappeTitel.trim() === ''))) {
+		if (SCHRITTE[schritt] === 'Titel' && titel.trim() === '') {
 			setFehler('Bitte gib einen Titel ein.');
 			return;
 		}
@@ -375,21 +305,24 @@ export const MaterialDialog = ({
 		setFehler(null);
 		try {
 			const endFormat = vorlage ? (VORLAGE_FORMAT[vorlage]?.format ?? format) : format;
-			const ziel = mappe ?? (await legeMappeAn({ titel: mappeTitel, fach, klasse }));
+			localStorage.setItem(LETZTE, JSON.stringify({ fach, klasse }));
 			const {
 				id,
+				mappe,
 				state,
 				ziel: adresse,
 			} = await legeMaterialAn({
-				mappe: ziel,
+				ordner,
 				titel,
 				art,
 				format: endFormat,
+				fach,
+				klasse,
 				vorlage,
 				zusatz: mitClaude ? {} : zusatz,
 				wunsch: mitClaude ? wunsch : null,
 			});
-			vorDemSprung?.(ziel, id);
+			vorDemSprung?.(mappe, id);
 			void navigate(adresse, { state });
 		} catch (grund) {
 			setFehler(meldung(grund));
@@ -437,15 +370,8 @@ export const MaterialDialog = ({
 								onChange={(e) => setTitel(e.target.value)}
 							/>
 						</Feld>
-						{!mappe && (
-							<NeueMappeFelder
-								fach={fach}
-								klasse={klasse}
-								setFach={setFach}
-								setKlasse={setKlasse}
-								setTitel={setMappeTitel}
-								titel={mappeTitel}
-							/>
+						{!mitBehaelter && (
+							<FachKlasseFelder fach={fach} klasse={klasse} setFach={setFach} setKlasse={setKlasse} />
 						)}
 					</>
 				)}
@@ -569,18 +495,5 @@ export const MaterialDialog = ({
 				</div>
 			</div>
 		</Dialog>
-	);
-};
-
-export const MaterialAnlegen = ({ mappe }: { mappe: string }) => {
-	const [offen, setOffen] = useState(false);
-	return (
-		<>
-			<Knopf onClick={() => setOffen(true)} data-material-anlegen>
-				<Symbol name="plus" />
-				Material anlegen
-			</Knopf>
-			{offen && <MaterialDialog mappe={mappe} schliessen={() => setOffen(false)} />}
-		</>
 	);
 };

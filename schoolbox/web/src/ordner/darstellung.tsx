@@ -205,17 +205,17 @@ export const Zeile = ({ benennt, blass, gewaehlt, haken, klappe, menue, objekt, 
 			<FingerMenue menue={menue} name={objekt.name} />
 		</div>
 		<span className="truncate text-xs text-leise">{datum(objekt.geaendert).replace(/ \d{4}$/, '')}</span>
-		<span className="truncate text-xs text-leise">{ort ?? (objekt.istOrdner ? 'Ordner' : objekt.art)}</span>
-		<span className="truncate text-xs text-leise max-@3xl:hidden">
+		<span className="truncate pr-2 text-xs text-leise">{ort ?? (objekt.istOrdner ? 'Ordner' : objekt.art)}</span>
+		<span className="truncate text-xs text-leise @max-3xl:hidden">
 			{objekt.istOrdner ? STRICH : FACH_NAME[objekt.dok.fach]}
 		</span>
-		<span className="truncate text-xs text-leise max-@4xl:hidden">
+		<span className="truncate text-xs text-leise @max-4xl:hidden">
 			{objekt.istOrdner ? STRICH : klasseName(objekt.dok.klasse).replace('Klasse ', '')}
 		</span>
-		<span className="truncate text-xs text-leise max-@4xl:hidden">
+		<span className="truncate text-xs text-leise @max-4xl:hidden">
 			{objekt.istOrdner ? STRICH : FORMAT_NAME[objekt.dok.meta.format]}
 		</span>
-		<span className="truncate text-xs text-leise max-@4xl:hidden">
+		<span className="truncate text-xs text-leise @max-4xl:hidden">
 			{objekt.istOrdner ? objekteText(objekt.anzahl).replace(/^Ein Objekt$/, '1 Objekt') : objekt.dok.meta.seiten || STRICH}
 		</span>
 	</div>
