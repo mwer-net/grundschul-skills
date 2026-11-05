@@ -11,6 +11,11 @@ export default defineConfig(({ mode }) => {
 	const server = `http://${env.HOST || '127.0.0.1'}:${env.PORT || '4009'}`;
 	return {
 		plugins: [react(), tailwindcss()],
+		build: {
+			// Die Produktion liegt auf einem Bindfs-Mount mit 1024 offenen Dateien für alle Sites. Der Standardwert 1000
+			// reißt das zeitweise: Rollup meldet dann „failed to resolve“ für vorhandene Pakete.
+			rollupOptions: { maxParallelFileOps: 32 },
+		},
 		server: {
 			// Die Schriften liegen beim Skill, außerhalb dieses Pakets.
 			fs: { allow: [WURZEL] },
