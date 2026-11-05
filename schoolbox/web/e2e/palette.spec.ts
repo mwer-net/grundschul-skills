@@ -90,15 +90,20 @@ test.describe('Befehlspalette (073)', () => {
 		const { dok, id } = await uhrzeit();
 		await oeffne(page, id, dok);
 		await page.keyboard.press('ControlOrMeta+k');
+		// „An Claude schicken: …“ steht bei jeder Eingabe am Ende (077), das ist kein Eintrag für die Einstellung.
+		const eintraege = (name: RegExp) =>
+			palette(page).getByRole('option', { name }).filter({ hasNotText: 'An Claude schicken' });
 		await feld(page).fill('Trennlinien');
-		await expect(palette(page).getByRole('option', { name: /Trennlinien/ })).toHaveCount(0);
+		await expect(palette(page).getByRole('option', { name: 'An Claude schicken: Trennlinien' })).toBeVisible();
+		await expect(eintraege(/Trennlinien/)).toHaveCount(0);
 		await feld(page).fill('Punkte zeigen');
-		await expect(palette(page).getByRole('option', { name: /Punkte zeigen/ })).toHaveCount(0);
+		await expect(palette(page).getByRole('option', { name: 'An Claude schicken: Punkte zeigen' })).toBeVisible();
+		await expect(eintraege(/Punkte zeigen/)).toHaveCount(0);
 		await page.keyboard.press('Escape');
 		await aendere(page, (await quelle(page)).replace('</section>', '<span class="punkte">(2 P.)</span></section>'));
 		await page.keyboard.press('ControlOrMeta+k');
 		await feld(page).fill('Punkte zeigen');
-		await expect(palette(page).getByRole('option', { name: /Punkte zeigen/ })).toBeVisible();
+		await expect(eintraege(/Punkte zeigen/)).toBeVisible();
 	});
 
 	test('in der Textsitzung läuft die Sitzung nach Esc weiter', async ({ page }) => {

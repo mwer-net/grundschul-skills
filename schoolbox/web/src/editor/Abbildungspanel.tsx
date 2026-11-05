@@ -969,6 +969,7 @@ const useZeilenZug = (verschiebe: (von: number, nach: number) => void) => {
 			return;
 		}
 		e.preventDefault();
+		const griff = e.currentTarget;
 		const start = e.clientY;
 		let y = start;
 		let laeuft = false;
@@ -978,6 +979,9 @@ const useZeilenZug = (verschiebe: (von: number, nach: number) => void) => {
 				y = m.clientY;
 				if (!laeuft && Math.abs(y - start) >= 4) {
 					laeuft = true;
+					// Stünde der Fokus im Blatt, käme Esc dort an und wählte das Elternteil, statt den Zug abzubrechen.
+					// `blur()` am Rahmen gibt ihn in Safari nicht frei, der Griff nimmt ihn.
+					griff.focus({ preventScroll: true });
 					setZug({ von, nach: zielBei(y) });
 				}
 			},

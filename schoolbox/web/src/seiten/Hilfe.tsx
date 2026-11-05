@@ -24,12 +24,19 @@ interface Bild {
 	geraet: 'Mac' | 'iPad';
 }
 
+/**
+ * Maße der Fotos (`playwright.hilfe.config.ts`: Desktop Safari, iPad quer, `scale: 'css'`). Ohne sie hat ein Bild bis
+ * zum Laden keine Höhe, und ein Sprung aus dem Inhalt landet daneben, sobald die Bilder darüber nachladen.
+ */
+const MASSE = { Mac: { width: 1280, height: 720 }, iPad: { width: 1080, height: 810 } } as const;
+
 const Foto = ({ alt, datei, geraet }: Bild) => (
 	<figure className="flex flex-col gap-2">
 		<a href={`${BILDER}/${datei}`} target="_blank" rel="noopener" className="block">
 			<img
 				src={`${BILDER}/${datei}`}
 				alt={alt}
+				{...MASSE[geraet]}
 				loading="lazy"
 				className="w-full rounded-xl border border-rand bg-flaeche shadow-2"
 			/>

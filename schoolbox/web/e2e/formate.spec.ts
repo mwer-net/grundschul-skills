@@ -539,10 +539,16 @@ test.describe('Sprach-Werkzeuge (052, 083)', () => {
 		await expect.poll(() => quelle(page)).toContain('<x-silben im-text darstellung="farbe">Blu|me</x-silben>');
 		await expect.poll(() => quelle(page)).toContain('<x-silben im-text>Bie|ne</x-silben>');
 
-		await markiere(page, 'Bie');
+		// Eine Stelle allein: Klick auf sie wählt sie, „Aus“ nimmt nur sie weg (083). Eine Markierung innerhalb der
+		// Stelle hält WebKit nicht: Sie steht in der Textsitzung als nicht editierbare Insel, die Auswahl bleibt leer.
+		await druecke(page.getByRole('button', { name: 'Auswahl aufheben' }));
+		await druecke(material(page).locator('p.text x-silben').first());
+		await expect(pfad(page)).toHaveText('Silben');
+		await aktivIn(silben(page), 'Bögen');
 		await druecke(silbenKnopf(page, 'Aus'));
 		await expect.poll(() => quelle(page)).not.toContain('Bie|ne');
 		await expect.poll(() => quelle(page)).toContain('Blu|me');
+		await expect(pfad(page)).toHaveText('Absatz');
 
 		await druecke(page.locator('[data-sprache-teilweise]').getByRole('button', { name: 'Überall entfernen' }));
 		await expect.poll(() => quelle(page)).toBe(anfang);

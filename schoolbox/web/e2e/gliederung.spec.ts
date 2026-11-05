@@ -213,23 +213,31 @@ test.describe('Gliederung (080)', () => {
 		await expect(page.locator('[data-seite-miniatur]')).toHaveCount(0);
 		await expect(aufgaben(page)).toHaveCount(0);
 		await expect(page.locator('[data-seite-anzahl]')).toHaveText(['4', '0', '0']);
-		await hand.zu(await an(seitenZeile(page, 2), 'oben'));
+		// Vor die erste Seite: Die neuen Seiten 2 und 3 sind beide leer, ein Tausch der beiden änderte die Quelle nicht.
+		await hand.zu(await an(seitenZeile(page, 1), 'oben'));
 		await expect(marke(page)).toBeVisible();
 		await hand.los();
 
-		await expect.poll(async () => anweisungen(await quelle(page))).toEqual(ANFANG);
+		await expect
+			.poll(async () => {
+				const q = await quelle(page);
+				return q.indexOf('class="seite"', q.indexOf('class="seite"') + 1) < q.indexOf('Lies ab. Sch');
+			})
+			.toBe(true);
+		expect(anweisungen(await quelle(page))).toEqual(ANFANG);
 		await expect(zurueck(page)).toHaveAttribute('data-schritt', 'Seite verschoben');
-		// Seite 1 mit den Aufgaben blieb zu, die anderen beiden stehen wieder offen.
-		await expect(seitenZeile(page, 1)).toHaveAttribute('data-zu');
+		// Die Seite mit den Aufgaben (jetzt Seite 2) blieb zu, die anderen beiden stehen wieder offen.
+		await expect(seitenZeile(page, 2)).toHaveAttribute('data-zu');
+		await expect(seitenZeile(page, 2).locator('[data-seite-anzahl]')).toHaveText('4');
 		await expect(page.locator('[data-seite-miniatur]')).toHaveCount(2);
 
-		// Jetzt wandert die eingeklappte Seite selbst: Sie bleibt zu, nicht die Zeile, die jetzt oben steht.
+		// Jetzt wandert die eingeklappte Seite selbst: Sie bleibt zu, nicht die Zeile, die jetzt an ihrer Stelle steht.
 		const hand2 = zeiger(page, hasTouch);
-		await hand2.runter(await mitte(griffVon(seitenZeile(page, 1))));
+		await hand2.runter(await mitte(griffVon(seitenZeile(page, 2))));
 		await hand2.zu(await an(seitenZeile(page, 3), 'unten'));
 		await hand2.los();
 		await expect(seitenZeile(page, 3)).toHaveAttribute('data-zu');
-		await expect(seitenZeile(page, 1)).not.toHaveAttribute('data-zu');
+		await expect(seitenZeile(page, 2)).not.toHaveAttribute('data-zu');
 		expect((await quelle(page)).lastIndexOf('class="seite"')).toBeLessThan(
 			(await quelle(page)).indexOf('Lies ab. Sch'),
 		);
@@ -304,7 +312,8 @@ test.describe('Gliederung (080)', () => {
 		await expect(page.getByRole('button', { name: 'Alle aufklappen' })).toBeVisible();
 
 		// Die Zeile der Seite wählt, ohne sie aufzuklappen.
-		await druecke(seitenZeile(page, 1).getByRole('button', { name: 'Seite 1', exact: true }));
+		// Eingeklappt steht die Zahl der Aufgaben mit im Namen des Knopfs („Seite 1 4“).
+		await druecke(seitenZeile(page, 1).getByRole('button', { name: /^Seite 1( \d+)?$/ }));
 		await expect(page.locator('[data-auswahl="seite"]')).toBeVisible();
 		await expect(aufgaben(page)).toHaveCount(0);
 

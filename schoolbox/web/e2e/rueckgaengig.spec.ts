@@ -12,7 +12,7 @@ const pfeilVor = (page: Page) => page.getByRole('button', { name: 'Wiederholen (
 const sitzung = (page: Page) => page.locator('[data-textbearbeitung]');
 const inspektor = (page: Page) => page.locator('[data-panel="inspektor"]');
 const zeigeBlatt = (page: Page, druecke: Druecke) =>
-	druecke(inspektor(page).getByRole('button', { name: 'Blatt', exact: true }));
+	druecke(inspektor(page).getByRole('tab', { name: 'Blatt', exact: true }));
 
 /** Beide Wege, die dasselbe tun müssen (Entscheidung 36). */
 const WEGE = {

@@ -139,6 +139,9 @@ test.describe('Editor: Mit Claude ändern (058, 059)', () => {
 		const datei = path.join(dokumentOrdner(mappe, dok), 'material.html');
 		await writeFile(datei, (await readFile(datei, 'utf8')).replace('</h1>', ' Eigenes</h1>'));
 		await page.reload();
+		// Das Fenster startet nach dem Neuladen zu (087); der Vorschlag wartet in der Statusleiste.
+		await expect(panel(page)).toHaveCount(0);
+		await oeffnePanel(page);
 		await expect(panel(page).getByRole('alert')).toContainText('seit dem Auftrag geändert');
 		await expect(panel(page).getByRole('button', { name: 'Vergleichen' })).toHaveCount(0);
 		await expect(panel(page).getByRole('button', { name: 'Neu starten' })).toBeVisible();

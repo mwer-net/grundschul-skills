@@ -180,7 +180,7 @@ test.describe('Editor: Struktur', () => {
 		await druecke(zurueck(page));
 
 		// Die Auswahl bleibt nach dem Schritt stehen (085).
-		await druecke(page.locator('[data-panel="inspektor"]').getByRole('button', { name: 'Blatt', exact: true }));
+		await druecke(page.locator('[data-panel="inspektor"]').getByRole('tab', { name: 'Blatt', exact: true }));
 		const regler = page.getByRole('slider', { name: 'Abstand zwischen Aufgaben' });
 		await expect(regler).toHaveValue('28');
 		await expect(regler).toHaveAttribute('min', '16');

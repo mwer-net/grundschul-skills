@@ -84,6 +84,9 @@ export const useLoesung = ({ geladen, html, loesung, pfad, rueckgaengig, struktu
 			const k = zerlege(q).knoten[nr];
 			return k && istAntwort(k) && loesungVon(k) === alt ? setzeLoesung(q, nr, neu) : q;
 		});
+		// Der Entwurf ist jetzt ein Schritt. Bliebe er stehen, lebte er nach Rückgängig wieder auf: Dann gilt dieselbe
+		// Grundlage wie beim Tippen, und das Blatt zeigte die zurückgenommene Lösung.
+		setEntwurf((e) => (e?.basis === `${nr}:${alt}` ? null : e));
 	};
 
 	const aktuell = useRef({ antwort, gespeichert, wert });

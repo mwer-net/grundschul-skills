@@ -192,6 +192,8 @@ test.describe('Editor: Feldtypen (023)', () => {
 		await probe(page).click();
 		const griff = page.getByRole('button', { name: 'Zeile 1 verschieben' });
 		const ziel = page.locator('[data-liste="eintraege"] [data-zeile="2"]');
+		// Über der Liste stehen inzwischen Lösung und Sichtbarkeit (084): Sie liegt unter dem Rand des Fensters.
+		await ziel.scrollIntoViewIfNeeded();
 		const a = await griff.boundingBox();
 		const b = await ziel.boundingBox();
 		if (!a || !b) {
@@ -252,7 +254,7 @@ test.describe('Editor: Feldtypen (023)', () => {
 		await gespeichert(page, datei);
 		await druecke(material(page).locator('x-gitter'));
 		await expect(panel(page).locator('[data-feld="faktor"]')).toHaveCount(0);
-		await panel(page).locator('[data-feld="aufgabe"] select').selectOption('weg');
+		await panel(page).locator('[data-feld="aufgabe"] select').selectOption({ label: 'Weg' });
 		await expect(panel(page).locator('[data-feld="wegart"]')).toBeVisible();
 		await expect(panel(page).locator('[data-feld="faktor"]')).toHaveCount(0);
 		expect(await readFile(datei, 'utf8')).toContain('faktor="0.5"');
@@ -1335,6 +1337,8 @@ test.describe('Geometrie: Wahlen nehmen mit, was sie brauchen (084)', () => {
 		druecke,
 		page,
 	}) => {
+		// Fünf Wahlen mit je zwei Speicherständen: Das braucht in WebKit mehr als die üblichen 30 s.
+		test.slow();
 		const { datei, stand } = await mitTag(
 			page,
 			'<x-wuerfelbau bauplan="2 1 / 3 1" zeige="schraegbild bauplan vorne rechts links oben"></x-wuerfelbau>',
@@ -1841,6 +1845,11 @@ test.describe('Lineatur und Silben (031)', () => {
 
 		const silben = material(page).locator('x-silben');
 		await druecke(silben);
+		// Der Text der Silben steht seit 083 unter „Weitere“, oben stehen die Lesehilfen.
+		const weitere = page.locator('[data-abschnitt="weitere"] > button');
+		if ((await weitere.getAttribute('aria-expanded')) !== 'true') {
+			await druecke(weitere);
+		}
 		const feld = page.getByLabel('Text', { exact: true });
 		await expect(feld).toHaveValue('Rosi|ne');
 		await feld.evaluate((e: HTMLTextAreaElement) => {
