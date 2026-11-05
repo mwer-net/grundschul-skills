@@ -117,7 +117,7 @@ const werteVon = (doc: Document, pfad: PfadTeil[]): StrukturWerte => {
 };
 
 /**
- * Struktur-Befehle aus Panel, Seitenleiste und Ziehen. Jeder ist ein Schritt im Verlauf. Danach steht die Auswahl
+ * Struktur-Befehle aus Panel, Gliederung und Ziehen. Jeder ist ein Schritt im Verlauf. Danach steht die Auswahl
  * auf dem verschobenen bzw. neuen Baustein, sobald die neue Fassung zu sehen ist; bis dahin nimmt die alte
  * Darstellung nichts mehr an, weil ihre Nummern nicht mehr stimmen.
  */
@@ -205,10 +205,25 @@ export const useStruktur = (o: Optionen) => {
 
 	const zurueckKnopf = () => ({ titel: 'Rückgängig', ausfuehren: () => aktuell.current.rueckgaengig() });
 
-	const verschiebe = (nr: number, ablage: Ablage, springen = false) => {
-		const e = fuehreAus('Verschoben', (q) => verschiebeBaustein(q, nr, ablage, nummerierung()), springen);
+	const verschiebe = (nr: number, ablage: Ablage, springen = false, beschreibung = 'Verschoben') => {
+		const e = fuehreAus(beschreibung, (q) => verschiebeBaustein(q, nr, ablage, nummerierung()), springen);
 		if (e && sternNichtAmEnde(e.quelle) && !sternNichtAmEnde(e.alt)) {
 			zeige({ text: 'Die Sternchenaufgabe steht jetzt nicht mehr am Ende.', aktion: zurueckKnopf() });
+		}
+		return e !== null;
+	};
+
+	/** Probelauf ohne Wirkung: Der Kern entscheidet, was geht, nicht die Oberfläche. */
+	const kannVerschieben = (nr: number, ablage: Ablage) => {
+		const { aktiv: bereit, quelle: stand } = aktuell.current;
+		if (!stand || !bereit) {
+			return false;
+		}
+		try {
+			verschiebeBaustein(stand, nr, ablage, nummerierung());
+			return true;
+		} catch {
+			return false;
 		}
 	};
 
@@ -242,7 +257,7 @@ export const useStruktur = (o: Optionen) => {
 	/** Nur zum Ansehen, während der Regler gezogen wird; die Quelle ändert erst das Loslassen. */
 	const zeigeAbstand = (px: number) => doc?.body.style.setProperty('--abstand', `${px}px`);
 
-	/** Auswahl von außerhalb des Blatts (Seitenleiste): dorthin rollen. */
+	/** Auswahl von außerhalb des Blatts (Gliederung): dorthin rollen. */
 	const zeigeAn = (nr: number) => {
 		o.setAuswahl(nr);
 		setSpringe((n) => n + 1);
@@ -256,6 +271,7 @@ export const useStruktur = (o: Optionen) => {
 		springe,
 		zeigeAn,
 		verschiebe,
+		kannVerschieben,
 		dupliziere,
 		loesche,
 		neueSeite,

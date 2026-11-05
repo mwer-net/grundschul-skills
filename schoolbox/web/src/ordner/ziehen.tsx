@@ -2,6 +2,7 @@ import type { PointerEvent as ReactPointerEvent, ReactNode, RefObject } from 're
 import { useEffect, useRef, useState } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 
+import { folgeZeiger, rolleAmRand, schluckeKlick } from '../bausteine/zeigerzug';
 import { FINGER_WEG, HALTEN_MS, MAUS_WEG } from '../editor/ziehen';
 import type { AuswahlStand } from './auswahl';
 import { Geist } from './Geist';
@@ -141,11 +142,7 @@ export const useZiehen = (o: Optionen) => {
 		const leiste = document.querySelector<HTMLElement>('[data-baum-roll]');
 		const r = leiste?.getBoundingClientRect();
 		if (leiste && r && x >= r.left && x <= r.right) {
-			if (y < r.top + RAND) {
-				leiste.scrollBy(0, -ROLLEN);
-			} else if (y > r.bottom - RAND) {
-				leiste.scrollBy(0, ROLLEN);
-			}
+			rolleAmRand(leiste, y);
 			return;
 		}
 		if (y < RAND + 60) {
@@ -234,10 +231,7 @@ export const useZiehen = (o: Optionen) => {
 		let y = startY;
 		let bewegtSich = false;
 		let halten: number | null = null;
-		let rollen: number | null = null;
 		const basis = e.metaKey || e.shiftKey ? o.auswahl.gewaehlt : [];
-
-		const lauscher = new AbortController();
 
 		const zeichneLasso = () => {
 			const links = Math.min(startX, x);
@@ -255,8 +249,7 @@ export const useZiehen = (o: Optionen) => {
 			neu.current.o.setAuswahl({ gewaehlt, anker: gewaehlt[0] ?? null });
 		};
 
-		const schleife = () => {
-			rollen = requestAnimationFrame(schleife);
+		const jedesBild = () => {
 			if (lauf.current) {
 				rolle(x, y);
 				lauf.current.x = x;
@@ -295,25 +288,12 @@ export const useZiehen = (o: Optionen) => {
 		};
 
 		const raeumeAuf = () => {
-			lauscher.abort();
+			hoereAuf();
 			if (halten !== null) {
 				window.clearTimeout(halten);
 			}
-			if (rollen !== null) {
-				cancelAnimationFrame(rollen);
-			}
 			setLasso(null);
 			aufraeumen.current = null;
-		};
-
-		/** Der Klick nach dem Loslassen gehörte zum Zug, er hebt keine Auswahl auf. */
-		const schluckeKlick = () => {
-			const schlucke = (k: MouseEvent) => {
-				k.stopPropagation();
-				k.preventDefault();
-			};
-			window.addEventListener('click', schlucke, { capture: true, once: true });
-			window.setTimeout(() => window.removeEventListener('click', schlucke, true), 300);
 		};
 
 		const hoch = (m: PointerEvent) => {
@@ -362,20 +342,16 @@ export const useZiehen = (o: Optionen) => {
 				waehleZiel(z);
 			}
 		};
-		const sperreRollen = (t: TouchEvent) => {
-			if (lauf.current) {
-				t.preventDefault();
-			}
-		};
 
-		const { signal } = lauscher;
-		window.addEventListener('pointermove', bewegen, { signal });
-		window.addEventListener('pointerup', hoch, { signal });
-		window.addEventListener('pointercancel', abbruch, { signal });
-		window.addEventListener('keydown', taste, { capture: true, signal });
-		window.addEventListener('keyup', tasteLos, { capture: true, signal });
-		document.addEventListener('touchmove', sperreRollen, { passive: false, signal });
-		rollen = requestAnimationFrame(schleife);
+		const hoereAuf = folgeZeiger({
+			bewegen,
+			los: hoch,
+			abbruch,
+			taste,
+			tasteLos,
+			bild: jedesBild,
+			sperrtRollen: () => lauf.current !== null,
+		});
 		aufraeumen.current = abbruch;
 		if (finger && objekt) {
 			halten = window.setTimeout(() => {

@@ -25,7 +25,6 @@ import { TEXTWERKZEUG } from './text';
 import { MAUS_WEG } from './ziehen';
 
 const ZEILE = 'w-full rounded-md px-2 py-1 text-left hover:bg-flaeche-2';
-const GLIEDERUNG_ZEILE = 'h-menue w-full rounded-md px-2 text-left hover:bg-flaeche-2 aria-[current]:bg-flaeche-2';
 
 const passtZu = (e: Posten, m: { fach: Fach; klasse: Klasse }, art: Art) =>
 	(!e.faecher || e.faecher.includes(m.fach)) &&
@@ -698,90 +697,6 @@ export const Bibliothek = ({
 					)}
 				</>
 			)}
-		</section>
-	);
-};
-
-/** Alle Seiten und Aufgaben: Klick springt, das Menü ordnet um, auch über die Seitengrenze. */
-export const Gliederung = ({
-	auswahl,
-	doc,
-	kontextmenue,
-	struktur,
-}: {
-	doc: Document | null;
-	auswahl: number | null;
-	kontextmenue?: (nr: number, art: 'baustein' | 'miniatur', punkt: { x: number; y: number }) => void;
-	struktur: Struktur;
-}) => {
-	const liste = useRef<HTMLDivElement>(null);
-	useEffect(() => {
-		liste.current?.querySelector('[aria-current]')?.scrollIntoView({ block: 'nearest' });
-	}, [auswahl]);
-	if (!doc) {
-		return null;
-	}
-	const seiten = [...doc.querySelectorAll('.seite:not([data-erzeugt])')];
-	return (
-		<section data-gliederung>
-			<div ref={liste} className="flex flex-col gap-1">
-				{seiten.map((s, i) => {
-					const nr = nrVon(s);
-					return (
-						<div key={nr ?? i}>
-							<button
-								type="button"
-								className={klassen(GLIEDERUNG_ZEILE, 'font-medium')}
-								{...(auswahl === nr ? { 'aria-current': true as const } : {})}
-								onClick={() => nr !== null && struktur.zeigeAn(nr)}
-								onContextMenu={(ev) => {
-									ev.preventDefault();
-									if (nr !== null) {
-										kontextmenue?.(nr, 'miniatur', { x: ev.clientX, y: ev.clientY });
-									}
-								}}
-							>
-								{`Seite ${i + 1}`}
-							</button>
-							<ul className="flex flex-col">
-								{[...s.children]
-									.filter((k) => k.classList.contains('aufgabe'))
-									.map((k) => {
-										const knr = nrVon(k);
-										const titel = k.querySelector('.anw')?.textContent?.trim() || 'Aufgabe';
-										return (
-											<li
-												key={knr}
-												className="flex items-center gap-0.5 pl-2"
-												data-gliederung-aufgabe
-											>
-												<Tooltip text={titel}>
-													<button
-														type="button"
-														className={klassen(GLIEDERUNG_ZEILE, 'min-w-0 flex-1 truncate')}
-														{...(auswahl === knr ? { 'aria-current': true as const } : {})}
-														onClick={() => knr !== null && struktur.zeigeAn(knr)}
-														onContextMenu={(ev) => {
-															ev.preventDefault();
-															if (knr !== null) {
-																kontextmenue?.(knr, 'baustein', {
-																	x: ev.clientX,
-																	y: ev.clientY,
-																});
-															}
-														}}
-													>
-														{titel}
-													</button>
-												</Tooltip>
-											</li>
-										);
-									})}
-							</ul>
-						</div>
-					);
-				})}
-			</div>
 		</section>
 	);
 };

@@ -1,6 +1,6 @@
 import { formatAusHtml } from '@schoolbox/kern/src/html';
 import { hatLoesung, kannLoesungHaben } from '@schoolbox/kern/src/loesungen';
-import type { Verlauf, Zerlegung } from '@schoolbox/kern/src/quelltext';
+import type { Verlauf } from '@schoolbox/kern/src/quelltext';
 import { zerlege } from '@schoolbox/kern/src/quelltext';
 import { hatNamenszeile } from '@schoolbox/kern/src/struktur';
 import type { Druckprofil, Format } from '@schoolbox/kern/src/werte';
@@ -30,7 +30,8 @@ import { Konfliktleiste, Speicheranzeige, Vorschauleiste } from '../editor/Anzei
 import { Bausteinleiste } from '../editor/Bausteinleiste';
 import { useBearbeitung } from '../editor/bearbeitung';
 import type { MenueArt } from '../editor/befehle';
-import { Bibliothek, Einfuegemarken, Gliederung } from '../editor/Bibliothek';
+import { Bibliothek, Einfuegemarken } from '../editor/Bibliothek';
+import { Gliederung, useGliederungStand } from '../editor/Gliederung';
 import { useBild } from '../editor/bild';
 import type { ChatHandlungen } from '../editor/chat-kontext';
 import { useChat, useChatKontext, useChatStand } from '../editor/chat-kontext';
@@ -40,7 +41,6 @@ import { useEinfuegen, useSlash, useTabelleTab } from '../editor/einfuegen';
 import { halteFokus } from '../editor/halteFokus';
 import { Einstellungen, Inspektor, Umriss } from '../editor/Inspektor';
 import { Leinwand } from '../editor/Leinwand';
-import { leistenHtml } from '../editor/leiste';
 import type { LinksName } from '../editor/LinkeLeiste';
 import { LinkeLeiste } from '../editor/LinkeLeiste';
 import { useLoesung } from '../editor/loesung';
@@ -51,7 +51,6 @@ import { eintraegeImEditor } from '../editor/palette-eintraege';
 import { Blattwerkzeug } from '../editor/Panel';
 import type { Pruefpunkt } from '../editor/pruefung';
 import { ueberlaufendeSeiten, usePruefung } from '../editor/pruefung';
-import { Seitenleiste } from '../editor/Seitenleiste';
 import { Statusleiste } from '../editor/Statusleiste';
 import type { Struktur } from '../editor/struktur';
 import { useStruktur } from '../editor/struktur';
@@ -237,40 +236,6 @@ const useZeigePunkt = ({
 const mitStand = (dokument: DokumentEintrag, verlauf: { quelle: string } | null): DokumentEintrag =>
 	verlauf ? { ...dokument, meta: { ...dokument.meta, hatLoesung: hatLoesung(verlauf.quelle) } } : dokument;
 
-/** Die Seitenleiste zum Material, ohne Leiste, solange es nicht geladen ist. */
-const Seiten = ({
-	festeSeiten,
-	html,
-	kontextmenue,
-	struktur,
-	zerlegung,
-}: {
-	kontextmenue: (nr: number, punkt: { x: number; y: number }) => void;
-	festeSeiten: boolean;
-	html: string | null;
-	zerlegung: Zerlegung | null;
-	struktur: Struktur;
-}) => {
-	const leiste = useMemo(() => (html === null ? null : leistenHtml(html)), [html]);
-	const namenszeile = useMemo(() => (zerlegung ? hatNamenszeile(zerlegung) : false), [zerlegung]);
-	if (leiste === null) {
-		return null;
-	}
-	return (
-		<Seitenleiste
-			html={leiste}
-			gewaehlt={struktur.werte?.seite ?? null}
-			aktiv={struktur.aktiv}
-			waehle={struktur.zeigeAn}
-			verschiebe={(nr, ablage) => struktur.verschiebe(nr, ablage, true)}
-			hinzufuegen={(mitNamenszeile) => void struktur.neueSeite(mitNamenszeile)}
-			kontextmenue={kontextmenue}
-			namenszeile={namenszeile}
-			festeSeiten={festeSeiten}
-		/>
-	);
-};
-
 const Fehlt = ({ fehler }: { fehler: ApiFehler | null }) => (
 	<Zustand symbol="suche" titel="Dieses Dokument gibt es nicht mehr">
 		<p className="text-leise">
@@ -285,7 +250,7 @@ type RechtsName = 'inspektor' | 'versionen';
 const ZITAT_ZEICHEN = 500;
 const SPEICHER_LINKS = 'schoolbox-panel-links';
 const SPEICHER_RECHTS = 'schoolbox-panel-rechts';
-const LINKS: LinksName[] = ['seiten', 'gliederung', 'bausteine'];
+const LINKS: LinksName[] = ['gliederung', 'bausteine'];
 
 /** Im Editor lässt sich das Format ändern (046): Es gilt, was in der Quelle steht. */
 const formatVon = (verlauf: { quelle: string } | null, sonst: Format) =>
@@ -317,7 +282,8 @@ const usePanels = (neu: boolean) => {
 		if (neu) {
 			return 'bausteine';
 		}
-		return LINKS.find((l) => l === localStorage.getItem(SPEICHER_LINKS)) ?? 'seiten';
+		// Ein alter Wert `seiten` führt wie jeder andere zur Gliederung.
+		return LINKS.find((l) => l === localStorage.getItem(SPEICHER_LINKS)) ?? 'gliederung';
 	});
 	const [linksOffen, setLinksZustand] = useState(() => neu || localStorage.getItem(SPEICHER_LINKS) !== 'zu');
 	const [rechts, setRechts] = useState<RechtsName>('inspektor');
@@ -403,7 +369,7 @@ const versionenWerte = (
 ) => ({ versionen: daten?.versionen ?? null, gewaehlt: vorschau?.version.id ?? null });
 
 const linkerReiter = (wunsch: LinksName, frei: boolean): LinksName =>
-	wunsch === 'bausteine' && !frei ? 'seiten' : wunsch;
+	wunsch === 'bausteine' && !frei ? 'gliederung' : wunsch;
 
 const anClaudeWenn = (verfuegbar: boolean, fuelle: (text: string) => void) => (verfuegbar ? fuelle : undefined);
 
@@ -570,6 +536,8 @@ const Bearbeitung = ({ dokument, mappe: mappenDaten }: { mappe: Mappe; dokument:
 		frei,
 		bearbeitet: text.bearbeitet,
 	});
+
+	const gliederungStand = useGliederungStand(zerlegung, auswahl);
 
 	const bild = useBild({
 		geladen,
@@ -969,19 +937,17 @@ const Bearbeitung = ({ dokument, mappe: mappenDaten }: { mappe: Mappe; dokument:
 
 	const links = linkerReiter(panels.links, frei);
 	const linksInhalt = {
-		seiten: (
-			<Seiten
-				html={html}
-				zerlegung={zerlegung}
-				struktur={struktur}
-				festeSeiten={format === 'minibuch'}
-				kontextmenue={(nr, punkt) => menueAn(nr, 'miniatur', punkt)}
-			/>
-		),
 		gliederung: (
-			<div className="min-h-0 flex-1 overflow-y-auto p-2">
-				<Gliederung doc={docJetzt} auswahl={auswahl} kontextmenue={menueAn} struktur={struktur} />
-			</div>
+			<Gliederung
+				doc={docJetzt}
+				zerlegung={zerlegung}
+				html={html}
+				auswahl={auswahl}
+				struktur={struktur}
+				stand={gliederungStand}
+				festeSeiten={format === 'minibuch'}
+				kontextmenue={menueAn}
+			/>
 		),
 		bausteine: (
 			<div className="min-h-0 flex-1 overflow-y-auto p-2">
