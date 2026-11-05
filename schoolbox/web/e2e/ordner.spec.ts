@@ -507,9 +507,9 @@ test.describe('Am Finger', () => {
 		await ziel.tap();
 		await expect(page.getByRole('heading', { level: 1, name: 'Reihe' })).toBeVisible();
 		await druecke(leiste(page).getByRole('button', { name: 'Liste' }));
-		expect((await objekt(page, 'Station 1').boundingBox())?.height).toBeGreaterThanOrEqual(44);
+		expect((await objekt(page, 'Station 1').first().boundingBox())?.height).toBeGreaterThanOrEqual(44);
 		await druecke(page.locator('[data-auswaehlen]'));
-		await objekt(page, 'Station 1').tap();
+		await objekt(page, 'Station 1').first().tap();
 		await objekt(page, 'Station 2').tap();
 		await expect(status(page)).toContainText('2 von 4');
 		expect(await leiste(page).evaluate((l) => l.scrollWidth <= l.clientWidth)).toBe(true);

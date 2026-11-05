@@ -25,6 +25,14 @@ export interface ObjektAnsicht {
 	haken: boolean;
 }
 
+/**
+ * Die Ablage behandelt Klicks gesammelt. Safari am Finger hält ein Element ohne eigenen Lauscher für nicht antippbar und
+ * lenkt den Tipp auf den nächsten Knopf in der Nähe um, zum Beispiel auf ⋯. Ein eigener Lauscher verhindert das.
+ */
+const antwortetAufTipp = (el: HTMLElement | null) => {
+	el?.addEventListener('click', () => undefined);
+};
+
 const GeteiltMarke = () => (
 	<span title="Geteilt" className="inline-flex flex-none items-center text-dezent" data-marke-geteilt>
 		<Symbol name="teilen" className="size-3" />
@@ -66,6 +74,7 @@ export const Kachel = ({ benennt, blass, gewaehlt, haken, menue, objekt, ort }: 
 		data-art={objekt.istOrdner ? 'ordner' : 'dokument'}
 		aria-selected={gewaehlt}
 		role="option"
+		ref={antwortetAufTipp}
 		{...(objekt.istOrdner ? { 'data-ablage-ziel': objekt.ordner.id } : {})}
 		className={klassen(
 			'ablage-objekt relative flex flex-col overflow-hidden rounded-[10px] border bg-flaeche',
@@ -162,6 +171,7 @@ export const Zeile = ({ benennt, blass, gewaehlt, haken, klappe, menue, objekt, 
 		aria-selected={gewaehlt}
 		data-objekt={objekt.schluessel}
 		data-art={objekt.istOrdner ? 'ordner' : 'dokument'}
+		ref={antwortetAufTipp}
 		{...(objekt.istOrdner ? { 'data-ablage-ziel': objekt.ordner.id } : {})}
 		className={klassen(
 			'ablage-objekt',

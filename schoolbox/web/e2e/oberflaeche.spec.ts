@@ -113,7 +113,7 @@ test.describe('Mein Material', () => {
 		await suche.fill('');
 
 		const filter = async (knopf: string, eintrag: string) => {
-			await druecke(page.getByRole('button', { name: knopf }));
+			await druecke(page.getByRole('button', { name: knopf, exact: true }));
 			await druecke(page.getByRole('menuitem', { name: eintrag }));
 		};
 		await expect(page.locator('[data-suchleiste]')).toBeVisible();

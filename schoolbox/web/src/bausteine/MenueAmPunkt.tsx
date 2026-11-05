@@ -32,11 +32,17 @@ export const MenueAnbieter = ({ children }: { children: ReactNode }) => {
 			return undefined;
 		}
 		const zu = () => setSichtbar(false);
+		// Ein langes Menü rollt in sich selbst (iPad): Das darf es nicht schließen.
+		const gerollt = (e: Event) => {
+			if (!(e.target instanceof Element && e.target.closest('[role="menu"]'))) {
+				zu();
+			}
+		};
 		window.addEventListener('resize', zu);
-		window.addEventListener('scroll', zu, true);
+		window.addEventListener('scroll', gerollt, true);
 		return () => {
 			window.removeEventListener('resize', zu);
-			window.removeEventListener('scroll', zu, true);
+			window.removeEventListener('scroll', gerollt, true);
 		};
 	}, [sichtbar]);
 
