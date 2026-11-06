@@ -9,6 +9,7 @@
 		"test:alles": "SCHOOLBOX_TESTS=alles tsx --test --test-concurrency=2 \"src/**/*.test.ts\""
 	},
 	"dependencies": {
-		"hyphen": "^1.14.1"
+		"hyphen": "^1.14.1",
+		"polyclip-ts": "0.16.8"
 	}
 }
