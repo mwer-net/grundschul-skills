@@ -409,3 +409,77 @@ body.ohne-punkte .punkte,body.ohne-punkte x-gesamtpunkte{display:none}
 .thema-band{height:14px;margin-bottom:12px;background:var(--haupt);border-radius:7px}
 .thema-kopf{padding:12px 20px;margin-bottom:16px;background:var(--fuell);border:2px solid var(--haupt);border-radius:16px}
 .thema-kopf h1{margin:0}
+
+/* Gestaltung (Entscheidungen 41, 45, 46): zwei Ebenen am Ende der Seite, frei liegende Elemente mit data-lage="frei".
+   Ein Material ohne Gestaltung trifft keine dieser Regeln. Der Stapelkontext nur bei Bedarf, sonst tauchten Elemente
+   des Bestands mit negativem z-index auf. hinten ist −2, damit das Kopfband eines Rezepts (z-index −1) darüber liegt. */
+.seite:has(> .ebene),body[data-aufmachung] .seite{isolation:isolate}
+.ebene{position:absolute;inset:0;overflow:hidden;pointer-events:none}
+.ebene.hinten{z-index:-2}
+.ebene.vorne{z-index:1}
+/* Lage als Variablen im style; transform nur hier, sonst überschreibt eine Regel Drehen oder Spiegeln */
+[data-lage="frei"]{position:absolute;margin:0;box-sizing:border-box;pointer-events:auto;
+  left:var(--x,0px);top:var(--y,0px);width:var(--b,auto);height:var(--h,auto);
+  transform:rotate(var(--drehen,0deg)) scaleX(var(--spiegeln,1));transform-origin:50% 50%}
+/* Anker: hängt am umgebenden Baustein. Derselbe Selektor steht als ANKER_SELEKTOR im Kern (gestaltung-arten.ts). */
+:is(.aufgabe, .seite > :not(.ebene)):has(> [data-anker]){position:relative}
+/* Seitenfläche und Seitenrahmen füllen ihre Ebene; Fläche, Muster und Rahmen-Arten: 095 */
+.seitenflaeche,.seitenrahmen{position:absolute;inset:0}
+/* Ausgeblendet: nirgends, auch nicht im Editor (die Schublade Ebenen zeigt es über ihre Zeile) */
+[data-aus]{display:none !important}
+/* s/w (Briefing 4.2): Seitenfläche und Streuung sind ohne data-sw weg, alles andere grau, bis data-sw="weg" */
+body.sw [data-sw="weg"],body.sw :is(.seitenflaeche,svg.streuung):not([data-sw="grau"]){display:none !important}
+body.sw .stapel:not([data-sw="grau"]){--stapel-hg:transparent !important}
+body.sw[data-aufmachung] .kopf::before{display:none}
+body.sw[data-aufmachung] .kopf h1{color:var(--dunkel)}
+
+/* >> 095 Seitenfläche, Seitenrahmen */
+/* << 095 */
+
+/* >> 102 Figuren */
+/* << 102 */
+
+/* >> 103 Bilder frei */
+/* << 103 */
+
+/* >> 104 Formen */
+/* << 104 */
+
+/* >> 105 Text */
+/* << 105 */
+
+/* >> 107 Formen-Werkzeuge, Sprechblase */
+/* << 107 */
+
+/* >> 108 Aussehen */
+/* << 108 */
+
+/* >> 109 Streuung */
+/* << 109 */
+
+/* >> 110 Kontur und Bogen */
+/* << 110 */
+
+/* >> 111 Bild-Rahmen */
+/* << 111 */
+
+/* >> 114 Rezepte */
+/* << 114 */
+
+/* >> 115 Fläche im Stapel */
+/* << 115 */
+
+/* >> 118 Rezepte Daten */
+/* << 118 */
+
+/* >> 120 Gruppen */
+/* << 120 */
+
+/* >> 125 Stapel */
+/* << 125 */
+
+/* >> 128 Sticker */
+/* << 128 */
+
+/* >> 129 Hülle */
+/* << 129 */

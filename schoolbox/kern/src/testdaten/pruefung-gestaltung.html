@@ -1,0 +1,98 @@
+<!doctype html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<title>Prüfung: Gestaltung (091)</title>
+<link rel="stylesheet" href="blatt.css">
+<style>
+/* Aussehen der Arten nach Briefing 3.4 und 3.6, bis ihre Tickets es in blatt.css schreiben (095, 104, 105) */
+.seitenflaeche[data-flaeche="farbe"]{background:var(--f1)}
+.seitenrahmen{inset:var(--rahmen-abstand,24px);border:var(--rahmen-staerke,3px) solid var(--rahmen-farbe,var(--dunkel));border-radius:var(--rahmen-ecke,0)}
+.seitenrahmen[data-rahmen="gestrichelt"]{border-style:dashed}
+.form-text>svg{position:absolute;inset:0;width:100%;height:100%;overflow:visible}
+.form-text>.form-inhalt{position:relative;height:100%;display:flex;align-items:center;justify-content:center;
+  padding:8px 14px;text-align:center;font:600 var(--gr,22px)/1.15 Fredoka,sans-serif;color:var(--farbe,var(--dunkel))}
+.schmuck{font:600 var(--gr,40px)/1.1 Fredoka,sans-serif;color:var(--farbe,var(--dunkel))}
+.schmuck[data-schmuck="etikett"]{background:var(--hg,var(--akzent));color:var(--farbe,#fff);border-radius:999px;padding:.15em .7em}
+</style>
+</head>
+<body class="kl2 farbe palette-himmel">
+<!-- Seite 1: Gestaltung aus Briefing 3.4 bis 3.6, auch im Seitenrand und über Aufgaben. Erwartet: kein FEHLER, keine
+     WARNUNG, und platz-frei wie ohne Ebenen. -->
+<section class="seite">
+  <div class="kopf">
+    <div class="titel"><h1>Formen-Detektive</h1><div class="ziel">Ich kann Formen erkennen.</div></div>
+  </div>
+  <div class="aufgabe">
+    <span class="nr">1</span>
+    <div class="anw"><div class="text">Zeichne ein Haus aus Formen.</div></div>
+    <div class="koerper"><div class="zeile">Ein Dreieck und ein Quadrat.</div></div>
+    <img class="figur-frei" data-lage="frei" data-anker data-figur="willi" src="bilder/willi.png" alt="Willi"
+         style="--x:600px;--y:-40px;--b:110px;--drehen:8deg">
+  </div>
+  <div class="aufgabe">
+    <span class="nr">2</span>
+    <div class="anw"><div class="text">Zähle die Ecken.</div></div>
+    <div class="koerper"><div class="zeile">Ein Stern hat zehn Ecken.</div></div>
+  </div>
+  <div class="ebene hinten">
+    <div class="seitenflaeche" data-flaeche="farbe" style="--f1:#fff1d0"></div>
+    <div class="seitenrahmen" data-rahmen="gestrichelt"
+         style="--rahmen-farbe:var(--dunkel);--rahmen-staerke:3px;--rahmen-abstand:24px;--rahmen-ecke:16px"></div>
+    <svg class="streuung" data-lage="frei" data-streuung="punkte" data-saat="4711" viewBox="0 0 220 260"
+         style="--x:0px;--y:863px;--b:220px;--h:260px">
+      <circle cx="18" cy="242" r="9" style="fill:var(--haupt)"/>
+      <circle cx="48" cy="222" r="7" style="fill:var(--akzent)"/>
+      <circle cx="30" cy="190" r="6" style="fill:var(--dunkel)"/>
+      <circle cx="80" cy="246" r="8" style="fill:var(--haupt)"/>
+    </svg>
+  </div>
+  <div class="ebene vorne">
+    <svg class="form" data-lage="frei" data-form="stern" data-zacken="5" data-innen="0.45" viewBox="0 0 120 120"
+         style="--x:650px;--y:20px;--b:120px;--h:120px;--drehen:12deg">
+      <path d="M60.0 3.0 L75.1 39.2 L114.2 42.4 L84.4 67.9 L93.5 106.1 L60.0 85.7 L26.5 106.1 L35.6 67.9 L5.8 42.4 L44.9 39.2Z"
+            style="fill:var(--akzent);stroke:var(--dunkel);stroke-width:3px"/>
+    </svg>
+    <img class="bild-frei" data-lage="frei" src="bilder/wachstum.png" alt="Wachstum"
+         style="--x:30px;--y:330px;--b:420px;--drehen:-3deg">
+    <img class="figur-frei" data-lage="frei" data-figur="wilma" src="bilder/wilma.png" alt="Wilma"
+         style="--x:680px;--y:480px;--b:150px;--spiegeln:-1">
+    <div class="form-text" data-lage="frei" data-form="sprechblase" data-zipfel="-26,70"
+         style="--x:470px;--y:300px;--b:180px;--h:84px">
+      <svg viewBox="0 0 180 84" aria-hidden="true">
+        <path d="M16 3H164Q177 3 177 16V52Q177 65 164 65H16Q3 65 3 52L-26 70L3 36V16Q3 3 16 3Z"
+              style="fill:#fff;stroke:var(--dunkel);stroke-width:3px"/>
+      </svg>
+      <div class="form-inhalt">Zähl genau!</div>
+    </div>
+    <div class="schmuck" data-lage="frei" data-schmuck="etikett" style="--x:20px;--y:700px;--gr:22px;--hg:var(--haupt)">13 Fälle</div>
+    <div class="schmuck" data-lage="frei" data-schmuck="titel" style="--x:-30px;--y:1050px;--gr:56px;--drehen:-4deg">Detektive</div>
+  </div>
+</section>
+<!-- Seite 2: Gegenproben im Hauptstapel neben einer Ebene. Erwartet: rand, ueberlappung und flaeche wie ohne Ebenen. -->
+<section class="seite">
+  <div class="aufgabe">
+    <span class="nr">3</span>
+    <div class="anw"><div class="text">Im Seitenrand.</div></div>
+    <div class="koerper"><div class="zeile" style="margin-left:-140px">Diese Zeile ragt in den Rand.</div></div>
+  </div>
+  <div class="aufgabe">
+    <span class="nr">4</span>
+    <div class="anw"><div class="text">Zwei Bilder übereinander.</div></div>
+    <div class="koerper">
+      <img src="bilder/willi.png" alt="Willi oben" style="width:120px">
+      <img src="bilder/wilma.png" alt="Wilma darunter" style="width:120px;margin-left:-60px">
+    </div>
+  </div>
+  <div class="aufgabe">
+    <span class="nr">5</span>
+    <div class="anw"><div class="text">Grauer Kasten.</div></div>
+    <div class="koerper"><div style="background:#cccccc;width:300px;height:40px"></div></div>
+  </div>
+  <div class="ebene vorne">
+    <img class="figur-frei" data-lage="frei" data-figur="willi" src="bilder/willi.png" alt="Willi frei"
+         style="--x:100px;--y:120px;--b:140px">
+  </div>
+</section>
+</body>
+</html>

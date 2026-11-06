@@ -1,0 +1,2 @@
+/* Thema mit Strukturselektor (Briefing 4.7): Auf Seiten mit Ebenen ist das letzte Kind die vordere Ebene, nicht der Fuß. */
+.seite > :last-child{border-top:3px dashed var(--haupt)}
