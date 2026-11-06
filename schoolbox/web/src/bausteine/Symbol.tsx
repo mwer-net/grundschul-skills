@@ -40,6 +40,8 @@ import {
 	Layers,
 	LayoutGrid,
 	Leaf,
+	Link2,
+	Link2Off,
 	List,
 	ListFilter,
 	ListTree,
@@ -64,6 +66,7 @@ import {
 	Puzzle,
 	Redo2,
 	RotateCcw,
+	RotateCw,
 	Ruler,
 	Scissors,
 	Search,
@@ -165,6 +168,9 @@ const SYMBOLE = {
 	rezepte: Palette,
 	anheften: Pin,
 	abheften: PinOff,
+	drehen: RotateCw,
+	verhaeltnis: Link2,
+	verhaeltnislos: Link2Off,
 } as const satisfies Record<string, LucideIcon>;
 
 export type SymbolName = keyof typeof SYMBOLE;

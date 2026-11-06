@@ -52,6 +52,13 @@ export const GESTALTEN: Abschnitt = {
 			{/* << 097 */}
 
 			{/* >> 099 */}
+			<h3>Leiste am Element und Inspektor</h3>
+			<p>
+				Ist ein Bild, eine Figur, eine Form oder ein anderes Gestaltungselement gewählt, steht darüber eine eigene kleine
+				Leiste mit „Drehen“ und ⋯ für Duplizieren, Kopieren, Löschen und Claude fragen. Rechts im Inspektor stellst du
+				Position und Größe in Pixeln, die Ebene (vorne oder hinten) und den Druck ein: ob es in s/w grau bleibt oder
+				wegfällt und ob es immer, nur in der Lösung oder nicht in der Lösung erscheint.
+			</p>
 			{/* << 099 */}
 
 			{/* >> 100 */}
