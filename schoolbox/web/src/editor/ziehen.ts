@@ -2,6 +2,7 @@ import type { Baustein } from '@schoolbox/kern/src/bausteine';
 import type { Ablage } from '@schoolbox/kern/src/struktur';
 
 import { bausteinVon, elementZu, nrVon, pfadZu, trefferAn } from './darstellung';
+import { entferneLuecke, inLuecke, zeigeLuecke } from './luecke';
 import type { Ordnung, Platz } from './ziele';
 import { ordnungVon, platzAn, ziehbarImBlatt } from './ziele';
 
@@ -11,13 +12,50 @@ export interface ZugAnzeige {
 	x: number;
 	y: number;
 	platz: Platz | null;
+	/** Die Lücke zeigt den Platz im Blatt (094); die Linie nur, wo keine Lücke steht (Raster). */
+	luecke?: boolean;
 }
+
+/** So nah am oberen bzw. unteren Rand rollt die Ansicht beim Ziehen mit. */
+const ROLL_RAND = 64;
+const ROLL_MAX = 18;
+
+/** Das Element, das die Ansicht um `element` rollt. */
+export const rollbarUm = (element: HTMLElement | null) => {
+	for (let e = element?.parentElement ?? null; e; e = e.parentElement) {
+		if (/(auto|scroll)/.test(getComputedStyle(e).overflowY) && e.scrollHeight > e.clientHeight) {
+			return e;
+		}
+	}
+	return null;
+};
+
+/**
+ * Rollt die Ansicht um `element`, wenn `bildschirmY` (Koordinaten des Elternfensters) an ihrem oberen oder unteren Rand
+ * steht; liefert, um wie viele Pixel des Bildschirms sie rollte. Ziehen im Blatt und aus der Schublade teilen das.
+ */
+export const rolleAnsicht = (element: HTMLElement | null, bildschirmY: number) => {
+	const ansicht = rollbarUm(element);
+	if (!ansicht) {
+		return 0;
+	}
+	const { bottom, top } = ansicht.getBoundingClientRect();
+	const schritt =
+		bildschirmY < top + ROLL_RAND
+			? -ROLL_MAX * Math.min(1, (top + ROLL_RAND - bildschirmY) / ROLL_RAND)
+			: ROLL_MAX * Math.max(0, Math.min(1, (bildschirmY - bottom + ROLL_RAND) / ROLL_RAND));
+	const vorher = ansicht.scrollTop;
+	ansicht.scrollTop += Math.round(schritt);
+	return ansicht.scrollTop - vorher;
+};
 
 interface Optionen {
 	doc: Document;
 	/** Gehört das Dokument zur aktuellen Quelle, und ist gerade nichts anderes im Gange? */
 	erlaubt: () => boolean;
 	auswahl: () => number | null;
+	/** Nummern je Seite (Folien) oder durch das ganze Dokument, wie `nummeriere`. */
+	jeSeite: () => boolean;
 	beginnt: (nr: number) => void;
 	zeige: (anzeige: ZugAnzeige | null) => void;
 	ablegen: (nr: number, ablage: Ablage) => void;
@@ -114,10 +152,22 @@ export const ruesteZiehen = (o: Optionen): ZiehenSteuerung => {
 	};
 
 	const aktualisiere = () => {
-		if (zug) {
-			zug.platz = platzAn(zug.ordnung, zug.x, zug.y);
-			o.zeige({ name: zug.name, x: zug.x, y: zug.y, platz: zug.platz });
+		if (!zug) {
+			return;
 		}
+		// In der Lücke bleibt der Platz; sonst verschöbe sie das Blatt unter dem Zeiger hin und her.
+		if (!zug.platz || !inLuecke(doc, zug.x, zug.y)) {
+			zug.platz = platzAn(zug.ordnung, zug.x, zug.y);
+		}
+		const { platz } = zug;
+		const luecke =
+			platz !== null &&
+			!platz.marke.senkrecht &&
+			zeigeLuecke(doc, platz, zug.element, { jeSeite: o.jeSeite(), verbirg: zug.element });
+		if (!luecke) {
+			entferneLuecke(doc);
+		}
+		o.zeige({ name: zug.name, x: zug.x, y: zug.y, platz, luecke });
 	};
 
 	const rolle = () => {
@@ -170,6 +220,7 @@ export const ruesteZiehen = (o: Optionen): ZiehenSteuerung => {
 		if (!z) {
 			return;
 		}
+		entferneLuecke(doc);
 		z.element.style.opacity = z.deckkraft;
 		doc.documentElement.style.cursor = '';
 		o.zeige(null);

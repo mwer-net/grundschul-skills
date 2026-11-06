@@ -963,7 +963,6 @@ const Bearbeitung = ({ dokument, mappe: mappenDaten }: { mappe: Mappe; dokument:
 					mappe={mappenDaten}
 					art={meta.art}
 					doc={docJetzt}
-					setAuswahl={setAuswahl}
 				/>
 			</div>
 		),
@@ -1131,6 +1130,7 @@ const Bearbeitung = ({ dokument, mappe: mappenDaten }: { mappe: Mappe; dokument:
 								nurAnsehen={vorschau !== null}
 								ziehbar={struktur.aktiv}
 								ablegen={struktur.verschiebe}
+								jeSeite={format === 'folie'}
 								einblendung={
 									frei
 										? (e) => (

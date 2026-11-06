@@ -7,9 +7,11 @@ import { Symbol } from '../bausteine/Symbol';
 import { meldeDaneben } from '../bausteine/ueberlagerung';
 import type { Groesse } from './bild';
 import { elementZu, nrVon, trefferAn, VERALTET } from './darstellung';
+import { LUECKE_GEAENDERT } from './luecke';
 import type { Pruefstand } from './pruefung';
 import type { ZiehenSteuerung, ZugAnzeige } from './ziehen';
-import { ruesteZiehen } from './ziehen';
+import { rollbarUm, rolleAnsicht, ruesteZiehen } from './ziehen';
+import { ZUG_VON_AUSSEN } from './zug-von-aussen';
 
 interface Masse {
 	breite: number;
@@ -62,6 +64,8 @@ interface Eigenschaften {
 	/** Bausteine dürfen gezogen werden (nicht beim Tippen, nicht bei einem Konflikt). */
 	ziehbar: boolean;
 	ablegen: (nr: number, ablage: Ablage) => void;
+	/** Nummern je Seite (Folien): So zählt auch die Lücke beim Ziehen. */
+	jeSeite: boolean;
 	/** Ändert sich die Zahl, rollt die Ansicht zum gewählten Baustein. */
 	springe: number;
 	/** So viel verdeckt der offene Chat-Verlauf; beim Einpassen zählt das Blatt nur den Rest. */
@@ -87,18 +91,6 @@ const LADE_BREITE = 1600;
 /** Weiter bewegt oder länger gedrückt ist kein Antippen mehr, sondern Wischen bzw. Halten. */
 const TIPP_WEG = 10;
 const TIPP_MS = 800;
-/** So nah am oberen bzw. unteren Rand rollt die Ansicht beim Ziehen mit. */
-const ROLL_RAND = 64;
-const ROLL_MAX = 18;
-
-const rollbarUm = (element: HTMLElement | null) => {
-	for (let e = element?.parentElement ?? null; e; e = e.parentElement) {
-		if (/(auto|scroll)/.test(getComputedStyle(e).overflowY) && e.scrollHeight > e.clientHeight) {
-			return e;
-		}
-	}
-	return null;
-};
 
 const miss = (doc: Document): Masse => {
 	const seiten = [...doc.querySelectorAll<HTMLElement>('.seite')];
@@ -301,6 +293,7 @@ export const Leinwand = ({
 	geladen,
 	groesse,
 	html,
+	jeSeite,
 	kontextmenue,
 	meldeMassstab,
 	nurAnsehen,
@@ -321,6 +314,9 @@ export const Leinwand = ({
 	const [rahmen, setRahmen] = useState<Rahmen[]>([]);
 	const [doc, setDoc] = useState<Document | null>(null);
 	const [zug, setZug] = useState<ZugAnzeige | null>(null);
+	/** Ein Zug aus der Schublade (094): Er läuft im Elternfenster, die Leinwand blendet nur aus und misst neu. */
+	const [vonAussen, setVonAussen] = useState(false);
+	const [, setLueckenStand] = useState(0);
 	const [ziehBreite, setZiehBreite] = useState<number | null>(null);
 	const rueckrufe = useRef({
 		waehle,
@@ -333,6 +329,7 @@ export const Leinwand = ({
 		auswahl,
 		kontextmenue,
 		textsitzung,
+		jeSeite,
 	});
 	const skalaJetzt = useRef(1);
 	const ziehen = useRef<ZiehenSteuerung | null>(null);
@@ -360,8 +357,9 @@ export const Leinwand = ({
 			auswahl,
 			kontextmenue,
 			textsitzung,
+			jeSeite,
 		};
-	}, [waehle, taste, geladen, nurAnsehen, ziehbar, ablegen, html, auswahl, kontextmenue, textsitzung]);
+	}, [waehle, taste, geladen, nurAnsehen, ziehbar, ablegen, html, auswahl, kontextmenue, textsitzung, jeSeite]);
 
 	// Losgelassen außerhalb des Materials: Das `iframe` bekommt das nicht immer mit.
 	useEffect(() => {
@@ -404,20 +402,8 @@ export const Leinwand = ({
 
 	/** Rollt beim Ziehen, wenn der Zeiger am Rand der Ansicht steht; Rückgabe in Koordinaten des Materials. */
 	const rolle = (frame: HTMLIFrameElement, y: number) => {
-		const ansicht = rollbarUm(behaelter.current);
-		if (!ansicht) {
-			return 0;
-		}
 		const skala = skalaJetzt.current;
-		const bildschirm = frame.getBoundingClientRect().top + y * skala;
-		const { bottom, top } = ansicht.getBoundingClientRect();
-		const schritt =
-			bildschirm < top + ROLL_RAND
-				? -ROLL_MAX * Math.min(1, (top + ROLL_RAND - bildschirm) / ROLL_RAND)
-				: ROLL_MAX * Math.max(0, Math.min(1, (bildschirm - bottom + ROLL_RAND) / ROLL_RAND));
-		const vorher = ansicht.scrollTop;
-		ansicht.scrollTop += Math.round(schritt);
-		return (ansicht.scrollTop - vorher) / skala;
+		return rolleAnsicht(behaelter.current, frame.getBoundingClientRect().top + y * skala) / skala;
 	};
 
 	const verbinde = (dokument: Document, inhalt: string, frame: HTMLIFrameElement) => {
@@ -429,12 +415,16 @@ export const Leinwand = ({
 				rueckrufe.current.html === inhalt &&
 				!dokument.documentElement.hasAttribute(VERALTET),
 			auswahl: () => rueckrufe.current.auswahl,
+			jeSeite: () => rueckrufe.current.jeSeite,
 			beginnt: (nr) => rueckrufe.current.waehle(nr),
 			zeige: setZug,
 			ablegen: (nr, ablage) => rueckrufe.current.ablegen(nr, ablage),
 			rolle: (_x, y) => rolle(frame, y),
 		});
 		ziehen.current = steuerung;
+		// Die Lücke verschiebt das Blatt: Auswahl, Leisten und Marken messen dann neu.
+		dokument.addEventListener(LUECKE_GEAENDERT, () => setLueckenStand((n) => n + 1));
+		dokument.addEventListener(ZUG_VON_AUSSEN, (e) => setVonAussen((e as CustomEvent<boolean>).detail));
 		let start: { x: number; y: number; zeit: number; id: number } | null = null;
 		let markiertBeimDruecken = false;
 		dokument.addEventListener('pointerdown', (e) => {
@@ -501,6 +491,7 @@ export const Leinwand = ({
 				fokusFolgt.current = frame;
 			}
 			setZug(null);
+			setVonAussen(false);
 			setRahmen((alt) => alt.filter((r) => r.nr >= nr).map((r) => (r.nr === nr ? { ...r, masse } : r)));
 			setDoc(dokument);
 			rueckrufe.current.geladen(dokument, inhalt);
@@ -518,6 +509,7 @@ export const Leinwand = ({
 
 	const gewaehlt = doc && auswahl !== null ? elementZu(doc, auswahl) : null;
 	const box = gewaehlt?.getBoundingClientRect();
+	const zieht = zug !== null || vonAussen;
 
 	return (
 		<div
@@ -525,7 +517,7 @@ export const Leinwand = ({
 			className="relative w-full overflow-x-auto bg-leinwand"
 			data-leinwand
 			data-geladen={masse ? 'ja' : undefined}
-			data-zieht={zug ? 'ja' : undefined}
+			data-zieht={zieht ? 'ja' : undefined}
 			onClick={(e) => {
 				// Tippen neben das Blatt hebt die Auswahl auf; Tippen ins Blatt kommt aus dem `iframe`.
 				if (e.target === e.currentTarget || (e.target as HTMLElement).dataset.innen !== undefined) {
@@ -560,7 +552,7 @@ export const Leinwand = ({
 					/>
 				))}
 				<Pruefrahmen pruefung={pruefung} doc={doc} aus={nurAnsehen} links={links} skala={skala} />
-				{box && gewaehlt && nrVon(gewaehlt) !== null && (
+				{box && gewaehlt && nrVon(gewaehlt) !== null && !zieht && (
 					<div
 						ref={auswahlRahmen}
 						className="pointer-events-none absolute rounded-[2px] border-[1.5px] border-brand-500"
@@ -581,7 +573,7 @@ export const Leinwand = ({
 					links={links}
 					masse={masse}
 					skala={skala}
-					zieht={zug !== null}
+					zieht={zieht}
 					ziehen={ziehen}
 				/>
 				{!nurAnsehen && (
@@ -594,7 +586,7 @@ export const Leinwand = ({
 						setZiehBreite={setZiehBreite}
 					/>
 				)}
-				{zug?.platz && (
+				{zug?.platz && !zug.luecke && (
 					<div
 						className="pointer-events-none absolute rounded-full bg-brand-500 shadow-[0_0_0_2px_white]"
 						data-einfuegemarke

@@ -43,14 +43,14 @@ const aufwaerts = (k: Knoten | null | undefined, klasse: string): Knoten | null 
 	return null;
 };
 
-const neueAufgabe = (innen: string, anweisung = 'Anweisung') =>
+export const neueAufgabe = (innen: string, anweisung = 'Anweisung') =>
 	`<div class="aufgabe"><span class="nr">0</span><div class="anw"><span class="text">${anweisung}</span></div><div class="koerper">${innen}</div></div>`;
 
 /**
  * `baustein`: das HTML, das gewählt sein soll. Liegt es in einer neuen Hülle (Aufgabe, Zeile, Eintrag), meldet das
  * Ergebnis trotzdem den Baustein selbst, denn dessen Einstellungen will man als Nächstes sehen. Ohne Angabe das Äußere.
  */
-const ergebnis = (quelle: string, a: Aenderung[], n: Nummerierung, baustein?: string): StrukturErgebnis => {
+export const ergebnis = (quelle: string, a: Aenderung[], n: Nummerierung, baustein?: string): StrukturErgebnis => {
 	const neu = wendeAn(quelle, a);
 	const erste = a[0];
 	if (!erste) {
@@ -172,7 +172,7 @@ export const einfuegbarAus = (e: KatalogEintrag, starter: ReadonlyMap<string, st
 });
 
 /** Kopf und Namenszeile gehören an den Anfang der Seite, der Fuß ans Ende; alles andere richtet sich nach der Auswahl. */
-const festeStelle = (z: Zerlegung, ziel: Knoten | null, b: Einfuegbar, html: string): Aenderung[] | null => {
+export const festeStelle = (z: Zerlegung, ziel: Knoten | null, b: Einfuegbar, html: string): Aenderung[] | null => {
 	if (b.id !== 'kopf' && b.id !== 'namenszeile' && b.id !== 'fuss') {
 		return null;
 	}
