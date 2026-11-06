@@ -1,3 +1,4 @@
+import { GESTALTUNG_SELEKTOR } from '@schoolbox/kern/src/gestaltung-arten';
 import type { Ablage } from '@schoolbox/kern/src/struktur';
 import type { PointerEvent as ReactPointerEvent, ReactNode, RefObject } from 'react';
 import { useEffect, useLayoutEffect, useRef, useState } from 'react';
@@ -518,6 +519,8 @@ export const Leinwand = ({
 
 	const gewaehlt = doc && auswahl !== null ? elementZu(doc, auswahl) : null;
 	const box = gewaehlt?.getBoundingClientRect();
+	// Gestaltung hat ihren eigenen, gedrehten Rahmen mit Griffen (097); dieser bleibt nur fürs Hinrollen.
+	const gestaltung = gewaehlt?.matches(GESTALTUNG_SELEKTOR) ?? false;
 
 	return (
 		<div
@@ -570,6 +573,7 @@ export const Leinwand = ({
 							top: box.top * skala - 4.5,
 							width: box.width * skala + 9,
 							height: box.height * skala + 9,
+							visibility: gestaltung ? 'hidden' : undefined,
 						}}
 					/>
 				)}
@@ -587,7 +591,7 @@ export const Leinwand = ({
 				{!nurAnsehen && (
 					<Griffe
 						gewaehlt={gewaehlt}
-						groesse={groesse?.nr === auswahl ? groesse : null}
+						groesse={groesse?.nr === auswahl && !gestaltung ? groesse : null}
 						links={links}
 						skala={skala}
 						ziehBreite={ziehBreite}

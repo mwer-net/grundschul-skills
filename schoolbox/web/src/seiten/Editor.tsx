@@ -40,6 +40,8 @@ import { useEinfuegen, useSlash, useTabelleTab } from '../editor/einfuegen';
 import { useGliederungStand } from '../editor/gliederung-stand';
 import { halteFokus } from '../editor/halteFokus';
 import { Einstellungen, Inspektor, Umriss } from '../editor/Inspektor';
+import { gestaltungKontext } from '../editor/gestaltung/kontext';
+import { GestaltungUeberlagerung } from '../editor/gestaltung/ueberlagerung';
 import { Leinwand } from '../editor/Leinwand';
 import { useLoesung } from '../editor/loesung';
 import { Loesungsuebersicht } from '../editor/Loesungspanel';
@@ -571,6 +573,7 @@ const Bearbeitung = ({ dokument, mappe: mappenDaten }: { mappe: Mappe; dokument:
 			hatBild: bild.werte !== null,
 			ebenenAngeheftet: panels.angeheftet,
 			linksOffen: panels.linksOffen ? panels.links : null,
+			gestaltung: gestaltungKontext({ doc: docJetzt, pfad, struktur }),
 			davor: (() => {
 				const element = docJetzt && auswahl !== null ? elementZu(docJetzt, auswahl) : null;
 				const vorher = element?.previousElementSibling;
@@ -1102,6 +1105,7 @@ const Bearbeitung = ({ dokument, mappe: mappenDaten }: { mappe: Mappe; dokument:
 														loes={loes}
 														waehle={setAuswahl}
 													/>
+													<GestaltungUeberlagerung e={e} pfad={pfad} struktur={struktur} waehle={setAuswahl} textsitzung={text.bearbeitet} />
 												</>
 											)
 										: undefined

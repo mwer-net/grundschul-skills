@@ -20,7 +20,12 @@ const EDITOR_STIL =
 	'background:repeating-linear-gradient(135deg,#fef3c7 0 5px,transparent 5px 10px)}' +
 	'body.loesung .antwort:not([data-l])::after,body.loesung .antwort[data-l=""]::after{content:"?";' +
 	'color:#b45309;font-weight:700}' +
-	'@media screen{body{background:transparent!important;padding:12px 0!important}}</style>';
+	'@media screen{body{background:transparent!important;padding:12px 0!important}}' +
+	// >> 097 Gestaltung: Gesperrtes, Seitenfläche und -rahmen lassen Klicks durch; Gestaltung zieht man.
+	'[data-gesperrt],[data-gesperrt] *,.seitenflaeche,.seitenflaeche *,.seitenrahmen,.seitenrahmen *' +
+	'{pointer-events:none!important}[data-lage="frei"]:not(:focus){cursor:move}' +
+	// << 097
+	'</style>';
 
 /** Die Prüfung aus blatt.py, hier ohne Selbststart: Der Editor ruft `pruefeBlatt` nach jeder Änderung (020). */
 const PRUEFUNG = '<script src="pruefung.js" data-manuell defer></script>';
@@ -120,11 +125,14 @@ export const pfadZu = (doc: Document, nr: number): PfadTeil[] => {
 	for (let treffer = trefferAn(elementZu(doc, nr)); treffer; treffer = trefferAn(treffer.element.parentElement)) {
 		kette.unshift(treffer);
 	}
-	return kette.map((treffer, i) => ({
-		nr: treffer.nr,
-		baustein: treffer.baustein,
-		name: nameVon(treffer, kette[i - 1]?.element ?? null),
-	}));
+	// Die Ebene kann nichts (092): Esc geht vom Gestaltungselement zur Seite, der Pfad heißt „Seite 1 › Wilma“ (097).
+	return kette
+		.filter((treffer) => treffer.baustein.art !== 'ebene')
+		.map((treffer, i, ohneEbene) => ({
+			nr: treffer.nr,
+			baustein: treffer.baustein,
+			name: nameVon(treffer, ohneEbene[i - 1]?.element ?? null),
+		}));
 };
 
 /**
