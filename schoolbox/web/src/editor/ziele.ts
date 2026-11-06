@@ -106,18 +106,33 @@ const abstandZu = ({ laenge, senkrecht, x, y }: Marke, px: number, py: number) =
 
 const RAND = 6;
 
-/** Die Plätze vor und hinter jedem Glied außer dem gezogenen, mit Marke mitten in der Lücke zum Nachbarn. */
+/** Ausgeblendet, solange die Lücke es zeigt (094): kein Nachbar, an dem eine Marke stehen könnte. */
+const verborgen = (e: Element) => e.getClientRects().length === 0;
+
+/**
+ * Die Plätze vor und hinter jedem Glied außer dem gezogenen, mit Marke mitten in der Lücke zum Nachbarn. Das gezogene
+ * Element darf ausgeblendet sein oder, beim Zug aus der Schublade, gar nicht unter den Gliedern stehen.
+ */
 const plaetzeIn = (glieder: Element[], element: Element): (Platz & { ohneWirkung: boolean })[] => {
-	const quer = nebeneinander(glieder);
+	const quer = nebeneinander(glieder.filter((g) => g !== element || !verborgen(g)));
 	const i = glieder.indexOf(element);
+	const nachbar = (j: number, schritt: -1 | 1) => {
+		for (let k = j + schritt; k >= 0 && k < glieder.length; k += schritt) {
+			const g = glieder[k] as Element;
+			if (g !== element || !verborgen(g)) {
+				return rechteck(g);
+			}
+		}
+		return null;
+	};
 	return glieder.flatMap((g, j) => {
 		const nr = nrVon(g);
 		if (g === element || nr === null) {
 			return [];
 		}
 		const r = rechteck(g);
-		const vorher = glieder[j - 1] ? rechteck(glieder[j - 1] as Element) : null;
-		const nachher = glieder[j + 1] ? rechteck(glieder[j + 1] as Element) : null;
+		const vorher = nachbar(j, -1);
+		const nachher = nachbar(j, 1);
 		const marke = (wo: 'vor' | 'nach'): Marke => {
 			if (quer) {
 				const nachbar = wo === 'vor' ? vorher : nachher;
@@ -138,7 +153,7 @@ const plaetzeIn = (glieder: Element[], element: Element): (Platz & { ohneWirkung
 		return (['vor', 'nach'] as const).map((wo) => ({
 			ablage: { nr, wo },
 			marke: marke(wo),
-			ohneWirkung: (wo === 'vor' && j === i + 1) || (wo === 'nach' && j === i - 1),
+			ohneWirkung: i >= 0 && ((wo === 'vor' && j === i + 1) || (wo === 'nach' && j === i - 1)),
 		}));
 	});
 };

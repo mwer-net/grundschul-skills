@@ -1,7 +1,9 @@
 import type { Einfuegbar } from '@schoolbox/kern/src/einfuegen';
 import { fuegeBausteinEin, verschiebeAufNeueSeite } from '@schoolbox/kern/src/einfuegen';
+import { fuegeBausteinAn } from '@schoolbox/kern/src/einfuegen-ablage';
 import type { KatalogEintrag } from '@schoolbox/kern/src/katalog';
 import { sucheImKatalog } from '@schoolbox/kern/src/katalog';
+import type { Ablage } from '@schoolbox/kern/src/struktur';
 import { fuegeZeileEin, naechsteZelle, teileTabelle } from '@schoolbox/kern/src/tabelle';
 import { useCallback, useEffect, useRef, useState } from 'react';
 
@@ -81,10 +83,14 @@ export const useEinfuegen = ({ auswahl, dokument, folien, nachher, struktur }: O
 	const zeige = useHinweis();
 	const eintraege = daten?.eintraege ?? [];
 
-	const setzeEin = (e: Posten, einfuegbar: Einfuegbar, nr: number | null) => {
+	/** Hinter `nr` (Klick) oder an der Ablage, die das Ziehen gefunden hat (094). */
+	const setzeEin = (e: Posten, einfuegbar: Einfuegbar, wo: number | null | { ablage: Ablage }) => {
 		const ok = struktur.fuehreAus(
 			`${e.name} eingefügt`,
-			(q) => fuegeBausteinEin(q, einfuegbar, nr, { jeSeite: folien }),
+			(q) =>
+				wo !== null && typeof wo === 'object'
+					? fuegeBausteinAn(q, einfuegbar, wo.ablage, { jeSeite: folien })
+					: fuegeBausteinEin(q, einfuegbar, wo, { jeSeite: folien }),
 			true,
 		);
 		if (!ok) {
@@ -96,7 +102,7 @@ export const useEinfuegen = ({ auswahl, dokument, folien, nachher, struktur }: O
 		nachher();
 	};
 
-	const fuegeEin = (e: Posten, nr: number | null = auswahl) => {
+	const fuegeEin = (e: Posten, nr: number | null | { ablage: Ablage } = auswahl) => {
 		if (e.eigen) {
 			void mitBildern(dokument, { sammlung: e.eigen }, e.einfuegbar.html ?? '').then(
 				(html) => setzeEin(e, { ...e.einfuegbar, html }, nr),
@@ -106,6 +112,9 @@ export const useEinfuegen = ({ auswahl, dokument, folien, nachher, struktur }: O
 		}
 		setzeEin(e, e.einfuegbar, nr);
 	};
+
+	/** Aus der Schublade gezogen: an der Stelle, die die Lücke zeigte. */
+	const fuegeAn = (e: Posten, ablage: Ablage) => fuegeEin(e, { ablage });
 
 	/** Aus der Zwischenablage eines anderen Dokuments, samt Bildern. */
 	const fuegeAblageEin = async (nr: number | null = auswahl) => {
@@ -144,7 +153,7 @@ export const useEinfuegen = ({ auswahl, dokument, folien, nachher, struktur }: O
 	};
 
 	const vorne = zuletzt.flatMap((id) => eintraege.find((e) => e.id === id) ?? []);
-	return { eintraege, zuletzt: vorne, fuegeEin, fuegeAblageEin, verschiebe, neuLaden };
+	return { eintraege, zuletzt: vorne, fuegeEin, fuegeAn, jeSeite: folien, fuegeAblageEin, verschiebe, neuLaden };
 };
 
 export type Einfuegen = ReturnType<typeof useEinfuegen>;

@@ -5,6 +5,7 @@ import type { PointerEvent as ReactPointerEvent } from 'react';
 import { useEffect, useRef, useState } from 'react';
 
 import { meldung, sende } from '../api';
+import { AmZeiger } from '../bausteine/AmZeiger';
 import { Griff } from '../bausteine/Griff';
 import { useHinweis } from '../bausteine/hinweis';
 import { FELD_KLASSEN, klassen } from '../bausteine/klassen';
@@ -13,15 +14,18 @@ import { Segment } from '../bausteine/Segment';
 import type { SymbolName } from '../bausteine/Symbol';
 import { Symbol } from '../bausteine/Symbol';
 import { Tooltip } from '../bausteine/Tooltip';
-import { nrVon, trefferAn } from './darstellung';
+import { nrVon } from './darstellung';
 import type { Einfuegen, Posten, SlashMenue } from './einfuegen';
 import type { Einblendung } from './Leinwand';
+import { LUECKE_UND_ORIGINAL } from './luecke';
 import type { Luecke } from './navigation';
 import { lueckeAn } from './navigation';
 import { sichtfeldVon } from './sichtfeld';
 import { EIGENE_GESCHICHTE } from './tasten';
 import { TEXTWERKZEUG } from './text';
-import { MAUS_WEG } from './ziehen';
+import { FINGER_WEG, HALTEN_MS, MAUS_WEG } from './ziehen';
+import type { ZugAmZeiger } from './zug-von-aussen';
+import { zieheVonAussen, ziehgutBaustein } from './zug-von-aussen';
 
 const ZEILE = 'w-full rounded-md px-2 py-1 text-left hover:bg-flaeche-2';
 
@@ -137,7 +141,10 @@ export const Einfuegemarken = ({
 
 	return (
 		<>
-			{[...doc.querySelectorAll('.nicht-loesung, body.loesung .nur-loesung')].map((m) => {
+			{[...doc.querySelectorAll('.nicht-loesung, body.loesung .nur-loesung')]
+				// Nicht in der Lücke und nicht am Original, das sie beim Ziehen ausblendet (094).
+				.filter((m) => !m.closest(LUECKE_UND_ORIGINAL))
+				.map((m) => {
 				const r = m.getBoundingClientRect();
 				return (
 					<span
@@ -256,21 +263,6 @@ export const Einfuegemarken = ({
 	);
 };
 
-/** Stelle im Material unter dem Zeiger; `null` außerhalb des Blatts. */
-const stelleUnter = (doc: Document, x: number, y: number) => {
-	const rahmen = doc.defaultView?.frameElement;
-	if (!(rahmen instanceof HTMLElement)) {
-		return null;
-	}
-	const r = rahmen.getBoundingClientRect();
-	if (x < r.left || x > r.right || y < r.top || y > r.bottom) {
-		return null;
-	}
-	const skala = r.width / Math.max(1, rahmen.offsetWidth);
-	const t = trefferAn(doc.elementFromPoint((x - r.left) / skala, (y - r.top) / skala));
-	return t ? nrVon(t.element) : null;
-};
-
 /** Eigene Bausteine umbenennen und löschen (051). */
 const EigenVerwalten = ({ id, name, neuLaden }: { id: string; name: string; neuLaden: () => void }) => {
 	const [neu, setNeu] = useState<string | null>(null);
@@ -352,95 +344,124 @@ const KartenVorschau = ({ id, name }: { id: string; name: string }) => {
 
 /**
  * Einheitlich: Griff links, Name, ganze Vorschau. Die ganze Karte klickt und fügt ein (der Name streckt seine Klickfläche
- * über die Karte), ziehen geht mit der Maus von überall, mit dem Finger nur am Griff, damit Wischen die Liste rollt.
+ * über die Karte). Ziehen (094) geht mit der Maus von überall ab `MAUS_WEG`, mit dem Finger am Griff sofort und
+ * sonst nach kurzem Halten (`HALTEN_MS`), damit Wischen die Liste rollt. Gezogen wird mit Lücke im Blatt
+ * (`zug-von-aussen.ts`).
  */
 const Karte = ({
 	bereich,
 	doc,
 	einfuegen,
 	eintrag,
-	setAuswahl,
 }: {
 	eintrag: Posten;
 	/** Bei Suchtreffern: der Bereich neben dem Namen. */
 	bereich?: string;
 	doc: Document | null;
 	einfuegen: Einfuegen;
-	setAuswahl: (nr: number | null) => void;
 }) => {
-	const [zug, setZug] = useState<{ x: number; y: number } | null>(null);
-	const ziel = useRef<number | null>(null);
-	/** Gedrückt, aber noch unter der Schwelle von `MAUS_WEG`. */
-	const druckAn = useRef<{ x: number; y: number } | null>(null);
+	const [amZeiger, setAmZeiger] = useState<ZugAmZeiger | null>(null);
+	/** Gedrückt, aber noch kein Zug: Maus unter `MAUS_WEG`, Finger vor `HALTEN_MS`. */
+	const druckAn = useRef<{ x: number; y: number; id: number; maus: boolean; timer: number } | null>(null);
 	const gezogen = useRef(false);
+	const abbrechen = useRef<(() => void) | null>(null);
+	const karte = useRef<HTMLDivElement>(null);
 
-	const beginne = (ev: ReactPointerEvent<HTMLElement>) => {
+	const loese = () => {
+		if (druckAn.current) {
+			window.clearTimeout(druckAn.current.timer);
+		}
 		druckAn.current = null;
+	};
+	useEffect(
+		() => () => {
+			loese();
+			abbrechen.current?.();
+		},
+		[],
+	);
+
+	const beginne = (x: number, y: number, id: number, cmd: boolean) => {
+		loese();
+		const gut = ziehgutBaustein(eintrag, (ablage) => einfuegen.fuegeAn(eintrag, ablage));
+		if (!doc || !gut || abbrechen.current) {
+			return;
+		}
 		gezogen.current = true;
-		ziel.current = null;
 		// Fängt erst hier: Vorher ginge der Klick sonst nicht mehr an den Namen.
 		try {
-			ev.currentTarget.setPointerCapture(ev.pointerId);
+			karte.current?.setPointerCapture(id);
 		} catch {
-			// Ohne Fangen endet das Ziehen am Rand der Karte.
+			// Ohne Fangen kommen die Bewegungen über dem Blatt nicht an; der Zug endet beim Loslassen trotzdem.
 		}
-		setZug({ x: ev.clientX, y: ev.clientY });
+		abbrechen.current = zieheVonAussen({
+			doc,
+			gut,
+			jeSeite: einfuegen.jeSeite,
+			x,
+			y,
+			id,
+			cmd,
+			zeige: (anzeige) => {
+				setAmZeiger(anzeige);
+				if (!anzeige) {
+					abbrechen.current = null;
+				}
+			},
+		});
 	};
 	const druck = (ev: ReactPointerEvent<HTMLElement>) => {
 		const amGriff = ev.target instanceof Element && ev.target.closest('[data-ziehgriff]') !== null;
 		gezogen.current = false;
+		loese();
+		if (!ev.isPrimary) {
+			return;
+		}
+		const { clientX: x, clientY: y, pointerId: id } = ev;
 		if (ev.pointerType !== 'mouse') {
 			if (amGriff) {
-				beginne(ev);
+				beginne(x, y, id, false);
+				return;
 			}
+			druckAn.current = { x, y, id, maus: false, timer: window.setTimeout(() => beginne(x, y, id, false), HALTEN_MS) };
 		} else if (ev.button === 0 && !ev.ctrlKey) {
-			druckAn.current = { x: ev.clientX, y: ev.clientY };
+			druckAn.current = { x, y, id, maus: true, timer: 0 };
 		}
 	};
 	const bewege = (ev: ReactPointerEvent<HTMLElement>) => {
 		const start = druckAn.current;
-		if (start && Math.hypot(ev.clientX - start.x, ev.clientY - start.y) > MAUS_WEG) {
-			beginne(ev);
+		if (!start || ev.pointerId !== start.id) {
 			return;
 		}
-		if (!zug || !doc) {
-			return;
+		const weg = Math.hypot(ev.clientX - start.x, ev.clientY - start.y);
+		if (start.maus && weg > MAUS_WEG) {
+			beginne(ev.clientX, ev.clientY, ev.pointerId, ev.metaKey);
+		} else if (!start.maus && weg > FINGER_WEG) {
+			loese();
 		}
-		setZug({ x: ev.clientX, y: ev.clientY });
-		const nr = stelleUnter(doc, ev.clientX, ev.clientY);
-		ziel.current = nr;
-		if (nr !== null) {
-			setAuswahl(nr);
-		}
-	};
-	const los = () => {
-		druckAn.current = null;
-		setZug(null);
-		if (ziel.current !== null) {
-			einfuegen.fuegeEin(eintrag, ziel.current);
-		}
-		ziel.current = null;
-	};
-	const abbruch = () => {
-		druckAn.current = null;
-		ziel.current = null;
-		setZug(null);
 	};
 
 	return (
 		<li className="overflow-hidden rounded-lg border border-rand bg-flaeche" data-bibliothek-eintrag={eintrag.id}>
 			<div
-				className={klassen('group relative flex select-none', zug && 'cursor-grabbing')}
+				ref={karte}
+				className={klassen('group relative flex select-none', amZeiger && 'cursor-grabbing')}
 				onPointerDown={druck}
 				onPointerMove={bewege}
 				// Wer schnell zieht, ist schon aus der Karte, bevor die Schwelle gemessen wurde.
 				onPointerLeave={(ev) => {
-					if (druckAn.current) {
-						beginne(ev);
+					if (druckAn.current?.maus && ev.pointerId === druckAn.current.id) {
+						beginne(ev.clientX, ev.clientY, ev.pointerId, ev.metaKey);
 					}
 				}}
-				onPointerUp={los}
-				onPointerCancel={abbruch}
+				onPointerUp={loese}
+				onPointerCancel={loese}
+				// Langes Drücken am iPad startet das Ziehen, kein Menü.
+				onContextMenu={(ev) => {
+					if (druckAn.current || abbrechen.current) {
+						ev.preventDefault();
+					}
+				}}
 			>
 				<Griff beschriftung="Ins Blatt ziehen" className="relative z-10" data-ziehgriff={eintrag.id} />
 				<div className="min-w-0 flex-1">
@@ -475,14 +496,15 @@ const Karte = ({
 				</div>
 			</div>
 			{eintrag.eigen && <EigenVerwalten id={eintrag.eigen} name={eintrag.name} neuLaden={einfuegen.neuLaden} />}
-			{zug && (
-				<div
-					className="pointer-events-none fixed z-meldung -translate-x-1/2 -translate-y-1/2 rounded-md bg-brand-500 px-2 py-1 font-medium text-white"
+			{amZeiger && (
+				<AmZeiger
+					className="rounded-lg bg-tinte px-3 py-2 font-medium whitespace-nowrap text-white shadow-2"
 					data-zug-anzeige
-					style={{ left: zug.x, top: zug.y }}
+					x={amZeiger.x + 10}
+					y={amZeiger.y + 10}
 				>
-					{eintrag.name}
-				</div>
+					{amZeiger.name}
+				</AmZeiger>
 			)}
 		</li>
 	);
@@ -533,13 +555,11 @@ export const Bibliothek = ({
 	doc,
 	einfuegen,
 	mappe,
-	setAuswahl,
 }: {
 	einfuegen: Einfuegen;
 	mappe: { fach: Fach; klasse: Klasse };
 	art: Art;
 	doc: Document | null;
-	setAuswahl: (nr: number | null) => void;
 }) => {
 	const [suche, setSuche] = useState('');
 	const [bereich, setBereich] = useState<string | null>(null);
@@ -577,7 +597,6 @@ export const Bibliothek = ({
 					{...(mitBereich ? { bereich: e.kategorie } : {})}
 					doc={doc}
 					einfuegen={einfuegen}
-					setAuswahl={setAuswahl}
 				/>
 			))}
 		</ul>
