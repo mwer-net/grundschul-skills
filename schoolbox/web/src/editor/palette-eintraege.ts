@@ -5,6 +5,8 @@ import type { Gruppe, Kontext } from './befehle';
 import { befehleFuer, kuerzelText, symbolVon, titelVon } from './befehle';
 import type { Posten } from './einfuegen';
 import type { PalettenEintrag } from './palette-suche';
+import type { SchubladenZiele } from './schubladen';
+import { SCHUBLADEN } from './schubladen';
 
 /** Sprungziele im Reiter „Blatt“; `ort` steht dort als `data-einstellung`. */
 export const BLATT_EINSTELLUNGEN = [
@@ -66,6 +68,8 @@ export interface PalettenZiele {
 	zeigeSeite: (nr: number) => void;
 	zeigeEinstellung: (ort: string) => void;
 	fuehreAus: (id: string) => unknown;
+	/** Inhalt der Schubladen (`suche` im Register); ohne Angabe nur die Befehle. */
+	schubladen?: SchubladenZiele;
 }
 
 const ORDNUNG = (auswahl: string | null) => [auswahl, BAUSTEIN_EINFUEGEN, GANZES_BLATT, SEITE, DOKUMENT];
@@ -109,6 +113,12 @@ export const eintraegeImEditor = (k: Kontext, z: PalettenZiele): PalettenEintrag
 			suchwoerter: ['springen', 'gehe zu'],
 			aus: () => z.zeigeSeite(nr),
 		});
+	}
+	const { schubladen } = z;
+	if (schubladen) {
+		for (const s of SCHUBLADEN.filter((x) => x.suche && x.bereit(k))) {
+			liste.push(...(s.suche?.(k, schubladen) ?? []));
+		}
 	}
 	const ordnung = ORDNUNG(auswahlTitel(k));
 	return liste.sort((a, b) => ordnung.indexOf(a.gruppe) - ordnung.indexOf(b.gruppe));

@@ -18,7 +18,9 @@ export const TastenUebersicht = ({ kontext, schliessen }: { kontext: Kontext; sc
 				<section key={titel}>
 					<h3 className="mb-1 font-medium">{titel}</h3>
 					<ul>
-						{BEFEHLE.filter((b) => gruppen.includes(b.gruppe) && b.kuerzel?.length).map((b) => (
+						{BEFEHLE.filter(
+							(b) => gruppen.includes(b.gruppe) && b.kuerzel?.length && (b.inUebersicht?.() ?? true),
+						).map((b) => (
 							<li
 								key={b.id}
 								className="flex h-zeile items-center justify-between gap-3"

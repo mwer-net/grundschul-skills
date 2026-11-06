@@ -31,6 +31,8 @@ const kontext = (mehr: Partial<Kontext> = {}): Kontext => ({
 	namenszeile: true,
 	festeSeiten: false,
 	hatBild: true,
+	ebenenAngeheftet: false,
+	linksOffen: null,
 	davor: 3,
 	textMarkiert: () => false,
 	feldBehaeltUndo: () => false,

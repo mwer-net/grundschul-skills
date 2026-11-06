@@ -2,11 +2,12 @@ import type { Page } from '@playwright/test';
 
 import { material, oeffne, quelle, uhrzeit } from './editorhilfe';
 import { expect, test } from './hilfe';
+import { oeffneSchublade } from './schubladen-hilfe';
 
 const oeffneBausteine = async (page: Page) => {
 	const { dok, id } = await uhrzeit();
 	await oeffne(page, id, dok);
-	await page.getByRole('tab', { name: 'Bausteine' }).click();
+	await oeffneSchublade(page, 'bausteine');
 	await expect(page.locator('[data-bereich]').first()).toBeVisible();
 };
 const suche = (page: Page) => page.getByRole('searchbox', { name: 'Baustein suchen' });
@@ -18,7 +19,7 @@ test.describe('Editor: Bausteine einfügen', () => {
 		const { dok, id } = await uhrzeit();
 		await oeffne(page, id, dok);
 		const vorher = await quelle(page);
-		await page.getByRole('tab', { name: 'Bausteine' }).click();
+		await oeffneSchublade(page, 'bausteine');
 		await page.getByRole('searchbox', { name: 'Baustein suchen' }).fill('Uhr');
 		await page.locator('[data-einfuegen="x-uhr"]').click();
 		await expect.poll(() => quelle(page)).not.toBe(vorher);
@@ -86,7 +87,7 @@ test.describe('Editor: Bausteine einfügen', () => {
 	test('Ziehen aus der Bibliothek legt an der Stelle unter dem Zeiger ab', async ({ page }) => {
 		const { dok, id } = await uhrzeit();
 		await oeffne(page, id, dok);
-		await page.getByRole('tab', { name: 'Bausteine' }).click();
+		await oeffneSchublade(page, 'bausteine');
 		await page.getByRole('searchbox', { name: 'Baustein suchen' }).fill('Schreiblinie');
 		const griff = await page.locator('[data-ziehgriff="schreiblinie"]').boundingBox();
 		const ziel = await page.locator('[data-editor-rahmen="sichtbar"]').boundingBox();
@@ -103,7 +104,7 @@ test.describe('Editor: Bausteine einfügen', () => {
 	test('Ziehen mit dem Finger (Pointer-Ereignisse mit Touch)', async ({ page }) => {
 		const { dok, id } = await uhrzeit();
 		await oeffne(page, id, dok);
-		await page.getByRole('tab', { name: 'Bausteine' }).click();
+		await oeffneSchublade(page, 'bausteine');
 		await page.getByRole('searchbox', { name: 'Baustein suchen' }).fill('Schreiblinie');
 		const griff = page.locator('[data-ziehgriff="schreiblinie"]');
 		const ziel = await page.locator('[data-editor-rahmen="sichtbar"]').boundingBox();
@@ -144,7 +145,7 @@ test.describe('Editor: Bausteine einfügen', () => {
 		await alle.click();
 		await page.reload();
 		await expect(page.locator('[data-leinwand][data-geladen]')).toBeVisible();
-		await page.getByRole('tab', { name: 'Bausteine' }).click();
+		await oeffneSchublade(page, 'bausteine');
 		await expect(alle).toHaveAttribute('aria-pressed', 'true');
 	});
 
@@ -289,7 +290,7 @@ test.describe('Editor: Bausteine einfügen', () => {
 		await expect(material(page).locator('.seite')).toHaveCount(2);
 	});
 
-	test('Gliederung: Klick springt, das Menü ordnet', async ({ hasTouch, page }) => {
+	test('Ebenen: Klick springt, das Menü ordnet', async ({ hasTouch, page }) => {
 		test.skip(hasTouch, 'am iPad ordnet die Leiste am Baustein');
 		const { dok, id } = await uhrzeit();
 		await oeffne(page, id, dok);

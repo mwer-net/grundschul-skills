@@ -183,7 +183,7 @@ test.describe('Editor: Mit Claude ändern (058, 059)', () => {
 			r.fulfill({ json: { verfuegbar: false, limit: null, warnAb: 1, aktionen: [] } }),
 		);
 		await oeffne(page, mappe, dok);
-		await expect(page.getByRole('tab', { name: 'Gliederung' })).toBeVisible();
+		await expect(page.locator('[data-schublade-knopf="ebenen"]')).toBeVisible();
 		await oeffnePanel(page);
 		await expect(panel(page).locator('#ki-auftrag')).toHaveCount(0);
 		await expect(panel(page).getByRole('button', { name: 'In der Claude-App weiterarbeiten' })).toBeVisible();

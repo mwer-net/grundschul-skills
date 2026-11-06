@@ -24,6 +24,7 @@ import type { Fall } from './baustein-audit-werte';
 import { faelleVon } from './baustein-audit-werte';
 import { aendere, oeffne, quelle } from './editorhilfe';
 import { dokumentOrdner, expect, legeMappeAn, test } from './hilfe';
+import { oeffneSchublade } from './schubladen-hilfe';
 
 const HIER = __dirname;
 const STANDARD_ZIEL = path.join(HIER, '../../../lokal/ux-analyse/baustein-audit');
@@ -888,7 +889,7 @@ test.describe('Prüfmaschine', () => {
 			});
 			const { dok, id, leer } = await leeresBlatt();
 			await oeffne(page, id, dok);
-			await page.getByRole('tab', { name: 'Bausteine' }).click();
+			await oeffneSchublade(page, 'bausteine');
 			const kontaktSeite = await page.context().newPage();
 			const ergebnisse: Ergebnis[] = [];
 			let blatt4: Awaited<ReturnType<typeof leeresBlatt>> | null = null;
@@ -898,7 +899,7 @@ test.describe('Prüfmaschine', () => {
 			)) {
 				if (auf4) {
 					await oeffne(page, id, dok);
-					await page.getByRole('tab', { name: 'Bausteine' }).click();
+					await oeffneSchublade(page, 'bausteine');
 					auf4 = false;
 				}
 				await aufLeeresBlatt(page, leer);
@@ -916,7 +917,7 @@ test.describe('Prüfmaschine', () => {
 					await aufLeeresBlatt(page, leer);
 					blatt4 ??= await leeresBlatt(4);
 					await oeffne(page, blatt4.id, blatt4.dok);
-					await page.getByRole('tab', { name: 'Bausteine' }).click();
+					await oeffneSchublade(page, 'bausteine');
 					auf4 = true;
 					await aufLeeresBlatt(page, blatt4.leer);
 					await fuegeEin(page, e);
@@ -976,7 +977,7 @@ test.describe('Prüfmaschine', () => {
 	test('Voller Weg je Feldart', async ({ page }) => {
 		const { dok, id, leer } = await leeresBlatt();
 		await oeffne(page, id, dok);
-		await page.getByRole('tab', { name: 'Bausteine' }).click();
+		await oeffneSchublade(page, 'bausteine');
 		for (const [art, fall] of Object.entries(VOLLER_WEG)) {
 			const treffer = KATALOG.flatMap((e) => {
 				const schema = schemaVon(e.id);

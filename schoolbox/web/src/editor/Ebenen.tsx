@@ -9,7 +9,9 @@ import { Griff } from '../bausteine/Griff';
 import { klassen } from '../bausteine/klassen';
 import { Knopf } from '../bausteine/Knopf';
 import { Menue } from '../bausteine/Menue';
+import { Schubladenkopf } from '../bausteine/Schubladenkopf';
 import { Symbol } from '../bausteine/Symbol';
+import { SymbolKnopf } from '../bausteine/SymbolKnopf';
 import { Tooltip } from '../bausteine/Tooltip';
 import { folgeZeiger, rolleAmRand, schluckeKlick } from '../bausteine/zeigerzug';
 import { bausteinVon, elementZu, nrVon } from './darstellung';
@@ -70,6 +72,9 @@ interface Eigenschaften {
 	/** Wählt den Baustein, rollt das Blatt dorthin und zeigt rechts seine Einstellungen. */
 	zeigeAn: (nr: number) => void;
 	kontextmenue: (nr: number, art: 'baustein' | 'miniatur', punkt: { x: number; y: number }) => void;
+	/** Stecknadel im Kopf: angeheftet teilen sich die Ebenen die Spalte mit der offenen Schublade. */
+	angeheftet: boolean;
+	schalteAnheften: () => void;
 }
 
 const naechsteZeile = (liste: Element, y: number, nurSeiten: boolean) => {
@@ -180,15 +185,17 @@ const zielAb = (
 };
 
 /**
- * Der linke Reiter: alle Seiten und alles, was sich im Blatt wählen lässt, als Baum. Klick wählt und springt, das Menü
+ * Die Schublade „Ebenen“ (⌥1, bis 093 „Gliederung“): alle Seiten und alles, was sich im Blatt wählen lässt, als Baum. Klick wählt und springt, das Menü
  * ordnet, gezogen wird am Griff, mit der Maus auch von überall in der Zeile. Was im Blatt gewählt ist, ist hier markiert
  * und aufgeklappt. Jede Ablage ist ein Befehl und ein Schritt im Verlauf.
  */
-export const Gliederung = ({
+export const Ebenen = ({
+	angeheftet,
 	auswahl,
 	doc,
 	festeSeiten,
 	kontextmenue,
+	schalteAnheften,
 	stand,
 	struktur,
 	zeigeAn,
@@ -618,8 +625,8 @@ export const Gliederung = ({
 	};
 
 	return (
-		<nav aria-label="Gliederung" className="flex min-h-0 flex-1 flex-col" data-seitenleiste data-gliederung>
-			<div className="flex flex-none items-center justify-end gap-1 border-b border-rand px-1 py-1">
+		<nav aria-label="Ebenen" className="flex min-h-0 flex-1 flex-col" data-seitenleiste data-gliederung>
+			<Schubladenkopf titel="Ebenen">
 				<Knopf
 					art="leise"
 					groesse="klein"
@@ -628,7 +635,18 @@ export const Gliederung = ({
 				>
 					{alleZu ? 'Alle aufklappen' : 'Alle einklappen'}
 				</Knopf>
-			</div>
+				<SymbolKnopf
+					symbol={angeheftet ? 'abheften' : 'anheften'}
+					beschriftung={angeheftet ? 'Ebenen lösen' : 'Ebenen anheften'}
+					tooltip={
+						angeheftet ? 'Ebenen lösen' : 'Ebenen anheften: bleiben unter jeder anderen Schublade offen'
+					}
+					groesse="klein"
+					aria-pressed={angeheftet}
+					data-ebenen-anheften
+					onClick={schalteAnheften}
+				/>
+			</Schubladenkopf>
 			<div ref={liste} className="min-h-0 flex-1 overflow-y-auto" data-gliederung-liste>
 				<div ref={inhalt} className="relative isolate flex flex-col gap-0.5 p-1">
 					{modell.map(zeigeSeite)}

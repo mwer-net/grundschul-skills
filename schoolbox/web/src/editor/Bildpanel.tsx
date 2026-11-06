@@ -3,12 +3,12 @@ import { useEffect, useId, useMemo, useRef, useState } from 'react';
 
 import { Chip } from '../bausteine/Chip';
 import { Dialog } from '../bausteine/Dialog';
-import { FELD_KLASSEN, knopfKlassen } from '../bausteine/klassen';
+import { FELD_KLASSEN, klassen, knopfKlassen } from '../bausteine/klassen';
 import { Knopf } from '../bausteine/Knopf';
 import { Symbol } from '../bausteine/Symbol';
 import { Zeile } from '../bausteine/Zeile';
 import { useLaden } from '../lib/laden';
-import type { BildSteuerung, BildWerte } from './bild';
+import type { BildSteuerung, BildWerte, NeuerPlatz } from './bild';
 import { beschreibungAus } from './bild';
 import { EIGENE_GESCHICHTE } from './tasten';
 
@@ -31,7 +31,7 @@ const merkeGesehen = () => {
 	}
 };
 
-const Laeuft = ({ text }: { text: string }) => (
+export const Laeuft = ({ text }: { text: string }) => (
 	<p className="flex items-center gap-2 text-leise" role="status">
 		<Symbol name="laden" className="size-3.5 animate-spin" />
 		{text}
@@ -40,9 +40,19 @@ const Laeuft = ({ text }: { text: string }) => (
 
 /**
  * „Foto hochladen“ ist ein `<label>` für ein verstecktes Dateifeld: So öffnet Safari auf dem iPad die Fotomediathek
- * zuverlässig. Das Feld bleibt immer im Dokument, auch während der Hinweis steht.
+ * zuverlässig. Das Feld bleibt immer im Dokument, auch während der Hinweis steht. `neu`: ohne gewähltes Bild entsteht
+ * ein neuer Bild-Baustein (Bilder-Schublade).
  */
-const Hochladen = ({ bild }: { bild: BildSteuerung }) => {
+export const Hochladen = ({
+	bild,
+	breit = false,
+	neu,
+}: {
+	bild: BildSteuerung;
+	neu?: NeuerPlatz | undefined;
+	/** Über die ganze Breite, wie in der Bilder-Schublade. */
+	breit?: boolean;
+}) => {
 	const feld = useId();
 	const [hinweis, setHinweis] = useState(false);
 	const eingabe = (
@@ -58,7 +68,7 @@ const Hochladen = ({ bild }: { bild: BildSteuerung }) => {
 				e.target.value = '';
 				setHinweis(false);
 				if (datei) {
-					void bild.hochladen(datei);
+					void bild.hochladen(datei, neu);
 				}
 			}}
 		/>
@@ -83,12 +93,12 @@ const Hochladen = ({ bild }: { bild: BildSteuerung }) => {
 		<>
 			{eingabe}
 			{gesehen() ? (
-				<label htmlFor={feld} className={knopfKlassen('zweit', 'cursor-pointer')}>
+				<label htmlFor={feld} className={knopfKlassen('zweit', klassen('cursor-pointer', breit && 'w-full'))}>
 					<Symbol name="hochladen" />
 					Foto hochladen
 				</label>
 			) : (
-				<Knopf art="zweit" onClick={() => setHinweis(true)}>
+				<Knopf art="zweit" className={breit ? 'w-full' : undefined} onClick={() => setHinweis(true)}>
 					<Symbol name="hochladen" />
 					Foto hochladen
 				</Knopf>
@@ -103,7 +113,7 @@ const GRUPPEN = [
 	{ art: 'meine', titel: 'Meine Bilder' },
 ] as const;
 
-type Gruppe = (typeof GRUPPEN)[number]['art'];
+export type SammlungsGruppe = (typeof GRUPPEN)[number]['art'];
 
 const falte = (text: string) =>
 	text
@@ -114,7 +124,8 @@ const falte = (text: string) =>
 		.replace(/ß/g, 'ss')
 		.replace(/[^a-z0-9]+/g, ' ');
 
-const passt = (eintrag: SammlungsBild, suche: string) => {
+/** Findet nach Name, Beschreibungen und Mappe, ohne Groß- und Kleinschreibung und Umlaute. */
+export const passt = (eintrag: SammlungsBild, suche: string) => {
 	const text = falte([eintrag.name, ...eintrag.alt, eintrag.mappe ?? ''].join(' '));
 	return falte(suche)
 		.split(' ')
@@ -122,11 +133,25 @@ const passt = (eintrag: SammlungsBild, suche: string) => {
 		.every((wort) => text.includes(wort));
 };
 
-const Kachel = ({ eintrag, waehle }: { eintrag: SammlungsBild; waehle: () => void }) => (
-	<li>
+const Kachel = ({
+	aus,
+	eintrag,
+	klein,
+	waehle,
+}: {
+	eintrag: SammlungsBild;
+	waehle: () => void;
+	klein: boolean;
+	aus: boolean;
+}) => (
+	<li className="min-w-0">
 		<button
 			type="button"
-			className="flex w-full flex-col gap-1 rounded-xl border border-rand bg-flaeche p-2 text-left hover:border-brand-200 hover:bg-flaeche-2"
+			className={klassen(
+				'flex w-full flex-col gap-1 rounded-xl border border-rand bg-flaeche text-left hover:border-brand-200 hover:bg-flaeche-2 disabled:opacity-50',
+				klein ? 'p-1.5' : 'p-2',
+			)}
+			disabled={aus}
 			data-sammlung-bild={eintrag.schluessel}
 			onClick={waehle}
 		>
@@ -134,12 +159,57 @@ const Kachel = ({ eintrag, waehle }: { eintrag: SammlungsBild; waehle: () => voi
 				src={`/ansicht/${eintrag.schluessel}`}
 				alt=""
 				loading="lazy"
-				className="h-28 w-full rounded-lg bg-papier object-contain"
+				className={klassen('w-full rounded-lg bg-papier object-contain', klein ? 'h-20' : 'h-28')}
 			/>
-			<span className="truncate font-medium">{eintrag.alt[0] ?? eintrag.name}</span>
-			{eintrag.mappe && <span className="truncate text-sm text-leise">{eintrag.mappe}</span>}
+			<span className={klassen('truncate font-medium', klein && 'text-xs')}>{eintrag.alt[0] ?? eintrag.name}</span>
+			{eintrag.mappe && (
+				<span className={klassen('truncate text-leise', klein ? 'text-xs' : 'text-sm')}>{eintrag.mappe}</span>
+			)}
 		</button>
 	</li>
+);
+
+/** Kacheln einer Gruppe mit Laden, Fehler und Leerzustand; im Dialog groß, in der Bilder-Schublade klein. */
+export const SammlungsKacheln = ({
+	aus = false,
+	fehler,
+	geladen,
+	gruppe,
+	klein = false,
+	liste,
+	suche,
+	waehle,
+}: {
+	geladen: boolean;
+	fehler: string | null;
+	gruppe: SammlungsGruppe;
+	liste: SammlungsBild[];
+	suche: string;
+	waehle: (eintrag: SammlungsBild) => void;
+	klein?: boolean;
+	aus?: boolean;
+}) => (
+	<>
+		{fehler && <p className="font-medium text-fehler">{fehler}</p>}
+		{!geladen && !fehler && <Laeuft text="Bilder werden geladen …" />}
+		{geladen && liste.length === 0 && (
+			<p className={klassen('text-leise', klein && 'text-sm')}>
+				{suche ? 'Kein Bild passt zur Suche.' : 'Hier gibt es noch keine Bilder.'}
+			</p>
+		)}
+		<ul
+			className={
+				klein
+					? 'grid grid-cols-2 gap-2'
+					: 'grid grid-cols-4 gap-3 max-lg:grid-cols-3 max-md:grid-cols-2'
+			}
+			data-sammlung={gruppe}
+		>
+			{liste.map((eintrag) => (
+				<Kachel key={eintrag.schluessel} eintrag={eintrag} klein={klein} aus={aus} waehle={() => waehle(eintrag)} />
+			))}
+		</ul>
+	</>
 );
 
 /** Bilder zum Austauschen: Leitfiguren und Grafiken aus assets/, Bilder dieser Mappe und aller anderen. */
@@ -153,7 +223,7 @@ export const SammlungDialog = ({
 	waehle: (eintrag: SammlungsBild) => void;
 }) => {
 	const { daten, fehler } = useLaden<Sammlung>(`${adresse}/bilder`);
-	const [gruppe, setGruppe] = useState<Gruppe>('sammlung');
+	const [gruppe, setGruppe] = useState<SammlungsGruppe>('sammlung');
 	const [suche, setSuche] = useState('');
 	const liste = useMemo(() => (daten ? daten[gruppe].filter((e) => passt(e, suche)) : []), [daten, gruppe, suche]);
 
@@ -186,16 +256,14 @@ export const SammlungDialog = ({
 					onChange={(e) => setSuche(e.target.value)}
 				/>
 			</label>
-			{fehler && <p className="font-medium text-fehler">{fehler.message}</p>}
-			{!daten && !fehler && <Laeuft text="Bilder werden geladen …" />}
-			{daten && liste.length === 0 && (
-				<p className="text-leise">{suche ? 'Kein Bild passt zur Suche.' : 'Hier gibt es noch keine Bilder.'}</p>
-			)}
-			<ul className="grid grid-cols-4 gap-3 max-lg:grid-cols-3 max-md:grid-cols-2" data-sammlung={gruppe}>
-				{liste.map((eintrag) => (
-					<Kachel key={eintrag.schluessel} eintrag={eintrag} waehle={() => waehle(eintrag)} />
-				))}
-			</ul>
+			<SammlungsKacheln
+				geladen={Boolean(daten)}
+				fehler={fehler?.message ?? null}
+				gruppe={gruppe}
+				liste={liste}
+				suche={suche}
+				waehle={waehle}
+			/>
 		</Dialog>
 	);
 };

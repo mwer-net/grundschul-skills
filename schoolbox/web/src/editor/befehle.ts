@@ -24,7 +24,9 @@ import { istMac, kuerzelAnzeige } from '../bausteine/kuerzel';
 import type { MenueEintrag } from '../bausteine/Menue';
 import type { SymbolName } from '../bausteine/Symbol';
 import type { PfadTeil } from './darstellung';
-import type { LinksName } from './LinkeLeiste';
+import { JEDE_LAGE, schubladeVon } from './schubladen';
+import type { SchubladenId } from './schubladen/reihe';
+import { befehlZuSchublade, REIHE } from './schubladen/reihe';
 import type { Struktur, StrukturWerte } from './struktur';
 
 export type Ort = 'taste' | 'menue' | 'leiste' | 'palette';
@@ -73,7 +75,9 @@ export interface Aktionen {
 	zoomSchritt: (richtung: 1 | -1) => void;
 	zoom100: () => void;
 	einpassen: () => void;
-	links: (panel: LinksName) => void;
+	/** Öffnet die Schublade, wechselt zu ihr oder schließt sie, wenn sie schon offen ist. */
+	links: (schublade: SchubladenId) => void;
+	ebenenAnheften: () => void;
 	inspektor: () => void;
 	versionen: () => void;
 	claude: () => void;
@@ -111,6 +115,9 @@ export interface Kontext {
 	namenszeile: boolean;
 	festeSeiten: boolean;
 	hatBild: boolean;
+	ebenenAngeheftet: boolean;
+	/** Die offene Schublade, sonst `null`. */
+	linksOffen: SchubladenId | null;
 	/** Das Geschwister davor: „Baustein davor“ fügt dahinter ein. */
 	davor: number | null;
 	/** Text ist markiert: ⌘C und ⌘X bleiben dann dem Browser. */
@@ -152,6 +159,8 @@ export interface Befehl {
 	aktiv?: (k: Kontext) => boolean;
 	/** Leise neben dem Titel in der Palette, z. B. `4 → 5`. */
 	notiz?: (k: Kontext) => string;
+	/** Ohne Angabe immer. Sonst nur dann in Tastenübersicht und Hilfe: Platzhalter-Schubladen erscheinen nirgends. */
+	inUebersicht?: () => boolean;
 }
 
 const gewaehlt = (k: Kontext) => k.pfad.at(-1);
@@ -259,6 +268,32 @@ const spaltenBefehl = (id: string, titel: string, schritt: 1 | -1, suchwoerter: 
 		},
 	};
 };
+
+/** Suchwörter je Schublade; „gliederung“ bleibt, damit die alte Suche weiter trifft. */
+const SCHUBLADEN_SUCHE: Partial<Record<SchubladenId, string[]>> = {
+	ebenen: ['gliederung', 'seiten', 'aufgaben', 'baum', 'navigation'],
+	bilder: ['foto', 'hochladen', 'sammlung'],
+};
+
+/**
+ * Je Schublade ein Befehl, ⌥1 bis ⌥7 über `code`. Die Taste ist reserviert, auch solange die Schublade noch nicht
+ * bereit ist; dann tut sie nichts. `bereit` wird erst beim Aufruf gelesen: Die Schubladen hängen an Komponenten, die
+ * ihrerseits dieses Register brauchen können.
+ */
+const SCHUBLADEN_BEFEHLE: Befehl[] = REIHE.map(({ id, symbol, taste, titel }): Befehl => ({
+	id: befehlZuSchublade(id),
+	titel,
+	gruppe: 'ansicht',
+	symbol,
+	...(SCHUBLADEN_SUCHE[id] ? { suchwoerter: SCHUBLADEN_SUCHE[id] } : {}),
+	kuerzel: [{ code: taste, wahl: true }],
+	orte: ['taste', 'palette'],
+	sichtbarUnter: 'links',
+	verfuegbar: (k) => schubladeVon(id)?.bereit(k) ?? false,
+	aus: (k) => k.tu.links(id),
+	aktiv: (k) => k.linksOffen === id,
+	inUebersicht: () => schubladeVon(id)?.bereit(JEDE_LAGE) ?? false,
+}));
 
 export const BEFEHLE: Befehl[] = [
 	// Auswahl
@@ -696,28 +731,17 @@ export const BEFEHLE: Befehl[] = [
 		verfuegbar: () => true,
 		aus: (k) => k.tu.einpassen(),
 	},
+	...SCHUBLADEN_BEFEHLE,
 	{
-		id: 'ansicht.links-gliederung',
-		titel: 'Gliederung',
+		id: 'ansicht.ebenen-anheften',
+		titel: (k) => (k.ebenenAngeheftet ? 'Ebenen lösen' : 'Ebenen anheften'),
 		gruppe: 'ansicht',
-		symbol: 'gliederung',
-		suchwoerter: ['seiten', 'aufgaben', 'baum', 'navigation'],
-		kuerzel: [{ code: 'Digit1', wahl: true }],
-		orte: ['taste', 'palette'],
+		symbol: (k) => (k.ebenenAngeheftet ? 'abheften' : 'anheften'),
+		suchwoerter: ['gliederung', 'stecknadel', 'festhalten', 'teilen'],
+		orte: ['palette'],
 		sichtbarUnter: 'links',
 		verfuegbar: () => true,
-		aus: (k) => k.tu.links('gliederung'),
-	},
-	{
-		id: 'ansicht.links-bausteine',
-		titel: 'Bausteine',
-		gruppe: 'ansicht',
-		symbol: 'plus',
-		kuerzel: [{ code: 'Digit2', wahl: true }],
-		orte: ['taste', 'palette'],
-		sichtbarUnter: 'links',
-		verfuegbar: (k) => k.frei,
-		aus: (k) => k.tu.links('bausteine'),
+		aus: (k) => k.tu.ebenenAnheften(),
 	},
 	{
 		id: 'ansicht.inspektor',

@@ -2,6 +2,7 @@ import type { Locator, Page } from '@playwright/test';
 
 import { aendere, material, oeffne, quelle, uhrzeit } from './editorhilfe';
 import { expect, test } from './hilfe';
+import { oeffneSchublade } from './schubladen-hilfe';
 
 const zurueck = (page: Page) => page.getByRole('button', { name: 'Rückgängig (⌘Z)' });
 const allesWaehlen = (ziel: Locator) =>
@@ -53,7 +54,7 @@ test.describe('Editor: ganzes Blatt und Einstellungen (046, 048)', () => {
 	test('Lückentext: einfügen, im Panel ändern, ohne Lücke ein Hinweis statt Speichern', async ({ druecke, page }) => {
 		const { dok, id } = await uhrzeit();
 		await oeffne(page, id, dok);
-		await page.getByRole('tab', { name: 'Bausteine' }).click();
+		await oeffneSchublade(page, 'bausteine');
 		await page.getByRole('searchbox', { name: 'Baustein suchen' }).fill('Lückentext');
 		await page.locator('[data-einfuegen="x-lueckentext"]').click();
 		const element = material(page).locator('x-lueckentext');
@@ -157,7 +158,7 @@ test.describe('Reiter „Blatt“: Abstand, Punkte (082)', () => {
 		const { dok, id } = await uhrzeit();
 		await oeffne(page, id, dok);
 		await expect(page.getByText(/Trennlinie/)).toHaveCount(0);
-		await page.getByRole('tab', { name: 'Bausteine' }).click();
+		await oeffneSchublade(page, 'bausteine');
 		await page.getByRole('searchbox', { name: 'Baustein suchen' }).fill('Trennlinien');
 		await expect(page.locator('[data-einfuegen="trenner"]')).toHaveCount(0);
 
