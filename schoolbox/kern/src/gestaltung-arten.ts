@@ -43,6 +43,12 @@ export const GESTALTUNG_SELEKTOR = `[${LAGE}="frei"]`;
  */
 export const ANKER_SELEKTOR = '.aufgabe, .seite > :not(.ebene)';
 
+/**
+ * Druckrand in px (5 mm, Briefing 4.1): Was mit Text oder Bild hineinragt, meldet die Prüfung als `druckrand` (096).
+ * `pruefung.js` schreibt denselben Wert, ein Test vergleicht beides.
+ */
+export const DRUCKRAND = 19;
+
 /** Was jedes Gestaltungselement kann (Briefing 3.12). */
 const LAGE_GRUND = ['lage', 'duplizieren', 'loeschen', 'loesung'] as const satisfies readonly Faehigkeit[];
 

@@ -35,6 +35,22 @@
   if (anteil < KIT_MINDEST) melde("HINWEIS", 0, "kit-anteil", `Kit-Anteil ${anteil} % (Ziel ${KIT_MINDEST} %) → Kit-Bausteine statt eigener Klassen, Aussehen über thema.css`);
   return anteil;
  };
+ /* Gestaltung (096). DRUCKRAND steht gleich in kern/src/gestaltung-arten.ts, ein Test vergleicht beides. */
+ const DRUCKRAND = 19; // px, 5 mm: Schuldrucker drucken nicht randlos
+ /* Was im Druckrand fehlen würde (Briefing 4.1); Formen ohne Text, Streuung, Seitenfläche und Seitenrahmen dürfen dorthin. */
+ const IM_DRUCKRAND = "img.bild-frei, img.figur-frei, .form-text, .schmuck, [data-frei][data-lage]";
+ const VERDECKT_MIN = 400; // px² Schnittfläche
+ /* Minibuch: Kanten jeder Seite, die nach dem Drucken am Blattrand liegen (o, l, u, r). blatt.css legt die Seiten im
+    Druck 4 × 2 und dreht die obere Reihe, also liegt immer die untere Kante außen, an den Spalten 1 und 4 dazu eine
+    seitliche. Alle anderen Kanten sind Falz oder Schnitt: Dort gilt nur die 4-mm-Regel (rand). */
+ const MINIBUCH_AUSSEN = { 1: "ur", 2: "ul", 3: "u", 4: "u", 5: "ur", 6: "ul", 7: "u", 8: "u" };
+ const figurName = (wert) => { const t = (wert || "").trim().replace(/[-_]+/g, " "); return t ? t[0].toUpperCase() + t.slice(1) : ""; };
+ /** Name eines Gestaltungselements: data-name, Figur, alt, Titel von Claude, Text, zuletzt die Art. */
+ const nameDerGestaltung = (el) => {
+  const text = el.matches("svg.form,svg.streuung") ? "" : (el.textContent || "").trim();
+  const art = el.matches("svg.form") ? el.getAttribute("data-form") : el.matches("svg.streuung") ? "Streuung" : "";
+  return el.getAttribute("data-name") || figurName(el.getAttribute("data-figur")) || el.getAttribute("alt") || el.getAttribute("data-frei-titel") || text || art || el.localName;
+ };
  const istInAbbildung = (e) => { for (let p = e.parentElement; p; p = p.parentElement) if (p.localName.startsWith("x-")) return true; return e.localName.startsWith("x-"); };
 
  const pruefe = async ({ warten = true } = {}) => {
@@ -57,7 +73,8 @@
   if (warten) window.kitAnteil = pruefeBaukasten(melde); // Nur beim Bauen: Im Editor hilft der Hinweis der Lehrkraft nicht.
   const fs = parseFloat(getComputedStyle(B).fontSize);
   const folie = B.classList.contains("folie"), mitNotizen = !!document.querySelector(".seite .notiz");
-  const kurz = (el) => el.dataset.name || (el.matches(".antwort") && !el.textContent.trim() ? "Antwortlinie" : (el.textContent || el.getAttribute("alt") || el.tagName.toLowerCase()).trim().replace(/\s+/g, " ").slice(0, 40));
+  const kurz = (el) => el.matches('[data-lage="frei"]') ? nameDerGestaltung(el).trim().replace(/\s+/g, " ").slice(0, 40) : el.dataset.name || (el.matches(".antwort") && !el.textContent.trim() ? "Antwortlinie" : (el.textContent || el.getAttribute("alt") || el.tagName.toLowerCase()).trim().replace(/\s+/g, " ").slice(0, 40));
+  const ausgeblendet = (e) => e.closest("[data-aus]") !== null; // display: none, gehört in keine Prüfung außer „ausgeblendet“
   const sichtbar = (el) => { const r = el.getBoundingClientRect(); return r.width > 0 && r.height > 0 && getComputedStyle(el).visibility !== "hidden"; };
   const rgb = (c) => (c.match(/[\d.]+/g) || []).map(Number);
   // WCAG 1.4.3 verlangt für große Schrift 3:1; Fließtext auf den Blättern hat 18–28 px und zählt dazu.
@@ -102,7 +119,7 @@
     const alle = [...S.querySelectorAll("*")].filter((e) => !e.closest("svg") || e.tagName.toLowerCase() === "svg").filter(sichtbar);
 
     // 0. Abbildungen, die nicht gezeichnet werden konnten (meldeFehler in abbildungen.js)
-    S.querySelectorAll("[data-fehler]").forEach((e) => {
+    [...S.querySelectorAll("[data-fehler]")].filter((e) => !ausgeblendet(e)).forEach((e) => {
       const name = e.dataset.name || (window.abbildungsName ? window.abbildungsName(e.localName) : e.localName);
       melde("FEHLER", nr, "abbildung", `Abbildung „${name}“: ${e.getAttribute("data-fehler")}`, [ziel(e)]);
     });
@@ -150,6 +167,31 @@
         ((c.contains(a) && d.contains(b)) || (c.contains(b) && d.contains(a)))))
       .forEach(([a, b, [w, h]]) => melde("FEHLER", nr, "ueberlappung", `„${kurz(a)}“ überlappt „${kurz(b)}“ (${w} × ${h} px)`, [ziel(a), ziel(b)]));
 
+    // 3b. Gestaltung (096): außerhalb der Seite, im Druckrand, verdeckt Inhalt. Gemessen wird das Rechteck nach dem
+    // Drehen; erst alle Rechtecke sammeln, dann vergleichen. Teile einer Gruppe zählen mit ihr.
+    const flaecheVon = (r) => Math.max(0, r.right - r.left) * Math.max(0, r.bottom - r.top);
+    const schnitt = (a, b) => ({ left: Math.max(a.left, b.left), top: Math.max(a.top, b.top), right: Math.min(a.right, b.right), bottom: Math.min(a.bottom, b.bottom) });
+    const gestaltung = alle.filter((e) => e.matches('[data-lage="frei"]') && !e.parentElement.closest("[data-lage]")).map((e) => [e, e.getBoundingClientRect()]);
+    const kanten = B.classList.contains("minibuch") ? MINIBUCH_AUSSEN[nr] || "" : "olur";
+    gestaltung.forEach(([e, r]) => {
+      const ganz = flaecheVon(r), sichtbarer = schnitt(r, P);
+      if (ganz > 0 && flaecheVon(sichtbarer) < ganz / 2) return melde("FEHLER", nr, "aussen", `„${kurz(e)}“ liegt außerhalb der Seite → in die Seite holen`, [ziel(e)]);
+      if (!e.matches(IM_DRUCKRAND) || e.closest("[data-rand-ok]") || flaecheVon(sichtbarer) === 0) return;
+      const abstand = { o: sichtbarer.top - P.top, l: sichtbarer.left - P.left, u: P.bottom - sichtbarer.bottom, r: P.right - sichtbarer.right };
+      const knapp = [...kanten].map((k) => abstand[k]).filter((a) => a < DRUCKRAND);
+      if (knapp.length) melde("WARNUNG", nr, "druckrand", `„${kurz(e)}“ liegt im Druckrand (${Math.max(0, Math.round(Math.min(...knapp)))} px vom Blattrand) → etwas nach innen ziehen`, [ziel(e)]);
+    });
+    // Was hinten liegt, verdeckt nie etwas. Gegen alle Inhalte, auch die der eigenen Aufgabe am Anker.
+    const verdeckbar = [...teile.filter((e) => !e.closest(GESTALTUNG)), ...[...S.querySelectorAll(".loesung-marke")].filter(sichtbar)].map((e) => [e, e.getBoundingClientRect()]);
+    gestaltung.filter(([e]) => (e.closest(".ebene.vorne") || e.hasAttribute("data-anker")) && !e.closest("[data-ueberlagert-ok]")).forEach(([e, r]) => {
+      let unter = null, groesste = VERDECKT_MIN;
+      for (const [c, cr] of verdeckbar) {
+        const f = flaecheVon(schnitt(r, cr));
+        if (f > groesste) { unter = c; groesste = f; }
+      }
+      if (unter) melde("HINWEIS", nr, "verdeckt", `„${kurz(e)}“ verdeckt „${kurz(unter)}“ (${Math.round(groesste)} px²) → verschieben oder nach hinten legen`, [ziel(e), ziel(unter)]);
+    });
+
     // 4. Schriftgröße nach Klasse
     const min = Math.round(fs * 0.8), klein = new Map();
     const walker = document.createTreeWalker(S, NodeFilter.SHOW_TEXT);
@@ -186,7 +228,7 @@
     });
 
     // 6. Bilder: geladen, Auflösung
-    S.querySelectorAll("img").forEach((im) => {
+    [...S.querySelectorAll("img")].filter((im) => !ausgeblendet(im)).forEach((im) => {
       if (!im.complete || !im.naturalWidth) return melde("FEHLER", nr, "bild-fehlt", `Bild fehlt: ${im.getAttribute("src").slice(0, 60)}`, [ziel(im)]);
       const r = im.getBoundingClientRect(), dpi = Math.round((im.naturalWidth / r.width) * 96);
       if (B.classList.contains("sw")) {
@@ -221,10 +263,17 @@
       melde("HINWEIS", nr, "platz-frei", `${rest} px frei unten → ${kl <= 2 ? "Abstand zwischen Aufgaben vergrößern (--abstand), nicht auffüllen" : "Item oder Aufgabe ergänzen"}`, [ziel(S)]);
     if (folie && mitNotizen && !S.querySelector(".notiz")) melde("HINWEIS", nr, "notiz-fehlt", "Folie ohne Notiz für die Lehrkraft", [ziel(S)]);
 
-    const ph = [...S.querySelectorAll(".platzhalter")];
+    const ph = [...S.querySelectorAll(".platzhalter")].filter((e) => !ausgeblendet(e));
     if (ph.length) melde("HINWEIS", nr, "platzhalter", `${ph.length} Platzhalter (Entwurf)`, ph.map(ziel));
     seiten.push({ nr, rest, breite: Math.round(P.width), aufgaben: auf.map((a) => rel(a.getBoundingClientRect())) });
   });
+
+  // Ausgeblendetes (data-aus) wird nicht gedruckt (F10): einmal je Material, Ziel ist das erste.
+  const aus = [...document.querySelectorAll("[data-aus]")].filter((e) => !e.parentElement.closest("[data-aus]"));
+  if (aus.length) {
+    const [erstes] = aus, m = erstes.closest("[data-sb]"), eins = aus.length === 1;
+    melde("HINWEIS", 0, "ausgeblendet", `${aus.length} ${eins ? "Element ist" : "Elemente sind"} ausgeblendet und ${eins ? "wird" : "werden"} nicht gedruckt → in den Ebenen wieder einblenden`, [{ sb: m ? +m.getAttribute("data-sb") : null, name: kurz(erstes), rechteck: [0, 0, 0, 0] }]);
+  }
 
   ergebnis = { klasse: kl, seiten };
  } catch (e) { M.push({ stufe: "FEHLER", seite: 0, code: "pruefskript", text: "Prüfskript: " + e.message, ziele: [] }); }

@@ -6,6 +6,7 @@ import path from 'node:path';
 import { describe, it } from 'node:test';
 
 import { BROWSER_HINWEIS, browserFehlt, browserSkip, imStapel } from './browsertest';
+import { DRUCKRAND } from './gestaltung-arten';
 import { ASSETS, BLATT_PY } from './konfig';
 import type { Meldung } from './meldungen';
 import { MELDUNG_CODES } from './meldungen';
@@ -64,7 +65,19 @@ describe('pruefung.js (mit blatt.py)', () => {
 		assert.equal(ueberlappung?.ziele?.[0]?.sb, null, 'ohne Editor kein data-sb');
 		assert.equal(ueberlappung?.ziele?.[0]?.rechteck.length, 4);
 		const fehlt = MELDUNG_CODES.filter(
-			(c) => !gesehen.has(c) && !['schrift-fehlt', 'pruefskript', 'loesung-fehlt', 'verweis'].includes(c),
+			(c) =>
+				!gesehen.has(c) &&
+				// Die Codes der Gestaltung (096) prüft „pruefung.js: Codes der Gestaltung“ mit eigenen Testdaten.
+				![
+					'schrift-fehlt',
+					'pruefskript',
+					'loesung-fehlt',
+					'verweis',
+					'druckrand',
+					'aussen',
+					'verdeckt',
+					'ausgeblendet',
+				].includes(c),
 		);
 		assert.deepEqual(fehlt, [], 'jede Regel kommt in den Testdaten vor');
 	});
@@ -75,11 +88,20 @@ describe('pruefung.js mit Gestaltung (091)', { skip: browserSkip() }, () => {
 	const DURCH_GESTALTUNG = ['rand', 'ueberlauf', 'abgeschnitten', 'ueberlappung', 'flaeche'];
 	const DATEI = path.join(TESTDATEN, 'pruefung-gestaltung.html');
 
-	it('Seite 1: keine Meldung durch Gestaltung, kein FEHLER, keine WARNUNG', async () => {
+	it('Seite 1: keine Meldung durch Gestaltung, kein FEHLER, als WARNUNG nur der Druckrand (096)', async () => {
 		const seite1 = (await pruefe(DATEI)).filter((m) => m.seite === 1);
 		assert.deepEqual(
-			seite1.filter((m) => DURCH_GESTALTUNG.includes(m.code ?? '') || m.stufe !== 'HINWEIS').map((m) => m.text),
+			seite1.filter((m) => DURCH_GESTALTUNG.includes(m.code ?? '') || m.stufe === 'FEHLER').map((m) => m.text),
 			[],
+		);
+		// Im Seitenrand liegen Willi am Anker (gedreht, das Rechteck danach zählt), Wilma und der Titel unten links.
+		assert.deepEqual(
+			seite1.filter((m) => m.stufe === 'WARNUNG').map(({ code, ziele }) => [code, ziele?.[0]?.name]),
+			[
+				['druckrand', 'Willi'],
+				['druckrand', 'Wilma'],
+				['druckrand', 'Detektive'],
+			],
 		);
 	});
 
@@ -94,6 +116,12 @@ describe('pruefung.js mit Gestaltung (091)', { skip: browserSkip() }, () => {
 					text: '„Diese Zeile ragt in den Rand.“ ragt in den Seitenrand (91 px) → kürzen, Item streichen oder zweite Seite',
 				},
 				{ code: 'ueberlappung', stufe: 'FEHLER', text: '„Willi oben“ überlappt „Wilma darunter“ (54 × 120 px)' },
+				// Die freie Figur vorne überdeckt Aufgabe 4: dafür gibt es seit 096 den Hinweis statt ueberlappung.
+				{
+					code: 'verdeckt',
+					stufe: 'HINWEIS',
+					text: '„Willi“ verdeckt „Zwei Bilder übereinander.“ (4463 px²) → verschieben oder nach hinten legen',
+				},
 				{
 					code: 'flaeche',
 					stufe: 'WARNUNG',
@@ -119,11 +147,81 @@ describe('pruefung.js mit Gestaltung (091)', { skip: browserSkip() }, () => {
 			const platz = (meldungen: Meldung[]) =>
 				meldungen.filter((m) => m.code === 'platz-frei').map(({ seite, text }) => ({ seite, text }));
 			const mit = platz(await pruefe(DATEI));
-			assert.equal(mit.length, 2, 'beide Seiten haben unten Platz');
+			assert.equal(mit.length, 3, 'alle Seiten haben unten Platz');
 			assert.deepEqual(mit, platz(await pruefe(ohne)));
 		} finally {
 			await rm(tmp, { recursive: true, force: true });
 		}
+	});
+});
+
+/** Die eigenen Codes der Gestaltung (096): Seite 3 von `pruefung-gestaltung.html` und das Mini-Book, je mit Gegenprobe. */
+describe('pruefung.js: Codes der Gestaltung (096)', { skip: browserSkip() }, () => {
+	const DATEI = path.join(TESTDATEN, 'pruefung-gestaltung.html');
+	const kurz = (meldungen: Meldung[]) =>
+		meldungen.map(({ code, stufe, text, ziele }) => ({ code, stufe, text, ziele: ziele?.map((z) => z.name) }));
+
+	it('Seite 3 meldet genau: aussen, druckrand und zweimal verdeckt; die Gegenproben nicht', async () => {
+		const seite3 = (await pruefe(DATEI)).filter((m) => m.seite === 3 && m.code !== 'platz-frei');
+		assert.deepEqual(kurz(seite3), [
+			{
+				code: 'druckrand',
+				stufe: 'WARNUNG',
+				text: '„Wilma am Rand“ liegt im Druckrand (8 px vom Blattrand) → etwas nach innen ziehen',
+				ziele: ['Wilma am Rand'],
+			},
+			{
+				code: 'aussen',
+				stufe: 'FEHLER',
+				text: '„kreis“ liegt außerhalb der Seite → in die Seite holen',
+				ziele: ['kreis'],
+			},
+			{
+				code: 'verdeckt',
+				stufe: 'HINWEIS',
+				text: '„Wilma vorne“ verdeckt „Zeichne ein Haus aus Formen.“ (2705 px²) → verschieben oder nach hinten legen',
+				ziele: ['Wilma vorne', 'Zeichne ein Haus aus Formen.'],
+			},
+			{
+				code: 'verdeckt',
+				stufe: 'HINWEIS',
+				text: '„Wilma über der Marke“ verdeckt „Lösung“ (1896 px²) → verschieben oder nach hinten legen',
+				ziele: ['Wilma über der Marke', 'Lösung'],
+			},
+		]);
+	});
+
+	it('ausgeblendet: einmal je Material mit der Zahl, Ziel ist das erste; sonst taucht Ausgeblendetes nirgends auf', async () => {
+		const bericht = await pruefe(DATEI);
+		const aus = bericht.filter((m) => m.code === 'ausgeblendet');
+		assert.deepEqual(kurz(aus), [
+			{
+				code: 'ausgeblendet',
+				stufe: 'HINWEIS',
+				text: '2 Elemente sind ausgeblendet und werden nicht gedruckt → in den Ebenen wieder einblenden',
+				ziele: ['Versteckt eins'],
+			},
+		]);
+		assert.equal(aus[0]?.seite, 0);
+		assert.ok(!bericht.some((m) => m.ziele?.some((z) => z.name.startsWith('Versteckt')) && m.code !== 'ausgeblendet'));
+	});
+
+	it('Mini-Book: kein druckrand an der Falz, wohl aber am Blattrand', async () => {
+		const bericht = await pruefe(path.join(TESTDATEN, 'pruefung-gestaltung-minibuch.html'));
+		assert.deepEqual(
+			bericht.filter((m) => m.code === 'druckrand').map((m) => [m.seite, m.ziele?.[0]?.name]),
+			[
+				[1, 'Blattrand rechts'],
+				[3, 'Blattrand unten'],
+			],
+		);
+	});
+});
+
+describe('Druckrand (096)', () => {
+	it('pruefung.js und gestaltung-arten.ts haben denselben Wert', async () => {
+		const skript = await readFile(path.join(ASSETS, 'pruefung.js'), 'utf8');
+		assert.equal(Number(/const DRUCKRAND = (\d+);/.exec(skript)?.[1]), DRUCKRAND);
 	});
 });
 

@@ -30,6 +30,14 @@ export const MELDUNG_CODES = [
 	'verweis',
 	/** Ein Mini-Book hat nicht genau acht Seiten (036). */
 	'minibuch-seiten',
+	/** Gestaltung mit Text oder Bild liegt in den äußeren 19 px und fehlt im Druck vielleicht (096). */
+	'druckrand',
+	/** Ein Gestaltungselement liegt zu mehr als der Hälfte außerhalb der Seite (096). */
+	'aussen',
+	/** Gestaltung vorne oder am Anker überdeckt Inhalt um mehr als 400 px² (096). */
+	'verdeckt',
+	/** Einmal je Material: Elemente mit `data-aus` werden nicht gedruckt (096, F10). */
+	'ausgeblendet',
 ] as const;
 
 export type MeldungCode = (typeof MELDUNG_CODES)[number];
@@ -168,6 +176,25 @@ const TABELLE: Record<MeldungCode, Uebersetzung> = {
 		satz: 'Ein Mini-Book muss genau acht Seiten haben, sonst liegen sie nach dem Falten falsch.',
 		tipp: null,
 	}),
+	'druckrand': ([a = 'Etwas']) => ({
+		satz: `${a} liegt im Druckrand und fehlt beim Drucken vielleicht.`,
+		tipp: 'Etwas nach innen ziehen.',
+	}),
+	'aussen': ([a = 'Etwas']) => ({ satz: `${a} liegt außerhalb der Seite.`, tipp: 'In die Seite holen.' }),
+	'verdeckt': ([a = 'Etwas', b = 'einen Inhalt']) => ({
+		satz: `${a} verdeckt ${b}.`,
+		tipp: 'Verschieben, nach hinten legen oder im Inspektor „Darf Inhalt überdecken“ wählen.',
+	}),
+	'ausgeblendet': (_n, text) => {
+		const anzahl = Number(/^(\d+)/.exec(text)?.[1] ?? 0);
+		return {
+			satz:
+				anzahl === 1
+					? 'Ein Element ist ausgeblendet und wird nicht gedruckt.'
+					: `${anzahl > 1 ? anzahl : 'Einige'} Elemente sind ausgeblendet und werden nicht gedruckt.`,
+			tipp: 'In den Ebenen mit dem Auge wieder einblenden.',
+		};
+	},
 };
 
 type Regel = [RegExp, (...teile: string[]) => string];

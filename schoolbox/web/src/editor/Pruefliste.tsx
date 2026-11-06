@@ -60,6 +60,11 @@ const Eintrag = ({
 				Auf neue Seite verschieben
 			</Knopf>
 		)}
+		{verschiebe && p.code === 'aussen' && p.bausteine.length > 0 && (
+			<Knopf art="zweit" className="mt-1 w-full" data-in-seite-holen onClick={() => verschiebe(p)}>
+				In die Seite holen
+			</Knopf>
+		)}
 	</li>
 );
 
@@ -67,7 +72,7 @@ interface Eigenschaften {
 	stand: Pruefstand | null;
 	/** Zum Element rollen und es auswählen. */
 	zeige: (p: Pruefpunkt) => void;
-	/** Legt, was über die Seite ragt, auf eine neue Seite (044). */
+	/** Legt, was über die Seite ragt, auf eine neue Seite (044); bei `aussen` holt es das Element in die Seite (096). */
 	verschiebe?: ((p: Pruefpunkt) => void) | undefined;
 }
 

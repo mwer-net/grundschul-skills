@@ -94,5 +94,52 @@
          style="--x:100px;--y:120px;--b:140px">
   </div>
 </section>
+<!-- Seite 3: die Codes aus 096, je mit Gegenprobe. Erwartet genau: aussen für „kreis“, druckrand für „Wilma am Rand“,
+     verdeckt für „Wilma vorne“ und „Wilma über der Marke“, dazu einmal je Material ausgeblendet (2). Nicht melden:
+     Form ohne Text am Rand, Form zu 40 % außen, Seitenrahmen bei 24 px, Figur hinten, data-ueberlagert-ok, unter 400 px². -->
+<section class="seite">
+  <div class="loesung-marke" style="display:block;position:absolute;top:22px;right:40px">Lösung</div>
+  <div class="aufgabe">
+    <span class="nr">6</span>
+    <div class="anw"><div class="text">Zeichne ein Haus aus Formen.</div></div>
+    <div class="koerper"><div class="zeile">Ein Dreieck und ein Quadrat.</div></div>
+  </div>
+  <div class="aufgabe">
+    <span class="nr">7</span>
+    <div class="anw"><div class="text">Male die Dreiecke an.</div></div>
+    <div class="koerper"><div class="zeile">Drei Dreiecke.</div></div>
+  </div>
+  <div class="ebene hinten">
+    <div class="seitenrahmen" style="--rahmen-abstand:24px"></div>
+    <img class="figur-frei" data-lage="frei" data-name="Willi hinten" src="bilder/willi.png" alt="Willi"
+         style="--x:300px;--y:200px;--b:80px">
+  </div>
+  <div class="ebene vorne">
+    <img class="figur-frei" data-lage="frei" data-name="Wilma vorne" src="bilder/wilma.png" alt="Wilma"
+         style="--x:200px;--y:50px;--b:80px">
+    <img class="figur-frei" data-lage="frei" data-name="Wilma erlaubt" data-ueberlagert-ok src="bilder/wilma.png" alt="Wilma"
+         style="--x:450px;--y:200px;--b:80px">
+    <svg class="form" data-lage="frei" data-form="dreieck" viewBox="0 0 40 40" style="--x:30px;--y:180px;--b:40px;--h:40px">
+      <path d="M20 2 L38 38 L2 38 Z" style="fill:var(--akzent)"/>
+    </svg>
+    <img class="figur-frei" data-lage="frei" data-name="Wilma über der Marke" src="bilder/wilma.png" alt="Wilma"
+         style="--x:690px;--y:24px;--b:60px">
+    <img class="figur-frei" data-lage="frei" data-name="Wilma am Rand" src="bilder/wilma.png" alt="Wilma"
+         style="--x:8px;--y:700px;--b:90px">
+    <svg class="form" data-lage="frei" data-form="kreis" viewBox="0 0 100 100" style="--x:-60px;--y:850px;--b:100px;--h:100px">
+      <circle cx="50" cy="50" r="48" style="fill:var(--haupt)"/>
+    </svg>
+    <svg class="form" data-lage="frei" data-form="quadrat" viewBox="0 0 100 100" style="--x:734px;--y:850px;--b:100px;--h:100px">
+      <rect x="2" y="2" width="96" height="96" style="fill:var(--haupt)"/>
+    </svg>
+    <svg class="form" data-lage="frei" data-form="stern" viewBox="0 0 60 60" style="--x:0px;--y:1050px;--b:60px;--h:60px">
+      <path d="M30 2 L37 22 L58 22 L41 35 L48 56 L30 43 L12 56 L19 35 L2 22 L23 22 Z" style="fill:var(--akzent)"/>
+    </svg>
+    <img class="figur-frei" data-lage="frei" data-name="Versteckt eins" data-aus src="bilder/wilma.png" alt="Wilma"
+         style="--x:-300px;--y:90px;--b:80px">
+    <img class="figur-frei" data-lage="frei" data-name="Versteckt zwei" data-aus src="bilder/willi.png" alt="Willi"
+         style="--x:200px;--y:90px;--b:80px">
+  </div>
+</section>
 </body>
 </html>

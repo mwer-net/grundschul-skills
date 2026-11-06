@@ -1,0 +1,27 @@
+<!doctype html>
+<html lang="de">
+<head><meta charset="utf-8"><title>Prüfung: Druckrand im Mini-Book (096)</title><link rel="stylesheet" href="blatt.css"></head>
+<!-- Im Druck liegen die Seiten 4 × 2 auf A4 quer, die obere Reihe gedreht (blatt.css). Druckrand nur an Kanten, die dann
+     am Blattrand liegen: Seite 1 unten und rechts, Seite 3 nur unten. Erwartet genau: druckrand für „Blattrand rechts“
+     und „Blattrand unten“, nicht für „Falz links“ und „Falz oben“. -->
+<body class="kl3 minibuch">
+<section class="seite">
+  <div class="ebene vorne">
+    <img class="figur-frei" data-lage="frei" data-name="Falz links" src="bilder/wilma.png" alt="Wilma" style="--x:4px;--y:150px;--b:50px">
+    <img class="figur-frei" data-lage="frei" data-name="Blattrand rechts" src="bilder/wilma.png" alt="Wilma" style="--x:226px;--y:150px;--b:50px">
+  </div>
+</section>
+<section class="seite"></section>
+<section class="seite">
+  <div class="ebene vorne">
+    <img class="figur-frei" data-lage="frei" data-name="Falz oben" src="bilder/wilma.png" alt="Wilma" style="--x:110px;--y:4px;--b:50px">
+    <img class="figur-frei" data-lage="frei" data-name="Blattrand unten" src="bilder/wilma.png" alt="Wilma" style="--x:110px;--y:342px;--b:50px">
+  </div>
+</section>
+<section class="seite"></section>
+<section class="seite"></section>
+<section class="seite"></section>
+<section class="seite"></section>
+<section class="seite"></section>
+</body>
+</html>

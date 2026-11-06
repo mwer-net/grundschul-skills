@@ -51,7 +51,7 @@ import { Palette } from '../editor/Palette';
 import { eintraegeImEditor } from '../editor/palette-eintraege';
 import { Blattwerkzeug } from '../editor/Panel';
 import type { Pruefpunkt } from '../editor/pruefung';
-import { ueberlaufendeSeiten, usePruefung } from '../editor/pruefung';
+import { holeInSeiteAus, ueberlaufendeSeiten, usePruefung } from '../editor/pruefung';
 import { Statusleiste } from '../editor/Statusleiste';
 import type { Struktur } from '../editor/struktur';
 import { useStruktur } from '../editor/struktur';
@@ -360,7 +360,12 @@ const useEinfuegeWerkzeuge = ({
 		folien,
 	});
 	const verschiebeUeberlauf =
-		struktur.aktiv && docJetzt ? (p: Pruefpunkt) => einfuegen.verschiebe(docJetzt, p.seite) : undefined;
+		struktur.aktiv && docJetzt
+			? (p: Pruefpunkt) =>
+					p.code === 'aussen'
+						? holeInSeiteAus(docJetzt, struktur.aendereAttribute, p)
+						: einfuegen.verschiebe(docJetzt, p.seite)
+			: undefined;
 	return { docJetzt, einfuegen, slash, verschiebeUeberlauf };
 };
 
