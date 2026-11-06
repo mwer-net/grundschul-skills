@@ -1,0 +1,57 @@
+import type { Baustein } from '@schoolbox/kern/src/bausteine';
+import type { ComponentType } from 'react';
+
+import type { GestaltungKontext } from './kontext-ersatz';
+
+/** Was ein Teil des Inspektors bekommt. `aktiv`: Die Quelle darf gerade geändert werden. */
+export interface InspektorTeile {
+	k: GestaltungKontext;
+	quelle: string;
+	aktiv: boolean;
+}
+
+/** Die Abschnitte 2 bis 9 aus Briefing 5.8; 1 ist der Pfad, den `Inspektor.tsx` schon zeigt. */
+export type AbschnittNr = 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9;
+
+/** Ein Teil des Gestaltungs-Inspektors. Jedes Arten-Ticket trägt seine Teile in seine eigene Datei ein. */
+export interface InspektorTeil {
+	/** Eindeutig, für React und Tests. */
+	id: string;
+	abschnitt: AbschnittNr;
+	/** Reihenfolge innerhalb des Abschnitts, aufsteigend. */
+	reihenfolge: number;
+	fuer: (art: string, baustein: Baustein) => boolean;
+	Inhalt: ComponentType<InspektorTeile>;
+}
+
+/** Titel und `data-abschnitt` je Abschnitt, in fester Reihenfolge (Entscheidung 31). */
+export const ABSCHNITTE: Record<AbschnittNr, { name: string; titel: string }> = {
+	2: { name: 'position', titel: 'Position und Größe' },
+	3: { name: 'form', titel: 'Form' },
+	4: { name: 'fuellung', titel: 'Füllung und Kontur' },
+	5: { name: 'text', titel: 'Text' },
+	6: { name: 'bild', titel: 'Bild' },
+	7: { name: 'streuung', titel: 'Streuung' },
+	8: { name: 'ebene', titel: 'Ebene und Anker' },
+	9: { name: 'druck', titel: 'Druck' },
+};
+
+export interface Gruppe {
+	nr: AbschnittNr;
+	name: string;
+	titel: string;
+	teile: InspektorTeil[];
+}
+
+/** Die Teile für diese Art, nach Abschnitt gruppiert und sortiert. Abschnitte ohne Teil fehlen. */
+export const gruppiere = (teile: readonly InspektorTeil[], art: string, baustein: Baustein): Gruppe[] => {
+	const passend = teile.filter((t) => t.fuer(art, baustein));
+	return (Object.keys(ABSCHNITTE).map(Number) as AbschnittNr[])
+		.sort((a, b) => a - b)
+		.map((nr) => ({
+			nr,
+			...ABSCHNITTE[nr],
+			teile: passend.filter((t) => t.abschnitt === nr).sort((a, b) => a.reihenfolge - b.reihenfolge),
+		}))
+		.filter((g) => g.teile.length > 0);
+};

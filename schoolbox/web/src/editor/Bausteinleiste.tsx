@@ -20,6 +20,7 @@ import { BEFEHLE, kuerzelText, titelVon } from './befehle';
 import type { BildSteuerung } from './bild';
 import type { PfadTeil } from './darstellung';
 import { elementZu } from './darstellung';
+import { istGestaltungAuswahl } from './gestaltung/inspektor/kontext-ersatz';
 import type { Einblendung } from './Leinwand';
 import type { LoesungSteuerung } from './loesung';
 import { useSichtfeld } from './sichtfeld';
@@ -426,7 +427,9 @@ export const Bausteinleiste = ({
 		}
 	}, [grenze, sitzung, nr, weg, e.skala, quelle]);
 
-	if (!gewaehlt || !e.box || !sicht || nr === null || !(struktur.aktiv || sitzung)) {
+	// Bei Gestaltung steht dort die Leiste am Element (099); nur die Textsitzung behält diese Leiste mit „Fertig“.
+	const gestaltung = istGestaltungAuswahl(gewaehlt?.baustein) && !sitzung;
+	if (!gewaehlt || !e.box || !sicht || nr === null || !(struktur.aktiv || sitzung) || gestaltung) {
 		return null;
 	}
 

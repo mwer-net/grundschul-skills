@@ -31,7 +31,8 @@ import type { SchubladenId } from './schubladen/reihe';
 import { befehlZuSchublade, REIHE } from './schubladen/reihe';
 import type { Struktur, StrukturWerte } from './struktur';
 
-export type Ort = 'taste' | 'menue' | 'leiste' | 'palette';
+/** `gestaltung`: im ⋯ der Leiste am Element (099), Reihenfolge aus `gestaltung/leiste/mehr.ts`. */
+export type Ort = 'taste' | 'menue' | 'leiste' | 'palette' | 'gestaltung';
 export type Gruppe = 'bearbeiten' | 'ablage' | 'ordnen' | 'baustein' | 'gefahr' | 'ansicht' | 'blatt' | 'dokument';
 /** In welchem Zustand des Editors ein Kürzel wirkt. `text` gilt auch für Felder der Bedienung. */
 export type Modus = 'auswahl' | 'ohne' | 'text';
@@ -388,7 +389,7 @@ export const BEFEHLE: Befehl[] = [
 		],
 		modus: ['auswahl'],
 		suchwoerter: ['kopie', 'verdoppeln'],
-		orte: ['taste', 'menue', 'leiste', 'palette'],
+		orte: ['taste', 'menue', 'leiste', 'palette', 'gestaltung'],
 		sichtbarUnter: 'leiste',
 		verfuegbar: (k) => kannDas(k, 'duplizieren'),
 		warumNicht: (k) => (gewaehlt(k) && k.frei ? `${gewaehlt(k)?.name} lässt sich nicht duplizieren.` : null),
@@ -416,7 +417,7 @@ export const BEFEHLE: Befehl[] = [
 		symbol: 'kopieren',
 		kuerzel: [{ code: 'KeyC', befehl: true, wenn: (k) => !k.textMarkiert() }],
 		modus: ['auswahl'],
-		orte: ['taste', 'menue', 'leiste', 'palette'],
+		orte: ['taste', 'menue', 'leiste', 'palette', 'gestaltung'],
 		sichtbarUnter: 'mehr',
 		verfuegbar: (k) => k.aktiv && Boolean(gewaehlt(k)) && !istSeite(k),
 		aus: (k) => k.tu.kopiere(),
@@ -508,7 +509,7 @@ export const BEFEHLE: Befehl[] = [
 		gruppe: 'ordnen',
 		symbol: 'sprechblase',
 		suchwoerter: ['ki', 'chat', 'frage'],
-		orte: ['menue', 'leiste', 'palette'],
+		orte: ['menue', 'leiste', 'palette', 'gestaltung'],
 		sichtbarUnter: 'kopf',
 		verfuegbar: (k) => k.kiVerfuegbar && k.frei && Boolean(gewaehlt(k)),
 		aus: (k) => k.tu.claudeZurAuswahl(),
@@ -624,7 +625,7 @@ export const BEFEHLE: Befehl[] = [
 		kuerzel: [{ key: 'Backspace' }, { key: 'Delete' }],
 		modus: ['auswahl'],
 		suchwoerter: ['entfernen', 'weg', 'wegmachen'],
-		orte: ['taste', 'menue', 'leiste', 'palette'],
+		orte: ['taste', 'menue', 'leiste', 'palette', 'gestaltung'],
 		sichtbarUnter: 'leiste',
 		gefahr: true,
 		verfuegbar: (k) => kannDas(k, 'loeschen') && !einzigeSeite(k),

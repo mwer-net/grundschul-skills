@@ -1,0 +1,74 @@
+import { kann } from '@schoolbox/kern/src/bausteine';
+import type { EbenenName } from '@schoolbox/kern/src/gestaltung-arten';
+import { wechsleEbene } from '@schoolbox/kern/src/gestaltung';
+import { leseUeberlagertOk, setzeUeberlagertOk } from '@schoolbox/kern/src/gestaltung-inspektor';
+
+import { Schalter } from '../../../bausteine/Schalter';
+import { Segment } from '../../../bausteine/Segment';
+import type { InspektorTeil, InspektorTeile } from './abschnitte';
+
+const EBENEN: { wert: EbenenName; titel: string }[] = [
+	{ wert: 'vorne', titel: 'Vorne' },
+	{ wert: 'hinten', titel: 'Hinten' },
+];
+
+/** In welcher Ebene das Element liegt; `null` am Anker. Nur beide Klassen zusammen: `vorne` allein gibt es auch im Bestand. */
+const ebeneVon = (element: Element): EbenenName | null => {
+	const eltern = element.parentElement;
+	if (!eltern?.classList.contains('ebene')) {
+		return null;
+	}
+	if (eltern.classList.contains('hinten')) {
+		return 'hinten';
+	}
+	return eltern.classList.contains('vorne') ? 'vorne' : null;
+};
+
+const Ebene = ({ aktiv, k, quelle }: InspektorTeile) => {
+	const ebene = ebeneVon(k.element);
+	const ok = leseUeberlagertOk(quelle, k.nr);
+	return (
+		<div className="flex flex-col gap-1" data-gestaltung-ebene={ebene ?? 'anker'}>
+			{ebene ? (
+				<Segment
+					beschriftung="Ebene"
+					className="self-start"
+					werte={EBENEN}
+					wert={ebene}
+					aus={!aktiv}
+					waehle={(neu) =>
+						k.fuehreAus(neu === 'hinten' ? 'In die hintere Ebene' : 'In die vordere Ebene', (q) =>
+							wechsleEbene(q, k.nr, neu),
+						)
+					}
+				/>
+			) : (
+				<p className="text-sm text-leise">Hängt an einem Baustein.</p>
+			)}
+			<div className="flex h-zeile items-center justify-between gap-2">
+				<span className="text-leise">Darf Inhalt überdecken</span>
+				<Schalter
+					name="Darf Inhalt überdecken"
+					an={ok}
+					aus={!aktiv}
+					setze={(an) =>
+						k.fuehreAus(an ? 'Überdecken erlaubt' : 'Überdecken nicht erlaubt', (q) => ({
+							quelle: setzeUeberlagertOk(q, k.nr, an),
+							nr: k.nr,
+						}))
+					}
+				/>
+			</div>
+		</div>
+	);
+};
+
+export const EBENE_TEILE: InspektorTeil[] = [
+	{
+		id: 'ebene',
+		abschnitt: 8,
+		reihenfolge: 1,
+		fuer: (_art, baustein) => kann(baustein, 'lage'),
+		Inhalt: Ebene,
+	},
+];

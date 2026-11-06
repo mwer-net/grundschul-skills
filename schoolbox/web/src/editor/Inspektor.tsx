@@ -20,6 +20,8 @@ import { BildDarstellung, Bildwerkzeug } from './Bildpanel';
 import { useChat } from './chat-kontext';
 import type { PfadTeil } from './darstellung';
 import { elementZu } from './darstellung';
+import { Gestaltungsinspektor } from './gestaltung/inspektor/Gestaltungsinspektor';
+import { istGestaltungAuswahl } from './gestaltung/inspektor/kontext-ersatz';
 import type { Einblendung } from './Leinwand';
 import type { LoesungSteuerung } from './loesung';
 import { Loesungswerkzeug } from './Loesungspanel';
@@ -323,16 +325,28 @@ export const Einstellungen = ({
 	const kit = { art: baustein.art, folien, nr, quelle, struktur };
 	const spalten = aktiv ? struktur.werte?.spalten : null;
 	const anzahl = eintraegeIn(doc, spalten?.nr);
+	const hinweise = (
+		<div className="flex flex-col gap-2 px-3 pb-2 empty:hidden" data-abschnitt="hinweise">
+			{FREIES_ELEMENT.has(baustein.art) && <FreiesElementHinweis />}
+			<AusgeblendetHinweis doc={doc} nr={nr} quelle={quelle} struktur={struktur} />
+			<UnsichtbarHinweis doc={doc} loesung={loesung} nr={nr} quelle={quelle} schalte={schalteAnsicht} />
+			<Pruefhinweise stand={pruefung} nr={nr} />
+			<AbbildungHinweise abb={abb} />
+			{aktiv && quelle && <SammlungName ablage={ablage} />}
+		</div>
+	);
+	// Gestaltung (099): eigene Abschnitte statt der Bausteine; Pfad und Hinweise bleiben.
+	if (istGestaltungAuswahl(baustein)) {
+		return (
+			<div>
+				{hinweise}
+				<Gestaltungsinspektor doc={doc} pfad={pfad} quelle={quelle} struktur={struktur} />
+			</div>
+		);
+	}
 	return (
 		<div {...(abb.aktiv ? { 'data-abbildungswerkzeug': '' } : {})}>
-			<div className="flex flex-col gap-2 px-3 pb-2 empty:hidden" data-abschnitt="hinweise">
-				{FREIES_ELEMENT.has(baustein.art) && <FreiesElementHinweis />}
-				<AusgeblendetHinweis doc={doc} nr={nr} quelle={quelle} struktur={struktur} />
-				<UnsichtbarHinweis doc={doc} loesung={loesung} nr={nr} quelle={quelle} schalte={schalteAnsicht} />
-				<Pruefhinweise stand={pruefung} nr={nr} />
-				<AbbildungHinweise abb={abb} />
-				{aktiv && quelle && <SammlungName ablage={ablage} />}
-			</div>
+			{hinweise}
 			<Sprachwerkzeug
 				pfad={pfad}
 				aktiv={frei}
