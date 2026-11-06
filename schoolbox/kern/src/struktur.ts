@@ -4,6 +4,7 @@
  * Aufgaben neu durch. So bleibt er ein einziger Schritt im Verlauf.
  */
 
+import { dupliziereGestaltung, istEbene, istGestaltung, loescheGestaltung, neueIdsInGestaltung } from './gestaltung';
 import type { Aenderung, Knoten, Zerlegung } from './quelltext';
 import {
 	attribut,
@@ -130,10 +131,13 @@ const ergebnis = (
 	return { quelle: nummeriere(neu, n), nr };
 };
 
-/** Wohin ein neues letztes Kind von `eltern` kommt: hinter das letzte Kind, aber vor einen Fuß (Selbsteinschätzung). */
+/**
+ * Wohin ein neues letztes Kind von `eltern` kommt: hinter das letzte Kind, aber vor einen Fuß (Selbsteinschätzung) und
+ * nie in oder hinter die Ebenen der Gestaltung.
+ */
 const stelleAmEnde = (z: Zerlegung, eltern: Knoten) => {
-	const letztes = eltern.kinder.filter((k) => !hat(k, 'fuss')).at(-1);
-	const fuss = eltern.kinder.find((k) => hat(k, 'fuss'));
+	const letztes = eltern.kinder.filter((k) => !hat(k, 'fuss') && !istEbene(k)).at(-1);
+	const fuss = eltern.kinder.find((k) => hat(k, 'fuss')) ?? eltern.kinder.find(istEbene);
 	if (letztes) {
 		return { einzug: einrueckung(z, letztes), fuegeEin: (html: string) => fuegeEin(z, letztes, 'nach', html) };
 	}
@@ -154,11 +158,22 @@ const stelleAmEnde = (z: Zerlegung, eltern: Knoten) => {
 	};
 };
 
+/** Eine Ablage an einer Ebene oder in ihr gilt vor der ersten Ebene der Seite: Der Stapel endet dort. */
+const ablageImStapel = (z: Zerlegung, ziel: Knoten, wo: 'vor' | 'nach') => {
+	let ebene: Knoten | null = ziel;
+	while (ebene && !istEbene(ebene)) {
+		ebene = ebene.eltern;
+	}
+	const erste = ebene?.eltern?.kinder.find(istEbene);
+	return erste ? { ziel: erste, wo: 'vor' as const } : { ziel, wo };
+};
+
 export const verschiebeBaustein = (quelle: string, nr: number, ablage: Ablage, n: Nummerierung) => {
 	const z = zerlege(quelle);
 	const k = knotenAn(z, nr);
 	if ('nr' in ablage) {
-		const aenderungen = verschiebe(z, k, knotenAn(z, ablage.nr), ablage.wo);
+		const stelle = ablageImStapel(z, knotenAn(z, ablage.nr), ablage.wo);
+		const aenderungen = verschiebe(z, k, stelle.ziel, stelle.wo);
 		return ergebnis(quelle, aenderungen, aenderungen[1], n);
 	}
 	const eltern = knotenAn(z, ablage.in);
@@ -171,19 +186,30 @@ export const verschiebeBaustein = (quelle: string, nr: number, ablage: Ablage, n
 	return ergebnis(quelle, [...raus, ...rein], rein[0], n);
 };
 
+/** Gestaltung liegt frei und hat eigene Regeln (`gestaltung.ts`); in einer Seite oder Aufgabe bekommt sie neue Ids. */
 export const dupliziereBaustein = (quelle: string, nr: number, n: Nummerierung) => {
 	const z = zerlege(quelle);
-	const aenderungen = dupliziere(z, knotenAn(z, nr));
+	const k = knotenAn(z, nr);
+	if (istGestaltung(k)) {
+		return dupliziereGestaltung(quelle, nr);
+	}
+	const kopie = quelleVon(z, k);
+	const neu = neueIdsInGestaltung(kopie, quelle);
+	const aenderungen = neu === kopie ? dupliziere(z, k) : fuegeEin(z, k, 'nach', neu);
 	return ergebnis(quelle, aenderungen, aenderungen[0], n);
 };
 
 export const loescheBaustein = (quelle: string, nr: number, n: Nummerierung) => {
 	const z = zerlege(quelle);
 	const k = knotenAn(z, nr);
+	if (istGestaltung(k)) {
+		return loescheGestaltung(quelle, nr);
+	}
 	if (hat(k, 'seite') && seitenVon(z).length <= 1) {
 		throw new Error('Die einzige Seite lässt sich nicht löschen.');
 	}
-	const geschwister = k.eltern?.kinder ?? [];
+	// Eine Ebene ist nicht wählbar: Gewählt wird danach ein Nachbar im Stapel.
+	const geschwister = (k.eltern?.kinder ?? []).filter((g) => !istEbene(g));
 	const stelle = geschwister.indexOf(k);
 	const folge = geschwister[stelle + 1] ?? geschwister[stelle - 1] ?? k.eltern;
 	const neu = ergebnis(quelle, entferne(z, k), undefined, n);

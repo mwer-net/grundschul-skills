@@ -9,7 +9,8 @@ import { bausteinVon, liegtAlsBlock, nameVon, nrVon, trefferAn } from './darstel
 
 /** Orientierung, aber kein Ziehen: Kopf und Fuß des Blatts und das Band des Themas. */
 const FESTE_ARTEN = new Set(['namenszeile', 'kopf', 'fuss', 'themaband', 'themakopf']);
-const OHNE_ZEILE = '.loesung-marke, style, script, template, link, meta, br';
+/** Die Ebenen und was frei liegt, zeigt die Schublade „Ebenen“ erst mit 101; bis dahin bleibt der Baum wie vorher. */
+const OHNE_ZEILE = '.loesung-marke, style, script, template, link, meta, br, .ebene, [data-lage]';
 
 /** Ein Baustein in der Gliederung, mit allem, was im Blatt darin wählbar ist. */
 export interface GliederungKnoten {

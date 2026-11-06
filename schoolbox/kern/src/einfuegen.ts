@@ -72,8 +72,9 @@ const seitenkind = (k: Knoten) => {
 };
 
 const stelleAufSeite = (z: Zerlegung, seite: Knoten, html: string): Aenderung[] => {
-	const ende = seite.kinder.filter((k) => !hat(k, 'fuss')).at(-1);
-	const fuss = seite.kinder.find((k) => hat(k, 'fuss'));
+	// Der Stapel endet vor den Ebenen der Gestaltung (Phase 12).
+	const ende = seite.kinder.filter((k) => !hat(k, 'fuss') && !hat(k, 'ebene')).at(-1);
+	const fuss = seite.kinder.find((k) => hat(k, 'fuss') || hat(k, 'ebene'));
 	if (ende) {
 		return fuegeEin(z, ende, 'nach', html);
 	}
@@ -91,7 +92,7 @@ const aufSeite = (z: Zerlegung, ziel: Knoten | null, html: string): Aenderung[] 
 	if (!seite) {
 		throw new Error('Das Material hat keine Seite.');
 	}
-	if (kind && !hat(kind, 'fuss') && !hat(kind, 'namenszeile') && !hat(kind, 'loesung-marke')) {
+	if (kind && !['fuss', 'namenszeile', 'loesung-marke', 'ebene'].some((c) => hat(kind, c))) {
 		const stern = hat(kind, 'aufgabe') && kind.kinder.some((k) => hat(k, 'stern'));
 		return fuegeEin(z, kind, stern ? 'vor' : 'nach', html);
 	}

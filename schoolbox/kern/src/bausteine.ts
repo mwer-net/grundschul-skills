@@ -6,6 +6,7 @@
 
 import type { Abbildung, KatalogAngaben } from './abbildungen';
 import { ABBILDUNG_SCHEMA } from './abbildungen';
+import { GESTALTUNG_ARTEN } from './gestaltung-arten';
 
 export const FAEHIGKEITEN = [
 	/** Ziehen innerhalb des Elternelements bzw. der Seite (016). */
@@ -26,6 +27,12 @@ export const FAEHIGKEITEN = [
 	'loesung',
 	/** „Als Beispiel zeigen“: Lösung schon auf dem Arbeitsblatt, `class="beispiel"` (019). */
 	'beispiel',
+	/** Liegt frei auf der Seite (`data-lage="frei"`): Griffe statt Ziehen im Stapel (Phase 12). */
+	'lage',
+	/** Farbe, Kontur und Aussehen im Inspektor (Phase 12). */
+	'fuellung',
+	/** Höhen-Griff am unteren Rand, nur die Fläche im Stapel (E4). */
+	'hoehe',
 ] as const;
 
 export type Faehigkeit = (typeof FAEHIGKEITEN)[number];
@@ -115,6 +122,8 @@ export const BAUSTEINE: readonly Baustein[] = [
 		sonderfall: { selektor: '.aufgabe:has(> .nr.stern)', name: 'Sternchenaufgabe', art: 'sternchenaufgabe' },
 		ordnenIn: '.seite',
 	},
+	// Gestaltung vor allem, was sonst auf dasselbe Element passte: auch vor `[data-frei]`, `img` und `block` (Phase 12).
+	...GESTALTUNG_ARTEN,
 	// Vor allem anderen, was auf dasselbe `div` oder `table` passte: Die Kennzeichnung gilt, nicht die Form.
 	{
 		art: 'freiestext',
@@ -183,8 +192,8 @@ export const BAUSTEINE: readonly Baustein[] = [
 		zaehlen: true,
 	},
 	{ art: 'tipp', name: 'Tipp', selektor: '.tipp', faehigkeiten: GRUND, ...KLEIN },
-	{ art: 'figur', name: 'Leitfigur', selektor: 'img.figur', faehigkeiten: [...GRUND, 'bild'], ...KLEIN },
-	{ art: 'bild', name: 'Bild', selektor: 'img', faehigkeiten: [...GRUND, 'bild'], ...KLEIN },
+	{ art: 'figur', name: 'Leitfigur', selektor: 'img.figur:not([data-lage])', faehigkeiten: [...GRUND, 'bild'], ...KLEIN },
+	{ art: 'bild', name: 'Bild', selektor: 'img:not([data-lage])', faehigkeiten: [...GRUND, 'bild'], ...KLEIN },
 	{
 		art: 'abbildung',
 		name: 'Abbildung',
@@ -326,12 +335,26 @@ const einfacherRahmen = <T>(s: Sicht<T>, t: T, tiefe = 0): boolean => {
 	);
 };
 
+/**
+ * In einer Ebene oder in einem Gestaltungselement (Phase 12) gelten die Regeln für frei gestaltetes Material nicht: Die
+ * Ebene ist kein Rahmen, ihr Inhalt kein Block im Stapel und kein freier Text.
+ */
+const inGestaltung = <T>(s: Sicht<T>, t: T) => {
+	for (let a: T | null = t; a; a = s.eltern(a)) {
+		if (s.passt(a, '.ebene, [data-lage]')) {
+			return true;
+		}
+	}
+	return false;
+};
+
 /** Liegt das Element so, dass es als ganzer Block zwischen seine Geschwister gehört: direkt auf der Seite oder im Rahmen? */
 export const liegtFrei = <T>(s: Sicht<T>, t: T) => {
 	const eltern = s.eltern(t);
 	return (
 		eltern !== null &&
 		!s.passt(t, 'style, script, template, link, meta, br') &&
+		!inGestaltung(s, t) &&
 		(s.passt(eltern, '.seite') || einfacherRahmen(s, eltern))
 	);
 };
@@ -390,7 +413,7 @@ const REGELN: Record<FreieRegel, <T>(s: Sicht<T>, t: T) => boolean> = {
 
 /** Der erste passende Eintrag des Registers, mit den Regeln für frei gestaltetes Material. */
 export const bausteinUeber = <T>(s: Sicht<T>, t: T): Baustein | undefined =>
-	BAUSTEINE.find((b) => s.passt(t, b.selektor) && (!b.frei || REGELN[b.frei](s, t)));
+	BAUSTEINE.find((b) => s.passt(t, b.selektor) && (!b.frei || (!inGestaltung(s, t) && REGELN[b.frei](s, t))));
 
 export const bausteinNach = (art: string) => BAUSTEINE.find((b) => b.art === art);
 
