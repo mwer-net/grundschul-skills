@@ -3,6 +3,10 @@ import { describe, it } from 'node:test';
 
 import type { Kontext, Kuerzel, Modus } from './befehle';
 import { BEFEHLE, befehlZuTaste, kuerzelText, MODUS_VORGABE, passtTaste } from './befehle';
+import { befehleFuerWerkzeuge } from './gestaltung/werkzeuge/befehle';
+import { WERKZEUGE } from './gestaltung/werkzeuge';
+import type { Werkzeug } from './gestaltung/werkzeuge';
+import { werkzeugStand, zurAuswahl } from './gestaltung/werkzeuge/stand';
 import { JEDE_LAGE, SCHUBLADEN } from './schubladen';
 import { alsSchublade, REIHE } from './schubladen/reihe';
 
@@ -172,5 +176,115 @@ describe('Schubladen (093)', () => {
 		assert.equal(alsSchublade('bilder'), 'bilder');
 		assert.equal(alsSchublade('zu'), null);
 		assert.equal(alsSchublade(null), null);
+	});
+});
+
+describe('Werkzeuge (098)', () => {
+	const testZugang = (an: boolean) => {
+		(globalThis as { __schoolboxTest?: { gestaltung?: boolean } }).__schoolboxTest = { gestaltung: an };
+	};
+	const taste = (code: string, mehr: Partial<KeyboardEvent> = {}) => ({
+		code,
+		key: code.replace('Key', '').toLowerCase(),
+		metaKey: false,
+		ctrlKey: false,
+		altKey: false,
+		shiftKey: false,
+		...mehr,
+	});
+	const kontext = (mehr: Partial<Kontext> = {}) =>
+		({ aktiv: true, frei: true, textsitzung: false, feldBehaeltUndo: () => false, ...mehr }) as Kontext;
+
+	it('jedes Werkzeug hat genau einen Befehl `werkzeug.<id>`', () => {
+		for (const w of WERKZEUGE) {
+			assert.equal(BEFEHLE.filter((b) => b.id === `werkzeug.${w.id}`).length, 1, w.id);
+		}
+		assert.equal(BEFEHLE.filter((b) => b.id.startsWith('werkzeug.')).length, WERKZEUGE.length);
+		assert.equal(WERKZEUGE[0]?.id, 'auswahl');
+	});
+
+	it('ohne bereites Werkzeug gibt es auch V nicht, und die Tasten bleiben beim Browser', () => {
+		testZugang(false);
+		const v = BEFEHLE.find((b) => b.id === 'werkzeug.auswahl');
+		assert.equal(v?.verfuegbar(kontext()), false);
+		assert.equal(v?.inUebersicht?.(), false);
+		assert.equal(befehlZuTaste(taste('KeyV'), 'auswahl', kontext()), undefined);
+		assert.equal(befehlZuTaste(taste('KeyQ'), 'ohne', kontext()), undefined);
+	});
+
+	it('Buchstaben wählen das Werkzeug, aber nie beim Tippen und nie statt ⌘V', () => {
+		testZugang(true);
+		try {
+			assert.equal(befehlZuTaste(taste('KeyV'), 'auswahl', kontext())?.id, 'werkzeug.auswahl');
+			assert.equal(befehlZuTaste(taste('KeyQ'), 'ohne', kontext())?.id, 'werkzeug.test');
+			// Textsitzung, Suchfeld, Chat, Inspektor: Modus `text` oder ein Feld mit eigenem Undo.
+			assert.equal(befehlZuTaste(taste('KeyQ'), 'text', kontext()), undefined);
+			assert.equal(befehlZuTaste(taste('KeyQ'), 'ohne', kontext({ feldBehaeltUndo: () => true })), undefined);
+			assert.equal(befehlZuTaste(taste('KeyQ'), 'ohne', kontext({ textsitzung: true })), undefined);
+			assert.equal(
+				befehlZuTaste(taste('KeyV', { metaKey: true }), 'auswahl', kontext({ hatAblage: true }))?.id,
+				'auswahl.einfuegen',
+			);
+			for (const b of BEFEHLE.filter((x) => x.id.startsWith('werkzeug.'))) {
+				for (const k of b.kuerzel ?? []) {
+					assert.equal(k.befehl, false, b.id);
+					assert.ok(!k.wahl, b.id);
+				}
+			}
+		} finally {
+			testZugang(false);
+		}
+	});
+
+	it('⇧ beim Wählen hält das Werkzeug; V hält nie', () => {
+		testZugang(true);
+		try {
+			const q = befehlZuTaste(taste('KeyQ', { shiftKey: true }), 'ohne', kontext());
+			assert.equal(q?.id, 'werkzeug.test');
+			q?.aus(kontext(), taste('KeyQ', { shiftKey: true }) as KeyboardEvent);
+			assert.deepEqual(werkzeugStand(), { id: 'test', halten: true });
+			BEFEHLE.find((b) => b.id === 'werkzeug.test')?.aus(kontext(), taste('KeyQ') as KeyboardEvent);
+			assert.deepEqual(werkzeugStand(), { id: 'test', halten: false });
+			assert.equal(befehlZuTaste(taste('KeyV', { shiftKey: true }), 'ohne', kontext()), undefined);
+		} finally {
+			zurAuswahl();
+			testZugang(false);
+		}
+	});
+
+	it('keine Taste kollidiert, auch wenn alle Werkzeuge aus 5.10 da sind (P Stift, ⇧P Pfad)', () => {
+		const leer = { zeiger: 'crosshair', bereit: () => true, beginne: () => undefined, bewege: () => null, ende: () => null };
+		const alle: Werkzeug[] = [
+			WERKZEUGE[0] as Werkzeug,
+			...(
+				[
+					['rechteck', 'KeyR'],
+					['ellipse', 'KeyO'],
+					['vieleck', 'KeyY'],
+					['linie', 'KeyL'],
+					['text', 'KeyT'],
+					['stift', 'KeyP'],
+				] as const
+			).map(([id, code]): Werkzeug => ({ ...leer, id, titel: id, symbol: 'formen', taste: { code } })),
+			{ ...leer, id: 'pfad', titel: 'Pfad', symbol: 'stift', taste: { code: 'KeyP', umschalt: true } },
+			{ ...leer, id: 'schere', titel: 'Schere', symbol: 'formen', taste: { code: 'KeyM', umschalt: true } },
+			{ ...leer, id: 'stern', titel: 'Stern', symbol: 'stern' },
+		];
+		const befehle = befehleFuerWerkzeuge(alle);
+		assert.equal(befehle.length, alle.length);
+		const belegt = new Map<string, string>();
+		for (const b of [...BEFEHLE.filter((x) => !x.id.startsWith('werkzeug.')), ...befehle]) {
+			if ((b.modus ?? MODUS_VORGABE).includes('auswahl')) {
+				for (const k of b.kuerzel ?? []) {
+					const s = schluessel(k);
+					assert.equal(belegt.get(s), undefined, `${s} bei ${b.id} und ${belegt.get(s) ?? ''}`);
+					belegt.set(s, b.id);
+				}
+			}
+		}
+		assert.equal(belegt.get('U:KeyP'), 'werkzeug.pfad');
+		assert.equal(belegt.get('U:KeyR'), 'werkzeug.rechteck');
+		assert.equal(befehle.find((b) => b.id === 'werkzeug.stern')?.kuerzel, undefined);
+		assert.deepEqual(befehle.find((b) => b.id === 'werkzeug.stern')?.orte, ['palette']);
 	});
 });

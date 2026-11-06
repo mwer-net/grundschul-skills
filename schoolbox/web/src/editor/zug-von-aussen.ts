@@ -17,7 +17,8 @@ import { rolleAnsicht } from './ziehen';
  * Erweitern (098 Gestaltung, 115 Fläche, 125 Stapel): Ein neues `Ziehgut` bauen, mit eigener `art`, ohne diese Datei
  * umzuschreiben. `modus(cmd)` sagt je Stand der ⌘-Taste, ob es im Stapel einrastet (`stapel`), frei liegt (`frei`)
  * oder nichts tut (`nichts`). Für `frei` zeigt der Zug hier nur den Namen am Zeiger und meldet beim Loslassen den Punkt
- * in Koordinaten des Materials an `legeAb`; was dabei im Blatt zu sehen ist, hängt der neue Ziehgut-Bauer ein.
+ * in Koordinaten des Materials an `legeAb`; was dabei im Blatt zu sehen ist, hängt der neue Ziehgut-Bauer über `folge`
+ * ein.
  */
 
 /** Meldet dem `iframe`-Dokument, dass ein Zug von außen läuft (`detail: true`) oder endet; die Leinwand blendet aus. */
@@ -28,7 +29,7 @@ export type Modus = 'stapel' | 'frei' | 'nichts';
 export type Ziel = { modus: 'stapel'; ablage: Ablage } | { modus: 'frei'; x: number; y: number };
 
 export interface Ziehgut {
-	/** `baustein` (094); 098 ergänzt `gestaltung`. */
+	/** `baustein` (094), `gestaltung` (098, `gestaltung/ablegen/ziehgut.ts`). */
 	art: string;
 	/** Steht am Zeiger. */
 	name: string;
@@ -38,6 +39,12 @@ export interface Ziehgut {
 	/** Für Bausteine mit fester Stelle (Kopf, Namenszeile, Fuß): der Platz auf derselben Seite, wo er hingehört. */
 	richte?: (doc: Document, platz: Platz) => Platz | null;
 	legeAb: (ziel: Ziel) => void;
+	/**
+	 * Für Gestaltung (098): bei jeder Bewegung der Zeiger im Material, solange er auf einer Seite steht, sonst `null`;
+	 * beim Ende `null`, nach `legeAb`. Hier zeigt das Gut seine Vorschau und sein Ziel. Ein Text ersetzt den Namen am
+	 * Zeiger.
+	 */
+	folge?: (punkt: { x: number; y: number } | null, modus: Modus) => string | undefined;
 }
 
 /** Was am Zeiger steht, in Koordinaten des Elternfensters. */
@@ -82,8 +89,9 @@ export const zieheVonAussen = (s: Start) => {
 	};
 
 	const aktualisiere = () => {
-		s.zeige({ name: gut.name, x, y });
 		const p = imMaterial();
+		const text = gut.folge?.(p && aufSeite(doc, p.x, p.y) ? p : null, gut.modus(cmd));
+		s.zeige({ name: text ?? gut.name, x, y });
 		if (gut.modus(cmd) !== 'stapel' || !ordnung || !p) {
 			platz = null;
 		} else if (platz && inLuecke(doc, p.x, p.y)) {
@@ -163,14 +171,12 @@ export const zieheVonAussen = (s: Start) => {
 		entferneLuecke(doc);
 		s.zeige(null);
 		melde(false);
-		if (!ablegen) {
-			return;
-		}
-		if (modus === 'stapel' && ziel) {
+		if (ablegen && modus === 'stapel' && ziel) {
 			gut.legeAb({ modus: 'stapel', ablage: ziel.ablage });
-		} else if (modus === 'frei' && p && aufSeite(doc, p.x, p.y)) {
+		} else if (ablegen && modus === 'frei' && p && aufSeite(doc, p.x, p.y)) {
 			gut.legeAb({ modus: 'frei', ...p });
 		}
+		gut.folge?.(null, modus);
 	}
 
 	// Liegt der Fokus im Blatt, kommt Esc dort an, nicht im Elternfenster.

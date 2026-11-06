@@ -26,6 +26,7 @@ import type { SymbolName } from '../bausteine/Symbol';
 import type { PfadTeil } from './darstellung';
 import { GESTALTUNG_BEFEHLE } from './gestaltung/befehle';
 import type { GestaltungKontext } from './gestaltung/kontext';
+import { WERKZEUG_BEFEHLE } from './gestaltung/werkzeuge/befehle';
 import { JEDE_LAGE, schubladeVon } from './schubladen';
 import type { SchubladenId } from './schubladen/reihe';
 import { befehlZuSchublade, REIHE } from './schubladen/reihe';
@@ -149,7 +150,8 @@ export interface Befehl {
 	sichtbarUnter: 'kopf' | 'statusleiste' | 'leiste' | 'mehr' | 'inspektor' | 'links' | 'blatt';
 	gefahr?: boolean;
 	verfuegbar: (k: Kontext) => boolean;
-	aus: (k: Kontext) => unknown;
+	/** `taste`: das Ereignis, wenn eine Taste den Befehl auslöste (Werkzeuge halten mit ⇧, 098). */
+	aus: (k: Kontext, taste?: KeyboardEvent) => unknown;
 	/** Im Menü nur dann, auch wenn der Befehl sonst verfügbar ist. */
 	imMenue?: (k: Kontext) => boolean;
 	/** Eintrag gesperrt statt ausgeblendet: ↑ und ↓ bleiben an ihrem Platz. */
@@ -737,6 +739,7 @@ export const BEFEHLE: Befehl[] = [
 		aus: (k) => k.tu.einpassen(),
 	},
 	...SCHUBLADEN_BEFEHLE,
+	...WERKZEUG_BEFEHLE,
 	{
 		id: 'ansicht.ebenen-anheften',
 		titel: (k) => (k.ebenenAngeheftet ? 'Ebenen lösen' : 'Ebenen anheften'),

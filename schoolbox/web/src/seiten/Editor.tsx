@@ -38,6 +38,7 @@ import { useClaudeApp } from '../editor/ClaudeApp';
 import { bausteinVon, editorHtml, elementZu, nrVon, pfadZu, zielNachSchritt } from '../editor/darstellung';
 import { useEinfuegen, useSlash, useTabelleTab } from '../editor/einfuegen';
 import { Leiste as GestaltungLeiste } from '../editor/gestaltung/leiste/Leiste';
+import { Werkzeugflaeche } from '../editor/gestaltung/werkzeuge/Werkzeugflaeche';
 import { useGliederungStand } from '../editor/gliederung-stand';
 import { halteFokus } from '../editor/halteFokus';
 import { Einstellungen, Inspektor, Umriss } from '../editor/Inspektor';
@@ -1114,6 +1115,7 @@ const Bearbeitung = ({ dokument, mappe: mappenDaten }: { mappe: Mappe; dokument:
 													/>
 													<GestaltungUeberlagerung e={e} pfad={pfad} struktur={struktur} waehle={setAuswahl} textsitzung={text.bearbeitet} />
 													<GestaltungLeiste e={e} pfad={pfad} quelle={quelle} struktur={struktur} befehle={befehle} sitzung={text.bearbeitet} />
+													<Werkzeugflaeche e={e} struktur={struktur} folien={format === 'folie'} />
 												</>
 											)
 										: undefined
