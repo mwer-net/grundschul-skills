@@ -37,6 +37,9 @@ const SVG_ELEMENTE = namen(
 	'svg g defs symbol use title desc',
 	'path rect circle ellipse line polygon polyline text tspan',
 	'lineargradient radialgradient stop pattern clippath mask marker',
+
+	// >> 110 Schmuckschrift im Bogen: `textpath`
+	// << 110
 );
 
 const ATTRIBUTE_ALLE = namen('class id style title lang dir role');
@@ -67,9 +70,19 @@ const SVG_ATTRIBUTE = namen(
 	'patternunits patterncontentunits patterntransform clippathunits maskunits maskcontentunits',
 	'markerwidth markerheight markerunits refx refy orient marker-start marker-mid marker-end',
 	'vector-effect display visibility shape-rendering overflow',
+
+	// >> 110 Schmuckschrift im Bogen: `startoffset` u. a.
+	// << 110
 );
 
 const NUR_DURCH_USE = namen('href xlink:href');
+/** Wo `href` stehen darf, immer nur als Sprung im Dokument. */
+const MIT_SPRUNG = namen(
+	'use',
+
+	// >> 110 Schmuckschrift im Bogen: `textpath`
+	// << 110
+);
 const URL_ATTRIBUTE = namen('fill stroke clip-path mask marker-start marker-mid marker-end');
 const SVG_OHNE_STIL = namen('id class title lang dir role xmlns xmlns:xlink d points href xlink:href');
 const SVG_NAMENSRAUM: Record<string, string> = {
@@ -79,12 +92,19 @@ const SVG_NAMENSRAUM: Record<string, string> = {
 
 const FREI_ATTRIBUT = /^(?:aria|data)-[a-z0-9_.-]+$/;
 
+/**
+ * Eigene Eigenschaften wie `--x:96px` und `var(--haupt)` gehen durch, denn geprüft werden nur Funktionen und @-Regeln,
+ * keine Liste der Eigenschaften. Die Lage der Gestaltung (Phase 12) braucht darum hier nichts Neues.
+ */
 const CSS_FUNKTIONEN = namen(
 	'rgb rgba hsl hsla color-mix calc min max clamp var',
 	'translate translatex translatey translate3d rotate rotatex rotatey scale scalex scaley skew skewx skewy matrix perspective',
 	'repeat minmax fit-content linear-gradient repeating-linear-gradient radial-gradient repeating-radial-gradient conic-gradient',
 	'counter counters drop-shadow blur grayscale',
 	'not is where has nth-child nth-last-child nth-of-type nth-last-of-type lang',
+
+	// >> 111 Bildrahmen: Formen für `clip-path`
+	// << 111
 );
 const CSS_AT_REGELN = namen('media page');
 
@@ -249,7 +269,7 @@ const attributErlaubt = ({ svg, tag }: Ort, name: string) => {
 		return true;
 	}
 	if (svg) {
-		return SVG_ATTRIBUTE.has(name) || (tag === 'use' && NUR_DURCH_USE.has(name));
+		return SVG_ATTRIBUTE.has(name) || (MIT_SPRUNG.has(tag) && NUR_DURCH_USE.has(name));
 	}
 	const schema = schemaVon(tag);
 	if (schema) {

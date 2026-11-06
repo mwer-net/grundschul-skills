@@ -29,11 +29,19 @@ export interface Ordnung {
 	gruppen: Gruppe[];
 }
 
+/** Die Ebenen und alles, was frei liegt (Phase 12): kein Teil des Stapels, weder als Gezogenes noch als Nachbar. */
+const GESTALTUNG = '.ebene, [data-lage]';
+
+const inGestaltung = (element: Element) => element.closest(GESTALTUNG) !== null;
+
 /** Ziehen im Blatt: alles mit `ordnen`, außer was dafür in der Seitenleiste liegt; Kleines nur als Block der Seite (054). */
 export const ziehbarImBlatt = (baustein: Baustein, element: Element) =>
-	kann(baustein, 'ordnen') && !baustein.ordnenInLeiste && (!baustein.ordnenNurKnopf || liegtAlsBlock(element));
+	kann(baustein, 'ordnen') &&
+	!baustein.ordnenInLeiste &&
+	!inGestaltung(element) &&
+	(!baustein.ordnenNurKnopf || liegtAlsBlock(element));
 
-const NIE_ZWISCHEN = 'style, script, template, link, meta, br, .fuss';
+const NIE_ZWISCHEN = `style, script, template, link, meta, br, .fuss, ${GESTALTUNG}`;
 
 /** Ein Block zwischen allen Geschwistern seiner Seite, auch auf anderen Seiten; im Rahmen nur innerhalb des Rahmens. */
 const ordnungAlsBlock = (element: Element, baustein: Baustein): Ordnung => {
@@ -59,8 +67,13 @@ export const ordnungVon = (element: Element, baustein: Baustein): Ordnung => {
 		return ordnungAlsBlock(element, baustein);
 	}
 	const bereiche = ordnenIn ? [...doc.querySelectorAll(ordnenIn)] : [element.parentElement];
+	const gestaltung = inGestaltung(element);
 	const gleiche = [...doc.querySelectorAll(baustein.selektor)].filter(
-		(e) => nrVon(e) !== null && bausteinVon(e) === baustein && (e === element || !element.contains(e)),
+		(e) =>
+			nrVon(e) !== null &&
+			bausteinVon(e) === baustein &&
+			(e === element || !element.contains(e)) &&
+			(gestaltung || !inGestaltung(e)),
 	);
 	const gruppen = bereiche
 		// Ein `<tbody>`, das erst der Browser ergänzt hat, trägt keine Nummer.

@@ -9,6 +9,7 @@
 import { readFileSync, writeFileSync } from 'node:fs';
 import path from 'node:path';
 
+import { GESTALTUNG_ARTEN } from './gestaltung-arten';
 import type { ArtAngaben } from './werte';
 import { ART_ANGABEN, ARTEN, VORLAGE_FORMAT } from './werte';
 
@@ -18,6 +19,7 @@ const DRUCK = 'skills/grundschul-didaktik/references/druck-und-platz.md';
 const BLATT_CSS = 'skills/html-materialerstellung/assets/blatt.css';
 const PRUEFUNG_JS = 'skills/html-materialerstellung/assets/pruefung.js';
 const LAYOUT = 'skills/html-materialerstellung/references/layout.md';
+const GESTALTUNG = 'skills/html-materialerstellung/references/gestaltung.md';
 
 const tabelle = (kopf: string[], zeilen: string[][]) =>
 	[
@@ -113,6 +115,28 @@ const themaRegeln = (wurzel: string) => {
 	].join('\n');
 };
 
+const GROESSE: Record<string, string> = {
+	proportional: 'Ecken halten das Verhältnis',
+	frei: 'frei',
+	text: 'Ecke: Schrift, Kante: Breite',
+	breite: 'nur Breite, Höhe aus dem Inhalt',
+};
+
+/** Die Arten der Gestaltung aus `gestaltung-arten.ts` (Phase 12). */
+const gestaltungArten = () =>
+	tabelle(
+		['Art', 'Name', 'Element', 'Größe', 'Standard-Ebene', 'Fähigkeiten', 'Ab'],
+		GESTALTUNG_ARTEN.map((a) => [
+			`\`${a.art}\``,
+			a.name,
+			`\`${a.selektor}\``,
+			a.groesse ? (GROESSE[a.groesse] ?? a.groesse) : '–',
+			a.ebene ?? '–',
+			a.faehigkeiten.length ? a.faehigkeiten.map((f) => `\`${f}\``).join(', ') : '–',
+			a.ab,
+		]),
+	);
+
 interface Abschnitt {
 	datei: string;
 	marke: string;
@@ -125,6 +149,20 @@ export const ABSCHNITTE: Abschnitt[] = [
 	{ datei: DRUCK, marke: 'schrift-und-abstand', inhalt: klassenWerte },
 	{ datei: DRUCK, marke: 'luecken-breite', inhalt: lueckenBreite },
 	{ datei: LAYOUT, marke: 'thema-regeln', inhalt: themaRegeln },
+	// Phase 12: Jedes Ticket trägt seine Abschnitte zwischen seinen Marken ein, die Funktion dazu im eigenen Modul.
+
+	// >> 092 Arten der Gestaltung
+	{ datei: GESTALTUNG, marke: 'gestaltung-arten', inhalt: gestaltungArten },
+	// << 092
+
+	// >> 104 Formen und ihre Parameter
+	// << 104
+
+	// >> 114 Rezepte (Aufmachungen)
+	// << 114
+
+	// >> 118 Daten der Rezepte
+	// << 118
 ];
 
 /** Setzt den Inhalt zwischen `<!-- erzeugt: marke -->` und `<!-- /erzeugt: marke -->`. */

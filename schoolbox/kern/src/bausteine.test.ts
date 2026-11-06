@@ -1,7 +1,21 @@
 import assert from 'node:assert/strict';
+import { readFileSync } from 'node:fs';
+import path from 'node:path';
 import { describe, it } from 'node:test';
 
+import {
+	BEISPIELE,
+	blattMit,
+	blattMitBeispiel,
+	CLAUDE_ELEMENT,
+	FIGUR_FREI,
+	FLAECHE,
+	FORM,
+	FORM_TEXT,
+} from '../../web/e2e/gestaltung-daten';
 import { bausteinNach, kann, kannImFormat } from './bausteine';
+import { ANKER_SELEKTOR, GESTALTUNG_ARTEN } from './gestaltung-arten';
+import { ASSETS } from './konfig';
 import { klassenVon, zerlege } from './quelltext';
 import { bausteinVonKnoten, pfadVon } from './referenz';
 
@@ -154,5 +168,73 @@ describe('Frei gestaltetes Material (054)', () => {
 			artVon('<table class="kit-tabelle"><thead><tr class="z"><th>x</th></tr></thead></table>', 'z'),
 			undefined,
 		);
+	});
+});
+
+describe('Gestaltung im Register (Phase 12)', () => {
+	const knotenIn = (quelle: string, anfang: string) => {
+		const z = zerlege(quelle);
+		const k = z.knoten.find((n) => quelle.startsWith(anfang, n.start));
+		assert.ok(k, anfang);
+		return { z, k };
+	};
+
+	it('jede Art wird mit ihrem Beispiel erkannt, im Blatt und am Anker', () => {
+		for (const beispiel of BEISPIELE) {
+			const { k } = knotenIn(blattMitBeispiel(beispiel), beispiel.html.slice(0, 40));
+			assert.equal(bausteinVonKnoten(k, false)?.art, beispiel.art, beispiel.html);
+		}
+	});
+
+	it('img.figur mit data-lage ist figurfrei, nicht figur; ein img mit data-lage ist kein Bild im Stapel', () => {
+		const q = blattMit({ vorne: ['<img class="figur figur-frei" data-lage="frei" src="w.png" alt="W">'] });
+		assert.equal(bausteinVonKnoten(knotenIn(q, '<img class="figur').k, false)?.art, 'figurfrei');
+		const roh = blattMit({ vorne: ['<img class="figur" data-lage="frei" src="w.png" alt="W">'] });
+		assert.equal(bausteinVonKnoten(knotenIn(roh, '<img class="figur"').k, false)?.art, 'gestaltung');
+	});
+
+	it('Gestaltung geht vor freies Element (117), Fläche ist ein Baustein im Stapel', () => {
+		const q = blattMit({ vorne: [CLAUDE_ELEMENT], stapel: [FLAECHE] });
+		assert.equal(bausteinVonKnoten(knotenIn(q, '<div data-frei').k, false)?.art, 'gestaltung');
+		const flaeche = bausteinVonKnoten(knotenIn(q, '<div class="flaeche"').k, false);
+		assert.equal(flaeche?.art, 'flaeche');
+		assert.equal(flaeche && kann(flaeche, 'hoehe'), true);
+		assert.equal(flaeche && kann(flaeche, 'lage'), false);
+	});
+
+	it('Gestaltung kann Lage, Duplizieren, Löschen und Lösung, aber nicht ordnen', () => {
+		for (const art of GESTALTUNG_ARTEN.filter((a) => a.groesse)) {
+			for (const f of ['lage', 'duplizieren', 'loeschen', 'loesung'] as const) {
+				assert.equal(kann(art, f), true, `${art.art} ${f}`);
+			}
+			assert.equal(kann(art, 'ordnen'), false, art.art);
+		}
+	});
+
+	it('.ebene ist kein frei gestalteter Rahmen (054): ihr Inhalt ist weder Block noch freier Text', () => {
+		const q = blattMit({ vorne: [FORM_TEXT, '<div class="eigen"><div>a</div><div>b</div></div>'] });
+		const { k: ebene } = knotenIn(q, '<div class="ebene');
+		assert.equal(bausteinVonKnoten(ebene, false)?.art, 'ebene');
+		assert.equal(bausteinVonKnoten(knotenIn(q, '<div class="eigen"').k, false), undefined);
+		assert.equal(bausteinVonKnoten(knotenIn(q, '<div class="form-inhalt"').k, false), undefined);
+		assert.equal(bausteinVonKnoten(knotenIn(q, '<div>a</div>').k, false), undefined);
+	});
+
+	it('der Name kommt aus data-name, dann data-figur, dann der Art, auch im Pfad', () => {
+		const q = blattMit({
+			vorne: [FIGUR_FREI, FORM, '<img class="bild-frei" data-lage="frei" data-name="Marktplatz" src="m.jpg" alt="">'],
+		});
+		const name = (anfang: string) => {
+			const { k, z } = knotenIn(q, anfang);
+			return pfadVon(z, k.nr, false).at(-1)?.name;
+		};
+		assert.equal(name('<img class="figur-frei"'), 'Wilma');
+		assert.equal(name('<svg class="form"'), 'Form');
+		assert.equal(name('<img class="bild-frei"'), 'Marktplatz');
+	});
+
+	it('blatt.css enthält ANKER_SELEKTOR (schlägt fehl, bis 091 zusammengeführt ist)', () => {
+		const css = readFileSync(path.join(ASSETS, 'blatt.css'), 'utf8');
+		assert.ok(css.includes(ANKER_SELEKTOR), ANKER_SELEKTOR);
 	});
 });

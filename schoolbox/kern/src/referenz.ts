@@ -16,6 +16,7 @@
 import { schemaVon } from './abbildungen';
 import type { Baustein, Sicht } from './bausteine';
 import { bausteinUeber, FREI_TITEL, FREIES_ELEMENT, nameFreiesElement } from './bausteine';
+import { nameDerGestaltung } from './gestaltung-arten';
 import { FACH_NAME } from './namen';
 import type { Knoten, Zerlegung } from './quelltext';
 import { attribut, entschluessele, klassenVon } from './quelltext';
@@ -26,8 +27,10 @@ import type { Fach, Klasse } from './werte';
 interface Teil {
 	tag: string | null;
 	klassen: string[];
-	/** `[name]` */
-	attribut: string | null;
+	/** `[name]` bzw. `[name="wert"]`; ohne Wert genügt das Attribut. */
+	attribute: { name: string; wert: string | null }[];
+	/** `:not(…)` mit einem einfachen Teil. */
+	nicht: Teil[];
 	/** `:has(> …)` */
 	kind: Teil | null;
 }
@@ -38,20 +41,61 @@ interface Kette {
 	direkt: boolean[];
 }
 
-const TEIL = /^([a-z][a-z0-9-]*)?((?:\.[\w-]+)*)(?:\[([\w-]+)\])?(?::has\(>\s*([^)]+)\))?$/i;
+const TAG_TEIL = /^[a-z][a-z0-9-]*/i;
+const KLASSE_TEIL = /^\.([\w-]+)/;
+const ATTRIBUT_TEIL = /^\[([\w-]+)(?:="([^"]*)")?\]/;
+
+/** Der Inhalt der Klammer ab `ab` (hinter `(`), mit verschachtelten Klammern. */
+const klammerInhalt = (text: string, ab: number) => {
+	let tiefe = 1;
+	for (let i = ab; i < text.length; i += 1) {
+		tiefe += text[i] === '(' ? 1 : 0;
+		tiefe -= text[i] === ')' ? 1 : 0;
+		if (tiefe === 0) {
+			return text.slice(ab, i);
+		}
+	}
+	return null;
+};
 
 const liesTeil = (text: string): Teil => {
-	const treffer = TEIL.exec(text.trim());
-	if (!treffer) {
-		throw new Error(`Selektor „${text}“ wird ohne Browser nicht verstanden.`);
+	const fehler = () => new Error(`Selektor „${text}“ wird ohne Browser nicht verstanden.`);
+	const teil: Teil = { tag: null, klassen: [], attribute: [], nicht: [], kind: null };
+	let rest = text.trim();
+	const tag = TAG_TEIL.exec(rest)?.[0];
+	if (tag) {
+		teil.tag = tag.toLowerCase();
+		rest = rest.slice(tag.length);
 	}
-	const [, tag, klassen = '', name, kind] = treffer;
-	return {
-		tag: tag?.toLowerCase() ?? null,
-		klassen: klassen.split('.').filter(Boolean),
-		attribut: name?.toLowerCase() ?? null,
-		kind: kind ? liesTeil(kind) : null,
-	};
+	while (rest) {
+		const klasse = KLASSE_TEIL.exec(rest);
+		const attribut = ATTRIBUT_TEIL.exec(rest);
+		if (klasse?.[1]) {
+			teil.klassen.push(klasse[1]);
+			rest = rest.slice(klasse[0].length);
+		} else if (attribut?.[1]) {
+			teil.attribute.push({ name: attribut[1].toLowerCase(), wert: attribut[2] ?? null });
+			rest = rest.slice(attribut[0].length);
+		} else if (rest.startsWith(':not(') || rest.startsWith(':has(')) {
+			const innen = klammerInhalt(rest, 5);
+			if (innen === null) {
+				throw fehler();
+			}
+			if (rest.startsWith(':not(')) {
+				teil.nicht.push(liesTeil(innen));
+			} else {
+				const direkt = /^\s*>\s*/.exec(innen);
+				if (!direkt || teil.kind) {
+					throw fehler();
+				}
+				teil.kind = liesTeil(innen.slice(direkt[0].length));
+			}
+			rest = rest.slice(5 + innen.length + 1);
+		} else {
+			throw fehler();
+		}
+	}
+	return teil;
 };
 
 /** Zerlegt an Leerzeichen und `>`, aber nicht innerhalb von `:has(…)`. */
@@ -122,7 +166,15 @@ const teilPasst = (k: Knoten, teil: Teil, loesung: boolean): boolean => {
 	if (!teil.klassen.every((c) => klassen.includes(c))) {
 		return false;
 	}
-	if (teil.attribut && !attribut(k, teil.attribut)) {
+	if (
+		!teil.attribute.every(({ name, wert }) => {
+			const a = attribut(k, name);
+			return a !== undefined && (wert === null || (a.wert ?? '') === wert);
+		})
+	) {
+		return false;
+	}
+	if (teil.nicht.some((n) => teilPasst(k, n, loesung))) {
 		return false;
 	}
 	const { kind } = teil;
@@ -226,6 +278,10 @@ const nameVon = ({ baustein, k }: Treffer, art: string, index: number) => {
 	}
 	if (FREIES_ELEMENT.has(baustein.art)) {
 		return nameFreiesElement(attribut(k, FREI_TITEL)?.wert);
+	}
+	const gestaltung = nameDerGestaltung(baustein, (n) => attribut(k, n)?.wert ?? null);
+	if (gestaltung) {
+		return gestaltung;
 	}
 	return baustein.zaehlen ? `${baustein.name} ${index}` : baustein.name;
 };
