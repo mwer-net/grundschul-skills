@@ -1,7 +1,7 @@
 import type { Zerlegung } from '@schoolbox/kern/src/quelltext';
 import type { Ablage } from '@schoolbox/kern/src/struktur';
 import { hatNamenszeile } from '@schoolbox/kern/src/struktur';
-import type { MouseEvent as ReactMouseEvent, PointerEvent as ReactPointerEvent, RefObject } from 'react';
+import type { MouseEvent as ReactMouseEvent, PointerEvent as ReactPointerEvent } from 'react';
 import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 
 import { AmZeiger } from '../bausteine/AmZeiger';
@@ -12,19 +12,18 @@ import { Menue } from '../bausteine/Menue';
 import { Symbol } from '../bausteine/Symbol';
 import { Tooltip } from '../bausteine/Tooltip';
 import { folgeZeiger, rolleAmRand, schluckeKlick } from '../bausteine/zeigerzug';
-import type { GliederungSeite, GliederungZeile } from './gliederung-modell';
-import { gliederungVon, zeileZurAuswahl } from './gliederung-modell';
+import { bausteinVon, elementZu, nrVon } from './darstellung';
+import type { GliederungKnoten, GliederungSeite } from './gliederung-modell';
+import { alleSchluessel, gliederungVon, ketteZu, ohneWirkung, zeileZurAuswahl } from './gliederung-modell';
 import type { GliederungStand } from './gliederung-stand';
-import { leistenHtml } from './leiste';
 import type { Struktur } from './struktur';
 import { MAUS_WEG } from './ziehen';
+import { ordnungVon } from './ziele';
 
 const SPEICHER_SEITE = 'schoolbox-neue-seite';
-const MINIATUR_BREITE = 96;
 const FEDERN_MS = 600;
-const ETWA_A4 = 1.414;
-/** Griff und Pfeil: So weit rücken Miniatur und Zeilen ein. */
-const EINZUG = 'pl-5 [@media(any-pointer:coarse)]:pl-11';
+/** So weit rückt jede Ebene des Baums ein. */
+const EINZUG_PX = 12;
 
 const ART_KNOPF = (
 	<Knopf art="zweit" className="size-knopf rounded-l-none border-l-0 px-0">
@@ -32,142 +31,7 @@ const ART_KNOPF = (
 	</Knopf>
 );
 
-interface Masse {
-	breite: number;
-	hoehen: number[];
-}
-
-interface Rahmen {
-	nr: number;
-	html: string;
-	doc: Document | null;
-	masse: Masse | null;
-}
-
-const quellSeiten = (doc: Document) => [...doc.querySelectorAll<HTMLElement>('.seite:not([data-erzeugt])')];
-
-const miss = (doc: Document): Masse => ({
-	breite: Math.max(1, ...quellSeiten(doc).map((s) => s.offsetWidth)),
-	hoehen: quellSeiten(doc).map((s) => s.offsetHeight),
-});
-
-const setzeStil = (el: HTMLElement, name: string, wert: string | null) => {
-	if (wert === null) {
-		el.style.removeProperty(name);
-	} else if (el.style.getPropertyValue(name) !== wert) {
-		el.style.setProperty(name, wert, 'important');
-	}
-};
-
-/**
- * Ein einziges `iframe` unter der ganzen Liste, seine Seiten liegen dort, wo in der Liste die Plätze der Miniaturen sind.
- * So entsteht das Material bei einer Änderung nur einmal und nicht einmal je Seite. Erzeugte Seiten zeigt es nicht: Die
- * Miniatur steht für die Quelle, „läuft über“ meldet die Prüfung.
- */
-const legeSeitenAus = (frame: HTMLIFrameElement, inhalt: HTMLElement, doc: Document, skala: number) => {
-	const aussen = inhalt.getBoundingClientRect();
-	const miniaturen = [...inhalt.querySelectorAll<HTMLElement>('[data-seite-miniatur]')];
-	const plaetze = new Map(
-		miniaturen.map((m) => [Number(m.dataset.seiteMiniatur) - 1, m.getBoundingClientRect().top - aussen.top]),
-	);
-	const erste = miniaturen[0]?.getBoundingClientRect();
-	const links = `${(erste?.left ?? aussen.left) - aussen.left}px`;
-	if (frame.style.left !== links) {
-		frame.style.left = links;
-	}
-	for (const s of doc.querySelectorAll<HTMLElement>('.seite[data-erzeugt]')) {
-		setzeStil(s, 'display', 'none');
-	}
-	quellSeiten(doc).forEach((s, i) => {
-		const platz = plaetze.get(i);
-		if (platz === undefined) {
-			setzeStil(s, 'display', 'none');
-			return;
-		}
-		setzeStil(s, 'display', null);
-		setzeStil(s, 'position', 'absolute');
-		setzeStil(s, 'left', '0px');
-		setzeStil(s, 'top', `${platz / skala}px`);
-	});
-	const hoehe = `${inhalt.scrollHeight / skala}px`;
-	if (frame.style.height !== hoehe) {
-		frame.style.height = hoehe;
-	}
-};
-
-const useMiniaturen = (html: string | null, an: boolean, inhalt: RefObject<HTMLDivElement | null>) => {
-	const leiste = useMemo(() => (html === null || !an ? null : leistenHtml(html)), [html, an]);
-	const naechste = useRef(0);
-	const [rahmen, setRahmen] = useState<Rahmen[]>([]);
-	const sichtbarFrame = useRef<HTMLIFrameElement>(null);
-
-	useEffect(() => {
-		if (leiste === null) {
-			setRahmen([]);
-			return;
-		}
-		const nr = naechste.current;
-		naechste.current += 1;
-		setRahmen((alt) => [...alt.filter((r) => r.masse).slice(-1), { nr, html: leiste, doc: null, masse: null }]);
-	}, [leiste]);
-
-	const fertig = ({ nr }: Rahmen, frame: HTMLIFrameElement) => {
-		const doc = frame.contentDocument;
-		if (!doc) {
-			return;
-		}
-		const zeigen = () => {
-			const masse = miss(doc);
-			setRahmen((alt) => alt.filter((r) => r.nr >= nr).map((r) => (r.nr === nr ? { ...r, doc, masse } : r)));
-		};
-		void doc.fonts.ready.then(zeigen, zeigen);
-	};
-
-	const sichtbar = rahmen.findLast((r) => r.masse !== null);
-	const skala = sichtbar?.masse ? MINIATUR_BREITE / sichtbar.masse.breite : 0;
-
-	// Jede Änderung der Liste verschiebt die Plätze; der Vergleich in `setzeStil` hält das billig.
-	useLayoutEffect(() => {
-		if (sichtbar?.doc && sichtbarFrame.current && inhalt.current && skala) {
-			legeSeitenAus(sichtbarFrame.current, inhalt.current, sichtbar.doc, skala);
-		}
-	});
-
-	const rahmenAnzeige = rahmen.map((r) => {
-		const istSichtbar = r === sichtbar && r.masse;
-		return (
-			<iframe
-				key={r.nr}
-				ref={istSichtbar ? sichtbarFrame : undefined}
-				srcDoc={r.html}
-				title="Miniaturen"
-				tabIndex={-1}
-				aria-hidden
-				scrolling="no"
-				data-miniaturen-rahmen
-				className="pointer-events-none absolute top-0 border-0"
-				style={
-					istSichtbar && r.masse
-						? {
-								width: r.masse.breite,
-								transform: `scale(${skala})`,
-								transformOrigin: 'top left',
-							}
-						: { left: 0, width: 1600, height: 800, visibility: 'hidden' }
-				}
-				onLoad={(e) => fertig(r, e.currentTarget)}
-			/>
-		);
-	});
-
-	return {
-		rahmenAnzeige,
-		hoeheVon: (i: number) => {
-			const h = sichtbar?.masse?.hoehen[i];
-			return h === undefined ? MINIATUR_BREITE * ETWA_A4 : h * skala;
-		},
-	};
-};
+const LUECKE = <span className="w-5 flex-none [@media(any-pointer:coarse)]:w-11" />;
 
 interface Zug {
 	seite: boolean;
@@ -177,8 +41,8 @@ interface Zug {
 	y: number;
 	/** Oben und Einzug der Linie, in Pixeln der Liste. */
 	marke: { oben: number; links: number } | null;
-	/** Die Seite, ans Ende derer das Gezogene käme; sie färbt sich. */
-	inSeite: number | null;
+	/** Die Zeile, ans Ende derer das Gezogene käme; sie färbt sich. */
+	hinein: number | null;
 }
 
 interface Lauf {
@@ -186,29 +50,32 @@ interface Lauf {
 	nr: number;
 	art: string;
 	quelle: string;
+	/** Neben wen das Gezogene darf und in wen hinein (ans Ende). */
+	nebenZiele: ReadonlySet<number>;
+	inZiele: ReadonlySet<number>;
 	ablage: Ablage | null;
 	geprueft: Map<string, boolean>;
 	feder: number | null;
-	federId: number | null;
+	federSchluessel: string | null;
 }
 
 interface Eigenschaften {
 	doc: Document | null;
 	zerlegung: Zerlegung | null;
-	/** Das Material wie im Editor. */
-	html: string | null;
 	auswahl: number | null;
 	struktur: Struktur;
 	stand: GliederungStand;
 	/** Im Mini-Book steht die Zahl der Seiten fest, und sie bleiben, wo sie sind. */
 	festeSeiten: boolean;
+	/** Wählt den Baustein, rollt das Blatt dorthin und zeigt rechts seine Einstellungen. */
+	zeigeAn: (nr: number) => void;
 	kontextmenue: (nr: number, art: 'baustein' | 'miniatur', punkt: { x: number; y: number }) => void;
 }
 
 const naechsteZeile = (liste: Element, y: number, nurSeiten: boolean) => {
 	let beste: HTMLElement | null = null;
 	let abstand = Infinity;
-	for (const el of liste.querySelectorAll<HTMLElement>(nurSeiten ? '[data-ziel="seite"]' : '[data-ziel]')) {
+	for (const el of liste.querySelectorAll<HTMLElement>(nurSeiten ? '[data-seite-zeile]' : '[data-zeile-nr]')) {
 		const r = el.getBoundingClientRect();
 		const d = Math.max(r.top - y, 0, y - r.bottom);
 		if (d < abstand) {
@@ -219,49 +86,121 @@ const naechsteZeile = (liste: Element, y: number, nurSeiten: boolean) => {
 	return beste;
 };
 
-/** Hätte die Ablage hier keine Wirkung? Die Nachbarn in der Liste, und ans Ende, wer dort schon steht. */
-const ohneWirkung = (modell: GliederungSeite[], nr: number, ablage: Ablage, seite: boolean) => {
-	if (seite) {
-		const i = modell.findIndex((s) => s.nr === nr);
-		return (
-			'nr' in ablage &&
-			((ablage.wo === 'vor' && modell[i + 1]?.nr === ablage.nr) ||
-				(ablage.wo === 'nach' && modell[i - 1]?.nr === ablage.nr))
-		);
+const liegtIn = (z: Zerlegung, innen: number, aussen: number) => {
+	for (let k = z.knoten[innen] ?? null; k; k = k.eltern) {
+		if (k.nr === aussen) {
+			return true;
+		}
 	}
-	if ('in' in ablage) {
-		const ziel = modell.find((s) => s.nr === ablage.in);
-		return ziel?.zeilen.filter((z) => !z.fest).at(-1)?.nr === nr;
+	return false;
+};
+
+const alleKnoten = (k: readonly GliederungKnoten[]): GliederungKnoten[] =>
+	k.flatMap((x) => [x, ...alleKnoten(x.kinder)]);
+
+/**
+ * Wohin ein Baustein in der Liste darf: dieselben Plätze wie beim Ziehen im Blatt (`ordnungVon`), dazu als Block der Seite
+ * neben alles, was auf einer Seite liegt, und ans Ende jeder Seite. Feste Teile und das eigene Innere nie.
+ */
+const zieleFuer = (doc: Document, z: Zerlegung, modell: readonly GliederungSeite[], nr: number) => {
+	const element = elementZu(doc, nr);
+	const baustein = element ? bausteinVon(element) : undefined;
+	const neben = new Set<number>();
+	const hinein = new Set<number>();
+	if (!element || !baustein) {
+		return { neben, hinein };
 	}
-	const zeilen = modell.find((s) => s.zeilen.some((z) => z.nr === nr))?.zeilen ?? [];
-	const i = zeilen.findIndex((z) => z.nr === nr);
-	return (
-		(ablage.wo === 'vor' && zeilen[i + 1]?.nr === ablage.nr) ||
-		(ablage.wo === 'nach' && zeilen[i - 1]?.nr === ablage.nr)
+	const ordnung = ordnungVon(element, baustein);
+	for (const g of ordnung.gruppen) {
+		const bereich = nrVon(g.bereich);
+		if (bereich !== null) {
+			hinein.add(bereich);
+		}
+		for (const e of g.glieder) {
+			const n = nrVon(e);
+			if (n !== null) {
+				neben.add(n);
+			}
+		}
+	}
+	if (element.parentElement?.matches('.seite') || baustein.ordnenIn === '.seite') {
+		for (const s of modell) {
+			hinein.add(s.nr);
+			for (const k of s.kinder) {
+				neben.add(k.nr);
+			}
+		}
+	}
+	const fest = new Set(
+		modell
+			.flatMap((s) => alleKnoten(s.kinder))
+			.filter((k) => k.fest)
+			.map((k) => k.nr),
 	);
+	for (const n of [...neben]) {
+		if (n === nr || fest.has(n) || liegtIn(z, n, nr)) {
+			neben.delete(n);
+		}
+	}
+	for (const n of [...hinein]) {
+		if (liegtIn(z, n, nr)) {
+			hinein.delete(n);
+		}
+	}
+	return { neben, hinein };
 };
 
 /**
- * Der linke Reiter: alle Seiten und ihre Bausteine als Baum. Klick wählt und springt, das Menü ordnet, gezogen wird am
- * Griff, mit der Maus auch von überall in der Zeile. Jede Ablage ist ein Befehl und ein Schritt im Verlauf.
+ * Von der Zeile unter dem Zeiger nach außen, bis zur ersten, neben oder in die das Gezogene darf. Ans Ende einer Seite
+ * nur über ihrer eigenen Zeile; `selbst` heißt: über dem Gezogenen, das ist weder ein Ziel noch verboten.
+ */
+const zielAb = (
+	l: Pick<Lauf, 'nr' | 'nebenZiele' | 'inZiele'>,
+	start: HTMLElement,
+	y: number,
+): { ablage: Ablage; huelle: HTMLElement } | 'selbst' | null => {
+	for (let w: HTMLElement | null = start; w; w = w.parentElement?.closest<HTMLElement>('[data-knoten]') ?? null) {
+		const nr = Number(w.dataset.knoten);
+		const istSeite = w.dataset.seiteKnoten !== undefined;
+		if (nr === l.nr) {
+			return 'selbst';
+		}
+		if (l.nebenZiele.has(nr)) {
+			const b = w.getBoundingClientRect();
+			return { ablage: { nr, wo: y < b.top + b.height / 2 ? 'vor' : 'nach' }, huelle: w };
+		}
+		if (l.inZiele.has(nr) && (!istSeite || w === start)) {
+			return { ablage: { in: nr }, huelle: w };
+		}
+		if (istSeite) {
+			return null;
+		}
+	}
+	return null;
+};
+
+/**
+ * Der linke Reiter: alle Seiten und alles, was sich im Blatt wählen lässt, als Baum. Klick wählt und springt, das Menü
+ * ordnet, gezogen wird am Griff, mit der Maus auch von überall in der Zeile. Was im Blatt gewählt ist, ist hier markiert
+ * und aufgeklappt. Jede Ablage ist ein Befehl und ein Schritt im Verlauf.
  */
 export const Gliederung = ({
 	auswahl,
 	doc,
 	festeSeiten,
-	html,
 	kontextmenue,
 	stand,
 	struktur,
+	zeigeAn,
 	zerlegung,
 }: Eigenschaften) => {
 	const liste = useRef<HTMLDivElement>(null);
 	const inhalt = useRef<HTMLDivElement>(null);
-	const { hoeheVon, rahmenAnzeige } = useMiniaturen(html, stand.miniaturen, inhalt);
 	const [zug, setZug] = useState<Zug | null>(null);
 	const lauf = useRef<Lauf | null>(null);
 	const hoereAuf = useRef<(() => void) | null>(null);
 	const aufraeumen = useRef<(() => void) | null>(null);
+	const rollen = useRef(false);
 
 	// Ohne aktuelle Darstellung bleibt die letzte Liste stehen, sonst flackert sie bei jedem Befehl; sie nimmt dann nichts an.
 	const letzte = useRef<GliederungSeite[]>([]);
@@ -274,12 +213,14 @@ export const Gliederung = ({
 	}
 	const modell = letzte.current;
 	const aktuell = struktur.aktiv && frisch !== null;
-	const zeilenNr = useMemo(() => new Set(modell.flatMap((s) => [s.nr, ...s.zeilen.map((z) => z.nr)])), [modell]);
+	const zeilenNr = useMemo(
+		() => new Set(modell.flatMap((s) => [s.nr, ...alleKnoten(s.kinder).map((k) => k.nr)])),
+		[modell],
+	);
 	const aktiveZeile = frisch ? zeileZurAuswahl(zerlegung, auswahl, zeilenNr) : null;
-	const seiteDerAuswahl = struktur.werte?.seite ?? null;
 
-	const neu = useRef({ struktur, modell, zerlegung, stand, aktuell });
-	neu.current = { struktur, modell, zerlegung, stand, aktuell };
+	const neu = useRef({ struktur, modell, zerlegung, stand, aktuell, doc });
+	neu.current = { struktur, modell, zerlegung, stand, aktuell, doc };
 
 	const [mitNamenszeile, setMitNamenszeile] = useState(() => localStorage.getItem(SPEICHER_SEITE) !== 'leer');
 	const namenszeile = useMemo(() => (zerlegung ? hatNamenszeile(zerlegung) : false), [zerlegung]);
@@ -289,11 +230,26 @@ export const Gliederung = ({
 		void struktur.neueSeite(mit);
 	};
 
+	// Was gewählt ist, liegt offen: Alles darüber klappt auf, die Zeile selbst bleibt, wie sie ist.
 	useEffect(() => {
-		if (aktiveZeile !== null && !lauf.current) {
-			liste.current?.querySelector('[aria-current="true"]')?.scrollIntoView({ block: 'nearest' });
+		if (aktiveZeile === null || lauf.current) {
+			return;
 		}
+		const { modell: m, stand: s } = neu.current;
+		s.oeffne(ketteZu(m, aktiveZeile).slice(0, -1));
+		rollen.current = true;
 	}, [aktiveZeile]);
+
+	useLayoutEffect(() => {
+		if (!rollen.current || lauf.current) {
+			return;
+		}
+		const zeile = liste.current?.querySelector('[aria-current="true"]');
+		if (zeile) {
+			rollen.current = false;
+			zeile.scrollIntoView({ block: 'nearest' });
+		}
+	});
 
 	useEffect(() => () => aufraeumen.current?.(), []);
 
@@ -302,19 +258,19 @@ export const Gliederung = ({
 			window.clearTimeout(l.feder);
 		}
 		l.feder = null;
-		l.federId = null;
+		l.federSchluessel = null;
 	};
 
-	const federe = (l: Lauf, id: number | null) => {
-		if (l.federId === id) {
+	const federe = (l: Lauf, schluessel: string | null) => {
+		if (l.federSchluessel === schluessel) {
 			return;
 		}
 		beendeFeder(l);
-		if (id !== null) {
-			l.federId = id;
+		if (schluessel !== null) {
+			l.federSchluessel = schluessel;
 			l.feder = window.setTimeout(() => {
 				l.feder = null;
-				neu.current.stand.klappe(id, true);
+				neu.current.stand.klappe(schluessel, true);
 			}, FEDERN_MS);
 		}
 	};
@@ -331,19 +287,19 @@ export const Gliederung = ({
 		return ok;
 	};
 
-	/** Liest die Stelle unter dem Zeiger: Linie, gefärbte Seite oder ungültig. */
+	/** Liest die Stelle unter dem Zeiger: Linie, gefärbte Zeile oder ungültig. */
 	const waehleZiel = (l: Lauf, x: number, y: number) => {
 		const rolle = liste.current;
 		const flaeche = inhalt.current;
 		const setze = (
 			ablage: Ablage | null,
 			marke: Zug['marke'],
-			inSeite: number | null,
+			hinein: number | null,
 			ungueltig: boolean,
-			federId: number | null,
+			feder: string | null,
 		) => {
 			l.ablage = ablage;
-			federe(l, federId);
+			federe(l, feder);
 			document.documentElement.style.cursor = ungueltig ? 'not-allowed' : 'grabbing';
 			setZug((alt) => {
 				if (!alt) {
@@ -352,52 +308,49 @@ export const Gliederung = ({
 				const gleich =
 					alt.x === x &&
 					alt.y === y &&
-					alt.inSeite === inSeite &&
+					alt.hinein === hinein &&
 					alt.marke?.oben === marke?.oben &&
 					alt.marke?.links === marke?.links;
-				return gleich ? alt : { ...alt, x, y, marke, inSeite };
+				return gleich ? alt : { ...alt, x, y, marke, hinein };
 			});
 		};
-		if (!rolle || !flaeche) {
+		const { zerlegung: z } = neu.current;
+		if (!rolle || !flaeche || !z) {
 			setze(null, null, null, true, null);
 			return;
 		}
 		const r = rolle.getBoundingClientRect();
 		const zeile = x >= r.left && x <= r.right ? naechsteZeile(rolle, y, l.seite) : null;
-		const art = zeile?.dataset.ziel;
-		const nr = Number(zeile?.dataset.nr);
-		if (!zeile || art === 'fest' || Number.isNaN(nr)) {
+		const start = zeile?.closest<HTMLElement>('[data-knoten]') ?? null;
+		if (!zeile || !start) {
 			setze(null, null, null, true, null);
 			return;
 		}
-		if (nr === l.nr) {
+		// Eine eingeklappte Zeile geht nach kurzer Zeit auf, damit man hineinziehen kann.
+		const feder = !l.seite && zeile.dataset.zu !== undefined ? (zeile.dataset.schluessel ?? null) : null;
+		const treffer = zielAb(l, start, y);
+		if (treffer === 'selbst') {
 			setze(null, null, null, false, null);
 			return;
 		}
-		const z = zeile.getBoundingClientRect();
-		const federId =
-			!l.seite && art === 'seite' && zeile.dataset.zu !== undefined ? Number(zeile.dataset.seiteId) : null;
-		let ablage: Ablage;
-		if (art === 'seite' && !l.seite) {
-			ablage = { in: nr };
-		} else {
-			ablage = { nr, wo: y < z.top + z.height / 2 ? 'vor' : 'nach' };
+		if (!treffer) {
+			setze(null, null, null, true, null);
+			return;
 		}
-		const { modell: m } = neu.current;
-		if (ohneWirkung(m, l.nr, ablage, l.seite)) {
-			setze(null, null, null, false, federId);
+		const { ablage, huelle } = treffer;
+		const b = huelle.getBoundingClientRect();
+		if (ohneWirkung(z, l.nr, ablage)) {
+			setze(null, null, null, false, feder);
 		} else if (!erlaubt(l, ablage)) {
 			setze(null, null, null, true, null);
 		} else if ('in' in ablage) {
-			setze(ablage, null, nr, false, federId);
+			setze(ablage, null, ablage.in, false, feder);
 		} else {
 			const f = flaeche.getBoundingClientRect();
+			const eigene = huelle.querySelector(':scope > [data-zeile-nr]')?.getBoundingClientRect() ?? b;
 			setze(
 				ablage,
-				{
-					oben: (ablage.wo === 'vor' ? z.top : z.bottom) - f.top,
-					links: z.left - f.left,
-				},
+				{ oben: (ablage.wo === 'vor' ? b.top : b.bottom) - f.top, links: eigene.left - f.left },
 				null,
 				false,
 				null,
@@ -420,33 +373,38 @@ export const Gliederung = ({
 		if (!ablegen || !l.ablage || !jetzt.aktuell || jetzt.zerlegung?.quelle !== l.quelle) {
 			return;
 		}
-		jetzt.stand.eigene.current = { bleibtZu: l.seite, leuchten: true };
+		jetzt.stand.eigene.current = { leuchten: true };
 		if (!jetzt.struktur.verschiebe(l.nr, l.ablage, true, `${l.art} verschoben`)) {
-			jetzt.stand.eigene.current = { bleibtZu: false, leuchten: false };
+			jetzt.stand.eigene.current = { leuchten: false };
 		}
 	};
 
 	const beginne = (seite: boolean, zeile: { nr: number; name: string; art: string }, x: number, y: number) => {
-		const quelle = neu.current.zerlegung?.quelle;
-		if (quelle === undefined || !neu.current.aktuell) {
+		const { aktuell: bereit, doc: d, modell: m, zerlegung: z } = neu.current;
+		if (!z || !d || !bereit) {
 			return;
 		}
+		const ziele = seite
+			? { neben: new Set(m.map((s) => s.nr).filter((n) => n !== zeile.nr)), hinein: new Set<number>() }
+			: zieleFuer(d, z, m, zeile.nr);
 		lauf.current = {
 			seite,
 			nr: zeile.nr,
 			art: zeile.art,
-			quelle,
+			quelle: z.quelle,
+			nebenZiele: ziele.neben,
+			inZiele: ziele.hinein,
 			ablage: null,
 			geprueft: new Map(),
 			feder: null,
-			federId: null,
+			federSchluessel: null,
 		};
 		document.body.setAttribute('data-zieht', '');
 		// Steht der Fokus im Blatt, käme Esc dort an und nicht hier.
 		if (document.activeElement instanceof HTMLIFrameElement) {
 			document.activeElement.blur();
 		}
-		setZug({ seite, nr: zeile.nr, name: zeile.name, x, y, marke: null, inSeite: null });
+		setZug({ seite, nr: zeile.nr, name: zeile.name, x, y, marke: null, hinein: null });
 	};
 
 	const druecke = (
@@ -457,8 +415,11 @@ export const Gliederung = ({
 	) => {
 		const ziel = e.target as Element;
 		const maus = e.pointerType === 'mouse';
+		// Nur die eigene Zeile: Das Ereignis steigt sonst durch alle Zeilen darüber.
+		const eigen = ziel.closest('[data-zeile-nr]') === e.currentTarget;
 		const amGriff = ziel.closest('[data-griff-zeile]') !== null;
 		if (
+			!eigen ||
 			!griff ||
 			lauf.current ||
 			!e.isPrimary ||
@@ -529,100 +490,119 @@ export const Gliederung = ({
 
 	const menue = (e: ReactMouseEvent, nr: number, art: 'baustein' | 'miniatur') => {
 		e.preventDefault();
+		e.stopPropagation();
 		if (aktuell && !lauf.current) {
 			kontextmenue(nr, art, { x: e.clientX, y: e.clientY });
 		}
 	};
 
-	/** Die Auswahl aus der Liste ist kein Klick im Blatt: Eine eingeklappte Seite bleibt zu. */
-	const waehle = (nr: number, klapptAuf: boolean) => {
-		if (!aktuell) {
-			return;
+	const waehle = (nr: number) => {
+		if (aktuell) {
+			zeigeAn(nr);
 		}
-		if (!klapptAuf && auswahl !== nr) {
-			stand.eigene.current = { bleibtZu: true, leuchten: false };
-		}
-		struktur.zeigeAn(nr);
 	};
 
-	const alleZu = modell.length > 0 && modell.every((s) => stand.zu.has(s.id));
+	const alleZu = modell.length > 0 && modell.every((s) => !stand.offen(s.schluessel));
 
-	const zeigeZeile = (z: GliederungZeile, seite: GliederungSeite) => (
-		<li
-			key={z.nr}
-			className={klassen(
-				'flex items-stretch rounded-md transition-colors duration-500',
-				z.fest && 'text-dezent',
-				stand.leuchtet === z.nr && 'bg-brand-100',
-			)}
-			style={zug?.nr === z.nr ? { opacity: 0.35 } : undefined}
-			data-ziel={z.fest ? 'fest' : 'zeile'}
-			data-nr={z.nr}
-			data-seite-id={seite.id}
-			{...(z.aufgabe ? { 'data-gliederung-aufgabe': true } : {})}
-			{...(z.fest ? { 'data-gliederung-fest': true } : { 'data-gliederung-zeile': true })}
-			onPointerDown={(e) => druecke(e, false, z, !z.fest)}
-			onContextMenu={(e) => menue(e, z.nr, 'baustein')}
+	const pfeil = (schluessel: string, zugeklappt: boolean) => (
+		<button
+			type="button"
+			className="flex w-5 flex-none items-center justify-center rounded-sm text-leise hover:bg-flaeche-2 hover:text-tinte [@media(any-pointer:coarse)]:w-11"
+			aria-label={zugeklappt ? 'Aufklappen' : 'Einklappen'}
+			aria-expanded={!zugeklappt}
+			data-nicht-ziehen
+			onClick={() => stand.klappe(schluessel, zugeklappt)}
 		>
-			{z.fest ? (
-				<span className="w-5 flex-none [@media(any-pointer:coarse)]:w-11" />
-			) : (
-				<Griff beschriftung={`${z.art} ziehen`} tabIndex={-1} data-griff-zeile />
-			)}
-			<Tooltip text={z.titel}>
-				<button
-					type="button"
-					className="flex h-zeile min-w-0 flex-1 items-center gap-1.5 rounded-md px-1 text-left select-none hover:bg-flaeche-2 aria-[current=true]:bg-flaeche-2"
-					style={{ WebkitTouchCallout: 'none' }}
-					data-gliederung-titel
-					aria-current={aktiveZeile === z.nr}
-					onClick={() => waehle(z.nr, true)}
-				>
-					{z.nummer && <span className="w-3.5 flex-none text-center font-medium text-leise">{z.nummer}</span>}
-					<span className="truncate">{z.titel}</span>
-				</button>
-			</Tooltip>
-		</li>
+			<Symbol name={zugeklappt ? 'rechts' : 'runter'} className="size-3 flex-none" />
+		</button>
 	);
+
+	const zeigeKnoten = (k: GliederungKnoten, tiefe: number) => {
+		const hatKinder = k.kinder.length > 0;
+		const zugeklappt = hatKinder && !stand.offen(k.schluessel);
+		const gezogen = zug?.nr === k.nr ? { opacity: 0.35 } : undefined;
+		const tooltip = k.titel === k.name ? k.titel : `${k.name}: ${k.titel}`;
+		return (
+			<div key={k.schluessel} data-knoten={k.nr}>
+				<div
+					className={klassen(
+						'flex items-stretch rounded-md transition-colors duration-500',
+						k.fest && 'text-dezent',
+						stand.leuchtet === k.nr && 'bg-brand-100',
+						zug?.hinein === k.nr && 'bg-brand-50 outline-2 -outline-offset-2 outline-brand-500',
+					)}
+					style={{ ...gezogen, marginLeft: tiefe * EINZUG_PX }}
+					data-zeile-nr={k.nr}
+					data-nr={k.nr}
+					data-schluessel={k.schluessel}
+					{...(zugeklappt ? { 'data-zu': true } : {})}
+					{...(k.aufgabe ? { 'data-gliederung-aufgabe': true } : {})}
+					{...(k.fest ? { 'data-gliederung-fest': true } : { 'data-gliederung-zeile': true })}
+					{...(k.ziehbar ? { 'data-ziehbar': true } : {})}
+					onPointerDown={(e) => druecke(e, false, k, k.ziehbar)}
+					onContextMenu={(e) => menue(e, k.nr, 'baustein')}
+				>
+					{k.ziehbar ? <Griff beschriftung={`${k.art} ziehen`} tabIndex={-1} data-griff-zeile /> : LUECKE}
+					{hatKinder ? pfeil(k.schluessel, zugeklappt) : LUECKE}
+					<Tooltip text={tooltip}>
+						<button
+							type="button"
+							className="flex h-zeile min-w-0 flex-1 items-center gap-1.5 rounded-md px-1 text-left select-none hover:bg-flaeche-2 aria-[current=true]:bg-brand-100 aria-[current=true]:text-tinte"
+							style={{ WebkitTouchCallout: 'none' }}
+							data-gliederung-titel
+							aria-current={aktiveZeile === k.nr}
+							onClick={() => waehle(k.nr)}
+						>
+							{k.nummer && (
+								<span className="w-3.5 flex-none text-center font-medium text-leise">{k.nummer}</span>
+							)}
+							<span className="truncate">{k.titel}</span>
+						</button>
+					</Tooltip>
+				</div>
+				{hatKinder && !zugeklappt && (
+					<div style={gezogen}>{k.kinder.map((c) => zeigeKnoten(c, tiefe + 1))}</div>
+				)}
+			</div>
+		);
+	};
 
 	const zeigeSeite = (s: GliederungSeite, i: number) => {
 		const name = `Seite ${i + 1}`;
-		const zugeklappt = stand.zu.has(s.id) || zug?.seite === true;
+		const zugeklappt = !stand.offen(s.schluessel) || zug?.seite === true;
 		const griffDaten = { nr: s.nr, name, art: 'Seite' };
-		const anzahl = s.zeilen.filter((z) => !z.fest).length;
+		const anzahl = s.kinder.filter((k) => !k.fest).length;
 		return (
-			<div key={s.id} style={zug?.nr === s.nr ? { opacity: 0.35 } : undefined} data-gliederung-seite={i + 1}>
+			<div
+				key={s.id}
+				style={zug?.nr === s.nr ? { opacity: 0.35 } : undefined}
+				data-knoten={s.nr}
+				data-seite-knoten
+				data-gliederung-seite={i + 1}
+			>
 				<div
 					className={klassen(
 						'flex items-stretch rounded-md font-medium transition-colors duration-500',
-						zug?.inSeite === s.nr && 'bg-brand-50 outline-2 -outline-offset-2 outline-brand-500',
+						zug?.hinein === s.nr && 'bg-brand-50 outline-2 -outline-offset-2 outline-brand-500',
 						stand.leuchtet === s.nr && 'bg-brand-100',
 					)}
-					data-ziel="seite"
+					data-zeile-nr={s.nr}
 					data-nr={s.nr}
+					data-schluessel={s.schluessel}
 					data-seite-id={s.id}
 					{...(zugeklappt ? { 'data-zu': true } : {})}
 					data-seite-zeile={i + 1}
 					onPointerDown={(e) => druecke(e, true, griffDaten, !festeSeiten)}
 					onContextMenu={(e) => menue(e, s.nr, 'miniatur')}
 				>
-					{!festeSeiten && <Griff beschriftung="Seite ziehen" tabIndex={-1} data-griff-zeile />}
+					{festeSeiten ? LUECKE : <Griff beschriftung="Seite ziehen" tabIndex={-1} data-griff-zeile />}
+					{pfeil(s.schluessel, zugeklappt)}
 					<button
 						type="button"
-						className="flex w-5 flex-none items-center justify-center rounded-sm text-leise hover:bg-flaeche-2 hover:text-tinte [@media(any-pointer:coarse)]:w-11"
-						aria-label={zugeklappt ? 'Aufklappen' : 'Einklappen'}
-						aria-expanded={!zugeklappt}
-						data-nicht-ziehen
-						onClick={() => stand.klappe(s.id, zugeklappt)}
-					>
-						<Symbol name={zugeklappt ? 'rechts' : 'runter'} className="size-3 flex-none" />
-					</button>
-					<button
-						type="button"
-						className="flex h-zeile min-w-0 flex-1 items-center justify-between gap-1 rounded-md px-1 text-left select-none hover:bg-flaeche-2 aria-[current=true]:bg-flaeche-2"
+						className="flex h-zeile min-w-0 flex-1 items-center justify-between gap-1 rounded-md px-1 text-left select-none hover:bg-flaeche-2 aria-[current=true]:bg-brand-100"
 						style={{ WebkitTouchCallout: 'none' }}
 						aria-current={aktiveZeile === s.nr}
-						onClick={() => waehle(s.nr, false)}
+						onClick={() => waehle(s.nr)}
 					>
 						{name}
 						{zugeklappt && (
@@ -632,41 +612,7 @@ export const Gliederung = ({
 						)}
 					</button>
 				</div>
-				{!zugeklappt && (
-					<>
-						{stand.miniaturen && (
-							<div
-								className={klassen(EINZUG, 'py-1')}
-								data-ziel="seite"
-								data-nr={s.nr}
-								data-seite-id={s.id}
-								onPointerDown={(e) => druecke(e, true, griffDaten, !festeSeiten)}
-								onContextMenu={(e) => menue(e, s.nr, 'miniatur')}
-							>
-								<button
-									type="button"
-									className={klassen(
-										'relative z-10 block rounded-sm border shadow-1 select-none',
-										s.nr === seiteDerAuswahl
-											? 'border-brand-500 ring-2 ring-brand-500'
-											: 'border-rand',
-									)}
-									style={{
-										width: MINIATUR_BREITE,
-										height: hoeheVon(i),
-										WebkitTouchCallout: 'none',
-									}}
-									aria-label={`Miniatur ${i + 1}`}
-									data-seite-miniatur={i + 1}
-									onClick={() => waehle(s.nr, false)}
-								/>
-							</div>
-						)}
-						<ul className="flex flex-col pl-5 [@media(any-pointer:coarse)]:pl-3">
-							{s.zeilen.map((z) => zeigeZeile(z, s))}
-						</ul>
-					</>
-				)}
+				{!zugeklappt && s.kinder.map((k) => zeigeKnoten(k, 1))}
 			</div>
 		);
 	};
@@ -678,18 +624,13 @@ export const Gliederung = ({
 					art="leise"
 					groesse="klein"
 					className="text-xs"
-					aria-pressed={stand.miniaturen}
-					onClick={() => stand.setzeMiniaturen(!stand.miniaturen)}
+					onClick={() => stand.setzeAlle(alleSchluessel(modell), alleZu)}
 				>
-					{stand.miniaturen ? 'Miniaturen aus' : 'Miniaturen an'}
-				</Knopf>
-				<Knopf art="leise" groesse="klein" className="text-xs" onClick={() => stand.klappeAlle(!alleZu)}>
 					{alleZu ? 'Alle aufklappen' : 'Alle einklappen'}
 				</Knopf>
 			</div>
 			<div ref={liste} className="min-h-0 flex-1 overflow-y-auto" data-gliederung-liste>
 				<div ref={inhalt} className="relative isolate flex flex-col gap-0.5 p-1">
-					{stand.miniaturen && rahmenAnzeige}
 					{modell.map(zeigeSeite)}
 					{zug?.marke && (
 						<div

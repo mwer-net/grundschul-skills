@@ -212,9 +212,9 @@ test.describe('Editor: Struktur', () => {
 		const { dok, id, material: datei } = await uhrzeit();
 		await oeffne(page, id, dok);
 		const leiste = page.locator('[data-seitenleiste]');
-		await expect(leiste.locator('[data-seite-miniatur]')).toHaveCount(1);
+		await expect(leiste.locator('[data-seite-zeile]')).toHaveCount(1);
 		await druecke(leiste.getByRole('button', { name: 'Seite hinzufügen' }));
-		await expect(leiste.locator('[data-seite-miniatur]')).toHaveCount(2);
+		await expect(leiste.locator('[data-seite-zeile]')).toHaveCount(2);
 		await expect(page.locator('[data-auswahl="seite"] h2')).toHaveText('Seite 2');
 		await expect(leiste.getByRole('button', { name: 'Seite 2' })).toHaveAttribute('aria-current', 'true');
 		await gespeichert(page, datei);
@@ -290,7 +290,7 @@ test.describe('Mini-Book (036)', () => {
 		const datei = path.join(dokumentOrdner(id, dok), 'material.html');
 		await oeffne(page, id, dok);
 		const leiste = page.locator('[data-seitenleiste]');
-		await expect(leiste.locator('[data-seite-miniatur]')).toHaveCount(8);
+		await expect(leiste.locator('[data-seite-zeile]')).toHaveCount(8);
 		await expect(leiste.getByRole('button', { name: 'Seite hinzufügen' })).toHaveCount(0);
 		await expect(leiste.getByRole('button', { name: 'Art der neuen Seite' })).toHaveCount(0);
 		await expect(leiste.locator('[data-feste-seiten]')).toHaveText('Ein Mini-Book hat immer acht Seiten.');

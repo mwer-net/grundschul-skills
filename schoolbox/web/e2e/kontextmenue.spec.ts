@@ -88,7 +88,7 @@ test.describe('Kontextmenü (070)', () => {
 		expect(Math.abs((m?.x ?? 0) - (box.x + box.width / 2))).toBeLessThan(40);
 	});
 
-	test('Leere Stelle, Miniatur und Gliederung haben ihr Menü', async ({ page }) => {
+	test('Leere Stelle, Seitenzeile und Gliederung haben ihr Menü', async ({ page }) => {
 		const { dok, id } = await uhrzeit();
 		await oeffne(page, id, dok);
 		const menue = page.getByRole('menu');
@@ -101,7 +101,7 @@ test.describe('Kontextmenü (070)', () => {
 		await expect(menue.getByRole('menuitem', { name: /Löschen/ })).toHaveCount(0);
 		await page.keyboard.press('Escape');
 
-		await page.locator('[data-seite-miniatur="1"]').click({ button: 'right' });
+		await page.locator('[data-seite-zeile="1"]').click({ button: 'right' });
 		await expect(menue.getByRole('menuitem', { name: /Neue Seite danach/ })).toBeVisible();
 		await page.keyboard.press('Escape');
 

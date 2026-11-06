@@ -944,10 +944,14 @@ const Bearbeitung = ({ dokument, mappe: mappenDaten }: { mappe: Mappe; dokument:
 			<Gliederung
 				doc={docJetzt}
 				zerlegung={zerlegung}
-				html={html}
 				auswahl={auswahl}
 				struktur={struktur}
 				stand={gliederungStand}
+				zeigeAn={(nr) => {
+					struktur.zeigeAn(nr);
+					panels.setRechts('inspektor');
+					panels.setRechtsOffen(true);
+				}}
 				festeSeiten={format === 'minibuch'}
 				kontextmenue={menueAn}
 			/>

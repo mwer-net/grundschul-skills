@@ -701,7 +701,7 @@ export const BEFEHLE: Befehl[] = [
 		titel: 'Gliederung',
 		gruppe: 'ansicht',
 		symbol: 'gliederung',
-		suchwoerter: ['seiten', 'aufgaben', 'miniaturen'],
+		suchwoerter: ['seiten', 'aufgaben', 'baum', 'navigation'],
 		kuerzel: [{ code: 'Digit1', wahl: true }],
 		orte: ['taste', 'palette'],
 		sichtbarUnter: 'links',

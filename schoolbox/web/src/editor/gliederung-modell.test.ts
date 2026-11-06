@@ -3,7 +3,15 @@ import { describe, it } from 'node:test';
 
 import { zerlege } from '@schoolbox/kern/src/quelltext';
 
-import { seitenAbgleich, seitenStelle, seitenTexte, zeileZurAuswahl } from './gliederung-modell';
+import type { GliederungKnoten } from './gliederung-modell';
+import {
+	alleSchluessel,
+	ketteZu,
+	ohneWirkung,
+	seitenAbgleich,
+	seitenTexte,
+	zeileZurAuswahl,
+} from './gliederung-modell';
 
 const quelle = (...seiten: string[]) =>
 	`<body>${seiten.map((s) => `<section class="seite">${s}</section>`).join('\n')}</body>`;
@@ -71,8 +79,45 @@ describe('Auswahl in der Liste', () => {
 		assert.equal(zeileZurAuswahl(z, null, new Set()), null);
 	});
 
-	it('findet die Stelle der Seite', () => {
-		assert.equal(seitenStelle(z, p[1]?.nr ?? null), 1);
-		assert.equal(seitenStelle(z, null), null);
+	it('ohne Wirkung: direkt vor den Nachfolger, ans Ende, wo es schon steht', () => {
+		const [a, b] = aufgaben;
+		assert.ok(a && b);
+		const [s1, s2] = z.knoten.filter((k) => k.tag === 'section');
+		assert.ok(s1 && s2);
+		assert.equal(ohneWirkung(z, a.nr, { nr: b.nr, wo: 'vor' }), false);
+		assert.equal(ohneWirkung(z, s1.nr, { nr: s2.nr, wo: 'vor' }), true);
+		assert.equal(ohneWirkung(z, s2.nr, { nr: s1.nr, wo: 'nach' }), true);
+		assert.equal(ohneWirkung(z, s2.nr, { nr: s1.nr, wo: 'vor' }), false);
+		assert.equal(ohneWirkung(z, a.nr, { in: s1.nr }), true);
+		assert.equal(ohneWirkung(z, a.nr, { in: s2.nr }), false);
+	});
+});
+
+describe('Baum', () => {
+	const knoten = (nr: number, schluessel: string, kinder: GliederungKnoten[] = []): GliederungKnoten => ({
+		nr,
+		titel: '',
+		nummer: null,
+		name: '',
+		art: '',
+		aufgabe: false,
+		fest: false,
+		ziehbar: true,
+		schluessel,
+		kinder,
+	});
+	const modell = [
+		{ id: 1, nr: 1, schluessel: '1', kinder: [knoten(2, '1/0', [knoten(3, '1/0/0', [knoten(4, '1/0/0/0')])])] },
+		{ id: 2, nr: 10, schluessel: '2', kinder: [knoten(11, '2/0')] },
+	];
+
+	it('findet die Kette von der Seite bis zur Zeile', () => {
+		assert.deepEqual(ketteZu(modell, 4), ['1', '1/0', '1/0/0', '1/0/0/0']);
+		assert.deepEqual(ketteZu(modell, 10), ['2']);
+		assert.deepEqual(ketteZu(modell, 99), []);
+	});
+
+	it('kennt alle Zeilen, die sich einklappen lassen', () => {
+		assert.deepEqual(alleSchluessel(modell), ['1', '1/0', '1/0/0', '2']);
 	});
 });

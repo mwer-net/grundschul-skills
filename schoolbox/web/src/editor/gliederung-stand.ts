@@ -2,14 +2,13 @@ import type { Zerlegung } from '@schoolbox/kern/src/quelltext';
 import { useEffect, useMemo, useRef, useState } from 'react';
 
 import type { SeitenSpur } from './gliederung-modell';
-import { seitenAbgleich, seitenStelle, seitenTexte } from './gliederung-modell';
+import { seitenAbgleich, seitenTexte } from './gliederung-modell';
 
-const SPEICHER_MINIATUREN = 'schoolbox-gliederung-miniaturen';
 const LEUCHTEN_MS = 1200;
 
 /**
- * Was vom Reiter bleibt, wenn er zugeht: eingeklappte Seiten (für die Sitzung, nie in der Quelle) und ob Miniaturen zu
- * sehen sind (je Gerät). Liegt darum beim Editor. Ein Klick im Blatt klappt die Seite auf, in der er landet.
+ * Was vom Reiter bleibt, wenn er zugeht: auf- und zugeklappte Zeilen (für die Sitzung, nie in der Quelle), als Schlüssel aus
+ * `gliederung-modell`. Liegt darum beim Editor. Aufgeklappt wird, was zur Auswahl führt, das macht die Gliederung.
  */
 export const useGliederungStand = (zerlegung: Zerlegung | null, auswahl: number | null) => {
 	const spuren = useRef<SeitenSpur[]>([]);
@@ -24,29 +23,18 @@ export const useGliederungStand = (zerlegung: Zerlegung | null, auswahl: number 
 		});
 		return spuren.current.map((s) => s.id);
 	}, [zerlegung]);
-	const [zu, setZu] = useState<ReadonlySet<number>>(new Set());
-	const [miniaturen, setMiniaturenZustand] = useState(() => localStorage.getItem(SPEICHER_MINIATUREN) !== 'aus');
+	/** Abweichungen von der Vorgabe (Seiten offen, alles darunter zu); wahr heißt offen. */
+	const [geschaltet, setGeschaltet] = useState<ReadonlyMap<string, boolean>>(new Map());
 	const [leuchtet, setLeuchtet] = useState<number | null>(null);
-	/** Was die Gliederung gerade selbst ausgelöst hat, gilt nicht als Klick im Blatt. */
-	const eigene = useRef({ bleibtZu: false, leuchten: false });
-	const zerlegungJetzt = useRef(zerlegung);
-	zerlegungJetzt.current = zerlegung;
-	const idsJetzt = useRef(ids);
-	idsJetzt.current = ids;
+	/** Eine Ablage aus der Gliederung lässt die neue Stelle kurz leuchten. */
+	const eigene = useRef({ leuchten: false });
 
 	useEffect(() => {
 		if (auswahl === null) {
 			return undefined;
 		}
-		const { bleibtZu, leuchten } = eigene.current;
-		eigene.current = { bleibtZu: false, leuchten: false };
-		if (!bleibtZu) {
-			const stelle = seitenStelle(zerlegungJetzt.current, auswahl);
-			const id = stelle === null ? undefined : idsJetzt.current[stelle];
-			if (id !== undefined) {
-				setZu((alt) => (alt.has(id) ? new Set([...alt].filter((x) => x !== id)) : alt));
-			}
-		}
+		const { leuchten } = eigene.current;
+		eigene.current = { leuchten: false };
 		if (!leuchten) {
 			return undefined;
 		}
@@ -56,26 +44,21 @@ export const useGliederungStand = (zerlegung: Zerlegung | null, auswahl: number 
 	}, [auswahl]);
 
 	return {
-		zu,
 		ids,
-		miniaturen,
 		leuchtet,
 		eigene,
-		setzeMiniaturen: (an: boolean) => {
-			setMiniaturenZustand(an);
-			localStorage.setItem(SPEICHER_MINIATUREN, an ? 'an' : 'aus');
-		},
-		klappe: (id: number, oeffnen: boolean) =>
-			setZu((alt) => {
-				const neu = new Set(alt);
-				if (oeffnen) {
-					neu.delete(id);
-				} else {
-					neu.add(id);
-				}
-				return neu;
+		/** Seiten sind ohne Zutun offen, alles darunter zu, damit die Liste kurz bleibt. */
+		offen: (schluessel: string) => geschaltet.get(schluessel) ?? !schluessel.includes('/'),
+		klappe: (schluessel: string, oeffnen: boolean) =>
+			setGeschaltet((alt) => (alt.get(schluessel) === oeffnen ? alt : new Map(alt).set(schluessel, oeffnen))),
+		/** Öffnet alle genannten Zeilen auf einmal, ohne neuen Zustand, wenn sie schon offen sind. */
+		oeffne: (schluessel: readonly string[]) =>
+			setGeschaltet((alt) => {
+				const fehlt = schluessel.filter((s) => alt.get(s) !== true);
+				return fehlt.length ? new Map([...alt, ...fehlt.map((s): [string, boolean] => [s, true])]) : alt;
 			}),
-		klappeAlle: (schliessen: boolean) => setZu(new Set(schliessen ? ids : [])),
+		setzeAlle: (schluessel: readonly string[], oeffnen: boolean) =>
+			setGeschaltet(new Map(schluessel.map((s) => [s, oeffnen]))),
 	};
 };
 

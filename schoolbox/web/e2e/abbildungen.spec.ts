@@ -2535,11 +2535,11 @@ test.describe('Spiele (037)', () => {
 		const inhalt = material(page);
 		await expect(inhalt.locator('.seite')).toHaveCount(3);
 		await expect(inhalt.locator('.seite[data-erzeugt]')).toHaveCount(2);
-		await expect(page.locator('[data-seitenleiste] [data-seite-miniatur]')).toHaveCount(1);
+		await expect(page.locator('[data-seitenleiste] [data-seite-zeile]')).toHaveCount(1);
 
 		await druecke(inhalt.locator('.seite[data-erzeugt] .bingo-karte').first());
 		await expect(panel(page)).toBeVisible();
-		await expect(page.locator('[data-seitenleiste] [data-seite-miniatur]')).toHaveCount(1);
+		await expect(page.locator('[data-seitenleiste] [data-seite-zeile]')).toHaveCount(1);
 		await expect(inhalt.locator('.seite[data-erzeugt]')).toHaveCount(2);
 
 		const vorher = await inhalt.locator('.seite[data-erzeugt] .bingo-karte').first().textContent();

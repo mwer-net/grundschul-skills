@@ -81,9 +81,9 @@ test.describe('Inventur Editor', () => {
 		await expect(page.locator('[data-befehlspalette]').getByRole('combobox')).toBeFocused();
 	});
 
-	test('Linke Leiste: Gliederung mit Miniatur und „+ Seite“, Bausteine', async ({ page }) => {
+	test('Linke Leiste: Gliederung mit Seitenzeile und „+ Seite“, Bausteine', async ({ page }) => {
 		await offenesBlatt(page);
-		await expect(page.locator('[data-seite-miniatur="1"]')).toBeVisible();
+		await expect(page.locator('[data-seite-zeile="1"]')).toBeVisible();
 		await expect(page.getByRole('button', { name: /Seite$/ }).first()).toBeVisible();
 		await expect(page.locator('[data-gliederung-aufgabe]').first()).toBeVisible();
 		await page.getByRole('tab', { name: 'Bausteine' }).click();

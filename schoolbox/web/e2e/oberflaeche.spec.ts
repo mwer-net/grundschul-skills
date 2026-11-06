@@ -777,22 +777,22 @@ test.describe('Linke Leiste (067)', () => {
 		const blatt = page.frameLocator('[data-editor-rahmen="sichtbar"]');
 		const namen = () => blatt.locator('.seite .namenszeile');
 		const vorher = await namen().count();
-		const miniaturen = page.locator('[data-seite-miniatur]');
-		await expect(miniaturen).toHaveCount(1);
+		const seitenZeilen = page.locator('[data-seite-zeile]');
+		await expect(seitenZeilen).toHaveCount(1);
 
 		await druecke(page.getByRole('button', { name: 'Art der neuen Seite' }));
 		await druecke(page.getByRole('menuitem', { name: 'Leere Seite' }));
-		await expect(miniaturen).toHaveCount(2);
+		await expect(seitenZeilen).toHaveCount(2);
 		expect(await namen().count()).toBe(vorher);
 
 		await druecke(page.getByRole('button', { name: 'Art der neuen Seite' }));
 		await druecke(page.getByRole('menuitem', { name: 'Seite mit Namenszeile' }));
-		await expect(miniaturen).toHaveCount(3);
+		await expect(seitenZeilen).toHaveCount(3);
 		await expect.poll(() => namen().count()).toBeGreaterThan(vorher);
 
 		const mit = await namen().count();
 		await druecke(page.getByRole('button', { name: 'Seite hinzufügen' }));
-		await expect(miniaturen).toHaveCount(4);
+		await expect(seitenZeilen).toHaveCount(4);
 		await expect.poll(() => namen().count()).toBeGreaterThan(mit);
 	});
 });

@@ -82,7 +82,8 @@ export const trefferAn = (start: Element | null): Treffer | null => {
 
 export const elementZu = (doc: Document, nr: number) => doc.querySelector(`[${MARKE}="${nr}"]`);
 
-const name = ({ baustein, element }: Treffer, umgebung: Element | null) => {
+/** Wie der Baustein in Pfad und Gliederung heißt; `umgebung` ist der Baustein darum, in dem gezählt wird. */
+export const nameVon = ({ baustein, element }: Treffer, umgebung: Element | null) => {
 	const { sonderfall } = baustein;
 	if (sonderfall && element.matches(sonderfall.selektor)) {
 		return sonderfall.name;
@@ -117,7 +118,7 @@ export const pfadZu = (doc: Document, nr: number): PfadTeil[] => {
 	return kette.map((treffer, i) => ({
 		nr: treffer.nr,
 		baustein: treffer.baustein,
-		name: name(treffer, kette[i - 1]?.element ?? null),
+		name: nameVon(treffer, kette[i - 1]?.element ?? null),
 	}));
 };
 

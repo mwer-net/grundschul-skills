@@ -86,6 +86,23 @@ const anweisungen = (html: string) => [...html.matchAll(/<span class="text">([^<
 const nummern = (html: string) => [...html.matchAll(/<span class="nr( stern)?">([^<]*)</g)].map((m) => m[2]);
 const ANFANG = ['Lies ab. Sch', 'Zeichne die ', 'Willi sagt: ', 'Sternchenauf'];
 
+const zeileMit = (page: Page, text: RegExp) => page.locator('[data-zeile-nr]').filter({ hasText: text });
+
+/** Öffnet Aufgabe 1, ihre Reihe und den ersten Eintrag: Unter der Seite ist ohne Zutun alles zu. */
+const oeffneErstenEintrag = async (page: Page, druecke: (z: Locator) => Promise<void>) => {
+	await druecke(aufgaben(page).nth(0).getByRole('button', { name: 'Aufklappen' }));
+	await druecke(
+		zeileMit(page, /^Reihe$/)
+			.first()
+			.getByRole('button', { name: 'Aufklappen' }),
+	);
+	await druecke(
+		zeileMit(page, /^Eintrag 1$/)
+			.first()
+			.getByRole('button', { name: 'Aufklappen' }),
+	);
+};
+
 const neueSeite = async (page: Page, druecke: (z: Locator) => Promise<void>, zahl: number) => {
 	await druecke(page.getByRole('button', { name: 'Seite hinzufügen' }));
 	await expect(page.locator('[data-seite-zeile]')).toHaveCount(zahl);
@@ -106,8 +123,9 @@ test.describe('Gliederung (080)', () => {
 
 	test('Griff ohne Hover sichtbar, an jeder Zeile außer den festen Teilen', async ({ page }) => {
 		await blatt(page);
-		const zeilen = page.locator('[data-gliederung-zeile]');
-		await expect(zeilen).toHaveCount(4);
+		await expect(aufgaben(page)).toHaveCount(4);
+		const zeilen = page.locator('[data-ziehbar]');
+		expect(await zeilen.count()).toBeGreaterThanOrEqual(4);
 		for (const zeile of await zeilen.all()) {
 			await expect(griffVon(zeile)).toBeVisible();
 		}
@@ -158,7 +176,6 @@ test.describe('Gliederung (080)', () => {
 	}) => {
 		await blatt(page);
 		await neueSeite(page, druecke, 2);
-		await druecke(page.getByRole('button', { name: 'Miniaturen aus' }));
 		const hand = zeiger(page, hasTouch);
 
 		// Auf die Seitenzeile: ans Ende, die Zeile färbt sich, keine Linie.
@@ -210,7 +227,6 @@ test.describe('Gliederung (080)', () => {
 		await druecke(seitenZeile(page, 1).getByRole('button', { name: 'Einklappen' }));
 		const hand = zeiger(page, hasTouch);
 		await hand.runter(await mitte(griffVon(seitenZeile(page, 3))));
-		await expect(page.locator('[data-seite-miniatur]')).toHaveCount(0);
 		await expect(aufgaben(page)).toHaveCount(0);
 		await expect(page.locator('[data-seite-anzahl]')).toHaveText(['4', '0', '0']);
 		// Vor die erste Seite: Die neuen Seiten 2 und 3 sind beide leer, ein Tausch der beiden änderte die Quelle nicht.
@@ -229,7 +245,7 @@ test.describe('Gliederung (080)', () => {
 		// Die Seite mit den Aufgaben (jetzt Seite 2) blieb zu, die anderen beiden stehen wieder offen.
 		await expect(seitenZeile(page, 2)).toHaveAttribute('data-zu');
 		await expect(seitenZeile(page, 2).locator('[data-seite-anzahl]')).toHaveText('4');
-		await expect(page.locator('[data-seite-miniatur]')).toHaveCount(2);
+		await expect(page.locator('[data-seite-zeile][data-zu]')).toHaveCount(1);
 
 		// Jetzt wandert die eingeklappte Seite selbst: Sie bleibt zu, nicht die Zeile, die jetzt an ihrer Stelle steht.
 		const hand2 = zeiger(page, hasTouch);
@@ -283,11 +299,11 @@ test.describe('Gliederung (080)', () => {
 		await page.evaluate((t) => {
 			(window as unknown as { schoolboxEditor: { aendere: (neu: string) => void } }).schoolboxEditor.aendere(t);
 		}, mitBlock);
-		const block = page.locator('[data-gliederung-zeile]').filter({ hasText: 'Überschrift' });
+		const block = page.locator('[data-gliederung-zeile]').filter({ hasText: 'Zwischen' });
 		await expect(block).toHaveCount(1);
 		const hand = zeiger(page, hasTouch);
 		await hand.runter(await mitte(griffVon(block)));
-		await hand.zu(await an(aufgaben(page).nth(1), 'unten'));
+		await hand.zu(await an(aufgaben(page).nth(2), 'oben'));
 		await expect(page.locator('[data-zug]')).toHaveText('Überschrift');
 		await hand.los();
 		await expect
@@ -329,19 +345,78 @@ test.describe('Gliederung (080)', () => {
 		await expect(seitenZeile(page, 1)).toHaveAttribute('data-zu');
 	});
 
-	test('Miniaturen aus: Reiter zeigt nur Zeilen, Einstellung bleibt nach Neuladen', async ({ druecke, page }) => {
+	test('Keine Miniaturen und kein Umschalter dafür', async ({ page }) => {
 		await blatt(page);
-		await expect(page.locator('[data-seite-miniatur]')).toHaveCount(1);
-		await druecke(page.getByRole('button', { name: 'Miniaturen aus' }));
-		await expect(page.locator('[data-seite-miniatur]')).toHaveCount(0);
-		await expect(page.locator('[data-miniaturen-rahmen]')).toHaveCount(0);
+		await expect(page.locator('[data-gliederung] iframe')).toHaveCount(0);
+		await expect(page.getByRole('button', { name: /Miniaturen/ })).toHaveCount(0);
+	});
+
+	test('Der Baum reicht bis zum Innersten: Klick im Blatt markiert es, klappt auf und rollt es in Sicht', async ({
+		druecke,
+		page,
+	}) => {
+		await blatt(page);
+		const aufgabe = aufgaben(page).nth(0);
+		await expect(aufgabe).toBeVisible();
+		await druecke(page.getByRole('button', { name: 'Alle einklappen' }));
+		await expect(aufgaben(page)).toHaveCount(0);
+
+		await druecke(material(page).locator('.reihe').first().locator('x-uhr').nth(2));
+		const aktiv = page.locator('[data-gliederung] [aria-current="true"]');
+		await expect(aktiv).toHaveText('Uhr');
+		await expect(aktiv).toBeInViewport();
+		// Eintrag 3 der ersten Aufgabe: Seite, Aufgabe, Reihe und Eintrag liegen offen.
 		await expect(aufgaben(page)).toHaveCount(4);
-		await page.reload();
-		await expect(page.locator('[data-leinwand][data-geladen]')).toBeVisible();
-		await expect(aufgaben(page)).toHaveCount(4);
-		await expect(page.locator('[data-seite-miniatur]')).toHaveCount(0);
-		await druecke(page.getByRole('button', { name: 'Miniaturen an' }));
-		await expect(page.locator('[data-seite-miniatur]')).toHaveCount(1);
+		await expect(zeileMit(page, /^Eintrag 3$/).first()).toBeVisible();
+		await expect(page.locator('[data-auswahl="abbildung"]')).toBeVisible();
+	});
+
+	test('Klick auf eine tiefe Zeile wählt im Blatt und zeigt rechts die Einstellungen', async ({ druecke, page }) => {
+		await blatt(page);
+		await expect(zeileMit(page, /^Antwortlinie$/)).toHaveCount(0);
+		await oeffneErstenEintrag(page, druecke);
+		await druecke(
+			zeileMit(page, /^Antwortlinie$/)
+				.first()
+				.locator('[data-gliederung-titel]'),
+		);
+		await expect(page.locator('[data-inspektor="auswahl"]')).toBeVisible();
+		await expect(page.locator('[data-auswahl="antwort"]')).toBeVisible();
+		await expect(page.locator('[data-gliederung] [aria-current="true"]')).toHaveText('Antwortlinie');
+	});
+
+	test('Einträge lassen sich in ihrer Reihe ziehen, nicht in eine andere Aufgabe', async ({
+		druecke,
+		hasTouch,
+		page,
+	}) => {
+		await blatt(page);
+		await oeffneErstenEintrag(page, druecke);
+		const uhren = (html: string) => [...html.matchAll(/<x-uhr[^>]*>/g)].map((m) => m[0]);
+		const vorher = await quelle(page);
+		const eintraege = zeileMit(page, /^Eintrag \d$/);
+		// Ein einzelnes Element (die Uhr im Eintrag) hat nirgendwohin zu gehen und darum keinen Griff.
+		const uhr = zeileMit(page, /^Uhr$/).first();
+		await expect(griffVon(uhr)).toHaveCount(0);
+		await expect(griffVon(eintraege.nth(0))).toBeVisible();
+
+		const falsch = zeiger(page, hasTouch);
+		await falsch.runter(await mitte(griffVon(eintraege.nth(0))));
+		await falsch.zu(await an(aufgaben(page).nth(1), 'mitte'));
+		await expect(marke(page)).toHaveCount(0);
+		await expect.poll(() => page.evaluate(() => document.documentElement.style.cursor)).toBe('not-allowed');
+		await falsch.los();
+		expect(await quelle(page)).toBe(vorher);
+
+		const hand = zeiger(page, hasTouch);
+		await hand.runter(await mitte(griffVon(eintraege.nth(0))));
+		await hand.zu(await an(eintraege.nth(2), 'oben'));
+		await expect(marke(page)).toBeVisible();
+		await expect(page.locator('[data-zug]')).toHaveText('Eintrag 1');
+		await hand.los();
+		const [a, b, c] = uhren(vorher);
+		await expect.poll(async () => uhren(await quelle(page)).slice(0, 3)).toEqual([b, a, c]);
+		await expect(zurueck(page)).toHaveAttribute('data-schritt', 'Eintrag verschoben');
 	});
 
 	test('Nur noch zwei Reiter, ⌥1 und ⌥2 passen, alter Speicherwert öffnet „Gliederung“', async ({ page }) => {
