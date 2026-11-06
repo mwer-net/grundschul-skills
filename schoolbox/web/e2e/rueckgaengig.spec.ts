@@ -4,6 +4,7 @@ import type { Locator, Page } from '@playwright/test';
 
 import { material, oeffne, quelle, uhrzeit } from './editorhilfe';
 import { expect, test } from './hilfe';
+import { oeffneSchublade } from './schubladen-hilfe';
 
 type Druecke = (ziel: Locator) => Promise<void>;
 
@@ -131,7 +132,7 @@ const FAELLE: Fall[] = [
 		name: 'Einfügen aus der Bibliothek',
 		bereite: async ({ page }) => {
 			const vorher = await quelle(page);
-			await page.getByRole('tab', { name: 'Bausteine' }).click();
+			await oeffneSchublade(page, 'bausteine');
 			await page.getByRole('searchbox', { name: 'Baustein suchen' }).fill('Uhr');
 			await page.locator('[data-einfuegen="x-uhr"]').click();
 			await expect.poll(() => quelle(page)).not.toBe(vorher);

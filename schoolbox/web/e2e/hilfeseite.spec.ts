@@ -11,6 +11,7 @@ const ABSCHNITTE = [
 	'Drucken und PDF',
 	'Präsentieren',
 	'Bearbeiten',
+	'Gestalten',
 	'Schneller arbeiten',
 	'Mit Claude arbeiten',
 	'Teilen mit Kolleginnen',

@@ -9,6 +9,7 @@ import {
 	setzeBildEin,
 	tauscheBild,
 } from '@schoolbox/kern/src/bildbefehle';
+import type { Knoten } from '@schoolbox/kern/src/quelltext';
 import { attribut, klassenVon, zerlege } from '@schoolbox/kern/src/quelltext';
 import type { StrukturErgebnis } from '@schoolbox/kern/src/struktur';
 import { useCallback, useEffect, useRef, useState } from 'react';
@@ -25,6 +26,11 @@ const HEIC_TYP = /^image\/hei[cf]/i;
 const HEIC_NAME = /\.hei[cf]$/i;
 /** Wie `bildStamm` im Kern: Kameranamen taugen nicht als Beschreibung. */
 const GERAETENAME = /^(img|image|dscn?|pxl|photo)[\s_-]*\d*$/i;
+/** Höhe eines neuen Bildplatzhalters (`--h` in blatt.css): So groß wird ein Bild, das ihn füllt. */
+const PLATZHALTER_HOEHE = 80;
+
+/** Fügt einen leeren Bildplatzhalter ein (093: Klick in der Bilder-Schublade ohne gewähltes Bild). */
+export type NeuerPlatz = (quelle: string) => StrukturErgebnis;
 
 export interface BildWerte {
 	nr: number;
@@ -188,6 +194,18 @@ const pruefeNoch = (quelle: string, w: BildWerte) => {
 	}
 };
 
+/** Der Platzhalter im eingefügten Baustein: er selbst oder sein erstes Kind dieser Art. */
+const platzhalterIn = (quelle: string, nr: number | null) => {
+	const k = nr === null ? undefined : zerlege(quelle).knoten[nr];
+	const suche = (n: Knoten): Knoten | undefined =>
+		klassenVon(n).includes('platzhalter') ? n : n.kinder.map(suche).find(Boolean);
+	const p = k ? suche(k) : undefined;
+	if (!p) {
+		throw new Error('Das Bild ließ sich hier nicht einfügen.');
+	}
+	return p.nr;
+};
+
 /**
  * Das Bild-Panel (017): Werte des gewählten Bildes aus der Darstellung und die Befehle dazu. Hochladen, Übernehmen
  * legen zuerst eine Datei auf dem Server an; danach ändert ein Befehl nur `src` (bzw. setzt das Bild
@@ -233,10 +251,31 @@ export const useBild = ({ adresse, basis, geladen, html, pfad, rueckgaengig, str
 		[fuehreAus],
 	);
 
-	/** Das neue Bild an die Stelle des alten bzw. des Platzhalters; Größe und Rest bleiben. */
+	const masseVon = useCallback(async (src: string) => {
+		const neu = await ladeBild(new URL(src, new URL(basis, window.location.href)).href);
+		return { breite: neu.naturalWidth, hoehe: neu.naturalHeight };
+	}, [basis]);
+
+	/**
+	 * Das neue Bild an die Stelle des alten bzw. des Platzhalters; Größe und Rest bleiben. Ist nichts davon gewählt
+	 * und `neu` gegeben, entsteht ein neuer Bild-Baustein: Platzhalter einfügen und füllen ist ein Schritt.
+	 */
 	const setzeEin = useCallback(
-		async (src: string, alt: string, natur: { breite: number; hoehe: number } | null) => {
+		async (src: string, alt: string, natur: { breite: number; hoehe: number } | null, neu?: NeuerPlatz) => {
 			const w = aktuell.current;
+			if (!w && neu) {
+				const masse = natur ?? (await masseVon(src));
+				const breite = Math.min(masse.breite, (PLATZHALTER_HOEHE * masse.breite) / Math.max(1, masse.hoehe));
+				fuehreAus(
+					'Bild eingefügt',
+					(q) => {
+						const r = neu(q);
+						return setzeBildEin(r.quelle, platzhalterIn(r.quelle, r.nr), { src, alt, breite });
+					},
+					true,
+				);
+				return;
+			}
 			if (!w) {
 				return;
 			}
@@ -244,15 +283,11 @@ export const useBild = ({ adresse, basis, geladen, html, pfad, rueckgaengig, str
 				ausfuehren('Bild getauscht', (q) => tauscheBild(q, w.nr, src, alt));
 				return;
 			}
-			let masse = natur;
-			if (!masse) {
-				const neu = await ladeBild(new URL(src, new URL(basis, window.location.href)).href);
-				masse = { breite: neu.naturalWidth, hoehe: neu.naturalHeight };
-			}
+			const masse = natur ?? (await masseVon(src));
 			const breite = Math.min(w.max, w.breite, (w.hoehe * masse.breite) / Math.max(1, masse.hoehe));
 			ausfuehren('Bild eingesetzt', (q) => setzeBildEin(q, w.nr, { src, alt: alt || w.alt, breite }));
 		},
-		[basis, ausfuehren],
+		[masseVon, ausfuehren, fuehreAus],
 	);
 
 	const arbeite = useCallback(
@@ -269,7 +304,8 @@ export const useBild = ({ adresse, basis, geladen, html, pfad, rueckgaengig, str
 		[zeige],
 	);
 
-	const hochladen = (datei: File) =>
+	/** `neu`: ohne gewähltes Bild als neuer Bild-Baustein (Bilder-Schublade). */
+	const hochladen = (datei: File, neu?: NeuerPlatz) =>
 		arbeite('hochladen', async () => {
 			const { daten, name } = await bereiteVor(datei);
 			const bild = await sendeDatei<{ src: string; breite: number; hoehe: number }>(
@@ -277,13 +313,13 @@ export const useBild = ({ adresse, basis, geladen, html, pfad, rueckgaengig, str
 				daten,
 				name,
 			);
-			await setzeEin(bild.src, beschreibungAus(datei.name), bild);
+			await setzeEin(bild.src, beschreibungAus(datei.name), bild, neu);
 		});
 
-	const uebernimm = (schluessel: string, alt: string) =>
+	const uebernimm = (schluessel: string, alt: string, neu?: NeuerPlatz) =>
 		arbeite('sammlung', async () => {
 			const { src } = await sende<{ src: string }>(`${adresse}/bilder/uebernehmen`, { schluessel });
-			await setzeEin(src, alt, null);
+			await setzeEin(src, alt, null, neu);
 		});
 
 	const zeigeBreite = (px: number) => {

@@ -2,6 +2,7 @@ import type { Locator, Page } from '@playwright/test';
 
 import { material, oeffne, quelle, uhrzeit } from './editorhilfe';
 import { expect, legeMappeAn, test } from './hilfe';
+import { schubladenKnopf } from './schubladen-hilfe';
 
 interface Punkt {
 	x: number;
@@ -108,7 +109,7 @@ const neueSeite = async (page: Page, druecke: (z: Locator) => Promise<void>, zah
 	await expect(page.locator('[data-seite-zeile]')).toHaveCount(zahl);
 };
 
-test.describe('Gliederung (080)', () => {
+test.describe('Ebenen, bis 093 „Gliederung“ (080)', () => {
 	test.beforeEach(() => {
 		test.skip(
 			!GERAETE.includes(test.info().project.name),
@@ -337,11 +338,11 @@ test.describe('Gliederung (080)', () => {
 		await expect(aufgaben(page)).toHaveCount(4);
 	});
 
-	test('Der Stand bleibt, wenn der Reiter wechselt', async ({ druecke, page }) => {
+	test('Der Stand bleibt, wenn die Schublade wechselt', async ({ druecke, page }) => {
 		await blatt(page);
 		await druecke(seitenZeile(page, 1).getByRole('button', { name: 'Einklappen' }));
-		await druecke(page.getByRole('tab', { name: 'Bausteine' }));
-		await druecke(page.getByRole('tab', { name: 'Gliederung' }));
+		await druecke(schubladenKnopf(page, 'bausteine'));
+		await druecke(schubladenKnopf(page, 'ebenen'));
 		await expect(seitenZeile(page, 1)).toHaveAttribute('data-zu');
 	});
 
@@ -419,18 +420,21 @@ test.describe('Gliederung (080)', () => {
 		await expect(zurueck(page)).toHaveAttribute('data-schritt', 'Eintrag verschoben');
 	});
 
-	test('Nur noch zwei Reiter, ⌥1 und ⌥2 passen, alter Speicherwert öffnet „Gliederung“', async ({ page }) => {
+	test('⌥1 und ⌥2 passen, alte Speicherwerte `seiten` und `gliederung` öffnen die Ebenen', async ({ page }) => {
 		await blatt(page);
 		const panel = page.locator('[data-panel-links]');
 		await expect(page.getByRole('tab', { name: 'Seiten', exact: true })).toHaveCount(0);
-		await page.evaluate(() => localStorage.setItem('schoolbox-panel-links', 'seiten'));
-		await page.reload();
-		await expect(panel).toHaveAttribute('data-panel-links', 'gliederung');
+		for (const alt of ['seiten', 'gliederung']) {
+			await page.evaluate((wert) => localStorage.setItem('schoolbox-panel-links', wert), alt);
+			await page.reload();
+			await expect(panel).toHaveAttribute('data-panel-links', 'ebenen');
+		}
 		await expect(panel).toHaveCSS('width', '240px');
+		await expect(page.getByRole('navigation', { name: 'Ebenen' })).toBeVisible();
 		await page.keyboard.press('Alt+Digit2');
 		await expect(panel).toHaveAttribute('data-panel-links', 'bausteine');
 		await page.keyboard.press('Alt+Digit1');
-		await expect(panel).toHaveAttribute('data-panel-links', 'gliederung');
+		await expect(panel).toHaveAttribute('data-panel-links', 'ebenen');
 	});
 
 	test('Mini-Book: kein Griff an Seiten, kein „+ Seite“', async ({ page }) => {

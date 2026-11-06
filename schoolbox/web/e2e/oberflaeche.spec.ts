@@ -17,6 +17,7 @@ import {
 	waehle,
 	waehleObjekt,
 } from './hilfe';
+import { oeffneSchublade } from './schubladen-hilfe';
 
 type Box = NonNullable<Awaited<ReturnType<Locator['boundingBox']>>>;
 
@@ -738,7 +739,7 @@ test.describe('Linke Leiste (067)', () => {
 		]);
 		await page.goto(`/m/${id}/${dokumente[0]}/bearbeiten`);
 		await expect(page.locator('[data-leinwand][data-geladen]')).toBeVisible();
-		await page.getByRole('tab', { name: 'Bausteine' }).click();
+		await oeffneSchublade(page, 'bausteine');
 		await expect(page.locator('[data-bereich]').first()).toBeVisible();
 	};
 

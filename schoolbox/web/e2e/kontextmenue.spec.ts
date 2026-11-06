@@ -88,7 +88,7 @@ test.describe('Kontextmenü (070)', () => {
 		expect(Math.abs((m?.x ?? 0) - (box.x + box.width / 2))).toBeLessThan(40);
 	});
 
-	test('Leere Stelle, Seitenzeile und Gliederung haben ihr Menü', async ({ page }) => {
+	test('Leere Stelle, Seitenzeile und Ebenen haben ihr Menü', async ({ page }) => {
 		const { dok, id } = await uhrzeit();
 		await oeffne(page, id, dok);
 		const menue = page.getByRole('menu');

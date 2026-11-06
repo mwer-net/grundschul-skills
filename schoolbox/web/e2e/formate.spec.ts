@@ -8,6 +8,7 @@ import { ASSETS } from '@schoolbox/kern/src/konfig';
 
 import { aendere, gespeichert, imMehr, material, oeffne, quelle, uhrzeit } from './editorhilfe';
 import { expect, objektMenue, test } from './hilfe';
+import { oeffneSchublade } from './schubladen-hilfe';
 
 const zeichne = async (page: Page, html: string, klasse = 'kl3 sw') => {
 	const ordner = await mkdtemp(path.join(tmpdir(), 'formate-'));
@@ -317,7 +318,7 @@ test.describe('Eigene Vorlagen und Sammlung (051)', () => {
 		await imMehr(page, /einfügen/i);
 		await expect.poll(async () => ((await quelle(page)).match(/<x-uhr/g) ?? []).length).toBe(uhren + 1);
 
-		await page.getByRole('tab', { name: 'Bausteine' }).click();
+		await oeffneSchublade(page, 'bausteine');
 		await page.getByRole('searchbox', { name: 'Baustein suchen' }).fill('Meine Uhr');
 		await page.locator('[data-einfuegen="eigen-meine-uhr"]').click();
 		await expect.poll(async () => ((await quelle(page)).match(/<x-uhr/g) ?? []).length).toBe(uhren + 2);

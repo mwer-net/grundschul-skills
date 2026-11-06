@@ -30,26 +30,26 @@ import { Konfliktleiste, Speicheranzeige, Vorschauleiste } from '../editor/Anzei
 import { Bausteinleiste } from '../editor/Bausteinleiste';
 import { useBearbeitung } from '../editor/bearbeitung';
 import type { MenueArt } from '../editor/befehle';
-import { Bibliothek, Einfuegemarken } from '../editor/Bibliothek';
+import { Einfuegemarken } from '../editor/Bibliothek';
 import { useBild } from '../editor/bild';
 import type { ChatHandlungen } from '../editor/chat-kontext';
 import { useChat, useChatKontext, useChatStand } from '../editor/chat-kontext';
 import { useClaudeApp } from '../editor/ClaudeApp';
 import { bausteinVon, editorHtml, elementZu, nrVon, pfadZu, zielNachSchritt } from '../editor/darstellung';
 import { useEinfuegen, useSlash, useTabelleTab } from '../editor/einfuegen';
-import { Gliederung } from '../editor/Gliederung';
 import { useGliederungStand } from '../editor/gliederung-stand';
 import { halteFokus } from '../editor/halteFokus';
 import { Einstellungen, Inspektor, Umriss } from '../editor/Inspektor';
 import { Leinwand } from '../editor/Leinwand';
-import type { LinksName } from '../editor/LinkeLeiste';
-import { LinkeLeiste } from '../editor/LinkeLeiste';
 import { useLoesung } from '../editor/loesung';
 import { Loesungsuebersicht } from '../editor/Loesungspanel';
 import { ersterAufSeite, erstesKindVon, nachbarVon, seiteAn } from '../editor/navigation';
 import { Palette } from '../editor/Palette';
 import { eintraegeImEditor } from '../editor/palette-eintraege';
 import { Blattwerkzeug } from '../editor/Panel';
+import type { SchubladenId, SchubladenTeile } from '../editor/schubladen';
+import { Schubladen } from '../editor/schubladen/Schubladen';
+import { usePanels } from '../editor/panels';
 import type { Pruefpunkt } from '../editor/pruefung';
 import { ueberlaufendeSeiten, usePruefung } from '../editor/pruefung';
 import { Statusleiste } from '../editor/Statusleiste';
@@ -246,13 +246,7 @@ const Fehlt = ({ fehler }: { fehler: ApiFehler | null }) => (
 	</Zustand>
 );
 
-type RechtsName = 'inspektor' | 'versionen';
-
 const ZITAT_ZEICHEN = 500;
-const SPEICHER_LINKS = 'schoolbox-panel-links';
-const SPEICHER_RECHTS = 'schoolbox-panel-rechts';
-const LINKS: LinksName[] = ['gliederung', 'bausteine'];
-
 /** Im Editor lässt sich das Format ändern (046): Es gilt, was in der Quelle steht. */
 const formatVon = (verlauf: { quelle: string } | null, sonst: Format) =>
 	verlauf ? formatAusHtml(verlauf.quelle) : sonst;
@@ -273,49 +267,6 @@ const schritte = (verlauf: Verlauf | null, frei: boolean, textGeaendert: boolean
 };
 
 const mitSchritt = (titel: string, name: string | undefined) => (name ? `${titel}: ${name}` : titel);
-
-/**
- * Zwei Plätze für Panels, je Gerät gemerkt. „Versionen“ ist eine Aufgabe des Augenblicks: Das Panel geht nach dem
- * Öffnen eines Dokuments nicht von selbst wieder auf.
- */
-const usePanels = (neu: boolean) => {
-	const [links, setLinksName] = useState<LinksName>(() => {
-		if (neu) {
-			return 'bausteine';
-		}
-		// Ein alter Wert `seiten` führt wie jeder andere zur Gliederung.
-		return LINKS.find((l) => l === localStorage.getItem(SPEICHER_LINKS)) ?? 'gliederung';
-	});
-	const [linksOffen, setLinksZustand] = useState(() => neu || localStorage.getItem(SPEICHER_LINKS) !== 'zu');
-	const [rechts, setRechts] = useState<RechtsName>('inspektor');
-	const [rechtsOffen, setRechtsZustand] = useState(() => localStorage.getItem(SPEICHER_RECHTS) !== 'zu');
-	return {
-		links,
-		linksOffen,
-		rechts,
-		rechtsOffen,
-		setRechts,
-		setLinks: (name: LinksName) => {
-			setLinksName(name);
-			setLinksZustand(true);
-			localStorage.setItem(SPEICHER_LINKS, name);
-		},
-		setLinksOffen: (offen: boolean) => {
-			setLinksZustand(offen);
-			localStorage.setItem(SPEICHER_LINKS, offen ? links : 'zu');
-		},
-		setRechtsOffen: (offen: boolean) => {
-			setRechtsZustand(offen);
-			localStorage.setItem(SPEICHER_RECHTS, offen ? 'offen' : 'zu');
-		},
-		/** „Versionen“ im Kopf: noch einmal drücken führt zurück zum Inspektor. */
-		wechsleRechts: (name: RechtsName) => {
-			const zurueck = rechts === name && rechtsOffen;
-			setRechts(zurueck ? 'inspektor' : name);
-			setRechtsZustand(true);
-		},
-	};
-};
 
 /** Bibliothek, Slash-Menü, Tab in Tabellen und „auf neue Seite“: alles, was auf dem gerade gezeigten Dokument arbeitet. */
 const useEinfuegeWerkzeuge = ({
@@ -368,9 +319,6 @@ const versionenWerte = (
 	daten: { versionen: VersionEintrag[] } | null | undefined,
 	vorschau: { version: { id: string } } | null,
 ) => ({ versionen: daten?.versionen ?? null, gewaehlt: vorschau?.version.id ?? null });
-
-const linkerReiter = (wunsch: LinksName, frei: boolean): LinksName =>
-	wunsch === 'bausteine' && !frei ? 'gliederung' : wunsch;
 
 const anClaudeWenn = (verfuegbar: boolean, fuelle: (text: string) => void) => (verfuegbar ? fuelle : undefined);
 
@@ -621,6 +569,8 @@ const Bearbeitung = ({ dokument, mappe: mappenDaten }: { mappe: Mappe; dokument:
 			namenszeile: zerlegung ? hatNamenszeile(zerlegung) : false,
 			festeSeiten: format === 'minibuch',
 			hatBild: bild.werte !== null,
+			ebenenAngeheftet: panels.angeheftet,
+			linksOffen: panels.linksOffen ? panels.links : null,
 			davor: (() => {
 				const element = docJetzt && auswahl !== null ? elementZu(docJetzt, auswahl) : null;
 				const vorher = element?.previousElementSibling;
@@ -700,7 +650,8 @@ const Bearbeitung = ({ dokument, mappe: mappenDaten }: { mappe: Mappe; dokument:
 				},
 				zoom100: () => setZoom(1),
 				einpassen: () => setZoom('einpassen'),
-				links: panels.setLinks,
+				links: panels.schalteLinks,
+				ebenenAnheften: panels.schalteAnheften,
 				inspektor: () => {
 					if (panels.rechts === 'inspektor') {
 						panels.setRechtsOffen(!panels.rechtsOffen);
@@ -938,35 +889,27 @@ const Bearbeitung = ({ dokument, mappe: mappenDaten }: { mappe: Mappe; dokument:
 	};
 	const { kannVor, kannZurueck, vorName, zurueckName } = schritte(b.verlauf, frei, text.zustand.geaendert);
 
-	const links = linkerReiter(panels.links, frei);
-	const linksInhalt = {
-		gliederung: (
-			<Gliederung
-				doc={docJetzt}
-				zerlegung={zerlegung}
-				auswahl={auswahl}
-				struktur={struktur}
-				stand={gliederungStand}
-				zeigeAn={(nr) => {
-					struktur.zeigeAn(nr);
-					panels.setRechts('inspektor');
-					panels.setRechtsOffen(true);
-				}}
-				festeSeiten={format === 'minibuch'}
-				kontextmenue={menueAn}
-			/>
-		),
-		bausteine: (
-			<div className="min-h-0 flex-1 overflow-y-auto p-2">
-				<Bibliothek
-					einfuegen={einfuegen}
-					mappe={mappenDaten}
-					art={meta.art}
-					doc={docJetzt}
-					setAuswahl={setAuswahl}
-				/>
-			</div>
-		),
+	const schubladenTeile: SchubladenTeile = {
+		doc: docJetzt,
+		zerlegung,
+		auswahl,
+		setAuswahl,
+		struktur,
+		einfuegen,
+		bild,
+		mappe: mappenDaten,
+		art: meta.art,
+		folien: format === 'folie',
+		gliederungStand,
+		festeSeiten: format === 'minibuch',
+		zeigeAn: (nr) => {
+			struktur.zeigeAn(nr);
+			panels.setRechts('inspektor');
+			panels.setRechtsOffen(true);
+		},
+		kontextmenue: menueAn,
+		angeheftet: panels.angeheftet,
+		schalteAnheften: panels.schalteAnheften,
 	};
 
 	const leinwandMenue = (treffer: { nr: number; art: string } | null, punkt: { x: number; y: number }) =>
@@ -1065,6 +1008,7 @@ const Bearbeitung = ({ dokument, mappe: mappenDaten }: { mappe: Mappe; dokument:
 						},
 						zeigeEinstellung,
 						fuehreAus: befehle.fuehreAus,
+						schubladen: { teile: schubladenTeile, fuehreAus: befehle.fuehreAus },
 					})}
 					schliessen={(ausgefuehrt) => {
 						text.halte(false);
@@ -1085,11 +1029,12 @@ const Bearbeitung = ({ dokument, mappe: mappenDaten }: { mappe: Mappe; dokument:
 
 			<div className="flex min-h-0 flex-1 max-lg:flex-col">
 				<div className="flex min-h-0 min-w-0 flex-1">
-					{panels.linksOffen && (
-						<LinkeLeiste panel={links} setPanel={panels.setLinks} bausteineAus={!frei}>
-							{linksInhalt[links]}
-						</LinkeLeiste>
-					)}
+					<Schubladen
+						panels={panels}
+						lage={{ frei }}
+						teile={schubladenTeile}
+						waehle={(id: SchubladenId) => befehle.fuehreAus(`ansicht.links-${id}`)}
+					/>
 					<main
 						ref={ansicht}
 						className="min-h-0 min-w-0 flex-1 overflow-y-auto bg-leinwand"

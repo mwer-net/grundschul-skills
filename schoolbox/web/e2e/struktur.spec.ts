@@ -237,7 +237,7 @@ test.describe('Editor: Struktur', () => {
 		await expect(hinweis(page)).toContainText('Sternchenaufgabe steht jetzt nicht mehr am Ende');
 		await expect(zweite.locator('.aufgabe')).toContainText('Zeichne die Zeiger ein.');
 
-		// In der Gliederung Seite 2 vor Seite 1 ziehen: Die verschobene Aufgabe ist danach Aufgabe 1.
+		// In den Ebenen Seite 2 vor Seite 1 ziehen: Die verschobene Aufgabe ist danach Aufgabe 1.
 		const griffe = leiste.getByRole('button', { name: 'Seite ziehen' });
 		await ziehe(page, hasTouch, griffe.nth(1), griffe.nth(0), 'oben');
 		await gespeichert(page, datei);

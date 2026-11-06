@@ -10,6 +10,9 @@ import { useLaden } from '../lib/laden';
 import { useTitel } from '../lib/titel';
 import { dokumentSeite, inhaltAdresse } from '../lib/zugang';
 import type { MappenEintrag } from '../typen';
+import { GESTALTEN } from './hilfe-gestalten';
+import type { Abschnitt, Bild } from './hilfe-teile';
+import { Punkt } from './hilfe-teile';
 
 /** Legt `schoolbox kurzanleitung` an; `scripts/ausrollen.sh` hält sie auf dem Stand der Vorlage. */
 const KURZANLEITUNG = { mappe: 'schoolbox-hilfe', token: null };
@@ -17,12 +20,6 @@ const KURZANLEITUNG_DOK = 'kurzanleitung';
 
 /** Bildschirmfotos aus `pnpm --filter @schoolbox/web run hilfe:bilder`, nur mit Testdaten. */
 const BILDER = '/hilfe-bilder';
-
-interface Bild {
-	datei: string;
-	alt: string;
-	geraet: 'Mac' | 'iPad';
-}
 
 /**
  * Maße der Fotos (`playwright.hilfe.config.ts`: Desktop Safari, iPad quer, `scale: 'css'`). Ohne sie hat ein Bild bis
@@ -43,13 +40,6 @@ const Foto = ({ alt, datei, geraet }: Bild) => (
 		</a>
 		<figcaption className="text-sm text-leise">{`Am ${geraet}`}</figcaption>
 	</figure>
-);
-
-const Punkt = ({ children, titel }: { titel: string; children: ReactNode }) => (
-	<li>
-		<strong>{`${titel}: `}</strong>
-		{children}
-	</li>
 );
 
 const Beispiel = ({ children }: { children: ReactNode }) => (
@@ -82,13 +72,6 @@ const Tastenliste = () => (
 		})}
 	</ul>
 );
-
-interface Abschnitt {
-	id: string;
-	titel: string;
-	inhalt: ReactNode;
-	bilder: Bild[];
-}
 
 const ABSCHNITTE: Abschnitt[] = [
 	{
@@ -139,7 +122,7 @@ const ABSCHNITTE: Abschnitt[] = [
 						einen Teil des Blatts antippen, dann das Plus an seinem Rand oder „+ Baustein“ in der Leiste.
 					</Punkt>
 					<Punkt titel="Bausteine">
-						links im Reiter „Bausteine“. Die Suche findet alles. Oben wählst du „Für dieses Blatt“ oder
+						links in der Schublade „Bausteine“ (⌥2). Die Suche findet alles. Oben wählst du „Für dieses Blatt“ oder
 						„Alle“. Karte antippen fügt ein, am Griff links ziehst du sie ins Blatt.
 					</Punkt>
 					<Punkt titel="Schrägstrich">in einer leeren Zeile „/“ tippen und weiterschreiben.</Punkt>
@@ -272,8 +255,8 @@ const ABSCHNITTE: Abschnitt[] = [
 						Aufgaben und Kärtchen im Blatt ziehen (am iPad kurz halten, dann ziehen) oder in der Leiste am
 						Baustein „Nach oben“ und „Nach unten“ tippen. Dort lassen sie sich auch verdoppeln und löschen.
 					</Punkt>
-					<Punkt titel="Gliederung">
-						links zeigt alle Seiten als Baum: darin die Aufgaben und alles, was du im Blatt anklicken
+					<Punkt titel="Ebenen">
+						die Schublade links (⌥1, früher „Gliederung“) zeigt alle Seiten als Baum: darin die Aufgaben und alles, was du im Blatt anklicken
 						kannst, etwa eine Uhr in einem Eintrag. Was du im Blatt wählst, ist dort markiert, Klick auf
 						eine Zeile springt zur Stelle und zeigt rechts ihre Einstellungen. Am Griff ziehst du, was sich
 						umstellen lässt: Aufgaben innerhalb der Seite oder auf eine andere, Einträge innerhalb ihrer
@@ -307,6 +290,10 @@ const ABSCHNITTE: Abschnitt[] = [
 					</Punkt>
 					<Punkt titel="Bilder">
 						Bild antippen, dann austauschen, eigenes hochladen oder an den Ecken größer und kleiner ziehen.
+						Links in der Schublade „Bilder“ (⌥6) stehen deine Fotos, die Bilder dieses Ordners, deiner
+						anderen Ordner und der Sammlung, mit Suche und „Foto hochladen“. Ein Klick tauscht das gewählte
+						Bild aus oder füllt den gewählten Platzhalter; ist keins gewählt, kommt das Bild als neuer
+						Baustein hinter die Auswahl.
 					</Punkt>
 					<Punkt titel="Lösung">oben auf „Lösung“ wechseln und die Lösungen eintragen.</Punkt>
 					<Punkt titel="Rückgängig">
@@ -322,6 +309,7 @@ const ABSCHNITTE: Abschnitt[] = [
 			{ datei: 'editor-ipad.jpg', alt: 'Der Editor auf dem iPad', geraet: 'iPad' },
 		],
 	},
+	GESTALTEN,
 	{
 		id: 'schneller',
 		titel: 'Schneller arbeiten',

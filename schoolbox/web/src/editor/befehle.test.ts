@@ -3,6 +3,8 @@ import { describe, it } from 'node:test';
 
 import type { Kontext, Kuerzel, Modus } from './befehle';
 import { BEFEHLE, befehlZuTaste, kuerzelText, MODUS_VORGABE, passtTaste } from './befehle';
+import { JEDE_LAGE, SCHUBLADEN } from './schubladen';
+import { alsSchublade, REIHE } from './schubladen/reihe';
 
 /** Safari und deutsche Tastatur behalten diese für sich (069). */
 const SPERRLISTE = [
@@ -124,5 +126,51 @@ describe('Was aus dem Inspektor gewandert ist', () => {
 				id,
 			);
 		}
+	});
+});
+
+describe('Schubladen (093)', () => {
+	it('jede Schublade hat genau einen Befehl `ansicht.links-<id>` mit ihrer Taste, ⌥1 bis ⌥7 in Reihenfolge', () => {
+		assert.deepEqual(
+			SCHUBLADEN.map((s) => s.id),
+			REIHE.map((s) => s.id),
+		);
+		SCHUBLADEN.forEach((s, i) => {
+			const befehle = BEFEHLE.filter((b) => b.id === `ansicht.links-${s.id}`);
+			assert.equal(befehle.length, 1, s.id);
+			assert.deepEqual(befehle[0]?.kuerzel, [{ code: s.taste, wahl: true }], s.id);
+			assert.equal(s.taste, `Digit${i + 1}`, s.id);
+		});
+		assert.equal(BEFEHLE.filter((b) => b.id.startsWith('ansicht.links-')).length, SCHUBLADEN.length);
+	});
+
+	it('nicht bereite Schubladen: Taste reserviert, aber ohne Wirkung und nicht in der Übersicht', () => {
+		const k = { frei: true } as Kontext;
+		for (const s of SCHUBLADEN) {
+			const b = BEFEHLE.find((x) => x.id === `ansicht.links-${s.id}`);
+			assert.equal(b?.verfuegbar(k), s.bereit(JEDE_LAGE), s.id);
+			assert.equal(b?.inUebersicht?.(), s.bereit(JEDE_LAGE), s.id);
+		}
+		assert.deepEqual(
+			SCHUBLADEN.filter((s) => s.bereit(JEDE_LAGE)).map((s) => s.id),
+			['ebenen', 'bausteine', 'bilder'],
+		);
+		const drei = { code: 'Digit3', key: '£', metaKey: false, ctrlKey: false, altKey: true, shiftKey: false };
+		assert.equal(befehlZuTaste(drei, 'ohne', k)?.id, 'ansicht.links-formen');
+	});
+
+	it('„Bausteine“ nur, wo frei bearbeitet werden darf', () => {
+		const b = BEFEHLE.find((x) => x.id === 'ansicht.links-bausteine');
+		assert.equal(b?.verfuegbar({ frei: false } as Kontext), false);
+	});
+
+	it('Ebenen: Suche mit „gliederung“ trifft weiter; alte Speicherwerte führen zu den Ebenen', () => {
+		assert.ok(BEFEHLE.find((b) => b.id === 'ansicht.links-ebenen')?.suchwoerter?.includes('gliederung'));
+		assert.equal(BEFEHLE.find((b) => b.id === 'ansicht.links-ebenen')?.titel, 'Ebenen');
+		assert.equal(alsSchublade('gliederung'), 'ebenen');
+		assert.equal(alsSchublade('seiten'), 'ebenen');
+		assert.equal(alsSchublade('bilder'), 'bilder');
+		assert.equal(alsSchublade('zu'), null);
+		assert.equal(alsSchublade(null), null);
 	});
 });
