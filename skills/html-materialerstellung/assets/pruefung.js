@@ -109,8 +109,11 @@
     if (S.querySelector("[data-masstab]") && !M.some((m) => m.code === "masstab"))
       melde("HINWEIS", nr, "masstab", "In Originalgröße drucken (100 %, nicht „An Seite anpassen“) → --druckhinweis beim Anlegen setzen", [ziel(S.querySelector("[data-masstab]"))]);
 
+    // Gestaltung (091): die zwei Ebenen und alles, was frei liegt oder an einem Baustein hängt. Eigene Codes: 096.
+    const GESTALTUNG = ".ebene,[data-lage]";
+
     // 1. Seitenrand und Seitenende
-    const raus = alle.filter((e) => !e.closest(".karten,.loesung-marke,[data-rand-ok]")).filter((e) => {
+    const raus = alle.filter((e) => !e.closest(`.karten,.loesung-marke,[data-rand-ok],${GESTALTUNG}`)).filter((e) => {
       const r = e.getBoundingClientRect();
       return r.left < innen.l || r.top < innen.t || r.right > innen.r || r.bottom > innen.b;
     });
@@ -123,8 +126,8 @@
       melde("FEHLER", nr, ganz ? "ueberlauf" : "rand", `„${kurz(e)}“ ${wo} → ${rat}`, [ziel(e)]);
     });
 
-    // 2. Abgeschnittener oder zu breiter Text
-    alle.filter((e) => e.scrollWidth > e.clientWidth + 2 && e.clientWidth > 0 && getComputedStyle(e).overflowX !== "visible")
+    // 2. Abgeschnittener oder zu breiter Text; eine Ebene schneidet mit Absicht am Blattrand ab
+    alle.filter((e) => !e.classList.contains("ebene") && e.scrollWidth > e.clientWidth + 2 && e.clientWidth > 0 && getComputedStyle(e).overflowX !== "visible")
       .forEach((e) => melde("FEHLER", nr, "abgeschnitten", `„${kurz(e)}“ ist abgeschnitten`, [ziel(e)]));
 
     // 3. Überlappungen zwischen Inhalten
@@ -138,7 +141,7 @@
     for (let i = 0; i < teile.length; i++) for (let j = i + 1; j < teile.length; j++) {
       const a = teile[i], b = teile[j];
       if (a.contains(b) || b.contains(a)) continue;
-      if (a.closest("[data-ueberlagert-ok]") || b.closest("[data-ueberlagert-ok]")) continue;
+      if (a.closest(`[data-ueberlagert-ok],${GESTALTUNG}`) || b.closest(`[data-ueberlagert-ok],${GESTALTUNG}`)) continue;
       const s = schneidet(a, b);
       if (s) paare.push([a, b, s]);
     }
@@ -178,7 +181,7 @@
     alle.filter((e) => e.tagName === "DIV" || e.tagName === "SECTION").forEach((e) => {
       const c = getComputedStyle(e), r = e.getBoundingClientRect();
       const [R, G, Bl, a = 1] = rgb(c.backgroundColor);
-      if (a > 0.05 && (R + G + Bl) / 3 < 245 && r.width * r.height > 4000 && !e.closest(".karten,[data-flaeche-ok]"))
+      if (a > 0.05 && (R + G + Bl) / 3 < 245 && r.width * r.height > 4000 && !e.closest(`.karten,[data-flaeche-ok],${GESTALTUNG}`))
         melde("WARNUNG", nr, "flaeche", `Fläche hinter „${kurz(e)}“ (${c.backgroundColor}) → Aufgaben ohne Kasten und Fläche`, [ziel(e)]);
     });
 
@@ -211,7 +214,7 @@
 
     // 8. Ungenutzter Platz (Folien dürfen leer sein: eine Aussage je Folie)
     const fuss = S.querySelector(".fuss");
-    const inhalt = [...S.children].filter((e) => e !== fuss && sichtbar(e));
+    const inhalt = [...S.children].filter((e) => e !== fuss && !e.classList.contains("ebene") && sichtbar(e));
     const unten = Math.max(P.top + rand, ...inhalt.map((e) => e.getBoundingClientRect().bottom));
     const rest = Math.round((fuss ? fuss.getBoundingClientRect().top - 16 : innen.b) - unten);
     if (rest > 150 && !S.querySelector(".karten") && !folie && !B.classList.contains("minibuch"))
