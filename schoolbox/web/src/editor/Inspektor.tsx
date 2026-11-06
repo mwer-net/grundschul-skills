@@ -14,6 +14,7 @@ import type { AbbildungSteuerung } from './abbildung';
 import { hatWeitere } from './abbildung-felder';
 import { AbbildungFelder, AbbildungHinweise } from './Abbildungspanel';
 import type { Ablage } from './ablage';
+import { AusgeblendetHinweis } from './AusgeblendetHinweis';
 import type { BildSteuerung } from './bild';
 import { BildDarstellung, Bildwerkzeug } from './Bildpanel';
 import { useChat } from './chat-kontext';
@@ -269,7 +270,8 @@ const UnsichtbarHinweis = ({
 	const [element, setElement] = useState<Element | null>(null);
 	useEffect(() => {
 		const el = doc ? (elementZu(doc, nr) ?? null) : null;
-		setElement(el && el.getClientRects().length === 0 ? el : null);
+		// Ausgeblendetes (`data-aus`) meldet `AusgeblendetHinweis` (096).
+		setElement(el && el.getClientRects().length === 0 && !el.closest('[data-aus]') ? el : null);
 	}, [doc, nr, quelle, loesung]);
 	if (!element) {
 		return null;
@@ -325,6 +327,7 @@ export const Einstellungen = ({
 		<div {...(abb.aktiv ? { 'data-abbildungswerkzeug': '' } : {})}>
 			<div className="flex flex-col gap-2 px-3 pb-2 empty:hidden" data-abschnitt="hinweise">
 				{FREIES_ELEMENT.has(baustein.art) && <FreiesElementHinweis />}
+				<AusgeblendetHinweis doc={doc} nr={nr} quelle={quelle} struktur={struktur} />
 				<UnsichtbarHinweis doc={doc} loesung={loesung} nr={nr} quelle={quelle} schalte={schalteAnsicht} />
 				<Pruefhinweise stand={pruefung} nr={nr} />
 				<AbbildungHinweise abb={abb} />

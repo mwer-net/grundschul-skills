@@ -125,6 +125,18 @@ an Teilen in einer Aufgabe. Am Anker liegt Gestaltung immer vor dem Inhalt.
 | Bild, Figur | grau bzw. Strichfassung |
 | Hintergrund eines Stapels | weg, Kontur bleibt |
 
+**Prüfung.** `pruefung.js` meldet Gestaltung nicht als `rand`, `ueberlauf`, `ueberlappung` oder `flaeche`, sondern so:
+
+| Code | Stufe | Wann |
+|---|---|---|
+| `druckrand` | WARNUNG | Bild, Figur, Form mit Text, Schmuckschrift oder `[data-frei]` liegt sichtbar in den äußeren 19 px (im Mini-Book nur an Kanten, die am Blattrand liegen, nicht an der Falz) |
+| `aussen` | FEHLER | mehr als die Hälfte eines Gestaltungselements liegt außerhalb der Seite |
+| `verdeckt` | HINWEIS | ein Element in `.ebene.vorne` oder am Anker überdeckt Inhalt oder die `.loesung-marke` um mehr als 400 px² |
+| `ausgeblendet` | HINWEIS | einmal je Material: Elemente mit `data-aus`, die nicht gedruckt werden |
+
+Gemessen wird das Rechteck nach dem Drehen. `data-rand-ok` schaltet `druckrand` ab, `data-ueberlagert-ok` schaltet
+`verdeckt` ab. Was hinten liegt, verdeckt nie etwas.
+
 ## 7. Regeln für Claude
 
 - Gestaltung nie in den Stapel schreiben, sondern in eine Ebene (`.ebene.hinten` bzw. `.ebene.vorne` am Ende der Seite)

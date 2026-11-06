@@ -1,3 +1,4 @@
+import { holeInSeite } from '@schoolbox/kern/src/gestaltung-pruefung';
 import { fehlendeLoesungen, hatLoesung } from '@schoolbox/kern/src/loesungen';
 import type { Meldung, MeldungCode, MeldungZiel } from '@schoolbox/kern/src/meldungen';
 import { erklaere, zitat } from '@schoolbox/kern/src/meldungen';
@@ -45,6 +46,33 @@ export const ueberlaufendeSeiten = (stand: Pruefstand | null) =>
 			(stand?.punkte ?? []).filter((p) => p.code === 'ueberlauf' || p.code === 'rand').map((p) => p.seite),
 		),
 	].sort((a, b) => a - b);
+
+/**
+ * „In die Seite holen“ an der Meldung `aussen` (096): Das Element wird hier im Dokument gemessen, die neue Lage rechnet
+ * der Kern. Nur Attribute ändern sich, also ein Schritt, und die Auswahl bleibt.
+ */
+export const holeInSeiteAus = (
+	doc: Document,
+	aendereAttribute: (beschreibung: string, rechne: (q: string) => string) => unknown,
+	p: Pruefpunkt,
+) => {
+	const nr = p.bausteine[0];
+	const element = nr === undefined ? null : elementZu(doc, nr);
+	const seite = element?.closest('.seite');
+	if (nr === undefined || !element || !seite) {
+		return;
+	}
+	const s = seite.getBoundingClientRect();
+	const r = element.getBoundingClientRect();
+	const stil = getComputedStyle(element);
+	const mass = {
+		seite: { breite: s.width, hoehe: s.height },
+		rechteck: { links: r.left - s.left, oben: r.top - s.top, breite: r.width, hoehe: r.height },
+		// Vor dem Drehen; `offsetWidth` gibt es an SVG nicht. Gestaltung hat `box-sizing: border-box`.
+		groesse: { breite: parseFloat(stil.width) || r.width, hoehe: parseFloat(stil.height) || r.height },
+	};
+	aendereAttribute('In die Seite geholt', (q) => holeInSeite(q, nr, mass));
+};
 
 type PruefeBlatt = (optionen: { warten: boolean }) => Promise<{ meldungen: Meldung[] }>;
 
