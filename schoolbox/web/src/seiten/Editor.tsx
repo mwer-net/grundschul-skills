@@ -37,6 +37,7 @@ import { useChat, useChatKontext, useChatStand } from '../editor/chat-kontext';
 import { useClaudeApp } from '../editor/ClaudeApp';
 import { bausteinVon, editorHtml, elementZu, nrVon, pfadZu, zielNachSchritt } from '../editor/darstellung';
 import { useEinfuegen, useSlash, useTabelleTab } from '../editor/einfuegen';
+import { Werkzeugflaeche } from '../editor/gestaltung/werkzeuge/Werkzeugflaeche';
 import { useGliederungStand } from '../editor/gliederung-stand';
 import { halteFokus } from '../editor/halteFokus';
 import { Einstellungen, Inspektor, Umriss } from '../editor/Inspektor';
@@ -1103,6 +1104,7 @@ const Bearbeitung = ({ dokument, mappe: mappenDaten }: { mappe: Mappe; dokument:
 														loes={loes}
 														waehle={setAuswahl}
 													/>
+													<Werkzeugflaeche e={e} struktur={struktur} folien={format === 'folie'} />
 												</>
 											)
 										: undefined

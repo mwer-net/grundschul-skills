@@ -24,7 +24,7 @@ export const useBefehle = (kontext: Kontext, melde: (text: string) => void) => {
 			}
 			e.preventDefault();
 			if (befehl.verfuegbar(jetzt.current)) {
-				befehl.aus(jetzt.current);
+				befehl.aus(jetzt.current, e);
 			} else {
 				const grund = befehl.warumNicht?.(jetzt.current);
 				if (grund) {
