@@ -49,6 +49,15 @@ export const GESTALTEN: Abschnitt = {
 			{/* << 096 */}
 
 			{/* >> 097 */}
+			<p data-hilfe-gestaltung-bewegen>
+				Was frei auf dem Blatt liegt, etwa eine Figur, eine Form oder Schmuckschrift, wählst du mit einem Klick. Dann
+				ziehst du es an seinen Platz, änderst an den Ecken die Größe und drehst es am runden Griff über dem Rahmen. Mit ⇧
+				bleibt es beim Ziehen auf einer Linie und dreht in 15°-Schritten; mit ⌥ wächst es beim Größe ändern von der Mitte
+				aus, und beim Loslassen bleibt das Original liegen und eine Kopie kommt dazu. Ziehst du auf die nächste Seite,
+				landet es dort. Esc während des Ziehens bricht ab. Solange du ziehst, zeigt eine gestrichelte Linie den Rand, den
+				der Drucker nicht erreicht. Am iPad hältst du den Finger kurz, bevor du ziehst. Ein Doppelklick auf Schmuckschrift
+				öffnet den Text. Was hinten liegt, wählst du mit ⌥-Klick. Gesperrtes lässt sich im Blatt nicht greifen.
+			</p>
 			{/* << 097 */}
 
 			{/* >> 099 */}

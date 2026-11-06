@@ -24,6 +24,8 @@ import { istMac, kuerzelAnzeige } from '../bausteine/kuerzel';
 import type { MenueEintrag } from '../bausteine/Menue';
 import type { SymbolName } from '../bausteine/Symbol';
 import type { PfadTeil } from './darstellung';
+import { GESTALTUNG_BEFEHLE } from './gestaltung/befehle';
+import type { GestaltungKontext } from './gestaltung/kontext';
 import { JEDE_LAGE, schubladeVon } from './schubladen';
 import type { SchubladenId } from './schubladen/reihe';
 import { befehlZuSchublade, REIHE } from './schubladen/reihe';
@@ -124,6 +126,8 @@ export interface Kontext {
 	textMarkiert: () => boolean;
 	/** Der Fokus steht in einem Feld, das ⌘Z selbst braucht: Chat, Suche oder ein geändertes Textfeld. */
 	feldBehaeltUndo: () => boolean;
+	/** Das gewählte Gestaltungselement, sonst `null` (097). */
+	gestaltung: GestaltungKontext | null;
 	tu: Aktionen;
 }
 
@@ -946,6 +950,7 @@ export const BEFEHLE: Befehl[] = [
 		verfuegbar: () => true,
 		aus: (k) => k.tu.hilfe(),
 	},
+	...GESTALTUNG_BEFEHLE,
 ];
 
 export const titelVon = (b: Befehl, k: Kontext) => (typeof b.titel === 'function' ? b.titel(k) : b.titel);

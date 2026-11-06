@@ -557,3 +557,58 @@ export const raeumeEbenenAuf = (quelle: string) => {
 	const leer = z.knoten.filter((k) => istEbene(k) && istLeer(z, k));
 	return leer.length ? wendeAn(quelle, leer.flatMap((k) => entferne(z, k))) : quelle;
 };
+
+// ── Gesten (097) ────────────────────────────────────────────────────────────
+
+/**
+ * Setzt eigene Eigenschaften im `style`, die keine Lage sind, z. B. `--gr` der Schmuckschrift beim Skalieren an der
+ * Ecke. Lage und alles andere bleiben, wo sie sind; neue Eigenschaften kommen ans Ende. `null` entfernt.
+ */
+export const setzeStilWerte = (quelle: string, nr: number, werte: Readonly<Record<string, string | null>>) => {
+	const z = zerlege(quelle);
+	const k = knotenAn(z, nr);
+	const alt = attribut(k, 'style')?.wert ?? null;
+	const teile = stilTeile(alt);
+	for (const [name, wert] of Object.entries(werte)) {
+		const da = teile.findIndex((t) => eigenschaft(t) === name);
+		if (wert === null) {
+			if (da !== -1) {
+				teile.splice(da, 1);
+			}
+		} else if (da === -1) {
+			teile.push(`${name}:${wert}`);
+		} else {
+			teile[da] = `${name}:${wert}`;
+		}
+	}
+	const neu = teile.join(';') || null;
+	return neu === alt ? quelle : wendeAn(quelle, setzeWert(z, k, 'style', neu));
+};
+
+/**
+ * ⌥ beim Loslassen: eine Kopie an der neuen Lage, das Original bleibt. Mit `seite` (Nummer der `.seite`) liegt die
+ * Kopie auf jener Seite, in derselben Ebene ganz vorne. Ein Schritt.
+ */
+export const kopiereGestaltungNach = (
+	quelle: string,
+	nr: number,
+	lage: LageTeil,
+	seite?: number,
+): StrukturErgebnis => {
+	const z = zerlege(quelle);
+	const index = seite === undefined ? -1 : seitenIn(z).indexOf(knotenAn(z, seite));
+	if (seite !== undefined && index === -1) {
+		throw new Error(`Das Element ${seite} ist keine Seite.`);
+	}
+	const kopie = dupliziereGestaltung(quelle, nr);
+	if (kopie.nr === null) {
+		return kopie;
+	}
+	const neu = zerlege(kopie.quelle);
+	const ziel = index === -1 ? undefined : seitenIn(neu)[index];
+	const eigene = seiteUm(knotenAn(neu, kopie.nr));
+	if (!ziel || ziel === eigene) {
+		return { quelle: setzeLage(kopie.quelle, kopie.nr, lage), nr: kopie.nr };
+	}
+	return verschiebeAufSeite(kopie.quelle, kopie.nr, ziel.nr, lage);
+};
