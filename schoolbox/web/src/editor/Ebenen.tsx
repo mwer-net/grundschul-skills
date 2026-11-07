@@ -7,6 +7,7 @@ import {
 	verschiebeAufSeite,
 	wechsleEbene,
 } from '@schoolbox/kern/src/gestaltung';
+import { ankerZiele, haengeAn, loeseAnker } from '@schoolbox/kern/src/anker';
 import type { EbenenName } from '@schoolbox/kern/src/gestaltung-arten';
 import type { Zerlegung } from '@schoolbox/kern/src/quelltext';
 import { klassenVon, zerlege } from '@schoolbox/kern/src/quelltext';
@@ -27,6 +28,7 @@ import { SymbolKnopf } from '../bausteine/SymbolKnopf';
 import { Tooltip } from '../bausteine/Tooltip';
 import { folgeZeiger, rolleAmRand, schluckeKlick } from '../bausteine/zeigerzug';
 import { bausteinVon, elementZu, nrVon } from './darstellung';
+import { lageInSeite, messeAnhaengen } from './gestaltung/anker-lage';
 import { EBENEN_ZEICHEN } from './gestaltung/ebenen-zeichen';
 import type { GliederungKnoten, GliederungSeite } from './gliederung-modell';
 import { alleSchluessel, gliederungVon, ketteZu, ohneWirkung, stapelVon, zeileZurAuswahl } from './gliederung-modell';
@@ -162,9 +164,12 @@ interface Lauf {
 	geprueft: Map<string, boolean>;
 	feder: number | null;
 	federSchluessel: string | null;
-	/** Nur Gestaltung: wo sie liegt und wohin sie käme (101). */
-	gestaltung: (EbenenZiel & { name: string }) | null;
+	/** Nur Gestaltung: wo sie liegt und wohin sie käme (101). `amAnker`: Kindzeile mit ⚓ (106). */
+	gestaltung: (EbenenZiel & { name: string; amAnker: boolean }) | null;
 	ziel: EbenenZiel | null;
+	/** 106: Der Baustein, an den das Gezogene gehängt würde, und welche das auf seiner Seite sein dürften. */
+	anker: number | null;
+	ankerZiele: ReadonlySet<number>;
 	kopie: boolean;
 }
 
@@ -417,15 +422,16 @@ export const Ebenen = ({
 	/**
 	 * Wohin Gestaltung unter dem Zeiger käme (101, 1-ebenen.md „Ziehen in den Ebenen“): zwischen zwei Zeilen einer Ebene,
 	 * über dem Hauptstapel ganz hinten in „vorne“, darunter ganz vorne in „hinten“, über Rahmen und Fläche ganz hinten in
-	 * „hinten“, auf eine andere Seite ganz vorne in derselben Ebene. Bausteine sind (noch) kein Ziel: Anker baut 106.
+	 * „hinten“, auf eine andere Seite ganz vorne in derselben Ebene. Auf der Zeile eines ankerbaren Bausteins derselben
+	 * Seite hängt es an (106, `anker`); eine Kindzeile mit ⚓ kommt anderswohin gelöst und vorne.
 	 * `null` heißt ungültig, `ziel: null` ohne Wirkung.
 	 */
 	const gestaltungZiel = (
 		l: Lauf,
-		von: EbenenZiel,
+		von: EbenenZiel & { amAnker: boolean },
 		zeile: HTMLElement,
 		y: number,
-	): { ziel: EbenenZiel | null; linie: number | null; hinein: number | null } | null => {
+	): { ziel: EbenenZiel | null; linie: number | null; hinein: number | null; anker?: number } | null => {
 		const nichts = { ziel: null, linie: null, hinein: null };
 		const { modell: m } = neu.current;
 		const zahl = (seite: number, ebene: EbenenName) =>
@@ -440,9 +446,15 @@ export const Ebenen = ({
 		if (Number(zeile.dataset.zeileNr) === l.nr) {
 			return nichts;
 		}
+		if (art === 'baustein') {
+			// 106: Auf einen ankerbaren Baustein derselben Seite; auf dem eigenen oder auf anderen Seiten kein Ziel.
+			const nr = Number(zeile.dataset.zeileNr);
+			const eigener = von.amAnker && neu.current.zerlegung?.knoten[l.nr]?.eltern?.nr === nr;
+			return l.ankerZiele.has(nr) && !eigener && !l.kopie ? { ...nichts, hinein: nr, anker: nr } : nichts;
+		}
 		if (zeile.dataset.seiteZeile !== undefined) {
 			const nr = Number(zeile.dataset.zeileNr);
-			if (nr === von.seite && !l.kopie) {
+			if (nr === von.seite && !l.kopie && !von.amAnker) {
 				return nichts;
 			}
 			ziel = { seite: nr, ebene: von.ebene, platz: 0 };
@@ -464,7 +476,7 @@ export const Ebenen = ({
 			return nichts;
 		}
 		// Ohne sich selbst gezählt: Wer weiter hinten in derselben Ebene landet, rückt um einen Platz auf.
-		const gleich = !l.kopie && ziel.seite === von.seite && ziel.ebene === von.ebene;
+		const gleich = !l.kopie && !von.amAnker && ziel.seite === von.seite && ziel.ebene === von.ebene;
 		if (gleich && ziel.platz > von.platz) {
 			ziel = { ...ziel, platz: ziel.platz - 1 };
 		}
@@ -517,6 +529,7 @@ export const Ebenen = ({
 			const f = flaeche.getBoundingClientRect();
 			const t = gestaltungZiel(l, l.gestaltung, zeile, y);
 			l.ziel = t?.ziel ?? null;
+			l.anker = t?.anker ?? null;
 			setze(
 				null,
 				t?.linie === undefined || t.linie === null
@@ -587,16 +600,35 @@ export const Ebenen = ({
 		}
 	};
 
-	/** Gestaltung ablegen: ein Schritt, gewählt ist danach das Verschobene bzw. die Kopie. */
+	/**
+	 * Gestaltung ablegen: ein Schritt, gewählt ist danach das Verschobene bzw. die Kopie. 106: auf einen Baustein gehängt
+	 * (`haengeAn`), oder eine Kindzeile mit ⚓ erst gelöst (`loeseAnker`), dann wie jedes Element in die Ebenen gelegt.
+	 */
 	const beendeGestaltung = (l: Lauf) => {
 		const jetzt = neu.current;
-		const ziel = l.ziel;
-		if (!ziel || !jetzt.aktuell || jetzt.zerlegung?.quelle !== l.quelle) {
+		const { anker, ziel } = l;
+		const element = jetzt.doc ? elementZu(jetzt.doc, l.nr) : null;
+		const baustein = jetzt.doc && anker !== null ? elementZu(jetzt.doc, anker) : null;
+		if ((!ziel && !baustein) || !element || !jetzt.aktuell || jetzt.zerlegung?.quelle !== l.quelle) {
 			return;
 		}
+		const name = l.gestaltung?.name ?? l.art;
+		const lage = lageInSeite(element);
+		let beschreibung = `${name} ${l.kopie ? 'kopiert' : 'verschoben'}`;
+		let rechne = (q: string) => (ziel ? legeInEbenen(q, l.nr, ziel, l.kopie) : { quelle: q, nr: l.nr });
+		if (baustein && anker !== null) {
+			const mass = messeAnhaengen(element, baustein);
+			beschreibung = `${name} angehängt`;
+			rechne = (q) => haengeAn(q, l.nr, anker, mass);
+		} else if (ziel && l.gestaltung?.amAnker) {
+			beschreibung = `${name} vom Baustein gelöst`;
+			rechne = (q) => {
+				const r = loeseAnker(q, l.nr, { lage });
+				return r.nr === null ? r : legeInEbenen(r.quelle, r.nr, ziel, false);
+			};
+		}
 		jetzt.stand.eigene.current = { leuchten: true };
-		const beschreibung = `${l.gestaltung?.name ?? l.art} ${l.kopie ? 'kopiert' : 'verschoben'}`;
-		if (!jetzt.struktur.fuehreAus(beschreibung, (q) => legeInEbenen(q, l.nr, ziel, l.kopie), false, true)) {
+		if (!jetzt.struktur.fuehreAus(beschreibung, rechne, false, true)) {
 			jetzt.stand.eigene.current = { leuchten: false };
 		}
 	};
@@ -607,7 +639,15 @@ export const Ebenen = ({
 			return;
 		}
 		const ebene = zeile.zeile === 'vorne' || zeile.zeile === 'hinten' ? zeile.zeile : null;
-		const gestaltung = ebene && zeile.lage ? { ...zeile.lage, ebene, name: zeile.name } : null;
+		const amAnker = zeile.zeile === 'anker';
+		const seiteDesAnkers = amAnker ? seiteUm(z, zeile.nr) : null;
+		// 106: Eine Kindzeile mit ⚓ liegt in keiner Ebene; gelöst kommt sie nach vorne.
+		const gestaltung =
+			ebene && zeile.lage
+				? { ...zeile.lage, ebene, name: zeile.name, amAnker: false }
+				: amAnker && seiteDesAnkers !== null
+					? { seite: seiteDesAnkers, platz: -1, ebene: 'vorne' as const, name: zeile.name, amAnker: true }
+					: null;
 		const ziele =
 			seite || gestaltung
 				? {
@@ -628,20 +668,31 @@ export const Ebenen = ({
 			federSchluessel: null,
 			gestaltung,
 			ziel: null,
-			kopie: Boolean(gestaltung) && alt,
+			anker: null,
+			ankerZiele: new Set(gestaltung ? ankerZiele(z.quelle, gestaltung.seite) : []),
+			kopie: Boolean(gestaltung) && !amAnker && alt,
 		};
 		document.body.setAttribute('data-zieht', '');
 		// Steht der Fokus im Blatt, käme Esc dort an und nicht hier.
 		if (document.activeElement instanceof HTMLIFrameElement) {
 			document.activeElement.blur();
 		}
-		setZug({ seite, nr: zeile.nr, name: zeile.name, kopie: Boolean(gestaltung) && alt, x, y, marke: null, hinein: null });
+		setZug({
+			seite,
+			nr: zeile.nr,
+			name: zeile.name,
+			kopie: Boolean(gestaltung) && !amAnker && alt,
+			x,
+			y,
+			marke: null,
+			hinein: null,
+		});
 	};
 
 	/** ⌥ kopiert Gestaltung; drücken oder loslassen schaltet mitten im Zug um. */
 	const schalteKopie = (alt: boolean) => {
 		const l = lauf.current;
-		if (l?.gestaltung && l.kopie !== alt) {
+		if (l?.gestaltung && !l.gestaltung.amAnker && l.kopie !== alt) {
 			l.kopie = alt;
 			setZug((z) => (z ? { ...z, kopie: alt } : z));
 		}
@@ -781,7 +832,8 @@ export const Ebenen = ({
 
 	/** Auge, Schloss und was spätere Tickets eintragen (`EBENEN_ZEICHEN`), rechts in der Zeile. */
 	const zeichenVon = (k: GliederungKnoten, aktiv: boolean) => {
-		const element = doc && (k.zeile === 'vorne' || k.zeile === 'hinten') ? elementZu(doc, k.nr) : null;
+		const element =
+			doc && (k.zeile === 'vorne' || k.zeile === 'hinten' || k.zeile === 'anker') ? elementZu(doc, k.nr) : null;
 		if (!element) {
 			return null;
 		}
@@ -843,7 +895,7 @@ export const Ebenen = ({
 		const gezogen = zug?.nr === k.nr ? { opacity: 0.35 } : undefined;
 		const tooltip = k.titel === k.name ? k.titel : `${k.name}: ${k.titel}`;
 		const symbol = k.zeile === 'baustein' ? undefined : SYMBOL_DER_ART[k.kennung];
-		const istGestaltungZeile = k.zeile === 'vorne' || k.zeile === 'hinten';
+		const istGestaltungZeile = k.zeile === 'vorne' || k.zeile === 'hinten' || k.zeile === 'anker';
 		const aktiv = aktiveZeile === k.nr;
 		const hauptstapel = k.zeile === 'hauptstapel';
 		// Der Hauptstapel hat kein eigenes Element: Sein Klick wählt die Seite.

@@ -13,6 +13,18 @@ export interface GriffZug {
 	dy: number;
 	umschalt: boolean;
 	wahl: boolean;
+	/** 106: Der Zeiger in Koordinaten des Materials (= im `iframe`), etwa für `elementsFromPoint`. */
+	zeiger: { x: number; y: number };
+}
+
+/**
+ * 106: Was ein Griff beim Ziehen zusätzlich zeigt, statt des Werts am Zeiger: einen Text, einen Rahmen um ein Ziel im
+ * Blatt und eine Linie vom Griff zum Zeiger.
+ */
+export interface ZusatzAnzeige {
+	text?: string;
+	ziel?: Element | null;
+	linie?: boolean;
 }
 
 /**
@@ -32,8 +44,8 @@ export interface ZusatzGriff {
 	zeichne?: () => ReactNode;
 	/** Zeiger-Klasse, z. B. `cursor-crosshair`. */
 	zeiger?: string;
-	/** Während des Ziehens: nur Anzeige im `iframe`, kein Schritt. */
-	zeige: (g: GestaltungKontext, zug: GriffZug) => void;
+	/** Während des Ziehens: nur Anzeige im `iframe`, kein Schritt. Was er zurückgibt, zeigt die Überlagerung (106). */
+	zeige: (g: GestaltungKontext, zug: GriffZug) => ZusatzAnzeige | void;
 	/** Beim Loslassen: ein Schritt über `g.fuehreAus`. */
 	schreibe: (g: GestaltungKontext, zug: GriffZug) => void;
 	zuruecksetzen?: (g: GestaltungKontext) => void;

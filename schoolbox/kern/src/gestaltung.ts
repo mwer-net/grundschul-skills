@@ -8,6 +8,7 @@
  * In einer Ebene liegt vorne, was in der Quelle später kommt.
  */
 
+import { loeseVorSeitenwechsel } from './anker';
 import type { EbenenName } from './gestaltung-arten';
 import { GESTALTUNG_ARTEN, LAGE } from './gestaltung-arten';
 import { nachGroesse } from './groessen-folgen';
@@ -403,8 +404,12 @@ export const wechsleEbene = (quelle: string, nr: number, ebene: EbenenName): Str
 	return legeUm(quelle, nr, { seite: jetzt.seite, ebene, wo: 'ende' });
 };
 
-/** Auf eine andere Seite (`seite`: Nummer der `.seite`), in dieselbe Ebene, ganz nach vorne, mit neuer Lage. */
-export const verschiebeAufSeite = (quelle: string, nr: number, seite: number, lage: LageTeil): StrukturErgebnis => {
+/**
+ * Auf eine andere Seite (`seite`: Nummer der `.seite`), in dieselbe Ebene, ganz nach vorne, mit neuer Lage. Ein Element
+ * am Anker wird dabei gelöst und liegt danach vorne (106).
+ */
+export const verschiebeAufSeite = (vorher: string, alt: number, ziel: number, lage: LageTeil): StrukturErgebnis => {
+	const { nr, quelle, seite } = loeseVorSeitenwechsel(vorher, alt, ziel); // 106
 	const z = zerlege(quelle);
 	const jetzt = inEbeneAn(z, nr);
 	const index = seitenIn(z).indexOf(knotenAn(z, seite));

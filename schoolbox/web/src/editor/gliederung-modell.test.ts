@@ -6,6 +6,7 @@ import { seitenVon } from '@schoolbox/kern/src/struktur';
 
 import {
 	blattMit,
+	FIGUR_ANKER,
 	FIGUR_FREI,
 	FORM,
 	SCHMUCK_STEMPEL,
@@ -17,6 +18,7 @@ import {
 import type { GliederungKnoten } from './gliederung-modell';
 import {
 	alleSchluessel,
+	ankerIn,
 	ebenenTeile,
 	ketteZu,
 	ohneWirkung,
@@ -244,5 +246,20 @@ describe('Ebenen mit Gestaltung (101)', () => {
 		assert.equal(titelDerGestaltung(angaben('streuung', { 'data-streuung': 'punkte' }, '', 21)), 'Punkte (21)');
 		assert.equal(titelDerGestaltung(angaben('gruppe', {}, '', 2, 'Gruppe')), 'Gruppe (2)');
 		assert.equal(titelDerGestaltung(angaben('figurfrei', { 'data-figur': 'wilma' }, '', 0, 'Wilma')), 'Wilma');
+	});
+});
+
+describe('ankerIn (106)', () => {
+	it('die Elemente am Anker eines Bausteins, das vorderste (in der Quelle letzte) zuerst', () => {
+		const zweites = FIGUR_ANKER.replace('data-figur="wilma"', 'data-figur="willi"');
+		const z = zerlege(blattMit({ anker: [FIGUR_ANKER, zweites] }));
+		const aufgabe = z.knoten.find((k) => k.attribute.some((a) => a.name === 'class' && a.wert === 'aufgabe'));
+		assert.ok(aufgabe);
+		const nrn = ankerIn(z, aufgabe.nr);
+		assert.deepEqual(
+			nrn.map((nr) => z.knoten[nr]?.attribute.find((a) => a.name === 'data-figur')?.wert),
+			['willi', 'wilma'],
+		);
+		assert.deepEqual(ankerIn(zerlege(blattMit({ vorne: [FIGUR_FREI] })), aufgabe.nr), []);
 	});
 });

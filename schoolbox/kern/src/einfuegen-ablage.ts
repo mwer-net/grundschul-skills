@@ -7,7 +7,7 @@
 import type { Einfuegbar } from './einfuegen';
 import { ergebnis, festeStelle, fuegeBausteinEin, neueAufgabe } from './einfuegen';
 import type { Aenderung, Knoten, Zerlegung } from './quelltext';
-import { fuegeEin, klassenVon, zerlege } from './quelltext';
+import { attribut, fuegeEin, klassenVon, zerlege } from './quelltext';
 import type { Ablage, Nummerierung, StrukturErgebnis } from './struktur';
 
 const hat = (k: Knoten | null | undefined, klasse: string) => Boolean(k && klassenVon(k).includes(klasse));
@@ -35,8 +35,9 @@ export const huelleImStapel = (b: Einfuegbar): Huelle => {
 
 /** Als letztes Kind von `eltern`, vor einen Fuß und vor die Ebenen der Gestaltung. */
 const amEnde = (z: Zerlegung, eltern: Knoten, html: string): Aenderung[] => {
-	const ende = eltern.kinder.filter((k) => !hat(k, 'fuss') && !hat(k, 'ebene')).at(-1);
-	const fuss = eltern.kinder.find((k) => hat(k, 'fuss') || hat(k, 'ebene'));
+	const frei = (k: Knoten) => attribut(k, 'data-lage') !== undefined; // 106: vor den Anker
+	const ende = eltern.kinder.filter((k) => !hat(k, 'fuss') && !hat(k, 'ebene') && !frei(k)).at(-1);
+	const fuss = eltern.kinder.find((k) => hat(k, 'fuss') || hat(k, 'ebene') || frei(k));
 	if (ende) {
 		return fuegeEin(z, ende, 'nach', html);
 	}
