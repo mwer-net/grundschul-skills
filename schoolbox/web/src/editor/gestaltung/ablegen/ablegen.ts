@@ -7,6 +7,9 @@ import type { SchubladenZiele } from '../../schubladen';
 import { sichtfeldVon } from '../../sichtfeld';
 import type { Struktur } from '../../struktur';
 import type { Ziehgut } from '../../zug-von-aussen';
+import type { Kandidat } from '../einrasten';
+import { kandidatenAufSeite, rasteEin } from '../einrasten';
+import { zeigeAblageLinien } from '../hilfslinien';
 import { eckeVon, entferneVorschau, markiereZiel, missHoehe, seitenIn, seiteUnter, zeigeVorschau } from './vorschau';
 import type { AblageTreffer } from './ziele';
 import { zielFuer } from './ziele';
@@ -52,9 +55,12 @@ const ortUm = (doc: Document, seite: Element, gut: GestaltungsGut, x: number, y:
 		return null;
 	}
 	const ecke = eckeVon(seite);
-	// 100: Hier wirkt das Einrasten (`rasteEin` aus `gestaltung/einrasten.ts`, 097) auf die Lage.
+	// Eingerastet wird nur beim Ziehen (`ortAn` in `ziehgutGestaltung`), nicht beim Klick in die Mitte.
 	return { seite: nr, x: x - ecke.x - gut.groesse.b / 2, y: y - ecke.y - hoehe / 2 };
 };
+
+/** Maßstab der Leinwand: Bildschirm-px je px des Materials. */
+const skalaVon = (rahmen: HTMLElement) => rahmen.getBoundingClientRect().width / Math.max(1, rahmen.offsetWidth);
 
 /** Der sichtbare Teil des Materials in seinen Koordinaten; ohne Ansicht das ganze Material. */
 const sichtbarImMaterial = (doc: Document) => {
@@ -63,7 +69,7 @@ const sichtbarImMaterial = (doc: Document) => {
 	if (!rahmen || !sicht) {
 		return { oben: -Infinity, unten: Infinity, links: -Infinity, rechts: Infinity };
 	}
-	const skala = rahmen.getBoundingClientRect().width / Math.max(1, rahmen.offsetWidth);
+	const skala = skalaVon(rahmen);
 	return {
 		oben: (sicht.oben - rahmen.offsetTop) / skala,
 		unten: (sicht.unten - rahmen.offsetTop) / skala,
@@ -116,18 +122,36 @@ export const ziehgutGestaltung = (teile: AblegenTeile, gut: GestaltungsGut): Zie
 	}
 	let treffer: AblageTreffer | null = null;
 	let hoehe: number | null = null;
+	// Einrasten (100): Kandidaten einmal je Seite, nicht bei jeder Bewegung.
+	let raster: { seite: Element; kandidaten: Kandidat[] } | null = null;
 
 	const ortAn = (x: number, y: number) => {
 		const seite = seiteUnter(doc, x, y);
 		if (!seite) {
+			zeigeAblageLinien(null);
 			return null;
 		}
 		hoehe ??= hoeheVon(doc, seite, gut);
 		const ort = ortUm(doc, seite, gut, x, y, hoehe);
-		return ort && { seite, ort };
+		if (!ort) {
+			return null;
+		}
+		const ecke = eckeVon(seite);
+		if (raster?.seite !== seite) {
+			raster = { seite, kandidaten: kandidatenAufSeite(seite, ecke) };
+		}
+		const rahmen = doc.defaultView?.frameElement as HTMLElement | null | undefined;
+		const { lage, linien } = rasteEin(
+			{ x: ort.x, y: ort.y, b: gut.groesse.b, h: hoehe, drehen: 0 },
+			raster.kandidaten,
+			rahmen ? skalaVon(rahmen) : 1,
+		);
+		zeigeAblageLinien({ doc, ursprung: ecke, linien });
+		return { seite, ort: { ...ort, x: lage.x, y: lage.y } };
 	};
 
 	const raeume = () => {
+		zeigeAblageLinien(null);
 		treffer = null;
 		entferneVorschau(doc);
 		markiereZiel(doc, null);
@@ -153,6 +177,7 @@ export const ziehgutGestaltung = (teile: AblegenTeile, gut: GestaltungsGut): Zie
 			markiereZiel(doc, treffer?.rahmen ?? null);
 			if (treffer) {
 				entferneVorschau(doc);
+				zeigeAblageLinien(null);
 				return treffer.text;
 			}
 			const da = ortAn(punkt.x, punkt.y);
@@ -164,6 +189,7 @@ export const ziehgutGestaltung = (teile: AblegenTeile, gut: GestaltungsGut): Zie
 			return undefined;
 		},
 		legeAb: (ziel) => {
+			zeigeAblageLinien(null);
 			if (ziel.modus === 'stapel') {
 				gut.imStapel?.legeAb(ziel.ablage);
 				return;
@@ -173,6 +199,7 @@ export const ziehgutGestaltung = (teile: AblegenTeile, gut: GestaltungsGut): Zie
 				return;
 			}
 			const da = ortAn(ziel.x, ziel.y);
+			zeigeAblageLinien(null);
 			if (da) {
 				legeAb(teile.struktur, gut, da.ort);
 			}

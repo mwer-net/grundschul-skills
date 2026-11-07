@@ -1010,15 +1010,31 @@ export const passtTaste = (k: Kuerzel, e: TastenEreignis) => {
 
 export const MODUS_VORGABE: Modus[] = ['auswahl', 'ohne'];
 
-/** Der Befehl zu einer Taste in diesem Zustand, verfügbar oder nicht: Wer nicht kann, sagt es (`warumNicht`). */
-export const befehlZuTaste = (e: TastenEreignis, modus: Modus, k: Kontext, alle: Befehl[] = BEFEHLE) =>
-	alle.find(
-		(b) =>
-			(b.modus ?? MODUS_VORGABE).includes(modus) &&
-			(!b.tasteWenn || b.tasteWenn(k)) &&
-			// ⌥ tippt in der Textsitzung Zeichen: ⌥C ist dort „ç“.
-			b.kuerzel?.some((t) => passtTaste(t, e) && !(modus === 'text' && t.wahl) && (!t.wenn || t.wenn(k))),
-	);
+/**
+ * Der Befehl zu einer Taste in diesem Zustand, verfügbar oder nicht: Wer nicht kann, sagt es (`warumNicht`). Ein
+ * Kürzel mit erfülltem `wenn` geht einem ohne `wenn` vor, egal wo es im Register steht (100: Pfeiltasten bei
+ * Gestaltung vor `auswahl.vorheriger`/`auswahl.naechster`).
+ */
+export const befehlZuTaste = (e: TastenEreignis, modus: Modus, k: Kontext, alle: Befehl[] = BEFEHLE) => {
+	let ohneWenn: Befehl | undefined;
+	for (const b of alle) {
+		if (!(b.modus ?? MODUS_VORGABE).includes(modus)) {
+			continue;
+		}
+		// ⌥ tippt in der Textsitzung Zeichen: ⌥C ist dort „ç“.
+		const passend = b.kuerzel?.filter((t) => passtTaste(t, e) && !(modus === 'text' && t.wahl)) ?? [];
+		if (passend.length === 0 || (b.tasteWenn && !b.tasteWenn(k))) {
+			continue;
+		}
+		if (passend.some((t) => t.wenn?.(k))) {
+			return b;
+		}
+		if (passend.some((t) => !t.wenn)) {
+			ohneWenn ??= b;
+		}
+	}
+	return ohneWenn;
+};
 
 const alsEintrag = (b: Befehl, k: Kontext, fuehreAus: (id: string) => unknown): MenueEintrag => {
 	const [erstes] = b.kuerzel ?? [];

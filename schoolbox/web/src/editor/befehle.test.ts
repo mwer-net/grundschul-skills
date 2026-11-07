@@ -39,19 +39,39 @@ describe('Befehlsregister', () => {
 		);
 	});
 
-	it('hat in keinem Zustand zwei Befehle auf derselben Taste', () => {
+	it('hat in keinem Zustand zwei Befehle auf derselben Taste, außer einer hat Vorrang über `wenn` (100)', () => {
 		for (const modus of ['auswahl', 'ohne', 'text'] as Modus[]) {
 			const belegt = new Map<string, string>();
 			for (const b of BEFEHLE) {
 				if ((b.modus ?? MODUS_VORGABE).includes(modus)) {
-					for (const k of b.kuerzel ?? []) {
+					for (const k of (b.kuerzel ?? []).filter((t) => !t.wenn)) {
 						const s = schluessel(k);
 						assert.equal(belegt.get(s), undefined, `${modus}: ${s} bei ${b.id} und ${belegt.get(s) ?? ''}`);
 						belegt.set(s, b.id);
 					}
 				}
 			}
+			const mitWenn = new Map<string, string>();
+			for (const b of BEFEHLE) {
+				if ((b.modus ?? MODUS_VORGABE).includes(modus)) {
+					for (const k of (b.kuerzel ?? []).filter((t) => t.wenn)) {
+						const s = schluessel(k);
+						const da = mitWenn.get(s);
+						assert.ok(da === undefined || da === b.id, `${modus}: ${s} mit wenn bei ${b.id} und ${da ?? ''}`);
+						mitWenn.set(s, b.id);
+					}
+				}
+			}
 		}
+	});
+
+	it('Pfeiltasten: bei Gestaltung schieben, bei Bausteinen wählen (100)', () => {
+		const pfeil = { code: 'ArrowRight', key: 'ArrowRight', metaKey: false, ctrlKey: false, altKey: false, shiftKey: false };
+		const k = (gestaltung: boolean) =>
+			({ gestaltung: gestaltung ? {} : null, feldBehaeltUndo: () => false, textMarkiert: () => false }) as unknown as Kontext;
+		assert.equal(befehlZuTaste(pfeil, 'auswahl', k(true))?.id, 'auswahl.schiebe-rechts');
+		assert.equal(befehlZuTaste({ ...pfeil, shiftKey: true }, 'auswahl', k(true))?.id, 'auswahl.schiebe-rechts');
+		assert.equal(befehlZuTaste(pfeil, 'auswahl', k(false))?.id, 'auswahl.naechster');
 	});
 
 	it('zeigt jeden Befehl mit Taste oder Menü auch sichtbar', () => {
