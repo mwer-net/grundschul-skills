@@ -481,6 +481,13 @@ div.schmuck[data-schmuck="etikett"]{background:var(--hg,var(--akzent));color:var
 /* << 107 */
 
 /* >> 108 Aussehen */
+/* Schatten (Briefing 3-formen, E3): weich, neutral grau, darum in s/w unverändert. Nur das Attribut, kein Wert im style.
+   Bilder in s/w: graustufen.js setzt am Bildschirm filter:grayscale(1) an img; der Schatten darf das nicht verdrängen. */
+[data-lage][data-schatten="leicht"]{--schatten:0 1px 3px rgb(0 0 0/.22)}
+[data-lage][data-schatten="mittel"]{--schatten:0 3px 8px rgb(0 0 0/.3)}
+[data-lage][data-schatten="stark"]{--schatten:0 6px 16px rgb(0 0 0/.4)}
+[data-lage][data-schatten]{filter:drop-shadow(var(--schatten))}
+@media screen{body.sw img[data-lage][data-schatten]{filter:grayscale(1) drop-shadow(var(--schatten))}}
 /* << 108 */
 
 /* >> 109 Streuung */

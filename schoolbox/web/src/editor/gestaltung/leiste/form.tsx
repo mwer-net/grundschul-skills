@@ -1,5 +1,7 @@
+import { leseVerlauf } from '@schoolbox/kern/src/aussehen';
 import { leseForm } from '@schoolbox/kern/src/formen-aendern';
 
+import { verlaufCss } from '../../../bausteine/Farbwahl';
 import { Knopf } from '../../../bausteine/Knopf';
 import { Popover } from '../../../bausteine/Popover';
 import { FuellungWahl, KonturWahl } from '../inspektor/form-farben';
@@ -20,7 +22,8 @@ const FormKnoepfe = ({ aktiv, k, quelle }: LeistenTeile) => {
 	if (!stand) {
 		return null;
 	}
-	const fuellung = stand.fuellung === null ? null : sichtbar(k.element, 'fill');
+	const verlauf = leseVerlauf(quelle, k.nr); // 108: Vorschau des Verlaufs im Knopf
+	const fuellung = verlauf ? verlaufCss(k.doc, verlauf) : stand.fuellung === null ? null : sichtbar(k.element, 'fill');
 	const kontur = stand.kontur === null ? null : sichtbar(k.element, 'stroke');
 	return (
 		<>

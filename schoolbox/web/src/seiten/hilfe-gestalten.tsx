@@ -189,6 +189,17 @@ export const GESTALTEN: Abschnitt = {
 			{/* << 107 */}
 
 			{/* >> 108 */}
+			<h3>Verlauf, gestrichelte Kontur, Schatten und Deckkraft</h3>
+			<p data-hilfe-aussehen>
+				Bei der Füllung einer Form schaltest du oben von „Farbe“ auf „Verlauf“. Ein Verlauf hat zwei Farben; linear
+				läuft er in eine Richtung, die du mit „Winkel“ drehst, radial von der Mitte nach außen. Wählst du wieder „Farbe“
+				oder eine einzelne Farbe, ist der Verlauf weg. In s/w wird auch ein Verlauf grau. Unter „Linie“ wird die Kontur
+				gestrichelt oder gepunktet, mit eckigen oder runden Enden; machst du sie dicker, wachsen Striche und Lücken mit.
+				„Schatten“ legt einen weichen grauen Schatten unter Formen, Schmuckschrift, Bilder und Figuren, leicht, mittel
+				oder stark. Mit „Deckkraft“ wird ein Element blasser, bis 10 %, zum Beispiel ein Foto, das hinten als Hintergrund
+				liegt. Bei Bildern und Figuren findest du Schatten und Deckkraft im Inspektor unter „Bild“. Jede Änderung nimmst
+				du mit ⌘Z zurück, beim Regler zählt erst das Loslassen.
+			</p>
 			{/* << 108 */}
 
 			{/* >> 109 */}

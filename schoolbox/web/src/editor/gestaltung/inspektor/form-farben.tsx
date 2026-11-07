@@ -1,7 +1,9 @@
 import type { Kontur } from '@schoolbox/kern/src/formen';
 import { KONTUR, KONTUR_MAX, STRICH } from '@schoolbox/kern/src/formen';
+import { leseVerlauf, setzeVerlauf } from '@schoolbox/kern/src/aussehen';
 import { leseForm, setzeFuellung, setzeKontur } from '@schoolbox/kern/src/formen-aendern';
 
+import type { VerlaufWahl } from '../../../bausteine/Farbwahl';
 import { Farbwahl } from '../../../bausteine/Farbwahl';
 import { Stepper } from '../../../bausteine/Stepper';
 import { Zeile } from '../../../bausteine/Zeile';
@@ -24,6 +26,7 @@ const Farben = ({
 	doc,
 	name,
 	setze,
+	verlauf,
 	wert,
 	zeige,
 }: {
@@ -34,36 +37,42 @@ const Farben = ({
 	zeige: (wert: string) => void;
 	doc: Document;
 	aus: boolean;
-}) => (
-	<div className="flex flex-wrap items-center gap-1" data-form-farben={name}>
-		<button
-			type="button"
-			className={RUND}
-			aria-pressed={wert === null}
-			aria-label={`Keine ${beschriftung}`}
-			title="Keine"
-			disabled={aus}
-			data-farbe="keine"
-			onClick={() => setze(null)}
-		>
-			<span
-				aria-hidden
-				className="block size-full min-h-4 rounded-full border border-black/10 bg-white"
-				style={{ background: 'linear-gradient(135deg, #fff 45%, #e11d48 45% 55%, #fff 55%)' }}
-			/>
-		</button>
-		<button
-			type="button"
-			className={RUND}
-			aria-pressed={istSchwarz(wert)}
-			aria-label="Schwarz"
-			title="Schwarz"
-			disabled={aus}
-			data-farbe={SCHWARZ}
-			onClick={() => setze(SCHWARZ)}
-		>
-			<span aria-hidden className="block size-full min-h-4 rounded-full bg-black" />
-		</button>
+	/** 108: Füllung mit Verlauf; „Keine“ und „Schwarz“ stehen dann in der Reihe des Farbwählers. */
+	verlauf?: VerlaufWahl;
+}) => {
+	const knoepfe = (
+		<>
+			<button
+				type="button"
+				className={RUND}
+				aria-pressed={wert === null && !verlauf?.wert}
+				aria-label={`Keine ${beschriftung}`}
+				title="Keine"
+				disabled={aus}
+				data-farbe="keine"
+				onClick={() => setze(null)}
+			>
+				<span
+					aria-hidden
+					className="block size-full min-h-4 rounded-full border border-black/10 bg-white"
+					style={{ background: 'linear-gradient(135deg, #fff 45%, #e11d48 45% 55%, #fff 55%)' }}
+				/>
+			</button>
+			<button
+				type="button"
+				className={RUND}
+				aria-pressed={istSchwarz(wert)}
+				aria-label="Schwarz"
+				title="Schwarz"
+				disabled={aus}
+				data-farbe={SCHWARZ}
+				onClick={() => setze(SCHWARZ)}
+			>
+				<span aria-hidden className="block size-full min-h-4 rounded-full bg-black" />
+			</button>
+		</>
+	);
+	const wahl = (
 		<Farbwahl
 			name={name}
 			beschriftung={beschriftung}
@@ -72,9 +81,16 @@ const Farben = ({
 			aus={aus}
 			setze={setze}
 			zeige={zeige}
+			{...(verlauf ? { verlauf, vor: knoepfe } : {})}
 		/>
-	</div>
-);
+	);
+	return (
+		<div className="flex flex-wrap items-center gap-1" data-form-farben={name}>
+			{verlauf ? null : knoepfe}
+			{wahl}
+		</div>
+	);
+};
 
 /** Nur ansehen: eine Eigenschaft im `style` des Pfads im `iframe`. */
 const zeigeAmPfad = (k: GestaltungKontext, eigenschaft: string, wert: string) => {
@@ -107,6 +123,12 @@ export const FuellungWahl = ({ aktiv, k, quelle }: FarbTeile) => {
 				}))
 			}
 			zeige={(farbe) => zeigeAmPfad(k, 'fill', farbe)}
+			verlauf={{
+				// 108: Verlauf über den Farbwähler; die Leiste am Element bekommt ihn so von selbst.
+				wert: leseVerlauf(quelle, k.nr),
+				setze: (verlauf) =>
+					k.fuehreAus('Verlauf geändert', (q) => ({ quelle: setzeVerlauf(q, k.nr, verlauf), nr: k.nr })),
+			}}
 		/>
 	);
 };

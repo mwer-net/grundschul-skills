@@ -335,6 +335,57 @@ kein Schmuck, sondern ein Baustein im Stapel.
 <!-- << 107 -->
 
 <!-- >> 108 Aussehen -->
+## Aussehen: Verlauf, Kontur-Stil, Schatten, Deckkraft
+
+| Eigenschaft | Arten | Wo |
+|---|---|---|
+| Verlauf der Füllung | Form, Form mit Text | `<defs>` im `svg`, Verweis als Attribut `fill="url(#…)"` am Pfad |
+| Kontur-Stil, Enden | Form, Form mit Text | `data-kontur-stil`, `data-kontur-enden` am Element |
+| Schatten | Form, Form mit Text, Schmuckschrift, Bild, Figur | `data-schatten` am Element |
+| Deckkraft | jedes Gestaltungselement | `opacity` im `style` des Elements |
+
+**Verlauf.** Zwei Stopps in einem `<linearGradient>` oder `<radialGradient>` im `<defs>` desselben `svg`. Die Id heißt
+`verlauf-` plus vier Zeichen aus a–z und 0–9 und kommt im Material nur einmal vor; beim Duplizieren bekommt die Kopie
+eine neue. Der Pfad verweist **als Attribut** darauf und hat dann kein `fill` im `style` (`url()` im `style` lässt die
+Prüfung nicht zu). Die Farben stehen als `stop-color` im `style` der Stopps, bevorzugt als Farben des Blatts. Der
+Winkel eines linearen Verlaufs ist `gradientTransform="rotate(w .5 .5)"` (0 = von links nach rechts, im
+Uhrzeigersinn). Text mit Verlauf gibt es nicht, auch nicht in der Schmuckschrift: Er druckt nicht zuverlässig.
+
+```html
+<svg class="form" data-lage="frei" data-form="stern" viewBox="0 0 120 120" style="--x:610px;--y:84px;--b:120px;--h:120px">
+  <defs><linearGradient id="verlauf-k3f9" gradientTransform="rotate(90 .5 .5)">
+    <stop offset="0" style="stop-color:var(--haupt)"/><stop offset="1" style="stop-color:var(--akzent)"/>
+  </linearGradient></defs>
+  <path d="M60 1.5 L…Z" fill="url(#verlauf-k3f9)" style="stroke:var(--dunkel);stroke-width:3px;stroke-linejoin:round"/>
+</svg>
+```
+
+**Kontur-Stil.** `data-kontur-stil="gestrichelt"` oder `"gepunktet"` (ohne: durchgezogen), `data-kontur-enden="rund"`
+(ohne: eckig). Der Editor schreibt daraus `stroke-dasharray` und `stroke-linecap` in den `style` des Pfads, relativ zur
+Stärke s: gestrichelt `3s 2s`, gepunktet `0 2s` mit runden Enden. Claude setzt nur die Attribute oder schreibt die
+Werte passend dazu.
+
+```html
+<svg class="form" data-lage="frei" data-form="rechteck" data-radius="16" data-kontur-stil="gestrichelt" …>
+  <path d="…" style="fill:none;stroke:var(--dunkel);stroke-width:3px;stroke-linejoin:round;stroke-dasharray:9 6"/>
+</svg>
+```
+
+**Schatten.** `data-schatten="leicht"`, `"mittel"` oder `"stark"`: ein weicher grauer Schatten (`drop-shadow` in
+`blatt.css`), in s/w unverändert. Kein `filter` und kein `box-shadow` im `style` dazu.
+
+```html
+<img class="bild-frei" data-lage="frei" data-schatten="mittel" src="bilder/marktplatz.jpg" alt="Marktplatz" style="--x:96px;--y:300px;--b:420px">
+```
+
+**Deckkraft.** `opacity` im `style`, 0.1 bis 1 in Schritten von 0.05; 1 schreibt man nicht. Gedacht etwa für ein
+blasses Bild in der Ebene hinten.
+
+```html
+<div class="ebene hinten">
+  <img class="bild-frei" data-lage="frei" src="bilder/wiese.jpg" alt="" style="--x:0px;--y:0px;--b:794px;opacity:0.4">
+</div>
+```
 <!-- << 108 -->
 
 <!-- >> 109 Streuung -->

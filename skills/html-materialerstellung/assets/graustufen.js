@@ -9,7 +9,7 @@
   const HELL = 200;
   const FLAECHE = /background|fill$/;
   const EIGENSCHAFTEN = ["color", "background-color", "border-top-color", "border-right-color", "border-bottom-color",
-    "border-left-color", "outline-color", "fill", "stroke", "text-decoration-color", "column-rule-color"];
+    "border-left-color", "outline-color", "fill", "stroke", "stop-color", "text-decoration-color", "column-rule-color"];
   // Kurzformen mit var() melden ihre Einzelwerte leer; ihre festen Farben stehen nur in der Kurzform.
   const KURZFORMEN = ["background", "border", "border-top", "border-right", "border-bottom", "border-left", "outline",
     "text-decoration", "column-rule"];
