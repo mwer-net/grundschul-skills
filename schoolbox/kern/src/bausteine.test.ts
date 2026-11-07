@@ -220,7 +220,7 @@ describe('Gestaltung im Register (Phase 12)', () => {
 		assert.equal(bausteinVonKnoten(knotenIn(q, '<div>a</div>').k, false), undefined);
 	});
 
-	it('der Name kommt aus data-name, dann data-figur, dann der Art, auch im Pfad', () => {
+	it('der Name kommt aus data-name, dann data-figur, dann data-form (104), dann der Art, auch im Pfad', () => {
 		const q = blattMit({
 			vorne: [FIGUR_FREI, FORM, '<img class="bild-frei" data-lage="frei" data-name="Marktplatz" src="m.jpg" alt="">'],
 		});
@@ -229,7 +229,7 @@ describe('Gestaltung im Register (Phase 12)', () => {
 			return pfadVon(z, k.nr, false).at(-1)?.name;
 		};
 		assert.equal(name('<img class="figur-frei"'), 'Wilma');
-		assert.equal(name('<svg class="form"'), 'Form');
+		assert.equal(name('<svg class="form"'), 'Stern');
 		assert.equal(name('<img class="bild-frei"'), 'Marktplatz');
 	});
 

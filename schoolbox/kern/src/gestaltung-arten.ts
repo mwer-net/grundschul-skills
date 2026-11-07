@@ -7,6 +7,7 @@
  */
 
 import type { Baustein, Faehigkeit } from './bausteine';
+import { formName } from './formen';
 
 /** Wie die Griffe an den Ecken und Kanten die Größe ändern. */
 export type Groesse =
@@ -105,12 +106,12 @@ const figurName = (wert: string) => {
 };
 
 /**
- * Der Name eines Gestaltungselements in Ebenen und Pfad: `data-name`, sonst die Figur aus `data-figur`, sonst der Name
- * der Art. `null` für alles, was kein Gestaltungselement ist; dann gilt der Name aus dem Register.
+ * Der Name eines Gestaltungselements in Ebenen und Pfad: `data-name`, sonst die Figur aus `data-figur`, sonst die Form
+ * aus `data-form` (104), sonst der Name der Art. `null` für alles, was kein Gestaltungselement ist; dann gilt der Name aus dem Register.
  */
 export const nameDerGestaltung = (baustein: Baustein, wert: (name: string) => string | null): string | null => {
 	if (!baustein.faehigkeiten.includes('lage')) {
 		return null;
 	}
-	return wert('data-name')?.trim() || figurName(wert('data-figur') ?? '') || baustein.name;
+	return wert('data-name')?.trim() || figurName(wert('data-figur') ?? '') || formName(wert('data-form')) || baustein.name; // 104: Name der Form
 };

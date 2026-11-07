@@ -1,3 +1,4 @@
+import { ergaenzeFormen } from '@schoolbox/kern/src/formen-aendern';
 import type { Verlauf } from '@schoolbox/kern/src/quelltext';
 import { macheRueckgaengig, neuerVerlauf, nimmAuf, wiederhole } from '@schoolbox/kern/src/quelltext';
 import type { RefObject } from 'react';
@@ -19,6 +20,12 @@ const GEAENDERT: Record<'claude' | 'lehrkraft', string> = {
 	claude: 'Claude hat das Material geändert.',
 	lehrkraft: 'Das Material wurde gerade an einem anderen Gerät geändert.',
 };
+
+/**
+ * 104: Formen ohne Pfad (von Claude) bekommen ihn beim Laden. Die ergänzte Quelle gilt als gespeicherter Stand: Sie
+ * wird nur angezeigt und mit dem nächsten Schritt geschrieben, nicht schon beim Öffnen.
+ */
+const mitFormen = (b: Basis): Basis => ({ ...b, quelle: ergaenzeFormen(b.quelle) });
 
 /**
  * Was der Editor über das Dokument weiß: die Quelle mit Rückgängig/Wiederholen, das Speichern und wie er auf
@@ -61,7 +68,8 @@ export const useBearbeitung = (mappe: string, dok: string, auswahl: RefObject<nu
 	const { alles, basis, meldeKonflikt, offen, ruhig, setzeBasis } = speicher;
 
 	const uebernimm = useCallback(
-		(neu: Basis) => {
+		(geladen: Basis) => {
+			const neu = mitFormen(geladen);
 			setzeBasis(neu);
 			quelle.current = neu.quelle;
 			setVerlauf(neuerVerlauf(neu.quelle));
@@ -79,7 +87,7 @@ export const useBearbeitung = (mappe: string, dok: string, auswahl: RefObject<nu
 	const pruefe = useCallback(
 		async (urheber: Urheber) => {
 			await ruhig();
-			const aktuell = await lade<Basis>(adresse).catch(() => null);
+			const aktuell = await lade<Basis>(adresse).then(mitFormen).catch(() => null);
 			if (!aktuell || aktuell.version === basis.current?.version) {
 				return;
 			}
