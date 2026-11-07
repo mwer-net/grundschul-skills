@@ -94,6 +94,17 @@ export const GESTALTEN: Abschnitt = {
 			{/* << 103 */}
 
 			{/* >> 104 */}
+			<h3>Formen</h3>
+			<p data-hilfe-formen>
+				In der Schublade „Formen“ liegen Kreis, Rechteck, Dreieck, Stern, Herz, Pfeil, Wolke, Sechseck und Raute. Ein Klick
+				legt die Form in die Mitte der Seite, die du gerade siehst; du kannst sie auch an ihren Platz ziehen. Danach ist sie
+				gewählt. Ziehst du sie an den Ecken größer oder breiter, bleiben Rand und runde Ecken gleich dick, nichts wird
+				verzerrt. Rechts im Inspektor wechselst du unter „Form“ zu einer anderen Form und stellst Zacken, Ecken, Spitze
+				oder Bögen ein. Unter „Füllung und Kontur“ wählst du die Farben: Die Farben des Blatts folgen dem Farbschema, wenn
+				du es wechselst; Schwarz, Weiß und eine eigene Farbe bleiben, wie sie sind. „Keine“ lässt die Form leer bzw. ohne
+				Rand. Dieselben Farben erreichst du über „Füllung“ und „Kontur“ in der kleinen Leiste an der Form. Mit ⌘K und
+				„Stern“ legst du einen Stern ab, ohne die Schublade zu öffnen.
+			</p>
 			{/* << 104 */}
 
 			{/* >> 105 */}

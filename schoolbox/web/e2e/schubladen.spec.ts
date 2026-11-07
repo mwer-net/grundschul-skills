@@ -7,13 +7,13 @@ import { expect, test } from './hilfe';
 import type { SchubladenName } from './schubladen-hilfe';
 import { oeffneSchublade, schubladenKnopf } from './schubladen-hilfe';
 
-/** Schubladenleiste (093): Ebenen ⌥1, Bausteine ⌥2, Bilder ⌥6; Formen, Figuren, Text und Rezepte noch unsichtbar. */
+/** Schubladenleiste (093): Ebenen ⌥1, Bausteine ⌥2, Formen ⌥3 (104), Bilder ⌥6; Figuren, Text und Rezepte noch unsichtbar. */
 
 const offen = (page: Page) => page.locator('[data-panel-links]');
 const blattBreite = async (page: Page) => (await page.locator('main').boundingBox())?.width ?? 0;
 const palette = (page: Page) => page.locator('[data-befehlspalette]');
 const bilder = (page: Page) => page.locator('[data-schublade-bilder]');
-const UNSICHTBAR: SchubladenName[] = ['formen', 'figuren', 'text', 'rezepte'];
+const UNSICHTBAR: SchubladenName[] = ['figuren', 'text', 'rezepte'];
 const WACHSTUM = '_assets/bilder/wachstum.png';
 
 const blatt = async (page: Page) => {
@@ -39,15 +39,17 @@ test.describe('Schubladenleiste (093)', () => {
 		await expect(schubladenKnopf(page, 'bausteine')).toHaveAttribute('aria-pressed', 'true');
 	});
 
-	test('⌥1, ⌥2 und ⌥6 öffnen, wechseln und schließen; ⌥3 tut nichts', async ({ page }) => {
+	test('⌥1, ⌥2, ⌥3 und ⌥6 öffnen, wechseln und schließen; ⌥7 tut nichts', async ({ page }) => {
 		await blatt(page);
 		await page.keyboard.press('Alt+Digit2');
 		await expect(offen(page)).toHaveAttribute('data-panel-links', 'bausteine');
 		await page.keyboard.press('Alt+Digit6');
 		await expect(offen(page)).toHaveAttribute('data-panel-links', 'bilder');
-		await page.keyboard.press('Alt+Digit3');
+		await page.keyboard.press('Alt+Digit7');
 		await expect(offen(page)).toHaveAttribute('data-panel-links', 'bilder');
-		await page.keyboard.press('Alt+Digit6');
+		await page.keyboard.press('Alt+Digit3');
+		await expect(offen(page)).toHaveAttribute('data-panel-links', 'formen');
+		await page.keyboard.press('Alt+Digit3');
 		await expect(offen(page)).toHaveCount(0);
 		await page.keyboard.press('Alt+Digit1');
 		await expect(offen(page)).toHaveAttribute('data-panel-links', 'ebenen');
@@ -74,14 +76,14 @@ test.describe('Schubladenleiste (093)', () => {
 		await expect(offen(page)).toHaveAttribute('data-panel-links', 'bilder');
 	});
 
-	test('die vier leeren Schubladen sind nirgends: Leiste, Palette, Tastenübersicht, Hilfe', async ({ page }) => {
+	test('die leeren Schubladen sind nirgends: Leiste, Palette, Tastenübersicht, Hilfe', async ({ page }) => {
 		await blatt(page);
-		await expect(page.locator('[data-schublade-knopf]')).toHaveCount(3);
+		await expect(page.locator('[data-schublade-knopf]')).toHaveCount(4);
 		for (const name of UNSICHTBAR) {
 			await expect(schubladenKnopf(page, name)).toHaveCount(0);
 		}
 		await page.keyboard.press('ControlOrMeta+k');
-		for (const wort of ['Formen', 'Figuren', 'Rezepte']) {
+		for (const wort of ['Figuren', 'Rezepte']) {
 			await palette(page).getByRole('combobox').fill(wort);
 			await expect(palette(page).locator(`[data-palette-zeile^="ansicht.links-"]`)).toHaveCount(0);
 		}
@@ -95,8 +97,8 @@ test.describe('Schubladenleiste (093)', () => {
 		await page.keyboard.press('Escape');
 		await page.goto('/hilfe#gestalten');
 		const liste = page.locator('[data-hilfe-schubladen]');
-		await expect(liste.locator('[data-hilfe-schublade]')).toHaveCount(3);
-		await expect(liste).not.toContainText('Formen');
+		await expect(liste.locator('[data-hilfe-schublade]')).toHaveCount(4);
+		await expect(liste).not.toContainText('Rezepte');
 	});
 
 	test('angeheftete Ebenen und der Teiler bleiben nach dem Neuladen, wie sie waren', async ({ hasTouch, page }) => {

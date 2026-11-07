@@ -11,6 +11,7 @@ import type { PfadTeil } from '../darstellung';
 import { bausteinVon, nrVon, VERALTET } from '../darstellung';
 import type { Struktur } from '../struktur';
 import { FINGER_WEG, HALTEN_MS, MAUS_WEG } from '../ziehen';
+import { zeigeNachGroesse } from './anzeige-folgen';
 import { doppelklickZiel } from './doppelklick';
 import type { Hilfslinie, Kandidat } from './einrasten';
 import { rasteEin, sammleKandidaten } from './einrasten';
@@ -232,6 +233,9 @@ export const useGeste = (o: Optionen) => {
 				l.element.setAttribute(name, wert);
 			}
 		}
+		if (l.art === 'skalieren') {
+			zeigeNachGroesse(l.element, l.start.b, l.start.h); // 104: Inhalt wieder in der Größe vom Start
+		}
 	};
 
 	const beende = useCallback(() => {
@@ -336,6 +340,7 @@ export const useGeste = (o: Optionen) => {
 	const zeigeGroesse = (l: Lauf) => {
 		const { teil, werte } = groessenTeil(l);
 		zeigeLageAm(l.element, teil);
+		zeigeNachGroesse(l.element, l.jetzt.b, l.jetzt.h); // 104: Formen u. a. zeichnen sich in der neuen Größe
 		const stil = (l.element as HTMLElement).style;
 		for (const [name, wert] of Object.entries(werte)) {
 			stil.setProperty(name, wert);

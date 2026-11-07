@@ -9,6 +9,7 @@
 import { readFileSync, writeFileSync } from 'node:fs';
 import path from 'node:path';
 
+import { formenTabelle } from './formen';
 import { GESTALTUNG_ARTEN } from './gestaltung-arten';
 import type { ArtAngaben } from './werte';
 import { ART_ANGABEN, ARTEN, VORLAGE_FORMAT } from './werte';
@@ -156,6 +157,7 @@ export const ABSCHNITTE: Abschnitt[] = [
 	// << 092
 
 	// >> 104 Formen und ihre Parameter
+	{ datei: GESTALTUNG, marke: 'formen', inhalt: formenTabelle },
 	// << 104
 
 	// >> 114 Rezepte (Aufmachungen)

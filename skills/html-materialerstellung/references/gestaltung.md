@@ -193,6 +193,47 @@ Seite und lassen sich nicht ziehen. Sollen mehrere Seiten gleich aussehen, steht
 <!-- << 103 -->
 
 <!-- >> 104 Formen -->
+## Formen
+
+Eine Form ist ein `svg.form` mit `data-form` und ihren Parametern. **Die Parameter sind die Quelle, der Pfad ist
+erzeugt:** Aus `data-form`, den Parametern und der Größe (`--b`, `--h`) entstehen `viewBox="0 0 b h"` und das `d` des
+Pfads in Elementgröße. Ändert sich die Größe, zeichnet der Editor beides neu; darum steht nie
+`preserveAspectRatio="none"` da, und Ecken und Strich bleiben beim Strecken richtig.
+
+```html
+<div class="ebene vorne">
+  <svg class="form" data-lage="frei" data-form="stern" data-zacken="5" data-innen="0.45" viewBox="0 0 120 120"
+       style="--x:610px;--y:84px;--b:120px;--h:120px;--drehen:12deg">
+    <path d="M60 1.5 L…Z" style="fill:var(--akzent);stroke:var(--dunkel);stroke-width:3px;stroke-linejoin:round"/>
+  </svg>
+</div>
+```
+
+<!-- erzeugt: formen -->
+| Form | `data-form` | Klasse | Parameter (Bereich, Standard) | Größe beim Ablegen |
+|---|---|---|---|---|
+| Rechteck | `rechteck` | ohne Text | `data-radius` 0–200 px, Standard 0 | 120 × 120 |
+| Ellipse | `ellipse` | ohne Text | – | 120 × 120 |
+| Dreieck | `dreieck` | ohne Text | `data-spitze` 0–1, Standard 0.5 | 120 × 120 |
+| Vieleck | `vieleck` | ohne Text | `data-ecken` 3–12, Standard 6 | 120 × 120 |
+| Stern | `stern` | ohne Text | `data-zacken` 3–12, Standard 5; `data-innen` 0.2–0.9, Standard 0.45 | 120 × 120 |
+| Herz | `herz` | ohne Text | – | 120 × 120 |
+| Wolke | `wolke` | ohne Text | `data-bogen` 4–10, Standard 6 | 120 × 120 |
+| Pfeil | `pfeil` | ohne Text | `data-spitze` 0.1–0.6, Standard 0.35; `data-schaft` 0.2–0.8, Standard 0.45 | 120 × 120 |
+<!-- /erzeugt: formen -->
+
+- **Der Pfad darf fehlen.** Claude setzt `data-form`, die Parameter, `--b`, `--h` und die Farben; `viewBox` und `d`
+  erzeugt der Editor beim Öffnen. Ein fehlender Parameter gilt mit seinem Standard. Ohne Pfad bekommt die Form die
+  Standardfarben, mit Pfad ohne `d` behält sie dessen `style`.
+- **Farben** stehen im `style` des Pfads: `fill` (Füllung, `none` für keine), `stroke` (Kontur, `none` für keine) und
+  `stroke-width` in px (0–12, Standard 3). Bevorzugt Farben des Blatts (`var(--haupt)`, `var(--akzent)`,
+  `var(--dunkel)`, `var(--linie)`, `var(--fuell)`): Sie folgen Palette und Thema. Eigene Farben als Hex folgen nicht.
+  Standard ist Füllung `var(--akzent)`, Kontur `var(--dunkel)`.
+- **Der Strich liegt innen**: Der Pfad ist um die halbe Strichstärke eingerückt, damit nichts am Rand des `svg`
+  abgeschnitten wird.
+- Eine Raute ist ein Vieleck mit `data-ecken="4"`, ein Kreis eine Ellipse mit gleicher Breite und Höhe.
+- Pfade bestehen nur aus `M`, `L`, `C`, `Q` und `Z` mit absoluten Zahlen, ohne `A`; Kreise sind vier Kurven.
+- Nicht die Klasse `.blase` verwenden: Sie gehört der Sprechblase im Tipp.
 <!-- << 104 -->
 
 <!-- >> 105 Schmuckschrift -->

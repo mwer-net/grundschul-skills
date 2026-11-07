@@ -10,6 +10,7 @@
 
 import type { EbenenName } from './gestaltung-arten';
 import { GESTALTUNG_ARTEN, LAGE } from './gestaltung-arten';
+import { nachGroesse } from './groessen-folgen';
 import type { Aenderung, Knoten, Zerlegung } from './quelltext';
 import {
 	attribut,
@@ -353,7 +354,12 @@ export const setzeLage = (quelle: string, nr: number, teil: LageTeil) => {
 	const k = knotenAn(z, nr);
 	const alt = attribut(k, 'style')?.wert ?? null;
 	const neu = stilMitLage(alt, teil);
-	return neu === alt ? quelle : wendeAn(quelle, setzeWert(z, k, 'style', neu));
+	if (neu === alt) {
+		return quelle;
+	}
+	const geaendert = wendeAn(quelle, setzeWert(z, k, 'style', neu));
+	// 104: Was seinen Inhalt aus der Größe erzeugt (Formen …), zeichnet sich neu (`groessen-folgen.ts`).
+	return teil.b === undefined && teil.h === undefined ? geaendert : nachGroesse(geaendert, nr);
 };
 
 // ── Reihenfolge und Ebenen ──────────────────────────────────────────────────
