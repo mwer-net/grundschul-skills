@@ -43,6 +43,17 @@ export const GESTALTEN: Abschnitt = {
 			{/* << 094 */}
 
 			{/* >> 095 */}
+			<h3>Seite gestalten: Fläche und Rahmen</h3>
+			<p data-hilfe-seitengestaltung>
+				Im Reiter „Blatt“ rechts steht ganz unten der Abschnitt „Gestaltung“. Dort bekommt die Seite einen Grund: eine
+				Farbe, einen Verlauf aus zwei Farben oder ein Muster aus Streifen, Punkten, Karos oder schrägen Linien. Darunter
+				wählst du einen Rahmen: eine Linie, doppelt, gestrichelt oder gepunktet, mit Farbe, Stärke, Abstand zum Blattrand
+				und runden Ecken. Die Farben des Blatts folgen dem Farbschema; mit dem bunten Kreis wählst du eine eigene Farbe.
+				„Gilt für“ entscheidet, ob es nur die Seite betrifft, auf der du gerade bist, oder alle Seiten; eine Seite, die du
+				später hinzufügst, bleibt weiß. Druckst du in Schwarz-Weiß, fällt der Grund weg und der Rahmen wird grau; beides
+				lässt sich unter „In s/w“ ändern. In den Ebenen stehen Seitenrahmen und Seitenfläche zuunterst; ein Klick darauf
+				öffnet diesen Abschnitt. ⌘Z nimmt jede Änderung in einem Schritt zurück.
+			</p>
 			{/* << 095 */}
 
 			{/* >> 096 */}

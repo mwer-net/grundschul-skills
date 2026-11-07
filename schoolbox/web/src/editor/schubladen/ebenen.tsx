@@ -12,6 +12,7 @@ const Inhalt = (t: SchubladenTeile) => (
 		zeigeAn={t.zeigeAn}
 		festeSeiten={t.festeSeiten}
 		kontextmenue={t.kontextmenue}
+		zeigeSeitengestaltung={t.zeigeSeitengestaltung}
 		angeheftet={t.angeheftet}
 		schalteAnheften={t.schalteAnheften}
 	/>

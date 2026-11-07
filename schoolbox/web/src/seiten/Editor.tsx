@@ -42,6 +42,7 @@ import { Werkzeugflaeche } from '../editor/gestaltung/werkzeuge/Werkzeugflaeche'
 import { useGliederungStand } from '../editor/gliederung-stand';
 import { halteFokus } from '../editor/halteFokus';
 import { Einstellungen, Inspektor, Umriss } from '../editor/Inspektor';
+import { zeigeBlattGestaltung } from '../editor/gestaltung/blatt';
 import { gestaltungKontext } from '../editor/gestaltung/kontext';
 import { GestaltungUeberlagerung } from '../editor/gestaltung/ueberlagerung';
 import { Leinwand } from '../editor/Leinwand';
@@ -863,6 +864,7 @@ const Bearbeitung = ({ dokument, mappe: mappenDaten }: { mappe: Mappe; dokument:
 			aktiv={frei}
 			doc={docJetzt}
 			quelle={quelle}
+			seite={{ auswahl, sichtbar: seite.nr }}
 			struktur={struktur}
 			ueberlauf={ueberlaufendeSeiten(pruefung.stand)}
 			loesung={loesung ? <Loesungsuebersicht l={loes} /> : null}
@@ -918,6 +920,7 @@ const Bearbeitung = ({ dokument, mappe: mappenDaten }: { mappe: Mappe; dokument:
 			panels.setRechtsOffen(true);
 		},
 		kontextmenue: menueAn,
+		zeigeSeitengestaltung: (nr) => zeigeBlattGestaltung(nr, struktur.zeigeAn, zeigeEinstellung),
 		angeheftet: panels.angeheftet,
 		schalteAnheften: panels.schalteAnheften,
 	};

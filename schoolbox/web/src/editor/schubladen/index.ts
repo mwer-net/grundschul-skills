@@ -42,6 +42,8 @@ export interface SchubladenTeile {
 	/** Wählt den Baustein, rollt das Blatt dorthin und zeigt rechts seine Einstellungen. */
 	zeigeAn: (nr: number) => void;
 	kontextmenue: (nr: number, art: 'baustein' | 'miniatur', punkt: { x: number; y: number }) => void;
+	/** Ebenen: Zeile „Seitenfläche“ oder „Seitenrahmen“ öffnet Reiter „Blatt“ › Gestaltung dieser Seite (095). */
+	zeigeSeitengestaltung: (seite: number) => void;
 	/** Ebenen angeheftet (Stecknadel im Kopf der Ebenen). */
 	angeheftet: boolean;
 	schalteAnheften: () => void;

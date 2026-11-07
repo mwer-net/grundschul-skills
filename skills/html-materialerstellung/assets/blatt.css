@@ -434,6 +434,21 @@ body.sw[data-aufmachung] .kopf::before{display:none}
 body.sw[data-aufmachung] .kopf h1{color:var(--dunkel)}
 
 /* >> 095 Seitenfläche, Seitenrahmen */
+/* Die Fläche reicht bis an den Blattrand: .ebene liegt mit inset:0 in .seite, deren padding gilt dort nicht.
+   Muster sind reine CSS-Verläufe, --muster-groesse ist die Kachel. */
+.seitenflaeche{background:var(--f1,#fff)}
+.seitenflaeche[data-flaeche="verlauf"]{background:linear-gradient(var(--winkel,180deg),var(--f1,#fff),var(--f2,#fff))}
+.seitenflaeche[data-flaeche="muster"]{background-color:var(--f1,#fff);background-size:var(--muster-groesse,24px) var(--muster-groesse,24px)}
+.seitenflaeche[data-flaeche="muster"]:is([data-muster="streifen"],:not([data-muster])){background-image:linear-gradient(var(--f2,var(--linie)) 0 30%,transparent 30%)}
+.seitenflaeche[data-flaeche="muster"][data-muster="punkte"]{background-image:radial-gradient(circle,var(--f2,var(--linie)) 0 20%,transparent 21%)}
+.seitenflaeche[data-flaeche="muster"][data-muster="karo"]{background-image:linear-gradient(var(--f2,var(--linie)) 0 2px,transparent 2px),linear-gradient(90deg,var(--f2,var(--linie)) 0 2px,transparent 2px)}
+.seitenflaeche[data-flaeche="muster"][data-muster="schraeg"]{background-size:auto;background-image:repeating-linear-gradient(45deg,var(--f2,var(--linie)) 0 calc(var(--muster-groesse,24px)*.2),transparent 0 calc(var(--muster-groesse,24px)*.5))}
+/* Rahmen: Standardabstand 24 px, außerhalb des Druckrands (19 px); im Mini-Book 8 px. doppelt braucht mindestens 4 px. */
+.seitenrahmen{inset:var(--rahmen-abstand,24px);border:var(--rahmen-staerke,2px) solid var(--rahmen-farbe,var(--dunkel));border-radius:var(--rahmen-ecke,0)}
+body.minibuch .seitenrahmen{inset:var(--rahmen-abstand,8px)}
+.seitenrahmen[data-rahmen="doppelt"]{border-style:double;border-width:max(4px,var(--rahmen-staerke,2px))}
+.seitenrahmen[data-rahmen="gestrichelt"]{border-style:dashed}
+.seitenrahmen[data-rahmen="gepunktet"]{border-style:dotted}
 /* << 095 */
 
 /* >> 102 Figuren */

@@ -31,6 +31,8 @@ import { Zeile } from '../bausteine/Zeile';
 import { klasseName } from '../lib/text';
 import type { Ablage } from './ablage';
 import type { PfadTeil } from './darstellung';
+import type { BlattSeite } from './gestaltung/blatt';
+import { BlattGestaltung } from './gestaltung/blatt';
 import { palettenFarben } from './palettenfarben';
 import type { Spalten, Struktur } from './struktur';
 import { EIGENE_GESCHICHTE } from './tasten';
@@ -317,10 +319,13 @@ export const Blattwerkzeug = ({
 	doc,
 	loesung,
 	quelle,
+	seite,
 	struktur,
 	ueberlauf,
 }: {
 	aktiv: boolean;
+	/** Für Blatt › Gestaltung: Auswahl und sichtbare Seite. */
+	seite: BlattSeite;
 	doc: Document | null;
 	/** Die Übersicht der Lösungen, wenn gerade die Lösung zu sehen ist. */
 	loesung: ReactNode;
@@ -527,6 +532,7 @@ export const Blattwerkzeug = ({
 					{loesung}
 				</Abschnitt>
 			)}
+			<BlattGestaltung doc={doc} quelle={aktuelleQuelle} struktur={struktur} seite={seite} />
 		</div>
 	);
 };
