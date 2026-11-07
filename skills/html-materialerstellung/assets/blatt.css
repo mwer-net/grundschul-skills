@@ -463,6 +463,13 @@ svg.form{overflow:visible;display:block}
 /* << 104 */
 
 /* >> 105 Text */
+/* Schmuckschrift: liegt frei, nie für Inhalt. Ohne --b so breit wie der Text, mit --b bricht er um. --schrift nur
+   Fredoka (600) oder Andika (700): die eingebetteten Schnitte. Stempel und Etikett nach Briefing 3.4. */
+div.schmuck[data-lage="frei"]{width:var(--b,max-content);font:600 var(--gr,40px)/1.1 var(--schrift,Fredoka),sans-serif;
+  color:var(--farbe,var(--dunkel));text-align:var(--ausrichtung,left);overflow-wrap:break-word}
+div.schmuck[data-schmuck="stempel"]{border:3px solid currentColor;border-radius:8px;padding:.05em .4em;
+  text-transform:uppercase;letter-spacing:.06em}
+div.schmuck[data-schmuck="etikett"]{background:var(--hg,var(--akzent));color:var(--farbe,#fff);border-radius:999px;padding:.15em .7em}
 /* << 105 */
 
 /* >> 107 Formen-Werkzeuge, Sprechblase */

@@ -225,11 +225,13 @@ describe('Werkzeuge (098)', () => {
 
 	it('ohne bereites Werkzeug gibt es auch V nicht, und die Tasten bleiben beim Browser', () => {
 		testZugang(false);
+		// >> 105: T ist überall bereit, wo frei bearbeitet wird; ohne freie Lage bleibt kein Werkzeug.
+		const ohne = kontext({ frei: false });
+		// << 105
 		const v = BEFEHLE.find((b) => b.id === 'werkzeug.auswahl');
-		assert.equal(v?.verfuegbar(kontext()), false);
-		assert.equal(v?.inUebersicht?.(), false);
-		assert.equal(befehlZuTaste(taste('KeyV'), 'auswahl', kontext()), undefined);
-		assert.equal(befehlZuTaste(taste('KeyQ'), 'ohne', kontext()), undefined);
+		assert.equal(v?.verfuegbar(ohne), false);
+		assert.equal(befehlZuTaste(taste('KeyV'), 'auswahl', ohne), undefined);
+		assert.equal(befehlZuTaste(taste('KeyQ'), 'ohne', ohne), undefined);
 	});
 
 	it('Buchstaben wählen das Werkzeug, aber nie beim Tippen und nie statt ⌘V', () => {

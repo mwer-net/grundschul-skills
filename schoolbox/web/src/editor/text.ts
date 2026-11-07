@@ -2,8 +2,11 @@ import { kann } from '@schoolbox/kern/src/bausteine';
 import type { Zerlegung } from '@schoolbox/kern/src/quelltext';
 import { useCallback, useEffect, useRef, useState } from 'react';
 
+import { entferneLeereSchmuck } from '@schoolbox/kern/src/schmuck';
+
 import type { Urheber } from './bearbeitung';
 import { elementZu, trefferAn } from './darstellung';
+import { endetNachAnlegen, nimmTextsitzungWunsch } from './gestaltung/textsitzung';
 import type { Format, TextSteuerung, TextZustand } from './textdom';
 import { ruesteText } from './textdom';
 
@@ -13,7 +16,7 @@ export const TEXTWERKZEUG = 'data-textwerkzeug';
 /** So heißt der Schritt, den eine Textsitzung hinterlässt. */
 export const TEXT_GEAENDERT = 'Text geändert';
 
-const RUHE: TextZustand = { fett: false, unterstrichen: false, fettMoeglich: true, geaendert: false };
+const RUHE: TextZustand = { fett: false, unterstrichen: false, fettMoeglich: true, geaendert: false, farbe: false };
 
 interface Optionen {
 	/** Das sichtbare Dokument im `iframe` mit dem HTML, aus dem es entstand. */
@@ -24,7 +27,8 @@ interface Optionen {
 	auswahl: number | null;
 	setAuswahl: (neu: (alt: number | null) => number | null) => void;
 	bearbeitbar: boolean;
-	befehl: (neu: string, beschreibung: string) => void;
+	/** `mitAnlegen` (105): Der Schritt gehört zum Anlegen davor und wird mit ihm einer. */
+	befehl: (neu: string, beschreibung: string, mitAnlegen?: boolean) => void;
 	/** Nachsehen, ob jemand anderes das Material geändert hat. */
 	pruefe: (urheber: Urheber) => Promise<void>;
 	/** Bei jeder Eingabe, z. B. für die Live-Prüfung: Die Quelle ändert sich erst am Ende. */
@@ -88,16 +92,27 @@ export const useText = ({
 			},
 			endet: (ergebnis) => {
 				setBearbeitet(false);
-				setZustand({ ...RUHE, fettMoeglich: s.zustand().fettMoeglich });
+				setZustand({ ...RUHE, fettMoeglich: s.zustand().fettMoeglich, farbe: s.zustand().farbe });
+				// 105: Die erste Sitzung neuer Schmuckschrift ist mit dem Anlegen ein Schritt; leer bleibt keiner.
+				const anlegen = endetNachAnlegen(zerlegung.quelle);
 				if (ergebnis) {
-					rueckrufe.current.befehl(ergebnis.quelle, TEXT_GEAENDERT);
-					rueckrufe.current.setAuswahl((alt) => (alt === null ? null : ergebnis.umrechnen(alt)));
+					const fertig = anlegen
+						? entferneLeereSchmuck(ergebnis.quelle, ergebnis.umrechnen(treffer.nr))
+						: { quelle: ergebnis.quelle, nr: 0 };
+					rueckrufe.current.befehl(fertig.quelle, TEXT_GEAENDERT, anlegen);
+					rueckrufe.current.setAuswahl((alt) =>
+						alt === null || fertig.quelle !== ergebnis.quelle ? null : ergebnis.umrechnen(alt),
+					);
 				}
 			},
 		});
 		steuerung.current = s;
+		if (nimmTextsitzungWunsch(treffer.element, zerlegung.quelle)) {
+			s.fokussiere();
+			s.markiereAlles();
+		}
 		// Schon bei der Auswahl: Der Knopf ist dort gesperrt, wo Fett nicht geht.
-		setZustand({ ...RUHE, fettMoeglich: s.zustand().fettMoeglich });
+		setZustand({ ...RUHE, fettMoeglich: s.zustand().fettMoeglich, farbe: s.zustand().farbe });
 		return () => {
 			steuerung.current = null;
 			s.abbauen();
@@ -135,6 +150,8 @@ export const useText = ({
 	};
 
 	const formatiere = useCallback((format: Format) => steuerung.current?.formatiere(format), []);
+	/** 105: Farbe für die markierten Wörter, nur in Schmuckschrift; `null` nimmt sie heraus. */
+	const faerbe = useCallback((farbe: string | null) => steuerung.current?.faerbe(farbe), []);
 	/** Aus der Auswahl: Sitzung starten, alles markieren, formatieren. Am Ende bleibt das ein Schritt im Verlauf. */
 	const formatiereGanz = useCallback((format: Format) => {
 		const s = steuerung.current;
@@ -151,5 +168,5 @@ export const useText = ({
 	const fokussiere = useCallback(() => steuerung.current?.fokussiere(), []);
 	const halte = useCallback((an: boolean) => steuerung.current?.halte(an), []);
 
-	return { bearbeitet, zustand, formatiere, formatiereGanz, beende, fokussiere, halte, pruefeSpaeter };
+	return { bearbeitet, zustand, formatiere, formatiereGanz, faerbe, beende, fokussiere, halte, pruefeSpaeter, doc };
 };

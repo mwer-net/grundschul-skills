@@ -35,15 +35,19 @@ export const GEHT_NOCH_NICHT = 'Geht noch nicht';
 const lageVon = (gut: GestaltungsGut, x: number, y: number): LageTeil => ({
 	x,
 	y,
-	b: gut.groesse.b,
+	...(gut.breiteAusInhalt ? {} : { b: gut.groesse.b }), // 105
 	...(gut.groesse.h === undefined ? {} : { h: gut.groesse.h }),
 });
 
 /** Legt das Gut ab: ein Schritt, danach ist das neue Element gewählt. Die Lage darf über die Seite hinausragen. */
-export const legeAb = (struktur: AblegenTeile['struktur'], gut: GestaltungsGut, ort: Ort) =>
-	struktur.fuehreAus(`${gut.name} abgelegt`, (q) =>
-		legeGestaltungAb(q, { seite: ort.seite, ebene: gut.ebene, html: gut.html, lage: lageVon(gut, ort.x, ort.y) }),
-	) !== null;
+export const legeAb = (struktur: AblegenTeile['struktur'], gut: GestaltungsGut, ort: Ort) => {
+	gut.vorDemAblegen?.(); // 105
+	return (
+		struktur.fuehreAus(`${gut.name} abgelegt`, (q) =>
+			legeGestaltungAb(q, { seite: ort.seite, ebene: gut.ebene, html: gut.html, lage: lageVon(gut, ort.x, ort.y) }),
+		) !== null
+	);
+};
 
 const hoeheVon = (doc: Document, seite: Element, gut: GestaltungsGut) =>
 	gut.groesse.h ?? missHoehe(doc, seite, gut.html, gut.groesse.b);

@@ -1,7 +1,7 @@
 import { BEREICH_SYMBOL, KATALOG_BEREICHE, KATALOG_KATEGORIEN } from '@schoolbox/kern/src/abbildungen';
 import { MEINE_BAUSTEINE, MEINE_BAUSTEINE_SYMBOL, sucheImKatalog } from '@schoolbox/kern/src/katalog';
 import type { Art, Fach, Klasse } from '@schoolbox/kern/src/werte';
-import type { PointerEvent as ReactPointerEvent } from 'react';
+import type { PointerEvent as ReactPointerEvent, ReactNode } from 'react';
 import { useEffect, useRef, useState } from 'react';
 
 import { meldung, sende } from '../api';
@@ -348,7 +348,8 @@ const KartenVorschau = ({ id, name }: { id: string; name: string }) => {
  * sonst nach kurzem Halten (`HALTEN_MS`), damit Wischen die Liste rollt. Gezogen wird mit Lücke im Blatt
  * (`zug-von-aussen.ts`).
  */
-const Karte = ({
+export const Karte = ({
+	anzeige,
 	bereich,
 	doc,
 	einfuegen,
@@ -359,6 +360,8 @@ const Karte = ({
 	bereich?: string;
 	doc: Document | null;
 	einfuegen: Einfuegen;
+	/** 105 (Schublade Text): statt Name und Vorschau eine kurze Zeile im Aussehen des Bausteins. */
+	anzeige?: ReactNode;
 }) => {
 	const [amZeiger, setAmZeiger] = useState<ZugAmZeiger | null>(null);
 	/** Gedrückt, aber noch kein Zug: Maus unter `MAUS_WEG`, Finger vor `HALTEN_MS`. */
@@ -479,7 +482,7 @@ const Karte = ({
 								}
 							}}
 						>
-							{eintrag.name}
+							{anzeige ?? eintrag.name}
 						</button>
 						{bereich && (
 							<span className="text-xs leading-tight text-dezent" data-treffer-bereich>
@@ -492,7 +495,7 @@ const Karte = ({
 						className="pointer-events-none absolute top-1 right-1 size-3.5 text-brand-500 opacity-0 group-hover:opacity-100 [@media(any-pointer:coarse)]:hidden"
 					/>
 					{/* Eigene haben keine Katalog-Adresse, ein Eintrag mit nur `klasse` hat keinen Inhalt zum Zeigen. */}
-					{!eintrag.eigen && !eintrag.klasse && <KartenVorschau id={eintrag.id} name={eintrag.name} />}
+					{!anzeige && !eintrag.eigen && !eintrag.klasse && <KartenVorschau id={eintrag.id} name={eintrag.name} />}
 				</div>
 			</div>
 			{eintrag.eigen && <EigenVerwalten id={eintrag.eigen} name={eintrag.name} neuLaden={einfuegen.neuLaden} />}

@@ -134,6 +134,26 @@ export const GESTALTEN: Abschnitt = {
 			{/* << 104 */}
 
 			{/* >> 105 */}
+			<h3>Text und Schmuckschrift</h3>
+			<p data-hilfe-text>
+				Die Schublade „Text“ (⌥5) zeigt zwei Arten Text, getrennt. Oben steht der Inhalt: Überschrift, Absatz, Tipp und
+				Lernziel. Er rastet wie jeder Baustein im Blatt ein, rutscht mit und steht in der Lösung. Darunter steht die
+				Schmuckschrift: Titel, Stempel und Etikett. Sie liegt frei wie eine Form, bleibt stehen, wenn Aufgaben rutschen,
+				und gehört nicht zur Lösung. Ein Klick legt sie in die Mitte der Seite und öffnet sofort das Schreiben; der
+				Platzhalter ist markiert, du tippst einfach drauflos. Esc oder ein Klick daneben beendet das Schreiben.
+			</p>
+			<p data-hilfe-text-werkzeug>
+				Mit T (oder „Text schreiben“ in der Schublade) klickst du an die Stelle, an der der Titel stehen soll. Ziehst du
+				stattdessen einen Rahmen auf, bricht der Text an dessen Breite um. Lässt du den Text leer, verschwindet er wieder.
+				Anlegen und Schreiben sind zusammen ein Schritt beim Rückgängig-Machen.
+			</p>
+			<p data-hilfe-text-farbe>
+				Ein zweifarbiger Titel geht so: Wort markieren, in der Leiste über dem Text auf den bunten Farbknopf und eine Farbe
+				wählen. Das gibt es nur in Schmuckschrift; Inhaltstext bleibt bei Fett, Unterstrichen und Hervorheben. Schrift
+				(Fredoka oder Andika), Größe und Farbe des ganzen Textes stellst du in der kleinen Leiste am Element oder rechts im
+				Inspektor unter „Text“ ein, dort auch die Ausrichtung und beim Etikett den Hintergrund. An der Ecke ziehst du die
+				Schrift größer, an der Seite nur die Breite.
+			</p>
 			{/* << 105 */}
 
 			{/* >> 106 */}
