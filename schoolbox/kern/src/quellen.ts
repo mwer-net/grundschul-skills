@@ -9,6 +9,7 @@
 import { readFileSync, writeFileSync } from 'node:fs';
 import path from 'node:path';
 
+import { figurenListe } from './figuren';
 import { GESTALTUNG_ARTEN } from './gestaltung-arten';
 import type { ArtAngaben } from './werte';
 import { ART_ANGABEN, ARTEN, VORLAGE_FORMAT } from './werte';
@@ -154,6 +155,10 @@ export const ABSCHNITTE: Abschnitt[] = [
 	// >> 092 Arten der Gestaltung
 	{ datei: GESTALTUNG, marke: 'gestaltung-arten', inhalt: gestaltungArten },
 	// << 092
+
+	// >> 102 Liste der Figuren
+	{ datei: GESTALTUNG, marke: 'figuren', inhalt: figurenListe },
+	// << 102
 
 	// >> 104 Formen und ihre Parameter
 	// << 104

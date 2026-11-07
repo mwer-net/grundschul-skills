@@ -6,6 +6,7 @@
 
 import type { Abbildung, KatalogAngaben } from './abbildungen';
 import { ABBILDUNG_SCHEMA } from './abbildungen';
+import { FIGUREN } from './figuren';
 import { GESTALTUNG_ARTEN } from './gestaltung-arten';
 
 export const FAEHIGKEITEN = [
@@ -568,8 +569,10 @@ export const KIT_KATALOG: readonly KitEintrag[] = [
 	{ id: 'malfeld', name: 'Malfeld', kategorie: 'Schreiben', suchbegriffe: ['Zeichnen', 'Malen'], ort: 'aufgabe' },
 	{ id: 'tipp', art: 'tipp', kategorie: 'Bilder', suchbegriffe: ['Leitfigur', 'Hilfe'], ort: 'seite' },
 	{ id: 'blase', art: 'blase', kategorie: 'Bilder', suchbegriffe: ['Sprechblase', 'Sagen'], ort: 'zeile' },
-	{ id: 'willi', name: 'Willi', kategorie: 'Bilder', suchbegriffe: ['Leitfigur', 'Waschbär'], ort: 'zeile' },
-	{ id: 'wilma', name: 'Wilma', kategorie: 'Bilder', suchbegriffe: ['Leitfigur', 'Waschbär'], ort: 'zeile' },
+	// Die Leitfiguren (Willi, Wilma …): Name und Suchwörter aus der Liste der Figuren (102).
+	...FIGUREN.map(
+		(f): KitEintrag => ({ id: f.id, name: f.name, kategorie: 'Bilder', suchbegriffe: [...f.suchwoerter], ort: 'zeile' }),
+	),
 	{ id: 'platzhalter', art: 'platzhalter', kategorie: 'Bilder', suchbegriffe: ['Bild', 'Foto'], ort: 'aufgabe' },
 	{
 		id: 'karten',

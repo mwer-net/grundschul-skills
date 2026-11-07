@@ -452,6 +452,9 @@ body.minibuch .seitenrahmen{inset:var(--rahmen-abstand,8px)}
 /* << 095 */
 
 /* >> 102 Figuren */
+/* Frei liegende Figur (Briefing 3.4): nur figur-frei, nie figur (die Leitfigur mit --figur). Breite aus --b, Höhe aus
+   dem Bild; Drehen und Spiegeln kommen aus [data-lage="frei"]. */
+img.figur-frei{height:var(--h,auto);object-fit:cover;object-position:var(--bx,50%) var(--by,50%)}
 /* << 102 */
 
 /* >> 103 Bilder frei */

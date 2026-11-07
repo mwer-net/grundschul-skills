@@ -187,6 +187,31 @@ Seite und lassen sich nicht ziehen. Sollen mehrere Seiten gleich aussehen, steht
 <!-- << 095 -->
 
 <!-- >> 102 Figuren -->
+## Figur frei
+
+Willi, Wilma und die anderen Figuren liegen frei auf der Seite, meist neben der Aufgabe, um die es geht. Die Figur
+schaut zur Aufgabe: Schaut sie in ihrer Datei in die falsche Richtung, steht `--spiegeln:-1` im `style`.
+
+```html
+<div class="ebene vorne">
+  <img class="figur-frei" data-lage="frei" data-figur="wilma" src="bilder/wilma.png" alt="Wilma"
+       style="--x:610px;--y:520px;--b:150px;--spiegeln:-1">
+</div>
+```
+
+- Nur die Klasse `figur-frei`, nie `figur`: `.figur` ist die Leitfigur im Tipp (`.tipp` mit `.blase`) und bleibt im
+  Stapel. Soll die Figur etwas sagen, bleibt es beim Tipp.
+- `data-figur` ist die Kennung aus der Liste unten, `src` die Datei dazu, `alt` der Name. Standardbreite 150px; die
+  Höhe kommt aus dem Bild, also kein `--h`.
+- Spiegeln und Drehen nur über `--spiegeln` und `--drehen`, nie über ein eigenes `transform`.
+- In s/w druckt eine Figur mit Strichfassung ihr Strichbild, die anderen in Graustufen. Dafür ist nichts zu tun.
+
+<!-- erzeugt: figuren -->
+| `data-figur` | Name | Datei | In s/w | Schaut nach |
+|---|---|---|---|---|
+| `willi` | Willi | `bilder/willi.png` | Strichbild `willi-strich.png` | rechts |
+| `wilma` | Wilma | `bilder/wilma.png` | Graustufen | rechts |
+<!-- /erzeugt: figuren -->
 <!-- << 102 -->
 
 <!-- >> 103 Bilder frei -->

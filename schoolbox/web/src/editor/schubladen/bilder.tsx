@@ -88,7 +88,15 @@ const Inhalt = (t: SchubladenTeile) => {
 					</h3>
 					{gruppe === 'sammlung' && (
 						<p className="text-xs text-leise" data-hinweis="figuren">
-							Willi & Co. findest du bald unter Figuren.
+							Willi & Co. findest du unter{' '}
+							<button
+								type="button"
+								className="font-medium text-brand-700 underline-offset-2 hover:underline"
+								onClick={() => t.oeffneSchublade('figuren')}
+							>
+								Figuren ⌥4
+							</button>
+							.
 						</p>
 					)}
 					{bild.arbeit === 'sammlung' && <Laeuft text="Bild wird eingesetzt …" />}

@@ -29,6 +29,7 @@ import {
 	Eye,
 	EyeOff,
 	FileText,
+	FlipHorizontal2,
 	Folder,
 	FolderInput,
 	FolderPlus,
@@ -191,6 +192,10 @@ const SYMBOLE = {
 	flaeche: PaintBucket,
 	funken: Sparkles,
 	// << 101
+
+	// >> 102 Figuren
+	spiegeln: FlipHorizontal2,
+	// << 102
 } as const satisfies Record<string, LucideIcon>;
 
 export type SymbolName = keyof typeof SYMBOLE;
