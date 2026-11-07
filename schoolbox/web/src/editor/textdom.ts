@@ -12,6 +12,8 @@ import {
 	zerlege,
 } from '@schoolbox/kern/src/quelltext';
 
+import { istFarbe } from '@schoolbox/kern/src/schmuck';
+
 import { nrVon } from './darstellung';
 
 const TEXT = 3;
@@ -50,6 +52,8 @@ export interface TextZustand {
 	fettMoeglich: boolean;
 	/** Die Sitzung hat die Quelle geändert, sie wird also am Ende ein Schritt. */
 	geaendert: boolean;
+	/** 105: Wörter dürfen eine Farbe bekommen (nur Schmuckschrift und Form mit Text, nie Inhalt). */
+	farbe: boolean;
 }
 
 export interface TextErgebnis {
@@ -80,6 +84,8 @@ export interface TextSteuerung {
 	/** Solange die Palette offen ist: Der Fokus geht weg, die Sitzung bleibt. */
 	halte: (an: boolean) => void;
 	formatiere: (format: Format) => void;
+	/** 105: Farbe für die Markierung, nur wo `zustand().farbe`; `null` nimmt sie heraus. */
+	faerbe: (farbe: string | null) => void;
 	markiereAlles: () => void;
 	zustand: () => TextZustand;
 	abbauen: () => void;
@@ -249,9 +255,34 @@ const textStuecke = (z: Zerlegung, k: Knoten) => {
 	return stuecke;
 };
 
+// >> 105 Farbe für Wörter, nur in Schmuckschrift
+/** Darin dürfen Wörter eine Farbe haben (Entscheidung 11 gilt für Inhalt, hier nicht). */
+export const FARBIGER_TEXT = 'div.schmuck, .form-text';
+/** Am farbigen `<span>`, das die Sitzung selbst gesetzt hat: die Farbe, wie sie in die Quelle kommt. */
+const WORTFARBE = 'data-wortfarbe';
+
+/** Die Farbe eines `<span>` aus der Sitzung oder der Quelle (`style="color:…"`); sonst `null`. */
+const wortfarbe = (el: Element) => {
+	const wert = el.getAttribute(WORTFARBE) ?? /(?:^|;)\s*color\s*:\s*([^;]+)/i.exec(el.getAttribute('style') ?? '')?.[1];
+	return wert && istFarbe(wert) ? wert.trim() : null;
+};
+// << 105
+
 /** Quelltext für den Inhalt eines bearbeiteten Elements: Text, `<b>`, `<u>`, `<br>`, Geschütztes wörtlich. */
 /** Vom Browser erzeugte Formatierung: Doppeltes fällt weg, Fremdes verliert nur sein Element. */
-const formatKnoten = (tag: string, fett: boolean, unter: boolean, kinder: (f: boolean, u: boolean) => string) => {
+const formatKnoten = (
+	n: Element,
+	fett: boolean,
+	unter: boolean,
+	kinder: (f: boolean, u: boolean) => string,
+	farbe: boolean,
+) => {
+	const tag = n.localName;
+	// 105: Nur in Schmuckschrift, nur was die Sitzung selbst gefärbt hat; jedes andere `span[style]` fällt weg.
+	const gefaerbt = farbe && tag === 'span' && n.hasAttribute(WORTFARBE) ? wortfarbe(n) : null;
+	if (gefaerbt) {
+		return `<span style="color:${gefaerbt}">${kinder(fett, unter)}</span>`;
+	}
 	if (tag === 'b' || tag === 'strong') {
 		return fett ? kinder(fett, unter) : `<b>${kinder(true, unter)}</b>`;
 	}
@@ -261,7 +292,7 @@ const formatKnoten = (tag: string, fett: boolean, unter: boolean, kinder: (f: bo
 	return tag === 'mark' ? `<mark>${kinder(fett, unter)}</mark>` : kinder(fett, unter);
 };
 
-export const textHtml = (element: Element, z: Zerlegung, zeilen: Zeilen) => {
+export const textHtml = (element: Element, z: Zerlegung, zeilen: Zeilen, farbe = false) => {
 	const texte = normaleTexte(element);
 	const leerzeichen = geschuetztesLeerzeichen(z.quelle);
 	const stueckeVon = (el: Element | null) => {
@@ -309,7 +340,7 @@ export const textHtml = (element: Element, z: Zerlegung, zeilen: Zeilen) => {
 		if (passt) {
 			return `${oeffnerVon(z, passt)}${AUS_DER_QUELLE}${kinder(fettNeu, unterNeu)}${schliesserVon(z, passt)}${AUS_DER_QUELLE}`;
 		}
-		return formatKnoten(tag, fett, unter, kinder);
+		return formatKnoten(n, fett, unter, kinder, farbe);
 	};
 	let html = [...element.childNodes].map((n) => knoten(n, false, false)).join('');
 	for (let vorher = ''; vorher !== html;) {
@@ -345,6 +376,7 @@ export const ruesteText = ({
 	zerlegung: z,
 }: Optionen): TextSteuerung => {
 	const zeilen = zeilenVon(baustein);
+	const farbig = element.matches(FARBIGER_TEXT);
 	const nr = nrVon(element);
 	const original = nr === null ? undefined : z.knoten[nr];
 	let sitzung: Sitzung | null = null;
@@ -462,7 +494,7 @@ export const ruesteText = ({
 	/** Was die Sitzung gerade aus der Quelle macht, ohne etwas anzufassen. */
 	const entwurf = (s: Sitzung) => {
 		const fassungen = s.elemente
-			.map((el) => ({ el, html: textHtml(el, z, zeilen), neu: !s.originale.some((k) => nrVon(el) === k.nr) }))
+			.map((el) => ({ el, html: textHtml(el, z, zeilen, farbig), neu: !s.originale.some((k) => nrVon(el) === k.nr) }))
 			.filter((t, i, alle) => !t.neu || !istLeer(t.html) || alle.length === 1);
 		const tag = s.originale[0]?.tag ?? element.localName;
 		const schliesser = (el: HTMLElement) => {
@@ -671,6 +703,84 @@ export const ruesteText = ({
 		});
 	};
 
+	// >> 105
+	const istWortfarbe = (n: Node | null): n is HTMLElement =>
+		istElement(n) && n.localName === 'span' && wortfarbe(n) !== null;
+
+	const gefaerbt = (farbe: string, inhalt: Node) => {
+		const span = doc.createElement('span');
+		span.setAttribute(WORTFARBE, farbe);
+		span.style.color = farbe;
+		span.append(inhalt);
+		return span;
+	};
+
+	const markiere = (erstes: Node | null, letztes: Node | null) => {
+		const s = doc.getSelection();
+		if (!s || !erstes || !letztes) {
+			return;
+		}
+		const r = doc.createRange();
+		r.setStartBefore(erstes);
+		r.setEndAfter(letztes);
+		s.removeAllRanges();
+		s.addRange(r);
+	};
+
+	/**
+	 * Legt `<span style="color:…">` um die Markierung (zweifarbiger Titel). Farbige Teile darin verlieren ihre Farbe,
+	 * ein farbiges `<span>` um die Markierung wird an ihren Rändern geteilt. Ohne Farbe bleibt nur der Text.
+	 */
+	const faerbe = (farbe: string | null) => {
+		const r = auswahl();
+		const el = traeger(r?.startContainer ?? null);
+		if (!sitzung || !farbig || !r || r.collapsed || !el || !el.contains(r.endContainer)) {
+			return;
+		}
+		if (farbe !== null && !istFarbe(farbe)) {
+			return;
+		}
+		still(() => {
+			const start = r.commonAncestorContainer;
+			const um = (istElement(start) ? start : start.parentElement)?.closest('span');
+			const aussen = um && um !== el && el.contains(um) && istWortfarbe(um) ? um : null;
+			if (aussen) {
+				const alt = wortfarbe(aussen) ?? '';
+				const vorn = doc.createRange();
+				vorn.setStart(aussen, 0);
+				vorn.setEnd(r.startContainer, r.startOffset);
+				const hinten = doc.createRange();
+				hinten.setStart(r.endContainer, r.endOffset);
+				hinten.setEnd(aussen, aussen.childNodes.length);
+				const teilVorn = vorn.extractContents();
+				const teilHinten = hinten.extractContents();
+				const mitte = doc.createDocumentFragment();
+				mitte.append(...aussen.childNodes);
+				const kinder = [...mitte.childNodes];
+				const neu = farbe === null ? mitte : gefaerbt(farbe, mitte);
+				const erste = farbe === null ? (kinder[0] ?? null) : neu;
+				const letzte = farbe === null ? (kinder.at(-1) ?? null) : neu;
+				aussen.replaceWith(
+					...(teilVorn.textContent ? [gefaerbt(alt, teilVorn)] : []),
+					neu,
+					...(teilHinten.textContent ? [gefaerbt(alt, teilHinten)] : []),
+				);
+				markiere(erste, letzte);
+				return;
+			}
+			const inhalt = r.extractContents();
+			for (const innen of [...inhalt.querySelectorAll('span')].filter(istWortfarbe)) {
+				innen.replaceWith(...innen.childNodes);
+			}
+			const kinder = [...inhalt.childNodes];
+			const neu = farbe === null ? inhalt : gefaerbt(farbe, inhalt);
+			r.insertNode(neu);
+			markiere(farbe === null ? (kinder[0] ?? null) : neu, farbe === null ? (kinder.at(-1) ?? null) : neu);
+		});
+		aendert();
+	};
+	// << 105
+
 	const formatiere = (format: Format) => {
 		if (!sitzung || (format === 'bold' && !fettMoeglich())) {
 			return;
@@ -839,12 +949,14 @@ export const ruesteText = ({
 			setzeCursor(ziel, ziel.nodeType === TEXT ? (ziel as Text).length : element.childNodes.length);
 		},
 		formatiere,
+		faerbe,
 		markiereAlles: () => doc.getSelection()?.selectAllChildren(element),
 		zustand: () => ({
 			fett: sitzung !== null && doc.queryCommandState('bold'),
 			unterstrichen: sitzung !== null && doc.queryCommandState('underline'),
 			fettMoeglich: fettMoeglich(),
 			geaendert: sitzung !== null && entwurf(sitzung).quelle !== z.quelle,
+			farbe: farbig,
 		}),
 		abbauen: () => {
 			beende();

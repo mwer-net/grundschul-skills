@@ -1,4 +1,5 @@
 import { ergaenzeFormen } from '@schoolbox/kern/src/formen-aendern';
+import { fasseMitAnlegenZusammen } from '@schoolbox/kern/src/schmuck';
 import type { Verlauf } from '@schoolbox/kern/src/quelltext';
 import { macheRueckgaengig, neuerVerlauf, nimmAuf, wiederhole } from '@schoolbox/kern/src/quelltext';
 import type { RefObject } from 'react';
@@ -128,10 +129,11 @@ export const useBearbeitung = (mappe: string, dok: string, auswahl: RefObject<nu
 	);
 
 	const befehl = useCallback(
-		(neu: string, beschreibung: string) => {
+		(neu: string, beschreibung: string, mitAnlegen = false) => {
 			if (!konflikt) {
 				const gewaehlt = auswahl.current;
-				setVerlauf((v) => v && nimmAuf(v, neu, beschreibung, gewaehlt));
+				// 105: Die erste Textsitzung neuer Schmuckschrift wird mit dem Anlegen ein Schritt.
+				setVerlauf((v) => v && (mitAnlegen ? fasseMitAnlegenZusammen(v, neu, gewaehlt) : nimmAuf(v, neu, beschreibung, gewaehlt)));
 			}
 		},
 		[auswahl, konflikt],

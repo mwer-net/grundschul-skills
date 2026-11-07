@@ -18,6 +18,10 @@ export interface GestaltungsGut {
 	ebene: EbenenName;
 	/** ⌘ beim Ziehen: so rastet es im Stapel ein, mit Lücke (094). Ohne Angabe tut ⌘ nichts („Geht noch nicht“). */
 	imStapel?: { html: string; legeAb: (ablage: Ablage) => void };
+	/** 105: Die Breite kommt aus dem Inhalt (Schmuckschrift ohne `--b`); `groesse.b` gilt nur zum Mitten und Zeigen. */
+	breiteAusInhalt?: boolean;
+	/** 105: Kurz vor dem Ablegen (Klick, Ziehen, ⌘K), z. B. um danach die Textsitzung zu öffnen. */
+	vorDemAblegen?: () => void;
 }
 
 /** Die Standard-Ebene der Art wie im Kern (`legeGestaltungAb`): Streuung hinten, alles andere vorne. */

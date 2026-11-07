@@ -287,6 +287,45 @@ Pfads in Elementgröße. Ändert sich die Größe, zeichnet der Editor beides ne
 <!-- << 104 -->
 
 <!-- >> 105 Schmuckschrift -->
+## Schmuckschrift
+
+Schmuckschrift ist Text **zum Schmücken**, nicht Inhalt: ein großer Titel auf dem Deckblatt, ein Stempel „Prima!“,
+ein Etikett „13 Fälle“. Sie liegt frei in der Ebene `vorne` wie eine Form, bleibt stehen, wenn Aufgaben rutschen, und
+steht nicht in der Lösung. **Was die Kinder lesen müssen** (Überschrift, Arbeitsauftrag, Absatz, Tipp, Lernziel), ist
+kein Schmuck, sondern ein Baustein im Stapel.
+
+```html
+<div class="ebene vorne">
+  <div class="schmuck" data-lage="frei" data-schmuck="titel"
+       style="--x:64px;--y:150px;--b:666px;--gr:56px;--farbe:var(--dunkel)">Die <span style="color:var(--akzent)">Formen</span>-Detektive</div>
+  <div class="schmuck" data-lage="frei" data-schmuck="stempel" style="--x:560px;--y:960px;--drehen:-8deg;--gr:28px">Prima!</div>
+  <div class="schmuck" data-lage="frei" data-schmuck="etikett" style="--x:120px;--y:840px;--gr:20px;--hg:var(--haupt)">13 Fälle</div>
+</div>
+```
+
+| Art | `data-schmuck` | Aussehen | Größe beim Ablegen |
+|---|---|---|---|
+| Titel | `titel` | Fredoka, Farbe `var(--dunkel)` | 56 px |
+| Stempel | `stempel` | Großbuchstaben, Rahmen in Schriftfarbe, `--drehen:-8deg` | 28 px |
+| Etikett | `etikett` | Pille mit Hintergrund `var(--akzent)`, weiße Schrift | 18 px |
+
+| Variable | Bedeutung | Standard |
+|---|---|---|
+| `--gr` | Schriftgröße in px, 12–160 | 40px |
+| `--farbe` | Schriftfarbe | `var(--dunkel)`, beim Etikett `#fff` |
+| `--hg` | Hintergrund, nur beim Etikett | `var(--akzent)` |
+| `--schrift` | `Fredoka` oder `Andika`, keine anderen | Fredoka |
+| `--ausrichtung` | `left`, `center`, `right` | `left` |
+| `--b` | Breite: Der Text bricht um. Ohne `--b` so breit wie der Text | – |
+
+- **Nicht für Inhalt.** Steht die Information auch in der Lösung oder ist sie Teil der Aufgabe, gehört sie in einen
+  Baustein. Ein Titel aus Schmuckschrift ersetzt nicht das `h1` im Kopf, wenn das Blatt einen Kopf hat.
+- **Größe:** nie unter `0.8 × --fs` der Klasse (Klasse 1: 22 px, Klasse 2: 19 px). Die Prüfung `schrift-klein` gilt
+  auch für Schmuckschrift.
+- **Zwei Farben:** einzelne Wörter in `<span style="color:var(--akzent)">`. Nur in Schmuckschrift, nie im Inhalt.
+  Sonst steht darin nur Text, `<br>`, `<b>`, `<u>`, `<mark>`.
+- Nur die eingebetteten Schriften (Fredoka 600, Andika 400/700). Eine Schrift aus dem Netz fehlt im Druck.
+- Farben bevorzugt als Farben des Blatts (`var(--haupt)` …), sie folgen Palette und Thema; Hex folgt nicht.
 <!-- << 105 -->
 
 <!-- >> 106 Anker -->
