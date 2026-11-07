@@ -7,13 +7,13 @@ import { expect, test } from './hilfe';
 import type { SchubladenName } from './schubladen-hilfe';
 import { oeffneSchublade, schubladenKnopf } from './schubladen-hilfe';
 
-/** Schubladenleiste (093): Ebenen ⌥1, Bausteine ⌥2, Formen ⌥3 (104), Figuren ⌥4 (102), Bilder ⌥6; Text und Rezepte noch unsichtbar. */
+/** Schubladenleiste (093): Ebenen ⌥1, Bausteine ⌥2, Formen ⌥3 (104), Figuren ⌥4 (102), Text ⌥5 (105), Bilder ⌥6; Rezepte noch unsichtbar. */
 
 const offen = (page: Page) => page.locator('[data-panel-links]');
 const blattBreite = async (page: Page) => (await page.locator('main').boundingBox())?.width ?? 0;
 const palette = (page: Page) => page.locator('[data-befehlspalette]');
 const bilder = (page: Page) => page.locator('[data-schublade-bilder]');
-const UNSICHTBAR: SchubladenName[] = ['text', 'rezepte'];
+const UNSICHTBAR: SchubladenName[] = ['rezepte'];
 const WACHSTUM = '_assets/bilder/wachstum.png';
 
 const blatt = async (page: Page) => {
@@ -97,7 +97,7 @@ test.describe('Schubladenleiste (093)', () => {
 		await page.keyboard.press('Escape');
 		await page.goto('/hilfe#gestalten');
 		const liste = page.locator('[data-hilfe-schubladen]');
-		await expect(liste.locator('[data-hilfe-schublade]')).toHaveCount(5);
+		await expect(liste.locator('[data-hilfe-schublade]')).toHaveCount(6);
 		await expect(liste).not.toContainText('Rezepte');
 	});
 
