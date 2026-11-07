@@ -15,7 +15,7 @@ import { doppelklickZiel } from './doppelklick';
 import type { Hilfslinie, Kandidat } from './einrasten';
 import { rasteEin, sammleKandidaten } from './einrasten';
 import type { GriffName, GroessenArt, Kasten } from './geste';
-import { bewege, drehe, haeltVerhaeltnis, inKasten, skaliere, wertText, winkelZu } from './geste';
+import { bewege, drehe, GRIFFE, haeltVerhaeltnis, inKasten, skaliere, wertText, winkelZu } from './geste';
 import type { ZusatzGriff } from './griffe';
 import type { GestaltungKontext } from './kontext';
 import { gestaltungKontext, zeigeLageAm } from './kontext';
@@ -293,7 +293,7 @@ export const useGeste = (o: Optionen) => {
 				eigeneSeite,
 				zielSeite: eigeneSeite,
 				// Einmal je Geste: Einrasten rechnet nie alle Elemente je Bewegung neu (4.12).
-				kandidaten: art === 'bewegen' ? sammleKandidaten(element, m.behaelter) : [],
+				kandidaten: art === 'bewegen' || art === 'skalieren' ? sammleKandidaten(element, m.behaelter) : [],
 				griff: null,
 				zusatz: null,
 				kontext: null,
@@ -353,7 +353,7 @@ export const useGeste = (o: Optionen) => {
 	// ── Bewegen im Blatt ──────────────────────────────────────────────────────
 
 	const bewegeZu = useCallback(
-		(x: number, y: number, umschalt: boolean, start: { x: number; y: number }) => {
+		(x: number, y: number, umschalt: boolean, start: { x: number; y: number }, befehl = false) => {
 			const l = lauf.current;
 			if (!l || l.art !== 'bewegen') {
 				return;
@@ -362,11 +362,14 @@ export const useGeste = (o: Optionen) => {
 			l.dy = y - start.y;
 			l.umschalt = umschalt;
 			const roh = bewege(l.start, l.dx, l.dy, { achse: umschalt });
-			const { lage, linien } = rasteEin(roh, l.kandidaten, aktuell.current.skala);
-			l.jetzt = lage;
 			if (l.seiten.length > 0) {
 				l.zielSeite = l.seiten.find((s) => enthaelt(s.flaeche, x, y)) ?? null;
 			}
+			// ⌘ schaltet das Einrasten aus (100); die Kandidaten gehören zur eigenen Seite.
+			const { lage, linien } = rasteEin(roh, l.kandidaten, aktuell.current.skala, {
+				aus: befehl || l.zielSeite !== l.eigeneSeite,
+			});
+			l.jetzt = lage;
 			zeigeLageAm(l.element, lageAus(lage));
 			zeige(l, { x, y }, linien);
 		},
@@ -488,7 +491,7 @@ export const useGeste = (o: Optionen) => {
 			const l = lauf.current;
 			if (l?.art === 'bewegen') {
 				e.preventDefault();
-				bewegeZu(e.clientX, e.clientY, e.shiftKey, zugStart);
+				bewegeZu(e.clientX, e.clientY, e.shiftKey, zugStart, e.metaKey || e.ctrlKey);
 				return;
 			}
 			if (!druck || e.pointerId !== druck.id) {
@@ -648,6 +651,7 @@ export const useGeste = (o: Optionen) => {
 			const winkel0 = winkelZu(mitte, start);
 			l.griff = griff === 'drehen' ? null : griff;
 			const bewegen = (m: PointerEvent) => {
+				let linien: Hilfslinie[] = [];
 				l.umschalt = m.shiftKey;
 				l.wahl = m.altKey;
 				if (griff === 'drehen') {
@@ -656,13 +660,23 @@ export const useGeste = (o: Optionen) => {
 					});
 					zeigeLageAm(l.element, { drehen: l.jetzt.drehen });
 				} else {
-					l.jetzt = skaliere(l.start, griff, (m.clientX - start.x) / skala, (m.clientY - start.y) / skala, {
-						verhaeltnis: haeltVerhaeltnis(l.groesse, griff, m.shiftKey),
+					const verhaeltnis = haeltVerhaeltnis(l.groesse, griff, m.shiftKey);
+					const roh = skaliere(l.start, griff, (m.clientX - start.x) / skala, (m.clientY - start.y) / skala, {
+						verhaeltnis,
 						mitte: m.altKey,
 					});
+					// Nur die bewegten Kanten rasten ein, ⌘ schaltet es aus (100).
+					const eingerastet = rasteEin(roh, l.kandidaten, skala, {
+						aus: m.metaKey || m.ctrlKey,
+						griff: GRIFFE[griff],
+						verhaeltnis,
+						mitte: m.altKey,
+					});
+					l.jetzt = eingerastet.lage;
+					linien = eingerastet.linien;
 					zeigeGroesse(l);
 				}
-				zeige(l, imMaterial(m.clientX, m.clientY));
+				zeige(l, imMaterial(m.clientX, m.clientY), linien);
 			};
 			const fertig = () => {
 				const { nr } = l;

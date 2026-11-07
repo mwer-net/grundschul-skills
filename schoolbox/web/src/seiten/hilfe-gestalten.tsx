@@ -71,6 +71,17 @@ export const GESTALTEN: Abschnitt = {
 			{/* << 099 */}
 
 			{/* >> 100 */}
+			<h3>Einrasten, Reihenfolge, Durchblick</h3>
+			<p data-hilfe-einrasten>
+				Beim Ziehen und beim Größe ändern rastet das Element an der Mitte der Seite, am Innenrand, am Druckrand, an den
+				Kanten und Mitten anderer Gestaltungselemente und an den Kanten der Bausteine ein; eine rosa Linie zeigt, woran.
+				Hältst du dabei ⌘, rastet nichts ein. Die Pfeiltasten schieben ein gewähltes Element um 1 Pixel, mit ⇧ um 10
+				Pixel; ist ein Baustein gewählt, wählen sie wie bisher den nächsten. Was vorne oder hinten liegt, ändern ⌥⇧⌘F
+				(nach vorne), ⇧⌘F (ganz nach vorne), ⌥⇧⌘B (nach hinten) und ⇧⌘B (ganz nach hinten), auch im ⋯ der Leiste. Liegt
+				es schon ganz vorne in der Ebene „hinten“, wechselt es nach „vorne“, und umgekehrt. Solange du G hältst, zeigt
+				das Blatt seinen Aufbau: den Rand des Stapels, den Druckrand, Anker und Ausgeblendetes. Lässt du los, sieht es
+				wieder aus wie gedruckt. Am iPad schaltet „Durchblick ein/aus“ in der Befehlssuche ⌘K das um.
+			</p>
 			{/* << 100 */}
 
 			{/* >> 101 */}

@@ -29,6 +29,8 @@
 	--color-warnung: #a34a07;
 	--color-warnung-hell: #fff8eb;
 	--color-gut: #15803d;
+	/* Hilfslinien beim Einrasten (100) */
+	--color-hilfslinie: #ec4899;
 
 	--text-xs: 11px;
 	--text-xs--line-height: 14px;

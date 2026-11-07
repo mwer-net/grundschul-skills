@@ -6,9 +6,11 @@ import type { Einblendung } from '../Leinwand';
 import type { Struktur } from '../struktur';
 import { Auswahlrahmen } from './auswahlrahmen';
 import { Druckrand } from './druckrand';
+import { Durchblick } from './durchblick';
 import type { GroessenArt } from './geste';
 import { griffeFuer } from './geste';
 import { ZUSATZ_GRIFFE } from './griffe';
+import { Hilfslinien, useAblageLinien } from './hilfslinien';
 import { istGestaltungElement } from './kontext';
 import { messe, useGeste } from './useGeste';
 import { WertAmZeiger } from './wert-am-zeiger';
@@ -29,6 +31,7 @@ export const GestaltungUeberlagerung = ({ e, pfad, struktur, textsitzung, waehle
 	const { links, skala } = e;
 	const geste = useGeste({ doc: e.doc, skala, pfad, struktur, waehle, textsitzung });
 	const { stand } = geste;
+	const ablageLinien = useAblageLinien(e.doc);
 	const gewaehlt = pfad.at(-1);
 	const element = gewaehlt ? elementZu(e.doc, gewaehlt.nr) : null;
 	const istFrei = istGestaltungElement(element);
@@ -45,25 +48,9 @@ export const GestaltungUeberlagerung = ({ e, pfad, struktur, textsitzung, waehle
 	return (
 		<>
 			{stand?.seite && <Druckrand links={links} seite={stand.seite} skala={skala} />}
-			{stand?.linien.map((l, i) => (
-				<svg
-					key={i}
-					className="pointer-events-none absolute overflow-visible"
-					style={{ left: links + stand.ursprung.x * skala, top: stand.ursprung.y * skala }}
-					width={1}
-					height={1}
-					data-hilfslinie
-				>
-					<line
-						x1={l.x1 * skala}
-						y1={l.y1 * skala}
-						x2={l.x2 * skala}
-						y2={l.y2 * skala}
-						stroke="#ec4899"
-						strokeWidth={1}
-					/>
-				</svg>
-			))}
+			{stand && <Hilfslinien links={links} skala={skala} ursprung={stand.ursprung} linien={stand.linien} />}
+			{ablageLinien && <Hilfslinien links={links} skala={skala} {...ablageLinien} />}
+			<Durchblick e={e} />
 			{istFrei && lage && (
 				<Auswahlrahmen
 					element={element}
