@@ -114,6 +114,19 @@ export const GESTALTEN: Abschnitt = {
 			{/* << 101 */}
 
 			{/* >> 102 */}
+			<h3>Figuren</h3>
+			<p data-hilfe-figuren>
+				In der Schublade „Figuren“ stehen Willi und Wilma. Ein Klick legt die Figur 150 Pixel breit in die Mitte des
+				sichtbaren Teils der Seite, gezogen liegt sie frei, wo du loslässt. Oben in der Schublade wählst du vorher, ob
+				die nächste Figur nach links oder nach rechts schaut; das merkt sich die Schoolbox auf diesem Gerät. Danach
+				spiegelst du eine gewählte Figur mit{' '}
+				<Kuerzel text={kuerzelText({ code: 'KeyH', umschalt: true })} className="text-[length:inherit]" /> oder mit
+				„Spiegeln“ in der Leiste darüber, drehst sie dort oder am runden Griff, und an den Ecken bleibt sie beim Größe
+				ändern im Verhältnis. Rechts im Inspektor tauschst du sie gegen eine andere Figur, Platz und Größe bleiben. Hältst
+				du beim Ziehen ⌘, kommt die Figur wie bisher als Tipp mit Sprechblase in den Stapel. In Schwarz-Weiß druckt Willi
+				als Strichzeichnung, Wilma in Graustufen. Als Leitfigur in einer Zeile findest du beide weiter unter „Bausteine“,
+				„Bilder“.
+			</p>
 			{/* << 102 */}
 
 			{/* >> 103 */}

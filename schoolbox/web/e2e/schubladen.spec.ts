@@ -7,13 +7,13 @@ import { expect, test } from './hilfe';
 import type { SchubladenName } from './schubladen-hilfe';
 import { oeffneSchublade, schubladenKnopf } from './schubladen-hilfe';
 
-/** Schubladenleiste (093): Ebenen ⌥1, Bausteine ⌥2, Formen ⌥3 (104), Bilder ⌥6; Figuren, Text und Rezepte noch unsichtbar. */
+/** Schubladenleiste (093): Ebenen ⌥1, Bausteine ⌥2, Formen ⌥3 (104), Figuren ⌥4 (102), Bilder ⌥6; Text und Rezepte noch unsichtbar. */
 
 const offen = (page: Page) => page.locator('[data-panel-links]');
 const blattBreite = async (page: Page) => (await page.locator('main').boundingBox())?.width ?? 0;
 const palette = (page: Page) => page.locator('[data-befehlspalette]');
 const bilder = (page: Page) => page.locator('[data-schublade-bilder]');
-const UNSICHTBAR: SchubladenName[] = ['figuren', 'text', 'rezepte'];
+const UNSICHTBAR: SchubladenName[] = ['text', 'rezepte'];
 const WACHSTUM = '_assets/bilder/wachstum.png';
 
 const blatt = async (page: Page) => {
@@ -83,7 +83,7 @@ test.describe('Schubladenleiste (093)', () => {
 			await expect(schubladenKnopf(page, name)).toHaveCount(0);
 		}
 		await page.keyboard.press('ControlOrMeta+k');
-		for (const wort of ['Figuren', 'Rezepte']) {
+		for (const wort of ['Rezepte']) {
 			await palette(page).getByRole('combobox').fill(wort);
 			await expect(palette(page).locator(`[data-palette-zeile^="ansicht.links-"]`)).toHaveCount(0);
 		}
@@ -97,7 +97,7 @@ test.describe('Schubladenleiste (093)', () => {
 		await page.keyboard.press('Escape');
 		await page.goto('/hilfe#gestalten');
 		const liste = page.locator('[data-hilfe-schubladen]');
-		await expect(liste.locator('[data-hilfe-schublade]')).toHaveCount(4);
+		await expect(liste.locator('[data-hilfe-schublade]')).toHaveCount(5);
 		await expect(liste).not.toContainText('Rezepte');
 	});
 
@@ -166,6 +166,9 @@ test.describe('Bilder-Schublade (093)', () => {
 		await expect(bilder(page).locator('[data-sammlung-bild]')).toHaveCount(1);
 		await bilder(page).getByRole('searchbox', { name: 'Bilder suchen' }).fill('kartoffelsalat');
 		await expect(bilder(page).getByText('Kein Bild passt zur Suche.')).toBeVisible();
+		// 102: Der Hinweis führt zu den Figuren.
+		await bilder(page).locator('[data-hinweis="figuren"]').getByRole('button', { name: 'Figuren ⌥4' }).click();
+		await expect(offen(page)).toHaveAttribute('data-panel-links', 'figuren');
 	});
 
 	test('„Foto hochladen“ zeigt den Hinweis', async ({ druecke, page }) => {

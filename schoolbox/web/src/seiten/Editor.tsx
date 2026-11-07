@@ -54,6 +54,7 @@ import { Palette } from '../editor/Palette';
 import { eintraegeImEditor } from '../editor/palette-eintraege';
 import { Blattwerkzeug } from '../editor/Panel';
 import type { SchubladenId, SchubladenTeile } from '../editor/schubladen';
+import { befehlZuSchublade } from '../editor/schubladen/reihe';
 import { Schubladen } from '../editor/schubladen/Schubladen';
 import { usePanels } from '../editor/panels';
 import type { Pruefpunkt } from '../editor/pruefung';
@@ -925,6 +926,7 @@ const Bearbeitung = ({ dokument, mappe: mappenDaten }: { mappe: Mappe; dokument:
 		zeigeSeitengestaltung: (nr) => zeigeBlattGestaltung(nr, struktur.zeigeAn, zeigeEinstellung),
 		angeheftet: panels.angeheftet,
 		schalteAnheften: panels.schalteAnheften,
+		oeffneSchublade: (id) => befehle.fuehreAus(befehlZuSchublade(id)),
 	};
 
 	const leinwandMenue = (treffer: { nr: number; art: string } | null, punkt: { x: number; y: number }) =>
