@@ -1,14 +1,16 @@
 import type { Sammlung, SammlungsBild } from '@schoolbox/kern/src/bildbefehle';
 import { fuegeBausteinEin } from '@schoolbox/kern/src/einfuegen';
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 
+import { AmZeiger } from '../../bausteine/AmZeiger';
 import { Schubladenhinweis, Schubladenkopf, Schubladensuche } from '../../bausteine/Schubladenkopf';
 import { Segment } from '../../bausteine/Segment';
 import { useLaden } from '../../lib/laden';
 import type { NeuerPlatz } from '../bild';
 import { beschreibungAus } from '../bild';
-import type { SammlungsGruppe } from '../Bildpanel';
+import type { BildZiehen, SammlungsGruppe } from '../Bildpanel';
 import { Hochladen, Laeuft, passt, SammlungsKacheln } from '../Bildpanel';
+import { bildGut, mitGeholtemBild } from '../gestaltung/ablegen/bild-gut';
 import type { Schublade, SchubladenTeile } from '.';
 import { kopf } from './reihe';
 
@@ -50,6 +52,35 @@ const Inhalt = (t: SchubladenTeile) => {
 		}
 		lief.current = bild.arbeit;
 	}, [bild.arbeit, neuLaden]);
+
+	// Ziehen (103): Erst beim Loslassen holt der Server das Bild in diesen Ordner; so lange steht das am Zeiger.
+	const zeiger = useRef({ x: 0, y: 0 });
+	const [geholt, setGeholt] = useState<{ x: number; y: number } | null>(null);
+	useEffect(() => {
+		const merke = (e: PointerEvent) => {
+			zeiger.current = { x: e.clientX, y: e.clientY };
+		};
+		window.addEventListener('pointermove', merke, true);
+		window.addEventListener('pointerup', merke, true);
+		return () => {
+			window.removeEventListener('pointermove', merke, true);
+			window.removeEventListener('pointerup', merke, true);
+		};
+	}, []);
+	const zeigeGeholt = useCallback((laeuft: boolean) => setGeholt(laeuft ? zeiger.current : null), []);
+	const { doc, einfuegen, folien, struktur } = t;
+	const platz = einfuegen.eintraege.find((e) => e.id === 'platzhalter');
+	const ziehen: BildZiehen = (eintrag, natur) => {
+		const vorschau = `/ansicht/${eintrag.schluessel}`;
+		const holend = mitGeholtemBild(struktur, vorschau, () => bild.hole(eintrag.schluessel), zeigeGeholt);
+		return {
+			teile: { doc, folien, struktur: holend },
+			gut: bildGut(
+				{ src: vorschau, alt: eintrag.alt[0] ?? beschreibungAus(eintrag.name), natur },
+				{ platz, jeSeite: folien, struktur: holend },
+			),
+		};
+	};
 
 	const ziel = bild.werte;
 	const neu = ziel ? undefined : neuerPlatz(t);
@@ -101,17 +132,32 @@ const Inhalt = (t: SchubladenTeile) => {
 						liste={liste}
 						suche={suche}
 						waehle={waehle}
+						ziehen={ziehen}
 					/>
 				</section>
 			</div>
 			<Schubladenhinweis>
 				{ziel
 					? `Klick auf ein Bild ${ziel.platzhalter ? 'setzt es in den Platzhalter ein' : 'tauscht das gewählte Bild aus'}.`
-					: 'Klick auf ein Bild fügt es hinter der Auswahl ein.'}
+					: 'Klick auf ein Bild fügt es hinter der Auswahl ein.'}{' '}
+				Ziehen legt es frei aufs Blatt, mit ⌘ als Baustein.
 			</Schubladenhinweis>
+			{geholt && (
+				<AmZeiger
+					className="rounded-lg bg-tinte px-3 py-2 font-medium whitespace-nowrap text-white shadow-2"
+					data-bild-holen
+					x={geholt.x + 10}
+					y={geholt.y + 10}
+				>
+					Bild wird geholt …
+				</AmZeiger>
+			)}
 		</div>
 	);
 };
 
-/** ⌥6: Fotos hochladen, Bilder aus dem Ordner, aus anderen Ordnern und der Sammlung. Ziehen kommt mit 103. */
+/**
+ * ⌥6: Fotos hochladen, Bilder aus dem Ordner, aus anderen Ordnern und der Sammlung. Klick setzt ein wie im Bild-Panel;
+ * Ziehen legt frei ab, auf ein Bild tauscht es aus, in einen Platzhalter füllt es ihn, mit ⌘ wird es Baustein (103).
+ */
 export const schublade: Schublade = { ...kopf('bilder'), bereit: () => true, Inhalt };

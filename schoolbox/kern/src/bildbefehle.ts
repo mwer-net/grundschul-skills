@@ -52,7 +52,7 @@ export const bildBreite = (z: Zerlegung, nr: number) => {
 	return /px$/.test(wert ?? '') && Number.isFinite(px) ? px : null;
 };
 
-/** Tauscht nur `src`, mit `alt` auch die Beschreibung; Größe und alles andere bleiben. */
+/** Tauscht nur `src`, mit `alt` auch die Beschreibung; Größe und alles andere bleiben, bei freien Bildern auch `style`. */
 export const tauscheBild = (quelle: string, nr: number, src: string, alt: string | null = null): StrukturErgebnis => {
 	const z = zerlege(quelle);
 	const k = bildAn(z, nr);
@@ -72,6 +72,10 @@ export const setzeBeschreibung = (quelle: string, nr: number, alt: string): Stru
 export const setzeBildBreite = (quelle: string, nr: number, px: number, max = Infinity): StrukturErgebnis => {
 	const z = zerlege(quelle);
 	const k = bildAn(z, nr);
+	// Freie Bilder (103) haben ihre Größe in `--b` (Griffe, Inspektor „Position und Größe“): zwei Größenlogiken vertragen sich nicht.
+	if (attribut(k, 'data-lage')) {
+		throw new Error('Die Größe eines frei liegenden Bildes stellst du an den Ecken oder unter „Position und Größe“ ein.');
+	}
 	const breite = Math.round(Math.max(BILD_MIN, Math.min(max, px)));
 	const stil = ohneStilWert(attribut(k, 'style')?.wert ?? null, 'height');
 	const neu = setzeStilWert(stil, istFigur(k) ? '--figur' : 'width', `${breite}px`);

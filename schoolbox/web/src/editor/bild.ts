@@ -12,7 +12,7 @@ import {
 import type { Knoten } from '@schoolbox/kern/src/quelltext';
 import { attribut, klassenVon, zerlege } from '@schoolbox/kern/src/quelltext';
 import type { StrukturErgebnis } from '@schoolbox/kern/src/struktur';
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { createContext, useCallback, useContext, useEffect, useRef, useState } from 'react';
 
 import { meldung, sende, sendeDatei } from '../api';
 import { useHinweis } from '../bausteine/hinweis';
@@ -53,6 +53,8 @@ export interface BildWerte {
 	/** Das Blatt ist gerade in der s/w-Ansicht (042). */
 	sw: boolean;
 	figur: boolean;
+	/** Liegt frei (`data-lage`, 103): Die Größe kommt aus `--b`, nicht aus `width`. */
+	frei: boolean;
 }
 
 export interface Groesse {
@@ -161,11 +163,15 @@ const miss = (element: HTMLElement, nr: number): BildWerte => {
 			unscharf: false,
 			sw: false,
 			figur: false,
+			frei: false,
 		};
 	}
 	const bild = element as HTMLImageElement;
+	const frei = bild.hasAttribute('data-lage');
 	const geladen = bild.complete && bild.naturalWidth > 0;
-	const dpi = geladen && rahmen.width > 0 ? Math.round((bild.naturalWidth / rahmen.width) * 96) : null;
+	// Ein gedrehtes freies Bild hat ein breiteres Rechteck als sich selbst; zählt nur seine eigene Breite.
+	const breite = frei ? bild.offsetWidth || rahmen.width : rahmen.width;
+	const dpi = geladen && breite > 0 ? Math.round((bild.naturalWidth / breite) * 96) : null;
 	return {
 		nr,
 		platzhalter: false,
@@ -180,6 +186,7 @@ const miss = (element: HTMLElement, nr: number): BildWerte => {
 		unscharf: dpi !== null && dpi < DPI_MIN,
 		sw: bild.ownerDocument.body.classList.contains('sw'),
 		figur: bild.classList.contains('figur'),
+		frei,
 	};
 };
 
@@ -195,7 +202,7 @@ const pruefeNoch = (quelle: string, w: BildWerte) => {
 };
 
 /** Der Platzhalter im eingefügten Baustein: er selbst oder sein erstes Kind dieser Art. */
-const platzhalterIn = (quelle: string, nr: number | null) => {
+export const platzhalterIn = (quelle: string, nr: number | null) => {
 	const k = nr === null ? undefined : zerlege(quelle).knoten[nr];
 	const suche = (n: Knoten): Knoten | undefined =>
 		klassenVon(n).includes('platzhalter') ? n : n.kinder.map(suche).find(Boolean);
@@ -205,6 +212,18 @@ const platzhalterIn = (quelle: string, nr: number | null) => {
 	}
 	return p.nr;
 };
+
+/** So breit wird ein neuer Bild-Baustein: so hoch wie ein neuer Platzhalter, höchstens so breit wie die Datei. */
+export const breiteImNeuenPlatz = (masse: { breite: number; hoehe: number }) =>
+	Math.min(masse.breite, (PLATZHALTER_HOEHE * masse.breite) / Math.max(1, masse.hoehe));
+
+/** Ein neuer Bild-Baustein: Platzhalter einfügen (`neu`) und im selben Schritt füllen. */
+export const bildInNeuemPlatz =
+	(neu: NeuerPlatz, bild: { src: string; alt: string; breite: number }) =>
+	(q: string): StrukturErgebnis => {
+		const r = neu(q);
+		return setzeBildEin(r.quelle, platzhalterIn(r.quelle, r.nr), bild);
+	};
 
 /**
  * Das Bild-Panel (017): Werte des gewählten Bildes aus der Darstellung und die Befehle dazu. Hochladen, Übernehmen
@@ -265,15 +284,7 @@ export const useBild = ({ adresse, basis, geladen, html, pfad, rueckgaengig, str
 			const w = aktuell.current;
 			if (!w && neu) {
 				const masse = natur ?? (await masseVon(src));
-				const breite = Math.min(masse.breite, (PLATZHALTER_HOEHE * masse.breite) / Math.max(1, masse.hoehe));
-				fuehreAus(
-					'Bild eingefügt',
-					(q) => {
-						const r = neu(q);
-						return setzeBildEin(r.quelle, platzhalterIn(r.quelle, r.nr), { src, alt, breite });
-					},
-					true,
-				);
+				fuehreAus('Bild eingefügt', bildInNeuemPlatz(neu, { src, alt, breite: breiteImNeuenPlatz(masse) }), true);
 				return;
 			}
 			if (!w) {
@@ -322,6 +333,32 @@ export const useBild = ({ adresse, basis, geladen, html, pfad, rueckgaengig, str
 			await setzeEin(src, alt, null, neu);
 		});
 
+	/**
+	 * Holt ein Bild aus der Sammlung oder einem anderen Ordner in diesen Ordner (103: Ziehen aus der Schublade) und gibt
+	 * seinen `src` zurück, ohne die Quelle zu ändern; `null` bei einem Fehler (der Hinweis steht dann schon).
+	 */
+	const hole = (schluessel: string) =>
+		new Promise<string | null>((fertig) => {
+			void arbeite('sammlung', async () => {
+				const { src } = await sende<{ src: string }>(`${adresse}/bilder/uebernehmen`, { schluessel });
+				fertig(src);
+			}).then(() => fertig(null));
+		});
+
+	/** Lädt eine Datei hoch wie „Foto hochladen“ (103: aus dem Finder), ohne die Quelle zu ändern; `null` bei einem Fehler. */
+	const ladeHoch = (datei: File) =>
+		new Promise<{ src: string; alt: string; breite: number; hoehe: number } | null>((fertig) => {
+			void arbeite('hochladen', async () => {
+				const { daten, name } = await bereiteVor(datei);
+				const bild = await sendeDatei<{ src: string; breite: number; hoehe: number }>(
+					`${adresse}/bilder`,
+					daten,
+					name,
+				);
+				fertig({ ...bild, alt: beschreibungAus(datei.name) });
+			}).then(() => fertig(null));
+		});
+
 	const zeigeBreite = (px: number) => {
 		const element = doc && werte ? (elementZu(doc, werte.nr) as HTMLElement | null) : null;
 		if (!element || !werte) {
@@ -349,8 +386,9 @@ export const useBild = ({ adresse, basis, geladen, html, pfad, rueckgaengig, str
 		}
 	};
 
+	// Freie Bilder (103): Größe nur über `--b` (Griffe, „Position und Größe“), sonst zwei Größenlogiken.
 	const groesse: Groesse | null =
-		werte && !werte.platzhalter && struktur.aktiv
+		werte && !werte.platzhalter && !werte.frei && struktur.aktiv
 			? { nr: werte.nr, min: BILD_MIN, max: werte.max, zeige: zeigeBreite, setze: setzeBreite }
 			: null;
 
@@ -362,6 +400,8 @@ export const useBild = ({ adresse, basis, geladen, html, pfad, rueckgaengig, str
 		adresse,
 		hochladen,
 		uebernimm,
+		hole,
+		ladeHoch,
 		zeigeBreite,
 		setzeBreite,
 		beschreibe,
@@ -370,3 +410,8 @@ export const useBild = ({ adresse, basis, geladen, html, pfad, rueckgaengig, str
 };
 
 export type BildSteuerung = ReturnType<typeof useBild>;
+
+/** Für Teile ohne eigene Leitung zum Editor (103: Inspektor bei freien Bildern); `Inspektor.tsx` stellt es bereit. */
+export const BildKontext = createContext<BildSteuerung | null>(null);
+
+export const useBildKontext = () => useContext(BildKontext);

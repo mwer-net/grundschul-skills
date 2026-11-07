@@ -32,6 +32,7 @@ import { useBearbeitung } from '../editor/bearbeitung';
 import type { MenueArt } from '../editor/befehle';
 import { Einfuegemarken } from '../editor/Bibliothek';
 import { useBild } from '../editor/bild';
+import { useBildAusFinder } from '../editor/bild-finder';
 import type { ChatHandlungen } from '../editor/chat-kontext';
 import { useChat, useChatKontext, useChatStand } from '../editor/chat-kontext';
 import { useClaudeApp } from '../editor/ClaudeApp';
@@ -524,6 +525,7 @@ const Bearbeitung = ({ dokument, mappe: mappenDaten }: { mappe: Mappe; dokument:
 		struktur,
 		text,
 	});
+	useBildAusFinder({ doc: docJetzt, struktur, bild, einfuegen, folien: format === 'folie' });
 	// Nach dem Schritt ist zu sehen, was er zurückgenommen hat. Die Nummern stimmen erst in der neuen Fassung.
 	const zuletzt = b.verlauf?.zuletzt;
 	const gezeigterSchritt = useRef(zuletzt);
