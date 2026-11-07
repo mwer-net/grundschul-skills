@@ -37,6 +37,8 @@ export interface GliederungSeite {
 	nr: number;
 	schluessel: string;
 	kinder: GliederungKnoten[];
+	/** Zuunterst: Seitenrahmen, dann Seitenfläche (095); ohne Griff, ein Klick öffnet Blatt › Gestaltung. */
+	unten: { nr: number; teil: 'seitenrahmen' | 'seitenflaeche' }[];
 }
 
 export interface SeitenSpur {
@@ -94,6 +96,15 @@ const rohIn = (elemente: ReadonlyMap<number, Element>, eltern: Knoten): Roh[] =>
 		}
 		return [{ nr: k.nr, element, baustein, kinder: rohIn(elemente, k) }];
 	});
+
+/** Seitenrahmen und Seitenfläche in `.ebene.hinten`, vorderes zuerst, wie im Baum oben vorne ist. */
+const untenIn = (seite: Knoten): GliederungSeite['unten'] => {
+	const hinten = seite.kinder.find((k) => klassenVon(k).includes('ebene') && klassenVon(k).includes('hinten'));
+	return (['seitenrahmen', 'seitenflaeche'] as const).flatMap((teil) => {
+		const k = hinten?.kinder.find((c) => klassenVon(c).includes(teil));
+		return k ? [{ nr: k.nr, teil }] : [];
+	});
+};
 
 const alleRoh = (roh: Roh[]): Roh[] => roh.flatMap((r) => [r, ...alleRoh(r.kinder)]);
 
@@ -155,6 +166,7 @@ export const gliederungVon = (doc: Document, z: Zerlegung, ids: readonly number[
 			nr: seite.nr,
 			schluessel,
 			kinder: (roh[i] ?? []).map((r, j) => baue(r, `${schluessel}/${j}:${r.baustein.art}`)),
+			unten: untenIn(seite),
 		};
 	});
 };

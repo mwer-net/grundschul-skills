@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import { execFile } from 'node:child_process';
-import { mkdtemp } from 'node:fs/promises';
+import { mkdtemp, readFile, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
 import { after, before, describe, it } from 'node:test';
@@ -8,6 +8,8 @@ import { promisify } from 'node:util';
 
 import { BLATT_PY, fertigstellen, legeFreigabeAn } from '@schoolbox/kern';
 import { BROWSER_HINWEIS, browserFehlt } from '@schoolbox/kern/src/browsertest';
+import type { Seitenflaeche } from '@schoolbox/kern/src/seitengestaltung';
+import { setzeSeitenflaeche, setzeSeitenrahmen } from '@schoolbox/kern/src/seitengestaltung';
 
 import type { TestServer } from './testhilfe';
 import { legeDokumentAn, starteTestServer } from './testhilfe';
@@ -88,4 +90,49 @@ describe('/ansicht gegen blatt.py', () => {
 			}
 		}
 	});
+	// >> 095 Seitenfläche bis an den Blattrand, in Vorschau und PDF gleich
+	const ECKE = `
+import sys
+from PIL import Image
+a = Image.open(sys.argv[1]).convert("RGB")
+print(a.getpixel((1, 1)))
+`;
+
+	for (const flaeche of [
+		{ art: 'verlauf', f1: '#3a86ff', f2: '#2e7d63', winkel: 135, sw: 'grau' },
+		{ art: 'muster', f1: '#3a86ff', f2: '#1d1d1b', muster: 'karo', musterGroesse: 20, sw: 'grau' },
+	] as const satisfies readonly Seitenflaeche[]) {
+		it(`druckt eine Seitenfläche „${flaeche.art}“ pixelgleich bis an den Blattrand`, { timeout: 180_000 }, async (t) => {
+			if (chromiumFehlt) {
+				t.skip(BROWSER_HINWEIS);
+				return;
+			}
+			const { dir, dok, mappe } = await legeDokumentAn(s.materialDir, { beispiel: true });
+			const datei = path.join(dir, 'material.html');
+			const mitFlaeche = setzeSeitenflaeche(await readFile(datei, 'utf8'), 'alle', flaeche);
+			await writeFile(datei, setzeSeitenrahmen(mitFlaeche, 'alle', { art: 'doppelt', farbe: '#1d1d1b' }));
+			const fertig = await fertigstellen(s.kontext.konfig, { mappe, dok });
+			const { token } = await legeFreigabeAn(s.materialDir, { mappe, dok });
+			const ziel = await mkdtemp(path.join(tmpdir(), 'schoolbox-pixel-'));
+			const referenz = path.join(dir, 'ausgabe', 'material');
+			const { stdout } = await ausfuehren(python, [
+				'-c',
+				VERGLEICH,
+				skripte,
+				`${s.url}/f/${token}/ansicht/${mappe}/dokumente/${dok}/`,
+				ziel,
+				referenz,
+			]);
+			const { seiten, vergleich } = JSON.parse(stdout) as Vergleich;
+			assert.equal(seiten, fertig.meta.seiten);
+			for (const { abweichung, groesse, seite } of vergleich) {
+				assert.ok(groesse, `Seite ${seite}: andere Bildgröße`);
+				assert.equal(abweichung, null, `Seite ${seite}: Abweichung in ${JSON.stringify(abweichung)}`);
+			}
+			// Die Ecke des Blatts ist nicht weiß: Die Fläche reicht über das padding der Seite hinaus.
+			const ecke = await ausfuehren(python, ['-c', ECKE, `${referenz}-s1.png`]);
+			assert.notEqual(ecke.stdout.trim(), '(255, 255, 255)');
+		});
+	}
+	// << 095
 });

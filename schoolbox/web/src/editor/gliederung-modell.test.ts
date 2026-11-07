@@ -107,8 +107,8 @@ describe('Baum', () => {
 		kinder,
 	});
 	const modell = [
-		{ id: 1, nr: 1, schluessel: '1', kinder: [knoten(2, '1/0', [knoten(3, '1/0/0', [knoten(4, '1/0/0/0')])])] },
-		{ id: 2, nr: 10, schluessel: '2', kinder: [knoten(11, '2/0')] },
+		{ id: 1, nr: 1, schluessel: '1', kinder: [knoten(2, '1/0', [knoten(3, '1/0/0', [knoten(4, '1/0/0/0')])])], unten: [] },
+		{ id: 2, nr: 10, schluessel: '2', kinder: [knoten(11, '2/0')], unten: [] },
 	];
 
 	it('findet die Kette von der Seite bis zur Zeile', () => {

@@ -155,6 +155,35 @@ Gemessen wird das Rechteck nach dem Drehen. `data-rand-ok` schaltet `druckrand` 
   außerhalb des Blatts.
 
 <!-- >> 095 Seitenfläche und Seitenrahmen -->
+## Seitenfläche und Seitenrahmen
+
+Eine Seite bekommt einen Grund (Farbe, Verlauf oder Muster) und einen Rahmen. Beide stehen **zuunterst in
+`.ebene.hinten`**, erst die Fläche, dann der Rahmen, je Seite höchstens einer. Sie haben kein `data-lage`: Sie füllen die
+Seite und lassen sich nicht ziehen. Sollen mehrere Seiten gleich aussehen, steht auf jeder Seite dasselbe.
+
+```html
+<div class="ebene hinten">
+  <div class="seitenflaeche" data-flaeche="verlauf" style="--f1:#fff7e6;--f2:#ffe0b8;--winkel:180deg"></div>
+  <div class="seitenrahmen" data-rahmen="gestrichelt"
+       style="--rahmen-farbe:var(--dunkel);--rahmen-staerke:3px;--rahmen-abstand:24px;--rahmen-ecke:16px"></div>
+</div>
+```
+
+| `data-flaeche` | Darstellung | Variablen im `style` |
+|---|---|---|
+| `farbe` | einfarbig | `--f1` |
+| `verlauf` | linearer Verlauf | `--f1`, `--f2`, `--winkel` (ohne Angabe 180deg: von oben nach unten) |
+| `muster` | Muster, `data-muster` = `streifen`, `punkte`, `karo`, `schraeg` | `--f1` Grund, `--f2` Muster, `--muster-groesse` (Kachel in px, ohne Angabe 24px) |
+
+| `data-rahmen` | Darstellung | Variablen im `style`, alle freiwillig |
+|---|---|---|
+| `linie`, `doppelt`, `gestrichelt`, `gepunktet` | Linie in diesem Stil; `doppelt` ist mindestens 4px stark | `--rahmen-farbe` (ohne Angabe `var(--dunkel)`), `--rahmen-staerke` (2px), `--rahmen-abstand` vom Blattrand (24px, im Mini-Book 8px), `--rahmen-ecke` (Eckenradius, 0) |
+
+- Farben aus der Palette (`var(--haupt)`, `var(--akzent)`, `var(--dunkel)`, `var(--linie)`, `var(--fuell)`) oder als
+  Hex. Für einen ruhigen Grund helle Farben wählen, damit der Text lesbar bleibt.
+- Die Fläche reicht bis an den Blattrand. Den Rahmen nicht näher als 24px an den Blattrand legen (Druckrand 19px).
+- In s/w fällt die Fläche weg, außer mit `data-sw="grau"`; der Rahmen wird grau, außer mit `data-sw="weg"`.
+- Fläche oder Rahmen mit `data-aufmachung-teil` gehören einem Rezept: nicht ändern.
 <!-- << 095 -->
 
 <!-- >> 102 Figuren -->

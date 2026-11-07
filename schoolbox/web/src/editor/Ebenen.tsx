@@ -72,6 +72,8 @@ interface Eigenschaften {
 	/** Wählt den Baustein, rollt das Blatt dorthin und zeigt rechts seine Einstellungen. */
 	zeigeAn: (nr: number) => void;
 	kontextmenue: (nr: number, art: 'baustein' | 'miniatur', punkt: { x: number; y: number }) => void;
+	/** Zeile „Seitenfläche“/„Seitenrahmen“: Reiter „Blatt“ › Gestaltung dieser Seite (095). */
+	zeigeSeitengestaltung: (seite: number) => void;
 	/** Stecknadel im Kopf: angeheftet teilen sich die Ebenen die Spalte mit der offenen Schublade. */
 	angeheftet: boolean;
 	schalteAnheften: () => void;
@@ -199,6 +201,7 @@ export const Ebenen = ({
 	stand,
 	struktur,
 	zeigeAn,
+	zeigeSeitengestaltung,
 	zerlegung,
 }: Eigenschaften) => {
 	const liste = useRef<HTMLDivElement>(null);
@@ -620,6 +623,20 @@ export const Ebenen = ({
 					</button>
 				</div>
 				{!zugeklappt && s.kinder.map((k) => zeigeKnoten(k, 1))}
+				{!zugeklappt &&
+					s.unten.map((u) => (
+						<div key={u.teil} className="flex items-stretch" style={{ marginLeft: EINZUG_PX }} data-zeile-unten={u.teil}>
+							{LUECKE}
+							{LUECKE}
+							<button
+								type="button"
+								className="flex h-zeile min-w-0 flex-1 items-center gap-1.5 rounded-md px-1 text-left text-leise select-none hover:bg-flaeche-2 hover:text-tinte"
+								onClick={() => aktuell && zeigeSeitengestaltung(s.nr)}
+							>
+								<span className="truncate">{u.teil === 'seitenrahmen' ? 'Seitenrahmen' : 'Seitenfläche'}</span>
+							</button>
+						</div>
+					))}
 			</div>
 		);
 	};
