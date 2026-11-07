@@ -18,5 +18,5 @@ const Inhalt = (t: SchubladenTeile) => (
 	/>
 );
 
-/** ⌥1: der Baum der Seiten, bis 093 „Gliederung“. Auge, Schloss und Gestaltung kommen mit 101. */
+/** ⌥1: der Baum der Seiten, bis 093 „Gliederung“; seit 101 mit Gestaltung, Auge und Schloss. */
 export const schublade: Schublade = { ...kopf('ebenen'), bereit: () => true, Inhalt };

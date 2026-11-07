@@ -96,6 +96,21 @@ export const GESTALTEN: Abschnitt = {
 			{/* << 100 */}
 
 			{/* >> 101 */}
+			<h3>Ebenen</h3>
+			<p data-hilfe-ebenen>
+				Die Schublade „Ebenen“ zeigt jede Seite von oben nach unten so, wie die Dinge übereinander liegen: zuerst, was
+				vorne liegt, dann der Hauptstapel mit den Aufgaben, dann, was dahinter liegt, ganz unten Seitenrahmen und
+				Seitenfläche. Oben in einer Ebene steht, was im Blatt vorne liegt. Rechts in der Zeile blendet das Auge aus
+				(es wird dann auch nicht gedruckt, die Zeile wird blass), das Schloss sperrt (im Blatt geht der Klick dann
+				durch, in den Ebenen bleibt die Zeile wählbar). Beides geht auch mit{' '}
+				<Kuerzel text={kuerzelText({ code: 'KeyH', wahl: true, umschalt: true })} className="text-[length:inherit]" />{' '}
+				und{' '}
+				<Kuerzel text={kuerzelText({ code: 'KeyL', wahl: true, umschalt: true })} className="text-[length:inherit]" />{' '}
+				oder im ⋯ am Element; am iPad stehen Auge und Schloss im ⋯ der Zeile. Ein Doppelklick auf den Namen benennt um,
+				leer gelassen gilt wieder der alte Name. Eine Zeile ziehst du an einen anderen Platz in ihrer Ebene, über oder
+				unter den Hauptstapel in die andere Ebene oder auf eine andere Seite; die Lage im Blatt bleibt. Mit ⌥ entsteht
+				eine Kopie.
+			</p>
 			{/* << 101 */}
 
 			{/* >> 102 */}

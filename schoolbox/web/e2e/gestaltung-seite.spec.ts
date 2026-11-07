@@ -128,15 +128,15 @@ test.describe('Seitenfläche und Seitenrahmen (095)', () => {
 	}) => {
 		await blatt(page, { hinten: [SEITENFLAECHE, SEITENRAHMEN] });
 		await oeffneSchublade(page, 'ebenen');
-		const zeilen = page.locator('[data-gliederung-seite="1"] [data-zeile-unten]');
+		const zeilen = page.locator('[data-gliederung-seite="1"] [data-zeilen-art^="seiten"]');
 		await expect(zeilen).toHaveCount(2);
-		await expect(zeilen.nth(0)).toHaveAttribute('data-zeile-unten', 'seitenrahmen');
-		await expect(zeilen.nth(1)).toHaveAttribute('data-zeile-unten', 'seitenflaeche');
+		await expect(zeilen.nth(0)).toHaveAttribute('data-zeilen-art', 'seitenrahmen');
+		await expect(zeilen.nth(1)).toHaveAttribute('data-zeilen-art', 'seitenflaeche');
 		await expect(zeilen.nth(1).locator('[data-griff-zeile]')).toHaveCount(0);
 
 		await material(page).locator('.aufgabe').first().locator('.nr').click();
 		await expect(page.locator('[data-inspektor="auswahl"]')).toBeVisible();
-		await zeilen.nth(1).getByRole('button').click();
+		await zeilen.nth(1).locator('[data-gliederung-titel]').click();
 		await expect(page.locator('[data-inspektor="blatt"]')).toBeVisible();
 		await expect(kopf(page)).toHaveAttribute('aria-expanded', 'true');
 		await expect(abschnitt(page).locator('[data-blatt-flaeche="verlauf"]')).toBeVisible();
