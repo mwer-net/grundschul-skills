@@ -1,5 +1,7 @@
 import type { Baustein } from '@schoolbox/kern/src/bausteine';
 import { kann } from '@schoolbox/kern/src/bausteine';
+import { istGestaltung } from '@schoolbox/kern/src/gestaltung';
+import type { EbenenName } from '@schoolbox/kern/src/gestaltung-arten';
 import type { Knoten, Zerlegung } from '@schoolbox/kern/src/quelltext';
 import { klassenVon, MARKE, quelleVon } from '@schoolbox/kern/src/quelltext';
 import type { Ablage } from '@schoolbox/kern/src/struktur';
@@ -9,8 +11,20 @@ import { bausteinVon, liegtAlsBlock, nameVon, nrVon, trefferAn } from './darstel
 
 /** Orientierung, aber kein Ziehen: Kopf und Fuß des Blatts und das Band des Themas. */
 const FESTE_ARTEN = new Set(['namenszeile', 'kopf', 'fuss', 'themaband', 'themakopf']);
-/** Die Ebenen und was frei liegt, zeigt die Schublade „Ebenen“ erst mit 101; bis dahin bleibt der Baum wie vorher. */
+/**
+ * Die Ebenen (`.ebene`) baut `gliederungVon` selbst als eigene Zeilen (101). Gestaltung am Anker zeigt erst 106, Kinder
+ * einer Gruppe erst 120: Bis dahin bleibt alles mit `data-lage` im Stapel ohne Zeile.
+ */
 const OHNE_ZEILE = '.loesung-marke, style, script, template, link, meta, br, .ebene, [data-lage]';
+
+/**
+ * Was eine Zeile ist (101, 1-ebenen.md „Aufbau des Baums“): ein Baustein wie bisher, ein Gestaltungselement in einer
+ * Ebene, der gedachte Hauptstapel (ohne eigenes Element) oder Seitenrahmen und Seitenfläche zuunterst.
+ */
+export type ZeilenArt = 'baustein' | EbenenName | 'hauptstapel' | 'seitenrahmen' | 'seitenflaeche';
+
+/** Nach diesem Teil des Schlüssels erkennt `gliederung-stand`, dass der Hauptstapel ohne Zutun offen steht. */
+export const HAUPTSTAPEL = 'hauptstapel';
 
 /** Ein Baustein in der Gliederung, mit allem, was im Blatt darin wählbar ist. */
 export interface GliederungKnoten {
@@ -29,6 +43,17 @@ export interface GliederungKnoten {
 	/** Für das Einklappen: Seite und Platz im Baum, gleich über Änderungen hinweg, solange sich die Lage nicht ändert. */
 	schluessel: string;
 	kinder: GliederungKnoten[];
+	zeile: ZeilenArt;
+	/** Die Art im Register (`aufgabe`, `figurfrei`), für das Symbol der Zeile; beim Hauptstapel `hauptstapel`. */
+	kennung: string;
+	/** `data-aus`: ausgeblendet, nicht im Blatt und nicht im Druck. */
+	aus: boolean;
+	/** `data-gesperrt`: im Blatt nicht wählbar, hier schon. */
+	gesperrt: boolean;
+	/** `data-name`, sonst `null`; damit beginnt das Umbenennen. */
+	eigenerName: string | null;
+	/** Nur Gestaltung in einer Ebene: Nummer der `.seite` und Platz von vorne (0 liegt ganz vorne). */
+	lage: { seite: number; platz: number } | null;
 }
 
 export interface GliederungSeite {
@@ -57,6 +82,51 @@ const titelVon = (element: Element, baustein: Baustein, name: string) => {
 		return textVon(element) || name;
 	}
 	return name;
+};
+
+const gross = (text: string) => (text ? `${text[0]?.toUpperCase() ?? ''}${text.slice(1)}` : '');
+
+const SCHMUCK_LAENGE = 40;
+
+const kuerze = (text: string) => (text.length > SCHMUCK_LAENGE ? `${text.slice(0, SCHMUCK_LAENGE - 1)}…` : text);
+
+export interface GestaltungAngaben {
+	/** Art im Register, z. B. `bildfrei`. */
+	art: string;
+	/** Der Name wie im Pfad (`nameVon`): `data-name`, Figur oder Name der Art. */
+	name: string;
+	wert: (attribut: string) => string | null;
+	/** Der sichtbare Text, Leerraum zusammengezogen. */
+	text: string;
+	/** Teile einer Streuung oder Gruppe. */
+	teile: number;
+}
+
+/** Die Beschriftung einer Gestaltungszeile (1-ebenen.md, „Beschriftung“). `data-name` geht allem vor. */
+export const titelDerGestaltung = ({ art, name, teile, text, wert }: GestaltungAngaben) => {
+	if (wert('data-name')?.trim()) {
+		return name;
+	}
+	const form = gross((wert('data-form') ?? '').trim().replace(/[-_]+/g, ' '));
+	switch (art) {
+		case 'bildfrei': {
+			const datei = (wert('src') ?? '').split(/[?#]/)[0]?.split('/').at(-1)?.replace(/\.[^.]+$/, '') ?? '';
+			return wert('alt')?.trim() || datei || name;
+		}
+		case 'form':
+			return form || name;
+		case 'formtext':
+			return text ? `${form || name} „${kuerze(text)}“` : form || name;
+		case 'schmuck':
+		case 'schmuckbogen':
+			return kuerze(text) || name;
+		case 'streuung':
+			return `${gross((wert('data-streuung') ?? '').trim()) || name} (${teile})`;
+		case 'gruppe':
+			return `${name} (${teile})`;
+		default:
+			return name;
+	}
 };
 
 /** Wo der Baustein hin darf, grob: Gleiche Gruppe heißt, er könnte dort neben einem anderen liegen (vgl. `ordnungVon`). */
@@ -99,9 +169,78 @@ const alleRoh = (roh: Roh[]): Roh[] => roh.flatMap((r) => [r, ...alleRoh(r.kinde
 
 const istFest = (baustein: Baustein) => !kann(baustein, 'ordnen') || FESTE_ARTEN.has(baustein.art);
 
+/** Was in den Ebenen einer Seite liegt, je Ebene das Vorderste zuerst (also umgekehrt zur Quelle). */
+export interface EbenenTeile {
+	vorne: number[];
+	hinten: number[];
+	seitenrahmen: number | null;
+	seitenflaeche: number | null;
+}
+
+/**
+ * Liest die Ebenen aus der Zerlegung: Gestaltungselemente in `.ebene.vorne` und `.ebene.hinten`, dazu Seitenrahmen und
+ * Seitenfläche, die zuunterst in `.ebene.hinten` liegen. Was in einem Element liegt (Teile einer Streuung, Kinder einer
+ * Gruppe), hat keine eigene Zeile.
+ */
+export const ebenenTeile = (seite: Knoten): EbenenTeile => {
+	const teile: EbenenTeile = { vorne: [], hinten: [], seitenrahmen: null, seitenflaeche: null };
+	for (const ebene of seite.kinder) {
+		const klassen = klassenVon(ebene);
+		const name = klassen.includes('ebene') ? (['vorne', 'hinten'] as const).find((n) => klassen.includes(n)) : null;
+		if (!name) {
+			continue;
+		}
+		for (const k of ebene.kinder) {
+			if (istGestaltung(k)) {
+				teile[name].unshift(k.nr);
+			} else if (name === 'hinten' && klassenVon(k).includes('seitenrahmen')) {
+				teile.seitenrahmen ??= k.nr;
+			} else if (name === 'hinten' && klassenVon(k).includes('seitenflaeche')) {
+				teile.seitenflaeche ??= k.nr;
+			}
+		}
+	}
+	return teile;
+};
+
+export interface SeitenZeilen<T> {
+	vorne: readonly T[];
+	stapel: readonly T[];
+	hinten: readonly T[];
+	seitenrahmen: T | null;
+	seitenflaeche: T | null;
+}
+
+/**
+ * Die Zeilen einer Seite von oben nach unten: vorne, Hauptstapel, hinten, Seitenrahmen, Seitenfläche. Ohne Gestaltung
+ * gibt es keinen Hauptstapel, die Bausteine hängen wie vor 101 direkt an der Seite.
+ */
+export const ordneSeite = <T>(z: SeitenZeilen<T>, hauptstapel: (stapel: readonly T[]) => T): T[] => {
+	const unten = [z.seitenrahmen, z.seitenflaeche].filter((t): t is T => t !== null);
+	if (z.vorne.length === 0 && z.hinten.length === 0 && unten.length === 0) {
+		return [...z.stapel];
+	}
+	return [...z.vorne, hauptstapel(z.stapel), ...z.hinten, ...unten];
+};
+
+/** Die Bausteine einer Seite, ob sie direkt an ihr hängen oder unter dem Hauptstapel. */
+export const stapelVon = (s: Pick<GliederungSeite, 'kinder'>): GliederungKnoten[] =>
+	s.kinder.flatMap((k) => (k.zeile === 'hauptstapel' ? k.kinder : k.zeile === 'baustein' ? [k] : []));
+
+/** Die Teile einer Streuung (Formen, ohne `defs`) bzw. die Elemente einer Gruppe. */
+const teileVon = (element: Element, art: string) => {
+	if (art === 'gruppe') {
+		return element.querySelectorAll(':scope > [data-lage]').length;
+	}
+	return [...element.querySelectorAll('*')].filter((e) => e.children.length === 0 && !e.closest('defs')).length;
+};
+
+const OHNE_STAPEL = { zeile: 'baustein', aus: false, gesperrt: false, eigenerName: null, lage: null } as const;
+
 /**
  * Die Struktur steht in der Zerlegung, Namen und Titel im Dokument: Erzeugte Seiten der Darstellung tauchen so nicht auf.
- * Jeder Baustein, der sich im Blatt wählen lässt, hat eine Zeile, in der Tiefe, in der er im Blatt liegt.
+ * Jeder Baustein, der sich im Blatt wählen lässt, hat eine Zeile, in der Tiefe, in der er im Blatt liegt. Gestaltung
+ * steht nach den Ebenen geordnet darüber und darunter (101), Ausgeblendetes mit.
  */
 export const gliederungVon = (doc: Document, z: Zerlegung, ids: readonly number[]): GliederungSeite[] => {
 	const elemente = new Map<number, Element>();
@@ -145,16 +284,98 @@ export const gliederungVon = (doc: Document, z: Zerlegung, ids: readonly number[
 			ziehbar: !fest && (neben > 1 || (ueberSeiten && mehrereSeiten)),
 			schluessel,
 			kinder: r.kinder.map((k, i) => baue(k, `${schluessel}/${i}:${k.baustein.art}`)),
+			...OHNE_STAPEL,
+			kennung: r.baustein.art,
+		};
+	};
+	/** Eine Zeile der Ebenen; `null`, wenn das Element nicht in der Darstellung steht. */
+	const gestaltung = (
+		nr: number,
+		zeile: Exclude<ZeilenArt, 'baustein' | 'hauptstapel'>,
+		schluessel: string,
+		lage: GliederungKnoten['lage'],
+	): GliederungKnoten | null => {
+		const element = elemente.get(nr);
+		const baustein = element ? bausteinVon(element) : undefined;
+		if (!element || !baustein) {
+			return null;
+		}
+		// Keine Prüfung auf Fläche wie bei Bausteinen: Ausgeblendetes (`data-aus`) und in s/w Weggelassenes (`data-sw`)
+		// hat keine, gehört aber gerade hierher, sonst käme man nie wieder heran.
+		const name = nameVon({ nr, baustein, element }, null);
+		const wert = (a: string) => element.getAttribute(a);
+		const unten = zeile === 'seitenrahmen' || zeile === 'seitenflaeche';
+		return {
+			nr,
+			titel: unten
+				? name
+				: titelDerGestaltung({
+						art: baustein.art,
+						name,
+						wert,
+						text: textVon(element),
+						teile: teileVon(element, baustein.art),
+					}),
+			nummer: null,
+			name,
+			art: baustein.name,
+			aufgabe: false,
+			fest: unten,
+			ziehbar: !unten,
+			schluessel,
+			kinder: [],
+			zeile,
+			kennung: baustein.art,
+			aus: element.hasAttribute('data-aus'),
+			gesperrt: element.hasAttribute('data-gesperrt'),
+			eigenerName: wert('data-name')?.trim() || null,
+			lage,
 		};
 	};
 	return seiten.map((seite, i) => {
 		const id = ids[i] ?? -i - 1;
 		const schluessel = String(id);
+		const stapel = (roh[i] ?? []).map((r, j) => baue(r, `${schluessel}/${j}:${r.baustein.art}`));
+		const teile = ebenenTeile(seite);
+		const ebene = (name: EbenenName) =>
+			teile[name]
+				.map((nr, platz) =>
+					gestaltung(nr, name, `${schluessel}/${name}/${platz}`, { seite: seite.nr, platz }),
+				)
+				.filter((k): k is GliederungKnoten => k !== null);
+		const unten = (name: 'seitenrahmen' | 'seitenflaeche') => {
+			const nr = teile[name];
+			return nr === null ? null : gestaltung(nr, name, `${schluessel}/${name}`, null);
+		};
 		return {
 			id,
 			nr: seite.nr,
 			schluessel,
-			kinder: (roh[i] ?? []).map((r, j) => baue(r, `${schluessel}/${j}:${r.baustein.art}`)),
+			kinder: ordneSeite(
+				{
+					vorne: ebene('vorne'),
+					stapel,
+					hinten: ebene('hinten'),
+					seitenrahmen: unten('seitenrahmen'),
+					seitenflaeche: unten('seitenflaeche'),
+				},
+				(kinder): GliederungKnoten => ({
+					// Keine Zahl der Quelle: negativ, damit sie keine Auswahl trifft.
+					nr: -seite.nr - 1,
+					titel: 'Hauptstapel',
+					nummer: null,
+					name: 'Hauptstapel',
+					art: 'Hauptstapel',
+					aufgabe: false,
+					fest: false,
+					ziehbar: false,
+					schluessel: `${schluessel}/${HAUPTSTAPEL}`,
+					kinder: [...kinder],
+					...OHNE_STAPEL,
+					zeile: 'hauptstapel',
+					kennung: HAUPTSTAPEL,
+				}),
+			),
 		};
 	});
 };

@@ -2,7 +2,7 @@ import type { Zerlegung } from '@schoolbox/kern/src/quelltext';
 import { useEffect, useMemo, useRef, useState } from 'react';
 
 import type { SeitenSpur } from './gliederung-modell';
-import { seitenAbgleich, seitenTexte } from './gliederung-modell';
+import { HAUPTSTAPEL, seitenAbgleich, seitenTexte } from './gliederung-modell';
 
 const LEUCHTEN_MS = 1200;
 
@@ -47,8 +47,9 @@ export const useGliederungStand = (zerlegung: Zerlegung | null, auswahl: number 
 		ids,
 		leuchtet,
 		eigene,
-		/** Seiten sind ohne Zutun offen, alles darunter zu, damit die Liste kurz bleibt. */
-		offen: (schluessel: string) => geschaltet.get(schluessel) ?? !schluessel.includes('/'),
+		/** Seiten und ihr Hauptstapel (101) sind ohne Zutun offen, alles darunter zu, damit die Liste kurz bleibt. */
+		offen: (schluessel: string) =>
+			geschaltet.get(schluessel) ?? (!schluessel.includes('/') || schluessel.endsWith(`/${HAUPTSTAPEL}`)),
 		klappe: (schluessel: string, oeffnen: boolean) =>
 			setGeschaltet((alt) => (alt.get(schluessel) === oeffnen ? alt : new Map(alt).set(schluessel, oeffnen))),
 		/** Öffnet alle genannten Zeilen auf einmal, ohne neuen Zustand, wenn sie schon offen sind. */

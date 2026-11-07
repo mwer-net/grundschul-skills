@@ -1,7 +1,18 @@
+import {
+	istGestaltung,
+	kopiereGestaltungNach,
+	leseLage,
+	ordneInEbene,
+	setzeName,
+	verschiebeAufSeite,
+	wechsleEbene,
+} from '@schoolbox/kern/src/gestaltung';
+import type { EbenenName } from '@schoolbox/kern/src/gestaltung-arten';
 import type { Zerlegung } from '@schoolbox/kern/src/quelltext';
-import type { Ablage } from '@schoolbox/kern/src/struktur';
+import { klassenVon, zerlege } from '@schoolbox/kern/src/quelltext';
+import type { Ablage, StrukturErgebnis } from '@schoolbox/kern/src/struktur';
 import { hatNamenszeile } from '@schoolbox/kern/src/struktur';
-import type { MouseEvent as ReactMouseEvent, PointerEvent as ReactPointerEvent } from 'react';
+import type { MouseEvent as ReactMouseEvent, PointerEvent as ReactPointerEvent, ReactNode } from 'react';
 import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 
 import { AmZeiger } from '../bausteine/AmZeiger';
@@ -10,13 +21,15 @@ import { klassen } from '../bausteine/klassen';
 import { Knopf } from '../bausteine/Knopf';
 import { Menue } from '../bausteine/Menue';
 import { Schubladenkopf } from '../bausteine/Schubladenkopf';
+import type { SymbolName } from '../bausteine/Symbol';
 import { Symbol } from '../bausteine/Symbol';
 import { SymbolKnopf } from '../bausteine/SymbolKnopf';
 import { Tooltip } from '../bausteine/Tooltip';
 import { folgeZeiger, rolleAmRand, schluckeKlick } from '../bausteine/zeigerzug';
 import { bausteinVon, elementZu, nrVon } from './darstellung';
+import { EBENEN_ZEICHEN } from './gestaltung/ebenen-zeichen';
 import type { GliederungKnoten, GliederungSeite } from './gliederung-modell';
-import { alleSchluessel, gliederungVon, ketteZu, ohneWirkung, zeileZurAuswahl } from './gliederung-modell';
+import { alleSchluessel, gliederungVon, ketteZu, ohneWirkung, stapelVon, zeileZurAuswahl } from './gliederung-modell';
 import type { GliederungStand } from './gliederung-stand';
 import type { Struktur } from './struktur';
 import { MAUS_WEG } from './ziehen';
@@ -35,10 +48,100 @@ const ART_KNOPF = (
 
 const LUECKE = <span className="w-5 flex-none [@media(any-pointer:coarse)]:w-11" />;
 
+/** Wohin Gestaltung in den Ebenen kommt: Seite (Nummer der `.seite`), Ebene und wie viele andere davor liegen. */
+interface EbenenZiel {
+	seite: number;
+	ebene: EbenenName;
+	platz: number;
+}
+
+/** Symbol je Art in den Ebenen (1-ebenen.md, „Beschriftung“); Bausteine haben keins. */
+const SYMBOL_DER_ART: Record<string, SymbolName> = {
+	figurfrei: 'figuren',
+	bildfrei: 'bild',
+	form: 'formen',
+	formtext: 'sprechblase',
+	schmuck: 'schrift',
+	schmuckbogen: 'schrift',
+	streuung: 'streuung',
+	gruppe: 'gruppe',
+	stapel: 'stapel',
+	hauptstapel: 'stapel',
+	seitenrahmen: 'rahmen',
+	seitenflaeche: 'flaeche',
+	gestaltung: 'funken',
+};
+
+const seiteUm = (z: Zerlegung, nr: number) => {
+	for (let k = z.knoten[nr]?.eltern ?? null; k; k = k.eltern) {
+		if (klassenVon(k).includes('seite')) {
+			return k.nr;
+		}
+	}
+	return null;
+};
+
+/** Ebene und Platz von vorne des Gestaltungselements `nr`. */
+const stelleVon = (quelle: string, nr: number) => {
+	const k = zerlege(quelle).knoten[nr];
+	const eltern = k?.eltern;
+	const geschwister = (eltern?.kinder ?? []).filter(istGestaltung);
+	const ebene: EbenenName | null =
+		eltern && klassenVon(eltern).includes('ebene')
+			? klassenVon(eltern).includes('vorne')
+				? 'vorne'
+				: 'hinten'
+			: null;
+	return { ebene, platz: k ? geschwister.length - 1 - geschwister.indexOf(k) : 0 };
+};
+
+/**
+ * Ziehen in den Ebenen als ein Schritt (101): erst auf die Seite (`verschiebeAufSeite`, die Lage bleibt), dann in die
+ * Ebene (`wechsleEbene`, dort ganz vorne), dann Platz für Platz nach hinten (`ordneInEbene`). Mit `kopie` bleibt das
+ * Original, und die Kopie liegt an derselben Stelle im Blatt.
+ */
+export const legeInEbenen = (quelle: string, nr: number, ziel: EbenenZiel, kopie: boolean): StrukturErgebnis => {
+	const z = zerlege(quelle);
+	const seite = seiteUm(z, nr);
+	let r: StrukturErgebnis = { quelle, nr };
+	if (kopie) {
+		const { x, y } = leseLage(quelle, nr);
+		r = kopiereGestaltungNach(
+			quelle,
+			nr,
+			{ x: x ?? null, y: y ?? null },
+			ziel.seite === seite ? undefined : ziel.seite,
+		);
+	} else if (ziel.seite !== seite) {
+		r = verschiebeAufSeite(quelle, nr, ziel.seite, {});
+	}
+	if (r.nr === null) {
+		return r;
+	}
+	if (stelleVon(r.quelle, r.nr).ebene !== ziel.ebene) {
+		r = wechsleEbene(r.quelle, r.nr, ziel.ebene);
+	}
+	for (let i = 0; r.nr !== null && i < 500; i += 1) {
+		const { platz } = stelleVon(r.quelle, r.nr);
+		if (platz === ziel.platz) {
+			break;
+		}
+		const weiter = ordneInEbene(r.quelle, r.nr, platz < ziel.platz ? 'zurueck' : 'vor');
+		// Eine Kopie gleicht dem Original Zeichen für Zeichen: Tauschen die beiden, bleibt die Quelle, nur die Nummer wandert.
+		if (weiter.quelle === r.quelle && weiter.nr === r.nr) {
+			break;
+		}
+		r = weiter;
+	}
+	return r;
+};
+
 interface Zug {
 	seite: boolean;
 	nr: number;
 	name: string;
+	/** ⌥ beim Ziehen von Gestaltung: Kopie statt Verschieben. */
+	kopie: boolean;
 	x: number;
 	y: number;
 	/** Oben und Einzug der Linie, in Pixeln der Liste. */
@@ -59,6 +162,19 @@ interface Lauf {
 	geprueft: Map<string, boolean>;
 	feder: number | null;
 	federSchluessel: string | null;
+	/** Nur Gestaltung: wo sie liegt und wohin sie käme (101). */
+	gestaltung: (EbenenZiel & { name: string }) | null;
+	ziel: EbenenZiel | null;
+	kopie: boolean;
+}
+
+/** Was das Ziehen von einer Zeile wissen muss. */
+interface ZugZeile {
+	nr: number;
+	name: string;
+	art: string;
+	zeile?: GliederungKnoten['zeile'];
+	lage?: GliederungKnoten['lage'];
 }
 
 interface Eigenschaften {
@@ -131,7 +247,7 @@ const zieleFuer = (doc: Document, z: Zerlegung, modell: readonly GliederungSeite
 	if (element.parentElement?.matches('.seite') || baustein.ordnenIn === '.seite') {
 		for (const s of modell) {
 			hinein.add(s.nr);
-			for (const k of s.kinder) {
+			for (const k of stapelVon(s)) {
 				neben.add(k.nr);
 			}
 		}
@@ -204,6 +320,7 @@ export const Ebenen = ({
 	const liste = useRef<HTMLDivElement>(null);
 	const inhalt = useRef<HTMLDivElement>(null);
 	const [zug, setZug] = useState<Zug | null>(null);
+	const [umbenennen, setUmbenennen] = useState<number | null>(null);
 	const lauf = useRef<Lauf | null>(null);
 	const hoereAuf = useRef<(() => void) | null>(null);
 	const aufraeumen = useRef<(() => void) | null>(null);
@@ -294,6 +411,66 @@ export const Ebenen = ({
 		return ok;
 	};
 
+	/**
+	 * Wohin Gestaltung unter dem Zeiger käme (101, 1-ebenen.md „Ziehen in den Ebenen“): zwischen zwei Zeilen einer Ebene,
+	 * über dem Hauptstapel ganz hinten in „vorne“, darunter ganz vorne in „hinten“, über Rahmen und Fläche ganz hinten in
+	 * „hinten“, auf eine andere Seite ganz vorne in derselben Ebene. Bausteine sind (noch) kein Ziel: Anker baut 106.
+	 * `null` heißt ungültig, `ziel: null` ohne Wirkung.
+	 */
+	const gestaltungZiel = (
+		l: Lauf,
+		von: EbenenZiel,
+		zeile: HTMLElement,
+		y: number,
+	): { ziel: EbenenZiel | null; linie: number | null; hinein: number | null } | null => {
+		const nichts = { ziel: null, linie: null, hinein: null };
+		const { modell: m } = neu.current;
+		const zahl = (seite: number, ebene: EbenenName) =>
+			m.find((s) => s.nr === seite)?.kinder.filter((k) => k.zeile === ebene).length ?? 0;
+		const b = zeile.getBoundingClientRect();
+		const oben = y < b.top + b.height / 2;
+		const seite = Number(zeile.dataset.ebeneSeite);
+		let ziel: EbenenZiel;
+		let linie: number | null;
+		let hinein: number | null = null;
+		const art = zeile.dataset.zeilenArt;
+		if (Number(zeile.dataset.zeileNr) === l.nr) {
+			return nichts;
+		}
+		if (zeile.dataset.seiteZeile !== undefined) {
+			const nr = Number(zeile.dataset.zeileNr);
+			if (nr === von.seite && !l.kopie) {
+				return nichts;
+			}
+			ziel = { seite: nr, ebene: von.ebene, platz: 0 };
+			linie = null;
+			hinein = nr;
+		} else if (art === 'vorne' || art === 'hinten') {
+			const platz = Number(zeile.dataset.platz);
+			ziel = { seite, ebene: art, platz: oben ? platz : platz + 1 };
+			linie = oben ? b.top : b.bottom;
+		} else if (art === 'hauptstapel') {
+			const block = zeile.closest<HTMLElement>('[data-knoten]')?.getBoundingClientRect() ?? b;
+			ziel = oben ? { seite, ebene: 'vorne', platz: zahl(seite, 'vorne') } : { seite, ebene: 'hinten', platz: 0 };
+			linie = oben ? b.top : block.bottom;
+		} else if (art === 'seitenrahmen' || art === 'seitenflaeche') {
+			const erste = zeile.closest('[data-seite-knoten]')?.querySelector('[data-zeilen-art^="seiten"]') ?? zeile;
+			ziel = { seite, ebene: 'hinten', platz: zahl(seite, 'hinten') };
+			linie = erste.getBoundingClientRect().top;
+		} else {
+			return nichts;
+		}
+		// Ohne sich selbst gezählt: Wer weiter hinten in derselben Ebene landet, rückt um einen Platz auf.
+		const gleich = !l.kopie && ziel.seite === von.seite && ziel.ebene === von.ebene;
+		if (gleich && ziel.platz > von.platz) {
+			ziel = { ...ziel, platz: ziel.platz - 1 };
+		}
+		if (gleich && ziel.platz === von.platz) {
+			return nichts;
+		}
+		return { ziel, linie, hinein };
+	};
+
 	/** Liest die Stelle unter dem Zeiger: Linie, gefärbte Zeile oder ungültig. */
 	const waehleZiel = (l: Lauf, x: number, y: number) => {
 		const rolle = liste.current;
@@ -331,6 +508,21 @@ export const Ebenen = ({
 		const start = zeile?.closest<HTMLElement>('[data-knoten]') ?? null;
 		if (!zeile || !start) {
 			setze(null, null, null, true, null);
+			return;
+		}
+		if (l.gestaltung) {
+			const f = flaeche.getBoundingClientRect();
+			const t = gestaltungZiel(l, l.gestaltung, zeile, y);
+			l.ziel = t?.ziel ?? null;
+			setze(
+				null,
+				t?.linie === undefined || t.linie === null
+					? null
+					: { oben: t.linie - f.top, links: zeile.getBoundingClientRect().left - f.left },
+				t?.hinein ?? null,
+				t === null,
+				null,
+			);
 			return;
 		}
 		// Eine eingeklappte Zeile geht nach kurzer Zeit auf, damit man hineinziehen kann.
@@ -375,6 +567,12 @@ export const Ebenen = ({
 		document.documentElement.style.cursor = '';
 		document.body.removeAttribute('data-zieht');
 		setZug(null);
+		if (l.gestaltung) {
+			if (ablegen) {
+				beendeGestaltung(l);
+			}
+			return;
+		}
 		const jetzt = neu.current;
 		// `aktuell`: Hat sich die Quelle beim Ziehen geändert, stimmen die Nummern nicht mehr.
 		if (!ablegen || !l.ablage || !jetzt.aktuell || jetzt.zerlegung?.quelle !== l.quelle) {
@@ -386,14 +584,34 @@ export const Ebenen = ({
 		}
 	};
 
-	const beginne = (seite: boolean, zeile: { nr: number; name: string; art: string }, x: number, y: number) => {
+	/** Gestaltung ablegen: ein Schritt, gewählt ist danach das Verschobene bzw. die Kopie. */
+	const beendeGestaltung = (l: Lauf) => {
+		const jetzt = neu.current;
+		const ziel = l.ziel;
+		if (!ziel || !jetzt.aktuell || jetzt.zerlegung?.quelle !== l.quelle) {
+			return;
+		}
+		jetzt.stand.eigene.current = { leuchten: true };
+		const beschreibung = `${l.gestaltung?.name ?? l.art} ${l.kopie ? 'kopiert' : 'verschoben'}`;
+		if (!jetzt.struktur.fuehreAus(beschreibung, (q) => legeInEbenen(q, l.nr, ziel, l.kopie), false, true)) {
+			jetzt.stand.eigene.current = { leuchten: false };
+		}
+	};
+
+	const beginne = (seite: boolean, zeile: ZugZeile, x: number, y: number, alt: boolean) => {
 		const { aktuell: bereit, doc: d, modell: m, zerlegung: z } = neu.current;
 		if (!z || !d || !bereit) {
 			return;
 		}
-		const ziele = seite
-			? { neben: new Set(m.map((s) => s.nr).filter((n) => n !== zeile.nr)), hinein: new Set<number>() }
-			: zieleFuer(d, z, m, zeile.nr);
+		const ebene = zeile.zeile === 'vorne' || zeile.zeile === 'hinten' ? zeile.zeile : null;
+		const gestaltung = ebene && zeile.lage ? { ...zeile.lage, ebene, name: zeile.name } : null;
+		const ziele =
+			seite || gestaltung
+				? {
+						neben: new Set(gestaltung ? [] : m.map((s) => s.nr).filter((n) => n !== zeile.nr)),
+						hinein: new Set<number>(),
+					}
+				: zieleFuer(d, z, m, zeile.nr);
 		lauf.current = {
 			seite,
 			nr: zeile.nr,
@@ -405,19 +623,31 @@ export const Ebenen = ({
 			geprueft: new Map(),
 			feder: null,
 			federSchluessel: null,
+			gestaltung,
+			ziel: null,
+			kopie: Boolean(gestaltung) && alt,
 		};
 		document.body.setAttribute('data-zieht', '');
 		// Steht der Fokus im Blatt, käme Esc dort an und nicht hier.
 		if (document.activeElement instanceof HTMLIFrameElement) {
 			document.activeElement.blur();
 		}
-		setZug({ seite, nr: zeile.nr, name: zeile.name, x, y, marke: null, hinein: null });
+		setZug({ seite, nr: zeile.nr, name: zeile.name, kopie: Boolean(gestaltung) && alt, x, y, marke: null, hinein: null });
+	};
+
+	/** ⌥ kopiert Gestaltung; drücken oder loslassen schaltet mitten im Zug um. */
+	const schalteKopie = (alt: boolean) => {
+		const l = lauf.current;
+		if (l?.gestaltung && l.kopie !== alt) {
+			l.kopie = alt;
+			setZug((z) => (z ? { ...z, kopie: alt } : z));
+		}
 	};
 
 	const druecke = (
 		e: ReactPointerEvent,
 		seite: boolean,
-		zeile: { nr: number; name: string; art: string },
+		zeile: ZugZeile,
 		griff: boolean,
 	) => {
 		const ziel = e.target as Element;
@@ -456,12 +686,14 @@ export const Ebenen = ({
 				x = m.clientX;
 				y = m.clientY;
 				if (!lauf.current && Math.hypot(x - startX, y - startY) >= MAUS_WEG) {
-					beginne(seite, zeile, x, y);
+					beginne(seite, zeile, x, y, m.altKey);
 				}
+				schalteKopie(m.altKey);
 			},
 			los: (m) => {
 				const l = lauf.current;
 				if (l) {
+					schalteKopie(m.altKey);
 					// Es zählt, wo losgelassen wird: Das letzte Bild kann hinterher sein.
 					waehleZiel(l, m.clientX, m.clientY);
 					schluckeKlick();
@@ -474,12 +706,20 @@ export const Ebenen = ({
 				fertig();
 			},
 			taste: (k) => {
+				if (k.key === 'Alt') {
+					schalteKopie(true);
+				}
 				if (k.key === 'Escape' && lauf.current) {
 					k.preventDefault();
 					k.stopPropagation();
 					schluckeKlick();
 					beende(false);
 					fertig();
+				}
+			},
+			tasteLos: (k) => {
+				if (k.key === 'Alt') {
+					schalteKopie(false);
 				}
 			},
 			bild: () => {
@@ -524,16 +764,92 @@ export const Ebenen = ({
 		</button>
 	);
 
-	const zeigeKnoten = (k: GliederungKnoten, tiefe: number) => {
+	/** Umbenennen (101): `data-name`; leer entfernt ihn, dann gilt wieder der Name aus der Art. */
+	const benenne = (k: GliederungKnoten, text: string) => {
+		setUmbenennen(null);
+		const neuerName = text.trim();
+		if (neuerName === (k.eigenerName ?? '') || (!k.eigenerName && neuerName === k.titel)) {
+			return;
+		}
+		struktur.aendereAttribute(neuerName ? 'Umbenannt' : 'Name entfernt', (q) =>
+			setzeName(q, k.nr, neuerName || null),
+		);
+	};
+
+	/** Auge, Schloss und was spätere Tickets eintragen (`EBENEN_ZEICHEN`), rechts in der Zeile. */
+	const zeichenVon = (k: GliederungKnoten, aktiv: boolean) => {
+		const element = doc && (k.zeile === 'vorne' || k.zeile === 'hinten') ? elementZu(doc, k.nr) : null;
+		if (!element) {
+			return null;
+		}
+		const zeichen = EBENEN_ZEICHEN.filter((z) => z.fuer(element)).map((z) => ({ z, an: z.gesetzt(element) }));
+		const kontext = { nr: k.nr, element, struktur, zeigeAn };
+		const schalter = zeichen.filter(({ z }) => z.schalter);
+		return (
+			<span className="flex flex-none items-center pr-0.5" data-nicht-ziehen>
+				{zeichen
+					.filter(({ an, z }) => an || z.schalter)
+					.map(({ an, z }) => (
+						<Tooltip key={z.id} text={z.titel(an)}>
+							<button
+								type="button"
+								className={klassen(
+									'flex size-6 items-center justify-center rounded-sm text-leise hover:bg-flaeche-2 hover:text-tinte focus-visible:opacity-100 [@media(any-pointer:coarse)]:pointer-events-none',
+									!an && !aktiv && 'opacity-0 group-hover:opacity-100',
+									!an && '[@media(any-pointer:coarse)]:hidden',
+								)}
+								aria-label={z.titel(an)}
+								aria-pressed={z.schalter ? an : undefined}
+								data-ebenen-zeichen={z.id}
+								{...(an ? { 'data-gesetzt': true } : {})}
+								disabled={!aktuell}
+								onClick={() => z.klick(kontext, an)}
+							>
+								<Symbol name={z.symbol(an)} className="size-3.5 flex-none" />
+							</button>
+						</Tooltip>
+					))}
+				{schalter.length > 0 && (
+					<span className="hidden [@media(any-pointer:coarse)]:flex" data-ebenen-mehr>
+						<Menue
+							name={`${k.name}: mehr`}
+							disabled={!aktuell}
+							ausloeser={
+								<button
+									type="button"
+									className="flex size-11 items-center justify-center rounded-sm text-leise"
+								>
+									<Symbol name="mehr" className="size-4 flex-none" />
+								</button>
+							}
+							eintraege={schalter.map(({ an, z }) => ({
+								titel: z.titel(an),
+								symbol: z.symbol(!an),
+								waehle: () => z.klick(kontext, an),
+							}))}
+						/>
+					</span>
+				)}
+			</span>
+		);
+	};
+
+	const zeigeKnoten = (k: GliederungKnoten, tiefe: number, seite: number): ReactNode => {
 		const hatKinder = k.kinder.length > 0;
 		const zugeklappt = hatKinder && !stand.offen(k.schluessel);
 		const gezogen = zug?.nr === k.nr ? { opacity: 0.35 } : undefined;
 		const tooltip = k.titel === k.name ? k.titel : `${k.name}: ${k.titel}`;
+		const symbol = k.zeile === 'baustein' ? undefined : SYMBOL_DER_ART[k.kennung];
+		const istGestaltungZeile = k.zeile === 'vorne' || k.zeile === 'hinten';
+		const aktiv = aktiveZeile === k.nr;
+		const hauptstapel = k.zeile === 'hauptstapel';
+		// Der Hauptstapel hat kein eigenes Element: Sein Klick wählt die Seite.
+		const waehleZeile = () => waehle(hauptstapel ? seite : k.nr);
 		return (
 			<div key={k.schluessel} data-knoten={k.nr}>
 				<div
 					className={klassen(
-						'flex items-stretch rounded-md transition-colors duration-500',
+						'group flex items-stretch rounded-md transition-colors duration-500',
 						k.fest && 'text-dezent',
 						stand.leuchtet === k.nr && 'bg-brand-100',
 						zug?.hinein === k.nr && 'bg-brand-50 outline-2 -outline-offset-2 outline-brand-500',
@@ -542,33 +858,76 @@ export const Ebenen = ({
 					data-zeile-nr={k.nr}
 					data-nr={k.nr}
 					data-schluessel={k.schluessel}
+					data-zeilen-art={k.zeile}
+					{...(k.zeile === 'baustein' ? {} : { 'data-ebene-seite': seite })}
+					{...(k.lage ? { 'data-platz': k.lage.platz } : {})}
+					{...(k.aus ? { 'data-aus': true } : {})}
+					{...(k.gesperrt ? { 'data-gesperrt': true } : {})}
 					{...(zugeklappt ? { 'data-zu': true } : {})}
 					{...(k.aufgabe ? { 'data-gliederung-aufgabe': true } : {})}
 					{...(k.fest ? { 'data-gliederung-fest': true } : { 'data-gliederung-zeile': true })}
 					{...(k.ziehbar ? { 'data-ziehbar': true } : {})}
 					onPointerDown={(e) => druecke(e, false, k, k.ziehbar)}
-					onContextMenu={(e) => menue(e, k.nr, 'baustein')}
+					onContextMenu={(e) => (hauptstapel ? e.preventDefault() : menue(e, k.nr, 'baustein'))}
 				>
 					{k.ziehbar ? <Griff beschriftung={`${k.art} ziehen`} tabIndex={-1} data-griff-zeile /> : LUECKE}
 					{hatKinder ? pfeil(k.schluessel, zugeklappt) : LUECKE}
-					<Tooltip text={tooltip}>
-						<button
-							type="button"
-							className="flex h-zeile min-w-0 flex-1 items-center gap-1.5 rounded-md px-1 text-left select-none hover:bg-flaeche-2 aria-[current=true]:bg-brand-100 aria-[current=true]:text-tinte"
-							style={{ WebkitTouchCallout: 'none' }}
-							data-gliederung-titel
-							aria-current={aktiveZeile === k.nr}
-							onClick={() => waehle(k.nr)}
-						>
-							{k.nummer && (
-								<span className="w-3.5 flex-none text-center font-medium text-leise">{k.nummer}</span>
-							)}
-							<span className="truncate">{k.titel}</span>
-						</button>
-					</Tooltip>
+					{umbenennen === k.nr ? (
+						<input
+							autoFocus
+							className="h-zeile min-w-0 flex-1 rounded-md border border-brand-500 bg-white px-1 outline-none"
+							aria-label="Name in den Ebenen"
+							defaultValue={k.eigenerName ?? k.titel}
+							data-nicht-ziehen
+							data-umbenennen
+							onFocus={(e) => e.currentTarget.select()}
+							onBlur={(e) => benenne(k, e.currentTarget.value)}
+							onKeyDown={(e) => {
+								e.stopPropagation();
+								if (e.key === 'Enter') {
+									e.preventDefault();
+									e.currentTarget.blur();
+								} else if (e.key === 'Escape') {
+									e.preventDefault();
+									setUmbenennen(null);
+								}
+							}}
+						/>
+					) : (
+						<Tooltip text={istGestaltungZeile ? `${tooltip} · Doppelklick benennt um` : tooltip}>
+							<button
+								type="button"
+								className="flex h-zeile min-w-0 flex-1 items-center gap-1.5 rounded-md px-1 text-left select-none hover:bg-flaeche-2 aria-[current=true]:bg-brand-100 aria-[current=true]:text-tinte"
+								style={{ WebkitTouchCallout: 'none' }}
+								data-gliederung-titel
+								aria-current={aktiv}
+								onClick={waehleZeile}
+								onDoubleClick={() => {
+									if (istGestaltungZeile && aktuell) {
+										setUmbenennen(k.nr);
+									}
+								}}
+							>
+								{k.nummer && (
+									<span className="w-3.5 flex-none text-center font-medium text-leise">{k.nummer}</span>
+								)}
+								{symbol && (
+									<Symbol
+										name={symbol}
+										className={klassen('size-3.5 flex-none text-leise', k.aus && 'opacity-50')}
+									/>
+								)}
+								<span className={klassen('truncate', k.aus && 'opacity-50')}>{k.titel}</span>
+								{hauptstapel && (
+									<span className="ml-auto flex-none pr-1 text-xs text-leise">fließt</span>
+								)}
+							</button>
+						</Tooltip>
+					)}
+					{istGestaltungZeile && zeichenVon(k, aktiv)}
 				</div>
 				{hatKinder && !zugeklappt && (
-					<div style={gezogen}>{k.kinder.map((c) => zeigeKnoten(c, tiefe + 1))}</div>
+					<div style={gezogen}>{k.kinder.map((c) => zeigeKnoten(c, tiefe + 1, seite))}</div>
 				)}
 			</div>
 		);
@@ -578,7 +937,7 @@ export const Ebenen = ({
 		const name = `Seite ${i + 1}`;
 		const zugeklappt = !stand.offen(s.schluessel) || zug?.seite === true;
 		const griffDaten = { nr: s.nr, name, art: 'Seite' };
-		const anzahl = s.kinder.filter((k) => !k.fest).length;
+		const anzahl = stapelVon(s).filter((k) => !k.fest).length;
 		return (
 			<div
 				key={s.id}
@@ -619,7 +978,7 @@ export const Ebenen = ({
 						)}
 					</button>
 				</div>
-				{!zugeklappt && s.kinder.map((k) => zeigeKnoten(k, 1))}
+				{!zugeklappt && s.kinder.map((k) => zeigeKnoten(k, 1, s.nr))}
 			</div>
 		);
 	};
@@ -703,7 +1062,7 @@ export const Ebenen = ({
 			{zug && (
 				<AmZeiger x={zug.x + 10} y={zug.y + 10} data-zug>
 					<span className="block rounded-lg bg-tinte px-3 py-2 font-medium whitespace-nowrap text-white shadow-2">
-						{zug.name}
+						{zug.kopie ? `${zug.name} (Kopie)` : zug.name}
 					</span>
 				</AmZeiger>
 			)}

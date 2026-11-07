@@ -1,6 +1,6 @@
 import type { Locator, Page } from '@playwright/test';
 
-import { material, oeffne, quelle, uhrzeit } from './editorhilfe';
+import { aendere, material, oeffne, quelle, uhrzeit } from './editorhilfe';
 import { expect, legeMappeAn, test } from './hilfe';
 import { schubladenKnopf } from './schubladen-hilfe';
 
@@ -489,5 +489,223 @@ test.describe('Ebenen, bis 093 „Gliederung“ (080)', () => {
 		await expect(marke(page)).toBeVisible();
 		await hand.los();
 		await expect.poll(async () => anweisungen(await quelle(page))[0]).toBe('Zeichne die ');
+	});
+});
+
+/** Eine Form mit Namen, damit Quelle und Zeile sie gleich nennen. */
+const form = (name: string, x: number, y: number, mehr = '') =>
+	`<svg class="form" data-lage="frei" data-name="${name}"${mehr} data-form="kreis" viewBox="0 0 100 100" style="--x:${x}px;--y:${y}px;--b:100px;--h:100px"><circle cx="50" cy="50" r="48" style="fill:var(--akzent)"/></svg>`;
+
+/** Hängt die Ebenen ans Ende der ersten Seite. */
+const mitEbenen = (text: string, vorne: string[], hinten: string[]) =>
+	text.replace(
+		'</section>',
+		`  <div class="ebene hinten">\n    ${hinten.join('\n    ')}\n  </div>\n  <div class="ebene vorne">\n    ${vorne.join('\n    ')}\n  </div>\n</section>`,
+	);
+
+/** Die Namen in einer Ebene der ersten Seite, in der Reihenfolge der Quelle (hinten zuerst). */
+const inEbene = (html: string, ebene: 'vorne' | 'hinten', seite = 0) => {
+	const teil = html.split('class="seite"')[seite + 1] ?? '';
+	const block = new RegExp(`<div class="ebene ${ebene}">([\\s\\S]*?)</div>`).exec(teil)?.[1] ?? '';
+	return [...block.matchAll(/data-name="([^"]*)"/g)].map((m) => m[1]);
+};
+
+const zeileVon = (page: Page, name: string) =>
+	page.locator('[data-zeilen-art="vorne"], [data-zeilen-art="hinten"]').filter({ hasText: new RegExp(`^${name}`) });
+const arten = (page: Page) =>
+	page.locator('[data-gliederung-seite="1"] [data-zeilen-art]').evaluateAll((z) =>
+		z
+			.map((e) => (e as HTMLElement).dataset.zeilenArt)
+			.filter((a) => a !== 'baustein'),
+	);
+const titel = (page: Page) =>
+	page
+		.locator('[data-gliederung-seite="1"] [data-zeilen-art="vorne"], [data-gliederung-seite="1"] [data-zeilen-art="hinten"]')
+		.locator('[data-gliederung-titel]')
+		.allInnerTexts();
+
+test.describe('Ebenen mit Gestaltung (101)', () => {
+	test.beforeEach(() => {
+		test.skip(
+			!GERAETE.includes(test.info().project.name),
+			'läuft in Chromium, Safari am Mac und auf dem iPad quer',
+		);
+	});
+
+	/** Vorne liegen A, B, C (C ganz vorne), hinten D; C liegt über der ersten Aufgabe. */
+	const blatt = async (page: Page) => {
+		const { dok, id } = await uhrzeit();
+		await oeffne(page, id, dok);
+		const aufgabe = await material(page)
+			.locator('.aufgabe')
+			.first()
+			.evaluate((e) => {
+				const a = e.getBoundingClientRect();
+				const s = (e.closest('.seite') ?? e).getBoundingClientRect();
+				return { x: Math.round(a.left - s.left), y: Math.round(a.top - s.top) };
+			});
+		const text = mitEbenen(
+			await quelle(page),
+			[form('A', 500, 700), form('B', 560, 760), form('C', aufgabe.x + 20, aufgabe.y)],
+			[form('D', 40, 900)],
+		);
+		await aendere(page, text);
+		await expect(zeileVon(page, 'D')).toBeVisible();
+		return text;
+	};
+
+	test('Baum: vorne, Hauptstapel, hinten, Rahmen, Fläche; oben liegt vorne', async ({ page }) => {
+		const { dok, id } = await uhrzeit();
+		await oeffne(page, id, dok);
+		const unten =
+			'<div class="seitenflaeche" data-flaeche="farbe" style="--f1:#fff7e6"></div><div class="seitenrahmen" data-rahmen="linie"></div>';
+		await aendere(page, mitEbenen(await quelle(page), [form('A', 500, 700), form('B', 560, 760)], [unten, form('D', 40, 900)]));
+		await expect.poll(() => arten(page)).toEqual(['vorne', 'vorne', 'hauptstapel', 'hinten', 'seitenrahmen', 'seitenflaeche']);
+		expect(await titel(page)).toEqual(['B', 'A', 'D']);
+		// Die Aufgaben stehen unter dem Hauptstapel, mit ihren Nummern, und der Hauptstapel ist offen.
+		const stapel = page.locator('[data-zeilen-art="hauptstapel"]');
+		await expect(stapel).toContainText('fließt');
+		await expect(aufgaben(page)).toHaveCount(4);
+		await expect(aufgaben(page).first()).toContainText('1');
+	});
+
+	test('Reihenfolge ziehen: ein Schritt, ⌘Z nimmt ihn zurück; „Nach vorne“ im Blatt schiebt die Zeile hoch', async ({
+		druecke,
+		hasTouch,
+		page,
+	}) => {
+		const vorher = await blatt(page);
+		const hand = zeiger(page, hasTouch);
+		await hand.runter(await mitte(griffVon(zeileVon(page, 'A'))));
+		await hand.zu(await an(zeileVon(page, 'C'), 'oben'));
+		await expect(marke(page)).toBeVisible();
+		await hand.los();
+		await expect.poll(async () => inEbene(await quelle(page), 'vorne')).toEqual(['B', 'C', 'A']);
+		expect(await titel(page)).toEqual(['A', 'C', 'B', 'D']);
+		await expect(zurueck(page)).toHaveAttribute('data-schritt', 'A verschoben');
+		await druecke(zurueck(page));
+		await expect.poll(() => quelle(page)).toBe(vorher);
+
+		// Im Blatt: B gewählt, „Nach vorne“ (100) im ⋯ der Leiste am Element.
+		await druecke(zeileVon(page, 'B').locator('[data-gliederung-titel]'));
+		await druecke(page.getByRole('button', { name: 'Mehr zu B' }));
+		await druecke(page.getByRole('menuitem', { name: /^Nach vorne/ }));
+		await expect.poll(() => titel(page)).toEqual(['B', 'C', 'A', 'D']);
+	});
+
+	test('Ebene wechseln: unter den Hauptstapel nach hinten, die Lage bleibt', async ({ hasTouch, page }) => {
+		await blatt(page);
+		const hand = zeiger(page, hasTouch);
+		await hand.runter(await mitte(griffVon(zeileVon(page, 'B'))));
+		await hand.zu(await an(page.locator('[data-zeilen-art="hauptstapel"]'), 'unten'));
+		await expect(marke(page)).toBeVisible();
+		await hand.los();
+		await expect.poll(async () => inEbene(await quelle(page), 'hinten')).toEqual(['D', 'B']);
+		expect(inEbene(await quelle(page), 'vorne')).toEqual(['A', 'C']);
+		expect(await quelle(page)).toContain('data-name="B" data-form="kreis" viewBox="0 0 100 100" style="--x:560px;--y:760px');
+		// Und zurück: über den Hauptstapel, also zuunterst nach vorne.
+		const hand2 = zeiger(page, hasTouch);
+		await hand2.runter(await mitte(griffVon(zeileVon(page, 'D'))));
+		await hand2.zu(await an(page.locator('[data-zeilen-art="hauptstapel"]'), 'oben'));
+		await hand2.los();
+		await expect.poll(async () => inEbene(await quelle(page), 'vorne')).toEqual(['D', 'A', 'C']);
+	});
+
+	test('Auf Seite 2 ziehen und mit ⌥ kopieren', async ({ druecke, hasTouch, page }) => {
+		await blatt(page);
+		await neueSeite(page, druecke, 2);
+		const hand = zeiger(page, hasTouch);
+		await hand.runter(await mitte(griffVon(zeileVon(page, 'A'))));
+		await hand.zu(await an(seitenZeile(page, 2), 'mitte'));
+		await expect(seitenZeile(page, 2)).toHaveClass(/bg-brand-50/);
+		await hand.los();
+		await expect.poll(async () => inEbene(await quelle(page), 'vorne', 1)).toEqual(['A']);
+		expect(inEbene(await quelle(page), 'vorne')).toEqual(['B', 'C']);
+
+		test.skip(hasTouch, '⌥ nur mit Tastatur');
+		const start = await mitte(griffVon(zeileVon(page, 'C')));
+		await page.mouse.move(start.x, start.y);
+		await page.mouse.down();
+		const ziel = await an(zeileVon(page, 'B'), 'unten');
+		await page.mouse.move(ziel.x, ziel.y, { steps: 6 });
+		await page.keyboard.down('Alt');
+		await page.mouse.move(ziel.x, ziel.y + 1, { steps: 2 });
+		await expect(page.locator('[data-zug]')).toHaveText('C (Kopie)');
+		await page.mouse.up();
+		await page.keyboard.up('Alt');
+		await expect.poll(async () => inEbene(await quelle(page), 'vorne')).toEqual(['C', 'B', 'C']);
+		await expect(zurueck(page)).toHaveAttribute('data-schritt', 'C kopiert');
+	});
+
+	test('Auge blendet aus: nicht im Blatt, nicht im Druck, die Prüfung meldet es', async ({ druecke, hasTouch, page }) => {
+		test.skip(hasTouch, 'Zeichen in der Zeile mit der Maus; am iPad im ⋯');
+		await blatt(page);
+		const a = zeileVon(page, 'A');
+		await a.hover();
+		await druecke(a.locator('[data-ebenen-zeichen="auge"]'));
+		await expect.poll(() => quelle(page)).toContain('data-name="A" data-aus');
+		await expect(a).toHaveAttribute('data-aus');
+		await expect(a.locator('[data-ebenen-zeichen="auge"]')).toHaveAttribute('aria-pressed', 'true');
+		await expect(material(page).locator('[data-name="A"]')).toBeHidden();
+		await page.emulateMedia({ media: 'print' });
+		await expect(material(page).locator('[data-name="A"]')).toBeHidden();
+		await page.emulateMedia({ media: 'screen' });
+		await expect(page.locator('[data-pruefung] > button')).toContainText('Hinweis');
+		await expect(zurueck(page)).toHaveAttribute('data-schritt', 'Ausgeblendet');
+
+		// Die Zeile bleibt wählbar, der Inspektor bietet „Einblenden“.
+		await druecke(a.locator('[data-gliederung-titel]'));
+		await expect(page.locator('[data-hinweis="ausgeblendet"]')).toBeVisible();
+		// Wieder einblenden mit der Taste.
+		await page.keyboard.press('Alt+Shift+KeyH');
+		await expect.poll(() => quelle(page)).not.toContain('data-aus');
+	});
+
+	test('Schloss sperrt: der Klick im Blatt geht darunter, die Zeile bleibt wählbar', async ({ druecke, hasTouch, page }) => {
+		test.skip(hasTouch, 'Zeichen in der Zeile mit der Maus; am iPad im ⋯');
+		await blatt(page);
+		const c = zeileVon(page, 'C');
+		await c.hover();
+		await druecke(c.locator('[data-ebenen-zeichen="schloss"]'));
+		await expect.poll(() => quelle(page)).toContain('data-name="C" data-gesperrt');
+		await expect(c.locator('[data-ebenen-zeichen="schloss"]')).toBeVisible();
+		await material(page).locator('[data-name="C"]').click({ force: true });
+		await expect(page.locator('[data-auswahl="form"]')).toHaveCount(0);
+		await druecke(c.locator('[data-gliederung-titel]'));
+		await expect(page.locator('[data-auswahl="form"]')).toBeVisible();
+		await expect(c.locator('[data-gliederung-titel]')).toHaveAttribute('aria-current', 'true');
+		// Entsperren mit der Taste, während C gewählt ist.
+		await page.keyboard.press('Alt+Shift+KeyL');
+		await expect.poll(() => quelle(page)).not.toContain('data-gesperrt');
+	});
+
+	test('Umbenennen per Doppelklick, leer gibt den Namen frei', async ({ hasTouch, page }) => {
+		test.skip(hasTouch, 'Doppelklick mit der Maus');
+		await blatt(page);
+		await zeileVon(page, 'B').locator('[data-gliederung-titel]').dblclick();
+		const feld = page.locator('[data-umbenennen]');
+		await expect(feld).toBeFocused();
+		await feld.fill('Sonne');
+		await feld.press('Enter');
+		await expect.poll(() => quelle(page)).toContain('data-name="Sonne"');
+		await expect(zurueck(page)).toHaveAttribute('data-schritt', 'Umbenannt');
+		await zeileVon(page, 'Sonne').locator('[data-gliederung-titel]').dblclick();
+		await page.locator('[data-umbenennen]').fill('');
+		await page.locator('[data-umbenennen]').press('Enter');
+		await expect.poll(() => quelle(page)).not.toContain('data-name="Sonne"');
+		await expect(page.locator('[data-zeilen-art="vorne"]').filter({ hasText: /^Kreis/ })).toHaveCount(1);
+	});
+
+	test('iPad: Auge und Schloss stehen im ⋯ der Zeile', async ({ druecke, page }) => {
+		test.skip(test.info().project.name !== 'ipad-quer', 'nur am iPad');
+		await blatt(page);
+		const a = zeileVon(page, 'A');
+		await expect(a.locator('[data-ebenen-zeichen="auge"]')).toBeHidden();
+		await druecke(a.getByRole('button', { name: 'A: mehr' }));
+		await expect(page.getByRole('menuitem', { name: 'Ausblenden' })).toBeVisible();
+		await expect(page.getByRole('menuitem', { name: 'Sperren' })).toBeVisible();
+		await druecke(page.getByRole('menuitem', { name: 'Sperren' }));
+		await expect.poll(() => quelle(page)).toContain('data-name="A" data-gesperrt');
+		await expect(a.locator('[data-ebenen-zeichen="schloss"]')).toBeVisible();
 	});
 });
