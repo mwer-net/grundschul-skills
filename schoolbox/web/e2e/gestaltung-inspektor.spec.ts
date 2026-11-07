@@ -25,13 +25,14 @@ const mitGewaehlterFigur = async (page: Page, druecke: (ziel: Locator) => Promis
 };
 
 test.describe('Inspektor und Leiste am Element (099)', () => {
-	test('Bei einer Figur: Position, Ebene, Druck in dieser Reihenfolge', async ({ druecke, page }) => {
+	test('Bei einer Figur: Position, Bild, Ebene, Druck in dieser Reihenfolge', async ({ druecke, page }) => {
 		await mitGewaehlterFigur(page, druecke);
-		await expect(inspektor(page).locator('[data-abschnitt]')).toHaveCount(3);
+		// „Bild“: Figur tauschen (102), Schatten und Deckkraft (108).
+		await expect(inspektor(page).locator('[data-abschnitt]')).toHaveCount(4);
 		const namen = await inspektor(page)
 			.locator('[data-abschnitt]')
 			.evaluateAll((alle) => alle.map((a) => a.getAttribute('data-abschnitt')));
-		expect(namen).toEqual(['position', 'ebene', 'druck']);
+		expect(namen).toEqual(['position', 'bild', 'ebene', 'druck']);
 		await expect(inspektor(page).locator('[data-abschnitt="position"] h3')).toHaveText('Position und Größe');
 		await expect(page.locator('[data-abschnitt="inhalt"]')).toHaveCount(0);
 	});

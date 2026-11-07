@@ -4,6 +4,7 @@
  * betrifft, stehen `viewBox` und `d` wieder passend da (`zeichneFormNeu`).
  */
 
+import { entferneVerlauf, konturStilNeu } from './aussehen';
 import type { Kontur } from './formen';
 import {
 	formAngaben,
@@ -117,7 +118,7 @@ const setzePfadStil = (quelle: string, nr: number, werte: Readonly<Record<string
 
 /** `var(--haupt)` …, Hex oder `null` (keine Füllung). */
 export const setzeFuellung = (quelle: string, nr: number, farbe: string | null) =>
-	setzePfadStil(quelle, nr, { fill: farbe ?? 'none' });
+	setzePfadStil(entferneVerlauf(quelle, nr), nr, { fill: farbe ?? 'none' }); // 108: einfarbig ersetzt den Verlauf
 
 /** Farbe und Stärke 0–12 px oder `null` (keine Kontur). Der Strich liegt innen, darum wird neu gezeichnet. */
 export const setzeKontur = (quelle: string, nr: number, kontur: Kontur | null) => {
@@ -126,7 +127,7 @@ export const setzeKontur = (quelle: string, nr: number, kontur: Kontur | null) =
 		kontur && staerke > 0
 			? { 'stroke': kontur.farbe, 'stroke-width': `${zahl(staerke)}px`, 'stroke-linejoin': 'round' }
 			: { 'stroke': 'none', 'stroke-width': null };
-	return zeichneFormNeu(setzePfadStil(quelle, nr, werte), nr);
+	return konturStilNeu(zeichneFormNeu(setzePfadStil(quelle, nr, werte), nr), nr); // 108: Kontur-Stil folgt der Stärke
 };
 
 export interface FormStand {

@@ -216,6 +216,31 @@ describe('graustufen.js', { skip: browserSkip() }, () => {
 		}
 		assert.equal(w.flaeche, 'rgb(255, 255, 255)', 'helle bunte Fläche wird weiß');
 	});
+
+	// 108: Verläufe in SVG (Formen mit Verlauf). Gegenprobe: Ohne `stop-color` in EIGENSCHAFTEN von graustufen.js
+	// schlägt dieser Fall fehl; die Stopps bleiben rgb(255, 0, 0), rgb(0, 160, 255) usw. (von Hand gezeigt, Ticket 108).
+	it('färbt die Stopps von linearGradient und radialGradient um (fest und als Variable)', () => {
+		const svg = `<svg width="300" height="60"><defs>
+<linearGradient id="verlauf-l1"><stop offset="0" stop-color="#ff0000"/><stop offset="1" style="stop-color:#00a0ff"/></linearGradient>
+<radialGradient id="verlauf-r1"><stop offset="0" style="stop-color:var(--eigen)"/><stop offset="1" stop-color="#ef476f"/></radialGradient>
+</defs><path class="v1" d="M0 0H100V60H0Z" fill="url(#verlauf-l1)"/><path class="v2" d="M120 0H220V60H120Z" fill="url(#verlauf-r1)"/></svg>`;
+		const html = EIGENES_CSS.replace('</div></body>', `${svg}</div></body>`)
+			.replace(
+				'</body>',
+				`<script src="graustufen.js"></script>${ausgeben(`() => ({
+	stopps: [...document.querySelectorAll('stop')].map((s) => getComputedStyle(s).stopColor),
+	verweis: getComputedStyle(document.querySelector('.v1')).fill,
+})`)}</body>`,
+			)
+			.replace('class="kl3 farbe palette-sonnig"', 'class="kl3 sw"');
+		const w = imBrowser<{ stopps: string[]; verweis: string }>(html, 'verlaeufe');
+		assert.equal(w.stopps.length, 4);
+		for (const wert of w.stopps) {
+			const m = /rgba?\((\d+)[, ]+(\d+)[, ]+(\d+)/.exec(wert);
+			assert.ok(m && m[1] === m[2] && m[2] === m[3], `Stopp in s/w grau: ${wert}`);
+		}
+		assert.match(w.verweis, /url\(/, 'Der Verweis auf den Verlauf bleibt');
+	});
 });
 
 describe('Eigene Klasse .sw im Material', { skip: browserSkip() }, () => {
