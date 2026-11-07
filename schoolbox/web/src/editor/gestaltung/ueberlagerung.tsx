@@ -12,6 +12,7 @@ import { griffeFuer } from './geste';
 import { ZUSATZ_GRIFFE } from './griffe';
 import { Hilfslinien, useAblageLinien } from './hilfslinien';
 import { istGestaltungElement } from './kontext';
+import type { Flaeche } from './useGeste';
 import { messe, useGeste } from './useGeste';
 import { WertAmZeiger } from './wert-am-zeiger';
 
@@ -22,6 +23,48 @@ interface Eigenschaften {
 	waehle: (nr: number | null) => void;
 	textsitzung: boolean;
 }
+
+/** 106: Rahmen um das Ziel eines Zusatzgriffs und eine Linie vom Griff zum Zeiger (Anker). Koordinaten des Materials. */
+const ZusatzAnzeige = ({
+	links,
+	skala,
+	von,
+	zeiger,
+	ziel,
+}: {
+	links: number;
+	skala: number;
+	von: { x: number; y: number } | null;
+	zeiger: { x: number; y: number };
+	ziel: Flaeche | null;
+}) => (
+	<>
+		{ziel && (
+			<div
+				className="pointer-events-none absolute z-ueberlagerung rounded-sm outline-2 outline-offset-2 outline-brand-500"
+				data-zusatz-ziel
+				style={{
+					left: links + ziel.links * skala,
+					top: ziel.oben * skala,
+					width: ziel.breite * skala,
+					height: ziel.hoehe * skala,
+				}}
+			/>
+		)}
+		{von && (
+			<div
+				className="pointer-events-none absolute z-ueberlagerung h-0 origin-left border-t-[1.5px] border-dashed border-brand-500"
+				data-zusatz-linie
+				style={{
+					left: links + von.x * skala,
+					top: von.y * skala,
+					width: Math.hypot(zeiger.x - von.x, zeiger.y - von.y) * skala,
+					transform: `rotate(${Math.atan2(zeiger.y - von.y, zeiger.x - von.x)}rad)`,
+				}}
+			/>
+		)}
+	</>
+);
 
 /**
  * Alles über dem Blatt, was zur Gestaltung gehört (097): Auswahlrahmen mit Griffen, Wert am Zeiger, Druckrand-Linie und
@@ -67,6 +110,7 @@ export const GestaltungUeberlagerung = ({ e, pfad, struktur, textsitzung, waehle
 					starteZusatz={geste.starteZusatz}
 				/>
 			)}
+			{stand?.zusatz && <ZusatzAnzeige links={links} skala={skala} zeiger={stand.zeiger} {...stand.zusatz} />}
 			{stand && <WertAmZeiger links={links} skala={skala} text={stand.text} zeiger={stand.zeiger} />}
 		</>
 	);

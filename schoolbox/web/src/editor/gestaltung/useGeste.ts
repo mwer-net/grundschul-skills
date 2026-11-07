@@ -17,7 +17,7 @@ import type { Hilfslinie, Kandidat } from './einrasten';
 import { rasteEin, sammleKandidaten } from './einrasten';
 import type { GriffName, GroessenArt, Kasten } from './geste';
 import { bewege, drehe, GRIFFE, haeltVerhaeltnis, inKasten, skaliere, wertText, winkelZu } from './geste';
-import type { ZusatzGriff } from './griffe';
+import type { ZusatzAnzeige, ZusatzGriff } from './griffe';
 import type { GestaltungKontext } from './kontext';
 import { gestaltungKontext, zeigeLageAm } from './kontext';
 
@@ -43,6 +43,8 @@ export interface GestenStand {
 	/** Die Seite, auf der das Element landet; für die Druckrand-Linie. `null`: außerhalb jeder Seite. */
 	seite: Flaeche | null;
 	linien: Hilfslinie[];
+	/** 106: Was ein Zusatzgriff zeigt: Rahmen um sein Ziel, Linie vom Griff (`von`) zum Zeiger. */
+	zusatz?: { ziel: Flaeche | null; von: { x: number; y: number } | null };
 }
 
 /** Gemessene Lage eines Elements im `iframe`. */
@@ -201,8 +203,14 @@ export const useGeste = (o: Optionen) => {
 		[doc],
 	);
 
-	const zeige = useCallback((l: Lauf, zeiger: { x: number; y: number }, linien: Hilfslinie[] = []) => {
-		let text = wertText(l.art === 'griff' ? 'bewegen' : l.art, l.jetzt);
+	const zeige = useCallback(
+		(
+			l: Lauf,
+			zeiger: { x: number; y: number },
+			linien: Hilfslinie[] = [],
+			zusatz?: ZusatzAnzeige & { von: { x: number; y: number } },
+		) => {
+		let text = zusatz?.text ?? wertText(l.art === 'griff' ? 'bewegen' : l.art, l.jetzt);
 		if (l.art === 'bewegen' && l.zielSeite && l.eigeneSeite && l.zielSeite !== l.eigeneSeite) {
 			const x = l.jetzt.x + l.eigeneSeite.flaeche.links - l.zielSeite.flaeche.links;
 			const y = l.jetzt.y + l.eigeneSeite.flaeche.oben - l.zielSeite.flaeche.oben;
@@ -218,8 +226,13 @@ export const useGeste = (o: Optionen) => {
 			text,
 			seite: (l.art === 'bewegen' ? l.zielSeite : l.eigeneSeite)?.flaeche ?? null,
 			linien,
+			...(zusatz && {
+				zusatz: { ziel: zusatz.ziel ? rechteckVon(zusatz.ziel) : null, von: zusatz.linie ? zusatz.von : null },
+			}),
 		});
-	}, []);
+		},
+		[],
+	);
 
 	/** Stellt die Attribute vom Start wieder her. */
 	const stelleHer = (l: Lauf) => {
@@ -628,7 +641,14 @@ export const useGeste = (o: Optionen) => {
 				fertig(m);
 			},
 			abbruch: brichAb,
-			taste: () => undefined,
+			// 106: Esc bricht auch einen Zug am Griff ab (der Fokus steht dabei im Editor, nicht im Blatt).
+			taste: (k) => {
+				if (k.key === 'Escape' && lauf.current === l) {
+					k.preventDefault();
+					k.stopPropagation();
+					brichAb();
+				}
+			},
 			bild: () => undefined,
 			sperrtRollen: () => true,
 		});
@@ -734,16 +754,19 @@ export const useGeste = (o: Optionen) => {
 			l.kontext = kontext;
 			const start = { x: e.clientX, y: e.clientY };
 			const { skala } = aktuell.current;
+			const knopf = e.currentTarget.getBoundingClientRect();
+			const von = imMaterial(knopf.left + knopf.width / 2, knopf.top + knopf.height / 2);
 			const zug = (m: PointerEvent) => {
 				const d = inKasten(l.start, (m.clientX - start.x) / skala, (m.clientY - start.y) / skala);
-				return { kasten: l.start, start: wo, dx: d.x, dy: d.y, umschalt: m.shiftKey, wahl: m.altKey };
+				const zeiger = imMaterial(m.clientX, m.clientY);
+				return { kasten: l.start, start: wo, dx: d.x, dy: d.y, umschalt: m.shiftKey, wahl: m.altKey, zeiger };
 			};
 			folge(
 				e,
 				l,
 				(m) => {
-					zusatz.zeige(kontext, zug(m));
-					zeige(l, imMaterial(m.clientX, m.clientY));
+					const anzeige = zusatz.zeige(kontext, zug(m));
+					zeige(l, imMaterial(m.clientX, m.clientY), [], anzeige ? { ...anzeige, von } : undefined);
 				},
 				(m) => {
 					beende();

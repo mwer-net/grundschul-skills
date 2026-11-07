@@ -163,6 +163,18 @@ export const GESTALTEN: Abschnitt = {
 			{/* << 105 */}
 
 			{/* >> 106 */}
+			<h3>Anker</h3>
+			<p data-hilfe-anker>
+				Soll eine Figur oder Form bei einer Aufgabe bleiben, hängst du sie an: Zieh den Anker ⚓ links oben neben dem
+				gewählten Element auf die Aufgabe. Sie bekommt einen Rahmen, und am Zeiger steht, woran es hängt. Rutscht die
+				Aufgabe danach weiter, weil davor eine dazukommt, oder wandert sie auf die nächste Seite, geht das Element mit
+				und behält seinen Platz neben ihr. Anhängen geht an Aufgaben und andere Bausteine auf derselben Seite, nicht an
+				reine Textbausteine. Zum Lösen ziehst du den Anker auf eine freie Stelle der Seite; das Element bleibt, wo es ist,
+				und liegt dann vorne. Dasselbe geht rechts im Inspektor unter „Hängt an“, in den Ebenen durch Ziehen der Zeile
+				auf einen Baustein oder aus ihm heraus, und über „Anhängen an Baustein“ bzw. „Vom Baustein lösen“ im ⋯ der
+				Leiste. Am Anker liegt ein Element immer vorne. Löschst oder kopierst du die Aufgabe, gehen ihre angehängten
+				Elemente mit; der Rückgängig-Knopf nennt sie („Gelöscht, mit Wilma“).
+			</p>
 			{/* << 106 */}
 
 			{/* >> 107 */}

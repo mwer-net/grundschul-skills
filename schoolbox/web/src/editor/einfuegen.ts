@@ -1,6 +1,7 @@
 import type { Einfuegbar } from '@schoolbox/kern/src/einfuegen';
 import { fuegeBausteinEin, verschiebeAufNeueSeite } from '@schoolbox/kern/src/einfuegen';
 import { fuegeBausteinAn } from '@schoolbox/kern/src/einfuegen-ablage';
+import { neueIdsInGestaltung } from '@schoolbox/kern/src/gestaltung';
 import type { KatalogEintrag } from '@schoolbox/kern/src/katalog';
 import { sucheImKatalog } from '@schoolbox/kern/src/katalog';
 import type { Ablage } from '@schoolbox/kern/src/struktur';
@@ -125,7 +126,8 @@ export const useEinfuegen = ({ auswahl, dokument, folien, nachher, struktur }: O
 		const html = await mitBildern(dokument, { mappe: a.mappe, dok: a.dok }, a.html);
 		struktur.fuehreAus(
 			`${a.name} eingefügt`,
-			(q) => fuegeBausteinEin(q, { id: 'ablage', ort: a.ort, html }, nr, { jeSeite: folien }),
+			// 106: Anker in der Kopie bekommen neue SVG-Ids, auch beim Einfügen ins selbe Dokument.
+			(q) => fuegeBausteinEin(q, { id: 'ablage', ort: a.ort, html: neueIdsInGestaltung(html, q) }, nr, { jeSeite: folien }),
 			true,
 		);
 		nachher();

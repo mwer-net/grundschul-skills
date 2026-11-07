@@ -3,7 +3,7 @@ import { kann } from '@schoolbox/kern/src/bausteine';
 import { istGestaltung } from '@schoolbox/kern/src/gestaltung';
 import type { EbenenName } from '@schoolbox/kern/src/gestaltung-arten';
 import type { Knoten, Zerlegung } from '@schoolbox/kern/src/quelltext';
-import { klassenVon, MARKE, quelleVon } from '@schoolbox/kern/src/quelltext';
+import { attribut, klassenVon, MARKE, quelleVon } from '@schoolbox/kern/src/quelltext';
 import type { Ablage } from '@schoolbox/kern/src/struktur';
 import { seitenVon } from '@schoolbox/kern/src/struktur';
 
@@ -12,8 +12,8 @@ import { bausteinVon, liegtAlsBlock, nameVon, nrVon, trefferAn } from './darstel
 /** Orientierung, aber kein Ziehen: Kopf und Fuß des Blatts und das Band des Themas. */
 const FESTE_ARTEN = new Set(['namenszeile', 'kopf', 'fuss', 'themaband', 'themakopf']);
 /**
- * Die Ebenen (`.ebene`) baut `gliederungVon` selbst als eigene Zeilen (101). Gestaltung am Anker zeigt erst 106, Kinder
- * einer Gruppe erst 120: Bis dahin bleibt alles mit `data-lage` im Stapel ohne Zeile.
+ * Die Ebenen (`.ebene`) baut `gliederungVon` selbst als eigene Zeilen (101), Gestaltung am Anker als Kindzeilen ihres
+ * Bausteins (106). Kinder einer Gruppe zeigt erst 120: Bis dahin bleibt alles andere mit `data-lage` ohne Zeile.
  */
 const OHNE_ZEILE = '.loesung-marke, style, script, template, link, meta, br, .ebene, [data-lage]';
 
@@ -21,7 +21,7 @@ const OHNE_ZEILE = '.loesung-marke, style, script, template, link, meta, br, .eb
  * Was eine Zeile ist (101, 1-ebenen.md „Aufbau des Baums“): ein Baustein wie bisher, ein Gestaltungselement in einer
  * Ebene, der gedachte Hauptstapel (ohne eigenes Element) oder Seitenrahmen und Seitenfläche zuunterst.
  */
-export type ZeilenArt = 'baustein' | EbenenName | 'hauptstapel' | 'seitenrahmen' | 'seitenflaeche';
+export type ZeilenArt = 'baustein' | EbenenName | 'hauptstapel' | 'seitenrahmen' | 'seitenflaeche' | 'anker';
 
 /** Nach diesem Teil des Schlüssels erkennt `gliederung-stand`, dass der Hauptstapel ohne Zutun offen steht. */
 export const HAUPTSTAPEL = 'hauptstapel';
@@ -165,6 +165,13 @@ const rohIn = (elemente: ReadonlyMap<number, Element>, eltern: Knoten): Roh[] =>
 		return [{ nr: k.nr, element, baustein, kinder: rohIn(elemente, k) }];
 	});
 
+/** 106: Was am Baustein hängt, das vorderste (in der Quelle letzte) zuerst. */
+export const ankerIn = (z: Zerlegung, nr: number) =>
+	(z.knoten[nr]?.kinder ?? [])
+		.filter((k) => istGestaltung(k) && attribut(k, 'data-anker') !== undefined)
+		.map((k) => k.nr)
+		.reverse();
+
 const alleRoh = (roh: Roh[]): Roh[] => roh.flatMap((r) => [r, ...alleRoh(r.kinder)]);
 
 const istFest = (baustein: Baustein) => !kann(baustein, 'ordnen') || FESTE_ARTEN.has(baustein.art);
@@ -263,31 +270,6 @@ export const gliederungVon = (doc: Document, z: Zerlegung, ids: readonly number[
 	const mehrereSeiten = seiten.length > 1;
 	// Auf der Seite liegt alles als Block zwischen allem anderen, Aufgaben wie freie Blöcke (vgl. `zieleFuer`).
 	const aufSeite = roh.flatMap((r) => r.filter((x) => !istFest(x.baustein))).length;
-	const baue = (r: Roh, schluessel: string): GliederungKnoten => {
-		const umgebung = trefferAn(r.element.parentElement)?.element ?? null;
-		const name = nameVon({ nr: r.nr, baustein: r.baustein, element: r.element }, umgebung);
-		const aufgabe = r.baustein.art === 'aufgabe';
-		const fest = istFest(r.baustein);
-		const gruppe = gruppeVon(r.element, r.baustein);
-		const ueberSeiten = gruppe === 'seite' || gruppe === `in:${r.baustein.art}`;
-		const neben = r.element.parentElement?.matches('.seite')
-			? Math.max(aufSeite, gruppen.get(gruppe) ?? 0)
-			: (gruppen.get(gruppe) ?? 0);
-		return {
-			nr: r.nr,
-			titel: titelVon(r.element, r.baustein, name),
-			nummer: aufgabe ? (r.element.querySelector(':scope > .nr')?.textContent?.trim() ?? null) : null,
-			name,
-			art: r.baustein.name,
-			aufgabe,
-			fest,
-			ziehbar: !fest && (neben > 1 || (ueberSeiten && mehrereSeiten)),
-			schluessel,
-			kinder: r.kinder.map((k, i) => baue(k, `${schluessel}/${i}:${k.baustein.art}`)),
-			...OHNE_STAPEL,
-			kennung: r.baustein.art,
-		};
-	};
 	/** Eine Zeile der Ebenen; `null`, wenn das Element nicht in der Darstellung steht. */
 	const gestaltung = (
 		nr: number,
@@ -330,6 +312,37 @@ export const gliederungVon = (doc: Document, z: Zerlegung, ids: readonly number[
 			gesperrt: element.hasAttribute('data-gesperrt'),
 			eigenerName: wert('data-name')?.trim() || null,
 			lage,
+		};
+	};
+	const baue = (r: Roh, schluessel: string): GliederungKnoten => {
+		const umgebung = trefferAn(r.element.parentElement)?.element ?? null;
+		const name = nameVon({ nr: r.nr, baustein: r.baustein, element: r.element }, umgebung);
+		const aufgabe = r.baustein.art === 'aufgabe';
+		const fest = istFest(r.baustein);
+		const gruppe = gruppeVon(r.element, r.baustein);
+		const ueberSeiten = gruppe === 'seite' || gruppe === `in:${r.baustein.art}`;
+		const neben = r.element.parentElement?.matches('.seite')
+			? Math.max(aufSeite, gruppen.get(gruppe) ?? 0)
+			: (gruppen.get(gruppe) ?? 0);
+		return {
+			nr: r.nr,
+			titel: titelVon(r.element, r.baustein, name),
+			nummer: aufgabe ? (r.element.querySelector(':scope > .nr')?.textContent?.trim() ?? null) : null,
+			name,
+			art: r.baustein.name,
+			aufgabe,
+			fest,
+			ziehbar: !fest && (neben > 1 || (ueberSeiten && mehrereSeiten)),
+			schluessel,
+			// 106: Elemente am Anker oben im Zweig ihres Bausteins (1-ebenen.md, „Hauptstapel“).
+			kinder: [
+				...ankerIn(z, r.nr)
+					.map((nr, i) => gestaltung(nr, 'anker', `${schluessel}/anker/${i}`, null))
+					.filter((k): k is GliederungKnoten => k !== null),
+				...r.kinder.map((k, i) => baue(k, `${schluessel}/${i}:${k.baustein.art}`)),
+			],
+			...OHNE_STAPEL,
+			kennung: r.baustein.art,
 		};
 	};
 	return seiten.map((seite, i) => {

@@ -1,5 +1,6 @@
 import type { LucideIcon } from 'lucide-react';
 import {
+	Anchor,
 	ArrowDown,
 	ArrowLeft,
 	ArrowRight,
@@ -196,6 +197,10 @@ const SYMBOLE = {
 	// >> 102 Figuren
 	spiegeln: FlipHorizontal2,
 	// << 102
+
+	// >> 106 Anker
+	anker: Anchor,
+	// << 106
 } as const satisfies Record<string, LucideIcon>;
 
 export type SymbolName = keyof typeof SYMBOLE;

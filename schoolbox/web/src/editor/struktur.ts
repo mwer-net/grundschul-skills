@@ -1,3 +1,4 @@
+import { mitAnkern } from '@schoolbox/kern/src/anker';
 import type { Baustein } from '@schoolbox/kern/src/bausteine';
 import { kann } from '@schoolbox/kern/src/bausteine';
 import type { Ablage, StrukturErgebnis } from '@schoolbox/kern/src/struktur';
@@ -230,8 +231,9 @@ export const useStruktur = (o: Optionen) => {
 	const dupliziere = (nr: number) => fuehreAus('Kopiert', (q) => dupliziereBaustein(q, nr, nummerierung()), true);
 
 	const loesche = (nr: number, name: string, wie: 'Gelöscht' | 'Ausgeschnitten' = 'Gelöscht') => {
-		if (fuehreAus(wie, (q) => loescheBaustein(q, nr, nummerierung()))) {
-			zeige({ text: `${name} ${wie.toLowerCase()}.`, aktion: zurueckKnopf() });
+		const mit = quelle ? mitAnkern(quelle, nr) : ''; // 106: „Gelöscht, mit Wilma“
+		if (fuehreAus(`${wie}${mit}`, (q) => loescheBaustein(q, nr, nummerierung()))) {
+			zeige({ text: `${name} ${wie.toLowerCase()}${mit}.`, aktion: zurueckKnopf() });
 		}
 	};
 

@@ -5,7 +5,7 @@ import { PFAD_GRIFFE } from './pfad';
 import type { ZusatzGriff } from './typ';
 import { ZIPFEL_GRIFFE } from './zipfel';
 
-export type { GriffZug, ZusatzGriff } from './typ';
+export type { GriffZug, ZusatzAnzeige, ZusatzGriff } from './typ';
 
 /** Alle Zusatzgriffe. Ein Ticket füllt nur seine Datei, diese Liste bleibt. */
 export const ZUSATZ_GRIFFE: readonly ZusatzGriff[] = [
