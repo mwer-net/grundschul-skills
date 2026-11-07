@@ -117,6 +117,19 @@ export const GESTALTEN: Abschnitt = {
 			{/* << 102 */}
 
 			{/* >> 103 */}
+			<h3>Bilder frei aufs Blatt</h3>
+			<p data-hilfe-bilder-frei>
+				In der Schublade „Bilder“ setzt ein Klick auf ein Bild es ein wie bisher. Ziehst du ein Bild aufs Blatt, liegt
+				es dort frei, wo du loslässt, höchstens 320 Pixel breit, und ist gleich gewählt: Dann ziehst du es zurecht,
+				änderst an den Ecken die Größe und drehst es am runden Griff. Das Ziel entscheidet mit: Auf ein Bild im Blatt
+				gezogen tauscht es dieses aus, Lage und Größe bleiben; in einen Bildplatzhalter gezogen füllt es ihn. Was
+				passieren wird, zeigt ein blauer Rahmen und ein Wort am Zeiger. Hältst du beim Ziehen ⌘, kommt das Bild als
+				Bild-Baustein in den Stapel, eine Lücke zeigt die Stelle. Ein Foto kannst du auch direkt aus dem Finder auf die
+				Seite ziehen: Es wird hochgeladen und liegt dann frei. Ein Bild, das schon im Stapel steht, legst du über ⋯ am
+				Baustein mit „Frei legen“ frei; es bleibt an seiner Stelle. Bei einem freien Bild stehen Austauschen und
+				Beschreibung rechts im Inspektor unter „Bild“, die Größe unter „Position und Größe“. ⌘Z nimmt jeden Schritt
+				zurück.
+			</p>
 			{/* << 103 */}
 
 			{/* >> 104 */}

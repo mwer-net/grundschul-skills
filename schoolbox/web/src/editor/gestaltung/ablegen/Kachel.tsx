@@ -14,10 +14,13 @@ import type { GestaltungsGut } from './ziehgut';
  * der Bausteine (094): mit der Maus ab `MAUS_WEG`, mit dem Finger nach `HALTEN_MS`, damit Wischen die Liste rollt.
  */
 export const AblageKachel = ({
+	aus = false,
 	beschriftung,
 	children,
 	className,
+	daten,
 	gut,
+	klick: eigenerKlick,
 	teile,
 }: {
 	teile: AblegenTeile;
@@ -26,6 +29,11 @@ export const AblageKachel = ({
 	beschriftung?: string;
 	className?: string;
 	children: ReactNode;
+	/** Klick ohne Ziehen; ohne Angabe legt er das Gut in die Mitte (103: Bilder setzen wie heute ein). */
+	klick?: () => void;
+	aus?: boolean;
+	/** `data-*`-Attribute am Knopf, etwa für Tests. */
+	daten?: Readonly<Record<`data-${string}`, string>>;
 }) => {
 	const { amZeiger, klick, ziehe } = useAblegen(teile);
 	const druckAn = useRef<{ x: number; y: number; id: number; maus: boolean; timer: number } | null>(null);
@@ -87,6 +95,8 @@ export const AblageKachel = ({
 				aria-label={name}
 				title={name}
 				className={klassen('select-none', amZeiger ? 'cursor-grabbing' : 'cursor-grab', className)}
+				disabled={aus}
+				{...daten}
 				data-ablage-gut={gut.name}
 				onPointerDown={druck}
 				onPointerMove={bewege}
@@ -105,7 +115,11 @@ export const AblageKachel = ({
 				onClick={() => {
 					// Nach einem Zug schluckt `schluckeKlick` den Klick meist schon; sonst hier.
 					if (!gezogen.current) {
-						klick(gut);
+						if (eigenerKlick) {
+							eigenerKlick();
+						} else {
+							klick(gut);
+						}
 					}
 					gezogen.current = false;
 				}}

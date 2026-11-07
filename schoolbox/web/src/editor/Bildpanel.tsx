@@ -10,12 +10,18 @@ import { Zeile } from '../bausteine/Zeile';
 import { useLaden } from '../lib/laden';
 import type { BildSteuerung, BildWerte, NeuerPlatz } from './bild';
 import { beschreibungAus } from './bild';
+import type { AblegenTeile } from './gestaltung/ablegen/ablegen';
+import { AblageKachel } from './gestaltung/ablegen/Kachel';
+import type { GestaltungsGut } from './gestaltung/ablegen/ziehgut';
 import { EIGENE_GESCHICHTE } from './tasten';
 
 /** Der Hinweis zum Datenschutz kommt einmal je Sitzung im Browser (Leitlinie aus 007). */
 const HINWEIS_GESEHEN = 'schoolbox-foto-hinweis';
 
-const gesehen = () => {
+/** Der Hinweis selbst; 103 zeigt ihn auch, wenn ein Foto aus dem Finder aufs Blatt fällt. */
+export const FOTO_HINWEIS = 'Bitte keine Fotos, auf denen Kinder zu erkennen sind.';
+
+export const gesehen = () => {
 	try {
 		return window.sessionStorage.getItem(HINWEIS_GESEHEN) === '1';
 	} catch {
@@ -23,7 +29,7 @@ const gesehen = () => {
 	}
 };
 
-const merkeGesehen = () => {
+export const merkeGesehen = () => {
 	try {
 		window.sessionStorage.setItem(HINWEIS_GESEHEN, '1');
 	} catch {
@@ -77,7 +83,7 @@ export const Hochladen = ({
 		return (
 			<div className="basis-full rounded-xl border border-entwurf bg-warnung-hell p-4" role="note">
 				{eingabe}
-				<p className="font-medium">Bitte keine Fotos, auf denen Kinder zu erkennen sind.</p>
+				<p className="font-medium">{FOTO_HINWEIS}</p>
 				<div className="mt-3 flex flex-wrap gap-2">
 					<label htmlFor={feld} className={knopfKlassen('haupt', 'cursor-pointer')} onClick={merkeGesehen}>
 						Verstanden, Foto wählen
@@ -133,41 +139,78 @@ export const passt = (eintrag: SammlungsBild, suche: string) => {
 		.every((wort) => text.includes(wort));
 };
 
+/** Ziehen aus der Bilder-Schublade (103): das Gut zu einem Eintrag, sobald die Maße der Vorschau bekannt sind. */
+export type BildZiehen = (
+	eintrag: SammlungsBild,
+	natur: { breite: number; hoehe: number } | null,
+) => { gut: GestaltungsGut; teile: AblegenTeile } | null;
+
 const Kachel = ({
 	aus,
 	eintrag,
 	klein,
 	waehle,
+	ziehen,
 }: {
 	eintrag: SammlungsBild;
 	waehle: () => void;
 	klein: boolean;
 	aus: boolean;
-}) => (
-	<li className="min-w-0">
-		<button
-			type="button"
-			className={klassen(
-				'flex w-full flex-col gap-1 rounded-xl border border-rand bg-flaeche text-left hover:border-brand-200 hover:bg-flaeche-2 disabled:opacity-50',
-				klein ? 'p-1.5' : 'p-2',
-			)}
-			disabled={aus}
-			data-sammlung-bild={eintrag.schluessel}
-			onClick={waehle}
-		>
+	ziehen?: BildZiehen | undefined;
+}) => {
+	const [natur, setNatur] = useState<{ breite: number; hoehe: number } | null>(null);
+	const klasse = klassen(
+		'flex w-full flex-col gap-1 rounded-xl border border-rand bg-flaeche text-left hover:border-brand-200 hover:bg-flaeche-2 disabled:opacity-50',
+		klein ? 'p-1.5' : 'p-2',
+	);
+	const inhalt = (
+		<>
 			<img
 				src={`/ansicht/${eintrag.schluessel}`}
 				alt=""
 				loading="lazy"
+				draggable={false}
 				className={klassen('w-full rounded-lg bg-papier object-contain', klein ? 'h-20' : 'h-28')}
+				onLoad={(e) => {
+					const { naturalHeight: hoehe, naturalWidth: breite } = e.currentTarget;
+					setNatur(breite > 0 ? { breite, hoehe } : null);
+				}}
 			/>
 			<span className={klassen('truncate font-medium', klein && 'text-xs')}>{eintrag.alt[0] ?? eintrag.name}</span>
 			{eintrag.mappe && (
 				<span className={klassen('truncate text-leise', klein ? 'text-xs' : 'text-sm')}>{eintrag.mappe}</span>
 			)}
-		</button>
-	</li>
-);
+		</>
+	);
+	const zug = ziehen?.(eintrag, natur);
+	return (
+		<li className="min-w-0">
+			{zug ? (
+				<AblageKachel
+					teile={zug.teile}
+					gut={zug.gut}
+					beschriftung={eintrag.alt[0] ?? eintrag.name}
+					className={klasse}
+					aus={aus}
+					klick={waehle}
+					daten={{ 'data-sammlung-bild': eintrag.schluessel }}
+				>
+					{inhalt}
+				</AblageKachel>
+			) : (
+				<button
+					type="button"
+					className={klasse}
+					disabled={aus}
+					data-sammlung-bild={eintrag.schluessel}
+					onClick={waehle}
+				>
+					{inhalt}
+				</button>
+			)}
+		</li>
+	);
+};
 
 /** Kacheln einer Gruppe mit Laden, Fehler und Leerzustand; im Dialog groß, in der Bilder-Schublade klein. */
 export const SammlungsKacheln = ({
@@ -179,6 +222,7 @@ export const SammlungsKacheln = ({
 	liste,
 	suche,
 	waehle,
+	ziehen,
 }: {
 	geladen: boolean;
 	fehler: string | null;
@@ -188,6 +232,8 @@ export const SammlungsKacheln = ({
 	waehle: (eintrag: SammlungsBild) => void;
 	klein?: boolean;
 	aus?: boolean;
+	/** Nur in der Bilder-Schublade: Kacheln lassen sich aufs Blatt ziehen (103). */
+	ziehen?: BildZiehen | undefined;
 }) => (
 	<>
 		{fehler && <p className="font-medium text-fehler">{fehler}</p>}
@@ -206,7 +252,14 @@ export const SammlungsKacheln = ({
 			data-sammlung={gruppe}
 		>
 			{liste.map((eintrag) => (
-				<Kachel key={eintrag.schluessel} eintrag={eintrag} klein={klein} aus={aus} waehle={() => waehle(eintrag)} />
+				<Kachel
+					key={eintrag.schluessel}
+					eintrag={eintrag}
+					klein={klein}
+					aus={aus}
+					waehle={() => waehle(eintrag)}
+					ziehen={ziehen}
+				/>
 			))}
 		</ul>
 	</>
@@ -403,8 +456,11 @@ export const BildDarstellung = ({ bild }: { bild: BildSteuerung }) => {
 	return bild.aktiv && w && !w.platzhalter ? <Groesse bild={bild} w={w} /> : null;
 };
 
-/** Für Bilder und Bildplatzhalter: austauschen bzw. einsetzen, Beschreibung, Entfernen. Die Größe steht unter „Darstellung“. */
-export const Bildwerkzeug = ({ bild }: { bild: BildSteuerung }) => {
+/**
+ * Für Bilder und Bildplatzhalter: austauschen bzw. einsetzen, Beschreibung, Entfernen. Die Größe steht unter
+ * „Darstellung“. Freie Bilder (103) zeigen es ohne Entfernen: Das geht dort über ⌫ und ⋯ wie bei aller Gestaltung.
+ */
+export const Bildwerkzeug = ({ bild, ohneEntfernen = false }: { bild: BildSteuerung; ohneEntfernen?: boolean }) => {
 	const [sammlung, setSammlung] = useState(false);
 	const w = bild.werte;
 	if (!bild.aktiv || !w) {
@@ -432,10 +488,12 @@ export const Bildwerkzeug = ({ bild }: { bild: BildSteuerung }) => {
 			{!w.platzhalter && (
 				<>
 					<Beschreibung bild={bild} w={w} />
-					<Knopf art="gefahr" className="mt-2 self-start" disabled={beschaeftigt} onClick={bild.entferne}>
-						<Symbol name="papierkorb" />
-						Bild entfernen
-					</Knopf>
+					{!ohneEntfernen && (
+						<Knopf art="gefahr" className="mt-2 self-start" disabled={beschaeftigt} onClick={bild.entferne}>
+							<Symbol name="papierkorb" />
+							Bild entfernen
+						</Knopf>
+					)}
 				</>
 			)}
 			{sammlung && (

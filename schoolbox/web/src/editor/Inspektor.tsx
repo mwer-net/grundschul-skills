@@ -16,6 +16,7 @@ import { AbbildungFelder, AbbildungHinweise } from './Abbildungspanel';
 import type { Ablage } from './ablage';
 import { AusgeblendetHinweis } from './AusgeblendetHinweis';
 import type { BildSteuerung } from './bild';
+import { BildKontext } from './bild';
 import { BildDarstellung, Bildwerkzeug } from './Bildpanel';
 import { useChat } from './chat-kontext';
 import type { PfadTeil } from './darstellung';
@@ -340,7 +341,9 @@ export const Einstellungen = ({
 		return (
 			<div>
 				{hinweise}
-				<Gestaltungsinspektor doc={doc} pfad={pfad} quelle={quelle} struktur={struktur} />
+				<BildKontext.Provider value={bild}>
+					<Gestaltungsinspektor doc={doc} pfad={pfad} quelle={quelle} struktur={struktur} />
+				</BildKontext.Provider>
 			</div>
 		);
 	}

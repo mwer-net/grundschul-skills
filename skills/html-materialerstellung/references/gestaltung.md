@@ -190,6 +190,31 @@ Seite und lassen sich nicht ziehen. Sollen mehrere Seiten gleich aussehen, steht
 <!-- << 102 -->
 
 <!-- >> 103 Bilder frei -->
+## Freie Bilder
+
+Ein Foto oder eine Grafik, die frei auf der Seite liegt, schräg, groß als Aufmacher oder klein in der Ecke, ist ein
+`img.bild-frei` in `.ebene.vorne` (für ein blasses Hintergrundfoto in `.ebene.hinten`). Die Breite steht in `--b`, nie
+in `width` oder `height`. Die Höhe ergibt sich aus dem Bild.
+
+```html
+<div class="ebene vorne">
+  <img class="bild-frei" data-lage="frei" src="bilder/marktplatz.jpg" alt="Marktplatz"
+       style="--x:96px;--y:300px;--b:320px;--drehen:-3deg">
+</div>
+```
+
+| Variable | Wirkung |
+|---|---|
+| `--b` | Breite in px; ein neues Bild höchstens 320px bzw. die Breite der Datei |
+| `--h` | feste Höhe: Das Bild wird auf dieses Seitenverhältnis zugeschnitten (`object-fit: cover`) |
+| `--bx`, `--by` | Ausschnitt beim Zuschnitt, z. B. `30%` und `20%` (ohne Angabe die Mitte, `50%`) |
+
+- `src` zeigt wie bei jedem Bild in den Ordner `bilder/` der Mappe; `alt` beschreibt das Bild.
+- Ein Bild-Baustein im Stapel (`<img>` ohne `data-lage`) bleibt, wie er ist. Soll er frei liegen, wird er hier als
+  `img.bild-frei` neu geschrieben und im Stapel entfernt; eine Bildunterschrift wird dann eine Schmuckschrift
+  `div.schmuck[data-schmuck="titel"]` darunter.
+- Im Druck braucht ein Foto mindestens 150 dpi bei seiner Breite, sonst meldet die Prüfung `bild-unscharf`.
+- Leitfiguren im Tipp bleiben `img.figur`; Willi und Wilma frei auf der Seite sind `img.figur-frei` (Figuren).
 <!-- << 103 -->
 
 <!-- >> 104 Formen -->

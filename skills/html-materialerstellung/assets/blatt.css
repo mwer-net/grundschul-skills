@@ -455,6 +455,8 @@ body.minibuch .seitenrahmen{inset:var(--rahmen-abstand,8px)}
 /* << 102 */
 
 /* >> 103 Bilder frei */
+/* Freies Bild: Breite in --b, Höhe aus dem Bild; mit --h auf das Seitenverhältnis zugeschnitten, Ausschnitt in --bx/--by */
+img.bild-frei[data-lage="frei"]{object-fit:cover;object-position:var(--bx,50%) var(--by,50%)}
 /* << 103 */
 
 /* >> 104 Formen */
