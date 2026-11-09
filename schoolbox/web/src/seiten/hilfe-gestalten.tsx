@@ -363,6 +363,17 @@ export const GESTALTEN: Abschnitt = {
 			{/* << 116 */}
 
 			{/* >> 117 */}
+			<p data-hilfe-figur-claude>
+				Unten in der Figuren-Schublade steht „Figur von Claude zeichnen lassen …“. Schreib hinein, was du dir wünschst,
+				etwa „eine Eule mit Brille“, und drück Enter. Claude zeichnet die Figur auf die Seite, die gerade gewählt oder
+				zu sehen ist, und legt sie dir als Vorschlag vor. Nach „Annehmen“ ist sie gewählt und lässt sich wie jede Figur
+				verschieben, drehen und vergrößern. Claude zeichnet einfache Figuren, keine Fotos oder gemalten Bilder.
+			</p>
+			<p data-hilfe-frei-element>
+				Hat Claude ein eigenes Element gebaut, etwa ein Tangram oder eine Lupe, steht es zuerst in der Reihe der
+				Aufgaben. Mit „Frei legen“ im ⋯ liegt es an derselben Stelle frei auf dem Blatt. Zurück in die Reihe kommt es
+				nur über „In den Stapel“, dann steht es in einer Fläche.
+			</p>
 			{/* << 117 */}
 
 			{/* >> 119 */}

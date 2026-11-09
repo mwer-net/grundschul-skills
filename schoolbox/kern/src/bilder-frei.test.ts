@@ -3,8 +3,10 @@ import { describe, it } from 'node:test';
 
 import { BILD_FREI, blattMit } from '../../web/e2e/gestaltung-daten';
 import { setzeBildBreite, tauscheBild } from './bildbefehle';
-import { BILD_FREI_BREITE, breiteBeimAblegen, istBildBaustein, legeBildFrei } from './bilder-frei';
+import { BILD_FREI_BREITE, breiteBeimAblegen, istBildBaustein, istFreiesElement, legeBildFrei, legeFreiesElementFrei } from './bilder-frei';
+import { nameDerGestaltung } from './gestaltung-arten';
 import { attribut, klassenVon, zerlege } from './quelltext';
+import { bausteinVonKnoten } from './referenz';
 
 const BAUSTEIN = '<img src="bilder/kuerbis.jpg" alt="Kürbis" style="width:240px">';
 const MIT_UNTERSCHRIFT =
@@ -113,3 +115,54 @@ describe('breiteBeimAblegen', () => {
 		assert.equal(breiteBeimAblegen(null), BILD_FREI_BREITE);
 	});
 });
+
+// >> 117
+const FREI_FIGURE =
+	'<figure data-frei data-frei-titel="Tangram Waschbär"><svg viewBox="0 0 100 100" width="100%"><polygon points="0,0 100,0 50,50" fill="none" stroke="#000" stroke-width="2"/></svg><figcaption>Lege den Waschbären.</figcaption></figure>';
+const FREI_SVG = '<svg data-frei data-frei-titel="Lupe" width="100%" height="120"><circle cx="60" cy="60" r="40" fill="none" stroke="#000" stroke-width="2"/></svg>';
+
+describe('legeFreiesElementFrei', () => {
+	const freiNr = (quelle: string) => nrVon(quelle, (k) => attribut(k, 'data-frei') !== undefined);
+
+	it('behält data-frei und data-frei-titel, legt vorne ab und wird Art gestaltung', () => {
+		const quelle = blattMit({ stapel: [FREI_FIGURE] });
+		const nr = freiNr(quelle);
+		const vorher = zerlege(quelle).knoten[nr];
+		assert.ok(vorher);
+		assert.equal(bausteinVonKnoten(vorher, false)?.art, 'freieselement');
+		const r = legeFreiesElementFrei(quelle, nr, { x: 40, y: 300, b: 280, h: 320 });
+		const k = r.nr === null ? undefined : zerlege(r.quelle).knoten[r.nr];
+		assert.ok(k);
+		assert.equal(k.tag, 'figure');
+		assert.ok(attribut(k, 'data-frei'));
+		assert.equal(attribut(k, 'data-frei-titel')?.wert, 'Tangram Waschbär');
+		assert.equal(attribut(k, 'data-lage')?.wert, 'frei');
+		// Die gemessene Breite ersetzt width="100%" als Maß; ohne --h wächst die Höhe aus dem Inhalt.
+		assert.equal(attribut(k, 'style')?.wert, '--x:40px;--y:300px;--b:280px');
+		assert.equal(k.eltern, vorne(r.quelle));
+		assert.ok(r.quelle.includes('Lege den Waschbären.'));
+		assert.equal(r.quelle.match(/data-frei-titel/g)?.length, 1);
+		const baustein = bausteinVonKnoten(k, false);
+		assert.equal(baustein?.art, 'gestaltung');
+		assert.ok(baustein);
+		assert.equal(
+			nameDerGestaltung(baustein, (n) => attribut(k, n)?.wert ?? null),
+			'Tangram Waschbär',
+		);
+		assert.equal(istFreiesElement(k), false);
+	});
+
+	it('setzt --h nur bei einem SVG ohne viewBox', () => {
+		const quelle = blattMit({ stapel: [FREI_SVG] });
+		const r = legeFreiesElementFrei(quelle, freiNr(quelle), { x: 0, y: 10, b: 600, h: 120 });
+		const k = r.nr === null ? undefined : zerlege(r.quelle).knoten[r.nr];
+		assert.ok(k);
+		assert.equal(attribut(k, 'style')?.wert, '--x:0px;--y:10px;--b:600px;--h:120px');
+	});
+
+	it('nimmt nur freie Elemente im Stapel', () => {
+		const quelle = blattMit({ stapel: [BAUSTEIN] });
+		assert.throws(() => legeFreiesElementFrei(quelle, bildNr(quelle), { x: 0, y: 0, b: 10, h: 10 }));
+	});
+});
+// << 117
