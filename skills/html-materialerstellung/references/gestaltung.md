@@ -633,9 +633,14 @@ Sie schneidet am Rand ab (`overflow:hidden`). Der Stapel schiebt, was darunter s
 ```
 
 - `--h` ist die Höhe in px (Standard 200, mindestens 40). Eine Fläche trägt keine Nummer und keinen Anker.
-- **Wann Fläche, wann Anker:** Die Fläche, wenn das Gestaltete **zwischen** den Aufgaben steht und Platz im Fluss
-  braucht (eine Zeichnung, ein Bild mit Beschriftung, ein Rahmen zum Ausmalen). Der Anker, wenn es **an** einem
-  Baustein hängt und mit ihm wandert, ohne Platz zu nehmen. Alles andere liegt frei in der Ebene der Seite.
+- **Wann Fläche, wann Anker, wann Ebene:**
+
+  | Wohin | Wann | Beispiel |
+  |---|---|---|
+  | Fläche (`.flaeche` im Stapel) | Das Gestaltete steht **zwischen** den Aufgaben und braucht Platz im Fluss | eine Zeichnung, ein Bild mit Beschriftung, ein Rahmen zum Ausmalen |
+  | Anker (`data-anker` im Baustein) | Es hängt **an** einem Baustein und wandert mit ihm, ohne Platz zu nehmen | Wilma neben der Sternchenaufgabe |
+  | Ebene (`.ebene.hinten`/`.vorne`) | Es gehört zur Seite, nicht zu einer Aufgabe | Konfetti, ein Titel im Bogen, ein Rahmen um die Seite |
+
 - Teile einer Fläche dürfen nicht über ihren Rand hinausragen: Die Prüfung meldet `abgeschnitten` („liegt über den
   Rand der Fläche hinaus“). Die Fläche höher machen oder das Element verkleinern und nach innen schieben.
 - Nicht verwechseln mit der Seitenfläche (`.seitenflaeche`, Hintergrund der Seite) und der Prüfung `flaeche`.

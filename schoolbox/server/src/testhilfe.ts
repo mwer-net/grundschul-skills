@@ -126,6 +126,11 @@ process.stdin.on('end', () => {
 	if (fall === 'rezept-wert') { const d = 'material.html'; fs.writeFileSync(d, fs.readFileSync(d, 'utf8').replace(/data-aufmachung-kopfband="[^"]*"/, 'data-aufmachung-kopfband="zacken"')); ende({ result: 'Das Kopfband ist jetzt zackig.' }); return; }
 	if (fall === 'rezept-teil') { const d = 'material.html'; fs.writeFileSync(d, fs.readFileSync(d, 'utf8').replace(/<[^>]*data-aufmachung-teil="flaeche"[^>]*>/, (tag) => tag.replace('style="', 'style="opacity:0.2;'))); ende({ result: 'Die Fläche ist jetzt blasser.' }); return; }
 	// << 123
+	// >> 124 E4 von Claude: eine Gruppe aus Wilma und Sprechblase, ein Pfad mit relativen Befehlen und einem Bogen
+	const GRUPPE = '<div class="ebene vorne"><div class="gruppe" data-lage="frei" style="--x:420px;--y:620px;--b:300px;--h:220px"><img class="figur-frei" data-lage="frei" data-figur="wilma" src="bilder/wilma.png" alt="Wilma" style="--x:170px;--y:70px;--b:130px"><div class="form-text" data-lage="frei" data-form="sprechblase" data-zipfel="200,60" style="--x:0px;--y:0px;--b:180px;--h:84px"><div class="form-inhalt">Zähl genau!</div></div></div></div>';
+	const PFAD = '<div class="ebene vorne"><svg class="form" data-lage="frei" data-form="pfad" viewBox="0 0 100 60" style="--x:300px;--y:640px;--b:100px;--h:60px"><path d="m10 50 a40 40 0 0 1 80 0 z" style="fill:var(--akzent);stroke:var(--dunkel);stroke-width:3px"/></svg></div>';
+	if (fall === 'gruppe' || fall === 'pfad') { const d = 'material.html'; fs.writeFileSync(d, fs.readFileSync(d, 'utf8').replace('</section>', (fall === 'gruppe' ? GRUPPE : PFAD) + '</section>')); ende({ result: fall === 'gruppe' ? 'Wilma und Sprechblase als Gruppe.' : 'Eine Wolke als eigene Form.' }); return; }
+	// << 124
 	if (fall === 'frei') { baue(FREI); ende({ result: 'Annahme: sieben Steine.' }); return; }
 	if (fall === 'frei-zwei') { baue(eingabe.includes('Sicherheitsprüfung') ? FREI : FREI + FREI); ende({}); return; }
 	if (SPERRE[fall]) {
