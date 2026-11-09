@@ -625,3 +625,73 @@ export const kopiereGestaltungNach = (
 	}
 	return verschiebeAufSeite(kopie.quelle, kopie.nr, ziel.nr, lage);
 };
+
+// ── Mehrfachauswahl (113) ───────────────────────────────────────────────────
+
+/**
+ * Wendet `f` auf jedes Element aus `nrn` an, in **einem** Ergebnis (ein Schritt). Von hinten nach vorne, weil Löschen und
+ * Duplizieren die Nummern dahinter verschieben. `nr` ist danach das, was aus dem ersten Element (der Hauptauswahl)
+ * wurde; `alle` sagt dasselbe für jedes Element in der Reihenfolge von `nrn`. Beim Löschen zeigen beide auf die
+ * Nachbarn, die `loescheGestaltung` wählt; der Editor nimmt sie dann nicht.
+ */
+export const fuerAlle = (
+	quelle: string,
+	nrn: readonly number[],
+	f: (quelle: string, nr: number) => string | StrukturErgebnis,
+): StrukturErgebnis & { alle: (number | null)[] } => {
+	const liste = [...new Set(nrn)];
+	const alle: (number | null)[] = [...liste];
+	let q = quelle;
+	for (const nr of [...liste].sort((a, b) => b - a)) {
+		const vorher = zerlege(q).knoten.length;
+		const r = f(q, nr);
+		const e = typeof r === 'string' ? { quelle: r, nr } : r;
+		const verschoben = zerlege(e.quelle).knoten.length - vorher;
+		liste.forEach((n, i) => {
+			const jetzt = alle[i] ?? null;
+			if (n === nr) {
+				alle[i] = e.nr;
+			} else if (jetzt !== null && jetzt > nr) {
+				alle[i] = jetzt + verschoben;
+			}
+		});
+		q = e.quelle;
+	}
+	return { quelle: q, nr: alle[0] ?? null, alle };
+};
+
+const MEHRFACH_MARKE = 'data-mehrfach-schritt';
+
+const findeMarke = (quelle: string, i: number) =>
+	zerlege(quelle).knoten.find((k) => attribut(k, MEHRFACH_MARKE)?.wert === String(i))?.nr ?? null;
+
+/**
+ * Nach vorne bzw. hinten für mehrere (113), ein Schritt; die Gewählten behalten ihre Reihenfolge untereinander.
+ * Umordnen verschiebt Nummern, ohne dass Elemente dazukommen. Darum trägt jedes Element für die Dauer der Rechnung eine
+ * Marke, über die es wiedergefunden wird; die Marken sind am Ende wieder weg. `nr` ist die neue Nummer von `nrn[0]`.
+ */
+export const ordneAlle = (quelle: string, nrn: readonly number[], richtung: Richtung): StrukturErgebnis => {
+	const liste = [...new Set(nrn)];
+	const z = zerlege(quelle);
+	let q = wendeAn(
+		quelle,
+		liste.flatMap((nr, i) => setzeWert(z, knotenAn(z, nr), MEHRFACH_MARKE, String(i))),
+	);
+	// Wer zuerst dran ist: beim Schritt nach vorne das vorderste, beim Sprung ganz nach vorne das hinterste (es landet
+	// zuerst vorne und wird von den anderen überholt); nach hinten spiegelbildlich.
+	const aufsteigend = liste.map((nr, i) => ({ nr, i })).sort((a, b) => a.nr - b.nr);
+	const vorderstesZuerst = richtung === 'vor' || richtung === 'ganz-zurueck';
+	for (const { i } of vorderstesZuerst ? aufsteigend.reverse() : aufsteigend) {
+		const nr = findeMarke(q, i);
+		if (nr !== null) {
+			q = ordneInEbene(q, nr, richtung).quelle;
+		}
+	}
+	const haupt = findeMarke(q, 0);
+	const fertig = zerlege(q);
+	q = wendeAn(
+		q,
+		fertig.knoten.filter((k) => attribut(k, MEHRFACH_MARKE)).flatMap((k) => setzeAttribut(fertig, k, MEHRFACH_MARKE, null)),
+	);
+	return { quelle: q, nr: haupt };
+};

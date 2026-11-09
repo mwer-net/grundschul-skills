@@ -6,6 +6,7 @@ import type { StrukturErgebnis } from '@schoolbox/kern/src/struktur';
 import type { PfadTeil } from '../../darstellung';
 import { elementZu, nrVon } from '../../darstellung';
 import type { Struktur } from '../../struktur';
+import { nrnFuer } from '../mehrfach';
 
 /** `GestaltungKontext` kommt aus 097. `kontextFuerGestaltung` nimmt anders als 097 auch Seitenfläche und Seitenrahmen,
  * deren Inspektor nur „Druck“ zeigt. */
@@ -78,5 +79,6 @@ export const kontextFuerGestaltung = ({ doc, pfad, struktur }: Optionen): Gestal
 			const seite = elementZu(doc, nr)?.closest('.seite');
 			return seite ? nrVon(seite) : null;
 		},
+		nrn: kann(gewaehlt.baustein, 'lage') ? nrnFuer(doc, gewaehlt.nr) : [gewaehlt.nr], // 113
 	};
 };

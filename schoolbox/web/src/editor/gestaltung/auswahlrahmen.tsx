@@ -2,7 +2,7 @@ import type { PointerEvent as ReactPointerEvent } from 'react';
 
 import { klassen } from '../../bausteine/klassen';
 import type { GriffName, Kasten } from './geste';
-import { GRIFFE } from './geste';
+import { ECKEN, GRIFFE } from './geste';
 import type { ZusatzGriff } from './griffe';
 
 /** Abstand des Drehgriffs über der Oberkante, in Bildschirm-px (Briefing 5.4). */
@@ -171,3 +171,88 @@ export const Auswahlrahmen = ({
 	</div>
 );
 };
+
+/**
+ * 113: Rahmen um eine Mehrfachauswahl (5.9): um alle zusammen mit Ecken und Drehgriff, keine Kanten. Jedes gewählte
+ * Element bekommt einen dünnen Umriss. Alles in Koordinaten des Materials.
+ */
+export const MehrfachRahmen = ({
+	bedienbar,
+	inGeste,
+	kasten,
+	links,
+	skala,
+	starteMehrfach,
+	umrisse,
+}: {
+	kasten: Kasten;
+	umrisse: readonly { links: number; oben: number; rechts: number; unten: number }[];
+	links: number;
+	skala: number;
+	bedienbar: boolean;
+	inGeste: boolean;
+	starteMehrfach: (e: ReactPointerEvent<HTMLElement>, griff: GriffName | 'drehen') => void;
+}) => (
+	<>
+		{!inGeste &&
+			umrisse.map((r, i) => (
+				<div
+					// eslint-disable-next-line react/no-array-index-key -- die Reihenfolge ist die der Auswahl
+					key={i}
+					className="pointer-events-none absolute z-ueberlagerung border border-brand-500/70"
+					data-mehrfach-umriss
+					style={{
+						left: links + r.links * skala,
+						top: r.oben * skala,
+						width: (r.rechts - r.links) * skala,
+						height: (r.unten - r.oben) * skala,
+					}}
+				/>
+			))}
+		<div
+			className="pointer-events-none absolute z-ueberlagerung border-[1.5px] border-brand-500"
+			data-gestaltung-rahmen="mehrfach"
+			data-mehrfach-anzahl={umrisse.length}
+			style={{
+				left: links + kasten.x * skala,
+				top: kasten.y * skala,
+				width: kasten.b * skala,
+				height: kasten.h * skala,
+				transform: kasten.drehen ? `rotate(${kasten.drehen}deg)` : undefined,
+			}}
+		>
+			{bedienbar && (
+				<>
+					<span className="absolute left-1/2 w-px bg-brand-500" style={{ top: -DREH_ABSTAND, height: DREH_ABSTAND }} />
+					<button
+						type="button"
+						aria-label="Auswahl drehen"
+						title="Drehen (⇧: in 15°-Schritten)"
+						className={klassen(GRIFF, 'left-1/2 cursor-grab', inGeste && 'cursor-grabbing')}
+						style={{ top: -DREH_ABSTAND }}
+						data-gestaltung-griff="drehen"
+						onPointerDown={(e) => starteMehrfach(e, 'drehen')}
+					>
+						<span className="block size-2.5 flex-none rounded-full border border-brand-500 bg-flaeche shadow" />
+					</button>
+					{ECKEN.map((griff) => {
+						const { x, y } = GRIFFE[griff];
+						return (
+							<button
+								key={griff}
+								type="button"
+								aria-label={`Auswahl größer oder kleiner, ${NAME[griff]}`}
+								className={klassen(GRIFF, ZEIGER[griff])}
+								style={{ left: `${(x + 1) * 50}%`, top: `${(y + 1) * 50}%` }}
+								data-gestaltung-griff={griff}
+								onPointerDown={(e) => starteMehrfach(e, griff)}
+							>
+								<span className={PUNKT} />
+							</button>
+						);
+					})}
+				</>
+			)}
+		</div>
+	</>
+);

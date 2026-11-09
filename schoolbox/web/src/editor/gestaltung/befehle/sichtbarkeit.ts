@@ -1,4 +1,4 @@
-import { setzeAus, setzeGesperrt } from '@schoolbox/kern/src/gestaltung';
+import { fuerAlle, setzeAus, setzeGesperrt } from '@schoolbox/kern/src/gestaltung';
 
 import type { Befehl, Kontext } from '../../befehle';
 
@@ -27,7 +27,11 @@ export const SICHTBARKEIT_BEFEHLE: Befehl[] = [
 		aus: (k) => {
 			const g = k.gestaltung;
 			const an = gesetzt(k, 'data-gesperrt');
-			return g?.fuehreAus(an ? 'Entsperrt' : 'Gesperrt', (q) => ({ quelle: setzeGesperrt(q, g.nr, !an), nr: g.nr }));
+			// 113: Es gilt allen Gewählten, der Zustand der Hauptauswahl entscheidet.
+			return g?.fuehreAus(an ? 'Entsperrt' : 'Gesperrt', (q) => ({
+				quelle: fuerAlle(q, g.nrn, (q2, nr) => setzeGesperrt(q2, nr, !an)).quelle,
+				nr: g.nr,
+			}));
 		},
 	},
 	{
@@ -45,7 +49,10 @@ export const SICHTBARKEIT_BEFEHLE: Befehl[] = [
 		aus: (k) => {
 			const g = k.gestaltung;
 			const an = gesetzt(k, 'data-aus');
-			return g?.fuehreAus(an ? 'Eingeblendet' : 'Ausgeblendet', (q) => ({ quelle: setzeAus(q, g.nr, !an), nr: g.nr }));
+			return g?.fuehreAus(an ? 'Eingeblendet' : 'Ausgeblendet', (q) => ({
+				quelle: fuerAlle(q, g.nrn, (q2, nr) => setzeAus(q2, nr, !an)).quelle,
+				nr: g.nr,
+			}));
 		},
 	},
 ];

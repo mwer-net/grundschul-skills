@@ -289,6 +289,21 @@ export const GESTALTEN: Abschnitt = {
 			{/* << 111 */}
 
 			{/* >> 113 */}
+			<h3>Mehrere Elemente auf einmal</h3>
+			<p data-hilfe-mehrfach>
+				Mit ⇧ und Klick nimmst du weitere Elemente dazu oder wieder weg, in den Ebenen auch mit ⌘ und Klick. Oder du
+				ziehst auf einer freien Stelle der Seite ein Rechteck auf: Gewählt ist, was ganz darin liegt. Gesperrte und
+				ausgeblendete Elemente bleiben dabei außen vor. Gemeinsam verschiebst, drehst und vergrößerst du sie, die
+				Pfeiltasten schieben alle, ⌫ löscht alle, ⌘D verdoppelt alle. Jede Aktion ist ein Schritt, ⌘Z nimmt sie ganz
+				zurück. Ein Klick ohne ⇧ wählt wieder nur ein Element.
+			</p>
+			<p data-hilfe-ausrichten>
+				Die Leiste zeigt bei mehreren „Ausrichten“ und ab drei Elementen „Verteilen“. Ausrichten bringt alle an eine
+				Kante oder Mitte der gemeinsamen Auswahl, Verteilen setzt gleiche Abstände. Ein einzelnes Element richtest du
+				über „Mehr“ an der Seite aus, innerhalb des Rands. Die Tasten: ⌥A links, ⌥H mittig, ⌥D rechts, ⌥W oben, ⌥V
+				senkrecht mittig, ⌥S unten. Rechts im Inspektor stehen Lage und Größe der ganzen Auswahl; steht dort
+				„gemischt“, haben die Elemente verschiedene Werte, und ein neuer Wert gilt für alle.
+			</p>
 			{/* << 113 */}
 
 			{/* >> 115 */}

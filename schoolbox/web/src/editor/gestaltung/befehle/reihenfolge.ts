@@ -1,5 +1,5 @@
 import type { Richtung } from '@schoolbox/kern/src/gestaltung';
-import { ordneInEbene } from '@schoolbox/kern/src/gestaltung';
+import { ordneAlle, ordneInEbene } from '@schoolbox/kern/src/gestaltung';
 
 import type { SymbolName } from '../../../bausteine/Symbol';
 import type { Befehl, Kontext, Kuerzel } from '../../befehle';
@@ -47,7 +47,10 @@ const bewirktNichts = (k: Kontext, richtung: Richtung) => {
 		return true;
 	}
 	try {
-		return ordneInEbene(k.quelle, g.nr, richtung).quelle === k.quelle;
+		// 113: Bei mehreren gesperrt erst, wenn sich für keines etwas ändert.
+		return g.nrn.length > 1
+			? ordneAlle(k.quelle, g.nrn, richtung).quelle === k.quelle
+			: ordneInEbene(k.quelle, g.nr, richtung).quelle === k.quelle;
 	} catch {
 		return true;
 	}
@@ -70,7 +73,8 @@ export const REIHENFOLGE_BEFEHLE: Befehl[] = EINTRAEGE.map(
 		aus: (k) => {
 			const g = k.gestaltung;
 			if (g) {
-				g.fuehreAus(titel, (q) => ordneInEbene(q, g.nr, richtung));
+				// 113: Mehrere behalten ihre Reihenfolge untereinander, ein Schritt.
+				g.fuehreAus(titel, (q) => (g.nrn.length > 1 ? ordneAlle(q, g.nrn, richtung) : ordneInEbene(q, g.nr, richtung)));
 			}
 		},
 	}),

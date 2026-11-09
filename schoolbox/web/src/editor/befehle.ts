@@ -25,6 +25,7 @@ import type { MenueEintrag } from '../bausteine/Menue';
 import type { SymbolName } from '../bausteine/Symbol';
 import type { PfadTeil } from './darstellung';
 import { GESTALTUNG_BEFEHLE } from './gestaltung/befehle';
+import { dupliziereAlle, loescheAlle, mehrereGewaehlt } from './gestaltung/befehle/bewegen'; // 113
 import type { GestaltungKontext } from './gestaltung/kontext';
 import { WERKZEUG_BEFEHLE } from './gestaltung/werkzeuge/befehle';
 import { JEDE_LAGE, schubladeVon } from './schubladen';
@@ -396,6 +397,9 @@ export const BEFEHLE: Befehl[] = [
 		verfuegbar: (k) => kannDas(k, 'duplizieren'),
 		warumNicht: (k) => (gewaehlt(k) && k.frei ? `${gewaehlt(k)?.name} lässt sich nicht duplizieren.` : null),
 		aus: (k) => {
+			if (mehrereGewaehlt(k.gestaltung)) {
+				return dupliziereAlle(k.gestaltung); // 113
+			}
 			const g = gewaehlt(k);
 			return g && k.tu.struktur.dupliziere(g.nr);
 		},
@@ -639,6 +643,9 @@ export const BEFEHLE: Befehl[] = [
 			return einzigeSeite(k) ? 'Die einzige Seite bleibt.' : `${g.name} lässt sich nicht löschen.`;
 		},
 		aus: (k) => {
+			if (mehrereGewaehlt(k.gestaltung)) {
+				return loescheAlle(k.gestaltung); // 113
+			}
 			const g = gewaehlt(k);
 			return g && k.tu.struktur.loesche(g.nr, g.name);
 		},

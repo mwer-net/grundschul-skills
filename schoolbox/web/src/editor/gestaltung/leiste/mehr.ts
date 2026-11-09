@@ -12,6 +12,17 @@ export const MEHR_REIHENFOLGE: readonly (readonly string[])[] = [
 	['auswahl.duplizieren', 'auswahl.kopieren', 'auswahl.loeschen'],
 	// 100
 	['auswahl.nach-vorne', 'auswahl.ganz-vorne', 'auswahl.nach-hinten', 'auswahl.ganz-hinten'],
+	// 113
+	[
+		'auswahl.ausrichten-links',
+		'auswahl.ausrichten-mitte',
+		'auswahl.ausrichten-rechts',
+		'auswahl.ausrichten-oben',
+		'auswahl.ausrichten-mittig',
+		'auswahl.ausrichten-unten',
+		'auswahl.verteilen-waagerecht',
+		'auswahl.verteilen-senkrecht',
+	],
 	// 101
 	['auswahl.sperren', 'auswahl.ausblenden'],
 	// 106

@@ -6,6 +6,7 @@ import type { StrukturErgebnis } from '@schoolbox/kern/src/struktur';
 import type { PfadTeil } from '../darstellung';
 import { elementZu, nrVon } from '../darstellung';
 import type { Struktur } from '../struktur';
+import { nrnFuer } from './mehrfach';
 
 /**
  * Was Befehle, Griffe und Inspektor über das gewählte Gestaltungselement wissen und tun können (097). Spätere Tickets
@@ -25,6 +26,11 @@ export interface GestaltungKontext {
 	zeigeLage: (nr: number, teil: LageTeil) => void;
 	/** Nummer der `.seite`, auf der das Element liegt. */
 	seiteVon: (nr: number) => number | null;
+	/**
+	 * 113: Hauptauswahl und weitere Gestaltungselemente der Mehrfachauswahl, `nrn[0] === nr`. Nur Befehle und Teile,
+	 * die Mehrfachauswahl können, lesen das; alles andere sieht weiter `nr`.
+	 */
+	nrn: number[];
 }
 
 /** Ein Element mit `data-lage="frei"`, kein Baustein darum herum. */
@@ -85,6 +91,7 @@ const bauKontext = ({ doc, pfad, struktur }: Optionen, element: Element): Gestal
 			const seite = elementZu(doc, nr)?.closest('.seite');
 			return seite ? nrVon(seite) : null;
 		},
+		nrn: element.matches(GESTALTUNG_SELEKTOR) ? nrnFuer(doc, gewaehlt.nr) : [gewaehlt.nr],
 	};
 };
 

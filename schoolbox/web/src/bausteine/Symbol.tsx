@@ -1,5 +1,13 @@
 import type { LucideIcon } from 'lucide-react';
 import {
+	AlignCenterHorizontal,
+	AlignCenterVertical,
+	AlignEndHorizontal,
+	AlignEndVertical,
+	AlignHorizontalDistributeCenter,
+	AlignStartHorizontal,
+	AlignStartVertical,
+	AlignVerticalDistributeCenter,
 	Anchor,
 	Circle,
 	Cloud,
@@ -220,6 +228,16 @@ const SYMBOLE = {
 	// >> 109 Streuung
 	wuerfeln: Dices,
 	// << 109
+	// >> 113 Ausrichten und Verteilen
+	'ausrichten-links': AlignStartVertical,
+	'ausrichten-mitte': AlignCenterVertical,
+	'ausrichten-rechts': AlignEndVertical,
+	'ausrichten-oben': AlignStartHorizontal,
+	'ausrichten-mittig': AlignCenterHorizontal,
+	'ausrichten-unten': AlignEndHorizontal,
+	'verteilen-waagerecht': AlignHorizontalDistributeCenter,
+	'verteilen-senkrecht': AlignVerticalDistributeCenter,
+	// << 113
 } as const satisfies Record<string, LucideIcon>;
 
 export type SymbolName = keyof typeof SYMBOLE;

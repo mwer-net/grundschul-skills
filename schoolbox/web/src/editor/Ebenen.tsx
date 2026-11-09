@@ -36,6 +36,7 @@ import type { GliederungStand } from './gliederung-stand';
 import type { Struktur } from './struktur';
 import { MAUS_WEG } from './ziehen';
 import { ordnungVon } from './ziele';
+import { nrnFuer, schalteDazu, useMehrfach } from './gestaltung/mehrfach';
 
 const SPEICHER_SEITE = 'schoolbox-neue-seite';
 const FEDERN_MS = 600;
@@ -350,6 +351,9 @@ export const Ebenen = ({
 		[modell],
 	);
 	const aktiveZeile = frisch ? zeileZurAuswahl(zerlegung, auswahl, zeilenNr) : null;
+	// 113: Alle Zeilen einer Mehrfachauswahl sind markiert.
+	useMehrfach();
+	const mehrfach = new Set(doc && auswahl !== null && frisch ? nrnFuer(doc, auswahl).slice(1) : []);
 
 	const neu = useRef({ struktur, modell, zerlegung, stand, aktuell, doc });
 	neu.current = { struktur, modell, zerlegung, stand, aktuell, doc };
@@ -899,7 +903,7 @@ export const Ebenen = ({
 		const symbol = k.zeile === 'baustein' ? undefined : SYMBOL_DER_ART[k.kennung];
 		const istGestaltungZeile =
 			k.zeile === 'vorne' || k.zeile === 'hinten' || k.zeile === 'anker' || k.zeile === 'flaeche';
-		const aktiv = aktiveZeile === k.nr;
+		const aktiv = aktiveZeile === k.nr || mehrfach.has(k.nr);
 		const hauptstapel = k.zeile === 'hauptstapel';
 		// Der Hauptstapel hat kein eigenes Element: Sein Klick wählt die Seite.
 		// Seitenrahmen und Seitenfläche öffnen Blatt › Gestaltung (095).
@@ -963,7 +967,18 @@ export const Ebenen = ({
 								style={{ WebkitTouchCallout: 'none' }}
 								data-gliederung-titel
 								aria-current={aktiv}
-								onClick={waehleZeile}
+								onClick={(e) => {
+									// 113: ⇧- und ⌘-Klick nehmen ein Gestaltungselement dazu oder weg.
+									if (istGestaltungZeile && doc && (e.shiftKey || e.metaKey || e.ctrlKey)) {
+										schalteDazu(doc, auswahl, k.nr, (n) => {
+											if (n !== null) {
+												waehle(n);
+											}
+										});
+										return;
+									}
+									waehleZeile();
+								}}
 								onDoubleClick={() => {
 									if (istGestaltungZeile && aktuell) {
 										setUmbenennen(k.nr);

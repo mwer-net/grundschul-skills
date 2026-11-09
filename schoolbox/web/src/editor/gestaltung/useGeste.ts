@@ -9,7 +9,7 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import { meldeDaneben } from '../../bausteine/ueberlagerung';
 import { folgeZeiger, schluckeKlick } from '../../bausteine/zeigerzug';
 import type { PfadTeil } from '../darstellung';
-import { bausteinVon, nrVon, VERALTET } from '../darstellung';
+import { bausteinVon, elementZu, nrVon, VERALTET } from '../darstellung';
 import type { Struktur } from '../struktur';
 import { FINGER_WEG, HALTEN_MS, MAUS_WEG } from '../ziehen';
 import { zeigeNachGroesse } from './anzeige-folgen';
@@ -20,10 +20,13 @@ import { flaechenWechsel, kastenDerFlaeche, oeffneFlaechen } from './flaeche-zie
 import type { Hilfslinie, Kandidat } from './einrasten';
 import { rasteEin, sammleKandidaten } from './einrasten';
 import type { GriffName, GroessenArt, Kasten } from './geste';
-import { bewege, drehe, GRIFFE, haeltVerhaeltnis, inKasten, skaliere, wertText, winkelZu } from './geste';
+import { bewege, drehe, dreheUm, GRIFFE, haeltVerhaeltnis, inKasten, mitteVon, skaliere, skaliereMit, wertText, winkelZu } from './geste';
 import type { ZusatzAnzeige, ZusatzGriff } from './griffe';
 import type { GestaltungKontext } from './kontext';
 import { flaechenKontext, gestaltungKontext, zeigeLageAm } from './kontext';
+import { elementeZu, imRechteck, leereMehrfach, nrnFuer, schalteDazu, setzeMehrfach } from './mehrfach';
+import type { Gruppe, GruppenArt } from './mehrfach-geste';
+import { gruppeBewegt, gruppeVon, imBehaelter, imMaterial as kastenImMaterial, rechneGruppe, stelleGruppeHer, zeigeGruppe } from './mehrfach-geste';
 
 /** Ein Rechteck in Koordinaten des Materials. */
 export interface Flaeche {
@@ -164,6 +167,8 @@ interface Lauf {
 	/** Weg des Zeigers seit dem Start, in Koordinaten des Behälters. */
 	dx: number;
 	dy: number;
+	/** 113: Mehrfachauswahl; dann gilt die Geste allen, `start`/`jetzt` sind die des ersten Elements. */
+	gruppe: Gruppe | null;
 	ende: () => void;
 }
 
@@ -175,6 +180,8 @@ interface Druck {
 	nr: number;
 	element: Element;
 	timer: number;
+	/** 113: Klick auf ein Element einer Mehrfachauswahl: Ohne Ziehen wählt das Loslassen nur noch dieses. */
+	inGruppe?: boolean;
 }
 
 interface Optionen {
@@ -200,6 +207,8 @@ const stilHat = (element: Element, name: string) =>
 export const useGeste = (o: Optionen) => {
 	const { doc } = o;
 	const [stand, setStand] = useState<GestenStand | null>(null);
+	/** 113: Das Rechteck beim Aufziehen auf leerer Fläche, im Material. */
+	const [aufzug, setAufzug] = useState<Flaeche | null>(null);
 	const aktuell = useRef(o);
 	aktuell.current = o;
 	const lauf = useRef<Lauf | null>(null);
@@ -226,11 +235,15 @@ export const useGeste = (o: Optionen) => {
 			const nummer = l.seiten.indexOf(l.zielSeite) + 1;
 			text = `Seite ${nummer} · X ${Math.round(x)} · Y ${Math.round(y)}`;
 		}
+		if (l.gruppe) {
+			// 113: Rahmen und Wert gelten der ganzen Auswahl (im Material).
+			text = zusatz?.text ?? wertText(l.art === 'griff' ? 'bewegen' : l.art, l.art === 'drehen' ? { ...l.gruppe.jetzt, drehen: l.jetzt.drehen - l.start.drehen } : l.gruppe.jetzt);
+		}
 		setStand({
 			art: l.art,
 			nr: l.nr,
-			kasten: l.jetzt,
-			ursprung: l.ursprung,
+			kasten: l.gruppe ? l.gruppe.jetzt : l.jetzt,
+			ursprung: l.gruppe ? { x: 0, y: 0 } : l.ursprung,
 			zeiger,
 			text,
 			seite: (l.art === 'bewegen' ? l.zielSeite : l.eigeneSeite)?.flaeche ?? null,
@@ -274,7 +287,11 @@ export const useGeste = (o: Optionen) => {
 		if (!l) {
 			return;
 		}
-		stelleHer(l);
+		if (l.gruppe) {
+			stelleGruppeHer(l.gruppe); // 113
+		} else {
+			stelleHer(l);
+		}
 		if (l.zusatz && l.kontext) {
 			l.zusatz.zuruecksetzen?.(l.kontext);
 		}
@@ -329,9 +346,22 @@ export const useGeste = (o: Optionen) => {
 				umschalt: false,
 				dx: 0,
 				dy: 0,
+				gruppe: null,
 				ende,
 			};
-			if (art === 'bewegen') {
+			// 113: Gehört das Element zu einer Mehrfachauswahl, bewegt die Geste alle; kein Seitenwechsel, kein Einrasten am Element.
+			const nrn = art === 'griff' ? [nr] : nrnFuer(doc, nr);
+			if (nrn.length > 1) {
+				l.gruppe = gruppeVon(
+					elementeZu(doc, nrn).map((e) => e.element),
+					messe,
+				);
+				if (l.gruppe) {
+					l.seiten = [];
+					l.kandidaten = [];
+				}
+			}
+			if (art === 'bewegen' && !l.gruppe) {
 				oeffneFlaechen(doc, true); // 115: Beim Herausziehen aus einer Fläche soll das Element zu sehen sein
 			}
 			lauf.current = l;
@@ -393,6 +423,21 @@ export const useGeste = (o: Optionen) => {
 			l.dx = x - start.x;
 			l.dy = y - start.y;
 			l.umschalt = umschalt;
+			const g = l.gruppe;
+			if (g) {
+				// 113: Das Rechteck der Auswahl rastet ein, die Gewählten sind keine Kandidaten; alle gehen denselben Weg.
+				const gerastet = rasteEin(bewege(g.start, l.dx, l.dy, { achse: umschalt }), g.kandidaten, aktuell.current.skala, {
+					aus: befehl,
+				});
+				g.jetzt = gerastet.lage;
+				const wx = g.jetzt.x - g.start.x;
+				const wy = g.jetzt.y - g.start.y;
+				g.lagen = g.mitglieder.map((m) => ({ ...m.start, x: m.start.x + wx, y: m.start.y + wy }));
+				l.jetzt = g.lagen[0] ?? l.start;
+				zeigeGruppe(g, 'bewegen');
+				zeige(l, { x, y }, gerastet.linien);
+				return;
+			}
 			const roh = bewege(l.start, l.dx, l.dy, { achse: umschalt });
 			if (l.seiten.length > 0) {
 				l.zielSeite = l.seiten.find((s) => enthaelt(s.flaeche, x, y)) ?? null;
@@ -415,6 +460,15 @@ export const useGeste = (o: Optionen) => {
 		(wahl: boolean) => {
 			const l = lauf.current;
 			if (!l || l.art !== 'bewegen') {
+				return;
+			}
+			if (l.gruppe) {
+				// 113: ein Schritt für alle; ⌥-Kopie und Seitenwechsel gibt es bei der Mehrfachauswahl nicht.
+				const g = l.gruppe;
+				beende();
+				if (gruppeBewegt(g) && !aktuell.current.struktur.fuehreAus('Verschoben', rechneGruppe(g, 'bewegen'), false, true)) {
+					stelleGruppeHer(g);
+				}
 				return;
 			}
 			const { eigeneSeite, nr, wechsel, zielSeite } = l;
@@ -475,6 +529,23 @@ export const useGeste = (o: Optionen) => {
 		}
 		let druck: Druck | null = null;
 		let zugStart = { x: 0, y: 0 };
+		/** 113: Aufziehen auf leerer Fläche der Seite (nur Maus). */
+		let band: { id: number; x: number; y: number; seite: Element; laeuft: boolean } | null = null;
+		const bandRechteck = (b: { x: number; y: number }, x: number, y: number) => ({
+			links: Math.min(b.x, x),
+			oben: Math.min(b.y, y),
+			rechts: Math.max(b.x, x),
+			unten: Math.max(b.y, y),
+		});
+		/** Der Klick nach dem Aufziehen wählte sonst die Seite. */
+		const schluckeKlickImMaterial = () => {
+			const weg = (k: Event) => {
+				k.stopPropagation();
+				k.preventDefault();
+			};
+			fenster.addEventListener('click', weg, { capture: true, once: true });
+			fenster.setTimeout(() => fenster.removeEventListener('click', weg, { capture: true }), 0);
+		};
 		const loese = () => {
 			if (druck) {
 				fenster.clearTimeout(druck.timer);
@@ -521,13 +592,34 @@ export const useGeste = (o: Optionen) => {
 				element = auswahl ?? hintersteAn(doc, e.clientX, e.clientY) ?? element;
 			}
 			const nr = element ? nrVon(element) : null;
+			if ((!element || nr === null) && maus && !e.shiftKey && !e.altKey && !e.metaKey && erlaubt()) {
+				// 113: Leer heißt: kein Baustein mit Inhalt und kein Gestaltungselement unter dem Zeiger, nur Seite oder Ebene.
+				const seite = ziel.closest('.seite');
+				if (seite && (ziel === seite || ziel.matches('.ebene, .seitenflaeche, .seitenrahmen'))) {
+					band = { id: e.pointerId, x: e.clientX, y: e.clientY, seite, laeuft: false };
+				}
+				return;
+			}
 			if (!element || nr === null || !erlaubt()) {
 				return;
 			}
 			e.stopPropagation();
 			meldeDaneben();
 			loese();
-			const d: Druck = { id: e.pointerId, x: e.clientX, y: e.clientY, maus, nr, element, timer: 0 };
+			if (maus && e.shiftKey) {
+				// 113: ⇧-Klick nimmt das Element dazu oder weg (5.9); daraus wird kein Ziehen.
+				e.preventDefault();
+				schalteDazu(doc, gewaehlt, nr, aktuell.current.waehle);
+				fenster.focus();
+				return;
+			}
+			// 113: Klick in eine Mehrfachauswahl behält sie fürs Ziehen; das geklickte wird Hauptauswahl.
+			const mehr = gewaehlt === null ? [] : nrnFuer(doc, gewaehlt);
+			const inGruppe = mehr.length > 1 && mehr.includes(nr);
+			if (inGruppe && nr !== gewaehlt) {
+				setzeMehrfach(nr, mehr);
+			}
+			const d: Druck = { id: e.pointerId, x: e.clientX, y: e.clientY, maus, nr, element, timer: 0, inGruppe };
 			if (maus) {
 				// Kein Fokus in den Text: Der erste Klick wählt, der Doppelklick öffnet die Textsitzung (5.4).
 				e.preventDefault();
@@ -540,6 +632,23 @@ export const useGeste = (o: Optionen) => {
 		};
 
 		const bewegt = (e: PointerEvent) => {
+			if (band && e.pointerId === band.id) {
+				if (!band.laeuft && Math.hypot(e.clientX - band.x, e.clientY - band.y) > MAUS_WEG) {
+					band.laeuft = true;
+					try {
+						doc.documentElement.setPointerCapture(band.id);
+					} catch {
+						// ohne Fangen endet das Aufziehen am Rand des Materials
+					}
+				}
+				if (band.laeuft) {
+					e.preventDefault();
+					e.stopPropagation();
+					const r = bandRechteck(band, e.clientX, e.clientY);
+					setAufzug({ links: r.links, oben: r.oben, breite: r.rechts - r.links, hoehe: r.unten - r.oben });
+				}
+				return;
+			}
 			const l = lauf.current;
 			if (l?.art === 'bewegen') {
 				e.preventDefault();
@@ -559,6 +668,28 @@ export const useGeste = (o: Optionen) => {
 		};
 
 		const hoch = (e: PointerEvent) => {
+			if (band && e.pointerId === band.id) {
+				const b = band;
+				band = null;
+				if (b.laeuft) {
+					e.stopPropagation();
+					schluckeKlickImMaterial();
+					setAufzug(null);
+					try {
+						doc.documentElement.releasePointerCapture(b.id);
+					} catch {
+						// schon frei
+					}
+					const nrn = imRechteck(b.seite, bandRechteck(b, e.clientX, e.clientY));
+					const letzte = nrn.at(-1);
+					if (letzte !== undefined) {
+						setzeMehrfach(letzte, nrn.slice(0, -1));
+						aktuell.current.waehle(letzte);
+						fenster.focus();
+					}
+				}
+				return;
+			}
 			if (lauf.current?.art === 'bewegen') {
 				e.stopPropagation();
 				legeAb(e.altKey);
@@ -566,6 +697,9 @@ export const useGeste = (o: Optionen) => {
 			}
 			const d = druck;
 			loese();
+			if (d?.inGruppe && d.maus && e.pointerId === d.id) {
+				leereMehrfach(); // 113: Klick ohne ⇧ und ohne Ziehen wählt nur dieses Element
+			}
 			if (d && !d.maus && e.pointerId === d.id) {
 				// Angetippt: wählen.
 				e.stopPropagation();
@@ -575,6 +709,10 @@ export const useGeste = (o: Optionen) => {
 		};
 
 		const abbruch = () => {
+			if (band) {
+				band = null;
+				setAufzug(null);
+			}
 			loese();
 			if (lauf.current?.art === 'bewegen') {
 				brichAb();
@@ -767,6 +905,76 @@ export const useGeste = (o: Optionen) => {
 		[beginne, beende, brichAb, imMaterial, zeige],
 	);
 
+	/**
+	 * 113: Ecke oder Drehgriff am Rahmen einer Mehrfachauswahl. Größe immer proportional um die Auswahl (⌥: von der
+	 * Mitte), Drehen um die gemeinsame Mitte (⇧: 15°-Schritte). Ein Schritt für alle.
+	 */
+	const starteMehrfach = useCallback(
+		(e: ReactPointerEvent<HTMLElement>, griff: GriffName | 'drehen') => {
+			if (!e.isPrimary || (e.pointerType === 'mouse' && e.button !== 0)) {
+				return;
+			}
+			const nr = aktuell.current.pfad.at(-1)?.nr ?? null;
+			const element = nr === null ? null : elementZu(doc, nr);
+			if (!element) {
+				return;
+			}
+			e.preventDefault();
+			e.stopPropagation();
+			const art: GruppenArt = griff === 'drehen' ? 'drehen' : 'skalieren';
+			const l = beginne(art, element, () => undefined);
+			if (!l) {
+				return;
+			}
+			const g = l.gruppe;
+			if (!g) {
+				beende();
+				return;
+			}
+			const start = { x: e.clientX, y: e.clientY };
+			const { skala } = aktuell.current;
+			const mitte = mitteVon(g.start);
+			const winkel0 = winkelZu(mitte, imMaterial(start.x, start.y));
+			l.griff = griff === 'drehen' ? null : griff;
+			const bewegen = (m: PointerEvent) => {
+				if (griff === 'drehen') {
+					const w = drehe(
+						{ ...g.start, drehen: 0 },
+						winkelZu(mitte, imMaterial(m.clientX, m.clientY)) - winkel0,
+						{ raster15: m.shiftKey },
+					).drehen;
+					g.jetzt = { ...g.start, drehen: w };
+					g.lagen = g.mitglieder.map((mm) => imBehaelter(mm, dreheUm(kastenImMaterial(mm, mm.start), mitte, w)));
+					l.jetzt = { ...l.start, drehen: l.start.drehen + w };
+				} else {
+					const nach = skaliere(g.start, griff, (m.clientX - start.x) / skala, (m.clientY - start.y) / skala, {
+						verhaeltnis: true,
+						mitte: m.altKey,
+					});
+					g.jetzt = nach;
+					g.lagen = g.mitglieder.map((mm) => imBehaelter(mm, skaliereMit(kastenImMaterial(mm, mm.start), g.start, nach)));
+					l.jetzt = g.lagen[0] ?? l.start;
+				}
+				zeigeGruppe(g, art);
+				zeige(l, imMaterial(m.clientX, m.clientY));
+			};
+			const fertig = () => {
+				beende();
+				if (!gruppeBewegt(g)) {
+					return;
+				}
+				const titel = art === 'drehen' ? 'Gedreht' : 'Größe geändert';
+				if (!aktuell.current.struktur.fuehreAus(titel, rechneGruppe(g, art), false, true)) {
+					stelleGruppeHer(g);
+				}
+			};
+			folge(e, l, bewegen, fertig);
+			zeige(l, imMaterial(start.x, start.y));
+		},
+		// eslint-disable-next-line react-hooks/exhaustive-deps -- `folge` liest nur Refs
+		[doc, beginne, beende, imMaterial, zeige],
+	);
+
 	/** Ein Zusatzgriff (Zipfel, Anker, Höhe, Pfadpunkte): Anzeige und Schritt übernimmt der Griff selbst. */
 	const starteZusatz = useCallback(
 		(e: ReactPointerEvent<HTMLElement>, element: Element, zusatz: ZusatzGriff, wo: { x: number; y: number }) => {
@@ -815,5 +1023,5 @@ export const useGeste = (o: Optionen) => {
 		[doc, beginne, beende, imMaterial, zeige],
 	);
 
-	return { stand, starteGriff, starteZusatz };
+	return { stand, aufzug, starteGriff, starteMehrfach, starteZusatz };
 };

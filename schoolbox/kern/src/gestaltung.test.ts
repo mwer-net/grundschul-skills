@@ -7,10 +7,12 @@ import { blattMit, FORM_VERLAUF } from '../../web/e2e/gestaltung-daten';
 import { fuegeBausteinEin } from './einfuegen';
 import {
 	dupliziereGestaltung,
+	fuerAlle,
 	legeGestaltungAb,
 	leseLage,
 	loescheGestaltung,
 	neueSvgIds,
+	ordneAlle,
 	ordneInEbene,
 	raeumeEbenenAuf,
 	setzeAus,
@@ -369,3 +371,34 @@ describe('Bestand (Entscheidung 26)', () => {
 		}
 	});
 });
+
+// >> 113
+describe('fuerAlle und ordneAlle (113)', () => {
+	it('löscht drei Elemente in einem Schritt, auch wenn sich die Nummern verschieben', () => {
+		const vorher = blatt(...ebene('hinten', FLAECHE, A, B), ...ebene('vorne', C));
+		const r = fuerAlle(vorher, [nrMit(vorher, 'a'), nrMit(vorher, 'c'), nrMit(vorher, 'b')], loescheGestaltung);
+		assert.equal(r.quelle, blatt(...ebene('hinten', FLAECHE)));
+	});
+
+	it('meldet die neuen Nummern in der Reihenfolge der Eingabe', () => {
+		const vorher = blatt(...ebene('vorne', A, B, C));
+		const r = fuerAlle(vorher, [nrMit(vorher, 'c'), nrMit(vorher, 'a')], (q, nr) => setzeLage(q, nr, { x: 5 }));
+		const [c, a] = r.alle;
+		assert.ok(c !== null && c !== undefined && a !== null && a !== undefined);
+		assert.equal(klasseAn(r.quelle, c), 'c');
+		assert.equal(klasseAn(r.quelle, a), 'a');
+		assert.equal(leseLage(r.quelle, a).x, 5);
+	});
+
+	it('ordneAlle behält die Reihenfolge der Gewählten untereinander', () => {
+		const vorher = blatt(...ebene('vorne', A, B, C));
+		const nrn = [nrMit(vorher, 'a'), nrMit(vorher, 'b')];
+		assert.equal(ordneAlle(vorher, nrn, 'ganz-vor').quelle, blatt(...ebene('vorne', C, A, B)));
+		assert.equal(ordneAlle(vorher, nrn, 'vor').quelle, blatt(...ebene('vorne', C, A, B)));
+		const zwei = blatt(...ebene('vorne', A, B, C));
+		const hinten = [nrMit(zwei, 'b'), nrMit(zwei, 'c')];
+		assert.equal(ordneAlle(zwei, hinten, 'ganz-zurueck').quelle, blatt(...ebene('vorne', B, C, A)));
+		assert.ok(!ordneAlle(zwei, hinten, 'zurueck').quelle.includes('data-mehrfach-schritt'));
+	});
+});
+// << 113

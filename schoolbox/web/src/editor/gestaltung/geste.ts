@@ -168,3 +168,29 @@ export const haeltVerhaeltnis = (art: GroessenArt, griff: GriffName, umschalt: b
 	}
 	return (art === 'proportional') !== umschalt;
 };
+
+// ── Mehrfachauswahl (113) ───────────────────────────────────────────────────
+
+/**
+ * Dreht einen Kasten um einen gemeinsamen Punkt `um` (die Mitte der Auswahl): Seine Mitte wandert auf dem Kreis, seine
+ * eigene Drehung wächst um denselben Winkel. Alles in denselben Koordinaten (Material).
+ */
+export const dreheUm = (k: Kasten, um: { x: number; y: number }, grad: number): Kasten => {
+	const m = mitteVon(k);
+	const v = dreheVektor(m.x - um.x, m.y - um.y, grad);
+	return { ...k, x: um.x + v.x - k.b / 2, y: um.y + v.y - k.h / 2, drehen: normiereWinkel(k.drehen + grad) };
+};
+
+/**
+ * Größe mit der Auswahl: `von` und `nach` sind der umschließende Kasten der Auswahl vorher und nachher (gleiches
+ * Verhältnis). Jedes Element wächst um denselben Faktor, seine Mitte bleibt an derselben Stelle relativ zur Auswahl.
+ */
+export const skaliereMit = (k: Kasten, von: Kasten, nach: Kasten): Kasten => {
+	const f = von.b > 0 ? nach.b / von.b : von.h > 0 ? nach.h / von.h : 1;
+	const m = mitteVon(k);
+	const b = Math.max(1, k.b * f);
+	const h = Math.max(1, k.h * f);
+	const mx = nach.x + (m.x - von.x) * f;
+	const my = nach.y + (m.y - von.y) * f;
+	return { ...k, b, h, x: mx - b / 2, y: my - h / 2 };
+};

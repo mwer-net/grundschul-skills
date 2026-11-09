@@ -1,7 +1,8 @@
 import { Abschnitt } from '../../../bausteine/Abschnitt';
 import type { PfadTeil } from '../../darstellung';
 import type { Struktur } from '../../struktur';
-import { gruppiere, INSPEKTOR_TEILE } from './index';
+import { bausteinVon, elementZu } from '../../darstellung';
+import { gruppiere, gruppiereMehrfach, INSPEKTOR_TEILE, MEHRFACH_TEILE } from './index';
 import { kontextFuerGestaltung, liegtFreiAuf } from './kontext-ersatz';
 
 interface Eigenschaften {
@@ -28,7 +29,22 @@ export const Gestaltungsinspektor = ({ doc, pfad, quelle, struktur }: Eigenschaf
 					Farbe, Muster und Rahmen stellst du im Reiter „Blatt“ unter „Gestaltung“ ein.
 				</p>
 			)}
-			{gruppiere(INSPEKTOR_TEILE, k.art, k.baustein).map((g) => (
+			{k.nrn.length > 1 && (
+				<p className="px-3 pb-2 text-sm text-leise" data-hinweis="mehrfach">
+					{k.nrn.length} Elemente gewählt.
+				</p>
+			)}
+			{(k.nrn.length > 1
+				? gruppiereMehrfach(
+						[...MEHRFACH_TEILE, ...INSPEKTOR_TEILE],
+						k.nrn.flatMap((n) => {
+							const element = elementZu(k.doc, n);
+							const baustein = element ? bausteinVon(element) : null;
+							return baustein ? [{ art: baustein.art, baustein }] : [];
+						}),
+					)
+				: gruppiere(INSPEKTOR_TEILE, k.art, k.baustein)
+			).map((g) => (
 				<Abschnitt key={g.nr} name={g.name} titel={g.titel}>
 					{g.teile.map(({ Inhalt, id }) => (
 						<Inhalt key={id} k={k} quelle={quelle} aktiv={aktiv} />
