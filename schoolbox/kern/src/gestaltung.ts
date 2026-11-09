@@ -340,7 +340,9 @@ export const legeGestaltungAb = (quelle: string, { ebene, html, lage, seite }: A
 	if (index === -1) {
 		throw new Error(`Das Element ${seite} ist keine Seite.`);
 	}
-	const fertig = htmlMitLage(html.trim(), lage ?? {});
+	// 110: Ein Gut mit Ids (Titel im Bogen) bekommt beim Ablegen eigene, im Dokument freie Ids.
+	const mitLage = htmlMitLage(html.trim(), lage ?? {});
+	const fertig = /\sid\s*=/.test(mitLage) ? neueSvgIds(mitLage, quelle) : mitLage;
 	return legeIn(quelle, index, ebene ?? standardEbene(fertig), fertig, 'ende');
 };
 

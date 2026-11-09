@@ -7,8 +7,18 @@
 
 import type { LageTeil } from './gestaltung';
 import { leseLage, legeGestaltungAb, loescheGestaltung, setzeStilWerte } from './gestaltung';
-import type { Verlauf } from './quelltext';
-import { attribut, innenVon, klassenVon, rueckwaerts, schuetzeText, unterschied, zerlege } from './quelltext';
+import type { Knoten, Verlauf } from './quelltext';
+import {
+	attribut,
+	innenVon,
+	klassenVon,
+	rueckwaerts,
+	schuetzeText,
+	setzeAttribut,
+	unterschied,
+	wendeAn,
+	zerlege,
+} from './quelltext';
 import type { StrukturErgebnis } from './struktur';
 
 export type SchmuckArt = 'titel' | 'stempel' | 'etikett';
@@ -50,8 +60,20 @@ const px = (wert: number) => `${Math.round(wert)}px`;
 /** Größe in ihren Bereich gebracht, ganze px. */
 export const groesseIm = (wert: number) => Math.min(GROESSE_MAX, Math.max(GROESSE_MIN, Math.round(wert)));
 
+/** Kontur um die Buchstaben (110): Stärke in px und Farbe. */
+export interface SchriftKontur {
+	staerke: number;
+	farbe: string;
+}
+
+export const SCHRIFT_KONTUR_MAX = 16;
+/** Beim Einschalten: 6 px, Weiß (Vorbild-Deckblatt). */
+export const SCHRIFT_KONTUR_STANDARD: SchriftKontur = { staerke: 6, farbe: '#ffffff' };
+
 export interface SchmuckNeu {
 	art: SchmuckArt;
+	/** 110: Titel mit Kontur (`data-kontur`, `--kontur`, `--kontur-farbe`). */
+	kontur?: SchriftKontur;
 	/** Ohne Angabe der Platzhalter der Art. Wird geschützt, HTML darin bleibt Text. */
 	text?: string;
 	/** `--fs` des Blatts, damit die Standardgröße nicht unter `schrift-klein` fällt. */
@@ -60,14 +82,19 @@ export interface SchmuckNeu {
 }
 
 /** Das Element ohne Lage; `legeGestaltungAb` setzt `--x`, `--y` (und `--b`) davor. Der Stempel steht leicht schräg. */
-export const schmuckHtml = ({ art, fs, gr, text }: SchmuckNeu) => {
+export const schmuckHtml = ({ art, fs, gr, kontur, text }: SchmuckNeu) => {
+	const rand = kontur && kontur.staerke > 0 && istFarbe(kontur.farbe) ? kontur : null;
 	const stil = [
 		...(art === 'stempel' ? ['--drehen:-8deg'] : []),
 		`--gr:${px(groesseIm(gr ?? standardGroesse(art, fs)))}`,
+		...(rand ? [`--kontur:${px(konturIm(rand.staerke))}`, `--kontur-farbe:${rand.farbe.trim()}`] : []),
 	].join(';');
 	const inhalt = schuetzeText(text ?? SCHMUCK_ARTEN[art].text);
-	return `<div class="schmuck" data-lage="frei" data-schmuck="${art}" style="${stil}">${inhalt}</div>`;
+	return `<div class="schmuck" data-lage="frei" data-schmuck="${art}"${rand ? ' data-kontur=""' : ''} style="${stil}">${inhalt}</div>`;
 };
+
+/** Stärke in ihren Bereich gebracht, ganze px. */
+const konturIm = (wert: number) => Math.min(SCHRIFT_KONTUR_MAX, Math.max(0, Math.round(wert)));
 
 export interface SchmuckAblegen extends SchmuckNeu {
 	/** Nummer der `.seite` in der Quelle. */
@@ -220,5 +247,88 @@ export const fasseMitAnlegenZusammen = (v: Verlauf, neu: string, auswahl: number
 		quelle: neu,
 		zurueck: schritt ? [...frueher, { ...schritt, auswahlVorher: anlegen.auswahlVorher ?? null }] : frueher,
 		vor: [],
+	};
+};
+
+// ── Kontur (110) ────────────────────────────────────────────────────────────
+
+const pxAus = (wert: string | null) => {
+	const n = parseFloat(wert ?? '');
+	return Number.isFinite(n) ? n : null;
+};
+
+/** Das `text` im `svg` eines Titels im Bogen; die Schrift und ihre Kontur stehen in seinem `style`. */
+export const textImBogen = (k: Knoten) => k.kinder.find((c) => c.tag === 'text') ?? null;
+
+const schmuckKnoten = (quelle: string, nr: number) => {
+	const z = zerlege(quelle);
+	const k = z.knoten[nr];
+	if (!k || !klassenVon(k).includes('schmuck') || (k.tag !== 'div' && k.tag !== 'svg')) {
+		throw new Error(`Das Element ${nr} ist keine Schmuckschrift.`);
+	}
+	return { z, k };
+};
+
+/**
+ * Kontur um die Buchstaben: `null` oder Stärke 0 nimmt sie heraus. HTML: `data-kontur` mit `--kontur` und
+ * `--kontur-farbe` (CSS in `blatt.css`). Bogen (SVG): `stroke`, `stroke-width` und `paint-order` im `style` des
+ * `text`. Beides liegt hinter der Füllung, die Buchstaben bleiben so dick wie ohne. Heißt nicht `setzeKontur`, das
+ * gehört den Formen (104).
+ */
+export const setzeSchriftKontur = (quelle: string, nr: number, kontur: SchriftKontur | null) => {
+	const { k } = schmuckKnoten(quelle, nr);
+	const staerke = kontur ? konturIm(kontur.staerke) : 0;
+	if (kontur && staerke > 0 && !istFarbe(kontur.farbe)) {
+		throw new Error(`„${kontur.farbe}“ ist keine Farbe des Blatts.`);
+	}
+	const an = kontur !== null && staerke > 0;
+	if (k.tag === 'svg') {
+		const text = textImBogen(k);
+		if (!text) {
+			throw new Error(`Der Titel im Bogen ${nr} hat keinen Text.`);
+		}
+		return setzeStilWerte(
+			quelle,
+			text.nr,
+			an
+				? {
+						'stroke': kontur.farbe.trim(),
+						'stroke-width': px(staerke),
+						'stroke-linejoin': 'round',
+						'paint-order': 'stroke',
+					}
+				: { 'stroke': null, 'stroke-width': null, 'stroke-linejoin': null, 'paint-order': null },
+		);
+	}
+	const mitStil = setzeStilWerte(
+		quelle,
+		nr,
+		an ? { '--kontur': px(staerke), '--kontur-farbe': kontur.farbe.trim() } : { '--kontur': null, '--kontur-farbe': null },
+	);
+	const z = zerlege(mitStil);
+	const knoten = z.knoten[nr];
+	return knoten ? wendeAn(mitStil, setzeAttribut(z, knoten, 'data-kontur', an ? '' : null)) : mitStil;
+};
+
+/** Was `setzeSchriftKontur` schreibt; `null` ohne Kontur oder wenn `nr` keine Schmuckschrift ist. */
+export const leseSchriftKontur = (quelle: string, nr: number): SchriftKontur | null => {
+	const k = zerlege(quelle).knoten[nr];
+	if (!k || !klassenVon(k).includes('schmuck')) {
+		return null;
+	}
+	if (k.tag === 'svg') {
+		const text = textImBogen(k);
+		const stil = text ? (attribut(text, 'style')?.wert ?? '') : '';
+		const farbe = stilWert(stil, 'stroke');
+		const staerke = pxAus(stilWert(stil, 'stroke-width'));
+		return farbe && farbe !== 'none' && staerke ? { staerke, farbe } : null;
+	}
+	if (!attribut(k, 'data-kontur')) {
+		return null;
+	}
+	const stil = attribut(k, 'style')?.wert ?? '';
+	return {
+		staerke: pxAus(stilWert(stil, '--kontur')) ?? SCHRIFT_KONTUR_STANDARD.staerke,
+		farbe: stilWert(stil, '--kontur-farbe') ?? SCHRIFT_KONTUR_STANDARD.farbe,
 	};
 };

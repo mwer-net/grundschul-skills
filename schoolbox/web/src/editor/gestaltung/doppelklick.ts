@@ -34,8 +34,20 @@ const TEXT: DoppelklickZiel = {
 	},
 };
 
+/** 110: Titel im Bogen. Der Text steht in der Leiste am Element: Das Feld dort bekommt den Fokus. */
+const BOGEN: DoppelklickZiel = {
+	id: 'bogen',
+	passt: (element) => element.matches('svg.schmuck[data-schmuck="bogen"]'),
+	tu: () => {
+		const feld = document.querySelector<HTMLInputElement>('[data-leiste-bogen-text]');
+		feld?.focus();
+		feld?.select();
+	},
+};
+
 export const DOPPELKLICK: readonly DoppelklickZiel[] = [
 	TEXT,
+	BOGEN,
 	// 110 Bogen, 111 Ausschnitt, 116 Punkte bearbeiten, 120 Kind wählen: je eine Zeile hier.
 ];
 

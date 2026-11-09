@@ -392,6 +392,37 @@ blasses Bild in der Ebene hinten.
 <!-- << 109 -->
 
 <!-- >> 110 Kontur und Titel im Bogen -->
+## Schmuckschrift: Kontur und Titel im Bogen
+
+**Kontur** um die Buchstaben eines Titels (HTML): `data-kontur` am Element, `--kontur` (0 bis 16 px) und
+`--kontur-farbe` im `style`. Die Kontur liegt hinter der Füllung, die Buchstaben bleiben so dick wie ohne. Weiß ist die
+übliche Wahl für dunkle Schrift auf Bild oder Fläche. In s/w bleibt Weiß weiß.
+
+```html
+<div class="schmuck" data-lage="frei" data-schmuck="titel" data-kontur
+     style="--x:64px;--y:150px;--b:666px;--gr:56px;--farbe:var(--dunkel);--kontur:6px;--kontur-farbe:#fff">Die Formen-Detektive</div>
+```
+
+**Titel im Bogen:** `svg.schmuck` mit `data-schmuck="bogen"`, `data-bogen` (Krümmung −100 bis 100, 0 gerade, negativ
+nach unten gewölbt), `viewBox`, `--b` und `--h`. Der Text steht in `text` mit `textPath`; Schrift, Größe und Farbe im
+`style` des `text`, die Kontur dort als `stroke`, `stroke-width` und `paint-order:stroke`. Das SVG skaliert als Ganzes.
+
+```html
+<svg class="schmuck" data-lage="frei" data-schmuck="bogen" data-bogen="35" viewBox="0 0 600 160"
+     style="--x:97px;--y:120px;--b:600px;--h:160px">
+  <defs><path id="bogen-k3f9" d="M20 140 Q300 20 580 140"/></defs>
+  <text text-anchor="middle" style="font:600 56px Fredoka,sans-serif;fill:var(--haupt);stroke:#fff;stroke-width:8px;paint-order:stroke">
+    <textPath href="#bogen-k3f9" startOffset="50%">Zahlenzirkus</textPath>
+  </text>
+</svg>
+```
+
+- **Der Pfad darf fehlen.** Claude setzt `data-bogen`, `--b`, `--h` und den Text mit `textPath`; `viewBox`, `defs` mit
+  dem Pfad und der Sprung `href` entstehen beim Öffnen im Editor (`ergaenzeBoegen`). Ein vorhandenes `d` bleibt.
+- `href` an `textPath` darf nur auf eine Id im selben Dokument zeigen (`#bogen-…`), nie auf eine Adresse oder `data:`.
+- Ids (`bogen-xxxx`) müssen im Dokument eindeutig sein; beim Kopieren vergibt der Editor neue.
+- Den Bogen nur für einen Titel nehmen, nicht für Inhalt. Kein Titel im Bogen im Kopf eines Rezepts.
+- Die Prüfung `schrift-klein` misst Text im SVG nicht: Die Größe im `font` selbst nicht unter die Grenze setzen.
 <!-- << 110 -->
 
 <!-- >> 111 Bildrahmen -->
