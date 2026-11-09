@@ -1,3 +1,6 @@
+import { GESTALTUNG_SELEKTOR } from '@schoolbox/kern/src/gestaltung-arten';
+
+import { nrVon } from '../darstellung';
 import { AUSSCHNITT } from './ausschnitt'; // 111
 import type { GestaltungKontext } from './kontext';
 import { PFAD_PUNKTE } from './pfad-modus'; // 116
@@ -10,7 +13,8 @@ import { PFAD_PUNKTE } from './pfad-modus'; // 116
 export interface DoppelklickZiel {
 	id: string;
 	passt: (element: Element, art: string) => boolean;
-	tu: (g: GestaltungKontext, punkt: { x: number; y: number }) => void;
+	/** `waehle` (120): wählt ein anderes Element, ohne Schritt. */
+	tu: (g: GestaltungKontext, punkt: { x: number; y: number }, waehle: (nr: number) => void) => void;
 }
 
 /**
@@ -47,11 +51,32 @@ const BOGEN: DoppelklickZiel = {
 	},
 };
 
+/**
+ * 120: Doppelklick auf eine gewählte Gruppe wählt das Kind unter dem Zeiger (verschachtelt: das nächste Kind darin).
+ * Ein gesperrtes Kind bleibt so nicht wählbar.
+ */
+const KIND: DoppelklickZiel = {
+	id: 'kind',
+	passt: (element) => element.matches('.gruppe'),
+	tu: ({ doc, element }, { x, y }, waehle) => {
+		for (let e = doc.elementFromPoint(x, y); e && e !== element; e = e.parentElement) {
+			if (e.parentElement === element && e.matches(GESTALTUNG_SELEKTOR) && !e.hasAttribute('data-gesperrt')) {
+				const nr = nrVon(e);
+				if (nr !== null) {
+					waehle(nr);
+				}
+				return;
+			}
+		}
+	},
+};
+
 export const DOPPELKLICK: readonly DoppelklickZiel[] = [
 	TEXT,
 	BOGEN,
 	AUSSCHNITT, // 111 Ausschnitt verschieben
 	PFAD_PUNKTE, // 116 Punkte bearbeiten
+	KIND, // 120 Kind einer Gruppe wählen
 	// 110 Bogen, 111 Ausschnitt, 116 Punkte bearbeiten, 120 Kind wählen: je eine Zeile hier.
 ];
 

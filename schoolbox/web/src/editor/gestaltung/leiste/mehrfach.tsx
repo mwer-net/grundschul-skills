@@ -43,15 +43,39 @@ const Raster = ({
 	);
 };
 
+/** 120: „Gruppieren“; gesperrt mit Grund im Titel, wenn die Elemente nicht in derselben Ebene liegen. */
+const GruppierenKnopf = ({ aktiv, befehle }: Pick<LeistenTeile, 'aktiv' | 'befehle'>) => {
+	const k = befehle.jetzt.current;
+	const befehl = befehle.fuer('gestaltung').find((b) => b.id === 'auswahl.gruppieren');
+	if (!befehl) {
+		return null;
+	}
+	const titel = typeof befehl.titel === 'function' ? befehl.titel(k) : befehl.titel;
+	return (
+		<Knopf
+			art="leise"
+			groesse="klein"
+			data-befehl={befehl.id}
+			disabled={!aktiv || Boolean(befehl.gesperrt?.(k))}
+			title={`${titel} (⌘G)`}
+			onClick={() => befehle.fuehreAus(befehl.id)}
+		>
+			<Symbol name="gruppe" />
+			Gruppieren
+		</Knopf>
+	);
+};
+
 /**
- * Leiste bei Mehrfachauswahl (113, Briefing 5.7): Ausrichten ▾ (sechs Knöpfe), Verteilen ▾, dann ⋯ aus dem Rahmen.
- * „Gruppieren“ ergänzt 120.
+ * Leiste bei Mehrfachauswahl (113, Briefing 5.7): Gruppieren (120), Ausrichten ▾ (sechs Knöpfe), Verteilen ▾, dann ⋯
+ * aus dem Rahmen.
  */
 const MehrfachKnoepfe = ({ aktiv, befehle, k }: LeistenTeile) => (
 	<>
 		<span className="px-1 text-sm text-leise tabular-nums" data-leiste-anzahl>
 			{k.nrn.length} gewählt
 		</span>
+		<GruppierenKnopf aktiv={aktiv} befehle={befehle} /> {/* 120 */}
 		<Popover
 			name="Ausrichten"
 			className="w-auto"

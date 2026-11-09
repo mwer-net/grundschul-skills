@@ -108,6 +108,7 @@ import {
 	Type,
 	Underline,
 	Undo2,
+	Ungroup,
 	Upload,
 	X,
 } from 'lucide-react';
@@ -242,6 +243,9 @@ const SYMBOLE = {
 	// >> 116 Stift und Pfad
 	pfad: PenTool,
 	// << 116
+	// >> 120 Gruppen
+	aufloesen: Ungroup,
+	// << 120
 } as const satisfies Record<string, LucideIcon>;
 
 export type SymbolName = keyof typeof SYMBOLE;

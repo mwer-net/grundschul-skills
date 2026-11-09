@@ -144,9 +144,13 @@ export const GestaltungUeberlagerung = ({ e, pfad, struktur, textsitzung, waehle
 					bedienbar={bedienbar}
 					griffe={griffeFuer(groesse)}
 					zusatz={ZUSATZ_GRIFFE.filter(
-						(g) => g.fuer(gewaehlt?.baustein.art ?? '', element) && (!istFlaeche || g.id === 'hoehe'),
+						(g) =>
+							g.fuer(gewaehlt?.baustein.art ?? '', element) &&
+							(!istFlaeche || g.id === 'hoehe') &&
+							!('verdreht' in lage && lage.verdreht === true),
 					)}
-					nurZusatz={istFlaeche}
+					// 120: Ein Teil einer gedrehten Gruppe hat keine Griffe, auch keine Zusatz-Griffe (Gesten rechnen ohne Drehung).
+					nurZusatz={istFlaeche || ('verdreht' in lage && lage.verdreht === true)}
 					inGeste={stand !== null}
 					starteGriff={geste.starteGriff}
 					starteZusatz={geste.starteZusatz}
