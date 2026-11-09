@@ -122,14 +122,16 @@ describe('Seitenfläche und Seitenrahmen', () => {
 		assert.equal(setzeSeitenrahmen(setzeSeitenflaeche(beide, 'alle', null), 'alle', null), leer);
 	});
 
-	it('lässt Teile eines Rezepts unberührt', () => {
-		const rezept = SEITENFLAECHE.replace('<div ', '<div data-aufmachung-teil="flaeche" ');
+	it('macht aus Teilen eines Rezepts beim Ändern eigene (114)', () => {
+		const rezept = SEITENFLAECHE.replace('<div ', '<div data-aufmachung-teil="flaeche" data-gesperrt ');
 		const quelle = blattMit({ hinten: [rezept] });
 		const [seite = 0] = seitenNr(quelle);
 		assert.equal(leseSeitengestaltung(quelle, seite).flaeche?.rezept, true);
-		assert.equal(setzeSeitenflaeche(quelle, [seite], { art: 'farbe', f1: '#000000' }), quelle);
-		assert.equal(setzeSeitenflaeche(quelle, 'alle', null), quelle);
-		// Der Rahmen kommt trotzdem dazu, über die Fläche des Rezepts.
+		const eigen = setzeSeitenflaeche(quelle, [seite], { art: 'farbe', f1: '#000000' });
+		assert.equal(leseSeitengestaltung(eigen, seite).flaeche?.rezept, false);
+		assert.ok(!eigen.includes('data-gesperrt'));
+		assert.deepEqual(hinten(setzeSeitenflaeche(quelle, 'alle', null)), [null]);
+		// Der Rahmen kommt über die Fläche des Rezepts.
 		assert.deepEqual(hinten(setzeSeitenrahmen(quelle, [seite], GESTRICHELT)), [['seitenflaeche', 'seitenrahmen']]);
 	});
 

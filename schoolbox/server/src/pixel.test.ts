@@ -8,6 +8,7 @@ import { promisify } from 'node:util';
 
 import { BLATT_PY, fertigstellen, legeFreigabeAn } from '@schoolbox/kern';
 import { BROWSER_HINWEIS, browserFehlt } from '@schoolbox/kern/src/browsertest';
+import { wendeAufmachungAn } from '@schoolbox/kern/src/aufmachungen';
 import type { Seitenflaeche } from '@schoolbox/kern/src/seitengestaltung';
 import { setzeSeitenflaeche, setzeSeitenrahmen } from '@schoolbox/kern/src/seitengestaltung';
 
@@ -135,4 +136,53 @@ print(a.getpixel((1, 1)))
 		});
 	}
 	// << 095
+
+	// >> 114 Rezept „Zirkus“ in Farbe und s/w: Vorschau und PDF pixelgleich, Kopfband und Fläche nur in Farbe
+	const PUNKT = `
+import sys
+from PIL import Image
+a = Image.open(sys.argv[1]).convert("RGB")
+print(a.getpixel((int(sys.argv[2]), int(sys.argv[3]))))
+`;
+
+	for (const profil of ['farbe', 'sw'] as const) {
+		it(`druckt das Rezept „Zirkus“ in ${profil} pixelgleich`, { timeout: 180_000 }, async (t) => {
+			if (chromiumFehlt) {
+				t.skip(BROWSER_HINWEIS);
+				return;
+			}
+			const { dir, dok, mappe } = await legeDokumentAn(s.materialDir, { beispiel: true });
+			const datei = path.join(dir, 'material.html');
+			// Das Beispielblatt ist s/w; für Farbe kommt die Palette dazu.
+			const klasse = profil === 'farbe' ? 'farbe palette-himmel' : 'sw';
+			const quelle = (await readFile(datei, 'utf8')).replace(/<body class="([^"]*)\bsw\b/, `<body class="$1${klasse}`);
+			await writeFile(datei, wendeAufmachungAn(quelle, 'zirkus'));
+			const fertig = await fertigstellen(s.kontext.konfig, { mappe, dok });
+			const { token } = await legeFreigabeAn(s.materialDir, { mappe, dok });
+			const ziel = await mkdtemp(path.join(tmpdir(), 'schoolbox-pixel-'));
+			const referenz = path.join(dir, 'ausgabe', 'material');
+			const { stdout } = await ausfuehren(python, [
+				'-c',
+				VERGLEICH,
+				skripte,
+				`${s.url}/f/${token}/ansicht/${mappe}/dokumente/${dok}/`,
+				ziel,
+				referenz,
+			]);
+			const { seiten, vergleich } = JSON.parse(stdout) as Vergleich;
+			assert.equal(seiten, fertig.meta.seiten);
+			for (const { abweichung, groesse, seite } of vergleich) {
+				assert.ok(groesse, `Seite ${seite}: andere Bildgröße`);
+				assert.equal(abweichung, null, `Seite ${seite}: Abweichung in ${JSON.stringify(abweichung)}`);
+			}
+			// Oben am Blattrand liegt in Farbe das Kopfband, in s/w ist dort weiß (Band und Fläche weg).
+			const oben = await ausfuehren(python, ['-c', PUNKT, `${referenz}-s1.png`, '400', '4']);
+			if (profil === 'farbe') {
+				assert.notEqual(oben.stdout.trim(), '(255, 255, 255)');
+			} else {
+				assert.equal(oben.stdout.trim(), '(255, 255, 255)');
+			}
+		});
+	}
+	// << 114
 });

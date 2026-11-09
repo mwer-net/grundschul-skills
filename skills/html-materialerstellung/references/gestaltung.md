@@ -465,6 +465,47 @@ Eine Streuung ist **ein** Element mit vielen erzeugten Teilen. Sie liegt hinten 
 <!-- << 111 -->
 
 <!-- >> 114 Rezepte -->
+## Rezepte (Aufmachung)
+
+Ein Rezept gibt dem **ganzen Material** einen Look: Seitenfläche, Kopfband, Rahmen, Konfetti, Titelfarbe. Es besteht
+aus Werten am `<body>`, aus Teilen, die der Editor daraus erzeugt, und aus Regeln in `blatt.css`. Im Minibuch gibt es
+keine Rezepte.
+
+```html
+<body class="kl2 farbe palette-himmel" data-aufmachung="zirkus" data-aufmachung-farben="1"
+      data-aufmachung-kopfband="welle" data-aufmachung-rahmen="gepunktet"
+      data-aufmachung-konfetti="0.6 punkt dreieck stern" data-aufmachung-saat="4711"
+      style="--a1:#e63946;--a2:#f77f00;--a3:#fcbf49;--a4:#1d3557;--a-flaeche:#fff8ec;--a-titel:#ffffff;--a-muster:#fdebd0">
+```
+
+| Wert am `body` | Bedeutung |
+|---|---|
+| `data-aufmachung` | Name des Rezepts (Tabelle unten) |
+| `data-aufmachung-farben` | Farbwelt 1–3 |
+| `data-aufmachung-kopfband` | `gerade`, `welle`, `bogen`, `zacken`; fehlt bei „ohne“ |
+| `data-aufmachung-rahmen` | `ohne`, `linie`, `gestrichelt`, `gepunktet`, `doppelt` |
+| `data-aufmachung-konfetti` | Menge 0–1, dann die Formen aus `punkt dreieck raute stern` |
+| `data-aufmachung-saat` | ganze Zahl 1–999999; eine neue Saat würfelt Konfetti und Punkte neu |
+| `--a1` … `--a4`, `--a-flaeche`, `--a-titel`, `--a-muster` | Farben der Farbwelt; nur Teile des Rezepts verweisen darauf |
+
+**Teile.** Je Seite liegen zuunterst in `.ebene.hinten` die Seitenfläche, der Seitenrahmen und die Streuungen des
+Rezepts, alle mit `data-aufmachung-teil` (`flaeche`, `rahmen`, `streuung`) und `data-gesperrt`. Das Kopfband ist kein
+Element: `blatt.css` zeichnet es am `.kopf` aus den Werten am `body`, der Titel bekommt `--a-titel`. Eine Seite ohne
+`.kopf` hat kein Kopfband; ein Thema mit eigenem Kopf (`.thema-kopf`, `.thema-band`) auch nicht. In s/w fallen
+Fläche, Kopfband und Konfetti weg, der Titel wird dunkel.
+
+- **Teile mit `data-aufmachung-teil` nicht von Hand ändern**, sondern die Werte am `body`; der Editor erzeugt die
+  Teile daraus neu. Zum Ändern eines Teils erst freilegen (Schublade „Rezepte“) oder `data-aufmachung-teil` und
+  `data-gesperrt` am Teil entfernen; dann ist es normale Gestaltung.
+- Ein Rezept fasst nie Aufgaben, Nummern, Lösung, Bilder, Figuren oder eigene Gestaltung an.
+- Ein Rezept ist kein Thema: Es ändert weder die Palette (`palette-*`) noch `thema.css`.
+- Die Farben eines Rezepts (`var(--a1)` …) nur in Teilen des Rezepts benutzen.
+
+<!-- erzeugt: aufmachungen -->
+| Rezept | `data-aufmachung` | Farbwelten (`data-aufmachung-farben` 1–3) | Kopfband | Rahmen | Konfetti |
+|---|---|---|---|---|---|
+| Zirkus | `zirkus` | 1 Manege (#e63946 #f77f00 #fcbf49 #1d3557), 2 Zuckerwatte (#d6336c #f06595 #ffd43b #3b2f7a), 3 Abendvorstellung (#1971c2 #7048e8 #fcc419 #e03131) | Welle | gepunktet | `0.6 punkt dreieck stern` |
+<!-- /erzeugt: aufmachungen -->
 <!-- << 114 -->
 
 <!-- >> 115 Fläche im Stapel -->

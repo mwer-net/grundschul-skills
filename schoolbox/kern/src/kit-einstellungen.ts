@@ -1,4 +1,5 @@
 import type { AbschnittName } from './abschnitte';
+import { zieheAufmachungNach } from './aufmachungen';
 /**
  * Einstellungen der Kit-Bausteine und des ganzen Blatts (046), als Daten: Das Panel zeichnet die Felder, hier stehen die
  * Grenzen und die Wirkung auf die Quelle. Jede Änderung ist ein Text-Patch, also ein Schritt im Verlauf.
@@ -540,5 +541,6 @@ export const setzeBlatt = (quelle: string, neu: Partial<BlattWerte>) => {
 		tausche((k) => k === 'ohne-punkte', neu.punkte ? null : 'ohne-punkte');
 	}
 	const mitKlassen = wendeAn(quelle, setzeAttribut(z, body, 'class', klassen.join(' ')));
-	return neu.titel === undefined ? mitKlassen : setzeTitel(mitKlassen, neu.titel);
+	const mitFormat = neu.format === undefined ? mitKlassen : zieheAufmachungNach(mitKlassen); // 114: Rezept-Teile neu
+	return neu.titel === undefined ? mitFormat : setzeTitel(mitFormat, neu.titel);
 };
