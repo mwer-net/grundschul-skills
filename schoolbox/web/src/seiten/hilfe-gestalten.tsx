@@ -400,6 +400,15 @@ export const GESTALTEN: Abschnitt = {
 			</p>
 			{/* << 122 */}
 
+			{/* >> 123 */}
+			<p data-hilfe-rezept-claude>
+				Auch Claude wählt ein Rezept oder stellt es um, etwa mit „Gib dem Blatt das Rezept Dschungel und mach das
+				Kopfband zackig.“ Claude ändert dabei nur die Einstellungen des Rezepts; Fläche, Kopfband und Konfetti entstehen
+				daraus wie bei einem Klick in der Schublade. Einzelne Teile eines Rezepts ändert Claude nicht: Leg es dafür
+				vorher frei.
+			</p>
+			{/* << 123 */}
+
 			{/* >> 120 */}
 			<p data-hilfe-gruppen>
 				Wähl mehrere Elemente mit ⇧ und drück ⌘G (oder „Gruppieren“ in der Leiste): Sie werden eine Gruppe und lassen

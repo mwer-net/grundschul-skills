@@ -478,6 +478,21 @@ export const zieheAufmachungNach = (quelle: string) => {
 	return formatVon(quelle) ? wendeAufmachungAn(quelle, w.id, w) : entferneAufmachung(quelle);
 };
 
+// >> 123
+/**
+ * Nach einem Vorschlag von Claude (123): die Teile aus den Werten am `body` neu erzeugen. So passen Teile und Werte
+ * wieder zusammen, auch wenn Claude nur einen Wert geändert oder ein Teil von Hand angefasst hat. Ohne Rezept, mit
+ * unbekanntem Rezept (Claude hat eines erfunden) und im Minibuch bleibt die Quelle unverändert.
+ */
+export const gleicheAufmachungAb = (quelle: string) => {
+	const w = leseAufmachung(quelle);
+	if (!w || !aufmachungVon(w.id) || !formatVon(quelle)) {
+		return quelle;
+	}
+	return wendeAufmachungAn(quelle, w.id, w);
+};
+// << 123
+
 // ── Freilegen ───────────────────────────────────────────────────────────────
 
 /** Das Kopfband einer Seite, wie der Editor es misst: Rechteck in px der Seite und Umriss als SVG-Pfad darin. */

@@ -11,6 +11,7 @@ import {
 	AUFMACHUNGEN,
 	aufmachungenTabelle,
 	entferneAufmachung,
+	gleicheAufmachungAb,
 	hatThemaKopf,
 	istDeckblatt,
 	legeAufmachungFrei,
@@ -474,3 +475,43 @@ describe('Freilegen friert ein (119)', () => {
 	});
 });
 // << 119
+
+// >> 123
+describe('Abgleich nach einem Vorschlag von Claude (123)', () => {
+	const mit = wendeAufmachungAn(blattMit(), 'zirkus');
+	const streuung = (q: string) =>
+		zerlege(q)
+			.knoten.filter((k) => attribut(k, TEIL)?.wert === 'streuung')
+			.map((k) => quelleVon(zerlege(q), k));
+
+	it('ohne Rezept unverändert, ein abgeglichenes Blatt ebenso', () => {
+		assert.equal(gleicheAufmachungAb(blattMit()), blattMit());
+		assert.equal(gleicheAufmachungAb(mit), mit);
+	});
+
+	it('ein geänderter Wert am body erzeugt passende Teile', () => {
+		const geaendert = mit.replace('data-aufmachung-kopfband="welle"', 'data-aufmachung-kopfband="zacken"');
+		const ab = gleicheAufmachungAb(geaendert);
+		assert.equal(ab, wendeAufmachungAn(blattMit(), 'zirkus', { kopfband: 'zacken' }));
+		const saat = mit.replace('data-aufmachung-saat="4711"', 'data-aufmachung-saat="12"');
+		assert.notDeepEqual(streuung(gleicheAufmachungAb(saat)), streuung(mit));
+	});
+
+	it('ein von Hand geändertes Teil wird zurückgesetzt', () => {
+		const z = zerlege(mit);
+		const flaeche = z.knoten.find((k) => attribut(k, TEIL)?.wert === 'flaeche');
+		assert.ok(flaeche);
+		const angefasst = mit.slice(0, flaeche.start) + mit.slice(flaeche.start).replace('style="', 'style="opacity:0.2;');
+		assert.notEqual(angefasst, mit);
+		assert.equal(gleicheAufmachungAb(angefasst), mit);
+	});
+
+	it('ein erfundenes Rezept und das Minibuch bleiben unverändert', () => {
+		const erfunden = mit.replace('data-aufmachung="zirkus"', 'data-aufmachung="piraten"');
+		assert.equal(gleicheAufmachungAb(erfunden), erfunden);
+		const mini = readFileSync(path.join(ASSETS, 'vorlage-minibuch.html'), 'utf8').replace('<body', '<body data-aufmachung="zirkus"');
+		assert.ok(leseAufmachung(mini));
+		assert.equal(gleicheAufmachungAb(mini), mini);
+	});
+});
+// << 123

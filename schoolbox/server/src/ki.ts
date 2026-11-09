@@ -22,6 +22,7 @@ import {
 	WURZEL,
 	zerlege,
 } from '@schoolbox/kern';
+import { gleicheAufmachungAb } from '@schoolbox/kern/src/aufmachungen';
 import { liesReferenzen, loeseReferenz, pfadText } from '@schoolbox/kern/src/referenz';
 
 import { leseQuelle } from './dokumente';
@@ -1090,7 +1091,8 @@ export const erstelleKi = ({ ereignisse, konfig, pruefer }: Abhaengigkeiten) => 
 				})),
 				fehler: bericht.fehler,
 			};
-			await schreibeAtomar(path.join(ziel, WORKFILE), ausschnitt.einsetzen(neu));
+			// 123: Teile des Rezepts passend zu den Werten am body, auf das ganze Blatt (Vergleich = Ergebnis).
+			await schreibeAtomar(path.join(ziel, WORKFILE), gleicheAufmachungAb(ausschnitt.einsetzen(neu)));
 			await schreibeAtomar(path.join(ziel, VORSCHLAG_META), JSON.stringify(vorschlag, null, '\t'));
 		};
 		try {

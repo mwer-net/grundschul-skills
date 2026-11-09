@@ -122,6 +122,10 @@ process.stdin.on('end', () => {
 	// >> 117 Figur von Claude: eine Eule als freies Element vorne auf der ersten Seite
 	if (fall === 'figur') { const d = 'material.html'; const alt = fs.readFileSync(d, 'utf8'); const EULE = '<svg data-frei data-frei-titel="Eule mit Brille" data-lage="frei" viewBox="0 0 160 180" style="--x:420px;--y:360px;--b:160px"><g style="stroke:var(--dunkel);stroke-width:3px;stroke-linejoin:round"><path d="M30 60 L40 20 L62 46 Q80 40 98 46 L120 20 L130 60 Q150 120 120 160 Q80 178 40 160 Q10 120 30 60 Z" style="fill:var(--fuell)"/><ellipse cx="80" cy="128" rx="30" ry="30" style="fill:#ffffff"/><circle cx="58" cy="78" r="18" style="fill:#ffffff"/><circle cx="102" cy="78" r="18" style="fill:#ffffff"/><path d="M76 78 L84 78" style="fill:none"/><path d="M74 94 L80 106 L86 94 Z" style="fill:var(--akzent)"/></g><circle cx="58" cy="80" r="6" style="fill:var(--dunkel)"/><circle cx="102" cy="80" r="6" style="fill:var(--dunkel)"/></svg>'; fs.writeFileSync(d, alt.includes('<div class="ebene vorne">') ? alt.replace('<div class="ebene vorne">', '<div class="ebene vorne">' + EULE) : alt.replace('</section>', '<div class="ebene vorne">' + EULE + '</div></section>')); ende({ result: 'Eine Eule mit Brille gezeichnet.' }); return; }
 	// << 117
+	// >> 123 Rezept von Claude: nur ein Wert am body (richtig) oder ein Teil von Hand (falsch, der Abgleich setzt es zurück)
+	if (fall === 'rezept-wert') { const d = 'material.html'; fs.writeFileSync(d, fs.readFileSync(d, 'utf8').replace(/data-aufmachung-kopfband="[^"]*"/, 'data-aufmachung-kopfband="zacken"')); ende({ result: 'Das Kopfband ist jetzt zackig.' }); return; }
+	if (fall === 'rezept-teil') { const d = 'material.html'; fs.writeFileSync(d, fs.readFileSync(d, 'utf8').replace(/<[^>]*data-aufmachung-teil="flaeche"[^>]*>/, (tag) => tag.replace('style="', 'style="opacity:0.2;'))); ende({ result: 'Die Fläche ist jetzt blasser.' }); return; }
+	// << 123
 	if (fall === 'frei') { baue(FREI); ende({ result: 'Annahme: sieben Steine.' }); return; }
 	if (fall === 'frei-zwei') { baue(eingabe.includes('Sicherheitsprüfung') ? FREI : FREI + FREI); ende({}); return; }
 	if (SPERRE[fall]) {

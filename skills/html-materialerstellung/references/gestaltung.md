@@ -23,7 +23,7 @@ es wie eigenes; was du baust, muss sie danach von Hand weiterbearbeiten können.
 | Formen | `data-form` und die Parameter setzen; der Pfad darf fehlen, der Editor erzeugt ihn beim Öffnen. Ebenso die Teile einer Streuung und der Pfad eines Bogens. Eigene Pfade gehen als `data-form="pfad"` |
 | Schrift | nur Andika und Fredoka |
 | Farben | bevorzugt die Farben des Blatts (Liste unten), sie folgen Palette und Thema; eigene als Hex |
-| Rezepte | Teile mit `data-aufmachung-teil` nicht von Hand ändern, sondern die Werte am `<body>`. Soll ein Teil anders werden, das Attribut vorher entfernen; dann ist er normale Gestaltung |
+| Rezepte | nur die Werte am `<body>` ändern (`data-aufmachung*`); die Teile mit `data-aufmachung-teil` erzeugt die Schoolbox danach selbst neu. Soll ein Teil anders werden, die Lehrkraft bitten, das Rezept freizulegen (Abschnitt „Rezepte“) |
 | Ids in SVG | Verläufe, Bogenpfade, Masken heißen `<art>-<4 Zeichen a–z, 0–9>` (`verlauf-k3f9`) und kommen im Material nur einmal vor; eine Kopie bekommt neue. Verweise stehen als Attribut (`fill="url(#verlauf-k3f9)"`, `href="#bogen-k3f9"`), nie als `url()` im `style` |
 | Sicher | nur statisches HTML und SVG: kein Skript, keine Ereignisse, kein `foreignObject`, kein SVG-`image`, keine Adressen außerhalb des Blatts. Sonst lehnt der Server den Vorschlag ab |
 
@@ -423,8 +423,8 @@ Uhrzeigersinn). Text mit Verlauf gibt es nicht, auch nicht in der Schmuckschrift
 
 **Kontur-Stil.** `data-kontur-stil="gestrichelt"` oder `"gepunktet"` (ohne: durchgezogen), `data-kontur-enden="rund"`
 (ohne: eckig). Der Editor schreibt daraus `stroke-dasharray` und `stroke-linecap` in den `style` des Pfads, relativ zur
-Stärke s: gestrichelt `3s 2s`, gepunktet `0 2s` mit runden Enden. Claude setzt nur die Attribute oder schreibt die
-Werte passend dazu.
+Stärke s: gestrichelt `3s 2s`, gepunktet `0 2s` mit runden Enden. Setze nur die Attribute oder schreibe die Werte
+passend dazu.
 
 ```html
 <svg class="form" data-lage="frei" data-form="rechteck" data-radius="16" data-kontur-stil="gestrichelt"
@@ -516,7 +516,7 @@ nach unten gewölbt), `viewBox`, `--b` und `--h`. Der Text steht in `text` mit `
 </svg>
 ```
 
-- **Der Pfad darf fehlen.** Claude setzt `data-bogen`, `--b`, `--h` und den Text mit `textPath`; `viewBox`, `defs` mit
+- **Der Pfad darf fehlen.** Setze `data-bogen`, `--b`, `--h` und den Text mit `textPath`; `viewBox`, `defs` mit
   dem Pfad und der Sprung `href` entstehen beim Öffnen im Editor (`ergaenzeBoegen`). Ein vorhandenes `d` bleibt.
 - `href` an `textPath` darf nur auf eine Id im selben Dokument zeigen (`#bogen-…`), nie auf eine Adresse oder `data:`.
 - Ids (`bogen-xxxx`) müssen im Dokument eindeutig sein; beim Kopieren vergibt der Editor neue.
@@ -584,7 +584,7 @@ keine Rezepte.
 | `data-aufmachung-rahmen` | `ohne`, `linie`, `gestrichelt`, `gepunktet`, `doppelt` |
 | `data-aufmachung-konfetti` | Menge 0–1, dann die Formen aus `punkt dreieck raute stern` |
 | `data-aufmachung-saat` | ganze Zahl 1–999999; eine neue Saat würfelt Konfetti und Punkte neu |
-| `--a1` … `--a4`, `--a-flaeche`, `--a-titel`, `--a-muster` | Farben der Farbwelt; nur Teile des Rezepts verweisen darauf |
+| `--a1` … `--a4`, `--a-flaeche`, `--a-titel`, `--a-muster` | Farben der Farbwelt, folgen `data-aufmachung-farben`; nicht einzeln setzen |
 
 **Teile.** Je Seite liegen zuunterst in `.ebene.hinten` die Seitenfläche, der Seitenrahmen und die Streuungen des
 Rezepts, alle mit `data-aufmachung-teil` (`flaeche`, `rahmen`, `streuung`) und `data-gesperrt`. Das Kopfband ist kein
@@ -592,9 +592,18 @@ Element: `blatt.css` zeichnet es am `.kopf` aus den Werten am `body`, der Titel 
 `.kopf` hat kein Kopfband; ein Thema mit eigenem Kopf (`.thema-kopf`, `.thema-band`) auch nicht. In s/w fallen
 Fläche, Kopfband und Konfetti weg, der Titel wird dunkel.
 
-- **Teile mit `data-aufmachung-teil` nicht von Hand ändern**, sondern die Werte am `body`; der Editor erzeugt die
-  Teile daraus neu. Zum Ändern eines Teils erst freilegen (Schublade „Rezepte“) oder `data-aufmachung-teil` und
-  `data-gesperrt` am Teil entfernen; dann ist es normale Gestaltung.
+- **Nur die Werte am `body` ändern.** Nach deinem Vorschlag erzeugt die Schoolbox alle Teile aus diesen Werten neu
+  (Abgleich), auch die Farben `--a1` …. Was du an einem Teil mit `data-aufmachung-teil` von Hand änderst, ist danach
+  wieder wie vorher; ein Teil, dem du das Attribut nimmst, liegt dann doppelt da. Soll ein Teil anders werden, die
+  Lehrkraft bitten, das Rezept freizulegen (Schublade „Rezepte“).
+- **Wünsche zu Farben** gehen über die Farbwelt: „Mach das Kopfband grün“ heißt eine Farbwelt mit Grün in der Tabelle
+  unten (`data-aufmachung="dschungel"` oder in einem anderen Rezept die passende `data-aufmachung-farben`). Einzelne
+  Farben eines Rezepts gibt es nicht; wer sie braucht, legt frei.
+- **Nur Rezepte aus der Tabelle.** Ein anderer Name in `data-aufmachung` wirkt nicht: Die Teile bleiben, wie sie
+  waren.
+- **Rezept wählen oder wechseln:** `data-aufmachung` setzen und die übrigen Werte so, wie die Tabelle sie für das
+  Rezept nennt, außer der Auftrag will es anders. Fehlende Werte nehmen den Standard der Tabelle, nur ein fehlendes
+  `data-aufmachung-kopfband` heißt „ohne“. **Entfernen:** alle `data-aufmachung*` und `--a…` am `body` und alle Teile.
 - Ein Rezept fasst nie Aufgaben, Nummern, Lösung, Bilder, Figuren oder eigene Gestaltung an.
 - Ein Rezept ist kein Thema: Es ändert weder die Palette (`palette-*`) noch `thema.css`.
 - Die Farben eines Rezepts (`var(--a1)` …) nur in Teilen des Rezepts benutzen.
