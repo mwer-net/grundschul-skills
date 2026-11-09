@@ -1,5 +1,6 @@
+import { FLAECHE_RAND, flaecheHtml, hoeheUm, legeFlaeche } from '@schoolbox/kern/src/flaeche';
 import type { LageTeil } from '@schoolbox/kern/src/gestaltung';
-import { legeGestaltungAb } from '@schoolbox/kern/src/gestaltung';
+import { htmlMitLage, legeGestaltungAb } from '@schoolbox/kern/src/gestaltung';
 
 import { nrVon } from '../../darstellung';
 import type { PalettenEintrag } from '../../palette-suche';
@@ -121,6 +122,31 @@ export const legeInMitte = (teile: AblegenTeile, gut: GestaltungsGut) => {
 };
 
 /**
+ * 115: ⌘ beim Ziehen aus der Schublade, wenn das Gut kein eigenes `imStapel` hat: eine neue Fläche mit dem Element darin,
+ * so hoch wie das Element plus Rand, das Element in der Mitte der Inhaltsbreite. `undefined`, wenn es keine Seite gibt.
+ */
+const flaechenGut = (teile: AblegenTeile, gut: GestaltungsGut): GestaltungsGut['imStapel'] => {
+	const { doc } = teile;
+	const seite = doc ? seitenIn(doc)[0] : undefined;
+	if (!doc || !seite) {
+		return undefined;
+	}
+	const hoehe = hoeheUm(hoeheVon(doc, seite, gut));
+	const stil = doc.defaultView?.getComputedStyle(seite);
+	const inhalt = seite.clientWidth - (parseFloat(stil?.paddingLeft ?? '') || 0) - (parseFloat(stil?.paddingRight ?? '') || 0);
+	const lage = lageVon(gut, Math.max(0, Math.round((inhalt - gut.groesse.b) / 2)), FLAECHE_RAND);
+	return {
+		html: flaecheHtml(hoehe, htmlMitLage(gut.html.trim(), lage)),
+		legeAb: (ablage) => {
+			gut.vorDemAblegen?.();
+			teile.struktur.fuehreAus(`${gut.name} in den Stapel gelegt`, (q) =>
+				legeFlaeche(q, ablage, hoehe, { jeSeite: teile.folien }, { html: gut.html, lage }),
+			);
+		},
+	};
+};
+
+/**
  * Das `Ziehgut` (094) für Gestaltung: frei mit halb durchsichtiger Vorschau im `iframe`, ein passendes Ziel zeigt
  * Rahmen und Text und gewinnt beim Loslassen, ⌘ schaltet auf `imStapel` oder zeigt „Geht noch nicht“.
  */
@@ -129,6 +155,7 @@ export const ziehgutGestaltung = (teile: AblegenTeile, gut: GestaltungsGut): Zie
 	if (!doc) {
 		return null;
 	}
+	const stapel = gut.imStapel ?? flaechenGut(teile, gut); // 115
 	let treffer: AblageTreffer | null = null;
 	let hoehe: number | null = null;
 	// Einrasten (100): Kandidaten einmal je Seite, nicht bei jeder Bewegung.
@@ -169,12 +196,12 @@ export const ziehgutGestaltung = (teile: AblegenTeile, gut: GestaltungsGut): Zie
 	return {
 		art: gut.art,
 		name: gut.name,
-		html: gut.imStapel?.html ?? gut.html,
+		html: stapel?.html ?? gut.html,
 		modus: (cmd) => {
 			if (!cmd) {
 				return 'frei';
 			}
-			return gut.imStapel ? 'stapel' : 'nichts';
+			return stapel ? 'stapel' : 'nichts';
 		},
 		folge: (punkt, modus) => {
 			if (!punkt || modus !== 'frei') {
@@ -200,7 +227,7 @@ export const ziehgutGestaltung = (teile: AblegenTeile, gut: GestaltungsGut): Zie
 		legeAb: (ziel) => {
 			zeigeAblageLinien(null);
 			if (ziel.modus === 'stapel') {
-				gut.imStapel?.legeAb(ziel.ablage);
+				stapel?.legeAb(ziel.ablage);
 				return;
 			}
 			if (treffer) {

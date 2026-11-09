@@ -54,4 +54,6 @@ export interface ZusatzGriff {
 	/** Beim Loslassen: ein Schritt über `g.fuehreAus`. */
 	schreibe: (g: GestaltungKontext, zug: GriffZug) => void;
 	zuruecksetzen?: (g: GestaltungKontext) => void;
+	/** 115: Der Griff ändert die Größe des Elements selbst; der Auswahlrahmen misst es bei jeder Bewegung neu. */
+	folgtDemElement?: boolean;
 }

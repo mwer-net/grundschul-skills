@@ -151,7 +151,7 @@ const katalogVorschau = (e: KatalogEintrag, starter: ReadonlyMap<string, string>
 	const b = einfuegbarAus(e, starter);
 	const innen = b.teile ? b.teile.join('') : (b.html ?? '');
 	return `<!doctype html><html lang="de"><head><meta charset="utf-8"><title>Vorschau</title><base href="${assets}">
-<link rel="stylesheet" href="blatt.css"><style>html,body{background:#fff;overflow:hidden}body{margin:0;padding:12px}</style>${fit ? VORSCHAU_FIT.stil : ''}</head>
+<link rel="stylesheet" href="blatt.css"><style>html,body{background:#fff;overflow:hidden}body{margin:0;padding:12px}.flaeche{min-width:240px;outline:1px dashed #aaa;outline-offset:-1px}</style>${fit ? VORSCHAU_FIT.stil : ''}</head>
 <body class="${fit ? 'kl4' : 'kl2'} farbe"><div class="koerper">${innen}</div><script src="abbildungen.js"></script>${fit ? VORSCHAU_FIT.skript : ''}</body></html>`;
 };
 

@@ -292,6 +292,21 @@ export const GESTALTEN: Abschnitt = {
 			{/* << 113 */}
 
 			{/* >> 115 */}
+			<h3>Fläche im Stapel</h3>
+			<p data-hilfe-flaeche>
+				Eine Fläche ist ein Stück Platz zwischen deinen Aufgaben, das du frei gestaltest. Du findest sie in der Schublade
+				„Bausteine“ unter „Ordnen“. Alles, was du in die Fläche legst, bleibt beim Drucken in ihr und wird an ihrem Rand
+				abgeschnitten. Wird die Fläche höher, rutscht alles darunter nach unten. Die Höhe änderst du am Griff in der
+				Mitte der Unterkante oder im Inspektor.
+			</p>
+			<p data-hilfe-flaeche-hinein>
+				Ein Element kommt auf drei Wegen in eine Fläche: Du ziehst es auf eine vorhandene Fläche, du wählst „In den
+				Stapel“ im Menü ⋯ der Leiste am Element (dann entsteht eine neue Fläche passender Höhe an der Stelle, wo das
+				Element liegt), oder du ziehst es mit gedrückter ⌘-Taste aus der Schublade. Zieht du ein Element aus der Fläche
+				auf die Seite, liegt es danach wieder frei vor deinen Aufgaben. Es bleibt dabei an derselben Stelle auf dem
+				Blatt. Passt etwas nicht ganz in die Fläche, zeigt dir die Prüfung „abgeschnitten“: Mach die Fläche höher oder
+				das Element kleiner.
+			</p>
 			{/* << 115 */}
 
 			{/* >> 116 */}

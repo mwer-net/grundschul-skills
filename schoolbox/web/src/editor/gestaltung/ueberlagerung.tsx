@@ -78,11 +78,14 @@ export const GestaltungUeberlagerung = ({ e, pfad, struktur, textsitzung, waehle
 	const gewaehlt = pfad.at(-1);
 	const element = gewaehlt ? elementZu(e.doc, gewaehlt.nr) : null;
 	const istFrei = istGestaltungElement(element);
+	// 115: Die gewählte Fläche im Stapel bekommt einen Rahmen mit dem Höhen-Griff, sonst nichts.
+	const istFlaeche = Boolean(element?.matches('.flaeche'));
+	const mitRahmen = istFrei || istFlaeche;
 	// Während der Geste aus dem Stand, sonst gemessen: ein Element, nicht alle.
 	const lage =
-		istFrei && stand && stand.nr === gewaehlt?.nr
+		mitRahmen && stand && stand.nr === gewaehlt?.nr
 			? { kasten: stand.kasten, ursprung: stand.ursprung }
-			: istFrei
+			: mitRahmen && element
 				? messe(element)
 				: null;
 	const groesse = (gestaltungArtNach(gewaehlt?.baustein.art ?? '')?.groesse ?? 'frei') as GroessenArt;
@@ -94,7 +97,7 @@ export const GestaltungUeberlagerung = ({ e, pfad, struktur, textsitzung, waehle
 			{stand && <Hilfslinien links={links} skala={skala} ursprung={stand.ursprung} linien={stand.linien} />}
 			{ablageLinien && <Hilfslinien links={links} skala={skala} {...ablageLinien} />}
 			<Durchblick e={e} />
-			{istFrei && lage && (
+			{mitRahmen && element && lage && (
 				<Auswahlrahmen
 					element={element}
 					kasten={lage.kasten}
@@ -104,7 +107,10 @@ export const GestaltungUeberlagerung = ({ e, pfad, struktur, textsitzung, waehle
 					gesperrt={element.hasAttribute('data-gesperrt')}
 					bedienbar={bedienbar}
 					griffe={griffeFuer(groesse)}
-					zusatz={ZUSATZ_GRIFFE.filter((g) => g.fuer(gewaehlt?.baustein.art ?? '', element))}
+					zusatz={ZUSATZ_GRIFFE.filter(
+						(g) => g.fuer(gewaehlt?.baustein.art ?? '', element) && (!istFlaeche || g.id === 'hoehe'),
+					)}
+					nurZusatz={istFlaeche}
 					inGeste={stand !== null}
 					starteGriff={geste.starteGriff}
 					starteZusatz={geste.starteZusatz}

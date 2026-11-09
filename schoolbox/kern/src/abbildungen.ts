@@ -282,6 +282,7 @@ export const KATALOG_KATEGORIEN = [
 	'Spiele und Rätsel',
 	'Selbstkontrolle',
 	'Folien',
+	'Ordnen',
 ] as const;
 
 export type Kategorie = (typeof KATALOG_KATEGORIEN)[number];
@@ -290,7 +291,7 @@ export type Kategorie = (typeof KATALOG_KATEGORIEN)[number];
 export const KATALOG_BEREICHE = [
 	{
 		gruppe: 'Grundgerüst',
-		bereiche: ['Kopf und Rahmen', 'Aufgabe und Text', 'Schreiben', 'Bilder', 'Bewerten', 'Selbstkontrolle'],
+		bereiche: ['Kopf und Rahmen', 'Aufgabe und Text', 'Schreiben', 'Bilder', 'Bewerten', 'Selbstkontrolle', 'Ordnen'],
 	},
 	{
 		gruppe: 'Fächer',
@@ -326,6 +327,7 @@ export const BEREICH_SYMBOL = {
 	'Spiele und Rätsel': 'puzzle',
 	'Selbstkontrolle': 'erledigt',
 	'Folien': 'praesentieren',
+	'Ordnen': 'stapel',
 } as const satisfies Record<Kategorie, string>;
 
 /** Wo ein Baustein stehen darf: im Blatt als Ganzem, auf der Seite, in einer Aufgabe (`.koerper`) oder einer Zeile. */

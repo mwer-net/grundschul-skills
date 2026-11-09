@@ -49,7 +49,7 @@ export const bildBausteinAn = (platz: Posten, bild: BildDaten, ablage: Ablage, j
 		breite: breiteImStapel(bild),
 	});
 
-/** Das Gut eines Bildes; `stapel` schaltet ⌘ frei (ohne Bildplatzhalter im Katalog bleibt es bei „Geht noch nicht“). */
+/** Das Gut eines Bildes; `stapel` schaltet ⌘ frei (ohne Bildplatzhalter im Katalog legt ⌘ das Bild in eine neue Fläche, 115). */
 export const bildGut = (bild: BildDaten, stapel?: ImStapel): GestaltungsGut => {
 	const platz = stapel?.platz;
 	const imStapel =

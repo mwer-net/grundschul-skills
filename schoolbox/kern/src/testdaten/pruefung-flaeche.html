@@ -1,0 +1,34 @@
+<!doctype html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<title>Prüfung: Fläche im Stapel (115)</title>
+<link rel="stylesheet" href="blatt.css">
+</head>
+<body class="kl2 farbe palette-himmel">
+<!-- Seite 1: Die Fläche steht zwischen den Aufgaben; ein Stern liegt ganz darin. Erwartet: keine Meldung. -->
+<section class="seite">
+  <div class="aufgabe">
+    <span class="nr">1</span>
+    <div class="anw"><div class="text">Zeichne dazu.</div></div>
+  </div>
+  <div class="flaeche" style="--h:200px">
+    <svg class="form" data-lage="frei" data-form="stern" viewBox="0 0 120 120" style="--x:20px;--y:16px;--b:120px;--h:120px">
+      <path d="M60 3 L75 39 L114 42 L84 68 L93 106 L60 86 L27 106 L36 68 L6 42 L45 39Z" fill="#fc0"/>
+    </svg>
+  </div>
+  <div class="aufgabe">
+    <span class="nr">2</span>
+    <div class="anw"><div class="text">Noch eine Aufgabe.</div></div>
+  </div>
+</section>
+<!-- Seite 2: Der Stern ragt unten über die Fläche hinaus. Erwartet: genau ein FEHLER abgeschnitten. -->
+<section class="seite">
+  <div class="flaeche" style="--h:100px">
+    <svg class="form" data-lage="frei" data-form="stern" viewBox="0 0 120 120" style="--x:20px;--y:16px;--b:120px;--h:120px">
+      <path d="M60 3 L75 39 L114 42 L84 68 L93 106 L60 86 L27 106 L36 68 L6 42 L45 39Z" fill="#fc0"/>
+    </svg>
+  </div>
+</section>
+</body>
+</html>

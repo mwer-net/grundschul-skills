@@ -1,3 +1,4 @@
+import { ausFlaeche, inFlaeche } from '@schoolbox/kern/src/flaeche';
 import { kopiereGestaltungNach, setzeLage, setzeStilWerte, verschiebeAufSeite } from '@schoolbox/kern/src/gestaltung';
 import type { LageTeil } from '@schoolbox/kern/src/gestaltung';
 import { GESTALTUNG_SELEKTOR, gestaltungArtNach } from '@schoolbox/kern/src/gestaltung-arten';
@@ -14,13 +15,15 @@ import { FINGER_WEG, HALTEN_MS, MAUS_WEG } from '../ziehen';
 import { zeigeNachGroesse } from './anzeige-folgen';
 import { ausschnittLaeuft } from './ausschnitt'; // 111
 import { doppelklickZiel } from './doppelklick';
+import type { FlaechenWechsel } from './flaeche-ziel';
+import { flaechenWechsel, kastenDerFlaeche, oeffneFlaechen } from './flaeche-ziel';
 import type { Hilfslinie, Kandidat } from './einrasten';
 import { rasteEin, sammleKandidaten } from './einrasten';
 import type { GriffName, GroessenArt, Kasten } from './geste';
 import { bewege, drehe, GRIFFE, haeltVerhaeltnis, inKasten, skaliere, wertText, winkelZu } from './geste';
 import type { ZusatzAnzeige, ZusatzGriff } from './griffe';
 import type { GestaltungKontext } from './kontext';
-import { gestaltungKontext, zeigeLageAm } from './kontext';
+import { flaechenKontext, gestaltungKontext, zeigeLageAm } from './kontext';
 
 /** Ein Rechteck in Koordinaten des Materials. */
 export interface Flaeche {
@@ -77,6 +80,9 @@ export const messe = (element: Element): Messung | null => {
 	const fenster = element.ownerDocument.defaultView;
 	if (!fenster || element.getClientRects().length === 0) {
 		return null;
+	}
+	if (element.matches('.flaeche')) {
+		return kastenDerFlaeche(element); // 115: die Fläche im Stapel hat nur einen Rahmen mit Höhen-Griff
 	}
 	const stil = fenster.getComputedStyle(element);
 	const behaelter = behaelterVon(element);
@@ -147,6 +153,8 @@ interface Lauf {
 	seiten: Seite[];
 	eigeneSeite: Seite | null;
 	zielSeite: Seite | null;
+	/** 115: Beim Bewegen steht der Zeiger in einer anderen Fläche (oder keiner mehr): dorthin geht das Element. */
+	wechsel: FlaechenWechsel | null;
 	kandidaten: Kandidat[];
 	griff: GriffName | null;
 	zusatz: ZusatzGriff | null;
@@ -256,6 +264,7 @@ export const useGeste = (o: Optionen) => {
 		const l = lauf.current;
 		lauf.current = null;
 		l?.ende();
+		oeffneFlaechen(doc, false);
 		setStand(null);
 		doc.documentElement.style.cursor = '';
 	}, [doc]);
@@ -283,7 +292,7 @@ export const useGeste = (o: Optionen) => {
 			const baustein = bausteinVon(element);
 			const groesse = (gestaltungArtNach(baustein?.art ?? '')?.groesse ?? 'frei') as GroessenArt;
 			const fenster = doc.defaultView;
-			const inEbene = Boolean(element.parentElement?.matches('.ebene'));
+			const inEbene = Boolean(element.parentElement?.matches('.ebene, .flaeche'));
 			const seiten: Seite[] = [...doc.querySelectorAll('.seite')].flatMap((s) => {
 				const n = nrVon(s);
 				return n === null || s.hasAttribute('data-erzeugt') ? [] : [{ nr: n, flaeche: rechteckVon(s) }];
@@ -310,6 +319,7 @@ export const useGeste = (o: Optionen) => {
 				seiten: inEbene ? seiten : [],
 				eigeneSeite,
 				zielSeite: eigeneSeite,
+				wechsel: null,
 				// Einmal je Geste: Einrasten rechnet nie alle Elemente je Bewegung neu (4.12).
 				kandidaten: art === 'bewegen' || art === 'skalieren' ? sammleKandidaten(element, m.behaelter) : [],
 				griff: null,
@@ -321,6 +331,9 @@ export const useGeste = (o: Optionen) => {
 				dy: 0,
 				ende,
 			};
+			if (art === 'bewegen') {
+				oeffneFlaechen(doc, true); // 115: Beim Herausziehen aus einer Fläche soll das Element zu sehen sein
+			}
 			lauf.current = l;
 			return l;
 		},
@@ -384,15 +397,18 @@ export const useGeste = (o: Optionen) => {
 			if (l.seiten.length > 0) {
 				l.zielSeite = l.seiten.find((s) => enthaelt(s.flaeche, x, y)) ?? null;
 			}
+			// 115: Steht der Zeiger in einer anderen Fläche oder außerhalb der eigenen, wechselt der Behälter beim Loslassen.
+			const w = flaechenWechsel(doc, l.element, l.ursprung, roh, { x, y });
+			l.wechsel = w;
 			// ⌘ schaltet das Einrasten aus (100); die Kandidaten gehören zur eigenen Seite.
 			const { lage, linien } = rasteEin(roh, l.kandidaten, aktuell.current.skala, {
-				aus: befehl || l.zielSeite !== l.eigeneSeite,
+				aus: befehl || l.zielSeite !== l.eigeneSeite || w !== null,
 			});
 			l.jetzt = lage;
 			zeigeLageAm(l.element, lageAus(lage));
-			zeige(l, { x, y }, linien);
+			zeige(l, { x, y }, linien, w ? { text: w.text, ziel: w.ziel, linie: false, von: { x, y } } : undefined);
 		},
-		[zeige],
+		[doc, zeige],
 	);
 
 	const legeAb = useCallback(
@@ -401,7 +417,7 @@ export const useGeste = (o: Optionen) => {
 			if (!l || l.art !== 'bewegen') {
 				return;
 			}
-			const { eigeneSeite, nr, zielSeite } = l;
+			const { eigeneSeite, nr, wechsel, zielSeite } = l;
 			const lage = lageAus(l.jetzt);
 			const bewegt = lage.x !== Math.round(l.start.x) || lage.y !== Math.round(l.start.y);
 			// Außerhalb jeder Seite: zurück, nichts ändert sich (5.3).
@@ -409,8 +425,25 @@ export const useGeste = (o: Optionen) => {
 				brichAb();
 				return;
 			}
-			const andere = zielSeite && eigeneSeite && zielSeite !== eigeneSeite ? zielSeite : null;
+			const inFlaecheLiegend = Boolean(l.element.parentElement?.matches('.flaeche'));
+			const andere =
+				!inFlaecheLiegend && zielSeite && eigeneSeite && zielSeite !== eigeneSeite ? zielSeite : null;
 			beende();
+			if (wechsel && !wahl) {
+				// 115: Hinein in eine Fläche oder heraus auf die Seite, ein Schritt; die Lage rechnet `flaechenWechsel`.
+				const behaelter = wechsel.ziel ?? wechsel.seite;
+				const ziel = behaelter ? nrVon(behaelter) : null;
+				stelleHer(l);
+				if (ziel !== null) {
+					const lageNeu = wechsel.lage;
+					if (wechsel.ziel) {
+						schreibe(l, 'In die Fläche gelegt', (q) => inFlaeche(q, nr, ziel, lageNeu));
+					} else {
+						schreibe(l, 'Aus der Fläche genommen', (q) => ausFlaeche(q, nr, lageNeu, ziel));
+					}
+				}
+				return;
+			}
 			if (!bewegt && !andere) {
 				return;
 			}
@@ -741,7 +774,7 @@ export const useGeste = (o: Optionen) => {
 				return;
 			}
 			const { pfad, struktur } = aktuell.current;
-			const kontext = gestaltungKontext({ doc, pfad, struktur });
+			const kontext = gestaltungKontext({ doc, pfad, struktur }) ?? flaechenKontext({ doc, pfad, struktur });
 			if (!kontext || kontext.element !== element) {
 				return;
 			}
@@ -767,6 +800,9 @@ export const useGeste = (o: Optionen) => {
 				l,
 				(m) => {
 					const anzeige = zusatz.zeige(kontext, zug(m));
+					if (zusatz.folgtDemElement) {
+						l.jetzt = messe(element)?.kasten ?? l.jetzt; // 115: der Rahmen der Fläche wächst mit
+					}
 					zeige(l, imMaterial(m.clientX, m.clientY), [], anzeige ? { ...anzeige, von } : undefined);
 				},
 				(m) => {

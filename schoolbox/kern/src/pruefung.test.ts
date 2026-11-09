@@ -330,3 +330,17 @@ describe('Thema mit .seite > :last-child neben Ebenen (091, Briefing 4.7)', { sk
 		assert.equal(w.ebene, 'dashed', 'mit Ebenen trifft sie die vordere Ebene');
 	});
 });
+
+/** Fläche im Stapel (115): was über ihren Rand hinausragt, wird gekappt und deshalb gemeldet. */
+describe('pruefung.js: Fläche im Stapel (115)', { skip: browserSkip() }, () => {
+	it('meldet nur das Element, das über den Rand der Fläche hinausragt', async () => {
+		const bericht = (await pruefe(path.join(TESTDATEN, 'pruefung-flaeche.html'))).filter(
+			(m) => m.code !== 'platz-frei',
+		);
+		assert.deepEqual(
+			bericht.map(({ seite, code, stufe }) => ({ seite, code, stufe })),
+			[{ seite: 2, code: 'abgeschnitten', stufe: 'FEHLER' }],
+		);
+		assert.match(bericht[0]?.text ?? '', /über den Rand der Fläche hinaus/);
+	});
+});

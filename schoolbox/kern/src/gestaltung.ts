@@ -223,7 +223,7 @@ const setzeWert = (z: Zerlegung, k: Knoten, name: string, wert: string | null): 
 };
 
 /** Die äußere Hülle von `html` mit Lage und `data-lage="frei"`; der Rest bleibt Zeichen für Zeichen. */
-const htmlMitLage = (html: string, teil: LageTeil) => {
+export const htmlMitLage = (html: string, teil: LageTeil) => {
 	const z = zerlege(html);
 	const k = z.wurzeln[0];
 	if (!k) {
@@ -249,7 +249,7 @@ const istLeer = (z: Zerlegung, k: Knoten) =>
 	k.kinder.length === 0 && innenVon(z, k).replace(/<!--[\s\S]*?-->/g, '').trim() === '';
 
 /** Entfernt ein Element; war es das letzte seiner Ebene, gleich die ganze Ebene. */
-const entferneMitEbene = (z: Zerlegung, k: Knoten): Aenderung[] => {
+export const entferneMitEbene = (z: Zerlegung, k: Knoten): Aenderung[] => {
 	const eltern = k.eltern;
 	if (eltern && istEbene(eltern) && eltern.kinder.length === 1) {
 		const rest = innenVon(z, eltern).replace(quelleVon(z, k), '').replace(/<!--[\s\S]*?-->/g, '');

@@ -16,7 +16,7 @@ export interface GestaltungsGut {
 	/** In px. Ohne `h` kommt die Höhe aus dem Inhalt (gemessen, damit der Zeiger in der Mitte liegt). */
 	groesse: { b: number; h?: number };
 	ebene: EbenenName;
-	/** ⌘ beim Ziehen: so rastet es im Stapel ein, mit Lücke (094). Ohne Angabe tut ⌘ nichts („Geht noch nicht“). */
+	/** ⌘ beim Ziehen: so rastet es im Stapel ein, mit Lücke (094). Ohne Angabe legt ⌘ eine neue Fläche mit dem Element an (115, `flaechenGut` in `ablegen.ts`). */
 	imStapel?: { html: string; legeAb: (ablage: Ablage) => void };
 	/** 105: Die Breite kommt aus dem Inhalt (Schmuckschrift ohne `--b`); `groesse.b` gilt nur zum Mitten und Zeigen. */
 	breiteAusInhalt?: boolean;

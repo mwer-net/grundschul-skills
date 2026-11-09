@@ -535,6 +535,29 @@ zählt für die Prüfung als Platzhalter (HINWEIS `platzhalter`). Er darf nicht 
 <!-- << 114 -->
 
 <!-- >> 115 Fläche im Stapel -->
+## Fläche im Stapel
+
+Eine **Fläche** ist ein Baustein im Hauptstapel wie eine Aufgabe, aber mit Platz zum freien Gestalten: Ihre Kinder
+sind Gestaltungselemente (`data-lage="frei"`), und `--x`/`--y` zählen von der **linken oberen Ecke der Fläche** aus.
+Sie schneidet am Rand ab (`overflow:hidden`). Der Stapel schiebt, was darunter steht, mit, wenn sie höher wird.
+
+```html
+<div class="flaeche" style="--h:240px">
+  <svg class="form" data-lage="frei" data-form="rechteck" style="--x:24px;--y:16px;--b:200px;--h:120px">…</svg>
+  <div class="schmuck" data-lage="frei" data-schmuck="etikett" style="--x:260px;--y:60px">Haus</div>
+</div>
+```
+
+- `--h` ist die Höhe in px (Standard 200, mindestens 40). Eine Fläche trägt keine Nummer und keinen Anker.
+- **Wann Fläche, wann Anker:** Die Fläche, wenn das Gestaltete **zwischen** den Aufgaben steht und Platz im Fluss
+  braucht (eine Zeichnung, ein Bild mit Beschriftung, ein Rahmen zum Ausmalen). Der Anker, wenn es **an** einem
+  Baustein hängt und mit ihm wandert, ohne Platz zu nehmen. Alles andere liegt frei in der Ebene der Seite.
+- Teile einer Fläche dürfen nicht über ihren Rand hinausragen: Die Prüfung meldet `abgeschnitten` („liegt über den
+  Rand der Fläche hinaus“). Die Fläche höher machen oder das Element verkleinern und nach innen schieben.
+- Nicht verwechseln mit der Seitenfläche (`.seitenflaeche`, Hintergrund der Seite) und der Prüfung `flaeche`.
+- Im Editor: ⌘ beim Ziehen eines Elements aus der Schublade legt es in eine neue Fläche; „In den Stapel“ im ⋯ holt ein
+  Element in eine neue Fläche; ein Element auf eine vorhandene Fläche ziehen legt es hinein, daraus heraus ziehen nimmt
+  es wieder heraus. Die Höhe zieht man am Griff unter der Fläche.
 <!-- << 115 -->
 
 <!-- >> 116 Pfad -->

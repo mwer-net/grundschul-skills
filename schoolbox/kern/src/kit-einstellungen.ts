@@ -92,6 +92,8 @@ export const KIT_FELDER: Readonly<Record<string, readonly KitFeld[]>> = {
 		{ typ: 'text', name: 'loesung', titel: 'Lösung', abschnitt: 'loesung' },
 	],
 	malfeld: [{ ...HOEHE, standard: 160, leiste: true }, BREITE],
+	// 115: Fläche im Stapel; die Höhe lässt sich auch am Griff unter der Fläche ziehen
+	flaeche: [{ ...HOEHE, max: 1000, standard: 200, leiste: true }],
 	leerstelle: [{ ...HOEHE, standard: 80 }, BREITE],
 	box: [{ typ: 'zahl', name: 'groesse', titel: 'Größe', min: 12, max: 60, schritt: 2, einheit: 'px', standard: 20 }],
 	aufgabe: [
@@ -285,6 +287,7 @@ const REGELN: Readonly<Record<string, Regel>> = {
 		lies: (k) => attribut(k, 'data-l')?.wert ?? '',
 		setze: (z, k, wert) => setzeAttribut(z, k, 'data-l', String(wert).trim() || null),
 	},
+	'flaeche.hoehe': { lies: (k) => pxVon(k, '--h') ?? 200, setze: (z, k, w) => setzeStil(z, k, '--h', `${w}px`) },
 	'malfeld.hoehe': { lies: (k) => pxVon(k, '--h') ?? 160, setze: (z, k, w) => setzeStil(z, k, '--h', `${w}px`) },
 	'malfeld.breite': {
 		lies: (k) => pxVon(k, 'width') ?? 100,
