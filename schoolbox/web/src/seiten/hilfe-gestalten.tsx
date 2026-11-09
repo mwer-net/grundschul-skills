@@ -401,6 +401,17 @@ export const GESTALTEN: Abschnitt = {
 			{/* << 120 */}
 
 			{/* >> 121 */}
+			<p data-hilfe-kombinieren>
+				Aus mehreren Formen wird eine: Wähl sie mit ⇧ und nimm im Inspektor unter „Form“ Vereinen, Abziehen, Schnitt oder
+				Ausschluss (auch im ⋯ und mit ⌘K). Abziehen nimmt alle vorderen Formen aus der hintersten heraus, so entsteht
+				zum Beispiel ein Loch. Das Ergebnis ist eine eigene Form, die du wie jeden Pfad bearbeitest; Ecken, Zacken und
+				andere Einstellungen der alten Formen gibt es danach nicht mehr.
+			</p>
+			<p data-hilfe-formenschere>
+				Die Formen-Schere (⇧M, in der Formen-Schublade) zerlegt die gewählten Formen in alle Flächen, die ihre Umrisse
+				bilden. Zieh über Flächen, um sie zu markieren: Beim Loslassen werden sie eine Form, die übrigen bleiben einzelne
+				Formen. Mit ⌥ beim Loslassen fallen die markierten Flächen weg. Esc oder V beendet die Schere.
+			</p>
 			{/* << 121 */}
 
 			{/* >> 122 */}
