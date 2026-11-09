@@ -55,6 +55,7 @@ import { Palette } from '../editor/Palette';
 import { eintraegeImEditor } from '../editor/palette-eintraege';
 import { Blattwerkzeug } from '../editor/Panel';
 import type { SchubladenId, SchubladenTeile } from '../editor/schubladen';
+import { REZEPTE_OEFFNEN } from '../editor/gestaltung/rezept/aktionen';
 import { befehlZuSchublade } from '../editor/schubladen/reihe';
 import { Schubladen } from '../editor/schubladen/Schubladen';
 import { usePanels } from '../editor/panels';
@@ -707,6 +708,19 @@ const Bearbeitung = ({ dokument, mappe: mappenDaten }: { mappe: Mappe; dokument:
 		schrittWeg.current = (richtung) =>
 			befehlAusfuehren(richtung === 'zurueck' ? 'dokument.rueckgaengig' : 'dokument.wiederholen');
 	}, [befehlAusfuehren]);
+
+	// >> 119 Inspektor ohne Rezept: „Rezepte öffnen“
+	const rezepteOffen = panels.linksOffen && panels.links === 'rezepte';
+	useEffect(() => {
+		const oeffne = () => {
+			if (!rezepteOffen) {
+				befehlAusfuehren(befehlZuSchublade('rezepte'));
+			}
+		};
+		window.addEventListener(REZEPTE_OEFFNEN, oeffne);
+		return () => window.removeEventListener(REZEPTE_OEFFNEN, oeffne);
+	}, [befehlAusfuehren, rezepteOffen]);
+	// << 119
 
 	const zeigeEinstellung = (ort: string) => {
 		panels.setRechts('inspektor');

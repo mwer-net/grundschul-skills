@@ -11,6 +11,8 @@ export interface EbenenZeichenKontext {
 	struktur: Pick<Struktur, 'aktiv' | 'aendereAttribute' | 'fuehreAus'>;
 	/** Wählt das Element (oder einen Baustein), rollt hin und zeigt rechts seine Einstellungen. */
 	zeigeAn: (nr: number) => void;
+	/** Öffnet Reiter „Blatt“ › Gestaltung der Seite mit dieser Nummer (119, Rezept). */
+	zeigeSeitengestaltung: (seite: number) => void;
 }
 
 /**

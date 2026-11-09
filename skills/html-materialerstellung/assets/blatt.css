@@ -430,6 +430,9 @@ body.ohne-punkte .punkte,body.ohne-punkte x-gesamtpunkte{display:none}
 /* s/w (Briefing 4.2): Seitenfläche und Streuung sind ohne data-sw weg, alles andere grau, bis data-sw="weg" */
 body.sw [data-sw="weg"],body.sw :is(.seitenflaeche,svg.streuung):not([data-sw="grau"]){display:none !important}
 body.sw .stapel:not([data-sw="grau"]){--stapel-hg:transparent !important}
+/* >> 119 Freigelegtes Rezept: ein heller Titel (Weiß auf dem Band) wird in s/w dunkel */
+body.sw [data-sw="dunkel"]{color:var(--dunkel) !important}
+/* << 119 */
 body.sw[data-aufmachung] .kopf::before{display:none}
 body.sw[data-aufmachung] .kopf h1{color:var(--dunkel)}
 

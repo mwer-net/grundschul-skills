@@ -377,6 +377,18 @@ export const GESTALTEN: Abschnitt = {
 			{/* << 117 */}
 
 			{/* >> 119 */}
+			<p data-hilfe-rezepte>
+				Die Schublade „Rezepte“ (⌥7) zeigt jedes Rezept mit der ersten Seite deines Blatts. Ein Klick gibt dem ganzen
+				Material diesen Look: Seitenfläche, Kopfband, Rahmen und Konfetti. Darunter stellst du Farben, Konfetti, Kopfband
+				und Rahmen ein; dieselben Regler stehen im Reiter „Blatt“ unter Gestaltung. „Würfeln“ verteilt das Konfetti neu,
+				sonst ändert sich nichts. Jeder Schritt lässt sich mit ⌘Z zurücknehmen.
+			</p>
+			<p data-hilfe-rezept-freilegen>
+				Mit „Freilegen“ wird alles normale Gestaltung: Fläche, Rahmen, Konfetti und Kopfband lassen sich dann einzeln
+				verschieben und ändern, das Rezept fasst sie nicht mehr an. „Entfernen“ (im ⋯ der Schublade) nimmt das Rezept
+				ganz weg. Teile eines Rezepts tragen in den Ebenen ein eigenes Zeichen; ein Klick darauf öffnet das Rezept
+				rechts.
+			</p>
 			{/* << 119 */}
 
 			{/* >> 120 */}

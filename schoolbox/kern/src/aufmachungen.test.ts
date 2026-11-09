@@ -23,6 +23,7 @@ import {
 import { browserSkip } from './browsertest';
 import { setzeBlatt } from './kit-einstellungen';
 import { ASSETS, BLATT_PY } from './konfig';
+import { KOPFBAND_MASKEN, kopfbandPfad } from './aufmachungen';
 import type { Meldung } from './meldungen';
 import type { Knoten } from './quelltext';
 import { attribut, entferne, innenVon, klassenVon, quelleVon, wendeAn, zerlege } from './quelltext';
@@ -262,8 +263,9 @@ describe('Rezepte im Kern (114)', () => {
 			assert.equal(leseAufmachung(frei), null);
 			assert.ok(!frei.includes('data-aufmachung'));
 			assert.ok(!/class="(seitenflaeche|seitenrahmen|streuung)"[^>]*data-gesperrt/.test(frei));
-			// Die Farben bleiben am body, die Teile verweisen auf sie.
-			assert.ok(frei.includes('--a1:#e63946'));
+			// 119: Die Farben stehen nicht mehr am body, sondern in jedem Teil.
+			assert.ok(!/<body[^>]*--a1/.test(frei));
+			assert.ok(/class="seitenflaeche"[^>]*style="--a1:#e63946;/.test(frei));
 			const band = z.knoten.find((k) => attribut(k, 'data-name')?.wert === 'Kopfband');
 			const h1 = z.knoten.find((k) => k.tag === 'h1');
 			if (kopfbaender.length) {
@@ -271,6 +273,7 @@ describe('Rezepte im Kern (114)', () => {
 				assert.equal(band.eltern.kinder.at(-1), band);
 				assert.ok(innenVon(z, band).includes('url(#verlauf-'));
 				assert.equal(attribut(h1 as Knoten, 'style')?.wert, 'color:#ffffff');
+				assert.equal(attribut(h1 as Knoten, 'data-sw')?.wert, 'dunkel');
 			} else {
 				assert.equal(band, undefined);
 				assert.equal(attribut(h1 as Knoten, 'style')?.wert, 'color:#1d3557');
@@ -415,3 +418,59 @@ describe('Detektiv, Dschungel, Ruhig in allen Formaten ohne FEHLER und WARNUNG (
 	}
 });
 // << 118
+
+// >> 119 Freilegen im Detail (7-rezepte.md, Freilegen und Entfernen)
+describe('Freilegen friert ein (119)', () => {
+	const mit = wendeAufmachungAn(blattMit(), 'zirkus');
+	const [seite = 0] = seitenNummern(mit);
+	const band = { seite, x: 0, y: 0, b: 794, h: 160, d: kopfbandPfad('welle', 794, 160, 26, 180) };
+
+	it('jedes Teil trägt die Farben; ein zweites Rezept danach ändert Streuung und Kopfband nicht', () => {
+		const frei = legeAufmachungFrei(mit, [band]);
+		for (const k of zerlege(frei).knoten.filter((k) => hat(k, 'seitenflaeche') || hat(k, 'seitenrahmen'))) {
+			assert.match(attribut(k, 'style')?.wert ?? '', /^--a1:#e63946;/);
+		}
+		// Fläche und Rahmen ersetzt ein neues Rezept wie jede eigene Fläche (114); der Rest bleibt, wie er ist.
+		const teile = (q: string) =>
+			zerlege(q)
+				.knoten.filter((k) => hat(k, 'streuung') || attribut(k, 'data-name')?.wert === 'Kopfband')
+				.filter((k) => attribut(k, TEIL) === undefined)
+				.map((k) => quelleVon(zerlege(q), k));
+		const vorher = teile(frei);
+		assert.equal(vorher.length, 2);
+		for (const t of vorher) {
+			assert.match(t, /--a1:#e63946;--a2:#f77f00;/);
+		}
+		const danach = wendeAufmachungAn(frei, 'dschungel');
+		assert.deepEqual(teile(danach), vorher);
+	});
+
+	it('der Titel auf dem Band wird in s/w dunkel, ohne Band bleibt er ohne data-sw', () => {
+		const h1 = (q: string) => /<h1[^>]*>/.exec(q)?.[0] ?? '';
+		assert.match(h1(legeAufmachungFrei(mit, [band])), /data-sw="dunkel"/);
+		assert.doesNotMatch(h1(legeAufmachungFrei(mit, [])), /data-sw/);
+		const css = readFileSync(path.join(ASSETS, 'blatt.css'), 'utf8');
+		assert.ok(css.includes('body.sw [data-sw="dunkel"]{color:var(--dunkel) !important}'));
+	});
+
+	it('das Kopfband wird ein Pfad mit Verlauf a1 → a2, in s/w weg', () => {
+		const frei = legeAufmachungFrei(mit, [band]);
+		const svg = /<svg class="form" data-form="pfad" data-name="Kopfband"[^>]*>[\s\S]*?<\/svg>/.exec(frei)?.[0] ?? '';
+		assert.match(svg, /data-sw="weg"/);
+		assert.match(svg, /stop-color:var\(--a1\)[\s\S]*stop-color:var\(--a2\)/);
+		assert.ok(svg.includes(band.d));
+	});
+
+	it('kopfbandPfad hat dieselbe Kante wie die Maske in blatt.css', () => {
+		const css = readFileSync(path.join(ASSETS, 'blatt.css'), 'utf8');
+		for (const [form, m] of Object.entries(KOPFBAND_MASKEN)) {
+			assert.ok(css.includes(`viewBox='0 0 ${m.b} ${m.h}'`), form);
+			assert.ok(css.includes(`d='${m.d}'`), form);
+		}
+		// Eine Kachel der Welle in Originalgröße ist genau der Pfad der Maske, nur ab der Kante versetzt.
+		assert.equal(kopfbandPfad('welle', 120, 24, 24, 120), 'M0 0H120V12C100 0 80 0 60 12C40 24 20 24 0 12Z');
+		assert.equal(kopfbandPfad('zacken', 32, 24, 24, 0), 'M0 0H33.6V0L16.8 24L0 0Z');
+		assert.equal(kopfbandPfad('gerade', 100, 50, 10, 0), 'M0 0H100V50H0Z');
+	});
+});
+// << 119
