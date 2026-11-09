@@ -103,7 +103,8 @@ const CSS_FUNKTIONEN = namen(
 	'counter counters drop-shadow blur grayscale',
 	'not is where has nth-child nth-last-child nth-of-type nth-last-of-type lang',
 
-	// >> 111 Bildrahmen: Formen für `clip-path`
+	// >> 111 Bildrahmen: Formen für `clip-path` (`path()` nicht, Briefing 4.4)
+	'polygon circle ellipse inset',
 	// << 111
 );
 const CSS_AT_REGELN = namen('media page');

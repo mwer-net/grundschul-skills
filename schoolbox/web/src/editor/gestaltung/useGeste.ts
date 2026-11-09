@@ -12,6 +12,7 @@ import { bausteinVon, nrVon, VERALTET } from '../darstellung';
 import type { Struktur } from '../struktur';
 import { FINGER_WEG, HALTEN_MS, MAUS_WEG } from '../ziehen';
 import { zeigeNachGroesse } from './anzeige-folgen';
+import { ausschnittLaeuft } from './ausschnitt'; // 111
 import { doppelklickZiel } from './doppelklick';
 import type { Hilfslinie, Kandidat } from './einrasten';
 import { rasteEin, sammleKandidaten } from './einrasten';
@@ -471,7 +472,7 @@ export const useGeste = (o: Optionen) => {
 		};
 
 		const runter = (e: PointerEvent) => {
-			if (!e.isPrimary || lauf.current || aktuell.current.textsitzung) {
+			if (!e.isPrimary || lauf.current || aktuell.current.textsitzung || ausschnittLaeuft()) {
 				return;
 			}
 			const ziel = istElement(e.target) ? e.target : null;

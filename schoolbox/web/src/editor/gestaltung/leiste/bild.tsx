@@ -1,25 +1,40 @@
 import { Knopf } from '../../../bausteine/Knopf';
+import { Popover } from '../../../bausteine/Popover';
 import { Symbol } from '../../../bausteine/Symbol';
+import { RahmenstilWahl } from '../inspektor/rahmenstil'; // 111
 import type { LeistenKnoepfe } from './typen';
 
 /**
  * Leiste am freien Bild (103): „Austauschen“ öffnet die Schublade „Bilder“ (⌥6); ein Klick dort oder ein Bild aufs
- * gewählte gezogen tauscht es aus. Ist sie schon offen, bleibt sie offen. Rahmen-Stil: 111.
+ * gewählte gezogen tauscht es aus. Ist sie schon offen, bleibt sie offen. 111: „Rahmen-Stil“ davor, als Popover.
  */
-export const BILD_LEISTE: LeistenKnoepfe = ({ aktiv, befehle }) => (
+export const BILD_LEISTE: LeistenKnoepfe = ({ aktiv, befehle, k, quelle }) => (
+	<>
+	<Popover
+		name="Rahmen-Stil"
+		className="w-auto max-w-80"
+		ausloeser={
+			<Knopf art="leise" groesse="klein" data-leiste-rahmenstil disabled={!aktiv}>
+				Rahmen-Stil
+			</Knopf>
+		}
+	>
+		<RahmenstilWahl k={k} quelle={quelle} aktiv={aktiv} />
+	</Popover>
 	<Knopf
 		art="leise"
 		groesse="klein"
 		disabled={!aktiv}
 		data-bild-austauschen
 		onClick={() => {
-			const k = befehle.jetzt.current;
-			if (k.linksOffen !== 'bilder') {
-				k.tu.links('bilder');
+			const jetzt = befehle.jetzt.current;
+			if (jetzt.linksOffen !== 'bilder') {
+				jetzt.tu.links('bilder');
 			}
 		}}
 	>
 		<Symbol name="bild" />
 		Austauschen
 	</Knopf>
+	</>
 );

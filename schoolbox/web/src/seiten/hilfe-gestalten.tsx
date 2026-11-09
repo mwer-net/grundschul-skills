@@ -252,6 +252,25 @@ export const GESTALTEN: Abschnitt = {
 			{/* << 110 */}
 
 			{/* >> 111 */}
+			<h3>Rahmen für Fotos, Bild in Form, Ausschnitt</h3>
+			<p data-hilfe-rahmenstil>
+				Ein freies Bild bekommt über „Rahmen-Stil“ in der Leiste oder rechts im Inspektor unter „Bild“ einen Rahmen:
+				schräg mit dünnem weißem Rand, als Polaroid mit breitem Rand unten, rund oder mit Kontur wie ein Sticker.
+				„Gerade“ nimmt den Rahmen wieder weg. Unter „Maske“ schneidest du das Bild in eine Form, etwa einen Stern, ein
+				Herz oder eine Wolke. Maske und Rahmen-Stil schließen sich aus: Wählst du das eine, ist das andere weg.
+			</p>
+			<p data-hilfe-bildrahmen>
+				In der Schublade „Formen“ liegen unter „Bildrahmen“ leere Rahmen als Kreis, Rechteck, Stern und Wolke. Ein leerer
+				Rahmen ist grau und meldet in der Prüfung „Platzhalter“, damit er nicht leer in den Druck geht. Zieh ein Bild
+				aus der Schublade „Bilder“ hinein, oder wähl den Rahmen und klick auf ein Bild. Auch auf eine Form ohne Text
+				kannst du ein Bild ziehen: Am Zeiger steht „zuschneiden“, die Form verschwindet, und das Bild liegt in ihrer
+				Form an ihrer Stelle. ⌘Z holt die Form zurück.
+			</p>
+			<p data-hilfe-ausschnitt>
+				Ist ein Bild zugeschnitten, wählst du mit einem Doppelklick den Ausschnitt: Am Zeiger steht „Ausschnitt“, und
+				du schiebst das Bild im Rahmen hin und her. Esc oder ein Klick daneben beendet das. „Zuschnitt zurücksetzen“
+				im Inspektor zeigt wieder das ganze Bild.
+			</p>
 			{/* << 111 */}
 
 			{/* >> 113 */}

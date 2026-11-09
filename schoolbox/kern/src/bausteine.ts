@@ -228,7 +228,7 @@ export const BAUSTEINE: readonly Baustein[] = [
 	{
 		art: 'platzhalter',
 		name: 'Bildplatzhalter',
-		selektor: '.platzhalter',
+		selektor: '.platzhalter:not([data-lage])', // 111: ein leerer Bildrahmen ist Gestaltung
 		faehigkeiten: [...GRUND, 'bild'],
 		...KLEIN,
 	},
