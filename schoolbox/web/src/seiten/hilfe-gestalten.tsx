@@ -203,6 +203,15 @@ export const GESTALTEN: Abschnitt = {
 			{/* << 108 */}
 
 			{/* >> 109 */}
+			<h3>Konfetti, Punkte und Sterne</h3>
+			<p data-hilfe-streuung>
+				In der Schublade „Formen“ (⌥3) streut der Abschnitt „Konfetti und Muster“ viele kleine Formen auf einmal. Ein
+				Klick legt eine Streuung in die Mitte der Seite, ziehen legt sie dort ab, wo du loslässt. Mit „Streuen“ ziehst du
+				stattdessen eine Fläche in der gewünschten Größe auf. Die Streuung liegt immer hinten, also nie über deinen
+				Aufgaben, und fällt in s/w weg. Das ändert der Inspektor unter „Druck“. Punkte werden zur nächsten Blattecke hin
+				dichter. Im Inspektor unter „Streuung“ stellst du Art, Formen, Farben, Größe und Dichte ein. „Würfeln“ verteilt
+				alles neu; jede Änderung ist ein Schritt, den du mit ⌘Z zurücknimmst. Eine Streuung hat höchstens 200 Teile.
+			</p>
 			{/* << 109 */}
 
 			{/* >> 110 */}

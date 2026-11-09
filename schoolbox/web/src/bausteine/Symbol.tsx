@@ -196,6 +196,10 @@ const SYMBOLE = {
 	// >> 102 Figuren
 	spiegeln: FlipHorizontal2,
 	// << 102
+
+	// >> 109 Streuung
+	wuerfeln: Dices,
+	// << 109
 } as const satisfies Record<string, LucideIcon>;
 
 export type SymbolName = keyof typeof SYMBOLE;

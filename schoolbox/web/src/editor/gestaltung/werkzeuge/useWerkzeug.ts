@@ -114,7 +114,7 @@ export const useWerkzeug = ({
 				// Ohne Fang endet der Strich, wenn der Zeiger die Überlagerung verlässt.
 			}
 			strich.current = { id: ev.pointerId, w: werkzeug, seite, nr, x: ev.clientX, y: ev.clientY };
-			werkzeug.beginne(aufSeite(ev, seite));
+			werkzeug.beginne(aufSeite(ev, seite), seite);
 		},
 		onPointerMove: (ev: ReactPointerEvent<HTMLElement>) => {
 			const s = strich.current;

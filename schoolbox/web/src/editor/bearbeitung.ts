@@ -2,6 +2,7 @@ import { ergaenzeFormen } from '@schoolbox/kern/src/formen-aendern';
 import { fasseMitAnlegenZusammen } from '@schoolbox/kern/src/schmuck';
 import type { Verlauf } from '@schoolbox/kern/src/quelltext';
 import { macheRueckgaengig, neuerVerlauf, nimmAuf, wiederhole } from '@schoolbox/kern/src/quelltext';
+import { ergaenzeStreuungen } from '@schoolbox/kern/src/streuen';
 import type { RefObject } from 'react';
 import { useCallback, useEffect, useRef, useState } from 'react';
 
@@ -24,9 +25,10 @@ const GEAENDERT: Record<'claude' | 'lehrkraft', string> = {
 
 /**
  * 104: Formen ohne Pfad (von Claude) bekommen ihn beim Laden. Die ergänzte Quelle gilt als gespeicherter Stand: Sie
- * wird nur angezeigt und mit dem nächsten Schritt geschrieben, nicht schon beim Öffnen.
+ * wird nur angezeigt und mit dem nächsten Schritt geschrieben, nicht schon beim Öffnen. 109: Streuungen ohne Teile
+ * ebenso.
  */
-const mitFormen = (b: Basis): Basis => ({ ...b, quelle: ergaenzeFormen(b.quelle) });
+const mitFormen = (b: Basis): Basis => ({ ...b, quelle: ergaenzeStreuungen(ergaenzeFormen(b.quelle)) });
 
 /**
  * Was der Editor über das Dokument weiß: die Quelle mit Rückgängig/Wiederholen, das Speichern und wie er auf

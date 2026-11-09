@@ -7,13 +7,15 @@
  */
 
 import { zeichneFormNeu } from './formen';
+import { zeichneStreuungNeu } from './streuen'; // 109
 
 /** Die Quelle, nachdem das Element `nr` zu seiner neuen Größe passt. */
 export type GroessenFolge = (quelle: string, nr: number) => string;
 
 const FOLGEN: readonly GroessenFolge[] = [
 	zeichneFormNeu, // 104 Formen: viewBox und d in Elementgröße
-	// 109 Streuung, 110 Titel im Bogen, 111 Bildrahmen, 116 Pfad: je eine Zeile
+	zeichneStreuungNeu, // 109 Streuung: Teile in Elementgröße, dieselbe Saat
+	// 110 Titel im Bogen, 111 Bildrahmen, 116 Pfad: je eine Zeile
 ];
 
 export const nachGroesse = (quelle: string, nr: number) => FOLGEN.reduce((q, folge) => folge(q, nr), quelle);

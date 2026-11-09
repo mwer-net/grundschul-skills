@@ -43,7 +43,8 @@ export interface Werkzeug {
 	zeiger: string;
 	/** Nur bereite Werkzeuge haben Befehl, Taste und Knopf. */
 	bereit: (k: SchubladenLage) => boolean;
-	beginne: (p: Punkt) => void;
+	/** `seite`: die Seite, auf der der Strich beginnt (109: Streuen wählt danach die dichte Ecke). */
+	beginne: (p: Punkt, seite?: Element) => void;
 	bewege: (p: Punkt, mod: Tasten) => Entwurf | null;
 	ende: (p: Punkt, mod: Tasten) => Strich | null;
 	/** Ein Klick ohne Strich, etwa T setzt dort Schmuckschrift. Ohne Angabe tut ein Klick nichts. */
