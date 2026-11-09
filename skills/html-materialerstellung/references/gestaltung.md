@@ -389,6 +389,32 @@ blasses Bild in der Ebene hinten.
 <!-- << 108 -->
 
 <!-- >> 109 Streuung -->
+## Streuung: Konfetti, Punkte, Sterne
+
+Eine Streuung ist **ein** Element mit vielen erzeugten Teilen. Sie liegt hinten und fällt in s/w weg (Standard).
+
+```html
+<svg class="streuung" data-lage="frei" data-streuung="konfetti" data-saat="4711" data-dichte="0.5"
+     data-formen="punkt dreieck raute streifen" data-farben="haupt akzent dunkel" data-groesse="mittel"
+     viewBox="0 0 300 300" style="--x:0px;--y:0px;--b:300px;--h:300px"></svg>
+```
+
+| Attribut | Bereich | Standard |
+|---|---|---|
+| `data-streuung` | `punkte`, `konfetti`, `sterne` | nötig |
+| `data-saat` | ganze Zahl 1–999999 | fehlt sie, setzt der Editor eine |
+| `data-dichte` | 0–1 | 0,5 |
+| `data-formen` | Liste aus `punkt dreieck raute stern streifen` | je Art (Punkte: `punkt`, Sterne: `stern`) |
+| `data-farben` | Liste aus `haupt akzent dunkel linie fuell a1 a2 a3 a4` | `haupt akzent dunkel` |
+| `data-groesse` | `klein`, `mittel`, `gross` | `mittel` |
+| `data-ecke` | `ol`, `or`, `ul`, `ur`; nur Punkte, dort stehen sie dichter | `ul` |
+| `data-zonen` | `x,y,b,h;x,y,b,h` in px des Elements; Teile nur darin | ganze Fläche |
+
+- **Die Kinder dürfen fehlen.** Schreibe nur das `svg` mit den Attributen; der Editor erzeugt die Teile beim Öffnen. Gleiche
+  Saat und Parameter ergeben immer dieselben Teile, höchstens 200.
+- **Nicht von Hand ändern.** Verteile die Teile nicht selbst und verschiebe keine einzelnen. Für ein anderes Bild
+  `data-saat` ändern („neu würfeln“); Größe ändern erzeugt die Teile mit derselben Saat neu.
+- Eine Streuung liegt in `.ebene.hinten`. Teile am Rand bleiben innerhalb des Elements.
 <!-- << 109 -->
 
 <!-- >> 110 Kontur und Titel im Bogen -->

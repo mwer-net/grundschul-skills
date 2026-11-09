@@ -491,6 +491,7 @@ div.schmuck[data-schmuck="etikett"]{background:var(--hg,var(--akzent));color:var
 /* << 108 */
 
 /* >> 109 Streuung */
+svg.streuung{display:block;overflow:visible}
 /* << 109 */
 
 /* >> 110 Kontur und Bogen */

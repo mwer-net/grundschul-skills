@@ -22,6 +22,11 @@ export interface GestaltungsGut {
 	breiteAusInhalt?: boolean;
 	/** 105: Kurz vor dem Ablegen (Klick, Ziehen, ⌘K), z. B. um danach die Textsitzung zu öffnen. */
 	vorDemAblegen?: () => void;
+	/**
+	 * 109: Erst beim Ablegen steht der Ort fest. Hier darf das Gut sein `html` daran anpassen (Punkte wählen ihre dichte
+	 * Ecke nach der nächsten Blattecke); gilt für Vorschau und Ablegen. Ohne Angabe bleibt `html`.
+	 */
+	anpassen?: (html: string, ort: { seite: number; x: number; y: number }) => string;
 }
 
 /** Die Standard-Ebene der Art wie im Kern (`legeGestaltungAb`): Streuung hinten, alles andere vorne. */

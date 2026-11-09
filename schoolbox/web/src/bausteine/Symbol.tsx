@@ -201,6 +201,9 @@ const SYMBOLE = {
 	// >> 106 Anker
 	anker: Anchor,
 	// << 106
+	// >> 109 Streuung
+	wuerfeln: Dices,
+	// << 109
 } as const satisfies Record<string, LucideIcon>;
 
 export type SymbolName = keyof typeof SYMBOLE;

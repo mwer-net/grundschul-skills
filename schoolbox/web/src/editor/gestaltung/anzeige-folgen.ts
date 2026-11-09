@@ -1,4 +1,5 @@
 import { formVon, strichAus, vollstaendig } from '@schoolbox/kern/src/formen';
+import { leseStreuAngaben, parameterVon, streuungInnen } from '@schoolbox/kern/src/streuen'; // 109
 
 /**
  * Anzeige während einer Geste (104): Was seinen Inhalt aus der Größe erzeugt, zeichnet sich im `iframe` schon beim
@@ -28,9 +29,39 @@ export const zeichneFormAnzeige: AnzeigeFolge = (element, b, h) => {
 	}
 };
 
+// >> 109 Streuung
+/** Was zuletzt in eine Streuung gezeichnet wurde: Größe und Parameter, damit gleiches Zeichnen nichts tut. */
+const GEZEICHNET = new WeakMap<Element, string>();
+
+/**
+ * Zeichnet die Teile einer Streuung im `iframe` neu, in der Größe `b` × `h` und mit den Parametern, die gerade am Element
+ * stehen (`data-*`). Dieselbe Saat ergibt dieselben Teile, darum springt nichts beim Ziehen. Nur Darstellung, kein
+ * Schritt. Mit `neu` wird auch gezeichnet, wenn nur ein Attribut geändert wurde (Regler für die Dichte).
+ */
+export const zeichneStreuungAnzeige = (element: Element, b: number, h: number, neu = false) => {
+	const a = element.matches('svg.streuung') ? leseStreuAngaben((name) => element.getAttribute(name)) : null;
+	if (!a) {
+		return;
+	}
+	const breite = Math.max(1, Math.round(b));
+	const hoehe = Math.max(1, Math.round(h));
+	const parameter = parameterVon(a, breite, hoehe);
+	const schluessel = JSON.stringify(parameter);
+	const viewBox = `0 0 ${breite} ${hoehe}`;
+	// Ohne eigenen Stand gilt: Passt die Größe schon, ist nichts zu tun (so ruft `zeigeNachGroesse` auch beim Abbrechen).
+	if (!neu && (GEZEICHNET.get(element) ?? (element.getAttribute('viewBox') === viewBox ? schluessel : null)) === schluessel) {
+		return;
+	}
+	element.setAttribute('viewBox', viewBox);
+	element.innerHTML = streuungInnen(parameter);
+	GEZEICHNET.set(element, schluessel);
+};
+// << 109
+
 const FOLGEN: readonly AnzeigeFolge[] = [
 	zeichneFormAnzeige, // 104 Formen
-	// 109 Streuung, 110 Titel im Bogen, 111 Bildrahmen, 116 Pfad: je eine Zeile
+	zeichneStreuungAnzeige, // 109 Streuung
+	// 110 Titel im Bogen, 111 Bildrahmen, 116 Pfad: je eine Zeile
 ];
 
 /** Während der Geste nach jeder Größenänderung, und beim Abbrechen mit der Größe vom Start. */

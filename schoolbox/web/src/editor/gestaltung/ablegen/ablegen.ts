@@ -44,7 +44,12 @@ export const legeAb = (struktur: AblegenTeile['struktur'], gut: GestaltungsGut, 
 	gut.vorDemAblegen?.(); // 105
 	return (
 		struktur.fuehreAus(`${gut.name} abgelegt`, (q) =>
-			legeGestaltungAb(q, { seite: ort.seite, ebene: gut.ebene, html: gut.html, lage: lageVon(gut, ort.x, ort.y) }),
+			legeGestaltungAb(q, {
+				seite: ort.seite,
+				ebene: gut.ebene,
+				html: gut.anpassen?.(gut.html, ort) ?? gut.html, // 109
+				lage: lageVon(gut, ort.x, ort.y),
+			}),
 		) !== null
 	);
 };
@@ -186,7 +191,7 @@ export const ziehgutGestaltung = (teile: AblegenTeile, gut: GestaltungsGut): Zie
 			}
 			const da = ortAn(punkt.x, punkt.y);
 			if (da) {
-				zeigeVorschau(doc, da.seite, gut.html, lageVon(gut, da.ort.x, da.ort.y), gut.ebene);
+				zeigeVorschau(doc, da.seite, gut.anpassen?.(gut.html, da.ort) ?? gut.html, lageVon(gut, da.ort.x, da.ort.y), gut.ebene); // 109
 			} else {
 				entferneVorschau(doc);
 			}
