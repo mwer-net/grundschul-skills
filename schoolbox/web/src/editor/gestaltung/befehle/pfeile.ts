@@ -1,6 +1,7 @@
-import { leseLage, setzeLage } from '@schoolbox/kern/src/gestaltung';
+import { fuerAlle, leseLage, setzeLage } from '@schoolbox/kern/src/gestaltung';
 
 import type { Befehl, Kontext, Kuerzel } from '../../befehle';
+import { elementZu } from '../../darstellung';
 import type { GestaltungKontext } from '../kontext';
 
 /**
@@ -20,17 +21,25 @@ export const GROSSER_SCHRITT = 10;
 
 const mitGestaltung = (k: Kontext) => k.gestaltung !== null;
 
-/** Ein Schritt im Verlauf: die Lage aus der Quelle plus der Weg. */
-const schiebe = (g: GestaltungKontext, nr: number, dx: number, dy: number) =>
-	g.fuehreAus('Verschoben', (q) => {
-		const lage = leseLage(q, nr);
-		return { quelle: setzeLage(q, nr, { x: (lage.x ?? 0) + dx, y: (lage.y ?? 0) + dy }), nr };
-	});
+/** 113: Alle Gewählten, außer gesperrten; bei einem Element nur dieses. */
+const zuSchieben = (g: GestaltungKontext) =>
+	g.nrn.filter((n) => n === g.nr || !elementZu(g.doc, n)?.hasAttribute('data-gesperrt'));
+
+/** Ein Schritt im Verlauf: die Lage aus der Quelle plus der Weg, für alle Gewählten (113). */
+const schiebe = (g: GestaltungKontext, nrn: readonly number[], dx: number, dy: number) =>
+	g.fuehreAus('Verschoben', (q) => ({
+		quelle: fuerAlle(q, nrn, (q2, nr) => {
+			const lage = leseLage(q2, nr);
+			return setzeLage(q2, nr, { x: (lage.x ?? 0) + dx, y: (lage.y ?? 0) + dy });
+		}).quelle,
+		nr: g.nr,
+	}));
 
 interface Gehalten {
 	g: GestaltungKontext;
 	nr: number;
-	start: { x: number; y: number };
+	/** 113: Startlage je gewähltem Element. */
+	start: Map<number, { x: number; y: number }>;
 	dx: number;
 	dy: number;
 	los: AbortController;
@@ -47,7 +56,7 @@ const lasseLos = () => {
 	}
 	h.los.abort();
 	if (h.dx !== 0 || h.dy !== 0) {
-		schiebe(h.g, h.nr, h.dx, h.dy);
+		schiebe(h.g, [...h.start.keys()], h.dx, h.dy);
 	}
 };
 
@@ -66,9 +75,14 @@ const halte = (k: Kontext, g: GestaltungKontext, taste: KeyboardEvent, dx: numbe
 		lasseLos();
 	}
 	if (!gehalten) {
-		const lage = k.quelle ? leseLage(k.quelle, g.nr) : {};
+		const start = new Map(
+			zuSchieben(g).map((n) => {
+				const lage = k.quelle ? leseLage(k.quelle, n) : {};
+				return [n, { x: lage.x ?? 0, y: lage.y ?? 0 }] as const;
+			}),
+		);
 		const los = new AbortController();
-		gehalten = { g, nr: g.nr, start: { x: lage.x ?? 0, y: lage.y ?? 0 }, dx: 0, dy: 0, los };
+		gehalten = { g, nr: g.nr, start, dx: 0, dy: 0, los };
 		const hoch = (e: KeyboardEvent) => {
 			if (e.key.startsWith('Arrow')) {
 				lasseLos();
@@ -82,7 +96,9 @@ const halte = (k: Kontext, g: GestaltungKontext, taste: KeyboardEvent, dx: numbe
 	gehalten.g = g;
 	gehalten.dx += dx;
 	gehalten.dy += dy;
-	g.zeigeLage(g.nr, { x: gehalten.start.x + gehalten.dx, y: gehalten.start.y + gehalten.dy });
+	for (const [n, s] of gehalten.start) {
+		g.zeigeLage(n, { x: s.x + gehalten.dx, y: s.y + gehalten.dy });
+	}
 };
 
 export const PFEIL_BEFEHLE: Befehl[] = RICHTUNGEN.map(
@@ -110,7 +126,7 @@ export const PFEIL_BEFEHLE: Befehl[] = RICHTUNGEN.map(
 				return;
 			}
 			lasseLos();
-			schiebe(g, g.nr, dx * weite, dy * weite);
+			schiebe(g, zuSchieben(g), dx * weite, dy * weite);
 		},
 	}),
 );

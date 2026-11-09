@@ -4,7 +4,7 @@ import type { PfadTeil } from '../darstellung';
 import { elementZu } from '../darstellung';
 import type { Einblendung } from '../Leinwand';
 import type { Struktur } from '../struktur';
-import { Auswahlrahmen } from './auswahlrahmen';
+import { Auswahlrahmen, MehrfachRahmen } from './auswahlrahmen';
 import { Druckrand } from './druckrand';
 import { Durchblick } from './durchblick';
 import type { GroessenArt } from './geste';
@@ -12,6 +12,7 @@ import { griffeFuer } from './geste';
 import { ZUSATZ_GRIFFE } from './griffe';
 import { Hilfslinien, useAblageLinien } from './hilfslinien';
 import { istGestaltungElement } from './kontext';
+import { alsKasten, elementeZu, nrnFuer, rechteckVon, umschliessend, useMehrfach } from './mehrfach';
 import type { Flaeche } from './useGeste';
 import { messe, useGeste } from './useGeste';
 import { WertAmZeiger } from './wert-am-zeiger';
@@ -90,6 +91,13 @@ export const GestaltungUeberlagerung = ({ e, pfad, struktur, textsitzung, waehle
 				: null;
 	const groesse = (gestaltungArtNach(gewaehlt?.baustein.art ?? '')?.groesse ?? 'frei') as GroessenArt;
 	const bedienbar = struktur.aktiv && !textsitzung;
+	// 113: Mehrfachauswahl: ein Rahmen um alle, je ein dünner Umriss. Gemessen bei jedem Zeichnen, es sind wenige.
+	useMehrfach();
+	const nrn = istFrei && gewaehlt ? nrnFuer(e.doc, gewaehlt.nr) : [];
+	const umrisse = nrn.length > 1 ? elementeZu(e.doc, nrn).map(({ element: el }) => rechteckVon(el)) : [];
+	const rahmen = umschliessend(umrisse);
+	const mehrfach = rahmen ? { kasten: stand ? stand.kasten : alsKasten(rahmen), umrisse } : null;
+	const { aufzug } = geste;
 
 	return (
 		<>
@@ -97,7 +105,30 @@ export const GestaltungUeberlagerung = ({ e, pfad, struktur, textsitzung, waehle
 			{stand && <Hilfslinien links={links} skala={skala} ursprung={stand.ursprung} linien={stand.linien} />}
 			{ablageLinien && <Hilfslinien links={links} skala={skala} {...ablageLinien} />}
 			<Durchblick e={e} />
-			{mitRahmen && element && lage && (
+			{aufzug && (
+				<div
+					className="pointer-events-none absolute z-ueberlagerung border border-brand-500 bg-brand-500/10"
+					data-aufzug
+					style={{
+						left: links + aufzug.links * skala,
+						top: aufzug.oben * skala,
+						width: aufzug.breite * skala,
+						height: aufzug.hoehe * skala,
+					}}
+				/>
+			)}
+			{mehrfach && (
+				<MehrfachRahmen
+					kasten={mehrfach.kasten}
+					umrisse={mehrfach.umrisse}
+					links={links}
+					skala={skala}
+					bedienbar={bedienbar}
+					inGeste={stand !== null}
+					starteMehrfach={geste.starteMehrfach}
+				/>
+			)}
+			{!mehrfach && mitRahmen && element && lage && (
 				<Auswahlrahmen
 					element={element}
 					kasten={lage.kasten}

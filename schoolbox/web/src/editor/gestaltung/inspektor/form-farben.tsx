@@ -21,7 +21,7 @@ const RUND =
  * „Keine“ und „Schwarz“ vor dem Farbwähler aus 095, der die fünf Farben des Blatts, Weiß und „Eigene Farbe“ zeigt
  * (3-formen.md, Füllung und Kontur E2).
  */
-const Farben = ({
+export const Farben = ({
 	aus,
 	beschriftung,
 	doc,

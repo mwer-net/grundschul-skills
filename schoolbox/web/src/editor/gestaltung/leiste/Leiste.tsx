@@ -108,7 +108,8 @@ export const Leiste = ({ befehle, e, pfad, quelle, sitzung, struktur }: Eigensch
 		unten: e.box.bottom * e.skala,
 	};
 	const { links, top } = lageVon(box, mass, sicht);
-	const Knoepfe = LEISTEN[k.art] ?? null;
+	const mehrfach = k.nrn.length > 1; // 113
+	const Knoepfe = LEISTEN[mehrfach ? 'mehrfach' : k.art] ?? null;
 	const name = pfad.at(-1)?.name ?? k.baustein.name;
 
 	return (
@@ -120,7 +121,7 @@ export const Leiste = ({ befehle, e, pfad, quelle, sitzung, struktur }: Eigensch
 			)}
 			role="toolbar"
 			aria-label={`Leiste für ${name}`}
-			data-gestaltungsleiste={k.art}
+			data-gestaltungsleiste={mehrfach ? 'mehrfach' : k.art}
 			style={{ left: links, top }}
 			onKeyDown={(ereignis) => tasten(ereignis, e.doc)}
 		>
@@ -131,7 +132,7 @@ export const Leiste = ({ befehle, e, pfad, quelle, sitzung, struktur }: Eigensch
 				</>
 			)}
 			{/* 107: Eine Linie hat keine Drehung. */}
-			{!k.element.matches('svg.form[data-form="linie"]') && (
+			{!mehrfach && !k.element.matches('svg.form[data-form="linie"]') && (
 				<Knopf art="leise" groesse="klein" data-drehen onClick={() => drehe(k)}>
 					<Symbol name="drehen" />
 					Drehen

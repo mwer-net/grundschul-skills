@@ -45,6 +45,7 @@ import { halteFokus } from '../editor/halteFokus';
 import { Einstellungen, Inspektor, Umriss } from '../editor/Inspektor';
 import { zeigeBlattGestaltung } from '../editor/gestaltung/blatt';
 import { gestaltungKontext } from '../editor/gestaltung/kontext';
+import { folgeAuswahl, useMehrfach } from '../editor/gestaltung/mehrfach';
 import { GestaltungUeberlagerung } from '../editor/gestaltung/ueberlagerung';
 import { Leinwand } from '../editor/Leinwand';
 import { useLoesung } from '../editor/loesung';
@@ -374,7 +375,9 @@ const Bearbeitung = ({ dokument, mappe: mappenDaten }: { mappe: Mappe; dokument:
 	const auswahlJetzt = useRef(auswahl);
 	useEffect(() => {
 		auswahlJetzt.current = auswahl;
+		folgeAuswahl(auswahl); // 113: eine andere Hauptauswahl (Klick ohne ⇧, Esc, Rückgängig …) leert die Mehrfachauswahl
 	}, [auswahl]);
+	useMehrfach(); // 113: Die weiteren Elemente der Mehrfachauswahl liegen außerhalb von React; neu zeichnen, wenn sie sich ändern
 	const b = useBearbeitung(mappe, dok, auswahlJetzt);
 	const { alles, stand } = b.speicher;
 	const [geladen, setGeladen] = useState<{ doc: Document; html: string } | null>(null);

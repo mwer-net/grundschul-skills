@@ -22,6 +22,11 @@ export interface InspektorTeil {
 	reihenfolge: number;
 	fuer: (art: string, baustein: Baustein) => boolean;
 	Inhalt: ComponentType<InspektorTeile>;
+	/**
+	 * 113: Kann der Teil eine Mehrfachauswahl (`k.nrn`)? Nur dann erscheint er dort, und nur, wenn `fuer` für jedes
+	 * gewählte Element gilt. Ohne Angabe: nein, denn bisherige Teile ändern nur `k.nr`.
+	 */
+	mehrfach?: boolean;
 }
 
 /** Titel und `data-abschnitt` je Abschnitt, in fester Reihenfolge (Entscheidung 31). */
@@ -55,3 +60,16 @@ export const gruppiere = (teile: readonly InspektorTeil[], art: string, baustein
 		}))
 		.filter((g) => g.teile.length > 0);
 };
+
+/** 113: Die Gruppen bei Mehrfachauswahl: nur Teile mit `mehrfach`, deren `fuer` für jede gewählte Art gilt. */
+export const gruppiereMehrfach = (teile: readonly InspektorTeil[], arten: readonly { art: string; baustein: Baustein }[]) =>
+	(Object.keys(ABSCHNITTE).map(Number) as AbschnittNr[])
+		.sort((a, b) => a - b)
+		.map((nr) => ({
+			nr,
+			...ABSCHNITTE[nr],
+			teile: teile
+				.filter((t) => t.mehrfach && t.abschnitt === nr && arten.every((a) => t.fuer(a.art, a.baustein)))
+				.sort((a, b) => a.reihenfolge - b.reihenfolge),
+		}))
+		.filter((g) => g.teile.length > 0);

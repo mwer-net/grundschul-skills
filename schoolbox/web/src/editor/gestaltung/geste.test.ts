@@ -5,6 +5,7 @@ import type { GriffName, Kasten } from './geste';
 import {
 	bewege,
 	drehe,
+	dreheUm,
 	ECKEN,
 	GRIFFE,
 	griffeFuer,
@@ -12,6 +13,7 @@ import {
 	normiereWinkel,
 	punktImBehaelter,
 	skaliere,
+	skaliereMit,
 	winkelZu,
 } from './geste';
 
@@ -144,3 +146,33 @@ describe('griffeFuer und haeltVerhaeltnis', () => {
 		assert.equal(haeltVerhaeltnis('frei', 'rechts', true), false);
 	});
 });
+
+// >> 113
+describe('dreheUm und skaliereMit (Mehrfachauswahl)', () => {
+	it('dreht um einen fremden Punkt: die Mitte wandert auf dem Kreis, der Winkel kommt dazu', () => {
+		const k: Kasten = { x: 0, y: 0, b: 20, h: 20, drehen: 10 };
+		const r = dreheUm(k, { x: 110, y: 10 }, 90);
+		nah(r.x + r.b / 2, 110, 'mx');
+		nah(r.y + r.h / 2, -90, 'my');
+		nah(r.drehen, 100, 'drehen');
+		assert.equal(r.b, 20);
+	});
+
+	it('um die eigene Mitte bleibt die Lage', () => {
+		const r = dreheUm(K, { x: 200, y: 250 }, 45);
+		nah(r.x, K.x);
+		nah(r.y, K.y);
+	});
+
+	it('wächst mit der Auswahl, die Mitte bleibt relativ an ihrer Stelle', () => {
+		const von: Kasten = { x: 0, y: 0, b: 100, h: 50, drehen: 0 };
+		const nach: Kasten = { x: 10, y: 20, b: 200, h: 100, drehen: 0 };
+		const r = skaliereMit({ x: 50, y: 0, b: 50, h: 50, drehen: 30 }, von, nach);
+		nah(r.b, 100);
+		nah(r.h, 100);
+		nah(r.x + r.b / 2, 10 + 75 * 2);
+		nah(r.y + r.h / 2, 20 + 25 * 2);
+		assert.equal(r.drehen, 30);
+	});
+});
+// << 113

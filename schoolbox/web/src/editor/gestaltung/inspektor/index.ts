@@ -21,7 +21,9 @@ import { STREUUNG_TEILE } from './streuung';
 import { TEXT_TEILE } from './text';
 
 export type { AbschnittNr, Gruppe, InspektorTeil, InspektorTeile } from './abschnitte';
-export { ABSCHNITTE, gruppiere } from './abschnitte';
+export { ABSCHNITTE, gruppiere, gruppiereMehrfach } from './abschnitte';
+/** 113: Teile nur für die Mehrfachauswahl; nicht in `INSPEKTOR_TEILE`, sonst erschienen sie auch einzeln. */
+export { MEHRFACH_TEILE } from './mehrfach';
 
 export const INSPEKTOR_TEILE: readonly InspektorTeil[] = [
 	...POSITION_TEILE, // 099
