@@ -103,12 +103,12 @@ const streuungen = (quelle: string) =>
 	zerlege(quelle).knoten.filter((k) => attribut(k, TEIL)?.wert === 'streuung');
 
 describe('Rezepte im Kern (114)', () => {
-	it('hat das Register mit Zirkus; die Platzhalter für 118 fallen heraus', () => {
+	it('hat das Register mit Zirkus (118: und Detektiv, Dschungel, Ruhig)', () => {
 		assert.deepEqual(
 			AUFMACHUNGEN.map((a) => a.id),
-			['zirkus'],
+			['detektiv', 'zirkus', 'dschungel', 'ruhig'],
 		);
-		const zirkus = AUFMACHUNGEN[0];
+		const zirkus = AUFMACHUNGEN.find((a) => a.id === 'zirkus');
 		assert.ok(zirkus);
 		assert.equal(zirkus.farbwelten.length, 3);
 		assert.ok(aufmachungenTabelle().includes('| Zirkus | `zirkus` |'));
@@ -328,3 +328,90 @@ describe('Zirkus in allen Formaten ohne FEHLER und WARNUNG (114)', { skip: brows
 		}
 	}
 });
+
+// >> 118 Alle Rezepte im Register: dieselben Kern-Tests wie für Zirkus, dazu der Kontrast am Band
+/** Relative Leuchtdichte nach WCAG. */
+const leuchte = (hex: string) => {
+	const [r = 0, g = 0, b = 0] = [1, 3, 5].map((i) => {
+		const c = Number.parseInt(hex.slice(i, i + 2), 16) / 255;
+		return c <= 0.03928 ? c / 12.92 : ((c + 0.055) / 1.055) ** 2.4;
+	});
+	return 0.2126 * r + 0.7152 * g + 0.0722 * b;
+};
+const kontrast = (a: string, b: string) => {
+	const [hell, dunkel] = [leuchte(a), leuchte(b)].sort((x, y) => y - x) as [number, number];
+	return (hell + 0.05) / (dunkel + 0.05);
+};
+
+describe('Alle Rezepte im Register (118)', () => {
+	for (const a of AUFMACHUNGEN) {
+		it(`${a.name}: idempotent, Entfernen stellt her, gleiche Saat gleiche Quelle`, () => {
+			for (const quelle of [blattMit(), DECKBLATT]) {
+				const mit = wendeAufmachungAn(quelle, a.id);
+				assert.equal(wendeAufmachungAn(mit, a.id), mit);
+				assert.equal(entferneAufmachung(mit), quelle);
+				assert.equal(wendeAufmachungAn(quelle, a.id, { saat: 5 }), wendeAufmachungAn(quelle, a.id, { saat: 5 }));
+				for (const farben of [2, 3] as const) {
+					const anders = wendeAufmachungAn(quelle, a.id, { farben, saat: 9 });
+					assert.equal(entferneAufmachung(anders), quelle);
+				}
+			}
+		});
+
+		it(`${a.name}: ändert nichts außer body-Werten und eigenen Teilen (Z7), über alle Testdaten`, () => {
+			for (const [name, quelle] of alleTestdaten()) {
+				const mit = wendeAufmachungAn(quelle, a.id, { saat: 17 });
+				assert.equal(ohneRezeptBereich(mit), ohneRezeptBereich(quelle), name);
+				assert.equal(wendeAufmachungAn(mit, a.id, { saat: 17 }), mit, `${name}: idempotent`);
+			}
+		});
+
+		// Nur, wo das Band Standard ist oder das Rezept es dafür ausgelegt hat (Zirkus aus 114 und Detektiv nicht).
+		it(`${a.name}: Weiß auf dem Band hat in jeder Farbwelt mindestens 4,5 : 1`, { skip: !['dschungel', 'ruhig'].includes(a.id) }, () => {
+			for (const w of a.farbwelten) {
+				for (const band of [w.a1, w.a2]) {
+					assert.ok(kontrast(w.aTitel, band) >= 4.5, `${w.name}: ${w.aTitel} auf ${band}`);
+				}
+			}
+		});
+	}
+
+	it('Ruhig hat keine Fläche, keine Streuung und kein Kopfband', () => {
+		const q = wendeAufmachungAn(blattMit(), 'ruhig');
+		const teile = zerlege(q).knoten.map((k) => attribut(k, TEIL)?.wert).filter(Boolean);
+		assert.deepEqual([...new Set(teile)], ['rahmen']);
+		assert.ok(!q.includes('data-aufmachung-kopfband='));
+	});
+});
+
+describe('Detektiv, Dschungel, Ruhig in allen Formaten ohne FEHLER und WARNUNG (118)', { skip: browserSkip() }, () => {
+	const vorlage = (name: string) => readFileSync(path.join(ASSETS, name), 'utf8');
+	const arbeitsblatt = {
+		'a4-hoch': () => vorlage('vorlage-arbeitsblatt.html'),
+		'a4-quer': () => blattMit(),
+		'a5-hoch': () => blattMit(),
+		'a3-hoch': () => vorlage('vorlage-arbeitsblatt.html'),
+		folie: () => vorlage('vorlage-praesentation.html'),
+	} as const;
+	for (const id of ['detektiv', 'dschungel', 'ruhig']) {
+		for (const [format, ab] of Object.entries(arbeitsblatt)) {
+			for (const [art, quelle] of [
+				['Arbeitsblatt', ab],
+				['Deckblatt', () => DECKBLATT],
+			] as const) {
+				it(`${id} ${art} ${format}`, { timeout: 120_000 }, async () => {
+					const html = wendeAufmachungAn(setzeBlatt(quelle(), { format: format as 'a4-hoch' }), id);
+					for (const profil of ['farbe', 'sw'] as const) {
+						const ernst = (await pruefe(html, profil)).filter((m) => m.stufe !== 'HINWEIS');
+						assert.deepEqual(
+							ernst.map((m) => `${m.code}: ${m.text}`),
+							[],
+							profil,
+						);
+					}
+				});
+			}
+		}
+	}
+});
+// << 118

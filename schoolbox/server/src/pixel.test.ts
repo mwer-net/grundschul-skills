@@ -185,4 +185,45 @@ print(a.getpixel((int(sys.argv[2]), int(sys.argv[3]))))
 		});
 	}
 	// << 114
+	// >> 118 Detektiv, Dschungel, Ruhig: dieselbe Probe; oben in Farbe Fläche bzw. Band, bei Ruhig immer weiß
+	for (const id of ['detektiv', 'dschungel', 'ruhig'] as const) {
+		for (const profil of ['farbe', 'sw'] as const) {
+			it(`druckt das Rezept „${id}“ in ${profil} pixelgleich`, { timeout: 180_000 }, async (t) => {
+				if (chromiumFehlt) {
+					t.skip(BROWSER_HINWEIS);
+					return;
+				}
+				const { dir, dok, mappe } = await legeDokumentAn(s.materialDir, { beispiel: true });
+				const datei = path.join(dir, 'material.html');
+				const klasse = profil === 'farbe' ? 'farbe palette-himmel' : 'sw';
+				const quelle = (await readFile(datei, 'utf8')).replace(/<body class="([^"]*)\bsw\b/, `<body class="$1${klasse}`);
+				await writeFile(datei, wendeAufmachungAn(quelle, id));
+				const fertig = await fertigstellen(s.kontext.konfig, { mappe, dok });
+				const { token } = await legeFreigabeAn(s.materialDir, { mappe, dok });
+				const ziel = await mkdtemp(path.join(tmpdir(), 'schoolbox-pixel-'));
+				const referenz = path.join(dir, 'ausgabe', 'material');
+				const { stdout } = await ausfuehren(python, [
+					'-c',
+					VERGLEICH,
+					skripte,
+					`${s.url}/f/${token}/ansicht/${mappe}/dokumente/${dok}/`,
+					ziel,
+					referenz,
+				]);
+				const { seiten, vergleich } = JSON.parse(stdout) as Vergleich;
+				assert.equal(seiten, fertig.meta.seiten);
+				for (const { abweichung, groesse, seite } of vergleich) {
+					assert.ok(groesse, `Seite ${seite}: andere Bildgröße`);
+					assert.equal(abweichung, null, `Seite ${seite}: Abweichung in ${JSON.stringify(abweichung)}`);
+				}
+				const oben = await ausfuehren(python, ['-c', PUNKT, `${referenz}-s1.png`, '400', '4']);
+				if (profil === 'farbe' && id !== 'ruhig') {
+					assert.notEqual(oben.stdout.trim(), '(255, 255, 255)');
+				} else {
+					assert.equal(oben.stdout.trim(), '(255, 255, 255)');
+				}
+			});
+		}
+	}
+	// << 118
 });
