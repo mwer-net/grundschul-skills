@@ -25,6 +25,8 @@ export const MEHR_REIHENFOLGE: readonly (readonly string[])[] = [
 	],
 	// 120
 	['auswahl.gruppieren', 'auswahl.gruppe-aufloesen'],
+	// 121
+	['auswahl.vereinen', 'auswahl.abziehen', 'auswahl.schneiden', 'auswahl.ausschliessen'],
 	// 101
 	['auswahl.sperren', 'auswahl.ausblenden'],
 	// 106

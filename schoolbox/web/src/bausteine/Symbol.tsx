@@ -93,6 +93,7 @@ import {
 	Rows3,
 	Ruler,
 	Scissors,
+	ScissorsLineDashed,
 	Search,
 	Send,
 	Shapes,
@@ -102,6 +103,10 @@ import {
 	Sparkles,
 	Square,
 	SquareCheck,
+	SquaresExclude,
+	SquaresIntersect,
+	SquaresSubtract,
+	SquaresUnite,
 	Star,
 	Trash2,
 	TriangleAlert,
@@ -246,6 +251,13 @@ const SYMBOLE = {
 	// >> 120 Gruppen
 	aufloesen: Ungroup,
 	// << 120
+	// >> 121 Kombinieren und Formen-Schere
+	vereinen: SquaresUnite,
+	abziehen: SquaresSubtract,
+	schnitt: SquaresIntersect,
+	ausschluss: SquaresExclude,
+	formenschere: ScissorsLineDashed,
+	// << 121
 } as const satisfies Record<string, LucideIcon>;
 
 export type SymbolName = keyof typeof SYMBOLE;

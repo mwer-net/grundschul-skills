@@ -620,3 +620,219 @@ export const glaette = (punkte: readonly Punkt[], toleranz: number, zu = false):
 	}
 	return { start: erster, segmente: bestes?.segmente ?? [{ art: 'L', p: liste.at(-1) ?? erster }], zu };
 };
+
+// >> 121 Polygon für das Kombinieren ───────────────────────────────────────────
+
+/**
+ * Jeder Zug als Polygon (ohne doppelten Endpunkt), für Pfad-Verknüpfungen (121). Kurven werden so fein zerlegt, dass
+ * die Sehnen höchstens `toleranz` von der Kurve abweichen (Schranke über die zweiten Differenzen der Kontrollpunkte).
+ * Offene Züge gelten als geschlossen, wie beim Füllen.
+ */
+export const inPolygon = (zuege: readonly Zug[], toleranz: number): Punkt[][] =>
+	zuege
+		.map((zug) => {
+			const punkte: Punkt[] = [zug.start];
+			let von = zug.start;
+			for (const s of zug.segmente) {
+				if (s.art === 'L') {
+					punkte.push(s.p);
+				} else {
+					// Q als C: Die Griffe liegen zwei Drittel zum Kontrollpunkt hin.
+					const c1 = s.art === 'C' ? s.c1 : { x: von.x + (2 / 3) * (s.c.x - von.x), y: von.y + (2 / 3) * (s.c.y - von.y) };
+					const c2 = s.art === 'C' ? s.c2 : { x: s.p.x + (2 / 3) * (s.c.x - s.p.x), y: s.p.y + (2 / 3) * (s.c.y - s.p.y) };
+					const kurve: Segment = { art: 'C', c1, c2, p: s.p };
+					const dd = Math.max(
+						Math.hypot(von.x - 2 * c1.x + c2.x, von.y - 2 * c1.y + c2.y),
+						Math.hypot(c1.x - 2 * c2.x + s.p.x, c1.y - 2 * c2.y + s.p.y),
+					);
+					const n = Math.max(2, Math.min(256, Math.ceil(Math.sqrt((0.75 * dd) / Math.max(toleranz, 0.01)))));
+					for (let i = 1; i <= n; i += 1) {
+						punkte.push(kubischAn(von, kurve, i / n));
+					}
+				}
+				von = s.p;
+			}
+			const sauber = punkte.filter((p, i) => i === 0 || !gleich(p, punkte[i - 1] ?? p));
+			const erster = sauber[0];
+			if (sauber.length > 1 && erster && gleich(erster, sauber.at(-1) ?? erster)) {
+				sauber.pop();
+			}
+			return sauber;
+		})
+		.filter((ring) => ring.length >= 3);
+// << 121
+
+// >> 121 Ringe zurück zu Kurven (Kurvenanpassung nach Schneider) ──────────────
+
+const plus = (a: Punkt, b: Punkt): Punkt => ({ x: a.x + b.x, y: a.y + b.y });
+const minus = (a: Punkt, b: Punkt): Punkt => ({ x: a.x - b.x, y: a.y - b.y });
+const mal = (a: Punkt, f: number): Punkt => ({ x: a.x * f, y: a.y * f });
+const skalar = (a: Punkt, b: Punkt) => a.x * b.x + a.y * b.y;
+const einheit = (a: Punkt): Punkt => {
+	const l = Math.hypot(a.x, a.y);
+	return l > 1e-9 ? { x: a.x / l, y: a.y / l } : { x: 0, y: 0 };
+};
+const bezierAn = (q: readonly [Punkt, Punkt, Punkt, Punkt], t: number): Punkt => {
+	const u = 1 - t;
+	return plus(
+		plus(mal(q[0], u * u * u), mal(q[1], 3 * u * u * t)),
+		plus(mal(q[2], 3 * u * t * t), mal(q[3], t * t * t)),
+	);
+};
+
+/** Eine Kurve durch `p` mit festen Tangenten an den Enden (kleinste Quadrate); `null`, wenn es nicht geht. */
+const eineKurve = (p: readonly Punkt[], u: readonly number[], t1: Punkt, t2: Punkt) => {
+	const a = p[0] ?? { x: 0, y: 0 };
+	const e = p.at(-1) ?? a;
+	let c00 = 0;
+	let c01 = 0;
+	let c11 = 0;
+	let x0 = 0;
+	let x1 = 0;
+	p.forEach((pi, i) => {
+		const t = u[i] ?? 0;
+		const s = 1 - t;
+		const a1 = mal(t1, 3 * s * s * t);
+		const a2 = mal(t2, 3 * s * t * t);
+		c00 += skalar(a1, a1);
+		c01 += skalar(a1, a2);
+		c11 += skalar(a2, a2);
+		const rest = minus(pi, bezierAn([a, a, e, e], t));
+		x0 += skalar(a1, rest);
+		x1 += skalar(a2, rest);
+	});
+	const det = c00 * c11 - c01 * c01;
+	const sehne = Math.hypot(e.x - a.x, e.y - a.y);
+	let l1 = Math.abs(det) > 1e-12 ? (x0 * c11 - x1 * c01) / det : 0;
+	let l2 = Math.abs(det) > 1e-12 ? (c00 * x1 - c01 * x0) / det : 0;
+	if (l1 < sehne * 1e-3 || l2 < sehne * 1e-3) {
+		l1 = sehne / 3;
+		l2 = sehne / 3;
+	}
+	return [a, plus(a, mal(t1, l1)), plus(e, mal(t2, l2)), e] as const;
+};
+
+const parameterNachSehne = (p: readonly Punkt[]) => {
+	const d = [0];
+	for (let i = 1; i < p.length; i += 1) {
+		const a = p[i - 1] ?? { x: 0, y: 0 };
+		const b = p[i] ?? a;
+		d.push((d[i - 1] ?? 0) + Math.hypot(b.x - a.x, b.y - a.y));
+	}
+	const gesamt = d.at(-1) || 1;
+	return d.map((x) => x / gesamt);
+};
+
+/** Ein Newton-Schritt je Punkt: der Parameter, an dem die Kurve dem Punkt am nächsten ist. */
+const verbessere = (q: readonly [Punkt, Punkt, Punkt, Punkt], p: readonly Punkt[], u: readonly number[]) =>
+	u.map((t, i) => {
+		const pi = p[i] ?? q[0];
+		const s = 1 - t;
+		const b = bezierAn(q, t);
+		const d1 = plus(plus(mal(minus(q[1], q[0]), 3 * s * s), mal(minus(q[2], q[1]), 6 * s * t)), mal(minus(q[3], q[2]), 3 * t * t));
+		const d2 = plus(mal(plus(minus(q[2], mal(q[1], 2)), q[0]), 6 * s), mal(plus(minus(q[3], mal(q[2], 2)), q[1]), 6 * t));
+		const diff = minus(b, pi);
+		const nenner = skalar(d1, d1) + skalar(diff, d2);
+		return Math.abs(nenner) < 1e-12 ? t : Math.min(1, Math.max(0, t - skalar(diff, d1) / nenner));
+	});
+
+const passe = (p: readonly Punkt[], t1: Punkt, t2: Punkt, toleranz: number, tiefe = 0): Segment[] => {
+	const a = p[0] ?? { x: 0, y: 0 };
+	const e = p.at(-1) ?? a;
+	if (p.length <= 2) {
+		return [{ art: 'L', p: e }];
+	}
+	// Liegen alle Punkte auf der Sehne, bleibt es eine Gerade.
+	if (p.every((pi) => abstandZurStrecke(pi, a, e) <= toleranz)) {
+		return [{ art: 'L', p: e }];
+	}
+	let u = parameterNachSehne(p);
+	let q = eineKurve(p, u, t1, t2);
+	let max = 0;
+	let wo = Math.floor(p.length / 2);
+	for (let runde = 0; runde < 4; runde += 1) {
+		max = 0;
+		p.forEach((pi, i) => {
+			const b = bezierAn(q, u[i] ?? 0);
+			const d = Math.hypot(b.x - pi.x, b.y - pi.y);
+			if (d > max) {
+				max = d;
+				wo = i;
+			}
+		});
+		if (max <= toleranz || max > toleranz * 4) {
+			break;
+		}
+		u = verbessere(q, p, u);
+		q = eineKurve(p, u, t1, t2);
+	}
+	if (max <= toleranz || tiefe > 12) {
+		return [{ art: 'C', c1: q[1], c2: q[2], p: q[3] }];
+	}
+	const teil = Math.min(p.length - 2, Math.max(1, wo));
+	const mitte = einheit(minus(p[teil - 1] ?? a, p[teil + 1] ?? e));
+	return [
+		...passe(p.slice(0, teil + 1), t1, mitte, toleranz, tiefe + 1),
+		...passe(p.slice(teil), mal(mitte, -1), t2, toleranz, tiefe + 1),
+	];
+};
+
+/** Knick an jedem Punkt eines Rings in Grad; Nachbarn näher als 1 px werden übersprungen (Splitter am Schnitt). */
+const knickeImRing = (p: readonly Punkt[]) => {
+	const n = p.length;
+	const nachbar = (i: number, schritt: 1 | -1) => {
+		const pi = p[i] ?? { x: 0, y: 0 };
+		for (let k = 1; k < n; k += 1) {
+			const q = p[(((i + schritt * k) % n) + n) % n] ?? pi;
+			if (Math.hypot(q.x - pi.x, q.y - pi.y) >= 1) {
+				return q;
+			}
+		}
+		return pi;
+	};
+	return p.map((pi, i) => knick(nachbar(i, -1), pi, nachbar(i, 1)));
+};
+
+/**
+ * Ein geschlossener Ring (Punkte ohne Wiederholung des ersten) als Zug aus Geraden und Kurven: Ecken (Knick über
+ * `ecke` Grad) bleiben spitz, dazwischen passen möglichst wenige Kurven auf höchstens `toleranz` px (Schneider).
+ */
+export const ringZuZug = (ring: readonly Punkt[], toleranz: number, ecke = 30): Zug => {
+	const p = ring.filter((q, i) => i === 0 || !gleich(q, ring[i - 1] ?? q));
+	if (p.length > 1 && gleich(p[0] ?? { x: 0, y: 0 }, p.at(-1) ?? { x: 1, y: 1 })) {
+		p.pop();
+	}
+	const n = p.length;
+	const erster = p[0] ?? { x: 0, y: 0 };
+	if (n < 3) {
+		return { start: erster, segmente: p.slice(1).map((q) => ({ art: 'L' as const, p: q })), zu: true };
+	}
+	const knicke = knickeImRing(p);
+	const ecken = knicke.flatMap((k, i) => (k > ecke ? [i] : []));
+	if (ecken.length === 0) {
+		// Rund ohne Ecke: am Punkt mit dem größten Knick aufschneiden, Tangente dort stetig.
+		const s = knicke.indexOf(Math.max(...knicke));
+		const lauf = [...p.slice(s), ...p.slice(0, s), p[s] ?? erster];
+		const t = einheit(minus(lauf[1] ?? erster, lauf.at(-2) ?? erster));
+		return { start: lauf[0] ?? erster, segmente: passe(lauf, t, mal(t, -1), toleranz), zu: true };
+	}
+	const start = ecken[0] ?? 0;
+	const segmente: Segment[] = [];
+	ecken.forEach((von, j) => {
+		const bis = ecken[(j + 1) % ecken.length] ?? start;
+		const lauf: Punkt[] = [];
+		for (let i = von; ; i = (i + 1) % n) {
+			lauf.push(p[i] ?? erster);
+			if (lauf.length > 1 && i === bis) {
+				break;
+			}
+		}
+		const a = lauf[0] ?? erster;
+		const t1 = einheit(minus(lauf[1] ?? a, a));
+		const e = lauf.at(-1) ?? a;
+		const t2 = einheit(minus(lauf.at(-2) ?? e, e));
+		segmente.push(...passe(lauf, t1, t2, toleranz));
+	});
+	return { start: p[start] ?? erster, segmente, zu: true };
+};
+// << 121

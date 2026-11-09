@@ -738,6 +738,21 @@ und skaliert sich als Ganzes.
 <!-- << 120 -->
 
 <!-- >> 121 Kombinieren -->
+## Kombinierte Formen
+
+Vereinen, Abziehen, Schnitt, Ausschluss und die Formen-Schere im Editor machen aus mehreren Formen **einen normalen
+Pfad** (`data-form="pfad"`, siehe „Eigene Form“): ohne Parameter, ohne Drehung (sie steckt in den Punkten), mit
+Füllung, Kontur, Verlauf und Schatten der vordersten Form. Hat das Ergebnis ein Loch oder mehrere Teile, stehen die
+Teilpfade in **einem** `d` und der Pfad hat `fill-rule:evenodd` im `style`:
+
+```html
+<svg class="form" data-lage="frei" data-form="pfad" viewBox="0 0 200 200" style="--x:100px;--y:100px;--b:200px;--h:200px">
+  <path d="M1.5 1.5 L198.5 1.5 L198.5 198.5 L1.5 198.5 Z M50 100 C50 160 150 160 150 100 C150 40 50 40 50 100 Z" style="fill:var(--akzent);stroke:var(--dunkel);stroke-width:3px;fill-rule:evenodd"/>
+</svg>
+```
+
+- Ein Loch nur mit `fill-rule:evenodd`, nie als weiße Fläche darüber (die deckt im Druck den Hintergrund ab).
+- Wer so einen Pfad ändert, behält `evenodd` und schreibt alle Teilpfade in dasselbe `d`.
 <!-- << 121 -->
 
 <!-- >> 125 Weitere Stapel -->
