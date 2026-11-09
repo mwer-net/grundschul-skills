@@ -1,5 +1,7 @@
 import { formVon, spitzenStil, strichAus, werteVon } from '@schoolbox/kern/src/formen';
+import { streckePfad, strichImStil } from '@schoolbox/kern/src/formen-pfad'; // 116
 import { leseStreuAngaben, parameterVon, streuungInnen } from '@schoolbox/kern/src/streuen'; // 109
+import { liesPfad, schreibePfad } from '@schoolbox/kern/src/vektor'; // 116
 
 /**
  * Anzeige während einer Geste (104): Was seinen Inhalt aus der Größe erzeugt, zeichnet sich im `iframe` schon beim
@@ -25,7 +27,8 @@ export const zeichneFormAnzeige: AnzeigeFolge = (element, b, h) => {
 	const svg = svgDerForm(element);
 	const form = svg ? formVon(element.getAttribute('data-form')) : undefined;
 	const pfad = form ? pfadDerForm(element) : null;
-	if (!svg || !form || !pfad) {
+	// 116: Beim Pfad ist `d` die Quelle, ihn streckt `zeichnePfadAnzeige`.
+	if (!svg || !form || !pfad || form.klasse === 'pfad') {
 		return;
 	}
 	const breite = Math.max(1, Math.round(b));
@@ -84,10 +87,46 @@ export const zeichneStreuungAnzeige = (element: Element, b: number, h: number, n
 };
 // << 109
 
+// >> 116 Pfad
+/** Was der Pfad vor der Geste zeigte: `d` und Größe. Gestreckt wird immer von dort, damit sich nichts aufrundet. */
+const PFAD_START = new WeakMap<Element, { d: string; b: number; h: number; geschrieben: string }>();
+
+/** Streckt die Punkte eines Pfads im `iframe` auf `b` × `h`, der Strich bleibt (wie `skalierePfad` im Kern). */
+export const zeichnePfadAnzeige: AnzeigeFolge = (element, b, h) => {
+	const pfad = element.matches('svg.form[data-form="pfad"]') ? pfadDerForm(element) : null;
+	if (!pfad) {
+		return;
+	}
+	const d = pfad.getAttribute('d') ?? '';
+	let start = PFAD_START.get(element);
+	if (!start || start.geschrieben !== d) {
+		const [, , vb = Number.NaN, vh = Number.NaN] = (element.getAttribute('viewBox') ?? '').split(/[\s,]+/).map(Number);
+		if (!Number.isFinite(vb) || !Number.isFinite(vh)) {
+			return;
+		}
+		start = { d, b: vb, h: vh, geschrieben: d };
+	}
+	const breite = Math.max(1, Math.round(b));
+	const hoehe = Math.max(1, Math.round(h));
+	const zuege = liesPfad(start.d);
+	if (!zuege) {
+		return;
+	}
+	const neu =
+		breite === start.b && hoehe === start.h
+			? start.d
+			: schreibePfad(streckePfad(zuege, start, { b: breite, h: hoehe }, strichImStil(pfad.getAttribute('style')) / 2));
+	pfad.setAttribute('d', neu);
+	element.setAttribute('viewBox', `0 0 ${breite} ${hoehe}`);
+	PFAD_START.set(element, { ...start, geschrieben: neu });
+};
+// << 116
+
 const FOLGEN: readonly AnzeigeFolge[] = [
 	zeichneFormAnzeige, // 104 Formen; 107 Form mit Text und Linie in derselben Funktion
 	zeichneStreuungAnzeige, // 109 Streuung
-	// 110 Titel im Bogen, 111 Bildrahmen, 116 Pfad: je eine Zeile
+	zeichnePfadAnzeige, // 116 Pfad: Punkte strecken sich, der Strich bleibt
+	// 110 Titel im Bogen, 111 Bildrahmen: je eine Zeile
 ];
 
 /** Während der Geste nach jeder Größenänderung, und beim Abbrechen mit der Größe vom Start. */

@@ -1,5 +1,6 @@
 import { AUSSCHNITT } from './ausschnitt'; // 111
 import type { GestaltungKontext } from './kontext';
+import { PFAD_PUNKTE } from './pfad-modus'; // 116
 
 /**
  * Doppelklick auf ein gewähltes Gestaltungselement (Andockstelle aus 097). Das erste passende Ziel gewinnt. Spätere
@@ -50,6 +51,7 @@ export const DOPPELKLICK: readonly DoppelklickZiel[] = [
 	TEXT,
 	BOGEN,
 	AUSSCHNITT, // 111 Ausschnitt verschieben
+	PFAD_PUNKTE, // 116 Punkte bearbeiten
 	// 110 Bogen, 111 Ausschnitt, 116 Punkte bearbeiten, 120 Kind wählen: je eine Zeile hier.
 ];
 

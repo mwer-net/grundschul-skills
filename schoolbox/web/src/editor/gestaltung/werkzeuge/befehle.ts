@@ -46,7 +46,8 @@ export const befehleFuerWerkzeuge = (alle: readonly Werkzeug[]): Befehl[] =>
 			orte: kuerzel.length > 0 ? ['taste', 'palette'] : ['palette'],
 			sichtbarUnter: 'links',
 			verfuegbar,
-			aus: (_k, taste) => waehleWerkzeug(w.id, Boolean(taste?.shiftKey)),
+			// 116: Gehört ⇧ zur eigenen Taste (⇧P), hält es nicht.
+			aus: (_k, taste) => waehleWerkzeug(w.id, Boolean(taste?.shiftKey) && !w.taste?.umschalt),
 			aktiv: () => werkzeugStand().id === w.id,
 			inUebersicht: () => w.bereit(JEDE_LAGE),
 		};

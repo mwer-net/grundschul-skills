@@ -370,7 +370,8 @@ export const zeichneFormNeu = (quelle: string, nr: number) => {
 	const z = zerlege(quelle);
 	const k = z.knoten[nr];
 	const a = k ? formAngaben(k) : null;
-	if (!k || !a?.groesse || !a.pfad || !a.svg) {
+	// 116: Beim Pfad ist `d` die Quelle; ihn streckt `skalierePfad`.
+	if (!k || !a?.groesse || !a.pfad || !a.svg || a.form.klasse === 'pfad') {
 		return quelle;
 	}
 	const { d, spitzen, viewBox } = a.form.zeichne(a.param, a.groesse.b, a.groesse.h, strichAus(a.stil));
