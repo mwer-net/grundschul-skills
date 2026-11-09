@@ -79,6 +79,7 @@ trägt, ist „Gestaltung“ und lässt sich trotzdem verschieben, drehen, dupli
 | `flaeche` | Fläche | `.flaeche` | – | – | `ordnen`, `duplizieren`, `loeschen`, `hoehe` | E4 |
 | `bildfrei` | Bild | `img.bild-frei[data-lage="frei"]` | Ecken halten das Verhältnis | vorne | `lage`, `duplizieren`, `loeschen`, `loesung`, `bild` | E2 |
 | `figurfrei` | Figur | `img.figur-frei[data-lage="frei"]` | Ecken halten das Verhältnis | vorne | `lage`, `duplizieren`, `loeschen`, `loesung`, `bild` | E2 |
+| `bildrahmen` | Bildrahmen | `.bildrahmen[data-lage="frei"]` | frei | vorne | `lage`, `duplizieren`, `loeschen`, `loesung` | E3 |
 | `form` | Form | `svg.form[data-lage="frei"]` | frei | vorne | `lage`, `duplizieren`, `loeschen`, `loesung`, `fuellung` | E2 |
 | `formtext` | Form mit Text | `.form-text[data-lage="frei"]` | frei | vorne | `lage`, `duplizieren`, `loeschen`, `loesung`, `fuellung`, `text` | E2 |
 | `schmuck` | Schmuckschrift | `div.schmuck[data-lage="frei"]` | Ecke: Schrift, Kante: Breite | vorne | `lage`, `duplizieren`, `loeschen`, `loesung`, `fuellung`, `text` | E2 |
@@ -493,6 +494,41 @@ nach unten gewölbt), `viewBox`, `--b` und `--h`. Der Text steht in `text` mit `
 <!-- << 110 -->
 
 <!-- >> 111 Bildrahmen -->
+## Rahmen-Stile, Masken, Bildrahmen
+
+**Rahmen-Stil** an einem freien Bild (`img.bild-frei`, nicht an Figuren und nicht an Bild-Bausteinen im Stapel):
+
+| `data-rahmenstil` | Aussehen |
+|---|---|
+| fehlt | gerade, nur das Bild |
+| `schraeg` | dünner weißer Rand, weicher Schatten; dazu `--drehen:-3deg` |
+| `polaroid` | weißer Rand, unten breiter, Schatten |
+| `rund` | Kreis bzw. Ellipse, mit `--h` gleich `--b` ein Kreis |
+| `kontur` | weißer Rand und dunkle Außenlinie wie ein Sticker |
+
+**Maske:** Ein Bild in Form einer Form ohne Text (Stern, Herz, Wolke …). `data-maske` ist der Name der Form
+(`data-form` aus der Tabelle der Formen), ihre Parameter stehen wie bei der Form als `data-*` daneben. Der Zuschnitt
+selbst ist `clip-path` im `style`:
+
+- Kreis bzw. Ellipse: `clip-path:ellipse(50% 50% at 50% 50%)`
+- Rechteck mit runden Ecken: `clip-path:inset(0 round 20px)`
+- jede andere Form: `clip-path:polygon(…)` mit Punkten in Prozent, z. B. ein Stern mit 10 Ecken
+
+`clip-path` nur mit `polygon()`, `circle()`, `ellipse()`, `inset()`. `path()` und `url()` gehen nicht durch die Prüfung.
+Maske und Rahmen-Stil schließen sich aus: Ein Bild hat entweder `data-maske` oder `data-rahmenstil`.
+
+```html
+<img class="bild-frei" data-lage="frei" data-maske="stern" data-zacken="5" src="bilder/marktplatz.jpg" alt="Marktplatz"
+     style="--x:500px;--y:300px;--b:220px;--h:220px;--bx:40%;--by:50%;clip-path:polygon(50% 0%, 61.8% 34.5%, …)">
+```
+
+**Bildrahmen:** Ein leerer Rahmen, in den die Lehrkraft später ein Foto zieht. Er ist grau mit einem Bild-Symbol und
+zählt für die Prüfung als Platzhalter (HINWEIS `platzhalter`). Er darf nicht in ein fertiges Material.
+
+```html
+<div class="bildrahmen platzhalter" data-lage="frei" data-maske="ellipse"
+     style="--x:500px;--y:300px;--b:220px;--h:220px;clip-path:ellipse(50% 50% at 50% 50%)"></div>
+```
 <!-- << 111 -->
 
 <!-- >> 114 Rezepte -->

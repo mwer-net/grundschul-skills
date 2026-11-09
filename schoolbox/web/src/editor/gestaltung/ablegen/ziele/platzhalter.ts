@@ -21,7 +21,7 @@ const spaltenBreite = (element: Element) => {
  */
 export const ziel: AblageZiel = (unter, gut) => {
 	const bild = bildVonGut(gut);
-	const platz = bild ? unter.closest('.platzhalter') : null;
+	const platz = bild ? unter.closest('.platzhalter:not([data-lage])') : null; // 111: Bildrahmen schneidet zu (in-form.ts)
 	const nr = platz ? nrVon(platz) : null;
 	if (!bild || !platz || nr === null) {
 		return null;

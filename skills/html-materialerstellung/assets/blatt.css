@@ -510,6 +510,16 @@ svg.schmuck{overflow:visible;display:block}
 /* << 110 */
 
 /* >> 111 Bild-Rahmen */
+/* Rahmen-Stile nur an freien Bildern. Schatten über box-shadow, denn filter gehört dem Schatten aus 108 (data-schatten).
+   Der Rand ist padding: object-fit wirkt auf die Inhaltsbox, der Ausschnitt bleibt mit Rand richtig. */
+img.bild-frei[data-rahmenstil="schraeg"]{padding:6px;background:#fff;box-shadow:0 3px 10px rgb(0 0 0/.25)}
+img.bild-frei[data-rahmenstil="polaroid"]{padding:10px 10px 36px;background:#fff;box-shadow:0 1px 2px rgb(0 0 0/.2),0 4px 12px rgb(0 0 0/.22)}
+img.bild-frei[data-rahmenstil="rund"]{border-radius:50%;object-fit:cover}
+img.bild-frei[data-rahmenstil="kontur"]{border-radius:12px;box-shadow:0 0 0 6px #fff,0 0 0 8px var(--dunkel)}
+/* Leerer Bildrahmen: grau mit Bild-Symbol in der Mitte; die Form schneidet clip-path im style zu (data-maske hat
+   keine eigene Regel). Die Prüfung meldet ihn über .platzhalter. */
+.bildrahmen[data-lage="frei"]{display:block;border:0;border-radius:0;padding:0;color:transparent;font-size:0;
+  background:#d4d4d4 url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23808080' stroke-width='1.6' stroke-linejoin='round'%3E%3Crect x='3' y='5' width='18' height='14' rx='2'/%3E%3Ccircle cx='9' cy='10' r='1.6'/%3E%3Cpath d='M4 17l5-5 4 4 2.5-2.5L20 18'/%3E%3C/svg%3E") center/min(40%,64px) no-repeat}
 /* << 111 */
 
 /* >> 114 Rezepte */

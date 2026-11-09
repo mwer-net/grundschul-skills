@@ -86,6 +86,7 @@ export const GESTALTUNG_ARTEN: readonly GestaltungArt[] = [
 	},
 	liegend('bildfrei', 'Bild', 'img.bild-frei', ['bild'], 'proportional', 'vorne', 'E2'),
 	liegend('figurfrei', 'Figur', 'img.figur-frei', ['bild'], 'proportional', 'vorne', 'E2'),
+	liegend('bildrahmen', 'Bildrahmen', '.bildrahmen', [], 'frei', 'vorne', 'E3'), // 111: leer, bis ein Bild hineinkommt
 	liegend('form', 'Form', 'svg.form', ['fuellung'], 'frei', 'vorne', 'E2'),
 	liegend('formtext', 'Form mit Text', '.form-text', ['fuellung', 'text'], 'frei', 'vorne', 'E2'),
 	liegend('schmuck', 'Schmuckschrift', 'div.schmuck', ['fuellung', 'text'], 'text', 'vorne', 'E2'),

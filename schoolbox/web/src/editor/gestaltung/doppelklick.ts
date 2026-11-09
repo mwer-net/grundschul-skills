@@ -1,3 +1,4 @@
+import { AUSSCHNITT } from './ausschnitt'; // 111
 import type { GestaltungKontext } from './kontext';
 
 /**
@@ -48,6 +49,7 @@ const BOGEN: DoppelklickZiel = {
 export const DOPPELKLICK: readonly DoppelklickZiel[] = [
 	TEXT,
 	BOGEN,
+	AUSSCHNITT, // 111 Ausschnitt verschieben
 	// 110 Bogen, 111 Ausschnitt, 116 Punkte bearbeiten, 120 Kind wählen: je eine Zeile hier.
 ];
 
