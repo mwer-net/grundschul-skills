@@ -391,6 +391,15 @@ export const GESTALTEN: Abschnitt = {
 			</p>
 			{/* << 119 */}
 
+			{/* >> 122 */}
+			<p data-hilfe-rezept-uebernehmen>
+				Eine Reihe soll gleich aussehen? „Auf alle Blätter im Ordner übernehmen“ unter den Reglern gibt allen anderen
+				Materialien im selben Ordner dasselbe Rezept mit denselben Einstellungen. Unterordner und Minibücher bleiben,
+				wie sie sind. Vorher siehst du, was sich ändert, und jedes Material bekommt eine Version mit dem alten Stand.
+				Danach sind die Blätter wieder unabhängig: Würfeln auf einem Blatt ändert die anderen nicht.
+			</p>
+			{/* << 122 */}
+
 			{/* >> 120 */}
 			<p data-hilfe-gruppen>
 				Wähl mehrere Elemente mit ⇧ und drück ⌘G (oder „Gruppieren“ in der Leiste): Sie werden eine Gruppe und lassen

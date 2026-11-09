@@ -1,3 +1,5 @@
+import type { AufmachungWerte } from '@schoolbox/kern/src/aufmachungen';
+
 export class ApiFehler extends Error {
 	constructor(
 		readonly status: number,
@@ -65,3 +67,29 @@ export const sendeDatei = <T>(url: string, daten: Blob, name: string) =>
 	});
 
 export const meldung = (fehler: unknown) => (fehler instanceof Error ? fehler.message : NICHT_ERREICHBAR);
+
+// >> 122
+/** Vorschau für „Rezept auf alle Blätter im Ordner übernehmen“; ändert nichts. */
+export interface UebernehmenVorschau {
+	rezept: string;
+	ordner: string;
+	werte: AufmachungWerte;
+	aendern: number;
+	minibuch: string[];
+	anderesRezept: string[];
+	gestaltungHinten: string[];
+}
+
+export interface UebernehmenErgebnis {
+	geaendert: string[];
+	uebersprungen: string[];
+	fehlgeschlagen: string[];
+}
+
+/** `adresse`: `/api/dokumente/<mappe>/<dok>` */
+export const ladeUebernehmenVorschau = (adresse: string) =>
+	lade<UebernehmenVorschau>(`${adresse}/aufmachung-uebernehmen`);
+
+export const uebernimmAufmachung = (adresse: string, werte: AufmachungWerte) =>
+	sende<UebernehmenErgebnis>(`${adresse}/aufmachung-uebernehmen`, { werte });
+// << 122

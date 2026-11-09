@@ -102,7 +102,7 @@ const Inhalt = (t: SchubladenTeile) => {
 							aendere={aendere}
 							aus={aus}
 						/>
-						<RezeptUebernehmen quelle={quelle} />
+						<RezeptUebernehmen adresse={t.material.adresse} speichere={t.material.speichere} aus={aus} />
 					</section>
 				)}
 			</div>

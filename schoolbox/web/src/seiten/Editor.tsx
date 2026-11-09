@@ -944,6 +944,7 @@ const Bearbeitung = ({ dokument, mappe: mappenDaten }: { mappe: Mappe; dokument:
 		angeheftet: panels.angeheftet,
 		schalteAnheften: panels.schalteAnheften,
 		oeffneSchublade: (id) => befehle.fuehreAus(befehlZuSchublade(id)),
+		material: { adresse: b.adresse, speichere: alles }, // 122
 	};
 
 	const leinwandMenue = (treffer: { nr: number; art: string } | null, punkt: { x: number; y: number }) =>
