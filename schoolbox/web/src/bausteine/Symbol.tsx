@@ -204,7 +204,7 @@ const SYMBOLE = {
 	drehen: RotateCw,
 	verhaeltnis: Link2,
 	verhaeltnislos: Link2Off,
-	// >> 101 Ebenen
+	// Ebenen
 	ausgeblendet: EyeOff,
 	schloss: Lock,
 	entsperrt: LockOpen,
@@ -214,16 +214,13 @@ const SYMBOLE = {
 	rahmen: Square,
 	flaeche: PaintBucket,
 	funken: Sparkles,
-	// << 101
 
-	// >> 102 Figuren
+	// Figuren
 	spiegeln: FlipHorizontal2,
-	// << 102
 
-	// >> 106 Anker
+	// Anker
 	anker: Anchor,
-	// << 106
-	// >> 107 Formen-Werkzeuge
+	// Formen-Werkzeuge
 	rechteck: RectangleHorizontal,
 	ellipse: Circle,
 	vieleck: Hexagon,
@@ -231,11 +228,9 @@ const SYMBOLE = {
 	pfeil: MoveUpRight,
 	denkblase: Cloud,
 	band: Ribbon,
-	// << 107
-	// >> 109 Streuung
+	// Streuung
 	wuerfeln: Dices,
-	// << 109
-	// >> 113 Ausrichten und Verteilen
+	// Ausrichten und Verteilen
 	'ausrichten-links': AlignStartVertical,
 	'ausrichten-mitte': AlignCenterVertical,
 	'ausrichten-rechts': AlignEndVertical,
@@ -244,20 +239,16 @@ const SYMBOLE = {
 	'ausrichten-unten': AlignEndHorizontal,
 	'verteilen-waagerecht': AlignHorizontalDistributeCenter,
 	'verteilen-senkrecht': AlignVerticalDistributeCenter,
-	// << 113
-	// >> 116 Stift und Pfad
+	// Stift und Pfad
 	pfad: PenTool,
-	// << 116
-	// >> 120 Gruppen
+	// Gruppen
 	aufloesen: Ungroup,
-	// << 120
-	// >> 121 Kombinieren und Formen-Schere
+	// Kombinieren und Formen-Schere
 	vereinen: SquaresUnite,
 	abziehen: SquaresSubtract,
 	schnitt: SquaresIntersect,
 	ausschluss: SquaresExclude,
 	formenschere: ScissorsLineDashed,
-	// << 121
 } as const satisfies Record<string, LucideIcon>;
 
 export type SymbolName = keyof typeof SYMBOLE;

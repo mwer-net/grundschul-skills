@@ -621,7 +621,7 @@ export const glaette = (punkte: readonly Punkt[], toleranz: number, zu = false):
 	return { start: erster, segmente: bestes?.segmente ?? [{ art: 'L', p: liste.at(-1) ?? erster }], zu };
 };
 
-// >> 121 Polygon für das Kombinieren ───────────────────────────────────────────
+// Polygon für das Kombinieren ───────────────────────────────────────────
 
 /**
  * Jeder Zug als Polygon (ohne doppelten Endpunkt), für Pfad-Verknüpfungen (121). Kurven werden so fein zerlegt, dass
@@ -660,9 +660,8 @@ export const inPolygon = (zuege: readonly Zug[], toleranz: number): Punkt[][] =>
 			return sauber;
 		})
 		.filter((ring) => ring.length >= 3);
-// << 121
 
-// >> 121 Ringe zurück zu Kurven (Kurvenanpassung nach Schneider) ──────────────
+// Ringe zurück zu Kurven (Kurvenanpassung nach Schneider) ──────────────
 
 const plus = (a: Punkt, b: Punkt): Punkt => ({ x: a.x + b.x, y: a.y + b.y });
 const minus = (a: Punkt, b: Punkt): Punkt => ({ x: a.x - b.x, y: a.y - b.y });
@@ -835,4 +834,3 @@ export const ringZuZug = (ring: readonly Punkt[], toleranz: number, ecke = 30): 
 	});
 	return { start: p[start] ?? erster, segmente, zu: true };
 };
-// << 121

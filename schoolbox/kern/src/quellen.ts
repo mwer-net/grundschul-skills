@@ -153,30 +153,12 @@ export const ABSCHNITTE: Abschnitt[] = [
 	{ datei: DRUCK, marke: 'schrift-und-abstand', inhalt: klassenWerte },
 	{ datei: DRUCK, marke: 'luecken-breite', inhalt: lueckenBreite },
 	{ datei: LAYOUT, marke: 'thema-regeln', inhalt: themaRegeln },
-	// Phase 12: Jedes Ticket trägt seine Abschnitte zwischen seinen Marken ein, die Funktion dazu im eigenen Modul.
-
-	// >> 092 Arten der Gestaltung
+	// Gestaltung (Phase 12): Arten, Figuren, Formen, Farben des Blatts, Rezepte
 	{ datei: GESTALTUNG, marke: 'gestaltung-arten', inhalt: gestaltungArten },
-	// << 092
-
-	// >> 102 Liste der Figuren
 	{ datei: GESTALTUNG, marke: 'figuren', inhalt: figurenListe },
-	// << 102
-
-	// >> 104 Formen und ihre Parameter
 	{ datei: GESTALTUNG, marke: 'formen', inhalt: formenTabelle },
-	// << 104
-
-	// >> 112 Farben des Blatts (Liste des Farbwählers)
 	{ datei: GESTALTUNG, marke: 'blatt-farben', inhalt: blattFarbenListe },
-	// << 112
-
-	// >> 114 Rezepte (Aufmachungen)
 	{ datei: GESTALTUNG, marke: 'aufmachungen', inhalt: aufmachungenTabelle },
-	// << 114
-
-	// >> 118 Daten der Rezepte
-	// << 118
 ];
 
 /** Setzt den Inhalt zwischen `<!-- erzeugt: marke -->` und `<!-- /erzeugt: marke -->`. */

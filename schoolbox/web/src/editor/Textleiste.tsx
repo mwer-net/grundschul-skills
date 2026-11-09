@@ -21,7 +21,7 @@ const FERTIG: Record<Zeilen, string> = {
 
 const FORM = 'size-knopf-klein px-0 aria-pressed:bg-flaeche-2 aria-pressed:text-tinte';
 
-// >> 105 Farbe für Wörter
+// Farbe für Wörter
 const PUNKT =
 	'flex size-knopf-klein flex-none items-center justify-center rounded-full border border-rand p-0.5 hover:border-tinte';
 
@@ -97,7 +97,6 @@ const WortFarbe = ({ text }: { text: Text }) => {
 		</div>
 	);
 };
-// << 105
 
 /**
  * Fett, Unterstrichen, Hervorheben stehen vor und während des Tippens an derselben Stelle. Ohne Sitzung wirken sie auf

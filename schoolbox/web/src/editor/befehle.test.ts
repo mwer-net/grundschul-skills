@@ -225,9 +225,8 @@ describe('Werkzeuge (098)', () => {
 
 	it('ohne bereites Werkzeug gibt es auch V nicht, und die Tasten bleiben beim Browser', () => {
 		testZugang(false);
-		// >> 105: T ist überall bereit, wo frei bearbeitet wird; ohne freie Lage bleibt kein Werkzeug.
+		// T ist überall bereit, wo frei bearbeitet wird; ohne freie Lage bleibt kein Werkzeug.
 		const ohne = kontext({ frei: false });
-		// << 105
 		const v = BEFEHLE.find((b) => b.id === 'werkzeug.auswahl');
 		assert.equal(v?.verfuegbar(ohne), false);
 		assert.equal(befehlZuTaste(taste('KeyV'), 'auswahl', ohne), undefined);

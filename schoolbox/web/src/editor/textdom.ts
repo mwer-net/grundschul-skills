@@ -255,7 +255,7 @@ const textStuecke = (z: Zerlegung, k: Knoten) => {
 	return stuecke;
 };
 
-// >> 105 Farbe für Wörter, nur in Schmuckschrift
+// Farbe für Wörter, nur in Schmuckschrift
 /** Darin dürfen Wörter eine Farbe haben (Entscheidung 11 gilt für Inhalt, hier nicht). */
 export const FARBIGER_TEXT = 'div.schmuck, .form-text';
 /** Am farbigen `<span>`, das die Sitzung selbst gesetzt hat: die Farbe, wie sie in die Quelle kommt. */
@@ -266,7 +266,6 @@ const wortfarbe = (el: Element) => {
 	const wert = el.getAttribute(WORTFARBE) ?? /(?:^|;)\s*color\s*:\s*([^;]+)/i.exec(el.getAttribute('style') ?? '')?.[1];
 	return wert && istFarbe(wert) ? wert.trim() : null;
 };
-// << 105
 
 /** Quelltext für den Inhalt eines bearbeiteten Elements: Text, `<b>`, `<u>`, `<br>`, Geschütztes wörtlich. */
 /** Vom Browser erzeugte Formatierung: Doppeltes fällt weg, Fremdes verliert nur sein Element. */
@@ -703,7 +702,6 @@ export const ruesteText = ({
 		});
 	};
 
-	// >> 105
 	const istWortfarbe = (n: Node | null): n is HTMLElement =>
 		istElement(n) && n.localName === 'span' && wortfarbe(n) !== null;
 
@@ -779,7 +777,6 @@ export const ruesteText = ({
 		});
 		aendert();
 	};
-	// << 105
 
 	const formatiere = (format: Format) => {
 		if (!sitzung || (format === 'bold' && !fettMoeglich())) {

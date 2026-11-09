@@ -1,10 +1,6 @@
-import type { Flaeche } from './useGeste';
+import { DRUCKRAND } from '@schoolbox/kern/src/gestaltung-arten';
 
-/**
- * 5 mm bei 96 dpi (Briefing 4.1). TODO(096): auf die Konstante aus der Prüfung umstellen, sobald es sie gibt; 096 lief
- * parallel.
- */
-export const DRUCKRAND = 19;
+import type { Flaeche } from './useGeste';
 
 /**
  * Die gestrichelte Linie 19 px innerhalb der Blattkante, nur solange gezogen wird. Sie liegt in der Überlagerung, nie im

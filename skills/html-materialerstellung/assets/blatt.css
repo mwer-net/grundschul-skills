@@ -421,9 +421,8 @@ body.ohne-punkte .punkte,body.ohne-punkte x-gesamtpunkte{display:none}
 [data-lage="frei"]{position:absolute;margin:0;box-sizing:border-box;pointer-events:auto;
   left:var(--x,0px);top:var(--y,0px);width:var(--b,auto);height:var(--h,auto);
   transform:rotate(var(--drehen,0deg)) scaleX(var(--spiegeln,1));transform-origin:50% 50%}
-/* >> 120 Gruppe: Die Kinder erben Lage und Größe der Gruppe nicht (eigene Werte im style gehen vor) */
+/* Gruppe: Die Kinder erben Lage und Größe der Gruppe nicht (eigene Werte im style gehen vor) */
 .gruppe[data-lage="frei"]>*{--x:initial;--y:initial;--b:initial;--h:initial;--drehen:initial;--spiegeln:initial}
-/* << 120 */
 /* Anker: hängt am umgebenden Baustein. Derselbe Selektor steht als ANKER_SELEKTOR im Kern (gestaltung-arten.ts). */
 :is(.aufgabe, .seite > :not(.ebene)):has(> [data-anker]){position:relative}
 /* Seitenfläche und Seitenrahmen füllen ihre Ebene; Fläche, Muster und Rahmen-Arten: 095 */
@@ -433,13 +432,12 @@ body.ohne-punkte .punkte,body.ohne-punkte x-gesamtpunkte{display:none}
 /* s/w (Briefing 4.2): Seitenfläche und Streuung sind ohne data-sw weg, alles andere grau, bis data-sw="weg" */
 body.sw [data-sw="weg"],body.sw :is(.seitenflaeche,svg.streuung):not([data-sw="grau"]){display:none !important}
 body.sw .stapel:not([data-sw="grau"]){--stapel-hg:transparent !important}
-/* >> 119 Freigelegtes Rezept: ein heller Titel (Weiß auf dem Band) wird in s/w dunkel */
+/* Freigelegtes Rezept: ein heller Titel (Weiß auf dem Band) wird in s/w dunkel */
 body.sw [data-sw="dunkel"]{color:var(--dunkel) !important}
-/* << 119 */
 body.sw[data-aufmachung] .kopf::before{display:none}
 body.sw[data-aufmachung] .kopf h1{color:var(--dunkel)}
 
-/* >> 095 Seitenfläche, Seitenrahmen */
+/* Seitenfläche, Seitenrahmen */
 /* Die Fläche reicht bis an den Blattrand: .ebene liegt mit inset:0 in .seite, deren padding gilt dort nicht.
    Muster sind reine CSS-Verläufe, --muster-groesse ist die Kachel. */
 .seitenflaeche{background:var(--f1,#fff)}
@@ -455,25 +453,21 @@ body.minibuch .seitenrahmen{inset:var(--rahmen-abstand,8px)}
 .seitenrahmen[data-rahmen="doppelt"]{border-style:double;border-width:max(4px,var(--rahmen-staerke,2px))}
 .seitenrahmen[data-rahmen="gestrichelt"]{border-style:dashed}
 .seitenrahmen[data-rahmen="gepunktet"]{border-style:dotted}
-/* << 095 */
 
-/* >> 102 Figuren */
+/* Figuren */
 /* Frei liegende Figur (Briefing 3.4): nur figur-frei, nie figur (die Leitfigur mit --figur). Breite aus --b, Höhe aus
    dem Bild; Drehen und Spiegeln kommen aus [data-lage="frei"]. */
 img.figur-frei{height:var(--h,auto);object-fit:cover;object-position:var(--bx,50%) var(--by,50%)}
-/* << 102 */
 
-/* >> 103 Bilder frei */
+/* Bilder frei */
 /* Freies Bild: Breite in --b, Höhe aus dem Bild; mit --h auf das Seitenverhältnis zugeschnitten, Ausschnitt in --bx/--by */
 img.bild-frei[data-lage="frei"]{object-fit:cover;object-position:var(--bx,50%) var(--by,50%)}
-/* << 103 */
 
-/* >> 104 Formen */
+/* Formen */
 /* Formen zeichnen sich in Elementgröße (viewBox = 0 0 --b --h), der Strich liegt innen */
 svg.form{overflow:visible;display:block}
-/* << 104 */
 
-/* >> 105 Text */
+/* Text */
 /* Schmuckschrift: liegt frei, nie für Inhalt. Ohne --b so breit wie der Text, mit --b bricht er um. --schrift nur
    Fredoka (600) oder Andika (700): die eingebetteten Schnitte. Stempel und Etikett nach Briefing 3.4. */
 div.schmuck[data-lage="frei"]{width:var(--b,max-content);font:600 var(--gr,40px)/1.1 var(--schrift,Fredoka),sans-serif;
@@ -481,9 +475,8 @@ div.schmuck[data-lage="frei"]{width:var(--b,max-content);font:600 var(--gr,40px)
 div.schmuck[data-schmuck="stempel"]{border:3px solid currentColor;border-radius:8px;padding:.05em .4em;
   text-transform:uppercase;letter-spacing:.06em}
 div.schmuck[data-schmuck="etikett"]{background:var(--hg,var(--akzent));color:var(--farbe,#fff);border-radius:999px;padding:.15em .7em}
-/* << 105 */
 
-/* >> 107 Formen-Werkzeuge, Sprechblase */
+/* Formen-Werkzeuge, Sprechblase */
 /* Form mit Text (Sprechblase, Band): Das svg füllt die Box, der Zipfel ragt hinaus. Der Text steht mittig in der
    Höhe; passt er nicht, wächst die Blase nicht, sondern schneidet ab (Prüfung: abgeschnitten). Schrift wie 105. */
 .form-text[data-lage="frei"]{font:600 var(--gr,22px)/1.15 var(--schrift,Fredoka),sans-serif;color:var(--farbe,var(--dunkel))}
@@ -492,9 +485,8 @@ div.schmuck[data-schmuck="etikett"]{background:var(--hg,var(--akzent));color:var
   text-align:var(--ausrichtung,left);overflow:hidden;overflow-wrap:break-word}
 .form-text[data-form="band"]>.form-inhalt{padding-inline:max(14px,17%)}
 .form-text[data-form="sprechblase"]:not([data-blase="eckig"])>.form-inhalt{padding-inline:max(14px,12%)}
-/* << 107 */
 
-/* >> 108 Aussehen */
+/* Aussehen */
 /* Schatten (Briefing 3-formen, E3): weich, neutral grau, darum in s/w unverändert. Nur das Attribut, kein Wert im style.
    Bilder in s/w: graustufen.js setzt am Bildschirm filter:grayscale(1) an img; der Schatten darf das nicht verdrängen. */
 [data-lage][data-schatten="leicht"]{--schatten:0 1px 3px rgb(0 0 0/.22)}
@@ -502,20 +494,17 @@ div.schmuck[data-schmuck="etikett"]{background:var(--hg,var(--akzent));color:var
 [data-lage][data-schatten="stark"]{--schatten:0 6px 16px rgb(0 0 0/.4)}
 [data-lage][data-schatten]{filter:drop-shadow(var(--schatten))}
 @media screen{body.sw img[data-lage][data-schatten]{filter:grayscale(1) drop-shadow(var(--schatten))}}
-/* << 108 */
 
-/* >> 109 Streuung */
+/* Streuung */
 svg.streuung{display:block;overflow:visible}
-/* << 109 */
 
-/* >> 110 Kontur und Bogen */
+/* Kontur und Bogen */
 /* Kontur um die Buchstaben (Briefing 3.4): hinter der Füllung, die Buchstaben bleiben so dick wie ohne. Weiß bleibt in
    s/w weiß. Der Bogen (svg) zeichnet seine Kontur selbst mit stroke und paint-order im style des text. */
 div.schmuck[data-kontur]{-webkit-text-stroke:var(--kontur,6px) var(--kontur-farbe,#fff);paint-order:stroke fill}
 svg.schmuck{overflow:visible;display:block}
-/* << 110 */
 
-/* >> 111 Bild-Rahmen */
+/* Bild-Rahmen */
 /* Rahmen-Stile nur an freien Bildern. Schatten über box-shadow, denn filter gehört dem Schatten aus 108 (data-schatten).
    Der Rand ist padding: object-fit wirkt auf die Inhaltsbox, der Ausschnitt bleibt mit Rand richtig. */
 img.bild-frei[data-rahmenstil="schraeg"]{padding:6px;background:#fff;box-shadow:0 3px 10px rgb(0 0 0/.25)}
@@ -526,9 +515,8 @@ img.bild-frei[data-rahmenstil="kontur"]{border-radius:12px;box-shadow:0 0 0 6px 
    keine eigene Regel). Die Prüfung meldet ihn über .platzhalter. */
 .bildrahmen[data-lage="frei"]{display:block;border:0;border-radius:0;padding:0;color:transparent;font-size:0;
   background:#d4d4d4 url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23808080' stroke-width='1.6' stroke-linejoin='round'%3E%3Crect x='3' y='5' width='18' height='14' rx='2'/%3E%3Ccircle cx='9' cy='10' r='1.6'/%3E%3Cpath d='M4 17l5-5 4 4 2.5-2.5L20 18'/%3E%3C/svg%3E") center/min(40%,64px) no-repeat}
-/* << 111 */
 
-/* >> 114 Rezepte */
+/* Rezepte */
 /* Kopfband (Briefing 3.10): ein Band am .kopf, das bis über den oberen Blattrand reicht und dort von .seite
    abgeschnitten wird. Es wächst mit dem Kopf, ohne Messen. z-index −1 liegt über .ebene.hinten (−2) und unter dem
    Inhalt; den Stapelkontext setzt body[data-aufmachung] .seite (091). Die Kante ist eine Maske aus zwei Schichten:
@@ -561,18 +549,10 @@ body[data-aufmachung-kopfband] .namenszeile:has(~ .kopf){color:var(--a-titel);--
 body[data-aufmachung-kopfband] .loesung-marke{background:#fff}
 /* s/w (4.2): Kopfband weg (091), Titel, Kopf und Namenszeile dunkel */
 body.sw[data-aufmachung] .kopf>.titel,body.sw[data-aufmachung] .namenszeile:has(~ .kopf){color:var(--dunkel);--text:var(--dunkel)}
-/* << 114 */
 
-/* >> 115 Fläche im Stapel */
+/* Fläche im Stapel */
 /* Eine Fläche steht im Stapel wie ein Baustein; ihre Elemente liegen in ihren Koordinaten und werden am Rand abgeschnitten. */
 .flaeche { position: relative; flex: none; height: var(--h, 200px); overflow: hidden; }
-/* << 115 */
-
-/* >> 118 Rezepte Daten */
-/* << 118 */
-
-/* >> 120 Gruppen */
-/* << 120 */
 
 /* >> 125 Stapel */
 /* << 125 */

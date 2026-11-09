@@ -91,7 +91,7 @@ describe('/ansicht gegen blatt.py', () => {
 			}
 		}
 	});
-	// >> 095 Seitenfläche bis an den Blattrand, in Vorschau und PDF gleich
+	// Seitenfläche bis an den Blattrand, in Vorschau und PDF gleich
 	const ECKE = `
 import sys
 from PIL import Image
@@ -135,9 +135,8 @@ print(a.getpixel((1, 1)))
 			assert.notEqual(ecke.stdout.trim(), '(255, 255, 255)');
 		});
 	}
-	// << 095
 
-	// >> 114 Rezept „Zirkus“ in Farbe und s/w: Vorschau und PDF pixelgleich, Kopfband und Fläche nur in Farbe
+	// Rezept „Zirkus“ in Farbe und s/w: Vorschau und PDF pixelgleich, Kopfband und Fläche nur in Farbe
 	const PUNKT = `
 import sys
 from PIL import Image
@@ -184,8 +183,7 @@ print(a.getpixel((int(sys.argv[2]), int(sys.argv[3]))))
 			}
 		});
 	}
-	// << 114
-	// >> 118 Detektiv, Dschungel, Ruhig: dieselbe Probe; oben in Farbe Fläche bzw. Band, bei Ruhig immer weiß
+	// Detektiv, Dschungel, Ruhig: dieselbe Probe; oben in Farbe Fläche bzw. Band, bei Ruhig immer weiß
 	for (const id of ['detektiv', 'dschungel', 'ruhig'] as const) {
 		for (const profil of ['farbe', 'sw'] as const) {
 			it(`druckt das Rezept „${id}“ in ${profil} pixelgleich`, { timeout: 180_000 }, async (t) => {
@@ -225,5 +223,4 @@ print(a.getpixel((int(sys.argv[2]), int(sys.argv[3]))))
 			});
 		}
 	}
-	// << 118
 });

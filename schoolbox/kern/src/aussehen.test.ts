@@ -232,9 +232,9 @@ describe('Schatten und Deckkraft', () => {
 });
 
 describe('Bestand (Entscheidung 26)', () => {
-	it('die Regeln aus 108 in blatt.css treffen nur Gestaltung mit data-schatten', () => {
+	it('die Regeln für Aussehen in blatt.css treffen nur Gestaltung mit data-schatten', () => {
 		const css = readFileSync(`${ASSETS}/blatt.css`, 'utf8');
-		const teil = /\/\* >> 108[^]*?\/\* << 108 \*\//.exec(css)?.[0] ?? '';
+		const teil = /\/\* Aussehen \*\/[^]*?\n\n/.exec(css)?.[0] ?? '';
 		const ohneKommentare = teil.replace(/\/\*[^]*?\*\//g, '');
 		const selektoren = [...ohneKommentare.matchAll(/([^{}]+)\{[^{}]*\}/g)]
 			.map((t) => t[1]?.trim() ?? '')

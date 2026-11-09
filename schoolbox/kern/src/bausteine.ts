@@ -596,7 +596,7 @@ export const KIT_KATALOG: readonly KitEintrag[] = [
 		ort: 'seite',
 		arten: ['praesentation'],
 	},
-	// >> 115 Fläche im Stapel: Platz zum freien Gestalten zwischen den Aufgaben (Briefing 3.7); Starter in `muster/bausteine.html`
+	// Fläche im Stapel: Platz zum freien Gestalten zwischen den Aufgaben (Briefing 3.7); Starter in `muster/bausteine.html`
 	{
 		id: 'flaeche',
 		art: 'flaeche',
@@ -604,5 +604,4 @@ export const KIT_KATALOG: readonly KitEintrag[] = [
 		suchbegriffe: ['Gestalten', 'Zeichnung', 'Freifläche', 'Stapel', 'Platz'],
 		ort: 'seite',
 	},
-	// << 115
 ];

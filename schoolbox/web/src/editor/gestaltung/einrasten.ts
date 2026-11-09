@@ -1,7 +1,6 @@
-import { GESTALTUNG_SELEKTOR } from '@schoolbox/kern/src/gestaltung-arten';
+import { DRUCKRAND, GESTALTUNG_SELEKTOR } from '@schoolbox/kern/src/gestaltung-arten';
 
 import { VORSCHAU } from './ablegen/vorschau';
-import { DRUCKRAND } from './druckrand';
 import type { Kasten } from './geste';
 import { MIN_GROESSE, punktImBehaelter } from './geste';
 

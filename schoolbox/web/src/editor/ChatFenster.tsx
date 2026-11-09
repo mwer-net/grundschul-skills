@@ -1084,7 +1084,7 @@ export const ChatInhalt = ({
 		void sendeAuftrag(inhalt);
 	};
 
-	// >> 117 `schicke` von außen: dieselben Sperren wie `sende`, dazu ein offener Vorschlag; immer ans ganze Blatt.
+	// `schicke` von außen: dieselben Sperren wie `sende`, dazu ein offener Vorschlag; immer ans ganze Blatt.
 	const schicke = (text: string): string | null => {
 		if (!dokument) {
 			return 'Claude ist hier nicht verfügbar.';
@@ -1110,7 +1110,6 @@ export const ChatInhalt = ({
 			empfaenger.current = null;
 		};
 	});
-	// << 117
 
 	const neuStarten = () => {
 		const text = letzte?.text ?? vorschlag?.auftrag;

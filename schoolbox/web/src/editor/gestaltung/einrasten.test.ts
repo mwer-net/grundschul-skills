@@ -1,7 +1,8 @@
 import assert from 'node:assert/strict';
 import { describe, it } from 'node:test';
 
-import { DRUCKRAND } from './druckrand';
+import { DRUCKRAND } from '@schoolbox/kern/src/gestaltung-arten';
+
 import type { Kandidat } from './einrasten';
 import { FANGWEITE, rasteEin, umschliessend } from './einrasten';
 import type { Kasten } from './geste';

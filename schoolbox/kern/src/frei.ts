@@ -38,9 +38,8 @@ const SVG_ELEMENTE = namen(
 	'path rect circle ellipse line polygon polyline text tspan',
 	'lineargradient radialgradient stop pattern clippath mask marker',
 
-	// >> 110 Schmuckschrift im Bogen: `textpath`
+	// Schmuckschrift im Bogen: `textpath`
 	'textpath',
-	// << 110
 );
 
 const ATTRIBUTE_ALLE = namen('class id style title lang dir role');
@@ -72,9 +71,8 @@ const SVG_ATTRIBUTE = namen(
 	'markerwidth markerheight markerunits refx refy orient marker-start marker-mid marker-end',
 	'vector-effect display visibility shape-rendering overflow',
 
-	// >> 110 Schmuckschrift im Bogen: `startoffset` u. a. (`text-anchor`, `paint-order` stehen oben schon)
+	// Schmuckschrift im Bogen: `startoffset` u. a. (`text-anchor`, `paint-order` stehen oben schon)
 	'startoffset',
-	// << 110
 );
 
 const NUR_DURCH_USE = namen('href xlink:href');
@@ -82,9 +80,8 @@ const NUR_DURCH_USE = namen('href xlink:href');
 const MIT_SPRUNG = namen(
 	'use',
 
-	// >> 110 Schmuckschrift im Bogen: `textpath`
+	// Schmuckschrift im Bogen: `textpath`
 	'textpath',
-	// << 110
 );
 const URL_ATTRIBUTE = namen('fill stroke clip-path mask marker-start marker-mid marker-end');
 const SVG_OHNE_STIL = namen('id class title lang dir role xmlns xmlns:xlink d points href xlink:href');
@@ -106,9 +103,8 @@ const CSS_FUNKTIONEN = namen(
 	'counter counters drop-shadow blur grayscale',
 	'not is where has nth-child nth-last-child nth-of-type nth-last-of-type lang',
 
-	// >> 111 Bildrahmen: Formen für `clip-path` (`path()` nicht, Briefing 4.4)
+	// Bildrahmen: Formen für `clip-path` (`path()` nicht, Briefing 4.4)
 	'polygon circle ellipse inset',
-	// << 111
 );
 const CSS_AT_REGELN = namen('media page');
 
