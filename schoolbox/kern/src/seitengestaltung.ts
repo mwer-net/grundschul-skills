@@ -4,7 +4,8 @@
  * füllen die Seite und lassen sich nicht ziehen. Werte stehen als Attribute (`data-flaeche`, `data-muster`,
  * `data-rahmen`, `data-sw`) und als eigene Eigenschaften im `style`; wie sie aussehen, regelt `blatt.css`.
  *
- * Teile eines Rezepts (`data-aufmachung-teil`, 114) bleiben hier unberührt.
+ * Ändert die Lehrkraft Fläche oder Rahmen eines Rezepts (`data-aufmachung-teil`, 114), verlieren sie das Kennzeichen
+ * und die Sperre; danach erzeugt das Rezept sie auf dieser Seite nicht mehr neu.
  */
 
 import type { SwVerhalten } from './gestaltung';
@@ -60,7 +61,7 @@ export interface Seitenrahmen {
 	sw?: SwVerhalten | null;
 }
 
-/** Wie gelesen: dazu, ob das Teil von einem Rezept stammt (dann gesperrt bis 119). */
+/** Wie gelesen: dazu, ob das Teil von einem Rezept stammt (`data-aufmachung-teil`). */
 export type Gelesen<T> = T & { rezept: boolean };
 
 export interface Seitengestaltung {
@@ -256,7 +257,7 @@ const neuesElement = (t: Teil) => {
 
 /** Der neue Start-Tag eines vorhandenen Teils: eigene Attribute ersetzt, fremde (Klassen, `data-name` …) bleiben. */
 const neuerStartTag = (z: Zerlegung, k: Knoten, t: Teil) => {
-	const eigene = new Set([...t.attribute.map(([n]) => n), 'style']);
+	const eigene = new Set([...t.attribute.map(([n]) => n), 'style', ...(attribut(k, REZEPT) ? [REZEPT, 'data-gesperrt'] : [])]); // 114
 	const stil = stilMit(attribut(k, 'style')?.wert ?? null, t.verwaltet, t.stil);
 	const fremde = k.attribute
 		.filter((a) => !eigene.has(a.name))
@@ -295,7 +296,7 @@ const legeZuunterst = (z: Zerlegung, seite: Knoten, html: string, nach: Knoten |
 	return fuegeEin(z, ziel, vorne ? 'vor' : 'nach', block);
 };
 
-/** Ein Teil auf einer Seite (Index unter den Seiten) setzen, ändern oder entfernen. Rezept-Teile bleiben. */
+/** Ein Teil auf einer Seite (Index unter den Seiten) setzen, ändern oder entfernen. */
 const setzeTeil = (quelle: string, index: number, klasse: string, teil: Teil | null): string => {
 	const z = zerlege(quelle);
 	const seite = seitenIn(z)[index];
@@ -303,9 +304,6 @@ const setzeTeil = (quelle: string, index: number, klasse: string, teil: Teil | n
 		return quelle;
 	}
 	const da = teilIn(seite, klasse);
-	if (da && attribut(da, REZEPT)) {
-		return quelle;
-	}
 	if (!teil) {
 		return da ? raeumeEbenenAuf(wendeAn(quelle, entferne(z, da))) : quelle;
 	}

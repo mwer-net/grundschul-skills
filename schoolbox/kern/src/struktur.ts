@@ -4,6 +4,7 @@
  * Aufgaben neu durch. So bleibt er ein einziger Schritt im Verlauf.
  */
 
+import { zieheAufmachungNach } from './aufmachungen';
 import { dupliziereGestaltung, istEbene, istGestaltung, loescheGestaltung, neueIdsInGestaltung } from './gestaltung';
 import type { Aenderung, Knoten, Zerlegung } from './quelltext';
 import {
@@ -248,7 +249,8 @@ export const fuegeSeiteEin = (
 		? `<${ziel.tag} class="seite">\n${zeilen.join('\n')}\n${einzug}</${ziel.tag}>`
 		: `<${ziel.tag} class="seite"></${ziel.tag}>`;
 	const aenderungen = fuegeEin(z, ziel, 'nach', html);
-	return ergebnis(quelle, aenderungen, aenderungen[0], n);
+	const neu = ergebnis(quelle, aenderungen, aenderungen[0], n);
+	return { ...neu, quelle: zieheAufmachungNach(neu.quelle) }; // 114: Rezept-Teile auf der neuen Seite
 };
 
 const stilTeile = (stil: string | null) =>

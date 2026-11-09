@@ -9,6 +9,7 @@
 import { readFileSync, writeFileSync } from 'node:fs';
 import path from 'node:path';
 
+import { aufmachungenTabelle } from './aufmachungen/index';
 import { figurenListe } from './figuren';
 import { formenTabelle } from './formen';
 import { GESTALTUNG_ARTEN } from './gestaltung-arten';
@@ -166,6 +167,7 @@ export const ABSCHNITTE: Abschnitt[] = [
 	// << 104
 
 	// >> 114 Rezepte (Aufmachungen)
+	{ datei: GESTALTUNG, marke: 'aufmachungen', inhalt: aufmachungenTabelle },
 	// << 114
 
 	// >> 118 Daten der Rezepte
