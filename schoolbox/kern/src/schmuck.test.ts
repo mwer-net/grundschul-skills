@@ -2,7 +2,7 @@ import assert from 'node:assert/strict';
 import { describe, it } from 'node:test';
 
 import { blattMit, SCHMUCK_ETIKETT } from '../../web/e2e/gestaltung-daten';
-import { pruefeFreiesHtml } from './frei';
+import { neueFunde, pruefeFreiesHtml } from './frei';
 import { leseLage } from './gestaltung';
 import { attribut, klassenVon, macheRueckgaengig, neuerVerlauf, nimmAuf, zerlege } from './quelltext';
 import type { SchmuckArt } from './schmuck';
@@ -13,9 +13,12 @@ import {
 	GROESSE_MIN,
 	legeSchmuck,
 	leseSchmuck,
+	leseSchriftKontur,
+	SCHRIFT_KONTUR_STANDARD,
 	SCHMUCK_ARTEN,
 	schmuckHtml,
 	setzeSchmuck,
+	setzeSchriftKontur,
 	standardGroesse,
 } from './schmuck';
 
@@ -161,5 +164,37 @@ describe('leerer Text', () => {
 		assert.equal(keiner.quelle, BLATT);
 		assert.equal(keiner.zurueck.length, 1);
 		assert.equal(keiner.zurueck.at(-1)?.beschreibung, 'vorher');
+	});
+});
+
+describe('Kontur der Schmuckschrift (110)', () => {
+	const mitTitel = () => {
+		const { quelle, nr } = legeSchmuck(BLATT, { art: 'titel', seite: seiteIn(BLATT) });
+		assert.ok(nr !== null);
+		return { quelle, nr };
+	};
+
+	it('schmuckHtml mit Kontur schreibt data-kontur und die Variablen, und die Allow-Liste lässt es durch', () => {
+		const html = schmuckHtml({ art: 'titel', kontur: SCHRIFT_KONTUR_STANDARD });
+		assert.match(html, /data-kontur=""/);
+		assert.match(html, /--kontur:6px;--kontur-farbe:#ffffff/);
+		assert.ok(!schmuckHtml({ art: 'titel' }).includes('data-kontur'));
+		assert.deepEqual(neueFunde(BLATT, legeSchmuck(BLATT, { art: 'titel', seite: seiteIn(BLATT), kontur: SCHRIFT_KONTUR_STANDARD }).quelle), []);
+	});
+
+	it('Kontur setzen und entfernen', () => {
+		const { nr, quelle } = mitTitel();
+		const an = setzeSchriftKontur(quelle, nr, SCHRIFT_KONTUR_STANDARD);
+		assert.deepEqual(leseSchriftKontur(an, nr), SCHRIFT_KONTUR_STANDARD);
+		const aus = setzeSchriftKontur(an, nr, null);
+		assert.equal(leseSchriftKontur(aus, nr), null);
+		assert.equal(aus, quelle, 'Ohne Kontur ist es wieder die alte Quelle.');
+		assert.equal(setzeSchriftKontur(an, nr, { staerke: 0, farbe: '#000' }), quelle);
+	});
+
+	it('Kontur ändert die Schriftgröße nicht (schrift-klein)', () => {
+		const { nr, quelle } = mitTitel();
+		const an = setzeSchriftKontur(quelle, nr, { staerke: 12, farbe: '#000' });
+		assert.equal(leseSchmuck(an, nr)?.gr, leseSchmuck(quelle, nr)?.gr);
 	});
 });

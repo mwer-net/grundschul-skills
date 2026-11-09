@@ -503,6 +503,10 @@ svg.streuung{display:block;overflow:visible}
 /* << 109 */
 
 /* >> 110 Kontur und Bogen */
+/* Kontur um die Buchstaben (Briefing 3.4): hinter der Füllung, die Buchstaben bleiben so dick wie ohne. Weiß bleibt in
+   s/w weiß. Der Bogen (svg) zeichnet seine Kontur selbst mit stroke und paint-order im style des text. */
+div.schmuck[data-kontur]{-webkit-text-stroke:var(--kontur,6px) var(--kontur-farbe,#fff);paint-order:stroke fill}
+svg.schmuck{overflow:visible;display:block}
 /* << 110 */
 
 /* >> 111 Bild-Rahmen */

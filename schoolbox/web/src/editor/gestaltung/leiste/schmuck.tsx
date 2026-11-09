@@ -2,6 +2,7 @@ import { leseSchmuck } from '@schoolbox/kern/src/schmuck';
 
 import { Knopf } from '../../../bausteine/Knopf';
 import { Popover } from '../../../bausteine/Popover';
+import { BogenSchalter, KonturWahl } from '../inspektor/kontur-bogen';
 import { FarbeWahl, GroesseFeld, SchriftWahl } from '../inspektor/text';
 import type { LeistenKnoepfe, LeistenTeile } from './typen';
 
@@ -10,8 +11,8 @@ const sichtbareFarbe = (element: Element) =>
 	element.ownerDocument.defaultView?.getComputedStyle(element).color ?? '#1f2937';
 
 /**
- * Schmuckschrift an der Leiste (5.7): Schrift, Größe, Farbe als kleine Popover vor „Drehen“ und ⋯. Kontur und Bogen
- * bringt 110.
+ * Schmuckschrift an der Leiste (5.7): Schrift, Größe, Farbe, Kontur und Bogen als kleine Popover vor „Drehen“ und ⋯.
+ * Der Bogen gilt nur für den Titel (110).
  */
 const SchmuckKnoepfe = ({ aktiv, k, quelle }: LeistenTeile) => {
 	const stand = leseSchmuck(quelle, k.nr);
@@ -63,6 +64,30 @@ const SchmuckKnoepfe = ({ aktiv, k, quelle }: LeistenTeile) => {
 			>
 				<FarbeWahl k={k} quelle={quelle} aktiv={aktiv} />
 			</Popover>
+			<Popover
+				name="Kontur"
+				className="w-56"
+				ausloeser={
+					<Knopf art="leise" groesse="klein" data-leiste-kontur disabled={!aktiv}>
+						Kontur
+					</Knopf>
+				}
+			>
+				<KonturWahl k={k} quelle={quelle} aktiv={aktiv} />
+			</Popover>
+			{stand.art === 'titel' && (
+				<Popover
+					name="Bogen"
+					className="w-56"
+					ausloeser={
+						<Knopf art="leise" groesse="klein" data-leiste-bogen disabled={!aktiv}>
+							Bogen
+						</Knopf>
+					}
+				>
+					<BogenSchalter k={k} quelle={quelle} aktiv={aktiv} />
+				</Popover>
+			)}
 		</>
 	);
 };

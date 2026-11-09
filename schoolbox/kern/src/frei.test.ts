@@ -3,7 +3,7 @@ import { readdirSync, readFileSync } from 'node:fs';
 import path from 'node:path';
 import { describe, it } from 'node:test';
 
-import { BEISPIELE, blattMit, blattMitBeispiel, SCHMUCK_BOGEN } from '../../web/e2e/gestaltung-daten';
+import { BEISPIELE, blattMit, blattMitBeispiel } from '../../web/e2e/gestaltung-daten';
 import { istEinElement, neueFunde, pruefeFreiesHtml } from './frei';
 import { markiere, zerlege } from './quelltext';
 
@@ -329,9 +329,7 @@ describe('Gestaltung (Phase 12)', () => {
 	it('jedes Beispiel aus gestaltung-daten.ts kommt ohne Fund durch', () => {
 		for (const beispiel of BEISPIELE) {
 			const funde = neueFunde(blattMit(), blattMitBeispiel(beispiel)).map((f) => f.text);
-			// `textPath` lässt erst 110 zu; dann fällt diese Ausnahme weg.
-			const erwartet = beispiel.html === SCHMUCK_BOGEN ? ['Das Element <textpath> im SVG ist nicht erlaubt'] : [];
-			assert.deepEqual(funde, erwartet, beispiel.html);
+			assert.deepEqual(funde, [], beispiel.html);
 		}
 	});
 

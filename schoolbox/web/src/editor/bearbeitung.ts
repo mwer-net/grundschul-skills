@@ -1,3 +1,4 @@
+import { ergaenzeBoegen } from '@schoolbox/kern/src/bogen';
 import { ergaenzeFormen } from '@schoolbox/kern/src/formen-aendern';
 import { fasseMitAnlegenZusammen } from '@schoolbox/kern/src/schmuck';
 import type { Verlauf } from '@schoolbox/kern/src/quelltext';
@@ -26,9 +27,9 @@ const GEAENDERT: Record<'claude' | 'lehrkraft', string> = {
 /**
  * 104: Formen ohne Pfad (von Claude) bekommen ihn beim Laden. Die ergänzte Quelle gilt als gespeicherter Stand: Sie
  * wird nur angezeigt und mit dem nächsten Schritt geschrieben, nicht schon beim Öffnen. 109: Streuungen ohne Teile
- * ebenso.
+ * ebenso, 110: Titel im Bogen ebenso.
  */
-const mitFormen = (b: Basis): Basis => ({ ...b, quelle: ergaenzeStreuungen(ergaenzeFormen(b.quelle)) });
+const mitFormen = (b: Basis): Basis => ({ ...b, quelle: ergaenzeBoegen(ergaenzeStreuungen(ergaenzeFormen(b.quelle))) });
 
 /**
  * Was der Editor über das Dokument weiß: die Quelle mit Rückgängig/Wiederholen, das Speichern und wie er auf

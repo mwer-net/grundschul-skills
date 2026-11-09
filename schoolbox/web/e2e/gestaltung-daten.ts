@@ -42,7 +42,7 @@ export const SCHMUCK_STEMPEL =
 export const SCHMUCK_ETIKETT =
 	'<div class="schmuck" data-lage="frei" data-schmuck="etikett" style="--x:120px;--y:840px;--gr:16px;--hg:var(--haupt)">13 Fälle</div>';
 
-/** Braucht `textPath` in der Allow-Liste; das bringt erst 110. */
+/** `textPath` steht seit 110 in der Allow-Liste (`frei.ts`). */
 export const SCHMUCK_BOGEN =
 	'<svg class="schmuck" data-lage="frei" data-schmuck="bogen" data-bogen="35" viewBox="0 0 600 160" style="--x:97px;--y:120px;--b:600px;--h:160px">' +
 	'<defs><path id="bogen-k3f9" d="M20 140 Q300 20 580 140"/></defs>' +

@@ -1,5 +1,6 @@
+import { BOGEN_STANDARD_TEXT, bogenBreite, bogenHoehe, bogenHtml, BOGEN_STANDARD_GROESSE } from '@schoolbox/kern/src/bogen';
 import type { SchmuckArt } from '@schoolbox/kern/src/schmuck';
-import { SCHMUCK_ARTEN, schmuckHtml, standardGroesse } from '@schoolbox/kern/src/schmuck';
+import { SCHMUCK_ARTEN, SCHRIFT_KONTUR_STANDARD, schmuckHtml, standardGroesse } from '@schoolbox/kern/src/schmuck';
 import type { CSSProperties } from 'react';
 import { useEffect } from 'react';
 
@@ -70,6 +71,31 @@ const gutVon = (art: SchmuckArt, fs: number | undefined): GestaltungsGut => {
 		breiteAusInhalt: true,
 		vorDemAblegen: wuenscheTextsitzung,
 	});
+};
+
+/**
+ * 110: Zwei Titel mehr. „Titel mit Kontur“ ist ein Titel mit weißer Kontur (6 px), „Titel im Bogen“ ein SVG mit
+ * Textpfad. Beide öffnen keine Textsitzung: Der Bogen bekommt seinen Text über das Feld an der Leiste.
+ */
+const TITEL_KONTUR = 'Titel mit Kontur';
+const TITEL_BOGEN = 'Titel im Bogen';
+
+const konturGut = (fs: number | undefined): GestaltungsGut => {
+	const gr = standardGroesse('titel', fs);
+	return gestaltungsgut({
+		name: TITEL_KONTUR,
+		html: schmuckHtml({ art: 'titel', fs, kontur: SCHRIFT_KONTUR_STANDARD }),
+		groesse: { b: Math.round(SCHMUCK_ARTEN.titel.text.length * gr * 0.6) },
+		ebene: 'vorne',
+		breiteAusInhalt: true,
+		vorDemAblegen: wuenscheTextsitzung,
+	});
+};
+
+const bogenGut = (): GestaltungsGut => {
+	const b = bogenBreite(BOGEN_STANDARD_TEXT, BOGEN_STANDARD_GROESSE);
+	const h = bogenHoehe(BOGEN_STANDARD_GROESSE);
+	return gestaltungsgut({ name: TITEL_BOGEN, html: bogenHtml(), groesse: { b, h }, ebene: 'vorne' });
 };
 
 /** Die eingebetteten Schnitte aus `blatt.css` (Entscheidung 29), für die Leiste unter eigenem Namen. */
@@ -208,6 +234,48 @@ const Inhalt = (teile: SchubladenTeile) => {
 									)}
 								</AblageKachel>
 							))}
+							<AblageKachel
+								teile={teile}
+								gut={konturGut(fs)}
+								className="flex h-20 flex-col items-center justify-center gap-1.5 overflow-hidden rounded-lg bg-brand-600 px-1 hover:bg-brand-700"
+								daten={{ 'data-schmuck-kachel': 'kontur' }}
+							>
+								<span
+									aria-hidden
+									className="whitespace-nowrap"
+									style={{
+										fontFamily: FREDOKA,
+										fontWeight: 600,
+										lineHeight: 1.1,
+										fontSize: 24,
+										color: '#1f2937',
+										WebkitTextStroke: '5px #fff',
+										paintOrder: 'stroke fill',
+									}}
+								>
+									Titel
+								</span>
+								<span className="text-xs text-white">{TITEL_KONTUR}</span>
+							</AblageKachel>
+							<AblageKachel
+								teile={teile}
+								gut={bogenGut()}
+								className="flex h-20 flex-col items-center justify-center gap-0.5 overflow-hidden rounded-lg bg-flaeche-2 px-1 hover:bg-brand-50"
+								daten={{ 'data-schmuck-kachel': 'bogen' }}
+							>
+								<svg aria-hidden viewBox="0 0 120 40" className="h-10 w-28">
+									<path id="text-bogen-vorschau" d="M8 34 Q60 -6 112 34" fill="none" />
+									<text
+										textAnchor="middle"
+										style={{ font: `600 18px ${FREDOKA}`, fill: '#1f2937' }}
+									>
+										<textPath href="#text-bogen-vorschau" startOffset="50%">
+											Zirkus
+										</textPath>
+									</text>
+								</svg>
+								<span className="text-xs text-leise">{TITEL_BOGEN}</span>
+							</AblageKachel>
 						</div>
 					</section>
 				</div>
@@ -222,9 +290,13 @@ export const schublade: Schublade = {
 	bereit: (k) => k.frei,
 	Inhalt,
 	suche: (_k, z) =>
-		ARTEN.map((art) => ({
-			...ablegenEintrag(gutVon(art, fsVon(z.teile.doc)), z, 'Text'),
+		[
+			...ARTEN.map((art) => gutVon(art, fsVon(z.teile.doc))),
+			konturGut(fsVon(z.teile.doc)),
+			bogenGut(),
+		].map((gut) => ({
+			...ablegenEintrag(gut, z, 'Text'),
 			symbol: 'schrift' as const,
-			suchwoerter: ['Schmuckschrift', 'Schrift'],
+			suchwoerter: ['Schmuckschrift', 'Schrift', 'Kontur', 'Bogen'],
 		})),
 };

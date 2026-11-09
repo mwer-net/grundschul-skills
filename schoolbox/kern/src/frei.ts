@@ -39,6 +39,7 @@ const SVG_ELEMENTE = namen(
 	'lineargradient radialgradient stop pattern clippath mask marker',
 
 	// >> 110 Schmuckschrift im Bogen: `textpath`
+	'textpath',
 	// << 110
 );
 
@@ -71,7 +72,8 @@ const SVG_ATTRIBUTE = namen(
 	'markerwidth markerheight markerunits refx refy orient marker-start marker-mid marker-end',
 	'vector-effect display visibility shape-rendering overflow',
 
-	// >> 110 Schmuckschrift im Bogen: `startoffset` u. a.
+	// >> 110 Schmuckschrift im Bogen: `startoffset` u. a. (`text-anchor`, `paint-order` stehen oben schon)
+	'startoffset',
 	// << 110
 );
 
@@ -81,6 +83,7 @@ const MIT_SPRUNG = namen(
 	'use',
 
 	// >> 110 Schmuckschrift im Bogen: `textpath`
+	'textpath',
 	// << 110
 );
 const URL_ATTRIBUTE = namen('fill stroke clip-path mask marker-start marker-mid marker-end');
@@ -247,7 +250,7 @@ const wertProblem = (ort: Ort, name: string, wert: string): string | null => {
 			: `Die Bildadresse „${kurz(wert)}“ ist nicht erlaubt`;
 	}
 	if (NUR_DURCH_USE.has(name)) {
-		return SPRUNG.test(wert) ? null : `<use> darf nur auf #… im selben Blatt zeigen, nicht auf „${kurz(wert)}“`;
+		return SPRUNG.test(wert) ? null : `<${ort.tag}> darf nur auf #… im selben Blatt zeigen, nicht auf „${kurz(wert)}“`;
 	}
 	if (SVG_NAMENSRAUM[name]) {
 		return wert === SVG_NAMENSRAUM[name] ? null : `${name} hat einen unbekannten Wert`;
