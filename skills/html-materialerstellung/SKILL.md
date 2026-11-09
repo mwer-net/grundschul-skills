@@ -22,12 +22,14 @@ Warum: In HTML bestimmen wir Schrift (Fredoka, Andika, eingebettet), Abstände u
 | `assets/vorlage-minibuch.html` | Faltbuch aus einem A4-Blatt, acht Seiten mit Satzmuster, Faltanleitung auf dem Lösungsblatt (Abschnitt „Mini-Book“) |
 | `assets/vorlage-forscherbogen-12.html`, `assets/vorlage-forscherbogen-34.html` | Forscherbogen bildgestützt (Kl. 1/2) und schriftlich (Kl. 3/4); Sicherheitshinweise als `.nur-loesung` im Kopf, Malfläche `.malfeld` |
 | `assets/beispiel-zehner-einer-kl2.html` | geprüftes Beispiel in s/w (Bündeln, Stellentafel, Sternchenaufgabe, Lösungen) |
+| `assets/beispiel-deckblatt-formen.html` | geprüftes Deckblatt mit frei liegender Gestaltung: Seitenfläche, Formen, Schmuckschrift, Figur am Anker, Sprechblase, Konfetti (`references/gestaltung.md`) |
 | `assets/fonts/` | Fredoka (Überschrift), Andika (Text, einstöckiges a/g), OFL-Lizenz |
 | `assets/bilder/` | Willi, Wilma, Wachstumsgrafik farbig und als Strichzeichnung (`references/bilder.md`) |
 | `scripts/blatt.py` | baut, prüft, erzeugt PDF, Lösungsblatt, Vorschau und Ausschnitte; bei Folien die Offline-Präsentation, auf Wunsch `--schritte` und `--notizen`; `uebersicht` für Entwürfe |
 | `references/layout.md` | Raster, Platzbudget, Klassen und Regeln für sauberes HTML |
 | `references/visuelle-endkontrolle.md` | Pflichtprüfung des fertigen Blatts |
 | `references/bilder.md` | Leitfigur, KI-Bilder und -Grafiken mit Canva erzeugen und ins Blatt holen |
+| `references/gestaltung.md` | frei liegende Gestaltung: Ebenen, Lage, Anker, Arten, s/w; Farben und Didaktik der Gestaltung stehen in `grundschul-didaktik/references/gestaltung.md` |
 
 ## Ablauf
 
@@ -112,7 +114,7 @@ Bevor ein Element, ein Format oder ein Maß dazukommt: [Quellen](references/quel
 
 Fehlt eine Darstellung, kommt es darauf an, wo du arbeitest. Nie gilt: von Hand zurechtgeschobenes Layout statt eines Elements, ein KI-Bild statt einer exakten Abbildung, oder eine Absage, weil es das Element nicht gibt.
 
-**Im Chat und in Lehrkraft-Sitzungen:** Vorhandene Elemente zuerst, denn sie lassen sich einstellen. Sonst baue die Darstellung als freies Element aus HTML und SVG mit `data-frei`: [Freies Element](references/abbildungen.md#freies-element). Den Code der Schoolbox änderst du dabei nicht. Wiederholt sich ein freies Element, merkt der Admin es sich für ein neues Element.
+**Im Chat und in Lehrkraft-Sitzungen:** Vorhandene Elemente zuerst, denn sie lassen sich einstellen. Sonst baue die Darstellung als freies Element aus HTML und SVG mit `data-frei`: [Freies Element](references/abbildungen.md#freies-element). Den Code der Schoolbox änderst du dabei nicht. Wiederholt sich ein freies Element, merkt der Admin es sich für ein neues Element. Schmuck, der frei auf der Seite liegt (Formen, Figuren, Schmuckschrift, Konfetti), schreibst du nach [Gestaltung](references/gestaltung.md); freie Elemente (`data-frei`) bleiben, was sie sind.
 
 **Im Repo:** als neues Element. **Neues Element = Zeichenfunktion in `abbildungen.js` + Eintrag in `ABBILDUNG_SCHEMA` (`schoolbox/kern/src/abbildungen.ts`) + Katalogeintrag + Musterblatt.** Ohne Schema lässt es sich im Editor nicht einstellen, und der Test dazu schlägt fehl.
 

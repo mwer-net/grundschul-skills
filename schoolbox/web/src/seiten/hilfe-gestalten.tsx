@@ -57,7 +57,26 @@ export const GESTALTEN: Abschnitt = {
 			{/* << 095 */}
 
 			{/* >> 096 */}
+			<h3>Prüfung und Gestaltung</h3>
+			<p data-hilfe-pruefung-gestaltung>
+				Was frei auf der Seite liegt, prüft die Schoolbox eigens. Liegt eine Figur, ein Bild, ein Text oder eine
+				Sprechblase im äußersten Rand des Blatts, warnt sie: Dort schneidet der Drucker oft ab. Liegt mehr als die Hälfte
+				eines Elements außerhalb der Seite, ist das ein Fehler; der Knopf „In die Seite holen“ bei der Meldung schiebt es
+				zurück. Überdeckt etwas vorne eine Aufgabe, steht ein Hinweis da. Ist das gewollt, wähle im Inspektor „Darf
+				Inhalt überdecken“. Ausgeblendete Elemente werden nicht gedruckt; auch daran erinnert ein Hinweis. Ein Klick auf
+				eine Meldung wählt das Element, auch wenn es gesperrt ist.
+			</p>
 			{/* << 096 */}
+
+			{/* >> 112 */}
+			<h3>Gestaltung mit Claude</h3>
+			<p data-hilfe-gestaltung-claude>
+				Claude kennt dieselben Formen, Figuren, Schmuckschriften und Anker wie die Schubladen. Bitte etwa: „Setz Wilma
+				rechts neben Aufgabe 2, häng sie an die Aufgabe und gib ihr eine Sprechblase ‚Zähl genau!‘.“ Was Claude baut,
+				wählst, ziehst und änderst du danach wie selbst Gelegtes. Bittest du Claude um etwas anderes, etwa „leichter“,
+				bleibt deine Gestaltung, wie sie ist.
+			</p>
+			{/* << 112 */}
 
 			{/* >> 097 */}
 			<p data-hilfe-gestaltung-bewegen>

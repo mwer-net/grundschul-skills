@@ -9,6 +9,7 @@
 import { readFileSync, writeFileSync } from 'node:fs';
 import path from 'node:path';
 
+import { blattFarbenListe } from './blatt-farben';
 import { figurenListe } from './figuren';
 import { formenTabelle } from './formen';
 import { GESTALTUNG_ARTEN } from './gestaltung-arten';
@@ -164,6 +165,10 @@ export const ABSCHNITTE: Abschnitt[] = [
 	// >> 104 Formen und ihre Parameter
 	{ datei: GESTALTUNG, marke: 'formen', inhalt: formenTabelle },
 	// << 104
+
+	// >> 112 Farben des Blatts (Liste des Farbwählers)
+	{ datei: GESTALTUNG, marke: 'blatt-farben', inhalt: blattFarbenListe },
+	// << 112
 
 	// >> 114 Rezepte (Aufmachungen)
 	// << 114
