@@ -715,6 +715,26 @@ Farbe als `style="color:#…"`.
 <!-- << 119 -->
 
 <!-- >> 120 Gruppen -->
+## Gruppe
+
+Was zusammengehört (Figur mit Sprechblase, Etikett aus Form und Schrift), steht in einer **Gruppe**. Sie bewegt, dreht
+und skaliert sich als Ganzes.
+
+```html
+<div class="gruppe" data-lage="frei" style="--x:420px;--y:600px;--b:300px;--h:220px;--drehen:-4deg">
+  <img class="figur-frei" data-lage="frei" data-figur="wilma" src="bilder/wilma.png" alt="Wilma" style="--x:170px;--y:40px;--b:130px">
+  <div class="form-text" data-lage="frei" data-form="sprechblase" style="--x:0px;--y:0px;--b:180px;--h:84px">…</div>
+</div>
+```
+
+- In einer Gruppe stehen **nur Gestaltungselemente** (`data-lage="frei"`), nie Bausteine (Aufgaben, Text, Bilder im
+  Stapel). Eine Gruppe darf eine Gruppe enthalten.
+- `--x --y --b --h` der Gruppe umschließen die Kinder (nach deren Drehung); die Kinder stehen **in Koordinaten der
+  Gruppe**, also relativ zu ihrer linken oberen Ecke. Lage und Größe erben sie nicht.
+- Drehen und Spiegeln der Gruppe nur an der Gruppe (`--drehen`, `--spiegeln`), die Kinder drehen mit.
+- Größer oder kleiner: `--x --y --b --h` jedes Kinds mit demselben Faktor ändern wie die Gruppe (px skalieren nicht von
+  selbst), bei Schmuckschrift auch `--gr`. Strichstärken bleiben.
+- Am Anker trägt die Gruppe `data-anker`, nicht ihre Kinder.
 <!-- << 120 -->
 
 <!-- >> 121 Kombinieren -->

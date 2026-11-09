@@ -3,6 +3,7 @@ import type { Lage, LageTeil } from '@schoolbox/kern/src/gestaltung';
 import { leseLage, setzeLage } from '@schoolbox/kern/src/gestaltung';
 import { gestaltungArtNach } from '@schoolbox/kern/src/gestaltung-arten';
 import { drehungImBereich } from '@schoolbox/kern/src/gestaltung-inspektor';
+import { nurGleichmaessig, skaliereGruppe } from '@schoolbox/kern/src/gruppen';
 import { useState } from 'react';
 
 import { Symbol } from '../../../bausteine/Symbol';
@@ -22,7 +23,15 @@ const gemessen = (element: Element) => {
 };
 
 const schreibe = (k: GestaltungKontext, beschreibung: string, teil: LageTeil) =>
-	k.fuehreAus(beschreibung, (q) => ({ quelle: setzeLage(q, k.nr, teil), nr: k.nr }));
+	k.fuehreAus(beschreibung, (q) => {
+		// 120: Die Größe einer Gruppe rechnet ihre Kinder um.
+		if (k.art === 'gruppe' && (teil.b != null || teil.h != null)) {
+			const l = leseLage(q, k.nr);
+			const lage = { x: l.x ?? 0, y: l.y ?? 0, b: teil.b ?? l.b ?? 0, h: teil.h ?? l.h ?? 0 };
+			return { quelle: skaliereGruppe(q, k.nr, lage), nr: k.nr };
+		}
+		return { quelle: setzeLage(q, k.nr, teil), nr: k.nr };
+	});
 
 /**
  * Mit Schloss bleibt das Seitenverhältnis. Ein Bild ohne `--h` folgt dem Seitenverhältnis von selbst: Dort setzt das
@@ -48,7 +57,9 @@ export const groesseMitSchloss = (
 };
 
 const Position = ({ aktiv, k, quelle }: InspektorTeile) => {
-	const groesse = gestaltungArtNach(k.art)?.groesse ?? 'frei';
+	// 120: Eine Gruppe mit Bild, Schrift oder gedrehtem Teil skaliert nur gleichmäßig.
+	const groesse =
+		k.art === 'gruppe' && nurGleichmaessig(quelle, k.nr) ? 'proportional' : (gestaltungArtNach(k.art)?.groesse ?? 'frei');
 	const [schlossBei, setSchloss] = useState({ nr: k.nr, an: groesse === 'proportional' });
 	const schloss = schlossBei.nr === k.nr ? schlossBei.an : groesse === 'proportional';
 	const lage = leseLage(quelle, k.nr);

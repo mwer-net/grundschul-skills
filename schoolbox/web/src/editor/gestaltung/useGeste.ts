@@ -1,5 +1,6 @@
 import { ausFlaeche, inFlaeche } from '@schoolbox/kern/src/flaeche';
 import { kopiereGestaltungNach, setzeLage, setzeStilWerte, verschiebeAufSeite } from '@schoolbox/kern/src/gestaltung';
+import { skaliereGruppe } from '@schoolbox/kern/src/gruppen';
 import type { LageTeil } from '@schoolbox/kern/src/gestaltung';
 import { GESTALTUNG_SELEKTOR, gestaltungArtNach } from '@schoolbox/kern/src/gestaltung-arten';
 import type { StrukturErgebnis } from '@schoolbox/kern/src/struktur';
@@ -15,6 +16,8 @@ import { FINGER_WEG, HALTEN_MS, MAUS_WEG } from '../ziehen';
 import { zeigeNachGroesse } from './anzeige-folgen';
 import { ausschnittLaeuft } from './ausschnitt'; // 111
 import { doppelklickZiel } from './doppelklick';
+import type { GruppenVorschau } from './gruppe-messen';
+import { gleichmaessig, merkeKinder, nurGleichmaessigIm, stelleKinderHer, zeigeKinder } from './gruppe-messen'; // 120
 import type { FlaechenWechsel } from './flaeche-ziel';
 import { flaechenWechsel, kastenDerFlaeche, oeffneFlaechen } from './flaeche-ziel';
 import type { Hilfslinie, Kandidat } from './einrasten';
@@ -59,6 +62,8 @@ export interface Messung {
 	kasten: Kasten;
 	ursprung: { x: number; y: number };
 	behaelter: Element;
+	/** 120: Teil einer gedrehten oder gespiegelten Gruppe; der Kasten ist der sichtbare, Gesten gehen nicht. */
+	verdreht?: boolean;
 }
 
 const istElement = (n: EventTarget | Node | null): n is Element => (n as Node | null)?.nodeType === 1;
@@ -87,31 +92,60 @@ export const messe = (element: Element): Messung | null => {
 	if (element.matches('.flaeche')) {
 		return kastenDerFlaeche(element); // 115: die Fläche im Stapel hat nur einen Rahmen mit Höhen-Griff
 	}
-	const stil = fenster.getComputedStyle(element);
-	const behaelter = behaelterVon(element);
-	const r = behaelter.getBoundingClientRect();
 	const zahl = (wert: string) => {
 		const n = parseFloat(wert);
 		return Number.isFinite(n) ? n : 0;
 	};
-	return {
-		kasten: {
+	const kastenVon = (e: Element): Kasten => {
+		const stil = fenster.getComputedStyle(e);
+		return {
 			x: zahl(stil.left),
 			y: zahl(stil.top),
 			b: zahl(stil.width),
 			h: zahl(stil.height),
 			drehen: zahl(stil.getPropertyValue('--drehen')),
-		},
+		};
+	};
+	let kasten = kastenVon(element);
+	let behaelter = behaelterVon(element);
+	let verdreht = false;
+	// >> 120 In einer gedrehten oder gespiegelten Gruppe: den sichtbaren Kasten im Behälter der Gruppe rechnen.
+	while (behaelter.matches('.gruppe')) {
+		const g = kastenVon(behaelter);
+		const spiegeln = zahl(fenster.getComputedStyle(behaelter).getPropertyValue('--spiegeln')) < 0 ? -1 : 1;
+		if (!g.drehen && spiegeln === 1 && !verdreht) {
+			break;
+		}
+		verdreht = true;
+		const w = (g.drehen * Math.PI) / 180;
+		const dx = (kasten.x + kasten.b / 2 - g.b / 2) * spiegeln;
+		const dy = kasten.y + kasten.h / 2 - g.h / 2;
+		const mx = g.x + g.b / 2 + dx * Math.cos(w) - dy * Math.sin(w);
+		const my = g.y + g.h / 2 + dx * Math.sin(w) + dy * Math.cos(w);
+		kasten = { x: mx - kasten.b / 2, y: my - kasten.h / 2, b: kasten.b, h: kasten.h, drehen: g.drehen + spiegeln * kasten.drehen };
+		behaelter = behaelterVon(behaelter);
+	}
+	// << 120
+	const r = behaelter.getBoundingClientRect();
+	return {
+		kasten,
 		ursprung: { x: r.left + behaelter.clientLeft, y: r.top + behaelter.clientTop },
 		behaelter,
+		...(verdreht ? { verdreht } : {}),
 	};
 };
 
-/** Das äußerste Gestaltungselement mit Nummer um `start` (eine Gruppe vor ihren Kindern). */
-export const gestaltungUnter = (start: Element | null) => {
+/**
+ * Das äußerste Gestaltungselement mit Nummer um `start` (eine Gruppe vor ihren Kindern). 120: Liegt das gewählte
+ * Element (`gewaehlt`, etwa ein Kind einer Gruppe) auf dem Weg, gilt es.
+ */
+export const gestaltungUnter = (start: Element | null, gewaehlt: number | null = null) => {
 	let gefunden: Element | null = null;
 	for (let e = start; e && !e.matches('.seite'); e = e.parentElement) {
 		if (e.matches(GESTALTUNG_SELEKTOR) && nrVon(e) !== null) {
+			if (gewaehlt !== null && nrVon(e) === gewaehlt) {
+				return e;
+			}
 			gefunden = e;
 		}
 	}
@@ -169,6 +203,9 @@ interface Lauf {
 	dy: number;
 	/** 113: Mehrfachauswahl; dann gilt die Geste allen, `start`/`jetzt` sind die des ersten Elements. */
 	gruppe: Gruppe | null;
+	/** 120: Skalieren einer Gruppe: die Kinder beim Start, und ob auch die Kanten gleichmäßig skalieren. */
+	kinder: GruppenVorschau | null;
+	gleichmaessig: boolean;
 	ende: () => void;
 }
 
@@ -271,6 +308,9 @@ export const useGeste = (o: Optionen) => {
 		if (l.art === 'skalieren') {
 			zeigeNachGroesse(l.element, l.start.b, l.start.h); // 104: Inhalt wieder in der Größe vom Start
 		}
+		if (l.kinder) {
+			stelleKinderHer(l.kinder); // 120
+		}
 	};
 
 	const beende = useCallback(() => {
@@ -303,7 +343,7 @@ export const useGeste = (o: Optionen) => {
 		(art: GestenArt, element: Element, ende: () => void): Lauf | null => {
 			const nr = nrVon(element);
 			const m = messe(element);
-			if (nr === null || !m || !erlaubt() || lauf.current) {
+			if (nr === null || !m || m.verdreht || !erlaubt() || lauf.current) {
 				return null;
 			}
 			const baustein = bausteinVon(element);
@@ -347,6 +387,8 @@ export const useGeste = (o: Optionen) => {
 				dx: 0,
 				dy: 0,
 				gruppe: null,
+				kinder: art === 'skalieren' && element.matches('.gruppe') ? merkeKinder(element) : null,
+				gleichmaessig: art === 'skalieren' && element.matches('.gruppe') && nurGleichmaessigIm(element),
 				ende,
 			};
 			// 113: Gehört das Element zu einer Mehrfachauswahl, bewegt die Geste alle; kein Seitenwechsel, kein Einrasten am Element.
@@ -401,6 +443,9 @@ export const useGeste = (o: Optionen) => {
 		const stil = (l.element as HTMLElement).style;
 		for (const [name, wert] of Object.entries(werte)) {
 			stil.setProperty(name, wert);
+		}
+		if (l.kinder && l.start.b > 0 && l.start.h > 0) {
+			zeigeKinder(l.kinder, l.jetzt.b / l.start.b, l.jetzt.h / l.start.h); // 120
 		}
 	};
 
@@ -585,7 +630,7 @@ export const useGeste = (o: Optionen) => {
 				return;
 			}
 			const gewaehlt = aktuell.current.pfad.at(-1)?.nr ?? null;
-			let element = gestaltungUnter(ziel);
+			let element = gestaltungUnter(ziel, gewaehlt);
 			if (maus && e.altKey) {
 				const unter = doc.elementsFromPoint(e.clientX, e.clientY);
 				const auswahl = unter.find((u) => u.matches(GESTALTUNG_SELEKTOR) && nrVon(u) === gewaehlt);
@@ -729,8 +774,8 @@ export const useGeste = (o: Optionen) => {
 
 		const doppelt = (e: MouseEvent) => {
 			const ziel = istElement(e.target) ? e.target : null;
-			const element = gestaltungUnter(ziel);
 			const { pfad, struktur, textsitzung } = aktuell.current;
+			const element = gestaltungUnter(ziel, pfad.at(-1)?.nr ?? null);
 			if (!element || textsitzung || nrVon(element) !== pfad.at(-1)?.nr) {
 				return;
 			}
@@ -739,7 +784,7 @@ export const useGeste = (o: Optionen) => {
 			if (g && was) {
 				e.preventDefault();
 				e.stopPropagation();
-				was.tu(g, { x: e.clientX, y: e.clientY });
+				was.tu(g, { x: e.clientX, y: e.clientY }, aktuell.current.waehle);
 			}
 		};
 
@@ -857,7 +902,7 @@ export const useGeste = (o: Optionen) => {
 					});
 					zeigeLageAm(l.element, { drehen: l.jetzt.drehen });
 				} else {
-					const verhaeltnis = haeltVerhaeltnis(l.groesse, griff, m.shiftKey);
+					const verhaeltnis = l.gleichmaessig || haeltVerhaeltnis(l.groesse, griff, m.shiftKey);
 					const roh = skaliere(l.start, griff, (m.clientX - start.x) / skala, (m.clientY - start.y) / skala, {
 						verhaeltnis,
 						mitte: m.altKey,
@@ -869,7 +914,7 @@ export const useGeste = (o: Optionen) => {
 						verhaeltnis,
 						mitte: m.altKey,
 					});
-					l.jetzt = eingerastet.lage;
+					l.jetzt = l.gleichmaessig ? gleichmaessig(l.start, eingerastet.lage, griff) : eingerastet.lage;
 					linien = eingerastet.linien;
 					zeigeGroesse(l);
 				}
@@ -890,6 +935,12 @@ export const useGeste = (o: Optionen) => {
 				if (griff === 'drehen') {
 					const drehen = l.jetzt.drehen;
 					schreibe(l, 'Gedreht', (q) => ({ quelle: setzeLage(q, nr, { drehen: drehen || null }), nr }));
+					return;
+				}
+				if (l.kinder) {
+					// 120: Die Kinder wachsen mit (Kern), nicht nur der Rahmen der Gruppe.
+					const { b, h, x, y } = l.jetzt;
+					schreibe(l, 'Größe geändert', (q) => ({ quelle: skaliereGruppe(q, nr, { x, y, b, h }), nr }));
 					return;
 				}
 				const { teil, werte } = groessenTeil(l);

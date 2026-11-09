@@ -392,6 +392,12 @@ export const GESTALTEN: Abschnitt = {
 			{/* << 119 */}
 
 			{/* >> 120 */}
+			<p data-hilfe-gruppen>
+				Wähl mehrere Elemente mit ⇧ und drück ⌘G (oder „Gruppieren“ in der Leiste): Sie werden eine Gruppe und lassen
+				sich zusammen verschieben, drehen und vergrößern. Ein Doppelklick wählt ein Teil darin, Esc wieder die ganze
+				Gruppe. ⇧⌘G löst die Gruppe auf; alles bleibt an seiner Stelle. Gruppieren lassen sich nur Elemente derselben
+				Ebene. In den Ebenen klappt eine Gruppe auf und zeigt ihre Teile.
+			</p>
 			{/* << 120 */}
 
 			{/* >> 121 */}

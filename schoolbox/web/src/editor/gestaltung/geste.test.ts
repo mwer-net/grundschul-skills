@@ -176,3 +176,21 @@ describe('dreheUm und skaliereMit (Mehrfachauswahl)', () => {
 	});
 });
 // << 113
+
+// >> 120 Gruppen
+describe('Kanten-Griff einer Gruppe mit Figur (120)', () => {
+	it('skaliert gleichmäßig; die gezogene Kante wandert, quer dazu bleibt die Mitte', async () => {
+		const { gleichmaessig } = await import('./gruppe-messen');
+		const roh = skaliere(K, 'rechts', 100, 0);
+		const r = gleichmaessig(K, roh, 'rechts');
+		nah(r.b / r.h, K.b / K.h, 'Verhältnis');
+		nah(r.b, 300);
+		nah(r.x, K.x, 'linke Kante');
+		nah(r.y + r.h / 2, K.y + K.h / 2, 'Mitte senkrecht');
+		const unten = gleichmaessig(K, skaliere(K, 'unten', 0, 50), 'unten');
+		nah(unten.h, 150);
+		nah(unten.b, 300);
+		nah(unten.y, K.y, 'obere Kante');
+	});
+});
+// << 120

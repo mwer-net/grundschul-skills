@@ -421,6 +421,9 @@ body.ohne-punkte .punkte,body.ohne-punkte x-gesamtpunkte{display:none}
 [data-lage="frei"]{position:absolute;margin:0;box-sizing:border-box;pointer-events:auto;
   left:var(--x,0px);top:var(--y,0px);width:var(--b,auto);height:var(--h,auto);
   transform:rotate(var(--drehen,0deg)) scaleX(var(--spiegeln,1));transform-origin:50% 50%}
+/* >> 120 Gruppe: Die Kinder erben Lage und Größe der Gruppe nicht (eigene Werte im style gehen vor) */
+.gruppe[data-lage="frei"]>*{--x:initial;--y:initial;--b:initial;--h:initial;--drehen:initial;--spiegeln:initial}
+/* << 120 */
 /* Anker: hängt am umgebenden Baustein. Derselbe Selektor steht als ANKER_SELEKTOR im Kern (gestaltung-arten.ts). */
 :is(.aufgabe, .seite > :not(.ebene)):has(> [data-anker]){position:relative}
 /* Seitenfläche und Seitenrahmen füllen ihre Ebene; Fläche, Muster und Rahmen-Arten: 095 */

@@ -23,6 +23,8 @@ export const MEHR_REIHENFOLGE: readonly (readonly string[])[] = [
 		'auswahl.verteilen-waagerecht',
 		'auswahl.verteilen-senkrecht',
 	],
+	// 120
+	['auswahl.gruppieren', 'auswahl.gruppe-aufloesen'],
 	// 101
 	['auswahl.sperren', 'auswahl.ausblenden'],
 	// 106

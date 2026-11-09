@@ -13,7 +13,7 @@ import { bausteinVon, liegtAlsBlock, nameVon, nrVon, trefferAn } from './darstel
 const FESTE_ARTEN = new Set(['namenszeile', 'kopf', 'fuss', 'themaband', 'themakopf']);
 /**
  * Die Ebenen (`.ebene`) baut `gliederungVon` selbst als eigene Zeilen (101), Gestaltung am Anker als Kindzeilen ihres
- * Bausteins (106). Kinder einer Gruppe zeigt erst 120: Bis dahin bleibt alles andere mit `data-lage` ohne Zeile.
+ * Bausteins (106). Kinder einer Gruppe stehen aufklappbar unter ihr (120).
  */
 const OHNE_ZEILE = '.loesung-marke, style, script, template, link, meta, br, .ebene, [data-lage]';
 
@@ -29,6 +29,8 @@ export type ZeilenArt =
 	| 'seitenflaeche'
 	| 'anker'
 	| 'flaeche'
+	/** 120: Kind einer Gruppe; Reihenfolge über die Befehle, nicht über den Zug in der Liste. */
+	| 'gruppe'
 	| 'kopfband';
 
 /** Nach diesem Teil des Schlüssels erkennt `gliederung-stand`, dass der Hauptstapel ohne Zutun offen steht. */
@@ -340,9 +342,18 @@ export const gliederungVon = (doc: Document, z: Zerlegung, ids: readonly number[
 			aufgabe: false,
 			fest: unten,
 			// 115: Kinder einer Fläche bleiben in ihrer Fläche; ihre Reihenfolge ändern Befehle, nicht der Zug in der Liste.
-			ziehbar: !unten && zeile !== 'flaeche',
+			ziehbar: !unten && zeile !== 'flaeche' && zeile !== 'gruppe',
 			schluessel,
-			kinder: [],
+			// 120: Die Kinder einer Gruppe, das vorderste zuerst (wie in einer Ebene).
+			kinder:
+				baustein.art === 'gruppe'
+					? (z.knoten[nr]?.kinder ?? [])
+							.filter((k) => istGestaltung(k))
+							.map((k) => k.nr)
+							.reverse()
+							.map((n, i) => gestaltung(n, 'gruppe', `${schluessel}/gruppe/${i}`, null))
+							.filter((k): k is GliederungKnoten => k !== null)
+					: [],
 			zeile,
 			kennung: baustein.art,
 			aus: element.hasAttribute('data-aus'),

@@ -838,7 +838,7 @@ export const Ebenen = ({
 	/** Auge, Schloss und was spätere Tickets eintragen (`EBENEN_ZEICHEN`), rechts in der Zeile. */
 	const zeichenVon = (k: GliederungKnoten, aktiv: boolean) => {
 		const element =
-			doc && (k.zeile === 'vorne' || k.zeile === 'hinten' || k.zeile === 'anker' || k.zeile === 'flaeche')
+			doc && (k.zeile === 'vorne' || k.zeile === 'hinten' || k.zeile === 'anker' || k.zeile === 'flaeche' || k.zeile === 'gruppe')
 				? elementZu(doc, k.nr)
 				: null;
 		if (!element) {
@@ -903,7 +903,7 @@ export const Ebenen = ({
 		const tooltip = k.titel === k.name ? k.titel : `${k.name}: ${k.titel}`;
 		const symbol = k.zeile === 'baustein' ? undefined : SYMBOL_DER_ART[k.kennung];
 		const istGestaltungZeile =
-			k.zeile === 'vorne' || k.zeile === 'hinten' || k.zeile === 'anker' || k.zeile === 'flaeche';
+			k.zeile === 'vorne' || k.zeile === 'hinten' || k.zeile === 'anker' || k.zeile === 'flaeche' || k.zeile === 'gruppe';
 		const aktiv = aktiveZeile === k.nr || mehrfach.has(k.nr);
 		const hauptstapel = k.zeile === 'hauptstapel';
 		// Der Hauptstapel hat kein eigenes Element: Sein Klick wählt die Seite.
