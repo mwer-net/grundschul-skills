@@ -186,6 +186,28 @@ export const GESTALTEN: Abschnitt = {
 			{/* << 106 */}
 
 			{/* >> 107 */}
+			<h3>Formen zeichnen, Sprechblase und Linie</h3>
+			<p data-hilfe-werkzeuge>
+				Oben in der Schublade „Formen“ stehen die Werkzeuge. Mit R ziehst du ein Rechteck auf, mit O eine Ellipse, mit Y
+				ein Sechseck und mit L eine Linie; den Stern gibt es nur über seinen Knopf. Hältst du beim Aufziehen ⇧, wird es
+				ein Quadrat, ein Kreis bzw. gleichseitig, die Linie springt in 45°-Schritten. Mit ⌥ ziehst du die Form aus der
+				Mitte auf. Ein Klick ohne Ziehen legt die Form in Standardgröße an diese Stelle. Danach ist wieder V (Auswahl)
+				aktiv; wer mehrere Formen hintereinander zeichnen will, wählt das Werkzeug mit ⇧. Esc bricht ab. Solange du in
+				einer Blase schreibst, sind R, O, Y und L ganz normale Buchstaben.
+			</p>
+			<p data-hilfe-sprechblase>
+				Unter „Blasen und Linien“ liegen Sprechblase (rund und eckig), Denkblase, Band, Linie und Pfeil. Ein Klick auf eine
+				Blase legt sie ab, „Text“ ist markiert, du tippst einfach los. Den gelben Punkt an der Spitze des Zipfels ziehst du
+				zur Figur, die spricht: Über Wilma oder einer anderen Figur rastet er an ihrer Mitte ein. Rutscht die Figur später,
+				bleibt der Zipfel stehen. In der Leiste wechselst du unter „Art“ zwischen den Blasen und dem Band, der Text bleibt.
+				Passt der Text nicht hinein, wächst die Blase nicht von selbst: Zieh sie größer, sonst meldet die Prüfung
+				„abgeschnitten“.
+			</p>
+			<p data-hilfe-linie>
+				Eine gewählte Linie hat zwei Punkte an ihren Enden statt eines Rahmens. Zieh sie, wohin die Linie zeigen soll (mit
+				⇧ in 45°-Schritten). Pfeilspitze oder Punkt am Anfang und Ende stellst du rechts im Inspektor unter „Form“ ein; sie
+				haben immer die Farbe der Kontur.
+			</p>
 			{/* << 107 */}
 
 			{/* >> 108 */}

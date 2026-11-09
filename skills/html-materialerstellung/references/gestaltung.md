@@ -270,6 +270,9 @@ Pfads in Elementgröße. Ändert sich die Größe, zeichnet der Editor beides ne
 | Herz | `herz` | ohne Text | – | 120 × 120 |
 | Wolke | `wolke` | ohne Text | `data-bogen` 4–10, Standard 6 | 120 × 120 |
 | Pfeil | `pfeil` | ohne Text | `data-spitze` 0.1–0.6, Standard 0.35; `data-schaft` 0.2–0.8, Standard 0.45 | 120 × 120 |
+| Sprechblase | `sprechblase` | mit Text | `data-blase` 0–2, Standard 0 | 180 × 84 |
+| Band | `band` | mit Text | `data-kerbe` 0–0.3, Standard 0.15 | 180 × 84 |
+| Linie | `linie` | Linie | `data-anfang` 0–2, Standard 0; `data-ende` 0–2, Standard 0 | 180 × 20 |
 <!-- /erzeugt: formen -->
 
 - **Der Pfad darf fehlen.** Claude setzt `data-form`, die Parameter, `--b`, `--h` und die Farben; `viewBox` und `d`
@@ -332,6 +335,44 @@ kein Schmuck, sondern ein Baustein im Stapel.
 <!-- << 106 -->
 
 <!-- >> 107 Sprechblase, Text und Linie in Formen -->
+## Sprechblase, Band, Linie
+
+**Form mit Text** (Sprechblase, Band) ist ein `div.form-text` mit `data-form`, darin ein `svg` (die Form, ohne Klasse)
+und `div.form-inhalt` (der Text). Sie liegt frei in der Ebene `vorne`, die Box ist `--b` × `--h` (Standard 180 × 84).
+
+```html
+<div class="ebene vorne">
+  <div class="form-text" data-lage="frei" data-form="sprechblase" data-blase="rund" data-zipfel="-26,70"
+       style="--x:470px;--y:690px;--b:180px;--h:84px;--gr:22px;--ausrichtung:center">
+    <svg viewBox="0 0 180 84" aria-hidden="true">
+      <path d="M…Z" style="fill:#ffffff;stroke:var(--dunkel);stroke-width:3px;stroke-linejoin:round"/>
+    </svg>
+    <div class="form-inhalt">Zähl genau!</div>
+  </div>
+  <svg class="form" data-lage="frei" data-form="linie" data-punkte="10,10 170,40" data-anfang="keine" data-ende="pfeil"
+       viewBox="0 0 180 50" style="--x:300px;--y:760px;--b:180px;--h:50px">
+    <path d="M10 10 L…" style="fill:none;stroke:var(--dunkel);stroke-width:3px;stroke-linejoin:round;stroke-linecap:round"/>
+    <path class="spitzen" d="M170 40 L…Z" style="fill:var(--dunkel);stroke:none"/>
+  </svg>
+</div>
+```
+
+- **Sprechblase:** `data-blase` = `rund` (Standard), `eckig` oder `gedanke` (Denkblase: kleine Kreise statt Zipfel).
+  `data-zipfel="x,y"` ist die Spitze des Zipfels in px relativ zur linken oberen Ecke der Box (vor dem Drehen). Sie
+  darf und soll außerhalb liegen, etwa auf der Mitte der Figur, die spricht; liegt sie in der Box, gibt es keinen
+  Zipfel. Der Zipfel zählt nicht zur Box: Er darf in den Druckrand ragen, die Box nicht.
+- **Band:** `data-kerbe` 0–0,3 (Tiefe der Kerben als Anteil der Breite, Standard 0,15).
+- **Text:** wie Schmuckschrift (`--gr`, `--farbe`, `--schrift`, `--ausrichtung`, einzelne Wörter in
+  `<span style="color:…">`). `--gr` mindestens 22 px bzw. die Schriftgröße der Klasse. Die Blase wächst nicht mit:
+  Passt der Text nicht, meldet die Prüfung `abgeschnitten`; dann `--b`/`--h` größer oder den Text kürzer.
+- **Linie und Pfeil:** `svg.form[data-form="linie"]` mit `data-punkte="x1,y1 x2,y2"` (px im Element) und
+  `data-anfang`/`data-ende` = `keine` (Standard), `pfeil` oder `punkt`. Die Box umschließt beide Punkte mit etwa
+  10 px Rand für Strich und Spitzen; eine Linie hat kein `--drehen` und keine Füllung (`fill:none`). Die Spitzen sind
+  ein zweiter Pfad `path.spitzen`, gefüllt mit der Farbe der Kontur. `marker` geht auch, ist aber nicht nötig.
+- **Der Pfad darf fehlen** wie bei jeder Form: Bei `.form-text` erzeugt der Editor das ganze `svg`, bei der Linie Pfad
+  und Spitzen aus `data-punkte`. Ohne `data-zipfel` zeigt der Zipfel nach links unten, ohne `data-punkte` liegt die
+  Linie waagerecht in der Mitte.
+- Nie die Klasse `.blase` verwenden (Tipp-Blase im Stapel).
 <!-- << 107 -->
 
 <!-- >> 108 Aussehen -->

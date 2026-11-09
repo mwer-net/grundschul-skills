@@ -121,6 +121,8 @@ const Position = ({ aktiv, k, quelle }: InspektorTeile) => {
 					/>
 				)}
 			</div>
+			{/* 107: Eine Linie hat zwei Endpunkte und keine Drehung. */}
+			{!k.element.matches('svg.form[data-form="linie"]') && (
 			<div className="flex gap-1.5">
 				<Zahl
 					titel="Drehung"
@@ -136,6 +138,7 @@ const Position = ({ aktiv, k, quelle }: InspektorTeile) => {
 				/>
 				<span className="flex-1" />
 			</div>
+			)}
 		</div>
 	);
 };

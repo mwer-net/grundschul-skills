@@ -82,9 +82,12 @@ export const Auswahlrahmen = ({
 	starteZusatz,
 	ursprung,
 	zusatz,
-}: Eigenschaften) => (
+}: Eigenschaften) => {
+	// 107: Bei der Linie stehen nur ihre zwei Endpunkte da, ohne Rahmen, Ecken, Kanten und Drehgriff.
+	const ohneRahmen = zusatz.some((z) => z.ersetztRahmen);
+	return (
 	<div
-		className="pointer-events-none absolute z-ueberlagerung border-[1.5px] border-brand-500"
+		className={klassen('pointer-events-none absolute z-ueberlagerung border-[1.5px] border-brand-500', ohneRahmen && 'border-transparent')}
 		data-gestaltung-rahmen={gesperrt ? 'gesperrt' : ''}
 		style={{
 			left: links + (ursprung.x + kasten.x) * skala,
@@ -105,6 +108,7 @@ export const Auswahlrahmen = ({
 		) : (
 			bedienbar && (
 			<>
+				{!ohneRahmen && (<>
 				<span
 					className="absolute left-1/2 w-px bg-brand-500"
 					style={{ top: -DREH_ABSTAND, height: DREH_ABSTAND }}
@@ -136,6 +140,7 @@ export const Auswahlrahmen = ({
 						</button>
 					);
 				})}
+				</>)}
 				{zusatz.map((griff) => {
 					const wo = griff.wo(element, kasten);
 					return (
@@ -162,3 +167,4 @@ export const Auswahlrahmen = ({
 		)}
 	</div>
 );
+};

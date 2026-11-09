@@ -24,6 +24,11 @@ export interface ZusatzGriff {
 	id: string;
 	/** Name für Hilfsmittel und Hinweis beim Überfahren. */
 	name: string;
+	/**
+	 * 107: Der Griff ersetzt den Rahmen: keine Ecken, Kanten, kein Drehgriff und keine Linie um das Element (Linie mit
+	 * zwei Endpunkten).
+	 */
+	ersetztRahmen?: boolean;
 	/** Für welche Art (aus `gestaltung-arten.ts`) bzw. welches Element. */
 	fuer: (art: string, element: Element) => boolean;
 	/** Wo er sitzt, in Koordinaten des Elements vor dem Drehen; `null`: gerade nicht. */

@@ -8,7 +8,8 @@
 /** Wie lange ein Wunsch gilt: Das Blatt lädt nach dem Ablegen neu, das dauert selten mehr als eine Sekunde. */
 const GILT_MS = 4000;
 
-const SCHMUCK = 'div.schmuck[data-lage="frei"]';
+// 107: auch Form mit Text (Sprechblase, Band): Klick in der Schublade öffnet die Sitzung mit markiertem „Text“.
+const SCHMUCK = 'div.schmuck[data-lage="frei"], .form-text[data-lage="frei"]';
 
 let wunsch = 0;
 /** Die Quelle direkt nach dem Anlegen, solange die erste Sitzung läuft. */

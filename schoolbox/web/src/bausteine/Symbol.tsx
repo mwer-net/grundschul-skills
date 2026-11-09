@@ -1,5 +1,12 @@
 import type { LucideIcon } from 'lucide-react';
 import {
+	Circle,
+	Cloud,
+	Hexagon,
+	MoveUpRight,
+	RectangleHorizontal,
+	Ribbon,
+	Slash,
 	ArrowDown,
 	ArrowLeft,
 	ArrowRight,
@@ -196,6 +203,16 @@ const SYMBOLE = {
 	// >> 102 Figuren
 	spiegeln: FlipHorizontal2,
 	// << 102
+
+	// >> 107 Formen-Werkzeuge
+	rechteck: RectangleHorizontal,
+	ellipse: Circle,
+	vieleck: Hexagon,
+	linie: Slash,
+	pfeil: MoveUpRight,
+	denkblase: Cloud,
+	band: Ribbon,
+	// << 107
 } as const satisfies Record<string, LucideIcon>;
 
 export type SymbolName = keyof typeof SYMBOLE;

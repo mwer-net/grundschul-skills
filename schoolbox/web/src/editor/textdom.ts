@@ -950,7 +950,8 @@ export const ruesteText = ({
 		},
 		formatiere,
 		faerbe,
-		markiereAlles: () => doc.getSelection()?.selectAllChildren(element),
+		// 107: In der Form mit Text nur den Text markieren, nie ihr `svg` (Tippen löschte es sonst).
+		markiereAlles: () => doc.getSelection()?.selectAllChildren(element.querySelector(':scope > .form-inhalt') ?? element),
 		zustand: () => ({
 			fett: sitzung !== null && doc.queryCommandState('bold'),
 			unterstrichen: sitzung !== null && doc.queryCommandState('underline'),

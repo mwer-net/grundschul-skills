@@ -5,6 +5,7 @@ import { zahl } from '@schoolbox/kern/src/formen-geometrie';
 import { useId } from 'react';
 
 import { FELD_KLASSEN, klassen } from '../../../bausteine/klassen';
+import { Segment } from '../../../bausteine/Segment';
 import { Stepper } from '../../../bausteine/Stepper';
 import { Zeile } from '../../../bausteine/Zeile';
 import { zeichneFormAnzeige } from '../anzeige-folgen';
@@ -23,6 +24,17 @@ const zeigeParameter = (k: GestaltungKontext, attr: string, wert: number) => {
 const Parameter = ({ aus, k, p, wert }: { k: GestaltungKontext; p: FormParameter; wert: number; aus: boolean }) => {
 	const setze = (neu: number) =>
 		k.fuehreAus(`${p.name} geändert`, (q) => ({ quelle: setzeFormParameter(q, k.nr, { [p.attr]: neu }), nr: k.nr }));
+	// 107: Auswahl (Blase, Enden der Linie) als Segment, der Wert ist der Index in `p.werte`.
+	if (p.werte) {
+		const werte = p.werte.map((w, i) => ({ wert: String(i), titel: w.name }));
+		return (
+			<div data-form-parameter={p.attr}>
+				<Zeile titel={p.name} name={p.name}>
+					<Segment beschriftung={p.name} werte={werte} wert={String(Math.round(wert))} aus={aus} waehle={(w) => setze(Number(w))} />
+				</Zeile>
+			</div>
+		);
+	}
 	// Anzahlen (Ecken, Zacken, Bögen) mit − und +, alles Stufenlose am Regler: Anzeige beim Ziehen, Schritt beim Loslassen.
 	if (p.einheit === undefined) {
 		return (
@@ -95,5 +107,6 @@ const FormTeil = ({ aktiv, k, quelle }: InspektorTeile) => {
 
 /** Formen der Liste in `kern/src/formen.ts`; eine `svg.form` mit unbekanntem `data-form` zeigt den Abschnitt nicht. */
 export const FORM_TEILE: InspektorTeil[] = [
-	{ id: 'form', abschnitt: 3, reihenfolge: 1, fuer: (art) => art === 'form', Inhalt: FormTeil },
+	// 107: auch Form mit Text (Sprechblase ↔ Band)
+	{ id: 'form', abschnitt: 3, reihenfolge: 1, fuer: (art) => art === 'form' || art === 'formtext', Inhalt: FormTeil },
 ];

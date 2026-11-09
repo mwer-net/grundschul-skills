@@ -21,7 +21,10 @@ const SCHNAPPSCHUSS = JSON.parse(
 	readFileSync(path.join(__dirname, 'formen.schnappschuss.json'), 'utf8'),
 ) as Record<string, string>;
 
-const ARTEN = Object.keys(FORMEN);
+// 107: Formen mit Text und die Linie haben eigene Tests (`formen-text.test.ts`, `formen-linie.test.ts`).
+const ARTEN = Object.values(FORMEN)
+	.filter((f) => f.klasse === 'ohne-text')
+	.map((f) => f.art);
 
 const seiteIn = (quelle: string) => {
 	const seite = zerlege(quelle).knoten.find((k) => k.tag === 'section' && /\bseite\b/.test(attribut(k, 'class')?.wert ?? ''));
@@ -82,7 +85,7 @@ describe('Formen ändern', () => {
 		assert.equal(leseForm(herz, nr)?.art, 'herz');
 		assert.doesNotMatch(formElement(herz, nr), /data-zacken/);
 		assert.throws(() => wechsleForm(herz, nr, 'gibt-es-nicht'));
-		const fremd = ARTEN.find((a) => formVon(a)?.klasse !== formVon('stern')?.klasse);
+		const fremd = Object.keys(FORMEN).find((a) => formVon(a)?.klasse !== formVon('stern')?.klasse);
 		if (fremd) {
 			assert.throws(() => wechsleForm(herz, nr, fremd));
 		}
