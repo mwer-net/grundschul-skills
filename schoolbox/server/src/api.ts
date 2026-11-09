@@ -16,6 +16,7 @@ import {
 import type { RequestHandler } from 'express';
 import { json, Router } from 'express';
 
+import { aufmachungUebernehmenApi } from './aufmachung-uebernehmen';
 import { bilderApi } from './bilder';
 import { istAusgabeVeraltet, leseQuelle, nimmFremdeAenderungAuf, schreibeQuelle, verlangeDokument } from './dokumente';
 import { eigeneApi } from './eigene';
@@ -118,6 +119,7 @@ export const apiRouter = (kontext: Kontext) => {
 	router.use('/papierkorb', papierkorbApi(kontext));
 
 	router.use('/dokumente/:mappe/:dok/bilder', bilderApi(kontext));
+	router.use('/dokumente/:mappe/:dok/aufmachung-uebernehmen', aufmachungUebernehmenApi(kontext)); // 122
 
 	router.get('/dokumente/:mappe/:dok', async (req, res) => {
 		const { dok, mappe } = req.params;

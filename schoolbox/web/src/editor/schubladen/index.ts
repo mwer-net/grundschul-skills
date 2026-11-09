@@ -49,6 +49,10 @@ export interface SchubladenTeile {
 	schalteAnheften: () => void;
 	/** Öffnet eine andere Schublade, etwa „Figuren“ aus dem Hinweis in „Bilder“ (102). */
 	oeffneSchublade: (id: SchubladenId) => void;
+	// >> 122
+	/** Das offene Material: Adresse `/api/dokumente/<mappe>/<dok>` und Speichern vor einem Aufruf, der den Stand liest. */
+	material: { adresse: string; speichere: () => Promise<unknown> };
+	// << 122
 }
 
 /** Ziele für Einträge der Palette aus einer Schublade (⌘K findet auch den Inhalt der Schubladen). */
