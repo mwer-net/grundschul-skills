@@ -702,6 +702,16 @@ du sie als freies Element (`data-frei`, `data-frei-titel`, siehe `abbildungen.md
 <!-- << 118 -->
 
 <!-- >> 119 Rezepte freilegen -->
+**Freigelegtes Rezept.** „Freilegen“ (Schublade „Rezepte“ oder Reiter „Blatt“) macht alle Teile zu normaler
+Gestaltung: `data-aufmachung*` am `body` und die Farben `--a1` … verschwinden, `data-aufmachung-teil` und
+`data-gesperrt` an den Teilen auch. Jedes Teil trägt die Farben dann selbst in seinem `style`
+(`--a1:#2d6a4f;--a2:#1b4332;…`), ein späteres Rezept färbt es nicht um. Das Kopfband wird eine Form
+`svg.form[data-form="pfad"]` mit Verlauf ganz unten in `.ebene.hinten`, mit `data-sw="weg"`. Der Titel bekommt seine
+Farbe als `style="color:#…"`.
+
+- `data-sw="dunkel"` an einem Text (nur am Titel eines freigelegten Rezepts): in s/w dunkel statt der eigenen Farbe,
+  sonst stünde weißer Titel auf weißem Grund. Nicht für anderes benutzen.
+- Freigelegte Teile wie jede Gestaltung ändern; die Werte am `body` gibt es nicht mehr.
 <!-- << 119 -->
 
 <!-- >> 120 Gruppen -->

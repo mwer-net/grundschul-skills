@@ -8,13 +8,19 @@ import {
 	darstellungsHtml,
 	dokumentGeloescht,
 	einfuegbarAus,
+	entferne,
 	ID_MUSTER,
 	KATALOG,
+	klassenVon,
 	leseStarter,
 	liegtIn,
 	mappenDir,
 	sucheRessource,
+	wendeAn,
+	zerlege,
 } from '@schoolbox/kern';
+import { aufmachungVon } from '@schoolbox/kern/src/aufmachungen/index';
+import { wendeAufmachungAn } from '@schoolbox/kern/src/aufmachungen';
 import type { Request, Response } from 'express';
 import { Router } from 'express';
 
@@ -231,6 +237,29 @@ export const ansichtRouter = (kontext: Kontext) => {
 			.send(katalogVorschau(eintrag, leseStarter(), `${req.baseUrl}/${ASSETS_PFAD}/`, req.query.fit === '1'));
 	});
 
+	// >> 119 Vorschau eines Rezepts: erste Seite, Rezept nur in der Antwort
+	const nurSeite = (quelle: string, seite: unknown) => {
+		if (seite !== '1') {
+			return quelle;
+		}
+		const z = zerlege(quelle);
+		const seiten = z.knoten.filter((k) => klassenVon(k).includes('seite'));
+		const oberste = seiten.filter((k) => !seiten.some((s) => s !== k && s.start < k.start && k.ende <= s.ende));
+		return oberste.length > 1 ? wendeAn(quelle, oberste.slice(1).flatMap((k) => entferne(z, k))) : quelle;
+	};
+	const mitRezept = (quelle: string, id: unknown) => {
+		if (typeof id !== 'string' || !aufmachungVon(id)) {
+			return quelle;
+		}
+		try {
+			return wendeAufmachungAn(quelle, id);
+		} catch {
+			// Minibuch oder kein `body`: Die Kachel zeigt das Blatt ohne Rezept.
+			return quelle;
+		}
+	};
+	// << 119
+
 	router.get('/:mappe/dokumente/:dok', (req, res) => {
 		const [pfad, query] = req.originalUrl.split('?', 2);
 		res.redirect(301, `${pfad}/${query === undefined ? '' : `?${query}`}`);
@@ -238,12 +267,14 @@ export const ansichtRouter = (kontext: Kontext) => {
 
 	router.get('/:mappe/dokumente/:dok/', async (req, res) => {
 		const dir = verlangeDokument(kontext, req.params.mappe, req.params.dok);
-		const { entwurf, loesung, praesentation, profil, vorschlag } = req.query;
+		const { aufmachung, entwurf, loesung, praesentation, profil, seite, vorschlag } = req.query;
 		// Ein Entwurf unter derselben Adresse wie material.html: Relative Pfade gelten wie nach `schoolbox waehle`.
-		const quelle =
+		const gelesen =
 			vorschlag === undefined
 				? await (entwurf === undefined ? leseQuelle(dir) : leseEntwurf(dir, entwurf))
 				: await leseVorschlagQuelle(kontext, req.params.mappe, req.params.dok);
+		// 119: Kacheln der Rezepte-Schublade. Nur für die Antwort, gespeichert wird nichts; mit `vorschlag` ignoriert.
+		const quelle = vorschlag === undefined ? mitRezept(nurSeite(gelesen, seite), aufmachung) : gelesen;
 		const html = darstellungsHtml(quelle, {
 			loesung: loesung === '1',
 			praesentation: praesentation === '1',

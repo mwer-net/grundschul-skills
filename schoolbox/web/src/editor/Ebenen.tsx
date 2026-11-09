@@ -60,6 +60,7 @@ interface EbenenZiel {
 
 /** Symbol je Art in den Ebenen (1-ebenen.md, „Beschriftung“); Bausteine haben keins. */
 const SYMBOL_DER_ART: Record<string, SymbolName> = {
+	kopfband: 'rezepte', // 119
 	figurfrei: 'figuren',
 	bildfrei: 'bild',
 	form: 'formen',
@@ -844,7 +845,7 @@ export const Ebenen = ({
 			return null;
 		}
 		const zeichen = EBENEN_ZEICHEN.filter((z) => z.fuer(element)).map((z) => ({ z, an: z.gesetzt(element) }));
-		const kontext = { nr: k.nr, element, struktur, zeigeAn };
+		const kontext = { nr: k.nr, element, struktur, zeigeAn, zeigeSeitengestaltung };
 		const schalter = zeichen.filter(({ z }) => z.schalter);
 		return (
 			<span className="flex flex-none items-center pr-0.5" data-nicht-ziehen>
@@ -908,7 +909,7 @@ export const Ebenen = ({
 		// Der Hauptstapel hat kein eigenes Element: Sein Klick wählt die Seite.
 		// Seitenrahmen und Seitenfläche öffnen Blatt › Gestaltung (095).
 		const waehleZeile = () =>
-			k.zeile === 'seitenrahmen' || k.zeile === 'seitenflaeche'
+			k.zeile === 'seitenrahmen' || k.zeile === 'seitenflaeche' || k.zeile === 'kopfband' // 119
 				? zeigeSeitengestaltung(seite)
 				: waehle(hauptstapel ? seite : k.nr);
 		return (

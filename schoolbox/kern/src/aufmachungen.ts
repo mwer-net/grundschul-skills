@@ -93,6 +93,9 @@ const eigenesIn = (seite: Knoten, klasse: string) => hintenIn(seite)?.kinder.fin
 const formatVon = (quelle: string): AufmachungsFormat | null =>
 	AUFMACHUNG_FORMATE.find((f) => f === formatAusHtml(quelle)) ?? null;
 
+/** Format des Materials für Rezepte; `null` im Minibuch (119: Vorschaubilder). */
+export const aufmachungsFormatVon = formatVon;
+
 const auswahl = <T extends string | number>(liste: readonly T[], wert: unknown): T | undefined =>
 	liste.find((w) => String(w) === String(wert ?? '').trim());
 
@@ -491,11 +494,83 @@ export interface KopfbandMass {
 
 const PFAD = /^[MmLlHhVvCcSsQqTtAaZz0-9eE.,\s+-]+$/;
 
-const kopfbandHtml = (id: string, { b, d, h }: KopfbandMass) =>
-	`<svg class="form" data-form="pfad" data-name="Kopfband" viewBox="0 0 ${Math.round(b)} ${Math.round(h)}">` +
+// >> 119 Freilegen: Farben einfrieren, Titel in s/w, Kopfband als Pfad mit derselben Kante wie die Maske
+
+/** Die Variablen der Farbwelt als `style`-Text, damit ein freigelegtes Teil ohne Rezept am `body` gleich bleibt. */
+const eingefroren = (welt: Farbwelt) =>
+	[
+		['--a1', welt.a1],
+		['--a2', welt.a2],
+		['--a3', welt.a3],
+		['--a4', welt.a4],
+		['--a-flaeche', welt.aFlaeche],
+		['--a-muster', welt.aMuster],
+	]
+		.map(([n, v]) => `${n}:${v}`)
+		.join(';');
+
+/** Hell genug, dass der Titel in s/w auf weißem Papier verschwände (Weiß auf dem Band). */
+const istHell = (hex: string) => {
+	const m = /^#([0-9a-f]{6})$/i.exec(hex);
+	if (!m?.[1]) {
+		return false;
+	}
+	const n = Number.parseInt(m[1], 16);
+	const [r, g, b] = [n >> 16, (n >> 8) & 255, n & 255];
+	return 0.299 * r + 0.587 * g + 0.114 * b > 186;
+};
+
+/**
+ * Die Kanten des Kopfbands, wie sie als Maske in `blatt.css` stehen (Kachel `b` × `h`, Pfad `d`). Ein Test prüft, dass
+ * `blatt.css` dieselben Zahlen enthält.
+ */
+export const KOPFBAND_MASKEN = {
+	welle: { b: 120, h: 24, d: 'M0 0H120V12C100 0 80 0 60 12S20 24 0 12Z' },
+	bogen: { b: 100, h: 24, d: 'M0 0H100V0Q50 48 0 0Z' },
+	zacken: { b: 32, h: 24, d: 'M0 0H32L16 24Z' },
+} as const;
+
+const zahl = (n: number) => String(Math.round(n * 10) / 10);
+
+/**
+ * Der Umriss des Kopfbands in px eines Rechtecks `b` × `h`, wie die Maske in `blatt.css`: oben voll, unten die Kante
+ * der Höhe `kante`, Wellen bzw. Zacken der Breite `welle` (Zacken: 1,4 × `kante`) ab links wiederholt. Was rechts über
+ * `b` hinausgeht, schneidet die `viewBox` ab.
+ */
+export const kopfbandPfad = (form: Exclude<Kopfband, 'ohne'>, b: number, h: number, kante: number, welle: number) => {
+	const yk = h - kante;
+	const sy = kante / 24;
+	if (form === 'gerade' || kante <= 0) {
+		return `M0 0H${zahl(b)}V${zahl(h)}H0Z`;
+	}
+	if (form === 'bogen') {
+		return `M0 0H${zahl(b)}V${zahl(yk)}Q${zahl(b / 2)} ${zahl(yk + 48 * sy)} 0 ${zahl(yk)}Z`;
+	}
+	const kachel = form === 'zacken' ? kante * 1.4 : welle;
+	const n = Math.max(1, Math.ceil(b / kachel));
+	const sx = kachel / KOPFBAND_MASKEN[form].b;
+	const teile: string[] = [];
+	for (let i = n - 1; i >= 0; i--) {
+		const x0 = i * kachel;
+		const x = (v: number) => zahl(x0 + v * sx);
+		const y = (v: number) => zahl(yk + v * sy);
+		teile.push(
+			form === 'welle'
+				? `C${x(100)} ${y(0)} ${x(80)} ${y(0)} ${x(60)} ${y(12)}C${x(40)} ${y(24)} ${x(20)} ${y(24)} ${x(0)} ${y(12)}`
+				: `L${x(16)} ${y(24)}L${x(0)} ${y(0)}`,
+		);
+	}
+	const start = form === 'welle' ? yk + 12 * sy : yk;
+	return `M0 0H${zahl(n * kachel)}V${zahl(start)}${teile.join('')}Z`;
+};
+
+const kopfbandHtml = (id: string, { b, d, h }: KopfbandMass, welt: Farbwelt | null) =>
+	`<svg class="form" data-form="pfad" data-name="Kopfband" data-sw="weg" viewBox="0 0 ${Math.round(b)} ${Math.round(h)}"` +
+	`${welt ? ` style="${eingefroren(welt)}"` : ''}>` +
 	`<defs><linearGradient id="${id}"><stop offset="0" style="stop-color:var(--a1)"/>` +
 	`<stop offset="1" style="stop-color:var(--a2)"/></linearGradient></defs>` +
 	`<path d="${d.trim()}" fill="url(#${id})" style="stroke:none"/></svg>`;
+// << 119
 
 /** Der Titel im Kopf einer Seite: das erste `h1` in `.kopf`. */
 const titelIn = (seite: Knoten) =>
@@ -506,8 +581,8 @@ const titelIn = (seite: Knoten) =>
 
 /**
  * Macht aus dem Rezept normale Gestaltung (7-rezepte.md, Freilegen): Teile ohne `data-aufmachung-teil` und ohne
- * Sperre, die Werte am `body` weg (die Farben `--a1` … bleiben als Variablen, weil die Teile auf sie verweisen), der
- * Titel bekommt seine Farbe als `style`. Das Kopfband misst der Editor (`kopfbaender`) und es kommt als Form ganz oben
+ * Sperre, die Werte am `body` weg; 119: jedes Teil trägt die Farben `--a1` … selbst im `style`, ein heller Titel
+ * bekommt `data-sw="dunkel"`. Der Titel bekommt seine Farbe als `style`. Das Kopfband misst der Editor (`kopfbaender`) und es kommt als Form ganz oben
  * in `.ebene.hinten`; ohne Maße entfällt es auf der Seite.
  */
 export const legeAufmachungFrei = (quelle: string, kopfbaender: readonly KopfbandMass[] = []) => {
@@ -518,10 +593,16 @@ export const legeAufmachungFrei = (quelle: string, kopfbaender: readonly Kopfban
 	const a = aufmachungVon(w.id);
 	const welt = a ? farbwelt(a, w) : null;
 	const z = zerlege(quelle);
-	const aenderungen: Aenderung[] = alleTeile(z).flatMap((k) => [
-		...setzeAttribut(z, k, TEIL, null),
-		...setzeAttribut(z, k, GESPERRT, null),
-	]);
+	const aenderungen: Aenderung[] = alleTeile(z).flatMap((k) => {
+		// 119: Die Farben ziehen ins Teil; ein späteres Rezept am `body` färbt es nicht mehr um.
+		const stil = attribut(k, 'style')?.wert;
+		const farben = welt ? eingefroren(welt) : '';
+		return [
+			...setzeAttribut(z, k, TEIL, null),
+			...setzeAttribut(z, k, GESPERRT, null),
+			...(farben ? setzeAttribut(z, k, 'style', stil ? `${farben};${stil}` : farben) : []),
+		];
+	});
 	if (welt) {
 		const mitBand = new Set(kopfbaender.map((k) => k.seite));
 		for (const seite of seitenIn(z)) {
@@ -531,14 +612,17 @@ export const legeAufmachungFrei = (quelle: string, kopfbaender: readonly Kopfban
 			}
 			const farbe = w.kopfband !== 'ohne' && mitBand.has(seite.nr) ? welt.aTitel : welt.aTitelOhneBand;
 			const stil = attribut(titel, 'style')?.wert;
+			// 119: Ein heller Titel (Weiß auf dem Band) wird in s/w dunkel, sonst stünde er weiß auf weißem Papier.
+			const sw = istHell(farbe) && !attribut(titel, 'data-sw') ? ' data-sw="dunkel"' : '';
 			aenderungen.push(
 				...(stil
-					? setzeAttribut(z, titel, 'style', `${stil.replace(/;\s*$/, '')};color:${farbe}`)
-					: [amEnde(z, titel, ` style="color:${farbe}"`)]),
+					? [...setzeAttribut(z, titel, 'style', `${stil.replace(/;\s*$/, '')};color:${farbe}`), ...(sw ? [amEnde(z, titel, sw)] : [])]
+					: [amEnde(z, titel, ` style="color:${farbe}"${sw}`)]),
 			);
 		}
 	}
-	let q = ohneWerte(wendeAn(quelle, aenderungen), BAND_VARIABLEN);
+	// 119: Alle Werte am `body` weg; die Teile tragen ihre Farben selbst.
+	let q = ohneWerte(wendeAn(quelle, aenderungen), welt ? VARIABLEN : BAND_VARIABLEN);
 	if (w.kopfband === 'ohne') {
 		return q;
 	}
@@ -546,7 +630,7 @@ export const legeAufmachungFrei = (quelle: string, kopfbaender: readonly Kopfban
 		if (!PFAD.test(band.d) || !(band.b > 0) || !(band.h > 0)) {
 			throw new Error('Das Kopfband hat keinen gültigen Umriss.');
 		}
-		const html = kopfbandHtml(neueId('verlauf', q), band);
+		const html = kopfbandHtml(neueId('verlauf', q), band, welt);
 		const lage = { x: band.x, y: band.y, b: band.b, h: band.h };
 		q = legeGestaltungAb(q, { seite: band.seite, ebene: 'hinten', html, lage }).quelle;
 	}
