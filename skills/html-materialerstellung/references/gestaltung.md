@@ -292,6 +292,7 @@ Pfads in Elementgröße. Ändert sich die Größe, zeichnet der Editor beides ne
 | Sprechblase | `sprechblase` | mit Text | `data-blase` `rund`, `eckig`, `gedanke`, Standard `rund` | 180 × 84 |
 | Band | `band` | mit Text | `data-kerbe` 0–0.3, Standard 0.15 | 180 × 84 |
 | Linie | `linie` | Linie | `data-anfang` `keine`, `pfeil`, `punkt`, Standard `keine`; `data-ende` `keine`, `pfeil`, `punkt`, Standard `keine` | 180 × 20 |
+| Eigene Form | `pfad` | Pfad | – | 120 × 120 |
 <!-- /erzeugt: formen -->
 
 - **Der Pfad darf fehlen.** Claude setzt `data-form`, die Parameter, `--b`, `--h` und die Farben; `viewBox` und `d`
@@ -632,6 +633,29 @@ Sie schneidet am Rand ab (`overflow:hidden`). Der Stapel schiebt, was darunter s
 <!-- << 115 -->
 
 <!-- >> 116 Pfad -->
+## Eigene Form (Pfad)
+
+Eine eigene Form ist ein `svg.form` mit `data-form="pfad"`. **Hier ist das `d` die Quelle**, es gibt keine Parameter.
+`viewBox` ist `0 0 b h` wie `--b`/`--h`, die Punkte stehen in px des Elements.
+
+```html
+<svg class="form" data-lage="frei" data-form="pfad" viewBox="0 0 160 90"
+     style="--x:300px;--y:520px;--b:160px;--h:90px">
+  <path d="M1.5 88.5 C30 10 80 10 100 45 L158.5 1.5"
+        style="fill:none;stroke:var(--dunkel);stroke-width:3px;stroke-linejoin:round;stroke-linecap:round"/>
+</svg>
+```
+
+- Für Umrisse, die keine Form der Liste hat: ein Land, ein Blatt, ein Weg mit Kurven, ein Pfeil um die Ecke. Gibt es
+  die Form in der Liste, die Liste nehmen.
+- Alle SVG-Befehle sind erlaubt, auch relative und `A`. Der Editor schreibt sie bei der ersten Änderung als `M L C Z`
+  mit absoluten Zahlen.
+- **Der Strich liegt innen** wie bei allen Formen: Die Punkte halten die halbe Strichstärke Abstand zum Rand.
+- Geschlossen (`Z`) mit Füllung, offen nur mit Kontur (`fill:none`) und `stroke-linecap:round`.
+- Größe ändern streckt die Punkte, der Strich bleibt gleich dick.
+- Im Editor: Stift P zeichnet freihand und glättet beim Loslassen; endet der Zug am Anfang, ist er geschlossen.
+  Pfad ⇧P setzt Punkte (Klick Ecke, Ziehen Kurve, Enter beendet, Klick auf den ersten Punkt schließt). Doppelklick
+  auf einen Pfad bearbeitet seine Punkte.
 <!-- << 116 -->
 
 <!-- >> 117 Figur von Claude -->

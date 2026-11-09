@@ -101,6 +101,12 @@ const FormTeil = ({ aktiv, k, quelle }: InspektorTeile) => {
 			{form.parameter.map((p) => (
 				<Parameter key={p.attr} k={k} p={p} wert={stand.param[p.attr] ?? p.standard} aus={!aktiv} />
 			))}
+			{/* 116: Ein Pfad hat keine Parameter, sein `d` ist die Form. */}
+			{form.klasse === 'pfad' && (
+				<p className="text-sm text-leise" data-hinweis="pfad">
+					Doppelklick bearbeitet die Punkte.
+				</p>
+			)}
 		</div>
 	);
 };

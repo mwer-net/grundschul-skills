@@ -12,6 +12,8 @@ import { griffeFuer } from './geste';
 import { ZUSATZ_GRIFFE } from './griffe';
 import { Hilfslinien, useAblageLinien } from './hilfslinien';
 import { istGestaltungElement } from './kontext';
+import { usePfadModus } from './pfad-modus'; // 116
+import { PfadPunkte } from './pfad-punkte'; // 116
 import { alsKasten, elementeZu, nrnFuer, rechteckVon, umschliessend, useMehrfach } from './mehrfach';
 import type { Flaeche } from './useGeste';
 import { messe, useGeste } from './useGeste';
@@ -98,6 +100,9 @@ export const GestaltungUeberlagerung = ({ e, pfad, struktur, textsitzung, waehle
 	const rahmen = umschliessend(umrisse);
 	const mehrfach = rahmen ? { kasten: stand ? stand.kasten : alsKasten(rahmen), umrisse } : null;
 	const { aufzug } = geste;
+	// 116: Punkte bearbeiten am gewählten Pfad.
+	const pfadModus = usePfadModus();
+	const punkteZeigen = bedienbar && !mehrfach && element && lage && gewaehlt && pfadModus.nr === gewaehlt.nr;
 
 	return (
 		<>
@@ -145,6 +150,19 @@ export const GestaltungUeberlagerung = ({ e, pfad, struktur, textsitzung, waehle
 					inGeste={stand !== null}
 					starteGriff={geste.starteGriff}
 					starteZusatz={geste.starteZusatz}
+				/>
+			)}
+			{punkteZeigen && gewaehlt && element && lage && stand === null && (
+				<PfadPunkte
+					element={element}
+					nr={gewaehlt.nr}
+					kasten={lage.kasten}
+					ursprung={lage.ursprung}
+					links={links}
+					skala={skala}
+					fuehreAus={(beschreibung, rechne) => {
+						struktur.fuehreAus(beschreibung, rechne, false, true);
+					}}
 				/>
 			)}
 			{stand?.zusatz && <ZusatzAnzeige links={links} skala={skala} zeiger={stand.zeiger} {...stand.zusatz} />}

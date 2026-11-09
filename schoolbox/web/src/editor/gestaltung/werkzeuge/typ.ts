@@ -43,10 +43,33 @@ export interface Werkzeug {
 	zeiger: string;
 	/** Nur bereite Werkzeuge haben Befehl, Taste und Knopf. */
 	bereit: (k: SchubladenLage) => boolean;
-	/** `seite`: die Seite, auf der der Strich beginnt (109: Streuen wählt danach die dichte Ecke). */
-	beginne: (p: Punkt, seite?: Element) => void;
+	/**
+	 * `seite`: die Seite, auf der der Strich beginnt (109: Streuen wählt danach die dichte Ecke). `skala`: Bildschirm-px
+	 * je px des Materials (116: Glätten und Schließen rechnen in Bildschirm-px, damit der Zoom nichts ändert).
+	 */
+	beginne: (p: Punkt, seite?: Element, skala?: number) => void;
 	bewege: (p: Punkt, mod: Tasten) => Entwurf | null;
 	ende: (p: Punkt, mod: Tasten) => Strich | null;
 	/** Ein Klick ohne Strich, etwa T setzt dort Schmuckschrift. Ohne Angabe tut ein Klick nichts. */
 	klick?: (p: Punkt) => Strich | null;
+	/** 116: Ein Werkzeug aus mehreren Klicks (Pfad ⇧P). Ohne Angabe ist jeder Strich für sich. */
+	mehrteilig?: Mehrteilig;
+}
+
+/** Was ein mehrteiliges Werkzeug am Ende eines Drucks oder bei einer Taste meldet. */
+export type Fortgang = { fertig: Strich | null } | 'weiter' | 'abbruch';
+
+/**
+ * 116: Werkzeug aus mehreren Drücken auf derselben Seite. Jeder Druck setzt etwas (`runter`, `ziehe`, `hoch`), Bewegen
+ * ohne Druck zeigt die Vorschau (`schwebe`). Solange es `laeuft`, gehören Enter, Backspace und Esc ihm (`taste`).
+ */
+export interface Mehrteilig {
+	laeuft: () => boolean;
+	runter: (p: Punkt, skala: number) => void;
+	ziehe: (p: Punkt) => Entwurf | null;
+	hoch: (p: Punkt) => Fortgang;
+	schwebe: (p: Punkt) => Entwurf | null;
+	taste: (taste: string) => Fortgang | null;
+	/** Vergisst alles, ohne Element (Esc, Werkzeugwechsel). */
+	abbruch: () => void;
 }

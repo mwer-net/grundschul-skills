@@ -344,6 +344,22 @@ export const GESTALTEN: Abschnitt = {
 			{/* << 115 */}
 
 			{/* >> 116 */}
+			<h3>Eigene Formen zeichnen</h3>
+			<p data-hilfe-stift>
+				Mit dem Stift (P) zeichnest du freihand, etwa eine Wolke nach deinem Geschmack oder den Umriss eines Landes.
+				Beim Loslassen wird der Strich geglättet. Endet er dort, wo er begonnen hat, ist die Form geschlossen und
+				gefüllt, sonst bleibt sie eine Linie.
+			</p>
+			<p data-hilfe-pfad>
+				Mit dem Pfad (⇧P) setzt du Punkt für Punkt: Ein Klick setzt eine Ecke, Klicken und Ziehen eine Kurve. Enter
+				beendet den Pfad offen, ein Klick auf den ersten Punkt schließt ihn. ⌫ nimmt den letzten Punkt zurück, Esc
+				bricht ab.
+			</p>
+			<p data-hilfe-punkte>
+				Ein Doppelklick auf eine eigene Form zeigt ihre Punkte, auch bei Formen, die Claude gezeichnet hat. Ziehst du
+				einen Punkt, wandert er; am gewählten Punkt ziehst du die Griffe für die Kurve. ⌥ und Klick löscht einen Punkt.
+				Jede Änderung ist ein Schritt, ⌘Z nimmt sie zurück. Esc oder ein Klick daneben beendet das Bearbeiten.
+			</p>
 			{/* << 116 */}
 
 			{/* >> 117 */}
