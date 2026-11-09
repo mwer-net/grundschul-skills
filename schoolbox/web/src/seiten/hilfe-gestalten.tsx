@@ -17,8 +17,8 @@ const Schubladenliste = () => (
 );
 
 /**
- * Abschnitt „Gestalten“ der Hilfe (Phase 12). Jedes sichtbare Ticket schreibt nur zwischen seinen Marken; 124 räumt
- * die Marken am Ende auf.
+ * Abschnitt „Gestalten“ der Hilfe (Phase 12), nach der Sache geordnet: Grundlagen, Seite, Elemente, Aussehen, Rezepte,
+ * Fläche und Vektor.
  */
 export const GESTALTEN: Abschnitt = {
 	id: 'gestalten',
@@ -31,7 +31,6 @@ export const GESTALTEN: Abschnitt = {
 				Blatt bekommt den Platz. Mit der Stecknadel im Kopf der Ebenen bleiben sie unter jeder anderen Schublade offen;
 				den Teiler dazwischen ziehst du nach oben oder unten.
 			</p>
-			{/* >> 094 */}
 			<h3>Bausteine ziehen</h3>
 			<p>
 				Eine Karte in der Schublade „Bausteine“ antippen fügt den Baustein hinter der Auswahl ein, wie bisher. Du kannst
@@ -40,57 +39,7 @@ export const GESTALTEN: Abschnitt = {
 				fügt ein, ⌘Z nimmt es in einem Schritt zurück. Esc oder Loslassen neben der Seite bricht ab, das Blatt bleibt, wie
 				es war. Dieselbe Lücke zeigt sich, wenn du einen Baustein im Blatt verschiebst.
 			</p>
-			{/* << 094 */}
 
-			{/* >> 095 */}
-			<h3>Seite gestalten: Fläche und Rahmen</h3>
-			<p data-hilfe-seitengestaltung>
-				Im Reiter „Blatt“ rechts steht ganz unten der Abschnitt „Gestaltung“. Dort bekommt die Seite einen Grund: eine
-				Farbe, einen Verlauf aus zwei Farben oder ein Muster aus Streifen, Punkten, Karos oder schrägen Linien. Darunter
-				wählst du einen Rahmen: eine Linie, doppelt, gestrichelt oder gepunktet, mit Farbe, Stärke, Abstand zum Blattrand
-				und runden Ecken. Die Farben des Blatts folgen dem Farbschema; mit dem bunten Kreis wählst du eine eigene Farbe.
-				„Gilt für“ entscheidet, ob es nur die Seite betrifft, auf der du gerade bist, oder alle Seiten; eine Seite, die du
-				später hinzufügst, bleibt weiß. Druckst du in Schwarz-Weiß, fällt der Grund weg und der Rahmen wird grau; beides
-				lässt sich unter „In s/w“ ändern. In den Ebenen stehen Seitenrahmen und Seitenfläche zuunterst; ein Klick darauf
-				öffnet diesen Abschnitt. ⌘Z nimmt jede Änderung in einem Schritt zurück.
-			</p>
-			{/* << 095 */}
-
-			{/* >> 096 */}
-			<h3>Prüfung und Gestaltung</h3>
-			<p data-hilfe-pruefung-gestaltung>
-				Was frei auf der Seite liegt, prüft die Schoolbox eigens. Liegt eine Figur, ein Bild, ein Text oder eine
-				Sprechblase im äußersten Rand des Blatts, warnt sie: Dort schneidet der Drucker oft ab. Liegt mehr als die Hälfte
-				eines Elements außerhalb der Seite, ist das ein Fehler; der Knopf „In die Seite holen“ bei der Meldung schiebt es
-				zurück. Überdeckt etwas vorne eine Aufgabe, steht ein Hinweis da. Ist das gewollt, wähle im Inspektor „Darf
-				Inhalt überdecken“. Ausgeblendete Elemente werden nicht gedruckt; auch daran erinnert ein Hinweis. Ein Klick auf
-				eine Meldung wählt das Element, auch wenn es gesperrt ist.
-			</p>
-			{/* << 096 */}
-
-			{/* >> 112 */}
-			<h3>Gestaltung mit Claude</h3>
-			<p data-hilfe-gestaltung-claude>
-				Claude kennt dieselben Formen, Figuren, Schmuckschriften und Anker wie die Schubladen. Bitte etwa: „Setz Wilma
-				rechts neben Aufgabe 2, häng sie an die Aufgabe und gib ihr eine Sprechblase ‚Zähl genau!‘.“ Was Claude baut,
-				wählst, ziehst und änderst du danach wie selbst Gelegtes. Bittest du Claude um etwas anderes, etwa „leichter“,
-				bleibt deine Gestaltung, wie sie ist.
-			</p>
-			{/* << 112 */}
-
-			{/* >> 097 */}
-			<p data-hilfe-gestaltung-bewegen>
-				Was frei auf dem Blatt liegt, etwa eine Figur, eine Form oder Schmuckschrift, wählst du mit einem Klick. Dann
-				ziehst du es an seinen Platz, änderst an den Ecken die Größe und drehst es am runden Griff über dem Rahmen. Mit ⇧
-				bleibt es beim Ziehen auf einer Linie und dreht in 15°-Schritten; mit ⌥ wächst es beim Größe ändern von der Mitte
-				aus, und beim Loslassen bleibt das Original liegen und eine Kopie kommt dazu. Ziehst du auf die nächste Seite,
-				landet es dort. Esc während des Ziehens bricht ab. Solange du ziehst, zeigt eine gestrichelte Linie den Rand, den
-				der Drucker nicht erreicht. Am iPad hältst du den Finger kurz, bevor du ziehst. Ein Doppelklick auf Schmuckschrift
-				öffnet den Text. Was hinten liegt, wählst du mit ⌥-Klick. Gesperrtes lässt sich im Blatt nicht greifen.
-			</p>
-			{/* << 097 */}
-
-			{/* >> 099 */}
 			<h3>Leiste am Element und Inspektor</h3>
 			<p>
 				Ist ein Bild, eine Figur, eine Form oder ein anderes Gestaltungselement gewählt, steht darüber eine eigene kleine
@@ -98,9 +47,7 @@ export const GESTALTEN: Abschnitt = {
 				Position und Größe in Pixeln, die Ebene (vorne oder hinten) und den Druck ein: ob es in s/w grau bleibt oder
 				wegfällt und ob es immer, nur in der Lösung oder nicht in der Lösung erscheint.
 			</p>
-			{/* << 099 */}
 
-			{/* >> 100 */}
 			<h3>Einrasten, Reihenfolge, Durchblick</h3>
 			<p data-hilfe-einrasten>
 				Beim Ziehen und beim Größe ändern rastet das Element an der Mitte der Seite, am Innenrand, am Druckrand, an den
@@ -112,9 +59,23 @@ export const GESTALTEN: Abschnitt = {
 				das Blatt seinen Aufbau: den Rand des Stapels, den Druckrand, Anker und Ausgeblendetes. Lässt du los, sieht es
 				wieder aus wie gedruckt. Am iPad schaltet „Durchblick ein/aus“ in der Befehlssuche ⌘K das um.
 			</p>
-			{/* << 100 */}
 
-			{/* >> 101 */}
+			<h3>Mehrere Elemente auf einmal</h3>
+			<p data-hilfe-mehrfach>
+				Mit ⇧ und Klick nimmst du weitere Elemente dazu oder wieder weg, in den Ebenen auch mit ⌘ und Klick. Oder du
+				ziehst auf einer freien Stelle der Seite ein Rechteck auf: Gewählt ist, was ganz darin liegt. Gesperrte und
+				ausgeblendete Elemente bleiben dabei außen vor. Gemeinsam verschiebst, drehst und vergrößerst du sie, die
+				Pfeiltasten schieben alle, ⌫ löscht alle, ⌘D verdoppelt alle. Jede Aktion ist ein Schritt, ⌘Z nimmt sie ganz
+				zurück. Ein Klick ohne ⇧ wählt wieder nur ein Element.
+			</p>
+			<p data-hilfe-ausrichten>
+				Die Leiste zeigt bei mehreren „Ausrichten“ und ab drei Elementen „Verteilen“. Ausrichten bringt alle an eine
+				Kante oder Mitte der gemeinsamen Auswahl, Verteilen setzt gleiche Abstände. Ein einzelnes Element richtest du
+				über „Mehr“ an der Seite aus, innerhalb des Rands. Die Tasten: ⌥A links, ⌥H mittig, ⌥D rechts, ⌥W oben, ⌥V
+				senkrecht mittig, ⌥S unten. Rechts im Inspektor stehen Lage und Größe der ganzen Auswahl; steht dort
+				„gemischt“, haben die Elemente verschiedene Werte, und ein neuer Wert gilt für alle.
+			</p>
+
 			<h3>Ebenen</h3>
 			<p data-hilfe-ebenen>
 				Die Schublade „Ebenen“ zeigt jede Seite von oben nach unten so, wie die Dinge übereinander liegen: zuerst, was
@@ -130,9 +91,59 @@ export const GESTALTEN: Abschnitt = {
 				unter den Hauptstapel in die andere Ebene oder auf eine andere Seite; die Lage im Blatt bleibt. Mit ⌥ entsteht
 				eine Kopie.
 			</p>
-			{/* << 101 */}
 
-			{/* >> 102 */}
+			<h3>Anker</h3>
+			<p data-hilfe-anker>
+				Soll eine Figur oder Form bei einer Aufgabe bleiben, hängst du sie an: Zieh den Anker ⚓ links oben neben dem
+				gewählten Element auf die Aufgabe. Sie bekommt einen Rahmen, und am Zeiger steht, woran es hängt. Rutscht die
+				Aufgabe danach weiter, weil davor eine dazukommt, oder wandert sie auf die nächste Seite, geht das Element mit
+				und behält seinen Platz neben ihr. Anhängen geht an Aufgaben und andere Bausteine auf derselben Seite, nicht an
+				reine Textbausteine. Zum Lösen ziehst du den Anker auf eine freie Stelle der Seite; das Element bleibt, wo es ist,
+				und liegt dann vorne. Dasselbe geht rechts im Inspektor unter „Hängt an“, in den Ebenen durch Ziehen der Zeile
+				auf einen Baustein oder aus ihm heraus, und über „Anhängen an Baustein“ bzw. „Vom Baustein lösen“ im ⋯ der
+				Leiste. Am Anker liegt ein Element immer vorne. Löschst oder kopierst du die Aufgabe, gehen ihre angehängten
+				Elemente mit; der Rückgängig-Knopf nennt sie („Gelöscht, mit Wilma“).
+			</p>
+
+			<h3>Prüfung und Gestaltung</h3>
+			<p data-hilfe-pruefung-gestaltung>
+				Was frei auf der Seite liegt, prüft die Schoolbox eigens. Liegt eine Figur, ein Bild, ein Text oder eine
+				Sprechblase im äußersten Rand des Blatts, warnt sie: Dort schneidet der Drucker oft ab. Liegt mehr als die Hälfte
+				eines Elements außerhalb der Seite, ist das ein Fehler; der Knopf „In die Seite holen“ bei der Meldung schiebt es
+				zurück. Überdeckt etwas vorne eine Aufgabe, steht ein Hinweis da. Ist das gewollt, wähle im Inspektor „Darf
+				Inhalt überdecken“. Ausgeblendete Elemente werden nicht gedruckt; auch daran erinnert ein Hinweis. Ein Klick auf
+				eine Meldung wählt das Element, auch wenn es gesperrt ist.
+			</p>
+
+			<h3>Gestaltung mit Claude</h3>
+			<p data-hilfe-gestaltung-claude>
+				Claude kennt dieselben Formen, Figuren, Schmuckschriften und Anker wie die Schubladen. Bitte etwa: „Setz Wilma
+				rechts neben Aufgabe 2, häng sie an die Aufgabe und gib ihr eine Sprechblase ‚Zähl genau!‘.“ Was Claude baut,
+				wählst, ziehst und änderst du danach wie selbst Gelegtes. Bittest du Claude um etwas anderes, etwa „leichter“,
+				bleibt deine Gestaltung, wie sie ist.
+			</p>
+			<p data-hilfe-gestaltung-bewegen>
+				Was frei auf dem Blatt liegt, etwa eine Figur, eine Form oder Schmuckschrift, wählst du mit einem Klick. Dann
+				ziehst du es an seinen Platz, änderst an den Ecken die Größe und drehst es am runden Griff über dem Rahmen. Mit ⇧
+				bleibt es beim Ziehen auf einer Linie und dreht in 15°-Schritten; mit ⌥ wächst es beim Größe ändern von der Mitte
+				aus, und beim Loslassen bleibt das Original liegen und eine Kopie kommt dazu. Ziehst du auf die nächste Seite,
+				landet es dort. Esc während des Ziehens bricht ab. Solange du ziehst, zeigt eine gestrichelte Linie den Rand, den
+				der Drucker nicht erreicht. Am iPad hältst du den Finger kurz, bevor du ziehst. Ein Doppelklick auf Schmuckschrift
+				öffnet den Text. Was hinten liegt, wählst du mit ⌥-Klick. Gesperrtes lässt sich im Blatt nicht greifen.
+			</p>
+
+			<h3>Seite gestalten: Fläche und Rahmen</h3>
+			<p data-hilfe-seitengestaltung>
+				Im Reiter „Blatt“ rechts steht ganz unten der Abschnitt „Gestaltung“. Dort bekommt die Seite einen Grund: eine
+				Farbe, einen Verlauf aus zwei Farben oder ein Muster aus Streifen, Punkten, Karos oder schrägen Linien. Darunter
+				wählst du einen Rahmen: eine Linie, doppelt, gestrichelt oder gepunktet, mit Farbe, Stärke, Abstand zum Blattrand
+				und runden Ecken. Die Farben des Blatts folgen dem Farbschema; mit dem bunten Kreis wählst du eine eigene Farbe.
+				„Gilt für“ entscheidet, ob es nur die Seite betrifft, auf der du gerade bist, oder alle Seiten; eine Seite, die du
+				später hinzufügst, bleibt weiß. Druckst du in Schwarz-Weiß, fällt der Grund weg und der Rahmen wird grau; beides
+				lässt sich unter „In s/w“ ändern. In den Ebenen stehen Seitenrahmen und Seitenfläche zuunterst; ein Klick darauf
+				öffnet diesen Abschnitt. ⌘Z nimmt jede Änderung in einem Schritt zurück.
+			</p>
+
 			<h3>Figuren</h3>
 			<p data-hilfe-figuren>
 				In der Schublade „Figuren“ stehen Willi und Wilma. Ein Klick legt die Figur 150 Pixel breit in die Mitte des
@@ -146,9 +157,13 @@ export const GESTALTEN: Abschnitt = {
 				als Strichzeichnung, Wilma in Graustufen. Als Leitfigur in einer Zeile findest du beide weiter unter „Bausteine“,
 				„Bilder“.
 			</p>
-			{/* << 102 */}
+			<p data-hilfe-figur-claude>
+				Unten in der Figuren-Schublade steht „Figur von Claude zeichnen lassen …“. Schreib hinein, was du dir wünschst,
+				etwa „eine Eule mit Brille“, und drück Enter. Claude zeichnet die Figur auf die Seite, die gerade gewählt oder
+				zu sehen ist, und legt sie dir als Vorschlag vor. Nach „Annehmen“ ist sie gewählt und lässt sich wie jede Figur
+				verschieben, drehen und vergrößern. Claude zeichnet einfache Figuren, keine Fotos oder gemalten Bilder.
+			</p>
 
-			{/* >> 103 */}
 			<h3>Bilder frei aufs Blatt</h3>
 			<p data-hilfe-bilder-frei>
 				In der Schublade „Bilder“ setzt ein Klick auf ein Bild es ein wie bisher. Ziehst du ein Bild aufs Blatt, liegt
@@ -162,9 +177,7 @@ export const GESTALTEN: Abschnitt = {
 				Beschreibung rechts im Inspektor unter „Bild“, die Größe unter „Position und Größe“. ⌘Z nimmt jeden Schritt
 				zurück.
 			</p>
-			{/* << 103 */}
 
-			{/* >> 104 */}
 			<h3>Formen</h3>
 			<p data-hilfe-formen>
 				In der Schublade „Formen“ liegen Kreis, Rechteck, Dreieck, Stern, Herz, Pfeil, Wolke, Sechseck und Raute. Ein Klick
@@ -176,47 +189,7 @@ export const GESTALTEN: Abschnitt = {
 				Rand. Dieselben Farben erreichst du über „Füllung“ und „Kontur“ in der kleinen Leiste an der Form. Mit ⌘K und
 				„Stern“ legst du einen Stern ab, ohne die Schublade zu öffnen.
 			</p>
-			{/* << 104 */}
 
-			{/* >> 105 */}
-			<h3>Text und Schmuckschrift</h3>
-			<p data-hilfe-text>
-				Die Schublade „Text“ (⌥5) zeigt zwei Arten Text, getrennt. Oben steht der Inhalt: Überschrift, Absatz, Tipp und
-				Lernziel. Er rastet wie jeder Baustein im Blatt ein, rutscht mit und steht in der Lösung. Darunter steht die
-				Schmuckschrift: Titel, Stempel und Etikett. Sie liegt frei wie eine Form, bleibt stehen, wenn Aufgaben rutschen,
-				und gehört nicht zur Lösung. Ein Klick legt sie in die Mitte der Seite und öffnet sofort das Schreiben; der
-				Platzhalter ist markiert, du tippst einfach drauflos. Esc oder ein Klick daneben beendet das Schreiben.
-			</p>
-			<p data-hilfe-text-werkzeug>
-				Mit T (oder „Text schreiben“ in der Schublade) klickst du an die Stelle, an der der Titel stehen soll. Ziehst du
-				stattdessen einen Rahmen auf, bricht der Text an dessen Breite um. Lässt du den Text leer, verschwindet er wieder.
-				Anlegen und Schreiben sind zusammen ein Schritt beim Rückgängig-Machen.
-			</p>
-			<p data-hilfe-text-farbe>
-				Ein zweifarbiger Titel geht so: Wort markieren, in der Leiste über dem Text auf den bunten Farbknopf und eine Farbe
-				wählen. Das gibt es nur in Schmuckschrift; Inhaltstext bleibt bei Fett, Unterstrichen und Hervorheben. Schrift
-				(Fredoka oder Andika), Größe und Farbe des ganzen Textes stellst du in der kleinen Leiste am Element oder rechts im
-				Inspektor unter „Text“ ein, dort auch die Ausrichtung und beim Etikett den Hintergrund. An der Ecke ziehst du die
-				Schrift größer, an der Seite nur die Breite.
-			</p>
-			{/* << 105 */}
-
-			{/* >> 106 */}
-			<h3>Anker</h3>
-			<p data-hilfe-anker>
-				Soll eine Figur oder Form bei einer Aufgabe bleiben, hängst du sie an: Zieh den Anker ⚓ links oben neben dem
-				gewählten Element auf die Aufgabe. Sie bekommt einen Rahmen, und am Zeiger steht, woran es hängt. Rutscht die
-				Aufgabe danach weiter, weil davor eine dazukommt, oder wandert sie auf die nächste Seite, geht das Element mit
-				und behält seinen Platz neben ihr. Anhängen geht an Aufgaben und andere Bausteine auf derselben Seite, nicht an
-				reine Textbausteine. Zum Lösen ziehst du den Anker auf eine freie Stelle der Seite; das Element bleibt, wo es ist,
-				und liegt dann vorne. Dasselbe geht rechts im Inspektor unter „Hängt an“, in den Ebenen durch Ziehen der Zeile
-				auf einen Baustein oder aus ihm heraus, und über „Anhängen an Baustein“ bzw. „Vom Baustein lösen“ im ⋯ der
-				Leiste. Am Anker liegt ein Element immer vorne. Löschst oder kopierst du die Aufgabe, gehen ihre angehängten
-				Elemente mit; der Rückgängig-Knopf nennt sie („Gelöscht, mit Wilma“).
-			</p>
-			{/* << 106 */}
-
-			{/* >> 107 */}
 			<h3>Formen zeichnen, Sprechblase und Linie</h3>
 			<p data-hilfe-werkzeuge>
 				Oben in der Schublade „Formen“ stehen die Werkzeuge. Mit R ziehst du ein Rechteck auf, mit O eine Ellipse, mit Y
@@ -239,9 +212,28 @@ export const GESTALTEN: Abschnitt = {
 				⇧ in 45°-Schritten). Pfeilspitze oder Punkt am Anfang und Ende stellst du rechts im Inspektor unter „Form“ ein; sie
 				haben immer die Farbe der Kontur.
 			</p>
-			{/* << 107 */}
 
-			{/* >> 108 */}
+			<h3>Text und Schmuckschrift</h3>
+			<p data-hilfe-text>
+				Die Schublade „Text“ (⌥5) zeigt zwei Arten Text, getrennt. Oben steht der Inhalt: Überschrift, Absatz, Tipp und
+				Lernziel. Er rastet wie jeder Baustein im Blatt ein, rutscht mit und steht in der Lösung. Darunter steht die
+				Schmuckschrift: Titel, Stempel und Etikett. Sie liegt frei wie eine Form, bleibt stehen, wenn Aufgaben rutschen,
+				und gehört nicht zur Lösung. Ein Klick legt sie in die Mitte der Seite und öffnet sofort das Schreiben; der
+				Platzhalter ist markiert, du tippst einfach drauflos. Esc oder ein Klick daneben beendet das Schreiben.
+			</p>
+			<p data-hilfe-text-werkzeug>
+				Mit T (oder „Text schreiben“ in der Schublade) klickst du an die Stelle, an der der Titel stehen soll. Ziehst du
+				stattdessen einen Rahmen auf, bricht der Text an dessen Breite um. Lässt du den Text leer, verschwindet er wieder.
+				Anlegen und Schreiben sind zusammen ein Schritt beim Rückgängig-Machen.
+			</p>
+			<p data-hilfe-text-farbe>
+				Ein zweifarbiger Titel geht so: Wort markieren, in der Leiste über dem Text auf den bunten Farbknopf und eine Farbe
+				wählen. Das gibt es nur in Schmuckschrift; Inhaltstext bleibt bei Fett, Unterstrichen und Hervorheben. Schrift
+				(Fredoka oder Andika), Größe und Farbe des ganzen Textes stellst du in der kleinen Leiste am Element oder rechts im
+				Inspektor unter „Text“ ein, dort auch die Ausrichtung und beim Etikett den Hintergrund. An der Ecke ziehst du die
+				Schrift größer, an der Seite nur die Breite.
+			</p>
+
 			<h3>Verlauf, gestrichelte Kontur, Schatten und Deckkraft</h3>
 			<p data-hilfe-aussehen>
 				Bei der Füllung einer Form schaltest du oben von „Farbe“ auf „Verlauf“. Ein Verlauf hat zwei Farben; linear
@@ -253,9 +245,7 @@ export const GESTALTEN: Abschnitt = {
 				liegt. Bei Bildern und Figuren findest du Schatten und Deckkraft im Inspektor unter „Bild“. Jede Änderung nimmst
 				du mit ⌘Z zurück, beim Regler zählt erst das Loslassen.
 			</p>
-			{/* << 108 */}
 
-			{/* >> 109 */}
 			<h3>Konfetti, Punkte und Sterne</h3>
 			<p data-hilfe-streuung>
 				In der Schublade „Formen“ (⌥3) streut der Abschnitt „Konfetti und Muster“ viele kleine Formen auf einmal. Ein
@@ -265,9 +255,7 @@ export const GESTALTEN: Abschnitt = {
 				dichter. Im Inspektor unter „Streuung“ stellst du Art, Formen, Farben, Größe und Dichte ein. „Würfeln“ verteilt
 				alles neu; jede Änderung ist ein Schritt, den du mit ⌘Z zurücknimmst. Eine Streuung hat höchstens 200 Teile.
 			</p>
-			{/* << 109 */}
 
-			{/* >> 110 */}
 			<h3>Kontur und Titel im Bogen</h3>
 			<p data-hilfe-kontur-bogen>
 				Ein Titel bekommt eine Kontur: Titel wählen, in der Leiste am Element auf „Kontur“ und „Kontur an“. Das gibt 6
@@ -283,9 +271,7 @@ export const GESTALTEN: Abschnitt = {
 				schreibst du in dem Feld in der Leiste: Doppelklick auf den Bogen springt hinein, Enter oder ein Klick daneben
 				übernimmt, Esc verwirft.
 			</p>
-			{/* << 110 */}
 
-			{/* >> 111 */}
 			<h3>Rahmen für Fotos, Bild in Form, Ausschnitt</h3>
 			<p data-hilfe-rahmenstil>
 				Ein freies Bild bekommt über „Rahmen-Stil“ in der Leiste oder rechts im Inspektor unter „Bild“ einen Rahmen:
@@ -305,27 +291,33 @@ export const GESTALTEN: Abschnitt = {
 				du schiebst das Bild im Rahmen hin und her. Esc oder ein Klick daneben beendet das. „Zuschnitt zurücksetzen“
 				im Inspektor zeigt wieder das ganze Bild.
 			</p>
-			{/* << 111 */}
 
-			{/* >> 113 */}
-			<h3>Mehrere Elemente auf einmal</h3>
-			<p data-hilfe-mehrfach>
-				Mit ⇧ und Klick nimmst du weitere Elemente dazu oder wieder weg, in den Ebenen auch mit ⌘ und Klick. Oder du
-				ziehst auf einer freien Stelle der Seite ein Rechteck auf: Gewählt ist, was ganz darin liegt. Gesperrte und
-				ausgeblendete Elemente bleiben dabei außen vor. Gemeinsam verschiebst, drehst und vergrößerst du sie, die
-				Pfeiltasten schieben alle, ⌫ löscht alle, ⌘D verdoppelt alle. Jede Aktion ist ein Schritt, ⌘Z nimmt sie ganz
-				zurück. Ein Klick ohne ⇧ wählt wieder nur ein Element.
+			<h3>Rezepte</h3>
+			<p data-hilfe-rezepte>
+				Die Schublade „Rezepte“ (⌥7) zeigt jedes Rezept mit der ersten Seite deines Blatts. Ein Klick gibt dem ganzen
+				Material diesen Look: Seitenfläche, Kopfband, Rahmen und Konfetti. Darunter stellst du Farben, Konfetti, Kopfband
+				und Rahmen ein; dieselben Regler stehen im Reiter „Blatt“ unter Gestaltung. „Würfeln“ verteilt das Konfetti neu,
+				sonst ändert sich nichts. Jeder Schritt lässt sich mit ⌘Z zurücknehmen.
 			</p>
-			<p data-hilfe-ausrichten>
-				Die Leiste zeigt bei mehreren „Ausrichten“ und ab drei Elementen „Verteilen“. Ausrichten bringt alle an eine
-				Kante oder Mitte der gemeinsamen Auswahl, Verteilen setzt gleiche Abstände. Ein einzelnes Element richtest du
-				über „Mehr“ an der Seite aus, innerhalb des Rands. Die Tasten: ⌥A links, ⌥H mittig, ⌥D rechts, ⌥W oben, ⌥V
-				senkrecht mittig, ⌥S unten. Rechts im Inspektor stehen Lage und Größe der ganzen Auswahl; steht dort
-				„gemischt“, haben die Elemente verschiedene Werte, und ein neuer Wert gilt für alle.
+			<p data-hilfe-rezept-freilegen>
+				Mit „Freilegen“ wird alles normale Gestaltung: Fläche, Rahmen, Konfetti und Kopfband lassen sich dann einzeln
+				verschieben und ändern, das Rezept fasst sie nicht mehr an. „Entfernen“ (im ⋯ der Schublade) nimmt das Rezept
+				ganz weg. Teile eines Rezepts tragen in den Ebenen ein eigenes Zeichen; ein Klick darauf öffnet das Rezept
+				rechts.
 			</p>
-			{/* << 113 */}
+			<p data-hilfe-rezept-uebernehmen>
+				Eine Reihe soll gleich aussehen? „Auf alle Blätter im Ordner übernehmen“ unter den Reglern gibt allen anderen
+				Materialien im selben Ordner dasselbe Rezept mit denselben Einstellungen. Unterordner und Minibücher bleiben,
+				wie sie sind. Vorher siehst du, was sich ändert, und jedes Material bekommt eine Version mit dem alten Stand.
+				Danach sind die Blätter wieder unabhängig: Würfeln auf einem Blatt ändert die anderen nicht.
+			</p>
+			<p data-hilfe-rezept-claude>
+				Auch Claude wählt ein Rezept oder stellt es um, etwa mit „Gib dem Blatt das Rezept Dschungel und mach das
+				Kopfband zackig.“ Claude ändert dabei nur die Einstellungen des Rezepts; Fläche, Kopfband und Konfetti entstehen
+				daraus wie bei einem Klick in der Schublade. Einzelne Teile eines Rezepts ändert Claude nicht: Leg es dafür
+				vorher frei.
+			</p>
 
-			{/* >> 115 */}
 			<h3>Fläche im Stapel</h3>
 			<p data-hilfe-flaeche>
 				Eine Fläche ist ein Stück Platz zwischen deinen Aufgaben, das du frei gestaltest. Du findest sie in der Schublade
@@ -341,9 +333,20 @@ export const GESTALTEN: Abschnitt = {
 				Blatt. Passt etwas nicht ganz in die Fläche, zeigt dir die Prüfung „abgeschnitten“: Mach die Fläche höher oder
 				das Element kleiner.
 			</p>
-			{/* << 115 */}
+			<p data-hilfe-frei-element>
+				Hat Claude ein eigenes Element gebaut, etwa ein Tangram oder eine Lupe, steht es zuerst in der Reihe der
+				Aufgaben. Mit „Frei legen“ im ⋯ liegt es an derselben Stelle frei auf dem Blatt. Zurück in die Reihe kommt es
+				nur über „In den Stapel“, dann steht es in einer Fläche.
+			</p>
 
-			{/* >> 116 */}
+			<h3>Gruppen</h3>
+			<p data-hilfe-gruppen>
+				Wähl mehrere Elemente mit ⇧ und drück ⌘G (oder „Gruppieren“ in der Leiste): Sie werden eine Gruppe und lassen
+				sich zusammen verschieben, drehen und vergrößern. Ein Doppelklick wählt ein Teil darin, Esc wieder die ganze
+				Gruppe. ⇧⌘G löst die Gruppe auf; alles bleibt an seiner Stelle. Gruppieren lassen sich nur Elemente derselben
+				Ebene. In den Ebenen klappt eine Gruppe auf und zeigt ihre Teile.
+			</p>
+
 			<h3>Eigene Formen zeichnen</h3>
 			<p data-hilfe-stift>
 				Mit dem Stift (P) zeichnest du freihand, etwa eine Wolke nach deinem Geschmack oder den Umriss eines Landes.
@@ -360,65 +363,8 @@ export const GESTALTEN: Abschnitt = {
 				einen Punkt, wandert er; am gewählten Punkt ziehst du die Griffe für die Kurve. ⌥ und Klick löscht einen Punkt.
 				Jede Änderung ist ein Schritt, ⌘Z nimmt sie zurück. Esc oder ein Klick daneben beendet das Bearbeiten.
 			</p>
-			{/* << 116 */}
 
-			{/* >> 117 */}
-			<p data-hilfe-figur-claude>
-				Unten in der Figuren-Schublade steht „Figur von Claude zeichnen lassen …“. Schreib hinein, was du dir wünschst,
-				etwa „eine Eule mit Brille“, und drück Enter. Claude zeichnet die Figur auf die Seite, die gerade gewählt oder
-				zu sehen ist, und legt sie dir als Vorschlag vor. Nach „Annehmen“ ist sie gewählt und lässt sich wie jede Figur
-				verschieben, drehen und vergrößern. Claude zeichnet einfache Figuren, keine Fotos oder gemalten Bilder.
-			</p>
-			<p data-hilfe-frei-element>
-				Hat Claude ein eigenes Element gebaut, etwa ein Tangram oder eine Lupe, steht es zuerst in der Reihe der
-				Aufgaben. Mit „Frei legen“ im ⋯ liegt es an derselben Stelle frei auf dem Blatt. Zurück in die Reihe kommt es
-				nur über „In den Stapel“, dann steht es in einer Fläche.
-			</p>
-			{/* << 117 */}
-
-			{/* >> 119 */}
-			<p data-hilfe-rezepte>
-				Die Schublade „Rezepte“ (⌥7) zeigt jedes Rezept mit der ersten Seite deines Blatts. Ein Klick gibt dem ganzen
-				Material diesen Look: Seitenfläche, Kopfband, Rahmen und Konfetti. Darunter stellst du Farben, Konfetti, Kopfband
-				und Rahmen ein; dieselben Regler stehen im Reiter „Blatt“ unter Gestaltung. „Würfeln“ verteilt das Konfetti neu,
-				sonst ändert sich nichts. Jeder Schritt lässt sich mit ⌘Z zurücknehmen.
-			</p>
-			<p data-hilfe-rezept-freilegen>
-				Mit „Freilegen“ wird alles normale Gestaltung: Fläche, Rahmen, Konfetti und Kopfband lassen sich dann einzeln
-				verschieben und ändern, das Rezept fasst sie nicht mehr an. „Entfernen“ (im ⋯ der Schublade) nimmt das Rezept
-				ganz weg. Teile eines Rezepts tragen in den Ebenen ein eigenes Zeichen; ein Klick darauf öffnet das Rezept
-				rechts.
-			</p>
-			{/* << 119 */}
-
-			{/* >> 122 */}
-			<p data-hilfe-rezept-uebernehmen>
-				Eine Reihe soll gleich aussehen? „Auf alle Blätter im Ordner übernehmen“ unter den Reglern gibt allen anderen
-				Materialien im selben Ordner dasselbe Rezept mit denselben Einstellungen. Unterordner und Minibücher bleiben,
-				wie sie sind. Vorher siehst du, was sich ändert, und jedes Material bekommt eine Version mit dem alten Stand.
-				Danach sind die Blätter wieder unabhängig: Würfeln auf einem Blatt ändert die anderen nicht.
-			</p>
-			{/* << 122 */}
-
-			{/* >> 123 */}
-			<p data-hilfe-rezept-claude>
-				Auch Claude wählt ein Rezept oder stellt es um, etwa mit „Gib dem Blatt das Rezept Dschungel und mach das
-				Kopfband zackig.“ Claude ändert dabei nur die Einstellungen des Rezepts; Fläche, Kopfband und Konfetti entstehen
-				daraus wie bei einem Klick in der Schublade. Einzelne Teile eines Rezepts ändert Claude nicht: Leg es dafür
-				vorher frei.
-			</p>
-			{/* << 123 */}
-
-			{/* >> 120 */}
-			<p data-hilfe-gruppen>
-				Wähl mehrere Elemente mit ⇧ und drück ⌘G (oder „Gruppieren“ in der Leiste): Sie werden eine Gruppe und lassen
-				sich zusammen verschieben, drehen und vergrößern. Ein Doppelklick wählt ein Teil darin, Esc wieder die ganze
-				Gruppe. ⇧⌘G löst die Gruppe auf; alles bleibt an seiner Stelle. Gruppieren lassen sich nur Elemente derselben
-				Ebene. In den Ebenen klappt eine Gruppe auf und zeigt ihre Teile.
-			</p>
-			{/* << 120 */}
-
-			{/* >> 121 */}
+			<h3>Formen kombinieren</h3>
 			<p data-hilfe-kombinieren>
 				Aus mehreren Formen wird eine: Wähl sie mit ⇧ und nimm im Inspektor unter „Form“ Vereinen, Abziehen, Schnitt oder
 				Ausschluss (auch im ⋯ und mit ⌘K). Abziehen nimmt alle vorderen Formen aus der hintersten heraus, so entsteht
@@ -430,10 +376,6 @@ export const GESTALTEN: Abschnitt = {
 				bilden. Zieh über Flächen, um sie zu markieren: Beim Loslassen werden sie eine Form, die übrigen bleiben einzelne
 				Formen. Mit ⌥ beim Loslassen fallen die markierten Flächen weg. Esc oder V beendet die Schere.
 			</p>
-			{/* << 121 */}
-
-			{/* >> 122 */}
-			{/* << 122 */}
 		</>
 	),
 	bilder: [],

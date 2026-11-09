@@ -12,12 +12,11 @@ const bildBaustein = (k: Kontext) => {
 	return k.aktiv && g?.baustein.art === 'bild' ? g : null;
 };
 
-// >> 117 Freie Elemente von Claude (088) im Stapel
+// Freie Elemente von Claude (088) im Stapel
 const freiesElement = (k: Kontext) => {
 	const g = k.pfad.at(-1);
 	return k.aktiv && g && FREIES_ELEMENT.has(g.baustein.art) ? g : null;
 };
-// << 117
 
 /** Das Blatt im Editor; wie `Editor.tsx` findet es der Befehl über seinen Rahmen. */
 const blatt = () =>

@@ -116,7 +116,6 @@ describe('breiteBeimAblegen', () => {
 	});
 });
 
-// >> 117
 const FREI_FIGURE =
 	'<figure data-frei data-frei-titel="Tangram Waschbär"><svg viewBox="0 0 100 100" width="100%"><polygon points="0,0 100,0 50,50" fill="none" stroke="#000" stroke-width="2"/></svg><figcaption>Lege den Waschbären.</figcaption></figure>';
 const FREI_SVG = '<svg data-frei data-frei-titel="Lupe" width="100%" height="120"><circle cx="60" cy="60" r="40" fill="none" stroke="#000" stroke-width="2"/></svg>';
@@ -165,4 +164,3 @@ describe('legeFreiesElementFrei', () => {
 		assert.throws(() => legeFreiesElementFrei(quelle, bildNr(quelle), { x: 0, y: 0, b: 10, h: 10 }));
 	});
 });
-// << 117

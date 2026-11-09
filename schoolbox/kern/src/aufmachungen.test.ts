@@ -333,7 +333,7 @@ describe('Zirkus in allen Formaten ohne FEHLER und WARNUNG (114)', { skip: brows
 	}
 });
 
-// >> 118 Alle Rezepte im Register: dieselben Kern-Tests wie für Zirkus, dazu der Kontrast am Band
+// Alle Rezepte im Register: dieselben Kern-Tests wie für Zirkus, dazu der Kontrast am Band
 /** Relative Leuchtdichte nach WCAG. */
 const leuchte = (hex: string) => {
 	const [r = 0, g = 0, b = 0] = [1, 3, 5].map((i) => {
@@ -418,9 +418,8 @@ describe('Detektiv, Dschungel, Ruhig in allen Formaten ohne FEHLER und WARNUNG (
 		}
 	}
 });
-// << 118
 
-// >> 119 Freilegen im Detail (7-rezepte.md, Freilegen und Entfernen)
+// Freilegen im Detail (7-rezepte.md, Freilegen und Entfernen)
 describe('Freilegen friert ein (119)', () => {
 	const mit = wendeAufmachungAn(blattMit(), 'zirkus');
 	const [seite = 0] = seitenNummern(mit);
@@ -474,9 +473,7 @@ describe('Freilegen friert ein (119)', () => {
 		assert.equal(kopfbandPfad('gerade', 100, 50, 10, 0), 'M0 0H100V50H0Z');
 	});
 });
-// << 119
 
-// >> 123
 describe('Abgleich nach einem Vorschlag von Claude (123)', () => {
 	const mit = wendeAufmachungAn(blattMit(), 'zirkus');
 	const streuung = (q: string) =>
@@ -514,4 +511,3 @@ describe('Abgleich nach einem Vorschlag von Claude (123)', () => {
 		assert.equal(gleicheAufmachungAb(mini), mini);
 	});
 });
-// << 123

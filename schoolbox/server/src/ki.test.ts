@@ -704,7 +704,6 @@ describe('Aufträge an Claude', () => {
 		assert.doesNotMatch(limitErreichtText(null), /Claude-App|ab /);
 	});
 
-	// >> 123
 	it('Rezept von Claude: Vorschlag wird abgeglichen geschrieben, der Prüfbericht bleibt (123)', async () => {
 		const datei = path.join(dokumentDir(server.materialDir, mappe, dok), 'material.html');
 		const alt = await quelle();
@@ -727,7 +726,6 @@ describe('Aufträge an Claude', () => {
 			await writeFile(datei, alt);
 		}
 	});
-	// << 123
 
 	describe('Gespräch (087)', () => {
 		const benutzt = new Set<string>();

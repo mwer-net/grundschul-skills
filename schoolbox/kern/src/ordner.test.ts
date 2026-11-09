@@ -614,7 +614,6 @@ describe('Freigaben auf Ordner', () => {
 	});
 });
 
-// >> 122
 describe('dokumenteIn (122)', () => {
 	it('nur direkt im Ordner, ohne Unterordner und ohne Gelöschte', () => {
 		const baum: Baum = {
@@ -637,4 +636,3 @@ describe('dokumenteIn (122)', () => {
 		);
 	});
 });
-// << 122

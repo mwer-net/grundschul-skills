@@ -102,7 +102,7 @@ process.stdin.on('end', () => {
 	const FREI = '<figure data-frei data-frei-titel="Tangram Waschbär"><svg viewBox="0 0 100 100" width="300" height="300"><polygon points="0,0 100,0 50,50" fill="none" stroke="#000" stroke-width="2"/><text x="50" y="90">Waschbär</text></svg><figcaption>Lege den Waschbären.</figcaption></figure>';
 	const SPERRE = { 'frei-skript': '<script>window.boese = 1</script>', 'frei-ereignis': '<svg onload="window.boese = 1"></svg>', 'frei-extern': '<img src="https://boese.example/x.png">', 'frei-use': '<svg><use href="https://boese.example/x.svg#a"/></svg>', 'frei-absage': '<script>window.boese = 1</script>', 'frei-nachgebessert': '<script>window.boese = 1</script>' };
 	const baue = (html) => { const d = 'material.html'; const alt = fs.readFileSync(d, 'utf8'); fs.writeFileSync(d, /<html/i.test(alt) ? alt.replace('</section>', html + '</section>') : html); };
-	// >> 112 Gestaltung von Claude: Wilma frei vorne, ein Stern ohne Pfad, eine Sprechblase ohne SVG am Anker der ersten Aufgabe
+	// Gestaltung von Claude: Wilma frei vorne, ein Stern ohne Pfad, eine Sprechblase ohne SVG am Anker der ersten Aufgabe
 	const GESTALTUNG_VORNE = '<div class="ebene vorne"><img class="figur-frei" data-lage="frei" data-figur="wilma" src="bilder/wilma.png" alt="Wilma" style="--x:560px;--y:300px;--b:150px;--spiegeln:-1"><svg class="form" data-lage="frei" data-form="stern" data-zacken="5" style="--x:620px;--y:90px;--b:110px;--h:110px"></svg></div>';
 	const BLASE_AM_ANKER = '<div class="form-text" data-lage="frei" data-anker data-form="sprechblase" data-zipfel="200,60" style="--x:440px;--y:-30px;--b:180px;--h:84px"><div class="form-inhalt">Zähl genau!</div></div>';
 	const amEndeDerAufgabe = (html, teil) => {
@@ -118,19 +118,15 @@ process.stdin.on('end', () => {
 	};
 	if (fall === 'gestaltung') { const d = 'material.html'; fs.writeFileSync(d, amEndeDerAufgabe(fs.readFileSync(d, 'utf8'), BLASE_AM_ANKER).replace('</section>', GESTALTUNG_VORNE + '</section>')); ende({ result: 'Wilma, Stern und Sprechblase gesetzt.' }); return; }
 	if (fall === 'gestaltung-fremd') { if (!eingabe.includes('Sicherheitsprüfung')) { baue('<div class="ebene vorne"><svg class="form" data-lage="frei" data-form="stern" style="--x:10px;--y:10px;--b:120px;--h:120px"><foreignObject><div>Hallo</div></foreignObject></svg></div>'); } ende({}); return; }
-	// << 112
-	// >> 117 Figur von Claude: eine Eule als freies Element vorne auf der ersten Seite
+	// Figur von Claude: eine Eule als freies Element vorne auf der ersten Seite
 	if (fall === 'figur') { const d = 'material.html'; const alt = fs.readFileSync(d, 'utf8'); const EULE = '<svg data-frei data-frei-titel="Eule mit Brille" data-lage="frei" viewBox="0 0 160 180" style="--x:420px;--y:360px;--b:160px"><g style="stroke:var(--dunkel);stroke-width:3px;stroke-linejoin:round"><path d="M30 60 L40 20 L62 46 Q80 40 98 46 L120 20 L130 60 Q150 120 120 160 Q80 178 40 160 Q10 120 30 60 Z" style="fill:var(--fuell)"/><ellipse cx="80" cy="128" rx="30" ry="30" style="fill:#ffffff"/><circle cx="58" cy="78" r="18" style="fill:#ffffff"/><circle cx="102" cy="78" r="18" style="fill:#ffffff"/><path d="M76 78 L84 78" style="fill:none"/><path d="M74 94 L80 106 L86 94 Z" style="fill:var(--akzent)"/></g><circle cx="58" cy="80" r="6" style="fill:var(--dunkel)"/><circle cx="102" cy="80" r="6" style="fill:var(--dunkel)"/></svg>'; fs.writeFileSync(d, alt.includes('<div class="ebene vorne">') ? alt.replace('<div class="ebene vorne">', '<div class="ebene vorne">' + EULE) : alt.replace('</section>', '<div class="ebene vorne">' + EULE + '</div></section>')); ende({ result: 'Eine Eule mit Brille gezeichnet.' }); return; }
-	// << 117
-	// >> 123 Rezept von Claude: nur ein Wert am body (richtig) oder ein Teil von Hand (falsch, der Abgleich setzt es zurück)
+	// Rezept von Claude: nur ein Wert am body (richtig) oder ein Teil von Hand (falsch, der Abgleich setzt es zurück)
 	if (fall === 'rezept-wert') { const d = 'material.html'; fs.writeFileSync(d, fs.readFileSync(d, 'utf8').replace(/data-aufmachung-kopfband="[^"]*"/, 'data-aufmachung-kopfband="zacken"')); ende({ result: 'Das Kopfband ist jetzt zackig.' }); return; }
 	if (fall === 'rezept-teil') { const d = 'material.html'; fs.writeFileSync(d, fs.readFileSync(d, 'utf8').replace(/<[^>]*data-aufmachung-teil="flaeche"[^>]*>/, (tag) => tag.replace('style="', 'style="opacity:0.2;'))); ende({ result: 'Die Fläche ist jetzt blasser.' }); return; }
-	// << 123
-	// >> 124 E4 von Claude: eine Gruppe aus Wilma und Sprechblase, ein Pfad mit relativen Befehlen und einem Bogen
+	// Gruppe und Pfad von Claude: eine Gruppe aus Wilma und Sprechblase, ein Pfad mit relativen Befehlen und einem Bogen
 	const GRUPPE = '<div class="ebene vorne"><div class="gruppe" data-lage="frei" style="--x:420px;--y:620px;--b:300px;--h:220px"><img class="figur-frei" data-lage="frei" data-figur="wilma" src="bilder/wilma.png" alt="Wilma" style="--x:170px;--y:70px;--b:130px"><div class="form-text" data-lage="frei" data-form="sprechblase" data-zipfel="200,60" style="--x:0px;--y:0px;--b:180px;--h:84px"><div class="form-inhalt">Zähl genau!</div></div></div></div>';
 	const PFAD = '<div class="ebene vorne"><svg class="form" data-lage="frei" data-form="pfad" viewBox="0 0 100 60" style="--x:300px;--y:640px;--b:100px;--h:60px"><path d="m10 50 a40 40 0 0 1 80 0 z" style="fill:var(--akzent);stroke:var(--dunkel);stroke-width:3px"/></svg></div>';
 	if (fall === 'gruppe' || fall === 'pfad') { const d = 'material.html'; fs.writeFileSync(d, fs.readFileSync(d, 'utf8').replace('</section>', (fall === 'gruppe' ? GRUPPE : PFAD) + '</section>')); ende({ result: fall === 'gruppe' ? 'Wilma und Sprechblase als Gruppe.' : 'Eine Wolke als eigene Form.' }); return; }
-	// << 124
 	if (fall === 'frei') { baue(FREI); ende({ result: 'Annahme: sieben Steine.' }); return; }
 	if (fall === 'frei-zwei') { baue(eingabe.includes('Sicherheitsprüfung') ? FREI : FREI + FREI); ende({}); return; }
 	if (SPERRE[fall]) {

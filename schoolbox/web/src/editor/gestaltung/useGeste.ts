@@ -109,7 +109,7 @@ export const messe = (element: Element): Messung | null => {
 	let kasten = kastenVon(element);
 	let behaelter = behaelterVon(element);
 	let verdreht = false;
-	// >> 120 In einer gedrehten oder gespiegelten Gruppe: den sichtbaren Kasten im Behälter der Gruppe rechnen.
+	// In einer gedrehten oder gespiegelten Gruppe: den sichtbaren Kasten im Behälter der Gruppe rechnen.
 	while (behaelter.matches('.gruppe')) {
 		const g = kastenVon(behaelter);
 		const spiegeln = zahl(fenster.getComputedStyle(behaelter).getPropertyValue('--spiegeln')) < 0 ? -1 : 1;
@@ -125,7 +125,6 @@ export const messe = (element: Element): Messung | null => {
 		kasten = { x: mx - kasten.b / 2, y: my - kasten.h / 2, b: kasten.b, h: kasten.h, drehen: g.drehen + spiegeln * kasten.drehen };
 		behaelter = behaelterVon(behaelter);
 	}
-	// << 120
 	const r = behaelter.getBoundingClientRect();
 	return {
 		kasten,

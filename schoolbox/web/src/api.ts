@@ -68,7 +68,6 @@ export const sendeDatei = <T>(url: string, daten: Blob, name: string) =>
 
 export const meldung = (fehler: unknown) => (fehler instanceof Error ? fehler.message : NICHT_ERREICHBAR);
 
-// >> 122
 /** Vorschau für „Rezept auf alle Blätter im Ordner übernehmen“; ändert nichts. */
 export interface UebernehmenVorschau {
 	rezept: string;
@@ -92,4 +91,3 @@ export const ladeUebernehmenVorschau = (adresse: string) =>
 
 export const uebernimmAufmachung = (adresse: string, werte: AufmachungWerte) =>
 	sende<UebernehmenErgebnis>(`${adresse}/aufmachung-uebernehmen`, { werte });
-// << 122

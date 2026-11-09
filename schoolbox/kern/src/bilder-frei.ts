@@ -94,7 +94,7 @@ export const legeBildFrei = (quelle: string, nr: number, lage: LageImStapel): St
 	return { quelle: mit.quelle, nr: bild.nr };
 };
 
-// >> 117 Freie Elemente von Claude (088) frei legen
+// Freie Elemente von Claude (088) frei legen
 /** Ein freies Element von Claude im Stapel: `data-frei` ohne `data-lage` (das wäre schon Gestaltung). */
 export const istFreiesElement = (k: Knoten | null | undefined): k is Knoten =>
 	Boolean(k && attribut(k, 'data-frei') && !attribut(k, LAGE));
@@ -125,4 +125,3 @@ export const legeFreiesElementFrei = (quelle: string, nr: number, lage: LageImSt
 		lage: { x: lage.x, y: lage.y, b: lage.b, ...(ohneHoehe ? { h: lage.h } : {}) },
 	});
 };
-// << 117

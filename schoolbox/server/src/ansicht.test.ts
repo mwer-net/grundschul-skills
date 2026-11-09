@@ -50,7 +50,7 @@ describe('/ansicht', () => {
 		assert.equal((await s.holen(basis)).headers.get('content-security-policy'), null);
 	});
 
-	// >> 119 Kacheln der Rezepte-Schublade
+	// Kacheln der Rezepte-Schublade
 	it('wendet mit ?aufmachung=zirkus das Rezept nur in der Antwort an, mit ?seite=1 nur die erste Seite', async () => {
 		const datei = path.join(s.materialDir, mappe, 'dokumente', dokId, 'material.html');
 		const vorher = await readFile(datei, 'utf8');
@@ -65,7 +65,6 @@ describe('/ansicht', () => {
 		const html = await (await s.holen(`${basis}?vorschlag=1&aufmachung=zirkus`)).text();
 		assert.doesNotMatch(html, /data-aufmachung=/);
 	});
-	// << 119
 
 	it('leitet ohne Schrägstrich am Ende um, damit relative Pfade stimmen', async () => {
 		const antwort = await s.holen(`${basis.slice(0, -1)}?loesung=1`, { redirect: 'manual' });

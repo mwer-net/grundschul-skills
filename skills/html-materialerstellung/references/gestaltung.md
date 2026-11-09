@@ -7,7 +7,6 @@ sieht ohne Skript gleich aus, im Editor, in der Vorschau und im PDF.
 Leitsatz: **Inhalt rastet ein, Gestaltung liegt frei.** Aufgaben bleiben im Stapel, mit Nummern und Lösung wie bisher.
 Gestaltung liegt in einer von zwei Ebenen je Seite oder hängt an einem Baustein.
 
-<!-- >> 112 Regeln für Claude -->
 ## Regeln für Claude
 
 Was die Lehrkraft im Editor frei aufs Blatt legt, steht genau so im HTML, wie diese Datei es beschreibt. Lies und ändere
@@ -40,7 +39,6 @@ Farben des Blatts:
 | `#ffffff` | Weiß |
 | `#rrggbb` | eigene Farbe |
 <!-- /erzeugt: blatt-farben -->
-<!-- << 112 -->
 
 ## 1. Eine Seite, ein Stapel, zwei Ebenen
 
@@ -173,7 +171,6 @@ an Teilen in einer Aufgabe. Am Anker liegt Gestaltung immer vor dem Inhalt.
 Gemessen wird das Rechteck nach dem Drehen. `data-rand-ok` schaltet `druckrand` ab, `data-ueberlagert-ok` schaltet
 `verdeckt` ab. Was hinten liegt, verdeckt nie etwas.
 
-<!-- >> 095 Seitenfläche und Seitenrahmen -->
 ## Seitenfläche und Seitenrahmen
 
 Eine Seite bekommt einen Grund (Farbe, Verlauf oder Muster) und einen Rahmen. Beide stehen **zuunterst in
@@ -203,9 +200,7 @@ Seite und lassen sich nicht ziehen. Sollen mehrere Seiten gleich aussehen, steht
 - Die Fläche reicht bis an den Blattrand. Den Rahmen nicht näher als 24px an den Blattrand legen (Druckrand 19px).
 - In s/w fällt die Fläche weg, außer mit `data-sw="grau"`; der Rahmen wird grau, außer mit `data-sw="weg"`.
 - Fläche oder Rahmen mit `data-aufmachung-teil` gehören einem Rezept: nicht ändern.
-<!-- << 095 -->
 
-<!-- >> 102 Figuren -->
 ## Figur frei
 
 Willi, Wilma und die anderen Figuren liegen frei auf der Seite, meist neben der Aufgabe, um die es geht. Die Figur
@@ -231,9 +226,42 @@ schaut zur Aufgabe: Schaut sie in ihrer Datei in die falsche Richtung, steht `--
 | `willi` | Willi | `bilder/willi.png` | Strichbild `willi-strich.png` | rechts |
 | `wilma` | Wilma | `bilder/wilma.png` | Graustufen | rechts |
 <!-- /erzeugt: figuren -->
-<!-- << 102 -->
 
-<!-- >> 103 Bilder frei -->
+## Figur von Claude
+
+Wünscht sich die Lehrkraft eine eigene Figur („Figur von Claude zeichnen lassen“ in der Figuren-Schublade), zeichnest
+du sie als freies Element (`data-frei`, `data-frei-titel`, siehe `abbildungen.md`, „Freies Element“) **mit**
+`data-lage="frei"` in `.ebene.vorne` der genannten Seite. Der Auftrag nennt die Seite. Nur SVG, kein Bild, kein Foto.
+
+```html
+<div class="ebene vorne">
+  <svg data-frei data-frei-titel="Eule mit Brille" data-lage="frei" viewBox="0 0 160 180"
+       style="--x:420px;--y:360px;--b:160px">
+    <g style="stroke:var(--dunkel);stroke-width:3px;stroke-linejoin:round">
+      <path d="M30 60 L40 20 L62 46 Q80 40 98 46 L120 20 L130 60 Q150 120 120 160 Q80 178 40 160 Q10 120 30 60 Z"
+            style="fill:var(--fuell)"/>
+      <ellipse cx="80" cy="128" rx="30" ry="30" style="fill:#ffffff"/>
+      <circle cx="58" cy="78" r="18" style="fill:#ffffff"/>
+      <circle cx="102" cy="78" r="18" style="fill:#ffffff"/>
+      <path d="M76 78 L84 78" style="fill:none"/>
+      <path d="M74 94 L80 106 L86 94 Z" style="fill:var(--akzent)"/>
+    </g>
+    <circle cx="58" cy="80" r="6" style="fill:var(--dunkel)"/>
+    <circle cx="102" cy="80" r="6" style="fill:var(--dunkel)"/>
+  </svg>
+</div>
+```
+
+- Ein **neues** Element: Was schon auf dem Blatt steht, auch ein gewählter Baustein, bleibt unverändert.
+- Größe 120–200px in `--b`, `viewBox` passend zur Figur, kein `width`/`height` und kein `--h`: Die Höhe kommt aus
+  der `viewBox`. Lage frei neben der Aufgabe, um die es geht, nie über Text.
+- Farben als `var(--haupt)`, `var(--akzent)`, `var(--dunkel)`, `var(--fuell)` oder Weiß, damit die Figur zur Palette
+  passt. Eine dunkle Kontur um jede Fläche, damit sie in s/w lesbar bleibt; Linien mindestens 1,5px.
+- Wenige Pfade (höchstens etwa 15), einfache Formen, freundlicher Ausdruck, keine Schrift in der Figur.
+- `data-frei-titel` ist der Name in den Ebenen, z. B. „Eule mit Brille“.
+- Im Editor: Ein freies Element im Stapel legt „Frei legen“ (⋯) an derselben Stelle nach vorne; zurück geht es nur
+  über „In den Stapel“ in eine Fläche.
+
 ## Freie Bilder
 
 Ein Foto oder eine Grafik, die frei auf der Seite liegt, schräg, groß als Aufmacher oder klein in der Ecke, ist ein
@@ -259,9 +287,7 @@ in `width` oder `height`. Die Höhe ergibt sich aus dem Bild.
   `div.schmuck[data-schmuck="titel"]` darunter.
 - Im Druck braucht ein Foto mindestens 150 dpi bei seiner Breite, sonst meldet die Prüfung `bild-unscharf`.
 - Leitfiguren im Tipp bleiben `img.figur`; Willi und Wilma frei auf der Seite sind `img.figur-frei` (Figuren).
-<!-- << 103 -->
 
-<!-- >> 104 Formen -->
 ## Formen
 
 Eine Form ist ein `svg.form` mit `data-form` und ihren Parametern. **Die Parameter sind die Quelle, der Pfad ist
@@ -307,9 +333,7 @@ Pfads in Elementgröße. Ändert sich die Größe, zeichnet der Editor beides ne
 - Eine Raute ist ein Vieleck mit `data-ecken="4"`, ein Kreis eine Ellipse mit gleicher Breite und Höhe.
 - Pfade bestehen nur aus `M`, `L`, `C`, `Q` und `Z` mit absoluten Zahlen, ohne `A`; Kreise sind vier Kurven.
 - Nicht die Klasse `.blase` verwenden: Sie gehört der Sprechblase im Tipp.
-<!-- << 104 -->
 
-<!-- >> 105 Schmuckschrift -->
 ## Schmuckschrift
 
 Schmuckschrift ist Text **zum Schmücken**, nicht Inhalt: ein großer Titel auf dem Deckblatt, ein Stempel „Prima!“,
@@ -349,12 +373,7 @@ kein Schmuck, sondern ein Baustein im Stapel.
   Sonst steht darin nur Text, `<br>`, `<b>`, `<u>`, `<mark>`.
 - Nur die eingebetteten Schriften (Fredoka 600, Andika 400/700). Eine Schrift aus dem Netz fehlt im Druck.
 - Farben bevorzugt als Farben des Blatts (`var(--haupt)` …), sie folgen Palette und Thema; Hex folgt nicht.
-<!-- << 105 -->
 
-<!-- >> 106 Anker -->
-<!-- << 106 -->
-
-<!-- >> 107 Sprechblase, Text und Linie in Formen -->
 ## Sprechblase, Band, Linie
 
 **Form mit Text** (Sprechblase, Band) ist ein `div.form-text` mit `data-form`, darin ein `svg` (die Form, ohne Klasse)
@@ -393,9 +412,7 @@ und `div.form-inhalt` (der Text). Sie liegt frei in der Ebene `vorne`, die Box i
   und Spitzen aus `data-punkte`. Ohne `data-zipfel` zeigt der Zipfel nach links unten, ohne `data-punkte` liegt die
   Linie waagerecht in der Mitte.
 - Nie die Klasse `.blase` verwenden (Tipp-Blase im Stapel).
-<!-- << 107 -->
 
-<!-- >> 108 Aussehen -->
 ## Aussehen: Verlauf, Kontur-Stil, Schatten, Deckkraft
 
 | Eigenschaft | Arten | Wo |
@@ -448,9 +465,7 @@ blasses Bild in der Ebene hinten.
   <img class="bild-frei" data-lage="frei" src="bilder/wiese.jpg" alt="" style="--b:794px;opacity:0.4">
 </div>
 ```
-<!-- << 108 -->
 
-<!-- >> 109 Streuung -->
 ## Streuung: Konfetti, Punkte, Sterne
 
 Eine Streuung ist **ein** Element mit vielen erzeugten Teilen. Sie liegt hinten und fällt in s/w weg (Standard).
@@ -488,9 +503,7 @@ So steht sie nach dem Öffnen im Editor, mit gespeicherten Teilen (Punkte in der
 - **Nicht von Hand ändern.** Verteile die Teile nicht selbst und verschiebe keine einzelnen. Für ein anderes Bild
   `data-saat` ändern („neu würfeln“); Größe ändern erzeugt die Teile mit derselben Saat neu.
 - Eine Streuung liegt in `.ebene.hinten`. Teile am Rand bleiben innerhalb des Elements.
-<!-- << 109 -->
 
-<!-- >> 110 Kontur und Titel im Bogen -->
 ## Schmuckschrift: Kontur und Titel im Bogen
 
 **Kontur** um die Buchstaben eines Titels (HTML): `data-kontur` am Element, `--kontur` (0 bis 16 px) und
@@ -522,9 +535,7 @@ nach unten gewölbt), `viewBox`, `--b` und `--h`. Der Text steht in `text` mit `
 - Ids (`bogen-xxxx`) müssen im Dokument eindeutig sein; beim Kopieren vergibt der Editor neue.
 - Den Bogen nur für einen Titel nehmen, nicht für Inhalt. Kein Titel im Bogen im Kopf eines Rezepts.
 - Die Prüfung `schrift-klein` misst Text im SVG nicht: Die Größe im `font` selbst nicht unter die Grenze setzen.
-<!-- << 110 -->
 
-<!-- >> 111 Bildrahmen -->
 ## Rahmen-Stile, Masken, Bildrahmen
 
 **Rahmen-Stil** an einem freien Bild (`img.bild-frei`, nicht an Figuren und nicht an Bild-Bausteinen im Stapel):
@@ -560,9 +571,7 @@ zählt für die Prüfung als Platzhalter (HINWEIS `platzhalter`). Er darf nicht 
 <div class="bildrahmen platzhalter" data-lage="frei" data-maske="ellipse"
      style="--x:500px;--y:300px;--b:220px;--h:220px;clip-path:ellipse(50% 50% at 50% 50%)"></div>
 ```
-<!-- << 111 -->
 
-<!-- >> 114 Rezepte -->
 ## Rezepte (Aufmachung)
 
 Ein Rezept gibt dem **ganzen Material** einen Look: Seitenfläche, Kopfband, Rahmen, Konfetti, Titelfarbe. Es besteht
@@ -616,9 +625,18 @@ Fläche, Kopfband und Konfetti weg, der Titel wird dunkel.
 | Dschungel | `dschungel` | 1 Urwald (#2d6a4f #1b4332 #f9c74f #2a9d8f), 2 Lagune (#1d7874 #0b3c49 #f6bd60 #84a59d), 3 Mangrove (#3a5a40 #283618 #dda15e #588157) | Welle | linie | `0.6 punkt` |
 | Ruhig | `ruhig` | 1 Grau (#343a40 #1d3557 #c4cad0 #6c757d), 2 Tinte (#1d3557 #343a40 #c3cedd #5c6f8a), 3 Schiefer (#2f3e46 #354f52 #c5cfc2 #52796f) | ohne | linie | `0 punkt` |
 <!-- /erzeugt: aufmachungen -->
-<!-- << 114 -->
 
-<!-- >> 115 Fläche im Stapel -->
+**Freigelegtes Rezept.** „Freilegen“ (Schublade „Rezepte“ oder Reiter „Blatt“) macht alle Teile zu normaler
+Gestaltung: `data-aufmachung*` am `body` und die Farben `--a1` … verschwinden, `data-aufmachung-teil` und
+`data-gesperrt` an den Teilen auch. Jedes Teil trägt die Farben dann selbst in seinem `style`
+(`--a1:#2d6a4f;--a2:#1b4332;…`), ein späteres Rezept färbt es nicht um. Das Kopfband wird eine Form
+`svg.form[data-form="pfad"]` mit Verlauf ganz unten in `.ebene.hinten`, mit `data-sw="weg"`. Der Titel bekommt seine
+Farbe als `style="color:#…"`.
+
+- `data-sw="dunkel"` an einem Text (nur am Titel eines freigelegten Rezepts): in s/w dunkel statt der eigenen Farbe,
+  sonst stünde weißer Titel auf weißem Grund. Nicht für anderes benutzen.
+- Freigelegte Teile wie jede Gestaltung ändern; die Werte am `body` gibt es nicht mehr.
+
 ## Fläche im Stapel
 
 Eine **Fläche** ist ein Baustein im Hauptstapel wie eine Aufgabe, aber mit Platz zum freien Gestalten: Ihre Kinder
@@ -647,9 +665,28 @@ Sie schneidet am Rand ab (`overflow:hidden`). Der Stapel schiebt, was darunter s
 - Im Editor: ⌘ beim Ziehen eines Elements aus der Schublade legt es in eine neue Fläche; „In den Stapel“ im ⋯ holt ein
   Element in eine neue Fläche; ein Element auf eine vorhandene Fläche ziehen legt es hinein, daraus heraus ziehen nimmt
   es wieder heraus. Die Höhe zieht man am Griff unter der Fläche.
-<!-- << 115 -->
 
-<!-- >> 116 Pfad -->
+## Gruppe
+
+Was zusammengehört (Figur mit Sprechblase, Etikett aus Form und Schrift), steht in einer **Gruppe**. Sie bewegt, dreht
+und skaliert sich als Ganzes.
+
+```html
+<div class="gruppe" data-lage="frei" style="--x:420px;--y:600px;--b:300px;--h:220px;--drehen:-4deg">
+  <img class="figur-frei" data-lage="frei" data-figur="wilma" src="bilder/wilma.png" alt="Wilma" style="--x:170px;--y:40px;--b:130px">
+  <div class="form-text" data-lage="frei" data-form="sprechblase" style="--x:0px;--y:0px;--b:180px;--h:84px">…</div>
+</div>
+```
+
+- In einer Gruppe stehen **nur Gestaltungselemente** (`data-lage="frei"`), nie Bausteine (Aufgaben, Text, Bilder im
+  Stapel). Eine Gruppe darf eine Gruppe enthalten.
+- `--x --y --b --h` der Gruppe umschließen die Kinder (nach deren Drehung); die Kinder stehen **in Koordinaten der
+  Gruppe**, also relativ zu ihrer linken oberen Ecke. Lage und Größe erben sie nicht.
+- Drehen und Spiegeln der Gruppe nur an der Gruppe (`--drehen`, `--spiegeln`), die Kinder drehen mit.
+- Größer oder kleiner: `--x --y --b --h` jedes Kinds mit demselben Faktor ändern wie die Gruppe (px skalieren nicht von
+  selbst), bei Schmuckschrift auch `--gr`. Strichstärken bleiben.
+- Am Anker trägt die Gruppe `data-anker`, nicht ihre Kinder.
+
 ## Eigene Form (Pfad)
 
 Eine eigene Form ist ein `svg.form` mit `data-form="pfad"`. **Hier ist das `d` die Quelle**, es gibt keine Parameter.
@@ -673,85 +710,7 @@ Eine eigene Form ist ein `svg.form` mit `data-form="pfad"`. **Hier ist das `d` d
 - Im Editor: Stift P zeichnet freihand und glättet beim Loslassen; endet der Zug am Anfang, ist er geschlossen.
   Pfad ⇧P setzt Punkte (Klick Ecke, Ziehen Kurve, Enter beendet, Klick auf den ersten Punkt schließt). Doppelklick
   auf einen Pfad bearbeitet seine Punkte.
-<!-- << 116 -->
 
-<!-- >> 117 Figur von Claude -->
-## Figur von Claude
-
-Wünscht sich die Lehrkraft eine eigene Figur („Figur von Claude zeichnen lassen“ in der Figuren-Schublade), zeichnest
-du sie als freies Element (`data-frei`, `data-frei-titel`, siehe `abbildungen.md`, „Freies Element“) **mit**
-`data-lage="frei"` in `.ebene.vorne` der genannten Seite. Der Auftrag nennt die Seite. Nur SVG, kein Bild, kein Foto.
-
-```html
-<div class="ebene vorne">
-  <svg data-frei data-frei-titel="Eule mit Brille" data-lage="frei" viewBox="0 0 160 180"
-       style="--x:420px;--y:360px;--b:160px">
-    <g style="stroke:var(--dunkel);stroke-width:3px;stroke-linejoin:round">
-      <path d="M30 60 L40 20 L62 46 Q80 40 98 46 L120 20 L130 60 Q150 120 120 160 Q80 178 40 160 Q10 120 30 60 Z"
-            style="fill:var(--fuell)"/>
-      <ellipse cx="80" cy="128" rx="30" ry="30" style="fill:#ffffff"/>
-      <circle cx="58" cy="78" r="18" style="fill:#ffffff"/>
-      <circle cx="102" cy="78" r="18" style="fill:#ffffff"/>
-      <path d="M76 78 L84 78" style="fill:none"/>
-      <path d="M74 94 L80 106 L86 94 Z" style="fill:var(--akzent)"/>
-    </g>
-    <circle cx="58" cy="80" r="6" style="fill:var(--dunkel)"/>
-    <circle cx="102" cy="80" r="6" style="fill:var(--dunkel)"/>
-  </svg>
-</div>
-```
-
-- Ein **neues** Element: Was schon auf dem Blatt steht, auch ein gewählter Baustein, bleibt unverändert.
-- Größe 120–200px in `--b`, `viewBox` passend zur Figur, kein `width`/`height` und kein `--h`: Die Höhe kommt aus
-  der `viewBox`. Lage frei neben der Aufgabe, um die es geht, nie über Text.
-- Farben als `var(--haupt)`, `var(--akzent)`, `var(--dunkel)`, `var(--fuell)` oder Weiß, damit die Figur zur Palette
-  passt. Eine dunkle Kontur um jede Fläche, damit sie in s/w lesbar bleibt; Linien mindestens 1,5px.
-- Wenige Pfade (höchstens etwa 15), einfache Formen, freundlicher Ausdruck, keine Schrift in der Figur.
-- `data-frei-titel` ist der Name in den Ebenen, z. B. „Eule mit Brille“.
-- Im Editor: Ein freies Element im Stapel legt „Frei legen“ (⋯) an derselben Stelle nach vorne; zurück geht es nur
-  über „In den Stapel“ in eine Fläche.
-<!-- << 117 -->
-
-<!-- >> 118 Daten der Rezepte -->
-<!-- << 118 -->
-
-<!-- >> 119 Rezepte freilegen -->
-**Freigelegtes Rezept.** „Freilegen“ (Schublade „Rezepte“ oder Reiter „Blatt“) macht alle Teile zu normaler
-Gestaltung: `data-aufmachung*` am `body` und die Farben `--a1` … verschwinden, `data-aufmachung-teil` und
-`data-gesperrt` an den Teilen auch. Jedes Teil trägt die Farben dann selbst in seinem `style`
-(`--a1:#2d6a4f;--a2:#1b4332;…`), ein späteres Rezept färbt es nicht um. Das Kopfband wird eine Form
-`svg.form[data-form="pfad"]` mit Verlauf ganz unten in `.ebene.hinten`, mit `data-sw="weg"`. Der Titel bekommt seine
-Farbe als `style="color:#…"`.
-
-- `data-sw="dunkel"` an einem Text (nur am Titel eines freigelegten Rezepts): in s/w dunkel statt der eigenen Farbe,
-  sonst stünde weißer Titel auf weißem Grund. Nicht für anderes benutzen.
-- Freigelegte Teile wie jede Gestaltung ändern; die Werte am `body` gibt es nicht mehr.
-<!-- << 119 -->
-
-<!-- >> 120 Gruppen -->
-## Gruppe
-
-Was zusammengehört (Figur mit Sprechblase, Etikett aus Form und Schrift), steht in einer **Gruppe**. Sie bewegt, dreht
-und skaliert sich als Ganzes.
-
-```html
-<div class="gruppe" data-lage="frei" style="--x:420px;--y:600px;--b:300px;--h:220px;--drehen:-4deg">
-  <img class="figur-frei" data-lage="frei" data-figur="wilma" src="bilder/wilma.png" alt="Wilma" style="--x:170px;--y:40px;--b:130px">
-  <div class="form-text" data-lage="frei" data-form="sprechblase" style="--x:0px;--y:0px;--b:180px;--h:84px">…</div>
-</div>
-```
-
-- In einer Gruppe stehen **nur Gestaltungselemente** (`data-lage="frei"`), nie Bausteine (Aufgaben, Text, Bilder im
-  Stapel). Eine Gruppe darf eine Gruppe enthalten.
-- `--x --y --b --h` der Gruppe umschließen die Kinder (nach deren Drehung); die Kinder stehen **in Koordinaten der
-  Gruppe**, also relativ zu ihrer linken oberen Ecke. Lage und Größe erben sie nicht.
-- Drehen und Spiegeln der Gruppe nur an der Gruppe (`--drehen`, `--spiegeln`), die Kinder drehen mit.
-- Größer oder kleiner: `--x --y --b --h` jedes Kinds mit demselben Faktor ändern wie die Gruppe (px skalieren nicht von
-  selbst), bei Schmuckschrift auch `--gr`. Strichstärken bleiben.
-- Am Anker trägt die Gruppe `data-anker`, nicht ihre Kinder.
-<!-- << 120 -->
-
-<!-- >> 121 Kombinieren -->
 ## Kombinierte Formen
 
 Vereinen, Abziehen, Schnitt, Ausschluss und die Formen-Schere im Editor machen aus mehreren Formen **einen normalen
@@ -767,7 +726,6 @@ Teilpfade in **einem** `d` und der Pfad hat `fill-rule:evenodd` im `style`:
 
 - Ein Loch nur mit `fill-rule:evenodd`, nie als weiße Fläche darüber (die deckt im Druck den Hintergrund ab).
 - Wer so einen Pfad ändert, behält `evenodd` und schreibt alle Teilpfade in dasselbe `d`.
-<!-- << 121 -->
 
 <!-- >> 125 Weitere Stapel -->
 <!-- << 125 -->

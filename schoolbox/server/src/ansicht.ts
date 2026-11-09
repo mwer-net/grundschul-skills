@@ -237,7 +237,7 @@ export const ansichtRouter = (kontext: Kontext) => {
 			.send(katalogVorschau(eintrag, leseStarter(), `${req.baseUrl}/${ASSETS_PFAD}/`, req.query.fit === '1'));
 	});
 
-	// >> 119 Vorschau eines Rezepts: erste Seite, Rezept nur in der Antwort
+	// Vorschau eines Rezepts: erste Seite, Rezept nur in der Antwort
 	const nurSeite = (quelle: string, seite: unknown) => {
 		if (seite !== '1') {
 			return quelle;
@@ -258,7 +258,6 @@ export const ansichtRouter = (kontext: Kontext) => {
 			return quelle;
 		}
 	};
-	// << 119
 
 	router.get('/:mappe/dokumente/:dok', (req, res) => {
 		const [pfad, query] = req.originalUrl.split('?', 2);

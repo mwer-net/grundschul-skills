@@ -21,15 +21,13 @@ const EDITOR_STIL =
 	'body.loesung .antwort:not([data-l])::after,body.loesung .antwort[data-l=""]::after{content:"?";' +
 	'color:#b45309;font-weight:700}' +
 	'@media screen{body{background:transparent!important;padding:12px 0!important}}' +
-	// >> 097 Gestaltung: Gesperrtes, Seitenfläche und -rahmen lassen Klicks durch; Gestaltung zieht man.
+	// Gestaltung: Gesperrtes, Seitenfläche und -rahmen lassen Klicks durch; Gestaltung zieht man.
 	'[data-gesperrt],[data-gesperrt] *,.seitenflaeche,.seitenflaeche *,.seitenrahmen,.seitenrahmen *' +
 	'{pointer-events:none!important}[data-lage="frei"]:not(:focus){cursor:move}' +
-	// << 097
-	// >> 115 Fläche im Stapel: nur im Editor ein gestrichelter Umriss (leer ist sie sonst nicht zu sehen); beim Ziehen
+	// Fläche im Stapel: nur im Editor ein gestrichelter Umriss (leer ist sie sonst nicht zu sehen); beim Ziehen
 	// eines Elements schneidet sie nicht ab, damit es beim Herausziehen zu sehen ist (`flaeche-ziel.ts`)
 	'.flaeche{outline:1px dashed rgba(0,0,0,.3);outline-offset:-1px}' +
 	'[data-flaeche-offen] .flaeche{overflow:visible!important}' +
-	// << 115
 	'</style>';
 
 /** Die Prüfung aus blatt.py, hier ohne Selbststart: Der Editor ruft `pruefeBlatt` nach jeder Änderung (020). */

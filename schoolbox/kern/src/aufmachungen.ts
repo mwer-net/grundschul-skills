@@ -478,7 +478,6 @@ export const zieheAufmachungNach = (quelle: string) => {
 	return formatVon(quelle) ? wendeAufmachungAn(quelle, w.id, w) : entferneAufmachung(quelle);
 };
 
-// >> 123
 /**
  * Nach einem Vorschlag von Claude (123): die Teile aus den Werten am `body` neu erzeugen. So passen Teile und Werte
  * wieder zusammen, auch wenn Claude nur einen Wert geändert oder ein Teil von Hand angefasst hat. Ohne Rezept, mit
@@ -491,7 +490,6 @@ export const gleicheAufmachungAb = (quelle: string) => {
 	}
 	return wendeAufmachungAn(quelle, w.id, w);
 };
-// << 123
 
 // ── Freilegen ───────────────────────────────────────────────────────────────
 
@@ -509,7 +507,7 @@ export interface KopfbandMass {
 
 const PFAD = /^[MmLlHhVvCcSsQqTtAaZz0-9eE.,\s+-]+$/;
 
-// >> 119 Freilegen: Farben einfrieren, Titel in s/w, Kopfband als Pfad mit derselben Kante wie die Maske
+// Freilegen: Farben einfrieren, Titel in s/w, Kopfband als Pfad mit derselben Kante wie die Maske
 
 /** Die Variablen der Farbwelt als `style`-Text, damit ein freigelegtes Teil ohne Rezept am `body` gleich bleibt. */
 const eingefroren = (welt: Farbwelt) =>
@@ -585,7 +583,6 @@ const kopfbandHtml = (id: string, { b, d, h }: KopfbandMass, welt: Farbwelt | nu
 	`<defs><linearGradient id="${id}"><stop offset="0" style="stop-color:var(--a1)"/>` +
 	`<stop offset="1" style="stop-color:var(--a2)"/></linearGradient></defs>` +
 	`<path d="${d.trim()}" fill="url(#${id})" style="stroke:none"/></svg>`;
-// << 119
 
 /** Der Titel im Kopf einer Seite: das erste `h1` in `.kopf`. */
 const titelIn = (seite: Knoten) =>

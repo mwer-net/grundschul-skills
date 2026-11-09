@@ -709,7 +709,7 @@ const Bearbeitung = ({ dokument, mappe: mappenDaten }: { mappe: Mappe; dokument:
 			befehlAusfuehren(richtung === 'zurueck' ? 'dokument.rueckgaengig' : 'dokument.wiederholen');
 	}, [befehlAusfuehren]);
 
-	// >> 119 Inspektor ohne Rezept: „Rezepte öffnen“
+	// Inspektor ohne Rezept: „Rezepte öffnen“
 	const rezepteOffen = panels.linksOffen && panels.links === 'rezepte';
 	useEffect(() => {
 		const oeffne = () => {
@@ -720,7 +720,6 @@ const Bearbeitung = ({ dokument, mappe: mappenDaten }: { mappe: Mappe; dokument:
 		window.addEventListener(REZEPTE_OEFFNEN, oeffne);
 		return () => window.removeEventListener(REZEPTE_OEFFNEN, oeffne);
 	}, [befehlAusfuehren, rezepteOffen]);
-	// << 119
 
 	const zeigeEinstellung = (ort: string) => {
 		panels.setRechts('inspektor');

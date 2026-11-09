@@ -372,7 +372,6 @@ describe('Bestand (Entscheidung 26)', () => {
 	});
 });
 
-// >> 113
 describe('fuerAlle und ordneAlle (113)', () => {
 	it('löscht drei Elemente in einem Schritt, auch wenn sich die Nummern verschieben', () => {
 		const vorher = blatt(...ebene('hinten', FLAECHE, A, B), ...ebene('vorne', C));
@@ -401,4 +400,3 @@ describe('fuerAlle und ordneAlle (113)', () => {
 		assert.ok(!ordneAlle(zwei, hinten, 'zurueck').quelle.includes('data-mehrfach-schritt'));
 	});
 });
-// << 113

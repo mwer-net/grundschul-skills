@@ -58,7 +58,7 @@ export const zeichneFormAnzeige: AnzeigeFolge = (element, b, h) => {
 	spitze.setAttribute('style', spitzenStil(farbe === 'none' ? null : farbe));
 };
 
-// >> 109 Streuung
+// Streuung
 /** Was zuletzt in eine Streuung gezeichnet wurde: Größe und Parameter, damit gleiches Zeichnen nichts tut. */
 const GEZEICHNET = new WeakMap<Element, string>();
 
@@ -85,9 +85,8 @@ export const zeichneStreuungAnzeige = (element: Element, b: number, h: number, n
 	element.innerHTML = streuungInnen(parameter);
 	GEZEICHNET.set(element, schluessel);
 };
-// << 109
 
-// >> 116 Pfad
+// Pfad
 /** Was der Pfad vor der Geste zeigte: `d` und Größe. Gestreckt wird immer von dort, damit sich nichts aufrundet. */
 const PFAD_START = new WeakMap<Element, { d: string; b: number; h: number; geschrieben: string }>();
 
@@ -120,7 +119,6 @@ export const zeichnePfadAnzeige: AnzeigeFolge = (element, b, h) => {
 	element.setAttribute('viewBox', `0 0 ${breite} ${hoehe}`);
 	PFAD_START.set(element, { ...start, geschrieben: neu });
 };
-// << 116
 
 const FOLGEN: readonly AnzeigeFolge[] = [
 	zeichneFormAnzeige, // 104 Formen; 107 Form mit Text und Linie in derselben Funktion

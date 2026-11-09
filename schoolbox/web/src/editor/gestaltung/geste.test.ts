@@ -147,7 +147,6 @@ describe('griffeFuer und haeltVerhaeltnis', () => {
 	});
 });
 
-// >> 113
 describe('dreheUm und skaliereMit (Mehrfachauswahl)', () => {
 	it('dreht um einen fremden Punkt: die Mitte wandert auf dem Kreis, der Winkel kommt dazu', () => {
 		const k: Kasten = { x: 0, y: 0, b: 20, h: 20, drehen: 10 };
@@ -175,9 +174,8 @@ describe('dreheUm und skaliereMit (Mehrfachauswahl)', () => {
 		assert.equal(r.drehen, 30);
 	});
 });
-// << 113
 
-// >> 120 Gruppen
+// Gruppen
 describe('Kanten-Griff einer Gruppe mit Figur (120)', () => {
 	it('skaliert gleichmäßig; die gezogene Kante wandert, quer dazu bleibt die Mitte', async () => {
 		const { gleichmaessig } = await import('./gruppe-messen');
@@ -193,4 +191,3 @@ describe('Kanten-Griff einer Gruppe mit Figur (120)', () => {
 		nah(unten.y, K.y, 'obere Kante');
 	});
 });
-// << 120

@@ -77,7 +77,7 @@ const gutFuer = (t: SchubladenTeile, f: Figur, src: string, blick: Blick) =>
 		imStapel: tippMit(t, f, src),
 	});
 
-// >> 117 Figur von Claude zeichnen lassen
+// Figur von Claude zeichnen lassen
 /** Seite n (ab 1): die der Auswahl, sonst die, von der am meisten zu sehen ist. `null` ohne Seite (Übersicht). */
 const seiteFuerFigur = (t: SchubladenTeile) => {
 	const { doc } = t;
@@ -162,7 +162,6 @@ const FigurVonClaude = ({ t }: { t: SchubladenTeile }) => {
 		</section>
 	);
 };
-// << 117
 
 const Inhalt = (t: SchubladenTeile) => {
 	const [blick, setBlick] = useState<Blick>(blickJetzt);
