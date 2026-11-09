@@ -602,7 +602,10 @@ Fläche, Kopfband und Konfetti weg, der Titel wird dunkel.
 <!-- erzeugt: aufmachungen -->
 | Rezept | `data-aufmachung` | Farbwelten (`data-aufmachung-farben` 1–3) | Kopfband | Rahmen | Konfetti |
 |---|---|---|---|---|---|
+| Detektiv | `detektiv` | 1 Spurensuche (#1d3557 #f77f00 #2a9d8f #ffc43d), 2 Lupe (#3d348b #e76f51 #2a9d8f #f4a261), 3 Geheimakte (#22333b #c1121f #457b9d #f2c14e) | ohne | gestrichelt | `0.6 dreieck raute punkt` |
 | Zirkus | `zirkus` | 1 Manege (#e63946 #f77f00 #fcbf49 #1d3557), 2 Zuckerwatte (#d6336c #f06595 #ffd43b #3b2f7a), 3 Abendvorstellung (#1971c2 #7048e8 #fcc419 #e03131) | Welle | gepunktet | `0.6 punkt dreieck stern` |
+| Dschungel | `dschungel` | 1 Urwald (#2d6a4f #1b4332 #f9c74f #2a9d8f), 2 Lagune (#1d7874 #0b3c49 #f6bd60 #84a59d), 3 Mangrove (#3a5a40 #283618 #dda15e #588157) | Welle | linie | `0.6 punkt` |
+| Ruhig | `ruhig` | 1 Grau (#343a40 #1d3557 #c4cad0 #6c757d), 2 Tinte (#1d3557 #343a40 #c3cedd #5c6f8a), 3 Schiefer (#2f3e46 #354f52 #c5cfc2 #52796f) | ohne | linie | `0 punkt` |
 <!-- /erzeugt: aufmachungen -->
 <!-- << 114 -->
 
