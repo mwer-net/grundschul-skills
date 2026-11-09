@@ -7,6 +7,41 @@ sieht ohne Skript gleich aus, im Editor, in der Vorschau und im PDF.
 Leitsatz: **Inhalt rastet ein, Gestaltung liegt frei.** Aufgaben bleiben im Stapel, mit Nummern und Lösung wie bisher.
 Gestaltung liegt in einer von zwei Ebenen je Seite oder hängt an einem Baustein.
 
+<!-- >> 112 Regeln für Claude -->
+## Regeln für Claude
+
+Was die Lehrkraft im Editor frei aufs Blatt legt, steht genau so im HTML, wie diese Datei es beschreibt. Lies und ändere
+es wie eigenes; was du baust, muss sie danach von Hand weiterbearbeiten können. Ein fertiges Deckblatt zum Abschauen:
+`assets/beispiel-deckblatt-formen.html`.
+
+| Regel | So |
+|---|---|
+| Wohin | nie in den Stapel, sondern in `.ebene.hinten`/`.ebene.vorne` am Ende der `.seite` oder mit `data-anker` als letztes Kind in einen Baustein (Abschnitt 5). Fehlt die Ebene, anlegen; eine leere weglassen |
+| Was | nur Schmuck. Was die Kinder lesen oder lösen, ist ein Baustein im Stapel. Ein eigenes Element aus HTML und SVG im Stapel bleibt ein freies Element mit `data-frei` (`references/abbildungen.md`) und wird nicht zur Gestaltung |
+| Unverändert | Gestaltung und Anker, die der Auftrag nicht betrifft, bleiben Zeichen für Zeichen, wie sie sind |
+| Lage | nur `--x --y --b --h --drehen --spiegeln` im `style`, ganze px (Abschnitt 2); kein eigenes `transform`, `width`, `height`, `position` |
+| Formen | `data-form` und die Parameter setzen; der Pfad darf fehlen, der Editor erzeugt ihn beim Öffnen. Ebenso die Teile einer Streuung und der Pfad eines Bogens. Eigene Pfade gehen als `data-form="pfad"` |
+| Schrift | nur Andika und Fredoka |
+| Farben | bevorzugt die Farben des Blatts (Liste unten), sie folgen Palette und Thema; eigene als Hex |
+| Rezepte | Teile mit `data-aufmachung-teil` nicht von Hand ändern, sondern die Werte am `<body>`. Soll ein Teil anders werden, das Attribut vorher entfernen; dann ist er normale Gestaltung |
+| Ids in SVG | Verläufe, Bogenpfade, Masken heißen `<art>-<4 Zeichen a–z, 0–9>` (`verlauf-k3f9`) und kommen im Material nur einmal vor; eine Kopie bekommt neue. Verweise stehen als Attribut (`fill="url(#verlauf-k3f9)"`, `href="#bogen-k3f9"`), nie als `url()` im `style` |
+| Sicher | nur statisches HTML und SVG: kein Skript, keine Ereignisse, kein `foreignObject`, kein SVG-`image`, keine Adressen außerhalb des Blatts. Sonst lehnt der Server den Vorschlag ab |
+
+Farben des Blatts:
+
+<!-- erzeugt: blatt-farben -->
+| Wert | Name im Farbwähler |
+|---|---|
+| `var(--haupt)` | Hauptfarbe |
+| `var(--akzent)` | Akzentfarbe |
+| `var(--dunkel)` | Dunkel |
+| `var(--linie)` | Linienfarbe |
+| `var(--fuell)` | Füllfarbe |
+| `#ffffff` | Weiß |
+| `#rrggbb` | eigene Farbe |
+<!-- /erzeugt: blatt-farben -->
+<!-- << 112 -->
+
 ## 1. Eine Seite, ein Stapel, zwei Ebenen
 
 ```
@@ -63,7 +98,7 @@ Alle sind freiwillig.
 | `data-name` | Name in der Schublade „Ebenen“ |
 | `class="nur-loesung"` / `"nicht-loesung"` | wie bei Bausteinen |
 | `data-ueberlagert-ok` | Überdecken von Inhalt ist gewollt, die Prüfung meldet es nicht |
-| `data-aufmachung-teil` | von einem Rezept erzeugt; nicht von Hand ändern (Abschnitt 7) |
+| `data-aufmachung-teil` | von einem Rezept erzeugt; nicht von Hand ändern (Regeln für Claude) |
 
 ## 4. Arten
 
@@ -137,23 +172,6 @@ an Teilen in einer Aufgabe. Am Anker liegt Gestaltung immer vor dem Inhalt.
 
 Gemessen wird das Rechteck nach dem Drehen. `data-rand-ok` schaltet `druckrand` ab, `data-ueberlagert-ok` schaltet
 `verdeckt` ab. Was hinten liegt, verdeckt nie etwas.
-
-## 7. Regeln für Claude
-
-- Gestaltung nie in den Stapel schreiben, sondern in eine Ebene (`.ebene.hinten` bzw. `.ebene.vorne` am Ende der Seite)
-  oder mit `data-anker` an einen Baustein. Die Ebene anlegen, wenn es sie noch nicht gibt; eine leere Ebene weglassen.
-- Teile mit `data-aufmachung-teil` nicht von Hand ändern, sondern die Werte am `<body>`. Soll ein Teil anders werden, das
-  Attribut vorher entfernen; dann ist er normale Gestaltung.
-- Für Formen die Parameter setzen (`data-form`, `data-zacken` …); der Pfad darf fehlen, der Editor erzeugt ihn beim
-  Öffnen. Eigene Pfade gehen als `data-form="pfad"`.
-- Keine anderen Schriften als Andika und Fredoka.
-- Farben bevorzugt aus der Palette: `var(--haupt)`, `var(--akzent)`, `var(--dunkel)`, `var(--linie)`, `var(--fuell)`.
-  Eigene Farben als Hex.
-- Ids in SVG (Verläufe, Bogenpfade, Masken) heißen `<art>-<4 Zeichen>` (`verlauf-k3f9`) und sind im Dokument eindeutig.
-  Verweise darauf stehen als Attribut (`fill="url(#verlauf-k3f9)"`, `href="#bogen-k3f9"`), nicht als `url()` im
-  `style`.
-- Nur statisches HTML und SVG: kein Skript, keine Ereignisse, kein `foreignObject`, kein SVG-`image`, keine Adressen
-  außerhalb des Blatts.
 
 <!-- >> 095 Seitenfläche und Seitenrahmen -->
 ## Seitenfläche und Seitenrahmen
@@ -271,9 +289,9 @@ Pfads in Elementgröße. Ändert sich die Größe, zeichnet der Editor beides ne
 | Herz | `herz` | ohne Text | – | 120 × 120 |
 | Wolke | `wolke` | ohne Text | `data-bogen` 4–10, Standard 6 | 120 × 120 |
 | Pfeil | `pfeil` | ohne Text | `data-spitze` 0.1–0.6, Standard 0.35; `data-schaft` 0.2–0.8, Standard 0.45 | 120 × 120 |
-| Sprechblase | `sprechblase` | mit Text | `data-blase` 0–2, Standard 0 | 180 × 84 |
+| Sprechblase | `sprechblase` | mit Text | `data-blase` `rund`, `eckig`, `gedanke`, Standard `rund` | 180 × 84 |
 | Band | `band` | mit Text | `data-kerbe` 0–0.3, Standard 0.15 | 180 × 84 |
-| Linie | `linie` | Linie | `data-anfang` 0–2, Standard 0; `data-ende` 0–2, Standard 0 | 180 × 20 |
+| Linie | `linie` | Linie | `data-anfang` `keine`, `pfeil`, `punkt`, Standard `keine`; `data-ende` `keine`, `pfeil`, `punkt`, Standard `keine` | 180 × 20 |
 <!-- /erzeugt: formen -->
 
 - **Der Pfad darf fehlen.** Claude setzt `data-form`, die Parameter, `--b`, `--h` und die Farben; `viewBox` und `d`
@@ -408,7 +426,8 @@ Stärke s: gestrichelt `3s 2s`, gepunktet `0 2s` mit runden Enden. Claude setzt 
 Werte passend dazu.
 
 ```html
-<svg class="form" data-lage="frei" data-form="rechteck" data-radius="16" data-kontur-stil="gestrichelt" …>
+<svg class="form" data-lage="frei" data-form="rechteck" data-radius="16" data-kontur-stil="gestrichelt"
+     viewBox="0 0 200 120" style="--x:300px;--y:400px;--b:200px;--h:120px">
   <path d="…" style="fill:none;stroke:var(--dunkel);stroke-width:3px;stroke-linejoin:round;stroke-dasharray:9 6"/>
 </svg>
 ```
@@ -425,7 +444,7 @@ blasses Bild in der Ebene hinten.
 
 ```html
 <div class="ebene hinten">
-  <img class="bild-frei" data-lage="frei" src="bilder/wiese.jpg" alt="" style="--x:0px;--y:0px;--b:794px;opacity:0.4">
+  <img class="bild-frei" data-lage="frei" src="bilder/wiese.jpg" alt="" style="--b:794px;opacity:0.4">
 </div>
 ```
 <!-- << 108 -->
@@ -438,7 +457,18 @@ Eine Streuung ist **ein** Element mit vielen erzeugten Teilen. Sie liegt hinten 
 ```html
 <svg class="streuung" data-lage="frei" data-streuung="konfetti" data-saat="4711" data-dichte="0.5"
      data-formen="punkt dreieck raute streifen" data-farben="haupt akzent dunkel" data-groesse="mittel"
-     viewBox="0 0 300 300" style="--x:0px;--y:0px;--b:300px;--h:300px"></svg>
+     viewBox="0 0 300 300" style="--b:300px;--h:300px"></svg>
+```
+
+So steht sie nach dem Öffnen im Editor, mit gespeicherten Teilen (Punkte in der Ecke links unten):
+
+```html
+<svg class="streuung" data-lage="frei" data-streuung="punkte" data-saat="4711" data-dichte="0.5"
+     data-formen="punkt" data-farben="haupt akzent dunkel" viewBox="0 0 220 260"
+     style="--y:863px;--b:220px;--h:260px">
+  <circle cx="18" cy="242" r="7" style="fill:var(--haupt)"/>
+  <circle cx="48" cy="242" r="5" style="fill:var(--akzent)"/>
+</svg>
 ```
 
 | Attribut | Bereich | Standard |

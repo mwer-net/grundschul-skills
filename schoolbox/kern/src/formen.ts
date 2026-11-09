@@ -385,6 +385,10 @@ export const zeichneFormNeu = (quelle: string, nr: number) => {
 // ── Referenz ────────────────────────────────────────────────────────────────
 
 const bereich = (p: FormParameter) => {
+	// 112: Eine Auswahl steht in der Referenz mit ihren Werten (`rund`), nicht mit dem Index, den der Kern rechnet.
+	if (p.werte) {
+		return `\`${p.attr}\` ${p.werte.map((w) => `\`${w.wert}\``).join(', ')}, Standard \`${parameterText(p, p.standard)}\``;
+	}
 	const einheit = p.einheit === 'px' ? ' px' : '';
 	return `\`${p.attr}\` ${zahl(p.min)}–${zahl(p.max)}${einheit}, Standard ${zahl(p.standard)}`;
 };
