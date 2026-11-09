@@ -7,6 +7,7 @@ import type { VerlaufWahl } from '../../../bausteine/Farbwahl';
 import { Farbwahl } from '../../../bausteine/Farbwahl';
 import { Stepper } from '../../../bausteine/Stepper';
 import { Zeile } from '../../../bausteine/Zeile';
+import { pfadDerForm } from '../anzeige-folgen';
 import type { GestaltungKontext } from '../kontext';
 
 export const SCHWARZ = '#000000';
@@ -94,7 +95,7 @@ const Farben = ({
 
 /** Nur ansehen: eine Eigenschaft im `style` des Pfads im `iframe`. */
 const zeigeAmPfad = (k: GestaltungKontext, eigenschaft: string, wert: string) => {
-	const pfad = [...k.element.children].find((c) => c.localName === 'path') as SVGElement | undefined;
+	const pfad = pfadDerForm(k.element) as SVGElement | null; // 107: auch in `.form-text`
 	pfad?.style.setProperty(eigenschaft, wert);
 };
 

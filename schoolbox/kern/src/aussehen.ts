@@ -12,7 +12,7 @@
  * - **Deckkraft**: `opacity` im `style` des Elements.
  */
 
-import { pfadVon, setzeAttributAn, stilMit, stilWert, strichAus } from './formen';
+import { formVon, pfadVon, setzeAttributAn, stilMit, stilWert, strichAus } from './formen';
 import { zahl } from './formen-geometrie';
 import { GESTALTUNG_ARTEN } from './gestaltung-arten';
 import { istGestaltung, neueId, setzeStilWerte } from './gestaltung';
@@ -243,7 +243,8 @@ export const konturStilNeu = (quelle: string, nr: number) => {
 	const alt = attribut(pfad, 'style')?.wert ?? null;
 	const s = strichAus(alt);
 	const strich = s > 0 && stil !== 'durchgezogen';
-	const rund = s > 0 && (enden === 'rund' || stil === 'gepunktet');
+	const linie = formVon(attribut(k, 'data-form')?.wert)?.klasse === 'linie'; // 107: Linie und Pfeil enden immer rund
+	const rund = s > 0 && (linie || enden === 'rund' || stil === 'gepunktet');
 	const werte: Record<string, string | null> = {
 		'stroke-dasharray': strich ? (stil === 'gestrichelt' ? `${zahl(3 * s)} ${zahl(2 * s)}` : `0 ${zahl(2 * s)}`) : null,
 		'stroke-linecap': rund ? 'round' : null,

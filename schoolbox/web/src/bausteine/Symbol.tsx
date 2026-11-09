@@ -1,6 +1,13 @@
 import type { LucideIcon } from 'lucide-react';
 import {
 	Anchor,
+	Circle,
+	Cloud,
+	Hexagon,
+	MoveUpRight,
+	RectangleHorizontal,
+	Ribbon,
+	Slash,
 	ArrowDown,
 	ArrowLeft,
 	ArrowRight,
@@ -201,6 +208,15 @@ const SYMBOLE = {
 	// >> 106 Anker
 	anker: Anchor,
 	// << 106
+	// >> 107 Formen-Werkzeuge
+	rechteck: RectangleHorizontal,
+	ellipse: Circle,
+	vieleck: Hexagon,
+	linie: Slash,
+	pfeil: MoveUpRight,
+	denkblase: Cloud,
+	band: Ribbon,
+	// << 107
 	// >> 109 Streuung
 	wuerfeln: Dices,
 	// << 109

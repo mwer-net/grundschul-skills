@@ -144,7 +144,8 @@
     });
 
     // 2. Abgeschnittener oder zu breiter Text; eine Ebene schneidet mit Absicht am Blattrand ab
-    alle.filter((e) => !e.classList.contains("ebene") && e.scrollWidth > e.clientWidth + 2 && e.clientWidth > 0 && getComputedStyle(e).overflowX !== "visible")
+    // 107: Text in einer Form mit Text (.form-inhalt) läuft nach unten über, darum dort auch die Höhe
+    alle.filter((e) => !e.classList.contains("ebene") && ((e.scrollWidth > e.clientWidth + 2 && e.clientWidth > 0 && getComputedStyle(e).overflowX !== "visible") || (e.classList.contains("form-inhalt") && e.scrollHeight > e.clientHeight + 2 && e.clientHeight > 0)))
       .forEach((e) => melde("FEHLER", nr, "abgeschnitten", `„${kurz(e)}“ ist abgeschnitten`, [ziel(e)]));
 
     // 3. Überlappungen zwischen Inhalten

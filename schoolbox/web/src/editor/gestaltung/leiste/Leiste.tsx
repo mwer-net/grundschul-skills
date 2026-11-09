@@ -130,10 +130,13 @@ export const Leiste = ({ befehle, e, pfad, quelle, sitzung, struktur }: Eigensch
 					<Trenner />
 				</>
 			)}
-			<Knopf art="leise" groesse="klein" data-drehen onClick={() => drehe(k)}>
-				<Symbol name="drehen" />
-				Drehen
-			</Knopf>
+			{/* 107: Eine Linie hat keine Drehung. */}
+			{!k.element.matches('svg.form[data-form="linie"]') && (
+				<Knopf art="leise" groesse="klein" data-drehen onClick={() => drehe(k)}>
+					<Symbol name="drehen" />
+					Drehen
+				</Knopf>
+			)}
 			<Menue
 				name={`Mehr zu ${name}`}
 				rechtsbuendig

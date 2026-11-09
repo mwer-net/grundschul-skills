@@ -10,23 +10,30 @@ import {
 	formAngaben,
 	formHtml,
 	formVon,
-	FUELLUNG,
 	fuellungAus,
+	fuellungStandard,
 	KONTUR,
 	KONTUR_MAX,
 	konturAus,
+	parameterText,
 	pfadStil,
 	setzeAttributAn,
 	standardWerte,
 	stilMit,
+	strichAus,
 	stilWert,
 	STRICH,
 	vollstaendig,
 	zeichneFormNeu,
 } from './formen';
+import type { Punkt } from './formen-geometrie';
 import { zahl } from './formen-geometrie';
+import type { Ende } from './formen-linie';
+import { ENDEN, LINIEN_GROESSE, linieAus, standardPunkte } from './formen-linie';
+import type { BlasenArt } from './formen-text';
+import { BLASEN, BLASEN_GROESSE, blasenSchrift, standardZipfel, zipfelText } from './formen-text';
 import type { LageTeil } from './gestaltung';
-import { legeGestaltungAb, stilMitLage } from './gestaltung';
+import { legeGestaltungAb, setzeLage, stilMitLage } from './gestaltung';
 import type { Knoten, Zerlegung } from './quelltext';
 import { attribut, fuegeInnenEin, wendeAn, zerlege } from './quelltext';
 import type { StrukturErgebnis } from './struktur';
@@ -76,8 +83,8 @@ export const setzeFormParameter = (quelle: string, nr: number, teil: Readonly<Re
 	const { a, k, z } = formAn(quelle, nr);
 	const werte = vollstaendig(a.form, (attr) => teil[attr] ?? a.param[attr]);
 	const aenderungen = a.form.parameter
-		.filter((p) => p.attr in teil && attribut(k, p.attr)?.wert !== zahl(werte[p.attr] ?? p.standard))
-		.flatMap((p) => setzeAttributAn(z, k, p.attr, zahl(werte[p.attr] ?? p.standard)));
+		.filter((p) => p.attr in teil && attribut(k, p.attr)?.wert !== parameterText(p, werte[p.attr] ?? p.standard))
+		.flatMap((p) => setzeAttributAn(z, k, p.attr, parameterText(p, werte[p.attr] ?? p.standard)));
 	return aenderungen.length ? zeichneFormNeu(wendeAn(quelle, aenderungen), nr) : quelle;
 };
 
@@ -102,7 +109,7 @@ export const wechsleForm = (quelle: string, nr: number, art: string) => {
 	const aenderungen = [
 		...setzeAttributAn(z, k, 'data-form', art),
 		...weg.flatMap((p) => setzeAttributAn(z, k, p.attr, null)),
-		...neu.parameter.flatMap((p) => setzeAttributAn(z, k, p.attr, zahl(standard[p.attr] ?? p.standard))),
+		...neu.parameter.flatMap((p) => setzeAttributAn(z, k, p.attr, parameterText(p, standard[p.attr] ?? p.standard))),
 	];
 	return zeichneFormNeu(wendeAn(quelle, aenderungen), nr);
 };
@@ -170,20 +177,28 @@ const ergaenzeEins = (z: Zerlegung, k: Knoten): string | null => {
 	}
 	const { b, h } = a.groesse;
 	if (!a.pfad) {
+		const { d } = a.form.zeichne(a.param, b, h, STRICH);
+		const grund = pfadStil(fuellungStandard(a.form), { farbe: KONTUR, staerke: STRICH });
+		const stil = a.form.klasse === 'linie' ? (stilMit(grund, { 'stroke-linecap': 'round' }) ?? grund) : grund;
+		const pfad = `<path d="${d}" style="${stil}"/>`;
+		// 107: Fehlt der Form mit Text das `svg`, kommt es samt Pfad vor den Text.
+		if (!a.svg) {
+			return zeichneFormNeu(wendeAn(quelle, fuegeInnenEin(z, k, 'anfang', `<svg viewBox="0 0 ${b} ${h}" aria-hidden="true">${pfad}</svg>`)), k.nr);
+		}
+		const svg = a.svg;
 		// Zeichnet die Form schon selbst (etwa `<rect>`), bleibt sie, wie sie ist; nur eine leere Form bekommt den Pfad.
-		if (k.kinder.some((kind) => !NUR_BEIWERK.has(kind.tag))) {
+		if (svg.kinder.some((kind) => !NUR_BEIWERK.has(kind.tag))) {
 			return null;
 		}
-		const { d } = a.form.zeichne(a.param, b, h, STRICH);
-		const pfad = `<path d="${d}" style="${pfadStil(FUELLUNG, { farbe: KONTUR, staerke: STRICH })}"/>`;
-		const tag = quelle.slice(k.start, k.oeffnerEnde);
-		if (k.oeffnerEnde === k.ende && tag.endsWith('/>')) {
-			return wendeAn(quelle, [{ von: k.start, bis: k.ende, text: `${tag.replace(/\s*\/>$/, '>')}${pfad}</svg>` }]);
+		const tag = quelle.slice(svg.start, svg.oeffnerEnde);
+		if (svg.oeffnerEnde === svg.ende && tag.endsWith('/>')) {
+			return zeichneFormNeu(wendeAn(quelle, [{ von: svg.start, bis: svg.ende, text: `${tag.replace(/\s*\/>$/, '>')}${pfad}</svg>` }]), k.nr);
 		}
-		return wendeAn(quelle, fuegeInnenEin(z, k, 'ende', pfad));
+		// 107: zeichneFormNeu ergänzt viewBox und die Spitzen der Linie.
+		return zeichneFormNeu(wendeAn(quelle, fuegeInnenEin(z, svg, 'ende', pfad)), k.nr);
 	}
 	if (attribut(a.pfad, 'd')?.wert?.trim()) {
-		return attribut(k, 'viewbox') ? null : wendeAn(quelle, setzeAttributAn(z, k, 'viewBox', `0 0 ${b} ${h}`));
+		return a.svg && !attribut(a.svg, 'viewbox') ? wendeAn(quelle, setzeAttributAn(z, a.svg, 'viewBox', `0 0 ${b} ${h}`)) : null;
 	}
 	const neu = zeichneFormNeu(quelle, k.nr);
 	return neu === quelle ? null : neu;
@@ -214,4 +229,77 @@ export const ergaenzeFormen = (quelle: string) => {
 		jetzt = neu;
 	}
 	return jetzt;
+};
+
+// ── 107: Linie und Zipfel ───────────────────────────────────────────────────
+
+/**
+ * Setzt die Linie `nr` von `a` nach `b` (Koordinaten der Seite, wie `--x`): Rechteck, `data-punkte`, Pfad und
+ * Spitzen neu. Ein Schritt für Werkzeug L und die Endpunkt-Griffe.
+ */
+export const setzeLinie = (quelle: string, nr: number, a: Punkt, b: Punkt) => {
+	const { a: angaben } = formAn(quelle, nr);
+	if (angaben.form.klasse !== 'linie') {
+		throw new Error(`Das Element ${nr} ist keine Linie.`);
+	}
+	const { lage, punkte } = linieAus(a, b, strichAus(angaben.stil));
+	const mitLage = setzeLage(quelle, nr, lage);
+	const { k, z } = formAn(mitLage, nr);
+	const neu = attribut(k, 'data-punkte')?.wert === punkte ? mitLage : wendeAn(mitLage, setzeAttributAn(z, k, 'data-punkte', punkte));
+	return zeichneFormNeu(neu, nr);
+};
+
+/** Setzt die Spitze des Zipfels der Sprechblase `nr` (px relativ zur linken oberen Ecke vor dem Drehen). */
+export const setzeZipfel = (quelle: string, nr: number, spitze: Punkt) => {
+	const { k, z } = formAn(quelle, nr);
+	const text = zipfelText({ x: Math.round(spitze.x), y: Math.round(spitze.y) });
+	return attribut(k, 'data-zipfel')?.wert === text
+		? quelle
+		: zeichneFormNeu(wendeAn(quelle, setzeAttributAn(z, k, 'data-zipfel', text)), nr);
+};
+
+export interface FormMitTextAblegen {
+	seite: number;
+	art: 'sprechblase' | 'band';
+	/** `data-blase` bei der Sprechblase. */
+	blase?: BlasenArt;
+	text?: string;
+	/** `--fs` des Blatts: `--gr` ist mindestens das, mindestens 22 px. */
+	fs?: number;
+	lage?: LageTeil;
+}
+
+/** Das HTML einer neuen Form mit Text in Standardgröße: weiß, Kontur dunkel, Zipfel links unten, Text mittig. */
+export const formMitTextHtml = ({ art, blase, fs, text }: Omit<FormMitTextAblegen, 'seite' | 'lage'>) => {
+	const { b, h } = BLASEN_GROESSE;
+	return formHtml({
+		art,
+		b,
+		h,
+		...(art === 'sprechblase'
+			? {
+					param: { 'data-blase': Math.max(0, BLASEN.findIndex((w) => w.wert === (blase ?? 'rund'))) },
+					attribute: { 'data-zipfel': zipfelText(standardZipfel(b, h)) },
+				}
+			: {}),
+		text: text ?? 'Text',
+		stil: `--gr:${blasenSchrift(fs)}px;--ausrichtung:center`,
+	});
+};
+
+/** Legt eine Form mit Text ganz nach vorne in die Ebene `vorne`; ein Schritt, danach gewählt. */
+export const legeFormMitText = (quelle: string, { lage = {}, seite, ...neu }: FormMitTextAblegen) =>
+	legeGestaltungAb(quelle, { seite, html: formMitTextHtml(neu), lage: { ...BLASEN_GROESSE, ...lage } });
+
+/** Das HTML einer neuen Linie in Standardgröße; mit `ende: 'pfeil'` ein Pfeil. */
+export const linieHtml = ({ anfang, ende, punkte, groesse }: { anfang?: Ende; ende?: Ende; punkte?: string; groesse?: { b: number; h: number } } = {}) => {
+	const index = (e: Ende | undefined) => Math.max(0, ENDEN.findIndex((w) => w.wert === (e ?? 'keine')));
+	const { b, h } = groesse ?? LINIEN_GROESSE;
+	return formHtml({
+		art: 'linie',
+		b,
+		h,
+		param: { 'data-anfang': index(anfang), 'data-ende': index(ende) },
+		attribute: { 'data-punkte': punkte ?? standardPunkte() },
+	});
 };

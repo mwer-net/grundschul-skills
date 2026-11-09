@@ -4,12 +4,13 @@ import { leseForm } from '@schoolbox/kern/src/formen-aendern';
 import { verlaufCss } from '../../../bausteine/Farbwahl';
 import { Knopf } from '../../../bausteine/Knopf';
 import { Popover } from '../../../bausteine/Popover';
+import { pfadDerForm } from '../anzeige-folgen';
 import { FuellungWahl, KonturWahl } from '../inspektor/form-farben';
 import type { LeistenKnoepfe, LeistenTeile } from './typen';
 
 /** Wie die Farbe im Material gerade aussieht (Variablen aufgelöst); ohne Pfad `null`. */
 const sichtbar = (element: Element, eigenschaft: 'fill' | 'stroke') => {
-	const pfad = [...element.children].find((c) => c.localName === 'path');
+	const pfad = pfadDerForm(element); // 107: auch in `.form-text`
 	const fenster = element.ownerDocument.defaultView;
 	return pfad && fenster ? fenster.getComputedStyle(pfad).getPropertyValue(eigenschaft) : null;
 };
@@ -27,6 +28,8 @@ const FormKnoepfe = ({ aktiv, k, quelle }: LeistenTeile) => {
 	const kontur = stand.kontur === null ? null : sichtbar(k.element, 'stroke');
 	return (
 		<>
+			{/* 107: Die Linie hat keine Füllung. */}
+			{!k.element.matches('svg.form[data-form="linie"]') && (
 			<Popover
 				name="Füllung"
 				className="w-auto max-w-72"
@@ -43,6 +46,7 @@ const FormKnoepfe = ({ aktiv, k, quelle }: LeistenTeile) => {
 			>
 				<FuellungWahl k={k} quelle={quelle} aktiv={aktiv} />
 			</Popover>
+			)}
 			<Popover
 				name="Kontur"
 				className="w-auto max-w-72"
