@@ -8,6 +8,7 @@ import { after, afterEach, before, describe, it } from 'node:test';
 
 import type { Einordnung, Pruefbericht } from '@schoolbox/kern';
 import { attribut, dokumentDir, KI_AKTIONEN, listeVersionen, WURZEL, zerlege } from '@schoolbox/kern';
+import { leseAufmachung, wendeAufmachungAn } from '@schoolbox/kern/src/aufmachungen';
 import { erzeugeReferenz } from '@schoolbox/kern/src/referenz';
 
 import {
@@ -702,6 +703,31 @@ describe('Aufträge an Claude', () => {
 		assert.doesNotMatch(text, /Claude-App/);
 		assert.doesNotMatch(limitErreichtText(null), /Claude-App|ab /);
 	});
+
+	// >> 123
+	it('Rezept von Claude: Vorschlag wird abgeglichen geschrieben, der Prüfbericht bleibt (123)', async () => {
+		const datei = path.join(dokumentDir(server.materialDir, mappe, dok), 'material.html');
+		const alt = await quelle();
+		const mitRezept = wendeAufmachungAn(alt, 'zirkus');
+		await writeFile(datei, mitRezept);
+		try {
+			pruefbericht = { seiten: [], meldungen: [], fehler: 0 };
+			await fall('rezept-wert');
+			assert.equal((await auftrag({ auftrag: 'Mach das Kopfband zackig' })).status, 'fertig');
+			const wert = await vorschlagQuelle();
+			assert.equal(leseAufmachung(wert)?.kopfband, 'zacken');
+			assert.equal(wert, wendeAufmachungAn(alt, 'zirkus', { kopfband: 'zacken' }), 'Teile passen zum Wert');
+			assert.deepEqual((await vorschlag())?.meldungen, []);
+			await api(`/dokumente/${mappe}/${dok}/vorschlag/verwerfen`, { method: 'POST' });
+
+			await fall('rezept-teil');
+			assert.equal((await auftrag({ auftrag: 'Mach die Fläche blasser' })).status, 'fertig');
+			assert.equal(await vorschlagQuelle(), mitRezept, 'das von Hand geänderte Teil ist zurückgesetzt');
+		} finally {
+			await writeFile(datei, alt);
+		}
+	});
+	// << 123
 
 	describe('Gespräch (087)', () => {
 		const benutzt = new Set<string>();
