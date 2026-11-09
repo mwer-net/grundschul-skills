@@ -56,6 +56,8 @@ interface Eigenschaften {
 	zusatz: readonly ZusatzGriff[];
 	/** Während einer Geste: keine Griffe unter dem Zeiger, die etwas anderes auslösen. */
 	inGeste: boolean;
+	/** 115: Rahmen sichtbar, aber ohne Drehgriff, Ecken und Kanten; nur die Zusatzgriffe (Höhe der Fläche). */
+	nurZusatz?: boolean;
 	starteGriff: (e: ReactPointerEvent<HTMLElement>, element: Element, griff: GriffName | 'drehen') => void;
 	starteZusatz: (
 		e: ReactPointerEvent<HTMLElement>,
@@ -77,6 +79,7 @@ export const Auswahlrahmen = ({
 	inGeste,
 	kasten,
 	links,
+	nurZusatz = false,
 	skala,
 	starteGriff,
 	starteZusatz,
@@ -108,7 +111,7 @@ export const Auswahlrahmen = ({
 		) : (
 			bedienbar && (
 			<>
-				{!ohneRahmen && (<>
+				{!ohneRahmen && !nurZusatz && (<>
 				<span
 					className="absolute left-1/2 w-px bg-brand-500"
 					style={{ top: -DREH_ABSTAND, height: DREH_ABSTAND }}

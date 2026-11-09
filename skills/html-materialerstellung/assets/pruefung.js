@@ -145,8 +145,19 @@
 
     // 2. Abgeschnittener oder zu breiter Text; eine Ebene schneidet mit Absicht am Blattrand ab
     // 107: Text in einer Form mit Text (.form-inhalt) läuft nach unten über, darum dort auch die Höhe
-    alle.filter((e) => !e.classList.contains("ebene") && ((e.scrollWidth > e.clientWidth + 2 && e.clientWidth > 0 && getComputedStyle(e).overflowX !== "visible") || (e.classList.contains("form-inhalt") && e.scrollHeight > e.clientHeight + 2 && e.clientHeight > 0)))
+    alle.filter((e) => !e.classList.contains("ebene") && !e.classList.contains("flaeche") && ((e.scrollWidth > e.clientWidth + 2 && e.clientWidth > 0 && getComputedStyle(e).overflowX !== "visible") || (e.classList.contains("form-inhalt") && e.scrollHeight > e.clientHeight + 2 && e.clientHeight > 0)))
       .forEach((e) => melde("FEHLER", nr, "abgeschnitten", `„${kurz(e)}“ ist abgeschnitten`, [ziel(e)]));
+    // 2b. Fläche im Stapel (115): sie schneidet an ihrem Rand ab; ein Element, das darüber hinausragt, wird gekappt
+    alle.filter((f) => f.classList.contains("flaeche")).forEach((f) => {
+      const F = f.getBoundingClientRect();
+      [...f.children].filter((e) => e.matches('[data-lage="frei"]')).forEach((e) => {
+        const r = e.getBoundingClientRect();
+        if (r.width === 0 && r.height === 0) return;
+        if (r.left < F.left - 2 || r.top < F.top - 2 || r.right > F.right + 2 || r.bottom > F.bottom + 2) {
+          melde("FEHLER", nr, "abgeschnitten", `„${kurz(e)}“ ist abgeschnitten (liegt über den Rand der Fläche hinaus) → Fläche höher ziehen oder das Element verkleinern und nach innen schieben`, [ziel(e)]);
+        }
+      });
+    });
 
     // 3. Überlappungen zwischen Inhalten
     const INHALT = "img,svg:not(.kl-kreis>svg),.spiel-zelle,.kreuz-hinweise li,.raetsel-liste li,.kreuz-titel,.raetsel-wort>span,.blase,.anw,h1,.ziel,.wahlhilfe,.zeile,.antwort,table,.nr,.schreiblinie,.kartentext,.item,.platzhalter,x-wortarten,x-satzglieder,x-wortbausteine,.kl-station,.kl-pfeil,x-stellentafel,x-silben,.timer-text,.leerstelle,.vermutung";

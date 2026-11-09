@@ -63,11 +63,9 @@ interface Optionen {
 	struktur: Pick<Struktur, 'aktiv' | 'fuehreAus'>;
 }
 
-/** `null`, wenn kein Gestaltungselement gewählt ist oder das Dokument nicht zur Quelle passt. */
-export const gestaltungKontext = ({ doc, pfad, struktur }: Optionen): GestaltungKontext | null => {
+const bauKontext = ({ doc, pfad, struktur }: Optionen, element: Element): GestaltungKontext | null => {
 	const gewaehlt = pfad.at(-1);
-	const element = doc && gewaehlt ? elementZu(doc, gewaehlt.nr) : null;
-	if (!doc || !gewaehlt || !istGestaltungElement(element)) {
+	if (!doc || !gewaehlt) {
 		return null;
 	}
 	return {
@@ -88,4 +86,21 @@ export const gestaltungKontext = ({ doc, pfad, struktur }: Optionen): Gestaltung
 			return seite ? nrVon(seite) : null;
 		},
 	};
+};
+
+/** `null`, wenn kein Gestaltungselement gewählt ist oder das Dokument nicht zur Quelle passt. */
+export const gestaltungKontext = (o: Optionen): GestaltungKontext | null => {
+	const gewaehlt = o.pfad.at(-1);
+	const element = o.doc && gewaehlt ? elementZu(o.doc, gewaehlt.nr) : null;
+	return istGestaltungElement(element) ? bauKontext(o, element) : null;
+};
+
+/**
+ * 115: Derselbe Kontext für die gewählte Fläche im Stapel, nur für ihren Höhen-Griff. `gestaltungKontext` bleibt bei
+ * Gestaltungselementen, damit Befehle und Inspektor der Gestaltung bei der Fläche nicht anspringen.
+ */
+export const flaechenKontext = (o: Optionen): GestaltungKontext | null => {
+	const gewaehlt = o.pfad.at(-1);
+	const element = o.doc && gewaehlt ? elementZu(o.doc, gewaehlt.nr) : null;
+	return element?.matches('.flaeche') ? bauKontext(o, element) : null;
 };

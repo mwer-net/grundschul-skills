@@ -516,6 +516,8 @@ svg.schmuck{overflow:visible;display:block}
 /* << 114 */
 
 /* >> 115 Fläche im Stapel */
+/* Eine Fläche steht im Stapel wie ein Baustein; ihre Elemente liegen in ihren Koordinaten und werden am Rand abgeschnitten. */
+.flaeche { position: relative; flex: none; height: var(--h, 200px); overflow: hidden; }
 /* << 115 */
 
 /* >> 118 Rezepte Daten */

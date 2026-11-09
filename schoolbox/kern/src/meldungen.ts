@@ -95,9 +95,12 @@ const TABELLE: Record<MeldungCode, Uebersetzung> = {
 		satz: `${a} ragt in den Rand und wird beim Drucken vielleicht abgeschnitten.`,
 		tipp: KUERZEN,
 	}),
-	'abgeschnitten': ([a = 'einem Text']) => ({
+	'abgeschnitten': ([a = 'einem Text'], kern) => ({
 		satz: `Von ${a} ist ein Teil nicht zu sehen.`,
-		tipp: 'Text kürzen oder die Spalten verringern, damit er mehr Platz hat.',
+		// 115: Teile in einer Fläche werden an ihrem Rand abgeschnitten
+		tipp: kern?.includes('über den Rand der Fläche')
+			? 'Die Fläche höher ziehen, oder das Element kleiner machen und nach innen schieben.'
+			: 'Text kürzen oder die Spalten verringern, damit er mehr Platz hat.',
 	}),
 	'ueberlappung': ([a = 'Zwei Dinge', b]) => ({
 		satz: b ? `${a} und ${b} liegen übereinander.` : `${a} liegen übereinander.`,

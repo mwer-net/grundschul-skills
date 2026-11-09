@@ -33,11 +33,12 @@ const EINZUG = '  ';
  * Bausteine, an die nichts hängen darf, obwohl `ANKER_SELEKTOR` sie trifft. Kein Baustein erster Ebene schneidet in
  * `blatt.css` seinen Inhalt ab (`overflow: hidden` haben nur `.seite`, `.ebene` und `.spiel-zelle` in einem Spiel).
  * Ausgenommen sind darum: die Marke „Lösung“, die selbst absolut liegt (`position: relative` verschöbe sie), und die
- * Abbildungen (`x-…`), deren Inhalt `abbildungen.js` beim Zeichnen ersetzt; ein Element darin wäre danach weg. Dazu
+ * Abbildungen (`x-…`), deren Inhalt `abbildungen.js` beim Zeichnen ersetzt; ein Element darin wäre danach weg, und die
+ * Fläche (115), die als einziger Baustein `overflow: hidden` hat: Was daran hinge, schnitte sie ab. Dazu
  * kommt jeder Textbaustein (Fähigkeit `text`, siehe `ankerbar`): Ein `div` in einem `<p>` schlösse der Browser vorher,
  * und die Textsitzung schriebe den Inhalt ohne das fremde Element zurück.
  */
-export const NICHT_ANKERBAR: readonly string[] = ['.loesung-marke', 'x-*'];
+export const NICHT_ANKERBAR: readonly string[] = ['.loesung-marke', 'x-*', '.flaeche']; // 115: Die Fläche schneidet ab, ihr Inhalt hat sie selbst
 
 const trifftNichtAnkerbar = (k: Knoten) =>
 	NICHT_ANKERBAR.some((s) => (s.endsWith('*') ? k.tag.startsWith(s.slice(0, -1)) : passt(k, s, false)));

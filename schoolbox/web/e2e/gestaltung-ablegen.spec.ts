@@ -141,7 +141,7 @@ test.describe('Gestaltung ablegen (098)', () => {
 		await expect(zurueck(page)).toBeDisabled();
 	});
 
-	test('⌘ während des Zugs: „Geht noch nicht“, Loslassen mit ⌘ ändert nichts; ohne ⌘ wieder frei', async ({
+	test('⌘ während des Zugs: Lücke für eine Fläche (115), Loslassen mit ⌘ legt Fläche mit Element; ohne ⌘ wieder frei', async ({
 		page,
 	}) => {
 		const vorher = await quelle(page);
@@ -150,17 +150,20 @@ test.describe('Gestaltung ablegen (098)', () => {
 		await page.mouse.move(ziel.x, ziel.y, { steps: 6 });
 		await expect(vorschau(page, 'testgut')).toBeVisible();
 		await page.keyboard.down('Meta');
-		await expect(anzeige(page)).toHaveText('Geht noch nicht');
+		await page.mouse.move(ziel.x + 2, ziel.y + 2, { steps: 2 });
+		await expect(anzeige(page)).not.toHaveText('Geht noch nicht');
 		await expect(material(page).locator('[data-ablage-vorschau]')).toHaveCount(0);
-		await expect(material(page).locator('[data-luecke]')).toHaveCount(0);
+		await expect(material(page).locator('[data-luecke]')).toHaveCount(1);
 		await page.keyboard.up('Meta');
 		await expect(anzeige(page)).toHaveText('Testgut');
 		await expect(vorschau(page, 'testgut')).toBeVisible();
 		await page.keyboard.down('Meta');
+		await page.mouse.move(ziel.x, ziel.y, { steps: 2 });
 		await page.mouse.up();
 		await page.keyboard.up('Meta');
 		await expect(anzeige(page)).toHaveCount(0);
-		expect(await quelle(page)).toBe(vorher);
+		await expect.poll(() => quelle(page)).toMatch(/<div class="flaeche" style="--h:\d+px">[\s\S]*class="testgut"/);
+		expect(await quelle(page)).not.toBe(vorher);
 	});
 
 	test('Ein Ziel unter dem Zeiger zeigt Rahmen und Text und gewinnt', async ({ page }) => {

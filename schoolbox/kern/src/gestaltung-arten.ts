@@ -80,8 +80,8 @@ export const GESTALTUNG_ARTEN: readonly GestaltungArt[] = [
 		art: 'flaeche',
 		name: 'Fläche',
 		selektor: '.flaeche',
+		// Ein Block des Stapels wie ein Absatz (kein `ordnenIn`): Sie steht zwischen allen Bausteinen der Seite (115).
 		faehigkeiten: ['ordnen', 'duplizieren', 'loeschen', 'hoehe'],
-		ordnenIn: '.seite',
 		ab: 'E4',
 	},
 	liegend('bildfrei', 'Bild', 'img.bild-frei', ['bild'], 'proportional', 'vorne', 'E2'),

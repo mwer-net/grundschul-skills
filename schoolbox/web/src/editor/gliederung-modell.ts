@@ -21,7 +21,7 @@ const OHNE_ZEILE = '.loesung-marke, style, script, template, link, meta, br, .eb
  * Was eine Zeile ist (101, 1-ebenen.md „Aufbau des Baums“): ein Baustein wie bisher, ein Gestaltungselement in einer
  * Ebene, der gedachte Hauptstapel (ohne eigenes Element) oder Seitenrahmen und Seitenfläche zuunterst.
  */
-export type ZeilenArt = 'baustein' | EbenenName | 'hauptstapel' | 'seitenrahmen' | 'seitenflaeche' | 'anker';
+export type ZeilenArt = 'baustein' | EbenenName | 'hauptstapel' | 'seitenrahmen' | 'seitenflaeche' | 'anker' | 'flaeche';
 
 /** Nach diesem Teil des Schlüssels erkennt `gliederung-stand`, dass der Hauptstapel ohne Zutun offen steht. */
 export const HAUPTSTAPEL = 'hauptstapel';
@@ -303,7 +303,8 @@ export const gliederungVon = (doc: Document, z: Zerlegung, ids: readonly number[
 			art: baustein.name,
 			aufgabe: false,
 			fest: unten,
-			ziehbar: !unten,
+			// 115: Kinder einer Fläche bleiben in ihrer Fläche; ihre Reihenfolge ändern Befehle, nicht der Zug in der Liste.
+			ziehbar: !unten && zeile !== 'flaeche',
 			schluessel,
 			kinder: [],
 			zeile,
@@ -339,6 +340,15 @@ export const gliederungVon = (doc: Document, z: Zerlegung, ids: readonly number[
 				...ankerIn(z, r.nr)
 					.map((nr, i) => gestaltung(nr, 'anker', `${schluessel}/anker/${i}`, null))
 					.filter((k): k is GliederungKnoten => k !== null),
+				// 115: Die Elemente in einer Fläche, das vorderste zuerst (wie am Anker).
+				...(r.baustein.art === 'flaeche'
+					? (z.knoten[r.nr]?.kinder ?? [])
+							.filter((k) => istGestaltung(k))
+							.map((k) => k.nr)
+							.reverse()
+							.map((nr, i) => gestaltung(nr, 'flaeche', `${schluessel}/flaeche/${i}`, null))
+							.filter((k): k is GliederungKnoten => k !== null)
+					: []),
 				...r.kinder.map((k, i) => baue(k, `${schluessel}/${i}:${k.baustein.art}`)),
 			],
 			...OHNE_STAPEL,
