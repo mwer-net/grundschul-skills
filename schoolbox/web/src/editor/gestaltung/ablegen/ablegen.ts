@@ -88,15 +88,8 @@ const sichtbarImMaterial = (doc: Document) => {
 	};
 };
 
-/**
- * Klick in der Schublade (und Enter in ⌘K): in die Mitte des sichtbaren Teils der Seite, die am meisten zu sehen ist.
- * `true`, wenn etwas abgelegt wurde.
- */
-export const legeInMitte = (teile: AblegenTeile, gut: GestaltungsGut) => {
-	const { doc } = teile;
-	if (!doc) {
-		return false;
-	}
+/** Die Seite, von der am meisten zu sehen ist, mit dem sichtbaren Ausschnitt; 117 nimmt sie für „Figur von Claude“. */
+export const sichtbarsteSeite = (doc: Document) => {
 	const sicht = sichtbarImMaterial(doc);
 	const seiten = seitenIn(doc).map((seite) => {
 		const r = seite.getBoundingClientRect();
@@ -106,11 +99,17 @@ export const legeInMitte = (teile: AblegenTeile, gut: GestaltungsGut) => {
 		const rechts = Math.min(r.right, sicht.rechts);
 		return { seite, oben, unten, links, rechts, zuSehen: unten - oben };
 	});
-	const beste = seiten.reduce<(typeof seiten)[number] | null>(
-		(a, s) => (!a || s.zuSehen > a.zuSehen ? s : a),
-		null,
-	);
-	if (!beste) {
+	return seiten.reduce<(typeof seiten)[number] | null>((a, s) => (!a || s.zuSehen > a.zuSehen ? s : a), null);
+};
+
+/**
+ * Klick in der Schublade (und Enter in ⌘K): in die Mitte des sichtbaren Teils der Seite, die am meisten zu sehen ist.
+ * `true`, wenn etwas abgelegt wurde.
+ */
+export const legeInMitte = (teile: AblegenTeile, gut: GestaltungsGut) => {
+	const { doc } = teile;
+	const beste = doc ? sichtbarsteSeite(doc) : null;
+	if (!doc || !beste) {
 		return false;
 	}
 	const r = beste.seite.getBoundingClientRect();

@@ -659,6 +659,40 @@ Eine eigene Form ist ein `svg.form` mit `data-form="pfad"`. **Hier ist das `d` d
 <!-- << 116 -->
 
 <!-- >> 117 Figur von Claude -->
+## Figur von Claude
+
+Wünscht sich die Lehrkraft eine eigene Figur („Figur von Claude zeichnen lassen“ in der Figuren-Schublade), zeichnest
+du sie als freies Element (`data-frei`, `data-frei-titel`, siehe `abbildungen.md`, „Freies Element“) **mit**
+`data-lage="frei"` in `.ebene.vorne` der genannten Seite. Der Auftrag nennt die Seite. Nur SVG, kein Bild, kein Foto.
+
+```html
+<div class="ebene vorne">
+  <svg data-frei data-frei-titel="Eule mit Brille" data-lage="frei" viewBox="0 0 160 180"
+       style="--x:420px;--y:360px;--b:160px">
+    <g style="stroke:var(--dunkel);stroke-width:3px;stroke-linejoin:round">
+      <path d="M30 60 L40 20 L62 46 Q80 40 98 46 L120 20 L130 60 Q150 120 120 160 Q80 178 40 160 Q10 120 30 60 Z"
+            style="fill:var(--fuell)"/>
+      <ellipse cx="80" cy="128" rx="30" ry="30" style="fill:#ffffff"/>
+      <circle cx="58" cy="78" r="18" style="fill:#ffffff"/>
+      <circle cx="102" cy="78" r="18" style="fill:#ffffff"/>
+      <path d="M76 78 L84 78" style="fill:none"/>
+      <path d="M74 94 L80 106 L86 94 Z" style="fill:var(--akzent)"/>
+    </g>
+    <circle cx="58" cy="80" r="6" style="fill:var(--dunkel)"/>
+    <circle cx="102" cy="80" r="6" style="fill:var(--dunkel)"/>
+  </svg>
+</div>
+```
+
+- Ein **neues** Element: Was schon auf dem Blatt steht, auch ein gewählter Baustein, bleibt unverändert.
+- Größe 120–200px in `--b`, `viewBox` passend zur Figur, kein `width`/`height` und kein `--h`: Die Höhe kommt aus
+  der `viewBox`. Lage frei neben der Aufgabe, um die es geht, nie über Text.
+- Farben als `var(--haupt)`, `var(--akzent)`, `var(--dunkel)`, `var(--fuell)` oder Weiß, damit die Figur zur Palette
+  passt. Eine dunkle Kontur um jede Fläche, damit sie in s/w lesbar bleibt; Linien mindestens 1,5px.
+- Wenige Pfade (höchstens etwa 15), einfache Formen, freundlicher Ausdruck, keine Schrift in der Figur.
+- `data-frei-titel` ist der Name in den Ebenen, z. B. „Eule mit Brille“.
+- Im Editor: Ein freies Element im Stapel legt „Frei legen“ (⋯) an derselben Stelle nach vorne; zurück geht es nur
+  über „In den Stapel“ in eine Fläche.
 <!-- << 117 -->
 
 <!-- >> 118 Daten der Rezepte -->

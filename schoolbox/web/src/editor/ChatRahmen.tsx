@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import { Outlet, useLocation, useSearchParams } from 'react-router-dom';
 
-import type { ChatFensterZustand, ChatKontext, ChatLauf, ChatSteuerung } from './chat-kontext';
+import type { ChatEmpfaenger, ChatFensterZustand, ChatKontext, ChatLauf, ChatSteuerung } from './chat-kontext';
 import { ChatStandKontext, ChatSteuerungKontext } from './chat-kontext';
 import { loescheAlteVerlaeufe } from './chat-verlauf';
 import { ChatInhalt } from './ChatFenster';
@@ -34,6 +34,7 @@ export const ChatRahmen = () => {
 	const gespraech = useGespraech();
 	const neu = useNeuMaterial(gespraech);
 	const jetzt = useRef({ fenster, kontext });
+	const empfaenger = useRef<ChatEmpfaenger | null>(null); // 117
 	useEffect(() => {
 		jetzt.current = { fenster, kontext };
 	}, [fenster, kontext]);
@@ -97,6 +98,8 @@ export const ChatRahmen = () => {
 				setEntwurf(text);
 				oeffne();
 			},
+			// 117: Nur mit einem offenen Dokument; die Sperren prüft der Chat selbst.
+			schicke: (text) => (empfaenger.current ? empfaenger.current(text) : 'Claude ist hier nicht verfügbar.'),
 			beendeGespraech,
 		};
 	}, [beendeGespraech, setFenster, sichereZitat]);
@@ -139,6 +142,7 @@ export const ChatRahmen = () => {
 				{kontext && (
 					<ChatInhalt
 						key={`${kontext.art}/${kontext.mappe ?? ''}/${kontext.art === 'neu' ? '' : kontext.dok}`}
+						empfaenger={empfaenger}
 						entwurf={entwurf}
 						fenster={fenster}
 						fokus={fokus}

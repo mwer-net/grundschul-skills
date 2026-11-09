@@ -1,7 +1,7 @@
 /**
  * Freie Bilder (103, Briefing schubladen/6-bilder.md): ein Bild-Baustein aus dem Stapel wird zum freien Bild
  * (`img.bild-frei` in `.ebene.vorne`), eine Bildunterschrift dabei zur Schmuckschrift darunter. Die Lage misst der Editor
- * in der Darstellung. 117 erweitert dieses Modul (Figur von Claude).
+ * in der Darstellung. 117: Ebenso wird ein freies Element von Claude (088, `data-frei`) frei gelegt.
  */
 
 import { BILD_MIN } from './bildbefehle';
@@ -40,7 +40,7 @@ const inAbbildung = (k: Knoten) => {
 export const istBildBaustein = (k: Knoten | null | undefined): k is Knoten =>
 	Boolean(k && k.tag === 'img' && !attribut(k, LAGE) && !klassenVon(k).includes('figur') && !inAbbildung(k));
 
-const seiteUm = (k: Knoten) => {
+export const seiteUm = (k: Knoten) => {
 	let e = k.eltern;
 	while (e && !klassenVon(e).includes('seite')) {
 		e = e.eltern;
@@ -93,3 +93,36 @@ export const legeBildFrei = (quelle: string, nr: number, lage: LageImStapel): St
 	// Die Schrift liegt in der Quelle hinter dem Bild: Dessen Nummer bleibt.
 	return { quelle: mit.quelle, nr: bild.nr };
 };
+
+// >> 117 Freie Elemente von Claude (088) frei legen
+/** Ein freies Element von Claude im Stapel: `data-frei` ohne `data-lage` (das wäre schon Gestaltung). */
+export const istFreiesElement = (k: Knoten | null | undefined): k is Knoten =>
+	Boolean(k && attribut(k, 'data-frei') && !attribut(k, LAGE));
+
+/**
+ * Legt ein freies Element von Claude an derselben Stelle frei in `.ebene.vorne` seiner Seite. Es bleibt dasselbe
+ * Element mit `data-frei` und `data-frei-titel`; dazu kommen `data-lage="frei"` und `--x --y --b` (gemessen, damit
+ * `width="100%"` nicht die ganze Seite wird). `--h` nur für ein SVG ohne `viewBox`, das keine Höhe aus dem Inhalt hat.
+ * Ein Schritt.
+ */
+export const legeFreiesElementFrei = (quelle: string, nr: number, lage: LageImStapel): StrukturErgebnis => {
+	const z = zerlege(quelle);
+	const k = z.knoten[nr];
+	if (!istFreiesElement(k)) {
+		throw new Error('Frei legen geht nur mit einem freien Element aus dem Stapel.');
+	}
+	const seite = seiteUm(k);
+	if (!seite) {
+		throw new Error('Das Element liegt auf keiner Seite.');
+	}
+	const html = quelle.slice(k.start, k.ende);
+	const ohneHoehe = k.tag === 'svg' && !attribut(k, 'viewBox');
+	const ohne = wendeAn(quelle, entferne(z, k));
+	return legeGestaltungAb(ohne, {
+		seite: seite.nr,
+		ebene: 'vorne',
+		html,
+		lage: { x: lage.x, y: lage.y, b: lage.b, ...(ohneHoehe ? { h: lage.h } : {}) },
+	});
+};
+// << 117

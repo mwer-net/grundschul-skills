@@ -16,7 +16,7 @@ import { Symbol } from '../bausteine/Symbol';
 import { SymbolKnopf } from '../bausteine/SymbolKnopf';
 import { klasseName } from '../lib/text';
 import { useAblage } from '../ordner/kontext';
-import type { ChatFensterZustand, ChatKontext, ChatLauf } from './chat-kontext';
+import type { ChatEmpfaenger, ChatFensterZustand, ChatKontext, ChatLauf } from './chat-kontext';
 import type { ChatNachricht } from './chat-verlauf';
 import { istRueckfrage, verlaufFuerServer } from './chat-verlauf';
 import type { PfadTeil } from './darstellung';
@@ -250,6 +250,8 @@ const Lauf = ({
 };
 
 interface Eigenschaften {
+	/** 117: Hier trägt sich `schicke` ein. */
+	empfaenger: RefObject<ChatEmpfaenger | null>;
 	kontext: ChatKontext;
 	neu: NeuMaterial;
 	ki: ReturnType<typeof useKiZustand>;
@@ -881,6 +883,7 @@ const useChatOrt = (kontext: ChatKontext, mappe: string | null | undefined, dok:
 };
 
 export const ChatInhalt = ({
+	empfaenger,
 	entwurf,
 	fenster,
 	fokus,
@@ -1030,9 +1033,14 @@ export const ChatInhalt = ({
 		setFenster('verlauf');
 	};
 
-	const sendeAuftrag = async (inhalt: { text: string; aktion?: string }) => {
+	/** `ganzesBlatt` (117): ohne Referenz; mit ihr sähe Claude nur das gewählte Element und könnte nichts daneben legen. */
+	const sendeAuftrag = async (inhalt: { text: string; aktion?: string }, ganzesBlatt = false) => {
 		const aufVorschlag = Boolean(offenerVorschlag);
-		const kontextText = aufVorschlag ? (letzte?.kontext ?? offenerVorschlag?.umfang ?? null) : chipName;
+		const kontextText = aufVorschlag
+			? (letzte?.kontext ?? offenerVorschlag?.umfang ?? null)
+			: ganzesBlatt
+				? 'Ganzes Blatt'
+				: chipName;
 		const vorher = verlaufFuerServer(verlauf);
 		const stelle = zitat;
 		const gespraechId = gespraech.sichereId();
@@ -1044,7 +1052,7 @@ export const ChatInhalt = ({
 		await dokument?.handlungen.current.vorbereiten();
 		setLeerGeblieben(false);
 		const referenz =
-			!aufVorschlag && dokument?.zerlegung && ziel !== null
+			!aufVorschlag && !ganzesBlatt && dokument?.zerlegung && ziel !== null
 				? erzeugeReferenz(dokument.zerlegung, ziel, dokument.ort, dokument.loesung)
 				: undefined;
 		await auftragKi.starte({
@@ -1075,6 +1083,34 @@ export const ChatInhalt = ({
 		}
 		void sendeAuftrag(inhalt);
 	};
+
+	// >> 117 `schicke` von außen: dieselben Sperren wie `sende`, dazu ein offener Vorschlag; immer ans ganze Blatt.
+	const schicke = (text: string): string | null => {
+		if (!dokument) {
+			return 'Claude ist hier nicht verfügbar.';
+		}
+		if (laeuft || neuBelegt) {
+			return 'Claude arbeitet gerade.';
+		}
+		if (offenerVorschlag) {
+			return 'Erst den offenen Vorschlag annehmen oder verwerfen.';
+		}
+		if (gesperrtLimit) {
+			return 'Das Nutzungslimit ist erreicht.';
+		}
+		if (!frei) {
+			return 'Das Blatt ist gerade gesperrt.';
+		}
+		void sendeAuftrag({ text }, true);
+		return null;
+	};
+	useLayoutEffect(() => {
+		empfaenger.current = schicke;
+		return () => {
+			empfaenger.current = null;
+		};
+	});
+	// << 117
 
 	const neuStarten = () => {
 		const text = letzte?.text ?? vorschlag?.auftrag;

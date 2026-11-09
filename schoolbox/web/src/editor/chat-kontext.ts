@@ -81,6 +81,11 @@ export interface ChatSteuerung {
 	oeffne: (fenster?: 'zeile' | 'verlauf') => void;
 	/** Schreibt ins Feld; abgeschickt wird nur von Hand. */
 	fuelle: (text: string) => void;
+	/**
+	 * 117: Schickt einen Auftrag ab, als hätte die Lehrkraft ihn im Chat abgeschickt (sie hat in einem Feld des Editors
+	 * selbst Enter gedrückt). Es gelten dieselben Sperren wie im Chat. `null`: abgeschickt; sonst der Grund, warum nicht.
+	 */
+	schicke: (text: string) => string | null;
 	/** Beim Abmelden: Danach dürfte der Browser die Sitzung auf dem Server nicht mehr löschen. */
 	beendeGespraech: () => void;
 }
@@ -93,8 +98,12 @@ export const ChatSteuerungKontext = createContext<ChatSteuerung>({
 	wechsle: nichts,
 	oeffne: nichts,
 	fuelle: nichts,
+	schicke: () => 'Claude ist hier nicht verfügbar.',
 	beendeGespraech: nichts,
 });
+
+/** 117: Was `schicke` im offenen Chat aufruft; `ChatInhalt` trägt sich ein. */
+export type ChatEmpfaenger = (text: string) => string | null;
 
 export const ChatStandKontext = createContext<ChatStand | null>(null);
 

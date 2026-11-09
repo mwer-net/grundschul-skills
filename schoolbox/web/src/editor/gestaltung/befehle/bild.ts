@@ -1,5 +1,6 @@
 import type { LageImStapel } from '@schoolbox/kern/src/bilder-frei';
-import { legeBildFrei } from '@schoolbox/kern/src/bilder-frei';
+import { legeBildFrei, legeFreiesElementFrei } from '@schoolbox/kern/src/bilder-frei';
+import { FREIES_ELEMENT } from '@schoolbox/kern/src/bausteine';
 
 import type { Befehl, Kontext } from '../../befehle';
 import { elementZu } from '../../darstellung';
@@ -10,6 +11,13 @@ const bildBaustein = (k: Kontext) => {
 	const g = k.pfad.at(-1);
 	return k.aktiv && g?.baustein.art === 'bild' ? g : null;
 };
+
+// >> 117 Freie Elemente von Claude (088) im Stapel
+const freiesElement = (k: Kontext) => {
+	const g = k.pfad.at(-1);
+	return k.aktiv && g && FREIES_ELEMENT.has(g.baustein.art) ? g : null;
+};
+// << 117
 
 /** Das Blatt im Editor; wie `Editor.tsx` findet es der Befehl über seinen Rahmen. */
 const blatt = () =>
@@ -30,7 +38,7 @@ const lageVon = (nr: number): LageImStapel | null => {
 
 /**
  * `auswahl.frei-legen` (103, Briefing 5.12): Ein Bild-Baustein wird zum freien Bild an derselben Stelle, vorne; eine
- * Bildunterschrift wird Schmuckschrift darunter. Im ⋯ der Bausteinleiste, im Rechtsklick und in ⌘K. Aufgaben lassen
+ * Bildunterschrift wird Schmuckschrift darunter. 117: ebenso ein freies Element von Claude (088). Im ⋯ der Bausteinleiste, im Rechtsklick und in ⌘K. Aufgaben lassen
  * sich nicht frei legen (Frage F1).
  */
 export const BILD_BEFEHLE: Befehl[] = [
@@ -42,11 +50,18 @@ export const BILD_BEFEHLE: Befehl[] = [
 		orte: ['menue', 'palette'],
 		sichtbarUnter: 'mehr',
 		suchwoerter: ['frei', 'frei legen', 'lösen', 'aus dem Stapel', 'schräg', 'drehen', 'bild'],
-		verfuegbar: (k) => bildBaustein(k) !== null,
+		verfuegbar: (k) => bildBaustein(k) !== null || freiesElement(k) !== null, // 117
 		aus: (k) => {
 			const g = bildBaustein(k);
-			const lage = g ? lageVon(g.nr) : null;
-			return g && lage ? k.tu.struktur.fuehreAus('Frei gelegt', (q) => legeBildFrei(q, g.nr, lage)) : null;
+			// 117: Ein freies Element von Claude bleibt dasselbe Element, mit Lage vorne.
+			const f = g ? null : freiesElement(k);
+			const ziel = g ?? f;
+			const lage = ziel ? lageVon(ziel.nr) : null;
+			if (!ziel || !lage) {
+				return null;
+			}
+			const lege = g ? legeBildFrei : legeFreiesElementFrei;
+			return k.tu.struktur.fuehreAus('Frei gelegt', (q) => lege(q, ziel.nr, lage));
 		},
 	},
 ];
