@@ -49,6 +49,7 @@ test.describe('Rezept von Claude (123)', () => {
 		await beauftrage(page, 'Mach das Kopfband zackig.');
 		await expect(vergleich(page).locator('body[data-aufmachung-kopfband="zacken"]')).toBeAttached();
 		await page.getByRole('dialog').getByRole('button', { name: 'Annehmen' }).click();
+		await expect.poll(() => quelle(page)).toContain('data-aufmachung-kopfband="zacken"');
 		await gespeichert(page, u.material);
 		const danach = await quelle(page);
 		expect(danach).toBe(wendeAufmachungAn(blattMit(), 'zirkus', { kopfband: 'zacken' }));

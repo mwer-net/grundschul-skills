@@ -1,6 +1,8 @@
+import { writeFile } from 'node:fs/promises';
+
 import type { Page } from '@playwright/test';
 
-import { aendere, material, oeffne, quelle, uhrzeit } from './editorhilfe';
+import { geladen, material, oeffne, quelle, uhrzeit } from './editorhilfe';
 import { blattMit, SCHMUCK, SCHMUCK_ETIKETT } from './gestaltung-daten';
 import { expect, test } from './hilfe';
 import { oeffneSchublade } from './schubladen-hilfe';
@@ -13,9 +15,9 @@ const anzahl = (html: string) => html.split('<div class="schmuck"').length - 1;
 const kachel = (page: Page, name: string) => page.locator(`[data-schmuck-kacheln] [data-ablage-gut="${name}"]`);
 
 const oeffneText = async (page: Page, vorne: string[] = []) => {
-	const { dok, id } = await uhrzeit();
-	await oeffne(page, id, dok);
-	await aendere(page, blattMit({ vorne }));
+	const u = await uhrzeit();
+	await writeFile(u.material, blattMit({ vorne }));
+	await oeffne(page, u.id, u.dok);
 	await oeffneSchublade(page, 'text');
 	await expect(page.locator('[data-schublade-text]')).toBeVisible();
 };
@@ -110,7 +112,9 @@ test.describe('Schublade Text (105)', () => {
 		await oeffneText(page);
 		await kachel(page, 'Stempel').click();
 		await page.keyboard.press('Escape');
-		await expect.poll(() => quelle(page)).toMatch(/data-schmuck="stempel" style="--drehen:-8deg;[^"]*--gr:\d+px/);
+		await expect
+			.poll(() => quelle(page))
+			.toMatch(/data-schmuck="stempel" style="[^"]*--drehen:-8deg;[^"]*--gr:\d+px/);
 		await kachel(page, 'Etikett').click();
 		await page.keyboard.press('Escape');
 		await expect.poll(async () => anzahl(await quelle(page))).toBe(2);
@@ -120,7 +124,9 @@ test.describe('Schublade Text (105)', () => {
 	test('zweifarbiger Titel: ein Wort in Akzent', async ({ page }) => {
 		await oeffneText(page);
 		await kachel(page, 'Titel').click();
+		await expect(page.locator('[data-textknoepfe]')).toBeVisible();
 		await page.keyboard.type('Die Formen-Detektive');
+		await expect(schmuck(page).last()).toHaveText('Die Formen-Detektive');
 		await markiere(page, 'Formen');
 		await page.locator('[data-wortfarbe-knopf]').click();
 		await page.locator('[data-wortfarbe-knoepfe] [data-farbe="var(--akzent)"]').click();
@@ -170,13 +176,19 @@ test.describe('Schmuckschrift gestalten (105)', () => {
 	test('Ecke skaliert --gr, Kante nur --b', async ({ page }) => {
 		await oeffneText(page, [SCHMUCK]);
 		await schmuck(page).first().click();
-		await expect(page.locator('[data-auswahlrahmen]')).toBeVisible();
+		await expect(page.locator('[data-gestaltung-rahmen]')).toBeVisible();
 		const vorher = await quelle(page);
 		const gr = Number(/--gr:(\d+)px/.exec(vorher)?.[1]);
-		await ziehe(page, await griff(page, 'unten-rechts'), 60, 30);
-		await expect.poll(async () => Number(/--gr:(\d+)px/.exec(await quelle(page))?.[1])).toBeGreaterThan(gr);
+		// Verkleinern: Größer gezogen läge der Kantengriff danach unter dem Inspektor.
+		// Am Finger überlappen bei flacher Schrift die 44-px-Flächen von Ecke und Kante; die Kante liegt oben. Die Ecke
+		// trifft dann nur ihr äußerer Teil (offene-punkte).
+		const ecke = await griff(page, 'unten-rechts');
+		const aussen = test.info().project.use.hasTouch ? 16 : 0;
+		await ziehe(page, { x: ecke.x + aussen, y: ecke.y + aussen }, -40, -20);
+		await expect.poll(async () => Number(/--gr:(\d+)px/.exec(await quelle(page))?.[1])).toBeLessThan(gr);
 		const nachEcke = await quelle(page);
-		await ziehe(page, await griff(page, 'rechts'), 40, 0);
+		await geladen(page);
+		await ziehe(page, await griff(page, 'rechts'), -40, 0);
 		await expect.poll(() => quelle(page)).not.toBe(nachEcke);
 		expect(/--gr:(\d+)px/.exec(await quelle(page))?.[1]).toBe(/--gr:(\d+)px/.exec(nachEcke)?.[1]);
 	});
@@ -191,7 +203,10 @@ test.describe('Schmuckschrift gestalten (105)', () => {
 		await expect(zurueck(page)).toHaveAttribute('data-schritt', 'Schriftfarbe geändert');
 		await page.locator('[data-schmuck-ausrichtung] button', { hasText: 'Mitte' }).click();
 		await expect(zurueck(page)).toHaveAttribute('data-schritt', 'Ausrichtung geändert');
-		await expect.poll(() => quelle(page)).toMatch(/--schrift:Andika;--farbe:var\(--akzent\);--ausrichtung:center/);
+		const q = await quelle(page);
+		expect(q).toContain('--schrift:Andika');
+		expect(q).toContain('--farbe:var(--akzent)');
+		expect(q).toContain('--ausrichtung:center');
 	});
 
 	test('Hintergrund nur beim Etikett', async ({ page }) => {

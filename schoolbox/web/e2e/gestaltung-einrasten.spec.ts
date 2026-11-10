@@ -6,7 +6,7 @@ import { writeFile } from 'node:fs/promises';
 
 import type { Locator, Page } from '@playwright/test';
 
-import { material, oeffne, quelle, uhrzeit } from './editorhilfe';
+import { geladen, material, oeffne, quelle, uhrzeit } from './editorhilfe';
 import type { Einsatz } from './gestaltung-daten';
 import { blattMit } from './gestaltung-daten';
 import { expect, test } from './hilfe';
@@ -30,7 +30,6 @@ const blatt = async (page: Page, einsatz: Einsatz) => {
 const rechteck = (page: Page) => material(page).locator('svg.form[data-form="rechteck"]');
 const kreis = (page: Page) => material(page).locator('svg.form[data-form="kreis"]');
 const rahmen = (page: Page) => page.locator('[data-gestaltung-rahmen]');
-const geladen = (page: Page) => expect(page.locator('[data-leinwand][data-geladen]')).toBeVisible();
 const auswahlName = (page: Page) => page.locator('[data-auswahl] h2');
 
 const skalaVon = (page: Page) =>
@@ -75,7 +74,8 @@ test.describe('Einrasten, Reihenfolge, Pfeile, Durchblick (100)', () => {
 		const skala = await skalaVon(page);
 		// 145 px nach rechts: Mitte bei 395, 2 px neben der Seitenmitte.
 		await ziehe(page, await griffpunkt(rechteck(page)), 145 * skala, 0, async () => {
-			await expect(page.locator('[data-hilfslinie]').first()).toBeVisible();
+			// Eine senkrechte Linie hat keine Breite; Playwright nennt sie deshalb nie „sichtbar“.
+			await expect(page.locator('[data-hilfslinie]')).not.toHaveCount(0);
 		});
 		await expect.poll(() => quelle(page)).toContain('--x:347px');
 		await expect(page.locator('[data-hilfslinie]')).toHaveCount(0);
@@ -119,7 +119,7 @@ test.describe('Einrasten, Reihenfolge, Pfeile, Durchblick (100)', () => {
 		await expect(rahmen(page)).toBeVisible();
 
 		// Der Kreis liegt jetzt zuunterst in „vorne“: ganz nach hinten wechselt die Ebene.
-		await kreis(page).click({ position: { x: 90, y: 50 } });
+		await kreis(page).click({ position: { x: 75, y: 45 } });
 		await page.keyboard.press('Shift+Meta+KeyB');
 		await expect(material(page).locator('.ebene.hinten svg[data-form="kreis"]')).toHaveCount(1);
 		await expect(material(page).locator('.ebene.vorne svg[data-form="rechteck"]')).toHaveCount(1);
@@ -175,8 +175,8 @@ test.describe('Einrasten, Reihenfolge, Pfeile, Durchblick (100)', () => {
 		await expect(page.locator('[data-durchblick]')).toHaveCount(0);
 
 		await page.keyboard.down('g');
-		await expect(page.locator('[data-durchblick]')).toBeVisible();
 		await expect(page.locator('[data-durchblick-stapel]')).toHaveCount(1);
+		await expect(page.locator('[data-durchblick-stapel]')).toBeVisible();
 		await expect(page.locator('[data-durchblick] [data-druckrand]')).toHaveCount(1);
 		await expect(page.locator('[data-durchblick-aus]')).toHaveCount(1);
 		await expect(material(page).locator('[data-durchblick], [data-druckrand]')).toHaveCount(0);

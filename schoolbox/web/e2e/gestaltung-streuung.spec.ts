@@ -1,6 +1,8 @@
+import { writeFile } from 'node:fs/promises';
+
 import type { Page } from '@playwright/test';
 
-import { aendere, material, oeffne, quelle, uhrzeit } from './editorhilfe';
+import { gespeichert, material, oeffne, quelle, uhrzeit } from './editorhilfe';
 import { blattMit } from './gestaltung-daten';
 import { expect, test } from './hilfe';
 import { oeffneSchublade } from './schubladen-hilfe';
@@ -20,11 +22,12 @@ const anzahl = (html: string) => html.split('<svg class="streuung"').length - 1;
 const saat = (html: string) => /data-saat="(\d+)"/.exec(html)?.[1] ?? '';
 
 const oeffneFormen = async (page: Page, hinten: string[] = []) => {
-	const { dok, id } = await uhrzeit();
-	await oeffne(page, id, dok);
-	await aendere(page, blattMit({ hinten }));
+	const u = await uhrzeit();
+	await writeFile(u.material, blattMit({ hinten }));
+	await oeffne(page, u.id, u.dok);
 	await oeffneSchublade(page, 'formen');
 	await expect(page.locator('[data-schublade-formen]')).toBeVisible();
+	return u;
 };
 
 const aufSeite = async (page: Page, ax: number, ay: number) => {
@@ -57,10 +60,14 @@ test.describe('Streuung (109)', () => {
 	}
 
 	test('Neu laden ergibt dasselbe Bild', async ({ page }) => {
-		await oeffneFormen(page);
+		const u = await oeffneFormen(page);
 		await kachel(page, 'konfetti').click();
 		await expect(streuungen(page).first()).toBeVisible();
+		// Ohne Auswahlrahmen, wie nach dem Neuladen.
+		await page.keyboard.press('Escape');
+		await expect(page.locator('[data-gestaltung-rahmen]')).toHaveCount(0);
 		const vorher = await streuungen(page).first().screenshot();
+		await gespeichert(page, u.material);
 		await page.reload();
 		await expect(streuungen(page).first()).toBeVisible();
 		const nachher = await streuungen(page).first().screenshot();

@@ -49,7 +49,8 @@ const nimmGestaltungAn = async (page: Page) => {
 	await expect(page.frameLocator('[data-vorschlag-rahmen]').locator('img.figur-frei')).toBeAttached();
 	await page.getByRole('dialog').getByRole('button', { name: 'Annehmen' }).click();
 	await expect(wilma(page)).toBeVisible();
-	await gespeichert(page, u.material);
+	// Was der Editor beim Laden ergänzt (Pfad des Sterns, SVG der Blase), schreibt erst der nächste Schritt (104).
+	await expect(page.locator('[data-speicherstand="gespeichert"]')).toBeVisible();
 	return u;
 };
 

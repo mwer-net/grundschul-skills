@@ -17,3 +17,17 @@ export const oeffneSchublade = async (page: Page, name: SchubladenName) => {
 	}
 	await expect(knopf).toHaveAttribute('aria-pressed', 'true');
 };
+
+/**
+ * Öffnet die Schublade mit ihrem Kürzel (⌥1 …). Lädt das Blatt gerade in einen neuen Rahmen, geht der Druck verloren;
+ * dann noch einmal, aber nur, solange sie zu ist: Ein zweiter Druck auf die offene schlösse sie.
+ */
+export const oeffnePerTaste = async (page: Page, name: SchubladenName, taste: string) => {
+	const knopf = schubladenKnopf(page, name);
+	await expect(async () => {
+		if ((await knopf.getAttribute('aria-pressed')) !== 'true') {
+			await page.keyboard.press(taste);
+		}
+		await expect(knopf).toHaveAttribute('aria-pressed', 'true', { timeout: 1500 });
+	}).toPass();
+};

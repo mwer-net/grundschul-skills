@@ -111,6 +111,11 @@ test.describe('Editor: Text', () => {
 		await expect(page.locator('[data-textbearbeitung]')).toHaveCount(0);
 		await expect(page.locator('[data-auswahl="anweisung"]')).toBeVisible();
 
+		// Die Leiste der Anweisung steht über ihr und kann das Lernziel verdecken: erst die Auswahl aufheben.
+		for (let i = 0; i < 4 && (await page.locator('[data-auswahlrahmen]').count()) > 0; i++) {
+			await page.keyboard.press('Escape');
+		}
+		await expect(page.locator('[data-auswahlrahmen]')).toHaveCount(0);
 		const ziel = material(page).locator('.ziel');
 		await beginne(page, druecke, ziel);
 		await waehleText(ziel, 'ablesen.');

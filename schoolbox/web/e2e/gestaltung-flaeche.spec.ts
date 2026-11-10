@@ -135,11 +135,19 @@ test.describe('Fläche im Stapel (115)', () => {
 
 	test('Ragt ein Element über den Rand hinaus, meldet die Prüfung „abgeschnitten“', async ({ page }) => {
 		await blatt(page, blattMit({ stapel: [LEER.replace('240px', '60px').replace('></div>', `>${FORM}</div>`)] }));
+		const pruefung = page.locator('[data-pruefung] > button');
+		await expect(pruefung).toContainText('prüfen');
+		await pruefung.click();
 		await expect(page.getByText(/ist ein Teil nicht zu sehen/).first()).toBeVisible();
 	});
 
 	test('Die Ebenen zeigen die Elemente einer Fläche unter ihr', async ({ page }) => {
 		await blatt(page, blattMit({ stapel: [LEER.replace('></div>', `>${FORM}</div>`)] }));
+		// Wie jeder Baustein steht die Fläche zugeklappt da.
+		await page
+			.locator('[data-zeile-nr]', { hasText: /^Fläche/ })
+			.getByRole('button', { name: 'Aufklappen' })
+			.click();
 		await expect(page.locator('[data-zeilen-art="flaeche"]')).toHaveCount(1);
 	});
 });

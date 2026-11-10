@@ -2,7 +2,7 @@ import { readFile, writeFile } from 'node:fs/promises';
 
 import type { Locator, Page } from '@playwright/test';
 
-import { gespeichert, material, oeffne, quelle, uhrzeit } from './editorhilfe';
+import { geladen, gespeichert, material, oeffne, quelle, uhrzeit } from './editorhilfe';
 import { expect, test } from './hilfe';
 
 const zurueck = (page: Page) => page.getByRole('button', { name: 'Rückgängig (⌘Z)' });
@@ -196,6 +196,12 @@ test.describe('Editor: Lösungen', () => {
 		await expect(schalter).toHaveCount(0);
 
 		await druecke(fassung(page, 'Lösung'));
+		await geladen(page);
+		// Die Leiste von Eintrag 3 steht über der Reihe und kann Eintrag 1 verdecken: erst die Auswahl aufheben.
+		for (let i = 0; i < 5 && (await page.locator('[data-auswahlrahmen]').count()) > 0; i++) {
+			await page.keyboard.press('Escape');
+		}
+		await expect(page.locator('[data-auswahlrahmen]')).toHaveCount(0);
 		await druecke(zelle(4).locator('b'));
 		await druecke(breadcrumb(page).getByRole('button', { name: 'Eintrag 1' }));
 		await expect(breadcrumb(page)).toHaveText('Seite 1›Aufgabe 2›Reihe›Eintrag 1');

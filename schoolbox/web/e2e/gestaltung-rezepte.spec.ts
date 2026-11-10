@@ -6,7 +6,7 @@ import { writeFile } from 'node:fs/promises';
 
 import type { Page } from '@playwright/test';
 
-import { material, oeffne, quelle, uhrzeit } from './editorhilfe';
+import { geladen, material, oeffne, quelle, uhrzeit } from './editorhilfe';
 import { blattMit } from './gestaltung-daten';
 import { expect, legeMappeAn, test } from './hilfe';
 import { oeffneSchublade } from './schubladen-hilfe';
@@ -66,7 +66,11 @@ const abweichung = (page: Page, a: Buffer, b: Buffer) =>
 		{ x: a.toString('base64'), y: b.toString('base64') },
 	);
 
-const bildDerSeite = (page: Page) => material(page).locator('.seite').first().screenshot({ animations: 'disabled' });
+/** Erst, wenn der neue Rahmen steht: Der Wechsel der Ansicht (s/w, Freilegen) lädt das Blatt neu. */
+const bildDerSeite = async (page: Page) => {
+	await geladen(page);
+	return material(page).locator('.seite').first().screenshot({ animations: 'disabled' });
+};
 
 test.describe('Rezepte (119)', () => {
 	test.skip(({ hasTouch }) => hasTouch, 'Schublade und Inspektor nebeneinander nur am Mac');

@@ -352,15 +352,16 @@ export const Ebenen = ({
 		void struktur.neueSeite(mit);
 	};
 
-	// Was gewählt ist, liegt offen: Alles darüber klappt auf, die Zeile selbst bleibt, wie sie ist.
+	// Was gewählt ist, liegt offen: Alles darüber klappt auf, die Zeile selbst bleibt, wie sie ist. Die Kette, nicht nur die
+	// Nummer, löst das aus: Lädt das Blatt gerade neu, kann die erste Kette aus einem Zwischenstand stammen.
+	const kette = aktiveZeile === null ? null : ketteZu(modell, aktiveZeile).join('\n');
 	useEffect(() => {
-		if (aktiveZeile === null || lauf.current) {
+		if (kette === null || lauf.current) {
 			return;
 		}
-		const { modell: m, stand: s } = neu.current;
-		s.oeffne(ketteZu(m, aktiveZeile).slice(0, -1));
+		neu.current.stand.oeffne(kette.split('\n').slice(0, -1));
 		rollen.current = true;
-	}, [aktiveZeile]);
+	}, [kette]);
 
 	useLayoutEffect(() => {
 		if (!rollen.current || lauf.current) {

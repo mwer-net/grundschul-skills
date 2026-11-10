@@ -1,6 +1,6 @@
 import type { Locator, Page } from '@playwright/test';
 
-import { aendere, material, oeffne, quelle, uhrzeit } from './editorhilfe';
+import { aendere, geladen, material, oeffne, quelle, uhrzeit } from './editorhilfe';
 import { expect, test } from './hilfe';
 import { oeffneSchublade } from './schubladen-hilfe';
 
@@ -163,12 +163,14 @@ test.describe('Reiter „Blatt“: Abstand, Punkte (082)', () => {
 		await expect(page.locator('[data-einfuegen="trenner"]')).toHaveCount(0);
 
 		await aendere(page, (await quelle(page)).replace('<body class="', '<body class="trenner '));
+		await geladen(page);
 		await expect
 			.poll(() =>
 				material(page)
 					.locator('.aufgabe')
 					.nth(1)
-					.evaluate((a) => getComputedStyle(a).borderTopWidth),
+					.evaluate((a) => getComputedStyle(a).borderTopWidth)
+					.catch(() => null),
 			)
 			.toBe('1px');
 	});

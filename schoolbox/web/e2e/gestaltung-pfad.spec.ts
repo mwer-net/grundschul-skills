@@ -4,7 +4,7 @@
  */
 import type { Page } from '@playwright/test';
 
-import { aendere, material, oeffne, quelle, uhrzeit } from './editorhilfe';
+import { aendere, geladen, material, oeffne, quelle, uhrzeit } from './editorhilfe';
 import { blattMit } from './gestaltung-daten';
 import { expect, test } from './hilfe';
 import { oeffneSchublade } from './schubladen-hilfe';
@@ -14,7 +14,6 @@ const MAUS = ['chromium', 'mac-safari'];
 const pfade = (page: Page) => material(page).locator('svg.form[data-form="pfad"]');
 const anzahl = (html: string) => html.split('data-form="pfad"').length - 1;
 const aktivesWerkzeug = (page: Page) => page.locator('[data-werkzeug][aria-pressed="true"]');
-const geladen = (page: Page) => expect(page.locator('[data-leinwand][data-geladen]')).toBeVisible();
 const punkte = (page: Page) => page.locator('[data-pfad-punkt]');
 
 /** Ein Pfad von Claude: relative Befehle und ein Bogen. */

@@ -7,7 +7,7 @@ import { writeFile } from 'node:fs/promises';
 
 import type { Locator, Page } from '@playwright/test';
 
-import { material, oeffne, quelle, uhrzeit } from './editorhilfe';
+import { geladen, material, oeffne, quelle, uhrzeit } from './editorhilfe';
 import type { Einsatz } from './gestaltung-daten';
 import { blattMit, FIGUR_ANKER } from './gestaltung-daten';
 import { expect, test } from './hilfe';
@@ -32,7 +32,6 @@ const blatt = async (page: Page, einsatz: Einsatz = { vorne: [WILMA, BLASE] }) =
 const teil = (page: Page, name: string) => material(page).locator(`[data-name="${name}"]`);
 const gruppe = (page: Page) => material(page).locator('.gruppe');
 const mehrfach = (page: Page) => page.locator('[data-gestaltung-rahmen="mehrfach"]');
-const geladen = (page: Page) => expect(page.locator('[data-leinwand][data-geladen]')).toBeVisible();
 
 const mitte = async (ziel: Locator) => {
 	const b = await ziel.boundingBox();
@@ -95,9 +94,14 @@ test.describe('Gruppen (120)', () => {
 		await expect.poll(() => quelle(page)).toMatch(/class="gruppe"[^>]*--drehen:/);
 		await geladen(page);
 
+		// Gedreht reicht die Gruppe bis unter die Statusleiste; in der Mitte ist die Ecke frei.
+		await gruppe(page).evaluate((g) => g.scrollIntoView({ block: 'center' }));
 		const ecke = page.locator('[data-gestaltung-rahmen] [data-gestaltung-griff="unten-rechts"]');
 		const breite = (await teil(page, 'Blase').boundingBox())?.width ?? 0;
-		await ziehe(page, await mitte(ecke), 50, 50);
+		// Die Gruppe ist gedreht: vom Mittelpunkt des Rahmens weg nach außen ziehen, wo auch immer die Ecke jetzt liegt.
+		const e = await mitte(ecke);
+		const m = await mitte(page.locator('[data-gestaltung-rahmen]'));
+		await ziehe(page, e, Math.sign(e.x - m.x) * 50, Math.sign(e.y - m.y) * 50);
 		await expect
 			.poll(async () => (await teil(page, 'Blase').boundingBox())?.width ?? 0)
 			.toBeGreaterThan(breite + 5);
@@ -125,6 +129,7 @@ test.describe('Gruppen (120)', () => {
 		await geladen(page);
 		await page.keyboard.press('ControlOrMeta+z');
 		await expect.poll(() => quelle(page)).toBe(vorher);
+		await geladen(page);
 		await page.keyboard.press('Escape');
 		await expect(page.locator('[data-gruppe-teile]')).toBeVisible();
 	});

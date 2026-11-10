@@ -869,7 +869,14 @@ test.describe('Leisten im Blatt (071)', () => {
 			return;
 		}
 		await expect(leiste(page).getByRole('combobox', { name: 'Stunde' })).toBeVisible();
-		await page.keyboard.press('Escape');
+		// Esc führt bis zur Aufgabe hoch: Die Leiste eines Eintrags stünde sonst über der Anweisung.
+		for (let i = 0; i < 4; i++) {
+			if ((await leiste(page).getAttribute('data-bausteinleiste')) === 'aufgabe') {
+				break;
+			}
+			await page.keyboard.press('Escape');
+		}
+		await expect(leiste(page)).toHaveAttribute('data-bausteinleiste', 'aufgabe');
 		await pruefe(blatt(page).locator('.anw .text').first(), 'anweisung', ['Unterstrichen', 'Hervorheben']);
 		await expect(leiste(page).getByRole('button', { name: 'Fertig' })).toHaveCount(0);
 	});
@@ -1090,6 +1097,7 @@ test.describe('Ordner und Dokumentansicht (075)', () => {
 		expect(oben?.y).toBeLessThanOrEqual(64);
 		await druecke(page.getByRole('link', { name: 'Maß' }));
 		await expect(page).toHaveURL(/\/o\//);
+		await expect(page.locator('header')).toBeVisible();
 		const kopf = await page.locator('header').boundingBox();
 		expect(kopf?.height).toBeLessThanOrEqual(41);
 	});

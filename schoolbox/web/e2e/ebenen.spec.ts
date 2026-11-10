@@ -1,6 +1,6 @@
 import type { Locator, Page } from '@playwright/test';
 
-import { aendere, material, oeffne, quelle, uhrzeit } from './editorhilfe';
+import { aendere, geladen, material, oeffne, quelle, uhrzeit } from './editorhilfe';
 import { expect, legeMappeAn, test } from './hilfe';
 import { schubladenKnopf } from './schubladen-hilfe';
 
@@ -551,6 +551,7 @@ test.describe('Ebenen mit Gestaltung (101)', () => {
 		);
 		await aendere(page, text);
 		await expect(zeileVon(page, 'D')).toBeVisible();
+		await geladen(page);
 		return text;
 	};
 
@@ -580,16 +581,20 @@ test.describe('Ebenen mit Gestaltung (101)', () => {
 		page,
 	}) => {
 		const vorher = await blatt(page);
+		const zeilenVorher = await titel(page);
 		const hand = zeiger(page, hasTouch);
 		await hand.runter(await mitte(griffVon(zeileVon(page, 'A'))));
 		await hand.zu(await an(zeileVon(page, 'C'), 'oben'));
 		await expect(marke(page)).toBeVisible();
 		await hand.los();
 		await expect.poll(async () => inEbene(await quelle(page), 'vorne')).toEqual(['B', 'C', 'A']);
-		expect(await titel(page)).toEqual(['A', 'C', 'B', 'D']);
+		await expect.poll(() => titel(page)).toEqual(['A', 'C', 'B', 'D']);
 		await expect(zurueck(page)).toHaveAttribute('data-schritt', 'A verschoben');
 		await druecke(zurueck(page));
 		await expect.poll(() => quelle(page)).toBe(vorher);
+		// Erst wenn Blatt und Zeilen nachgezogen haben, liegt B wieder unter dem Zeiger.
+		await geladen(page);
+		await expect.poll(() => titel(page)).toEqual(zeilenVorher);
 
 		// Im Blatt: B gewählt, „Nach vorne“ (100) im ⋯ der Leiste am Element.
 		await druecke(zeileVon(page, 'B').locator('[data-gliederung-titel]'));
@@ -610,7 +615,8 @@ test.describe('Ebenen mit Gestaltung (101)', () => {
 		expect(await quelle(page)).toContain(
 			'data-name="B" data-form="kreis" viewBox="0 0 100 100" style="--x:560px;--y:760px',
 		);
-		// Und zurück: über den Hauptstapel, also zuunterst nach vorne.
+		// Und zurück: über den Hauptstapel, also zuunterst nach vorne. Erst wenn die Zeilen nachgezogen haben.
+		await expect.poll(() => titel(page)).toEqual(['C', 'A', 'B', 'D']);
 		const hand2 = zeiger(page, hasTouch);
 		await hand2.runter(await mitte(griffVon(zeileVon(page, 'D'))));
 		await hand2.zu(await an(page.locator('[data-zeilen-art="hauptstapel"]'), 'oben'));
@@ -654,7 +660,7 @@ test.describe('Ebenen mit Gestaltung (101)', () => {
 		const a = zeileVon(page, 'A');
 		await a.hover();
 		await druecke(a.locator('[data-ebenen-zeichen="auge"]'));
-		await expect.poll(() => quelle(page)).toContain('data-name="A" data-aus');
+		await expect.poll(() => quelle(page)).toMatch(/data-name="A"[^>]* data-aus/);
 		await expect(a).toHaveAttribute('data-aus');
 		await expect(a.locator('[data-ebenen-zeichen="auge"]')).toHaveAttribute('aria-pressed', 'true');
 		await expect(material(page).locator('[data-name="A"]')).toBeHidden();
@@ -682,7 +688,7 @@ test.describe('Ebenen mit Gestaltung (101)', () => {
 		const c = zeileVon(page, 'C');
 		await c.hover();
 		await druecke(c.locator('[data-ebenen-zeichen="schloss"]'));
-		await expect.poll(() => quelle(page)).toContain('data-name="C" data-gesperrt');
+		await expect.poll(() => quelle(page)).toMatch(/data-name="C"[^>]* data-gesperrt/);
 		await expect(c.locator('[data-ebenen-zeichen="schloss"]')).toBeVisible();
 		await material(page).locator('[data-name="C"]').click({ force: true });
 		await expect(page.locator('[data-auswahl="form"]')).toHaveCount(0);
@@ -720,7 +726,7 @@ test.describe('Ebenen mit Gestaltung (101)', () => {
 		await expect(page.getByRole('menuitem', { name: 'Ausblenden' })).toBeVisible();
 		await expect(page.getByRole('menuitem', { name: 'Sperren' })).toBeVisible();
 		await druecke(page.getByRole('menuitem', { name: 'Sperren' }));
-		await expect.poll(() => quelle(page)).toContain('data-name="A" data-gesperrt');
+		await expect.poll(() => quelle(page)).toMatch(/data-name="A"[^>]*data-gesperrt/);
 		await expect(a.locator('[data-ebenen-zeichen="schloss"]')).toBeVisible();
 	});
 });

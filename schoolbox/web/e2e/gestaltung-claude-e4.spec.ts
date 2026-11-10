@@ -6,9 +6,9 @@
 import { writeFile } from 'node:fs/promises';
 import path from 'node:path';
 
-import type { Page } from '@playwright/test';
+import type { Locator, Page } from '@playwright/test';
 
-import { gespeichert, material, oeffne, quelle, uhrzeit } from './editorhilfe';
+import { geladen, material, oeffne, quelle, uhrzeit } from './editorhilfe';
 import { expect, MATERIAL_DIR, test } from './hilfe';
 
 const MAUS = ['chromium', 'mac-safari'];
@@ -17,10 +17,9 @@ const kiFall = (name: string) => writeFile(path.join(`${MATERIAL_DIR}-ki`, 'fall
 const chat = (page: Page) => page.locator('[data-chat]');
 const gruppe = (page: Page) => material(page).locator('.gruppe');
 const pfad = (page: Page) => material(page).locator('svg.form[data-form="pfad"]');
-const geladen = (page: Page) => expect(page.locator('[data-leinwand][data-geladen]')).toBeVisible();
 
 /** Auftrag, Vergleich, Annehmen: danach liegt der Vorschlag im Blatt und ist gespeichert. */
-const nimmAn = async (page: Page, fall: string, auftrag: string) => {
+const nimmAn = async (page: Page, fall: string, auftrag: string, angenommen: (page: Page) => Locator) => {
 	const u = await uhrzeit();
 	await kiFall(fall);
 	await oeffne(page, u.id, u.dok);
@@ -31,7 +30,9 @@ const nimmAn = async (page: Page, fall: string, auftrag: string) => {
 	await chat(page).getByRole('button', { name: 'Vergleichen' }).click();
 	await expect(page.frameLocator('[data-vorschlag-rahmen]').locator('[data-form]').first()).toBeAttached();
 	await page.getByRole('dialog').getByRole('button', { name: 'Annehmen' }).click();
-	await gespeichert(page, u.material);
+	await expect(angenommen(page)).toHaveCount(1);
+	// Die Blase ohne SVG ergänzt der Editor beim Laden; geschrieben wird das erst mit dem nächsten Schritt (104).
+	await expect(page.locator('[data-speicherstand="gespeichert"]')).toBeVisible();
 	await geladen(page);
 	return u;
 };
@@ -48,7 +49,12 @@ test.describe('Gruppen und Pfade von Claude (124)', () => {
 	});
 
 	test('Die Gruppe von Claude ist wählbar, ⇧⌘G löst sie, die Teile bleiben, ⌘Z stellt her', async ({ page }) => {
-		await nimmAn(page, 'gruppe', 'Stell Wilma mit einer Sprechblase „Zähl genau!“ als Gruppe unten aufs Blatt.');
+		await nimmAn(
+			page,
+			'gruppe',
+			'Stell Wilma mit einer Sprechblase „Zähl genau!“ als Gruppe unten aufs Blatt.',
+			gruppe,
+		);
 		await expect(gruppe(page)).toHaveCount(1);
 		const stand = await quelle(page);
 		await gruppe(page).locator('img.figur-frei').click();
@@ -65,7 +71,7 @@ test.describe('Gruppen und Pfade von Claude (124)', () => {
 	test('Der Pfad von Claude: Doppelklick zeigt die Punkte, Ziehen schreibt ihn neu, ⌘Z stellt her', async ({
 		page,
 	}) => {
-		await nimmAn(page, 'pfad', 'Zeichne eine Wolke als eigene Form.');
+		await nimmAn(page, 'pfad', 'Zeichne eine Wolke als eigene Form.', pfad);
 		await expect(pfad(page)).toHaveCount(1);
 		const stand = await quelle(page);
 		expect(stand).toContain(' a40');

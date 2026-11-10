@@ -1850,7 +1850,8 @@ test.describe('Lineatur und Silben (031)', () => {
 		if ((await weitere.getAttribute('aria-expanded')) !== 'true') {
 			await druecke(weitere);
 		}
-		const feld = page.getByLabel('Text', { exact: true });
+		// Seit 093 heißt auch die Schublade „Text“.
+		const feld = page.getByRole('textbox', { name: 'Text', exact: true });
 		await expect(feld).toHaveValue('Rosi|ne');
 		await feld.evaluate((e: HTMLTextAreaElement) => {
 			e.focus();

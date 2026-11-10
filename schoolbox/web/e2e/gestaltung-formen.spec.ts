@@ -1,6 +1,6 @@
 import type { Page } from '@playwright/test';
 
-import { aendere, material, oeffne, quelle, uhrzeit } from './editorhilfe';
+import { aendere, geladen, material, oeffne, quelle, uhrzeit } from './editorhilfe';
 import { blattMit } from './gestaltung-daten';
 import { expect, test } from './hilfe';
 import { oeffneSchublade } from './schubladen-hilfe';
@@ -52,7 +52,7 @@ const legeAb = async (page: Page, name: string) => {
 	const vorher = anzahl(await quelle(page));
 	await kachel(page, name).click();
 	await expect.poll(async () => anzahl(await quelle(page))).toBe(vorher + 1);
-	await expect(page.locator('[data-auswahlrahmen]')).toBeVisible();
+	await expect(page.locator('[data-gestaltung-rahmen]')).toBeVisible();
 	return formen(page).last();
 };
 
@@ -84,7 +84,7 @@ test.describe('Formen: Grundformen ablegen', () => {
 			await page.mouse.move(ziel.x, ziel.y, { steps: 8 });
 			await page.mouse.up();
 			await expect.poll(async () => anzahl(await quelle(page))).toBe(vorher + 1);
-			await expect(page.locator('[data-auswahlrahmen]')).toBeVisible();
+			await expect(page.locator('[data-gestaltung-rahmen]')).toBeVisible();
 			expect(await quelle(page)).toMatch(/<svg class="form" data-lage="frei"[^>]*--b:120px;--h:120px/);
 		}
 	});
@@ -118,6 +118,10 @@ test.describe('Formen: Größe, Farben, Parameter', () => {
 		await expect(form).toHaveAttribute('viewBox', /^0 0 2\d\d 120$/);
 		await page.mouse.up();
 		await expect.poll(async () => (await quelle(page)).match(/viewBox="0 0 (\d+) 120"/)?.[1]).toBe('240');
+		await geladen(page);
+		// Die Pixelprobe ohne den Auswahlrahmen darüber.
+		await page.keyboard.press('Escape');
+		await expect(page.locator('[data-gestaltung-rahmen]')).toHaveCount(0);
 
 		expect(await form.locator('path').evaluate((p) => getComputedStyle(p).strokeWidth)).toBe('3px');
 		// Pixel-Stichprobe: Die Ecke oben links ist außen frei (rund), die Mitte der linken Kante ist Kontur.

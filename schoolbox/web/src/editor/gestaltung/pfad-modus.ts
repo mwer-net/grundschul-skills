@@ -54,11 +54,8 @@ export const waehlePfadPunkt = (punkt: number | null) => setze({ ...stand, punkt
 /** Ein Druck auf einen Punkt oder Griff (Überlagerung) bleibt im Modus, alles andere beendet ihn. */
 const imModus = (ziel: EventTarget | null) => Boolean((ziel as Element | null)?.closest?.('[data-pfad-punkte]'));
 
-export const startePfadModus = (nr: number, doc: Document) => {
-	beendePfadModus();
-	setze({ nr, punkt: null });
-	lauscher = new AbortController();
-	const { signal } = lauscher;
+/** Esc und ein Druck außerhalb der Punkte beenden den Modus; an diesem Fenster und am Fenster des Editors. */
+export const lauscheAm = (fenster: Window | null, signal: AbortSignal) => {
 	const taste = (e: KeyboardEvent) => {
 		if (e.key === 'Escape') {
 			e.preventDefault();
@@ -71,10 +68,17 @@ export const startePfadModus = (nr: number, doc: Document) => {
 			beendePfadModus();
 		}
 	};
-	window.addEventListener('keydown', taste, { capture: true, signal });
-	doc.defaultView?.addEventListener('keydown', taste, { capture: true, signal });
-	window.addEventListener('pointerdown', druck, { capture: true, signal });
-	doc.defaultView?.addEventListener('pointerdown', druck, { capture: true, signal });
+	for (const f of new Set([window, ...(fenster ? [fenster] : [])])) {
+		f.addEventListener('keydown', taste, { capture: true, signal });
+		f.addEventListener('pointerdown', druck, { capture: true, signal });
+	}
+};
+
+export const startePfadModus = (nr: number, doc: Document) => {
+	beendePfadModus();
+	setze({ nr, punkt: null });
+	lauscher = new AbortController();
+	lauscheAm(doc.defaultView, lauscher.signal);
 };
 
 /** Zeile für den Doppelklick-Verteiler (`doppelklick.ts`). */

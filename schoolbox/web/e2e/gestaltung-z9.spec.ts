@@ -6,7 +6,7 @@ import { writeFile } from 'node:fs/promises';
 
 import type { Locator, Page } from '@playwright/test';
 
-import { material, oeffne, quelle, uhrzeit } from './editorhilfe';
+import { geladen, material, oeffne, quelle, uhrzeit } from './editorhilfe';
 import { blattMit } from './gestaltung-daten';
 import { expect, test } from './hilfe';
 import { oeffneSchublade } from './schubladen-hilfe';
@@ -23,7 +23,6 @@ const RECHTECK =
 const form = (page: Page, name: string) => material(page).locator(`[data-name="${name}"]`);
 const pfad = (page: Page) => material(page).locator('svg.form[data-form="pfad"]');
 const pfade = (q: string) => (q.match(/data-form="pfad"/g) ?? []).length;
-const geladen = (page: Page) => expect(page.locator('[data-leinwand][data-geladen]')).toBeVisible();
 const mehrfach = (page: Page) => page.locator('[data-gestaltung-rahmen="mehrfach"]');
 
 const kasten = async (ziel: Locator) => {

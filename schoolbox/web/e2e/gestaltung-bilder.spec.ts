@@ -173,7 +173,7 @@ test.describe('Bilder frei (103)', () => {
 		expect(html).toMatch(/<div class="ebene vorne">[\s\S]*class="bild-frei"[^>]*--b:320px/);
 		expect(html).not.toContain('/ansicht/');
 		await expect(page.locator('[data-auswahl="bildfrei"]')).toBeVisible();
-		await expect(page.locator('[data-auswahlrahmen]')).toBeVisible();
+		await expect(page.locator('[data-gestaltung-rahmen]')).toBeVisible();
 		const s = await skala(page);
 		const r = await material(page).locator('img.bild-frei').boundingBox();
 		expect(Math.round((r?.width ?? 0) / s)).toBe(320);
@@ -233,14 +233,17 @@ test.describe('Bilder frei (103)', () => {
 		await loslassen();
 		await expect.poll(() => quelle(page)).not.toContain('class="platzhalter"');
 		const html = await quelle(page);
-		expect(html).toMatch(/<img src="bilder\/wachstum\.png" alt="Wachstum[^"]*" style="width:\d+px">/);
+		// Die Beschreibung kommt aus der Sammlung (wie beim Bild-Baustein).
+		expect(html).toMatch(
+			/<img src="bilder\/wachstum\.png" alt="Samen, Keimling, Pflanze, Blume" style="width:\d+px">/,
+		);
 		expect(html).not.toContain('bild-frei');
 	});
 
 	test('Mit ⌘ entsteht ein Bild-Baustein im Stapel, mit Lücke', async ({ page }) => {
 		await oeffneMit(page, blattMit());
 		await zurGruppe(page, 'Sammlung', WACHSTUM);
-		const loslassen = await ziehe(page, WACHSTUM, await mitteVon(page, '.aufgabe:nth-of-type(2)'), true);
+		const loslassen = await ziehe(page, WACHSTUM, await mitteVon(page, '.aufgabe >> nth=1'), true);
 		await expect(material(page).locator('[data-luecke]')).toBeVisible();
 		await loslassen();
 		await expect.poll(() => quelle(page)).toMatch(/<img src="bilder\/wachstum\.png"[^>]*style="width:\d+px">/);

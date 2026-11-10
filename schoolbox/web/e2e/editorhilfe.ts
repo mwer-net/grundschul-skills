@@ -31,6 +31,12 @@ export const oeffne = async (page: Page, mappe: string, dok: string) => {
 	await expect(page.locator('[data-speicherstand="gespeichert"]')).toBeVisible();
 };
 
+/** Der neue Rahmen steht: Bis dahin zeigt der alte noch `data-geladen`, und der Editor kennt die Auswahl nicht. */
+export const geladen = async (page: Page) => {
+	await expect(page.locator('[data-leinwand][data-geladen]')).toBeVisible();
+	await expect(page.locator('[data-editor-rahmen="laedt"]')).toHaveCount(0);
+};
+
 export const material = (page: Page) => page.frameLocator('[data-editor-rahmen="sichtbar"]');
 
 export const quelle = (page: Page) =>

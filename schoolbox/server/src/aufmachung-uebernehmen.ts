@@ -55,7 +55,8 @@ const lage = async (kontext: Kontext, req: Request) => {
 	if (!werte) {
 		throw new HttpFehler(400, 'Dieses Material hat kein Rezept.');
 	}
-	const baum = kontext.ordner.baum();
+	// Abgleichen: Material, das außerhalb der Ordneransicht entstand (Claude, CLI), steht sonst noch in keinem Ordner.
+	const baum = await kontext.ordner.abgleichen();
 	const ordner = lebenderOrdner(baum, baum.dokumente[dokKnotenSchluessel(mappe, dok)]?.ordner ?? null);
 	if (!ordner) {
 		throw new HttpFehler(400, 'Nur für Materialien in einem Ordner.');

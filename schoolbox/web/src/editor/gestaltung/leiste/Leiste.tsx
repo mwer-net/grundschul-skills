@@ -12,6 +12,7 @@ import type { Einblendung } from '../../Leinwand';
 import { useSichtfeld } from '../../sichtfeld';
 import type { Struktur } from '../../struktur';
 import type { Befehle } from '../../useBefehle';
+import { DREH_ABSTAND } from '../auswahlrahmen';
 import type { GestaltungKontext } from '../inspektor/kontext-ersatz';
 import { kontextFuerGestaltung, liegtFreiAuf } from '../inspektor/kontext-ersatz';
 import { LEISTEN } from './index';
@@ -31,13 +32,16 @@ const ABSTAND = 6;
 
 const Trenner = () => <span aria-hidden className="mx-0.5 h-4 w-px flex-none bg-rand" />;
 
-/** Über dem Element, sonst darunter, sonst oben im Sichtfeld; waagerecht mittig und immer ganz sichtbar. */
+/**
+ * Über dem Element, sonst darunter, sonst oben im Sichtfeld; waagerecht mittig und immer ganz sichtbar. Oben bleibt
+ * der Drehgriff des Rahmens (`DREH_ABSTAND` über dem Element) frei.
+ */
 const lageVon = (
 	box: { links: number; rechts: number; oben: number; unten: number },
 	mass: { breite: number; hoehe: number },
 	sicht: { links: number; rechts: number; oben: number; unten: number },
 ) => {
-	const oben = box.oben - mass.hoehe - ABSTAND;
+	const oben = box.oben - DREH_ABSTAND - mass.hoehe - ABSTAND;
 	const unten = box.unten + ABSTAND;
 	let top = sicht.oben + ABSTAND;
 	if (oben >= sicht.oben + ABSTAND) {

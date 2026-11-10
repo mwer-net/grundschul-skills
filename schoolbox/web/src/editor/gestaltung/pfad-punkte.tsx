@@ -3,11 +3,11 @@ import type { StrukturErgebnis } from '@schoolbox/kern/src/struktur';
 import type { Anker, Punkt } from '@schoolbox/kern/src/vektor';
 import { ankerVon, liesPfad, schreibePfad, setzeAnker } from '@schoolbox/kern/src/vektor';
 import type { PointerEvent as ReactPointerEvent } from 'react';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 
 import { pfadDerForm } from './anzeige-folgen';
 import type { Kasten } from './geste';
-import { usePfadModus, waehlePfadPunkt } from './pfad-modus';
+import { lauscheAm, usePfadModus, waehlePfadPunkt } from './pfad-modus';
 
 interface Eigenschaften {
 	element: Element;
@@ -44,6 +44,13 @@ const drehe = (x: number, y: number, grad: number) => {
 export const PfadPunkte = ({ element, fuehreAus, kasten, links, nr, skala, ursprung }: Eigenschaften) => {
 	const modus = usePfadModus();
 	const [zug, setZug] = useState<Zug | null>(null);
+	// Nach jedem Schritt lädt das Blatt in ein neues `iframe`: Esc und Klicks dort sollen den Modus weiter beenden.
+	const fenster = element.ownerDocument.defaultView;
+	useEffect(() => {
+		const los = new AbortController();
+		lauscheAm(fenster, los.signal);
+		return () => los.abort();
+	}, [fenster]);
 	const pfad = pfadDerForm(element);
 	const d = pfad?.getAttribute('d') ?? '';
 	const zuege = liesPfad(d);

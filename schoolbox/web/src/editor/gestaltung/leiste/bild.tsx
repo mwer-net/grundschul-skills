@@ -1,11 +1,14 @@
+import type { ComponentProps } from 'react';
+
 import { Knopf } from '../../../bausteine/Knopf';
 import { Popover } from '../../../bausteine/Popover';
 import { Symbol } from '../../../bausteine/Symbol';
 import { RahmenstilWahl } from '../inspektor/rahmenstil-teile'; // 111
 import type { LeistenKnoepfe } from './typen';
 
-const RahmenstilKnopf = ({ aktiv }: { aktiv: boolean }) => (
-	<Knopf art="leise" groesse="klein" data-leiste-rahmenstil disabled={!aktiv}>
+/** Auslöser des Popovers: Die Eigenschaften des Triggers (Klick, Ref, ARIA) müssen am Knopf ankommen. */
+const RahmenstilKnopf = ({ aktiv, ...trigger }: { aktiv: boolean } & ComponentProps<typeof Knopf>) => (
+	<Knopf {...trigger} art="leise" groesse="klein" data-leiste-rahmenstil disabled={!aktiv}>
 		Rahmen-Stil
 	</Knopf>
 );

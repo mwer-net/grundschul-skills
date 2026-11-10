@@ -7,7 +7,7 @@ import { writeFile } from 'node:fs/promises';
 
 import type { Locator, Page } from '@playwright/test';
 
-import { material, oeffne, quelle, uhrzeit } from './editorhilfe';
+import { geladen, material, oeffne, quelle, uhrzeit } from './editorhilfe';
 import type { Einsatz } from './gestaltung-daten';
 import { BILD_FREI, blattMit, FIGUR_FREI, FORM, STREUUNG } from './gestaltung-daten';
 import { expect, test } from './hilfe';
@@ -70,8 +70,6 @@ const ziehe = async (
 	await page.mouse.up();
 };
 
-const geladen = (page: Page) => expect(page.locator('[data-leinwand][data-geladen]')).toBeVisible();
-
 test.describe('Gestaltung wählen und bewegen (097)', () => {
 	test.skip(({ hasTouch }) => hasTouch || !MAUS.includes(test.info().project.name), 'mit der Maus');
 
@@ -80,7 +78,10 @@ test.describe('Gestaltung wählen und bewegen (097)', () => {
 		await stern(page).click();
 		await expect(rahmen(page)).toBeVisible();
 		await expect(griff(page, 'drehen')).toBeVisible();
-		await expect(page.locator('[data-gestaltung-griff]')).toHaveCount(9);
+		await expect(page.locator('[data-gestaltung-griff]')).toHaveCount(10);
+		// Acht Griffe zur Größe, Drehen und (106) der Anker.
+		await expect(page.getByRole('button', { name: /^Größe ändern/ })).toHaveCount(8);
+		await expect(griff(page, 'anker')).toBeVisible();
 		// Der gerade Rahmen der Bausteine bleibt unsichtbar, der Stapel zieht nicht.
 		await expect(page.locator('[data-auswahlrahmen]')).toBeHidden();
 	});
@@ -139,9 +140,13 @@ test.describe('Gestaltung wählen und bewegen (097)', () => {
 		await figur.click();
 		const g = await mitte(griff(page, 'drehen'));
 		const m = await mitte(rahmen(page));
+		// Ein Viertel im Uhrzeigersinn, etwas daneben: Das Raster macht 90° daraus. ⇧ erst im Zug, sonst ist es ein ⇧-Klick.
+		await page.mouse.move(g.x, g.y);
+		await page.mouse.down();
 		await page.keyboard.down('Shift');
-		// Ein Viertel im Uhrzeigersinn, etwas daneben: Das Raster macht 90° daraus.
-		await ziehe(page, g, m.x - g.x + (m.y - g.y), m.y - g.y + 6);
+		await page.mouse.move(g.x + (m.x - g.x + (m.y - g.y)) / 2, g.y + (m.y - g.y + 6) / 2, { steps: 4 });
+		await page.mouse.move(g.x + m.x - g.x + (m.y - g.y), g.y + m.y - g.y + 6, { steps: 4 });
+		await page.mouse.up();
 		await page.keyboard.up('Shift');
 		await expect.poll(() => quelle(page)).toContain('--drehen:');
 		const winkel = Number(/data-figur="wilma"[^>]*--drehen:(-?[\d.]+)deg/.exec(await quelle(page))?.[1]);
@@ -204,10 +209,15 @@ test.describe('Gestaltung wählen und bewegen (097)', () => {
 		await kreis.scrollIntoViewIfNeeded();
 		await kreis.click();
 		const klein = await rahmen(page).boundingBox();
+		// Mit ⌥ gewinnt sonst das schon gewählte Element unter dem Zeiger (für ⌥-Ziehen = Kopie).
+		await page.keyboard.press('Escape');
+		await expect(rahmen(page)).toHaveCount(0);
 		await kreis.click({ modifiers: ['Alt'] });
-		const gross = await rahmen(page).boundingBox();
 		const streuung = await material(page).locator('svg.streuung').boundingBox();
-		expect(Math.round(gross?.width ?? 0)).toBe(Math.round(streuung?.width ?? -1));
+		await expect
+			.poll(async () => Math.round((await rahmen(page).boundingBox())?.width ?? 0))
+			.toBe(Math.round(streuung?.width ?? -1));
+		const gross = await rahmen(page).boundingBox();
 		expect(gross?.width ?? 0).toBeGreaterThan(klein?.width ?? 0);
 	});
 });
@@ -219,10 +229,10 @@ test.describe('Gestaltung am iPad (097)', () => {
 		await blatt(page, { vorne: [FORM] });
 		await stern(page).tap();
 		await expect(rahmen(page)).toBeVisible();
+		// Der Stern ist gedreht, sein Rahmen mit ihm: Die umschließende Box wäre größer als der Griff selbst.
 		for (const name of ['unten-rechts', 'drehen']) {
-			const b = await griff(page, name).boundingBox();
-			expect(Math.round(b?.width ?? 0)).toBe(44);
-			expect(Math.round(b?.height ?? 0)).toBe(44);
+			const g = await griff(page, name).evaluate((e: HTMLElement) => [e.offsetWidth, e.offsetHeight]);
+			expect(g).toEqual([44, 44]);
 		}
 	});
 });

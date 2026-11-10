@@ -1,6 +1,6 @@
 import type { Locator, Page } from '@playwright/test';
 
-import { material, oeffne, quelle, uhrzeit } from './editorhilfe';
+import { geladen, material, oeffne, quelle, uhrzeit } from './editorhilfe';
 import { expect, test } from './hilfe';
 
 const auswahlName = (page: Page) => page.locator('[data-auswahl] h2');
@@ -13,6 +13,7 @@ const waehleText = async (druecke: (ziel: Locator) => Promise<void>, page: Page,
 		await expect(page.locator('[data-textbearbeitung]')).toBeVisible();
 		await page.keyboard.press('Escape');
 		await expect(page.locator('[data-textbearbeitung]')).toHaveCount(0);
+		await geladen(page);
 	}
 };
 
@@ -83,6 +84,7 @@ test.describe('Tastatur (069)', () => {
 
 		await page.keyboard.press('Escape');
 		await expect(page.locator('[data-textbearbeitung]')).toHaveCount(0);
+		await geladen(page);
 		await expect(page.locator('[data-auswahl="anweisung"]')).toBeVisible();
 		await page.keyboard.press('Escape');
 		await expect(page.locator('[data-auswahl="aufgabe"]')).toBeVisible();

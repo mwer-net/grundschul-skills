@@ -334,6 +334,7 @@ test.describe('Chat als Gespräch (087)', () => {
 		await expect(nachrichten(page)).toHaveCount(2);
 		await expect(tasten).toContainText('esc einklappen');
 		await chat(page).getByRole('button', { name: 'Chat: weitere Aktionen' }).click();
+		await expect(page.getByRole('menu')).toBeFocused();
 		await page.keyboard.press('Escape');
 		await expect(page.getByRole('menu')).toHaveCount(0);
 		await expect(nachrichten(page)).toHaveCount(2);

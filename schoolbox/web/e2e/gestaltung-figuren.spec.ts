@@ -6,7 +6,7 @@ import { writeFile } from 'node:fs/promises';
 
 import type { Locator, Page } from '@playwright/test';
 
-import { material, oeffne, quelle, uhrzeit } from './editorhilfe';
+import { gespeichert, material, oeffne, quelle, uhrzeit } from './editorhilfe';
 import { blattMit, FIGUR_FREI } from './gestaltung-daten';
 import { expect, test } from './hilfe';
 import { oeffneSchublade } from './schubladen-hilfe';
@@ -98,7 +98,7 @@ test.describe('Figuren (102)', () => {
 		expect(Math.abs(m.x - ziel.x)).toBeLessThan(20);
 		expect(Math.abs(m.y - ziel.y)).toBeLessThan(20);
 		expect(await frei(page).evaluate((e) => Math.round(e.getBoundingClientRect().width))).toBe(150);
-		await expect(page.locator('[data-auswahlrahmen]')).toBeVisible();
+		await expect(page.locator('[data-gestaltung-rahmen]')).toBeVisible();
 		await expect(page.locator('[data-gestaltungsleiste="figurfrei"]')).toBeVisible();
 
 		await zurueck(page).click();
@@ -146,7 +146,7 @@ test.describe('Figuren (102)', () => {
 	});
 
 	test('Blickrichtung gegen die Datei ergibt --spiegeln:-1 und bleibt nach dem Neuladen', async ({ page }) => {
-		await blatt(page);
+		const u = await blatt(page);
 		await oeffneSchublade(page, 'figuren');
 		const blick = schublade(page).getByRole('group', { name: 'Blickrichtung' });
 		// Willi und Wilma zeigen in ihrer Datei nach rechts (`blickt` in `kern/src/figuren.ts`).
@@ -154,6 +154,7 @@ test.describe('Figuren (102)', () => {
 		await blick.getByRole('button', { name: 'schaut nach links' }).click();
 		await kachel(page, 'Wilma').click();
 		await expect.poll(async () => figurTag(await quelle(page))).toContain('--spiegeln:-1');
+		await gespeichert(page, u.material);
 
 		await page.reload();
 		await expect(page.locator('[data-leinwand][data-geladen]')).toBeVisible();

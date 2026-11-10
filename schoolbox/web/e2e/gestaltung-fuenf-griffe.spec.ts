@@ -7,9 +7,10 @@ import { writeFile } from 'node:fs/promises';
 
 import type { Locator, Page } from '@playwright/test';
 
-import { material, oeffne, quelle, uhrzeit } from './editorhilfe';
+import { geladen, material, oeffne, quelle, uhrzeit } from './editorhilfe';
 import { blattMit } from './gestaltung-daten';
 import { expect, test } from './hilfe';
+import { oeffnePerTaste } from './schubladen-hilfe';
 
 const MAUS = ['chromium', 'mac-safari'];
 
@@ -20,7 +21,11 @@ const START = blattMit().replace(
 );
 
 const zurueck = (page: Page) => page.getByRole('button', { name: /^Rückgängig/ }).first();
-const schritt = (page: Page, name: string) => expect(zurueck(page)).toHaveAttribute('data-schritt', name);
+/** Der Schritt steht im Verlauf, und das Blatt ist danach neu geladen. */
+const schritt = async (page: Page, name: string) => {
+	await expect(zurueck(page)).toHaveAttribute('data-schritt', name);
+	await geladen(page);
+};
 const nummern = (html: string) => [...html.matchAll(/<span class="nr( stern)?">([^<]*)</g)].map((m) => m[2]);
 const aufgabe = (page: Page, i: number) => material(page).locator('.aufgabe:not([data-luecke])').nth(i);
 const stern = (page: Page) => material(page).locator('.aufgabe:has(> .nr.stern)');
@@ -49,7 +54,10 @@ const ziehe = async (page: Page, von: { x: number; y: number }, nach: { x: numbe
 
 /** Karte aus „Bausteine“ unter das Ziel ziehen; die Lücke verschiebt das Blatt, darum zweimal hinfahren. */
 const ziehBaustein = async (page: Page, id: string, suchwort: string, ziel: Locator) => {
-	await page.getByRole('searchbox', { name: 'Baustein suchen' }).first().fill(suchwort);
+	await geladen(page);
+	const suche = page.getByRole('searchbox', { name: 'Baustein suchen' }).first();
+	await suche.fill(suchwort);
+	await expect(suche).toHaveValue(suchwort);
 	const k = await kasten(page.locator(`[data-bibliothek-eintrag="${id}"] [data-einfuegen]`));
 	await page.mouse.move(k.x + 20, k.y + k.height / 2);
 	await page.mouse.down();
@@ -76,6 +84,7 @@ const ankerAufStern = async (page: Page) => {
 };
 
 const sperre = async (page: Page, name: RegExp) => {
+	await geladen(page);
 	const zeile = page.locator('[data-zeilen-art="anker"]').filter({ hasText: name });
 	await zeile.hover();
 	await zeile.locator('[data-ebenen-zeichen="schloss"]').click();
@@ -92,19 +101,23 @@ test.describe('Abnahme E3: Ein Blatt in fünf Griffen (123, Z6)', () => {
 	test('Rezept, Bausteine, Wilma am Anker, Sprechblase, Sperren: Nummern, Lösung, s/w und Prüfung stimmen', async ({
 		page,
 	}) => {
+		// Der ganze Ablauf in einem Test: Über zwanzig Schritte, jeder lädt das Blatt neu.
+		test.slow();
 		const u = await uhrzeit();
 		await writeFile(u.material, START);
 		await oeffne(page, u.id, u.dok);
 
 		// 1. ⌥7 Rezepte: Dschungel, Würfeln.
-		await page.keyboard.press('Alt+Digit7');
+		await geladen(page);
+		await oeffnePerTaste(page, 'rezepte', 'Alt+Digit7');
 		await page.locator('[data-rezept-kachel="dschungel"]').click();
 		await schritt(page, 'Rezept Dschungel');
 		await page.locator('[data-schublade-rezepte] [data-rezept-wuerfeln]').click();
 		await schritt(page, 'Rezept gewürfelt');
 
 		// 2. ⌥2 Bausteine: Figur (Dreiecke zählen) und eine Aufgabe, die eine Sternchenaufgabe wird.
-		await page.keyboard.press('Alt+Digit2');
+		await geladen(page);
+		await oeffnePerTaste(page, 'bausteine', 'Alt+Digit2');
 		await ziehBaustein(page, 'x-figur', 'Dreieck', aufgabe(page, 0));
 		await schritt(page, 'Figur eingefügt');
 		await ziehBaustein(page, 'aufgabe', 'Aufgabe', aufgabe(page, 1));
@@ -114,7 +127,8 @@ test.describe('Abnahme E3: Ein Blatt in fünf Griffen (123, Z6)', () => {
 		expect(nummern(await quelle(page))).toEqual(['1', '2', '★']);
 
 		// 3. ⌥4 Figuren: Wilma unter die Sternchenaufgabe, ⚓ auf die Aufgabe; eine Aufgabe davor, Wilma geht mit.
-		await page.keyboard.press('Alt+Digit4');
+		await geladen(page);
+		await oeffnePerTaste(page, 'figuren', 'Alt+Digit4');
 		await stern(page).evaluate((e) => e.scrollIntoView({ block: 'center' }));
 		const s = await kasten(stern(page));
 		await ziehe(page, await mitte(page.locator('[data-schublade-figuren] [data-ablage-gut="Wilma"]')), {
@@ -124,18 +138,22 @@ test.describe('Abnahme E3: Ein Blatt in fünf Griffen (123, Z6)', () => {
 		await schritt(page, 'Wilma abgelegt');
 		await ankerAufStern(page);
 		expect(/<img class="figur-frei"[^>]*data-anker/.test(await quelle(page))).toBe(true);
+		await geladen(page);
 		const sternVorher = await kasten(stern(page));
 		const wilmaVorher = await kasten(wilma(page));
-		await page.keyboard.press('Alt+Digit2');
+		await geladen(page);
+		await oeffnePerTaste(page, 'bausteine', 'Alt+Digit2');
 		await ziehBaustein(page, 'aufgabe', 'Aufgabe', aufgabe(page, 0));
 		await schritt(page, 'Aufgabe eingefügt');
+		await geladen(page);
 		const sternNachher = await kasten(stern(page));
 		const wilmaNachher = await kasten(wilma(page));
 		expect(sternNachher.y - sternVorher.y).toBeGreaterThan(100);
 		expect(Math.abs(wilmaNachher.y - wilmaVorher.y - (sternNachher.y - sternVorher.y))).toBeLessThanOrEqual(1);
 
 		// 4. ⌥3 Formen: Sprechblase, „Zähl genau!“, neben Wilma, an dieselbe Aufgabe, Zipfel zu Wilma.
-		await page.keyboard.press('Alt+Digit3');
+		await geladen(page);
+		await oeffnePerTaste(page, 'formen', 'Alt+Digit3');
 		await page.locator('[data-blase-kachel="sprechblase-rund"]').click();
 		await expect(material(page).locator('.form-text[contenteditable="true"]')).toBeFocused();
 		await page.keyboard.type('Zähl genau!');
@@ -154,7 +172,8 @@ test.describe('Abnahme E3: Ein Blatt in fünf Griffen (123, Z6)', () => {
 		await schritt(page, 'Zipfel gezogen');
 
 		// 5. ⌥1 Ebenen: Wilma und Sprechblase sperren; die Teile des Rezepts sind schon gesperrt.
-		await page.keyboard.press('Alt+Digit1');
+		await geladen(page);
+		await oeffnePerTaste(page, 'ebenen', 'Alt+Digit1');
 		await sperre(page, /^Sprech/);
 		await sperre(page, /^Wilma/);
 
@@ -167,18 +186,22 @@ test.describe('Abnahme E3: Ein Blatt in fünf Griffen (123, Z6)', () => {
 
 		// Lösung vollständig.
 		await page.getByRole('button', { name: 'Lösung', exact: true }).click();
+		await geladen(page);
 		await expect
 			.poll(() =>
 				material(page)
 					.locator('.antwort')
 					.first()
-					.evaluate((e) => getComputedStyle(e, '::after').content),
+					.evaluate((e) => getComputedStyle(e, '::after').content)
+					.catch(() => null),
 			)
 			.toBe('"7"');
 		await page.getByRole('button', { name: 'Arbeitsblatt', exact: true }).click();
+		await geladen(page);
 
 		// s/w: Fläche, Kopfband und Punkte weg, der Titel dunkel.
 		await page.locator('[data-profilschalter]').getByRole('button', { name: 's/w', exact: true }).click();
+		await geladen(page);
 		await expect
 			.poll(() =>
 				material(page)
@@ -193,7 +216,8 @@ test.describe('Abnahme E3: Ein Blatt in fünf Griffen (123, Z6)', () => {
 							band: kopf ? getComputedStyle(kopf, '::before').display : 'none',
 							titel: h1 ? getComputedStyle(h1).color : '',
 						};
-					}),
+					})
+					.catch(() => null),
 			)
 			.toEqual({ teile: ['rahmen'], band: 'none', titel: 'rgb(29, 29, 29)' });
 		await expect(page.getByText('Alles passt')).toBeVisible();

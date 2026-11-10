@@ -6,7 +6,7 @@ import { writeFile } from 'node:fs/promises';
 
 import type { Page } from '@playwright/test';
 
-import { material, oeffne, quelle, uhrzeit } from './editorhilfe';
+import { geladen, material, oeffne, quelle, uhrzeit } from './editorhilfe';
 import type { Einsatz } from './gestaltung-daten';
 import { blattMit } from './gestaltung-daten';
 import { expect, test } from './hilfe';
@@ -30,11 +30,10 @@ const blatt = async (page: Page, einsatz: Einsatz = { vorne: [RECHTECK, KREIS] }
 
 const form = (page: Page, name: string) => material(page).locator(`[data-name="${name}"]`);
 const pfade = (q: string) => (q.match(/data-form="pfad"/g) ?? []).length;
-const geladen = (page: Page) => expect(page.locator('[data-leinwand][data-geladen]')).toBeVisible();
 
 /** `a` am Rand (das Rechteck liegt teils unter dem Kreis), `b` in der Mitte. */
 const waehle = async (page: Page, a: string, b: string) => {
-	await form(page, a).click(a === 'Rechteck' ? { position: { x: 20, y: 180 } } : {});
+	await form(page, a).click(a === 'Rechteck' ? { position: { x: 15, y: 120 } } : {});
 	await form(page, b).click({ modifiers: ['Shift'] });
 	await expect(page.locator('[data-gestaltung-rahmen="mehrfach"]')).toHaveAttribute('data-mehrfach-anzahl', '2');
 };

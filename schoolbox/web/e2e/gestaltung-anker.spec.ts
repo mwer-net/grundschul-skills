@@ -6,9 +6,10 @@ import { writeFile } from 'node:fs/promises';
 
 import type { Locator, Page } from '@playwright/test';
 
-import { aendere, material, oeffne, quelle, uhrzeit } from './editorhilfe';
+import { aendere, geladen, material, oeffne, quelle, uhrzeit } from './editorhilfe';
 import { blattMit, FIGUR_ANKER, FIGUR_FREI, FORM } from './gestaltung-daten';
 import { expect, test } from './hilfe';
+import { oeffneSchublade } from './schubladen-hilfe';
 
 const MAUS = ['chromium', 'mac-safari'];
 
@@ -40,6 +41,7 @@ const kasten = async (ziel: Locator) => {
 
 /** Die Lage im Blatt, relativ zur Seite: unabhängig vom Rollen. */
 const imBlatt = async (page: Page) => {
+	await geladen(page);
 	const w = await kasten(wilma(page));
 	const s = await kasten(material(page).locator('.seite').first());
 	return { x: w.x - s.x, y: w.y - s.y, b: w.width, h: w.height };
@@ -124,18 +126,19 @@ test.describe('Anker (106)', () => {
 		await haengtAn(page).selectOption('');
 		await expect.poll(() => amAnker(page)).toBe(false);
 		gleich(await imBlatt(page), vorher);
+		await geladen(page);
 		await page.keyboard.press('ControlOrMeta+z');
 		await expect.poll(() => amAnker(page)).toBe(true);
+		await geladen(page);
 		await page.keyboard.press('ControlOrMeta+z');
 		await expect.poll(() => quelle(page)).toBe(start);
 	});
 
 	test('Ziehen in den Ebenen hängt an und löst', async ({ page }) => {
-		await blatt(page, blattMit({ vorne: [FORM.replace('--y:84px', '--y:900px')], anker: [FIGUR_ANKER] }));
-		const ebenen = page.locator('[data-gliederung]');
-		if ((await ebenen.count()) === 0) {
-			await page.keyboard.press('Alt+Digit1');
-		}
+		// Eine zweite freie Form hält die Zeile „Hauptstapel“ da: Ohne freie Ebenen blendet die Gliederung sie aus.
+		const bleibt = FORM.replace('--y:84px', '--y:1000px').replace('--x:610px', '--x:300px');
+		await blatt(page, blattMit({ vorne: [FORM.replace('--y:84px', '--y:900px'), bleibt], anker: [FIGUR_ANKER] }));
+		await oeffneSchublade(page, 'ebenen');
 		const rechne = page.locator('[data-zeile-nr]', { hasText: 'Rechne' });
 		await rechne.getByRole('button', { name: 'Aufklappen' }).click();
 		const anker = page.locator('[data-zeilen-art="anker"]');
@@ -150,7 +153,9 @@ test.describe('Anker (106)', () => {
 		await page.mouse.up();
 		await expect.poll(async () => /<svg class="form"[^>]*data-anker/.test(await quelle(page))).toBe(true);
 		// Wilma aus Aufgabe 1 heraus, über den Hauptstapel: gelöst, vorne
-		const w = await kasten(anker.first());
+		// Der Stern hat jetzt auch eine Ankerzeile (unter Aufgabe 2); gemeint ist Wilma, erst wenn die Zeilen stehen.
+		await expect(anker).toHaveCount(2);
+		const w = await kasten(anker.filter({ hasText: 'Wilma' }));
 		const oben = await kasten(page.locator('[data-zeilen-art="hauptstapel"]'));
 		await page.mouse.move(w.x + 60, w.y + w.height / 2);
 		await page.mouse.down();
@@ -188,6 +193,7 @@ test.describe('Anker (106)', () => {
 		await expect(page.getByText('Aufgabe 1 gelöscht, mit Wilma.')).toBeVisible();
 		await expect(zurueck(page)).toBeEnabled();
 		expect(await quelle(page)).not.toContain('figur-frei');
+		await geladen(page);
 		await page.keyboard.press('ControlOrMeta+z');
 		await expect.poll(() => quelle(page)).toBe(start);
 	});

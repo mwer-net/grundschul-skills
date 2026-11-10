@@ -1,6 +1,6 @@
 import type { Page } from '@playwright/test';
 
-import { aendere, material, oeffne, quelle, uhrzeit } from './editorhilfe';
+import { aendere, geladen, material, oeffne, quelle, uhrzeit } from './editorhilfe';
 import { blattMit } from './gestaltung-daten';
 import { expect, test } from './hilfe';
 import { oeffneSchublade } from './schubladen-hilfe';
@@ -23,10 +23,13 @@ const knopf = (page: Page, id: string) => page.locator(`[data-testfach] [data-we
 const anzahl = (html: string, klasse: string) => html.split(`class="${klasse}"`).length - 1;
 
 /** Maßstab der Leinwand: Bildschirm-px je px des Materials. */
-const skala = (page: Page) =>
-	page
+/** Nach einem Schritt erst, wenn der neue Rahmen steht: Der alte misst beim Wechsel 0 × 0. */
+const skala = async (page: Page) => {
+	await geladen(page);
+	return page
 		.locator('[data-editor-rahmen="sichtbar"]')
 		.evaluate((f: HTMLElement) => f.getBoundingClientRect().width / f.offsetWidth);
+};
 
 /** Ein Punkt auf der ersten Seite, Anteile ihrer sichtbaren Box. */
 const aufSeite = async (page: Page, ax: number, ay: number) => {
@@ -96,7 +99,7 @@ test.describe('Gestaltung ablegen (098)', () => {
 		const m = await mitte(page, material(page), '.testgut');
 		expect(Math.abs(m.x - ziel.x)).toBeLessThan(20);
 		expect(Math.abs(m.y - ziel.y)).toBeLessThan(20);
-		await expect(page.locator('[data-auswahlrahmen]')).toBeVisible();
+		await expect(page.locator('[data-gestaltung-rahmen]')).toBeVisible();
 		expect(await quelle(page)).toMatch(/<div class="ebene vorne">[\s\S]*class="testgut"/);
 
 		await zurueck(page).click();
@@ -113,7 +116,8 @@ test.describe('Gestaltung ablegen (098)', () => {
 		await expect(vorschau(page, 'testgut')).toBeVisible();
 		await expect(anzeige(page)).toHaveText('Testgut');
 		expect(await quelle(page)).toBe(vorher);
-		await expect(zurueck(page)).toBeDisabled();
+		// Letzter Schritt bleibt das Einsetzen des Blatts (`aendere` heißt „Test“).
+		await expect(zurueck(page)).toHaveAttribute('data-schritt', 'Test');
 
 		await page.mouse.up();
 		await expect.poll(async () => anzahl(await quelle(page), 'testgut')).toBe(1);
@@ -124,7 +128,7 @@ test.describe('Gestaltung ablegen (098)', () => {
 		const s = await skala(page);
 		const r = await material(page).locator('.testgut').boundingBox();
 		expect(Math.round((r?.width ?? 0) / s)).toBe(120);
-		await expect(page.locator('[data-auswahlrahmen]')).toBeVisible();
+		await expect(page.locator('[data-gestaltung-rahmen]')).toBeVisible();
 	});
 
 	test('Esc bricht ab, nichts ändert sich', async ({ page }) => {
@@ -138,7 +142,8 @@ test.describe('Gestaltung ablegen (098)', () => {
 		await expect(material(page).locator('[data-ablage-vorschau]')).toHaveCount(0);
 		await page.mouse.up();
 		expect(await quelle(page)).toBe(vorher);
-		await expect(zurueck(page)).toBeDisabled();
+		// Letzter Schritt bleibt das Einsetzen des Blatts (`aendere` heißt „Test“).
+		await expect(zurueck(page)).toHaveAttribute('data-schritt', 'Test');
 	});
 
 	test('⌘ während des Zugs: Lücke für eine Fläche (115), Loslassen mit ⌘ legt Fläche mit Element; ohne ⌘ wieder frei', async ({
@@ -205,24 +210,29 @@ test.describe('Gestaltung ablegen (098)', () => {
 		await expect(zurueck(page)).toHaveAttribute('data-schritt', 'Testrechteck');
 		await expect(flaeche(page)).toHaveCount(0);
 		await expect(knopf(page, 'auswahl')).toHaveAttribute('aria-pressed', 'true');
-		await expect(page.locator('[data-auswahlrahmen]')).toBeVisible();
-		const rahmen = await page.locator('[data-auswahlrahmen]').boundingBox();
-		// Der Auswahlrahmen liegt um das neue Rechteck (4,5 px Abstand je Seite), nicht um das Testziel.
-		expect(Math.abs((rahmen?.width ?? 0) - (90 + 9))).toBeLessThan(3);
+		await expect(page.locator('[data-gestaltung-rahmen]')).toBeVisible();
+		const rahmen = await page.locator('[data-gestaltung-rahmen]').boundingBox();
+		// Der Rahmen der Gestaltung (097) liegt genau um das neue Rechteck, nicht um das Testziel.
+		expect(Math.abs((rahmen?.width ?? 0) - 90)).toBeLessThan(3);
 	});
 
 	test('Mit ⇧ gewählt bleibt das Werkzeug bis Esc, dann gilt V', async ({ page }) => {
 		await knopf(page, 'test').click({ modifiers: ['Shift'] });
 		await expect(knopf(page, 'test')).toHaveAttribute('data-gehalten', '');
-		for (const [ax, ay] of [
-			[0.2, 0.2],
-			[0.5, 0.5],
-		] as const) {
+		for (const [i, [ax, ay]] of (
+			[
+				[0.2, 0.2],
+				[0.5, 0.5],
+			] as const
+		).entries()) {
 			const p = await aufSeite(page, ax, ay);
 			await page.mouse.move(p.x, p.y);
 			await page.mouse.down();
 			await page.mouse.move(p.x + 40, p.y + 30, { steps: 4 });
 			await page.mouse.up();
+			// Das Blatt lädt nach jedem Strich neu; erst danach den nächsten ansetzen.
+			await expect.poll(async () => anzahl(await quelle(page), 'testform')).toBe(i + 1);
+			await expect(page.locator('[data-leinwand][data-geladen]')).toBeVisible();
 		}
 		await expect.poll(async () => anzahl(await quelle(page), 'testform')).toBe(2);
 		await expect(flaeche(page)).toHaveCount(1);

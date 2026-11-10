@@ -1,6 +1,6 @@
 import type { Page } from '@playwright/test';
 
-import { aendere, material, oeffne, quelle, uhrzeit } from './editorhilfe';
+import { aendere, geladen, material, oeffne, quelle, uhrzeit } from './editorhilfe';
 import { blattMit, FIGUR_FREI } from './gestaltung-daten';
 import { expect, test } from './hilfe';
 import { oeffneSchublade } from './schubladen-hilfe';
@@ -11,6 +11,8 @@ const zurueck = (page: Page) => page.getByRole('button', { name: 'Rückgängig (
 const formen = (page: Page, art: string) => material(page).locator(`svg.form[data-form="${art}"]`);
 const blasen = (page: Page) => material(page).locator('.form-text[data-lage="frei"]');
 const anzahl = (html: string, art: string) => html.split(`data-form="${art}"`).length - 1;
+/** Erst wenn die Textsitzung der neuen Blase offen ist, kommen Tippen und Esc dort an. */
+const sitzungOffen = (page: Page) => expect(page.locator('[data-textknoepfe]')).toBeVisible();
 const aktivesWerkzeug = (page: Page) => page.locator('[data-werkzeug][aria-pressed="true"]');
 
 const oeffneFormen = async (page: Page, vorne: string[] = []) => {
@@ -48,6 +50,7 @@ const ziehe = async (page: Page, von: { x: number; y: number }, dx: number, dy: 
 };
 
 const griff = async (page: Page, name: string) => {
+	await geladen(page);
 	const r = await page.locator(`[data-gestaltung-griff="${name}"]`).boundingBox();
 	if (!r) {
 		throw new Error(`Griff ${name} fehlt`);
@@ -128,6 +131,7 @@ test.describe('Werkzeuge R O Y L ★ (107)', () => {
 	test('in der Sprechblase getippt bleibt R ein Buchstabe', async ({ page }) => {
 		await oeffneFormen(page);
 		await page.locator('[data-blase-kachel="sprechblase-rund"]').click();
+		await sitzungOffen(page);
 		await page.keyboard.type('Rate mal!');
 		await page.keyboard.press('Escape');
 		await expect.poll(() => quelle(page)).toContain('Rate mal!');
@@ -141,6 +145,7 @@ test.describe('Sprechblase, Denkblase, Band (107)', () => {
 	}) => {
 		await oeffneFormen(page, [FIGUR_FREI]);
 		await page.locator('[data-blase-kachel="sprechblase-rund"]').click();
+		await sitzungOffen(page);
 		await page.keyboard.type('Zähl genau!');
 		await page.keyboard.press('Escape');
 		await expect.poll(() => quelle(page)).toMatch(/<div class="form-inhalt">Zähl genau!<\/div>/);
@@ -163,15 +168,23 @@ test.describe('Sprechblase, Denkblase, Band (107)', () => {
 
 	test('Denkblase und Band ablegen, Form im Inspektor wechseln, der Text bleibt', async ({ page }) => {
 		await oeffneFormen(page);
+		// Beide landen an derselben Stelle; das Band zuerst, damit die Denkblase oben liegt und klickbar ist.
+		await page.locator('[data-blase-kachel="band"]').click();
+		await sitzungOffen(page);
+		await page.keyboard.press('Escape');
+		await expect(page.locator('[data-textknoepfe]')).toHaveCount(0);
+		await geladen(page);
 		await page.locator('[data-blase-kachel="denkblase"]').click();
+		await sitzungOffen(page);
 		await page.keyboard.type('Hm …');
 		await page.keyboard.press('Escape');
 		await expect.poll(() => quelle(page)).toMatch(/data-blase="gedanke"/);
-		await page.locator('[data-blase-kachel="band"]').click();
-		await page.keyboard.press('Escape');
 		await expect(blasen(page)).toHaveCount(2);
+		await expect(page.locator('[data-textknoepfe]')).toHaveCount(0);
+		await geladen(page);
 
-		await blasen(page).first().click();
+		await material(page).locator('.form-text[data-blase="gedanke"]').click();
+		await expect(page.locator('[data-form-art]')).toHaveValue('sprechblase');
 		await page.locator('[data-form-art]').selectOption('band');
 		await expect.poll(() => quelle(page)).not.toMatch(/data-blase="gedanke"/);
 		const html = await quelle(page);
@@ -199,7 +212,7 @@ test.describe('Sprechblase, Denkblase, Band (107)', () => {
 				],
 			}),
 		);
-		await page.locator('[data-pruefung] > button').click();
+		// Die Prüfung ist vom ersten Mal noch aufgeklappt; ein zweiter Klick klappte sie zu.
 		await expect(page.locator('[data-pruefliste] [data-pruefpunkt="druckrand"]')).toBeVisible();
 	});
 });
@@ -218,8 +231,10 @@ test.describe('Linie und Pfeil (107)', () => {
 		await expect(zurueck(page)).toHaveAttribute('data-schritt', 'Linie geändert');
 		const punkte = /data-punkte="([\d.]+),([\d.]+) ([\d.]+),([\d.]+)"/.exec(await quelle(page));
 		expect(punkte).not.toBeNull();
-		const [, x1, , x2] = (punkte ?? []).map(Number);
-		expect(x1).toBe(x2);
+		// Das Ende lag waagerecht rechts; 10 nach rechts und 120 nach unten sind rund 40° und rasten auf 45° ein.
+		const [, x1 = 0, y1 = 0, x2 = 0, y2 = 0] = (punkte ?? []).map(Number);
+		expect(x2 - x1).toBeGreaterThan(0);
+		expect(x2 - x1).toBe(y2 - y1);
 
 		await page.locator('[data-form-parameter="data-ende"]').getByRole('button', { name: 'Pfeil' }).click();
 		await expect.poll(() => quelle(page)).toMatch(/data-ende="pfeil"/);

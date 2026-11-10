@@ -108,11 +108,12 @@ test.describe('Aussehen: Verlauf', () => {
 
 		// Gewählt ist die Kopie; ihre zweite Farbe wird Weiß.
 		await fuellung(page).locator('[data-farbwahl="form-fuellung-f2"] [data-farbe="#ffffff"]').click();
-		const zweite = await formen(page).evaluateAll((alle) =>
-			alle.map((f) => f.querySelector('stop:last-child')?.getAttribute('style') ?? ''),
-		);
-		expect(zweite.filter((s) => s.includes('#ffffff'))).toHaveLength(1);
-		expect(zweite.filter((s) => s.includes('var(--haupt)'))).toHaveLength(1);
+		const zweite = () =>
+			formen(page).evaluateAll((alle) =>
+				alle.map((f) => f.querySelector('stop:last-child')?.getAttribute('style') ?? ''),
+			);
+		await expect.poll(async () => (await zweite()).filter((s) => s.includes('#ffffff'))).toHaveLength(1);
+		expect((await zweite()).filter((s) => s.includes('var(--haupt)'))).toHaveLength(1);
 	});
 
 	test('einfarbige Füllung entfernt den Verlauf, ⌘Z holt ihn zurück', async ({ page }) => {

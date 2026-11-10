@@ -6,16 +6,16 @@ import { writeFile } from 'node:fs/promises';
 
 import type { Locator, Page } from '@playwright/test';
 
-import { material, oeffne, quelle, uhrzeit } from './editorhilfe';
+import { geladen, material, oeffne, quelle, uhrzeit } from './editorhilfe';
 import type { Einsatz } from './gestaltung-daten';
 import { blattMit, FIGUR_ANKER } from './gestaltung-daten';
 import { expect, test } from './hilfe';
-import { schubladenKnopf } from './schubladen-hilfe';
+import { oeffneSchublade } from './schubladen-hilfe';
 
 const MAUS = ['chromium', 'mac-safari'];
 
 const kreis = (name: string, x: number, y: number, b = 80) =>
-	`<svg class="form" data-lage="frei" data-name="${name}" data-form="kreis" viewBox="0 0 100 100" style="--x:${x}px;--y:${y}px;--b:${b}px;--h:${b}px"><circle cx="50" cy="50" r="48" style="fill:var(--akzent)"/></svg>`;
+	`<svg class="form" data-lage="frei" data-name="${name}" data-form="ellipse" viewBox="0 0 100 100" style="--x:${x}px;--y:${y}px;--b:${b}px;--h:${b}px"><path d="M50 2 C76.5 2 98 23.5 98 50 C98 76.5 76.5 98 50 98 C23.5 98 2 76.5 2 50 C2 23.5 23.5 2 50 2 Z" style="fill:var(--akzent)"/></svg>`;
 
 const A = kreis('A', 100, 600);
 const B = kreis('B', 260, 640, 60);
@@ -31,7 +31,6 @@ const blatt = async (page: Page, einsatz: Einsatz = { vorne: DREI }) => {
 
 const form = (page: Page, name: string) => material(page).locator(`[data-name="${name}"]`);
 const rahmen = (page: Page) => page.locator('[data-gestaltung-rahmen="mehrfach"]');
-const geladen = (page: Page) => expect(page.locator('[data-leinwand][data-geladen]')).toBeVisible();
 
 /** `--x`/`--y` eines Elements in der Quelle. */
 const lage = (q: string, name: string) => {
@@ -90,7 +89,8 @@ test.describe('Mehrfachauswahl (113)', () => {
 	});
 
 	test('Gummiband auf freier Fläche wählt, was ganz darin liegt', async ({ page }) => {
-		await blatt(page);
+		// Die Aufgaben enden bei 613; darüber begänne der Zug auf Aufgabe 3 statt auf freier Fläche.
+		await blatt(page, { vorne: [kreis('A', 100, 700), kreis('B', 260, 740, 60), C] });
 		const a = await form(page, 'A').boundingBox();
 		const b = await form(page, 'B').boundingBox();
 		if (!a || !b) {
@@ -111,6 +111,7 @@ test.describe('Mehrfachauswahl (113)', () => {
 		expect(dx).toBeGreaterThan(0);
 		expect(lage(q, 'B').x - 260).toBe(dx);
 		expect(lage(q, 'C').x - 520).toBe(dx);
+		await geladen(page);
 		await page.keyboard.press('ControlOrMeta+z');
 		await expect.poll(() => quelle(page)).toBe(vorher);
 	});
@@ -123,6 +124,7 @@ test.describe('Mehrfachauswahl (113)', () => {
 		await ziehe(page, g, 120, 60);
 		await expect.poll(() => quelle(page)).toContain('--drehen:');
 		expect((await quelle(page)).match(/--drehen:/g)?.length).toBeGreaterThanOrEqual(3);
+		await geladen(page);
 		await page.keyboard.press('ControlOrMeta+z');
 		await expect.poll(() => quelle(page)).toBe(vorher);
 	});
@@ -161,6 +163,9 @@ test.describe('Mehrfachauswahl (113)', () => {
 		await page.locator('[data-befehl="auswahl.ausrichten-links"]').click();
 		await expect.poll(async () => lage(await quelle(page), 'C').x).toBe(100);
 		expect(lage(await quelle(page), 'B').x).toBe(100);
+		// Solange das Popover offen ist, sperrt der Editor seine Tasten (auch ⌘Z).
+		await page.keyboard.press('Escape');
+		await expect(page.locator('[data-befehl="auswahl.ausrichten-links"]')).toHaveCount(0);
 		await einSchritt(page, vorher);
 
 		await waehleDrei(page);
@@ -168,6 +173,8 @@ test.describe('Mehrfachauswahl (113)', () => {
 		await page.locator('[data-befehl="auswahl.verteilen-waagerecht"]').click();
 		// A endet bei 180, C beginnt bei 520: 340 Platz minus 60 für B, zweimal 140 Lücke. B beginnt bei 320.
 		await expect.poll(async () => lage(await quelle(page), 'B').x).toBe(320);
+		await page.keyboard.press('Escape');
+		await expect(page.locator('[data-befehl="auswahl.verteilen-waagerecht"]')).toHaveCount(0);
 		await einSchritt(page, vorher);
 	});
 
@@ -189,7 +196,7 @@ test.describe('Mehrfachauswahl (113)', () => {
 	test('⇧-Klick in den Ebenen nimmt dazu', async ({ page }) => {
 		await blatt(page);
 		await form(page, 'A').click();
-		await schubladenKnopf(page, 'ebenen').click();
+		await oeffneSchublade(page, 'ebenen');
 		const zeile = page
 			.locator('[data-zeilen-art="vorne"]')
 			.filter({ hasText: /^C/ })
