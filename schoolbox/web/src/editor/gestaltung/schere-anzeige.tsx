@@ -47,7 +47,9 @@ const lageVon = (doc: Document, fuehreAus: FuehreAus): Lage => {
 		const element = elementZu(doc, nrn[0] ?? -1) as HTMLElement | undefined;
 		const eltern = element?.offsetParent ?? element?.parentElement;
 		const r = eltern?.getBoundingClientRect();
-		const ursprung = r ? { x: r.left + (eltern?.clientLeft ?? 0), y: r.top + (eltern?.clientTop ?? 0) } : leer.ursprung;
+		const ursprung = r
+			? { x: r.left + (eltern?.clientLeft ?? 0), y: r.top + (eltern?.clientTop ?? 0) }
+			: leer.ursprung;
 		return { nrn, ursprung, grund, liste: grund ? [] : bereiche(quelle, nrn) };
 	} catch {
 		return { ...leer, grund: 'Nur Formen ohne Text lassen sich kombinieren.' };
@@ -55,9 +57,7 @@ const lageVon = (doc: Document, fuehreAus: FuehreAus): Lage => {
 };
 
 const pfadVon = (b: Bereich) =>
-	b.flaeche
-		.map((ring) => `M${ring.map(([x, y]) => `${x.toFixed(2)} ${y.toFixed(2)}`).join(' L')} Z`)
-		.join(' ');
+	b.flaeche.map((ring) => `M${ring.map(([x, y]) => `${x.toFixed(2)} ${y.toFixed(2)}`).join(' L')} Z`).join(' ');
 
 export const SchereAnzeige = ({
 	breite,
@@ -82,7 +82,12 @@ export const SchereAnzeige = ({
 			cancelAnimationFrame(bild);
 			bild = requestAnimationFrame(() => setStand((n) => n + 1));
 		});
-		beobachter.observe(doc.body, { childList: true, subtree: true, attributes: true, attributeFilter: ['style', 'd'] });
+		beobachter.observe(doc.body, {
+			childList: true,
+			subtree: true,
+			attributes: true,
+			attributeFilter: ['style', 'd'],
+		});
 		return () => {
 			cancelAnimationFrame(bild);
 			beobachter.disconnect();
@@ -95,7 +100,10 @@ export const SchereAnzeige = ({
 
 	const treffer = (ev: ReactPointerEvent<SVGSVGElement>) => {
 		const r = ev.currentTarget.getBoundingClientRect();
-		const p = { x: (ev.clientX - r.left) / skala - lage.ursprung.x, y: (ev.clientY - r.top) / skala - lage.ursprung.y };
+		const p = {
+			x: (ev.clientX - r.left) / skala - lage.ursprung.x,
+			y: (ev.clientY - r.top) / skala - lage.ursprung.y,
+		};
 		return lage.liste.find((b) => liegtIn(b.flaeche, p))?.id ?? null;
 	};
 

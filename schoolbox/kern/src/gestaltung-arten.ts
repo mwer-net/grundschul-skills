@@ -9,15 +9,11 @@
 import type { Baustein, Faehigkeit } from './bausteine';
 import { formName } from './formen';
 
-/** Wie die Griffe an den Ecken und Kanten die Größe ändern. */
-export type Groesse =
-	/** Ecken halten das Seitenverhältnis. */
-	| 'proportional'
-	| 'frei'
-	/** Ecke skaliert die Schrift, Kante die Breite. */
-	| 'text'
-	/** Nur die Breite, die Höhe kommt aus dem Inhalt. */
-	| 'breite';
+/**
+ * Wie die Griffe an den Ecken und Kanten die Größe ändern. `proportional`: Ecken halten das Seitenverhältnis. `text`:
+ * Ecke skaliert die Schrift, Kante die Breite. `breite`: nur die Breite, die Höhe kommt aus dem Inhalt.
+ */
+export type Groesse = 'proportional' | 'frei' | 'text' | 'breite';
 
 export type EbenenName = 'hinten' | 'vorne';
 
@@ -115,5 +111,11 @@ export const nameDerGestaltung = (baustein: Baustein, wert: (name: string) => st
 		return null;
 	}
 	// 117: Ein frei gelegtes Element von Claude heißt nach seinem Titel.
-	return wert('data-name')?.trim() || wert('data-frei-titel')?.trim() || figurName(wert('data-figur') ?? '') || formName(wert('data-form')) || baustein.name; // 104: Name der Form
+	return (
+		wert('data-name')?.trim() ||
+		wert('data-frei-titel')?.trim() ||
+		figurName(wert('data-figur') ?? '') ||
+		formName(wert('data-form')) ||
+		baustein.name
+	); // 104: Name der Form
 };

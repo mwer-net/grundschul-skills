@@ -246,13 +246,18 @@ const standardEbene = (html: string): EbenenName => {
 };
 
 const istLeer = (z: Zerlegung, k: Knoten) =>
-	k.kinder.length === 0 && innenVon(z, k).replace(/<!--[\s\S]*?-->/g, '').trim() === '';
+	k.kinder.length === 0 &&
+	innenVon(z, k)
+		.replace(/<!--[\s\S]*?-->/g, '')
+		.trim() === '';
 
 /** Entfernt ein Element; war es das letzte seiner Ebene, gleich die ganze Ebene. */
 export const entferneMitEbene = (z: Zerlegung, k: Knoten): Aenderung[] => {
 	const eltern = k.eltern;
 	if (eltern && istEbene(eltern) && eltern.kinder.length === 1) {
-		const rest = innenVon(z, eltern).replace(quelleVon(z, k), '').replace(/<!--[\s\S]*?-->/g, '');
+		const rest = innenVon(z, eltern)
+			.replace(quelleVon(z, k), '')
+			.replace(/<!--[\s\S]*?-->/g, '');
 		if (rest.trim() === '') {
 			return entferne(z, eltern);
 		}
@@ -484,7 +489,7 @@ export const neueId = (art: string, quelle: string, vergeben: ReadonlySet<string
  */
 export const neueSvgIds = (html: string, quelle: string) => {
 	const vergeben = new Set<string>();
-	let ergebnis = html;
+	let umbenannt = html;
 	for (const alt of new Set(idsIn(html))) {
 		if (!alt) {
 			continue;
@@ -493,12 +498,12 @@ export const neueSvgIds = (html: string, quelle: string) => {
 		const neu = neueId(art, `${quelle}${html}`, vergeben);
 		vergeben.add(neu);
 		const a = escape(alt);
-		ergebnis = ergebnis
+		umbenannt = umbenannt
 			.replace(new RegExp(`(\\sid\\s*=\\s*")${a}"`, 'g'), `$1${neu}"`)
 			.replace(new RegExp(`url\\(\\s*#${a}\\s*\\)`, 'g'), `url(#${neu})`)
 			.replace(new RegExp(`(href\\s*=\\s*")#${a}"`, 'g'), `$1#${neu}"`);
 	}
-	return ergebnis;
+	return umbenannt;
 };
 
 /** In einer Kopie (Seite, Aufgabe mit Anker) bekommt jedes Gestaltungselement neue Ids; der Rest bleibt, wie er ist. */
@@ -568,7 +573,12 @@ export const raeumeEbenenAuf = (quelle: string) => {
 	}
 	const z = zerlege(quelle);
 	const leer = z.knoten.filter((k) => istEbene(k) && istLeer(z, k));
-	return leer.length ? wendeAn(quelle, leer.flatMap((k) => entferne(z, k))) : quelle;
+	return leer.length
+		? wendeAn(
+				quelle,
+				leer.flatMap((k) => entferne(z, k)),
+			)
+		: quelle;
 };
 
 // ── Gesten (097) ────────────────────────────────────────────────────────────
@@ -602,12 +612,7 @@ export const setzeStilWerte = (quelle: string, nr: number, werte: Readonly<Recor
  * ⌥ beim Loslassen: eine Kopie an der neuen Lage, das Original bleibt. Mit `seite` (Nummer der `.seite`) liegt die
  * Kopie auf jener Seite, in derselben Ebene ganz vorne. Ein Schritt.
  */
-export const kopiereGestaltungNach = (
-	quelle: string,
-	nr: number,
-	lage: LageTeil,
-	seite?: number,
-): StrukturErgebnis => {
+export const kopiereGestaltungNach = (quelle: string, nr: number, lage: LageTeil, seite?: number): StrukturErgebnis => {
 	const z = zerlege(quelle);
 	const index = seite === undefined ? -1 : seitenIn(z).indexOf(knotenAn(z, seite));
 	if (seite !== undefined && index === -1) {
@@ -691,7 +696,9 @@ export const ordneAlle = (quelle: string, nrn: readonly number[], richtung: Rich
 	const fertig = zerlege(q);
 	q = wendeAn(
 		q,
-		fertig.knoten.filter((k) => attribut(k, MEHRFACH_MARKE)).flatMap((k) => setzeAttribut(fertig, k, MEHRFACH_MARKE, null)),
+		fertig.knoten
+			.filter((k) => attribut(k, MEHRFACH_MARKE))
+			.flatMap((k) => setzeAttribut(fertig, k, MEHRFACH_MARKE, null)),
 	);
 	return { quelle: q, nr: haupt };
 };

@@ -10,7 +10,6 @@ import type { Locator, Page } from '@playwright/test';
 import { material, oeffne, quelle, uhrzeit } from './editorhilfe';
 import { blattMit } from './gestaltung-daten';
 import { expect, test } from './hilfe';
-import { oeffneSchublade } from './schubladen-hilfe';
 
 const MAUS = ['chromium', 'mac-safari'];
 
@@ -169,7 +168,12 @@ test.describe('Abnahme E3: Ein Blatt in fünf Griffen (123, Z6)', () => {
 		// Lösung vollständig.
 		await page.getByRole('button', { name: 'Lösung', exact: true }).click();
 		await expect
-			.poll(() => material(page).locator('.antwort').first().evaluate((e) => getComputedStyle(e, '::after').content))
+			.poll(() =>
+				material(page)
+					.locator('.antwort')
+					.first()
+					.evaluate((e) => getComputedStyle(e, '::after').content),
+			)
 			.toBe('"7"');
 		await page.getByRole('button', { name: 'Arbeitsblatt', exact: true }).click();
 

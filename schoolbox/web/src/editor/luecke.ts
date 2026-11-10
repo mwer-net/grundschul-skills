@@ -1,7 +1,7 @@
 import type { Baustein } from '@schoolbox/kern/src/bausteine';
 import { kann } from '@schoolbox/kern/src/bausteine';
-import type { Ablage } from '@schoolbox/kern/src/struktur';
 import { MARKE } from '@schoolbox/kern/src/quelltext';
+import type { Ablage } from '@schoolbox/kern/src/struktur';
 
 import { bausteinVon, elementZu, nrVon } from './darstellung';
 import type { Ordnung, Platz } from './ziele';

@@ -56,26 +56,26 @@ const bewirktNichts = (k: Kontext, richtung: Richtung) => {
 	}
 };
 
-export const REIHENFOLGE_BEFEHLE: Befehl[] = EINTRAEGE.map(
-	({ id, richtung, symbol, taste, titel }): Befehl => ({
-		id,
-		titel,
-		gruppe: 'ordnen',
-		symbol,
-		kuerzel: [taste],
-		// Ohne Gestaltung bleiben die Tasten beim Browser.
-		tasteWenn: (k) => k.gestaltung !== null,
-		suchwoerter: ['reihenfolge', 'ebene', 'vordergrund', 'hintergrund', 'überlappen'],
-		orte: ['taste', 'palette', 'gestaltung'],
-		sichtbarUnter: 'mehr',
-		verfuegbar: (k) => k.aktiv && k.gestaltung !== null,
-		gesperrt: (k) => bewirktNichts(k, richtung),
-		aus: (k) => {
-			const g = k.gestaltung;
-			if (g) {
-				// 113: Mehrere behalten ihre Reihenfolge untereinander, ein Schritt.
-				g.fuehreAus(titel, (q) => (g.nrn.length > 1 ? ordneAlle(q, g.nrn, richtung) : ordneInEbene(q, g.nr, richtung)));
-			}
-		},
-	}),
-);
+export const REIHENFOLGE_BEFEHLE: Befehl[] = EINTRAEGE.map(({ id, richtung, symbol, taste, titel }): Befehl => ({
+	id,
+	titel,
+	gruppe: 'ordnen',
+	symbol,
+	kuerzel: [taste],
+	// Ohne Gestaltung bleiben die Tasten beim Browser.
+	tasteWenn: (k) => k.gestaltung !== null,
+	suchwoerter: ['reihenfolge', 'ebene', 'vordergrund', 'hintergrund', 'überlappen'],
+	orte: ['taste', 'palette', 'gestaltung'],
+	sichtbarUnter: 'mehr',
+	verfuegbar: (k) => k.aktiv && k.gestaltung !== null,
+	gesperrt: (k) => bewirktNichts(k, richtung),
+	aus: (k) => {
+		const g = k.gestaltung;
+		if (g) {
+			// 113: Mehrere behalten ihre Reihenfolge untereinander, ein Schritt.
+			g.fuehreAus(titel, (q) =>
+				g.nrn.length > 1 ? ordneAlle(q, g.nrn, richtung) : ordneInEbene(q, g.nr, richtung),
+			);
+		}
+	},
+}));

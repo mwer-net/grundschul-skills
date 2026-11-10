@@ -35,7 +35,8 @@ const wo = (r: { nr: number | null }) => {
 };
 
 const aufgaben = (quelle: string) =>
-	zerlege(quelle).knoten.filter((e) => klassenVon(e).includes('aufgabe') && !klassenVon(e).includes('koerper')).length;
+	zerlege(quelle).knoten.filter((e) => klassenVon(e).includes('aufgabe') && !klassenVon(e).includes('koerper'))
+		.length;
 
 describe('Fläche im Stapel (115)', () => {
 	it('legt eine Fläche zwischen zwei Aufgaben an, ohne Nummern zu ändern', () => {

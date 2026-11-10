@@ -71,7 +71,11 @@ describe('Einfügen an einer Ablage', () => {
 	});
 
 	it('der Kopf bleibt vorn, hinter der Namenszeile, wohin er auch gezogen wird', () => {
-		const kopf = { id: 'kopf', ort: 'seite' as const, html: '<div class="kopf"><div class="titel"><h1>K</h1></div></div>' };
+		const kopf = {
+			id: 'kopf',
+			ort: 'seite' as const,
+			html: '<div class="kopf"><div class="titel"><h1>K</h1></div></div>',
+		};
 		const ablage = { nr: nrVon(BLATT, 'aufgabe', 1), wo: 'nach' as const };
 		const { quelle } = fuegeBausteinAn(BLATT, kopf, ablage, nein);
 		const seite = knoten(quelle, 'seite', 0);
@@ -98,7 +102,10 @@ describe('Einfügen an einer Ablage', () => {
 
 	it('die Hülle für die Lücke ist dasselbe HTML', () => {
 		assert.equal(huelleImStapel(NEU).html, NEU.html);
-		assert.match(huelleImStapel({ id: 'u', ort: 'aufgabe', html: '<x-uhr></x-uhr>' }).html, /class="aufgabe".*<x-uhr>/);
+		assert.match(
+			huelleImStapel({ id: 'u', ort: 'aufgabe', html: '<x-uhr></x-uhr>' }).html,
+			/class="aufgabe".*<x-uhr>/,
+		);
 		assert.match(huelleImStapel({ id: 'z', ort: 'zeile', html: '<span>z</span>' }).html, /class="zeile"><span>z/);
 	});
 

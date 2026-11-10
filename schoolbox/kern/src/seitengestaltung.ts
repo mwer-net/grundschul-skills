@@ -64,6 +64,13 @@ export interface Seitenrahmen {
 /** Wie gelesen: dazu, ob das Teil von einem Rezept stammt (`data-aufmachung-teil`). */
 export type Gelesen<T> = T & { rezept: boolean };
 
+/** Die gelesenen Werte ohne die Angabe `rezept`, so wie sie sich wieder schreiben lassen. */
+export const ohneRezept = <T extends object>(gelesen: Gelesen<T>): T => {
+	const werte: Partial<Gelesen<T>> = { ...gelesen };
+	delete werte.rezept;
+	return werte as T;
+};
+
 export interface Seitengestaltung {
 	flaeche: Gelesen<Seitenflaeche> | null;
 	rahmen: Gelesen<Seitenrahmen> | null;
@@ -257,7 +264,11 @@ const neuesElement = (t: Teil) => {
 
 /** Der neue Start-Tag eines vorhandenen Teils: eigene Attribute ersetzt, fremde (Klassen, `data-name` …) bleiben. */
 const neuerStartTag = (z: Zerlegung, k: Knoten, t: Teil) => {
-	const eigene = new Set([...t.attribute.map(([n]) => n), 'style', ...(attribut(k, REZEPT) ? [REZEPT, 'data-gesperrt'] : [])]); // 114
+	const eigene = new Set([
+		...t.attribute.map(([n]) => n),
+		'style',
+		...(attribut(k, REZEPT) ? [REZEPT, 'data-gesperrt'] : []),
+	]); // 114
 	const stil = stilMit(attribut(k, 'style')?.wert ?? null, t.verwaltet, t.stil);
 	const fremde = k.attribute
 		.filter((a) => !eigene.has(a.name))

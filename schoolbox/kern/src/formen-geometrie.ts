@@ -9,9 +9,7 @@ export interface Punkt {
 }
 
 export type Segment =
-	| { art: 'L'; p: Punkt }
-	| { art: 'C'; c1: Punkt; c2: Punkt; p: Punkt }
-	| { art: 'Q'; c: Punkt; p: Punkt };
+	{ art: 'L'; p: Punkt } | { art: 'C'; c1: Punkt; c2: Punkt; p: Punkt } | { art: 'Q'; c: Punkt; p: Punkt };
 
 /** Ein Teilpfad: Start, Segmente, mit `Z` geschlossen oder offen. */
 export interface Zug {

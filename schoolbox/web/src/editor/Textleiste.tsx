@@ -3,7 +3,6 @@ import { zeilenVon } from '@schoolbox/kern/src/bausteine';
 import { useState } from 'react';
 
 import { BLATT_FARBEN, WEISS } from '../bausteine/Farbwahl';
-
 import { klassen } from '../bausteine/klassen';
 import { Knopf } from '../bausteine/Knopf';
 import { Symbol } from '../bausteine/Symbol';
@@ -63,8 +62,14 @@ const WortFarbe = ({ text }: { text: Text }) => {
 			</Knopf>
 			{offen && (
 				<div role="group" aria-label="Farbe für markierte Wörter" className="flex items-center gap-0.5">
-					{[...BLATT_FARBEN.map((f) => ({ wert: f.wert, name: f.name, zeige: farbeIm(text.doc, f.variable) })),
-						{ wert: WEISS, name: 'Weiß', zeige: WEISS }].map((f) => (
+					{[
+						...BLATT_FARBEN.map((f) => ({
+							wert: f.wert,
+							name: f.name,
+							zeige: farbeIm(text.doc, f.variable),
+						})),
+						{ wert: WEISS, name: 'Weiß', zeige: WEISS },
+					].map((f) => (
 						<button
 							key={f.wert}
 							type="button"

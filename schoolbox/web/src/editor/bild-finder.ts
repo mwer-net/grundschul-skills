@@ -1,8 +1,9 @@
 import { useEffect, useRef } from 'react';
 
 import { useHinweis } from '../bausteine/hinweis';
+import { gesehen, merkeGesehen } from './bild-sammlung';
+import { FOTO_HINWEIS } from './Bildpanel';
 import { nrVon } from './darstellung';
-import { FOTO_HINWEIS, gesehen, merkeGesehen } from './Bildpanel';
 import { legeAb } from './gestaltung/ablegen/ablegen';
 import { bildBausteinAn, bildGut } from './gestaltung/ablegen/bild-gut';
 import { eckeVon, markiereZiel, seiteUnter } from './gestaltung/ablegen/vorschau';
@@ -26,7 +27,9 @@ const PROBE = bildGut({ src: '', alt: '', natur: null });
  * einem Platzhalter füllt sie ihn. Der Datenschutz-Hinweis kommt einmal je Sitzung vor dem ersten Hochladen. Andere
  * Dateien bleiben still liegen; Text, den man zieht, behandelt weiter `textdom.ts`.
  */
-export const useBildAusFinder = (teile: Pick<SchubladenTeile, 'doc' | 'struktur' | 'bild' | 'einfuegen' | 'folien'>) => {
+export const useBildAusFinder = (
+	teile: Pick<SchubladenTeile, 'doc' | 'struktur' | 'bild' | 'einfuegen' | 'folien'>,
+) => {
 	const jetzt = useRef(teile);
 	const zeige = useHinweis();
 	useEffect(() => {
@@ -47,7 +50,9 @@ export const useBildAusFinder = (teile: Pick<SchubladenTeile, 'doc' | 'struktur'
 			if (e.dataTransfer) {
 				e.dataTransfer.dropEffect = 'copy';
 			}
-			const ziel = jetzt.current.struktur.aktiv ? zielFuer(doc.elementFromPoint(e.clientX, e.clientY), PROBE) : null;
+			const ziel = jetzt.current.struktur.aktiv
+				? zielFuer(doc.elementFromPoint(e.clientX, e.clientY), PROBE)
+				: null;
 			markiereZiel(doc, ziel?.rahmen ?? null);
 		};
 		const weg = () => markiereZiel(doc, null);
@@ -58,7 +63,11 @@ export const useBildAusFinder = (teile: Pick<SchubladenTeile, 'doc' | 'struktur'
 			if (!geladen) {
 				return;
 			}
-			const bild = { src: geladen.src, alt: geladen.alt, natur: { breite: geladen.breite, hoehe: geladen.hoehe } };
+			const bild = {
+				src: geladen.src,
+				alt: geladen.alt,
+				natur: { breite: geladen.breite, hoehe: geladen.hoehe },
+			};
 			const platz = t.einfuegen.eintraege.find((p) => p.id === 'platzhalter');
 			const gut = bildGut(bild, { platz, jeSeite: t.folien, struktur: t.struktur });
 			if (cmd) {

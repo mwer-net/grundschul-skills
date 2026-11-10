@@ -31,7 +31,7 @@ export const KOMBI_ARTEN: readonly { art: KombiArt; id: string; titel: string; s
 const kombinierbar = (element: Element | null) =>
 	Boolean(
 		element?.matches('svg.form[data-lage="frei"]') &&
-			['ohne-text', 'pfad'].includes(formVon(element.getAttribute('data-form'))?.klasse ?? ''),
+		['ohne-text', 'pfad'].includes(formVon(element.getAttribute('data-form'))?.klasse ?? ''),
 	);
 
 /** Warum die Auswahl sich nicht kombinieren lässt; `null`, wenn es geht. Wie `kombiGrund` im Kern, aber am Blatt. */

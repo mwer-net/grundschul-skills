@@ -115,7 +115,11 @@ describe('pruefung.js mit Gestaltung (091)', { skip: browserSkip() }, () => {
 					stufe: 'FEHLER',
 					text: '„Diese Zeile ragt in den Rand.“ ragt in den Seitenrand (91 px) → kürzen, Item streichen oder zweite Seite',
 				},
-				{ code: 'ueberlappung', stufe: 'FEHLER', text: '„Willi oben“ überlappt „Wilma darunter“ (54 × 120 px)' },
+				{
+					code: 'ueberlappung',
+					stufe: 'FEHLER',
+					text: '„Willi oben“ überlappt „Wilma darunter“ (54 × 120 px)',
+				},
 				// Die freie Figur vorne überdeckt Aufgabe 4: dafür gibt es seit 096 den Hinweis statt ueberlappung.
 				{
 					code: 'verdeckt',
@@ -203,7 +207,9 @@ describe('pruefung.js: Codes der Gestaltung (096)', { skip: browserSkip() }, () 
 			},
 		]);
 		assert.equal(aus[0]?.seite, 0);
-		assert.ok(!bericht.some((m) => m.ziele?.some((z) => z.name.startsWith('Versteckt')) && m.code !== 'ausgeblendet'));
+		assert.ok(
+			!bericht.some((m) => m.ziele?.some((z) => z.name.startsWith('Versteckt')) && m.code !== 'ausgeblendet'),
+		);
 	});
 
 	it('Mini-Book: kein druckrand an der Falz, wohl aber am Blattrand', async () => {
@@ -279,30 +285,30 @@ describe('blatt.css: s/w und data-aus bei Gestaltung (091, Briefing 4.2)', { ski
 	it('Farbe: alles sichtbar außer data-aus', async () => {
 		const w = await messe<Record<string, boolean | string>>(seite('farbe'));
 		assert.deepEqual(w, {
-			flaeche: true,
+			'flaeche': true,
 			'flaeche-grau': true,
-			rahmen: true,
-			streuung: true,
+			'rahmen': true,
+			'streuung': true,
 			'streuung-grau': true,
-			schmuck: true,
-			weg: true,
-			aus: false,
-			stapelHg: '#fff3b0',
+			'schmuck': true,
+			'weg': true,
+			'aus': false,
+			'stapelHg': '#fff3b0',
 		});
 	});
 
 	it('s/w: Seitenfläche und Streuung ohne data-sw weg, mit "grau" da; data-sw="weg" und data-aus weg', async () => {
 		const w = await messe<Record<string, boolean | string>>(seite('sw'));
 		assert.deepEqual(w, {
-			flaeche: false,
+			'flaeche': false,
 			'flaeche-grau': true,
-			rahmen: true,
-			streuung: false,
+			'rahmen': true,
+			'streuung': false,
 			'streuung-grau': true,
-			schmuck: true,
-			weg: false,
-			aus: false,
-			stapelHg: 'transparent',
+			'schmuck': true,
+			'weg': false,
+			'aus': false,
+			'stapelHg': 'transparent',
 		});
 	});
 });
@@ -338,7 +344,7 @@ describe('pruefung.js: Fläche im Stapel (115)', { skip: browserSkip() }, () => 
 			(m) => m.code !== 'platz-frei',
 		);
 		assert.deepEqual(
-			bericht.map(({ seite, code, stufe }) => ({ seite, code, stufe })),
+			bericht.map(({ code, seite, stufe }) => ({ seite, code, stufe })),
 			[{ seite: 2, code: 'abgeschnitten', stufe: 'FEHLER' }],
 		);
 		assert.match(bericht[0]?.text ?? '', /über den Rand der Fläche hinaus/);

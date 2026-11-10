@@ -126,7 +126,11 @@ export const Schubladen = ({ lage, panels, teile, waehle }: Eigenschaften) => {
 				>
 					{geteilt && Offen && Ebenen ? (
 						<>
-							<div className="flex min-h-0 flex-col" style={{ flex: `${panels.teilung} 1 0%` }} data-schublade-oben>
+							<div
+								className="flex min-h-0 flex-col"
+								style={{ flex: `${panels.teilung} 1 0%` }}
+								data-schublade-oben
+							>
 								<Offen {...teile} />
 							</div>
 							<Teiler spalte={spalte} teilung={panels.teilung} setTeilung={panels.setTeilung} />

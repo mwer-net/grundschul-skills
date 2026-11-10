@@ -62,7 +62,10 @@ export const gruppiere = (teile: readonly InspektorTeil[], art: string, baustein
 };
 
 /** 113: Die Gruppen bei Mehrfachauswahl: nur Teile mit `mehrfach`, deren `fuer` für jede gewählte Art gilt. */
-export const gruppiereMehrfach = (teile: readonly InspektorTeil[], arten: readonly { art: string; baustein: Baustein }[]) =>
+export const gruppiereMehrfach = (
+	teile: readonly InspektorTeil[],
+	arten: readonly { art: string; baustein: Baustein }[],
+) =>
 	(Object.keys(ABSCHNITTE).map(Number) as AbschnittNr[])
 		.sort((a, b) => a - b)
 		.map((nr) => ({

@@ -60,7 +60,10 @@ export const bildGut = (bild: BildDaten, stapel?: ImStapel): GestaltungsGut => {
 						html: `<img src="${schuetzeAttribut(bild.src)}" alt="" style="width:${breiteImStapel(bild)}px">`,
 					}).html,
 					legeAb: (ablage: Ablage) => {
-						stapel.struktur.fuehreAus('Bild eingefügt', bildBausteinAn(platz, bild, ablage, stapel.jeSeite));
+						stapel.struktur.fuehreAus(
+							'Bild eingefügt',
+							bildBausteinAn(platz, bild, ablage, stapel.jeSeite),
+						);
 					},
 				}
 			: undefined;

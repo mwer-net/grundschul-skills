@@ -23,7 +23,8 @@ const BILD = { src: 'bilder/marktplatz.jpg', alt: 'Marktplatz' };
 
 const RAHMEN =
 	'<div class="bildrahmen platzhalter" data-lage="frei" data-maske="stern" data-zacken="5" data-innen="0.45" data-name="Foto" style="--x:500px;--y:300px;--b:220px;--h:220px;--drehen:8deg;clip-path:polygon(50% 0%, 100% 100%, 0% 100%)"></div>';
-const DAVOR = '<svg class="form" data-lage="frei" data-form="ellipse" viewBox="0 0 80 80" style="--x:10px;--y:10px;--b:80px;--h:80px"><path d="M40 0 Z"/></svg>';
+const DAVOR =
+	'<svg class="form" data-lage="frei" data-form="ellipse" viewBox="0 0 80 80" style="--x:10px;--y:10px;--b:80px;--h:80px"><path d="M40 0 Z"/></svg>';
 const DAHINTER = '<div class="schmuck" data-lage="frei" style="--x:40px;--y:40px">Hallo</div>';
 
 const finde = (quelle: string, passt: (k: Knoten) => boolean) => {
@@ -70,7 +71,10 @@ describe('Bildrahmen (111)', () => {
 		const form = finde(vorher, (k) => k.tag === 'svg' && attribut(k, 'data-form')?.wert === 'stern');
 		const r = bildInForm(vorher, form.nr, BILD);
 		const html = element(r.quelle, r.nr ?? -1);
-		assert.match(html, /^<img class="bild-frei" data-lage="frei" data-zacken="5" data-innen="0\.45" data-maske="stern"/);
+		assert.match(
+			html,
+			/^<img class="bild-frei" data-lage="frei" data-zacken="5" data-innen="0\.45" data-maske="stern"/,
+		);
 		assert.ok(!html.includes('viewBox') && !html.includes('<path'));
 		assert.deepEqual(leseLage(r.quelle, r.nr ?? -1), { x: 610, y: 84, b: 120, h: 120, drehen: 12 });
 		assert.deepEqual(vorneListe(r.quelle), ['svg.form', 'img.bild-frei', 'div.schmuck']);
@@ -79,7 +83,8 @@ describe('Bildrahmen (111)', () => {
 	});
 
 	it('bildInForm: der Kreis wird ellipse(), Formen mit Text gehen nicht', () => {
-		const kreis = '<svg class="form" data-lage="frei" data-form="ellipse" viewBox="0 0 100 100" style="--x:20px;--y:20px;--b:100px;--h:100px"><path d="M50 0 Z"/></svg>';
+		const kreis =
+			'<svg class="form" data-lage="frei" data-form="ellipse" viewBox="0 0 100 100" style="--x:20px;--y:20px;--b:100px;--h:100px"><path d="M50 0 Z"/></svg>';
 		const vorher = blattMit({ vorne: [kreis, FORM_TEXT] });
 		const r = bildInForm(vorher, finde(vorher, mitKlasse('form')).nr, BILD);
 		assert.match(element(r.quelle, r.nr ?? -1), /clip-path:ellipse\(50% 50% at 50% 50%\)/);

@@ -13,7 +13,7 @@ export const SEITENRAND: Readonly<Record<AufmachungsFormat, number>> = {
 	'a4-quer': 54,
 	'a5-hoch': 36,
 	'a3-hoch': 54,
-	folie: 44,
+	'folie': 44,
 };
 
 /**
@@ -44,8 +44,14 @@ export const ECKE: Readonly<Record<AufmachungsFormat, { b: number; h: number }>>
 	'a4-quer': { b: 300, h: 260 },
 	'a5-hoch': { b: 160, h: 180 },
 	'a3-hoch': { b: 380, h: 420 },
-	folie: { b: 200, h: 170 },
+	'folie': { b: 200, h: 170 },
 };
 
 /** Größe der Teile je Format. */
-export const GROESSE = { 'a4-hoch': 'mittel', 'a4-quer': 'mittel', 'a5-hoch': 'klein', 'a3-hoch': 'gross', folie: 'klein' } as const;
+export const GROESSE = {
+	'a4-hoch': 'mittel',
+	'a4-quer': 'mittel',
+	'a5-hoch': 'klein',
+	'a3-hoch': 'gross',
+	'folie': 'klein',
+} as const;

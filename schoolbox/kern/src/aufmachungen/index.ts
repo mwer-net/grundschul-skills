@@ -25,7 +25,9 @@ export const aufmachungenTabelle = () =>
 		'| Rezept | `data-aufmachung` | Farbwelten (`data-aufmachung-farben` 1–3) | Kopfband | Rahmen | Konfetti |',
 		'|---|---|---|---|---|---|',
 		...AUFMACHUNGEN.map((a) => {
-			const welten = a.farbwelten.map((w, i) => `${i + 1} ${w.name} (${[w.a1, w.a2, w.a3, w.a4].join(' ')})`).join(', ');
+			const welten = a.farbwelten
+				.map((w, i) => `${i + 1} ${w.name} (${[w.a1, w.a2, w.a3, w.a4].join(' ')})`)
+				.join(', ');
 			const k = a.standard.konfetti;
 			return `| ${a.name} | \`${a.id}\` | ${welten} | ${KOPFBAND_NAMEN[a.standard.kopfband]} | ${a.standard.rahmen} | \`${k.menge} ${k.formen.join(' ')}\` |`;
 		}),

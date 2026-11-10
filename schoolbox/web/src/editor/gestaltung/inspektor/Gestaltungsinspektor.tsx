@@ -1,7 +1,7 @@
 import { Abschnitt } from '../../../bausteine/Abschnitt';
 import type { PfadTeil } from '../../darstellung';
-import type { Struktur } from '../../struktur';
 import { bausteinVon, elementZu } from '../../darstellung';
+import type { Struktur } from '../../struktur';
 import { gruppiere, gruppiereMehrfach, INSPEKTOR_TEILE, MEHRFACH_TEILE } from './index';
 import { kontextFuerGestaltung, liegtFreiAuf } from './kontext-ersatz';
 
@@ -31,7 +31,7 @@ export const Gestaltungsinspektor = ({ doc, pfad, quelle, struktur }: Eigenschaf
 			)}
 			{k.nrn.length > 1 && (
 				<p className="px-3 pb-2 text-sm text-leise" data-hinweis="mehrfach">
-					{k.nrn.length} Elemente gewählt.
+					{`${k.nrn.length} Elemente gewählt.`}
 				</p>
 			)}
 			{(k.nrn.length > 1

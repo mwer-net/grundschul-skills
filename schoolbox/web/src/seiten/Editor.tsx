@@ -38,15 +38,16 @@ import { useChat, useChatKontext, useChatStand } from '../editor/chat-kontext';
 import { useClaudeApp } from '../editor/ClaudeApp';
 import { bausteinVon, editorHtml, elementZu, nrVon, pfadZu, zielNachSchritt } from '../editor/darstellung';
 import { useEinfuegen, useSlash, useTabelleTab } from '../editor/einfuegen';
+import { zeigeBlattGestaltung } from '../editor/gestaltung/blatt/zeige';
+import { gestaltungKontext } from '../editor/gestaltung/kontext';
 import { Leiste as GestaltungLeiste } from '../editor/gestaltung/leiste/Leiste';
+import { folgeAuswahl, useMehrfach } from '../editor/gestaltung/mehrfach';
+import { REZEPTE_OEFFNEN } from '../editor/gestaltung/rezept/aktionen';
+import { GestaltungUeberlagerung } from '../editor/gestaltung/ueberlagerung';
 import { Werkzeugflaeche } from '../editor/gestaltung/werkzeuge/Werkzeugflaeche';
 import { useGliederungStand } from '../editor/gliederung-stand';
 import { halteFokus } from '../editor/halteFokus';
 import { Einstellungen, Inspektor, Umriss } from '../editor/Inspektor';
-import { zeigeBlattGestaltung } from '../editor/gestaltung/blatt';
-import { gestaltungKontext } from '../editor/gestaltung/kontext';
-import { folgeAuswahl, useMehrfach } from '../editor/gestaltung/mehrfach';
-import { GestaltungUeberlagerung } from '../editor/gestaltung/ueberlagerung';
 import { Leinwand } from '../editor/Leinwand';
 import { useLoesung } from '../editor/loesung';
 import { Loesungsuebersicht } from '../editor/Loesungspanel';
@@ -54,13 +55,12 @@ import { ersterAufSeite, erstesKindVon, nachbarVon, seiteAn } from '../editor/na
 import { Palette } from '../editor/Palette';
 import { eintraegeImEditor } from '../editor/palette-eintraege';
 import { Blattwerkzeug } from '../editor/Panel';
-import type { SchubladenId, SchubladenTeile } from '../editor/schubladen';
-import { REZEPTE_OEFFNEN } from '../editor/gestaltung/rezept/aktionen';
-import { befehlZuSchublade } from '../editor/schubladen/reihe';
-import { Schubladen } from '../editor/schubladen/Schubladen';
 import { usePanels } from '../editor/panels';
 import type { Pruefpunkt } from '../editor/pruefung';
 import { holeInSeiteAus, ueberlaufendeSeiten, usePruefung } from '../editor/pruefung';
+import type { SchubladenId, SchubladenTeile } from '../editor/schubladen';
+import { befehlZuSchublade } from '../editor/schubladen/reihe';
+import { Schubladen } from '../editor/schubladen/Schubladen';
 import { Statusleiste } from '../editor/Statusleiste';
 import type { Struktur } from '../editor/struktur';
 import { useStruktur } from '../editor/struktur';
@@ -1137,9 +1137,26 @@ const Bearbeitung = ({ dokument, mappe: mappenDaten }: { mappe: Mappe; dokument:
 														loes={loes}
 														waehle={setAuswahl}
 													/>
-													<GestaltungUeberlagerung e={e} pfad={pfad} struktur={struktur} waehle={setAuswahl} textsitzung={text.bearbeitet} />
-													<GestaltungLeiste e={e} pfad={pfad} quelle={quelle} struktur={struktur} befehle={befehle} sitzung={text.bearbeitet} />
-													<Werkzeugflaeche e={e} struktur={struktur} folien={format === 'folie'} />
+													<GestaltungUeberlagerung
+														e={e}
+														pfad={pfad}
+														struktur={struktur}
+														waehle={setAuswahl}
+														textsitzung={text.bearbeitet}
+													/>
+													<GestaltungLeiste
+														e={e}
+														pfad={pfad}
+														quelle={quelle}
+														struktur={struktur}
+														befehle={befehle}
+														sitzung={text.bearbeitet}
+													/>
+													<Werkzeugflaeche
+														e={e}
+														struktur={struktur}
+														folien={format === 'folie'}
+													/>
 												</>
 											)
 										: undefined

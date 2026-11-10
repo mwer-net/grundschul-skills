@@ -63,7 +63,7 @@ const lasseLos = () => {
 /** Fenster, an denen das Loslassen ankommen kann: das eigene und das des `iframe`, aus dem die Taste kam. */
 const fensterVon = (taste: KeyboardEvent) => {
 	const liste: Window[] = [window];
-	const ansicht = taste.view as Window | null;
+	const ansicht = taste.view;
 	if (ansicht && ansicht !== window) {
 		liste.push(ansicht);
 	}
@@ -101,32 +101,30 @@ const halte = (k: Kontext, g: GestaltungKontext, taste: KeyboardEvent, dx: numbe
 	}
 };
 
-export const PFEIL_BEFEHLE: Befehl[] = RICHTUNGEN.map(
-	({ dx, dy, key, name, titel }): Befehl => ({
-		id: `auswahl.schiebe-${name}`,
-		titel,
-		gruppe: 'ordnen',
-		kuerzel: [
-			{ key, wenn: mitGestaltung },
-			{ key, umschalt: true, wenn: mitGestaltung },
-		] satisfies Kuerzel[],
-		modus: ['auswahl'],
-		suchwoerter: ['pfeiltaste', 'verschieben', 'bewegen'],
-		orte: ['taste'],
-		sichtbarUnter: 'inspektor',
-		verfuegbar: (k) => k.aktiv && k.gestaltung !== null && !k.gestaltung.element.hasAttribute('data-gesperrt'),
-		aus: (k, taste) => {
-			const g = k.gestaltung;
-			if (!g) {
-				return;
-			}
-			const weite = taste?.shiftKey ? GROSSER_SCHRITT : 1;
-			if (taste?.repeat) {
-				halte(k, g, taste, dx * weite, dy * weite);
-				return;
-			}
-			lasseLos();
-			schiebe(g, zuSchieben(g), dx * weite, dy * weite);
-		},
-	}),
-);
+export const PFEIL_BEFEHLE: Befehl[] = RICHTUNGEN.map(({ dx, dy, key, name, titel }): Befehl => ({
+	id: `auswahl.schiebe-${name}`,
+	titel,
+	gruppe: 'ordnen',
+	kuerzel: [
+		{ key, wenn: mitGestaltung },
+		{ key, umschalt: true, wenn: mitGestaltung },
+	] satisfies Kuerzel[],
+	modus: ['auswahl'],
+	suchwoerter: ['pfeiltaste', 'verschieben', 'bewegen'],
+	orte: ['taste'],
+	sichtbarUnter: 'inspektor',
+	verfuegbar: (k) => k.aktiv && k.gestaltung !== null && !k.gestaltung.element.hasAttribute('data-gesperrt'),
+	aus: (k, taste) => {
+		const g = k.gestaltung;
+		if (!g) {
+			return;
+		}
+		const weite = taste?.shiftKey ? GROSSER_SCHRITT : 1;
+		if (taste?.repeat) {
+			halte(k, g, taste, dx * weite, dy * weite);
+			return;
+		}
+		lasseLos();
+		schiebe(g, zuSchieben(g), dx * weite, dy * weite);
+	},
+}));

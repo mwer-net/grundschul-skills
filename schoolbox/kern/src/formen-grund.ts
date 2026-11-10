@@ -20,7 +20,15 @@ const wert = (p: FormWerte, attr: string, ersatz: number) => {
 	return w === undefined || !Number.isFinite(w) ? ersatz : w;
 };
 
-const RADIUS: FormParameter = { attr: 'data-radius', name: 'Eckenradius', min: 0, max: 200, schritt: 1, standard: 0, einheit: 'px' };
+const RADIUS: FormParameter = {
+	attr: 'data-radius',
+	name: 'Eckenradius',
+	min: 0,
+	max: 200,
+	schritt: 1,
+	standard: 0,
+	einheit: 'px',
+};
 
 /** Abgerundete Ecken als kubische Kurven; der Radius ist höchstens die halbe kurze Seite. */
 const rechteck = (k: Kasten, radius: number): Zug => {
@@ -53,7 +61,8 @@ const rechteck = (k: Kasten, radius: number): Zug => {
 };
 
 /** Herz in einem Feld von 100 × 100; die Kontrollpunkte liegen im Feld, also auch die Kurve. */
-const HERZ = 'M50 100 C22 78 0 56 0 30 C0 13 13 0 28 0 C39 0 46 6 50 14 C54 6 61 0 72 0 C87 0 100 13 100 30 C100 56 78 78 50 100 Z';
+const HERZ =
+	'M50 100 C22 78 0 56 0 30 C0 13 13 0 28 0 C39 0 46 6 50 14 C54 6 61 0 72 0 C87 0 100 13 100 30 C100 56 78 78 50 100 Z';
 
 const herzZug = (): Zug => {
 	const zahlen = (HERZ.match(/-?\d+(?:\.\d+)?/g) ?? []).map(Number);
@@ -114,7 +123,9 @@ export const GRUND_FORMEN: readonly Form[] = [
 		art: 'dreieck',
 		name: 'Dreieck',
 		klasse: 'ohne-text',
-		parameter: [{ attr: 'data-spitze', name: 'Spitze', min: 0, max: 1, schritt: 0.05, standard: 0.5, einheit: '%' }],
+		parameter: [
+			{ attr: 'data-spitze', name: 'Spitze', min: 0, max: 1, schritt: 0.05, standard: 0.5, einheit: '%' },
+		],
 		standardGroesse: GROESSE,
 		zeichne: (p, b, h, strich) => {
 			const k = innen(b, h, strich);

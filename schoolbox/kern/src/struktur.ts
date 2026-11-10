@@ -138,7 +138,8 @@ const ergebnis = (
  */
 const stelleAmEnde = (z: Zerlegung, eltern: Knoten) => {
 	const letztes = eltern.kinder.filter((k) => !hat(k, 'fuss') && !istEbene(k) && !istGestaltung(k)).at(-1); // 106: vor den Anker
-	const fuss = eltern.kinder.find((k) => hat(k, 'fuss')) ?? eltern.kinder.find((k) => istEbene(k) || istGestaltung(k));
+	const fuss =
+		eltern.kinder.find((k) => hat(k, 'fuss')) ?? eltern.kinder.find((k) => istEbene(k) || istGestaltung(k));
 	if (letztes) {
 		return { einzug: einrueckung(z, letztes), fuegeEin: (html: string) => fuegeEin(z, letztes, 'nach', html) };
 	}

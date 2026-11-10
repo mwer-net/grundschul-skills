@@ -40,7 +40,10 @@ const waehle = async (page: Page, a: string, b: string) => {
 };
 
 const ueberMehr = async (page: Page, befehl: string) => {
-	await page.locator('[data-gestaltungsleiste="mehrfach"]').getByRole('button', { name: /^Mehr zu/ }).click();
+	await page
+		.locator('[data-gestaltungsleiste="mehrfach"]')
+		.getByRole('button', { name: /^Mehr zu/ })
+		.click();
 	await page.locator(`[data-befehl="${befehl}"]`).click();
 };
 

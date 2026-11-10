@@ -13,6 +13,7 @@
 import type { Form, FormParameter, FormWerte } from './formen';
 import type { Punkt, Zug } from './formen-geometrie';
 import { ellipsenZug, pfadText, vieleckZug, zahl } from './formen-geometrie';
+import type { Knoten } from './quelltext';
 import { attribut, schuetzeAttribut, wendeAn, zerlege } from './quelltext';
 
 export const ENDEN = [
@@ -54,7 +55,10 @@ export const LINIEN_GROESSE = { b: STANDARD_LAENGE + 2 * RAND, h: 2 * RAND };
 
 /** `"x1,y1 x2,y2"` → zwei Punkte; sonst `null`. */
 export const punkteAus = (wert: string | null | undefined): [Punkt, Punkt] | null => {
-	const zahlen = (wert ?? '').trim().split(/[\s,]+/).map(Number);
+	const zahlen = (wert ?? '')
+		.trim()
+		.split(/[\s,]+/)
+		.map(Number);
 	if (zahlen.length !== 4 || zahlen.some((n) => !Number.isFinite(n))) {
 		return null;
 	}
@@ -113,7 +117,13 @@ export const linienPunkte = (p: FormWerte, b: number, h: number): [Punkt, Punkt]
 const endeVon = (p: FormWerte, attr: string): Ende => ENDEN[Math.round(p[attr] ?? 0)]?.wert ?? 'keine';
 
 /** Spitze an `ziel`, die Linie kommt von `von`; dazu, wie weit die Linie vor `ziel` endet. */
-const spitzeAn = (art: Ende, von: Punkt, ziel: Punkt, s: number, laenge: number): { zug: Zug | null; kuerzer: number } => {
+const spitzeAn = (
+	art: Ende,
+	von: Punkt,
+	ziel: Punkt,
+	s: number,
+	laenge: number,
+): { zug: Zug | null; kuerzer: number } => {
 	if (art === 'punkt') {
 		return { zug: ellipsenZug(ziel.x, ziel.y, punktRadius(s), punktRadius(s)), kuerzer: 0 };
 	}
@@ -126,7 +136,11 @@ const spitzeAn = (art: Ende, von: Punkt, ziel: Punkt, s: number, laenge: number)
 	const uy = (ziel.y - von.y) / laenge;
 	const basis = { x: ziel.x - ux * l, y: ziel.y - uy * l };
 	return {
-		zug: vieleckZug([ziel, { x: basis.x - uy * w, y: basis.y + ux * w }, { x: basis.x + uy * w, y: basis.y - ux * w }]),
+		zug: vieleckZug([
+			ziel,
+			{ x: basis.x - uy * w, y: basis.y + ux * w },
+			{ x: basis.x + uy * w, y: basis.y - ux * w },
+		]),
 		// Die Linie endet in der Spitze, nicht an ihrer Spitze: Ihr runder Strich ragte sonst heraus.
 		kuerzer: l * 0.7,
 	};
@@ -138,7 +152,9 @@ const zeichneLinie = (p: FormWerte, b: number, h: number, strich: number) => {
 	const vorn = spitzeAn(endeVon(p, 'data-anfang'), z, a, strich, laenge);
 	const hinten = spitzeAn(endeVon(p, 'data-ende'), a, z, strich, laenge);
 	const weg = (von: Punkt, nach: Punkt, um: number): Punkt =>
-		laenge === 0 ? von : { x: von.x + ((nach.x - von.x) / laenge) * um, y: von.y + ((nach.y - von.y) / laenge) * um };
+		laenge === 0
+			? von
+			: { x: von.x + ((nach.x - von.x) / laenge) * um, y: von.y + ((nach.y - von.y) / laenge) * um };
 	const start = weg(a, z, vorn.kuerzer);
 	const schluss = weg(z, a, hinten.kuerzer);
 	const spitzen = [vorn.zug, hinten.zug].filter((s): s is Zug => s !== null);
@@ -174,6 +190,14 @@ const pxAus = (stil: string, name: string) => {
 	return m ? Number(m[1]) : null;
 };
 
+const randDerLinie = (k: Knoten) => {
+	const pfad = k.kinder.find((c) => c.tag === 'path');
+	const strich = Number.parseFloat(
+		/stroke-width\s*:\s*([\d.]+)/.exec(attribut(pfad ?? k, 'style')?.wert ?? '')?.[1] ?? '3',
+	);
+	return linienRand(Number.isFinite(strich) ? strich : 3);
+};
+
 /**
  * Größenfolge der Linie (`groessen-folgen.ts`, vor `zeichneFormNeu`): Ändert sich `--b`/`--h` (Inspektor, Claude),
  * wandern die Punkte mit. Gemessen wird an `viewBox`, die noch die alte Größe trägt; der Rand bleibt gleich.
@@ -186,17 +210,26 @@ export const skaliereLinie = (quelle: string, nr: number) => {
 	}
 	const punkte = attribut(k, 'data-punkte');
 	const p = punkteAus(punkte?.wert);
-	const alt = (attribut(k, 'viewbox')?.wert ?? '').trim().split(/[\s,]+/).map(Number);
+	const alt = (attribut(k, 'viewbox')?.wert ?? '')
+		.trim()
+		.split(/[\s,]+/)
+		.map(Number);
 	const stil = attribut(k, 'style')?.wert ?? '';
 	const b = pxAus(stil, '--b');
 	const h = pxAus(stil, '--h');
 	const [, , ab = Number.NaN, ah = Number.NaN] = alt;
-	if (!punkte || !p || b === null || h === null || !Number.isFinite(ab) || !Number.isFinite(ah) || (ab === b && ah === h)) {
+	if (
+		!punkte ||
+		!p ||
+		b === null ||
+		h === null ||
+		!Number.isFinite(ab) ||
+		!Number.isFinite(ah) ||
+		(ab === b && ah === h)
+	) {
 		return quelle;
 	}
-	const pfad = k.kinder.find((c) => c.tag === 'path');
-	const strich = Number.parseFloat(/stroke-width\s*:\s*([\d.]+)/.exec(attribut(pfad ?? k, 'style')?.wert ?? '')?.[1] ?? '3');
-	const rand = linienRand(Number.isFinite(strich) ? strich : 3);
+	const rand = randDerLinie(k);
 	const achse = (v: number, von: number, nach: number) =>
 		von - 2 * rand > 0 ? rand + ((v - rand) * Math.max(0, nach - 2 * rand)) / (von - 2 * rand) : nach / 2;
 	const neu = punkteText(

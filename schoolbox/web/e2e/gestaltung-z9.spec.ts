@@ -78,7 +78,10 @@ test.describe('Z9: zeichnen, vereinen, abziehen (124)', () => {
 
 		// 2. Den gezeichneten Pfad mit dem Kreis vereinen.
 		await pfad(page).click({ position: { x: Math.round(80 * s), y: Math.round(20 * s) } });
-		await form(page, 'Kreis').click({ modifiers: ['Shift'], position: { x: Math.round(30 * s), y: Math.round(80 * s) } });
+		await form(page, 'Kreis').click({
+			modifiers: ['Shift'],
+			position: { x: Math.round(30 * s), y: Math.round(80 * s) },
+		});
 		await expect(mehrfach(page)).toHaveAttribute('data-mehrfach-anzahl', '2');
 		await page.locator('[data-kombinieren] [data-befehl="auswahl.vereinen"]').click();
 		await expect.poll(async () => (await quelle(page)).includes('data-form="ellipse"')).toBe(false);
@@ -94,7 +97,10 @@ test.describe('Z9: zeichnen, vereinen, abziehen (124)', () => {
 			position: { x: Math.round(r.width - 8 * s), y: Math.round(r.height - 8 * s) },
 		});
 		await expect(mehrfach(page)).toHaveAttribute('data-mehrfach-anzahl', '2');
-		await page.locator('[data-gestaltungsleiste="mehrfach"]').getByRole('button', { name: /^Mehr zu/ }).click();
+		await page
+			.locator('[data-gestaltungsleiste="mehrfach"]')
+			.getByRole('button', { name: /^Mehr zu/ })
+			.click();
 		await page.locator('[data-befehl="auswahl.abziehen"]').click();
 		await expect.poll(async () => (await quelle(page)).includes('data-form="rechteck"')).toBe(false);
 		const abgezogen = await quelle(page);

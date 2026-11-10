@@ -12,8 +12,8 @@
  * Alles reine Umformungen der Quelle, jede ein Schritt im Verlauf.
  */
 
-import { formVon, parameterText, setzeAttributAn, stilWert, vollstaendig } from './formen';
 import type { FormWerte } from './formen';
+import { formVon, parameterText, setzeAttributAn, stilWert, vollstaendig } from './formen';
 import { istMaskenForm, maskeFuer } from './formen-masken';
 import type { Ablegen } from './gestaltung';
 import { legeGestaltungAb, leseLage, setzeLage, setzeStilWerte } from './gestaltung';
@@ -49,10 +49,10 @@ export const istBildrahmenLeer = (k: Knoten | undefined): k is Knoten =>
 export const istMaskenFormKnoten = (k: Knoten | undefined): k is Knoten =>
 	Boolean(
 		k &&
-			k.tag === 'svg' &&
-			klassenVon(k).includes('form') &&
-			attribut(k, LAGE)?.wert === 'frei' &&
-			istMaskenForm(attribut(k, 'data-form')?.wert),
+		k.tag === 'svg' &&
+		klassenVon(k).includes('form') &&
+		attribut(k, LAGE)?.wert === 'frei' &&
+		istMaskenForm(attribut(k, 'data-form')?.wert),
 	);
 
 const knotenAn = (quelle: string, nr: number) => {
@@ -205,7 +205,12 @@ export const bildrahmenHtml = ({ b, form, h, param = {} }: NeuerBildrahmen) => {
 /** Legt einen leeren Bildrahmen auf die Seite (`seite`: Nummer der `.seite`), vorne. Ein Schritt. */
 export const legeBildrahmen = (
 	quelle: string,
-	{ form, lage = {}, param, seite }: { seite: number; form: string; lage?: Ablegen['lage']; param?: Readonly<Record<string, number>> },
+	{
+		form,
+		lage = {},
+		param,
+		seite,
+	}: { seite: number; form: string; lage?: Ablegen['lage']; param?: Readonly<Record<string, number>> },
 ): StrukturErgebnis => {
 	const b = lage.b ?? BILDRAHMEN_GROESSE.b;
 	const h = lage.h ?? BILDRAHMEN_GROESSE.h;
@@ -217,13 +222,30 @@ export const legeBildrahmen = (
 };
 
 /** Diese Attribute des alten Elements gehen nicht ans Bild: Sie gehören zur Form bzw. zum Rahmen. */
-const NICHT_UEBERNEHMEN = new Set(['class', 'style', 'src', 'alt', 'viewbox', 'xmlns', 'aria-hidden', 'role', 'data-form', 'data-maske']);
+const NICHT_UEBERNEHMEN = new Set([
+	'class',
+	'style',
+	'src',
+	'alt',
+	'viewbox',
+	'xmlns',
+	'aria-hidden',
+	'role',
+	'data-form',
+	'data-maske',
+]);
 
 /**
  * Ersetzt das Element `k` durch ein freies Bild an derselben Stelle der Quelle: Ebene, Reihenfolge, Lage (auch
  * `--drehen`), Anker und Name bleiben. `maske` ist der Name der Form, `style` bekommt den `clip-path`.
  */
-const ersetzeDurchBild = (quelle: string, k: Knoten, maske: string, clipPath: string | null, bild: { src: string; alt: string }) => {
+const ersetzeDurchBild = (
+	quelle: string,
+	k: Knoten,
+	maske: string,
+	clipPath: string | null,
+	bild: { src: string; alt: string },
+) => {
 	const klassen = klassenVon(k).filter((c) => !['bildrahmen', 'platzhalter', 'form'].includes(c));
 	const attr = k.attribute
 		.filter((a) => !NICHT_UEBERNEHMEN.has(a.name))
@@ -232,9 +254,9 @@ const ersetzeDurchBild = (quelle: string, k: Knoten, maske: string, clipPath: st
 	const stil = setzeStil(attribut(k, 'style')?.wert ?? null, clipPath);
 	const html =
 		`<img class="${['bild-frei', ...klassen].join(' ')}"${attr} data-maske="${maske}"` +
-		` src="${schuetzeAttribut(bild.src)}" alt="${schuetzeAttribut(bild.alt.trim())}"` +
-		(stil ? ` style="${schuetzeAttribut(stil)}"` : '') +
-		'>';
+		` src="${schuetzeAttribut(bild.src)}" alt="${schuetzeAttribut(bild.alt.trim())}"${
+			stil ? ` style="${schuetzeAttribut(stil)}"` : ''
+		}>`;
 	// Davor ändert sich nichts: Das Bild hat die Nummer des alten Elements.
 	return { quelle: wendeAn(quelle, [{ von: k.start, bis: k.ende, text: html }]), nr: k.nr };
 };
@@ -261,7 +283,14 @@ export const fuelleBildrahmen = (quelle: string, nr: number, bild: { src: string
 	const maske = attribut(k, 'data-maske')?.wert ?? 'ellipse';
 	const form = formVon(maske);
 	const { b, h } = groesseVon(quelle, nr);
-	const clip = form ? maskeFuer(maske, vollstaendig(form, (a) => attribut(k, a)?.wert), b, h) : null;
+	const clip = form
+		? maskeFuer(
+				maske,
+				vollstaendig(form, (a) => attribut(k, a)?.wert),
+				b,
+				h,
+			)
+		: null;
 	return ersetzeDurchBild(quelle, k, maske, clip ?? stilWert(attribut(k, 'style')?.wert ?? null, 'clip-path'), bild);
 };
 
@@ -277,7 +306,14 @@ export const bildInForm = (quelle: string, formNr: number, bild: { src: string; 
 	const art = attribut(k, 'data-form')?.wert ?? '';
 	const form = formVon(art);
 	const { b, h } = groesseVon(quelle, formNr);
-	const clip = form ? maskeFuer(art, vollstaendig(form, (a) => attribut(k, a)?.wert), b, h) : null;
+	const clip = form
+		? maskeFuer(
+				art,
+				vollstaendig(form, (a) => attribut(k, a)?.wert),
+				b,
+				h,
+			)
+		: null;
 	// Pfad und Verlauf stehen im svg und fallen mit ihm weg.
 	return ersetzeDurchBild(quelle, k, art, clip, bild);
 };

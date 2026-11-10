@@ -7,7 +7,7 @@ import { Popover } from '../../../bausteine/Popover';
 import { Symbol } from '../../../bausteine/Symbol';
 import { pfadDerForm } from '../anzeige-folgen';
 import { KonturWahl } from '../inspektor/form-farben';
-import { SchriftWahl } from '../inspektor/text';
+import { SchriftWahl } from '../inspektor/text-teile';
 import type { LeistenKnoepfe, LeistenTeile } from './typen';
 
 interface Eintrag {
@@ -23,7 +23,7 @@ const ARTEN: Eintrag[] = [
 		id: `sprechblase-${b.wert}`,
 		name: b.wert === 'gedanke' ? 'Denkblase' : `Sprechblase ${b.name.toLowerCase()}`,
 		art: 'sprechblase',
-		blase: i as number | null,
+		blase: i,
 	})),
 	{ id: 'band', name: 'Band', art: 'band', blase: null },
 ];
@@ -34,7 +34,9 @@ const waehle = (k: LeistenTeile['k'], eintrag: Eintrag) =>
 		const gewechselt = wechsleForm(q, k.nr, eintrag.art);
 		return {
 			quelle:
-				eintrag.blase === null ? gewechselt : setzeFormParameter(gewechselt, k.nr, { 'data-blase': eintrag.blase }),
+				eintrag.blase === null
+					? gewechselt
+					: setzeFormParameter(gewechselt, k.nr, { 'data-blase': eintrag.blase }),
 			nr: k.nr,
 		};
 	});
@@ -50,18 +52,33 @@ const FormTextKnoepfe = ({ aktiv, k, quelle }: LeistenTeile) => {
 	const pfad = pfadDerForm(k.element);
 	const fenster = k.element.ownerDocument.defaultView;
 	const kontur = stand.kontur && pfad && fenster ? fenster.getComputedStyle(pfad).getPropertyValue('stroke') : null;
+	const formartKnopf = (
+		<Knopf art="leise" groesse="klein" data-leiste-formart={jetzt?.id} disabled={!aktiv}>
+			{jetzt?.name ?? 'Art'}
+			<Symbol name="runter" />
+		</Knopf>
+	);
+	const konturKnopf = (
+		<Knopf art="leise" groesse="klein" data-leiste-kontur disabled={!aktiv}>
+			<span
+				aria-hidden
+				className="size-4 flex-none rounded-full border-[3px] bg-white"
+				style={kontur ? { borderColor: kontur } : { borderColor: '#d4d4d8' }}
+			/>
+			Kontur
+		</Knopf>
+	);
+	const schriftKnopf = text && (
+		<Knopf art="leise" groesse="klein" data-leiste-schrift disabled={!aktiv}>
+			<span aria-hidden className="font-semibold">
+				Aa
+			</span>
+			{text.schrift}
+		</Knopf>
+	);
 	return (
 		<>
-			<Popover
-				name="Art"
-				className="w-auto"
-				ausloeser={
-					<Knopf art="leise" groesse="klein" data-leiste-formart={jetzt?.id} disabled={!aktiv}>
-						{jetzt?.name ?? 'Art'}
-						<Symbol name="runter" />
-					</Knopf>
-				}
-			>
+			<Popover name="Art" className="w-auto" ausloeser={formartKnopf}>
 				<div className="flex flex-col items-stretch gap-0.5" role="menu" aria-label="Art">
 					{ARTEN.map((a) => (
 						<Knopf
@@ -79,35 +96,11 @@ const FormTextKnoepfe = ({ aktiv, k, quelle }: LeistenTeile) => {
 					))}
 				</div>
 			</Popover>
-			<Popover
-				name="Kontur"
-				className="w-auto max-w-72"
-				ausloeser={
-					<Knopf art="leise" groesse="klein" data-leiste-kontur disabled={!aktiv}>
-						<span
-							aria-hidden
-							className="size-4 flex-none rounded-full border-[3px] bg-white"
-							style={kontur ? { borderColor: kontur } : { borderColor: '#d4d4d8' }}
-						/>
-						Kontur
-					</Knopf>
-				}
-			>
+			<Popover name="Kontur" className="w-auto max-w-72" ausloeser={konturKnopf}>
 				<KonturWahl k={k} quelle={quelle} aktiv={aktiv} />
 			</Popover>
-			{text && (
-				<Popover
-					name="Schrift"
-					className="w-auto"
-					ausloeser={
-						<Knopf art="leise" groesse="klein" data-leiste-schrift disabled={!aktiv}>
-							<span aria-hidden className="font-semibold">
-								Aa
-							</span>
-							{text.schrift}
-						</Knopf>
-					}
-				>
+			{schriftKnopf && (
+				<Popover name="Schrift" className="w-auto" ausloeser={schriftKnopf}>
 					<SchriftWahl k={k} quelle={quelle} aktiv={aktiv} />
 				</Popover>
 			)}

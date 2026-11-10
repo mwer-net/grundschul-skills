@@ -23,25 +23,26 @@ const Raster = ({
 	befehle,
 	eintraege,
 	name,
-}: Pick<LeistenTeile, 'befehle'> & { name: string; eintraege: { id: string; titel: string; symbol: SymbolName; taste?: string }[] }) => {
-	return (
-		<div className="grid grid-cols-3 gap-1 p-1" data-leiste-raster={name}>
-			{eintraege.map(({ id, symbol, taste, titel }) => (
-					<Knopf
-						key={id}
-						art="leise"
-						groesse="klein"
-						title={taste ? `${titel} (${taste})` : titel}
-						data-befehl={id}
-						onClick={() => befehle.fuehreAus(id)}
-					>
-						<Symbol name={symbol} />
-						{titel}
-					</Knopf>
-				))}
-		</div>
-	);
-};
+}: Pick<LeistenTeile, 'befehle'> & {
+	name: string;
+	eintraege: { id: string; titel: string; symbol: SymbolName; taste?: string }[];
+}) => (
+	<div className="grid grid-cols-3 gap-1 p-1" data-leiste-raster={name}>
+		{eintraege.map(({ id, symbol, taste, titel }) => (
+			<Knopf
+				key={id}
+				art="leise"
+				groesse="klein"
+				title={taste ? `${titel} (${taste})` : titel}
+				data-befehl={id}
+				onClick={() => befehle.fuehreAus(id)}
+			>
+				<Symbol name={symbol} />
+				{titel}
+			</Knopf>
+		))}
+	</div>
+);
 
 /** 120: „Gruppieren“; gesperrt mit Grund im Titel, wenn die Elemente nicht in derselben Ebene liegen. */
 const GruppierenKnopf = ({ aktiv, befehle }: Pick<LeistenTeile, 'aktiv' | 'befehle'>) => {
@@ -70,39 +71,35 @@ const GruppierenKnopf = ({ aktiv, befehle }: Pick<LeistenTeile, 'aktiv' | 'befeh
  * Leiste bei Mehrfachauswahl (113, Briefing 5.7): Gruppieren (120), Ausrichten ▾ (sechs Knöpfe), Verteilen ▾, dann ⋯
  * aus dem Rahmen.
  */
-const MehrfachKnoepfe = ({ aktiv, befehle, k }: LeistenTeile) => (
-	<>
-		<span className="px-1 text-sm text-leise tabular-nums" data-leiste-anzahl>
-			{k.nrn.length} gewählt
-		</span>
-		<GruppierenKnopf aktiv={aktiv} befehle={befehle} /> {/* 120 */}
-		<Popover
-			name="Ausrichten"
-			className="w-auto"
-			ausloeser={
-				<Knopf art="leise" groesse="klein" data-leiste-ausrichten disabled={!aktiv}>
-					<Symbol name="ausrichten-links" />
-					Ausrichten
-				</Knopf>
-			}
-		>
-			<Raster befehle={befehle} name="ausrichten" eintraege={AUSRICHTEN} />
-		</Popover>
-		{k.nrn.length >= 3 && (
-			<Popover
-				name="Verteilen"
-				className="w-auto"
-				ausloeser={
-					<Knopf art="leise" groesse="klein" data-leiste-verteilen disabled={!aktiv}>
-						<Symbol name="verteilen-waagerecht" />
-						Verteilen
-					</Knopf>
-				}
-			>
-				<Raster befehle={befehle} name="verteilen" eintraege={VERTEILEN} />
+const MehrfachKnoepfe = ({ aktiv, befehle, k }: LeistenTeile) => {
+	const ausrichtenKnopf = (
+		<Knopf art="leise" groesse="klein" data-leiste-ausrichten disabled={!aktiv}>
+			<Symbol name="ausrichten-links" />
+			Ausrichten
+		</Knopf>
+	);
+	const verteilenKnopf = (
+		<Knopf art="leise" groesse="klein" data-leiste-verteilen disabled={!aktiv}>
+			<Symbol name="verteilen-waagerecht" />
+			Verteilen
+		</Knopf>
+	);
+	return (
+		<>
+			<span className="px-1 text-sm text-leise tabular-nums" data-leiste-anzahl>
+				{`${k.nrn.length} gewählt`}
+			</span>
+			<GruppierenKnopf aktiv={aktiv} befehle={befehle} />
+			<Popover name="Ausrichten" className="w-auto" ausloeser={ausrichtenKnopf}>
+				<Raster befehle={befehle} name="ausrichten" eintraege={AUSRICHTEN} />
 			</Popover>
-		)}
-	</>
-);
+			{k.nrn.length >= 3 && (
+				<Popover name="Verteilen" className="w-auto" ausloeser={verteilenKnopf}>
+					<Raster befehle={befehle} name="verteilen" eintraege={VERTEILEN} />
+				</Popover>
+			)}
+		</>
+	);
+};
 
 export const MEHRFACH_LEISTE: LeistenKnoepfe | null = MehrfachKnoepfe;

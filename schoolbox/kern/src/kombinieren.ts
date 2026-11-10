@@ -61,7 +61,29 @@ export const kombiGrund = (quelle: string, nrn: readonly number[]): string | nul
 	return null;
 };
 
-const zahlen = (wert: string | null | undefined) => (wert ?? '').trim().split(/[\s,]+/).map(Number);
+const zahlen = (wert: string | null | undefined) =>
+	(wert ?? '')
+		.trim()
+		.split(/[\s,]+/)
+		.map(Number);
+
+const rund = (n: number) => Math.round(n * 1000) / 1000;
+
+/** Gespiegelt und gedreht um die Mitte, verschoben an `--x`/`--y`. */
+const umDieMitte = (lage: ReturnType<typeof leseLage>, b: number, h: number) => {
+	const spiegeln = (lage.spiegeln ?? 1) < 0 ? -1 : 1;
+	const w = ((lage.drehen ?? 0) * Math.PI) / 180;
+	const cos = Math.cos(w);
+	const sin = Math.sin(w);
+	const mx = (lage.x ?? 0) + b / 2;
+	const my = (lage.y ?? 0) + h / 2;
+	return (p: Punkt) => {
+		const dx = (p.x - b / 2) * spiegeln;
+		const dy = p.y - h / 2;
+		// Auf 1/1000 px: Sonst trennen Rechenreste Kanten, die genau aneinanderstoßen.
+		return { x: rund(mx + dx * cos - dy * sin), y: rund(my + dx * sin + dy * cos) };
+	};
+};
 
 /**
  * Die Form `nr` als Polygone in Koordinaten des Elternteils (wie `--x`, `--y`): `d` aus der `viewBox` auf die Größe
@@ -87,24 +109,9 @@ export const alsPolygon = (quelle: string, nr: number): Punkt[][] => {
 	const sx = vb > 0 ? b / vb : 1;
 	const sy = vh > 0 ? h / vh : 1;
 	const aussen = (p: Punkt) => ({ x: ((p.x - vx) * sx - r) * (b / ib), y: ((p.y - vy) * sy - r) * (h / ih) });
-	const spiegeln = (lage.spiegeln ?? 1) < 0 ? -1 : 1;
-	const w = ((lage.drehen ?? 0) * Math.PI) / 180;
-	const cos = Math.cos(w);
-	const sin = Math.sin(w);
-	const mx = (lage.x ?? 0) + b / 2;
-	const my = (lage.y ?? 0) + h / 2;
-	return inPolygon(zuege, TOLERANZ / Math.max(sx, sy, 1e-6)).map((ring) =>
-		ring.map((roh) => {
-			const p = aussen(roh);
-			const dx = (p.x - b / 2) * spiegeln;
-			const dy = p.y - h / 2;
-			// Auf 1/1000 px: Sonst trennen Rechenreste Kanten, die genau aneinanderstoßen.
-			return { x: rund(mx + dx * cos - dy * sin), y: rund(my + dx * sin + dy * cos) };
-		}),
-	);
+	const lege = umDieMitte(lage, b, h);
+	return inPolygon(zuege, TOLERANZ / Math.max(sx, sy, 1e-6)).map((ring) => ring.map((roh) => lege(aussen(roh))));
 };
-
-const rund = (n: number) => Math.round(n * 1000) / 1000;
 
 const alsRing = (punkte: readonly Punkt[]): Ring => {
 	const ring = punkte.map((p): [number, number] => [p.x, p.y]);
@@ -146,7 +153,9 @@ export const liegtIn = (poly: Poly, p: Punkt) => {
 		for (let i = 0, j = ring.length - 1; i < ring.length; j = i, i += 1) {
 			const [xi, yi] = ring[i] ?? [0, 0];
 			const [xj, yj] = ring[j] ?? [0, 0];
-			if (yi > p.y !== yj > p.y && p.x < ((xj - xi) * (p.y - yi)) / (yj - yi) + xi) {
+			const iUeber = yi > p.y;
+			const jUeber = yj > p.y;
+			if (iUeber !== jUeber && p.x < ((xj - xi) * (p.y - yi)) / (yj - yi) + xi) {
 				drin = !drin;
 			}
 		}
@@ -175,7 +184,14 @@ const verknuepfe = (art: KombiArt, [erste, ...weitere]: readonly MultiPoly[]): M
 
 /** Jeder Ring als geschlossener Zug: Kurven, wo es rund war, Ecken, wo es spitz war. */
 const zuegeAus = (mp: MultiPoly): Zug[] =>
-	mp.flatMap((poly) => poly.map((ring) => ringZuZug(ring.map(([x, y]) => ({ x, y })), GLAETTEN)));
+	mp.flatMap((poly) =>
+		poly.map((ring) =>
+			ringZuZug(
+				ring.map(([x, y]) => ({ x, y })),
+				GLAETTEN,
+			),
+		),
+	);
 
 // ── Schreiben ───────────────────────────────────────────────────────────────
 
@@ -320,9 +336,7 @@ export const bereiche = (quelle: string, nrn: readonly number[]): Bereich[] => {
 		neu.push({ flaeche: ohneSplitter(rest), in: [i] });
 		liste = neu.filter((r) => r.flaeche.length > 0);
 	});
-	return liste
-		.flatMap((r) => r.flaeche.map((flaeche) => ({ flaeche, in: r.in })))
-		.map((r, id) => ({ id, ...r }));
+	return liste.flatMap((r) => r.flaeche.map((flaeche) => ({ flaeche, in: r.in }))).map((r, id) => ({ id, ...r }));
 };
 
 /** Bereit für die Schere: höchstens acht Formen, die sich irgendwo überlappen. Sonst der Grund. */

@@ -135,10 +135,10 @@ const plaetzeIn = (glieder: Element[], element: Element): (Platz & { ohneWirkung
 		const nachher = nachbar(j, 1);
 		const marke = (wo: 'vor' | 'nach'): Marke => {
 			if (quer) {
-				const nachbar = wo === 'vor' ? vorher : nachher;
-				const gleicheZeile = nachbar && Math.abs(nachbar.top - r.top) < 4;
+				const daneben = wo === 'vor' ? vorher : nachher;
+				const gleicheZeile = daneben && Math.abs(daneben.top - r.top) < 4;
 				const kante = wo === 'vor' ? r.left : r.right;
-				const mitte = gleicheZeile ? (kante + (wo === 'vor' ? nachbar.right : nachbar.left)) / 2 : null;
+				const mitte = gleicheZeile ? (kante + (wo === 'vor' ? daneben.right : daneben.left)) / 2 : null;
 				return {
 					x: mitte ?? kante + (wo === 'vor' ? -RAND : RAND),
 					y: r.top,

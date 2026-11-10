@@ -103,39 +103,35 @@ const verteileAlle = (g: GestaltungKontext, richtung: 'waagerecht' | 'senkrecht'
 };
 
 export const AUSRICHTEN_BEFEHLE: Befehl[] = [
-	...AUSRICHTUNGEN.map(
-		({ code, symbol, titel, wie }): Befehl => ({
-			id: AUSRICHTEN_ID[wie],
-			titel,
-			gruppe: 'ordnen',
-			symbol,
-			kuerzel: [{ code, wahl: true, wenn: tippfrei } satisfies Kuerzel],
-			modus: ['auswahl'],
-			tasteWenn: tippfrei,
-			suchwoerter: ['ausrichten', 'bündig', 'anordnen', 'mehrere'],
-			orte: ['taste', 'palette', 'gestaltung'],
-			sichtbarUnter: 'mehr',
-			verfuegbar: (k) => k.aktiv && k.gestaltung !== null && beweglich(k.gestaltung).length > 0,
-			aus: (k) => {
-				const g = k.gestaltung;
-				return g ? richteAus(g, wie, titel) : undefined;
-			},
-		}),
-	),
-	...(['waagerecht', 'senkrecht'] as const).map(
-		(richtung): Befehl => ({
-			id: `auswahl.verteilen-${richtung}`,
-			symbol: `verteilen-${richtung}`,
-			titel: richtung === 'waagerecht' ? 'Waagerecht verteilen' : 'Senkrecht verteilen',
-			gruppe: 'ordnen',
-			suchwoerter: ['verteilen', 'abstand', 'gleichmäßig', 'mehrere'],
-			orte: ['palette', 'gestaltung'],
-			sichtbarUnter: 'mehr',
-			verfuegbar: (k) => k.aktiv && (k.gestaltung?.nrn.length ?? 0) >= 3,
-			aus: (k) => {
-				const g = k.gestaltung;
-				return g ? verteileAlle(g, richtung) : undefined;
-			},
-		}),
-	),
+	...AUSRICHTUNGEN.map(({ code, symbol, titel, wie }): Befehl => ({
+		id: AUSRICHTEN_ID[wie],
+		titel,
+		gruppe: 'ordnen',
+		symbol,
+		kuerzel: [{ code, wahl: true, wenn: tippfrei } satisfies Kuerzel],
+		modus: ['auswahl'],
+		tasteWenn: tippfrei,
+		suchwoerter: ['ausrichten', 'bündig', 'anordnen', 'mehrere'],
+		orte: ['taste', 'palette', 'gestaltung'],
+		sichtbarUnter: 'mehr',
+		verfuegbar: (k) => k.aktiv && k.gestaltung !== null && beweglich(k.gestaltung).length > 0,
+		aus: (k) => {
+			const g = k.gestaltung;
+			return g ? richteAus(g, wie, titel) : undefined;
+		},
+	})),
+	...(['waagerecht', 'senkrecht'] as const).map((richtung): Befehl => ({
+		id: `auswahl.verteilen-${richtung}`,
+		symbol: `verteilen-${richtung}`,
+		titel: richtung === 'waagerecht' ? 'Waagerecht verteilen' : 'Senkrecht verteilen',
+		gruppe: 'ordnen',
+		suchwoerter: ['verteilen', 'abstand', 'gleichmäßig', 'mehrere'],
+		orte: ['palette', 'gestaltung'],
+		sichtbarUnter: 'mehr',
+		verfuegbar: (k) => k.aktiv && (k.gestaltung?.nrn.length ?? 0) >= 3,
+		aus: (k) => {
+			const g = k.gestaltung;
+			return g ? verteileAlle(g, richtung) : undefined;
+		},
+	})),
 ];

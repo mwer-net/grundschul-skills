@@ -1,6 +1,6 @@
+import { FREIES_ELEMENT } from '@schoolbox/kern/src/bausteine';
 import type { LageImStapel } from '@schoolbox/kern/src/bilder-frei';
 import { legeBildFrei, legeFreiesElementFrei } from '@schoolbox/kern/src/bilder-frei';
-import { FREIES_ELEMENT } from '@schoolbox/kern/src/bausteine';
 
 import type { Befehl, Kontext } from '../../befehle';
 import { elementZu } from '../../darstellung';

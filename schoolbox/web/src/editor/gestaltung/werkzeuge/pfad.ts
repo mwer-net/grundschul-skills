@@ -60,7 +60,9 @@ const fertig = (geschlossen: boolean): Fortgang => {
 	const zuege = zuegeVon(punkte, geschlossen);
 	punkte = [];
 	schliesst = false;
-	return { fertig: zuege[0] && zuege[0].segmente.length > 0 ? { ...neuerPfad(zuege, geschlossen), ebene: 'vorne' } : null };
+	return {
+		fertig: zuege[0] && zuege[0].segmente.length > 0 ? { ...neuerPfad(zuege, geschlossen), ebene: 'vorne' } : null,
+	};
 };
 
 /**

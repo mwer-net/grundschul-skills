@@ -17,9 +17,10 @@ const GROESSEN = [
 	[40, 90],
 ] as const;
 
-const SCHNAPPSCHUSS = JSON.parse(
-	readFileSync(path.join(__dirname, 'formen.schnappschuss.json'), 'utf8'),
-) as Record<string, string>;
+const SCHNAPPSCHUSS = JSON.parse(readFileSync(path.join(__dirname, 'formen.schnappschuss.json'), 'utf8')) as Record<
+	string,
+	string
+>;
 
 // 107: Formen mit Text und die Linie haben eigene Tests (`formen-text.test.ts`, `formen-linie.test.ts`).
 const ARTEN = Object.values(FORMEN)
@@ -27,7 +28,9 @@ const ARTEN = Object.values(FORMEN)
 	.map((f) => f.art);
 
 const seiteIn = (quelle: string) => {
-	const seite = zerlege(quelle).knoten.find((k) => k.tag === 'section' && /\bseite\b/.test(attribut(k, 'class')?.wert ?? ''));
+	const seite = zerlege(quelle).knoten.find(
+		(k) => k.tag === 'section' && /\bseite\b/.test(attribut(k, 'class')?.wert ?? ''),
+	);
 	assert.ok(seite, 'Das Blatt hat eine Seite.');
 	return seite.nr;
 };
@@ -53,7 +56,10 @@ describe('Formen zeichnen', () => {
 				const u = umrandung(zuege);
 				const t = 0.01;
 				assert.ok(u.x >= 1.5 - t && u.y >= 1.5 - t, `links oben ${u.x}, ${u.y}`);
-				assert.ok(u.x + u.b <= b - 1.5 + t && u.y + u.h <= h - 1.5 + t, `rechts unten ${u.x + u.b}, ${u.y + u.h}`);
+				assert.ok(
+					u.x + u.b <= b - 1.5 + t && u.y + u.h <= h - 1.5 + t,
+					`rechts unten ${u.x + u.b}, ${u.y + u.h}`,
+				);
 			});
 		}
 		it(`${art} mit Standardwerten besteht die Prüfung freier Elemente`, () => {
@@ -102,7 +108,11 @@ describe('Formen ändern', () => {
 
 	it('setzeLage mit neuer Breite schreibt viewBox und Pfad neu, die Strichstärke bleibt', () => {
 		const vorher = blattMit();
-		const { nr, quelle } = legeForm(vorher, { seite: seiteIn(vorher), art: 'rechteck', param: { 'data-radius': 20 } });
+		const { nr, quelle } = legeForm(vorher, {
+			seite: seiteIn(vorher),
+			art: 'rechteck',
+			param: { 'data-radius': 20 },
+		});
 		assert.ok(nr !== null);
 		const breit = setzeLage(quelle, nr, { b: 240 });
 		const el = formElement(breit, nr);
@@ -124,7 +134,9 @@ describe('Formen ändern', () => {
 		const ohneFormen = blattMit();
 		assert.equal(ergaenzeFormen(ohneFormen), ohneFormen);
 		const roh = blattMit({
-			vorne: ['<svg class="form" data-lage="frei" data-form="vieleck" data-ecken="4" style="--x:10px;--y:10px"></svg>'],
+			vorne: [
+				'<svg class="form" data-lage="frei" data-form="vieleck" data-ecken="4" style="--x:10px;--y:10px"></svg>',
+			],
 		});
 		const ergaenzt = ergaenzeFormen(roh);
 		const form = ergaenzt.slice(ergaenzt.indexOf('<svg class="form"'));

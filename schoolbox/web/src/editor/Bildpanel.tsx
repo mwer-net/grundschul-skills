@@ -10,32 +10,14 @@ import { Zeile } from '../bausteine/Zeile';
 import { useLaden } from '../lib/laden';
 import type { BildSteuerung, BildWerte, NeuerPlatz } from './bild';
 import { beschreibungAus } from './bild';
+import { gesehen, merkeGesehen, passt } from './bild-sammlung';
 import type { AblegenTeile } from './gestaltung/ablegen/ablegen';
 import { AblageKachel } from './gestaltung/ablegen/Kachel';
 import type { GestaltungsGut } from './gestaltung/ablegen/ziehgut';
 import { EIGENE_GESCHICHTE } from './tasten';
 
-/** Der Hinweis zum Datenschutz kommt einmal je Sitzung im Browser (Leitlinie aus 007). */
-const HINWEIS_GESEHEN = 'schoolbox-foto-hinweis';
-
 /** Der Hinweis selbst; 103 zeigt ihn auch, wenn ein Foto aus dem Finder aufs Blatt fällt. */
 export const FOTO_HINWEIS = 'Bitte keine Fotos, auf denen Kinder zu erkennen sind.';
-
-export const gesehen = () => {
-	try {
-		return window.sessionStorage.getItem(HINWEIS_GESEHEN) === '1';
-	} catch {
-		return false;
-	}
-};
-
-export const merkeGesehen = () => {
-	try {
-		window.sessionStorage.setItem(HINWEIS_GESEHEN, '1');
-	} catch {
-		// Ohne Speicher kommt der Hinweis eben noch einmal.
-	}
-};
 
 export const Laeuft = ({ text }: { text: string }) => (
 	<p className="flex items-center gap-2 text-leise" role="status">
@@ -121,24 +103,6 @@ const GRUPPEN = [
 
 export type SammlungsGruppe = (typeof GRUPPEN)[number]['art'];
 
-const falte = (text: string) =>
-	text
-		.toLowerCase()
-		.replace(/ä/g, 'ae')
-		.replace(/ö/g, 'oe')
-		.replace(/ü/g, 'ue')
-		.replace(/ß/g, 'ss')
-		.replace(/[^a-z0-9]+/g, ' ');
-
-/** Findet nach Name, Beschreibungen und Mappe, ohne Groß- und Kleinschreibung und Umlaute. */
-export const passt = (eintrag: SammlungsBild, suche: string) => {
-	const text = falte([eintrag.name, ...eintrag.alt, eintrag.mappe ?? ''].join(' '));
-	return falte(suche)
-		.split(' ')
-		.filter(Boolean)
-		.every((wort) => text.includes(wort));
-};
-
 /** Ziehen aus der Bilder-Schublade (103): das Gut zu einem Eintrag, sobald die Maße der Vorschau bekannt sind. */
 export type BildZiehen = (
 	eintrag: SammlungsBild,
@@ -176,7 +140,9 @@ const Kachel = ({
 					setNatur(breite > 0 ? { breite, hoehe } : null);
 				}}
 			/>
-			<span className={klassen('truncate font-medium', klein && 'text-xs')}>{eintrag.alt[0] ?? eintrag.name}</span>
+			<span className={klassen('truncate font-medium', klein && 'text-xs')}>
+				{eintrag.alt[0] ?? eintrag.name}
+			</span>
 			{eintrag.mappe && (
 				<span className={klassen('truncate text-leise', klein ? 'text-xs' : 'text-sm')}>{eintrag.mappe}</span>
 			)}
@@ -245,9 +211,7 @@ export const SammlungsKacheln = ({
 		)}
 		<ul
 			className={
-				klein
-					? 'grid grid-cols-2 gap-2'
-					: 'grid grid-cols-4 gap-3 max-lg:grid-cols-3 max-md:grid-cols-2'
+				klein ? 'grid grid-cols-2 gap-2' : 'grid grid-cols-4 gap-3 max-lg:grid-cols-3 max-md:grid-cols-2'
 			}
 			data-sammlung={gruppe}
 		>

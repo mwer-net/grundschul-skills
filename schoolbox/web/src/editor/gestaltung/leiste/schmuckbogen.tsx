@@ -10,7 +10,7 @@ import {
 	BogenSchriftWahl,
 	BogenTextFeld,
 	KonturWahl,
-} from '../inspektor/kontur-bogen';
+} from '../inspektor/kontur-bogen-teile';
 import type { LeistenKnoepfe, LeistenTeile } from './typen';
 
 /**
@@ -23,65 +23,50 @@ const SchmuckbogenKnoepfe = ({ aktiv, k, quelle }: LeistenTeile) => {
 		return null;
 	}
 	const teile = { k, quelle, aktiv };
+	const schriftKnopf = (
+		<Knopf art="leise" groesse="klein" data-leiste-schrift disabled={!aktiv}>
+			<span aria-hidden className="font-semibold">
+				Aa
+			</span>
+			{stand.schrift}
+		</Knopf>
+	);
+	const groesseKnopf = (
+		<Knopf art="leise" groesse="klein" data-leiste-groesse disabled={!aktiv}>
+			<span className="tabular-nums">{`${Math.round(stand.gr)} px`}</span>
+		</Knopf>
+	);
+	const farbeKnopf = (
+		<Knopf art="leise" groesse="klein" data-leiste-farbe disabled={!aktiv}>
+			Farbe
+		</Knopf>
+	);
+	const konturKnopf = (
+		<Knopf art="leise" groesse="klein" data-leiste-kontur disabled={!aktiv}>
+			Kontur
+		</Knopf>
+	);
+	const bogenKnopf = (
+		<Knopf art="leise" groesse="klein" data-leiste-bogen disabled={!aktiv}>
+			Bogen
+		</Knopf>
+	);
 	return (
 		<>
 			<BogenTextFeld {...teile} leiste />
-			<Popover
-				name="Schrift"
-				className="w-auto"
-				ausloeser={
-					<Knopf art="leise" groesse="klein" data-leiste-schrift disabled={!aktiv}>
-						<span aria-hidden className="font-semibold">
-							Aa
-						</span>
-						{stand.schrift}
-					</Knopf>
-				}
-			>
+			<Popover name="Schrift" className="w-auto" ausloeser={schriftKnopf}>
 				<BogenSchriftWahl {...teile} />
 			</Popover>
-			<Popover
-				name="Größe"
-				className="w-auto"
-				ausloeser={
-					<Knopf art="leise" groesse="klein" data-leiste-groesse disabled={!aktiv}>
-						<span className="tabular-nums">{`${Math.round(stand.gr)} px`}</span>
-					</Knopf>
-				}
-			>
+			<Popover name="Größe" className="w-auto" ausloeser={groesseKnopf}>
 				<BogenGroesseFeld {...teile} />
 			</Popover>
-			<Popover
-				name="Farbe"
-				className="w-auto max-w-72"
-				ausloeser={
-					<Knopf art="leise" groesse="klein" data-leiste-farbe disabled={!aktiv}>
-						Farbe
-					</Knopf>
-				}
-			>
+			<Popover name="Farbe" className="w-auto max-w-72" ausloeser={farbeKnopf}>
 				<BogenFarbeWahl {...teile} />
 			</Popover>
-			<Popover
-				name="Kontur"
-				className="w-56"
-				ausloeser={
-					<Knopf art="leise" groesse="klein" data-leiste-kontur disabled={!aktiv}>
-						Kontur
-					</Knopf>
-				}
-			>
+			<Popover name="Kontur" className="w-56" ausloeser={konturKnopf}>
 				<KonturWahl {...teile} />
 			</Popover>
-			<Popover
-				name="Bogen"
-				className="w-56"
-				ausloeser={
-					<Knopf art="leise" groesse="klein" data-leiste-bogen disabled={!aktiv}>
-						Bogen
-					</Knopf>
-				}
-			>
+			<Popover name="Bogen" className="w-56" ausloeser={bogenKnopf}>
 				<div className="flex flex-col gap-1">
 					<BogenRegler {...teile} />
 					<BogenSchalter {...teile} />

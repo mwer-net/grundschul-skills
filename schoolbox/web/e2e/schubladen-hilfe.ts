@@ -6,8 +6,7 @@ import { expect } from './hilfe';
 
 export type SchubladenName = 'ebenen' | 'bausteine' | 'formen' | 'figuren' | 'text' | 'bilder' | 'rezepte';
 
-export const schubladenKnopf = (page: Page, name: SchubladenName) =>
-	page.locator(`[data-schublade-knopf="${name}"]`);
+export const schubladenKnopf = (page: Page, name: SchubladenName) => page.locator(`[data-schublade-knopf="${name}"]`);
 
 /** Öffnet die Schublade, falls sie nicht schon offen ist. */
 export const oeffneSchublade = async (page: Page, name: SchubladenName) => {

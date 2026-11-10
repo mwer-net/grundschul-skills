@@ -1,8 +1,8 @@
 import { ergaenzeBoegen } from '@schoolbox/kern/src/bogen';
 import { ergaenzeFormen } from '@schoolbox/kern/src/formen-aendern';
-import { fasseMitAnlegenZusammen } from '@schoolbox/kern/src/schmuck';
 import type { Verlauf } from '@schoolbox/kern/src/quelltext';
 import { macheRueckgaengig, neuerVerlauf, nimmAuf, wiederhole } from '@schoolbox/kern/src/quelltext';
+import { fasseMitAnlegenZusammen } from '@schoolbox/kern/src/schmuck';
 import { ergaenzeStreuungen } from '@schoolbox/kern/src/streuen';
 import type { RefObject } from 'react';
 import { useCallback, useEffect, useRef, useState } from 'react';
@@ -91,7 +91,9 @@ export const useBearbeitung = (mappe: string, dok: string, auswahl: RefObject<nu
 	const pruefe = useCallback(
 		async (urheber: Urheber) => {
 			await ruhig();
-			const aktuell = await lade<Basis>(adresse).then(mitFormen).catch(() => null);
+			const aktuell = await lade<Basis>(adresse)
+				.then(mitFormen)
+				.catch(() => null);
 			if (!aktuell || aktuell.version === basis.current?.version) {
 				return;
 			}
@@ -136,7 +138,13 @@ export const useBearbeitung = (mappe: string, dok: string, auswahl: RefObject<nu
 			if (!konflikt) {
 				const gewaehlt = auswahl.current;
 				// 105: Die erste Textsitzung neuer Schmuckschrift wird mit dem Anlegen ein Schritt.
-				setVerlauf((v) => v && (mitAnlegen ? fasseMitAnlegenZusammen(v, neu, gewaehlt) : nimmAuf(v, neu, beschreibung, gewaehlt)));
+				setVerlauf(
+					(v) =>
+						v &&
+						(mitAnlegen
+							? fasseMitAnlegenZusammen(v, neu, gewaehlt)
+							: nimmAuf(v, neu, beschreibung, gewaehlt)),
+				);
 			}
 		},
 		[auswahl, konflikt],

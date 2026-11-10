@@ -163,9 +163,7 @@ export interface Einsatz {
 }
 
 const ebene = (name: 'hinten' | 'vorne', elemente: readonly string[] | undefined) =>
-	elemente?.length
-		? [`  <div class="ebene ${name}">`, ...elemente.map((e) => `    ${e}`), '  </div>']
-		: [];
+	elemente?.length ? [`  <div class="ebene ${name}">`, ...elemente.map((e) => `    ${e}`), '  </div>'] : [];
 
 /**
  * Ein A4-Blatt (794 × 1123 px) mit Namenszeile, Kopf und drei Aufgaben, die Ebenen am Ende der Seite. Ohne Einsatz ist

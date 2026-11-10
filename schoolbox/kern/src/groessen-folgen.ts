@@ -7,10 +7,10 @@
  */
 
 import { zeichneFormNeu } from './formen';
-import { zeichneStreuungNeu } from './streuen'; // 109
 import { skaliereLinie } from './formen-linie';
 import { skalierePfad } from './formen-pfad'; // 116
 import { skaliereZipfel } from './formen-text';
+import { zeichneStreuungNeu } from './streuen'; // 109
 
 /** Die Quelle, nachdem das Element `nr` zu seiner neuen Größe passt. */
 export type GroessenFolge = (quelle: string, nr: number) => string;

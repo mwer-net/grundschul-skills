@@ -175,7 +175,13 @@ export const Durchblick = ({ e }: { e: Einblendung }) => {
 				/>
 			))}
 			{aufbau.anker.length > 0 && (
-				<svg className="absolute overflow-visible" style={{ left: links, top: 0 }} width={1} height={1} aria-hidden>
+				<svg
+					className="absolute overflow-visible"
+					style={{ left: links, top: 0 }}
+					width={1}
+					height={1}
+					aria-hidden
+				>
 					{aufbau.anker.map((l, i) => (
 						<g key={`anker-${i}`} data-durchblick-anker className="stroke-brand-500">
 							<line

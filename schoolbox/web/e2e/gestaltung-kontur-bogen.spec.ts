@@ -16,9 +16,9 @@ const bogen = (page: Page) => material(page).locator('svg.schmuck[data-schmuck="
 /** Ein dunkler Titel mit weißer Kontur auf einem dunklen Streifen, damit der Rand zu sehen ist. */
 const TITEL_KONTUR =
 	'<div class="schmuck" data-lage="frei" data-schmuck="titel" data-kontur="" style="--x:80px;--y:220px;--gr:72px;--farbe:#000000;--kontur:10px;--kontur-farbe:#ffffff">Mmm</div>';
-const TITEL = '<div class="schmuck" data-lage="frei" data-schmuck="titel" style="--x:80px;--y:220px;--gr:56px">Zirkus</div>';
-const STREIFEN =
-	'<div data-lage="frei" style="--x:0px;--y:180px;--b:794px;--h:200px;background:#e11d48"></div>';
+const TITEL =
+	'<div class="schmuck" data-lage="frei" data-schmuck="titel" style="--x:80px;--y:220px;--gr:56px">Zirkus</div>';
+const STREIFEN = '<div data-lage="frei" style="--x:0px;--y:180px;--b:794px;--h:200px;background:#e11d48"></div>';
 
 const oeffneBlatt = async (page: Page, vorne: string[], hinten: string[] = []) => {
 	const { dok, id } = await uhrzeit();
@@ -83,7 +83,11 @@ test.describe('Schmuckschrift mit Kontur', () => {
 	});
 
 	test('in s/w bleibt die weiße Kontur weiß, die Schrift grau', async ({ page }) => {
-		await oeffneBlatt(page, [TITEL_KONTUR.replace('#000000', 'var(--haupt)')], [STREIFEN.replace('#e11d48', '#9ca3af')]);
+		await oeffneBlatt(
+			page,
+			[TITEL_KONTUR.replace('#000000', 'var(--haupt)')],
+			[STREIFEN.replace('#e11d48', '#9ca3af')],
+		);
 		await page.locator('[data-profilschalter]').getByRole('button', { name: 's/w', exact: true }).click();
 		await expect(material(page).locator('body.sw')).toHaveCount(1);
 		const bild = await pixelListe(page, titel(page));

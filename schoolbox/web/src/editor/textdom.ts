@@ -11,7 +11,6 @@ import {
 	wendeAn,
 	zerlege,
 } from '@schoolbox/kern/src/quelltext';
-
 import { istFarbe } from '@schoolbox/kern/src/schmuck';
 
 import { nrVon } from './darstellung';
@@ -263,7 +262,8 @@ const WORTFARBE = 'data-wortfarbe';
 
 /** Die Farbe eines `<span>` aus der Sitzung oder der Quelle (`style="color:…"`); sonst `null`. */
 const wortfarbe = (el: Element) => {
-	const wert = el.getAttribute(WORTFARBE) ?? /(?:^|;)\s*color\s*:\s*([^;]+)/i.exec(el.getAttribute('style') ?? '')?.[1];
+	const wert =
+		el.getAttribute(WORTFARBE) ?? /(?:^|;)\s*color\s*:\s*([^;]+)/i.exec(el.getAttribute('style') ?? '')?.[1];
 	return wert && istFarbe(wert) ? wert.trim() : null;
 };
 
@@ -493,7 +493,11 @@ export const ruesteText = ({
 	/** Was die Sitzung gerade aus der Quelle macht, ohne etwas anzufassen. */
 	const entwurf = (s: Sitzung) => {
 		const fassungen = s.elemente
-			.map((el) => ({ el, html: textHtml(el, z, zeilen, farbig), neu: !s.originale.some((k) => nrVon(el) === k.nr) }))
+			.map((el) => ({
+				el,
+				html: textHtml(el, z, zeilen, farbig),
+				neu: !s.originale.some((k) => nrVon(el) === k.nr),
+			}))
 			.filter((t, i, alle) => !t.neu || !istLeer(t.html) || alle.length === 1);
 		const tag = s.originale[0]?.tag ?? element.localName;
 		const schliesser = (el: HTMLElement) => {
@@ -948,7 +952,8 @@ export const ruesteText = ({
 		formatiere,
 		faerbe,
 		// 107: In der Form mit Text nur den Text markieren, nie ihr `svg` (Tippen löschte es sonst).
-		markiereAlles: () => doc.getSelection()?.selectAllChildren(element.querySelector(':scope > .form-inhalt') ?? element),
+		markiereAlles: () =>
+			doc.getSelection()?.selectAllChildren(element.querySelector(':scope > .form-inhalt') ?? element),
 		zustand: () => ({
 			fett: sitzung !== null && doc.queryCommandState('bold'),
 			unterstrichen: sitzung !== null && doc.queryCommandState('underline'),

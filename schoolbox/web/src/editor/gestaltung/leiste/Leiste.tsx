@@ -87,6 +87,7 @@ export const Leiste = ({ befehle, e, pfad, quelle, sitzung, struktur }: Eigensch
 	const [mass, setMass] = useState({ breite: 200, hoehe: 30 });
 	const sicht = useSichtfeld(e.doc);
 	const k = kontextFuerGestaltung({ doc: e.doc, pfad, struktur });
+	const da = Boolean(k && liegtFreiAuf(k.baustein) && e.box && sicht && quelle && struktur.aktiv && !sitzung);
 
 	useLayoutEffect(() => {
 		const element = leiste.current;
@@ -95,9 +96,9 @@ export const Leiste = ({ befehle, e, pfad, quelle, sitzung, struktur }: Eigensch
 		}
 		const { offsetHeight: hoehe, offsetWidth: breite } = element;
 		setMass((alt) => (alt.breite === breite && alt.hoehe === hoehe ? alt : { breite, hoehe }));
-	});
+	}, [da, k?.nr, quelle, e.skala]);
 
-	if (!k || !liegtFreiAuf(k.baustein) || !e.box || !sicht || !quelle || !struktur.aktiv || sitzung) {
+	if (!da || !k || !e.box || !sicht || quelle === null) {
 		return null;
 	}
 
@@ -138,12 +139,7 @@ export const Leiste = ({ befehle, e, pfad, quelle, sitzung, struktur }: Eigensch
 					Drehen
 				</Knopf>
 			)}
-			<Menue
-				name={`Mehr zu ${name}`}
-				rechtsbuendig
-				ausloeser={MEHR_KNOPF}
-				eintraege={mehrEintraege(befehle)}
-			/>
+			<Menue name={`Mehr zu ${name}`} rechtsbuendig ausloeser={MEHR_KNOPF} eintraege={mehrEintraege(befehle)} />
 		</div>
 	);
 };

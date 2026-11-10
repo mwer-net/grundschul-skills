@@ -298,4 +298,6 @@ export const skaliereGruppe = (quelle: string, nr: number, lage: Mass): string =
 
 /** Die Kinder einer Gruppe in Quellreihenfolge (für Ebenen und Inspektor). */
 export const kinderDerGruppe = (quelle: string, nr: number) =>
-	gruppeAn(zerlege(quelle), nr).kinder.filter(istGestaltung).map((k) => k.nr);
+	gruppeAn(zerlege(quelle), nr)
+		.kinder.filter(istGestaltung)
+		.map((k) => k.nr);

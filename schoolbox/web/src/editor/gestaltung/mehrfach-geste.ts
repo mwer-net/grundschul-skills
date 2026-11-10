@@ -1,5 +1,5 @@
-import { fuerAlle, setzeLage, setzeStilWerte } from '@schoolbox/kern/src/gestaltung';
 import type { LageTeil } from '@schoolbox/kern/src/gestaltung';
+import { fuerAlle, setzeLage, setzeStilWerte } from '@schoolbox/kern/src/gestaltung';
 import { gestaltungArtNach } from '@schoolbox/kern/src/gestaltung-arten';
 import type { StrukturErgebnis } from '@schoolbox/kern/src/struktur';
 
@@ -52,10 +52,12 @@ const mitgliedVon = (element: Element, messe: Messen): Mitglied | null => {
 	if (nr === null || !m) {
 		return null;
 	}
-	const groesse = (gestaltungArtNach(bausteinVon(element)?.art ?? '')?.groesse ?? 'frei') as GroessenArt;
+	const groesse = gestaltungArtNach(bausteinVon(element)?.art ?? '')?.groesse ?? 'frei';
 	const stil = element.ownerDocument.defaultView?.getComputedStyle(element);
 	const gr =
-		groesse === 'text' ? parseFloat(stil?.getPropertyValue('--gr') ?? '') || parseFloat(stil?.fontSize ?? '') || null : null;
+		groesse === 'text'
+			? parseFloat(stil?.getPropertyValue('--gr') ?? '') || parseFloat(stil?.fontSize ?? '') || null
+			: null;
 	return {
 		nr,
 		element,

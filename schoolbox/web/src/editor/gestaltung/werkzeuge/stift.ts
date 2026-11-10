@@ -14,7 +14,9 @@ let skala = 1;
 const zu = () => {
 	const a = punkte[0];
 	const b = punkte.at(-1);
-	return punkte.length > 3 && a !== undefined && b !== undefined && Math.hypot(a.x - b.x, a.y - b.y) * skala < SCHLIESSEN;
+	return (
+		punkte.length > 3 && a !== undefined && b !== undefined && Math.hypot(a.x - b.x, a.y - b.y) * skala < SCHLIESSEN
+	);
 };
 
 /** Während des Zugs die rohen Punkte als Linie, geschlossen schon gefüllt. */

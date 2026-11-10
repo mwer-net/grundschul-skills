@@ -79,7 +79,12 @@ export const legeBildFrei = (quelle: string, nr: number, lage: LageImStapel): St
 	const html = bildFreiHtml(attribut(k, 'src')?.wert ?? '', attribut(k, 'alt')?.wert ?? '');
 	const ohne = wendeAn(quelle, entferne(z, weg));
 	// Die Seite steht vor dem Bild in der Quelle: Ihre Nummer bleibt beim Entfernen gleich.
-	const bild = legeGestaltungAb(ohne, { seite: seite.nr, ebene: 'vorne', html, lage: { x: lage.x, y: lage.y, b: lage.b } });
+	const bild = legeGestaltungAb(ohne, {
+		seite: seite.nr,
+		ebene: 'vorne',
+		html,
+		lage: { x: lage.x, y: lage.y, b: lage.b },
+	});
 	if (!text) {
 		return bild;
 	}

@@ -1,5 +1,6 @@
 import type { RahmenArt, Seitenrahmen } from '@schoolbox/kern/src/seitengestaltung';
 import {
+	ohneRezept,
 	RAHMEN_ABSTAND,
 	RAHMEN_ABSTAND_MINIBUCH,
 	RAHMEN_STAERKE,
@@ -44,8 +45,7 @@ export const BlattRahmen = (t: BlattTeile) => {
 		t.aendere(beschreibung, (q) => setzeSeitenrahmen(q, t.ziel, neu));
 	const aendere = (beschreibung: string, teil: Partial<Seitenrahmen>) => {
 		if (jetzt) {
-			const { rezept: _, ...werte } = jetzt;
-			setze(beschreibung, { ...werte, ...teil });
+			setze(beschreibung, { ...ohneRezept(jetzt), ...teil });
 		}
 	};
 	const waehleArt = (neu: Art) => {
@@ -53,8 +53,10 @@ export const BlattRahmen = (t: BlattTeile) => {
 			setze('Seitenrahmen entfernt', null);
 			return;
 		}
-		const { rezept: _, ...werte } = jetzt ?? { rezept: false };
-		setze(`Seitenrahmen: ${ARTEN.find((a) => a.wert === neu)?.titel ?? neu}`, { ...werte, art: neu });
+		setze(`Seitenrahmen: ${ARTEN.find((a) => a.wert === neu)?.titel ?? neu}`, {
+			...(jetzt ? ohneRezept(jetzt) : {}),
+			art: neu,
+		});
 	};
 	const zeige = (werte: Record<string, string>) => t.zeige('seitenrahmen', werte);
 	return (

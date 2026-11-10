@@ -1,5 +1,5 @@
 import type { MusterArt, Seitenflaeche } from '@schoolbox/kern/src/seitengestaltung';
-import { MUSTER_GROESSE, setzeSeitenflaeche, WINKEL } from '@schoolbox/kern/src/seitengestaltung';
+import { MUSTER_GROESSE, ohneRezept, setzeSeitenflaeche, WINKEL } from '@schoolbox/kern/src/seitengestaltung';
 import type { ReactNode } from 'react';
 
 import { Farbwahl } from '../../../bausteine/Farbwahl';
@@ -70,8 +70,7 @@ export const BlattFlaeche = (t: BlattTeile) => {
 		t.aendere(beschreibung, (q) => setzeSeitenflaeche(q, t.ziel, neu));
 	const aendere = (beschreibung: string, teil: Partial<Seitenflaeche>) => {
 		if (jetzt) {
-			const { rezept: _, ...werte } = jetzt;
-			setze(beschreibung, { ...werte, ...teil });
+			setze(beschreibung, { ...ohneRezept(jetzt), ...teil });
 		}
 	};
 	const waehleArt = (neu: Art) => {

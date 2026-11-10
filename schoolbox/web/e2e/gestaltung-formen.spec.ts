@@ -100,7 +100,9 @@ test.describe('Formen: Grundformen ablegen', () => {
 });
 
 test.describe('Formen: Größe, Farben, Parameter', () => {
-	test('doppelte Breite: gleiche Strichstärke, runde Ecken bleiben rund, auch während der Geste', async ({ page }) => {
+	test('doppelte Breite: gleiche Strichstärke, runde Ecken bleiben rund, auch während der Geste', async ({
+		page,
+	}) => {
 		await oeffneFormen(page);
 		const form = await legeAb(page, 'Abgerundetes Rechteck');
 		const griff = page.locator('[data-gestaltung-griff="rechts"]');

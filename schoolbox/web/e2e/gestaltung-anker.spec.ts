@@ -104,7 +104,10 @@ test.describe('Anker (106)', () => {
 		const q = await quelle(page);
 		const erste = /\n {2}<div class="aufgabe">[\s\S]*?\n {2}<\/div>\n/.exec(q)?.[0] ?? '';
 		expect(erste).toContain('figur-frei');
-		await aendere(page, q.replace(erste, '\n').replace('<span class="nr">4</span>', `${erste.trim()}\n  <span class="nr">4</span>`));
+		await aendere(
+			page,
+			q.replace(erste, '\n').replace('<span class="nr">4</span>', `${erste.trim()}\n  <span class="nr">4</span>`),
+		);
 		await expect(material(page).locator('.seite').nth(1).locator('img.figur-frei')).toHaveCount(1);
 	});
 

@@ -32,7 +32,15 @@ const BLASE: FormParameter = {
 	werte: BLASEN,
 };
 
-const KERBE: FormParameter = { attr: 'data-kerbe', name: 'Kerbe', min: 0, max: 0.3, schritt: 0.01, standard: 0.15, einheit: '%' };
+const KERBE: FormParameter = {
+	attr: 'data-kerbe',
+	name: 'Kerbe',
+	min: 0,
+	max: 0.3,
+	schritt: 0.01,
+	standard: 0.15,
+	einheit: '%',
+};
 
 /** Standardgröße (Entscheidung im Ticket): 180 × 84. */
 export const BLASEN_GROESSE = { b: 180, h: 84 };
@@ -62,7 +70,9 @@ const ZY = 'zipfel-y';
 const zipfelVon = (p: FormWerte, b: number, h: number): Punkt => {
 	const x = p[ZX];
 	const y = p[ZY];
-	return x === undefined || y === undefined || !Number.isFinite(x) || !Number.isFinite(y) ? standardZipfel(b, h) : { x, y };
+	return x === undefined || y === undefined || !Number.isFinite(x) || !Number.isFinite(y)
+		? standardZipfel(b, h)
+		: { x, y };
 };
 
 /** Liegt die Spitze in der Box, gibt es keinen Zipfel. */
@@ -135,7 +145,9 @@ const eckige = (k: Kasten, spitze: Punkt | null): Zug => {
 	if (spitze) {
 		const dx = (spitze.x - (x + b / 2)) / Math.max(1, b / 2);
 		const dy = (spitze.y - (y + h / 2)) / Math.max(1, h / 2);
-		seite = Math.abs(dy) >= Math.abs(dx) ? (dy < 0 ? 'oben' : 'unten') : dx < 0 ? 'links' : 'rechts';
+		const senkrecht = dy < 0 ? 'oben' : 'unten';
+		const waagerecht = dx < 0 ? 'links' : 'rechts';
+		seite = Math.abs(dy) >= Math.abs(dx) ? senkrecht : waagerecht;
 	}
 	const zipfel = (an: Seite, von: Punkt, nach: Punkt): Segment[] => {
 		if (!spitze || an !== seite) {
@@ -312,14 +324,31 @@ export const skaliereZipfel = (quelle: string, nr: number) => {
 	const zipfel = attribut(k, 'data-zipfel');
 	const p = zipfelAus(zipfel?.wert);
 	const svg = k.kinder.find((c) => c.tag === 'svg');
-	const [, , ab = Number.NaN, ah = Number.NaN] = (attribut(svg ?? k, 'viewbox')?.wert ?? '').trim().split(/[\s,]+/).map(Number);
+	const [, , ab = Number.NaN, ah = Number.NaN] = (attribut(svg ?? k, 'viewbox')?.wert ?? '')
+		.trim()
+		.split(/[\s,]+/)
+		.map(Number);
 	const stil = attribut(k, 'style')?.wert ?? '';
 	const b = pxAus(stil, '--b');
 	const h = pxAus(stil, '--h');
-	if (!zipfel || !p || b === null || h === null || !Number.isFinite(ab) || !Number.isFinite(ah) || ab <= 0 || ah <= 0) {
+	if (
+		!zipfel ||
+		!p ||
+		b === null ||
+		h === null ||
+		!Number.isFinite(ab) ||
+		!Number.isFinite(ah) ||
+		ab <= 0 ||
+		ah <= 0
+	) {
 		return quelle;
 	}
-	const achse = (v: number, alt: number, neu: number) => (v < 0 ? v : v > alt ? v + neu - alt : (v * neu) / alt);
+	const achse = (v: number, alt: number, neu: number) => {
+		if (v < 0) {
+			return v;
+		}
+		return v > alt ? v + neu - alt : (v * neu) / alt;
+	};
 	const neu = zipfelText({ x: Math.round(achse(p.x, ab, b)), y: Math.round(achse(p.y, ah, h)) });
 	return neu === zipfel.wert
 		? quelle

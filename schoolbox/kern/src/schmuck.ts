@@ -6,7 +6,7 @@
  */
 
 import type { LageTeil } from './gestaltung';
-import { leseLage, legeGestaltungAb, loescheGestaltung, setzeStilWerte } from './gestaltung';
+import { legeGestaltungAb, leseLage, loescheGestaltung, setzeStilWerte } from './gestaltung';
 import type { Knoten, Verlauf } from './quelltext';
 import {
 	attribut,
@@ -213,7 +213,7 @@ const ohneText = (html: string) =>
 	html
 		.replace(/<!--[\s\S]*?-->/g, '')
 		.replace(/<[^>]*>/g, '')
-		.replace(/&nbsp;|&#160;| /g, ' ')
+		.replace(/&nbsp;|&#160;|\u00a0/g, ' ')
 		.trim() === '';
 
 /**
@@ -303,7 +303,9 @@ export const setzeSchriftKontur = (quelle: string, nr: number, kontur: SchriftKo
 	const mitStil = setzeStilWerte(
 		quelle,
 		nr,
-		an ? { '--kontur': px(staerke), '--kontur-farbe': kontur.farbe.trim() } : { '--kontur': null, '--kontur-farbe': null },
+		an
+			? { '--kontur': px(staerke), '--kontur-farbe': kontur.farbe.trim() }
+			: { '--kontur': null, '--kontur-farbe': null },
 	);
 	const z = zerlege(mitStil);
 	const knoten = z.knoten[nr];

@@ -49,7 +49,7 @@ const halte = (taste: KeyboardEvent) => {
 	const los = new AbortController();
 	loslassen = los;
 	const fenster: Window[] = [window];
-	const ansicht = taste.view as Window | null;
+	const ansicht = taste.view;
 	if (ansicht && ansicht !== window) {
 		fenster.push(ansicht);
 	}

@@ -127,7 +127,10 @@ export const useEinfuegen = ({ auswahl, dokument, folien, nachher, struktur }: O
 		struktur.fuehreAus(
 			`${a.name} eingefügt`,
 			// 106: Anker in der Kopie bekommen neue SVG-Ids, auch beim Einfügen ins selbe Dokument.
-			(q) => fuegeBausteinEin(q, { id: 'ablage', ort: a.ort, html: neueIdsInGestaltung(html, q) }, nr, { jeSeite: folien }),
+			(q) =>
+				fuegeBausteinEin(q, { id: 'ablage', ort: a.ort, html: neueIdsInGestaltung(html, q) }, nr, {
+					jeSeite: folien,
+				}),
 			true,
 		);
 		nachher();

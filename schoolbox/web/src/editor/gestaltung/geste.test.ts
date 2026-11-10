@@ -19,7 +19,8 @@ import {
 
 const K: Kasten = { x: 100, y: 200, b: 200, h: 100, drehen: 0 };
 
-const nah = (ist: number, soll: number, text = '') => assert.ok(Math.abs(ist - soll) < 1e-6, `${text} ${ist} ≠ ${soll}`);
+const nah = (ist: number, soll: number, text = '') =>
+	assert.ok(Math.abs(ist - soll) < 1e-6, `${text} ${ist} ≠ ${soll}`);
 
 /** Die Ecke gegenüber dem Griff, in Koordinaten vor dem Drehen. */
 const gegenecke = (k: Kasten, griff: GriffName) => {

@@ -9,8 +9,8 @@ import { werkzeug as stift } from './stift';
 import { werkzeug as streuen } from './streuen';
 import { werkzeug as test } from './test';
 import { werkzeug as text } from './text';
-import { werkzeug as vieleck } from './vieleck';
 import type { Werkzeug } from './typ';
+import { werkzeug as vieleck } from './vieleck';
 
 export type { Entwurf, Punkt, Strich, Tasten, Werkzeug } from './typ';
 

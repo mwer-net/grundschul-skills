@@ -24,7 +24,9 @@ const GROESSEN = [
 ] as const;
 
 const seiteIn = (quelle: string) => {
-	const seite = zerlege(quelle).knoten.find((k) => k.tag === 'section' && /\bseite\b/.test(attribut(k, 'class')?.wert ?? ''));
+	const seite = zerlege(quelle).knoten.find(
+		(k) => k.tag === 'section' && /\bseite\b/.test(attribut(k, 'class')?.wert ?? ''),
+	);
 	assert.ok(seite, 'Das Blatt hat eine Seite.');
 	return seite.nr;
 };
@@ -77,7 +79,10 @@ describe('Formen mit Text zeichnen', () => {
 			formMitTextHtml({ art: 'band' }),
 			formHtml({ art: 'band', b: 180, h: 84 }),
 		]) {
-			const mitLage = html.replace('data-lage="frei"', 'data-lage="frei" style="--x:10px;--y:10px;--b:180px;--h:84px"');
+			const mitLage = html.replace(
+				'data-lage="frei"',
+				'data-lage="frei" style="--x:10px;--y:10px;--b:180px;--h:84px"',
+			);
 			assert.deepEqual(pruefeFreiesHtml(`<div class="ebene vorne">${mitLage}</div>`), []);
 		}
 	});
@@ -86,10 +91,18 @@ describe('Formen mit Text zeichnen', () => {
 describe('Formen mit Text ändern', () => {
 	it('legeFormMitText legt eine Sprechblase mit Text, Zipfel und Schrift der Klasse ab', () => {
 		const vorher = blattMit();
-		const { nr, quelle } = legeFormMitText(vorher, { seite: seiteIn(vorher), art: 'sprechblase', fs: 26, lage: { x: 40, y: 50 } });
+		const { nr, quelle } = legeFormMitText(vorher, {
+			seite: seiteIn(vorher),
+			art: 'sprechblase',
+			fs: 26,
+			lage: { x: 40, y: 50 },
+		});
 		assert.ok(nr !== null);
 		const html = element(quelle, nr);
-		assert.match(html, /^<div class="form-text" data-lage="frei" data-form="sprechblase" data-blase="rund" data-zipfel="40,118"/);
+		assert.match(
+			html,
+			/^<div class="form-text" data-lage="frei" data-form="sprechblase" data-blase="rund" data-zipfel="40,118"/,
+		);
 		assert.match(html, /--gr:26px/);
 		assert.match(html, /<div class="form-inhalt">Text<\/div>/);
 		assert.equal(leseForm(quelle, nr)?.fuellung, '#ffffff');
@@ -102,7 +115,11 @@ describe('Formen mit Text ändern', () => {
 
 	it('setzeZipfel zeichnet neu; wechseln zum Band behält Text, Füllung und Lage', () => {
 		const vorher = blattMit();
-		const { nr, quelle } = legeFormMitText(vorher, { seite: seiteIn(vorher), art: 'sprechblase', text: 'Zähl genau!' });
+		const { nr, quelle } = legeFormMitText(vorher, {
+			seite: seiteIn(vorher),
+			art: 'sprechblase',
+			text: 'Zähl genau!',
+		});
 		assert.ok(nr !== null);
 		const gezogen = setzeZipfel(quelle, nr, { x: -30, y: 60 });
 		assert.match(element(gezogen, nr), /data-zipfel="-30,60"/);
@@ -132,7 +149,10 @@ describe('Formen mit Text ändern', () => {
 			'<div class="form-text" data-lage="frei" data-form="sprechblase" data-zipfel="-20,60" style="--x:10px;--y:10px;--b:180px;--h:84px"><div class="form-inhalt">Hallo</div></div>';
 		const quelle = blattMit({ vorne: [ohne] });
 		const ergaenzt = ergaenzeFormen(quelle);
-		assert.match(ergaenzt, /<div class="form-text"[^>]*><svg viewBox="0 0 180 84" aria-hidden="true"><path d="M[^"]+L-20 60 Z" style="fill:#ffffff;/);
+		assert.match(
+			ergaenzt,
+			/<div class="form-text"[^>]*><svg viewBox="0 0 180 84" aria-hidden="true"><path d="M[^"]+L-20 60 Z" style="fill:#ffffff;/,
+		);
 		assert.match(ergaenzt, /<div class="form-inhalt">Hallo<\/div>/);
 		assert.equal(ergaenzeFormen(ergaenzt), ergaenzt);
 	});

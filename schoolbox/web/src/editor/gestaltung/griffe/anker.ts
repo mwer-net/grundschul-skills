@@ -62,7 +62,7 @@ export const ANKER_GRIFFE: ZusatzGriff[] = [
 			createElement(
 				'span',
 				{
-					className:
+					'className':
 						'flex size-5 flex-none items-center justify-center rounded-full border border-brand-500 bg-flaeche text-brand-600 shadow',
 					'data-anker-griff': '',
 				},

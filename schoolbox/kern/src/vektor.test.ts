@@ -89,7 +89,11 @@ describe('zerlegePfad und normalisiere', () => {
 	});
 
 	it('hin und zurück ändert die Form nicht', () => {
-		for (const d of ['M10 50 a40 20 30 1 0 60 10 z', 'M0 0 C10 20 30 20 40 0 S70 -20 80 0', 'M5 5 h20 v20 h-20 z']) {
+		for (const d of [
+			'M10 50 a40 20 30 1 0 60 10 z',
+			'M0 0 C10 20 30 20 40 0 S70 -20 80 0',
+			'M5 5 h20 v20 h-20 z',
+		]) {
 			const einmal = gelesen(d);
 			const zweimal = gelesen(schreibePfad(einmal));
 			const a = proben(einmal);
@@ -125,7 +129,8 @@ describe('glaette', () => {
 		const z = glaette(punkte, 2, true);
 		assert.ok(z.zu);
 		assert.ok(z.segmente.length <= 12, `${z.segmente.length} Segmente`);
-		const kurve = proben([z], 24);
+		// Fein genug abgetastet, dass der Abstand der Proben den Fehler nicht aufbläht.
+		const kurve = proben([z], 400);
 		for (const p of punkte) {
 			const best = Math.min(...kurve.map((q) => Math.hypot(p.x - q.x, p.y - q.y)));
 			assert.ok(best < 2, `Fehler ${best}`);
@@ -155,7 +160,10 @@ describe('glaette', () => {
 	});
 
 	it('2000 Punkte in unter 50 ms', () => {
-		const lang = Array.from({ length: 2000 }, (_, i) => ({ x: i * 0.5 + Math.sin(i / 30) * 40, y: Math.cos(i / 17) * 60 }));
+		const lang = Array.from({ length: 2000 }, (_, i) => ({
+			x: i * 0.5 + Math.sin(i / 30) * 40,
+			y: Math.cos(i / 17) * 60,
+		}));
 		glaette(lang, 2);
 		const start = performance.now();
 		glaette(lang, 2);
@@ -191,9 +199,14 @@ describe('Punkte bearbeiten (rein)', () => {
 
 describe('Pfad in der Quelle', () => {
 	const blatt = () =>
-		['<body>', '<section class="seite">', '  <div class="aufgabe"><span class="nr">1</span></div>', '</section>', '</body>', ''].join(
-			'\n',
-		);
+		[
+			'<body>',
+			'<section class="seite">',
+			'  <div class="aufgabe"><span class="nr">1</span></div>',
+			'</section>',
+			'</body>',
+			'',
+		].join('\n');
 	const seite = (q: string) => zerlege(q).knoten.find((k) => k.tag === 'section')?.nr ?? -1;
 
 	const abgelegt = (geschlossen: boolean) => {
@@ -259,7 +272,7 @@ describe('Pfad in der Quelle', () => {
 		const nr = zerlege(q).knoten.find((k) => k.tag === 'svg')?.nr ?? -1;
 		assert.equal(ankerVon(lesePfadForm(q, nr)?.zuege ?? []).length, 3);
 		const neu = loeschePfadPunkt(q, nr, 1);
-		assert.match(neu, /d="M[\d. LCZ]+"/);
+		assert.match(neu, /d="M[-\d. LCZ]+"/);
 		assert.ok(!/ a40/.test(neu));
 	});
 });

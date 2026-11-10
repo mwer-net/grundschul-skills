@@ -5,9 +5,9 @@ import { folgeZeiger, schluckeKlick } from '../bausteine/zeigerzug';
 import { elementZu, nrVon } from './darstellung';
 import type { Posten } from './einfuegen';
 import { aufSeite, entferneLuecke, inLuecke, ordnungFuer, zeigeLuecke } from './luecke';
+import { rolleAnsicht } from './ziehen';
 import type { Platz } from './ziele';
 import { platzAn } from './ziele';
-import { rolleAnsicht } from './ziehen';
 
 /**
  * Ziehen von außen ins Blatt (094): Der Zug beginnt im Elternfenster (Kachel einer Schublade), läuft über dem `iframe`
@@ -158,7 +158,7 @@ export const zieheVonAussen = (s: Start) => {
 		sperrtRollen: () => true,
 	});
 
-	function ende(ablegen: boolean) {
+	const ende = (ablegen: boolean) => {
 		if (vorbei) {
 			return;
 		}
@@ -177,7 +177,7 @@ export const zieheVonAussen = (s: Start) => {
 			gut.legeAb({ modus: 'frei', ...p });
 		}
 		gut.folge?.(null, modus);
-	}
+	};
 
 	// Liegt der Fokus im Blatt, kommt Esc dort an, nicht im Elternfenster.
 	doc.addEventListener('keydown', escImBlatt, true);
@@ -224,7 +224,9 @@ export const ziehgutBaustein = (eintrag: Posten, legeAb: (ablage: Ablage) => voi
 		name: eintrag.name,
 		html,
 		modus: () => 'stapel',
-		...(FESTE_STELLE.has(eintrag.id) ? { richte: (doc: Document, p: Platz) => festerPlatz(doc, eintrag.id, p) } : {}),
+		...(FESTE_STELLE.has(eintrag.id)
+			? { richte: (doc: Document, p: Platz) => festerPlatz(doc, eintrag.id, p) }
+			: {}),
 		legeAb: (ziel) => {
 			if (ziel.modus === 'stapel') {
 				legeAb(ziel.ablage);

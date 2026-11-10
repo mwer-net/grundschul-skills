@@ -389,6 +389,89 @@ const EinfuegeVorschau = ({
 	/>
 );
 
+const LeistenGriff = ({
+	e,
+	nr,
+	platzhalter,
+	ziehbar,
+}: {
+	e: Eigenschaften['e'];
+	nr: number;
+	platzhalter: boolean;
+	ziehbar: boolean;
+}) => {
+	if (!ziehbar) {
+		return platzhalter ? <span className="w-4 flex-none" /> : null;
+	}
+	return (
+		<>
+			{platzhalter && <span className="w-4 flex-none" />}
+			<GriffKnopf e={e} nr={nr} />
+		</>
+	);
+};
+
+const GriffKnopf = ({ e, nr }: { e: Eigenschaften['e']; nr: number }) => (
+	<button
+		type="button"
+		aria-label="Zum Verschieben ziehen"
+		className="flex h-knopf-klein w-4 flex-none cursor-grab touch-none items-center justify-center text-dezent hover:text-tinte"
+		data-leiste-griff
+		onPointerDown={(ereignis) => griffDruecken(ereignis, e, nr)}
+		onPointerMove={(ereignis) => {
+			const p = punktIm(ereignis, e);
+			e.ziehen.current?.griffBewege(p.x, p.y);
+		}}
+		onPointerCancel={() => e.ziehen.current?.griffEnde(false)}
+	>
+		<Symbol name="griff" />
+	</button>
+);
+
+const LeistenRest = ({
+	art,
+	befehle,
+	pfad,
+	setVorschau,
+	sitzung,
+	spezifisch,
+	text,
+}: Pick<Eigenschaften, 'befehle' | 'pfad' | 'text'> & {
+	art: string;
+	setVorschau: (an: boolean) => void;
+	sitzung: boolean;
+	spezifisch: ReturnType<typeof spezifischeTeile>;
+}) => (
+	<>
+		{spezifisch.length > 0 && <Trenner />}
+		{spezifisch
+			.filter((s) => !sitzung || s.schluessel === 'text')
+			.map((s) => (
+				<span key={s.schluessel} className="flex flex-none items-center">
+					{s.inhalt}
+				</span>
+			))}
+		{sitzung ? (
+			<>
+				<Trenner />
+				<TextFertig pfad={pfad} text={text} />
+			</>
+		) : (
+			<LeistenEnde art={art} befehle={befehle} setVorschau={setVorschau} />
+		)}
+	</>
+);
+
+const boxAufLeinwand = (e: Eigenschaften['e']) =>
+	e.box
+		? {
+				links: e.links + e.box.left * e.skala,
+				rechts: e.links + e.box.right * e.skala,
+				oben: e.box.top * e.skala,
+				unten: e.box.bottom * e.skala,
+			}
+		: null;
+
 export const Bausteinleiste = ({
 	abb,
 	befehle,
@@ -429,18 +512,13 @@ export const Bausteinleiste = ({
 
 	// Bei Gestaltung steht dort die Leiste am Element (099); nur die Textsitzung behält diese Leiste mit „Fertig“.
 	const gestaltung = istGestaltungAuswahl(gewaehlt?.baustein) && !sitzung;
-	if (!gewaehlt || !e.box || !sicht || nr === null || !(struktur.aktiv || sitzung) || gestaltung) {
+	const box = boxAufLeinwand(e);
+	if (!gewaehlt || !box || !sicht || nr === null || !(struktur.aktiv || sitzung) || gestaltung) {
 		return null;
 	}
 
 	const { baustein, name } = gewaehlt;
 	const element = elementZu(e.doc, nr);
-	const box = {
-		links: e.links + e.box.left * e.skala,
-		rechts: e.links + e.box.right * e.skala,
-		oben: e.box.top * e.skala,
-		unten: e.box.bottom * e.skala,
-	};
 
 	const { links, top } = lageVon(box, mass, sicht);
 	const griffZiehbar = griffGeht(struktur.aktiv, element, baustein);
@@ -480,23 +558,7 @@ export const Bausteinleiste = ({
 				style={{ left: sitzung ? platz.links : links, top }}
 				onKeyDown={(ereignis) => tastenInLeiste(ereignis, e.doc)}
 			>
-				{platz.griff && <span className="w-4 flex-none" />}
-				{griffZiehbar && (
-					<button
-						type="button"
-						aria-label="Zum Verschieben ziehen"
-						className="flex h-knopf-klein w-4 flex-none cursor-grab touch-none items-center justify-center text-dezent hover:text-tinte"
-						data-leiste-griff
-						onPointerDown={(ereignis) => griffDruecken(ereignis, e, nr)}
-						onPointerMove={(ereignis) => {
-							const p = punktIm(ereignis, e);
-							e.ziehen.current?.griffBewege(p.x, p.y);
-						}}
-						onPointerCancel={() => e.ziehen.current?.griffEnde(false)}
-					>
-						<Symbol name="griff" />
-					</button>
-				)}
+				<LeistenGriff e={e} nr={nr} platzhalter={platz.griff} ziehbar={griffZiehbar} />
 				<Menue
 					art="leise"
 					groesse="klein"
@@ -509,22 +571,15 @@ export const Bausteinleiste = ({
 					}))}
 				/>
 				{(sitzung ? platz.pfeile : nachWerte) && <Pfeile befehle={befehle} platzhalter={sitzung} />}
-				{spezifisch.length > 0 && <Trenner />}
-				{spezifisch
-					.filter((s) => !sitzung || s.schluessel === 'text')
-					.map((s) => (
-						<span key={s.schluessel} className="flex flex-none items-center">
-							{s.inhalt}
-						</span>
-					))}
-				{sitzung ? (
-					<>
-						<Trenner />
-						<TextFertig pfad={pfad} text={text} />
-					</>
-				) : (
-					<LeistenEnde art={baustein.art} befehle={befehle} setVorschau={setVorschau} />
-				)}
+				<LeistenRest
+					art={baustein.art}
+					befehle={befehle}
+					pfad={pfad}
+					setVorschau={setVorschau}
+					sitzung={sitzung}
+					spezifisch={spezifisch}
+					text={text}
+				/>
 			</div>
 		</>
 	);

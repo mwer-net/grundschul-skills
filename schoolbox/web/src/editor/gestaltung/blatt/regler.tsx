@@ -21,7 +21,19 @@ interface Eigenschaften {
 }
 
 /** Regler wie der Abstand im Reiter „Blatt“: Anzeige beim Ziehen, Schreiben beim Loslassen. */
-export const Regler = ({ aus, einheit, extra, max, min, name, schritt = 1, setze, titel, wert, zeige }: Eigenschaften) => {
+export const Regler = ({
+	aus,
+	einheit,
+	extra,
+	max,
+	min,
+	name,
+	schritt = 1,
+	setze,
+	titel,
+	wert,
+	zeige,
+}: Eigenschaften) => {
 	const id = useId();
 	const [jetzt, setJetzt] = useState(wert);
 	const element = useRef<HTMLInputElement>(null);

@@ -247,7 +247,9 @@ const wertProblem = (ort: Ort, name: string, wert: string): string | null => {
 			: `Die Bildadresse „${kurz(wert)}“ ist nicht erlaubt`;
 	}
 	if (NUR_DURCH_USE.has(name)) {
-		return SPRUNG.test(wert) ? null : `<${ort.tag}> darf nur auf #… im selben Blatt zeigen, nicht auf „${kurz(wert)}“`;
+		return SPRUNG.test(wert)
+			? null
+			: `<${ort.tag}> darf nur auf #… im selben Blatt zeigen, nicht auf „${kurz(wert)}“`;
 	}
 	if (SVG_NAMENSRAUM[name]) {
 		return wert === SVG_NAMENSRAUM[name] ? null : `${name} hat einen unbekannten Wert`;

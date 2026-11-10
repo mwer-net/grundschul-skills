@@ -34,7 +34,8 @@ export const RezeptUebernehmen = ({
 		ladeUebernehmenVorschau(adresse).then(
 			() => aktiv && setImOrdner(true),
 			(grund: unknown) =>
-				aktiv && setImOrdner(!(grund instanceof ApiFehler && grund.status === 400 && /Ordner/.test(grund.message))),
+				aktiv &&
+				setImOrdner(!(grund instanceof ApiFehler && grund.status === 400 && /Ordner/.test(grund.message))),
 		);
 		return () => {
 			aktiv = false;
@@ -68,7 +69,9 @@ export const RezeptUebernehmen = ({
 				{/* Die Schublade ist schmal: Der Text bricht um, statt hinauszuragen. */}
 				<span className="whitespace-normal">Auf alle Blätter im Ordner übernehmen</span>
 			</Knopf>
-			{vorschau && <UebernehmenDialog adresse={adresse} vorschau={vorschau} schliessen={() => setVorschau(null)} />}
+			{vorschau && (
+				<UebernehmenDialog adresse={adresse} vorschau={vorschau} schliessen={() => setVorschau(null)} />
+			)}
 		</>
 	);
 };

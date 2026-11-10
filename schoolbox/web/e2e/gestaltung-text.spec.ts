@@ -191,9 +191,7 @@ test.describe('Schmuckschrift gestalten (105)', () => {
 		await expect(zurueck(page)).toHaveAttribute('data-schritt', 'Schriftfarbe geändert');
 		await page.locator('[data-schmuck-ausrichtung] button', { hasText: 'Mitte' }).click();
 		await expect(zurueck(page)).toHaveAttribute('data-schritt', 'Ausrichtung geändert');
-		await expect
-			.poll(() => quelle(page))
-			.toMatch(/--schrift:Andika;--farbe:var\(--akzent\);--ausrichtung:center/);
+		await expect.poll(() => quelle(page)).toMatch(/--schrift:Andika;--farbe:var\(--akzent\);--ausrichtung:center/);
 	});
 
 	test('Hintergrund nur beim Etikett', async ({ page }) => {

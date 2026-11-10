@@ -6,7 +6,7 @@ import { describe, it } from 'node:test';
 import { blattMit } from '../../web/e2e/gestaltung-daten';
 import { KIT_KATALOG } from './bausteine';
 import { druckfassung } from './bilder';
-import { FIGUREN, figurAn, figurHtml, figurNach, spiegelnFuer, tauscheFigur } from './figuren';
+import { figurAn, FIGUREN, figurHtml, figurNach, spiegelnFuer, tauscheFigur } from './figuren';
 import { legeGestaltungAb, leseLage } from './gestaltung';
 import { leseStarter } from './katalog-starter';
 import { ASSETS } from './konfig';
@@ -103,7 +103,10 @@ describe('Figur frei (102)', () => {
 		});
 		assert.ok(nr !== null);
 		const lage = leseLage(neu, nr);
-		assert.deepEqual({ x: lage.x, y: lage.y, b: lage.b, spiegeln: lage.spiegeln }, { x: 100, y: 200, b: 150, spiegeln: -1 });
+		assert.deepEqual(
+			{ x: lage.x, y: lage.y, b: lage.b, spiegeln: lage.spiegeln },
+			{ x: 100, y: 200, b: 150, spiegeln: -1 },
+		);
 		const k = figurIn(neu);
 		assert.deepEqual(klassenVon(k), ['figur-frei']);
 		assert.equal(attribut(k, 'data-lage')?.wert, 'frei');

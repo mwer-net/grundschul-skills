@@ -64,7 +64,10 @@ describe('Seitenfläche und Seitenrahmen', () => {
 		assert.equal(g.rahmen?.art, 'gestrichelt');
 		assert.equal(g.rahmen?.farbe, 'var(--dunkel)');
 		assert.equal(g.rahmen?.abstand, 24);
-		assert.deepEqual(leseSeitengestaltung(blattMit(), seitenNr(blattMit())[0] ?? 0), { flaeche: null, rahmen: null });
+		assert.deepEqual(leseSeitengestaltung(blattMit(), seitenNr(blattMit())[0] ?? 0), {
+			flaeche: null,
+			rahmen: null,
+		});
 	});
 
 	it('ändert die Werte am Ort und lässt fremde Attribute stehen', () => {

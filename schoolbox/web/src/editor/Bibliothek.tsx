@@ -145,18 +145,18 @@ export const Einfuegemarken = ({
 				// Nicht in der Lücke und nicht am Original, das sie beim Ziehen ausblendet (094).
 				.filter((m) => !m.closest(LUECKE_UND_ORIGINAL))
 				.map((m) => {
-				const r = m.getBoundingClientRect();
-				return (
-					<span
-						key={nrVon(m)}
-						className="pointer-events-none absolute rounded-md bg-amber-200 px-2 py-0.5 text-sm font-medium"
-						data-sichtbarkeit-marke
-						style={{ left: links + r.left * skala, top: r.top * skala - 12 }}
-					>
-						{m.classList.contains('nur-loesung') ? 'Nur Lösung' : 'Nur Arbeitsblatt'}
-					</span>
-				);
-			})}
+					const r = m.getBoundingClientRect();
+					return (
+						<span
+							key={nrVon(m)}
+							className="pointer-events-none absolute rounded-md bg-amber-200 px-2 py-0.5 text-sm font-medium"
+							data-sichtbarkeit-marke
+							style={{ left: links + r.left * skala, top: r.top * skala - 12 }}
+						>
+							{m.classList.contains('nur-loesung') ? 'Nur Lösung' : 'Nur Arbeitsblatt'}
+						</span>
+					);
+				})}
 			{aktiv && luecke && !schnell && !e.zieht && (
 				<div
 					className="absolute z-ueberlagerung"
@@ -405,9 +405,9 @@ export const Karte = ({
 			y,
 			id,
 			cmd,
-			zeige: (anzeige) => {
-				setAmZeiger(anzeige);
-				if (!anzeige) {
+			zeige: (sichtbar) => {
+				setAmZeiger(sichtbar);
+				if (!sichtbar) {
 					abbrechen.current = null;
 				}
 			},
@@ -426,7 +426,13 @@ export const Karte = ({
 				beginne(x, y, id, false);
 				return;
 			}
-			druckAn.current = { x, y, id, maus: false, timer: window.setTimeout(() => beginne(x, y, id, false), HALTEN_MS) };
+			druckAn.current = {
+				x,
+				y,
+				id,
+				maus: false,
+				timer: window.setTimeout(() => beginne(x, y, id, false), HALTEN_MS),
+			};
 		} else if (ev.button === 0 && !ev.ctrlKey) {
 			druckAn.current = { x, y, id, maus: true, timer: 0 };
 		}
@@ -495,7 +501,9 @@ export const Karte = ({
 						className="pointer-events-none absolute top-1 right-1 size-3.5 text-brand-500 opacity-0 group-hover:opacity-100 [@media(any-pointer:coarse)]:hidden"
 					/>
 					{/* Eigene haben keine Katalog-Adresse, ein Eintrag mit nur `klasse` hat keinen Inhalt zum Zeigen. */}
-					{!anzeige && !eintrag.eigen && !eintrag.klasse && <KartenVorschau id={eintrag.id} name={eintrag.name} />}
+					{!anzeige && !eintrag.eigen && !eintrag.klasse && (
+						<KartenVorschau id={eintrag.id} name={eintrag.name} />
+					)}
 				</div>
 			</div>
 			{eintrag.eigen && <EigenVerwalten id={eintrag.eigen} name={eintrag.name} neuLaden={einfuegen.neuLaden} />}

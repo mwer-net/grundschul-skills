@@ -11,9 +11,26 @@
 import { ANKER } from './anker';
 import { fuegeBausteinAn } from './einfuegen-ablage';
 import type { LageTeil } from './gestaltung';
-import { entferneMitEbene, htmlMitLage, istGestaltung, legeGestaltungAb, neueSvgIds, setzeLage, setzeStilWerte } from './gestaltung';
+import {
+	entferneMitEbene,
+	htmlMitLage,
+	istGestaltung,
+	legeGestaltungAb,
+	neueSvgIds,
+	setzeLage,
+	setzeStilWerte,
+} from './gestaltung';
 import type { Aenderung, Knoten } from './quelltext';
-import { einrueckung, fuegeInnenEin, klassenVon, quelleVon, rueckeUm, setzeAttribut, wendeAn, zerlege } from './quelltext';
+import {
+	einrueckung,
+	fuegeInnenEin,
+	klassenVon,
+	quelleVon,
+	rueckeUm,
+	setzeAttribut,
+	wendeAn,
+	zerlege,
+} from './quelltext';
 import type { Ablage, Nummerierung, StrukturErgebnis } from './struktur';
 
 /** Höhe einer neuen leeren Fläche in px. */
@@ -77,7 +94,7 @@ const verschoben = (aenderungen: Aenderung[]) => (pos: number) =>
 
 /** Hängt `ohneAnker` den Anker ab und legt die Lage fest; die Nummern der Elemente bleiben dabei, wie sie sind. */
 const vorbereitet = (quelle: string, nr: number, lage: LageTeil) => {
-	const { z, k } = gestaltungAn(quelle, nr);
+	const { k, z } = gestaltungAn(quelle, nr);
 	const ohneAnker = wendeAn(quelle, setzeAttribut(z, k, ANKER, null));
 	return setzeLage(ohneAnker, nr, lage);
 };
@@ -88,7 +105,7 @@ const vorbereitet = (quelle: string, nr: number, lage: LageTeil) => {
  */
 const nimmHeraus = (quelle: string, nr: number, lage: LageTeil) => {
 	const q0 = vorbereitet(quelle, nr, lage);
-	const { z, k } = gestaltungAn(q0, nr);
+	const { k, z } = gestaltungAn(q0, nr);
 	const raus = entferneMitEbene(z, k);
 	const aenderungen = [...raus];
 	return {
@@ -132,7 +149,12 @@ export const legeFlaeche = (
 };
 
 /** Fügt `html` als letztes Kind von `flaeche` ein (ganz vorne). */
-const alsLetztesKind = (z: ReturnType<typeof zerlege>, flaeche: Knoten, html: string, alt: string | null): Aenderung[] => {
+const alsLetztesKind = (
+	z: ReturnType<typeof zerlege>,
+	flaeche: Knoten,
+	html: string,
+	alt: string | null,
+): Aenderung[] => {
 	const letztes = flaeche.kinder.at(-1);
 	const innen = letztes ? einrueckung(z, letztes) : null;
 	return fuegeInnenEin(z, flaeche, 'ende', rueckeUm(html, alt, innen));

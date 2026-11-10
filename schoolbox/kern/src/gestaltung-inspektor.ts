@@ -28,7 +28,8 @@ export const leseSw = (quelle: string, nr: number, art: string): SwVerhalten => 
 };
 
 /** Für `setzeSw`: Der Standard der Art wird nicht geschrieben, `data-sw` verschwindet dann. */
-export const swZumSchreiben = (art: string, sw: SwVerhalten): SwVerhalten | null => (sw === swStandard(art) ? null : sw);
+export const swZumSchreiben = (art: string, sw: SwVerhalten): SwVerhalten | null =>
+	sw === swStandard(art) ? null : sw;
 
 export const UEBERLAGERT_OK = 'data-ueberlagert-ok';
 

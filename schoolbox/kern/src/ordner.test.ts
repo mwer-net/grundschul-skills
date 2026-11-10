@@ -619,8 +619,24 @@ describe('dokumenteIn (122)', () => {
 		const baum: Baum = {
 			...leererBaum(),
 			ordner: [
-				{ id: 'o-a', name: 'Formen', eltern: null, behaelter: null, erstellt: '2026-11-01T00:00:00.000Z', geaendert: '2026-11-01T00:00:00.000Z', geloescht: null },
-				{ id: 'o-b', name: 'Unter', eltern: 'o-a', behaelter: null, erstellt: '2026-11-01T00:00:00.000Z', geaendert: '2026-11-01T00:00:00.000Z', geloescht: null },
+				{
+					id: 'o-a',
+					name: 'Formen',
+					eltern: null,
+					behaelter: null,
+					erstellt: '2026-11-01T00:00:00.000Z',
+					geaendert: '2026-11-01T00:00:00.000Z',
+					geloescht: null,
+				},
+				{
+					id: 'o-b',
+					name: 'Unter',
+					eltern: 'o-a',
+					behaelter: null,
+					erstellt: '2026-11-01T00:00:00.000Z',
+					geaendert: '2026-11-01T00:00:00.000Z',
+					geloescht: null,
+				},
 			],
 			dokumente: {
 				'm/eins': { ordner: 'o-a', geloescht: null },

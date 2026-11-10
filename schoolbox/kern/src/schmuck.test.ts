@@ -14,9 +14,9 @@ import {
 	legeSchmuck,
 	leseSchmuck,
 	leseSchriftKontur,
-	SCHRIFT_KONTUR_STANDARD,
 	SCHMUCK_ARTEN,
 	schmuckHtml,
+	SCHRIFT_KONTUR_STANDARD,
 	setzeSchmuck,
 	setzeSchriftKontur,
 	standardGroesse,
@@ -99,7 +99,13 @@ describe('Schmuckschrift einstellen', () => {
 			ausrichtung: 'mitte',
 		});
 		const s = stil(gesetzt, nr);
-		for (const teil of ['--gr:40px', '--farbe:var(--akzent)', '--hg:#ff0000', '--schrift:Andika', '--ausrichtung:center']) {
+		for (const teil of [
+			'--gr:40px',
+			'--farbe:var(--akzent)',
+			'--hg:#ff0000',
+			'--schrift:Andika',
+			'--ausrichtung:center',
+		]) {
 			assert.ok(s.includes(teil), `${teil} in ${s}`);
 		}
 		assert.deepEqual(leseSchmuck(gesetzt, nr), {
@@ -169,7 +175,7 @@ describe('leerer Text', () => {
 
 describe('Kontur der Schmuckschrift (110)', () => {
 	const mitTitel = () => {
-		const { quelle, nr } = legeSchmuck(BLATT, { art: 'titel', seite: seiteIn(BLATT) });
+		const { nr, quelle } = legeSchmuck(BLATT, { art: 'titel', seite: seiteIn(BLATT) });
 		assert.ok(nr !== null);
 		return { quelle, nr };
 	};
@@ -179,7 +185,13 @@ describe('Kontur der Schmuckschrift (110)', () => {
 		assert.match(html, /data-kontur=""/);
 		assert.match(html, /--kontur:6px;--kontur-farbe:#ffffff/);
 		assert.ok(!schmuckHtml({ art: 'titel' }).includes('data-kontur'));
-		assert.deepEqual(neueFunde(BLATT, legeSchmuck(BLATT, { art: 'titel', seite: seiteIn(BLATT), kontur: SCHRIFT_KONTUR_STANDARD }).quelle), []);
+		assert.deepEqual(
+			neueFunde(
+				BLATT,
+				legeSchmuck(BLATT, { art: 'titel', seite: seiteIn(BLATT), kontur: SCHRIFT_KONTUR_STANDARD }).quelle,
+			),
+			[],
+		);
 	});
 
 	it('Kontur setzen und entfernen', () => {

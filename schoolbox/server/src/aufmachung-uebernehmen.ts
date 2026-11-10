@@ -1,3 +1,11 @@
+import {
+	dokKnotenSchluessel,
+	dokumentDir,
+	dokumenteIn,
+	lebenderOrdner,
+	legeVersionAn,
+	leseMeta,
+} from '@schoolbox/kern';
 import type { AufmachungWerte } from '@schoolbox/kern/src/aufmachungen';
 import {
 	aufmachungsFormatVon,
@@ -6,7 +14,6 @@ import {
 	wendeAufmachungAn,
 } from '@schoolbox/kern/src/aufmachungen';
 import { attribut, klassenVon, zerlege } from '@schoolbox/kern/src/quelltext';
-import { dokKnotenSchluessel, dokumenteIn, dokumentDir, legeVersionAn, leseMeta, lebenderOrdner } from '@schoolbox/kern';
 import type { Request } from 'express';
 import { Router } from 'express';
 

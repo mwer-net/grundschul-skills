@@ -106,7 +106,9 @@ export const ankerZiele = (quelle: string, seite: number): number[] => {
 	if (!s || !istSeite(s)) {
 		return [];
 	}
-	return z.knoten.filter((k) => k.start > s.start && k.ende <= s.ende && seiteUm(k) === s && ankerbar(k)).map((k) => k.nr);
+	return z.knoten
+		.filter((k) => k.start > s.start && k.ende <= s.ende && seiteUm(k) === s && ankerbar(k))
+		.map((k) => k.nr);
 };
 
 /** Nummer des Bausteins, an dem das Element hängt; `null`, wenn es in einer Ebene liegt. */
@@ -190,7 +192,11 @@ export const haengeAn = (quelle: string, nr: number, ziel: number, { lage, urspr
  * Löst das Element vom Baustein: ohne `data-anker`, letztes (vorderstes) Kind von `.ebene.vorne` seiner Seite,
  * `--x/--y = lage` (Koordinaten der Seite). Ein Element ohne Anker bleibt, wie es ist.
  */
-export const loeseAnker = (quelle: string, nr: number, { lage }: { lage: { x: number; y: number } }): StrukturErgebnis => {
+export const loeseAnker = (
+	quelle: string,
+	nr: number,
+	{ lage }: { lage: { x: number; y: number } },
+): StrukturErgebnis => {
 	const z = zerlege(quelle);
 	const k = gestaltungAn(z, nr);
 	const seite = seiteUm(k);
@@ -212,7 +218,9 @@ export const loeseVorSeitenwechsel = (quelle: string, nr: number, seite: number)
 	if (ankerVon(quelle, nr) === null) {
 		return { quelle, nr, seite };
 	}
-	const platz = zerlege(quelle).knoten.filter(istSeite).findIndex((k) => k.nr === seite);
+	const platz = zerlege(quelle)
+		.knoten.filter(istSeite)
+		.findIndex((k) => k.nr === seite);
 	const { x = 0, y = 0 }: Lage = leseLage(quelle, nr);
 	const r = loeseAnker(quelle, nr, { lage: { x, y } });
 	const neu = zerlege(r.quelle).knoten.filter(istSeite)[platz];

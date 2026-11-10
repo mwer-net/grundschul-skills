@@ -48,18 +48,19 @@ export const strichImStil = (stil: string | null | undefined) => {
 };
 
 /**
- * Streckt die Punkte von Größe `von` auf `nach`, mit festem Rand `r` (halbe Strichstärke): Was am Rand lag, bleibt am
- * Rand, der Strich wird nicht dicker.
+ * Streckt die Punkte von Größe `von` auf `nach`; der Rand zwischen Kurve und Element bleibt auf jeder Seite, wie er
+ * war (dort hat der Strich Platz): Was am Rand lag, bleibt am Rand, der Strich wird nicht dicker.
  */
-export const streckePfad = (
-	zuege: readonly Zug[],
-	von: { b: number; h: number },
-	nach: { b: number; h: number },
-	r: number,
-) => {
-	const achse = (v: number, alt: number, neu: number) =>
-		alt - 2 * r > 0 ? r + ((v - r) * Math.max(0, neu - 2 * r)) / (alt - 2 * r) : neu / 2;
-	return bildePfad(zuege, (p) => ({ x: achse(p.x, von.b, nach.b), y: achse(p.y, von.h, nach.h) }));
+export const streckePfad = (zuege: readonly Zug[], von: { b: number; h: number }, nach: { b: number; h: number }) => {
+	const u = umschliessendesRechteck(zuege);
+	const achse = (v: number, anfang: number, groesse: number, alt: number, neu: number) => {
+		const platz = neu - (alt - groesse);
+		return groesse > 0 && platz > 0 ? anfang + ((v - anfang) * platz) / groesse : neu / 2;
+	};
+	return bildePfad(zuege, (p) => ({
+		x: achse(p.x, u.x, u.b, von.b, nach.b),
+		y: achse(p.y, u.y, u.h, von.h, nach.h),
+	}));
 };
 
 /**
@@ -122,7 +123,10 @@ export const lesePfadForm = (quelle: string, nr: number) => {
 	const pfad = k.kinder.find((c) => c.tag === 'path');
 	const d = attribut(pfad ?? k, 'd')?.wert ?? '';
 	const zuege = pfad ? liesPfad(d) : null;
-	const [, , b = Number.NaN, h = Number.NaN] = (attribut(k, 'viewbox')?.wert ?? '').trim().split(/[\s,]+/).map(Number);
+	const [, , b = Number.NaN, h = Number.NaN] = (attribut(k, 'viewbox')?.wert ?? '')
+		.trim()
+		.split(/[\s,]+/)
+		.map(Number);
 	if (!pfad || !zuege) {
 		return null;
 	}
@@ -149,6 +153,6 @@ export const skalierePfad = (quelle: string, nr: number) => {
 	if (b === null || h === null || (a.viewBox.b === b && a.viewBox.h === h)) {
 		return quelle;
 	}
-	const d = schreibePfad(streckePfad(a.zuege, a.viewBox, { b, h }, a.strich / 2));
+	const d = schreibePfad(streckePfad(a.zuege, a.viewBox, { b, h }));
 	return wendeAn(quelle, pfadAenderungen(quelle, nr, d, b, h));
 };

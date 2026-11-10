@@ -180,14 +180,25 @@ test.describe('Sprechblase, Denkblase, Band (107)', () => {
 		await expect(zurueck(page)).toHaveAttribute('data-schritt', 'Form: Band');
 	});
 
-	test('zu viel Text in der Blase meldet abgeschnitten; Zipfel im Druckrand nicht, die Box schon', async ({ page }) => {
+	test('zu viel Text in der Blase meldet abgeschnitten; Zipfel im Druckrand nicht, die Box schon', async ({
+		page,
+	}) => {
 		const lang =
 			'<div class="form-text" data-lage="frei" data-form="sprechblase" data-zipfel="-90,40" style="--x:100px;--y:200px;--b:180px;--h:84px;--gr:22px"><div class="form-inhalt">Hier steht viel zu viel Text für eine so kleine Blase, er passt nie hinein.</div></div>';
 		await oeffneFormen(page, [lang]);
 		await page.locator('[data-pruefung] > button').click();
 		await expect(page.locator('[data-pruefliste] [data-pruefpunkt="abgeschnitten"]')).toBeVisible();
 		await expect(page.locator('[data-pruefliste] [data-pruefpunkt="druckrand"]')).toHaveCount(0);
-		await aendere(page, blattMit({ vorne: [lang.replace('--x:100px', '--x:6px').replace('viel zu viel Text für eine so kleine Blase, er passt nie hinein.', 'kurz')] }));
+		await aendere(
+			page,
+			blattMit({
+				vorne: [
+					lang
+						.replace('--x:100px', '--x:6px')
+						.replace('viel zu viel Text für eine so kleine Blase, er passt nie hinein.', 'kurz'),
+				],
+			}),
+		);
 		await page.locator('[data-pruefung] > button').click();
 		await expect(page.locator('[data-pruefliste] [data-pruefpunkt="druckrand"]')).toBeVisible();
 	});
@@ -219,6 +230,8 @@ test.describe('Linie und Pfeil (107)', () => {
 	test('der Pfeil aus der Schublade hat eine Spitze in der Farbe der Kontur', async ({ page }) => {
 		await oeffneFormen(page);
 		await page.locator('[data-blase-kachel="pfeil"]').click();
-		await expect.poll(() => quelle(page)).toMatch(/<path class="spitzen" d="[^"]+" style="fill:var\(--dunkel\);stroke:none"\/>/);
+		await expect
+			.poll(() => quelle(page))
+			.toMatch(/<path class="spitzen" d="[^"]+" style="fill:var\(--dunkel\);stroke:none"\/>/);
 	});
 });

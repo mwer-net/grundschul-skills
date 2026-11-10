@@ -14,8 +14,8 @@
 
 import { formVon, pfadVon, setzeAttributAn, stilMit, stilWert, strichAus } from './formen';
 import { zahl } from './formen-geometrie';
-import { GESTALTUNG_ARTEN } from './gestaltung-arten';
 import { istGestaltung, neueId, setzeStilWerte } from './gestaltung';
+import { GESTALTUNG_ARTEN } from './gestaltung-arten';
 import type { Aenderung, Knoten, Zerlegung } from './quelltext';
 import { attribut, entferne, fuegeInnenEin, quelleVon, schuetzeAttribut, wendeAn, zerlege } from './quelltext';
 import { passt } from './referenz';
@@ -104,9 +104,8 @@ const verlaufAn = (k: Knoten) => {
 		return null;
 	}
 	const suche = (n: Knoten): Knoten | null =>
-		(['lineargradient', 'radialgradient'].includes(n.tag) && attribut(n, 'id')?.wert === id
-			? n
-			: null) ?? n.kinder.reduce<Knoten | null>((f, c) => f ?? suche(c), null);
+		(['lineargradient', 'radialgradient'].includes(n.tag) && attribut(n, 'id')?.wert === id ? n : null) ??
+		n.kinder.reduce<Knoten | null>((f, c) => f ?? suche(c), null);
 	const verlauf = suche(svg);
 	return verlauf ? { svg, pfad, id, verlauf } : null;
 };
@@ -165,7 +164,9 @@ export const entferneVerlauf = (quelle: string, nr: number) => {
 	const stil = attribut(v.pfad, 'style')?.wert ?? null;
 	const aenderungen = [
 		...setzeAttributAn(z, v.pfad, 'fill', null),
-		...(stilWert(stil, 'fill') === null && f1 ? setzeAttributAn(z, v.pfad, 'style', stilMit(stil, { fill: f1 }) ?? '') : []),
+		...(stilWert(stil, 'fill') === null && f1
+			? setzeAttributAn(z, v.pfad, 'style', stilMit(stil, { fill: f1 }) ?? '')
+			: []),
 		...weg,
 	];
 	return wendeAn(quelle, aenderungen);
@@ -184,7 +185,9 @@ export const setzeVerlauf = (quelle: string, nr: number, verlauf: Verlauf | null
 	const da = verlaufAn(k);
 	if (da) {
 		const neu = verlaufHtml(da.id, verlauf);
-		return neu === quelleVon(z, da.verlauf) ? quelle : wendeAn(quelle, [{ von: da.verlauf.start, bis: da.verlauf.ende, text: neu }]);
+		return neu === quelleVon(z, da.verlauf)
+			? quelle
+			: wendeAn(quelle, [{ von: da.verlauf.start, bis: da.verlauf.ende, text: neu }]);
 	}
 	const svg = svgVon(k);
 	const pfad = svg ? pfadVon(svg) : null;
@@ -245,8 +248,9 @@ export const konturStilNeu = (quelle: string, nr: number) => {
 	const strich = s > 0 && stil !== 'durchgezogen';
 	const linie = formVon(attribut(k, 'data-form')?.wert)?.klasse === 'linie'; // 107: Linie und Pfeil enden immer rund
 	const rund = s > 0 && (linie || enden === 'rund' || stil === 'gepunktet');
+	const strichMuster = stil === 'gestrichelt' ? `${zahl(3 * s)} ${zahl(2 * s)}` : `0 ${zahl(2 * s)}`;
 	const werte: Record<string, string | null> = {
-		'stroke-dasharray': strich ? (stil === 'gestrichelt' ? `${zahl(3 * s)} ${zahl(2 * s)}` : `0 ${zahl(2 * s)}`) : null,
+		'stroke-dasharray': strich ? strichMuster : null,
 		'stroke-linecap': rund ? 'round' : null,
 		...(rund ? { 'stroke-linejoin': 'round' } : {}),
 	};

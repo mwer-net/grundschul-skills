@@ -14,7 +14,6 @@ import {
 	SEITENRAHMEN,
 	STREUUNG,
 } from '../../e2e/gestaltung-daten';
-
 import type { GliederungKnoten } from './gliederung-modell';
 import {
 	alleSchluessel,
@@ -155,14 +154,18 @@ describe('Ebenen mit Gestaltung (101)', () => {
 	const klasse = (z: ReturnType<typeof zerlege>, nr: number | null) =>
 		nr === null ? null : (z.knoten[nr]?.attribute.find((a) => a.name === 'class')?.wert ?? null);
 	const formDaten = (z: ReturnType<typeof zerlege>, nr: number) =>
-		z.knoten[nr]?.attribute.find((a) => a.name === 'data-form' || a.name === 'data-figur' || a.name === 'data-schmuck')
-			?.wert;
+		z.knoten[nr]?.attribute.find(
+			(a) => a.name === 'data-form' || a.name === 'data-figur' || a.name === 'data-schmuck',
+		)?.wert;
 
 	it('ohne Gestaltung: keine Ebenen, der Baum bleibt der Stapel wie vorher (Schnappschuss)', () => {
 		const { teile } = teileVon(blattMit());
 		assert.deepEqual(teile, { vorne: [], hinten: [], seitenrahmen: null, seitenflaeche: null });
 		const stapel = ['Namenszeile', 'Kopf', 'Aufgabe 1', 'Aufgabe 2', 'Aufgabe 3'];
-		const zeilen = ordneSeite({ vorne: [], stapel, hinten: [], seitenrahmen: null, seitenflaeche: null }, () => 'Hauptstapel');
+		const zeilen = ordneSeite(
+			{ vorne: [], stapel, hinten: [], seitenrahmen: null, seitenflaeche: null },
+			() => 'Hauptstapel',
+		);
 		assert.deepEqual(zeilen, stapel);
 	});
 
@@ -196,7 +199,10 @@ describe('Ebenen mit Gestaltung (101)', () => {
 	});
 
 	it('Fläche oder Rahmen allein reichen für den Hauptstapel', () => {
-		const zeilen = ordneSeite({ vorne: [], stapel: ['A'], hinten: [], seitenrahmen: null, seitenflaeche: 'F' }, () => 'H');
+		const zeilen = ordneSeite(
+			{ vorne: [], stapel: ['A'], hinten: [], seitenrahmen: null, seitenflaeche: 'F' },
+			() => 'H',
+		);
 		assert.deepEqual(zeilen, ['H', 'F']);
 	});
 
@@ -237,10 +243,16 @@ describe('Ebenen mit Gestaltung (101)', () => {
 			teile,
 			wert: (a: string) => attribute[a] ?? null,
 		});
-		assert.equal(titelDerGestaltung(angaben('form', { 'data-name': 'Sonne', 'data-form': 'stern' }, '', 0, 'Sonne')), 'Sonne');
+		assert.equal(
+			titelDerGestaltung(angaben('form', { 'data-name': 'Sonne', 'data-form': 'stern' }, '', 0, 'Sonne')),
+			'Sonne',
+		);
 		assert.equal(titelDerGestaltung(angaben('bildfrei', { alt: 'Marktplatz', src: 'bilder/x.jpg' })), 'Marktplatz');
 		assert.equal(titelDerGestaltung(angaben('bildfrei', { src: 'bilder/zoo-tiere.png?v=2' })), 'zoo-tiere');
-		assert.equal(titelDerGestaltung(angaben('formtext', { 'data-form': 'sprechblase' }, 'Zähl genau!')), 'Sprechblase „Zähl genau!“');
+		assert.equal(
+			titelDerGestaltung(angaben('formtext', { 'data-form': 'sprechblase' }, 'Zähl genau!')),
+			'Sprechblase „Zähl genau!“',
+		);
 		assert.equal(titelDerGestaltung(angaben('schmuck', {}, 'Die Formen-Detektive')), 'Die Formen-Detektive');
 		assert.equal(titelDerGestaltung(angaben('schmuck', {}, 'x'.repeat(60))).length, 40);
 		assert.equal(titelDerGestaltung(angaben('streuung', { 'data-streuung': 'punkte' }, '', 21)), 'Punkte (21)');

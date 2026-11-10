@@ -45,7 +45,9 @@ test.describe('Rezept auf alle Blätter übernehmen (122)', () => {
 		await druecke(knopf);
 		const dialog = page.locator('[data-uebernehmen-dialog]');
 		await expect(dialog).toBeVisible();
-		await expect(page.getByRole('heading', { name: /Rezept Zirkus auf alle Blätter im Ordner „Reihe Formen“/ })).toBeVisible();
+		await expect(
+			page.getByRole('heading', { name: /Rezept Zirkus auf alle Blätter im Ordner „Reihe Formen“/ }),
+		).toBeVisible();
 		await expect(dialog.locator('[data-uebernehmen-zahl="2"]')).toHaveText('2 Materialien bekommen das Rezept.');
 		await expect(dialog.locator('[data-uebernehmen-minibuch]')).toContainText('„Faltbuch“');
 		await expect(dialog.locator('[data-uebernehmen-anderes]')).toContainText('„Blatt drei“');

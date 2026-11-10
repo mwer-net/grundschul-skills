@@ -22,7 +22,10 @@ export const ursprungInSeite = (baustein: Element): Punkt => {
 	if (!istHtml(baustein)) {
 		const r = baustein.getBoundingClientRect();
 		const s = seite?.getBoundingClientRect();
-		return { x: r.left - (s?.left ?? 0) - (seite?.clientLeft ?? 0), y: r.top - (s?.top ?? 0) - (seite?.clientTop ?? 0) };
+		return {
+			x: r.left - (s?.left ?? 0) - (seite?.clientLeft ?? 0),
+			y: r.top - (s?.top ?? 0) - (seite?.clientTop ?? 0),
+		};
 	}
 	let x = baustein.clientLeft;
 	let y = baustein.clientTop;
@@ -71,7 +74,12 @@ const nichtAnkerbar = (e: Element) =>
 
 /** Dieselben Regeln wie `istAnkerbar` im Kern, am Element im Blatt. Der Kern prüft beim Schreiben noch einmal. */
 export const istAnkerbarImBlatt = (e: Element) => {
-	if (!e.matches(ANKER_SELEKTOR) || e.matches(GESTALTUNG_SELEKTOR) || e.closest('.ebene, [data-lage]') || nichtAnkerbar(e)) {
+	if (
+		!e.matches(ANKER_SELEKTOR) ||
+		e.matches(GESTALTUNG_SELEKTOR) ||
+		e.closest('.ebene, [data-lage]') ||
+		nichtAnkerbar(e)
+	) {
 		return false;
 	}
 	const baustein = bausteinVon(e);
@@ -112,7 +120,7 @@ export const ankerZieleImBlatt = (element: Element) => {
 	if (seite === null) {
 		return [];
 	}
-	return [...element.ownerDocument.querySelectorAll(`.seite`)]
+	return [...element.ownerDocument.querySelectorAll('.seite')]
 		.filter((s) => nrVon(s) === seite)
 		.flatMap((s) => [...s.querySelectorAll(ANKER_SELEKTOR)])
 		.filter(istAnkerbarImBlatt);

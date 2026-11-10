@@ -73,7 +73,12 @@ export const eckeVon = (seite: Element) => {
 export const zeigeVorschau = (doc: Document, seite: Element, html: string, lage: LageTeil, ebene: EbenenName) => {
 	stil(doc);
 	let stand = STAENDE.get(doc);
-	if (!stand || stand.html !== html || stand.ebene.parentElement !== seite || !stand.ebene.classList.contains(ebene)) {
+	if (
+		!stand ||
+		stand.html !== html ||
+		stand.ebene.parentElement !== seite ||
+		!stand.ebene.classList.contains(ebene)
+	) {
 		entferneVorschau(doc);
 		const element = baueElement(doc, html);
 		if (!element) {

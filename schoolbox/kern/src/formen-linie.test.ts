@@ -5,7 +5,15 @@ import { describe, it } from 'node:test';
 
 import { blattMit } from '../../web/e2e/gestaltung-daten';
 import { zeichneForm } from './formen';
-import { ergaenzeFormen, legeForm, leseForm, linieHtml, setzeFormParameter, setzeKontur, setzeLinie } from './formen-aendern';
+import {
+	ergaenzeFormen,
+	legeForm,
+	leseForm,
+	linieHtml,
+	setzeFormParameter,
+	setzeKontur,
+	setzeLinie,
+} from './formen-aendern';
 import { in45, linieAus, linienRand } from './formen-linie';
 import { pruefeFreiesHtml } from './frei';
 import { leseLage, setzeLage } from './gestaltung';
@@ -16,7 +24,9 @@ const SCHNAPPSCHUSS = JSON.parse(
 ) as Record<string, string>;
 
 const seiteIn = (quelle: string) => {
-	const seite = zerlege(quelle).knoten.find((k) => k.tag === 'section' && /\bseite\b/.test(attribut(k, 'class')?.wert ?? ''));
+	const seite = zerlege(quelle).knoten.find(
+		(k) => k.tag === 'section' && /\bseite\b/.test(attribut(k, 'class')?.wert ?? ''),
+	);
 	assert.ok(seite, 'Das Blatt hat eine Seite.');
 	return seite.nr;
 };
@@ -41,7 +51,20 @@ describe('Linie zeichnen', () => {
 		[2, 1],
 	] as const) {
 		it(`Enden ${anfang}/${ende} zeichnen wie im Schnappschuss`, () => {
-			const g = zeichneForm('linie', { 'data-anfang': anfang, 'data-ende': ende, 'linie-x1': 10, 'linie-y1': 10, 'linie-x2': 150, 'linie-y2': 80 }, 160, 90, 3);
+			const g = zeichneForm(
+				'linie',
+				{
+					'data-anfang': anfang,
+					'data-ende': ende,
+					'linie-x1': 10,
+					'linie-y1': 10,
+					'linie-x2': 150,
+					'linie-y2': 80,
+				},
+				160,
+				90,
+				3,
+			);
 			assert.equal(JSON.stringify(g), SCHNAPPSCHUSS[`linie ${anfang}-${ende}`]);
 		});
 	}
@@ -59,7 +82,10 @@ describe('Linie zeichnen', () => {
 
 	it('Linie und Pfeil bestehen die Prüfung freier Elemente', () => {
 		for (const html of [linieHtml(), linieHtml({ ende: 'pfeil', anfang: 'punkt' })]) {
-			const mitLage = html.replace('data-lage="frei"', 'data-lage="frei" style="--x:10px;--y:10px;--b:180px;--h:20px"');
+			const mitLage = html.replace(
+				'data-lage="frei"',
+				'data-lage="frei" style="--x:10px;--y:10px;--b:180px;--h:20px"',
+			);
 			assert.deepEqual(pruefeFreiesHtml(`<div class="ebene vorne">${mitLage}</div>`), []);
 		}
 	});
@@ -85,7 +111,10 @@ describe('Linie ändern', () => {
 		const { nr, quelle } = neueLinie();
 		const pfeil = setzeFormParameter(quelle, nr, { 'data-ende': 1 });
 		assert.match(element(pfeil, nr), /data-ende="pfeil"/);
-		assert.match(element(pfeil, nr), /<path class="spitzen" d="M[^"]+Z" style="fill:var\(--dunkel\);stroke:none"\/>/);
+		assert.match(
+			element(pfeil, nr),
+			/<path class="spitzen" d="M[^"]+Z" style="fill:var\(--dunkel\);stroke:none"\/>/,
+		);
 		const bunt = setzeKontur(pfeil, nr, { farbe: 'var(--akzent)', staerke: 4 });
 		assert.match(element(bunt, nr), /<path class="spitzen" d="[^"]+" style="fill:var\(--akzent\);stroke:none"\/>/);
 		const ohne = setzeFormParameter(bunt, nr, { 'data-ende': 0 });
@@ -103,6 +132,9 @@ describe('Linie ändern', () => {
 		const roh =
 			'<svg class="form" data-lage="frei" data-form="linie" data-punkte="10,10 100,50" data-ende="pfeil" style="--x:10px;--y:10px;--b:110px;--h:60px"></svg>';
 		const ergaenzt = ergaenzeFormen(blattMit({ vorne: [roh] }));
-		assert.match(ergaenzt, /viewBox="0 0 110 60"><path d="M10 10 L[^"]+" style="fill:none;[^"]*stroke-linecap:round"\/><path class="spitzen"/);
+		assert.match(
+			ergaenzt,
+			/viewBox="0 0 110 60"><path d="M10 10 L[^"]+" style="fill:none;[^"]*stroke-linecap:round"\/><path class="spitzen"/,
+		);
 	});
 });

@@ -125,7 +125,9 @@ test.describe('Einrasten, Reihenfolge, Pfeile, Durchblick (100)', () => {
 		await expect(material(page).locator('.ebene.vorne svg[data-form="rechteck"]')).toHaveCount(1);
 	});
 
-	test('Pfeil → schiebt 1 px, ⇧→ 10 px, je ein Schritt; bei einem Baustein wählt ↓ den nächsten', async ({ page }) => {
+	test('Pfeil → schiebt 1 px, ⇧→ 10 px, je ein Schritt; bei einem Baustein wählt ↓ den nächsten', async ({
+		page,
+	}) => {
 		await blatt(page, { vorne: [RECHTECK] });
 		await rechteck(page).click();
 		await expect(rahmen(page)).toBeVisible();

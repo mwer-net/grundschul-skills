@@ -30,8 +30,9 @@ const TEXT: DoppelklickZiel = {
 			return;
 		}
 		html.focus({ preventScroll: true });
-		const stelle = (doc as Document & { caretRangeFromPoint?: (x: number, y: number) => Range | null })
-			.caretRangeFromPoint?.(x, y);
+		const stelle = (
+			doc as Document & { caretRangeFromPoint?: (x: number, y: number) => Range | null }
+		).caretRangeFromPoint?.(x, y);
 		const auswahl = doc.getSelection();
 		if (stelle && auswahl && html.contains(stelle.startContainer)) {
 			auswahl.removeAllRanges();

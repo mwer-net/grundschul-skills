@@ -222,7 +222,11 @@ describe('Gestaltung im Register (Phase 12)', () => {
 
 	it('der Name kommt aus data-name, dann data-figur, dann data-form (104), dann der Art, auch im Pfad', () => {
 		const q = blattMit({
-			vorne: [FIGUR_FREI, FORM, '<img class="bild-frei" data-lage="frei" data-name="Marktplatz" src="m.jpg" alt="">'],
+			vorne: [
+				FIGUR_FREI,
+				FORM,
+				'<img class="bild-frei" data-lage="frei" data-name="Marktplatz" src="m.jpg" alt="">',
+			],
 		});
 		const name = (anfang: string) => {
 			const { k, z } = knotenIn(q, anfang);

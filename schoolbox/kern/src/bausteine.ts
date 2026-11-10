@@ -193,7 +193,13 @@ export const BAUSTEINE: readonly Baustein[] = [
 		zaehlen: true,
 	},
 	{ art: 'tipp', name: 'Tipp', selektor: '.tipp', faehigkeiten: GRUND, ...KLEIN },
-	{ art: 'figur', name: 'Leitfigur', selektor: 'img.figur:not([data-lage])', faehigkeiten: [...GRUND, 'bild'], ...KLEIN },
+	{
+		art: 'figur',
+		name: 'Leitfigur',
+		selektor: 'img.figur:not([data-lage])',
+		faehigkeiten: [...GRUND, 'bild'],
+		...KLEIN,
+	},
 	{ art: 'bild', name: 'Bild', selektor: 'img:not([data-lage])', faehigkeiten: [...GRUND, 'bild'], ...KLEIN },
 	{
 		art: 'abbildung',
@@ -570,9 +576,13 @@ export const KIT_KATALOG: readonly KitEintrag[] = [
 	{ id: 'tipp', art: 'tipp', kategorie: 'Bilder', suchbegriffe: ['Leitfigur', 'Hilfe'], ort: 'seite' },
 	{ id: 'blase', art: 'blase', kategorie: 'Bilder', suchbegriffe: ['Sprechblase', 'Sagen'], ort: 'zeile' },
 	// Die Leitfiguren (Willi, Wilma …): Name und Suchwörter aus der Liste der Figuren (102).
-	...FIGUREN.map(
-		(f): KitEintrag => ({ id: f.id, name: f.name, kategorie: 'Bilder', suchbegriffe: [...f.suchwoerter], ort: 'zeile' }),
-	),
+	...FIGUREN.map((f): KitEintrag => ({
+		id: f.id,
+		name: f.name,
+		kategorie: 'Bilder',
+		suchbegriffe: [...f.suchwoerter],
+		ort: 'zeile',
+	})),
 	{ id: 'platzhalter', art: 'platzhalter', kategorie: 'Bilder', suchbegriffe: ['Bild', 'Foto'], ort: 'aufgabe' },
 	{
 		id: 'karten',

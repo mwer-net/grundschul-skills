@@ -513,14 +513,14 @@ const inEbene = (html: string, ebene: 'vorne' | 'hinten', seite = 0) => {
 const zeileVon = (page: Page, name: string) =>
 	page.locator('[data-zeilen-art="vorne"], [data-zeilen-art="hinten"]').filter({ hasText: new RegExp(`^${name}`) });
 const arten = (page: Page) =>
-	page.locator('[data-gliederung-seite="1"] [data-zeilen-art]').evaluateAll((z) =>
-		z
-			.map((e) => (e as HTMLElement).dataset.zeilenArt)
-			.filter((a) => a !== 'baustein'),
-	);
+	page
+		.locator('[data-gliederung-seite="1"] [data-zeilen-art]')
+		.evaluateAll((z) => z.map((e) => (e as HTMLElement).dataset.zeilenArt).filter((a) => a !== 'baustein'));
 const titel = (page: Page) =>
 	page
-		.locator('[data-gliederung-seite="1"] [data-zeilen-art="vorne"], [data-gliederung-seite="1"] [data-zeilen-art="hinten"]')
+		.locator(
+			'[data-gliederung-seite="1"] [data-zeilen-art="vorne"], [data-gliederung-seite="1"] [data-zeilen-art="hinten"]',
+		)
 		.locator('[data-gliederung-titel]')
 		.allInnerTexts();
 
@@ -559,8 +559,13 @@ test.describe('Ebenen mit Gestaltung (101)', () => {
 		await oeffne(page, id, dok);
 		const unten =
 			'<div class="seitenflaeche" data-flaeche="farbe" style="--f1:#fff7e6"></div><div class="seitenrahmen" data-rahmen="linie"></div>';
-		await aendere(page, mitEbenen(await quelle(page), [form('A', 500, 700), form('B', 560, 760)], [unten, form('D', 40, 900)]));
-		await expect.poll(() => arten(page)).toEqual(['vorne', 'vorne', 'hauptstapel', 'hinten', 'seitenrahmen', 'seitenflaeche']);
+		await aendere(
+			page,
+			mitEbenen(await quelle(page), [form('A', 500, 700), form('B', 560, 760)], [unten, form('D', 40, 900)]),
+		);
+		await expect
+			.poll(() => arten(page))
+			.toEqual(['vorne', 'vorne', 'hauptstapel', 'hinten', 'seitenrahmen', 'seitenflaeche']);
 		expect(await titel(page)).toEqual(['B', 'A', 'D']);
 		// Die Aufgaben stehen unter dem Hauptstapel, mit ihren Nummern, und der Hauptstapel ist offen.
 		const stapel = page.locator('[data-zeilen-art="hauptstapel"]');
@@ -602,7 +607,9 @@ test.describe('Ebenen mit Gestaltung (101)', () => {
 		await hand.los();
 		await expect.poll(async () => inEbene(await quelle(page), 'hinten')).toEqual(['D', 'B']);
 		expect(inEbene(await quelle(page), 'vorne')).toEqual(['A', 'C']);
-		expect(await quelle(page)).toContain('data-name="B" data-form="kreis" viewBox="0 0 100 100" style="--x:560px;--y:760px');
+		expect(await quelle(page)).toContain(
+			'data-name="B" data-form="kreis" viewBox="0 0 100 100" style="--x:560px;--y:760px',
+		);
 		// Und zurück: über den Hauptstapel, also zuunterst nach vorne.
 		const hand2 = zeiger(page, hasTouch);
 		await hand2.runter(await mitte(griffVon(zeileVon(page, 'D'))));
@@ -637,7 +644,11 @@ test.describe('Ebenen mit Gestaltung (101)', () => {
 		await expect(zurueck(page)).toHaveAttribute('data-schritt', 'C kopiert');
 	});
 
-	test('Auge blendet aus: nicht im Blatt, nicht im Druck, die Prüfung meldet es', async ({ druecke, hasTouch, page }) => {
+	test('Auge blendet aus: nicht im Blatt, nicht im Druck, die Prüfung meldet es', async ({
+		druecke,
+		hasTouch,
+		page,
+	}) => {
 		test.skip(hasTouch, 'Zeichen in der Zeile mit der Maus; am iPad im ⋯');
 		await blatt(page);
 		const a = zeileVon(page, 'A');
@@ -661,7 +672,11 @@ test.describe('Ebenen mit Gestaltung (101)', () => {
 		await expect.poll(() => quelle(page)).not.toContain('data-aus');
 	});
 
-	test('Schloss sperrt: der Klick im Blatt geht darunter, die Zeile bleibt wählbar', async ({ druecke, hasTouch, page }) => {
+	test('Schloss sperrt: der Klick im Blatt geht darunter, die Zeile bleibt wählbar', async ({
+		druecke,
+		hasTouch,
+		page,
+	}) => {
 		test.skip(hasTouch, 'Zeichen in der Zeile mit der Maus; am iPad im ⋯');
 		await blatt(page);
 		const c = zeileVon(page, 'C');

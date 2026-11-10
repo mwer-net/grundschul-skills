@@ -334,7 +334,8 @@ describe('Gestaltung (Phase 12)', () => {
 	});
 
 	it('Lage-Variablen und Farben aus der Palette gehen im style durch', () => {
-		const html = '<div class="schmuck" data-lage="frei" style="--x:96px;--drehen:-3deg;--farbe:var(--haupt)">x</div>';
+		const html =
+			'<div class="schmuck" data-lage="frei" style="--x:96px;--drehen:-3deg;--farbe:var(--haupt)">x</div>';
 		assert.deepEqual(pruefeFreiesHtml(html), []);
 	});
 });

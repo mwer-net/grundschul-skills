@@ -19,19 +19,11 @@ const OHNE_ZEILE = '.loesung-marke, style, script, template, link, meta, br, .eb
 
 /**
  * Was eine Zeile ist (101, 1-ebenen.md „Aufbau des Baums“): ein Baustein wie bisher, ein Gestaltungselement in einer
- * Ebene, der gedachte Hauptstapel (ohne eigenes Element) oder Seitenrahmen und Seitenfläche zuunterst.
+ * Ebene, der gedachte Hauptstapel (ohne eigenes Element) oder Seitenrahmen und Seitenfläche zuunterst. `gruppe` ist ein
+ * Kind einer Gruppe (120); seine Reihenfolge geht über die Befehle, nicht über den Zug in der Liste.
  */
-export type ZeilenArt =
-	| 'baustein'
-	| EbenenName
-	| 'hauptstapel'
-	| 'seitenrahmen'
-	| 'seitenflaeche'
-	| 'anker'
-	| 'flaeche'
-	/** 120: Kind einer Gruppe; Reihenfolge über die Befehle, nicht über den Zug in der Liste. */
-	| 'gruppe'
-	| 'kopfband';
+type SeitenZeile = 'hauptstapel' | 'seitenrahmen' | 'seitenflaeche' | 'kopfband';
+export type ZeilenArt = 'baustein' | EbenenName | SeitenZeile | 'anker' | 'flaeche' | 'gruppe';
 
 /** Nach diesem Teil des Schlüssels erkennt `gliederung-stand`, dass der Hauptstapel ohne Zutun offen steht. */
 export const HAUPTSTAPEL = 'hauptstapel';
@@ -120,7 +112,12 @@ export const titelDerGestaltung = ({ art, name, teile, text, wert }: GestaltungA
 	const form = gross((wert('data-form') ?? '').trim().replace(/[-_]+/g, ' '));
 	switch (art) {
 		case 'bildfrei': {
-			const datei = (wert('src') ?? '').split(/[?#]/)[0]?.split('/').at(-1)?.replace(/\.[^.]+$/, '') ?? '';
+			const datei =
+				(wert('src') ?? '')
+					.split(/[?#]/)[0]
+					?.split('/')
+					.at(-1)
+					?.replace(/\.[^.]+$/, '') ?? '';
 			return wert('alt')?.trim() || datei || name;
 		}
 		case 'form':
@@ -242,7 +239,12 @@ export const ordneSeite = <T>(z: SeitenZeilen<T>, hauptstapel: (stapel: readonly
 
 /** Die Bausteine einer Seite, ob sie direkt an ihr hängen oder unter dem Hauptstapel. */
 export const stapelVon = (s: Pick<GliederungSeite, 'kinder'>): GliederungKnoten[] =>
-	s.kinder.flatMap((k) => (k.zeile === 'hauptstapel' ? k.kinder : k.zeile === 'baustein' ? [k] : []));
+	s.kinder.flatMap((k) => {
+		if (k.zeile === 'hauptstapel') {
+			return k.kinder;
+		}
+		return k.zeile === 'baustein' ? [k] : [];
+	});
 
 /** Die Teile einer Streuung (Formen, ohne `defs`) bzw. die Elemente einer Gruppe. */
 const teileVon = (element: Element, art: string) => {
@@ -409,9 +411,7 @@ export const gliederungVon = (doc: Document, z: Zerlegung, ids: readonly number[
 		const teile = ebenenTeile(seite);
 		const ebene = (name: EbenenName) =>
 			teile[name]
-				.map((nr, platz) =>
-					gestaltung(nr, name, `${schluessel}/${name}/${platz}`, { seite: seite.nr, platz }),
-				)
+				.map((nr, platz) => gestaltung(nr, name, `${schluessel}/${name}/${platz}`, { seite: seite.nr, platz }))
 				.filter((k): k is GliederungKnoten => k !== null);
 		const unten = (name: 'seitenrahmen' | 'seitenflaeche') => {
 			const nr = teile[name];

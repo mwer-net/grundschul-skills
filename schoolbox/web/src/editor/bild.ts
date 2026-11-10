@@ -270,10 +270,13 @@ export const useBild = ({ adresse, basis, geladen, html, pfad, rueckgaengig, str
 		[fuehreAus],
 	);
 
-	const masseVon = useCallback(async (src: string) => {
-		const neu = await ladeBild(new URL(src, new URL(basis, window.location.href)).href);
-		return { breite: neu.naturalWidth, hoehe: neu.naturalHeight };
-	}, [basis]);
+	const masseVon = useCallback(
+		async (src: string) => {
+			const neu = await ladeBild(new URL(src, new URL(basis, window.location.href)).href);
+			return { breite: neu.naturalWidth, hoehe: neu.naturalHeight };
+		},
+		[basis],
+	);
 
 	/**
 	 * Das neue Bild an die Stelle des alten bzw. des Platzhalters; Größe und Rest bleiben. Ist nichts davon gewählt
@@ -284,7 +287,11 @@ export const useBild = ({ adresse, basis, geladen, html, pfad, rueckgaengig, str
 			const w = aktuell.current;
 			if (!w && neu) {
 				const masse = natur ?? (await masseVon(src));
-				fuehreAus('Bild eingefügt', bildInNeuemPlatz(neu, { src, alt, breite: breiteImNeuenPlatz(masse) }), true);
+				fuehreAus(
+					'Bild eingefügt',
+					bildInNeuemPlatz(neu, { src, alt, breite: breiteImNeuenPlatz(masse) }),
+					true,
+				);
 				return;
 			}
 			if (!w) {

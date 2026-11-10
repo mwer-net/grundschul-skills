@@ -98,7 +98,9 @@ test.describe('Gruppen (120)', () => {
 		const ecke = page.locator('[data-gestaltung-rahmen] [data-gestaltung-griff="unten-rechts"]');
 		const breite = (await teil(page, 'Blase').boundingBox())?.width ?? 0;
 		await ziehe(page, await mitte(ecke), 50, 50);
-		await expect.poll(async () => (await teil(page, 'Blase').boundingBox())?.width ?? 0).toBeGreaterThan(breite + 5);
+		await expect
+			.poll(async () => (await teil(page, 'Blase').boundingBox())?.width ?? 0)
+			.toBeGreaterThan(breite + 5);
 		await geladen(page);
 
 		const lage = await kaesten(page);
@@ -145,7 +147,10 @@ test.describe('Gruppen (120)', () => {
 		await blatt(page);
 		await gruppiere(page);
 		await oeffneSchublade(page, 'ebenen');
-		const auf = page.locator('[data-zeilen-art="vorne"]').filter({ hasText: 'Gruppe' }).getByRole('button', { name: 'Aufklappen' });
+		const auf = page
+			.locator('[data-zeilen-art="vorne"]')
+			.filter({ hasText: 'Gruppe' })
+			.getByRole('button', { name: 'Aufklappen' });
 		if (await auf.count()) {
 			await auf.click();
 		}
@@ -163,7 +168,9 @@ test.describe('Gruppen (120)', () => {
 		await teil(page, 'Blase').click();
 		await page.keyboard.press('ControlOrMeta+g');
 		// Wilma am Anker und die Blase haben verschiedene Eltern: gesperrt.
-		await material(page).locator('img.figur-frei').click({ modifiers: ['Shift'] });
+		await material(page)
+			.locator('img.figur-frei')
+			.click({ modifiers: ['Shift'] });
 		await expect(mehrfach(page)).toHaveAttribute('data-mehrfach-anzahl', '2');
 		await page.keyboard.press('ControlOrMeta+g');
 		await expect(gruppe(page)).toHaveCount(0);

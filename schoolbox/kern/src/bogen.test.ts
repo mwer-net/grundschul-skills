@@ -57,7 +57,7 @@ describe('bogenPfad', () => {
 
 describe('Titel im Bogen anlegen und ändern', () => {
 	it('legeBogen setzt Pfad, textPath und eine freie Id, und die Allow-Liste lässt ihn durch', () => {
-		const { quelle, nr } = legeBogen(MIT_BOGEN, { seite: seiteIn(MIT_BOGEN), lage: { x: 10, y: 20 } });
+		const { nr, quelle } = legeBogen(MIT_BOGEN, { seite: seiteIn(MIT_BOGEN), lage: { x: 10, y: 20 } });
 		assert.ok(nr !== null);
 		const stand = leseBogen(quelle, nr);
 		assert.equal(stand?.text, 'Zahlenzirkus');
@@ -77,7 +77,13 @@ describe('Titel im Bogen anlegen und ändern', () => {
 		const nr = bogenNr(MIT_BOGEN);
 		const text = setzeBogen(MIT_BOGEN, nr, { text: 'Mathe-Zirkus <3 & mehr' });
 		assert.equal(leseBogen(text, nr)?.text, 'Mathe-Zirkus <3 & mehr');
-		assert.equal(attribut(zerlege(text).knoten.find((k) => k.tag === 'path')!, 'd')?.wert, 'M20 140 Q300 20 580 140');
+		assert.equal(
+			attribut(
+				zerlege(text).knoten.find((k) => k.tag === 'path')!,
+				'd',
+			)?.wert,
+			'M20 140 Q300 20 580 140',
+		);
 		const krumm = setzeBogen(MIT_BOGEN, nr, { kruemmung: -50 });
 		assert.equal(leseBogen(krumm, nr)?.kruemmung, -50);
 		assert.match(krumm, /d="M20 /);
@@ -120,7 +126,10 @@ describe('Kontur der Schmuckschrift', () => {
 
 	it('begrenzt die Stärke auf 16 px und weist fremde Farben ab', () => {
 		const nr = titelNr(MIT_TITEL);
-		assert.equal(leseSchriftKontur(setzeSchriftKontur(MIT_TITEL, nr, { staerke: 40, farbe: '#000' }), nr)?.staerke, 16);
+		assert.equal(
+			leseSchriftKontur(setzeSchriftKontur(MIT_TITEL, nr, { staerke: 40, farbe: '#000' }), nr)?.staerke,
+			16,
+		);
 		assert.throws(() => setzeSchriftKontur(MIT_TITEL, nr, { staerke: 4, farbe: 'url(#x)' }));
 	});
 });
@@ -153,7 +162,8 @@ describe('Titel ⇄ Bogen', () => {
 		assert.deepEqual(leseSchriftKontur(zurueck, nr), { staerke: 5, farbe: '#fff' });
 		assert.equal(leseLage(zurueck, nr).x, lage.x);
 		assert.equal(leseLage(zurueck, nr).y, lage.y);
-		assert.ok(!zurueck.includes('<span'), 'Farben einzelner Wörter gehen verloren.');
+		const k = zerlege(zurueck).knoten[nr];
+		assert.ok(k && !zurueck.slice(k.start, k.ende).includes('<span'), 'Farben einzelner Wörter gehen verloren.');
 		assert.deepEqual(pruefeFreiesHtml(zurueck), []);
 	});
 

@@ -8,6 +8,7 @@ import { readFileSync } from 'node:fs';
 import { describe, it } from 'node:test';
 
 import { BILD_FREI, blattMit, FIGUR_FREI, FORM_TEXT, SCHMUCK, STREUUNG } from '../../web/e2e/gestaltung-daten';
+import type { Verlauf } from './aussehen';
 import {
 	deckkraftImBereich,
 	entferneVerlauf,
@@ -21,7 +22,6 @@ import {
 	setzeSchatten,
 	setzeVerlauf,
 } from './aussehen';
-import type { Verlauf } from './aussehen';
 import { legeForm, leseForm, setzeFuellung, setzeKontur } from './formen-aendern';
 import { pruefeFreiesHtml } from './frei';
 import { dupliziereGestaltung } from './gestaltung';
@@ -78,7 +78,10 @@ describe('Verlauf', () => {
 		const mit = setzeVerlauf(quelle, nr, LINEAR);
 		const html = element(mit, nr);
 		assert.match(html, /<defs><linearGradient id="verlauf-[a-z0-9]{4}" gradientTransform="rotate\(90 \.5 \.5\)">/);
-		assert.match(html, /<stop offset="0" style="stop-color:var\(--haupt\)"\/><stop offset="1" style="stop-color:var\(--akzent\)"\/>/);
+		assert.match(
+			html,
+			/<stop offset="0" style="stop-color:var\(--haupt\)"\/><stop offset="1" style="stop-color:var\(--akzent\)"\/>/,
+		);
 		const { fill, stil } = pfadStil(mit, nr);
 		assert.match(fill ?? '', /^url\(#verlauf-[a-z0-9]{4}\)$/);
 		assert.doesNotMatch(stil, /(^|;)fill:/, 'kein fill im style, sonst gewönne er gegen den Verweis');

@@ -48,13 +48,20 @@ export const UebernehmenDialog = ({
 		}
 	};
 	return (
-		<Dialog titel={`Rezept ${v.rezept} auf alle Blätter im Ordner „${v.ordner}“ übernehmen?`} schliessen={schliessen}>
+		<Dialog
+			titel={`Rezept ${v.rezept} auf alle Blätter im Ordner „${v.ordner}“ übernehmen?`}
+			schliessen={schliessen}
+		>
 			<div className="flex flex-col gap-2 text-sm" data-uebernehmen-dialog>
 				<p data-uebernehmen-zahl={v.aendern}>
-					{v.aendern === 0 ? 'Kein anderes Material im Ordner bekommt das Rezept.' : `${materialien(v.aendern)} das Rezept.`}
+					{v.aendern === 0
+						? 'Kein anderes Material im Ordner bekommt das Rezept.'
+						: `${materialien(v.aendern)} das Rezept.`}
 				</p>
 				{v.minibuch.length > 0 && (
-					<p data-uebernehmen-minibuch>{`Übersprungen: ${minibuecher(v.minibuch.length)} (${liste(v.minibuch)}).`}</p>
+					<p data-uebernehmen-minibuch>
+						{`Übersprungen: ${minibuecher(v.minibuch.length)} (${liste(v.minibuch)}).`}
+					</p>
 				)}
 				{v.anderesRezept.length > 0 && (
 					<p data-uebernehmen-anderes>{`Verlieren ihr Rezept: ${liste(v.anderesRezept)}.`}</p>

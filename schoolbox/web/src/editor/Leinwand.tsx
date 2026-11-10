@@ -287,6 +287,43 @@ const massstabVon = ({
 	return { innenBreite, links, passend, skala };
 };
 
+/** Einfügemarke und Name am Zeiger, solange ein Baustein gezogen wird. */
+const ZugMarken = ({ links, skala, zug }: { links: number; skala: number; zug: ZugAnzeige }) => {
+	const marke = zug.platz && !zug.luecke ? zug.platz.marke : null;
+	return (
+		<>
+			{marke && (
+				<div
+					className="pointer-events-none absolute rounded-full bg-brand-500 shadow-[0_0_0_2px_white]"
+					data-einfuegemarke
+					style={
+						marke.senkrecht
+							? {
+									left: links + marke.x * skala - 3,
+									top: marke.y * skala,
+									width: 6,
+									height: marke.laenge * skala,
+								}
+							: {
+									left: links + marke.x * skala,
+									top: marke.y * skala - 3,
+									width: marke.laenge * skala,
+									height: 6,
+								}
+					}
+				/>
+			)}
+			<span
+				className="pointer-events-none absolute rounded-lg bg-tinte px-3 py-2 font-medium whitespace-nowrap text-white shadow-2"
+				data-zug
+				style={{ left: links + zug.x * skala + 18, top: zug.y * skala + 18 }}
+			>
+				{zug.name}
+			</span>
+		</>
+	);
+};
+
 export const Leinwand = ({
 	ablegen,
 	auswahl,
@@ -590,36 +627,7 @@ export const Leinwand = ({
 						setZiehBreite={setZiehBreite}
 					/>
 				)}
-				{zug?.platz && !zug.luecke && (
-					<div
-						className="pointer-events-none absolute rounded-full bg-brand-500 shadow-[0_0_0_2px_white]"
-						data-einfuegemarke
-						style={
-							zug.platz.marke.senkrecht
-								? {
-										left: links + zug.platz.marke.x * skala - 3,
-										top: zug.platz.marke.y * skala,
-										width: 6,
-										height: zug.platz.marke.laenge * skala,
-									}
-								: {
-										left: links + zug.platz.marke.x * skala,
-										top: zug.platz.marke.y * skala - 3,
-										width: zug.platz.marke.laenge * skala,
-										height: 6,
-									}
-						}
-					/>
-				)}
-				{zug && (
-					<span
-						className="pointer-events-none absolute rounded-lg bg-tinte px-3 py-2 font-medium whitespace-nowrap text-white shadow-2"
-						data-zug
-						style={{ left: links + zug.x * skala + 18, top: zug.y * skala + 18 }}
-					>
-						{zug.name}
-					</span>
-				)}
+				{zug && <ZugMarken zug={zug} links={links} skala={skala} />}
 			</div>
 			{!masse && (
 				<div className="absolute inset-0 flex items-center justify-center text-leise">

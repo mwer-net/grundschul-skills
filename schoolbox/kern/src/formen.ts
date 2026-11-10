@@ -133,7 +133,10 @@ export const vollstaendig = (form: Form, lies: (attr: string) => string | number
 	Object.fromEntries(
 		form.parameter.map((p) => {
 			const roh = lies(p.attr);
-			return [p.attr, roh === null || roh === undefined || roh === '' ? p.standard : imBereich(p, alsZahl(p, roh))];
+			return [
+				p.attr,
+				roh === null || roh === undefined || roh === '' ? p.standard : imBereich(p, alsZahl(p, roh)),
+			];
 		}),
 	);
 
@@ -149,7 +152,9 @@ export const werteVon = (form: Form, lies: (attr: string) => string | null | und
 export const zeichneForm = (art: string, param: FormWerte, b: number, h: number, strich: number) => {
 	const form = formVon(art);
 	// 107: Werte aus `extra` (Zipfel, Punkte) gehen mit.
-	return form ? form.zeichne({ ...param, ...vollstaendig(form, (a) => param[a]) }, Math.max(1, b), Math.max(1, h), strich) : null;
+	return form
+		? form.zeichne({ ...param, ...vollstaendig(form, (a) => param[a]) }, Math.max(1, b), Math.max(1, h), strich)
+		: null;
 };
 
 // ── style des Pfads ─────────────────────────────────────────────────────────
@@ -255,12 +260,13 @@ export const formHtml = ({ art, attribute = {}, b, fuellung, h, kontur, param = 
 	const attr =
 		form.parameter.map((p) => ` ${p.attr}="${parameterText(p, werte[p.attr] ?? p.standard)}"`).join('') +
 		Object.entries(attribute)
-			.map(([name, wert]) => ` ${name}="${schuetzeAttribut(wert)}"`)
+			.map(([n, wert]) => ` ${n}="${schuetzeAttribut(wert)}"`)
 			.join('');
-	const pfadStilText = form.klasse === 'linie' ? stilMit(pfadStil(fuell, rand), { 'stroke-linecap': 'round' }) : pfadStil(fuell, rand);
-	const pfade =
-		`<path d="${d}" style="${schuetzeAttribut(pfadStilText ?? '')}"/>` +
-		(spitzen ? `<path class="spitzen" d="${spitzen}" style="${spitzenStil(rand?.farbe ?? null)}"/>` : '');
+	const pfadStilText =
+		form.klasse === 'linie' ? stilMit(pfadStil(fuell, rand), { 'stroke-linecap': 'round' }) : pfadStil(fuell, rand);
+	const pfade = `<path d="${d}" style="${schuetzeAttribut(pfadStilText ?? '')}"/>${
+		spitzen ? `<path class="spitzen" d="${spitzen}" style="${spitzenStil(rand?.farbe ?? null)}"/>` : ''
+	}`;
 	if (form.klasse === 'mit-text') {
 		const stilAttr = stil ? ` style="${schuetzeAttribut(stil)}"` : '';
 		return (
@@ -354,7 +360,9 @@ const spitzenAenderungen = (z: Zerlegung, a: FormAngaben, spitzen: string | null
 	}
 	const stil = spitzenStil(konturAus(a.stil)?.farbe ?? null);
 	if (!da) {
-		return a.pfad ? [{ von: a.pfad.ende, bis: a.pfad.ende, text: `<path class="spitzen" d="${spitzen}" style="${stil}"/>` }] : [];
+		return a.pfad
+			? [{ von: a.pfad.ende, bis: a.pfad.ende, text: `<path class="spitzen" d="${spitzen}" style="${stil}"/>` }]
+			: [];
 	}
 	return [
 		...(attribut(da, 'd')?.wert === spitzen ? [] : setzeAttributAn(z, da, 'd', spitzen)),

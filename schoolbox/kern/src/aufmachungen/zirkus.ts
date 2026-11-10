@@ -76,7 +76,7 @@ const MASSE: Readonly<Record<AufmachungsFormat, Mass>> = {
 		streifen: 64,
 		rahmen: { farbe: 'var(--a1)', staerke: 5, abstand: 32, ecke: 32 },
 	},
-	folie: {
+	'folie': {
 		rand: 40,
 		ecke: { b: 200, h: 170 },
 		seitenrand: 44,
@@ -110,7 +110,13 @@ const daten = (format: AufmachungsFormat): FormatDaten => {
 	return {
 		flaeche: (deckblatt) =>
 			deckblatt
-				? { art: 'muster', muster: 'streifen', f1: 'var(--a-flaeche)', f2: 'var(--a-muster)', musterGroesse: m.streifen }
+				? {
+						art: 'muster',
+						muster: 'streifen',
+						f1: 'var(--a-flaeche)',
+						f2: 'var(--a-muster)',
+						musterGroesse: m.streifen,
+					}
 				: { art: 'farbe', f1: 'var(--a-flaeche)' },
 		rahmen: m.rahmen,
 		zonen: (deckblatt) => (deckblatt ? [sterne] : [punkte]),
@@ -167,6 +173,6 @@ export const aufmachung: Aufmachung | null = {
 		'a4-quer': daten('a4-quer'),
 		'a5-hoch': daten('a5-hoch'),
 		'a3-hoch': daten('a3-hoch'),
-		folie: daten('folie'),
+		'folie': daten('folie'),
 	},
 };

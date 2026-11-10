@@ -3,9 +3,9 @@ import { describe, it } from 'node:test';
 
 import type { Kontext, Kuerzel, Modus } from './befehle';
 import { BEFEHLE, befehlZuTaste, kuerzelText, MODUS_VORGABE, passtTaste } from './befehle';
-import { befehleFuerWerkzeuge } from './gestaltung/werkzeuge/befehle';
-import { WERKZEUGE } from './gestaltung/werkzeuge';
 import type { Werkzeug } from './gestaltung/werkzeuge';
+import { WERKZEUGE } from './gestaltung/werkzeuge';
+import { befehleFuerWerkzeuge } from './gestaltung/werkzeuge/befehle';
 import { werkzeugStand, zurAuswahl } from './gestaltung/werkzeuge/stand';
 import { JEDE_LAGE, SCHUBLADEN } from './schubladen';
 import { alsSchublade, REIHE } from './schubladen/reihe';
@@ -57,7 +57,10 @@ describe('Befehlsregister', () => {
 					for (const k of (b.kuerzel ?? []).filter((t) => t.wenn)) {
 						const s = schluessel(k);
 						const da = mitWenn.get(s);
-						assert.ok(da === undefined || da === b.id, `${modus}: ${s} mit wenn bei ${b.id} und ${da ?? ''}`);
+						assert.ok(
+							da === undefined || da === b.id,
+							`${modus}: ${s} mit wenn bei ${b.id} und ${da ?? ''}`,
+						);
 						mitWenn.set(s, b.id);
 					}
 				}
@@ -66,9 +69,20 @@ describe('Befehlsregister', () => {
 	});
 
 	it('Pfeiltasten: bei Gestaltung schieben, bei Bausteinen wählen (100)', () => {
-		const pfeil = { code: 'ArrowRight', key: 'ArrowRight', metaKey: false, ctrlKey: false, altKey: false, shiftKey: false };
+		const pfeil = {
+			code: 'ArrowRight',
+			key: 'ArrowRight',
+			metaKey: false,
+			ctrlKey: false,
+			altKey: false,
+			shiftKey: false,
+		};
 		const k = (gestaltung: boolean) =>
-			({ gestaltung: gestaltung ? {} : null, feldBehaeltUndo: () => false, textMarkiert: () => false }) as unknown as Kontext;
+			({
+				gestaltung: gestaltung ? {} : null,
+				feldBehaeltUndo: () => false,
+				textMarkiert: () => false,
+			}) as unknown as Kontext;
 		assert.equal(befehlZuTaste(pfeil, 'auswahl', k(true))?.id, 'auswahl.schiebe-rechts');
 		assert.equal(befehlZuTaste({ ...pfeil, shiftKey: true }, 'auswahl', k(true))?.id, 'auswahl.schiebe-rechts');
 		assert.equal(befehlZuTaste(pfeil, 'auswahl', k(false))?.id, 'auswahl.naechster');
@@ -274,7 +288,13 @@ describe('Werkzeuge (098)', () => {
 	});
 
 	it('keine Taste kollidiert, auch wenn alle Werkzeuge aus 5.10 da sind (P Stift, ⇧P Pfad)', () => {
-		const leer = { zeiger: 'crosshair', bereit: () => true, beginne: () => undefined, bewege: () => null, ende: () => null };
+		const leer = {
+			zeiger: 'crosshair',
+			bereit: () => true,
+			beginne: () => undefined,
+			bewege: () => null,
+			ende: () => null,
+		};
 		const alle: Werkzeug[] = [
 			WERKZEUGE[0] as Werkzeug,
 			...(

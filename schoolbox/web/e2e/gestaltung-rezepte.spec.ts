@@ -25,8 +25,7 @@ const segment = (page: Page, gruppe: string, name: string) =>
 const teile = (page: Page) => material(page).locator('[data-aufmachung-teil]');
 const schwarzWeiss = (page: Page) =>
 	page.locator('[data-profilschalter]').getByRole('button', { name: 's/w', exact: true });
-const farbe = (page: Page) =>
-	page.locator('[data-profilschalter]').getByRole('button', { name: 'Farbe', exact: true });
+const farbe = (page: Page) => page.locator('[data-profilschalter]').getByRole('button', { name: 'Farbe', exact: true });
 
 const mitZirkus = async (page: Page) => {
 	await blatt(page);
@@ -164,10 +163,9 @@ test.describe('Rezepte (119)', () => {
 	test('Thema mit eigenem Kopf: Kopfband nur „ohne“ mit Hinweis', async ({ page }) => {
 		await blatt(
 			page,
-			blattMit().replace(
-				'<div class="kopf">',
-				'<div class="thema-band"></div>\n  <div class="kopf thema-kopf">',
-			).replace('palette-himmel', 'palette-himmel thema-wald'),
+			blattMit()
+				.replace('<div class="kopf">', '<div class="thema-band"></div>\n  <div class="kopf thema-kopf">')
+				.replace('palette-himmel', 'palette-himmel thema-wald'),
 		);
 		await oeffneSchublade(page, 'rezepte');
 		await kachel(page, 'zirkus').click();

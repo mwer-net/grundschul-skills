@@ -8,13 +8,13 @@ import type { SchubladenZiele } from '../../schubladen';
 import { sichtfeldVon } from '../../sichtfeld';
 import type { Struktur } from '../../struktur';
 import type { Ziehgut } from '../../zug-von-aussen';
+import { zeigeAblageLinien } from '../ablage-linien';
 import type { Kandidat } from '../einrasten';
 import { kandidatenAufSeite, rasteEin } from '../einrasten';
-import { zeigeAblageLinien } from '../hilfslinien';
 import { eckeVon, entferneVorschau, markiereZiel, missHoehe, seitenIn, seiteUnter, zeigeVorschau } from './vorschau';
+import type { GestaltungsGut } from './ziehgut';
 import type { AblageTreffer } from './ziele';
 import { zielFuer } from './ziele';
-import type { GestaltungsGut } from './ziehgut';
 
 /** Was das Ablegen vom Editor braucht; `SchubladenTeile` passt dazu. */
 export interface AblegenTeile {
@@ -132,7 +132,8 @@ const flaechenGut = (teile: AblegenTeile, gut: GestaltungsGut): GestaltungsGut['
 	}
 	const hoehe = hoeheUm(hoeheVon(doc, seite, gut));
 	const stil = doc.defaultView?.getComputedStyle(seite);
-	const inhalt = seite.clientWidth - (parseFloat(stil?.paddingLeft ?? '') || 0) - (parseFloat(stil?.paddingRight ?? '') || 0);
+	const inhalt =
+		seite.clientWidth - (parseFloat(stil?.paddingLeft ?? '') || 0) - (parseFloat(stil?.paddingRight ?? '') || 0);
 	const lage = lageVon(gut, Math.max(0, Math.round((inhalt - gut.groesse.b) / 2)), FLAECHE_RAND);
 	return {
 		html: flaecheHtml(hoehe, htmlMitLage(gut.html.trim(), lage)),
@@ -217,7 +218,13 @@ export const ziehgutGestaltung = (teile: AblegenTeile, gut: GestaltungsGut): Zie
 			}
 			const da = ortAn(punkt.x, punkt.y);
 			if (da) {
-				zeigeVorschau(doc, da.seite, gut.anpassen?.(gut.html, da.ort) ?? gut.html, lageVon(gut, da.ort.x, da.ort.y), gut.ebene); // 109
+				zeigeVorschau(
+					doc,
+					da.seite,
+					gut.anpassen?.(gut.html, da.ort) ?? gut.html,
+					lageVon(gut, da.ort.x, da.ort.y),
+					gut.ebene,
+				); // 109
 			} else {
 				entferneVorschau(doc);
 			}

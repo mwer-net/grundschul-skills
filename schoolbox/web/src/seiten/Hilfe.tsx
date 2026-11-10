@@ -122,8 +122,8 @@ const ABSCHNITTE: Abschnitt[] = [
 						einen Teil des Blatts antippen, dann das Plus an seinem Rand oder „+ Baustein“ in der Leiste.
 					</Punkt>
 					<Punkt titel="Bausteine">
-						links in der Schublade „Bausteine“ (⌥2). Die Suche findet alles. Oben wählst du „Für dieses Blatt“ oder
-						„Alle“. Karte antippen fügt ein, am Griff links ziehst du sie ins Blatt.
+						links in der Schublade „Bausteine“ (⌥2). Die Suche findet alles. Oben wählst du „Für dieses
+						Blatt“ oder „Alle“. Karte antippen fügt ein, am Griff links ziehst du sie ins Blatt.
 					</Punkt>
 					<Punkt titel="Schrägstrich">in einer leeren Zeile „/“ tippen und weiterschreiben.</Punkt>
 				</ul>
@@ -256,13 +256,13 @@ const ABSCHNITTE: Abschnitt[] = [
 						Baustein „Nach oben“ und „Nach unten“ tippen. Dort lassen sie sich auch verdoppeln und löschen.
 					</Punkt>
 					<Punkt titel="Ebenen">
-						die Schublade links (⌥1, früher „Gliederung“) zeigt alle Seiten als Baum: darin die Aufgaben und alles, was du im Blatt anklicken
-						kannst, etwa eine Uhr in einem Eintrag. Was du im Blatt wählst, ist dort markiert, Klick auf
-						eine Zeile springt zur Stelle und zeigt rechts ihre Einstellungen. Am Griff ziehst du, was sich
-						umstellen lässt: Aufgaben innerhalb der Seite oder auf eine andere, Einträge innerhalb ihrer
-						Reihe, Seiten untereinander. Auf eine Seitenzeile abgelegt, landet die Aufgabe am Ende dieser
-						Seite. Kopf und Fuß bleiben fest. Der Pfeil klappt eine Zeile ein, „Alle einklappen“ macht die
-						Liste kurz. Esc bricht das Ziehen ab, ⌘Z nimmt es zurück.
+						die Schublade links (⌥1, früher „Gliederung“) zeigt alle Seiten als Baum: darin die Aufgaben und
+						alles, was du im Blatt anklicken kannst, etwa eine Uhr in einem Eintrag. Was du im Blatt wählst,
+						ist dort markiert, Klick auf eine Zeile springt zur Stelle und zeigt rechts ihre Einstellungen.
+						Am Griff ziehst du, was sich umstellen lässt: Aufgaben innerhalb der Seite oder auf eine andere,
+						Einträge innerhalb ihrer Reihe, Seiten untereinander. Auf eine Seitenzeile abgelegt, landet die
+						Aufgabe am Ende dieser Seite. Kopf und Fuß bleiben fest. Der Pfeil klappt eine Zeile ein, „Alle
+						einklappen“ macht die Liste kurz. Esc bricht das Ziehen ab, ⌘Z nimmt es zurück.
 					</Punkt>
 					<Punkt titel="Einstellungen">
 						rechts im Inspektor: „Auswahl“ für den gewählten Baustein, „Blatt“ für Klasse, Farben, Format

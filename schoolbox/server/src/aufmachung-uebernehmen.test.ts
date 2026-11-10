@@ -25,7 +25,8 @@ describe('Rezept auf alle Blätter im Ordner übernehmen (122)', () => {
 	let dok: string;
 	const neu: Record<string, string> = {};
 	const url = (d = dok, m = mappe) => `${s.url}/api/dokumente/${m}/${d}/aufmachung-uebernehmen`;
-	const quelle = (d: string, m = mappe) => readFile(path.join(dokumentDir(s.materialDir, m, d), 'material.html'), 'utf8');
+	const quelle = (d: string, m = mappe) =>
+		readFile(path.join(dokumentDir(s.materialDir, m, d), 'material.html'), 'utf8');
 	const setze = async (d: string, rechne: (q: string) => string) => {
 		const datei = path.join(dokumentDir(s.materialDir, mappe, d), 'material.html');
 		await writeFile(datei, rechne(await readFile(datei, 'utf8')));
@@ -54,7 +55,14 @@ describe('Rezept auf alle Blätter im Ordner übernehmen (122)', () => {
 		const a = await s.holen(`${s.url}/api/ordner/material`, {
 			method: 'POST',
 			headers: schreibKoepfe,
-			body: JSON.stringify({ titel: 'Tief', art: 'arbeitsblatt', format: 'a4-hoch', ordner: unter, fach: 'mathematik', klasse: 2 }),
+			body: JSON.stringify({
+				titel: 'Tief',
+				art: 'arbeitsblatt',
+				format: 'a4-hoch',
+				ordner: unter,
+				fach: 'mathematik',
+				klasse: 2,
+			}),
 		});
 		assert.equal(a.status, 201, await a.clone().text());
 		const tief = (await a.json()) as { mappe: string; id: string };
@@ -88,7 +96,11 @@ describe('Rezept auf alle Blätter im Ordner übernehmen (122)', () => {
 		const offenVorher = await quelle(dok);
 		const tiefVorher = await quelle(neu.Tief ?? '', neu.TiefMappe);
 		const versionenVorher = (await listeVersionen(zweiDir)).length;
-		const a = await s.holen(url(), { method: 'POST', headers: schreibKoepfe, body: JSON.stringify({ werte: v.werte }) });
+		const a = await s.holen(url(), {
+			method: 'POST',
+			headers: schreibKoepfe,
+			body: JSON.stringify({ werte: v.werte }),
+		});
 		assert.equal(a.status, 200, await a.clone().text());
 		const e = (await a.json()) as { geaendert: string[]; uebersprungen: string[]; fehlgeschlagen: string[] };
 		assert.deepEqual(e.geaendert.sort(), ['Drei', 'Zwei']);
@@ -103,7 +115,7 @@ describe('Rezept auf alle Blätter im Ordner übernehmen (122)', () => {
 		assert.equal(await quelle(neu.Tief ?? '', neu.TiefMappe), tiefVorher, 'der Unterordner bleibt');
 		const versionen = await listeVersionen(zweiDir);
 		assert.ok(versionen.length > versionenVorher, 'Version vor dem Übernehmen');
-		const inhalte = await Promise.all(versionen.map((v) => readFile(versionsPfad(zweiDir, v), 'utf8')));
+		const inhalte = await Promise.all(versionen.map((version) => readFile(versionsPfad(zweiDir, version), 'utf8')));
 		assert.ok(inhalte.includes(zweiVorher), 'der Stand vor dem Rezept liegt als Version vor');
 		// Danach keine Verbindung: Würfeln auf einem ändert das andere nicht.
 		const drei = await quelle(neu.Drei ?? '');

@@ -14,7 +14,10 @@ const nrMit = (quelle: string, teil: string) => {
 
 /** Zwei Seiten, die Gestaltung auf der ersten. */
 const zweiSeiten = (quelle: string) =>
-	quelle.replace('</section>', '</section>\n<section class="seite">\n  <div class="aufgabe"><span class="nr">4</span></div>\n</section>');
+	quelle.replace(
+		'</section>',
+		'</section>\n<section class="seite">\n  <div class="aufgabe"><span class="nr">4</span></div>\n</section>',
+	);
 
 describe('setzeStilWerte (097)', () => {
 	it('ändert --gr an seiner Stelle und lässt die Lage stehen', () => {
@@ -41,7 +44,12 @@ describe('kopiereGestaltungNach (097)', () => {
 		assert.ok(kopie !== null);
 		assert.deepEqual(leseLage(quelle, kopie), { x: 300, y: 400, b: 150, spiegeln: -1 });
 		assert.equal(quelle.split('data-figur="wilma"').length, 3);
-		assert.deepEqual(leseLage(quelle, nrMit(quelle, 'data-figur="wilma"')), { x: 610, y: 520, b: 150, spiegeln: -1 });
+		assert.deepEqual(leseLage(quelle, nrMit(quelle, 'data-figur="wilma"')), {
+			x: 610,
+			y: 520,
+			b: 150,
+			spiegeln: -1,
+		});
 	});
 
 	it('mit Seite: die Kopie liegt auf der anderen Seite in derselben Ebene', () => {

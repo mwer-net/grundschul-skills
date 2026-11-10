@@ -133,7 +133,9 @@ test.describe('Stift und Pfad (116)', () => {
 		expect(await quelle(page)).toBe(vorher);
 	});
 
-	test('Doppelklick, Punkt ziehen, ⌥-Klick löscht, Esc beendet; je ein Schritt, ⌘Z bleibt im Modus', async ({ page }) => {
+	test('Doppelklick, Punkt ziehen, ⌥-Klick löscht, Esc beendet; je ein Schritt, ⌘Z bleibt im Modus', async ({
+		page,
+	}) => {
 		await oeffneBlatt(page, [VON_CLAUDE]);
 		await pfade(page).click();
 		await pfade(page).dblclick();
@@ -174,7 +176,9 @@ test.describe('Stift und Pfad (116)', () => {
 		await page.mouse.down();
 		await page.mouse.move(g.x + 80, g.y + 40, { steps: 5 });
 		await page.mouse.up();
-		await expect.poll(async () => /--b:(\d+)px/.exec((await quelle(page)).split('data-form="pfad"')[1] ?? '')?.[1]).not.toBe('100');
+		await expect
+			.poll(async () => /--b:(\d+)px/.exec((await quelle(page)).split('data-form="pfad"')[1] ?? '')?.[1])
+			.not.toBe('100');
 		const q = await quelle(page);
 		expect(q).toContain('stroke-width:3px');
 		const vb = /data-form="pfad" viewBox="0 0 (\d+) (\d+)"/.exec(q);

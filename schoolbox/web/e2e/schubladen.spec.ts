@@ -85,7 +85,7 @@ test.describe('Schubladenleiste (093)', () => {
 		await page.keyboard.press('ControlOrMeta+k');
 		for (const wort of ['Rezepte']) {
 			await palette(page).getByRole('combobox').fill(wort);
-			await expect(palette(page).locator(`[data-palette-zeile^="ansicht.links-"]`)).toHaveCount(0);
+			await expect(palette(page).locator('[data-palette-zeile^="ansicht.links-"]')).toHaveCount(0);
 		}
 		await page.keyboard.press('Escape');
 		await page.locator('[data-statusleiste]').getByRole('button', { name: 'Tasten' }).click();
@@ -135,7 +135,9 @@ test.describe('Schubladenleiste (093)', () => {
 		// Geschlossen bleiben die angehefteten Ebenen allein stehen; gelöst gehen sie mit.
 		await page.keyboard.press('Alt+Digit2');
 		await expect(offen(page)).toHaveCount(0);
-		await expect(page.locator('[data-ebenen-angeheftet]').getByRole('navigation', { name: 'Ebenen' })).toBeVisible();
+		await expect(
+			page.locator('[data-ebenen-angeheftet]').getByRole('navigation', { name: 'Ebenen' }),
+		).toBeVisible();
 		await page.locator('[data-ebenen-anheften]').click();
 		await expect(page.locator('[data-ebenen-angeheftet]')).toHaveCount(0);
 	});

@@ -20,7 +20,13 @@ const punkteVon = (element: Element) => {
 	const html = element as unknown as { getBBox?: unknown; clientWidth: number; clientHeight: number };
 	const b = html.clientWidth || 1;
 	const h = html.clientHeight || 1;
-	return form ? linienPunkte(werteVon(form, (a) => element.getAttribute(a)), b, h) : null;
+	return form
+		? linienPunkte(
+				werteVon(form, (a) => element.getAttribute(a)),
+				b,
+				h,
+			)
+		: null;
 };
 
 /** Wie weit das Element während des Zugs gegenüber dem Start gewandert ist (`--x`, `--y` am Element). */
@@ -40,7 +46,10 @@ const endenNach = (element: Element, i: 0 | 1, zug: GriffZug): [Punkt, Punkt] | 
 	const v = versatz(element, zug.kasten);
 	const seite = punkte.map((p) => ({ x: zug.kasten.x + v.x + p.x, y: zug.kasten.y + v.y + p.y }));
 	const fest = seite[1 - i] ?? { x: 0, y: 0 };
-	const gezogen = { x: Math.round(zug.kasten.x + zug.start.x + zug.dx), y: Math.round(zug.kasten.y + zug.start.y + zug.dy) };
+	const gezogen = {
+		x: Math.round(zug.kasten.x + zug.start.x + zug.dx),
+		y: Math.round(zug.kasten.y + zug.start.y + zug.dy),
+	};
 	const neu = zug.umschalt ? in45(fest, gezogen) : gezogen;
 	return i === 0 ? [neu, fest] : [fest, neu];
 };
@@ -69,7 +78,10 @@ const griff = (i: 0 | 1): ZusatzGriff => ({
 		}
 		start.set(g.element, alt);
 		const fest = alt[1 - i] ?? alt[0];
-		const gezogen = { x: Math.round(zug.kasten.x + zug.start.x + zug.dx), y: Math.round(zug.kasten.y + zug.start.y + zug.dy) };
+		const gezogen = {
+			x: Math.round(zug.kasten.x + zug.start.x + zug.dx),
+			y: Math.round(zug.kasten.y + zug.start.y + zug.dy),
+		};
 		const neu = zug.umschalt ? in45(fest, gezogen) : gezogen;
 		const [a, b] = i === 0 ? [neu, fest] : [fest, neu];
 		const { lage, punkte } = linieAus(a, b, strichAus(pfadDerForm(g.element)?.getAttribute('style') ?? null));
@@ -92,7 +104,10 @@ const griff = (i: 0 | 1): ZusatzGriff => ({
 			return;
 		}
 		const fest = alt[1 - i] ?? alt[0];
-		const gezogen = { x: Math.round(zug.kasten.x + zug.start.x + zug.dx), y: Math.round(zug.kasten.y + zug.start.y + zug.dy) };
+		const gezogen = {
+			x: Math.round(zug.kasten.x + zug.start.x + zug.dx),
+			y: Math.round(zug.kasten.y + zug.start.y + zug.dy),
+		};
 		const neu = zug.umschalt ? in45(fest, gezogen) : gezogen;
 		const [a, b] = i === 0 ? [neu, fest] : [fest, neu];
 		g.fuehreAus('Linie geändert', (q) => ({ quelle: setzeLinie(q, g.nr, a, b), nr: g.nr }));

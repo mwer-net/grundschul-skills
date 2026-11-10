@@ -5,6 +5,7 @@ import { useEffect, useId, useRef } from 'react';
 import { klassen } from './klassen';
 import { Segment } from './Segment';
 import { Stepper } from './Stepper';
+import { sichtbar, verlaufCss } from './verlauf';
 
 /**
  * Farben des Blatts als Variablen (Briefing 3.9): Sie folgen Palette und Thema. Weiß und eine eigene Farbe kommen als
@@ -29,13 +30,6 @@ const sechsStellen = (wert: string) => {
 };
 
 const istWeiss = (wert: string | null) => wert !== null && ['#fff', '#ffffff'].includes(wert.toLowerCase());
-
-/** Wie die Variable im Material gerade aussieht; ohne Material ein neutrales Grau. */
-const sichtbar = (doc: Document | null, variable: string) => {
-	const body = doc?.body;
-	const fenster = doc?.defaultView;
-	return (body && fenster?.getComputedStyle(body).getPropertyValue(variable).trim()) || '#999999';
-};
 
 interface Eigenschaften {
 	/** Name der Gruppe, z. B. „Farbe 1“. */
@@ -71,17 +65,6 @@ const RUND =
 const ersterVerlauf = (wert: string | null): Verlauf => {
 	const f1 = wert ?? 'var(--haupt)';
 	return { art: 'linear', f1, f2: f1 === 'var(--akzent)' ? 'var(--haupt)' : 'var(--akzent)', winkel: 90 };
-};
-
-/** Wie der Verlauf im Material aussieht, für die kleine Vorschau. */
-export const verlaufCss = (doc: Document | null, { art, f1, f2, winkel }: Verlauf) => {
-	const farbe = (f: string) => {
-		const variable = /^var\((--[\w-]+)\)$/.exec(f)?.[1];
-		return variable ? sichtbar(doc, variable) : f;
-	};
-	return art === 'radial'
-		? `radial-gradient(circle, ${farbe(f1)}, ${farbe(f2)})`
-		: `linear-gradient(${winkel + 90}deg, ${farbe(f1)}, ${farbe(f2)})`;
 };
 
 /** Fünf Farben des Blatts, Weiß und „Eigene Farbe“ in einer Reihe. */
@@ -158,8 +141,7 @@ const Farben = ({ aus, beschriftung, doc, name, setze, vor, wert, zeige }: Eigen
 					aria-hidden
 					className="block size-full min-h-4 rounded-full"
 					style={{
-						background:
-							eigen ?? 'conic-gradient(#e76f51, #ffbe0b, #43aa8b, #3a86ff, #6a4c93, #e76f51)',
+						background: eigen ?? 'conic-gradient(#e76f51, #ffbe0b, #43aa8b, #3a86ff, #6a4c93, #e76f51)',
 					}}
 				/>
 				<input
@@ -178,10 +160,7 @@ const Farben = ({ aus, beschriftung, doc, name, setze, vor, wert, zeige }: Eigen
 	);
 };
 
-const MitVerlauf = ({
-	verlauf,
-	...e
-}: Eigenschaften & { verlauf: VerlaufWahl }) => {
+const MitVerlauf = ({ verlauf, ...e }: Eigenschaften & { verlauf: VerlaufWahl }) => {
 	const { aus, beschriftung, doc, name, setze, wert } = e;
 	const v = verlauf.wert;
 	// Kein eigener Zustand: „Verlauf“ legt sofort einen an, „Farbe“ setzt die erste Farbe einfarbig.

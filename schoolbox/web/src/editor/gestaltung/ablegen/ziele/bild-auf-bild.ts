@@ -20,7 +20,12 @@ const inAbbildung = (e: Element) => {
  */
 export const ziel: AblageZiel = (unter, gut) => {
 	const bild = bildVonGut(gut);
-	if (!bild || unter.tagName !== 'IMG' || unter.matches('.figur, .figur-frei') || unter.closest('[data-ablage-vorschau]')) {
+	if (
+		!bild ||
+		unter.tagName !== 'IMG' ||
+		unter.matches('.figur, .figur-frei') ||
+		unter.closest('[data-ablage-vorschau]')
+	) {
 		return null;
 	}
 	if (inAbbildung(unter)) {

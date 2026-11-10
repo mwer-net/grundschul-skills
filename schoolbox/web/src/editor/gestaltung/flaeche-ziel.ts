@@ -25,8 +25,9 @@ export const flaecheUnter = (doc: Document, x: number, y: number): Element | nul
 	[...doc.querySelectorAll('.flaeche')].find((f) => nrVon(f) !== null && enthaelt(f, x, y)) ?? null;
 
 const seiteUnter = (doc: Document, x: number, y: number): Element | null =>
-	[...doc.querySelectorAll('.seite')].find((s) => nrVon(s) !== null && !s.hasAttribute('data-erzeugt') && enthaelt(s, x, y)) ??
-	null;
+	[...doc.querySelectorAll('.seite')].find(
+		(s) => nrVon(s) !== null && !s.hasAttribute('data-erzeugt') && enthaelt(s, x, y),
+	) ?? null;
 
 /** Wohin ein gezogenes Element beim Loslassen gehört, wenn nicht dorthin, wo es liegt. */
 export interface FlaechenWechsel {

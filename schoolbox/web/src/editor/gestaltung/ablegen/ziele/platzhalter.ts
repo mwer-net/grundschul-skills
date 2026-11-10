@@ -32,7 +32,11 @@ export const ziel: AblageZiel = (unter, gut) => {
 		lege: (q) => {
 			const r = platz.getBoundingClientRect();
 			const masse = bild.natur ?? { breite: r.width, hoehe: r.height };
-			const breite = Math.min(spaltenBreite(platz), r.width, (r.height * masse.breite) / Math.max(1, masse.hoehe));
+			const breite = Math.min(
+				spaltenBreite(platz),
+				r.width,
+				(r.height * masse.breite) / Math.max(1, masse.hoehe),
+			);
 			const alt = bild.alt || (platz.textContent ?? '').trim().replace(/\s+/g, ' ');
 			return setzeBildEin(q, nr, { src: bild.src, alt, breite });
 		},

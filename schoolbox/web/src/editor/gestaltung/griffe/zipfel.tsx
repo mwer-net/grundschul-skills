@@ -36,7 +36,10 @@ export const rasteAnFigur = (element: Element, kasten: Kasten, lokal: Punkt): Pu
 	for (const figur of seite.querySelectorAll(FIGUREN)) {
 		const f = figur.getBoundingClientRect();
 		if (zeiger.x >= f.left && zeiger.x <= f.right && zeiger.y >= f.top && zeiger.y <= f.bottom) {
-			const zurueck = gedreht({ x: f.left + f.width / 2 - mitte.x, y: f.top + f.height / 2 - mitte.y }, -kasten.drehen);
+			const zurueck = gedreht(
+				{ x: f.left + f.width / 2 - mitte.x, y: f.top + f.height / 2 - mitte.y },
+				-kasten.drehen,
+			);
 			return { x: Math.round(zurueck.x + kasten.b / 2), y: Math.round(zurueck.y + kasten.h / 2) };
 		}
 	}

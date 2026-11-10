@@ -1,4 +1,4 @@
-import type { AufmachungsRahmen, AufmachungWerte, Kopfband, KonfettiForm } from '@schoolbox/kern/src/aufmachungen';
+import type { AufmachungsRahmen, AufmachungWerte, KonfettiForm, Kopfband } from '@schoolbox/kern/src/aufmachungen';
 import { aufmachungVon, KONFETTI_FORMEN, wendeAufmachungAn } from '@schoolbox/kern/src/aufmachungen';
 
 import { klassen } from '../../../bausteine/klassen';
@@ -47,7 +47,9 @@ export const RezeptRegler = ({ aendere, aus, doc, quelle, themaKopf, werte }: Ei
 		aendere(beschreibung, (q) => wendeAufmachungAn(q, werte.id, { ...werte, ...neu }));
 	const schalteForm = (f: KonfettiForm) => {
 		const an = werte.konfetti.formen.includes(f);
-		const formen = an ? werte.konfetti.formen.filter((x) => x !== f) : KONFETTI_FORMEN.filter((x) => x === f || werte.konfetti.formen.includes(x));
+		const formen = an
+			? werte.konfetti.formen.filter((x) => x !== f)
+			: KONFETTI_FORMEN.filter((x) => x === f || werte.konfetti.formen.includes(x));
 		if (formen.length > 0) {
 			setze('Konfetti', { konfetti: { ...werte.konfetti, formen } });
 		}
@@ -102,7 +104,9 @@ export const RezeptRegler = ({ aendere, aus, doc, quelle, themaKopf, werte }: Ei
 							data-rezept-form={f}
 							className={klassen(
 								'rounded-md px-2 py-0.5 text-sm disabled:opacity-50',
-								werte.konfetti.formen.includes(f) ? 'bg-flaeche-2 text-tinte' : 'text-leise hover:text-tinte',
+								werte.konfetti.formen.includes(f)
+									? 'bg-flaeche-2 text-tinte'
+									: 'text-leise hover:text-tinte',
 							)}
 							onClick={() => schalteForm(f)}
 						>

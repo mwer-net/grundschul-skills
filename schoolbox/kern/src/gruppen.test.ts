@@ -68,9 +68,13 @@ describe('Gruppen (120)', () => {
 		const g = gruppiere(q, [nrMit(q, 'figur-frei'), nrMit(q, 'rechteck')], [FIGUR_MASS]);
 		const vorne = zerlege(g.quelle).knoten.find((k) => klassenVon(k).includes('vorne'));
 		assert.ok(vorne);
-		const reihe = vorne.kinder.map((k) => (klassenVon(k).includes('gruppe') ? 'gruppe' : attribut(k, 'data-form')?.wert));
+		const reihe = vorne.kinder.map((k) =>
+			klassenVon(k).includes('gruppe') ? 'gruppe' : attribut(k, 'data-form')?.wert,
+		);
 		assert.deepEqual(reihe, ['pfad', 'gruppe']);
-		const kinder = kinderDerGruppe(g.quelle, gruppeIn(g.quelle)).map((nr) => klassenVon(zerlege(g.quelle).knoten[nr]!));
+		const kinder = kinderDerGruppe(g.quelle, gruppeIn(g.quelle)).map((nr) =>
+			klassenVon(zerlege(g.quelle).knoten[nr]!),
+		);
 		assert.deepEqual(kinder, [['form'], ['figur-frei']]);
 	});
 
@@ -114,7 +118,12 @@ describe('Gruppen (120)', () => {
 		);
 		assert.ok(g.nr !== null);
 		const alt = leseLage(g.quelle, g.nr);
-		const neu = skaliereGruppe(g.quelle, g.nr, { x: alt.x ?? 0, y: alt.y ?? 0, b: (alt.b ?? 0) * 2, h: (alt.h ?? 0) * 2 });
+		const neu = skaliereGruppe(g.quelle, g.nr, {
+			x: alt.x ?? 0,
+			y: alt.y ?? 0,
+			b: (alt.b ?? 0) * 2,
+			h: (alt.h ?? 0) * 2,
+		});
 		const kinder = kinderDerGruppe(neu, g.nr);
 		const vor = kinderDerGruppe(g.quelle, g.nr);
 		kinder.forEach((k, i) => {
@@ -173,7 +182,12 @@ describe('Gruppen (120)', () => {
 		const aussen = gruppiere(innen.quelle, [innen.nr, nrMit(innen.quelle, 'linie')]);
 		assert.ok(aussen.nr !== null);
 		const a = leseLage(aussen.quelle, aussen.nr);
-		const gross = skaliereGruppe(aussen.quelle, aussen.nr, { x: a.x ?? 0, y: a.y ?? 0, b: (a.b ?? 0) * 2, h: (a.h ?? 0) * 2 });
+		const gross = skaliereGruppe(aussen.quelle, aussen.nr, {
+			x: a.x ?? 0,
+			y: a.y ?? 0,
+			b: (a.b ?? 0) * 2,
+			h: (a.h ?? 0) * 2,
+		});
 		const innere = kinderDerGruppe(gross, aussen.nr).find((k) => istGruppe(zerlege(gross).knoten[k]));
 		assert.ok(innere !== undefined);
 		const rechteck = kinderDerGruppe(gross, innere)[0]!;

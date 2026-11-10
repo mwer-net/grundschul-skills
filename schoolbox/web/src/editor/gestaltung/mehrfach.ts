@@ -21,7 +21,11 @@ let stand: Stand = LEER;
 const hoerer = new Set<() => void>();
 
 const setze = (neu: Stand) => {
-	if (neu.haupt === stand.haupt && neu.dazu.length === stand.dazu.length && neu.dazu.every((n, i) => n === stand.dazu[i])) {
+	if (
+		neu.haupt === stand.haupt &&
+		neu.dazu.length === stand.dazu.length &&
+		neu.dazu.every((n, i) => n === stand.dazu[i])
+	) {
 		return;
 	}
 	stand = neu;
@@ -82,7 +86,12 @@ export const nrnFuer = (doc: Document, nr: number): number[] => {
  * ⇧-Klick (Blatt) bzw. ⇧- oder ⌘-Klick (Ebenen) auf ein Element: nimmt es dazu oder weg. Ist ein Baustein gewählt oder
  * liegt das Element auf einer anderen Seite, beginnt die Auswahl neu mit ihm (5.9).
  */
-export const schalteDazu = (doc: Document, gewaehlt: number | null, nr: number, waehle: (nr: number | null) => void) => {
+export const schalteDazu = (
+	doc: Document,
+	gewaehlt: number | null,
+	nr: number,
+	waehle: (nr: number | null) => void,
+) => {
 	const element = elementZu(doc, nr);
 	if (!istGestaltungElement(element)) {
 		leereMehrfach();

@@ -7,7 +7,7 @@
  * anderen Punkte auf dem Blatt stehen bleiben.
  */
 
-import { FUELLUNG, KONTUR, pfadStil, STRICH, stilMit } from './formen';
+import { FUELLUNG, KONTUR, pfadStil, stilMit, STRICH } from './formen';
 import type { Punkt, Zug } from './formen-geometrie';
 import { lesePfadForm, pfadAenderungen, pfadHtml, pfadImRechteck } from './formen-pfad';
 import { legeGestaltungAb, leseLage, setzeLage } from './gestaltung';

@@ -14,6 +14,8 @@ import {
 	gleicheAufmachungAb,
 	hatThemaKopf,
 	istDeckblatt,
+	KOPFBAND_MASKEN,
+	kopfbandPfad,
 	legeAufmachungFrei,
 	leseAufmachung,
 	TEIL,
@@ -24,7 +26,6 @@ import {
 import { browserSkip } from './browsertest';
 import { setzeBlatt } from './kit-einstellungen';
 import { ASSETS, BLATT_PY } from './konfig';
-import { KOPFBAND_MASKEN, kopfbandPfad } from './aufmachungen';
 import type { Meldung } from './meldungen';
 import type { Knoten } from './quelltext';
 import { attribut, entferne, innenVon, klassenVon, quelleVon, wendeAn, zerlege } from './quelltext';
@@ -37,17 +38,20 @@ const KOPIEN = process.env.SCHOOLBOX_KOPIEN ?? '/tmp/090-124-materialvergleich/k
 
 const hat = (k: Knoten, klasse: string) => klassenVon(k).includes(klasse);
 
-/** Ein Deckblatt: erste Seite ohne Aufgabe, dahinter ein Arbeitsblatt. */
-const DECKBLATT = blattMit().replace(
-	'<section class="seite">',
-	[
+/** Ein Deckblatt: erste Seite ohne Aufgabe, dahinter das Material `quelle`. */
+const deckblattVor = (quelle: string) =>
+	quelle.replace(
 		'<section class="seite">',
-		'  <div class="kopf"><div class="titel"><h1>Die Formen-Detektive</h1><div class="ziel">Reihe Geometrie</div></div></div>',
-		'  <img class="figur" src="bilder/willi.png" alt="Willi" style="width:260px;align-self:center">',
-		'</section>',
-		'<section class="seite">',
-	].join('\n'),
-);
+		[
+			'<section class="seite">',
+			'  <div class="kopf"><div class="titel"><h1>Die Formen-Detektive</h1><div class="ziel">Reihe Geometrie</div></div></div>',
+			'  <img class="figur" src="bilder/willi.png" alt="Willi" style="width:260px;align-self:center">',
+			'</section>',
+			'<section class="seite">',
+		].join('\n'),
+	);
+
+const DECKBLATT = deckblattVor(blattMit());
 
 /**
  * Die Quelle ohne alles, was ein Rezept anfassen darf: `body`-Start-Tag, Teile, eigene Seitenfläche und eigener
@@ -69,7 +73,10 @@ const ohneRezeptBereich = (quelle: string) => {
 		if (oberste.length === 0) {
 			break;
 		}
-		q = wendeAn(q, oberste.flatMap((k) => entferne(z, k)));
+		q = wendeAn(
+			q,
+			oberste.flatMap((k) => entferne(z, k)),
+		);
 	}
 	return q.replace(/<body[^>]*>/, '<body>');
 };
@@ -101,8 +108,7 @@ const alleTestdaten = () => {
 	return dateien.filter(([, q]) => !/<body[^>]*class="[^"]*\bminibuch\b/.test(q));
 };
 
-const streuungen = (quelle: string) =>
-	zerlege(quelle).knoten.filter((k) => attribut(k, TEIL)?.wert === 'streuung');
+const streuungen = (quelle: string) => zerlege(quelle).knoten.filter((k) => attribut(k, TEIL)?.wert === 'streuung');
 
 describe('Rezepte im Kern (114)', () => {
 	it('hat das Register mit Zirkus (118: und Detektiv, Dschungel, Ruhig)', () => {
@@ -143,11 +149,20 @@ describe('Rezepte im Kern (114)', () => {
 	});
 
 	it('ist idempotent, und Entfernen stellt die Quelle Zeichen für Zeichen wieder her', () => {
-		for (const quelle of [blattMit(), DECKBLATT, ...BEISPIELE.filter((b) => !b.art.startsWith('seiten')).map(blattMitBeispiel)]) {
+		for (const quelle of [
+			blattMit(),
+			DECKBLATT,
+			...BEISPIELE.filter((b) => !b.art.startsWith('seiten')).map(blattMitBeispiel),
+		]) {
 			const mit = wendeAufmachungAn(quelle, 'zirkus');
 			assert.equal(wendeAufmachungAn(mit, 'zirkus'), mit);
 			assert.equal(entferneAufmachung(mit), quelle);
-			const anders = wendeAufmachungAn(quelle, 'zirkus', { farben: 3, kopfband: 'zacken', rahmen: 'doppelt', saat: 9 });
+			const anders = wendeAufmachungAn(quelle, 'zirkus', {
+				farben: 3,
+				kopfband: 'zacken',
+				rahmen: 'doppelt',
+				saat: 9,
+			});
 			assert.equal(wendeAufmachungAn(anders, 'zirkus', leseAufmachung(anders) ?? {}), anders);
 			assert.equal(entferneAufmachung(anders), quelle);
 		}
@@ -186,7 +201,10 @@ describe('Rezepte im Kern (114)', () => {
 		assert.notEqual(neu, mit);
 		const ohneStreuung = (q: string) => {
 			const z = zerlege(q);
-			return wendeAn(q, streuungen(q).flatMap((k) => entferne(z, k))).replace(/ data-aufmachung-saat="\d+"/, '');
+			return wendeAn(
+				q,
+				streuungen(q).flatMap((k) => entferne(z, k)),
+			).replace(/ data-aufmachung-saat="\d+"/, '');
 		};
 		assert.equal(ohneStreuung(neu), ohneStreuung(mit));
 		assert.equal(leseAufmachung(neu)?.saat, 12345);
@@ -212,7 +230,10 @@ describe('Rezepte im Kern (114)', () => {
 			['4712', '4713'],
 		);
 		const quer = setzeBlatt(mit, { format: 'a4-quer' });
-		assert.notEqual(quelleVon(zerlege(quer), streuungen(quer)[0] as Knoten), quelleVon(zerlege(mit), streuungen(mit)[0] as Knoten));
+		assert.notEqual(
+			quelleVon(zerlege(quer), streuungen(quer)[0] as Knoten),
+			quelleVon(zerlege(mit), streuungen(mit)[0] as Knoten),
+		);
 		assert.equal(quer, wendeAufmachungAn(setzeBlatt(blattMit(), { format: 'a4-quer' }), 'zirkus'));
 		assert.equal(setzeBlatt(quer, { format: 'a4-hoch' }), mit);
 		// Ins Minibuch fällt das Rezept weg.
@@ -243,10 +264,7 @@ describe('Rezepte im Kern (114)', () => {
 	});
 
 	it('setzt mit Thema mit eigenem Kopf kein Kopfband, der Titel bleibt lesbar', () => {
-		const thema = blattMit().replace(
-			'<div class="kopf">',
-			'<div class="thema-band"></div>\n  <div class="kopf">',
-		);
+		const thema = blattMit().replace('<div class="kopf">', '<div class="thema-band"></div>\n  <div class="kopf">');
 		assert.ok(hatThemaKopf(thema));
 		const mit = wendeAufmachungAn(thema, 'zirkus', { kopfband: 'welle' });
 		assert.ok(!mit.includes('data-aufmachung-kopfband'));
@@ -258,7 +276,10 @@ describe('Rezepte im Kern (114)', () => {
 	it('legt frei: mit Maßen das Kopfband als Form, ohne Maße ohne Kopfband', () => {
 		const mit = wendeAufmachungAn(blattMit(), 'zirkus');
 		const [seite = 0] = seitenNummern(mit);
-		for (const kopfbaender of [[], [{ seite, x: 0, y: 0, b: 794, h: 160, d: 'M0 0H794V140C600 170 200 120 0 150Z' }]]) {
+		for (const kopfbaender of [
+			[],
+			[{ seite, x: 0, y: 0, b: 794, h: 160, d: 'M0 0H794V140C600 170 200 120 0 150Z' }],
+		]) {
 			const frei = legeAufmachungFrei(mit, kopfbaender);
 			const z = zerlege(frei);
 			assert.equal(leseAufmachung(frei), null);
@@ -291,9 +312,13 @@ const pruefe = async (html: string, profil: 'farbe' | 'sw') => {
 		const bericht = path.join(tmp, 'bericht.json');
 		await writeFile(datei, html);
 		try {
-			execFileSync('python3', [BLATT_PY, 'bauen', datei, '--nur-pruefen', '--profil', profil, '--bericht', bericht], {
-				stdio: 'ignore',
-			});
+			execFileSync(
+				'python3',
+				[BLATT_PY, 'bauen', datei, '--nur-pruefen', '--profil', profil, '--bericht', bericht],
+				{
+					stdio: 'ignore',
+				},
+			);
 		} catch {
 			// Exit-Code 1 bei FEHLER; der Bericht steht trotzdem da.
 		}
@@ -311,12 +336,13 @@ describe('Zirkus in allen Formaten ohne FEHLER und WARNUNG (114)', { skip: brows
 		'a4-quer': () => blattMit(),
 		'a5-hoch': () => blattMit(),
 		'a3-hoch': () => vorlage('vorlage-arbeitsblatt.html'),
-		folie: () => vorlage('vorlage-praesentation.html'),
+		'folie': () => vorlage('vorlage-praesentation.html'),
 	} as const;
 	for (const [format, ab] of Object.entries(arbeitsblatt)) {
 		for (const [art, quelle] of [
 			['Arbeitsblatt', ab],
-			['Deckblatt', () => DECKBLATT],
+			// Auf der Folie folgt dem Deckblatt eine Präsentation; das Arbeitsblatt aus `blattMit` passt nicht auf 720 px.
+			['Deckblatt', format === 'folie' ? () => deckblattVor(ab()) : () => DECKBLATT],
 		] as const) {
 			it(`${art} ${format}`, { timeout: 120_000 }, async () => {
 				const html = wendeAufmachungAn(setzeBlatt(quelle(), { format: format as 'a4-hoch' }), 'zirkus');
@@ -354,7 +380,10 @@ describe('Alle Rezepte im Register (118)', () => {
 				const mit = wendeAufmachungAn(quelle, a.id);
 				assert.equal(wendeAufmachungAn(mit, a.id), mit);
 				assert.equal(entferneAufmachung(mit), quelle);
-				assert.equal(wendeAufmachungAn(quelle, a.id, { saat: 5 }), wendeAufmachungAn(quelle, a.id, { saat: 5 }));
+				assert.equal(
+					wendeAufmachungAn(quelle, a.id, { saat: 5 }),
+					wendeAufmachungAn(quelle, a.id, { saat: 5 }),
+				);
 				for (const farben of [2, 3] as const) {
 					const anders = wendeAufmachungAn(quelle, a.id, { farben, saat: 9 });
 					assert.equal(entferneAufmachung(anders), quelle);
@@ -371,18 +400,24 @@ describe('Alle Rezepte im Register (118)', () => {
 		});
 
 		// Nur, wo das Band Standard ist oder das Rezept es dafür ausgelegt hat (Zirkus aus 114 und Detektiv nicht).
-		it(`${a.name}: Weiß auf dem Band hat in jeder Farbwelt mindestens 4,5 : 1`, { skip: !['dschungel', 'ruhig'].includes(a.id) }, () => {
-			for (const w of a.farbwelten) {
-				for (const band of [w.a1, w.a2]) {
-					assert.ok(kontrast(w.aTitel, band) >= 4.5, `${w.name}: ${w.aTitel} auf ${band}`);
+		it(
+			`${a.name}: Weiß auf dem Band hat in jeder Farbwelt mindestens 4,5 : 1`,
+			{ skip: !['dschungel', 'ruhig'].includes(a.id) },
+			() => {
+				for (const w of a.farbwelten) {
+					for (const band of [w.a1, w.a2]) {
+						assert.ok(kontrast(w.aTitel, band) >= 4.5, `${w.name}: ${w.aTitel} auf ${band}`);
+					}
 				}
-			}
-		});
+			},
+		);
 	}
 
 	it('Ruhig hat keine Fläche, keine Streuung und kein Kopfband', () => {
 		const q = wendeAufmachungAn(blattMit(), 'ruhig');
-		const teile = zerlege(q).knoten.map((k) => attribut(k, TEIL)?.wert).filter(Boolean);
+		const teile = zerlege(q)
+			.knoten.map((k) => attribut(k, TEIL)?.wert)
+			.filter(Boolean);
 		assert.deepEqual([...new Set(teile)], ['rahmen']);
 		assert.ok(!q.includes('data-aufmachung-kopfband='));
 	});
@@ -395,13 +430,13 @@ describe('Detektiv, Dschungel, Ruhig in allen Formaten ohne FEHLER und WARNUNG (
 		'a4-quer': () => blattMit(),
 		'a5-hoch': () => blattMit(),
 		'a3-hoch': () => vorlage('vorlage-arbeitsblatt.html'),
-		folie: () => vorlage('vorlage-praesentation.html'),
+		'folie': () => vorlage('vorlage-praesentation.html'),
 	} as const;
 	for (const id of ['detektiv', 'dschungel', 'ruhig']) {
 		for (const [format, ab] of Object.entries(arbeitsblatt)) {
 			for (const [art, quelle] of [
 				['Arbeitsblatt', ab],
-				['Deckblatt', () => DECKBLATT],
+				['Deckblatt', format === 'folie' ? () => deckblattVor(ab()) : () => DECKBLATT],
 			] as const) {
 				it(`${id} ${art} ${format}`, { timeout: 120_000 }, async () => {
 					const html = wendeAufmachungAn(setzeBlatt(quelle(), { format: format as 'a4-hoch' }), id);
@@ -427,7 +462,7 @@ describe('Freilegen friert ein (119)', () => {
 
 	it('jedes Teil trägt die Farben; ein zweites Rezept danach ändert Streuung und Kopfband nicht', () => {
 		const frei = legeAufmachungFrei(mit, [band]);
-		for (const k of zerlege(frei).knoten.filter((k) => hat(k, 'seitenflaeche') || hat(k, 'seitenrahmen'))) {
+		for (const k of zerlege(frei).knoten.filter((n) => hat(n, 'seitenflaeche') || hat(n, 'seitenrahmen'))) {
 			assert.match(attribut(k, 'style')?.wert ?? '', /^--a1:#e63946;/);
 		}
 		// Fläche und Rahmen ersetzt ein neues Rezept wie jede eigene Fläche (114); der Rest bleibt, wie er ist.
@@ -455,7 +490,8 @@ describe('Freilegen friert ein (119)', () => {
 
 	it('das Kopfband wird ein Pfad mit Verlauf a1 → a2, in s/w weg', () => {
 		const frei = legeAufmachungFrei(mit, [band]);
-		const svg = /<svg class="form" data-form="pfad" data-name="Kopfband"[^>]*>[\s\S]*?<\/svg>/.exec(frei)?.[0] ?? '';
+		const svg =
+			/<svg class="form" data-form="pfad" data-name="Kopfband"[^>]*>[\s\S]*?<\/svg>/.exec(frei)?.[0] ?? '';
 		assert.match(svg, /data-sw="weg"/);
 		assert.match(svg, /stop-color:var\(--a1\)[\s\S]*stop-color:var\(--a2\)/);
 		assert.ok(svg.includes(band.d));
@@ -498,7 +534,8 @@ describe('Abgleich nach einem Vorschlag von Claude (123)', () => {
 		const z = zerlege(mit);
 		const flaeche = z.knoten.find((k) => attribut(k, TEIL)?.wert === 'flaeche');
 		assert.ok(flaeche);
-		const angefasst = mit.slice(0, flaeche.start) + mit.slice(flaeche.start).replace('style="', 'style="opacity:0.2;');
+		const angefasst =
+			mit.slice(0, flaeche.start) + mit.slice(flaeche.start).replace('style="', 'style="opacity:0.2;');
 		assert.notEqual(angefasst, mit);
 		assert.equal(gleicheAufmachungAb(angefasst), mit);
 	});
@@ -506,7 +543,10 @@ describe('Abgleich nach einem Vorschlag von Claude (123)', () => {
 	it('ein erfundenes Rezept und das Minibuch bleiben unverändert', () => {
 		const erfunden = mit.replace('data-aufmachung="zirkus"', 'data-aufmachung="piraten"');
 		assert.equal(gleicheAufmachungAb(erfunden), erfunden);
-		const mini = readFileSync(path.join(ASSETS, 'vorlage-minibuch.html'), 'utf8').replace('<body', '<body data-aufmachung="zirkus"');
+		const mini = readFileSync(path.join(ASSETS, 'vorlage-minibuch.html'), 'utf8').replace(
+			'<body',
+			'<body data-aufmachung="zirkus"',
+		);
 		assert.ok(leseAufmachung(mini));
 		assert.equal(gleicheAufmachungAb(mini), mini);
 	});

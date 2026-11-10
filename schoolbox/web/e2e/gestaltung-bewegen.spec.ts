@@ -101,7 +101,9 @@ test.describe('Gestaltung wählen und bewegen (097)', () => {
 			await expect(page.locator('[data-wert-am-zeiger]')).toContainText('X 660 · Y 124');
 			expect(await stern(page).evaluate((e) => (e as SVGElement).style.getPropertyValue('--x'))).toBe('660px');
 		});
-		await expect.poll(() => quelle(page)).toContain('style="--x:660px;--y:124px;--b:120px;--h:120px;--drehen:12deg"');
+		await expect
+			.poll(() => quelle(page))
+			.toContain('style="--x:660px;--y:124px;--b:120px;--h:120px;--drehen:12deg"');
 		await expect(page.locator('[data-druckrand]')).toHaveCount(0);
 		await geladen(page);
 		await expect(rahmen(page)).toBeVisible();
@@ -182,7 +184,9 @@ test.describe('Gestaltung wählen und bewegen (097)', () => {
 		const seite2 = await material(page).locator('section.seite').nth(1).boundingBox();
 		expect(seite2).not.toBeNull();
 		await ziehe(page, von, 0, (seite2?.y ?? 0) + 60 - von.y);
-		await expect.poll(async () => (await quelle(page)).split('<section').at(-1) ?? '').toContain('data-form="kreis"');
+		await expect
+			.poll(async () => (await quelle(page)).split('<section').at(-1) ?? '')
+			.toContain('data-form="kreis"');
 		expect((await quelle(page)).split('<section')[1]).not.toContain('data-form="kreis"');
 	});
 

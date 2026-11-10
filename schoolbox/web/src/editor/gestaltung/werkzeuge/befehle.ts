@@ -1,8 +1,8 @@
 import type { Befehl, Kontext, Kuerzel } from '../../befehle';
 import { JEDE_LAGE } from '../../schubladen';
-import type { Werkzeug } from './typ';
 import { AUSWAHL, WERKZEUGE } from '.';
 import { waehleWerkzeug, werkzeugStand } from './stand';
+import type { Werkzeug } from './typ';
 
 /** Buchstaben ohne Umschalttaste nie beim Tippen: keine Textsitzung, kein Feld mit eigenem Undo (5.10). */
 const tippfrei = (k: Kontext) => !k.textsitzung && !k.feldBehaeltUndo();

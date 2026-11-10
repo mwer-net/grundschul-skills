@@ -53,7 +53,11 @@ const zieheBild = async (page: Page, ziel: { x: number; y: number }, text: strin
 	await bilder(page).getByRole('button', { name: 'Sammlung', exact: true }).click();
 	await expect(kachel(page, WACHSTUM)).toBeVisible();
 	await expect
-		.poll(() => kachel(page, WACHSTUM).locator('img').evaluate((i: HTMLImageElement) => i.naturalWidth))
+		.poll(() =>
+			kachel(page, WACHSTUM)
+				.locator('img')
+				.evaluate((i: HTMLImageElement) => i.naturalWidth),
+		)
 		.toBeGreaterThan(0);
 	const r = await kachel(page, WACHSTUM).boundingBox();
 	if (!r) {
@@ -82,7 +86,8 @@ const pixel = async (page: Page, element: Locator, punkte: [number, number][]) =
 			const g = c.getContext('2d');
 			g?.drawImage(img, 0, 0);
 			return liste.map(([ax, ay]) => [
-				...(g?.getImageData(Math.round((img.width - 1) * ax), Math.round((img.height - 1) * ay), 1, 1).data ?? []),
+				...(g?.getImageData(Math.round((img.width - 1) * ax), Math.round((img.height - 1) * ay), 1, 1).data ??
+					[]),
 			]);
 		},
 		{ daten: bild.toString('base64'), liste: punkte },
@@ -106,7 +111,8 @@ const einfarbig = (bild: Locator, farbe: string) =>
 
 const weiss = (p: number[]) => (p[0] ?? 0) > 245 && (p[1] ?? 0) > 245 && (p[2] ?? 0) > 245;
 const rot = (p: number[]) => (p[0] ?? 0) > 200 && (p[1] ?? 0) < 60 && (p[2] ?? 0) < 60;
-const grau = (p: number[]) => Math.max(p[0] ?? 0, p[1] ?? 0, p[2] ?? 0) - Math.min(p[0] ?? 0, p[1] ?? 0, p[2] ?? 0) <= 12;
+const grau = (p: number[]) =>
+	Math.max(p[0] ?? 0, p[1] ?? 0, p[2] ?? 0) - Math.min(p[0] ?? 0, p[1] ?? 0, p[2] ?? 0) <= 12;
 
 test.describe('Rahmen-Stile und Bildrahmen (111)', () => {
 	test('Jeder Rahmen-Stil an einem freien Bild ist ein Schritt; schräg dreht um −3°', async ({ page }) => {
@@ -159,7 +165,9 @@ test.describe('Rahmen-Stile und Bildrahmen (111)', () => {
 		expect(schatten).toMatch(/rgba\(0, 0, 0, 0\.\d+\)/);
 	});
 
-	test('Ein Bild in einen Stern-Rahmen gezogen ist sternförmig; ein Klick in die Mitte wählt es', async ({ page }) => {
+	test('Ein Bild in einen Stern-Rahmen gezogen ist sternförmig; ein Klick in die Mitte wählt es', async ({
+		page,
+	}) => {
 		const vorher = blattMit({ vorne: [STERN_RAHMEN] });
 		await oeffneMit(page, vorher);
 		const rahmen = material(page).locator('.bildrahmen');
@@ -191,7 +199,9 @@ test.describe('Rahmen-Stile und Bildrahmen (111)', () => {
 		await expect.poll(() => quelle(page)).toBe(vorher);
 	});
 
-	test('Ein Bild auf einen Kreis gezogen: rund zugeschnitten, die Form ist weg, ⌘Z bringt sie zurück', async ({ page }) => {
+	test('Ein Bild auf einen Kreis gezogen: rund zugeschnitten, die Form ist weg, ⌘Z bringt sie zurück', async ({
+		page,
+	}) => {
 		const vorher = blattMit({ vorne: [KREIS] });
 		await oeffneMit(page, vorher);
 		const kreis = material(page).locator('svg.form');
@@ -199,7 +209,9 @@ test.describe('Rahmen-Stile und Bildrahmen (111)', () => {
 		await expect.poll(() => quelle(page)).toContain('data-maske="ellipse"');
 		const html = await quelle(page);
 		expect(html).not.toContain('data-form="ellipse"');
-		expect(html).toMatch(/<img class="bild-frei" data-lage="frei" data-maske="ellipse" src="bilder\/wachstum\.png"/);
+		expect(html).toMatch(
+			/<img class="bild-frei" data-lage="frei" data-maske="ellipse" src="bilder\/wachstum\.png"/,
+		);
 		expect(html).toContain('--x:300px;--y:420px;--b:200px;--h:200px;clip-path:ellipse(50% 50% at 50% 50%)');
 		await expect(material(page).locator('svg.form')).toHaveCount(0);
 		await zurueck(page).click();
@@ -235,7 +247,10 @@ test.describe('Rahmen-Stile und Bildrahmen (111)', () => {
 		await expect.poll(() => quelle(page)).toBe(vorher);
 	});
 
-	test('Ein leerer Rahmen ist grau und meldet „platzhalter“; ein Klick in der Schublade füllt ihn', async ({ druecke, page }) => {
+	test('Ein leerer Rahmen ist grau und meldet „platzhalter“; ein Klick in der Schublade füllt ihn', async ({
+		druecke,
+		page,
+	}) => {
 		await oeffneMit(page, blattMit({ vorne: [STERN_RAHMEN] }));
 		const rahmen = material(page).locator('.bildrahmen');
 		await expect(rahmen).toBeVisible();
@@ -254,7 +269,9 @@ test.describe('Rahmen-Stile und Bildrahmen (111)', () => {
 		await bilder(page).getByRole('button', { name: 'Sammlung', exact: true }).click();
 		await expect(bilder(page)).toContainText('füllt den Bildrahmen');
 		await kachel(page, WACHSTUM).click();
-		await expect.poll(() => quelle(page)).toMatch(/<img class="bild-frei"[^>]*data-maske="stern" src="bilder\/wachstum\.png"/);
+		await expect
+			.poll(() => quelle(page))
+			.toMatch(/<img class="bild-frei"[^>]*data-maske="stern" src="bilder\/wachstum\.png"/);
 		expect(await quelle(page)).not.toContain('bildrahmen');
 	});
 
@@ -262,7 +279,9 @@ test.describe('Rahmen-Stile und Bildrahmen (111)', () => {
 		await oeffneMit(page, blattMit());
 		await oeffneSchublade(page, 'formen');
 		await page.locator('[data-bildrahmen-kachel="kreis"]').click();
-		await expect.poll(() => quelle(page)).toMatch(/<div class="bildrahmen platzhalter" data-lage="frei" data-maske="ellipse"/);
+		await expect
+			.poll(() => quelle(page))
+			.toMatch(/<div class="bildrahmen platzhalter" data-lage="frei" data-maske="ellipse"/);
 		await expect(page.locator('[data-gestaltung-inspektor="bildrahmen"]')).toBeVisible();
 	});
 });

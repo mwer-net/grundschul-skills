@@ -16,13 +16,13 @@ export interface Kasten {
 /** Griffe am Rahmen: Ecken und Kantenmitten. `x`/`y` sagen, an welcher Seite der Griff zieht (−1, 0, 1). */
 export const GRIFFE = {
 	'oben-links': { x: -1, y: -1 },
-	oben: { x: 0, y: -1 },
+	'oben': { x: 0, y: -1 },
 	'oben-rechts': { x: 1, y: -1 },
-	rechts: { x: 1, y: 0 },
+	'rechts': { x: 1, y: 0 },
 	'unten-rechts': { x: 1, y: 1 },
-	unten: { x: 0, y: 1 },
+	'unten': { x: 0, y: 1 },
 	'unten-links': { x: -1, y: 1 },
-	links: { x: -1, y: 0 },
+	'links': { x: -1, y: 0 },
 } as const;
 
 export type GriffName = keyof typeof GRIFFE;
@@ -186,7 +186,8 @@ export const dreheUm = (k: Kasten, um: { x: number; y: number }, grad: number): 
  * Verhältnis). Jedes Element wächst um denselben Faktor, seine Mitte bleibt an derselben Stelle relativ zur Auswahl.
  */
 export const skaliereMit = (k: Kasten, von: Kasten, nach: Kasten): Kasten => {
-	const f = von.b > 0 ? nach.b / von.b : von.h > 0 ? nach.h / von.h : 1;
+	const nachHoehe = von.h > 0 ? nach.h / von.h : 1;
+	const f = von.b > 0 ? nach.b / von.b : nachHoehe;
 	const m = mitteVon(k);
 	const b = Math.max(1, k.b * f);
 	const h = Math.max(1, k.h * f);

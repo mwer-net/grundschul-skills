@@ -64,7 +64,11 @@ test.describe('Claude-Elemente frei legen und Figur von Claude (117)', () => {
 		const vorher = await gegenSeite(page, element);
 		await element.click();
 		await imMehr(page, 'Frei legen');
-		await expect.poll(() => quelle(page)).toMatch(/<div class="ebene vorne">\s*<figure data-frei data-frei-titel="Tangram Waschbär"[^>]*data-lage="frei"/);
+		await expect
+			.poll(() => quelle(page))
+			.toMatch(
+				/<div class="ebene vorne">\s*<figure data-frei data-frei-titel="Tangram Waschbär"[^>]*data-lage="frei"/,
+			);
 		const nachher = await gegenSeite(page, material(page).locator('figure[data-frei][data-lage="frei"]'));
 		expect(Math.abs(nachher.x - vorher.x)).toBeLessThan(2);
 		expect(Math.abs(nachher.y - vorher.y)).toBeLessThan(2);
@@ -105,7 +109,9 @@ test.describe('Claude-Elemente frei legen und Figur von Claude (117)', () => {
 		await page.getByRole('dialog').getByRole('button', { name: 'Annehmen' }).click();
 		await expect(eule(page)).toBeVisible();
 		await gespeichert(page, u.material);
-		expect(await quelle(page)).toMatch(/<div class="ebene vorne"><svg data-frei data-frei-titel="Eule mit Brille" data-lage="frei"/);
+		expect(await quelle(page)).toMatch(
+			/<div class="ebene vorne"><svg data-frei data-frei-titel="Eule mit Brille" data-lage="frei"/,
+		);
 		await expect(page.locator('[data-gestaltung-rahmen]')).toBeVisible();
 		await expect(page.locator('[data-gestaltung-griff="drehen"]')).toBeVisible();
 	});

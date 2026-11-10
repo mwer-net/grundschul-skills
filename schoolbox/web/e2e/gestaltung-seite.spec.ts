@@ -70,7 +70,11 @@ test.describe('Seitenfläche und Seitenrahmen (095)', () => {
 		await expect(material(page).locator('body.sw')).toHaveCount(1);
 		await expect(flaeche).toBeHidden();
 
-		await abschnitt(page).getByRole('group', { name: 'In s/w' }).first().getByRole('button', { name: 'grau' }).click();
+		await abschnitt(page)
+			.getByRole('group', { name: 'In s/w' })
+			.first()
+			.getByRole('button', { name: 'grau' })
+			.click();
 		await expect.poll(() => quelle(page)).toContain('data-sw="grau"');
 		await expect(flaeche).toBeVisible();
 		await expect

@@ -62,7 +62,9 @@ test.describe('Gruppen und Pfade von Claude (124)', () => {
 		await expect.poll(() => quelle(page)).toBe(stand);
 	});
 
-	test('Der Pfad von Claude: Doppelklick zeigt die Punkte, Ziehen schreibt ihn neu, ⌘Z stellt her', async ({ page }) => {
+	test('Der Pfad von Claude: Doppelklick zeigt die Punkte, Ziehen schreibt ihn neu, ⌘Z stellt her', async ({
+		page,
+	}) => {
 		await nimmAn(page, 'pfad', 'Zeichne eine Wolke als eigene Form.');
 		await expect(pfad(page)).toHaveCount(1);
 		const stand = await quelle(page);

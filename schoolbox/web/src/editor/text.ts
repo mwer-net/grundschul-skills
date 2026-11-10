@@ -1,8 +1,7 @@
 import { kann } from '@schoolbox/kern/src/bausteine';
 import type { Zerlegung } from '@schoolbox/kern/src/quelltext';
-import { useCallback, useEffect, useRef, useState } from 'react';
-
 import { entferneLeereSchmuck } from '@schoolbox/kern/src/schmuck';
+import { useCallback, useEffect, useRef, useState } from 'react';
 
 import type { Urheber } from './bearbeitung';
 import { elementZu, trefferAn } from './darstellung';

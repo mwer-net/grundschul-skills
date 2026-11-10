@@ -8,9 +8,9 @@ import type { Struktur } from '../../struktur';
 import { istFeld, TASTEN_SPERRE } from '../../tasten';
 import { eckeVon, entferneVorschau, seiteUnter, zeigeVorschau } from '../ablegen/vorschau';
 import type { Entwurf, Punkt, Tasten, Werkzeug } from '.';
-import type { Fortgang } from './typ';
 import { AUSWAHL, werkzeugVon } from '.';
 import { useWerkzeugStand, werkzeugStand, zurAuswahl } from './stand';
+import type { Fortgang } from './typ';
 
 /** Weniger Weg (px am Bildschirm) ist ein Klick, kein Strich. */
 const KLICK_WEG = 4;
@@ -177,7 +177,8 @@ export const useWerkzeug = ({
 			// 116: Ein laufendes mehrteiliges Werkzeug bleibt auf seiner Seite.
 			const laufend = mehr.current?.w === werkzeug ? mehr.current : null;
 			const seite = laufend ? laufend.seite : seiteUnter(doc, p.x, p.y);
-			const nr = laufend ? laufend.nr : seite ? nrVon(seite) : null;
+			const nrDerSeite = seite ? nrVon(seite) : null;
+			const nr = laufend ? laufend.nr : nrDerSeite;
 			ev.preventDefault();
 			if (!seite || nr === null) {
 				return;
@@ -189,7 +190,15 @@ export const useWerkzeug = ({
 			}
 			if (werkzeug.mehrteilig) {
 				mehr.current = { w: werkzeug, seite, nr };
-				strich.current = { id: ev.pointerId, w: werkzeug, seite, nr, x: ev.clientX, y: ev.clientY, teilig: true };
+				strich.current = {
+					id: ev.pointerId,
+					w: werkzeug,
+					seite,
+					nr,
+					x: ev.clientX,
+					y: ev.clientY,
+					teilig: true,
+				};
 				werkzeug.mehrteilig.runter(aufSeite(ev, seite), skala);
 				zeigeEntwurf(seite, werkzeug.mehrteilig.ziehe(aufSeite(ev, seite)));
 				return;

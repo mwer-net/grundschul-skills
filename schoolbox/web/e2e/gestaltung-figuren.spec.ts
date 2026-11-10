@@ -25,7 +25,8 @@ const anzahl = (html: string, teil: string) => html.split(teil).length - 1;
 const figurTag = (html: string) => /<img class="figur-frei"[^>]*>/.exec(html)?.[0] ?? '';
 
 /** Die Leitfigur im Tipp, wie sie im Bestand vorkommt. */
-const TIPP = '  <div class="tipp"><img class="figur" src="bilder/willi.png" alt="Willi"><div class="blase">Zu 1: Ein Tipp.</div></div>';
+const TIPP =
+	'  <div class="tipp"><img class="figur" src="bilder/willi.png" alt="Willi"><div class="blase">Zu 1: Ein Tipp.</div></div>';
 
 const mitTipp = (html: string) => html.replace('</section>', `${TIPP}\n</section>`);
 
@@ -73,7 +74,9 @@ test.describe('Figuren (102)', () => {
 		await page.setViewportSize({ width: 1512, height: 860 });
 	});
 
-	test('⌥4 öffnet die Schublade; Klick legt Wilma 150 px breit in die Mitte, gewählt, ein Schritt', async ({ page }) => {
+	test('⌥4 öffnet die Schublade; Klick legt Wilma 150 px breit in die Mitte, gewählt, ein Schritt', async ({
+		page,
+	}) => {
 		await blatt(page);
 		const vorher = await quelle(page);
 		await page.keyboard.press('Alt+Digit4');
@@ -159,7 +162,9 @@ test.describe('Figuren (102)', () => {
 		await blick.getByRole('button', { name: 'schaut nach rechts' }).click();
 		await kachel(page, 'Willi').click();
 		await expect.poll(async () => anzahl(await quelle(page), 'class="figur-frei"')).toBe(2);
-		expect(/<img class="figur-frei" data-figur="willi"[^>]*>/.exec(await quelle(page))?.[0]).not.toContain('--spiegeln');
+		expect(/<img class="figur-frei" data-figur="willi"[^>]*>/.exec(await quelle(page))?.[0]).not.toContain(
+			'--spiegeln',
+		);
 	});
 
 	test('⇧H spiegelt und spiegelt zurück, je ein Schritt; „Spiegeln“ an der Leiste tut dasselbe', async ({ page }) => {

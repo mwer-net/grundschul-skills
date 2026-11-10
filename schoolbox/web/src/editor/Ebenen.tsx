@@ -1,17 +1,8 @@
-import {
-	istGestaltung,
-	kopiereGestaltungNach,
-	leseLage,
-	ordneInEbene,
-	setzeName,
-	verschiebeAufSeite,
-	wechsleEbene,
-} from '@schoolbox/kern/src/gestaltung';
 import { ankerZiele, haengeAn, loeseAnker } from '@schoolbox/kern/src/anker';
+import { setzeName } from '@schoolbox/kern/src/gestaltung';
 import type { EbenenName } from '@schoolbox/kern/src/gestaltung-arten';
 import type { Zerlegung } from '@schoolbox/kern/src/quelltext';
-import { klassenVon, zerlege } from '@schoolbox/kern/src/quelltext';
-import type { Ablage, StrukturErgebnis } from '@schoolbox/kern/src/struktur';
+import type { Ablage } from '@schoolbox/kern/src/struktur';
 import { hatNamenszeile } from '@schoolbox/kern/src/struktur';
 import type { MouseEvent as ReactMouseEvent, PointerEvent as ReactPointerEvent, ReactNode } from 'react';
 import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
@@ -28,15 +19,17 @@ import { SymbolKnopf } from '../bausteine/SymbolKnopf';
 import { Tooltip } from '../bausteine/Tooltip';
 import { folgeZeiger, rolleAmRand, schluckeKlick } from '../bausteine/zeigerzug';
 import { bausteinVon, elementZu, nrVon } from './darstellung';
+import type { EbenenZiel } from './ebenen-legen';
+import { legeInEbenen, seiteUm } from './ebenen-legen';
 import { lageInSeite, messeAnhaengen } from './gestaltung/anker-lage';
 import { EBENEN_ZEICHEN } from './gestaltung/ebenen-zeichen';
+import { nrnFuer, schalteDazu, useMehrfach } from './gestaltung/mehrfach';
 import type { GliederungKnoten, GliederungSeite } from './gliederung-modell';
 import { alleSchluessel, gliederungVon, ketteZu, ohneWirkung, stapelVon, zeileZurAuswahl } from './gliederung-modell';
 import type { GliederungStand } from './gliederung-stand';
 import type { Struktur } from './struktur';
 import { MAUS_WEG } from './ziehen';
 import { ordnungVon } from './ziele';
-import { nrnFuer, schalteDazu, useMehrfach } from './gestaltung/mehrfach';
 
 const SPEICHER_SEITE = 'schoolbox-neue-seite';
 const FEDERN_MS = 600;
@@ -50,13 +43,6 @@ const ART_KNOPF = (
 );
 
 const LUECKE = <span className="w-5 flex-none [@media(any-pointer:coarse)]:w-11" />;
-
-/** Wohin Gestaltung in den Ebenen kommt: Seite (Nummer der `.seite`), Ebene und wie viele andere davor liegen. */
-interface EbenenZiel {
-	seite: number;
-	ebene: EbenenName;
-	platz: number;
-}
 
 /** Symbol je Art in den Ebenen (1-ebenen.md, „Beschriftung“); Bausteine haben keins. */
 const SYMBOL_DER_ART: Record<string, SymbolName> = {
@@ -74,70 +60,6 @@ const SYMBOL_DER_ART: Record<string, SymbolName> = {
 	seitenrahmen: 'rahmen',
 	seitenflaeche: 'flaeche',
 	gestaltung: 'funken',
-};
-
-const seiteUm = (z: Zerlegung, nr: number) => {
-	for (let k = z.knoten[nr]?.eltern ?? null; k; k = k.eltern) {
-		if (klassenVon(k).includes('seite')) {
-			return k.nr;
-		}
-	}
-	return null;
-};
-
-/** Ebene und Platz von vorne des Gestaltungselements `nr`. */
-const stelleVon = (quelle: string, nr: number) => {
-	const k = zerlege(quelle).knoten[nr];
-	const eltern = k?.eltern;
-	const geschwister = (eltern?.kinder ?? []).filter(istGestaltung);
-	const ebene: EbenenName | null =
-		eltern && klassenVon(eltern).includes('ebene')
-			? klassenVon(eltern).includes('vorne')
-				? 'vorne'
-				: 'hinten'
-			: null;
-	return { ebene, platz: k ? geschwister.length - 1 - geschwister.indexOf(k) : 0 };
-};
-
-/**
- * Ziehen in den Ebenen als ein Schritt (101): erst auf die Seite (`verschiebeAufSeite`, die Lage bleibt), dann in die
- * Ebene (`wechsleEbene`, dort ganz vorne), dann Platz für Platz nach hinten (`ordneInEbene`). Mit `kopie` bleibt das
- * Original, und die Kopie liegt an derselben Stelle im Blatt.
- */
-export const legeInEbenen = (quelle: string, nr: number, ziel: EbenenZiel, kopie: boolean): StrukturErgebnis => {
-	const z = zerlege(quelle);
-	const seite = seiteUm(z, nr);
-	let r: StrukturErgebnis = { quelle, nr };
-	if (kopie) {
-		const { x, y } = leseLage(quelle, nr);
-		r = kopiereGestaltungNach(
-			quelle,
-			nr,
-			{ x: x ?? null, y: y ?? null },
-			ziel.seite === seite ? undefined : ziel.seite,
-		);
-	} else if (ziel.seite !== seite) {
-		r = verschiebeAufSeite(quelle, nr, ziel.seite, {});
-	}
-	if (r.nr === null) {
-		return r;
-	}
-	if (stelleVon(r.quelle, r.nr).ebene !== ziel.ebene) {
-		r = wechsleEbene(r.quelle, r.nr, ziel.ebene);
-	}
-	for (let i = 0; r.nr !== null && i < 500; i += 1) {
-		const { platz } = stelleVon(r.quelle, r.nr);
-		if (platz === ziel.platz) {
-			break;
-		}
-		const weiter = ordneInEbene(r.quelle, r.nr, platz < ziel.platz ? 'zurueck' : 'vor');
-		// Eine Kopie gleicht dem Original Zeichen für Zeichen: Tauschen die beiden, bleibt die Quelle, nur die Nummer wandert.
-		if (weiter.quelle === r.quelle && weiter.nr === r.nr) {
-			break;
-		}
-		r = weiter;
-	}
-	return r;
 };
 
 interface Zug {
@@ -176,6 +98,14 @@ interface Lauf {
 }
 
 /** Was das Ziehen von einer Zeile wissen muss. */
+type Setze = (
+	ablage: Ablage | null,
+	marke: Zug['marke'],
+	hinein: number | null,
+	ungueltig: boolean,
+	feder: string | null,
+) => void;
+
 interface ZugZeile {
 	nr: number;
 	name: string;
@@ -314,6 +244,61 @@ const zielAb = (
  * ordnet, gezogen wird am Griff, mit der Maus auch von überall in der Zeile. Was im Blatt gewählt ist, ist hier markiert
  * und aufgeklappt. Jede Ablage ist ein Befehl und ein Schritt im Verlauf.
  */
+/** Die Einfügelinie auf Höhe `y`, links bündig mit `zeile`. */
+const linieAn = (y: number | null, zeile: Element, f: DOMRect) =>
+	y === null ? null : { oben: y - f.top, links: zeile.getBoundingClientRect().left - f.left };
+
+const GESTALTUNG_ZEILEN = new Set<string>(['vorne', 'hinten', 'anker', 'flaeche', 'gruppe']);
+
+/** Die `data-*` einer Zeile in den Ebenen. */
+const zeilenDaten = (k: GliederungKnoten, seite: number, zugeklappt: boolean) => ({
+	...(k.zeile === 'baustein' ? {} : { 'data-ebene-seite': seite }),
+	...(k.lage ? { 'data-platz': k.lage.platz } : {}),
+	...(k.aus ? { 'data-aus': true } : {}),
+	...(k.gesperrt ? { 'data-gesperrt': true } : {}),
+	...(zugeklappt ? { 'data-zu': true } : {}),
+	...(k.aufgabe ? { 'data-gliederung-aufgabe': true } : {}),
+	...(k.fest ? { 'data-gliederung-fest': true } : { 'data-gliederung-zeile': true }),
+	...(k.ziehbar ? { 'data-ziehbar': true } : {}),
+});
+
+/** Ziel auf einer Zeile in „vorne“/„hinten“, auf dem Hauptstapel oder auf Rahmen und Fläche einer Seite. */
+const zielInSeite = (
+	zeile: HTMLElement,
+	y: number,
+	seite: number,
+	zahl: (seite: number, ebene: EbenenName) => number,
+): { ziel: EbenenZiel; linie: number } | null => {
+	const b = zeile.getBoundingClientRect();
+	const oben = y < b.top + b.height / 2;
+	const art = zeile.dataset.zeilenArt;
+	if (art === 'vorne' || art === 'hinten') {
+		const platz = Number(zeile.dataset.platz);
+		return { ziel: { seite, ebene: art, platz: oben ? platz : platz + 1 }, linie: oben ? b.top : b.bottom };
+	}
+	if (art === 'hauptstapel') {
+		const block = zeile.closest<HTMLElement>('[data-knoten]')?.getBoundingClientRect() ?? b;
+		return oben
+			? { ziel: { seite, ebene: 'vorne', platz: zahl(seite, 'vorne') }, linie: b.top }
+			: { ziel: { seite, ebene: 'hinten', platz: 0 }, linie: block.bottom };
+	}
+	if (art === 'seitenrahmen' || art === 'seitenflaeche') {
+		const erste = zeile.closest('[data-seite-knoten]')?.querySelector('[data-zeilen-art^="seiten"]') ?? zeile;
+		return {
+			ziel: { seite, ebene: 'hinten', platz: zahl(seite, 'hinten') },
+			linie: erste.getBoundingClientRect().top,
+		};
+	}
+	return null;
+};
+
+/** Ohne sich selbst gezählt: Wer weiter hinten in derselben Ebene landet, rückt um einen Platz auf. `null`: keine Wirkung. */
+const ohneSichSelbst = (ziel: EbenenZiel, von: EbenenZiel & { amAnker: boolean }, kopie: boolean) => {
+	const gleich = !kopie && !von.amAnker && ziel.seite === von.seite && ziel.ebene === von.ebene;
+	const neu = gleich && ziel.platz > von.platz ? { ...ziel, platz: ziel.platz - 1 } : ziel;
+	return gleich && neu.platz === von.platz ? null : neu;
+};
+
 export const Ebenen = ({
 	angeheftet,
 	auswahl,
@@ -441,8 +426,6 @@ export const Ebenen = ({
 		const { modell: m } = neu.current;
 		const zahl = (seite: number, ebene: EbenenName) =>
 			m.find((s) => s.nr === seite)?.kinder.filter((k) => k.zeile === ebene).length ?? 0;
-		const b = zeile.getBoundingClientRect();
-		const oben = y < b.top + b.height / 2;
 		const seite = Number(zeile.dataset.ebeneSeite);
 		let ziel: EbenenZiel;
 		let linie: number | null;
@@ -465,43 +448,22 @@ export const Ebenen = ({
 			ziel = { seite: nr, ebene: von.ebene, platz: 0 };
 			linie = null;
 			hinein = nr;
-		} else if (art === 'vorne' || art === 'hinten') {
-			const platz = Number(zeile.dataset.platz);
-			ziel = { seite, ebene: art, platz: oben ? platz : platz + 1 };
-			linie = oben ? b.top : b.bottom;
-		} else if (art === 'hauptstapel') {
-			const block = zeile.closest<HTMLElement>('[data-knoten]')?.getBoundingClientRect() ?? b;
-			ziel = oben ? { seite, ebene: 'vorne', platz: zahl(seite, 'vorne') } : { seite, ebene: 'hinten', platz: 0 };
-			linie = oben ? b.top : block.bottom;
-		} else if (art === 'seitenrahmen' || art === 'seitenflaeche') {
-			const erste = zeile.closest('[data-seite-knoten]')?.querySelector('[data-zeilen-art^="seiten"]') ?? zeile;
-			ziel = { seite, ebene: 'hinten', platz: zahl(seite, 'hinten') };
-			linie = erste.getBoundingClientRect().top;
 		} else {
-			return nichts;
+			const inSeite = zielInSeite(zeile, y, seite, zahl);
+			if (!inSeite) {
+				return nichts;
+			}
+			({ linie, ziel } = inSeite);
 		}
-		// Ohne sich selbst gezählt: Wer weiter hinten in derselben Ebene landet, rückt um einen Platz auf.
-		const gleich = !l.kopie && !von.amAnker && ziel.seite === von.seite && ziel.ebene === von.ebene;
-		if (gleich && ziel.platz > von.platz) {
-			ziel = { ...ziel, platz: ziel.platz - 1 };
-		}
-		if (gleich && ziel.platz === von.platz) {
-			return nichts;
-		}
-		return { ziel, linie, hinein };
+		const gerueckt = ohneSichSelbst(ziel, von, l.kopie);
+		return gerueckt ? { ziel: gerueckt, linie, hinein } : nichts;
 	};
 
 	/** Liest die Stelle unter dem Zeiger: Linie, gefärbte Zeile oder ungültig. */
 	const waehleZiel = (l: Lauf, x: number, y: number) => {
 		const rolle = liste.current;
 		const flaeche = inhalt.current;
-		const setze = (
-			ablage: Ablage | null,
-			marke: Zug['marke'],
-			hinein: number | null,
-			ungueltig: boolean,
-			feder: string | null,
-		) => {
+		const setze: Setze = (ablage, marke, hinein, ungueltig, feder) => {
 			l.ablage = ablage;
 			federe(l, feder);
 			document.documentElement.style.cursor = ungueltig ? 'not-allowed' : 'grabbing';
@@ -535,17 +497,22 @@ export const Ebenen = ({
 			const t = gestaltungZiel(l, l.gestaltung, zeile, y);
 			l.ziel = t?.ziel ?? null;
 			l.anker = t?.anker ?? null;
-			setze(
-				null,
-				t?.linie === undefined || t.linie === null
-					? null
-					: { oben: t.linie - f.top, links: zeile.getBoundingClientRect().left - f.left },
-				t?.hinein ?? null,
-				t === null,
-				null,
-			);
+			setze(null, linieAn(t?.linie ?? null, zeile, f), t?.hinein ?? null, t === null, null);
 			return;
 		}
+		waehleImBaum(l, z, zeile, start, y, flaeche, setze);
+	};
+
+	/** Bausteine und Seiten: Ablage aus `zielAb`. */
+	const waehleImBaum = (
+		l: Lauf,
+		z: Zerlegung,
+		zeile: HTMLElement,
+		start: HTMLElement,
+		y: number,
+		flaeche: HTMLElement,
+		setze: Setze,
+	) => {
 		// Eine eingeklappte Zeile geht nach kurzer Zeit auf, damit man hineinziehen kann.
 		const feder = !l.seite && zeile.dataset.zu !== undefined ? (zeile.dataset.schluessel ?? null) : null;
 		const treffer = zielAb(l, start, y);
@@ -566,11 +533,13 @@ export const Ebenen = ({
 		} else if ('in' in ablage) {
 			setze(ablage, null, ablage.in, false, feder);
 		} else {
-			const f = flaeche.getBoundingClientRect();
-			const eigene = huelle.querySelector(':scope > [data-zeile-nr]')?.getBoundingClientRect() ?? b;
 			setze(
 				ablage,
-				{ oben: (ablage.wo === 'vor' ? b.top : b.bottom) - f.top, links: eigene.left - f.left },
+				linieAn(
+					ablage.wo === 'vor' ? b.top : b.bottom,
+					huelle.querySelector(':scope > [data-zeile-nr]') ?? huelle,
+					flaeche.getBoundingClientRect(),
+				),
 				null,
 				false,
 				null,
@@ -647,12 +616,11 @@ export const Ebenen = ({
 		const amAnker = zeile.zeile === 'anker';
 		const seiteDesAnkers = amAnker ? seiteUm(z, zeile.nr) : null;
 		// 106: Eine Kindzeile mit ⚓ liegt in keiner Ebene; gelöst kommt sie nach vorne.
-		const gestaltung =
-			ebene && zeile.lage
-				? { ...zeile.lage, ebene, name: zeile.name, amAnker: false }
-				: amAnker && seiteDesAnkers !== null
-					? { seite: seiteDesAnkers, platz: -1, ebene: 'vorne' as const, name: zeile.name, amAnker: true }
-					: null;
+		const anAnker =
+			amAnker && seiteDesAnkers !== null
+				? { seite: seiteDesAnkers, platz: -1, ebene: 'vorne' as const, name: zeile.name, amAnker: true }
+				: null;
+		const gestaltung = ebene && zeile.lage ? { ...zeile.lage, ebene, name: zeile.name, amAnker: false } : anAnker;
 		const ziele =
 			seite || gestaltung
 				? {
@@ -703,12 +671,7 @@ export const Ebenen = ({
 		}
 	};
 
-	const druecke = (
-		e: ReactPointerEvent,
-		seite: boolean,
-		zeile: ZugZeile,
-		griff: boolean,
-	) => {
+	const druecke = (e: ReactPointerEvent, seite: boolean, zeile: ZugZeile, griff: boolean) => {
 		const ziel = e.target as Element;
 		const maus = e.pointerType === 'mouse';
 		// Nur die eigene Zeile: Das Ereignis steigt sonst durch alle Zeilen darüber.
@@ -838,7 +801,12 @@ export const Ebenen = ({
 	/** Auge, Schloss und was spätere Tickets eintragen (`EBENEN_ZEICHEN`), rechts in der Zeile. */
 	const zeichenVon = (k: GliederungKnoten, aktiv: boolean) => {
 		const element =
-			doc && (k.zeile === 'vorne' || k.zeile === 'hinten' || k.zeile === 'anker' || k.zeile === 'flaeche' || k.zeile === 'gruppe')
+			doc &&
+			(k.zeile === 'vorne' ||
+				k.zeile === 'hinten' ||
+				k.zeile === 'anker' ||
+				k.zeile === 'flaeche' ||
+				k.zeile === 'gruppe')
 				? elementZu(doc, k.nr)
 				: null;
 		if (!element) {
@@ -847,6 +815,11 @@ export const Ebenen = ({
 		const zeichen = EBENEN_ZEICHEN.filter((z) => z.fuer(element)).map((z) => ({ z, an: z.gesetzt(element) }));
 		const kontext = { nr: k.nr, element, struktur, zeigeAn, zeigeSeitengestaltung };
 		const schalter = zeichen.filter(({ z }) => z.schalter);
+		const mehrKnopf = (
+			<button type="button" className="flex size-11 items-center justify-center rounded-sm text-leise">
+				<Symbol name="mehr" className="size-4 flex-none" />
+			</button>
+		);
 		return (
 			<span className="flex flex-none items-center pr-0.5" data-nicht-ziehen>
 				{zeichen
@@ -876,14 +849,7 @@ export const Ebenen = ({
 						<Menue
 							name={`${k.name}: mehr`}
 							disabled={!aktuell}
-							ausloeser={
-								<button
-									type="button"
-									className="flex size-11 items-center justify-center rounded-sm text-leise"
-								>
-									<Symbol name="mehr" className="size-4 flex-none" />
-								</button>
-							}
+							ausloeser={mehrKnopf}
 							eintraege={schalter.map(({ an, z }) => ({
 								titel: z.titel(an),
 								symbol: z.symbol(!an),
@@ -902,8 +868,7 @@ export const Ebenen = ({
 		const gezogen = zug?.nr === k.nr ? { opacity: 0.35 } : undefined;
 		const tooltip = k.titel === k.name ? k.titel : `${k.name}: ${k.titel}`;
 		const symbol = k.zeile === 'baustein' ? undefined : SYMBOL_DER_ART[k.kennung];
-		const istGestaltungZeile =
-			k.zeile === 'vorne' || k.zeile === 'hinten' || k.zeile === 'anker' || k.zeile === 'flaeche' || k.zeile === 'gruppe';
+		const istGestaltungZeile = GESTALTUNG_ZEILEN.has(k.zeile);
 		const aktiv = aktiveZeile === k.nr || mehrfach.has(k.nr);
 		const hauptstapel = k.zeile === 'hauptstapel';
 		// Der Hauptstapel hat kein eigenes Element: Sein Klick wählt die Seite.
@@ -926,14 +891,7 @@ export const Ebenen = ({
 					data-nr={k.nr}
 					data-schluessel={k.schluessel}
 					data-zeilen-art={k.zeile}
-					{...(k.zeile === 'baustein' ? {} : { 'data-ebene-seite': seite })}
-					{...(k.lage ? { 'data-platz': k.lage.platz } : {})}
-					{...(k.aus ? { 'data-aus': true } : {})}
-					{...(k.gesperrt ? { 'data-gesperrt': true } : {})}
-					{...(zugeklappt ? { 'data-zu': true } : {})}
-					{...(k.aufgabe ? { 'data-gliederung-aufgabe': true } : {})}
-					{...(k.fest ? { 'data-gliederung-fest': true } : { 'data-gliederung-zeile': true })}
-					{...(k.ziehbar ? { 'data-ziehbar': true } : {})}
+					{...zeilenDaten(k, seite, zugeklappt)}
 					onPointerDown={(e) => druecke(e, false, k, k.ziehbar)}
 					onContextMenu={(e) => (hauptstapel ? e.preventDefault() : menue(e, k.nr, 'baustein'))}
 				>
@@ -987,7 +945,9 @@ export const Ebenen = ({
 								}}
 							>
 								{k.nummer && (
-									<span className="w-3.5 flex-none text-center font-medium text-leise">{k.nummer}</span>
+									<span className="w-3.5 flex-none text-center font-medium text-leise">
+										{k.nummer}
+									</span>
 								)}
 								{symbol && (
 									<Symbol

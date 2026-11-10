@@ -3,7 +3,14 @@ import { describe, it } from 'node:test';
 
 import { BILD_FREI, blattMit } from '../../web/e2e/gestaltung-daten';
 import { setzeBildBreite, tauscheBild } from './bildbefehle';
-import { BILD_FREI_BREITE, breiteBeimAblegen, istBildBaustein, istFreiesElement, legeBildFrei, legeFreiesElementFrei } from './bilder-frei';
+import {
+	BILD_FREI_BREITE,
+	breiteBeimAblegen,
+	istBildBaustein,
+	istFreiesElement,
+	legeBildFrei,
+	legeFreiesElementFrei,
+} from './bilder-frei';
 import { nameDerGestaltung } from './gestaltung-arten';
 import { attribut, klassenVon, zerlege } from './quelltext';
 import { bausteinVonKnoten } from './referenz';
@@ -118,7 +125,8 @@ describe('breiteBeimAblegen', () => {
 
 const FREI_FIGURE =
 	'<figure data-frei data-frei-titel="Tangram Waschbär"><svg viewBox="0 0 100 100" width="100%"><polygon points="0,0 100,0 50,50" fill="none" stroke="#000" stroke-width="2"/></svg><figcaption>Lege den Waschbären.</figcaption></figure>';
-const FREI_SVG = '<svg data-frei data-frei-titel="Lupe" width="100%" height="120"><circle cx="60" cy="60" r="40" fill="none" stroke="#000" stroke-width="2"/></svg>';
+const FREI_SVG =
+	'<svg data-frei data-frei-titel="Lupe" width="100%" height="120"><circle cx="60" cy="60" r="40" fill="none" stroke="#000" stroke-width="2"/></svg>';
 
 describe('legeFreiesElementFrei', () => {
 	const freiNr = (quelle: string) => nrVon(quelle, (k) => attribut(k, 'data-frei') !== undefined);

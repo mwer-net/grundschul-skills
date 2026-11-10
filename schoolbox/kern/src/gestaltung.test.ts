@@ -64,7 +64,10 @@ describe('Lage im style', () => {
 	});
 
 	it('hält die Reihenfolge --x --y --b --h --drehen --spiegeln und lässt Fremdes stehen', () => {
-		assert.equal(stilMitLage('--y:5px;color:red', { x: 3.6, b: 100.2, drehen: 12.345 }), '--x:4px;--y:5px;--b:100px;--drehen:12.3deg;color:red');
+		assert.equal(
+			stilMitLage('--y:5px;color:red', { x: 3.6, b: 100.2, drehen: 12.345 }),
+			'--x:4px;--y:5px;--b:100px;--drehen:12.3deg;color:red',
+		);
 		assert.equal(stilMitLage('--x:1px;--h:9px', { b: 4, spiegeln: -1 }), '--x:1px;--b:4px;--h:9px;--spiegeln:-1');
 	});
 
@@ -79,7 +82,12 @@ describe('Lage im style', () => {
 		const nachher = setzeLage(vorher, nr, { x: 3.6, b: 100.2, drehen: 12.345, y: null });
 		assert.equal(
 			nachher,
-			blatt(...ebene('vorne', '<img class="a" data-lage="frei" style="--x:4px;--b:100px;--drehen:12.3deg;color:red">')),
+			blatt(
+				...ebene(
+					'vorne',
+					'<img class="a" data-lage="frei" style="--x:4px;--b:100px;--drehen:12.3deg;color:red">',
+				),
+			),
 		);
 		assert.deepEqual(leseLage(nachher, nr), { x: 4, b: 100, drehen: 12.3 });
 		assert.equal(setzeLage(vorher, nr, {}), vorher);
@@ -108,8 +116,14 @@ describe('legeGestaltungAb', () => {
 
 	it('hinten kommt vor vorne; die Streuung liegt von sich aus hinten', () => {
 		const vorher = blatt(...ebene('vorne', A));
-		const { nr, quelle } = legeGestaltungAb(vorher, { seite: nrMit(vorher, 'seite'), html: '<svg class="streuung"></svg>' });
-		assert.equal(quelle, blatt(...ebene('hinten', '<svg class="streuung" data-lage="frei"></svg>'), ...ebene('vorne', A)));
+		const { nr, quelle } = legeGestaltungAb(vorher, {
+			seite: nrMit(vorher, 'seite'),
+			html: '<svg class="streuung"></svg>',
+		});
+		assert.equal(
+			quelle,
+			blatt(...ebene('hinten', '<svg class="streuung" data-lage="frei"></svg>'), ...ebene('vorne', A)),
+		);
 		assert.equal(klasseAn(quelle, nr), 'streuung');
 	});
 
@@ -204,7 +218,7 @@ describe('wechsleEbene und verschiebeAufSeite', () => {
 	});
 
 	it('auf eine andere Seite, in dieselbe Ebene, mit neuer Lage', () => {
-		const zwei = (eins: string[], zwei: string[]) =>
+		const zwei = (eins: string[], andere: string[]) =>
 			[
 				'<body>',
 				'<section class="seite">',
@@ -213,13 +227,16 @@ describe('wechsleEbene und verschiebeAufSeite', () => {
 				'</section>',
 				'<section class="seite">',
 				'  <div class="aufgabe"><span class="nr">2</span></div>',
-				...zwei,
+				...andere,
 				'</section>',
 				'</body>',
 				'',
 			].join('\n');
 		const vorher = zwei(ebene('vorne', A), []);
-		const { nr, quelle } = verschiebeAufSeite(vorher, nrMit(vorher, 'a'), nrMit(vorher, 'seite', 1), { x: 50, y: 60 });
+		const { nr, quelle } = verschiebeAufSeite(vorher, nrMit(vorher, 'a'), nrMit(vorher, 'seite', 1), {
+			x: 50,
+			y: 60,
+		});
 		assert.equal(quelle, zwei([], ebene('vorne', '<img class="a" data-lage="frei" style="--x:50px;--y:60px">')));
 		assert.equal(klasseAn(quelle, nr), 'a');
 	});
@@ -228,7 +245,8 @@ describe('wechsleEbene und verschiebeAufSeite', () => {
 describe('Schalter und Name', () => {
 	const vorher = blatt(...ebene('vorne', '<img class="a" data-lage="frei" style="--y:5px">'));
 	const nr = nrMit(vorher, 'a');
-	const mit = (attribute: string) => blatt(...ebene('vorne', `<img class="a" data-lage="frei" style="--y:5px"${attribute}>`));
+	const mit = (attribute: string) =>
+		blatt(...ebene('vorne', `<img class="a" data-lage="frei" style="--y:5px"${attribute}>`));
 
 	it('setzeAus und setzeGesperrt schreiben Attribute ohne Wert und nehmen sie wieder weg', () => {
 		const aus = setzeAus(vorher, nr, true);
@@ -268,7 +286,10 @@ describe('Duplizieren mit neuen Ids (3.11)', () => {
 
 	it('⌘D und ⌫ im Editor: dupliziereBaustein und loescheBaustein leiten weiter', () => {
 		const vorher = blatt(...ebene('vorne', SVG));
-		assert.deepEqual(dupliziereBaustein(vorher, nrMit(vorher, 'form'), N), dupliziereGestaltung(vorher, nrMit(vorher, 'form')));
+		assert.deepEqual(
+			dupliziereBaustein(vorher, nrMit(vorher, 'form'), N),
+			dupliziereGestaltung(vorher, nrMit(vorher, 'form')),
+		);
 		const weg = loescheBaustein(vorher, nrMit(vorher, 'form'), N);
 		assert.equal(weg.quelle, blatt());
 		assert.equal(klasseAn(weg.quelle, weg.nr), 'seite');
@@ -302,7 +323,10 @@ describe('Der Stapel übergeht die Ebenen', () => {
 		assert.equal(quelle, blatt('  <div class="aufgabe"><span class="nr">2</span></div>', ...ebene('vorne', A)));
 		assert.equal(klasseAn(quelle, nr), 'aufgabe');
 		// Ist Gestaltung gewählt, gilt dasselbe.
-		assert.equal(fuegeBausteinEin(vorher, { id: 'aufgabe', ort: 'seite', html: neu }, nrMit(vorher, 'a'), N).quelle, quelle);
+		assert.equal(
+			fuegeBausteinEin(vorher, { id: 'aufgabe', ort: 'seite', html: neu }, nrMit(vorher, 'a'), N).quelle,
+			quelle,
+		);
 	});
 
 	it('verschiebeBaustein legt nie in oder hinter eine Ebene', () => {

@@ -1,5 +1,5 @@
 import { formVon, spitzenStil, strichAus, werteVon } from '@schoolbox/kern/src/formen';
-import { streckePfad, strichImStil } from '@schoolbox/kern/src/formen-pfad'; // 116
+import { streckePfad } from '@schoolbox/kern/src/formen-pfad'; // 116
 import { leseStreuAngaben, parameterVon, streuungInnen } from '@schoolbox/kern/src/streuen'; // 109
 import { liesPfad, schreibePfad } from '@schoolbox/kern/src/vektor'; // 116
 
@@ -13,13 +13,19 @@ export type AnzeigeFolge = (element: Element, b: number, h: number) => void;
 const NS = 'http://www.w3.org/2000/svg';
 
 /** Das zeichnende `svg`: die Form selbst oder (107) das `svg` in `.form-text`. */
-export const svgDerForm = (element: Element) =>
-	element.matches('svg.form') ? element : element.matches('.form-text') ? element.querySelector(':scope > svg') : null;
+export const svgDerForm = (element: Element) => {
+	if (element.matches('svg.form')) {
+		return element;
+	}
+	return element.matches('.form-text') ? element.querySelector(':scope > svg') : null;
+};
 
 /** Der Pfad der Form (ohne `path.spitzen` der Linie, 107). */
 export const pfadDerForm = (element: Element) => {
 	const svg = svgDerForm(element);
-	return svg ? ([...svg.children].find((c) => c.localName === 'path' && !c.classList.contains('spitzen')) ?? null) : null;
+	return svg
+		? ([...svg.children].find((c) => c.localName === 'path' && !c.classList.contains('spitzen')) ?? null)
+		: null;
 };
 
 /** Zeichnet eine Form im `iframe` in der Größe `b` × `h` (px des Materials), nur Darstellung, kein Schritt. */
@@ -78,7 +84,10 @@ export const zeichneStreuungAnzeige = (element: Element, b: number, h: number, n
 	const schluessel = JSON.stringify(parameter);
 	const viewBox = `0 0 ${breite} ${hoehe}`;
 	// Ohne eigenen Stand gilt: Passt die Größe schon, ist nichts zu tun (so ruft `zeigeNachGroesse` auch beim Abbrechen).
-	if (!neu && (GEZEICHNET.get(element) ?? (element.getAttribute('viewBox') === viewBox ? schluessel : null)) === schluessel) {
+	if (
+		!neu &&
+		(GEZEICHNET.get(element) ?? (element.getAttribute('viewBox') === viewBox ? schluessel : null)) === schluessel
+	) {
 		return;
 	}
 	element.setAttribute('viewBox', viewBox);
@@ -99,7 +108,9 @@ export const zeichnePfadAnzeige: AnzeigeFolge = (element, b, h) => {
 	const d = pfad.getAttribute('d') ?? '';
 	let start = PFAD_START.get(element);
 	if (!start || start.geschrieben !== d) {
-		const [, , vb = Number.NaN, vh = Number.NaN] = (element.getAttribute('viewBox') ?? '').split(/[\s,]+/).map(Number);
+		const [, , vb = Number.NaN, vh = Number.NaN] = (element.getAttribute('viewBox') ?? '')
+			.split(/[\s,]+/)
+			.map(Number);
 		if (!Number.isFinite(vb) || !Number.isFinite(vh)) {
 			return;
 		}
@@ -114,7 +125,7 @@ export const zeichnePfadAnzeige: AnzeigeFolge = (element, b, h) => {
 	const neu =
 		breite === start.b && hoehe === start.h
 			? start.d
-			: schreibePfad(streckePfad(zuege, start, { b: breite, h: hoehe }, strichImStil(pfad.getAttribute('style')) / 2));
+			: schreibePfad(streckePfad(zuege, start, { b: breite, h: hoehe }));
 	pfad.setAttribute('d', neu);
 	element.setAttribute('viewBox', `0 0 ${breite} ${hoehe}`);
 	PFAD_START.set(element, { ...start, geschrieben: neu });

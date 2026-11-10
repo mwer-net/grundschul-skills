@@ -21,16 +21,6 @@
 import { zahl } from './formen-geometrie';
 import type { LageTeil } from './gestaltung';
 import { legeGestaltungAb, neueId, setzeStilWerte } from './gestaltung';
-import type { SchmuckStand, Schrift, SchriftKontur } from './schmuck';
-import {
-	groesseIm,
-	istFarbe,
-	leseSchmuck,
-	leseSchriftKontur,
-	SCHRIFTEN,
-	setzeSchriftKontur,
-	textImBogen,
-} from './schmuck';
 import type { Aenderung, Knoten } from './quelltext';
 import {
 	attribut,
@@ -44,6 +34,8 @@ import {
 	wendeAn,
 	zerlege,
 } from './quelltext';
+import type { Schrift, SchriftKontur } from './schmuck';
+import { groesseIm, istFarbe, leseSchmuck, leseSchriftKontur, SCHRIFTEN, textImBogen } from './schmuck';
 import type { StrukturErgebnis } from './struktur';
 
 export const KRUEMMUNG_MIN = -100;
@@ -133,7 +125,8 @@ export const bogenHtml = ({
 	const breite = b ?? bogenBreite(text, groesse);
 	const hoehe = h ?? bogenHoehe(groesse);
 	const k = krummungIm(kruemmung);
-	const stil = textStil(groesse, schrift, farbe && istFarbe(farbe) ? farbe.trim() : STANDARD_FARBE) + konturWerte(kontur);
+	const stil =
+		textStil(groesse, schrift, farbe && istFarbe(farbe) ? farbe.trim() : STANDARD_FARBE) + konturWerte(kontur);
 	return (
 		`<svg class="schmuck" data-lage="frei" data-schmuck="bogen" data-bogen="${k}" viewBox="0 0 ${breite} ${hoehe}" ` +
 		`style="--b:${breite}px;--h:${hoehe}px">${bogenInnen(id, bogenPfad(k, breite, hoehe, groesse), stil, text)}</svg>`
@@ -157,7 +150,10 @@ export const legeBogen = (quelle: string, { lage, seite, ...neu }: BogenAblegen)
 // ── Lesen ───────────────────────────────────────────────────────────────────
 
 const istBogen = (k: Knoten | undefined): k is Knoten =>
-	k !== undefined && k.tag === 'svg' && klassenVon(k).includes('schmuck') && attribut(k, 'data-schmuck')?.wert === 'bogen';
+	k !== undefined &&
+	k.tag === 'svg' &&
+	klassenVon(k).includes('schmuck') &&
+	attribut(k, 'data-schmuck')?.wert === 'bogen';
 
 const stilWert = (stil: string | null, name: string) => {
 	for (const teil of (stil ?? '').split(';')) {
@@ -199,7 +195,10 @@ const teileVon = (quelle: string, nr: number): { z: ReturnType<typeof zerlege>; 
 	}
 	const text = textImBogen(svg);
 	const textPfad = text?.kinder.find((c) => c.tag === 'textpath') ?? null;
-	const box = (attribut(svg, 'viewbox')?.wert ?? '').trim().split(/[\s,]+/).map(Number);
+	const box = (attribut(svg, 'viewbox')?.wert ?? '')
+		.trim()
+		.split(/[\s,]+/)
+		.map(Number);
 	const stil = attribut(svg, 'style')?.wert ?? null;
 	const breite = box[2] || zahlAus(stilWert(stil, '--b')) || 600;
 	const hoehe = box[3] || zahlAus(stilWert(stil, '--h')) || 160;
@@ -231,7 +230,10 @@ export const leseBogen = (quelle: string, nr: number): BogenStand | null => {
 	return {
 		kruemmung: krummungIm(zahlAus(attribut(t.svg, 'data-bogen')?.wert ?? null) ?? 0),
 		text: t.textPfad ? entschluessele(innenVon(z, t.textPfad).replace(/<[^>]*>/g, '')) : '',
-		gr: zahlAus(/(\d+(?:\.\d+)?)px/.exec(font)?.[1] ?? null) ?? zahlAus(stilWert(stil, 'font-size')) ?? BOGEN_STANDARD_GROESSE,
+		gr:
+			zahlAus(/(\d+(?:\.\d+)?)px/.exec(font)?.[1] ?? null) ??
+			zahlAus(stilWert(stil, 'font-size')) ??
+			BOGEN_STANDARD_GROESSE,
 		schrift: /andika/i.test(font) || /andika/i.test(stilWert(stil, 'font-family') ?? '') ? 'Andika' : 'Fredoka',
 		farbe: farbe && farbe !== STANDARD_FARBE ? farbe : null,
 		kontur: leseSchriftKontur(quelle, nr),
@@ -255,18 +257,22 @@ export interface BogenTeil {
  * Krümmung, Text, Größe, Schrift und Farbe. Krümmung und Größe berechnen den Pfad neu, der Text nicht (der Pfad hängt
  * nicht von ihm ab). Leerer Text bleibt, wie er war: Einen Bogen ohne Text gibt es nicht.
  */
-export const setzeBogen = (quelle: string, nr: number, teil: BogenTeil) => {
-	const { t, z } = teileVon(quelle, nr);
-	const stand = leseBogen(quelle, nr);
-	if (!stand || !t.text || !t.textPfad) {
-		throw new Error(`Der Titel im Bogen ${nr} ist unvollständig.`);
-	}
+const pruefeBogenTeil = (teil: BogenTeil) => {
 	if (teil.schrift !== undefined && !SCHRIFTEN.includes(teil.schrift)) {
 		throw new Error(`Die Schrift „${String(teil.schrift)}“ ist nicht eingebettet.`);
 	}
 	if (teil.farbe && !istFarbe(teil.farbe)) {
 		throw new Error(`„${teil.farbe}“ ist keine Farbe des Blatts.`);
 	}
+};
+
+export const setzeBogen = (quelle: string, nr: number, teil: BogenTeil) => {
+	const { t, z } = teileVon(quelle, nr);
+	const stand = leseBogen(quelle, nr);
+	if (!stand || !t.text || !t.textPfad) {
+		throw new Error(`Der Titel im Bogen ${nr} ist unvollständig.`);
+	}
+	pruefeBogenTeil(teil);
 	const kruemmung = teil.kruemmung === undefined ? stand.kruemmung : krummungIm(teil.kruemmung);
 	const gr = teil.gr === undefined ? stand.gr : groesseIm(teil.gr);
 	const schrift = teil.schrift ?? stand.schrift;
@@ -299,7 +305,15 @@ export const setzeBogen = (quelle: string, nr: number, teil: BogenTeil) => {
 
 /** Variablen der Schmuckschrift in HTML, die im Bogen im `text` stehen. */
 const NUR_HTML = ['--gr', '--farbe', '--schrift', '--ausrichtung', '--kontur', '--kontur-farbe'];
-const OHNE_UEBERNAHME = new Set(['class', 'style', 'data-schmuck', 'data-kontur', 'data-bogen', 'viewbox', 'contenteditable']);
+const OHNE_UEBERNAHME = new Set([
+	'class',
+	'style',
+	'data-schmuck',
+	'data-kontur',
+	'data-bogen',
+	'viewbox',
+	'contenteditable',
+]);
 
 const stilOhne = (stil: string | null, namen: readonly string[]) =>
 	(stil ?? '')
@@ -323,10 +337,16 @@ export const hatFarbigeWoerter = (quelle: string, nr: number) => {
 /** Nur ein Titel (`div.schmuck`, `titel`) lässt sich in den Bogen setzen. */
 export const kannInBogen = (quelle: string, nr: number) => {
 	const k = zerlege(quelle).knoten[nr];
-	return k !== undefined && k.tag === 'div' && klassenVon(k).includes('schmuck') && attribut(k, 'data-schmuck')?.wert === 'titel';
+	return (
+		k !== undefined &&
+		k.tag === 'div' &&
+		klassenVon(k).includes('schmuck') &&
+		attribut(k, 'data-schmuck')?.wert === 'titel'
+	);
 };
 
-const ersetzeElement = (quelle: string, k: Knoten, neu: string) => wendeAn(quelle, [{ von: k.start, bis: k.ende, text: neu }]);
+const ersetzeElement = (quelle: string, k: Knoten, neu: string) =>
+	wendeAn(quelle, [{ von: k.start, bis: k.ende, text: neu }]);
 
 /**
  * Macht aus dem Titel einen Bogen. Lage, Farbe, Schrift, Größe und Kontur bleiben, ebenso alle anderen Attribute
@@ -340,7 +360,13 @@ export const inBogen = (quelle: string, nr: number, kruemmung: number = KRUEMMUN
 	const k = z.knoten[nr] as Knoten;
 	const stand = leseSchmuck(quelle, nr);
 	const stil = attribut(k, 'style')?.wert ?? null;
-	const text = entschluessele(innenVon(z, k).replace(/<br\s*\/?>/gi, ' ').replace(/<[^>]*>/g, '')).replace(/\s+/g, ' ').trim();
+	const text = entschluessele(
+		innenVon(z, k)
+			.replace(/<br\s*\/?>/gi, ' ')
+			.replace(/<[^>]*>/g, ''),
+	)
+		.replace(/\s+/g, ' ')
+		.trim();
 	const gr = groesseIm(stand?.gr ?? 56);
 	const wort = text === '' ? BOGEN_STANDARD_TEXT : text;
 	const b = Math.round(zahlAus(stilWert(stil, '--b')) ?? bogenBreite(wort, gr));
@@ -350,7 +376,12 @@ export const inBogen = (quelle: string, nr: number, kruemmung: number = KRUEMMUN
 	const id = neueId('bogen', quelle);
 	const farbe = stand?.farbe && istFarbe(stand.farbe) ? stand.farbe : STANDARD_FARBE;
 	const kontur = leseSchriftKontur(quelle, nr);
-	const innen = bogenInnen(id, bogenPfad(k0, b, h, gr), textStil(gr, stand?.schrift ?? SCHRIFTEN[0], farbe) + konturWerte(kontur), wort);
+	const innen = bogenInnen(
+		id,
+		bogenPfad(k0, b, h, gr),
+		textStil(gr, stand?.schrift ?? SCHRIFTEN[0], farbe) + konturWerte(kontur),
+		wort,
+	);
 	const neu =
 		`<svg class="schmuck"${uebrigeAttribute(k)} data-schmuck="bogen" data-bogen="${k0}" viewBox="0 0 ${b} ${h}" ` +
 		`style="${schuetzeAttribut(`${rest}${rest ? ';' : ''}--b:${b}px;--h:${h}px`)}">${innen}</svg>`;
@@ -407,42 +438,30 @@ export const ergaenzeBoegen = (quelle: string) => {
 	return jetzt;
 };
 
-const ergaenzeEinen = (z: ReturnType<typeof zerlege>, svg: Knoten): string | null => {
-	const { quelle } = z;
-	const text = textImBogen(svg);
-	const textPfad = text?.kinder.find((c) => c.tag === 'textpath') ?? null;
-	if (!text || !textPfad) {
-		return null;
-	}
-	const stil = attribut(svg, 'style')?.wert ?? null;
-	const font = stilWert(attribut(text, 'style')?.wert ?? null, 'font') ?? '';
-	const gr = zahlAus(/(\d+(?:\.\d+)?)px/.exec(font)?.[1] ?? null) ?? zahlAus(stilWert(attribut(text, 'style')?.wert ?? null, 'font-size')) ?? BOGEN_STANDARD_GROESSE;
-	const box = (attribut(svg, 'viewbox')?.wert ?? '').trim().split(/[\s,]+/).map(Number);
-	const wort = entschluessele(innenVon(z, textPfad).replace(/<[^>]*>/g, ''));
-	if (!(box[2] && box[3])) {
-		const b = Math.round(zahlAus(stilWert(stil, '--b')) ?? bogenBreite(wort, gr));
-		const h = Math.round(zahlAus(stilWert(stil, '--h')) ?? bogenHoehe(gr));
-		return wendeAn(quelle, [
-			...setzeAttribut(z, svg, 'viewBox', `0 0 ${b} ${h}`),
-			...(zahlAus(stilWert(stil, '--b')) === null || zahlAus(stilWert(stil, '--h')) === null
-				? setzeAttribut(z, svg, 'style', stilMitGroesse(stil, b, h))
-				: []),
-		]);
-	}
-	const kruemmung = krummungIm(zahlAus(attribut(svg, 'data-bogen')?.wert ?? null) ?? 0);
-	const d = bogenPfad(kruemmung, box[2], box[3], gr);
-	const pfad = pfadFuer(z, svg, textPfad);
-	if (!pfad) {
-		const id = neueId('bogen', quelle);
-		const defs = svg.kinder.find((c) => c.tag === 'defs');
-		const einzeln = `<path id="${id}" d="${d}"/>`;
-		return wendeAn(quelle, [
-			...(defs
-				? [{ von: defs.schliesserStart, bis: defs.schliesserStart, text: einzeln }]
-				: [{ von: svg.oeffnerEnde, bis: svg.oeffnerEnde, text: `<defs>${einzeln}</defs>` }]),
-			...setzeAttribut(z, textPfad, 'href', `#${id}`),
-		]);
-	}
+const ergaenzeBox = (z: ReturnType<typeof zerlege>, svg: Knoten, stil: string | null, wort: string, gr: number) => {
+	const b = Math.round(zahlAus(stilWert(stil, '--b')) ?? bogenBreite(wort, gr));
+	const h = Math.round(zahlAus(stilWert(stil, '--h')) ?? bogenHoehe(gr));
+	return wendeAn(z.quelle, [
+		...setzeAttribut(z, svg, 'viewBox', `0 0 ${b} ${h}`),
+		...(zahlAus(stilWert(stil, '--b')) === null || zahlAus(stilWert(stil, '--h')) === null
+			? setzeAttribut(z, svg, 'style', stilMitGroesse(stil, b, h))
+			: []),
+	]);
+};
+
+const ergaenzePfad = (z: ReturnType<typeof zerlege>, svg: Knoten, textPfad: Knoten, d: string) => {
+	const id = neueId('bogen', z.quelle);
+	const defs = svg.kinder.find((c) => c.tag === 'defs');
+	const einzeln = `<path id="${id}" d="${d}"/>`;
+	return wendeAn(z.quelle, [
+		...(defs
+			? [{ von: defs.schliesserStart, bis: defs.schliesserStart, text: einzeln }]
+			: [{ von: svg.oeffnerEnde, bis: svg.oeffnerEnde, text: `<defs>${einzeln}</defs>` }]),
+		...setzeAttribut(z, textPfad, 'href', `#${id}`),
+	]);
+};
+
+const ergaenzeVerweis = (z: ReturnType<typeof zerlege>, pfad: Knoten, textPfad: Knoten, d: string) => {
 	const aenderungen: Aenderung[] = [];
 	if (!attribut(pfad, 'd')?.wert?.trim()) {
 		aenderungen.push(...setzeAttribut(z, pfad, 'd', d));
@@ -454,7 +473,41 @@ const ergaenzeEinen = (z: ReturnType<typeof zerlege>, svg: Knoten): string | nul
 	if (attribut(textPfad, 'href')?.wert !== `#${id}` && !attribut(textPfad, 'xlink:href')) {
 		aenderungen.push(...setzeAttribut(z, textPfad, 'href', `#${id}`));
 	}
-	return aenderungen.length > 0 ? wendeAn(quelle, aenderungen) : null;
+	return aenderungen.length > 0 ? wendeAn(z.quelle, aenderungen) : null;
+};
+
+const schriftgroesseIm = (text: Knoten) => {
+	const font = stilWert(attribut(text, 'style')?.wert ?? null, 'font') ?? '';
+	return (
+		zahlAus(/(\d+(?:\.\d+)?)px/.exec(font)?.[1] ?? null) ??
+		zahlAus(stilWert(attribut(text, 'style')?.wert ?? null, 'font-size')) ??
+		BOGEN_STANDARD_GROESSE
+	);
+};
+
+const ergaenzeEinen = (z: ReturnType<typeof zerlege>, svg: Knoten): string | null => {
+	const text = textImBogen(svg);
+	const textPfad = text?.kinder.find((c) => c.tag === 'textpath') ?? null;
+	if (!text || !textPfad) {
+		return null;
+	}
+	const stil = attribut(svg, 'style')?.wert ?? null;
+	const gr = schriftgroesseIm(text);
+	const box = (attribut(svg, 'viewbox')?.wert ?? '')
+		.trim()
+		.split(/[\s,]+/)
+		.map(Number);
+	const wort = entschluessele(innenVon(z, textPfad).replace(/<[^>]*>/g, ''));
+	if (!(box[2] && box[3])) {
+		return ergaenzeBox(z, svg, stil, wort, gr);
+	}
+	const kruemmung = krummungIm(zahlAus(attribut(svg, 'data-bogen')?.wert ?? null) ?? 0);
+	const d = bogenPfad(kruemmung, box[2], box[3], gr);
+	const pfad = pfadFuer(z, svg, textPfad);
+	if (!pfad) {
+		return ergaenzePfad(z, svg, textPfad, d);
+	}
+	return ergaenzeVerweis(z, pfad, textPfad, d);
 };
 
 const stilMitGroesse = (stil: string | null, b: number, h: number) => {

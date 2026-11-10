@@ -40,7 +40,10 @@ const nimmGestaltungAn = async (page: Page) => {
 	const u = await uhrzeit();
 	await kiFall('gestaltung');
 	await oeffne(page, u.id, u.dok);
-	await beauftrage(page, 'Setz Wilma rechts neben Aufgabe 1, häng ihr eine Sprechblase „Zähl genau!“ an und einen Stern.');
+	await beauftrage(
+		page,
+		'Setz Wilma rechts neben Aufgabe 1, häng ihr eine Sprechblase „Zähl genau!“ an und einen Stern.',
+	);
 	await expect(chat(page).locator('[data-ki-vorschlag]')).toBeVisible();
 	await chat(page).getByRole('button', { name: 'Vergleichen' }).click();
 	await expect(page.frameLocator('[data-vorschlag-rahmen]').locator('img.figur-frei')).toBeAttached();

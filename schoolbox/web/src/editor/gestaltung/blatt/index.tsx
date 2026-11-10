@@ -12,6 +12,7 @@ import { BlattRahmen } from './rahmen';
 import { BlattRezept } from './rezept';
 import type { BlattTeile } from './teile';
 import { quellSeiten, zeigeAmTeil } from './teile';
+import { nimmOffenenWunsch, OEFFNEN } from './zeige';
 
 /** Welche Seite der Abschnitt zeigt: die der Auswahl, ohne Auswahl die sichtbare (wie die Palette). */
 export interface BlattSeite {
@@ -19,10 +20,6 @@ export interface BlattSeite {
 	/** Die sichtbare Seite im Blatt, ab 1, wie `useSichtbareSeite` sie zählt. */
 	sichtbar: number;
 }
-
-const OEFFNEN = 'schoolbox-blatt-gestaltung';
-/** Kommt der Wunsch, bevor der Reiter „Blatt“ zu sehen ist, liest ihn der Abschnitt beim Erscheinen. */
-let offenerWunsch: number | null = null;
 
 /**
  * Index der Seite unter den Seiten der Quelle. Über den Index, nicht die Nummer: Nach einer Änderung auf einer früheren
@@ -36,18 +33,10 @@ const seitenIndex = (doc: Document | null, { auswahl, sichtbar }: BlattSeite) =>
 	const nrDer = (e: Element | null | undefined) => (e ? nrVon(e) : null);
 	const gewaehlt = auswahl === null ? null : nrDer(elementZu(doc, auswahl)?.closest('.seite'));
 	const nr = gewaehlt ?? nrDer(doc.querySelectorAll('.seite')[sichtbar - 1]);
-	return Math.max(0, seiten.findIndex((s) => nrVon(s) === nr));
-};
-
-/**
- * Aus den Ebenen: Seite `nr` wählen, Reiter „Blatt“ zeigen und den Abschnitt „Gestaltung“ aufklappen.
- * `zeigeEinstellung` ist die Sprungfunktion des Editors (wie aus der Palette).
- */
-export const zeigeBlattGestaltung = (nr: number, zeigeAn: (nr: number) => void, zeigeEinstellung: (ort: string) => void) => {
-	offenerWunsch = nr;
-	zeigeAn(nr);
-	zeigeEinstellung('gestaltung');
-	window.dispatchEvent(new CustomEvent(OEFFNEN));
+	return Math.max(
+		0,
+		seiten.findIndex((s) => nrVon(s) === nr),
+	);
 };
 
 interface Eigenschaften {
@@ -74,9 +63,9 @@ export const BlattGestaltung = ({ doc, quelle, seite, struktur }: Eigenschaften)
 
 	useEffect(() => {
 		const oeffne = () => {
-			if (offenerWunsch !== null) {
-				setWunsch(offenerWunsch);
-				offenerWunsch = null;
+			const gewuenscht = nimmOffenenWunsch();
+			if (gewuenscht !== null) {
+				setWunsch(gewuenscht);
 			}
 		};
 		oeffne();

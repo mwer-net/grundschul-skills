@@ -13,7 +13,8 @@ import { oeffneSchublade } from './schubladen-hilfe';
 
 const WACHSTUM = '_assets/bilder/wachstum.png';
 const BAUSTEIN = '<img src="bilder/wachstum.png" alt="Wachstum" style="width:240px">';
-const FREI = '<img class="bild-frei" data-lage="frei" src="bilder/wachstum.png" alt="Wachstum" style="--x:420px;--y:700px;--b:200px;--drehen:-4deg">';
+const FREI =
+	'<img class="bild-frei" data-lage="frei" src="bilder/wachstum.png" alt="Wachstum" style="--x:420px;--y:700px;--b:200px;--drehen:-4deg">';
 const PLATZHALTER = '<div class="platzhalter" style="--h:120px;width:220px">Bild: Blume</div>';
 
 const bilder = (page: Page) => page.locator('[data-schublade-bilder]');
@@ -39,7 +40,11 @@ const zurGruppe = async (page: Page, titel: string, schluessel: string) => {
 	await expect(kachel(page, schluessel)).toBeVisible();
 	// Die Maße der Vorschau braucht das Gut für die Breite.
 	await expect
-		.poll(() => kachel(page, schluessel).locator('img').evaluate((i: HTMLImageElement) => i.naturalWidth))
+		.poll(() =>
+			kachel(page, schluessel)
+				.locator('img')
+				.evaluate((i: HTMLImageElement) => i.naturalWidth),
+		)
 		.toBeGreaterThan(0);
 };
 
@@ -92,10 +97,19 @@ const freieStelle = async (page: Page) => {
 /** Lässt eine erzeugte PNG-Datei (`breite` × `hoehe`) auf `selektor` bzw. die freie Stelle fallen, wie aus dem Finder. */
 const ausDemFinder = async (
 	page: Page,
-	{ breite, cmd = false, hoehe, name, selektor }: { breite: number; hoehe: number; name: string; selektor?: string; cmd?: boolean },
+	{
+		breite,
+		cmd = false,
+		hoehe,
+		name,
+		selektor,
+	}: { breite: number; hoehe: number; name: string; selektor?: string; cmd?: boolean },
 ) => {
 	if (selektor) {
-		await material(page).locator(selektor).first().evaluate((e) => e.scrollIntoView({ block: 'center' }));
+		await material(page)
+			.locator(selektor)
+			.first()
+			.evaluate((e) => e.scrollIntoView({ block: 'center' }));
 	}
 	await material(page)
 		.locator('body')
@@ -120,10 +134,19 @@ const ausDemFinder = async (
 					throw new Error('kein Ziel');
 				}
 				const x = r.left + r.width / 2;
-				const y = a.selektor ? r.top + r.height / 2 : Math.min(r.bottom, doc.documentElement.clientHeight) - 150;
+				const y = a.selektor
+					? r.top + r.height / 2
+					: Math.min(r.bottom, doc.documentElement.clientHeight) - 150;
 				const daten = new DataTransfer();
 				daten.items.add(new File([blob], a.name, { type: 'image/png' }));
-				const optionen = { bubbles: true, cancelable: true, clientX: x, clientY: y, dataTransfer: daten, metaKey: a.cmd };
+				const optionen = {
+					bubbles: true,
+					cancelable: true,
+					clientX: x,
+					clientY: y,
+					dataTransfer: daten,
+					metaKey: a.cmd,
+				};
 				const unter = doc.elementFromPoint(x, y) ?? doc.body;
 				unter.dispatchEvent(new DragEvent('dragover', optionen));
 				unter.dispatchEvent(new DragEvent('drop', optionen));
@@ -161,7 +184,9 @@ test.describe('Bilder frei (103)', () => {
 		await expect.poll(() => quelle(page)).toBe(vorher);
 	});
 
-	test('Ziehen aus „Dieser Ordner“ legt frei ab, kleiner als 320 px bleibt die Breite der Datei', async ({ page }) => {
+	test('Ziehen aus „Dieser Ordner“ legt frei ab, kleiner als 320 px bleibt die Breite der Datei', async ({
+		page,
+	}) => {
 		await oeffneMit(page, blattMit());
 		await ausDemFinder(page, { breite: 150, hoehe: 100, name: 'kuerbis.png' });
 		await expect.poll(() => quelle(page)).toMatch(/class="bild-frei"[^>]*--b:150px/);
@@ -172,7 +197,11 @@ test.describe('Bilder frei (103)', () => {
 		await expect(k).toBeVisible();
 		const schluessel = (await k.getAttribute('data-sammlung-bild')) ?? '';
 		await expect
-			.poll(() => kachel(page, schluessel).locator('img').evaluate((i: HTMLImageElement) => i.naturalWidth))
+			.poll(() =>
+				kachel(page, schluessel)
+					.locator('img')
+					.evaluate((i: HTMLImageElement) => i.naturalWidth),
+			)
 			.toBe(150);
 		const loslassen = await ziehe(page, schluessel, await freieStelle(page));
 		await loslassen();
@@ -223,7 +252,9 @@ test.describe('Bilder frei (103)', () => {
 	test('Eine Datei aus dem Finder lädt hoch und liegt frei; mit ⌘ wird sie Baustein', async ({ page }) => {
 		await oeffneMit(page, blattMit());
 		await ausDemFinder(page, { breite: 900, hoehe: 600, name: 'kuerbis-ernte.png' });
-		await expect.poll(() => quelle(page)).toMatch(/<img class="bild-frei"[^>]*src="bilder\/[^"]+"[^>]*alt="Kuerbis ernte"/);
+		await expect
+			.poll(() => quelle(page))
+			.toMatch(/<img class="bild-frei"[^>]*src="bilder\/[^"]+"[^>]*alt="Kuerbis ernte"/);
 		expect(await quelle(page)).toMatch(/class="bild-frei"[^>]*--b:320px/);
 		await expect(page.locator('[data-auswahl="bildfrei"]')).toBeVisible();
 
@@ -243,7 +274,13 @@ test.describe('Bilder frei (103)', () => {
 				daten.items.add(new File(['hallo'], 'notiz.txt', { type: 'text/plain' }));
 				const s = body.ownerDocument.querySelector('.seite')?.getBoundingClientRect();
 				body.dispatchEvent(
-					new DragEvent('drop', { bubbles: true, cancelable: true, dataTransfer: daten, clientX: s?.left ?? 0, clientY: s?.top ?? 0 }),
+					new DragEvent('drop', {
+						bubbles: true,
+						cancelable: true,
+						dataTransfer: daten,
+						clientX: s?.left ?? 0,
+						clientY: s?.top ?? 0,
+					}),
 				);
 			});
 		await page.waitForTimeout(300);

@@ -6,8 +6,8 @@
 import { writeFile } from 'node:fs/promises';
 import path from 'node:path';
 
-import { wendeAufmachungAn } from '@schoolbox/kern/src/aufmachungen';
 import type { Page } from '@playwright/test';
+import { wendeAufmachungAn } from '@schoolbox/kern/src/aufmachungen';
 
 import { gespeichert, oeffne, quelle, uhrzeit } from './editorhilfe';
 import { blattMit } from './gestaltung-daten';

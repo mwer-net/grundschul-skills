@@ -44,7 +44,10 @@ describe('haengeAn und loeseAnker', () => {
 	it('Anhängen und Lösen ergeben dieselbe Lage in Seitenkoordinaten', () => {
 		const vorher = blattMit({ vorne: [FIGUR_FREI] });
 		const lage = { x: 610, y: 520 };
-		const dran = haengeAn(vorher, nrMit(vorher, WILMA), nrMit(vorher, 'aufgabe', 2), { lage, ursprung: URSPRUNG[2]! });
+		const dran = haengeAn(vorher, nrMit(vorher, WILMA), nrMit(vorher, 'aufgabe', 2), {
+			lage,
+			ursprung: URSPRUNG[2]!,
+		});
 		assert.ok(dran.nr !== null);
 		assert.equal(klasseAn(dran.quelle, dran.nr), WILMA);
 		assert.equal(ankerVon(dran.quelle, dran.nr), nrMit(dran.quelle, 'aufgabe', 2));
@@ -109,7 +112,10 @@ describe('ankerZiele', () => {
 				'  <div class="kopf">',
 				'  <div class="loesung-marke">Lösung</div>\n  <p>Ein Absatz.</p>\n  <x-uhr zeit="3:00"></x-uhr>\n  <div class="kopf">',
 			)
-			.replace('</section>', '</section>\n<section class="seite">\n  <div class="aufgabe"><span class="nr">4</span></div>\n</section>');
+			.replace(
+				'</section>',
+				'</section>\n<section class="seite">\n  <div class="aufgabe"><span class="nr">4</span></div>\n</section>',
+			);
 		const seite = nrMit(vorher, 'seite', 0);
 		const ziele = ankerZiele(vorher, seite).map((nr) => klasseAn(vorher, nr));
 		assert.deepEqual(ziele, ['namenszeile', 'kopf', 'aufgabe', 'aufgabe', 'aufgabe']);
@@ -141,10 +147,7 @@ describe('Bausteine mit Anker', () => {
 		const ohne = blattMit();
 		const mit = blattMit({ anker: [FIGUR_ANKER] });
 		assert.equal(nummeriere(mit, N), mit);
-		const loesungen = (q: string) =>
-			zerlege(q)
-				.knoten.filter(istAntwort)
-				.map(loesungVon);
+		const loesungen = (q: string) => zerlege(q).knoten.filter(istAntwort).map(loesungVon);
 		assert.deepEqual(loesungen(mit), loesungen(ohne));
 		assert.equal(hatLoesung(mit), hatLoesung(ohne));
 		assert.equal(fehlendeLoesungen(zerlege(mit)).length, fehlendeLoesungen(zerlege(ohne)).length);
@@ -168,7 +171,9 @@ describe('Bausteine mit Anker', () => {
 	});
 
 	it('Löschen nimmt den Anker mit; die Beschreibung nennt ihn', () => {
-		const vorher = blattMit({ anker: [FIGUR_ANKER, '<div class="form-text" data-lage="frei" data-anker data-name="Sprechblase"></div>'] });
+		const vorher = blattMit({
+			anker: [FIGUR_ANKER, '<div class="form-text" data-lage="frei" data-anker data-name="Sprechblase"></div>'],
+		});
 		const aufgabe = nrMit(vorher, 'aufgabe', 0);
 		assert.deepEqual(ankerNamen(vorher, aufgabe), ['Sprechblase', 'Wilma']);
 		assert.equal(mitAnkern(vorher, aufgabe), ', mit Sprechblase und Wilma');
@@ -195,7 +200,10 @@ describe('Bausteine mit Anker', () => {
 	it('auf einer Folie gilt dasselbe', () => {
 		const vorher = blattMit({ vorne: [FIGUR_FREI] }).replace('<body class="kl2', '<body class="folie kl2');
 		const lage = { x: 300, y: 200 };
-		const dran = haengeAn(vorher, nrMit(vorher, WILMA), nrMit(vorher, 'aufgabe', 1), { lage, ursprung: URSPRUNG[1]! });
+		const dran = haengeAn(vorher, nrMit(vorher, WILMA), nrMit(vorher, 'aufgabe', 1), {
+			lage,
+			ursprung: URSPRUNG[1]!,
+		});
 		assert.ok(dran.nr !== null);
 		assert.equal(nummeriere(dran.quelle, { jeSeite: true }), dran.quelle);
 		assert.equal(loeseAnker(dran.quelle, dran.nr, { lage }).quelle, vorher);

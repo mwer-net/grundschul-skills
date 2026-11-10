@@ -4,7 +4,7 @@ import { describe, it } from 'node:test';
 import { formVon, standardWerte } from './formen';
 import type { Punkt } from './formen-geometrie';
 import { zuegeAus } from './formen-geometrie';
-import { MASKEN_FORMEN, MASKEN_PUNKTE, maskeFuer, tastePfadAb } from './formen-masken';
+import { maskeFuer, MASKEN_FORMEN, MASKEN_PUNKTE, tastePfadAb } from './formen-masken';
 import { pruefeFreiesHtml } from './frei';
 
 /** Der Umriss fein abgetastet (je Segment 400 Punkte), um den Abstand eines Punkts zum Pfad zu messen. */
@@ -41,7 +41,8 @@ const feinerUmriss = (d: string): Punkt[] => {
 	return punkte;
 };
 
-const abstand = (p: Punkt, umriss: readonly Punkt[]) => Math.min(...umriss.map((q) => Math.hypot(p.x - q.x, p.y - q.y)));
+const abstand = (p: Punkt, umriss: readonly Punkt[]) =>
+	Math.min(...umriss.map((q) => Math.hypot(p.x - q.x, p.y - q.y)));
 
 describe('Masken aus Formen (111)', () => {
 	for (const form of MASKEN_FORMEN) {

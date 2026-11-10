@@ -13,10 +13,10 @@ const ZEIGER: Record<GriffName, string> = {
 	'unten-rechts': 'cursor-nwse-resize',
 	'oben-rechts': 'cursor-nesw-resize',
 	'unten-links': 'cursor-nesw-resize',
-	oben: 'cursor-ns-resize',
-	unten: 'cursor-ns-resize',
-	links: 'cursor-ew-resize',
-	rechts: 'cursor-ew-resize',
+	'oben': 'cursor-ns-resize',
+	'unten': 'cursor-ns-resize',
+	'links': 'cursor-ew-resize',
+	'rechts': 'cursor-ew-resize',
 };
 
 const NAME: Record<GriffName, string> = {
@@ -24,10 +24,10 @@ const NAME: Record<GriffName, string> = {
 	'oben-rechts': 'Ecke oben rechts',
 	'unten-rechts': 'Ecke unten rechts',
 	'unten-links': 'Ecke unten links',
-	oben: 'Kante oben',
-	unten: 'Kante unten',
-	links: 'Kante links',
-	rechts: 'Kante rechts',
+	'oben': 'Kante oben',
+	'unten': 'Kante unten',
+	'links': 'Kante links',
+	'rechts': 'Kante rechts',
 };
 
 /** Trefferfläche 8 px am Mac, 44 px unter `any-pointer: coarse` (Entscheidung 28); zu sehen ist immer das kleine Quadrat. */
@@ -89,87 +89,92 @@ export const Auswahlrahmen = ({
 	// 107: Bei der Linie stehen nur ihre zwei Endpunkte da, ohne Rahmen, Ecken, Kanten und Drehgriff.
 	const ohneRahmen = zusatz.some((z) => z.ersetztRahmen);
 	return (
-	<div
-		className={klassen('pointer-events-none absolute z-ueberlagerung border-[1.5px] border-brand-500', ohneRahmen && 'border-transparent')}
-		data-gestaltung-rahmen={gesperrt ? 'gesperrt' : ''}
-		style={{
-			left: links + (ursprung.x + kasten.x) * skala,
-			top: (ursprung.y + kasten.y) * skala,
-			width: kasten.b * skala,
-			height: kasten.h * skala,
-			transform: kasten.drehen ? `rotate(${kasten.drehen}deg)` : undefined,
-		}}
-	>
-		{gesperrt ? (
-			<span
-				className="absolute -top-2.5 -right-2.5 flex size-5 items-center justify-center rounded-full bg-brand-500 text-white shadow"
-				title="Gesperrt: im Blatt nicht zu ziehen"
-				data-gestaltung-schloss
-			>
-				<Schloss />
-			</span>
-		) : (
-			bedienbar && (
-			<>
-				{!ohneRahmen && !nurZusatz && (<>
+		<div
+			className={klassen(
+				'pointer-events-none absolute z-ueberlagerung border-[1.5px] border-brand-500',
+				ohneRahmen && 'border-transparent',
+			)}
+			data-gestaltung-rahmen={gesperrt ? 'gesperrt' : ''}
+			style={{
+				left: links + (ursprung.x + kasten.x) * skala,
+				top: (ursprung.y + kasten.y) * skala,
+				width: kasten.b * skala,
+				height: kasten.h * skala,
+				transform: kasten.drehen ? `rotate(${kasten.drehen}deg)` : undefined,
+			}}
+		>
+			{gesperrt ? (
 				<span
-					className="absolute left-1/2 w-px bg-brand-500"
-					style={{ top: -DREH_ABSTAND, height: DREH_ABSTAND }}
-				/>
-				<button
-					type="button"
-					aria-label="Drehen"
-					title="Drehen (⇧: in 15°-Schritten)"
-					className={klassen(GRIFF, 'left-1/2 cursor-grab', inGeste && 'cursor-grabbing')}
-					style={{ top: -DREH_ABSTAND }}
-					data-gestaltung-griff="drehen"
-					onPointerDown={(e) => starteGriff(e, element, 'drehen')}
+					className="absolute -top-2.5 -right-2.5 flex size-5 items-center justify-center rounded-full bg-brand-500 text-white shadow"
+					title="Gesperrt: im Blatt nicht zu ziehen"
+					data-gestaltung-schloss
 				>
-					<span className="block size-2.5 flex-none rounded-full border border-brand-500 bg-flaeche shadow" />
-				</button>
-				{griffe.map((griff) => {
-					const { x, y } = GRIFFE[griff];
-					return (
-						<button
-							key={griff}
-							type="button"
-							aria-label={`Größe ändern, ${NAME[griff]}`}
-							className={klassen(GRIFF, ZEIGER[griff])}
-							style={{ left: `${(x + 1) * 50}%`, top: `${(y + 1) * 50}%` }}
-							data-gestaltung-griff={griff}
-							onPointerDown={(e) => starteGriff(e, element, griff)}
-						>
-							<span className={PUNKT} />
-						</button>
-					);
-				})}
-				</>)}
-				{zusatz.map((griff) => {
-					const wo = griff.wo(element, kasten);
-					return (
-						wo && (
-							<button
-								key={griff.id}
-								type="button"
-								aria-label={griff.name}
-								title={griff.name}
-								className={klassen(GRIFF, griff.zeiger ?? 'cursor-pointer')}
-								style={{ left: wo.x * skala, top: wo.y * skala }}
-								data-gestaltung-griff={griff.id}
-								onPointerDown={(e) => starteZusatz(e, element, griff, wo)}
-							>
-								{griff.zeichne?.() ?? (
+					<Schloss />
+				</span>
+			) : (
+				bedienbar && (
+					<>
+						{!ohneRahmen && !nurZusatz && (
+							<>
+								<span
+									className="absolute left-1/2 w-px bg-brand-500"
+									style={{ top: -DREH_ABSTAND, height: DREH_ABSTAND }}
+								/>
+								<button
+									type="button"
+									aria-label="Drehen"
+									title="Drehen (⇧: in 15°-Schritten)"
+									className={klassen(GRIFF, 'left-1/2 cursor-grab', inGeste && 'cursor-grabbing')}
+									style={{ top: -DREH_ABSTAND }}
+									data-gestaltung-griff="drehen"
+									onPointerDown={(e) => starteGriff(e, element, 'drehen')}
+								>
 									<span className="block size-2.5 flex-none rounded-full border border-brand-500 bg-flaeche shadow" />
-								)}
-							</button>
-						)
-					);
-				})}
-			</>
-			)
-		)}
-	</div>
-);
+								</button>
+								{griffe.map((griff) => {
+									const { x, y } = GRIFFE[griff];
+									return (
+										<button
+											key={griff}
+											type="button"
+											aria-label={`Größe ändern, ${NAME[griff]}`}
+											className={klassen(GRIFF, ZEIGER[griff])}
+											style={{ left: `${(x + 1) * 50}%`, top: `${(y + 1) * 50}%` }}
+											data-gestaltung-griff={griff}
+											onPointerDown={(e) => starteGriff(e, element, griff)}
+										>
+											<span className={PUNKT} />
+										</button>
+									);
+								})}
+							</>
+						)}
+						{zusatz.map((griff) => {
+							const wo = griff.wo(element, kasten);
+							return (
+								wo && (
+									<button
+										key={griff.id}
+										type="button"
+										aria-label={griff.name}
+										title={griff.name}
+										className={klassen(GRIFF, griff.zeiger ?? 'cursor-pointer')}
+										style={{ left: wo.x * skala, top: wo.y * skala }}
+										data-gestaltung-griff={griff.id}
+										onPointerDown={(e) => starteZusatz(e, element, griff, wo)}
+									>
+										{griff.zeichne?.() ?? (
+											<span className="block size-2.5 flex-none rounded-full border border-brand-500 bg-flaeche shadow" />
+										)}
+									</button>
+								)
+							);
+						})}
+					</>
+				)
+			)}
+		</div>
+	);
 };
 
 /**
@@ -195,10 +200,9 @@ export const MehrfachRahmen = ({
 }) => (
 	<>
 		{!inGeste &&
-			umrisse.map((r, i) => (
+			umrisse.map((r) => (
 				<div
-					// eslint-disable-next-line react/no-array-index-key -- die Reihenfolge ist die der Auswahl
-					key={i}
+					key={`${r.links},${r.oben},${r.rechts},${r.unten}`}
 					className="pointer-events-none absolute z-ueberlagerung border border-brand-500/70"
 					data-mehrfach-umriss
 					style={{
@@ -223,7 +227,10 @@ export const MehrfachRahmen = ({
 		>
 			{bedienbar && (
 				<>
-					<span className="absolute left-1/2 w-px bg-brand-500" style={{ top: -DREH_ABSTAND, height: DREH_ABSTAND }} />
+					<span
+						className="absolute left-1/2 w-px bg-brand-500"
+						style={{ top: -DREH_ABSTAND, height: DREH_ABSTAND }}
+					/>
 					<button
 						type="button"
 						aria-label="Auswahl drehen"

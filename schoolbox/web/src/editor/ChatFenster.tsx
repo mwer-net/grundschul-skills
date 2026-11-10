@@ -1036,11 +1036,8 @@ export const ChatInhalt = ({
 	/** `ganzesBlatt` (117): ohne Referenz; mit ihr sähe Claude nur das gewählte Element und könnte nichts daneben legen. */
 	const sendeAuftrag = async (inhalt: { text: string; aktion?: string }, ganzesBlatt = false) => {
 		const aufVorschlag = Boolean(offenerVorschlag);
-		const kontextText = aufVorschlag
-			? (letzte?.kontext ?? offenerVorschlag?.umfang ?? null)
-			: ganzesBlatt
-				? 'Ganzes Blatt'
-				: chipName;
+		const ohneVorschlag = ganzesBlatt ? 'Ganzes Blatt' : chipName;
+		const kontextText = aufVorschlag ? (letzte?.kontext ?? offenerVorschlag?.umfang ?? null) : ohneVorschlag;
 		const vorher = verlaufFuerServer(verlauf);
 		const stelle = zitat;
 		const gespraechId = gespraech.sichereId();

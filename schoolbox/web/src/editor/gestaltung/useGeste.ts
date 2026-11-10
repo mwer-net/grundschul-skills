@@ -1,8 +1,8 @@
 import { ausFlaeche, inFlaeche } from '@schoolbox/kern/src/flaeche';
-import { kopiereGestaltungNach, setzeLage, setzeStilWerte, verschiebeAufSeite } from '@schoolbox/kern/src/gestaltung';
-import { skaliereGruppe } from '@schoolbox/kern/src/gruppen';
 import type { LageTeil } from '@schoolbox/kern/src/gestaltung';
+import { kopiereGestaltungNach, setzeLage, setzeStilWerte, verschiebeAufSeite } from '@schoolbox/kern/src/gestaltung';
 import { GESTALTUNG_SELEKTOR, gestaltungArtNach } from '@schoolbox/kern/src/gestaltung-arten';
+import { skaliereGruppe } from '@schoolbox/kern/src/gruppen';
 import type { StrukturErgebnis } from '@schoolbox/kern/src/struktur';
 import type { PointerEvent as ReactPointerEvent } from 'react';
 import { useCallback, useEffect, useRef, useState } from 'react';
@@ -16,20 +16,40 @@ import { FINGER_WEG, HALTEN_MS, MAUS_WEG } from '../ziehen';
 import { zeigeNachGroesse } from './anzeige-folgen';
 import { ausschnittLaeuft } from './ausschnitt'; // 111
 import { doppelklickZiel } from './doppelklick';
-import type { GruppenVorschau } from './gruppe-messen';
-import { gleichmaessig, merkeKinder, nurGleichmaessigIm, stelleKinderHer, zeigeKinder } from './gruppe-messen'; // 120
-import type { FlaechenWechsel } from './flaeche-ziel';
-import { flaechenWechsel, kastenDerFlaeche, oeffneFlaechen } from './flaeche-ziel';
 import type { Hilfslinie, Kandidat } from './einrasten';
 import { rasteEin, sammleKandidaten } from './einrasten';
+import type { FlaechenWechsel } from './flaeche-ziel';
+import { flaechenWechsel, kastenDerFlaeche, oeffneFlaechen } from './flaeche-ziel';
 import type { GriffName, GroessenArt, Kasten } from './geste';
-import { bewege, drehe, dreheUm, GRIFFE, haeltVerhaeltnis, inKasten, mitteVon, skaliere, skaliereMit, wertText, winkelZu } from './geste';
+import {
+	bewege,
+	drehe,
+	dreheUm,
+	GRIFFE,
+	haeltVerhaeltnis,
+	inKasten,
+	mitteVon,
+	skaliere,
+	skaliereMit,
+	wertText,
+	winkelZu,
+} from './geste';
 import type { ZusatzAnzeige, ZusatzGriff } from './griffe';
+import type { GruppenVorschau } from './gruppe-messen';
+import { gleichmaessig, merkeKinder, nurGleichmaessigIm, stelleKinderHer, zeigeKinder } from './gruppe-messen'; // 120
 import type { GestaltungKontext } from './kontext';
 import { flaechenKontext, gestaltungKontext, zeigeLageAm } from './kontext';
 import { elementeZu, imRechteck, leereMehrfach, nrnFuer, schalteDazu, setzeMehrfach } from './mehrfach';
 import type { Gruppe, GruppenArt } from './mehrfach-geste';
-import { gruppeBewegt, gruppeVon, imBehaelter, imMaterial as kastenImMaterial, rechneGruppe, stelleGruppeHer, zeigeGruppe } from './mehrfach-geste';
+import {
+	gruppeBewegt,
+	gruppeVon,
+	imBehaelter,
+	imMaterial as kastenImMaterial,
+	rechneGruppe,
+	stelleGruppeHer,
+	zeigeGruppe,
+} from './mehrfach-geste';
 
 /** Ein Rechteck in Koordinaten des Materials. */
 export interface Flaeche {
@@ -122,7 +142,13 @@ export const messe = (element: Element): Messung | null => {
 		const dy = kasten.y + kasten.h / 2 - g.h / 2;
 		const mx = g.x + g.b / 2 + dx * Math.cos(w) - dy * Math.sin(w);
 		const my = g.y + g.h / 2 + dx * Math.sin(w) + dy * Math.cos(w);
-		kasten = { x: mx - kasten.b / 2, y: my - kasten.h / 2, b: kasten.b, h: kasten.h, drehen: g.drehen + spiegeln * kasten.drehen };
+		kasten = {
+			x: mx - kasten.b / 2,
+			y: my - kasten.h / 2,
+			b: kasten.b,
+			h: kasten.h,
+			drehen: g.drehen + spiegeln * kasten.drehen,
+		};
 		behaelter = behaelterVon(behaelter);
 	}
 	const r = behaelter.getBoundingClientRect();
@@ -235,6 +261,94 @@ const lageAus = (k: Kasten) => ({ x: Math.round(k.x), y: Math.round(k.y) });
 const stilHat = (element: Element, name: string) =>
 	(element.getAttribute('style') ?? '').split(';').some((t) => t.slice(0, t.indexOf(':')).trim() === name);
 
+/** Stellt die Attribute vom Start wieder her. */
+const stelleHer = (l: Lauf) => {
+	for (const { name } of [...l.element.attributes]) {
+		if (!l.attribute.some(([n]) => n === name)) {
+			l.element.removeAttribute(name);
+		}
+	}
+	for (const [name, wert] of l.attribute) {
+		if (l.element.getAttribute(name) !== wert) {
+			l.element.setAttribute(name, wert);
+		}
+	}
+	if (l.art === 'skalieren') {
+		zeigeNachGroesse(l.element, l.start.b, l.start.h); // 104: Inhalt wieder in der Größe vom Start
+	}
+	if (l.kinder) {
+		stelleKinderHer(l.kinder); // 120
+	}
+};
+/** 115: Hinein in eine Fläche oder heraus auf die Seite, ein Schritt; die Lage rechnet `flaechenWechsel`. */
+const wechsleFlaeche = (
+	l: Lauf,
+	wechsel: NonNullable<Lauf['wechsel']>,
+	schreibe: (l: Lauf, beschreibung: string, rechne: (q: string) => StrukturErgebnis) => void,
+) => {
+	const behaelter = wechsel.ziel ?? wechsel.seite;
+	const ziel = behaelter ? nrVon(behaelter) : null;
+	stelleHer(l);
+	if (ziel === null) {
+		return;
+	}
+	const { lage } = wechsel;
+	if (wechsel.ziel) {
+		schreibe(l, 'In die Fläche gelegt', (q) => inFlaeche(q, l.nr, ziel, lage));
+	} else {
+		schreibe(l, 'Aus der Fläche genommen', (q) => ausFlaeche(q, l.nr, lage, ziel));
+	}
+};
+
+/** Das Ziel eines Drucks im Material; `null` in einem fokussierten Text oder bei anderer Maustaste als der linken. */
+const drueckZiel = (e: PointerEvent) => {
+	const ziel = istElement(e.target) ? e.target : null;
+	const maus = e.pointerType === 'mouse';
+	if (!ziel || ziel.closest('[contenteditable="true"]:focus') || (maus && (e.button !== 0 || e.ctrlKey))) {
+		return null;
+	}
+	return ziel;
+};
+
+/** Mit ⌥ zuerst das gewählte Element unter dem Zeiger, sonst das hinterste dort. */
+const elementBeimDruck = (doc: Document, ziel: Element, gewaehlt: number | null, e: PointerEvent) => {
+	const element = gestaltungUnter(ziel, gewaehlt);
+	if (e.pointerType !== 'mouse' || !e.altKey) {
+		return element;
+	}
+	const unter = doc.elementsFromPoint(e.clientX, e.clientY);
+	const auswahl = unter.find((u) => u.matches(GESTALTUNG_SELEKTOR) && nrVon(u) === gewaehlt);
+	return auswahl ?? hintersteAn(doc, e.clientX, e.clientY) ?? element;
+};
+
+const ohneTasten = (e: PointerEvent) => e.pointerType === 'mouse' && !e.shiftKey && !e.altKey && !e.metaKey;
+
+/** 113: Leer heißt: kein Baustein mit Inhalt und kein Gestaltungselement unter dem Zeiger, nur Seite oder Ebene. */
+const bandAb = (e: PointerEvent, ziel: Element) => {
+	const seite = ziel.closest('.seite');
+	return seite && (ziel === seite || ziel.matches('.ebene, .seitenflaeche, .seitenrahmen'))
+		? { id: e.pointerId, x: e.clientX, y: e.clientY, seite, laeuft: false }
+		: null;
+};
+
+const seitenIm = (doc: Document): Seite[] =>
+	[...doc.querySelectorAll('.seite')].flatMap((s) => {
+		const n = nrVon(s);
+		return n === null || s.hasAttribute('data-erzeugt') ? [] : [{ nr: n, flaeche: rechteckVon(s) }];
+	});
+
+const eigeneSeiteVon = (element: Element, seiten: readonly Seite[]) => {
+	const eigen = element.closest('.seite');
+	const nr = eigen ? nrVon(eigen) : null;
+	return seiten.find((s) => s.nr === nr) ?? null;
+};
+
+/** Schriftgröße eines Texts in px (`--gr`, sonst die gerechnete); `null`, wenn keine lesbar ist. */
+const schriftgroesseVon = (element: Element) => {
+	const stil = element.ownerDocument.defaultView?.getComputedStyle(element);
+	return parseFloat(stil?.getPropertyValue('--gr') ?? '') || parseFloat(stil?.fontSize ?? '') || null;
+};
+
 /**
  * Gesten an Gestaltungselementen (097): wählen, ziehen, Größe an Ecken und Kanten, Drehen. Während der Geste ändert
  * sich nur die Darstellung im `iframe` (Variablen am Element), die Quelle erst beim Loslassen mit **einem**
@@ -264,53 +378,43 @@ export const useGeste = (o: Optionen) => {
 			linien: Hilfslinie[] = [],
 			zusatz?: ZusatzAnzeige & { von: { x: number; y: number } },
 		) => {
-		let text = zusatz?.text ?? wertText(l.art === 'griff' ? 'bewegen' : l.art, l.jetzt);
-		if (l.art === 'bewegen' && l.zielSeite && l.eigeneSeite && l.zielSeite !== l.eigeneSeite) {
-			const x = l.jetzt.x + l.eigeneSeite.flaeche.links - l.zielSeite.flaeche.links;
-			const y = l.jetzt.y + l.eigeneSeite.flaeche.oben - l.zielSeite.flaeche.oben;
-			const nummer = l.seiten.indexOf(l.zielSeite) + 1;
-			text = `Seite ${nummer} · X ${Math.round(x)} · Y ${Math.round(y)}`;
-		}
-		if (l.gruppe) {
-			// 113: Rahmen und Wert gelten der ganzen Auswahl (im Material).
-			text = zusatz?.text ?? wertText(l.art === 'griff' ? 'bewegen' : l.art, l.art === 'drehen' ? { ...l.gruppe.jetzt, drehen: l.jetzt.drehen - l.start.drehen } : l.gruppe.jetzt);
-		}
-		setStand({
-			art: l.art,
-			nr: l.nr,
-			kasten: l.gruppe ? l.gruppe.jetzt : l.jetzt,
-			ursprung: l.gruppe ? { x: 0, y: 0 } : l.ursprung,
-			zeiger,
-			text,
-			seite: (l.art === 'bewegen' ? l.zielSeite : l.eigeneSeite)?.flaeche ?? null,
-			linien,
-			...(zusatz && {
-				zusatz: { ziel: zusatz.ziel ? rechteckVon(zusatz.ziel) : null, von: zusatz.linie ? zusatz.von : null },
-			}),
-		});
+			let text = zusatz?.text ?? wertText(l.art === 'griff' ? 'bewegen' : l.art, l.jetzt);
+			if (l.art === 'bewegen' && l.zielSeite && l.eigeneSeite && l.zielSeite !== l.eigeneSeite) {
+				const x = l.jetzt.x + l.eigeneSeite.flaeche.links - l.zielSeite.flaeche.links;
+				const y = l.jetzt.y + l.eigeneSeite.flaeche.oben - l.zielSeite.flaeche.oben;
+				const nummer = l.seiten.indexOf(l.zielSeite) + 1;
+				text = `Seite ${nummer} · X ${Math.round(x)} · Y ${Math.round(y)}`;
+			}
+			if (l.gruppe) {
+				// 113: Rahmen und Wert gelten der ganzen Auswahl (im Material).
+				text =
+					zusatz?.text ??
+					wertText(
+						l.art === 'griff' ? 'bewegen' : l.art,
+						l.art === 'drehen'
+							? { ...l.gruppe.jetzt, drehen: l.jetzt.drehen - l.start.drehen }
+							: l.gruppe.jetzt,
+					);
+			}
+			setStand({
+				art: l.art,
+				nr: l.nr,
+				kasten: l.gruppe ? l.gruppe.jetzt : l.jetzt,
+				ursprung: l.gruppe ? { x: 0, y: 0 } : l.ursprung,
+				zeiger,
+				text,
+				seite: (l.art === 'bewegen' ? l.zielSeite : l.eigeneSeite)?.flaeche ?? null,
+				linien,
+				...(zusatz && {
+					zusatz: {
+						ziel: zusatz.ziel ? rechteckVon(zusatz.ziel) : null,
+						von: zusatz.linie ? zusatz.von : null,
+					},
+				}),
+			});
 		},
 		[],
 	);
-
-	/** Stellt die Attribute vom Start wieder her. */
-	const stelleHer = (l: Lauf) => {
-		for (const { name } of [...l.element.attributes]) {
-			if (!l.attribute.some(([n]) => n === name)) {
-				l.element.removeAttribute(name);
-			}
-		}
-		for (const [name, wert] of l.attribute) {
-			if (l.element.getAttribute(name) !== wert) {
-				l.element.setAttribute(name, wert);
-			}
-		}
-		if (l.art === 'skalieren') {
-			zeigeNachGroesse(l.element, l.start.b, l.start.h); // 104: Inhalt wieder in der Größe vom Start
-		}
-		if (l.kinder) {
-			stelleKinderHer(l.kinder); // 120
-		}
-	};
 
 	const beende = useCallback(() => {
 		const l = lauf.current;
@@ -345,22 +449,12 @@ export const useGeste = (o: Optionen) => {
 			if (nr === null || !m || m.verdreht || !erlaubt() || lauf.current) {
 				return null;
 			}
-			const baustein = bausteinVon(element);
-			const groesse = (gestaltungArtNach(baustein?.art ?? '')?.groesse ?? 'frei') as GroessenArt;
-			const fenster = doc.defaultView;
+			const groesse = gestaltungArtNach(bausteinVon(element)?.art ?? '')?.groesse ?? 'frei';
 			const inEbene = Boolean(element.parentElement?.matches('.ebene, .flaeche'));
-			const seiten: Seite[] = [...doc.querySelectorAll('.seite')].flatMap((s) => {
-				const n = nrVon(s);
-				return n === null || s.hasAttribute('data-erzeugt') ? [] : [{ nr: n, flaeche: rechteckVon(s) }];
-			});
-			const eigen = element.closest('.seite');
-			const eigeneSeite = seiten.find((s) => s.nr === (eigen ? nrVon(eigen) : null)) ?? null;
-			const gr =
-				groesse === 'text'
-					? parseFloat(fenster?.getComputedStyle(element).getPropertyValue('--gr') ?? '') ||
-						parseFloat(fenster?.getComputedStyle(element).fontSize ?? '') ||
-						null
-					: null;
+			const seiten = seitenIm(doc);
+			const eigeneSeite = eigeneSeiteVon(element, seiten);
+			const gr = groesse === 'text' ? schriftgroesseVon(element) : null;
+			const gruppenGeste = art === 'skalieren' && element.matches('.gruppe');
 			const l: Lauf = {
 				art,
 				nr,
@@ -386,8 +480,8 @@ export const useGeste = (o: Optionen) => {
 				dx: 0,
 				dy: 0,
 				gruppe: null,
-				kinder: art === 'skalieren' && element.matches('.gruppe') ? merkeKinder(element) : null,
-				gleichmaessig: art === 'skalieren' && element.matches('.gruppe') && nurGleichmaessigIm(element),
+				kinder: gruppenGeste ? merkeKinder(element) : null,
+				gleichmaessig: gruppenGeste && nurGleichmaessigIm(element),
 				ende,
 			};
 			// 113: Gehört das Element zu einer Mehrfachauswahl, bewegt die Geste alle; kein Seitenwechsel, kein Einrasten am Element.
@@ -449,12 +543,12 @@ export const useGeste = (o: Optionen) => {
 	};
 
 	/** Ein Schritt. Klappt er nicht, steht das Element wieder wie vorher. */
-	const schreibe = (l: Lauf, beschreibung: string, rechne: (q: string) => StrukturErgebnis) => {
+	const schreibe = useCallback((l: Lauf, beschreibung: string, rechne: (q: string) => StrukturErgebnis) => {
 		const geklappt = aktuell.current.struktur.fuehreAus(beschreibung, rechne, false, true) !== null;
 		if (!geklappt) {
 			stelleHer(l);
 		}
-	};
+	}, []);
 
 	// ── Bewegen im Blatt ──────────────────────────────────────────────────────
 
@@ -470,9 +564,14 @@ export const useGeste = (o: Optionen) => {
 			const g = l.gruppe;
 			if (g) {
 				// 113: Das Rechteck der Auswahl rastet ein, die Gewählten sind keine Kandidaten; alle gehen denselben Weg.
-				const gerastet = rasteEin(bewege(g.start, l.dx, l.dy, { achse: umschalt }), g.kandidaten, aktuell.current.skala, {
-					aus: befehl,
-				});
+				const gerastet = rasteEin(
+					bewege(g.start, l.dx, l.dy, { achse: umschalt }),
+					g.kandidaten,
+					aktuell.current.skala,
+					{
+						aus: befehl,
+					},
+				);
 				g.jetzt = gerastet.lage;
 				const wx = g.jetzt.x - g.start.x;
 				const wy = g.jetzt.y - g.start.y;
@@ -510,7 +609,10 @@ export const useGeste = (o: Optionen) => {
 				// 113: ein Schritt für alle; ⌥-Kopie und Seitenwechsel gibt es bei der Mehrfachauswahl nicht.
 				const g = l.gruppe;
 				beende();
-				if (gruppeBewegt(g) && !aktuell.current.struktur.fuehreAus('Verschoben', rechneGruppe(g, 'bewegen'), false, true)) {
+				if (
+					gruppeBewegt(g) &&
+					!aktuell.current.struktur.fuehreAus('Verschoben', rechneGruppe(g, 'bewegen'), false, true)
+				) {
 					stelleGruppeHer(g);
 				}
 				return;
@@ -528,18 +630,7 @@ export const useGeste = (o: Optionen) => {
 				!inFlaecheLiegend && zielSeite && eigeneSeite && zielSeite !== eigeneSeite ? zielSeite : null;
 			beende();
 			if (wechsel && !wahl) {
-				// 115: Hinein in eine Fläche oder heraus auf die Seite, ein Schritt; die Lage rechnet `flaechenWechsel`.
-				const behaelter = wechsel.ziel ?? wechsel.seite;
-				const ziel = behaelter ? nrVon(behaelter) : null;
-				stelleHer(l);
-				if (ziel !== null) {
-					const lageNeu = wechsel.lage;
-					if (wechsel.ziel) {
-						schreibe(l, 'In die Fläche gelegt', (q) => inFlaeche(q, nr, ziel, lageNeu));
-					} else {
-						schreibe(l, 'Aus der Fläche genommen', (q) => ausFlaeche(q, nr, lageNeu, ziel));
-					}
-				}
+				wechsleFlaeche(l, wechsel, schreibe);
 				return;
 			}
 			if (!bewegt && !andere) {
@@ -561,7 +652,7 @@ export const useGeste = (o: Optionen) => {
 				schreibe(l, 'Verschoben', (q) => ({ quelle: setzeLage(q, nr, lage), nr }));
 			}
 		},
-		[beende, brichAb],
+		[beende, brichAb, schreibe],
 	);
 
 	// Zeiger im Material: wählen, ziehen, ⌥-Klick, Doppelklick. Am Fenster des `iframe` und vor allen anderen
@@ -623,28 +714,22 @@ export const useGeste = (o: Optionen) => {
 			if (!e.isPrimary || lauf.current || aktuell.current.textsitzung || ausschnittLaeuft()) {
 				return;
 			}
-			const ziel = istElement(e.target) ? e.target : null;
-			const maus = e.pointerType === 'mouse';
-			if (!ziel || ziel.closest('[contenteditable="true"]:focus') || (maus && (e.button !== 0 || e.ctrlKey))) {
+			const ziel = drueckZiel(e);
+			if (!ziel) {
 				return;
 			}
+			const maus = e.pointerType === 'mouse';
 			const gewaehlt = aktuell.current.pfad.at(-1)?.nr ?? null;
-			let element = gestaltungUnter(ziel, gewaehlt);
-			if (maus && e.altKey) {
-				const unter = doc.elementsFromPoint(e.clientX, e.clientY);
-				const auswahl = unter.find((u) => u.matches(GESTALTUNG_SELEKTOR) && nrVon(u) === gewaehlt);
-				element = auswahl ?? hintersteAn(doc, e.clientX, e.clientY) ?? element;
-			}
+			const element = elementBeimDruck(doc, ziel, gewaehlt, e);
 			const nr = element ? nrVon(element) : null;
-			if ((!element || nr === null) && maus && !e.shiftKey && !e.altKey && !e.metaKey && erlaubt()) {
-				// 113: Leer heißt: kein Baustein mit Inhalt und kein Gestaltungselement unter dem Zeiger, nur Seite oder Ebene.
-				const seite = ziel.closest('.seite');
-				if (seite && (ziel === seite || ziel.matches('.ebene, .seitenflaeche, .seitenrahmen'))) {
-					band = { id: e.pointerId, x: e.clientX, y: e.clientY, seite, laeuft: false };
+			if (!element || nr === null) {
+				const neu = ohneTasten(e) && erlaubt() ? bandAb(e, ziel) : null;
+				if (neu) {
+					band = neu;
 				}
 				return;
 			}
-			if (!element || nr === null || !erlaubt()) {
+			if (!erlaubt()) {
 				return;
 			}
 			e.stopPropagation();
@@ -896,9 +981,13 @@ export const useGeste = (o: Optionen) => {
 				l.umschalt = m.shiftKey;
 				l.wahl = m.altKey;
 				if (griff === 'drehen') {
-					l.jetzt = drehe(l.start, l.start.drehen + winkelZu(mitte, { x: m.clientX, y: m.clientY }) - winkel0, {
-						raster15: m.shiftKey,
-					});
+					l.jetzt = drehe(
+						l.start,
+						l.start.drehen + winkelZu(mitte, { x: m.clientX, y: m.clientY }) - winkel0,
+						{
+							raster15: m.shiftKey,
+						},
+					);
 					zeigeLageAm(l.element, { drehen: l.jetzt.drehen });
 				} else {
 					const verhaeltnis = l.gleichmaessig || haeltVerhaeltnis(l.groesse, griff, m.shiftKey);
@@ -994,15 +1083,25 @@ export const useGeste = (o: Optionen) => {
 						{ raster15: m.shiftKey },
 					).drehen;
 					g.jetzt = { ...g.start, drehen: w };
-					g.lagen = g.mitglieder.map((mm) => imBehaelter(mm, dreheUm(kastenImMaterial(mm, mm.start), mitte, w)));
+					g.lagen = g.mitglieder.map((mm) =>
+						imBehaelter(mm, dreheUm(kastenImMaterial(mm, mm.start), mitte, w)),
+					);
 					l.jetzt = { ...l.start, drehen: l.start.drehen + w };
 				} else {
-					const nach = skaliere(g.start, griff, (m.clientX - start.x) / skala, (m.clientY - start.y) / skala, {
-						verhaeltnis: true,
-						mitte: m.altKey,
-					});
+					const nach = skaliere(
+						g.start,
+						griff,
+						(m.clientX - start.x) / skala,
+						(m.clientY - start.y) / skala,
+						{
+							verhaeltnis: true,
+							mitte: m.altKey,
+						},
+					);
 					g.jetzt = nach;
-					g.lagen = g.mitglieder.map((mm) => imBehaelter(mm, skaliereMit(kastenImMaterial(mm, mm.start), g.start, nach)));
+					g.lagen = g.mitglieder.map((mm) =>
+						imBehaelter(mm, skaliereMit(kastenImMaterial(mm, mm.start), g.start, nach)),
+					);
 					l.jetzt = g.lagen[0] ?? l.start;
 				}
 				zeigeGruppe(g, art);

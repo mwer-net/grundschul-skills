@@ -291,7 +291,15 @@ export type Kategorie = (typeof KATALOG_KATEGORIEN)[number];
 export const KATALOG_BEREICHE = [
 	{
 		gruppe: 'Grundgerüst',
-		bereiche: ['Kopf und Rahmen', 'Aufgabe und Text', 'Schreiben', 'Bilder', 'Bewerten', 'Selbstkontrolle', 'Ordnen'],
+		bereiche: [
+			'Kopf und Rahmen',
+			'Aufgabe und Text',
+			'Schreiben',
+			'Bilder',
+			'Bewerten',
+			'Selbstkontrolle',
+			'Ordnen',
+		],
 	},
 	{
 		gruppe: 'Fächer',

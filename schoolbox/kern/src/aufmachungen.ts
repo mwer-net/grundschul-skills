@@ -97,7 +97,7 @@ const formatVon = (quelle: string): AufmachungsFormat | null =>
 export const aufmachungsFormatVon = formatVon;
 
 const auswahl = <T extends string | number>(liste: readonly T[], wert: unknown): T | undefined =>
-	liste.find((w) => String(w) === String(wert ?? '').trim());
+	liste.find((w) => String(w) === (typeof wert === 'string' || typeof wert === 'number' ? String(wert).trim() : ''));
 
 /** Steht das Tag allein, als `name` ohne Wert, am Ende des Start-Tags; mit Wert als `name="wert"`. */
 const amEnde = (z: Zerlegung, k: Knoten, text: string): Aenderung => {
@@ -240,7 +240,8 @@ const setzeWerte = (quelle: string, a: Aufmachung, w: AufmachungWerte, format: A
 	return wendeAn(ohne, aenderungen);
 };
 
-const farbwelt = (a: Aufmachung, w: Pick<AufmachungWerte, 'farben'>): Farbwelt => a.farbwelten[w.farben - 1] ?? a.farbwelten[0];
+const farbwelt = (a: Aufmachung, w: Pick<AufmachungWerte, 'farben'>): Farbwelt =>
+	a.farbwelten[w.farben - 1] ?? a.farbwelten[0];
 
 // ── Teile ───────────────────────────────────────────────────────────────────
 
@@ -288,7 +289,8 @@ const streuungTeil = (zone: StreuZone, w: AufmachungWerte, standard: Regler, saa
 	const dichte = menge((zone.dichte * w.konfetti.menge) / bezug);
 	const gewaehlt = zone.formen.filter((f) => (w.konfetti.formen as readonly string[]).includes(f));
 	// Passt keine Form der Zone zum Regler, nimmt die Zone die Formen des Reglers.
-	const formen = gewaehlt.length ? gewaehlt : w.konfetti.formen.length ? w.konfetti.formen : zone.formen;
+	const ausRegler = w.konfetti.formen.length ? w.konfetti.formen : zone.formen;
+	const formen = gewaehlt.length ? gewaehlt : ausRegler;
 	if (dichte <= 0) {
 		return null;
 	}
@@ -393,7 +395,13 @@ const legeTeile = (z: Zerlegung, seite: Knoten, html: readonly string[]): Aender
 };
 
 /** Erzeugt die Teile auf jeder Seite, von hinten nach vorne, damit die Stellen davor gültig bleiben. */
-const erzeugeTeile = (quelle: string, a: Aufmachung, w: AufmachungWerte, format: AufmachungsFormat, ersetze: boolean) => {
+const erzeugeTeile = (
+	quelle: string,
+	a: Aufmachung,
+	w: AufmachungWerte,
+	format: AufmachungsFormat,
+	ersetze: boolean,
+) => {
 	const anzahl = seitenIn(zerlege(quelle)).length;
 	let q = quelle;
 	for (let i = anzahl - 1; i >= 0; i -= 1) {
@@ -581,7 +589,7 @@ const kopfbandHtml = (id: string, { b, d, h }: KopfbandMass, welt: Farbwelt | nu
 	`<svg class="form" data-form="pfad" data-name="Kopfband" data-sw="weg" viewBox="0 0 ${Math.round(b)} ${Math.round(h)}"` +
 	`${welt ? ` style="${eingefroren(welt)}"` : ''}>` +
 	`<defs><linearGradient id="${id}"><stop offset="0" style="stop-color:var(--a1)"/>` +
-	`<stop offset="1" style="stop-color:var(--a2)"/></linearGradient></defs>` +
+	'<stop offset="1" style="stop-color:var(--a2)"/></linearGradient></defs>' +
 	`<path d="${d.trim()}" fill="url(#${id})" style="stroke:none"/></svg>`;
 
 /** Der Titel im Kopf einer Seite: das erste `h1` in `.kopf`. */
@@ -628,7 +636,10 @@ export const legeAufmachungFrei = (quelle: string, kopfbaender: readonly Kopfban
 			const sw = istHell(farbe) && !attribut(titel, 'data-sw') ? ' data-sw="dunkel"' : '';
 			aenderungen.push(
 				...(stil
-					? [...setzeAttribut(z, titel, 'style', `${stil.replace(/;\s*$/, '')};color:${farbe}`), ...(sw ? [amEnde(z, titel, sw)] : [])]
+					? [
+							...setzeAttribut(z, titel, 'style', `${stil.replace(/;\s*$/, '')};color:${farbe}`),
+							...(sw ? [amEnde(z, titel, sw)] : []),
+						]
 					: [amEnde(z, titel, ` style="color:${farbe}"${sw}`)]),
 			);
 		}

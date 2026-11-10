@@ -214,7 +214,13 @@ const streuePunkte = (p: StreuParameter, rnd: () => number, felder: Zone[], flae
 };
 
 /** Konfetti und Sterne: zufällig mit Mindestabstand (Poisson-Scheibe, Versuche begrenzt). */
-const streueMitAbstand = (p: StreuParameter, rnd: () => number, felder: Zone[], flaeche: number, rMax: number): Teil[] => {
+const streueMitAbstand = (
+	p: StreuParameter,
+	rnd: () => number,
+	felder: Zone[],
+	flaeche: number,
+	rMax: number,
+): Teil[] => {
 	const { gewollt, vergroessert } = masse(p, flaeche, 1, MAX_TEILE);
 	const ziel = Math.min(MAX_TEILE, p.dichte > 0 ? Math.max(1, Math.round(gewollt)) : 0);
 	const basis = RADIUS[p.groesse] * vergroessert;
@@ -230,7 +236,8 @@ const streueMitAbstand = (p: StreuParameter, rnd: () => number, felder: Zone[], 
 		const wurf = rnd();
 		const dreh = rnd();
 		// Sterne: wenige große, viele kleine. Konfetti: ähnlich groß.
-		const faktor = p.art === 'sterne' ? (wurf < 0.18 ? 1.7 + rnd() * 0.5 : 0.6 + rnd() * 0.4) : 0.75 + wurf * 0.5;
+		const sternFaktor = () => (wurf < 0.18 ? 1.7 + rnd() * 0.5 : 0.6 + rnd() * 0.4);
+		const faktor = p.art === 'sterne' ? sternFaktor() : 0.75 + wurf * 0.5;
 		const r = runde(Math.min(rMax, Math.max(1.5, basis * faktor)));
 		let rest = rnd() * gesamt;
 		const feld = felder.find((z) => (rest -= z.b * z.h) < 0) ?? felder.at(-1);
@@ -436,7 +443,7 @@ export const naechsteEcke = (
 ): Ecke => {
 	const links = element.x + element.b / 2 < seite.b / 2;
 	const oben = element.y + element.h / 2 < seite.h / 2;
-	return `${oben ? 'o' : 'u'}${links ? 'l' : 'r'}` as Ecke;
+	return `${oben ? 'o' : 'u'}${links ? 'l' : 'r'}`;
 };
 
 // ── Neues Element ───────────────────────────────────────────────────────────
@@ -489,7 +496,9 @@ export const streuungHtml = (n: NeueStreuung) => {
 
 /** Eine Streuung: `svg` mit Klasse `streuung` und bekannter `data-streuung`. */
 export const istStreuung = (k: Knoten) =>
-	k.tag === 'svg' && klassenVon(k).includes('streuung') && aus(STREU_ARTEN, attribut(k, 'data-streuung')?.wert) !== undefined;
+	k.tag === 'svg' &&
+	klassenVon(k).includes('streuung') &&
+	aus(STREU_ARTEN, attribut(k, 'data-streuung')?.wert) !== undefined;
 
 const angabenVon = (k: Knoten) => leseStreuAngaben((name) => attribut(k, name)?.wert);
 
@@ -499,7 +508,10 @@ const massVon = (k: Knoten) => {
 	if (stil) {
 		return stil;
 	}
-	const v = (attribut(k, 'viewbox')?.wert ?? '').trim().split(/[\s,]+/).map(Number);
+	const v = (attribut(k, 'viewbox')?.wert ?? '')
+		.trim()
+		.split(/[\s,]+/)
+		.map(Number);
 	const [, , b, h] = v;
 	return v.length === 4 && b !== undefined && h !== undefined && b > 0 && h > 0
 		? { b: Math.round(b), h: Math.round(h) }
@@ -577,7 +589,9 @@ const ergaenzeEins = (z: Zerlegung, k: Knoten): string | null => {
 	}
 	const viewBox = `0 0 ${mass.b} ${mass.h}`;
 	const aenderungen =
-		attribut(k, 'viewbox')?.wert === viewBox || k.oeffnerEnde === k.ende ? [] : setzeAttributAn(z, k, 'viewBox', viewBox);
+		attribut(k, 'viewbox')?.wert === viewBox || k.oeffnerEnde === k.ende
+			? []
+			: setzeAttributAn(z, k, 'viewBox', viewBox);
 	const mitBox = aenderungen.length ? wendeAn(quelle, aenderungen) : quelle;
 	const z2 = aenderungen.length ? zerlege(mitBox) : z;
 	const k2 = z2.knoten[k.nr];
@@ -669,7 +683,8 @@ export const setzeStreuung = (quelle: string, nr: number, teil: StreuTeil) => {
 		'data-formen': (formen.length > 0 ? formen : STANDARD_FORMEN[art]).join(' '),
 		'data-farben': (farben.length > 0 ? farben : STANDARD_FARBEN).join(' '),
 		'data-groesse': aus(STREU_GROESSEN, teil.groesse) ?? alt.groesse,
-		'data-ecke': art === 'punkte' ? (aus(STREU_ECKEN, teil.ecke) ?? alt.ecke) : (attribut(k, 'data-ecke')?.wert ?? null),
+		'data-ecke':
+			art === 'punkte' ? (aus(STREU_ECKEN, teil.ecke) ?? alt.ecke) : (attribut(k, 'data-ecke')?.wert ?? null),
 		'data-zonen': zonen?.length ? zonenText(zonen) : null,
 	};
 	const aenderungen = Object.entries(werte)

@@ -69,13 +69,13 @@ const liesTeil = (text: string): Teil => {
 	}
 	while (rest) {
 		const klasse = KLASSE_TEIL.exec(rest);
-		const attribut = ATTRIBUT_TEIL.exec(rest);
+		const attr = ATTRIBUT_TEIL.exec(rest);
 		if (klasse?.[1]) {
 			teil.klassen.push(klasse[1]);
 			rest = rest.slice(klasse[0].length);
-		} else if (attribut?.[1]) {
-			teil.attribute.push({ name: attribut[1].toLowerCase(), wert: attribut[2] ?? null });
-			rest = rest.slice(attribut[0].length);
+		} else if (attr?.[1]) {
+			teil.attribute.push({ name: attr[1].toLowerCase(), wert: attr[2] ?? null });
+			rest = rest.slice(attr[0].length);
 		} else if (rest.startsWith(':not(') || rest.startsWith(':has(')) {
 			const innen = klammerInhalt(rest, 5);
 			if (innen === null) {

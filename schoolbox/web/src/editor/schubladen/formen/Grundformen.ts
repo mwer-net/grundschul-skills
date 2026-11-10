@@ -1,0 +1,19 @@
+import { ablegenEintrag } from '../../gestaltung/ablegen/ablegen';
+import { GRUNDFORMEN, gutVon, namenVon } from './Grundformen-daten';
+import { Kacheln } from './Grundformen-teile';
+import type { FormenAbschnitt } from './typ';
+import { passtZurSuche } from './typ';
+
+export const abschnitt: FormenAbschnitt | null = {
+	id: 'grundformen',
+	titel: 'Grundformen',
+	hinweis: 'Klick oder ziehen',
+	zeigt: ({ suche }) => GRUNDFORMEN.some((g) => passtZurSuche(namenVon(g), suche)),
+	Inhalt: Kacheln,
+	suche: (z) =>
+		GRUNDFORMEN.map((g) => ({
+			...ablegenEintrag(gutVon(g), z, 'Formen'),
+			symbol: 'formen',
+			suchwoerter: namenVon(g).slice(1).filter(Boolean),
+		})),
+};

@@ -1,9 +1,9 @@
 import { leseVerlauf } from '@schoolbox/kern/src/aussehen';
 import { leseForm } from '@schoolbox/kern/src/formen-aendern';
 
-import { verlaufCss } from '../../../bausteine/Farbwahl';
 import { Knopf } from '../../../bausteine/Knopf';
 import { Popover } from '../../../bausteine/Popover';
+import { verlaufCss } from '../../../bausteine/verlauf';
 import { pfadDerForm } from '../anzeige-folgen';
 import { FuellungWahl, KonturWahl } from '../inspektor/form-farben';
 import type { LeistenKnoepfe, LeistenTeile } from './typen';
@@ -24,43 +24,38 @@ const FormKnoepfe = ({ aktiv, k, quelle }: LeistenTeile) => {
 		return null;
 	}
 	const verlauf = leseVerlauf(quelle, k.nr); // 108: Vorschau des Verlaufs im Knopf
-	const fuellung = verlauf ? verlaufCss(k.doc, verlauf) : stand.fuellung === null ? null : sichtbar(k.element, 'fill');
+	const flaeche = stand.fuellung === null ? null : sichtbar(k.element, 'fill');
+	const fuellung = verlauf ? verlaufCss(k.doc, verlauf) : flaeche;
 	const kontur = stand.kontur === null ? null : sichtbar(k.element, 'stroke');
+	const fuellungKnopf = (
+		<Knopf art="leise" groesse="klein" data-leiste-fuellung disabled={!aktiv}>
+			<span
+				aria-hidden
+				className="size-4 flex-none rounded-full border border-black/20"
+				style={{ background: fuellung ?? KEINE }}
+			/>
+			Füllung
+		</Knopf>
+	);
+	const konturKnopf = (
+		<Knopf art="leise" groesse="klein" data-leiste-kontur disabled={!aktiv}>
+			<span
+				aria-hidden
+				className="size-4 flex-none rounded-full border-[3px] bg-white"
+				style={kontur ? { borderColor: kontur } : { background: KEINE, borderColor: '#d4d4d8' }}
+			/>
+			Kontur
+		</Knopf>
+	);
 	return (
 		<>
 			{/* 107: Die Linie hat keine Füllung. */}
 			{!k.element.matches('svg.form[data-form="linie"]') && (
-			<Popover
-				name="Füllung"
-				className="w-auto max-w-72"
-				ausloeser={
-					<Knopf art="leise" groesse="klein" data-leiste-fuellung disabled={!aktiv}>
-						<span
-							aria-hidden
-							className="size-4 flex-none rounded-full border border-black/20"
-							style={{ background: fuellung ?? KEINE }}
-						/>
-						Füllung
-					</Knopf>
-				}
-			>
-				<FuellungWahl k={k} quelle={quelle} aktiv={aktiv} />
-			</Popover>
+				<Popover name="Füllung" className="w-auto max-w-72" ausloeser={fuellungKnopf}>
+					<FuellungWahl k={k} quelle={quelle} aktiv={aktiv} />
+				</Popover>
 			)}
-			<Popover
-				name="Kontur"
-				className="w-auto max-w-72"
-				ausloeser={
-					<Knopf art="leise" groesse="klein" data-leiste-kontur disabled={!aktiv}>
-						<span
-							aria-hidden
-							className="size-4 flex-none rounded-full border-[3px] bg-white"
-							style={kontur ? { borderColor: kontur } : { background: KEINE, borderColor: '#d4d4d8' }}
-						/>
-						Kontur
-					</Knopf>
-				}
-			>
+			<Popover name="Kontur" className="w-auto max-w-72" ausloeser={konturKnopf}>
 				<KonturWahl k={k} quelle={quelle} aktiv={aktiv} />
 			</Popover>
 		</>

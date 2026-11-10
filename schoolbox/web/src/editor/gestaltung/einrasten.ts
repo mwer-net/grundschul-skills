@@ -117,12 +117,7 @@ const GLEICH = 0.5;
  * Hilfslinien für alle Linien der Kandidaten, auf denen jetzt ein Wert des Elements liegt. Eine Linie reicht über das
  * Element und den Kandidaten; mehrere Kandidaten auf derselben Linie ergeben eine lange Linie.
  */
-const linienAuf = (
-	r: Rechteck,
-	werte: readonly number[],
-	kandidaten: readonly Kandidat[],
-	a: Achse,
-): Hilfslinie[] => {
+const linienAuf = (r: Rechteck, werte: readonly number[], kandidaten: readonly Kandidat[], a: Achse): Hilfslinie[] => {
 	const quer: Achse = a === 'x' ? 'y' : 'x';
 	const gefunden = new Map<number, { von: number; bis: number }>();
 	for (const k of kandidaten) {

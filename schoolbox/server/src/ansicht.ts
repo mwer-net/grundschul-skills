@@ -19,8 +19,8 @@ import {
 	wendeAn,
 	zerlege,
 } from '@schoolbox/kern';
-import { aufmachungVon } from '@schoolbox/kern/src/aufmachungen/index';
 import { wendeAufmachungAn } from '@schoolbox/kern/src/aufmachungen';
+import { aufmachungVon } from '@schoolbox/kern/src/aufmachungen/index';
 import type { Request, Response } from 'express';
 import { Router } from 'express';
 
@@ -245,7 +245,12 @@ export const ansichtRouter = (kontext: Kontext) => {
 		const z = zerlege(quelle);
 		const seiten = z.knoten.filter((k) => klassenVon(k).includes('seite'));
 		const oberste = seiten.filter((k) => !seiten.some((s) => s !== k && s.start < k.start && k.ende <= s.ende));
-		return oberste.length > 1 ? wendeAn(quelle, oberste.slice(1).flatMap((k) => entferne(z, k))) : quelle;
+		return oberste.length > 1
+			? wendeAn(
+					quelle,
+					oberste.slice(1).flatMap((k) => entferne(z, k)),
+				)
+			: quelle;
 	};
 	const mitRezept = (quelle: string, id: unknown) => {
 		if (typeof id !== 'string' || !aufmachungVon(id)) {

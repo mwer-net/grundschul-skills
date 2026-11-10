@@ -38,16 +38,22 @@ const BASIS: StreuParameter = {
 	h: 300,
 };
 const ARTEN = ['punkte', 'konfetti', 'sterne'] as const;
+const FORMEN_JE_ART: Partial<Record<(typeof ARTEN)[number], StreuParameter['formen']>> = {
+	sterne: ['stern'],
+	punkte: ['punkt'],
+};
 const mit = (art: (typeof ARTEN)[number], rest: Partial<StreuParameter> = {}): StreuParameter => ({
 	...BASIS,
 	art,
-	formen: art === 'sterne' ? ['stern'] : art === 'punkte' ? ['punkt'] : BASIS.formen,
+	formen: FORMEN_JE_ART[art] ?? BASIS.formen,
 	...(art === 'punkte' ? { ecke: 'ul' as const } : {}),
 	...rest,
 });
 
 const seiteIn = (quelle: string) => {
-	const seite = zerlege(quelle).knoten.find((k) => k.tag === 'section' && /\bseite\b/.test(attribut(k, 'class')?.wert ?? ''));
+	const seite = zerlege(quelle).knoten.find(
+		(k) => k.tag === 'section' && /\bseite\b/.test(attribut(k, 'class')?.wert ?? ''),
+	);
 	assert.ok(seite);
 	return seite.nr;
 };
@@ -68,7 +74,11 @@ describe('Streuung: Teile', () => {
 		});
 
 		it(`${art}: kein Teil ragt über den Rand`, () => {
-			for (const [b, h] of [[300, 300], [120, 60], [794, 1123]] as const) {
+			for (const [b, h] of [
+				[300, 300],
+				[120, 60],
+				[794, 1123],
+			] as const) {
 				for (const t of streue(mit(art, { dichte: 1, b, h }))) {
 					assert.ok(t.x - t.r >= 0 && t.y - t.r >= 0 && t.x + t.r <= b && t.y + t.r <= h, JSON.stringify(t));
 				}
@@ -84,7 +94,9 @@ describe('Streuung: Teile', () => {
 			assert.ok(teile.length > 0);
 			for (const t of teile) {
 				assert.ok(
-					zonen.some((z) => t.x - t.r >= z.x && t.x + t.r <= z.x + z.b && t.y - t.r >= z.y && t.y + t.r <= z.y + z.h),
+					zonen.some(
+						(z) => t.x - t.r >= z.x && t.x + t.r <= z.x + z.b && t.y - t.r >= z.y && t.y + t.r <= z.y + z.h,
+					),
 					JSON.stringify(t),
 				);
 			}
@@ -103,7 +115,9 @@ describe('Streuung: Teile', () => {
 	});
 
 	it('Sterne: wenige große, viele kleine', () => {
-		const r = streue(mit('sterne', { dichte: 1, saat: 9 })).map((t) => t.r).sort((a, b) => a - b);
+		const r = streue(mit('sterne', { dichte: 1, saat: 9 }))
+			.map((t) => t.r)
+			.sort((a, b) => a - b);
 		const mitte = r[Math.floor(r.length / 2)] ?? 0;
 		assert.ok(r.filter((x) => x > mitte * 1.5).length < r.length / 2);
 	});
@@ -135,13 +149,23 @@ describe('Streuung: in der Quelle', () => {
 	const vorher = blattMit({});
 
 	it('legeStreuung legt hinten ab, mit Teilen und gleichem Bild bei gleicher Saat', () => {
-		const { nr, quelle } = legeStreuung(vorher, { seite: seiteIn(vorher), art: 'konfetti', saat: 77, lage: { x: 10, y: 20 } });
+		const { nr, quelle } = legeStreuung(vorher, {
+			seite: seiteIn(vorher),
+			art: 'konfetti',
+			saat: 77,
+			lage: { x: 10, y: 20 },
+		});
 		assert.match(quelle, /class="ebene hinten"[^]*class="streuung"/);
 		const stand = leseStreuung(quelle, nr);
 		assert.equal(stand?.art, 'konfetti');
 		assert.equal(stand?.saat, 77);
 		assert.ok((stand?.anzahl ?? 0) > 0);
-		const noch = legeStreuung(vorher, { seite: seiteIn(vorher), art: 'konfetti', saat: 77, lage: { x: 10, y: 20 } });
+		const noch = legeStreuung(vorher, {
+			seite: seiteIn(vorher),
+			art: 'konfetti',
+			saat: 77,
+			lage: { x: 10, y: 20 },
+		});
 		assert.equal(noch.quelle, quelle);
 	});
 

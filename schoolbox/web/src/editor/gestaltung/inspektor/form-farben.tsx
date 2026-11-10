@@ -1,6 +1,6 @@
+import { leseVerlauf, setzeVerlauf } from '@schoolbox/kern/src/aussehen';
 import type { Kontur } from '@schoolbox/kern/src/formen';
 import { KONTUR, KONTUR_MAX, STRICH } from '@schoolbox/kern/src/formen';
-import { leseVerlauf, setzeVerlauf } from '@schoolbox/kern/src/aussehen';
 import { leseForm, setzeFuellung, setzeKontur } from '@schoolbox/kern/src/formen-aendern';
 
 import type { VerlaufWahl } from '../../../bausteine/Farbwahl';
@@ -117,12 +117,12 @@ export const FuellungWahl = ({ aktiv, k, quelle }: FarbTeile) => {
 			doc={k.doc}
 			aus={!aktiv}
 			wert={stand.fuellung}
-			setze={(farbe) =>
+			setze={(farbe) => {
 				k.fuehreAus(farbe === null ? 'Füllung entfernt' : 'Füllung geändert', (q) => ({
 					quelle: setzeFuellung(q, k.nr, farbe),
 					nr: k.nr,
-				}))
-			}
+				}));
+			}}
 			zeige={(farbe) => zeigeAmPfad(k, 'fill', farbe)}
 			verlauf={{
 				// 108: Verlauf über den Farbwähler; die Leiste am Element bekommt ihn so von selbst.
@@ -150,11 +150,13 @@ export const KonturWahl = ({ aktiv, k, quelle }: FarbTeile) => {
 				doc={k.doc}
 				aus={!aktiv}
 				wert={kontur?.farbe ?? null}
-				setze={(farbe) =>
-					farbe === null
-						? setze('Kontur entfernt', null)
-						: setze('Kontur geändert', { farbe, staerke: kontur?.staerke || STRICH })
-				}
+				setze={(farbe) => {
+					if (farbe === null) {
+						setze('Kontur entfernt', null);
+					} else {
+						setze('Kontur geändert', { farbe, staerke: kontur?.staerke || STRICH });
+					}
+				}}
 				zeige={(farbe) => zeigeAmPfad(k, 'stroke', farbe)}
 			/>
 			<Zeile titel="Stärke" name="Stärke der Kontur">
@@ -165,12 +167,12 @@ export const KonturWahl = ({ aktiv, k, quelle }: FarbTeile) => {
 						min={0}
 						max={KONTUR_MAX}
 						aus={!aktiv}
-						setze={(staerke) =>
+						setze={(staerke) => {
 							setze(
 								'Stärke der Kontur',
 								staerke > 0 ? { farbe: kontur?.farbe ?? KONTUR, staerke } : null,
-							)
-						}
+							);
+						}}
 					/>
 				</span>
 			</Zeile>

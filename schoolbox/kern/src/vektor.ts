@@ -64,7 +64,7 @@ export const zerlegePfad = (d: string): Befehl[] | null => {
 			art = c;
 			i += 1;
 		} else if (letzter && letzter.toUpperCase() !== 'Z') {
-			art = letzter === 'M' ? 'L' : letzter === 'm' ? 'l' : letzter;
+			art = ({ M: 'L', m: 'l' } as Record<string, string>)[letzter] ?? letzter;
 		} else {
 			return null;
 		}
@@ -170,6 +170,23 @@ export const bogenZuKurven = (
 
 // ── Normalisieren ───────────────────────────────────────────────────────────
 
+const gespiegelt = (p: Punkt, letzte: Punkt | null) =>
+	letzte ? { x: 2 * p.x - letzte.x, y: 2 * p.y - letzte.y } : { ...p };
+
+const kubisch = (voll: boolean, p: Punkt, letzteC: Punkt | null, pt: (i: number) => Punkt) => ({
+	art: 'C' as const,
+	c1: voll ? pt(0) : gespiegelt(p, letzteC),
+	c2: voll ? pt(2) : pt(0),
+	p: voll ? pt(4) : pt(2),
+});
+
+const ausQuadratisch = (p: Punkt, c: Punkt, ziel: Punkt) => ({
+	art: 'C' as const,
+	c1: { x: p.x + (2 / 3) * (c.x - p.x), y: p.y + (2 / 3) * (c.y - p.y) },
+	c2: { x: ziel.x + (2 / 3) * (c.x - ziel.x), y: ziel.y + (2 / 3) * (c.y - ziel.y) },
+	p: ziel,
+});
+
 /** Aus allen Befehlen absolute Züge aus `L` und `C` (`Q`, `T`, `S`, `A` werden kubisch, `H`, `V` gerade). */
 export const normalisiere = (befehle: readonly Befehl[]): Zug[] => {
 	const zuege: Zug[] = [];
@@ -204,30 +221,21 @@ export const normalisiere = (befehle: readonly Befehl[]): Zug[] => {
 			p = { ...start };
 			jetzt = null;
 		} else if (A === 'L' || A === 'H' || A === 'V') {
-			const ziel =
-				A === 'L'
-					? pt(0)
-					: A === 'H'
-						? { x: (werte[0] ?? 0) + (relativ ? p.x : 0), y: p.y }
-						: { x: p.x, y: (werte[0] ?? 0) + (relativ ? p.y : 0) };
+			const waagerecht = { x: (werte[0] ?? 0) + (relativ ? p.x : 0), y: p.y };
+			const senkrecht = { x: p.x, y: (werte[0] ?? 0) + (relativ ? p.y : 0) };
+			const gerade = A === 'H' ? waagerecht : senkrecht;
+			const ziel = A === 'L' ? pt(0) : gerade;
 			zug().segmente.push({ art: 'L', p: ziel });
 			p = ziel;
 		} else if (A === 'C' || A === 'S') {
-			const c1 = A === 'C' ? pt(0) : letzteC ? { x: 2 * p.x - letzteC.x, y: 2 * p.y - letzteC.y } : { ...p };
-			const c2 = A === 'C' ? pt(2) : pt(0);
-			const ziel = A === 'C' ? pt(4) : pt(2);
-			zug().segmente.push({ art: 'C', c1, c2, p: ziel });
-			neuC = c2;
-			p = ziel;
+			const s = kubisch(A === 'C', p, letzteC, pt);
+			zug().segmente.push(s);
+			neuC = s.c2;
+			p = s.p;
 		} else if (A === 'Q' || A === 'T') {
-			const c: Punkt = A === 'Q' ? pt(0) : letzteQ ? { x: 2 * p.x - letzteQ.x, y: 2 * p.y - letzteQ.y } : { ...p };
+			const c: Punkt = A === 'Q' ? pt(0) : gespiegelt(p, letzteQ);
 			const ziel = A === 'Q' ? pt(2) : pt(0);
-			zug().segmente.push({
-				art: 'C',
-				c1: { x: p.x + (2 / 3) * (c.x - p.x), y: p.y + (2 / 3) * (c.y - p.y) },
-				c2: { x: ziel.x + (2 / 3) * (c.x - ziel.x), y: ziel.y + (2 / 3) * (c.y - ziel.y) },
-				p: ziel,
-			});
+			zug().segmente.push(ausQuadratisch(p, c, ziel));
 			neuQ = c;
 			p = ziel;
 		} else if (A === 'A') {
@@ -306,7 +314,8 @@ export const ankerVon = (zuege: readonly Zug[]): Anker[] =>
 			// Anker i sitzt am Ende von Segment i − 1 (i = 0: Start), Griff `aus` am Anfang von Segment i.
 			const segment = i - 1;
 			const p = i === 0 ? z.start : (z.segmente[segment]?.p ?? z.start);
-			const davor = i === 0 ? (doppelt ? z.segmente[n - 1] : undefined) : z.segmente[segment];
+			const amAnfang = doppelt ? z.segmente[n - 1] : undefined;
+			const davor = i === 0 ? amAnfang : z.segmente[segment];
 			const danach = i < n ? z.segmente[i] : undefined;
 			liste.push({
 				zug: zi,
@@ -359,7 +368,8 @@ export const setzeAnker = (
 	const dy = p.y - alt.y;
 	const schiebe = (q: Punkt): Punkt => ({ x: q.x + dx, y: q.y + dy });
 	const n = z.segmente.length;
-	const davorIndex = s.i === 0 ? (s.doppelt ? n - 1 : -1) : s.i - 1;
+	const amAnfang = s.doppelt ? n - 1 : -1;
+	const davorIndex = s.i === 0 ? amAnfang : s.i - 1;
 	const davor = davorIndex >= 0 ? z.segmente[davorIndex] : undefined;
 	const danach = s.i < n ? z.segmente[s.i] : undefined;
 	if (s.i === 0) {
@@ -431,7 +441,12 @@ const verbinde = (a: Segment, b: Segment): Segment => {
 };
 
 /** Der Anfang eines Segments ist nicht in ihm gespeichert; für die Gerade genügt ihr Ende als Griff (gerade Kante). */
-const anfangVon = (s: Segment): Punkt => (s.art === 'C' ? s.c1 : s.art === 'Q' ? s.c : s.p);
+const anfangVon = (s: Segment): Punkt => {
+	if (s.art === 'C') {
+		return s.c1;
+	}
+	return s.art === 'Q' ? s.c : s.p;
+};
 
 // ── Glätten (Stift) ─────────────────────────────────────────────────────────
 
@@ -638,8 +653,14 @@ export const inPolygon = (zuege: readonly Zug[], toleranz: number): Punkt[][] =>
 					punkte.push(s.p);
 				} else {
 					// Q als C: Die Griffe liegen zwei Drittel zum Kontrollpunkt hin.
-					const c1 = s.art === 'C' ? s.c1 : { x: von.x + (2 / 3) * (s.c.x - von.x), y: von.y + (2 / 3) * (s.c.y - von.y) };
-					const c2 = s.art === 'C' ? s.c2 : { x: s.p.x + (2 / 3) * (s.c.x - s.p.x), y: s.p.y + (2 / 3) * (s.c.y - s.p.y) };
+					const c1 =
+						s.art === 'C'
+							? s.c1
+							: { x: von.x + (2 / 3) * (s.c.x - von.x), y: von.y + (2 / 3) * (s.c.y - von.y) };
+					const c2 =
+						s.art === 'C'
+							? s.c2
+							: { x: s.p.x + (2 / 3) * (s.c.x - s.p.x), y: s.p.y + (2 / 3) * (s.c.y - s.p.y) };
 					const kurve: Segment = { art: 'C', c1, c2, p: s.p };
 					const dd = Math.max(
 						Math.hypot(von.x - 2 * c1.x + c2.x, von.y - 2 * c1.y + c2.y),
@@ -728,8 +749,14 @@ const verbessere = (q: readonly [Punkt, Punkt, Punkt, Punkt], p: readonly Punkt[
 		const pi = p[i] ?? q[0];
 		const s = 1 - t;
 		const b = bezierAn(q, t);
-		const d1 = plus(plus(mal(minus(q[1], q[0]), 3 * s * s), mal(minus(q[2], q[1]), 6 * s * t)), mal(minus(q[3], q[2]), 3 * t * t));
-		const d2 = plus(mal(plus(minus(q[2], mal(q[1], 2)), q[0]), 6 * s), mal(plus(minus(q[3], mal(q[2], 2)), q[1]), 6 * t));
+		const d1 = plus(
+			plus(mal(minus(q[1], q[0]), 3 * s * s), mal(minus(q[2], q[1]), 6 * s * t)),
+			mal(minus(q[3], q[2]), 3 * t * t),
+		);
+		const d2 = plus(
+			mal(plus(minus(q[2], mal(q[1], 2)), q[0]), 6 * s),
+			mal(plus(minus(q[3], mal(q[2], 2)), q[1]), 6 * t),
+		);
 		const diff = minus(b, pi);
 		const nenner = skalar(d1, d1) + skalar(diff, d2);
 		return Math.abs(nenner) < 1e-12 ? t : Math.min(1, Math.max(0, t - skalar(diff, d1) / nenner));

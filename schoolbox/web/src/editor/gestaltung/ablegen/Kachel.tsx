@@ -68,7 +68,13 @@ export const AblageKachel = ({
 		}
 		const { clientX: x, clientY: y, pointerId: id } = ev;
 		if (ev.pointerType !== 'mouse') {
-			druckAn.current = { x, y, id, maus: false, timer: window.setTimeout(() => beginne(x, y, id, false), HALTEN_MS) };
+			druckAn.current = {
+				x,
+				y,
+				id,
+				maus: false,
+				timer: window.setTimeout(() => beginne(x, y, id, false), HALTEN_MS),
+			};
 		} else if (ev.button === 0 && !ev.ctrlKey) {
 			druckAn.current = { x, y, id, maus: true, timer: 0 };
 		}

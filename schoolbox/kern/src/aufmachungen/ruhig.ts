@@ -12,7 +12,7 @@ const RAHMEN: Readonly<Record<AufmachungsFormat, FormatDaten['rahmen']>> = {
 	'a4-quer': { farbe: 'var(--a3)', staerke: 2, abstand: 24, ecke: 0 },
 	'a5-hoch': { farbe: 'var(--a3)', staerke: 2, abstand: 22, ecke: 0 },
 	'a3-hoch': { farbe: 'var(--a3)', staerke: 3, abstand: 32, ecke: 0 },
-	folie: { farbe: 'var(--a3)', staerke: 2, abstand: 20, ecke: 0 },
+	'folie': { farbe: 'var(--a3)', staerke: 2, abstand: 20, ecke: 0 },
 };
 
 const daten = (format: AufmachungsFormat): FormatDaten => ({

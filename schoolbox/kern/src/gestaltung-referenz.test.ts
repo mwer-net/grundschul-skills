@@ -14,8 +14,8 @@ import { pruefeFreiesHtml } from './frei';
 import type { Etappe } from './gestaltung-arten';
 import { GESTALTUNG_ARTEN } from './gestaltung-arten';
 import { ASSETS, SKILL_DIR, WURZEL } from './konfig';
-import { zerlege } from './quelltext';
 import { abgleichen } from './quellen';
+import { zerlege } from './quelltext';
 import { passt } from './referenz';
 
 const REFERENZ = readFileSync(path.join(SKILL_DIR, 'references', 'gestaltung.md'), 'utf8');

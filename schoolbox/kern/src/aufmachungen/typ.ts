@@ -16,15 +16,14 @@ export const SEITEN_MASSE: Readonly<Record<AufmachungsFormat, { b: number; h: nu
 	'a4-quer': { b: 1123, h: 794 },
 	'a5-hoch': { b: 559, h: 794 },
 	'a3-hoch': { b: 1123, h: 1587 },
-	folie: { b: 1280, h: 720 },
+	'folie': { b: 1280, h: 720 },
 };
 
 export const KOPFBAENDER = ['ohne', 'gerade', 'welle', 'bogen', 'zacken'] as const;
 export type Kopfband = (typeof KOPFBAENDER)[number];
 
 export const AUFMACHUNG_RAHMEN = ['ohne', 'linie', 'gestrichelt', 'gepunktet', 'doppelt'] as const satisfies readonly (
-	| 'ohne'
-	| RahmenArt
+	'ohne' | RahmenArt
 )[];
 export type AufmachungsRahmen = (typeof AUFMACHUNG_RAHMEN)[number];
 
@@ -82,10 +81,16 @@ export interface StreuZone {
 	ecke?: Ecke;
 }
 
+interface MusterFlaeche {
+	art: 'muster';
+	muster: 'streifen' | 'punkte' | 'karo' | 'schraeg';
+	f1: string;
+	f2: string;
+	musterGroesse: number;
+}
+
 /** Fläche des Rezepts; Farben als `var(--a-…)` oder Hex. */
-export type AufmachungsFlaeche =
-	| { art: 'farbe'; f1: string }
-	| { art: 'muster'; muster: 'streifen' | 'punkte' | 'karo' | 'schraeg'; f1: string; f2: string; musterGroesse: number };
+export type AufmachungsFlaeche = { art: 'farbe'; f1: string } | MusterFlaeche;
 
 /** Rahmen des Rezepts; die Art kommt vom Regler. */
 export interface AufmachungsRahmenWerte {

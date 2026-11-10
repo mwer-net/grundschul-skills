@@ -1,16 +1,14 @@
 import type { Baustein } from '@schoolbox/kern/src/bausteine';
 import { kann } from '@schoolbox/kern/src/bausteine';
 import type { LageTeil } from '@schoolbox/kern/src/gestaltung';
-import type { StrukturErgebnis } from '@schoolbox/kern/src/struktur';
 
 import type { PfadTeil } from '../../darstellung';
 import { elementZu, nrVon } from '../../darstellung';
 import type { Struktur } from '../../struktur';
-import { nrnFuer } from '../mehrfach';
-
 /** `GestaltungKontext` kommt aus 097. `kontextFuerGestaltung` nimmt anders als 097 auch Seitenfläche und Seitenrahmen,
  * deren Inspektor nur „Druck“ zeigt. */
 import type { GestaltungKontext } from '../kontext';
+import { nrnFuer } from '../mehrfach';
 
 export type { GestaltungKontext };
 

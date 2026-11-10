@@ -42,14 +42,16 @@ const pixel = async (page: Page, element: Locator, punkte: [number, number][]) =
 			const g = c.getContext('2d');
 			g?.drawImage(img, 0, 0);
 			return liste.map(([ax, ay]) => [
-				...(g?.getImageData(Math.round((img.width - 1) * ax), Math.round((img.height - 1) * ay), 1, 1).data ?? []),
+				...(g?.getImageData(Math.round((img.width - 1) * ax), Math.round((img.height - 1) * ay), 1, 1).data ??
+					[]),
 			]);
 		},
 		{ daten: bild.toString('base64'), liste: punkte },
 	);
 };
 
-const bunt = (p: number[]) => Math.max(p[0] ?? 0, p[1] ?? 0, p[2] ?? 0) - Math.min(p[0] ?? 0, p[1] ?? 0, p[2] ?? 0) > 12;
+const bunt = (p: number[]) =>
+	Math.max(p[0] ?? 0, p[1] ?? 0, p[2] ?? 0) - Math.min(p[0] ?? 0, p[1] ?? 0, p[2] ?? 0) > 12;
 
 /** Oben und unten in der Mitte des Sterns: innen gefüllt, nicht auf der Kontur. */
 const OBEN_UNTEN: [number, number][] = [
@@ -65,7 +67,9 @@ test.describe('Aussehen: Verlauf', () => {
 		await fuellung(page).getByRole('button', { name: 'Verlauf', exact: true }).click();
 		await expect(stern.locator('path')).toHaveAttribute('fill', /^url\(#verlauf-[a-z0-9]{4}\)$/);
 		await expect(zurueck(page)).toHaveAttribute('data-schritt', 'Verlauf geändert');
-		expect(await quelle(page)).toMatch(/<linearGradient id="verlauf-[a-z0-9]{4}" gradientTransform="rotate\(90 \.5 \.5\)">/);
+		expect(await quelle(page)).toMatch(
+			/<linearGradient id="verlauf-[a-z0-9]{4}" gradientTransform="rotate\(90 \.5 \.5\)">/,
+		);
 
 		// Von der Akzentfarbe oben zur Hauptfarbe unten (Standard des ersten Verlaufs).
 		const [oben, unten] = await pixel(page, stern, OBEN_UNTEN);
@@ -74,9 +78,7 @@ test.describe('Aussehen: Verlauf', () => {
 
 		await page.locator('[data-profilschalter]').getByRole('button', { name: 's/w', exact: true }).click();
 		await expect(material(page).locator('body.sw')).toHaveCount(1);
-		await expect
-			.poll(async () => (await pixel(page, stern, OBEN_UNTEN)).some(bunt), { timeout: 5000 })
-			.toBe(false);
+		await expect.poll(async () => (await pixel(page, stern, OBEN_UNTEN)).some(bunt), { timeout: 5000 }).toBe(false);
 	});
 
 	test('Verlauf folgt der Palette', async ({ page }) => {
@@ -84,7 +86,11 @@ test.describe('Aussehen: Verlauf', () => {
 		const stern = formen(page).first();
 		await waehle(page, stern, 'form');
 		await fuellung(page).getByRole('button', { name: 'Verlauf', exact: true }).click();
-		const stopp = () => stern.locator('stop').last().evaluate((s) => getComputedStyle(s).stopColor);
+		const stopp = () =>
+			stern
+				.locator('stop')
+				.last()
+				.evaluate((s) => getComputedStyle(s).stopColor);
 		const vorher = await stopp();
 		await aendere(page, (await quelle(page)).replace('palette-himmel', 'palette-beere'));
 		await expect.poll(stopp).not.toBe(vorher);
@@ -139,7 +145,10 @@ test.describe('Aussehen: Kontur, Schatten, Deckkraft', () => {
 		await expect(stern.locator('path')).toHaveAttribute('style', /stroke-dasharray:18 12/);
 
 		await page.getByRole('group', { name: 'Stil der Kontur' }).getByRole('button', { name: 'Punkte' }).click();
-		await expect(stern.locator('path')).toHaveAttribute('style', /stroke-dasharray:0 12.*stroke-linecap:round|stroke-linecap:round.*stroke-dasharray:0 12/);
+		await expect(stern.locator('path')).toHaveAttribute(
+			'style',
+			/stroke-dasharray:0 12.*stroke-linecap:round|stroke-linecap:round.*stroke-dasharray:0 12/,
+		);
 		await page.getByRole('group', { name: 'Stil der Kontur' }).getByRole('button', { name: 'Striche' }).click();
 		await page.getByRole('group', { name: 'Enden der Kontur' }).getByRole('button', { name: 'Rund' }).click();
 		await expect(stern).toHaveAttribute('data-kontur-enden', 'rund');
@@ -173,7 +182,9 @@ test.describe('Aussehen: Kontur, Schatten, Deckkraft', () => {
 
 	test('Opacity ändert die Reihenfolge in der Ebene nicht', async ({ page }) => {
 		const ohneDrehen = FORM.replace(';--drehen:12deg', '');
-		const rot = ohneDrehen.replace('--x:610px;--y:84px', '--x:200px;--y:200px').replace('fill:var(--akzent)', 'fill:#ff0000');
+		const rot = ohneDrehen
+			.replace('--x:610px;--y:84px', '--x:200px;--y:200px')
+			.replace('fill:var(--akzent)', 'fill:#ff0000');
 		const blau = ohneDrehen
 			.replace('--x:610px;--y:84px', '--x:240px;--y:200px')
 			.replace('--h:120px', '--h:120px;opacity:0.5')
