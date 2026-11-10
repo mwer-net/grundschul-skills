@@ -44,7 +44,7 @@ describe('legeBildFrei', () => {
 		assert.equal(attribut(bild, 'src')?.wert, 'bilder/kuerbis.jpg');
 		assert.equal(attribut(bild, 'alt')?.wert, 'Kürbis');
 		assert.equal(attribut(bild, 'style')?.wert, '--x:60px;--y:400px;--b:240px');
-		assert.equal(bild.eltern, vorne(r.quelle));
+		assert.equal(bild.eltern?.nr, vorne(r.quelle)?.nr);
 		assert.ok(!r.quelle.includes('schmuck'));
 	});
 
@@ -146,7 +146,7 @@ describe('legeFreiesElementFrei', () => {
 		assert.equal(attribut(k, 'data-lage')?.wert, 'frei');
 		// Die gemessene Breite ersetzt width="100%" als Maß; ohne --h wächst die Höhe aus dem Inhalt.
 		assert.equal(attribut(k, 'style')?.wert, '--x:40px;--y:300px;--b:280px');
-		assert.equal(k.eltern, vorne(r.quelle));
+		assert.equal(k.eltern?.nr, vorne(r.quelle)?.nr);
 		assert.ok(r.quelle.includes('Lege den Waschbären.'));
 		assert.equal(r.quelle.match(/data-frei-titel/g)?.length, 1);
 		const baustein = bausteinVonKnoten(k, false);

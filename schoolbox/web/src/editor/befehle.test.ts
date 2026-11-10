@@ -191,7 +191,7 @@ describe('Schubladen (093)', () => {
 		}
 		assert.deepEqual(
 			SCHUBLADEN.filter((s) => s.bereit(JEDE_LAGE)).map((s) => s.id),
-			['ebenen', 'bausteine', 'bilder'],
+			['ebenen', 'bausteine', 'formen', 'figuren', 'text', 'bilder', 'rezepte'],
 		);
 		const drei = { code: 'Digit3', key: '£', metaKey: false, ctrlKey: false, altKey: true, shiftKey: false };
 		assert.equal(befehlZuTaste(drei, 'ohne', k)?.id, 'ansicht.links-formen');
@@ -315,7 +315,8 @@ describe('Werkzeuge (098)', () => {
 		assert.equal(befehle.length, alle.length);
 		const belegt = new Map<string, string>();
 		for (const b of [...BEFEHLE.filter((x) => !x.id.startsWith('werkzeug.')), ...befehle]) {
-			if ((b.modus ?? MODUS_VORGABE).includes('auswahl')) {
+			// Die Pfeile schieben mit Vorrang vor Vorheriger/Nächster (100); das prüft „Pfeiltasten: bei Gestaltung …“.
+			if ((b.modus ?? MODUS_VORGABE).includes('auswahl') && !b.id.startsWith('auswahl.schiebe-')) {
 				for (const k of b.kuerzel ?? []) {
 					const s = schluessel(k);
 					assert.equal(belegt.get(s), undefined, `${s} bei ${b.id} und ${belegt.get(s) ?? ''}`);

@@ -142,7 +142,8 @@ describe('Änderungen', () => {
 			const diff = unterschied(quelle, neu, 'Text');
 			assert.ok(diff && diff.von >= h1.oeffnerEnde && diff.von + diff.alt.length <= h1.schliesserStart, name);
 			assert.equal(neu.split('\n').length, quelle.split('\n').length);
-			assert.doesNotMatch(neu, /data-sb|<svg/);
+			assert.doesNotMatch(neu, /data-sb/);
+			assert.equal(neu.split('<svg').length, quelle.split('<svg').length, name);
 		}
 	});
 

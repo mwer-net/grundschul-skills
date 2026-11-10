@@ -1,4 +1,5 @@
-import { aufmachungVon, leseAufmachung } from '@schoolbox/kern/src/aufmachungen';
+import { leseAufmachung } from '@schoolbox/kern/src/aufmachungen';
+import { aufmachungVon } from '@schoolbox/kern/src/rezepte/index';
 
 import type { Befehl, Kontext } from '../../befehle';
 import type { Aendere } from '../rezept/aktionen';

@@ -9,11 +9,11 @@
 import { readFileSync, writeFileSync } from 'node:fs';
 import path from 'node:path';
 
-import { aufmachungenTabelle } from './aufmachungen/index';
 import { blattFarbenListe } from './blatt-farben';
 import { figurenListe } from './figuren';
 import { formenTabelle } from './formen';
 import { GESTALTUNG_ARTEN } from './gestaltung-arten';
+import { aufmachungenTabelle } from './rezepte/index';
 import type { ArtAngaben } from './werte';
 import { ART_ANGABEN, ARTEN, VORLAGE_FORMAT } from './werte';
 

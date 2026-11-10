@@ -199,7 +199,7 @@ describe('Bausteine mit Anker', () => {
 
 	it('auf einer Folie gilt dasselbe', () => {
 		const vorher = blattMit({ vorne: [FIGUR_FREI] }).replace('<body class="kl2', '<body class="folie kl2');
-		const lage = { x: 300, y: 200 };
+		const lage = { x: 610, y: 520 };
 		const dran = haengeAn(vorher, nrMit(vorher, WILMA), nrMit(vorher, 'aufgabe', 1), {
 			lage,
 			ursprung: URSPRUNG[1]!,

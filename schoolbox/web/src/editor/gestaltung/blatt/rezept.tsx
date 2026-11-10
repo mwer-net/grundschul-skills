@@ -1,4 +1,5 @@
-import { aufmachungVon, hatThemaKopf, leseAufmachung } from '@schoolbox/kern/src/aufmachungen';
+import { hatThemaKopf, leseAufmachung } from '@schoolbox/kern/src/aufmachungen';
+import { aufmachungVon } from '@schoolbox/kern/src/rezepte/index';
 
 import { Knopf } from '../../../bausteine/Knopf';
 import { Symbol } from '../../../bausteine/Symbol';

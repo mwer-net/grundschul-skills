@@ -20,7 +20,7 @@ import {
 	zerlege,
 } from '@schoolbox/kern';
 import { wendeAufmachungAn } from '@schoolbox/kern/src/aufmachungen';
-import { aufmachungVon } from '@schoolbox/kern/src/aufmachungen/index';
+import { aufmachungVon } from '@schoolbox/kern/src/rezepte/index';
 import type { Request, Response } from 'express';
 import { Router } from 'express';
 

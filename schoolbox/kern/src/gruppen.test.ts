@@ -113,7 +113,7 @@ describe('Gruppen (120)', () => {
 		const q = blattMit({ vorne: [RECHTECK, SCHMUCK, PFAD, LINIE] });
 		const g = gruppiere(
 			q,
-			['rechteck', 'schmuck', 'data-form="pfad"', 'linie'].map((t) => nrMit(q, t)),
+			['rechteck', 'schmuck', 'data-form="pfad"', 'data-form="linie"'].map((t) => nrMit(q, t)),
 			[undefined, { x: 64, y: 150, b: 666, h: 62 }],
 		);
 		assert.ok(g.nr !== null);
@@ -157,8 +157,10 @@ describe('Gruppen (120)', () => {
 	});
 
 	it('Der Anker wandert an die Gruppe und beim Auflösen zurück an die Kinder', () => {
-		const zweite = FIGUR_ANKER.replace('--x:560px;--y:-40px', '--x:400px;--y:10px');
-		const q = blattMit({ anker: [FIGUR_ANKER, zweite] });
+		// `data-anker` am Ende des Start-Tags, wie `haengeAn` es schreibt; nur so kommt beim Auflösen dieselbe Quelle heraus.
+		const erste = FIGUR_ANKER.replace(' data-anker', '').replace('">', '" data-anker>');
+		const zweite = erste.replace('--x:560px;--y:-40px', '--x:400px;--y:10px');
+		const q = blattMit({ anker: [erste, zweite] });
 		const nrn = gestaltung(q).map((k) => k.nr);
 		const masse = [
 			{ x: 560, y: -40, b: 110, h: 140 },
@@ -179,7 +181,7 @@ describe('Gruppen (120)', () => {
 		const q = blattMit({ vorne: [RECHTECK, PFAD, LINIE] });
 		const innen = gruppiere(q, [nrMit(q, 'rechteck'), nrMit(q, 'data-form="pfad"')]);
 		assert.ok(innen.nr !== null);
-		const aussen = gruppiere(innen.quelle, [innen.nr, nrMit(innen.quelle, 'linie')]);
+		const aussen = gruppiere(innen.quelle, [innen.nr, nrMit(innen.quelle, 'data-form="linie"')]);
 		assert.ok(aussen.nr !== null);
 		const a = leseLage(aussen.quelle, aussen.nr);
 		const gross = skaliereGruppe(aussen.quelle, aussen.nr, {

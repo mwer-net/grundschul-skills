@@ -1,5 +1,5 @@
 import type { Aufmachung, AufmachungsFormat } from '@schoolbox/kern/src/aufmachungen';
-import { SEITEN_MASSE } from '@schoolbox/kern/src/aufmachungen';
+import { SEITEN_MASSE } from '@schoolbox/kern/src/rezepte/typ';
 
 import { klassen } from '../../../bausteine/klassen';
 

@@ -71,7 +71,9 @@ describe('Seitenfläche und Seitenrahmen', () => {
 	});
 
 	it('ändert die Werte am Ort und lässt fremde Attribute stehen', () => {
-		const quelle = blattMit({ hinten: [SEITENFLAECHE.replace('<div ', '<div data-name="Grund" ')] });
+		const quelle = blattMit({
+			hinten: [SEITENFLAECHE.replace('class="seitenflaeche" ', 'class="seitenflaeche" data-name="Grund" ')],
+		});
 		const [seite = 0] = seitenNr(quelle);
 		const neu = setzeSeitenflaeche(quelle, [seite], {
 			art: 'muster',

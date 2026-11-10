@@ -1,5 +1,7 @@
 import type { AufmachungsRahmen, AufmachungWerte, KonfettiForm, Kopfband } from '@schoolbox/kern/src/aufmachungen';
-import { aufmachungVon, KONFETTI_FORMEN, wendeAufmachungAn } from '@schoolbox/kern/src/aufmachungen';
+import { wendeAufmachungAn } from '@schoolbox/kern/src/aufmachungen';
+import { aufmachungVon } from '@schoolbox/kern/src/rezepte/index';
+import { KONFETTI_FORMEN } from '@schoolbox/kern/src/rezepte/typ';
 
 import { klassen } from '../../../bausteine/klassen';
 import { Segment } from '../../../bausteine/Segment';

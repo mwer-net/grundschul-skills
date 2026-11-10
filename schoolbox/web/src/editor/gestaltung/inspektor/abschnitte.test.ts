@@ -19,7 +19,7 @@ describe('Gestaltungs-Inspektor: Gruppierung (099)', () => {
 		const gruppen = gruppiere(INSPEKTOR_TEILE, 'figurfrei', art('figurfrei'));
 		assert.deepEqual(
 			gruppen.map((g) => g.titel),
-			['Position und Größe', 'Ebene und Anker', 'Druck'],
+			['Position und Größe', 'Bild', 'Ebene und Anker', 'Druck'],
 		);
 	});
 
@@ -33,13 +33,13 @@ describe('Gestaltungs-Inspektor: Gruppierung (099)', () => {
 		}
 	});
 
-	it('stellt einen Teil im Abschnitt 8 mit Reihenfolge 2 hinter ebene.tsx', () => {
-		const anker: InspektorTeil = { id: 'anker', abschnitt: 8, reihenfolge: 2, fuer: () => true, Inhalt: Leer };
-		const gruppen = gruppiere([anker, ...INSPEKTOR_TEILE], 'form', art('form'));
+	it('stellt einen Teil im Abschnitt 8 mit Reihenfolge 3 hinter ebene.tsx und anker.tsx', () => {
+		const probe: InspektorTeil = { id: 'probe', abschnitt: 8, reihenfolge: 3, fuer: () => true, Inhalt: Leer };
+		const gruppen = gruppiere([probe, ...INSPEKTOR_TEILE], 'form', art('form'));
 		const ebene = gruppen.find((g) => g.nr === 8);
 		assert.deepEqual(
 			ebene?.teile.map((t) => t.id),
-			['ebene', 'anker'],
+			['ebene', 'anker', 'probe'],
 		);
 	});
 
@@ -48,7 +48,7 @@ describe('Gestaltungs-Inspektor: Gruppierung (099)', () => {
 		const gruppen = gruppiere([...INSPEKTOR_TEILE, spaet], 'form', art('form'));
 		assert.deepEqual(
 			gruppen.map((g) => g.nr),
-			[2, 3, 8, 9],
+			[2, 3, 4, 8, 9],
 		);
 	});
 });

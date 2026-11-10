@@ -10,22 +10,6 @@
  * zurück); `legeAufmachungFrei` gibt dem Titel eine Farbe.
  */
 
-import type {
-	Aufmachung,
-	AufmachungsFormat,
-	AufmachungWerte,
-	Farbwelt,
-	Kopfband,
-	Regler,
-	StreuZone,
-} from './aufmachungen/index';
-import {
-	AUFMACHUNG_FORMATE,
-	AUFMACHUNG_RAHMEN,
-	aufmachungVon,
-	KONFETTI_FORMEN,
-	KOPFBAENDER,
-} from './aufmachungen/index';
 import { istEbene, legeGestaltungAb, neueId, stilMitLage } from './gestaltung';
 import { formatAusHtml } from './html';
 import type { Aenderung, Knoten, Zerlegung } from './quelltext';
@@ -43,9 +27,19 @@ import {
 	wendeAn,
 	zerlege,
 } from './quelltext';
+import type {
+	Aufmachung,
+	AufmachungsFormat,
+	AufmachungWerte,
+	Farbwelt,
+	Kopfband,
+	Regler,
+	StreuZone,
+} from './rezepte/index';
+import { AUFMACHUNG_FORMATE, AUFMACHUNG_RAHMEN, aufmachungVon, KONFETTI_FORMEN, KOPFBAENDER } from './rezepte/index';
 import { saatAus, streuungHtml } from './streuen';
 
-export * from './aufmachungen/index';
+export * from './rezepte/index';
 
 /** Kennzeichen eines erzeugten Teils; der Wert nennt die Art (`flaeche`, `rahmen`, `streuung`). */
 export const TEIL = 'data-aufmachung-teil';

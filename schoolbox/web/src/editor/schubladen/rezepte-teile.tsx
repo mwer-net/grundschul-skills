@@ -1,12 +1,11 @@
 import type { Aufmachung } from '@schoolbox/kern/src/aufmachungen';
 import {
-	AUFMACHUNGEN,
 	aufmachungsFormatVon,
-	aufmachungVon,
 	hatThemaKopf,
 	leseAufmachung,
 	wendeAufmachungAn,
 } from '@schoolbox/kern/src/aufmachungen';
+import { AUFMACHUNGEN, aufmachungVon } from '@schoolbox/kern/src/rezepte/index';
 
 import { Knopf } from '../../bausteine/Knopf';
 import { Schubladenhinweis, Schubladenkopf } from '../../bausteine/Schubladenkopf';

@@ -10,7 +10,7 @@ describe('Symbole der Bereiche', () => {
 
 	it('jeder Name aus dem Kern steht in Symbol.tsx', () => {
 		for (const name of [...Object.values(BEREICH_SYMBOL), MEINE_BAUSTEINE_SYMBOL]) {
-			assert.match(quelle, new RegExp(`^\\t${name}: \\w+,$`, 'm'), name);
+			assert.match(quelle, new RegExp(`^\\t'?${name}'?: \\w+,$`, 'm'), name);
 		}
 	});
 });
