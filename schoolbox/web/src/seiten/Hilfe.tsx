@@ -103,19 +103,32 @@ const ABSCHNITTE: Abschnitt[] = [
 	},
 	{
 		id: 'anlegen',
-		titel: 'Selbst anlegen',
+		titel: 'Material anlegen',
 		inhalt: (
 			<>
-				<ol>
-					<li>
-						Einen Ordner öffnen oder mit „Neuer Ordner“ anlegen. Fach und Klasse fragt erst das Material.
-					</li>
-					<li>
-						Im Ordner auf „Material anlegen“: Art, Format und Titel wählen, dann leer, mit einer Vorlage
-						oder „Mit Claude“ beginnen. Mit Claude schreibst du in einem Satz, worum es geht. Der Chat
-						öffnet sich im Editor, und am Ende steht ein Entwurf zum Vergleichen.
-					</li>
-				</ol>
+				<p>
+					Einen Ordner öffnen oder mit „Neuer Ordner“ anlegen, dann „Material anlegen“. Der Assistent fragt
+					Schritt für Schritt, links stehen deine Antworten, ein Klick darauf springt zurück. Vorgewählt ist
+					die Empfehlung, ⏎ übernimmt sie und geht weiter.
+				</p>
+				<ul>
+					<Punkt titel="Mit Claude">
+						Art, Format, Klasse und Fach, Thema und Ziel, Bausteine wie Niveaus oder Selbsteinschätzung und
+						was Claude über deine Klasse wissen sollte. Passt keine Antwort, schreibst du unter „Anders …“
+						selbst. Am Ende steht der Auftrag, genau so geht er an Claude; „Als Text bearbeiten“ ändert ihn
+						von Hand. „Mit Claude erstellen“ legt das Blatt an, und Claude baut den ersten Entwurf. Das
+						dauert einige Minuten und verbraucht deutlich mehr als eine Änderung.
+					</Punkt>
+					<Punkt titel="Leeres Blatt">
+						nur Art, Format und Titel, dann baust du selbst mit Bausteinen, Formen und Figuren. „Doch lieber
+						leeres Blatt“ wechselt jederzeit dorthin und behält, was du schon gewählt hast.
+					</Punkt>
+					<Punkt titel="Tasten">1 bis 9 wählen eine Kachel, ⏎ geht weiter, ⇧⏎ zurück, Esc schließt.</Punkt>
+				</ul>
+				<p>
+					Erst der letzte Schritt legt etwas an. Keine Namen von Kindern eintragen. Ein Mini-Book wählst du
+					beim Lesetext als Format.
+				</p>
 				<h3>Bausteine einfügen</h3>
 				<ul>
 					<Punkt titel="Plus">
@@ -129,7 +142,11 @@ const ABSCHNITTE: Abschnitt[] = [
 				</ul>
 			</>
 		),
-		bilder: [],
+		bilder: [
+			{ datei: 'anlegen-start-mac.jpg', alt: 'Die erste Frage: mit Claude oder leeres Blatt', geraet: 'Mac' },
+			{ datei: 'anlegen-format-mac.jpg', alt: 'Das Format, die Empfehlung ist vorgewählt', geraet: 'Mac' },
+			{ datei: 'anlegen-auftrag-mac.jpg', alt: 'Der Auftrag an Claude vor dem Start', geraet: 'Mac' },
+		],
 	},
 	{
 		id: 'material',
@@ -377,9 +394,30 @@ const ABSCHNITTE: Abschnitt[] = [
 				</p>
 				<h3>Neues Material</h3>
 				<p>
-					In „Mein Material“ oder einem Ordner wird aus deiner Nachricht neues Material, im Editor wählst du
-					dafür im Knopf links „Neues Material“. Claude zeigt erst eine Karte mit Titel, Format, Fach, Klasse
-					und Ablage. Erst Enter oder „Anlegen“ startet die Arbeit, „Ändern“ öffnet die Wahl von Hand.
+					Der übliche Weg ist „Material anlegen“, siehe oben. Aus dem Chat geht es auch: In „Mein Material“
+					oder einem Ordner wird aus deiner Nachricht neues Material, im Editor wählst du dafür im Knopf links
+					„Neues Material“. Claude zeigt erst eine Karte mit Titel, Format, Fach, Klasse und Ablage. Erst
+					Enter oder „Anlegen“ startet die Arbeit. „Ändern“ öffnet den Assistenten beim Auftrag, links
+					springst du zu jeder Frage.
+				</p>
+				<p>
+					Danach öffnet der Editor das leere Blatt. Solange Claude baut, liegt darauf eine Karte mit den
+					Schritten, oben im Kopf läuft die Zeit, und das Blatt ist gesperrt. Du kannst den Editor verlassen,
+					die Arbeit läuft weiter; in der Übersicht steht an der Kachel „Claude baut …“.
+				</p>
+				<ul>
+					<Punkt titel="Übernehmen">
+						oder ⏎: Der Entwurf wird dein Blatt. Rückgängig nimmt ihn wieder zurück.
+					</Punkt>
+					<Punkt titel="Nachbessern …">
+						schreib, was anders sein soll. Claude arbeitet am Entwurf weiter und kennt den ersten Auftrag.
+					</Punkt>
+					<Punkt titel="Verwerfen">das leere Blatt bleibt im Ordner, du füllst es selbst.</Punkt>
+					<Punkt titel="Annahmen">was Claude selbst entschieden hat, zum Aufklappen.</Punkt>
+				</ul>
+				<p>
+					Klappt es nicht, steht der Grund auf dem Blatt, mit „Nochmal“. Ist das Limit erreicht, steht dort
+					auch, ab wann es wieder geht.
 				</p>
 				<h3>Was weiter die Claude-App braucht</h3>
 				<p>
@@ -396,7 +434,10 @@ const ABSCHNITTE: Abschnitt[] = [
 				</p>
 			</>
 		),
-		bilder: [{ datei: 'chat-mac.jpg', alt: 'Der Chat mit einem Vorschlag über dem Blatt', geraet: 'Mac' }],
+		bilder: [
+			{ datei: 'chat-mac.jpg', alt: 'Der Chat mit einem Vorschlag über dem Blatt', geraet: 'Mac' },
+			{ datei: 'entwurf-mac.jpg', alt: 'Der Entwurf von Claude mit der Leiste über dem Blatt', geraet: 'Mac' },
+		],
 	},
 	{
 		id: 'teilen',

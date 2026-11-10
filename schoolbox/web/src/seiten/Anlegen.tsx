@@ -1,179 +1,39 @@
-import type { EigeneVorlage } from '@schoolbox/kern/src/eigene';
+import type { Antworten, AssistentSchrittId, FreitextFeld, Weg } from '@schoolbox/kern/src/assistent';
+import { formatOptionen, formatWahl, FREITEXT, leereAntworten, schritteFuer } from '@schoolbox/kern/src/assistent';
 import type { Einordnung } from '@schoolbox/kern/src/einordnung';
-import { ART_KURZ, ART_NAME, FACH_NAME } from '@schoolbox/kern/src/namen';
-import type { Art, Fach, Format, Klasse } from '@schoolbox/kern/src/werte';
-import {
-	ART_ANGABEN,
-	ART_FORMATE,
-	ARTEN,
-	FAECHER,
-	FORMAT_NAME,
-	KLASSEN,
-	VORLAGE_ART,
-	VORLAGE_FORMAT,
-} from '@schoolbox/kern/src/werte';
+import type { Art } from '@schoolbox/kern/src/werte';
 import type { ReactNode } from 'react';
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 
-import { meldung, sende } from '../api';
+import { meldung } from '../api';
 import { Dialog } from '../bausteine/Dialog';
-import { FELD_KLASSEN, klassen } from '../bausteine/klassen';
 import { Knopf } from '../bausteine/Knopf';
 import { Symbol } from '../bausteine/Symbol';
-import { useKiZustand } from '../editor/ki';
-import { useLaden } from '../lib/laden';
-import { klasseName } from '../lib/text';
+import { useChat } from '../editor/chat-kontext';
+import { limitHinweis, neueGespraechId, useKiZustand } from '../editor/ki';
 import { useAblage } from '../ordner/kontext';
-import type { AblageStand } from '../ordner/typen';
+import { ersterSchritt, LETZTE, mitWeg, ortDesAssistenten, wirksameAntworten } from './anlegen-hilfe';
+import type { AuftragText } from './AnlegenSchritte';
+import {
+	Fehler,
+	SchrittArt,
+	SchrittBausteine,
+	SchrittFormat,
+	SchrittFuerWen,
+	SchrittKlasse,
+	Schrittleiste,
+	SchrittPruefen,
+	SchrittStart,
+	SchrittThema,
+	SchrittTitel,
+} from './AnlegenSchritte';
 import { legeMaterialAn } from './material-anlegen';
-
-const FELD = `${FELD_KLASSEN} w-full`;
-
-const Feld = ({ children, name }: { name: string; children: ReactNode }) => (
-	<label className="mb-2 block font-medium">
-		<span className="mb-0.5 block">{name}</span>
-		{children}
-	</label>
-);
-
-const Fehler = ({ text }: { text: string | null }) =>
-	text ? (
-		<p role="alert" className="mb-3 rounded-md bg-red-50 px-3 py-2 text-fehler" data-anlegen-fehler>
-			{text}
-		</p>
-	) : null;
-
-/** Eine Auswahl als große Fläche: gut zu treffen, zeigt auch die Beschreibung. */
-const Wahl = ({
-	aktiv,
-	children,
-	id,
-	titel,
-	waehle,
-}: {
-	id: string;
-	titel: string;
-	aktiv: boolean;
-	waehle: () => void;
-	children?: ReactNode;
-}) => (
-	<button
-		type="button"
-		aria-pressed={aktiv}
-		data-wahl={id}
-		className={klassen(
-			'w-full rounded-md border px-2.5 py-1.5 text-left',
-			aktiv ? 'border-brand-500 bg-brand-50' : 'border-rand bg-flaeche hover:bg-flaeche-2',
-		)}
-		onClick={waehle}
-	>
-		<span className="block font-medium">{titel}</span>
-		{children}
-	</button>
-);
-
-const ZUSATZ = [
-	['selbsteinschaetzung', 'Selbsteinschätzung'],
-	['niveaus', 'Niveaus zur Selbstwahl (Churer Modell)'],
-	['sternchen', 'Sternchenaufgabe'],
-] as const;
-type ZusatzName = (typeof ZUSATZ)[number][0];
-
-/** Nur was die Tabelle je Art anbietet; „–“ heißt: nicht fragen. */
-const zusatzVon = (art: Art) => {
-	const b = ART_ANGABEN[art].bausteine;
-	return b ? ZUSATZ.filter(([name]) => b[name].startsWith('ja')) : [];
-};
-
-const SCHRITTE = ['Art', 'Format', 'Titel', 'Start'] as const;
-
-const passendeVorlagen = (vorlagen: string[], art: Art, format: Format) =>
-	vorlagen.filter((v) => {
-		const nurFuer = VORLAGE_ART[v];
-		if (nurFuer) {
-			return nurFuer === art;
-		}
-		const fest = VORLAGE_FORMAT[v]?.format;
-		if (fest) {
-			return art === 'arbeitsblatt' || art === 'lesetext' || art === 'sonstiges';
-		}
-		if (v === 'praesentation') {
-			return art === 'praesentation' && format === 'folie';
-		}
-		return format === 'a4-hoch' && art !== 'praesentation';
-	});
-
-/** Eigene Vorlage im Schritt „Start“: wählen, als Standard markieren, umbenennen, löschen (051). */
-const EigeneWahl = ({
-	aktiv,
-	neuLaden,
-	vorlage,
-	waehle,
-}: {
-	vorlage: EigeneVorlage;
-	aktiv: boolean;
-	waehle: () => void;
-	neuLaden: () => void;
-}) => {
-	const [neu, setNeu] = useState<string | null>(null);
-	const aendere = (pfad: string, daten: object) => {
-		void sende(`/api/eigene/vorlagen/${vorlage.id}/${pfad}`, daten).then(neuLaden);
-	};
-	return (
-		<div data-eigene-vorlage={vorlage.id}>
-			<Wahl id={`eigen-${vorlage.id}`} titel={`Eigene Vorlage: ${vorlage.name}`} aktiv={aktiv} waehle={waehle}>
-				<span className="block text-sm text-leise">
-					{vorlage.standard ? 'Dein Standard für diese Art' : 'Deine Vorlage'}
-				</span>
-			</Wahl>
-			<div className="mt-1 flex flex-wrap items-center gap-1">
-				<Knopf
-					art="zweit"
-					aria-pressed={vorlage.standard}
-					onClick={() => aendere('aendern', { standard: !vorlage.standard })}
-				>
-					Standard
-				</Knopf>
-				{neu === null ? (
-					<Knopf art="zweit" onClick={() => setNeu(vorlage.name)}>
-						Umbenennen
-					</Knopf>
-				) : (
-					<>
-						<input
-							aria-label="Neuer Name"
-							className={`${FELD_KLASSEN} min-w-0 flex-1`}
-							value={neu}
-							onChange={(e) => setNeu(e.target.value)}
-						/>
-						<Knopf
-							disabled={neu.trim() === ''}
-							onClick={() => {
-								setNeu(null);
-								aendere('aendern', { name: neu });
-							}}
-						>
-							Speichern
-						</Knopf>
-					</>
-				)}
-				<Knopf
-					art="gefahr"
-					aria-label={`Vorlage ${vorlage.name} löschen`}
-					onClick={() => aendere('loeschen', {})}
-				>
-					<Symbol name="papierkorb" />
-				</Knopf>
-			</div>
-		</div>
-	);
-};
 
 interface MaterialDialogEigenschaften {
 	/** Der Ordner des Assistenten; `null`: „Mein Material“. Sonst der aus der Einordnung. */
 	ordner?: string | null;
-	/** Aus dem Chat (077): alles vorbelegt, Claude schreibt den Entwurf. */
+	/** Aus dem Chat (077): alles vorbelegt, der Assistent öffnet bei „Auftrag prüfen“. Fällt mit 136. */
 	einordnung?: Einordnung;
 	wunsch?: string;
 	/** Das Gespräch, aus dem der Wunsch kommt. */
@@ -182,268 +42,230 @@ interface MaterialDialogEigenschaften {
 	vorDemSprung?: (mappe: string, dok: string) => void;
 }
 
-const FachKlasseFelder = ({
-	fach,
-	klasse,
-	setFach,
-	setKlasse,
-}: {
-	fach: Fach;
-	klasse: Klasse;
-	setFach: (fach: Fach) => void;
-	setKlasse: (klasse: Klasse) => void;
-}) => (
-	<>
-		<Feld name="Fach">
-			<select className={FELD} value={fach} onChange={(e) => setFach(e.target.value as Fach)}>
-				{FAECHER.map((f) => (
-					<option key={f} value={f}>
-						{FACH_NAME[f]}
-					</option>
-				))}
-			</select>
-		</Feld>
-		<Feld name="Klasse">
-			<select
-				className={FELD}
-				value={String(klasse)}
-				onChange={(e) => setKlasse(KLASSEN.find((k) => String(k) === e.target.value) ?? 1)}
-			>
-				{KLASSEN.map((k) => (
-					<option key={k} value={String(k)}>
-						{klasseName(k)}
-					</option>
-				))}
-			</select>
-		</Feld>
-	</>
-);
-
-const LETZTE = 'schoolbox.zuletzt-fach-klasse';
-
-/** Vorbelegt vom jüngsten Dokument im Ordner, sonst zuletzt genutzt (Ticket, Behälter neuer Dokumente). */
-const vorbelegung = (stand: AblageStand | null, ordner: string | null): { fach: Fach; klasse: Klasse } => {
-	const juengstes = (stand?.dokumente ?? [])
-		.filter((d) => d.ordner === ordner)
-		.sort((a, b) => b.meta.geaendert.localeCompare(a.meta.geaendert))[0];
-	if (juengstes) {
-		return { fach: juengstes.fach, klasse: juengstes.klasse };
-	}
-	try {
-		const roh = JSON.parse(localStorage.getItem(LETZTE) ?? 'null') as { fach?: Fach; klasse?: Klasse } | null;
-		if (roh?.fach && roh.klasse !== undefined) {
-			return { fach: roh.fach, klasse: roh.klasse };
-		}
-	} catch {
-		// Kaputtes im Speicher zählt nicht.
-	}
-	return { fach: 'deutsch', klasse: 1 };
+const ausEinordnung = (basis: Antworten, einordnung: Einordnung, wunsch: string): Antworten => {
+	const a: Antworten = {
+		...basis,
+		art: einordnung.art,
+		fach: einordnung.fach,
+		klasse: einordnung.klasse,
+		thema: einordnung.titel.slice(0, FREITEXT.thema.zeichen),
+		sonst: wunsch.slice(0, FREITEXT.sonst.zeichen),
+		titel: einordnung.titel.slice(0, FREITEXT.titel.zeichen),
+	};
+	const option = formatOptionen(a).find((o) => !o.vorlage && o.format === einordnung.format);
+	return { ...a, format: option && !option.empfohlen ? option.wert : '' };
 };
 
-/** Assistent „Material anlegen“: Art, Format, Titel, Start. Abbrechen legt nichts an; erst der letzte Schritt schreibt. */
-interface SchrittStartEigenschaften {
-	eigene: EigeneVorlage[];
-	mitClaude: boolean;
-	neuLaden: () => void;
-	setMitClaude: (an: boolean) => void;
-	setVorlage: (v: string | null) => void;
-	setWunsch: (w: string) => void;
-	setZusatz: (z: Partial<Record<ZusatzName, boolean>>) => void;
-	verfuegbar: boolean;
-	vorlage: string | null;
-	vorlagen: string[];
-	wunsch: string;
-	zusaetze: ReturnType<typeof zusatzVon>;
-	zusatz: Partial<Record<ZusatzName, boolean>>;
-}
+const istTextfeld = (ziel: EventTarget | null) =>
+	ziel instanceof HTMLInputElement || ziel instanceof HTMLTextAreaElement || ziel instanceof HTMLSelectElement;
 
-/** Ein Ordner mit Behälter gibt Fach und Klasse vor. Das entscheidet der Server genauso. */
-const hatBehaelter = (stand: AblageStand | null, eintrag: AblageStand['ordner'][number] | undefined) =>
-	Boolean(eintrag?.behaelter && stand?.dokumente.some((d) => d.mappe === eintrag.behaelter));
+const hauptText = (schritt: AssistentSchrittId) => {
+	if (schritt === 'pruefen') {
+		return 'Mit Claude erstellen';
+	}
+	return schritt === 'titel' ? 'Leeres Blatt anlegen' : 'Weiter';
+};
 
-const ordnerAusEinordnung = (einordnung: MaterialDialogEigenschaften['einordnung']) => einordnung?.ordner?.id ?? null;
+/** Beim Auftrag das leere Blatt statt Claude, unterwegs der Wechsel dorthin, sonst Abbrechen. */
+const Ausweg = ({
+	anlegenLeer,
+	doch,
+	laeuft,
+	schliessen,
+	schritt,
+	zumLeerenBlatt,
+}: {
+	schritt: AssistentSchrittId;
+	doch: boolean;
+	laeuft: boolean;
+	anlegenLeer: () => void;
+	zumLeerenBlatt: () => void;
+	schliessen: () => void;
+}) => {
+	if (schritt === 'pruefen') {
+		return (
+			<Knopf art="leise" disabled={laeuft} onClick={anlegenLeer}>
+				<Symbol name="blatt" />
+				Nur leeres Blatt anlegen
+			</Knopf>
+		);
+	}
+	if (doch) {
+		return (
+			<Knopf art="leise" onClick={zumLeerenBlatt}>
+				<Symbol name="blatt" />
+				Doch lieber leeres Blatt
+			</Knopf>
+		);
+	}
+	return (
+		<Knopf art="leise" onClick={schliessen}>
+			Abbrechen
+		</Knopf>
+	);
+};
 
-const SchrittStart = ({
-	eigene,
-	mitClaude,
-	neuLaden,
-	setMitClaude,
-	setVorlage,
-	setWunsch,
-	setZusatz,
-	verfuegbar,
-	vorlage,
-	vorlagen,
-	wunsch,
-	zusaetze,
-	zusatz,
-}: SchrittStartEigenschaften) => (
-	<>
-		<div className="grid grid-cols-2 gap-2 max-md:grid-cols-1">
-			<Wahl
-				id="leer"
-				titel="Leer"
-				aktiv={vorlage === null && !mitClaude}
-				waehle={() => {
-					setVorlage(null);
-					setMitClaude(false);
-				}}
-			>
-				<span className="block text-sm text-leise">Du fügst die Bausteine selbst ein.</span>
-			</Wahl>
-			{verfuegbar && (
-				<Wahl
-					id="mit-claude"
-					titel="Mit Claude"
-					aktiv={mitClaude}
-					waehle={() => {
-						setVorlage(null);
-						setMitClaude(true);
-					}}
-				>
-					<span className="block text-sm text-leise">
-						Claude schreibt einen Entwurf, du bearbeitest ihn weiter.
-					</span>
-				</Wahl>
-			)}
-			{eigene.map((v) => (
-				<EigeneWahl
-					key={v.id}
-					vorlage={v}
-					aktiv={vorlage === `eigen-${v.id}`}
-					waehle={() => {
-						setVorlage(`eigen-${v.id}`);
-						setMitClaude(false);
-					}}
-					neuLaden={neuLaden}
-				/>
-			))}
-			{vorlagen.map((v) => (
-				<Wahl
-					key={v}
-					id={v}
-					titel={`Vorlage: ${v}`}
-					aktiv={vorlage === v}
-					waehle={() => {
-						setVorlage(v);
-						setMitClaude(false);
-					}}
-				>
-					<iframe
-						src={`/ansicht/_assets/vorlage-${v}.html`}
-						title={`Vorschau ${v}`}
-						loading="lazy"
-						tabIndex={-1}
-						className="pointer-events-none mt-2 h-64 w-[250%] origin-top-left scale-[0.4] border-0 [margin-bottom:-9.6rem]"
-					/>
-				</Wahl>
-			))}
-		</div>
-		{vorlagen.length === 0 && eigene.length === 0 && (
-			<p className="mt-2 text-leise">
-				Für diese Art gibt es noch keine Vorlage. Du startest mit einem leeren Blatt.
-			</p>
+/** Links der Ausweg, rechts Zurück, Überspringen und die Hauptaktion mit ⏎. */
+const Fuss = ({
+	anlegenLeer,
+	claude,
+	gesperrt,
+	index,
+	laeuft,
+	schliessen,
+	schritt,
+	weiter,
+	zumLeerenBlatt,
+	zurueck,
+}: {
+	schritt: { id: AssistentSchrittId; optional?: boolean };
+	index: number;
+	claude: boolean;
+	laeuft: boolean;
+	/** Die Hauptaktion geht gerade nicht: am Limit, oder es ist noch offen, ob es Claude gibt. */
+	gesperrt: boolean;
+	anlegenLeer: () => void;
+	zumLeerenBlatt: () => void;
+	schliessen: () => void;
+	zurueck: () => void;
+	weiter: () => void;
+}) => (
+	<div className="flex items-center gap-2 border-t border-rand pt-3">
+		<Ausweg
+			schritt={schritt.id}
+			doch={claude && index > 0}
+			laeuft={laeuft}
+			anlegenLeer={anlegenLeer}
+			zumLeerenBlatt={zumLeerenBlatt}
+			schliessen={schliessen}
+		/>
+		<span className="flex-1" />
+		{index > 0 && (
+			<Knopf art="zweit" onClick={zurueck}>
+				Zurück
+			</Knopf>
 		)}
-		{mitClaude && (
-			<label className="mt-4 block font-medium">
-				Worum geht es, und was sollen die Kinder können?
-				<textarea
-					className={`${FELD_KLASSEN} mt-1 h-auto w-full py-1.5 font-normal`}
-					rows={3}
-					maxLength={2000}
-					value={wunsch}
-					onChange={(e) => setWunsch(e.target.value)}
-				/>
-				<span className="mt-1 block text-sm font-normal text-leise">
-					Keine Namen von Kindern eintragen. Reihen, mehrere Dokumente und neue Bilder gehen in der
-					Claude-App.
-				</span>
-			</label>
+		{schritt.optional && (
+			<Knopf art="zweit" onClick={weiter}>
+				Überspringen
+			</Knopf>
 		)}
-		{!mitClaude && zusaetze.length > 0 && (
-			<fieldset className="mt-4">
-				<legend className="font-medium">Gleich dazu (kannst du überspringen)</legend>
-				{zusaetze.map(([z, titelZ]) => (
-					<label key={z} className="flex h-knopf items-center gap-2">
-						<input
-							type="checkbox"
-							className="size-4"
-							checked={zusatz[z] === true}
-							onChange={(e) => setZusatz({ ...zusatz, [z]: e.target.checked })}
-						/>
-						{titelZ}
-					</label>
-				))}
-			</fieldset>
-		)}
-	</>
+		<Knopf data-hauptaktion disabled={laeuft || gesperrt} onClick={weiter}>
+			{schritt.id === 'pruefen' && <Symbol name="funken" />}
+			{hauptText(schritt.id)}
+			<kbd aria-hidden="true" className="ml-1 text-xs opacity-75">
+				⏎
+			</kbd>
+		</Knopf>
+	</div>
 );
 
+/**
+ * Assistent „Material anlegen“ (132, Entwurf A1): eine Frage je Schritt, links die Schrittleiste. Fragen, Antworten
+ * und Auftrag kommen aus dem Kern (`assistent.ts`). Abbrechen legt nichts an; erst der letzte Schritt schreibt.
+ */
 export const MaterialDialog = ({
 	einordnung,
 	gespraechId,
 	ordner: festerOrdner,
 	schliessen,
 	vorDemSprung,
-	wunsch: wunschVorher,
+	wunsch,
 }: MaterialDialogEigenschaften) => {
 	const { stand } = useAblage();
-	const ordner = festerOrdner === undefined ? ordnerAusEinordnung(einordnung) : festerOrdner;
-	const eintrag = stand?.ordner.find((o) => o.id === ordner);
-	const mitBehaelter = Boolean(einordnung?.fest) || hatBehaelter(stand, eintrag);
-	const vorher = einordnung ?? vorbelegung(stand, ordner);
-	const [fach, setFach] = useState<Fach>(vorher.fach);
-	const [klasse, setKlasse] = useState<Klasse>(vorher.klasse);
-	const [schritt, setSchritt] = useState(0);
-	const [art, setArt] = useState<Art>(einordnung?.art ?? 'arbeitsblatt');
-	const [format, setFormat] = useState<Format>(einordnung?.format ?? ART_ANGABEN.arbeitsblatt.format);
-	const [titel, setTitel] = useState(einordnung?.titel ?? '');
-	const [vorlage, setVorlage] = useState<string | null>(null);
-	const [zusatz, setZusatz] = useState<Partial<Record<ZusatzName, boolean>>>({});
+	const { angabe: ordnerAngabe, ordner, vorbelegt } = ortDesAssistenten(stand, festerOrdner, einordnung);
+	const ki = useKiZustand();
+	const hinweis = limitHinweis(ki.zustand.limit, ki.zustand.warnAb);
+	const gesperrt = hinweis?.art === 'gesperrt';
+	const navigate = useNavigate();
+	const chat = useChat();
+
+	const [antworten, setAntworten] = useState<Antworten>(() => {
+		const basis = leereAntworten(vorbelegt);
+		return einordnung ? ausEinordnung(basis, einordnung, wunsch ?? '') : basis;
+	});
+	const [titelEigen, setTitelEigen] = useState(Boolean(einordnung));
+	const [schritt, setSchritt] = useState<AssistentSchrittId>(() => ersterSchritt(einordnung));
+	const [besucht, setBesucht] = useState<ReadonlySet<AssistentSchrittId>>(() =>
+		einordnung ? new Set(schritteFuer(antworten).map((s) => s.id)) : new Set(['start']),
+	);
+	const [offen, setOffen] = useState<Partial<Record<FreitextFeld, boolean>>>({});
+	const [text, setText] = useState<AuftragText | null>(null);
 	const [fehler, setFehler] = useState<string | null>(null);
 	const [laeuft, setLaeuft] = useState(false);
-	const [mitClaude, setMitClaude] = useState(Boolean(einordnung));
-	const [wunsch, setWunsch] = useState(wunschVorher ?? '');
-	const ausDemChat = Boolean(einordnung);
-	const ki = useKiZustand().zustand;
-	const navigate = useNavigate();
-	const { daten } = useLaden<{ vorlagen: string[] }>('/api/mappen/vorlagen/liste');
-	const vorlagen = passendeVorlagen(daten?.vorlagen ?? [], art, format);
-	const eigen = useLaden<{ vorlagen: EigeneVorlage[] }>('/api/eigene/vorlagen');
-	const eigene = useMemo(() => (eigen.daten?.vorlagen ?? []).filter((v) => v.art === art), [eigen.daten, art]);
-	// Die als Standard markierte Vorlage ist vorgewählt, sobald die Art feststeht.
-	useEffect(() => {
-		const standard = eigene.find((v) => v.standard);
-		if (standard && !ausDemChat) {
-			setVorlage(`eigen-${standard.id}`);
-		}
-	}, [ausDemChat, eigene]);
-	const zusaetze = zusatzVon(art);
+	const wurzel = useRef<HTMLDivElement>(null);
 
-	const waehleArt = (a: Art) => {
-		setArt(a);
-		setFormat(ART_ANGABEN[a].format);
-		setVorlage(null);
-		setZusatz({});
-	};
-	const weiter = () => {
-		if (SCHRITTE[schritt] === 'Titel' && titel.trim() === '') {
-			setFehler('Bitte gib einen Titel ein.');
-			return;
+	const wirksam = wirksameAntworten(antworten, vorbelegt, titelEigen);
+	// Für ⏎ direkt nach einem Klick: Der Stand ist dann schon gesetzt, aber noch nicht gezeichnet.
+	const jetzt = useRef(wirksam);
+	jetzt.current = wirksam;
+
+	// Ohne angemeldetes Claude bleibt nur das leere Blatt.
+	useEffect(() => {
+		if (ki.geladen && !ki.zustand.verfuegbar && !einordnung) {
+			setAntworten((a) => mitWeg(a, 'leer'));
 		}
+	}, [einordnung, ki.geladen, ki.zustand.verfuegbar]);
+
+	const setze = (teil: Partial<Antworten>) => {
+		setAntworten((a) => ({ ...a, ...teil }));
+		jetzt.current = { ...jetzt.current, ...teil };
+	};
+	const setzeOffen = (feld: FreitextFeld, an: boolean) => {
+		setOffen((o) => ({ ...o, [feld]: an }));
+		if (!an) {
+			setze({ [feld]: '' });
+		}
+	};
+	const setzeTitel = (titel: string) => {
+		setTitelEigen(true);
+		setze({ titel });
+	};
+
+	const schritte = schritteFuer(wirksam);
+	const index = Math.max(
+		schritte.findIndex((s) => s.id === schritt),
+		0,
+	);
+	const aktuell = schritte[index] ?? schritte[0];
+
+	const gehe = (id: AssistentSchrittId) => {
 		setFehler(null);
-		setSchritt(schritt + 1);
+		setSchritt(id);
+		setBesucht((b) => new Set([...b, id]));
 	};
-	const anlegen = async () => {
-		if (mitClaude && wunsch.trim() === '') {
-			setFehler('Bitte schreib, worum es geht.');
+
+	// Neuer Schritt: Fokus aufs erste Feld, sonst auf die gewählte Antwort, damit ⏎ und Ziffern gleich greifen. Beim
+	// Öffnen sind beide Wege gesperrt, bis feststeht, ob es Claude gibt; danach noch einmal.
+	useEffect(() => {
+		const w = wurzel.current;
+		const ziel =
+			w?.querySelector<HTMLElement>('[data-fokus]') ??
+			w?.querySelector<HTMLElement>('[data-wahl][aria-pressed="true"]') ??
+			w?.querySelector<HTMLElement>('[data-hauptaktion]');
+		ziel?.focus();
+	}, [schritt, ki.geladen]);
+
+	const anlegen = async (mitClaude: boolean) => {
+		const a = jetzt.current;
+		const pruefen = mitClaude ? schritteFuer(a) : schritteFuer({ ...a, weg: 'leer' });
+		const offenerSchritt = pruefen.find((s) => s.fehlt?.(a));
+		if (offenerSchritt) {
+			gehe(offenerSchritt.id);
+			setFehler(offenerSchritt.fehlt?.(a) ?? null);
 			return;
 		}
+		if (mitClaude && text !== null && text.wert.trim() === '') {
+			setFehler('Der Auftrag ist leer.');
+			return;
+		}
+		const wahl = formatWahl(a);
+		// Aus dem Ordner: Der Entwurf beginnt ein eigenes Gespräch, damit Nachbessern daran anknüpft (133).
+		const gespraech = gespraechId ?? (mitClaude ? neueGespraechId() : undefined);
 		setLaeuft(true);
 		setFehler(null);
 		try {
-			const endFormat = vorlage ? (VORLAGE_FORMAT[vorlage]?.format ?? format) : format;
-			localStorage.setItem(LETZTE, JSON.stringify({ fach, klasse }));
+			localStorage.setItem(LETZTE, JSON.stringify({ fach: a.fach, klasse: a.klasse }));
 			const {
 				id,
 				mappe,
@@ -451,16 +273,18 @@ export const MaterialDialog = ({
 				ziel: adresse,
 			} = await legeMaterialAn({
 				ordner,
-				titel,
-				art,
-				format: endFormat,
-				fach,
-				klasse,
-				vorlage,
-				zusatz: mitClaude ? {} : zusatz,
-				wunsch: mitClaude ? wunsch : null,
-				gespraechId,
+				titel: a.titel.trim(),
+				art: a.art,
+				format: wahl.format,
+				vorlage: wahl.vorlage ?? null,
+				fach: a.fach,
+				klasse: a.klasse,
+				assistent: mitClaude ? { antworten: { ...a, weg: 'claude' }, auftragText: text?.wert ?? null } : null,
+				gespraechId: gespraech,
 			});
+			if (!gespraechId && gespraech) {
+				chat.beginneGespraech({ mappe, dok: id }, gespraech);
+			}
 			vorDemSprung?.(mappe, id);
 			void navigate(adresse, { state });
 		} catch (grund) {
@@ -468,86 +292,204 @@ export const MaterialDialog = ({
 			setLaeuft(false);
 		}
 	};
-	const name = SCHRITTE[schritt] ?? 'Art';
-	const letzter = schritt === SCHRITTE.length - 1;
+
+	const weiter = () => {
+		const a = jetzt.current;
+		const liste = schritteFuer(a);
+		const i = Math.max(
+			liste.findIndex((s) => s.id === schritt),
+			0,
+		);
+		const s = liste[i];
+		// Vor der Antwort vom Server ist offen, ob es Claude gibt.
+		if (!s || laeuft || (s.id === 'start' && !ki.geladen)) {
+			return;
+		}
+		if (s.id === 'pruefen') {
+			if (!gesperrt) {
+				void anlegen(true);
+			}
+			return;
+		}
+		if (s.id === 'titel') {
+			void anlegen(false);
+			return;
+		}
+		const fehlt = s.fehlt?.(a);
+		if (fehlt) {
+			setFehler(fehlt);
+			return;
+		}
+		const naechster = liste[i + 1];
+		if (naechster) {
+			gehe(naechster.id);
+		}
+	};
+	const zurueck = () => {
+		const vorher = schritte[index - 1];
+		if (vorher) {
+			gehe(vorher.id);
+		}
+	};
+	const zumLeerenBlatt = () => {
+		const a = jetzt.current;
+		setTitelEigen(true);
+		setze({ ...mitWeg(a, 'leer'), titel: a.titel });
+		setBesucht(new Set(['start', 'art', 'format', 'titel']));
+		setSchritt('titel');
+		setFehler(null);
+	};
+
+	const setzeWeg = (weg: Weg) => {
+		setAntworten((a) => mitWeg(a, weg));
+		jetzt.current = mitWeg(jetzt.current, weg);
+	};
+	const waehleArt = (art: Art) => {
+		const a = jetzt.current;
+		setze({
+			art,
+			format: '',
+			bausteine: {},
+			umfang: null,
+			umfangText: '',
+			artText: art === 'sonstiges' ? a.artText : '',
+		});
+		setOffen((o) => ({ ...o, artText: art === 'sonstiges', umfangText: false }));
+	};
+
+	// ⏎ weiter, ⇧⏎ zurück, Ziffern wählen; im mehrzeiligen Feld ist ⌘⏎ „weiter“ (A1, Fallen in 132).
+	const tasten = useRef<(e: KeyboardEvent) => void>(() => undefined);
+	tasten.current = (e: KeyboardEvent) => {
+		if (laeuft || e.defaultPrevented) {
+			return;
+		}
+		const ziel = e.target;
+		if (e.key === 'Enter' && !e.isComposing) {
+			const mehrzeilig = ziel instanceof HTMLTextAreaElement;
+			if (mehrzeilig && !(e.metaKey || e.ctrlKey)) {
+				return;
+			}
+			if (e.shiftKey) {
+				e.preventDefault();
+				zurueck();
+				return;
+			}
+			if (ziel instanceof HTMLButtonElement) {
+				if (!ziel.dataset.wahl) {
+					return;
+				}
+				e.preventDefault();
+				ziel.click();
+			} else {
+				e.preventDefault();
+			}
+			weiter();
+			return;
+		}
+		if (/^[1-9]$/.test(e.key) && !istTextfeld(ziel) && !e.metaKey && !e.ctrlKey && !e.altKey) {
+			const wahl = wurzel.current?.querySelector<HTMLButtonElement>(`[data-wahl-nr="${e.key}"]`);
+			if (wahl && !wahl.disabled) {
+				e.preventDefault();
+				wahl.click();
+				wahl.focus();
+			}
+		}
+	};
+	useEffect(() => {
+		const hoere = (e: KeyboardEvent) => tasten.current(e);
+		document.addEventListener('keydown', hoere);
+		return () => document.removeEventListener('keydown', hoere);
+	}, []);
+
+	if (!aktuell) {
+		return null;
+	}
+	const titel =
+		ordner === null ? 'Neues Material in „Mein Material“' : `Neues Material im Ordner „${ordnerAngabe.name}“`;
+	const kiGrund = ki.geladen
+		? 'Auf diesem Server ist Claude nicht angemeldet. Über die Claude-App geht es trotzdem.'
+		: 'Claude wird gefragt …';
+	const inhalt: Record<AssistentSchrittId, () => ReactNode> = {
+		start: () => (
+			<SchrittStart
+				a={wirksam}
+				verfuegbar={ki.zustand.verfuegbar}
+				grund={kiGrund}
+				setzeWeg={setzeWeg}
+				weiter={weiter}
+			/>
+		),
+		art: () => (
+			<SchrittArt
+				a={wirksam}
+				offen={offen.artText === true}
+				setze={setze}
+				waehleArt={waehleArt}
+				weiter={weiter}
+			/>
+		),
+		format: () => (
+			<SchrittFormat
+				a={wirksam}
+				wahl={formatWahl(wirksam)}
+				offen={offen.formatText === true && wirksam.weg === 'claude'}
+				setze={setze}
+				setzeOffen={(o) => setzeOffen('formatText', o)}
+				weiter={weiter}
+			/>
+		),
+		fuerWen: () => <SchrittFuerWen a={wirksam} ordner={ordnerAngabe} setze={setze} />,
+		thema: () => (
+			<SchrittThema
+				a={wirksam}
+				offen={offen.funktionText === true}
+				setze={setze}
+				setzeOffen={(o) => setzeOffen('funktionText', o)}
+			/>
+		),
+		bausteine: () => <SchrittBausteine a={wirksam} offen={offen} setze={setze} setzeOffen={setzeOffen} />,
+		klasse: () => <SchrittKlasse a={wirksam} setze={setze} />,
+		titel: () => <SchrittTitel a={wirksam} ordner={ordnerAngabe} setze={setze} setzeTitel={setzeTitel} />,
+		pruefen: () => (
+			<SchrittPruefen
+				a={wirksam}
+				ordner={ordnerAngabe}
+				text={text}
+				setzeText={setText}
+				setzeTitel={setzeTitel}
+				titelVorschlagen={!titelEigen}
+				hinweis={hinweis}
+				gesperrt={gesperrt}
+				pruefeLimit={ki.pruefeLimit}
+			/>
+		),
+	};
 
 	return (
-		<Dialog titel={`Material anlegen: ${name}`} schliessen={schliessen}>
-			<div data-assistent={name}>
-				<Fehler text={fehler} />
-				{name === 'Art' && (
-					<div className="grid grid-cols-2 gap-2 max-md:grid-cols-1">
-						{ARTEN.map((a) => (
-							<Wahl key={a} id={a} titel={ART_NAME[a]} aktiv={a === art} waehle={() => waehleArt(a)}>
-								<span className="block text-sm text-leise">{ART_KURZ[a]}</span>
-							</Wahl>
-						))}
+		<Dialog titel={titel} breit schliessen={schliessen}>
+			<div ref={wurzel} data-assistent={aktuell.id} className="flex flex-col gap-3">
+				<div className="grid min-h-[28rem] grid-cols-[12rem_1fr] gap-4 max-md:grid-cols-1">
+					<Schrittleiste a={wirksam} aktuell={aktuell.id} besucht={besucht} gehe={gehe} />
+					<div className="min-w-0">
+						<p className="text-xs font-medium text-leise">{`Schritt ${index + 1} von ${schritte.length}`}</p>
+						<h3 className="text-lg font-semibold">{aktuell.frage(wirksam)}</h3>
+						<p className="mb-3 text-leise">{aktuell.hilfe(wirksam)}</p>
+						<Fehler text={fehler} />
+						{inhalt[aktuell.id]()}
 					</div>
-				)}
-				{name === 'Format' && (
-					<div className="flex flex-col gap-2">
-						{ART_FORMATE[art].map((f, i) => (
-							<Wahl
-								key={f}
-								id={f}
-								titel={FORMAT_NAME[f]}
-								aktiv={f === format}
-								waehle={() => setFormat(f)}
-							>
-								{i === 0 && <span className="block text-sm text-leise">Empfehlung</span>}
-							</Wahl>
-						))}
-					</div>
-				)}
-				{name === 'Titel' && (
-					<>
-						<Feld name="Titel">
-							<input
-								className={FELD}
-								value={titel}
-								autoFocus
-								onChange={(e) => setTitel(e.target.value)}
-							/>
-						</Feld>
-						{!mitBehaelter && (
-							<FachKlasseFelder fach={fach} klasse={klasse} setFach={setFach} setKlasse={setKlasse} />
-						)}
-					</>
-				)}
-				{name === 'Start' && (
-					<SchrittStart
-						eigene={eigene}
-						mitClaude={mitClaude}
-						neuLaden={eigen.neuLaden}
-						setMitClaude={setMitClaude}
-						setVorlage={setVorlage}
-						setWunsch={setWunsch}
-						setZusatz={setZusatz}
-						verfuegbar={ki.verfuegbar}
-						vorlage={vorlage}
-						vorlagen={vorlagen}
-						wunsch={wunsch}
-						zusaetze={zusaetze}
-						zusatz={zusatz}
-					/>
-				)}
-				<div className="mt-4 flex justify-end gap-2">
-					<Knopf art="leise" onClick={schliessen}>
-						Abbrechen
-					</Knopf>
-					{schritt > 0 && (
-						<Knopf art="zweit" onClick={() => setSchritt(schritt - 1)}>
-							Zurück
-						</Knopf>
-					)}
-					{letzter ? (
-						<Knopf disabled={laeuft} onClick={() => void anlegen()}>
-							Anlegen
-						</Knopf>
-					) : (
-						<Knopf onClick={weiter}>Weiter</Knopf>
-					)}
 				</div>
+				<Fuss
+					schritt={aktuell}
+					index={index}
+					claude={wirksam.weg === 'claude'}
+					laeuft={laeuft}
+					gesperrt={(aktuell.id === 'pruefen' && gesperrt) || (aktuell.id === 'start' && !ki.geladen)}
+					anlegenLeer={() => void anlegen(false)}
+					zumLeerenBlatt={zumLeerenBlatt}
+					schliessen={schliessen}
+					zurueck={zurueck}
+					weiter={weiter}
+				/>
 			</div>
 		</Dialog>
 	);

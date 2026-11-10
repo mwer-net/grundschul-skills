@@ -88,6 +88,10 @@ export interface ChatSteuerung {
 	schicke: (text: string) => string | null;
 	/** Beim Abmelden: Danach dürfte der Browser die Sitzung auf dem Server nicht mehr löschen. */
 	beendeGespraech: () => void;
+	/** Die Kennung des laufenden Gesprächs; gibt es keins, beginnt eins (133: Nachbessern am Entwurf). */
+	gespraechId: () => string;
+	/** Das neue Blatt aus dem Assistenten beginnt ein eigenes Gespräch (133). */
+	beginneGespraech: (ort: { mappe: string; dok: string }, id: string) => void;
 }
 
 const nichts = () => undefined;
@@ -100,6 +104,8 @@ export const ChatSteuerungKontext = createContext<ChatSteuerung>({
 	fuelle: nichts,
 	schicke: () => 'Claude ist hier nicht verfügbar.',
 	beendeGespraech: nichts,
+	gespraechId: () => '',
+	beginneGespraech: nichts,
 });
 
 /** 117: Was `schicke` im offenen Chat aufruft; `ChatInhalt` trägt sich ein. */

@@ -3,6 +3,7 @@ import { useNavigate, useSearchParams } from 'react-router-dom';
 import { Knopf, KnopfLink } from '../bausteine/Knopf';
 import { Symbol } from '../bausteine/Symbol';
 import { Zustand } from '../bausteine/Zustand';
+import { useClaudeBaut } from './claude-baut';
 import type { ObjektAnsicht, ZeileAnsicht } from './darstellung';
 import { Kachel, LISTEN_RASTER, Zeile } from './darstellung';
 import { PapierkorbSeite } from './PapierkorbSeite';
@@ -182,6 +183,7 @@ interface Eigenschaften extends ListeEigenschaften {
 /** Was in der Fläche steht: Kacheln, Liste oder der passende leere Zustand. */
 export const AblageInhalt = ({ darstellung, dieseLeiste, hier, objektZahl, ordnerFehlt, ...liste }: Eigenschaften) => {
 	const { ansicht, seite, zeilen } = liste;
+	const baut = useClaudeBaut();
 	if (seite.art === 'papierkorb') {
 		return <PapierkorbSeite />;
 	}
@@ -197,9 +199,17 @@ export const AblageInhalt = ({ darstellung, dieseLeiste, hier, objektZahl, ordne
 	if (darstellung === 'kacheln') {
 		return (
 			<ul className="grid grid-cols-[repeat(auto-fill,minmax(190px,1fr))] gap-3">
-				{zeilen.map((z) => (
-					<Kachel key={z.objekt.schluessel} {...ansicht(z)} />
-				))}
+				{zeilen.map((z) => {
+					const { objekt } = z;
+					const seit = objekt.istOrdner ? undefined : baut.get(`${objekt.dok.mappe}/${objekt.dok.id}`);
+					return (
+						<Kachel
+							key={objekt.schluessel}
+							{...ansicht(z)}
+							claude={seit === undefined ? undefined : { seit }}
+						/>
+					);
+				})}
 			</ul>
 		);
 	}

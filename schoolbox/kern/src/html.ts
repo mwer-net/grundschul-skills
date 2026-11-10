@@ -41,6 +41,20 @@ export const bodyKlassen = (html: string): string[] => BODY_KLASSEN.exec(html)?.
 export const formatAusHtml = (html: string): Format =>
 	FORMATE.find((f) => f !== STANDARD_FORMAT && bodyKlassen(html).includes(f)) ?? STANDARD_FORMAT;
 
+/**
+ * Claude darf das Format eines neuen Blatts ändern (131). `formatAusHtml` fiele bei einer unbekannten Klasse still auf
+ * A4 hoch zurück; das hier macht daraus einen Prüffehler.
+ */
+export const formatBefund = (html: string): string | null => {
+	const klassen = bodyKlassen(html);
+	const fremd = klassen.find((k) => /^a\d-(hoch|quer)$/.test(k) && !FORMATE.some((f) => f === k));
+	if (fremd !== undefined) {
+		return `Das Format „${fremd}“ gibt es nicht. Möglich sind: ${FORMATE.join(', ')}.`;
+	}
+	const formate = klassen.filter((k) => FORMATE.some((f) => f === k) && k !== STANDARD_FORMAT);
+	return formate.length > 1 ? `Am Blatt stehen mehrere Formate: ${formate.join(', ')}.` : null;
+};
+
 export const druckprofilAusHtml = (html: string): Druckprofil | null => {
 	const klassen = bodyKlassen(html);
 	if (klassen.includes('farbe')) {

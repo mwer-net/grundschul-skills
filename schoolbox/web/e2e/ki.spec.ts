@@ -1,7 +1,7 @@
 import { readFile, writeFile } from 'node:fs/promises';
 import path from 'node:path';
 
-import type { Page } from '@playwright/test';
+import type { Locator, Page } from '@playwright/test';
 
 import { oeffne, uhrzeit } from './editorhilfe';
 import { dokumentOrdner, expect, MATERIAL_DIR, test } from './hilfe';
@@ -12,49 +12,241 @@ const oeffnePanel = (page: Page) => page.getByRole('button', { name: 'Claude', e
 const quelleAufPlatte = (mappe: string, dok: string) =>
 	readFile(path.join(dokumentOrdner(mappe, dok), 'material.html'), 'utf8');
 
+const leiste = (page: Page) => page.locator('[data-entwurfsleiste]');
+const entwurfKarte = (page: Page) => page.locator('[data-entwurf-karte]');
+const dokVon = (page: Page) => new URL(page.url()).pathname.split('/')[3] ?? '';
+
 const beauftrage = async (page: Page, text = 'Mach es schöner') => {
 	await panel(page).getByLabel('Was soll Claude ändern?').fill(text);
 	await panel(page).getByRole('button', { name: 'Senden' }).click();
 	await expect(panel(page).locator('[data-ki-vorschlag]')).toBeVisible();
 };
 
-const startSchritt = async (page: Page, mappe: string) => {
-	await page.goto(`/m/${mappe}`);
-	await page.getByRole('button', { name: 'Material anlegen' }).click();
-	await page.getByRole('button', { name: 'Weiter', exact: true }).click();
-	await page.getByRole('button', { name: 'Weiter', exact: true }).click();
-	await page.getByRole('textbox', { name: 'Titel' }).fill('Igel');
-	await page.getByRole('button', { name: 'Weiter', exact: true }).click();
+const sperre = {
+	verfuegbar: true,
+	warnAb: 0.8,
+	aktionen: [],
+	limit: {
+		status: 'rejected',
+		zurueck: '2030-03-17T18:00:00.000Z',
+		guthaben: 'abgelehnt',
+		laeuftUeberGuthaben: false,
+		fensterArt: 'woche',
+		fenster: { fuenfStunden: { auslastung: 0.4, zurueck: null }, sieben: { auslastung: 1, zurueck: null } },
+	},
 };
 
-test.describe('Assistent: Mit Claude (060)', () => {
+/** Öffnet den Assistenten in der Mappe und wartet auf die Antwort, ob es Claude gibt. */
+const assistent = async (page: Page, mappe: string) => {
+	await page.goto(`/m/${mappe}`);
+	await page.getByRole('button', { name: 'Material anlegen' }).click();
+	const dialog = page.getByRole('dialog');
+	await expect(dialog.locator('[data-hauptaktion]')).toBeEnabled();
+	return dialog;
+};
+
+/** Mit allen Empfehlungen bis „Auftrag prüfen“: Art wählen, Thema tippen, sonst nur ⏎ (132). */
+const bisZumAuftrag = async (page: Page, dialog: Locator, thema: string) => {
+	await page.keyboard.press('Enter');
+	await dialog.locator('[data-wahl="lesetext"]').click();
+	await page.keyboard.press('Enter');
+	await page.keyboard.press('Enter');
+	await page.keyboard.press('Enter');
+	await expect(dialog.getByText('Bitte schreib, worum es geht.')).toBeVisible();
+	await page.keyboard.type(thema);
+	await page.keyboard.press('Enter');
+	await page.keyboard.press('Enter');
+	await page.keyboard.press('Enter');
+	await expect(dialog.locator('[data-assistent="pruefen"]')).toBeVisible();
+};
+
+test.describe('Assistent: Mit Claude (132)', () => {
 	test.afterEach(() => fall('gut'));
 
-	test('Aus einem Satz wird ein Vorschlag im Editor', async ({ page }) => {
+	test('Nur mit ⏎ zum Vorschlag; Claude bekommt genau den Auftrag aus der Vorschau', async ({ page }) => {
 		const { id: mappe } = await uhrzeit();
-		await startSchritt(page, mappe);
-		await page.locator('[data-wahl="mit-claude"]').click();
-		await page.getByRole('button', { name: 'Anlegen', exact: true }).click();
-		await expect(page.getByText('Bitte schreib, worum es geht.')).toBeVisible();
-		await page.getByLabel('Worum geht es').fill('Igel im Herbst');
-		await page.getByRole('button', { name: 'Anlegen', exact: true }).click();
+		const dialog = await assistent(page, mappe);
+		await expect(dialog.locator('[data-wahl="claude"]')).toHaveAttribute('aria-pressed', 'true');
+		await bisZumAuftrag(page, dialog, 'Igel im Herbst');
+		const vorschau = (await dialog.locator('[data-auftrag] p').allInnerTexts()).join('\n');
+		expect(vorschau).toContain('Thema: „Igel im Herbst“');
+		const prompts = path.join(`${MATERIAL_DIR}-ki`, 'prompts.txt');
+		await writeFile(prompts, '');
+		await page.keyboard.press('Enter');
 		await expect(page).toHaveURL(/bearbeiten\?claude=1/);
-		await expect(panel(page).locator('[data-ki-vorschlag]')).toBeVisible();
-		await panel(page).getByRole('button', { name: 'Vergleichen' }).click();
-		await page.getByRole('button', { name: 'Annehmen' }).click();
-		await expect(panel(page).locator('[data-ki-vorschlag]')).toBeHidden();
-		const dok = new URL(page.url()).pathname.split('/')[3] ?? '';
-		await expect.poll(() => quelleAufPlatte(mappe, dok)).toContain('von Claude');
+		await expect(leiste(page)).toHaveAttribute('data-entwurfsleiste', 'offen');
+		expect(await readFile(prompts, 'utf8')).toContain(`Auftrag der Lehrkraft (aus dem Assistenten):\n${vorschau}`);
+		await leiste(page).getByRole('button', { name: 'Übernehmen' }).click();
+		await expect(leiste(page)).toBeHidden();
+		await expect.poll(() => quelleAufPlatte(mappe, dokVon(page))).toContain('von Claude');
 	});
 
-	test('Ohne angemeldetes claude fehlt die Option', async ({ page }) => {
+	test('Als Text bearbeitet: Claude bekommt den Text der Lehrkraft', async ({ page }) => {
+		const { id: mappe } = await uhrzeit();
+		const dialog = await assistent(page, mappe);
+		await bisZumAuftrag(page, dialog, 'Igel');
+		await dialog.getByRole('button', { name: 'Als Text bearbeiten' }).click();
+		await dialog.getByRole('textbox', { name: 'Auftrag' }).fill('Ein Igel-Blatt mit EIGENEM Text.');
+		const prompts = path.join(`${MATERIAL_DIR}-ki`, 'prompts.txt');
+		await writeFile(prompts, '');
+		await dialog.getByRole('button', { name: 'Mit Claude erstellen' }).click();
+		await expect(leiste(page)).toBeVisible();
+		const prompt = await readFile(prompts, 'utf8');
+		expect(prompt).toContain('Ein Igel-Blatt mit EIGENEM Text.');
+		expect(prompt).not.toContain('Thema: „Igel“');
+	});
+
+	test('Ohne angemeldetes claude bleibt nur das leere Blatt', async ({ page }) => {
 		await page.route('**/api/ki/status', (r) =>
 			r.fulfill({ json: { verfuegbar: false, limit: null, warnAb: 1, aktionen: [] } }),
 		);
 		const { id: mappe } = await uhrzeit();
-		await startSchritt(page, mappe);
-		await expect(page.locator('[data-wahl="leer"]')).toBeVisible();
-		await expect(page.locator('[data-wahl="mit-claude"]')).toHaveCount(0);
+		const dialog = await assistent(page, mappe);
+		await expect(dialog.locator('[data-wahl="claude"]')).toBeDisabled();
+		await expect(dialog.locator('[data-wahl="leer"]')).toHaveAttribute('aria-pressed', 'true');
+		await expect(dialog).toContainText('nicht angemeldet');
+		await page.keyboard.press('Enter');
+		await expect(dialog.locator('[data-schritt="thema"]')).toHaveCount(0);
+	});
+
+	test('Am Limit: „Mit Claude erstellen“ ist gesperrt, das leere Blatt nie', async ({ page }) => {
+		await page.route('**/api/ki/status', (r) => r.fulfill({ json: sperre }));
+		const { id: mappe } = await uhrzeit();
+		const dialog = await assistent(page, mappe);
+		await bisZumAuftrag(page, dialog, 'Igel');
+		await expect(dialog.locator('[data-ki-limit="gesperrt"]')).toContainText('Wieder möglich ab');
+		await expect(dialog.getByRole('button', { name: 'Mit Claude erstellen' })).toBeDisabled();
+		await dialog.getByRole('button', { name: 'Nur leeres Blatt anlegen' }).click();
+		await expect(page).toHaveURL(/bearbeiten\?neu=1/);
+	});
+});
+
+/** Ein neues Blatt mit Claude über den Assistenten, bis der Editor offen ist (133). */
+const neuesBlatt = async (page: Page, thema = 'Igel') => {
+	const { id: mappe } = await uhrzeit();
+	const dialog = await assistent(page, mappe);
+	await bisZumAuftrag(page, dialog, thema);
+	await page.keyboard.press('Enter');
+	await expect(page).toHaveURL(/bearbeiten\?claude=1/);
+	return { mappe, dok: dokVon(page) };
+};
+
+test.describe('Neues Blatt im Editor (133)', () => {
+	test.afterEach(async ({ page }) => {
+		await fall('gut');
+		await page.evaluate(() =>
+			fetch('/api/ki/limit/pruefen', {
+				method: 'POST',
+				headers: { 'Content-Type': 'application/json', 'x-schoolbox': '1' },
+				body: '{}',
+			}),
+		);
+	});
+
+	test('Karte und Pille, das Blatt ist gesperrt; Neuladen, Wiederkommen, zweiter Tab; Abbrechen löst alles', async ({
+		page,
+	}) => {
+		await fall('haenger');
+		const { mappe } = await neuesBlatt(page);
+		const adresse = page.url();
+		await expect(entwurfKarte(page)).toContainText('Claude baut „Igel“');
+		await expect(entwurfKarte(page)).toContainText('Ändert das Blatt');
+		await expect(page.locator('[data-entwurf-pille]')).toContainText('Claude arbeitet');
+		await expect(page.locator('[data-schublade-knopf="bausteine"]')).toHaveCount(0);
+		await expect(page.getByRole('button', { name: 'Versionen' })).toBeEnabled();
+
+		await page.reload();
+		await expect(entwurfKarte(page)).toHaveAttribute('data-entwurf-karte', 'laeuft');
+		await page.goto(`/m/${mappe}`);
+		await expect(page.locator('[data-claude-baut]')).toContainText('Claude baut');
+		await page.goto(adresse);
+		await expect(entwurfKarte(page)).toBeVisible();
+
+		const zweite = await page.context().newPage();
+		await zweite.goto(adresse);
+		await expect(entwurfKarte(zweite)).toBeVisible();
+		await entwurfKarte(page).getByRole('button', { name: 'Abbrechen' }).click();
+		await expect(entwurfKarte(page)).toBeHidden();
+		await expect(entwurfKarte(zweite)).toBeHidden();
+		await zweite.close();
+		await expect(leiste(page)).toContainText('Abgebrochen. Das leere Blatt bleibt');
+		await expect(page.locator('[data-entwurf-pille]')).toHaveCount(0);
+		await expect(page.locator('[data-schublade-knopf="bausteine"]')).toBeVisible();
+		await page.reload();
+		await expect(leiste(page)).toHaveCount(0);
+	});
+
+	test('Entwurfsleiste: Annahmen, Nachbessern im selben Gespräch, ⏎ übernimmt', async ({ page }) => {
+		const auftraege: { gespraechId?: string; aufVorschlag?: boolean }[] = [];
+		page.on('request', (r) => {
+			if (r.method() === 'POST' && /\/api\/dokumente\/[^/]+\/[^/]+\/ki$/.test(r.url())) {
+				auftraege.push(r.postDataJSON() as (typeof auftraege)[number]);
+			}
+		});
+		const { dok, mappe } = await neuesBlatt(page);
+		await expect(leiste(page)).toHaveAttribute('data-entwurfsleiste', 'offen');
+		await expect(page.locator('[data-schublade-knopf="bausteine"]')).toHaveCount(0);
+		await leiste(page).getByRole('button', { name: 'Annahmen (1)' }).click();
+		await expect(leiste(page).locator('[data-entwurf-annahmen]')).toContainText('Klasse 2');
+
+		await leiste(page).getByRole('button', { name: 'Nachbessern …' }).click();
+		await leiste(page).getByRole('textbox', { name: 'Was soll Claude am Entwurf ändern?' }).fill('Größer');
+		await page.keyboard.press('Enter');
+		await expect.poll(() => auftraege.length).toBe(2);
+		expect(auftraege[0]?.gespraechId).toBeTruthy();
+		expect(auftraege[1]?.gespraechId).toBe(auftraege[0]?.gespraechId);
+		expect(auftraege[1]?.aufVorschlag).toBe(true);
+		await expect(leiste(page)).toHaveAttribute('data-entwurfsleiste', 'offen');
+		await expect(entwurfKarte(page)).toBeHidden();
+
+		await expect(leiste(page).getByRole('button', { name: 'Übernehmen' })).toBeFocused();
+		await page.keyboard.press('Enter');
+		await expect(leiste(page)).toBeHidden();
+		await expect.poll(async () => (await quelleAufPlatte(mappe, dok)).split('von Claude').length).toBe(3);
+		await expect(page.locator('[data-schublade-knopf="bausteine"]')).toBeVisible();
+	});
+
+	test('Verwerfen lässt das leere Blatt, die Leiste führt zum Ordner', async ({ page }) => {
+		const { dok, mappe } = await neuesBlatt(page);
+		const vorher = await quelleAufPlatte(mappe, dok);
+		await leiste(page).getByRole('button', { name: 'Verwerfen' }).click();
+		await expect(leiste(page)).toContainText('Verworfen. Das leere Blatt bleibt im Ordner');
+		expect(await quelleAufPlatte(mappe, dok)).toBe(vorher);
+		await expect(page.locator('[data-schublade-knopf="bausteine"]')).toBeVisible();
+		await leiste(page).getByRole('button', { name: 'Ordner öffnen' }).click();
+		await expect(page).toHaveURL(/\/(o\/[^/]+)?$/);
+	});
+
+	test('Fehler: Karte mit Grund, bleibt nach dem Neuladen, „Nochmal“ baut', async ({ page }) => {
+		// Ein Fehler ohne Kontolimit („fehler“ meldet eines, dann wäre „Nochmal“ zu Recht gesperrt).
+		await fall('limit-budget');
+		await neuesBlatt(page);
+		await expect(entwurfKarte(page)).toHaveAttribute('data-entwurf-karte', 'fehler');
+		await expect(entwurfKarte(page).locator('[data-entwurf-grund]')).toContainText('zu umfangreich');
+		await expect(page.locator('[data-schublade-knopf="bausteine"]')).toBeVisible();
+		await page.reload();
+		await expect(entwurfKarte(page)).toHaveAttribute('data-entwurf-karte', 'fehler');
+		await fall('gut');
+		await entwurfKarte(page).getByRole('button', { name: 'Nochmal' }).click();
+		await expect(leiste(page)).toHaveAttribute('data-entwurfsleiste', 'offen');
+		await expect(entwurfKarte(page)).toBeHidden();
+	});
+
+	test('Limit: Grund und Stand des Limits, „Nochmal“ gesperrt, „Selbst füllen“ schließt für immer', async ({
+		page,
+	}) => {
+		await fall('limit-gesperrt');
+		await neuesBlatt(page);
+		await expect(entwurfKarte(page)).toHaveAttribute('data-entwurf-karte', 'fehler');
+		await expect(entwurfKarte(page).locator('[data-ki-limit="gesperrt"]')).toContainText('Wieder möglich ab');
+		await expect(entwurfKarte(page).getByRole('button', { name: 'Nochmal' })).toBeDisabled();
+		const vergessen = page.waitForResponse((r) => r.url().endsWith('/ki/entwurf/vergessen'));
+		await entwurfKarte(page).getByRole('button', { name: 'Selbst füllen' }).click();
+		await expect(entwurfKarte(page)).toBeHidden();
+		expect((await vergessen).status()).toBe(200);
+		await page.reload();
+		await expect(page.locator('[data-editor]')).toBeVisible();
+		await expect(entwurfKarte(page)).toHaveCount(0);
 	});
 });
 

@@ -95,6 +95,8 @@ process.stdin.on('end', () => {
 	if (fall === 'limit-budget') { ende({ subtype: 'error_max_budget_usd', is_error: true, result: '' }); process.exit(1); }
 	if (fall === 'nichts') { ende({}); return; }
 	if (fall === 'leer') { ende({ result: '' }); return; }
+	// 131: Claude setzt am Body ein anderes Format; „format-fremd“ eines, das es nicht gibt, und bessert nicht nach.
+	if (fall === 'format-quer' || fall === 'format-fremd') { if (!eingabe.includes('Die Prüfung meldet')) { const d = 'material.html'; fs.writeFileSync(d, fs.readFileSync(d, 'utf8').replace(/<body([^>]*?)class="/, '<body$1class="' + (fall === 'format-quer' ? 'a4-quer' : 'a2-hoch') + ' ')); } ende({ result: 'Format geändert.' }); return; }
 	if (eingabe.includes('RUECKFRAGE')) { ende({ result: 'Für welche Klasse soll das Rätsel sein?' }); return; }
 	if (eingabe.includes('FRAGE')) { ende({ result: 'Das Blatt hat vier Uhren.' }); return; }
 	if (fall === 'gross') { fs.writeFileSync('material.html', 'x'.repeat(6 * 1024 * 1024)); ende({}); return; }

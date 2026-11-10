@@ -1,5 +1,6 @@
 export * from './ablage';
 export * from './anmeldung';
+export * from './assistent';
 export * from './atomar';
 export * from './ausgabe';
 export * from './bauen';

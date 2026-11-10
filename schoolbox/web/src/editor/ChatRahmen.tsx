@@ -42,7 +42,7 @@ export const ChatRahmen = () => {
 	useEffect(() => loescheAlteVerlaeufe(localStorage), []);
 
 	// Das Fenster schließen heißt: Das Gespräch ist zu Ende (Entscheidung 37). Einklappen ist etwas anderes.
-	const { beende: beendeGespraech, folge: folgeBezug } = gespraech;
+	const { beende: beendeGespraech, beginneFuer, folge: folgeBezug, sichereId } = gespraech;
 	const setFenster = useCallback(
 		(wert: ChatFensterZustand) => {
 			setFensterWert(wert);
@@ -101,20 +101,22 @@ export const ChatRahmen = () => {
 			// 117: Nur mit einem offenen Dokument; die Sperren prüft der Chat selbst.
 			schicke: (text) => (empfaenger.current ? empfaenger.current(text) : 'Claude ist hier nicht verfügbar.'),
 			beendeGespraech,
+			gespraechId: sichereId,
+			beginneGespraech: beginneFuer,
 		};
-	}, [beendeGespraech, setFenster, sichereZitat]);
+	}, [beendeGespraech, beginneFuer, setFenster, sichereId, sichereZitat]);
 
 	const stand = useMemo(() => ({ fenster, lauf, verlaufHoehe, ki }), [fenster, lauf, verlaufHoehe, ki]);
 
-	// Aus dem Assistenten (060): Das Fenster geht auf, ohne der Seite die Tastatur zu nehmen.
+	// „Im Editor ansehen“ aus der Ansicht: Das Fenster geht auf, ohne der Seite die Tastatur zu nehmen.
 	const [suche] = useSearchParams();
 	const location = useLocation();
-	const ausAssistent = suche.get('claude') === '1';
+	const ausAnsicht = suche.get('chat') === '1';
 	useEffect(() => {
-		if (ausAssistent) {
+		if (ausAnsicht) {
 			setFenster('verlauf');
 		}
-	}, [ausAssistent, location.key, setFenster]);
+	}, [ausAnsicht, location.key, setFenster]);
 
 	// Außerhalb des Editors gibt es kein Befehlsregister; ⌘J gilt trotzdem.
 	const artJetzt = kontext?.art;

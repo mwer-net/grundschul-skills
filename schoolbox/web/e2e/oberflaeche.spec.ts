@@ -613,7 +613,7 @@ test.describe('Dialoge (065)', () => {
 		const ausloeser = page.locator('[data-werkzeugleiste] [data-material-anlegen]');
 		await druecke(ausloeser);
 		const dialog = page.getByRole('dialog');
-		await expect(dialog).toContainText('Material anlegen');
+		await expect(dialog).toContainText('Neues Material');
 		await page.keyboard.press('Escape');
 		await expect(dialog).toBeHidden();
 		await expect(ausloeser).toBeFocused();

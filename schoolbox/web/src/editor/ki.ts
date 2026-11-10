@@ -14,6 +14,9 @@ export interface KiAuftrag {
 	antwort: string | null;
 	limitErreicht?: boolean;
 	kontextGross?: boolean;
+	/** Ein neues Blatt (133): Das zeigt der Editor auf dem Blatt, nicht der Chat. */
+	neuesBlatt?: boolean;
+	seit?: string;
 }
 
 export interface KiFenster {
@@ -51,6 +54,9 @@ export interface Vorschlag {
 	fehler: number;
 	konflikt: boolean;
 	meldungen: { stufe: string; seite: number; text: string }[];
+	neuesBlatt?: boolean;
+	/** Nur für das neue Blatt geladen: Der Editor zeigt den Vorschlag selbst. */
+	quelle?: string;
 }
 
 const LEER: KiZustand = { verfuegbar: false, limit: null, warnAb: 1, aktionen: [] };
@@ -58,15 +64,19 @@ const LEER: KiZustand = { verfuegbar: false, limit: null, warnAb: 1, aktionen: [
 /** Ohne angemeldetes `claude` bleibt `verfuegbar` falsch, und nichts davon erscheint im Editor. */
 export const useKiZustand = () => {
 	const [zustand, setZustand] = useState(LEER);
+	/** Erst danach heißt `verfuegbar: false` wirklich „nicht angemeldet“. */
+	const [geladen, setGeladen] = useState(false);
 	const neu = useCallback(() => {
-		lade<KiZustand>('/api/ki/status').then(setZustand, () => setZustand(LEER));
+		lade<KiZustand>('/api/ki/status')
+			.then(setZustand, () => setZustand(LEER))
+			.finally(() => setGeladen(true));
 	}, []);
 	useEffect(neu, [neu]);
 	/** Fragt das Konto selbst: Nur so löst sich eine Sperre, zum Beispiel nach dem Kauf von Guthaben. */
 	const pruefeLimit = useCallback(async () => {
 		setZustand(await sende<KiZustand>('/api/ki/limit/pruefen'));
 	}, []);
-	return { zustand, neu, pruefeLimit };
+	return { zustand, geladen, neu, pruefeLimit };
 };
 
 const zeit = (iso: string | null) =>
@@ -161,9 +171,18 @@ export const beendeGespraechAufServer = (id: string) => {
 	}).catch(() => undefined);
 };
 
-/** Auftrag und Vorschlag eines Dokuments. Beides überlebt Neuladen: Der Server hält den Stand. */
-export const useKiAuftrag = (mappe: string | null, dok: string | null, nachLauf: () => void, gestartet?: string) => {
+/**
+ * Auftrag und Vorschlag eines Dokuments. Beides überlebt Neuladen: Der Server hält den Stand. `entwurf`: nur das neue
+ * Blatt (133), das der Editor auf dem Blatt zeigt; sonst alles andere, für den Chat.
+ */
+export const useKiAuftrag = (
+	mappe: string | null,
+	dok: string | null,
+	nachLauf: () => void,
+	{ entwurf = false, gestartet }: { entwurf?: boolean; gestartet?: string | undefined } = {},
+) => {
 	const basis = mappe && dok ? `/api/dokumente/${mappe}/${dok}` : null;
+	const gehoertHierher = useCallback((x: { neuesBlatt?: boolean }) => Boolean(x.neuesBlatt) === entwurf, [entwurf]);
 	const [auftrag, setAuftrag] = useState<KiAuftrag | null>(null);
 	const [vorschlag, setVorschlag] = useState<Vorschlag | null>(null);
 	const [fehler, setFehler] = useState<string | null>(null);
@@ -175,9 +194,11 @@ export const useKiAuftrag = (mappe: string | null, dok: string | null, nachLauf:
 		if (!basis) {
 			return;
 		}
-		const { vorschlag: neu } = await lade<{ vorschlag: Vorschlag | null }>(`${basis}/vorschlag`);
-		setVorschlag(neu);
-	}, [basis]);
+		const { vorschlag: neu } = await lade<{ vorschlag: Vorschlag | null }>(
+			`${basis}/vorschlag${entwurf ? '?quelle=1' : ''}`,
+		);
+		setVorschlag(neu && gehoertHierher(neu) ? neu : null);
+	}, [basis, entwurf, gehoertHierher]);
 
 	const pruefe = useCallback(
 		async (id: string) => {
@@ -186,7 +207,7 @@ export const useKiAuftrag = (mappe: string | null, dok: string | null, nachLauf:
 			try {
 				const { auftrag: neu } = await lade<{ auftrag: KiAuftrag }>(`/api/ki/${id}`);
 				// Eine spätere Frage kennt den neueren Stand; „läuft“ darf ein schon gemeldetes Ende nicht überschreiben.
-				if (frage !== letzteFrage.current) {
+				if (frage !== letzteFrage.current || !gehoertHierher(neu)) {
 					return;
 				}
 				if (neu.status === 'fertig' || neu.status === 'fehler' || neu.status === 'abgebrochen') {
@@ -206,7 +227,7 @@ export const useKiAuftrag = (mappe: string | null, dok: string | null, nachLauf:
 				setFehler(meldung(grund));
 			}
 		},
-		[ladeVorschlag, nachLauf],
+		[gehoertHierher, ladeVorschlag, nachLauf],
 	);
 
 	useEffect(() => {
@@ -214,9 +235,9 @@ export const useKiAuftrag = (mappe: string | null, dok: string | null, nachLauf:
 			return;
 		}
 		void ladeVorschlag().catch(() => undefined);
-		lade<{ auftraege: KiAuftrag[] }>(`${basis}/ki`).then(
-			({ auftraege }) => {
-				const zuletzt = auftraege[0] ?? null;
+		lade<{ auftraege: KiAuftrag[]; entwurf?: KiAuftrag | null }>(`${basis}/ki`).then(
+			({ auftraege, entwurf: amBlatt }) => {
+				const zuletzt = entwurf ? (amBlatt ?? null) : (auftraege.find((a) => !a.neuesBlatt) ?? null);
 				setAuftrag((alt) => alt ?? zuletzt);
 				if (zuletzt) {
 					void pruefe(zuletzt.id);
@@ -224,7 +245,7 @@ export const useKiAuftrag = (mappe: string | null, dok: string | null, nachLauf:
 			},
 			() => undefined,
 		);
-	}, [basis, ladeVorschlag, pruefe]);
+	}, [basis, entwurf, ladeVorschlag, pruefe]);
 
 	// Aus dem Assistenten: Der Auftrag kann schon zu Ende sein, bevor der Editor offen ist.
 	useEffect(() => {
@@ -247,13 +268,10 @@ export const useKiAuftrag = (mappe: string | null, dok: string | null, nachLauf:
 		}
 	});
 
-	const starte = async (wunsch: Wunsch) => {
-		if (!basis) {
-			return;
-		}
+	const beginne = async (adresse: string, wunsch: Wunsch) => {
 		setFehler(null);
 		try {
-			const { auftrag: neu } = await sende<{ auftrag: KiAuftrag }>(`${basis}/ki`, wunsch);
+			const { auftrag: neu } = await sende<{ auftrag: KiAuftrag }>(adresse, wunsch);
 			setAuftrag(neu);
 			await pruefe(neu.id);
 		} catch (grund) {
@@ -264,6 +282,7 @@ export const useKiAuftrag = (mappe: string | null, dok: string | null, nachLauf:
 			nachLauf();
 		}
 	};
+	const starte = (wunsch: Wunsch) => (basis ? beginne(`${basis}/ki`, wunsch) : Promise.resolve());
 
 	const handle = async (arbeit: () => Promise<unknown>) => {
 		setFehler(null);
@@ -281,6 +300,10 @@ export const useKiAuftrag = (mappe: string | null, dok: string | null, nachLauf:
 		fehler,
 		abgelehnt,
 		starte,
+		/** Derselbe erste Auftrag fürs neue Blatt noch einmal; der Server kennt ihn (133). */
+		nochmal: () => (basis ? beginne(`${basis}/ki/nochmal`, {}) : Promise.resolve()),
+		/** Die Meldung zum neuen Blatt ist gelesen: Nach dem Neuladen steht sie nicht wieder da. */
+		vergiss: () => (basis ? sende(`${basis}/ki/entwurf/vergessen`).then(() => undefined) : Promise.resolve()),
 		laeuft: auftrag?.status === 'laeuft' || auftrag?.status === 'wartet',
 		setFehler,
 		abbrechen: () => (auftrag ? handle(() => sende(`/api/ki/${auftrag.id}/abbrechen`)) : Promise.resolve()),

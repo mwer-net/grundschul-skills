@@ -5,6 +5,7 @@ import { klassen } from '../bausteine/klassen';
 import { Knopf } from '../bausteine/Knopf';
 import { Symbol } from '../bausteine/Symbol';
 import { Vorschau } from '../bausteine/Vorschau';
+import { laufzeit, useJetzt } from '../editor/entwurf';
 import { hatOffeneEntwuerfe } from '../entwuerfe/offen';
 import { ART_NAME, datum, FACH_FARBE, FACH_NAME, FORMAT_NAME, klasseName } from '../lib/text';
 import { vorschauAdresse } from '../lib/zugang';
@@ -24,6 +25,27 @@ export interface ObjektAnsicht {
 	/** Nur im Auswahlmodus am iPad: Haken statt Öffnen. */
 	haken: boolean;
 }
+
+/** Claude baut das Blatt gerade (133): `seit` ist der Beginn, `null` wartet es noch. */
+export interface ClaudeBaut {
+	seit: string | null;
+}
+
+const ClaudeBautMarke = ({ seit }: ClaudeBaut) => {
+	const jetzt = useJetzt(true);
+	const zeit = laufzeit(seit, jetzt);
+	return (
+		<span
+			role="status"
+			className="absolute inset-x-2 bottom-2 flex items-center gap-1.5 rounded-md border border-rand bg-flaeche/95 px-2 py-1 text-xs font-medium text-brand-700 shadow-sm"
+			data-claude-baut
+		>
+			<Symbol name="laden" className="size-3 flex-none animate-spin" />
+			<span className="min-w-0 flex-1 truncate">Claude baut …</span>
+			{zeit && <span className="flex-none text-leise tabular-nums">{zeit}</span>}
+		</span>
+	);
+};
 
 /**
  * Die Ablage behandelt Klicks gesammelt. Safari am Finger hält ein Element ohne eigenen Lauscher für nicht antippbar und
@@ -68,7 +90,16 @@ const Haken = ({ an }: { an: boolean }) => (
 	</span>
 );
 
-export const Kachel = ({ benennt, blass, gewaehlt, haken, menue, objekt, ort }: ObjektAnsicht) => (
+export const Kachel = ({
+	benennt,
+	blass,
+	claude,
+	gewaehlt,
+	haken,
+	menue,
+	objekt,
+	ort,
+}: ObjektAnsicht & { claude?: ClaudeBaut | undefined }) => (
 	<li
 		data-objekt={objekt.schluessel}
 		data-art={objekt.istOrdner ? 'ordner' : 'dokument'}
@@ -97,6 +128,7 @@ export const Kachel = ({ benennt, blass, gewaehlt, haken, menue, objekt, ort }: 
 							<Marke>Entwurf</Marke>
 						</span>
 					)}
+					{claude && <ClaudeBautMarke seit={claude.seit} />}
 				</>
 			)}
 			{haken && (

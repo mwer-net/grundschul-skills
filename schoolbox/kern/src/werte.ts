@@ -40,83 +40,132 @@ export type Urheber = (typeof URHEBER)[number];
 
 export const STANDARD_FORMAT: Format = 'a4-hoch';
 
+/** Eine Fassung, die die Start-Abfrage anbietet: Name in der Tabelle und im Assistenten, Format des Dokuments. */
+export interface FormatOption {
+	name: string;
+	format: Format;
+	/** Weitere Formate, in denen die Fassung auch gebaut wird (Spalte „Format“); der Assistent bietet sie beim leeren Blatt an. */
+	auch?: readonly Format[];
+	/** Gerüst, mit dem das Dokument angelegt wird (z. B. Mini-Book). Steht nicht in der Tabelle je Art, sondern als eigene Zeile. */
+	vorlage?: string;
+	/** Kurz unter dem Namen im Assistenten. */
+	hinweis?: string;
+}
+
 /** Was die Start-Abfrage je Art anbietet. Aus dieser Tabelle entstehen die Tabellen in `rueckfragen.md` (`pnpm run quellen`). */
 export interface ArtAngaben {
 	/** Name in den Tabellen; Arten mit gleichen Angaben stehen in einer Zeile. */
 	name: string;
-	/** Format beim Anlegen ohne `--format`. */
+	/** Format beim Anlegen ohne `--format`; gleich dem Format der ersten Option. */
 	format: Format;
 	/** Angebotene Fassungen, die erste ist die Empfehlung; leer: Die Art hat keine eigene Zeile. */
-	optionen: string[];
+	optionen: readonly FormatOption[];
 	/** Umsetzung im Material, für die Spalte „Format“. */
 	umsetzung?: string;
 	/** Die Fassung steht fest und wird nicht erfragt. */
 	nichtFragen?: boolean;
 	/** Zusatzbausteine; ohne Angabe wird nicht danach gefragt. */
 	bausteine?: { selbsteinschaetzung: string; niveaus: string; sternchen: string };
+	/** Empfohlener Umfang im Assistenten (131); ohne Angabe wird nicht nach Seiten gefragt. */
+	umfang?: '1' | 'claude';
 }
 
 const A4_OPTIONEN = {
 	format: 'a4-hoch',
-	optionen: ['A4 hoch', 'A4 quer', 'A5 (Heftformat)'],
+	optionen: [
+		{ name: 'A4 hoch', format: 'a4-hoch' },
+		{ name: 'A4 quer', format: 'a4-quer', hinweis: 'breite Tabellen, Zuordnungen' },
+		{ name: 'A5 (Heftformat)', format: 'a5-hoch' },
+	],
 	umsetzung: 'Standard; `a4-quer`; `a5-hoch`',
-} as const;
+} as const satisfies Partial<ArtAngaben>;
 const ALLE_BAUSTEINE = { selbsteinschaetzung: 'ja', niveaus: 'ja', sternchen: 'ja' };
 
+const MINIBUCH = {
+	name: 'Mini-Book',
+	format: 'minibuch',
+	optionen: ['Faltbuch aus einem A4-Blatt, 8 Seiten'],
+} as const;
+
+/** Vorlagen mit festem Format. Sie stehen in `rueckfragen.md` als eigene Zeile. */
+export const VORLAGE_FORMAT: Record<string, { name: string; format: Format; optionen: readonly string[] }> = {
+	minibuch: MINIBUCH,
+};
+
 export const ART_ANGABEN: Record<Art, ArtAngaben> = {
-	arbeitsblatt: {
-		name: 'Arbeitsblatt',
+	arbeitsblatt: { name: 'Arbeitsblatt', ...A4_OPTIONEN, bausteine: ALLE_BAUSTEINE, umfang: '1' },
+	// Lesebüchlein als Mini-Book nennt der Skill `lesetext`.
+	lesetext: {
+		name: 'Lesetext',
 		...A4_OPTIONEN,
-		optionen: [...A4_OPTIONEN.optionen],
+		optionen: [
+			...A4_OPTIONEN.optionen,
+			{ name: MINIBUCH.name, format: MINIBUCH.format, vorlage: 'minibuch', hinweis: MINIBUCH.optionen[0] },
+		],
 		bausteine: ALLE_BAUSTEINE,
+		umfang: '1',
 	},
-	lesetext: { name: 'Lesetext', ...A4_OPTIONEN, optionen: [...A4_OPTIONEN.optionen], bausteine: ALLE_BAUSTEINE },
 	lernzielkontrolle: {
 		name: 'Lernzielkontrolle',
 		...A4_OPTIONEN,
-		optionen: [...A4_OPTIONEN.optionen],
 		bausteine: { selbsteinschaetzung: 'ja', niveaus: '–', sternchen: '–' },
+		umfang: 'claude',
 	},
 	klassenarbeit: {
 		name: 'Klassenarbeit',
 		...A4_OPTIONEN,
-		optionen: [...A4_OPTIONEN.optionen],
 		bausteine: {
 			selbsteinschaetzung: 'ja (vor der Abgabe, nie benotet)',
 			niveaus: '– (keine Niveau-Wahl)',
 			sternchen: 'ja (außerhalb der Wertung)',
 		},
+		umfang: 'claude',
 	},
 	karten: {
 		name: 'Bild-/Wortkarten',
 		format: 'a4-hoch',
-		optionen: ['Tischkarten 8 pro A4', 'A5-Karten (2 pro A4)', 'Tafelkarten A4 quer', 'digital am Whiteboard'],
+		optionen: [
+			{ name: 'Tischkarten 8 pro A4', format: 'a4-hoch' },
+			{ name: 'A5-Karten (2 pro A4)', format: 'a4-hoch' },
+			{ name: 'Tafelkarten A4 quer', format: 'a4-quer' },
+			{ name: 'digital am Whiteboard', format: 'folie' },
+		],
 		umsetzung: '`.karten` auf A4 bzw. `folie`',
 	},
 	lernspiel: {
 		name: 'Lernspiel',
 		format: 'a4-hoch',
-		optionen: ['Karten auf A4 zum Ausschneiden', 'Spielplan A3/A4'],
+		optionen: [
+			{ name: 'Karten auf A4 zum Ausschneiden', format: 'a4-hoch' },
+			{ name: 'Spielplan A3/A4', format: 'a3-hoch', auch: ['a4-hoch'] },
+		],
 		umsetzung: '`.karten` auf A4 / `a3-hoch`',
 		bausteine: { selbsteinschaetzung: '–', niveaus: 'ja', sternchen: '–' },
 	},
 	lernplakat: {
 		name: 'Lernplakat',
 		format: 'a3-hoch',
-		optionen: ['A3', 'A2 aus A4-Kacheln'],
+		// A2 entsteht im Copyshop aus dem A3-PDF (Skill `lernplakat`).
+		optionen: [
+			{ name: 'A3', format: 'a3-hoch' },
+			{ name: 'A2 aus A4-Kacheln', format: 'a3-hoch' },
+		],
 		umsetzung: '`a3-hoch`',
 	},
 	stationen: {
 		name: 'Stationenlernen',
 		format: 'a5-hoch',
-		optionen: ['Stationskarten A5 + Laufzettel A4', 'Stationskarten A4'],
+		optionen: [
+			{ name: 'Stationskarten A5 + Laufzettel A4', format: 'a5-hoch', auch: ['a4-quer'] },
+			{ name: 'Stationskarten A4', format: 'a4-hoch' },
+		],
 		umsetzung: '`a5-hoch` oder `a4-quer` mit 2 Karten / Standard',
 		bausteine: ALLE_BAUSTEINE,
 	},
 	praesentation: {
 		name: 'Präsentation',
 		format: 'folie',
-		optionen: ['Folien 16:9 für Beamer, Smartboard oder Display'],
+		optionen: [{ name: 'Folien 16:9 für Beamer, Smartboard oder Display', format: 'folie' }],
 		umsetzung: '`folie`',
 		nichtFragen: true,
 		bausteine: {
@@ -125,24 +174,20 @@ export const ART_ANGABEN: Record<Art, ArtAngaben> = {
 			sternchen: 'ja, wenn eine Lernaufgaben-Folie entsteht',
 		},
 	},
-	unterrichtsplanung: { name: 'Unterrichtsplanung', format: 'a4-hoch', optionen: [] },
+	// Das Medium wird erst bei den Materialien der Stunde gefragt (`rueckfragen.md`, Tabelle der Skills).
+	unterrichtsplanung: { name: 'Unterrichtsplanung', format: 'a4-hoch', optionen: [], nichtFragen: true },
 	sonstiges: { name: 'Sonstiges', format: 'a4-hoch', optionen: [] },
 };
 
-/** Was der Assistent je Art als Format anbietet (045); das erste ist die Empfehlung und gleich `ART_ANGABEN[art].format`. */
-export const ART_FORMATE: Record<Art, readonly Format[]> = {
-	arbeitsblatt: ['a4-hoch', 'a4-quer', 'a5-hoch'],
-	lesetext: ['a4-hoch', 'a4-quer', 'a5-hoch'],
-	lernzielkontrolle: ['a4-hoch', 'a4-quer', 'a5-hoch'],
-	klassenarbeit: ['a4-hoch', 'a4-quer', 'a5-hoch'],
-	karten: ['a4-hoch', 'a4-quer', 'folie'],
-	lernspiel: ['a4-hoch', 'a3-hoch'],
-	lernplakat: ['a3-hoch'],
-	stationen: ['a5-hoch', 'a4-quer', 'a4-hoch'],
-	praesentation: ['folie'],
-	unterrichtsplanung: ['a4-hoch'],
-	sonstiges: ['a4-hoch'],
+/** Die Formate einer Art ohne Gerüst, in der Reihenfolge der Optionen; das erste ist die Empfehlung. */
+export const formateVon = (art: Art): readonly Format[] => {
+	const { format, optionen } = ART_ANGABEN[art];
+	const alle = optionen.filter((o) => !o.vorlage).flatMap((o) => [o.format, ...(o.auch ?? [])]);
+	return alle.length > 0 ? [...new Set(alle)] : [format];
 };
+
+/** Was die Schoolbox je Art als Format zulässt (045), abgeleitet aus `ART_ANGABEN`. */
+export const ART_FORMATE = Object.fromEntries(ARTEN.map((a) => [a, formateVon(a)])) as Record<Art, readonly Format[]>;
 
 export const FORMAT_NAME: Record<Format, string> = {
 	'a4-hoch': 'A4 hoch',
@@ -151,11 +196,6 @@ export const FORMAT_NAME: Record<Format, string> = {
 	'a5-hoch': 'A5 (Heftformat)',
 	'folie': 'Folien 16:9',
 	'minibuch': 'Mini-Book',
-};
-
-/** Vorlagen mit festem Format. */
-export const VORLAGE_FORMAT: Record<string, { name: string; format: Format; optionen: string[] }> = {
-	minibuch: { name: 'Mini-Book', format: 'minibuch', optionen: ['Faltbuch aus einem A4-Blatt, 8 Seiten'] },
 };
 
 /** Startvorlagen, die nur zu einer Art passen (051). */

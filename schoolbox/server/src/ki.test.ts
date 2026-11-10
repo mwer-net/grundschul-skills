@@ -7,7 +7,17 @@ import path from 'node:path';
 import { after, afterEach, before, describe, it } from 'node:test';
 
 import type { Einordnung, Pruefbericht } from '@schoolbox/kern';
-import { attribut, dokumentDir, KI_AKTIONEN, listeVersionen, WURZEL, zerlege } from '@schoolbox/kern';
+import {
+	attribut,
+	AUFTRAG_ZEICHEN,
+	auftragAus,
+	dokumentDir,
+	KI_AKTIONEN,
+	leereAntworten,
+	listeVersionen,
+	WURZEL,
+	zerlege,
+} from '@schoolbox/kern';
 import { leseAufmachung, wendeAufmachungAn } from '@schoolbox/kern/src/aufmachungen';
 import { erzeugeReferenz } from '@schoolbox/kern/src/referenz';
 
@@ -625,6 +635,158 @@ describe('Aufträge an Claude', () => {
 		await fertig(((await neu.json()) as { auftrag: { id: string } }).auftrag.id);
 		const dritte = await readFile(path.join(path.dirname(bin), 'prompts.txt'), 'utf8');
 		assert.match(dritte.split('---').at(-2) ?? '', /Wunsch der Lehrkraft: Igel im Herbst/);
+	});
+
+	it('Neuer Entwurf aus dem Assistenten: Auftrag aus den Antworten, Format von Claude (131)', async () => {
+		const zweit = await legeDokumentAn(server.materialDir, { beispiel: true });
+		const pfad = `/dokumente/${zweit.mappe}/${zweit.dok}`;
+		const neu = (body: object) =>
+			api(`${pfad}/ki`, { method: 'POST', body: JSON.stringify({ aktion: 'neu-entwurf', ...body }) });
+		const durch = async (body: object) => {
+			const res = await neu(body);
+			assert.equal(res.status, 202);
+			const a = await fertig(((await res.json()) as { auftrag: { id: string } }).auftrag.id);
+			assert.equal(a.status, 'fertig');
+			const prompts = await readFile(path.join(path.dirname(bin), 'prompts.txt'), 'utf8');
+			return prompts.split('---').at(-2) ?? '';
+		};
+		const verwerfen = () => api(`${pfad}/vorschlag/verwerfen`, { method: 'POST' });
+
+		// Fach und Klasse bestimmt der Behälter, nicht der Browser.
+		const antworten = { thema: 'Igel im Herbst', lerngruppe: ['daz' as const], fach: 'englisch', klasse: 4 };
+		const erwartet = auftragAus({
+			...leereAntworten({ fach: 'mathematik', klasse: 2 }),
+			...antworten,
+			fach: 'mathematik',
+			klasse: 2,
+		});
+		assert.ok((await durch({ antworten })).includes(`Auftrag der Lehrkraft (aus dem Assistenten):\n${erwartet}`));
+		await verwerfen();
+
+		for (const falsch of [
+			{ art: 'quiz', thema: 'x' },
+			{ boese: 1, thema: 'x' },
+			{ weg: 'leer', titel: 'x' },
+			{},
+			[],
+		]) {
+			assert.equal((await neu({ antworten: falsch })).status, 400, JSON.stringify(falsch));
+		}
+		assert.equal((await neu({ antworten, auftragText: 'x'.repeat(AUFTRAG_ZEICHEN + 1) })).status, 400);
+
+		const eigen = await durch({ antworten, auftragText: 'Ein Igel-Blatt mit EIGENEM Text.' });
+		assert.match(eigen, /Ein Igel-Blatt mit EIGENEM Text\./);
+		assert.doesNotMatch(eigen, /Thema: „Igel im Herbst“/);
+		await verwerfen();
+		// Der längste Auftrag passt samt Vorlage unter die Grenze des Servers.
+		await durch({ antworten, auftragText: 'x'.repeat(AUFTRAG_ZEICHEN) });
+		await verwerfen();
+
+		try {
+			await fall('format-fremd');
+			await durch({ antworten });
+			const v = (await (await api(`${pfad}/vorschlag`)).json()) as {
+				vorschlag: { meldungen: { stufe: string; text: string }[] };
+			};
+			assert.ok(
+				v.vorschlag.meldungen.some((m) => m.stufe === 'FEHLER' && /„a2-hoch“ gibt es nicht/.test(m.text)),
+			);
+			await verwerfen();
+
+			await fall('format-quer');
+			await durch({ antworten });
+			assert.equal((await api(`${pfad}/vorschlag/annehmen`, { method: 'POST' })).status, 200);
+			const meta = JSON.parse(await readFile(path.join(zweit.dir, 'meta.json'), 'utf8')) as { format: string };
+			assert.equal(meta.format, 'a4-quer');
+		} finally {
+			await fall('gut');
+		}
+	});
+
+	it('Neues Blatt (133): gekennzeichnet, nach dem Neuladen wiederzufinden, Nachbessern und Nochmal am Server', async () => {
+		const blatt = await legeDokumentAn(server.materialDir, { beispiel: true });
+		const pfad = `/dokumente/${blatt.mappe}/${blatt.dok}`;
+		type Auftrag = { id: string; status: string; neuesBlatt?: boolean; seit?: string };
+		const stand = async () =>
+			(await (await api(`${pfad}/ki`)).json()) as { auftraege: Auftrag[]; entwurf: Auftrag | null };
+		const vorschlagHier = async (frage = '') =>
+			(
+				(await (await api(`${pfad}/vorschlag${frage}`)).json()) as {
+					vorschlag: { neuesBlatt?: boolean; quelle?: string } | null;
+				}
+			).vorschlag;
+		const starteHier = async (body: object, ziel = `${pfad}/ki`) => {
+			const res = await api(ziel, { method: 'POST', body: JSON.stringify(body) });
+			assert.equal(res.status, 202);
+			return (await fertig(((await res.json()) as { auftrag: { id: string } }).auftrag.id)) as unknown as Auftrag;
+		};
+
+		// Ein Auftrag aus dem Chat zählt nicht als neues Blatt.
+		await starteHier({ auftrag: 'Mach es schöner' });
+		assert.equal((await stand()).entwurf, null);
+		assert.equal((await vorschlagHier())?.neuesBlatt, undefined);
+		await api(`${pfad}/vorschlag/verwerfen`, { method: 'POST' });
+
+		const erst = await starteHier({ aktion: 'neu-entwurf', antworten: { thema: 'Igel' } });
+		assert.equal(erst.neuesBlatt, true);
+		assert.ok(erst.seit);
+		assert.equal((await stand()).entwurf?.id, erst.id);
+		assert.equal((await vorschlagHier())?.neuesBlatt, true);
+		assert.equal((await vorschlagHier())?.quelle, undefined);
+		assert.match((await vorschlagHier('?quelle=1'))?.quelle ?? '', /von Claude/);
+
+		// Nachbessern erkennt der Server am offenen Entwurf.
+		const nach = await starteHier({ auftrag: 'Größer', aufVorschlag: true });
+		assert.equal(nach.neuesBlatt, true);
+		assert.equal((await stand()).entwurf?.id, nach.id);
+		assert.equal((await vorschlagHier())?.neuesBlatt, true);
+
+		// Verwerfen vergisst den Entwurf; „Nochmal“ startet denselben ersten Auftrag.
+		await api(`${pfad}/vorschlag/verwerfen`, { method: 'POST' });
+		assert.equal((await stand()).entwurf, null);
+		const prompts = path.join(path.dirname(bin), 'prompts.txt');
+		const nochmal = await starteHier({}, `${pfad}/ki/nochmal`);
+		assert.equal(nochmal.neuesBlatt, true);
+		assert.match((await readFile(prompts, 'utf8')).split('---').at(-2) ?? '', /Thema: „Igel“/);
+		assert.equal((await api(`${pfad}/vorschlag/annehmen`, { method: 'POST' })).status, 200);
+		assert.equal((await stand()).entwurf, null);
+
+		// Eine Meldung lässt sich schließen; ohne ersten Auftrag gibt es kein „Nochmal“.
+		await fall('fehler');
+		try {
+			const kaputt = await starteHier({ aktion: 'neu-entwurf', antworten: { thema: 'Igel' } });
+			assert.equal(kaputt.status, 'fehler');
+			assert.equal((await stand()).entwurf?.status, 'fehler');
+			assert.equal((await api(`${pfad}/ki/entwurf/vergessen`, { method: 'POST' })).status, 200);
+			assert.equal((await stand()).entwurf, null);
+		} finally {
+			// Der Fall „fehler“ meldet ein Limit und sperrt damit jeden weiteren Auftrag.
+			await fall('gut');
+			await api('/ki/limit/pruefen', { method: 'POST' });
+		}
+		const ander = await legeDokumentAn(server.materialDir, { beispiel: true });
+		const res = await api(`/dokumente/${ander.mappe}/${ander.dok}/ki/nochmal`, { method: 'POST' });
+		assert.equal(res.status, 404);
+	});
+
+	it('Laufende neue Blätter stehen in der Liste für die Ablage (133)', async () => {
+		const blatt = await legeDokumentAn(server.materialDir, { beispiel: true });
+		await fall('haenger');
+		try {
+			const res = await api(`/dokumente/${blatt.mappe}/${blatt.dok}/ki`, {
+				method: 'POST',
+				body: JSON.stringify({ aktion: 'neu-entwurf', antworten: { thema: 'Igel' } }),
+			});
+			const { auftrag: lauf } = (await res.json()) as { auftrag: { id: string } };
+			const liste = async () =>
+				((await (await api('/ki/entwuerfe')).json()) as { entwuerfe: { dok: string }[] }).entwuerfe;
+			assert.ok((await liste()).some((e) => e.dok === blatt.dok));
+			await api(`/ki/${lauf.id}/abbrechen`, { method: 'POST' });
+			assert.equal((await fertig(lauf.id)).status, 'abgebrochen');
+			assert.equal((await liste()).length, 0);
+		} finally {
+			await fall('gut');
+		}
 	});
 
 	it('Prompts: Jede Aktion hat einen, ohne Regeln, Pfade oder Namen', async () => {

@@ -1,3 +1,4 @@
+import type { Antworten } from '@schoolbox/kern/src/assistent';
 import type { Art, Fach, Format, Klasse } from '@schoolbox/kern/src/werte';
 
 import { meldung, sende } from '../api';
@@ -14,7 +15,9 @@ interface NeuesMaterial {
 	klasse: Klasse;
 	vorlage?: string | null;
 	zusatz?: Record<string, boolean | undefined>;
-	/** Mit Text startet Claude gleich den Entwurf. */
+	/** Aus dem Assistenten (132): Claude bekommt den Auftrag, den der Server aus den Antworten baut. */
+	assistent?: { antworten: Antworten; auftragText: string | null } | null;
+	/** Aus der Karte im Chat (077), bis 136: ein freier Wunsch. */
 	wunsch?: string | null;
 	/** Aus dem Chat: Der Entwurf ist die erste Nachricht dieses Gesprächs (087). */
 	gespraechId?: string | undefined;
@@ -23,6 +26,7 @@ interface NeuesMaterial {
 /** Legt das Dokument an und startet, falls gewünscht, Claude. Das Ergebnis sagt, wohin es danach geht. */
 export const legeMaterialAn = async ({
 	art,
+	assistent,
 	fach,
 	format,
 	gespraechId,
@@ -44,13 +48,19 @@ export const legeMaterialAn = async ({
 		zusatz: zusatz ?? {},
 	});
 	melde({ typ: 'mappe-neu', mappe });
-	if (!wunsch) {
+	if (!assistent && !wunsch) {
 		return { mappe, id, ziel: `/m/${mappe}/${id}/bearbeiten?neu=1`, state: null };
 	}
+	const eingabe = assistent
+		? {
+				antworten: assistent.antworten,
+				...(assistent.auftragText === null ? {} : { auftragText: assistent.auftragText }),
+			}
+		: { auftrag: wunsch };
 	// Das Blatt steht schon: Startet Claude nicht, geht es leer weiter, mit der Meldung im Editor.
 	const state = await sende<{ auftrag: { id: string } }>(`/api/dokumente/${mappe}/${id}/ki`, {
 		aktion: 'neu-entwurf',
-		auftrag: wunsch,
+		...eingabe,
 		...(gespraechId ? { gespraechId } : {}),
 	}).then(
 		({ auftrag }) => ({ kiAuftrag: auftrag.id }),

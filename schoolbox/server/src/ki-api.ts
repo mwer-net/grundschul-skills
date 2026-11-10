@@ -1,4 +1,16 @@
-import { KI_AKTIONEN, leseMappe, leseMeta, ordnerGeloescht, ordnerPfad, sammleMappen } from '@schoolbox/kern';
+import type { Antworten } from '@schoolbox/kern';
+import {
+	auftragAus,
+	KI_AKTIONEN,
+	leseMappe,
+	leseMeta,
+	ordnerGeloescht,
+	ordnerPfad,
+	pruefeAntworten,
+	pruefeAuftragText,
+	sammleMappen,
+	schritteFuer,
+} from '@schoolbox/kern';
 import type { Router as RouterTyp } from 'express';
 
 import { leseQuelle, schreibeQuelle, verlangeDokument } from './dokumente';
@@ -27,6 +39,34 @@ const nachrichten = (wert: unknown): KiNachricht[] | undefined => {
 };
 
 const kennungDerQuelle = async (dir: string) => kennung(await leseQuelle(dir));
+
+/**
+ * Der Teil der Lehrkraft für `neu-entwurf`. Aus dem Assistenten (131) baut der Server den Auftrag selbst aus den
+ * Antworten, mit Art, Fach und Klasse des Dokuments; `auftragText` ersetzt ihn, wenn die Lehrkraft ihn bearbeitet hat.
+ * Ohne Antworten der freie Wunsch aus dem Chat (077), bis 136 ihn entfernt.
+ */
+const eingabeVon = (body: Record<string, unknown>, dokument: Pick<Antworten, 'art' | 'fach' | 'klasse'>) => {
+	if (body.antworten === undefined) {
+		const wunsch = text(body.auftrag);
+		if (!wunsch) {
+			throw new HttpFehler(400, 'Bitte schreib, worum es geht.');
+		}
+		return `Wunsch der Lehrkraft: ${wunsch}`;
+	}
+	const antworten = { ...pruefeAntworten(body.antworten, dokument), ...dokument };
+	if (antworten.weg !== 'claude') {
+		throw new HttpFehler(400, 'Ein leeres Blatt braucht Claude nicht.');
+	}
+	const fehlt = schritteFuer(antworten)
+		.filter((s) => s.id !== 'pruefen')
+		.map((s) => s.fehlt?.(antworten))
+		.find(Boolean);
+	if (fehlt) {
+		throw new HttpFehler(400, fehlt);
+	}
+	const auftrag = body.auftragText === undefined ? auftragAus(antworten) : pruefeAuftragText(body.auftragText);
+	return `Auftrag der Lehrkraft (aus dem Assistenten):\n${auftrag}`;
+};
 
 /** Aufträge an Claude (057). Hängt am `apiRouter`: nur mit Sitzung, nie über Teilen-Links. */
 export const kiApi = (router: RouterTyp, kontext: Kontext) => {
@@ -83,19 +123,13 @@ export const kiApi = (router: RouterTyp, kontext: Kontext) => {
 		if (body.aktion !== undefined && !aktion) {
 			throw new HttpFehler(400, 'Diese Aktion gibt es nicht.');
 		}
-		const inhalt = aktion
-			? await aktionWunsch(aktion, {
-					fach: (await leseMappe(materialDir, mappe)).fach,
-					art: (await leseMeta(materialDir, mappe, dok)).art,
-				})
-			: { auftrag: text(body.auftrag) ?? '' };
-		const eingabe = text(body.auftrag);
-		if (aktion?.eingabe && !eingabe) {
-			throw new HttpFehler(400, 'Bitte schreib, worum es geht.');
-		}
+		const { fach, klasse } = await leseMappe(materialDir, mappe);
+		const { art } = await leseMeta(materialDir, mappe, dok);
+		const inhalt = aktion ? await aktionWunsch(aktion, { fach, art }) : { auftrag: text(body.auftrag) ?? '' };
+		const eingabe = aktion?.eingabe ? eingabeVon(body, { art, fach, klasse }) : undefined;
 		const auftrag = await ki.starte({
 			...inhalt,
-			auftrag: aktion?.eingabe ? `${inhalt.auftrag}\n\nWunsch der Lehrkraft: ${eingabe}` : inhalt.auftrag,
+			auftrag: eingabe ? `${inhalt.auftrag}\n\n${eingabe}` : inhalt.auftrag,
 			mappe,
 			dok,
 			referenz: text(body.referenz),
@@ -104,14 +138,33 @@ export const kiApi = (router: RouterTyp, kontext: Kontext) => {
 			verlauf: nachrichten(body.verlauf),
 			zitat: text(body.zitat),
 			ohneRueckfragen: aktion !== undefined,
+			neuesBlatt: aktion?.id === 'neu-entwurf',
 		});
 		res.status(202).json({ auftrag });
 	});
 
+	/** `entwurf`: der jüngste Auftrag am neuen Blatt, auch beendet (133). So stimmt der Editor nach dem Neuladen. */
 	router.get('/dokumente/:mappe/:dok/ki', (req, res) => {
 		const { dok, mappe } = req.params;
 		verlangeDokument(kontext, mappe, dok);
-		res.json({ auftraege: ki.offene(mappe, dok) });
+		res.json({ auftraege: ki.offene(mappe, dok), entwurf: ki.entwurf(mappe, dok) });
+	});
+
+	router.post('/dokumente/:mappe/:dok/ki/nochmal', async (req, res) => {
+		const { dok, mappe } = req.params;
+		verlangeDokument(kontext, mappe, dok);
+		res.status(202).json({ auftrag: await ki.nochmal(mappe, dok) });
+	});
+
+	router.post('/dokumente/:mappe/:dok/ki/entwurf/vergessen', (req, res) => {
+		const { dok, mappe } = req.params;
+		verlangeDokument(kontext, mappe, dok);
+		ki.vergiss(mappe, dok);
+		res.json({ vergessen: true });
+	});
+
+	router.get('/ki/entwuerfe', (_req, res) => {
+		res.json({ entwuerfe: ki.entwuerfe() });
 	});
 
 	router.delete('/ki/gespraech/:id', async (req, res) => {
@@ -142,6 +195,8 @@ export const kiApi = (router: RouterTyp, kontext: Kontext) => {
 			vorschlag: vorschlag && {
 				...vorschlag.meta,
 				konflikt: vorschlag.meta.basis !== (await kennungDerQuelle(dir)),
+				// Das neue Blatt zeigt der Editor als Vorschlag selbst (133).
+				...(req.query.quelle === '1' ? { quelle: vorschlag.quelle } : {}),
 			},
 		});
 	});
@@ -162,6 +217,9 @@ export const kiApi = (router: RouterTyp, kontext: Kontext) => {
 				zusammenfassen: false,
 			});
 			await verwirfVorschlag(materialDir, mappe, dok);
+			if (vorschlag.meta.neuesBlatt) {
+				ki.vergiss(mappe, dok);
+			}
 			return gespeichert;
 		});
 		res.json(ergebnis);
@@ -170,6 +228,9 @@ export const kiApi = (router: RouterTyp, kontext: Kontext) => {
 	router.post('/dokumente/:mappe/:dok/vorschlag/verwerfen', async (req, res) => {
 		const { dok, mappe } = req.params;
 		verlangeDokument(kontext, mappe, dok);
+		if ((await leseVorschlag(materialDir, mappe, dok))?.meta.neuesBlatt) {
+			ki.vergiss(mappe, dok);
+		}
 		await verwirfVorschlag(materialDir, mappe, dok);
 		res.json({ verworfen: true });
 	});

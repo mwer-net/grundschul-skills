@@ -18,6 +18,7 @@ import {
 	Bold,
 	BookOpen,
 	Calculator,
+	CalendarDays,
 	ChartColumn,
 	ChartScatter,
 	Check,
@@ -90,6 +91,7 @@ import {
 	Ribbon,
 	RotateCcw,
 	RotateCw,
+	Route,
 	Rows3,
 	Ruler,
 	Scissors,
@@ -108,6 +110,7 @@ import {
 	SquaresSubtract,
 	SquaresUnite,
 	Star,
+	Target,
 	Trash2,
 	TriangleAlert,
 	Type,
@@ -249,6 +252,10 @@ const SYMBOLE = {
 	'schnitt': SquaresIntersect,
 	'ausschluss': SquaresExclude,
 	'formenschere': ScissorsLineDashed,
+	// Material anlegen (132)
+	'route': Route,
+	'ziel': Target,
+	'kalender': CalendarDays,
 } as const satisfies Record<string, LucideIcon>;
 
 export type SymbolName = keyof typeof SYMBOLE;

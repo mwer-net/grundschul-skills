@@ -58,13 +58,18 @@ export const AblageKontext = createContext<AblageWerte>(leer);
 
 export const useAblage = () => useContext(AblageKontext);
 
-/** Wohin „←“ im Dokument führt. `null`: Teilen-Link oder der Stand ist noch nicht da. */
-export const useOrdnerDesDokuments = (mappe: string | null, dok: string) => {
-	const { stand } = useAblage();
-	const eintrag = stand?.dokumente.find((d) => d.mappe === mappe && d.id === dok);
-	if (!stand || !eintrag) {
+/** Ordner, in dem das Dokument liegt; `null`, wenn es nicht in der Ablage steht. */
+export const ortDesDokuments = (stand: AblageStand, mappe: string | null, dok: string) => {
+	const eintrag = stand.dokumente.find((d) => d.mappe === mappe && d.id === dok);
+	if (!eintrag) {
 		return null;
 	}
 	const ordner = stand.ordner.find((o) => o.id === eintrag.ordner);
 	return ordner ? { adresse: `/o/${ordner.id}`, name: ordner.name } : { adresse: '/', name: 'Mein Material' };
+};
+
+/** Wohin „←“ im Dokument führt. `null`: Teilen-Link oder der Stand ist noch nicht da. */
+export const useOrdnerDesDokuments = (mappe: string | null, dok: string) => {
+	const { stand } = useAblage();
+	return stand ? ortDesDokuments(stand, mappe, dok) : null;
 };

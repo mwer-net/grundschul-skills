@@ -273,8 +273,7 @@ test.describe('Generatoren (050)', () => {
 });
 
 test.describe('Eigene Vorlagen und Sammlung (051)', () => {
-	test('Als Vorlage speichern: Assistent zeigt sie, neues Dokument trägt den Inhalt', async ({ page }) => {
-		test.slow();
+	test('Als Vorlage speichern legt die Vorlage an', async ({ page }) => {
 		const { dok, id } = await uhrzeit();
 		await oeffne(page, id, dok);
 		await page.getByRole('button', { name: 'Weitere Aktionen' }).click();
@@ -282,18 +281,6 @@ test.describe('Eigene Vorlagen und Sammlung (051)', () => {
 		await page.locator('[data-vorlage-name]').fill('Uhr-Vorlage');
 		await page.locator('[data-vorlage-speichern]').click();
 		await expect(page.getByText('Vorlage „Uhr-Vorlage“ gespeichert.', { exact: false })).toBeVisible();
-
-		await page.goto(`/m/${id}`);
-		await page.getByRole('button', { name: 'Material anlegen' }).first().click();
-		await page.getByRole('button', { name: 'Weiter', exact: true }).click();
-		await page.getByRole('button', { name: 'Weiter', exact: true }).click();
-		await page.getByRole('textbox', { name: 'Titel' }).fill('Aus Vorlage');
-		await page.getByRole('button', { name: 'Weiter', exact: true }).click();
-		await page.locator('[data-eigene-vorlage="uhr-vorlage"] button').first().click();
-		await page.getByRole('button', { name: 'Anlegen', exact: true }).click();
-		await page.waitForURL(/bearbeiten/);
-		await expect(material(page).locator('x-uhr').first()).toBeVisible();
-		expect(await quelle(page)).toContain('<title>Aus Vorlage</title>');
 	});
 
 	test('Sammlung und Kopieren: im anderen Dokument einfügbar, in Bibliothek und Slash-Menü', async ({

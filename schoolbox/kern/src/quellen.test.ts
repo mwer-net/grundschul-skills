@@ -24,6 +24,7 @@ import { browserSkip } from './browsertest';
 import { ASSETS, BLATT_PY, SKILL_DIR, WURZEL } from './konfig';
 import { MELDUNG_CODES } from './meldungen';
 import { abgleichen, ABSCHNITTE, setzeAbschnitt } from './quellen';
+import type { Format } from './werte';
 import { ART_ANGABEN, ART_FORMATE, ARTEN, FORMATE, STANDARD_FORMAT, standardFormat, VORLAGE_FORMAT } from './werte';
 
 const KATALOG = readFileSync(path.join(SKILL_DIR, 'references', 'abbildungen.md'), 'utf8');
@@ -380,5 +381,33 @@ describe('Assistent (045)', () => {
 		for (const art of ARTEN) {
 			assert.equal(ART_FORMATE[art][0], ART_ANGABEN[art].format, art);
 		}
+	});
+
+	it('ART_FORMATE kommt aus den Optionen und ist dieselbe Liste wie vor 131', () => {
+		const A4: readonly Format[] = ['a4-hoch', 'a4-quer', 'a5-hoch'];
+		assert.deepEqual(ART_FORMATE, {
+			arbeitsblatt: A4,
+			klassenarbeit: A4,
+			lernzielkontrolle: A4,
+			lesetext: A4,
+			lernspiel: ['a4-hoch', 'a3-hoch'],
+			karten: ['a4-hoch', 'a4-quer', 'folie'],
+			lernplakat: ['a3-hoch'],
+			praesentation: ['folie'],
+			stationen: ['a5-hoch', 'a4-quer', 'a4-hoch'],
+			unterrichtsplanung: ['a4-hoch'],
+			sonstiges: ['a4-hoch'],
+		});
+		for (const art of ARTEN) {
+			const erste = ART_ANGABEN[art].optionen[0];
+			assert.equal(erste?.format ?? ART_ANGABEN[art].format, ART_ANGABEN[art].format, art);
+		}
+	});
+
+	it('das Mini-Book steht als Option beim Lesetext und nur einmal in der Tabelle', () => {
+		const mini = ARTEN.filter((art) => ART_ANGABEN[art].optionen.some((o) => o.vorlage === 'minibuch'));
+		assert.deepEqual(mini, ['lesetext']);
+		const tabelle = readFileSync(path.join(WURZEL, 'skills/grundschul-didaktik/references/rueckfragen.md'), 'utf8');
+		assert.equal(tabelle.split('Mini-Book').length - 1, 1);
 	});
 });

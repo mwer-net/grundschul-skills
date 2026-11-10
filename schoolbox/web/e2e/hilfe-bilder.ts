@@ -186,6 +186,37 @@ test.describe('Bildschirmfotos für die Hilfe', () => {
 		await foto(page, 'chat-mac.jpg');
 	});
 
+	test('Material anlegen', async ({ page }) => {
+		nurAuf('mac');
+		const { id } = await uhrzeit();
+		await page.goto(`/m/${id}`);
+		await page.getByRole('button', { name: 'Material anlegen' }).click();
+		const dialog = page.getByRole('dialog');
+		await expect(dialog.locator('[data-assistent="start"]')).toBeVisible();
+		await expect(dialog.locator('[data-wahl="claude"]')).toBeEnabled();
+		await foto(page, 'anlegen-start-mac.jpg');
+		await page.keyboard.press('Enter');
+		await page.keyboard.press('Enter');
+		await expect(dialog.locator('[data-assistent="format"]')).toBeVisible();
+		await foto(page, 'anlegen-format-mac.jpg');
+		await page.keyboard.press('Enter');
+		await page.keyboard.press('Enter');
+		await page.keyboard.type('Uhrzeit: volle und halbe Stunden');
+		await page.keyboard.press('Enter');
+		await page.keyboard.press('Enter');
+		await dialog.getByRole('button', { name: 'Große Leistungsspanne' }).click();
+		await dialog.getByRole('button', { name: 'Kinder mit Deutsch als Zweitsprache' }).click();
+		await dialog.getByRole('textbox', { name: /Sonst noch etwas/ }).fill('Bitte keine Digitaluhren.');
+		await page.keyboard.press('ControlOrMeta+Enter');
+		await expect(dialog.locator('[data-assistent="pruefen"]')).toBeVisible();
+		await foto(page, 'anlegen-auftrag-mac.jpg');
+		await page.keyboard.press('Enter');
+		const leiste = page.locator('[data-entwurfsleiste="offen"]');
+		await expect(leiste).toBeVisible();
+		await leiste.locator('[data-entwurf-annahmen-knopf]').click();
+		await foto(page, 'entwurf-mac.jpg');
+	});
+
 	test('Teilen', async ({ druecke, page }) => {
 		nurAuf('mac');
 		const { dok, id } = await uhrzeit();

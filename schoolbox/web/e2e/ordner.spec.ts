@@ -439,12 +439,14 @@ test.describe('Bestand', () => {
 		await oeffneObjekt(page, 'Leer');
 		await page.locator('[data-werkzeugleiste] [data-material-anlegen]').click();
 		const dialog = page.getByRole('dialog');
-		await expect(dialog).toContainText('Material anlegen');
-		for (let i = 0; i < 2; i += 1) {
+		await expect(dialog).toContainText('Neues Material im Ordner „Leer“');
+		for (let i = 0; i < 3; i += 1) {
 			await dialog.getByRole('button', { name: 'Weiter' }).click();
 		}
-		await expect(dialog.getByLabel('Fach')).toBeVisible();
-		await dialog.getByRole('button', { name: 'Abbrechen' }).click();
+		await expect(dialog.getByRole('group', { name: 'Fach' })).toBeVisible();
+		await expect(dialog.getByRole('group', { name: 'Fach' }).locator('button').first()).toBeEnabled();
+		await page.keyboard.press('Escape');
+		await expect(dialog).toBeHidden();
 	});
 
 	test('Claude legt an der Platte vorbei an: erscheint live', async ({ page }) => {

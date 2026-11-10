@@ -82,6 +82,8 @@ const Teiler = ({
 interface Eigenschaften {
 	panels: Panels;
 	lage: SchubladenLage;
+	/** Warum das Blatt gerade gesperrt ist (133); steht über der offenen Schublade. */
+	grund?: string | null;
 	teile: SchubladenTeile;
 	/** Über das Befehlsregister, damit Klick und Taste dasselbe tun. */
 	waehle: (id: SchubladenId) => void;
@@ -91,7 +93,7 @@ interface Eigenschaften {
  * Links im Editor: die Leiste mit allen bereiten Schubladen und daneben die offene in der Breite der früheren linken
  * Spalte. Angeheftete Ebenen stehen unter der offenen Schublade, getrennt durch einen ziehbaren Teiler.
  */
-export const Schubladen = ({ lage, panels, teile, waehle }: Eigenschaften) => {
+export const Schubladen = ({ grund = null, lage, panels, teile, waehle }: Eigenschaften) => {
 	const spalte = useRef<HTMLDivElement>(null);
 	const sichtbar = SCHUBLADEN.filter((s) => s.bereit(lage));
 	// Was gerade nicht bereit ist (Bausteine ohne Bearbeiten), führt zu den Ebenen statt ins Leere.
@@ -124,6 +126,11 @@ export const Schubladen = ({ lage, panels, teile, waehle }: Eigenschaften) => {
 					{...(offen ? { 'data-panel-links': offen.id } : {})}
 					{...(Ebenen ? { 'data-ebenen-angeheftet': '' } : {})}
 				>
+					{grund && (
+						<p className="flex-none border-b border-rand px-3 py-2 text-xs text-leise" data-sperre-grund>
+							{grund}
+						</p>
+					)}
 					{geteilt && Offen && Ebenen ? (
 						<>
 							<div

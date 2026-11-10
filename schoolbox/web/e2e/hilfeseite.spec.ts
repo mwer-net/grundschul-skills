@@ -5,7 +5,7 @@ import { expect, test } from './hilfe';
 const MATERIAL_DIR = process.env.E2E_MATERIAL_DIR ?? '';
 const ABSCHNITTE = [
 	'Ordner und Material ordnen',
-	'Selbst anlegen',
+	'Material anlegen',
 	'Material von Claude',
 	'Entwürfe auswählen',
 	'Drucken und PDF',
@@ -33,7 +33,7 @@ test.describe('Hilfe', () => {
 		await expect(page.locator('[data-abschnitt="teilen"]')).toBeInViewport();
 
 		const bilder = page.locator('main img');
-		await expect(bilder).toHaveCount(10);
+		await expect(bilder).toHaveCount(14);
 		for (const bild of await bilder.all()) {
 			await bild.scrollIntoViewIfNeeded();
 			await expect.poll(() => bild.evaluate((b) => (b as HTMLImageElement).naturalWidth)).toBeGreaterThan(500);

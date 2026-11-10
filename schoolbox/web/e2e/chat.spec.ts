@@ -460,10 +460,12 @@ test.describe('Chat als Gespräch (087)', () => {
 		await expect(chat(page).locator('[data-chat-neu]')).toBeVisible();
 		await feld(page).press('Enter');
 		await expect(page).toHaveURL(/\/bearbeiten\?claude=1/);
-		await expect(karte(page)).toBeVisible();
-		await expect(nachrichten(page).first()).toContainText('Arbeitsblatt Uhrzeiten');
-		await feld(page).fill('Mach die Uhren größer');
-		await feld(page).press('Enter');
+		// 133: Der Entwurf steht über dem Blatt, nachgebessert wird dort, im selben Gespräch.
+		const leiste = page.locator('[data-entwurfsleiste="offen"]');
+		await expect(leiste).toBeVisible();
+		await leiste.getByRole('button', { name: 'Nachbessern …' }).click();
+		await leiste.getByRole('textbox').fill('Mach die Uhren größer');
+		await leiste.getByRole('textbox').press('Enter');
 		await expect.poll(() => auftraege.length).toBe(2);
 		expect(auftraege[0]?.gespraechId).toBeTruthy();
 		expect(auftraege[1]?.gespraechId).toBe(auftraege[0]?.gespraechId);
@@ -558,6 +560,12 @@ test.describe('Neues Material aus dem Chat (077)', () => {
 		const eintraege = await readdir(path.join(MATERIAL_DIR, mappe, 'dokumente'), { withFileTypes: true });
 		return eintraege.filter((e) => e.isDirectory()).length;
 	};
+	/** Erst wenn der Ordner offen ist, kennt der Chat ihn; vorher landete der Wunsch in „Mein Material“. */
+	const zumOrdner = async (page: Page, mappe: string) => {
+		await page.goto(`/m/${mappe}`);
+		await expect(page).toHaveURL(/\/o\/o-/);
+		await expect(page.getByRole('treeitem', { name: 'Uhrzeit', selected: true })).toBeVisible();
+	};
 	const auftrag = async (page: Page, text: string) => {
 		await expect(page.getByRole('button', { name: 'Claude', exact: true })).toBeVisible();
 		await page.keyboard.press('ControlOrMeta+j');
@@ -578,9 +586,8 @@ test.describe('Neues Material aus dem Chat (077)', () => {
 
 		await feld(page).press('Enter');
 		await expect(page).toHaveURL(/\/bearbeiten\?claude=1/);
-		await expect(chat(page)).toBeVisible();
-		await expect(chat(page).locator('[data-chat-nachricht]').first()).toContainText('Arbeitsblatt Uhrzeiten');
-		await expect(karte(page)).toBeVisible();
+		await expect(page.locator('[data-entwurfsleiste="offen"]')).toBeVisible();
+		await expect(karte(page)).toHaveCount(0);
 		expect(await mappenZahl()).toBe(vorher + 1);
 		await page.goBack();
 		await expect(page).toHaveURL(/\/$/);
@@ -588,7 +595,7 @@ test.describe('Neues Material aus dem Chat (077)', () => {
 
 	test('Ordner: Das Dokument landet in diesem Ordner', async ({ page }) => {
 		const { id: mappe } = await uhrzeit();
-		await page.goto(`/m/${mappe}`);
+		await zumOrdner(page, mappe);
 		const vorher = await dokZahl(mappe);
 		await auftrag(page, 'Noch ein Blatt zur Uhr');
 		await expect(chip(page)).toContainText('Neues Material in diesem Ordner');
@@ -605,13 +612,10 @@ test.describe('Neues Material aus dem Chat (077)', () => {
 		await auftrag(page, 'Arbeitsblatt Uhrzeiten, Klasse 2');
 		await neuKarte(page).getByRole('button', { name: 'Ändern' }).click();
 		const dialog = page.getByRole('dialog');
-		await expect(dialog).toContainText('Material anlegen');
-		for (let i = 0; i < 2; i += 1) {
-			await dialog.getByRole('button', { name: 'Weiter' }).click();
-		}
-		await expect(dialog.getByLabel('Titel', { exact: true })).toHaveValue('Uhrzeiten üben');
-		await dialog.getByRole('button', { name: 'Weiter' }).click();
-		await expect(dialog.getByLabel('Worum geht es')).toHaveValue('Arbeitsblatt Uhrzeiten, Klasse 2');
+		await expect(dialog).toContainText('Neues Material');
+		await expect(dialog.locator('[data-assistent="pruefen"]')).toBeVisible();
+		await expect(dialog.getByRole('textbox', { name: /^Titel/ })).toHaveValue('Uhrzeiten üben');
+		await expect(dialog.locator('[data-auftrag]')).toContainText('„Arbeitsblatt Uhrzeiten, Klasse 2“');
 	});
 
 	test('Schlägt das Einordnen fehl, kommt die Karte trotzdem: Im Ordner legt sie an, ohne Ordner fragt der Dialog', async ({
@@ -623,12 +627,13 @@ test.describe('Neues Material aus dem Chat (077)', () => {
 		await expect(neuKarte(page)).toContainText('Bitte kurz prüfen.');
 		const vorher = await mappenZahl();
 		await feld(page).press('Enter');
-		await expect(page.getByRole('dialog')).toContainText('Material anlegen');
+		await expect(page.getByRole('dialog').locator('[data-assistent="fuerWen"]')).toBeVisible();
 		expect(await mappenZahl()).toBe(vorher);
-		await page.getByRole('dialog').getByRole('button', { name: 'Abbrechen' }).click();
+		await page.keyboard.press('Escape');
+		await expect(page.getByRole('dialog')).toBeHidden();
 
 		const { id: mappe } = await uhrzeit();
-		await page.goto(`/m/${mappe}`);
+		await zumOrdner(page, mappe);
 		await auftrag(page, 'Noch ein Blatt zur Uhr');
 		await expect(neuKarte(page)).toContainText('Bitte kurz prüfen.');
 		await feld(page).press('Enter');
@@ -644,7 +649,7 @@ test.describe('Neues Material aus dem Chat (077)', () => {
 
 	test('Abbrechen legt nichts an, Enter zweimal legt nur eines an', async ({ page }) => {
 		const { id: mappe } = await uhrzeit();
-		await page.goto(`/m/${mappe}`);
+		await zumOrdner(page, mappe);
 		const vorher = await dokZahl(mappe);
 		await auftrag(page, 'Noch ein Blatt zur Uhr');
 		await neuKarte(page).getByRole('button', { name: 'Abbrechen' }).click();
@@ -670,7 +675,7 @@ test.describe('Neues Material aus dem Chat (077)', () => {
 		await feld(page).press('Enter');
 		await expect(karte(page)).toBeVisible();
 		await chat(page).getByRole('button', { name: 'Im Editor ansehen' }).click();
-		await expect(page).toHaveURL(new RegExp(`/m/${mappe}/${dok}/bearbeiten\\?claude=1`));
+		await expect(page).toHaveURL(new RegExp(`/m/${mappe}/${dok}/bearbeiten\\?chat=1`));
 		await expect(karte(page)).toBeVisible();
 	});
 

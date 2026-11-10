@@ -11,6 +11,7 @@ import type { Einordnung, EinordnungOrdner, Fund, KiAktion, Konfig, Meldung, Pru
 import {
 	dokumentDir,
 	einordnungSchema,
+	formatBefund,
 	ID_MUSTER,
 	istEinElement,
 	leseMeta,
@@ -108,6 +109,10 @@ export interface KiAuftrag {
 	limitErreicht?: boolean;
 	/** Das Gespräch ist so lang, dass jede Nachricht viel kostet: Der Chat schlägt „Neu beginnen“ vor. */
 	kontextGross?: boolean;
+	/** Ein neues Blatt (133): der erste Entwurf und jedes Nachbessern daran. Der Editor zeigt es statt des Chats. */
+	neuesBlatt?: boolean;
+	/** Beginn des Laufs: Die Zeit in Karte und Pille übersteht so ein Neuladen. */
+	seit?: string;
 }
 
 export interface VorschlagMeta {
@@ -118,6 +123,8 @@ export interface VorschlagMeta {
 	antwort: string;
 	meldungen: Meldung[];
 	fehler: number;
+	/** Der Entwurf eines neuen Blatts (133). */
+	neuesBlatt?: boolean;
 }
 
 export interface KiNachricht {
@@ -145,6 +152,8 @@ export interface KiWunsch {
 	zitat?: string;
 	/** Aktionen und neue Blätter: Niemand wartet auf eine Rückfrage. */
 	ohneRueckfragen?: boolean;
+	/** Der erste Entwurf eines neuen Blatts (133). Nachbessern daran erkennt der Server am offenen Vorschlag. */
+	neuesBlatt?: boolean;
 }
 
 export type KiPruefer = (dokDir: string, html: string) => Promise<Pruefbericht>;
@@ -624,6 +633,10 @@ export const erstelleKi = ({ ereignisse, konfig, pruefer }: Abhaengigkeiten) => 
 	const wurzelTmp = kiTempWurzel(konfig.materialDir);
 	const pidDatei = path.join(wurzelTmp, 'pid');
 	const auftraege = new Map<string, KiAuftrag>();
+	/** Je Dokument der jüngste Auftrag am neuen Blatt und der erste Wunsch dafür (133). */
+	const entwurfAuftraege = new Map<string, string>();
+	const entwurfWuensche = new Map<string, KiWunsch>();
+	const dokSchluessel = (mappe: string, dok: string) => `${mappe}/${dok}`;
 	const warteschlange: { auftrag: KiAuftrag; wunsch: KiWunsch }[] = [];
 	let aktiv: {
 		auftrag: KiAuftrag;
@@ -942,6 +955,18 @@ export const erstelleKi = ({ ereignisse, konfig, pruefer }: Abhaengigkeiten) => 
 		}
 	};
 
+	/** Ein geändertes Format übernimmt `schreibeQuelle` beim Annehmen; ein unbekanntes ist ein Fehler wie jeder andere (131). */
+	const mitFormat = (html: string, bericht: Pruefbericht): Pruefbericht => {
+		const befund = formatBefund(html);
+		return befund
+			? {
+					...bericht,
+					fehler: bericht.fehler + 1,
+					meldungen: [...bericht.meldungen, { stufe: 'FEHLER', seite: 1, text: befund }],
+				}
+			: bericht;
+	};
+
 	/** Ein einzelner Lauf ohne Gedächtnis: alles wird gleich danach gelöscht. */
 	const einmalPlatz = async () => {
 		const tmp = await mkdtemp(path.join(wurzelTmp, 'lauf-'));
@@ -1036,7 +1061,8 @@ export const erstelleKi = ({ ereignisse, konfig, pruefer }: Abhaengigkeiten) => 
 		/** Prüft das Ergebnis mit höchstens einer Korrekturrunde. `null`: Der Auftrag endet ohne Vorschlag. */
 		const pruefeMitKorrektur = async (erst: Ergebnis, erstesErgebnis: string) => {
 			// Die Sperre zuerst: Die Blattprüfung öffnet das Ergebnis im Browser, und was hier hängen bleibt, soll dort nie laufen.
-			const blattPruefung = (html: string) => pruefeSicher(dir, ausschnitt.einsetzen(html));
+			const blattPruefung = async (html: string) =>
+				mitFormat(ausschnitt.einsetzen(html), await pruefeSicher(dir, ausschnitt.einsetzen(html)));
 			let neu = erstesErgebnis;
 			let funde = sperrFunde(quelle, ausschnitt, neu);
 			let bericht = funde.length > 0 ? null : await blattPruefung(neu);
@@ -1090,6 +1116,7 @@ export const erstelleKi = ({ ereignisse, konfig, pruefer }: Abhaengigkeiten) => 
 					text: t,
 				})),
 				fehler: bericht.fehler,
+				...(w.neuesBlatt ? { neuesBlatt: true } : {}),
 			};
 			// 123: Teile des Rezepts passend zu den Werten am body, auf das ganze Blatt (Vergleich = Ergebnis).
 			await schreibeAtomar(path.join(ziel, WORKFILE), gleicheAufmachungAb(ausschnitt.einsetzen(neu)));
@@ -1285,6 +1312,7 @@ export const erstelleKi = ({ ereignisse, konfig, pruefer }: Abhaengigkeiten) => 
 		const { auftrag: a, wunsch } = eintrag;
 		aktiv = { auftrag: a, gespraech: wunsch.gespraechId ?? null, kind: null, abbruch: false };
 		a.status = 'laeuft';
+		a.seit = new Date().toISOString();
 		melde(a);
 		arbeite(a, wunsch)
 			.then(() => {
@@ -1303,6 +1331,56 @@ export const erstelleKi = ({ ereignisse, konfig, pruefer }: Abhaengigkeiten) => 
 				loescheFallsBeendet(wunsch.gespraechId);
 				naechster();
 			});
+	};
+
+	const starte = async (eingang: KiWunsch): Promise<KiAuftrag> => {
+		const schluessel = dokSchluessel(eingang.mappe, eingang.dok);
+		const amNeuenBlatt =
+			eingang.aufVorschlag === true &&
+			Boolean((await leseVorschlag(konfig.materialDir, eingang.mappe, eingang.dok))?.meta.neuesBlatt);
+		const wunsch: KiWunsch = { ...eingang, neuesBlatt: eingang.neuesBlatt === true || amNeuenBlatt };
+		if (eingang.neuesBlatt) {
+			// Auch wenn er gleich abgelehnt wird: „Nochmal“ braucht ihn.
+			entwurfWuensche.set(schluessel, wunsch);
+		}
+		if (!(await angemeldet())) {
+			throw new HttpFehler(409, FEHLER_TEXTE.authentication_failed ?? FEHLER_UNBEKANNT);
+		}
+		if (limitErreicht()) {
+			throw new HttpFehler(429, limitErreichtText(limit?.zurueck ?? null));
+		}
+		if (!wunsch.auftrag.trim() || wunsch.auftrag.length > KI_GRENZEN.auftragZeichen) {
+			throw new HttpFehler(
+				400,
+				`Der Auftrag muss zwischen 1 und ${KI_GRENZEN.auftragZeichen} Zeichen lang sein.`,
+			);
+		}
+		pruefeVerlaufGrenzen(wunsch);
+		if (warteschlange.length >= KI_GRENZEN.warten) {
+			throw new HttpFehler(429, 'Es warten schon mehrere Aufträge. Bitte warte, bis einer fertig ist.');
+		}
+		// Falsche Referenz gleich melden, nicht erst, wenn der Auftrag an der Reihe ist.
+		const dir = dokumentDir(konfig.materialDir, wunsch.mappe, wunsch.dok);
+		waehleAusschnitt(await leseQuelle(dir), wunsch.aufVorschlag ? { ...wunsch, referenz: undefined } : wunsch);
+		const auftrag: KiAuftrag = {
+			id: randomUUID(),
+			mappe: wunsch.mappe,
+			dok: wunsch.dok,
+			status: 'wartet',
+			schritte: [],
+			fehler: null,
+			ergebnis: null,
+			antwort: null,
+			...(wunsch.neuesBlatt ? { neuesBlatt: true } : {}),
+		};
+		auftraege.set(auftrag.id, auftrag);
+		if (wunsch.neuesBlatt) {
+			entwurfAuftraege.set(schluessel, auftrag.id);
+		}
+		warteschlange.push({ auftrag, wunsch });
+		melde(auftrag);
+		naechster();
+		return auftrag;
 	};
 
 	return {
@@ -1332,41 +1410,23 @@ export const erstelleKi = ({ ereignisse, konfig, pruefer }: Abhaengigkeiten) => 
 			[...auftraege.values()].filter(
 				(a) => a.mappe === mappe && a.dok === dok && (a.status === 'laeuft' || a.status === 'wartet'),
 			),
-		starte: async (wunsch: KiWunsch): Promise<KiAuftrag> => {
-			if (!(await angemeldet())) {
-				throw new HttpFehler(409, FEHLER_TEXTE.authentication_failed ?? FEHLER_UNBEKANNT);
+		starte,
+		entwurf: (mappe: string, dok: string) =>
+			auftraege.get(entwurfAuftraege.get(dokSchluessel(mappe, dok)) ?? '') ?? null,
+		/** Laufende Entwürfe neuer Blätter, für die Kacheln der Ablage (133). */
+		entwuerfe: () =>
+			[...auftraege.values()].filter((a) => a.neuesBlatt && (a.status === 'laeuft' || a.status === 'wartet')),
+		/** „Nochmal“ nach einem Fehler: derselbe erste Auftrag noch einmal, auch wenn die Seite ihn nicht mehr kennt. */
+		nochmal: (mappe: string, dok: string) => {
+			const wunsch = entwurfWuensche.get(dokSchluessel(mappe, dok));
+			if (!wunsch) {
+				throw new HttpFehler(404, 'Den Auftrag gibt es nicht mehr. Vielleicht wurde der Server neu gestartet.');
 			}
-			if (limitErreicht()) {
-				throw new HttpFehler(429, limitErreichtText(limit?.zurueck ?? null));
-			}
-			if (!wunsch.auftrag.trim() || wunsch.auftrag.length > KI_GRENZEN.auftragZeichen) {
-				throw new HttpFehler(
-					400,
-					`Der Auftrag muss zwischen 1 und ${KI_GRENZEN.auftragZeichen} Zeichen lang sein.`,
-				);
-			}
-			pruefeVerlaufGrenzen(wunsch);
-			if (warteschlange.length >= KI_GRENZEN.warten) {
-				throw new HttpFehler(429, 'Es warten schon mehrere Aufträge. Bitte warte, bis einer fertig ist.');
-			}
-			// Falsche Referenz gleich melden, nicht erst, wenn der Auftrag an der Reihe ist.
-			const dir = dokumentDir(konfig.materialDir, wunsch.mappe, wunsch.dok);
-			waehleAusschnitt(await leseQuelle(dir), wunsch.aufVorschlag ? { ...wunsch, referenz: undefined } : wunsch);
-			const auftrag: KiAuftrag = {
-				id: randomUUID(),
-				mappe: wunsch.mappe,
-				dok: wunsch.dok,
-				status: 'wartet',
-				schritte: [],
-				fehler: null,
-				ergebnis: null,
-				antwort: null,
-			};
-			auftraege.set(auftrag.id, auftrag);
-			warteschlange.push({ auftrag, wunsch });
-			melde(auftrag);
-			naechster();
-			return auftrag;
+			return starte(wunsch);
+		},
+		/** Entwurf angenommen, verworfen oder die Meldung geschlossen: Der Editor zeigt danach nichts mehr dazu. */
+		vergiss: (mappe: string, dok: string) => {
+			entwurfAuftraege.delete(dokSchluessel(mappe, dok));
 		},
 		abbrechen: (id: string) => {
 			const a = auftraege.get(id);

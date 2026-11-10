@@ -5,9 +5,8 @@ import type { Art } from '@schoolbox/kern/src/werte';
 import { FORMAT_NAME } from '@schoolbox/kern/src/werte';
 import type { KeyboardEvent, RefObject } from 'react';
 import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
-import { useLocation, useNavigate } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 
-import { meldung } from '../api';
 import { klassen } from '../bausteine/klassen';
 import { Knopf } from '../bausteine/Knopf';
 import type { MenueEintrag } from '../bausteine/Menue';
@@ -22,13 +21,13 @@ import { istRueckfrage, verlaufFuerServer } from './chat-verlauf';
 import type { PfadTeil } from './darstellung';
 import type { KiAuftrag, useKiZustand, Vorschlag } from './ki';
 import { beendeGespraechAufServer, limitHinweis, useKiAuftrag } from './ki';
+import { LimitZeile } from './LimitZeile';
 import { EIGENE_GESCHICHTE } from './tasten';
 import { TEXTWERKZEUG } from './text';
 import type { Gespraech } from './useGespraech';
 import type { NeuMaterial, NeuStand } from './useNeuMaterial';
 import { Vergleich } from './Vergleich';
 
-const NEU_ENTWURF = 'neu-entwurf';
 const ABSTAND_UNTEN = 6;
 const SCHMAL_AB = 1100;
 const FELD_MAX = 120;
@@ -437,7 +436,6 @@ interface VerlaufBereichEigenschaften {
 	auftragKi: KiAuftragStand;
 	hinweisText: string | null;
 	imEditor: (() => void) | null;
-	leerGeblieben: boolean;
 	liste: RefObject<HTMLDivElement | null>;
 	neu: NeuMaterial;
 	limitGesperrt: boolean;
@@ -455,7 +453,6 @@ const VerlaufBereich = ({
 	einklappen,
 	hinweisText,
 	imEditor,
-	leerGeblieben,
 	limitGesperrt,
 	liste,
 	neu,
@@ -509,11 +506,6 @@ const VerlaufBereich = ({
 						verwerfen={verwerfen}
 						neuStarten={neuStarten}
 					/>
-				)}
-				{leerGeblieben && !vorschlag && (
-					<p className="text-leise" data-chat-leer>
-						Das Blatt bleibt leer im Ordner. Du kannst es selbst füllen oder hier neu beauftragen.
-					</p>
 				)}
 				{fehler && fehler !== hinweisText && (
 					<div className="rounded-lg border border-tinte/15 bg-white/50 p-2.5" data-ki-fehler>
@@ -700,51 +692,6 @@ const Eingabe = ({
 	);
 };
 
-/** Der Stand des Limits am Chat. Auch gesperrt kein toter Zustand: Der Knopf fragt das Konto neu. */
-const LimitZeile = ({
-	hinweis,
-	pruefeLimit,
-}: {
-	hinweis: NonNullable<ReturnType<typeof limitHinweis>>;
-	pruefeLimit: () => Promise<void>;
-}) => {
-	const [frage, setFrage] = useState<'ruhe' | 'fragt' | 'gefragt'>('ruhe');
-	const [fehler, setFehler] = useState<string | null>(null);
-	const versuche = async () => {
-		setFrage('fragt');
-		setFehler(null);
-		try {
-			await pruefeLimit();
-		} catch (grund) {
-			setFehler(meldung(grund));
-		}
-		setFrage('gefragt');
-	};
-	return (
-		<div
-			role="status"
-			className="flex flex-none items-center justify-between gap-2 border-b border-tinte/12 px-3 py-1 text-xs"
-			data-ki-limit={hinweis.art}
-		>
-			<p>
-				{hinweis.text}
-				{frage === 'gefragt' && ` ${fehler ?? 'Gerade neu gefragt: Es bleibt noch gesperrt.'}`}
-			</p>
-			{hinweis.art === 'gesperrt' && (
-				<Knopf
-					art="zweit"
-					groesse="klein"
-					className="flex-none"
-					disabled={frage === 'fragt'}
-					onClick={() => void versuche()}
-				>
-					Noch einmal versuchen
-				</Knopf>
-			)}
-		</div>
-	);
-};
-
 const OhneAnmeldung = ({ zurApp }: { zurApp: (() => void) | null }) => (
 	<div className="flex flex-col items-start gap-2 p-3" data-chat-ohne-anmeldung>
 		<p>
@@ -812,11 +759,6 @@ const stufenFuer = (
 		waehle: () => waehle('neu'),
 	},
 ];
-
-const ankunftVon = (state: unknown) => {
-	const { kiAuftrag, kiFehler } = (state ?? {}) as { kiAuftrag?: string; kiFehler?: string };
-	return { kiAuftrag, kiFehler, ausNeuEntwurf: Boolean(kiAuftrag || kiFehler) };
-};
 
 const laufStand = (ki: KiAuftragStand, neu: NeuMaterial, hinweis: ReturnType<typeof limitHinweis>) => {
 	const offenerVorschlag = ki.vorschlag && !ki.vorschlag.konflikt ? ki.vorschlag : null;
@@ -903,9 +845,8 @@ export const ChatInhalt = ({
 	const { mappe } = kontext;
 	const pfad = useMemo(() => kontextPfad ?? [], [kontextPfad]);
 	const navigate = useNavigate();
-	const location = useLocation();
-	const { ausNeuEntwurf, kiAuftrag, kiFehler } = ankunftVon(location.state);
-	const auftragKi = useKiAuftrag(mappe, dok, kiStatus.neu, kiAuftrag);
+	// Das neue Blatt aus dem Assistenten zeigt der Editor selbst (133).
+	const auftragKi = useKiAuftrag(mappe, dok, kiStatus.neu);
 	const { zustand } = kiStatus;
 	const lage = useLage(anker);
 	const { ordner } = useChatOrt(kontext, mappe, dok);
@@ -921,7 +862,6 @@ export const ChatInhalt = ({
 	const gewaehlt = wahl?.fuer === nr ? wahl.ziel : nr;
 	const ziel = gewaehlt === 'neu' ? null : gewaehlt;
 	const neuModus = kontext.art === 'neu' || gewaehlt === 'neu';
-	const [leerGeblieben, setLeerGeblieben] = useState(false);
 	useEffect(() => setZitat(null), [nr, setZitat]);
 
 	const { laeuft, setFehler, vorschlag } = auftragKi;
@@ -955,12 +895,6 @@ export const ChatInhalt = ({
 		warGesperrt.current = gesperrtLimit;
 	}, [gesperrtLimit, setFehler]);
 
-	useEffect(() => {
-		if (kiFehler) {
-			setFehler(kiFehler);
-		}
-	}, [kiFehler, setFehler]);
-
 	useAuftragsEnde({
 		auftrag: auftragKi.auftrag,
 		feld,
@@ -980,7 +914,6 @@ export const ChatInhalt = ({
 			gespraechVorher.current = gespraech.nummer;
 			gesendet.current = null;
 			setFehler(null);
-			setLeerGeblieben(false);
 		}
 	}, [gespraech.nummer, setFehler]);
 
@@ -1047,14 +980,13 @@ export const ChatInhalt = ({
 		setZitat(null);
 		setUngelesen(false);
 		await dokument?.handlungen.current.vorbereiten();
-		setLeerGeblieben(false);
 		const referenz =
 			!aufVorschlag && !ganzesBlatt && dokument?.zerlegung && ziel !== null
 				? erzeugeReferenz(dokument.zerlegung, ziel, dokument.ort, dokument.loesung)
 				: undefined;
 		await auftragKi.starte({
 			...(inhalt.aktion ? { aktion: inhalt.aktion } : {}),
-			...(!inhalt.aktion || inhalt.aktion === NEU_ENTWURF ? { auftrag: inhalt.text } : {}),
+			...(inhalt.aktion ? {} : { auftrag: inhalt.text }),
 			referenz,
 			aufVorschlag,
 			gespraechId,
@@ -1111,7 +1043,7 @@ export const ChatInhalt = ({
 	const neuStarten = () => {
 		const text = letzte?.text ?? vorschlag?.auftrag;
 		if (text) {
-			const aktion = ausNeuEntwurf ? NEU_ENTWURF : zustand.aktionen.find((a) => a.name === text)?.id;
+			const aktion = zustand.aktionen.find((a) => a.name === text)?.id;
 			sende({ text, ...(aktion ? { aktion } : {}) });
 		}
 	};
@@ -1164,7 +1096,6 @@ export const ChatInhalt = ({
 
 	const aktionen = neuModus || gesperrt ? [] : zustand.aktionen.filter((a) => a.auf.includes(umfangVon(ziel, pfad)));
 	const verwirf = () => {
-		setLeerGeblieben(ausNeuEntwurf);
 		void auftragKi.verwerfen();
 	};
 	const eingabe = eingabeWerte({
@@ -1224,9 +1155,8 @@ export const ChatInhalt = ({
 							imEditor={
 								dokument
 									? null
-									: () => void navigate(`/m/${mappe ?? ''}/${dok ?? ''}/bearbeiten?claude=1`)
+									: () => void navigate(`/m/${mappe ?? ''}/${dok ?? ''}/bearbeiten?chat=1`)
 							}
-							leerGeblieben={leerGeblieben}
 							liste={liste}
 							neu={neu}
 							neuBeginnen={gespraech.beende}
@@ -1237,7 +1167,14 @@ export const ChatInhalt = ({
 							verwerfen={verwirf}
 						/>
 					)}
-					{hinweis && <LimitZeile key={hinweis.art} hinweis={hinweis} pruefeLimit={kiStatus.pruefeLimit} />}
+					{hinweis && (
+						<LimitZeile
+							key={hinweis.art}
+							className="border-b border-tinte/12 px-3 py-1"
+							hinweis={hinweis}
+							pruefeLimit={kiStatus.pruefeLimit}
+						/>
+					)}
 					{zustand.verfuegbar ? (
 						<Eingabe
 							abbrechen={() => void auftragKi.abbrechen()}

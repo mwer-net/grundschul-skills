@@ -62,6 +62,16 @@ export const useGespraech = () => {
 		}
 	}, []);
 
+	/** Der Assistent hat ein Blatt angelegt (133): Sein Entwurf beginnt ein neues Gespräch, Nachbessern geht darin weiter. */
+	const beginneFuer = useCallback((ort: { mappe: string; dok: string }, neueId: string) => {
+		if (id.current && id.current !== neueId) {
+			beendeGespraechAufServer(id.current);
+		}
+		id.current = neueId;
+		bezug.current = `${ort.mappe}/${ort.dok}`;
+		setWert([]);
+	}, []);
+
 	const endeZahl = useCallback(() => enden.current, []);
 
 	useEffect(() => {
@@ -74,7 +84,7 @@ export const useGespraech = () => {
 		return () => window.removeEventListener('pagehide', weg);
 	}, []);
 
-	return { verlauf, setVerlauf, nummer, beende, folge, sichereId, uebernimm, endeZahl };
+	return { verlauf, setVerlauf, nummer, beende, folge, sichereId, uebernimm, beginneFuer, endeZahl };
 };
 
 export type Gespraech = ReturnType<typeof useGespraech>;

@@ -38,6 +38,7 @@ import { useChat, useChatKontext, useChatStand } from '../editor/chat-kontext';
 import { useClaudeApp } from '../editor/ClaudeApp';
 import { bausteinVon, editorHtml, elementZu, nrVon, pfadZu, zielNachSchritt } from '../editor/darstellung';
 import { useEinfuegen, useSlash, useTabelleTab } from '../editor/einfuegen';
+import { EntwurfKarte, EntwurfPille, Entwurfsleiste, SperrHinweis } from '../editor/Entwurf';
 import { zeigeBlattGestaltung } from '../editor/gestaltung/blatt/zeige';
 import { gestaltungKontext } from '../editor/gestaltung/kontext';
 import { Leiste as GestaltungLeiste } from '../editor/gestaltung/leiste/Leiste';
@@ -68,6 +69,7 @@ import { behaeltUndo, beobachteFelder, gehoertDemElement, istFeld, loeseFeld, TA
 import { TastenUebersicht } from '../editor/TastenUebersicht';
 import { TEXT_GEAENDERT, useText } from '../editor/text';
 import { useBefehle } from '../editor/useBefehle';
+import { useEntwurf } from '../editor/useEntwurf';
 import type { VersionEintrag } from '../editor/version';
 import { Versionen } from '../editor/Versionen';
 import type { ZoomWert } from '../editor/zoom';
@@ -365,6 +367,12 @@ const KopfMitte = ({
 	</>
 );
 
+/** Was das Blatt sperrt: die Vorschau einer Version, ein Konflikt beim Speichern, ein neues Blatt von Claude (133). */
+const sperreDesBlatts = (vorschau: boolean, konflikt: boolean, entwurf: boolean) => ({
+	frei: !vorschau && !konflikt && !entwurf,
+	nurAnsehen: vorschau || entwurf,
+});
+
 const Bearbeitung = ({ dokument, mappe: mappenDaten }: { mappe: Mappe; dokument: DokumentEintrag }) => {
 	const { id: dok, meta } = dokument;
 	const mappe = mappenDaten.id;
@@ -401,6 +409,8 @@ const Bearbeitung = ({ dokument, mappe: mappenDaten }: { mappe: Mappe; dokument:
 	const [schnellWunsch, setSchnellWunsch] = useState<{ n: number; nr: number | null }>({ n: 0, nr: null });
 	const ansicht = useRef<HTMLElement>(null);
 	const ki = chatStand.ki;
+	const entwurf = useEntwurf({ mappe, dok, nachLauf: ki.neu, annimm: b.annimm, gespraechId: chat.gespraechId });
+	const entwurfKarte = useRef<HTMLDivElement>(null);
 	const [vorschau, setVorschau] = useState<{ version: VersionEintrag; quelle: string } | null>(null);
 	const [zoom, setZoomWert] = useState<ZoomWert>(gemerkterZoom);
 	const [massstab, setMassstab] = useState({ skala: 1, stufe: 1 });
@@ -414,7 +424,7 @@ const Bearbeitung = ({ dokument, mappe: mappenDaten }: { mappe: Mappe; dokument:
 	const format = formatVon(b.verlauf, meta.format);
 	const quelle = b.verlauf?.quelle ?? null;
 	useTitel(`${meta.titel} bearbeiten`);
-	const anzeige = vorschau?.quelle ?? quelle;
+	const anzeige = vorschau?.quelle ?? entwurf.zeigt(quelle);
 	const basis = `/ansicht/${mappe}/dokumente/${dok}/`;
 	const { profil, waehle: waehleProfil } = useAnsichtsProfil({ mappe, token: null }, dok, meta);
 	const { html, loesung, mitLoesung, zerlegung } = useDarstellung(
@@ -427,7 +437,7 @@ const Bearbeitung = ({ dokument, mappe: mappenDaten }: { mappe: Mappe; dokument:
 	const pfad = useMemo(() => (geladen && auswahl !== null ? pfadZu(geladen.doc, auswahl) : []), [geladen, auswahl]);
 	const merken = useCallback((d: Document, h: string) => setGeladen({ doc: d, html: h }), []);
 
-	const frei = vorschau === null && b.konflikt === null;
+	const { frei, nurAnsehen } = sperreDesBlatts(vorschau !== null, b.konflikt !== null, entwurf.sperrt);
 	const pruefung = usePruefung({ geladen, html, zerlegung, ausgang: b.ausgang, aus: vorschau !== null });
 	const schrittWeg = useRef<(richtung: 'zurueck' | 'vor') => void>(() => undefined);
 	const geschichte = useCallback((richtung: 'zurueck' | 'vor') => schrittWeg.current(richtung), []);
@@ -966,6 +976,13 @@ const Bearbeitung = ({ dokument, mappe: mappenDaten }: { mappe: Mappe; dokument:
 				verlassen={() => befehle.fuehreAus('dokument.zurueck')}
 				mitte={kopfMitte}
 			>
+				<EntwurfPille
+					entwurf={entwurf}
+					zurKarte={() => {
+						ansicht.current?.scrollTo({ top: 0, behavior: 'smooth' });
+						entwurfKarte.current?.focus({ preventScroll: true });
+					}}
+				/>
 				<SymbolKnopf
 					symbol="rueckgaengig"
 					beschriftung="Rückgängig"
@@ -1066,6 +1083,7 @@ const Bearbeitung = ({ dokument, mappe: mappenDaten }: { mappe: Mappe; dokument:
 					<Schubladen
 						panels={panels}
 						lage={{ frei }}
+						grund={entwurf.grund}
 						teile={schubladenTeile}
 						waehle={(id: SchubladenId) => befehle.fuehreAus(`ansicht.links-${id}`)}
 					/>
@@ -1077,6 +1095,8 @@ const Bearbeitung = ({ dokument, mappe: mappenDaten }: { mappe: Mappe; dokument:
 							scrollPaddingBottom: 'var(--chat-platz, 0px)',
 						}}
 					>
+						<Entwurfsleiste entwurf={entwurf} />
+						<EntwurfKarte entwurf={entwurf} ki={ki} titel={meta.titel} karte={entwurfKarte} />
 						{b.konflikt && (
 							<Konfliktleiste
 								urheber={b.konflikt.urheber}
@@ -1107,7 +1127,7 @@ const Bearbeitung = ({ dokument, mappe: mappenDaten }: { mappe: Mappe; dokument:
 								textsitzung={text.bearbeitet}
 								kontextmenue={leinwandMenue}
 								geladen={merken}
-								nurAnsehen={vorschau !== null}
+								nurAnsehen={nurAnsehen}
 								ziehbar={struktur.aktiv}
 								ablegen={struktur.verschiebe}
 								jeSeite={format === 'folie'}
@@ -1180,6 +1200,7 @@ const Bearbeitung = ({ dokument, mappe: mappenDaten }: { mappe: Mappe; dokument:
 								panels.rechts !== 'inspektor' && 'p-3',
 							)}
 						>
+							<SperrHinweis grund={entwurf.grund} sichtbar={panels.rechts === 'inspektor'} />
 							{panelInhalt[panels.rechts]}
 						</div>
 					</aside>

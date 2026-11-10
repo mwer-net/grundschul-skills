@@ -47,12 +47,15 @@ const gruppiere = <T>(eintraege: ArtAngaben[], teil: (a: ArtAngaben) => T | unde
 	return [...gruppen.values()];
 };
 
+/** Optionen mit Gerüst (Mini-Book) stehen in der eigenen Zeile der Vorlage, nicht zweimal. */
+const optionsNamen = (a: ArtAngaben) => a.optionen.filter((o) => !o.vorlage).map((o) => o.name);
+
 const formatJeArt = () => {
-	const arten = ARTEN.map((a) => ART_ANGABEN[a]).filter((a) => a.optionen.length > 0);
-	const zeilen = gruppiere(arten, ({ nichtFragen, optionen, umsetzung }) => ({
-		nichtFragen,
-		optionen,
-		umsetzung,
+	const arten = ARTEN.map((a) => ART_ANGABEN[a]).filter((a) => optionsNamen(a).length > 0);
+	const zeilen = gruppiere(arten, (a) => ({
+		nichtFragen: a.nichtFragen,
+		optionen: optionsNamen(a),
+		umsetzung: a.umsetzung,
 	})).map(({ namen, wert: { nichtFragen, optionen, umsetzung } }) => {
 		const [erste, ...rest] = optionen;
 		const angebot = [nichtFragen ? `${erste} (nicht fragen)` : `**${erste}**`, ...rest].join(', ');
