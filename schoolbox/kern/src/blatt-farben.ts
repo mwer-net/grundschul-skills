@@ -1,44 +1,24 @@
 /**
- * Die Farben des Blatts für `references/gestaltung.md` (112). Quelle ist die Liste `BLATT_FARBEN`, die der Farbwähler
- * benutzt (`web/src/bausteine/Farbwahl.tsx`). Gelesen wird der Text der Datei, nicht das Modul: `quellen.ts` läuft nur
- * mit Node, ohne React und ohne die Pakete der Oberfläche.
+ * Die Farben des Blatts als Variablen (Briefing 3.9): Sie folgen Palette und Thema. Der Farbwähler der Oberfläche und
+ * die Tabelle in `references/gestaltung.md` (112) lesen beide diese Liste. Sie liegt im Kern, weil `quellen.ts` beim
+ * Ausrollen nur mit `kern/src` und `skills` läuft.
  */
+export const BLATT_FARBEN = [
+	{ wert: 'var(--haupt)', name: 'Hauptfarbe', variable: '--haupt' },
+	{ wert: 'var(--akzent)', name: 'Akzentfarbe', variable: '--akzent' },
+	{ wert: 'var(--dunkel)', name: 'Dunkel', variable: '--dunkel' },
+	{ wert: 'var(--linie)', name: 'Linienfarbe', variable: '--linie' },
+	{ wert: 'var(--fuell)', name: 'Füllfarbe', variable: '--fuell' },
+] as const;
 
-import { readFileSync } from 'node:fs';
-import path from 'node:path';
-
-export const FARBWAHL = 'schoolbox/web/src/bausteine/Farbwahl.tsx';
-
-export interface BlattFarbe {
-	wert: string;
-	name: string;
-}
-
-/** Die Einträge aus `BLATT_FARBEN` und `WEISS`, in der Reihenfolge des Farbwählers. */
-export const leseBlattFarben = (text: string): { farben: BlattFarbe[]; weiss: string } => {
-	const liste = /export const BLATT_FARBEN = \[([\s\S]*?)\] as const/.exec(text)?.[1];
-	const weiss = /export const WEISS = '([^']+)'/.exec(text)?.[1];
-	if (!liste || !weiss) {
-		throw new Error(`${FARBWAHL}: BLATT_FARBEN oder WEISS nicht gefunden.`);
-	}
-	const farben = [...liste.matchAll(/wert: '([^']+)', name: '([^']+)'/g)].map((t) => ({
-		wert: t[1] ?? '',
-		name: t[2] ?? '',
-	}));
-	if (farben.length === 0) {
-		throw new Error(`${FARBWAHL}: BLATT_FARBEN ist leer.`);
-	}
-	return { farben, weiss };
-};
+export const WEISS = '#ffffff';
 
 /** Die Tabelle der Farben (Marke `blatt-farben`). */
-export const blattFarbenListe = (wurzel: string) => {
-	const { farben, weiss } = leseBlattFarben(readFileSync(path.join(wurzel, FARBWAHL), 'utf8'));
-	return [
+export const blattFarbenListe = () =>
+	[
 		'| Wert | Name im Farbwähler |',
 		'|---|---|',
-		...farben.map((f) => `| \`${f.wert}\` | ${f.name} |`),
-		`| \`${weiss}\` | Weiß |`,
+		...BLATT_FARBEN.map((f) => `| \`${f.wert}\` | ${f.name} |`),
+		`| \`${WEISS}\` | Weiß |`,
 		'| `#rrggbb` | eigene Farbe |',
 	].join('\n');
-};

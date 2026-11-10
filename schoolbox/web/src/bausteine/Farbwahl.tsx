@@ -1,4 +1,5 @@
 import type { Verlauf } from '@schoolbox/kern/src/aussehen';
+import { BLATT_FARBEN, WEISS } from '@schoolbox/kern/src/blatt-farben';
 import type { ReactNode } from 'react';
 import { useEffect, useId, useRef } from 'react';
 
@@ -11,16 +12,6 @@ import { sichtbar, verlaufCss } from './verlauf';
  * Farben des Blatts als Variablen (Briefing 3.9): Sie folgen Palette und Thema. Weiß und eine eigene Farbe kommen als
  * Hex dazu. 104, 105 und 108 benutzen diesen Baustein; 108 ergänzt Verläufe (Feld `verlauf`).
  */
-export const BLATT_FARBEN = [
-	{ wert: 'var(--haupt)', name: 'Hauptfarbe', variable: '--haupt' },
-	{ wert: 'var(--akzent)', name: 'Akzentfarbe', variable: '--akzent' },
-	{ wert: 'var(--dunkel)', name: 'Dunkel', variable: '--dunkel' },
-	{ wert: 'var(--linie)', name: 'Linienfarbe', variable: '--linie' },
-	{ wert: 'var(--fuell)', name: 'Füllfarbe', variable: '--fuell' },
-] as const;
-
-export const WEISS = '#ffffff';
-
 const HEX = /^#[0-9a-f]{6}$/i;
 
 /** `#abc` → `#aabbcc`, für `<input type="color">`, das nur sechs Stellen kennt. */

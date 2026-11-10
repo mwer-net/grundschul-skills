@@ -20,7 +20,6 @@ import {
 	SKALA_STANDARD,
 	zahlStandard,
 } from './abbildungen';
-import { FARBWAHL } from './blatt-farben';
 import { browserSkip } from './browsertest';
 import { ASSETS, BLATT_PY, SKILL_DIR, WURZEL } from './konfig';
 import { MELDUNG_CODES } from './meldungen';
@@ -160,7 +159,6 @@ describe('Erzeugte Abschnitte', () => {
 			...new Set(ABSCHNITTE.map((a) => a.datei)),
 			'skills/html-materialerstellung/assets/blatt.css',
 			'skills/html-materialerstellung/assets/pruefung.js',
-			FARBWAHL,
 		]) {
 			mkdirSync(path.dirname(path.join(ziel, datei)), { recursive: true });
 			cpSync(path.join(WURZEL, datei), path.join(ziel, datei));

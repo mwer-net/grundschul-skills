@@ -1,3 +1,4 @@
+import { BLATT_FARBEN } from '@schoolbox/kern/src/blatt-farben';
 import type { Ecke, StreuArt, StreuForm, StreuGroesse, StreuTeil } from '@schoolbox/kern/src/streuen';
 import {
 	FORM_NAMEN,
@@ -11,7 +12,6 @@ import {
 	wuerfle,
 } from '@schoolbox/kern/src/streuen';
 
-import { BLATT_FARBEN } from '../../../bausteine/Farbwahl';
 import { klassen } from '../../../bausteine/klassen';
 import { Knopf } from '../../../bausteine/Knopf';
 import { Segment } from '../../../bausteine/Segment';

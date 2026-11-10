@@ -9,7 +9,7 @@ import { readFileSync } from 'node:fs';
 import path from 'node:path';
 import { describe, it } from 'node:test';
 
-import { leseBlattFarben } from './blatt-farben';
+import { BLATT_FARBEN, blattFarbenListe, WEISS } from './blatt-farben';
 import { pruefeFreiesHtml } from './frei';
 import type { Etappe } from './gestaltung-arten';
 import { GESTALTUNG_ARTEN } from './gestaltung-arten';
@@ -65,14 +65,11 @@ describe('references/gestaltung.md (112)', () => {
 		);
 	});
 
-	it('die Farben kommen aus der Liste des Farbwählers; die Gegenprobe ohne Liste schlägt an', () => {
-		const text = readFileSync(path.join(WURZEL, 'schoolbox', 'web', 'src', 'bausteine', 'Farbwahl.tsx'), 'utf8');
-		const { farben } = leseBlattFarben(text);
-		assert.ok(farben.some((f) => f.wert === 'var(--haupt)'));
-		for (const f of farben) {
-			assert.ok(REFERENZ.includes(`\`${f.wert}\``), f.wert);
+	it('die Farben kommen aus der Liste des Farbwählers, auch Weiß', () => {
+		for (const wert of [...BLATT_FARBEN.map((f) => f.wert), WEISS]) {
+			assert.ok(REFERENZ.includes(`\`${wert}\``), wert);
 		}
-		assert.throws(() => leseBlattFarben(text.replace('BLATT_FARBEN', 'ANDERE_FARBEN')));
+		assert.ok(REFERENZ.includes(blattFarbenListe()));
 	});
 });
 

@@ -155,10 +155,22 @@ test.describe('Formen: Größe, Farben, Parameter', () => {
 		await oeffneFormen(page);
 		const form = await legeAb(page, 'Kreis');
 		await expect(form.locator('path')).toHaveAttribute('style', /fill:var\(--akzent\)/);
-		const fill = () => form.locator('path').evaluate((p) => getComputedStyle(p).fill);
+		const fill = () =>
+			form
+				.locator('path')
+				.evaluate((p) => getComputedStyle(p).fill)
+				.catch(() => null);
+		await geladen(page);
 		const vorher = await fill();
+		expect(vorher).not.toBeNull();
 		await aendere(page, (await quelle(page)).replace('palette-himmel', 'palette-beere'));
-		await expect.poll(fill).not.toBe(vorher);
+		await geladen(page);
+		await expect
+			.poll(async () => {
+				const jetzt = await fill();
+				return jetzt !== null && jetzt !== vorher;
+			})
+			.toBe(true);
 		expect(await quelle(page)).toMatch(/fill:var\(--akzent\)/);
 	});
 

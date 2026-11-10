@@ -1,8 +1,8 @@
 import type { Zeilen } from '@schoolbox/kern/src/bausteine';
 import { zeilenVon } from '@schoolbox/kern/src/bausteine';
+import { BLATT_FARBEN, WEISS } from '@schoolbox/kern/src/blatt-farben';
 import { useState } from 'react';
 
-import { BLATT_FARBEN, WEISS } from '../bausteine/Farbwahl';
 import { klassen } from '../bausteine/klassen';
 import { Knopf } from '../bausteine/Knopf';
 import { Symbol } from '../bausteine/Symbol';
