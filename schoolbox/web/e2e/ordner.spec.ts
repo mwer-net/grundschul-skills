@@ -299,6 +299,8 @@ test.describe('Ohne Ziehen', () => {
 		await legeMappeAn('Ziel', 'mathematik', 3, [{ titel: 'Blatt B' }]);
 		await page.goto('/');
 		await objektMenue(page, 'Quelle');
+		// Die Ablage behält ihr Bild (170); zugleich die Gegenprobe, dass der Klassen-Selektor greift.
+		await expect(eintrag(page, /Bewegen nach/).locator('svg.lucide-folder-input')).toBeVisible();
 		await druecke(eintrag(page, /Bewegen nach/));
 		const dialog = page.getByRole('dialog');
 		await expect(dialog).toContainText('„Quelle“ bewegen nach');

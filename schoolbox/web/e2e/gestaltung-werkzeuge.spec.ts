@@ -250,3 +250,27 @@ test.describe('Linie und Pfeil (107)', () => {
 			.toMatch(/<path class="spitzen" d="[^"]+" style="fill:var\(--dunkel\);stroke:none"\/>/);
 	});
 });
+
+test.describe('Symbole (170)', () => {
+	test('V zeigt den Mauszeiger in der Reihe und in der Palette, im Editor gibt es kein Ordner-Symbol', async ({
+		page,
+	}) => {
+		await oeffneFormen(page);
+		await expect(page.locator('[data-werkzeug="auswahl"] svg.lucide-mouse-pointer-2')).toBeVisible();
+		// Kein Werkzeug leiht sich das Bild eines anderen: Lucide setzt den Namen als erste Klasse `lucide-…`.
+		const bilder = await page
+			.getByRole('toolbar', { name: 'Werkzeuge' })
+			.locator('svg')
+			.evaluateAll((svgs) => svgs.map((s) => [...s.classList].find((k) => k.startsWith('lucide-')) ?? ''));
+		expect(bilder.length).toBeGreaterThan(1);
+		expect(bilder).not.toContain('');
+		expect(new Set(bilder).size).toBe(bilder.length);
+		await expect(page.locator('svg.lucide-folder-input')).toHaveCount(0);
+
+		await page.keyboard.press('ControlOrMeta+k');
+		const palette = page.locator('[data-befehlspalette]');
+		await palette.getByRole('combobox').fill('Auswahl');
+		const zeile = palette.locator('[data-palette-zeile="werkzeug.auswahl"]');
+		await expect(zeile.locator('svg.lucide-mouse-pointer-2')).toBeVisible();
+	});
+});

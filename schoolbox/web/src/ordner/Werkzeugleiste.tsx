@@ -67,7 +67,7 @@ const AuswahlKnoepfe = ({ befehle, lage }: { befehle: Befehle; lage: Lage }) => 
 			)}
 			{gewaehlteObjekte.length > 1 && (
 				<Knopf art="zweit" aria-label="Bewegen nach …" onClick={dieseLeiste('bewegenNach')}>
-					<Symbol name="bewegen" />
+					<Symbol name="bewegenNach" />
 					<span className="@max-5xl:hidden">Bewegen nach …</span>
 				</Knopf>
 			)}

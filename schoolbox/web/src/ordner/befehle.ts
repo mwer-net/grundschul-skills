@@ -185,7 +185,7 @@ export const BEFEHLE: Befehl[] = [
 		wenn: belegt,
 		abschnitt: 'Ablage',
 	},
-	{ id: 'bewegenNach', titel: 'Bewegen nach …', symbol: 'bewegen', wenn: belegt, abschnitt: 'Ablage' },
+	{ id: 'bewegenNach', titel: 'Bewegen nach …', symbol: 'bewegenNach', wenn: belegt, abschnitt: 'Ablage' },
 	{
 		id: 'einfuegen',
 		titel: 'Einfügen',
