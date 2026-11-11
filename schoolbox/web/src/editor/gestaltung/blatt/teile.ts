@@ -2,7 +2,7 @@ import type { Seiten, Seitengestaltung } from '@schoolbox/kern/src/seitengestalt
 
 export type SeitenTeil = 'seitenflaeche' | 'seitenrahmen';
 
-/** Was jeder Unterabschnitt von Blatt › Gestaltung bekommt (095 Fläche und Rahmen, 119 Rezept). */
+/** Was jeder Unterabschnitt von Blatt › Gestaltung bekommt (095 Fläche und Rahmen). */
 export interface BlattTeile {
 	doc: Document | null;
 	quelle: string;

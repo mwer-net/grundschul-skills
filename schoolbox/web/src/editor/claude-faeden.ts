@@ -103,7 +103,7 @@ export const seitenVon = (z: Zerlegung, loesung: boolean) =>
 
 export const ersteSeite = (z: Zerlegung, loesung: boolean) => seitenVon(z, loesung)[0]?.nr ?? null;
 
-/** Bei nur einer Seite meint die Seite das ganze Blatt: Rezept und Format am `body` bleiben für Claude erreichbar. */
+/** Bei nur einer Seite meint die Seite das ganze Blatt: Format und Palette am `body` bleiben für Claude erreichbar. */
 export const meintGanzesBlatt = (f: Pick<Faden, 'ganz' | 'nr'>, { loesung, z }: Pick<ClaudeLage, 'loesung' | 'z'>) => {
 	const seiten = seitenVon(z, loesung);
 	return f.ganz || (seiten.length === 1 && seiten[0]?.nr === f.nr);

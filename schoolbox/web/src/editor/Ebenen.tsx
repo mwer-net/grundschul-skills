@@ -47,7 +47,6 @@ const LUECKE = <span className="w-5 flex-none [@media(any-pointer:coarse)]:w-11"
 
 /** Symbol je Art in den Ebenen (1-ebenen.md, „Beschriftung“); Bausteine haben keins. */
 const SYMBOL_DER_ART: Record<string, SymbolName> = {
-	kopfband: 'rezepte', // 119
 	figurfrei: 'figuren',
 	bildfrei: 'bild',
 	form: 'formen',
@@ -894,10 +893,12 @@ export const Ebenen = ({
 		const hauptstapel = k.zeile === 'hauptstapel';
 		// Der Hauptstapel hat kein eigenes Element: Sein Klick wählt die Seite.
 		// Seitenrahmen und Seitenfläche öffnen Blatt › Gestaltung (095).
+		// >> 180
 		const waehleZeile = () =>
-			k.zeile === 'seitenrahmen' || k.zeile === 'seitenflaeche' || k.zeile === 'kopfband' // 119
+			k.zeile === 'seitenrahmen' || k.zeile === 'seitenflaeche'
 				? zeigeSeitengestaltung(seite)
 				: waehle(hauptstapel ? seite : k.nr);
+		// << 180
 		return (
 			<div key={k.schluessel} data-knoten={k.nr}>
 				<div

@@ -1,7 +1,7 @@
 /**
- * Abnahme E3, Z6 (123): „Ein Blatt in fünf Griffen“ nach 05-bedienung.md 5.14, nur mit Klicks, Ziehen, ⌥1–⌥7 und
+ * Abnahme E3, Z6 (123): „Ein Blatt in fünf Griffen“ nach 05-bedienung.md 5.14, nur mit Klicks, Ziehen, ⌥1–⌥6 und
  * Tippen. Jeder Griff ist ein Schritt (der Name am Knopf „Rückgängig“ wechselt mit jedem). Danach: Nummern lückenlos,
- * Lösung vollständig, s/w ohne Fläche, Kopfband und Punkte mit dunklem Titel, Prüfung ohne FEHLER und WARNUNG.
+ * Lösung vollständig, s/w ohne Fläche und Punkte mit dunklem Titel, Prüfung ohne FEHLER und WARNUNG.
  */
 import { writeFile } from 'node:fs/promises';
 
@@ -98,7 +98,7 @@ test.describe('Abnahme E3: Ein Blatt in fünf Griffen (123, Z6)', () => {
 		await page.setViewportSize({ width: 1512, height: 860 });
 	});
 
-	test('Rezept, Bausteine, Wilma am Anker, Sprechblase, Sperren: Nummern, Lösung, s/w und Prüfung stimmen', async ({
+	test('Seitenfläche, Bausteine, Wilma am Anker, Sprechblase, Sperren: Nummern, Lösung, s/w und Prüfung stimmen', async ({
 		page,
 	}) => {
 		// Der ganze Ablauf in einem Test: Über zwanzig Schritte, jeder lädt das Blatt neu.
@@ -107,13 +107,16 @@ test.describe('Abnahme E3: Ein Blatt in fünf Griffen (123, Z6)', () => {
 		await writeFile(u.material, START);
 		await oeffne(page, u.id, u.dok);
 
-		// 1. ⌥7 Rezepte: Dschungel, Würfeln.
+		// 1. Reiter „Blatt“: Seitenfläche Farbe.
 		await geladen(page);
-		await oeffnePerTaste(page, 'rezepte', 'Alt+Digit7');
-		await page.locator('[data-rezept-kachel="dschungel"]').click();
-		await schritt(page, 'Rezept Dschungel');
-		await page.locator('[data-schublade-rezepte] [data-rezept-wuerfeln]').click();
-		await schritt(page, 'Rezept gewürfelt');
+		await page.getByRole('tab', { name: 'Blatt' }).first().click();
+		const gestaltung = page.locator('[data-abschnitt="gestaltung"]');
+		await gestaltung.locator('[data-gestaltung-kopf]').click();
+		await gestaltung
+			.getByRole('group', { name: 'Seitenfläche' })
+			.getByRole('button', { name: 'Farbe', exact: true })
+			.click();
+		await schritt(page, 'Seitenfläche: Farbe');
 
 		// 2. ⌥2 Bausteine: Figur (Dreiecke zählen) und eine Aufgabe, die eine Sternchenaufgabe wird.
 		await geladen(page);
@@ -171,7 +174,7 @@ test.describe('Abnahme E3: Ein Blatt in fünf Griffen (123, Z6)', () => {
 		await ziehe(page, await mitte(page.locator('[data-gestaltung-griff="zipfel"]')), await mitte(wilma(page)));
 		await schritt(page, 'Zipfel gezogen');
 
-		// 5. ⌥1 Ebenen: Wilma und Sprechblase sperren; die Teile des Rezepts sind schon gesperrt.
+		// 5. ⌥1 Ebenen: Wilma und Sprechblase sperren.
 		await geladen(page);
 		await oeffnePerTaste(page, 'ebenen', 'Alt+Digit1');
 		await sperre(page, /^Sprech/);
@@ -199,7 +202,7 @@ test.describe('Abnahme E3: Ein Blatt in fünf Griffen (123, Z6)', () => {
 		await page.getByRole('button', { name: 'Arbeitsblatt', exact: true }).click();
 		await geladen(page);
 
-		// s/w: Fläche, Kopfband und Punkte weg, der Titel dunkel.
+		// s/w: Fläche und Punkte weg, der Titel dunkel.
 		await page.locator('[data-profilschalter]').getByRole('button', { name: 's/w', exact: true }).click();
 		await geladen(page);
 		await expect
@@ -208,18 +211,17 @@ test.describe('Abnahme E3: Ein Blatt in fünf Griffen (123, Z6)', () => {
 					.locator('body')
 					.evaluate((body) => {
 						const sichtbar = (e: Element) => getComputedStyle(e).display !== 'none';
-						const teile = [...body.querySelectorAll('[data-aufmachung-teil]')].filter(sichtbar);
-						const kopf = body.querySelector('.kopf');
+						const flaechen = [...body.querySelectorAll('.seitenflaeche')];
 						const h1 = body.querySelector('h1');
 						return {
-							teile: teile.map((e) => e.getAttribute('data-aufmachung-teil')),
-							band: kopf ? getComputedStyle(kopf, '::before').display : 'none',
+							flaechen: flaechen.length,
+							sichtbar: flaechen.filter(sichtbar).length,
 							titel: h1 ? getComputedStyle(h1).color : '',
 						};
 					})
 					.catch(() => null),
 			)
-			.toEqual({ teile: ['rahmen'], band: 'none', titel: 'rgb(29, 29, 29)' });
+			.toEqual({ flaechen: 1, sichtbar: 0, titel: 'rgb(29, 29, 29)' });
 		await expect(page.getByText('Alles passt')).toBeVisible();
 	});
 });

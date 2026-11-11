@@ -3,9 +3,6 @@
  * `.seitenrahmen`, beide immer zuunterst in `.ebene.hinten`, die Fläche zuerst. Sie haben kein `data-lage`, denn sie
  * füllen die Seite und lassen sich nicht ziehen. Werte stehen als Attribute (`data-flaeche`, `data-muster`,
  * `data-rahmen`, `data-sw`) und als eigene Eigenschaften im `style`; wie sie aussehen, regelt `blatt.css`.
- *
- * Ändert die Lehrkraft Fläche oder Rahmen eines Rezepts (`data-aufmachung-teil`, 114), verlieren sie das Kennzeichen
- * und die Sperre; danach erzeugt das Rezept sie auf dieser Seite nicht mehr neu.
  */
 
 import type { SwVerhalten } from './gestaltung';
@@ -61,19 +58,9 @@ export interface Seitenrahmen {
 	sw?: SwVerhalten | null;
 }
 
-/** Wie gelesen: dazu, ob das Teil von einem Rezept stammt (`data-aufmachung-teil`). */
-export type Gelesen<T> = T & { rezept: boolean };
-
-/** Die gelesenen Werte ohne die Angabe `rezept`, so wie sie sich wieder schreiben lassen. */
-export const ohneRezept = <T extends object>(gelesen: Gelesen<T>): T => {
-	const werte: Partial<Gelesen<T>> = { ...gelesen };
-	delete werte.rezept;
-	return werte as T;
-};
-
 export interface Seitengestaltung {
-	flaeche: Gelesen<Seitenflaeche> | null;
-	rahmen: Gelesen<Seitenrahmen> | null;
+	flaeche: Seitenflaeche | null;
+	rahmen: Seitenrahmen | null;
 }
 
 /** Welche Seiten: Nummern der `.seite` in der Quelle (wie `legeGestaltungAb`) oder alle. */
@@ -86,7 +73,6 @@ export const RAHMEN_STAERKE = 2;
 export const MUSTER_GROESSE = 24;
 export const WINKEL = 180;
 
-const REZEPT = 'data-aufmachung-teil';
 const FLAECHE = 'seitenflaeche';
 const RAHMEN = 'seitenrahmen';
 const EINZUG = '  ';
@@ -156,7 +142,7 @@ const auswahl = <T extends string>(liste: readonly T[], wert: string | null | un
 
 const swVon = (k: Knoten): SwVerhalten | null => auswahl(['grau', 'weg'] as const, attribut(k, 'data-sw')?.wert);
 
-const leseFlaeche = (k: Knoten): Gelesen<Seitenflaeche> => {
+const leseFlaeche = (k: Knoten): Seitenflaeche => {
 	const stil = attribut(k, 'style')?.wert;
 	return {
 		art: auswahl(FLAECHEN_ARTEN, attribut(k, 'data-flaeche')?.wert) ?? 'farbe',
@@ -166,11 +152,10 @@ const leseFlaeche = (k: Knoten): Gelesen<Seitenflaeche> => {
 		muster: auswahl(MUSTER_ARTEN, attribut(k, 'data-muster')?.wert),
 		musterGroesse: stilZahl(stil, '--muster-groesse'),
 		sw: swVon(k),
-		rezept: attribut(k, REZEPT) !== undefined,
 	};
 };
 
-const leseRahmen = (k: Knoten): Gelesen<Seitenrahmen> => {
+const leseRahmen = (k: Knoten): Seitenrahmen => {
 	const stil = attribut(k, 'style')?.wert;
 	return {
 		art: auswahl(RAHMEN_ARTEN, attribut(k, 'data-rahmen')?.wert) ?? 'linie',
@@ -179,7 +164,6 @@ const leseRahmen = (k: Knoten): Gelesen<Seitenrahmen> => {
 		abstand: stilZahl(stil, '--rahmen-abstand'),
 		ecke: stilZahl(stil, '--rahmen-ecke'),
 		sw: swVon(k),
-		rezept: attribut(k, REZEPT) !== undefined,
 	};
 };
 
@@ -264,11 +248,7 @@ const neuesElement = (t: Teil) => {
 
 /** Der neue Start-Tag eines vorhandenen Teils: eigene Attribute ersetzt, fremde (Klassen, `data-name` …) bleiben. */
 const neuerStartTag = (z: Zerlegung, k: Knoten, t: Teil) => {
-	const eigene = new Set([
-		...t.attribute.map(([n]) => n),
-		'style',
-		...(attribut(k, REZEPT) ? [REZEPT, 'data-gesperrt'] : []),
-	]); // 114
+	const eigene = new Set([...t.attribute.map(([n]) => n), 'style']);
 	const stil = stilMit(attribut(k, 'style')?.wert ?? null, t.verwaltet, t.stil);
 	const fremde = k.attribute
 		.filter((a) => !eigene.has(a.name))

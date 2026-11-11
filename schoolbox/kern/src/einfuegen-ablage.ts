@@ -19,8 +19,8 @@ export interface Huelle {
 }
 
 /**
- * Was im Stapel einer Seite landet: Rezepte und Kleines (`ort: 'aufgabe' | 'zeile'`) in einer neuen Aufgabe, alles mit
- * `ort: 'seite'` so, wie es ist. Die Lücke beim Ziehen zeigt genau dieses HTML.
+ * Was im Stapel einer Seite landet: Aufgabenpakete und Kleines (`ort: 'aufgabe' | 'zeile'`) in einer neuen Aufgabe,
+ * alles mit `ort: 'seite'` so, wie es ist. Die Lücke beim Ziehen zeigt genau dieses HTML.
  */
 export const huelleImStapel = (b: Einfuegbar): Huelle => {
 	if (b.teile) {

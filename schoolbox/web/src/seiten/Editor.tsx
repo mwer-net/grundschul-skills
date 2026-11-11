@@ -42,7 +42,6 @@ import { zeigeBlattGestaltung } from '../editor/gestaltung/blatt/zeige';
 import { gestaltungKontext } from '../editor/gestaltung/kontext';
 import { Leiste as GestaltungLeiste } from '../editor/gestaltung/leiste/Leiste';
 import { folgeAuswahl, useMehrfach } from '../editor/gestaltung/mehrfach';
-import { REZEPTE_OEFFNEN } from '../editor/gestaltung/rezept/aktionen';
 import { GestaltungUeberlagerung } from '../editor/gestaltung/ueberlagerung';
 import { Werkzeugflaeche } from '../editor/gestaltung/werkzeuge/Werkzeugflaeche';
 import { useGliederungStand } from '../editor/gliederung-stand';
@@ -733,18 +732,6 @@ const Bearbeitung = ({ dokument, mappe: mappenDaten }: { mappe: Mappe; dokument:
 			befehlAusfuehren(richtung === 'zurueck' ? 'dokument.rueckgaengig' : 'dokument.wiederholen');
 	}, [befehlAusfuehren]);
 
-	// Inspektor ohne Rezept: „Rezepte öffnen“
-	const rezepteOffen = panels.linksOffen && panels.links === 'rezepte';
-	useEffect(() => {
-		const oeffne = () => {
-			if (!rezepteOffen) {
-				befehlAusfuehren(befehlZuSchublade('rezepte'));
-			}
-		};
-		window.addEventListener(REZEPTE_OEFFNEN, oeffne);
-		return () => window.removeEventListener(REZEPTE_OEFFNEN, oeffne);
-	}, [befehlAusfuehren, rezepteOffen]);
-
 	const zeigeEinstellung = (ort: string) => {
 		panels.setRechts('inspektor');
 		panels.setRechtsOffen(true);
@@ -955,7 +942,6 @@ const Bearbeitung = ({ dokument, mappe: mappenDaten }: { mappe: Mappe; dokument:
 		angeheftet: panels.angeheftet,
 		schalteAnheften: panels.schalteAnheften,
 		oeffneSchublade: (id) => befehle.fuehreAus(befehlZuSchublade(id)),
-		material: { adresse: b.adresse, speichere: alles }, // 122
 	};
 
 	const leinwandMenue = (treffer: { nr: number; art: string } | null, punkt: { x: number; y: number }) =>

@@ -93,9 +93,9 @@ describe('Einfügen an einer Ablage', () => {
 		assert.equal(zerlege(quelle).knoten[nr ?? -1]?.tag, 'x-uhr');
 	});
 
-	it('Rezepte kommen als Aufgabe mit ihren Teilen', () => {
-		const rezept = { id: 'r', ort: 'seite' as const, teile: ['<p>A</p>', '<p>B</p>'], anweisung: 'Mach' };
-		const { nr, quelle } = fuegeBausteinAn(BLATT, rezept, { nr: nrVon(BLATT, 'aufgabe', 1), wo: 'vor' }, nein);
+	it('Aufgabenpakete kommen als Aufgabe mit ihren Teilen', () => {
+		const paket = { id: 'r', ort: 'seite' as const, teile: ['<p>A</p>', '<p>B</p>'], anweisung: 'Mach' };
+		const { nr, quelle } = fuegeBausteinAn(BLATT, paket, { nr: nrVon(BLATT, 'aufgabe', 1), wo: 'vor' }, nein);
 		assert.deepEqual(texte(quelle).slice(0, 3), ['Eins', 'Mach', 'Zwei']);
 		assert.equal(nr, nrVon(quelle, 'aufgabe', 1));
 	});

@@ -6,8 +6,7 @@ import path from 'node:path';
 import { after, before, describe, it } from 'node:test';
 import { promisify } from 'node:util';
 
-import { BLATT_PY, fertigstellen, legeFreigabeAn } from '@schoolbox/kern';
-import { wendeAufmachungAn } from '@schoolbox/kern/src/aufmachungen';
+import { BLATT_PY, fertigstellen, legeFreigabeAn, WURZEL } from '@schoolbox/kern';
 import { BROWSER_HINWEIS, browserFehlt } from '@schoolbox/kern/src/browsertest';
 import type { Seitenflaeche } from '@schoolbox/kern/src/seitengestaltung';
 import { setzeSeitenflaeche, setzeSeitenrahmen } from '@schoolbox/kern/src/seitengestaltung';
@@ -140,7 +139,8 @@ print(a.getpixel((1, 1)))
 		);
 	}
 
-	// Rezept „Zirkus“ in Farbe und s/w: Vorschau und PDF pixelgleich, Kopfband und Fläche nur in Farbe
+	// Älteres Blatt mit Rezept (bis 180): Kopfband, Titelfarbe und Fläche kommen allein aus blatt.css und den Teilen.
+	const BESTAND = path.join(WURZEL, 'schoolbox', 'kern', 'src', 'testdaten', 'bestand-aufmachung.html');
 	const PUNKT = `
 import sys
 from PIL import Image
@@ -149,20 +149,20 @@ print(a.getpixel((int(sys.argv[2]), int(sys.argv[3]))))
 `;
 
 	for (const profil of ['farbe', 'sw'] as const) {
-		it(`druckt das Rezept „Zirkus“ in ${profil} pixelgleich`, { timeout: 180_000 }, async (t) => {
+		it(`druckt ein älteres Blatt mit Rezept in ${profil} pixelgleich`, { timeout: 180_000 }, async (t) => {
 			if (chromiumFehlt) {
 				t.skip(BROWSER_HINWEIS);
 				return;
 			}
-			const { dir, dok, mappe } = await legeDokumentAn(s.materialDir, { beispiel: true });
-			const datei = path.join(dir, 'material.html');
-			// Das Beispielblatt ist s/w; für Farbe kommt die Palette dazu.
-			const klasse = profil === 'farbe' ? 'farbe palette-himmel' : 'sw';
-			const quelle = (await readFile(datei, 'utf8')).replace(
-				/<body class="([^"]*)\bsw\b/,
-				`<body class="$1${klasse}`,
-			);
-			await writeFile(datei, wendeAufmachungAn(quelle, 'zirkus'));
+			const { dir, dok, mappe } = await legeDokumentAn(s.materialDir);
+			// Die Probe ist in Farbe; für s/w kommt die Profilklasse an die Stelle von Farbe und Palette.
+			const probe = await readFile(BESTAND, 'utf8');
+			const quelle =
+				profil === 'farbe'
+					? probe
+					: probe.replace('<body class="kl2 farbe palette-himmel"', '<body class="kl2 sw"');
+			assert.ok(profil === 'farbe' || quelle !== probe, 'Profilklasse umgestellt');
+			await writeFile(path.join(dir, 'material.html'), quelle);
 			const fertig = await fertigstellen(s.kontext.konfig, { mappe, dok });
 			const { token } = await legeFreigabeAn(s.materialDir, { mappe, dok });
 			const ziel = await mkdtemp(path.join(tmpdir(), 'schoolbox-pixel-'));
@@ -181,56 +181,15 @@ print(a.getpixel((int(sys.argv[2]), int(sys.argv[3]))))
 				assert.ok(groesse, `Seite ${seite}: andere Bildgröße`);
 				assert.equal(abweichung, null, `Seite ${seite}: Abweichung in ${JSON.stringify(abweichung)}`);
 			}
-			// Oben am Blattrand liegt in Farbe das Kopfband, in s/w ist dort weiß (Band und Fläche weg).
+			// Oben am Blattrand liegt in Farbe das Kopfband über der Fläche, in s/w ist dort weiß. Das Band ist dunkler als
+			// die helle Fläche (#eef5fc): Fehlt seine Regel in blatt.css, schlägt die Probe in Farbe fehl.
 			const oben = await ausfuehren(python, ['-c', PUNKT, `${referenz}-s1.png`, '400', '4']);
 			if (profil === 'farbe') {
-				assert.notEqual(oben.stdout.trim(), '(255, 255, 255)');
+				const summe = (oben.stdout.match(/\d+/g) ?? []).map(Number).reduce((a, b) => a + b, 0);
+				assert.ok(summe < 600, `oben kein Kopfband: ${oben.stdout.trim()}`);
 			} else {
 				assert.equal(oben.stdout.trim(), '(255, 255, 255)');
 			}
 		});
-	}
-	// Detektiv, Dschungel, Ruhig: dieselbe Probe; oben in Farbe Fläche bzw. Band, bei Ruhig immer weiß
-	for (const id of ['detektiv', 'dschungel', 'ruhig'] as const) {
-		for (const profil of ['farbe', 'sw'] as const) {
-			it(`druckt das Rezept „${id}“ in ${profil} pixelgleich`, { timeout: 180_000 }, async (t) => {
-				if (chromiumFehlt) {
-					t.skip(BROWSER_HINWEIS);
-					return;
-				}
-				const { dir, dok, mappe } = await legeDokumentAn(s.materialDir, { beispiel: true });
-				const datei = path.join(dir, 'material.html');
-				const klasse = profil === 'farbe' ? 'farbe palette-himmel' : 'sw';
-				const quelle = (await readFile(datei, 'utf8')).replace(
-					/<body class="([^"]*)\bsw\b/,
-					`<body class="$1${klasse}`,
-				);
-				await writeFile(datei, wendeAufmachungAn(quelle, id));
-				const fertig = await fertigstellen(s.kontext.konfig, { mappe, dok });
-				const { token } = await legeFreigabeAn(s.materialDir, { mappe, dok });
-				const ziel = await mkdtemp(path.join(tmpdir(), 'schoolbox-pixel-'));
-				const referenz = path.join(dir, 'ausgabe', 'material');
-				const { stdout } = await ausfuehren(python, [
-					'-c',
-					VERGLEICH,
-					skripte,
-					`${s.url}/f/${token}/ansicht/${mappe}/dokumente/${dok}/`,
-					ziel,
-					referenz,
-				]);
-				const { seiten, vergleich } = JSON.parse(stdout) as Vergleich;
-				assert.equal(seiten, fertig.meta.seiten);
-				for (const { abweichung, groesse, seite } of vergleich) {
-					assert.ok(groesse, `Seite ${seite}: andere Bildgröße`);
-					assert.equal(abweichung, null, `Seite ${seite}: Abweichung in ${JSON.stringify(abweichung)}`);
-				}
-				const oben = await ausfuehren(python, ['-c', PUNKT, `${referenz}-s1.png`, '400', '4']);
-				if (profil === 'farbe' && id !== 'ruhig') {
-					assert.notEqual(oben.stdout.trim(), '(255, 255, 255)');
-				} else {
-					assert.equal(oben.stdout.trim(), '(255, 255, 255)');
-				}
-			});
-		}
 	}
 });

@@ -541,7 +541,7 @@ const pruefeNamen = (e: KatalogEintrag, schema: AbbildungSchema | undefined, ver
 
 const ist = (e: KatalogEintrag, nurLoesung: boolean) => {
 	// Die Anweisung ist Teil der Aufgabe und hat keine eigene Auswahl.
-	if (e.herkunft === 'rezept' || e.id === 'aufgabe' || e.id === 'anweisung') {
+	if (e.herkunft === 'paket' || e.id === 'aufgabe' || e.id === 'anweisung') {
 		return /^Aufgabe/;
 	}
 	return nurLoesung ? /./ : null;
@@ -787,7 +787,7 @@ const VOLLER_WEG: Record<
 
 type Inspektor = Awaited<ReturnType<typeof leseInspektor>>;
 
-/** G1: Der Baustein selbst ist gewählt, bei Rezepten die Aufgabe. */
+/** G1: Der Baustein selbst ist gewählt, bei Aufgabenpaketen die Aufgabe. */
 const stimmtAuswahl = (e: KatalogEintrag, schema: AbbildungSchema | undefined, nurLoesung: boolean, pfad: string) => {
 	const soll = ist(e, nurLoesung);
 	const letzte = pfad.split('›').at(-1) ?? '';

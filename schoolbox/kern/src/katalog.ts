@@ -1,7 +1,7 @@
 /**
  * Baustein-Katalog (043): was sich einfügen lässt. Setzt die Liste aus `ABBILDUNG_SCHEMA` und `KIT_KATALOG` zusammen und
- * enthält selbst nur die Rezepte (Entscheidung 27): Ein neues Element bleibt ein Eintrag an einem Ort. Ohne Node-Abhängigkeit,
- * die Oberfläche liest ihn auch. Das Starter-HTML liest `katalog-starter.ts` aus den Mustern.
+ * enthält selbst nur die Aufgabenpakete (Entscheidung 27): Ein neues Element bleibt ein Eintrag an einem Ort. Ohne
+ * Node-Abhängigkeit, die Oberfläche liest ihn auch. Das Starter-HTML liest `katalog-starter.ts` aus den Mustern.
  */
 
 import type { AbbildungSchema, KatalogAngaben } from './abbildungen';
@@ -11,18 +11,18 @@ import { BAUSTEINE, KIT_KATALOG } from './bausteine';
 export interface KatalogEintrag extends KatalogAngaben {
 	id: string;
 	name: string;
-	herkunft: 'abbildung' | 'eigen' | 'kit' | 'rezept';
+	herkunft: 'abbildung' | 'eigen' | 'kit' | 'paket';
 	/** Kennung `data-katalog` im Muster; fehlt, wenn der Eintrag nur eine Klasse setzt. */
 	starter?: string;
 	klasse?: string;
-	/** Nur Rezepte: Starter, die zusammen eine Aufgabe ergeben, und die Anweisung. */
+	/** Nur Aufgabenpakete: Starter, die zusammen eine Aufgabe ergeben, und die Anweisung. */
 	teile?: readonly string[];
 	anweisung?: string;
 }
 
-const REZEPTE: readonly Omit<KatalogEintrag, 'herkunft'>[] = [
+const AUFGABENPAKETE: readonly Omit<KatalogEintrag, 'herkunft'>[] = [
 	{
-		id: 'rezept-rechenuebersicht',
+		id: 'paket-rechenuebersicht',
 		name: 'Rechenübersicht',
 		kategorie: 'Rechnen',
 		suchbegriffe: ['Tabelle', 'Überschlag', 'Ergebnis'],
@@ -32,7 +32,7 @@ const REZEPTE: readonly Omit<KatalogEintrag, 'herkunft'>[] = [
 		anweisung: 'Rechne und trage ein.',
 	},
 	{
-		id: 'rezept-beobachtung',
+		id: 'paket-beobachtung',
 		name: 'Beobachtungsbogen',
 		kategorie: 'Aufgabe und Text',
 		suchbegriffe: ['Tabelle', 'Forschen', 'Versuch'],
@@ -42,7 +42,7 @@ const REZEPTE: readonly Omit<KatalogEintrag, 'herkunft'>[] = [
 		anweisung: 'Beobachte und notiere.',
 	},
 	{
-		id: 'rezept-wertetabelle',
+		id: 'paket-wertetabelle',
 		name: 'Wertetabelle',
 		kategorie: 'Rechnen',
 		suchbegriffe: ['Tabelle', 'Einmaleins', 'Zuordnung'],
@@ -52,7 +52,7 @@ const REZEPTE: readonly Omit<KatalogEintrag, 'herkunft'>[] = [
 		anweisung: 'Fülle die Tabelle aus.',
 	},
 	{
-		id: 'rezept-verlaufsplan',
+		id: 'paket-verlaufsplan',
 		name: 'Verlaufsplan',
 		kategorie: 'Aufgabe und Text',
 		suchbegriffe: ['Tabelle', 'Stunde', 'Planung'],
@@ -62,7 +62,7 @@ const REZEPTE: readonly Omit<KatalogEintrag, 'herkunft'>[] = [
 		anweisung: 'So läuft die Stunde.',
 	},
 	{
-		id: 'rezept-zahlenstrahl',
+		id: 'paket-zahlenstrahl',
 		name: 'Rechenaufgabe mit Zahlenstrahl',
 		kategorie: 'Rechnen',
 		suchbegriffe: ['Zahlengerade', 'Plusaufgabe', 'Sprünge'],
@@ -72,7 +72,7 @@ const REZEPTE: readonly Omit<KatalogEintrag, 'herkunft'>[] = [
 		anweisung: 'Rechne. Zeichne die Sprünge ein.',
 	},
 	{
-		id: 'rezept-uhr',
+		id: 'paket-uhr',
 		name: 'Uhrzeit ablesen',
 		kategorie: 'Größen',
 		suchbegriffe: ['Uhr', 'Zeit', 'lesen'],
@@ -82,7 +82,7 @@ const REZEPTE: readonly Omit<KatalogEintrag, 'herkunft'>[] = [
 		anweisung: 'Lies ab. Schreibe die Uhrzeit auf.',
 	},
 	{
-		id: 'rezept-zahlenmauer',
+		id: 'paket-zahlenmauer',
 		name: 'Zahlenmauer rechnen',
 		kategorie: 'Rechnen',
 		suchbegriffe: ['Rechenmauer', 'Pyramide'],
@@ -92,7 +92,7 @@ const REZEPTE: readonly Omit<KatalogEintrag, 'herkunft'>[] = [
 		anweisung: 'Fülle die Zahlenmauer aus.',
 	},
 	{
-		id: 'rezept-diagramm',
+		id: 'paket-diagramm',
 		name: 'Diagramm auswerten',
 		kategorie: 'Daten und Zufall',
 		suchbegriffe: ['Säulendiagramm', 'Schaubild', 'Statistik'],
@@ -102,7 +102,7 @@ const REZEPTE: readonly Omit<KatalogEintrag, 'herkunft'>[] = [
 		anweisung: 'Lies im Diagramm ab und antworte.',
 	},
 	{
-		id: 'rezept-silben',
+		id: 'paket-silben',
 		name: 'Wörter in Silben lesen',
 		kategorie: 'Sprache',
 		suchbegriffe: ['Silbenbögen', 'Lesen lernen'],
@@ -112,7 +112,7 @@ const REZEPTE: readonly Omit<KatalogEintrag, 'herkunft'>[] = [
 		anweisung: 'Lies das Wort. Klatsche die Silben.',
 	},
 	{
-		id: 'rezept-schreiben',
+		id: 'paket-schreiben',
 		name: 'Frage mit Schreiblinie',
 		kategorie: 'Aufgabe und Text',
 		suchbegriffe: ['Freitext', 'Antwort schreiben'],
@@ -141,7 +141,7 @@ export const KATALOG: readonly KatalogEintrag[] = [
 	...(Object.entries(ABBILDUNG_SCHEMA) as [string, AbbildungSchema][]).flatMap(([tag, { katalog, name }]) =>
 		katalog ? [{ ...katalog, id: tag, name, herkunft: 'abbildung' as const, starter: tag }] : [],
 	),
-	...REZEPTE.map((r): KatalogEintrag => ({ ...r, herkunft: 'rezept' })),
+	...AUFGABENPAKETE.map((p): KatalogEintrag => ({ ...p, herkunft: 'paket' })),
 ];
 
 /** Wer „loschen“ oder „grosse“ tippt, meint „Löschen“ und „Größe“. */

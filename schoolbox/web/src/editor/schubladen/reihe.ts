@@ -1,9 +1,11 @@
 import type { SymbolName } from '../../bausteine/Symbol';
 
+// >> 180
 /**
- * Die sieben Schubladen in der Reihenfolge der Leiste, ⌥1 bis ⌥7 (Entscheidung 42). Ohne React: Das Befehlsregister
+ * Die sechs Schubladen in der Reihenfolge der Leiste, ⌥1 bis ⌥6 (Entscheidung 42). Ohne React: Das Befehlsregister
  * baut daraus seine Befehle, die Schubladen selbst (`index.ts`) hängen an Komponenten.
  */
+// << 180
 export const REIHE = [
 	{ id: 'ebenen', titel: 'Ebenen', symbol: 'ebenen', taste: 'Digit1' },
 	{ id: 'bausteine', titel: 'Bausteine', symbol: 'bausteine', taste: 'Digit2' },
@@ -11,7 +13,6 @@ export const REIHE = [
 	{ id: 'figuren', titel: 'Figuren', symbol: 'figuren', taste: 'Digit4' },
 	{ id: 'text', titel: 'Text', symbol: 'schrift', taste: 'Digit5' },
 	{ id: 'bilder', titel: 'Bilder', symbol: 'bild', taste: 'Digit6' },
-	{ id: 'rezepte', titel: 'Rezepte', symbol: 'rezepte', taste: 'Digit7' },
 ] as const satisfies readonly { id: string; titel: string; symbol: SymbolName; taste: `Digit${number}` }[];
 
 export type SchubladenId = (typeof REIHE)[number]['id'];

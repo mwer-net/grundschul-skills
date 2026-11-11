@@ -7,13 +7,13 @@ import { expect, test } from './hilfe';
 import type { SchubladenName } from './schubladen-hilfe';
 import { oeffneSchublade, schubladenKnopf } from './schubladen-hilfe';
 
-/** Schubladenleiste (093): Ebenen ⌥1, Bausteine ⌥2, Formen ⌥3 (104), Figuren ⌥4 (102), Text ⌥5 (105), Bilder ⌥6, Rezepte ⌥7 (114). */
+/** Schubladenleiste (093): Ebenen ⌥1, Bausteine ⌥2, Formen ⌥3 (104), Figuren ⌥4 (102), Text ⌥5 (105), Bilder ⌥6. */
 
 const offen = (page: Page) => page.locator('[data-panel-links]');
 const blattBreite = async (page: Page) => (await page.locator('main').boundingBox())?.width ?? 0;
 const palette = (page: Page) => page.locator('[data-befehlspalette]');
 const bilder = (page: Page) => page.locator('[data-schublade-bilder]');
-const ALLE: SchubladenName[] = ['ebenen', 'bausteine', 'formen', 'figuren', 'text', 'bilder', 'rezepte'];
+const ALLE: SchubladenName[] = ['ebenen', 'bausteine', 'formen', 'figuren', 'text', 'bilder'];
 const WACHSTUM = '_assets/bilder/wachstum.png';
 
 const blatt = async (page: Page) => {
@@ -39,14 +39,12 @@ test.describe('Schubladenleiste (093)', () => {
 		await expect(schubladenKnopf(page, 'bausteine')).toHaveAttribute('aria-pressed', 'true');
 	});
 
-	test('⌥1, ⌥2, ⌥3, ⌥6 und ⌥7 öffnen, wechseln und schließen', async ({ page }) => {
+	test('⌥1, ⌥2, ⌥3 und ⌥6 öffnen, wechseln und schließen', async ({ page }) => {
 		await blatt(page);
 		await page.keyboard.press('Alt+Digit2');
 		await expect(offen(page)).toHaveAttribute('data-panel-links', 'bausteine');
 		await page.keyboard.press('Alt+Digit6');
 		await expect(offen(page)).toHaveAttribute('data-panel-links', 'bilder');
-		await page.keyboard.press('Alt+Digit7');
-		await expect(offen(page)).toHaveAttribute('data-panel-links', 'rezepte');
 		await page.keyboard.press('Alt+Digit3');
 		await expect(offen(page)).toHaveAttribute('data-panel-links', 'formen');
 		await page.keyboard.press('Alt+Digit3');
@@ -76,12 +74,12 @@ test.describe('Schubladenleiste (093)', () => {
 		await expect(offen(page)).toHaveAttribute('data-panel-links', 'bilder');
 	});
 
-	test('alle sieben Schubladen sind überall: Leiste, Palette, Tastenübersicht, Hilfe', async ({ page }) => {
+	test('alle sechs Schubladen sind überall: Leiste, Palette, Tastenübersicht, Hilfe', async ({ page }) => {
 		await blatt(page);
 		await expect(page.locator('[data-schublade-knopf]')).toHaveCount(ALLE.length);
 		await page.keyboard.press('ControlOrMeta+k');
-		await palette(page).getByRole('combobox').fill('Rezepte');
-		await expect(palette(page).locator('[data-palette-zeile="ansicht.links-rezepte"]')).toHaveCount(1);
+		await palette(page).getByRole('combobox').fill('Bilder');
+		await expect(palette(page).locator('[data-palette-zeile="ansicht.links-bilder"]')).toHaveCount(1);
 		await page.keyboard.press('Escape');
 		await page.locator('[data-statusleiste]').getByRole('button', { name: 'Tasten' }).click();
 		const tasten = page.locator('[data-tasten-uebersicht]');
@@ -92,7 +90,7 @@ test.describe('Schubladenleiste (093)', () => {
 		await page.goto('/hilfe#gestalten');
 		const liste = page.locator('[data-hilfe-schubladen]');
 		await expect(liste.locator('[data-hilfe-schublade]')).toHaveCount(ALLE.length);
-		await expect(liste).toContainText('Rezepte');
+		await expect(liste).toContainText('Bilder');
 	});
 
 	test('angeheftete Ebenen und der Teiler bleiben nach dem Neuladen, wie sie waren', async ({ hasTouch, page }) => {

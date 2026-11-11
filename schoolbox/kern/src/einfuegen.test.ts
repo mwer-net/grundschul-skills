@@ -120,7 +120,7 @@ describe('Einfügen', () => {
 		assert.match(quelle, /<section class="seite"><div class="aufgabe"><span class="nr">1<\/span>/);
 	});
 
-	it('Rezept: eine neue Aufgabe mit Anweisung und allen Teilen', () => {
+	it('Aufgabenpaket: eine neue Aufgabe mit Anweisung und allen Teilen', () => {
 		const { quelle } = fuegeBausteinEin(
 			BLATT,
 			{
@@ -152,8 +152,8 @@ describe('Einfügen', () => {
 		assert.ok(fuss.indexOf('Stern') < fuss.indexOf('fuss neu'));
 	});
 
-	it('ein Rezept aus dem Katalog ergibt genau eine neue Aufgabe', () => {
-		const e = KATALOG.find((k) => k.id === 'rezept-uhr');
+	it('ein Aufgabenpaket aus dem Katalog ergibt genau eine neue Aufgabe', () => {
+		const e = KATALOG.find((k) => k.id === 'paket-uhr');
 		assert.ok(e);
 		const b = einfuegbarAus(e, leseStarter());
 		const { quelle } = fuegeBausteinEin(BLATT, b, null, n);

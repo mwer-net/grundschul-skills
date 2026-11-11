@@ -286,11 +286,13 @@ const SCHUBLADEN_SUCHE: Partial<Record<SchubladenId, string[]>> = {
 	bilder: ['foto', 'hochladen', 'sammlung'],
 };
 
+// >> 180
 /**
- * Je Schublade ein Befehl, ⌥1 bis ⌥7 über `code`. Die Taste ist reserviert, auch solange die Schublade noch nicht
+ * Je Schublade ein Befehl, ⌥1 bis ⌥6 über `code`. Die Taste ist reserviert, auch solange die Schublade noch nicht
  * bereit ist; dann tut sie nichts. `bereit` wird erst beim Aufruf gelesen: Die Schubladen hängen an Komponenten, die
  * ihrerseits dieses Register brauchen können.
  */
+// << 180
 const SCHUBLADEN_BEFEHLE: Befehl[] = REIHE.map(({ id, symbol, taste, titel }): Befehl => ({
 	id: befehlZuSchublade(id),
 	titel,

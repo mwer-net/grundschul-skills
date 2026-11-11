@@ -1,12 +1,12 @@
 import assert from 'node:assert/strict';
-import { copyFile, mkdir, readFile, symlink, writeFile } from 'node:fs/promises';
+import { copyFile, mkdir, symlink, writeFile } from 'node:fs/promises';
 import path from 'node:path';
 import { after, before, describe, it } from 'node:test';
 
 import { ASSETS } from '@schoolbox/kern';
 
 import type { TestServer } from './testhilfe';
-import { legeDokumentAn, rohAnfrage, starteTestServer } from './testhilfe';
+import { legeDokumentAn, rohAnfrage, schreibKoepfe, starteTestServer } from './testhilfe';
 
 describe('/ansicht', () => {
 	let s: TestServer;
@@ -50,20 +50,18 @@ describe('/ansicht', () => {
 		assert.equal((await s.holen(basis)).headers.get('content-security-policy'), null);
 	});
 
-	// Kacheln der Rezepte-Schublade
-	it('wendet mit ?aufmachung=zirkus das Rezept nur in der Antwort an, mit ?seite=1 nur die erste Seite', async () => {
-		const datei = path.join(s.materialDir, mappe, 'dokumente', dokId, 'material.html');
-		const vorher = await readFile(datei, 'utf8');
-		const mit = await (await s.holen(`${basis}?aufmachung=zirkus&seite=1`)).text();
-		assert.match(mit, /data-aufmachung="zirkus"/);
-		assert.ok((mit.match(/class="seite[ "]/g) ?? []).length <= 1);
-		assert.equal(await readFile(datei, 'utf8'), vorher);
-		assert.doesNotMatch(await (await s.holen(`${basis}?aufmachung=gibtsnicht`)).text(), /data-aufmachung=/);
+	// 180: Die Vorschau der Rezepte-Schublade (`?aufmachung=`, `?seite=1`) gibt es nicht mehr.
+	it('?aufmachung= und ?seite= ändern die Antwort nicht (180)', async () => {
+		const ohne = await (await s.holen(basis)).text();
+		assert.equal(await (await s.holen(`${basis}?aufmachung=zirkus&seite=1`)).text(), ohne);
+		assert.doesNotMatch(ohne, /data-aufmachung/);
 	});
 
-	it('ignoriert ?aufmachung mit ?vorschlag', async () => {
-		const html = await (await s.holen(`${basis}?vorschlag=1&aufmachung=zirkus`)).text();
-		assert.doesNotMatch(html, /data-aufmachung=/);
+	it('„Auf alle Blätter übernehmen“ gibt es nicht mehr: 404 (180)', async () => {
+		const url = `${s.url}/api/dokumente/${mappe}/${dokId}/aufmachung-uebernehmen`;
+		assert.equal((await s.holen(url)).status, 404);
+		const post = await s.holen(url, { method: 'POST', headers: schreibKoepfe, body: JSON.stringify({}) });
+		assert.equal(post.status, 404);
 	});
 
 	it('leitet ohne Schrägstrich am Ende um, damit relative Pfade stimmen', async () => {

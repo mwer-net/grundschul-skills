@@ -3,10 +3,12 @@ import { kuerzelText } from '../editor/befehle';
 import type { Abschnitt } from './hilfe-teile';
 import { Schubladenliste } from './Schubladenliste';
 
+// >> 180
 /**
- * Abschnitt „Gestalten“ der Hilfe (Phase 12), nach der Sache geordnet: Grundlagen, Seite, Elemente, Aussehen, Rezepte,
- * Fläche und Vektor.
+ * Abschnitt „Gestalten“ der Hilfe (Phase 12), nach der Sache geordnet: Grundlagen, Seite, Elemente, Aussehen, Fläche
+ * und Vektor.
  */
+// << 180
 export const GESTALTEN: Abschnitt = {
 	id: 'gestalten',
 	titel: 'Gestalten',
@@ -299,33 +301,6 @@ export const GESTALTEN: Abschnitt = {
 				Ist ein Bild zugeschnitten, wählst du mit einem Doppelklick den Ausschnitt: Am Zeiger steht
 				„Ausschnitt“, und du schiebst das Bild im Rahmen hin und her. Esc oder ein Klick daneben beendet das.
 				„Zuschnitt zurücksetzen“ im Inspektor zeigt wieder das ganze Bild.
-			</p>
-
-			<h3>Rezepte</h3>
-			<p data-hilfe-rezepte>
-				Die Schublade „Rezepte“ (⌥7) zeigt jedes Rezept mit der ersten Seite deines Blatts. Ein Klick gibt dem
-				ganzen Material diesen Look: Seitenfläche, Kopfband, Rahmen und Konfetti. Darunter stellst du Farben,
-				Konfetti, Kopfband und Rahmen ein; dieselben Regler stehen im Reiter „Blatt“ unter Gestaltung. „Würfeln“
-				verteilt das Konfetti neu, sonst ändert sich nichts. Jeder Schritt lässt sich mit ⌘Z zurücknehmen.
-			</p>
-			<p data-hilfe-rezept-freilegen>
-				Mit „Freilegen“ wird alles normale Gestaltung: Fläche, Rahmen, Konfetti und Kopfband lassen sich dann
-				einzeln verschieben und ändern, das Rezept fasst sie nicht mehr an. „Entfernen“ (im ⋯ der Schublade)
-				nimmt das Rezept ganz weg. Teile eines Rezepts tragen in den Ebenen ein eigenes Zeichen; ein Klick
-				darauf öffnet das Rezept rechts.
-			</p>
-			<p data-hilfe-rezept-uebernehmen>
-				Eine Reihe soll gleich aussehen? „Auf alle Blätter im Ordner übernehmen“ unter den Reglern gibt allen
-				anderen Materialien im selben Ordner dasselbe Rezept mit denselben Einstellungen. Unterordner und
-				Minibücher bleiben, wie sie sind. Vorher siehst du, was sich ändert, und jedes Material bekommt eine
-				Version mit dem alten Stand. Danach sind die Blätter wieder unabhängig: Würfeln auf einem Blatt ändert
-				die anderen nicht.
-			</p>
-			<p data-hilfe-rezept-claude>
-				Auch Claude wählt ein Rezept oder stellt es um, etwa mit „Gib dem Blatt das Rezept Dschungel und mach
-				das Kopfband zackig.“ Claude ändert dabei nur die Einstellungen des Rezepts; Fläche, Kopfband und
-				Konfetti entstehen daraus wie bei einem Klick in der Schublade. Einzelne Teile eines Rezepts ändert
-				Claude nicht: Leg es dafür vorher frei.
 			</p>
 
 			<h3>Fläche im Stapel</h3>

@@ -27,12 +27,12 @@ test.describe('Editor: Bausteine einfügen', () => {
 		await expect.poll(() => quelle(page)).toBe(vorher);
 	});
 
-	test('Nach dem Einfügen ist der Baustein gewählt, bei Rezept und Aufgabe die Aufgabe', async ({ page }) => {
+	test('Nach dem Einfügen ist der Baustein gewählt, bei Aufgabenpaket und Aufgabe die Aufgabe', async ({ page }) => {
 		await oeffneBausteine(page);
 		const titel = page.locator('[data-inspektor] [data-auswahl]');
 		for (const [id, suchwort, soll] of [
 			['x-tangram', 'Tangram', 'Tangram'],
-			['rezept-uhr', 'Uhr', 'Aufgabe'],
+			['paket-uhr', 'Uhr', 'Aufgabe'],
 			['aufgabe', 'Aufgabe', 'Aufgabe'],
 		] as const) {
 			await suche(page).fill(suchwort);

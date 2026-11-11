@@ -15,7 +15,6 @@ import { schublade as ebenen } from './ebenen';
 import { schublade as figuren } from './figuren';
 import { schublade as formen } from './formen';
 import type { SchubladenId } from './reihe';
-import { schublade as rezepte } from './rezepte';
 import { schublade as text } from './text';
 
 export type { SchubladenId } from './reihe';
@@ -49,8 +48,6 @@ export interface SchubladenTeile {
 	schalteAnheften: () => void;
 	/** Öffnet eine andere Schublade, etwa „Figuren“ aus dem Hinweis in „Bilder“ (102). */
 	oeffneSchublade: (id: SchubladenId) => void;
-	/** Das offene Material: Adresse `/api/dokumente/<mappe>/<dok>` und Speichern vor einem Aufruf, der den Stand liest. */
-	material: { adresse: string; speichere: () => Promise<unknown> };
 }
 
 /** Ziele für Einträge der Palette aus einer Schublade (⌘K findet auch den Inhalt der Schubladen). */
@@ -73,8 +70,10 @@ export interface Schublade {
 	suche?: (k: Kontext, z: SchubladenZiele) => PalettenEintrag[];
 }
 
-/** Reihenfolge der Leiste, ⌥1 bis ⌥7. Ein späteres Ticket ersetzt nur seine eigene Datei, nicht diese Liste. */
-export const SCHUBLADEN: readonly Schublade[] = [ebenen, bausteine, formen, figuren, text, bilder, rezepte];
+// >> 180
+/** Reihenfolge der Leiste, ⌥1 bis ⌥6. Ein späteres Ticket ersetzt nur seine eigene Datei, nicht diese Liste. */
+export const SCHUBLADEN: readonly Schublade[] = [ebenen, bausteine, formen, figuren, text, bilder];
+// << 180
 
 export const schubladeVon = (id: SchubladenId) => SCHUBLADEN.find((s) => s.id === id);
 

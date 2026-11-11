@@ -168,7 +168,9 @@ describe('Was aus dem Inspektor gewandert ist', () => {
 });
 
 describe('Schubladen (093)', () => {
-	it('jede Schublade hat genau einen Befehl `ansicht.links-<id>` mit ihrer Taste, ⌥1 bis ⌥7 in Reihenfolge', () => {
+	// >> 180
+	it('jede Schublade hat genau einen Befehl `ansicht.links-<id>` mit ihrer Taste, ⌥1 bis ⌥6 in Reihenfolge', () => {
+	// << 180
 		assert.deepEqual(
 			SCHUBLADEN.map((s) => s.id),
 			REIHE.map((s) => s.id),
@@ -182,6 +184,19 @@ describe('Schubladen (093)', () => {
 		assert.equal(BEFEHLE.filter((b) => b.id.startsWith('ansicht.links-')).length, SCHUBLADEN.length);
 	});
 
+	// >> 180
+	it('ohne Rezepte: sechs Schubladen, ⌥7 frei, kein Befehl `rezept.*`', () => {
+		assert.equal(SCHUBLADEN.length, 6);
+		assert.equal(REIHE.length, 6);
+		const sieben = { code: 'Digit7', key: '¶', metaKey: false, ctrlKey: false, altKey: true, shiftKey: false };
+		assert.equal(befehlZuTaste(sieben, 'ohne', { frei: true } as Kontext), undefined);
+		assert.deepEqual(
+			BEFEHLE.filter((b) => b.id.startsWith('rezept.') || b.id === 'ansicht.links-rezepte').map((b) => b.id),
+			[],
+		);
+	});
+	// << 180
+
 	it('nicht bereite Schubladen: Taste reserviert, aber ohne Wirkung und nicht in der Übersicht', () => {
 		const k = { frei: true } as Kontext;
 		for (const s of SCHUBLADEN) {
@@ -191,7 +206,9 @@ describe('Schubladen (093)', () => {
 		}
 		assert.deepEqual(
 			SCHUBLADEN.filter((s) => s.bereit(JEDE_LAGE)).map((s) => s.id),
-			['ebenen', 'bausteine', 'formen', 'figuren', 'text', 'bilder', 'rezepte'],
+			// >> 180
+			['ebenen', 'bausteine', 'formen', 'figuren', 'text', 'bilder'],
+			// << 180
 		);
 		const drei = { code: 'Digit3', key: '£', metaKey: false, ctrlKey: false, altKey: true, shiftKey: false };
 		assert.equal(befehlZuTaste(drei, 'ohne', k)?.id, 'ansicht.links-formen');
@@ -210,6 +227,10 @@ describe('Schubladen (093)', () => {
 		assert.equal(alsSchublade('bilder'), 'bilder');
 		assert.equal(alsSchublade('zu'), null);
 		assert.equal(alsSchublade(null), null);
+		// >> 180
+		// Die Rezepte gibt es nicht mehr (180): Wer sie zuletzt offen hatte, sieht die Ebenen.
+		assert.equal(alsSchublade('rezepte'), null);
+		// << 180
 	});
 });
 
