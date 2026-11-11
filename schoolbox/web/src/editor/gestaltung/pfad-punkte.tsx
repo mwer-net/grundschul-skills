@@ -39,7 +39,7 @@ const drehe = (x: number, y: number, grad: number) => {
 /**
  * Punkte bearbeiten (116): Punkte und die Griffe des gewählten Punkts über dem Pfad, gedreht wie das Element. Ziehen
  * zeigt die neue Form nur im `iframe`; beim Loslassen ein Schritt (`setzePfadPunkt`). ⌥-Klick löscht einen Punkt.
- * Am Blatt steht „Punkte bearbeiten · Esc beendet“.
+ * Am Blatt steht „Punkte bearbeiten“.
  */
 export const PfadPunkte = ({ element, fuehreAus, kasten, links, nr, skala, ursprung }: Eigenschaften) => {
 	const modus = usePfadModus();
@@ -186,7 +186,7 @@ export const PfadPunkte = ({ element, fuehreAus, kasten, links, nr, skala, urspr
 				className="absolute -top-8 left-0 rounded-md bg-tinte px-2 py-0.5 text-sm whitespace-nowrap text-white shadow-2"
 				data-hinweis="pfad-punkte"
 			>
-				Punkte bearbeiten · Esc beendet
+				Punkte bearbeiten
 			</span>
 			{gewaehlt && (
 				<svg className="absolute inset-0 size-full overflow-visible stroke-brand-500" aria-hidden="true">
@@ -199,7 +199,6 @@ export const PfadPunkte = ({ element, fuehreAus, kasten, links, nr, skala, urspr
 					key={i}
 					type="button"
 					aria-label={`Punkt ${i + 1}`}
-					title="Ziehen verschiebt · ⌥-Klick löscht"
 					className={`${GRIFF} cursor-move`}
 					style={aufRahmen(a.p)}
 					data-pfad-punkt={i}

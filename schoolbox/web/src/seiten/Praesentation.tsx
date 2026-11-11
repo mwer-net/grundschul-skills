@@ -1,4 +1,3 @@
-import type { ReactNode } from 'react';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 
@@ -51,13 +50,6 @@ const Ladestand = ({ phase }: { phase: Phase }) => {
 	);
 };
 
-const Zeile = ({ children, was }: { was: string; children: ReactNode }) => (
-	<div className="grid grid-cols-[9rem_1fr] gap-3 py-1.5 max-md:grid-cols-1 max-md:gap-0">
-		<dt className="font-medium">{was}</dt>
-		<dd>{children}</dd>
-	</div>
-);
-
 interface StartEigenschaften {
 	titel: string;
 	folien: number | null;
@@ -84,20 +76,6 @@ const Startseite = ({ folien, phase, starten, titel, zurueck }: StartEigenschaft
 			<div className="mt-4 min-h-7" role="status">
 				<Ladestand phase={phase} />
 			</div>
-			<section className="mt-4 rounded-lg border border-rand bg-flaeche px-3 py-2">
-				<h2 className="font-semibold">So steuerst du</h2>
-				<dl className="mt-2">
-					<Zeile was="Weiter">
-						Pfeiltaste → oder Leertaste, Klicker · rechts antippen oder nach links wischen
-					</Zeile>
-					<Zeile was="Zurück">Pfeiltaste ← · links antippen oder nach rechts wischen</Zeile>
-					<Zeile was="Aufdecken">„?“ und Timer antippen; Weiter deckt der Reihe nach auf</Zeile>
-					<Zeile was="Schwarz">Taste B, noch einmal B macht die Folie wieder sichtbar</Zeile>
-					<Zeile was="Beenden">
-						Esc oder unten „Beenden“ (die Leiste erscheint, sobald du Maus oder Finger bewegst)
-					</Zeile>
-				</dl>
-			</section>
 			{!vollbildMoeglich() && (
 				<p className="mt-4 text-leise">
 					Für Vollbild auf dem iPad: in Safari auf „Teilen“ und „Zum Home-Bildschirm“ tippen und die Schoolbox

@@ -1,11 +1,11 @@
 import assert from 'node:assert/strict';
 import { describe, it } from 'node:test';
 
-import { BEFEHLE, MENUE, tastenAbschnitte } from './befehle';
+import { BEFEHLE, kuerzelVon, MENUE, tastenAbschnitte } from './befehle';
 
 describe('Befehle der Ablage', () => {
 	it('jeder Befehl mit Taste steht in der Tastenliste (Entscheidung 30)', () => {
-		const inListe = new Set(tastenAbschnitte().flatMap((a) => a.befehle.map((z) => z.id)));
+		const inListe = new Set(tastenAbschnitte().flatMap((a) => a.zeilen.map((z) => z.id)));
 		for (const b of BEFEHLE) {
 			if (b.kuerzel?.length) {
 				assert.ok(inListe.has(b.id), `${b.id} fehlt in der Tastenliste`);
@@ -30,5 +30,14 @@ describe('Befehle der Ablage', () => {
 				assert.ok(imMenue.has(b.id), `${b.id} ist nirgends zu erreichen`);
 			}
 		}
+	});
+
+	it('Kürzel kommen aus dem Register, die Leertaste heißt so (166)', () => {
+		assert.equal(kuerzelVon('seitenleiste', true), '⌥S');
+		assert.throws(() => kuerzelVon('gibt-es-nicht'), /gibt-es-nicht/);
+		const uebersicht = tastenAbschnitte(true)
+			.flatMap((a) => a.zeilen)
+			.find((z) => z.id === 'uebersicht');
+		assert.deepEqual(uebersicht?.tasten, ['Leertaste']);
 	});
 });

@@ -1,9 +1,9 @@
 import { useEffect, useState } from 'react';
 
 import { klassen } from '../bausteine/klassen';
-import { Kuerzel } from '../bausteine/Kuerzel';
 import { Symbol } from '../bausteine/Symbol';
 import { Tooltip } from '../bausteine/Tooltip';
+import { kuerzelVon } from './befehle';
 import { halteFokus } from './halteFokus';
 import { Pruefstatus } from './Pruefliste';
 import type { Pruefpunkt, Pruefstand } from './pruefung';
@@ -27,7 +27,10 @@ const Zoom = ({ fuehreAus, skala, stufe, zoom }: ZoomEigenschaften) => {
 	const groesser = naechsteStufe(stufe, 1);
 	return (
 		<div className="flex items-center gap-0.5" role="group" aria-label="Größe">
-			<Tooltip text="Kleiner">
+			<Tooltip
+				text="Kleiner"
+				kuerzel={kuerzelVon('ansicht.zoom-raus')}
+			>
 				<button
 					type="button"
 					className={KNOPF}
@@ -38,7 +41,10 @@ const Zoom = ({ fuehreAus, skala, stufe, zoom }: ZoomEigenschaften) => {
 					<Symbol name="minus" className="size-3 flex-none" />
 				</button>
 			</Tooltip>
-			<Tooltip text="Auf 100 %">
+			<Tooltip
+				text="Auf 100 %"
+				kuerzel={kuerzelVon('ansicht.zoom-100')}
+			>
 				<button
 					type="button"
 					className={klassen(
@@ -51,7 +57,10 @@ const Zoom = ({ fuehreAus, skala, stufe, zoom }: ZoomEigenschaften) => {
 					{`${Math.round(skala * 100)} %`}
 				</button>
 			</Tooltip>
-			<Tooltip text="Größer">
+			<Tooltip
+				text="Größer"
+				kuerzel={kuerzelVon('ansicht.zoom-rein')}
+			>
 				<button
 					type="button"
 					className={KNOPF}
@@ -175,22 +184,28 @@ export const Statusleiste = ({
 		</div>
 		<Zoom zoom={zoom} stufe={stufe} skala={skala} fuehreAus={fuehreAus} />
 		<div className="flex items-center justify-end gap-2">
-			<button
-				type="button"
-				className={KNOPF}
-				data-palette-knopf
-				{...halteFokus}
-				onClick={() => fuehreAus('ansicht.palette')}
+			<Tooltip text="Befehle" kuerzel={kuerzelVon('ansicht.palette')}>
+				<button
+					type="button"
+					className={KNOPF}
+					data-palette-knopf
+					{...halteFokus}
+					onClick={() => fuehreAus('ansicht.palette')}
+				>
+					<Symbol name="suche" className="size-3 flex-none" />
+					Befehle
+				</button>
+			</Tooltip>
+			<Tooltip text="Tasten" kuerzel={kuerzelVon('ansicht.tasten')}>
+				<button type="button" className={KNOPF} data-tasten-knopf onClick={() => fuehreAus('ansicht.tasten')}>
+					<Symbol name="hilfe" className="size-3 flex-none" />
+					Tasten
+				</button>
+			</Tooltip>
+			<Tooltip
+				text="Rechte Leiste"
+				kuerzel={kuerzelVon('ansicht.inspektor')}
 			>
-				<Symbol name="suche" className="size-3 flex-none" />
-				Befehle
-				<Kuerzel text="⌘K" />
-			</button>
-			<button type="button" className={KNOPF} data-tasten-knopf onClick={() => fuehreAus('ansicht.tasten')}>
-				<Symbol name="hilfe" className="size-3 flex-none" />
-				Tasten
-			</button>
-			<Tooltip text="Rechte Leiste">
 				<button
 					type="button"
 					className={klassen(KNOPF, 'aria-pressed:text-tinte')}

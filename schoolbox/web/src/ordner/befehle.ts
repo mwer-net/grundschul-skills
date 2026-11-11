@@ -1,4 +1,5 @@
 import type { MenueEintrag } from '../bausteine/Menue';
+import type { TastenAbschnitt } from '../bausteine/Tastenliste';
 import type { SymbolName } from '../bausteine/Symbol';
 import type { Kuerzel } from '../editor/befehle';
 import { kuerzelText, passtTaste } from '../editor/befehle';
@@ -358,12 +359,23 @@ const tastenTitel = (b: Befehl) => {
 	return b.id === 'oeffnen' ? 'Öffnen' : b.id;
 };
 
-export const tastenAbschnitte = () =>
+export const tastenAbschnitte = (mac?: boolean): TastenAbschnitt[] =>
 	(['Ablage', 'Auswahl', 'Ansicht', 'Gehe zu'] as const).map((titel) => ({
 		titel,
-		befehle: BEFEHLE.filter((b) => b.abschnitt === titel && (b.kuerzel?.length ?? 0) > 0).map((b) => ({
-			id: b.id,
-			titel: tastenTitel(b),
-			taste: kuerzelText((b.kuerzel as [Kuerzel])[0]),
-		})),
+		zeilen: BEFEHLE.flatMap((b) => {
+			const [erstes] = b.kuerzel ?? [];
+			return b.abschnitt === titel && erstes
+				? [{ id: b.id, titel: tastenTitel(b), tasten: [kuerzelText(erstes, mac)] }]
+				: [];
+		}),
 	}));
+
+/** Das angezeigte Kürzel eines Befehls der Ablage für Tooltips (53); `undefined`, wenn er keins hat. */
+export const kuerzelVon = (id: string, mac?: boolean): string | undefined => {
+	const befehl = BEFEHLE.find((b) => b.id === id);
+	if (!befehl) {
+		throw new Error(`Unbekannter Befehl ${id}`);
+	}
+	const [erstes] = befehl.kuerzel ?? [];
+	return erstes ? kuerzelText(erstes, mac) : undefined;
+};

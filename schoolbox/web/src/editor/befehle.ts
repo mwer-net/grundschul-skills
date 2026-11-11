@@ -23,6 +23,7 @@ import type { Druckprofil } from '@schoolbox/kern/src/werte';
 import { istMac, kuerzelAnzeige } from '../bausteine/kuerzel';
 import type { MenueEintrag } from '../bausteine/Menue';
 import type { SymbolName } from '../bausteine/Symbol';
+import type { TastenAbschnitt } from '../bausteine/Tastenliste';
 import type { PfadTeil } from './darstellung';
 import { GESTALTUNG_BEFEHLE } from './gestaltung/befehle';
 import { dupliziereAlle, loescheAlle, mehrereGewaehlt } from './gestaltung/befehle/bewegen'; // 113
@@ -168,6 +169,8 @@ export interface Befehl {
 	notiz?: (k: Kontext) => string;
 	/** Ohne Angabe immer. Sonst nur dann in Tastenübersicht und Hilfe: Platzhalter-Schubladen erscheinen nirgends. */
 	inUebersicht?: () => boolean;
+	/** Name in Hilfe und Tastenliste, wenn `titel` vom Kontext abhängt. */
+	hilfeTitel?: string;
 }
 
 const gewaehlt = (k: Kontext) => k.pfad.at(-1);
@@ -310,6 +313,7 @@ export const BEFEHLE: Befehl[] = [
 	{
 		id: 'auswahl.bearbeiten',
 		titel: (k) => (kannText(k) ? 'Text bearbeiten' : 'Erstes Teil wählen'),
+		hilfeTitel: 'Text bearbeiten',
 		gruppe: 'bearbeiten',
 		symbol: 'stift',
 		kuerzel: [{ key: 'Enter' }],
@@ -433,6 +437,7 @@ export const BEFEHLE: Befehl[] = [
 	{
 		id: 'auswahl.einfuegen',
 		titel: (k) => (gewaehlt(k) && !istSeite(k) ? 'Darunter einfügen' : 'Hier einfügen'),
+		hilfeTitel: 'Darunter einfügen',
 		gruppe: 'ablage',
 		symbol: 'hochladen',
 		kuerzel: [{ code: 'KeyV', befehl: true }],
@@ -456,6 +461,7 @@ export const BEFEHLE: Befehl[] = [
 	{
 		id: 'auswahl.hoch',
 		titel: (k) => (k.werte?.nach?.quer ? 'Nach links' : 'Nach oben'),
+		hilfeTitel: 'Nach oben',
 		gruppe: 'ordnen',
 		symbol: (k) => (k.werte?.nach?.quer ? 'links' : 'hoch'),
 		kuerzel: [
@@ -479,6 +485,7 @@ export const BEFEHLE: Befehl[] = [
 	{
 		id: 'auswahl.runter',
 		titel: (k) => (k.werte?.nach?.quer ? 'Nach rechts' : 'Nach unten'),
+		hilfeTitel: 'Nach unten',
 		gruppe: 'ordnen',
 		symbol: (k) => (k.werte?.nach?.quer ? 'rechts' : 'runter'),
 		kuerzel: [
@@ -968,6 +975,7 @@ const TASTEN_NAME: Record<string, string> = {
 	Enter: '⏎',
 	Escape: 'Esc',
 	Tab: 'Tab',
+	' ': 'Leertaste',
 };
 
 const tasteName = ({ code, key }: Kuerzel) => {
@@ -980,6 +988,43 @@ const tasteName = ({ code, key }: Kuerzel) => {
 /** `⇧⌘D` am Mac, `Strg+Umschalt+D` sonst. */
 export const kuerzelText = (k: Kuerzel, mac?: boolean) =>
 	kuerzelAnzeige(`${k.wahl ? '⌥' : ''}${k.umschalt ? '⇧' : ''}${k.befehl ? '⌘' : ''}${tasteName(k)}`, mac);
+
+/** Das angezeigte Kürzel eines Befehls für Tooltips (53); `undefined`, wenn er keins hat. */
+export const kuerzelVon = (id: string, mac?: boolean): string | undefined => {
+	const befehl = BEFEHLE.find((b) => b.id === id);
+	if (!befehl) {
+		throw new Error(`Unbekannter Befehl ${id}`);
+	}
+	const [erstes] = befehl.kuerzel ?? [];
+	return erstes ? kuerzelText(erstes, mac) : undefined;
+};
+
+const TASTEN_ABSCHNITTE: { titel: string; gruppen: Gruppe[] }[] = [
+	{ titel: 'Gewählter Baustein', gruppen: ['bearbeiten', 'ablage', 'ordnen', 'gefahr'] },
+	{ titel: 'Im Blatt bewegen', gruppen: ['baustein', 'blatt'] },
+	{ titel: 'Ansicht', gruppen: ['ansicht'] },
+	{ titel: 'Dokument', gruppen: ['dokument'] },
+];
+
+/** Tastenübersicht und Hilfe aus dem Register. Ohne Kontext (Hilfe) gilt `hilfeTitel`. */
+export const tastenAbschnitte = (k?: Kontext, mac?: boolean): TastenAbschnitt[] =>
+	TASTEN_ABSCHNITTE.map(({ gruppen, titel }) => ({
+		titel,
+		zeilen: BEFEHLE.filter(
+			(b) => gruppen.includes(b.gruppe) && b.kuerzel?.length && (b.inUebersicht?.() ?? true),
+		).map((b) => ({
+			id: b.id,
+			titel: k ? titelVon(b, k) : (b.hilfeTitel ?? (typeof b.titel === 'string' ? b.titel : b.id)),
+			tasten: (b.kuerzel ?? []).filter((t, i) => i === 0 || !t.wenn).map((t) => kuerzelText(t, mac)),
+		})),
+	}));
+
+/** Was beim Tippen im Blatt oder in einem Feld weiter wirkt: das erste Kürzel jedes Befehls mit `modus` `text`. */
+export const tastenBeimTippen = (mac?: boolean) =>
+	BEFEHLE.flatMap((b) => {
+		const [erstes] = b.kuerzel ?? [];
+		return erstes && b.modus?.includes('text') ? [kuerzelText(erstes, mac)] : [];
+	});
 
 type TastenEreignis = Pick<KeyboardEvent, 'code' | 'key' | 'metaKey' | 'ctrlKey' | 'altKey' | 'shiftKey'>;
 

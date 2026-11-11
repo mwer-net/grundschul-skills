@@ -7,6 +7,7 @@ import type { SymbolName } from '../bausteine/Symbol';
 import { Symbol } from '../bausteine/Symbol';
 import { SymbolKnopf } from '../bausteine/SymbolKnopf';
 import type { Lage } from './befehle';
+import { kuerzelVon } from './befehle';
 import { Pfad } from './Pfad';
 import { naechsteSortierung, SORTIER_NAME } from './sortierung';
 import type { AblageOrdner, Darstellung, Seite, Sortierung } from './typen';
@@ -118,7 +119,7 @@ export const Werkzeugleiste = ({
 			<SymbolKnopf
 				symbol={leisteAn ? 'leisteLinks' : 'leisteRechts'}
 				beschriftung={leisteAn ? 'Seitenleiste ausblenden' : 'Seitenleiste einblenden'}
-				kuerzel="⌥S"
+				kuerzel={kuerzelVon('seitenleiste')}
 				onClick={() => fuehreAus('seitenleiste', lage)}
 			/>
 			<SymbolKnopf symbol="links" beschriftung="Zurück" onClick={() => void navigate(-1)} />

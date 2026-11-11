@@ -6,8 +6,8 @@ import { WERKZEUGE } from '.';
 import { useWerkzeugStand, waehleWerkzeug } from './stand';
 
 /**
- * Eine Reihe Knöpfe für alle bereiten Werkzeuge (5.10, 5.12): Tooltip mit Taste, das aktive hervorgehoben, ⇧-Klick
- * hält das Werkzeug bis Esc. 104 setzt sie oben in die Schublade „Werkzeuge“.
+ * Eine Reihe Knöpfe für alle bereiten Werkzeuge (5.10, 5.12): Tooltip mit Name und Taste, das aktive hervorgehoben;
+ * ⇧-Klick hält das Werkzeug bis Esc (Hilfe). 104 setzt sie oben in die Schublade „Werkzeuge“.
  */
 export const Werkzeugknoepfe = ({ className, lage }: { lage: SchubladenLage; className?: string }) => {
 	const stand = useWerkzeugStand();
@@ -24,7 +24,6 @@ export const Werkzeugknoepfe = ({ className, lage }: { lage: SchubladenLage; cla
 						key={w.id}
 						symbol={w.symbol}
 						beschriftung={w.titel}
-						tooltip={`${w.titel}${w.id === 'auswahl' ? '' : ' (⇧ hält es)'}`}
 						{...(w.taste ? { kuerzel: kuerzelText(w.taste) } : {})}
 						aria-pressed={aktiv}
 						className={klassen(aktiv && 'bg-brand-50 text-brand-700 hover:bg-brand-50')}

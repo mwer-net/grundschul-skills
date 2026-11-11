@@ -63,9 +63,9 @@ export const GESTALTEN: Abschnitt = {
 			<p data-hilfe-ausrichten>
 				Die Leiste zeigt bei mehreren „Ausrichten“ und ab drei Elementen „Verteilen“. Ausrichten bringt alle an
 				eine Kante oder Mitte der gemeinsamen Auswahl, Verteilen setzt gleiche Abstände. Ein einzelnes Element
-				richtest du über „Mehr“ an der Seite aus, innerhalb des Rands. Die Tasten: ⌥A links, ⌥H mittig, ⌥D
-				rechts, ⌥W oben, ⌥V senkrecht mittig, ⌥S unten. Rechts im Inspektor stehen Lage und Größe der ganzen
-				Auswahl; steht dort „gemischt“, haben die Elemente verschiedene Werte, und ein neuer Wert gilt für alle.
+				richtest du über „Mehr“ an der Seite aus, innerhalb des Rands. Rechts im Inspektor stehen Lage und Größe
+				der ganzen Auswahl; steht dort „gemischt“, haben die Elemente verschiedene Werte, und ein neuer Wert gilt
+				für alle.
 			</p>
 
 			<h3>Ebenen</h3>

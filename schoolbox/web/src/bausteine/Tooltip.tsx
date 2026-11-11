@@ -9,21 +9,30 @@ export const TooltipAnbieter = ({ children }: { children: ReactNode }) => (
 	</BaseTooltip.Provider>
 );
 
-/** Am Mac nach 400 ms, bei Fokus sofort. Auf dem iPad erscheint er nicht: Nichts Nötiges darf nur hier stehen. */
+/**
+ * Am Mac nach 400 ms, bei Fokus sofort. Auf dem iPad erscheint er nicht: Nichts Nötiges darf nur hier stehen.
+ * `kuerzel` kommt aus einem Register (`kuerzelVon`), nie als Text. Der Tooltip zeigt Name und Kürzel, keine Gesten (53).
+ * An einer senkrechten Leiste steht er daneben (`seite`), sonst über dem Knopf.
+ */
 export const Tooltip = ({
 	children,
 	kuerzel,
+	seite = 'top',
 	text,
 }: {
 	text: string;
 	kuerzel?: string;
+	seite?: 'top' | 'right';
 	children: ReactElement<Record<string, unknown>>;
 }) => (
 	<BaseTooltip.Root>
 		<BaseTooltip.Trigger render={children} />
 		<BaseTooltip.Portal>
-			<BaseTooltip.Positioner className="z-menue" sideOffset={4} collisionPadding={8}>
-				<BaseTooltip.Popup className="flex items-center gap-2 rounded-md bg-tinte px-1.5 py-1 text-xs text-white shadow-1">
+			<BaseTooltip.Positioner className="z-menue" side={seite} sideOffset={4} collisionPadding={8}>
+				<BaseTooltip.Popup
+					className="flex items-center gap-2 rounded-md bg-tinte px-1.5 py-1 text-xs text-white shadow-1"
+					data-tooltip
+				>
 					{text}
 					{kuerzel && <Kuerzel text={kuerzel} className="text-white/70" />}
 				</BaseTooltip.Popup>

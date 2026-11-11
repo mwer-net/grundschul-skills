@@ -20,6 +20,23 @@ test.describe('Befehlspalette (073)', () => {
 		await page.keyboard.press('Escape');
 	});
 
+	test('ohne Fußzeile mit Tasten; ↑↓ wählen weiter, die Zeilen zeigen ihr Kürzel (166)', async ({ page }) => {
+		const { dok, id } = await uhrzeit();
+		await oeffne(page, id, dok);
+		await page.locator('[data-palette-knopf]').click();
+		await expect(feld(page)).toBeFocused();
+		await expect(palette(page)).not.toContainText('↑↓ wählen');
+		await expect(palette(page)).not.toContainText('esc schließen');
+		const gewaehlt = palette(page).locator('[role="option"][aria-selected="true"]');
+		const erste = await gewaehlt.textContent();
+		await page.keyboard.press('ArrowDown');
+		await expect(gewaehlt).not.toHaveText(erste ?? '');
+		await page.keyboard.press('ArrowUp');
+		await expect(gewaehlt).toHaveText(erste ?? '');
+		await expect(palette(page).getByRole('option').locator('kbd').first()).toBeVisible();
+		await page.keyboard.press('Escape');
+	});
+
 	test('Esc gibt den Fokus ans Blatt zurück, Tasten wirken danach ohne Klick', async ({ page }) => {
 		const { dok, id } = await uhrzeit();
 		await oeffne(page, id, dok);

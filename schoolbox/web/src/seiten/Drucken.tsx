@@ -68,7 +68,7 @@ export const Drucken = ({ dok, zugang }: { zugang: Zugang; dok: string }) => {
 				<Zustand symbol="drucker" titel="PDF wird erstellt …">
 					<Symbol name="laden" className="size-5 animate-spin text-brand-500" />
 					<p className="text-leise">
-						Gleich öffnet sich das PDF hier. Drucken kannst du dann über das Drucker-Symbol oder ⌘P, auf dem
+						Gleich öffnet sich das PDF hier. Drucken kannst du dann über das Drucker-Symbol, auf dem
 						iPad über „Teilen“ und „Drucken“.
 					</p>
 				</Zustand>

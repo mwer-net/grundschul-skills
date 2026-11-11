@@ -326,9 +326,6 @@ export const Entwurfsleiste = ({ entwurf }: { entwurf: Entwurf }) => {
 						</Knopf>
 						<Knopf onClick={uebernehmen} data-entwurf-uebernehmen>
 							Übernehmen
-							<kbd aria-hidden className="font-sans opacity-70">
-								⏎
-							</kbd>
 						</Knopf>
 					</>
 				)}

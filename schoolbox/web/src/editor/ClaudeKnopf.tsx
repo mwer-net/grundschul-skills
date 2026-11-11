@@ -1,14 +1,13 @@
 import { Knopf } from '../bausteine/Knopf';
-import { Kuerzel } from '../bausteine/Kuerzel';
 import { Symbol } from '../bausteine/Symbol';
 import { Tooltip } from '../bausteine/Tooltip';
-import { BEFEHLE } from './befehle';
+import { BEFEHLE, kuerzelVon } from './befehle';
 import type { Befehle } from './useBefehle';
 
 const BEFEHL = BEFEHLE.find((b) => b.id === 'auswahl.claude');
 
 /**
- * „Claude ⌘J“ in den Leisten am Element (134). Gesperrt bleibt er sichtbar, der Grund steht im Tooltip (135). Ein
+ * „Claude“ in den Leisten am Element (134). Gesperrt bleibt er sichtbar, der Grund steht im Tooltip (135). Ein
  * gesperrter Knopf bekäme keinen Zeiger und damit keinen Tooltip, deshalb nur `aria-disabled`.
  */
 export const ClaudeKnopf = ({ befehle }: { befehle: Befehle }) => {
@@ -18,7 +17,10 @@ export const ClaudeKnopf = ({ befehle }: { befehle: Befehle }) => {
 	}
 	const grund = BEFEHL.warumNicht?.(k) ?? null;
 	return (
-		<Tooltip text={grund ?? 'Mit Claude ändern'}>
+		<Tooltip
+			text={grund ?? 'Mit Claude ändern'}
+			kuerzel={grund === null ? kuerzelVon('ansicht.claude') : undefined}
+		>
 			<Knopf
 				art="leise"
 				groesse="klein"
@@ -33,7 +35,6 @@ export const ClaudeKnopf = ({ befehle }: { befehle: Befehle }) => {
 			>
 				<Symbol name="funken" />
 				Claude
-				<Kuerzel text="⌘J" />
 			</Knopf>
 		</Tooltip>
 	);

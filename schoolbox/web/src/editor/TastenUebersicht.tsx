@@ -1,47 +1,24 @@
 import { Dialog } from '../bausteine/Dialog';
-import { Kuerzel } from '../bausteine/Kuerzel';
-import type { Gruppe, Kontext } from './befehle';
-import { BEFEHLE, kuerzelText, titelVon } from './befehle';
+import { Tastenliste } from '../bausteine/Tastenliste';
+import type { Kontext } from './befehle';
+import { tastenAbschnitte, tastenBeimTippen } from './befehle';
 
-const ABSCHNITTE: { titel: string; gruppen: Gruppe[] }[] = [
-	{ titel: 'Gewählter Baustein', gruppen: ['bearbeiten', 'ablage', 'ordnen', 'gefahr'] },
-	{ titel: 'Im Blatt bewegen', gruppen: ['baustein', 'blatt'] },
-	{ titel: 'Ansicht', gruppen: ['ansicht'] },
-	{ titel: 'Dokument', gruppen: ['dokument'] },
-];
+/** „A, B und C“ */
+const aufzaehlung = (teile: string[]) =>
+	teile.length > 1 ? `${teile.slice(0, -1).join(', ')} und ${teile.at(-1) ?? ''}` : (teile[0] ?? '');
 
-/** Aus dem Register, nicht von Hand: Was hier steht, gilt auch. */
+/** Aus dem Register, nicht von Hand: Was hier steht, gilt auch. Ohne Kontext (Hilfe) mit den Namen der Hilfe. */
+export const EditorTasten = ({ ebene, kontext }: { kontext?: Kontext; ebene?: 'h3' | 'h4' }) => (
+	<>
+		<Tastenliste abschnitte={tastenAbschnitte(kontext)} ebene={ebene} />
+		<p className="mt-3 text-leise">
+			{`Beim Tippen im Blatt oder in einem Feld gelten nur ${aufzaehlung(tastenBeimTippen())}, der Rest gehört dem Text.`}
+		</p>
+	</>
+);
+
 export const TastenUebersicht = ({ kontext, schliessen }: { kontext: Kontext; schliessen: () => void }) => (
 	<Dialog titel="Tasten" breit schliessen={schliessen}>
-		<div className="grid gap-x-6 gap-y-4 sm:grid-cols-2" data-tasten-uebersicht>
-			{ABSCHNITTE.map(({ gruppen, titel }) => (
-				<section key={titel}>
-					<h3 className="mb-1 font-medium">{titel}</h3>
-					<ul>
-						{BEFEHLE.filter(
-							(b) => gruppen.includes(b.gruppe) && b.kuerzel?.length && (b.inUebersicht?.() ?? true),
-						).map((b) => (
-							<li
-								key={b.id}
-								className="flex h-zeile items-center justify-between gap-3"
-								data-taste={b.id}
-							>
-								<span className="truncate">{titelVon(b, kontext)}</span>
-								<span className="flex flex-none gap-1.5">
-									{(b.kuerzel ?? [])
-										.filter((k, i) => i === 0 || !k.wenn)
-										.map((k) => (
-											<Kuerzel key={kuerzelText(k)} text={kuerzelText(k)} />
-										))}
-								</span>
-							</li>
-						))}
-					</ul>
-				</section>
-			))}
-		</div>
-		<p className="mt-3 text-leise">
-			Beim Tippen im Blatt oder in einem Feld gelten nur ⌘K, ⌘J, ⌘Z und ⇧⌘Z, der Rest gehört dem Text.
-		</p>
+		<EditorTasten kontext={kontext} />
 	</Dialog>
 );

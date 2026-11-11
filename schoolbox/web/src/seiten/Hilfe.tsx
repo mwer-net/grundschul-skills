@@ -5,15 +5,19 @@ import { useLocation } from 'react-router-dom';
 import { KnopfLink } from '../bausteine/Knopf';
 import { Kuerzel } from '../bausteine/Kuerzel';
 import { Symbol } from '../bausteine/Symbol';
-import { BEFEHLE, kuerzelText } from '../editor/befehle';
+import { Tastenliste } from '../bausteine/Tastenliste';
+import { kuerzelText } from '../editor/befehle';
 import { kopf } from '../editor/schubladen/reihe';
+import { EditorTasten } from '../editor/TastenUebersicht';
 import { useLaden } from '../lib/laden';
 import { useTitel } from '../lib/titel';
 import { dokumentSeite, inhaltAdresse } from '../lib/zugang';
+import { AblageTasten } from '../ordner/dialoge';
 import type { MappenEintrag } from '../typen';
 import { GESTALTEN } from './hilfe-gestalten';
 import type { Abschnitt, Bild } from './hilfe-teile';
 import { Punkt } from './hilfe-teile';
+import { WEITERE_TASTEN } from './hilfe-tasten';
 
 /** Legt `schoolbox kurzanleitung` an; `scripts/ausrollen.sh` hält sie auf dem Stand der Vorlage. */
 const KURZANLEITUNG = { mappe: 'schoolbox-hilfe', token: null };
@@ -47,31 +51,9 @@ const Beispiel = ({ children }: { children: ReactNode }) => (
 	<li className="rounded-2xl bg-flaeche px-5 py-3 shadow-2">{children}</li>
 );
 
-/** Die wichtigsten Tasten. Name und Kürzel kommen aus dem Register, damit die Hilfe nie etwas anderes sagt. */
-const WICHTIGE_TASTEN = [
-	'ansicht.palette',
-	'ansicht.claude',
-	'dokument.rueckgaengig',
-	'auswahl.duplizieren',
-	'auswahl.loeschen',
-	'auswahl.einfuegen-danach',
-	'ansicht.einpassen',
-	'ansicht.tasten',
-];
-
-const Tastenliste = () => (
-	<ul className="my-3 grid max-w-xl grid-cols-2 gap-x-6 gap-y-1 pl-0 max-md:grid-cols-1" data-hilfe-tasten>
-		{WICHTIGE_TASTEN.map((id) => {
-			const befehl = BEFEHLE.find((b) => b.id === id);
-			const taste = befehl?.kuerzel?.[0];
-			return befehl && taste && typeof befehl.titel === 'string' ? (
-				<li key={id} className="flex list-none items-center justify-between gap-3" data-hilfe-taste={id}>
-					<span>{befehl.titel}</span>
-					<Kuerzel text={kuerzelText(taste)} />
-				</li>
-			) : null;
-		})}
-	</ul>
+/** ⌥1 … aus der Leiste, wie sie im Register steht; im Fließtext so groß wie der Text. */
+const SchubladenTaste = ({ id }: { id: Parameters<typeof kopf>[0] }) => (
+	<Kuerzel text={kuerzelText({ code: kopf(id).taste, wahl: true })} className="text-[length:inherit]" />
 );
 
 const ABSCHNITTE: Abschnitt[] = [
@@ -125,7 +107,6 @@ const ABSCHNITTE: Abschnitt[] = [
 						nur Art, Format und Titel, dann baust du selbst mit Bausteinen, Formen und Figuren. „Doch lieber
 						leeres Blatt“ wechselt jederzeit dorthin und behält, was du schon gewählt hast.
 					</Punkt>
-					<Punkt titel="Tasten">1 bis 9 wählen eine Kachel, ⏎ geht weiter, ⇧⏎ zurück, Esc schließt.</Punkt>
 					<Punkt titel="Wiederverwenden">
 						ein fertiges Blatt im Ordner duplizieren (⌘D) und die Kopie ändern. Einzelne Teile legst du im ⋯
 						mit „In Sammlung legen“ ab; sie stehen dann unter „Meine Bausteine“ in jedem Blatt.
@@ -141,8 +122,10 @@ const ABSCHNITTE: Abschnitt[] = [
 						einen Teil des Blatts antippen, dann das Plus an seinem Rand oder „+ Baustein“ in der Leiste.
 					</Punkt>
 					<Punkt titel="Bausteine">
-						links in der Schublade „Bausteine“ (⌥2). Die Suche findet alles. Oben wählst du „Für dieses
-						Blatt“ oder „Alle“. Karte antippen fügt ein, am Griff links ziehst du sie ins Blatt.
+						{'links in der Schublade „Bausteine“ ('}
+						<SchubladenTaste id="bausteine" />
+						). Die Suche findet alles. Oben wählst du „Für dieses Blatt“ oder „Alle“. Karte antippen fügt
+						ein, am Griff links ziehst du sie ins Blatt.
 					</Punkt>
 					<Punkt titel="Schrägstrich">in einer leeren Zeile „/“ tippen und weiterschreiben.</Punkt>
 				</ul>
@@ -279,7 +262,9 @@ const ABSCHNITTE: Abschnitt[] = [
 						Baustein „Nach oben“ und „Nach unten“ tippen. Dort lassen sie sich auch verdoppeln und löschen.
 					</Punkt>
 					<Punkt titel="Ebenen">
-						die Schublade links (⌥1, früher „Gliederung“) zeigt alle Seiten als Baum: darin die Aufgaben und
+						{'die Schublade links ('}
+						<SchubladenTaste id="ebenen" />
+						, früher „Gliederung“) zeigt alle Seiten als Baum: darin die Aufgaben und
 						alles, was du im Blatt anklicken kannst, etwa eine Uhr in einem Eintrag. Was du im Blatt wählst,
 						ist dort markiert, Klick auf eine Zeile springt zur Stelle und zeigt rechts ihre Einstellungen.
 						Am Griff ziehst du, was sich umstellen lässt: Aufgaben innerhalb der Seite oder auf eine andere,
@@ -314,10 +299,7 @@ const ABSCHNITTE: Abschnitt[] = [
 					<Punkt titel="Bilder">
 						Bild antippen, dann austauschen, eigenes hochladen oder an den Ecken größer und kleiner ziehen.
 						Links in der Schublade „Bilder“ (
-						<Kuerzel
-							text={kuerzelText({ code: kopf('bilder').taste, wahl: true })}
-							className="text-[length:inherit]"
-						/>
+						<SchubladenTaste id="bilder" />
 						) stehen deine Fotos, die Bilder dieses Ordners, deiner anderen Ordner und der Sammlung, mit
 						Suche und „Foto hochladen“. Ein Klick tauscht das gewählte Bild aus oder füllt den gewählten
 						Platzhalter oder Bildrahmen; ist nichts davon gewählt, kommt das Bild als neuer Baustein hinter
@@ -353,12 +335,30 @@ const ABSCHNITTE: Abschnitt[] = [
 						nur ungefähr wissen, wie es heißt.
 					</Punkt>
 				</ul>
-				<h3>Die wichtigsten Tasten</h3>
-				<Tastenliste />
-				<p>Alle Tasten stehen im Editor unten unter „Tasten“.</p>
 			</>
 		),
 		bilder: [{ datei: 'befehle-mac.jpg', alt: 'Das Feld für Befehle im Editor', geraet: 'Mac' }],
+	},
+	{
+		id: 'tasten',
+		titel: 'Tasten',
+		inhalt: (
+			<>
+				<h3>Im Editor</h3>
+				<div data-hilfe-tasten="editor">
+					<EditorTasten ebene="h4" />
+				</div>
+				<h3>In der Ablage</h3>
+				<div data-hilfe-tasten="ablage">
+					<AblageTasten ebene="h4" />
+				</div>
+				<h3>Beim Schreiben, Präsentieren und Anlegen</h3>
+				<div data-hilfe-tasten="weitere">
+					<Tastenliste abschnitte={WEITERE_TASTEN} ebene="h4" />
+				</div>
+			</>
+		),
+		bilder: [],
 	},
 	{
 		id: 'claude',
