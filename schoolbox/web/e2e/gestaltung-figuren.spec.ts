@@ -84,7 +84,7 @@ test.describe('Figuren (102)', () => {
 		const vorher = await quelle(page);
 		await page.keyboard.press('Alt+Digit4');
 		await expect(schublade(page)).toBeVisible();
-		await expect(schublade(page).locator('[data-schubladenhinweis]')).toContainText('mit ⌘: als Tipp');
+		await expect(schublade(page).locator('[data-schubladenhinweis]')).toHaveCount(0);
 		const ziel = await aufSeite(page, 0.5, 0.5);
 		await kachel(page, 'Wilma').click();
 

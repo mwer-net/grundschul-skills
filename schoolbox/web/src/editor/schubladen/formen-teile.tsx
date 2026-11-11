@@ -21,7 +21,7 @@ export const Inhalt = (teile: SchubladenTeile) => {
 						wert={suche}
 						setWert={setSuche}
 					/>
-					{sichtbar.map(({ Inhalt: Teil, hinweis, id, titel }) => (
+					{sichtbar.map(({ Inhalt: Teil, id, titel }) => (
 						<section key={id} className="flex flex-col gap-1.5" data-formen-abschnitt={id}>
 							{titel && (
 								<h3 className="flex items-center gap-2 text-sm font-semibold">
@@ -32,9 +32,6 @@ export const Inhalt = (teile: SchubladenTeile) => {
 										{nummern.get(id)}
 									</span>
 									<span className="min-w-0 flex-1 truncate">{titel}</span>
-									{hinweis && (
-										<span className="flex-none text-xs font-normal text-leise">{hinweis}</span>
-									)}
 								</h3>
 							)}
 							<Teil teile={teile} suche={suche} />

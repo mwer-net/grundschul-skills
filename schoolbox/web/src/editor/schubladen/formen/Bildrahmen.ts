@@ -8,7 +8,6 @@ import { GRUPPE, passtZurSuche } from './typ';
 export const abschnitt: FormenAbschnitt | null = {
 	id: 'bildrahmen',
 	titel: 'Bildrahmen',
-	hinweis: 'Bild hineinziehen',
 	zeigt: ({ suche }) => RAHMEN.some((r) => passtZurSuche(namenVon(r), suche)),
 	Inhalt: Kacheln,
 	suche: (z) =>

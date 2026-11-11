@@ -361,14 +361,11 @@ test.describe('Bilder-Schublade (093)', () => {
 		}
 		await expect(bilder(page).locator('[data-sammlung-bild="_assets/bilder/willi.png"]')).toHaveCount(0);
 		await expect(bilder(page).locator('[data-sammlung-bild="_assets/bilder/wilma.png"]')).toHaveCount(0);
-		await expect(bilder(page).locator('[data-hinweis="figuren"]')).toContainText('Willi & Co.');
+		await expect(bilder(page).locator('[data-hinweis="figuren"]')).toHaveCount(0);
 		await bilder(page).getByRole('searchbox', { name: 'Bilder suchen' }).fill('keimling');
 		await expect(bilder(page).locator('[data-sammlung-bild]')).toHaveCount(1);
 		await bilder(page).getByRole('searchbox', { name: 'Bilder suchen' }).fill('kartoffelsalat');
 		await expect(bilder(page).getByText('Kein Bild passt zur Suche.')).toBeVisible();
-		// 102: Der Hinweis führt zu den Figuren.
-		await bilder(page).locator('[data-hinweis="figuren"]').getByRole('button', { name: 'Figuren ⌥4' }).click();
-		await expect(offen(page)).toHaveAttribute('data-panel-links', 'figuren');
 	});
 
 	test('„Foto hochladen“ zeigt den Hinweis', async ({ druecke, page }) => {

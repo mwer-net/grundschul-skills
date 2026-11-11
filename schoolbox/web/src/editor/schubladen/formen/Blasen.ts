@@ -19,7 +19,6 @@ const symbolVon = (e: Eintrag) => {
 export const abschnitt: FormenAbschnitt | null = {
 	id: 'blasen',
 	titel: 'Blasen und Linien',
-	hinweis: 'Klick oder ziehen',
 	zeigt: ({ suche }) => EINTRAEGE.some((e) => passtZurSuche(namenVon(e), suche)),
 	Inhalt: Kacheln,
 	suche: (z) =>

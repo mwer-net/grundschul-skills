@@ -77,7 +77,7 @@ test.describe('Gruppen (120)', () => {
 		await gruppiere(page);
 		await expect(gruppe(page).locator('[data-name]')).toHaveCount(2);
 		expect(await kaesten(page)).toEqual(lage);
-		await expect(page.locator('[data-gruppe-teile]')).toContainText('2 Teile');
+		await expect(page.locator('[data-gruppe-teile]')).toHaveText('Gruppe · 2 Teile');
 		await page.keyboard.press('ControlOrMeta+z');
 		await expect.poll(() => quelle(page)).toBe(vorher);
 	});

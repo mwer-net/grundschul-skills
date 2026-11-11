@@ -687,7 +687,7 @@ export const Bibliothek = ({
 			)}
 			{sucht &&
 				(treffer.length === 0 ? (
-					<p className="text-leise">{`Nichts zu „${suche.trim()}“. Suche prüfen.`}</p>
+					<p className="text-leise">{`Nichts passt zu „${suche.trim()}“.`}</p>
 				) : (
 					<>
 						{trefferPassend.length > 0 && karten(trefferPassend, true)}

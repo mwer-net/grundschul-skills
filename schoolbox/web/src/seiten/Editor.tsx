@@ -62,7 +62,6 @@ import type { Pruefpunkt } from '../editor/pruefung';
 import { holeInSeiteAus, ueberlaufendeSeiten, usePruefung } from '../editor/pruefung';
 import type { SchubladenId, SchubladenTeile } from '../editor/schubladen';
 import { schubladeVon } from '../editor/schubladen';
-import { befehlZuSchublade } from '../editor/schubladen/reihe';
 import { Schubladen } from '../editor/schubladen/Schubladen';
 import { angezeigt, istEng, sichtbar } from '../editor/schubladen/spalten';
 import { Statusleiste } from '../editor/Statusleiste';
@@ -971,7 +970,6 @@ const Bearbeitung = ({ dokument, mappe: mappenDaten }: { mappe: Mappe; dokument:
 		},
 		kontextmenue: menueAn,
 		zeigeSeitengestaltung: (nr) => zeigeBlattGestaltung(nr, struktur.zeigeAn, zeigeEinstellung),
-		oeffneSchublade: (id) => befehle.fuehreAus(befehlZuSchublade(id)),
 	};
 
 	const leinwandMenue = (treffer: { nr: number; art: string } | null, punkt: { x: number; y: number }) =>

@@ -7,7 +7,6 @@ import { GRUPPE, passtZurSuche } from './typ';
 export const abschnitt: FormenAbschnitt | null = {
 	id: 'grundformen',
 	titel: 'Grundformen',
-	hinweis: 'Klick oder ziehen',
 	zeigt: ({ suche }) => GRUNDFORMEN.some((g) => passtZurSuche(namenVon(g), suche)),
 	Inhalt: Kacheln,
 	suche: (z) =>

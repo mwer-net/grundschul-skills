@@ -12,7 +12,7 @@ export const GruppeKopf = ({ k, quelle }: InspektorTeile) => {
 	}
 	return (
 		<p className="text-sm text-leise" data-gruppe-teile={teile}>
-			{`Gruppe · ${teile} ${teile === 1 ? 'Teil' : 'Teile'}. Doppelklick wählt ein Teil.`}
+			{`Gruppe · ${teile} ${teile === 1 ? 'Teil' : 'Teile'}`}
 		</p>
 	);
 };

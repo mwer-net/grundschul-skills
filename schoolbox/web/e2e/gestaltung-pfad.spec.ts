@@ -137,6 +137,10 @@ test.describe('Stift und Pfad (116)', () => {
 	}) => {
 		await oeffneBlatt(page, [VON_CLAUDE]);
 		await pfade(page).click();
+		const inspektor = page.locator('[data-gestaltung-inspektor="form"]');
+		await expect(inspektor).toBeVisible();
+		await expect(inspektor).not.toContainText('Doppelklick');
+		await expect(page.locator('[data-hinweis="pfad"]')).toHaveCount(0);
 		await pfade(page).dblclick();
 		await expect(page.locator('[data-hinweis="pfad-punkte"]')).toBeVisible();
 		await expect(punkte(page)).toHaveCount(3);
