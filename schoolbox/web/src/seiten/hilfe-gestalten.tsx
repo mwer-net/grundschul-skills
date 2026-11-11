@@ -355,12 +355,6 @@ export const GESTALTEN: Abschnitt = {
 				heraus, so entsteht zum Beispiel ein Loch. Das Ergebnis ist eine eigene Form, die du wie jeden Pfad
 				bearbeitest; Ecken, Zacken und andere Einstellungen der alten Formen gibt es danach nicht mehr.
 			</p>
-			<p data-hilfe-formenschere>
-				Die Formen-Schere (⇧M, in der Formen-Schublade) zerlegt die gewählten Formen in alle Flächen, die ihre
-				Umrisse bilden. Zieh über Flächen, um sie zu markieren: Beim Loslassen werden sie eine Form, die übrigen
-				bleiben einzelne Formen. Mit ⌥ beim Loslassen fallen die markierten Flächen weg. Esc oder V beendet die
-				Schere.
-			</p>
 		</>
 	),
 	bilder: [],

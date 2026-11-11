@@ -326,7 +326,6 @@ describe('Werkzeuge (098)', () => {
 				] as const
 			).map(([id, code]): Werkzeug => ({ ...leer, id, titel: id, symbol: 'formen', taste: { code } })),
 			{ ...leer, id: 'pfad', titel: 'Pfad', symbol: 'stift', taste: { code: 'KeyP', umschalt: true } },
-			{ ...leer, id: 'schere', titel: 'Schere', symbol: 'formen', taste: { code: 'KeyM', umschalt: true } },
 			{ ...leer, id: 'stern', titel: 'Stern', symbol: 'stern' },
 		];
 		const befehle = befehleFuerWerkzeuge(alle);
@@ -346,5 +345,19 @@ describe('Werkzeuge (098)', () => {
 		assert.equal(belegt.get('U:KeyR'), 'werkzeug.rechteck');
 		assert.equal(befehle.find((b) => b.id === 'werkzeug.stern')?.kuerzel, undefined);
 		assert.deepEqual(befehle.find((b) => b.id === 'werkzeug.stern')?.orte, ['palette']);
+	});
+
+	it('Keine Formen-Schere (173)', () => {
+		assert.equal(werkzeugVon('schere'), undefined);
+		assert.ok(!WERKZEUGE.some((w) => w.id === 'schere'));
+		assert.equal(BEFEHLE.find((b) => b.id === 'werkzeug.schere'), undefined);
+		const mitTaste = (s: string) =>
+			BEFEHLE.filter(
+				(b) =>
+					(b.modus ?? MODUS_VORGABE).includes('auswahl') && (b.kuerzel ?? []).some((k) => schluessel(k) === s),
+			).map((b) => b.id);
+		assert.deepEqual(mitTaste('U:KeyM'), []);
+		// Gegenprobe: ⇧P gehört dem Pfad, der Test findet die Tasten der Werkzeuge also.
+		assert.deepEqual(mitTaste('U:KeyP'), ['werkzeug.pfad']);
 	});
 });

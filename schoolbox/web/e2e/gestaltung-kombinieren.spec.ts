@@ -1,8 +1,8 @@
 /**
- * Kombinieren und Formen-Schere (121, Briefing 3-formen, Z9): Kreis und Rechteck werden ein Pfad, je ein Schritt. Die
- * Schere zerlegt zwei Kreise in drei Bereiche; ein Zug vereint markierte, mit ⌥ entfernt er sie.
+ * Kombinieren (121, Briefing 3-formen, Z9): Kreis und Rechteck werden ein Pfad, je ein Schritt. Die Formen-Schere gibt
+ * es nicht mehr (173); was sie geschrieben hat, bleibt ein gewöhnlicher Pfad.
  */
-import { writeFile } from 'node:fs/promises';
+import { readFile, writeFile } from 'node:fs/promises';
 
 import type { Page } from '@playwright/test';
 
@@ -10,6 +10,7 @@ import { geladen, material, oeffne, quelle, uhrzeit } from './editorhilfe';
 import type { Einsatz } from './gestaltung-daten';
 import { blattMit } from './gestaltung-daten';
 import { expect, test } from './hilfe';
+import { oeffneSchublade } from './schubladen-hilfe';
 
 const MAUS = ['chromium', 'mac-safari'];
 
@@ -116,56 +117,92 @@ test.describe('Kombinieren (121)', () => {
 	});
 });
 
-test.describe('Formen-Schere (121)', () => {
+/** Was ein ⌥-Zug der früheren Formen-Schere (121, entfernt in 173) über die Linse zweier Kreise schrieb. */
+const SCHERE_MONDE = [
+	'<svg class="form" data-lage="frei" data-name="Kreis" data-form="pfad" viewBox="0 0 130 160" style="--x:200px;--y:300px;--b:130px;--h:160px"><path d="M128.5 18.89 C89.83 48.18 89.83 111.82 128.5 141.11 C117.29 149.6 105.27 155.58 91.22 157.65 C79.81 159.33 68.11 158.5 57.07 155.18 C-16.58 133.03 -16.58 26.97 57.07 4.82 C68.11 1.5 79.81 0.67 91.22 2.35 C105.27 4.42 117.29 10.4 128.5 18.89 Z" style="fill:#ff0000;stroke:var(--dunkel);stroke-width:3px"/></svg>',
+	'<svg class="form" data-lage="frei" data-name="Rechts" data-form="pfad" viewBox="0 0 130 160" style="--x:330px;--y:300px;--b:130px;--h:160px"><path d="M1.5 18.89 C12.71 10.4 24.73 4.42 38.78 2.35 C50.19 0.67 61.89 1.5 72.93 4.82 C146.58 26.97 146.58 133.03 72.93 155.18 C61.89 158.5 50.19 159.33 38.78 157.65 C24.73 155.58 12.71 149.6 1.5 141.11 C40.17 111.82 40.17 48.18 1.5 18.89 Z" style="fill:var(--akzent);stroke:var(--dunkel);stroke-width:3px"/></svg>',
+];
+
+/** Die Werkzeugreihe ohne Schere, in der Reihenfolge der Knöpfe. */
+const WERKZEUGE = ['auswahl', 'rechteck', 'ellipse', 'vieleck', 'linie', 'stern', 'text', 'stift', 'pfad', 'streuen'];
+
+test.describe('Ohne Formen-Schere (173)', () => {
 	test.skip(({ hasTouch }) => hasTouch || !MAUS.includes(test.info().project.name), 'mit der Maus');
 
-	const bereich = (page: Page, i: number) => page.locator(`[data-schere-bereich="${i}"]`);
+	const reihe = (page: Page) => page.getByRole('toolbar', { name: 'Werkzeuge' }).locator('[data-werkzeug]');
+	const aktiv = (page: Page) => page.getByRole('toolbar', { name: 'Werkzeuge' }).locator('[aria-pressed="true"]');
 
-	test('⇧M zeigt drei Bereiche; ein Zug über zwei ist ein Schritt, mit ⌥ fallen sie weg', async ({ page }) => {
+	test('Die Schublade zeigt zehn Werkzeuge ohne Schere, am Mac in zwei Reihen', async ({ page }) => {
+		await page.setViewportSize({ width: 1512, height: 982 });
+		await blatt(page);
+		await oeffneSchublade(page, 'formen');
+		// Gegenprobe: Die Reihe hat zehn Knöpfe, der Test findet sie also.
+		await expect(reihe(page)).toHaveCount(10);
+		await expect(page.locator('[data-werkzeug="schere"]')).toHaveCount(0);
+		const ids = await reihe(page).evaluateAll((knoepfe) => knoepfe.map((k) => k.getAttribute('data-werkzeug')));
+		expect(ids).toEqual(WERKZEUGE);
+		if (test.info().project.name === 'mac-safari') {
+			const oben = new Set<number>();
+			for (const knopf of await reihe(page).all()) {
+				const r = await knopf.boundingBox();
+				oben.add(Math.round(r?.y ?? -1));
+			}
+			expect(oben.size).toBeLessThanOrEqual(2);
+		}
+	});
+
+	test('⇧M tut nichts: kein Werkzeug, die Auswahl und das Blatt bleiben', async ({ page }) => {
 		await blatt(page, { vorne: [KREIS, RECHTS] });
+		await oeffneSchublade(page, 'formen');
 		const vorher = await quelle(page);
 		await waehle(page, 'Kreis', 'Rechts');
 		await page.keyboard.press('Shift+KeyM');
-		await expect(page.locator('[data-schere-anzeige="3"]')).toBeVisible();
-		// Von der Mitte des linken Kreises in die Überlappung.
-		const k = await form(page, 'Kreis').boundingBox();
-		if (!k) {
-			throw new Error('nicht sichtbar');
-		}
-		const y = k.y + k.height / 2;
-		await page.mouse.move(k.x + 30, y);
-		await page.mouse.down();
-		await page.mouse.move(k.x + 80, y, { steps: 4 });
-		await page.mouse.move(k.x + 130, y, { steps: 4 });
-		await expect(page.locator('[data-schere-bereich][data-markiert]')).toHaveCount(2);
-		await page.mouse.up();
-		await expect.poll(async () => pfade(await quelle(page))).toBe(2);
-		await geladen(page);
-		await expect(page.locator('[data-schere-anzeige]')).toBeVisible(); // die Schere bleibt aktiv
-		await page.keyboard.press('ControlOrMeta+z');
-		await expect.poll(() => quelle(page)).toBe(vorher);
-		await geladen(page);
+		await expect(page.locator('[data-werkzeugflaeche]')).toHaveCount(0);
+		await expect(page.locator('[data-schere-anzeige]')).toHaveCount(0);
+		await expect(aktiv(page)).toHaveAttribute('data-werkzeug', 'auswahl');
+		await expect(page.locator('[data-gestaltung-rahmen="mehrfach"]')).toHaveAttribute('data-mehrfach-anzahl', '2');
+		expect(await quelle(page)).toBe(vorher);
 
+		// Gegenprobe: ⇧P kommt an und wählt den Pfad.
+		await page.keyboard.press('Shift+KeyP');
+		await expect(page.locator('[data-werkzeugflaeche="pfad"]')).toBeVisible();
 		await page.keyboard.press('Escape');
-		await waehle(page, 'Kreis', 'Rechts');
-		await page.keyboard.press('Shift+KeyM');
-		await expect(page.locator('[data-schere-anzeige="3"]')).toBeVisible();
-		await expect(bereich(page, 0)).toBeVisible();
-		await page.mouse.move(k.x + 30, y);
-		await page.mouse.down();
-		await page.mouse.move(k.x + 40, y, { steps: 2 });
-		await page.keyboard.down('Alt');
-		await page.mouse.up();
-		await page.keyboard.up('Alt');
-		await expect.poll(async () => pfade(await quelle(page))).toBe(2);
-		expect(await quelle(page)).not.toContain('data-form="ellipse"');
+		await expect(page.locator('[data-werkzeugflaeche]')).toHaveCount(0);
 	});
 
-	test('Ohne Überlappung sagt die Schere warum', async ({ page }) => {
-		const weit = RECHTS.replace('--x:300px', '--x:520px');
-		await blatt(page, { vorne: [KREIS, weit] });
+	test('⌘K kennt keine Formen-Schere', async ({ page }) => {
+		await blatt(page);
+		await page.keyboard.press('ControlOrMeta+k');
+		const palette = page.locator('[data-befehlspalette]');
+		await palette.getByRole('combobox').fill('Schere');
+		// „An Claude schicken“ bietet jede Suche an: Danach steht die Liste.
+		await expect(palette.locator('[data-palette-zeile="claude:schicken"]')).toBeVisible();
+		await expect(palette.locator('[data-palette-zeile="werkzeug.schere"]')).toHaveCount(0);
+		// Gegenprobe: Werkzeuge stehen in der Palette.
+		await palette.getByRole('combobox').fill('Pfad');
+		await expect(palette.locator('[data-palette-zeile="werkzeug.pfad"]')).toBeVisible();
+	});
+
+	test('Bestand: Was die Schere schrieb, bleibt gleich, lässt sich bearbeiten und kombinieren', async ({ page }) => {
+		const u = await uhrzeit();
+		await writeFile(u.material, blattMit({ vorne: SCHERE_MONDE }));
+		const datei = await readFile(u.material, 'utf8');
+		await oeffne(page, u.id, u.dok);
+		await geladen(page);
+		expect(await readFile(u.material, 'utf8')).toBe(datei);
+
+		await form(page, 'Kreis').dblclick();
+		await expect(page.locator('[data-pfad-punkt]').first()).toBeVisible();
+		await page.keyboard.press('Escape');
+		await expect(page.locator('[data-pfad-punkt]')).toHaveCount(0);
+
+		const vorher = await quelle(page);
 		await waehle(page, 'Kreis', 'Rechts');
-		await page.keyboard.press('Shift+KeyM');
-		await expect(page.locator('[data-schere-grund]')).toContainText('überlappen sich nicht');
+		await page.locator('[data-kombinieren] [data-befehl="auswahl.vereinen"]').click();
+		await expect.poll(async () => pfade(await quelle(page))).toBe(1);
+		expect(await quelle(page)).toContain('fill-rule:evenodd');
+		await geladen(page);
+		await page.keyboard.press('ControlOrMeta+z');
+		await expect.poll(() => quelle(page)).toBe(vorher);
 	});
 });
