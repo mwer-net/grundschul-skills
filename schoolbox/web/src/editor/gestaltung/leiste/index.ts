@@ -5,6 +5,7 @@
  */
 
 import { BILD_LEISTE } from './bild';
+import { BILDRAHMEN_LEISTE } from './bildrahmen';
 import { FIGUR_LEISTE } from './figur';
 import { FORM_LEISTE } from './form';
 import { FORMTEXT_LEISTE } from './formtext';
@@ -21,6 +22,7 @@ export type { LeistenKnoepfe, LeistenTeile } from './typen';
 export const LEISTEN: Readonly<Record<string, LeistenKnoepfe | null>> = {
 	figurfrei: FIGUR_LEISTE, // 102
 	bildfrei: BILD_LEISTE, // 103
+	bildrahmen: BILDRAHMEN_LEISTE, // 172
 	form: FORM_LEISTE, // 104
 	formtext: FORMTEXT_LEISTE, // 107
 	schmuck: SCHMUCK_LEISTE, // 105

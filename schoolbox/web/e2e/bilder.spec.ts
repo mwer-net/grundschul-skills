@@ -225,9 +225,9 @@ test.describe('Editor: Bilder', () => {
 		);
 		await oeffne(page, id, dok);
 		await druecke(material(page).locator('.platzhalter'));
-		await expect(page.locator('[data-bildwerkzeug="platzhalter"]')).toContainText(
-			'Hier soll ein Bild hin: Pflanze wächst',
-		);
+		// 172: Kein Satz über dem Werkzeug, das Motiv steht auf dem Blatt.
+		await expect(page.locator('[data-bildwerkzeug="platzhalter"]')).toContainText('Bild einsetzen');
+		await expect(page.locator('[data-bildwerkzeug="platzhalter"]')).not.toContainText('Hier soll');
 		await sammlung(page, druecke, '_assets/bilder/wachstum.png');
 		await bisDarin(datei, 'style="width:238px"');
 		await gespeichert(page, datei);

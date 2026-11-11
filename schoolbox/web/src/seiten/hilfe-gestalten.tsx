@@ -278,13 +278,17 @@ export const GESTALTEN: Abschnitt = {
 				einen Stern, ein Herz oder eine Wolke. Maske und Rahmen-Stil schließen sich aus: Wählst du das eine, ist
 				das andere weg.
 			</p>
+			{/* >> 172 */}
 			<p data-hilfe-bildrahmen>
 				In der Schublade „Werkzeuge“ liegen unter „Bildrahmen“ leere Rahmen als Kreis, Rechteck, Stern und
-				Wolke. Ein leerer Rahmen ist grau und meldet in der Prüfung „Platzhalter“, damit er nicht leer in den
-				Druck geht. Zieh ein Bild aus der Schublade „Bilder“ hinein, oder wähl den Rahmen und klick auf ein
-				Bild. Auch auf eine Form ohne Text kannst du ein Bild ziehen: Am Zeiger steht „zuschneiden“, die Form
-				verschwindet, und das Bild liegt in ihrer Form an ihrer Stelle. ⌘Z holt die Form zurück.
+				Wolke. Ein leerer Rahmen ist grau und meldet in der Prüfung „Hier fehlt noch ein Bild“, damit er nicht
+				leer in den Druck geht. Wähl den Rahmen und klick in seiner Leiste auf „Bild einsetzen“: Ein Klick auf
+				ein Bild in der Schublade „Bilder“ oder „Foto hochladen“ füllt ihn. Du kannst auch ein Bild aus „Bilder“
+				oder ein Foto aus dem Finder hineinziehen, am Zeiger steht dann „einsetzen“. Auch auf eine Form ohne Text
+				kannst du ein Bild ziehen: Am Zeiger steht „zuschneiden“, die Form verschwindet, und das Bild liegt in
+				ihrer Form an ihrer Stelle. ⌘Z holt Rahmen oder Form zurück.
 			</p>
+			{/* << 172 */}
 			<p data-hilfe-ausschnitt>
 				Ist ein Bild zugeschnitten, wählst du mit einem Doppelklick den Ausschnitt: Am Zeiger steht
 				„Ausschnitt“, und du schiebst das Bild im Rahmen hin und her. Esc oder ein Klick daneben beendet das.

@@ -1,3 +1,6 @@
+import { readFile } from 'node:fs/promises';
+import path from 'node:path';
+
 import type { Locator, Page } from '@playwright/test';
 
 import { aendere, material, oeffne, quelle, uhrzeit } from './editorhilfe';
@@ -7,10 +10,12 @@ import { oeffneSchublade } from './schubladen-hilfe';
 
 /**
  * 111: Rahmen-Stile am freien Bild, Bildrahmen in „Werkzeuge“, ein Bild auf eine Form ohne Text, Ausschnitt
- * verschieben. Jede Änderung ist ein Schritt.
+ * verschieben. Jede Änderung ist ein Schritt. 172: Der leere Rahmen wird gefüllt wie ein Platzhalter.
  */
 
 const WACHSTUM = '_assets/bilder/wachstum.png';
+/** Dieselbe Datei als Foto zum Hochladen. */
+const WACHSTUM_DATEI = path.join(__dirname, '../../../skills/html-materialerstellung/assets/bilder/wachstum.png');
 const BILD =
 	'<img class="bild-frei" data-lage="frei" src="bilder/wachstum.png" alt="Wachstum" style="--x:300px;--y:420px;--b:240px">';
 const STERN_RAHMEN =
@@ -172,13 +177,14 @@ test.describe('Rahmen-Stile und Bildrahmen (111)', () => {
 		await oeffneMit(page, vorher);
 		const rahmen = material(page).locator('.bildrahmen');
 		await expect(rahmen).toBeVisible();
-		await zieheBild(page, await mitteVon(rahmen), 'zuschneiden');
+		// 172: Über dem leeren Rahmen „einsetzen“ wie beim Platzhalter; über einer Form bleibt es „zuschneiden“.
+		await zieheBild(page, await mitteVon(rahmen), 'einsetzen');
 		await expect.poll(() => quelle(page)).toMatch(/<img class="bild-frei" data-lage="frei"[^>]*data-maske="stern"/);
 		const html = await quelle(page);
 		expect(html).not.toContain('bildrahmen');
 		expect(html).not.toContain('/ansicht/');
 		expect(html).toContain('style="--x:300px;--y:420px;--b:240px;--h:240px;clip-path:polygon(');
-		await expect(zurueck(page)).toHaveAttribute('data-schritt', 'zuschneiden');
+		await expect(zurueck(page)).toHaveAttribute('data-schritt', 'einsetzen');
 
 		const bild = material(page).locator('img.bild-frei');
 		await einfarbig(bild, '#ff0000');
@@ -260,7 +266,11 @@ test.describe('Rahmen-Stile und Bildrahmen (111)', () => {
 		await druecke(page.locator('[data-pruefung] > button'));
 		const hinweise = page.locator('[data-pruefliste] [data-hinweise]');
 		await druecke(hinweise.locator('summary'));
-		await expect(hinweise.locator('[data-pruefpunkt="platzhalter"]')).toBeVisible();
+		const punkt = hinweise.locator('[data-pruefpunkt="platzhalter"]');
+		await expect(punkt).toBeVisible();
+		// 172: Ein Rahmen, ein Bild; kein Tipp, denn der Weg steht am gewählten Rahmen.
+		await expect(punkt).toContainText('Hier fehlt noch ein Bild.');
+		await expect(punkt).not.toContainText('Tipp');
 		await page.keyboard.press('Escape');
 
 		await waehle(page, rahmen, 'bildrahmen');
@@ -283,5 +293,102 @@ test.describe('Rahmen-Stile und Bildrahmen (111)', () => {
 			.poll(() => quelle(page))
 			.toMatch(/<div class="bildrahmen platzhalter" data-lage="frei" data-maske="ellipse"/);
 		await expect(page.locator('[data-gestaltung-inspektor="bildrahmen"]')).toBeVisible();
+	});
+});
+
+test.describe('Bildrahmen füllen wie einen Platzhalter (172)', () => {
+	const rahmenVon = (page: Page) => material(page).locator('.bildrahmen');
+	const gefuellt = /<img class="bild-frei"[^>]*data-maske="stern" src="bilder\//;
+
+	test('Leiste „Bild einsetzen“ öffnet „Bilder“, ein Klick füllt den Rahmen, ⌘Z holt ihn zurück', async ({
+		page,
+	}) => {
+		const vorher = blattMit({ vorne: [STERN_RAHMEN] });
+		await oeffneMit(page, vorher);
+		await waehle(page, rahmenVon(page), 'bildrahmen');
+		await expect(page.locator('[data-bild-austauschen]')).toHaveCount(0);
+		await page.locator('[data-bild-einsetzen]').click();
+		await expect(page.locator('[data-panel-links="bilder"]')).toBeVisible();
+
+		await bilder(page).getByRole('button', { name: 'Sammlung', exact: true }).click();
+		await kachel(page, WACHSTUM).click();
+		await expect.poll(() => quelle(page)).toMatch(/<img class="bild-frei"[^>]*data-maske="stern"/);
+		await expect(page.locator('[data-gestaltung-inspektor="bildfrei"]')).toBeVisible();
+		await expect(zurueck(page)).toHaveAttribute('data-schritt', 'Bild eingesetzt');
+		await zurueck(page).click();
+		await expect.poll(() => quelle(page)).toBe(vorher);
+
+		// Gegenprobe: Am freien Bild steht „Austauschen“, nicht „Bild einsetzen“.
+		await aendere(page, blattMit({ vorne: [BILD] }));
+		await waehle(page, material(page).locator('img.bild-frei'), 'bildfrei');
+		await expect(page.locator('[data-bild-austauschen]')).toBeVisible();
+		await expect(page.locator('[data-bild-einsetzen]')).toHaveCount(0);
+	});
+
+	test('„Foto hochladen“ in „Bilder“ füllt den gewählten Rahmen, kein neuer Baustein', async ({ page }) => {
+		await oeffneMit(page, blattMit({ vorne: [STERN_RAHMEN] }));
+		const aufgaben = (await quelle(page)).split('class="aufgabe"').length;
+		await waehle(page, rahmenVon(page), 'bildrahmen');
+		await oeffneSchublade(page, 'bilder');
+		await bilder(page).getByRole('button', { name: 'Foto hochladen' }).click();
+		const foto = { name: 'wachstum.png', mimeType: 'image/png', buffer: await readFile(WACHSTUM_DATEI) };
+		const waehler = page.waitForEvent('filechooser');
+		await bilder(page).getByText('Verstanden, Foto wählen').click();
+		await (await waehler).setFiles(foto);
+		await expect.poll(() => quelle(page), { timeout: 15_000 }).toMatch(gefuellt);
+		const html = await quelle(page);
+		expect(html).not.toMatch(/<img (?![^>]*bild-frei)/);
+		expect(html.split('class="aufgabe"').length).toBe(aufgaben);
+	});
+
+	test('Inspektor des leeren Rahmens: „Aus der Sammlung“ füllt ihn', async ({ page }) => {
+		await oeffneMit(page, blattMit({ vorne: [STERN_RAHMEN] }));
+		await waehle(page, rahmenVon(page), 'bildrahmen');
+		const werkzeug = page.locator('[data-abschnitt="bild"] [data-bildwerkzeug="platzhalter"]');
+		await expect(werkzeug).toBeVisible();
+		await expect(werkzeug).not.toContainText('Hier soll');
+		const davor = await werkzeug.evaluate((w) => {
+			const form = w.ownerDocument.querySelector('[data-abschnitt="bild"] [data-gestaltung-rahmenstil]');
+			return Boolean(form && w.compareDocumentPosition(form) & Node.DOCUMENT_POSITION_FOLLOWING);
+		});
+		expect(davor).toBe(true);
+
+		await werkzeug.getByRole('button', { name: 'Aus der Sammlung' }).click();
+		const dialog = page.getByRole('dialog', { name: 'Bild aus der Sammlung' });
+		await expect(dialog).toBeVisible();
+		await dialog.locator(`[data-sammlung-bild="${WACHSTUM}"]`).click();
+		await expect(dialog).toBeHidden();
+		await expect.poll(() => quelle(page)).toMatch(gefuellt);
+		expect(await quelle(page)).not.toContain('bildrahmen');
+	});
+
+	test('Rechtsklick auf den leeren Rahmen bietet „Bild ersetzen“', async ({ hasTouch, page }) => {
+		test.skip(hasTouch, 'Rechtsklick gibt es nur mit der Maus');
+		await oeffneMit(page, blattMit({ vorne: [STERN_RAHMEN] }));
+		const rahmen = rahmenVon(page);
+		await rahmen.evaluate((e) => e.scrollIntoView({ block: 'center' }));
+		await rahmen.click({ button: 'right' });
+		const eintrag = page.getByRole('menuitem', { name: /Bild ersetzen/ });
+		await expect(eintrag).toBeVisible();
+		await eintrag.click();
+		await expect
+			.poll(() => page.evaluate(() => Boolean(document.activeElement?.closest('[data-bildwerkzeug]'))))
+			.toBe(true);
+
+		// Gegenprobe: Eine Form ohne Text nimmt kein Bild über das Menü.
+		await aendere(page, blattMit({ vorne: [KREIS] }));
+		const kreis = material(page).locator('svg.form');
+		await kreis.evaluate((e) => e.scrollIntoView({ block: 'center' }));
+		await kreis.click({ button: 'right' });
+		await expect(page.getByRole('menu')).toBeVisible();
+		await expect(page.getByRole('menuitem', { name: /Duplizieren/ })).toBeVisible();
+		await expect(page.getByRole('menuitem', { name: /Bild ersetzen/ })).toHaveCount(0);
+	});
+
+	test('iPad quer: „Bild einsetzen“ ist ohne Rollen zu sehen', async ({ page }) => {
+		await oeffneMit(page, blattMit({ vorne: [STERN_RAHMEN] }));
+		await page.setViewportSize({ width: 1180, height: 820 });
+		await waehle(page, rahmenVon(page), 'bildrahmen');
+		await expect(page.locator('[data-bild-einsetzen]')).toBeInViewport();
 	});
 });
