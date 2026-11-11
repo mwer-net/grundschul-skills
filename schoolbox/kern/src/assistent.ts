@@ -177,19 +177,10 @@ export const EINHEIT_LEITFIGUR_NAME: Record<(typeof EINHEIT_LEITFIGUR)[number], 
 	keine: 'Keine',
 };
 
-/** Rezepte aus 114/118/119 als Kacheln, dazu ein eigenes Thema und „schlicht“ als Chips (Entwurf E1 S. 2). */
-export const EINHEIT_AUSSEHEN_WAHL: readonly {
-	wert: (typeof EINHEIT_AUSSEHEN)[number];
-	name: string;
-	rezept: boolean;
-}[] = [
-	{ wert: 'detektiv', name: 'Detektiv', rezept: true },
-	{ wert: 'dschungel', name: 'Dschungel', rezept: true },
-	{ wert: 'zirkus', name: 'Zirkus', rezept: true },
-	{ wert: 'ruhig', name: 'Ruhig', rezept: true },
-	{ wert: 'ecken', name: 'Ecken', rezept: true },
-	{ wert: 'eigen', name: 'Claude gestaltet ein eigenes Thema', rezept: false },
-	{ wert: 'schlicht', name: 'schlicht', rezept: false },
+/** Ein eigenes Thema von Claude oder schlicht, als Segment wie die Leitfigur. */
+export const EINHEIT_AUSSEHEN_WAHL: readonly { wert: (typeof EINHEIT_AUSSEHEN)[number]; name: string }[] = [
+	{ wert: 'eigen', name: 'Eigenes Thema' },
+	{ wert: 'schlicht', name: 'Schlicht' },
 ];
 
 export interface EinheitWahl {
@@ -241,15 +232,6 @@ export const EINHEIT_FELDER = {
 
 export const einheitBestandteile = (e: EinheitWahl): string[] =>
 	e.bestandteile ?? EINHEIT_BESTANDTEILE.filter((b) => b.empfohlen).map((b) => b.name);
-
-/** Rezept mit Namen, sonst „eigenes Thema“ oder „schlicht“. */
-const aussehenName = (wert: EinheitWahl['aussehen']) => {
-	const w = EINHEIT_AUSSEHEN_WAHL.find((x) => x.wert === wert);
-	if (w?.rezept) {
-		return w.name;
-	}
-	return wert === 'eigen' ? 'eigenes Thema' : 'schlicht';
-};
 
 export const einheitRahmen = (e: EinheitWahl, klasse: Klasse) => e.rahmen ?? (klasse === 1 || klasse === 2);
 
@@ -561,7 +543,10 @@ export const ASSISTENT_SCHRITTE: readonly AssistentSchritt[] = [
 		wege: ['claude'],
 		einheit: 'nur',
 		antwort: (a) =>
-			[einheitRahmen(a.eh, a.klasse) ? 'mit Rahmen' : 'ohne Rahmen', aussehenName(a.eh.aussehen)].join(' · '),
+			[
+				einheitRahmen(a.eh, a.klasse) ? 'mit Rahmen' : 'ohne Rahmen',
+				EINHEIT_AUSSEHEN_WAHL.find((w) => w.wert === a.eh.aussehen)?.name,
+			].join(' · '),
 	},
 	{
 		id: 'bausteine',

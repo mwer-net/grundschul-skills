@@ -9,7 +9,6 @@ import { elementZu, nrVon } from '../../darstellung';
 import type { Struktur } from '../../struktur';
 import { BlattFlaeche } from './flaeche';
 import { BlattRahmen } from './rahmen';
-import { BlattRezept } from './rezept';
 import type { BlattTeile } from './teile';
 import { quellSeiten, zeigeAmTeil } from './teile';
 import { nimmOffenenWunsch, OEFFNEN } from './zeige';
@@ -47,8 +46,8 @@ interface Eigenschaften {
 }
 
 /**
- * Reiter „Blatt“ › Gestaltung (5.8): „Gilt für“, darunter Rezept (119), Seitenfläche und Rahmen. Eingeklappt, wenn die
- * Seite weder Fläche noch Rahmen hat.
+ * Reiter „Blatt“ › Gestaltung (5.8): „Gilt für“, darunter Seitenfläche und Rahmen. Eingeklappt, wenn die Seite weder
+ * Fläche noch Rahmen hat.
  */
 export const BlattGestaltung = ({ doc, quelle, seite, struktur }: Eigenschaften) => {
 	const nummern = useMemo(() => seitenNummern(quelle), [quelle]);
@@ -135,7 +134,6 @@ export const BlattGestaltung = ({ doc, quelle, seite, struktur }: Eigenschaften)
 							className="ml-auto"
 						/>
 					</div>
-					<BlattRezept {...teile} />
 					<BlattFlaeche {...teile} />
 					<BlattRahmen {...teile} />
 				</div>

@@ -1,6 +1,5 @@
 import type { RahmenArt, Seitenrahmen } from '@schoolbox/kern/src/seitengestaltung';
 import {
-	ohneRezept,
 	RAHMEN_ABSTAND,
 	RAHMEN_ABSTAND_MINIBUCH,
 	RAHMEN_STAERKE,
@@ -39,13 +38,12 @@ export const BlattRahmen = (t: BlattTeile) => {
 	const id = useId();
 	const jetzt = t.gestaltung.rahmen;
 	const art: Art = jetzt?.art ?? 'ohne';
-	const gesperrt = jetzt?.rezept === true;
 	const vorgabeAbstand = t.minibuch ? RAHMEN_ABSTAND_MINIBUCH : RAHMEN_ABSTAND;
 	const setze = (beschreibung: string, neu: Seitenrahmen | null) =>
 		t.aendere(beschreibung, (q) => setzeSeitenrahmen(q, t.ziel, neu));
 	const aendere = (beschreibung: string, teil: Partial<Seitenrahmen>) => {
 		if (jetzt) {
-			setze(beschreibung, { ...ohneRezept(jetzt), ...teil });
+			setze(beschreibung, { ...jetzt, ...teil });
 		}
 	};
 	const waehleArt = (neu: Art) => {
@@ -54,7 +52,7 @@ export const BlattRahmen = (t: BlattTeile) => {
 			return;
 		}
 		setze(`Seitenrahmen: ${ARTEN.find((a) => a.wert === neu)?.titel ?? neu}`, {
-			...(jetzt ? ohneRezept(jetzt) : {}),
+			...jetzt,
 			art: neu,
 		});
 	};
@@ -67,7 +65,6 @@ export const BlattRahmen = (t: BlattTeile) => {
 					className={klassen(FELD_KLASSEN, 'w-fit! max-w-36 pr-5!')}
 					aria-label="Seitenrahmen"
 					data-rahmen-art
-					disabled={gesperrt}
 					value={art}
 					onChange={(e) => waehleArt(e.target.value as Art)}
 				>
@@ -78,12 +75,7 @@ export const BlattRahmen = (t: BlattTeile) => {
 					))}
 				</select>
 			</Zeile>
-			{gesperrt && (
-				<p className="text-xs text-leise" data-aus-rezept>
-					Kommt aus dem Rezept.
-				</p>
-			)}
-			{jetzt && !gesperrt && (
+			{jetzt && (
 				<>
 					<FarbZeile titel="Farbe">
 						<Farbwahl

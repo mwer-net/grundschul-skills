@@ -22,7 +22,10 @@ export type StreuArt = (typeof STREU_ARTEN)[number];
 export const STREU_FORMEN = ['punkt', 'dreieck', 'raute', 'stern', 'streifen'] as const;
 export type StreuForm = (typeof STREU_FORMEN)[number];
 
-/** Die Namen, die `data-farben` kennt; jeder wird `var(--name)`. `a1` bis `a4` sind die Farben der Rezepte. */
+/**
+ * Die Namen, die `data-farben` kennt; jeder wird `var(--name)`. `a1` bis `a4` färben Streuungen älterer Blätter
+ * (`--a1` … am `body`).
+ */
 export const STREU_FARBEN = ['haupt', 'akzent', 'dunkel', 'linie', 'fuell', 'a1', 'a2', 'a3', 'a4'] as const;
 
 export const STREU_GROESSEN = ['klein', 'mittel', 'gross'] as const;

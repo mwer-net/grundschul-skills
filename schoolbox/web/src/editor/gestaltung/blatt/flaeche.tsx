@@ -1,5 +1,5 @@
 import type { MusterArt, Seitenflaeche } from '@schoolbox/kern/src/seitengestaltung';
-import { MUSTER_GROESSE, ohneRezept, setzeSeitenflaeche, WINKEL } from '@schoolbox/kern/src/seitengestaltung';
+import { MUSTER_GROESSE, setzeSeitenflaeche, WINKEL } from '@schoolbox/kern/src/seitengestaltung';
 import type { ReactNode } from 'react';
 
 import { Farbwahl } from '../../../bausteine/Farbwahl';
@@ -65,12 +65,11 @@ export const SwZeile = ({
 export const BlattFlaeche = (t: BlattTeile) => {
 	const jetzt = t.gestaltung.flaeche;
 	const art: Art = jetzt?.art ?? 'keine';
-	const gesperrt = jetzt?.rezept === true;
 	const setze = (beschreibung: string, neu: Seitenflaeche | null) =>
 		t.aendere(beschreibung, (q) => setzeSeitenflaeche(q, t.ziel, neu));
 	const aendere = (beschreibung: string, teil: Partial<Seitenflaeche>) => {
 		if (jetzt) {
-			setze(beschreibung, { ...ohneRezept(jetzt), ...teil });
+			setze(beschreibung, { ...jetzt, ...teil });
 		}
 	};
 	const waehleArt = (neu: Art) => {
@@ -96,15 +95,9 @@ export const BlattFlaeche = (t: BlattTeile) => {
 				werte={ARTEN}
 				wert={art}
 				waehle={waehleArt}
-				aus={gesperrt}
 				className="w-full justify-between"
 			/>
-			{gesperrt && (
-				<p className="text-xs text-leise" data-aus-rezept>
-					Kommt aus dem Rezept.
-				</p>
-			)}
-			{jetzt && !gesperrt && (
+			{jetzt && (
 				<>
 					<FarbZeile titel={{ farbe: 'Farbe', verlauf: 'Farbe 1', muster: 'Grund' }[jetzt.art]}>
 						<Farbwahl

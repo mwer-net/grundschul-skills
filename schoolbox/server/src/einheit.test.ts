@@ -6,7 +6,7 @@ import path from 'node:path';
 import { after, afterEach, before, describe, it } from 'node:test';
 
 import type { EinheitStand, Pruefbericht } from '@schoolbox/kern';
-import { lesePlan, mappenDir, pruefeEinheitAngaben, themaBefund } from '@schoolbox/kern';
+import { einheitAuftragAus, lesePlan, mappenDir, pruefeEinheitAngaben, themaBefund } from '@schoolbox/kern';
 
 import { einheitenWurzel } from './einheit';
 import { VERBRAUCH_DATEI } from './ki';
@@ -34,6 +34,16 @@ describe('Plan und Thema der Einheit (139)', () => {
 		assert.equal(a.titel, 'Uhrzeit');
 		assert.throws(() => pruefeEinheitAngaben({ ...ANGABEN, aussehen: 'neon' }));
 		assert.throws(() => pruefeEinheitAngaben({ ...ANGABEN, thema: '' }));
+	});
+
+	it('Aussehen: nur eigenes Thema oder schlicht, kein Rezept im Auftrag (180)', () => {
+		assert.throws(() => pruefeEinheitAngaben({ ...ANGABEN, aussehen: 'detektiv' }), /Aussehen ist ungültig/);
+		for (const aussehen of ['eigen', 'schlicht']) {
+			const text = einheitAuftragAus(pruefeEinheitAngaben({ ...ANGABEN, aussehen }));
+			assert.doesNotMatch(text, /rezept|data-aufmachung/i);
+		}
+		const schlicht = einheitAuftragAus(pruefeEinheitAngaben({ ...ANGABEN, aussehen: 'schlicht' }));
+		assert.match(schlicht, /schlicht, ohne thema\.css\./);
 	});
 
 	it('Plan: ungültige Slugs, doppelte und fremde Arten fallen heraus, höchstens max', () => {

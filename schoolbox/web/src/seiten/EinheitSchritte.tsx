@@ -13,6 +13,7 @@ import {
 } from '@schoolbox/kern/src/assistent';
 import {
 	EINHEIT_AUFTRAG_ZEICHEN,
+	EINHEIT_AUSSEHEN,
 	EINHEIT_DAUER,
 	EINHEIT_LEITFIGUR,
 	EINHEIT_MENGE,
@@ -31,7 +32,7 @@ import type { limitHinweis } from '../editor/ki';
 import { LimitZeile } from '../editor/LimitZeile';
 import type { Ordnerangabe } from './anlegen-hilfe';
 import type { AuftragText } from './AnlegenSchritte';
-import { Empfohlen, Etikett, OrdnerFeld, TitelFeld, Wahl } from './AnlegenSchritte';
+import { Empfohlen, Etikett, OrdnerFeld, TitelFeld } from './AnlegenSchritte';
 
 /** Die Schritte der Unterrichtseinheit im Assistenten (140, Entwurf E1). Daten aus `assistent.ts` und `einheit.ts`. */
 
@@ -78,8 +79,10 @@ const EinheitFeld = ({
 	);
 };
 
-const Zeile = ({ children }: { children: ReactNode }) => (
-	<div className="mb-4 flex flex-wrap items-center gap-3">{children}</div>
+const Zeile = ({ children, ...daten }: { children: ReactNode; 'data-einheit-aussehen'?: string }) => (
+	<div className="mb-4 flex flex-wrap items-center gap-3" {...daten}>
+		{children}
+	</div>
 );
 
 export const SchrittEThema = ({
@@ -266,8 +269,6 @@ export const SchrittEBestandteile = ({ a, setzeEh }: { a: Antworten; setzeEh: Se
 
 export const SchrittERahmen = ({ a, setzeEh }: { a: Antworten; setzeEh: SetzeEh }) => {
 	const rahmen = einheitRahmen(a.eh, a.klasse);
-	const rezepte = EINHEIT_AUSSEHEN_WAHL.filter((w) => w.rezept);
-	const sonst = EINHEIT_AUSSEHEN_WAHL.filter((w) => !w.rezept);
 	return (
 		<>
 			<div className="mb-4 rounded-lg border border-rand px-3 py-2">
@@ -296,31 +297,15 @@ export const SchrittERahmen = ({ a, setzeEh }: { a: Antworten; setzeEh: SetzeEh 
 					waehle={(leitfigur) => setzeEh({ leitfigur })}
 				/>
 			</Zeile>
-			<Etikett zusatz="ein Rezept oder ein eigenes Thema">Aussehen</Etikett>
-			<div className="grid grid-cols-5 gap-2 max-md:grid-cols-2" data-einheit-aussehen>
-				{rezepte.map((r) => (
-					<Wahl
-						key={r.wert}
-						id={`aussehen-${r.wert}`}
-						aktiv={a.eh.aussehen === r.wert}
-						className="flex-col items-center p-2 text-center"
-						waehle={() => setzeEh({ aussehen: r.wert })}
-					>
-						<Symbol name="rezepte" className="size-5 text-brand-500" />
-						<span className="block text-sm font-medium">{r.name}</span>
-					</Wahl>
-				))}
-			</div>
-			<div className="mt-2 flex flex-wrap gap-1.5">
-				{sonst.map((r) => (
-					<Chip
-						key={r.wert}
-						titel={r.name}
-						aktiv={a.eh.aussehen === r.wert}
-						waehle={() => setzeEh({ aussehen: r.wert })}
-					/>
-				))}
-			</div>
+			<Zeile data-einheit-aussehen={a.eh.aussehen}>
+				<span className="font-medium">Aussehen</span>
+				<Segment<(typeof EINHEIT_AUSSEHEN)[number]>
+					beschriftung="Aussehen"
+					werte={EINHEIT_AUSSEHEN_WAHL.map((w) => ({ wert: w.wert, titel: w.name }))}
+					wert={a.eh.aussehen}
+					waehle={(aussehen) => setzeEh({ aussehen })}
+				/>
+			</Zeile>
 			<div className="mt-4 flex items-center gap-3 rounded-lg border border-rand px-3 py-2">
 				<Symbol name="bild" className="size-5 flex-none text-leise" />
 				<span className="min-w-0 flex-1">

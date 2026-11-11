@@ -22,7 +22,7 @@ const OHNE_ZEILE = '.loesung-marke, style, script, template, link, meta, br, .eb
  * Ebene, der gedachte Hauptstapel (ohne eigenes Element) oder Seitenrahmen und Seitenfläche zuunterst. `gruppe` ist ein
  * Kind einer Gruppe (120); seine Reihenfolge geht über die Befehle, nicht über den Zug in der Liste.
  */
-type SeitenZeile = 'hauptstapel' | 'seitenrahmen' | 'seitenflaeche' | 'kopfband';
+type SeitenZeile = 'hauptstapel' | 'seitenrahmen' | 'seitenflaeche';
 export type ZeilenArt = 'baustein' | EbenenName | SeitenZeile | 'anker' | 'flaeche' | 'gruppe';
 
 /** Nach diesem Teil des Schlüssels erkennt `gliederung-stand`, dass der Hauptstapel ohne Zutun offen steht. */
@@ -272,34 +272,6 @@ export const gliederungVon = (doc: Document, z: Zerlegung, ids: readonly number[
 	}
 	const seiten = seitenVon(z);
 	const roh = seiten.map((s) => rohIn(elemente, s));
-	// 119: Das Kopfband eines Rezepts ist `::before` am `.kopf`, kein Element. Es bekommt eine gedachte Zeile ganz oben
-	// in „hinten“, wenn am `body` ein Kopfband steht und die Seite einen `.kopf` hat (ohne Thema-Kopf setzt 114 keins).
-	const body = z.knoten.find((k) => k.tag === 'body');
-	const mitKopfband = Boolean(body && attribut(body, 'data-aufmachung-kopfband'));
-	const kopfband = (seite: Knoten, schluessel: string): GliederungKnoten[] => {
-		const hatKopf = (k: Knoten): boolean => k.kinder.some((c) => klassenVon(c).includes('kopf') || hatKopf(c));
-		if (!mitKopfband || !hatKopf(seite)) {
-			return [];
-		}
-		return [
-			{
-				// Negativ wie der Hauptstapel, aber eine andere Zahl: keine Auswahl, keine doppelte Zeile.
-				nr: -1_000_000 - seite.nr,
-				titel: 'Kopfband (Rezept)',
-				nummer: null,
-				name: 'Kopfband (Rezept)',
-				art: 'Kopfband',
-				aufgabe: false,
-				fest: true,
-				ziehbar: false,
-				schluessel: `${schluessel}/kopfband`,
-				kinder: [],
-				...OHNE_STAPEL,
-				zeile: 'kopfband',
-				kennung: 'kopfband',
-			},
-		];
-	};
 	const gruppen = new Map<string, number>();
 	for (const r of roh.flatMap(alleRoh)) {
 		if (!istFest(r.baustein)) {
@@ -425,7 +397,7 @@ export const gliederungVon = (doc: Document, z: Zerlegung, ids: readonly number[
 				{
 					vorne: ebene('vorne'),
 					stapel,
-					hinten: [...kopfband(seite, schluessel), ...ebene('hinten')],
+					hinten: ebene('hinten'),
 					seitenrahmen: unten('seitenrahmen'),
 					seitenflaeche: unten('seitenflaeche'),
 				},

@@ -20,7 +20,6 @@ import {
 	WURZEL,
 	zerlege,
 } from '@schoolbox/kern';
-import { gleicheAufmachungAb } from '@schoolbox/kern/src/aufmachungen';
 import { liesReferenzen, loeseReferenz, pfadText } from '@schoolbox/kern/src/referenz';
 
 import { leseQuelle } from './dokumente';
@@ -619,9 +618,7 @@ export const ergebnisDes = (v: Pick<GelesenerVorschlag, 'meta' | 'quelle'>, aktu
 	if (!teil || stelle < 0 || aktuell.includes(teil.vorher, stelle + 1)) {
 		return null;
 	}
-	return gleicheAufmachungAb(
-		`${aktuell.slice(0, stelle)}${teil.nachher}${aktuell.slice(stelle + teil.vorher.length)}`,
-	);
+	return `${aktuell.slice(0, stelle)}${teil.nachher}${aktuell.slice(stelle + teil.vorher.length)}`;
 };
 
 interface Ausschnitt {
@@ -1301,8 +1298,7 @@ export const erstelleKi = ({ ereignisse, konfig, pruefer }: Abhaengigkeiten) => 
 					? {}
 					: { ausschnitt: { vorher: ausschnitt.vorher, nachher: neu.trim() } }),
 			};
-			// 123: Teile des Rezepts passend zu den Werten am body, auf das ganze Blatt (Vergleich = Ergebnis).
-			await schreibeAtomar(path.join(ziel, WORKFILE), gleicheAufmachungAb(ausschnitt.einsetzen(neu)));
+			await schreibeAtomar(path.join(ziel, WORKFILE), ausschnitt.einsetzen(neu));
 			await schreibeAtomar(path.join(ziel, VORSCHLAG_META), JSON.stringify(vorschlag, null, '\t'));
 			// Aus einem früheren Gespräch nachgebessert: Der alte Vorschlag geht im neuen auf.
 			if (auf && auf.schluessel !== schluessel) {

@@ -23,8 +23,8 @@ const MAX_SLUG = 60;
 export const EINHEIT_DAUER = ['1 Woche', '2 Wochen', '3–4 Wochen'] as const;
 export const EINHEIT_MENGE = ['claude', 'etwa 6', 'etwa 12', 'etwa 16'] as const;
 export const EINHEIT_LEITFIGUR = ['willi', 'wilma', 'beide', 'keine'] as const;
-/** Rezepte aus 114/118/119 oder ein eigenes Thema von Claude oder schlicht. */
-export const EINHEIT_AUSSEHEN = ['detektiv', 'dschungel', 'zirkus', 'ruhig', 'ecken', 'eigen', 'schlicht'] as const;
+/** Ein eigenes Thema von Claude oder schlicht. */
+export const EINHEIT_AUSSEHEN = ['eigen', 'schlicht'] as const;
 
 export interface EinheitAngaben {
 	titel: string;
@@ -129,24 +129,10 @@ export const pruefeEinheitAngaben = (roh: unknown): EinheitAngaben => {
 
 const KLASSE_NAME = (k: Klasse) => (k === 'gemischt' ? 'jahrgangsgemischt' : `Klasse ${k}`);
 const FIGUR = { willi: 'Willi', wilma: 'Wilma', beide: 'Willi und Wilma', keine: '' };
-const REZEPT_NAME: Record<string, string> = {
-	detektiv: 'Detektiv',
-	dschungel: 'Dschungel',
-	zirkus: 'Zirkus',
-	ruhig: 'Ruhig',
-	ecken: 'Ecken',
-};
 
 /** Der Teil der Lehrkraft am Auftrag, lesbar und in Sätzen (wie 131). Der feste Teil steht in `vorlagen/ki/einheit.md`. */
-const aussehenSatz = (wert: EinheitAngaben['aussehen']) => {
-	if (wert === 'eigen') {
-		return 'Aussehen: Gestalte ein eigenes Thema in thema.css.';
-	}
-	if (wert === 'schlicht') {
-		return 'Aussehen: schlicht, ohne thema.css und ohne Rezept.';
-	}
-	return `Aussehen: Rezept „${REZEPT_NAME[wert]}“, nur über die data-aufmachung-Werte, kein thema.css.`;
-};
+const aussehenSatz = (wert: EinheitAngaben['aussehen']) =>
+	wert === 'eigen' ? 'Aussehen: Gestalte ein eigenes Thema in thema.css.' : 'Aussehen: schlicht, ohne thema.css.';
 
 export const einheitAuftragAus = (a: EinheitAngaben): string => {
 	const saetze = [

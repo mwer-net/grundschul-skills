@@ -11,7 +11,6 @@ import { HILFE_MAPPE, KURZANLEITUNG, richteKurzanleitungEin } from './kurzanleit
 import type { AblageKnoten, Aktion, Baum, Bestand, Umgebung } from './ordner';
 import {
 	alleOrdnerPfade,
-	dokumenteIn,
 	dokumenteVonZiel,
 	dokumentGeloescht,
 	faelligImPapierkorb,
@@ -611,44 +610,5 @@ describe('Freigaben auf Ordner', () => {
 		assert.deepEqual(pruefeSchema(FREIGABEN_SCHEMA, roh), []);
 		assert.equal((await leseFreigaben(materialDir)).find((f) => f.token === link.token)?.ziel && true, true);
 		await assert.rejects(legeFreigabeAn(materialDir, { ordner: 'o-00000000' }, JETZT), /gibt es nicht/);
-	});
-});
-
-describe('dokumenteIn (122)', () => {
-	it('nur direkt im Ordner, ohne Unterordner und ohne Gelöschte', () => {
-		const baum: Baum = {
-			...leererBaum(),
-			ordner: [
-				{
-					id: 'o-a',
-					name: 'Formen',
-					eltern: null,
-					behaelter: null,
-					erstellt: '2026-11-01T00:00:00.000Z',
-					geaendert: '2026-11-01T00:00:00.000Z',
-					geloescht: null,
-				},
-				{
-					id: 'o-b',
-					name: 'Unter',
-					eltern: 'o-a',
-					behaelter: null,
-					erstellt: '2026-11-01T00:00:00.000Z',
-					geaendert: '2026-11-01T00:00:00.000Z',
-					geloescht: null,
-				},
-			],
-			dokumente: {
-				'm/eins': { ordner: 'o-a', geloescht: null },
-				'm/zwei': { ordner: 'o-a', geloescht: null },
-				'm/weg': { ordner: 'o-a', geloescht: { zeit: '2026-11-01T00:00:00.000Z', herkunft: ['Formen'] } },
-				'm/unten': { ordner: 'o-b', geloescht: null },
-				'm/frei': { ordner: null, geloescht: null },
-			},
-		};
-		assert.deepEqual(
-			dokumenteIn(baum, 'o-a').map((d) => d.dok),
-			['eins', 'zwei'],
-		);
 	});
 });

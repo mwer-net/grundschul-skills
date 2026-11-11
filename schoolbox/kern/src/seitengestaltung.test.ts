@@ -59,7 +59,6 @@ describe('Seitenfläche und Seitenrahmen', () => {
 			muster: null,
 			musterGroesse: null,
 			sw: null,
-			rezept: false,
 		});
 		assert.equal(g.rahmen?.art, 'gestrichelt');
 		assert.equal(g.rahmen?.farbe, 'var(--dunkel)');
@@ -125,19 +124,6 @@ describe('Seitenfläche und Seitenrahmen', () => {
 		assert.equal(leseSeitengestaltung(nurZweite, seitenNr(nurZweite)[0] ?? 0).flaeche?.winkel, 180);
 		assert.equal(leseSeitengestaltung(nurZweite, zweite).flaeche?.winkel, 90);
 		assert.equal(setzeSeitenrahmen(setzeSeitenflaeche(beide, 'alle', null), 'alle', null), leer);
-	});
-
-	it('macht aus Teilen eines Rezepts beim Ändern eigene (114)', () => {
-		const rezept = SEITENFLAECHE.replace('<div ', '<div data-aufmachung-teil="flaeche" data-gesperrt ');
-		const quelle = blattMit({ hinten: [rezept] });
-		const [seite = 0] = seitenNr(quelle);
-		assert.equal(leseSeitengestaltung(quelle, seite).flaeche?.rezept, true);
-		const eigen = setzeSeitenflaeche(quelle, [seite], { art: 'farbe', f1: '#000000' });
-		assert.equal(leseSeitengestaltung(eigen, seite).flaeche?.rezept, false);
-		assert.ok(!eigen.includes('data-gesperrt'));
-		assert.deepEqual(hinten(setzeSeitenflaeche(quelle, 'alle', null)), [null]);
-		// Der Rahmen kommt über die Fläche des Rezepts.
-		assert.deepEqual(hinten(setzeSeitenrahmen(quelle, [seite], GESTRICHELT)), [['seitenflaeche', 'seitenrahmen']]);
 	});
 
 	it('nimmt nur Farben der Palette und Hex', () => {

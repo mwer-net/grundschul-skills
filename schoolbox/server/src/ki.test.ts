@@ -18,7 +18,6 @@ import {
 	WURZEL,
 	zerlege,
 } from '@schoolbox/kern';
-import { leseAufmachung, wendeAufmachungAn } from '@schoolbox/kern/src/aufmachungen';
 import { erzeugeReferenz } from '@schoolbox/kern/src/referenz';
 
 import { KI_GRENZEN, kiArgumente, kiTempWurzel, kiUmgebung, liesLimit, limitErreichtText } from './ki';
@@ -824,24 +823,23 @@ describe('Aufträge an Claude', () => {
 		assert.doesNotMatch(limitErreichtText(null), /Claude-App|ab /);
 	});
 
-	it('Rezept von Claude: Vorschlag wird abgeglichen geschrieben, der Prüfbericht bleibt (123)', async () => {
+	it('älteres Blatt mit data-aufmachung: Vorschlag steht so da, wie Claude ihn schreibt (180)', async () => {
 		const datei = path.join(dokumentDir(server.materialDir, mappe, dok), 'material.html');
 		const alt = await quelle();
-		const mitRezept = wendeAufmachungAn(alt, 'zirkus');
-		await writeFile(datei, mitRezept);
+		const bestand = await readFile(
+			path.join(WURZEL, 'schoolbox', 'kern', 'src', 'testdaten', 'bestand-aufmachung.html'),
+			'utf8',
+		);
+		await writeFile(datei, bestand);
 		try {
 			pruefbericht = { seiten: [], meldungen: [], fehler: 0 };
-			await fall('rezept-wert');
-			assert.equal((await auftrag({ auftrag: 'Mach das Kopfband zackig' })).status, 'fertig');
-			const wert = await vorschlagQuelle();
-			assert.equal(leseAufmachung(wert)?.kopfband, 'zacken');
-			assert.equal(wert, wendeAufmachungAn(alt, 'zirkus', { kopfband: 'zacken' }), 'Teile passen zum Wert');
+			await fall('flaeche-gelb');
+			assert.equal((await auftrag({ auftrag: 'Mach die Fläche gelb' })).status, 'fertig');
+			const erwartet = bestand.replace('--f1:var(--a-flaeche)', '--f1:#fff3c4');
+			assert.notEqual(erwartet, bestand);
+			// Kein Abgleich mehr: Früher setzte er die Fläche aus den Werten am body zurück.
+			assert.equal(await vorschlagQuelle(), erwartet);
 			assert.deepEqual((await vorschlag())?.meldungen, []);
-			await api(`/dokumente/${mappe}/${dok}/vorschlag/verwerfen`, { method: 'POST' });
-
-			await fall('rezept-teil');
-			assert.equal((await auftrag({ auftrag: 'Mach die Fläche blasser' })).status, 'fertig');
-			assert.equal(await vorschlagQuelle(), mitRezept, 'das von Hand geänderte Teil ist zurückgesetzt');
 		} finally {
 			await writeFile(datei, alt);
 		}

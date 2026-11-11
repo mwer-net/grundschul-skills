@@ -13,7 +13,6 @@ import { GRUPPEN_BEFEHLE } from './gruppen';
 import { KOMBINIEREN_BEFEHLE } from './kombinieren';
 import { PFEIL_BEFEHLE } from './pfeile';
 import { REIHENFOLGE_BEFEHLE } from './reihenfolge';
-import { REZEPT_BEFEHLE } from './rezept';
 import { SICHTBARKEIT_BEFEHLE } from './sichtbarkeit';
 import { SPIEGELN_BEFEHLE } from './spiegeln';
 import { STAPEL_BEFEHLE } from './stapel';
@@ -31,5 +30,4 @@ export const GESTALTUNG_BEFEHLE: Befehl[] = [
 	...STAPEL_BEFEHLE,
 	...GRUPPEN_BEFEHLE,
 	...KOMBINIEREN_BEFEHLE,
-	...REZEPT_BEFEHLE,
 ];

@@ -24,7 +24,7 @@ import { nummeriere, seitenVon } from './struktur';
 export interface Einfuegbar {
 	id: string;
 	ort: 'blatt' | 'seite' | 'aufgabe' | 'zeile';
-	/** Fertiges HTML des Starters; bei Rezepten die Teile im `.koerper`. */
+	/** Fertiges HTML des Starters; bei Aufgabenpaketen die Teile im `.koerper`. */
 	html?: string;
 	teile?: readonly string[];
 	anweisung?: string;
@@ -158,7 +158,10 @@ const mitKlasse = (quelle: string, z: Zerlegung, b: Einfuegbar, ziel: Knoten | n
 	return { quelle: wendeAn(quelle, setzeKlasse(z, k, b.klasse)), nr: k.nr };
 };
 
-/** Was der Katalog über einen Eintrag weiß, plus sein Starter-HTML. `aufgabe` in einem Rezept ist die Hülle, kein Teil. */
+/**
+ * Was der Katalog über einen Eintrag weiß, plus sein Starter-HTML. `aufgabe` in einem Aufgabenpaket ist die Hülle, kein
+ * Teil.
+ */
 export const einfuegbarAus = (e: KatalogEintrag, starter: ReadonlyMap<string, string>): Einfuegbar => ({
 	id: e.id,
 	ort: e.ort,

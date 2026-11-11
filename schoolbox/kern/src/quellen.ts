@@ -13,7 +13,6 @@ import { blattFarbenListe } from './blatt-farben';
 import { figurenListe } from './figuren';
 import { formenTabelle } from './formen';
 import { GESTALTUNG_ARTEN } from './gestaltung-arten';
-import { aufmachungenTabelle } from './rezepte/index';
 import type { ArtAngaben } from './werte';
 import { ART_ANGABEN, ARTEN, VORLAGE_FORMAT } from './werte';
 
@@ -156,12 +155,11 @@ export const ABSCHNITTE: Abschnitt[] = [
 	{ datei: DRUCK, marke: 'schrift-und-abstand', inhalt: klassenWerte },
 	{ datei: DRUCK, marke: 'luecken-breite', inhalt: lueckenBreite },
 	{ datei: LAYOUT, marke: 'thema-regeln', inhalt: themaRegeln },
-	// Gestaltung (Phase 12): Arten, Figuren, Formen, Farben des Blatts, Rezepte
+	// Gestaltung (Phase 12): Arten, Figuren, Formen, Farben des Blatts
 	{ datei: GESTALTUNG, marke: 'gestaltung-arten', inhalt: gestaltungArten },
 	{ datei: GESTALTUNG, marke: 'figuren', inhalt: figurenListe },
 	{ datei: GESTALTUNG, marke: 'formen', inhalt: formenTabelle },
 	{ datei: GESTALTUNG, marke: 'blatt-farben', inhalt: blattFarbenListe },
-	{ datei: GESTALTUNG, marke: 'aufmachungen', inhalt: aufmachungenTabelle },
 ];
 
 /** Setzt den Inhalt zwischen `<!-- erzeugt: marke -->` und `<!-- /erzeugt: marke -->`. */

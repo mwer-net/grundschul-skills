@@ -60,7 +60,7 @@ export const usePanels = (neu: boolean) => {
 		rechts,
 		rechtsOffen,
 		setRechts,
-		/** Klick in der Leiste und ⌥1 … ⌥7: öffnen, wechseln, und die offene noch einmal schließt sie. */
+		/** Klick in der Leiste und ⌥1 … ⌥6: öffnen, wechseln, und die offene noch einmal schließt sie. */
 		schalteLinks: (name: SchubladenId) => {
 			if (linksOffen && links === name) {
 				setLinksOffen(false);

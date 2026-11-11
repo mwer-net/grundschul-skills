@@ -215,12 +215,6 @@ export const dokumenteUnter = (baum: Baum, id: string): { mappe: string; dok: st
 		.map(([s]) => zerlegeSchluessel(s));
 };
 
-/** Die lebenden Dokumente direkt in einem Ordner, ohne Unterordner (Rezept auf alle Blätter, 122). */
-export const dokumenteIn = (baum: Baum, id: string): { mappe: string; dok: string }[] =>
-	Object.entries(baum.dokumente)
-		.filter(([, p]) => p.ordner === id && !p.geloescht)
-		.map(([s]) => zerlegeSchluessel(s));
-
 export type ZugangsZiel = { mappe: string; dok: string | null } | { ordner: string };
 
 /**
