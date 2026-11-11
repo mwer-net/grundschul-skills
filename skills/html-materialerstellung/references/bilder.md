@@ -72,6 +72,15 @@ KI-Bilder haben regelmäßig Fehler, die erst in voller Auflösung auffallen: ei
    Danach die Stelle vergrößert ansehen; sieht man die Naht, Maske kleiner oder Versatz ändern.
 6. Die neue Datei ersetzen, Bildliste aktualisieren, neu bauen.
 
+### 2b. In der Schoolbox (Unterrichtseinheit ohne Bash)
+
+Baut die Schoolbox eine Unterrichtseinheit, gibt es kein Bash, kein curl und kein Python. Der Ablauf aus Abschnitt 2 gilt mit diesen Unterschieden:
+
+- **Werkzeuge:** nur `generate-image`, `get-generate-image-job`, `remove-background`, `get-assets`, `search-designs`, `read-design`, `edit-design`, `resize-design` und `export-design`. Fehlt das Hilfsdesign und lässt es sich so nicht anlegen, keine Bilder erzeugen und mit Platzhaltern weiterbauen.
+- **Schritt 4, Datei holen:** statt `curl` je Bild einen Eintrag in `bilder.json` im Arbeitsordner: `{"datei": "motiv.png", "url": "<Export-URL>", "motiv": "…", "mediaId": "MA…"}`. Der Server lädt nur von `export-download.canva.com`, prüft Format und Größe und legt die Datei nach `bilder/`. Die Endung muss zum Export passen.
+- **Schritt 5, genau prüfen:** das geladene Bild mit Read ansehen. Viertel lassen sich nicht schneiden; bei Szenen mit mehreren Figuren deshalb besonders auf Hände, Augen und Anzahlen achten.
+- **Schritt 6 und 7:** Im Material `../../bilder/motiv.png`; die Bildliste `canva-ids.tsv` schreibt der Server.
+
 ## 3. Keine KI für exakte Abbildungen
 
 Uhren, Mengen, Zehnerstangen, Stellentafeln, Zwanzigerfeld, Zahlenstrahl kommen aus `assets/abbildungen.js`, nie aus einem KI-Bild: Zeiger, Teilungen und Anzahlen stimmen bei KI regelmäßig nicht. Fehlt eine Darstellung (z. B. Geldstücke, Geometrie), als SVG berechnen und bei Bedarf als neues `x-…`-Element in `abbildungen.js` ergänzen.

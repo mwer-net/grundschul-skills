@@ -81,6 +81,28 @@ process.stdin.on('end', () => {
 	const nutzung = fall === 'kontext-gross' ? { usage: { input_tokens: 10, cache_read_input_tokens: 120000, cache_creation_input_tokens: 500 } } : {};
 	sag({ type: 'assistant', message: { ...nutzung, content: [{ type: 'tool_use', name: 'Skill', input: { skill: 'fach-mathematik' } }, { type: 'tool_use', name: 'Edit', input: {} }] } });
 	const ende = (extra) => sag({ type: 'result', subtype: 'success', is_error: false, result: 'Annahme: Klasse 2', num_turns: 2, total_cost_usd: 0.01, usage: { output_tokens: 5 }, permission_denials: [], ...extra });
+	// 139: eine Einheit mit zwei Materialien; „einheit-skript“ baut erst ein Skript ein, „einheit-haenger“ bleibt nach dem ersten stehen.
+	if (fall.startsWith('einheit')) {
+		const blatt = (titel, extra = '') => '<!doctype html><html lang="de"><head><meta charset="utf-8"><title>' + titel + '</title><link rel="stylesheet" href="blatt.css"><link rel="stylesheet" href="../../thema.css"></head><body class="kl2 a4-hoch farbe"><section class="seite"><h1>' + titel + '</h1><img src="../../bilder/uhr.png" alt="Uhr">' + extra + '</section></body></html>';
+		const plan = (fertig) => fs.writeFileSync('einheit.json', JSON.stringify({ titel: 'Uhrzeit', annahmen: ['Klasse 2'], dokumente: [{ slug: 'fall-1', titel: 'Fall 1', art: 'arbeitsblatt', format: 'a4-hoch', zweck: 'Einstieg', fertig: fertig >= 1 }, { slug: 'fall-2', titel: 'Fall 2', art: 'arbeitsblatt', format: 'a4-hoch', zweck: 'Üben', fertig: fertig >= 2 }] }));
+		const warte = (ms) => new Promise((r) => setTimeout(r, ms));
+		(async () => {
+			if (eingabe.includes('Korrekturrunde')) { fs.writeFileSync('dokumente/fall-2/material.html', blatt('Fall 2')); plan(2); ende({ result: 'Behoben.' }); return; }
+			plan(0);
+			fs.writeFileSync('thema.css', ':root { --akzent: #c33; }');
+			fs.mkdirSync('bilder', { recursive: true });
+			fs.writeFileSync('bilder/uhr.png', Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]));
+			for (const slug of ['fall-1', 'fall-2']) { fs.mkdirSync('dokumente/' + slug, { recursive: true }); }
+			fs.writeFileSync('dokumente/fall-1/material.html', blatt('Fall 1'));
+			plan(1);
+			await warte(2500);
+			if (fall === 'einheit-haenger') { setInterval(() => {}, 1000); return; }
+			fs.writeFileSync('dokumente/fall-2/material.html', blatt('Fall 2', fall === 'einheit-skript' ? '<script>window.boese = 1</script>' : ''));
+			plan(2);
+			ende({ result: 'Zwei Fälle gebaut.' });
+		})();
+		return;
+	}
 	const aendere = () => { const d = 'material.html'; const alt = fs.readFileSync(d, 'utf8'); fs.writeFileSync(d, alt.includes('</h1>') ? alt.replace('</h1>', ' von Claude</h1>') : alt.includes('</section>') ? alt.replace('</section>', '<p>von Claude</p></section>') : alt.replace(/^\s*<[a-z-]+/, '$& data-von-claude')); };
 	if (fall === 'haenger') { setInterval(() => {}, 1000); return; }
 	if (fall === 'fehler') { sag({ type: 'assistant', error: 'rate_limit', message: { content: [] } }); ende({ is_error: true, result: 'limit' }); process.exit(1); }
@@ -203,6 +225,7 @@ export const starteTestServer = async (optionen: TestServerOptionen = {}) => {
 	const stop = async () => {
 		ueberwachung?.stop();
 		kontext.ki.stop();
+		kontext.einheiten.stop();
 		server.closeAllConnections();
 		await new Promise<void>((resolve) => server.close(() => resolve()));
 	};

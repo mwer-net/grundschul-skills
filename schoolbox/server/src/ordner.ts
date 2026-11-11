@@ -65,7 +65,7 @@ const leseTitel = async (materialDir: string) => {
 	return titel;
 };
 
-const umgebung = async (materialDir: string, jetzt = new Date()): Promise<Umgebung> => {
+export const umgebung = async (materialDir: string, jetzt = new Date()): Promise<Umgebung> => {
 	const titel = await leseTitel(materialDir);
 	return { jetzt, titel: (mappe, dok) => titel.get(dokKnotenSchluessel(mappe, dok)) };
 };

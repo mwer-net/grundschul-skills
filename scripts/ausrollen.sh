@@ -48,6 +48,14 @@ for befehl in git node pnpm pm2 curl flock; do
 done
 [ "$(node -p 'process.versions.node.split(".")[0]')" -ge 22 ] || abbruch "Node 22 nötig, gefunden $(node -v)."
 
+# 139: Ein Neuladen beendet eine laufende Unterrichtseinheit. Sie lässt sich mit „Weiterbauen“ fortsetzen.
+for pid_datei in "${TMPDIR:-/tmp}"/schoolbox-einheit-*/einheit-*/pid; do
+	[ -f "$pid_datei" ] || continue
+	if kill -0 "$(cat "$pid_datei")" 2>/dev/null; then
+		echo "Warnung: Claude baut gerade eine Unterrichtseinheit. Das Ausrollen unterbricht sie; danach „Weiterbauen“." >&2
+	fi
+done
+
 host=$(env_wert HOST)
 port=$(env_wert PORT)
 healthz="http://${host:-127.0.0.1}:${port:-4009}/healthz"

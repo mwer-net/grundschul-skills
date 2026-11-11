@@ -9,6 +9,7 @@ export * from './bildbefehle';
 export * from './bilder';
 export * from './eigene';
 export * from './einfuegen';
+export * from './einheit';
 export * from './fehler';
 export * from './frei';
 export * from './freigaben';

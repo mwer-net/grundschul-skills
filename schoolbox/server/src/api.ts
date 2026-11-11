@@ -20,6 +20,7 @@ import { aufmachungUebernehmenApi } from './aufmachung-uebernehmen';
 import { bilderApi } from './bilder';
 import { istAusgabeVeraltet, leseQuelle, nimmFremdeAenderungAuf, schreibeQuelle, verlangeDokument } from './dokumente';
 import { eigeneApi } from './eigene';
+import { einheitApi } from './einheit';
 import type { Ereignis } from './ereignisse';
 import { HttpFehler } from './fehler';
 import { freigabenApi } from './freigaben';
@@ -218,6 +219,7 @@ export const apiRouter = (kontext: Kontext) => {
 	});
 
 	kiApi(router, kontext);
+	einheitApi(router, kontext);
 
 	router.get('/ereignisse', ereignisStrom(kontext));
 

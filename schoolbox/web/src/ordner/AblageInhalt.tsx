@@ -6,6 +6,8 @@ import { Zustand } from '../bausteine/Zustand';
 import { useClaudeBaut } from './claude-baut';
 import type { ObjektAnsicht, ZeileAnsicht } from './darstellung';
 import { Kachel, LISTEN_RASTER, Zeile } from './darstellung';
+import { EinheitBand } from './EinheitBand';
+import { einheitFuer, useEinheiten } from './einheiten';
 import { PapierkorbSeite } from './PapierkorbSeite';
 import { naechsteSortierung } from './sortierung';
 import type { AblageOrdner, Darstellung, Objekt, Seite, Sortierung } from './typen';
@@ -172,30 +174,16 @@ const Liste = ({
 	);
 };
 
-interface Eigenschaften extends ListeEigenschaften {
+const FlaecheInhalt = ({
+	baut,
+	darstellung,
+	liste,
+}: {
+	baut: ReturnType<typeof useClaudeBaut>;
 	darstellung: Darstellung;
-	dieseLeiste: (id: string) => () => void;
-	hier: AblageOrdner | null;
-	objektZahl: number;
-	ordnerFehlt: boolean;
-}
-
-/** Was in der Fläche steht: Kacheln, Liste oder der passende leere Zustand. */
-export const AblageInhalt = ({ darstellung, dieseLeiste, hier, objektZahl, ordnerFehlt, ...liste }: Eigenschaften) => {
-	const { ansicht, seite, zeilen } = liste;
-	const baut = useClaudeBaut();
-	if (seite.art === 'papierkorb') {
-		return <PapierkorbSeite />;
-	}
-	if (ordnerFehlt) {
-		return <OrdnerFehlt />;
-	}
-	if (objektZahl === 0) {
-		if (seite.art === 'ordner') {
-			return <LeererOrdner dieseLeiste={dieseLeiste} hier={hier} />;
-		}
-		return seite.art === 'suche' ? <KeinTreffer /> : <Zustand symbol="uhr" titel="Noch nichts geändert" />;
-	}
+	liste: ListeEigenschaften;
+}) => {
+	const { ansicht, zeilen } = liste;
 	if (darstellung === 'kacheln') {
 		return (
 			<ul className="grid grid-cols-[repeat(auto-fill,minmax(190px,1fr))] gap-3">
@@ -214,4 +202,41 @@ export const AblageInhalt = ({ darstellung, dieseLeiste, hier, objektZahl, ordne
 		);
 	}
 	return <Liste {...liste} />;
+};
+
+interface Eigenschaften extends ListeEigenschaften {
+	darstellung: Darstellung;
+	dieseLeiste: (id: string) => () => void;
+	hier: AblageOrdner | null;
+	objektZahl: number;
+	ordnerFehlt: boolean;
+}
+
+/** Was in der Fläche steht: Kacheln, Liste oder der passende leere Zustand. */
+export const AblageInhalt = ({ darstellung, dieseLeiste, hier, objektZahl, ordnerFehlt, ...liste }: Eigenschaften) => {
+	const { seite } = liste;
+	const baut = useClaudeBaut();
+	const { einheiten } = useEinheiten();
+	const einheit = seite.art === 'ordner' ? einheitFuer(einheiten, hier?.id) : null;
+	if (seite.art === 'papierkorb') {
+		return <PapierkorbSeite />;
+	}
+	if (ordnerFehlt) {
+		return <OrdnerFehlt />;
+	}
+	if (einheit) {
+		return (
+			<>
+				<EinheitBand s={einheit} />
+				{objektZahl > 0 && <FlaecheInhalt darstellung={darstellung} baut={baut} liste={liste} />}
+			</>
+		);
+	}
+	if (objektZahl === 0) {
+		if (seite.art === 'ordner') {
+			return <LeererOrdner dieseLeiste={dieseLeiste} hier={hier} />;
+		}
+		return seite.art === 'suche' ? <KeinTreffer /> : <Zustand symbol="uhr" titel="Noch nichts geändert" />;
+	}
+	return <FlaecheInhalt darstellung={darstellung} baut={baut} liste={liste} />;
 };

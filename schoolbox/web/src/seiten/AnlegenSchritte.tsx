@@ -69,11 +69,11 @@ export const Fehler = ({ text }: { text: string | null }) =>
 		</p>
 	) : null;
 
-const Empfohlen = () => (
+export const Empfohlen = () => (
 	<span className="inline-flex rounded-full bg-brand-50 px-1.5 text-xs font-medium text-brand-700">Empfohlen</span>
 );
 
-const Etikett = ({ children, zusatz }: { children: ReactNode; zusatz?: ReactNode }) => (
+export const Etikett = ({ children, zusatz }: { children: ReactNode; zusatz?: ReactNode }) => (
 	<span className="mb-1 block font-medium">
 		{children}
 		{zusatz && <small className="ml-1.5 text-xs font-normal text-leise">{zusatz}</small>}
@@ -84,7 +84,7 @@ const Etikett = ({ children, zusatz }: { children: ReactNode; zusatz?: ReactNode
  * Eine Antwort als Fläche; `nr` ist die Ziffer, mit der sie sich wählen lässt (A1 S. 2–4). Ein Klick oder Tipp wählt
  * und geht weiter, Ziffer und Leertaste wählen nur (`detail` ist dann 0).
  */
-const Wahl = ({
+export const Wahl = ({
 	aktiv,
 	children,
 	className,
@@ -264,12 +264,14 @@ export const SchrittArt = ({
 	offen,
 	setze,
 	waehleArt,
+	waehleEinheit,
 	weiter,
 }: {
 	a: Antworten;
 	offen: boolean;
 	setze: (teil: Partial<Antworten>) => void;
 	waehleArt: (art: Art) => void;
+	waehleEinheit: () => void;
 	weiter: () => void;
 }) => {
 	// „Etwas anderes …“ fragt nur mit Claude nach dem Text; beim leeren Blatt zählt er nicht.
@@ -284,7 +286,7 @@ export const SchrittArt = ({
 						key={w.art}
 						id={w.art}
 						nr={i + 1}
-						aktiv={a.art === w.art}
+						aktiv={!a.einheit && a.art === w.art}
 						waehle={() => waehleArt(w.art)}
 						weiter={weiter}
 					>
@@ -296,6 +298,24 @@ export const SchrittArt = ({
 					</Wahl>
 				))}
 			</div>
+			<Wahl
+				id="einheit"
+				aktiv={a.einheit}
+				gesperrt={a.weg !== 'claude'}
+				className="mt-2"
+				waehle={waehleEinheit}
+				weiter={weiter}
+			>
+				<Symbol name="ordner" className="mt-0.5 size-4 flex-none text-leise" />
+				<span className="min-w-0">
+					<span className="block font-medium">Unterrichtseinheit</span>
+					<span className="block text-sm text-leise">
+						{a.weg === 'claude'
+							? 'Ein Ordner mit mehreren Materialien zu einem Thema, gebaut in einem Lauf.'
+							: 'Nur mit Claude.'}
+					</span>
+				</span>
+			</Wahl>
 			<div className="mt-3 flex flex-wrap items-center gap-1.5 text-leise">
 				Oder:
 				{klein.map((w) => (
@@ -303,10 +323,10 @@ export const SchrittArt = ({
 						key={w.art}
 						type="button"
 						data-wahl={w.art}
-						aria-pressed={a.art === w.art}
+						aria-pressed={!a.einheit && a.art === w.art}
 						className={klassen(
 							'inline-flex h-knopf-klein items-center gap-1.5 rounded-md border px-2 text-sm font-medium',
-							a.art === w.art
+							!a.einheit && a.art === w.art
 								? 'border-brand-500 bg-brand-50 text-tinte'
 								: 'border-rand bg-flaeche hover:bg-flaeche-2',
 						)}
@@ -545,8 +565,8 @@ export const SchrittBausteine = ({
 	setze: (teil: Partial<Antworten>) => void;
 	setzeOffen: (feld: FreitextFeld, offen: boolean) => void;
 }) => {
-	const schalter = bausteinSchalter(a);
-	const umfang = umfangEmpfehlung(a.art);
+	const schalter = bausteinSchalter(a.einheit ? { ...a, art: 'arbeitsblatt' } : a);
+	const umfang = a.einheit ? null : umfangEmpfehlung(a.art);
 	const symbol = { selbsteinschaetzung: 'natur', niveaus: 'stapel', sternchen: 'stern' } as const;
 	return (
 		<>
@@ -594,7 +614,8 @@ export const SchrittBausteine = ({
 					</div>
 				</div>
 			)}
-			<div className="mt-4">
+			{a.einheit && <p className="mt-2 text-sm text-leise">Gilt für alle Blätter der Einheit.</p>}
+			<div className={klassen('mt-4', a.einheit && 'hidden')}>
 				{offen.bausteineText ? (
 					<FreiFeld
 						feld="bausteineText"
@@ -640,7 +661,7 @@ export const SchrittKlasse = ({ a, setze }: { a: Antworten; setze: (teil: Partia
 	</>
 );
 
-const OrdnerFeld = ({ name }: { name: string }) => (
+export const OrdnerFeld = ({ name }: { name: string }) => (
 	<div className="w-48 flex-none">
 		<Etikett>Ordner</Etikett>
 		<div className={klassen(FELD_KLASSEN, 'flex items-center gap-1.5 bg-flaeche-2')} data-anlegen-ordner>
@@ -650,7 +671,7 @@ const OrdnerFeld = ({ name }: { name: string }) => (
 	</div>
 );
 
-const TitelFeld = ({
+export const TitelFeld = ({
 	setzeTitel,
 	titel,
 	vorschlag,

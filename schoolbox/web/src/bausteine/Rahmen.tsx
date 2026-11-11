@@ -4,6 +4,8 @@ import { Link, Outlet, useLocation, useMatch, useNavigate, useSearchParams } fro
 import { meldung, sende } from '../api';
 import { useKiZustand } from '../editor/ki';
 import { TASTEN_SPERRE } from '../editor/tasten';
+import { EinheitPille } from '../ordner/EinheitBand';
+import { useEinheiten, useEinheitFertigMeldung } from '../ordner/einheiten';
 import { AblageAnbieter } from '../ordner/useOrdner';
 import { MaterialDialog } from '../seiten/Anlegen';
 import { Seitenpalette } from '../seiten/Seitenpalette';
@@ -33,6 +35,8 @@ const RahmenInnen = () => {
 	// 136: Freitext aus der Palette öffnet den Assistenten mit dem Text als Thema.
 	const [thema, setThema] = useState<string | null>(null);
 	const ki = useKiZustand();
+	const { einheiten } = useEinheiten();
+	useEinheitFertigMeldung(einheiten);
 	// Die Dokumentansicht hat ihren eigenen einzeiligen Kopf: Das Blatt soll oben im Fenster beginnen.
 	const ohneKopf = useMatch('/m/:mappe/:dok') !== null;
 	const inOrdner = useMatch('/o/:ordner');
@@ -129,6 +133,7 @@ const RahmenInnen = () => {
 						</button>
 					</div>
 					<div className="ml-auto flex flex-none items-center gap-1" data-kopf-rechts>
+						<EinheitPille einheiten={einheiten} />
 						<KnopfLink to="/hilfe" art="leise" aria-label="Hilfe">
 							<Symbol name="hilfe" className="md:hidden" />
 							<span className="max-md:hidden">Hilfe</span>

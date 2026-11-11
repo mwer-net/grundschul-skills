@@ -54,6 +54,21 @@ export const KI_GRENZEN = {
 	/** Die Frage nach dem Stand des Kontos (086): ein kurzer Aufruf, am Limit abgelehnt kostet er nichts. */
 	limitMs: 60_000,
 	limitBudgetUsd: 0.1,
+	/**
+	 * Eine Unterrichtseinheit (139): ein großer Lauf. Gemessen: etwa 1,5 min, 15 Runden und bis 2 USD je Material;
+	 * vom Admin bestätigt (2026-11-11).
+	 */
+	einheit: {
+		zeitMs: 60 * 60_000,
+		runden: 400,
+		budgetUsd: 40,
+		budgetGuthabenUsd: 5,
+		dokumente: 20,
+		/** Über diesem Anteil am 5-Stunden-Fenster sagt der Start es vorher (Entscheidung 35: gesperrt wird nicht). */
+		warnAb: 0.5,
+		/** So lange bleibt ein unvollständiger Arbeitsordner für „Weiterbauen“ liegen. */
+		aufhebenMs: 7 * 24 * 60 * 60_000,
+	},
 };
 /** Klein genügt: Es soll nur „ok“ sagen. */
 export const KI_LIMIT_MODELL = 'haiku';
@@ -65,7 +80,7 @@ const BEENDEN_MS = 4000;
 const WORKFILE = 'material.html';
 export const VORSCHLAG_ORDNER = 'vorschlag';
 const VORSCHLAG_META = 'vorschlag.json';
-const VERBRAUCH_DATEI = '_ki-verbrauch.jsonl';
+export const VERBRAUCH_DATEI = '_ki-verbrauch.jsonl';
 const GESPRAECH_ORDNER = 'gespraech-';
 const SITZUNG_DATEI = 'sitzung.json';
 const ID_REGEX = new RegExp(ID_MUSTER);
@@ -185,44 +200,119 @@ interface Abhaengigkeiten {
 	pruefer: KiPruefer;
 }
 
-/** Der Aufruf aus Issue 056: Skills ja, sonst nichts. Der Prompt kommt über stdin, weil `--tools` Werte schluckt. */
+/**
+ * Canva für die Bilder einer Einheit (138), genau der Ablauf aus `bilder.md` §2 und nichts sonst. Kein Löschen,
+ * Teilen, Kommentieren, keine Ordner, kein Upload: Referenzbilder der Leitfigur liegen im selben Konto schon vor.
+ */
+export const CANVA_WERKZEUGE = [
+	// Bild erzeugen und abwarten, bis es fertig ist.
+	'generate-image',
+	'get-generate-image-job',
+	// Figuren und Einzelmotive freistellen.
+	'remove-background',
+	// Originalgröße des Bilds für die Exportseite.
+	'get-assets',
+	// Das Hilfsdesign „Bild-Export (Hilfsdesign)“ finden, lesen und um eine Seite mit dem Bild ergänzen.
+	'search-designs',
+	'read-design',
+	'edit-design',
+	// Fehlt das Hilfsdesign: aus einem vorhandenen eine Kopie in Bildgröße.
+	'resize-design',
+	// Die Seite als PNG oder JPEG exportieren; laden tut der Server (`canva-bild.ts`).
+	'export-design',
+].map((w) => `mcp__claude_ai_Canva__${w}`);
+
+/** Erste Sperre: Nur der Canva-Server wird überhaupt geladen. Gemessen mit `claude mcp list` (138). */
+export const CANVA_URL = 'https://mcp.canva.com/*';
+/** Zweite Sperre, falls die erste nicht greift: diese Server ausdrücklich verboten, ihre Werkzeuge ebenso. */
+export const NIE_KONNEKTOREN = ['claude.ai Gmail', 'claude.ai Google Drive', 'claude.ai Claude Docs'];
+export const NIE_KONNEKTOR_URLS = ['https://gmailmcp.googleapis.com/*', 'https://drivemcp.googleapis.com/*'];
+export const NIE_KONNEKTOR_WERKZEUGE = [
+	'mcp__claude_ai_Gmail',
+	'mcp__claude_ai_Google_Drive',
+	'mcp__claude_ai_Claude_Docs',
+];
+
+export const canvaEinstellungen = () =>
+	JSON.stringify({
+		allowedMcpServers: [{ serverUrl: CANVA_URL }],
+		deniedMcpServers: [
+			...NIE_KONNEKTOREN.map((serverName) => ({ serverName })),
+			...NIE_KONNEKTOR_URLS.map((serverUrl) => ({ serverUrl })),
+		],
+	});
+
+/** Was eine Einheit schreiben darf (139): nur relativ zum Arbeitsordner, nie darüber hinaus. */
+export const EINHEIT_RECHTE = [
+	'Write(./einheit.json)',
+	'Edit(./einheit.json)',
+	'Write(./thema.css)',
+	'Edit(./thema.css)',
+	'Write(./dokumente/**)',
+	'Edit(./dokumente/**)',
+	'Write(./bilder.json)',
+	'Edit(./bilder.json)',
+];
+
+/**
+ * Der Aufruf aus Issue 056: Skills ja, sonst nichts. Der Prompt kommt über stdin, weil `--tools` Werte schluckt.
+ * `einheit` (139) schreibt mehrere Dateien und hat eigene Grenzen; `mitCanva` (138) nimmt nur sie.
+ */
 export const kiArgumente = (o: {
 	ablage: string;
 	auftragDatei: string;
 	budgetUsd?: number;
 	modell: string;
 	sitzung?: string | null;
-}) => [
-	'-p',
-	'--output-format',
-	'stream-json',
-	'--verbose',
-	'--model',
-	o.modell,
-	'--effort',
-	KI_EFFORT,
-	'--setting-sources',
-	'project',
-	'--add-dir',
-	o.ablage,
-	'--strict-mcp-config',
-	'--tools',
-	'Read,Edit,Skill',
-	'--allowedTools',
-	`Edit(./${WORKFILE})`,
-	'Skill',
-	'--disallowedTools',
-	...NIE_LESEN,
-	'--permission-mode',
-	'dontAsk',
-	'--max-turns',
-	String(KI_GRENZEN.runden),
-	'--max-budget-usd',
-	String(o.budgetUsd ?? KI_GRENZEN.budgetUsd),
-	'--append-system-prompt-file',
-	o.auftragDatei,
-	...(o.sitzung ? ['--resume', o.sitzung] : []),
-];
+	einheit?: boolean;
+	mitCanva?: boolean;
+}) => {
+	const canva = o.mitCanva === true;
+	return [
+		'-p',
+		'--output-format',
+		'stream-json',
+		'--verbose',
+		'--model',
+		o.modell,
+		'--effort',
+		KI_EFFORT,
+		'--setting-sources',
+		'project',
+		'--add-dir',
+		o.ablage,
+		...(canva ? ['--settings', canvaEinstellungen()] : ['--strict-mcp-config']),
+		'--tools',
+		o.einheit ? 'Read,Edit,Write,Skill' : 'Read,Edit,Skill',
+		'--allowedTools',
+		...(o.einheit ? EINHEIT_RECHTE : [`Edit(./${WORKFILE})`]),
+		'Skill',
+		...(canva ? CANVA_WERKZEUGE : []),
+		'--disallowedTools',
+		...NIE_LESEN,
+		...(canva ? NIE_KONNEKTOR_WERKZEUGE : []),
+		'--permission-mode',
+		'dontAsk',
+		'--max-turns',
+		String(o.einheit ? KI_GRENZEN.einheit.runden : KI_GRENZEN.runden),
+		'--max-budget-usd',
+		String(o.budgetUsd ?? (o.einheit ? KI_GRENZEN.einheit.budgetUsd : KI_GRENZEN.budgetUsd)),
+		'--append-system-prompt-file',
+		o.auftragDatei,
+		...(o.sitzung ? ['--resume', o.sitzung] : []),
+	];
+};
+
+/** Erst freundlich, dann hart: `claude` räumt bei SIGINT seine Sitzung auf. */
+export const beendeKind = (kind: ChildProcessWithoutNullStreams) => {
+	kind.kill('SIGINT');
+	const hart = setTimeout(() => kind.kill('SIGTERM'), BEENDEN_MS);
+	const ganzHart = setTimeout(() => kind.kill('SIGKILL'), BEENDEN_MS * 2);
+	kind.once('close', () => {
+		clearTimeout(hart);
+		clearTimeout(ganzHart);
+	});
+};
 
 export const kiPfad = (konfig: Pick<Konfig, 'claudeBin'>) => {
 	if (konfig.claudeBin) {
@@ -338,7 +428,7 @@ const FEHLER_TEXTE: Record<string, string> = {
 };
 const FEHLER_UNBEKANNT = 'Claude konnte den Auftrag nicht ausführen. Bitte versuch es noch einmal.';
 
-interface Ergebnis {
+export interface Ergebnis {
 	fehler: string | null;
 	sitzung: string | null;
 	antwort: string;
@@ -349,7 +439,7 @@ interface Ergebnis {
 	gearbeitet: boolean;
 }
 
-interface LaufStand {
+export interface LaufStand {
 	sitzung: string | null;
 	fehlerCode: string | null;
 	ergebnis: Partial<Ergebnis>;
@@ -368,7 +458,7 @@ interface GespraechStand {
 const zahl = (wert: unknown) => (typeof wert === 'number' ? wert : 0);
 
 /** Wertet ein Ereignis aus `stream-json` aus. Text aus dem Material wandert nie in Schritte oder Log. */
-const werteAus = (
+export const werteAus = (
 	e: Record<string, unknown>,
 	stand: LaufStand,
 	mitteile: { schritt: (text: string) => void; limit: (limit: KiLimit) => void },
@@ -426,7 +516,7 @@ const werteAus = (
 };
 
 /** Skills derselben Version wie der Server, als Kopie: Durch einen Symlink lehnt `Read` die `references/` ab (056). */
-const legeAblageAn = async (ablage: string, wurzelSkills: string) => {
+export const legeAblageAn = async (ablage: string, wurzelSkills: string) => {
 	const ziel = path.join(ablage, '.claude', 'skills');
 	await mkdir(ziel, { recursive: true });
 	const namen = (await readdir(wurzelSkills, { withFileTypes: true })).filter((d) => d.isDirectory());
@@ -889,16 +979,6 @@ export const erstelleKi = ({ ereignisse, konfig, pruefer }: Abhaengigkeiten) => 
 		} else if (!fehler && !gemeldet && limit?.status === 'rejected') {
 			limit = null;
 		}
-	};
-
-	const beendeKind = (kind: ChildProcessWithoutNullStreams) => {
-		kind.kill('SIGINT');
-		const hart = setTimeout(() => kind.kill('SIGTERM'), BEENDEN_MS);
-		const ganzHart = setTimeout(() => kind.kill('SIGKILL'), BEENDEN_MS * 2);
-		kind.once('close', () => {
-			clearTimeout(hart);
-			clearTimeout(ganzHart);
-		});
 	};
 
 	/** Ein Lauf von `claude`. Grenzen: Zeit und Menge der Ausgabe; Runden und Budget über die Argumente. */

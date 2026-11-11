@@ -9,11 +9,16 @@ import {
 	auftragAus,
 	auftragSaetze,
 	bausteinSchalter,
+	EINHEIT_BESTANDTEILE,
+	einheitAngabenAus,
+	einheitBestandteile,
+	einheitRahmen,
 	formatOptionen,
 	formatWahl,
 	FREITEXT,
 	FUNKTIONEN,
 	leereAntworten,
+	leereEinheit,
 	LERNGRUPPE,
 	pruefeAntworten,
 	pruefeAuftragText,
@@ -21,6 +26,7 @@ import {
 	titelVorschlag,
 	WEGE,
 } from './assistent';
+import { einheitAuftragAus, pruefeEinheitAngaben } from './einheit';
 import { SchoolboxFehler } from './fehler';
 import { WURZEL } from './konfig';
 import { MAX_NAME } from './ordner';
@@ -320,5 +326,62 @@ describe('Assistent: Antworten prüfen (131)', () => {
 		assert.deepEqual(a.lerngruppe, ['daz']);
 		assert.deepEqual(a.bausteine, { sternchen: true });
 		assert.equal(a.funktion, 'vertiefung');
+	});
+});
+
+describe('Assistent: Unterrichtseinheit (140)', () => {
+	const einheit = (teil: Partial<Antworten> = {}) =>
+		mit({ weg: 'claude', einheit: true, art: 'arbeitsblatt', thema: 'Uhrzeit', ...teil });
+
+	it('eigene Schrittfolge nur im Weg Claude', () => {
+		assert.deepEqual(ids(einheit()), [
+			'start',
+			'art',
+			'fuerWen',
+			'eThema',
+			'eUmfang',
+			'eBestandteile',
+			'eRahmen',
+			'bausteine',
+			'klasse',
+			'pruefen',
+		]);
+		assert.ok(!ids(einheit({ weg: 'leer' })).some((id) => id.startsWith('e')));
+		assert.ok(!ids(mit({ weg: 'claude' })).some((id) => id.startsWith('e')));
+	});
+
+	it('Empfehlungen: fünf Bestandteile vorgewählt, Rahmen nur in Klasse 1 und 2', () => {
+		assert.deepEqual(
+			einheitBestandteile(leereEinheit()),
+			EINHEIT_BESTANDTEILE.filter((b) => b.empfohlen).map((b) => b.name),
+		);
+		assert.equal(einheitBestandteile(leereEinheit()).length, 5);
+		assert.equal(einheitRahmen(leereEinheit(), 1), true);
+		assert.equal(einheitRahmen(leereEinheit(), 2), true);
+		assert.equal(einheitRahmen(leereEinheit(), 3), false);
+		assert.equal(einheitRahmen({ ...leereEinheit(), rahmen: true }, 4), true);
+	});
+
+	it('nur mit Thema und sonst Empfehlungen: Angaben gehen durch die Prüfung des Servers', () => {
+		const angaben = pruefeEinheitAngaben(einheitAngabenAus(einheit({ titel: 'Uhrzeit' })));
+		assert.equal(angaben.thema, 'Uhrzeit');
+		assert.equal(angaben.dauer, '2 Wochen');
+		assert.equal(angaben.rahmen, true);
+		assert.equal(angaben.bilder, true);
+	});
+
+	it('Bestandteile, Freitext und „Anders …“ stehen im Auftrag', () => {
+		const eh = {
+			...leereEinheit(),
+			bestandteile: ['Lernspiel', 'Lesetexte'],
+			nochEtwas: 'ein Elternbrief',
+			dauerText: '5 Wochen',
+		};
+		const text = einheitAuftragAus(pruefeEinheitAngaben(einheitAngabenAus(einheit({ titel: 'Uhrzeit', eh }))));
+		assert.match(text, /Lernspiel/);
+		assert.match(text, /Lesetexte/);
+		assert.match(text, /ein Elternbrief/);
+		assert.match(text, /5 Wochen/);
+		assert.doesNotMatch(text, /Lernzielkontrolle/);
 	});
 });

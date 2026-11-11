@@ -223,6 +223,30 @@ test.describe('Bildschirmfotos für die Hilfe', () => {
 		await foto(page, 'entwurf-mac.jpg');
 	});
 
+	test('Einheit', async ({ page }) => {
+		nurAuf('mac');
+		// Die Attrappe bleibt nach dem ersten Material stehen: So zeigt das Foto Band, Platzhalter und eine echte Kachel.
+		await writeFile(path.join(`${MATERIAL_DIR}-ki`, 'fall.txt'), 'einheit-haenger');
+		await page.goto('/');
+		await page.locator('[data-werkzeugleiste] [data-material-anlegen]').click();
+		const dialog = page.getByRole('dialog');
+		await expect(dialog.locator('[data-hauptaktion]')).toBeEnabled();
+		await page.keyboard.press('Enter');
+		await dialog.locator('[data-wahl="einheit"]').click();
+		await page.keyboard.press('Enter');
+		await page.keyboard.type('Uhrzeit');
+		for (const id of ['eUmfang', 'eBestandteile', 'eRahmen', 'bausteine', 'klasse', 'pruefen']) {
+			await page.keyboard.press('Enter');
+			await expect(dialog.locator(`[data-assistent="${id}"]`)).toBeVisible();
+		}
+		await page.keyboard.press('Enter');
+		await expect(page.locator('[data-einheit-platzhalter] li')).toHaveCount(1);
+		await expect(page.locator('[data-objekt]')).toHaveCount(1);
+		await foto(page, 'einheit-mac.jpg');
+		await page.locator('[data-einheit-band]').getByRole('button', { name: 'Abbrechen' }).click();
+		await writeFile(path.join(`${MATERIAL_DIR}-ki`, 'fall.txt'), 'gut');
+	});
+
 	test('Teilen', async ({ druecke, page }) => {
 		nurAuf('mac');
 		const { dok, id } = await uhrzeit();

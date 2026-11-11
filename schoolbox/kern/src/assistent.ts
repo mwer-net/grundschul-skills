@@ -4,6 +4,8 @@
  * Die Didaktik steht im Skill: Start-Abfrage und Ablauf 2.3 und 2.4 in `grundschul-didaktik/references/rueckfragen.md`.
  * Ohne Node-Abhängigkeiten, damit auch die Oberfläche sie nutzen kann.
  */
+import type { EinheitAngaben } from './einheit';
+import { EINHEIT_AUSSEHEN, EINHEIT_DAUER, EINHEIT_LEITFIGUR, EINHEIT_MENGE, EINHEIT_ZEICHEN } from './einheit';
 import { SchoolboxFehler } from './fehler';
 import { ART_NAME, FACH_NAME } from './namen';
 import type { Art, Fach, Format, Klasse } from './werte';
@@ -141,6 +143,116 @@ export type FreitextFeld = keyof typeof FREITEXT;
  */
 export const AUFTRAG_ZEICHEN = 3000;
 
+// ——— Unterrichtseinheit (140) ———
+
+/**
+ * Bestandteile einer Einheit (Schritt „Bestandteile“). Was eine Reihe braucht, steht im Skill `unterrichtsplanung`
+ * (Reihenplanung); die Empfehlung ist der Kern daraus: Einstieg, Übung, Spiel, Überprüfung, Lösungen.
+ */
+export const EINHEIT_BESTANDTEILE = [
+	{ name: 'Einführung (Präsentation)', empfohlen: true },
+	{ name: 'Arbeitsblätter', empfohlen: true },
+	{ name: 'Lesetexte', empfohlen: false },
+	{ name: 'Lernspiel', empfohlen: true },
+	{ name: 'Bild- und Wortkarten', empfohlen: false },
+	{ name: 'Lernplakat', empfohlen: false },
+	{ name: 'Stationen', empfohlen: false },
+	{ name: 'Lernzielkontrolle', empfohlen: true },
+	{ name: 'Urkunde oder Abschluss', empfohlen: false },
+	{ name: 'Verlaufsplan für dich', empfohlen: false },
+	{ name: 'Lösungen', empfohlen: true },
+] as const;
+
+export const EINHEIT_MENGE_NAME: Record<(typeof EINHEIT_MENGE)[number], string> = {
+	'claude': 'Claude entscheidet',
+	'etwa 6': 'etwa 6',
+	'etwa 12': 'etwa 12',
+	'etwa 16': 'etwa 16',
+};
+
+export const EINHEIT_LEITFIGUR_NAME: Record<(typeof EINHEIT_LEITFIGUR)[number], string> = {
+	willi: 'Willi',
+	wilma: 'Wilma',
+	beide: 'Beide',
+	keine: 'Keine',
+};
+
+/** Rezepte aus 114/118/119 als Kacheln, dazu ein eigenes Thema und „schlicht“ als Chips (Entwurf E1 S. 2). */
+export const EINHEIT_AUSSEHEN_WAHL: readonly {
+	wert: (typeof EINHEIT_AUSSEHEN)[number];
+	name: string;
+	rezept: boolean;
+}[] = [
+	{ wert: 'detektiv', name: 'Detektiv', rezept: true },
+	{ wert: 'dschungel', name: 'Dschungel', rezept: true },
+	{ wert: 'zirkus', name: 'Zirkus', rezept: true },
+	{ wert: 'ruhig', name: 'Ruhig', rezept: true },
+	{ wert: 'ecken', name: 'Ecken', rezept: true },
+	{ wert: 'eigen', name: 'Claude gestaltet ein eigenes Thema', rezept: false },
+	{ wert: 'schlicht', name: 'schlicht', rezept: false },
+];
+
+export interface EinheitWahl {
+	ziele: string[];
+	vorwissen: string;
+	dauer: (typeof EINHEIT_DAUER)[number];
+	/** „Anders …“ bei der Dauer; geht vor `dauer`. */
+	dauerText: string;
+	stunden: number;
+	menge: (typeof EINHEIT_MENGE)[number];
+	/** `null`: die Empfehlung. */
+	bestandteile: string[] | null;
+	nochEtwas: string;
+	/** `null`: die Empfehlung (an in Klasse 1 und 2). */
+	rahmen: boolean | null;
+	idee: string;
+	leitfigur: (typeof EINHEIT_LEITFIGUR)[number];
+	aussehen: (typeof EINHEIT_AUSSEHEN)[number];
+	bilder: boolean;
+}
+
+export const leereEinheit = (): EinheitWahl => ({
+	ziele: [],
+	vorwissen: '',
+	dauer: '2 Wochen',
+	dauerText: '',
+	stunden: 4,
+	menge: 'claude',
+	bestandteile: null,
+	nochEtwas: '',
+	rahmen: null,
+	idee: '',
+	leitfigur: 'beide',
+	aussehen: 'eigen',
+	bilder: true,
+});
+
+export const EINHEIT_FELDER = {
+	vorwissen: {
+		name: 'Vorwissen der Klasse',
+		platz: 'z. B. Zahlen bis 12 sicher, Uhr noch neu',
+		zeichen: EINHEIT_ZEICHEN.frei,
+	},
+	dauerText: { name: 'Anders …', platz: 'z. B. 5 Wochen, je 2 Stunden', zeichen: 60 },
+	nochEtwas: { name: 'Noch etwas …', platz: 'z. B. ein Elternbrief', zeichen: EINHEIT_ZEICHEN.frei },
+	idee: { name: 'Idee', platz: 'z. B. Detektive lösen Fälle rund um die Uhr', zeichen: EINHEIT_ZEICHEN.idee },
+	ziel: { name: 'Ich-kann-Ziel', platz: 'z. B. Ich kann volle Stunden ablesen.', zeichen: EINHEIT_ZEICHEN.ziel },
+} as const;
+
+export const einheitBestandteile = (e: EinheitWahl): string[] =>
+	e.bestandteile ?? EINHEIT_BESTANDTEILE.filter((b) => b.empfohlen).map((b) => b.name);
+
+/** Rezept mit Namen, sonst „eigenes Thema“ oder „schlicht“. */
+const aussehenName = (wert: EinheitWahl['aussehen']) => {
+	const w = EINHEIT_AUSSEHEN_WAHL.find((x) => x.wert === wert);
+	if (w?.rezept) {
+		return w.name;
+	}
+	return wert === 'eigen' ? 'eigenes Thema' : 'schlicht';
+};
+
+export const einheitRahmen = (e: EinheitWahl, klasse: Klasse) => e.rahmen ?? (klasse === 1 || klasse === 2);
+
 export interface Antworten {
 	weg: Weg;
 	art: Art;
@@ -165,6 +277,9 @@ export interface Antworten {
 	lerngruppe: Lerngruppe[];
 	sonst: string;
 	titel: string;
+	/** Materialart „Unterrichtseinheit“ (140): ein Ordner statt eines Blatts, nur mit Claude. */
+	einheit: boolean;
+	eh: EinheitWahl;
 }
 
 export const leereAntworten = (vorbelegt: { fach: Fach; klasse: Klasse }): Antworten => ({
@@ -186,6 +301,8 @@ export const leereAntworten = (vorbelegt: { fach: Fach; klasse: Klasse }): Antwo
 	lerngruppe: [],
 	sonst: '',
 	titel: '',
+	einheit: false,
+	eh: leereEinheit(),
 });
 
 const voll = (text: string) => text.trim() !== '';
@@ -293,8 +410,23 @@ export const funktionEmpfehlung = (art: Art): Funktion =>
 
 // ——— Schritte ———
 
-export type AssistentSchrittId =
-	'start' | 'art' | 'format' | 'fuerWen' | 'thema' | 'bausteine' | 'klasse' | 'titel' | 'pruefen';
+export const SCHRITT_IDS = [
+	'start',
+	'art',
+	'format',
+	'fuerWen',
+	'thema',
+	'eThema',
+	'eUmfang',
+	'eBestandteile',
+	'eRahmen',
+	'bausteine',
+	'klasse',
+	'titel',
+	'pruefen',
+] as const;
+
+export type AssistentSchrittId = (typeof SCHRITT_IDS)[number];
 
 export interface AssistentSchritt {
 	id: AssistentSchrittId;
@@ -303,6 +435,8 @@ export interface AssistentSchritt {
 	frage: (a: Antworten) => string;
 	hilfe: (a: Antworten) => string;
 	wege: readonly Weg[];
+	/** `nur`: nur bei der Unterrichtseinheit; `ohne`: nicht bei ihr (140). */
+	einheit?: 'nur' | 'ohne';
 	/** Darf übersprungen werden (A1 S. 8). */
 	optional?: boolean;
 	/** `false`: Der Schritt fällt weg und verschwindet aus der Schrittleiste (A1 S. 4). */
@@ -352,7 +486,7 @@ export const ASSISTENT_SCHRITTE: readonly AssistentSchritt[] = [
 				? 'Davon hängt ab, welcher Skill das Blatt baut und welche Fragen noch kommen.'
 				: 'Davon hängt ab, welche Formate passen.',
 		wege: WEGE,
-		antwort: artName,
+		antwort: (a) => (a.einheit ? 'Unterrichtseinheit' : artName(a)),
 	},
 	{
 		id: 'format',
@@ -367,6 +501,7 @@ export const ASSISTENT_SCHRITTE: readonly AssistentSchritt[] = [
 				: `Für ${ART_AKKUSATIV[a.art]} passen diese ${zahl}.${rest}`;
 		},
 		wege: WEGE,
+		einheit: 'ohne',
 		gilt: (a) => !ART_ANGABEN[a.art].nichtFragen && formatOptionen(a).length + (formatFrei(a) ? 1 : 0) > 1,
 		antwort: (a) => (formatTextWirksam(a) ? `Anders: ${formatTextWirksam(a)}` : formatWahl(a).name),
 	},
@@ -384,8 +519,49 @@ export const ASSISTENT_SCHRITTE: readonly AssistentSchritt[] = [
 		frage: () => 'Worum geht es?',
 		hilfe: () => 'Ein paar Wörter reichen. Claude ergänzt, was fehlt, und nennt es danach.',
 		wege: ['claude'],
+		einheit: 'ohne',
 		antwort: (a) => (voll(a.thema) ? `${a.thema.trim()} · ${funktionName(a)}` : ''),
 		fehlt: (a) => (voll(a.thema) ? null : 'Bitte schreib, worum es geht.'),
+	},
+	{
+		id: 'eThema',
+		name: 'Thema und Ziele',
+		frage: () => 'Worum geht es in der Einheit?',
+		hilfe: () => 'Das Thema reicht. Ziele und Vorwissen helfen Claude, die Reihe zu planen.',
+		wege: ['claude'],
+		einheit: 'nur',
+		antwort: (a) => (voll(a.thema) ? a.thema.trim() : ''),
+		fehlt: (a) => (voll(a.thema) ? null : 'Bitte schreib, worum es geht.'),
+	},
+	{
+		id: 'eUmfang',
+		name: 'Umfang',
+		frage: () => 'Wie lang ist die Einheit?',
+		hilfe: () => 'Daraus plant Claude, wie viele Materialien es braucht.',
+		wege: ['claude'],
+		einheit: 'nur',
+		antwort: (a) =>
+			`${voll(a.eh.dauerText) ? a.eh.dauerText.trim() : a.eh.dauer} · ${EINHEIT_MENGE_NAME[a.eh.menge]}`,
+	},
+	{
+		id: 'eBestandteile',
+		name: 'Bestandteile',
+		frage: () => 'Was gehört zur Einheit?',
+		hilfe: () =>
+			'Vorgewählt ist, was eine Reihe meist braucht. Claude legt je Bestandteil ein oder mehrere Materialien an.',
+		wege: ['claude'],
+		einheit: 'nur',
+		antwort: (a) => `${einheitBestandteile(a.eh).length + (voll(a.eh.nochEtwas) ? 1 : 0)} Bestandteile`,
+	},
+	{
+		id: 'eRahmen',
+		name: 'Rahmen und Aussehen',
+		frage: () => 'Rahmen und Aussehen',
+		hilfe: () => 'Eine Geschichte und ein Aussehen halten die Materialien zusammen.',
+		wege: ['claude'],
+		einheit: 'nur',
+		antwort: (a) =>
+			[einheitRahmen(a.eh, a.klasse) ? 'mit Rahmen' : 'ohne Rahmen', aussehenName(a.eh.aussehen)].join(' · '),
 	},
 	{
 		id: 'bausteine',
@@ -393,7 +569,7 @@ export const ASSISTENT_SCHRITTE: readonly AssistentSchritt[] = [
 		frage: () => 'Was soll mit aufs Blatt?',
 		hilfe: () => 'Vorgewählt ist die Empfehlung aus dem Skill.',
 		wege: ['claude'],
-		gilt: (a) => bausteineGefragt(a.art),
+		gilt: (a) => a.einheit || bausteineGefragt(a.art),
 		antwort: (a) => {
 			const an = bausteinSchalter(a).filter((s) => s.an);
 			const kurz = an.map((s) => ZUSATZ_BAUSTEINE.find((b) => b.wert === s.wert)?.kurz ?? s.name);
@@ -415,6 +591,7 @@ export const ASSISTENT_SCHRITTE: readonly AssistentSchritt[] = [
 		frage: () => 'Wie soll es heißen?',
 		hilfe: () => 'Den Titel kannst du später im Editor ändern.',
 		wege: ['leer'],
+		einheit: 'ohne',
 		antwort: (a) => a.titel.trim(),
 		fehlt: (a) => (voll(a.titel) ? null : 'Bitte gib einen Titel ein.'),
 	},
@@ -431,7 +608,12 @@ export const ASSISTENT_SCHRITTE: readonly AssistentSchritt[] = [
 
 /** Die Schritte des gewählten Wegs, ohne die, die für die Antworten nicht gelten. */
 export const schritteFuer = (a: Antworten): AssistentSchritt[] =>
-	ASSISTENT_SCHRITTE.filter((s) => s.wege.includes(a.weg) && (s.gilt?.(a) ?? true));
+	ASSISTENT_SCHRITTE.filter(
+		(s) =>
+			s.wege.includes(a.weg) &&
+			(s.einheit === undefined || (s.einheit === 'nur') === (a.einheit && a.weg === 'claude')) &&
+			(s.gilt?.(a) ?? true),
+	);
 
 /** Titel eines leeren Blatts, bis die Lehrkraft einen schreibt (132). */
 const NEU_TITEL: Record<Art, string> = {
@@ -562,6 +744,37 @@ export const auftragAus = (a: Antworten): string =>
 		.map((s) => s.map(teilText).join(''))
 		.join('\n');
 
+/** Was der Assistent an `POST /api/einheiten` schickt; der Server prüft es mit `pruefeEinheitAngaben`. */
+export const einheitAngabenAus = (a: Antworten): EinheitAngaben => {
+	const schalter = bausteinSchalter({ art: 'arbeitsblatt', bausteine: a.bausteine });
+	const an = (wert: BausteinName) => schalter.find((s) => s.wert === wert)?.an ?? false;
+	return {
+		titel: a.titel.trim(),
+		fach: a.fach,
+		klasse: a.klasse,
+		thema: a.thema.trim(),
+		ziele: a.eh.ziele.map((z) => z.trim()).filter(voll),
+		vorwissen: a.eh.vorwissen.trim(),
+		dauer: voll(a.eh.dauerText) ? a.eh.dauerText.trim() : a.eh.dauer,
+		stundenJeWoche: a.eh.stunden,
+		menge: a.eh.menge,
+		bestandteile: einheitBestandteile(a.eh),
+		nochEtwas: a.eh.nochEtwas.trim(),
+		rahmen: einheitRahmen(a.eh, a.klasse),
+		idee: a.eh.idee.trim(),
+		leitfigur: a.eh.leitfigur,
+		aussehen: a.eh.aussehen,
+		bilder: a.eh.bilder,
+		bausteine: {
+			selbsteinschaetzung: an('selbsteinschaetzung'),
+			niveaus: an('niveaus'),
+			sternchen: an('sternchen'),
+		},
+		lerngruppe: LERNGRUPPE.filter((l) => a.lerngruppe.includes(l.wert)).map((l) => l.satz),
+		klasseText: a.sonst.trim(),
+	};
+};
+
 // ——— Prüfen (Server) ———
 
 const AUFTRAG_FELDER = Object.keys(leereAntworten({ fach: 'deutsch', klasse: 1 }));
@@ -669,6 +882,9 @@ export const pruefeAntworten = (roh: unknown, vorbelegt: { fach: Fach; klasse: K
 		lerngruppe: [...new Set(lerngruppe.map((l: unknown) => eins('lerngruppe', l, gruppen)))],
 		sonst: pruefeText(r, 'sonst'),
 		titel: pruefeText(r, 'titel'),
+		// Eine Einheit geht an `/api/einheiten`; ein einzelnes Blatt nimmt sie nicht mit.
+		einheit: false,
+		eh: leereEinheit(),
 	};
 };
 

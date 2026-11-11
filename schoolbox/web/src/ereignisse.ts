@@ -8,6 +8,7 @@ const SERVER_TYPEN = [
 	'pdf-fertig',
 	'ki-stand',
 	'ordner-geaendert',
+	'einheit-stand',
 ] as const;
 
 /** `verbunden`: Die Verbindung steht (wieder), z. B. nach dem Aufwachen des iPads. Es kann etwas verpasst worden sein. */
@@ -20,7 +21,7 @@ export interface Ereignis {
 	/** Bei `dokument-geaendert`: Kennung des neuen Inhalts und wer ihn geschrieben hat (`null`: nur meta.json). */
 	version?: string;
 	urheber?: 'claude' | 'lehrkraft' | null;
-	/** Bei `ki-stand`: der Auftrag, der sich geändert hat. */
+	/** Bei `ki-stand`: der Auftrag, der sich geändert hat; bei `einheit-stand`: die Einheit. */
 	id?: string;
 	/** Bei `ordner-geaendert`: Stand des Baums. */
 	rev?: number;

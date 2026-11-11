@@ -196,8 +196,8 @@ const ABSCHNITTE: Abschnitt[] = [
 					nebeneinander. Tippe einen an, um ihn groß zu sehen.
 				</li>
 				<li>
-					Ausgewählt wird im Chat: Schreib Claude, welcher es werden soll und was anders sein soll, etwa „B,
-					aber mit größerer Schrift“.
+					Ausgewählt wird in der Claude-App: Schreib Claude, welcher es werden soll und was anders sein soll,
+					etwa „B, aber mit größerer Schrift“.
 				</li>
 			</ul>
 		),
@@ -438,11 +438,29 @@ const ABSCHNITTE: Abschnitt[] = [
 					baut Claude nicht ein. Rutscht so etwas doch in einen Lauf, entsteht kein Vorschlag, in der Blase
 					steht der Grund, und dein Blatt bleibt, wie es ist.
 				</p>
+				<h3>Unterrichtseinheit mit Claude</h3>
+				<p>
+					Unter „Material anlegen“, „Mit Claude“ gibt es als Materialart „Unterrichtseinheit“: einen neuen
+					Ordner mit mehreren Materialien zu einem Thema. Du nennst das Thema, alles andere ist vorgewählt und
+					mit ⏎ übernommen: Dauer, Bestandteile, Rahmengeschichte, Leitfigur, Aussehen und neue Bilder aus
+					Canva.
+				</p>
+				<p>
+					Eine Einheit dauert etwa 10 bis 30 Minuten und verbraucht viel von deinem Limit; vor dem Start
+					steht, wie viel schon verbraucht ist. Der neue Ordner öffnet sofort. Oben zeigt ein Band, wie weit
+					Claude ist, jedes fertige Material kannst du gleich öffnen. Im Kopf jeder Seite steht „Einheit: 3
+					von 12“, ein Tipp darauf führt zum Ordner. Es läuft immer nur eine Einheit.
+				</p>
+				<p>
+					„Abbrechen“ hält an, alles Fertige bleibt. Dann, oder wenn das Limit erreicht ist, steht im Band
+					„Weiterbauen“: Claude baut nur, was noch fehlt. „Verwerfen“ legt den ganzen Ordner in den
+					Papierkorb, von dort holst du ihn zurück.
+				</p>
 				<h3>Was weiter die Claude-App braucht</h3>
 				<p>
-					Neue Bilder, ganze Reihen, mehrere Dokumente auf einmal. Für einen bestimmten Teil in der Blase
-					unter ⋯ „In der Claude-App weiterarbeiten“, in der App einfügen und den Wunsch dahinterschreiben.
-					Die zwei eingefügten Zeilen gehören so; die zweite ist für Claude.
+					Neue Bilder für ein einzelnes Blatt und Reihen, die du im Gespräch planen willst. Für einen
+					bestimmten Teil in der Blase unter ⋯ „In der Claude-App weiterarbeiten“, in der App einfügen und den
+					Wunsch dahinterschreiben. Die zwei eingefügten Zeilen gehören so; die zweite ist für Claude.
 				</p>
 				<h3>Verbrauch</h3>
 				<p>
@@ -461,6 +479,11 @@ const ABSCHNITTE: Abschnitt[] = [
 				geraet: 'Mac',
 			},
 			{ datei: 'entwurf-mac.jpg', alt: 'Der Entwurf von Claude mit der Leiste über dem Blatt', geraet: 'Mac' },
+			{
+				datei: 'einheit-mac.jpg',
+				alt: 'Ein Ordner, in dem Claude eine Einheit baut: oben das Band, darunter ein fertiges Material',
+				geraet: 'Mac',
+			},
 		],
 	},
 	{

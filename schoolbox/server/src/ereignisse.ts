@@ -18,7 +18,11 @@ type KiEreignis = { typ: 'ki-stand'; daten: { mappe: string; dok: string; id: st
 /** Der Ordnerbaum hat sich geändert (079). Der eigene Tab vergleicht `rev`, sonst spränge ein Stand zurück. */
 type OrdnerEreignis = { typ: 'ordner-geaendert'; daten: { rev: number } };
 
-export type Ereignis = DokumentEreignis | KiEreignis | MappeEreignis | OrdnerEreignis | PdfEreignis | VorschauEreignis;
+/** Eine Unterrichtseinheit (139): Die Oberfläche holt den Stand selbst. */
+type EinheitEreignis = { typ: 'einheit-stand'; daten: { id: string; ordner: string } };
+
+export type Ereignis =
+	DokumentEreignis | EinheitEreignis | KiEreignis | MappeEreignis | OrdnerEreignis | PdfEreignis | VorschauEreignis;
 
 export type Hoerer = (ereignis: Ereignis) => void;
 

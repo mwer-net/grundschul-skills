@@ -8,6 +8,8 @@ import type { Begrenzung } from './begrenzung';
 import { erstelleBegrenzung } from './begrenzung';
 import type { Bremse } from './bremse';
 import { erstelleBremse } from './bremse';
+import type { Einheiten } from './einheit';
+import { erstelleEinheiten } from './einheit';
 import type { Ereignisse } from './ereignisse';
 import { erstelleEreignisse } from './ereignisse';
 import type { Ki, KiPruefer } from './ki';
@@ -37,6 +39,7 @@ export interface Kontext {
 	vorschau: Vorschau;
 	pdf: Pdf;
 	ki: Ki;
+	einheiten: Einheiten;
 	ordner: OrdnerSpeicher;
 	version: string;
 }
@@ -60,7 +63,8 @@ export const erstelleKontext = (konfig: ServerKonfig, version: string, bauer: Ba
 	const sperre = erstelleSperre();
 	const begrenzung: Begrenzung = erstelleBegrenzung(GLEICHZEITIGE_BAUTEN);
 	const { materialDir } = konfig;
-	return {
+	const pruefer: KiPruefer = bauer.kiPruefer ?? ((dokDir, html) => pruefeFassung(konfig, dokDir, html));
+	const kontext: Omit<Kontext, 'einheiten'> & Partial<Pick<Kontext, 'einheiten'>> = {
 		konfig,
 		ereignisse,
 		sperre,
@@ -78,11 +82,14 @@ export const erstelleKontext = (konfig: ServerKonfig, version: string, bauer: Ba
 		ki: erstelleKi({
 			konfig,
 			ereignisse,
-			pruefer: bauer.kiPruefer ?? ((dokDir, html) => pruefeFassung(konfig, dokDir, html)),
+			pruefer,
 		}),
 		ordner: erstelleOrdnerSpeicher(materialDir, sperre, ereignisse),
 		version,
 	};
+	// Die Einheiten brauchen den fertigen Kontext (Ordner, Sperre, Quelle schreiben).
+	kontext.einheiten = erstelleEinheiten(kontext as Kontext, pruefer);
+	return kontext as Kontext;
 };
 
 /** Schlüssel der Sperre für `_freigaben.json`; kann mit keiner Dokument-ID kollidieren. */

@@ -228,11 +228,14 @@ const BezugKnopf = ({ bezug, ...rest }: { bezug: string } & ComponentProps<'butt
 const Kopf = ({
 	bezug,
 	einklappen,
+	feld,
 	mehr,
 	schliessen,
 	stufen,
 }: {
 	bezug: string;
+	/** Nach der Wahl einer Stufe geht es im Feld weiter, nicht am Knopf der Stufe (Safari). */
+	feld: RefObject<HTMLTextAreaElement | null>;
 	stufen: MenueEintrag[] | null;
 	mehr: MenueEintrag[];
 	einklappen: () => void;
@@ -249,6 +252,7 @@ const Kopf = ({
 				name="Worauf bezieht sich der Auftrag?"
 				eintraege={stufen}
 				ausloeser={<BezugKnopf bezug={bezug} />}
+				fokusDanach={feld}
 			/>
 		) : (
 			<span className={CHIP} data-claude-bezug>
@@ -671,6 +675,7 @@ const Blase = ({ adresse, claude, darstellung, e, f, jetzt, nr, seiten }: Blasen
 				/>
 				<Kopf
 					bezug={bezug(f)}
+					feld={feld}
 					stufen={stufen}
 					mehr={mehr}
 					einklappen={claude.einklappen}

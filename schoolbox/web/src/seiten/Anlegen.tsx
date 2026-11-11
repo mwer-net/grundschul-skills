@@ -1,15 +1,17 @@
-import type { Antworten, AssistentSchrittId, FreitextFeld, Weg } from '@schoolbox/kern/src/assistent';
-import { formatWahl, FREITEXT, leereAntworten, schritteFuer } from '@schoolbox/kern/src/assistent';
+import type { Antworten, AssistentSchrittId, EinheitWahl, FreitextFeld, Weg } from '@schoolbox/kern/src/assistent';
+import { einheitAngabenAus, formatWahl, FREITEXT, leereAntworten, schritteFuer } from '@schoolbox/kern/src/assistent';
 import type { Art } from '@schoolbox/kern/src/werte';
 import type { ReactNode } from 'react';
 import { useEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 
-import { meldung } from '../api';
+import { meldung, sende } from '../api';
 import { Dialog } from '../bausteine/Dialog';
+import { useHinweis } from '../bausteine/hinweis';
 import { Knopf } from '../bausteine/Knopf';
 import { Symbol } from '../bausteine/Symbol';
 import { limitHinweis, neueGespraechId, useKiZustand } from '../editor/ki';
+import { useEinheiten } from '../ordner/einheiten';
 import { useAblage } from '../ordner/kontext';
 import { ersterSchritt, LETZTE, mitWeg, ortDesAssistenten, wirksameAntworten } from './anlegen-hilfe';
 import type { AuftragText } from './AnlegenSchritte';
@@ -26,6 +28,13 @@ import {
 	SchrittThema,
 	SchrittTitel,
 } from './AnlegenSchritte';
+import {
+	SchrittEBestandteile,
+	SchrittERahmen,
+	SchrittEThema,
+	SchrittEUmfang,
+	SchrittPruefenEinheit,
+} from './EinheitSchritte';
 import { legeMaterialAn } from './material-anlegen';
 
 interface MaterialDialogEigenschaften {
@@ -43,9 +52,9 @@ const mitThema = (basis: Antworten, thema: string): Antworten =>
 const istTextfeld = (ziel: EventTarget | null) =>
 	ziel instanceof HTMLInputElement || ziel instanceof HTMLTextAreaElement || ziel instanceof HTMLSelectElement;
 
-const hauptText = (schritt: AssistentSchrittId) => {
+const hauptText = (schritt: AssistentSchrittId, einheit: boolean) => {
 	if (schritt === 'pruefen') {
-		return 'Mit Claude erstellen';
+		return einheit ? 'Einheit mit Claude erstellen' : 'Mit Claude erstellen';
 	}
 	return schritt === 'titel' ? 'Leeres Blatt anlegen' : 'Weiter';
 };
@@ -54,19 +63,21 @@ const hauptText = (schritt: AssistentSchrittId) => {
 const Ausweg = ({
 	anlegenLeer,
 	doch,
+	einheit,
 	laeuft,
 	schliessen,
 	schritt,
 	zumLeerenBlatt,
 }: {
 	schritt: AssistentSchrittId;
+	einheit: boolean;
 	doch: boolean;
 	laeuft: boolean;
 	anlegenLeer: () => void;
 	zumLeerenBlatt: () => void;
 	schliessen: () => void;
 }) => {
-	if (schritt === 'pruefen') {
+	if (schritt === 'pruefen' && !einheit) {
 		return (
 			<Knopf art="leise" disabled={laeuft} onClick={anlegenLeer}>
 				<Symbol name="blatt" />
@@ -74,7 +85,7 @@ const Ausweg = ({
 			</Knopf>
 		);
 	}
-	if (doch) {
+	if (doch && !einheit) {
 		return (
 			<Knopf art="leise" onClick={zumLeerenBlatt}>
 				<Symbol name="blatt" />
@@ -93,6 +104,7 @@ const Ausweg = ({
 const Fuss = ({
 	anlegenLeer,
 	claude,
+	einheit,
 	gesperrt,
 	index,
 	laeuft,
@@ -105,6 +117,7 @@ const Fuss = ({
 	schritt: { id: AssistentSchrittId; optional?: boolean };
 	index: number;
 	claude: boolean;
+	einheit: boolean;
 	laeuft: boolean;
 	/** Die Hauptaktion geht gerade nicht: am Limit, oder es ist noch offen, ob es Claude gibt. */
 	gesperrt: boolean;
@@ -118,6 +131,7 @@ const Fuss = ({
 		<Ausweg
 			schritt={schritt.id}
 			doch={claude && index > 0}
+			einheit={einheit}
 			laeuft={laeuft}
 			anlegenLeer={anlegenLeer}
 			zumLeerenBlatt={zumLeerenBlatt}
@@ -136,7 +150,7 @@ const Fuss = ({
 		)}
 		<Knopf data-hauptaktion disabled={laeuft || gesperrt} onClick={weiter}>
 			{schritt.id === 'pruefen' && <Symbol name="funken" />}
-			{hauptText(schritt.id)}
+			{hauptText(schritt.id, einheit)}
 			<kbd aria-hidden="true" className="ml-1 text-xs opacity-75">
 				⏎
 			</kbd>
@@ -157,6 +171,9 @@ export const MaterialDialog = ({
 	const { stand } = useAblage();
 	const { angabe: ordnerAngabe, ordner, vorbelegt } = ortDesAssistenten(stand, festerOrdner);
 	const ki = useKiZustand();
+	const { einheiten } = useEinheiten();
+	const zeige = useHinweis();
+	const laeuftSchon = einheiten.find((e) => e.status === 'laeuft')?.titel ?? null;
 	const hinweis = limitHinweis(ki.zustand.limit, ki.zustand.warnAb);
 	const gesperrt = hinweis?.art === 'gesperrt';
 	const navigate = useNavigate();
@@ -196,6 +213,10 @@ export const MaterialDialog = ({
 			setze({ [feld]: '' });
 		}
 	};
+	const setzeEh = (teil: Partial<EinheitWahl>) => {
+		setAntworten((a) => ({ ...a, eh: { ...a.eh, ...teil } }));
+		jetzt.current = { ...jetzt.current, eh: { ...jetzt.current.eh, ...teil } };
+	};
 	const setzeTitel = (titel: string) => {
 		setTitelEigen(true);
 		setze({ titel });
@@ -224,6 +245,39 @@ export const MaterialDialog = ({
 			w?.querySelector<HTMLElement>('[data-hauptaktion]');
 		ziel?.focus();
 	}, [schritt, ki.geladen]);
+
+	/** Die Einheit: Der Server legt Ordner und Behälter an und startet den Lauf; danach öffnet der Ordner (140). */
+	const starteEinheit = async () => {
+		const a = jetzt.current;
+		const offenerSchritt = schritteFuer(a).find((s) => s.fehlt?.(a));
+		if (offenerSchritt) {
+			gehe(offenerSchritt.id);
+			setFehler(offenerSchritt.fehlt?.(a) ?? null);
+			return;
+		}
+		if (text !== null && text.wert.trim() === '') {
+			setFehler('Der Auftrag ist leer.');
+			return;
+		}
+		setLaeuft(true);
+		setFehler(null);
+		try {
+			localStorage.setItem(LETZTE, JSON.stringify({ fach: a.fach, klasse: a.klasse }));
+			const neu = await sende<{ id: string; ordner: string; warnung: string | null }>('/api/einheiten', {
+				angaben: einheitAngabenAus(a),
+				ordner,
+				...(text === null ? {} : { auftragText: text.wert }),
+			});
+			schliessen();
+			void navigate(`/o/${neu.ordner}`);
+			if (neu.warnung) {
+				zeige({ text: neu.warnung });
+			}
+		} catch (grund) {
+			setFehler(meldung(grund));
+			setLaeuft(false);
+		}
+	};
 
 	const anlegen = async (mitClaude: boolean) => {
 		const a = jetzt.current;
@@ -282,7 +336,11 @@ export const MaterialDialog = ({
 			return;
 		}
 		if (s.id === 'pruefen') {
-			if (!gesperrt) {
+			if (a.einheit) {
+				if (!gesperrt && laeuftSchon === null) {
+					void starteEinheit();
+				}
+			} else if (!gesperrt) {
 				void anlegen(true);
 			}
 			return;
@@ -320,9 +378,14 @@ export const MaterialDialog = ({
 		setAntworten((a) => mitWeg(a, weg));
 		jetzt.current = mitWeg(jetzt.current, weg);
 	};
+	const waehleEinheit = () => {
+		setze({ einheit: true, art: 'arbeitsblatt', format: '', umfang: null, umfangText: '', artText: '' });
+		setOffen((o) => ({ ...o, artText: false }));
+	};
 	const waehleArt = (art: Art) => {
 		const a = jetzt.current;
 		setze({
+			einheit: false,
 			art,
 			format: '',
 			bausteine: {},
@@ -401,6 +464,7 @@ export const MaterialDialog = ({
 				offen={offen.artText === true}
 				setze={setze}
 				waehleArt={waehleArt}
+				waehleEinheit={waehleEinheit}
 				weiter={weiter}
 			/>
 		),
@@ -423,22 +487,52 @@ export const MaterialDialog = ({
 				setzeOffen={(o) => setzeOffen('funktionText', o)}
 			/>
 		),
+		eThema: () => <SchrittEThema a={wirksam} setze={setze} setzeEh={setzeEh} />,
+		eUmfang: () => (
+			<SchrittEUmfang
+				a={wirksam}
+				offen={offen.umfangText === true || wirksam.eh.dauerText !== ''}
+				setzeEh={setzeEh}
+				setzeOffen={(o) => {
+					setOffen((x) => ({ ...x, umfangText: o }));
+					if (!o) {
+						setzeEh({ dauerText: '' });
+					}
+				}}
+			/>
+		),
+		eBestandteile: () => <SchrittEBestandteile a={wirksam} setzeEh={setzeEh} />,
+		eRahmen: () => <SchrittERahmen a={wirksam} setzeEh={setzeEh} />,
 		bausteine: () => <SchrittBausteine a={wirksam} offen={offen} setze={setze} setzeOffen={setzeOffen} />,
 		klasse: () => <SchrittKlasse a={wirksam} setze={setze} />,
 		titel: () => <SchrittTitel a={wirksam} ordner={ordnerAngabe} setze={setze} setzeTitel={setzeTitel} />,
-		pruefen: () => (
-			<SchrittPruefen
-				a={wirksam}
-				ordner={ordnerAngabe}
-				text={text}
-				setzeText={setText}
-				setzeTitel={setzeTitel}
-				titelVorschlagen={!titelEigen}
-				hinweis={hinweis}
-				gesperrt={gesperrt}
-				pruefeLimit={ki.pruefeLimit}
-			/>
-		),
+		pruefen: () =>
+			wirksam.einheit ? (
+				<SchrittPruefenEinheit
+					a={wirksam}
+					ordner={ordnerAngabe}
+					text={text}
+					setzeText={setText}
+					setzeTitel={setzeTitel}
+					titelVorschlagen={!titelEigen}
+					hinweis={hinweis}
+					gesperrt={gesperrt}
+					laeuftSchon={laeuftSchon}
+					pruefeLimit={ki.pruefeLimit}
+				/>
+			) : (
+				<SchrittPruefen
+					a={wirksam}
+					ordner={ordnerAngabe}
+					text={text}
+					setzeText={setText}
+					setzeTitel={setzeTitel}
+					titelVorschlagen={!titelEigen}
+					hinweis={hinweis}
+					gesperrt={gesperrt}
+					pruefeLimit={ki.pruefeLimit}
+				/>
+			),
 	};
 
 	return (
@@ -458,8 +552,12 @@ export const MaterialDialog = ({
 					schritt={aktuell}
 					index={index}
 					claude={wirksam.weg === 'claude'}
+					einheit={wirksam.einheit && wirksam.weg === 'claude'}
 					laeuft={laeuft}
-					gesperrt={(aktuell.id === 'pruefen' && gesperrt) || (aktuell.id === 'start' && !ki.geladen)}
+					gesperrt={
+						(aktuell.id === 'pruefen' && (gesperrt || (wirksam.einheit && laeuftSchon !== null))) ||
+						(aktuell.id === 'start' && !ki.geladen)
+					}
 					anlegenLeer={() => void anlegen(false)}
 					zumLeerenBlatt={zumLeerenBlatt}
 					schliessen={schliessen}

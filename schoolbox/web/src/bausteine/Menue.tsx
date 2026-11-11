@@ -1,5 +1,5 @@
 import { Menu } from '@base-ui/react/menu';
-import type { ReactElement, ReactNode } from 'react';
+import type { ReactElement, ReactNode, RefObject } from 'react';
 import { useCallback, useState } from 'react';
 
 import type { KnopfArt, KnopfGroesse } from './klassen';
@@ -104,6 +104,8 @@ interface Eigenschaften {
 	rechtsbuendig?: boolean;
 	/** Eigener Auslöser statt des Standardknopfs. */
 	ausloeser?: ReactElement<Record<string, unknown>>;
+	/** Wohin der Fokus nach dem Schließen geht; sonst zurück zum Auslöser. */
+	fokusDanach?: RefObject<HTMLElement | null>;
 }
 
 /**
@@ -116,6 +118,7 @@ export const Menue = ({
 	beschriftung,
 	disabled,
 	eintraege,
+	fokusDanach,
 	groesse,
 	name,
 	rechtsbuendig,
@@ -145,6 +148,7 @@ export const Menue = ({
 					collisionPadding={8}
 				>
 					<Menu.Popup
+						finalFocus={fokusDanach}
 						className={klassen(POPUP_KLASSEN, eintraege.some((e) => e.beschreibung) && 'w-80 max-w-[90vw]')}
 					>
 						<MenueEintraege eintraege={eintraege} />

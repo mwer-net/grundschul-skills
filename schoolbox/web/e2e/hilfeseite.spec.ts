@@ -33,7 +33,7 @@ test.describe('Hilfe', () => {
 		await expect(page.locator('[data-abschnitt="teilen"]')).toBeInViewport();
 
 		const bilder = page.locator('main img');
-		await expect(bilder).toHaveCount(15);
+		await expect(bilder).toHaveCount(16);
 		for (const bild of await bilder.all()) {
 			await bild.scrollIntoViewIfNeeded();
 			await expect.poll(() => bild.evaluate((b) => (b as HTMLImageElement).naturalWidth)).toBeGreaterThan(500);
