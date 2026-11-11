@@ -9,7 +9,6 @@ import {
 	setzeBeispiel,
 	setzeLoesung,
 } from '@schoolbox/kern/src/loesungen';
-import type { Zerlegung } from '@schoolbox/kern/src/quelltext';
 import { zerlege } from '@schoolbox/kern/src/quelltext';
 import { useEffect, useMemo, useRef, useState } from 'react';
 
@@ -19,11 +18,8 @@ import { elementZu, pfadZu } from './darstellung';
 import type { Struktur } from './struktur';
 
 interface Optionen {
-	/** Das sichtbare Dokument; die Vorschau gilt nur, wenn es zur aktuellen Quelle (`html`) gehört. */
-	geladen: { doc: Document; html: string } | null;
-	html: string | null;
-	zerlegung: Zerlegung | null;
 	pfad: PfadTeil[];
+	/** Blatt und Zerlegung aus `struktur.gezeigt` (171): Sie bleiben beim Nachladen stehen. */
 	struktur: Struktur;
 	/** Lösungsansicht statt Arbeitsblatt. */
 	loesung: boolean;
@@ -52,9 +48,10 @@ const zeige = (doc: Document, nr: number, wert: string) => {
  * beim Verlassen des Felds bzw. mit ⏎ ein Schritt im Verlauf wird; Antwortlinien ohne Lösung; „Als Beispiel zeigen“
  * für Items. Nur Attribute ändern sich, die Nummern und damit die Auswahl bleiben.
  */
-export const useLoesung = ({ geladen, html, loesung, pfad, rueckgaengig, struktur, zerlegung }: Optionen) => {
+export const useLoesung = ({ loesung, pfad, rueckgaengig, struktur }: Optionen) => {
 	const hinweis = useHinweis();
-	const doc = geladen?.html === html ? geladen.doc : null;
+	const doc = struktur.gezeigt?.doc ?? null;
+	const zerlegung = struktur.gezeigt?.zerlegung ?? null;
 	const gewaehlt = pfad.at(-1);
 	const knoten = gewaehlt ? zerlegung?.knoten[gewaehlt.nr] : undefined;
 
@@ -80,13 +77,16 @@ export const useLoesung = ({ geladen, html, loesung, pfad, rueckgaengig, struktu
 		if (neu.trim() === alt) {
 			return;
 		}
-		struktur.aendereAttribute('Lösung', (q) => {
+		const geschrieben = struktur.aendereAttribute('Lösung', (q) => {
 			const k = zerlege(q).knoten[nr];
 			return k && istAntwort(k) && loesungVon(k) === alt ? setzeLoesung(q, nr, neu) : q;
 		});
 		// Der Entwurf ist jetzt ein Schritt. Bliebe er stehen, lebte er nach Rückgängig wieder auf: Dann gilt dieselbe
-		// Grundlage wie beim Tippen, und das Blatt zeigte die zurückgenommene Lösung.
-		setEntwurf((e) => (e?.basis === `${nr}:${alt}` ? null : e));
+		// Grundlage wie beim Tippen, und das Blatt zeigte die zurückgenommene Lösung. Nimmt das Blatt gerade nichts an
+		// (171), bleibt er stehen.
+		if (geschrieben) {
+			setEntwurf((e) => (e?.basis === `${nr}:${alt}` ? null : e));
+		}
 	};
 
 	const aktuell = useRef({ antwort, gespeichert, wert });

@@ -159,7 +159,6 @@ export const Sprachwerkzeug = ({
 				return e;
 			},
 			uebung,
-			!uebung,
 		);
 		if (ok && unsicher.length > 0) {
 			zeige({

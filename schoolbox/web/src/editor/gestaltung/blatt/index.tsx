@@ -97,8 +97,6 @@ export const BlattGestaltung = ({ doc, quelle, seite, struktur }: Eigenschaften)
 					const neu = rechne(q);
 					return { quelle: neu, nr: auswahl !== null && bleibtNummer(q, neu, auswahl) ? auswahl : null };
 				},
-				false,
-				true,
 			);
 		},
 		zeige: (teil, werte) => zeigeAmTeil(doc, gilt === 'alle' ? null : [index], teil, werte),

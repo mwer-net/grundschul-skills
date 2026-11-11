@@ -20,7 +20,7 @@ export interface GestaltungKontext {
 	/** Das Element im `iframe`. */
 	element: Element;
 	doc: Document;
-	/** Ein Schritt im Verlauf, wie `struktur.fuehreAus`; die Auswahl bleibt bei `ergebnis.nr`. */
+	/** Ein Schritt im Verlauf, wie `struktur.fuehreAus`; mit dem neuen Bild steht die Auswahl auf `ergebnis.nr`. */
 	fuehreAus: (beschreibung: string, rechne: (quelle: string) => StrukturErgebnis) => boolean;
 	/** Nur zum Ansehen, ohne Schritt: setzt die Lage-Variablen am Element im `iframe`. */
 	zeigeLage: (nr: number, teil: LageTeil) => void;
@@ -80,7 +80,7 @@ const bauKontext = ({ doc, pfad, struktur }: Optionen, element: Element): Gestal
 		baustein: gewaehlt.baustein,
 		element,
 		doc,
-		fuehreAus: (beschreibung, rechne) => struktur.fuehreAus(beschreibung, rechne, false, true) !== null,
+		fuehreAus: (beschreibung, rechne) => struktur.fuehreAus(beschreibung, rechne) !== null,
 		zeigeLage: (nr, teil) => {
 			const ziel = elementZu(doc, nr);
 			if (ziel) {

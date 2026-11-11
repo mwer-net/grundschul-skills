@@ -9,8 +9,11 @@ interface Eigenschaften {
 	name: string;
 	wert: number;
 	einheit: string;
-	/** Übernimmt den Wert: ⏎, Tab, Verlassen oder ↑/↓. Ein Schritt im Verlauf. */
-	setze: (wert: number) => void;
+	/**
+	 * Übernimmt den Wert: ⏎, Tab, Verlassen oder ↑/↓. Ein Schritt im Verlauf; `false`, wenn nichts geschrieben wurde
+	 * (171: kurz nach einem Strukturschritt nimmt das Blatt nichts an). Dann steht wieder `wert` im Feld.
+	 */
+	setze: (wert: number) => boolean;
 	/** Nur Anzeige, ohne Schritt, solange getippt wird; `null`: wieder der alte Wert. */
 	zeige?: (wert: number | null) => void;
 	/** Grau und nicht änderbar, z. B. die gemessene Höhe der Schmuckschrift. */
@@ -26,6 +29,10 @@ export const Zahl = ({ aus, einheit, fest, name, setze, titel, wert, zeige }: Ei
 		const n = Number(t.replace(',', '.').replace('−', '-'));
 		return t.trim() === '' || !Number.isFinite(n) ? null : n;
 	};
+	const zurueck = () => {
+		setText(String(wert));
+		zeige?.(null);
+	};
 	const uebernimm = () => {
 		const n = zahl(text);
 		if (n === null || n === wert) {
@@ -35,7 +42,9 @@ export const Zahl = ({ aus, einheit, fest, name, setze, titel, wert, zeige }: Ei
 			}
 			return;
 		}
-		setze(n);
+		if (!setze(n)) {
+			zurueck();
+		}
 	};
 	return (
 		<label
@@ -68,12 +77,13 @@ export const Zahl = ({ aus, einheit, fest, name, setze, titel, wert, zeige }: Ei
 						uebernimm();
 					} else if (e.key === 'Escape') {
 						e.preventDefault();
-						setText(String(wert));
-						zeige?.(null);
+						zurueck();
 					} else if (e.key === 'ArrowUp' || e.key === 'ArrowDown') {
 						e.preventDefault();
 						const schritt = (e.shiftKey ? 10 : 1) * (e.key === 'ArrowUp' ? 1 : -1);
-						setze((zahl(text) ?? wert) + schritt);
+						if (!setze((zahl(text) ?? wert) + schritt)) {
+							zurueck();
+						}
 					}
 				}}
 			/>

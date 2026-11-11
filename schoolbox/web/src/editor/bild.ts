@@ -70,10 +70,8 @@ export interface Groesse {
 export type BildArbeit = 'hochladen' | 'sammlung' | null;
 
 interface Optionen {
-	/** Das sichtbare Dokument; gemessen wird nur, wenn es zur aktuellen Quelle (`html`) gehört. */
-	geladen: { doc: Document; html: string } | null;
-	html: string | null;
 	pfad: PfadTeil[];
+	/** Gemessen wird am gezeigten Blatt (`struktur.gezeigt`, 171): Die Werte bleiben beim Nachladen stehen. */
 	struktur: Struktur;
 	/** `/api/dokumente/<mappe>/<dok>` */
 	adresse: string;
@@ -230,8 +228,8 @@ export const bildInNeuemPlatz =
  * legen zuerst eine Datei auf dem Server an; danach ändert ein Befehl nur `src` (bzw. setzt das Bild
  * an die Stelle des Platzhalters). Jeder Befehl ist ein Schritt im Verlauf.
  */
-export const useBild = ({ adresse, basis, geladen, html, pfad, rueckgaengig, struktur }: Optionen) => {
-	const doc = geladen?.html === html ? geladen.doc : null;
+export const useBild = ({ adresse, basis, pfad, rueckgaengig, struktur }: Optionen) => {
+	const doc = struktur.gezeigt?.doc ?? null;
 	const zeige = useHinweis();
 	const [werte, setWerte] = useState<BildWerte | null>(null);
 	const [arbeit, setArbeit] = useState<BildArbeit>(null);

@@ -3,10 +3,13 @@ import { leseLage, setzeLage } from '@schoolbox/kern/src/gestaltung';
 import { gestaltungArtNach } from '@schoolbox/kern/src/gestaltung-arten';
 import { drehungImBereich } from '@schoolbox/kern/src/gestaltung-inspektor';
 import { nurGleichmaessig, skaliereGruppe } from '@schoolbox/kern/src/gruppen';
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 
 import { Symbol } from '../../../bausteine/Symbol';
 import { Tooltip } from '../../../bausteine/Tooltip';
+import type { Kasten } from '../geste';
+import type { LiveLage } from '../live-lage';
+import { useLiveLage } from '../live-lage';
 import type { InspektorTeile } from './abschnitte';
 import type { GestaltungKontext } from './kontext-ersatz';
 import { Zahl } from './zahl';
@@ -55,6 +58,15 @@ const groesseMitSchloss = (
 	return lage.h === undefined ? { b } : { b, h: neu };
 };
 
+/** 171: Während einer Geste am Element dieselben Werte wie am Zeiger, gerundet wie nach dem Loslassen; sonst `ruhe`. */
+const imLauf = (live: LiveLage | null, nr: number, ruhe: Kasten): Kasten => {
+	if (!live || live.gruppe || live.nr !== nr) {
+		return ruhe;
+	}
+	const { b, drehen, h, x, y } = live.kasten;
+	return { x: Math.round(x), y: Math.round(y), b: Math.round(b), h: Math.round(h), drehen };
+};
+
 export const Position = ({ aktiv, k, quelle }: InspektorTeile) => {
 	// 120: Eine Gruppe mit Bild, Schrift oder gedrehtem Teil skaliert nur gleichmäßig.
 	const groesse =
@@ -63,9 +75,17 @@ export const Position = ({ aktiv, k, quelle }: InspektorTeile) => {
 			: (gestaltungArtNach(k.art)?.groesse ?? 'frei');
 	const [schlossBei, setSchloss] = useState({ nr: k.nr, an: groesse === 'proportional' });
 	const schloss = schlossBei.nr === k.nr ? schlossBei.an : groesse === 'proportional';
-	const lage = leseLage(quelle, k.nr);
+	// `leseLage` zerlegt die ganze Quelle; während einer Geste zeichnet das Feld bei jeder Bewegung neu.
+	const lage = useMemo(() => leseLage(quelle, k.nr), [quelle, k.nr]);
 	const mass = gemessen(k.element);
 	const jetzt = { b: lage.b ?? mass.b, h: lage.h ?? mass.h };
+	const zeigt = imLauf(useLiveLage(), k.nr, {
+		x: Math.round(lage.x ?? 0),
+		y: Math.round(lage.y ?? 0),
+		b: jetzt.b,
+		h: groesse === 'text' ? mass.h : jetzt.h,
+		drehen: lage.drehen ?? 0,
+	});
 	const aus = !aktiv;
 	const zeige = (teil: keyof Lage) => (wert: number | null) =>
 		k.zeigeLage(k.nr, { [teil]: wert ?? lage[teil] ?? null });
@@ -80,7 +100,7 @@ export const Position = ({ aktiv, k, quelle }: InspektorTeile) => {
 					titel="X"
 					name="X-Position"
 					einheit="px"
-					wert={Math.round(lage.x ?? 0)}
+					wert={zeigt.x}
 					aus={aus}
 					zeige={zeige('x')}
 					setze={(x) => schreibe(k, 'Verschoben', { x })}
@@ -89,7 +109,7 @@ export const Position = ({ aktiv, k, quelle }: InspektorTeile) => {
 					titel="Y"
 					name="Y-Position"
 					einheit="px"
-					wert={Math.round(lage.y ?? 0)}
+					wert={zeigt.y}
 					aus={aus}
 					zeige={zeige('y')}
 					setze={(y) => schreibe(k, 'Verschoben', { y })}
@@ -100,7 +120,7 @@ export const Position = ({ aktiv, k, quelle }: InspektorTeile) => {
 					titel="B"
 					name="Breite"
 					einheit="px"
-					wert={jetzt.b}
+					wert={zeigt.b}
 					aus={aus}
 					zeige={schloss && mitSchloss ? undefined : zeige('b')}
 					setze={groesseSetzen('b')}
@@ -125,7 +145,7 @@ export const Position = ({ aktiv, k, quelle }: InspektorTeile) => {
 						titel="H"
 						name="Höhe"
 						einheit="px"
-						wert={groesse === 'text' ? mass.h : jetzt.h}
+						wert={zeigt.h}
 						fest={groesse === 'text'}
 						aus={aus}
 						zeige={schloss && mitSchloss ? undefined : zeige('h')}
@@ -140,12 +160,12 @@ export const Position = ({ aktiv, k, quelle }: InspektorTeile) => {
 						titel="Drehung"
 						name="Drehung"
 						einheit="°"
-						wert={lage.drehen ?? 0}
+						wert={zeigt.drehen}
 						aus={aus}
 						zeige={(wert) => k.zeigeLage(k.nr, { drehen: wert ?? lage.drehen ?? null })}
 						setze={(wert) => {
 							const drehen = drehungImBereich(wert);
-							schreibe(k, 'Gedreht', {
+							return schreibe(k, 'Gedreht', {
 								drehen: drehen === 0 && lage.drehen === undefined ? null : drehen,
 							});
 						}}

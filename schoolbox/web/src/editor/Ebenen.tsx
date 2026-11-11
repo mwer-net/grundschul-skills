@@ -340,25 +340,19 @@ export const Ebenen = ({
 	const aufraeumen = useRef<(() => void) | null>(null);
 	const rollen = useRef(false);
 
-	// Ohne aktuelle Darstellung bleibt die letzte Liste stehen, sonst flackert sie bei jedem Befehl; sie nimmt dann nichts an.
-	const letzte = useRef<GliederungSeite[]>([]);
-	const frisch = useMemo(
-		() => (doc && zerlegung ? gliederungVon(doc, zerlegung, stand.ids) : null),
+	const modell = useMemo<GliederungSeite[]>(
+		() => (doc && zerlegung ? gliederungVon(doc, zerlegung, stand.ids) : []),
 		[doc, zerlegung, stand.ids],
 	);
-	if (frisch) {
-		letzte.current = frisch;
-	}
-	const modell = letzte.current;
-	const aktuell = struktur.aktiv && frisch !== null;
+	const aktuell = struktur.aktiv;
 	const zeilenNr = useMemo(
 		() => new Set(modell.flatMap((s) => [s.nr, ...alleKnoten(s.kinder).map((k) => k.nr)])),
 		[modell],
 	);
-	const aktiveZeile = frisch ? zeileZurAuswahl(zerlegung, auswahl, zeilenNr) : null;
+	const aktiveZeile = zeileZurAuswahl(zerlegung, auswahl, zeilenNr);
 	// 113: Alle Zeilen einer Mehrfachauswahl sind markiert.
 	useMehrfach();
-	const mehrfach = new Set(doc && auswahl !== null && frisch ? nrnFuer(doc, auswahl).slice(1) : []);
+	const mehrfach = new Set(doc && auswahl !== null ? nrnFuer(doc, auswahl).slice(1) : []);
 
 	const neu = useRef({ struktur, modell, zerlegung, stand, aktuell, doc });
 	neu.current = { struktur, modell, zerlegung, stand, aktuell, doc };
@@ -622,7 +616,7 @@ export const Ebenen = ({
 			};
 		}
 		jetzt.stand.eigene.current = { leuchten: true };
-		if (!jetzt.struktur.fuehreAus(beschreibung, rechne, false, true)) {
+		if (!jetzt.struktur.fuehreAus(beschreibung, rechne)) {
 			jetzt.stand.eigene.current = { leuchten: false };
 		}
 	};

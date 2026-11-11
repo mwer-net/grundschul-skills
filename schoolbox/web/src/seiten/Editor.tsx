@@ -1,6 +1,6 @@
 import { formatAusHtml } from '@schoolbox/kern/src/html';
 import { hatLoesung, kannLoesungHaben } from '@schoolbox/kern/src/loesungen';
-import type { Verlauf } from '@schoolbox/kern/src/quelltext';
+import type { Verlauf, Zerlegung } from '@schoolbox/kern/src/quelltext';
 import { zerlege } from '@schoolbox/kern/src/quelltext';
 import { hatNamenszeile } from '@schoolbox/kern/src/struktur';
 import type { Druckprofil, Format } from '@schoolbox/kern/src/werte';
@@ -35,7 +35,7 @@ import { ClaudeSchicht } from '../editor/Blase';
 import type { ClaudeHandlungen } from '../editor/claude-kontext';
 import { ClaudeKontext } from '../editor/claude-kontext';
 import { useClaudeApp } from '../editor/ClaudeApp';
-import { bausteinVon, editorHtml, elementZu, nrVon, pfadZu, zielNachSchritt } from '../editor/darstellung';
+import { bausteinVon, editorHtml, elementZu, nrVon, pfadZu } from '../editor/darstellung';
 import { useEinfuegen, useSlash, useTabelleTab } from '../editor/einfuegen';
 import { EntwurfKarte, EntwurfPille, Entwurfsleiste, SperrHinweis } from '../editor/Entwurf';
 import { zeigeBlattGestaltung } from '../editor/gestaltung/blatt/zeige';
@@ -44,6 +44,8 @@ import { Leiste as GestaltungLeiste } from '../editor/gestaltung/leiste/Leiste';
 import { folgeAuswahl, useMehrfach } from '../editor/gestaltung/mehrfach';
 import { GestaltungUeberlagerung } from '../editor/gestaltung/ueberlagerung';
 import { Werkzeugflaeche } from '../editor/gestaltung/werkzeuge/Werkzeugflaeche';
+import type { Geladen } from '../editor/gezeigt';
+import { zuSehen } from '../editor/gezeigt';
 import { useGliederungStand } from '../editor/gliederung-stand';
 import { halteFokus } from '../editor/halteFokus';
 import { Einstellungen, Inspektor, Umriss } from '../editor/Inspektor';
@@ -176,7 +178,24 @@ const useDarstellung = (
 		() => (zerlegung === null ? null : editorHtml(zerlegung, { basis, loesung, profil })),
 		[zerlegung, basis, loesung, profil],
 	);
-	return { zerlegung, html, mitLoesung, loesung };
+	// Das Bild, das `Leinwand.tsx` fertig meldet, kann eine Fassung älter sein: Zu den letzten drei HTML die Zerlegung.
+	const paare = useRef(new Map<string, Zerlegung>());
+	useEffect(() => {
+		if (html === null || zerlegung === null) {
+			return;
+		}
+		const p = paare.current;
+		p.delete(html);
+		p.set(html, zerlegung);
+		for (const alt of p.keys()) {
+			if (p.size <= 3) {
+				break;
+			}
+			p.delete(alt);
+		}
+	}, [html, zerlegung]);
+	const zerlegungZu = useCallback((h: string) => paare.current.get(h) ?? null, []);
+	return { zerlegung, html, mitLoesung, loesung, zerlegungZu };
 };
 
 /**
@@ -385,7 +404,7 @@ const Bearbeitung = ({ dokument, mappe: mappenDaten }: { mappe: Mappe; dokument:
 	useMehrfach(); // 113: Die weiteren Elemente der Mehrfachauswahl liegen außerhalb von React; neu zeichnen, wenn sie sich ändern
 	const b = useBearbeitung(mappe, dok, auswahlJetzt);
 	const { alles, stand } = b.speicher;
-	const [geladen, setGeladen] = useState<{ doc: Document; html: string } | null>(null);
+	const [geladen, setGeladen] = useState<Geladen | null>(null);
 	const panels = usePanels(suche.get('neu') === '1');
 	const [tastenOffen, setTastenOffen] = useState(false);
 	const [paletteOffen, setPaletteOffen] = useState(false);
@@ -433,7 +452,7 @@ const Bearbeitung = ({ dokument, mappe: mappenDaten }: { mappe: Mappe; dokument:
 	const anzeige = vorschau?.quelle ?? entwurf.zeigt(claude.zeigt ?? quelle);
 	const basis = `/ansicht/${mappe}/dokumente/${dok}/`;
 	const { profil, waehle: waehleProfil } = useAnsichtsProfil({ mappe, token: null }, dok, meta);
-	const { html, loesung, mitLoesung, zerlegung } = useDarstellung(
+	const { html, loesung, mitLoesung, zerlegung, zerlegungZu } = useDarstellung(
 		anzeige,
 		basis,
 		suche.get('fassung') === 'loesung',
@@ -441,7 +460,22 @@ const Bearbeitung = ({ dokument, mappe: mappenDaten }: { mappe: Mappe; dokument:
 		profil,
 	);
 	const pfad = useMemo(() => (geladen && auswahl !== null ? pfadZu(geladen.doc, auswahl) : []), [geladen, auswahl]);
-	const merken = useCallback((d: Document, h: string) => setGeladen({ doc: d, html: h }), []);
+	// Das neue Bild und die Auswahl, die darauf gewartet hat, wechseln im selben Render (`struktur.nachBild`).
+	const nachBild = useRef<(doc: Document, z: Zerlegung, frisch: boolean) => void>(() => undefined);
+	const htmlJetzt = useRef(html);
+	useEffect(() => {
+		htmlJetzt.current = html;
+	}, [html]);
+	const merken = useCallback(
+		(d: Document, h: string) => {
+			const z = zerlegungZu(h);
+			if (z) {
+				setGeladen({ doc: d, html: h, zerlegung: z });
+				nachBild.current(d, z, h === htmlJetzt.current);
+			}
+		},
+		[zerlegungZu],
+	);
 
 	const frei = sperre.frei && claude.zeigt === null;
 	const { nurAnsehen } = sperre;
@@ -497,18 +531,17 @@ const Bearbeitung = ({ dokument, mappe: mappenDaten }: { mappe: Mappe; dokument:
 	}, [beendeText, quelleJetzt]);
 	const zurueck = useCallback(() => {
 		schliesseOffenes();
-		setAuswahl(null);
 		rueckgaengig();
 	}, [rueckgaengig, schliesseOffenes]);
 	const vor = useCallback(() => {
 		schliesseOffenes();
-		setAuswahl(null);
 		wiederholen();
 	}, [schliesseOffenes, wiederholen]);
 
 	const struktur = useStruktur({
 		geladen,
 		html,
+		zerlegung,
 		verlauf: b.verlauf,
 		pfad,
 		setAuswahl,
@@ -518,22 +551,18 @@ const Bearbeitung = ({ dokument, mappe: mappenDaten }: { mappe: Mappe; dokument:
 		frei,
 		bearbeitet: text.bearbeitet,
 	});
+	const sicht = zuSehen(struktur.gezeigt);
+	useEffect(() => {
+		nachBild.current = struktur.nachBild;
+	}, [struktur.nachBild]);
 
-	const gliederungStand = useGliederungStand(zerlegung, auswahl);
+	const gliederungStand = useGliederungStand(sicht.zerlegung, auswahl);
 
-	const bild = useBild({
-		geladen,
-		html,
-		pfad,
-		struktur,
-		adresse: b.adresse,
-		basis,
-		rueckgaengig: zurueck,
-	});
+	const bild = useBild({ pfad, struktur, adresse: b.adresse, basis, rueckgaengig: zurueck });
 
-	const abbildung = useAbbildung({ geladen, html, zerlegung, pfad, struktur, adresse: b.adresse, basis });
+	const abbildung = useAbbildung({ pfad, struktur, adresse: b.adresse, basis });
 
-	const loes = useLoesung({ geladen, html, zerlegung, pfad, struktur, loesung, rueckgaengig: zurueck });
+	const loes = useLoesung({ pfad, struktur, loesung, rueckgaengig: zurueck });
 
 	useAuswahlFolgt(geladen, html, auswahl, pfad, setAuswahl);
 	const { docJetzt, einfuegen, slash, verschiebeUeberlauf } = useEinfuegeWerkzeuge({
@@ -548,18 +577,6 @@ const Bearbeitung = ({ dokument, mappe: mappenDaten }: { mappe: Mappe; dokument:
 		text,
 	});
 	useBildAusFinder({ doc: docJetzt, struktur, bild, einfuegen, folien: format === 'folie' });
-	// Nach dem Schritt ist zu sehen, was er zurückgenommen hat. Die Nummern stimmen erst in der neuen Fassung.
-	const zuletzt = b.verlauf?.zuletzt;
-	const gezeigterSchritt = useRef(zuletzt);
-	useEffect(() => {
-		if (zuletzt && zuletzt !== gezeigterSchritt.current && docJetzt && zerlegung && frei) {
-			gezeigterSchritt.current = zuletzt;
-			const ziel = zielNachSchritt(docJetzt, zerlegung, zuletzt);
-			if (ziel !== null) {
-				struktur.zeigeAn(ziel);
-			}
-		}
-	});
 	useEffect(() => beobachteFelder(window), []);
 
 	const zeigePunkt = useZeigePunkt({ loesung, geladen, html, zeigeAn: struktur.zeigeAn, setSuche });
@@ -880,8 +897,8 @@ const Bearbeitung = ({ dokument, mappe: mappenDaten }: { mappe: Mappe; dokument:
 	const ohneAuswahl = (
 		<Blattwerkzeug
 			aktiv={frei}
-			doc={docJetzt}
-			quelle={quelle}
+			doc={sicht.doc}
+			quelle={sicht.quelle}
 			seite={{ auswahl, sichtbar: seite.nr }}
 			struktur={struktur}
 			ueberlauf={ueberlaufendeSeiten(pruefung.stand)}
@@ -899,10 +916,10 @@ const Bearbeitung = ({ dokument, mappe: mappenDaten }: { mappe: Mappe; dokument:
 			<Inspektor pfad={pfad} waehle={setAuswahl} umriss={setUmriss} blatt={ohneAuswahl} zumBlatt={zumBlatt}>
 				<Einstellungen
 					pfad={pfad}
-					quelle={quelle}
+					quelle={sicht.quelle}
 					format={format}
 					frei={frei}
-					doc={docJetzt}
+					doc={sicht.doc}
 					geladen={geladen}
 					struktur={struktur}
 					ablage={ablage}
@@ -920,8 +937,8 @@ const Bearbeitung = ({ dokument, mappe: mappenDaten }: { mappe: Mappe; dokument:
 	const { kannVor, kannZurueck, vorName, zurueckName } = schritte(b.verlauf, frei, text.zustand.geaendert);
 
 	const schubladenTeile: SchubladenTeile = {
-		doc: docJetzt,
-		zerlegung,
+		doc: sicht.doc,
+		zerlegung: sicht.zerlegung,
 		auswahl,
 		setAuswahl,
 		struktur,
@@ -1106,7 +1123,7 @@ const Bearbeitung = ({ dokument, mappe: mappenDaten }: { mappe: Mappe; dokument:
 													<Bausteinleiste
 														e={e}
 														pfad={pfad}
-														quelle={quelle}
+														quelle={sicht.quelle}
 														format={format}
 														struktur={struktur}
 														befehle={befehle}
@@ -1126,7 +1143,7 @@ const Bearbeitung = ({ dokument, mappe: mappenDaten }: { mappe: Mappe; dokument:
 													<GestaltungLeiste
 														e={e}
 														pfad={pfad}
-														quelle={quelle}
+														quelle={sicht.quelle}
 														struktur={struktur}
 														befehle={befehle}
 														sitzung={text.bearbeitet}

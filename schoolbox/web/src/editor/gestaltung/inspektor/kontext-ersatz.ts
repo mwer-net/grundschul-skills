@@ -48,16 +48,16 @@ const zeigeLageAm = (element: Element, teil: LageTeil) => {
 };
 
 interface Optionen {
-	doc: Document | null;
+	doc: Document;
 	pfad: PfadTeil[];
 	struktur: Pick<Struktur, 'fuehreAus'>;
 }
 
-/** `null`, wenn keine Gestaltung gewählt ist oder das Dokument nicht zur Quelle passt. */
+/** `null`, wenn keine Gestaltung gewählt ist. */
 export const kontextFuerGestaltung = ({ doc, pfad, struktur }: Optionen): GestaltungKontext | null => {
 	const gewaehlt = pfad.at(-1);
-	const element = doc && gewaehlt ? elementZu(doc, gewaehlt.nr) : null;
-	if (!doc || !gewaehlt || !element || !istGestaltungAuswahl(gewaehlt.baustein)) {
+	const element = gewaehlt ? elementZu(doc, gewaehlt.nr) : null;
+	if (!gewaehlt || !element || !istGestaltungAuswahl(gewaehlt.baustein)) {
 		return null;
 	}
 	return {
@@ -66,7 +66,7 @@ export const kontextFuerGestaltung = ({ doc, pfad, struktur }: Optionen): Gestal
 		baustein: gewaehlt.baustein,
 		element,
 		doc,
-		fuehreAus: (beschreibung, rechne) => struktur.fuehreAus(beschreibung, rechne, false, true) !== null,
+		fuehreAus: (beschreibung, rechne) => struktur.fuehreAus(beschreibung, rechne) !== null,
 		zeigeLage: (nr, teil) => {
 			const ziel = elementZu(doc, nr);
 			if (ziel) {

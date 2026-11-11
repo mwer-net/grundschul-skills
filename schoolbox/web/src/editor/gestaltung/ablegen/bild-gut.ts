@@ -97,12 +97,12 @@ export const mitGeholtemBild = (
 	hole: () => Promise<string | null>,
 	zeige: (laeuft: boolean) => void,
 ): AblegenTeile['struktur'] => ({
-	fuehreAus: (beschreibung, rechne, springen, halten) => {
+	fuehreAus: (beschreibung, rechne, springen) => {
 		zeige(true);
 		void hole().then((src) => {
 			zeige(false);
 			if (src) {
-				struktur.fuehreAus(beschreibung, (q) => mitSrc(rechne(q), vorschau, src), springen, halten);
+				struktur.fuehreAus(beschreibung, (q) => mitSrc(rechne(q), vorschau, src), springen);
 			}
 		});
 		return null;

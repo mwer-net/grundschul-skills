@@ -340,16 +340,7 @@ export const Blattwerkzeug = ({
 	const regler = useRef<HTMLInputElement>(null);
 	const reglerId = useId();
 	const setzeAbstand = useRef(struktur.abstand);
-	const farbenJetzt = useMemo(() => palettenFarben(doc), [doc]);
-
-	/**
-	 * Nach jeder Änderung ist kurz nichts zu messen, bis die neue Fassung im `iframe` steht. Dasselbe Dokument bleibt
-	 * offen, also gilt so lange der letzte Stand, und der Reiter wird nicht leer.
-	 */
-	const zuletzt = useRef<{ farben: typeof farbenJetzt; vorgabe: number | null; quelle: string } | null>(null);
-	if (aktiv && wert !== null && quelle) {
-		zuletzt.current = { farben: farbenJetzt, vorgabe: abstandVorgabe, quelle };
-	}
+	const farben = useMemo(() => palettenFarben(doc), [doc]);
 
 	useEffect(() => {
 		setzeAbstand.current = struktur.abstand;
@@ -361,8 +352,7 @@ export const Blattwerkzeug = ({
 		}
 	}, [wert]);
 
-	const stand = zuletzt.current;
-	const zeigt = aktiv && stand !== null;
+	const zeigt = aktiv && wert !== null && quelle !== null;
 
 	useEffect(() => {
 		const element = regler.current;
@@ -377,11 +367,10 @@ export const Blattwerkzeug = ({
 	if (!zeigt) {
 		return loesung ? <div data-blatt>{loesung}</div> : null;
 	}
-	const { farben, vorgabe } = stand;
-	const aktuelleQuelle = quelle ?? stand.quelle;
-	const gesetzt = gesetzterAbstand(aktuelleQuelle) !== null;
+	const vorgabe = abstandVorgabe;
+	const gesetzt = gesetzterAbstand(quelle) !== null;
 	const vorgabeImRegler = vorgabe !== null && vorgabe >= ABSTAND.min && vorgabe <= ABSTAND.max;
-	const w = leseBlatt(aktuelleQuelle);
+	const w = leseBlatt(quelle);
 	const setze = (titel: string, neu: Partial<BlattWerteTyp>) =>
 		struktur.aendereAttribute(`${titel} geändert`, (q) => setzeBlatt(q, neu));
 	return (
@@ -532,7 +521,7 @@ export const Blattwerkzeug = ({
 					{loesung}
 				</Abschnitt>
 			)}
-			<BlattGestaltung doc={doc} quelle={aktuelleQuelle} struktur={struktur} seite={seite} />
+			<BlattGestaltung doc={doc} quelle={quelle} struktur={struktur} seite={seite} />
 		</div>
 	);
 };

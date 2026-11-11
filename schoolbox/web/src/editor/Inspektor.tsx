@@ -298,6 +298,26 @@ const UnsichtbarHinweis = ({
 	);
 };
 
+/** Gestaltung (099) am gezeigten Blatt: Es bleibt beim Nachladen stehen, deshalb fehlt es nur, bevor ein Bild da ist. */
+const Gestaltung = ({
+	bild,
+	doc,
+	pfad,
+	quelle,
+	struktur,
+}: {
+	bild: BildSteuerung;
+	doc: Document | null;
+	pfad: PfadTeil[];
+	quelle: string | null;
+	struktur: Struktur;
+}) =>
+	doc ? (
+		<BildKontext.Provider value={bild}>
+			<Gestaltungsinspektor doc={doc} pfad={pfad} quelle={quelle} struktur={struktur} />
+		</BildKontext.Provider>
+	) : null;
+
 /** Feste Abschnitte in fester Reihenfolge; was leer bleibt, blendet `Abschnitt` aus. */
 export const Einstellungen = ({
 	abb,
@@ -341,9 +361,7 @@ export const Einstellungen = ({
 		return (
 			<div>
 				{hinweise}
-				<BildKontext.Provider value={bild}>
-					<Gestaltungsinspektor doc={doc} pfad={pfad} quelle={quelle} struktur={struktur} />
-				</BildKontext.Provider>
+				<Gestaltung bild={bild} doc={doc} pfad={pfad} quelle={quelle} struktur={struktur} />
 			</div>
 		);
 	}

@@ -98,12 +98,7 @@ export const Inhalt = (t: SchubladenTeile) => {
 					const alt = eintrag.alt[0] ?? beschreibungAus(eintrag.name);
 					return (
 						src &&
-						struktur.fuehreAus(
-							'Bild in den Rahmen',
-							(q) => fuelleBildrahmen(q, rahmen, { src, alt }),
-							false,
-							true,
-						)
+						struktur.fuehreAus('Bild in den Rahmen', (q) => fuelleBildrahmen(q, rahmen, { src, alt }))
 					);
 				});
 	const titel = GRUPPEN.find((g) => g.wert === gruppe)?.titel ?? '';
