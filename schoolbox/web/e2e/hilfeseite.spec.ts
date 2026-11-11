@@ -66,4 +66,16 @@ test.describe('Hilfe', () => {
 		await druecke(page.getByRole('link', { name: 'So geht’s' }));
 		await expect(page).toHaveURL(/\/hilfe$/);
 	});
+
+	// >> 173
+	test('Die Hilfe kennt keine Formen-Schere (173)', async ({ page }) => {
+		await page.goto('/hilfe#gestalten');
+		const gestalten = page.locator('[data-abschnitt="gestalten"]');
+		// Gegenprobe: Der Absatz zum Kombinieren steht da, der Test liest also den richtigen Abschnitt.
+		await expect(gestalten.locator('[data-hilfe-kombinieren]')).toContainText('Vereinen');
+		await expect(page.locator('[data-hilfe-formenschere]')).toHaveCount(0);
+		await expect(gestalten).not.toContainText('Formen-Schere');
+		await expect(gestalten).not.toContainText('⇧M');
+	});
+	// << 173
 });

@@ -1,9 +1,9 @@
 /**
- * Formen kombinieren (121, Briefing 3-formen „Kombinieren und Formen-Schere“, F8): Vereinen, Abziehen, Schnitt,
- * Ausschluss und die Bereiche der Formen-Schere. Rein, ohne DOM. Die Formen werden zu Polygonen in Koordinaten des
- * Elternteils (Lage, Drehung und Spiegelung schon darin), `polyclip-ts` verknüpft sie, und jeder Ring wird mit `glaette`
- * (116) wieder zu Kurven und Ecken. Das Ergebnis ist ein freier Pfad (`data-form="pfad"`) mit dem Aussehen der vordersten
- * Ausgangsform; Löcher stehen als weitere Teilpfade mit `fill-rule:evenodd`.
+ * Formen kombinieren (121, Briefing 3-formen „Kombinieren“, F8): Vereinen, Abziehen, Schnitt und Ausschluss. Rein, ohne
+ * DOM. Die Formen werden zu Polygonen in Koordinaten des Elternteils (Lage, Drehung und Spiegelung schon darin),
+ * `polyclip-ts` verknüpft sie, und jeder Ring wird mit `glaette` (116) wieder zu Kurven und Ecken. Das Ergebnis ist ein
+ * freier Pfad (`data-form="pfad"`) mit dem Aussehen der vordersten Ausgangsform; Löcher stehen als weitere Teilpfade mit
+ * `fill-rule:evenodd`.
  */
 
 import { difference, intersection, union, xor } from 'polyclip-ts';
@@ -13,7 +13,7 @@ import type { Punkt, Zug } from './formen-geometrie';
 import { pfadImRechteck, strichImStil } from './formen-pfad';
 import { htmlMitLage, istGestaltung, leseLage } from './gestaltung';
 import type { Aenderung, Knoten, Zerlegung } from './quelltext';
-import { attribut, einrueckung, entferne, quelleVon, setzeAttribut, wendeAn, zerlege } from './quelltext';
+import { attribut, entferne, quelleVon, setzeAttribut, wendeAn, zerlege } from './quelltext';
 import type { StrukturErgebnis } from './struktur';
 import { bildePfad, inPolygon, liesPfad, ringZuZug, umschliessendesRechteck } from './vektor';
 
@@ -29,9 +29,7 @@ const TOLERANZ = 0.25;
 const GLAETTEN = 0.5;
 /** Kleinere Flächen (px²) sind Splitter und fallen weg. */
 const SPLITTER = 1;
-/** Mehr Formen nimmt die Schere nicht (Bereiche wachsen schnell). */
-export const SCHERE_HOECHSTENS = 8;
-/** Nur für die Dauer einer Rechnung: findet die neuen Pfade wieder. */
+/** Nur für die Dauer einer Rechnung: findet den neuen Pfad wieder. */
 const MARKE = 'data-kombi-schritt';
 /** Attribute der Formen, die keine Parameter sind (107, 104), aber zur alten Form gehören. */
 const ALTE_EXTRAS = ['data-zipfel', 'data-punkte'];
@@ -210,7 +208,7 @@ const nachInnen = (zuege: readonly Zug[], r: number) => {
  * Macht aus dem HTML einer Form (Vorlage für das Aussehen: Füllung, Kontur, Verlauf, Schatten, Deckkraft, Name) einen
  * freien Pfad mit der Fläche `mp`, ohne Drehung und Spiegelung. `null`, wenn die Vorlage keine Form ist.
  */
-const pfadAus = (vorlage: string, mp: MultiPoly, marke: number) => {
+const pfadAus = (vorlage: string, mp: MultiPoly) => {
 	const z = zerlege(vorlage);
 	const k = z.wurzeln[0];
 	const a = k ? formAngaben(k) : null;
@@ -227,7 +225,7 @@ const pfadAus = (vorlage: string, mp: MultiPoly, marke: number) => {
 		...setzeAttributAn(z, k, 'data-form', 'pfad'),
 		...weg.flatMap((attr) => setzeAttributAn(z, k, attr, null)),
 		...setzeAttributAn(z, k, 'viewBox', `0 0 ${r.b} ${r.h}`),
-		...setzeAttributAn(z, k, MARKE, String(marke)),
+		...setzeAttributAn(z, k, MARKE, '1'),
 		...setzeAttributAn(z, a.pfad, 'd', r.d),
 		...setzeAttributAn(z, a.pfad, 'style', stil),
 	];
@@ -240,12 +238,6 @@ const pfadAus = (vorlage: string, mp: MultiPoly, marke: number) => {
 		spiegeln: null,
 	});
 };
-
-interface Ausgang {
-	/** Index der Form (hinten → vorne), deren Aussehen der Pfad bekommt. */
-	vorlage: number;
-	flaeche: MultiPoly;
-}
 
 /** Die Formen in Quellreihenfolge (hinten → vorne); wirft, wenn sie nicht kombiniert werden können. */
 const formenVon = (quelle: string, nrn: readonly number[]) => {
@@ -260,35 +252,28 @@ const formenVon = (quelle: string, nrn: readonly number[]) => {
 		.sort((a, b) => a.start - b.start);
 };
 
-/** Entfernt die Formen und setzt die neuen Pfade an die Stelle der vordersten; `nrn` sind die neuen Pfade. */
-const ersetze = (quelle: string, z: Zerlegung, formen: readonly Knoten[], ausgaenge: readonly Ausgang[]) => {
+/** Entfernt die Formen und setzt an die Stelle der vordersten einen Pfad mit der Fläche `flaeche` und ihrem Aussehen. */
+const ersetze = (
+	quelle: string,
+	z: Zerlegung,
+	formen: readonly Knoten[],
+	flaeche: MultiPoly,
+): StrukturErgebnis | null => {
 	const vorderste = formen.at(-1);
-	if (!vorderste) {
+	const text = vorderste ? pfadAus(quelleVon(z, vorderste), flaeche) : null;
+	if (!vorderste || !text) {
 		return null;
 	}
-	const einzug = einrueckung(z, vorderste);
-	const teile = ausgaenge.flatMap(({ flaeche, vorlage }, i) => {
-		const k = formen[vorlage];
-		const html = k ? pfadAus(quelleVon(z, k), flaeche, i) : null;
-		return html ? [html] : [];
-	});
-	if (teile.length === 0) {
-		return null;
-	}
-	const text = teile.join(einzug === null ? '' : `\n${einzug}`);
 	const neu = wendeAn(quelle, [
 		...formen.slice(0, -1).flatMap((k) => entferne(z, k)),
 		{ von: vorderste.start, bis: vorderste.ende, text },
 	]);
 	const zn = zerlege(neu);
-	const markiert = zn.knoten
-		.filter((k) => attribut(k, MARKE))
-		.sort((a, b) => Number(attribut(a, MARKE)?.wert) - Number(attribut(b, MARKE)?.wert));
-	const ohneMarken = wendeAn(
-		neu,
-		markiert.flatMap((k) => setzeAttribut(zn, k, MARKE, null)),
-	);
-	return { quelle: ohneMarken, nr: markiert[0]?.nr ?? null, nrn: markiert.map((k) => k.nr) };
+	const markiert = zn.knoten.find((k) => attribut(k, MARKE));
+	return {
+		quelle: markiert ? wendeAn(neu, setzeAttribut(zn, markiert, MARKE, null)) : neu,
+		nr: markiert?.nr ?? null,
+	};
 };
 
 /**
@@ -303,83 +288,5 @@ export const kombiniere = (quelle: string, nrn: readonly number[], art: KombiArt
 	if (ergebnis.length === 0) {
 		return null;
 	}
-	const r = ersetze(quelle, zerlege(quelle), formen, [{ vorlage: formen.length - 1, flaeche: ergebnis }]);
-	return r ? { quelle: r.quelle, nr: r.nr } : null;
-};
-
-// ── Formen-Schere ───────────────────────────────────────────────────────────
-
-/** Ein Bereich der Formen-Schere: eine zusammenhängende Fläche, in Koordinaten des Elternteils. */
-export interface Bereich {
-	id: number;
-	flaeche: Poly;
-	/** Die Formen (Index hinten → vorne), in denen der Bereich liegt. */
-	in: readonly number[];
-}
-
-/**
- * Zerlegt die Formen in Bereiche: alle Flächen, die ihre Umrisse bilden. Mit der ersten Form beginnen; für jede weitere
- * Form B wird jeder Bereich R zu `R ∩ B` und `R − B`, dazu kommt `B − (alle bisherigen)`. Leere und Splitter fallen weg,
- * getrennte Stücke werden eigene Bereiche.
- */
-export const bereiche = (quelle: string, nrn: readonly number[]): Bereich[] => {
-	const formen = formenVon(quelle, nrn);
-	const flaechen = formen.map((k) => flaecheVon(quelle, k.nr));
-	let liste: { flaeche: MultiPoly; in: number[] }[] = [];
-	flaechen.forEach((b, i) => {
-		const bisher = flaechen.slice(0, i);
-		const neu = liste.flatMap((r) => [
-			{ flaeche: ohneSplitter(intersection(r.flaeche, b)), in: [...r.in, i] },
-			{ flaeche: ohneSplitter(difference(r.flaeche, b)), in: r.in },
-		]);
-		const rest = bisher.length === 0 ? b : difference(b, union(bisher[0] ?? [], ...bisher.slice(1)));
-		neu.push({ flaeche: ohneSplitter(rest), in: [i] });
-		liste = neu.filter((r) => r.flaeche.length > 0);
-	});
-	return liste.flatMap((r) => r.flaeche.map((flaeche) => ({ flaeche, in: r.in }))).map((r, id) => ({ id, ...r }));
-};
-
-/** Bereit für die Schere: höchstens acht Formen, die sich irgendwo überlappen. Sonst der Grund. */
-export const schereGrund = (quelle: string, nrn: readonly number[]): string | null => {
-	const grund = kombiGrund(quelle, nrn);
-	if (grund) {
-		return grund;
-	}
-	if (new Set(nrn).size > SCHERE_HOECHSTENS) {
-		return `Höchstens ${SCHERE_HOECHSTENS} Formen.`;
-	}
-	return bereiche(quelle, nrn).some((b) => b.in.length > 1) ? null : 'Die Formen überlappen sich nicht.';
-};
-
-/**
- * Ein Zug der Formen-Schere: Die Bereiche `ids` werden zu einer Form vereint (mit `entfernen` fallen sie weg), alle
- * übrigen Bereiche werden einzelne Formen. Jeder Bereich trägt das Aussehen der vordersten Form, in der er liegt.
- * `nrn` sind alle neuen Pfade; `null`, wenn kein Bereich markiert ist oder nichts übrig bliebe.
- */
-export const wendeScherenzugAn = (
-	quelle: string,
-	nrn: readonly number[],
-	ids: readonly number[],
-	entfernen: boolean,
-): (StrukturErgebnis & { nrn: number[] }) | null => {
-	const formen = formenVon(quelle, nrn);
-	const alle = bereiche(quelle, nrn);
-	const markiert = alle.filter((b) => ids.includes(b.id));
-	if (markiert.length === 0) {
-		return null;
-	}
-	const vorderste = (liste: readonly Bereich[]) => Math.max(...liste.flatMap((b) => b.in));
-	const ausgaenge: Ausgang[] = alle
-		.filter((b) => !ids.includes(b.id))
-		.map((b) => ({ vorlage: vorderste([b]), flaeche: [b.flaeche] }));
-	if (!entfernen) {
-		const [erster, ...rest] = markiert.map((b) => b.flaeche);
-		const flaeche = erster ? ohneSplitter(union(erster, ...rest)) : [];
-		ausgaenge.push({ vorlage: vorderste(markiert), flaeche });
-	}
-	if (ausgaenge.length === 0) {
-		return null;
-	}
-	ausgaenge.sort((a, b) => a.vorlage - b.vorlage);
-	return ersetze(quelle, zerlege(quelle), formen, ausgaenge);
+	return ersetze(quelle, zerlege(quelle), formen, ergebnis);
 };

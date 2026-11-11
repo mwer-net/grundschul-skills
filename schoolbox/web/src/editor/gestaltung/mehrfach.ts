@@ -44,8 +44,6 @@ const abonniere = (h: () => void) => {
 /** Der Stand für React: Editor, Ebenen und Überlagerung zeichnen neu, wenn sich `dazu` ändert. */
 export const useMehrfach = () => useSyncExternalStore(abonniere, () => stand);
 
-export const leseMehrfach = () => stand;
-
 /** Setzt Hauptauswahl und weitere Elemente; der Aufrufer wählt danach `haupt` im Editor. */
 export const setzeMehrfach = (haupt: number, dazu: readonly number[]) =>
 	setze({ haupt, dazu: dazu.filter((n) => n !== haupt) });

@@ -5,7 +5,7 @@ import { blattMit, FORM_TEXT } from '../../web/e2e/gestaltung-daten';
 import { formHtml } from './formen';
 import { leseLage } from './gestaltung';
 import type { KombiArt } from './kombinieren';
-import { alsPolygon, bereiche, kombiGrund, kombiniere, liegtIn, schereGrund, wendeScherenzugAn } from './kombinieren';
+import { alsPolygon, kombiGrund, kombiniere, liegtIn } from './kombinieren';
 import { attribut, zerlege } from './quelltext';
 import { ankerVon, liesPfad } from './vektor';
 
@@ -131,41 +131,41 @@ describe('kombiniere (121)', () => {
 	});
 });
 
-describe('Formen-Schere (121)', () => {
-	it('zwei überlappende Kreise ergeben drei Bereiche, drei im Dreieck sieben', () => {
-		const zwei = blatt(kreis(100, 100), kreis(160, 100));
-		assert.equal(bereiche(zwei, formen(zwei)).length, 3);
-		const drei = blatt(kreis(100, 100), kreis(160, 100), kreis(130, 150));
-		assert.equal(bereiche(drei, formen(drei)).length, 7);
+/** Was ein ⌥-Zug der früheren Formen-Schere (121, entfernt in 173) über die Linse zweier Kreise schrieb. */
+const SCHERE_MONDE = [
+	'<svg class="form" data-lage="frei" data-name="Kreis" data-form="pfad" viewBox="0 0 130 160" style="--x:200px;--y:300px;--b:130px;--h:160px"><path d="M128.5 18.89 C89.83 48.18 89.83 111.82 128.5 141.11 C117.29 149.6 105.27 155.58 91.22 157.65 C79.81 159.33 68.11 158.5 57.07 155.18 C-16.58 133.03 -16.58 26.97 57.07 4.82 C68.11 1.5 79.81 0.67 91.22 2.35 C105.27 4.42 117.29 10.4 128.5 18.89 Z" style="fill:#ff0000;stroke:var(--dunkel);stroke-width:3px"/></svg>',
+	'<svg class="form" data-lage="frei" data-name="Rechts" data-form="pfad" viewBox="0 0 130 160" style="--x:330px;--y:300px;--b:130px;--h:160px"><path d="M1.5 18.89 C12.71 10.4 24.73 4.42 38.78 2.35 C50.19 0.67 61.89 1.5 72.93 4.82 C146.58 26.97 146.58 133.03 72.93 155.18 C61.89 158.5 50.19 159.33 38.78 157.65 C24.73 155.58 12.71 149.6 1.5 141.11 C40.17 111.82 40.17 48.18 1.5 18.89 Z" style="fill:var(--akzent);stroke:var(--dunkel);stroke-width:3px"/></svg>',
+];
+
+describe('Bestand: Ergebnis der früheren Formen-Schere (173)', () => {
+	const q = blatt(...SCHERE_MONDE);
+	const poly = (quelle: string, nr: number) =>
+		alsPolygon(quelle, nr).map((ring) => ring.map((p): [number, number] => [p.x, p.y]));
+
+	it('sind gewöhnliche Pfade, die sich kombinieren lassen', () => {
+		assert.equal(pfade(q).length, 2);
+		assert.equal(kombiGrund(q, formen(q)), null);
 	});
 
-	it('nicht bereit ohne Überlappung oder mit mehr als acht Formen', () => {
-		const q = blatt(kreis(100, 100), kreis(400, 100));
-		assert.equal(schereGrund(q, formen(q)), 'Die Formen überlappen sich nicht.');
-		const neun = blatt(...Array.from({ length: 9 }, (_, i) => kreis(100 + i * 10, 100)));
-		assert.equal(schereGrund(neun, formen(neun)), 'Höchstens 8 Formen.');
-		const gut = blatt(kreis(100, 100), kreis(160, 100));
-		assert.equal(schereGrund(gut, formen(gut)), null);
+	it('die Monde liegen links und rechts, die Linse dazwischen ist leer', () => {
+		const [links = -1, rechts = -1] = formen(q);
+		for (const [x, inLinks, inRechts] of [
+			[230, true, false],
+			[430, false, true],
+			[330, false, false],
+		] as const) {
+			assert.equal(liegtIn(poly(q, links), { x, y: 380 }), inLinks, `links bei ${x}`);
+			assert.equal(liegtIn(poly(q, rechts), { x, y: 380 }), inRechts, `rechts bei ${x}`);
+		}
 	});
 
-	it('Ein Zug vereint zwei Bereiche, die übrigen werden einzelne Formen; mit entfernen fehlen sie', () => {
-		const q = blatt(kreis(100, 100), kreis(160, 100));
-		const b = bereiche(q, formen(q));
-		const mitte = b.find((x) => x.in.length === 2);
-		const links = b.find((x) => x.in.length === 1 && x.in[0] === 0);
-		assert.ok(mitte && links);
-		const r = wendeScherenzugAn(q, formen(q), [mitte.id, links.id], false);
-		assert.ok(r);
-		assert.equal(r.nrn.length, 2);
-		assert.equal(formen(r.quelle).length, 2);
-		const weg = wendeScherenzugAn(q, formen(q), [mitte.id, links.id], true);
-		assert.ok(weg);
-		assert.equal(weg.nrn.length, 1);
-		assert.equal(formen(weg.quelle).length, 1);
-	});
-
-	it('ohne markierten Bereich passiert nichts', () => {
-		const q = blatt(kreis(100, 100), kreis(160, 100));
-		assert.equal(wendeScherenzugAn(q, formen(q), [], false), null);
+	it('Vereinen ergibt einen Pfad mit zwei Teilen, evenodd, ohne Marke', () => {
+		const r = kombiniert(q, 'vereinen');
+		// Gegenprobe: Die Quelle ändert sich (zwei Pfade werden einer), der Test sieht also Änderungen.
+		assert.notEqual(r.quelle, q);
+		assert.equal(pfade(r.quelle).length, 1);
+		assert.equal(teilpfade(dVon(r.quelle, r.nr)), 2);
+		assert.match(r.quelle, /fill-rule:evenodd/);
+		assert.doesNotMatch(r.quelle, /data-kombi-schritt/);
 	});
 });

@@ -95,7 +95,6 @@ import {
 	Rows3,
 	Ruler,
 	Scissors,
-	ScissorsLineDashed,
 	Search,
 	Send,
 	Shapes,
@@ -249,12 +248,13 @@ const SYMBOLE = {
 	'pfad': PenTool,
 	// Gruppen
 	'aufloesen': Ungroup,
-	// Kombinieren und Formen-Schere
+	// >> 173
+	// Kombinieren
+	// << 173
 	'vereinen': SquaresUnite,
 	'abziehen': SquaresSubtract,
 	'schnitt': SquaresIntersect,
 	'ausschluss': SquaresExclude,
-	'formenschere': ScissorsLineDashed,
 	// Material anlegen (132)
 	'route': Route,
 	'ziel': Target,

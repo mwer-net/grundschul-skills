@@ -1,9 +1,7 @@
 import type { Einblendung } from '../../Leinwand';
 import type { Struktur } from '../../struktur';
-import { SchereAnzeige } from '../schere-anzeige';
 import { Testfach } from '../Testfach';
 import { imTest } from '../testzugang';
-import { SCHERE } from './schere';
 import { useWerkzeug } from './useWerkzeug';
 
 /**
@@ -27,19 +25,8 @@ export const Werkzeugflaeche = ({
 					className="absolute top-0 touch-none"
 					data-werkzeugflaeche={werkzeug.id}
 					style={{ left: e.links, width: e.breite, height: e.hoehe, cursor: werkzeug.zeiger }}
-					{...(werkzeug.id === SCHERE ? {} : griffe)}
-				>
-					{/* 121: Die Formen-Schere wirkt auf die gewählten Formen und nimmt den Zug selbst. */}
-					{werkzeug.id === SCHERE && (
-						<SchereAnzeige
-							doc={e.doc}
-							skala={e.skala}
-							breite={e.breite}
-							hoehe={e.hoehe}
-							fuehreAus={struktur.fuehreAus}
-						/>
-					)}
-				</div>
+					{...griffe}
+				/>
 			)}
 			{imTest() && <Testfach teile={{ doc: e.doc, struktur, folien }} />}
 		</>

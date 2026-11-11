@@ -3,7 +3,6 @@ import { werkzeug as ellipse } from './ellipse';
 import { werkzeug as linie } from './linie';
 import { werkzeug as pfad } from './pfad';
 import { werkzeug as rechteck } from './rechteck';
-import { werkzeug as schere } from './schere';
 import { werkzeug as stern } from './stern';
 import { werkzeug as stift } from './stift';
 import { werkzeug as streuen } from './streuen';
@@ -27,7 +26,6 @@ const ZEICHNEN: readonly Werkzeug[] = [
 	stift,
 	pfad,
 	streuen,
-	schere,
 	test,
 ].filter((w): w is Werkzeug => w !== null);
 
