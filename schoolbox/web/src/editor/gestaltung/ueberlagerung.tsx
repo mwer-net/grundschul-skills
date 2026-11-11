@@ -163,7 +163,7 @@ const EinzelRahmen = ({
 					links={links}
 					skala={skala}
 					fuehreAus={(beschreibung, rechne) => {
-						struktur.fuehreAus(beschreibung, rechne, false, true);
+						struktur.fuehreAus(beschreibung, rechne);
 					}}
 				/>
 			)}

@@ -89,14 +89,14 @@ export const KonturWahl = ({ aktiv, k, quelle }: KonturBogenTeile) => {
 										zeigeVariable(k, '--kontur', n === null ? null : `${Math.round(n)}px`);
 									}
 								}}
-								setze={(n) => {
+								setze={(n) =>
 									setzeKontur(
 										k,
 										n > 0
 											? { staerke: Math.min(SCHRIFT_KONTUR_MAX, n), farbe: aktuell.farbe }
 											: null,
-									);
-								}}
+									)
+								}
 							/>
 						</span>
 					</Zeile>

@@ -8,11 +8,11 @@ import {
 	werteVon,
 } from '@schoolbox/kern/src/abbildungen';
 import { kann } from '@schoolbox/kern/src/bausteine';
-import type { Zerlegung } from '@schoolbox/kern/src/quelltext';
 import { useEffect, useMemo, useRef, useState } from 'react';
 
 import type { PfadTeil } from './darstellung';
 import { elementZu } from './darstellung';
+import { zuSehen } from './gezeigt';
 import type { Struktur } from './struktur';
 
 type Zeichner = Window & {
@@ -37,12 +37,8 @@ export interface AusDemBlatt {
 const LEER: AusDemBlatt = { fehler: null, zellen: {}, info: null, sw: true };
 
 interface Optionen {
-	/** Das sichtbare Dokument; die Vorschau zeichnet nur, wenn es zur aktuellen Quelle (`html`) gehört. */
-	geladen: { doc: Document; html: string } | null;
-	html: string | null;
-	/** Zerlegung der Quelle, aus der die Darstellung stammt. */
-	zerlegung: Zerlegung | null;
 	pfad: PfadTeil[];
+	/** Blatt und Zerlegung aus `struktur.gezeigt` (171): Sie bleiben beim Nachladen stehen. */
 	struktur: Struktur;
 	/** `/api/dokumente/<mappe>/<dok>`: Dorthin gehen Bilder einer Abbildung. */
 	adresse: string;
@@ -101,8 +97,8 @@ const liesVomBlatt = (doc: Document, nr: number): AusDemBlatt => {
  * übernommen: ein Schritt im Verlauf, der nur die geänderten Attribute in der Quelle setzt. Ein ungültiger Entwurf
  * bleibt Vorschau, bis er stimmt oder zurückgesetzt wird.
  */
-export const useAbbildung = ({ adresse, basis: bildBasis, geladen, html, pfad, struktur, zerlegung }: Optionen) => {
-	const doc = geladen?.html === html ? geladen.doc : null;
+export const useAbbildung = ({ adresse, basis: bildBasis, pfad, struktur }: Optionen) => {
+	const { doc, zerlegung } = zuSehen(struktur.gezeigt);
 	const gewaehlt = pfad.at(-1);
 	const nr = gewaehlt && kann(gewaehlt.baustein, 'abbildung') ? gewaehlt.nr : null;
 	const knoten = nr === null ? undefined : zerlegung?.knoten[nr];

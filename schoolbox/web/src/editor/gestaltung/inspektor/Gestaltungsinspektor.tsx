@@ -6,7 +6,8 @@ import { gruppiere, gruppiereMehrfach, INSPEKTOR_TEILE, MEHRFACH_TEILE } from '.
 import { kontextFuerGestaltung, liegtFreiAuf } from './kontext-ersatz';
 
 interface Eigenschaften {
-	doc: Document | null;
+	/** Das gezeigte Blatt (171): Es bleibt beim Nachladen, deshalb wird der Inspektor nie leer. */
+	doc: Document;
 	pfad: PfadTeil[];
 	quelle: string | null;
 	struktur: Struktur;

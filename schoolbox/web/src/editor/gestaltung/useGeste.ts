@@ -39,6 +39,9 @@ import type { GruppenVorschau } from './gruppe-messen';
 import { gleichmaessig, merkeKinder, nurGleichmaessigIm, stelleKinderHer, zeigeKinder } from './gruppe-messen'; // 120
 import type { GestaltungKontext } from './kontext';
 import { flaechenKontext, gestaltungKontext, zeigeLageAm } from './kontext';
+// >> 171
+import { setzeLiveLage } from './live-lage';
+// << 171
 import { elementeZu, imRechteck, leereMehrfach, nrnFuer, schalteDazu, setzeMehrfach } from './mehrfach';
 import type { Gruppe, GruppenArt } from './mehrfach-geste';
 import {
@@ -379,11 +382,17 @@ export const useGeste = (o: Optionen) => {
 			zusatz?: ZusatzAnzeige & { von: { x: number; y: number } },
 		) => {
 			let text = zusatz?.text ?? wertText(l.art === 'griff' ? 'bewegen' : l.art, l.jetzt);
+			// >> 171: Der Inspektor läuft mit denselben Zahlen wie das Schild am Zeiger mit.
+			let live = l.gruppe ? l.gruppe.jetzt : l.jetzt;
+			// << 171
 			if (l.art === 'bewegen' && l.zielSeite && l.eigeneSeite && l.zielSeite !== l.eigeneSeite) {
 				const x = l.jetzt.x + l.eigeneSeite.flaeche.links - l.zielSeite.flaeche.links;
 				const y = l.jetzt.y + l.eigeneSeite.flaeche.oben - l.zielSeite.flaeche.oben;
 				const nummer = l.seiten.indexOf(l.zielSeite) + 1;
 				text = `Seite ${nummer} · X ${Math.round(x)} · Y ${Math.round(y)}`;
+				// >> 171
+				live = { ...l.jetzt, x, y };
+				// << 171
 			}
 			if (l.gruppe) {
 				// 113: Rahmen und Wert gelten der ganzen Auswahl (im Material).
@@ -412,6 +421,9 @@ export const useGeste = (o: Optionen) => {
 					},
 				}),
 			});
+			// >> 171
+			setzeLiveLage({ nr: l.nr, gruppe: Boolean(l.gruppe), kasten: live });
+			// << 171
 		},
 		[],
 	);
@@ -422,6 +434,9 @@ export const useGeste = (o: Optionen) => {
 		l?.ende();
 		oeffneFlaechen(doc, false);
 		setStand(null);
+		// >> 171
+		setzeLiveLage(null);
+		// << 171
 		doc.documentElement.style.cursor = '';
 	}, [doc]);
 
@@ -544,7 +559,7 @@ export const useGeste = (o: Optionen) => {
 
 	/** Ein Schritt. Klappt er nicht, steht das Element wieder wie vorher. */
 	const schreibe = useCallback((l: Lauf, beschreibung: string, rechne: (q: string) => StrukturErgebnis) => {
-		const geklappt = aktuell.current.struktur.fuehreAus(beschreibung, rechne, false, true) !== null;
+		const geklappt = aktuell.current.struktur.fuehreAus(beschreibung, rechne) !== null;
 		if (!geklappt) {
 			stelleHer(l);
 		}
@@ -611,7 +626,7 @@ export const useGeste = (o: Optionen) => {
 				beende();
 				if (
 					gruppeBewegt(g) &&
-					!aktuell.current.struktur.fuehreAus('Verschoben', rechneGruppe(g, 'bewegen'), false, true)
+					!aktuell.current.struktur.fuehreAus('Verschoben', rechneGruppe(g, 'bewegen'))
 				) {
 					stelleGruppeHer(g);
 				}
@@ -1113,7 +1128,7 @@ export const useGeste = (o: Optionen) => {
 					return;
 				}
 				const titel = art === 'drehen' ? 'Gedreht' : 'Größe geändert';
-				if (!aktuell.current.struktur.fuehreAus(titel, rechneGruppe(g, art), false, true)) {
+				if (!aktuell.current.struktur.fuehreAus(titel, rechneGruppe(g, art))) {
 					stelleGruppeHer(g);
 				}
 			};

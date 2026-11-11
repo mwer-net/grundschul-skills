@@ -1,6 +1,9 @@
 import { mitAnkern } from '@schoolbox/kern/src/anker';
 import type { Baustein } from '@schoolbox/kern/src/bausteine';
 import { kann } from '@schoolbox/kern/src/bausteine';
+// >> 171
+import type { LetzterSchritt, Zerlegung } from '@schoolbox/kern/src/quelltext';
+// << 171
 import type { Ablage, StrukturErgebnis } from '@schoolbox/kern/src/struktur';
 import {
 	ABSTAND,
@@ -18,14 +21,22 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { meldung } from '../api';
 import { useHinweis } from '../bausteine/hinweis';
 import type { PfadTeil } from './darstellung';
-import { elementZu, nrVon, trefferAn, VERALTET } from './darstellung';
+// >> 171
+import { elementZu, nrVon, trefferAn, VERALTET, zielNachSchritt } from './darstellung';
+import type { Geladen } from './gezeigt';
+import { gezeigtVon } from './gezeigt';
+// << 171
 import { nachbarAblage, nebeneinander, ordnungVon } from './ziele';
 
 interface Optionen {
-	/** Das sichtbare Dokument im `iframe` mit dem HTML, aus dem es entstand. */
-	geladen: { doc: Document; html: string } | null;
+	// >> 171
+	/** Das sichtbare Dokument im `iframe` mit dem HTML und der Zerlegung, aus denen es entstand. */
+	geladen: Geladen | null;
 	html: string | null;
-	verlauf: { quelle: string } | null;
+	/** Die neueste Zerlegung, aus der `html` entsteht. */
+	zerlegung: Zerlegung | null;
+	verlauf: { quelle: string; zuletzt?: LetzterSchritt } | null;
+	// << 171
 	pfad: PfadTeil[];
 	setAuswahl: (nr: number | null) => void;
 	befehl: (neu: string, beschreibung: string) => void;
@@ -117,46 +128,83 @@ const werteVon = (doc: Document, pfad: PfadTeil[]): StrukturWerte => {
 	};
 };
 
+// >> 171
 /**
- * Struktur-Befehle aus Panel, Gliederung und Ziehen. Jeder ist ein Schritt im Verlauf. Danach steht die Auswahl
- * auf dem verschobenen bzw. neuen Baustein, sobald die neue Fassung zu sehen ist; bis dahin nimmt die alte
- * Darstellung nichts mehr an, weil ihre Nummern nicht mehr stimmen.
+ * Struktur-Befehle aus Panel, Gliederung und Ziehen. Jeder ist ein Schritt im Verlauf. Seitenleisten und Leisten lesen
+ * `gezeigt`: das Blatt, das zu sehen ist, bis das nächste da ist. Ändert ein Schritt die Nummer der Auswahl, wartet die
+ * neue und gilt im selben Render wie das neue Bild (`nachBild`); bis dahin schreibt nichts mit den alten Nummern, und
+ * die alte Darstellung nimmt nichts mehr an.
  */
 export const useStruktur = (o: Optionen) => {
 	const zeige = useHinweis();
-	const doc = o.geladen && o.geladen.html === o.html ? o.geladen.doc : null;
 	const [folge, setFolge] = useState<Folge | null>(null);
 	const [springe, setSpringe] = useState(0);
 	const quelle = o.verlauf?.quelle ?? null;
 	const aktiv = o.frei && !o.bearbeitet;
-	const aktuell = useRef({ ...o, quelle, aktiv });
+	// Der Schritt von ⌘Z/⇧⌘Z, dessen Stelle schon zu sehen ist; ein neuer wartet aufs Bild (`nimmAuf` lässt ihn weg).
+	const zuletzt = o.verlauf?.zuletzt;
+	const [gezeigterSchritt, setGezeigterSchritt] = useState(zuletzt);
+	const wartet = folge !== null || (zuletzt !== undefined && zuletzt !== gezeigterSchritt);
+	const { geladen, html, zerlegung } = o;
+	const gezeigt = useMemo(
+		() => gezeigtVon({ geladen, zerlegung, quelle, html, wartet }),
+		[geladen, zerlegung, quelle, html, wartet],
+	);
+	const gleich = gezeigt?.gleich ?? false;
+	const doc = gezeigt?.doc ?? null;
+	const aktuell = useRef({ ...o, quelle, aktiv, gleich, folge, gezeigterSchritt });
 
 	useEffect(() => {
-		aktuell.current = { ...o, quelle, aktiv };
+		aktuell.current = { ...o, quelle, aktiv, gleich, folge, gezeigterSchritt };
 	});
 
-	const { setAuswahl } = o;
-	useEffect(() => {
-		if (!folge) {
+	/**
+	 * Das nächste Bild ist da. `merken` im Editor ruft das im selben Aufruf wie `setGeladen`, damit Bild und Auswahl in
+	 * einem Render wechseln. Erst ein Bild der neuesten Quelle (`frisch`) löst auf, was wartet.
+	 */
+	const nachBild = useCallback((bild: Document, z: Zerlegung, frisch: boolean) => {
+		if (!frisch) {
 			return;
 		}
-		if (quelle !== folge.quelle) {
-			setFolge(null);
-		} else if (doc) {
-			// Nicht alles ist wählbar (z. B. ein Fuß): dann der Baustein darum.
-			const ziel = folge.nr === null ? null : trefferAn(elementZu(doc, folge.nr))?.nr;
-			setAuswahl(ziel ?? folge.nr);
-			if (folge.springen) {
+		const { folge: f, frei, gezeigterSchritt: schon, setAuswahl, verlauf } = aktuell.current;
+		if (f) {
+			// Nicht alles ist wählbar (z. B. ein Fuß): dann der Baustein darum. Eine ältere Folge verfällt.
+			const ziel = f.quelle === z.quelle && f.nr !== null ? (trefferAn(elementZu(bild, f.nr))?.nr ?? f.nr) : null;
+			setAuswahl(ziel);
+			if (f.springen && ziel !== null) {
 				setSpringe((n) => n + 1);
 			}
+			aktuell.current.folge = null;
 			setFolge(null);
 		}
-	}, [folge, doc, quelle, setAuswahl]);
+		// Nach dem Schritt ist zu sehen, was er zurückgenommen hat. Gezeigt gilt er in jedem Fall, sonst wartete er ewig.
+		const schritt = verlauf?.zuletzt;
+		if (schritt !== undefined && schritt !== schon) {
+			if (frei) {
+				const ziel = zielNachSchritt(bild, z, schritt);
+				setAuswahl(ziel);
+				if (ziel !== null) {
+					setSpringe((n) => n + 1);
+				}
+			}
+			aktuell.current.gezeigterSchritt = schritt;
+			setGezeigterSchritt(schritt);
+		}
+	}, []);
+
+	// Ergibt ein Schritt dasselbe HTML, lädt das Blatt nicht neu: Dann gilt das gezeigte Bild schon für die neue Quelle.
+	const bildFrisch = gezeigt?.frisch ?? false;
+	useEffect(() => {
+		if (wartet && bildFrisch && doc && zerlegung) {
+			nachBild(doc, zerlegung, true);
+		}
+	}, [wartet, bildFrisch, doc, zerlegung, nachBild]);
 
 	const fuehreAus = useCallback(
-		(beschreibung: string, rechne: (q: string) => StrukturErgebnis, springen = false, halten = false) => {
-			const { aktiv: bereit, befehl, folien, geladen, quelle: alt } = aktuell.current;
-			if (!alt || !bereit) {
+		(beschreibung: string, rechne: (q: string) => StrukturErgebnis, springen = false) => {
+			const { aktiv: bereit, befehl, folien, geladen: bild, gleich: passt, pfad, quelle: alt } = aktuell.current;
+			// Stimmen die Nummern des Bilds nicht mehr, träfe der Schritt ein anderes Element: nichts tun, ohne Sperre.
+			if (!alt || !bereit || !passt) {
 				return null;
 			}
 			try {
@@ -165,10 +213,14 @@ export const useStruktur = (o: Optionen) => {
 					return null;
 				}
 				befehl(ergebnis.quelle, beschreibung);
-				geladen?.doc.documentElement.setAttribute(VERALTET, '');
-				// `halten`: Der Inspektor bleibt stehen, statt kurz auf den Reiter „Blatt“ zu fallen (Regler im Inspektor).
-				aktuell.current.setAuswahl(halten ? ergebnis.nr : null);
-				setFolge({ quelle: ergebnis.quelle, nr: ergebnis.nr, springen });
+				bild?.doc.documentElement.setAttribute(VERALTET, '');
+				if (springen || ergebnis.nr !== (pfad.at(-1)?.nr ?? null)) {
+					const neu = { quelle: ergebnis.quelle, nr: ergebnis.nr, springen };
+					// Sofort: Ein zweiter Aufruf im selben Zug schreibt nicht mit den alten Nummern.
+					aktuell.current.folge = neu;
+					aktuell.current.gleich = false;
+					setFolge(neu);
+				}
 				return { alt, folien, ...ergebnis };
 			} catch (fehler) {
 				zeige({ text: meldung(fehler), art: 'fehler' });
@@ -177,6 +229,7 @@ export const useStruktur = (o: Optionen) => {
 		},
 		[zeige],
 	);
+	// << 171
 
 	/**
 	 * Nur Attribute ändern sich (Abbildungen): Die Nummern bleiben gleich, deshalb bleibt die Auswahl stehen und die
@@ -184,8 +237,10 @@ export const useStruktur = (o: Optionen) => {
 	 */
 	const aendereAttribute = useCallback(
 		(beschreibung: string, rechne: (q: string) => string) => {
-			const { aktiv: bereit, befehl, quelle: alt } = aktuell.current;
-			if (!alt || !bereit) {
+			// >> 171
+			const { aktiv: bereit, befehl, gleich: passt, quelle: alt } = aktuell.current;
+			if (!alt || !bereit || !passt) {
+				// << 171
 				return false;
 			}
 			try {
@@ -216,8 +271,10 @@ export const useStruktur = (o: Optionen) => {
 
 	/** Probelauf ohne Wirkung: Der Kern entscheidet, was geht, nicht die Oberfläche. */
 	const kannVerschieben = (nr: number, ablage: Ablage) => {
-		const { aktiv: bereit, quelle: stand } = aktuell.current;
-		if (!stand || !bereit) {
+		// >> 171
+		const { aktiv: bereit, gleich: passt, quelle: stand } = aktuell.current;
+		if (!stand || !bereit || !passt) {
+			// << 171
 			return false;
 		}
 		try {
@@ -237,7 +294,9 @@ export const useStruktur = (o: Optionen) => {
 		}
 	};
 
+	// >> 171: am gezeigten Blatt gemessen, also auch beim Nachladen da
 	const werte = useMemo(() => (doc ? werteVon(doc, o.pfad) : null), [doc, o.pfad]);
+	// << 171
 
 	const neueSeite = (mitNamenszeile: boolean) =>
 		fuehreAus(
@@ -267,6 +326,10 @@ export const useStruktur = (o: Optionen) => {
 
 	return {
 		aktiv,
+		// >> 171
+		gezeigt,
+		nachBild,
+		// << 171
 		fuehreAus,
 		aendereAttribute,
 		werte,

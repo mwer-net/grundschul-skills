@@ -5,6 +5,9 @@ import { fuerAlle } from '@schoolbox/kern/src/gestaltung';
 import { pfadDerForm } from '../anzeige-folgen';
 import { FarbZeile } from '../blatt/flaeche';
 import { skaliereMit } from '../geste';
+// >> 171
+import { useLiveLage } from '../live-lage';
+// << 171
 import { elementeZu, rechteckVon, umschliessend } from '../mehrfach';
 import { gruppeVon, imBehaelter, imMaterial, rechneGruppe } from '../mehrfach-geste';
 import { messe } from '../useGeste';
@@ -25,6 +28,9 @@ const Gemischt = () => (
 );
 
 export const MehrfachPosition = ({ aktiv, k }: InspektorTeile) => {
+	// >> 171: Während einer Geste trägt das Blatt schon die Vorschau; neu messen, damit die Werte mitlaufen.
+	useLiveLage();
+	// << 171
 	const elemente = elementeZu(k.doc, k.nrn).map(({ element }) => element);
 	const rahmen = umschliessend(elemente.map(rechteckVon));
 	if (!rahmen) {
@@ -35,26 +41,28 @@ export const MehrfachPosition = ({ aktiv, k }: InspektorTeile) => {
 	const y = Math.round(rahmen.oben - (seite?.top ?? 0));
 	const b = Math.round(rahmen.rechts - rahmen.links);
 	const h = Math.round(rahmen.unten - rahmen.oben);
+	// >> 171: `false`, wenn nichts geschrieben wurde; dann zeigt das Feld wieder den Wert.
 	const verschiebe = (dx: number, dy: number) => {
 		const g = gruppeVon(elemente, messe);
 		if (!g || (dx === 0 && dy === 0)) {
-			return;
+			return false;
 		}
 		g.lagen = g.mitglieder.map((m) => ({ ...m.start, x: m.start.x + dx, y: m.start.y + dy }));
-		k.fuehreAus('Verschoben', rechneGruppe(g, 'bewegen'));
+		return k.fuehreAus('Verschoben', rechneGruppe(g, 'bewegen'));
 	};
 	/** Proportional um die linke obere Ecke der Auswahl. */
 	const skaliere = (feld: 'b' | 'h', wert: number) => {
 		const g = gruppeVon(elemente, messe);
 		const alt = feld === 'b' ? g?.start.b : g?.start.h;
 		if (!g || !alt || wert <= 0 || Math.round(wert) === Math.round(alt)) {
-			return;
+			return false;
 		}
 		const f = wert / alt;
 		const nach = { ...g.start, b: g.start.b * f, h: g.start.h * f };
 		g.lagen = g.mitglieder.map((m) => imBehaelter(m, skaliereMit(imMaterial(m, m.start), g.start, nach)));
-		k.fuehreAus('Größe geändert', rechneGruppe(g, 'skalieren'));
+		return k.fuehreAus('Größe geändert', rechneGruppe(g, 'skalieren'));
 	};
+	// << 171
 	const aus = !aktiv;
 	return (
 		<div className="flex flex-col gap-1.5" data-gestaltung-position="mehrfach">
