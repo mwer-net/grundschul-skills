@@ -127,9 +127,11 @@ interface Eigenschaften extends ZoomEigenschaften {
 	pruefung: Pruefstand | null;
 	zeigePunkt: (p: Pruefpunkt) => void;
 	verschiebe?: ((p: Pruefpunkt) => void) | undefined;
+	/** Links ist etwas zu sehen: Ebenen, eine Schublade oder beide. */
 	linksOffen: boolean;
 	rechtsOffen: boolean;
-	setLinksOffen: (offen: boolean) => void;
+	/** Schließt alles, was links zu sehen ist, und holt es wieder (183). */
+	schalteLinks: () => void;
 	setRechtsOffen: (offen: boolean) => void;
 }
 
@@ -141,8 +143,8 @@ export const Statusleiste = ({
 	linksOffen,
 	pruefung,
 	rechtsOffen,
+	schalteLinks,
 	seite,
-	setLinksOffen,
 	setRechtsOffen,
 	skala,
 	stufe,
@@ -162,7 +164,7 @@ export const Statusleiste = ({
 					className={klassen(KNOPF, 'aria-pressed:text-tinte')}
 					aria-label="Linke Leiste"
 					aria-pressed={linksOffen}
-					onClick={() => setLinksOffen(!linksOffen)}
+					onClick={schalteLinks}
 				>
 					<Symbol name="leisteLinks" className="flex-none" />
 				</button>

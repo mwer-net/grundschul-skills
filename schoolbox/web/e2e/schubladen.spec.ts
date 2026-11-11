@@ -7,9 +7,15 @@ import { expect, test } from './hilfe';
 import type { SchubladenName } from './schubladen-hilfe';
 import { oeffneSchublade, schubladenKnopf } from './schubladen-hilfe';
 
-/** Schubladenleiste (093): Ebenen ⌥1, Bausteine ⌥2, Werkzeuge ⌥3 (104, 175), Figuren ⌥4 (102), Bilder ⌥5. */
+/**
+ * Schubladenleiste (093): Ebenen ⌥1, Bausteine ⌥2, Werkzeuge ⌥3 (104, 175), Figuren ⌥4 (102), Bilder ⌥5. Die Ebenen
+ * bleiben offen, bis man sie schließt; jede andere Schublade steht rechts daneben (183). Die Projektmaße sind eng
+ * (iPad, 1280 mit Inspektor): Dort steht die Schublade allein an der Stelle der Ebenen, `offen` trifft höchstens eine
+ * Spalte. Am Mac fragt `spalte` jede Spalte einzeln ab.
+ */
 
 const offen = (page: Page) => page.locator('[data-panel-links]');
+const spalte = (page: Page, name: SchubladenName) => page.locator(`[data-panel-links="${name}"]`);
 const blattBreite = async (page: Page) => (await page.locator('main').boundingBox())?.width ?? 0;
 const palette = (page: Page) => page.locator('[data-befehlspalette]');
 const bilder = (page: Page) => page.locator('[data-schublade-bilder]');
@@ -48,12 +54,13 @@ test.describe('Schubladenleiste (093)', () => {
 		await page.keyboard.press('Alt+Digit3');
 		await expect(offen(page)).toHaveAttribute('data-panel-links', 'werkzeuge');
 		await expect(page.locator('[data-schublade-werkzeuge]')).toBeVisible();
+		// Eng stand die Schublade an der Stelle der Ebenen; zu kommen die Ebenen zurück (183).
 		await page.keyboard.press('Alt+Digit3');
-		await expect(offen(page)).toHaveCount(0);
-		await page.keyboard.press('Alt+Digit1');
 		await expect(offen(page)).toHaveAttribute('data-panel-links', 'ebenen');
 		await page.keyboard.press('Alt+Digit1');
 		await expect(offen(page)).toHaveCount(0);
+		await page.keyboard.press('Alt+Digit1');
+		await expect(offen(page)).toHaveAttribute('data-panel-links', 'ebenen');
 	});
 
 	test('Klick öffnet und wechselt, ein Klick auf das offene Symbol schließt, das Blatt wird breiter', async ({
@@ -61,6 +68,9 @@ test.describe('Schubladenleiste (093)', () => {
 		page,
 	}) => {
 		await blatt(page);
+		// Erst die Ebenen schließen, sonst kommen sie nach der Schublade zurück (183).
+		await druecke(schubladenKnopf(page, 'ebenen'));
+		await expect(offen(page)).toHaveCount(0);
 		await druecke(schubladenKnopf(page, 'bausteine'));
 		await expect(offen(page)).toHaveAttribute('data-panel-links', 'bausteine');
 		await druecke(schubladenKnopf(page, 'bilder'));
@@ -70,9 +80,9 @@ test.describe('Schubladenleiste (093)', () => {
 		await expect(offen(page)).toHaveCount(0);
 		await expect(schubladenKnopf(page, 'bilder')).toHaveAttribute('aria-pressed', 'false');
 		expect(await blattBreite(page)).toBeGreaterThan(schmal + 200);
-		// Die Statusleiste öffnet die zuletzt offene wieder.
+		// Ohne etwas, das sie selbst geschlossen hat, öffnet die Statusleiste die Ebenen.
 		await druecke(page.getByRole('button', { name: 'Linke Leiste' }));
-		await expect(offen(page)).toHaveAttribute('data-panel-links', 'bilder');
+		await expect(offen(page)).toHaveAttribute('data-panel-links', 'ebenen');
 	});
 
 	test('alle fünf Schubladen sind überall: Leiste, Palette, Tastenübersicht, Hilfe', async ({ page }) => {
@@ -92,47 +102,6 @@ test.describe('Schubladenleiste (093)', () => {
 		const liste = page.locator('[data-hilfe-schubladen]');
 		await expect(liste.locator('[data-hilfe-schublade]')).toHaveCount(ALLE.length);
 		await expect(liste).toContainText('Bilder');
-	});
-
-	test('angeheftete Ebenen und der Teiler bleiben nach dem Neuladen, wie sie waren', async ({ hasTouch, page }) => {
-		test.skip(hasTouch, 'der Teiler wird mit der Maus gezogen');
-		await blatt(page);
-		await oeffneSchublade(page, 'ebenen');
-		await page.locator('[data-ebenen-anheften]').click();
-		await expect(page.locator('[data-ebenen-anheften]')).toHaveAttribute('aria-pressed', 'true');
-		await oeffneSchublade(page, 'bausteine');
-		await expect(offen(page)).toHaveAttribute('data-panel-links', 'bausteine');
-		await expect(page.locator('[data-schublade-unten]').getByRole('navigation', { name: 'Ebenen' })).toBeVisible();
-
-		const teiler = page.locator('[data-teiler]');
-		const box = await teiler.boundingBox();
-		if (!box) {
-			throw new Error('Teiler nicht sichtbar');
-		}
-		await page.mouse.move(box.x + box.width / 2, box.y + box.height / 2);
-		await page.mouse.down();
-		for (let i = 1; i <= 6; i += 1) {
-			await page.mouse.move(box.x + box.width / 2, box.y + box.height / 2 - (120 * i) / 6);
-		}
-		await page.mouse.up();
-		const oben = page.locator('[data-schublade-oben]');
-		const hoehe = (await oben.boundingBox())?.height ?? 0;
-		expect(hoehe).toBeLessThan(box.y - 60);
-
-		await page.reload();
-		await expect(page.locator('[data-leinwand][data-geladen]')).toBeVisible();
-		await expect(offen(page)).toHaveAttribute('data-panel-links', 'bausteine');
-		await expect(page.locator('[data-schublade-unten]').getByRole('navigation', { name: 'Ebenen' })).toBeVisible();
-		await expect.poll(async () => Math.round((await oben.boundingBox())?.height ?? 0)).toBe(Math.round(hoehe));
-
-		// Geschlossen bleiben die angehefteten Ebenen allein stehen; gelöst gehen sie mit.
-		await page.keyboard.press('Alt+Digit2');
-		await expect(offen(page)).toHaveCount(0);
-		await expect(
-			page.locator('[data-ebenen-angeheftet]').getByRole('navigation', { name: 'Ebenen' }),
-		).toBeVisible();
-		await page.locator('[data-ebenen-anheften]').click();
-		await expect(page.locator('[data-ebenen-angeheftet]')).toHaveCount(0);
 	});
 
 	test('„Formen“ oder „Text“ von früher öffnen „Werkzeuge“ (175)', async ({ page }) => {
@@ -175,6 +144,211 @@ test.describe('Schubladenleiste (093)', () => {
 		await expect(zeile).toContainText('Ebenen');
 		await zeile.click();
 		await expect(offen(page)).toHaveAttribute('data-panel-links', 'ebenen');
+	});
+});
+
+test.describe('Ebenen und Schublade nebeneinander am Mac (183)', () => {
+	test.skip(({ hasTouch }) => hasTouch, 'Mac-Maß mit der Maus');
+
+	test.beforeEach(async ({ page }) => {
+		await page.setViewportSize({ width: 1512, height: 982 });
+	});
+
+	/** Was nach einer Änderung der Breite noch rendert (Maßstab des Blatts), ist danach da. */
+	const zweiBilder = (page: Page) =>
+		page.evaluate(
+			() =>
+				new Promise((weiter) => {
+					requestAnimationFrame(() => requestAnimationFrame(weiter));
+				}),
+		);
+
+	test('⌥2: Bausteine (280 px) rechts neben den Ebenen (240 px), „Einpassen“ bleibt gleich', async ({
+		druecke,
+		page,
+	}) => {
+		await blatt(page);
+		const zoom = page.locator('[data-zoom-wert]');
+		const einpassen = page.getByRole('button', { name: 'Einpassen' });
+		await druecke(einpassen);
+		await zweiBilder(page);
+		const allein = (await zoom.textContent()) ?? '';
+		expect(allein).toMatch(/^\d+\s*%$/);
+
+		await page.keyboard.press('Alt+Digit2');
+		await expect(spalte(page, 'bausteine')).toBeVisible();
+		const ebenen = await spalte(page, 'ebenen').boundingBox();
+		const bausteine = await spalte(page, 'bausteine').boundingBox();
+		expect(Math.round(ebenen?.width ?? 0)).toBe(240);
+		expect(Math.round(bausteine?.width ?? 0)).toBe(280);
+		expect(Math.round(bausteine?.x ?? 0)).toBe(Math.round((ebenen?.x ?? 0) + (ebenen?.width ?? 0)));
+		for (const name of ['ebenen', 'bausteine'] as const) {
+			await expect(schubladenKnopf(page, name)).toHaveAttribute('aria-pressed', 'true');
+		}
+		// Gegenprobe von Hand: Mit `BREITE.schublade = 400` in `spalten.ts` scheitert diese Zeile.
+		await druecke(einpassen);
+		await zweiBilder(page);
+		await expect(zoom).toHaveText(allein);
+	});
+
+	test('ein zweiter Klick schließt nur die Schublade, beim Wechsel bleiben die Ebenen eingehängt', async ({
+		druecke,
+		page,
+	}) => {
+		await blatt(page);
+		await page.locator('[data-gliederung]').evaluate((e) => e.setAttribute('data-probe', ''));
+		await druecke(schubladenKnopf(page, 'bausteine'));
+		await expect(spalte(page, 'bausteine')).toBeVisible();
+		await druecke(schubladenKnopf(page, 'bausteine'));
+		await expect(spalte(page, 'bausteine')).toHaveCount(0);
+		await expect(spalte(page, 'ebenen')).toHaveCount(1);
+		for (const [taste, name] of [
+			['Alt+Digit3', 'werkzeuge'],
+			['Alt+Digit4', 'figuren'],
+		] as const) {
+			await page.keyboard.press(taste);
+			await expect(spalte(page, name)).toBeVisible();
+			await expect(offen(page)).toHaveCount(2);
+			await expect(spalte(page, 'ebenen')).toHaveCount(1);
+		}
+		await expect(page.locator('[data-gliederung][data-probe]')).toHaveCount(1);
+	});
+
+	test('⌥1 schließt nur die Ebenen, die Schublade rückt an die Leiste; ⌥1 holt sie links davon zurück', async ({
+		page,
+	}) => {
+		await blatt(page);
+		await page.keyboard.press('Alt+Digit2');
+		await expect(offen(page)).toHaveCount(2);
+		await page.keyboard.press('Alt+Digit1');
+		await expect(spalte(page, 'ebenen')).toHaveCount(0);
+		await expect(spalte(page, 'bausteine')).toBeVisible();
+		await expect(schubladenKnopf(page, 'ebenen')).toHaveAttribute('aria-pressed', 'false');
+		const leiste = await page.locator('[data-schubladenleiste]').boundingBox();
+		const allein = await spalte(page, 'bausteine').boundingBox();
+		expect(Math.round(allein?.x ?? 0)).toBe(Math.round((leiste?.x ?? 0) + (leiste?.width ?? 0)));
+
+		await page.keyboard.press('Alt+Digit1');
+		await expect(spalte(page, 'ebenen')).toBeVisible();
+		const ebenen = await spalte(page, 'ebenen').boundingBox();
+		const bausteine = await spalte(page, 'bausteine').boundingBox();
+		expect(Math.round(bausteine?.x ?? 0)).toBe(Math.round((ebenen?.x ?? 0) + (ebenen?.width ?? 0)));
+	});
+
+	test('Ebenen und Figuren bleiben nach dem Neuladen offen', async ({ page }) => {
+		await blatt(page);
+		await page.keyboard.press('Alt+Digit4');
+		await expect(offen(page)).toHaveCount(2);
+		await page.reload();
+		await expect(page.locator('[data-leinwand][data-geladen]')).toBeVisible();
+		await expect(spalte(page, 'ebenen')).toBeVisible();
+		await expect(spalte(page, 'figuren')).toBeVisible();
+		expect(
+			await page.evaluate(() => [
+				localStorage.getItem('schoolbox-ebenen-offen'),
+				localStorage.getItem('schoolbox-panel-links'),
+			]),
+		).toEqual(['1', 'figuren']);
+	});
+
+	test('alte Werte werden übernommen, danach sind die alten Schlüssel weg', async ({ page }) => {
+		await blatt(page);
+		const lade = async (werte: Record<string, string>) => {
+			await page.evaluate((w) => {
+				localStorage.removeItem('schoolbox-ebenen-offen');
+				localStorage.removeItem('schoolbox-ebenen-angeheftet');
+				for (const [schluessel, wert] of Object.entries(w)) {
+					localStorage.setItem(schluessel, wert);
+				}
+			}, werte);
+			await page.reload();
+			await expect(page.locator('[data-leinwand][data-geladen]')).toBeVisible();
+		};
+		const speicher = () =>
+			page.evaluate(() =>
+				['schoolbox-ebenen-offen', 'schoolbox-ebenen-angeheftet', 'schoolbox-ebenen-teilung'].map((s) =>
+					localStorage.getItem(s),
+				),
+			);
+
+		await lade({
+			'schoolbox-panel-links': 'bausteine',
+			'schoolbox-ebenen-angeheftet': '1',
+			'schoolbox-ebenen-teilung': '0.4',
+		});
+		await expect(spalte(page, 'ebenen')).toBeVisible();
+		await expect(spalte(page, 'bausteine')).toBeVisible();
+		await expect.poll(speicher).toEqual(['1', null, null]);
+
+		// Gegenprobe: nicht angeheftet steht die Schublade allein.
+		await lade({ 'schoolbox-panel-links': 'bausteine' });
+		await expect(spalte(page, 'bausteine')).toBeVisible();
+		await expect(spalte(page, 'ebenen')).toHaveCount(0);
+		await expect.poll(speicher).toEqual(['0', null, null]);
+	});
+
+	test('im schmalen Fenster steht die Schublade allein, breit wieder neben den Ebenen', async ({ page }) => {
+		await blatt(page);
+		await page.keyboard.press('Alt+Digit2');
+		await expect(offen(page)).toHaveCount(2);
+		await page.setViewportSize({ width: 1080, height: 810 });
+		await expect(offen(page)).toHaveCount(1);
+		await expect(spalte(page, 'bausteine')).toBeVisible();
+		await expect(schubladenKnopf(page, 'ebenen')).toHaveAttribute('aria-pressed', 'false');
+		await page.setViewportSize({ width: 1512, height: 982 });
+		await expect(offen(page)).toHaveCount(2);
+		await expect(schubladenKnopf(page, 'ebenen')).toHaveAttribute('aria-pressed', 'true');
+	});
+
+	test('„Linke Leiste“ schließt Ebenen und Schublade und holt beide wieder', async ({ druecke, page }) => {
+		await blatt(page);
+		await page.keyboard.press('Alt+Digit2');
+		await expect(offen(page)).toHaveCount(2);
+		const knopf = page.getByRole('button', { name: 'Linke Leiste' });
+		await expect(knopf).toHaveAttribute('aria-pressed', 'true');
+		await druecke(knopf);
+		await expect(offen(page)).toHaveCount(0);
+		await expect(knopf).toHaveAttribute('aria-pressed', 'false');
+		await druecke(knopf);
+		await expect(spalte(page, 'ebenen')).toBeVisible();
+		await expect(spalte(page, 'bausteine')).toBeVisible();
+		await expect(knopf).toHaveAttribute('aria-pressed', 'true');
+	});
+
+	test('keine Stecknadel, kein Teiler; ⌘K kennt kein Anheften, aber „Ebenen“', async ({ page }) => {
+		await blatt(page);
+		await page.keyboard.press('Alt+Digit2');
+		await expect(offen(page)).toHaveCount(2);
+		await expect(page.locator('[data-ebenen-anheften]')).toHaveCount(0);
+		await expect(page.locator('[data-teiler]')).toHaveCount(0);
+		await page.keyboard.press('ControlOrMeta+k');
+		await palette(page).getByRole('combobox').fill('anheften');
+		// Nur „An Claude schicken: anheften“, das jede Suche anbietet.
+		const claude = '[data-palette-zeile="claude:schicken"]';
+		await expect(palette(page).locator(claude)).toBeVisible();
+		await expect(palette(page).locator(`[data-palette-zeile]:not(${claude})`)).toHaveCount(0);
+		await palette(page).getByRole('combobox').fill('Ebenen');
+		await expect(palette(page).locator('[data-palette-zeile="ansicht.links-ebenen"]')).toContainText('Ebenen');
+	});
+});
+
+test.describe('Schublade an der Stelle der Ebenen, wenn es eng ist (183)', () => {
+	test('⌥2 ersetzt die Ebenen und gibt sie zurück; der Ebenen-Knopf schließt die Schublade', async ({
+		druecke,
+		page,
+	}) => {
+		await blatt(page);
+		await expect(offen(page)).toHaveAttribute('data-panel-links', 'ebenen');
+		await page.keyboard.press('Alt+Digit2');
+		await expect(offen(page)).toHaveAttribute('data-panel-links', 'bausteine');
+		await expect(schubladenKnopf(page, 'ebenen')).toHaveAttribute('aria-pressed', 'false');
+		await page.keyboard.press('Alt+Digit2');
+		await expect(offen(page)).toHaveAttribute('data-panel-links', 'ebenen');
+		await page.keyboard.press('Alt+Digit2');
+		await expect(offen(page)).toHaveAttribute('data-panel-links', 'bausteine');
+		await druecke(schubladenKnopf(page, 'ebenen'));
+		await expect(offen(page)).toHaveAttribute('data-panel-links', 'ebenen');
+		await expect(schubladenKnopf(page, 'bausteine')).toHaveAttribute('aria-pressed', 'false');
 	});
 });
 

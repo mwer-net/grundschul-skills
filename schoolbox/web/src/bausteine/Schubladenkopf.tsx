@@ -13,7 +13,7 @@ const MEHR_KNOPF = (
 
 interface Eigenschaften {
 	titel: string;
-	/** Knöpfe rechts neben dem Namen, etwa die Stecknadel der Ebenen. */
+	/** Knöpfe rechts neben dem Namen, etwa „Alle einklappen“ der Ebenen. */
 	children?: ReactNode;
 	/** Einträge für ⋯; ohne Einträge kein ⋯. */
 	mehr?: MenueEintrag[];

@@ -17,15 +17,16 @@ export interface LeistenEintrag<T extends string> {
 
 interface Eigenschaften<T extends string> {
 	eintraege: LeistenEintrag<T>[];
-	offen: T | null;
+	/** Die sichtbaren Schubladen; ihre Knöpfe sind gedrückt. */
+	offen: readonly T[];
 	waehle: (id: T) => void;
 	/** Attribute für jeden Knopf, etwa um den Fokus beim Klick zu lassen, wo er ist. */
 	knopf?: Record<string, unknown>;
 }
 
 /**
- * Schmale Spalte ganz links: je Schublade Symbol, Name und Taste (5.2). Klick öffnet, ein Klick auf die offene
- * schließt. Am iPad nur Symbole, mit 44 px Trefferfläche, damit das Blatt Platz behält.
+ * Schmale Spalte ganz links: je Schublade Symbol, Name und Taste (5.2). Klick öffnet, ein Klick auf eine sichtbare
+ * schließt sie. Am iPad nur Symbole, mit 44 px Trefferfläche, damit das Blatt Platz behält.
  */
 export const Schubladenleiste = <T extends string>({ eintraege, knopf, offen, waehle }: Eigenschaften<T>) => (
 	<nav
@@ -38,11 +39,11 @@ export const Schubladenleiste = <T extends string>({ eintraege, knopf, offen, wa
 				<button
 					type="button"
 					aria-label={e.titel}
-					aria-pressed={offen === e.id}
+					aria-pressed={offen.includes(e.id)}
 					title={`${e.titel} (${e.kuerzel})`}
 					className={klassen(
 						'flex min-h-11 flex-col items-center justify-center gap-0.5 rounded-lg px-0 py-1 text-leise hover:bg-flaeche-2 hover:text-tinte',
-						offen === e.id && 'bg-brand-50 text-brand-700 hover:bg-brand-50 hover:text-brand-700',
+						offen.includes(e.id) && 'bg-brand-50 text-brand-700 hover:bg-brand-50 hover:text-brand-700',
 					)}
 					data-schublade-knopf={e.id}
 					onClick={() => waehle(e.id)}
@@ -56,7 +57,7 @@ export const Schubladenleiste = <T extends string>({ eintraege, knopf, offen, wa
 						text={e.kuerzel}
 						className={klassen(
 							'text-[10px] leading-none [@media(any-pointer:coarse)]:hidden',
-							offen === e.id && 'text-brand-700/70',
+							offen.includes(e.id) && 'text-brand-700/70',
 						)}
 					/>
 				</button>

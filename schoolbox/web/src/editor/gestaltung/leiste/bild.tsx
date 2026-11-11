@@ -29,9 +29,11 @@ export const BILD_LEISTE: LeistenKnoepfe = ({ aktiv, befehle, k, quelle }) => (
 			data-bild-austauschen
 			onClick={() => {
 				const jetzt = befehle.jetzt.current;
-				if (jetzt.linksOffen !== 'bilder') {
+				// >> 183
+				if (!jetzt.linksOffen.includes('bilder')) {
 					jetzt.tu.links('bilder');
 				}
+				// << 183
 			}}
 		>
 			<Symbol name="bild" />

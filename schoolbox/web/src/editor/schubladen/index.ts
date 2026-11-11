@@ -41,9 +41,6 @@ export interface SchubladenTeile {
 	kontextmenue: (nr: number, art: 'baustein' | 'miniatur', punkt: { x: number; y: number }) => void;
 	/** Ebenen: Zeile „Seitenfläche“ oder „Seitenrahmen“ öffnet Reiter „Blatt“ › Gestaltung dieser Seite (095). */
 	zeigeSeitengestaltung: (seite: number) => void;
-	/** Ebenen angeheftet (Stecknadel im Kopf der Ebenen). */
-	angeheftet: boolean;
-	schalteAnheften: () => void;
 	/** Öffnet eine andere Schublade, etwa „Figuren“ aus dem Hinweis in „Bilder“ (102). */
 	oeffneSchublade: (id: SchubladenId) => void;
 }
