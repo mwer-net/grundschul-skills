@@ -3,7 +3,7 @@ import { FIGUREN, figurSchluessel, spiegelnFuer } from '@schoolbox/kern/src/figu
 import { useEffect, useState } from 'react';
 
 import { klassen } from '../../bausteine/klassen';
-import { Schubladenhinweis, Schubladenkopf } from '../../bausteine/Schubladenkopf';
+import { Schubladenkopf } from '../../bausteine/Schubladenkopf';
 import { Segment } from '../../bausteine/Segment';
 import { AblageKachel } from '../gestaltung/ablegen/Kachel';
 import { adresseVon, ladeVor, useFigurSrc } from '../gestaltung/figuren-quelle';
@@ -79,7 +79,6 @@ export const Inhalt = (t: SchubladenTeile) => {
 					</div>
 				</section>
 			</div>
-			<Schubladenhinweis>Ziehen: frei hinlegen · mit ⌘: als Tipp in die Zeile</Schubladenhinweis>
 		</div>
 	);
 };

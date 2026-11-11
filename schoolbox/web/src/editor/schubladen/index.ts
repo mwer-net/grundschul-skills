@@ -44,8 +44,6 @@ export interface SchubladenTeile {
 	/** Ebenen angeheftet (Stecknadel im Kopf der Ebenen). */
 	angeheftet: boolean;
 	schalteAnheften: () => void;
-	/** Öffnet eine andere Schublade, etwa „Figuren“ aus dem Hinweis in „Bilder“ (102). */
-	oeffneSchublade: (id: SchubladenId) => void;
 }
 
 /** Ziele für Einträge der Palette aus einer Schublade (⌘K findet auch den Inhalt der Schubladen). */

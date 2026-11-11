@@ -23,8 +23,6 @@ export interface FormenAbschnitt {
 	id: string;
 	/** Die Werkzeugreihe hat keinen Titel, die Schublade heißt schon so. */
 	titel?: string;
-	/** Leise rechts neben dem Titel, z. B. „Klick oder ziehen“. */
-	hinweis?: string;
 	/** Hat der Abschnitt bei dieser Suche etwas zu zeigen? Sonst fehlt er samt Titel. */
 	zeigt: (t: FormenTeile) => boolean;
 	Inhalt: ComponentType<FormenTeile>;

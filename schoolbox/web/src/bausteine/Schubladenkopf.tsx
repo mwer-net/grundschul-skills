@@ -59,10 +59,3 @@ export const Schubladensuche = ({
 		/>
 	</label>
 );
-
-/** Leiser Hinweis unten in einer Schublade, etwa zum Ziehen. */
-export const Schubladenhinweis = ({ children }: { children: ReactNode }) => (
-	<p className="flex-none border-t border-rand px-3 py-2 text-xs text-leise" data-schubladenhinweis>
-		{children}
-	</p>
-);

@@ -132,7 +132,10 @@ test.describe('Editor: Bausteine einfügen', () => {
 	test('Null-Ergebnis nennt die Anfrage', async ({ page }) => {
 		await oeffneBausteine(page);
 		await suche(page).fill('gibtsnicht');
-		await expect(page.getByText('Nichts zu „gibtsnicht“. Suche prüfen.')).toBeVisible();
+		// >> 169
+		await expect(page.getByText('Nichts passt zu „gibtsnicht“.')).toBeVisible();
+		await expect(page.getByText('Suche prüfen')).toHaveCount(0);
+		// << 169
 	});
 
 	test('Umschalter steht über der Liste und bleibt nach dem Neuladen', async ({ page }) => {

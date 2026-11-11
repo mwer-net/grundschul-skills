@@ -162,7 +162,10 @@ export const GESTALTEN: Abschnitt = {
 
 			<h3>Bilder frei aufs Blatt</h3>
 			<p data-hilfe-bilder-frei>
-				In der Schublade „Bilder“ setzt ein Klick auf ein Bild es ein wie bisher. Ziehst du ein Bild aufs Blatt,
+				{/* >> 169 */}
+				In der Schublade „Bilder“ tauscht ein Klick auf ein Bild das gewählte Bild aus oder füllt den gewählten
+				Platzhalter oder Bildrahmen; ist nichts davon gewählt, kommt es als Bild-Baustein hinter die
+				Auswahl.{/* << 169 */} Ziehst du ein Bild aufs Blatt,
 				liegt es dort frei, wo du loslässt, höchstens 320 Pixel breit, und ist gleich gewählt: Dann ziehst du es
 				zurecht, änderst an den Ecken die Größe und drehst es am runden Griff. Das Ziel entscheidet mit: Auf ein
 				Bild im Blatt gezogen tauscht es dieses aus, Lage und Größe bleiben; in einen Bildplatzhalter gezogen

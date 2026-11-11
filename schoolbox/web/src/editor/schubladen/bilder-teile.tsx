@@ -4,7 +4,7 @@ import { fuegeBausteinEin } from '@schoolbox/kern/src/einfuegen';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 
 import { AmZeiger } from '../../bausteine/AmZeiger';
-import { Schubladenhinweis, Schubladenkopf, Schubladensuche } from '../../bausteine/Schubladenkopf';
+import { Schubladenkopf, Schubladensuche } from '../../bausteine/Schubladenkopf';
 import { Segment } from '../../bausteine/Segment';
 import { useLaden } from '../../lib/laden';
 import type { NeuerPlatz } from '../bild';
@@ -86,9 +86,6 @@ export const Inhalt = (t: SchubladenTeile) => {
 
 	// Gewählt ist ein Bild, ein Platzhalter oder ein leerer Bildrahmen (172): Klick und „Foto hochladen“ füllen es.
 	const ziel = bild.werte;
-	const klick = ziel
-		? `Klick auf ein Bild ${ziel.rahmen ? 'füllt den Bildrahmen' : ziel.platzhalter ? 'setzt es in den Platzhalter ein' : 'tauscht das gewählte Bild aus'}.`
-		: 'Klick auf ein Bild fügt es hinter der Auswahl ein.';
 	const neu = ziel ? undefined : neuerPlatz(t);
 	const waehle = (eintrag: SammlungsBild) =>
 		void bild.uebernimm(eintrag.schluessel, eintrag.alt[0] ?? beschreibungAus(eintrag.name), neu);
@@ -126,19 +123,6 @@ export const Inhalt = (t: SchubladenTeile) => {
 						<span className="truncate">{titel}</span>
 						{daten && <span className="font-normal text-dezent">{`${daten[gruppe].length} Bilder`}</span>}
 					</h3>
-					{gruppe === 'sammlung' && (
-						<p className="text-xs text-leise" data-hinweis="figuren">
-							{'Willi & Co. findest du unter '}
-							<button
-								type="button"
-								className="font-medium text-brand-700 underline-offset-2 hover:underline"
-								onClick={() => t.oeffneSchublade('figuren')}
-							>
-								Figuren ⌥4
-							</button>
-							.
-						</p>
-					)}
 					{bild.arbeit === 'sammlung' && <Laeuft text="Bild wird eingesetzt …" />}
 					<SammlungsKacheln
 						klein
@@ -153,7 +137,6 @@ export const Inhalt = (t: SchubladenTeile) => {
 					/>
 				</section>
 			</div>
-			<Schubladenhinweis>{`${klick} Ziehen legt es frei aufs Blatt, mit ⌘ als Baustein.`}</Schubladenhinweis>
 			{geholt && (
 				<AmZeiger
 					className="rounded-lg bg-tinte px-3 py-2 font-medium whitespace-nowrap text-white shadow-2"

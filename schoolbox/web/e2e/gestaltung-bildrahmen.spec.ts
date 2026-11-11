@@ -277,7 +277,6 @@ test.describe('Rahmen-Stile und Bildrahmen (111)', () => {
 		await expect(abschnitt(page).locator('[data-maske-wahl="stern"]')).toBeVisible();
 		await oeffneSchublade(page, 'bilder');
 		await bilder(page).getByRole('button', { name: 'Sammlung', exact: true }).click();
-		await expect(bilder(page)).toContainText('füllt den Bildrahmen');
 		await kachel(page, WACHSTUM).click();
 		await expect
 			.poll(() => quelle(page))
