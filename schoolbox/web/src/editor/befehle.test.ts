@@ -360,4 +360,29 @@ describe('Werkzeuge (098)', () => {
 		// Gegenprobe: ⇧P gehört dem Pfad, der Test findet die Tasten der Werkzeuge also.
 		assert.deepEqual(mitTaste('U:KeyP'), ['werkzeug.pfad']);
 	});
+
+	it('⌘K findet Streuen unter „Konfetti“, „Punkte“ und „Sterne“ (174)', () => {
+		const woerter = BEFEHLE.find((b) => b.id === 'werkzeug.streuen')?.suchwoerter ?? [];
+		for (const wort of ['werkzeug', 'zeichnen', 'streuung', 'konfetti', 'punkte', 'sterne']) {
+			assert.ok(woerter.includes(wort), wort);
+		}
+		const rechteck = BEFEHLE.find((b) => b.id === 'werkzeug.rechteck')?.suchwoerter ?? [];
+		assert.ok(rechteck.includes('werkzeug'));
+		assert.ok(!rechteck.includes('konfetti'));
+	});
+
+	it('die Suchwörter eines Werkzeugs kommen in seinen Befehl (174)', () => {
+		const werkzeug: Werkzeug = {
+			id: 'xy',
+			titel: 'Xy',
+			symbol: 'formen',
+			suchwoerter: ['xy'],
+			zeiger: 'crosshair',
+			bereit: () => true,
+			beginne: () => undefined,
+			bewege: () => null,
+			ende: () => null,
+		};
+		assert.deepEqual(befehleFuerWerkzeuge([werkzeug])[0]?.suchwoerter, ['werkzeug', 'zeichnen', 'xy']);
+	});
 });

@@ -8,7 +8,10 @@ export const abschnitt: FormenAbschnitt | null = {
 	titel: 'Werkzeuge',
 	zeigt: ({ suche }) => {
 		const alle = bereite();
-		return alle.length > 1 && passtZurSuche(['Werkzeuge', ...alle.map((w) => w.titel)], suche);
+		return (
+			alle.length > 1 &&
+			passtZurSuche(['Werkzeuge', ...alle.flatMap((w) => [w.titel, ...(w.suchwoerter ?? [])])], suche)
+		);
 	},
 	Inhalt,
 };

@@ -37,6 +37,8 @@ export interface Werkzeug {
 	id: string;
 	titel: string;
 	symbol: SymbolName;
+	/** Weitere Wörter für ⌘K und die Suche der Schublade (174: „Konfetti“ findet „Streuen“). */
+	suchwoerter?: readonly string[];
 	/** Ohne ⌘ und ohne ⌥; nie beim Tippen. Stern und Streuen haben keine Taste, nur den Knopf. */
 	taste?: Kuerzel;
 	/** CSS-Cursor über dem Blatt, solange das Werkzeug aktiv ist. */
@@ -44,8 +46,8 @@ export interface Werkzeug {
 	/** Nur bereite Werkzeuge haben Befehl, Taste und Knopf. */
 	bereit: (k: SchubladenLage) => boolean;
 	/**
-	 * `seite`: die Seite, auf der der Strich beginnt (109: Streuen wählt danach die dichte Ecke). `skala`: Bildschirm-px
-	 * je px des Materials (116: Glätten und Schließen rechnen in Bildschirm-px, damit der Zoom nichts ändert).
+	 * `seite`: die Seite, auf der der Strich beginnt. `skala`: Bildschirm-px je px des Materials (116: Glätten und
+	 * Schließen rechnen in Bildschirm-px, damit der Zoom nichts ändert).
 	 */
 	beginne: (p: Punkt, seite?: Element, skala?: number) => void;
 	bewege: (p: Punkt, mod: Tasten) => Entwurf | null;
