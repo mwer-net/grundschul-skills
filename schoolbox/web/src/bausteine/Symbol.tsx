@@ -70,6 +70,9 @@ import {
 	MessageSquare,
 	Minus,
 	Monitor,
+	// >> 170
+	MousePointer2,
+	// << 170
 	MoveUpRight,
 	Music,
 	PaintBucket,
@@ -121,6 +124,10 @@ import {
 	X,
 } from 'lucide-react';
 
+// >> 170
+// Ein Name je Bedeutung (063). Eine neue Bedeutung bekommt einen neuen Namen, auch wenn das Bild schon da ist.
+// Ein Name, der nur ähnlich klingt, wird nicht geliehen: ‚bewegen‘ war der Ordner der Ablage und stand an V (149).
+// << 170
 const SYMBOLE = {
 	'suche': Search,
 	'papierkorb': Trash2,
@@ -179,7 +186,9 @@ const SYMBOLE = {
 	'markieren': Highlighter,
 	'ordner': Folder,
 	'ordnerNeu': FolderPlus,
-	'bewegen': FolderInput,
+	// >> 170
+	'bewegenNach': FolderInput,
+	// << 170
 	'einfuegen': ClipboardPaste,
 	'liste': List,
 	'sortieren': ArrowUpDown,
@@ -224,6 +233,10 @@ const SYMBOLE = {
 	// Anker
 	'anker': Anchor,
 	// Formen-Werkzeuge
+	// >> 170
+	// V (098): der Zeiger, wie in Figma und Canva
+	'auswahl': MousePointer2,
+	// << 170
 	'rechteck': RectangleHorizontal,
 	'ellipse': Circle,
 	'vieleck': Hexagon,

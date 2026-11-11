@@ -4,7 +4,7 @@ import type { Werkzeug } from './typ';
 export const werkzeug: Werkzeug = {
 	id: 'auswahl',
 	titel: 'Auswahl',
-	symbol: 'bewegen',
+	symbol: 'auswahl',
 	taste: { code: 'KeyV' },
 	zeiger: 'default',
 	// Steht im Register (`index.ts`): bereit, sobald es ein anderes Werkzeug gibt.

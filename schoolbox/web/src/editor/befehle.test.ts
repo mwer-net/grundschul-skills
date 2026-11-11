@@ -4,7 +4,9 @@ import { describe, it } from 'node:test';
 import type { Kontext, Kuerzel, Modus } from './befehle';
 import { BEFEHLE, befehlZuTaste, kuerzelText, MODUS_VORGABE, passtTaste } from './befehle';
 import type { Werkzeug } from './gestaltung/werkzeuge';
-import { WERKZEUGE } from './gestaltung/werkzeuge';
+// >> 170
+import { WERKZEUGE, werkzeugVon } from './gestaltung/werkzeuge';
+// << 170
 import { befehleFuerWerkzeuge } from './gestaltung/werkzeuge/befehle';
 import { werkzeugStand, zurAuswahl } from './gestaltung/werkzeuge/stand';
 import { JEDE_LAGE, SCHUBLADEN } from './schubladen';
@@ -236,6 +238,13 @@ describe('Werkzeuge (098)', () => {
 		assert.equal(BEFEHLE.filter((b) => b.id.startsWith('werkzeug.')).length, WERKZEUGE.length);
 		assert.equal(WERKZEUGE[0]?.id, 'auswahl');
 	});
+
+	// >> 170
+	it('V zeigt den Zeiger, jedes Werkzeug hat ein eigenes Symbol (170)', () => {
+		assert.equal(werkzeugVon('auswahl')?.symbol, 'auswahl');
+		assert.equal(new Set(WERKZEUGE.map((w) => w.symbol)).size, WERKZEUGE.length);
+	});
+	// << 170
 
 	it('ohne bereites Werkzeug gibt es auch V nicht, und die Tasten bleiben beim Browser', () => {
 		testZugang(false);
