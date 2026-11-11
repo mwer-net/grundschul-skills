@@ -439,6 +439,7 @@ export const Ablage = () => {
 			}
 			return auswahl.gewaehlt.includes(s) ? gewaehlteObjekte : [o];
 		},
+		inDenPapierkorb: (x) => fuehreAus('papierkorb', lageFuer(x)),
 		klappeListe,
 		klappeBaum,
 		reihenfolge,
@@ -526,6 +527,8 @@ export const Ablage = () => {
 							zeigeMenue(punkt, menueFuer([], 'baum', null));
 						}
 					}}
+					ziehen={ziehen.untenImBaum}
+					blass={ziehen.gezogen}
 				/>
 			)}
 			<div className="@container flex min-w-0 flex-1 flex-col" data-ablage-inhalt>

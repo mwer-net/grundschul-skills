@@ -86,8 +86,9 @@ const ABSCHNITTE: Abschnitt[] = [
 						Rahmen auf der freien Fläche. Am iPad: „Auswählen“.
 					</Punkt>
 					<Punkt titel="Bewegen">
-						In einen Ordner, den Baum links oder den Pfad oben ziehen. Mit ⌥ entsteht eine Kopie. Oder ⌘X
-						und ⌘V, oder im Menü „Bewegen nach …“. Am iPad: halten, dann ziehen.
+						In einen Ordner, den Baum links oder den Pfad oben ziehen. Auch die Ordner im Baum lassen sich
+						so ziehen. Mit ⌥ entsteht eine Kopie. Oder ⌘X und ⌘V, oder im Menü „Bewegen nach …“. Am iPad:
+						halten, dann ziehen.
 					</Punkt>
 					<Punkt titel="Rückgängig">⌘Z nimmt jedes Bewegen, Umbenennen und Löschen zurück.</Punkt>
 					<Punkt titel="Löschen">

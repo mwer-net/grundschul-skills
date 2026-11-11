@@ -117,6 +117,11 @@ export const zielGueltig = (stand: AblageStand, objekte: readonly Objekt[], ziel
 		return !(o.istOrdner && ziel !== null && nachkommen(stand, o.ordner.id).has(ziel));
 	});
 
+/** Echt darunter, nicht der gezogene Ordner selbst: Über sich selbst ist es nur kein Ziel, darunter ein Verbot. */
+export const inEigenenZweig = (stand: AblageStand, objekte: readonly Objekt[], ziel: string | null) =>
+	ziel !== null &&
+	objekte.some((o) => o.istOrdner && o.ordner.id !== ziel && nachkommen(stand, o.ordner.id).has(ziel));
+
 /** Alles darunter in sichtbarer Sortierung, Unterordner an ihrer Stelle: die Reihenfolge von „Alles als PDF“. */
 export const dokumenteInFolge = (stand: AblageStand, id: string | null, sortierungVon: SortierungVon): AblageDok[] => {
 	const folge: AblageDok[] = [];

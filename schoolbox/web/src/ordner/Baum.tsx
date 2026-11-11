@@ -1,4 +1,4 @@
-import type { KeyboardEvent, MouseEvent, ReactNode } from 'react';
+import type { KeyboardEvent, MouseEvent, PointerEvent as ReactPointerEvent, ReactNode } from 'react';
 import { useMemo } from 'react';
 
 import { klassen } from '../bausteine/klassen';
@@ -25,6 +25,10 @@ interface Eigenschaften {
 	wurzelGesperrt?: boolean;
 	/** Wo das Namensfeld steht: Baum der Leiste oder des Dialogs. */
 	benennWo?: 'baum' | 'dialog';
+	/** Nur in der Leiste: Jede Ordnerzeile ist Quelle desselben Zugs wie der Inhalt. */
+	ziehen?: (e: ReactPointerEvent, id: string) => void;
+	/** Gezogen: blass samt dem sichtbaren Zweig darunter. */
+	blass?: ReadonlySet<string>;
 }
 
 interface ZeileEigenschaften {
@@ -33,17 +37,20 @@ interface ZeileEigenschaften {
 	name: ReactNode;
 	aktiv: boolean;
 	aus: boolean;
+	blass: boolean;
 	geteilt?: boolean;
 	dreieck: 'auf' | 'zu' | null;
 	symbol: 'ordner' | 'blatt';
 	klappe?: (alles: boolean) => void;
 	waehle: () => void;
 	kontext?: (e: MouseEvent) => void;
+	ziehen?: (e: ReactPointerEvent) => void;
 }
 
 const BaumZeile = ({
 	aktiv,
 	aus,
+	blass,
 	dreieck,
 	geteilt,
 	id,
@@ -53,6 +60,7 @@ const BaumZeile = ({
 	symbol,
 	tiefe,
 	waehle,
+	ziehen,
 }: ZeileEigenschaften) => (
 	<div
 		role="treeitem"
@@ -63,11 +71,13 @@ const BaumZeile = ({
 		data-baum-ordner={id ?? 'wurzel'}
 		data-ablage-ziel={id ?? 'wurzel'}
 		className={klassen(
-			'flex h-[var(--hoehe-baumzeile)] items-center gap-1 rounded-md pr-1 text-sm select-none',
+			'ablage-objekt flex h-[var(--hoehe-baumzeile)] items-center gap-1 rounded-md pr-1 text-sm select-none',
 			aktiv ? 'bg-brand-100 font-medium text-tinte' : 'text-tinte hover:bg-flaeche-2',
 			aus && 'opacity-40',
+			blass && 'opacity-50',
 		)}
 		style={{ paddingLeft: einzug(tiefe) }}
+		onPointerDown={ziehen}
 		onClick={() => {
 			if (!aus) {
 				waehle();
@@ -117,6 +127,7 @@ const dreieckVon = (unter: boolean, auf: boolean) => {
 export const Baum = ({
 	aktuell,
 	benennWo = 'baum',
+	blass,
 	gesperrt,
 	klappe,
 	kontext,
@@ -124,6 +135,7 @@ export const Baum = ({
 	stand,
 	waehle,
 	wurzelGesperrt,
+	ziehen,
 }: Eigenschaften) => {
 	const { benennen } = useAblage();
 	const kinderVon = useMemo(() => {
@@ -137,11 +149,12 @@ export const Baum = ({
 		return karte;
 	}, [stand.ordner]);
 
-	const zweig = (eltern: string | null, tiefe: number): ReactNode =>
+	const zweig = (eltern: string | null, tiefe: number, imBlassen: boolean): ReactNode =>
 		(kinderVon.get(eltern) ?? []).map((o) => {
 			const unter = (kinderVon.get(o.id)?.length ?? 0) > 0;
 			const auf = offen.has(o.id);
 			const imFeld = benennen?.schluessel === o.id && benennen.wo === benennWo;
+			const istBlass = imBlassen || (blass?.has(o.id) ?? false);
 			return (
 				<div key={o.id} role="none">
 					<BaumZeile
@@ -150,14 +163,16 @@ export const Baum = ({
 						name={imFeld ? <NamensFeld objekt={ordnerObjekt(stand, o)} /> : o.name}
 						aktiv={aktuell === o.id}
 						aus={gesperrt?.(o.id) ?? false}
+						blass={istBlass}
 						geteilt={stand.geteilt.ordner.includes(o.id)}
 						dreieck={dreieckVon(unter, auf)}
 						symbol="ordner"
 						klappe={(alles) => klappe(o.id, alles)}
 						waehle={() => waehle(o.id)}
 						{...(kontext ? { kontext: (e: MouseEvent) => kontext(e, o) } : {})}
+						{...(ziehen ? { ziehen: (e: ReactPointerEvent) => ziehen(e, o.id) } : {})}
 					/>
-					{unter && auf && <div role="group">{zweig(o.id, tiefe + 1)}</div>}
+					{unter && auf && <div role="group">{zweig(o.id, tiefe + 1, istBlass)}</div>}
 				</div>
 			);
 		});
@@ -170,12 +185,13 @@ export const Baum = ({
 				name={WURZEL_NAME}
 				aktiv={aktuell === null}
 				aus={wurzelGesperrt ?? false}
+				blass={false}
 				dreieck={null}
 				symbol="blatt"
 				waehle={() => waehle(null)}
 				{...(kontext ? { kontext: (e: MouseEvent) => kontext(e, null) } : {})}
 			/>
-			{zweig(null, 1)}
+			{zweig(null, 1, false)}
 		</div>
 	);
 };

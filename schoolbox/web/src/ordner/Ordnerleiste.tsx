@@ -1,4 +1,4 @@
-import type { MouseEvent } from 'react';
+import type { MouseEvent, PointerEvent as ReactPointerEvent } from 'react';
 
 import { klassen } from '../bausteine/klassen';
 import { Symbol } from '../bausteine/Symbol';
@@ -12,13 +12,18 @@ interface Eigenschaften {
 	klappe: (id: string, alles?: boolean) => void;
 	gehe: (pfad: string) => void;
 	kontext: (e: MouseEvent, ordner: AblageOrdner | null) => void;
+	ziehen: (e: ReactPointerEvent, id: string) => void;
+	blass: ReadonlySet<string>;
 }
 
 const FESTE_ZEILE =
 	'flex h-[var(--hoehe-baumzeile)] w-full flex-none items-center gap-2 rounded-md px-1.5 text-left text-sm select-none';
 
-/** Oben „Zuletzt geändert“, dann der Baum, unten der Papierkorb. Jede Ordnerzeile ist Ablageziel. */
-export const Ordnerleiste = ({ gehe, klappe, kontext, offen, seite, stand }: Eigenschaften) => (
+/**
+ * Oben „Zuletzt geändert“, dann der Baum, unten der Papierkorb. Jede Ordnerzeile ist Ablageziel und lässt sich ziehen;
+ * die beiden Knöpfe ziehen nicht.
+ */
+export const Ordnerleiste = ({ blass, gehe, klappe, kontext, offen, seite, stand, ziehen }: Eigenschaften) => (
 	<nav
 		aria-label="Ablage"
 		data-ordnerleiste
@@ -44,6 +49,8 @@ export const Ordnerleiste = ({ gehe, klappe, kontext, offen, seite, stand }: Eig
 				klappe={klappe}
 				waehle={(id) => gehe(id === null ? '/' : `/o/${id}`)}
 				kontext={kontext}
+				ziehen={ziehen}
+				blass={blass}
 			/>
 		</div>
 		<button
