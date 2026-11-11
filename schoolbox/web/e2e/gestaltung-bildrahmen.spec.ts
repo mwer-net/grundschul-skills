@@ -52,8 +52,11 @@ const mitteVon = async (element: Locator) => {
 	return { x: r.x + r.width / 2, y: r.y + r.height / 2 };
 };
 
-/** Zieht ein Bild aus der Sammlung bis `ziel` und lässt los; vorher steht `text` am Zeiger. */
-const zieheBild = async (page: Page, ziel: { x: number; y: number }, text: string) => {
+/**
+ * Zieht ein Bild aus der Sammlung bis in die Mitte von `ziel` und lässt los; vorher steht `text` am Zeiger. Das Ziel
+ * wird erst gemessen, wenn die Schublade offen ist: Am Mac rückt das Blatt dann zur Seite (183).
+ */
+const zieheBild = async (page: Page, ziel: Locator, text: string) => {
 	await oeffneSchublade(page, 'bilder');
 	await bilder(page).getByRole('button', { name: 'Sammlung', exact: true }).click();
 	await expect(kachel(page, WACHSTUM)).toBeVisible();
@@ -64,6 +67,7 @@ const zieheBild = async (page: Page, ziel: { x: number; y: number }, text: strin
 				.evaluate((i: HTMLImageElement) => i.naturalWidth),
 		)
 		.toBeGreaterThan(0);
+	const m = await mitteVon(ziel);
 	const r = await kachel(page, WACHSTUM).boundingBox();
 	if (!r) {
 		throw new Error('Kachel nicht zu sehen');
@@ -72,7 +76,7 @@ const zieheBild = async (page: Page, ziel: { x: number; y: number }, text: strin
 	await page.mouse.down();
 	await page.mouse.move(r.x + r.width / 2 + 20, r.y + r.height / 2 + 10, { steps: 3 });
 	await expect(anzeige(page)).toBeVisible();
-	await page.mouse.move(ziel.x, ziel.y, { steps: 10 });
+	await page.mouse.move(m.x, m.y, { steps: 10 });
 	await expect(anzeige(page)).toHaveText(text);
 	await page.mouse.up();
 };
@@ -178,7 +182,7 @@ test.describe('Rahmen-Stile und Bildrahmen (111)', () => {
 		const rahmen = material(page).locator('.bildrahmen');
 		await expect(rahmen).toBeVisible();
 		// 172: Über dem leeren Rahmen „einsetzen“ wie beim Platzhalter; über einer Form bleibt es „zuschneiden“.
-		await zieheBild(page, await mitteVon(rahmen), 'einsetzen');
+		await zieheBild(page, rahmen, 'einsetzen');
 		await expect.poll(() => quelle(page)).toMatch(/<img class="bild-frei" data-lage="frei"[^>]*data-maske="stern"/);
 		const html = await quelle(page);
 		expect(html).not.toContain('bildrahmen');
@@ -211,7 +215,7 @@ test.describe('Rahmen-Stile und Bildrahmen (111)', () => {
 		const vorher = blattMit({ vorne: [KREIS] });
 		await oeffneMit(page, vorher);
 		const kreis = material(page).locator('svg.form');
-		await zieheBild(page, await mitteVon(kreis), 'zuschneiden');
+		await zieheBild(page, kreis, 'zuschneiden');
 		await expect.poll(() => quelle(page)).toContain('data-maske="ellipse"');
 		const html = await quelle(page);
 		expect(html).not.toContain('data-form="ellipse"');

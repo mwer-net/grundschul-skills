@@ -82,7 +82,6 @@ export interface Aktionen {
 	einpassen: () => void;
 	/** Öffnet die Schublade, wechselt zu ihr oder schließt sie, wenn sie schon offen ist. */
 	links: (schublade: SchubladenId) => void;
-	ebenenAnheften: () => void;
 	inspektor: () => void;
 	versionen: () => void;
 	claude: () => void;
@@ -121,9 +120,8 @@ export interface Kontext {
 	namenszeile: boolean;
 	festeSeiten: boolean;
 	hatBild: boolean;
-	ebenenAngeheftet: boolean;
-	/** Die offene Schublade, sonst `null`. */
-	linksOffen: SchubladenId | null;
+	/** Die sichtbaren Spalten links, die Ebenen zuerst. */
+	linksOffen: readonly SchubladenId[];
 	/** Das Geschwister davor: „Baustein davor“ fügt dahinter ein. */
 	davor: number | null;
 	/** Text ist markiert: ⌘C und ⌘X bleiben dann dem Browser. */
@@ -303,7 +301,7 @@ const SCHUBLADEN_BEFEHLE: Befehl[] = REIHE.map(({ id, symbol, taste, titel }): B
 	sichtbarUnter: 'links',
 	verfuegbar: (k) => schubladeVon(id)?.bereit(k) ?? false,
 	aus: (k) => k.tu.links(id),
-	aktiv: (k) => k.linksOffen === id,
+	aktiv: (k) => k.linksOffen.includes(id),
 	inUebersicht: () => schubladeVon(id)?.bereit(JEDE_LAGE) ?? false,
 }));
 
@@ -753,17 +751,6 @@ export const BEFEHLE: Befehl[] = [
 	},
 	...SCHUBLADEN_BEFEHLE,
 	...WERKZEUG_BEFEHLE,
-	{
-		id: 'ansicht.ebenen-anheften',
-		titel: (k) => (k.ebenenAngeheftet ? 'Ebenen lösen' : 'Ebenen anheften'),
-		gruppe: 'ansicht',
-		symbol: (k) => (k.ebenenAngeheftet ? 'abheften' : 'anheften'),
-		suchwoerter: ['gliederung', 'stecknadel', 'festhalten', 'teilen'],
-		orte: ['palette'],
-		sichtbarUnter: 'links',
-		verfuegbar: () => true,
-		aus: (k) => k.tu.ebenenAnheften(),
-	},
 	{
 		id: 'ansicht.inspektor',
 		titel: 'Inspektor ein/aus',

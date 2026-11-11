@@ -12,7 +12,5 @@ export const Inhalt = (t: SchubladenTeile) => (
 		festeSeiten={t.festeSeiten}
 		kontextmenue={t.kontextmenue}
 		zeigeSeitengestaltung={t.zeigeSeitengestaltung}
-		angeheftet={t.angeheftet}
-		schalteAnheften={t.schalteAnheften}
 	/>
 );

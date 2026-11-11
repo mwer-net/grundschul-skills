@@ -16,9 +16,9 @@ export const GESTALTEN: Abschnitt = {
 				{'Links neben dem Blatt steht die Leiste mit den Schubladen. Jede hat ihre eigene Taste: '}
 				<Schubladenliste />
 				{'. '}
-				Ein Klick öffnet eine Schublade, ein Klick auf eine andere wechselt, ein zweiter Klick schließt sie, und
-				das Blatt bekommt den Platz. Mit der Stecknadel im Kopf der Ebenen bleiben sie unter jeder anderen
-				Schublade offen; den Teiler dazwischen ziehst du nach oben oder unten.
+				Ein Klick öffnet eine Schublade, ein Klick auf eine andere wechselt, ein zweiter Klick schließt sie. Die
+				Ebenen bleiben offen, bis du sie schließt; jede andere Schublade öffnet rechts daneben, bei schmalem
+				Fenster (etwa am iPad) an ihrer Stelle.
 			</p>
 			<h3>Bausteine ziehen</h3>
 			<p>

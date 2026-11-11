@@ -15,7 +15,6 @@ import { Menue } from '../bausteine/Menue';
 import { Schubladenkopf } from '../bausteine/Schubladenkopf';
 import type { SymbolName } from '../bausteine/Symbol';
 import { Symbol } from '../bausteine/Symbol';
-import { SymbolKnopf } from '../bausteine/SymbolKnopf';
 import { Tooltip } from '../bausteine/Tooltip';
 import { folgeZeiger, rolleAmRand, schluckeKlick } from '../bausteine/zeigerzug';
 import { useClaudeSteuerung } from './claude-kontext';
@@ -127,9 +126,6 @@ interface Eigenschaften {
 	kontextmenue: (nr: number, art: 'baustein' | 'miniatur', punkt: { x: number; y: number }) => void;
 	/** Zeile „Seitenfläche“/„Seitenrahmen“: Reiter „Blatt“ › Gestaltung dieser Seite (095). */
 	zeigeSeitengestaltung: (seite: number) => void;
-	/** Stecknadel im Kopf: angeheftet teilen sich die Ebenen die Spalte mit der offenen Schublade. */
-	angeheftet: boolean;
-	schalteAnheften: () => void;
 }
 
 const naechsteZeile = (liste: Element, y: number, nurSeiten: boolean) => {
@@ -319,12 +315,10 @@ const ClaudeMerker = ({ nr }: { nr: number }) => {
 };
 
 export const Ebenen = ({
-	angeheftet,
 	auswahl,
 	doc,
 	festeSeiten,
 	kontextmenue,
-	schalteAnheften,
 	stand,
 	struktur,
 	zeigeAn,
@@ -1048,17 +1042,6 @@ export const Ebenen = ({
 				>
 					{alleZu ? 'Alle aufklappen' : 'Alle einklappen'}
 				</Knopf>
-				<SymbolKnopf
-					symbol={angeheftet ? 'abheften' : 'anheften'}
-					beschriftung={angeheftet ? 'Ebenen lösen' : 'Ebenen anheften'}
-					tooltip={
-						angeheftet ? 'Ebenen lösen' : 'Ebenen anheften: bleiben unter jeder anderen Schublade offen'
-					}
-					groesse="klein"
-					aria-pressed={angeheftet}
-					data-ebenen-anheften
-					onClick={schalteAnheften}
-				/>
 			</Schubladenkopf>
 			<div ref={liste} className="min-h-0 flex-1 overflow-y-auto" data-gliederung-liste>
 				<div ref={inhalt} className="relative isolate flex flex-col gap-0.5 p-1">

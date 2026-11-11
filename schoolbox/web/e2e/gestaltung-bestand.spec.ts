@@ -52,7 +52,8 @@ test.describe('Ältere Blätter mit Rezept (180)', () => {
 			await expect(page.locator('[data-schublade-knopf="rezepte"]')).toHaveCount(0);
 			await oeffneSchublade(page, 'bilder');
 			await page.keyboard.press('Alt+Digit7');
-			await expect(panel(page)).toHaveAttribute('data-panel-links', 'bilder');
+			// Am Mac stehen die Ebenen daneben (183).
+			await expect(page.locator('[data-panel-links="bilder"]')).toBeVisible();
 
 			await page.keyboard.press('ControlOrMeta+k');
 			const palette = page.locator('[data-befehlspalette]');

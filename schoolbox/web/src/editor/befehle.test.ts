@@ -230,6 +230,17 @@ describe('Schubladen (093)', () => {
 		assert.equal(alsSchublade('rezepte'), null);
 	});
 
+	it('kein Befehl zum Anheften; aktiv ist jede sichtbare Spalte, die Ebenen auch neben einer Schublade (183)', () => {
+		assert.equal(BEFEHLE.find((b) => b.id === 'ansicht.ebenen-anheften'), undefined);
+		const aktiv = (linksOffen: Kontext['linksOffen'], id: string) =>
+			BEFEHLE.find((b) => b.id === `ansicht.links-${id}`)?.aktiv?.({ linksOffen } as Kontext);
+		assert.equal(aktiv(['ebenen', 'bausteine'], 'ebenen'), true);
+		assert.equal(aktiv(['ebenen', 'bausteine'], 'bausteine'), true);
+		assert.equal(aktiv(['ebenen', 'bausteine'], 'figuren'), false);
+		assert.equal(aktiv(['bausteine'], 'ebenen'), false);
+		assert.equal(aktiv(['bausteine'], 'bausteine'), true);
+	});
+
 	it('„Werkzeuge“ statt „Formen“ und „Text“ (175): alte Speicherwerte und Suchwörter führen dorthin', () => {
 		assert.equal(alsSchublade('formen'), 'werkzeuge');
 		assert.equal(alsSchublade('text'), 'werkzeuge');

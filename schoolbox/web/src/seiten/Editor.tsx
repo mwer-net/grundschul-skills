@@ -6,7 +6,7 @@ import { hatNamenszeile } from '@schoolbox/kern/src/struktur';
 import type { Druckprofil, Format } from '@schoolbox/kern/src/werte';
 import { FORMAT_NAME } from '@schoolbox/kern/src/werte';
 import type { ReactNode } from 'react';
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import { flushSync } from 'react-dom';
 import type { SetURLSearchParams } from 'react-router-dom';
 import { useNavigate, useSearchParams } from 'react-router-dom';
@@ -61,8 +61,10 @@ import { usePanels } from '../editor/panels';
 import type { Pruefpunkt } from '../editor/pruefung';
 import { holeInSeiteAus, ueberlaufendeSeiten, usePruefung } from '../editor/pruefung';
 import type { SchubladenId, SchubladenTeile } from '../editor/schubladen';
+import { schubladeVon } from '../editor/schubladen';
 import { befehlZuSchublade } from '../editor/schubladen/reihe';
 import { Schubladen } from '../editor/schubladen/Schubladen';
+import { angezeigt, istEng, sichtbar } from '../editor/schubladen/spalten';
 import { Statusleiste } from '../editor/Statusleiste';
 import type { Struktur } from '../editor/struktur';
 import { useStruktur } from '../editor/struktur';
@@ -406,6 +408,20 @@ const Bearbeitung = ({ dokument, mappe: mappenDaten }: { mappe: Mappe; dokument:
 	const { alles, stand } = b.speicher;
 	const [geladen, setGeladen] = useState<Geladen | null>(null);
 	const panels = usePanels(suche.get('neu') === '1');
+	// Leiste, Spalten und Blatt, ohne Inspektor; gemessen vor dem ersten Bild, damit das iPad beim Laden nicht springt.
+	const bereichRef = useRef<HTMLDivElement>(null);
+	const [bereich, setBereich] = useState(Infinity);
+	useLayoutEffect(() => {
+		const element = bereichRef.current;
+		if (!element) {
+			return undefined;
+		}
+		const miss = () => setBereich(element.clientWidth);
+		miss();
+		const beobachter = new ResizeObserver(miss);
+		beobachter.observe(element);
+		return () => beobachter.disconnect();
+	}, [b.ladeFehler]);
 	const [tastenOffen, setTastenOffen] = useState(false);
 	const [paletteOffen, setPaletteOffen] = useState(false);
 	const [zumBlatt, setZumBlatt] = useState(0);
@@ -478,6 +494,8 @@ const Bearbeitung = ({ dokument, mappe: mappenDaten }: { mappe: Mappe; dokument:
 	);
 
 	const frei = sperre.frei && claude.zeigt === null;
+	const eng = istEng(bereich, panels.stand.schublade);
+	const zeigt = angezeigt(panels.stand, eng, (id) => schubladeVon(id)?.bereit({ frei }) ?? false);
 	const { nurAnsehen } = sperre;
 	const pruefung = usePruefung({ geladen, html, zerlegung, ausgang: b.ausgang, aus: vorschau !== null });
 	const schrittWeg = useRef<(richtung: 'zurueck' | 'vor') => void>(() => undefined);
@@ -622,8 +640,7 @@ const Bearbeitung = ({ dokument, mappe: mappenDaten }: { mappe: Mappe; dokument:
 			namenszeile: zerlegung ? hatNamenszeile(zerlegung) : false,
 			festeSeiten: format === 'minibuch',
 			hatBild: bild.nimmtBild,
-			ebenenAngeheftet: panels.angeheftet,
-			linksOffen: panels.linksOffen ? panels.links : null,
+			linksOffen: sichtbar(zeigt),
 			gestaltung: gestaltungKontext({ doc: docJetzt, pfad, struktur }),
 			davor: (() => {
 				const element = docJetzt && auswahl !== null ? elementZu(docJetzt, auswahl) : null;
@@ -704,8 +721,7 @@ const Bearbeitung = ({ dokument, mappe: mappenDaten }: { mappe: Mappe; dokument:
 				},
 				zoom100: () => setZoom(1),
 				einpassen: () => setZoom('einpassen'),
-				links: panels.schalteLinks,
-				ebenenAnheften: panels.schalteAnheften,
+				links: (id) => panels.schalteLinks(id, zeigt, eng),
 				inspektor: () => {
 					if (panels.rechts === 'inspektor') {
 						panels.setRechtsOffen(!panels.rechtsOffen);
@@ -955,8 +971,6 @@ const Bearbeitung = ({ dokument, mappe: mappenDaten }: { mappe: Mappe; dokument:
 		},
 		kontextmenue: menueAn,
 		zeigeSeitengestaltung: (nr) => zeigeBlattGestaltung(nr, struktur.zeigeAn, zeigeEinstellung),
-		angeheftet: panels.angeheftet,
-		schalteAnheften: panels.schalteAnheften,
 		oeffneSchublade: (id) => befehle.fuehreAus(befehlZuSchublade(id)),
 	};
 
@@ -1061,9 +1075,9 @@ const Bearbeitung = ({ dokument, mappe: mappenDaten }: { mappe: Mappe; dokument:
 				)}
 
 				<div className="flex min-h-0 flex-1 max-lg:flex-col">
-					<div className="flex min-h-0 min-w-0 flex-1">
+					<div ref={bereichRef} className="flex min-h-0 min-w-0 flex-1">
 						<Schubladen
-							panels={panels}
+							zeigt={zeigt}
 							lage={{ frei }}
 							grund={entwurf.grund}
 							teile={schubladenTeile}
@@ -1198,9 +1212,9 @@ const Bearbeitung = ({ dokument, mappe: mappenDaten }: { mappe: Mappe; dokument:
 					stufe={massstab.stufe}
 					skala={massstab.skala}
 					fuehreAus={befehle.fuehreAus}
-					linksOffen={panels.linksOffen}
+					linksOffen={sichtbar(zeigt).length > 0}
+					schalteLinks={() => panels.schalteLeiste(zeigt)}
 					rechtsOffen={panels.rechtsOffen}
-					setLinksOffen={panels.setLinksOffen}
 					setRechtsOffen={panels.setRechtsOffen}
 					claude={claude.lauf}
 					zeigeClaude={() => claude.zeigeLauf(struktur.zeigeAn)}

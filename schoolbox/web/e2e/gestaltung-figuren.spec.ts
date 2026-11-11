@@ -9,7 +9,7 @@ import type { Locator, Page } from '@playwright/test';
 import { gespeichert, material, oeffne, quelle, uhrzeit } from './editorhilfe';
 import { blattMit, FIGUR_FREI } from './gestaltung-daten';
 import { expect, test } from './hilfe';
-import { oeffneSchublade } from './schubladen-hilfe';
+import { oeffneSchublade, schubladenKnopf } from './schubladen-hilfe';
 
 const MAUS = ['chromium', 'mac-safari'];
 
@@ -78,6 +78,9 @@ test.describe('Figuren (102)', () => {
 		page,
 	}) => {
 		await blatt(page);
+		// Ohne die Ebenen daneben bleibt „100 %“ echt, Wilma also 150 px breit am Bildschirm (183).
+		await page.keyboard.press('Alt+Digit1');
+		await expect(schubladenKnopf(page, 'ebenen')).toHaveAttribute('aria-pressed', 'false');
 		const vorher = await quelle(page);
 		await page.keyboard.press('Alt+Digit4');
 		await expect(schublade(page)).toBeVisible();
