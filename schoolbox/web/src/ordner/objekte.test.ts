@@ -1,7 +1,17 @@
 import assert from 'node:assert/strict';
 import { describe, it } from 'node:test';
 
-import { inhaltText, inhaltVon, ordnerObjekt, seitenText, VORNE, vorneVon } from './objekte';
+import {
+	dokObjekt,
+	inEigenenZweig,
+	inhaltText,
+	inhaltVon,
+	ordnerObjekt,
+	seitenText,
+	VORNE,
+	vorneVon,
+	zielGueltig,
+} from './objekte';
 import type { AblageDok, AblageOrdner, AblageStand } from './typen';
 
 const ordner = (id: string, name: string, eltern: string | null): AblageOrdner => ({
@@ -113,5 +123,55 @@ describe('Ordner zeigen, was drin ist (164)', () => {
 		assert.deepEqual(uhrzeit, ['Volle Stunden', 'Halbe Stunden', 'Viertelstunden']);
 		assert.ok(!uhrzeit.includes('Minuten'));
 		assert.deepEqual(vorneVon(STAND, 'leer', { feld: 'name', auf: true }), []);
+	});
+});
+
+/** A › B › C, daneben D; ein Blatt liegt in A. */
+const ZWEIG: AblageStand = {
+	...STAND,
+	ordner: [ordner('a', 'A', null), ordner('b', 'B', 'a'), ordner('c', 'C', 'b'), ordner('d', 'D', null)],
+	dokumente: [blatt('in-a', 'Blatt in A', 'a', 1)],
+};
+
+const ordnerAus = (id: string) => {
+	const o = ZWEIG.ordner.find((x) => x.id === id);
+	assert.ok(o, id);
+	return ordnerObjekt(ZWEIG, o);
+};
+
+describe('Ziehen über dem eigenen Zweig (165)', () => {
+	it('inEigenenZweig: wahr über allem, was echt darunter liegt', () => {
+		assert.equal(inEigenenZweig(ZWEIG, [ordnerAus('a')], 'b'), true);
+		assert.equal(inEigenenZweig(ZWEIG, [ordnerAus('a')], 'c'), true);
+	});
+
+	it('Gegenprobe: der Ordner selbst, ein Nachbar, die Wurzel und der Papierkorb sind es nicht', () => {
+		const a = [ordnerAus('a')];
+		assert.equal(inEigenenZweig(ZWEIG, a, 'a'), false);
+		assert.equal(inEigenenZweig(ZWEIG, a, 'd'), false);
+		assert.equal(inEigenenZweig(ZWEIG, a, null), false);
+		assert.equal(inEigenenZweig(ZWEIG, a, 'papierkorb'), false);
+		assert.equal(inEigenenZweig(ZWEIG, [ordnerAus('b')], 'b'), false);
+	});
+
+	it('mehrere gezogene Objekte: wahr, sobald eines passt', () => {
+		assert.equal(inEigenenZweig(ZWEIG, [ordnerAus('d'), ordnerAus('a')], 'c'), true);
+		assert.equal(inEigenenZweig(ZWEIG, [ordnerAus('d')], 'c'), false);
+	});
+
+	it('ein Dokument allein ist nie im eigenen Zweig', () => {
+		const [dok] = ZWEIG.dokumente;
+		assert.ok(dok);
+		const blattInA = [dokObjekt(ZWEIG, dok)];
+		for (const ziel of ['a', 'b', 'c', 'd', null]) {
+			assert.equal(inEigenenZweig(ZWEIG, blattInA, ziel), false, String(ziel));
+		}
+	});
+
+	it('zielGueltig bleibt: nicht in den eigenen Zweig, nicht in sich selbst, daneben schon', () => {
+		const a = [ordnerAus('a')];
+		assert.equal(zielGueltig(ZWEIG, a, 'b'), false);
+		assert.equal(zielGueltig(ZWEIG, a, 'a'), false);
+		assert.equal(zielGueltig(ZWEIG, a, 'd'), true);
 	});
 });

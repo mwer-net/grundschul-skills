@@ -7,8 +7,8 @@ import { FINGER_WEG, HALTEN_MS, MAUS_WEG } from '../editor/ziehen';
 import type { AuswahlStand } from './auswahl';
 import { Geist } from './Geist';
 import { useAblage } from './kontext';
-import { bewegtText, geloeschtText, kopiertText } from './meldungen';
-import { nachkommen, ortName, zielGueltig } from './objekte';
+import { bewegtText, kopiertText } from './meldungen';
+import { findeOrdner, inEigenenZweig, ordnerObjekt, ortName, zielGueltig } from './objekte';
 import type { Objekt } from './typen';
 
 const FEDERN_MS = 700;
@@ -19,6 +19,8 @@ const LASSO_WEG = 4;
 
 interface Optionen {
 	objekteZuZiehen: (schluessel: string) => Objekt[];
+	/** Derselbe Weg wie der Befehl: Liegt der offene Ordner im Gelöschten, geht es eine Ebene höher. */
+	inDenPapierkorb: (objekte: Objekt[]) => void;
 	klappeListe: (id: string, an?: boolean) => void;
 	klappeBaum: (id: string, an?: boolean) => void;
 	reihenfolge: readonly string[];
@@ -37,11 +39,16 @@ interface Zug {
 	/** Ordner-Id, `null` für die Wurzel, `papierkorb`, oder `undefined`, wenn hier nichts abgelegt werden kann. */
 	zielId: string | null | undefined;
 	kopiert: boolean;
-	/** Ein Ordner über sich selbst oder einem seiner Nachkommen: Das steht schon vor dem Loslassen in der Statuszeile. */
+	/** Ein Ordner über einem seiner Nachkommen: Das steht schon vor dem Loslassen in der Statuszeile. */
 	inSichSelbst: boolean;
 	federn: number | null;
 	x: number;
 	y: number;
+}
+
+/** Was ein Druck zieht, sobald der Zug beginnt. Ohne Quelle zieht er auf der Fläche einen Rahmen. */
+interface Quelle {
+	objekte: () => Objekt[];
 }
 
 const zielVon = (el: HTMLElement) => {
@@ -52,7 +59,10 @@ const zielVon = (el: HTMLElement) => {
 const zielAn = (x: number, y: number) =>
 	document.elementFromPoint(x, y)?.closest<HTMLElement>('[data-ablage-ziel]') ?? null;
 
-/** Ziehen und Lasso. Beides lauscht an `window`: Beim Federn verschwindet die Kachel, an der das Ziehen begann. */
+/**
+ * Ziehen und Lasso, mit zwei Eingängen: der Fläche des Inhalts und den Zeilen im Baum. Beides lauscht an `window`:
+ * Beim Federn verschwindet die Kachel, an der das Ziehen begann.
+ */
 export const useZiehen = (o: Optionen) => {
 	const { stand, tu } = useAblage();
 	const navigate = useNavigate();
@@ -133,7 +143,7 @@ export const useZiehen = (o: Optionen) => {
 			}
 		}
 		z.zielId = neueId;
-		z.inSichSelbst = Boolean(s && id && z.objekte.some((x) => x.istOrdner && nachkommen(s, x.ordner.id).has(id)));
+		z.inSichSelbst = Boolean(s && id !== undefined && inEigenenZweig(s, z.objekte, id));
 		zeigeStatus(z);
 		setzeZeiger(z);
 	};
@@ -176,11 +186,11 @@ export const useZiehen = (o: Optionen) => {
 		if (z.zielId === undefined || !s) {
 			return;
 		}
-		const knoten = z.objekte.map((x) => x.knoten);
 		if (z.zielId === 'papierkorb') {
-			void machen({ art: 'papierkorb', knoten }, { text: () => geloeschtText(z.objekte) });
+			neu.current.o.inDenPapierkorb(z.objekte);
 			return;
 		}
+		const knoten = z.objekte.map((x) => x.knoten);
 		const ziel = z.zielId;
 		if (z.kopiert) {
 			void machen({ art: 'kopieren', knoten, ziel }, { text: (a) => kopiertText(s, z.objekte, ziel, a) });
@@ -189,8 +199,7 @@ export const useZiehen = (o: Optionen) => {
 		}
 	};
 
-	const beginneZug = (schluessel: string, finger: boolean, x: number, y: number, kopiert: boolean) => {
-		const objekte = neu.current.o.objekteZuZiehen(schluessel);
+	const beginneZug = (objekte: Objekt[], finger: boolean, x: number, y: number, kopiert: boolean) => {
 		if (objekte.length === 0) {
 			return false;
 		}
@@ -214,14 +223,10 @@ export const useZiehen = (o: Optionen) => {
 		return true;
 	};
 
-	const unten = (e: ReactPointerEvent) => {
-		const ziel = e.target as HTMLElement;
-		if (e.button !== 0 || !o.aktiv || ziel.closest('button, input, a, [data-namensfeld]')) {
-			return;
-		}
+	/** Die eine Drucklogik für beide Eingänge: Schwellen, Halten, Wischen, Tasten, Rahmen. */
+	const druecke = (e: ReactPointerEvent, quelle: Quelle | null) => {
 		const finger = e.pointerType === 'touch';
-		const objekt = ziel.closest<HTMLElement>('[data-objekt]')?.dataset.objekt;
-		if (!objekt && finger) {
+		if (!quelle && finger) {
 			return;
 		}
 		const startX = e.clientX;
@@ -255,7 +260,7 @@ export const useZiehen = (o: Optionen) => {
 				lauf.current.x = x;
 				lauf.current.y = y;
 				waehleZiel(lauf.current);
-			} else if (bewegtSich && !objekt) {
+			} else if (bewegtSich && !quelle) {
 				rolle(x, y);
 				zeichneLasso();
 			}
@@ -278,9 +283,9 @@ export const useZiehen = (o: Optionen) => {
 				}
 				return;
 			}
-			if (objekt) {
+			if (quelle) {
 				if (weg >= MAUS_WEG) {
-					beginneZug(objekt, false, x, y, m.altKey);
+					beginneZug(quelle.objekte(), false, x, y, m.altKey);
 				}
 			} else if (weg >= LASSO_WEG) {
 				bewegtSich = true;
@@ -353,13 +358,36 @@ export const useZiehen = (o: Optionen) => {
 			sperrtRollen: () => lauf.current !== null,
 		});
 		aufraeumen.current = abbruch;
-		if (finger && objekt) {
+		if (finger && quelle) {
 			halten = window.setTimeout(() => {
 				halten = null;
-				if (beginneZug(objekt, true, x, y, false)) {
+				if (beginneZug(quelle.objekte(), true, x, y, false)) {
 					navigator.vibrate?.(10);
 				}
 			}, HALTEN_MS);
+		}
+	};
+
+	const darf = (e: ReactPointerEvent) =>
+		e.button === 0 && o.aktiv && !(e.target as HTMLElement).closest('button, input, a, [data-namensfeld]');
+
+	const unten = (e: ReactPointerEvent) => {
+		if (!darf(e)) {
+			return;
+		}
+		const objekt = (e.target as HTMLElement).closest<HTMLElement>('[data-objekt]')?.dataset.objekt;
+		druecke(e, objekt ? { objekte: () => neu.current.o.objekteZuZiehen(objekt) } : null);
+	};
+
+	/** Eine Zeile im Baum zieht genau ihren Ordner: nie die Auswahl im Inhalt und nie einen Rahmen. */
+	const untenImBaum = (e: ReactPointerEvent, id: string) => {
+		const ordner = () => {
+			const s = neu.current.stand;
+			const da = s && findeOrdner(s, id);
+			return s && da ? [ordnerObjekt(s, da)] : [];
+		};
+		if (darf(e) && ordner().length > 0) {
+			druecke(e, { objekte: ordner });
 		}
 	};
 
@@ -373,6 +401,7 @@ export const useZiehen = (o: Optionen) => {
 	);
 	return {
 		unten,
+		untenImBaum,
 		gezogen,
 		status,
 		lasso: (

@@ -11,6 +11,8 @@ const pfad = (page: Page) => page.locator('[data-pfad]');
 const status = (page: Page) => page.locator('[data-statuszeile]');
 const kacheln = (page: Page) => page.locator('[data-objekt]');
 const meldung = (page: Page) => page.getByRole('status');
+const titel = (page: Page, name: string) => page.getByRole('heading', { level: 1, name });
+const geist = (page: Page) => page.locator('[data-geist]');
 const eintrag = (page: Page, name: string | RegExp) => page.getByRole('menuitem', { name });
 
 const reihe = () =>
@@ -31,17 +33,34 @@ const neuerOrdner = async (page: Page, name: string) => {
 	await expect(objekt(page, name)).toBeVisible();
 };
 
+/** Mit gedrückter Maus weiter zu `nach`, ohne loszulassen. */
+const fahreZu = async (page: Page, nach: Locator) => {
+	const b = await nach.boundingBox();
+	if (!b) {
+		throw new Error('nicht zu sehen');
+	}
+	await page.mouse.move(b.x + Math.min(50, b.width / 2), b.y + b.height / 2, { steps: 8 });
+};
+
 /** Zieht wie mit der Maus, in Schritten, damit die Schwelle überschritten wird. */
 const zieheBis = async (page: Page, von: Locator, nach: Locator) => {
 	const a = await von.boundingBox();
-	const b = await nach.boundingBox();
-	if (!a || !b) {
+	if (!a) {
 		throw new Error('nicht zu sehen');
 	}
 	await page.mouse.move(a.x + a.width / 2, a.y + a.height / 3);
 	await page.mouse.down();
 	await page.mouse.move(a.x + a.width / 2 + 12, a.y + a.height / 3 + 12, { steps: 3 });
-	await page.mouse.move(b.x + Math.min(50, b.width / 2), b.y + b.height / 2, { steps: 8 });
+	await fahreZu(page, nach);
+};
+
+/** Wo die lebenden Ordner dieses Namens laut `_ordner.json` liegen: Name des Elternordners, `null` für die Wurzel. */
+const orteVon = async (name: string) => {
+	const { ordner } = JSON.parse(await readFile(path.join(MATERIAL_DIR, '_ordner.json'), 'utf8')) as {
+		ordner: { id: string; name: string; eltern: string | null; geloescht: unknown }[];
+	};
+	const lebend = ordner.filter((o) => o.geloescht === null);
+	return lebend.filter((o) => o.name === name).map((o) => lebend.find((e) => e.id === o.eltern)?.name ?? null);
 };
 
 test.describe('Kerngeschichte', () => {
@@ -344,8 +363,18 @@ test.describe('Ziehen', () => {
 
 	test('in den Papierkorb, Ordner nicht in sich selbst: vor dem Loslassen zu sehen', async ({ page }) => {
 		await zwei(page);
+		await oeffneObjekt(page, 'Quelle');
+		await neuerOrdner(page, 'Innen');
+		await oeffneObjekt(page, 'Innen');
+		await baum(page, 'Mein Material').click();
+		await expect(kacheln(page)).toHaveCount(2);
+		await expect(baum(page, 'Innen')).toBeVisible();
+		// Über sich selbst ist es nur kein Ziel (165), erst darunter ein Verbot.
 		await zieheBis(page, objekt(page, 'Quelle'), baum(page, 'Quelle'));
+		await expect(status(page)).toHaveText('„Quelle“ bewegen: Ziel wählen');
+		await fahreZu(page, baum(page, 'Innen'));
 		await expect(status(page)).toContainText(/nicht/);
+		await expect(page.locator('[data-ziel-aktiv]')).toHaveCount(0);
 		await page.mouse.up();
 		await expect(kacheln(page)).toHaveCount(2);
 
@@ -379,6 +408,172 @@ test.describe('Ziehen', () => {
 		expect(await page.evaluate(() => String(window.getSelection()))).toBe('');
 		await page.mouse.up();
 		await expect(status(page)).toContainText('2 von 2');
+	});
+
+	/** „Oben › Mitte › Unten“ und daneben „Ziel“; offen ist „Unten“, im Baum sind „Oben“ und „Mitte“ aufgeklappt. */
+	const zweig = async (page: Page) => {
+		await page.goto('/');
+		await neuerOrdner(page, 'Ziel');
+		await neuerOrdner(page, 'Oben');
+		await oeffneObjekt(page, 'Oben');
+		await neuerOrdner(page, 'Mitte');
+		await oeffneObjekt(page, 'Mitte');
+		await neuerOrdner(page, 'Unten');
+		await oeffneObjekt(page, 'Unten');
+		await expect(titel(page, 'Unten')).toBeVisible();
+		await expect(baum(page, 'Unten')).toBeVisible();
+	};
+
+	test('aus dem Baum eine Ebene höher; ein Klick öffnet weiter; ⌘Z (165)', async ({ page }) => {
+		await zweig(page);
+		// Gegenprobe: Ein Klick öffnet, auch mit einer Bewegung unter der Schwelle.
+		await baum(page, 'Oben').click();
+		await expect(titel(page, 'Oben')).toBeVisible();
+		const mitte = await baum(page, 'Mitte').boundingBox();
+		if (!mitte) {
+			throw new Error('nicht zu sehen');
+		}
+		await page.mouse.move(mitte.x + 60, mitte.y + mitte.height / 2);
+		await page.mouse.down();
+		await page.mouse.move(mitte.x + 64, mitte.y + mitte.height / 2, { steps: 2 });
+		await page.mouse.up();
+		await expect(titel(page, 'Mitte')).toBeVisible();
+		await expect(geist(page)).toHaveCount(0);
+
+		await baum(page, 'Unten').click();
+		await expect(titel(page, 'Unten')).toBeVisible();
+		await zieheBis(page, baum(page, 'Unten'), baum(page, 'Oben'));
+		await expect(geist(page)).toBeVisible();
+		await expect(status(page)).toHaveText('„Unten“ nach „Mein Material › Oben“ bewegen');
+		await expect(baum(page, 'Unten')).toHaveCSS('opacity', '0.5');
+		await expect(page.locator('[data-ziel-aktiv]')).toHaveCount(1);
+		await expect(page.locator('[data-baum-ordner][data-ziel-aktiv]')).toHaveText('Oben');
+		await page.mouse.up();
+		await expect(meldung(page)).toContainText('bewegt');
+		await expect(titel(page, 'Unten')).toBeVisible();
+		await expect(pfad(page)).toContainText('Oben');
+		await expect(pfad(page)).not.toContainText('Mitte');
+		expect(await page.evaluate(() => String(window.getSelection()))).toBe('');
+
+		await page.keyboard.press('ControlOrMeta+z');
+		await expect(pfad(page)).toContainText('Mitte');
+		await expect(titel(page, 'Unten')).toBeVisible();
+	});
+
+	test('aus dem Baum: über sich selbst kein Ziel, über dem eigenen Zweig gesperrt; Esc (165)', async ({ page }) => {
+		await zweig(page);
+		const datei = path.join(MATERIAL_DIR, '_ordner.json');
+		const vorher = await readFile(datei, 'utf8');
+		const oben = await baum(page, 'Oben').boundingBox();
+		if (!oben) {
+			throw new Error('nicht zu sehen');
+		}
+		await page.mouse.move(oben.x + 60, oben.y + oben.height / 2);
+		await page.mouse.down();
+		await page.mouse.move(oben.x + 72, oben.y + oben.height / 2, { steps: 4 });
+		await expect(geist(page)).toBeVisible();
+		await expect(status(page)).toHaveText('„Oben“ bewegen: Ziel wählen');
+		await expect(page.locator('[data-ziel-aktiv]')).toHaveCount(0);
+
+		await fahreZu(page, baum(page, 'Unten'));
+		await expect(status(page)).toHaveText('Ein Ordner kann nicht in sich selbst liegen.');
+		await expect(page.locator('[data-ziel-aktiv]')).toHaveCount(0);
+		for (const name of ['Oben', 'Mitte', 'Unten']) {
+			await expect(baum(page, name)).toHaveCSS('opacity', '0.5');
+		}
+		await expect(baum(page, 'Ziel')).toHaveCSS('opacity', '1');
+
+		await page.keyboard.press('Escape');
+		await page.mouse.up();
+		await expect(geist(page)).toHaveCount(0);
+		await expect(titel(page, 'Unten')).toBeVisible();
+		expect(await readFile(datei, 'utf8')).toBe(vorher);
+	});
+
+	test('aus dem Baum mit ⌥ kopieren und in den Papierkorb; der offene Ordner geht eine Ebene höher (165)', async ({
+		page,
+	}) => {
+		await zweig(page);
+		await baum(page, 'Mitte').click();
+		await expect(titel(page, 'Mitte')).toBeVisible();
+		await zieheBis(page, baum(page, 'Mitte'), baum(page, 'Ziel'));
+		await page.keyboard.down('Alt');
+		await expect(status(page)).toHaveText('„Mitte“ nach „Mein Material › Ziel“ kopieren');
+		await page.mouse.up();
+		await page.keyboard.up('Alt');
+		await expect(meldung(page)).toContainText('kopiert');
+		await expect.poll(() => orteVon('Mitte')).toEqual(expect.arrayContaining(['Oben', 'Ziel']));
+
+		// Die erste Zeile „Mitte“ ist die unter „Oben“: Der Baum sortiert nach Name.
+		await zieheBis(page, baum(page, 'Mitte'), page.locator('[data-ablage-ziel="papierkorb"]'));
+		await expect(status(page)).toHaveText('„Mitte“ in den Papierkorb legen');
+		await page.mouse.up();
+		await expect(meldung(page)).toContainText('Papierkorb');
+		await expect(titel(page, 'Oben')).toBeVisible();
+		await expect.poll(() => orteVon('Mitte')).toEqual(['Ziel']);
+
+		await page.keyboard.press('ControlOrMeta+z');
+		await expect.poll(() => orteVon('Mitte')).toEqual(expect.arrayContaining(['Oben', 'Ziel']));
+		await expect(objekt(page, 'Mitte')).toBeVisible();
+		await expect(baum(page, 'Mitte')).toBeVisible();
+	});
+
+	test('Wurzel, „Zuletzt geändert“, Papierkorb und der Baum in „Bewegen nach …“ ziehen nicht (165)', async ({
+		page,
+	}) => {
+		await zweig(page);
+		const seitenleiste = page.locator('[data-ordnerleiste]');
+		for (const von of [
+			baum(page, 'Mein Material'),
+			seitenleiste.getByRole('button', { name: 'Zuletzt geändert' }),
+			seitenleiste.getByRole('button', { name: 'Papierkorb' }),
+		]) {
+			await zieheBis(page, von, baum(page, 'Ziel'));
+			await expect(geist(page)).toHaveCount(0);
+			await expect(page.locator('[data-ziel-aktiv]')).toHaveCount(0);
+			await page.mouse.up();
+		}
+		await expect.poll(() => orteVon('Ziel')).toEqual([null]);
+
+		await baum(page, 'Ziel').click({ button: 'right' });
+		await eintrag(page, /Bewegen nach/).click();
+		const dialog = page.getByRole('dialog');
+		await expect(dialog).toContainText('„Ziel“ bewegen nach');
+		const zeile = (name: string) => dialog.locator('[data-baum-ordner]').filter({ hasText: name });
+		await zieheBis(page, zeile('Oben'), zeile('Mein Material'));
+		await expect(geist(page)).toHaveCount(0);
+		await page.mouse.up();
+		await expect(dialog).toBeVisible();
+		await expect.poll(() => orteVon('Oben')).toEqual([null]);
+	});
+
+	test('aus dem Inhalt: auch die Baumzeile samt Zweig ist blass (165)', async ({ page }) => {
+		await zweig(page);
+		await baum(page, 'Mein Material').click();
+		await expect(kacheln(page)).toHaveCount(2);
+		// Ins Ziel im Baum: Dort federt es nur auf, der Inhalt bleibt stehen.
+		await zieheBis(page, objekt(page, 'Oben'), baum(page, 'Ziel'));
+		await expect(geist(page)).toBeVisible();
+		await expect(objekt(page, 'Oben')).toHaveCSS('opacity', '0.5');
+		await expect(baum(page, 'Oben')).toHaveCSS('opacity', '0.5');
+		await expect(baum(page, 'Mitte')).toHaveCSS('opacity', '0.5');
+		await expect(baum(page, 'Ziel')).toHaveCSS('opacity', '1');
+		await page.keyboard.press('Escape');
+		await page.mouse.up();
+		await expect(baum(page, 'Oben')).toHaveCSS('opacity', '1');
+	});
+
+	test('Federn beim Zug aus dem Baum klappt auf (165)', async ({ page }) => {
+		await zweig(page);
+		await baum(page, 'Mein Material').click();
+		await expect(kacheln(page)).toHaveCount(2);
+		await baum(page, 'Oben').getByRole('button', { name: 'Zuklappen' }).click();
+		await expect(baum(page, 'Oben')).toHaveAttribute('aria-expanded', 'false');
+		await zieheBis(page, baum(page, 'Ziel'), baum(page, 'Oben'));
+		await expect(geist(page)).toBeVisible();
+		await expect(baum(page, 'Oben')).toHaveAttribute('aria-expanded', 'true', { timeout: 4_000 });
+		await page.keyboard.press('Escape');
+		await page.mouse.up();
 	});
 });
 
@@ -703,6 +898,73 @@ test.describe('Am Finger', () => {
 				{ a: { x: von.x + 60, y: von.y + 60 }, b: { x: nach.x + 60, y: nach.y + 20 } },
 			);
 		await expect(kacheln(page)).toHaveCount(1);
+	});
+
+	/** Wie der Finger in Safari: `pointerdown` an der Zeile, dann je Schritt warten und bewegen, am Ende loslassen. */
+	const fingerZug = (
+		zeile: Locator,
+		start: { x: number; y: number },
+		schritte: { warte: number; x: number; y: number }[],
+	) =>
+		zeile.evaluate(
+			async (el, { anfang, liste }) => {
+				const sende = (typ: string, x: number, y: number) =>
+					el.dispatchEvent(
+						new PointerEvent(typ, {
+							bubbles: true,
+							pointerType: 'touch',
+							pointerId: 7,
+							isPrimary: true,
+							clientX: x,
+							clientY: y,
+							button: 0,
+							buttons: 1,
+						}),
+					);
+				sende('pointerdown', anfang.x, anfang.y);
+				let jetzt = anfang;
+				for (const schritt of liste) {
+					await new Promise((r) => setTimeout(r, schritt.warte));
+					sende('pointermove', schritt.x, schritt.y);
+					jetzt = schritt;
+				}
+				await new Promise((r) => setTimeout(r, 100));
+				const mitGeist = document.querySelector('[data-geist]') !== null;
+				sende('pointerup', jetzt.x, jetzt.y);
+				return mitGeist;
+			},
+			{ anfang: start, liste: schritte },
+		);
+
+	test('Halten im Baum und ziehen legt einen Ordner in einen anderen (165)', async ({ page }) => {
+		await legeMappeAn('Quelle', 'mathematik', 3, [{ titel: 'Blatt A' }]);
+		await legeMappeAn('Ziel', 'mathematik', 3, [{ titel: 'Blatt B' }]);
+		await page.goto('/');
+		await expect(kacheln(page)).toHaveCount(2);
+		const von = await baum(page, 'Quelle').boundingBox();
+		const nach = await baum(page, 'Ziel').boundingBox();
+		if (!von || !nach) {
+			throw new Error('nicht zu sehen');
+		}
+		expect(von.height).toBeGreaterThanOrEqual(44);
+		expect(nach.height).toBeGreaterThanOrEqual(44);
+		const a = { x: von.x + 60, y: von.y + von.height / 2 };
+
+		// Gegenprobe: Wer vor dem Halten wischt, rollt; es beginnt kein Zug.
+		const gewischt = await fingerZug(baum(page, 'Quelle'), a, [
+			{ warte: 100, x: a.x, y: a.y + 30 },
+			{ warte: 400, x: a.x, y: a.y + 30 },
+		]);
+		expect(gewischt).toBe(false);
+		await expect(kacheln(page)).toHaveCount(2);
+
+		const gehalten = await fingerZug(baum(page, 'Quelle'), a, [
+			{ warte: 650, x: a.x + 12, y: a.y + 12 },
+			{ warte: 50, x: nach.x + 60, y: nach.y + nach.height / 2 },
+		]);
+		expect(gehalten).toBe(true);
+		await expect(kacheln(page)).toHaveCount(1);
+		await expect.poll(() => orteVon('Quelle')).toEqual(['Ziel']);
 	});
 });
 
