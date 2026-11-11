@@ -1,12 +1,32 @@
 import assert from 'node:assert/strict';
-import { copyFile, mkdir, symlink, writeFile } from 'node:fs/promises';
+import { execFileSync } from 'node:child_process';
+import { copyFile, mkdir, readFile, symlink, writeFile } from 'node:fs/promises';
 import path from 'node:path';
 import { after, before, describe, it } from 'node:test';
 
-import { ASSETS } from '@schoolbox/kern';
+import { ASSETS, neuesDokument, VORSCHAU_DATEI } from '@schoolbox/kern';
 
 import type { TestServer } from './testhilfe';
 import { legeDokumentAn, rohAnfrage, schreibKoepfe, starteTestServer } from './testhilfe';
+
+const BREITE_PY = 'import io, sys\nfrom PIL import Image\nprint(Image.open(io.BytesIO(sys.stdin.buffer.read())).width)';
+
+/** Breite eines Bildes, mit Pillow gelesen. */
+const breiteVon = (daten: Buffer) =>
+	Number(execFileSync('python3', ['-c', BREITE_PY], { input: daten, encoding: 'utf8' }));
+
+const bytesVon = async (antwort: Response) => Buffer.from(await antwort.arrayBuffer());
+
+/** WebP, wie `bild.py vorschaubilder` es schreibt: `RIFF`, an 8 `WEBP`. */
+const pruefeWebp = async (antwort: Response, adresse: string) => {
+	assert.equal(antwort.status, 200, adresse);
+	assert.equal(antwort.headers.get('content-type'), 'image/webp', adresse);
+	assert.equal(antwort.headers.get('cache-control'), 'no-cache', adresse);
+	const daten = await bytesVon(antwort);
+	assert.equal(daten.subarray(0, 4).toString('latin1'), 'RIFF', adresse);
+	assert.equal(daten.subarray(8, 12).toString('latin1'), 'WEBP', adresse);
+	return breiteVon(daten);
+};
 
 describe('/ansicht', () => {
 	let s: TestServer;
@@ -136,6 +156,87 @@ describe('/ansicht', () => {
 		const html = await (await s.holen(`${s.url}/ansicht/${quer.mappe}/dokumente/${quer.dok}/`)).text();
 		assert.match(html, /<style>@page\{size:A4 landscape;margin:0\}<\/style>\n<\/head>/);
 		assert.doesNotMatch(await (await s.holen(basis)).text(), /@page/);
+	});
+
+	describe('?vorschaubild=1 (178)', () => {
+		const dokDir = () => path.join(s.materialDir, mappe, 'dokumente', dokId);
+
+		it('Mappe, assets/ und Dokument: WebP mit 320 px; ohne Parameter das Original', async () => {
+			const bilder = [
+				[`${basis}../../bilder/gemeinsam.png`, path.join(s.materialDir, mappe, 'bilder', 'gemeinsam.png')],
+				[`${s.url}/ansicht/_assets/bilder/wilma.png`, path.join(ASSETS, 'bilder', 'wilma.png')],
+				[`${basis}bilder/eigen.png`, path.join(dokDir(), 'bilder', 'eigen.png')],
+			] as const;
+			for (const [adresse, original] of bilder) {
+				const mit = `${adresse}?vorschaubild=1`;
+				assert.equal(await pruefeWebp(await s.holen(mit), mit), 320);
+				const ohne = await s.holen(adresse);
+				assert.equal(ohne.headers.get('content-type'), 'image/png');
+				assert.ok((await bytesVon(ohne)).equals(await readFile(original)), adresse);
+			}
+		});
+
+		it('die Material-Vorschau der Ablage ebenso, mit ihrer Kennung', async () => {
+			await copyFile(path.join(ASSETS, 'bilder', 'wachstum.png'), path.join(dokDir(), 'ausgabe', VORSCHAU_DATEI));
+			const adresse = `${basis}ausgabe/${VORSCHAU_DATEI}?v=1&vorschaubild=1`;
+			assert.equal(await pruefeWebp(await s.holen(adresse), adresse), 320);
+		});
+
+		it('gleiche Grenzen: Symlinks hinaus bleiben 404; CSS bleibt umgeschriebenes CSS', async () => {
+			for (const pfad of [`${basis}bilder/link.png`, `${basis}passwd.png`]) {
+				for (const adresse of [pfad, `${pfad}?vorschaubild=1`]) {
+					const antwort = await s.holen(adresse);
+					assert.equal(antwort.status, 404, adresse);
+					assert.doesNotMatch(await antwort.text(), /GEHEIMER-INHALT|root:/, adresse);
+				}
+			}
+			const css = await s.holen(`${basis}eigen.css?vorschaubild=1`);
+			assert.match(css.headers.get('content-type') ?? '', /text\/css/);
+			assert.equal(await css.text(), 'body{background:url("bilder/eigen.png")}');
+		});
+
+		it('ohne Python kommt das Original, ohne Fehler', async () => {
+			const ohne = await starteTestServer({ env: { PYTHON_BIN: 'false' } });
+			try {
+				const antwort = await ohne.holen(`${ohne.url}/ansicht/_assets/bilder/wilma.png?vorschaubild=1`);
+				assert.equal(antwort.status, 200);
+				assert.equal(antwort.headers.get('content-type'), 'image/png');
+				assert.ok((await bytesVon(antwort)).equals(await readFile(path.join(ASSETS, 'bilder', 'wilma.png'))));
+			} finally {
+				await ohne.stop();
+			}
+		});
+
+		it('über einen Teilen-Link nur für das geteilte Dokument', async () => {
+			const anderes = await neuesDokument(s.materialDir, mappe, {
+				titel: 'Anderes Blatt',
+				art: 'arbeitsblatt',
+				format: 'a4-hoch',
+				druckprofil: 'sw',
+				druckhinweise: [],
+			});
+			for (const dok of [dokId, anderes.id]) {
+				await copyFile(
+					path.join(ASSETS, 'bilder', 'wachstum.png'),
+					path.join(s.materialDir, mappe, 'dokumente', dok, 'ausgabe', VORSCHAU_DATEI),
+				);
+			}
+			const freigabe = await s.holen(`${s.url}/api/freigaben`, {
+				method: 'POST',
+				headers: schreibKoepfe,
+				body: JSON.stringify({ mappe, dok: dokId }),
+			});
+			assert.equal(freigabe.status, 201);
+			const { token } = (await freigabe.json()) as { token: string };
+			const f = `${s.url}/f/${token}/ansicht/${mappe}/dokumente`;
+			const adresse = `${f}/${dokId}/ausgabe/${VORSCHAU_DATEI}?v=1&vorschaubild=1`;
+			assert.equal(await pruefeWebp(await fetch(adresse), adresse), 320);
+			// Gegenprobe: dieselbe Datei eines anderen Dokuments, mit und ohne Parameter.
+			for (const suche of ['?v=1&vorschaubild=1', '?v=1']) {
+				const fremd = `${f}/${anderes.id}/ausgabe/${VORSCHAU_DATEI}${suche}`;
+				assert.equal((await fetch(fremd)).status, 404, fremd);
+			}
+		});
 	});
 
 	it('wehrt Traversal ab: ..%2f, %2e%2e, rohe .., absolute Pfade, Symlinks hinaus', async () => {

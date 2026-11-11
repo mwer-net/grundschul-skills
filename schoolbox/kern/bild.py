@@ -1,16 +1,22 @@
-"""Bilder für die Schoolbox aufbereiten (Pillow): Uploads aufnehmen.
+"""Bilder für die Schoolbox aufbereiten (Pillow): Uploads aufnehmen, Vorschaubilder für die Kacheln.
 
     python3 bild.py aufnehmen <eingabe> <ziel-ohne-endung>
+    python3 bild.py vorschaubilder <breite> <hoehe> <quelle> <ziel> [<quelle> <ziel> …]
 
-Schreibt <ziel>.png oder <ziel>.jpg und gibt {"datei", "breite", "hoehe"} als JSON aus. Ein Bild, das sich nicht
-lesen lässt, endet mit Exit 2 und einer Meldung auf stderr.
+Aufnehmen schreibt <ziel>.png oder <ziel>.jpg und gibt {"datei", "breite", "hoehe"} als JSON aus. Ein Bild, das sich
+nicht lesen lässt, endet mit Exit 2 und einer Meldung auf stderr.
 
 Aufnehmen entfernt alle Metadaten (EXIF mit GPS-Ort und Kamera, XMP, Kommentare). Die Drehung aus EXIF wird vorher
 ins Bild übernommen, sonst stünde ein Hochkant-Foto vom iPad danach quer. Das Farbprofil bleibt: Es verrät nichts
 und hält die Farben von iPad-Fotos (Display P3) richtig.
+
+Vorschaubilder (178) schreibt je Paar ein WebP, höchstens <breite> breit und <hoehe> hoch, nie größer als die Quelle,
+mit der Änderungszeit der Quelle. Ein Paar, das nicht gelingt, hält die anderen nicht auf: Ausgabe ist die JSON-Liste
+[{"quelle", "ok"}] (bei "ok": false dazu "fehler"), Exit 0.
 """
 
 import json
+import os
 import sys
 import warnings
 
@@ -65,12 +71,47 @@ def aufnehmen(eingabe, ziel):
     return speichere(bild, ziel, verlustfrei, profil)
 
 
+def vorschaubild(quelle, ziel, breite, hoehe):
+    # Die Zeit vor dem Lesen: Ändert sich die Quelle währenddessen, gilt das Vorschaubild gleich als veraltet.
+    st = os.stat(quelle)
+    with Image.open(quelle) as roh:
+        if roh.format == "JPEG":
+            roh.draft("RGB", (breite, breite))
+        roh.load()
+        profil = roh.info.get("icc_profile") if roh.mode != "CMYK" else None
+        bild = ImageOps.exif_transpose(roh)
+    bild = bild.convert("RGBA" if hat_transparenz(bild) else "RGB")
+    bild.thumbnail((breite, hoehe), Image.LANCZOS)
+    extra = {"icc_profile": profil} if profil else {}
+    bild.save(ziel, "WEBP", quality=80, method=4, **extra)
+    os.utime(ziel, ns=(st.st_atime_ns, st.st_mtime_ns))
+
+
+def vorschaubilder(breite, hoehe, paare):
+    ergebnisse = []
+    for quelle, ziel in paare:
+        # Breit gefangen: Ein kaputtes Bild darf die anderen nicht abbrechen (darum nicht `oeffne`).
+        try:
+            vorschaubild(quelle, ziel, breite, hoehe)
+            ergebnisse.append({"quelle": quelle, "ok": True})
+        except Exception as fehler:
+            ergebnisse.append({"quelle": quelle, "ok": False, "fehler": str(fehler) or type(fehler).__name__})
+    return ergebnisse
+
+
 def main():
-    if len(sys.argv) != 4 or sys.argv[1] != "aufnehmen":
+    befehl = sys.argv[1] if len(sys.argv) > 1 else None
+    if befehl == "aufnehmen" and len(sys.argv) == 4:
+        print(json.dumps(aufnehmen(*sys.argv[2:])))
+    elif befehl == "vorschaubilder" and len(sys.argv) >= 6 and len(sys.argv) % 2 == 0:
+        try:
+            breite, hoehe = int(sys.argv[2]), int(sys.argv[3])
+        except ValueError:
+            sys.exit(__doc__)
+        rest = sys.argv[4:]
+        print(json.dumps(vorschaubilder(breite, hoehe, list(zip(rest[::2], rest[1::2])))))
+    else:
         sys.exit(__doc__)
-    befehl, eingabe, ziel = sys.argv[1:]
-    ergebnis = aufnehmen(eingabe, ziel)
-    print(json.dumps(ergebnis))
 
 
 if __name__ == "__main__":

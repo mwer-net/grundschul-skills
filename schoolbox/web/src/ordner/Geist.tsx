@@ -1,3 +1,5 @@
+import { vorschaubildAdresse } from '@schoolbox/kern/src/bildbefehle';
+
 import { AmZeiger } from '../bausteine/AmZeiger';
 import { Symbol } from '../bausteine/Symbol';
 import { vorschauAdresse } from '../lib/zugang';
@@ -14,7 +16,9 @@ export const Geist = ({ objekte, x, y }: { objekte: Objekt[]; x: number; y: numb
 			>
 				{!o.istOrdner && o.dok.vorschau ? (
 					<img
-						src={vorschauAdresse({ mappe: o.dok.mappe, token: null }, o.dok.id, o.dok.vorschau)}
+						src={vorschaubildAdresse(
+							vorschauAdresse({ mappe: o.dok.mappe, token: null }, o.dok.id, o.dok.vorschau),
+						)}
 						alt=""
 						className="size-full object-cover object-top"
 						draggable={false}

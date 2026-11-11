@@ -1,4 +1,5 @@
 import type { Sammlung, SammlungsBild } from '@schoolbox/kern/src/bildbefehle';
+import { vorschaubildAdresse } from '@schoolbox/kern/src/bildbefehle';
 import { fuelleBildrahmen, istBildrahmenLeer } from '@schoolbox/kern/src/bildrahmen';
 import { fuegeBausteinEin } from '@schoolbox/kern/src/einfuegen';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
@@ -72,7 +73,8 @@ export const Inhalt = (t: SchubladenTeile) => {
 	const { doc, einfuegen, folien, struktur } = t;
 	const platz = einfuegen.eintraege.find((e) => e.id === 'platzhalter');
 	const ziehen: BildZiehen = (eintrag, natur) => {
-		const vorschau = `/ansicht/${eintrag.schluessel}`;
+		// Dieselbe Adresse wie das Bild der Kachel; `mitGeholtemBild` tauscht genau diese gegen den echten `src`.
+		const vorschau = vorschaubildAdresse(`/ansicht/${eintrag.schluessel}`);
 		const holend = mitGeholtemBild(struktur, vorschau, () => bild.hole(eintrag.schluessel), zeigeGeholt);
 		return {
 			teile: { doc, folien, struktur: holend },

@@ -1,3 +1,5 @@
+import { vorschaubildAdresse } from '@schoolbox/kern/src/bildbefehle';
+
 import { klassen } from '../bausteine/klassen';
 import { Symbol } from '../bausteine/Symbol';
 import { hatOffeneEntwuerfe } from '../entwuerfe/offen';
@@ -23,7 +25,7 @@ export const BlattMini = ({
 		{dok.vorschau && !(token === null && hatOffeneEntwuerfe(dok.meta)) ? (
 			<img
 				className="size-full object-cover object-top"
-				src={vorschauAdresse({ mappe: dok.mappe, token }, dok.id, dok.vorschau)}
+				src={vorschaubildAdresse(vorschauAdresse({ mappe: dok.mappe, token }, dok.id, dok.vorschau))}
 				alt=""
 				loading="lazy"
 				decoding="async"

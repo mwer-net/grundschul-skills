@@ -160,6 +160,54 @@ const ausDemFinder = async (
 	}
 };
 
+test.describe('Vorschaubilder in „Bilder“ (178)', () => {
+	const VORSCHAUBILD = /[?&]vorschaubild=1$/;
+
+	test('Kacheln laden WebP, höchstens 320 px breit; die Kachel ist vor und nach dem Laden gleich hoch', async ({
+		page,
+	}) => {
+		let freigeben = () => {};
+		const frei = new Promise<void>((weiter) => {
+			freigeben = weiter;
+		});
+		// Hält die Vorschaubilder an, bis die Höhe der leeren Kachel gemessen ist.
+		await page.route(VORSCHAUBILD, async (route) => {
+			await frei;
+			await route.continue();
+		});
+		const typen: string[] = [];
+		page.on('response', (antwort) => {
+			if (VORSCHAUBILD.test(antwort.url())) {
+				typen.push(antwort.headers()['content-type'] ?? '');
+			}
+		});
+		await oeffneMit(page, blattMit());
+		await oeffneSchublade(page, 'bilder');
+		await bilder(page).getByRole('button', { name: 'Sammlung', exact: true }).click();
+		const k = kachel(page, WACHSTUM);
+		await expect(k).toBeVisible();
+		const hoehe = () => k.evaluate((e) => e.getBoundingClientRect().height);
+		const leer = await hoehe();
+		freigeben();
+		await expect
+			.poll(() => k.locator('img').evaluate((i: HTMLImageElement) => i.naturalWidth))
+			.toBeGreaterThan(0);
+		expect(await hoehe()).toBe(leer);
+
+		const bildchen = bilder(page).locator('[data-sammlung] img');
+		const quellen = await bildchen.evaluateAll((liste) => liste.map((i) => i.getAttribute('src') ?? ''));
+		expect(quellen.length).toBeGreaterThan(0);
+		expect(quellen.filter((q) => !VORSCHAUBILD.test(q))).toEqual([]);
+		const breiten = await bildchen.evaluateAll((liste) =>
+			(liste as HTMLImageElement[]).filter((i) => i.complete && i.naturalWidth > 0).map((i) => i.naturalWidth),
+		);
+		expect(breiten.length).toBeGreaterThan(0);
+		expect(breiten.filter((b) => b > 320)).toEqual([]);
+		await expect.poll(() => typen.length).toBeGreaterThan(0);
+		expect(typen.filter((t) => t !== 'image/webp')).toEqual([]);
+	});
+});
+
 test.describe('Bilder frei (103)', () => {
 	test('Ziehen aus der Sammlung legt frei ab, höchstens 320 px, gewählt; ⌘Z nimmt es zurück', async ({ page }) => {
 		const vorher = blattMit();
@@ -206,6 +254,32 @@ test.describe('Bilder frei (103)', () => {
 		const loslassen = await ziehe(page, schluessel, await freieStelle(page));
 		await loslassen();
 		await expect.poll(() => quelle(page)).toMatch(/class="bild-frei"[^>]*alt="Kuerbis"[^>]*--b:150px/);
+	});
+
+	test('Ein Hochformat aus „Dieser Ordner“ legt so breit ab wie vorher: 320 px (178)', async ({ page }) => {
+		await oeffneMit(page, blattMit());
+		await ausDemFinder(page, { breite: 400, hoehe: 800, name: 'turm.png' });
+		await expect.poll(() => quelle(page)).toMatch(/class="bild-frei"[^>]*--b:320px/);
+		await aendere(page, blattMit());
+		await oeffneSchublade(page, 'bilder');
+		await bilder(page).getByRole('button', { name: 'Dieser Ordner', exact: true }).click();
+		const k = bilder(page).locator('[data-sammlung-bild*="turm"]').first();
+		await expect(k).toBeVisible();
+		const schluessel = (await k.getAttribute('data-sammlung-bild')) ?? '';
+		// Die Kachel misst das Vorschaubild: höchstens 320 px breit, nicht längste Kante 320 (dann wären es 160).
+		await expect
+			.poll(() =>
+				kachel(page, schluessel)
+					.locator('img')
+					.evaluate((i: HTMLImageElement) => [i.naturalWidth, i.naturalHeight]),
+			)
+			.toEqual([320, 640]);
+		const loslassen = await ziehe(page, schluessel, await freieStelle(page));
+		await loslassen();
+		await expect.poll(() => quelle(page)).toMatch(/class="bild-frei"[^>]*alt="Turm"[^>]*--b:320px/);
+		const html = await quelle(page);
+		expect(html).not.toContain('/ansicht/');
+		expect(html).not.toContain('vorschaubild');
 	});
 
 	test('Auf ein Bild gezogen tauscht es aus, Lage und Größe bleiben; ⌘Z stellt es wieder her', async ({ page }) => {

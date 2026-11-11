@@ -15,6 +15,13 @@ export const MAX_BILD_BYTES = 25 * 1024 * 1024;
 /** Längste Kante nach dem Aufnehmen; `bild.py` rechnet größere Bilder herunter. */
 export const BILD_KANTE = 2400;
 
+/** Parameter für das Vorschaubild einer Bild-Adresse unter `/ansicht/` (178, `vorschaubilder.ts`). */
+export const VORSCHAUBILD = 'vorschaubild';
+
+/** Die Adresse des Vorschaubilds; der Server liefert das Original, wenn es keins geben kann. Nie von Hand anhängen. */
+export const vorschaubildAdresse = (adresse: string) =>
+	`${adresse}${adresse.includes('?') ? '&' : '?'}${VORSCHAUBILD}=1`;
+
 export interface SammlungsBild {
 	/** Pfad unter der Ablage (`<mappe>/…`) bzw. unter assets/ (`_assets/bilder/…`); die Darstellung liegt unter `/ansicht/<schluessel>`. */
 	schluessel: string;
