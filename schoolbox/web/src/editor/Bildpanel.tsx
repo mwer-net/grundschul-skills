@@ -423,8 +423,9 @@ export const BildDarstellung = ({ bild }: { bild: BildSteuerung }) => {
 };
 
 /**
- * Für Bilder und Bildplatzhalter: austauschen bzw. einsetzen, Beschreibung, Entfernen. Die Größe steht unter
- * „Darstellung“. Freie Bilder (103) zeigen es ohne Entfernen: Das geht dort über ⌫ und ⋯ wie bei aller Gestaltung.
+ * Für Bilder, Bildplatzhalter und leere Bildrahmen: austauschen bzw. einsetzen, Beschreibung, Entfernen. Die Größe
+ * steht unter „Darstellung“. Freie Bilder (103) zeigen es ohne Entfernen: Das geht dort über ⌫ und ⋯ wie bei aller
+ * Gestaltung.
  */
 export const Bildwerkzeug = ({ bild, ohneEntfernen = false }: { bild: BildSteuerung; ohneEntfernen?: boolean }) => {
 	const [sammlung, setSammlung] = useState(false);
@@ -435,7 +436,7 @@ export const Bildwerkzeug = ({ bild, ohneEntfernen = false }: { bild: BildSteuer
 	const beschaeftigt = bild.arbeit !== null;
 	return (
 		<div data-bildwerkzeug={w.platzhalter ? 'platzhalter' : 'bild'}>
-			{w.platzhalter ? <p className="text-leise">{`Hier soll ein Bild hin: ${w.alt}`}</p> : <Vorschau w={w} />}
+			{!w.platzhalter && <Vorschau w={w} />}
 			{!w.platzhalter && <Hinweise adresse={bild.adresse} w={w} />}
 			<h3 className="flex h-zeile items-center text-leise">{w.platzhalter ? 'Bild einsetzen' : 'Austauschen'}</h3>
 			<div className="flex flex-wrap gap-1">

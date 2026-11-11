@@ -155,8 +155,8 @@ const TABELLE: Record<MeldungCode, Uebersetzung> = {
 	}),
 	'notiz-fehlt': () => ({ satz: 'Diese Folie hat keine Notiz für dich.', tipp: null }),
 	'platzhalter': (namen) => ({
-		satz: namen.length > 1 ? `Hier fehlen noch ${namen.length} Bilder.` : 'Hier fehlt noch ein Bild.',
-		tipp: 'Den Platzhalter antippen und ein Bild auswählen.',
+		satz: namen.length > 1 ? `Auf der Seite fehlen noch ${namen.length} Bilder.` : 'Hier fehlt noch ein Bild.',
+		tipp: null,
 	}),
 	'pruefskript': () => ({
 		satz: 'Die automatische Prüfung ist nicht durchgelaufen. Bitte das PDF genau ansehen.',

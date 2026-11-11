@@ -621,7 +621,7 @@ const Bearbeitung = ({ dokument, mappe: mappenDaten }: { mappe: Mappe; dokument:
 			claudeGrund: claude.knopfGrund,
 			namenszeile: zerlegung ? hatNamenszeile(zerlegung) : false,
 			festeSeiten: format === 'minibuch',
-			hatBild: bild.werte !== null,
+			hatBild: bild.nimmtBild,
 			ebenenAngeheftet: panels.angeheftet,
 			linksOffen: panels.linksOffen ? panels.links : null,
 			gestaltung: gestaltungKontext({ doc: docJetzt, pfad, struktur }),

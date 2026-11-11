@@ -6,9 +6,10 @@ import { bildVonGut } from '../bild-gut';
 import type { AblageZiel } from './typ';
 
 /**
- * 111: Ein Bild auf einen leeren Bildrahmen oder eine Form ohne Text schneidet es in die Form zu („zuschneiden“). Das
- * Ziel verschwindet, an seiner Stelle liegt ein freies Bild mit derselben Lage (auch `--drehen`) und derselben Form als
- * Maske. Ebene und Reihenfolge bleiben, ein Schritt.
+ * 111: Ein Bild auf einen leeren Bildrahmen oder eine Form ohne Text schneidet es in die Form zu. Das Ziel verschwindet,
+ * an seiner Stelle liegt ein freies Bild mit derselben Lage (auch `--drehen`) und derselben Form als Maske. Ebene und
+ * Reihenfolge bleiben, ein Schritt. Am Zeiger (172): beim leeren Rahmen „einsetzen“ wie beim Platzhalter, bei der Form
+ * ohne Text „zuschneiden“, denn dort verschwindet die Form.
  */
 export const ziel: AblageZiel = (unter, gut) => {
 	const bild = bildVonGut(gut);
@@ -26,7 +27,7 @@ export const ziel: AblageZiel = (unter, gut) => {
 	}
 	return {
 		rahmen: element,
-		text: 'zuschneiden',
+		text: leer ? 'einsetzen' : 'zuschneiden',
 		lege: (q) => (leer ? fuelleBildrahmen : bildInForm)(q, nr, { src: bild.src, alt: bild.alt }),
 	};
 };

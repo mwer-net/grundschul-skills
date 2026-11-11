@@ -1,3 +1,4 @@
+import type { Baustein } from '@schoolbox/kern/src/bausteine';
 import { kann } from '@schoolbox/kern/src/bausteine';
 import {
 	BILD_KANTE,
@@ -9,6 +10,7 @@ import {
 	setzeBildEin,
 	tauscheBild,
 } from '@schoolbox/kern/src/bildbefehle';
+import { fuelleBildrahmen } from '@schoolbox/kern/src/bildrahmen';
 import type { Knoten } from '@schoolbox/kern/src/quelltext';
 import { attribut, klassenVon, zerlege } from '@schoolbox/kern/src/quelltext';
 import type { StrukturErgebnis } from '@schoolbox/kern/src/struktur';
@@ -36,6 +38,8 @@ export interface BildWerte {
 	nr: number;
 	/** Ein Bildplatzhalter aus einem Entwurf wird durch das erste Bild ersetzt. */
 	platzhalter: boolean;
+	/** Ein leerer Bildrahmen (111), gefüllt wie ein Platzhalter; Lage, Größe und Maske gibt er vor. */
+	rahmen: boolean;
 	src: string;
 	/** Aufgelöste Adresse für die Vorschau im Panel. */
 	url: string;
@@ -150,6 +154,7 @@ const miss = (element: HTMLElement, nr: number): BildWerte => {
 		return {
 			nr,
 			platzhalter: true,
+			rahmen: element.classList.contains('bildrahmen'),
 			src: '',
 			url: '',
 			alt: (element.textContent ?? '').trim().replace(/\s+/g, ' '),
@@ -173,6 +178,7 @@ const miss = (element: HTMLElement, nr: number): BildWerte => {
 	return {
 		nr,
 		platzhalter: false,
+		rahmen: false,
 		src: bild.getAttribute('src') ?? '',
 		url: bild.currentSrc || bild.src,
 		alt: bild.getAttribute('alt') ?? '',
@@ -223,10 +229,13 @@ export const bildInNeuemPlatz =
 		return setzeBildEin(r.quelle, platzhalterIn(r.quelle, r.nr), bild);
 	};
 
+/** 172: Ein leerer Bildrahmen wird gefüllt wie ein Platzhalter (`fuelleBildrahmen`). */
+const nimmtBild = (b: Baustein) => kann(b, 'bild') || b.art === 'bildrahmen';
+
 /**
- * Das Bild-Panel (017): Werte des gewählten Bildes aus der Darstellung und die Befehle dazu. Hochladen, Übernehmen
- * legen zuerst eine Datei auf dem Server an; danach ändert ein Befehl nur `src` (bzw. setzt das Bild
- * an die Stelle des Platzhalters). Jeder Befehl ist ein Schritt im Verlauf.
+ * Das Bild-Panel (017): Werte des gewählten Bildes bzw. des leeren Bildrahmens aus der Darstellung und die Befehle
+ * dazu. Hochladen, Übernehmen legen zuerst eine Datei auf dem Server an; danach ändert ein Befehl nur `src` (bzw. setzt
+ * das Bild an die Stelle des Platzhalters oder in den Rahmen). Jeder Befehl ist ein Schritt im Verlauf.
  */
 export const useBild = ({ adresse, basis, pfad, rueckgaengig, struktur }: Optionen) => {
 	const doc = struktur.gezeigt?.doc ?? null;
@@ -234,7 +243,7 @@ export const useBild = ({ adresse, basis, pfad, rueckgaengig, struktur }: Option
 	const [werte, setWerte] = useState<BildWerte | null>(null);
 	const [arbeit, setArbeit] = useState<BildArbeit>(null);
 	const gewaehlt = pfad.at(-1);
-	const nr = gewaehlt && kann(gewaehlt.baustein, 'bild') ? gewaehlt.nr : null;
+	const nr = gewaehlt && nimmtBild(gewaehlt.baustein) ? gewaehlt.nr : null;
 	const { fuehreAus } = struktur;
 	const aktuell = useRef(werte);
 
@@ -277,8 +286,9 @@ export const useBild = ({ adresse, basis, pfad, rueckgaengig, struktur }: Option
 	);
 
 	/**
-	 * Das neue Bild an die Stelle des alten bzw. des Platzhalters; Größe und Rest bleiben. Ist nichts davon gewählt
-	 * und `neu` gegeben, entsteht ein neuer Bild-Baustein: Platzhalter einfügen und füllen ist ein Schritt.
+	 * Das neue Bild an die Stelle des alten, des Platzhalters bzw. in den leeren Bildrahmen; Größe und Rest bleiben.
+	 * Ist nichts davon gewählt und `neu` gegeben, entsteht ein neuer Bild-Baustein: Platzhalter einfügen und füllen ist
+	 * ein Schritt.
 	 */
 	const setzeEin = useCallback(
 		async (src: string, alt: string, natur: { breite: number; hoehe: number } | null, neu?: NeuerPlatz) => {
@@ -293,6 +303,11 @@ export const useBild = ({ adresse, basis, pfad, rueckgaengig, struktur }: Option
 				return;
 			}
 			if (!w) {
+				return;
+			}
+			// Vor dem Platzhalter: Der Rahmen trägt auch `platzhalter`, darf aber nie in `setzeBildEin`.
+			if (w.rahmen) {
+				ausfuehren('Bild eingesetzt', (q) => fuelleBildrahmen(q, w.nr, { src, alt: alt || w.alt }));
 				return;
 			}
 			if (!w.platzhalter) {
@@ -399,6 +414,8 @@ export const useBild = ({ adresse, basis, pfad, rueckgaengig, struktur }: Option
 
 	return {
 		aktiv: struktur.aktiv,
+		/** Die Auswahl nimmt ein Bild, auch bevor `werte` gemessen ist: Das Kontextmenü entsteht gleich danach. */
+		nimmtBild: nr !== null,
 		werte,
 		arbeit,
 		groesse,

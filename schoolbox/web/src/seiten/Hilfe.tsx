@@ -320,7 +320,8 @@ const ABSCHNITTE: Abschnitt[] = [
 						/>
 						) stehen deine Fotos, die Bilder dieses Ordners, deiner anderen Ordner und der Sammlung, mit
 						Suche und „Foto hochladen“. Ein Klick tauscht das gewählte Bild aus oder füllt den gewählten
-						Platzhalter; ist keins gewählt, kommt das Bild als neuer Baustein hinter die Auswahl.
+						Platzhalter oder Bildrahmen; ist nichts davon gewählt, kommt das Bild als neuer Baustein hinter
+						die Auswahl.
 					</Punkt>
 					<Punkt titel="Lösung">oben auf „Lösung“ wechseln und die Lösungen eintragen.</Punkt>
 					<Punkt titel="Rückgängig">

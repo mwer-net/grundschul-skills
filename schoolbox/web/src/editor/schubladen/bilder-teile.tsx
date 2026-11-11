@@ -1,6 +1,5 @@
 import type { Sammlung, SammlungsBild } from '@schoolbox/kern/src/bildbefehle';
 import { vorschaubildAdresse } from '@schoolbox/kern/src/bildbefehle';
-import { fuelleBildrahmen, istBildrahmenLeer } from '@schoolbox/kern/src/bildrahmen';
 import { fuegeBausteinEin } from '@schoolbox/kern/src/einfuegen';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 
@@ -85,24 +84,14 @@ export const Inhalt = (t: SchubladenTeile) => {
 		};
 	};
 
+	// Gewählt ist ein Bild, ein Platzhalter oder ein leerer Bildrahmen (172): Klick und „Foto hochladen“ füllen es.
 	const ziel = bild.werte;
-	const klickOhneRahmen = ziel
-		? `Klick auf ein Bild ${ziel.platzhalter ? 'setzt es in den Platzhalter ein' : 'tauscht das gewählte Bild aus'}.`
+	const klick = ziel
+		? `Klick auf ein Bild ${ziel.rahmen ? 'füllt den Bildrahmen' : ziel.platzhalter ? 'setzt es in den Platzhalter ein' : 'tauscht das gewählte Bild aus'}.`
 		: 'Klick auf ein Bild fügt es hinter der Auswahl ein.';
 	const neu = ziel ? undefined : neuerPlatz(t);
-	// 111: Ist ein leerer Bildrahmen gewählt, füllt ein Klick ihn (das Bild kommt erst in diesen Ordner).
-	const rahmen = t.auswahl !== null && istBildrahmenLeer(t.zerlegung?.knoten[t.auswahl]) ? t.auswahl : null;
-	const klick = rahmen === null ? klickOhneRahmen : 'Klick auf ein Bild füllt den Bildrahmen.';
 	const waehle = (eintrag: SammlungsBild) =>
-		rahmen === null
-			? void bild.uebernimm(eintrag.schluessel, eintrag.alt[0] ?? beschreibungAus(eintrag.name), neu)
-			: void bild.hole(eintrag.schluessel).then((src) => {
-					const alt = eintrag.alt[0] ?? beschreibungAus(eintrag.name);
-					return (
-						src &&
-						struktur.fuehreAus('Bild in den Rahmen', (q) => fuelleBildrahmen(q, rahmen, { src, alt }))
-					);
-				});
+		void bild.uebernimm(eintrag.schluessel, eintrag.alt[0] ?? beschreibungAus(eintrag.name), neu);
 	const titel = GRUPPEN.find((g) => g.wert === gruppe)?.titel ?? '';
 
 	return (

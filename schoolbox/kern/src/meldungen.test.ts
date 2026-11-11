@@ -38,4 +38,15 @@ describe('Texte der Meldungen', () => {
 			tipp,
 		});
 	});
+
+	it('der Platzhalter-Text passt zu Rahmen und Platzhalter, ohne Tipp (172)', () => {
+		assert.deepEqual(mit('platzhalter', '1 Platzhalter (Entwurf)', ['„Uhr“']), {
+			satz: 'Hier fehlt noch ein Bild.',
+			tipp: null,
+		});
+		assert.deepEqual(mit('platzhalter', '2 Platzhalter (Entwurf)', ['„Uhr“', '„Bildrahmen“']), {
+			satz: 'Auf der Seite fehlen noch 2 Bilder.',
+			tipp: null,
+		});
+	});
 });
