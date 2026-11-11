@@ -9,7 +9,8 @@ import { Zustand } from '../bausteine/Zustand';
 import { useLaden } from '../lib/laden';
 import { useTitel } from '../lib/titel';
 import type { Zugang } from '../lib/zugang';
-import { kinder } from '../ordner/objekte';
+import { inhaltText, kinder, vorneVon } from '../ordner/objekte';
+import { OrdnerBild } from '../ordner/OrdnerBild';
 import type { AblageDok, AblageOrdner, AblageStand } from '../ordner/typen';
 import { PdfKnopf } from '../pdf/PdfKnopf';
 import { mappenWahl } from '../pdf/wahl';
@@ -126,14 +127,13 @@ const GeteilteAblage = ({ inhalt, token }: { inhalt: Inhalt; token: string }) =>
 								className="overflow-hidden rounded-[10px] border border-rand bg-flaeche"
 							>
 								<Link to={`/f/${token}/o/${o.ordner.id}`} className="block text-tinte no-underline">
-									<div className="flex aspect-[8/5] items-center justify-center bg-leinwand">
-										<Symbol name="ordner" className="size-20 text-brand-200" />
-									</div>
+									<OrdnerBild
+										vorne={vorneVon(stand, o.ordner.id, standardSortierung(o.ordner))}
+										token={token}
+									/>
 									<div className="border-t border-rand px-2.5 py-2">
 										<h2 className="truncate text-sm font-medium">{o.name}</h2>
-										<p className="truncate text-xs text-leise">
-											{o.anzahl === 1 ? '1 Objekt' : `${o.anzahl} Objekte`}
-										</p>
+										<p className="truncate text-xs text-leise">{inhaltText(o.inhalt)}</p>
 									</div>
 								</Link>
 							</li>

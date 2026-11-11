@@ -83,7 +83,7 @@ test.describe('Mein Material', () => {
 		await legeMappeAn(titel, 'sachunterricht', 1, [{ titel: 'Wolken' }]);
 		const kachel = objekt(page, titel);
 		await expect(kachel).toBeVisible();
-		await expect(kachel).toContainText('1 Objekt');
+		await expect(kachel).toContainText('1 Material');
 		await expect(page.locator('body')).toHaveAttribute('data-nicht-neu-geladen', 'ja');
 		await oeffneObjekt(page, titel);
 		const blatt = objekt(page, 'Wolken');

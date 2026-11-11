@@ -98,6 +98,8 @@ test.describe('Bildschirmfotos für die Hilfe', () => {
 		await uhrzeit();
 		await page.goto('/');
 		await expect(page.locator('[data-objekt]')).toHaveCount(3);
+		// Aus jedem der drei Ordner schaut sein Blatt heraus (164).
+		await vorschauenDa(page, 3);
 		await foto(page, 'uebersicht-mac.jpg');
 	});
 

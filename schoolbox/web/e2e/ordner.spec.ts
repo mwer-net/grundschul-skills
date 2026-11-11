@@ -215,6 +215,95 @@ test.describe('Ansicht', () => {
 	});
 });
 
+test.describe('Ordner zeigen, was drin ist', () => {
+	/** `ordner` oder `blatt`, in der Reihenfolge der Kachel. */
+	const vorne = (kachel: Locator) =>
+		kachel.locator('[data-vorne]').evaluateAll((teile) => teile.map((t) => t.getAttribute('data-vorne')));
+	const quellen = (kachel: Locator) =>
+		kachel.locator('[data-vorne] img').evaluateAll((bilder) => bilder.map((b) => b.getAttribute('src') ?? ''));
+	const von = (dok: string | undefined) => expect.stringContaining(`/dokumente/${dok ?? ''}/`);
+
+	test('Kachel: bis zu drei Blätter in der Sortierung des Ordners, darunter die Zahl', async ({ druecke, page }) => {
+		const { dokumente } = await reihe();
+		await page.goto('/');
+		const kachel = objekt(page, 'Reihe');
+		await expect(kachel).toContainText('4 Materialien');
+		await expect(kachel.locator('[data-ordner-bild]')).toHaveAttribute('aria-hidden', 'true');
+		await expect(kachel.locator('[data-vorne]')).toHaveCount(3);
+		expect(await vorne(kachel)).toEqual(['blatt', 'blatt', 'blatt']);
+		// Die Ablage fragt die fehlenden Vorschauen selbst an; fertige erscheinen ohne Neuladen.
+		await expect(kachel.locator('[data-vorne] img')).toHaveCount(3, { timeout: 15_000 });
+		const vorher = await quellen(kachel);
+		expect(vorher).toEqual([von(dokumente[0]), von(dokumente[1]), von(dokumente[2])]);
+		expect(vorher.some((q) => q.includes(`/dokumente/${dokumente[3] ?? ''}/`))).toBe(false);
+		await expect(objekt(page, 'Station 1')).toHaveCount(0);
+		await expect(kachel).not.toContainText('Objekt');
+
+		// Die Sortierung gehört dem Ordner: In „Reihe“ nach Name absteigend, dann schaut Station 10 vorn heraus.
+		await oeffneObjekt(page, 'Reihe');
+		await druecke(leiste(page).getByRole('button', { name: 'Liste' }));
+		await druecke(page.getByRole('button', { name: /^Name/ }));
+		await druecke(page.getByRole('button', { name: /^Name/ }));
+		await druecke(leiste(page).getByRole('button', { name: 'Kacheln' }));
+		await druecke(page.locator('[data-pfad-stueck="wurzel"]'));
+		await expect
+			.poll(() => quellen(objekt(page, 'Reihe')), { timeout: 15_000 })
+			.toEqual([von(dokumente[3]), von(dokumente[2]), von(dokumente[1])]);
+	});
+
+	test('Leer, nur Ordner, gemischt: Kachel, Liste und Informationen sagen dasselbe, auch nach dem Bewegen', async ({
+		druecke,
+		hasTouch,
+		page,
+	}) => {
+		const bewege = async (name: string, ziel: string) => {
+			await objektMenue(page, name);
+			await druecke(eintrag(page, /Bewegen nach/));
+			const wahl = page.getByRole('dialog');
+			await druecke(wahl.locator('[data-baum-ordner]').filter({ hasText: ziel }));
+			await druecke(wahl.getByRole('button', { name: 'Hierher bewegen' }));
+			await expect(wahl).toBeHidden();
+		};
+		await reihe();
+		await page.goto('/');
+		await neuerOrdner(page, 'Hülle');
+		const huelle = objekt(page, 'Hülle');
+		await expect(huelle).toContainText('Leer');
+		await expect(huelle.locator('[data-ordner-bild]')).toBeVisible();
+		await expect(huelle.locator('[data-vorne]')).toHaveCount(0);
+
+		await bewege('Hülle', 'Reihe');
+		const reiheKachel = objekt(page, 'Reihe');
+		await expect(reiheKachel).toContainText('1 Ordner · 4 Materialien');
+		await expect.poll(() => vorne(reiheKachel)).toEqual(['ordner', 'blatt', 'blatt']);
+
+		await neuerOrdner(page, 'Klasse');
+		await bewege('Reihe', 'Klasse');
+		const klasse = objekt(page, 'Klasse');
+		await expect(klasse).toContainText('1 Ordner');
+		await expect.poll(() => vorne(klasse)).toEqual(['ordner']);
+
+		if (!hasTouch) {
+			// Am iPad hoch fällt die Spalte weg.
+			await druecke(leiste(page).getByRole('button', { name: 'Liste' }));
+			await expect(page.getByText('Inhalt', { exact: true })).toBeVisible();
+			await expect(page.getByText('Seiten', { exact: true })).toHaveCount(0);
+			await expect(klasse).toContainText('1 Ordner');
+			await druecke(klasse.locator('[data-dreieck]'));
+			await expect(objekt(page, 'Reihe')).toContainText('1 Ordner · 4 Materialien');
+			await druecke(objekt(page, 'Reihe').locator('[data-dreieck]'));
+			await expect(objekt(page, 'Hülle')).toContainText('Leer');
+		}
+
+		await objektMenue(page, 'Klasse');
+		await druecke(eintrag(page, /^Informationen/));
+		const info = page.getByRole('dialog');
+		await expect(info).toContainText('Inhalt');
+		await expect(info).toContainText('1 Ordner');
+		await expect(info).not.toContainText('Objekt');
+	});
+});
+
 test.describe('Ziehen', () => {
 	test.skip(({ hasTouch }) => hasTouch, 'Maus; der Finger hat einen eigenen Test');
 
@@ -538,6 +627,10 @@ test.describe('Geteilter Ordner', () => {
 		await besuch.reload();
 		const unter = besuch.locator('[data-geteilt-ordner]');
 		await expect(unter).toContainText('Privat');
+		await expect(unter).toContainText('1 Material');
+		await expect(unter.locator('[data-vorne="blatt"]')).toHaveCount(1);
+		// Das Ordnerbild trägt keinen Namen: „Geheim“ steht erst nach dem Öffnen da.
+		await expect(besuch.getByText('Geheim')).toHaveCount(0);
 		await unter.getByRole('link').click();
 		await expect(besuch.locator('[data-dokument]')).toContainText('Geheim');
 

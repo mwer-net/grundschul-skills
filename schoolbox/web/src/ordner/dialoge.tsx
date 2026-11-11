@@ -11,7 +11,7 @@ import { Baum } from './Baum';
 import { tastenAbschnitte } from './befehle';
 import { useAblage } from './kontext';
 import { bewegtText } from './meldungen';
-import { elternVon, objekteZahl, WURZEL_NAME, zielGueltig } from './objekte';
+import { elternVon, inhaltText, inhaltVon, WURZEL_NAME, zielGueltig } from './objekte';
 import { pfadText } from './pfad';
 import type { AblageOrdner, Objekt } from './typen';
 
@@ -116,8 +116,6 @@ export const InfoDialog = ({
 	}
 	const eltern = objekt ? elternVon(objekt) : (ordner?.eltern ?? null);
 	const ort = pfadText(stand, eltern);
-	const anzahl = (id: string | null) =>
-		stand.ordner.filter((o) => o.eltern === id).length + stand.dokumente.filter((d) => d.ordner === id).length;
 	if (objekt && !objekt.istOrdner) {
 		const { dok } = objekt;
 		return (
@@ -141,7 +139,7 @@ export const InfoDialog = ({
 		<Dialog titel={`Informationen: ${ziel?.name ?? WURZEL_NAME}`} schliessen={schliessen}>
 			<dl data-informationen>
 				<Angabe name="Art" wert="Ordner" />
-				<Angabe name="Inhalt" wert={objekteZahl(anzahl(ziel?.id ?? null))} />
+				<Angabe name="Inhalt" wert={inhaltText(inhaltVon(stand, ziel?.id ?? null))} />
 				{ziel && <Angabe name="Erstellt" wert={datum(ziel.erstellt)} />}
 				{ziel && <Angabe name="Geändert" wert={datum(ziel.geaendert)} />}
 				{ziel && <Angabe name="Ort" wert={ort} />}
