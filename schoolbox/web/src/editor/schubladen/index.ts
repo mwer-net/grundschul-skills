@@ -15,7 +15,6 @@ import { schublade as ebenen } from './ebenen';
 import { schublade as figuren } from './figuren';
 import { schublade as formen } from './formen';
 import type { SchubladenId } from './reihe';
-import { schublade as text } from './text';
 
 export type { SchubladenId } from './reihe';
 
@@ -70,8 +69,10 @@ export interface Schublade {
 	suche?: (k: Kontext, z: SchubladenZiele) => PalettenEintrag[];
 }
 
-/** Reihenfolge der Leiste, ⌥1 bis ⌥6. Ein späteres Ticket ersetzt nur seine eigene Datei, nicht diese Liste. */
-export const SCHUBLADEN: readonly Schublade[] = [ebenen, bausteine, formen, figuren, text, bilder];
+// >> 175
+/** Reihenfolge der Leiste, ⌥1 bis ⌥5. Ein späteres Ticket ersetzt nur seine eigene Datei, nicht diese Liste. */
+export const SCHUBLADEN: readonly Schublade[] = [ebenen, bausteine, formen, figuren, bilder];
+// << 175
 
 export const schubladeVon = (id: SchubladenId) => SCHUBLADEN.find((s) => s.id === id);
 

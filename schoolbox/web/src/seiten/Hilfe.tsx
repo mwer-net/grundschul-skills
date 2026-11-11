@@ -6,6 +6,9 @@ import { KnopfLink } from '../bausteine/Knopf';
 import { Kuerzel } from '../bausteine/Kuerzel';
 import { Symbol } from '../bausteine/Symbol';
 import { BEFEHLE, kuerzelText } from '../editor/befehle';
+// >> 175
+import { kopf } from '../editor/schubladen/reihe';
+// << 175
 import { useLaden } from '../lib/laden';
 import { useTitel } from '../lib/titel';
 import { dokumentSeite, inhaltAdresse } from '../lib/zugang';
@@ -309,13 +312,19 @@ const ABSCHNITTE: Abschnitt[] = [
 						bei Absätzen, Zellen und Listenpunkten: Lücken, Wörter mischen, Buchstaben mischen. Daraus wird
 						ein neuer Baustein, Rückgängig holt den Text zurück.
 					</Punkt>
+					{/* >> 175 */}
 					<Punkt titel="Bilder">
 						Bild antippen, dann austauschen, eigenes hochladen oder an den Ecken größer und kleiner ziehen.
-						Links in der Schublade „Bilder“ (⌥6) stehen deine Fotos, die Bilder dieses Ordners, deiner
-						anderen Ordner und der Sammlung, mit Suche und „Foto hochladen“. Ein Klick tauscht das gewählte
-						Bild aus oder füllt den gewählten Platzhalter; ist keins gewählt, kommt das Bild als neuer
-						Baustein hinter die Auswahl.
+						Links in der Schublade „Bilder“ (
+						<Kuerzel
+							text={kuerzelText({ code: kopf('bilder').taste, wahl: true })}
+							className="text-[length:inherit]"
+						/>
+						) stehen deine Fotos, die Bilder dieses Ordners, deiner anderen Ordner und der Sammlung, mit
+						Suche und „Foto hochladen“. Ein Klick tauscht das gewählte Bild aus oder füllt den gewählten
+						Platzhalter; ist keins gewählt, kommt das Bild als neuer Baustein hinter die Auswahl.
 					</Punkt>
+					{/* << 175 */}
 					<Punkt titel="Lösung">oben auf „Lösung“ wechseln und die Lösungen eintragen.</Punkt>
 					<Punkt titel="Rückgängig">
 						der Pfeil oben oder ⌘Z, beides tut dasselbe. Der betroffene Baustein ist danach gewählt. Ein

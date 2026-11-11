@@ -5,7 +5,7 @@ import { blattMit } from './gestaltung-daten';
 import { expect, test } from './hilfe';
 import { oeffneSchublade } from './schubladen-hilfe';
 
-/** 104: Grundformen aus der Schublade Formen (⌥3), Strecken ohne Verzerren, Füllung und Kontur, Parameter. */
+/** 104: Grundformen aus der Schublade Werkzeuge (⌥3), Strecken ohne Verzerren, Füllung und Kontur, Parameter. */
 
 const GRUNDFORMEN = [
 	'Kreis',
@@ -43,8 +43,8 @@ const oeffneFormen = async (page: Page, vorne: string[] = []) => {
 	const { dok, id } = await uhrzeit();
 	await oeffne(page, id, dok);
 	await aendere(page, blattMit({ vorne }));
-	await oeffneSchublade(page, 'formen');
-	await expect(page.locator('[data-schublade-formen]')).toBeVisible();
+	await oeffneSchublade(page, 'werkzeuge');
+	await expect(page.locator('[data-schublade-werkzeuge]')).toBeVisible();
 };
 
 /** Legt eine Form per Klick ab und gibt sie (gewählt) zurück. */

@@ -48,7 +48,7 @@ test.describe('Ältere Blätter mit Rezept (180)', () => {
 
 		test('keine Rezepte-Schublade, ⌥7 öffnet nichts, die Palette kennt kein Rezept', async ({ page }) => {
 			await blatt(page);
-			await expect(page.locator('[data-schublade-knopf]')).toHaveCount(6);
+			await expect(page.locator('[data-schublade-knopf]')).toHaveCount(5);
 			await expect(page.locator('[data-schublade-knopf="rezepte"]')).toHaveCount(0);
 			await oeffneSchublade(page, 'bilder');
 			await page.keyboard.press('Alt+Digit7');

@@ -41,7 +41,7 @@ export const Schubladenleiste = <T extends string>({ eintraege, knopf, offen, wa
 					aria-pressed={offen === e.id}
 					title={`${e.titel} (${e.kuerzel})`}
 					className={klassen(
-						'flex min-h-11 flex-col items-center justify-center gap-0.5 rounded-lg px-0.5 py-1 text-leise hover:bg-flaeche-2 hover:text-tinte',
+						'flex min-h-11 flex-col items-center justify-center gap-0.5 rounded-lg px-0 py-1 text-leise hover:bg-flaeche-2 hover:text-tinte',
 						offen === e.id && 'bg-brand-50 text-brand-700 hover:bg-brand-50 hover:text-brand-700',
 					)}
 					data-schublade-knopf={e.id}

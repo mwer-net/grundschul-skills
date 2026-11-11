@@ -34,8 +34,8 @@ export const begrenzeTeilung = (wert: number) =>
 
 /**
  * Zwei Plätze für Panels, je Gerät gemerkt, nicht je Material. Links die Schubladen (093): eine offen oder keine, ein
- * neues Material öffnet „Bausteine“, ein alter Wert (`gliederung`, `seiten`) die Ebenen. „Versionen“ ist eine Aufgabe des
- * Augenblicks: Das Panel geht nach dem Öffnen eines Dokuments nicht von selbst wieder auf.
+ * neues Material öffnet „Bausteine“, ein alter Wert die Schublade, die `alsSchublade` dafür nennt. „Versionen“ ist eine
+ * Aufgabe des Augenblicks: Das Panel geht nach dem Öffnen eines Dokuments nicht von selbst wieder auf.
  */
 export const usePanels = (neu: boolean) => {
 	const [links, setLinksName] = useState<SchubladenId>(() =>
@@ -60,7 +60,7 @@ export const usePanels = (neu: boolean) => {
 		rechts,
 		rechtsOffen,
 		setRechts,
-		/** Klick in der Leiste und ⌥1 … ⌥6: öffnen, wechseln, und die offene noch einmal schließt sie. */
+		/** Klick in der Leiste und ⌥1 … ⌥5: öffnen, wechseln, und die offene noch einmal schließt sie. */
 		schalteLinks: (name: SchubladenId) => {
 			if (linksOffen && links === name) {
 				setLinksOffen(false);

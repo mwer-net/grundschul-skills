@@ -7,13 +7,13 @@ import { expect, test } from './hilfe';
 import type { SchubladenName } from './schubladen-hilfe';
 import { oeffneSchublade, schubladenKnopf } from './schubladen-hilfe';
 
-/** Schubladenleiste (093): Ebenen ⌥1, Bausteine ⌥2, Formen ⌥3 (104), Figuren ⌥4 (102), Text ⌥5 (105), Bilder ⌥6. */
+/** Schubladenleiste (093): Ebenen ⌥1, Bausteine ⌥2, Werkzeuge ⌥3 (104, 175), Figuren ⌥4 (102), Bilder ⌥5. */
 
 const offen = (page: Page) => page.locator('[data-panel-links]');
 const blattBreite = async (page: Page) => (await page.locator('main').boundingBox())?.width ?? 0;
 const palette = (page: Page) => page.locator('[data-befehlspalette]');
 const bilder = (page: Page) => page.locator('[data-schublade-bilder]');
-const ALLE: SchubladenName[] = ['ebenen', 'bausteine', 'formen', 'figuren', 'text', 'bilder'];
+const ALLE: SchubladenName[] = ['ebenen', 'bausteine', 'werkzeuge', 'figuren', 'bilder'];
 const WACHSTUM = '_assets/bilder/wachstum.png';
 
 const blatt = async (page: Page) => {
@@ -31,7 +31,7 @@ const zurSammlung = async (page: Page) => {
 test.describe('Schubladenleiste (093)', () => {
 	test('ein neues Material öffnet „Bausteine“, auch wenn zuletzt etwas anderes offen war', async ({ page }) => {
 		const { dok, id } = await blatt(page);
-		await page.keyboard.press('Alt+Digit6');
+		await page.keyboard.press('Alt+Digit5');
 		await expect(offen(page)).toHaveAttribute('data-panel-links', 'bilder');
 		await page.goto(`/m/${id}/${dok}/bearbeiten?neu=1`);
 		await expect(page.locator('[data-leinwand][data-geladen]')).toBeVisible();
@@ -39,14 +39,15 @@ test.describe('Schubladenleiste (093)', () => {
 		await expect(schubladenKnopf(page, 'bausteine')).toHaveAttribute('aria-pressed', 'true');
 	});
 
-	test('⌥1, ⌥2, ⌥3 und ⌥6 öffnen, wechseln und schließen', async ({ page }) => {
+	test('⌥1, ⌥2, ⌥3 und ⌥5 öffnen, wechseln und schließen', async ({ page }) => {
 		await blatt(page);
 		await page.keyboard.press('Alt+Digit2');
 		await expect(offen(page)).toHaveAttribute('data-panel-links', 'bausteine');
-		await page.keyboard.press('Alt+Digit6');
+		await page.keyboard.press('Alt+Digit5');
 		await expect(offen(page)).toHaveAttribute('data-panel-links', 'bilder');
 		await page.keyboard.press('Alt+Digit3');
-		await expect(offen(page)).toHaveAttribute('data-panel-links', 'formen');
+		await expect(offen(page)).toHaveAttribute('data-panel-links', 'werkzeuge');
+		await expect(page.locator('[data-schublade-werkzeuge]')).toBeVisible();
 		await page.keyboard.press('Alt+Digit3');
 		await expect(offen(page)).toHaveCount(0);
 		await page.keyboard.press('Alt+Digit1');
@@ -74,7 +75,7 @@ test.describe('Schubladenleiste (093)', () => {
 		await expect(offen(page)).toHaveAttribute('data-panel-links', 'bilder');
 	});
 
-	test('alle sechs Schubladen sind überall: Leiste, Palette, Tastenübersicht, Hilfe', async ({ page }) => {
+	test('alle fünf Schubladen sind überall: Leiste, Palette, Tastenübersicht, Hilfe', async ({ page }) => {
 		await blatt(page);
 		await expect(page.locator('[data-schublade-knopf]')).toHaveCount(ALLE.length);
 		await page.keyboard.press('ControlOrMeta+k');
@@ -132,6 +133,37 @@ test.describe('Schubladenleiste (093)', () => {
 		).toBeVisible();
 		await page.locator('[data-ebenen-anheften]').click();
 		await expect(page.locator('[data-ebenen-angeheftet]')).toHaveCount(0);
+	});
+
+	test('„Formen“ oder „Text“ von früher öffnen „Werkzeuge“ (175)', async ({ page }) => {
+		await blatt(page);
+		for (const wert of ['text', 'formen']) {
+			await page.evaluate((w) => localStorage.setItem('schoolbox-panel-links', w), wert);
+			await page.reload();
+			await expect(page.locator('[data-leinwand][data-geladen]')).toBeVisible();
+			await expect(offen(page)).toHaveAttribute('data-panel-links', 'werkzeuge');
+			await expect(schubladenKnopf(page, 'werkzeuge')).toHaveAttribute('aria-pressed', 'true');
+			await expect(page.locator('[data-schublade-werkzeuge]')).toBeVisible();
+		}
+	});
+
+	test('„Werkzeuge“ steht in der Leiste ganz da, nicht abgeschnitten (175)', async ({ hasTouch, page }) => {
+		test.skip(hasTouch, 'am iPad zeigt die Leiste nur Symbole');
+		await blatt(page);
+		const name = schubladenKnopf(page, 'werkzeuge').getByText('Werkzeuge', { exact: true });
+		await expect(name).toBeVisible();
+		// Mit `px-0.5` am Knopf stand hier „Werkzeu…“: Dann ist der Text breiter als sein Platz.
+		expect(await name.evaluate((e) => e.scrollWidth <= e.clientWidth)).toBe(true);
+	});
+
+	test('⌘K: „Formen“ und „Text“ finden „Werkzeuge“ (175)', async ({ page }) => {
+		await blatt(page);
+		for (const wort of ['Formen', 'Text']) {
+			await page.keyboard.press('ControlOrMeta+k');
+			await palette(page).getByRole('combobox').fill(wort);
+			await expect(palette(page).locator('[data-palette-zeile="ansicht.links-werkzeuge"]')).toHaveCount(1);
+			await page.keyboard.press('Escape');
+		}
 	});
 
 	test('⌘K findet „Ebenen“ auch mit „Gliederung“', async ({ page }) => {

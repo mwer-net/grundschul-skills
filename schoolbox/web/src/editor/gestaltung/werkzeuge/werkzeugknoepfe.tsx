@@ -7,7 +7,7 @@ import { useWerkzeugStand, waehleWerkzeug } from './stand';
 
 /**
  * Eine Reihe Knöpfe für alle bereiten Werkzeuge (5.10, 5.12): Tooltip mit Taste, das aktive hervorgehoben, ⇧-Klick
- * hält das Werkzeug bis Esc. 104 setzt sie oben in die Schublade „Formen“.
+ * hält das Werkzeug bis Esc. 104 setzt sie oben in die Schublade „Werkzeuge“.
  */
 export const Werkzeugknoepfe = ({ className, lage }: { lage: SchubladenLage; className?: string }) => {
 	const stand = useWerkzeugStand();

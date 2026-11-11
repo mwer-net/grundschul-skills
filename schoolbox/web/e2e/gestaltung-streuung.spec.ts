@@ -20,7 +20,7 @@ const zurueck = (page: Page) => page.getByRole('button', { name: 'Rückgängig (
 const streuungen = (page: Page) => material(page).locator('svg.streuung');
 const anzahl = (html: string) => html.split('<svg class="streuung"').length - 1;
 const saat = (html: string) => /data-saat="(\d+)"/.exec(html)?.[1] ?? '';
-const werkzeug = (page: Page) => page.locator('[data-schublade-formen] [data-werkzeug="streuen"]');
+const werkzeug = (page: Page) => page.locator('[data-schublade-werkzeuge] [data-werkzeug="streuen"]');
 const inspektor = (page: Page) => page.locator('[data-gestaltung-streuung]');
 /** `data-streuung-art` steht nur hier im Inspektor um das Segment „Art“. */
 const art = (page: Page, name: string) =>
@@ -30,8 +30,8 @@ const oeffneFormen = async (page: Page, hinten: string[] = []) => {
 	const u = await uhrzeit();
 	await writeFile(u.material, blattMit({ hinten }));
 	await oeffne(page, u.id, u.dok);
-	await oeffneSchublade(page, 'formen');
-	await expect(page.locator('[data-schublade-formen]')).toBeVisible();
+	await oeffneSchublade(page, 'werkzeuge');
+	await expect(page.locator('[data-schublade-werkzeuge]')).toBeVisible();
 	return u;
 };
 
@@ -220,7 +220,7 @@ test.describe('Streuung (109, 174)', () => {
 
 	test('Suche „Konfetti“, „Punkte“, „Sterne“ in der Schublade zeigt Streuen', async ({ page }) => {
 		await oeffneFormen(page);
-		const suche = page.locator('[data-schublade-formen]').getByRole('searchbox');
+		const suche = page.locator('[data-schublade-werkzeuge]').getByRole('searchbox');
 		for (const wort of ['Konfetti', 'Punkte', 'Sterne']) {
 			await suche.fill(wort);
 			await expect(page.locator('[data-formen-abschnitt="werkzeuge"] [data-werkzeug="streuen"]')).toBeVisible();

@@ -89,8 +89,6 @@ const foto = async (page: Page, name: string) => {
 const nurAuf = (geraet: 'mac' | 'ipad') => test.skip(test.info().project.name !== geraet, `nur ${geraet}`);
 
 test.describe('Bildschirmfotos für die Hilfe', () => {
-	test.beforeEach(({ page }) => page.addInitScript(() => localStorage.setItem('schoolbox-neu-gesehen', '1')));
-
 	test('Übersicht', async ({ page }) => {
 		nurAuf('mac');
 		await kartoffeln();

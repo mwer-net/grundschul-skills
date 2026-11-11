@@ -283,14 +283,19 @@ const spaltenBefehl = (id: string, titel: string, schritt: 1 | -1, suchwoerter: 
 /** Suchwörter je Schublade; „gliederung“ bleibt, damit die alte Suche weiter trifft. */
 const SCHUBLADEN_SUCHE: Partial<Record<SchubladenId, string[]>> = {
 	ebenen: ['gliederung', 'seiten', 'aufgaben', 'baum', 'navigation'],
+	// >> 175
+	werkzeuge: ['formen', 'text', 'schrift', 'zeichnen'],
+	// << 175
 	bilder: ['foto', 'hochladen', 'sammlung'],
 };
 
+// >> 175
 /**
- * Je Schublade ein Befehl, ⌥1 bis ⌥6 über `code`. Die Taste ist reserviert, auch solange die Schublade noch nicht
+ * Je Schublade ein Befehl, ⌥1 bis ⌥5 über `code`. Die Taste ist reserviert, auch solange die Schublade noch nicht
  * bereit ist; dann tut sie nichts. `bereit` wird erst beim Aufruf gelesen: Die Schubladen hängen an Komponenten, die
  * ihrerseits dieses Register brauchen können.
  */
+// << 175
 const SCHUBLADEN_BEFEHLE: Befehl[] = REIHE.map(({ id, symbol, taste, titel }): Befehl => ({
 	id: befehlZuSchublade(id),
 	titel,

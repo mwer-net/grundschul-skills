@@ -1,5 +1,5 @@
 /**
- * Abnahme E3, Z6 (123): „Ein Blatt in fünf Griffen“ nach 05-bedienung.md 5.14, nur mit Klicks, Ziehen, ⌥1–⌥6 und
+ * Abnahme E3, Z6 (123): „Ein Blatt in fünf Griffen“ nach 05-bedienung.md 5.14, nur mit Klicks, Ziehen, ⌥1–⌥5 und
  * Tippen. Jeder Griff ist ein Schritt (der Name am Knopf „Rückgängig“ wechselt mit jedem). Danach: Nummern lückenlos,
  * Lösung vollständig, s/w ohne Fläche und Punkte mit dunklem Titel, Prüfung ohne FEHLER und WARNUNG.
  */
@@ -154,9 +154,9 @@ test.describe('Abnahme E3: Ein Blatt in fünf Griffen (123, Z6)', () => {
 		expect(sternNachher.y - sternVorher.y).toBeGreaterThan(100);
 		expect(Math.abs(wilmaNachher.y - wilmaVorher.y - (sternNachher.y - sternVorher.y))).toBeLessThanOrEqual(1);
 
-		// 4. ⌥3 Formen: Sprechblase, „Zähl genau!“, neben Wilma, an dieselbe Aufgabe, Zipfel zu Wilma.
+		// 4. ⌥3 Werkzeuge: Sprechblase, „Zähl genau!“, neben Wilma, an dieselbe Aufgabe, Zipfel zu Wilma.
 		await geladen(page);
-		await oeffnePerTaste(page, 'formen', 'Alt+Digit3');
+		await oeffnePerTaste(page, 'werkzeuge', 'Alt+Digit3');
 		await page.locator('[data-blase-kachel="sprechblase-rund"]').click();
 		await expect(material(page).locator('.form-text[contenteditable="true"]')).toBeFocused();
 		await page.keyboard.type('Zähl genau!');
