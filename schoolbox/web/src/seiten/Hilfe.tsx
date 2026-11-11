@@ -124,6 +124,10 @@ const ABSCHNITTE: Abschnitt[] = [
 						leeres Blatt“ wechselt jederzeit dorthin und behält, was du schon gewählt hast.
 					</Punkt>
 					<Punkt titel="Tasten">1 bis 9 wählen eine Kachel, ⏎ geht weiter, ⇧⏎ zurück, Esc schließt.</Punkt>
+					<Punkt titel="Wiederverwenden">
+						ein fertiges Blatt im Ordner duplizieren (⌘D) und die Kopie ändern. Einzelne Teile legst du im ⋯
+						mit „In Sammlung legen“ ab; sie stehen dann unter „Meine Bausteine“ in jedem Blatt.
+					</Punkt>
 				</ul>
 				<p>
 					Erst der letzte Schritt legt etwas an. Keine Namen von Kindern eintragen. Ein Mini-Book wählst du

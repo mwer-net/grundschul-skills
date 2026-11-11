@@ -198,18 +198,6 @@ export const FORMAT_NAME: Record<Format, string> = {
 	'minibuch': 'Mini-Book',
 };
 
-/** Startvorlagen, die nur zu einer Art passen (051). */
-export const VORLAGE_ART: Record<string, Art> = {
-	lesetext: 'lesetext',
-	karten: 'karten',
-	lernspiel: 'lernspiel',
-	stationen: 'stationen',
-	lernzielkontrolle: 'lernzielkontrolle',
-	lernlandkarte: 'lernzielkontrolle',
-	klassenarbeit: 'klassenarbeit',
-	lernplakat: 'lernplakat',
-};
-
 export const standardFormat = (art: Art, vorlage?: string): Format =>
 	(vorlage === undefined ? undefined : VORLAGE_FORMAT[vorlage]?.format) ?? ART_ANGABEN[art].format;
 

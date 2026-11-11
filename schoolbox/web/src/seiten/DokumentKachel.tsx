@@ -1,5 +1,4 @@
 import type { MouseEvent } from 'react';
-import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 
 import { Marke } from '../bausteine/Kachel';
@@ -9,7 +8,6 @@ import { Menue } from '../bausteine/Menue';
 import { useZeigeMenue } from '../bausteine/menue-kontext';
 import { Symbol } from '../bausteine/Symbol';
 import { Vorschau } from '../bausteine/Vorschau';
-import { AlsVorlage } from '../editor/AlsVorlage';
 import { hatOffeneEntwuerfe } from '../entwuerfe/offen';
 import { ART_NAME, FORMAT_NAME } from '../lib/text';
 import type { Zugang } from '../lib/zugang';
@@ -45,15 +43,11 @@ export const DokumentKachel = ({ dokument, mappe, teile, variante, zugang }: Eig
 	const folie = meta.format === 'folie';
 	const navigate = useNavigate();
 	const zeigeMenue = useZeigeMenue();
-	const [alsVorlage, setAlsVorlage] = useState(false);
 	const pdf = usePdf({ mappe, warnen: !geteilt });
 	const wahl = dokumentWahl(zugang, dokument, folie ? undefined : meta.druckprofil);
 
 	const mehr: MenueEintrag[] = [
 		...(folie && !waehlen ? [pdfEintrag('PDF', 'herunterladen', wahl, (w) => void pdf.hole(w))] : []),
-		...(teile && !waehlen
-			? [{ titel: 'Als Vorlage speichern', symbol: 'blatt' as const, waehle: () => setAlsVorlage(true) }]
-			: []),
 		...(variante && !waehlen ? [{ titel: 'Variante anlegen', symbol: 'variante' as const, waehle: variante }] : []),
 		...(teile ? [{ titel: 'Teilen', symbol: 'teilen' as const, waehle: teile }] : []),
 		...(!geteilt && !waehlen && meta.entwuerfe.length > 0
@@ -135,9 +129,6 @@ export const DokumentKachel = ({ dokument, mappe, teile, variante, zugang }: Eig
 				)}
 			</div>
 			{pdf.dialog}
-			{alsVorlage && (
-				<AlsVorlage mappe={mappe.id} dok={id} titel={meta.titel} schliessen={() => setAlsVorlage(false)} />
-			)}
 		</li>
 	);
 };

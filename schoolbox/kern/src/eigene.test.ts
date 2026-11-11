@@ -8,15 +8,11 @@ import { after, before, describe, it } from 'node:test';
 
 import { dokumentDir, leseMappe, neueMappe, neuesDokument, sammleMappen, verfuegbareVorlagen } from './ablage';
 import {
-	aendereVorlage,
 	bilderIn,
 	eigeneBausteine,
-	eigeneVorlagen,
 	legeInSammlung,
 	loescheEigenenBaustein,
-	loescheVorlage,
 	sammlungsOrdner,
-	speichereVorlage,
 	uebernimmBilder,
 	wendeBilderAn,
 } from './eigene';
@@ -24,7 +20,7 @@ import {
 const PNG = Buffer.from('iVBORw0KGgo=', 'base64');
 const ANDERES = Buffer.from('iVBORw0KGgoA', 'base64');
 
-describe('Eigene Vorlagen und Sammlung (051)', () => {
+describe('Sammlung (051)', () => {
 	let material = '';
 	let mappe = '';
 	let dok = '';
@@ -49,34 +45,17 @@ describe('Eigene Vorlagen und Sammlung (051)', () => {
 	});
 	after(() => rm(material, { recursive: true, force: true }));
 
-	it('Vorlage: neues Dokument hat dieselbe Quelle bis auf den Titel, Bilder inklusive', async () => {
-		const vorlage = await speichereVorlage(material, mappe, dok, 'Meine Vorlage');
-		assert.ok(verfuegbareVorlagen(material).includes(`eigen-${vorlage.id}`));
-		assert.ok(!verfuegbareVorlagen().includes(`eigen-${vorlage.id}`), 'Ohne Ablage nur die mitgelieferten');
-		const { id, pfad } = await neuesDokument(material, mappe, {
-			...angaben('Neu'),
-			vorlage: `eigen-${vorlage.id}`,
-		});
-		assert.ok(existsSync(path.join(dokumentDir(material, mappe, id), 'bilder', 'hund.png')));
-		const titelfrei = (t: string) => t.replace(/<title>.*?<\/title>/, '');
-		assert.equal(
-			titelfrei(await readFile(pfad, 'utf8')),
-			titelfrei(await readFile(path.join(dir, 'material.html'), 'utf8')),
+	it('Ein alter Ordner _vorlagen bleibt liegen und wird nicht gelesen (137)', async () => {
+		const alt = path.join(material, '_vorlagen', 'meine');
+		await mkdir(alt, { recursive: true });
+		await writeFile(path.join(alt, 'vorlage.json'), '{"id":"meine","name":"Meine","art":"arbeitsblatt"}\n');
+		await writeFile(path.join(alt, 'material.html'), '<!doctype html><title>Alt</title>');
+		assert.ok(!verfuegbareVorlagen().some((v) => v.startsWith('eigen-')));
+		await assert.rejects(
+			() => neuesDokument(material, mappe, { ...angaben('Neu'), vorlage: 'eigen-meine' }),
+			/gibt es nicht/,
 		);
-	});
-
-	it('Vorlage: Standard je Art nur einmal, umbenennen, löschen', async () => {
-		const a = await speichereVorlage(material, mappe, dok, 'A');
-		const b = await speichereVorlage(material, mappe, dok, 'B');
-		await aendereVorlage(material, a.id, { standard: true });
-		await aendereVorlage(material, b.id, { standard: true, name: 'B neu' });
-		const alle = await eigeneVorlagen(material);
-		assert.deepEqual(
-			alle.filter((v) => v.standard).map((v) => v.name),
-			['B neu'],
-		);
-		await loescheVorlage(material, a.id);
-		assert.ok(!(await eigeneVorlagen(material)).some((v) => v.id === a.id));
+		assert.ok(existsSync(path.join(alt, 'material.html')), 'Der Ordner bleibt unangetastet');
 	});
 
 	it('Die Ordner sind keine Mappen', async () => {
@@ -85,7 +64,7 @@ describe('Eigene Vorlagen und Sammlung (051)', () => {
 			mappen.map((m) => m.mappe.id),
 			[mappe],
 		);
-		assert.ok(existsSync(path.join(material, '_vorlagen')), 'Gegenprobe: Der Ordner liegt in der Ablage');
+		assert.ok(existsSync(path.join(material, '_vorlagen')), 'Gegenprobe: Der alte Ordner liegt in der Ablage');
 	});
 
 	it('Sammlung: Baustein mit Bild liegt bei sich, löschen entfernt ihn', async () => {
@@ -142,9 +121,9 @@ describe('Eigene Vorlagen und Sammlung (051)', () => {
 		assert.equal(pruefe('schoolbox/kern/src/eigene.ts'), false, 'Gegenprobe');
 	});
 
-	it('Reihenfolge der Mappe bleibt: Vorlagen legen nichts in die Mappe', async () => {
+	it('Reihenfolge der Mappe bleibt: Die Sammlung legt nichts in die Mappe', async () => {
 		const vorher = (await leseMappe(material, mappe)).dokumente.length;
-		await speichereVorlage(material, mappe, dok, 'Noch eine');
+		await legeInSammlung(material, { mappe, dok, html: '<p>x</p>', name: 'Noch einer', ort: 'zeile' });
 		assert.equal((await leseMappe(material, mappe)).dokumente.length, vorher);
 	});
 });

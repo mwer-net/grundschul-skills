@@ -272,17 +272,7 @@ test.describe('Generatoren (050)', () => {
 	});
 });
 
-test.describe('Eigene Vorlagen und Sammlung (051)', () => {
-	test('Als Vorlage speichern legt die Vorlage an', async ({ page }) => {
-		const { dok, id } = await uhrzeit();
-		await oeffne(page, id, dok);
-		await page.getByRole('button', { name: 'Weitere Aktionen' }).click();
-		await page.getByRole('menuitem', { name: 'Als Vorlage speichern' }).click();
-		await page.locator('[data-vorlage-name]').fill('Uhr-Vorlage');
-		await page.locator('[data-vorlage-speichern]').click();
-		await expect(page.getByText('Vorlage „Uhr-Vorlage“ gespeichert.', { exact: false })).toBeVisible();
-	});
-
+test.describe('Sammlung (051)', () => {
 	test('Sammlung und Kopieren: im anderen Dokument einfügbar, in Bibliothek und Slash-Menü', async ({
 		druecke,
 		page,

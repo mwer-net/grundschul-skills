@@ -16,7 +16,6 @@ import { lade, meldung } from '../api';
 import { useHinweis } from '../bausteine/hinweis';
 import { klassen } from '../bausteine/klassen';
 import { Knopf, KnopfLink } from '../bausteine/Knopf';
-import { Menue } from '../bausteine/Menue';
 import { useZeigeMenue } from '../bausteine/menue-kontext';
 import { ProfilSchalter } from '../bausteine/ProfilSchalter';
 import { Segment } from '../bausteine/Segment';
@@ -25,7 +24,6 @@ import { SymbolKnopf } from '../bausteine/SymbolKnopf';
 import { Zustand } from '../bausteine/Zustand';
 import { useAbbildung } from '../editor/abbildung';
 import { useAblage } from '../editor/ablage';
-import { AlsVorlage } from '../editor/AlsVorlage';
 import { Konfliktleiste, Speicheranzeige, Vorschauleiste } from '../editor/Anzeigen';
 import { Bausteinleiste } from '../editor/Bausteinleiste';
 import { useBearbeitung } from '../editor/bearbeitung';
@@ -85,12 +83,6 @@ import { ansichtAdresse, dokumentSeite, druckSeite, inhaltAdresse, praesentation
 import { PdfKnopf } from '../pdf/PdfKnopf';
 import { dokumentWahl, materialName } from '../pdf/wahl';
 import type { DokumentEintrag, Mappe, MappenEintrag } from '../typen';
-
-const MEHR_KNOPF = (
-	<Knopf art="leise" className="size-knopf px-0">
-		<Symbol name="mehr" />
-	</Knopf>
-);
 
 interface Eigenschaften {
 	mappe: string;
@@ -396,7 +388,6 @@ const Bearbeitung = ({ dokument, mappe: mappenDaten }: { mappe: Mappe; dokument:
 	const { alles, stand } = b.speicher;
 	const [geladen, setGeladen] = useState<{ doc: Document; html: string } | null>(null);
 	const panels = usePanels(suche.get('neu') === '1');
-	const [alsVorlage, setAlsVorlage] = useState(false);
 	const [tastenOffen, setTastenOffen] = useState(false);
 	const [paletteOffen, setPaletteOffen] = useState(false);
 	const [zumBlatt, setZumBlatt] = useState(0);
@@ -728,7 +719,6 @@ const Bearbeitung = ({ dokument, mappe: mappenDaten }: { mappe: Mappe; dokument:
 				speichern: () => zeige({ text: 'Wird automatisch gespeichert.' }),
 				pdf: () => document.querySelector<HTMLElement>('[data-pdf-knopf] button')?.click(),
 				drucken: () => void verlassen(druckSeite(zugang, dok, loesung ? 'loesung' : 'arbeitsblatt', profil)),
-				alsVorlage: () => setAlsVorlage(true),
 				praesentieren: () => void verlassen(praesentationSeite(zugang, dok)),
 				zurueck: () => void verlassen(dokumentSeite(zugang, dok)),
 				hilfe: () => void verlassen('/hilfe'),
@@ -1024,18 +1014,6 @@ const Bearbeitung = ({ dokument, mappe: mappenDaten }: { mappe: Mappe; dokument:
 						aktiv={panels.rechts === 'versionen' && panels.rechtsOffen}
 						aktion={() => befehle.fuehreAus('ansicht.versionen')}
 					/>
-					<Menue
-						name="Weitere Aktionen"
-						rechtsbuendig
-						ausloeser={MEHR_KNOPF}
-						eintraege={[
-							{
-								titel: 'Als Vorlage speichern',
-								symbol: 'blatt',
-								waehle: () => befehle.fuehreAus('dokument.als-vorlage'),
-							},
-						]}
-					/>
 					<Trenner />
 					{format === 'folie' && (
 						<Knopf art="zweit" onClick={() => befehle.fuehreAus('dokument.praesentieren')}>
@@ -1078,9 +1056,6 @@ const Bearbeitung = ({ dokument, mappe: mappenDaten }: { mappe: Mappe; dokument:
 				)}
 				{tastenOffen && (
 					<TastenUebersicht kontext={befehle.jetzt.current} schliessen={() => setTastenOffen(false)} />
-				)}
-				{alsVorlage && (
-					<AlsVorlage mappe={mappe} dok={dok} titel={meta.titel} schliessen={() => setAlsVorlage(false)} />
 				)}
 
 				<div className="flex min-h-0 flex-1 max-lg:flex-col">

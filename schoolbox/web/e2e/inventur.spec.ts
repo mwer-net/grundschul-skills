@@ -13,7 +13,7 @@ import { oeffneSchublade } from './schubladen-hilfe';
  * - Miniatur ziehen, Ziehen im Blatt, Griffe, Spalten, Nach oben und unten: `struktur.spec.ts`, `bilder.spec.ts`
  * - Prüfliste, Punkt zeigen, Verschieben, Prüfhinweise, Prüfrahmen: `pruefung.spec.ts`, `einfuegen.spec.ts`
  * - Plus, Schnellauswahl, Slash, erster Baustein, Bibliothek: `einfuegen.spec.ts`
- * - Sprachwerkzeug, Lösungswerkzeug, Neue Zahlen, Sammlung, Als Vorlage: `formate.spec.ts`
+ * - Sprachwerkzeug, Lösungswerkzeug, Neue Zahlen, Sammlung: `formate.spec.ts`
  * - Textleiste: `blatt.spec.ts`; Abbildungswerkzeug und Kit-Felder: `oberflaeche.spec.ts`, `formate.spec.ts`
  * - Chat, Vorschlag, Vergleich, Nachbessern, Claude-App: `chat.spec.ts`, `ki.spec.ts`, `claude.spec.ts`
  * - Anmeldung, Papierkorb, Teilen-Dialog, Geteilt, Entwürfe: `oberflaeche.spec.ts`; Präsentation: `praesentation.spec.ts`
@@ -57,9 +57,8 @@ test.describe('Inventur Editor', () => {
 		await expect(page.locator('[data-panel="versionen"]')).toBeVisible();
 		await kopf(page).getByRole('button', { name: 'Versionen' }).click();
 
-		await kopf(page).getByRole('button', { name: 'Weitere Aktionen' }).click();
-		await expect(page.getByRole('menuitem', { name: /Als Vorlage/ })).toBeVisible();
-		await page.keyboard.press('Escape');
+		// Eigene Vorlagen sind gestrichen (137); mit ihnen das ⋯ im Kopf, das nur sie trug.
+		await expect(kopf(page).getByRole('button', { name: 'Weitere Aktionen' })).toHaveCount(0);
 
 		await kopf(page).getByRole('button', { name: 'Zurück' }).click();
 		await expect(page).toHaveURL(/\/(m|o)\//);
@@ -253,9 +252,10 @@ test.describe('Inventur außerhalb des Editors', () => {
 			await page.keyboard.press('Escape');
 		}
 		await objektMenue(page, 'Kreisinput');
-		for (const name of [/^PDF/, /Als Vorlage/, /Variante/, /Teilen/, /Präsentieren/]) {
+		for (const name of [/^PDF/, /Variante/, /Teilen/, /Präsentieren/]) {
 			await expect(page.getByRole('menuitem', { name })).toBeVisible();
 		}
+		await expect(page.getByRole('menuitem', { name: /Als Vorlage/ })).toHaveCount(0);
 		await page.keyboard.press('Escape');
 		await oeffneObjekt(page, 'Kreisinput');
 		await expect(page).toHaveURL(new RegExp(`/m/${id}/${dokumente[0]}`));

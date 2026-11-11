@@ -132,11 +132,6 @@ describe('Änderungen', () => {
 		for (const { name, quelle } of BEISPIELE) {
 			const z = zerlege(quelle);
 			const h1 = z.knoten.find((k) => k.tag === 'h1');
-			// Karten sind reine Schneidebögen, ohne Überschrift.
-			if (name === 'vorlage-karten.html') {
-				assert.equal(h1, undefined);
-				continue;
-			}
 			assert.ok(h1, name);
 			const neu = wendeAn(quelle, [{ von: h1.oeffnerEnde, bis: h1.schliesserStart, text: 'Neuer Titel' }]);
 			const diff = unterschied(quelle, neu, 'Text');

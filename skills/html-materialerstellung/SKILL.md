@@ -17,7 +17,6 @@ Warum: In HTML bestimmen wir Schrift (Fredoka, Andika, eingebettet), Abstände u
 | `assets/praesentation.js` | Präsentationsmodus für Folien: blättern, Schritte und Aufdecken, Timer, Schwarzbild; nur mit `?praesentation=1` aktiv. `blatt.py` bettet es in die Offline-Präsentation ein und baut damit `--schritte` und `--notizen` (Abschnitt „Folien“) |
 | `assets/abbildungen.js` | Exakte Abbildungen als SVG (`x-…`-Elemente), berechnet statt gezeichnet. Welche es gibt, wie man sie schreibt und welche Mindestgrößen gelten, steht im Katalog: `references/abbildungen.md`. Musterblätter: `assets/muster/`. |
 | `assets/vorlage-arbeitsblatt.html` | Muster mit allen Bausteinen; Ausgangspunkt für jedes Blatt |
-| `assets/vorlage-lesetext.html`, `-karten`, `-lernspiel`, `-stationen`, `-lernzielkontrolle`, `-lernlandkarte`, `-klassenarbeit`, `-lernplakat` | Startvorlage je Materialart, in der Schoolbox im Assistenten wählbar |
 | `assets/vorlage-praesentation.html` | Kreisinput mit sechs Folien und allen Folien-Bausteinen; Ausgangspunkt für Präsentationen (Abschnitt „Folien“) |
 | `assets/vorlage-minibuch.html` | Faltbuch aus einem A4-Blatt, acht Seiten mit Satzmuster, Faltanleitung auf dem Lösungsblatt (Abschnitt „Mini-Book“) |
 | `assets/vorlage-forscherbogen-12.html`, `assets/vorlage-forscherbogen-34.html` | Forscherbogen bildgestützt (Kl. 1/2) und schriftlich (Kl. 3/4); Sicherheitshinweise als `.nur-loesung` im Kopf, Malfläche `.malfeld` |

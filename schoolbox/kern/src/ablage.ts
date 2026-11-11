@@ -170,32 +170,22 @@ export const neueMappe = async (
 	return { mappe, pfad: dir };
 };
 
-/** Mitgelieferte Vorlagen; mit `materialDir` auch die eigenen als `eigen-<id>` (051). */
-export const verfuegbareVorlagen = (materialDir?: string): string[] => {
-	const ablage = materialDir ? path.join(materialDir, '_vorlagen') : null;
-	const eigene = ablage && existsSync(ablage) ? readdirSync(ablage) : [];
-	return [
-		...readdirSync(ASSETS)
-			.map((name) => /^vorlage-([a-z0-9-]+)\.html$/.exec(name)?.[1])
-			.filter((name): name is string => name !== undefined)
-			.sort(),
-		...eigene.filter((n) => ID_REGEX.test(n)).map((n) => `eigen-${n}`),
-	];
-};
+/** Mitgelieferte Gerüste aus den Assets (`--vorlage`). Eigene Vorlagen gibt es seit 137 nicht mehr. */
+export const verfuegbareVorlagen = (): string[] =>
+	readdirSync(ASSETS)
+		.map((name) => /^vorlage-([a-z0-9-]+)\.html$/.exec(name)?.[1])
+		.filter((name): name is string => name !== undefined)
+		.sort();
 
-const EIGEN = 'eigen-';
-
-const ladeVorlage = async (materialDir: string, vorlage: string | undefined): Promise<string> => {
+const ladeVorlage = async (vorlage: string | undefined): Promise<string> => {
 	if (vorlage === undefined) {
 		return GERUEST;
 	}
-	const vorhanden = verfuegbareVorlagen(materialDir);
+	const vorhanden = verfuegbareVorlagen();
 	if (!vorhanden.includes(vorlage)) {
 		throw new SchoolboxFehler(`Vorlage „${vorlage}“ gibt es nicht. Vorhanden: ${vorhanden.join(', ') || 'keine'}.`);
 	}
-	return vorlage.startsWith(EIGEN)
-		? readFile(path.join(materialDir, '_vorlagen', vorlage.slice(EIGEN.length), 'material.html'), 'utf8')
-		: readFile(path.join(ASSETS, `vorlage-${vorlage}.html`), 'utf8');
+	return readFile(path.join(ASSETS, `vorlage-${vorlage}.html`), 'utf8');
 };
 
 export interface NeuesDokument {
@@ -218,25 +208,13 @@ export const neuesDokument = async (
 	jetzt = new Date(),
 ) => {
 	const mappe = await leseMappe(materialDir, mappeId);
-	const { art, druckhinweise, druckprofil, titel, urheber = 'claude', vorlage, zusatz } = angaben;
-	// Eine eigene Vorlage bringt ihr Format mit: Das Layout hängt daran.
-	const eigeneVorlage = vorlage?.startsWith(EIGEN)
-		? path.join(materialDir, '_vorlagen', vorlage.slice(EIGEN.length))
-		: null;
-	const format: Format =
-		eigeneVorlage && existsSync(path.join(eigeneVorlage, 'vorlage.json'))
-			? (JSON.parse(await readFile(path.join(eigeneVorlage, 'vorlage.json'), 'utf8')) as { format: Format })
-					.format
-			: angaben.format;
+	const { art, druckhinweise, druckprofil, format, titel, urheber = 'claude', vorlage, zusatz } = angaben;
 	const dokumente = path.join(mappenDir(materialDir, mappeId), 'dokumente');
 	const id = eindeutigeId(slug(titel) || 'dokument', (k) => existsSync(path.join(dokumente, k)));
 	const dir = path.join(dokumente, id);
 	await mkdir(dir, { recursive: true });
 	await Promise.all(['bilder', 'entwuerfe', 'versionen', 'ausgabe'].map((d) => mkdir(path.join(dir, d))));
-	const roh = await ladeVorlage(materialDir, vorlage);
-	if (eigeneVorlage && existsSync(path.join(eigeneVorlage, 'bilder'))) {
-		await cp(path.join(eigeneVorlage, 'bilder'), path.join(dir, 'bilder'), { recursive: true });
-	}
+	const roh = await ladeVorlage(vorlage);
 	const klassen = setzeBodyKlassen(setzeTitel(roh, titel), { druckprofil, format, klasse: mappe.klasse });
 	const html = zusatz ? fuegeZusatzEin(klassen, zusatz, leseStarter(), { jeSeite: format === 'folie' }) : klassen;
 	await schreibeAtomar(path.join(dir, 'material.html'), html);

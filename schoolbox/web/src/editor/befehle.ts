@@ -96,7 +96,6 @@ export interface Aktionen {
 	speichern: () => void;
 	pdf: () => void;
 	drucken: () => void;
-	alsVorlage: () => void;
 	praesentieren: () => void;
 	zurueck: () => void;
 	hilfe: () => void;
@@ -903,16 +902,6 @@ export const BEFEHLE: Befehl[] = [
 		sichtbarUnter: 'kopf',
 		verfuegbar: () => true,
 		aus: (k) => k.tu.drucken(),
-	},
-	{
-		id: 'dokument.als-vorlage',
-		titel: 'Als Vorlage speichern',
-		gruppe: 'dokument',
-		symbol: 'blatt',
-		orte: ['palette'],
-		sichtbarUnter: 'kopf',
-		verfuegbar: () => true,
-		aus: (k) => k.tu.alsVorlage(),
 	},
 	{
 		id: 'dokument.praesentieren',

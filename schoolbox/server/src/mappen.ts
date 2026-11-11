@@ -1,14 +1,7 @@
 import { existsSync } from 'node:fs';
 import path from 'node:path';
 
-import {
-	dokKnotenSchluessel,
-	dokumentGeloescht,
-	legeVarianteAn,
-	leseMappenEintrag,
-	mappenDir,
-	verfuegbareVorlagen,
-} from '@schoolbox/kern';
+import { dokKnotenSchluessel, dokumentGeloescht, legeVarianteAn, leseMappenEintrag, mappenDir } from '@schoolbox/kern';
 import { Router } from 'express';
 
 import { verlangeDokument } from './dokumente';
@@ -22,15 +15,11 @@ const verlangeMappe = (kontext: Kontext, mappe: string) => {
 	}
 };
 
-/** Der unsichtbare Behälter (unter `/api/mappen`): Inhalt für die Dokumentansicht, Vorlagen, Varianten. */
+/** Der unsichtbare Behälter (unter `/api/mappen`): Inhalt für die Dokumentansicht, Varianten. */
 export const mappenApi = (kontext: Kontext) => {
 	const { materialDir } = kontext.konfig;
 	const router = Router();
 	router.param('mappe', pruefeIdParam('Mappe'));
-
-	router.get('/vorlagen/liste', (_req, res) => {
-		res.json({ vorlagen: verfuegbareVorlagen() });
-	});
 
 	router.get('/:mappe', async (req, res) => {
 		const { mappe: id } = req.params;

@@ -1,14 +1,10 @@
 import {
-	aendereVorlage,
 	benenneBausteinUm,
 	bilderIn,
 	dokumentDir,
-	eigeneVorlagen,
 	legeInSammlung,
 	loescheEigenenBaustein,
-	loescheVorlage,
 	sammlungsOrdner,
-	speichereVorlage,
 	uebernimmBilder,
 } from '@schoolbox/kern';
 import { Router } from 'express';
@@ -27,37 +23,10 @@ const name = (wert: unknown) => {
 
 const ORTE = ['seite', 'aufgabe', 'zeile'] as const;
 
-/** Eigene Vorlagen und Sammlung (051), nur für die angemeldete Lehrkraft. */
+/** Sammlung „Meine Bausteine“ (051), nur für die angemeldete Lehrkraft. */
 export const eigeneApi = (kontext: Kontext) => {
 	const router = Router();
 	const { materialDir } = kontext.konfig;
-
-	router.get('/vorlagen', async (_req, res) => {
-		res.json({ vorlagen: await eigeneVorlagen(materialDir) });
-	});
-
-	router.post('/vorlagen/aus/:mappe/:dok', async (req, res) => {
-		const { dok, mappe } = req.params;
-		verlangeDokument(kontext, mappe, dok);
-		res.status(201).json({
-			vorlage: await speichereVorlage(materialDir, mappe, dok, name((req.body as { name?: unknown }).name)),
-		});
-	});
-
-	router.post('/vorlagen/:id/aendern', async (req, res) => {
-		const b = (req.body ?? {}) as { name?: unknown; standard?: unknown };
-		res.json({
-			vorlage: await aendereVorlage(materialDir, req.params.id, {
-				...(b.name === undefined ? {} : { name: name(b.name) }),
-				...(typeof b.standard === 'boolean' ? { standard: b.standard } : {}),
-			}),
-		});
-	});
-
-	router.post('/vorlagen/:id/loeschen', async (req, res) => {
-		await loescheVorlage(materialDir, req.params.id);
-		res.json({ ok: true });
-	});
 
 	router.post('/sammlung', async (req, res) => {
 		const b = (req.body ?? {}) as Record<string, unknown>;

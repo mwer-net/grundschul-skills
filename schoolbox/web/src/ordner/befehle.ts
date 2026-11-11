@@ -137,13 +137,6 @@ export const BEFEHLE: Befehl[] = [
 		abschnitt: 'Ablage',
 	},
 	{
-		id: 'alsVorlage',
-		titel: 'Als Vorlage speichern',
-		symbol: 'blatt',
-		wenn: (l) => Boolean(fertigesDok(l)),
-		abschnitt: 'Ablage',
-	},
-	{
 		id: 'variante',
 		titel: 'Variante anlegen',
 		symbol: 'variante',
@@ -288,7 +281,7 @@ export const MENUE: Record<MenueArt, string[][]> = {
 	material: [
 		['oeffnen', 'bearbeiten', 'praesentieren', 'neuerTab', 'imOrdnerZeigen'],
 		['pdf', 'teilen'],
-		['alsVorlage', 'variante', 'entwuerfe'],
+		['variante', 'entwuerfe'],
 		['umbenennen', 'duplizieren', 'ausschneiden', 'kopieren', 'bewegenNach'],
 		['uebersicht', 'informationen'],
 		['papierkorb'],

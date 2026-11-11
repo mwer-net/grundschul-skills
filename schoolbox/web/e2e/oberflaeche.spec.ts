@@ -1082,6 +1082,7 @@ test.describe('Ordner und Dokumentansicht (075)', () => {
 		await page.keyboard.press('Escape');
 		await expect(page.getByRole('menu')).toHaveCount(0);
 		expect(namen.join()).toContain('Variante anlegen');
+		expect(namen.join()).not.toContain('Als Vorlage');
 		await kachel.click({ button: 'right' });
 		await expect(page.getByRole('menuitem')).toHaveCount(namen.length);
 		expect(await page.getByRole('menuitem').allInnerTexts()).toEqual(namen);

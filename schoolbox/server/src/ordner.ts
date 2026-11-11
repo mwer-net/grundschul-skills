@@ -260,14 +260,10 @@ export const ordnerApi = (kontext: Kontext) => {
 			throw new HttpFehler(400, 'Bitte wähle aus, was du anlegen möchtest.');
 		}
 		const fest = typeof vorlage === 'string' ? VORLAGE_FORMAT[vorlage]?.format : undefined;
-		const eigen = typeof vorlage === 'string' && vorlage.startsWith('eigen-');
-		if (!eigen && fest !== format && !ART_FORMATE[art as Art].includes(format as Format)) {
+		if (fest !== format && !ART_FORMATE[art as Art].includes(format as Format)) {
 			throw new HttpFehler(400, 'Dieses Format passt nicht zu dieser Art.');
 		}
-		if (
-			vorlage !== undefined &&
-			(typeof vorlage !== 'string' || !verfuegbareVorlagen(materialDir).includes(vorlage))
-		) {
+		if (vorlage !== undefined && (typeof vorlage !== 'string' || !verfuegbareVorlagen().includes(vorlage))) {
 			throw new HttpFehler(400, 'Diese Vorlage gibt es nicht.');
 		}
 		const w = (zusatz ?? {}) as Record<string, unknown>;

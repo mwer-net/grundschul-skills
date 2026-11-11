@@ -6,7 +6,6 @@ import { meldung, sende } from '../api';
 import { useHinweis } from '../bausteine/hinweis';
 import { istMac } from '../bausteine/kuerzel';
 import type { MenueEintrag } from '../bausteine/Menue';
-import { AlsVorlage } from '../editor/AlsVorlage';
 import { gehoertDemElement, istFeld, TASTEN_SPERRE_OHNE_LISTE } from '../editor/tasten';
 import { hatOffeneEntwuerfe } from '../entwuerfe/offen';
 import { falte } from '../lib/text';
@@ -44,7 +43,6 @@ interface DialogAngaben {
 	teilenOrdner: { ordner: { id: string; name: string } };
 	teilenDok: { dok: AblageDok };
 	material: { ordner: string | null };
-	vorlage: { dok: AblageDok };
 }
 
 type DialogStand = { [A in keyof DialogAngaben]: { art: A } & DialogAngaben[A] }[keyof DialogAngaben];
@@ -406,7 +404,6 @@ export const useBefehle = (o: Optionen) => {
 				setDialog({ art: 'teilenOrdner', ordner: ziel });
 			}
 		},
-		alsVorlage: mitDok((dok) => setDialog({ art: 'vorlage', dok })),
 		variante: mitDok((d) => {
 			sende<{ titel: string }>(`/api/mappen/${d.mappe}/dokumente/${d.id}/variante`).then(
 				({ titel }) => zeige({ text: `Variante angelegt: „${titel}“.` }),
@@ -536,14 +533,6 @@ export const useBefehle = (o: Optionen) => {
 				/>
 			)}
 			{dialog?.art === 'material' && <MaterialDialog ordner={dialog.ordner} schliessen={schliessen} />}
-			{dialog?.art === 'vorlage' && (
-				<AlsVorlage
-					mappe={dialog.dok.mappe}
-					dok={dialog.dok.id}
-					titel={dialog.dok.meta.titel}
-					schliessen={schliessen}
-				/>
-			)}
 		</>
 	);
 
