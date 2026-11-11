@@ -27,7 +27,6 @@ export interface SchubladenTeile {
 	doc: Document | null;
 	zerlegung: Zerlegung | null;
 	auswahl: number | null;
-	setAuswahl: (nr: number | null) => void;
 	struktur: Struktur;
 	einfuegen: Einfuegen;
 	bild: BildSteuerung;

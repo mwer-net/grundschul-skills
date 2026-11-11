@@ -940,7 +940,6 @@ const Bearbeitung = ({ dokument, mappe: mappenDaten }: { mappe: Mappe; dokument:
 		doc: sicht.doc,
 		zerlegung: sicht.zerlegung,
 		auswahl,
-		setAuswahl,
 		struktur,
 		einfuegen,
 		bild,

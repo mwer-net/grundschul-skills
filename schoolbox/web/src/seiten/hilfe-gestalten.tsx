@@ -159,13 +159,6 @@ export const GESTALTEN: Abschnitt = {
 				Stapel. In Schwarz-Weiß druckt Willi als Strichzeichnung, Wilma in Graustufen. Als Leitfigur in einer
 				Zeile findest du beide weiter unter „Bausteine“, „Bilder“.
 			</p>
-			<p data-hilfe-figur-claude>
-				Unten in der Figuren-Schublade steht „Figur von Claude zeichnen lassen …“. Schreib hinein, was du dir
-				wünschst, etwa „eine Eule mit Brille“, und drück Enter. Claude zeichnet die Figur auf die Seite, die
-				gerade gewählt oder zu sehen ist, und legt sie dir als Vorschlag vor. Nach „Annehmen“ ist sie gewählt
-				und lässt sich wie jede Figur verschieben, drehen und vergrößern. Claude zeichnet einfache Figuren,
-				keine Fotos oder gemalten Bilder.
-			</p>
 
 			<h3>Bilder frei aufs Blatt</h3>
 			<p data-hilfe-bilder-frei>
