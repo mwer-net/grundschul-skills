@@ -164,21 +164,14 @@ test.describe('Inventur Editor', () => {
 		await expect(page.getByRole('menuitem', { name: 'In der Claude-App weiterarbeiten' })).toBeVisible();
 	});
 
-	test('Der Hinweis nach dem Umbau kommt einmal und führt zur Hilfe', async ({ page }) => {
+	test('Die Statusleiste zeigt keinen Hinweis „Neu: …“, auch mit leerem Speicher (175)', async ({ page }) => {
 		await offenesBlatt(page);
-		const hinweis = page.locator('[data-neu-hinweis]');
-		await expect(hinweis).toContainText('direkt am Baustein');
-		await hinweis.getByRole('button', { name: 'Hinweis ausblenden' }).click();
-		await expect(hinweis).toHaveCount(0);
+		await page.evaluate(() => localStorage.clear());
 		await page.reload();
 		await expect(page.locator('[data-leinwand][data-geladen]')).toBeVisible();
-		await expect(hinweis).toHaveCount(0);
-
-		await page.evaluate(() => localStorage.removeItem('schoolbox-neu-gesehen'));
-		await page.reload();
-		await hinweis.getByRole('link', { name: 'Zur Hilfe' }).click();
-		await expect(page).toHaveURL(/\/hilfe#schneller$/);
-		await expect(page.locator('[data-abschnitt="schneller"]')).toBeInViewport();
+		await expect(page.locator('[data-statusleiste]')).toBeVisible();
+		await expect(page.locator('[data-neu-hinweis]')).toHaveCount(0);
+		await expect(page.locator('[data-statusleiste]')).not.toContainText('Neu:');
 	});
 
 	test('Über „imMehr“ wirkt ein Eintrag tatsächlich', async ({ page }) => {

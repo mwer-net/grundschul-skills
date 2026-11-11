@@ -52,7 +52,7 @@ test.describe('Z9: zeichnen, vereinen, abziehen (124)', () => {
 		const u = await uhrzeit();
 		await writeFile(u.material, blattMit({ vorne: [KREIS, RECHTECK] }));
 		await oeffne(page, u.id, u.dok);
-		await oeffneSchublade(page, 'formen');
+		await oeffneSchublade(page, 'werkzeuge');
 		await form(page, 'Kreis').evaluate((k) => k.scrollIntoView({ block: 'center' }));
 		const start = await quelle(page);
 

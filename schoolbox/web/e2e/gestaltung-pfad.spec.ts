@@ -24,7 +24,7 @@ const oeffneBlatt = async (page: Page, vorne: string[] = []) => {
 	const { dok, id } = await uhrzeit();
 	await oeffne(page, id, dok);
 	await aendere(page, blattMit({ vorne }));
-	await oeffneSchublade(page, 'formen');
+	await oeffneSchublade(page, 'werkzeuge');
 };
 
 /** Ein Punkt auf der ersten Seite, Anteile ihrer sichtbaren Box. */

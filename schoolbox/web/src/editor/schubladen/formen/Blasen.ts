@@ -3,7 +3,7 @@ import type { Eintrag } from './Blasen-daten';
 import { EINTRAEGE, gutVon, namenVon } from './Blasen-daten';
 import { Kacheln } from './Blasen-teile';
 import type { FormenAbschnitt } from './typ';
-import { passtZurSuche } from './typ';
+import { GRUPPE, passtZurSuche } from './typ';
 
 const symbolVon = (e: Eintrag) => {
 	if (e.art === 'linie') {
@@ -15,7 +15,7 @@ const symbolVon = (e: Eintrag) => {
 	return e.art === 'band' ? 'band' : 'sprechblase';
 };
 
-/** 107: Abschnitt „Blasen und Linien“ der Schublade „Formen“. Klick legt in die Mitte, Ziehen legt frei ab. */
+/** 107: Abschnitt „Blasen und Linien“ der Schublade „Werkzeuge“. Klick legt in die Mitte, Ziehen legt frei ab. */
 export const abschnitt: FormenAbschnitt | null = {
 	id: 'blasen',
 	titel: 'Blasen und Linien',
@@ -24,7 +24,7 @@ export const abschnitt: FormenAbschnitt | null = {
 	Inhalt: Kacheln,
 	suche: (z) =>
 		EINTRAEGE.map((e) => ({
-			...ablegenEintrag(gutVon(e, undefined), z, 'Formen'),
+			...ablegenEintrag(gutVon(e, undefined), z, GRUPPE),
 			symbol: symbolVon(e),
 			suchwoerter: namenVon(e).slice(1),
 		})),

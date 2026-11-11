@@ -5,7 +5,6 @@ import { Inhalt } from './Werkzeuge-teile';
 
 export const abschnitt: FormenAbschnitt | null = {
 	id: 'werkzeuge',
-	titel: 'Werkzeuge',
 	zeigt: ({ suche }) => {
 		const alle = bereite();
 		return (

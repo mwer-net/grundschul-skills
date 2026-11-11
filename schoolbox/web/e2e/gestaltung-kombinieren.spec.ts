@@ -135,7 +135,7 @@ test.describe('Ohne Formen-Schere (173)', () => {
 	test('Die Schublade zeigt zehn Werkzeuge ohne Schere, am Mac in zwei Reihen', async ({ page }) => {
 		await page.setViewportSize({ width: 1512, height: 982 });
 		await blatt(page);
-		await oeffneSchublade(page, 'formen');
+		await oeffneSchublade(page, 'werkzeuge');
 		// Gegenprobe: Die Reihe hat zehn Knöpfe, der Test findet sie also.
 		await expect(reihe(page)).toHaveCount(10);
 		await expect(page.locator('[data-werkzeug="schere"]')).toHaveCount(0);
@@ -153,7 +153,7 @@ test.describe('Ohne Formen-Schere (173)', () => {
 
 	test('⇧M tut nichts: kein Werkzeug, die Auswahl und das Blatt bleiben', async ({ page }) => {
 		await blatt(page, { vorne: [KREIS, RECHTS] });
-		await oeffneSchublade(page, 'formen');
+		await oeffneSchublade(page, 'werkzeuge');
 		const vorher = await quelle(page);
 		await waehle(page, 'Kreis', 'Rechts');
 		await page.keyboard.press('Shift+KeyM');

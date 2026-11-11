@@ -176,7 +176,7 @@ export const GESTALTEN: Abschnitt = {
 
 			<h3>Formen</h3>
 			<p data-hilfe-formen>
-				In der Schublade „Formen“ liegen Kreis, Rechteck, Dreieck, Stern, Herz, Pfeil, Wolke, Sechseck und
+				In der Schublade „Werkzeuge“ liegen Kreis, Rechteck, Dreieck, Stern, Herz, Pfeil, Wolke, Sechseck und
 				Raute. Ein Klick legt die Form in die Mitte der Seite, die du gerade siehst; du kannst sie auch an ihren
 				Platz ziehen. Danach ist sie gewählt. Ziehst du sie an den Ecken größer oder breiter, bleiben Rand und
 				runde Ecken gleich dick, nichts wird verzerrt. Rechts im Inspektor wechselst du unter „Form“ zu einer
@@ -189,13 +189,13 @@ export const GESTALTEN: Abschnitt = {
 
 			<h3>Formen zeichnen, Sprechblase und Linie</h3>
 			<p data-hilfe-werkzeuge>
-				Oben in der Schublade „Formen“ stehen die Werkzeuge. Mit R ziehst du ein Rechteck auf, mit O eine
-				Ellipse, mit Y ein Sechseck und mit L eine Linie; den Stern gibt es nur über seinen Knopf. Hältst du
-				beim Aufziehen ⇧, wird es ein Quadrat, ein Kreis bzw. gleichseitig, die Linie springt in 45°-Schritten.
-				Mit ⌥ ziehst du die Form aus der Mitte auf. Ein Klick ohne Ziehen legt die Form in Standardgröße an
-				diese Stelle. Danach ist wieder V (Auswahl) aktiv; wer mehrere Formen hintereinander zeichnen will,
-				wählt das Werkzeug mit ⇧. Esc bricht ab. Solange du in einer Blase schreibst, sind R, O, Y und L ganz
-				normale Buchstaben.
+				Oben in der Schublade „Werkzeuge“ stehen die Zeichenwerkzeuge. Mit R ziehst du ein Rechteck auf, mit O
+				eine Ellipse, mit Y ein Sechseck und mit L eine Linie; den Stern gibt es nur über seinen Knopf. Hältst
+				du beim Aufziehen ⇧, wird es ein Quadrat, ein Kreis bzw. gleichseitig, die Linie springt in
+				45°-Schritten. Mit ⌥ ziehst du die Form aus der Mitte auf. Ein Klick ohne Ziehen legt die Form in
+				Standardgröße an diese Stelle. Danach ist wieder V (Auswahl) aktiv; wer mehrere Formen hintereinander
+				zeichnen will, wählt das Werkzeug mit ⇧. Esc bricht ab. Solange du in einer Blase schreibst, sind R, O,
+				Y und L ganz normale Buchstaben.
 			</p>
 			<p data-hilfe-sprechblase>
 				Unter „Blasen und Linien“ liegen Sprechblase (rund und eckig), Denkblase, Band, Linie und Pfeil. Ein
@@ -213,17 +213,16 @@ export const GESTALTEN: Abschnitt = {
 
 			<h3>Text und Schmuckschrift</h3>
 			<p data-hilfe-text>
-				Die Schublade „Text“ (⌥5) zeigt zwei Arten Text, getrennt. Oben steht der Inhalt: Überschrift, Absatz,
-				Tipp und Lernziel. Er rastet wie jeder Baustein im Blatt ein, rutscht mit und steht in der Lösung.
-				Darunter steht die Schmuckschrift: Titel, Stempel und Etikett. Sie liegt frei wie eine Form, bleibt
-				stehen, wenn Aufgaben rutschen, und gehört nicht zur Lösung. Ein Klick legt sie in die Mitte der Seite
-				und öffnet sofort das Schreiben; der Platzhalter ist markiert, du tippst einfach drauflos. Esc oder ein
-				Klick daneben beendet das Schreiben.
+				In der Schublade „Werkzeuge“ liegen unter „Text“ Titel, Stempel und Etikett. Sie liegen frei wie eine
+				Form, bleiben stehen, wenn Aufgaben rutschen, und gehören nicht zur Lösung. Ein Klick legt sie in die
+				Mitte der Seite und öffnet sofort das Schreiben; der Platzhalter ist markiert, du tippst einfach
+				drauflos. Esc oder ein Klick daneben beendet das Schreiben. Inhalt wie Absatz, Tipp, Lernziel oder den
+				Kopf mit der Überschrift holst du aus „Bausteine“; er rastet ein.
 			</p>
 			<p data-hilfe-text-werkzeug>
-				Mit T (oder „Text schreiben“ in der Schublade) klickst du an die Stelle, an der der Titel stehen soll.
-				Ziehst du stattdessen einen Rahmen auf, bricht der Text an dessen Breite um. Lässt du den Text leer,
-				verschwindet er wieder. Anlegen und Schreiben sind zusammen ein Schritt beim Rückgängig-Machen.
+				Mit T klickst du an die Stelle, an der der Titel stehen soll. Ziehst du stattdessen einen Rahmen auf,
+				bricht der Text an dessen Breite um. Lässt du den Text leer, verschwindet er wieder. Anlegen und
+				Schreiben sind zusammen ein Schritt beim Rückgängig-Machen.
 			</p>
 			<p data-hilfe-text-farbe>
 				Ein zweifarbiger Titel geht so: Wort markieren, in der Leiste über dem Text auf den bunten Farbknopf und
@@ -261,8 +260,7 @@ export const GESTALTEN: Abschnitt = {
 				Ein Titel bekommt eine Kontur: Titel wählen, in der Leiste am Element auf „Kontur“ und „Kontur an“. Das
 				gibt 6 Pixel in Weiß, damit dunkle Buchstaben auch auf Bild oder Farbe gut lesbar bleiben. Stärke (0 bis
 				16 Pixel) und Farbe änderst du dort oder rechts im Inspektor. Die Kontur liegt hinter den Buchstaben,
-				sie werden also nicht dünner. In s/w bleibt eine weiße Kontur weiß. In der Schublade „Text“ gibt es
-				beide Titel auch als fertige Kacheln: „Titel mit Kontur“ und „Titel im Bogen“.
+				sie werden also nicht dünner. In s/w bleibt eine weiße Kontur weiß.
 			</p>
 			<p data-hilfe-bogen>
 				Mit „Bogen“ in der Leiste wird aus einem Titel ein Titel im Bogen, und mit „Bogen aus“ wieder ein
@@ -281,11 +279,11 @@ export const GESTALTEN: Abschnitt = {
 				das andere weg.
 			</p>
 			<p data-hilfe-bildrahmen>
-				In der Schublade „Formen“ liegen unter „Bildrahmen“ leere Rahmen als Kreis, Rechteck, Stern und Wolke.
-				Ein leerer Rahmen ist grau und meldet in der Prüfung „Platzhalter“, damit er nicht leer in den Druck
-				geht. Zieh ein Bild aus der Schublade „Bilder“ hinein, oder wähl den Rahmen und klick auf ein Bild. Auch
-				auf eine Form ohne Text kannst du ein Bild ziehen: Am Zeiger steht „zuschneiden“, die Form verschwindet,
-				und das Bild liegt in ihrer Form an ihrer Stelle. ⌘Z holt die Form zurück.
+				In der Schublade „Werkzeuge“ liegen unter „Bildrahmen“ leere Rahmen als Kreis, Rechteck, Stern und
+				Wolke. Ein leerer Rahmen ist grau und meldet in der Prüfung „Platzhalter“, damit er nicht leer in den
+				Druck geht. Zieh ein Bild aus der Schublade „Bilder“ hinein, oder wähl den Rahmen und klick auf ein
+				Bild. Auch auf eine Form ohne Text kannst du ein Bild ziehen: Am Zeiger steht „zuschneiden“, die Form
+				verschwindet, und das Bild liegt in ihrer Form an ihrer Stelle. ⌘Z holt die Form zurück.
 			</p>
 			<p data-hilfe-ausschnitt>
 				Ist ein Bild zugeschnitten, wählst du mit einem Doppelklick den Ausschnitt: Am Zeiger steht

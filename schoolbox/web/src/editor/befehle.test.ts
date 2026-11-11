@@ -7,6 +7,7 @@ import type { Werkzeug } from './gestaltung/werkzeuge';
 import { WERKZEUGE, werkzeugVon } from './gestaltung/werkzeuge';
 import { befehleFuerWerkzeuge } from './gestaltung/werkzeuge/befehle';
 import { werkzeugStand, zurAuswahl } from './gestaltung/werkzeuge/stand';
+import { suchePalette } from './palette-suche';
 import { JEDE_LAGE, SCHUBLADEN } from './schubladen';
 import { alsSchublade, REIHE } from './schubladen/reihe';
 
@@ -168,7 +169,7 @@ describe('Was aus dem Inspektor gewandert ist', () => {
 });
 
 describe('Schubladen (093)', () => {
-	it('jede Schublade hat genau einen Befehl `ansicht.links-<id>` mit ihrer Taste, ⌥1 bis ⌥6 in Reihenfolge', () => {
+	it('jede Schublade hat genau einen Befehl `ansicht.links-<id>` mit ihrer Taste, ⌥1 bis ⌥5 in Reihenfolge', () => {
 		assert.deepEqual(
 			SCHUBLADEN.map((s) => s.id),
 			REIHE.map((s) => s.id),
@@ -182,9 +183,11 @@ describe('Schubladen (093)', () => {
 		assert.equal(BEFEHLE.filter((b) => b.id.startsWith('ansicht.links-')).length, SCHUBLADEN.length);
 	});
 
-	it('ohne Rezepte: sechs Schubladen, ⌥7 frei, kein Befehl `rezept.*`', () => {
-		assert.equal(SCHUBLADEN.length, 6);
-		assert.equal(REIHE.length, 6);
+	it('ohne Rezepte und Text: fünf Schubladen, ⌥6 und ⌥7 frei, kein Befehl `rezept.*`', () => {
+		assert.equal(SCHUBLADEN.length, 5);
+		assert.equal(REIHE.length, 5);
+		const sechs = { code: 'Digit6', key: '§', metaKey: false, ctrlKey: false, altKey: true, shiftKey: false };
+		assert.equal(befehlZuTaste(sechs, 'ohne', { frei: true } as Kontext), undefined);
 		const sieben = { code: 'Digit7', key: '¶', metaKey: false, ctrlKey: false, altKey: true, shiftKey: false };
 		assert.equal(befehlZuTaste(sieben, 'ohne', { frei: true } as Kontext), undefined);
 		assert.deepEqual(
@@ -202,10 +205,12 @@ describe('Schubladen (093)', () => {
 		}
 		assert.deepEqual(
 			SCHUBLADEN.filter((s) => s.bereit(JEDE_LAGE)).map((s) => s.id),
-			['ebenen', 'bausteine', 'formen', 'figuren', 'text', 'bilder'],
+			['ebenen', 'bausteine', 'werkzeuge', 'figuren', 'bilder'],
 		);
 		const drei = { code: 'Digit3', key: '£', metaKey: false, ctrlKey: false, altKey: true, shiftKey: false };
-		assert.equal(befehlZuTaste(drei, 'ohne', k)?.id, 'ansicht.links-formen');
+		assert.equal(befehlZuTaste(drei, 'ohne', k)?.id, 'ansicht.links-werkzeuge');
+		const fuenf = { code: 'Digit5', key: '[', metaKey: false, ctrlKey: false, altKey: true, shiftKey: false };
+		assert.equal(befehlZuTaste(fuenf, 'ohne', k)?.id, 'ansicht.links-bilder');
 	});
 
 	it('„Bausteine“ nur, wo frei bearbeitet werden darf', () => {
@@ -223,6 +228,28 @@ describe('Schubladen (093)', () => {
 		assert.equal(alsSchublade(null), null);
 		// Die Rezepte gibt es nicht mehr (180): Wer sie zuletzt offen hatte, sieht die Ebenen.
 		assert.equal(alsSchublade('rezepte'), null);
+	});
+
+	it('„Werkzeuge“ statt „Formen“ und „Text“ (175): alte Speicherwerte und Suchwörter führen dorthin', () => {
+		assert.equal(alsSchublade('formen'), 'werkzeuge');
+		assert.equal(alsSchublade('text'), 'werkzeuge');
+		assert.equal(alsSchublade('werkzeuge'), 'werkzeuge');
+		const b = BEFEHLE.find((x) => x.id === 'ansicht.links-werkzeuge');
+		assert.equal(b?.titel, 'Werkzeuge');
+		const schubladen = BEFEHLE.filter((x) => x.id.startsWith('ansicht.links-')).map((x) => ({
+			id: x.id,
+			titel: typeof x.titel === 'string' ? x.titel : '',
+			gruppe: '',
+			...(x.suchwoerter ? { suchwoerter: x.suchwoerter } : {}),
+			aus: () => undefined,
+		}));
+		for (const wort of ['text', 'formen', 'Schrift']) {
+			assert.deepEqual(
+				suchePalette(wort, schubladen).map((e) => e.id),
+				['ansicht.links-werkzeuge'],
+				wort,
+			);
+		}
 	});
 });
 

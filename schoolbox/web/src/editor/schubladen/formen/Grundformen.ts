@@ -2,7 +2,7 @@ import { ablegenEintrag } from '../../gestaltung/ablegen/ablegen';
 import { GRUNDFORMEN, gutVon, namenVon } from './Grundformen-daten';
 import { Kacheln } from './Grundformen-teile';
 import type { FormenAbschnitt } from './typ';
-import { passtZurSuche } from './typ';
+import { GRUPPE, passtZurSuche } from './typ';
 
 export const abschnitt: FormenAbschnitt | null = {
 	id: 'grundformen',
@@ -12,7 +12,7 @@ export const abschnitt: FormenAbschnitt | null = {
 	Inhalt: Kacheln,
 	suche: (z) =>
 		GRUNDFORMEN.map((g) => ({
-			...ablegenEintrag(gutVon(g), z, 'Formen'),
+			...ablegenEintrag(gutVon(g), z, GRUPPE),
 			symbol: 'formen',
 			suchwoerter: namenVon(g).slice(1).filter(Boolean),
 		})),

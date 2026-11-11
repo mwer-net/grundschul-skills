@@ -6,8 +6,8 @@ import { expect, test } from './hilfe';
 import { oeffneSchublade } from './schubladen-hilfe';
 
 /**
- * 111: Rahmen-Stile am freien Bild, Bildrahmen in Formen, ein Bild auf eine Form ohne Text, Ausschnitt verschieben.
- * Jede Änderung ist ein Schritt.
+ * 111: Rahmen-Stile am freien Bild, Bildrahmen in „Werkzeuge“, ein Bild auf eine Form ohne Text, Ausschnitt
+ * verschieben. Jede Änderung ist ein Schritt.
  */
 
 const WACHSTUM = '_assets/bilder/wachstum.png';
@@ -275,9 +275,9 @@ test.describe('Rahmen-Stile und Bildrahmen (111)', () => {
 		expect(await quelle(page)).not.toContain('bildrahmen');
 	});
 
-	test('Bildrahmen aus der Schublade „Formen“: Klick legt einen leeren Rahmen ab', async ({ page }) => {
+	test('Bildrahmen aus der Schublade „Werkzeuge“: Klick legt einen leeren Rahmen ab', async ({ page }) => {
 		await oeffneMit(page, blattMit());
-		await oeffneSchublade(page, 'formen');
+		await oeffneSchublade(page, 'werkzeuge');
 		await page.locator('[data-bildrahmen-kachel="kreis"]').click();
 		await expect
 			.poll(() => quelle(page))

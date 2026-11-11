@@ -1,8 +1,9 @@
 /**
- * Neue Schmuckschrift beginnt in der Textsitzung (105): Klick in der Schublade „Text“ und Werkzeug T legen sie ab (ein
- * Schritt) und wünschen sich hier die Sitzung. Sobald die Auswahl auf dem neuen Element landet, öffnet `useText` sie
- * mit markiertem Platzhalter. Endet diese erste Sitzung, wird sie mit dem Anlegen **ein** Schritt; ist der Text leer,
- * verschwindet das Element, und es bleibt kein Schritt (5.10, Entscheidung 36).
+ * Neue Schmuckschrift beginnt in der Textsitzung (105): Klick auf eine Kachel unter „Text“ in der Schublade
+ * „Werkzeuge“ (175) und Werkzeug T legen sie ab (ein Schritt) und wünschen sich hier die Sitzung. Sobald die Auswahl
+ * auf dem neuen Element landet, öffnet `useText` sie mit markiertem Platzhalter. Endet diese erste Sitzung, wird sie
+ * mit dem Anlegen **ein** Schritt; ist der Text leer, verschwindet das Element, und es bleibt kein Schritt (5.10,
+ * Entscheidung 36).
  */
 
 /** Wie lange ein Wunsch gilt: Das Blatt lädt nach dem Ablegen neu, das dauert selten mehr als eine Sekunde. */

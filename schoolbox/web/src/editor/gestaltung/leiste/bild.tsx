@@ -14,7 +14,7 @@ const RahmenstilKnopf = ({ aktiv, ...trigger }: { aktiv: boolean } & ComponentPr
 );
 
 /**
- * Leiste am freien Bild (103): „Austauschen“ öffnet die Schublade „Bilder“ (⌥6); ein Klick dort oder ein Bild aufs
+ * Leiste am freien Bild (103): „Austauschen“ öffnet die Schublade „Bilder“ (⌥5); ein Klick dort oder ein Bild aufs
  * gewählte gezogen tauscht es aus. Ist sie schon offen, bleibt sie offen. 111: „Rahmen-Stil“ davor, als Popover.
  */
 export const BILD_LEISTE: LeistenKnoepfe = ({ aktiv, befehle, k, quelle }) => (

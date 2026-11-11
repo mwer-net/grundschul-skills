@@ -1,5 +1,4 @@
 import { useEffect, useState } from 'react';
-import { Link } from 'react-router-dom';
 
 import { klassen } from '../bausteine/klassen';
 import { Kuerzel } from '../bausteine/Kuerzel';
@@ -119,35 +118,6 @@ const ClaudeStand = ({ lauf, oeffne }: { lauf: ClaudeLauf; oeffne: () => void })
 	);
 };
 
-const NEU_GESEHEN = 'schoolbox-neu-gesehen';
-
-/** Einmal nach dem Umbau: Wer die Werkzeuge rechts sucht, findet hier den Weg. Liegt im Fluss, verdeckt also nichts. */
-const NeuHinweis = () => {
-	const [offen, setOffen] = useState(() => !localStorage.getItem(NEU_GESEHEN));
-	const fertig = () => {
-		localStorage.setItem(NEU_GESEHEN, '1');
-		setOffen(false);
-	};
-	if (!offen) {
-		return null;
-	}
-	return (
-		<span className="flex min-w-0 items-center gap-1 text-tinte" data-neu-hinweis>
-			<span className="truncate">Neu: Die Werkzeuge sind jetzt direkt am Baustein.</span>
-			<Link
-				to="/hilfe#schneller"
-				className="inline-flex h-knopf-status flex-none items-center underline"
-				onClick={fertig}
-			>
-				Zur Hilfe
-			</Link>
-			<button type="button" className={KNOPF} aria-label="Hinweis ausblenden" onClick={fertig}>
-				<Symbol name="schliessen" className="size-3 flex-none" />
-			</button>
-		</span>
-	);
-};
-
 interface Eigenschaften extends ZoomEigenschaften {
 	/** Nur bei geschlossenem Chat gesetzt. */
 	claude: ClaudeLauf | null;
@@ -200,7 +170,6 @@ export const Statusleiste = ({
 			<span className="truncate" data-seite-von>{`Seite ${seite.nr} von ${seite.von} · ${format}`}</span>
 			<Pruefstatus stand={pruefung} zeige={zeigePunkt} verschiebe={verschiebe} />
 			{claude && <ClaudeStand lauf={claude} oeffne={zeigeClaude} />}
-			<NeuHinweis />
 		</div>
 		<Zoom zoom={zoom} stufe={stufe} skala={skala} fuehreAus={fuehreAus} />
 		<div className="flex items-center justify-end gap-2">

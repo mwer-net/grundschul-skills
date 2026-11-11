@@ -14,7 +14,7 @@ const titel = (page: Page) => material(page).locator('div.schmuck[data-schmuck="
 const bogen = (page: Page) => material(page).locator('svg.schmuck[data-schmuck="bogen"]');
 
 /** Ein dunkler Titel mit weißer Kontur auf einem dunklen Streifen, damit der Rand zu sehen ist. */
-const TITEL_KONTUR =
+const MIT_KONTUR =
 	'<div class="schmuck" data-lage="frei" data-schmuck="titel" data-kontur="" style="--x:80px;--y:220px;--gr:72px;--farbe:#000000;--kontur:10px;--kontur-farbe:#ffffff">Mmm</div>';
 const TITEL =
 	'<div class="schmuck" data-lage="frei" data-schmuck="titel" style="--x:80px;--y:220px;--gr:56px">Zirkus</div>';
@@ -49,8 +49,8 @@ const pixelListe = async (page: Page, element: Locator) => {
 test.describe('Schmuckschrift mit Kontur', () => {
 	test.skip(({ hasTouch }) => hasTouch, 'Inspektor nur am Mac');
 
-	test('Rand weiß um dunkle Buchstaben, auch an der Kachel „Titel mit Kontur“', async ({ page }) => {
-		await oeffneBlatt(page, [TITEL_KONTUR], [STREIFEN]);
+	test('Rand weiß um dunkle Buchstaben', async ({ page }) => {
+		await oeffneBlatt(page, [MIT_KONTUR], [STREIFEN]);
 		const bild = await pixelListe(page, titel(page));
 		// Es gibt dunkle (Füllung) und weiße (Kontur) Pixel im Ausschnitt über dem roten Streifen.
 		let dunkel = 0;
@@ -85,7 +85,7 @@ test.describe('Schmuckschrift mit Kontur', () => {
 	test('in s/w bleibt die weiße Kontur weiß, die Schrift grau', async ({ page }) => {
 		await oeffneBlatt(
 			page,
-			[TITEL_KONTUR.replace('#000000', 'var(--haupt)')],
+			[MIT_KONTUR.replace('#000000', 'var(--haupt)')],
 			[STREIFEN.replace('#e11d48', '#9ca3af')],
 		);
 		await page.locator('[data-profilschalter]').getByRole('button', { name: 's/w', exact: true }).click();
@@ -149,15 +149,6 @@ test.describe('Titel im Bogen', () => {
 		await waehle(page, bogen(page), 'schmuckbogen');
 		await bogen(page).dblclick();
 		await expect(page.locator('[data-leiste-bogen-text]')).toBeFocused();
-	});
-
-	test('Kachel „Titel im Bogen“ legt einen Bogen mit eigener Id ab', async ({ page }) => {
-		await oeffneBlatt(page, [SCHMUCK_BOGEN]);
-		await page.keyboard.press('Alt+5');
-		await page.locator('[data-schmuck-kacheln] [data-ablage-gut="Titel im Bogen"]').click();
-		await expect(bogen(page)).toHaveCount(2);
-		const ids = [...(await quelle(page)).matchAll(/<path id="(bogen-[a-z0-9]+)"/g)].map((t) => t[1]);
-		expect(new Set(ids).size).toBe(2);
 	});
 
 	test('in s/w: der Bogen ist grau, die weiße Kontur bleibt weiß', async ({ page }) => {

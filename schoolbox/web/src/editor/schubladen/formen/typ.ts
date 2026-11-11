@@ -3,8 +3,12 @@ import type { ComponentType } from 'react';
 import { falte } from '../../../lib/text';
 import type { PalettenEintrag } from '../../palette-suche';
 import type { SchubladenTeile, SchubladenZiele } from '..';
+import { kopf } from '../reihe';
 
-/** Was jeder Abschnitt der Schublade „Formen“ bekommt. */
+/** Gruppe in ⌘K für alles aus dieser Schublade: ihr Name aus dem Register. */
+export const GRUPPE = kopf('werkzeuge').titel;
+
+/** Was jeder Abschnitt der Schublade „Werkzeuge“ bekommt. */
 export interface FormenTeile {
 	teile: SchubladenTeile;
 	/** Das Suchfeld oben in der Schublade; leer zeigt alles. */
@@ -12,12 +16,13 @@ export interface FormenTeile {
 }
 
 /**
- * Ein Abschnitt der Schublade „Formen“ (104, Andockstelle): je Datei unter `schubladen/formen/` einer. Eine Datei, deren
- * Abschnitt noch nicht gebaut ist, exportiert `null`; dann erscheint er nicht (5.2: keine ausgegrauten Knöpfe).
+ * Ein Abschnitt der Schublade „Werkzeuge“ (104, Andockstelle): je Datei unter `schubladen/formen/` einer. Eine Datei,
+ * deren Abschnitt noch nicht gebaut ist, exportiert `null`; dann erscheint er nicht (5.2: keine ausgegrauten Knöpfe).
  */
 export interface FormenAbschnitt {
 	id: string;
-	titel: string;
+	/** Die Werkzeugreihe hat keinen Titel, die Schublade heißt schon so. */
+	titel?: string;
 	/** Leise rechts neben dem Titel, z. B. „Klick oder ziehen“. */
 	hinweis?: string;
 	/** Hat der Abschnitt bei dieser Suche etwas zu zeigen? Sonst fehlt er samt Titel. */

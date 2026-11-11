@@ -4,7 +4,7 @@ import type { Page } from '@playwright/test';
 
 import { expect } from './hilfe';
 
-export type SchubladenName = 'ebenen' | 'bausteine' | 'formen' | 'figuren' | 'text' | 'bilder';
+export type SchubladenName = 'ebenen' | 'bausteine' | 'werkzeuge' | 'figuren' | 'bilder';
 
 export const schubladenKnopf = (page: Page, name: SchubladenName) => page.locator(`[data-schublade-knopf="${name}"]`);
 

@@ -1,25 +1,31 @@
-import { writeFile } from 'node:fs/promises';
+import { readFile, writeFile } from 'node:fs/promises';
 
 import type { Page } from '@playwright/test';
 
-import { geladen, material, oeffne, quelle, uhrzeit } from './editorhilfe';
-import { blattMit, SCHMUCK, SCHMUCK_ETIKETT } from './gestaltung-daten';
+import { geladen, gespeichert, material, oeffne, quelle, uhrzeit } from './editorhilfe';
+import { blattMit, SCHMUCK, SCHMUCK_BOGEN, SCHMUCK_ETIKETT, SCHMUCK_STEMPEL } from './gestaltung-daten';
 import { expect, test } from './hilfe';
 import { oeffneSchublade } from './schubladen-hilfe';
 
-/** 105: Schublade Text (⌥5), Inhalt rastet ein, Schmuckschrift liegt frei, Werkzeug T, zweifarbige Titel. */
+/**
+ * 105, 175: Schmuckschrift unter „Text“ in der Schublade „Werkzeuge“ (⌥3) liegt frei, Werkzeug T, zweifarbige Titel.
+ * Inhalt (Absatz, Tipp, Lernziel, Kopf) kommt aus „Bausteine“ und rastet ein.
+ */
 
 const zurueck = (page: Page) => page.getByRole('button', { name: 'Rückgängig (⌘Z)' });
 const schmuck = (page: Page) => material(page).locator('div.schmuck[data-lage="frei"]');
 const anzahl = (html: string) => html.split('<div class="schmuck"').length - 1;
-const kachel = (page: Page, name: string) => page.locator(`[data-schmuck-kacheln] [data-ablage-gut="${name}"]`);
+const schublade = (page: Page) => page.locator('[data-schublade-werkzeuge]');
+const kachel = (page: Page, name: string) =>
+	schublade(page).locator(`[data-formen-abschnitt="text"] [data-ablage-gut="${name}"]`);
+const palette = (page: Page) => page.locator('[data-befehlspalette]');
 
 const oeffneText = async (page: Page, vorne: string[] = []) => {
 	const u = await uhrzeit();
 	await writeFile(u.material, blattMit({ vorne }));
 	await oeffne(page, u.id, u.dok);
-	await oeffneSchublade(page, 'text');
-	await expect(page.locator('[data-schublade-text]')).toBeVisible();
+	await oeffneSchublade(page, 'werkzeuge');
+	await expect(schublade(page)).toBeVisible();
 };
 
 /** Ein Punkt auf der ersten Seite, Anteile ihrer sichtbaren Box. */
@@ -69,17 +75,48 @@ const ziehe = async (page: Page, von: { x: number; y: number }, dx: number, dy: 
 	await page.mouse.up();
 };
 
-test.describe('Schublade Text (105)', () => {
-	test('zwei Abschnitte, Inhalt zuerst; Inhalt rastet ein, nicht in einer Ebene', async ({ page }) => {
+test.describe('Text in der Schublade „Werkzeuge“ (105, 175)', () => {
+	test('Werkzeuge: Abschnitt Text mit genau Titel, Stempel, Etikett', async ({ page }) => {
 		await oeffneText(page);
-		await expect(page.locator('[data-text-abschnitt]')).toHaveCount(2);
-		await expect(page.locator('[data-text-abschnitt]').first()).toHaveAttribute('data-text-abschnitt', 'inhalt');
-		await expect(page.locator('[data-text-abschnitt="inhalt"] [data-text-hinweis]')).toHaveText('rastet ein');
-		await expect(page.locator('[data-text-abschnitt="schmuck"] [data-text-hinweis]')).toHaveText('liegt frei');
-		await material(page).locator('.aufgabe').first().click();
-		await page.locator('[data-text-abschnitt="inhalt"] [data-einfuegen="text"]').click();
-		await expect.poll(() => quelle(page)).toContain('Hier steht ein kurzer Text.');
-		await expect(material(page).locator('.ebene p')).toHaveCount(0);
+		const abschnitte = schublade(page).locator('[data-formen-abschnitt]');
+		await expect(abschnitte.nth(0)).toHaveAttribute('data-formen-abschnitt', 'werkzeuge');
+		await expect(abschnitte.nth(1)).toHaveAttribute('data-formen-abschnitt', 'text');
+		const text = schublade(page).locator('[data-formen-abschnitt="text"]');
+		await expect(text.getByRole('heading', { level: 3 })).toHaveText(/Text$/);
+		await expect(text.locator('[data-schmuck-kachel]')).toHaveCount(3);
+		for (const art of ['titel', 'stempel', 'etikett']) {
+			await expect(text.locator(`[data-schmuck-kachel="${art}"]`)).toHaveCount(1);
+		}
+		await expect(schublade(page).locator('[data-ablage-gut="Titel mit Kontur"]')).toHaveCount(0);
+		await expect(schublade(page).locator('[data-ablage-gut="Titel im Bogen"]')).toHaveCount(0);
+		await expect(schublade(page).locator('[data-einfuegen]')).toHaveCount(0);
+		// Gegenprobe: Die Kacheln der Grundformen stehen in derselben Schublade, die Abfrage greift also.
+		await expect(schublade(page).locator('[data-grundformen] [data-ablage-gut]').first()).toBeVisible();
+	});
+
+	test('keine Überschrift „Werkzeuge“ in der Schublade, nur der Kopf heißt so', async ({ page }) => {
+		await oeffneText(page);
+		await expect(schublade(page).locator('[data-schubladenkopf]')).toHaveText('Werkzeuge');
+		await expect(schublade(page).locator('[data-formen-abschnitt="werkzeuge"] h3')).toHaveCount(0);
+		await expect(schublade(page).getByRole('heading', { name: 'Werkzeuge', level: 3 })).toHaveCount(0);
+		await expect(schublade(page).getByRole('toolbar', { name: 'Werkzeuge' })).toBeVisible();
+	});
+
+	test('⌘K „Stempel“ legt einen Stempel ab, Gruppe „Werkzeuge“; „Titel mit Kontur“ gibt es nicht', async ({
+		page,
+	}) => {
+		await oeffneText(page);
+		await page.keyboard.press('ControlOrMeta+k');
+		await palette(page).getByRole('combobox').fill('Titel mit Kontur');
+		await expect(palette(page).locator('[data-palette-zeile^="ablegen:Titel "]')).toHaveCount(0);
+		await palette(page).getByRole('combobox').fill('Stempel');
+		const zeile = palette(page).locator('[data-palette-gruppe="Werkzeuge"] [data-palette-zeile="ablegen:Stempel"]');
+		await expect(zeile).toHaveCount(1);
+		await zeile.click();
+		await expect(page.locator('[data-textknoepfe]')).toBeVisible();
+		await page.keyboard.press('Escape');
+		await expect.poll(async () => anzahl(await quelle(page))).toBe(1);
+		expect(await quelle(page)).toContain('data-schmuck="stempel"');
 	});
 
 	test('Titel per Klick: Sitzung offen und markiert, Tippen ersetzt, Esc ist mit dem Anlegen ein Schritt', async ({
@@ -139,7 +176,9 @@ test.describe('Schublade Text (105)', () => {
 	test('im Absatz gibt es keinen Farbknopf', async ({ page }) => {
 		await oeffneText(page);
 		await material(page).locator('.aufgabe').first().click();
-		await page.locator('[data-einfuegen="text"]').click();
+		await oeffneSchublade(page, 'bausteine');
+		await page.getByRole('searchbox', { name: 'Baustein suchen' }).first().fill('Absatz');
+		await page.locator('[data-bibliothek-eintrag="text"] [data-einfuegen]').click();
 		const p = material(page).locator('p', { hasText: 'Hier steht ein kurzer Text' });
 		await p.click();
 		await p.click();
@@ -215,5 +254,37 @@ test.describe('Schmuckschrift gestalten (105)', () => {
 		await expect(page.locator('[data-farbwahl="schmuck-hintergrund"]')).toHaveCount(0);
 		await material(page).locator('div.schmuck[data-schmuck="etikett"]').click();
 		await expect(page.locator('[data-farbwahl="schmuck-hintergrund"]')).toBeVisible();
+	});
+});
+
+test.describe('Bestand mit Schmuckschrift (175)', () => {
+	test('Titel mit Kontur, Stempel, Etikett und Bogen bleiben in der Datei gleich und bearbeitbar', async ({
+		page,
+	}) => {
+		const u = await uhrzeit();
+		const vorher = blattMit({ vorne: [SCHMUCK, SCHMUCK_STEMPEL, SCHMUCK_ETIKETT, SCHMUCK_BOGEN] });
+		await writeFile(u.material, vorher);
+		await oeffne(page, u.id, u.dok);
+		await expect(material(page).locator('.schmuck[data-lage="frei"]')).toHaveCount(4);
+		expect(await quelle(page)).toBe(vorher);
+		expect(await readFile(u.material, 'utf8')).toBe(vorher);
+
+		const titel = material(page).locator('div.schmuck[data-schmuck="titel"]');
+		await titel.click();
+		await expect(page.locator('[data-leiste-kontur]')).toBeVisible();
+		await expect(page.locator('[data-leiste-bogen]')).toBeVisible();
+		await titel.dblclick();
+		await expect(page.locator('[data-textknoepfe]')).toBeVisible();
+		await page.keyboard.press('Escape');
+		await expect(page.locator('[data-textknoepfe]')).toHaveCount(0);
+		expect(await quelle(page)).toBe(vorher);
+
+		// Gegenprobe: „Bogen aus“ macht aus dem Bogen einen geraden Titel; eine Änderung sähe der Test also.
+		await material(page).locator('svg.schmuck[data-schmuck="bogen"]').click();
+		await page.locator('[data-leiste-bogen]').click();
+		await page.getByRole('dialog').locator('[data-bogen-schalter]').click();
+		await expect.poll(() => quelle(page)).not.toContain('data-schmuck="bogen"');
+		await gespeichert(page, u.material);
+		expect(await readFile(u.material, 'utf8')).not.toBe(vorher);
 	});
 });

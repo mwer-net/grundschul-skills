@@ -2,9 +2,9 @@ import { ablegenEintrag } from '../../gestaltung/ablegen/ablegen';
 import { gutVon, namenVon, RAHMEN } from './Bildrahmen-daten';
 import { Kacheln } from './Bildrahmen-teile';
 import type { FormenAbschnitt } from './typ';
-import { passtZurSuche } from './typ';
+import { GRUPPE, passtZurSuche } from './typ';
 
-/** 111: Abschnitt „Bildrahmen“ der Schublade „Formen“: leere Rahmen, in die später ein Bild gezogen wird. */
+/** 111: Abschnitt „Bildrahmen“ der Schublade „Werkzeuge“: leere Rahmen, in die später ein Bild gezogen wird. */
 export const abschnitt: FormenAbschnitt | null = {
 	id: 'bildrahmen',
 	titel: 'Bildrahmen',
@@ -13,7 +13,7 @@ export const abschnitt: FormenAbschnitt | null = {
 	Inhalt: Kacheln,
 	suche: (z) =>
 		RAHMEN.map((r) => ({
-			...ablegenEintrag(gutVon(r), z, 'Formen'),
+			...ablegenEintrag(gutVon(r), z, GRUPPE),
 			symbol: 'bild',
 			suchwoerter: namenVon(r).slice(1),
 		})),
