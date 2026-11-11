@@ -497,6 +497,20 @@ test.describe('Übersicht und Informationen', () => {
 		await expect(page.getByRole('dialog')).toContainText('Mein Material › Reihe');
 	});
 
+	test('Kachel und Zeile laden das Vorschaubild, die Übersicht das Original (178)', async ({ druecke, page }) => {
+		const { id } = await reihe();
+		await page.goto(`/m/${id}`);
+		const bild = () => objekt(page, 'Station 1').first().locator('img');
+		await expect(bild()).toHaveAttribute('src', /\/material-s1\.png\?v=[^&]+&vorschaubild=1$/, { timeout: 15_000 });
+		await druecke(leiste(page).getByRole('button', { name: 'Liste' }));
+		await expect(page.getByRole('button', { name: /^Name/ })).toBeVisible();
+		await expect(bild()).toHaveAttribute('src', /\/material-s1\.png\?v=[^&]+&vorschaubild=1$/);
+		await objektMenue(page, 'Station 1');
+		await druecke(eintrag(page, /^Übersicht/));
+		const gross = page.getByRole('dialog').locator('[data-uebersicht] img');
+		await expect(gross).toHaveAttribute('src', /\/material-s1\.png\?v=[^&]+$/);
+	});
+
 	test('über das Menü, auch am iPad', async ({ druecke, page }) => {
 		const { id } = await reihe();
 		await page.goto(`/m/${id}`);

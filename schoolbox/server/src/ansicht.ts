@@ -2,7 +2,7 @@ import { existsSync, realpathSync } from 'node:fs';
 import { readFile, stat } from 'node:fs/promises';
 import path from 'node:path';
 
-import type { KatalogEintrag } from '@schoolbox/kern';
+import type { KatalogEintrag, Konfig } from '@schoolbox/kern';
 import {
 	ASSETS,
 	darstellungsHtml,
@@ -14,6 +14,8 @@ import {
 	liegtIn,
 	mappenDir,
 	sucheRessource,
+	VORSCHAUBILD,
+	vorschaubild,
 } from '@schoolbox/kern';
 import type { Request, Response } from 'express';
 import { Router } from 'express';
@@ -187,7 +189,12 @@ const schreibeCssUm = (css: string, cssDatei: string, req: Request, mappe: strin
 	});
 };
 
+/**
+ * Liefert eine geprüfte Datei. Mit `?vorschaubild=1` kommt statt eines Bildes sein Vorschaubild (178), geht das nicht,
+ * das Original. Typ und ETag setzt `sendFile`; `no-cache` gilt für beide.
+ */
 const sendeDatei = async (
+	konfig: Pick<Konfig, 'materialDir' | 'pythonBin'>,
 	req: Request,
 	res: Response,
 	datei: string,
@@ -200,8 +207,9 @@ const sendeDatei = async (
 		res.type('text/css').send(schreibeCssUm(css, datei, req, mappe, mappeDir));
 		return;
 	}
+	const klein = req.query[VORSCHAUBILD] === '1' ? await vorschaubild(konfig, datei) : null;
 	await new Promise<void>((resolve, reject) => {
-		res.sendFile(datei, { dotfiles: 'allow', cacheControl: false }, (fehler) => {
+		res.sendFile(klein ?? datei, { dotfiles: 'allow', cacheControl: false }, (fehler) => {
 			if (fehler) {
 				reject(fehler);
 			} else {
@@ -216,7 +224,8 @@ const sendeDatei = async (
  * (`/ansicht/<mappe>/dokumente/<dok>/`), damit `../../bilder/x.png` wie in blatt.py die Bilder der Mappe trifft.
  */
 export const ansichtRouter = (kontext: Kontext) => {
-	const { materialDir } = kontext.konfig;
+	const { konfig } = kontext;
+	const { materialDir } = konfig;
 	const router = Router({ strict: true });
 	router.param('mappe', pruefeIdParam('Mappe'));
 	router.param('dok', pruefeIdParam('Dokument'));
@@ -224,7 +233,7 @@ export const ansichtRouter = (kontext: Kontext) => {
 	router.get(`/${ASSETS_PFAD}/*teile`, async (req, res) => {
 		const teile = pruefeTeile(req.params.teile);
 		const datei = existsSync(path.join(ASSETS, ...teile)) ? realpathSync(path.join(ASSETS, ...teile)) : null;
-		await sendeDatei(req, res, await pruefeGrenzen(datei, null), null, null);
+		await sendeDatei(konfig, req, res, await pruefeGrenzen(datei, null), null, null);
 	});
 
 	// Vorschau eines Katalogeintrags für die Bibliothek (044): mit denselben Assets wie ein Dokument.
@@ -280,7 +289,7 @@ export const ansichtRouter = (kontext: Kontext) => {
 			const kandidat = path.join(mappeDir, ...teile);
 			datei = existsSync(kandidat) ? realpathSync(kandidat) : null;
 		}
-		await sendeDatei(req, res, await pruefeGrenzen(datei, mappeDir), mappe, mappeDir);
+		await sendeDatei(konfig, req, res, await pruefeGrenzen(datei, mappeDir), mappe, mappeDir);
 	});
 
 	router.use(() => {

@@ -1,3 +1,5 @@
+import { vorschaubildAdresse } from '@schoolbox/kern/src/bildbefehle';
+
 import { hatOffeneEntwuerfe } from '../entwuerfe/offen';
 import { EntwurfMinis } from '../entwuerfe/Teile';
 import { QUERFORMATE } from '../lib/text';
@@ -29,7 +31,7 @@ const Bild = ({ dokument, zugang }: { zugang: Zugang; dokument: DokumentEintrag 
 		<div className={quer ? 'flex size-full items-center justify-center p-3' : 'px-[12%]'}>
 			<img
 				className={klassen('bg-flaeche shadow-1', quer ? 'max-h-full max-w-full' : 'w-full')}
-				src={vorschauAdresse(zugang, dokument.id, dokument.vorschau)}
+				src={vorschaubildAdresse(vorschauAdresse(zugang, dokument.id, dokument.vorschau))}
 				alt=""
 				loading="lazy"
 				decoding="async"

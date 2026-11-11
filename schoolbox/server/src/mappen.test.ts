@@ -1,11 +1,18 @@
 import assert from 'node:assert/strict';
 import { existsSync } from 'node:fs';
-import { mkdir, writeFile } from 'node:fs/promises';
+import { copyFile, mkdir, readdir, writeFile } from 'node:fs/promises';
 import path from 'node:path';
 import { afterEach, describe, it } from 'node:test';
 
 import type { PapierkorbEintrag } from '@schoolbox/kern';
-import { legeInPapierkorb, leseFreigaben, PAPIERKORB_TAGE, VORSCHAU_DATEI } from '@schoolbox/kern';
+import {
+	ASSETS,
+	legeInPapierkorb,
+	leseFreigaben,
+	PAPIERKORB_TAGE,
+	VORSCHAU_DATEI,
+	vorschaubilderDir,
+} from '@schoolbox/kern';
 
 import type { PapierkorbObjekt } from './papierkorb';
 import { raeumePapierkorbAuf } from './papierkorb';
@@ -141,16 +148,28 @@ describe('Ablage: Übersicht, Vorschau, Papierkorb', () => {
 				body: JSON.stringify({ mappe: ziel }),
 			});
 		}
+		// 178: Ein Vorschaubild, wie es eine Kachel in „Bilder“ anfragt.
+		await copyFile(
+			path.join(ASSETS, 'bilder', 'wilma.png'),
+			path.join(s.materialDir, andere.mappe, 'bilder', 'v.png'),
+		);
+		const kachel = await s.holen(`${s.url}/ansicht/${andere.mappe}/bilder/v.png?vorschaubild=1`);
+		assert.equal(kachel.headers.get('content-type'), 'image/webp');
+		const vorschaubilderOrdner = vorschaubilderDir(s.materialDir);
+		const vorschaubilder = () => readdir(vorschaubilderOrdner).catch(() => []);
+		assert.equal((await vorschaubilder()).length, 1);
 		const ordner = await ordnerVon(s, mappe);
 		await fuehreAus(s, { art: 'papierkorb', knoten: [{ ordner }] });
 		const geloescht = Date.now();
 
 		assert.deepEqual(await raeumePapierkorbAuf(s.kontext, new Date(geloescht + 29 * TAG_MS)), []);
 		assert.equal((await leseFreigaben(s.materialDir)).length, 2);
+		assert.equal((await vorschaubilder()).length, 1);
 
 		const entfernt = await raeumePapierkorbAuf(s.kontext, new Date(geloescht + (PAPIERKORB_TAGE + 1) * TAG_MS));
 		assert.deepEqual(entfernt, [mappe]);
 		assert.equal(existsSync(dir), false);
+		assert.deepEqual(await vorschaubilder(), []);
 		assert.deepEqual((await korb(s)).objekte, []);
 		assert.deepEqual(
 			(await leseFreigaben(s.materialDir)).map((f) => ('mappe' in f.ziel ? f.ziel.mappe : '')),

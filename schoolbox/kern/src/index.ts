@@ -34,4 +34,5 @@ export * from './slug';
 export * from './struktur';
 export * from './tabelle';
 export * from './versionen';
+export * from './vorschaubilder';
 export * from './werte';

@@ -4,6 +4,7 @@ import {
 	entferneFreigabenVon,
 	istPapierkorbEintrag,
 	leerePapierkorb,
+	leereVorschaubilder,
 	listePapierkorb,
 	loescheFaelligeAusBaum,
 	ordnerUnter,
@@ -108,7 +109,8 @@ export const papierkorbApi = (kontext: Kontext) => {
 
 /**
  * Löscht endgültig, was 30 Tage im Papierkorb lag, samt den Teilen-Links: den Zustand im Baum und die alten Einträge
- * im Ordner `_papierkorb`. Gibt die IDs der Mappen zurück, die ganz verschwunden sind.
+ * im Ordner `_papierkorb`. Danach sind auch alle Vorschaubilder weg (178), damit kein gelöschtes Foto als Vorschaubild
+ * liegen bleibt. Gibt die IDs der Mappen zurück, die ganz verschwunden sind.
  */
 export const raeumePapierkorbAuf = async (kontext: Kontext, jetzt = new Date()): Promise<string[]> => {
 	const { materialDir } = kontext.konfig;
@@ -122,6 +124,9 @@ export const raeumePapierkorbAuf = async (kontext: Kontext, jetzt = new Date()):
 		return fertig ? { baum: fertig.baum, ergebnis: fertig, loescht: true } : { baum, ergebnis: null };
 	});
 	if (!auf) {
+		if (entfernt.length > 0) {
+			await leereVorschaubilder(materialDir);
+		}
 		return entfernt;
 	}
 	for (const { dok, mappe } of auf.faellig.dokumente) {
@@ -137,6 +142,7 @@ export const raeumePapierkorbAuf = async (kontext: Kontext, jetzt = new Date()):
 	console.log(
 		`Papierkorb: ${auf.faellig.dokumente.length} Dokument(e) und ${auf.faellig.ordner.length} Ordner nach ${PAPIERKORB_TAGE} Tagen endgültig gelöscht.`,
 	);
+	await leereVorschaubilder(materialDir);
 	return [...entfernt, ...auf.mappen];
 };
 

@@ -1,4 +1,7 @@
 import type { Sammlung, SammlungsBild } from '@schoolbox/kern/src/bildbefehle';
+// >> 178
+import { vorschaubildAdresse } from '@schoolbox/kern/src/bildbefehle';
+// << 178
 import { useEffect, useId, useMemo, useRef, useState } from 'react';
 
 import { Chip } from '../bausteine/Chip';
@@ -130,9 +133,14 @@ const Kachel = ({
 	const inhalt = (
 		<>
 			<img
-				src={`/ansicht/${eintrag.schluessel}`}
+				// >> 178
+				src={vorschaubildAdresse(`/ansicht/${eintrag.schluessel}`)}
+				// << 178
 				alt=""
 				loading="lazy"
+				// >> 178
+				decoding="async"
+				// << 178
 				draggable={false}
 				className={klassen('w-full rounded-lg bg-papier object-contain', klein ? 'h-20' : 'h-28')}
 				onLoad={(e) => {
