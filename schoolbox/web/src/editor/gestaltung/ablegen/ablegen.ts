@@ -88,7 +88,7 @@ const sichtbarImMaterial = (doc: Document) => {
 	};
 };
 
-/** Die Seite, von der am meisten zu sehen ist, mit dem sichtbaren Ausschnitt; 117 nimmt sie für „Figur von Claude“. */
+/** Die Seite, von der am meisten zu sehen ist, mit dem sichtbaren Ausschnitt. */
 export const sichtbarsteSeite = (doc: Document) => {
 	const sicht = sichtbarImMaterial(doc);
 	const seiten = seitenIn(doc).map((seite) => {

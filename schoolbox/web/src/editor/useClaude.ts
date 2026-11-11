@@ -56,7 +56,7 @@ interface Angaben {
 	dok: string;
 	auswahl: number | null;
 	waehle: (nr: number | null) => void;
-	/** Die Seite im Sichtfeld: ⌘J ohne Auswahl und die Figuren (117) nehmen sie. */
+	/** Die Seite im Sichtfeld: ⌘J ohne Auswahl nimmt sie. */
 	seite: () => number | null;
 	/** Das Blatt darf geändert werden: keine Versionsvorschau, kein Konflikt, kein neues Blatt in Arbeit. */
 	frei: boolean;
@@ -420,39 +420,12 @@ export const useClaude = ({ auswahl, dok, frei, handlungen, ki, mappe, seite, wa
 		[auftragVon, faeden, vorschlagVon],
 	);
 
-	// 117: an die Seite im Sichtfeld, ans ganze Blatt; Claude legt die Figur neben das, was dort ist.
-	const schicke = (text: string): string | null => {
-		const { faeden: alle, lage: l } = jetzt.current;
-		const nr = seite();
-		if (!l || nr === null || !zustand.verfuegbar) {
-			return 'Claude ist hier nicht verfügbar.';
-		}
-		const da = alle.find((f) => f.nr === nr);
-		const v = da ? vorschlagVon(da) : undefined;
-		if (v && !v.konflikt) {
-			return 'Erst den offenen Vorschlag annehmen oder verwerfen.';
-		}
-		if (!da && alle.length >= MAX_GESPRAECHE) {
-			return VOLL;
-		}
-		const f = { ...(da ?? fadenAn(nr, l, null)), ganz: true };
-		const grund = sperreVon(f);
-		if (grund) {
-			return grund;
-		}
-		setFaeden((alt) => (da ? alt.map((x) => (x.key === da.key ? f : x)) : [...alt, f]));
-		setOffen(f.key);
-		waehle(nr);
-		void sendeFaden(f, { text });
-		return null;
-	};
-
 	const eingeklappt = faeden
 		.filter((f) => f.key !== offen && f.nr !== null)
 		.map((f) => ({ f, auftrag: auftragVon(f), stand: standVon(f, auftragVon(f), vorschlagVon(f)) }))
 		.filter((x) => x.stand !== 'ruhig');
 
-	const steuerung: ClaudeSteuerung = { oeffne, schicke, merker };
+	const steuerung: ClaudeSteuerung = { oeffne, merker };
 	const belegt = faeden.length >= MAX_GESPRAECHE && !faeden.some((f) => f.nr === auswahl);
 	const schluesselVon = (f: Faden) => vorschlagVon(f)?.schluessel ?? f.schluessel;
 
