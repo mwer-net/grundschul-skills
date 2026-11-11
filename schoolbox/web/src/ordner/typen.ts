@@ -67,12 +67,18 @@ interface Gemeinsam {
 	geteilt: boolean;
 }
 
+/** Was direkt in einem Ordner liegt, ohne das in seinen Unterordnern. */
+export interface Inhalt {
+	ordner: number;
+	materialien: number;
+}
+
 export interface OrdnerObjekt extends Gemeinsam {
 	istOrdner: true;
 	knoten: { ordner: string };
 	ordner: AblageOrdner;
 	/** Was direkt darin liegt. */
-	anzahl: number;
+	inhalt: Inhalt;
 }
 
 export interface DokObjekt extends Gemeinsam {

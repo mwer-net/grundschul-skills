@@ -6,6 +6,7 @@ import type {
 	AblageOrdner,
 	AblageStand,
 	DokObjekt,
+	Inhalt,
 	Knoten,
 	Objekt,
 	OrdnerObjekt,
@@ -14,8 +15,17 @@ import type {
 
 export const WURZEL_NAME = 'Mein Material';
 export const ZULETZT_ANZAHL = 50;
+/** So viel schaut aus einer Ordnerkachel heraus; so viele Blätter zeigt auch der Geist beim Ziehen. */
+export const VORNE = 3;
+export const STRICH = '–';
 
 export const schluesselVon = (k: Knoten) => ('ordner' in k ? k.ordner : `${k.mappe}/${k.dok}`);
+
+/** Nur direkt darin, wie beim Öffnen zu sehen; `null` ist „Mein Material“. */
+export const inhaltVon = (stand: AblageStand, id: string | null): Inhalt => ({
+	ordner: stand.ordner.filter((o) => o.eltern === id).length,
+	materialien: stand.dokumente.filter((d) => d.ordner === id).length,
+});
 
 export const ordnerObjekt = (stand: AblageStand, ordner: AblageOrdner): OrdnerObjekt => ({
 	schluessel: ordner.id,
@@ -27,9 +37,7 @@ export const ordnerObjekt = (stand: AblageStand, ordner: AblageOrdner): OrdnerOb
 	geaendert: ordner.geaendert,
 	art: '',
 	geteilt: stand.geteilt.ordner.includes(ordner.id),
-	anzahl:
-		stand.ordner.filter((o) => o.eltern === ordner.id).length +
-		stand.dokumente.filter((d) => d.ordner === ordner.id).length,
+	inhalt: inhaltVon(stand, ordner.id),
 });
 
 export const dokObjekt = (stand: AblageStand, dok: AblageDok): DokObjekt => {
@@ -77,6 +85,10 @@ export const kinder = (stand: AblageStand, id: string | null, sortierung: Sortie
 		],
 		sortierung,
 	);
+
+/** Was aus der Ordnerkachel herausschaut: das, was beim Öffnen vorn steht. */
+export const vorneVon = (stand: AblageStand, id: string, sortierung: Sortierung) =>
+	kinder(stand, id, sortierung).slice(0, VORNE);
 
 /** Alle Nachkommen: Ein Ordner kann nicht in sich selbst, und nicht in etwas, das in ihm liegt. */
 export const nachkommen = (stand: AblageStand, id: string) => {
@@ -218,3 +230,15 @@ export const erwarteterStand = (stand: AblageStand, aktion: { art: string } & Re
 export const objekteText = (n: number) => anzahl(n, 'Objekt', 'Objekte');
 /** Für Zahlen in Spalten und Zeilen: „1 Objekt“ statt „Ein Objekt“. */
 export const objekteZahl = (n: number) => objekteText(n).replace('Ein Objekt', '1 Objekt');
+
+/** „Leer“, „3 Ordner“, „1 Material“, „1 Ordner · 2 Materialien“: an Kachel, Zeile, Informationen und Teilen-Link. */
+export const inhaltText = ({ materialien, ordner }: Inhalt) => {
+	const teile = [
+		...(ordner > 0 ? [`${ordner} Ordner`] : []),
+		...(materialien > 0 ? [`${materialien} ${materialien === 1 ? 'Material' : 'Materialien'}`] : []),
+	];
+	return teile.length > 0 ? teile.join(' · ') : 'Leer';
+};
+
+/** Noch nicht gezählt ist „–“. */
+export const seitenText = (n: number) => (n > 0 ? `${n} ${n === 1 ? 'Seite' : 'Seiten'}` : STRICH);

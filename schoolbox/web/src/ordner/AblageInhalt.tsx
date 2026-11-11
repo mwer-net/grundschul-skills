@@ -21,7 +21,7 @@ const SPALTEN: { feld: 'name' | 'geaendert' | 'art' | null; titel: string; klass
 	{ feld: null, titel: 'Fach', klasse: '@max-3xl:hidden' },
 	{ feld: null, titel: 'Klasse', klasse: '@max-4xl:hidden' },
 	{ feld: null, titel: 'Format', klasse: '@max-4xl:hidden' },
-	{ feld: null, titel: 'Seiten', klasse: '@max-4xl:hidden' },
+	{ feld: null, titel: 'Inhalt', klasse: '@max-4xl:hidden' },
 ];
 
 export interface AblageZeile {

@@ -20,6 +20,7 @@ import {
 	ortName,
 	pfadVon,
 	suche,
+	vorneVon,
 	WURZEL_NAME,
 	zuletzt,
 } from './objekte';
@@ -214,6 +215,18 @@ export const Ablage = () => {
 	}, [benennen, darstellung, offenListe, parameter, seite, sortierung, stand]);
 
 	const objekte = useMemo(() => zeilen.map((z) => z.objekt), [zeilen]);
+	// Was aus den Ordnerkacheln herausschaut, je Ordner in seiner eigenen Sortierung. Die Liste zeigt keins.
+	const vorneJe = useMemo(() => {
+		const je = new Map<string, readonly Objekt[]>();
+		if (stand && darstellung === 'kacheln') {
+			for (const o of objekte) {
+				if (o.istOrdner) {
+					je.set(o.ordner.id, vorneVon(stand, o.ordner.id, leseSortierung(o.ordner)));
+				}
+			}
+		}
+		return je;
+	}, [darstellung, objekte, stand]);
 	const reihenfolge = useMemo(() => objekte.map((o) => o.schluessel), [objekte]);
 	useEffect(() => setAuswahl((a) => bereinige(a, reihenfolge)), [reihenfolge]);
 	// Ziehen und Lasso starten auf der Fläche: Dabei darf nirgends Text markiert werden.
@@ -264,10 +277,10 @@ export const Ablage = () => {
 	}, [merkeStelle]);
 	useEffect(merkeStelle, [auswahl, merkeStelle]);
 
-	// Vorschauen: nur für das, was hier liegt, je Dokument einmal.
+	// Vorschauen: für das, was hier liegt oder aus einem Ordner hier herausschaut, je Dokument einmal.
 	const angefragt = useRef(new Set<string>());
 	useEffect(() => {
-		const fehlen = objekte
+		const fehlen = [...objekte, ...[...vorneJe.values()].flat()]
 			.flatMap((o) => (o.istOrdner || o.dok.vorschau ? [] : [o.knoten]))
 			.filter((k) => !angefragt.current.has(`${k.mappe}/${k.dok}`))
 			.slice(0, 200);
@@ -278,7 +291,7 @@ export const Ablage = () => {
 			angefragt.current.add(`${k.mappe}/${k.dok}`);
 		}
 		void sende('/api/ordner/vorschauen', { dokumente: fehlen }).catch(() => undefined);
-	}, [objekte]);
+	}, [objekte, vorneJe]);
 
 	const setDarstellung = (wert: Darstellung) => {
 		schreibeDarstellung(wert);
@@ -465,6 +478,7 @@ export const Ablage = () => {
 	const ortVon = (o: Objekt) => (fremd ? ortName(stand, o.istOrdner ? o.ordner.eltern : o.dok.ordner) : undefined);
 	const ansicht = ({ objekt, tiefe }: { objekt: Objekt; tiefe: number }) => {
 		const ort = ortVon(objekt);
+		const vorne = objekt.istOrdner ? vorneJe.get(objekt.ordner.id) : undefined;
 		return {
 			objekt,
 			gewaehlt: auswahl.gewaehlt.includes(objekt.schluessel),
@@ -477,6 +491,7 @@ export const Ablage = () => {
 			haken,
 			tiefe,
 			...(ort === undefined ? {} : { ort }),
+			...(vorne === undefined ? {} : { vorne }),
 		};
 	};
 	const dieseLeiste = (id: string) => () => fuehreAus(id, lageFuer(gewaehlteObjekte));

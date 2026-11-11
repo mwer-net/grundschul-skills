@@ -6,12 +6,11 @@ import { Knopf } from '../bausteine/Knopf';
 import { Symbol } from '../bausteine/Symbol';
 import { Vorschau } from '../bausteine/Vorschau';
 import { laufzeit, useJetzt } from '../editor/entwurf';
-import { hatOffeneEntwuerfe } from '../entwuerfe/offen';
 import { ART_NAME, datum, FACH_FARBE, FACH_NAME, FORMAT_NAME, klasseName } from '../lib/text';
-import { vorschauAdresse } from '../lib/zugang';
 import { NamensFeld } from './NamensFeld';
-import { objekteZahl } from './objekte';
-import type { DokObjekt, Objekt } from './typen';
+import { inhaltText, seitenText, STRICH } from './objekte';
+import { BlattMini, OrdnerBild } from './OrdnerBild';
+import type { Objekt } from './typen';
 
 /** Was Kachel und Zeile gemeinsam brauchen. Alle Ereignisse behandelt die Ablage über `data-objekt`. */
 export interface ObjektAnsicht {
@@ -24,6 +23,8 @@ export interface ObjektAnsicht {
 	menue: (e: MouseEvent) => void;
 	/** Nur im Auswahlmodus am iPad: Haken statt Öffnen. */
 	haken: boolean;
+	/** Was aus der Ordnerkachel herausschaut. */
+	vorne?: readonly Objekt[];
 }
 
 /** Claude baut das Blatt gerade (133): `seit` ist der Beginn, `null` wartet es noch. */
@@ -99,6 +100,7 @@ export const Kachel = ({
 	menue,
 	objekt,
 	ort,
+	vorne,
 }: ObjektAnsicht & { claude?: ClaudeBaut | undefined }) => (
 	<li
 		data-objekt={objekt.schluessel}
@@ -117,9 +119,7 @@ export const Kachel = ({
 	>
 		<div className="relative">
 			{objekt.istOrdner ? (
-				<div className="flex aspect-[8/7] items-center justify-center bg-leinwand">
-					<Symbol name="ordner" className="size-20 text-brand-200" />
-				</div>
+				<OrdnerBild vorne={vorne ?? []} token={null} />
 			) : (
 				<>
 					<Vorschau zugang={{ mappe: objekt.dok.mappe, token: null }} dokument={objekt.dok} />
@@ -155,7 +155,7 @@ export const Kachel = ({
 				)}
 				<p className="truncate text-xs text-leise">
 					{objekt.istOrdner
-						? objekteZahl(objekt.anzahl)
+						? inhaltText(objekt.inhalt)
 						: `${ART_NAME[objekt.dok.meta.art]} · ${FORMAT_NAME[objekt.dok.meta.format]}`}
 				</p>
 				{ort && <p className="truncate text-xs text-dezent">{ort}</p>}
@@ -165,28 +165,6 @@ export const Kachel = ({
 	</li>
 );
 
-const Miniatur = ({ objekt }: { objekt: DokObjekt }) => {
-	const { dok } = objekt;
-	return (
-		<span className="relative flex h-[26px] w-5 flex-none items-center justify-center overflow-hidden rounded-[2px] border border-rand bg-flaeche">
-			{dok.vorschau && !hatOffeneEntwuerfe(dok.meta) ? (
-				<img
-					className="size-full object-cover object-top"
-					src={vorschauAdresse({ mappe: dok.mappe, token: null }, dok.id, dok.vorschau)}
-					alt=""
-					loading="lazy"
-					decoding="async"
-					draggable={false}
-				/>
-			) : (
-				<Symbol name="blatt" className="size-3 text-dezent" />
-			)}
-		</span>
-	);
-};
-
-const STRICH = '–';
-
 export interface ZeileAnsicht extends ObjektAnsicht {
 	tiefe: number;
 	offen: boolean;
@@ -195,7 +173,7 @@ export interface ZeileAnsicht extends ObjektAnsicht {
 
 /** Spalten nach Platz: Unter dem Inhaltscontainer fallen Format, Klasse und Fach nacheinander weg. */
 export const LISTEN_RASTER =
-	'grid grid-cols-[minmax(0,1fr)_6.5rem_8rem] @3xl:grid-cols-[minmax(0,1fr)_6.5rem_8rem_7rem] @4xl:grid-cols-[minmax(0,1fr)_6.5rem_8rem_7rem_5rem_5rem_5.5rem]';
+	'grid grid-cols-[minmax(0,1fr)_6.5rem_8rem] @3xl:grid-cols-[minmax(0,1fr)_6.5rem_8rem_7rem] @4xl:grid-cols-[minmax(0,1fr)_6.5rem_8rem_7rem_5rem_5rem_9rem]';
 
 export const Zeile = ({ benennt, blass, gewaehlt, haken, klappe, menue, objekt, offen, ort, tiefe }: ZeileAnsicht) => (
 	<div
@@ -237,7 +215,11 @@ export const Zeile = ({ benennt, blass, gewaehlt, haken, klappe, menue, objekt, 
 					<Symbol name="ordner" className="size-4 text-brand-500" />
 				</span>
 			) : (
-				<Miniatur objekt={objekt} />
+				<BlattMini
+					dok={objekt.dok}
+					token={null}
+					className="relative h-[26px] w-5 rounded-[2px] border border-rand"
+				/>
 			)}
 			<div className="min-w-0 flex-1">
 				{benennt ? (
@@ -264,7 +246,7 @@ export const Zeile = ({ benennt, blass, gewaehlt, haken, klappe, menue, objekt, 
 			{objekt.istOrdner ? STRICH : FORMAT_NAME[objekt.dok.meta.format]}
 		</span>
 		<span className="truncate text-xs text-leise @max-4xl:hidden">
-			{objekt.istOrdner ? objekteZahl(objekt.anzahl) : objekt.dok.meta.seiten || STRICH}
+			{objekt.istOrdner ? inhaltText(objekt.inhalt) : seitenText(objekt.dok.meta.seiten)}
 		</span>
 	</div>
 );
