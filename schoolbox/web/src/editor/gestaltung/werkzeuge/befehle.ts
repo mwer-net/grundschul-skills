@@ -42,7 +42,9 @@ export const befehleFuerWerkzeuge = (alle: readonly Werkzeug[]): Befehl[] =>
 			...(kuerzel.length > 0 ? { kuerzel } : {}),
 			// Ein Werkzeug, das es noch nicht gibt, lässt seine Taste dem Browser.
 			tasteWenn: verfuegbar,
-			suchwoerter: ['werkzeug', 'zeichnen'],
+			// >> 174
+			suchwoerter: ['werkzeug', 'zeichnen', ...(w.suchwoerter ?? [])],
+			// << 174
 			orte: kuerzel.length > 0 ? ['taste', 'palette'] : ['palette'],
 			sichtbarUnter: 'links',
 			verfuegbar,

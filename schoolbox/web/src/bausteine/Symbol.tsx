@@ -20,7 +20,6 @@ import {
 	Calculator,
 	CalendarDays,
 	ChartColumn,
-	ChartScatter,
 	Check,
 	ChevronDown,
 	ChevronLeft,
@@ -77,6 +76,9 @@ import {
 	PanelLeft,
 	PanelRight,
 	PanelTop,
+	// >> 174
+	PartyPopper,
+	// << 174
 	Pencil,
 	PenLine,
 	PenTool,
@@ -212,7 +214,9 @@ const SYMBOLE = {
 	'ausgeblendet': EyeOff,
 	'schloss': Lock,
 	'entsperrt': LockOpen,
-	'streuung': ChartScatter,
+	// >> 174
+	'streuung': PartyPopper,
+	// << 174
 	'gruppe': Group,
 	'stapel': Rows3,
 	'rahmen': Square,

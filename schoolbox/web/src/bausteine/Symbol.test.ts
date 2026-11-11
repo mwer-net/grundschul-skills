@@ -13,4 +13,11 @@ describe('Symbole der Bereiche', () => {
 			assert.match(quelle, new RegExp(`^\\t'?${name}'?: \\w+,$`, 'm'), name);
 		}
 	});
+
+	// >> 174
+	it('Streuen zeigt Konfetti, kein Diagramm (174)', () => {
+		assert.match(quelle, /^\t'streuung': PartyPopper,$/m);
+		assert.doesNotMatch(quelle, /ChartScatter/);
+	});
+	// << 174
 });

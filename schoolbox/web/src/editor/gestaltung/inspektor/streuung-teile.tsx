@@ -3,6 +3,9 @@ import type { Ecke, StreuArt, StreuForm, StreuGroesse, StreuTeil } from '@school
 import {
 	FORM_NAMEN,
 	leseStreuung,
+	// >> 174
+	naechsteEcke,
+	// << 174
 	saatAus,
 	setzeStreuung,
 	STREU_ARTEN,
@@ -25,6 +28,57 @@ import type { InspektorTeile } from './abschnitte';
 /** Ein Schritt im Verlauf: Parameter der Streuung ändern, die Teile entstehen neu. */
 const setze = (k: GestaltungKontext, beschreibung: string, teil: StreuTeil) =>
 	k.fuehreAus(beschreibung, (q) => ({ quelle: setzeStreuung(q, k.nr, teil), nr: k.nr }));
+
+// >> 174
+/**
+ * Wo das Element im `iframe` liegt. In s/w ist eine Streuung weg (`display: none`) und hat kein Rechteck; dann zählt
+ * ihre Lage in dem, worin `--x`/`--y` gelten (Ebene oder Anker). Der Zoom liegt außen am `iframe`, innen gelten px des
+ * Materials.
+ */
+const rechteckVon = (element: Element) => {
+	const r = element.getBoundingClientRect();
+	if (r.width > 0 && r.height > 0) {
+		return { x: r.left, y: r.top, b: r.width, h: r.height };
+	}
+	const eltern = element.parentElement;
+	const e = eltern?.getBoundingClientRect();
+	if (!eltern || !e || e.width <= 0) {
+		return null;
+	}
+	const stil = (element as HTMLElement | SVGElement).style;
+	const px = (name: string) => Number.parseFloat(stil.getPropertyValue(name)) || 0;
+	return {
+		x: e.left + eltern.clientLeft + px('--x'),
+		y: e.top + eltern.clientTop + px('--y'),
+		b: px('--b'),
+		h: px('--h'),
+	};
+};
+
+/**
+ * Die Blattecke, die der Streuung am nächsten liegt (109). Aus dem DOM, nicht allein aus `--x`/`--y`: Hängt sie an
+ * einem Baustein, zählen die vom Anker aus. Ohne Seite keine Ecke, dann gilt der Standard ↙.
+ */
+const eckeAmBlatt = (element: Element): Ecke | undefined => {
+	const seite = element.closest('.seite');
+	const s = seite?.getBoundingClientRect();
+	const e = rechteckVon(element);
+	if (!s || s.width <= 0 || s.height <= 0 || !e) {
+		return undefined;
+	}
+	return naechsteEcke({ x: e.x - s.left, y: e.y - s.top, b: e.b, h: e.h }, { b: s.width, h: s.height });
+};
+
+/**
+ * Wechsel der Art, ein Schritt. Werden es Punkte und hat das Element noch keine Ecke, nimmt es die nächste Blattecke
+ * (109, seit 174 hier). Eine schon gesetzte Ecke bleibt, auch über Konfetti und Sterne hinweg (`setzeStreuung`).
+ */
+const setzeArt = (k: GestaltungKontext, alt: StreuArt, art: StreuArt) => {
+	const neueEcke = art === 'punkte' && alt !== 'punkte' && !k.element.hasAttribute('data-ecke');
+	const ecke = neueEcke ? eckeAmBlatt(k.element) : undefined;
+	setze(k, `Streuung: ${STREU_NAMEN[art]}`, { art, ...(ecke ? { ecke } : {}) });
+};
+// << 174
 
 /** Würfeln (3-formen.md): eine neue Saat, ein Schritt. Inspektor und Leiste teilen den Knopf. */
 const wuerfleStreuung = (k: GestaltungKontext) =>
@@ -117,7 +171,9 @@ export const StreuungTeil = ({ aktiv, k, quelle }: InspektorTeile) => {
 						werte={ARTEN}
 						wert={stand.art}
 						aus={!aktiv}
-						waehle={(art) => setze(k, `Streuung: ${STREU_NAMEN[art]}`, { art })}
+						// >> 174
+						waehle={(art) => setzeArt(k, stand.art, art)}
+						// << 174
 					/>
 				</span>
 			</Zeile>

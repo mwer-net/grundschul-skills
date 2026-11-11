@@ -1,7 +1,6 @@
 import { abschnitt as bildrahmen } from './formen/Bildrahmen';
 import { abschnitt as blasen } from './formen/Blasen';
 import { abschnitt as grundformen } from './formen/Grundformen';
-import { abschnitt as streuung } from './formen/Streuung';
 import type { FormenAbschnitt } from './formen/typ';
 import { abschnitt as werkzeuge } from './formen/Werkzeuge';
 
@@ -14,5 +13,4 @@ export const ABSCHNITTE: readonly FormenAbschnitt[] = [
 	grundformen, // 104
 	blasen, // 107
 	bildrahmen, // 111
-	streuung, // 109
 ].filter((a): a is FormenAbschnitt => a !== null);
