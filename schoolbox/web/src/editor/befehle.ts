@@ -117,6 +117,8 @@ export interface Kontext {
 	hatAblage: boolean;
 	hatNeueZahlen: boolean;
 	kiVerfuegbar: boolean;
+	/** Warum „Claude“ am Element gerade nicht geht, etwa weil schon alle Gespräche belegt sind (135); sonst `null`. */
+	claudeGrund: string | null;
 	namenszeile: boolean;
 	festeSeiten: boolean;
 	hatBild: boolean;
@@ -173,6 +175,8 @@ export interface Befehl {
 
 const gewaehlt = (k: Kontext) => k.pfad.at(-1);
 const istSeite = (k: Kontext) => gewaehlt(k)?.baustein.art === 'seite';
+/** 47: Bei Mehrfachauswahl gibt es Claude nicht. */
+const mehrfach = (k: Kontext) => (k.gestaltung?.nrn.length ?? 0) > 1;
 const einzigeSeite = (k: Kontext) => istSeite(k) && (k.werte?.seiten ?? 0) <= 1;
 const inZelle = (k: Kontext) => k.aktiv && ['tabellenzelle', 'tabellenzeile'].includes(gewaehlt(k)?.baustein.art ?? '');
 const istTabelle = (k: Kontext) => k.aktiv && gewaehlt(k)?.baustein.art === 'tabelle';
@@ -516,8 +520,10 @@ export const BEFEHLE: Befehl[] = [
 		symbol: 'sprechblase',
 		suchwoerter: ['ki', 'chat', 'frage'],
 		orte: ['menue', 'leiste', 'palette', 'gestaltung'],
-		sichtbarUnter: 'kopf',
-		verfuegbar: (k) => k.kiVerfuegbar && k.frei && Boolean(gewaehlt(k)),
+		sichtbarUnter: 'leiste',
+		verfuegbar: (k) => k.kiVerfuegbar && k.frei && Boolean(gewaehlt(k)) && !mehrfach(k),
+		gesperrt: (k) => k.claudeGrund !== null,
+		warumNicht: (k) => k.claudeGrund,
 		aus: (k) => k.tu.claudeZurAuswahl(),
 	},
 	{
@@ -801,10 +807,11 @@ export const BEFEHLE: Befehl[] = [
 			{ code: 'KeyC', wahl: true },
 		],
 		modus: ['auswahl', 'ohne', 'text'],
-		suchwoerter: ['ki', 'chat', 'frage', 'fragen'],
+		suchwoerter: ['ki', 'chat', 'frage', 'fragen', 'blase'],
 		orte: ['taste', 'palette'],
-		sichtbarUnter: 'kopf',
-		verfuegbar: () => true,
+		sichtbarUnter: 'leiste',
+		verfuegbar: (k) => !mehrfach(k),
+		warumNicht: () => 'Claude ändert immer ein Element. Wähle eines davon.',
 		aus: (k) => k.tu.claude(),
 	},
 	{

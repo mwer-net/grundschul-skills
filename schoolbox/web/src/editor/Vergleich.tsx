@@ -35,9 +35,12 @@ export const Vergleich = ({
 	konflikt,
 	nachbessern,
 	schliessen,
+	schluessel,
 	verwerfen,
 }: {
 	adresse: string;
+	/** Welcher Vorschlag (135); ohne Angabe der jüngste. */
+	schluessel?: string;
 	annehmen: () => void;
 	konflikt: boolean;
 	nachbessern: () => void;
@@ -75,7 +78,7 @@ export const Vergleich = ({
 					<figcaption className="mb-1 font-medium">Vorschlag</figcaption>
 					<iframe
 						ref={neu}
-						src={`${adresse}${trenner}vorschlag=1`}
+						src={`${adresse}${trenner}vorschlag=${encodeURIComponent(schluessel ?? '1')}`}
 						title="Vorschlag"
 						onLoad={fertig}
 						data-vorschlag-rahmen

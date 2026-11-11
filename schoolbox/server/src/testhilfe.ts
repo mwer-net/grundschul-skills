@@ -67,13 +67,6 @@ let eingabe = '';
 process.stdin.on('data', (d) => { eingabe += d; });
 process.stdin.on('end', () => {
 	fs.appendFileSync(path.join(__dirname, 'prompts.txt'), eingabe + '\n---\n');
-	if (args.includes('--json-schema')) {
-		if (fall === 'einordnen-fehler') { process.exit(1); }
-		const imOrdner = /Aktueller Ordner: (.+)/.exec(eingabe);
-		const art = fall === 'einordnen-film' ? 'unbekannt' : 'arbeitsblatt';
-		sag({ type: 'result', subtype: 'success', is_error: false, num_turns: 1, total_cost_usd: 0.001, structured_output: { titel: 'Uhrzeiten üben', fach: 'mathematik', klasse: 2, art, format: 'a4-hoch', ordnerId: imOrdner ? imOrdner[1] : null } });
-		return;
-	}
 	sag({ type: 'system', subtype: 'init', session_id: 's1' });
 	const amLimit = { status: 'rejected', resetsAt: 1900000000, rateLimitType: 'seven_day', overageResetsAt: 1950000000, unifiedWindows: { five_hour: { utilization: 0.83, status: 'allowed' }, seven_day: { utilization: 1, status: 'rejected' } } };
 	const limitJe = {

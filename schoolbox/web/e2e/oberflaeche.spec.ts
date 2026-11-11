@@ -296,6 +296,18 @@ test.describe('Dokument und PDF', () => {
 		await expect(page.locator('body')).toHaveAttribute('data-nicht-neu-geladen', 'ja');
 	});
 
+	test('ohne Knopf „Claude“, ⌘J tut dort nichts (136)', async ({ hasTouch, page }) => {
+		const { dokumente, id } = await herbst();
+		await page.goto(`/m/${id}/${dokumente[0]}`);
+		await blattGeladen(page);
+		await expect(page.getByRole('button', { name: 'Claude', exact: true })).toHaveCount(0);
+		if (!hasTouch) {
+			await page.keyboard.press('ControlOrMeta+j');
+			await expect(page.locator('#ki-auftrag')).toHaveCount(0);
+			await expect(page.getByRole('dialog')).toHaveCount(0);
+		}
+	});
+
 	test('lädt PDFs mit lesbarem Namen herunter', async ({ druecke, page }) => {
 		const { dokumente, id } = await herbst();
 		await page.goto(`/m/${id}/${dokumente[0]}`);
@@ -860,7 +872,7 @@ test.describe('Leisten im Blatt (071)', () => {
 			for (const name of namen) {
 				await expect(leiste(page).getByRole('button', { name })).toBeVisible();
 			}
-			expect((await leiste(page).boundingBox())?.width ?? 999).toBeLessThanOrEqual(560);
+			expect((await leiste(page).boundingBox())?.width ?? 999).toBeLessThanOrEqual(640);
 		};
 		await pruefe(blatt(page).locator('x-uhr').first(), 'abbildung', ['Mehr zu diesem Baustein', 'Duplizieren']);
 		if (hasTouch) {

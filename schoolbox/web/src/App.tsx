@@ -5,7 +5,6 @@ import { HinweisAnbieter } from './bausteine/Hinweisleiste';
 import { MenueAnbieter } from './bausteine/MenueAmPunkt';
 import { Rahmen } from './bausteine/Rahmen';
 import { TooltipAnbieter } from './bausteine/Tooltip';
-import { ChatRahmen } from './editor/ChatRahmen';
 import { Ablage } from './ordner/Ablage';
 import { MappeWeiter } from './ordner/MappeWeiter';
 import { Anmeldung } from './seiten/Anmeldung';
@@ -62,23 +61,21 @@ export const App = () => (
 						<Route path="/f/:token/*" element={<Geteilt />} />
 						<Route path="m/:mappe/:dok/drucken" element={<DruckSeite />} />
 						<Route path="m/:mappe/:dok/praesentation" element={<PraesentationSeite />} />
-						<Route element={<ChatRahmen />}>
-							<Route path="m/:mappe/:dok/bearbeiten" element={<EditorSeite />} />
-							<Route element={<Rahmen />}>
-								<Route element={<Ablage />}>
-									<Route index />
-									<Route path="o/:ordner" />
-									<Route path="zuletzt" />
-									<Route path="suche" />
-									<Route path="papierkorb" />
-								</Route>
-								<Route path="m/:mappe" element={<MappeWeiter />} />
-								<Route path="m/:mappe/:dok" element={<DokumentSeite />} />
-								<Route path="m/:mappe/:dok/entwuerfe" element={<EntwuerfeSeite />} />
-								<Route path="m/:mappe/:dok/entwuerfe/:name" element={<EntwurfSeite />} />
-								<Route path="hilfe" element={<Hilfe />} />
-								<Route path="*" element={<NichtGefunden />} />
+						<Route path="m/:mappe/:dok/bearbeiten" element={<EditorSeite />} />
+						<Route element={<Rahmen />}>
+							<Route element={<Ablage />}>
+								<Route index />
+								<Route path="o/:ordner" />
+								<Route path="zuletzt" />
+								<Route path="suche" />
+								<Route path="papierkorb" />
 							</Route>
+							<Route path="m/:mappe" element={<MappeWeiter />} />
+							<Route path="m/:mappe/:dok" element={<DokumentSeite />} />
+							<Route path="m/:mappe/:dok/entwuerfe" element={<EntwuerfeSeite />} />
+							<Route path="m/:mappe/:dok/entwuerfe/:name" element={<EntwurfSeite />} />
+							<Route path="hilfe" element={<Hilfe />} />
+							<Route path="*" element={<NichtGefunden />} />
 						</Route>
 					</Routes>
 				</MenueAnbieter>

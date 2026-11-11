@@ -17,7 +17,7 @@ const MAUS = ['chromium', 'mac-safari'];
 
 const KI = `${MATERIAL_DIR}-ki`;
 const kiFall = (name: string) => writeFile(path.join(KI, 'fall.txt'), name);
-const chat = (page: Page) => page.locator('[data-chat]');
+const chat = (page: Page) => page.locator('[data-claude-blase]');
 const zurueck = (page: Page) => page.getByRole('button', { name: /^Rückgängig/ }).first();
 
 const TANGRAM =
@@ -97,7 +97,6 @@ test.describe('Claude-Elemente frei legen und Figur von Claude (117)', () => {
 		const auftrag = await readFile(prompts, 'utf8');
 		expect(auftrag).toContain('Neue Figur als neues Gestaltungselement auf Seite 1, frei in `.ebene.vorne`');
 		expect(auftrag).toContain('eine Eule mit Brille');
-		await expect(feld(page)).toHaveValue('');
 		return u;
 	};
 
@@ -105,7 +104,7 @@ test.describe('Claude-Elemente frei legen und Figur von Claude (117)', () => {
 		page,
 	}) => {
 		const u = await zeichneEule(page);
-		await chat(page).getByRole('button', { name: 'Vergleichen' }).click();
+		await chat(page).getByRole('button', { name: 'Groß vergleichen' }).click();
 		await page.getByRole('dialog').getByRole('button', { name: 'Annehmen' }).click();
 		await expect(eule(page)).toBeVisible();
 		await gespeichert(page, u.material);
@@ -123,7 +122,7 @@ test.describe('Claude-Elemente frei legen und Figur von Claude (117)', () => {
 			aufgabe = (await erste.textContent()) ?? '';
 			await erste.click();
 		});
-		await chat(page).getByRole('button', { name: 'Vergleichen' }).click();
+		await chat(page).getByRole('button', { name: 'Groß vergleichen' }).click();
 		await page.getByRole('dialog').getByRole('button', { name: 'Annehmen' }).click();
 		await expect(eule(page)).toBeVisible();
 		await gespeichert(page, u.material);
@@ -133,6 +132,11 @@ test.describe('Claude-Elemente frei legen und Figur von Claude (117)', () => {
 
 	test('Ein offener Vorschlag sperrt das Feld: Es nennt den Grund und behält den Text', async ({ page }) => {
 		await zeichneEule(page);
+		// Solange die Blase den Vorschlag im Blatt zeigt, ist das Blatt nur zum Ansehen und die Schublade weg (134).
+		await expect(page.locator('[data-figur-von-claude]')).toHaveCount(0);
+		await chat(page).getByRole('button', { name: 'Einklappen' }).click();
+		await oeffneSchublade(page, 'figuren');
+		await expect(feld(page)).toHaveValue('');
 		await feld(page).fill('ein Fuchs');
 		await feld(page).press('Enter');
 		await expect(page.locator('[data-figur-grund]')).toContainText('offenen Vorschlag');

@@ -5,7 +5,6 @@ import { klassen } from '../bausteine/klassen';
 import { Kuerzel } from '../bausteine/Kuerzel';
 import { Symbol } from '../bausteine/Symbol';
 import { Tooltip } from '../bausteine/Tooltip';
-import type { ChatLauf } from './chat-kontext';
 import { halteFokus } from './halteFokus';
 import { Pruefstatus } from './Pruefliste';
 import type { Pruefpunkt, Pruefstand } from './pruefung';
@@ -77,8 +76,27 @@ const Zoom = ({ fuehreAus, skala, stufe, zoom }: ZoomEigenschaften) => {
 	);
 };
 
-/** Bei geschlossenem Chat sagt die Leiste, was Claude tut. Ein Klick öffnet den Chat. */
-const ClaudeStand = ({ lauf, oeffne }: { lauf: ChatLauf; oeffne: () => void }) => {
+/** Was eingeklappte Gespräche gerade tun (135); `mehrere` zählt sie. */
+export interface ClaudeLauf {
+	art: 'arbeitet' | 'bereit' | 'antwort' | 'mehrere';
+	/** Beginn in ms; zählt die Zeit in der Statusleiste. 0: unbekannt. */
+	seit: number;
+	anzahl: number;
+}
+
+const laufTitel = (lauf: ClaudeLauf, sekunden: number) => {
+	if (lauf.art === 'arbeitet') {
+		return lauf.seit > 0
+			? `Claude arbeitet … ${Math.floor(sekunden / 60)}:${String(sekunden % 60).padStart(2, '0')}`
+			: 'Claude arbeitet …';
+	}
+	return { bereit: 'Vorschlag bereit', antwort: 'Claude hat geantwortet', mehrere: `${lauf.anzahl} Aufträge` }[
+		lauf.art
+	];
+};
+
+/** Für eingeklappte Gespräche, deren Element außer Sicht sein kann: Ein Klick rollt hin und klappt die Blase auf. */
+const ClaudeStand = ({ lauf, oeffne }: { lauf: ClaudeLauf; oeffne: () => void }) => {
 	const [jetzt, setJetzt] = useState(() => Date.now());
 	useEffect(() => {
 		if (lauf.art !== 'arbeitet') {
@@ -88,11 +106,6 @@ const ClaudeStand = ({ lauf, oeffne }: { lauf: ChatLauf; oeffne: () => void }) =
 		return () => window.clearInterval(uhr);
 	}, [lauf.art]);
 	const sekunden = Math.max(0, Math.round((jetzt - lauf.seit) / 1000));
-	const titel = {
-		arbeitet: `Claude arbeitet … ${Math.floor(sekunden / 60)}:${String(sekunden % 60).padStart(2, '0')}`,
-		bereit: 'Vorschlag bereit',
-		antwort: 'Claude hat geantwortet',
-	}[lauf.art];
 	return (
 		<button
 			type="button"
@@ -100,8 +113,8 @@ const ClaudeStand = ({ lauf, oeffne }: { lauf: ChatLauf; oeffne: () => void }) =
 			data-claude-stand={lauf.art}
 			onClick={oeffne}
 		>
-			<Symbol name={lauf.art === 'arbeitet' ? 'laden' : 'sprechblase'} className="size-3 flex-none" />
-			{titel}
+			<Symbol name={lauf.art === 'arbeitet' ? 'laden' : 'funken'} className="size-3 flex-none" />
+			{laufTitel(lauf, sekunden)}
 		</button>
 	);
 };
@@ -137,7 +150,7 @@ const NeuHinweis = () => {
 
 interface Eigenschaften extends ZoomEigenschaften {
 	/** Nur bei geschlossenem Chat gesetzt. */
-	claude: ChatLauf | null;
+	claude: ClaudeLauf | null;
 	zeigeClaude: () => void;
 	seite: { nr: number; von: number };
 	format: string;

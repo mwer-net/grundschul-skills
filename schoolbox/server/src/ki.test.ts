@@ -1,12 +1,12 @@
 import assert from 'node:assert/strict';
 import { spawn } from 'node:child_process';
 import { existsSync } from 'node:fs';
-import { chmod, mkdir, mkdtemp, readdir, readFile, rm, writeFile } from 'node:fs/promises';
+import { chmod, mkdir, mkdtemp, readdir, readFile, rename, rm, writeFile } from 'node:fs/promises';
 import { homedir, tmpdir } from 'node:os';
 import path from 'node:path';
 import { after, afterEach, before, describe, it } from 'node:test';
 
-import type { Einordnung, Pruefbericht } from '@schoolbox/kern';
+import type { Pruefbericht } from '@schoolbox/kern';
 import {
 	attribut,
 	AUFTRAG_ZEICHEN,
@@ -21,18 +21,10 @@ import {
 import { leseAufmachung, wendeAufmachungAn } from '@schoolbox/kern/src/aufmachungen';
 import { erzeugeReferenz } from '@schoolbox/kern/src/referenz';
 
-import {
-	KI_EINORDNEN_MODELL,
-	KI_GRENZEN,
-	kiArgumente,
-	kiTempWurzel,
-	kiUmgebung,
-	liesLimit,
-	limitErreichtText,
-} from './ki';
+import { KI_GRENZEN, kiArgumente, kiTempWurzel, kiUmgebung, liesLimit, limitErreichtText } from './ki';
 import { CSRF_HEADER } from './schutz';
 import type { TestServer } from './testhilfe';
-import { KI_ATTRAPPE, legeDokumentAn, ordnerVon, starteTestServer } from './testhilfe';
+import { KI_ATTRAPPE, legeDokumentAn, starteTestServer } from './testhilfe';
 
 const warte = async (bedingung: () => Promise<boolean> | boolean, ms = 15_000) => {
 	const ende = Date.now() + ms;
@@ -82,8 +74,12 @@ describe('Aufträge an Claude', () => {
 		return fertig(((await res.json()) as { auftrag: { id: string } }).auftrag.id);
 	};
 	const quelle = () => readFile(path.join(dokumentDir(server.materialDir, mappe, dok), 'material.html'), 'utf8');
-	const vorschlagQuelle = () =>
-		readFile(path.join(dokumentDir(server.materialDir, mappe, dok), 'vorschlag', 'material.html'), 'utf8');
+	/** Aufträge ohne Gespräch legen ihren Vorschlag unter `blatt` ab, sonst unter der Id des Gesprächs (135). */
+	const vorschlagQuelle = (schluessel = 'blatt') =>
+		readFile(
+			path.join(dokumentDir(server.materialDir, mappe, dok), 'vorschlag', schluessel, 'material.html'),
+			'utf8',
+		);
 	const aufrufe = async () =>
 		(await readFile(path.join(path.dirname(bin), 'aufrufe.jsonl'), 'utf8')).trim().split('\n').length;
 	const vorschlag = async () =>
@@ -126,7 +122,15 @@ describe('Aufträge an Claude', () => {
 
 	afterEach(async () => {
 		await fall('gut');
-		await api(`/dokumente/${mappe}/${dok}/vorschlag/verwerfen`, { method: 'POST' });
+		const { vorschlaege } = (await (await api(`/dokumente/${mappe}/${dok}/vorschlaege`)).json()) as {
+			vorschlaege: { schluessel: string }[];
+		};
+		for (const v of vorschlaege) {
+			await api(`/dokumente/${mappe}/${dok}/vorschlag/verwerfen`, {
+				method: 'POST',
+				body: JSON.stringify({ gespraech: v.schluessel }),
+			});
+		}
 	});
 
 	it('Auftrag läuft bis zum Vorschlag: Quelle unverändert, Temp-Ordner und Sitzung weg', async () => {
@@ -252,7 +256,8 @@ describe('Aufträge an Claude', () => {
 		await fall('aussen');
 		assert.equal((await auftrag()).status, 'fertig');
 		const dir = path.join(dokumentDir(server.materialDir, mappe, dok), 'vorschlag');
-		assert.deepEqual((await readdir(dir)).sort(), ['material.html', 'vorschlag.json']);
+		assert.deepEqual(await readdir(dir), ['blatt']);
+		assert.deepEqual((await readdir(path.join(dir, 'blatt'))).sort(), ['material.html', 'vorschlag.json']);
 	});
 
 	it('Unverändertes Blatt mit Text ist eine Antwort: kein Vorschlag, ein offener bleibt', async () => {
@@ -313,52 +318,11 @@ describe('Aufträge an Claude', () => {
 		assert.equal((await starte({ auftrag: 'a', verlauf: [{ rolle: 'system', text: 'x' }] })).status, 400);
 	});
 
-	it('Einordnen: gültig aus den Listen, sonst Rückfall; ohne Werkzeuge, MCP und Skills; nichts im Verbrauch', async () => {
-		const ordnen = async (body: object) =>
-			(await (await api('/ki/einordnen', { method: 'POST', body: JSON.stringify(body) })).json()) as Einordnung;
-		const aufrufDatei = path.join(path.dirname(bin), 'aufrufe.jsonl');
-		await writeFile(aufrufDatei, '');
-		const wunsch = 'PERSOENLICH Uhrzeiten üben';
-		const e = await ordnen({ text: wunsch });
-		assert.equal(e.rueckfall, false);
-		assert.equal(e.art, 'arbeitsblatt');
-		assert.equal(e.ordner, null);
-
-		const zeilen = (await readFile(aufrufDatei, 'utf8')).trim().split('\n');
-		const { args } = JSON.parse(zeilen.at(-1) ?? '{}') as { args: string[] };
-		const nach = (name: string) => args[args.indexOf(name) + 1];
-		assert.equal(nach('--tools'), '');
-		assert.equal(nach('--setting-sources'), '');
-		assert.ok(args.includes('--strict-mcp-config'));
-		assert.ok(args.includes('--no-session-persistence'));
-		assert.equal(nach('--model'), KI_EINORDNEN_MODELL);
-		assert.ok(!args.join(' ').includes('PERSOENLICH'));
-		const schema = JSON.parse(nach('--json-schema') ?? '{}') as { properties: { fach: { enum: string[] } } };
-		assert.ok(schema.properties.fach.enum.includes('mathematik'));
-
-		const verbrauch = await readFile(path.join(server.materialDir, '_ki-verbrauch.jsonl'), 'utf8');
-		assert.ok(!verbrauch.includes('PERSOENLICH'));
-
-		const ordner = await ordnerVon(server, mappe);
-		const imOrdner = await ordnen({ text: wunsch, ordner });
-		assert.equal(imOrdner.ordner?.id, ordner);
-		assert.equal(imOrdner.fest, true);
-
-		await fall('einordnen-film');
-		const film = await ordnen({ text: 'Einen Film' });
-		assert.equal(film.rueckfall, true);
-		assert.equal(film.art, 'arbeitsblatt');
-		await fall('einordnen-fehler');
-		const kaputt = await ordnen({ text: 'Arbeitsblatt Uhrzeiten volle und halbe Stunden Klasse 2' });
-		assert.equal(kaputt.rueckfall, true);
-		assert.equal(kaputt.titel, 'Arbeitsblatt Uhrzeiten volle und halbe Stunden');
-		const zuLang = await api('/ki/einordnen', { method: 'POST', body: JSON.stringify({ text: 'x'.repeat(4001) }) });
-		assert.equal(zuLang.status, 400);
-		const fremd = await api('/ki/einordnen', {
-			method: 'POST',
-			body: JSON.stringify({ text: 'x', ordner: 'fehlt' }),
-		});
-		assert.equal(fremd.status, 404);
+	it('Einordnen gibt es nicht mehr (136): Ein alter Tab bekommt 404 mit „Bitte lade die Seite neu“', async () => {
+		const res = await api('/ki/einordnen', { method: 'POST', body: JSON.stringify({ text: 'Uhrzeiten' }) });
+		assert.equal(res.status, 404);
+		const { fehler } = (await res.json()) as { fehler: string };
+		assert.match(fehler, /Bitte lade die Seite neu/);
 	});
 
 	it('Freies Element: ganzes Blatt, wird ein Vorschlag, läuft durch die Blattprüfung', async () => {
@@ -524,10 +488,7 @@ describe('Aufträge an Claude', () => {
 		assert.equal(a.status, 'fertig', a.fehler ?? '');
 		const v = await vorschlag();
 		assert.notEqual(v?.umfang, 'Ganzes Blatt');
-		const neu = await readFile(
-			path.join(dokumentDir(server.materialDir, mappe, dok), 'vorschlag', 'material.html'),
-			'utf8',
-		);
+		const neu = await vorschlagQuelle();
 		const ende = vorher.indexOf('</h1>');
 		assert.equal(neu, `${vorher.slice(0, ende)} von Claude${vorher.slice(ende)}`);
 		const prompts = await readFile(path.join(path.dirname(bin), 'prompts.txt'), 'utf8');
@@ -545,10 +506,7 @@ describe('Aufträge an Claude', () => {
 		await auftrag({ auftrag: 'Noch einmal', aufVorschlag: true });
 		const zweit = await vorschlag();
 		assert.equal(zweit?.basis, erst?.basis);
-		const neu = await readFile(
-			path.join(dokumentDir(server.materialDir, mappe, dok), 'vorschlag', 'material.html'),
-			'utf8',
-		);
+		const neu = await vorschlagQuelle();
 		assert.equal(neu.split('von Claude').length, (await quelle()).split('von Claude').length + 2);
 	});
 
@@ -631,10 +589,10 @@ describe('Aufträge an Claude', () => {
 		assert.equal((await starte({ aktion: 'gibt-es-nicht' })).status, 400);
 		await api(`/dokumente/${mappe}/${dok}/vorschlag/verwerfen`, { method: 'POST' });
 		assert.equal((await starte({ aktion: 'neu-entwurf' })).status, 400);
-		const neu = await starte({ aktion: 'neu-entwurf', auftrag: 'Igel im Herbst' });
-		await fertig(((await neu.json()) as { auftrag: { id: string } }).auftrag.id);
-		const dritte = await readFile(path.join(path.dirname(bin), 'prompts.txt'), 'utf8');
-		assert.match(dritte.split('---').at(-2) ?? '', /Wunsch der Lehrkraft: Igel im Herbst/);
+		// Den freien Wunsch ohne Antworten gibt es seit 136 nicht mehr.
+		const frei = await starte({ aktion: 'neu-entwurf', auftrag: 'Igel im Herbst' });
+		assert.equal(frei.status, 400);
+		assert.match(((await frei.json()) as { fehler: string }).fehler, /Material anlegen/);
 	});
 
 	it('Neuer Entwurf aus dem Assistenten: Auftrag aus den Antworten, Format von Claude (131)', async () => {
@@ -1083,12 +1041,8 @@ describe('Aufträge an Claude', () => {
 			const basis = (await vorschlag())?.basis;
 			await auftrag({ auftrag: 'Noch größer', gespraechId: id, aufVorschlag: true });
 			assert.match(await letzterPrompt(), /deinen offenen Vorschlag/);
-			const datei = path.join(dokumentDir(server.materialDir, mappe, dok), 'vorschlag', 'material.html');
 			// Zwei Läufe, zwei Zusätze, gezählt gegen die Quelle (sie kann aus früheren Tests schon einen tragen).
-			assert.equal(
-				(await readFile(datei, 'utf8')).split('von Claude').length,
-				vorher.split('von Claude').length + 2,
-			);
+			assert.equal((await vorschlagQuelle(id)).split('von Claude').length, vorher.split('von Claude').length + 2);
 			assert.equal((await vorschlag())?.basis, basis);
 			assert.equal((await vorschlag())?.konflikt, false);
 			assert.equal(await quelle(), vorher);
@@ -1144,7 +1098,7 @@ describe('Aufträge an Claude', () => {
 		});
 
 		it('Ungültige Kennungen ergeben 400 und berühren nichts', async () => {
-			for (const falsch of ['../raus', 'A-B', 'a b', 'a/b', '', 'x'.repeat(65), 7]) {
+			for (const falsch of ['../raus', 'A-B', 'a b', 'a/b', '', 'x'.repeat(65), 7, 'blatt', 'alt']) {
 				const res = await starte({ auftrag: 'a', gespraechId: falsch });
 				assert.equal(res.status, 400, String(falsch));
 			}
@@ -1204,6 +1158,162 @@ describe('Aufträge an Claude', () => {
 			const b = (await auftrag({ auftrag: 'Zwei', gespraechId: id })) as unknown as { kontextGross: boolean };
 			assert.equal(b.kontextGross, false);
 		});
+
+		describe('Mehrere Gespräche an einem Blatt (135)', () => {
+			type Offen = { schluessel: string; gespraech?: string; konflikt: boolean; umfang: string; quelle?: string };
+			let gesichert = '';
+			const quellDatei = () => path.join(dokumentDir(server.materialDir, mappe, dok), 'material.html');
+			const alle = async () =>
+				((await (await api(`/dokumente/${mappe}/${dok}/vorschlaege`)).json()) as { vorschlaege: Offen[] })
+					.vorschlaege;
+			const vorschlagVon = async (schluessel: string) =>
+				(
+					(await (await api(`/dokumente/${mappe}/${dok}/vorschlag?gespraech=${schluessel}`)).json()) as {
+						vorschlag: Offen | null;
+					}
+				).vorschlag;
+			/** Frühere Tests können der Quelle schon etwas angehängt haben, darum wird gezählt. */
+			const anzahl = (html: string, was = 'von Claude') => html.split(was).length - 1;
+			const nimm = (schluessel: string) =>
+				api(`/dokumente/${mappe}/${dok}/vorschlag/annehmen`, {
+					method: 'POST',
+					body: JSON.stringify({ gespraech: schluessel }),
+				});
+
+			before(async () => {
+				gesichert = await quelle();
+			});
+			afterEach(async () => {
+				await writeFile(quellDatei(), gesichert);
+			});
+
+			it('Zwei Gespräche: je ein Vorschlag, der zweite wartet; Annehmen zieht den anderen nach', async () => {
+				const eins = gespraech('blase-titel');
+				const zwei = gespraech('blase-aufgabe');
+				const [titel, aufgabe] = [await teilReferenz('h1'), await teilReferenz('aufgabe')];
+				const vorher = await quelle();
+				const [n, d] = [anzahl(vorher), anzahl(vorher, 'data-von-claude')];
+				const r1 = (await (await starte({ auftrag: 'Titel', gespraechId: eins, referenz: titel })).json()) as {
+					auftrag: { id: string };
+				};
+				const r2 = (await (
+					await starte({ auftrag: 'Aufgabe', gespraechId: zwei, referenz: aufgabe })
+				).json()) as { auftrag: { id: string; status: string } };
+				assert.equal(r2.auftrag.status, 'wartet');
+				assert.equal((await fertig(r1.auftrag.id)).status, 'fertig');
+				assert.equal((await fertig(r2.auftrag.id)).status, 'fertig');
+
+				const offen = await alle();
+				assert.deepEqual(
+					offen.map((v) => [v.schluessel, v.gespraech, v.konflikt]),
+					[
+						[eins, eins, false],
+						[zwei, zwei, false],
+					],
+				);
+				assert.ok(offen.every((v) => !('ausschnitt' in v) && v.umfang !== 'Ganzes Blatt'));
+				const [a, b] = [await vorschlagQuelle(eins), await vorschlagQuelle(zwei)];
+				assert.deepEqual([anzahl(a), anzahl(a, 'data-von-claude')], [n + 1, d]);
+				assert.deepEqual([anzahl(b), anzahl(b, 'data-von-claude')], [n, d + 1]);
+
+				// Beide Gespräche räumen für sich auf, die Vorschläge bleiben.
+				await beende(eins);
+				assert.ok(!existsSync(ordner(eins)));
+				assert.ok(existsSync(ordner(zwei)));
+				await beende(zwei);
+				assert.equal((await alle()).length, 2);
+
+				assert.equal((await nimm(eins)).status, 200);
+				assert.equal(anzahl(await quelle()), n + 1);
+				const nachgezogen = await vorschlagVon(zwei);
+				assert.equal(nachgezogen?.konflikt, false);
+				const ansicht = await server.holen(
+					`${server.url}/ansicht/${mappe}/dokumente/${dok}/?vorschlag=${zwei}`,
+				);
+				const gezeigt = await ansicht.text();
+				assert.deepEqual([anzahl(gezeigt), anzahl(gezeigt, 'data-von-claude')], [n + 1, d + 1]);
+				assert.equal((await nimm(zwei)).status, 200);
+				const ende = await quelle();
+				assert.deepEqual([anzahl(ende), anzahl(ende, 'data-von-claude')], [n + 1, d + 1]);
+				assert.deepEqual(await alle(), []);
+			});
+
+			it('Seite und Baustein darin: Nach dem einen ist der andere ein Konflikt, die Quelle bleibt', async () => {
+				const seite = gespraech('blase-seite');
+				const baustein = gespraech('blase-baustein');
+				await auftrag({ auftrag: 'Seite', gespraechId: seite, referenz: await teilReferenz('seite') });
+				await auftrag({ auftrag: 'Baustein', gespraechId: baustein, referenz: await teilReferenz('aufgabe') });
+				assert.equal((await nimm(baustein)).status, 200);
+				assert.equal((await vorschlagVon(seite))?.konflikt, true);
+				const vorher = await quelle();
+				assert.equal((await nimm(seite)).status, 409);
+				assert.equal(await quelle(), vorher);
+			});
+
+			it('Eine Änderung außerhalb des Teils hält den Vorschlag nicht auf, eine darin schon', async () => {
+				const id = gespraech('blase-aussen');
+				await auftrag({ auftrag: 'Titel', gespraechId: id, referenz: await teilReferenz('h1') });
+				await writeFile(quellDatei(), (await quelle()).replace('Ich kann Zahlen', 'Ich kann alle Zahlen'));
+				assert.equal((await vorschlagVon(id))?.konflikt, false);
+				await writeFile(quellDatei(), (await quelle()).replace('<h1>Zehner und Einer', '<h1>Zehner, Einer'));
+				assert.equal((await vorschlagVon(id))?.konflikt, true);
+				assert.equal((await nimm(id)).status, 409);
+			});
+
+			it('Nachbessern am Element: derselbe Teil, der Vorschlag lässt sich danach noch nachziehen', async () => {
+				const id = gespraech('blase-nachbessern-teil');
+				const n = anzahl(await quelle());
+				await auftrag({ auftrag: 'Titel', gespraechId: id, referenz: await teilReferenz('h1') });
+				const umfang = (await vorschlagVon(id))?.umfang;
+				await auftrag({ auftrag: 'Noch einmal', gespraechId: id, aufVorschlag: true });
+				assert.match(await letzterPrompt(), /enthält nur diesen Teil/);
+				assert.equal((await vorschlagVon(id))?.umfang, umfang);
+				assert.equal(anzahl(await vorschlagQuelle(id)), n + 2);
+				await writeFile(quellDatei(), (await quelle()).replace('Ich kann Zahlen', 'Ich kann alle Zahlen'));
+				assert.equal((await nimm(id)).status, 200);
+				const ende = await quelle();
+				assert.equal(anzahl(ende), n + 2);
+				assert.match(ende, /Ich kann alle Zahlen/);
+			});
+
+			it('Ein Vorschlag von vor 135 (ohne Unterordner) bleibt lesbar, annehmbar und verwerfbar', async () => {
+				const dir = path.join(dokumentDir(server.materialDir, mappe, dok), 'vorschlag');
+				const alsAlt = async () => {
+					await auftrag();
+					for (const name of ['material.html', 'vorschlag.json']) {
+						await rename(path.join(dir, 'blatt', name), path.join(dir, name));
+					}
+					await rm(path.join(dir, 'blatt'), { recursive: true });
+				};
+				const n = anzahl(await quelle());
+				await alsAlt();
+				assert.deepEqual(
+					(await alle()).map((v) => v.schluessel),
+					['alt'],
+				);
+				assert.equal((await vorschlag())?.schluessel, 'alt');
+				assert.equal((await nimm('alt')).status, 200);
+				assert.equal(anzahl(await quelle()), n + 1);
+				assert.deepEqual(await alle(), []);
+
+				await alsAlt();
+				await api(`/dokumente/${mappe}/${dok}/vorschlag/verwerfen`, {
+					method: 'POST',
+					body: JSON.stringify({ gespraech: 'alt' }),
+				});
+				assert.deepEqual(await readdir(dir), []);
+			});
+
+			it('Unbekannte Schlüssel ergeben 400 und berühren nichts', async () => {
+				for (const schluessel of ['../x', 'A', 'x'.repeat(200)]) {
+					const res = await api(
+						`/dokumente/${mappe}/${dok}/vorschlag?gespraech=${encodeURIComponent(schluessel)}`,
+					);
+					assert.equal(res.status, 400, schluessel);
+					assert.equal((await nimm(schluessel)).status, 400, schluessel);
+				}
+			});
+		});
 	});
 
 	describe('Am Limit, mit und ohne Guthaben (086)', () => {
@@ -1219,10 +1329,6 @@ describe('Aufträge an Claude', () => {
 			((await (await api('/ki/status')).json()) as { limit: { status: string; guthaben: string | null } | null })
 				.limit;
 		const frageNeu = () => api('/ki/limit/pruefen', { method: 'POST' });
-		const einordnen = async () =>
-			(await (
-				await api('/ki/einordnen', { method: 'POST', body: JSON.stringify({ text: 'Uhrzeiten üben' }) })
-			).json()) as Einordnung;
 		const anzahlAufrufe = async () =>
 			(await readFile(path.join(path.dirname(bin), 'aufrufe.jsonl'), 'utf8')).trim().split('\n').length;
 
@@ -1315,20 +1421,6 @@ describe('Aufträge an Claude', () => {
 			assert.equal(b?.status, 'fehler');
 			assert.match(b?.fehler ?? '', /Limit des Claude-Kontos/);
 		});
-
-		it('Einordnen: mit Guthaben ein Aufruf, echt gesperrt der Rückfall ohne Aufruf', async () => {
-			await fall('limit-guthaben');
-			await auftrag();
-			let vorher = await anzahlAufrufe();
-			assert.equal((await einordnen()).rueckfall, false);
-			assert.equal(await anzahlAufrufe(), vorher + 1);
-
-			await fall('limit-gesperrt');
-			await auftrag();
-			vorher = await anzahlAufrufe();
-			assert.equal((await einordnen()).rueckfall, true);
-			assert.equal(await anzahlAufrufe(), vorher);
-		});
 	});
 });
 
@@ -1376,7 +1468,7 @@ describe('Aufträge an Claude: Zugang', () => {
 		});
 		const { pfad } = (await anlegen.json()) as { pfad: string };
 		const dir = path.join(dokumentDir(server.materialDir, mappe, dok), 'vorschlag');
-		await mkdir(dir);
+		await mkdir(dir, { recursive: true });
 		await writeFile(path.join(dir, 'material.html'), 'GEHEIMER VORSCHLAG');
 		await writeFile(path.join(dir, 'vorschlag.json'), '{"basis":"x"}');
 		const f = `${server.url}${pfad}`;

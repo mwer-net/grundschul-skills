@@ -11,8 +11,11 @@ import { TEXTWERKZEUG } from './text';
 interface Eigenschaften {
 	eintraege: readonly PalettenEintrag[];
 	platzhalter: string;
-	/** Letzte Zeile, sobald etwas getippt ist: Schreibt den Text ins Feld des Chats, abgeschickt wird von Hand. */
-	anClaude?: ((text: string) => void) | undefined;
+	/**
+	 * Letzte Zeile, sobald etwas getippt ist: im Editor „An Claude schicken“ (füllt das Feld der Blase, abgeschickt wird
+	 * von Hand), sonst „Material anlegen“ mit dem Text als Thema (136).
+	 */
+	freitext?: { titel: (text: string) => string; aus: (text: string) => void } | undefined;
 	/** `true`: Es folgt gleich die Aktion der Zeile. */
 	schliessen: (ausgefuehrt: boolean) => void;
 }
@@ -26,7 +29,7 @@ const gibFokusZurueck = (ziel: Element | null) => {
 };
 
 /** Das Sicherheitsnetz: Wer etwas nicht findet, tippt es. Die Zeilen zeigen nebenbei die Tasten. */
-export const Palette = ({ anClaude, eintraege, platzhalter, schliessen }: Eigenschaften) => {
+export const Palette = ({ eintraege, freitext, platzhalter, schliessen }: Eigenschaften) => {
 	const dialog = useRef<HTMLDialogElement>(null);
 	const feld = useRef<HTMLInputElement>(null);
 	const ausloeser = useRef<Element | null>(null);
@@ -40,19 +43,19 @@ export const Palette = ({ anClaude, eintraege, platzhalter, schliessen }: Eigens
 	const gruppen = useMemo(() => {
 		const text = anfrage.trim();
 		const treffer = gruppiere(text ? suchePalette(anfrage, eintraege, zuletzt) : startliste(eintraege, zuletzt));
-		if (!text || !anClaude) {
+		if (!text || !freitext) {
 			return treffer;
 		}
 		const zeile: PalettenEintrag = {
 			id: 'claude:schicken',
-			titel: `An Claude schicken: ${text}`,
+			titel: freitext.titel(text),
 			gruppe: 'Claude',
-			symbol: 'sprechblase',
+			symbol: 'funken',
 			suchwoerter: [],
-			aus: () => anClaude(text),
+			aus: () => freitext.aus(text),
 		};
 		return [...treffer, { titel: 'Claude', eintraege: [zeile] }];
-	}, [anClaude, anfrage, eintraege, zuletzt]);
+	}, [anfrage, eintraege, freitext, zuletzt]);
 	const zeilen = useMemo(() => gruppen.flatMap((g) => g.eintraege), [gruppen]);
 	const aktiv = zeilen[Math.min(stelle, zeilen.length - 1)];
 

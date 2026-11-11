@@ -33,8 +33,9 @@ import type { MenueArt } from '../editor/befehle';
 import { Einfuegemarken } from '../editor/Bibliothek';
 import { useBild } from '../editor/bild';
 import { useBildAusFinder } from '../editor/bild-finder';
-import type { ChatHandlungen } from '../editor/chat-kontext';
-import { useChat, useChatKontext, useChatStand } from '../editor/chat-kontext';
+import { ClaudeSchicht } from '../editor/Blase';
+import type { ClaudeHandlungen } from '../editor/claude-kontext';
+import { ClaudeKontext } from '../editor/claude-kontext';
 import { useClaudeApp } from '../editor/ClaudeApp';
 import { bausteinVon, editorHtml, elementZu, nrVon, pfadZu, zielNachSchritt } from '../editor/darstellung';
 import { useEinfuegen, useSlash, useTabelleTab } from '../editor/einfuegen';
@@ -49,6 +50,7 @@ import { Werkzeugflaeche } from '../editor/gestaltung/werkzeuge/Werkzeugflaeche'
 import { useGliederungStand } from '../editor/gliederung-stand';
 import { halteFokus } from '../editor/halteFokus';
 import { Einstellungen, Inspektor, Umriss } from '../editor/Inspektor';
+import { useKiZustand } from '../editor/ki';
 import { Leinwand } from '../editor/Leinwand';
 import { useLoesung } from '../editor/loesung';
 import { Loesungsuebersicht } from '../editor/Loesungspanel';
@@ -69,6 +71,7 @@ import { behaeltUndo, beobachteFelder, gehoertDemElement, istFeld, loeseFeld, TA
 import { TastenUebersicht } from '../editor/TastenUebersicht';
 import { TEXT_GEAENDERT, useText } from '../editor/text';
 import { useBefehle } from '../editor/useBefehle';
+import { useClaude } from '../editor/useClaude';
 import { useEntwurf } from '../editor/useEntwurf';
 import type { VersionEintrag } from '../editor/version';
 import { Versionen } from '../editor/Versionen';
@@ -336,7 +339,9 @@ const versionenWerte = (
 	vorschau: { version: { id: string } } | null,
 ) => ({ versionen: daten?.versionen ?? null, gewaehlt: vorschau?.version.id ?? null });
 
-const anClaudeWenn = (verfuegbar: boolean, fuelle: (text: string) => void) => (verfuegbar ? fuelle : undefined);
+/** „An Claude schicken: …“ in der Palette füllt das Feld der Blase an der Auswahl (134). */
+const anClaudeWenn = (verfuegbar: boolean, fuelle: (text: string) => void) =>
+	verfuegbar ? { titel: (text: string) => `An Claude schicken: ${text}`, aus: fuelle } : undefined;
 
 const KopfMitte = ({
 	dokument,
@@ -397,19 +402,17 @@ const Bearbeitung = ({ dokument, mappe: mappenDaten }: { mappe: Mappe; dokument:
 	const [zumBlatt, setZumBlatt] = useState(0);
 	const [umriss, setUmriss] = useState<number | null>(null);
 	const claudeApp = useClaudeApp();
-	const handlungen = useRef<ChatHandlungen>({
+	const handlungen = useRef<ClaudeHandlungen>({
 		vorbereiten: () => Promise.resolve(),
 		holeZitat: () => '',
 		zumBlatt: () => undefined,
 		annimm: () => Promise.resolve(),
 		zurApp: () => undefined,
 	});
-	const chat = useChat();
-	const chatStand = useChatStand();
 	const [schnellWunsch, setSchnellWunsch] = useState<{ n: number; nr: number | null }>({ n: 0, nr: null });
 	const ansicht = useRef<HTMLElement>(null);
-	const ki = chatStand.ki;
-	const entwurf = useEntwurf({ mappe, dok, nachLauf: ki.neu, annimm: b.annimm, gespraechId: chat.gespraechId });
+	const ki = useKiZustand();
+	const entwurf = useEntwurf({ mappe, dok, nachLauf: ki.neu, annimm: b.annimm });
 	const entwurfKarte = useRef<HTMLDivElement>(null);
 	const [vorschau, setVorschau] = useState<{ version: VersionEintrag; quelle: string } | null>(null);
 	const [zoom, setZoomWert] = useState<ZoomWert>(gemerkterZoom);
@@ -424,7 +427,20 @@ const Bearbeitung = ({ dokument, mappe: mappenDaten }: { mappe: Mappe; dokument:
 	const format = formatVon(b.verlauf, meta.format);
 	const quelle = b.verlauf?.quelle ?? null;
 	useTitel(`${meta.titel} bearbeiten`);
-	const anzeige = vorschau?.quelle ?? entwurf.zeigt(quelle);
+	const sperre = sperreDesBlatts(vorschau !== null, b.konflikt !== null, entwurf.sperrt);
+	const sichtbareSeite = useRef<() => number | null>(() => null);
+	const claude = useClaude({
+		mappe,
+		dok,
+		auswahl,
+		waehle: setAuswahl,
+		seite: () => sichtbareSeite.current(),
+		frei: sperre.frei,
+		handlungen,
+		ki,
+	});
+	// Ein offener Vorschlag am Element steht gestrichelt im Blatt, schreibgeschützt (134).
+	const anzeige = vorschau?.quelle ?? entwurf.zeigt(claude.zeigt ?? quelle);
 	const basis = `/ansicht/${mappe}/dokumente/${dok}/`;
 	const { profil, waehle: waehleProfil } = useAnsichtsProfil({ mappe, token: null }, dok, meta);
 	const { html, loesung, mitLoesung, zerlegung } = useDarstellung(
@@ -437,7 +453,8 @@ const Bearbeitung = ({ dokument, mappe: mappenDaten }: { mappe: Mappe; dokument:
 	const pfad = useMemo(() => (geladen && auswahl !== null ? pfadZu(geladen.doc, auswahl) : []), [geladen, auswahl]);
 	const merken = useCallback((d: Document, h: string) => setGeladen({ doc: d, html: h }), []);
 
-	const { frei, nurAnsehen } = sperreDesBlatts(vorschau !== null, b.konflikt !== null, entwurf.sperrt);
+	const frei = sperre.frei && claude.zeigt === null;
+	const { nurAnsehen } = sperre;
 	const pruefung = usePruefung({ geladen, html, zerlegung, ausgang: b.ausgang, aus: vorschau !== null });
 	const schrittWeg = useRef<(richtung: 'zurueck' | 'vor') => void>(() => undefined);
 	const geschichte = useCallback((richtung: 'zurueck' | 'vor') => schrittWeg.current(richtung), []);
@@ -557,6 +574,7 @@ const Bearbeitung = ({ dokument, mappe: mappenDaten }: { mappe: Mappe; dokument:
 
 	const zeigePunkt = useZeigePunkt({ loesung, geladen, html, zeigeAn: struktur.zeigeAn, setSuche });
 	const seite = useSichtbareSeite(geladen, ansicht, massstab.skala);
+	sichtbareSeite.current = () => (docJetzt ? seiteAn(docJetzt, seite.nr) : null);
 
 	const verlassen = async (ziel: string) => {
 		const gespeichert = await alles();
@@ -593,6 +611,7 @@ const Bearbeitung = ({ dokument, mappe: mappenDaten }: { mappe: Mappe; dokument:
 			hatAblage: ablage.abgelegt !== null,
 			hatNeueZahlen: abbildung.hatNeueZahlen,
 			kiVerfuegbar: ki.zustand.verfuegbar,
+			claudeGrund: claude.knopfGrund,
 			namenszeile: zerlegung ? hatNamenszeile(zerlegung) : false,
 			festeSeiten: format === 'minibuch',
 			hatBild: bild.werte !== null,
@@ -692,8 +711,13 @@ const Bearbeitung = ({ dokument, mappe: mappenDaten }: { mappe: Mappe; dokument:
 					panels.wechsleRechts('versionen');
 					setVorschau(null);
 				},
-				claude: () => chat.taste(),
-				claudeZurAuswahl: () => chat.oeffne(),
+				claude: () => {
+					const grund = claude.taste();
+					if (grund) {
+						zeige({ text: grund });
+					}
+				},
+				claudeZurAuswahl: () => claude.oeffne(),
 				palette: () => {
 					text.halte(true);
 					setPaletteOffen(true);
@@ -863,26 +887,14 @@ const Bearbeitung = ({ dokument, mappe: mappenDaten }: { mappe: Mappe; dokument:
 		};
 	});
 	const adresse = ansichtAdresse(zugang, dok, loesung, profil);
-	useChatKontext(
-		useMemo(
-			() => ({
-				art: 'dokument' as const,
-				mappe,
-				dok,
-				titel: meta.titel,
-				adresse,
-				zerlegung,
-				ort,
-				loesung,
-				nr: auswahl,
-				pfad,
-				frei,
-				anker: ansicht,
-				handlungen,
-			}),
-			[adresse, auswahl, dok, frei, loesung, mappe, meta.titel, ort, pfad, zerlegung],
-		),
+	// Die Blase findet ihre Elemente nur in der Quelle selbst wieder, nicht in einem gezeigten Vorschlag.
+	const claudeLage = useMemo(
+		() => (zerlegung ? { z: zerlegung, ort, loesung, echt: anzeige === quelle } : null),
+		[anzeige, loesung, ort, quelle, zerlegung],
 	);
+	const { setzeLage } = claude;
+	useEffect(() => setzeLage(claudeLage), [claudeLage, setzeLage]);
+	const darstellung = useMemo(() => ({ basis, loesung, profil }), [basis, loesung, profil]);
 
 	if (b.ladeFehler) {
 		return <Fehlt fehler={b.ladeFehler} />;
@@ -968,172 +980,158 @@ const Bearbeitung = ({ dokument, mappe: mappenDaten }: { mappe: Mappe; dokument:
 		/>
 	);
 	return (
-		<div className="flex h-dvh flex-col bg-papier" data-editor>
-			<Kopfleiste
-				mappe={mappenDaten.titel}
-				titel={meta.titel}
-				stand={<Speicheranzeige stand={stand} erneut={() => void b.speicher.speichere()} />}
-				verlassen={() => befehle.fuehreAus('dokument.zurueck')}
-				mitte={kopfMitte}
-			>
-				<EntwurfPille
-					entwurf={entwurf}
-					zurKarte={() => {
-						ansicht.current?.scrollTo({ top: 0, behavior: 'smooth' });
-						entwurfKarte.current?.focus({ preventScroll: true });
-					}}
-				/>
-				<SymbolKnopf
-					symbol="rueckgaengig"
-					beschriftung="Rückgängig"
-					tooltip={mitSchritt('Rückgängig', zurueckName)}
-					kuerzel="⌘Z"
-					disabled={!kannZurueck}
-					data-schritt={zurueckName}
-					onClick={() => befehle.fuehreAus('dokument.rueckgaengig')}
-					{...halteFokus}
-				/>
-				<SymbolKnopf
-					symbol="wiederholen"
-					beschriftung="Wiederholen"
-					tooltip={mitSchritt('Wiederholen', vorName)}
-					kuerzel="⇧⌘Z"
-					disabled={!kannVor}
-					data-schritt={vorName}
-					onClick={() => befehle.fuehreAus('dokument.wiederholen')}
-					{...halteFokus}
-				/>
-				<Trenner />
-				<KopfKnopf
-					name="Claude"
-					titel="Claude"
-					symbol="sprechblase"
-					aktiv={chatStand.fenster !== 'zu'}
-					aktion={() => chat.wechsle()}
-					halten
-				/>
-				<KopfKnopf
-					name="Versionen"
-					titel="Versionen"
-					symbol="uhr"
-					aktiv={panels.rechts === 'versionen' && panels.rechtsOffen}
-					aktion={() => befehle.fuehreAus('ansicht.versionen')}
-				/>
-				<Menue
-					name="Weitere Aktionen"
-					rechtsbuendig
-					ausloeser={MEHR_KNOPF}
-					eintraege={[
-						{
-							titel: 'Als Vorlage speichern',
-							symbol: 'blatt',
-							waehle: () => befehle.fuehreAus('dokument.als-vorlage'),
-						},
-					]}
-				/>
-				<Trenner />
-				{format === 'folie' && (
-					<Knopf art="zweit" onClick={() => befehle.fuehreAus('dokument.praesentieren')}>
-						<Symbol name="praesentieren" />
-						Präsentieren
-					</Knopf>
-				)}
-				<span className="contents" data-pdf-knopf>
-					<PdfKnopf art="haupt" beschriftung="PDF" wahl={wahl} mappe={mappenDaten} warnen rechtsbuendig />
-				</span>
-			</Kopfleiste>
-			{claudeApp.dialog}
-			{paletteOffen && (
-				<Palette
-					platzhalter="Befehl oder Baustein suchen"
-					anClaude={anClaudeWenn(ki.zustand.verfuegbar, chat.fuelle)}
-					eintraege={eintraegeImEditor(befehle.jetzt.current, {
-						posten: einfuegen.eintraege,
-						fuegeEin: (p) =>
-							einfuegen.fuegeEin(p, auswahl ?? (docJetzt ? seiteAn(docJetzt, seite.nr) : null)),
-						zeigeSeite: (nr) => {
-							const ziel = docJetzt ? seiteAn(docJetzt, nr) : null;
-							if (ziel !== null) {
-								struktur.zeigeAn(ziel);
-							}
-						},
-						zeigeEinstellung,
-						fuehreAus: befehle.fuehreAus,
-						schubladen: { teile: schubladenTeile, fuehreAus: befehle.fuehreAus },
-					})}
-					schliessen={(ausgefuehrt) => {
-						text.halte(false);
-						if (ausgefuehrt) {
-							// Die Aktion arbeitet mit dem fertigen Text, wie bei jedem Knopf außerhalb des Blatts.
-							text.beende();
-						}
-						setPaletteOffen(false);
-					}}
-				/>
-			)}
-			{tastenOffen && (
-				<TastenUebersicht kontext={befehle.jetzt.current} schliessen={() => setTastenOffen(false)} />
-			)}
-			{alsVorlage && (
-				<AlsVorlage mappe={mappe} dok={dok} titel={meta.titel} schliessen={() => setAlsVorlage(false)} />
-			)}
-
-			<div className="flex min-h-0 flex-1 max-lg:flex-col">
-				<div className="flex min-h-0 min-w-0 flex-1">
-					<Schubladen
-						panels={panels}
-						lage={{ frei }}
-						grund={entwurf.grund}
-						teile={schubladenTeile}
-						waehle={(id: SchubladenId) => befehle.fuehreAus(`ansicht.links-${id}`)}
-					/>
-					<main
-						ref={ansicht}
-						className="min-h-0 min-w-0 flex-1 overflow-y-auto bg-leinwand"
-						style={{
-							paddingBottom: 'var(--chat-platz, 0px)',
-							scrollPaddingBottom: 'var(--chat-platz, 0px)',
+		<ClaudeKontext.Provider value={claude.steuerung}>
+			<div className="flex h-dvh flex-col bg-papier" data-editor>
+				<Kopfleiste
+					mappe={mappenDaten.titel}
+					titel={meta.titel}
+					stand={<Speicheranzeige stand={stand} erneut={() => void b.speicher.speichere()} />}
+					verlassen={() => befehle.fuehreAus('dokument.zurueck')}
+					mitte={kopfMitte}
+				>
+					<EntwurfPille
+						entwurf={entwurf}
+						zurKarte={() => {
+							ansicht.current?.scrollTo({ top: 0, behavior: 'smooth' });
+							entwurfKarte.current?.focus({ preventScroll: true });
 						}}
-					>
-						<Entwurfsleiste entwurf={entwurf} />
-						<EntwurfKarte entwurf={entwurf} ki={ki} titel={meta.titel} karte={entwurfKarte} />
-						{b.konflikt && (
-							<Konfliktleiste
-								urheber={b.konflikt.urheber}
-								laeuft={b.laeuft}
-								neuLaden={() => {
-									setAuswahl(null);
-									void b.neuLaden();
-								}}
-							/>
-						)}
-						{vorschau && (
-							<Vorschauleiste
-								version={vorschau.version}
-								laeuft={b.laeuft}
-								wiederherstellen={() => void wiederherstellen(vorschau.version.id)}
-								schliessen={() => setVorschau(null)}
-							/>
-						)}
-						{html !== null && (
-							<Leinwand
-								html={html}
-								titel={meta.titel}
-								auswahl={auswahl}
-								waehle={setAuswahl}
-								zoom={zoom}
-								meldeMassstab={setMassstab}
-								taste={taste}
-								textsitzung={text.bearbeitet}
-								kontextmenue={leinwandMenue}
-								geladen={merken}
-								nurAnsehen={nurAnsehen}
-								ziehbar={struktur.aktiv}
-								ablegen={struktur.verschiebe}
-								jeSeite={format === 'folie'}
-								einblendung={
-									frei
-										? (e) => (
+					/>
+					<SymbolKnopf
+						symbol="rueckgaengig"
+						beschriftung="Rückgängig"
+						tooltip={mitSchritt('Rückgängig', zurueckName)}
+						kuerzel="⌘Z"
+						disabled={!kannZurueck}
+						data-schritt={zurueckName}
+						onClick={() => befehle.fuehreAus('dokument.rueckgaengig')}
+						{...halteFokus}
+					/>
+					<SymbolKnopf
+						symbol="wiederholen"
+						beschriftung="Wiederholen"
+						tooltip={mitSchritt('Wiederholen', vorName)}
+						kuerzel="⇧⌘Z"
+						disabled={!kannVor}
+						data-schritt={vorName}
+						onClick={() => befehle.fuehreAus('dokument.wiederholen')}
+						{...halteFokus}
+					/>
+					<Trenner />
+					<KopfKnopf
+						name="Versionen"
+						titel="Versionen"
+						symbol="uhr"
+						aktiv={panels.rechts === 'versionen' && panels.rechtsOffen}
+						aktion={() => befehle.fuehreAus('ansicht.versionen')}
+					/>
+					<Menue
+						name="Weitere Aktionen"
+						rechtsbuendig
+						ausloeser={MEHR_KNOPF}
+						eintraege={[
+							{
+								titel: 'Als Vorlage speichern',
+								symbol: 'blatt',
+								waehle: () => befehle.fuehreAus('dokument.als-vorlage'),
+							},
+						]}
+					/>
+					<Trenner />
+					{format === 'folie' && (
+						<Knopf art="zweit" onClick={() => befehle.fuehreAus('dokument.praesentieren')}>
+							<Symbol name="praesentieren" />
+							Präsentieren
+						</Knopf>
+					)}
+					<span className="contents" data-pdf-knopf>
+						<PdfKnopf art="haupt" beschriftung="PDF" wahl={wahl} mappe={mappenDaten} warnen rechtsbuendig />
+					</span>
+				</Kopfleiste>
+				{claudeApp.dialog}
+				{paletteOffen && (
+					<Palette
+						platzhalter="Befehl oder Baustein suchen"
+						freitext={anClaudeWenn(ki.zustand.verfuegbar, claude.fuelle)}
+						eintraege={eintraegeImEditor(befehle.jetzt.current, {
+							posten: einfuegen.eintraege,
+							fuegeEin: (p) =>
+								einfuegen.fuegeEin(p, auswahl ?? (docJetzt ? seiteAn(docJetzt, seite.nr) : null)),
+							zeigeSeite: (nr) => {
+								const ziel = docJetzt ? seiteAn(docJetzt, nr) : null;
+								if (ziel !== null) {
+									struktur.zeigeAn(ziel);
+								}
+							},
+							zeigeEinstellung,
+							fuehreAus: befehle.fuehreAus,
+							schubladen: { teile: schubladenTeile, fuehreAus: befehle.fuehreAus },
+						})}
+						schliessen={(ausgefuehrt) => {
+							text.halte(false);
+							if (ausgefuehrt) {
+								// Die Aktion arbeitet mit dem fertigen Text, wie bei jedem Knopf außerhalb des Blatts.
+								text.beende();
+							}
+							setPaletteOffen(false);
+						}}
+					/>
+				)}
+				{tastenOffen && (
+					<TastenUebersicht kontext={befehle.jetzt.current} schliessen={() => setTastenOffen(false)} />
+				)}
+				{alsVorlage && (
+					<AlsVorlage mappe={mappe} dok={dok} titel={meta.titel} schliessen={() => setAlsVorlage(false)} />
+				)}
+
+				<div className="flex min-h-0 flex-1 max-lg:flex-col">
+					<div className="flex min-h-0 min-w-0 flex-1">
+						<Schubladen
+							panels={panels}
+							lage={{ frei }}
+							grund={entwurf.grund}
+							teile={schubladenTeile}
+							waehle={(id: SchubladenId) => befehle.fuehreAus(`ansicht.links-${id}`)}
+						/>
+						<main ref={ansicht} className="min-h-0 min-w-0 flex-1 overflow-y-auto bg-leinwand">
+							<Entwurfsleiste entwurf={entwurf} />
+							<EntwurfKarte entwurf={entwurf} ki={ki} titel={meta.titel} karte={entwurfKarte} />
+							{b.konflikt && (
+								<Konfliktleiste
+									urheber={b.konflikt.urheber}
+									laeuft={b.laeuft}
+									neuLaden={() => {
+										setAuswahl(null);
+										void b.neuLaden();
+									}}
+								/>
+							)}
+							{vorschau && (
+								<Vorschauleiste
+									version={vorschau.version}
+									laeuft={b.laeuft}
+									wiederherstellen={() => void wiederherstellen(vorschau.version.id)}
+									schliessen={() => setVorschau(null)}
+								/>
+							)}
+							{html !== null && (
+								<Leinwand
+									html={html}
+									titel={meta.titel}
+									auswahl={auswahl}
+									waehle={setAuswahl}
+									zoom={zoom}
+									meldeMassstab={setMassstab}
+									taste={taste}
+									textsitzung={text.bearbeitet}
+									kontextmenue={leinwandMenue}
+									geladen={merken}
+									nurAnsehen={nurAnsehen}
+									ziehbar={struktur.aktiv}
+									ablegen={struktur.verschiebe}
+									jeSeite={format === 'folie'}
+									einblendung={(e) => (
+										<>
+											{frei && (
 												<>
 													<Einfuegemarken
 														e={e}
@@ -1178,53 +1176,60 @@ const Bearbeitung = ({ dokument, mappe: mappenDaten }: { mappe: Mappe; dokument:
 														folien={format === 'folie'}
 													/>
 												</>
-											)
-										: undefined
-								}
-								springe={struktur.springe}
-								verdeckt={chatStand.verlaufHoehe}
-								groesse={bild.groesse}
-								pruefung={pruefung.stand}
-							/>
-						)}
-					</main>
-				</div>
-				{panels.rechtsOffen && (
-					<aside
-						className="flex w-[248px] flex-none flex-col border-l border-rand bg-flaeche max-lg:h-[38vh] max-lg:w-auto max-lg:border-t max-lg:border-l-0"
-						data-panel={panels.rechts}
-					>
-						<div
-							className={klassen(
-								'min-h-0 flex-1 overflow-y-auto',
-								panels.rechts !== 'inspektor' && 'p-3',
+											)}
+											<ClaudeSchicht
+												e={e}
+												claude={claude}
+												jetzt={quelle}
+												darstellung={darstellung}
+												adresse={adresse}
+											/>
+										</>
+									)}
+									springe={struktur.springe}
+									groesse={bild.groesse}
+									pruefung={pruefung.stand}
+								/>
 							)}
+						</main>
+					</div>
+					{panels.rechtsOffen && (
+						<aside
+							className="flex w-[248px] flex-none flex-col border-l border-rand bg-flaeche max-lg:h-[38vh] max-lg:w-auto max-lg:border-t max-lg:border-l-0"
+							data-panel={panels.rechts}
 						>
-							<SperrHinweis grund={entwurf.grund} sichtbar={panels.rechts === 'inspektor'} />
-							{panelInhalt[panels.rechts]}
-						</div>
-					</aside>
-				)}
-			</div>
+							<div
+								className={klassen(
+									'min-h-0 flex-1 overflow-y-auto',
+									panels.rechts !== 'inspektor' && 'p-3',
+								)}
+							>
+								<SperrHinweis grund={entwurf.grund} sichtbar={panels.rechts === 'inspektor'} />
+								{panelInhalt[panels.rechts]}
+							</div>
+						</aside>
+					)}
+				</div>
 
-			<Statusleiste
-				seite={seite}
-				format={FORMAT_NAME[format]}
-				pruefung={pruefung.stand}
-				zeigePunkt={zeigePunkt}
-				verschiebe={verschiebeUeberlauf}
-				zoom={zoom}
-				stufe={massstab.stufe}
-				skala={massstab.skala}
-				fuehreAus={befehle.fuehreAus}
-				linksOffen={panels.linksOffen}
-				rechtsOffen={panels.rechtsOffen}
-				setLinksOffen={panels.setLinksOffen}
-				setRechtsOffen={panels.setRechtsOffen}
-				claude={chatStand.fenster === 'zu' ? chatStand.lauf : null}
-				zeigeClaude={() => chat.oeffne('verlauf')}
-			/>
-		</div>
+				<Statusleiste
+					seite={seite}
+					format={FORMAT_NAME[format]}
+					pruefung={pruefung.stand}
+					zeigePunkt={zeigePunkt}
+					verschiebe={verschiebeUeberlauf}
+					zoom={zoom}
+					stufe={massstab.stufe}
+					skala={massstab.skala}
+					fuehreAus={befehle.fuehreAus}
+					linksOffen={panels.linksOffen}
+					rechtsOffen={panels.rechtsOffen}
+					setLinksOffen={panels.setLinksOffen}
+					setRechtsOffen={panels.setRechtsOffen}
+					claude={claude.lauf}
+					zeigeClaude={() => claude.zeigeLauf(struktur.zeigeAn)}
+				/>
+			</div>
+		</ClaudeKontext.Provider>
 	);
 };
 

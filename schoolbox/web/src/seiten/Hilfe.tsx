@@ -154,7 +154,7 @@ const ABSCHNITTE: Abschnitt[] = [
 		inhalt: (
 			<>
 				<p>
-					Ein einzelnes Blatt geht am schnellsten im Chat der Schoolbox, siehe „Mit Claude arbeiten“. Für
+					Ein einzelnes Blatt geht am schnellsten mit „Material anlegen“, siehe „Mit Claude arbeiten“. Für
 					alles Größere nimmst du die Claude-App:
 				</p>
 				<ol>
@@ -354,51 +354,11 @@ const ABSCHNITTE: Abschnitt[] = [
 		titel: 'Mit Claude arbeiten',
 		inhalt: (
 			<>
-				<ol>
-					<li>„Claude“ oben antippen oder ⌘J drücken. Der Chat liegt unten über dem Blatt.</li>
-					<li>
-						Der Knopf links im Feld zeigt, worauf sich dein Auftrag bezieht: den gewählten Baustein, das
-						ganze Blatt oder neues Material. Wähle einen anderen Teil, und er geht mit.
-					</li>
-					<li>Schreiben, Enter. Du kannst währenddessen weiterarbeiten, unten steht, wie weit Claude ist.</li>
-					<li>
-						Am Ende steht ein Vorschlag. „Vergleichen“ zeigt ihn neben dem Blatt, erst „Annehmen“ ändert
-						etwas. Schreibst du stattdessen weiter, bessert Claude den Vorschlag nach.
-					</li>
-				</ol>
-				<h3>Ein Gespräch</h3>
+				<h3>Neues Material mit Claude</h3>
 				<p>
-					Claude merkt sich, worüber ihr gesprochen habt, und du kannst einfach antworten, auch mit „Ja, mach
-					das“ oder „das zweite“. Ist dein Wunsch offen, fragt Claude kurz zurück, sonst macht es und nennt
-					seine Annahme. Weitere Nachrichten bauen auf dem offenen Vorschlag auf: „Noch etwas größer“ meint
-					das, was gerade dort steht.
-				</p>
-				<p>
-					Einklappen lässt das Gespräch weiterlaufen. Schließen beendet es, ohne Nachfrage: Der Verlauf ist
-					weg, und Claude fängt beim nächsten Mal von vorn an. Das gilt auch für Esc in der einzelnen Zeile,
-					für „Neu beginnen“ unter ⋯, für ein anderes Dokument und für Neuladen. Ein offener Vorschlag bleibt
-					dabei stehen. Ein langes Gespräch verbraucht mit jeder Nachricht mehr; dann schlägt der Chat „Neu
-					beginnen“ vor.
-				</p>
-				<h3>Wenn es keinen passenden Baustein gibt</h3>
-				<p>
-					Dann baut Claude ein eigenes, freies Element ins Blatt, etwa ein Tangram in Form eines Waschbärs. Es
-					läuft wie jeder Vorschlag über „Vergleichen“ und „Annehmen“, und du kannst es verschieben, kopieren
-					und löschen. Einstellungen hat es keine. Wähle es aus und tippe auf „Claude fragen“, dann änderst du
-					es im Chat.
-				</p>
-				<p>
-					Material lässt sich drucken, aber nicht anklicken: Skripte, Klick-Ereignisse und Adressen von außen
-					baut Claude nicht ein. Rutscht so etwas doch in einen Lauf, entsteht kein Vorschlag, im Chat steht
-					der Grund, und dein Blatt bleibt, wie es ist.
-				</p>
-				<h3>Neues Material</h3>
-				<p>
-					Der übliche Weg ist „Material anlegen“, siehe oben. Aus dem Chat geht es auch: In „Mein Material“
-					oder einem Ordner wird aus deiner Nachricht neues Material, im Editor wählst du dafür im Knopf links
-					„Neues Material“. Claude zeigt erst eine Karte mit Titel, Format, Fach, Klasse und Ablage. Erst
-					Enter oder „Anlegen“ startet die Arbeit. „Ändern“ öffnet den Assistenten beim Auftrag, links
-					springst du zu jeder Frage.
+					„Material anlegen“ in einem Ordner, dann „Mit Claude“, siehe oben. Schneller geht es über das
+					Befehlsfeld (⌘K): Thema tippen und „Material anlegen: …“ wählen. Der Assistent beginnt dann bei der
+					Art, das Thema steht schon da.
 				</p>
 				<p>
 					Danach öffnet der Editor das leere Blatt. Solange Claude baut, liegt darauf eine Karte mit den
@@ -419,23 +379,83 @@ const ABSCHNITTE: Abschnitt[] = [
 					Klappt es nicht, steht der Grund auf dem Blatt, mit „Nochmal“. Ist das Limit erreicht, steht dort
 					auch, ab wann es wieder geht.
 				</p>
+				<h3>Etwas am Blatt ändern</h3>
+				<ol>
+					<li>
+						Einen Teil des Blatts antippen, dann „Claude“ in seiner Leiste oder ⌘J. Ohne Auswahl nimmt ⌘J
+						die Seite. Die Blase hängt direkt unter dem Teil.
+					</li>
+					<li>
+						Oben in der Blase steht, worauf sich dein Auftrag bezieht. Ein Tipp darauf wählt eine Stufe
+						darüber: die ganze Aufgabe, die Seite oder, bei mehreren Seiten, das ganze Material.
+					</li>
+					<li>Schreiben, Enter. Die Blase zeigt, wie lange Claude schon arbeitet.</li>
+					<li>
+						Am Ende steht der Vorschlag gestrichelt im Blatt, in der Blase „Vorher“ und „Nachher“.
+						„Übernehmen“ oder Enter ändert das Blatt, Rückgängig nimmt es zurück. „Groß vergleichen“ zeigt
+						beide Fassungen nebeneinander. Schreibst du stattdessen weiter, bessert Claude den Vorschlag
+						nach.
+					</li>
+				</ol>
+				<h3>Ein Gespräch</h3>
+				<p>
+					Claude merkt sich, worüber ihr gesprochen habt, und du kannst einfach antworten, auch mit „Ja, mach
+					das“ oder „das zweite“. Ist dein Wunsch offen, fragt Claude kurz zurück, sonst macht es und nennt
+					seine Annahme. Weitere Nachrichten bauen auf dem offenen Vorschlag auf: „Noch etwas größer“ meint
+					das, was gerade dort steht.
+				</p>
+				<p>
+					„—“ oder Esc klappen die Blase ein, das Gespräch läuft weiter. × beendet es, ohne Nachfrage: Der
+					Verlauf ist weg, und Claude fängt beim nächsten Mal von vorn an. Das gilt auch für „Neu beginnen“
+					unter ⋯, für ein anderes Dokument, für Neuladen und wenn du den Teil löschst. Ein offener Vorschlag
+					bleibt dabei stehen. Ein langes Gespräch verbraucht mit jeder Nachricht mehr; dann schlägt die Blase
+					„Neu beginnen“ vor.
+				</p>
+				<h3>Mehrere Teile gleichzeitig</h3>
+				<p>
+					Eingeklappt wird die Blase zu einer Pille am Teil: „Claude arbeitet …“ mit der Zeit, „Vorschlag
+					bereit“, „Claude fragt“ oder „Claude hat geantwortet“. Ein Tipp darauf öffnet sie wieder. Wählst du
+					einen anderen Teil, klappt die offene Blase von selbst ein, und du kannst dort ein weiteres Gespräch
+					beginnen. Arbeitet Claude noch am ersten, wartet dein Auftrag und startet direkt danach. Bis zu fünf
+					Gespräche gehen gleichzeitig.
+				</p>
+				<p>
+					In den Ebenen steht ✦ an jedem Teil, an dem Claude arbeitet oder ein Vorschlag wartet. Unten in der
+					Leiste steht, was eingeklappte Gespräche tun; ein Tipp darauf rollt hin und öffnet die Blase.
+				</p>
+				<h3>Wenn es keinen passenden Baustein gibt</h3>
+				<p>
+					Dann baut Claude ein eigenes, freies Element ins Blatt, etwa ein Tangram in Form eines Waschbärs. Es
+					läuft wie jeder Vorschlag über „Übernehmen“, und du kannst es verschieben, kopieren und löschen.
+					Einstellungen hat es keine. Wähle es aus und tippe auf „Claude“, dann änderst du es in der Blase.
+				</p>
+				<p>
+					Material lässt sich drucken, aber nicht anklicken: Skripte, Klick-Ereignisse und Adressen von außen
+					baut Claude nicht ein. Rutscht so etwas doch in einen Lauf, entsteht kein Vorschlag, in der Blase
+					steht der Grund, und dein Blatt bleibt, wie es ist.
+				</p>
 				<h3>Was weiter die Claude-App braucht</h3>
 				<p>
-					Neue Bilder, ganze Reihen, mehrere Dokumente auf einmal. Für einen bestimmten Teil im Chat unter ⋯
-					„In der Claude-App weiterarbeiten“, in der App einfügen und den Wunsch dahinterschreiben. Die zwei
-					eingefügten Zeilen gehören so; die zweite ist für Claude.
+					Neue Bilder, ganze Reihen, mehrere Dokumente auf einmal. Für einen bestimmten Teil in der Blase
+					unter ⋯ „In der Claude-App weiterarbeiten“, in der App einfügen und den Wunsch dahinterschreiben.
+					Die zwei eingefügten Zeilen gehören so; die zweite ist für Claude.
 				</p>
 				<h3>Verbrauch</h3>
 				<p>
 					Alles zählt für das Limit deines Claude-Kontos, zusammen mit der Claude-App. Eine Änderung braucht
-					wenig, neues Material deutlich mehr und einige Minuten. Wird es knapp, steht das im Chat. Hast du
-					Guthaben gekauft, arbeitet Claude am erreichten Limit darüber weiter, das ist echtes Geld. Auch das
-					steht dann im Chat.
+					wenig, neues Material deutlich mehr und einige Minuten. Wird es knapp, steht das in der Blase. Hast
+					du Guthaben gekauft, arbeitet Claude am erreichten Limit darüber weiter, das ist echtes Geld. Auch
+					das steht dann in der Blase.
 				</p>
 			</>
 		),
 		bilder: [
-			{ datei: 'chat-mac.jpg', alt: 'Der Chat mit einem Vorschlag über dem Blatt', geraet: 'Mac' },
+			{ datei: 'blase-mac.jpg', alt: 'Die Blase unter einer Aufgabe', geraet: 'Mac' },
+			{
+				datei: 'blase-vorschlag-mac.jpg',
+				alt: 'Ein Vorschlag gestrichelt im Blatt, in der Blase Vorher und Nachher',
+				geraet: 'Mac',
+			},
 			{ datei: 'entwurf-mac.jpg', alt: 'Der Entwurf von Claude mit der Leiste über dem Blatt', geraet: 'Mac' },
 		],
 	},
@@ -466,7 +486,7 @@ const ABSCHNITTE: Abschnitt[] = [
 					Claude schreibt es für die Weiterentwicklung auf.
 				</li>
 				<li>Aus Versehen gelöscht? Im Papierkorb oben bleibt alles 30 Tage.</li>
-				<li>Keine Namen von Kindern in Materialien oder im Chat; Claude schlägt dann Fantasienamen vor.</li>
+				<li>Keine Namen von Kindern in Materialien oder an Claude; Claude schlägt dann Fantasienamen vor.</li>
 			</ul>
 		),
 		bilder: [],

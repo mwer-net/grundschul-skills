@@ -18,6 +18,7 @@ import { hatLeistenfeld } from './abbildung-felder';
 import { AbbildungLeiste } from './Abbildungspanel';
 import { BEFEHLE, kuerzelText, titelVon } from './befehle';
 import type { BildSteuerung } from './bild';
+import { ClaudeKnopf } from './ClaudeKnopf';
 import type { PfadTeil } from './darstellung';
 import { elementZu } from './darstellung';
 import { istGestaltungAuswahl } from './gestaltung/inspektor/kontext-ersatz';
@@ -44,7 +45,8 @@ interface Eigenschaften {
 	waehle: (nr: number) => void;
 }
 
-const MAX_BREITE = 560;
+// 640 statt 560 seit „Claude“ in der Leiste steht (134): Sonst fielen beim Aufgabentext die Schriftknöpfe weg.
+const MAX_BREITE = 640;
 const ABSTAND = 6;
 const MAX_SPEZIFISCH = 3;
 /** Die Seite hat „Seite danach“; in Zellen und Einträgen steht ein neuer Baustein nicht in derselben Liste. */
@@ -571,6 +573,12 @@ export const Bausteinleiste = ({
 					}))}
 				/>
 				{(sitzung ? platz.pfeile : nachWerte) && <Pfeile befehle={befehle} platzhalter={sitzung} />}
+				{!sitzung && (
+					<>
+						<Trenner />
+						<ClaudeKnopf befehle={befehle} />
+					</>
+				)}
 				<LeistenRest
 					art={baustein.art}
 					befehle={befehle}

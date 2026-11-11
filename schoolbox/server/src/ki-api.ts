@@ -4,21 +4,27 @@ import {
 	KI_AKTIONEN,
 	leseMappe,
 	leseMeta,
-	ordnerGeloescht,
-	ordnerPfad,
 	pruefeAntworten,
 	pruefeAuftragText,
-	sammleMappen,
 	schritteFuer,
 } from '@schoolbox/kern';
 import type { Router as RouterTyp } from 'express';
 
 import { leseQuelle, schreibeQuelle, verlangeDokument } from './dokumente';
 import { HttpFehler } from './fehler';
-import type { KiNachricht } from './ki';
-import { aktionWunsch, KI_WARN_AB, leseVorschlag, pruefeGespraechId, verwirfVorschlag } from './ki';
+import type { GelesenerVorschlag, KiNachricht } from './ki';
+import {
+	aktionWunsch,
+	ergebnisDes,
+	KI_WARN_AB,
+	leseVorschlaege,
+	leseVorschlag,
+	pruefeGespraechId,
+	pruefeSchluessel,
+	verwirfVorschlag,
+} from './ki';
 import type { Kontext } from './kontext';
-import { dokSchluessel, kennung } from './kontext';
+import { dokSchluessel } from './kontext';
 
 const text = (wert: unknown) => (typeof wert === 'string' ? wert : undefined);
 
@@ -38,20 +44,17 @@ const nachrichten = (wert: unknown): KiNachricht[] | undefined => {
 	});
 };
 
-const kennungDerQuelle = async (dir: string) => kennung(await leseQuelle(dir));
-
 /**
  * Der Teil der Lehrkraft für `neu-entwurf`. Aus dem Assistenten (131) baut der Server den Auftrag selbst aus den
  * Antworten, mit Art, Fach und Klasse des Dokuments; `auftragText` ersetzt ihn, wenn die Lehrkraft ihn bearbeitet hat.
- * Ohne Antworten der freie Wunsch aus dem Chat (077), bis 136 ihn entfernt.
+ * Einen freien Wunsch ohne Antworten gibt es seit 136 nicht mehr.
  */
 const eingabeVon = (body: Record<string, unknown>, dokument: Pick<Antworten, 'art' | 'fach' | 'klasse'>) => {
 	if (body.antworten === undefined) {
-		const wunsch = text(body.auftrag);
-		if (!wunsch) {
-			throw new HttpFehler(400, 'Bitte schreib, worum es geht.');
-		}
-		return `Wunsch der Lehrkraft: ${wunsch}`;
+		throw new HttpFehler(
+			400,
+			'Ein neues Blatt braucht die Antworten aus „Material anlegen“. Bitte lade die Seite neu.',
+		);
 	}
 	const antworten = { ...pruefeAntworten(body.antworten, dokument), ...dokument };
 	if (antworten.weg !== 'claude') {
@@ -91,30 +94,6 @@ export const kiApi = (router: RouterTyp, kontext: Kontext) => {
 		res.json(await kiStatus());
 	});
 
-	router.post('/ki/einordnen', async (req, res) => {
-		const body = (req.body ?? {}) as Record<string, unknown>;
-		const { mappen } = await sammleMappen(materialDir);
-		const baum = kontext.ordner.baum();
-		const ordner = baum.ordner
-			.filter((o) => !ordnerGeloescht(baum, o.id))
-			.map((o) => {
-				const behaelter = mappen.find((m) => m.mappe.id === o.behaelter)?.mappe;
-				return {
-					id: o.id,
-					pfad: ordnerPfad(baum, o.id)
-						.map((p) => p.name)
-						.join(' > '),
-					...(behaelter ? { fach: behaelter.fach, klasse: behaelter.klasse } : {}),
-				};
-			});
-		const wunsch = text(body.ordner);
-		const aktuelle = ordner.find((o) => o.id === wunsch);
-		if (wunsch && !aktuelle) {
-			throw new HttpFehler(404, 'Diesen Ordner gibt es nicht mehr.');
-		}
-		res.json(await ki.einordne({ text: text(body.text) ?? '', ordner, aktuelle }));
-	});
-
 	router.post('/dokumente/:mappe/:dok/ki', async (req, res) => {
 		const { dok, mappe } = req.params;
 		verlangeDokument(kontext, mappe, dok);
@@ -134,6 +113,7 @@ export const kiApi = (router: RouterTyp, kontext: Kontext) => {
 			dok,
 			referenz: text(body.referenz),
 			aufVorschlag: body.aufVorschlag === true,
+			vorschlag: pruefeSchluessel(body.vorschlag),
 			gespraechId: pruefeGespraechId(body.gespraechId),
 			verlauf: nachrichten(body.verlauf),
 			zitat: text(body.zitat),
@@ -187,36 +167,57 @@ export const kiApi = (router: RouterTyp, kontext: Kontext) => {
 		res.json({ abgebrochen: ki.abbrechen(req.params.id) });
 	});
 
+	/** Was die Oberfläche von einem Vorschlag sieht; `quelle` nur auf Wunsch, als Ergebnis des Annehmens (135). */
+	const fuerOberflaeche = (v: GelesenerVorschlag, aktuell: string, mitQuelle: boolean) => {
+		const ergebnis = ergebnisDes(v, aktuell);
+		const meta = { ...v.meta };
+		// Die Teile vorher und nachher braucht nur das Annehmen.
+		delete meta.ausschnitt;
+		return {
+			...meta,
+			schluessel: v.schluessel,
+			konflikt: ergebnis === null,
+			...(mitQuelle ? { quelle: ergebnis ?? v.quelle } : {}),
+		};
+	};
+
+	router.get('/dokumente/:mappe/:dok/vorschlaege', async (req, res) => {
+		const { dok, mappe } = req.params;
+		const dir = verlangeDokument(kontext, mappe, dok);
+		const [alle, aktuell] = await Promise.all([leseVorschlaege(materialDir, mappe, dok), leseQuelle(dir)]);
+		res.json({ vorschlaege: alle.map((v) => fuerOberflaeche(v, aktuell, req.query.quelle === '1')) });
+	});
+
+	/** Ohne `gespraech`: der Entwurf des neuen Blatts (133), sonst der jüngste. */
 	router.get('/dokumente/:mappe/:dok/vorschlag', async (req, res) => {
 		const { dok, mappe } = req.params;
 		const dir = verlangeDokument(kontext, mappe, dok);
-		const vorschlag = await leseVorschlag(materialDir, mappe, dok);
+		const vorschlag = await leseVorschlag(materialDir, mappe, dok, pruefeSchluessel(req.query.gespraech));
 		res.json({
-			vorschlag: vorschlag && {
-				...vorschlag.meta,
-				konflikt: vorschlag.meta.basis !== (await kennungDerQuelle(dir)),
-				// Das neue Blatt zeigt der Editor als Vorschlag selbst (133).
-				...(req.query.quelle === '1' ? { quelle: vorschlag.quelle } : {}),
-			},
+			vorschlag: vorschlag && fuerOberflaeche(vorschlag, await leseQuelle(dir), req.query.quelle === '1'),
 		});
 	});
+
+	const gewaehlt = (body: unknown) => pruefeSchluessel((body as Record<string, unknown> | undefined)?.gespraech);
 
 	router.post('/dokumente/:mappe/:dok/vorschlag/annehmen', async (req, res) => {
 		const { dok, mappe } = req.params;
 		const dir = verlangeDokument(kontext, mappe, dok);
+		const schluessel = gewaehlt(req.body);
 		const ergebnis = await kontext.sperre(dokSchluessel(mappe, dok), async () => {
-			const vorschlag = await leseVorschlag(materialDir, mappe, dok);
+			const vorschlag = await leseVorschlag(materialDir, mappe, dok, schluessel);
 			if (!vorschlag) {
 				throw new HttpFehler(404, 'Diesen Vorschlag gibt es nicht mehr.');
 			}
-			if (vorschlag.meta.basis !== (await kennungDerQuelle(dir))) {
+			const neu = ergebnisDes(vorschlag, await leseQuelle(dir));
+			if (neu === null) {
 				throw new HttpFehler(409, 'Das Blatt wurde seit dem Auftrag geändert. Starte den Auftrag bitte neu.');
 			}
-			const gespeichert = await schreibeQuelle(kontext, mappe, dok, vorschlag.quelle, {
+			const gespeichert = await schreibeQuelle(kontext, mappe, dok, neu, {
 				urheber: 'claude',
 				zusammenfassen: false,
 			});
-			await verwirfVorschlag(materialDir, mappe, dok);
+			await verwirfVorschlag(materialDir, mappe, dok, vorschlag.schluessel);
 			if (vorschlag.meta.neuesBlatt) {
 				ki.vergiss(mappe, dok);
 			}
@@ -228,10 +229,13 @@ export const kiApi = (router: RouterTyp, kontext: Kontext) => {
 	router.post('/dokumente/:mappe/:dok/vorschlag/verwerfen', async (req, res) => {
 		const { dok, mappe } = req.params;
 		verlangeDokument(kontext, mappe, dok);
-		if ((await leseVorschlag(materialDir, mappe, dok))?.meta.neuesBlatt) {
+		const vorschlag = await leseVorschlag(materialDir, mappe, dok, gewaehlt(req.body));
+		if (vorschlag?.meta.neuesBlatt) {
 			ki.vergiss(mappe, dok);
 		}
-		await verwirfVorschlag(materialDir, mappe, dok);
+		if (vorschlag) {
+			await verwirfVorschlag(materialDir, mappe, dok, vorschlag.schluessel);
+		}
 		res.json({ verworfen: true });
 	});
 };

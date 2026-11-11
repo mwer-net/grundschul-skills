@@ -223,8 +223,12 @@ export const apiRouter = (kontext: Kontext) => {
 
 	router.use('/freigaben', freigabenApi(kontext));
 
+	// Meist ein Tab mit altem Stand nach dem Ausrollen (136: `/ki/einordnen` gibt es nicht mehr).
 	router.use((req) => {
-		throw new HttpFehler(404, `Unbekannte Adresse: ${req.method} ${req.originalUrl}`);
+		throw new HttpFehler(
+			404,
+			`Die Schoolbox wurde aktualisiert. Bitte lade die Seite neu. (Unbekannte Adresse: ${req.method} ${req.originalUrl})`,
+		);
 	});
 	return router;
 };

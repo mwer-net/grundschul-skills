@@ -1,6 +1,5 @@
 import type { Antworten, AssistentSchrittId, Weg } from '@schoolbox/kern/src/assistent';
 import { formatOptionen, formatWahl, titelVorschlag } from '@schoolbox/kern/src/assistent';
-import type { Einordnung } from '@schoolbox/kern/src/einordnung';
 import type { Fach, Klasse } from '@schoolbox/kern/src/werte';
 
 import type { AblageStand } from '../ordner/typen';
@@ -55,31 +54,17 @@ export interface Ordnerangabe {
 	vorbelegt: Vorbelegung;
 }
 
-/** Wo der Assistent anlegt und was er vorbelegt: der feste Ordner, sonst der aus der Einordnung des Chats (077). */
-export const ortDesAssistenten = (
-	stand: AblageStand | null,
-	festerOrdner: string | null | undefined,
-	einordnung: Einordnung | undefined,
-) => {
-	const ordner = festerOrdner === undefined ? (einordnung?.ordner?.id ?? null) : festerOrdner;
-	const vorbelegt: Vorbelegung = einordnung?.fest
-		? { fach: einordnung.fach, klasse: einordnung.klasse, quelle: 'behaelter' }
-		: vorbelegung(stand, ordner);
-	const name =
-		stand?.ordner.find((o) => o.id === ordner)?.name ??
-		einordnung?.ordner?.pfad.split(' > ').at(-1) ??
-		'Mein Material';
+/** Wo der Assistent anlegt und was er vorbelegt: der Ordner, aus dem er kommt, sonst „Mein Material“. */
+export const ortDesAssistenten = (stand: AblageStand | null, festerOrdner: string | null | undefined) => {
+	const ordner = festerOrdner ?? null;
+	const vorbelegt = vorbelegung(stand, ordner);
+	const name = stand?.ordner.find((o) => o.id === ordner)?.name ?? 'Mein Material';
 	const angabe: Ordnerangabe = { name, vorbelegt };
 	return { ordner, vorbelegt, angabe };
 };
 
-/** Aus dem Chat beim Auftrag; hat Claude nicht eingeordnet, zuerst bei Klasse und Fach (sonst geraten). */
-export const ersterSchritt = (einordnung: Einordnung | undefined): AssistentSchrittId => {
-	if (!einordnung) {
-		return 'start';
-	}
-	return einordnung.rueckfall && !einordnung.fest ? 'fuerWen' : 'pruefen';
-};
+/** Aus der Palette („Material anlegen: …“, 136): Das Thema steht schon, es geht bei der Materialart los. */
+export const ersterSchritt = (thema: string | undefined): AssistentSchrittId => (thema ? 'art' : 'start');
 
 /**
  * Die Antworten, wie sie gelten: Der Behälter legt Fach und Klasse fest, auch wenn die Ablage erst nach dem Öffnen

@@ -14,7 +14,7 @@ import { expect, MATERIAL_DIR, test } from './hilfe';
 const MAUS = ['chromium', 'mac-safari'];
 
 const kiFall = (name: string) => writeFile(path.join(`${MATERIAL_DIR}-ki`, 'fall.txt'), name);
-const chat = (page: Page) => page.locator('[data-chat]');
+const chat = (page: Page) => page.locator('[data-claude-blase]');
 const gruppe = (page: Page) => material(page).locator('.gruppe');
 const pfad = (page: Page) => material(page).locator('svg.form[data-form="pfad"]');
 
@@ -23,11 +23,11 @@ const nimmAn = async (page: Page, fall: string, auftrag: string, angenommen: (pa
 	const u = await uhrzeit();
 	await kiFall(fall);
 	await oeffne(page, u.id, u.dok);
-	await page.getByRole('button', { name: 'Claude', exact: true }).click();
+	await page.keyboard.press('ControlOrMeta+j');
 	await chat(page).getByLabel('Was soll Claude ändern?').fill(auftrag);
 	await chat(page).getByRole('button', { name: 'Senden' }).click();
 	await expect(chat(page).locator('[data-ki-vorschlag]')).toBeVisible();
-	await chat(page).getByRole('button', { name: 'Vergleichen' }).click();
+	await chat(page).getByRole('button', { name: 'Groß vergleichen' }).click();
 	await expect(page.frameLocator('[data-vorschlag-rahmen]').locator('[data-form]').first()).toBeAttached();
 	await page.getByRole('dialog').getByRole('button', { name: 'Annehmen' }).click();
 	await expect(angenommen(page)).toHaveCount(1);

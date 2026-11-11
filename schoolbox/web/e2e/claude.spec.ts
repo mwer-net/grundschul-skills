@@ -36,10 +36,11 @@ const fangeZwischenablage = (page: Page, geht: boolean) =>
 
 const kopiert = (page: Page) => page.evaluate(() => (window as unknown as { ablage: Ablage }).ablage.kopiert);
 const zurClaudeApp = async (page: Page, druecke: (ziel: Locator) => Promise<void>) => {
-	if (!(await page.locator('[data-chat]').isVisible())) {
-		await druecke(page.getByRole('button', { name: 'Claude', exact: true }));
+	const blase = page.locator('[data-claude-blase]');
+	if (!(await blase.isVisible())) {
+		await page.keyboard.press('ControlOrMeta+j');
 	}
-	await druecke(page.getByRole('button', { name: 'Chat: weitere Aktionen' }));
+	await druecke(blase.getByRole('button', { name: 'Claude: weitere Aktionen' }));
 	await druecke(page.getByRole('menuitem', { name: 'In der Claude-App weiterarbeiten' }));
 };
 const breadcrumb = (page: Page) => page.locator('[data-breadcrumb]');

@@ -7,7 +7,7 @@ import { useEffect, useState } from 'react';
 import { FELD_KLASSEN, klassen } from '../../bausteine/klassen';
 import { Schubladenhinweis, Schubladenkopf } from '../../bausteine/Schubladenkopf';
 import { Segment } from '../../bausteine/Segment';
-import { useChat } from '../chat-kontext';
+import { useClaudeSteuerung } from '../claude-kontext';
 import { elementZu } from '../darstellung';
 import { sichtbarsteSeite } from '../gestaltung/ablegen/ablegen';
 import { AblageKachel } from '../gestaltung/ablegen/Kachel';
@@ -53,7 +53,7 @@ const freieFiguren = (z: Zerlegung | null) =>
 let wartet: Set<string> | null = null;
 
 const FigurVonClaude = ({ t }: { t: SchubladenTeile }) => {
-	const { schicke } = useChat();
+	const { schicke } = useClaudeSteuerung();
 	const [wunsch, setWunsch] = useState('');
 	const [grund, setGrund] = useState<string | null>(null);
 	const { setAuswahl, zerlegung } = t;

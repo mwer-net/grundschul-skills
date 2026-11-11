@@ -3,12 +3,13 @@ import path from 'node:path';
 
 import type { Locator, Page } from '@playwright/test';
 
-import { oeffne, uhrzeit } from './editorhilfe';
+import { geladen, oeffne, uhrzeit } from './editorhilfe';
 import { dokumentOrdner, expect, MATERIAL_DIR, test } from './hilfe';
 
 const fall = (name: string) => writeFile(path.join(`${MATERIAL_DIR}-ki`, 'fall.txt'), name);
-const panel = (page: Page) => page.locator('[data-chat]');
-const oeffnePanel = (page: Page) => page.getByRole('button', { name: 'Claude', exact: true }).click();
+const panel = (page: Page) => page.locator('[data-claude-blase]');
+/** Ohne Auswahl öffnet ⌘J die Blase an der Seite; bei nur einer Seite meint sie das ganze Blatt (134). */
+const oeffnePanel = (page: Page) => page.keyboard.press('ControlOrMeta+j');
 const quelleAufPlatte = (mappe: string, dok: string) =>
 	readFile(path.join(dokumentOrdner(mappe, dok), 'material.html'), 'utf8');
 
@@ -263,7 +264,7 @@ test.describe('Editor: Mit Claude ändern (058, 059)', () => {
 		await expect(panel(page).getByText('Annahme: Klasse 2')).toBeVisible();
 		expect(await quelleAufPlatte(mappe, dok)).toBe(vorher);
 
-		await panel(page).getByRole('button', { name: 'Vergleichen' }).click();
+		await panel(page).getByRole('button', { name: 'Groß vergleichen' }).click();
 		const rahmen = page.frameLocator('[data-vorschlag-rahmen]');
 		await expect(rahmen.locator('h1').first()).toContainText('von Claude');
 		await expect(rahmen.locator('[data-ki-geaendert]').first()).toBeVisible();
@@ -295,7 +296,7 @@ test.describe('Editor: Mit Claude ändern (058, 059)', () => {
 		await panel(page).getByLabel('Was soll Claude ändern?').fill('Dauert');
 		await panel(page).getByRole('button', { name: 'Senden' }).click();
 		const lauf = panel(page).locator('[data-ki-lauf]');
-		await expect(lauf.getByText('Ändert das Blatt')).toBeVisible();
+		await expect(lauf.getByText(/Claude ändert Seite 1/)).toBeVisible();
 		await lauf.getByRole('button', { name: 'Abbrechen' }).click();
 		await expect(lauf).toBeHidden();
 		await expect(panel(page).locator('[data-ki-vorschlag]')).toBeHidden();
@@ -306,18 +307,17 @@ test.describe('Editor: Mit Claude ändern (058, 059)', () => {
 		await oeffne(page, mappe, dok);
 		await oeffnePanel(page);
 		const aktionen = panel(page).locator('[data-ki-aktionen]');
-		await panel(page).getByRole('button', { name: 'Worauf bezieht sich der Auftrag?' }).click();
-		await expect(page.getByRole('menuitem').getByText('verbraucht deutlich mehr')).toBeVisible();
-		await page.keyboard.press('Escape');
 		await expect(aktionen.getByRole('button', { name: 'Drei Niveaus' })).toBeVisible();
 		await expect(aktionen.getByRole('button', { name: 'Baustein füllen' })).toBeHidden();
 		await aktionen.getByRole('button', { name: 'Leichter' }).click();
 		await expect(panel(page).locator('[data-ki-vorschlag]')).toBeVisible();
 		await expect(panel(page).locator('[data-chat-nachricht="lehrkraft"]').getByText('Leichter')).toBeVisible();
 
-		await panel(page).getByRole('button', { name: 'Vergleichen' }).click();
+		await panel(page).getByRole('button', { name: 'Groß vergleichen' }).click();
 		await page.getByRole('button', { name: 'Nachbessern' }).click();
-		await panel(page).getByLabel('Was soll Claude am Vorschlag ändern?').fill('Noch etwas');
+		await expect(panel(page).getByLabel('Was soll Claude ändern?')).toBeFocused();
+		await expect(panel(page).getByLabel('Was soll Claude ändern?')).toHaveAttribute('placeholder', 'Nachbessern …');
+		await panel(page).getByLabel('Was soll Claude ändern?').fill('Noch etwas');
 		await panel(page).getByRole('button', { name: 'Senden' }).click();
 		await expect(panel(page).locator('[data-chat-nachricht="lehrkraft"]').getByText('Noch etwas')).toBeVisible();
 		await expect(panel(page).locator('[data-ki-vorschlag]')).toBeVisible();
@@ -331,11 +331,12 @@ test.describe('Editor: Mit Claude ändern (058, 059)', () => {
 		const datei = path.join(dokumentOrdner(mappe, dok), 'material.html');
 		await writeFile(datei, (await readFile(datei, 'utf8')).replace('</h1>', ' Eigenes</h1>'));
 		await page.reload();
-		// Das Fenster startet nach dem Neuladen zu (087); der Vorschlag wartet in der Statusleiste.
+		// Die Blase startet nach dem Neuladen zu (087); der Vorschlag wartet als Pille an der Seite (135).
 		await expect(panel(page)).toHaveCount(0);
+		await expect(page.locator('[data-claude-pille="vorschlag"]')).toBeVisible();
 		await oeffnePanel(page);
 		await expect(panel(page).getByRole('alert')).toContainText('seit dem Auftrag geändert');
-		await expect(panel(page).getByRole('button', { name: 'Vergleichen' })).toHaveCount(0);
+		await expect(panel(page).getByRole('button', { name: 'Groß vergleichen' })).toHaveCount(0);
 		await expect(panel(page).getByRole('button', { name: 'Neu starten' })).toBeVisible();
 	});
 
@@ -363,6 +364,8 @@ test.describe('Editor: Mit Claude ändern (058, 059)', () => {
 		await page.unroute('**/api/ki/status');
 		await page.route('**/api/ki/status', (r) => r.fulfill({ json: antwort('rejected', 1) }));
 		await page.reload();
+		await geladen(page);
+		await expect(page.locator('[data-speicherstand="gespeichert"]')).toBeVisible();
 		await oeffnePanel(page);
 		await expect(panel(page).locator('[data-ki-limit="gesperrt"]')).toContainText('Wieder möglich ab');
 		await panel(page).getByLabel('Was soll Claude ändern?').fill('Geht nicht');
@@ -381,7 +384,7 @@ test.describe('Editor: Mit Claude ändern (058, 059)', () => {
 		await expect(panel(page).getByRole('button', { name: 'In der Claude-App weiterarbeiten' })).toBeVisible();
 	});
 
-	test('Knöpfe im Chat sind groß genug für den Finger', async ({ hasTouch, page }) => {
+	test('Knöpfe in der Blase sind groß genug für den Finger', async ({ hasTouch, page }) => {
 		test.skip(!hasTouch, 'nur mit dem Finger');
 		const { dok, id: mappe } = await uhrzeit();
 		await oeffne(page, mappe, dok);

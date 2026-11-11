@@ -26,7 +26,7 @@ import { Router } from 'express';
 
 import { leseQuelle, verlangeDokument } from './dokumente';
 import { HttpFehler } from './fehler';
-import { leseVorschlag } from './ki';
+import { ergebnisDes, leseVorschlag, pruefeSchluessel } from './ki';
 import type { Kontext } from './kontext';
 import { pruefeIdParam } from './schutz';
 
@@ -63,12 +63,19 @@ const leseEntwurf = async (dokDir: string, name: unknown) => {
 	});
 };
 
-const leseVorschlagQuelle = async (kontext: Kontext, mappe: string, dok: string) => {
-	const vorschlag = await leseVorschlag(kontext.konfig.materialDir, mappe, dok);
+/** `?vorschlag=1`: der Entwurf des neuen Blatts oder der jüngste; sonst der Vorschlag dieses Gesprächs (135). */
+const leseVorschlagQuelle = async (
+	kontext: Kontext,
+	ort: { mappe: string; dok: string; dir: string },
+	wahl: unknown,
+) => {
+	const schluessel = wahl === '1' ? undefined : pruefeSchluessel(wahl);
+	const vorschlag = await leseVorschlag(kontext.konfig.materialDir, ort.mappe, ort.dok, schluessel);
 	if (!vorschlag) {
 		throw nichtGefunden();
 	}
-	return vorschlag.quelle;
+	// Wie nach dem Annehmen: Hat sich das Blatt anderswo geändert, steht das hier schon drin.
+	return ergebnisDes(vorschlag, await leseQuelle(ort.dir)) ?? vorschlag.quelle;
 };
 
 /**
@@ -276,7 +283,7 @@ export const ansichtRouter = (kontext: Kontext) => {
 		const gelesen =
 			vorschlag === undefined
 				? await (entwurf === undefined ? leseQuelle(dir) : leseEntwurf(dir, entwurf))
-				: await leseVorschlagQuelle(kontext, req.params.mappe, req.params.dok);
+				: await leseVorschlagQuelle(kontext, { ...req.params, dir }, vorschlag);
 		// 119: Kacheln der Rezepte-Schublade. Nur für die Antwort, gespeichert wird nichts; mit `vorschlag` ignoriert.
 		const quelle = vorschlag === undefined ? mitRezept(nurSeite(gelesen, seite), aufmachung) : gelesen;
 		const html = darstellungsHtml(quelle, {

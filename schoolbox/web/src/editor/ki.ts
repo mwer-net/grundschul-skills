@@ -17,6 +17,12 @@ export interface KiAuftrag {
 	/** Ein neues Blatt (133): Das zeigt der Editor auf dem Blatt, nicht der Chat. */
 	neuesBlatt?: boolean;
 	seit?: string;
+	/** Das Gespräch und sein Element (135): So findet die Pille nach dem Neuladen ihren Platz. */
+	gespraech?: string;
+	referenz?: string;
+	/** Nachbessern: der Vorschlag, auf dem er aufbaut. */
+	grundlage?: string;
+	umfang?: string;
 }
 
 export interface KiFenster {
@@ -55,8 +61,17 @@ export interface Vorschlag {
 	konflikt: boolean;
 	meldungen: { stufe: string; seite: number; text: string }[];
 	neuesBlatt?: boolean;
-	/** Nur für das neue Blatt geladen: Der Editor zeigt den Vorschlag selbst. */
+	/** Das Blatt nach dem Annehmen; der Editor zeigt es statt der Quelle (neues Blatt, Blase). */
 	quelle?: string;
+}
+
+/** Einer von mehreren Vorschlägen am Blatt (135), je Gespräch einer. */
+export interface VorschlagAmBlatt extends Vorschlag {
+	/** Sein Name am Server: die Id des Gesprächs, aus dem er kam, sonst `blatt` oder `alt`. */
+	schluessel: string;
+	gespraech?: string;
+	/** Das Element, an dem er hängt. Ohne: das ganze Blatt. */
+	referenz?: string;
 }
 
 const LEER: KiZustand = { verfuegbar: false, limit: null, warnAb: 1, aktionen: [] };
@@ -169,6 +184,31 @@ export const beendeGespraechAufServer = (id: string) => {
 		headers: { 'Content-Type': 'application/json', 'x-schoolbox': '1' },
 		body: '{}',
 	}).catch(() => undefined);
+};
+
+/**
+ * Gespräche enden mit dem Editor (Entscheidung 37): beim Verlassen, beim Wechsel des Dokuments und mit dem Tab. Der
+ * Abbau im Strict Mode der Entwicklung baut gleich wieder auf; erst danach wird entschieden.
+ */
+export const useGespraecheEnden = (offene: () => readonly string[]) => {
+	const holen = useRef(offene);
+	useEffect(() => {
+		holen.current = offene;
+	});
+	useEffect(() => {
+		let lebt = true;
+		const weg = () => holen.current().forEach(beendeGespraechAufServer);
+		window.addEventListener('pagehide', weg);
+		return () => {
+			lebt = false;
+			window.removeEventListener('pagehide', weg);
+			window.setTimeout(() => {
+				if (!lebt) {
+					weg();
+				}
+			});
+		};
+	}, []);
 };
 
 /**

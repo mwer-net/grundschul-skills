@@ -48,8 +48,7 @@ const Statuszeile = ({ gesamt, gewaehlt, status }: { gesamt: number; gewaehlt: n
 	const anzahlText = gewaehlt > 0 ? `${gewaehlt} von ${objekteZahl(gesamt)} ausgewählt` : objekteZahl(gesamt);
 	return (
 		<div
-			className="sticky flex h-6 flex-none items-center border-t border-rand bg-flaeche px-3 text-xs text-leise"
-			style={{ bottom: 'var(--chat-platz, 0px)' }}
+			className="sticky bottom-0 flex h-6 flex-none items-center border-t border-rand bg-flaeche px-3 text-xs text-leise"
 			aria-live="polite"
 			data-statuszeile
 		>
@@ -495,11 +494,7 @@ export const Ablage = () => {
 	};
 
 	return (
-		<div
-			className="-mx-4 -mt-3 flex min-h-[calc(100dvh-var(--kopf,0px))]"
-			style={{ marginBottom: 'calc(-1 * max(4rem, var(--chat-platz, 0px)))' }}
-			data-ablage
-		>
+		<div className="-mx-4 -mt-3 -mb-16 flex min-h-[calc(100dvh-var(--kopf,0px))]" data-ablage>
 			{leisteAn && (
 				<Ordnerleiste
 					stand={stand}

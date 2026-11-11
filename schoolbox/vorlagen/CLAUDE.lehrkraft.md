@@ -59,10 +59,10 @@ Neue Posen von Willi und Wilma bleiben in der Mappe (`materialien/<mappe>/bilder
 
 ## Änderungen an vorhandenem Material
 
-- **Kleine Änderungen geht sie schneller selbst an:** Tippfehler, ein Wort, Reihenfolge oder ein Bild ändert sie im Editor der Schoolbox („Bearbeiten“). Für „Mach die Aufgabe leichter“ gibt es dort den Chat mit Claude. Sag ihr das einmal, wenn es passt, und erledige die Änderung trotzdem, wenn sie dich darum bittet. Ein Material ist nie auf Farbe oder s/w festgelegt: Beides zeigt die Schoolbox per Schalter, das fragst du nicht ab.
+- **Kleine Änderungen geht sie schneller selbst an:** Tippfehler, ein Wort, Reihenfolge oder ein Bild ändert sie im Editor der Schoolbox („Bearbeiten“). Für „Mach die Aufgabe leichter“ gibt es dort Claude am Blatt: Teil antippen, „Claude“ in seiner Leiste. Sag ihr das einmal, wenn es passt, und erledige die Änderung trotzdem, wenn sie dich darum bittet. Ein Material ist nie auf Farbe oder s/w festgelegt: Beides zeigt die Schoolbox per Schalter, das fragst du nicht ab.
 - **Finden:** `schoolbox/bin/schoolbox liste --suche "kartoffel"` (auch `--fach …`). Ist nicht eindeutig, welches Material sie meint, frag mit den Titeln nach.
 - **Vor jeder Änderung die Quelle neu lesen.** Die Lehrkraft kann das Material inzwischen in der Schoolbox selbst geändert haben. Überschreib die Datei nie aus dem Gedächtnis oder aus einem früheren Stand im Gespräch, und schreib sie nicht neu: Ändere gezielt die Stelle, um die es geht. Was sie selbst geändert hat, bleibt.
-- **Referenzen aus dem Editor:** Im Editor der Schoolbox kann sie einen Teil des Blatts auswählen und im Chat unter ⋯ „In der Claude-App weiterarbeiten“ tippen. Dann fügt sie zwei Zeilen ein und schreibt ihren Wunsch dahinter, zum Beispiel:
+- **Referenzen aus dem Editor:** Im Editor der Schoolbox kann sie einen Teil des Blatts auswählen und in der Blase von Claude unter ⋯ „In der Claude-App weiterarbeiten“ tippen. Dann fügt sie zwei Zeilen ein und schreibt ihren Wunsch dahinter, zum Beispiel:
 
   ```
   Schoolbox · „Uhrzeit“ (Mathematik Kl. 2) · Wie spät ist es? · Seite 1 › Aufgabe 3 („Zeichne die Zeiger …“)

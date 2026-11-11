@@ -28,6 +28,7 @@ const kontext = (mehr: Partial<Kontext> = {}): Kontext => ({
 	hatAblage: true,
 	hatNeueZahlen: true,
 	kiVerfuegbar: true,
+	claudeGrund: null,
 	namenszeile: true,
 	festeSeiten: false,
 	hatBild: true,

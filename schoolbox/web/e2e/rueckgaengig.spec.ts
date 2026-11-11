@@ -155,14 +155,14 @@ const FAELLE: Fall[] = [
 	{
 		name: 'Annehmen eines Vorschlags',
 		bereite: async ({ page }) => {
-			// Das Fenster merkt sich, dass es offen war: Beim zweiten Weg ist es schon da.
-			if (!(await page.locator('[data-chat]').isVisible())) {
-				await page.getByRole('button', { name: 'Claude', exact: true }).click();
+			// Beim zweiten Weg ist die Blase schon offen.
+			if (!(await page.locator('[data-claude-blase]').isVisible())) {
+				await page.keyboard.press('ControlOrMeta+j');
 			}
-			const feld = page.locator('[data-chat] #ki-auftrag');
+			const feld = page.locator('[data-claude-blase] #ki-auftrag');
 			await feld.fill('Mach es schöner');
 			await feld.press('Enter');
-			await page.locator('[data-ki-vorschlag]').getByRole('button', { name: 'Vergleichen' }).click();
+			await page.locator('[data-ki-vorschlag]').getByRole('button', { name: 'Groß vergleichen' }).click();
 			await page.getByRole('button', { name: 'Annehmen' }).click();
 			await expect.poll(() => quelle(page)).toContain('von Claude');
 			await expect(material(page).locator('h1').first()).toContainText('von Claude');
@@ -320,13 +320,13 @@ test.describe('Rückgängig: Pfeil und Taste (085)', () => {
 		await expect(pfeilVor(page)).toBeEnabled();
 	});
 
-	test('Chat-Feld: Die Taste ändert nur das Feld, der Pfeil wirkt aufs Blatt', async ({ druecke, page }) => {
+	test('Feld der Blase: Die Taste ändert nur das Feld, der Pfeil wirkt aufs Blatt', async ({ druecke, page }) => {
 		const { dok, id } = await uhrzeit();
 		await oeffne(page, id, dok);
 		await dupliziere({ page, druecke, aufgabe: material(page).locator('.aufgabe') });
 		const blatt = await quelle(page);
-		await page.getByRole('button', { name: 'Claude', exact: true }).click();
-		const feld = page.locator('[data-chat] #ki-auftrag');
+		await page.keyboard.press('ControlOrMeta+j');
+		const feld = page.locator('[data-claude-blase] #ki-auftrag');
 		await feld.click();
 		await page.keyboard.type('Hallo');
 		await page.keyboard.press('ControlOrMeta+z');

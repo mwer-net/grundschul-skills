@@ -18,7 +18,7 @@ import { AusgeblendetHinweis } from './AusgeblendetHinweis';
 import type { BildSteuerung } from './bild';
 import { BildKontext } from './bild';
 import { BildDarstellung, Bildwerkzeug } from './Bildpanel';
-import { useChat } from './chat-kontext';
+import { useClaudeSteuerung } from './claude-kontext';
 import type { PfadTeil } from './darstellung';
 import { elementZu } from './darstellung';
 import { Gestaltungsinspektor } from './gestaltung/inspektor/Gestaltungsinspektor';
@@ -240,13 +240,13 @@ const SichtbarkeitWenn = ({
 		<Sichtbarkeit nr={nr} quelle={quelle} struktur={struktur} />
 	) : null;
 
-/** Der Chip im Chat folgt der Auswahl: Geöffnet ist das Element also schon der Kontext des Auftrags (Entscheidung 38). */
+/** Öffnet die Blase an diesem Element (134). */
 const FreiesElementHinweis = () => {
-	const chat = useChat();
+	const claude = useClaudeSteuerung();
 	return (
 		<div className="flex flex-col items-start gap-1.5" data-frei-hinweis>
 			<p className="text-sm text-leise">Von Claude gebaut. Hier gibt es keine Einstellungen.</p>
-			<Knopf art="zweit" groesse="klein" onClick={() => chat.oeffne()}>
+			<Knopf art="zweit" groesse="klein" onClick={() => claude.oeffne()}>
 				Claude fragen
 			</Knopf>
 		</div>

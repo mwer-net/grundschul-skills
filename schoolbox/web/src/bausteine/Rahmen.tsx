@@ -1,11 +1,11 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Link, Outlet, useLocation, useMatch, useNavigate, useSearchParams } from 'react-router-dom';
 
 import { meldung, sende } from '../api';
-import type { ChatKontext } from '../editor/chat-kontext';
-import { useChat, useChatKontext, useChatStand } from '../editor/chat-kontext';
+import { useKiZustand } from '../editor/ki';
 import { TASTEN_SPERRE } from '../editor/tasten';
 import { AblageAnbieter } from '../ordner/useOrdner';
+import { MaterialDialog } from '../seiten/Anlegen';
 import { Seitenpalette } from '../seiten/Seitenpalette';
 import { useHinweis } from './hinweis';
 import { klassen } from './klassen';
@@ -30,6 +30,9 @@ const RahmenInnen = () => {
 	const zeige = useHinweis();
 	const kopf = useKopfHoehe<HTMLElement>();
 	const [palette, setPalette] = useState(false);
+	// 136: Freitext aus der Palette öffnet den Assistenten mit dem Text als Thema.
+	const [thema, setThema] = useState<string | null>(null);
+	const ki = useKiZustand();
 	// Die Dokumentansicht hat ihren eigenen einzeiligen Kopf: Das Blatt soll oben im Fenster beginnen.
 	const ohneKopf = useMatch('/m/:mappe/:dok') !== null;
 	const inOrdner = useMatch('/o/:ordner');
@@ -61,7 +64,6 @@ const RahmenInnen = () => {
 
 	const abmelden = async () => {
 		try {
-			chat.beendeGespraech();
 			await sende('/api/abmelden');
 			window.location.assign('/anmelden');
 		} catch (fehler) {
@@ -69,20 +71,6 @@ const RahmenInnen = () => {
 		}
 	};
 
-	const chat = useChat();
-	const chatStand = useChatStand();
-	const imDokument = useMatch('/m/:mappe/:dok/*');
-	const dokMappe = imDokument?.params.mappe;
-	const dokName = imDokument?.params.dok;
-	useChatKontext(
-		useMemo<ChatKontext>(
-			() =>
-				dokMappe && dokName
-					? { art: 'ansicht', mappe: dokMappe, dok: dokName }
-					: { art: 'neu', mappe: null, ordner: ordnerId ?? null },
-			[dokMappe, dokName, ordnerId],
-		),
-	);
 	return (
 		<div className="flex min-h-dvh flex-col">
 			{palette && (
@@ -93,8 +81,11 @@ const RahmenInnen = () => {
 						void navigate(inOrdnerSeite ? pathname : '/', { state: { neuerOrdner: true } });
 					}}
 					abmelden={() => void abmelden()}
-					anClaude={chatStand.ki.zustand.verfuegbar ? chat.fuelle : undefined}
+					anlegen={ki.zustand.verfuegbar ? setThema : undefined}
 				/>
+			)}
+			{thema !== null && (
+				<MaterialDialog ordner={ordnerId ?? null} thema={thema} schliessen={() => setThema(null)} />
 			)}
 			<header
 				ref={kopf}
@@ -138,18 +129,6 @@ const RahmenInnen = () => {
 						</button>
 					</div>
 					<div className="ml-auto flex flex-none items-center gap-1" data-kopf-rechts>
-						{chatStand.ki.zustand.verfuegbar && (
-							<Knopf
-								art="leise"
-								aria-label="Claude"
-								aria-pressed={chatStand.fenster !== 'zu'}
-								className="aria-pressed:bg-flaeche-2"
-								onClick={() => chat.wechsle()}
-							>
-								<Symbol name="sprechblase" />
-								<span className="max-md:hidden">Claude</span>
-							</Knopf>
-						)}
 						<KnopfLink to="/hilfe" art="leise" aria-label="Hilfe">
 							<Symbol name="hilfe" className="md:hidden" />
 							<span className="max-md:hidden">Hilfe</span>
@@ -163,10 +142,7 @@ const RahmenInnen = () => {
 					</div>
 				</div>
 			</header>
-			<main
-				className={klassen('w-full flex-1 px-4', ohneKopf ? 'pt-0' : 'pt-3')}
-				style={{ paddingBottom: 'max(4rem, var(--chat-platz, 0px))' }}
-			>
+			<main className={klassen('w-full flex-1 px-4 pb-16', ohneKopf ? 'pt-0' : 'pt-3')}>
 				<Outlet />
 			</main>
 		</div>

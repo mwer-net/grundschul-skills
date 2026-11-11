@@ -45,16 +45,35 @@ const zieheBis = async (page: Page, von: Locator, nach: Locator) => {
 };
 
 test.describe('Kerngeschichte', () => {
-	test('⌘K und ⌘J gelten auch in der Ablage', async ({ hasTouch, page }) => {
+	test('⌘K gilt auch in der Ablage, ⌘J und ein Knopf „Claude“ gibt es dort nicht (136)', async ({
+		hasTouch,
+		page,
+	}) => {
 		test.skip(hasTouch, 'Tasten nur mit Maus und Tastatur');
 		await page.goto('/');
 		await expect(leiste(page)).toBeVisible();
+		await expect(page.getByRole('button', { name: 'Claude', exact: true })).toHaveCount(0);
 		await page.keyboard.press('ControlOrMeta+k');
 		await expect(page.getByRole('dialog')).toBeVisible();
 		await page.keyboard.press('Escape');
 		await expect(page.getByRole('dialog')).toHaveCount(0);
 		await page.keyboard.press('ControlOrMeta+j');
-		await expect(page.locator('[data-chat] #ki-auftrag')).toBeFocused();
+		await expect(page.locator('#ki-auftrag')).toHaveCount(0);
+		await expect(page.getByRole('dialog')).toHaveCount(0);
+	});
+
+	test('Ein alter Tab, der noch einordnen will, liest „Bitte lade die Seite neu“ (136)', async ({ page }) => {
+		await page.goto('/');
+		const antwort = await page.evaluate(async () => {
+			const r = await fetch('/api/ki/einordnen', {
+				method: 'POST',
+				headers: { 'Content-Type': 'application/json', 'x-schoolbox': '1' },
+				body: '{"text":"Uhrzeit"}',
+			});
+			return { status: r.status, fehler: ((await r.json()) as { fehler?: string }).fehler ?? '' };
+		});
+		expect(antwort.status).toBe(404);
+		expect(antwort.fehler).toContain('Bitte lade die Seite neu');
 	});
 
 	test('Ordner anlegen, ziehen, in die Tiefe, ausschneiden, einfügen, alles per ⌘Z zurück', async ({

@@ -190,17 +190,17 @@ test.describe('Editor: frei gestaltetes Material (054)', () => {
 });
 
 const kiFall = (name: string) => writeFile(path.join(`${MATERIAL_DIR}-ki`, 'fall.txt'), name);
-const chat = (page: Page) => page.locator('[data-chat]');
+const chat = (page: Page) => page.locator('[data-claude-blase]');
 
 const beauftrage = async (page: Page, text: string) => {
-	await page.getByRole('button', { name: 'Claude', exact: true }).click();
+	await page.keyboard.press('ControlOrMeta+j');
 	await chat(page).getByLabel('Was soll Claude ändern?').fill(text);
 	await chat(page).getByRole('button', { name: 'Senden' }).click();
 };
 
 const nimmAn = async (page: Page, datei: string) => {
 	await expect(chat(page).locator('[data-ki-vorschlag]')).toBeVisible();
-	await chat(page).getByRole('button', { name: 'Vergleichen' }).click();
+	await chat(page).getByRole('button', { name: 'Groß vergleichen' }).click();
 	await expect(page.frameLocator('[data-vorschlag-rahmen]').locator('figure[data-frei] svg')).toBeAttached();
 	await page.getByRole('dialog').getByRole('button', { name: 'Annehmen' }).click();
 	await expect(material(page).locator('[data-frei]')).toBeVisible();
@@ -232,7 +232,7 @@ test.describe('Freies Element von Claude (088)', () => {
 
 		await druecke(hinweis.getByRole('button', { name: 'Claude fragen' }));
 		await expect(chat(page)).toBeVisible();
-		await expect(chat(page).locator('[data-chat-chip]')).toContainText('Tangram Waschbär');
+		await expect(chat(page).locator('[data-claude-bezug]')).toHaveText('Tangram Waschbär');
 		await page.keyboard.press('Escape');
 
 		await zuDenWerkzeugen(page, page.getByRole('button', { name: 'Nach oben' }));
@@ -253,7 +253,7 @@ test.describe('Freies Element von Claude (088)', () => {
 		expect(await readFile(datei, 'utf8')).toBe(stand);
 	});
 
-	test('Skript führt zu keinem Vorschlag: Meldung im Chat, Blatt unverändert', async ({ page }) => {
+	test('Skript führt zu keinem Vorschlag: Meldung in der Blase, Blatt unverändert', async ({ page }) => {
 		const { dok, id, material: datei } = await uhrzeit();
 		const vorher = await readFile(datei, 'utf8');
 		await kiFall('frei-skript');

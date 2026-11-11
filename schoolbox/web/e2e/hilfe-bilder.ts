@@ -171,19 +171,25 @@ test.describe('Bildschirmfotos für die Hilfe', () => {
 		await foto(page, 'befehle-mac.jpg');
 	});
 
-	test('Chat', async ({ page }) => {
+	test('Blase', async ({ page }) => {
 		nurAuf('mac');
 		const { dok, id } = await uhrzeit();
 		await oeffne(page, id, dok);
 		await material(page).locator('.aufgabe').first().locator('.nr').click();
 		await page.keyboard.press('ControlOrMeta+j');
-		const feld = page.locator('[data-chat] #ki-auftrag');
+		const blase = page.locator('[data-claude-blase]');
+		const feld = blase.locator('#ki-auftrag');
 		await feld.fill('Nimm auch Viertelstunden dazu');
-		await feld.press('Enter');
-		await expect(page.locator('[data-ki-vorschlag]')).toBeVisible({ timeout: 30_000 });
 		// WebKit unter Linux zeichnet den Weichzeichner nicht, das Blatt schiene sonst durch die Schrift.
 		await page.addStyleTag({ content: '.chat-glas { background: rgb(255 255 255 / 0.97) !important; }' });
-		await foto(page, 'chat-mac.jpg');
+		await foto(page, 'blase-mac.jpg');
+		await feld.press('Enter');
+		await expect(blase.locator('[data-ki-vorschlag]')).toBeVisible({ timeout: 30_000 });
+		await expect(blase.locator('[data-claude-miniatur] iframe')).toHaveCount(2);
+		for (const rahmen of await blase.locator('[data-claude-miniatur] iframe').all()) {
+			await expect(rahmen).toBeVisible();
+		}
+		await foto(page, 'blase-vorschlag-mac.jpg');
 	});
 
 	test('Material anlegen', async ({ page }) => {

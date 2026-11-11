@@ -1,6 +1,5 @@
 import type { Antworten, AssistentSchrittId, FreitextFeld, Weg } from '@schoolbox/kern/src/assistent';
-import { formatOptionen, formatWahl, FREITEXT, leereAntworten, schritteFuer } from '@schoolbox/kern/src/assistent';
-import type { Einordnung } from '@schoolbox/kern/src/einordnung';
+import { formatWahl, FREITEXT, leereAntworten, schritteFuer } from '@schoolbox/kern/src/assistent';
 import type { Art } from '@schoolbox/kern/src/werte';
 import type { ReactNode } from 'react';
 import { useEffect, useRef, useState } from 'react';
@@ -10,7 +9,6 @@ import { meldung } from '../api';
 import { Dialog } from '../bausteine/Dialog';
 import { Knopf } from '../bausteine/Knopf';
 import { Symbol } from '../bausteine/Symbol';
-import { useChat } from '../editor/chat-kontext';
 import { limitHinweis, neueGespraechId, useKiZustand } from '../editor/ki';
 import { useAblage } from '../ordner/kontext';
 import { ersterSchritt, LETZTE, mitWeg, ortDesAssistenten, wirksameAntworten } from './anlegen-hilfe';
@@ -31,30 +29,16 @@ import {
 import { legeMaterialAn } from './material-anlegen';
 
 interface MaterialDialogEigenschaften {
-	/** Der Ordner des Assistenten; `null`: „Mein Material“. Sonst der aus der Einordnung. */
+	/** Der Ordner des Assistenten; ohne: „Mein Material“. */
 	ordner?: string | null;
-	/** Aus dem Chat (077): alles vorbelegt, der Assistent öffnet bei „Auftrag prüfen“. Fällt mit 136. */
-	einordnung?: Einordnung;
-	wunsch?: string;
-	/** Das Gespräch, aus dem der Wunsch kommt. */
-	gespraechId?: string;
+	/** Aus der Seitenpalette (136): das Thema, mit Claude vorgewählt. */
+	thema?: string;
 	schliessen: () => void;
 	vorDemSprung?: (mappe: string, dok: string) => void;
 }
 
-const ausEinordnung = (basis: Antworten, einordnung: Einordnung, wunsch: string): Antworten => {
-	const a: Antworten = {
-		...basis,
-		art: einordnung.art,
-		fach: einordnung.fach,
-		klasse: einordnung.klasse,
-		thema: einordnung.titel.slice(0, FREITEXT.thema.zeichen),
-		sonst: wunsch.slice(0, FREITEXT.sonst.zeichen),
-		titel: einordnung.titel.slice(0, FREITEXT.titel.zeichen),
-	};
-	const option = formatOptionen(a).find((o) => !o.vorlage && o.format === einordnung.format);
-	return { ...a, format: option && !option.empfohlen ? option.wert : '' };
-};
+const mitThema = (basis: Antworten, thema: string): Antworten =>
+	mitWeg({ ...basis, thema: thema.slice(0, FREITEXT.thema.zeichen) }, 'claude');
 
 const istTextfeld = (ziel: EventTarget | null) =>
 	ziel instanceof HTMLInputElement || ziel instanceof HTMLTextAreaElement || ziel instanceof HTMLSelectElement;
@@ -165,30 +149,25 @@ const Fuss = ({
  * und Auftrag kommen aus dem Kern (`assistent.ts`). Abbrechen legt nichts an; erst der letzte Schritt schreibt.
  */
 export const MaterialDialog = ({
-	einordnung,
-	gespraechId,
 	ordner: festerOrdner,
 	schliessen,
+	thema,
 	vorDemSprung,
-	wunsch,
 }: MaterialDialogEigenschaften) => {
 	const { stand } = useAblage();
-	const { angabe: ordnerAngabe, ordner, vorbelegt } = ortDesAssistenten(stand, festerOrdner, einordnung);
+	const { angabe: ordnerAngabe, ordner, vorbelegt } = ortDesAssistenten(stand, festerOrdner);
 	const ki = useKiZustand();
 	const hinweis = limitHinweis(ki.zustand.limit, ki.zustand.warnAb);
 	const gesperrt = hinweis?.art === 'gesperrt';
 	const navigate = useNavigate();
-	const chat = useChat();
 
 	const [antworten, setAntworten] = useState<Antworten>(() => {
 		const basis = leereAntworten(vorbelegt);
-		return einordnung ? ausEinordnung(basis, einordnung, wunsch ?? '') : basis;
+		return thema ? mitThema(basis, thema) : basis;
 	});
-	const [titelEigen, setTitelEigen] = useState(Boolean(einordnung));
-	const [schritt, setSchritt] = useState<AssistentSchrittId>(() => ersterSchritt(einordnung));
-	const [besucht, setBesucht] = useState<ReadonlySet<AssistentSchrittId>>(() =>
-		einordnung ? new Set(schritteFuer(antworten).map((s) => s.id)) : new Set(['start']),
-	);
+	const [titelEigen, setTitelEigen] = useState(false);
+	const [schritt, setSchritt] = useState<AssistentSchrittId>(() => ersterSchritt(thema));
+	const [besucht, setBesucht] = useState<ReadonlySet<AssistentSchrittId>>(() => new Set(['start', schritt]));
 	const [offen, setOffen] = useState<Partial<Record<FreitextFeld, boolean>>>({});
 	const [text, setText] = useState<AuftragText | null>(null);
 	const [fehler, setFehler] = useState<string | null>(null);
@@ -202,10 +181,10 @@ export const MaterialDialog = ({
 
 	// Ohne angemeldetes Claude bleibt nur das leere Blatt.
 	useEffect(() => {
-		if (ki.geladen && !ki.zustand.verfuegbar && !einordnung) {
+		if (ki.geladen && !ki.zustand.verfuegbar) {
 			setAntworten((a) => mitWeg(a, 'leer'));
 		}
-	}, [einordnung, ki.geladen, ki.zustand.verfuegbar]);
+	}, [ki.geladen, ki.zustand.verfuegbar]);
 
 	const setze = (teil: Partial<Antworten>) => {
 		setAntworten((a) => ({ ...a, ...teil }));
@@ -260,8 +239,8 @@ export const MaterialDialog = ({
 			return;
 		}
 		const wahl = formatWahl(a);
-		// Aus dem Ordner: Der Entwurf beginnt ein eigenes Gespräch, damit Nachbessern daran anknüpft (133).
-		const gespraech = gespraechId ?? (mitClaude ? neueGespraechId() : undefined);
+		// Der Entwurf beginnt ein eigenes Gespräch, damit Nachbessern daran anknüpft (133); der Editor übernimmt es.
+		const gespraech = mitClaude ? neueGespraechId() : undefined;
 		setLaeuft(true);
 		setFehler(null);
 		try {
@@ -282,9 +261,6 @@ export const MaterialDialog = ({
 				assistent: mitClaude ? { antworten: { ...a, weg: 'claude' }, auftragText: text?.wert ?? null } : null,
 				gespraechId: gespraech,
 			});
-			if (!gespraechId && gespraech) {
-				chat.beginneGespraech({ mappe, dok: id }, gespraech);
-			}
 			vorDemSprung?.(mappe, id);
 			void navigate(adresse, { state });
 		} catch (grund) {

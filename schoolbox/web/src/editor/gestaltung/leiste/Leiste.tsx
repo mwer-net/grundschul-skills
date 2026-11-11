@@ -7,6 +7,7 @@ import { klassen } from '../../../bausteine/klassen';
 import { Knopf } from '../../../bausteine/Knopf';
 import { Menue } from '../../../bausteine/Menue';
 import { Symbol } from '../../../bausteine/Symbol';
+import { ClaudeKnopf } from '../../ClaudeKnopf';
 import type { PfadTeil } from '../../darstellung';
 import type { Einblendung } from '../../Leinwand';
 import { useSichtfeld } from '../../sichtfeld';
@@ -130,8 +131,10 @@ export const Leiste = ({ befehle, e, pfad, quelle, sitzung, struktur }: Eigensch
 			style={{ left: links, top }}
 			onKeyDown={(ereignis) => tasten(ereignis, e.doc)}
 		>
+			{!mehrfach && <ClaudeKnopf befehle={befehle} />}
 			{Knoepfe && (
 				<>
+					{!mehrfach && <Trenner />}
 					<Knoepfe k={k} befehle={befehle} quelle={quelle} aktiv={struktur.aktiv} />
 					<Trenner />
 				</>

@@ -14,7 +14,7 @@ import { expect, MATERIAL_DIR, test } from './hilfe';
 const MAUS = ['chromium', 'mac-safari'];
 
 const kiFall = (name: string) => writeFile(path.join(`${MATERIAL_DIR}-ki`, 'fall.txt'), name);
-const chat = (page: Page) => page.locator('[data-chat]');
+const chat = (page: Page) => page.locator('[data-claude-blase]');
 const wilma = (page: Page) => material(page).locator('img.figur-frei');
 const stern = (page: Page) => material(page).locator('svg.form[data-form="stern"]');
 const blase = (page: Page) => material(page).locator('.form-text[data-form="sprechblase"]');
@@ -22,7 +22,7 @@ const aufgabe = (page: Page, i: number) => material(page).locator('.aufgabe').nt
 const zurueck = (page: Page) => page.getByRole('button', { name: /^Rückgängig/ }).first();
 
 const beauftrage = async (page: Page, text: string) => {
-	await page.getByRole('button', { name: 'Claude', exact: true }).click();
+	await page.keyboard.press('ControlOrMeta+j');
 	await chat(page).getByLabel('Was soll Claude ändern?').fill(text);
 	await chat(page).getByRole('button', { name: 'Senden' }).click();
 };
@@ -45,7 +45,7 @@ const nimmGestaltungAn = async (page: Page) => {
 		'Setz Wilma rechts neben Aufgabe 1, häng ihr eine Sprechblase „Zähl genau!“ an und einen Stern.',
 	);
 	await expect(chat(page).locator('[data-ki-vorschlag]')).toBeVisible();
-	await chat(page).getByRole('button', { name: 'Vergleichen' }).click();
+	await chat(page).getByRole('button', { name: 'Groß vergleichen' }).click();
 	await expect(page.frameLocator('[data-vorschlag-rahmen]').locator('img.figur-frei')).toBeAttached();
 	await page.getByRole('dialog').getByRole('button', { name: 'Annehmen' }).click();
 	await expect(wilma(page)).toBeVisible();

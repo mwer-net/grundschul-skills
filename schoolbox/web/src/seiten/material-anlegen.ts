@@ -17,9 +17,7 @@ interface NeuesMaterial {
 	zusatz?: Record<string, boolean | undefined>;
 	/** Aus dem Assistenten (132): Claude bekommt den Auftrag, den der Server aus den Antworten baut. */
 	assistent?: { antworten: Antworten; auftragText: string | null } | null;
-	/** Aus der Karte im Chat (077), bis 136: ein freier Wunsch. */
-	wunsch?: string | null;
-	/** Aus dem Chat: Der Entwurf ist die erste Nachricht dieses Gesprächs (087). */
+	/** Der Entwurf ist die erste Nachricht dieses Gesprächs: Nachbessern im Editor knüpft daran an (087, 133). */
 	gespraechId?: string | undefined;
 }
 
@@ -34,7 +32,6 @@ export const legeMaterialAn = async ({
 	ordner,
 	titel,
 	vorlage,
-	wunsch,
 	zusatz,
 }: NeuesMaterial) => {
 	const { id, mappe } = await sende<{ id: string; mappe: string }>('/api/ordner/material', {
@@ -48,23 +45,21 @@ export const legeMaterialAn = async ({
 		zusatz: zusatz ?? {},
 	});
 	melde({ typ: 'mappe-neu', mappe });
-	if (!assistent && !wunsch) {
+	if (!assistent) {
 		return { mappe, id, ziel: `/m/${mappe}/${id}/bearbeiten?neu=1`, state: null };
 	}
-	const eingabe = assistent
-		? {
-				antworten: assistent.antworten,
-				...(assistent.auftragText === null ? {} : { auftragText: assistent.auftragText }),
-			}
-		: { auftrag: wunsch };
+	const eingabe = {
+		antworten: assistent.antworten,
+		...(assistent.auftragText === null ? {} : { auftragText: assistent.auftragText }),
+	};
 	// Das Blatt steht schon: Startet Claude nicht, geht es leer weiter, mit der Meldung im Editor.
 	const state = await sende<{ auftrag: { id: string } }>(`/api/dokumente/${mappe}/${id}/ki`, {
 		aktion: 'neu-entwurf',
 		...eingabe,
 		...(gespraechId ? { gespraechId } : {}),
 	}).then(
-		({ auftrag }) => ({ kiAuftrag: auftrag.id }),
-		(grund: unknown) => ({ kiFehler: meldung(grund) }),
+		({ auftrag }) => ({ kiAuftrag: auftrag.id, kiGespraech: gespraechId }),
+		(grund: unknown) => ({ kiFehler: meldung(grund), kiGespraech: gespraechId }),
 	);
 	return { mappe, id, ziel: `/m/${mappe}/${id}/bearbeiten?claude=1`, state };
 };

@@ -69,8 +69,6 @@ interface Eigenschaften {
 	jeSeite: boolean;
 	/** Ändert sich die Zahl, rollt die Ansicht zum gewählten Baustein. */
 	springe: number;
-	/** So viel verdeckt der offene Chat-Verlauf; beim Einpassen zählt das Blatt nur den Rest. */
-	verdeckt: number;
 	/** Ein gewähltes Bild bekommt Ziehpunkte an den Ecken. */
 	groesse: Groesse | null;
 	/** Fehler rot, Warnungen orange umrandet, solange das geprüfte Dokument zu sehen ist (020). */
@@ -267,19 +265,17 @@ const massstabVon = ({
 	breite,
 	masse,
 	sichtHoehe,
-	verdeckt,
 	zoom,
 }: {
 	breite: number;
 	masse: Rahmen['masse'];
 	sichtHoehe: number;
-	verdeckt: number;
 	zoom: number | 'einpassen';
 }) => {
 	const passend = masse && breite > 0 ? Math.min(1, breite / masse.breite) : 1;
 	const eingepasst =
 		masse && breite > 0 && sichtHoehe > 0
-			? Math.min(MAX_EINGEPASST, breite / masse.breite, Math.max(1, sichtHoehe - verdeckt) / masse.seite)
+			? Math.min(MAX_EINGEPASST, breite / masse.breite, Math.max(1, sichtHoehe) / masse.seite)
 			: passend;
 	const skala = zoom === 'einpassen' ? eingepasst : passend * zoom;
 	const innenBreite = masse ? Math.max(breite, masse.breite * skala) : breite;
@@ -340,7 +336,6 @@ export const Leinwand = ({
 	taste,
 	textsitzung,
 	titel,
-	verdeckt,
 	waehle,
 	ziehbar,
 	zoom,
@@ -539,7 +534,12 @@ export const Leinwand = ({
 
 	const sichtbar = rahmen.findLast((r) => r.masse !== null);
 	const masse = sichtbar?.masse ?? null;
-	const { innenBreite, links, passend, skala } = massstabVon({ breite, masse, sichtHoehe, verdeckt, zoom });
+	// Einblendungen messen beim Rendern; ein eben getauschtes `iframe` hat seine Breite aber erst nach dem Commit.
+	const [, setNachgemessen] = useState(0);
+	useLayoutEffect(() => {
+		setNachgemessen((n) => n + 1);
+	}, [sichtbar?.nr]);
+	const { innenBreite, links, passend, skala } = massstabVon({ breite, masse, sichtHoehe, zoom });
 	skalaJetzt.current = skala;
 	useEffect(() => {
 		meldeMassstab?.({ skala, stufe: skala / passend });

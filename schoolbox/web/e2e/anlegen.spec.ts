@@ -5,7 +5,8 @@ import type { Page } from '@playwright/test';
 
 import { expect, MATERIAL_DIR, objekt, oeffneObjekt, test } from './hilfe';
 
-const mappenzahl = async () => (await readdir(MATERIAL_DIR)).length;
+// Nur Mappen zählen: `_ordner.json` und andere Verwaltungsdateien schreibt der Server nach Bedarf neu.
+const mappenzahl = async () => (await readdir(MATERIAL_DIR)).filter((n) => !n.startsWith('_')).length;
 
 const neuerOrdner = async (page: Page, name: string) => {
 	await page.locator('[data-werkzeugleiste] [data-neuer-ordner]').click();

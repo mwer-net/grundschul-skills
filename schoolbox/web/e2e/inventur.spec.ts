@@ -30,7 +30,10 @@ const offenesBlatt = async (page: Page) => {
 };
 
 test.describe('Inventur Editor', () => {
-	test('Kopf: Zurück, Titel, Stand, Rückgängig, Ansichten, Claude, Versionen, Vorlage, PDF', async ({ page }) => {
+	test('Kopf: Zurück, Titel, Stand, Rückgängig, Ansichten, Versionen, Vorlage, PDF; Claude in der Leiste', async ({
+		druecke,
+		page,
+	}) => {
 		await offenesBlatt(page);
 		await expect(kopf(page).getByRole('heading', { level: 1 })).toContainText('Wie spät ist es?');
 		await expect(page.locator('[data-speicherstand="gespeichert"]')).toBeVisible();
@@ -42,10 +45,13 @@ test.describe('Inventur Editor', () => {
 		await expect(kopf(page).getByRole('button', { name: 's/w' })).toHaveAttribute('aria-pressed', 'true');
 		await kopf(page).getByRole('button', { name: 'Farbe' }).click();
 
-		await kopf(page).getByRole('button', { name: 'Claude', exact: true }).click();
-		await expect(page.locator('[data-chat]')).toBeVisible();
-		await kopf(page).getByRole('button', { name: 'Claude', exact: true }).click();
-		await expect(page.locator('[data-chat]')).toBeHidden();
+		// Claude sitzt am Element (134): Knopf in der Leiste, ⌘J klappt die Blase wieder ein.
+		await expect(kopf(page).getByRole('button', { name: 'Claude', exact: true })).toHaveCount(0);
+		await druecke(material(page).locator('.aufgabe').first().locator('.nr'));
+		await druecke(leiste(page).locator('[data-claude-knopf]'));
+		await expect(page.locator('[data-claude-blase]')).toBeVisible();
+		await page.keyboard.press('ControlOrMeta+j');
+		await expect(page.locator('[data-claude-blase]')).toBeHidden();
 
 		await kopf(page).getByRole('button', { name: 'Versionen' }).click();
 		await expect(page.locator('[data-panel="versionen"]')).toBeVisible();
@@ -140,21 +146,22 @@ test.describe('Inventur Editor', () => {
 	test('Tabelle, Spalten und Neue Zahlen haben ihren Platz', async ({ druecke, hasTouch, page }) => {
 		await offenesBlatt(page);
 		await druecke(material(page).locator('x-uhr').first());
-		// Am iPad stehen die Befehle der Leiste im ⋯ (071).
-		if (hasTouch) {
+		// Am iPad stehen die Befehle der Leiste im ⋯ (071), am Mac dann, wenn die Leiste zu breit wird (134).
+		const direkt = leiste(page).getByRole('button', { name: 'Neue Zahlen' });
+		if (hasTouch || (await direkt.count()) === 0) {
 			await druecke(leiste(page).getByRole('button', { name: 'Mehr zu diesem Baustein' }));
 			await expect(page.getByRole('menuitem', { name: /Neue Zahlen/ })).toBeVisible();
 			await page.keyboard.press('Escape');
 		} else {
-			await expect(leiste(page).getByRole('button', { name: 'Neue Zahlen' })).toBeVisible();
+			await expect(direkt).toBeVisible();
 		}
 		await expect(page.locator('[data-abschnitt="eltern"]')).toBeVisible();
 	});
 
-	test('Claude-App: ⋯ im Chat', async ({ page }) => {
+	test('Claude-App: ⋯ in der Blase', async ({ page }) => {
 		await offenesBlatt(page);
-		await kopf(page).getByRole('button', { name: 'Claude', exact: true }).click();
-		await page.locator('[data-chat]').getByRole('button', { name: 'Chat: weitere Aktionen' }).click();
+		await page.keyboard.press('ControlOrMeta+j');
+		await page.locator('[data-claude-blase]').getByRole('button', { name: 'Claude: weitere Aktionen' }).click();
 		await expect(page.getByRole('menuitem', { name: 'In der Claude-App weiterarbeiten' })).toBeVisible();
 	});
 

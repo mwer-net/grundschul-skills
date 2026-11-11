@@ -1,5 +1,5 @@
 import type { Druckprofil } from '@schoolbox/kern/src/werte';
-import { useContext, useState } from 'react';
+import { useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 
 import type { ApiFehler } from '../api';
@@ -13,7 +13,6 @@ import { ProfilSchalter } from '../bausteine/ProfilSchalter';
 import { Segment } from '../bausteine/Segment';
 import { Symbol } from '../bausteine/Symbol';
 import { Zustand } from '../bausteine/Zustand';
-import { ChatStandKontext, useChat } from '../editor/chat-kontext';
 import { hatOffeneEntwuerfe } from '../entwuerfe/offen';
 import { ClaudeHinweis } from '../entwuerfe/Teile';
 import { useEreignisse } from '../ereignisse';
@@ -85,8 +84,6 @@ const Knoepfe = ({ dokument, entwuerfe, loesung, mappe, profil, teilen, zugang }
 	const navigate = useNavigate();
 	const zeige = useHinweis();
 	const ohneInternet = usePdf({ mappe, warnen: !geteilt });
-	const chat = useChat();
-	const chatStand = useContext(ChatStandKontext);
 	const eintraege: MenueEintrag[] = [
 		...(entwuerfe
 			? [
@@ -120,18 +117,6 @@ const Knoepfe = ({ dokument, entwuerfe, loesung, mappe, profil, teilen, zugang }
 	];
 	return (
 		<div className="ml-auto flex flex-none flex-wrap items-center gap-1.5 max-md:ml-0">
-			{!geteilt && chatStand?.ki.zustand.verfuegbar && (
-				<Knopf
-					art="leise"
-					aria-label="Claude"
-					aria-pressed={chatStand.fenster !== 'zu'}
-					className="aria-pressed:bg-flaeche-2"
-					onClick={() => chat.wechsle()}
-				>
-					<Symbol name="sprechblase" />
-					Claude
-				</Knopf>
-			)}
 			{!geteilt && !offen && (
 				<KnopfLink to={editorSeite(zugang, dok)} art={praesentieren ? 'zweit' : 'haupt'}>
 					<Symbol name="stift" />

@@ -132,6 +132,21 @@ test.describe('Befehlspalette (073)', () => {
 		await expect(page.getByRole('heading', { level: 1, name: 'Kartoffelernte' })).toBeVisible();
 	});
 
+	test('außerhalb des Editors legt Freitext Material an: der Assistent beginnt bei der Art (136)', async ({
+		page,
+	}) => {
+		await page.goto('/');
+		await page.locator('[data-palette-knopf]').click();
+		await feld(page).fill('Uhrzeit für Klasse 2');
+		const anlegen = palette(page).getByRole('option', { name: 'Material anlegen: „Uhrzeit für Klasse 2“' });
+		await expect(anlegen).toBeVisible();
+		await expect(palette(page).getByRole('option', { name: /An Claude schicken/ })).toHaveCount(0);
+		await anlegen.click();
+		const dialog = page.getByRole('dialog');
+		await expect(dialog.locator('[data-assistent="art"]')).toBeVisible();
+		await expect(page.locator('[data-claude-blase]')).toHaveCount(0);
+	});
+
 	test('Zeilen sind auf dem iPad groß genug', async ({ page }, info) => {
 		test.skip(!info.project.name.startsWith('ipad'), 'nur mit Finger');
 		const { dok, id } = await uhrzeit();

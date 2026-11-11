@@ -11,13 +11,14 @@ interface Eigenschaften {
 	schliessen: () => void;
 	neuerOrdner: () => void;
 	abmelden: () => void;
-	anClaude?: ((text: string) => void) | undefined;
+	/** 136: Freitext öffnet den Assistenten mit dem Text als Thema; ohne Claude fehlt die Zeile. */
+	anlegen?: ((thema: string) => void) | undefined;
 }
 
 const ORDNER_ZU_BEGINN = 5;
 
 /** Palette außerhalb des Editors: Ordner und Dokumente aus derselben Quelle wie die Ablage, dazu die Wege im Kopf. */
-export const Seitenpalette = ({ abmelden, anClaude, neuerOrdner, schliessen }: Eigenschaften) => {
+export const Seitenpalette = ({ abmelden, anlegen, neuerOrdner, schliessen }: Eigenschaften) => {
 	const { stand } = useAblage();
 	const navigate = useNavigate();
 
@@ -92,7 +93,7 @@ export const Seitenpalette = ({ abmelden, anClaude, neuerOrdner, schliessen }: E
 			platzhalter="Ordner, Dokument oder Befehl suchen"
 			eintraege={eintraege}
 			schliessen={schliessen}
-			anClaude={anClaude}
+			freitext={anlegen && { titel: (text) => `Material anlegen: „${text}“`, aus: anlegen }}
 		/>
 	);
 };

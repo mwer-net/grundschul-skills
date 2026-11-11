@@ -582,8 +582,10 @@ test('7d · Editor: In der Claude-App weiterarbeiten', async ({ browser }) => {
 	const chat = await oeffneChat(szene, chatSeite, verlaufBisFertig(uhrzeit));
 	szene.text('Parallelklasse: in der Claude-App');
 	await szene.klicke(m.locator('.aufgabe').nth(1).locator('.nr'), { pause: 700 });
-	await szene.klicke(seite.getByRole('button', { name: 'Claude', exact: true }), { pause: 200 });
-	await szene.klicke(seite.getByRole('button', { name: 'Chat: weitere Aktionen' }), { pause: 200 });
+	await szene.klicke(seite.locator('[data-bausteinleiste] [data-claude-knopf]'), { pause: 200 });
+	await szene.klicke(seite.locator('[data-claude-blase]').getByRole('button', { name: 'Claude: weitere Aktionen' }), {
+		pause: 200,
+	});
 	await szene.klicke(seite.getByRole('menuitem', { name: 'In der Claude-App weiterarbeiten' }), { pause: 200 });
 	szene.textAus();
 	await szene.pause(1500);

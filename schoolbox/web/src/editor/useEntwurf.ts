@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 
 import { entwurfPhase, quelleDes, sperrGrund, sperrtBlatt } from './entwurf';
-import { useKiAuftrag } from './ki';
+import { neueGespraechId, useGespraecheEnden, useKiAuftrag } from './ki';
 
 /**
  * Das neue Blatt aus dem Assistenten (133, Entwurf A1 S. 10–11): Der Stand kommt vom Server, nicht aus der Adresse.
@@ -11,7 +11,6 @@ import { useKiAuftrag } from './ki';
 export const useEntwurf = ({
 	annimm,
 	dok,
-	gespraechId,
 	mappe,
 	nachLauf,
 }: {
@@ -20,14 +19,17 @@ export const useEntwurf = ({
 	nachLauf: () => void;
 	/** Nimmt an, sodass Rückgängig es wieder zurücknimmt. */
 	annimm: (arbeit: () => Promise<unknown>) => Promise<void>;
-	/** Das Gespräch des Entwurfs: Nachbessern geht darin weiter (087). */
-	gespraechId: () => string;
 }) => {
 	const location = useLocation();
 	const navigate = useNavigate();
 	// Was der Assistent beim Sprung mitgibt, gilt einmal. Die History behält es über das Neuladen hinaus, dann käme
 	// ein längst geschlossener Lauf wieder; danach weiß es der Server (`GET …/ki`, `entwurf`).
-	const [ankunft] = useState(() => (location.state ?? {}) as { kiAuftrag?: string; kiFehler?: string });
+	const [ankunft] = useState(
+		() => (location.state ?? {}) as { kiAuftrag?: string; kiFehler?: string; kiGespraech?: string },
+	);
+	// Das Gespräch des Entwurfs beginnt im Assistenten; Nachbessern geht darin weiter (087). Es endet mit dem Editor.
+	const gespraech = useRef(ankunft.kiGespraech ?? null);
+	useGespraecheEnden(() => (gespraech.current ? [gespraech.current] : []));
 	const mitgebracht = useRef(Boolean(ankunft.kiAuftrag || ankunft.kiFehler));
 	useEffect(() => {
 		if (mitgebracht.current) {
@@ -78,7 +80,9 @@ export const useEntwurf = ({
 			setVerworfen(true);
 		},
 		nachbessern: (text: string) =>
-			ki.starte({ auftrag: text, aufVorschlag: true, gespraechId: gespraechId() }).then(() => undefined),
+			ki
+				.starte({ auftrag: text, aufVorschlag: true, gespraechId: (gespraech.current ??= neueGespraechId()) })
+				.then(() => undefined),
 		schliesse,
 	};
 };
