@@ -151,9 +151,6 @@ const Fuss = ({
 		<Knopf data-hauptaktion disabled={laeuft || gesperrt} onClick={weiter}>
 			{schritt.id === 'pruefen' && <Symbol name="funken" />}
 			{hauptText(schritt.id, einheit)}
-			<kbd aria-hidden="true" className="ml-1 text-xs opacity-75">
-				⏎
-			</kbd>
 		</Knopf>
 	</div>
 );

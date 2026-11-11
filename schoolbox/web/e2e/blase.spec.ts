@@ -217,7 +217,7 @@ test.describe('Blase am Element (134)', () => {
 		await expect(bezug(page)).toHaveText('Aufgabe 1');
 	});
 
-	test('Vorschlag gestrichelt mit Miniaturen; Verwerfen lässt die Quelle byteidentisch; Übernehmen ⏎ und Rückgängig', async ({
+	test('Vorschlag gestrichelt mit Miniaturen; Verwerfen lässt die Quelle byteidentisch; ⏎ übernimmt, Rückgängig', async ({
 		page,
 	}) => {
 		const { dok, mappe } = await offenesBlatt(page);
@@ -242,7 +242,8 @@ test.describe('Blase am Element (134)', () => {
 
 		await schreibe(page, 'Noch einmal');
 		await expect(karte(page)).toBeVisible();
-		await expect(blase(page).locator('[data-chat-tasten]')).toContainText('⏎ übernehmen');
+		await expect(blase(page).locator('[data-chat-tasten]')).toHaveCount(0);
+		await expect(blase(page).getByRole('button', { name: 'Übernehmen', exact: true })).toBeVisible();
 		await feld(page).press('Enter');
 		await expect.poll(() => quelleAufPlatte(mappe, dok)).toContain('data-von-claude');
 		await expect(karte(page)).toHaveCount(0);
@@ -453,8 +454,8 @@ test.describe('Gespräch in der Blase (087)', () => {
 		const { auftraege, enden } = beobachte(page);
 		await offenesBlatt(page);
 		await page.keyboard.press('ControlOrMeta+j');
-		const tasten = blase(page).locator('[data-chat-tasten]');
-		await expect(tasten).toContainText('esc einklappen');
+		await expect(feld(page)).toBeFocused();
+		await expect(blase(page).locator('[data-chat-tasten]')).toHaveCount(0);
 		await schreibe(page, 'FRAGE: Wie viele?');
 		await expect(nachrichten(page)).toHaveCount(2);
 		await blase(page).getByRole('button', { name: 'Claude: weitere Aktionen' }).click();

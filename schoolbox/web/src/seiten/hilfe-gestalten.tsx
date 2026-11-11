@@ -60,13 +60,15 @@ export const GESTALTEN: Abschnitt = {
 				vergrößerst du sie, die Pfeiltasten schieben alle, ⌫ löscht alle, ⌘D verdoppelt alle. Jede Aktion ist
 				ein Schritt, ⌘Z nimmt sie ganz zurück. Ein Klick ohne ⇧ wählt wieder nur ein Element.
 			</p>
+			{/* >> 166 */}
 			<p data-hilfe-ausrichten>
 				Die Leiste zeigt bei mehreren „Ausrichten“ und ab drei Elementen „Verteilen“. Ausrichten bringt alle an
 				eine Kante oder Mitte der gemeinsamen Auswahl, Verteilen setzt gleiche Abstände. Ein einzelnes Element
-				richtest du über „Mehr“ an der Seite aus, innerhalb des Rands. Die Tasten: ⌥A links, ⌥H mittig, ⌥D
-				rechts, ⌥W oben, ⌥V senkrecht mittig, ⌥S unten. Rechts im Inspektor stehen Lage und Größe der ganzen
-				Auswahl; steht dort „gemischt“, haben die Elemente verschiedene Werte, und ein neuer Wert gilt für alle.
+				richtest du über „Mehr“ an der Seite aus, innerhalb des Rands. Rechts im Inspektor stehen Lage und Größe
+				der ganzen Auswahl; steht dort „gemischt“, haben die Elemente verschiedene Werte, und ein neuer Wert gilt
+				für alle.
 			</p>
+			{/* << 166 */}
 
 			<h3>Ebenen</h3>
 			<p data-hilfe-ebenen>

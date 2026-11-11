@@ -174,7 +174,7 @@ const VorschlagKarte = ({
 				<Knopf onClick={neuStarten}>Neu starten</Knopf>
 			) : (
 				<Knopf onClick={annehmen} data-claude-uebernehmen>
-					Übernehmen ⏎
+					Übernehmen
 				</Knopf>
 			)}
 			<Knopf art="zweit" onClick={verwerfen}>
@@ -285,7 +285,6 @@ interface FeldAngaben {
 	platzhalter: string;
 	laeuft: boolean;
 	kannSenden: boolean;
-	tasteText: string;
 	zitat: string | null;
 	setEntwurf: (text: string) => void;
 	setZitat: (zitat: string | null) => void;
@@ -305,7 +304,6 @@ const Feld = ({
 	sende,
 	setEntwurf,
 	setZitat,
-	tasteText,
 	zitat,
 }: FeldAngaben) => {
 	useLayoutEffect(() => {
@@ -364,10 +362,7 @@ const Feld = ({
 					</Knopf>
 				)}
 			</div>
-			<div className="flex justify-between gap-2 px-3 pb-1 text-[11px] leading-[14px] text-leise">
-				<span>Keine Namen von Kindern eintragen.</span>
-				<span className="flex-none" data-chat-tasten>{`⏎ ${tasteText} · esc einklappen`}</span>
-			</div>
+			<p className="px-3 pb-1 text-[11px] leading-[14px] text-leise">Keine Namen von Kindern eintragen.</p>
 		</>
 	);
 };
@@ -437,13 +432,6 @@ const lagebildVon = (claude: Claude, f: Faden): Lagebild => {
 		laeuft: laeuftNoch(auftrag),
 		offenerVorschlag: vorschlag && !vorschlag.konflikt ? vorschlag : undefined,
 	};
-};
-
-const tasteTextVon = ({ offenerVorschlag }: Lagebild, entwurf: string) => {
-	if (!offenerVorschlag) {
-		return 'senden';
-	}
-	return entwurf.trim() ? 'nachbessern' : 'übernehmen';
 };
 
 const platzhalterVon = ({ f, laeuft, offenerVorschlag }: Lagebild) => {
@@ -727,7 +715,6 @@ const Blase = ({ adresse, claude, darstellung, e, f, jetzt, nr, seiten }: Blasen
 							sende={sende}
 							setEntwurf={(text) => claude.setEntwurf(f.key, text)}
 							setZitat={(zitat) => claude.setZitat(f.key, zitat)}
-							tasteText={tasteTextVon(bild, f.entwurf)}
 							zitat={f.zitat}
 						/>
 					</div>

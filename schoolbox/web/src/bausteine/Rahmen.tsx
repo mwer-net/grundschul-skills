@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { Link, Outlet, useLocation, useMatch, useNavigate, useSearchParams } from 'react-router-dom';
 
 import { meldung, sende } from '../api';
+import { kuerzelVon } from '../editor/befehle';
 import { useKiZustand } from '../editor/ki';
 import { TASTEN_SPERRE } from '../editor/tasten';
 import { EinheitPille } from '../ordner/EinheitBand';
@@ -13,9 +14,9 @@ import { useHinweis } from './hinweis';
 import { klassen } from './klassen';
 import { Knopf, KnopfLink } from './Knopf';
 import { useKopfHoehe } from './kopf';
-import { Kuerzel } from './Kuerzel';
 import { Menue } from './Menue';
 import { Symbol } from './Symbol';
+import { Tooltip } from './Tooltip';
 
 /** Kopfzeile aller Seiten nach der Anmeldung: Name, Suche, Hilfe, Papierkorb, Abmelden. */
 const KONTO_KNOPF = (
@@ -112,7 +113,7 @@ const RahmenInnen = () => {
 							<input
 								type="search"
 								name="suche"
-								className="h-knopf w-full rounded-md bg-flaeche-2 pr-12 pl-7 text-sm placeholder:text-leise focus:bg-flaeche focus:outline-1 focus:outline-brand-500"
+								className="h-knopf w-full rounded-md bg-flaeche-2 pr-2 pl-7 text-sm placeholder:text-leise focus:bg-flaeche focus:outline-1 focus:outline-brand-500"
 								placeholder="Material und Ordner suchen"
 								enterKeyHint="search"
 								autoComplete="off"
@@ -122,18 +123,15 @@ const RahmenInnen = () => {
 								onChange={(e) => sucheNach(e.target.value)}
 							/>
 						</label>
-						<button
-							type="button"
-							className="absolute top-1/2 right-0.5 flex h-knopf-klein -translate-y-1/2 items-center rounded-sm px-1.5 hover:bg-rand"
-							aria-label="Befehle"
-							data-palette-knopf
-							onClick={() => setPalette(true)}
-						>
-							<Kuerzel text="⌘K" />
-						</button>
 					</div>
 					<div className="ml-auto flex flex-none items-center gap-1" data-kopf-rechts>
 						<EinheitPille einheiten={einheiten} />
+						<Tooltip text="Befehle" kuerzel={kuerzelVon('ansicht.palette')}>
+							<Knopf art="leise" aria-label="Befehle" data-palette-knopf onClick={() => setPalette(true)}>
+								<Symbol name="suche" className="md:hidden" />
+								<span className="max-md:hidden">Befehle</span>
+							</Knopf>
+						</Tooltip>
 						<KnopfLink to="/hilfe" art="leise" aria-label="Hilfe">
 							<Symbol name="hilfe" className="md:hidden" />
 							<span className="max-md:hidden">Hilfe</span>

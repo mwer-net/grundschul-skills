@@ -206,11 +206,6 @@ export const Palette = ({ eintraege, freitext, platzhalter, schliessen }: Eigens
 					</div>
 				))}
 			</div>
-			<div className="flex h-6 items-center gap-3 border-t border-rand px-3 text-xs text-dezent" aria-hidden>
-				<span>↑↓ wählen</span>
-				<span>⏎ ausführen</span>
-				<span>esc schließen</span>
-			</div>
 		</dialog>
 	);
 };

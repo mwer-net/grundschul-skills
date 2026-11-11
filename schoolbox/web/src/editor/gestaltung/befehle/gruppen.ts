@@ -20,6 +20,7 @@ export const GRUPPEN_BEFEHLE: Befehl[] = [
 	{
 		id: 'auswahl.gruppieren',
 		titel: (k) => (mehrere(k) && !gleich(k) ? 'Gruppieren (nur Elemente derselben Ebene)' : 'Gruppieren'),
+		hilfeTitel: 'Gruppieren',
 		gruppe: 'ordnen',
 		symbol: 'gruppe',
 		kuerzel: [{ code: 'KeyG', befehl: true }],

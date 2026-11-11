@@ -184,7 +184,7 @@ test.describe('Inventur Editor', () => {
 });
 
 test.describe('Inventur außerhalb des Editors', () => {
-	test('Mein Material: Suche, Filter, Neuer Ordner, Material anlegen; Kopf: Hilfe, Papierkorb, Abmelden', async ({
+	test('Mein Material: Suche, Filter, Neuer Ordner, Material anlegen; Kopf: Befehle, Hilfe, Papierkorb, Abmelden', async ({
 		druecke,
 		page,
 	}) => {
@@ -196,6 +196,7 @@ test.describe('Inventur außerhalb des Editors', () => {
 		await expect(werkzeug.getByRole('button', { name: 'Filter' })).toBeVisible();
 		await expect(werkzeug.getByRole('button', { name: 'Neuer Ordner' })).toBeVisible();
 		await expect(werkzeug.getByRole('button', { name: 'Material anlegen' })).toBeVisible();
+		await expect(page.locator('[data-kopf-rechts]').getByRole('button', { name: 'Befehle' })).toBeVisible();
 		await expect(page.getByRole('link', { name: 'Hilfe' })).toBeVisible();
 		await expect(page.locator('[data-ablage-ziel="papierkorb"]')).toBeVisible();
 		await druecke(page.locator('[data-kopf-rechts]').getByRole('button', { name: 'Konto' }));

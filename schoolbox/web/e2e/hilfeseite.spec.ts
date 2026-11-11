@@ -1,5 +1,8 @@
 import { neueMappe, neuesDokument } from '@schoolbox/kern';
 
+// >> 166
+import { oeffne, uhrzeit } from './editorhilfe';
+// << 166
 import { expect, test } from './hilfe';
 
 const MATERIAL_DIR = process.env.E2E_MATERIAL_DIR ?? '';
@@ -13,6 +16,9 @@ const ABSCHNITTE = [
 	'Bearbeiten',
 	'Gestalten',
 	'Schneller arbeiten',
+	// >> 166
+	'Tasten',
+	// << 166
 	'Mit Claude arbeiten',
 	'Teilen mit Kolleginnen',
 	'Wenn etwas nicht klappt',
@@ -40,14 +46,29 @@ test.describe('Hilfe', () => {
 		}
 	});
 
-	test('die Tasten kommen aus dem Register und stehen auch in der Tasten-Übersicht', async ({ page }) => {
-		await page.goto('/hilfe#schneller');
-		const zeilen = page.locator('[data-hilfe-taste]');
-		await expect(zeilen).toHaveCount(8);
-		await expect(page.locator('[data-abschnitt="schneller"]')).toBeInViewport();
-		await expect(page.locator('[data-hilfe-taste="ansicht.palette"]')).toContainText(/Befehle.*K/);
-		await expect(page.locator('[data-hilfe-taste="ansicht.claude"]')).toContainText(/Claude.*J/);
+	// >> 166
+	test('„Tasten“ zeigt alle Tasten: Editor wie in der Tastenübersicht, Ablage und die ohne Register', async ({
+		page,
+	}) => {
+		await page.goto('/hilfe#tasten');
+		await expect(page.locator('[data-abschnitt="tasten"]')).toBeInViewport();
+		const zeile = (bereich: string, id: string) =>
+			page.locator(`[data-hilfe-tasten="${bereich}"] [data-taste="${id}"]`);
+		await expect(zeile('editor', 'ansicht.palette')).toContainText(/Befehle.*K/);
+		await expect(zeile('editor', 'ansicht.links-werkzeuge')).toContainText(/3/);
+		await expect(zeile('ablage', 'seitenleiste')).toContainText(/S/);
+		await expect(zeile('weitere', 'praesentation-schwarz')).toContainText('B');
+		await expect(zeile('weitere', 'schreiben-fett')).toContainText(/B/);
+		await expect(page.locator('[data-abschnitt="schneller"] [data-taste]')).toHaveCount(0);
+		const inDerHilfe = await page.locator('[data-hilfe-tasten="editor"] [data-taste]').count();
+		expect(inDerHilfe).toBeGreaterThan(20);
+
+		const { dok, id } = await uhrzeit();
+		await oeffne(page, id, dok);
+		await page.locator('[data-tasten-knopf]').click();
+		await expect(page.getByRole('dialog').locator('[data-taste]')).toHaveCount(inDerHilfe);
 	});
+	// << 166
 
 	test('verweist auf die Kurzanleitung, sobald es sie gibt', async ({ druecke, page }) => {
 		const angaben = { titel: 'Schoolbox-Hilfe', fach: 'faecheruebergreifend', klasse: 'gemischt' } as const;

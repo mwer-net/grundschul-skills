@@ -134,7 +134,9 @@ export const Inhalt = (t: SchubladenTeile) => {
 								className="font-medium text-brand-700 underline-offset-2 hover:underline"
 								onClick={() => t.oeffneSchublade('figuren')}
 							>
-								Figuren ⌥4
+								{/* >> 166 */}
+								Figuren
+								{/* << 166 */}
 							</button>
 							.
 						</p>
@@ -153,7 +155,9 @@ export const Inhalt = (t: SchubladenTeile) => {
 					/>
 				</section>
 			</div>
-			<Schubladenhinweis>{`${klick} Ziehen legt es frei aufs Blatt, mit ⌘ als Baustein.`}</Schubladenhinweis>
+			{/* >> 166 */}
+			<Schubladenhinweis>{`${klick} Ziehen legt es frei aufs Blatt.`}</Schubladenhinweis>
+			{/* << 166 */}
 			{geholt && (
 				<AmZeiger
 					className="rounded-lg bg-tinte px-3 py-2 font-medium whitespace-nowrap text-white shadow-2"

@@ -28,6 +28,9 @@ import { Konfliktleiste, Speicheranzeige, Vorschauleiste } from '../editor/Anzei
 import { Bausteinleiste } from '../editor/Bausteinleiste';
 import { useBearbeitung } from '../editor/bearbeitung';
 import type { MenueArt } from '../editor/befehle';
+// >> 166
+import { kuerzelVon } from '../editor/befehle';
+// << 166
 import { Einfuegemarken } from '../editor/Bibliothek';
 import { useBild } from '../editor/bild';
 import { useBildAusFinder } from '../editor/bild-finder';
@@ -992,7 +995,9 @@ const Bearbeitung = ({ dokument, mappe: mappenDaten }: { mappe: Mappe; dokument:
 						symbol="rueckgaengig"
 						beschriftung="Rückgängig"
 						tooltip={mitSchritt('Rückgängig', zurueckName)}
-						kuerzel="⌘Z"
+						// >> 166
+						kuerzel={kuerzelVon('dokument.rueckgaengig')}
+						// << 166
 						disabled={!kannZurueck}
 						data-schritt={zurueckName}
 						onClick={() => befehle.fuehreAus('dokument.rueckgaengig')}
@@ -1002,7 +1007,9 @@ const Bearbeitung = ({ dokument, mappe: mappenDaten }: { mappe: Mappe; dokument:
 						symbol="wiederholen"
 						beschriftung="Wiederholen"
 						tooltip={mitSchritt('Wiederholen', vorName)}
-						kuerzel="⇧⌘Z"
+						// >> 166
+						kuerzel={kuerzelVon('dokument.wiederholen')}
+						// << 166
 						disabled={!kannVor}
 						data-schritt={vorName}
 						onClick={() => befehle.fuehreAus('dokument.wiederholen')}

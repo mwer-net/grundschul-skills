@@ -193,7 +193,12 @@ test.describe('Bilder-Schublade (093)', () => {
 		await bilder(page).getByRole('searchbox', { name: 'Bilder suchen' }).fill('kartoffelsalat');
 		await expect(bilder(page).getByText('Kein Bild passt zur Suche.')).toBeVisible();
 		// 102: Der Hinweis führt zu den Figuren.
-		await bilder(page).locator('[data-hinweis="figuren"]').getByRole('button', { name: 'Figuren ⌥4' }).click();
+		// >> 166
+		await bilder(page)
+			.locator('[data-hinweis="figuren"]')
+			.getByRole('button', { name: 'Figuren', exact: true })
+			.click();
+		// << 166
 		await expect(offen(page)).toHaveAttribute('data-panel-links', 'figuren');
 	});
 

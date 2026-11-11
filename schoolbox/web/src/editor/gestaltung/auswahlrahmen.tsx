@@ -123,7 +123,7 @@ export const Auswahlrahmen = ({
 								<button
 									type="button"
 									aria-label="Drehen"
-									title="Drehen (⇧: in 15°-Schritten)"
+									title="Drehen"
 									className={klassen(GRIFF, 'left-1/2 cursor-grab', inGeste && 'cursor-grabbing')}
 									style={{ top: -DREH_ABSTAND }}
 									data-gestaltung-griff="drehen"
@@ -234,7 +234,7 @@ export const MehrfachRahmen = ({
 					<button
 						type="button"
 						aria-label="Auswahl drehen"
-						title="Drehen (⇧: in 15°-Schritten)"
+						title="Drehen"
 						className={klassen(GRIFF, 'left-1/2 cursor-grab', inGeste && 'cursor-grabbing')}
 						style={{ top: -DREH_ABSTAND }}
 						data-gestaltung-griff="drehen"

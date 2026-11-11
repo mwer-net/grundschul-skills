@@ -79,7 +79,9 @@ export const Inhalt = (t: SchubladenTeile) => {
 					</div>
 				</section>
 			</div>
-			<Schubladenhinweis>Ziehen: frei hinlegen · mit ⌘: als Tipp in die Zeile</Schubladenhinweis>
+			{/* >> 166 */}
+			<Schubladenhinweis>Ziehen: frei hinlegen</Schubladenhinweis>
+			{/* << 166 */}
 		</div>
 	);
 };

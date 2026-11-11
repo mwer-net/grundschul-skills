@@ -13,6 +13,7 @@ import {
 } from '@schoolbox/kern/src/quelltext';
 import { istFarbe } from '@schoolbox/kern/src/schmuck';
 
+import type { Kuerzel } from './befehle';
 import { nrVon } from './darstellung';
 
 const TEXT = 3;
@@ -43,6 +44,12 @@ const ERLAUBT = new Set([
 ]);
 
 export type Format = 'bold' | 'underline' | 'mark';
+
+/** Die Tasten der Textsitzung für Fett und Unterstrichen: Tooltip der Textleiste und Hilfe lesen sie hier (53). */
+export const SCHRIFT_TASTEN = {
+	bold: { titel: 'Fett', kuerzel: { code: 'KeyB', befehl: true } },
+	underline: { titel: 'Unterstrichen', kuerzel: { code: 'KeyU', befehl: true } },
+} as const satisfies Record<'bold' | 'underline', { titel: string; kuerzel: Kuerzel }>;
 
 export interface TextZustand {
 	fett: boolean;
@@ -839,15 +846,17 @@ export const ruesteText = ({
 			return;
 		}
 		const mod = e.metaKey || e.ctrlKey;
-		const taste = e.key.toLowerCase();
+		const schrift = mod
+			? (['bold', 'underline'] as const).find((f) => SCHRIFT_TASTEN[f].kuerzel.code === e.code)
+			: undefined;
 		if (e.key === 'Escape') {
 			e.preventDefault();
 			e.stopPropagation();
 			beende();
-		} else if (mod && (taste === 'b' || taste === 'u')) {
+		} else if (schrift) {
 			e.preventDefault();
-			formatiere(taste === 'b' ? 'bold' : 'underline');
-		} else if (mod && taste === 'i') {
+			formatiere(schrift);
+		} else if (mod && e.key.toLowerCase() === 'i') {
 			e.preventDefault();
 		} else if ((e.key === 'Backspace' || e.key === 'Delete') && !mod && !e.altKey && !e.isComposing) {
 			loescheAmRand(e, e.key === 'Backspace');

@@ -15,6 +15,7 @@ export const SICHTBARKEIT_BEFEHLE: Befehl[] = [
 	{
 		id: 'auswahl.sperren',
 		titel: (k) => (gesetzt(k, 'data-gesperrt') ? 'Entsperren' : 'Sperren'),
+		hilfeTitel: 'Sperren oder entsperren',
 		gruppe: 'ordnen',
 		symbol: (k) => (gesetzt(k, 'data-gesperrt') ? 'entsperrt' : 'schloss'),
 		kuerzel: [{ code: 'KeyL', wahl: true, umschalt: true }],
@@ -37,6 +38,7 @@ export const SICHTBARKEIT_BEFEHLE: Befehl[] = [
 	{
 		id: 'auswahl.ausblenden',
 		titel: (k) => (gesetzt(k, 'data-aus') ? 'Einblenden' : 'Ausblenden'),
+		hilfeTitel: 'Aus- oder einblenden',
 		gruppe: 'ordnen',
 		symbol: (k) => (gesetzt(k, 'data-aus') ? 'auge' : 'ausgeblendet'),
 		kuerzel: [{ code: 'KeyH', wahl: true, umschalt: true }],

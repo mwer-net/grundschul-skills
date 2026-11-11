@@ -80,10 +80,12 @@ export const Etikett = ({ children, zusatz }: { children: ReactNode; zusatz?: Re
 	</span>
 );
 
+// >> 166
 /**
- * Eine Antwort als Fläche; `nr` ist die Ziffer, mit der sie sich wählen lässt (A1 S. 2–4). Ein Klick oder Tipp wählt
- * und geht weiter, Ziffer und Leertaste wählen nur (`detail` ist dann 0).
+ * Eine Antwort als Fläche; `nr` ist die Ziffer, mit der sie sich wählen lässt (A1 S. 2–4), sie steht nur in der Hilfe
+ * (53). Ein Klick oder Tipp wählt und geht weiter, Ziffer und Leertaste wählen nur (`detail` ist dann 0).
  */
+// << 166
 export const Wahl = ({
 	aktiv,
 	children,
@@ -123,7 +125,6 @@ export const Wahl = ({
 			}
 		}}
 	>
-		{nr !== undefined && <kbd className="absolute top-1.5 right-2 text-xs text-leise">{nr}</kbd>}
 		{children}
 	</button>
 );
@@ -213,6 +214,7 @@ const KlasseUndFach = ({
 	);
 };
 
+// >> 166
 export const SchrittStart = ({
 	a,
 	grund,
@@ -226,38 +228,33 @@ export const SchrittStart = ({
 	setzeWeg: (weg: Weg) => void;
 	weiter: () => void;
 }) => (
-	<>
-		<div className="grid grid-cols-2 gap-3 max-md:grid-cols-1">
-			{WEG_WAHL.map((w, i) => (
-				<Wahl
-					key={w.wert}
-					id={w.wert}
-					nr={i + 1}
-					aktiv={a.weg === w.wert}
-					gesperrt={w.wert === 'claude' && !verfuegbar}
-					className="min-h-48 flex-col p-4"
-					waehle={() => setzeWeg(w.wert)}
-					weiter={weiter}
-				>
-					<Symbol name={w.wert === 'claude' ? 'funken' : 'blatt'} className="size-8 text-brand-500" />
-					<span className="block text-base font-semibold">{w.name}</span>
-					<span className="block text-sm text-leise">
-						{w.wert === 'claude' && !verfuegbar ? grund : w.hinweis}
+	<div className="grid grid-cols-2 gap-3 max-md:grid-cols-1">
+		{WEG_WAHL.map((w, i) => (
+			<Wahl
+				key={w.wert}
+				id={w.wert}
+				nr={i + 1}
+				aktiv={a.weg === w.wert}
+				gesperrt={w.wert === 'claude' && !verfuegbar}
+				className="min-h-48 flex-col p-4"
+				waehle={() => setzeWeg(w.wert)}
+				weiter={weiter}
+			>
+				<Symbol name={w.wert === 'claude' ? 'funken' : 'blatt'} className="size-8 text-brand-500" />
+				<span className="block text-base font-semibold">{w.name}</span>
+				<span className="block text-sm text-leise">
+					{w.wert === 'claude' && !verfuegbar ? grund : w.hinweis}
+				</span>
+				{w.wert === 'claude' && verfuegbar && (
+					<span className="mt-auto">
+						<Empfohlen />
 					</span>
-					{w.wert === 'claude' && verfuegbar && (
-						<span className="mt-auto">
-							<Empfohlen />
-						</span>
-					)}
-				</Wahl>
-			))}
-		</div>
-		<p className="mt-4 flex items-center gap-2 text-sm text-leise">
-			<Symbol name="info" />
-			Tasten 1 und 2 wählen, ⏎ geht weiter, Esc schließt. Antworten bleiben beim Zurückgehen erhalten.
-		</p>
-	</>
+				)}
+			</Wahl>
+		))}
+	</div>
 );
+// << 166
 
 export const SchrittArt = ({
 	a,
@@ -644,7 +641,9 @@ export const SchrittKlasse = ({ a, setze }: { a: Antworten; setze: (teil: Partia
 			})}
 		</div>
 		<label className="block">
-			<Etikett zusatz="⌘⏎ geht weiter">{FREITEXT.sonst.name}</Etikett>
+			{/* >> 166 */}
+			<Etikett>{FREITEXT.sonst.name}</Etikett>
+			{/* << 166 */}
 			<textarea
 				className={klassen(FELD_KLASSEN, 'h-auto w-full py-1.5')}
 				rows={4}

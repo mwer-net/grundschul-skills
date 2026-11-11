@@ -433,12 +433,11 @@ const GriffKnopf = ({ e, nr }: { e: Eigenschaften['e']; nr: number }) => (
 const LeistenRest = ({
 	art,
 	befehle,
-	pfad,
 	setVorschau,
 	sitzung,
 	spezifisch,
 	text,
-}: Pick<Eigenschaften, 'befehle' | 'pfad' | 'text'> & {
+}: Pick<Eigenschaften, 'befehle' | 'text'> & {
 	art: string;
 	setVorschau: (an: boolean) => void;
 	sitzung: boolean;
@@ -456,7 +455,7 @@ const LeistenRest = ({
 		{sitzung ? (
 			<>
 				<Trenner />
-				<TextFertig pfad={pfad} text={text} />
+				<TextFertig text={text} />
 			</>
 		) : (
 			<LeistenEnde art={art} befehle={befehle} setVorschau={setVorschau} />
@@ -582,7 +581,6 @@ export const Bausteinleiste = ({
 				<LeistenRest
 					art={baustein.art}
 					befehle={befehle}
-					pfad={pfad}
 					setVorschau={setVorschau}
 					sitzung={sitzung}
 					spezifisch={spezifisch}

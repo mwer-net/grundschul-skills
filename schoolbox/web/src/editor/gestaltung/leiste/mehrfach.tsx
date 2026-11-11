@@ -2,15 +2,18 @@ import { Knopf } from '../../../bausteine/Knopf';
 import { Popover } from '../../../bausteine/Popover';
 import type { SymbolName } from '../../../bausteine/Symbol';
 import { Symbol } from '../../../bausteine/Symbol';
+import { Tooltip } from '../../../bausteine/Tooltip';
+import { kuerzelVon } from '../../befehle';
 import type { LeistenKnoepfe, LeistenTeile } from './typen';
 
-const AUSRICHTEN: { id: string; titel: string; symbol: SymbolName; taste: string }[] = [
-	{ id: 'auswahl.ausrichten-links', titel: 'Links', symbol: 'ausrichten-links', taste: '⌥A' },
-	{ id: 'auswahl.ausrichten-mitte', titel: 'Mitte', symbol: 'ausrichten-mitte', taste: '⌥H' },
-	{ id: 'auswahl.ausrichten-rechts', titel: 'Rechts', symbol: 'ausrichten-rechts', taste: '⌥D' },
-	{ id: 'auswahl.ausrichten-oben', titel: 'Oben', symbol: 'ausrichten-oben', taste: '⌥W' },
-	{ id: 'auswahl.ausrichten-mittig', titel: 'Mittig', symbol: 'ausrichten-mittig', taste: '⌥V' },
-	{ id: 'auswahl.ausrichten-unten', titel: 'Unten', symbol: 'ausrichten-unten', taste: '⌥S' },
+/** Die Tasten stehen im Register (`gestaltung/befehle/ausrichten.ts`), der Tooltip liest sie dort. */
+const AUSRICHTEN: { id: string; titel: string; symbol: SymbolName }[] = [
+	{ id: 'auswahl.ausrichten-links', titel: 'Links', symbol: 'ausrichten-links' },
+	{ id: 'auswahl.ausrichten-mitte', titel: 'Mitte', symbol: 'ausrichten-mitte' },
+	{ id: 'auswahl.ausrichten-rechts', titel: 'Rechts', symbol: 'ausrichten-rechts' },
+	{ id: 'auswahl.ausrichten-oben', titel: 'Oben', symbol: 'ausrichten-oben' },
+	{ id: 'auswahl.ausrichten-mittig', titel: 'Mittig', symbol: 'ausrichten-mittig' },
+	{ id: 'auswahl.ausrichten-unten', titel: 'Unten', symbol: 'ausrichten-unten' },
 ];
 
 const VERTEILEN: { id: string; titel: string; symbol: SymbolName }[] = [
@@ -25,26 +28,24 @@ const Raster = ({
 	name,
 }: Pick<LeistenTeile, 'befehle'> & {
 	name: string;
-	eintraege: { id: string; titel: string; symbol: SymbolName; taste?: string }[];
+	eintraege: { id: string; titel: string; symbol: SymbolName }[];
 }) => (
 	<div className="grid grid-cols-3 gap-1 p-1" data-leiste-raster={name}>
-		{eintraege.map(({ id, symbol, taste, titel }) => (
-			<Knopf
-				key={id}
-				art="leise"
-				groesse="klein"
-				title={taste ? `${titel} (${taste})` : titel}
-				data-befehl={id}
-				onClick={() => befehle.fuehreAus(id)}
-			>
-				<Symbol name={symbol} />
-				{titel}
-			</Knopf>
+		{eintraege.map(({ id, symbol, titel }) => (
+			<Tooltip key={id} text={titel} kuerzel={kuerzelVon(id)}>
+				<Knopf art="leise" groesse="klein" data-befehl={id} onClick={() => befehle.fuehreAus(id)}>
+					<Symbol name={symbol} />
+					{titel}
+				</Knopf>
+			</Tooltip>
 		))}
 	</div>
 );
 
-/** 120: „Gruppieren“; gesperrt mit Grund im Titel, wenn die Elemente nicht in derselben Ebene liegen. */
+/**
+ * 120: „Gruppieren“; gesperrt mit Grund im Tooltip, wenn die Elemente nicht in derselben Ebene liegen. Gesperrt heißt
+ * hier `aria-disabled`, sonst bekäme der Knopf keinen Zeiger und der Grund stünde nirgends (wie `ClaudeKnopf`).
+ */
 const GruppierenKnopf = ({ aktiv, befehle }: Pick<LeistenTeile, 'aktiv' | 'befehle'>) => {
 	const k = befehle.jetzt.current;
 	const befehl = befehle.fuer('gestaltung').find((b) => b.id === 'auswahl.gruppieren');
@@ -52,18 +53,26 @@ const GruppierenKnopf = ({ aktiv, befehle }: Pick<LeistenTeile, 'aktiv' | 'befeh
 		return null;
 	}
 	const titel = typeof befehl.titel === 'function' ? befehl.titel(k) : befehl.titel;
+	const gesperrt = Boolean(befehl.gesperrt?.(k));
 	return (
-		<Knopf
-			art="leise"
-			groesse="klein"
-			data-befehl={befehl.id}
-			disabled={!aktiv || Boolean(befehl.gesperrt?.(k))}
-			title={`${titel} (⌘G)`}
-			onClick={() => befehle.fuehreAus(befehl.id)}
-		>
-			<Symbol name="gruppe" />
-			Gruppieren
-		</Knopf>
+		<Tooltip text={titel} kuerzel={gesperrt ? undefined : kuerzelVon(befehl.id)}>
+			<Knopf
+				art="leise"
+				groesse="klein"
+				className="aria-disabled:cursor-default aria-disabled:opacity-50"
+				data-befehl={befehl.id}
+				disabled={!aktiv}
+				aria-disabled={gesperrt}
+				onClick={() => {
+					if (!gesperrt) {
+						befehle.fuehreAus(befehl.id);
+					}
+				}}
+			>
+				<Symbol name="gruppe" />
+				Gruppieren
+			</Knopf>
+		</Tooltip>
 	);
 };
 

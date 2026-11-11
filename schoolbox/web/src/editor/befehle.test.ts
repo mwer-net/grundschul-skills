@@ -2,7 +2,18 @@ import assert from 'node:assert/strict';
 import { describe, it } from 'node:test';
 
 import type { Kontext, Kuerzel, Modus } from './befehle';
-import { BEFEHLE, befehlZuTaste, kuerzelText, MODUS_VORGABE, passtTaste } from './befehle';
+// >> 166
+import {
+	BEFEHLE,
+	befehlZuTaste,
+	kuerzelText,
+	kuerzelVon,
+	MODUS_VORGABE,
+	passtTaste,
+	tastenAbschnitte,
+	tastenBeimTippen,
+} from './befehle';
+// << 166
 import type { Werkzeug } from './gestaltung/werkzeuge';
 import { WERKZEUGE, werkzeugVon } from './gestaltung/werkzeuge';
 import { befehleFuerWerkzeuge } from './gestaltung/werkzeuge/befehle';
@@ -413,3 +424,39 @@ describe('Werkzeuge (098)', () => {
 		assert.deepEqual(befehleFuerWerkzeuge([werkzeug])[0]?.suchwoerter, ['werkzeug', 'zeichnen', 'xy']);
 	});
 });
+
+// >> 166
+describe('Kürzel aus dem Register (166)', () => {
+	it('die Tastenliste zeigt jeden Befehl mit Taste genau einmal, mit einem Namen aus Text', () => {
+		const zeilen = tastenAbschnitte(undefined, true).flatMap((a) => a.zeilen);
+		const sichtbar = BEFEHLE.filter((b) => b.kuerzel?.length && (b.inUebersicht?.() ?? true));
+		assert.deepEqual(zeilen.map((z) => z.id).sort(), sichtbar.map((b) => b.id).sort());
+		for (const z of zeilen) {
+			assert.notEqual(z.titel, z.id, z.id);
+			assert.ok(z.tasten.length > 0, z.id);
+		}
+	});
+
+	it('jeder Befehl mit Taste und wechselndem Namen hat einen Namen für Hilfe und Tastenliste', () => {
+		for (const b of BEFEHLE) {
+			if (b.kuerzel?.length && typeof b.titel === 'function') {
+				assert.ok(b.hilfeTitel, b.id);
+			}
+		}
+	});
+
+	it('kuerzelVon nimmt das erste Kürzel und kennt jeden Befehl', () => {
+		assert.equal(kuerzelVon('dokument.rueckgaengig', true), kuerzelText({ code: 'KeyZ', befehl: true }, true));
+		assert.equal(kuerzelVon('ansicht.links-werkzeuge', true), '⌥3');
+		assert.throws(() => kuerzelVon('gibt-es-nicht'), /gibt-es-nicht/);
+	});
+
+	it('beim Tippen gelten nur ⌘J, ⌘K, ⌘Z und ⇧⌘Z', () => {
+		assert.deepEqual(new Set(tastenBeimTippen(true)), new Set(['⌘J', '⌘K', '⌘Z', '⇧⌘Z']));
+	});
+
+	it('die Leertaste heißt so', () => {
+		assert.equal(kuerzelText({ key: ' ' }, true), 'Leertaste');
+	});
+});
+// << 166

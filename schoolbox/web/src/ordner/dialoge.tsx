@@ -2,8 +2,8 @@ import { useEffect, useState } from 'react';
 
 import { Dialog } from '../bausteine/Dialog';
 import { Knopf } from '../bausteine/Knopf';
-import { Kuerzel } from '../bausteine/Kuerzel';
 import { Symbol } from '../bausteine/Symbol';
+import { Tastenliste } from '../bausteine/Tastenliste';
 import { hatOffeneEntwuerfe } from '../entwuerfe/offen';
 import { ART_NAME, datum, FACH_NAME, FORMAT_NAME, klasseName } from '../lib/text';
 import { vorschauAdresse } from '../lib/zugang';
@@ -231,29 +231,18 @@ export const UebersichtDialog = ({
 	);
 };
 
-export const TastenDialog = ({ schliessen }: { schliessen: () => void }) => (
-	<Dialog titel="Tasten" breit schliessen={schliessen}>
-		<div className="grid gap-x-6 gap-y-4 sm:grid-cols-2" data-tasten-uebersicht>
-			{tastenAbschnitte().map(({ befehle, titel }) => (
-				<section key={titel}>
-					<h3 className="mb-1 font-medium">{titel}</h3>
-					<ul>
-						{befehle.map((b) => (
-							<li
-								key={b.id}
-								data-taste={b.id}
-								className="flex h-zeile items-center justify-between gap-3"
-							>
-								<span className="truncate">{b.titel}</span>
-								<Kuerzel text={b.taste === ' ' ? 'Leertaste' : b.taste} />
-							</li>
-						))}
-					</ul>
-				</section>
-			))}
-		</div>
+/** Die Tasten der Ablage aus dem Register, dazu was ohne Befehl gilt. Auch in der Hilfe. */
+export const AblageTasten = ({ ebene }: { ebene?: 'h3' | 'h4' }) => (
+	<>
+		<Tastenliste abschnitte={tastenAbschnitte()} ebene={ebene} />
 		<p className="mt-3 text-leise">
 			Dazu: Pfeile bewegen die Auswahl, ⇧ erweitert. Buchstaben springen zum Namen. Esc hebt auf.
 		</p>
+	</>
+);
+
+export const TastenDialog = ({ schliessen }: { schliessen: () => void }) => (
+	<Dialog titel="Tasten" breit schliessen={schliessen}>
+		<AblageTasten />
 	</Dialog>
 );
