@@ -79,10 +79,11 @@ export const setzeBeschreibung = (quelle: string, nr: number, alt: string): Stru
 export const setzeBildBreite = (quelle: string, nr: number, px: number, max = Infinity): StrukturErgebnis => {
 	const z = zerlege(quelle);
 	const k = bildAn(z, nr);
-	// Freie Bilder (103) haben ihre Größe in `--b` (Griffe, Inspektor „Position und Größe“): zwei Größenlogiken vertragen sich nicht.
+	// Freie Bilder (103) haben ihre Größe in `--b` (Griffe, Inspektor „Anordnen“): zwei Größenlogiken vertragen sich
+	// nicht.
 	if (attribut(k, 'data-lage')) {
 		throw new Error(
-			'Die Größe eines frei liegenden Bildes stellst du an den Ecken oder unter „Position und Größe“ ein.',
+			'Die Größe eines frei liegenden Bildes stellst du an den Ecken oder unter „Anordnen“ ein.',
 		);
 	}
 	const breite = Math.round(Math.max(BILD_MIN, Math.min(max, px)));

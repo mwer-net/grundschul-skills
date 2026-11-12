@@ -30,13 +30,15 @@ export const GESTALTEN: Abschnitt = {
 			</p>
 
 			<h3>Leiste am Element und Inspektor</h3>
+			{/* >> 185 */}
 			<p>
 				Ist ein Bild, eine Figur, eine Form oder ein anderes Gestaltungselement gewählt, steht darüber eine
 				eigene kleine Leiste mit „Drehen“ und ⋯ für Duplizieren, Kopieren, Löschen und Claude fragen. Rechts im
-				Inspektor stellst du Position und Größe in Pixeln, die Ebene (vorne oder hinten) und den Druck ein: ob
-				es in s/w grau bleibt oder wegfällt und ob es immer, nur in der Lösung oder nicht in der Lösung
-				erscheint.
+				Inspektor stellst du unter „Anordnen“ die Ebene (vorne oder hinten), Position und Größe in Pixeln ein,
+				unter „Sichtbarkeit“, ob es auf Arbeitsblatt und Lösung, nur auf dem Arbeitsblatt oder nur in der Lösung
+				steht und ob es in s/w grau bleibt oder wegfällt.
 			</p>
+			{/* << 185 */}
 
 			<h3>Einrasten, Reihenfolge, Durchblick</h3>
 			<p data-hilfe-einrasten>
@@ -160,6 +162,7 @@ export const GESTALTEN: Abschnitt = {
 			</p>
 
 			<h3>Bilder frei aufs Blatt</h3>
+			{/* >> 185 */}
 			<p data-hilfe-bilder-frei>
 				In der Schublade „Bilder“ tauscht ein Klick auf ein Bild das gewählte Bild aus oder füllt den gewählten
 				Platzhalter oder Bildrahmen; ist nichts davon gewählt, kommt es als Bild-Baustein hinter die
@@ -172,8 +175,9 @@ export const GESTALTEN: Abschnitt = {
 				direkt aus dem Finder auf die Seite ziehen: Es wird hochgeladen und liegt dann frei. Ein Bild, das schon
 				im Stapel steht, legst du über ⋯ am Baustein mit „Frei legen“ frei; es bleibt an seiner Stelle. Bei
 				einem freien Bild stehen Austauschen und Beschreibung rechts im Inspektor unter „Bild“, die Größe unter
-				„Position und Größe“. ⌘Z nimmt jeden Schritt zurück.
+				„Anordnen“. ⌘Z nimmt jeden Schritt zurück.
 			</p>
+			{/* << 185 */}
 
 			<h3>Formen</h3>
 			<p data-hilfe-formen>
@@ -234,27 +238,30 @@ export const GESTALTEN: Abschnitt = {
 			</p>
 
 			<h3>Verlauf, gestrichelte Kontur, Schatten und Deckkraft</h3>
+			{/* >> 185 */}
 			<p data-hilfe-aussehen>
 				Bei der Füllung einer Form schaltest du oben von „Farbe“ auf „Verlauf“. Ein Verlauf hat zwei Farben;
 				linear läuft er in eine Richtung, die du mit „Winkel“ drehst, radial von der Mitte nach außen. Wählst du
 				wieder „Farbe“ oder eine einzelne Farbe, ist der Verlauf weg. In s/w wird auch ein Verlauf grau. Unter
-				„Linie“ wird die Kontur gestrichelt oder gepunktet, mit eckigen oder runden Enden; machst du sie dicker,
-				wachsen Striche und Lücken mit. „Schatten“ legt einen weichen grauen Schatten unter Formen,
-				Schmuckschrift, Bilder und Figuren, leicht, mittel oder stark. Mit „Deckkraft“ wird ein Element blasser,
-				bis 10 %, zum Beispiel ein Foto, das hinten als Hintergrund liegt. Bei Bildern und Figuren findest du
-				Schatten und Deckkraft im Inspektor unter „Bild“. Jede Änderung nimmst du mit ⌘Z zurück, beim Regler
-				zählt erst das Loslassen.
+				„Stil“ wird die Kontur gestrichelt oder gepunktet, Striche auch mit eckigen oder runden Enden; machst du
+				sie dicker, wachsen Striche und Lücken mit. Unter „Aussehen“ legt „Schatten“ einen weichen grauen
+				Schatten unter Formen, Schmuckschrift, Bilder und Figuren, leicht, mittel oder stark. Mit „Deckkraft“
+				wird ein Element blasser, bis 10 %, zum Beispiel ein Foto, das hinten als Hintergrund liegt. Jede
+				Änderung nimmst du mit ⌘Z zurück, beim Regler zählt erst das Loslassen.
 			</p>
+			{/* << 185 */}
 
 			<h3>Konfetti, Punkte und Sterne</h3>
+			{/* >> 185 */}
 			<p data-hilfe-streuung>
 				Mit dem Werkzeug „Streuen“ ziehst du eine Fläche voller Konfetti auf; ein Klick ohne Ziehen legt sie in
 				Standardgröße an. Die Streuung liegt immer hinten, also nie über deinen Aufgaben, und fällt in s/w weg.
-				Das ändert der Inspektor unter „Druck“. Im Inspektor unter „Streuung“ machst du daraus Punkte oder
-				Sterne und stellst Formen, Farben, Größe und Dichte ein. Punkte werden zur nächsten Blattecke hin
+				Das ändert der Inspektor unter „Sichtbarkeit“. Im Inspektor unter „Streuung“ machst du daraus Punkte
+				oder Sterne und stellst Formen, Farben, Größe und Dichte ein. Punkte werden zur nächsten Blattecke hin
 				dichter. „Würfeln“ verteilt alles neu; jede Änderung ist ein Schritt, den du mit ⌘Z zurücknimmst. Eine
 				Streuung hat höchstens 200 Teile.
 			</p>
+			{/* << 185 */}
 
 			<h3>Kontur und Titel im Bogen</h3>
 			<p data-hilfe-kontur-bogen>

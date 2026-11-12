@@ -7,7 +7,7 @@ const istTextArt = (art: string) => art === 'schmuck' || art === 'formtext';
 export const TEXT_TEILE: InspektorTeil[] = [
 	{
 		id: 'text',
-		abschnitt: 5,
+		abschnitt: 3,
 		reihenfolge: 1,
 		fuer: (art, b) => istTextArt(art) && b.faehigkeiten.includes('text'),
 		Inhalt: Text,

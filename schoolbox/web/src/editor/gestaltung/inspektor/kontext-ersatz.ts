@@ -6,13 +6,13 @@ import type { PfadTeil } from '../../darstellung';
 import { elementZu, nrVon } from '../../darstellung';
 import type { Struktur } from '../../struktur';
 /** `GestaltungKontext` kommt aus 097. `kontextFuerGestaltung` nimmt anders als 097 auch Seitenfläche und Seitenrahmen,
- * deren Inspektor nur „Druck“ zeigt. */
+ * deren Inspektor nur „Sichtbarkeit“ zeigt. */
 import type { GestaltungKontext } from '../kontext';
 import { nrnFuer } from '../mehrfach';
 
 export type { GestaltungKontext };
 
-/** Seitenfläche und Seitenrahmen liegen nicht frei, haben aber den Gestaltungs-Inspektor (nur „Druck“). */
+/** Seitenfläche und Seitenrahmen liegen nicht frei, haben aber den Gestaltungs-Inspektor (nur „Sichtbarkeit“). */
 const FLAECHEN = new Set(['seitenflaeche', 'seitenrahmen']);
 
 /** Die Weiche für Inspektor und Leiste: Gestaltung statt Baustein. */

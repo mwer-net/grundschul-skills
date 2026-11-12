@@ -1,4 +1,7 @@
 import type { Verlauf } from '@schoolbox/kern/src/aussehen';
+// >> 185
+import type { ReactNode } from 'react';
+// << 185
 
 import type { FarbreiheEigenschaften } from './Farbfeld';
 import { Farbreihe } from './Farbfeld';
@@ -17,6 +20,10 @@ type Eigenschaften = FarbreiheEigenschaften & {
 	 * (nur linear) den Winkel. Jede Änderung ist ein Schritt; „Farbe“ setzt die erste Farbe einfarbig über `setze`.
 	 */
 	verlauf?: VerlaufWahl;
+	// >> 185
+	/** Mit Titel steht „Farbe / Verlauf“ rechts neben ihm in einer Zeile (161), ohne über die volle Breite. */
+	titel?: string;
+	// << 185
 };
 
 export interface VerlaufWahl {
@@ -30,7 +37,12 @@ const ersterVerlauf = (wert: string | null): Verlauf => {
 	return { art: 'linear', f1, f2: f1 === 'var(--akzent)' ? 'var(--haupt)' : 'var(--akzent)', winkel: 90 };
 };
 
-const MitVerlauf = ({ verlauf, ...e }: Eigenschaften & { verlauf: VerlaufWahl }) => {
+// >> 185
+const Titelzeile = ({ children, titel }: { titel?: string; children: ReactNode }) =>
+	titel ? <Zeile titel={titel}>{children}</Zeile> : <>{children}</>;
+
+const MitVerlauf = ({ titel, verlauf, ...e }: Eigenschaften & { verlauf: VerlaufWahl }) => {
+// << 185
 	const { aus, beschriftung, doc, name, wert } = e;
 	const v = verlauf.wert;
 	// Kein eigener Zustand: „Verlauf“ legt sofort einen an, „Farbe“ setzt die erste Farbe einfarbig.
@@ -44,17 +56,21 @@ const MitVerlauf = ({ verlauf, ...e }: Eigenschaften & { verlauf: VerlaufWahl })
 	};
 	return (
 		<div className="flex flex-col gap-1.5" data-farbwahl-verlauf={name ?? beschriftung}>
-			<Segment
-				beschriftung={`${beschriftung}: Farbe oder Verlauf`}
-				werte={[
-					{ wert: 'farbe', titel: 'Farbe' },
-					{ wert: 'verlauf', titel: 'Verlauf' },
-				]}
-				wert={modus}
-				waehle={waehle}
-				aus={aus}
-				voll
-			/>
+			{/* >> 185 */}
+			<Titelzeile titel={titel}>
+				<Segment
+					beschriftung={`${beschriftung}: Farbe oder Verlauf`}
+					werte={[
+						{ wert: 'farbe', titel: 'Farbe' },
+						{ wert: 'verlauf', titel: 'Verlauf' },
+					]}
+					wert={modus}
+					waehle={waehle}
+					aus={aus}
+					voll={!titel}
+				/>
+			</Titelzeile>
+			{/* << 185 */}
 			{!v ? (
 				<Farbreihe {...e} />
 			) : (

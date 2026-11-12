@@ -162,7 +162,8 @@ test.describe('Aussehen: Kontur, Schatten, Deckkraft', () => {
 		await expect(bild).toBeVisible();
 		await waehle(page, bild, 'bildfrei');
 
-		const abschnitt = page.locator('[data-abschnitt="bild"] [data-gestaltung-aussehen]');
+		// 185: Schatten und Deckkraft stehen auch beim Bild unter „Aussehen“.
+		const abschnitt = page.locator('[data-abschnitt="aussehen"] [data-gestaltung-aussehen]');
 		await abschnitt.getByRole('group', { name: 'Schatten' }).getByRole('button', { name: 'Mittel' }).click();
 		await expect(bild).toHaveAttribute('data-schatten', 'mittel');
 		await expect(zurueck(page)).toHaveAttribute('data-schritt', 'Schatten geändert');

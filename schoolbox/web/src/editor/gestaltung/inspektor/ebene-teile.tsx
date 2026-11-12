@@ -4,6 +4,7 @@ import { leseUeberlagertOk, setzeUeberlagertOk } from '@schoolbox/kern/src/gesta
 
 import { Schalter } from '../../../bausteine/Schalter';
 import { Segment } from '../../../bausteine/Segment';
+import { Zeile } from '../../../bausteine/Zeile';
 import type { InspektorTeile } from './abschnitte';
 
 const EBENEN: { wert: EbenenName; titel: string }[] = [
@@ -23,16 +24,17 @@ const ebeneVon = (element: Element): EbenenName | null => {
 	return eltern.classList.contains('vorne') ? 'vorne' : null;
 };
 
-export const Ebene = ({ aktiv, k, quelle }: InspektorTeile) => {
+/** Zeile „Ebene“; am Anker gibt es kein „hinten“ (3.5), also keine Zeile (106, 182). */
+export const Ebene = ({ aktiv, k }: InspektorTeile) => {
 	const ebene = ebeneVon(k.element);
-	const ok = leseUeberlagertOk(quelle, k.nr);
+	if (!ebene) {
+		return null;
+	}
 	return (
-		<div className="flex flex-col gap-1" data-gestaltung-ebene={ebene ?? 'anker'}>
-			{/* 106: Am Anker gibt es kein „hinten“ (3.5), also keine Wahl. */}
-			{ebene && (
+		<div data-gestaltung-ebene={ebene}>
+			<Zeile titel="Ebene">
 				<Segment
 					beschriftung="Ebene"
-					className="self-start"
 					werte={EBENEN}
 					wert={ebene}
 					aus={!aktiv}
@@ -42,21 +44,25 @@ export const Ebene = ({ aktiv, k, quelle }: InspektorTeile) => {
 						);
 					}}
 				/>
-			)}
-			<div className="flex h-zeile items-center justify-between gap-2">
-				<span className="text-leise">Darf Inhalt überdecken</span>
-				<Schalter
-					name="Darf Inhalt überdecken"
-					an={ok}
-					aus={!aktiv}
-					setze={(an) => {
-						k.fuehreAus(an ? 'Überdecken erlaubt' : 'Überdecken nicht erlaubt', (q) => ({
-							quelle: setzeUeberlagertOk(q, k.nr, an),
-							nr: k.nr,
-						}));
-					}}
-				/>
-			</div>
+			</Zeile>
 		</div>
 	);
 };
+
+export const Ueberdecken = ({ aktiv, k, quelle }: InspektorTeile) => (
+	<div data-gestaltung-ueberdecken>
+		<Zeile titel="Darf Inhalt überdecken">
+			<Schalter
+				name="Darf Inhalt überdecken"
+				an={leseUeberlagertOk(quelle, k.nr)}
+				aus={!aktiv}
+				setze={(an) => {
+					k.fuehreAus(an ? 'Überdecken erlaubt' : 'Überdecken nicht erlaubt', (q) => ({
+						quelle: setzeUeberlagertOk(q, k.nr, an),
+						nr: k.nr,
+					}));
+				}}
+			/>
+		</Zeile>
+	</div>
+);

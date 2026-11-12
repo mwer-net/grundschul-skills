@@ -4,8 +4,8 @@ import { RahmenstilWahl } from './rahmenstil-teile';
 export const RAHMENSTIL_TEILE: InspektorTeil[] = [
 	{
 		id: 'rahmenstil',
-		abschnitt: 6,
-		reihenfolge: 2,
+		abschnitt: 4,
+		reihenfolge: 3,
 		fuer: (art) => art === 'bildfrei' || art === 'bildrahmen',
 		Inhalt: RahmenstilWahl,
 	},

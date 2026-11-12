@@ -166,7 +166,7 @@ test.describe('Streuung (109, 174)', () => {
 		await oeffneFormen(page);
 		await streue(page);
 		const vorher = await quelle(page);
-		const feld = page.locator('[data-abschnitt="position"] input[aria-label="Breite"]').first();
+		const feld = page.locator('[data-abschnitt="anordnen"] input[aria-label="Breite"]').first();
 		await feld.fill('150');
 		await feld.press('Enter');
 		await expect.poll(async () => await quelle(page)).toContain('--b:150px');

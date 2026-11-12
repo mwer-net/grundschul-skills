@@ -198,10 +198,11 @@ test.describe('Muster des Inspektors (182)', () => {
 		await blatt(page, { hinten: [SEITENFLAECHE], vorne: [GRUPPE], anker: [FIGUR_ANKER] });
 
 		await waehle(druecke, page, material(page).locator('img.figur-frei[data-anker]'), 'figurfrei');
-		const ebene = page.locator('[data-gestaltung-ebene="anker"]');
-		await expect(ebene).toBeVisible();
-		await expect(ebene.getByRole('group', { name: 'Ebene' })).toHaveCount(0);
-		await expect(ebene.getByRole('switch', { name: 'Darf Inhalt überdecken' })).toBeVisible();
+		// 185: Am Anker fehlt die Zeile „Ebene“ ganz; „Darf Inhalt überdecken“ steht unter „Anordnen“.
+		const anordnen = page.locator('[data-abschnitt="anordnen"]');
+		await expect(anordnen).toBeVisible();
+		await expect(anordnen.getByRole('group', { name: 'Ebene' })).toHaveCount(0);
+		await expect(anordnen.getByRole('switch', { name: 'Darf Inhalt überdecken' })).toBeVisible();
 		await ohneSaetze(page);
 
 		await waehle(druecke, page, material(page).locator('.gruppe .form-text'), 'gruppe');

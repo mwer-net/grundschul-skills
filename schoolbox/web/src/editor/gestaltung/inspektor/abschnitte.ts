@@ -10,7 +10,7 @@ export interface InspektorTeile {
 	aktiv: boolean;
 }
 
-/** Die Abschnitte 2 bis 9 aus Briefing 5.8; 1 ist der Pfad, den `Inspektor.tsx` schon zeigt. */
+/** Die Abschnitte 2 bis 9 (Briefing 5.8, Entscheidung 31, 185); 1 ist der Pfad, den `Inspektor.tsx` schon zeigt. */
 export type AbschnittNr = 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9;
 
 /** Ein Teil des Gestaltungs-Inspektors. Jedes Arten-Ticket trägt seine Teile in seine eigene Datei ein. */
@@ -29,16 +29,20 @@ export interface InspektorTeil {
 	mehrfach?: boolean;
 }
 
-/** Titel und `data-abschnitt` je Abschnitt, in fester Reihenfolge (Entscheidung 31). */
+/**
+ * Titel und `data-abschnitt` je Abschnitt, in fester Reihenfolge (Entscheidung 31): erst was die Art ausmacht (Form,
+ * Text, Bild, Streuung), dann Füllung und Kontur, Aussehen (Schatten, Deckkraft), Anordnen (Ebene, Lage, Größe, Anker)
+ * und Sichtbarkeit wie bei den Bausteinen. Vorbild ist Canva, „Anordnen“ heißt es in Keynote (161).
+ */
 export const ABSCHNITTE: Record<AbschnittNr, { name: string; titel: string }> = {
-	2: { name: 'position', titel: 'Position und Größe' },
-	3: { name: 'form', titel: 'Form' },
-	4: { name: 'fuellung', titel: 'Füllung und Kontur' },
-	5: { name: 'text', titel: 'Text' },
-	6: { name: 'bild', titel: 'Bild' },
-	7: { name: 'streuung', titel: 'Streuung' },
-	8: { name: 'ebene', titel: 'Ebene und Anker' },
-	9: { name: 'druck', titel: 'Druck' },
+	2: { name: 'form', titel: 'Form' },
+	3: { name: 'text', titel: 'Text' },
+	4: { name: 'bild', titel: 'Bild' },
+	5: { name: 'streuung', titel: 'Streuung' },
+	6: { name: 'fuellung', titel: 'Füllung und Kontur' },
+	7: { name: 'aussehen', titel: 'Aussehen' },
+	8: { name: 'anordnen', titel: 'Anordnen' },
+	9: { name: 'sichtbarkeit', titel: 'Sichtbarkeit' },
 };
 
 export interface Gruppe {

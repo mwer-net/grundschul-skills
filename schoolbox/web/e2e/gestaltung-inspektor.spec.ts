@@ -1,7 +1,8 @@
 import type { Locator, Page } from '@playwright/test';
+import { formHtml } from '@schoolbox/kern/src/formen';
 
 import { aendere, material, oeffne, quelle, uhrzeit } from './editorhilfe';
-import { FIGUR_FREI } from './gestaltung-daten';
+import { BILD_FREI, blattMit, FIGUR_ANKER, FIGUR_FREI, FORM, SCHMUCK } from './gestaltung-daten';
 import { expect, test } from './hilfe';
 
 /** Setzt eine Ebene `vorne` mit der Figur aus den Testdaten an das Ende der ersten Seite. */
@@ -25,15 +26,18 @@ const mitGewaehlterFigur = async (page: Page, druecke: (ziel: Locator) => Promis
 };
 
 test.describe('Inspektor und Leiste am Element (099)', () => {
-	test('Bei einer Figur: Position, Bild, Ebene, Druck in dieser Reihenfolge', async ({ druecke, page }) => {
+	test('Bei einer Figur: Bild, Aussehen, Anordnen, Sichtbarkeit in dieser Reihenfolge (185)', async ({
+		druecke,
+		page,
+	}) => {
 		await mitGewaehlterFigur(page, druecke);
-		// „Bild“: Figur tauschen (102), Schatten und Deckkraft (108).
+		// „Bild“: Figur tauschen (102); Schatten und Deckkraft (108) stehen unter „Aussehen“.
 		await expect(inspektor(page).locator('[data-abschnitt]')).toHaveCount(4);
 		const namen = await inspektor(page)
 			.locator('[data-abschnitt]')
 			.evaluateAll((alle) => alle.map((a) => a.getAttribute('data-abschnitt')));
-		expect(namen).toEqual(['position', 'bild', 'ebene', 'druck']);
-		await expect(inspektor(page).locator('[data-abschnitt="position"] h3')).toHaveText('Position und Größe');
+		expect(namen).toEqual(['bild', 'aussehen', 'anordnen', 'sichtbarkeit']);
+		await expect(inspektor(page).locator('[data-abschnitt="anordnen"] h3')).toHaveText('Anordnen');
 		await expect(page.locator('[data-abschnitt="inhalt"]')).toHaveCount(0);
 	});
 
@@ -67,10 +71,23 @@ test.describe('Inspektor und Leiste am Element (099)', () => {
 		await expect.poll(() => quelle(page)).not.toContain('data-sw');
 	});
 
-	test('„nur in der Lösung“ setzt nur-loesung', async ({ druecke, page }) => {
+	test('Sichtbarkeit wie bei den Bausteinen: „Nur Lösung“ setzt nur-loesung (185)', async ({ druecke, page }) => {
 		await mitGewaehlterFigur(page, druecke);
-		await page.getByRole('combobox', { name: 'Zeigen' }).selectOption({ label: 'nur in der Lösung' });
+		const menue = page.getByRole('combobox', { name: 'Sichtbarkeit' });
+		await expect(menue).toHaveValue('');
+		await expect(menue.locator('option')).toHaveText(['Arbeitsblatt und Lösung', 'Nur Arbeitsblatt', 'Nur Lösung']);
+		await menue.selectOption({ label: 'Nur Lösung' });
 		await expect.poll(() => quelle(page)).toContain('class="figur-frei nur-loesung"');
+	});
+
+	test('Bestand mit nicht-loesung zeigt „Nur Arbeitsblatt“ (185)', async ({ druecke, page }) => {
+		const { dok, id } = await uhrzeit();
+		await oeffne(page, id, dok);
+		const text = mitFigur(await quelle(page));
+		await aendere(page, text.replace('class="figur-frei"', 'class="figur-frei nicht-loesung"'));
+		await druecke(figur(page));
+		await expect(inspektor(page)).toBeVisible();
+		await expect(page.getByRole('combobox', { name: 'Sichtbarkeit' })).toHaveValue('arbeitsblatt');
 	});
 
 	test('Die Leiste steht über der Figur, ⋯ hat Duplizieren, Kopieren, Löschen, Claude', async ({ druecke, page }) => {
@@ -95,5 +112,130 @@ test.describe('Inspektor und Leiste am Element (099)', () => {
 		await expect(page.locator('[data-bausteinleiste]')).toBeVisible();
 		await expect(page.locator('[data-gestaltungsleiste]')).toHaveCount(0);
 		await expect(page.locator('[data-gestaltung-inspektor]')).toHaveCount(0);
+	});
+});
+
+/** Eine Form aus `formHtml` mit Lage auf der ersten Seite. */
+const frei = (svg: string, lage: string) => svg.replace(' viewBox=', ` style="${lage}" viewBox=`);
+const LINIE = frei(formHtml({ art: 'linie', b: 200, h: 10 }), '--x:200px;--y:620px;--b:200px;--h:10px');
+const RECHTECK = frei(formHtml({ art: 'rechteck', b: 160, h: 100 }), '--x:200px;--y:420px;--b:160px;--h:100px');
+
+const blattOeffnen = async (page: Page, html: string) => {
+	const { dok, id } = await uhrzeit();
+	await oeffne(page, id, dok);
+	await aendere(page, html);
+};
+
+const waehle = async (druecke: (ziel: Locator) => Promise<void>, page: Page, element: Locator, art: string) => {
+	await druecke(element);
+	await expect(page.locator(`[data-gestaltung-inspektor="${art}"]`)).toBeVisible();
+};
+
+/** Die Titel der sichtbaren Abschnitte im Inspektor der Gestaltung, von oben. */
+const abschnitte = (page: Page) =>
+	page
+		.locator('[data-gestaltung-inspektor] [data-abschnitt]')
+		.evaluateAll((alle) =>
+			alle.filter((a) => a.getClientRects().length > 0).map((a) => a.querySelector('h3')?.textContent?.trim()),
+		);
+
+const stern = (page: Page) => material(page).locator('svg.form[data-form="stern"]');
+
+test.describe('Abschnitte der Gestaltung (185)', () => {
+	test('Stern: Form, Füllung und Kontur, Aussehen, Anordnen, Sichtbarkeit', async ({ druecke, page }) => {
+		await blattOeffnen(page, blattMit({ vorne: [FORM] }));
+		await waehle(druecke, page, stern(page), 'form');
+		expect(await abschnitte(page)).toEqual(['Form', 'Füllung und Kontur', 'Aussehen', 'Anordnen', 'Sichtbarkeit']);
+		// Kein „Form › Form“: Das Menü hat keine Zeilenbeschriftung, der Abschnitt ist die Überschrift.
+		const form = page.locator('[data-abschnitt="form"]');
+		await expect(form.locator('[data-zeile] label').filter({ hasText: /^Form$/ })).toHaveCount(0);
+		await expect(form.locator('select[aria-label="Form"]')).toBeVisible();
+		const fuellung = page.locator('[data-abschnitt="fuellung"]');
+		await expect(fuellung.getByRole('group', { name: 'Stil der Kontur' })).toBeVisible();
+		const aussehen = page.locator('[data-abschnitt="aussehen"]');
+		await expect(aussehen.getByRole('group', { name: 'Schatten' })).toBeVisible();
+	});
+
+	test('Schmuckschrift: Text, Aussehen, Anordnen, Sichtbarkeit; keine Füllung, keine Zeile „Art“', async ({
+		druecke,
+		page,
+	}) => {
+		await blattOeffnen(page, blattMit({ vorne: [SCHMUCK] }));
+		await waehle(druecke, page, material(page).locator('.schmuck'), 'schmuck');
+		expect(await abschnitte(page)).toEqual(['Text', 'Aussehen', 'Anordnen', 'Sichtbarkeit']);
+		await expect(page.locator('[data-abschnitt="fuellung"]')).toHaveCount(0);
+		const zeilen = page.locator('[data-gestaltung-inspektor] [data-zeile] label');
+		await expect(zeilen.filter({ hasText: /^Art$/ })).toHaveCount(0);
+	});
+
+	test('Bild: Deckkraft unter „Aussehen“, nicht unter „Bild“', async ({ druecke, page }) => {
+		await blattOeffnen(page, blattMit({ vorne: [BILD_FREI] }));
+		await waehle(druecke, page, material(page).locator('img.bild-frei'), 'bildfrei');
+		await expect(page.locator('[data-abschnitt="aussehen"] [data-aussehen-deckkraft]')).toBeVisible();
+		await expect(page.locator('[data-abschnitt="bild"] [data-aussehen-deckkraft]')).toHaveCount(0);
+	});
+
+	test('Linie: kein Menü „Form“, keine Enden; beim Rechteck Enden nur mit Strichen', async ({ druecke, page }) => {
+		await blattOeffnen(page, blattMit({ vorne: [LINIE, RECHTECK] }));
+		const stil = page.getByRole('group', { name: 'Stil der Kontur' });
+		const enden = page.getByRole('group', { name: 'Enden der Kontur' });
+
+		await waehle(druecke, page, material(page).locator('svg.form[data-form="linie"]'), 'form');
+		await expect(page.locator('select[aria-label="Form"]')).toHaveCount(0);
+		await expect(stil).toBeVisible();
+		await druecke(stil.getByRole('button', { name: 'Striche' }));
+		await expect(material(page).locator('svg.form[data-form="linie"]')).toHaveAttribute(
+			'data-kontur-stil',
+			'gestrichelt',
+		);
+		await expect(enden).toHaveCount(0);
+
+		// Gegenprobe
+		await waehle(druecke, page, material(page).locator('svg.form[data-form="rechteck"]'), 'form');
+		await expect(page.locator('select[aria-label="Form"]')).toBeVisible();
+		await expect(enden).toHaveCount(0);
+		await druecke(stil.getByRole('button', { name: 'Striche' }));
+		await expect(enden).toBeVisible();
+		await druecke(stil.getByRole('button', { name: 'Linie' }));
+		await expect(enden).toHaveCount(0);
+	});
+
+	test('Mehrfachauswahl: Der Titel lautet „2 Elemente“', async ({ page }) => {
+		test.skip(test.info().project.name.startsWith('ipad'), 'Mehrfachauswahl mit ⇧ und Maus');
+		await blattOeffnen(page, blattMit({ vorne: [FORM, RECHTECK] }));
+		await stern(page).click();
+		await expect(page.locator('[data-breadcrumb] h2')).toHaveText('Stern');
+		await material(page).locator('svg.form[data-form="rechteck"]').click({ modifiers: ['Shift'] });
+		await expect(page.locator('[data-breadcrumb] h2')).toHaveText('2 Elemente');
+	});
+
+	test('Figur am Anker: keine Zeile „Ebene“, „Hängt an“ zeigt den Baustein', async ({ druecke, page }) => {
+		await blattOeffnen(page, blattMit({ anker: [FIGUR_ANKER] }));
+		await waehle(druecke, page, material(page).locator('img.figur-frei[data-anker]'), 'figurfrei');
+		const anordnen = page.locator('[data-abschnitt="anordnen"]');
+		await expect(anordnen.locator('[data-zeile] label').filter({ hasText: /^Ebene$/ })).toHaveCount(0);
+		await expect(anordnen.getByRole('group', { name: 'Ebene' })).toHaveCount(0);
+		const haengtAn = anordnen.getByRole('combobox', { name: 'Hängt an' });
+		await expect(haengtAn).not.toHaveValue('');
+		await expect(haengtAn.locator('option:checked')).toContainText('Aufgabe 1');
+	});
+
+	test.describe('am Mac', () => {
+		test.skip(({ hasTouch }) => hasTouch || !['chromium', 'mac-safari'].includes(test.info().project.name), 'Maus');
+
+		test('Stern ohne Prüfhinweis: Der Inspektor rollt nicht', async ({ druecke, page }) => {
+			await page.setViewportSize({ width: 1512, height: 982 });
+			// Ohne Prüfhinweis „verdeckt …“: Der Stern darf Inhalt überdecken.
+			const ohneHinweis = FORM.replace('<svg class="form"', '<svg class="form" data-ueberlagert-ok');
+			await blattOeffnen(page, blattMit({ vorne: [ohneHinweis] }));
+			await waehle(druecke, page, stern(page), 'form');
+			await expect(page.locator('[data-panel="inspektor"]')).not.toContainText('verdeckt');
+			const box = page.locator('[data-panel="inspektor"] > div');
+			const { hoehe, sichtbar } = await box.evaluate((e) => ({
+				hoehe: e.scrollHeight,
+				sichtbar: e.clientHeight,
+			}));
+			expect(hoehe).toBeLessThanOrEqual(sichtbar);
+		});
 	});
 });

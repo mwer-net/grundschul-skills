@@ -5,8 +5,8 @@ import type { InspektorTeile } from './abschnitte';
 /**
  * Abschnitt „Bild“ bei freien Bildern (103): Vorschau, Hinweise (unscharf, s/w-Fassung), Austauschen (Hochladen, Aus
  * der Sammlung) und Beschreibung aus dem Bild-Panel, ohne den Regler „Größe“: Die Größe steht in `--b` und gehört zu
- * „Position und Größe“ und den Griffen. Beim leeren Bildrahmen (172) „Bild einsetzen“ wie beim Platzhalter. Rahmen-Stil
- * und Zuschnitt: 111.
+ * „Anordnen“ und den Griffen. Beim leeren Bildrahmen (172) „Bild einsetzen“ wie beim Platzhalter. Rahmen-Stil und
+ * Zuschnitt: 111.
  */
 export const Inhalt = ({ k }: InspektorTeile) => {
 	const bild = useBildKontext();

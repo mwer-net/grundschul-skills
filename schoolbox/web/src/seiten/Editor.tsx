@@ -42,7 +42,9 @@ import { EntwurfKarte, EntwurfPille, Entwurfsleiste, SperrHinweis } from '../edi
 import { zeigeBlattGestaltung } from '../editor/gestaltung/blatt/zeige';
 import { gestaltungKontext } from '../editor/gestaltung/kontext';
 import { Leiste as GestaltungLeiste } from '../editor/gestaltung/leiste/Leiste';
-import { folgeAuswahl, useMehrfach } from '../editor/gestaltung/mehrfach';
+// >> 185
+import { folgeAuswahl, nrnFuer, useMehrfach } from '../editor/gestaltung/mehrfach';
+// << 185
 import { GestaltungUeberlagerung } from '../editor/gestaltung/ueberlagerung';
 import { Werkzeugflaeche } from '../editor/gestaltung/werkzeuge/Werkzeugflaeche';
 import type { Geladen } from '../editor/gezeigt';
@@ -403,7 +405,9 @@ const Bearbeitung = ({ dokument, mappe: mappenDaten }: { mappe: Mappe; dokument:
 		auswahlJetzt.current = auswahl;
 		folgeAuswahl(auswahl); // 113: eine andere Hauptauswahl (Klick ohne ⇧, Esc, Rückgängig …) leert die Mehrfachauswahl
 	}, [auswahl]);
-	useMehrfach(); // 113: Die weiteren Elemente der Mehrfachauswahl liegen außerhalb von React; neu zeichnen, wenn sie sich ändern
+	// >> 185
+	const mehrfach = useMehrfach(); // 113: Die weiteren Elemente der Mehrfachauswahl liegen außerhalb von React; neu zeichnen, wenn sie sich ändern
+	// << 185
 	const b = useBearbeitung(mappe, dok, auswahlJetzt);
 	const { alles, stand } = b.speicher;
 	const [geladen, setGeladen] = useState<Geladen | null>(null);
@@ -476,6 +480,14 @@ const Bearbeitung = ({ dokument, mappe: mappenDaten }: { mappe: Mappe; dokument:
 		profil,
 	);
 	const pfad = useMemo(() => (geladen && auswahl !== null ? pfadZu(geladen.doc, auswahl) : []), [geladen, auswahl]);
+	// >> 185
+	// Bei Mehrfachauswahl heißt der Titel im Inspektor „N Elemente“, nicht wie das zuletzt gewählte Element.
+	const inspektorPfad = useMemo(() => {
+		const letzter = pfad.at(-1);
+		const n = geladen && letzter && mehrfach.haupt === letzter.nr ? nrnFuer(geladen.doc, letzter.nr).length : 1;
+		return letzter && n > 1 ? [...pfad.slice(0, -1), { ...letzter, name: `${n} Elemente` }] : pfad;
+	}, [geladen, mehrfach, pfad]);
+	// << 185
 	// Das neue Bild und die Auswahl, die darauf gewartet hat, wechseln im selben Render (`struktur.nachBild`).
 	const nachBild = useRef<(doc: Document, z: Zerlegung, frisch: boolean) => void>(() => undefined);
 	const htmlJetzt = useRef(html);
@@ -935,7 +947,15 @@ const Bearbeitung = ({ dokument, mappe: mappenDaten }: { mappe: Mappe; dokument:
 			</>
 		),
 		inspektor: (
-			<Inspektor pfad={pfad} waehle={setAuswahl} umriss={setUmriss} blatt={ohneAuswahl} zumBlatt={zumBlatt}>
+			<Inspektor
+				// >> 185
+				pfad={inspektorPfad}
+				// << 185
+				waehle={setAuswahl}
+				umriss={setUmriss}
+				blatt={ohneAuswahl}
+				zumBlatt={zumBlatt}
+			>
 				<Einstellungen
 					pfad={pfad}
 					quelle={sicht.quelle}

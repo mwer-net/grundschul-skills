@@ -2,9 +2,8 @@ import type { FormParameter } from '@schoolbox/kern/src/formen';
 import { FORMEN, formVon } from '@schoolbox/kern/src/formen';
 import { leseForm, setzeFormParameter, wechsleForm } from '@schoolbox/kern/src/formen-aendern';
 import { zahl } from '@schoolbox/kern/src/formen-geometrie';
-import { useId } from 'react';
 
-import { FELD_KLASSEN, klassen } from '../../../bausteine/klassen';
+import { FELD_KLASSEN } from '../../../bausteine/klassen';
 import { Segment } from '../../../bausteine/Segment';
 import { Stepper } from '../../../bausteine/Stepper';
 import { Zeile } from '../../../bausteine/Zeile';
@@ -81,24 +80,29 @@ const Parameter = ({ aus, k, p, wert }: { k: GestaltungKontext; p: FormParameter
 	);
 };
 
-/** Abschnitt 3 „Form“ (5.8): Art innerhalb der Klasse, darunter die Parameter. Jede Änderung ist ein Schritt. */
+/**
+ * Abschnitt 2 „Form“ (5.8, 185): oben das Menü der Formen derselben Klasse über die volle Breite, ohne eigene
+ * Beschriftung (der Abschnitt heißt so), darunter die Parameter. Hat die Klasse nur eine Form (Linie, eigene Form),
+ * fehlt das Menü; ohne Parameter fehlt der ganze Teil. Jede Änderung ist ein Schritt.
+ */
 export const FormTeil = ({ aktiv, k, quelle }: InspektorTeile) => {
-	const id = useId();
 	const stand = leseForm(quelle, k.nr);
 	const form = formVon(stand?.art);
 	if (!stand || !form) {
 		return null;
 	}
 	const auswahl = Object.values(FORMEN).filter((f) => f.klasse === form.klasse);
+	if (auswahl.length < 2 && form.parameter.length === 0) {
+		return null;
+	}
 	return (
 		<div className="flex flex-col gap-1" data-gestaltung-form={form.art}>
-			<Zeile titel="Form" fuer={id}>
+			{auswahl.length > 1 && (
 				<select
-					id={id}
-					className={klassen(FELD_KLASSEN, 'w-fit! max-w-36 pr-5!')}
+					className={FELD_KLASSEN}
 					aria-label="Form"
 					data-form-art
-					disabled={!aktiv || auswahl.length < 2}
+					disabled={!aktiv}
 					value={form.art}
 					onChange={(e) => {
 						const art = e.target.value;
@@ -114,7 +118,7 @@ export const FormTeil = ({ aktiv, k, quelle }: InspektorTeile) => {
 						</option>
 					))}
 				</select>
-			</Zeile>
+			)}
 			{form.parameter.map((p) => (
 				<Parameter key={p.attr} k={k} p={p} wert={stand.param[p.attr] ?? p.standard} aus={!aktiv} />
 			))}
