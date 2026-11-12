@@ -68,6 +68,17 @@ export const KI_GRENZEN = {
 		/** So lange bleibt ein unvollständiger Arbeitsordner für „Weiterbauen“ liegen. */
 		aufhebenMs: 7 * 24 * 60 * 60_000,
 	},
+	/**
+	 * Ein Bild in Canva (176), ein Lauf zur Zeit. Gemessen in 138: 77 s, 19 Runden und 0,79 USD je Bild; die Grenzen
+	 * lassen Platz für eine Reparatur nach `bilder.md` §2a.
+	 */
+	canva: {
+		zeitMs: 6 * 60_000,
+		runden: 40,
+		budgetUsd: 2,
+		budgetGuthabenUsd: 1,
+		warten: 5,
+	},
 };
 /** Klein genügt: Es soll nur „ok“ sagen. */
 export const KI_LIMIT_MODELL = 'haiku';
@@ -253,6 +264,14 @@ export const EINHEIT_RECHTE = [
 	'Edit(./bilder.json)',
 ];
 
+/** Was ein Canva-Lauf schreiben darf (176): die Bildliste und sein Ergebnis, sonst nichts. */
+export const CANVA_BILD_RECHTE = [
+	'Write(./bilder.json)',
+	'Edit(./bilder.json)',
+	'Write(./ergebnis.json)',
+	'Edit(./ergebnis.json)',
+];
+
 /**
  * Der Aufruf aus Issue 056: Skills ja, sonst nichts. Der Prompt kommt über stdin, weil `--tools` Werte schluckt.
  * `einheit` (139) schreibt mehrere Dateien und hat eigene Grenzen; `mitCanva` (138) nimmt nur sie.
@@ -265,8 +284,44 @@ export const kiArgumente = (o: {
 	sitzung?: string | null;
 	einheit?: boolean;
 	mitCanva?: boolean;
+	/** Ein Canva-Bild (176): nur die Bildwerkzeuge von Canva und zwei Dateien, kein Skill, kein Material. */
+	canvaBild?: boolean;
 }) => {
 	const canva = o.mitCanva === true;
+	if (o.canvaBild === true) {
+		return [
+			'-p',
+			'--output-format',
+			'stream-json',
+			'--verbose',
+			'--model',
+			o.modell,
+			'--effort',
+			KI_EFFORT,
+			'--setting-sources',
+			'project',
+			'--add-dir',
+			o.ablage,
+			'--settings',
+			canvaEinstellungen(),
+			'--tools',
+			'Read,Edit,Write',
+			'--allowedTools',
+			...CANVA_BILD_RECHTE,
+			...CANVA_WERKZEUGE,
+			'--disallowedTools',
+			...NIE_LESEN,
+			...NIE_KONNEKTOR_WERKZEUGE,
+			'--permission-mode',
+			'dontAsk',
+			'--max-turns',
+			String(KI_GRENZEN.canva.runden),
+			'--max-budget-usd',
+			String(o.budgetUsd ?? KI_GRENZEN.canva.budgetUsd),
+			'--append-system-prompt-file',
+			o.auftragDatei,
+		];
+	}
 	return [
 		'-p',
 		'--output-format',
@@ -426,6 +481,7 @@ const FEHLER_TEXTE: Record<string, string> = {
 	error_max_budget_guthaben: `Der Auftrag hat die Grenze von ${KI_GRENZEN.budgetGuthabenUsd} $ für einen Lauf über dein Guthaben erreicht. Wähle einen kleineren Teil des Blatts.`,
 };
 const FEHLER_UNBEKANNT = 'Claude konnte den Auftrag nicht ausführen. Bitte versuch es noch einmal.';
+export { FEHLER_TEXTE, FEHLER_UNBEKANNT };
 
 export interface Ergebnis {
 	fehler: string | null;

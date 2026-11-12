@@ -42,6 +42,7 @@ const typAus = (kopf: Buffer): 'png' | 'jpg' | null => {
 	}
 	return null;
 };
+export { typAus };
 
 /** Wirft mit einem Grund für das Protokoll; Text aus dem Material steht darin nie. */
 export const pruefeCanvaUrl = (roh: string) => {

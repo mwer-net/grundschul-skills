@@ -549,3 +549,38 @@ export const nimmPoseAuf = async (
 		};
 	});
 };
+
+/**
+ * Streicht eine Pose aus `figuren.json`; die Grundpose nimmt die ganze Figur mit. Trug die Pose die Referenz der Figur
+ * (`canva`), verliert die Figur sie, damit das nächste Canva-Bild ihre Referenz wird. Dateien in `_figuren/` bleiben
+ * liegen. Die Grundposen von Willi und Wilma werfen. `false`: Diese Pose gibt es nicht.
+ */
+export const entfernePose = async (
+	konfig: Pick<Konfig, 'pythonBin'>,
+	materialDir: string,
+	poseId: string,
+): Promise<boolean> => {
+	if (eingebaut(poseId)) {
+		throw new SchoolboxFehler('Willi und Wilma lassen sich nicht entfernen.');
+	}
+	return aendereBibliothek(konfig, materialDir, async (gespeichert, dateien) => {
+		const figur = figurenAus(gespeichert, dateien).find((f) => f.posen.some((p) => p.id === poseId));
+		const eintrag = figur && gespeichert.figuren.find((f) => istObjekt(f) && f.id === figur.id);
+		if (!figur || !eintrag || !Array.isArray(eintrag.posen)) {
+			return false;
+		}
+		if (!figur.eingebaut && figur.posen[0]?.id === poseId) {
+			gespeichert.figuren = gespeichert.figuren.filter((f) => f !== eintrag);
+			return true;
+		}
+		const weg = eintrag.posen.filter(
+			(p: unknown) => istObjekt(p) && typeof p.datei === 'string' && stammVon(p.datei) === poseId,
+		);
+		eintrag.posen = eintrag.posen.filter((p) => !weg.includes(p));
+		const referenz = text(eintrag.canva);
+		if (referenz && weg.some((p) => text(p.canva) === referenz)) {
+			delete eintrag.canva;
+		}
+		return true;
+	});
+};

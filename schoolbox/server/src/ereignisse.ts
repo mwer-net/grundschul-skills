@@ -1,4 +1,4 @@
-import type { Urheber } from '@schoolbox/kern';
+import type { CanvaArt, CanvaEreignisStatus, Urheber } from '@schoolbox/kern';
 
 export interface DokumentGeaendert {
 	mappe: string;
@@ -21,8 +21,21 @@ type OrdnerEreignis = { typ: 'ordner-geaendert'; daten: { rev: number } };
 /** Eine Unterrichtseinheit (139): Die Oberfläche holt den Stand selbst. */
 type EinheitEreignis = { typ: 'einheit-stand'; daten: { id: string; ordner: string } };
 
+/** Ein Canva-Lauf (176): Die Oberfläche holt den Stand selbst; `datei` nur bei `fertig`. */
+type CanvaEreignis = {
+	typ: 'canva-stand';
+	daten: { id: string; art: CanvaArt; status: CanvaEreignisStatus; datei?: string };
+};
+
 export type Ereignis =
-	DokumentEreignis | EinheitEreignis | KiEreignis | MappeEreignis | OrdnerEreignis | PdfEreignis | VorschauEreignis;
+	| CanvaEreignis
+	| DokumentEreignis
+	| EinheitEreignis
+	| KiEreignis
+	| MappeEreignis
+	| OrdnerEreignis
+	| PdfEreignis
+	| VorschauEreignis;
 
 export type Hoerer = (ereignis: Ereignis) => void;
 

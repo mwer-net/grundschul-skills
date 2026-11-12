@@ -31,6 +31,12 @@ export const ladeFiguren = () => {
 	return laden;
 };
 
+/** Lädt die Bibliothek neu, etwa nach einer neuen Pose aus Canva oder nach „Entfernen“ (176). */
+export const ladeFigurenNeu = () => {
+	laden = null;
+	return ladeFiguren();
+};
+
 /** Bis `/api/figuren` geantwortet hat, nur Willi und Wilma (⌘K fragt synchron). */
 export const figurenJetzt = () => figuren;
 

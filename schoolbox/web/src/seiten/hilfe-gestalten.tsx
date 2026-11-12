@@ -162,6 +162,13 @@ export const GESTALTEN: Abschnitt = {
 				den Stapel. In Schwarz-Weiß druckt eine Figur mit Strichzeichnung diese, die anderen in Graustufen. Als
 				Leitfigur in einer Zeile findest du beide weiter unter „Bausteine“, „Bilder“.
 			</p>
+			<p data-hilfe-figur-canva>
+				Oben in der Schublade „Figuren“ beschreibst du eine Figur, etwa „Willi mit einer Lupe, der auf dem Boden
+				genau etwas anschaut“ oder „ein Igel mit gelbem Halstuch“, und drückst Enter. Claude malt sie in Canva; das
+				dauert ein bis zwei Minuten. Nennst du eine Figur aus der Schublade, entsteht eine neue Pose von ihr, sonst
+				eine neue Figur im Stil von Willi und Wilma. Ein Bild zeigt eine Figur. Enter noch einmal gibt eine weitere
+				Fassung.
+			</p>
 
 			<h3>Bilder frei aufs Blatt</h3>
 			<p data-hilfe-bilder-frei>

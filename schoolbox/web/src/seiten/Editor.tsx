@@ -50,7 +50,7 @@ import { zuSehen } from '../editor/gezeigt';
 import { useGliederungStand } from '../editor/gliederung-stand';
 import { halteFokus } from '../editor/halteFokus';
 import { Einstellungen, Inspektor, Umriss } from '../editor/Inspektor';
-import { useKiZustand } from '../editor/ki';
+import { limitHinweis, useKiZustand } from '../editor/ki';
 import { Leinwand } from '../editor/Leinwand';
 import { useLoesung } from '../editor/loesung';
 import { Loesungsuebersicht } from '../editor/Loesungspanel';
@@ -989,6 +989,12 @@ const Bearbeitung = ({ dokument, mappe: mappenDaten }: { mappe: Mappe; dokument:
 		},
 		kontextmenue: menueAn,
 		zeigeSeitengestaltung: (nr, teil) => zeigeBlattGestaltung(nr, teil, struktur.zeigeAn, zeigeEinstellung),
+		ki: {
+			verfuegbar: ki.zustand.verfuegbar,
+			geladen: ki.geladen,
+			hinweis: limitHinweis(ki.zustand.limit, ki.zustand.warnAb),
+			pruefeLimit: ki.pruefeLimit,
+		},
 	};
 
 	const leinwandMenue = (treffer: { nr: number; art: string } | null, punkt: { x: number; y: number }) =>

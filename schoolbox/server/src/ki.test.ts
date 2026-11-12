@@ -20,7 +20,15 @@ import {
 } from '@schoolbox/kern';
 import { erzeugeReferenz } from '@schoolbox/kern/src/referenz';
 
-import { KI_GRENZEN, kiArgumente, kiTempWurzel, kiUmgebung, liesLimit, limitErreichtText } from './ki';
+import {
+	canvaEinstellungen,
+	KI_GRENZEN,
+	kiArgumente,
+	kiTempWurzel,
+	kiUmgebung,
+	liesLimit,
+	limitErreichtText,
+} from './ki';
 import { CSRF_HEADER } from './schutz';
 import type { TestServer } from './testhilfe';
 import { KI_ATTRAPPE, legeDokumentAn, starteTestServer } from './testhilfe';
@@ -1484,5 +1492,133 @@ describe('Aufträge an Claude: Zugang', () => {
 			assert.ok(res.status >= 400, `${url} -> ${res.status}`);
 			assert.equal((await res.text()).includes('GEHEIMER VORSCHLAG'), false);
 		}
+	});
+});
+
+describe('Aufruf für ein Canva-Bild (176)', () => {
+	const basis = { ablage: '/tmp/a', auftragDatei: '/tmp/b.md', modell: 'opus', budgetUsd: 1, sitzung: null };
+	const SPERREN = ['Read(~/.claude/**)', 'Read(~/.ssh/**)', 'Read(**/.env)', 'Read(**/materialien/**)'];
+	const KOPF = ['-p', '--output-format', 'stream-json', '--verbose', '--model', 'opus', '--effort', 'medium'];
+	const CANVA = [
+		'generate-image',
+		'get-generate-image-job',
+		'remove-background',
+		'get-assets',
+		'search-designs',
+		'read-design',
+		'edit-design',
+		'resize-design',
+		'export-design',
+	].map((w) => `mcp__claude_ai_Canva__${w}`);
+	const KONNEKTOREN = ['mcp__claude_ai_Gmail', 'mcp__claude_ai_Google_Drive', 'mcp__claude_ai_Claude_Docs'];
+	const SCHLUSS = ['--permission-mode', 'dontAsk'];
+
+	it('Schnappschuss: genau diese Liste', () => {
+		assert.deepEqual(kiArgumente({ ...basis, canvaBild: true }), [
+			...KOPF,
+			'--setting-sources',
+			'project',
+			'--add-dir',
+			'/tmp/a',
+			'--settings',
+			canvaEinstellungen(),
+			'--tools',
+			'Read,Edit,Write',
+			'--allowedTools',
+			'Write(./bilder.json)',
+			'Edit(./bilder.json)',
+			'Write(./ergebnis.json)',
+			'Edit(./ergebnis.json)',
+			...CANVA,
+			'--disallowedTools',
+			...SPERREN,
+			...KONNEKTOREN,
+			...SCHLUSS,
+			'--max-turns',
+			'40',
+			'--max-budget-usd',
+			'1',
+			'--append-system-prompt-file',
+			'/tmp/b.md',
+		]);
+		const ohneBudget = kiArgumente({ ablage: '/tmp/a', auftragDatei: '/tmp/b.md', modell: 'opus', canvaBild: true });
+		assert.equal(ohneBudget[ohneBudget.indexOf('--max-budget-usd') + 1], String(KI_GRENZEN.canva.budgetUsd));
+	});
+
+	it('Gegenprobe: kein Skill, kein Material, Gmail, Drive und Docs gesperrt, nur Canva geladen', () => {
+		const args = kiArgumente({ ...basis, canvaBild: true });
+		const text = args.join(' ');
+		assert.ok(!/\bSkill\b/.test(text));
+		assert.ok(!text.includes('material.html'));
+		assert.ok(!text.includes('dokumente/'));
+		assert.ok(!text.includes('--resume'));
+		assert.ok(!args.includes('--strict-mcp-config'));
+		const verboten = args.slice(args.indexOf('--disallowedTools') + 1, args.indexOf('--permission-mode'));
+		for (const k of KONNEKTOREN) {
+			assert.ok(verboten.includes(k), k);
+		}
+		const einstellungen = JSON.parse(args[args.indexOf('--settings') + 1] ?? '{}') as {
+			allowedMcpServers: unknown[];
+		};
+		assert.deepEqual(einstellungen.allowedMcpServers, [{ serverUrl: 'https://mcp.canva.com/*' }]);
+	});
+
+	it('Blase und Einheit bleiben unverändert', () => {
+		const ende = ['--append-system-prompt-file', '/tmp/b.md'];
+		assert.deepEqual(kiArgumente(basis), [
+			...KOPF,
+			'--setting-sources',
+			'project',
+			'--add-dir',
+			'/tmp/a',
+			'--strict-mcp-config',
+			'--tools',
+			'Read,Edit,Skill',
+			'--allowedTools',
+			'Edit(./material.html)',
+			'Skill',
+			'--disallowedTools',
+			...SPERREN,
+			...SCHLUSS,
+			'--max-turns',
+			'40',
+			'--max-budget-usd',
+			'1',
+			...ende,
+		]);
+		const einheitRechte = [
+			'Write(./einheit.json)',
+			'Edit(./einheit.json)',
+			'Write(./thema.css)',
+			'Edit(./thema.css)',
+			'Write(./dokumente/**)',
+			'Edit(./dokumente/**)',
+			'Write(./bilder.json)',
+			'Edit(./bilder.json)',
+		];
+		assert.deepEqual(kiArgumente({ ...basis, einheit: true, mitCanva: true }), [
+			...KOPF,
+			'--setting-sources',
+			'project',
+			'--add-dir',
+			'/tmp/a',
+			'--settings',
+			canvaEinstellungen(),
+			'--tools',
+			'Read,Edit,Write,Skill',
+			'--allowedTools',
+			...einheitRechte,
+			'Skill',
+			...CANVA,
+			'--disallowedTools',
+			...SPERREN,
+			...KONNEKTOREN,
+			...SCHLUSS,
+			'--max-turns',
+			'400',
+			'--max-budget-usd',
+			'1',
+			...ende,
+		]);
 	});
 });

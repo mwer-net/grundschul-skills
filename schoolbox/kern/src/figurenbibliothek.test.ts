@@ -10,7 +10,7 @@ import { describe, it } from 'node:test';
 import { dokumentDir, mappenDir, neueMappe, neuesDokument } from './ablage';
 import { SchoolboxFehler } from './fehler';
 import type { BibliotheksFigur } from './figuren';
-import { figurenDir, leseBibliothek, nimmPoseAuf } from './figurenbibliothek';
+import { entfernePose, figurenDir, leseBibliothek, nimmPoseAuf } from './figurenbibliothek';
 import { ASSETS } from './konfig';
 import { legeInPapierkorb } from './papierkorb';
 
@@ -278,5 +278,106 @@ describe('nimmPoseAuf (177, für 176 und 179)', () => {
 		await assert.rejects(nimmPoseAuf(KONFIG, materialDir, { datei: flug, figur: 'zebra' }), SchoolboxFehler);
 		assert.ok((await readFile(json(materialDir))).equals(davor));
 		assert.ok(!existsSync(path.join(figurenDir(materialDir), 'zebra.png')));
+	});
+});
+
+describe('Canva-Referenz, Steckbrief und entfernePose (176)', () => {
+	/** Eine Bibliothek unter `/tmp` mit Kiki (Grundpose und „winkt“), ohne Steckbrief und ohne Referenz. */
+	const mitKiki = async () => {
+		const materialDir = await mkdtemp(path.join(tmpdir(), 'schoolbox-figuren-'));
+		const quelle = path.join(materialDir, 'quelle');
+		const bild = await png(quelle, 'bild.png', 40, 40, 0.5, '#e08020');
+		await nimmPoseAuf(KONFIG, materialDir, { datei: bild, figur: 'kiki', name: 'Kiki' });
+		await nimmPoseAuf(KONFIG, materialDir, { datei: bild, figur: 'kiki', wort: 'winkt' });
+		return { materialDir, bild };
+	};
+	const kiki = async (materialDir: string) => (await leseJson(materialDir)).figuren.find((f) => f.id === 'kiki');
+
+	it('die erste Canva-Pose gibt einer Figur ohne Referenz ihre Media-ID, die zweite nur sich selbst', async () => {
+		const { bild, materialDir } = await mitKiki();
+		assert.equal((await kiki(materialDir))?.canva, undefined);
+
+		await nimmPoseAuf(KONFIG, materialDir, {
+			datei: bild,
+			figur: 'kiki',
+			wort: 'lupe',
+			herkunft: 'canva',
+			canva: 'MAeins',
+			steckbrief: 'orange Kugel mit zwei Augen',
+		});
+		await nimmPoseAuf(KONFIG, materialDir, {
+			datei: bild,
+			figur: 'kiki',
+			wort: 'buch',
+			herkunft: 'canva',
+			canva: 'MAzwei',
+			steckbrief: 'ganz anders',
+		});
+		const jetzt = await kiki(materialDir);
+		assert.equal(jetzt?.canva, 'MAeins');
+		assert.equal(jetzt?.steckbrief, 'orange Kugel mit zwei Augen');
+		assert.deepEqual(jetzt?.posen.slice(2), [
+			{ datei: 'kiki-lupe.png', herkunft: 'canva', canva: 'MAeins' },
+			{ datei: 'kiki-buch.png', herkunft: 'canva', canva: 'MAzwei' },
+		]);
+		const figur = (await leseBibliothek(KONFIG, materialDir)).find((f) => f.id === 'kiki');
+		assert.equal(figur?.canva, 'MAeins');
+		assert.equal(figur?.posen.find((p) => p.id === 'kiki-buch')?.canva, 'MAzwei');
+
+		// Gegenprobe zu `eingebaut`: Willi bekommt in figuren.json weder Referenz noch Steckbrief.
+		await nimmPoseAuf(KONFIG, materialDir, {
+			datei: bild,
+			figur: 'willi',
+			wort: 'lupe',
+			herkunft: 'canva',
+			canva: 'MAdrei',
+			steckbrief: 'ein anderer Waschbär',
+		});
+		const willi = (await leseJson(materialDir)).figuren.find((f) => f.id === 'willi');
+		assert.deepEqual(willi, { id: 'willi', posen: [{ datei: 'willi-lupe.png', herkunft: 'canva', canva: 'MAdrei' }] });
+	});
+
+	it('entfernt eine Pose aus figuren.json, die Datei bleibt; die Grundpose nimmt die Figur mit', async () => {
+		const { materialDir } = await mitKiki();
+		assert.equal(await entfernePose(KONFIG, materialDir, 'kiki-winkt'), true);
+		assert.deepEqual(kurz(await leseBibliothek(KONFIG, materialDir)), [
+			{ id: 'willi', posen: ['willi mit Strich'] },
+			{ id: 'wilma', posen: ['wilma'] },
+			{ id: 'kiki', posen: ['kiki'] },
+		]);
+		assert.ok(existsSync(path.join(figurenDir(materialDir), 'kiki-winkt.png')), 'die Datei bleibt liegen');
+
+		assert.equal(await entfernePose(KONFIG, materialDir, 'kiki'), true);
+		assert.deepEqual(
+			(await leseBibliothek(KONFIG, materialDir)).map((f) => f.id),
+			['willi', 'wilma'],
+		);
+		assert.ok(existsSync(path.join(figurenDir(materialDir), 'kiki.png')));
+		assert.equal(await entfernePose(KONFIG, materialDir, 'kiki'), false, 'nicht mehr da');
+		assert.equal(await entfernePose(KONFIG, materialDir, 'gibtsnicht'), false);
+	});
+
+	it('trug die Pose die Referenz der Figur, ist sie weg; sonst bleibt sie', async () => {
+		const { bild, materialDir } = await mitKiki();
+		await nimmPoseAuf(KONFIG, materialDir, { datei: bild, figur: 'kiki', wort: 'lupe', canva: 'MAeins' });
+		await nimmPoseAuf(KONFIG, materialDir, { datei: bild, figur: 'kiki', wort: 'buch', canva: 'MAzwei' });
+
+		await entfernePose(KONFIG, materialDir, 'kiki-buch');
+		assert.equal((await kiki(materialDir))?.canva, 'MAeins', 'Gegenprobe: eine andere Pose nimmt sie nicht mit');
+		await entfernePose(KONFIG, materialDir, 'kiki-lupe');
+		assert.equal((await kiki(materialDir))?.canva, undefined);
+		assert.equal((await leseBibliothek(KONFIG, materialDir)).find((f) => f.id === 'kiki')?.canva, undefined);
+	});
+
+	it('die Grundposen von Willi und Wilma werfen, und die Bibliothek bleibt gleich', async () => {
+		const { materialDir } = await mitKiki();
+		const davor = await readFile(json(materialDir));
+		await assert.rejects(entfernePose(KONFIG, materialDir, 'willi'), SchoolboxFehler);
+		await assert.rejects(entfernePose(KONFIG, materialDir, 'wilma'), SchoolboxFehler);
+		assert.ok((await readFile(json(materialDir))).equals(davor));
+		assert.deepEqual(
+			(await leseBibliothek(KONFIG, materialDir)).map((f) => f.id),
+			['willi', 'wilma', 'kiki'],
+		);
 	});
 });

@@ -1,6 +1,7 @@
-import { leseBibliothek } from '@schoolbox/kern';
+import { entfernePose, leseBibliothek } from '@schoolbox/kern';
 import { Router } from 'express';
 
+import { HttpFehler } from './fehler';
 import type { Kontext } from './kontext';
 
 /** Figurenbibliothek (177): Willi, Wilma und die Figuren aus `materialien/_figuren/`, je mit ihren Posen. */
@@ -10,6 +11,14 @@ export const figurenApi = (kontext: Kontext) => {
 
 	router.get('/', async (_req, res) => {
 		res.json({ figuren: await leseBibliothek(konfig, konfig.materialDir) });
+	});
+
+	/** Streicht eine Pose, die Grundpose mit ihrer Figur (176). Die Dateien bleiben liegen. */
+	router.post('/posen/:pose/entfernen', async (req, res) => {
+		if (!(await entfernePose(konfig, konfig.materialDir, req.params.pose))) {
+			throw new HttpFehler(404, 'Diese Pose gibt es nicht.');
+		}
+		res.json({ ok: true });
 	});
 
 	return router;

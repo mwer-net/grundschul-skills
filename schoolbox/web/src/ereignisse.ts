@@ -1,3 +1,4 @@
+import type { CanvaArt, CanvaEreignisStatus } from '@schoolbox/kern/src/canva-auftrag';
 import { useEffect, useRef } from 'react';
 
 const SERVER_TYPEN = [
@@ -9,6 +10,7 @@ const SERVER_TYPEN = [
 	'ki-stand',
 	'ordner-geaendert',
 	'einheit-stand',
+	'canva-stand',
 ] as const;
 
 /** `verbunden`: Die Verbindung steht (wieder), z. B. nach dem Aufwachen des iPads. Es kann etwas verpasst worden sein. */
@@ -27,6 +29,10 @@ export interface Ereignis {
 	rev?: number;
 	/** Bei `verbunden`: Die Verbindung war schon einmal da und ist wieder da (nicht der erste Aufbau). */
 	wieder?: boolean;
+	/** Bei `canva-stand`: Status, Art und bei `fertig` die abgelegte Datei. */
+	status?: CanvaEreignisStatus;
+	art?: CanvaArt;
+	datei?: string;
 }
 
 type Hoerer = (ereignis: Ereignis) => void;
@@ -61,6 +67,9 @@ const oeffne = () => {
 				urheber: daten.urheber,
 				id: daten.id,
 				rev: daten.rev,
+				status: daten.status,
+				art: daten.art,
+				datei: daten.datei,
 			});
 		});
 	}

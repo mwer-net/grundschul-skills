@@ -8,6 +8,8 @@ import type { Begrenzung } from './begrenzung';
 import { erstelleBegrenzung } from './begrenzung';
 import type { Bremse } from './bremse';
 import { erstelleBremse } from './bremse';
+import type { CanvaLaeufe } from './canva-lauf';
+import { erstelleCanvaLaeufe } from './canva-lauf';
 import type { Einheiten } from './einheit';
 import { erstelleEinheiten } from './einheit';
 import type { Ereignisse } from './ereignisse';
@@ -40,6 +42,7 @@ export interface Kontext {
 	pdf: Pdf;
 	ki: Ki;
 	einheiten: Einheiten;
+	canva: CanvaLaeufe;
 	ordner: OrdnerSpeicher;
 	version: string;
 }
@@ -64,7 +67,7 @@ export const erstelleKontext = (konfig: ServerKonfig, version: string, bauer: Ba
 	const begrenzung: Begrenzung = erstelleBegrenzung(GLEICHZEITIGE_BAUTEN);
 	const { materialDir } = konfig;
 	const pruefer: KiPruefer = bauer.kiPruefer ?? ((dokDir, html) => pruefeFassung(konfig, dokDir, html));
-	const kontext: Omit<Kontext, 'einheiten'> & Partial<Pick<Kontext, 'einheiten'>> = {
+	const kontext: Omit<Kontext, 'canva' | 'einheiten'> & Partial<Pick<Kontext, 'canva' | 'einheiten'>> = {
 		konfig,
 		ereignisse,
 		sperre,
@@ -89,6 +92,7 @@ export const erstelleKontext = (konfig: ServerKonfig, version: string, bauer: Ba
 	};
 	// Die Einheiten brauchen den fertigen Kontext (Ordner, Sperre, Quelle schreiben).
 	kontext.einheiten = erstelleEinheiten(kontext as Kontext, pruefer);
+	kontext.canva = erstelleCanvaLaeufe(kontext as Kontext);
 	return kontext as Kontext;
 };
 
