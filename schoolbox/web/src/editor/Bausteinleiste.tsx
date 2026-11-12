@@ -229,7 +229,18 @@ const griffDruecken = (ereignis: ReactPointerEvent<HTMLButtonElement>, e: Einble
 	e.ziehen.current?.griffStart(nr, x, y, ereignis.pointerId);
 };
 
-const KEIN_PLATZ = { links: 0, griff: false, pfeile: false };
+const KEIN_PLATZ = { links: 0, griff: false, pfeile: false, claude: false };
+
+const CLAUDE = BEFEHLE.find((b) => b.id === 'auswahl.claude');
+const claudeDa = (befehle: Befehle) => Boolean(CLAUDE?.verfuegbar(befehle.jetzt.current));
+
+/** Trenner und „Claude“; in der Sitzung unsichtbar an ihrem Platz, wenn „Claude“ davor zu sehen war. */
+const LeistenClaude = ({ befehle, sitzung, warDa }: { befehle: Befehle; sitzung: boolean; warDa: boolean }) => (
+	<span className={klassen('flex items-center gap-0.5', sitzung && 'invisible')}>
+		<Trenner />
+		{(!sitzung || warDa) && <ClaudeKnopf befehle={befehle} platzhalter={sitzung} />}
+	</span>
+);
 
 interface TeileAngaben {
 	abb: Eigenschaften['abb'];
@@ -490,8 +501,8 @@ export const Bausteinleiste = ({
 	const [mass, setMass] = useState({ breite: 400, hoehe: 30 });
 	const [wegBei, setWeg] = useState({ nr: null as number | null, n: 0 });
 	const [vorschau, setVorschau] = useState(false);
-	// In der Sitzung sperrt `struktur` Griff und Pfeile; ihr Platz bleibt, damit die Schriftknöpfe nicht springen.
-	const fest = useRef({ links: 0, griff: false, pfeile: false });
+	// In der Sitzung sperrt `struktur` Griff, Pfeile und Claude; ihr Platz bleibt, damit die Schriftknöpfe nicht springen.
+	const fest = useRef(KEIN_PLATZ);
 	const sicht = useSichtfeld(e.doc);
 	const gewaehlt = pfad.at(-1);
 	const nr = gewaehlt?.nr ?? null;
@@ -525,7 +536,7 @@ export const Bausteinleiste = ({
 	const griffZiehbar = griffGeht(struktur.aktiv, element, baustein);
 	const nachWerte = struktur.werte?.nach;
 	if (!sitzung) {
-		fest.current = { links, griff: griffZiehbar, pfeile: Boolean(nachWerte) };
+		fest.current = { links, griff: griffZiehbar, pfeile: Boolean(nachWerte), claude: claudeDa(befehle) };
 	}
 	const platz = sitzung ? fest.current : KEIN_PLATZ;
 
@@ -572,12 +583,7 @@ export const Bausteinleiste = ({
 					}))}
 				/>
 				{(sitzung ? platz.pfeile : nachWerte) && <Pfeile befehle={befehle} platzhalter={sitzung} />}
-				{!sitzung && (
-					<>
-						<Trenner />
-						<ClaudeKnopf befehle={befehle} />
-					</>
-				)}
+				<LeistenClaude befehle={befehle} sitzung={sitzung} warDa={platz.claude} />
 				<LeistenRest
 					art={baustein.art}
 					befehle={befehle}

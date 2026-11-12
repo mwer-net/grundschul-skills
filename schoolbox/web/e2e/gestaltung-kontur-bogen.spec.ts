@@ -76,6 +76,8 @@ test.describe('Schmuckschrift mit Kontur', () => {
 		await schalter.click();
 		await expect.poll(() => quelle(page)).toMatch(/data-kontur=""[^>]*--kontur:6px;--kontur-farbe:#ffffff/);
 		await expect(schalter).toHaveAttribute('aria-checked', 'true');
+		// Seit 171 schreibt der Inspektor erst, wenn das Bild des Schritts zu sehen ist.
+		await expect(titel(page)).toHaveAttribute('data-kontur', '');
 		await page.getByRole('textbox', { name: 'Konturstärke' }).fill('9');
 		await page.keyboard.press('Enter');
 		await expect.poll(() => quelle(page)).toContain('--kontur:9px');

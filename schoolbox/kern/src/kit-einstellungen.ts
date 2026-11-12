@@ -448,8 +448,9 @@ export const SICHTBARKEITEN = [
 ] as const;
 const SICHT_KLASSEN = ['nicht-loesung', 'nur-loesung'];
 
+/** Wie `sichtbarkeitFest` ohne Fehler, wenn das Element fehlt: Das Menü der Leiste fragt das auch gleich nach dem Löschen. */
 export const leseSichtbarkeit = (quelle: string, nr: number) => {
-	const k = knotenVon(zerlege(quelle), nr);
+	const k = zerlege(quelle).knoten[nr];
 	return SICHTBARKEITEN.find((s) => s.klasse && hat(k, s.klasse))?.wert ?? '';
 };
 

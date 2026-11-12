@@ -262,7 +262,9 @@ test.describe('Bestand mit Schmuckschrift (175)', () => {
 		page,
 	}) => {
 		const u = await uhrzeit();
-		const vorher = blattMit({ vorne: [SCHMUCK, SCHMUCK_STEMPEL, SCHMUCK_ETIKETT, SCHMUCK_BOGEN] });
+		// Läge der Bogen über dem Titel, träfe der Klick auf den Titel den Bogen.
+		const bogen = SCHMUCK_BOGEN.replace('--y:120px', '--y:400px');
+		const vorher = blattMit({ vorne: [SCHMUCK, SCHMUCK_STEMPEL, SCHMUCK_ETIKETT, bogen] });
 		await writeFile(u.material, vorher);
 		await oeffne(page, u.id, u.dok);
 		await expect(material(page).locator('.schmuck[data-lage="frei"]')).toHaveCount(4);

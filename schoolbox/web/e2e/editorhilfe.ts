@@ -42,8 +42,14 @@ export const material = (page: Page) => page.frameLocator('[data-editor-rahmen="
 export const quelle = (page: Page) =>
 	page.evaluate(() => (window as unknown as { schoolboxEditor: TestZugriff }).schoolboxEditor.quelle() ?? '');
 
-export const aendere = (page: Page, neu: string) =>
-	page.evaluate((text) => (window as unknown as { schoolboxEditor: TestZugriff }).schoolboxEditor.aendere(text), neu);
+/** Bis zum nächsten Render liest `quelle()` noch den alten Stand; darum erst weiter, wenn der Editor `neu` hat. */
+export const aendere = async (page: Page, neu: string) => {
+	await page.evaluate(
+		(text) => (window as unknown as { schoolboxEditor: TestZugriff }).schoolboxEditor.aendere(text),
+		neu,
+	);
+	await expect.poll(() => quelle(page)).toBe(neu);
+};
 
 export const gespeichert = async (page: Page, datei: string) => {
 	const stand = await quelle(page);

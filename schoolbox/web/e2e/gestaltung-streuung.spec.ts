@@ -187,6 +187,8 @@ test.describe('Streuung (109, 174)', () => {
 		await expect.poll(async () => await quelle(page)).toContain('data-groesse="gross"');
 		await art(page, 'Sterne').click();
 		await expect.poll(async () => await quelle(page)).toContain('data-streuung="sterne"');
+		// Seit 171 schreibt der Inspektor erst, wenn das Bild des Schritts zu sehen ist.
+		await expect(streuungen(page).first()).toHaveAttribute('data-streuung', 'sterne');
 		const regler = abschnitt.locator('input[aria-label="Dichte"]');
 		await regler.fill('100');
 		await expect.poll(async () => await quelle(page)).toContain('data-dichte="1"');

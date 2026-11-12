@@ -1138,7 +1138,7 @@ test.describe('Schreiben und Sprache: Wahlen zeigen den Weg (084)', () => {
 		const meldung = page.locator('[data-fehler="eintraege"]');
 		await expect(meldung).toContainText('Bild-Knopf');
 		await expect(meldung).toContainText('Zeile 1, 2 und 3');
-		await expect(page.locator('[data-feld="eintraege"] [data-zeile]')).toHaveCount(3);
+		await expect(page.locator('[data-liste="eintraege"] [data-zeile]')).toHaveCount(3);
 		// Nichts gespeichert, solange Bilder fehlen.
 		expect(await readFile(datei, 'utf8')).toBe(stand);
 	});

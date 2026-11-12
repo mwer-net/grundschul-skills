@@ -93,7 +93,7 @@ export const suche = (_k: unknown, z: SchubladenZiele): PalettenEintrag[] => {
 						aus: async () => {
 							const src = await srcFuer(z.teile, grund);
 							if (src) {
-								legeInMitte(z.teile, gutFuer(z.teile, figur, grund, src));
+								await legeInMitte(z.teile, gutFuer(z.teile, figur, grund, src));
 							}
 						},
 					},

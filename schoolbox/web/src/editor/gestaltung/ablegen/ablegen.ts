@@ -103,11 +103,34 @@ export const sichtbarsteSeite = (doc: Document) => {
 };
 
 /**
+ * Die Höhe eines Guts, das nur ein Bild ist, aus seinem Seitenverhältnis. `missHoehe` misst ein Bild, das eben erst ins
+ * `iframe` kommt, mit 0, auch wenn es schon geladen ist; Vorschaubilder entstehen zudem erst beim ersten Abruf (178).
+ */
+const bildHoehe = async (doc: Document, gut: GestaltungsGut) => {
+	const Bild = doc.defaultView?.Image;
+	const vorlage = doc.createElement('template');
+	vorlage.innerHTML = gut.html.trim();
+	const img = vorlage.content.firstElementChild;
+	if (!Bild || vorlage.content.childElementCount !== 1 || img?.tagName !== 'IMG') {
+		return undefined;
+	}
+	const bild = new Bild();
+	bild.src = new URL(img.getAttribute('src') ?? '', doc.baseURI).href;
+	try {
+		await bild.decode();
+	} catch {
+		return undefined;
+	}
+	return bild.naturalWidth > 0 ? (gut.groesse.b * bild.naturalHeight) / bild.naturalWidth : undefined;
+};
+
+/**
  * Klick in der Schublade (und Enter in ⌘K): in die Mitte des sichtbaren Teils der Seite, die am meisten zu sehen ist.
  * `true`, wenn etwas abgelegt wurde.
  */
-export const legeInMitte = (teile: AblegenTeile, gut: GestaltungsGut) => {
+export const legeInMitte = async (teile: AblegenTeile, gut: GestaltungsGut) => {
 	const { doc } = teile;
+	const hoehe = doc && gut.groesse.h === undefined ? await bildHoehe(doc, gut) : undefined;
 	const beste = doc ? sichtbarsteSeite(doc) : null;
 	if (!doc || !beste) {
 		return false;
@@ -116,7 +139,7 @@ export const legeInMitte = (teile: AblegenTeile, gut: GestaltungsGut) => {
 	// Ist die Seite gar nicht zu sehen, gilt ihre eigene Mitte.
 	const y = beste.zuSehen > 0 ? (beste.oben + beste.unten) / 2 : (r.top + r.bottom) / 2;
 	const x = beste.rechts > beste.links ? (beste.links + beste.rechts) / 2 : (r.left + r.right) / 2;
-	const ort = ortUm(doc, beste.seite, gut, x, y, hoeheVon(doc, beste.seite, gut));
+	const ort = ortUm(doc, beste.seite, gut, x, y, hoehe ?? hoeheVon(doc, beste.seite, gut));
 	return ort ? legeAb(teile.struktur, gut, ort) : false;
 };
 
@@ -167,7 +190,8 @@ export const ziehgutGestaltung = (teile: AblegenTeile, gut: GestaltungsGut): Zie
 			zeigeAblageLinien(null);
 			return null;
 		}
-		hoehe ??= hoeheVon(doc, seite, gut);
+		// 0, solange das Bild lädt: dann beim nächsten Zug noch einmal messen.
+		hoehe ||= hoeheVon(doc, seite, gut);
 		const ort = ortUm(doc, seite, gut, x, y, hoehe);
 		if (!ort) {
 			return null;

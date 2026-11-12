@@ -15,11 +15,16 @@ test.describe('Editor: ganzes Blatt und Einstellungen (046, 048)', () => {
 		const { dok, id } = await uhrzeit();
 		await oeffne(page, id, dok);
 		const vorher = await quelle(page);
+		// Seit 171 schreibt das Panel erst, wenn das Bild des Schritts zu sehen ist; wie ein Mensch wartet der Test darauf.
+		const body = material(page).locator('body');
+		const klasse = (await body.getAttribute('class')) ?? '';
 		const palette = page.locator('[data-palette]').getByRole('button').last();
 		await druecke(palette);
 		await expect.poll(() => quelle(page)).not.toBe(vorher);
+		await expect(body).not.toHaveAttribute('class', klasse);
 		await druecke(zurueck(page));
 		await expect.poll(() => quelle(page)).toBe(vorher);
+		await expect(body).toHaveAttribute('class', klasse);
 		await page.getByLabel('Format', { exact: true }).selectOption('a4-quer');
 		await expect.poll(() => quelle(page)).toContain('a4-quer');
 		await druecke(zurueck(page));

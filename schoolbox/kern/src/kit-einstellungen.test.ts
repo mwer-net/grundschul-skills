@@ -94,6 +94,8 @@ describe('Einstellungen der Kit-Bausteine', () => {
 		const nurA = setzeSichtbarkeit(nurL, a, 'arbeitsblatt');
 		assert.match(nurA, /class="aufgabe nicht-loesung"/);
 		assert.equal(setzeSichtbarkeit(nurA, a, ''), BLATT);
+		// Gleich nach dem Löschen fragt das Menü noch nach der alten Auswahl.
+		assert.equal(leseSichtbarkeit(BLATT, 9999), '');
 	});
 
 	it('Sichtbarkeit: fest bei Erwartungshorizont und Notiz, sonst wählbar (084, E-B1)', () => {

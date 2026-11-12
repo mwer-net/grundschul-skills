@@ -180,9 +180,22 @@ test.describe('Zoom nur das Blatt (184)', () => {
 			const vorher = await stelle(page, p);
 			await radMitStrg(page, p.x, p.y, -10, 4);
 			await expect.poll(() => prozent(page)).toBeGreaterThan(125);
+			// Kommen die Räder unter Last weiter auseinander als `RAD_ENDE_MS`, endet die Geste mehrmals: Der letzte Wert zählt.
+			let zuletzt = '';
+			await expect
+				.poll(
+					async () => {
+						const neu = (await wert(page).textContent()) ?? '';
+						const fest = neu === zuletzt;
+						zuletzt = neu;
+						return fest;
+					},
+					{ intervals: [500] },
+				)
+				.toBe(true);
 			nah(await amSchirm(page, vorher), p, 3);
 
-			const jetzt = (await wert(page).textContent()) ?? '';
+			const jetzt = zuletzt;
 			const oben = await flaeche(page).evaluate((e) => e.scrollTop);
 			await page.mouse.wheel(0, 120);
 			await expect.poll(() => flaeche(page).evaluate((e) => e.scrollTop)).toBeGreaterThan(oben);

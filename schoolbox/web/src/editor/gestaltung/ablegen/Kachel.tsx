@@ -126,7 +126,7 @@ export const AblageKachel = ({
 							if (eigenerKlick) {
 								eigenerKlick();
 							} else {
-								klick(gut);
+								void klick(gut);
 							}
 						}
 						gezogen.current = false;
