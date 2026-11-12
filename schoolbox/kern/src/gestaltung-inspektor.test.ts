@@ -23,6 +23,7 @@ describe('Inspektor bei Gestaltung (099)', () => {
 	it('kennt den s/w-Standard je Art', () => {
 		assert.equal(swStandard('seitenflaeche'), 'weg');
 		assert.equal(swStandard('streuung'), 'weg');
+		assert.equal(swStandard('kopfband'), 'weg');
 		assert.equal(swStandard('form'), 'grau');
 		assert.equal(swStandard('figurfrei'), 'grau');
 	});

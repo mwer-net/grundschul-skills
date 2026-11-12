@@ -1,19 +1,16 @@
 import { leseBlatt } from '@schoolbox/kern/src/kit-einstellungen';
-import type { Seiten } from '@schoolbox/kern/src/seitengestaltung';
 import { bleibtNummer, leseSeitengestaltung, seitenNummern } from '@schoolbox/kern/src/seitengestaltung';
-import { useEffect, useMemo, useState } from 'react';
+import { useMemo } from 'react';
 
-import { Segment } from '../../../bausteine/Segment';
-import { Symbol } from '../../../bausteine/Symbol';
 import { elementZu, nrVon } from '../../darstellung';
 import type { Struktur } from '../../struktur';
 import { BlattFlaeche } from './flaeche';
+import { BlattKopfband } from './kopfband';
 import { BlattRahmen } from './rahmen';
 import type { BlattTeile } from './teile';
 import { quellSeiten, zeigeAmTeil } from './teile';
-import { nimmOffenenWunsch, OEFFNEN } from './zeige';
 
-/** Welche Seite der Abschnitt zeigt: die der Auswahl, ohne Auswahl die sichtbare (wie die Palette). */
+/** Welche Seite die Abschnitte zeigen: die der Auswahl, ohne Auswahl die sichtbare (wie die Palette). */
 export interface BlattSeite {
 	auswahl: number | null;
 	/** Die sichtbare Seite im Blatt, ab 1, wie `useSichtbareSeite` sie zählt. */
@@ -45,97 +42,38 @@ interface Eigenschaften {
 	seite: BlattSeite;
 }
 
-/**
- * Reiter „Blatt“ › Gestaltung (5.8): „Gilt für“, darunter Seitenfläche und Rahmen. Eingeklappt, wenn die Seite weder
- * Fläche noch Rahmen hat.
- */
+/** Reiter „Blatt“ › Seitenfläche, Rahmen und Kopfband (5.8, 181): drei Abschnitte, immer offen, je mit „Gilt für“. */
 export const BlattGestaltung = ({ doc, quelle, seite, struktur }: Eigenschaften) => {
 	const nummern = useMemo(() => seitenNummern(quelle), [quelle]);
 	const index = Math.min(seitenIndex(doc, seite), Math.max(0, nummern.length - 1));
 	const nr = nummern[index] ?? null;
 	const gestaltung = useMemo(() => (nr === null ? null : leseSeitengestaltung(quelle, nr)), [quelle, nr]);
 	const minibuch = useMemo(() => leseBlatt(quelle).format === 'minibuch', [quelle]);
-	const [gilt, setGilt] = useState<'seite' | 'alle'>('seite');
-	const [gemerkt, setGemerkt] = useState<{ index: number; offen: boolean } | null>(null);
-	/** Nummer der Seite, die aus den Ebenen aufgeklappt werden soll. */
-	const [wunsch, setWunsch] = useState<number | null>(null);
-
-	useEffect(() => {
-		const oeffne = () => {
-			const gewuenscht = nimmOffenenWunsch();
-			if (gewuenscht !== null) {
-				setWunsch(gewuenscht);
-			}
-		};
-		oeffne();
-		window.addEventListener(OEFFNEN, oeffne);
-		return () => window.removeEventListener(OEFFNEN, oeffne);
-	}, []);
-
 	if (nr === null || !gestaltung) {
 		return null;
 	}
-	const hat = gestaltung.flaeche !== null || gestaltung.rahmen !== null;
-	// Ein Wunsch aus den Ebenen gilt für die Seite, die er gewählt hat, sobald sie hier ankommt.
-	let offen = gemerkt?.index === index ? gemerkt.offen : hat;
-	if (wunsch !== null && wunsch === nr) {
-		offen = true;
-	}
-	const ziel: Seiten = gilt === 'alle' ? 'alle' : [nr];
 	const teile: BlattTeile = {
 		doc,
 		quelle,
 		seite: nr,
-		ziel,
+		index,
+		seiten: nummern.length,
 		gestaltung,
 		minibuch,
 		aendere: (beschreibung, rechne) => {
 			const { auswahl } = seite;
-			struktur.fuehreAus(
-				beschreibung,
-				(q) => {
-					const neu = rechne(q);
-					return { quelle: neu, nr: auswahl !== null && bleibtNummer(q, neu, auswahl) ? auswahl : null };
-				},
-			);
+			struktur.fuehreAus(beschreibung, (q) => {
+				const neu = rechne(q);
+				return { quelle: neu, nr: auswahl !== null && bleibtNummer(q, neu, auswahl) ? auswahl : null };
+			});
 		},
-		zeige: (teil, werte) => zeigeAmTeil(doc, gilt === 'alle' ? null : [index], teil, werte),
+		zeige: (teil, alle, werte) => zeigeAmTeil(doc, alle ? null : [index], teil, werte),
 	};
 	return (
-		<section className="border-t border-rand px-3 py-2" data-abschnitt="gestaltung" data-einstellung="gestaltung">
-			<button
-				type="button"
-				aria-expanded={offen}
-				className="flex h-menue w-full items-center gap-1 text-left text-xs font-semibold text-leise"
-				data-gestaltung-kopf
-				onClick={() => {
-					setWunsch(null);
-					setGemerkt({ index, offen: !offen });
-				}}
-			>
-				<Symbol name={offen ? 'runter' : 'rechts'} className="size-3 flex-none" />
-				<span className="min-w-0 flex-1 truncate">Gestaltung</span>
-				{nummern.length > 1 && <span className="font-normal text-dezent">{`Seite ${index + 1}`}</span>}
-			</button>
-			{offen && (
-				<div className="mt-1 flex flex-col gap-2" data-blatt-gestaltung>
-					<div className="flex min-h-zeile items-center justify-between gap-x-2">
-						<span className="text-leise">Gilt für</span>
-						<Segment
-							beschriftung="Gilt für"
-							werte={[
-								{ wert: 'seite', titel: 'diese Seite' },
-								{ wert: 'alle', titel: 'alle Seiten' },
-							]}
-							wert={gilt}
-							waehle={setGilt}
-							className="ml-auto"
-						/>
-					</div>
-					<BlattFlaeche {...teile} />
-					<BlattRahmen {...teile} />
-				</div>
-			)}
-		</section>
+		<>
+			<BlattFlaeche {...teile} />
+			<BlattRahmen {...teile} />
+			<BlattKopfband {...teile} />
+		</>
 	);
 };

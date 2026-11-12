@@ -131,17 +131,22 @@ export const GESTALTEN: Abschnitt = {
 				mit ⌥-Klick. Gesperrtes lässt sich im Blatt nicht greifen.
 			</p>
 
-			<h3>Seite gestalten: Fläche und Rahmen</h3>
+			<h3>Seite gestalten: Fläche, Rahmen und Kopfband</h3>
 			<p data-hilfe-seitengestaltung>
-				Im Reiter „Blatt“ rechts steht ganz unten der Abschnitt „Gestaltung“. Dort bekommt die Seite einen
-				Grund: eine Farbe, einen Verlauf aus zwei Farben oder ein Muster aus Streifen, Punkten, Karos oder
-				schrägen Linien. Darunter wählst du einen Rahmen: eine Linie, doppelt, gestrichelt oder gepunktet, mit
-				Farbe, Stärke, Abstand zum Blattrand und runden Ecken. Die Farben des Blatts folgen dem Farbschema; mit
-				dem bunten Kreis wählst du eine eigene Farbe. „Gilt für“ entscheidet, ob es nur die Seite betrifft, auf
-				der du gerade bist, oder alle Seiten; eine Seite, die du später hinzufügst, bleibt weiß. Druckst du in
-				Schwarz-Weiß, fällt der Grund weg und der Rahmen wird grau; beides lässt sich unter „In s/w“ ändern. In
-				den Ebenen stehen Seitenrahmen und Seitenfläche zuunterst; ein Klick darauf öffnet diesen Abschnitt. ⌘Z
-				nimmt jede Änderung in einem Schritt zurück.
+				Im Reiter „Blatt“ rechts stehen unten die Abschnitte „Seitenfläche“, „Rahmen“ und „Kopfband“. Die
+				Seitenfläche gibt der Seite einen Grund: eine Farbe, einen Verlauf aus zwei Farben oder ein Muster aus
+				Streifen, Punkten, Karos oder schrägen Linien. Der Rahmen ist eine Linie, doppelt, gestrichelt oder
+				gepunktet, mit Farbe, Stärke, Abstand zum Blattrand und runden Ecken. Das Kopfband ist ein Band oben auf
+				der Seite, gerade oder mit Welle, Bogen oder Zacken, in einer Farbe oder als Verlauf. Es reicht zuerst
+				bis unter den Titel; die Höhe stellst du danach ein. Es liegt über Streuungen und unter dem Inhalt. Die
+				Farben des Blatts folgen dem Farbschema; mit dem bunten Kreis wählst du eine eigene Farbe. Hat das
+				Material mehrere Seiten, steht in jedem Abschnitt „Gilt für“: „Alle Seiten“ ändert jede Seite, „Seite 2“
+				nur die Seite, auf der du gerade bist. Eine Seite, die du später hinzufügst, bleibt weiß. Druckst du in
+				Schwarz-Weiß, fallen Fläche und Kopfband weg und der Rahmen wird grau; das lässt sich unter „In s/w“
+				ändern. Ältere Blätter mit einem Kopfband aus einem Rezept zeigen es hier ebenso; du kannst es ändern
+				oder mit „Keine“ entfernen. In den Ebenen steht das Kopfband über dem, was hinten liegt, Seitenrahmen
+				und Seitenfläche ganz unten; ein Klick darauf öffnet den Abschnitt. ⌘Z nimmt jede Änderung in einem
+				Schritt zurück.
 			</p>
 
 			<h3>Figuren</h3>

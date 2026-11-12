@@ -4,6 +4,8 @@ import { istGestaltung } from '@schoolbox/kern/src/gestaltung';
 import type { EbenenName } from '@schoolbox/kern/src/gestaltung-arten';
 import type { Knoten, Zerlegung } from '@schoolbox/kern/src/quelltext';
 import { attribut, klassenVon, MARKE, quelleVon } from '@schoolbox/kern/src/quelltext';
+import type { SeitenTeil } from '@schoolbox/kern/src/seitengestaltung';
+import { SEITEN_TEILE } from '@schoolbox/kern/src/seitengestaltung';
 import type { Ablage } from '@schoolbox/kern/src/struktur';
 import { seitenVon } from '@schoolbox/kern/src/struktur';
 
@@ -19,10 +21,11 @@ const OHNE_ZEILE = '.loesung-marke, style, script, template, link, meta, br, .eb
 
 /**
  * Was eine Zeile ist (101, 1-ebenen.md „Aufbau des Baums“): ein Baustein wie bisher, ein Gestaltungselement in einer
- * Ebene, der gedachte Hauptstapel (ohne eigenes Element) oder Seitenrahmen und Seitenfläche zuunterst. `gruppe` ist ein
+ * Ebene, der gedachte Hauptstapel (ohne eigenes Element), das Kopfband unter ihm oder Seitenrahmen und Seitenfläche
+ * zuunterst. `gruppe` ist ein
  * Kind einer Gruppe (120); seine Reihenfolge geht über die Befehle, nicht über den Zug in der Liste.
  */
-type SeitenZeile = 'hauptstapel' | 'seitenrahmen' | 'seitenflaeche';
+type SeitenZeile = 'hauptstapel' | 'kopfband' | 'seitenrahmen' | 'seitenflaeche';
 export type ZeilenArt = 'baustein' | EbenenName | SeitenZeile | 'anker' | 'flaeche' | 'gruppe';
 
 /** Nach diesem Teil des Schlüssels erkennt `gliederung-stand`, dass der Hauptstapel ohne Zutun offen steht. */
@@ -187,17 +190,18 @@ const istFest = (baustein: Baustein) => !kann(baustein, 'ordnen') || FESTE_ARTEN
 export interface EbenenTeile {
 	vorne: number[];
 	hinten: number[];
+	kopfband: number | null;
 	seitenrahmen: number | null;
 	seitenflaeche: number | null;
 }
 
 /**
- * Liest die Ebenen aus der Zerlegung: Gestaltungselemente in `.ebene.vorne` und `.ebene.hinten`, dazu Seitenrahmen und
- * Seitenfläche, die zuunterst in `.ebene.hinten` liegen. Was in einem Element liegt (Teile einer Streuung, Kinder einer
- * Gruppe), hat keine eigene Zeile.
+ * Liest die Ebenen aus der Zerlegung: Gestaltungselemente in `.ebene.vorne` und `.ebene.hinten`, dazu Seitenfläche,
+ * Seitenrahmen und Kopfband, die zuunterst in `.ebene.hinten` liegen. Was in einem Element liegt (Teile einer Streuung,
+ * Kinder einer Gruppe), hat keine eigene Zeile.
  */
 export const ebenenTeile = (seite: Knoten): EbenenTeile => {
-	const teile: EbenenTeile = { vorne: [], hinten: [], seitenrahmen: null, seitenflaeche: null };
+	const teile: EbenenTeile = { vorne: [], hinten: [], kopfband: null, seitenrahmen: null, seitenflaeche: null };
 	for (const ebene of seite.kinder) {
 		const klassen = klassenVon(ebene);
 		const name = klassen.includes('ebene') ? (['vorne', 'hinten'] as const).find((n) => klassen.includes(n)) : null;
@@ -207,10 +211,11 @@ export const ebenenTeile = (seite: Knoten): EbenenTeile => {
 		for (const k of ebene.kinder) {
 			if (istGestaltung(k)) {
 				teile[name].unshift(k.nr);
-			} else if (name === 'hinten' && klassenVon(k).includes('seitenrahmen')) {
-				teile.seitenrahmen ??= k.nr;
-			} else if (name === 'hinten' && klassenVon(k).includes('seitenflaeche')) {
-				teile.seitenflaeche ??= k.nr;
+			} else if (name === 'hinten') {
+				const teil = SEITEN_TEILE.find((t) => klassenVon(k).includes(t));
+				if (teil) {
+					teile[teil] ??= k.nr;
+				}
 			}
 		}
 	}
@@ -221,20 +226,23 @@ export interface SeitenZeilen<T> {
 	vorne: readonly T[];
 	stapel: readonly T[];
 	hinten: readonly T[];
+	kopfband: T | null;
 	seitenrahmen: T | null;
 	seitenflaeche: T | null;
 }
 
 /**
- * Die Zeilen einer Seite von oben nach unten: vorne, Hauptstapel, hinten, Seitenrahmen, Seitenfläche. Ohne Gestaltung
- * gibt es keinen Hauptstapel, die Bausteine hängen wie vor 101 direkt an der Seite.
+ * Die Zeilen einer Seite von oben nach unten: vorne, Hauptstapel, Kopfband, hinten, Seitenrahmen, Seitenfläche. Das
+ * Kopfband steht im HTML vor allem, was hinten liegt, wird aber darüber gezeichnet (181); die Zeilen zeigen, was man
+ * sieht. Ohne Gestaltung gibt es keinen Hauptstapel, die Bausteine hängen wie vor 101 direkt an der Seite.
  */
 export const ordneSeite = <T>(z: SeitenZeilen<T>, hauptstapel: (stapel: readonly T[]) => T): T[] => {
+	const oben = [z.kopfband].filter((t): t is T => t !== null);
 	const unten = [z.seitenrahmen, z.seitenflaeche].filter((t): t is T => t !== null);
-	if (z.vorne.length === 0 && z.hinten.length === 0 && unten.length === 0) {
+	if (z.vorne.length === 0 && z.hinten.length === 0 && oben.length === 0 && unten.length === 0) {
 		return [...z.stapel];
 	}
-	return [...z.vorne, hauptstapel(z.stapel), ...z.hinten, ...unten];
+	return [...z.vorne, hauptstapel(z.stapel), ...oben, ...z.hinten, ...unten];
 };
 
 /** Die Bausteine einer Seite, ob sie direkt an ihr hängen oder unter dem Hauptstapel. */
@@ -298,7 +306,7 @@ export const gliederungVon = (doc: Document, z: Zerlegung, ids: readonly number[
 		// hat keine, gehört aber gerade hierher, sonst käme man nie wieder heran.
 		const name = nameVon({ nr, baustein, element }, null);
 		const wert = (a: string) => element.getAttribute(a);
-		const unten = zeile === 'seitenrahmen' || zeile === 'seitenflaeche';
+		const unten = zeile === 'kopfband' || zeile === 'seitenrahmen' || zeile === 'seitenflaeche';
 		return {
 			nr,
 			titel: unten
@@ -385,7 +393,7 @@ export const gliederungVon = (doc: Document, z: Zerlegung, ids: readonly number[
 			teile[name]
 				.map((nr, platz) => gestaltung(nr, name, `${schluessel}/${name}/${platz}`, { seite: seite.nr, platz }))
 				.filter((k): k is GliederungKnoten => k !== null);
-		const unten = (name: 'seitenrahmen' | 'seitenflaeche') => {
+		const unten = (name: SeitenTeil) => {
 			const nr = teile[name];
 			return nr === null ? null : gestaltung(nr, name, `${schluessel}/${name}`, null);
 		};
@@ -398,6 +406,7 @@ export const gliederungVon = (doc: Document, z: Zerlegung, ids: readonly number[
 					vorne: ebene('vorne'),
 					stapel,
 					hinten: ebene('hinten'),
+					kopfband: unten('kopfband'),
 					seitenrahmen: unten('seitenrahmen'),
 					seitenflaeche: unten('seitenflaeche'),
 				},

@@ -16,6 +16,9 @@ export const BLATT_EINSTELLUNGEN = [
 	{ ort: 'format', titel: 'Format des Blatts', suchwoerter: ['a4', 'quer', 'hoch', 'karten'] },
 	{ ort: 'abstand', titel: 'Abstand zwischen Aufgaben', suchwoerter: ['luft', 'platz', 'dichte'] },
 	{ ort: 'punkte', titel: 'Punkte zeigen', suchwoerter: ['bewertung', 'ausblenden'] },
+	{ ort: 'seitenflaeche', titel: 'Seitenfläche', suchwoerter: ['hintergrund', 'farbe', 'grund'] },
+	{ ort: 'seitenrahmen', titel: 'Rahmen der Seite', suchwoerter: ['rand', 'linie'] },
+	{ ort: 'kopfband', titel: 'Kopfband', suchwoerter: ['band', 'kopf', 'kopfzeile'] },
 ] as const;
 
 export const GANZES_BLATT = 'Ganzes Blatt';
@@ -92,7 +95,11 @@ export const eintraegeImEditor = (k: Kontext, z: PalettenZiele): PalettenEintrag
 	}
 	if (k.frei && k.aktiv) {
 		const mitPunkten = Boolean(k.quelle) && leseBlatt(k.quelle ?? '').hatPunkte;
-		for (const e of BLATT_EINSTELLUNGEN.filter((b) => b.ort !== 'punkte' || mitPunkten)) {
+		// Im Mini-Book gibt es kein Kopfband (181).
+		const gibt = (ort: string) =>
+			(ort !== 'punkte' || mitPunkten) && (ort !== 'kopfband' || k.format !== 'minibuch');
+		const einstellungen = BLATT_EINSTELLUNGEN.filter((b) => gibt(b.ort));
+		for (const e of einstellungen) {
 			liste.push({
 				id: `einstellung:${e.ort}`,
 				titel: e.titel,

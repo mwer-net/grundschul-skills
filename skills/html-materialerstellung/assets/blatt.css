@@ -454,6 +454,29 @@ body.minibuch .seitenrahmen{inset:var(--rahmen-abstand,8px)}
 .seitenrahmen[data-rahmen="gestrichelt"]{border-style:dashed}
 .seitenrahmen[data-rahmen="gepunktet"]{border-style:dotted}
 
+/* Kopfband (181) */
+/* Ein Band oben auf der Seite, höchstens eins je Seite, ohne data-lage. --h ist der volle Teil; Welle, Bogen und Zacken
+   hängen darunter (--kopfband-kante, 123). z-index:1 gilt nur in .ebene.hinten, denn deren z-index:-2 macht einen
+   eigenen Stapelkontext: Das Band liegt über Streuungen und unter dem Inhalt, wie das alte Band. Die Kante ist dieselbe
+   Maske aus zwei Schichten wie im Bestandsblock. Ein Kopfband auf der Seite blendet das alte Band am .kopf aus. */
+.kopfband{position:absolute;left:0;right:0;top:0;z-index:1;height:var(--h,160px);background:var(--f1,#ffe0b8);--kopfband-kante:26px;--kopfband-welle:180px}
+body.a4-quer .kopfband{--kopfband-kante:24px;--kopfband-welle:220px}
+body.a5-hoch .kopfband{--kopfband-kante:18px;--kopfband-welle:130px}
+body.a3-hoch .kopfband{--kopfband-kante:36px;--kopfband-welle:240px}
+body.folie .kopfband{--kopfband-kante:14px;--kopfband-welle:240px}
+.kopfband[data-flaeche="verlauf"]{background:linear-gradient(var(--winkel,90deg),var(--f1,#ffe0b8),var(--f2,#fff7e6))}
+.kopfband:is([data-form="welle"],[data-form="bogen"],[data-form="zacken"]){height:calc(var(--h,160px) + var(--kopfband-kante));
+  -webkit-mask-image:linear-gradient(#000,#000),var(--kopfband-maske);mask-image:linear-gradient(#000,#000),var(--kopfband-maske);
+  -webkit-mask-size:100% calc(100% - var(--kopfband-kante) + 1px),var(--kopfband-kachel) var(--kopfband-kante);
+  mask-size:100% calc(100% - var(--kopfband-kante) + 1px),var(--kopfband-kachel) var(--kopfband-kante);
+  -webkit-mask-position:left top,left bottom;mask-position:left top,left bottom;
+  -webkit-mask-repeat:no-repeat,repeat-x;mask-repeat:no-repeat,repeat-x}
+.kopfband[data-form="welle"]{--kopfband-kachel:var(--kopfband-welle);--kopfband-maske:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 120 24' preserveAspectRatio='none'%3E%3Cpath d='M0 0H120V12C100 0 80 0 60 12S20 24 0 12Z'/%3E%3C/svg%3E")}
+.kopfband[data-form="bogen"]{--kopfband-maske:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 24' preserveAspectRatio='none'%3E%3Cpath d='M0 0H100V0Q50 48 0 0Z'/%3E%3C/svg%3E");--kopfband-kachel:100%}
+.kopfband[data-form="zacken"]{--kopfband-maske:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 24' preserveAspectRatio='none'%3E%3Cpath d='M0 0H32L16 24Z'/%3E%3C/svg%3E");--kopfband-kachel:calc(var(--kopfband-kante) * 1.4)}
+.seite:has(> .ebene > .kopfband) .kopf::before{display:none}
+body.sw .kopfband:not([data-sw="grau"]){display:none !important}
+
 /* Figuren */
 /* Frei liegende Figur (Briefing 3.4): nur figur-frei, nie figur (die Leitfigur mit --figur). Breite aus --b, Höhe aus
    dem Bild; Drehen und Spiegeln kommen aus [data-lage="frei"]. */

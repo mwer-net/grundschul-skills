@@ -5,6 +5,7 @@ import { nameDerGestaltung } from '@schoolbox/kern/src/gestaltung-arten';
 import { darstellungsHtml } from '@schoolbox/kern/src/html';
 import type { LetzterSchritt, Zerlegung } from '@schoolbox/kern/src/quelltext';
 import { MARKE, markiere, stelleDesSchritts } from '@schoolbox/kern/src/quelltext';
+import { SEITEN_TEILE } from '@schoolbox/kern/src/seitengestaltung';
 import type { Druckprofil } from '@schoolbox/kern/src/werte';
 
 /**
@@ -23,8 +24,8 @@ const EDITOR_STIL =
 	'body.loesung .antwort:not([data-l])::after,body.loesung .antwort[data-l=""]::after{content:"?";' +
 	'color:#b45309;font-weight:700}' +
 	'@media screen{body{background:transparent!important;padding:12px 0!important}}' +
-	// Gestaltung: Gesperrtes, Seitenfläche und -rahmen lassen Klicks durch; Gestaltung zieht man.
-	'[data-gesperrt],[data-gesperrt] *,.seitenflaeche,.seitenflaeche *,.seitenrahmen,.seitenrahmen *' +
+	// Gestaltung: Gesperrtes, Seitenfläche, Seitenrahmen und Kopfband lassen Klicks durch; Gestaltung zieht man.
+	`[data-gesperrt],[data-gesperrt] *,${SEITEN_TEILE.map((t) => `.${t},.${t} *`).join(',')}` +
 	'{pointer-events:none!important}[data-lage="frei"]:not(:focus){cursor:move}' +
 	// Fläche im Stapel: nur im Editor ein gestrichelter Umriss (leer ist sie sonst nicht zu sehen); beim Ziehen
 	// eines Elements schneidet sie nicht ab, damit es beim Herausziehen zu sehen ist (`flaeche-ziel.ts`)

@@ -126,6 +126,22 @@ describe('Inhalt der Palette im Editor', () => {
 		assert.deepEqual(seiten, [3]);
 	});
 
+	it('findet Seitenfläche, Rahmen und Kopfband und springt zu ihrem Abschnitt (181)', () => {
+		const orte: string[] = [];
+		const liste = eintraegeImEditor(kontext(), ziele({ zeigeEinstellung: (o) => orte.push(o) }));
+		const [hintergrund] = suchePalette('hintergrund', liste);
+		assert.equal(hintergrund?.titel, 'Seitenfläche');
+		hintergrund?.aus();
+		assert.deepEqual(orte, ['seitenflaeche']);
+		assert.equal(suchePalette('rahmen', liste)[0]?.id, 'einstellung:seitenrahmen');
+		assert.equal(suchePalette('kopfband', liste)[0]?.id, 'einstellung:kopfband');
+		// Gegenprobe: Im Mini-Book gibt es kein Kopfband, Fläche und Rahmen schon.
+		const ids = eintraegeImEditor(kontext({ format: 'minibuch' }), ziele()).map((e) => e.id);
+		assert.ok(!ids.includes('einstellung:kopfband'));
+		assert.ok(ids.includes('einstellung:seitenflaeche'));
+		assert.ok(ids.includes('einstellung:seitenrahmen'));
+	});
+
 	it('bietet „Punkte zeigen“ nur an, wenn der Schalter wirkt, und keine Trennlinien', () => {
 		const orte = (quelle: string) =>
 			eintraegeImEditor(kontext({ quelle }), ziele())

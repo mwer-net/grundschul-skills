@@ -1,4 +1,5 @@
 import { DRUCKRAND, GESTALTUNG_SELEKTOR } from '@schoolbox/kern/src/gestaltung-arten';
+import { SEITEN_TEIL_SELEKTOR } from '@schoolbox/kern/src/seitengestaltung';
 
 import { VORSCHAU } from './ablegen/vorschau';
 import type { Kasten } from './geste';
@@ -257,8 +258,8 @@ export const eckeDes = (behaelter: Element) => {
 	return { x: r.left + behaelter.clientLeft, y: r.top + behaelter.clientTop };
 };
 
-/** Nicht als Kandidat: Seitenfläche und -rahmen füllen die Seite, die Vorschau beim Ablegen ist das Element selbst. */
-const UEBERGEHEN = `.seitenflaeche, .seitenrahmen, [${VORSCHAU}], [${VORSCHAU}] *`;
+/** Kein Kandidat: Seitenfläche, -rahmen und Kopfband gehören der Seite, die Vorschau beim Ablegen ist das Element. */
+const UEBERGEHEN = `${SEITEN_TEIL_SELEKTOR}, [${VORSCHAU}], [${VORSCHAU}] *`;
 
 /**
  * Die Kandidaten einer Seite, verschoben auf `ursprung` (Ecke des Behälters im Material): Seitenmitte, Druckrand,

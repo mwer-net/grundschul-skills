@@ -273,9 +273,10 @@ const ABSCHNITTE: Abschnitt[] = [
 						einklappen“ macht die Liste kurz. Esc bricht das Ziehen ab, ⌘Z nimmt es zurück.
 					</Punkt>
 					<Punkt titel="Einstellungen">
-						rechts im Inspektor: „Auswahl“ für den gewählten Baustein, „Blatt“ für Klasse, Farben, Format
-						und den Abstand zwischen den Aufgaben. Die Marke am Regler zeigt die Vorgabe, „Vorgabe“ stellt
-						sie wieder her. „Punkte zeigen“ gibt es, sobald das Blatt Bewertungspunkte hat.
+						rechts im Inspektor: „Auswahl“ für den gewählten Baustein, „Blatt“ für Klasse, Farben, Format,
+						den Abstand zwischen den Aufgaben und die Gestaltung der Seite: Fläche, Rahmen und Kopfband. Die
+						Marke am Regler zeigt die Vorgabe, „Vorgabe“ stellt sie wieder her. „Punkte zeigen“ gibt es,
+						sobald das Blatt Bewertungspunkte hat.
 					</Punkt>
 					<Punkt titel="Listen">
 						jeder Eintrag steht in einer Zeile. Am Griff links ziehst du ihn an eine andere Stelle, ⋯ öffnet

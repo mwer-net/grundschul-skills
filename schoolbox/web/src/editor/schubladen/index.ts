@@ -1,4 +1,5 @@
 import type { Zerlegung } from '@schoolbox/kern/src/quelltext';
+import type { SeitenTeil } from '@schoolbox/kern/src/seitengestaltung';
 import type { Art, Fach, Klasse } from '@schoolbox/kern/src/werte';
 import type { ComponentType } from 'react';
 
@@ -39,8 +40,8 @@ export interface SchubladenTeile {
 	/** Wählt den Baustein, rollt das Blatt dorthin und zeigt rechts seine Einstellungen. */
 	zeigeAn: (nr: number) => void;
 	kontextmenue: (nr: number, art: 'baustein' | 'miniatur', punkt: { x: number; y: number }) => void;
-	/** Ebenen: Zeile „Seitenfläche“ oder „Seitenrahmen“ öffnet Reiter „Blatt“ › Gestaltung dieser Seite (095). */
-	zeigeSeitengestaltung: (seite: number) => void;
+	/** Ebenen: Zeile „Seitenfläche“, „Seitenrahmen“ oder „Kopfband“ öffnet ihren Abschnitt in „Blatt“ (095, 181). */
+	zeigeSeitengestaltung: (seite: number, teil: SeitenTeil) => void;
 }
 
 /** Ziele für Einträge der Palette aus einer Schublade (⌘K findet auch den Inhalt der Schubladen). */

@@ -110,9 +110,8 @@ test.describe('Abnahme E3: Ein Blatt in fünf Griffen (123, Z6)', () => {
 		// 1. Reiter „Blatt“: Seitenfläche Farbe.
 		await geladen(page);
 		await page.getByRole('tab', { name: 'Blatt' }).first().click();
-		const gestaltung = page.locator('[data-abschnitt="gestaltung"]');
-		await gestaltung.locator('[data-gestaltung-kopf]').click();
-		await gestaltung
+		await page
+			.locator('[data-abschnitt="seitenflaeche"]')
 			.getByRole('group', { name: 'Seitenfläche' })
 			.getByRole('button', { name: 'Farbe', exact: true })
 			.click();

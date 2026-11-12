@@ -1,3 +1,5 @@
+import type { SeitenTeil } from '@schoolbox/kern/src/seitengestaltung';
+
 import type { SymbolName } from '../../bausteine/Symbol';
 import type { Struktur } from '../struktur';
 import { ANKER_ZEICHEN } from './ebenen-zeichen/anker';
@@ -10,8 +12,8 @@ export interface EbenenZeichenKontext {
 	struktur: Pick<Struktur, 'aktiv' | 'aendereAttribute' | 'fuehreAus'>;
 	/** Wählt das Element (oder einen Baustein), rollt hin und zeigt rechts seine Einstellungen. */
 	zeigeAn: (nr: number) => void;
-	/** Öffnet Reiter „Blatt“ › Gestaltung der Seite mit dieser Nummer. */
-	zeigeSeitengestaltung: (seite: number) => void;
+	/** Öffnet im Reiter „Blatt“ den Abschnitt des Teils der Seite mit dieser Nummer. */
+	zeigeSeitengestaltung: (seite: number, teil: SeitenTeil) => void;
 }
 
 /**

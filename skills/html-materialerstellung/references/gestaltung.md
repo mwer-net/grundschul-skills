@@ -109,6 +109,7 @@ trägt, ist „Gestaltung“ und lässt sich trotzdem verschieben, drehen, dupli
 | `ebene` | Ebene | `.ebene` | – | – | – | E1 |
 | `seitenflaeche` | Seitenfläche | `.seitenflaeche` | – | – | `fuellung` | E1 |
 | `seitenrahmen` | Seitenrahmen | `.seitenrahmen` | – | – | `fuellung` | E1 |
+| `kopfband` | Kopfband | `.kopfband` | – | – | `fuellung` | E1 |
 | `flaeche` | Fläche | `.flaeche` | – | – | `ordnen`, `duplizieren`, `loeschen`, `hoehe` | E4 |
 | `bildfrei` | Bild | `img.bild-frei[data-lage="frei"]` | Ecken halten das Verhältnis | vorne | `lage`, `duplizieren`, `loeschen`, `loesung`, `bild` | E2 |
 | `figurfrei` | Figur | `img.figur-frei[data-lage="frei"]` | Ecken halten das Verhältnis | vorne | `lage`, `duplizieren`, `loeschen`, `loesung`, `bild` | E2 |

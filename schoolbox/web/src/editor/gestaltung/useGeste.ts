@@ -3,6 +3,7 @@ import type { LageTeil } from '@schoolbox/kern/src/gestaltung';
 import { kopiereGestaltungNach, setzeLage, setzeStilWerte, verschiebeAufSeite } from '@schoolbox/kern/src/gestaltung';
 import { GESTALTUNG_SELEKTOR, gestaltungArtNach } from '@schoolbox/kern/src/gestaltung-arten';
 import { skaliereGruppe } from '@schoolbox/kern/src/gruppen';
+import { SEITEN_TEIL_SELEKTOR } from '@schoolbox/kern/src/seitengestaltung';
 import type { StrukturErgebnis } from '@schoolbox/kern/src/struktur';
 import type { PointerEvent as ReactPointerEvent } from 'react';
 import { useCallback, useEffect, useRef, useState } from 'react';
@@ -327,7 +328,7 @@ const ohneTasten = (e: PointerEvent) => e.pointerType === 'mouse' && !e.shiftKey
 /** 113: Leer heißt: kein Baustein mit Inhalt und kein Gestaltungselement unter dem Zeiger, nur Seite oder Ebene. */
 const bandAb = (e: PointerEvent, ziel: Element) => {
 	const seite = ziel.closest('.seite');
-	return seite && (ziel === seite || ziel.matches('.ebene, .seitenflaeche, .seitenrahmen'))
+	return seite && (ziel === seite || ziel.matches(`.ebene, ${SEITEN_TEIL_SELEKTOR}`))
 		? { id: e.pointerId, x: e.clientX, y: e.clientY, seite, laeuft: false }
 		: null;
 };

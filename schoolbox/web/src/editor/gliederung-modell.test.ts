@@ -9,6 +9,7 @@ import {
 	FIGUR_ANKER,
 	FIGUR_FREI,
 	FORM,
+	KOPFBAND,
 	SCHMUCK_STEMPEL,
 	SEITENFLAECHE,
 	SEITENRAHMEN,
@@ -160,10 +161,10 @@ describe('Ebenen mit Gestaltung (101)', () => {
 
 	it('ohne Gestaltung: keine Ebenen, der Baum bleibt der Stapel wie vorher (Schnappschuss)', () => {
 		const { teile } = teileVon(blattMit());
-		assert.deepEqual(teile, { vorne: [], hinten: [], seitenrahmen: null, seitenflaeche: null });
+		assert.deepEqual(teile, { vorne: [], hinten: [], kopfband: null, seitenrahmen: null, seitenflaeche: null });
 		const stapel = ['Namenszeile', 'Kopf', 'Aufgabe 1', 'Aufgabe 2', 'Aufgabe 3'];
 		const zeilen = ordneSeite(
-			{ vorne: [], stapel, hinten: [], seitenrahmen: null, seitenflaeche: null },
+			{ vorne: [], stapel, hinten: [], kopfband: null, seitenrahmen: null, seitenflaeche: null },
 			() => 'Hauptstapel',
 		);
 		assert.deepEqual(zeilen, stapel);
@@ -175,6 +176,7 @@ describe('Ebenen mit Gestaltung (101)', () => {
 		);
 		assert.equal(teile.vorne.length, 2);
 		assert.equal(teile.hinten.length, 1);
+		assert.equal(teile.kopfband, null);
 		assert.equal(klasse(z, teile.seitenrahmen), 'seitenrahmen');
 		assert.equal(klasse(z, teile.seitenflaeche), 'seitenflaeche');
 		const name = (nr: number | null) => (nr === null ? '' : `${klasse(z, nr)}`);
@@ -183,6 +185,7 @@ describe('Ebenen mit Gestaltung (101)', () => {
 				vorne: teile.vorne.map(name),
 				stapel: ['Aufgabe 1', 'Aufgabe 2'],
 				hinten: teile.hinten.map(name),
+				kopfband: null,
 				seitenrahmen: name(teile.seitenrahmen),
 				seitenflaeche: name(teile.seitenflaeche),
 			},
@@ -198,12 +201,37 @@ describe('Ebenen mit Gestaltung (101)', () => {
 		]);
 	});
 
-	it('Fläche oder Rahmen allein reichen für den Hauptstapel', () => {
+	it('mit Kopfband (181): Hauptstapel, Kopfband, Streuung, Seitenrahmen, Seitenfläche', () => {
+		const { teile, z } = teileVon(blattMit({ hinten: [SEITENFLAECHE, SEITENRAHMEN, KOPFBAND, STREUUNG] }));
+		// Ein Kopfband ist kein frei liegendes Element: Es zählt nicht unter „hinten“.
+		assert.equal(teile.hinten.length, 1);
+		assert.equal(klasse(z, teile.kopfband), 'kopfband');
+		const name = (nr: number | null) => (nr === null ? null : `${klasse(z, nr)}`);
 		const zeilen = ordneSeite(
-			{ vorne: [], stapel: ['A'], hinten: [], seitenrahmen: null, seitenflaeche: 'F' },
+			{
+				vorne: [],
+				stapel: ['Aufgabe 1'],
+				hinten: teile.hinten.map((nr) => `${klasse(z, nr)}`),
+				kopfband: name(teile.kopfband),
+				seitenrahmen: name(teile.seitenrahmen),
+				seitenflaeche: name(teile.seitenflaeche),
+			},
+			() => 'Hauptstapel',
+		);
+		assert.deepEqual(zeilen, ['Hauptstapel', 'kopfband', 'streuung', 'seitenrahmen', 'seitenflaeche']);
+	});
+
+	it('Fläche, Rahmen oder Kopfband allein reichen für den Hauptstapel', () => {
+		const zeilen = ordneSeite(
+			{ vorne: [], stapel: ['A'], hinten: [], kopfband: null, seitenrahmen: null, seitenflaeche: 'F' },
 			() => 'H',
 		);
 		assert.deepEqual(zeilen, ['H', 'F']);
+		const mitBand = ordneSeite(
+			{ vorne: [], stapel: ['A'], hinten: [], kopfband: 'K', seitenrahmen: null, seitenflaeche: null },
+			() => 'H',
+		);
+		assert.deepEqual(mitBand, ['H', 'K']);
 	});
 
 	it('oben ist, was vorne liegt: umgekehrt zur Quelle', () => {

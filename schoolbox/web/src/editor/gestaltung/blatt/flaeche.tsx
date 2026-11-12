@@ -1,9 +1,11 @@
 import type { MusterArt, Seitenflaeche } from '@schoolbox/kern/src/seitengestaltung';
 import { MUSTER_GROESSE, setzeSeitenflaeche, WINKEL } from '@schoolbox/kern/src/seitengestaltung';
 
-import { Farbwahl } from '../../../bausteine/Farbwahl';
+import { Abschnitt } from '../../../bausteine/Abschnitt';
 import { Segment } from '../../../bausteine/Segment';
 import { Zeile } from '../../../bausteine/Zeile';
+import { FuellungZeilen } from './fuellung';
+import { GiltFuer, useGiltFuer, zielVon } from './gilt-fuer';
 import { Regler } from './regler';
 import type { BlattTeile } from './teile';
 
@@ -23,10 +25,19 @@ const MUSTER: { wert: MusterArt; titel: string }[] = [
 	{ wert: 'schraeg', titel: 'Schräg' },
 ];
 
-const SW: { wert: 'weg' | 'grau'; titel: string }[] = [
-	{ wert: 'weg', titel: 'weg' },
-	{ wert: 'grau', titel: 'grau' },
+type Sw = 'weg' | 'grau';
+
+/** „In s/w“ in allen drei Abschnitten: erst „Weg“, dann „Grau“, wie im Reiter „Auswahl“ (182). */
+const SW: { wert: Sw; titel: string }[] = [
+	{ wert: 'weg', titel: 'Weg' },
+	{ wert: 'grau', titel: 'Grau' },
 ];
+
+export const SwZeile = ({ setze, wert }: { wert: Sw; setze: (wert: Sw) => void }) => (
+	<Zeile titel="In s/w">
+		<Segment beschriftung="In s/w" werte={SW} wert={wert} waehle={setze} />
+	</Zeile>
+);
 
 /** Ein ruhiger, heller Grund wie im Vorbild „Deckblatt ruhig“; die Farben lassen sich danach ändern. */
 const VORGABE: Record<Seitenflaeche['art'], Seitenflaeche> = {
@@ -37,29 +48,13 @@ const VORGABE: Record<Seitenflaeche['art'], Seitenflaeche> = {
 
 const NAME: Record<Seitenflaeche['art'], string> = { farbe: 'Farbe', verlauf: 'Verlauf', muster: 'Muster' };
 
-export const SwZeile = ({
-	aus,
-	setze,
-	wert,
-	werte,
-}: {
-	wert: 'weg' | 'grau';
-	werte: { wert: 'weg' | 'grau'; titel: string }[];
-	setze: (wert: 'weg' | 'grau') => void;
-	aus?: boolean;
-}) => (
-	<div className="flex min-h-zeile items-center justify-between gap-x-2">
-		<span className="text-leise">In s/w</span>
-		<Segment beschriftung="In s/w" werte={werte} wert={wert} waehle={setze} aus={aus} className="ml-auto" />
-	</div>
-);
-
-/** Seitenfläche: keine, Farbe, Verlauf oder Muster, für diese Seite oder alle (3.6). */
+/** Seitenfläche: keine, Farbe, Verlauf oder Muster, für eine Seite oder alle (3.6). */
 export const BlattFlaeche = (t: BlattTeile) => {
+	const [gilt, setGilt] = useGiltFuer('seitenflaeche', t.quelle, t.index);
 	const jetzt = t.gestaltung.flaeche;
 	const art: Art = jetzt?.art ?? 'keine';
 	const setze = (beschreibung: string, neu: Seitenflaeche | null) =>
-		t.aendere(beschreibung, (q) => setzeSeitenflaeche(q, t.ziel, neu));
+		t.aendere(beschreibung, (q) => setzeSeitenflaeche(q, zielVon(gilt, t), neu));
 	const aendere = (beschreibung: string, teil: Partial<Seitenflaeche>) => {
 		if (jetzt) {
 			setze(beschreibung, { ...jetzt, ...teil });
@@ -79,85 +74,57 @@ export const BlattFlaeche = (t: BlattTeile) => {
 			sw: jetzt?.sw ?? null,
 		});
 	};
-	const zeige = (werte: Record<string, string>) => t.zeige('seitenflaeche', werte);
+	const zeige = (werte: Record<string, string>) => t.zeige('seitenflaeche', gilt === 'alle', werte);
 	return (
-		<div className="flex flex-col gap-1" data-blatt-flaeche={art}>
-			<span className="font-medium">Seitenfläche</span>
-			<Segment
-				beschriftung="Seitenfläche"
-				werte={ARTEN}
-				wert={art}
-				waehle={waehleArt}
-				className="w-full justify-between"
-			/>
-			{jetzt && (
-				<>
-					<Zeile titel={{ farbe: 'Farbe', verlauf: 'Farbe 1', muster: 'Grund' }[jetzt.art]} darunter>
-						<Farbwahl
-							name="flaeche-f1"
-							beschriftung={jetzt.art === 'muster' ? 'Grund' : 'Farbe 1'}
+		<Abschnitt titel="Seitenfläche" name="seitenflaeche">
+			<div className="contents" data-blatt-flaeche={art}>
+				<GiltFuer gilt={gilt} setze={setGilt} t={t} />
+				<Zeile titel="Art" einstellung="seitenflaeche" darunter>
+					<Segment beschriftung="Seitenfläche" werte={ARTEN} wert={art} waehle={waehleArt} voll />
+				</Zeile>
+				{jetzt && (
+					<>
+						<FuellungZeilen
+							art={jetzt.art}
+							name="flaeche"
+							teil="der Seitenfläche"
 							doc={t.doc}
-							wert={jetzt.f1 ?? null}
-							setze={(f1) => aendere('Farbe der Seitenfläche', { f1 })}
-							zeige={(f1) => zeige({ '--f1': f1 })}
+							werte={jetzt}
+							winkel={WINKEL}
+							setze={aendere}
+							zeige={zeige}
 						/>
-					</Zeile>
-					{jetzt.art !== 'farbe' && (
-						<Zeile titel={jetzt.art === 'muster' ? 'Musterfarbe' : 'Farbe 2'} darunter>
-							<Farbwahl
-								name="flaeche-f2"
-								beschriftung={jetzt.art === 'muster' ? 'Musterfarbe' : 'Farbe 2'}
-								doc={t.doc}
-								wert={jetzt.f2 ?? null}
-								setze={(f2) => aendere('Farbe der Seitenfläche', { f2 })}
-								zeige={(f2) => zeige({ '--f2': f2 })}
-							/>
-						</Zeile>
-					)}
-					{jetzt.art === 'verlauf' && (
-						<Regler
-							name="winkel"
-							titel="Winkel"
-							einheit="°"
-							min={0}
-							max={360}
-							schritt={15}
-							wert={jetzt.winkel ?? WINKEL}
-							zeige={(w) => zeige({ '--winkel': `${w}deg` })}
-							setze={(winkel) => aendere('Winkel des Verlaufs', { winkel })}
-						/>
-					)}
-					{jetzt.art === 'muster' && (
-						<>
-							<div className="flex min-h-zeile items-center">
-								<Segment
-									beschriftung="Muster"
-									werte={MUSTER}
-									wert={jetzt.muster ?? 'streifen'}
-									waehle={(muster) => aendere('Muster', { muster })}
-									className="w-full justify-between"
+						{jetzt.art === 'muster' && (
+							<>
+								<Zeile titel="Muster" darunter>
+									<Segment
+										beschriftung="Muster"
+										werte={MUSTER}
+										wert={jetzt.muster ?? 'streifen'}
+										waehle={(muster) => aendere('Muster', { muster })}
+										voll
+									/>
+								</Zeile>
+								<Regler
+									name="mustergroesse"
+									titel="Größe"
+									einheit=" px"
+									min={8}
+									max={64}
+									schritt={2}
+									wert={jetzt.musterGroesse ?? MUSTER_GROESSE}
+									zeige={(g) => zeige({ '--muster-groesse': `${g}px` })}
+									setze={(musterGroesse) => aendere('Größe des Musters', { musterGroesse })}
 								/>
-							</div>
-							<Regler
-								name="mustergroesse"
-								titel="Größe"
-								einheit=" px"
-								min={8}
-								max={64}
-								schritt={2}
-								wert={jetzt.musterGroesse ?? MUSTER_GROESSE}
-								zeige={(g) => zeige({ '--muster-groesse': `${g}px` })}
-								setze={(musterGroesse) => aendere('Größe des Musters', { musterGroesse })}
-							/>
-						</>
-					)}
-					<SwZeile
-						werte={SW}
-						wert={jetzt.sw === 'grau' ? 'grau' : 'weg'}
-						setze={(sw) => aendere('Seitenfläche in s/w', { sw: sw === 'grau' ? 'grau' : null })}
-					/>
-				</>
-			)}
-		</div>
+							</>
+						)}
+						<SwZeile
+							wert={jetzt.sw === 'grau' ? 'grau' : 'weg'}
+							setze={(sw) => aendere('Seitenfläche in s/w', { sw: sw === 'grau' ? 'grau' : null })}
+						/>
+					</>
+				)}
+			</div>
+		</Abschnitt>
 	);
 };

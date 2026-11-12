@@ -2,7 +2,8 @@
  * Ältere Blätter mit Rezept (180): Rezepte gibt es nicht mehr, das Blatt sieht aus wie vorher und bleibt in der Datei
  * unverändert, außer an der Stelle, die die Lehrkraft selbst ändert. Probe:
  * `kern/src/testdaten/bestand-aufmachung.html`, Rezept „Detektiv“ mit Kopfband Welle, Seitenfläche und zwei Streuungen,
- * alle mit `data-aufmachung-teil` und Schloss.
+ * alle mit `data-aufmachung-teil` und Schloss. Das alte Kopfband zeigt der Abschnitt „Kopfband“ (181); die erste
+ * Änderung schreibt es als `.kopfband` auf die Seite, der `body` bleibt.
  */
 import { readFile, writeFile } from 'node:fs/promises';
 import path from 'node:path';
@@ -27,7 +28,11 @@ const blatt = async (page: Page) => {
 const bodyTag = (html: string) => /<body[^>]*>/.exec(html)?.[0] ?? '';
 const ebenen = (page: Page) => page.getByRole('navigation', { name: 'Ebenen' });
 const panel = (page: Page) => page.locator('[data-panel-links]');
-const gestaltung = (page: Page) => page.locator('[data-abschnitt="gestaltung"]');
+const flaeche = (page: Page) => page.locator('[data-abschnitt="seitenflaeche"]');
+const band = (page: Page) => page.locator('[data-abschnitt="kopfband"]');
+const reiterBlatt = (page: Page) => page.getByRole('tab', { name: 'Blatt' }).first().click();
+const bandKnopf = (page: Page, gruppe: string, name: string) =>
+	band(page).getByRole('group', { name: gruppe, exact: true }).getByRole('button', { name, exact: true });
 const gesperrteStreuungen = async (page: Page) =>
 	(await quelle(page)).match(/<svg class="streuung"[^>]*data-gesperrt/g)?.length ?? 0;
 
@@ -91,11 +96,11 @@ test.describe('Ältere Blätter mit Rezept (180)', () => {
 			const { material: datei, probe } = await blatt(page);
 			expect(await kopfband(page)).not.toBe('none');
 
-			await page.getByRole('tab', { name: 'Blatt' }).first().click();
-			await expect(gestaltung(page).locator('[data-blatt-gestaltung]')).toBeVisible();
-			await expect(gestaltung(page).locator('[data-aus-rezept]')).toHaveCount(0);
-			await expect(gestaltung(page).locator('[data-blatt-flaeche="farbe"]')).toBeVisible();
-			await gestaltung(page).locator('[data-farbwahl="flaeche-f1"] [data-farbe="var(--haupt)"]').click();
+			await reiterBlatt(page);
+			await expect(flaeche(page)).toBeVisible();
+			await expect(page.locator('[data-aus-rezept]')).toHaveCount(0);
+			await expect(flaeche(page).locator('[data-blatt-flaeche="farbe"]')).toHaveCount(1);
+			await flaeche(page).locator('[data-farbwahl="flaeche-f1"] [data-farbe="var(--haupt)"]').click();
 			await expect.poll(() => quelle(page)).toContain('style="--f1:var(--haupt)"');
 			await gespeichert(page, datei);
 
@@ -103,6 +108,70 @@ test.describe('Ältere Blätter mit Rezept (180)', () => {
 			expect(bodyTag(neu)).toBe(bodyTag(probe));
 			expect(neu).toBe(probe.replace('style="--f1:var(--a-flaeche)"', 'style="--f1:var(--haupt)"'));
 			// Das Kopfband steht weiter da: Es hängt nur an den Werten am body und an blatt.css.
+			expect(await kopfband(page)).not.toBe('none');
+		});
+
+		test('Kopfband (181): zeigt das alte Band, die Datei bleibt beim Öffnen gleich', async ({ page }) => {
+			const { material: datei, probe } = await blatt(page);
+			await reiterBlatt(page);
+			const a1 = /--a1:(#[0-9a-f]{6})/.exec(bodyTag(probe))?.[1];
+			expect(a1).toBeTruthy();
+			await expect(bandKnopf(page, 'Kopfband', 'Verlauf')).toHaveAttribute('aria-pressed', 'true');
+			await expect(bandKnopf(page, 'Form', 'Welle')).toHaveAttribute('aria-pressed', 'true');
+			const farbe1 = band(page).locator('[data-farbwahl="kopfband-f1"] input[data-farbe="eigen"]');
+			await expect(farbe1).toHaveValue(a1 ?? '');
+			await expect(page.locator('[data-speicherstand="gespeichert"]')).toBeVisible();
+			expect(await quelle(page)).toBe(probe);
+			expect(await readFile(datei, 'utf8')).toBe(probe);
+		});
+
+		test('Kopfband (181): Höhe +10 schreibt das Band auf die Seite, der body bleibt, der Titel weiß', async ({
+			page,
+		}) => {
+			const { material: datei, probe } = await blatt(page);
+			await reiterBlatt(page);
+			const regler = band(page).locator('[data-regler="hoehe"] input');
+			const hoehe = Number(await regler.inputValue());
+			expect(hoehe).toBeGreaterThan(100);
+			await regler.fill(String(hoehe + 10));
+			await expect.poll(() => quelle(page)).toContain('<div class="kopfband"');
+			await gespeichert(page, datei);
+
+			const neu = await readFile(datei, 'utf8');
+			expect(bodyTag(neu)).toBe(bodyTag(probe));
+			const [, a1, a2] = /--a1:(#[0-9a-f]{6});--a2:(#[0-9a-f]{6})/.exec(probe) ?? [];
+			const stil = `--f1:${a1};--f2:${a2};--h:${hoehe + 10}px`;
+			expect(/<div class="kopfband"[^>]*>/.exec(neu)?.[0]).toBe(
+				`<div class="kopfband" data-form="welle" data-flaeche="verlauf" style="${stil}">`,
+			);
+			const kopf = material(page).locator('.kopf').first();
+			await expect.poll(() => kopf.evaluate((k) => getComputedStyle(k, '::before').display)).toBe('none');
+			expect(await kopf.locator('h1').evaluate((h) => getComputedStyle(h).color)).toBe('rgb(255, 255, 255)');
+		});
+
+		test('Kopfband (181): „Keine“ nimmt Band und weißen Titel, ⌘Z stellt den alten Stand her', async ({ page }) => {
+			const { probe } = await blatt(page);
+			await reiterBlatt(page);
+			await bandKnopf(page, 'Kopfband', 'Keine').click();
+			await expect.poll(async () => bodyTag(await quelle(page))).not.toContain('data-aufmachung-kopfband');
+			const ohne = await quelle(page);
+			expect(ohne).not.toContain('class="kopfband"');
+			expect(bodyTag(ohne)).not.toContain('--a-titel');
+			expect(bodyTag(ohne)).toContain('data-aufmachung="detektiv"');
+			await expect.poll(() => kopfband(page)).toBe('none');
+			// Die h1 steht in --dunkel der Palette (Hex am body, die h1 meldet rgb).
+			const [farbe, dunkel] = await material(page)
+				.locator('.kopf h1')
+				.first()
+				.evaluate((h1) => {
+					const stil = getComputedStyle(h1);
+					return [stil.color, stil.getPropertyValue('--dunkel').trim()];
+				});
+			const hex = `#${(farbe?.match(/\d+/g) ?? []).map((n) => Number(n).toString(16).padStart(2, '0')).join('')}`;
+			expect(hex).toBe(dunkel?.toLowerCase());
+
+			await page.keyboard.press('ControlOrMeta+z');
+			await expect.poll(() => quelle(page)).toBe(probe);
 			expect(await kopfband(page)).not.toBe('none');
 		});
 

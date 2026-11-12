@@ -147,8 +147,8 @@ const seiteUm = (k: Knoten) => {
 
 const ebeneIn = (seite: Knoten, name: EbenenName) => seite.kinder.find((k) => istEbene(k) && hat(k, name));
 
-/** Seitenfläche und Seitenrahmen liegen immer zuunterst in `.ebene.hinten` (3.6). */
-const zuunterst = (k: Knoten) => hat(k, 'seitenflaeche') || hat(k, 'seitenrahmen');
+/** Seitenfläche, Seitenrahmen und Kopfband liegen immer zuunterst in `.ebene.hinten` (3.6, 181). */
+const zuunterst = (k: Knoten) => hat(k, 'seitenflaeche') || hat(k, 'seitenrahmen') || hat(k, 'kopfband');
 
 const knotenAn = (z: Zerlegung, nr: number) => {
 	const k = z.knoten[nr];
