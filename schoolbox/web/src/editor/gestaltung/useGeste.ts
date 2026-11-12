@@ -417,8 +417,10 @@ export const useGeste = (o: Optionen) => {
 				}),
 			});
 			setzeLiveLage({ nr: l.nr, gruppe: Boolean(l.gruppe), kasten: live });
+			// Solange eine Geste läuft, zoomt Aufziehen das Blatt nicht (184).
+			doc.documentElement.setAttribute('data-geste-laeuft', '');
 		},
-		[],
+		[doc],
 	);
 
 	const beende = useCallback(() => {
@@ -429,6 +431,7 @@ export const useGeste = (o: Optionen) => {
 		setStand(null);
 		setzeLiveLage(null);
 		doc.documentElement.style.cursor = '';
+		doc.documentElement.removeAttribute('data-geste-laeuft');
 	}, [doc]);
 
 	const brichAb = useCallback(() => {

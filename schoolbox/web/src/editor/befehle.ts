@@ -714,7 +714,8 @@ export const BEFEHLE: Befehl[] = [
 		titel: 'Größer',
 		gruppe: 'ansicht',
 		symbol: 'plus',
-		kuerzel: [{ key: '+' }],
+		kuerzel: [{ key: '+', befehl: true }, { key: '+' }],
+		modus: ['auswahl', 'ohne', 'text'],
 		suchwoerter: ['zoom'],
 		orte: ['taste', 'palette'],
 		sichtbarUnter: 'statusleiste',
@@ -726,7 +727,8 @@ export const BEFEHLE: Befehl[] = [
 		titel: 'Kleiner',
 		gruppe: 'ansicht',
 		symbol: 'minus',
-		kuerzel: [{ key: '-' }],
+		kuerzel: [{ key: '-', befehl: true }, { key: '-' }],
+		modus: ['auswahl', 'ohne', 'text'],
 		suchwoerter: ['zoom'],
 		orte: ['taste', 'palette'],
 		sichtbarUnter: 'statusleiste',
@@ -737,7 +739,8 @@ export const BEFEHLE: Befehl[] = [
 		id: 'ansicht.zoom-100',
 		titel: 'Auf 100 %',
 		gruppe: 'ansicht',
-		kuerzel: [{ key: '1' }],
+		kuerzel: [{ code: 'Digit0', befehl: true }, { key: '1' }],
+		modus: ['auswahl', 'ohne', 'text'],
 		suchwoerter: ['zoom'],
 		orte: ['taste', 'palette'],
 		sichtbarUnter: 'statusleiste',
@@ -1057,8 +1060,9 @@ export const befehlZuTaste = (e: TastenEreignis, modus: Modus, k: Kontext, alle:
 		if (!(b.modus ?? MODUS_VORGABE).includes(modus)) {
 			continue;
 		}
-		// ⌥ tippt in der Textsitzung Zeichen: ⌥C ist dort „ç“.
-		const passend = b.kuerzel?.filter((t) => passtTaste(t, e) && !(modus === 'text' && t.wahl)) ?? [];
+		// Beim Tippen zählen nur Kürzel mit ⌘ und ohne ⌥: ⌥C ist dort „ç“, `+` ist ein Zeichen.
+		const passend =
+			b.kuerzel?.filter((t) => passtTaste(t, e) && !(modus === 'text' && (t.wahl || !t.befehl))) ?? [];
 		if (passend.length === 0 || (b.tasteWenn && !b.tasteWenn(k))) {
 			continue;
 		}
@@ -1071,6 +1075,12 @@ export const befehlZuTaste = (e: TastenEreignis, modus: Modus, k: Kontext, alle:
 	}
 	return ohneWenn;
 };
+
+const ZOOM_BEFEHLE = ['ansicht.zoom-rein', 'ansicht.zoom-raus', 'ansicht.zoom-100'];
+
+/** ⌘+, ⌘- und ⌘0 zoomen im Editor das Blatt; der Browser bekommt sie nie, auch nicht bei offenem Menü (56). */
+export const istZoomTaste = (e: TastenEreignis) =>
+	BEFEHLE.some((b) => ZOOM_BEFEHLE.includes(b.id) && b.kuerzel?.some((t) => t.befehl && passtTaste(t, e)));
 
 const alsEintrag = (b: Befehl, k: Kontext, fuehreAus: (id: string) => unknown): MenueEintrag => {
 	const [erstes] = b.kuerzel ?? [];

@@ -10,8 +10,11 @@ import type { Groesse } from './bild';
 import { elementZu, nrVon, trefferAn, VERALTET } from './darstellung';
 import { LUECKE_GEAENDERT } from './luecke';
 import type { Pruefstand } from './pruefung';
+import { useBlattZoom } from './useBlattZoom';
 import type { ZiehenSteuerung, ZugAnzeige } from './ziehen';
 import { rollbarUm, rolleAnsicht, ruesteZiehen } from './ziehen';
+import type { ZoomWert } from './zoom';
+import { massstabVon, rollenNachZoom } from './zoom';
 import { ZUG_VON_AUSSEN } from './zug-von-aussen';
 
 interface Masse {
@@ -47,11 +50,11 @@ interface Eigenschaften {
 	/** `data-sb` des gewählten Bausteins. */
 	auswahl: number | null;
 	waehle: (nr: number | null) => void;
-	/** 1 = auf die Breite eingepasst. */
-	/** Faktor auf die Breite des Fensters, oder die ganze Seite im Sichtfeld. */
-	zoom: number | 'einpassen';
-	/** Meldet den echten Maßstab und den wirksamen Faktor, auch beim Einpassen. */
-	meldeMassstab?: (massstab: { skala: number; stufe: number }) => void;
+	zoom: ZoomWert;
+	/** Meldet den echten Maßstab, nach jeder Geste einmal. */
+	meldeSkala?: (skala: number) => void;
+	/** Aufziehen und Strg+Rad über dem Blatt setzen am Ende den neuen Maßstab. */
+	setzeZoom?: (wert: number) => void;
 	/** Tasten aus dem Material, z. B. Cmd+Z, während der Fokus im `iframe` liegt. */
 	taste: (e: KeyboardEvent) => void;
 	/** Rechtsklick ins Blatt, Punkt in Koordinaten des Elternfensters. `treffer` ist leer neben dem Blatt. */
@@ -85,8 +88,12 @@ const ECKEN = [
 const GRIFF = 44;
 
 const RAND = 16;
-const MAX_EINGEPASST = 2;
 const LADE_BREITE = 1600;
+/**
+ * Der Browser rundet den Rollstand. Liegt er weniger als 1 px neben dem gemerkten, gilt der gemerkte; sonst wanderte
+ * die Stelle unter dem Zeiger mit jedem Bild einer Geste ein Stück.
+ */
+const genau = (gemerkt: number, jetzt: number) => (Math.abs(jetzt - gemerkt) < 1 ? gemerkt : jetzt);
 /** Weiter bewegt oder länger gedrückt ist kein Antippen mehr, sondern Wischen bzw. Halten. */
 const TIPP_WEG = 10;
 const TIPP_MS = 800;
@@ -261,28 +268,6 @@ const Ueberlagerung = ({
 				ziehen,
 			});
 
-const massstabVon = ({
-	breite,
-	masse,
-	sichtHoehe,
-	zoom,
-}: {
-	breite: number;
-	masse: Rahmen['masse'];
-	sichtHoehe: number;
-	zoom: number | 'einpassen';
-}) => {
-	const passend = masse && breite > 0 ? Math.min(1, breite / masse.breite) : 1;
-	const eingepasst =
-		masse && breite > 0 && sichtHoehe > 0
-			? Math.min(MAX_EINGEPASST, breite / masse.breite, Math.max(1, sichtHoehe) / masse.seite)
-			: passend;
-	const skala = zoom === 'einpassen' ? eingepasst : passend * zoom;
-	const innenBreite = masse ? Math.max(breite, masse.breite * skala) : breite;
-	const links = masse ? Math.max(0, (innenBreite - masse.breite * skala) / 2) : 0;
-	return { innenBreite, links, passend, skala };
-};
-
 /** Einfügemarke und Name am Zeiger, solange ein Baustein gezogen wird. */
 const ZugMarken = ({ links, skala, zug }: { links: number; skala: number; zug: ZugAnzeige }) => {
 	const marke = zug.platz && !zug.luecke ? zug.platz.marke : null;
@@ -329,9 +314,10 @@ export const Leinwand = ({
 	html,
 	jeSeite,
 	kontextmenue,
-	meldeMassstab,
+	meldeSkala,
 	nurAnsehen,
 	pruefung,
+	setzeZoom,
 	springe,
 	taste,
 	textsitzung,
@@ -368,6 +354,9 @@ export const Leinwand = ({
 	const ziehen = useRef<ZiehenSteuerung | null>(null);
 	const auswahlRahmen = useRef<HTMLDivElement>(null);
 	const fokusFolgt = useRef<HTMLIFrameElement | null>(null);
+	const blattZoom = useBlattZoom({ behaelter, skalaJetzt, setzeZoom });
+	/** Rollstand vor einem Zoom. Schrumpft der Inhalt, kappt der Browser `scrollTop` schon beim Commit. */
+	const rollstand = useRef({ x: 0, y: 0 });
 
 	// Der alte Rahmen verschwindet mitsamt dem Fokus; sonst täte die Tastatur nach dem ersten Befehl nichts mehr.
 	useLayoutEffect(() => {
@@ -424,7 +413,18 @@ export const Leinwand = ({
 		if (ansicht) {
 			beobachter.observe(ansicht);
 		}
-		return () => beobachter.disconnect();
+		const merke = () => {
+			const alt = rollstand.current;
+			rollstand.current = { x: genau(alt.x, element.scrollLeft), y: genau(alt.y, ansicht?.scrollTop ?? 0) };
+		};
+		merke();
+		element.addEventListener('scroll', merke, { passive: true });
+		ansicht?.addEventListener('scroll', merke, { passive: true });
+		return () => {
+			beobachter.disconnect();
+			element.removeEventListener('scroll', merke);
+			ansicht?.removeEventListener('scroll', merke);
+		};
 	}, []);
 
 	useEffect(() => {
@@ -455,6 +455,7 @@ export const Leinwand = ({
 			rolle: (_x, y) => rolle(frame, y),
 		});
 		ziehen.current = steuerung;
+		blattZoom.verbinde(dokument, frame);
 		// Die Lücke verschiebt das Blatt: Auswahl, Leisten und Marken messen dann neu.
 		dokument.addEventListener(LUECKE_GEAENDERT, () => setLueckenStand((n) => n + 1));
 		dokument.addEventListener(ZUG_VON_AUSSEN, (e) => setVonAussen((e as CustomEvent<boolean>).detail));
@@ -539,11 +540,49 @@ export const Leinwand = ({
 	useLayoutEffect(() => {
 		setNachgemessen((n) => n + 1);
 	}, [sichtbar?.nr]);
-	const { innenBreite, links, passend, skala } = massstabVon({ breite, masse, sichtHoehe, zoom });
+	const { vorschau } = blattZoom;
+	const { innenBreite, links, skala } = massstabVon({ breite, masse, sichtHoehe, zoom: vorschau ?? zoom });
 	skalaJetzt.current = skala;
 	useEffect(() => {
-		meldeMassstab?.({ skala, stufe: skala / passend });
-	}, [meldeMassstab, skala, passend]);
+		if (vorschau === null) {
+			meldeSkala?.(skala);
+		}
+	}, [meldeSkala, skala, vorschau]);
+
+	// Ein Zoom hält die Stelle unter dem Zeiger fest, ohne Zeiger die Mitte der Fläche. Ändern Fenster oder Blatt den
+	// Maßstab, bleibt der Rollstand.
+	const lage = useRef({ skala, links, zoom, vorschau });
+	const { anker } = blattZoom;
+	useLayoutEffect(() => {
+		const vorher = lage.current;
+		lage.current = { skala, links, zoom, vorschau };
+		const zeiger = anker.current;
+		anker.current = null;
+		const element = behaelter.current;
+		const ansicht = element?.parentElement;
+		const gezoomt = vorher.zoom !== zoom || vorher.vorschau !== vorschau;
+		if (!gezoomt || vorher.skala === skala || !element || !ansicht) {
+			return;
+		}
+		const kasten = element.getBoundingClientRect();
+		const sicht = ansicht.getBoundingClientRect();
+		const punkt = zeiger
+			? { x: zeiger.x - kasten.left, y: zeiger.y - sicht.top }
+			: { x: element.clientWidth / 2, y: ansicht.clientHeight / 2 };
+		const neu = rollenNachZoom({
+			vorher,
+			nachher: { skala, links },
+			rollen: rollstand.current,
+			punkt,
+			oben: kasten.top - sicht.top + ansicht.scrollTop,
+		});
+		element.scrollLeft = neu.x;
+		ansicht.scrollTop = neu.y;
+		rollstand.current = {
+			x: genau(Math.max(0, neu.x), element.scrollLeft),
+			y: genau(Math.max(0, neu.y), ansicht.scrollTop),
+		};
+	}, [anker, skala, links, zoom, vorschau]);
 
 	const gewaehlt = doc && auswahl !== null ? elementZu(doc, auswahl) : null;
 	const box = gewaehlt?.getBoundingClientRect();

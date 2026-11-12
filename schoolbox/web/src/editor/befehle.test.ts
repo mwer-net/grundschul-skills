@@ -5,6 +5,7 @@ import type { Kontext, Kuerzel, Modus } from './befehle';
 import {
 	BEFEHLE,
 	befehlZuTaste,
+	istZoomTaste,
 	kuerzelText,
 	kuerzelVon,
 	MODUS_VORGABE,
@@ -113,7 +114,9 @@ describe('Befehlsregister', () => {
 	});
 
 	it('nutzt kein Kürzel, das Safari oder die Tastatur für sich behalten', () => {
-		for (const b of BEFEHLE) {
+		// Den Zoom übernimmt der Editor bewusst: ⌘+, ⌘- und ⌘0 zoomen dort das Blatt (56).
+		const zoom = ['ansicht.zoom-rein', 'ansicht.zoom-raus', 'ansicht.zoom-100'];
+		for (const b of BEFEHLE.filter((x) => !zoom.includes(x.id))) {
 			for (const k of b.kuerzel ?? []) {
 				if (k.befehl) {
 					assert.ok(!SPERRLISTE.includes(k.code ?? k.key ?? ''), `${b.id}: ${schluessel(k)}`);
@@ -459,11 +462,69 @@ describe('Kürzel aus dem Register (166)', () => {
 		assert.throws(() => kuerzelVon('gibt-es-nicht'), /gibt-es-nicht/);
 	});
 
-	it('beim Tippen gelten nur ⌘J, ⌘K, ⌘Z und ⇧⌘Z', () => {
-		assert.deepEqual(new Set(tastenBeimTippen(true)), new Set(['⌘J', '⌘K', '⌘Z', '⇧⌘Z']));
+	it('beim Tippen gelten nur ⌘+, ⌘-, ⌘0, ⌘J, ⌘K, ⌘Z und ⇧⌘Z', () => {
+		assert.deepEqual(new Set(tastenBeimTippen(true)), new Set(['⌘+', '⌘-', '⌘0', '⌘J', '⌘K', '⌘Z', '⇧⌘Z']));
 	});
 
 	it('die Leertaste heißt so', () => {
 		assert.equal(kuerzelText({ key: ' ' }, true), 'Leertaste');
+	});
+});
+
+type Taste = Parameters<typeof befehlZuTaste>[0];
+
+describe('Zoom-Tasten (184)', () => {
+	const taste = (t: Partial<Taste>): Taste => ({
+		code: '',
+		key: '',
+		metaKey: false,
+		ctrlKey: false,
+		altKey: false,
+		shiftKey: false,
+		...t,
+	});
+	const k = { feldBehaeltUndo: () => false, textMarkiert: () => false } as unknown as Kontext;
+	const id = (t: Partial<Taste>, modus: Modus) => befehlZuTaste(taste(t), modus, k)?.id;
+
+	it('⌘+, ⌘- und ⌘0 zoomen auch beim Tippen, mit ⌘ oder Strg', () => {
+		for (const modus of ['auswahl', 'ohne', 'text'] as Modus[]) {
+			assert.equal(id({ key: '+', code: 'BracketRight', metaKey: true }, modus), 'ansicht.zoom-rein', modus);
+			assert.equal(id({ key: '+', code: 'BracketRight', ctrlKey: true }, modus), 'ansicht.zoom-rein', modus);
+			assert.equal(id({ key: '+', code: 'Equal', metaKey: true, shiftKey: true }, modus), 'ansicht.zoom-rein');
+			assert.equal(id({ key: '-', code: 'Slash', metaKey: true }, modus), 'ansicht.zoom-raus', modus);
+			assert.equal(id({ key: '0', code: 'Digit0', metaKey: true }, modus), 'ansicht.zoom-100', modus);
+		}
+	});
+
+	it('`+` beim Tippen bleibt ein Zeichen, sonst zoomt es', () => {
+		assert.equal(id({ key: '+', code: 'BracketRight' }, 'text'), undefined);
+		assert.equal(id({ key: '-', code: 'Slash' }, 'text'), undefined);
+		assert.equal(id({ key: '1', code: 'Digit1' }, 'text'), undefined);
+		assert.equal(id({ key: '+', code: 'BracketRight' }, 'ohne'), 'ansicht.zoom-rein');
+		assert.equal(id({ key: '1', code: 'Digit1' }, 'auswahl'), 'ansicht.zoom-100');
+	});
+
+	it('beim Tippen bleibt ⌥C ein Zeichen, ⌘J ruft weiter Claude', () => {
+		assert.equal(id({ key: 'ç', code: 'KeyC', altKey: true }, 'text'), undefined);
+		assert.equal(id({ key: 'j', code: 'KeyJ', metaKey: true }, 'text'), 'ansicht.claude');
+	});
+
+	it('istZoomTaste: nur die ⌘-Kürzel der drei Befehle', () => {
+		assert.ok(istZoomTaste(taste({ key: '+', metaKey: true })));
+		assert.ok(istZoomTaste(taste({ key: '-', ctrlKey: true })));
+		assert.ok(istZoomTaste(taste({ key: '0', code: 'Digit0', metaKey: true })));
+		assert.ok(!istZoomTaste(taste({ key: '+' })));
+		assert.ok(!istZoomTaste(taste({ key: '+', metaKey: true, altKey: true })));
+		assert.ok(!istZoomTaste(taste({ key: 'k', code: 'KeyK', metaKey: true })));
+	});
+
+	it('Tooltip und Tastenliste zeigen das ⌘-Kürzel zuerst, die Taste ohne ⌘ bleibt', () => {
+		assert.equal(kuerzelVon('ansicht.zoom-rein', true), '⌘+');
+		assert.equal(kuerzelVon('ansicht.zoom-raus', true), '⌘-');
+		assert.equal(kuerzelVon('ansicht.zoom-100', true), '⌘0');
+		assert.equal(kuerzelVon('ansicht.einpassen', true), '0');
+		const ansicht = tastenAbschnitte(undefined, true).find((a) => a.titel === 'Ansicht');
+		const zeile = ansicht?.zeilen.find((z) => z.id === 'ansicht.zoom-100');
+		assert.deepEqual(zeile?.tasten, ['⌘0', '1']);
 	});
 });

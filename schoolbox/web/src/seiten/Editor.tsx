@@ -28,7 +28,7 @@ import { Konfliktleiste, Speicheranzeige, Vorschauleiste } from '../editor/Anzei
 import { Bausteinleiste } from '../editor/Bausteinleiste';
 import { useBearbeitung } from '../editor/bearbeitung';
 import type { MenueArt } from '../editor/befehle';
-import { kuerzelVon } from '../editor/befehle';
+import { istZoomTaste, kuerzelVon } from '../editor/befehle';
 import { Einfuegemarken } from '../editor/Bibliothek';
 import { useBild } from '../editor/bild';
 import { useBildAusFinder } from '../editor/bild-finder';
@@ -441,8 +441,8 @@ const Bearbeitung = ({ dokument, mappe: mappenDaten }: { mappe: Mappe; dokument:
 	const entwurfKarte = useRef<HTMLDivElement>(null);
 	const [vorschau, setVorschau] = useState<{ version: VersionEintrag; quelle: string } | null>(null);
 	const [zoom, setZoomWert] = useState<ZoomWert>(gemerkterZoom);
-	const [massstab, setMassstab] = useState({ skala: 1, stufe: 1 });
-	const setZoom = (wert: ZoomWert) => {
+	const [skala, setSkala] = useState(1);
+	const setZoom = (wert: number | 'einpassen') => {
 		setZoomWert(wert);
 		merkeZoom(wert);
 	};
@@ -598,7 +598,7 @@ const Bearbeitung = ({ dokument, mappe: mappenDaten }: { mappe: Mappe; dokument:
 	useEffect(() => beobachteFelder(window), []);
 
 	const zeigePunkt = useZeigePunkt({ loesung, geladen, html, zeigeAn: struktur.zeigeAn, setSuche });
-	const seite = useSichtbareSeite(geladen, ansicht, massstab.skala);
+	const seite = useSichtbareSeite(geladen, ansicht, skala);
 	sichtbareSeite.current = () => (docJetzt ? seiteAn(docJetzt, seite.nr) : null);
 
 	const verlassen = async (ziel: string) => {
@@ -714,7 +714,7 @@ const Bearbeitung = ({ dokument, mappe: mappenDaten }: { mappe: Mappe; dokument:
 				fassung: (w) => setSuche(w === 'loesung' ? { fassung: 'loesung' } : {}, { replace: true }),
 				profil: waehleProfil,
 				zoomSchritt: (richtung) => {
-					const ziel = naechsteStufe(massstab.stufe, richtung);
+					const ziel = naechsteStufe(skala, richtung);
 					if (ziel !== undefined) {
 						setZoom(ziel);
 					}
@@ -800,6 +800,10 @@ const Bearbeitung = ({ dokument, mappe: mappenDaten }: { mappe: Mappe; dokument:
 		(e: KeyboardEvent) => {
 			// Schon vergeben: Die Textsitzung hört vorher hin und beendet sich bei Esc selbst.
 			if (e.defaultPrevented || document.querySelector(TASTEN_SPERRE) || gehoertDemElement(e)) {
+				// Zoom-Tasten nie an den Browser: Sonst zoomt bei offenem Menü die ganze Oberfläche (56).
+				if (istZoomTaste(e)) {
+					e.preventDefault();
+				}
 				return;
 			}
 			const { pfad: kette, textsitzung } = befehlsKontext.current;
@@ -824,6 +828,8 @@ const Bearbeitung = ({ dokument, mappe: mappenDaten }: { mappe: Mappe; dokument:
 		const amFenster = (e: KeyboardEvent) => {
 			if (!offenBeimDruck) {
 				taste(e);
+			} else if (istZoomTaste(e)) {
+				e.preventDefault();
 			}
 		};
 		window.addEventListener('keydown', vorher, true);
@@ -1082,7 +1088,10 @@ const Bearbeitung = ({ dokument, mappe: mappenDaten }: { mappe: Mappe; dokument:
 							teile={schubladenTeile}
 							waehle={(id: SchubladenId) => befehle.fuehreAus(`ansicht.links-${id}`)}
 						/>
-						<main ref={ansicht} className="min-h-0 min-w-0 flex-1 overflow-y-auto bg-leinwand">
+						<main
+							ref={ansicht}
+							className="min-h-0 min-w-0 flex-1 touch-pan-x touch-pan-y overflow-y-auto bg-leinwand"
+						>
 							<Entwurfsleiste entwurf={entwurf} />
 							<EntwurfKarte entwurf={entwurf} ki={ki} titel={meta.titel} karte={entwurfKarte} />
 							{b.konflikt && (
@@ -1110,7 +1119,8 @@ const Bearbeitung = ({ dokument, mappe: mappenDaten }: { mappe: Mappe; dokument:
 									auswahl={auswahl}
 									waehle={setAuswahl}
 									zoom={zoom}
-									meldeMassstab={setMassstab}
+									meldeSkala={setSkala}
+									setzeZoom={setZoom}
 									taste={taste}
 									textsitzung={text.bearbeitet}
 									kontextmenue={leinwandMenue}
@@ -1208,8 +1218,7 @@ const Bearbeitung = ({ dokument, mappe: mappenDaten }: { mappe: Mappe; dokument:
 					zeigePunkt={zeigePunkt}
 					verschiebe={verschiebeUeberlauf}
 					zoom={zoom}
-					stufe={massstab.stufe}
-					skala={massstab.skala}
+					skala={skala}
 					fuehreAus={befehle.fuehreAus}
 					linksOffen={sichtbar(zeigt).length > 0}
 					schalteLinks={() => panels.schalteLeiste(zeigt)}
