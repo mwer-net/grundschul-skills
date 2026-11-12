@@ -234,12 +234,12 @@ describe('uebernimmBild und sammleBilder', () => {
 });
 
 describe('Strichfassungen und Figurenbibliothek in der Sammlung (177)', () => {
-	/** Eine Bibliothek mit Kuno (Farbe und Strich), ohne die einmalige Übernahme aus dem Bestand. */
-	const mitKuno = async (materialDir: string) => {
+	/** Eine Bibliothek mit Kobi (Farbe und Strich), ohne die einmalige Übernahme aus dem Bestand. */
+	const mitKobi = async (materialDir: string) => {
 		const dir = figurenDir(materialDir);
-		await png(dir, 'kuno.png', 40, 40, '#f28c28');
-		await png(dir, 'kuno-strich.png', 80, 80, '#000000');
-		const bibliothek = { version: 1, figuren: [{ id: 'kuno', name: 'Kuno', posen: [{ datei: 'kuno.png' }] }] };
+		await png(dir, 'kobi.png', 40, 40, '#f28c28');
+		await png(dir, 'kobi-strich.png', 80, 80, '#000000');
+		const bibliothek = { version: 1, figuren: [{ id: 'kobi', name: 'Kobi', posen: [{ datei: 'kobi.png' }] }] };
 		await writeFile(path.join(dir, 'figuren.json'), JSON.stringify(bibliothek));
 		return dir;
 	};
@@ -248,14 +248,14 @@ describe('Strichfassungen und Figurenbibliothek in der Sammlung (177)', () => {
 		const { materialDir, neu } = await ablage();
 		const hier = await neu('Kartoffeln');
 		const dort = await neu('Igel');
-		const figuren = await mitKuno(materialDir);
+		const figuren = await mitKobi(materialDir);
 		const bilder = path.join(hier.dir, 'bilder');
 		await png(bilder, 'foto.png');
 		await png(bilder, 'foto-strich.png');
 		await png(bilder, 'nur-strich.png');
-		await copyFile(path.join(figuren, 'kuno.png'), path.join(bilder, 'kuno-2.png'));
+		await copyFile(path.join(figuren, 'kobi.png'), path.join(bilder, 'kobi-2.png'));
 		await mkdir(path.join(dort.dir, 'bilder'), { recursive: true });
-		await copyFile(path.join(figuren, 'kuno.png'), path.join(dort.dir, 'bilder', 'kuno.png'));
+		await copyFile(path.join(figuren, 'kobi.png'), path.join(dort.dir, 'bilder', 'kobi.png'));
 		await copyFile(path.join(ASSETS, 'bilder', 'wilma.png'), path.join(dort.dir, 'bilder', 'wilma.png'));
 
 		const s = await sammleBilder(KONFIG, materialDir, hier.mappe);
@@ -266,20 +266,20 @@ describe('Strichfassungen und Figurenbibliothek in der Sammlung (177)', () => {
 		assert.deepEqual(s.meine, []);
 		assert.deepEqual(
 			s.figuren.map((b) => b.schluessel),
-			['_assets/bilder/willi.png', '_assets/bilder/wilma.png', '_figuren/kuno.png'],
+			['_assets/bilder/willi.png', '_assets/bilder/wilma.png', '_figuren/kobi.png'],
 		);
-		assert.deepEqual(s.figuren.at(-1)?.alt, ['Kuno']);
+		assert.deepEqual(s.figuren.at(-1)?.alt, ['Kobi']);
 
-		// Gegenprobe: Ohne den Eintrag in figuren.json ist Kuno ein gewöhnliches Bild.
+		// Gegenprobe: Ohne den Eintrag in figuren.json ist Kobi ein gewöhnliches Bild.
 		await writeFile(path.join(figuren, 'figuren.json'), JSON.stringify({ version: 1, figuren: [] }));
 		const ohne = await sammleBilder(KONFIG, materialDir, hier.mappe);
 		assert.deepEqual(
 			ohne.mappe.map((b) => b.name),
-			['foto.png', 'kuno-2.png', 'nur-strich.png'],
+			['foto.png', 'kobi-2.png', 'nur-strich.png'],
 		);
 		assert.deepEqual(
 			ohne.meine.map((b) => b.name),
-			['kuno.png'],
+			['kobi.png'],
 		);
 	});
 
@@ -287,27 +287,27 @@ describe('Strichfassungen und Figurenbibliothek in der Sammlung (177)', () => {
 		const { materialDir, neu } = await ablage();
 		const hier = await neu('Kartoffeln');
 		const dort = await neu('Igel');
-		await mitKuno(materialDir);
+		await mitKobi(materialDir);
 		const bilder = path.join(hier.dir, 'bilder');
 		const nimm = (schluessel: string) => uebernimmBild(KONFIG, materialDir, hier.mappe, hier.dok, schluessel);
 
-		assert.deepEqual(await nimm('_figuren/kuno.png'), { src: 'bilder/kuno.png' });
-		assert.deepEqual((await readdir(bilder)).sort(), ['kuno-strich.png', 'kuno.png']);
-		assert.deepEqual(await nimm('_figuren/kuno.png'), { src: 'bilder/kuno.png' }, 'dasselbe bleibt');
+		assert.deepEqual(await nimm('_figuren/kobi.png'), { src: 'bilder/kobi.png' });
+		assert.deepEqual((await readdir(bilder)).sort(), ['kobi-strich.png', 'kobi.png']);
+		assert.deepEqual(await nimm('_figuren/kobi.png'), { src: 'bilder/kobi.png' }, 'dasselbe bleibt');
 
 		// Eine fehlende Strichfassung kommt beim nächsten Mal wieder dazu.
-		await rm(path.join(bilder, 'kuno-strich.png'));
-		assert.deepEqual(await nimm('_figuren/kuno.png'), { src: 'bilder/kuno.png' });
-		assert.ok(existsSync(path.join(bilder, 'kuno-strich.png')));
+		await rm(path.join(bilder, 'kobi-strich.png'));
+		assert.deepEqual(await nimm('_figuren/kobi.png'), { src: 'bilder/kobi.png' });
+		assert.ok(existsSync(path.join(bilder, 'kobi-strich.png')));
 
-		// Ein anderes kuno.png im Dokument: dann kuno-2 mit kuno-2-strich, nie eine fremde Strichfassung.
+		// Ein anderes kobi.png im Dokument: dann kobi-2 mit kobi-2-strich, nie eine fremde Strichfassung.
 		const zweites = await neu('Rüben');
 		const andere = path.join(zweites.dir, 'bilder');
-		await png(andere, 'kuno.png', 40, 40, '#123456');
+		await png(andere, 'kobi.png', 40, 40, '#123456');
 		const nimmDort = (schluessel: string) =>
 			uebernimmBild(KONFIG, materialDir, zweites.mappe, zweites.dok, schluessel);
-		assert.deepEqual(await nimmDort('_figuren/kuno.png'), { src: 'bilder/kuno-2.png' });
-		assert.deepEqual((await readdir(andere)).sort(), ['kuno-2-strich.png', 'kuno-2.png', 'kuno.png']);
+		assert.deepEqual(await nimmDort('_figuren/kobi.png'), { src: 'bilder/kobi-2.png' });
+		assert.deepEqual((await readdir(andere)).sort(), ['kobi-2-strich.png', 'kobi-2.png', 'kobi.png']);
 
 		// Ein Bild aus einer anderen Mappe bringt seine Strichfassung mit.
 		await png(path.join(dort.dir, 'bilder'), 'igel.png');

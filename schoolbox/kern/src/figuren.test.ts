@@ -93,14 +93,14 @@ describe('Figur frei (102, 177)', () => {
 	const { figur: willi } = grundpose(EINGEBAUTE.find((f) => f.id === 'willi'));
 	const lupe: Pose = { id: 'willi-lupe', schluessel: '_figuren/willi-lupe.png', strich: false };
 	const mitLupe: BibliotheksFigur = { ...willi, posen: [...willi.posen, lupe] };
-	const kuno: BibliotheksFigur = {
-		id: 'kuno',
-		name: 'Kuno',
+	const kobi: BibliotheksFigur = {
+		id: 'kobi',
+		name: 'Kobi',
 		eingebaut: false,
 		suchwoerter: [],
-		posen: [{ id: 'kuno', schluessel: '_figuren/kuno.png', strich: false }],
+		posen: [{ id: 'kobi', schluessel: '_figuren/kobi.png', strich: false }],
 	};
-	const figuren = [mitLupe, wilma, kuno];
+	const figuren = [mitLupe, wilma, kobi];
 	const kurz = (an: ReturnType<typeof figurAn>) => an && { figur: an.figur.id, pose: an.pose?.id };
 
 	it('figurHtml: nur figur-frei, data-figur, ohne Spiegeln', () => {
@@ -144,7 +144,7 @@ describe('Figur frei (102, 177)', () => {
 	it('figurAn: die Pose zu data-figur, sonst die Figur davor, sonst die Datei einer Grundpose', () => {
 		const quelle = [
 			'<img class="figur-frei" data-figur="willi-lupe" src="bilder/willi-lupe.png" alt="Willi">',
-			'<img class="figur-frei" data-figur="kuno-tanzt" src="bilder/kuno-tanzt.png" alt="Kuno">',
+			'<img class="figur-frei" data-figur="kobi-tanzt" src="bilder/kobi-tanzt.png" alt="Kobi">',
 			'<img class="figur-frei" src="bilder/wilma.png" alt="Wilma">',
 			'<img class="figur-frei" data-figur="zebra" src="bilder/zebra.png" alt="Zebra">',
 		].join('');
@@ -153,7 +153,7 @@ describe('Figur frei (102, 177)', () => {
 			.map((k) => k.nr);
 		const an = (i: number) => kurz(figurAn(quelle, nrn[i] ?? -1, figuren));
 		assert.deepEqual(an(0), { figur: 'willi', pose: 'willi-lupe' });
-		assert.deepEqual(an(1), { figur: 'kuno', pose: undefined });
+		assert.deepEqual(an(1), { figur: 'kobi', pose: undefined });
 		assert.deepEqual(an(2), { figur: 'wilma', pose: 'wilma' });
 		assert.equal(an(3), undefined);
 	});

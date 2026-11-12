@@ -28,7 +28,7 @@ export interface Figur {
 	canva?: string;
 }
 
-/** Eine Pose einer Figur. Ihre Kennung ist der Dateistamm und zugleich `data-figur` (`kuno`, `willi-lupe`). */
+/** Eine Pose einer Figur. Ihre Kennung ist der Dateistamm und zugleich `data-figur` (`kobi`, `willi-lupe`). */
 export interface Pose {
 	id: string;
 	/** `_figuren/<datei>` oder `_assets/bilder/<datei>`; die Darstellung liegt unter `/ansicht/<schluessel>`. */

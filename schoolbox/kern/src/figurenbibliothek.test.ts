@@ -93,9 +93,9 @@ const bestand = async () => {
 	const b = await mappe('Beta');
 	const papierkorb = await mappe('Gamma');
 
-	const kuno = await png(a.bilder, 'kuno.png', 40, 40, 0.6, '#d08030');
-	await png(a.bilder, 'kuno-strich.png', 80, 80, 0.5, '#202020');
-	await png(a.bilder, 'kuno-winkt.png', 40, 50, 0.5, '#d08031');
+	const kobi = await png(a.bilder, 'kobi.png', 40, 40, 0.6, '#d08030');
+	await png(a.bilder, 'kobi-strich.png', 80, 80, 0.5, '#202020');
+	await png(a.bilder, 'kobi-winkt.png', 40, 50, 0.5, '#d08031');
 	await png(a.bilder, 'willi-lupe.png', 40, 40, 0.5, '#f28c28');
 	await copyFile(path.join(ASSETS, 'bilder', 'willi.png'), path.join(a.bilder, 'willi.png'));
 	await png(a.bilder, 'geschenk-rot.png', 40, 40, 0.15, '#c00000');
@@ -104,11 +104,11 @@ const bestand = async () => {
 	await png(a.bilder, 'apfel-strich.png', 40, 40, 0.5, '#101010');
 
 	await mkdir(b.dokBilder, { recursive: true });
-	await copyFile(kuno, path.join(b.dokBilder, 'kuno.png'));
-	// Passt zu `kuno-winkt.png` aus A (40 × 50), nicht zum anderen `kuno-winkt.png` hier (50 × 40).
-	await png(b.dokBilder, 'kuno-winkt-strich.png', 80, 100, 0.5, '#202021');
-	await png(b.dokBilder, 'elli-fliegt.png', 40, 40, 0.5, '#000080');
-	await png(b.dokBilder, 'kuno-winkt.png', 50, 40, 0.5, '#d08032');
+	await copyFile(kobi, path.join(b.dokBilder, 'kobi.png'));
+	// Passt zu `kobi-winkt.png` aus A (40 × 50), nicht zum anderen `kobi-winkt.png` hier (50 × 40).
+	await png(b.dokBilder, 'kobi-winkt-strich.png', 80, 100, 0.5, '#202021');
+	await png(b.dokBilder, 'ebbi-fliegt.png', 40, 40, 0.5, '#000080');
+	await png(b.dokBilder, 'kobi-winkt.png', 50, 40, 0.5, '#d08032');
 
 	await png(papierkorb.bilder, 'igel.png', 40, 40, 0.5, '#806040');
 	await legeInPapierkorb(materialDir, papierkorb.id, JETZT);
@@ -124,24 +124,24 @@ describe('Figurenbibliothek: einmalige Übernahme (177)', () => {
 		assert.deepEqual(kurz(figuren), [
 			{ id: 'willi', posen: ['willi mit Strich', 'willi-lupe'] },
 			{ id: 'wilma', posen: ['wilma'] },
-			{ id: 'kuno', posen: ['kuno mit Strich', 'kuno-winkt mit Strich', 'kuno-winkt-2'] },
+			{ id: 'kobi', posen: ['kobi mit Strich', 'kobi-winkt mit Strich', 'kobi-winkt-2'] },
 		]);
-		assert.equal(figuren[2]?.name, 'Kuno');
-		assert.equal(figuren[2]?.posen[0]?.schluessel, '_figuren/kuno.png');
+		assert.equal(figuren[2]?.name, 'Kobi');
+		assert.equal(figuren[2]?.posen[0]?.schluessel, '_figuren/kobi.png');
 		assert.deepEqual((await readdir(figurenDir(materialDir))).sort(), [
 			'figuren.json',
-			'kuno-strich.png',
-			'kuno-winkt-2.png',
-			'kuno-winkt-strich.png',
-			'kuno-winkt.png',
-			'kuno.png',
+			'kobi-strich.png',
+			'kobi-winkt-2.png',
+			'kobi-winkt-strich.png',
+			'kobi-winkt.png',
+			'kobi.png',
 			'willi-lupe.png',
 		]);
-		// Die Kopien sind die Dateien aus dem Bestand: der Strich von `kuno-winkt` aus B, `kuno-winkt-2` ist das aus B.
+		// Die Kopien sind die Dateien aus dem Bestand: der Strich von `kobi-winkt` aus B, `kobi-winkt-2` ist das aus B.
 		const gleich = async (bibliothek: string, quelle: string) =>
 			assert.ok((await readFile(path.join(figurenDir(materialDir), bibliothek))).equals(await readFile(quelle)));
-		await gleich('kuno-winkt-strich.png', path.join(b.dokBilder, 'kuno-winkt-strich.png'));
-		await gleich('kuno-winkt-2.png', path.join(b.dokBilder, 'kuno-winkt.png'));
+		await gleich('kobi-winkt-strich.png', path.join(b.dokBilder, 'kobi-winkt-strich.png'));
+		await gleich('kobi-winkt-2.png', path.join(b.dokBilder, 'kobi-winkt.png'));
 
 		const gespeichert = await leseJson(materialDir);
 		const herkunft = Object.fromEntries(
@@ -149,32 +149,32 @@ describe('Figurenbibliothek: einmalige Übernahme (177)', () => {
 		);
 		assert.deepEqual(herkunft, {
 			'willi-lupe.png': `${a.id}/bilder/willi-lupe.png`,
-			'kuno.png': `${a.id}/bilder/kuno.png`,
-			'kuno-winkt.png': `${a.id}/bilder/kuno-winkt.png`,
-			'kuno-winkt-2.png': `${b.id}/dokumente/${b.dok}/bilder/kuno-winkt.png`,
+			'kobi.png': `${a.id}/bilder/kobi.png`,
+			'kobi-winkt.png': `${a.id}/bilder/kobi-winkt.png`,
+			'kobi-winkt-2.png': `${b.id}/dokumente/${b.dok}/bilder/kobi-winkt.png`,
 		});
 		const willi = gespeichert.figuren.find((f) => f.id === 'willi');
 		assert.deepEqual(Object.keys(willi ?? {}).sort(), ['id', 'posen'], 'Willi nur mit Posen');
 
 		// Gegenprobe: Geschenk (15 %), Tor (22 %), Ausmalbild, Strich ohne Farbe, Pose ohne Grundpose, Papierkorb.
 		const kennungen = figuren.flatMap((f) => [f.id, ...f.posen.map((p) => p.id)]).join(' ');
-		for (const nicht of ['geschenk', 'tor', 'ausmal', 'apfel', 'elli', 'igel']) {
+		for (const nicht of ['geschenk', 'tor', 'ausmal', 'apfel', 'ebbi', 'igel']) {
 			assert.ok(!kennungen.includes(nicht), nicht);
 		}
 
 		// Einmal: Ein neues freigestelltes Motiv mit Grundpose wird nicht mehr zur Figur.
 		const info = await stat(json(materialDir));
 		const inhalt = await readFile(json(materialDir));
-		await png(a.bilder, 'rudi.png', 40, 40, 0.6, '#a05020');
+		await png(a.bilder, 'rumo.png', 40, 40, 0.6, '#a05020');
 		const nochmal = await leseBibliothek(KONFIG, materialDir);
 		assert.deepEqual(kurz(nochmal), kurz(figuren));
 		assert.ok((await readFile(json(materialDir))).equals(inhalt));
 		assert.equal((await stat(json(materialDir))).mtimeMs, info.mtimeMs);
 
-		// Bestand: In den Mappen ändert sich keine Datei (nur rudi.png ist neu).
+		// Bestand: In den Mappen ändert sich keine Datei (nur rumo.png ist neu).
 		const nachher = [await hashListe(a.dir), await hashListe(b.dir)];
 		assert.deepEqual(
-			nachher.map((l) => l.filter((z) => !z.startsWith(path.join('bilder', 'rudi.png')))),
+			nachher.map((l) => l.filter((z) => !z.startsWith(path.join('bilder', 'rumo.png')))),
 			vorher,
 		);
 	});
