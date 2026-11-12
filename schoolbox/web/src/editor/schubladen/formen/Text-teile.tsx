@@ -3,6 +3,8 @@ import { SCHMUCK_ARTEN } from '@schoolbox/kern/src/schmuck';
 import type { CSSProperties } from 'react';
 import { useEffect } from 'react';
 
+import { klassen } from '../../../bausteine/klassen';
+import { KACHELNAME, raster, SCHUBLADENKACHEL } from '../../../bausteine/Schublade';
 import { AblageKachel } from '../../gestaltung/ablegen/Kachel';
 import { ARTEN, fsVon, gutVon, namenVon } from './Text-daten';
 import type { FormenTeile } from './typ';
@@ -53,7 +55,7 @@ export const Kacheln = ({ suche, teile }: FormenTeile) => {
 	const fs = fsVon(teile.doc);
 	const liste = ARTEN.filter((art) => passtZurSuche(namenVon(art), suche));
 	return (
-		<div className="grid grid-cols-3 gap-1" data-schmuck-kacheln>
+		<div className={raster(3)} data-schmuck-kacheln>
 			{liste.map((art) => {
 				const { name, text } = SCHMUCK_ARTEN[art];
 				return (
@@ -62,7 +64,7 @@ export const Kacheln = ({ suche, teile }: FormenTeile) => {
 						teile={teile}
 						gut={gutVon(art, fs)}
 						daten={{ 'data-schmuck-kachel': art }}
-						className="flex h-16 flex-col items-center justify-center gap-1 overflow-hidden rounded-lg bg-flaeche-2 px-1 hover:bg-brand-50"
+						className={klassen(SCHUBLADENKACHEL, 'flex h-16 flex-col items-center justify-center gap-0.5')}
 					>
 						<span
 							aria-hidden
@@ -71,7 +73,7 @@ export const Kacheln = ({ suche, teile }: FormenTeile) => {
 						>
 							{text}
 						</span>
-						{text !== name && <span className="text-xs text-leise">{name}</span>}
+						{text !== name && <span className={KACHELNAME}>{name}</span>}
 					</AblageKachel>
 				);
 			})}

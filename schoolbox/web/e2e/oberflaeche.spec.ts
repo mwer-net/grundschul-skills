@@ -759,7 +759,9 @@ test.describe('Linke Leiste (067)', () => {
 		test.skip(await page.evaluate(() => matchMedia('(any-pointer: coarse)').matches), 'nur mit Maus');
 		await page.setViewportSize({ width: 1512, height: 860 });
 		await oeffneBausteine(page);
-		const panel = page.locator('[data-panel-links="bausteine"] > div').last();
+		// >> 167
+		const panel = page.locator('[data-panel-links="bausteine"] [data-schublade-inhalt]');
+		// << 167
 		expect(await panel.evaluate((p) => p.scrollHeight <= p.clientHeight)).toBe(true);
 
 		await page.getByRole('button', { name: 'Alle', exact: true }).click();

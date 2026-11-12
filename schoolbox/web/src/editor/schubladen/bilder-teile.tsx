@@ -4,7 +4,7 @@ import { fuegeBausteinEin } from '@schoolbox/kern/src/einfuegen';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 
 import { AmZeiger } from '../../bausteine/AmZeiger';
-import { Schubladenkopf, Schubladensuche } from '../../bausteine/Schubladenkopf';
+import { Schublade, Schubladenabschnitt, Schubladensuche, STEUER_SEGMENT } from '../../bausteine/Schublade';
 import { Segment } from '../../bausteine/Segment';
 import { useLaden } from '../../lib/laden';
 import type { NeuerPlatz } from '../bild';
@@ -14,6 +14,7 @@ import type { BildZiehen, SammlungsGruppe } from '../Bildpanel';
 import { Hochladen, Laeuft, SammlungsKacheln } from '../Bildpanel';
 import { bildGut, mitGeholtemBild } from '../gestaltung/ablegen/bild-gut';
 import type { SchubladenTeile } from '.';
+import { kopf } from './reihe';
 
 /** Reihenfolge in der Schublade; „Sammlung“ ist die Gruppe `sammlung` ohne Willi und Wilma (die gehören zu den Figuren). */
 const GRUPPEN: { wert: SammlungsGruppe; titel: string }[] = [
@@ -90,39 +91,33 @@ export const Inhalt = (t: SchubladenTeile) => {
 	const waehle = (eintrag: SammlungsBild) =>
 		void bild.uebernimm(eintrag.schluessel, eintrag.alt[0] ?? beschreibungAus(eintrag.name), neu);
 	const titel = GRUPPEN.find((g) => g.wert === gruppe)?.titel ?? '';
+	const zahl = daten?.[gruppe].length ?? 0;
+	const anzahl = zahl === 0 ? undefined : zahl === 1 ? '1 Bild' : `${zahl} Bilder`;
 
 	return (
-		<div className="flex min-h-0 flex-1 flex-col" data-schublade-bilder>
-			<Schubladenkopf titel="Bilder" />
-			<div className="min-h-0 flex-1 overflow-y-auto">
-				<div className="flex flex-col gap-2 p-2">
-					{bild.arbeit === 'hochladen' ? (
-						<Laeuft text="Foto wird hochgeladen …" />
-					) : (
-						<Hochladen bild={bild} neu={neu} breit />
-					)}
-					<Segment
-						beschriftung="Welche Bilder?"
-						className="flex w-full *:flex-auto *:px-1 *:text-[11px]"
-						werte={GRUPPEN.map((g) => ({ wert: g.wert, titel: g.titel }))}
-						wert={gruppe}
-						waehle={setGruppe}
-					/>
-					<Schubladensuche
-						beschriftung="Bilder suchen"
-						platzhalter="Bilder suchen"
-						wert={suche}
-						setWert={setSuche}
-					/>
-				</div>
-				<section
-					className="flex flex-col gap-2 border-t border-rand px-2 pt-2 pb-3"
-					data-bilder-gruppe={gruppe}
-				>
-					<h3 className="flex items-center justify-between gap-2 text-xs font-semibold text-leise">
-						<span className="truncate">{titel}</span>
-						{daten && <span className="font-normal text-dezent">{`${daten[gruppe].length} Bilder`}</span>}
-					</h3>
+		<>
+			<Schublade
+				titel={kopf('bilder').titel}
+				daten={{ 'data-schublade-bilder': '' }}
+				steuerung={
+					<>
+						<Schubladensuche beschriftung="Bilder suchen" wert={suche} setWert={setSuche} />
+						<Segment
+							beschriftung="Welche Bilder?"
+							className={STEUER_SEGMENT}
+							werte={GRUPPEN.map((g) => ({ wert: g.wert, titel: g.titel }))}
+							wert={gruppe}
+							waehle={setGruppe}
+						/>
+						{bild.arbeit === 'hochladen' ? (
+							<Laeuft text="Foto wird hochgeladen …" />
+						) : (
+							<Hochladen bild={bild} neu={neu} breit />
+						)}
+					</>
+				}
+			>
+				<Schubladenabschnitt titel={titel} notiz={anzahl} daten={{ 'data-bilder-gruppe': gruppe }}>
 					{bild.arbeit === 'sammlung' && <Laeuft text="Bild wird eingesetzt …" />}
 					<SammlungsKacheln
 						klein
@@ -135,8 +130,8 @@ export const Inhalt = (t: SchubladenTeile) => {
 						waehle={waehle}
 						ziehen={ziehen}
 					/>
-				</section>
-			</div>
+				</Schubladenabschnitt>
+			</Schublade>
 			{geholt && (
 				<AmZeiger
 					className="rounded-lg bg-tinte px-3 py-2 font-medium whitespace-nowrap text-white shadow-2"
@@ -147,6 +142,6 @@ export const Inhalt = (t: SchubladenTeile) => {
 					Bild wird geholt …
 				</AmZeiger>
 			)}
-		</div>
+		</>
 	);
 };

@@ -3,12 +3,20 @@ import { FIGUREN, figurSchluessel, spiegelnFuer } from '@schoolbox/kern/src/figu
 import { useEffect, useState } from 'react';
 
 import { klassen } from '../../bausteine/klassen';
-import { Schubladenkopf } from '../../bausteine/Schubladenkopf';
+import {
+	KACHELNAME,
+	raster,
+	Schublade,
+	Schubladenabschnitt,
+	SCHUBLADENKACHEL,
+	STEUER_SEGMENT,
+} from '../../bausteine/Schublade';
 import { Segment } from '../../bausteine/Segment';
 import { AblageKachel } from '../gestaltung/ablegen/Kachel';
 import { adresseVon, ladeVor, useFigurSrc } from '../gestaltung/figuren-quelle';
 import type { SchubladenTeile } from '.';
 import { blickJetzt, gutFuer, merkeBlick } from './figuren-daten';
+import { kopf } from './reihe';
 
 // Später: 128 setzt einen Abschnitt „Sticker“ unter „Willi & Co.“ (nur bei „ja“ zu F3), als eigenen Abschnitt in
 // `Inhalt`; die Liste der Figuren bleibt.
@@ -34,51 +42,48 @@ export const Inhalt = (t: SchubladenTeile) => {
 	};
 
 	return (
-		<div className="flex min-h-0 flex-1 flex-col" data-schublade-figuren>
-			<Schubladenkopf titel="Figuren" />
-			<div className="min-h-0 flex-1 overflow-y-auto">
-				<div className="p-2">
-					<Segment
-						beschriftung="Blickrichtung"
-						className="flex w-full *:flex-auto *:px-1 *:text-[11px]"
-						werte={BLICKE}
-						wert={blick}
-						waehle={waehleBlick}
-					/>
-				</div>
-				<section
-					className="flex flex-col gap-2 border-t border-rand px-2 pt-2 pb-3"
-					data-figuren-gruppe="willi-co"
-				>
-					<h3 className="text-xs font-semibold text-leise">Willi & Co.</h3>
-					<div className="grid grid-cols-2 gap-2">
-						{FIGUREN.map((f) => (
-							<AblageKachel
-								key={f.id}
-								teile={t}
-								gut={gutFuer(t, f, srcVon(f), blick)}
-								beschriftung={f.name}
+		<Schublade
+			titel={kopf('figuren').titel}
+			daten={{ 'data-schublade-figuren': '' }}
+			steuerung={
+				<Segment
+					beschriftung="Blickrichtung"
+					className={STEUER_SEGMENT}
+					werte={BLICKE}
+					wert={blick}
+					waehle={waehleBlick}
+				/>
+			}
+		>
+			<Schubladenabschnitt titel="Willi & Co." daten={{ 'data-figuren-gruppe': 'willi-co' }}>
+				<div className={raster(2)}>
+					{FIGUREN.map((f) => (
+						<AblageKachel
+							key={f.id}
+							teile={t}
+							gut={gutFuer(t, f, srcVon(f), blick)}
+							beschriftung={f.name}
+							className={klassen(
+								SCHUBLADENKACHEL,
+								'flex flex-col items-center gap-1 p-2',
+								!t.struktur.aktiv && 'pointer-events-none opacity-50',
+							)}
+						>
+							<img
+								src={`/ansicht/${figurSchluessel(f)}`}
+								alt=""
+								draggable={false}
 								className={klassen(
-									'flex flex-col items-center gap-1 rounded-lg border border-rand bg-flaeche p-2 text-sm hover:border-brand-500 hover:bg-brand-50',
-									!t.struktur.aktiv && 'pointer-events-none opacity-50',
+									'h-24 w-full object-contain',
+									spiegelnFuer(f, blick) && '-scale-x-100',
 								)}
-							>
-								<img
-									src={`/ansicht/${figurSchluessel(f)}`}
-									alt=""
-									draggable={false}
-									className={klassen(
-										'aspect-square w-full object-contain',
-										spiegelnFuer(f, blick) && '-scale-x-100',
-									)}
-									data-figur-kachel={f.id}
-								/>
-								<span>{f.name}</span>
-							</AblageKachel>
-						))}
-					</div>
-				</section>
-			</div>
-		</div>
+								data-figur-kachel={f.id}
+							/>
+							<span className={KACHELNAME}>{f.name}</span>
+						</AblageKachel>
+					))}
+				</div>
+			</Schubladenabschnitt>
+		</Schublade>
 	);
 };

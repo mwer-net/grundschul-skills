@@ -3,6 +3,7 @@ import { useEffect, useRef } from 'react';
 
 import { AmZeiger } from '../../../bausteine/AmZeiger';
 import { klassen } from '../../../bausteine/klassen';
+import { Tooltip } from '../../../bausteine/Tooltip';
 import { FINGER_WEG, HALTEN_MS, MAUS_WEG } from '../../ziehen';
 import type { AblegenTeile } from './ablegen';
 import { GEHT_NOCH_NICHT } from './ablegen';
@@ -12,6 +13,7 @@ import type { GestaltungsGut } from './ziehgut';
 /**
  * Ein Eintrag einer Schublade mit Gestaltung (102–105): Klick legt in die Mitte, Ziehen legt frei ab. Wie die Karten
  * der Bausteine (094): mit der Maus ab `MAUS_WEG`, mit dem Finger nach `HALTEN_MS`, damit Wischen die Liste rollt.
+ * Den Namen zeigt der Tooltip, ohne Kürzel; während des Zugs ist er aus (167).
  */
 export const AblageKachel = ({
 	aus = false,
@@ -95,43 +97,44 @@ export const AblageKachel = ({
 
 	return (
 		<>
-			<button
-				ref={knopf}
-				type="button"
-				aria-label={name}
-				title={name}
-				className={klassen('select-none', amZeiger ? 'cursor-grabbing' : 'cursor-grab', className)}
-				disabled={aus}
-				{...daten}
-				data-ablage-gut={gut.name}
-				onPointerDown={druck}
-				onPointerMove={bewege}
-				onPointerLeave={(ev) => {
-					if (druckAn.current?.maus && ev.pointerId === druckAn.current.id) {
-						beginne(ev.clientX, ev.clientY, ev.pointerId, ev.metaKey);
-					}
-				}}
-				onPointerUp={loese}
-				onPointerCancel={loese}
-				onContextMenu={(ev) => {
-					if (druckAn.current || gezogen.current) {
-						ev.preventDefault();
-					}
-				}}
-				onClick={() => {
-					// Nach einem Zug schluckt `schluckeKlick` den Klick meist schon; sonst hier.
-					if (!gezogen.current) {
-						if (eigenerKlick) {
-							eigenerKlick();
-						} else {
-							klick(gut);
+			<Tooltip text={name} aus={amZeiger !== null}>
+				<button
+					ref={knopf}
+					type="button"
+					aria-label={name}
+					className={klassen('select-none', amZeiger ? 'cursor-grabbing' : 'cursor-grab', className)}
+					disabled={aus}
+					{...daten}
+					data-ablage-gut={gut.name}
+					onPointerDown={druck}
+					onPointerMove={bewege}
+					onPointerLeave={(ev) => {
+						if (druckAn.current?.maus && ev.pointerId === druckAn.current.id) {
+							beginne(ev.clientX, ev.clientY, ev.pointerId, ev.metaKey);
 						}
-					}
-					gezogen.current = false;
-				}}
-			>
-				{children}
-			</button>
+					}}
+					onPointerUp={loese}
+					onPointerCancel={loese}
+					onContextMenu={(ev) => {
+						if (druckAn.current || gezogen.current) {
+							ev.preventDefault();
+						}
+					}}
+					onClick={() => {
+						// Nach einem Zug schluckt `schluckeKlick` den Klick meist schon; sonst hier.
+						if (!gezogen.current) {
+							if (eigenerKlick) {
+								eigenerKlick();
+							} else {
+								klick(gut);
+							}
+						}
+						gezogen.current = false;
+					}}
+				>
+					{children}
+				</button>
+			</Tooltip>
 			{amZeiger && (
 				<AmZeiger
 					className={klassen(

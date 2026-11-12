@@ -15,6 +15,9 @@ export const TooltipAnbieter = ({ children }: { children: ReactNode }) => (
  * An einer senkrechten Leiste steht er daneben (`seite`), sonst über dem Knopf.
  */
 export const Tooltip = ({
+	// >> 167
+	aus = false,
+	// << 167
 	children,
 	kuerzel,
 	seite = 'top',
@@ -23,9 +26,15 @@ export const Tooltip = ({
 	text: string;
 	kuerzel?: string;
 	seite?: 'top' | 'right';
+	// >> 167
+	/** Während eines Zugs (167). */
+	aus?: boolean;
+	// << 167
 	children: ReactElement<Record<string, unknown>>;
 }) => (
-	<BaseTooltip.Root>
+	// >> 167
+	<BaseTooltip.Root disabled={aus}>
+		{/* << 167 */}
 		<BaseTooltip.Trigger render={children} />
 		<BaseTooltip.Portal>
 			<BaseTooltip.Positioner className="z-menue" side={seite} sideOffset={4} collisionPadding={8}>

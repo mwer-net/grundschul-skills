@@ -6,7 +6,13 @@ import { Chip } from '../bausteine/Chip';
 import { Dialog } from '../bausteine/Dialog';
 import { FELD_KLASSEN, klassen, knopfKlassen } from '../bausteine/klassen';
 import { Knopf } from '../bausteine/Knopf';
+// >> 167
+import { KACHELNAME, nichtsPasst, raster, SCHUBLADENKACHEL, Schubladenleer } from '../bausteine/Schublade';
+// << 167
 import { Symbol } from '../bausteine/Symbol';
+// >> 167
+import { Tooltip } from '../bausteine/Tooltip';
+// << 167
 import { Zeile } from '../bausteine/Zeile';
 import { useLaden } from '../lib/laden';
 import type { BildSteuerung, BildWerte, NeuerPlatz } from './bild';
@@ -124,10 +130,13 @@ const Kachel = ({
 	ziehen?: BildZiehen | undefined;
 }) => {
 	const [natur, setNatur] = useState<{ breite: number; hoehe: number } | null>(null);
-	const klasse = klassen(
-		'flex w-full flex-col gap-1 rounded-xl border border-rand bg-flaeche text-left hover:border-brand-200 hover:bg-flaeche-2 disabled:opacity-50',
-		klein ? 'p-1.5' : 'p-2',
-	);
+	// >> 167
+	const name = eintrag.alt[0] ?? eintrag.name;
+	// In der Schublade die Kachel aller Schubladen, im Dialog wie bisher.
+	const klasse = klein
+		? klassen(SCHUBLADENKACHEL, 'flex w-full flex-col items-center gap-1 p-2')
+		: 'flex w-full flex-col gap-1 rounded-xl border border-rand bg-flaeche p-2 text-left hover:border-brand-200 hover:bg-flaeche-2 disabled:opacity-50';
+	// << 167
 	const inhalt = (
 		<>
 			<img
@@ -136,28 +145,42 @@ const Kachel = ({
 				loading="lazy"
 				decoding="async"
 				draggable={false}
-				className={klassen('w-full rounded-lg bg-papier object-contain', klein ? 'h-20' : 'h-28')}
+				// >> 167
+				className={klein ? 'h-24 w-full object-contain' : 'h-28 w-full rounded-lg bg-papier object-contain'}
+				// << 167
 				onLoad={(e) => {
 					const { naturalHeight: hoehe, naturalWidth: breite } = e.currentTarget;
 					setNatur(breite > 0 ? { breite, hoehe } : null);
 				}}
 			/>
-			<span className={klassen('truncate font-medium', klein && 'text-xs')}>
-				{eintrag.alt[0] ?? eintrag.name}
-			</span>
+			{/* >> 167 */}
+			<span className={klein ? KACHELNAME : 'truncate font-medium'}>{name}</span>
 			{eintrag.mappe && (
-				<span className={klassen('truncate text-leise', klein ? 'text-xs' : 'text-sm')}>{eintrag.mappe}</span>
+				<span className={klein ? KACHELNAME : 'truncate text-sm text-leise'}>{eintrag.mappe}</span>
 			)}
+			{/* << 167 */}
 		</>
 	);
 	const zug = ziehen?.(eintrag, natur);
+	// >> 167
+	const knopf = (
+		<button
+			type="button"
+			className={klasse}
+			disabled={aus}
+			data-sammlung-bild={eintrag.schluessel}
+			onClick={waehle}
+		>
+			{inhalt}
+		</button>
+	);
 	return (
 		<li className="min-w-0">
 			{zug ? (
 				<AblageKachel
 					teile={zug.teile}
 					gut={zug.gut}
-					beschriftung={eintrag.alt[0] ?? eintrag.name}
+					beschriftung={name}
 					className={klasse}
 					aus={aus}
 					klick={waehle}
@@ -165,20 +188,20 @@ const Kachel = ({
 				>
 					{inhalt}
 				</AblageKachel>
+			) : klein ? (
+				<Tooltip text={name}>{knopf}</Tooltip>
 			) : (
-				<button
-					type="button"
-					className={klasse}
-					disabled={aus}
-					data-sammlung-bild={eintrag.schluessel}
-					onClick={waehle}
-				>
-					{inhalt}
-				</button>
+				knopf
 			)}
 		</li>
 	);
+	// << 167
 };
+
+// >> 167
+/** Ein Wortlaut für jede Suche ohne Treffer, in der Schublade wie im Dialog. */
+const leerText = (suche: string) => (suche.trim() ? nichtsPasst(suche) : 'Hier gibt es noch keine Bilder.');
+// << 167
 
 /** Kacheln einer Gruppe mit Laden, Fehler und Leerzustand; im Dialog groß, in der Bilder-Schublade klein. */
 export const SammlungsKacheln = ({
@@ -206,15 +229,19 @@ export const SammlungsKacheln = ({
 	<>
 		{fehler && <p className="font-medium text-fehler">{fehler}</p>}
 		{!geladen && !fehler && <Laeuft text="Bilder werden geladen …" />}
-		{geladen && liste.length === 0 && (
-			<p className={klassen('text-leise', klein && 'text-sm')}>
-				{suche ? 'Kein Bild passt zur Suche.' : 'Hier gibt es noch keine Bilder.'}
-			</p>
-		)}
+		{/* >> 167 */}
+		{geladen &&
+			liste.length === 0 &&
+			(klein ? (
+				<Schubladenleer>{leerText(suche)}</Schubladenleer>
+			) : (
+				<p className="text-leise">{leerText(suche)}</p>
+			))}
+		{/* << 167 */}
 		<ul
-			className={
-				klein ? 'grid grid-cols-2 gap-2' : 'grid grid-cols-4 gap-3 max-lg:grid-cols-3 max-md:grid-cols-2'
-			}
+			// >> 167
+			className={klein ? raster(2) : 'grid grid-cols-4 gap-3 max-lg:grid-cols-3 max-md:grid-cols-2'}
+			// << 167
 			data-sammlung={gruppe}
 		>
 			{liste.map((eintrag) => (

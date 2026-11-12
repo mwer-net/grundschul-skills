@@ -12,7 +12,7 @@ import { Griff } from '../bausteine/Griff';
 import { klassen } from '../bausteine/klassen';
 import { Knopf } from '../bausteine/Knopf';
 import { Menue } from '../bausteine/Menue';
-import { Schubladenkopf } from '../bausteine/Schubladenkopf';
+import { Schubladenkopf } from '../bausteine/Schublade';
 import type { SymbolName } from '../bausteine/Symbol';
 import { Symbol } from '../bausteine/Symbol';
 import { Tooltip } from '../bausteine/Tooltip';
@@ -27,6 +27,7 @@ import { nrnFuer, schalteDazu, useMehrfach } from './gestaltung/mehrfach';
 import type { GliederungKnoten, GliederungSeite } from './gliederung-modell';
 import { alleSchluessel, gliederungVon, ketteZu, ohneWirkung, stapelVon, zeileZurAuswahl } from './gliederung-modell';
 import type { GliederungStand } from './gliederung-stand';
+import { kopf } from './schubladen/reihe';
 import type { Struktur } from './struktur';
 import { MAUS_WEG } from './ziehen';
 import { ordnungVon } from './ziele';
@@ -1033,7 +1034,7 @@ export const Ebenen = ({
 
 	return (
 		<nav aria-label="Ebenen" className="flex min-h-0 flex-1 flex-col" data-seitenleiste data-gliederung>
-			<Schubladenkopf titel="Ebenen">
+			<Schubladenkopf titel={kopf('ebenen').titel}>
 				<Knopf
 					art="leise"
 					groesse="klein"
