@@ -32,6 +32,8 @@ export interface SchubladenTeile {
 	einfuegen: Einfuegen;
 	bild: BildSteuerung;
 	mappe: { fach: Fach; klasse: Klasse };
+	/** Wo das Blatt liegt: Ziel für „Bild beschreiben …“. */
+	dokument: { mappe: string; dok: string };
 	art: Art;
 	folien: boolean;
 	/** Ebenen: Stand des Baums (auf- und zugeklappt). */

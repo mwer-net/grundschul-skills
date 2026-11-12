@@ -1,5 +1,6 @@
 import type { Sammlung, SammlungsBild } from '@schoolbox/kern/src/bildbefehle';
 import { vorschaubildAdresse } from '@schoolbox/kern/src/bildbefehle';
+import type { ReactNode } from 'react';
 import { useEffect, useId, useMemo, useRef, useState } from 'react';
 
 import { Chip } from '../bausteine/Chip';
@@ -37,12 +38,15 @@ export const Laeuft = ({ text }: { text: string }) => (
 export const Hochladen = ({
 	bild,
 	breit = false,
+	klein = false,
 	neu,
 }: {
 	bild: BildSteuerung;
 	neu?: NeuerPlatz | undefined;
 	/** Über die ganze Breite, wie in der Bilder-Schublade. */
 	breit?: boolean;
+	/** Klein in der unteren Zeile von „Bild beschreiben …“. */
+	klein?: boolean;
 }) => {
 	const feld = useId();
 	const [hinweis, setHinweis] = useState(false);
@@ -84,12 +88,24 @@ export const Hochladen = ({
 		<>
 			{eingabe}
 			{gesehen() ? (
-				<label htmlFor={feld} className={knopfKlassen('zweit', klassen('cursor-pointer', breit && 'w-full'))}>
+				<label
+					htmlFor={feld}
+					className={knopfKlassen(
+						'zweit',
+						klassen('cursor-pointer', breit && 'w-full'),
+						klein ? 'klein' : 'standard',
+					)}
+				>
 					<Symbol name="hochladen" />
 					Foto hochladen
 				</label>
 			) : (
-				<Knopf art="zweit" className={breit ? 'w-full' : undefined} onClick={() => setHinweis(true)}>
+				<Knopf
+					art="zweit"
+					groesse={klein ? 'klein' : 'standard'}
+					className={breit ? 'w-full' : undefined}
+					onClick={() => setHinweis(true)}
+				>
 					<Symbol name="hochladen" />
 					Foto hochladen
 				</Knopf>
@@ -198,6 +214,7 @@ export const SammlungsKacheln = ({
 	klein = false,
 	liste,
 	suche,
+	vorne,
 	waehle,
 	ziehen,
 }: {
@@ -211,12 +228,15 @@ export const SammlungsKacheln = ({
 	aus?: boolean;
 	/** Nur in der Bilder-Schublade: Kacheln lassen sich aufs Blatt ziehen (103). */
 	ziehen?: BildZiehen | undefined;
+	/** Erste `<li>` derselben Liste: die Canva-Aufträge in „Dieser Ordner“. */
+	vorne?: ReactNode;
 }) => (
 	<>
 		{fehler && <p className="font-medium text-fehler">{fehler}</p>}
 		{!geladen && !fehler && <Laeuft text="Bilder werden geladen …" />}
 		{geladen &&
 			liste.length === 0 &&
+			!vorne &&
 			(klein ? (
 				<Schubladenleer>{leerText(suche)}</Schubladenleer>
 			) : (
@@ -226,6 +246,7 @@ export const SammlungsKacheln = ({
 			className={klein ? raster(2) : 'grid grid-cols-4 gap-3 max-lg:grid-cols-3 max-md:grid-cols-2'}
 			data-sammlung={gruppe}
 		>
+			{vorne}
 			{liste.map((eintrag) => (
 				<Kachel
 					key={eintrag.schluessel}

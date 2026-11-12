@@ -302,9 +302,9 @@ const ABSCHNITTE: Abschnitt[] = [
 						Links in der Schublade „Bilder“ (
 						<SchubladenTaste id="bilder" />
 						) stehen deine Fotos, die Bilder dieses Ordners, deiner anderen Ordner und der Sammlung, mit
-						Suche und „Foto hochladen“. Ein Klick tauscht das gewählte Bild aus oder füllt den gewählten
-						Platzhalter oder Bildrahmen; ist nichts davon gewählt, kommt das Bild als neuer Baustein hinter
-						die Auswahl.
+						Suche, „Foto hochladen“ und „Bild beschreiben …“ für ein neues Bild aus Canva. Ein Klick tauscht
+						das gewählte Bild aus oder füllt den gewählten Platzhalter oder Bildrahmen; ist nichts davon
+						gewählt, kommt das Bild als neuer Baustein hinter die Auswahl.
 					</Punkt>
 					<Punkt titel="Lösung">oben auf „Lösung“ wechseln und die Lösungen eintragen.</Punkt>
 					<Punkt titel="Rückgängig">
@@ -466,16 +466,16 @@ const ABSCHNITTE: Abschnitt[] = [
 				</p>
 				<h3>Was weiter die Claude-App braucht</h3>
 				<p>
-					Neue Bilder für ein einzelnes Blatt und Reihen, die du im Gespräch planen willst. Für einen
-					bestimmten Teil in der Blase unter ⋯ „In der Claude-App weiterarbeiten“, in der App einfügen und den
-					Wunsch dahinterschreiben. Die zwei eingefügten Zeilen gehören so; die zweite ist für Claude.
+					Reihen, die du im Gespräch planen willst. Für einen bestimmten Teil in der Blase unter ⋯ „In der
+					Claude-App weiterarbeiten“, in der App einfügen und den Wunsch dahinterschreiben. Die zwei
+					eingefügten Zeilen gehören so; die zweite ist für Claude.
 				</p>
 				<h3>Verbrauch</h3>
 				<p>
 					Alles zählt für das Limit deines Claude-Kontos, zusammen mit der Claude-App. Eine Änderung braucht
-					wenig, neues Material deutlich mehr und einige Minuten. Wird es knapp, steht das in der Blase. Hast
-					du Guthaben gekauft, arbeitet Claude am erreichten Limit darüber weiter, das ist echtes Geld. Auch
-					das steht dann in der Blase.
+					wenig, ein neues Bild etwas mehr, neues Material deutlich mehr und einige Minuten. Wird es knapp,
+					steht das in der Blase. Hast du Guthaben gekauft, arbeitet Claude am erreichten Limit darüber
+					weiter, das ist echtes Geld. Auch das steht dann in der Blase.
 				</p>
 			</>
 		),

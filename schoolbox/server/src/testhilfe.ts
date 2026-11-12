@@ -108,6 +108,16 @@ process.stdin.on('end', () => {
 	if (fall.startsWith('canva')) {
 		(async () => {
 			if (fall === 'canva-pause') { fs.writeFileSync('ergebnis.json', JSON.stringify({ fehler: 'canva-pause' })); ende({ result: 'Canva macht eine Pause.' }); return; }
+			if (fall === 'canva-bild') {
+				const jpg = Buffer.from('/9j/4AAQSkZJRgABAQAAAQABAAD/2wBDAA0JCgsKCA0LCgsODg0PEyAVExISEyccHhcgLikxMC4pLSwzOko+MzZGNywtQFdBRkxOUlNSMj5aYVpQYEpRUk//2wBDAQ4ODhMREyYVFSZPNS01T09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT0//wAARCABIAIADASIAAhEBAxEB/8QAGgABAAMBAQEAAAAAAAAAAAAAAAEDBAUCBv/EACgQAAICAQMEAQMFAAAAAAAAAAABAgMRFDGhBBIhUkEFE2EiI1GRsf/EABkBAQADAQEAAAAAAAAAAAAAAAACAwQFAf/EACERAAMAAQMFAQEAAAAAAAAAAAABAhEDEiEEBRMxUUEi/9oADAMBAAIRAxEAPwD7cAGkyAAAAAAAAAAAAAAAAHiTy/wQm1sc2+4xN7Uso2T0dOc5LAE8oHQmlSVL9MjTTwwACR4AAAAAAAAAAAAAAAVtYYLGkyFFI4t9tvf/AC+Doz1k7efYisIkA6+nC04Ur8MF06p0wCnVUe/DGqo9+GeeWPqI5LgU6qj34Y1VHvwx5Y+oZMPX9bP7rqpm4xj4k14bZhrsnVLurk4v8ENtttttvdsgi3k0JJLB2+h6nUU/qf7kfEvHJpOP9NtjVfLvk1Fx5ydLVUe/DJeSV7ZTaSZPVXrp6HN77RX8s4dt1l0s2zcn/ht+qXRsVark2lnK/o5546T9FkJYya+j62dU4xsm3Vs8+cHZPmzt09VV9ivvsfd2rOU98BWl7ZHUSXJpBTqqPfhjVUe/DPfLH1FeS4FOqo9+GNVR78MeWPqGTmgA5BAAAAz2wak2s4fkrNhCilskjTPUYWGi1auFyeKodscvdlgBnqnTyytvLyeLI90cfO5maaeGsGwhpPdJlulrbOGTjU28GaEHN/OPlmoAjqajtkbvcwACsiAAAAAAAAAAAAAAAAAAAAAAAAAAAf/Z', 'base64');
+				fs.mkdirSync('bilder', { recursive: true });
+				fs.writeFileSync('bilder/bild.jpg', jpg);
+				fs.writeFileSync('bilder.json', JSON.stringify([{ datei: 'bild.jpg', url: 'https://attrappe.invalid/bild.jpg', motiv: 'Willi und Wilma im Garten', mediaId: 'MAattrappe2' }]));
+				fs.writeFileSync('ergebnis.json', '{}');
+				await new Promise((r) => setTimeout(r, 2500));
+				ende({ result: 'Bild fertig.' });
+				return;
+			}
 			const png = Buffer.from('iVBORw0KGgoAAAANSUhEUgAAADAAAAAwCAYAAABXAvmHAAAA/0lEQVR42u2ZyxHCMAxEra2GIigiFVAcFaQIiqAbODHDgVgfy7ZMtOdg7ZMyyngpJZVKpWaKvA/crpcX98z+eFIoAInpXjDkbfy+8b+77X4g5GVeYpwDsUBQq3mL8RqIFoKs5j2MH4FoIBDF/Pe5mqWAKOatEIhk3gIB7bYZLa4+tF0ZJWk9RO6+xAcidl9TF2VxIcrmsW6k/51AAiRAAiRAAjQBfG5Fvy7gI8Xd0s7xCs2agqRuFcAzQWtRzQc8uzG6+yKA2VPg6kNzyKgpaPIhaDvRG0IbbsEyzl4QlmTufNnoUVKwVDpdizuW+X+AA/Fak0MAtDBRvvCpVCqA3uJygkAbuBVtAAAAAElFTkSuQmCC', 'base64');
 			fs.mkdirSync('bilder', { recursive: true });
 			fs.writeFileSync('bilder/bild.png', fall === 'canva-kein-png' ? 'kein Bild' : png);
