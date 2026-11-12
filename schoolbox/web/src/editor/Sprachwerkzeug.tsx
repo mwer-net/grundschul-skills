@@ -2,7 +2,6 @@ import type * as SprachKern from '@schoolbox/kern/src/sprache';
 import type { Bereich, LueckenRegel, SprachErgebnis, SprachWerkzeug } from '@schoolbox/kern/src/sprache';
 import type { SilbenDarstellung, SilbenStand } from '@schoolbox/kern/src/sprachstand';
 import { leseSprachstand } from '@schoolbox/kern/src/sprachstand';
-import type { ReactNode } from 'react';
 import { useEffect, useMemo, useState } from 'react';
 
 import { Abschnitt } from '../bausteine/Abschnitt';
@@ -72,14 +71,6 @@ const markierungIn = (element: Element, auswahl: Selection | null): Markierung |
 		text: eng(r.toString()).trim(),
 	};
 };
-
-/** Überschrift über einem Regler, der in die Zeile daneben nicht passt. */
-const Regler = ({ children, titel }: { children: ReactNode; titel: string }) => (
-	<div className="flex flex-col gap-0.5">
-		<span className="text-leise">{titel}</span>
-		<div {...halteFokus}>{children}</div>
-	</div>
-);
 
 /**
  * Lesehilfen und Übungen an einem Text (052, 083). Lesehilfen zeigen ihren Stand aus der Quelle (`leseSprachstand`) und
@@ -214,16 +205,17 @@ export const Sprachwerkzeug = ({
 						{`Wirkt auf die Markierung: „${markiert.text}“`}
 					</p>
 				)}
-				<Regler titel="Silben">
-					<div data-sprache-silben>
+				<Zeile titel="Silben" darunter>
+					<div className="flex" {...halteFokus} data-sprache-silben>
 						<Segment<SilbenStand>
 							beschriftung="Silben"
 							werte={SILBEN}
 							wert={stand.silben}
 							waehle={(w) => setzeSilben(w === 'aus' || w === 'teilweise' ? null : w)}
+							voll
 						/>
 					</div>
-				</Regler>
+				</Zeile>
 				{stand.silben === 'teilweise' && (
 					<div className="flex items-center justify-between gap-2" data-sprache-teilweise>
 						<span className="text-xs text-leise">In einem Teil des Texts</span>
@@ -239,15 +231,25 @@ export const Sprachwerkzeug = ({
 								<Schalter id="sprache-vokale" name="Vokale" an={stand.vokale} setze={schalteVokale} />
 							</span>
 						</Zeile>
-						<Zeile
-							titel="Buchstaben"
-							fuer="sprache-buchstaben"
-							hilfe="Hebt diese Buchstaben im Text hervor."
-						>
+						<div className="flex flex-col gap-0.5">
+							<Zeile
+								titel="Buchstaben"
+								fuer="sprache-buchstaben"
+								hilfe="Hebt diese Buchstaben im Text hervor."
+							>
+								<span {...halteFokus} data-sprache-buchstaben-an>
+									<Schalter
+										name="Buchstaben hervorheben"
+										an={stand.buchstaben !== null}
+										aus={stand.buchstaben === null && buchstaben.trim() === ''}
+										setze={schalteBuchstaben}
+									/>
+								</span>
+							</Zeile>
 							<input
 								{...EIGENE_GESCHICHTE}
 								id="sprache-buchstaben"
-								className={`${FELD} w-24`}
+								className={`${FELD} w-full`}
 								placeholder="z. B. ie, ei"
 								value={buchstaben}
 								data-sprache-buchstaben
@@ -259,28 +261,21 @@ export const Sprachwerkzeug = ({
 									}
 								}}
 							/>
-							<span {...halteFokus} data-sprache-buchstaben-an>
-								<Schalter
-									name="Buchstaben hervorheben"
-									an={stand.buchstaben !== null}
-									aus={stand.buchstaben === null && buchstaben.trim() === ''}
-									setze={schalteBuchstaben}
-								/>
-							</span>
-						</Zeile>
+						</div>
 					</>
 				)}
 				{stand.mitZeilennummern && (
-					<Regler titel="Zeilennummern">
-						<div data-sprache-zeilennummern>
+					<Zeile titel="Zeilennummern" darunter>
+						<div className="flex" {...halteFokus} data-sprache-zeilennummern>
 							<Segment<NummernWert>
 								beschriftung="Zeilennummern"
 								werte={ZEILENNUMMERN}
 								wert={nummern}
 								waehle={(w) => void nummeriere(w)}
+								voll
 							/>
 						</div>
-					</Regler>
+					</Zeile>
 				)}
 			</Abschnitt>
 			{stand.umwandelbar && (

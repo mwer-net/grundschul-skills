@@ -1,10 +1,15 @@
 import { useState } from 'react';
 
 import { Abschnitt } from '../bausteine/Abschnitt';
+// >> 182
+import { Farbreihe } from '../bausteine/Farbfeld';
+// << 182
 import { Feld } from '../bausteine/Feld';
 import { Hilfetipp } from '../bausteine/Hilfetipp';
 import { Karte } from '../bausteine/Karte';
-import { FELD_KLASSEN } from '../bausteine/klassen';
+// >> 182
+import { FELD_KLASSEN, KACHEL } from '../bausteine/klassen';
+// << 182
 import { Knopf } from '../bausteine/Knopf';
 import { Kuerzel } from '../bausteine/Kuerzel';
 import { Menue } from '../bausteine/Menue';
@@ -16,6 +21,9 @@ import { Segment } from '../bausteine/Segment';
 import { Stepper } from '../bausteine/Stepper';
 import { SymbolKnopf } from '../bausteine/SymbolKnopf';
 import { Tooltip } from '../bausteine/Tooltip';
+// >> 182
+import { Zeile } from '../bausteine/Zeile';
+// << 182
 
 const MENUE = [
 	{ titel: 'Duplizieren', symbol: 'duplizieren' as const, kuerzel: '⇧⌘D', gruppe: 'a' },
@@ -38,6 +46,10 @@ export const Bausteine = () => {
 	const [schalter, setSchalter] = useState(true);
 	const [zahl, setZahl] = useState(3);
 	const [reiter, setReiter] = useState('auswahl');
+	// >> 182
+	const [farbe, setFarbe] = useState<string | null>('var(--haupt)');
+	const [kachel, setKachel] = useState('a');
+	// << 182
 	const zeige = useZeigeMenue();
 	return (
 		<main className="mx-auto flex max-w-4xl flex-col gap-4 p-6">
@@ -101,6 +113,59 @@ export const Bausteine = () => {
 				<Stepper name="Zahl" wert={zahl} setze={setZahl} min={1} max={6} />
 				<Stepper name="Zahl aus" wert={2} setze={() => undefined} aus />
 			</Karte>
+			{/* >> 182 */}
+			<Karte className="p-3">
+				<div className="w-60" data-muster-inspektor>
+					<Abschnitt name="muster-muster" titel="Muster">
+						<Zeile titel="Farbreihe" darunter>
+							<Farbreihe
+								beschriftung="Farbreihe"
+								keine="Keine Farbe"
+								schwarz
+								doc={null}
+								wert={farbe}
+								setze={setFarbe}
+							/>
+						</Zeile>
+						<Zeile titel="Kacheln" darunter>
+							<div role="group" aria-label="Kacheln" className="grid grid-cols-3 gap-1">
+								{['a', 'b', 'c'].map((w) => (
+									<button
+										key={w}
+										type="button"
+										className={KACHEL}
+										aria-pressed={kachel === w}
+										onClick={() => setKachel(w)}
+									>
+										{`Kachel ${w.toUpperCase()}`}
+									</button>
+								))}
+							</div>
+						</Zeile>
+						<Zeile titel="Segment mit vier Teilen" darunter>
+							<Segment
+								beschriftung="Vier Teile"
+								wert={kachel}
+								waehle={setKachel}
+								voll
+								werte={[
+									{ wert: 'a', titel: 'Eins' },
+									{ wert: 'b', titel: 'Zwei' },
+									{ wert: 'c', titel: 'Drei' },
+									{ wert: 'd', titel: 'Vier' },
+								]}
+							/>
+						</Zeile>
+						<Zeile titel="Stepper">
+							<Stepper name="Stepper mit Einheit" wert={zahl} setze={setZahl} einheit="px" />
+						</Zeile>
+						<Zeile titel="Schalter">
+							<Schalter name="Schalter im Muster" an={schalter} setze={setSchalter} />
+						</Zeile>
+					</Abschnitt>
+				</div>
+			</Karte>
+			{/* << 182 */}
 			<Karte className="p-3">
 				<Reiter
 					beschriftung="Reiter"

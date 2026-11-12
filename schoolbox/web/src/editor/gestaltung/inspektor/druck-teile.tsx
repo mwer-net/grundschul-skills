@@ -7,8 +7,8 @@ import { Segment } from '../../../bausteine/Segment';
 import type { InspektorTeile } from './abschnitte';
 
 const SW: { wert: SwVerhalten; titel: string }[] = [
-	{ wert: 'grau', titel: 'grau' },
-	{ wert: 'weg', titel: 'weg' },
+	{ wert: 'grau', titel: 'Grau' },
+	{ wert: 'weg', titel: 'Weg' },
 ];
 
 /** Dieselben Klassen wie „Sichtbarkeit“ bei Bausteinen (`nur-loesung`, `nicht-loesung`), andere Worte (Briefing 4.5). */

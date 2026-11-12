@@ -27,6 +27,10 @@ export const knopfKlassen = (art: KnopfArt = 'haupt', zusatz?: string, groesse: 
 		zusatz,
 	);
 
+/** Kachel einer bildhaften Wahl im Raster `grid grid-cols-N gap-1`. Gewählt: Rand in Tinte, der Grund bleibt weiß. */
+export const KACHEL =
+	'flex min-h-7 min-w-0 items-center justify-center gap-1 rounded-md border border-rand bg-flaeche px-1 text-sm text-tinte disabled:opacity-50 aria-pressed:border-tinte aria-pressed:ring-1 aria-pressed:ring-tinte enabled:not-aria-pressed:hover:bg-flaeche-2 [@media(any-pointer:coarse)]:min-h-11';
+
 /** Eingabefelder und Selects: gleiche Höhe, 1 px Rand. */
 export const FELD_KLASSEN =
 	'h-feld w-full rounded-md border border-rand-feld bg-flaeche px-1.5 text-sm font-normal text-tinte placeholder:text-dezent focus:border-brand-500 focus:outline-none disabled:opacity-50';

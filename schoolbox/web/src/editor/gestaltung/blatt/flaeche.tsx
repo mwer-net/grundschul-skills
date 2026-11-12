@@ -1,9 +1,9 @@
 import type { MusterArt, Seitenflaeche } from '@schoolbox/kern/src/seitengestaltung';
 import { MUSTER_GROESSE, setzeSeitenflaeche, WINKEL } from '@schoolbox/kern/src/seitengestaltung';
-import type { ReactNode } from 'react';
 
 import { Farbwahl } from '../../../bausteine/Farbwahl';
 import { Segment } from '../../../bausteine/Segment';
+import { Zeile } from '../../../bausteine/Zeile';
 import { Regler } from './regler';
 import type { BlattTeile } from './teile';
 
@@ -36,13 +36,6 @@ const VORGABE: Record<Seitenflaeche['art'], Seitenflaeche> = {
 };
 
 const NAME: Record<Seitenflaeche['art'], string> = { farbe: 'Farbe', verlauf: 'Verlauf', muster: 'Muster' };
-
-export const FarbZeile = ({ children, titel }: { titel: string; children: ReactNode }) => (
-	<div className="flex flex-col gap-1 py-0.5">
-		<span className="text-leise">{titel}</span>
-		{children}
-	</div>
-);
 
 export const SwZeile = ({
 	aus,
@@ -99,7 +92,7 @@ export const BlattFlaeche = (t: BlattTeile) => {
 			/>
 			{jetzt && (
 				<>
-					<FarbZeile titel={{ farbe: 'Farbe', verlauf: 'Farbe 1', muster: 'Grund' }[jetzt.art]}>
+					<Zeile titel={{ farbe: 'Farbe', verlauf: 'Farbe 1', muster: 'Grund' }[jetzt.art]} darunter>
 						<Farbwahl
 							name="flaeche-f1"
 							beschriftung={jetzt.art === 'muster' ? 'Grund' : 'Farbe 1'}
@@ -108,9 +101,9 @@ export const BlattFlaeche = (t: BlattTeile) => {
 							setze={(f1) => aendere('Farbe der Seitenfläche', { f1 })}
 							zeige={(f1) => zeige({ '--f1': f1 })}
 						/>
-					</FarbZeile>
+					</Zeile>
 					{jetzt.art !== 'farbe' && (
-						<FarbZeile titel={jetzt.art === 'muster' ? 'Musterfarbe' : 'Farbe 2'}>
+						<Zeile titel={jetzt.art === 'muster' ? 'Musterfarbe' : 'Farbe 2'} darunter>
 							<Farbwahl
 								name="flaeche-f2"
 								beschriftung={jetzt.art === 'muster' ? 'Musterfarbe' : 'Farbe 2'}
@@ -119,7 +112,7 @@ export const BlattFlaeche = (t: BlattTeile) => {
 								setze={(f2) => aendere('Farbe der Seitenfläche', { f2 })}
 								zeige={(f2) => zeige({ '--f2': f2 })}
 							/>
-						</FarbZeile>
+						</Zeile>
 					)}
 					{jetzt.art === 'verlauf' && (
 						<Regler

@@ -21,6 +21,7 @@ import type { ReactNode } from 'react';
 import { useEffect, useId, useMemo, useRef, useState } from 'react';
 
 import { Abschnitt } from '../bausteine/Abschnitt';
+import { Farbpunkt } from '../bausteine/Farbfeld';
 import { Feld } from '../bausteine/Feld';
 import { Hilfetipp } from '../bausteine/Hilfetipp';
 import { FELD_KLASSEN, klassen } from '../bausteine/klassen';
@@ -403,31 +404,18 @@ export const Blattwerkzeug = ({
 					einstellung="farbschema"
 					hilfe="Farben von Titel, Nummern und Markierungen im Blatt"
 				>
-					<div role="group" aria-label="Farbschema" className="flex gap-1" data-palette>
+					<div role="group" aria-label="Farbschema" className="flex" data-palette>
 						{PALETTEN.map((p) => {
 							const f = farben[p];
 							return (
-								<button
+								<Farbpunkt
 									key={p}
-									type="button"
-									aria-pressed={w.palette === p}
+									name={PALETTEN_FARBNAME[p]}
 									aria-label={`${p[0]?.toUpperCase()}${p.slice(1)}: ${PALETTEN_FARBNAME[p]}`}
-									title={PALETTEN_FARBNAME[p]}
-									className="size-knopf-klein rounded-full border border-rand p-0.5 aria-pressed:border-tinte"
+									farbe={f ? `linear-gradient(135deg, ${f.haupt} 50%, ${f.akzent} 50%)` : ''}
+									gewaehlt={w.palette === p}
 									onClick={() => setze('Farbschema', { palette: p })}
-								>
-									<span
-										aria-hidden
-										className="block size-full min-h-4 rounded-full"
-										style={
-											f
-												? {
-														background: `linear-gradient(135deg, ${f.haupt} 50%, ${f.akzent} 50%)`,
-													}
-												: undefined
-										}
-									/>
-								</button>
+								/>
 							);
 						})}
 					</div>

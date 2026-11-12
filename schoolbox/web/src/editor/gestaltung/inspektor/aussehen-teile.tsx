@@ -78,13 +78,14 @@ const KonturStilWahl = ({ aktiv, k, quelle }: InspektorTeile) => {
 const SchattenWahl = ({ aktiv, k, quelle }: InspektorTeile) => {
 	const wert = leseSchatten(quelle, k.nr) ?? 'kein';
 	return (
-		<Zeile titel="Schatten" name="Schatten">
-			<span data-aussehen-schatten={wert}>
+		<Zeile titel="Schatten" name="Schatten" darunter>
+			<span className="flex" data-aussehen-schatten={wert}>
 				<Segment
 					beschriftung="Schatten"
 					werte={SCHATTEN_WAHL}
 					wert={wert}
 					aus={!aktiv}
+					voll
 					waehle={(neu) => {
 						k.fuehreAus(neu === 'kein' ? 'Schatten entfernt' : 'Schatten geändert', (q) => ({
 							quelle: setzeSchatten(q, k.nr, neu === 'kein' ? null : neu),

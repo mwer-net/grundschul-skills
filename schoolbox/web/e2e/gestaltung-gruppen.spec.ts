@@ -77,7 +77,8 @@ test.describe('Gruppen (120)', () => {
 		await gruppiere(page);
 		await expect(gruppe(page).locator('[data-name]')).toHaveCount(2);
 		expect(await kaesten(page)).toEqual(lage);
-		await expect(page.locator('[data-gruppe-teile]')).toHaveText('Gruppe · 2 Teile');
+		await expect(page.locator('[data-gestaltung-inspektor="gruppe"]')).toBeVisible();
+		await expect(page.getByText('Gruppe · 2 Teile')).toHaveCount(0);
 		await page.keyboard.press('ControlOrMeta+z');
 		await expect.poll(() => quelle(page)).toBe(vorher);
 	});
@@ -122,7 +123,7 @@ test.describe('Gruppen (120)', () => {
 		await blatt(page);
 		await gruppiere(page);
 		await teil(page, 'Blase').dblclick();
-		await expect(page.locator('[data-gruppe-teile]')).toHaveCount(0);
+		await expect(page.locator('[data-gestaltung-inspektor="gruppe"]')).toHaveCount(0);
 		const vorher = await quelle(page);
 		await page.keyboard.press('ArrowRight');
 		await expect.poll(() => quelle(page)).toMatch(/data-name="Blase"[^>]*--x:1px/);
@@ -131,7 +132,7 @@ test.describe('Gruppen (120)', () => {
 		await expect.poll(() => quelle(page)).toBe(vorher);
 		await geladen(page);
 		await page.keyboard.press('Escape');
-		await expect(page.locator('[data-gruppe-teile]')).toBeVisible();
+		await expect(page.locator('[data-gestaltung-inspektor="gruppe"]')).toBeVisible();
 	});
 
 	test('Ein Teil einer gedrehten Gruppe: Rahmen ohne Griffe, Pfeiltasten gehen', async ({ page }) => {
@@ -141,7 +142,7 @@ test.describe('Gruppen (120)', () => {
 		await expect.poll(() => quelle(page)).toMatch(/class="gruppe"[^>]*--drehen:90deg/);
 		await geladen(page);
 		await teil(page, 'Blase').dblclick();
-		await expect(page.locator('[data-gruppe-teile]')).toHaveCount(0);
+		await expect(page.locator('[data-gestaltung-inspektor="gruppe"]')).toHaveCount(0);
 		await expect(page.locator('[data-gestaltung-rahmen]')).toBeVisible();
 		await expect(page.locator('[data-gestaltung-griff]')).toHaveCount(0);
 		await page.keyboard.press('ArrowDown');
@@ -162,7 +163,7 @@ test.describe('Gruppen (120)', () => {
 		const zeilen = page.locator('[data-zeilen-art="gruppe"]');
 		await expect(zeilen).toHaveCount(2);
 		await zeilen.first().locator('[data-gliederung-titel]').click();
-		await expect(page.locator('[data-gruppe-teile]')).toHaveCount(0);
+		await expect(page.locator('[data-gestaltung-inspektor="gruppe"]')).toHaveCount(0);
 		await expect(page.locator('[data-gestaltung-rahmen]')).toBeVisible();
 	});
 

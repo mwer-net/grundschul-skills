@@ -58,7 +58,7 @@ test.describe('Gruppen und Pfade von Claude (124)', () => {
 		await expect(gruppe(page)).toHaveCount(1);
 		const stand = await quelle(page);
 		await gruppe(page).locator('img.figur-frei').click();
-		await expect(page.locator('[data-gruppe-teile]')).toContainText('2 Teile');
+		await expect(page.locator('[data-gestaltung-inspektor="gruppe"]')).toBeVisible();
 		await page.keyboard.press('ControlOrMeta+Shift+g');
 		await expect(gruppe(page)).toHaveCount(0);
 		await expect(material(page).locator('img.figur-frei')).toHaveCount(1);

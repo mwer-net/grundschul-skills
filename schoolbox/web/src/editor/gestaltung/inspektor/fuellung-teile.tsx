@@ -1,7 +1,7 @@
 import { formVon } from '@schoolbox/kern/src/formen';
 import { leseForm } from '@schoolbox/kern/src/formen-aendern';
 
-import { FarbZeile } from '../blatt/flaeche';
+import { Zeile } from '../../../bausteine/Zeile';
 import type { InspektorTeile } from './abschnitte';
 import { FuellungWahl, KonturWahl } from './form-farben';
 
@@ -10,12 +10,12 @@ export const Fuellung = (t: InspektorTeile) => (
 	<div className="flex flex-col gap-1" data-gestaltung-fuellung>
 		{/* 107: Die Linie hat keine Füllung, nur Kontur. */}
 		{formVon(leseForm(t.quelle, t.k.nr)?.art)?.klasse !== 'linie' && (
-			<FarbZeile titel="Füllung">
+			<Zeile titel="Füllung" darunter>
 				<FuellungWahl {...t} />
-			</FarbZeile>
+			</Zeile>
 		)}
-		<FarbZeile titel="Kontur">
+		<Zeile titel="Kontur" darunter>
 			<KonturWahl {...t} />
-		</FarbZeile>
+		</Zeile>
 	</div>
 );

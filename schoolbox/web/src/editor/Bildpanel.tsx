@@ -397,7 +397,9 @@ const Beschreibung = ({ bild, w }: { bild: BildSteuerung; w: BildWerte }) => {
 
 	return (
 		<label className="block">
-			<span className="flex h-zeile items-center text-leise">Beschreibung</span>
+			{/* >> 182 */}
+			<span className="mt-1 mb-0.5 flex min-h-5 items-center text-leise">Beschreibung</span>
+			{/* << 182 */}
 			<input
 				type="text"
 				className={FELD_KLASSEN}
@@ -438,7 +440,11 @@ export const Bildwerkzeug = ({ bild, ohneEntfernen = false }: { bild: BildSteuer
 		<div data-bildwerkzeug={w.platzhalter ? 'platzhalter' : 'bild'}>
 			{!w.platzhalter && <Vorschau w={w} />}
 			{!w.platzhalter && <Hinweise adresse={bild.adresse} w={w} />}
-			<h3 className="flex h-zeile items-center text-leise">{w.platzhalter ? 'Bild einsetzen' : 'Austauschen'}</h3>
+			{/* >> 182 */}
+			<span className="mb-0.5 flex min-h-5 items-center text-leise">
+				{w.platzhalter ? 'Bild einsetzen' : 'Austauschen'}
+			</span>
+			{/* << 182 */}
 			<div className="flex flex-wrap gap-1">
 				{bild.arbeit === 'hochladen' || bild.arbeit === 'sammlung' ? (
 					<Laeuft text={bild.arbeit === 'hochladen' ? 'Foto wird hochgeladen …' : 'Bild wird eingesetzt …'} />

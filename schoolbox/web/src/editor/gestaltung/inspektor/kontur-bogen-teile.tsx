@@ -24,11 +24,11 @@ import {
 import { useEffect, useRef, useState } from 'react';
 
 import { Farbwahl } from '../../../bausteine/Farbwahl';
-import { Knopf } from '../../../bausteine/Knopf';
+import { klassen } from '../../../bausteine/klassen';
+import { Schalter } from '../../../bausteine/Schalter';
 import { Segment } from '../../../bausteine/Segment';
 import { Tooltip } from '../../../bausteine/Tooltip';
 import { Zeile } from '../../../bausteine/Zeile';
-import { FarbZeile } from '../blatt/flaeche';
 import { Regler } from '../blatt/regler';
 import type { GestaltungKontext } from '../kontext';
 import type { InspektorTeile } from './abschnitte';
@@ -55,7 +55,7 @@ const setzeKontur = (k: GestaltungKontext, kontur: SchriftKontur | null) =>
 		nr: k.nr,
 	}));
 
-/** Kontur an/aus, Stärke 0–16 px und Farbe (5-text.md). Beim Einschalten 6 px, Weiß. */
+/** Schalter „Kontur“, Stärke 0–16 px und Farbe (5-text.md). Beim Einschalten 6 px, Weiß. */
 export const KonturWahl = ({ aktiv, k, quelle }: KonturBogenTeile) => {
 	const kontur = leseSchriftKontur(quelle, k.nr);
 	const an = kontur !== null;
@@ -63,23 +63,20 @@ export const KonturWahl = ({ aktiv, k, quelle }: KonturBogenTeile) => {
 	const imBogen = k.element.tagName.toLowerCase() === 'svg';
 	return (
 		<div className="flex flex-col gap-1" data-kontur-wahl>
-			<Knopf
-				art="zweit"
-				groesse="klein"
-				className="self-start"
-				aria-pressed={an}
-				disabled={!aktiv}
-				data-kontur-schalter
-				onClick={() => setzeKontur(k, an ? null : SCHRIFT_KONTUR_STANDARD)}
-			>
-				{an ? 'Kontur aus' : 'Kontur an'}
-			</Knopf>
+			<Zeile titel="Kontur">
+				<Schalter
+					name="Kontur"
+					an={an}
+					aus={!aktiv}
+					data-kontur-schalter
+					setze={(neu) => setzeKontur(k, neu ? SCHRIFT_KONTUR_STANDARD : null)}
+				/>
+			</Zeile>
 			{an && (
 				<>
 					<Zeile titel="Stärke" name={`Konturstärke, 0 bis ${SCHRIFT_KONTUR_MAX} px`}>
 						<span className="flex w-28" data-kontur-staerke>
 							<Zahl
-								titel="Stärke"
 								name="Konturstärke"
 								einheit="px"
 								wert={aktuell.staerke}
@@ -100,7 +97,7 @@ export const KonturWahl = ({ aktiv, k, quelle }: KonturBogenTeile) => {
 							/>
 						</span>
 					</Zeile>
-					<FarbZeile titel="Konturfarbe">
+					<Zeile titel="Konturfarbe" darunter>
 						<Farbwahl
 							name="kontur-farbe"
 							beschriftung="Konturfarbe"
@@ -114,7 +111,7 @@ export const KonturWahl = ({ aktiv, k, quelle }: KonturBogenTeile) => {
 								}
 							}}
 						/>
-					</FarbZeile>
+					</Zeile>
 				</>
 			)}
 		</div>
@@ -145,7 +142,7 @@ export const BogenRegler = ({ aktiv, k, quelle }: KonturBogenTeile) => {
 	);
 };
 
-/** Titel ⇄ Bogen in einem Schritt. Der Tooltip warnt vorher, wenn farbige Wörter verloren gehen. */
+/** Schalter „Bogen“: Titel ⇄ Bogen in einem Schritt. Der Tooltip warnt vorher, wenn farbige Wörter verloren gehen. */
 export const BogenSchalter = ({ aktiv, k, quelle }: KonturBogenTeile) => {
 	const imBogen = leseBogen(quelle, k.nr) !== null;
 	if (!imBogen && !kannInBogen(quelle, k.nr)) {
@@ -156,24 +153,24 @@ export const BogenSchalter = ({ aktiv, k, quelle }: KonturBogenTeile) => {
 		? 'Titel in den Bogen setzen. Farben einzelner Wörter gehen dabei verloren.'
 		: 'Titel in den Bogen setzen';
 	return (
-		<Tooltip text={imBogen ? 'Wieder ein gerader Titel' : inDenBogen}>
-			<Knopf
-				art="zweit"
-				groesse="klein"
-				className="self-start"
-				aria-pressed={imBogen}
-				disabled={!aktiv}
-				data-bogen-schalter
-				onClick={() => {
-					k.fuehreAus(imBogen ? 'Bogen aufgelöst' : 'Titel in den Bogen gesetzt', (q) => ({
-						quelle: imBogen ? ausBogen(q, k.nr) : inBogen(q, k.nr),
-						nr: k.nr,
-					}));
-				}}
-			>
-				{imBogen ? 'Bogen aus' : 'Bogen an'}
-			</Knopf>
-		</Tooltip>
+		<Zeile titel="Bogen">
+			<Tooltip text={imBogen ? 'Wieder ein gerader Titel' : inDenBogen}>
+				<span className="inline-flex">
+					<Schalter
+						name="Bogen"
+						an={imBogen}
+						aus={!aktiv}
+						data-bogen-schalter
+						setze={() => {
+							k.fuehreAus(imBogen ? 'Bogen aufgelöst' : 'Titel in den Bogen gesetzt', (q) => ({
+								quelle: imBogen ? ausBogen(q, k.nr) : inBogen(q, k.nr),
+								nr: k.nr,
+							}));
+						}}
+					/>
+				</span>
+			</Tooltip>
+		</Zeile>
 	);
 };
 
@@ -207,7 +204,10 @@ export const BogenTextFeld = ({ aktiv, k, leiste, quelle }: KonturBogenTeile & {
 		<input
 			type="text"
 			aria-label="Text im Bogen"
-			className="h-feld w-44 min-w-0 rounded-md border border-rand-feld bg-flaeche px-1.5 text-sm outline-none"
+			className={klassen(
+				'h-feld min-w-0 rounded-md border border-rand-feld bg-flaeche px-1.5 text-sm outline-none',
+				leiste ? 'w-44' : 'w-full',
+			)}
 			value={wert}
 			disabled={!aktiv}
 			{...(leiste ? { 'data-leiste-bogen-text': '' } : { 'data-bogen-text': '' })}
@@ -250,7 +250,6 @@ export const BogenGroesseFeld = ({ aktiv, k, quelle }: KonturBogenTeile) => {
 	return (
 		<span className="flex w-28" data-bogen-groesse>
 			<Zahl
-				titel="Größe"
 				name="Schriftgröße"
 				einheit="px"
 				wert={stand.gr}
@@ -291,7 +290,7 @@ export const KonturBogen = (teile: InspektorTeile) => {
 		<div className="flex flex-col gap-1" data-gestaltung-kontur-bogen>
 			{bogen && (
 				<>
-					<Zeile titel="Text">
+					<Zeile titel="Text" darunter>
 						<BogenTextFeld {...teile} />
 					</Zeile>
 					<Zeile titel="Schrift">
@@ -300,9 +299,9 @@ export const KonturBogen = (teile: InspektorTeile) => {
 					<Zeile titel="Größe" name={`Schriftgröße, ${GROESSE_MIN} bis ${GROESSE_MAX} px`}>
 						<BogenGroesseFeld {...teile} />
 					</Zeile>
-					<FarbZeile titel="Farbe">
+					<Zeile titel="Farbe" darunter>
 						<BogenFarbeWahl {...teile} />
-					</FarbZeile>
+					</Zeile>
 				</>
 			)}
 			<KonturWahl {...teile} />

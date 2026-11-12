@@ -17,15 +17,27 @@ interface Eigenschaften {
 	plusName?: string;
 	/** Breite des Werts, wenn lange Zahlen vorkommen. */
 	className?: string;
+	/** Steht im Wertfeld rechts der Zahl, nie daneben (182). */
+	einheit?: string;
 }
 
-const STUFE =
+/** Rahmen, Stufen und Wertfeld; `Abbildungspanel.tsx` nutzt sie für seine Zahlen, damit beide gleich aussehen. */
+export const STEPPER_RAHMEN =
+	'inline-flex h-feld flex-none items-stretch overflow-hidden rounded-md border border-rand-feld bg-flaeche has-[input:focus]:border-brand-500';
+
+export const STEPPER_STUFE =
 	'flex size-knopf-feld flex-none items-center justify-center text-leise hover:bg-flaeche-2 hover:text-tinte disabled:opacity-40';
+
+export const STEPPER_WERT =
+	'flex min-w-9 flex-none items-center justify-center gap-0.5 border-x border-rand px-1 text-sm tabular-nums';
+
+export const STEPPER_EINHEIT = 'flex-none text-xs text-dezent';
 
 /** − Wert +, für alle Zahlen. Der Wert lässt sich direkt eintippen; übernommen wird beim Verlassen oder mit ⏎. */
 export const Stepper = ({
 	aus,
 	className,
+	einheit,
 	id,
 	max,
 	min,
@@ -53,44 +65,43 @@ export const Stepper = ({
 	};
 	const rund = (n: number) => Number(n.toFixed(4));
 	return (
-		<div
-			className={klassen(
-				'inline-flex h-feld flex-none items-stretch overflow-hidden rounded-md border border-rand-feld bg-flaeche',
-				aus && 'opacity-50',
-			)}
-		>
+		<div className={klassen(STEPPER_RAHMEN, aus && 'opacity-50')}>
 			<button
 				type="button"
-				className={STUFE}
+				className={STEPPER_STUFE}
 				aria-label={minusName ?? `${name} kleiner`}
 				disabled={aus || (min !== undefined && wert <= min)}
 				onClick={() => setze(grenze(rund(wert - schritt)))}
 			>
 				<Symbol name="minus" className="size-3 flex-none" />
 			</button>
-			<input
-				id={id}
-				type="text"
-				inputMode="decimal"
-				aria-label={name}
-				disabled={aus}
-				className={klassen(
-					'w-9 min-w-0 border-x border-rand bg-transparent text-center text-sm tabular-nums outline-none',
-					className,
-				)}
-				value={text}
-				onChange={(e) => setText(e.target.value)}
-				onBlur={uebernimm}
-				onKeyDown={(e) => {
-					if (e.key === 'Enter') {
-						e.preventDefault();
-						uebernimm();
-					}
-				}}
-			/>
+			<label className={STEPPER_WERT}>
+				<input
+					id={id}
+					type="text"
+					inputMode="decimal"
+					aria-label={name}
+					disabled={aus}
+					className={klassen(
+						'w-7 min-w-0 bg-transparent outline-none',
+						einheit ? 'text-right' : 'text-center',
+						className,
+					)}
+					value={text}
+					onChange={(e) => setText(e.target.value)}
+					onBlur={uebernimm}
+					onKeyDown={(e) => {
+						if (e.key === 'Enter') {
+							e.preventDefault();
+							uebernimm();
+						}
+					}}
+				/>
+				{einheit && <span className={STEPPER_EINHEIT}>{einheit}</span>}
+			</label>
 			<button
 				type="button"
-				className={STUFE}
+				className={STEPPER_STUFE}
 				aria-label={plusName ?? `${name} größer`}
 				disabled={aus || (max !== undefined && wert >= max)}
 				onClick={() => setze(grenze(rund(wert + schritt)))}

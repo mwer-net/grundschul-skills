@@ -3,7 +3,7 @@ import type { PfadTeil } from '../../darstellung';
 import { bausteinVon, elementZu } from '../../darstellung';
 import type { Struktur } from '../../struktur';
 import { gruppiere, gruppiereMehrfach, INSPEKTOR_TEILE, MEHRFACH_TEILE } from './index';
-import { kontextFuerGestaltung, liegtFreiAuf } from './kontext-ersatz';
+import { kontextFuerGestaltung } from './kontext-ersatz';
 
 interface Eigenschaften {
 	/** Das gezeigte Blatt (171): Es bleibt beim Nachladen, deshalb wird der Inspektor nie leer. */
@@ -25,16 +25,6 @@ export const Gestaltungsinspektor = ({ doc, pfad, quelle, struktur }: Eigenschaf
 	const aktiv = struktur.aktiv;
 	return (
 		<div data-gestaltung-inspektor={k.art}>
-			{!liegtFreiAuf(k.baustein) && (
-				<p className="px-3 pb-2 text-sm text-leise" data-hinweis="blatt">
-					Farbe, Muster und Rahmen stellst du im Reiter „Blatt“ unter „Gestaltung“ ein.
-				</p>
-			)}
-			{k.nrn.length > 1 && (
-				<p className="px-3 pb-2 text-sm text-leise" data-hinweis="mehrfach">
-					{`${k.nrn.length} Elemente gewählt.`}
-				</p>
-			)}
 			{(k.nrn.length > 1
 				? gruppiereMehrfach(
 						[...MEHRFACH_TEILE, ...INSPEKTOR_TEILE],

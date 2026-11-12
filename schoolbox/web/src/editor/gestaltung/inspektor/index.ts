@@ -12,7 +12,6 @@ import { EBENE_TEILE } from './ebene';
 import { FIGUR_TEILE } from './figur';
 import { FORM_TEILE } from './form';
 import { FUELLUNG_TEILE } from './fuellung';
-import { GRUPPE_TEILE } from './gruppe';
 import { KOMBINIEREN_TEILE } from './kombinieren';
 import { KONTUR_BOGEN_TEILE } from './kontur-bogen';
 import { POSITION_TEILE } from './position';
@@ -39,6 +38,5 @@ export const INSPEKTOR_TEILE: readonly InspektorTeil[] = [
 	...EBENE_TEILE, // 099
 	...ANKER_TEILE, // 106
 	...DRUCK_TEILE, // 099
-	...GRUPPE_TEILE, // 120
 	...KOMBINIEREN_TEILE, // 121
 ];
