@@ -562,6 +562,13 @@ const kitKandidaten = (f: KitFeld): (string | number | boolean)[] => {
 	return ['Ab'];
 };
 
+/** Jede neue Quelle lädt in einen neuen Rahmen; bis er sichtbar ist, zeigt der alte noch den alten Stand. */
+const aendereImNeuenRahmen = async (page: Page, neu: string) => {
+	const alt = await rahmenVon(page);
+	await aendere(page, neu);
+	await expect.poll(async () => (await rahmenVon(page)) !== alt, { timeout: 15_000 }).toBe(true);
+};
+
 const pruefeKit = async (page: Page, e: KatalogEintrag, art: string, verstoesse: Verstoss[]) => {
 	const felder = KIT_FELDER[art] ?? [];
 	const q = await quelle(page);
@@ -615,15 +622,16 @@ const pruefeKit = async (page: Page, e: KatalogEintrag, art: string, verstoesse:
 			const schluessel = `${art}.${f.name}`;
 			if (!KIT_GEPRUEFT.has(schluessel) && f.typ !== 'text') {
 				KIT_GEPRUEFT.add(schluessel);
-				await aendere(page, neu);
+				await aendereImNeuenRahmen(page, neu);
 				if ((await seite()).equals(bezug)) {
+					// Geprüft wird je Art, nicht je Eintrag: Welcher Eintrag zuerst kommt, hängt an der Reihenfolge.
 					verstoesse.push({
 						regel: 'W2',
-						schluessel: `${e.id}.${f.name}=${String(w)}`,
+						schluessel: `${art}.${f.name}=${String(w)}`,
 						text: 'Das Gezeichnete ändert sich nicht.',
 					});
 				}
-				await aendere(page, q);
+				await aendereImNeuenRahmen(page, q);
 			}
 		}
 	}

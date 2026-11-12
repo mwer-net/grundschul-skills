@@ -35,7 +35,13 @@ export const BEKANNT: Readonly<Record<string, string>> = {
 	'W2 x-schaltplan.teile=umsortieren': 'Der Stromkreis bleibt derselbe, wenn man nur Batterie und Schalter tauscht.',
 	'W2 x-spielplan.inhalt=hinzufügen':
 		'Der Plan hat so viele Felder wie „Felder“ sagt; weitere Zeilen warten, bis der Plan wächst.',
+	'W2 aufgabe.afb=I': 'Der Anforderungsbereich steht nur im Erwartungshorizont der Lösung; der Starter hat keinen.',
+	'W2 tabelle.spaltenbreite=nach-inhalt':
+		'Die Zellen des Starters sind gleich kurz; „Nach Inhalt“ verteilt die Spalten dann wie „Gleich“.',
 };
 
-/** Darf nur sinken. Steigt die Zahl, schlägt die Maschine an. */
-export const BEKANNT_HOECHSTENS = 23;
+/**
+ * Darf nur sinken. Steigt die Zahl, schlägt die Maschine an. 25 seit 142–163: Die Kit-Prüfung wartet seitdem auf den
+ * neuen Rahmen und sieht die beiden letzten Einträge; vorher verglich sie oft noch den alten.
+ */
+export const BEKANNT_HOECHSTENS = 25;
