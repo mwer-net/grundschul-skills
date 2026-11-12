@@ -51,3 +51,17 @@ export const figurenIn = <F extends Pick<BibliotheksFigur, 'name'>>(text: string
 	}
 	return treffer.sort((a, b) => a.stelle - b.stelle).map((t) => t.figur);
 };
+
+// >> 179
+/** Höchstens so viele Figuren trägt ein Bild aus „Bilder“. */
+export const MAX_FIGUREN_JE_BILD = 4;
+
+/**
+ * Die Figuren für ein Bild aus „Bilder“: nur solche mit Steckbrief oder Media-ID. Im Bildlauf gibt es kein
+ * `referenz/<id>.png`, aus dem Claude das Aussehen ablesen könnte; jeder andere Name gilt als gewöhnlicher Name.
+ */
+export const figurenFuerBild = <F extends Pick<BibliotheksFigur, 'name' | 'steckbrief' | 'canva'>>(
+	text: string,
+	figuren: readonly F[],
+): F[] => figurenIn(text, figuren.filter((f) => f.steckbrief || f.canva));
+// << 179

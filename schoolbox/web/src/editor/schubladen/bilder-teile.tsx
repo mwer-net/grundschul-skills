@@ -1,19 +1,35 @@
 import type { Sammlung, SammlungsBild } from '@schoolbox/kern/src/bildbefehle';
 import { vorschaubildAdresse } from '@schoolbox/kern/src/bildbefehle';
+// >> 179
+import type { CanvaStand } from '@schoolbox/kern/src/canva-auftrag';
+// << 179
 import { fuegeBausteinEin } from '@schoolbox/kern/src/einfuegen';
 import { useEffect, useMemo, useRef, useState } from 'react';
 
+// >> 179
+import { meldung } from '../../api';
+// << 179
 import { Schublade, Schubladenabschnitt, Schubladensuche, STEUER_SEGMENT } from '../../bausteine/Schublade';
 import { Segment } from '../../bausteine/Segment';
+// >> 179
+import { useEreignisse } from '../../ereignisse';
+// << 179
 import { useLaden } from '../../lib/laden';
 import type { NeuerPlatz } from '../bild';
 import { beschreibungAus } from '../bild';
 import { passt } from '../bild-sammlung';
 import type { BildZiehen, SammlungsGruppe } from '../Bildpanel';
 import { Hochladen, Laeuft, SammlungsKacheln } from '../Bildpanel';
+// >> 179
+import { canvaAktion, starteBild, useCanvaLaeufe } from '../canva';
+// << 179
 import { bildGut, mitGeholtemBild } from '../gestaltung/ablegen/bild-gut';
 import { useHolenAmZeiger } from '../gestaltung/ablegen/holen-am-zeiger';
 import type { SchubladenTeile } from '.';
+// >> 179
+import { BildBeschreiben } from './bild-beschreiben';
+import { bildLaeufe, CanvaBildKacheln } from './CanvaKachel';
+// << 179
 import { kopf } from './reihe';
 
 /** Reihenfolge in der Schublade; Figuren stehen nur in „Figuren“ (177), der Server lässt sie hier schon weg. */
@@ -34,8 +50,18 @@ export const Inhalt = (t: SchubladenTeile) => {
 	const { daten, fehler, neuLaden } = useLaden<Sammlung>(`${bild.adresse}/bilder`);
 	const [gewaehlt, setGruppe] = useState<SammlungsGruppe | null>(null);
 	const [suche, setSuche] = useState('');
-	// Ohne eigene Wahl die erste Gruppe mit Bildern, damit die Schublade nicht leer aufgeht.
-	const gruppe = gewaehlt ?? GRUPPEN.find((g) => (daten?.[g.wert].length ?? 0) > 0)?.wert ?? 'mappe';
+	// >> 179
+	// Neue Bilder aus Canva: Aufträge dieses Blatts stehen vorn in „Dieser Ordner“, fertige laden die Liste neu.
+	const { laeufe } = useCanvaLaeufe();
+	const mitClaude = !(t.ki.geladen && !t.ki.verfuegbar);
+	const meineLaeufe = mitClaude ? bildLaeufe(laeufe, t.dokument) : [];
+	// Ohne eigene Wahl die erste Gruppe mit Bildern oder Aufträgen, damit die Schublade nicht leer aufgeht.
+	const gruppe =
+		gewaehlt ??
+		GRUPPEN.find((g) => (daten?.[g.wert].length ?? 0) > 0 || (g.wert === 'mappe' && meineLaeufe.length > 0))
+			?.wert ??
+		'mappe';
+	// << 179
 	const liste = useMemo(() => (daten ? daten[gruppe].filter((e) => passt(e, suche)) : []), [daten, gruppe, suche]);
 
 	// Nach dem Hochladen steht das Foto unter „Dieser Ordner“.
@@ -68,6 +94,26 @@ export const Inhalt = (t: SchubladenTeile) => {
 	const neu = ziel ? undefined : neuerPlatz(t);
 	const waehle = (eintrag: SammlungsBild) =>
 		void bild.uebernimm(eintrag.schluessel, eintrag.alt[0] ?? beschreibungAus(eintrag.name), neu);
+	// >> 179
+	const [canvaFehler, setCanvaFehler] = useState<string | null>(null);
+	useEreignisse((e) => {
+		if (e.typ === 'canva-stand' && e.art === 'bild' && e.status === 'fertig') {
+			neuLaden();
+		}
+	});
+	const auftraege = gruppe === 'mappe' && !suche.trim() ? meineLaeufe : [];
+	const nochmal = (stand: CanvaStand) =>
+		void starteBild({ mappe: stand.ziel.mappe ?? '', dok: stand.ziel.dok ?? '' }, stand.text).then(
+			() => canvaAktion(stand.id, 'verwerfen'),
+			(grund: unknown) => setCanvaFehler(meldung(grund)),
+		);
+	const hochladen =
+		bild.arbeit === 'hochladen' ? (
+			<Laeuft text="Foto wird hochgeladen …" />
+		) : (
+			<Hochladen bild={bild} neu={neu} breit={!mitClaude} klein={mitClaude} />
+		);
+	// << 179
 	const titel = GRUPPEN.find((g) => g.wert === gruppe)?.titel ?? '';
 	const zahl = daten?.[gruppe].length ?? 0;
 	const anzahl = zahl === 0 ? undefined : zahl === 1 ? '1 Bild' : `${zahl} Bilder`;
@@ -87,11 +133,23 @@ export const Inhalt = (t: SchubladenTeile) => {
 							wert={gruppe}
 							waehle={setGruppe}
 						/>
-						{bild.arbeit === 'hochladen' ? (
-							<Laeuft text="Foto wird hochgeladen …" />
+						{/* >> 179 */}
+						{mitClaude ? (
+							<BildBeschreiben
+								ki={t.ki}
+								ort={t.dokument}
+								hochladen={hochladen}
+								fehler={canvaFehler}
+								setFehler={setCanvaFehler}
+								gesendet={() => {
+									setGruppe('mappe');
+									setSuche('');
+								}}
+							/>
 						) : (
-							<Hochladen bild={bild} neu={neu} breit />
+							hochladen
 						)}
+						{/* << 179 */}
 					</>
 				}
 			>
@@ -107,6 +165,11 @@ export const Inhalt = (t: SchubladenTeile) => {
 						suche={suche}
 						waehle={waehle}
 						ziehen={ziehen}
+						// >> 179
+						vorne={
+							auftraege.length > 0 ? <CanvaBildKacheln laeufe={auftraege} nochmal={nochmal} /> : undefined
+						}
+						// << 179
 					/>
 				</Schubladenabschnitt>
 			</Schublade>

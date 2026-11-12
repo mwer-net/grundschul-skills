@@ -978,6 +978,9 @@ const Bearbeitung = ({ dokument, mappe: mappenDaten }: { mappe: Mappe; dokument:
 		einfuegen,
 		bild,
 		mappe: mappenDaten,
+		// >> 179
+		dokument: { mappe, dok },
+		// << 179
 		art: meta.art,
 		folien: format === 'folie',
 		gliederungStand,

@@ -25,7 +25,9 @@ interface Eigenschaften {
  */
 export const Schubladen = ({ grund = null, lage, teile, waehle, zeigt }: Eigenschaften) => {
 	const spalten = sichtbar(zeigt);
-	useCanvaMeldung(spalten.includes('figuren'), () => waehle('figuren'));
+	// >> 179
+	useCanvaMeldung(spalten, waehle);
+	// << 179
 	return (
 		<>
 			<Schubladenleiste

@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import { execFile, execFileSync } from 'node:child_process';
 import { existsSync } from 'node:fs';
-import { copyFile, mkdir, mkdtemp, readdir, readFile, rm, writeFile } from 'node:fs/promises';
+import { copyFile, mkdir, mkdtemp, readdir, readFile, rm, utimes, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
 import { describe, it } from 'node:test';
@@ -259,10 +259,9 @@ describe('Strichfassungen und Figurenbibliothek in der Sammlung (177)', () => {
 		await copyFile(path.join(ASSETS, 'bilder', 'wilma.png'), path.join(dort.dir, 'bilder', 'wilma.png'));
 
 		const s = await sammleBilder(KONFIG, materialDir, hier.mappe);
-		assert.deepEqual(
-			s.mappe.map((b) => b.name),
-			['foto.png', 'nur-strich.png'],
-		);
+		// >> 179
+		assert.deepEqual(s.mappe.map((b) => b.name).sort(), ['foto.png', 'nur-strich.png']);
+		// << 179
 		assert.deepEqual(s.meine, []);
 		assert.deepEqual(
 			s.figuren.map((b) => b.schluessel),
@@ -273,10 +272,9 @@ describe('Strichfassungen und Figurenbibliothek in der Sammlung (177)', () => {
 		// Gegenprobe: Ohne den Eintrag in figuren.json ist Kobi ein gewöhnliches Bild.
 		await writeFile(path.join(figuren, 'figuren.json'), JSON.stringify({ version: 1, figuren: [] }));
 		const ohne = await sammleBilder(KONFIG, materialDir, hier.mappe);
-		assert.deepEqual(
-			ohne.mappe.map((b) => b.name),
-			['foto.png', 'kobi-2.png', 'nur-strich.png'],
-		);
+		// >> 179
+		assert.deepEqual(ohne.mappe.map((b) => b.name).sort(), ['foto.png', 'kobi-2.png', 'nur-strich.png']);
+		// << 179
 		assert.deepEqual(
 			ohne.meine.map((b) => b.name),
 			['kobi.png'],
@@ -351,3 +349,25 @@ describe('blatt.py mit hochgeladenen Bildern', () => {
 		assert.match(stdout, /\b1800\s+2400\b/, 'das große Bild in voller Auflösung');
 	});
 });
+
+// >> 179
+describe('„Dieser Ordner“ in der Sammlung (179)', () => {
+	it('zeigt die neuesten Bilder zuerst, nicht nach Namen', async () => {
+		const { materialDir, neu } = await ablage();
+		const hier = await neu('Garten');
+		const daten = await foto(hier.dir, 300, 200);
+		const bilder = path.join(mappenDir(materialDir, hier.mappe), 'bilder');
+		await mkdir(bilder, { recursive: true });
+		await writeFile(path.join(bilder, 'aaa.jpg'), daten);
+		await writeFile(path.join(bilder, 'zzz.jpg'), daten);
+		const vorEinerStunde = new Date(Date.now() - 60 * 60 * 1000);
+		await utimes(path.join(bilder, 'aaa.jpg'), vorEinerStunde, vorEinerStunde);
+
+		const s = await sammleBilder(KONFIG, materialDir, hier.mappe);
+		assert.deepEqual(
+			s.mappe.map((b) => b.name),
+			['zzz.jpg', 'aaa.jpg'],
+		);
+	});
+});
+// << 179

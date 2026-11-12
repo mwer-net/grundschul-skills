@@ -71,7 +71,9 @@ export const bildStamm = (datei: string) => {
  * Ein freier Name in `bilder/`, auch nicht wie eins aus assets/bilder: Das Dokument würde es sonst verdecken. Frei ist
  * er nur, wenn auch `<stamm>-strich` frei ist; sonst druckte `blatt.py` eine fremde Strichfassung (177).
  */
-const freierStamm = async (bilderDir: string, wunsch: string) => {
+// >> 179
+export const freierStamm = async (bilderDir: string, wunsch: string) => {
+	// << 179
 	const vorhanden = await Promise.all([bilderDir, path.join(ASSETS, BILDER)].map((d) => readdir(d).catch(() => [])));
 	const belegt = new Set(vorhanden.flat().map(stammVon));
 	return eindeutigeId(wunsch, (k) => belegt.has(k) || belegt.has(`${k}${STRICH}`));
@@ -302,7 +304,11 @@ export const sammleBilder = async (
 		.map(({ d }) => eintrag(d, `${ASSETS_SCHLUESSEL}/${BILDER}/${path.basename(d)}`))
 		.sort(nachName);
 	const eigene = fundorte.find((f) => f.mappe.id === mappeId);
-	const mappe = (eigene?.dateien ?? []).map(({ d }) => eintrag(d, relativ(d))).sort(nachName);
+	// >> 179
+	const mappe = [...(eigene?.dateien ?? [])]
+		.sort((a, b) => b.zeit - a.zeit || path.basename(a.d).localeCompare(path.basename(b.d), 'de'))
+		.map(({ d }) => eintrag(d, relativ(d)));
+	// << 179
 	const meine = fundorte
 		.filter((f) => f.mappe.id !== mappeId)
 		.flatMap((f) => f.dateien.map((x) => ({ ...x, titel: f.mappe.titel })))

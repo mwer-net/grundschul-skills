@@ -186,6 +186,17 @@ export const GESTALTEN: Abschnitt = {
 				„Anordnen“. ⌘Z nimmt jeden Schritt zurück.
 			</p>
 
+			{/* >> 179 */}
+			<h3>Bild beschreiben</h3>
+			<p data-hilfe-bild-beschreiben>
+				Oben in der Schublade „Bilder“ beschreibst du ein Bild, etwa „Willi und Wilma pflanzen im Garten eine
+				Sonnenblume“, und drückst Enter. Claude malt es in Canva; das dauert ein bis zwei Minuten. Danach steht es
+				vorn unter „Dieser Ordner“ und lässt sich einsetzen wie jedes Bild. Nennst du Figuren aus der Schublade
+				„Figuren“, sehen sie in jedem Bild gleich aus. Ein Bild zeigt höchstens vier Figuren. Enter noch einmal gibt
+				eine weitere Fassung.
+			</p>
+			{/* << 179 */}
+
 			<h3>Formen</h3>
 			<p data-hilfe-formen>
 				In der Schublade „Werkzeuge“ liegen Kreis, Rechteck, Dreieck, Stern, Herz, Pfeil, Wolke, Sechseck und

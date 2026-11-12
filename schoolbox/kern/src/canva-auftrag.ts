@@ -59,9 +59,11 @@ export const FIGUR_BILD = 'bild.png';
 /** Willi ist die Stil-Referenz für neue Figuren und für Figuren ohne eigene Referenz. */
 const STIL = FIGUREN.find((f) => f.id === 'willi')?.canva ?? '';
 
-const einzeilig = (text: string) =>
+// >> 179
+export const einzeilig = (text: string) =>
 	// eslint-disable-next-line no-control-regex
 	text.replace(/[\u0000-\u001f\u007f-\u009f\u2028\u2029]+/g, ' ').trim();
+// << 179
 
 /** `referenz/<id>.<endung der Grundpose>` im Arbeitsordner; nur für eine Figur ohne Steckbrief. */
 export const referenzDatei = (figur: Pick<CanvaFigur, 'id' | 'farbbild'>) =>

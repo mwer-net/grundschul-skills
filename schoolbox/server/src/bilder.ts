@@ -1,8 +1,28 @@
-import { druckfassung, MAX_BILD_BYTES, nimmBildAuf, sammleBilder, uebernimmBild } from '@schoolbox/kern';
+// >> 179
+import { readFile } from 'node:fs/promises';
+import path from 'node:path';
+
+import {
+	CANVA_TEXT_ZEICHEN,
+	druckfassung,
+	figurenFuerBild,
+	leseBibliothek,
+	leseBlatt,
+	MAX_BILD_BYTES,
+	MAX_FIGUREN_JE_BILD,
+	nimmBildAuf,
+	sammleBilder,
+	uebernimmBild,
+	WURZEL,
+} from '@schoolbox/kern';
+// << 179
 import type { NextFunction, Request, Response } from 'express';
 import { raw, Router } from 'express';
 
-import { verlangeDokument } from './dokumente';
+// >> 179
+import { bildAuftragText, legeBildAb } from './bild-beschreiben';
+import { leseQuelle, verlangeDokument } from './dokumente';
+// << 179
 import { HttpFehler } from './fehler';
 import type { Kontext } from './kontext';
 import { dokSchluessel } from './kontext';
@@ -79,6 +99,37 @@ export const bilderApi = (kontext: Kontext) => {
 			),
 		);
 	});
+
+	// >> 179
+	/** Ein neues Bild über Canva (176). Es landet in `bilder/` der Mappe; material.html ändert sich nicht. */
+	router.post('/beschreiben', async (req, res) => {
+		const { dir, dok, mappe } = ziel(req);
+		const roh = (req.body as { text?: unknown } | undefined)?.text;
+		const text = typeof roh === 'string' ? roh.trim() : '';
+		if (!text) {
+			throw new HttpFehler(400, 'Beschreibe das Bild.');
+		}
+		if (text.length > CANVA_TEXT_ZEICHEN) {
+			throw new HttpFehler(400, `Höchstens ${CANVA_TEXT_ZEICHEN} Zeichen.`);
+		}
+		const figuren = figurenFuerBild(text, await leseBibliothek(konfig, konfig.materialDir));
+		if (figuren.length > MAX_FIGUREN_JE_BILD) {
+			throw new HttpFehler(400, 'Höchstens vier Figuren je Bild.');
+		}
+		const { palette } = leseBlatt(await leseQuelle(dir));
+		const vorlage = await readFile(path.join(WURZEL, 'schoolbox', 'vorlagen', 'ki', 'bild.md'), 'utf8');
+		const stand = kontext.canva.starte(
+			{
+				art: 'bild',
+				text,
+				auftrag: `${vorlage.trimEnd()}\n\n${bildAuftragText({ text, figuren, palette })}`,
+				ziel: { mappe, dok },
+			},
+			{ uebernimm: (e) => legeBildAb(konfig.materialDir, mappe, e) },
+		);
+		res.status(201).json({ id: stand.id });
+	});
+	// << 179
 
 	return router;
 };

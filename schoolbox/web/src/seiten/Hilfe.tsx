@@ -297,15 +297,17 @@ const ABSCHNITTE: Abschnitt[] = [
 						bei Absätzen, Zellen und Listenpunkten: Lücken, Wörter mischen, Buchstaben mischen. Daraus wird
 						ein neuer Baustein, Rückgängig holt den Text zurück.
 					</Punkt>
+					{/* >> 179 */}
 					<Punkt titel="Bilder">
 						Bild antippen, dann austauschen, eigenes hochladen oder an den Ecken größer und kleiner ziehen.
 						Links in der Schublade „Bilder“ (
 						<SchubladenTaste id="bilder" />
 						) stehen deine Fotos, die Bilder dieses Ordners, deiner anderen Ordner und der Sammlung, mit
-						Suche und „Foto hochladen“. Ein Klick tauscht das gewählte Bild aus oder füllt den gewählten
-						Platzhalter oder Bildrahmen; ist nichts davon gewählt, kommt das Bild als neuer Baustein hinter
-						die Auswahl.
+						Suche, „Foto hochladen“ und „Bild beschreiben …“ für ein neues Bild aus Canva. Ein Klick tauscht
+						das gewählte Bild aus oder füllt den gewählten Platzhalter oder Bildrahmen; ist nichts davon
+						gewählt, kommt das Bild als neuer Baustein hinter die Auswahl.
 					</Punkt>
+					{/* << 179 */}
 					<Punkt titel="Lösung">oben auf „Lösung“ wechseln und die Lösungen eintragen.</Punkt>
 					<Punkt titel="Rückgängig">
 						der Pfeil oben oder ⌘Z, beides tut dasselbe. Der betroffene Baustein ist danach gewählt. Ein
@@ -465,18 +467,22 @@ const ABSCHNITTE: Abschnitt[] = [
 					Papierkorb, von dort holst du ihn zurück.
 				</p>
 				<h3>Was weiter die Claude-App braucht</h3>
+				{/* >> 179 */}
 				<p>
-					Neue Bilder für ein einzelnes Blatt und Reihen, die du im Gespräch planen willst. Für einen
-					bestimmten Teil in der Blase unter ⋯ „In der Claude-App weiterarbeiten“, in der App einfügen und den
-					Wunsch dahinterschreiben. Die zwei eingefügten Zeilen gehören so; die zweite ist für Claude.
+					Reihen, die du im Gespräch planen willst. Für einen bestimmten Teil in der Blase unter ⋯ „In der
+					Claude-App weiterarbeiten“, in der App einfügen und den Wunsch dahinterschreiben. Die zwei
+					eingefügten Zeilen gehören so; die zweite ist für Claude.
 				</p>
+				{/* << 179 */}
 				<h3>Verbrauch</h3>
+				{/* >> 179 */}
 				<p>
 					Alles zählt für das Limit deines Claude-Kontos, zusammen mit der Claude-App. Eine Änderung braucht
-					wenig, neues Material deutlich mehr und einige Minuten. Wird es knapp, steht das in der Blase. Hast
-					du Guthaben gekauft, arbeitet Claude am erreichten Limit darüber weiter, das ist echtes Geld. Auch
-					das steht dann in der Blase.
+					wenig, ein neues Bild etwas mehr, neues Material deutlich mehr und einige Minuten. Wird es knapp,
+					steht das in der Blase. Hast du Guthaben gekauft, arbeitet Claude am erreichten Limit darüber
+					weiter, das ist echtes Geld. Auch das steht dann in der Blase.
 				</p>
+				{/* << 179 */}
 			</>
 		),
 		bilder: [
