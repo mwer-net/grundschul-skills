@@ -9,10 +9,12 @@ import type { Druckprofil } from '@schoolbox/kern/src/werte';
 
 /**
  * Nur im Editor: kein Markieren von Text, kein Lupen-Menü beim langen Drücken auf dem iPad. Ausnahme ist der Text,
- * der gerade bearbeitet wird. In der Lösungsansicht sind Antwortlinien ohne Lösung gelb gestreift mit „?“ (019).
+ * der gerade bearbeitet wird. Aufziehen zoomt das Blatt, nicht die Seite (184). In der Lösungsansicht sind
+ * Antwortlinien ohne Lösung gelb gestreift mit „?“ (019).
  */
 const EDITOR_STIL =
-	'<style data-editor data-grau-roh>html,body{-webkit-user-select:none;user-select:none;-webkit-touch-callout:none}' +
+	'<style data-editor data-grau-roh>html,body{-webkit-user-select:none;user-select:none;-webkit-touch-callout:none;' +
+	'touch-action:pan-x pan-y}' +
 	'img{-webkit-user-drag:none}' +
 	'[contenteditable=true]{-webkit-user-select:text;user-select:text;-webkit-touch-callout:default;cursor:text;' +
 	'outline:none}[contenteditable=true] [contenteditable=false]{-webkit-user-select:none;user-select:none}' +

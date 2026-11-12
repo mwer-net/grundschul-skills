@@ -15,16 +15,18 @@ const KNOPF =
 
 interface ZoomEigenschaften {
 	zoom: ZoomWert;
-	/** Der wirksame Faktor, auch beim Einpassen. */
-	stufe: number;
-	/** Der echte Maßstab des Blatts. */
+	// >> 184
+	/** Der echte Maßstab des Blatts, auch beim Einpassen. */
 	skala: number;
+	// << 184
 	fuehreAus: (id: string) => unknown;
 }
 
-const Zoom = ({ fuehreAus, skala, stufe, zoom }: ZoomEigenschaften) => {
-	const kleiner = naechsteStufe(stufe, -1);
-	const groesser = naechsteStufe(stufe, 1);
+// >> 184
+const Zoom = ({ fuehreAus, skala, zoom }: ZoomEigenschaften) => {
+	const kleiner = naechsteStufe(skala, -1);
+	const groesser = naechsteStufe(skala, 1);
+	// << 184
 	return (
 		<div className="flex items-center gap-0.5" role="group" aria-label="Größe">
 			<Tooltip
@@ -156,7 +158,6 @@ export const Statusleiste = ({
 	seite,
 	setRechtsOffen,
 	skala,
-	stufe,
 	verschiebe,
 	zeigeClaude,
 	zeigePunkt,
@@ -182,7 +183,9 @@ export const Statusleiste = ({
 			<Pruefstatus stand={pruefung} zeige={zeigePunkt} verschiebe={verschiebe} />
 			{claude && <ClaudeStand lauf={claude} oeffne={zeigeClaude} />}
 		</div>
-		<Zoom zoom={zoom} stufe={stufe} skala={skala} fuehreAus={fuehreAus} />
+		{/* >> 184 */}
+		<Zoom zoom={zoom} skala={skala} fuehreAus={fuehreAus} />
+		{/* << 184 */}
 		<div className="flex items-center justify-end gap-2">
 			<Tooltip text="Befehle" kuerzel={kuerzelVon('ansicht.palette')}>
 				<button
