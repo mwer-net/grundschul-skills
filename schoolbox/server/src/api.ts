@@ -17,6 +17,9 @@ import type { RequestHandler } from 'express';
 import { json, Router } from 'express';
 
 import { bilderApi } from './bilder';
+// >> 176
+import { canvaApi } from './canva-lauf';
+// << 176
 import { istAusgabeVeraltet, leseQuelle, nimmFremdeAenderungAuf, schreibeQuelle, verlangeDokument } from './dokumente';
 import { eigeneApi } from './eigene';
 import { einheitApi } from './einheit';
@@ -220,6 +223,9 @@ export const apiRouter = (kontext: Kontext) => {
 
 	kiApi(router, kontext);
 	einheitApi(router, kontext);
+	// >> 176
+	canvaApi(router, kontext);
+	// << 176
 
 	router.get('/ereignisse', ereignisStrom(kontext));
 

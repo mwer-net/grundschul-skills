@@ -1,5 +1,8 @@
 import { Schubladenleiste } from '../../bausteine/Schubladenleiste';
 import { kuerzelText } from '../befehle';
+// >> 176
+import { useCanvaMeldung } from '../canva';
+// << 176
 import { halteFokus } from '../halteFokus';
 import type { SchubladenId, SchubladenLage, SchubladenTeile } from '.';
 import { SCHUBLADEN, schubladeVon } from '.';
@@ -24,6 +27,9 @@ interface Eigenschaften {
  */
 export const Schubladen = ({ grund = null, lage, teile, waehle, zeigt }: Eigenschaften) => {
 	const spalten = sichtbar(zeigt);
+	// >> 176
+	useCanvaMeldung(spalten.includes('figuren'), () => waehle('figuren'));
+	// << 176
 	return (
 		<>
 			<Schubladenleiste

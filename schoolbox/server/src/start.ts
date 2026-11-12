@@ -42,6 +42,9 @@ const starte = async () => {
 	kontext.ki.starteAufraeumen();
 	await kontext.einheiten.beendeReste();
 	kontext.einheiten.starteAufraeumen();
+	// >> 176
+	await kontext.canva.beendeReste();
+	// << 176
 	await kontext.ordner.abgleichen();
 	const ueberwachung = await starteUeberwachung(kontext);
 	const aufraeumen = starteAufraeumen(kontext);
@@ -60,6 +63,9 @@ const starte = async () => {
 		aufraeumen.stop();
 		kontext.ki.stop();
 		kontext.einheiten.stop();
+		// >> 176
+		kontext.canva.stop();
+		// << 176
 		server.close(() => process.exit(0));
 		server.closeAllConnections();
 		setTimeout(() => process.exit(0), SCHLIESSEN_MS).unref();

@@ -104,6 +104,23 @@ process.stdin.on('end', () => {
 		})();
 		return;
 	}
+	// >> 176
+	// Ein Canva-Bild. Die Adresse in bilder.json lädt nie (kein Netz), deshalb legt der Fall das Bild selbst nach bilder/.
+	if (fall.startsWith('canva')) {
+		(async () => {
+			if (fall === 'canva-pause') { fs.writeFileSync('ergebnis.json', JSON.stringify({ fehler: 'canva-pause' })); ende({ result: 'Canva macht eine Pause.' }); return; }
+			const png = Buffer.from('iVBORw0KGgoAAAANSUhEUgAAADAAAAAwCAYAAABXAvmHAAAA/0lEQVR42u2ZyxHCMAxEra2GIigiFVAcFaQIiqAbODHDgVgfy7ZMtOdg7ZMyyngpJZVKpWaKvA/crpcX98z+eFIoAInpXjDkbfy+8b+77X4g5GVeYpwDsUBQq3mL8RqIFoKs5j2MH4FoIBDF/Pe5mqWAKOatEIhk3gIB7bYZLa4+tF0ZJWk9RO6+xAcidl9TF2VxIcrmsW6k/51AAiRAAiRAAjQBfG5Fvy7gI8Xd0s7xCs2agqRuFcAzQWtRzQc8uzG6+yKA2VPg6kNzyKgpaPIhaDvRG0IbbsEyzl4QlmTufNnoUVKwVDpdizuW+X+AA/Fak0MAtDBRvvCpVCqA3uJygkAbuBVtAAAAAElFTkSuQmCC', 'base64');
+			fs.mkdirSync('bilder', { recursive: true });
+			fs.writeFileSync('bilder/bild.png', fall === 'canva-kein-png' ? 'kein Bild' : png);
+			fs.writeFileSync('bilder.json', JSON.stringify([{ datei: 'bild.png', url: 'https://attrappe.invalid/bild.png', motiv: 'Willi mit Lupe', mediaId: 'MAattrappe1' }]));
+			const neu = /^Neue Figur\./m.test(eingabe);
+			fs.writeFileSync('ergebnis.json', JSON.stringify({ wort: 'lupe', ...(neu ? { name: 'Igel', steckbrief: 'kleiner brauner Igel mit hellem Bauch, gelbes Halstuch' } : {}) }));
+			await new Promise((r) => setTimeout(r, 2500));
+			ende({ result: 'Bild fertig.' });
+		})();
+		return;
+	}
+	// << 176
 	const aendere = () => { const d = 'material.html'; const alt = fs.readFileSync(d, 'utf8'); fs.writeFileSync(d, alt.includes('</h1>') ? alt.replace('</h1>', ' von Claude</h1>') : alt.includes('</section>') ? alt.replace('</section>', '<p>von Claude</p></section>') : alt.replace(/^\s*<[a-z-]+/, '$& data-von-claude')); };
 	if (fall === 'haenger') { setInterval(() => {}, 1000); return; }
 	if (fall === 'fehler') { sag({ type: 'assistant', error: 'rate_limit', message: { content: [] } }); ende({ is_error: true, result: 'limit' }); process.exit(1); }
@@ -245,6 +262,9 @@ export const starteTestServer = async (optionen: TestServerOptionen = {}) => {
 		ueberwachung?.stop();
 		kontext.ki.stop();
 		kontext.einheiten.stop();
+		// >> 176
+		kontext.canva.stop();
+		// << 176
 		server.closeAllConnections();
 		await new Promise<void>((resolve) => server.close(() => resolve()));
 	};

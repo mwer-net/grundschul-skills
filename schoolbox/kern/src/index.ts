@@ -7,10 +7,16 @@ export * from './bauen';
 export * from './bausteine';
 export * from './bildbefehle';
 export * from './bilder';
+// >> 176
+export * from './canva-auftrag';
+// << 176
 export * from './eigene';
 export * from './einfuegen';
 export * from './einheit';
 export * from './fehler';
+// >> 176
+export * from './figuren-namen';
+// << 176
 export * from './figurenbibliothek';
 export type { BibliotheksFigur, Pose } from './figuren';
 export * from './frei';
