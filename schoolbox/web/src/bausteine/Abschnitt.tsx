@@ -57,7 +57,7 @@ export const Abschnitt = ({ children, className, einklappbar, name, notiz, titel
 					{notiz && <span className="font-normal text-dezent">{notiz}</span>}
 				</button>
 			) : (
-				<h3 className="flex min-h-5 items-center justify-between gap-2 text-xs font-semibold text-leise">
+				<h3 className="flex h-menue items-center justify-between gap-2 text-xs font-semibold text-leise">
 					<span className="min-w-0 truncate">{titel}</span>
 					{notiz && <span className="font-normal text-dezent">{notiz}</span>}
 				</h3>

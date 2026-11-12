@@ -68,15 +68,18 @@ test.describe('Schmuckschrift mit Kontur', () => {
 		expect(weiss).toBeGreaterThan(200);
 	});
 
-	test('Kontur an und aus im Inspektor, je ein Schritt; Stärke und Farbe', async ({ page }) => {
+	test('Schalter „Kontur“ im Inspektor, je ein Schritt; Stärke und Farbe', async ({ page }) => {
 		await oeffneBlatt(page, [TITEL]);
 		await waehle(page, titel(page), 'schmuck');
-		await page.locator('[data-kontur-schalter]').click();
+		const schalter = page.getByRole('switch', { name: 'Kontur', exact: true });
+		await expect(schalter).toHaveAttribute('aria-checked', 'false');
+		await schalter.click();
 		await expect.poll(() => quelle(page)).toMatch(/data-kontur=""[^>]*--kontur:6px;--kontur-farbe:#ffffff/);
+		await expect(schalter).toHaveAttribute('aria-checked', 'true');
 		await page.getByRole('textbox', { name: 'Konturstärke' }).fill('9');
 		await page.keyboard.press('Enter');
 		await expect.poll(() => quelle(page)).toContain('--kontur:9px');
-		await page.locator('[data-kontur-schalter]').click();
+		await schalter.click();
 		await expect.poll(() => quelle(page)).not.toContain('data-kontur');
 		await zurueck(page).click();
 		await expect.poll(() => quelle(page)).toContain('--kontur:9px');
@@ -109,7 +112,7 @@ test.describe('Titel im Bogen', () => {
 		await oeffneBlatt(page, [TITEL]);
 		const start = await quelle(page);
 		await waehle(page, titel(page), 'schmuck');
-		await page.locator('[data-bogen-schalter]').click();
+		await page.getByRole('switch', { name: 'Bogen', exact: true }).click();
 		await expect.poll(() => quelle(page)).toContain('data-schmuck="bogen"');
 		await expect(bogen(page)).toHaveCount(1);
 		await expect.poll(() => quelle(page)).toContain('>Zirkus</textPath>');
@@ -124,7 +127,9 @@ test.describe('Titel im Bogen', () => {
 		await page.keyboard.press('Enter');
 		await expect.poll(() => quelle(page)).toContain('>Mathe-Zirkus</textPath>');
 
-		await page.locator('[data-bogen-schalter]').click();
+		const schalter = page.getByRole('switch', { name: 'Bogen', exact: true });
+		await expect(schalter).toHaveAttribute('aria-checked', 'true');
+		await schalter.click();
 		await expect.poll(() => quelle(page)).toContain('data-schmuck="titel"');
 
 		for (let i = 0; i < 4; i += 1) {

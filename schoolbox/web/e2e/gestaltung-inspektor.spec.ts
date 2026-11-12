@@ -57,13 +57,13 @@ test.describe('Inspektor und Leiste am Element (099)', () => {
 		await expect(page.locator('[data-gestaltung-ebene="hinten"]')).toBeVisible();
 	});
 
-	test('„In s/w: weg“ setzt data-sw, zurück auf den Standard entfernt es', async ({ druecke, page }) => {
+	test('„In s/w: Weg“ setzt data-sw, zurück auf den Standard entfernt es', async ({ druecke, page }) => {
 		await mitGewaehlterFigur(page, druecke);
 		const sw = page.getByRole('group', { name: 'In s/w' });
-		await expect(sw.getByRole('button', { name: 'grau' })).toHaveAttribute('aria-pressed', 'true');
-		await druecke(sw.getByRole('button', { name: 'weg' }));
+		await expect(sw.getByRole('button', { name: 'Grau', exact: true })).toHaveAttribute('aria-pressed', 'true');
+		await druecke(sw.getByRole('button', { name: 'Weg', exact: true }));
 		await expect.poll(() => quelle(page)).toContain('data-sw="weg"');
-		await druecke(sw.getByRole('button', { name: 'grau' }));
+		await druecke(sw.getByRole('button', { name: 'Grau', exact: true }));
 		await expect.poll(() => quelle(page)).not.toContain('data-sw');
 	});
 

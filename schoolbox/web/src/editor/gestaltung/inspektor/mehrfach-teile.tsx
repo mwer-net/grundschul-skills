@@ -2,8 +2,8 @@ import { formVon } from '@schoolbox/kern/src/formen';
 import { leseForm, setzeFuellung } from '@schoolbox/kern/src/formen-aendern';
 import { fuerAlle } from '@schoolbox/kern/src/gestaltung';
 
+import { Zeile } from '../../../bausteine/Zeile';
 import { pfadDerForm } from '../anzeige-folgen';
-import { FarbZeile } from '../blatt/flaeche';
 import { skaliereMit } from '../geste';
 import { useLiveLage } from '../live-lage';
 import { elementeZu, rechteckVon, umschliessend } from '../mehrfach';
@@ -90,14 +90,23 @@ export const MehrfachFuellung = (t: InspektorTeile) => {
 	const gleich = werte.every((w) => w === werte[0]);
 	return (
 		<div className="flex flex-col gap-1" data-gestaltung-fuellung="mehrfach">
-			<FarbZeile titel="Füllung">
-				{!gleich && <Gemischt />}
+			<Zeile
+				titel={
+					<span className="flex items-center gap-1.5">
+						Füllung
+						{!gleich && <Gemischt />}
+					</span>
+				}
+				name="Füllung"
+				darunter
+			>
 				<Farben
 					name="form-fuellung"
 					beschriftung="Füllung"
 					doc={k.doc}
 					aus={!aktiv}
 					wert={gleich ? (werte[0] ?? null) : null}
+					gemischt={!gleich}
 					setze={(farbe) => {
 						k.fuehreAus(farbe === null ? 'Füllung entfernt' : 'Füllung geändert', (q) => ({
 							quelle: fuerAlle(q, k.nrn, (q2, n) => setzeFuellung(q2, n, farbe)).quelle,
@@ -110,7 +119,7 @@ export const MehrfachFuellung = (t: InspektorTeile) => {
 						}
 					}}
 				/>
-			</FarbZeile>
+			</Zeile>
 		</div>
 	);
 };

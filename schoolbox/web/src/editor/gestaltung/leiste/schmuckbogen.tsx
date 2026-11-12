@@ -2,6 +2,7 @@ import { leseBogen } from '@schoolbox/kern/src/bogen';
 
 import { Knopf } from '../../../bausteine/Knopf';
 import { Popover } from '../../../bausteine/Popover';
+import { Zeile } from '../../../bausteine/Zeile';
 import {
 	BogenFarbeWahl,
 	BogenGroesseFeld,
@@ -58,7 +59,9 @@ const SchmuckbogenKnoepfe = ({ aktiv, k, quelle }: LeistenTeile) => {
 				<BogenSchriftWahl {...teile} />
 			</Popover>
 			<Popover name="Größe" className="w-auto" ausloeser={groesseKnopf}>
-				<BogenGroesseFeld {...teile} />
+				<Zeile titel="Größe">
+					<BogenGroesseFeld {...teile} />
+				</Zeile>
 			</Popover>
 			<Popover name="Farbe" className="w-auto max-w-72" ausloeser={farbeKnopf}>
 				<BogenFarbeWahl {...teile} />

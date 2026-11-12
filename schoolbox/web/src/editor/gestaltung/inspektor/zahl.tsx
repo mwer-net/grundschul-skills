@@ -3,8 +3,8 @@ import { useEffect, useState } from 'react';
 import { klassen } from '../../../bausteine/klassen';
 
 interface Eigenschaften {
-	/** Kurzer Titel vor dem Wert, z. B. „X“. */
-	titel: string;
+	/** Kurzer Titel vor dem Wert, z. B. „X“; ohne, wenn die Zeile den Wert schon beschriftet (182). */
+	titel?: string;
 	/** Name für Hilfsmittel und Tests, z. B. „X-Position“. */
 	name: string;
 	wert: number;
@@ -54,7 +54,7 @@ export const Zahl = ({ aus, einheit, fest, name, setze, titel, wert, zeige }: Ei
 			)}
 			data-zahl={name}
 		>
-			<span className="flex-none text-xs text-leise">{titel}</span>
+			{titel && <span className="flex-none text-xs text-leise">{titel}</span>}
 			<input
 				type="text"
 				inputMode="decimal"

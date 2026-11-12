@@ -188,8 +188,12 @@ test.describe('Mehrfachauswahl (113)', () => {
 	test('der Inspektor zeigt „gemischt“ bei verschiedenen Füllungen', async ({ page }) => {
 		await blatt(page, { vorne: [A, B.replace('var(--akzent)', 'var(--haupt)'), C] });
 		await waehleDrei(page);
-		await expect(page.locator('[data-hinweis="mehrfach"]')).toContainText('3 Elemente');
-		await expect(page.locator('[data-gestaltung-fuellung="mehrfach"] [data-gemischt]')).toBeVisible();
+		const fuellung = page.locator('[data-gestaltung-fuellung="mehrfach"]');
+		await expect(fuellung.locator('[data-gemischt]')).toBeVisible();
+		// 182: Gemischt heißt, kein Punkt trägt einen Ring; ein Satz „3 Elemente gewählt.“ steht nicht mehr da.
+		await expect(fuellung.locator('[data-farbe][aria-pressed="true"]')).toHaveCount(0);
+		await expect(fuellung.locator('label[data-gewaehlt]')).toHaveCount(0);
+		await expect(page.getByText('Elemente gewählt.')).toHaveCount(0);
 		await expect(page.locator('[data-gestaltung-position="mehrfach"]')).toBeVisible();
 	});
 

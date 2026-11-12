@@ -1,10 +1,12 @@
 import { BLATT_FARBEN, WEISS } from '@schoolbox/kern/src/blatt-farben';
 import { useState } from 'react';
 
+import { Farbpunkt } from '../bausteine/Farbfeld';
 import { klassen } from '../bausteine/klassen';
 import { Knopf } from '../bausteine/Knopf';
 import { Symbol } from '../bausteine/Symbol';
 import { Tooltip } from '../bausteine/Tooltip';
+import { sichtbar } from '../bausteine/verlauf';
 import { kuerzelText } from './befehle';
 import { halteFokus } from './halteFokus';
 import type { useText } from './text';
@@ -13,16 +15,6 @@ import { SCHRIFT_TASTEN } from './textdom';
 type Text = ReturnType<typeof useText>;
 
 const FORM = 'size-knopf-klein px-0 aria-pressed:bg-flaeche-2 aria-pressed:text-tinte';
-
-// Farbe für Wörter
-const PUNKT =
-	'flex size-knopf-klein flex-none items-center justify-center rounded-full border border-rand p-0.5 hover:border-tinte';
-
-/** Wie die Variable im Material aussieht; ohne Material ein neutrales Grau. */
-const farbeIm = (doc: Document | null, variable: string) => {
-	const body = doc?.body;
-	return (body && doc.defaultView?.getComputedStyle(body).getPropertyValue(variable).trim()) || '#999999';
-};
 
 /**
  * Nur in Schmuckschrift und Form mit Text (105): Der Knopf klappt die Farben des Blatts auf, ein Klick färbt die
@@ -60,26 +52,18 @@ const WortFarbe = ({ text }: { text: Text }) => {
 						...BLATT_FARBEN.map((f) => ({
 							wert: f.wert,
 							name: f.name,
-							zeige: farbeIm(text.doc, f.variable),
+							zeige: sichtbar(text.doc, f.variable),
 						})),
 						{ wert: WEISS, name: 'Weiß', zeige: WEISS },
 					].map((f) => (
-						<button
+						<Farbpunkt
 							key={f.wert}
-							type="button"
-							className={PUNKT}
-							aria-label={f.name}
-							title={f.name}
+							name={f.name}
+							farbe={f.zeige}
 							data-farbe={f.wert}
 							{...halteFokus}
 							onClick={() => waehle(f.wert)}
-						>
-							<span
-								aria-hidden
-								className="block size-full min-h-4 rounded-full border border-black/10"
-								style={{ background: f.zeige }}
-							/>
-						</button>
+						/>
 					))}
 					<Knopf
 						art="leise"

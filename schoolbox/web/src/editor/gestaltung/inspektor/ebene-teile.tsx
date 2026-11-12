@@ -28,7 +28,8 @@ export const Ebene = ({ aktiv, k, quelle }: InspektorTeile) => {
 	const ok = leseUeberlagertOk(quelle, k.nr);
 	return (
 		<div className="flex flex-col gap-1" data-gestaltung-ebene={ebene ?? 'anker'}>
-			{ebene ? (
+			{/* 106: Am Anker gibt es kein „hinten“ (3.5), also keine Wahl. */}
+			{ebene && (
 				<Segment
 					beschriftung="Ebene"
 					className="self-start"
@@ -41,19 +42,6 @@ export const Ebene = ({ aktiv, k, quelle }: InspektorTeile) => {
 						);
 					}}
 				/>
-			) : (
-				<>
-					{/* 106: Am Anker gibt es kein „hinten“ (3.5). */}
-					<Segment
-						beschriftung="Ebene"
-						className="self-start"
-						werte={EBENEN}
-						wert="vorne"
-						aus
-						waehle={() => undefined}
-					/>
-					<p className="text-sm text-leise">Am Anker liegt es immer vorne.</p>
-				</>
 			)}
 			<div className="flex h-zeile items-center justify-between gap-2">
 				<span className="text-leise">Darf Inhalt überdecken</span>

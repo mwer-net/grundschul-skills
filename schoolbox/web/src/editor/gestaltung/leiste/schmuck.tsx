@@ -2,6 +2,7 @@ import { leseSchmuck } from '@schoolbox/kern/src/schmuck';
 
 import { Knopf } from '../../../bausteine/Knopf';
 import { Popover } from '../../../bausteine/Popover';
+import { Zeile } from '../../../bausteine/Zeile';
 import { BogenSchalter, KonturWahl } from '../inspektor/kontur-bogen-teile';
 import { FarbeWahl, GroesseFeld, SchriftWahl } from '../inspektor/text-teile';
 import type { LeistenKnoepfe, LeistenTeile } from './typen';
@@ -61,7 +62,9 @@ const SchmuckKnoepfe = ({ aktiv, k, quelle }: LeistenTeile) => {
 				<SchriftWahl k={k} quelle={quelle} aktiv={aktiv} />
 			</Popover>
 			<Popover name="Größe" className="w-auto" ausloeser={groesseKnopf}>
-				<GroesseFeld k={k} quelle={quelle} aktiv={aktiv} />
+				<Zeile titel="Größe">
+					<GroesseFeld k={k} quelle={quelle} aktiv={aktiv} />
+				</Zeile>
 			</Popover>
 			<Popover name="Farbe" className="w-auto max-w-72" ausloeser={farbeKnopf}>
 				<FarbeWahl k={k} quelle={quelle} aktiv={aktiv} />

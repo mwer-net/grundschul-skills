@@ -1,7 +1,8 @@
 import type { Figur } from '@schoolbox/kern/src/figuren';
 import { figurAn, FIGUREN, figurSchluessel, tauscheFigur } from '@schoolbox/kern/src/figuren';
 
-import { klassen } from '../../../bausteine/klassen';
+import { KACHEL, klassen } from '../../../bausteine/klassen';
+import { Zeile } from '../../../bausteine/Zeile';
 import { adresseVon, bekannteSrc, holeSrc } from '../figuren-quelle';
 import type { InspektorTeile } from './abschnitte';
 
@@ -22,35 +23,33 @@ export const FigurWahl = ({ aktiv, k, quelle }: InspektorTeile) => {
 		k.fuehreAus(`${f.name} statt ${jetzt?.name ?? 'Figur'}`, (q) => tauscheFigur(q, k.nr, f, src));
 	};
 	return (
-		<div className="flex flex-col gap-1" data-figur-wahl={jetzt?.id ?? ''}>
-			<span className="text-leise">Figur</span>
-			<div role="group" aria-label="Figur" className="grid grid-cols-4 gap-1">
-				{FIGUREN.map((f) => (
-					<button
-						key={f.id}
-						type="button"
-						title={f.name}
-						aria-pressed={f.id === jetzt?.id}
-						disabled={!aktiv}
-						className={klassen(
-							'flex flex-col items-center gap-0.5 rounded-md border p-1 text-[11px] disabled:opacity-50',
-							f.id === jetzt?.id ? 'border-brand-500 bg-brand-50' : 'border-rand hover:bg-flaeche-2',
-						)}
-						onClick={() => {
-							if (f.id !== jetzt?.id) {
-								void waehle(f);
-							}
-						}}
-					>
-						<img
-							src={`/ansicht/${figurSchluessel(f)}`}
-							alt=""
-							className="aspect-square w-full object-contain"
-						/>
-						{f.name}
-					</button>
-				))}
-			</div>
+		<div data-figur-wahl={jetzt?.id ?? ''}>
+			<Zeile titel="Figur" darunter>
+				<div role="group" aria-label="Figur" className="grid grid-cols-4 gap-1">
+					{FIGUREN.map((f) => (
+						<button
+							key={f.id}
+							type="button"
+							title={f.name}
+							aria-pressed={f.id === jetzt?.id}
+							disabled={!aktiv}
+							className={klassen(KACHEL, 'flex-col py-1')}
+							onClick={() => {
+								if (f.id !== jetzt?.id) {
+									void waehle(f);
+								}
+							}}
+						>
+							<img
+								src={`/ansicht/${figurSchluessel(f)}`}
+								alt=""
+								className="aspect-square w-full object-contain"
+							/>
+							<span className="max-w-full text-[11px] leading-tight">{f.name}</span>
+						</button>
+					))}
+				</div>
+			</Zeile>
 		</div>
 	);
 };

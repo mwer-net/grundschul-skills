@@ -13,10 +13,13 @@ import {
 	wuerfle,
 } from '@schoolbox/kern/src/streuen';
 
-import { klassen } from '../../../bausteine/klassen';
+import { Farbpunkt } from '../../../bausteine/Farbfeld';
+import type { KnopfArt } from '../../../bausteine/klassen';
+import { KACHEL } from '../../../bausteine/klassen';
 import { Knopf } from '../../../bausteine/Knopf';
 import { Segment } from '../../../bausteine/Segment';
 import { Symbol } from '../../../bausteine/Symbol';
+import { sichtbar } from '../../../bausteine/verlauf';
 import { Zeile } from '../../../bausteine/Zeile';
 import { zeichneStreuungAnzeige } from '../anzeige-folgen';
 import { Regler } from '../blatt/regler';
@@ -80,8 +83,24 @@ const setzeArt = (k: GestaltungKontext, alt: StreuArt, art: StreuArt) => {
 const wuerfleStreuung = (k: GestaltungKontext) =>
 	k.fuehreAus('Gewürfelt', (q) => ({ quelle: wuerfle(q, k.nr, saatAus(Date.now())), nr: k.nr }));
 
-export const WuerfelKnopf = ({ aktiv, k }: { k: GestaltungKontext; aktiv: boolean }) => (
-	<Knopf art="leise" groesse="klein" data-streuung-wuerfeln disabled={!aktiv} onClick={() => wuerfleStreuung(k)}>
+export const WuerfelKnopf = ({
+	aktiv,
+	art = 'leise',
+	k,
+}: {
+	k: GestaltungKontext;
+	aktiv: boolean;
+	/** Im Inspektor `zweit`, linksbündig wie jede Handlung dort (182). */
+	art?: KnopfArt;
+}) => (
+	<Knopf
+		art={art}
+		groesse="klein"
+		className="self-start"
+		data-streuung-wuerfeln
+		disabled={!aktiv}
+		onClick={() => wuerfleStreuung(k)}
+	>
 		<Symbol name="wuerfeln" className="size-4" />
 		Würfeln
 	</Knopf>
@@ -102,12 +121,6 @@ const ECKEN: { wert: Ecke; zeichen: string; titel: string }[] = [
 	{ wert: 'ur', zeichen: '↘', titel: 'unten rechts' },
 ];
 
-const KNOPF =
-	'flex min-h-[max(22px,var(--hoehe-knopf-status))] min-w-[var(--hoehe-knopf-status)] items-center justify-center rounded-md border border-rand px-2 text-sm aria-pressed:border-tinte aria-pressed:bg-flaeche-2 aria-pressed:font-medium disabled:opacity-50';
-
-const RUND =
-	'flex size-knopf-klein flex-none items-center justify-center rounded-full border border-rand p-0.5 aria-pressed:border-tinte aria-pressed:ring-1 aria-pressed:ring-tinte disabled:opacity-50';
-
 /** Aus einer Mehrfachwahl nehmen oder dazu geben; mindestens einer bleibt, sonst bliebe nichts zu streuen. */
 const umgeschaltet = <T extends string>(liste: readonly T[], wert: T): T[] | null => {
 	if (!liste.includes(wert)) {
@@ -115,10 +128,6 @@ const umgeschaltet = <T extends string>(liste: readonly T[], wert: T): T[] | nul
 	}
 	return liste.length > 1 ? liste.filter((w) => w !== wert) : null;
 };
-
-/** Wie die Variable im Material gerade aussieht; ohne Material ein neutrales Grau. */
-const sichtbar = (doc: Document, variable: string) =>
-	doc.defaultView?.getComputedStyle(doc.body).getPropertyValue(variable).trim() || '#9ca3af';
 
 /** Nur ansehen: die Dichte am Element im `iframe`, die Teile neu gezeichnet. */
 const zeigeDichte = (k: GestaltungKontext, b: number, h: number, prozent: number) => {
@@ -171,45 +180,42 @@ export const StreuungTeil = ({ aktiv, k, quelle }: InspektorTeile) => {
 					/>
 				</span>
 			</Zeile>
-			<div className="flex flex-col gap-1" data-streuung-formen>
-				<span className="text-leise">Formen</span>
-				<div role="group" aria-label="Formen" className="flex flex-wrap gap-1">
-					{STREU_FORMEN.map((form: StreuForm) => (
-						<button
-							key={form}
-							type="button"
-							className={KNOPF}
-							aria-pressed={stand.formen.includes(form)}
-							disabled={!aktiv}
-							data-streuung-form={form}
-							onClick={() => {
-								const neu = umgeschaltet(stand.formen, form);
-								if (neu) {
-									setze(k, 'Formen geändert', { formen: neu });
-								}
-							}}
-						>
-							{FORM_NAMEN[form]}
-						</button>
-					))}
-				</div>
+			<div data-streuung-formen>
+				<Zeile titel="Formen" darunter>
+					<div role="group" aria-label="Formen" className="grid grid-cols-3 gap-1">
+						{STREU_FORMEN.map((form: StreuForm) => (
+							<button
+								key={form}
+								type="button"
+								className={KACHEL}
+								aria-pressed={stand.formen.includes(form)}
+								disabled={!aktiv}
+								data-streuung-form={form}
+								onClick={() => {
+									const neu = umgeschaltet(stand.formen, form);
+									if (neu) {
+										setze(k, 'Formen geändert', { formen: neu });
+									}
+								}}
+							>
+								{FORM_NAMEN[form]}
+							</button>
+						))}
+					</div>
+				</Zeile>
 			</div>
-			<div className="flex flex-col gap-1" data-streuung-farben>
-				<span className="text-leise">Farben</span>
-				<div role="group" aria-label="Farben" className="flex flex-wrap gap-1">
-					{farben
-						.filter((f) => (STREU_FARBEN as readonly string[]).includes(f))
-						.map((name) => {
-							const bekannt = BLATT_FARBEN.find((f) => f.variable === `--${name}`);
-							return (
-								<button
+			<div data-streuung-farben>
+				<Zeile titel="Farben" darunter>
+					<div role="group" aria-label="Farben" className="flex flex-wrap">
+						{farben
+							.filter((f) => (STREU_FARBEN as readonly string[]).includes(f))
+							.map((name) => (
+								<Farbpunkt
 									key={name}
-									type="button"
-									className={RUND}
-									aria-pressed={stand.farben.includes(name)}
-									aria-label={bekannt?.name ?? name}
-									title={bekannt?.name ?? name}
-									disabled={!aktiv}
+									name={BLATT_FARBEN.find((f) => f.variable === `--${name}`)?.name ?? name}
+									farbe={sichtbar(k.doc, `--${name}`)}
+									gewaehlt={stand.farben.includes(name)}
+									aus={!aktiv}
 									data-streuung-farbe={name}
 									onClick={() => {
 										const neu = umgeschaltet(stand.farben, name);
@@ -217,16 +223,10 @@ export const StreuungTeil = ({ aktiv, k, quelle }: InspektorTeile) => {
 											setze(k, 'Farben geändert', { farben: neu });
 										}
 									}}
-								>
-									<span
-										aria-hidden
-										className="block size-full min-h-4 rounded-full border border-black/10"
-										style={{ background: sichtbar(k.doc, `--${name}`) }}
-									/>
-								</button>
-							);
-						})}
-				</div>
+								/>
+							))}
+					</div>
+				</Zeile>
 			</div>
 			<Zeile titel="Größe" name="Größe der Teile">
 				<span data-streuung-groesse={stand.groesse}>
@@ -240,18 +240,18 @@ export const StreuungTeil = ({ aktiv, k, quelle }: InspektorTeile) => {
 				</span>
 			</Zeile>
 			{stand.art === 'punkte' && (
-				<Zeile titel="Dichter bei" name="Dichte Ecke">
-					<span
+				<Zeile titel="Dichter bei" name="Dichte Ecke" darunter>
+					<div
 						role="group"
 						aria-label="Dichte Ecke"
-						className="grid grid-cols-2 gap-0.5"
+						className="grid grid-cols-4 gap-1"
 						data-streuung-ecke={stand.ecke}
 					>
 						{ECKEN.map((e) => (
 							<button
 								key={e.wert}
 								type="button"
-								className={klassen(KNOPF, 'px-0')}
+								className={KACHEL}
 								aria-pressed={stand.ecke === e.wert}
 								aria-label={e.titel}
 								title={e.titel}
@@ -262,13 +262,11 @@ export const StreuungTeil = ({ aktiv, k, quelle }: InspektorTeile) => {
 								{e.zeichen}
 							</button>
 						))}
-					</span>
+					</div>
 				</Zeile>
 			)}
 			<DichteRegler k={k} quelle={quelle} aktiv={aktiv} />
-			<div className="flex justify-end">
-				<WuerfelKnopf k={k} aktiv={aktiv} />
-			</div>
+			<WuerfelKnopf k={k} aktiv={aktiv} art="zweit" />
 		</div>
 	);
 };

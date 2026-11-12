@@ -1,6 +1,8 @@
+import type { ButtonHTMLAttributes } from 'react';
+
 import { klassen } from './klassen';
 
-interface Eigenschaften {
+interface Eigenschaften extends Omit<ButtonHTMLAttributes<HTMLButtonElement>, 'children' | 'className' | 'onClick'> {
 	an: boolean;
 	setze: (an: boolean) => void;
 	name: string;
@@ -9,7 +11,7 @@ interface Eigenschaften {
 }
 
 /** Ein/Aus. Sichtbar 24×14; der Knopf drum herum trägt die Trefferfläche, damit sie bei Touch 44 px misst. */
-export const Schalter = ({ an, aus, id, name, setze }: Eigenschaften) => (
+export const Schalter = ({ an, aus, id, name, setze, ...rest }: Eigenschaften) => (
 	<button
 		id={id}
 		type="button"
@@ -18,6 +20,7 @@ export const Schalter = ({ an, aus, id, name, setze }: Eigenschaften) => (
 		aria-label={name}
 		disabled={aus}
 		className="inline-flex size-knopf-status flex-none items-center justify-center disabled:opacity-50"
+		{...rest}
 		onClick={() => setze(!an)}
 	>
 		<span

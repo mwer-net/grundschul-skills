@@ -48,7 +48,6 @@ test.describe('Keine Bedienhinweise (169)', () => {
 			'Kein Bild passt zur Suche.',
 			'Nichts passt zu „x“.',
 			'Bitte keine Fotos, auf denen Kinder zu erkennen sind.',
-			'Gruppe · 2 Teile',
 		]) {
 			expect(bleibt).not.toMatch(BEDIENUNG);
 		}

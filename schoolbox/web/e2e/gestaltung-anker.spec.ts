@@ -122,7 +122,9 @@ test.describe('Anker (106)', () => {
 		await haengtAn(page).selectOption({ label: 'Aufgabe 2 · Zeichne ein Haus aus Formen.' });
 		await expect.poll(() => amAnker(page)).toBe(true);
 		gleich(await imBlatt(page), vorher);
-		await expect(page.locator('[data-gestaltung-ebene="anker"]')).toContainText('Am Anker liegt es immer vorne.');
+		// 182: Am Anker gibt es keine Wahl der Ebene, auch keine gesperrte, und keinen Satz dazu.
+		await expect(page.locator('[data-gestaltung-ebene="anker"]').getByRole('group', { name: 'Ebene' })).toHaveCount(0);
+		await expect(page.locator('[data-gestaltung-ebene="anker"] p')).toHaveCount(0);
 		await haengtAn(page).selectOption('');
 		await expect.poll(() => amAnker(page)).toBe(false);
 		gleich(await imBlatt(page), vorher);

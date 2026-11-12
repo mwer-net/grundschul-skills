@@ -259,17 +259,17 @@ export const GESTALTEN: Abschnitt = {
 
 			<h3>Kontur und Titel im Bogen</h3>
 			<p data-hilfe-kontur-bogen>
-				Ein Titel bekommt eine Kontur: Titel wählen, in der Leiste am Element auf „Kontur“ und „Kontur an“. Das
-				gibt 6 Pixel in Weiß, damit dunkle Buchstaben auch auf Bild oder Farbe gut lesbar bleiben. Stärke (0 bis
-				16 Pixel) und Farbe änderst du dort oder rechts im Inspektor. Die Kontur liegt hinter den Buchstaben,
-				sie werden also nicht dünner. In s/w bleibt eine weiße Kontur weiß.
+				Ein Titel bekommt eine Kontur: Titel wählen, in der Leiste am Element auf „Kontur“ und dort den Schalter
+				„Kontur“ einschalten. Das gibt 6 Pixel in Weiß, damit dunkle Buchstaben auch auf Bild oder Farbe gut
+				lesbar bleiben. Stärke (0 bis 16 Pixel) und Farbe änderst du dort oder rechts im Inspektor. Die Kontur
+				liegt hinter den Buchstaben, sie werden also nicht dünner. In s/w bleibt eine weiße Kontur weiß.
 			</p>
 			<p data-hilfe-bogen>
-				Mit „Bogen“ in der Leiste wird aus einem Titel ein Titel im Bogen, und mit „Bogen aus“ wieder ein
-				gerader Titel. Lage, Farbe, Schrift, Größe und Kontur bleiben, nur Farben einzelner Wörter gehen
-				verloren (der Knopf warnt vorher). Beim Titel im Bogen ändert der Regler „Krümmung“ die Wölbung, von
-				nach unten bis nach oben. Den Text schreibst du in dem Feld in der Leiste: Doppelklick auf den Bogen
-				springt hinein, Enter oder ein Klick daneben übernimmt, Esc verwirft.
+				Mit „Bogen“ in der Leiste und dem Schalter „Bogen“ wird aus einem Titel ein Titel im Bogen; schaltest du
+				ihn aus, ist es wieder ein gerader Titel. Lage, Farbe, Schrift, Größe und Kontur bleiben, nur Farben
+				einzelner Wörter gehen verloren (der Schalter warnt vorher). Beim Titel im Bogen ändert der Regler
+				„Krümmung“ die Wölbung, von nach unten bis nach oben. Den Text schreibst du in dem Feld in der Leiste:
+				Doppelklick auf den Bogen springt hinein, Enter oder ein Klick daneben übernimmt, Esc verwirft.
 			</p>
 
 			<h3>Rahmen für Fotos, Bild in Form, Ausschnitt</h3>

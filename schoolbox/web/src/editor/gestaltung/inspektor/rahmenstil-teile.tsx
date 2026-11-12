@@ -11,19 +11,18 @@ import type { Form } from '@schoolbox/kern/src/formen';
 import { standardWerte } from '@schoolbox/kern/src/formen';
 import { MASKEN_FORMEN } from '@schoolbox/kern/src/formen-masken';
 
+import { KACHEL } from '../../../bausteine/klassen';
 import { Knopf } from '../../../bausteine/Knopf';
+import { Zeile } from '../../../bausteine/Zeile';
 import type { GestaltungKontext } from '../kontext';
 import type { InspektorTeile } from './abschnitte';
 
 /**
  * Rahmen-Stil und Maske (111, 5.8 Abschnitt 6), nach „Bild“: Rahmen-Stil (gerade, schräg, Polaroid, rund, Kontur),
- * Maske (keine, dann die Formen ohne Text) und „Zuschnitt zurücksetzen“. Maske und Rahmen-Stil schließen sich aus; das
- * sagt der Knopf, der das andere wegnimmt. Beim leeren Bildrahmen gibt es nur die Form. Die Leiste am Bild zeigt
- * dieselbe Wahl im Popover „Rahmen-Stil“.
+ * Maske (keine, dann die Formen ohne Text) und „Zuschnitt zurücksetzen“. Maske und Rahmen-Stil schließen sich aus:
+ * Wählt man das eine, verliert das andere seinen Ring; der `title` der Kachel sagt es vorher. Beim leeren Bildrahmen
+ * gibt es nur die Form. Die Leiste am Bild zeigt dieselbe Wahl im Popover „Rahmen-Stil“.
  */
-
-const KNOPF =
-	'flex min-h-[max(22px,var(--hoehe-knopf-status))] items-center justify-center gap-1 rounded-md border border-rand px-1.5 text-sm aria-pressed:border-tinte aria-pressed:bg-flaeche-2 aria-pressed:font-medium disabled:opacity-50';
 
 type StilWahl = Rahmenstil | 'gerade';
 
@@ -53,10 +52,9 @@ export const RahmenstilWahl = ({ aktiv, k, quelle }: InspektorTeile) => {
 	}
 	const stil: StilWahl = stand.rahmenstil ?? 'gerade';
 	return (
-		<div className="flex flex-col gap-2" data-gestaltung-rahmenstil>
+		<div className="flex flex-col gap-1" data-gestaltung-rahmenstil>
 			{!stand.leer && (
-				<div className="flex flex-col gap-1">
-					<span className="text-leise">Rahmen-Stil</span>
+				<Zeile titel="Rahmen-Stil" darunter>
 					<div
 						className="grid grid-cols-3 gap-1"
 						role="group"
@@ -70,7 +68,7 @@ export const RahmenstilWahl = ({ aktiv, k, quelle }: InspektorTeile) => {
 								<button
 									key={s.wert}
 									type="button"
-									className={KNOPF}
+									className={KACHEL}
 									aria-pressed={stil === s.wert && stand.maske === null}
 									disabled={!aktiv}
 									data-rahmenstil-knopf={s.wert}
@@ -88,10 +86,9 @@ export const RahmenstilWahl = ({ aktiv, k, quelle }: InspektorTeile) => {
 							);
 						})}
 					</div>
-				</div>
+				</Zeile>
 			)}
-			<div className="flex flex-col gap-1">
-				<span className="text-leise">{stand.leer ? 'Form des Rahmens' : 'Maske'}</span>
+			<Zeile titel={stand.leer ? 'Form des Rahmens' : 'Maske'} darunter>
 				<div
 					className="grid grid-cols-5 gap-1"
 					role="group"
@@ -101,7 +98,7 @@ export const RahmenstilWahl = ({ aktiv, k, quelle }: InspektorTeile) => {
 					{!stand.leer && (
 						<button
 							type="button"
-							className={KNOPF}
+							className={KACHEL}
 							aria-pressed={stand.maske === null}
 							disabled={!aktiv}
 							data-maske-knopf="keine"
@@ -115,7 +112,7 @@ export const RahmenstilWahl = ({ aktiv, k, quelle }: InspektorTeile) => {
 						<button
 							key={f.art}
 							type="button"
-							className={KNOPF}
+							className={KACHEL}
 							aria-pressed={stand.maske === f.art}
 							aria-label={f.name}
 							disabled={!aktiv}
@@ -127,12 +124,12 @@ export const RahmenstilWahl = ({ aktiv, k, quelle }: InspektorTeile) => {
 						</button>
 					))}
 				</div>
-				{!stand.leer && <p className="text-xs text-leise">Maske und Rahmen-Stil schließen sich aus.</p>}
-			</div>
+			</Zeile>
 			{!stand.leer && (
 				<Knopf
-					art="leise"
+					art="zweit"
 					groesse="klein"
+					className="self-start"
 					disabled={!aktiv || !stand.zuschnitt}
 					data-zuschnitt-zurueck
 					onClick={() => setze(k, 'Zuschnitt zurückgesetzt', (q) => setzeZuschnittZurueck(q, k.nr))}

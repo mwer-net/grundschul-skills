@@ -64,6 +64,7 @@ import { Knopf } from '../bausteine/Knopf';
 import { Menue } from '../bausteine/Menue';
 import { Popover } from '../bausteine/Popover';
 import { Schalter as Umschalter } from '../bausteine/Schalter';
+import { STEPPER_EINHEIT, STEPPER_RAHMEN, STEPPER_STUFE, STEPPER_WERT } from '../bausteine/Stepper';
 import { Symbol } from '../bausteine/Symbol';
 import { folgeZeiger, rolleAmRand, schluckeKlick } from '../bausteine/zeigerzug';
 import { Zeile } from '../bausteine/Zeile';
@@ -155,19 +156,9 @@ const Rahmen = ({
 	const fehler = abb.fehler[feld.attribut];
 	return (
 		<div data-feld={feld.attribut}>
-			{daneben ? (
-				<Zeile titel={feld.name} fuer={id} hilfe={feld.hilfe}>
-					{children}
-				</Zeile>
-			) : (
-				<>
-					<span className="flex h-zeile items-center gap-1 text-xs font-medium text-tinte">
-						<label htmlFor={id}>{feld.name}</label>
-						{feld.hilfe && <Hilfetipp name={feld.name}>{feld.hilfe}</Hilfetipp>}
-					</span>
-					<div>{children}</div>
-				</>
-			)}
+			<Zeile titel={feld.name} fuer={id} hilfe={feld.hilfe} darunter={!daneben}>
+				{children}
+			</Zeile>
 			{feld.loesung && <LoesungSchalter feld={feld} abb={abb} />}
 			{fehler && (
 				<p className="mt-2 flex gap-2 font-medium text-fehler" role="alert" data-fehler={feld.attribut}>
@@ -197,49 +188,52 @@ const Zahl = ({ abb, feld }: FeldEigenschaften<ZahlFeld>) => {
 	};
 	return (
 		<Rahmen daneben feld={feld} abb={abb} id={id}>
-			<div className="flex items-center gap-1">
-				<Knopf
-					art="zweit"
-					groesse="klein"
-					className="size-knopf-klein flex-none px-0"
+			<div className={klassen(STEPPER_RAHMEN, 'has-[[aria-invalid=true]]:border-fehler')}>
+				<button
+					type="button"
+					className={STEPPER_STUFE}
 					aria-label={`${feld.name}: weniger`}
 					disabled={Number.isFinite(jetzt) && jetzt <= feld.min}
 					onClick={() => springe(-1)}
 				>
-					<Symbol name="minus" />
-				</Knopf>
-				<input
-					ref={eingabe}
-					id={id}
-					type="text"
-					inputMode="numeric"
-					enterKeyHint="done"
-					autoComplete="off"
-					className={`${EINGABE} w-11 text-center tabular-nums`}
-					aria-invalid={Boolean(abb.fehler[feld.attribut])}
-					value={text}
-					onChange={(e) => {
-						setText(e.target.value);
-						const roh = e.target.value.trim();
-						abb.aendere(feld, roh === '' ? null : roh, { uebernehmen: false });
-					}}
-					onBlur={() => {
-						setText(wert ?? String(standard));
-						abb.uebernimm();
-					}}
-					onKeyDown={fertigMitEnter}
-				/>
-				<Knopf
-					art="zweit"
-					groesse="klein"
-					className="size-knopf-klein flex-none px-0"
+					<Symbol name="minus" className="size-3 flex-none" />
+				</button>
+				<span className={STEPPER_WERT}>
+					<input
+						ref={eingabe}
+						id={id}
+						type="text"
+						inputMode="numeric"
+						enterKeyHint="done"
+						autoComplete="off"
+						className={klassen(
+							'w-9 min-w-0 bg-transparent outline-none',
+							feld.einheit ? 'text-right' : 'text-center',
+						)}
+						aria-invalid={Boolean(abb.fehler[feld.attribut])}
+						value={text}
+						onChange={(e) => {
+							setText(e.target.value);
+							const roh = e.target.value.trim();
+							abb.aendere(feld, roh === '' ? null : roh, { uebernehmen: false });
+						}}
+						onBlur={() => {
+							setText(wert ?? String(standard));
+							abb.uebernimm();
+						}}
+						onKeyDown={fertigMitEnter}
+					/>
+					{feld.einheit && <span className={STEPPER_EINHEIT}>{feld.einheit}</span>}
+				</span>
+				<button
+					type="button"
+					className={STEPPER_STUFE}
 					aria-label={`${feld.name}: mehr`}
 					disabled={Number.isFinite(jetzt) && jetzt >= feld.max}
 					onClick={() => springe(1)}
 				>
-					<Symbol name="plus" />
-				</Knopf>
-				{feld.einheit && <span className="text-leise">{feld.einheit}</span>}
+					<Symbol name="plus" className="size-3 flex-none" />
+				</button>
 			</div>
 		</Rahmen>
 	);
@@ -572,7 +566,7 @@ const Muster = ({
 				aria-label={o.name}
 				title={o.name}
 				data-muster={o.wert}
-				className={`size-11 rounded-xl border ${aktiv === o.wert ? 'border-brand-500 ring-2 ring-brand-500' : 'border-rand'}`}
+				className={`size-11 rounded-xl border ${aktiv === o.wert ? 'border-tinte ring-1 ring-tinte' : 'border-rand'}`}
 				style={{ background: (sw ? MUSTER_BILD : FARB_BILD)[o.wert] ?? '#fff' }}
 				onClick={() => setze(o.wert)}
 			/>
@@ -1897,9 +1891,6 @@ const PunkteEingabe = ({ abb, feld }: FeldEigenschaften<PunkteFeld>) => {
 	};
 	return (
 		<Rahmen feld={feld} abb={abb} id={id}>
-			<p className="mb-2 text-leise">
-				Tippe aufs Bild, um einen Punkt zu setzen. Ziehe einen Punkt, um ihn zu verschieben.
-			</p>
 			<Knopf
 				id={id}
 				art={setzen ? 'haupt' : 'zweit'}
@@ -2088,7 +2079,7 @@ export const AbbildungFelder = ({ abb, abschnitt }: { abb: AbbildungSteuerung; a
 				return (
 					<Fragment key={feld.attribut}>
 						{gruppe && rest[i - 1]?.gruppe !== feld.gruppe && (
-							<h4 className="mt-2 text-xs font-semibold text-tinte" data-feldgruppe={gruppe}>
+							<h4 className="mt-2 text-xs font-medium text-dezent" data-feldgruppe={gruppe}>
 								{gruppe}
 							</h4>
 						)}

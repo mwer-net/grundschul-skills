@@ -10,21 +10,15 @@ import { Zeile } from '../../../bausteine/Zeile';
 import { pfadDerForm } from '../anzeige-folgen';
 import type { GestaltungKontext } from '../kontext';
 
-export const SCHWARZ = '#000000';
-
-const istSchwarz = (wert: string | null) => wert !== null && ['#000', '#000000'].includes(wert.toLowerCase());
-
-const RUND =
-	'flex size-knopf-klein flex-none items-center justify-center rounded-full border border-rand p-0.5 aria-pressed:border-tinte aria-pressed:ring-1 aria-pressed:ring-tinte disabled:opacity-50';
-
 /**
- * „Keine“ und „Schwarz“ vor dem Farbwähler aus 095, der die fünf Farben des Blatts, Weiß und „Eigene Farbe“ zeigt
- * (3-formen.md, Füllung und Kontur E2).
+ * Füllung und Kontur (3-formen.md, E2): „Keine“, „Schwarz“, die fünf Farben des Blatts, Weiß und „Eigene Farbe“ in
+ * einer Reihe (182), mit und ohne Verlauf.
  */
 export const Farben = ({
 	aus,
 	beschriftung,
 	doc,
+	gemischt,
 	name,
 	setze,
 	verlauf,
@@ -38,60 +32,27 @@ export const Farben = ({
 	zeige: (wert: string) => void;
 	doc: Document;
 	aus: boolean;
-	/** 108: Füllung mit Verlauf; „Keine“ und „Schwarz“ stehen dann in der Reihe des Farbwählers. */
+	/** 108: Füllung mit Verlauf. */
 	verlauf?: VerlaufWahl;
-}) => {
-	const knoepfe = (
-		<>
-			<button
-				type="button"
-				className={RUND}
-				aria-pressed={wert === null && !verlauf?.wert}
-				aria-label={`Keine ${beschriftung}`}
-				title="Keine"
-				disabled={aus}
-				data-farbe="keine"
-				onClick={() => setze(null)}
-			>
-				<span
-					aria-hidden
-					className="block size-full min-h-4 rounded-full border border-black/10 bg-white"
-					style={{ background: 'linear-gradient(135deg, #fff 45%, #e11d48 45% 55%, #fff 55%)' }}
-				/>
-			</button>
-			<button
-				type="button"
-				className={RUND}
-				aria-pressed={istSchwarz(wert)}
-				aria-label="Schwarz"
-				title="Schwarz"
-				disabled={aus}
-				data-farbe={SCHWARZ}
-				onClick={() => setze(SCHWARZ)}
-			>
-				<span aria-hidden className="block size-full min-h-4 rounded-full bg-black" />
-			</button>
-		</>
-	);
-	const wahl = (
+	/** Mehrfachauswahl mit verschiedenen Werten: kein Punkt gewählt. */
+	gemischt?: boolean;
+}) => (
+	<div data-form-farben={name}>
 		<Farbwahl
 			name={name}
 			beschriftung={beschriftung}
+			keine={`Keine ${beschriftung}`}
+			schwarz
+			gemischt={gemischt}
 			doc={doc}
-			wert={istSchwarz(wert) ? null : wert}
+			wert={wert}
 			aus={aus}
 			setze={setze}
 			zeige={zeige}
-			{...(verlauf ? { verlauf, vor: knoepfe } : {})}
+			verlauf={verlauf}
 		/>
-	);
-	return (
-		<div className="flex flex-wrap items-center gap-1" data-form-farben={name}>
-			{verlauf ? null : knoepfe}
-			{wahl}
-		</div>
-	);
-};
+	</div>
+);
 
 /** Nur ansehen: eine Eigenschaft im `style` des Pfads im `iframe`. */
 const zeigeAmPfad = (k: GestaltungKontext, eigenschaft: string, wert: string) => {

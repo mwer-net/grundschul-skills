@@ -279,10 +279,10 @@ test.describe('Bestand mit Schmuckschrift (175)', () => {
 		await expect(page.locator('[data-textknoepfe]')).toHaveCount(0);
 		expect(await quelle(page)).toBe(vorher);
 
-		// Gegenprobe: „Bogen aus“ macht aus dem Bogen einen geraden Titel; eine Änderung sähe der Test also.
+		// Gegenprobe: Der Schalter „Bogen“ macht aus dem Bogen einen geraden Titel; eine Änderung sähe der Test also.
 		await material(page).locator('svg.schmuck[data-schmuck="bogen"]').click();
 		await page.locator('[data-leiste-bogen]').click();
-		await page.getByRole('dialog').locator('[data-bogen-schalter]').click();
+		await page.getByRole('dialog').getByRole('switch', { name: 'Bogen', exact: true }).click();
 		await expect.poll(() => quelle(page)).not.toContain('data-schmuck="bogen"');
 		await gespeichert(page, u.material);
 		expect(await readFile(u.material, 'utf8')).not.toBe(vorher);

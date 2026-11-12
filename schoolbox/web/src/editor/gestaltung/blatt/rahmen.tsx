@@ -11,7 +11,7 @@ import { Farbwahl } from '../../../bausteine/Farbwahl';
 import { FELD_KLASSEN, klassen } from '../../../bausteine/klassen';
 import { Stepper } from '../../../bausteine/Stepper';
 import { Zeile } from '../../../bausteine/Zeile';
-import { FarbZeile, SwZeile } from './flaeche';
+import { SwZeile } from './flaeche';
 import { Regler } from './regler';
 import type { BlattTeile } from './teile';
 
@@ -77,7 +77,7 @@ export const BlattRahmen = (t: BlattTeile) => {
 			</Zeile>
 			{jetzt && (
 				<>
-					<FarbZeile titel="Farbe">
+					<Zeile titel="Farbe" darunter>
 						<Farbwahl
 							name="rahmen-farbe"
 							beschriftung="Farbe des Rahmens"
@@ -86,7 +86,7 @@ export const BlattRahmen = (t: BlattTeile) => {
 							setze={(farbe) => aendere('Farbe des Rahmens', { farbe })}
 							zeige={(farbe) => zeige({ '--rahmen-farbe': farbe })}
 						/>
-					</FarbZeile>
+					</Zeile>
 					<Zeile titel="Stärke" name="Stärke">
 						<Stepper
 							name="Stärke des Rahmens"

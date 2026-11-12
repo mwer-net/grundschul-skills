@@ -12,7 +12,6 @@ import {
 import { Farbwahl } from '../../../bausteine/Farbwahl';
 import { Segment } from '../../../bausteine/Segment';
 import { Zeile } from '../../../bausteine/Zeile';
-import { FarbZeile } from '../blatt/flaeche';
 import type { GestaltungKontext } from '../kontext';
 import type { InspektorTeile } from './abschnitte';
 import { Zahl } from './zahl';
@@ -74,7 +73,6 @@ export const GroesseFeld = ({ aktiv, k, quelle }: TextTeile) => {
 	return (
 		<span className="flex w-28" data-schmuck-groesse>
 			<Zahl
-				titel="Größe"
 				name="Schriftgröße"
 				einheit="px"
 				wert={wert}
@@ -121,9 +119,9 @@ export const Text = ({ aktiv, k, quelle }: InspektorTeile) => {
 			<Zeile titel="Größe" name={`Schriftgröße, ${GROESSE_MIN} bis ${GROESSE_MAX} px`}>
 				<GroesseFeld k={k} quelle={quelle} aktiv={aktiv} />
 			</Zeile>
-			<FarbZeile titel="Farbe">
+			<Zeile titel="Farbe" darunter>
 				<FarbeWahl k={k} quelle={quelle} aktiv={aktiv} />
-			</FarbZeile>
+			</Zeile>
 			<Zeile titel="Ausrichtung">
 				<span data-schmuck-ausrichtung>
 					<Segment
@@ -136,7 +134,7 @@ export const Text = ({ aktiv, k, quelle }: InspektorTeile) => {
 				</span>
 			</Zeile>
 			{stand.art === 'etikett' && (
-				<FarbZeile titel="Hintergrund">
+				<Zeile titel="Hintergrund" darunter>
 					<Farbwahl
 						name="schmuck-hintergrund"
 						beschriftung="Hintergrund"
@@ -146,7 +144,7 @@ export const Text = ({ aktiv, k, quelle }: InspektorTeile) => {
 						setze={(hg) => setze(k, 'Hintergrund geändert', { hg })}
 						zeige={(hg) => zeigeVariable(k, '--hg', hg)}
 					/>
-				</FarbZeile>
+				</Zeile>
 			)}
 		</div>
 	);
