@@ -7,8 +7,8 @@ import type { SwVerhalten } from './gestaltung';
 import type { Aenderung } from './quelltext';
 import { attribut, setzeAttribut, wendeAn, zerlege } from './quelltext';
 
-/** Ohne `data-sw` sind Seitenfläche und Streuung in s/w weg, alles andere grau (Briefing 4.2, `blatt.css`). */
-const SW_WEG = new Set(['seitenflaeche', 'streuung']);
+/** Ohne `data-sw` sind Seitenfläche, Kopfband und Streuung in s/w weg, alles andere grau (Briefing 4.2, blatt.css). */
+const SW_WEG = new Set(['seitenflaeche', 'kopfband', 'streuung']);
 
 export const swStandard = (art: string): SwVerhalten => (SW_WEG.has(art) ? 'weg' : 'grau');
 

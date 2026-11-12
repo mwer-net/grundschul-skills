@@ -1,22 +1,24 @@
-import type { Seiten, Seitengestaltung } from '@schoolbox/kern/src/seitengestaltung';
+import type { Seitengestaltung, SeitenTeil } from '@schoolbox/kern/src/seitengestaltung';
 
-export type SeitenTeil = 'seitenflaeche' | 'seitenrahmen';
+export type { SeitenTeil };
 
-/** Was jeder Unterabschnitt von Blatt › Gestaltung bekommt (095 Fläche und Rahmen). */
+/** Was jeder Abschnitt der Seitengestaltung im Reiter „Blatt“ bekommt (095 Fläche und Rahmen, 181 Kopfband). */
 export interface BlattTeile {
 	doc: Document | null;
 	quelle: string;
 	/** Nummer der `.seite` in `quelle`, für die die Felder ihre Werte zeigen. */
 	seite: number;
-	/** „Gilt für“: diese Seite oder alle. */
-	ziel: Seiten;
-	/** Fläche und Rahmen von `seite`. */
+	/** Index dieser Seite unter den Seiten, ab 0. */
+	index: number;
+	/** Wie viele Seiten das Material hat. */
+	seiten: number;
+	/** Fläche, Rahmen und Kopfband von `seite`. */
 	gestaltung: Seitengestaltung;
 	minibuch: boolean;
 	/** Ein Schritt im Verlauf; die Auswahl bleibt, wenn ihre Nummer gleich bleibt. */
 	aendere: (beschreibung: string, rechne: (q: string) => string) => void;
 	/** Nur ansehen, während ein Regler gezogen wird: setzt Eigenschaften am Teil im Blatt, die Quelle bleibt. */
-	zeige: (teil: SeitenTeil, werte: Readonly<Record<string, string>>) => void;
+	zeige: (teil: SeitenTeil, alle: boolean, werte: Readonly<Record<string, string>>) => void;
 }
 
 /** Die Seiten im Blatt, ohne die erzeugten Fortsetzungen der Darstellung. */

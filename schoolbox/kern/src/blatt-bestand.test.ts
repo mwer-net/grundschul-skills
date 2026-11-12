@@ -66,6 +66,23 @@ describe('Ältere Blätter mit Rezept: Regeln in blatt.css (180)', () => {
 	});
 });
 
+describe('Kopfband als Element (181): Regeln in blatt.css', () => {
+	const zeilen = new Set(BLATT_CSS.split('\n'));
+
+	it('zeichnet das Band, blendet das alte aus und ist in s/w ohne Grau weg', () => {
+		assert.ok(BLATT_CSS.includes('.kopfband{position:absolute;'));
+		assert.ok(zeilen.has('.seite:has(> .ebene > .kopfband) .kopf::before{display:none}'));
+		assert.ok(zeilen.has('body.sw .kopfband:not([data-sw="grau"]){display:none !important}'));
+	});
+
+	it('hängt Welle, Bogen und Zacken unter die Höhe (123)', () => {
+		assert.ok(BLATT_CSS.includes('height:calc(var(--h,160px) + var(--kopfband-kante))'));
+		for (const form of ['welle', 'bogen', 'zacken']) {
+			assert.ok(BLATT_CSS.includes(`.kopfband[data-form="${form}"]{`), form);
+		}
+	});
+});
+
 describe('Ältere Blätter mit Rezept: der Kern behandelt die Teile als normale Gestaltung (180)', () => {
 	it('die Probe hat einen Kopf mit Titel, eine Seitenfläche und zwei Streuungen', () => {
 		assert.match(PROBE, /<div class="kopf">/);

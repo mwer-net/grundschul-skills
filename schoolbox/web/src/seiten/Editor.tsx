@@ -970,7 +970,9 @@ const Bearbeitung = ({ dokument, mappe: mappenDaten }: { mappe: Mappe; dokument:
 			panels.setRechtsOffen(true);
 		},
 		kontextmenue: menueAn,
-		zeigeSeitengestaltung: (nr) => zeigeBlattGestaltung(nr, struktur.zeigeAn, zeigeEinstellung),
+		// >> 181
+		zeigeSeitengestaltung: (nr, teil) => zeigeBlattGestaltung(nr, teil, struktur.zeigeAn, zeigeEinstellung),
+		// << 181
 	};
 
 	const leinwandMenue = (treffer: { nr: number; art: string } | null, punkt: { x: number; y: number }) =>

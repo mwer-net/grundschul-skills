@@ -1,6 +1,7 @@
 import type { Baustein } from '@schoolbox/kern/src/bausteine';
 import { kann } from '@schoolbox/kern/src/bausteine';
 import type { LageTeil } from '@schoolbox/kern/src/gestaltung';
+import { SEITEN_TEILE } from '@schoolbox/kern/src/seitengestaltung';
 
 import type { PfadTeil } from '../../darstellung';
 import { elementZu, nrVon } from '../../darstellung';
@@ -12,8 +13,8 @@ import { nrnFuer } from '../mehrfach';
 
 export type { GestaltungKontext };
 
-/** Seitenfläche und Seitenrahmen liegen nicht frei, haben aber den Gestaltungs-Inspektor (nur „Druck“). */
-const FLAECHEN = new Set(['seitenflaeche', 'seitenrahmen']);
+/** Seitenfläche, Seitenrahmen und Kopfband liegen nicht frei, haben aber den Gestaltungs-Inspektor (nur „Druck“). */
+const FLAECHEN = new Set<string>(SEITEN_TEILE);
 
 /** Die Weiche für Inspektor und Leiste: Gestaltung statt Baustein. */
 export const istGestaltungAuswahl = (baustein: Baustein | undefined) =>

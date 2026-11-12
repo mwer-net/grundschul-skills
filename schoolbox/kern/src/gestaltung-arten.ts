@@ -72,6 +72,7 @@ export const GESTALTUNG_ARTEN: readonly GestaltungArt[] = [
 	{ art: 'ebene', name: 'Ebene', selektor: '.ebene', faehigkeiten: [], ab: 'E1' },
 	{ art: 'seitenflaeche', name: 'Seitenfläche', selektor: '.seitenflaeche', faehigkeiten: ['fuellung'], ab: 'E1' },
 	{ art: 'seitenrahmen', name: 'Seitenrahmen', selektor: '.seitenrahmen', faehigkeiten: ['fuellung'], ab: 'E1' },
+	{ art: 'kopfband', name: 'Kopfband', selektor: '.kopfband', faehigkeiten: ['fuellung'], ab: 'E1' },
 	{
 		art: 'flaeche',
 		name: 'Fläche',

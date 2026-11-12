@@ -101,6 +101,10 @@ export const SEITENFLAECHE =
 export const SEITENRAHMEN =
 	'<div class="seitenrahmen" data-rahmen="gestrichelt" style="--rahmen-farbe:var(--dunkel);--rahmen-staerke:3px;--rahmen-abstand:24px;--rahmen-ecke:16px"></div>';
 
+/** Kopfband (181): Welle als Verlauf, 200 px voll; die Kante hängt darunter. */
+export const KOPFBAND =
+	'<div class="kopfband" data-form="welle" data-flaeche="verlauf" style="--f1:#ffe0b8;--f2:#fff7e6;--h:200px"></div>';
+
 /** Fläche im Stapel (E4): ein Baustein im Fluss, keine Ebene. */
 export const FLAECHE =
 	'<div class="flaeche" style="--h:280px">' +
@@ -127,6 +131,7 @@ export const BEISPIELE: readonly Beispiel[] = [
 	{ art: 'figurfrei', ort: 'anker', html: FIGUR_ANKER },
 	{ art: 'seitenflaeche', ort: 'hinten', html: SEITENFLAECHE },
 	{ art: 'seitenrahmen', ort: 'hinten', html: SEITENRAHMEN },
+	{ art: 'kopfband', ort: 'hinten', html: KOPFBAND },
 ];
 
 const AUFGABEN = [

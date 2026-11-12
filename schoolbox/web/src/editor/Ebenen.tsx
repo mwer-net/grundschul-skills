@@ -2,6 +2,9 @@ import { ankerZiele, haengeAn, loeseAnker } from '@schoolbox/kern/src/anker';
 import { setzeName } from '@schoolbox/kern/src/gestaltung';
 import type { EbenenName } from '@schoolbox/kern/src/gestaltung-arten';
 import type { Zerlegung } from '@schoolbox/kern/src/quelltext';
+// >> 181
+import type { SeitenTeil } from '@schoolbox/kern/src/seitengestaltung';
+// << 181
 import type { Ablage } from '@schoolbox/kern/src/struktur';
 import { hatNamenszeile } from '@schoolbox/kern/src/struktur';
 import type { MouseEvent as ReactMouseEvent, PointerEvent as ReactPointerEvent, ReactNode } from 'react';
@@ -58,6 +61,9 @@ const SYMBOL_DER_ART: Record<string, SymbolName> = {
 	hauptstapel: 'stapel',
 	seitenrahmen: 'rahmen',
 	seitenflaeche: 'flaeche',
+	// >> 181
+	kopfband: 'band',
+	// << 181
 	gestaltung: 'funken',
 };
 
@@ -124,8 +130,10 @@ interface Eigenschaften {
 	/** Wählt den Baustein, rollt das Blatt dorthin und zeigt rechts seine Einstellungen. */
 	zeigeAn: (nr: number) => void;
 	kontextmenue: (nr: number, art: 'baustein' | 'miniatur', punkt: { x: number; y: number }) => void;
-	/** Zeile „Seitenfläche“/„Seitenrahmen“: Reiter „Blatt“ › Gestaltung dieser Seite (095). */
-	zeigeSeitengestaltung: (seite: number) => void;
+	// >> 181
+	/** Zeile „Seitenfläche“, „Seitenrahmen“ oder „Kopfband“: Reiter „Blatt“ › dieser Abschnitt der Seite (095, 181). */
+	zeigeSeitengestaltung: (seite: number, teil: SeitenTeil) => void;
+	// << 181
 }
 
 const naechsteZeile = (liste: Element, y: number, nurSeiten: boolean) => {
@@ -278,6 +286,12 @@ const zielInSeite = (
 			? { ziel: { seite, ebene: 'vorne', platz: zahl(seite, 'vorne') }, linie: b.top }
 			: { ziel: { seite, ebene: 'hinten', platz: 0 }, linie: block.bottom };
 	}
+	// >> 181
+	// Das Kopfband liegt über allem, was hinten liegt: Abgelegtes kommt direkt darunter, wie unter dem Hauptstapel.
+	if (art === 'kopfband') {
+		return { ziel: { seite, ebene: 'hinten', platz: 0 }, linie: b.bottom };
+	}
+	// << 181
 	if (art === 'seitenrahmen' || art === 'seitenflaeche') {
 		const erste = zeile.closest('[data-seite-knoten]')?.querySelector('[data-zeilen-art^="seiten"]') ?? zeile;
 		return {
@@ -880,11 +894,13 @@ export const Ebenen = ({
 		const aktiv = aktiveZeile === k.nr || mehrfach.has(k.nr);
 		const hauptstapel = k.zeile === 'hauptstapel';
 		// Der Hauptstapel hat kein eigenes Element: Sein Klick wählt die Seite.
-		// Seitenrahmen und Seitenfläche öffnen Blatt › Gestaltung (095).
+		// >> 181
+		// Seitenfläche, Seitenrahmen und Kopfband öffnen ihren Abschnitt im Reiter „Blatt“ (095, 181).
 		const waehleZeile = () =>
-			k.zeile === 'seitenrahmen' || k.zeile === 'seitenflaeche'
-				? zeigeSeitengestaltung(seite)
+			k.zeile === 'seitenrahmen' || k.zeile === 'seitenflaeche' || k.zeile === 'kopfband'
+				? zeigeSeitengestaltung(seite, k.zeile)
 				: waehle(hauptstapel ? seite : k.nr);
+		// << 181
 		return (
 			<div key={k.schluessel} data-knoten={k.nr}>
 				<div

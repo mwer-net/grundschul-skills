@@ -3,6 +3,9 @@ import type { LageTeil } from '@schoolbox/kern/src/gestaltung';
 import { kopiereGestaltungNach, setzeLage, setzeStilWerte, verschiebeAufSeite } from '@schoolbox/kern/src/gestaltung';
 import { GESTALTUNG_SELEKTOR, gestaltungArtNach } from '@schoolbox/kern/src/gestaltung-arten';
 import { skaliereGruppe } from '@schoolbox/kern/src/gruppen';
+// >> 181
+import { SEITEN_TEIL_SELEKTOR } from '@schoolbox/kern/src/seitengestaltung';
+// << 181
 import type { StrukturErgebnis } from '@schoolbox/kern/src/struktur';
 import type { PointerEvent as ReactPointerEvent } from 'react';
 import { useCallback, useEffect, useRef, useState } from 'react';
@@ -324,13 +327,15 @@ const elementBeimDruck = (doc: Document, ziel: Element, gewaehlt: number | null,
 
 const ohneTasten = (e: PointerEvent) => e.pointerType === 'mouse' && !e.shiftKey && !e.altKey && !e.metaKey;
 
+// >> 181
 /** 113: Leer heißt: kein Baustein mit Inhalt und kein Gestaltungselement unter dem Zeiger, nur Seite oder Ebene. */
 const bandAb = (e: PointerEvent, ziel: Element) => {
 	const seite = ziel.closest('.seite');
-	return seite && (ziel === seite || ziel.matches('.ebene, .seitenflaeche, .seitenrahmen'))
+	return seite && (ziel === seite || ziel.matches(`.ebene, ${SEITEN_TEIL_SELEKTOR}`))
 		? { id: e.pointerId, x: e.clientX, y: e.clientY, seite, laeuft: false }
 		: null;
 };
+// << 181
 
 const seitenIm = (doc: Document): Seite[] =>
 	[...doc.querySelectorAll('.seite')].flatMap((s) => {
