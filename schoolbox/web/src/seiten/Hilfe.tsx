@@ -15,9 +15,9 @@ import { dokumentSeite, inhaltAdresse } from '../lib/zugang';
 import { AblageTasten } from '../ordner/dialoge';
 import type { MappenEintrag } from '../typen';
 import { GESTALTEN } from './hilfe-gestalten';
+import { WEITERE_TASTEN } from './hilfe-tasten';
 import type { Abschnitt, Bild } from './hilfe-teile';
 import { Punkt } from './hilfe-teile';
-import { WEITERE_TASTEN } from './hilfe-tasten';
 
 /** Legt `schoolbox kurzanleitung` an; `scripts/ausrollen.sh` hält sie auf dem Stand der Vorlage. */
 const KURZANLEITUNG = { mappe: 'schoolbox-hilfe', token: null };
@@ -122,7 +122,7 @@ const ABSCHNITTE: Abschnitt[] = [
 						einen Teil des Blatts antippen, dann das Plus an seinem Rand oder „+ Baustein“ in der Leiste.
 					</Punkt>
 					<Punkt titel="Bausteine">
-						{'links in der Schublade „Bausteine“ ('}
+						links in der Schublade „Bausteine“ (
 						<SchubladenTaste id="bausteine" />
 						). Die Suche findet alles. Oben wählst du „Für dieses Blatt“ oder „Alle“. Antippen fügt ein;
 						gezogen landet der Baustein, wo du loslässt.
@@ -262,14 +262,14 @@ const ABSCHNITTE: Abschnitt[] = [
 						Baustein „Nach oben“ und „Nach unten“ tippen. Dort lassen sie sich auch verdoppeln und löschen.
 					</Punkt>
 					<Punkt titel="Ebenen">
-						{'die Schublade links ('}
+						die Schublade links (
 						<SchubladenTaste id="ebenen" />
-						, früher „Gliederung“) zeigt alle Seiten als Baum: darin die Aufgaben und
-						alles, was du im Blatt anklicken kannst, etwa eine Uhr in einem Eintrag. Was du im Blatt wählst,
-						ist dort markiert, Klick auf eine Zeile springt zur Stelle und zeigt rechts ihre Einstellungen.
-						Am Griff ziehst du, was sich umstellen lässt: Aufgaben innerhalb der Seite oder auf eine andere,
-						Einträge innerhalb ihrer Reihe, Seiten untereinander. Auf eine Seitenzeile abgelegt, landet die
-						Aufgabe am Ende dieser Seite. Kopf und Fuß bleiben fest. Der Pfeil klappt eine Zeile ein, „Alle
+						), früher „Gliederung“, zeigt alle Seiten als Baum: darin die Aufgaben und alles, was du im
+						Blatt anklicken kannst, etwa eine Uhr in einem Eintrag. Was du im Blatt wählst, ist dort
+						markiert, Klick auf eine Zeile springt zur Stelle und zeigt rechts ihre Einstellungen. Am Griff
+						ziehst du, was sich umstellen lässt: Aufgaben innerhalb der Seite oder auf eine andere, Einträge
+						innerhalb ihrer Reihe, Seiten untereinander. Auf eine Seitenzeile abgelegt, landet die Aufgabe
+						am Ende dieser Seite. Kopf und Fuß bleiben fest. Der Pfeil klappt eine Zeile ein, „Alle
 						einklappen“ macht die Liste kurz. Esc bricht das Ziehen ab, ⌘Z nimmt es zurück.
 					</Punkt>
 					<Punkt titel="Einstellungen">
@@ -301,9 +301,9 @@ const ABSCHNITTE: Abschnitt[] = [
 						Bild antippen, dann austauschen, eigenes hochladen oder an den Ecken größer und kleiner ziehen.
 						Links in der Schublade „Bilder“ (
 						<SchubladenTaste id="bilder" />
-						) stehen deine Fotos, die Bilder dieses Ordners, deiner anderen Ordner und der Sammlung, mit
-						Suche, „Foto hochladen“ und „Bild beschreiben …“ für ein neues Bild aus Canva. Ein Klick tauscht
-						das gewählte Bild aus oder füllt den gewählten Platzhalter oder Bildrahmen; ist nichts davon
+						): deine Fotos, die Bilder dieses Ordners, deiner anderen Ordner und der Sammlung, mit Suche,
+						„Foto hochladen“ und „Bild beschreiben …“ für ein neues Bild aus Canva. Ein Klick tauscht das
+						gewählte Bild aus oder füllt den gewählten Platzhalter oder Bildrahmen; ist nichts davon
 						gewählt, kommt das Bild als neuer Baustein hinter die Auswahl.
 					</Punkt>
 					<Punkt titel="Lösung">oben auf „Lösung“ wechseln und die Lösungen eintragen.</Punkt>

@@ -189,9 +189,7 @@ test.describe('Vorschaubilder in „Bilder“ (178)', () => {
 		const hoehe = () => k.evaluate((e) => e.getBoundingClientRect().height);
 		const leer = await hoehe();
 		freigeben();
-		await expect
-			.poll(() => k.locator('img').evaluate((i: HTMLImageElement) => i.naturalWidth))
-			.toBeGreaterThan(0);
+		await expect.poll(() => k.locator('img').evaluate((i: HTMLImageElement) => i.naturalWidth)).toBeGreaterThan(0);
 		expect(await hoehe()).toBe(leer);
 
 		const bildchen = bilder(page).locator('[data-sammlung] img');

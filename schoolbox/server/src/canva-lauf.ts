@@ -116,9 +116,10 @@ export const leseErgebnis = async (arbeit: string): Promise<CanvaAntwort> => {
 		// Keine oder kaputte Datei: wie leer.
 	}
 	const e = (typeof roh === 'object' && roh !== null && !Array.isArray(roh) ? roh : {}) as Record<string, unknown>;
-	const fehler = e.fehler === undefined || e.fehler === null || e.fehler === false ? null : e.fehler;
+	const ohneFehler = e.fehler === undefined || e.fehler === null || e.fehler === false;
+	const fehler = e.fehler === 'canva-pause' ? 'canva-pause' : 'canva-fehler';
 	return {
-		fehler: fehler === null ? null : fehler === 'canva-pause' ? 'canva-pause' : 'canva-fehler',
+		fehler: ohneFehler ? null : fehler,
 		wort: typeof e.wort === 'string' && WORT.test(e.wort) ? e.wort : 'neu',
 		name: feld(e.name, 40),
 		steckbrief: feld(e.steckbrief, 300),
@@ -346,7 +347,8 @@ export const erstelleCanvaLaeufe = (kontext: Kontext) => {
 		} finally {
 			clearInterval(takt);
 		}
-		const status: CanvaEreignisStatus = a.abbruch ? 'abgebrochen' : datei && !grund ? 'fertig' : 'fehler';
+		const ergebnis = datei && !grund ? 'fertig' : 'fehler';
+		const status: CanvaEreignisStatus = a.abbruch ? 'abgebrochen' : ergebnis;
 		await notiereVerbrauch(a, status, start, verbrauch);
 		await loesche(arbeit).catch(() => undefined);
 		if (aktiv === a) {

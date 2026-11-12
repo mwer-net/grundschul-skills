@@ -48,7 +48,10 @@ describe('Spalten links (183)', () => {
 		assert.deepEqual(angezeigt(stand({ ebenen: false }), false, BEREIT), nichts);
 
 		const ohneEbenen = stand({ ebenen: false, offen: true });
-		assert.deepEqual(angezeigt(ohneEbenen, false, () => false), { ebenen: true, schublade: null });
+		assert.deepEqual(
+			angezeigt(ohneEbenen, false, () => false),
+			{ ebenen: true, schublade: null },
+		);
 		assert.deepEqual(angezeigt(ohneEbenen, false, BEREIT), { ebenen: false, schublade: 'bausteine' });
 	});
 
@@ -104,11 +107,23 @@ describe('Spalten links (183)', () => {
 			[{ [SPEICHER.links]: 'seiten' }, ebenen],
 			[{ [SPEICHER.links]: 'rezepte' }, ebenen],
 			[{ [SPEICHER.links]: 'unbekannt' }, ebenen],
-			[{ [SPEICHER.links]: 'bausteine', [ALT[0]]: '1' }, { ebenen: true, schublade: 'bausteine' }],
-			[{ [SPEICHER.links]: 'formen', [ALT[0]]: '1' }, { ebenen: true, schublade: 'werkzeuge' }],
-			[{ [SPEICHER.links]: 'text', [ALT[0]]: '1', [ALT[1]]: '0.4' }, { ebenen: true, schublade: 'werkzeuge' }],
+			[
+				{ [SPEICHER.links]: 'bausteine', [ALT[0]]: '1' },
+				{ ebenen: true, schublade: 'bausteine' },
+			],
+			[
+				{ [SPEICHER.links]: 'formen', [ALT[0]]: '1' },
+				{ ebenen: true, schublade: 'werkzeuge' },
+			],
+			[
+				{ [SPEICHER.links]: 'text', [ALT[0]]: '1', [ALT[1]]: '0.4' },
+				{ ebenen: true, schublade: 'werkzeuge' },
+			],
 			[{ [SPEICHER.links]: 'bausteine' }, { ebenen: false, schublade: 'bausteine' }],
-			[{ [SPEICHER.links]: 'figuren', [ALT[0]]: '0' }, { ebenen: false, schublade: 'figuren' }],
+			[
+				{ [SPEICHER.links]: 'figuren', [ALT[0]]: '0' },
+				{ ebenen: false, schublade: 'figuren' },
+			],
 			[{ [SPEICHER.links]: 'zu', [ALT[0]]: '1' }, ebenen],
 			[{ [SPEICHER.links]: 'zu' }, nichts],
 			[{ [SPEICHER.links]: 'zu', [ALT[0]]: '0' }, nichts],

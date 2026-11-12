@@ -1,7 +1,8 @@
 import { formVon, STRICH, werteVon } from '@schoolbox/kern/src/formen';
 
 import { klassen } from '../../../bausteine/klassen';
-import { raster, SCHUBLADENKACHEL } from '../../../bausteine/Schublade';
+import { SCHUBLADENKACHEL } from '../../../bausteine/Schublade';
+import { raster } from '../../../bausteine/schubladenhilfe';
 import { AblageKachel } from '../../gestaltung/ablegen/Kachel';
 import type { Eintrag } from './Blasen-daten';
 import { EINTRAEGE, gutVon, namenVon } from './Blasen-daten';

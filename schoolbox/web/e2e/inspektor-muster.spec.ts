@@ -83,7 +83,9 @@ const reihenfolge = (reihe: Locator) =>
 	reihe
 		.locator(':scope > *')
 		.evaluateAll((alle) =>
-			alle.map((e) => e.getAttribute('data-farbe') ?? e.querySelector('[data-farbe]')?.getAttribute('data-farbe')),
+			alle.map(
+				(e) => e.getAttribute('data-farbe') ?? e.querySelector('[data-farbe]')?.getAttribute('data-farbe'),
+			),
 		);
 
 const ohneSaetze = async (page: Page) => {

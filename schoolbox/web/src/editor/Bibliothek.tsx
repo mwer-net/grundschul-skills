@@ -13,9 +13,7 @@ import {
 	ABSCHNITT_TITEL,
 	KACHELNAME,
 	KACHELNAME_ZWEIZEILIG,
-	nichtsPasst,
 	NOTIZ,
-	raster,
 	Schublade,
 	Schubladenabschnitt,
 	SCHUBLADENKACHEL,
@@ -25,6 +23,7 @@ import {
 	STEUER_SEGMENT,
 	ZEILENLISTE,
 } from '../bausteine/Schublade';
+import { nichtsPasst, raster } from '../bausteine/schubladenhilfe';
 import { Segment } from '../bausteine/Segment';
 import type { SymbolName } from '../bausteine/Symbol';
 import { Symbol } from '../bausteine/Symbol';
@@ -279,7 +278,6 @@ export const Einfuegemarken = ({
 		</>
 	);
 };
-
 
 /** Eigene Bausteine umbenennen und löschen (051), unter der Kachel und nicht darin: kein Knopf im Knopf. */
 const EigenVerwalten = ({ id, name, neuLaden }: { id: string; name: string; neuLaden: () => void }) => {
@@ -652,38 +650,40 @@ export const Bibliothek = ({
 			))}
 		</ul>
 	);
+	const steuerung = (
+		<>
+			<Schubladensuche beschriftung="Baustein suchen" wert={suche} setWert={setSuche} />
+			<Segment
+				beschriftung="Welche Bausteine"
+				className={STEUER_SEGMENT}
+				werte={FILTER_WERTE}
+				wert={filter}
+				waehle={waehleFilter}
+				aus={sucht}
+			/>
+			{!sucht && bereich !== null && (
+				<div className={klassen(ABSCHNITT_TITEL, 'flex items-center gap-2')}>
+					<button
+						type="button"
+						className="-ml-1 flex h-zeile min-w-0 items-center gap-1 rounded-md px-1 text-left hover:bg-flaeche-2"
+						data-bereich-zurueck
+						onClick={() => setBereich(null)}
+					>
+						<Symbol name="zurueck" className="size-3.5 flex-none" />
+						<span className="truncate">{bereich}</span>
+					</button>
+					<span className={klassen(NOTIZ, 'ml-auto')}>{imBereich.length}</span>
+				</div>
+			)}
+		</>
+	);
+
 	return (
 		<Schublade
 			titel={kopf('bausteine').titel}
 			daten={{ 'data-bibliothek': '' }}
 			inhaltRef={inhalt}
-			steuerung={
-				<>
-					<Schubladensuche beschriftung="Baustein suchen" wert={suche} setWert={setSuche} />
-					<Segment
-						beschriftung="Welche Bausteine"
-						className={STEUER_SEGMENT}
-						werte={FILTER_WERTE}
-						wert={filter}
-						waehle={waehleFilter}
-						aus={sucht}
-					/>
-					{!sucht && bereich !== null && (
-						<div className={klassen(ABSCHNITT_TITEL, 'flex items-center gap-2')}>
-							<button
-								type="button"
-								className="-ml-1 flex h-zeile min-w-0 items-center gap-1 rounded-md px-1 text-left hover:bg-flaeche-2"
-								data-bereich-zurueck
-								onClick={() => setBereich(null)}
-							>
-								<Symbol name="zurueck" className="size-3.5 flex-none" />
-								<span className="truncate">{bereich}</span>
-							</button>
-							<span className={klassen(NOTIZ, 'ml-auto')}>{imBereich.length}</span>
-						</div>
-					)}
-				</>
-			}
+			steuerung={steuerung}
 		>
 			{!sucht && bereich === null && (
 				<>

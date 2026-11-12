@@ -14,12 +14,12 @@ import { beschreibungAus } from '../bild';
 import { passt } from '../bild-sammlung';
 import type { BildZiehen, SammlungsGruppe } from '../Bildpanel';
 import { Hochladen, Laeuft, SammlungsKacheln } from '../Bildpanel';
-import { canvaAktion, starteBild, useCanvaLaeufe } from '../canva';
+import { bildLaeufe, canvaAktion, starteBild, useCanvaLaeufe } from '../canva';
 import { bildGut, mitGeholtemBild } from '../gestaltung/ablegen/bild-gut';
 import { useHolenAmZeiger } from '../gestaltung/ablegen/holen-am-zeiger';
 import type { SchubladenTeile } from '.';
 import { BildBeschreiben } from './bild-beschreiben';
-import { bildLaeufe, CanvaBildKacheln } from './CanvaKachel';
+import { CanvaBildKacheln } from './CanvaKachel';
 import { kopf } from './reihe';
 
 /** Reihenfolge in der Schublade; Figuren stehen nur in „Figuren“ (177), der Server lässt sie hier schon weg. */
@@ -45,11 +45,10 @@ export const Inhalt = (t: SchubladenTeile) => {
 	const mitClaude = !(t.ki.geladen && !t.ki.verfuegbar);
 	const meineLaeufe = mitClaude ? bildLaeufe(laeufe, t.dokument) : [];
 	// Ohne eigene Wahl die erste Gruppe mit Bildern oder Aufträgen, damit die Schublade nicht leer aufgeht.
-	const gruppe =
-		gewaehlt ??
-		GRUPPEN.find((g) => (daten?.[g.wert].length ?? 0) > 0 || (g.wert === 'mappe' && meineLaeufe.length > 0))
-			?.wert ??
-		'mappe';
+	const ersteMitBildern = GRUPPEN.find(
+		(g) => (daten?.[g.wert].length ?? 0) > 0 || (g.wert === 'mappe' && meineLaeufe.length > 0),
+	);
+	const gruppe = gewaehlt ?? ersteMitBildern?.wert ?? 'mappe';
 	const liste = useMemo(() => (daten ? daten[gruppe].filter((e) => passt(e, suche)) : []), [daten, gruppe, suche]);
 
 	// Nach dem Hochladen steht das Foto unter „Dieser Ordner“.
@@ -102,41 +101,39 @@ export const Inhalt = (t: SchubladenTeile) => {
 		);
 	const titel = GRUPPEN.find((g) => g.wert === gruppe)?.titel ?? '';
 	const zahl = daten?.[gruppe].length ?? 0;
-	const anzahl = zahl === 0 ? undefined : zahl === 1 ? '1 Bild' : `${zahl} Bilder`;
+	const anzahl = zahl === 0 ? undefined : `${zahl} ${zahl === 1 ? 'Bild' : 'Bilder'}`;
+
+	const steuerung = (
+		<>
+			<Schubladensuche beschriftung="Bilder suchen" wert={suche} setWert={setSuche} />
+			<Segment
+				beschriftung="Welche Bilder?"
+				className={STEUER_SEGMENT}
+				werte={GRUPPEN.map((g) => ({ wert: g.wert, titel: g.titel }))}
+				wert={gruppe}
+				waehle={setGruppe}
+			/>
+			{mitClaude ? (
+				<BildBeschreiben
+					ki={t.ki}
+					ort={t.dokument}
+					hochladen={hochladen}
+					fehler={canvaFehler}
+					setFehler={setCanvaFehler}
+					gesendet={() => {
+						setGruppe('mappe');
+						setSuche('');
+					}}
+				/>
+			) : (
+				hochladen
+			)}
+		</>
+	);
 
 	return (
 		<>
-			<Schublade
-				titel={kopf('bilder').titel}
-				daten={{ 'data-schublade-bilder': '' }}
-				steuerung={
-					<>
-						<Schubladensuche beschriftung="Bilder suchen" wert={suche} setWert={setSuche} />
-						<Segment
-							beschriftung="Welche Bilder?"
-							className={STEUER_SEGMENT}
-							werte={GRUPPEN.map((g) => ({ wert: g.wert, titel: g.titel }))}
-							wert={gruppe}
-							waehle={setGruppe}
-						/>
-						{mitClaude ? (
-							<BildBeschreiben
-								ki={t.ki}
-								ort={t.dokument}
-								hochladen={hochladen}
-								fehler={canvaFehler}
-								setFehler={setCanvaFehler}
-								gesendet={() => {
-									setGruppe('mappe');
-									setSuche('');
-								}}
-							/>
-						) : (
-							hochladen
-						)}
-					</>
-				}
-			>
+			<Schublade titel={kopf('bilder').titel} daten={{ 'data-schublade-bilder': '' }} steuerung={steuerung}>
 				<Schubladenabschnitt titel={titel} notiz={anzahl} daten={{ 'data-bilder-gruppe': gruppe }}>
 					{bild.arbeit === 'sammlung' && <Laeuft text="Bild wird eingesetzt …" />}
 					<SammlungsKacheln

@@ -619,10 +619,7 @@ export const useGeste = (o: Optionen) => {
 				// 113: ein Schritt für alle; ⌥-Kopie und Seitenwechsel gibt es bei der Mehrfachauswahl nicht.
 				const g = l.gruppe;
 				beende();
-				if (
-					gruppeBewegt(g) &&
-					!aktuell.current.struktur.fuehreAus('Verschoben', rechneGruppe(g, 'bewegen'))
-				) {
+				if (gruppeBewegt(g) && !aktuell.current.struktur.fuehreAus('Verschoben', rechneGruppe(g, 'bewegen'))) {
 					stelleGruppeHer(g);
 				}
 				return;

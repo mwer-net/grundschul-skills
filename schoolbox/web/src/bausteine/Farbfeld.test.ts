@@ -15,7 +15,7 @@ const zeichne = (e: Partial<FarbreiheEigenschaften>) =>
 			wert: null,
 			setze: () => undefined,
 			...e,
-		} as FarbreiheEigenschaften),
+		}),
 	);
 
 /** `data-farbe` jedes Punkts in der Reihenfolge des Markups. */
@@ -85,7 +85,13 @@ describe('Farbreihe (182)', () => {
 	});
 
 	it('gemischt: kein Punkt trägt einen Ring, auch „Keine“ nicht', () => {
-		const html = zeichne({ keine: 'Keine Füllung', schwarz: true, gemischt: true, wert: null, setze: () => undefined });
+		const html = zeichne({
+			keine: 'Keine Füllung',
+			schwarz: true,
+			gemischt: true,
+			wert: null,
+			setze: () => undefined,
+		});
 		assert.deepEqual(gewaehlt(html), []);
 		assert.equal(eigeneGewaehlt(html), false);
 		assert.doesNotMatch(html, /ring-tinte/);

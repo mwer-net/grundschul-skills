@@ -969,15 +969,15 @@ export const befehleFuer = (ort: Ort, k: Kontext, alle: Befehl[] = BEFEHLE) =>
 		.sort((a, b) => GRUPPEN.indexOf(a.gruppe) - GRUPPEN.indexOf(b.gruppe));
 
 const TASTEN_NAME: Record<string, string> = {
-	ArrowUp: '↑',
-	ArrowDown: '↓',
-	ArrowLeft: '←',
-	ArrowRight: '→',
-	Backspace: '⌫',
-	Delete: 'Entf',
-	Enter: '⏎',
-	Escape: 'Esc',
-	Tab: 'Tab',
+	'ArrowUp': '↑',
+	'ArrowDown': '↓',
+	'ArrowLeft': '←',
+	'ArrowRight': '→',
+	'Backspace': '⌫',
+	'Delete': 'Entf',
+	'Enter': '⏎',
+	'Escape': 'Esc',
+	'Tab': 'Tab',
 	' ': 'Leertaste',
 };
 

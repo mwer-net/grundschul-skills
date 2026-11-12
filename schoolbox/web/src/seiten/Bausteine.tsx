@@ -14,9 +14,7 @@ import { Popover } from '../bausteine/Popover';
 import { Reiter } from '../bausteine/Reiter';
 import { Schalter } from '../bausteine/Schalter';
 import {
-	nichtsPasst,
 	NOTIZ,
-	raster,
 	Schublade,
 	Schubladenabschnitt,
 	SCHUBLADENKACHEL,
@@ -26,6 +24,7 @@ import {
 	STEUER_SEGMENT,
 	ZEILENLISTE,
 } from '../bausteine/Schublade';
+import { nichtsPasst, raster } from '../bausteine/schubladenhilfe';
 import { Segment } from '../bausteine/Segment';
 import { Stepper } from '../bausteine/Stepper';
 import { Symbol } from '../bausteine/Symbol';
@@ -58,6 +57,22 @@ export const Bausteine = () => {
 	const [kachel, setKachel] = useState('a');
 	const [suche, setSuche] = useState('');
 	const zeige = useZeigeMenue();
+	const steuerung = (
+		<>
+			<Schubladensuche beschriftung="Muster suchen" wert={suche} setWert={setSuche} />
+			<Segment
+				beschriftung="Welche"
+				className={STEUER_SEGMENT}
+				wert={segment}
+				waehle={setSegment}
+				werte={[
+					{ wert: 'a', titel: 'Für dieses Blatt' },
+					{ wert: 'b', titel: 'Alle' },
+				]}
+			/>
+		</>
+	);
+
 	return (
 		<main className="mx-auto flex max-w-4xl flex-col gap-4 p-6">
 			<h1 className="text-2xl">Bausteine</h1>
@@ -202,24 +217,7 @@ export const Bausteine = () => {
 				</div>
 			</Karte>
 			<div className="flex h-105 w-70 flex-col overflow-hidden rounded-lg border border-rand bg-flaeche">
-				<Schublade
-					titel="Schublade"
-					steuerung={
-						<>
-							<Schubladensuche beschriftung="Muster suchen" wert={suche} setWert={setSuche} />
-							<Segment
-								beschriftung="Welche"
-								className={STEUER_SEGMENT}
-								wert={segment}
-								waehle={setSegment}
-								werte={[
-									{ wert: 'a', titel: 'Für dieses Blatt' },
-									{ wert: 'b', titel: 'Alle' },
-								]}
-							/>
-						</>
-					}
-				>
+				<Schublade titel="Schublade" steuerung={steuerung}>
 					<Schubladenabschnitt titel="Formen">
 						<div className={raster(3)}>
 							{(['stern', 'formen', 'bild'] as const).map((name) => (

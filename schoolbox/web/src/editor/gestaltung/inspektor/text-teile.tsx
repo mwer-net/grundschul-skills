@@ -1,12 +1,5 @@
 import type { Ausrichtung, SchmuckTeil, Schrift } from '@schoolbox/kern/src/schmuck';
-import {
-	GROESSE_MAX,
-	GROESSE_MIN,
-	groesseIm,
-	leseSchmuck,
-	SCHRIFTEN,
-	setzeSchmuck,
-} from '@schoolbox/kern/src/schmuck';
+import { GROESSE_MAX, GROESSE_MIN, groesseIm, leseSchmuck, SCHRIFTEN, setzeSchmuck } from '@schoolbox/kern/src/schmuck';
 
 import { Farbwahl } from '../../../bausteine/Farbwahl';
 import { Segment } from '../../../bausteine/Segment';

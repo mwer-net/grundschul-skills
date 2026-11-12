@@ -125,7 +125,7 @@ test.describe('Bild beschreiben (179)', () => {
 		await expect(senden(page)).toBeDisabled();
 	});
 
-	test('Bildchen: Willi und Wilma, kein Paul, kein „Williams“', async ({ page, hasTouch }) => {
+	test('Bildchen: Willi und Wilma, kein Paul, kein „Williams“', async ({ hasTouch, page }) => {
 		await oeffneBilder(page);
 		await feld(page).fill('Willi und Wilmas Garten');
 		await expect(figuren(page)).toHaveCount(2);
@@ -176,7 +176,7 @@ test.describe('Bild beschreiben (179)', () => {
 		expect(await quelle(page)).not.toContain('bildrahmen');
 	});
 
-	test('Abbrechen: × an der laufenden Kachel nimmt sie weg, kein neues Bild', async ({ page, druecke }) => {
+	test('Abbrechen: × an der laufenden Kachel nimmt sie weg, kein neues Bild', async ({ druecke, page }) => {
 		await kiFall('haenger');
 		const { bilder } = await oeffneBilder(page);
 		const vorher = await readdir(bilder);
@@ -190,8 +190,8 @@ test.describe('Bild beschreiben (179)', () => {
 	});
 
 	test('Fehler: Kachel über die ganze Zeile; „Noch einmal“ wird fertig, die Fehler-Kachel ist weg', async ({
-		page,
 		druecke,
+		page,
 	}) => {
 		await kiFall('canva-pause');
 		const { id } = await oeffneBilder(page);
@@ -257,7 +257,7 @@ test.describe('Bild beschreiben (179)', () => {
 		await expect(liste(page).locator('> li').first().locator(CANVA_KACHEL)).toHaveAttribute('aria-label', WUNSCH);
 	});
 
-	test('Meldung: „Figuren“ offen, fertig, dann die Meldung; „Ansehen“ öffnet „Bilder“', async ({ page, druecke }) => {
+	test('Meldung: „Figuren“ offen, fertig, dann die Meldung; „Ansehen“ öffnet „Bilder“', async ({ druecke, page }) => {
 		const { id } = await oeffneBilder(page);
 		await beschreibe(page, WUNSCH);
 		await expect(canvaKacheln(page)).toHaveCount(1);

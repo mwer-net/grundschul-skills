@@ -205,7 +205,9 @@ test.describe('Abschnitte der Gestaltung (185)', () => {
 		await blattOeffnen(page, blattMit({ vorne: [FORM, RECHTECK] }));
 		await stern(page).click();
 		await expect(page.locator('[data-breadcrumb] h2')).toHaveText('Stern');
-		await material(page).locator('svg.form[data-form="rechteck"]').click({ modifiers: ['Shift'] });
+		await material(page)
+			.locator('svg.form[data-form="rechteck"]')
+			.click({ modifiers: ['Shift'] });
 		await expect(page.locator('[data-breadcrumb] h2')).toHaveText('2 Elemente');
 	});
 

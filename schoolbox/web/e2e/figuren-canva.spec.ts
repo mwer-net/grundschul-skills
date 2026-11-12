@@ -72,8 +72,8 @@ test.afterEach(async ({ page }) => {
 
 test.describe('Figuren über Canva (176)', () => {
 	test('Pose: Kachel mit Spinner in Willis Abschnitt, dann „Willi lupe“; Enter noch einmal gibt „Willi lupe 2“', async ({
-		page,
 		hasTouch,
+		page,
 	}) => {
 		await oeffneFiguren(page);
 		await expect(senden(page)).toBeDisabled();
@@ -114,12 +114,20 @@ test.describe('Figuren über Canva (176)', () => {
 		await expect(neueFigur(page)).toBeVisible();
 		await expect(neueFigur(page).locator('h3')).toHaveText('Neue Figur');
 		await expect(neueFigur(page).locator(CANVA_KACHEL)).toHaveCount(1);
-		await expect(schublade(page).locator('[data-schublade-abschnitt]').first()).toHaveAttribute('data-canva-neu', '');
+		await expect(schublade(page).locator('[data-schublade-abschnitt]').first()).toHaveAttribute(
+			'data-canva-neu',
+			'',
+		);
 
 		await expect(gruppe(page, 'igel')).toBeVisible(LAUF);
 		await expect(gruppe(page, 'igel').locator('h3')).toHaveText('Igel');
 		await expect(neueFigur(page)).toHaveCount(0);
-		await expect(schublade(page).locator('[data-figuren-gruppe] > h3')).toHaveText(['Willi', 'Wilma', 'Igel', 'Kiki']);
+		await expect(schublade(page).locator('[data-figuren-gruppe] > h3')).toHaveText([
+			'Willi',
+			'Wilma',
+			'Igel',
+			'Kiki',
+		]);
 	});
 
 	test('Suche: Steht etwas im Suchfeld, ist keine Canva-Kachel zu sehen', async ({ page }) => {
@@ -137,9 +145,9 @@ test.describe('Figuren über Canva (176)', () => {
 	});
 
 	test('Entfernen über ⋯: eine Pose, dann die ganze Figur; Willi und Wilma ohne ⋯ an der Grundpose', async ({
-		page,
 		druecke,
 		hasTouch,
+		page,
 	}) => {
 		await oeffneFiguren(page);
 		await expect(gruppe(page, 'willi').getByRole('button', { name: 'Weitere Aktionen' })).toHaveCount(0);
@@ -164,7 +172,9 @@ test.describe('Figuren über Canva (176)', () => {
 		expect(existsSync(path.join(BIBLIOTHEK, 'kiki.png'))).toBe(true);
 	});
 
-	test('Zwei Namen: „Eine Figur je Bild.“ unter dem Feld, keine Kachel; Tippen nimmt den Text weg', async ({ page }) => {
+	test('Zwei Namen: „Eine Figur je Bild.“ unter dem Feld, keine Kachel; Tippen nimmt den Text weg', async ({
+		page,
+	}) => {
 		await oeffneFiguren(page);
 		await beschreibe(page, 'Willi und Wilma lesen');
 		await expect(schublade(page).locator('[data-figur-fehler]')).toHaveText('Eine Figur je Bild.');
@@ -176,8 +186,8 @@ test.describe('Figuren über Canva (176)', () => {
 	});
 
 	test('Fehler: Kachel über die ganze Zeile; „Noch einmal“ wird fertig, die Fehler-Kachel ist weg', async ({
-		page,
 		druecke,
+		page,
 	}) => {
 		await kiFall('canva-pause');
 		await oeffneFiguren(page);
@@ -194,7 +204,7 @@ test.describe('Figuren über Canva (176)', () => {
 		await expect(canvaKacheln(page)).toHaveCount(0);
 	});
 
-	test('× an einer Fehler-Kachel entfernt sie', async ({ page, druecke }) => {
+	test('× an einer Fehler-Kachel entfernt sie', async ({ druecke, page }) => {
 		await kiFall('canva-pause');
 		await oeffneFiguren(page);
 		await beschreibe(page, 'Wilma mit einem Buch');
@@ -204,7 +214,7 @@ test.describe('Figuren über Canva (176)', () => {
 		await expect(canvaKacheln(page)).toHaveCount(0);
 	});
 
-	test('Abbrechen: × an der laufenden Kachel nimmt sie weg', async ({ page, druecke }) => {
+	test('Abbrechen: × an der laufenden Kachel nimmt sie weg', async ({ druecke, page }) => {
 		await kiFall('haenger');
 		await oeffneFiguren(page);
 		await beschreibe(page, WILLI_LUPE);
@@ -216,8 +226,8 @@ test.describe('Figuren über Canva (176)', () => {
 	});
 
 	test('Meldung: Schublade gewechselt, fertig, dann die Meldung; „Ansehen“ öffnet „Figuren“', async ({
-		page,
 		druecke,
+		page,
 	}) => {
 		await oeffneFiguren(page);
 		await beschreibe(page, WILLI_LUPE);
@@ -231,7 +241,7 @@ test.describe('Figuren über Canva (176)', () => {
 		await expect(kachel(page, 'Willi lupe')).toBeVisible();
 	});
 
-	test('iPad: Feld, Senden, × und ⋯ in den iPad-Maßen, das ⋯ immer sichtbar', async ({ page, hasTouch }) => {
+	test('iPad: Feld, Senden, × und ⋯ in den iPad-Maßen, das ⋯ immer sichtbar', async ({ hasTouch, page }) => {
 		test.skip(!hasTouch, 'nur am Finger');
 		await kiFall('haenger');
 		await oeffneFiguren(page);

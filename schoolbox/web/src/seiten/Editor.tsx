@@ -212,12 +212,12 @@ const useAuswahlFolgt = (
 	setAuswahl: (nr: number | null) => void,
 ) => {
 	const innerstes = pfad.at(-1)?.nr ?? null;
-	const sichtbar = geladen?.html === html;
+	const neuDa = geladen?.html === html;
 	useEffect(() => {
-		if (sichtbar && auswahl !== null && innerstes !== auswahl) {
+		if (neuDa && auswahl !== null && innerstes !== auswahl) {
 			setAuswahl(innerstes);
 		}
-	}, [sichtbar, auswahl, innerstes, setAuswahl]);
+	}, [neuDa, auswahl, innerstes, setAuswahl]);
 };
 
 /**

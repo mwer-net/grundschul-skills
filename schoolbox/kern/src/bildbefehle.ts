@@ -84,9 +84,7 @@ export const setzeBildBreite = (quelle: string, nr: number, px: number, max = In
 	// Freie Bilder (103) haben ihre Größe in `--b` (Griffe, Inspektor „Anordnen“): zwei Größenlogiken vertragen sich
 	// nicht.
 	if (attribut(k, 'data-lage')) {
-		throw new Error(
-			'Die Größe eines frei liegenden Bildes stellst du an den Ecken oder unter „Anordnen“ ein.',
-		);
+		throw new Error('Die Größe eines frei liegenden Bildes stellst du an den Ecken oder unter „Anordnen“ ein.');
 	}
 	const breite = Math.round(Math.max(BILD_MIN, Math.min(max, px)));
 	const stil = ohneStilWert(attribut(k, 'style')?.wert ?? null, 'height');

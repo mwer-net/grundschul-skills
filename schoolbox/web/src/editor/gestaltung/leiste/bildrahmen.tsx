@@ -1,6 +1,6 @@
 import { Knopf } from '../../../bausteine/Knopf';
 import { Symbol } from '../../../bausteine/Symbol';
-import { oeffneBilder } from './bild';
+import { oeffneBilder } from './oeffne-bilder';
 import type { LeistenKnoepfe } from './typen';
 
 /**

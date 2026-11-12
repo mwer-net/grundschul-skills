@@ -184,16 +184,16 @@ test.describe('Editor: Bausteine einfügen', () => {
 
 	test('Umschalter steht über der Liste und bleibt nach dem Neuladen', async ({ page }) => {
 		await oeffneBausteine(page);
-		const alle = page.getByRole('button', { name: 'Alle', exact: true });
+		const alleKnopf = alle(page);
 		const umschalter = await page.getByRole('group', { name: 'Welche Bausteine' }).boundingBox();
 		const erste = await page.locator('[data-bereich]').first().boundingBox();
 		expect(umschalter && erste && umschalter.y < erste.y).toBe(true);
-		await expect(alle).toHaveAttribute('aria-pressed', 'false');
-		await alle.click();
+		await expect(alleKnopf).toHaveAttribute('aria-pressed', 'false');
+		await alleKnopf.click();
 		await page.reload();
 		await expect(page.locator('[data-leinwand][data-geladen]')).toBeVisible();
 		await oeffneSchublade(page, 'bausteine');
-		await expect(alle).toHaveAttribute('aria-pressed', 'true');
+		await expect(alleKnopf).toHaveAttribute('aria-pressed', 'true');
 	});
 
 	test('Null-Bereiche nur unter „Alle“, „weitere“ schaltet um', async ({ page }) => {

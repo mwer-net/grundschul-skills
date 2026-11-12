@@ -33,9 +33,7 @@ const ZEIGEN_KUERZEL = new Set([
 
 /** Kommentare zählen nicht, ihre Zeilen bleiben (für die Zeilennummer). */
 const ohneKommentare = (quelle: string) =>
-	quelle
-		.replace(/\/\*[\s\S]*?\*\//g, (m) => m.replace(/[^\n]/g, ' '))
-		.replace(/(^|[^:'"`\\])\/\/.*$/gm, '$1');
+	quelle.replace(/\/\*[\s\S]*?\*\//g, (m) => m.replace(/[^\n]/g, ' ')).replace(/(^|[^:'"`\\])\/\/.*$/gm, '$1');
 
 /** Zeilen mit einem Kürzel als Text, als „Zeile: Inhalt“. */
 export const kuerzelImText = (quelle: string): string[] =>
@@ -51,7 +49,7 @@ const DATEIEN = readdirSync(SRC, { recursive: true, encoding: 'utf8' })
 
 describe('Keine Kürzel in der Oberfläche (166)', () => {
 	it('die Suche findet Kürzel im Text, aber nicht in Kommentaren und Namen', () => {
-		assert.equal(kuerzelImText("<Knopf title='Fett (⌘B)' />").length, 1);
+		assert.equal(kuerzelImText('<Knopf title="Fett (⌘B)" />').length, 1);
 		assert.equal(kuerzelImText('<span>Punkte bearbeiten · Esc beendet</span>').length, 1);
 		assert.deepEqual(kuerzelImText('// ⌘K öffnet die Palette\nconst esc = true;'), []);
 	});

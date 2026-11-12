@@ -127,15 +127,18 @@ interface Gemeinsam {
 	gemischt?: boolean;
 }
 
-export type FarbreiheEigenschaften = Gemeinsam &
-	(
-		| {
-				/** Name des Punkts „Keine“, z. B. „Keine Füllung“; ohne gibt es keinen. */
-				keine: string;
-				setze: (wert: string | null) => void;
-		  }
-		| { keine?: undefined; setze: (wert: string) => void }
-	);
+interface MitKeine extends Gemeinsam {
+	/** Name des Punkts „Keine“, z. B. „Keine Füllung“; ohne gibt es keinen. */
+	keine: string;
+	setze: (wert: string | null) => void;
+}
+
+interface OhneKeine extends Gemeinsam {
+	keine?: undefined;
+	setze: (wert: string) => void;
+}
+
+export type FarbreiheEigenschaften = MitKeine | OhneKeine;
 
 const gleich = (a: string | null, b: string) => a !== null && sechsStellen(a) === b;
 

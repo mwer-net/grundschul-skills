@@ -79,7 +79,7 @@ const EinheitFeld = ({
 	);
 };
 
-const Zeile = ({ children, ...daten }: { children: ReactNode; 'data-einheit-aussehen'?: string }) => (
+const Zeile = ({ children, ...daten }: { 'children': ReactNode; 'data-einheit-aussehen'?: string }) => (
 	<div className="mb-4 flex flex-wrap items-center gap-3" {...daten}>
 		{children}
 	</div>

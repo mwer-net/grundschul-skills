@@ -77,7 +77,9 @@ export const canvaAuftragText = (wunsch: string, figur: CanvaFigur | null) => {
 		const aussehen = figur.steckbrief
 			? `Aussehen „${einzeilig(figur.steckbrief)}“`
 			: `kein Steckbrief, Bild ${referenzDatei(figur)}`;
-		zeilen.push(`Figur ${einzeilig(figur.name)}: ${aussehen}; ${figur.referenz ? `Referenz ${figur.referenz}` : stil}`);
+		zeilen.push(
+			`Figur ${einzeilig(figur.name)}: ${aussehen}; ${figur.referenz ? `Referenz ${figur.referenz}` : stil}`,
+		);
 	}
 	return `${zeilen.join('\n')}\n`;
 };

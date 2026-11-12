@@ -43,11 +43,12 @@ export const angezeigt = (s: LinksStand, eng: boolean, bereit: (id: AndereId) =>
 
 /** Klick in der Leiste, ⌥1 … ⌥5 und ⌘K: Die Ebenen schalten für sich, von den anderen ist eine offen oder keine. */
 export const schalte = (s: LinksStand, id: SchubladenId, zeigt: LinksZeigt, eng: boolean): LinksStand => {
+	if (id === 'ebenen' && zeigt.ebenen) {
+		return { ...s, ebenen: false, offen: zeigt.schublade !== null };
+	}
 	if (id === 'ebenen') {
-		return zeigt.ebenen
-			? { ...s, ebenen: false, offen: zeigt.schublade !== null }
-			: // Eng schließt das die Schublade, die an ihrer Stelle stand.
-				{ ...s, ebenen: true, offen: eng ? false : zeigt.schublade !== null };
+		// Eng schließt das die Schublade, die an ihrer Stelle stand.
+		return { ...s, ebenen: true, offen: eng ? false : zeigt.schublade !== null };
 	}
 	return zeigt.schublade === id ? { ...s, offen: false } : { ...s, schublade: id, offen: true };
 };

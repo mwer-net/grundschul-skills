@@ -61,6 +61,8 @@ export const KonturWahl = ({ aktiv, k, quelle }: KonturBogenTeile) => {
 	const an = kontur !== null;
 	const aktuell = kontur ?? SCHRIFT_KONTUR_STANDARD;
 	const imBogen = k.element.tagName.toLowerCase() === 'svg';
+	const setzeStaerke = (n: number) =>
+		setzeKontur(k, n > 0 ? { staerke: Math.min(SCHRIFT_KONTUR_MAX, n), farbe: aktuell.farbe } : null);
 	return (
 		<div className="flex flex-col gap-1" data-kontur-wahl>
 			<Zeile titel="Kontur">
@@ -86,14 +88,7 @@ export const KonturWahl = ({ aktiv, k, quelle }: KonturBogenTeile) => {
 										zeigeVariable(k, '--kontur', n === null ? null : `${Math.round(n)}px`);
 									}
 								}}
-								setze={(n) =>
-									setzeKontur(
-										k,
-										n > 0
-											? { staerke: Math.min(SCHRIFT_KONTUR_MAX, n), farbe: aktuell.farbe }
-											: null,
-									)
-								}
+								setze={setzeStaerke}
 							/>
 						</span>
 					</Zeile>

@@ -4,7 +4,8 @@ import type { CSSProperties } from 'react';
 import { useEffect } from 'react';
 
 import { klassen } from '../../../bausteine/klassen';
-import { KACHELNAME, raster, SCHUBLADENKACHEL } from '../../../bausteine/Schublade';
+import { KACHELNAME, SCHUBLADENKACHEL } from '../../../bausteine/Schublade';
+import { raster } from '../../../bausteine/schubladenhilfe';
 import { AblageKachel } from '../../gestaltung/ablegen/Kachel';
 import { ARTEN, fsVon, gutVon, namenVon } from './Text-daten';
 import type { FormenTeile } from './typ';

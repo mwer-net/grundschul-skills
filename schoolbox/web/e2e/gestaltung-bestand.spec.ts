@@ -75,9 +75,9 @@ test.describe('Ältere Blätter mit Rezept (180)', () => {
 			await expect(ebenen(page)).toBeVisible();
 			await expect(ebenen(page).locator('[data-ebenen-zeichen="rezept"]')).toHaveCount(0);
 			await expect(ebenen(page).locator('[data-zeile-nr]', { hasText: /Kopfband/ })).toHaveCount(0);
-			const flaeche = ebenen(page).locator('[data-zeilen-art="seitenflaeche"]');
-			await expect(flaeche).toHaveCount(1);
-			await expect(flaeche).toHaveAttribute('data-gesperrt', 'true');
+			const flaecheZeile = ebenen(page).locator('[data-zeilen-art="seitenflaeche"]');
+			await expect(flaecheZeile).toHaveCount(1);
+			await expect(flaecheZeile).toHaveAttribute('data-gesperrt', 'true');
 			const streuungen = ebenen(page).locator('[data-zeilen-art="hinten"]');
 			await expect(streuungen).toHaveCount(2);
 			for (const zeile of await streuungen.all()) {
@@ -192,7 +192,7 @@ test.describe('Ältere Blätter mit Rezept (180)', () => {
 		await expect(page.locator('[data-schublade-knopf="rezepte"]')).toHaveCount(0);
 		await oeffneSchublade(page, 'ebenen');
 		await expect(ebenen(page).locator('[data-ebenen-zeichen="rezept"]')).toHaveCount(0);
-		const flaeche = ebenen(page).locator('[data-zeilen-art="seitenflaeche"]');
-		await expect(flaeche).toHaveAttribute('data-gesperrt', 'true');
+		const flaecheZeile = ebenen(page).locator('[data-zeilen-art="seitenflaeche"]');
+		await expect(flaecheZeile).toHaveAttribute('data-gesperrt', 'true');
 	});
 });

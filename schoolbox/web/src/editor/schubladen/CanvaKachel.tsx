@@ -51,7 +51,9 @@ export const CanvaKachel = ({
 			)}
 		</>
 	);
-	const aussehen = bild ? 'flex w-full flex-col items-center gap-1 p-2' : 'flex aspect-square items-center justify-center p-1.5';
+	const aussehen = bild
+		? 'flex w-full flex-col items-center gap-1 p-2'
+		: 'flex aspect-square items-center justify-center p-1.5';
 	return (
 		<Tooltip text={stand.text}>
 			<figure
@@ -61,7 +63,9 @@ export const CanvaKachel = ({
 				className={klassen(
 					SCHUBLADENKACHEL,
 					'relative m-0 hover:bg-flaeche-2!',
-					fehler ? klassen(bild ? 'w-full' : 'col-span-3', 'flex flex-col items-start gap-1.5 p-2.5 pr-8') : aussehen,
+					fehler
+						? klassen(bild ? 'w-full' : 'col-span-3', 'flex flex-col items-start gap-1.5 p-2.5 pr-8')
+						: aussehen,
 				)}
 			>
 				{!fehler && bild ? (
@@ -103,12 +107,6 @@ export const CanvaKacheln = ({
 		.filter((l) => l.art === 'figur' && (l.ziel.figur ?? null) === figur)
 		.sort((a, b) => Number(b.status === 'fehler') - Number(a.status === 'fehler'))
 		.map((stand) => <CanvaKachel key={stand.id} stand={stand} nochmal={nochmal} />);
-
-/** Die Bilder aus „Bilder“ für dieses Blatt, Fehler zuerst. Leer, wenn es keine gibt. */
-export const bildLaeufe = (laeufe: readonly CanvaStand[], ort: { mappe: string; dok: string }) =>
-	laeufe
-		.filter((l) => l.art === 'bild' && l.ziel.mappe === ort.mappe && l.ziel.dok === ort.dok)
-		.sort((a, b) => Number(b.status === 'fehler') - Number(a.status === 'fehler'));
 
 /** Je Auftrag ein `<li>` der Liste „Dieser Ordner“; ein Fehler nimmt die ganze Zeile. */
 export const CanvaBildKacheln = ({

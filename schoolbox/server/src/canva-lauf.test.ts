@@ -159,7 +159,11 @@ describe('Canva-Lauf (176)', () => {
 			.find((f) => f.id === 'willi')
 			?.posen.find((p) => p.id === 'willi-lupe');
 		assert.equal(pose?.canva, 'MAattrappe1');
-		assert.ok((await readFile(path.join(figurenDir(server.materialDir), 'willi-lupe.png'))).subarray(0, 8).equals(PNG_KOPF));
+		assert.ok(
+			(await readFile(path.join(figurenDir(server.materialDir), 'willi-lupe.png')))
+				.subarray(0, 8)
+				.equals(PNG_KOPF),
+		);
 		assert.ok(!existsSync(arbeit(id)), 'Arbeitsordner weg');
 		assert.ok(!existsSync(sitzung(id)), 'Sitzung weg');
 		const zeile = (await verbrauch()).at(-1);
@@ -270,7 +274,10 @@ describe('Canva-Lauf (176)', () => {
 		await fall('fehler');
 		const id = await starte(WILLI_LUPE);
 		assert.equal((await ende(id))?.status, 'fehler');
-		assert.match((await liste()).find((l) => l.id === id)?.fehler ?? '', /^Das Limit des Claude-Kontos ist erreicht/);
+		assert.match(
+			(await liste()).find((l) => l.id === id)?.fehler ?? '',
+			/^Das Limit des Claude-Kontos ist erreicht/,
+		);
 	});
 
 	it('Frist: „Das hat zu lange gedauert.“', async () => {

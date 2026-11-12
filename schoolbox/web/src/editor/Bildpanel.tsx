@@ -7,7 +7,8 @@ import { Chip } from '../bausteine/Chip';
 import { Dialog } from '../bausteine/Dialog';
 import { FELD_KLASSEN, klassen, knopfKlassen } from '../bausteine/klassen';
 import { Knopf } from '../bausteine/Knopf';
-import { KACHELNAME, nichtsPasst, raster, SCHUBLADENKACHEL, Schubladenleer } from '../bausteine/Schublade';
+import { KACHELNAME, SCHUBLADENKACHEL, Schubladenleer } from '../bausteine/Schublade';
+import { nichtsPasst, raster } from '../bausteine/schubladenhilfe';
 import { Symbol } from '../bausteine/Symbol';
 import { Tooltip } from '../bausteine/Tooltip';
 import { Zeile } from '../bausteine/Zeile';
@@ -179,6 +180,7 @@ const Kachel = ({
 			{inhalt}
 		</button>
 	);
+	const ohneZug = klein ? <Tooltip text={name}>{knopf}</Tooltip> : knopf;
 	return (
 		<li className="min-w-0">
 			{zug ? (
@@ -193,10 +195,8 @@ const Kachel = ({
 				>
 					{inhalt}
 				</AblageKachel>
-			) : klein ? (
-				<Tooltip text={name}>{knopf}</Tooltip>
 			) : (
-				knopf
+				ohneZug
 			)}
 		</li>
 	);

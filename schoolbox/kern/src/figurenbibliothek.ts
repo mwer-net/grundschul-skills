@@ -80,7 +80,7 @@ const leseDatei = async (materialDir: string): Promise<Gelesen> => {
 	try {
 		roh = await readFile(jsonDatei(materialDir), 'utf8');
 	} catch (fehler) {
-		return (fehler as NodeJS.ErrnoException).code === 'ENOENT' ? { stand: 'fehlt' } : { stand: 'kaputt' };
+		return (fehler as { code?: unknown }).code === 'ENOENT' ? { stand: 'fehlt' } : { stand: 'kaputt' };
 	}
 	try {
 		const daten = JSON.parse(roh) as unknown;
@@ -265,7 +265,10 @@ const uebernimmBestand = async (konfig: Pick<Konfig, 'pythonBin'>, materialDir: 
 			}
 		}
 	}
-	const messung = await miss(konfig, [...pngs, ...striche.values()].map((d) => d.datei));
+	const messung = await miss(
+		konfig,
+		[...pngs, ...striche.values()].map((d) => d.datei),
+	);
 	const kandidaten = pngs.filter((d) => (messung.get(d.datei)?.durchsichtig ?? 0) > FREIGESTELLT);
 	const grundposen = new Set(kandidaten.map((d) => d.stamm).filter((s) => FIGUR_ID.test(s)));
 	const figurVon = (stamm: string) => {
@@ -428,7 +431,10 @@ const REIHEN = new Map<string, Promise<unknown>>();
 
 const inReihe = <T>(materialDir: string, aufgabe: () => Promise<T>): Promise<T> => {
 	const lauf = (REIHEN.get(materialDir) ?? Promise.resolve()).then(aufgabe, aufgabe);
-	REIHEN.set(materialDir, lauf.catch(() => undefined));
+	REIHEN.set(
+		materialDir,
+		lauf.catch(() => undefined),
+	);
 	return lauf;
 };
 
@@ -439,7 +445,7 @@ const inReihe = <T>(materialDir: string, aufgabe: () => Promise<T>): Promise<T> 
 const aendereBibliothek = async <T>(
 	konfig: Pick<Konfig, 'pythonBin'>,
 	materialDir: string,
-	aendere: (gespeichert: Gespeichert, dateien: ReadonlySet<string>) => Promise<T>,
+	aendere: (gespeichert: Gespeichert, dateien: ReadonlySet<string>) => T | Promise<T>,
 ): Promise<T> => {
 	await sorgeFuerBibliothek(konfig, materialDir);
 	return inReihe(materialDir, async () => {
@@ -563,7 +569,7 @@ export const entfernePose = async (
 	if (eingebaut(poseId)) {
 		throw new SchoolboxFehler('Willi und Wilma lassen sich nicht entfernen.');
 	}
-	return aendereBibliothek(konfig, materialDir, async (gespeichert, dateien) => {
+	return aendereBibliothek(konfig, materialDir, (gespeichert, dateien) => {
 		const figur = figurenAus(gespeichert, dateien).find((f) => f.posen.some((p) => p.id === poseId));
 		const eintrag = figur && gespeichert.figuren.find((f) => istObjekt(f) && f.id === figur.id);
 		if (!figur || !eintrag || !Array.isArray(eintrag.posen)) {

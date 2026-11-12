@@ -1,6 +1,6 @@
 import type { MenueEintrag } from '../bausteine/Menue';
-import type { TastenAbschnitt } from '../bausteine/Tastenliste';
 import type { SymbolName } from '../bausteine/Symbol';
+import type { TastenAbschnitt } from '../bausteine/Tastenliste';
 import type { Kuerzel } from '../editor/befehle';
 import { kuerzelText, passtTaste } from '../editor/befehle';
 import { hatOffeneEntwuerfe } from '../entwuerfe/offen';

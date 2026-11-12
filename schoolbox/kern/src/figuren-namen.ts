@@ -14,10 +14,7 @@ const maskiert = (wort: string) => wort.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 
 /** Ein Name aus mehreren Wörtern mit beliebigem Leerraum dazwischen, dahinter `s`, `'s`, `’s`, `'` oder `’`. */
 const muster = (name: string) =>
-	new RegExp(
-		`(?<!${ZEICHEN})${name.split(/\s+/).map(maskiert).join('\\s+')}(?=(?:['’]s?|s)?(?!${ZEICHEN}))`,
-		'gu',
-	);
+	new RegExp(`(?<!${ZEICHEN})${name.split(/\s+/).map(maskiert).join('\\s+')}(?=(?:['’]s?|s)?(?!${ZEICHEN}))`, 'gu');
 
 /**
  * Die Figuren, deren `name` im Text steht, in der Reihenfolge ihres ersten Vorkommens, jede einmal, ungekürzt. Längere
@@ -62,4 +59,8 @@ export const MAX_FIGUREN_JE_BILD = 4;
 export const figurenFuerBild = <F extends Pick<BibliotheksFigur, 'name' | 'steckbrief' | 'canva'>>(
 	text: string,
 	figuren: readonly F[],
-): F[] => figurenIn(text, figuren.filter((f) => f.steckbrief || f.canva));
+): F[] =>
+	figurenIn(
+		text,
+		figuren.filter((f) => f.steckbrief || f.canva),
+	);

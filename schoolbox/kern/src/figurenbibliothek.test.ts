@@ -41,7 +41,10 @@ const png = async (ordner: string, name: string, breite: number, hoehe: number, 
 const hashListe = async (dir: string) => {
 	const eintraege = await readdir(dir, { recursive: true, withFileTypes: true });
 	const dateien = eintraege.filter((e) => e.isFile()).map((e) => path.join(e.parentPath, e.name));
-	const hash = async (d: string) => createHash('sha256').update(await readFile(d)).digest('hex');
+	const hash = async (d: string) =>
+		createHash('sha256')
+			.update(await readFile(d))
+			.digest('hex');
 	const liste = await Promise.all(dateien.map(async (d) => `${path.relative(dir, d)} ${await hash(d)}`));
 	return liste.sort();
 };
@@ -334,7 +337,10 @@ describe('Canva-Referenz, Steckbrief und entfernePose (176)', () => {
 			steckbrief: 'ein anderer Waschbär',
 		});
 		const willi = (await leseJson(materialDir)).figuren.find((f) => f.id === 'willi');
-		assert.deepEqual(willi, { id: 'willi', posen: [{ datei: 'willi-lupe.png', herkunft: 'canva', canva: 'MAdrei' }] });
+		assert.deepEqual(willi, {
+			id: 'willi',
+			posen: [{ datei: 'willi-lupe.png', herkunft: 'canva', canva: 'MAdrei' }],
+		});
 	});
 
 	it('entfernt eine Pose aus figuren.json, die Datei bleibt; die Grundpose nimmt die Figur mit', async () => {

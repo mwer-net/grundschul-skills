@@ -10,14 +10,13 @@ import { useHinweis } from '../../bausteine/hinweis';
 import { klassen } from '../../bausteine/klassen';
 import { Menue } from '../../bausteine/Menue';
 import {
-	nichtsPasst,
-	raster,
 	Schublade,
 	Schubladenabschnitt,
 	SCHUBLADENKACHEL,
 	Schubladenleer,
 	Schubladensuche,
 } from '../../bausteine/Schublade';
+import { nichtsPasst, raster } from '../../bausteine/schubladenhilfe';
 import { Symbol } from '../../bausteine/Symbol';
 import { falte } from '../bild-sammlung';
 import { canvaAktion, starteFigur, useCanvaLaeufe } from '../canva';
@@ -211,20 +210,18 @@ export const Inhalt = (t: SchubladenTeile) => {
 		);
 	};
 
+	const steuerung = (
+		<>
+			<Schubladensuche beschriftung="Figuren suchen" wert={suche} setWert={setSuche} />
+			{!(t.ki.geladen && !t.ki.verfuegbar) && (
+				<FigurBeschreiben ki={t.ki} fehler={fehler} setFehler={setFehler} />
+			)}
+		</>
+	);
+
 	return (
 		<>
-			<Schublade
-				titel={kopf('figuren').titel}
-				daten={{ 'data-schublade-figuren': '' }}
-				steuerung={
-					<>
-						<Schubladensuche beschriftung="Figuren suchen" wert={suche} setWert={setSuche} />
-						{!(t.ki.geladen && !t.ki.verfuegbar) && (
-							<FigurBeschreiben ki={t.ki} fehler={fehler} setFehler={setFehler} />
-						)}
-					</>
-				}
-			>
+			<Schublade titel={kopf('figuren').titel} daten={{ 'data-schublade-figuren': '' }} steuerung={steuerung}>
 				{neueFigur && (
 					<Schubladenabschnitt titel="Neue Figur" daten={{ 'data-canva-neu': '' }}>
 						<div className={raster(3)}>

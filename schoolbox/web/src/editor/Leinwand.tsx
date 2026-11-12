@@ -588,7 +588,7 @@ export const Leinwand = ({
 	const box = gewaehlt?.getBoundingClientRect();
 	const zieht = zug !== null || vonAussen;
 	// Gestaltung hat ihren eigenen, gedrehten Rahmen mit Griffen (097); dieser bleibt nur fürs Hinrollen.
-	const gestaltung = gewaehlt?.matches(GESTALTUNG_SELEKTOR) ?? false;
+	const gestaltung = gewaehlt?.matches(GESTALTUNG_SELEKTOR) === true;
 
 	return (
 		<div

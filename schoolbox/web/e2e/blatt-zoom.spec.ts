@@ -387,9 +387,11 @@ test.describe('Zoom nur das Blatt (184)', () => {
 		test('`touch-action` ist im Blatt `pan-x pan-y`', async ({ page }) => {
 			await blatt(page);
 			expect(await flaeche(page).evaluate((e) => getComputedStyle(e).touchAction)).toBe('pan-x pan-y');
-			expect(await material(page).locator('html').evaluate((e) => getComputedStyle(e).touchAction)).toBe(
-				'pan-x pan-y',
-			);
+			expect(
+				await material(page)
+					.locator('html')
+					.evaluate((e) => getComputedStyle(e).touchAction),
+			).toBe('pan-x pan-y');
 		});
 
 		test('Eine Geste zoomt das Blatt, danach wählt Antippen', async ({ page }) => {

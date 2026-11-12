@@ -1,12 +1,7 @@
 import { useState } from 'react';
 
-import {
-	nichtsPasst,
-	Schublade,
-	Schubladenabschnitt,
-	Schubladenleer,
-	Schubladensuche,
-} from '../../bausteine/Schublade';
+import { Schublade, Schubladenabschnitt, Schubladenleer, Schubladensuche } from '../../bausteine/Schublade';
+import { nichtsPasst } from '../../bausteine/schubladenhilfe';
 import type { SchubladenTeile } from '.';
 import { ABSCHNITTE } from './formen-daten';
 import { kopf } from './reihe';

@@ -13,7 +13,8 @@ import { KACHEL } from '../../../bausteine/klassen';
 import { Stepper } from '../../../bausteine/Stepper';
 import { Zeile } from '../../../bausteine/Zeile';
 import { SwZeile } from './flaeche';
-import { GiltFuer, useGiltFuer, zielVon } from './gilt-fuer';
+import { useGiltFuer, zielVon } from './gilt';
+import { GiltFuer } from './gilt-fuer';
 import { Regler } from './regler';
 import type { BlattTeile } from './teile';
 
@@ -28,21 +29,41 @@ const Linie = ({ children }: { children: ReactNode }) => (
 
 const ARTEN: { wert: Art; titel: string; bild: ReactNode }[] = [
 	{ wert: 'keine', titel: 'Keine', bild: 'Keine' },
-	{ wert: 'linie', titel: 'Linie', bild: <Linie><path d="M2 8h24" strokeWidth={2} /></Linie> },
+	{
+		wert: 'linie',
+		titel: 'Linie',
+		bild: (
+			<Linie>
+				<path d="M2 8h24" strokeWidth={2} />
+			</Linie>
+		),
+	},
 	{
 		wert: 'doppelt',
 		titel: 'Doppelt',
-		bild: <Linie><path d="M2 5.5h24M2 10.5h24" strokeWidth={1.5} /></Linie>,
+		bild: (
+			<Linie>
+				<path d="M2 5.5h24M2 10.5h24" strokeWidth={1.5} />
+			</Linie>
+		),
 	},
 	{
 		wert: 'gestrichelt',
 		titel: 'Gestrichelt',
-		bild: <Linie><path d="M2 8h24" strokeWidth={2} strokeDasharray="5 3" /></Linie>,
+		bild: (
+			<Linie>
+				<path d="M2 8h24" strokeWidth={2} strokeDasharray="5 3" />
+			</Linie>
+		),
 	},
 	{
 		wert: 'gepunktet',
 		titel: 'Gepunktet',
-		bild: <Linie><path d="M3 8h23" strokeWidth={2} strokeDasharray="0 4" strokeLinecap="round" /></Linie>,
+		bild: (
+			<Linie>
+				<path d="M3 8h23" strokeWidth={2} strokeDasharray="0 4" strokeLinecap="round" />
+			</Linie>
+		),
 	},
 ];
 

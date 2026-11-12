@@ -171,6 +171,50 @@ const kopiereHerein = async (konfig: Pick<Konfig, 'pythonBin'>, datei: string, b
 
 const echt = (datei: string) => (existsSync(datei) ? realpathSync(datei) : null);
 
+/** Wo das Bild zu `teile` liegt und bis wohin es liegen darf; `src`, wenn das Dokument es ohne Kopie erreicht. */
+const ortVon = (
+	materialDir: string,
+	mappe: string,
+	dok: string,
+	dokDir: string,
+	teile: string[],
+): { datei: string; grenze: string; src?: string } => {
+	const [anfang = '', ...rest] = teile;
+	if (anfang === ASSETS_SCHLUESSEL) {
+		if (rest.length !== 2 || rest[0] !== BILDER) {
+			throw ungueltig();
+		}
+		const datei = path.join(ASSETS, ...rest);
+		const src = rest.join('/');
+		if (echt(datei) !== null && sucheRessource(src, dokDir) === echt(datei)) {
+			return { datei, grenze: ASSETS, src };
+		}
+		return { datei, grenze: ASSETS };
+	}
+	if (anfang === FIGUREN_ORDNER) {
+		if (rest.length !== 1) {
+			throw ungueltig();
+		}
+		return { datei: path.join(figurenDir(materialDir), ...rest), grenze: figurenDir(materialDir) };
+	}
+	pruefeId(anfang, 'Mappe');
+	const inMappe = rest.length === 2 && rest[0] === BILDER;
+	const imDokument = rest.length === 4 && rest[0] === 'dokumente' && rest[2] === BILDER;
+	if (!inMappe && !imDokument) {
+		throw ungueltig();
+	}
+	if (imDokument) {
+		pruefeId(rest[1] ?? '', 'Dokument');
+	}
+	const datei = path.join(mappenDir(materialDir, anfang), ...rest);
+	const grenze = mappenDir(materialDir, anfang);
+	if (anfang === mappe && echt(datei) !== null && (inMappe || rest[1] === dok)) {
+		const name = rest.at(-1) ?? '';
+		return { datei, grenze, src: inMappe ? `../../${BILDER}/${name}` : `${BILDER}/${name}` };
+	}
+	return { datei, grenze };
+};
+
 /**
  * Ein Bild aus der Sammlung für dieses Dokument. Was das Dokument schon erreicht (assets/bilder, `bilder/` der Mappe,
  * eigene Bilder), wird nur verlinkt; Bilder aus anderen Dokumenten und Mappen werden hineinkopiert, damit Kopien,
@@ -189,43 +233,12 @@ export const uebernimmBild = async (
 		throw ungueltig();
 	}
 	const dokDir = dokumentDir(materialDir, mappe, dok);
-	const [anfang = '', ...rest] = teile;
-	let datei: string;
-	let grenze: string;
-	if (anfang === ASSETS_SCHLUESSEL) {
-		if (rest.length !== 2 || rest[0] !== BILDER) {
-			throw ungueltig();
-		}
-		datei = path.join(ASSETS, ...rest);
-		grenze = ASSETS;
-		const src = rest.join('/');
-		if (echt(datei) !== null && sucheRessource(src, dokDir) === echt(datei)) {
-			return { src };
-		}
-	} else if (anfang === FIGUREN_ORDNER) {
-		if (rest.length !== 1) {
-			throw ungueltig();
-		}
-		datei = path.join(figurenDir(materialDir), ...rest);
-		grenze = figurenDir(materialDir);
-	} else {
-		pruefeId(anfang, 'Mappe');
-		const inMappe = rest.length === 2 && rest[0] === BILDER;
-		const imDokument = rest.length === 4 && rest[0] === 'dokumente' && rest[2] === BILDER;
-		if (!inMappe && !imDokument) {
-			throw ungueltig();
-		}
-		if (imDokument) {
-			pruefeId(rest[1] ?? '', 'Dokument');
-		}
-		datei = path.join(mappenDir(materialDir, anfang), ...rest);
-		grenze = mappenDir(materialDir, anfang);
-		if (anfang === mappe && echt(datei) !== null && (inMappe || rest[1] === dok)) {
-			return { src: inMappe ? `../../${BILDER}/${name}` : `${BILDER}/${name}` };
-		}
+	const ort = ortVon(materialDir, mappe, dok, dokDir, teile);
+	if (ort.src !== undefined) {
+		return { src: ort.src };
 	}
-	const wirklich = echt(datei);
-	if (wirklich === null || !liegtIn(wirklich, realpathSync(grenze))) {
+	const wirklich = echt(ort.datei);
+	if (wirklich === null || !liegtIn(wirklich, realpathSync(ort.grenze))) {
 		throw ungueltig();
 	}
 	return { src: `${BILDER}/${await kopiereHerein(konfig, wirklich, path.join(dokDir, BILDER))}` };

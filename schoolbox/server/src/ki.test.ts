@@ -1541,7 +1541,12 @@ describe('Aufruf für ein Canva-Bild (176)', () => {
 			'--append-system-prompt-file',
 			'/tmp/b.md',
 		]);
-		const ohneBudget = kiArgumente({ ablage: '/tmp/a', auftragDatei: '/tmp/b.md', modell: 'opus', canvaBild: true });
+		const ohneBudget = kiArgumente({
+			ablage: '/tmp/a',
+			auftragDatei: '/tmp/b.md',
+			modell: 'opus',
+			canvaBild: true,
+		});
 		assert.equal(ohneBudget[ohneBudget.indexOf('--max-budget-usd') + 1], String(KI_GRENZEN.canva.budgetUsd));
 	});
 

@@ -88,18 +88,16 @@ export const MehrfachFuellung = (t: InspektorTeile) => {
 	}
 	const werte = k.nrn.map((n) => leseForm(quelle, n)?.fuellung ?? null);
 	const gleich = werte.every((w) => w === werte[0]);
+	const titel = (
+		<span className="flex items-center gap-1.5">
+			Füllung
+			{!gleich && <Gemischt />}
+		</span>
+	);
+
 	return (
 		<div className="flex flex-col gap-1" data-gestaltung-fuellung="mehrfach">
-			<Zeile
-				titel={
-					<span className="flex items-center gap-1.5">
-						Füllung
-						{!gleich && <Gemischt />}
-					</span>
-				}
-				name="Füllung"
-				darunter
-			>
+			<Zeile titel={titel} name="Füllung" darunter>
 				<Farben
 					name="form-fuellung"
 					beschriftung="Füllung"

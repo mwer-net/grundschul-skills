@@ -27,15 +27,10 @@ type CanvaEreignis = {
 	daten: { id: string; art: CanvaArt; status: CanvaEreignisStatus; datei?: string };
 };
 
-export type Ereignis =
-	| CanvaEreignis
-	| DokumentEreignis
-	| EinheitEreignis
-	| KiEreignis
-	| MappeEreignis
-	| OrdnerEreignis
-	| PdfEreignis
-	| VorschauEreignis;
+/** Was im Hintergrund läuft und fertig wird. */
+type ArbeitsEreignis = CanvaEreignis | KiEreignis | PdfEreignis | VorschauEreignis;
+
+export type Ereignis = ArbeitsEreignis | DokumentEreignis | EinheitEreignis | MappeEreignis | OrdnerEreignis;
 
 export type Hoerer = (ereignis: Ereignis) => void;
 

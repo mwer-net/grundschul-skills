@@ -148,8 +148,7 @@ describe('Bild beschreiben (179)', () => {
 		return daten.id;
 	};
 	const fehler = async (antwort: Response) => ((await antwort.json()) as { fehler: string }).fehler;
-	const liste = async () =>
-		((await (await s.holen(`${s.url}/api/canva`)).json()) as { laeufe: CanvaStand[] }).laeufe;
+	const liste = async () => ((await (await s.holen(`${s.url}/api/canva`)).json()) as { laeufe: CanvaStand[] }).laeufe;
 	const letztes = (id: string) => ereignisse.filter((e) => e.id === id).at(-1);
 	const ende = async (id: string) => {
 		await warte(() => ['fertig', 'fehler', 'abgebrochen'].includes(letztes(id)?.status ?? ''));
@@ -157,7 +156,10 @@ describe('Bild beschreiben (179)', () => {
 	};
 	const mappenBilder = () => path.join(s.materialDir, mappe, 'bilder');
 	const inhalt = async () => readdir(mappenBilder()).catch(() => [] as string[]);
-	const hash = async (datei: string) => createHash('sha256').update(await readFile(datei)).digest('hex');
+	const hash = async (datei: string) =>
+		createHash('sha256')
+			.update(await readFile(datei))
+			.digest('hex');
 
 	/** Kiki (177) und drei Figuren, die ein Bild tragen: Bär und Max mit Steckbrief, Igel nur mit Media-ID. */
 	const legeBildfigurenAn = async (materialDir: string) => {
@@ -187,7 +189,10 @@ describe('Bild beschreiben (179)', () => {
 		s = await starteTestServer({ materialDir, env: { CLAUDE_BIN: bin } });
 		({ dir, dok, mappe } = await legeDokumentAn(materialDir));
 		const html = path.join(dir, 'material.html');
-		await writeFile(html, (await readFile(html, 'utf8')).replace(/<body([^>]*?)class="/, '<body$1class="palette-wiese '));
+		await writeFile(
+			html,
+			(await readFile(html, 'utf8')).replace(/<body([^>]*?)class="/, '<body$1class="palette-wiese '),
+		);
 		s.kontext.ereignisse.abonniere((e) => {
 			if (e.typ === 'canva-stand') {
 				ereignisse.push(e.daten);

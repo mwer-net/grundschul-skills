@@ -25,10 +25,7 @@ const Zoom = ({ fuehreAus, skala, zoom }: ZoomEigenschaften) => {
 	const groesser = naechsteStufe(skala, 1);
 	return (
 		<div className="flex items-center gap-0.5" role="group" aria-label="Größe">
-			<Tooltip
-				text="Kleiner"
-				kuerzel={kuerzelVon('ansicht.zoom-raus')}
-			>
+			<Tooltip text="Kleiner" kuerzel={kuerzelVon('ansicht.zoom-raus')}>
 				<button
 					type="button"
 					className={KNOPF}
@@ -39,10 +36,7 @@ const Zoom = ({ fuehreAus, skala, zoom }: ZoomEigenschaften) => {
 					<Symbol name="minus" className="size-3 flex-none" />
 				</button>
 			</Tooltip>
-			<Tooltip
-				text="Auf 100 %"
-				kuerzel={kuerzelVon('ansicht.zoom-100')}
-			>
+			<Tooltip text="Auf 100 %" kuerzel={kuerzelVon('ansicht.zoom-100')}>
 				<button
 					type="button"
 					className={klassen(
@@ -55,10 +49,7 @@ const Zoom = ({ fuehreAus, skala, zoom }: ZoomEigenschaften) => {
 					{`${Math.round(skala * 100)} %`}
 				</button>
 			</Tooltip>
-			<Tooltip
-				text="Größer"
-				kuerzel={kuerzelVon('ansicht.zoom-rein')}
-			>
+			<Tooltip text="Größer" kuerzel={kuerzelVon('ansicht.zoom-rein')}>
 				<button
 					type="button"
 					className={KNOPF}
@@ -199,10 +190,7 @@ export const Statusleiste = ({
 					Tasten
 				</button>
 			</Tooltip>
-			<Tooltip
-				text="Rechte Leiste"
-				kuerzel={kuerzelVon('ansicht.inspektor')}
-			>
+			<Tooltip text="Rechte Leiste" kuerzel={kuerzelVon('ansicht.inspektor')}>
 				<button
 					type="button"
 					className={klassen(KNOPF, 'aria-pressed:text-tinte')}

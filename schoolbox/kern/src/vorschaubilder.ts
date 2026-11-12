@@ -114,7 +114,11 @@ const laufe = async (s: Schlange, materialDir: string) => {
 		auftraege.map(async (a, i) => {
 			const t = tmp[i] ?? '';
 			const e = ergebnisse[i];
-			const umbenannt = e?.ok === true && (await rename(t, a.ziel).then(() => true).catch(() => false));
+			const umbenannt =
+				e?.ok === true &&
+				(await rename(t, a.ziel)
+					.then(() => true)
+					.catch(() => false));
 			if (umbenannt) {
 				a.fertig(a.ziel);
 				return;

@@ -12,9 +12,9 @@ import { BILD_FREI_BREITE } from './bilder-frei';
 import { BILD_PY } from './konfig';
 import {
 	leereVorschaubilder,
+	vorschaubild,
 	VORSCHAUBILD_BREITE,
 	VORSCHAUBILD_HOEHE,
-	vorschaubild,
 	vorschaubilderDir,
 } from './vorschaubilder';
 
@@ -97,7 +97,10 @@ const zaehler = async () => {
 const reste = async (materialDir: string) =>
 	(await readdir(vorschaubilderDir(materialDir)).catch(() => [])).filter((n) => n.endsWith('.tmp'));
 
-const summe = async (datei: string) => createHash('sha256').update(await readFile(datei)).digest('hex');
+const summe = async (datei: string) =>
+	createHash('sha256')
+		.update(await readFile(datei))
+		.digest('hex');
 
 /** Jede Datei unter `dir` mit ihrer Prüfsumme. */
 const summen = async (dir: string) =>

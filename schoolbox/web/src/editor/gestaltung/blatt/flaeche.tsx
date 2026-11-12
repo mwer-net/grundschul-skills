@@ -5,7 +5,8 @@ import { Abschnitt } from '../../../bausteine/Abschnitt';
 import { Segment } from '../../../bausteine/Segment';
 import { Zeile } from '../../../bausteine/Zeile';
 import { FuellungZeilen } from './fuellung';
-import { GiltFuer, useGiltFuer, zielVon } from './gilt-fuer';
+import { useGiltFuer, zielVon } from './gilt';
+import { GiltFuer } from './gilt-fuer';
 import { Regler } from './regler';
 import type { BlattTeile } from './teile';
 

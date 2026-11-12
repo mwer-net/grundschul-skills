@@ -243,7 +243,10 @@ describe('Schubladen (093)', () => {
 	});
 
 	it('kein Befehl zum Anheften; aktiv ist jede sichtbare Spalte, die Ebenen auch neben einer Schublade (183)', () => {
-		assert.equal(BEFEHLE.find((b) => b.id === 'ansicht.ebenen-anheften'), undefined);
+		assert.equal(
+			BEFEHLE.find((b) => b.id === 'ansicht.ebenen-anheften'),
+			undefined,
+		);
 		const aktiv = (linksOffen: Kontext['linksOffen'], id: string) =>
 			BEFEHLE.find((b) => b.id === `ansicht.links-${id}`)?.aktiv?.({ linksOffen } as Kontext);
 		assert.equal(aktiv(['ebenen', 'bausteine'], 'ebenen'), true);
@@ -400,11 +403,15 @@ describe('Werkzeuge (098)', () => {
 	it('Keine Formen-Schere (173)', () => {
 		assert.equal(werkzeugVon('schere'), undefined);
 		assert.ok(!WERKZEUGE.some((w) => w.id === 'schere'));
-		assert.equal(BEFEHLE.find((b) => b.id === 'werkzeug.schere'), undefined);
+		assert.equal(
+			BEFEHLE.find((b) => b.id === 'werkzeug.schere'),
+			undefined,
+		);
 		const mitTaste = (s: string) =>
 			BEFEHLE.filter(
 				(b) =>
-					(b.modus ?? MODUS_VORGABE).includes('auswahl') && (b.kuerzel ?? []).some((k) => schluessel(k) === s),
+					(b.modus ?? MODUS_VORGABE).includes('auswahl') &&
+					(b.kuerzel ?? []).some((k) => schluessel(k) === s),
 			).map((b) => b.id);
 		assert.deepEqual(mitTaste('U:KeyM'), []);
 		// Gegenprobe: ⇧P gehört dem Pfad, der Test findet die Tasten der Werkzeuge also.

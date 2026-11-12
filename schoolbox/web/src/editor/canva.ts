@@ -56,6 +56,12 @@ export const starteBild = async (ort: { mappe: string; dok: string }, text: stri
 	return id;
 };
 
+/** Die Bilder aus „Bilder“ für dieses Blatt, Fehler zuerst. Leer, wenn es keine gibt. */
+export const bildLaeufe = (laeufe: readonly CanvaStand[], ort: { mappe: string; dok: string }) =>
+	laeufe
+		.filter((l) => l.art === 'bild' && l.ziel.mappe === ort.mappe && l.ziel.dok === ort.dok)
+		.sort((a, b) => Number(b.status === 'fehler') - Number(a.status === 'fehler'));
+
 export const canvaAktion = (id: string, aktion: 'abbrechen' | 'verwerfen') =>
 	sende(`/api/canva/${id}/${aktion}`).catch(() => undefined);
 
@@ -86,7 +92,8 @@ export const useCanvaMeldung = (offen: readonly SchubladenId[], oeffne: (id: Sch
 			const name = EIGENE.get(id);
 			EIGENE.delete(id);
 			EIGENE_BILDER.delete(id);
-			const text = bild ? 'Neues Bild ist fertig.' : name ? `Neue Pose von ${name} ist fertig.` : 'Neue Figur ist fertig.';
+			const figurText = name ? `Neue Pose von ${name} ist fertig.` : 'Neue Figur ist fertig.';
+			const text = bild ? 'Neues Bild ist fertig.' : figurText;
 			if (zu()) {
 				zeige({ text, aktion: ansehen });
 			}
@@ -94,12 +101,15 @@ export const useCanvaMeldung = (offen: readonly SchubladenId[], oeffne: (id: Sch
 			EIGENE.delete(id);
 			EIGENE_BILDER.delete(id);
 		} else if (e.status === 'fehler' && zu()) {
-			void lade<{ laeufe: CanvaStand[] }>('/api/canva').then(({ laeufe }) => {
-				const grund = laeufe.find((l) => l.id === id)?.fehler;
-				if (grund && zu()) {
-					zeige({ text: grund, art: 'fehler', aktion: ansehen });
-				}
-			}, () => undefined);
+			void lade<{ laeufe: CanvaStand[] }>('/api/canva').then(
+				({ laeufe }) => {
+					const grund = laeufe.find((l) => l.id === id)?.fehler;
+					if (grund && zu()) {
+						zeige({ text: grund, art: 'fehler', aktion: ansehen });
+					}
+				},
+				() => undefined,
+			);
 		}
 	});
 };

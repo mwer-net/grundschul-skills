@@ -63,8 +63,8 @@ export const GESTALTEN: Abschnitt = {
 				Die Leiste zeigt bei mehreren „Ausrichten“ und ab drei Elementen „Verteilen“. Ausrichten bringt alle an
 				eine Kante oder Mitte der gemeinsamen Auswahl, Verteilen setzt gleiche Abstände. Ein einzelnes Element
 				richtest du über „Mehr“ an der Seite aus, innerhalb des Rands. Rechts im Inspektor stehen Lage und Größe
-				der ganzen Auswahl; steht dort „gemischt“, haben die Elemente verschiedene Werte, und ein neuer Wert gilt
-				für alle.
+				der ganzen Auswahl; steht dort „gemischt“, haben die Elemente verschiedene Werte, und ein neuer Wert
+				gilt für alle.
 			</p>
 
 			<h3>Ebenen</h3>
@@ -150,8 +150,9 @@ export const GESTALTEN: Abschnitt = {
 			<h3>Figuren</h3>
 			<p data-hilfe-figuren>
 				In der Schublade „Figuren“ stehen Willi, Wilma und die anderen Figuren aus deinen Materialien, jede mit
-				ihren Posen. Ein Klick legt die Figur 150 Pixel breit in die Mitte des sichtbaren Teils der Seite, gezogen
-				liegt sie frei, wo du loslässt.{' Eine gewählte Figur spiegelst du mit '}
+				ihren Posen. Ein Klick legt die Figur 150 Pixel breit in die Mitte des sichtbaren Teils der Seite,
+				gezogen liegt sie frei, wo du loslässt.
+				{' Eine gewählte Figur spiegelst du mit '}
 				<Kuerzel text={kuerzelText({ code: 'KeyH', umschalt: true })} className="text-[length:inherit]" />
 				{' oder '}
 				mit „Spiegeln“ in der Leiste darüber, drehst sie dort oder am runden Griff, und an den Ecken bleibt sie
@@ -162,35 +163,34 @@ export const GESTALTEN: Abschnitt = {
 			</p>
 			<p data-hilfe-figur-canva>
 				Oben in der Schublade „Figuren“ beschreibst du eine Figur, etwa „Willi mit einer Lupe, der auf dem Boden
-				genau etwas anschaut“ oder „ein Igel mit gelbem Halstuch“, und drückst Enter. Claude malt sie in Canva; das
-				dauert ein bis zwei Minuten. Nennst du eine Figur aus der Schublade, entsteht eine neue Pose von ihr, sonst
-				eine neue Figur im Stil von Willi und Wilma. Ein Bild zeigt eine Figur. Enter noch einmal gibt eine weitere
-				Fassung.
+				genau etwas anschaut“ oder „ein Igel mit gelbem Halstuch“, und drückst Enter. Claude malt sie in Canva;
+				das dauert ein bis zwei Minuten. Nennst du eine Figur aus der Schublade, entsteht eine neue Pose von
+				ihr, sonst eine neue Figur im Stil von Willi und Wilma. Ein Bild zeigt eine Figur. Enter noch einmal
+				gibt eine weitere Fassung.
 			</p>
 
 			<h3>Bilder frei aufs Blatt</h3>
 			<p data-hilfe-bilder-frei>
 				In der Schublade „Bilder“ tauscht ein Klick auf ein Bild das gewählte Bild aus oder füllt den gewählten
-				Platzhalter oder Bildrahmen; ist nichts davon gewählt, kommt es als Bild-Baustein hinter die
-				Auswahl. Ziehst du ein Bild aufs Blatt,
-				liegt es dort frei, wo du loslässt, höchstens 320 Pixel breit, und ist gleich gewählt: Dann ziehst du es
-				zurecht, änderst an den Ecken die Größe und drehst es am runden Griff. Das Ziel entscheidet mit: Auf ein
-				Bild im Blatt gezogen tauscht es dieses aus, Lage und Größe bleiben; in einen Bildplatzhalter gezogen
-				füllt es ihn. Was passieren wird, zeigt ein blauer Rahmen und ein Wort am Zeiger. Hältst du beim Ziehen
-				⌘, kommt das Bild als Bild-Baustein in den Stapel, eine Lücke zeigt die Stelle. Ein Foto kannst du auch
-				direkt aus dem Finder auf die Seite ziehen: Es wird hochgeladen und liegt dann frei. Ein Bild, das schon
-				im Stapel steht, legst du über ⋯ am Baustein mit „Frei legen“ frei; es bleibt an seiner Stelle. Bei
-				einem freien Bild stehen Austauschen und Beschreibung rechts im Inspektor unter „Bild“, die Größe unter
-				„Anordnen“. ⌘Z nimmt jeden Schritt zurück.
+				Platzhalter oder Bildrahmen; ist nichts davon gewählt, kommt es als Bild-Baustein hinter die Auswahl.
+				Ziehst du ein Bild aufs Blatt, liegt es dort frei, wo du loslässt, höchstens 320 Pixel breit, und ist
+				gleich gewählt: Dann ziehst du es zurecht, änderst an den Ecken die Größe und drehst es am runden Griff.
+				Das Ziel entscheidet mit: Auf ein Bild im Blatt gezogen tauscht es dieses aus, Lage und Größe bleiben;
+				in einen Bildplatzhalter gezogen füllt es ihn. Was passieren wird, zeigt ein blauer Rahmen und ein Wort
+				am Zeiger. Hältst du beim Ziehen ⌘, kommt das Bild als Bild-Baustein in den Stapel, eine Lücke zeigt die
+				Stelle. Ein Foto kannst du auch direkt aus dem Finder auf die Seite ziehen: Es wird hochgeladen und
+				liegt dann frei. Ein Bild, das schon im Stapel steht, legst du über ⋯ am Baustein mit „Frei legen“ frei;
+				es bleibt an seiner Stelle. Bei einem freien Bild stehen Austauschen und Beschreibung rechts im
+				Inspektor unter „Bild“, die Größe unter „Anordnen“. ⌘Z nimmt jeden Schritt zurück.
 			</p>
 
 			<h3>Bild beschreiben</h3>
 			<p data-hilfe-bild-beschreiben>
 				Oben in der Schublade „Bilder“ beschreibst du ein Bild, etwa „Willi und Wilma pflanzen im Garten eine
-				Sonnenblume“, und drückst Enter. Claude malt es in Canva; das dauert ein bis zwei Minuten. Danach steht es
-				vorn unter „Dieser Ordner“ und lässt sich einsetzen wie jedes Bild. Nennst du Figuren aus der Schublade
-				„Figuren“, sehen sie in jedem Bild gleich aus. Ein Bild zeigt höchstens vier Figuren. Enter noch einmal gibt
-				eine weitere Fassung.
+				Sonnenblume“, und drückst Enter. Claude malt es in Canva; das dauert ein bis zwei Minuten. Danach steht
+				es vorn unter „Dieser Ordner“ und lässt sich einsetzen wie jedes Bild. Nennst du Figuren aus der
+				Schublade „Figuren“, sehen sie in jedem Bild gleich aus. Ein Bild zeigt höchstens vier Figuren. Enter
+				noch einmal gibt eine weitere Fassung.
 			</p>
 
 			<h3>Formen</h3>
@@ -301,9 +301,9 @@ export const GESTALTEN: Abschnitt = {
 				Wolke. Ein leerer Rahmen ist grau und meldet in der Prüfung „Hier fehlt noch ein Bild“, damit er nicht
 				leer in den Druck geht. Wähl den Rahmen und klick in seiner Leiste auf „Bild einsetzen“: Ein Klick auf
 				ein Bild in der Schublade „Bilder“ oder „Foto hochladen“ füllt ihn. Du kannst auch ein Bild aus „Bilder“
-				oder ein Foto aus dem Finder hineinziehen, am Zeiger steht dann „einsetzen“. Auch auf eine Form ohne Text
-				kannst du ein Bild ziehen: Am Zeiger steht „zuschneiden“, die Form verschwindet, und das Bild liegt in
-				ihrer Form an ihrer Stelle. ⌘Z holt Rahmen oder Form zurück.
+				oder ein Foto aus dem Finder hineinziehen, am Zeiger steht dann „einsetzen“. Auch auf eine Form ohne
+				Text kannst du ein Bild ziehen: Am Zeiger steht „zuschneiden“, die Form verschwindet, und das Bild liegt
+				in ihrer Form an ihrer Stelle. ⌘Z holt Rahmen oder Form zurück.
 			</p>
 			<p data-hilfe-ausschnitt>
 				Ist ein Bild zugeschnitten, wählst du mit einem Doppelklick den Ausschnitt: Am Zeiger steht
