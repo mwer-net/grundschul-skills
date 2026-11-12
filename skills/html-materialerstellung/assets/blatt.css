@@ -412,7 +412,8 @@ body.ohne-punkte .punkte,body.ohne-punkte x-gesamtpunkte{display:none}
 
 /* Gestaltung (Entscheidungen 41, 45, 46): zwei Ebenen am Ende der Seite, frei liegende Elemente mit data-lage="frei".
    Ein Material ohne Gestaltung trifft keine dieser Regeln. Der Stapelkontext nur bei Bedarf, sonst tauchten Elemente
-   des Bestands mit negativem z-index auf. hinten ist −2, damit das Kopfband eines Rezepts (z-index −1) darüber liegt. */
+   des Bestands mit negativem z-index auf. hinten ist −2, damit das Kopfband älterer Blätter (Rezepte bis 180,
+   z-index −1) darüber liegt. */
 .seite:has(> .ebene),body[data-aufmachung] .seite{isolation:isolate}
 .ebene{position:absolute;inset:0;overflow:hidden;pointer-events:none}
 .ebene.hinten{z-index:-2}
@@ -432,7 +433,8 @@ body.ohne-punkte .punkte,body.ohne-punkte x-gesamtpunkte{display:none}
 /* s/w (Briefing 4.2): Seitenfläche und Streuung sind ohne data-sw weg, alles andere grau, bis data-sw="weg" */
 body.sw [data-sw="weg"],body.sw :is(.seitenflaeche,svg.streuung):not([data-sw="grau"]){display:none !important}
 body.sw .stapel:not([data-sw="grau"]){--stapel-hg:transparent !important}
-/* Freigelegtes Rezept: ein heller Titel (Weiß auf dem Band) wird in s/w dunkel */
+/* Ältere Blätter (Rezepte bis 180): ein heller Titel (Weiß auf dem Band, auch freigelegt mit data-sw="dunkel") wird in
+   s/w dunkel, das Band am .kopf fällt weg */
 body.sw [data-sw="dunkel"]{color:var(--dunkel) !important}
 body.sw[data-aufmachung] .kopf::before{display:none}
 body.sw[data-aufmachung] .kopf h1{color:var(--dunkel)}
@@ -539,13 +541,14 @@ img.bild-frei[data-rahmenstil="kontur"]{border-radius:12px;box-shadow:0 0 0 6px 
 .bildrahmen[data-lage="frei"]{display:block;border:0;border-radius:0;padding:0;color:transparent;font-size:0;
   background:#d4d4d4 url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23808080' stroke-width='1.6' stroke-linejoin='round'%3E%3Crect x='3' y='5' width='18' height='14' rx='2'/%3E%3Ccircle cx='9' cy='10' r='1.6'/%3E%3Cpath d='M4 17l5-5 4 4 2.5-2.5L20 18'/%3E%3C/svg%3E") center/min(40%,64px) no-repeat}
 
-/* Rezepte */
+/* Ältere Blätter (Rezepte bis 180) */
 /* Kopfband (Briefing 3.10): ein Band am .kopf, das bis über den oberen Blattrand reicht und dort von .seite
    abgeschnitten wird. Es wächst mit dem Kopf, ohne Messen. z-index −1 liegt über .ebene.hinten (−2) und unter dem
    Inhalt; den Stapelkontext setzt body[data-aufmachung] .seite (091). Die Kante ist eine Maske aus zwei Schichten:
    oben voll, unten die Form (Welle, Bogen, Zacken) als SVG in diesem Stylesheet, nicht im Material.
    Maße je Format: --kopfband-unten (unter den Kopf), --kopfband-kante (Höhe der Kante), --kopfband-welle (Breite einer
-   Welle); ein Rezept kann sie am body überschreiben. Ohne data-aufmachung trifft keine dieser Regeln. */
+   Welle); ein Rezept kann sie am body überschreiben. Ohne data-aufmachung trifft keine dieser Regeln. Ein .kopfband auf
+   der Seite blendet es aus (181). */
 body[data-aufmachung-kopfband]{--kopfband-unten:18px;--kopfband-kante:26px;--kopfband-welle:180px}
 body.a4-quer[data-aufmachung-kopfband]{--kopfband-unten:16px;--kopfband-kante:24px;--kopfband-welle:220px}
 body.a5-hoch[data-aufmachung-kopfband]{--kopfband-unten:12px;--kopfband-kante:18px;--kopfband-welle:130px}

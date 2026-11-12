@@ -1,8 +1,8 @@
 # Gestaltung: Ebenen, frei liegende Elemente, Anker
 
-Diese Datei beschreibt, wie Gestaltung im Material steht: Formen, Bilder, Figuren, Schmuckschrift, Streuungen, Seitenfläche
-und Seitenrahmen, die frei auf der Seite liegen statt im Stapel der Aufgaben. Alles ist statisches HTML, CSS und SVG. Es
-sieht ohne Skript gleich aus, im Editor, in der Vorschau und im PDF.
+Diese Datei beschreibt, wie Gestaltung im Material steht: Formen, Bilder, Figuren, Schmuckschrift, Streuungen,
+Seitenfläche, Seitenrahmen und Kopfband, die frei auf der Seite liegen statt im Stapel der Aufgaben. Alles ist
+statisches HTML, CSS und SVG. Es sieht ohne Skript gleich aus, im Editor, in der Vorschau und im PDF.
 
 Leitsatz: **Inhalt rastet ein, Gestaltung liegt frei.** Aufgaben bleiben im Stapel, mit Nummern und Lösung wie bisher.
 Gestaltung liegt in einer von zwei Ebenen je Seite oder hängt an einem Baustein.
@@ -22,7 +22,6 @@ es wie eigenes; was du baust, muss sie danach von Hand weiterbearbeiten können.
 | Formen | `data-form` und die Parameter setzen; der Pfad darf fehlen, der Editor erzeugt ihn beim Öffnen. Ebenso die Teile einer Streuung und der Pfad eines Bogens. Eigene Pfade gehen als `data-form="pfad"` |
 | Schrift | nur Andika und Fredoka |
 | Farben | bevorzugt die Farben des Blatts (Liste unten), sie folgen Palette und Thema; eigene als Hex |
-| Rezepte | nur die Werte am `<body>` ändern (`data-aufmachung*`); die Teile mit `data-aufmachung-teil` erzeugt die Schoolbox danach selbst neu. Soll ein Teil anders werden, die Lehrkraft bitten, das Rezept freizulegen (Abschnitt „Rezepte“) |
 | Ids in SVG | Verläufe, Bogenpfade, Masken heißen `<art>-<4 Zeichen a–z, 0–9>` (`verlauf-k3f9`) und kommen im Material nur einmal vor; eine Kopie bekommt neue. Verweise stehen als Attribut (`fill="url(#verlauf-k3f9)"`, `href="#bogen-k3f9"`), nie als `url()` im `style` |
 | Sicher | nur statisches HTML und SVG: kein Skript, keine Ereignisse, kein `foreignObject`, kein SVG-`image`, keine Adressen außerhalb des Blatts. Sonst lehnt der Server den Vorschlag ab |
 
@@ -50,6 +49,7 @@ section.seite
 ├─ .ebene.hinten         hinter dem Inhalt
 │    ├─ .seitenflaeche   füllt die Seite (höchstens eine, immer zuunterst)
 │    ├─ .seitenrahmen    (höchstens einer, direkt darüber)
+│    ├─ .kopfband        (höchstens eins, darüber; liegt über allem in hinten)
 │    └─ [data-lage="frei"] …
 └─ .ebene.vorne          vor dem Inhalt
      └─ [data-lage="frei"] …
@@ -96,7 +96,11 @@ Alle sind freiwillig.
 | `data-name` | Name in der Schublade „Ebenen“ |
 | `class="nur-loesung"` / `"nicht-loesung"` | wie bei Bausteinen |
 | `data-ueberlagert-ok` | Überdecken von Inhalt ist gewollt, die Prüfung meldet es nicht |
-| `data-aufmachung-teil` | von einem Rezept erzeugt; nicht von Hand ändern (Regeln für Claude) |
+
+Ältere Blätter tragen `data-aufmachung*` am `body`, `--a1` … im `style`, `data-aufmachung-teil` an Fläche, Rahmen und
+Streuungen und `data-sw="dunkel"` am Titel: unverändert lassen. Ein älteres Blatt bekommt ein anderes Kopfband, indem du
+`.kopfband` auf die Seite schreibst und den `body` lässt. Soll es keins haben, entfernst du `data-aufmachung-kopfband`,
+`--kopfband-*` und `--a-titel` am `body`.
 
 ## 4. Arten
 
@@ -149,13 +153,13 @@ an Teilen in einer Aufgabe. Am Anker liegt Gestaltung immer vor dem Inhalt.
 ## 6. Druck und s/w
 
 - **Druckrand 19 px** (5 mm) an jeder Seite. Text, Bild, Figur und Form mit Text gehören nicht hinein, sonst fehlen sie
-  im Druck. Seitenfläche, Streuung und Formen ohne Text dürfen bis an den Blattrand.
+  im Druck. Seitenfläche, Kopfband, Streuung und Formen ohne Text dürfen bis an den Blattrand.
 - Den Seitenrahmen 24 px vom Blattrand setzen, damit er nicht angeschnitten wirkt.
 - In s/w ist jedes Gestaltungselement entweder **grau** (Farben werden umgerechnet) oder **weg** (`data-sw="weg"`).
 
 | Art | Standard in s/w |
 |---|---|
-| Seitenfläche, Streuung | weg |
+| Seitenfläche, Kopfband, Streuung | weg |
 | Seitenrahmen, Form, Form mit Text, Schmuckschrift | grau |
 | Bild, Figur | grau bzw. Strichfassung |
 | Hintergrund eines Stapels | weg, Kontur bleibt |
@@ -172,17 +176,20 @@ an Teilen in einer Aufgabe. Am Anker liegt Gestaltung immer vor dem Inhalt.
 Gemessen wird das Rechteck nach dem Drehen. `data-rand-ok` schaltet `druckrand` ab, `data-ueberlagert-ok` schaltet
 `verdeckt` ab. Was hinten liegt, verdeckt nie etwas.
 
-## Seitenfläche und Seitenrahmen
+## Seitenfläche, Seitenrahmen und Kopfband
 
-Eine Seite bekommt einen Grund (Farbe, Verlauf oder Muster) und einen Rahmen. Beide stehen **zuunterst in
-`.ebene.hinten`**, erst die Fläche, dann der Rahmen, je Seite höchstens einer. Sie haben kein `data-lage`: Sie füllen die
-Seite und lassen sich nicht ziehen. Sollen mehrere Seiten gleich aussehen, steht auf jeder Seite dasselbe.
+Eine Seite bekommt einen Grund (Farbe, Verlauf oder Muster), einen Rahmen und ein Kopfband, von jedem höchstens eins.
+Sie stehen **zuunterst in `.ebene.hinten`**, erst die Fläche, dann der Rahmen, dann das Kopfband. Sie haben kein
+`data-lage`: Sie füllen die Seite oder ihren oberen Rand und lassen sich nicht ziehen. Das Kopfband liegt über allem
+anderen in `.ebene.hinten` und unter dem Inhalt. Sollen mehrere Seiten gleich aussehen, steht auf jeder Seite dasselbe.
 
 ```html
 <div class="ebene hinten">
   <div class="seitenflaeche" data-flaeche="verlauf" style="--f1:#fff7e6;--f2:#ffe0b8;--winkel:180deg"></div>
   <div class="seitenrahmen" data-rahmen="gestrichelt"
        style="--rahmen-farbe:var(--dunkel);--rahmen-staerke:3px;--rahmen-abstand:24px;--rahmen-ecke:16px"></div>
+  <div class="kopfband" data-form="welle" data-flaeche="verlauf"
+       style="--f1:#ffe0b8;--f2:#fff7e6;--winkel:90deg;--h:232px"></div>
 </div>
 ```
 
@@ -196,11 +203,22 @@ Seite und lassen sich nicht ziehen. Sollen mehrere Seiten gleich aussehen, steht
 |---|---|---|
 | `linie`, `doppelt`, `gestrichelt`, `gepunktet` | Linie in diesem Stil; `doppelt` ist mindestens 4px stark | `--rahmen-farbe` (ohne Angabe `var(--dunkel)`), `--rahmen-staerke` (2px), `--rahmen-abstand` vom Blattrand (24px, im Mini-Book 8px), `--rahmen-ecke` (Eckenradius, 0) |
 
+| Am `.kopfband` | Werte | Ohne Angabe |
+|---|---|---|
+| `data-form` | `gerade`, `welle`, `bogen`, `zacken` | `gerade` |
+| `data-flaeche` | `farbe`, `verlauf` | `farbe` |
+| `--f1`, `--f2` | Farben wie bei der Fläche | `#ffe0b8`, `#fff7e6` |
+| `--winkel` | Grad des Verlaufs | `90deg`, von links nach rechts |
+| `--h` | px, Höhe des vollen Teils; Welle, Bogen und Zacken hängen darunter | `160px` |
+| `data-sw` | `grau` | in s/w weg |
+
 - Farben aus der Palette (`var(--haupt)`, `var(--akzent)`, `var(--dunkel)`, `var(--linie)`, `var(--fuell)`) oder als
   Hex. Für einen ruhigen Grund helle Farben wählen, damit der Text lesbar bleibt.
-- Die Fläche reicht bis an den Blattrand. Den Rahmen nicht näher als 24px an den Blattrand legen (Druckrand 19px).
-- In s/w fällt die Fläche weg, außer mit `data-sw="grau"`; der Rahmen wird grau, außer mit `data-sw="weg"`.
-- Fläche oder Rahmen mit `data-aufmachung-teil` gehören einem Rezept: nicht ändern.
+- Fläche und Kopfband reichen bis an den Blattrand. Den Rahmen nicht näher als 24px an den Blattrand legen (Druckrand
+  19px).
+- In s/w fallen Fläche und Kopfband weg, außer mit `data-sw="grau"`; der Rahmen wird grau, außer mit `data-sw="weg"`.
+- Ein Kopfband nur, wenn der Auftrag es will. Helle Farben, der Titel bleibt dunkel. `--h` so, dass der Kopf darauf
+  liegt (Unterkante des Kopfs plus 18 px).
 
 ## Figur frei
 
@@ -217,7 +235,8 @@ schaut zur Aufgabe: Schaut sie in ihrer Datei in die falsche Richtung, steht `--
 - Nur die Klasse `figur-frei`, nie `figur`: `.figur` ist die Leitfigur im Tipp (`.tipp` mit `.blase`) und bleibt im
   Stapel. Soll die Figur etwas sagen, bleibt es beim Tipp.
 - `data-figur` ist die Kennung aus der Liste unten, `src` die Datei dazu, `alt` der Name. Standardbreite 150px; die
-  Höhe kommt aus dem Bild, also kein `--h`.
+  Höhe kommt aus dem Bild, also kein `--h`. Figuren aus der Figurenbibliothek der Schoolbox tragen deren Kennung
+  (`kuno`, `willi-lupe`) und ein `src` in `bilder/`; lass sie, wie sie sind.
 - Spiegeln und Drehen nur über `--spiegeln` und `--drehen`, nie über ein eigenes `transform`.
 - In s/w druckt eine Figur mit Strichfassung ihr Strichbild, die anderen in Graustufen. Dafür ist nichts zu tun.
 
@@ -227,41 +246,6 @@ schaut zur Aufgabe: Schaut sie in ihrer Datei in die falsche Richtung, steht `--
 | `willi` | Willi | `bilder/willi.png` | Strichbild `willi-strich.png` | rechts |
 | `wilma` | Wilma | `bilder/wilma.png` | Graustufen | rechts |
 <!-- /erzeugt: figuren -->
-
-## Figur von Claude
-
-Wünscht sich die Lehrkraft eine eigene Figur („Figur von Claude zeichnen lassen“ in der Figuren-Schublade), zeichnest
-du sie als freies Element (`data-frei`, `data-frei-titel`, siehe `abbildungen.md`, „Freies Element“) **mit**
-`data-lage="frei"` in `.ebene.vorne` der genannten Seite. Der Auftrag nennt die Seite. Nur SVG, kein Bild, kein Foto.
-
-```html
-<div class="ebene vorne">
-  <svg data-frei data-frei-titel="Eule mit Brille" data-lage="frei" viewBox="0 0 160 180"
-       style="--x:420px;--y:360px;--b:160px">
-    <g style="stroke:var(--dunkel);stroke-width:3px;stroke-linejoin:round">
-      <path d="M30 60 L40 20 L62 46 Q80 40 98 46 L120 20 L130 60 Q150 120 120 160 Q80 178 40 160 Q10 120 30 60 Z"
-            style="fill:var(--fuell)"/>
-      <ellipse cx="80" cy="128" rx="30" ry="30" style="fill:#ffffff"/>
-      <circle cx="58" cy="78" r="18" style="fill:#ffffff"/>
-      <circle cx="102" cy="78" r="18" style="fill:#ffffff"/>
-      <path d="M76 78 L84 78" style="fill:none"/>
-      <path d="M74 94 L80 106 L86 94 Z" style="fill:var(--akzent)"/>
-    </g>
-    <circle cx="58" cy="80" r="6" style="fill:var(--dunkel)"/>
-    <circle cx="102" cy="80" r="6" style="fill:var(--dunkel)"/>
-  </svg>
-</div>
-```
-
-- Ein **neues** Element: Was schon auf dem Blatt steht, auch ein gewählter Baustein, bleibt unverändert.
-- Größe 120–200px in `--b`, `viewBox` passend zur Figur, kein `width`/`height` und kein `--h`: Die Höhe kommt aus
-  der `viewBox`. Lage frei neben der Aufgabe, um die es geht, nie über Text.
-- Farben als `var(--haupt)`, `var(--akzent)`, `var(--dunkel)`, `var(--fuell)` oder Weiß, damit die Figur zur Palette
-  passt. Eine dunkle Kontur um jede Fläche, damit sie in s/w lesbar bleibt; Linien mindestens 1,5px.
-- Wenige Pfade (höchstens etwa 15), einfache Formen, freundlicher Ausdruck, keine Schrift in der Figur.
-- `data-frei-titel` ist der Name in den Ebenen, z. B. „Eule mit Brille“.
-- Im Editor: Ein freies Element im Stapel legt „Frei legen“ (⋯) an derselben Stelle nach vorne; zurück geht es nur
-  über „In den Stapel“ in eine Fläche.
 
 ## Freie Bilder
 
@@ -534,7 +518,7 @@ nach unten gewölbt), `viewBox`, `--b` und `--h`. Der Text steht in `text` mit `
   dem Pfad und der Sprung `href` entstehen beim Öffnen im Editor (`ergaenzeBoegen`). Ein vorhandenes `d` bleibt.
 - `href` an `textPath` darf nur auf eine Id im selben Dokument zeigen (`#bogen-…`), nie auf eine Adresse oder `data:`.
 - Ids (`bogen-xxxx`) müssen im Dokument eindeutig sein; beim Kopieren vergibt der Editor neue.
-- Den Bogen nur für einen Titel nehmen, nicht für Inhalt. Kein Titel im Bogen im Kopf eines Rezepts.
+- Den Bogen nur für einen Titel nehmen, nicht für Inhalt.
 - Die Prüfung `schrift-klein` misst Text im SVG nicht: Die Größe im `font` selbst nicht unter die Grenze setzen.
 
 ## Rahmen-Stile, Masken, Bildrahmen
@@ -572,71 +556,6 @@ zählt für die Prüfung als Platzhalter (HINWEIS `platzhalter`). Er darf nicht 
 <div class="bildrahmen platzhalter" data-lage="frei" data-maske="ellipse"
      style="--x:500px;--y:300px;--b:220px;--h:220px;clip-path:ellipse(50% 50% at 50% 50%)"></div>
 ```
-
-## Rezepte (Aufmachung)
-
-Ein Rezept gibt dem **ganzen Material** einen Look: Seitenfläche, Kopfband, Rahmen, Konfetti, Titelfarbe. Es besteht
-aus Werten am `<body>`, aus Teilen, die der Editor daraus erzeugt, und aus Regeln in `blatt.css`. Im Minibuch gibt es
-keine Rezepte.
-
-```html
-<body class="kl2 farbe palette-himmel" data-aufmachung="zirkus" data-aufmachung-farben="1"
-      data-aufmachung-kopfband="welle" data-aufmachung-rahmen="gepunktet"
-      data-aufmachung-konfetti="0.6 punkt dreieck stern" data-aufmachung-saat="4711"
-      style="--a1:#e63946;--a2:#f77f00;--a3:#fcbf49;--a4:#1d3557;--a-flaeche:#fff8ec;--a-titel:#ffffff;--a-muster:#fdebd0">
-```
-
-| Wert am `body` | Bedeutung |
-|---|---|
-| `data-aufmachung` | Name des Rezepts (Tabelle unten) |
-| `data-aufmachung-farben` | Farbwelt 1–3 |
-| `data-aufmachung-kopfband` | `gerade`, `welle`, `bogen`, `zacken`; fehlt bei „ohne“ |
-| `data-aufmachung-rahmen` | `ohne`, `linie`, `gestrichelt`, `gepunktet`, `doppelt` |
-| `data-aufmachung-konfetti` | Menge 0–1, dann die Formen aus `punkt dreieck raute stern` |
-| `data-aufmachung-saat` | ganze Zahl 1–999999; eine neue Saat würfelt Konfetti und Punkte neu |
-| `--a1` … `--a4`, `--a-flaeche`, `--a-titel`, `--a-muster` | Farben der Farbwelt, folgen `data-aufmachung-farben`; nicht einzeln setzen |
-
-**Teile.** Je Seite liegen zuunterst in `.ebene.hinten` die Seitenfläche, der Seitenrahmen und die Streuungen des
-Rezepts, alle mit `data-aufmachung-teil` (`flaeche`, `rahmen`, `streuung`) und `data-gesperrt`. Das Kopfband ist kein
-Element: `blatt.css` zeichnet es am `.kopf` aus den Werten am `body`, der Titel bekommt `--a-titel`. Eine Seite ohne
-`.kopf` hat kein Kopfband; ein Thema mit eigenem Kopf (`.thema-kopf`, `.thema-band`) auch nicht. In s/w fallen
-Fläche, Kopfband und Konfetti weg, der Titel wird dunkel.
-
-- **Nur die Werte am `body` ändern.** Nach deinem Vorschlag erzeugt die Schoolbox alle Teile aus diesen Werten neu
-  (Abgleich), auch die Farben `--a1` …. Was du an einem Teil mit `data-aufmachung-teil` von Hand änderst, ist danach
-  wieder wie vorher; ein Teil, dem du das Attribut nimmst, liegt dann doppelt da. Soll ein Teil anders werden, die
-  Lehrkraft bitten, das Rezept freizulegen (Schublade „Rezepte“).
-- **Wünsche zu Farben** gehen über die Farbwelt: „Mach das Kopfband grün“ heißt eine Farbwelt mit Grün in der Tabelle
-  unten (`data-aufmachung="dschungel"` oder in einem anderen Rezept die passende `data-aufmachung-farben`). Einzelne
-  Farben eines Rezepts gibt es nicht; wer sie braucht, legt frei.
-- **Nur Rezepte aus der Tabelle.** Ein anderer Name in `data-aufmachung` wirkt nicht: Die Teile bleiben, wie sie
-  waren.
-- **Rezept wählen oder wechseln:** `data-aufmachung` setzen und die übrigen Werte so, wie die Tabelle sie für das
-  Rezept nennt, außer der Auftrag will es anders. Fehlende Werte nehmen den Standard der Tabelle, nur ein fehlendes
-  `data-aufmachung-kopfband` heißt „ohne“. **Entfernen:** alle `data-aufmachung*` und `--a…` am `body` und alle Teile.
-- Ein Rezept fasst nie Aufgaben, Nummern, Lösung, Bilder, Figuren oder eigene Gestaltung an.
-- Ein Rezept ist kein Thema: Es ändert weder die Palette (`palette-*`) noch `thema.css`.
-- Die Farben eines Rezepts (`var(--a1)` …) nur in Teilen des Rezepts benutzen.
-
-<!-- erzeugt: aufmachungen -->
-| Rezept | `data-aufmachung` | Farbwelten (`data-aufmachung-farben` 1–3) | Kopfband | Rahmen | Konfetti |
-|---|---|---|---|---|---|
-| Detektiv | `detektiv` | 1 Spurensuche (#1d3557 #f77f00 #2a9d8f #ffc43d), 2 Lupe (#3d348b #e76f51 #2a9d8f #f4a261), 3 Geheimakte (#22333b #c1121f #457b9d #f2c14e) | ohne | gestrichelt | `0.6 dreieck raute punkt` |
-| Zirkus | `zirkus` | 1 Manege (#e63946 #f77f00 #fcbf49 #1d3557), 2 Zuckerwatte (#d6336c #f06595 #ffd43b #3b2f7a), 3 Abendvorstellung (#1971c2 #7048e8 #fcc419 #e03131) | Welle | gepunktet | `0.6 punkt dreieck stern` |
-| Dschungel | `dschungel` | 1 Urwald (#2d6a4f #1b4332 #f9c74f #2a9d8f), 2 Lagune (#1d7874 #0b3c49 #f6bd60 #84a59d), 3 Mangrove (#3a5a40 #283618 #dda15e #588157) | Welle | linie | `0.6 punkt` |
-| Ruhig | `ruhig` | 1 Grau (#343a40 #1d3557 #c4cad0 #6c757d), 2 Tinte (#1d3557 #343a40 #c3cedd #5c6f8a), 3 Schiefer (#2f3e46 #354f52 #c5cfc2 #52796f) | ohne | linie | `0 punkt` |
-<!-- /erzeugt: aufmachungen -->
-
-**Freigelegtes Rezept.** „Freilegen“ (Schublade „Rezepte“ oder Reiter „Blatt“) macht alle Teile zu normaler
-Gestaltung: `data-aufmachung*` am `body` und die Farben `--a1` … verschwinden, `data-aufmachung-teil` und
-`data-gesperrt` an den Teilen auch. Jedes Teil trägt die Farben dann selbst in seinem `style`
-(`--a1:#2d6a4f;--a2:#1b4332;…`), ein späteres Rezept färbt es nicht um. Das Kopfband wird eine Form
-`svg.form[data-form="pfad"]` mit Verlauf ganz unten in `.ebene.hinten`, mit `data-sw="weg"`. Der Titel bekommt seine
-Farbe als `style="color:#…"`.
-
-- `data-sw="dunkel"` an einem Text (nur am Titel eines freigelegten Rezepts): in s/w dunkel statt der eigenen Farbe,
-  sonst stünde weißer Titel auf weißem Grund. Nicht für anderes benutzen.
-- Freigelegte Teile wie jede Gestaltung ändern; die Werte am `body` gibt es nicht mehr.
 
 ## Fläche im Stapel
 
@@ -714,10 +633,10 @@ Eine eigene Form ist ein `svg.form` mit `data-form="pfad"`. **Hier ist das `d` d
 
 ## Kombinierte Formen
 
-Vereinen, Abziehen, Schnitt, Ausschluss und die Formen-Schere im Editor machen aus mehreren Formen **einen normalen
-Pfad** (`data-form="pfad"`, siehe „Eigene Form“): ohne Parameter, ohne Drehung (sie steckt in den Punkten), mit
-Füllung, Kontur, Verlauf und Schatten der vordersten Form. Hat das Ergebnis ein Loch oder mehrere Teile, stehen die
-Teilpfade in **einem** `d` und der Pfad hat `fill-rule:evenodd` im `style`:
+Vereinen, Abziehen, Schnitt und Ausschluss im Editor machen aus mehreren Formen **einen normalen Pfad**
+(`data-form="pfad"`, siehe „Eigene Form“): ohne Parameter, ohne Drehung (sie steckt in den Punkten), mit Füllung,
+Kontur, Verlauf und Schatten der vordersten Form. Hat das Ergebnis ein Loch oder mehrere Teile, stehen die Teilpfade in
+**einem** `d` und der Pfad hat `fill-rule:evenodd` im `style`:
 
 ```html
 <svg class="form" data-lage="frei" data-form="pfad" viewBox="0 0 200 200" style="--x:100px;--y:100px;--b:200px;--h:200px">

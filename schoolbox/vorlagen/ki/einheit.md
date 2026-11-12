@@ -13,7 +13,7 @@ Ablauf:
    - `slug`: Kleinbuchstaben, Ziffern und Bindestriche, eindeutig. Er ist der Ordnername unter `dokumente/`.
    - `art` und `format` wie bei `schoolbox dokument` (html-materialerstellung). Höchstens 20 Dokumente.
    - `annahmen`: was du selbst entschieden hast, höchstens fünf kurze Sätze.
-3. Falls verlangt: `thema.css` nach html-materialerstellung, references/layout.md, Abschnitt „Baukasten und Thema“. Bei einem Rezept schreibst du nur die `data-aufmachung`-Werte am `body` (references/gestaltung.md, „Rezepte“) und kein `thema.css`.
+3. Falls verlangt: `thema.css` nach html-materialerstellung, references/layout.md, Abschnitt „Baukasten und Thema“.
 4. Baue die Materialien nacheinander, jedes vollständig. Im `<head>` stehen nur `<meta charset="utf-8">`, `<title>`, `<link rel="stylesheet" href="blatt.css">`, bei eigenem Thema `<link rel="stylesheet" href="../../thema.css">`, und bei Abbildungen `<script src="abbildungen.js"></script>`, genau so geschrieben; alles andere lehnt der Server ab. Dazu `<body>`-Klassen mit Klasse, Format und Profil `farbe`, Lösung wie der Skill der Art es vorsieht. Setze in `einheit.json` **sofort nach jedem Material** `"fertig": true`. Der Server übernimmt es dann gleich in die Schoolbox. Ändere ein fertiges Material nur, wenn es nötig ist.
 5. Bilder: Gemeinsame Bilder liegen unter `../../bilder/` (aus der Sicht des Dokuments). Willi, Wilma und die anderen Assets bindest du wie immer ein. Neue Bilder nur, wenn der Auftrag es erlaubt, nach html-materialerstellung, references/bilder.md, Abschnitt 2, mit diesem Unterschied: Du hast kein Bash und kein curl. Trage nach dem Export je Bild einen Eintrag in `bilder.json` ein:
    `[{"datei": "fall-1.jpg", "url": "<Export-URL>", "motiv": "…", "mediaId": "MA…"}]`
