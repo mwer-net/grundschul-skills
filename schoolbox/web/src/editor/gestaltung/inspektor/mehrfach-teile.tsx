@@ -14,7 +14,7 @@ import { Farben } from './form-farben';
 import { Zahl } from './zahl';
 
 /**
- * Inspektor bei Mehrfachauswahl (113, Briefing 5.9): Abschnitt 2 mit X, Y, B, H der ganzen Auswahl (ändern verschiebt
+ * Inspektor bei Mehrfachauswahl (113, Briefing 5.9): unter „Anordnen“ X, Y, B, H der ganzen Auswahl (ändern verschiebt
  * bzw. skaliert alle, ein Schritt), dazu die Abschnitte, die alle Gewählten haben und die mehrere können
  * (`mehrfach: true`). Unterschiedliche Werte zeigen „gemischt“.
  */

@@ -105,7 +105,7 @@ describe('Bild-Befehle bei freien Bildern', () => {
 
 	it('setzeBildBreite lehnt freie Bilder ab', () => {
 		const quelle = blattMit({ vorne: [BILD_FREI] });
-		assert.throws(() => setzeBildBreite(quelle, bildNr(quelle), 200), /Position und Größe/);
+		assert.throws(() => setzeBildBreite(quelle, bildNr(quelle), 200), /„Anordnen“/);
 	});
 
 	it('setzeBildBreite ändert Bild-Bausteine weiter über width', () => {

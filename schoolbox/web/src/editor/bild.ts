@@ -406,7 +406,7 @@ export const useBild = ({ adresse, basis, pfad, rueckgaengig, struktur }: Option
 		}
 	};
 
-	// Freie Bilder (103): Größe nur über `--b` (Griffe, „Position und Größe“), sonst zwei Größenlogiken.
+	// Freie Bilder (103): Größe nur über `--b` (Griffe, „Anordnen“), sonst zwei Größenlogiken.
 	const groesse: Groesse | null =
 		werte && !werte.platzhalter && !werte.frei && struktur.aktiv
 			? { nr: werte.nr, min: BILD_MIN, max: werte.max, zeige: zeigeBreite, setze: setzeBreite }

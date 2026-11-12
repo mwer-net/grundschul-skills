@@ -5,5 +5,5 @@ import { KonturBogen } from './kontur-bogen-teile';
 const hatKontur = (art: string) => art === 'schmuck' || art === 'schmuckbogen';
 
 export const KONTUR_BOGEN_TEILE: InspektorTeil[] = [
-	{ id: 'kontur-bogen', abschnitt: 5, reihenfolge: 2, fuer: (art) => hatKontur(art), Inhalt: KonturBogen },
+	{ id: 'kontur-bogen', abschnitt: 3, reihenfolge: 2, fuer: (art) => hatKontur(art), Inhalt: KonturBogen },
 ];

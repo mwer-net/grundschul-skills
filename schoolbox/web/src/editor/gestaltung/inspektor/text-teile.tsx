@@ -4,7 +4,6 @@ import {
 	GROESSE_MIN,
 	groesseIm,
 	leseSchmuck,
-	SCHMUCK_ARTEN,
 	SCHRIFTEN,
 	setzeSchmuck,
 } from '@schoolbox/kern/src/schmuck';
@@ -100,7 +99,7 @@ export const FarbeWahl = ({ aktiv, k, quelle }: TextTeile) => {
 	) : null;
 };
 
-/** Abschnitt 5 „Text“ (5.8): Art, Schrift, Größe, Farbe, Ausrichtung, beim Etikett der Hintergrund. */
+/** Abschnitt 3 „Text“ (5.8): Schrift, Größe, Farbe, Ausrichtung, beim Etikett der Hintergrund. */
 export const Text = ({ aktiv, k, quelle }: InspektorTeile) => {
 	const stand = leseSchmuck(quelle, k.nr);
 	if (!stand) {
@@ -108,11 +107,6 @@ export const Text = ({ aktiv, k, quelle }: InspektorTeile) => {
 	}
 	return (
 		<div className="flex flex-col gap-1" data-gestaltung-text>
-			{stand.art && (
-				<Zeile titel="Art">
-					<span data-schmuck-art={stand.art}>{`Schmuckschrift · ${SCHMUCK_ARTEN[stand.art].name}`}</span>
-				</Zeile>
-			)}
 			<Zeile titel="Schrift">
 				<SchriftWahl k={k} quelle={quelle} aktiv={aktiv} />
 			</Zeile>

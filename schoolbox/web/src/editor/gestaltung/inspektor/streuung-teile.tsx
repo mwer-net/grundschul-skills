@@ -157,7 +157,7 @@ export const DichteRegler = ({ aktiv, k, quelle }: InspektorTeile) => {
 	);
 };
 
-/** Abschnitt 7 „Streuung“ (5.8): Art, Formen, Farben, Größe, bei Punkten die dichte Ecke, Dichte, Würfeln. */
+/** Abschnitt 5 „Streuung“ (5.8): Art, Formen, Farben, Größe, bei Punkten die dichte Ecke, Dichte, Würfeln. */
 export const StreuungTeil = ({ aktiv, k, quelle }: InspektorTeile) => {
 	const stand = leseStreuung(quelle, k.nr);
 	if (!stand) {

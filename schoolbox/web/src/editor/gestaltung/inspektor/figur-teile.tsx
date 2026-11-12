@@ -19,7 +19,7 @@ const aktuelle = (quelle: string, nr: number, figuren: readonly BibliotheksFigur
 };
 
 /**
- * Abschnitt 6 bei einer Figur (102, 177): die Figur im Menü, darunter ihre Posen. Ein Wechsel tauscht `data-figur`,
+ * Abschnitt 4 bei einer Figur (102, 177): die Figur im Menü, darunter ihre Posen. Ein Wechsel tauscht `data-figur`,
  * `src` und `alt` in einem Schritt; Lage, Größe, Drehen und Spiegeln bleiben. Eine unbekannte Pose wählt keine Kachel.
  */
 export const FigurWahl = ({ aktiv, k, quelle }: InspektorTeile) => {

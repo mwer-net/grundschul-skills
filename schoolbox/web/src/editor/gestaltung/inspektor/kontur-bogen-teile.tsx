@@ -283,7 +283,7 @@ export const BogenFarbeWahl = ({ aktiv, k, quelle }: KonturBogenTeile) => {
 	) : null;
 };
 
-/** Abschnitt 5, nach „Text“ (5.8): Kontur und Bogen; für den Bogen selbst auch Text, Schrift, Größe und Farbe. */
+/** Abschnitt 3, nach „Text“ (5.8): Kontur und Bogen; für den Bogen selbst auch Text, Schrift, Größe und Farbe. */
 export const KonturBogen = (teile: InspektorTeile) => {
 	const bogen = leseBogen(teile.quelle, teile.k.nr) !== null;
 	return (

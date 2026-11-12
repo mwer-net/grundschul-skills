@@ -21,6 +21,7 @@ export const Farben = ({
 	gemischt,
 	name,
 	setze,
+	titel,
 	verlauf,
 	wert,
 	zeige,
@@ -36,6 +37,8 @@ export const Farben = ({
 	verlauf?: VerlaufWahl;
 	/** Mehrfachauswahl mit verschiedenen Werten: kein Punkt gewählt. */
 	gemischt?: boolean;
+	/** 185: Titel der Zeile, neben ihm „Farbe / Verlauf“. */
+	titel?: string;
 }) => (
 	<div data-form-farben={name}>
 		<Farbwahl
@@ -50,6 +53,7 @@ export const Farben = ({
 			setze={setze}
 			zeige={zeige}
 			verlauf={verlauf}
+			titel={titel}
 		/>
 	</div>
 );
@@ -66,7 +70,8 @@ export interface FarbTeile {
 	aktiv: boolean;
 }
 
-export const FuellungWahl = ({ aktiv, k, quelle }: FarbTeile) => {
+/** 185: Im Inspektor mit Titel „Füllung“, „Farbe / Verlauf“ daneben; in der Leiste am Element ohne. */
+export const FuellungWahl = ({ aktiv, k, quelle, titel }: FarbTeile & { titel?: string }) => {
 	const stand = leseForm(quelle, k.nr);
 	if (!stand) {
 		return null;
@@ -75,6 +80,7 @@ export const FuellungWahl = ({ aktiv, k, quelle }: FarbTeile) => {
 		<Farben
 			name="form-fuellung"
 			beschriftung="Füllung"
+			titel={titel}
 			doc={k.doc}
 			aus={!aktiv}
 			wert={stand.fuellung}

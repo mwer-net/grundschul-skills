@@ -18,7 +18,7 @@ import type { GestaltungKontext } from '../kontext';
 import type { InspektorTeile } from './abschnitte';
 
 /**
- * Rahmen-Stil und Maske (111, 5.8 Abschnitt 6), nach „Bild“: Rahmen-Stil (gerade, schräg, Polaroid, rund, Kontur),
+ * Rahmen-Stil und Maske (111, 5.8 Abschnitt 4), nach „Bild“: Rahmen-Stil (gerade, schräg, Polaroid, rund, Kontur),
  * Maske (keine, dann die Formen ohne Text) und „Zuschnitt zurücksetzen“. Maske und Rahmen-Stil schließen sich aus:
  * Wählt man das eine, verliert das andere seinen Ring; der `title` der Kachel sagt es vorher. Beim leeren Bildrahmen
  * gibt es nur die Form. Die Leiste am Bild zeigt dieselbe Wahl im Popover „Rahmen-Stil“.

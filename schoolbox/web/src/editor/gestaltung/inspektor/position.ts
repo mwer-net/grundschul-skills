@@ -6,8 +6,8 @@ import { Position } from './position-teile';
 export const POSITION_TEILE: InspektorTeil[] = [
 	{
 		id: 'position',
-		abschnitt: 2,
-		reihenfolge: 1,
+		abschnitt: 8,
+		reihenfolge: 2,
 		fuer: (_art, baustein) => kann(baustein, 'lage'),
 		Inhalt: Position,
 	},

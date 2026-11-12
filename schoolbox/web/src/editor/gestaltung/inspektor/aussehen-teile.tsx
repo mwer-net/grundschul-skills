@@ -8,6 +8,7 @@ import {
 	setzeKonturStil,
 	setzeSchatten,
 } from '@schoolbox/kern/src/aussehen';
+import { formVon } from '@schoolbox/kern/src/formen';
 import { leseForm } from '@schoolbox/kern/src/formen-aendern';
 
 import { Segment } from '../../../bausteine/Segment';
@@ -16,9 +17,8 @@ import { Regler } from '../blatt/regler';
 import type { InspektorTeile } from './abschnitte';
 
 /**
- * Aussehen (108, 5.8 Abschnitt 4): Kontur-Stil und Enden, Schatten, Deckkraft. Den Verlauf zeigt der Farbwähler der
- * Füllung (`form-farben.tsx`). Bild und Figur haben keine Füllung: Für sie stehen Schatten und Deckkraft im Abschnitt
- * „Bild“ (6). Was eine Art kann, sagt `kannAussehen` im Kern.
+ * Aussehen (108): Stil und Enden der Kontur unter „Füllung und Kontur“, Schatten und Deckkraft unter „Aussehen“ (185).
+ * Den Verlauf zeigt der Farbwähler der Füllung (`form-farben.tsx`). Was eine Art kann, sagt `kannAussehen` im Kern.
  */
 
 const STILE: { wert: KonturStil; titel: string }[] = [
@@ -41,15 +41,23 @@ const SCHATTEN_WAHL: { wert: SchattenStufe; titel: string }[] = [
 	{ wert: 'stark', titel: 'Stark' },
 ];
 
-const KonturStilWahl = ({ aktiv, k, quelle }: InspektorTeile) => {
+/**
+ * Enden wirken nur an offenen Strichen: an den Strichen einer gestrichelten Kontur und am offenen Pfad. Linie und Pfeil
+ * enden immer rund, Punkte sind immer rund (`konturStilNeu` im Kern).
+ */
+const endenWirken = (klasse: string | undefined, stil: KonturStil) =>
+	klasse !== 'linie' && (stil === 'gestrichelt' || (klasse === 'pfad' && stil === 'durchgezogen'));
+
+export const KonturStilWahl = ({ aktiv, k, quelle }: InspektorTeile) => {
 	const form = leseKonturStil(quelle, k.nr);
+	const stand = leseForm(quelle, k.nr);
 	// Bei der Form ohne Kontur gibt es nichts zu stricheln; Form mit Text (107) hat ihre Kontur immer.
-	const ohneKontur = k.art === 'form' && !leseForm(quelle, k.nr)?.kontur;
+	const ohneKontur = k.art === 'form' && !stand?.kontur;
 	const setze = (beschreibung: string, neu: typeof form) =>
 		k.fuehreAus(beschreibung, (q) => ({ quelle: setzeKonturStil(q, k.nr, neu), nr: k.nr }));
 	return (
-		<>
-			<Zeile titel="Linie" name="Stil der Kontur">
+		<div className="flex flex-col gap-1" data-gestaltung-kontur-stil>
+			<Zeile titel="Stil" name="Stil der Kontur">
 				<span data-aussehen-kontur-stil={form.stil}>
 					<Segment
 						beschriftung="Stil der Kontur"
@@ -60,18 +68,20 @@ const KonturStilWahl = ({ aktiv, k, quelle }: InspektorTeile) => {
 					/>
 				</span>
 			</Zeile>
-			<Zeile titel="Enden" name="Enden der Kontur">
-				<span data-aussehen-kontur-enden={form.enden}>
-					<Segment
-						beschriftung="Enden der Kontur"
-						werte={ENDEN}
-						wert={form.stil === 'gepunktet' ? 'rund' : form.enden}
-						aus={!aktiv || ohneKontur || form.stil === 'gepunktet'}
-						waehle={(enden) => setze('Enden der Kontur', { ...form, enden })}
-					/>
-				</span>
-			</Zeile>
-		</>
+			{endenWirken(formVon(stand?.art)?.klasse, form.stil) && (
+				<Zeile titel="Enden" name="Enden der Kontur">
+					<span data-aussehen-kontur-enden={form.enden}>
+						<Segment
+							beschriftung="Enden der Kontur"
+							werte={ENDEN}
+							wert={form.enden}
+							aus={!aktiv || ohneKontur}
+							waehle={(enden) => setze('Enden der Kontur', { ...form, enden })}
+						/>
+					</span>
+				</Zeile>
+			)}
+		</div>
 	);
 };
 
@@ -118,7 +128,6 @@ const DeckkraftWahl = ({ aktiv, k, quelle }: InspektorTeile) => (
 
 export const Aussehen = (t: InspektorTeile) => (
 	<div className="flex flex-col gap-1" data-gestaltung-aussehen>
-		{kannAussehen(t.k.art, 'kontur-stil') && <KonturStilWahl {...t} />}
 		{kannAussehen(t.k.art, 'schatten') && <SchattenWahl {...t} />}
 		{kannAussehen(t.k.art, 'deckkraft') && <DeckkraftWahl {...t} />}
 	</div>

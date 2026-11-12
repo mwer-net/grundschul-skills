@@ -5,15 +5,15 @@ import { MehrfachFuellung, MehrfachPosition } from './mehrfach-teile';
 export const MEHRFACH_TEILE: InspektorTeil[] = [
 	{
 		id: 'mehrfach-position',
-		abschnitt: 2,
-		reihenfolge: 0,
+		abschnitt: 8,
+		reihenfolge: 2,
 		mehrfach: true,
 		fuer: () => true,
 		Inhalt: MehrfachPosition,
 	},
 	{
 		id: 'mehrfach-fuellung',
-		abschnitt: 4,
+		abschnitt: 6,
 		reihenfolge: 0,
 		mehrfach: true,
 		fuer: (art) => art === 'form' || art === 'formtext',
