@@ -97,7 +97,7 @@ describe('Bilder-API', () => {
 
 	it('zeigt die Sammlung und übernimmt Bilder daraus', async () => {
 		const sammlung = (await (await s.holen(url())).json()) as Sammlung;
-		assert.ok(sammlung.sammlung.some((b) => b.schluessel === '_assets/bilder/willi.png'));
+		assert.ok(sammlung.sammlung.some((b) => b.schluessel === '_assets/bilder/wachstum.png'));
 		assert.deepEqual(
 			sammlung.mappe.map((b) => b.schluessel),
 			[`${mappe}/dokumente/${dok}/bilder/kuerbis-ernte.jpg`],
@@ -110,7 +110,7 @@ describe('Bilder-API', () => {
 				headers: schreibKoepfe,
 				body: JSON.stringify({ schluessel }),
 			});
-		assert.deepEqual(await (await nimm('_assets/bilder/willi.png')).json(), { src: 'bilder/willi.png' });
+		assert.deepEqual(await (await nimm('_assets/bilder/wachstum.png')).json(), { src: 'bilder/wachstum.png' });
 		assert.equal((await nimm('_assets/../../.env')).status, 400);
 		assert.equal((await s.holen(url('/uebernehmen'), { method: 'POST', headers: schreibKoepfe })).status, 400);
 	});
@@ -251,7 +251,7 @@ describe('Bild beschreiben (179)', () => {
 		const sammlung = (await (await s.holen(`${s.url}/api/dokumente/${mappe}/${dok}/bilder`)).json()) as Sammlung;
 		assert.equal(sammlung.mappe[0]?.schluessel, `${mappe}/bilder/${BILD}`);
 		assert.ok((await readFile(path.join(dir, 'material.html'))).equals(html), 'material.html byte-gleich');
-		assert.ok(!existsSync(path.join(dir, 'bilder')), 'nichts in bilder/ des Dokuments');
+		assert.deepEqual(await readdir(path.join(dir, 'bilder')), [], 'nichts in bilder/ des Dokuments');
 		const zeilen = (await readFile(path.join(s.materialDir, VERBRAUCH_DATEI), 'utf8')).trim().split('\n');
 		const zeile = JSON.parse(zeilen.at(-1) ?? '{}') as Record<string, unknown>;
 		assert.equal(zeile.umfang, 'canva-bild');

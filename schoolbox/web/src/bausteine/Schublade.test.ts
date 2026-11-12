@@ -45,7 +45,7 @@ describe('Ein Aufbau für alle Schubladen (167)', () => {
 	});
 
 	it('jede Spaltenzahl des Rasters steht ausgeschrieben, damit Tailwind sie findet', () => {
-		const quelle = lies('bausteine/Schublade.tsx');
+		const quelle = lies('bausteine/schubladenhilfe.ts');
 		for (const n of [2, 3, 4, 5]) {
 			assert.match(quelle, new RegExp(`'grid-cols-${n}'`), String(n));
 		}

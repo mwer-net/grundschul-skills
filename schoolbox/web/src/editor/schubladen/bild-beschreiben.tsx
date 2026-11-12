@@ -15,6 +15,7 @@ import { starteBild } from '../canva';
 import { useFiguren, vorschauVon } from '../gestaltung/figuren-quelle';
 import { LimitZeile } from '../LimitZeile';
 import type { SchubladenTeile } from '.';
+import { SendenKreis } from './kreise';
 
 /** Bis vier Zeilen wächst das Feld, danach rollt es (wie `FELD_MAX` in `Blase.tsx`). */
 const ZEILEN = 4;
@@ -137,9 +138,7 @@ export const BildBeschreiben = ({
 							disabled={!kannSenden}
 							className="group/senden flex size-knopf-klein flex-none items-center justify-center [@media(any-pointer:coarse)]:-m-1.5"
 						>
-							<span className="flex size-5 items-center justify-center rounded-full bg-brand-500 text-white group-hover/senden:bg-brand-600 group-disabled/senden:bg-rand group-disabled/senden:text-leise [@media(any-pointer:coarse)]:size-8">
-								<Symbol name="senden" className="size-3 [@media(any-pointer:coarse)]:size-4" />
-							</span>
+							<SendenKreis />
 						</button>
 					</span>
 				</div>
