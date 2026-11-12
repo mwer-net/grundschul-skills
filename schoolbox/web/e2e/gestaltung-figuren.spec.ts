@@ -96,7 +96,6 @@ test.describe('Figuren (102)', () => {
 		await page.keyboard.press('Alt+Digit4');
 		await expect(schublade(page)).toBeVisible();
 		await expect(schublade(page).locator('[data-schubladenhinweis]')).toHaveCount(0);
-		const ziel = await aufSeite(page, 0.5, 0.5);
 		await kachel(page, 'Wilma').click();
 
 		await expect.poll(async () => figurTag(await quelle(page))).toContain('data-figur="wilma"');
@@ -108,6 +107,8 @@ test.describe('Figuren (102)', () => {
 		expect(tag).not.toContain('--h');
 		expect(await quelle(page)).toMatch(/<div class="ebene vorne">[\s\S]*class="figur-frei"/);
 		await expect(frei(page)).toBeVisible();
+		// Mitte und Figur im selben Moment: Im ganzen Lauf rückte das Blatt nach dem Klick um 20 px.
+		const ziel = await aufSeite(page, 0.5, 0.5);
 		const m = await mitte(frei(page));
 		expect(Math.abs(m.x - ziel.x)).toBeLessThan(20);
 		expect(Math.abs(m.y - ziel.y)).toBeLessThan(20);
