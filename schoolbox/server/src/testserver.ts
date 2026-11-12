@@ -5,12 +5,20 @@ import type { Druckprofil, FolienZusatz } from '@schoolbox/kern';
 import { baueVorschau, VORSCHAU_DATEI } from '@schoolbox/kern';
 
 import { WEB_DIST } from './app';
-import { baueErsatzAusgabe, baueErsatzFolien, KI_ATTRAPPE, starteTestServer, TEST_PASSWORT } from './testhilfe';
+import {
+	baueErsatzAusgabe,
+	baueErsatzFolien,
+	KI_ATTRAPPE,
+	legeTestfigurenAn,
+	starteTestServer,
+	TEST_PASSWORT,
+} from './testhilfe';
 
 /**
  * Server für die Browser-Tests der Oberfläche (`pnpm --filter @schoolbox/web run e2e`): die gebaute Oberfläche, eine
- * eigene, leere Ablage, das Passwort der Tests. Vorschauen und PDFs entstehen ohne Chromium, damit die Tests schnell
- * bleiben. Mit `E2E_ECHT=1` baut blatt.py sie wirklich (Bildschirmfotos für die Hilfeseite).
+ * eigene, leere Ablage mit der Testfigur Kiki (177), das Passwort der Tests. Vorschauen und PDFs entstehen ohne
+ * Chromium, damit die Tests schnell bleiben. Mit `E2E_ECHT=1` baut blatt.py sie wirklich (Bildschirmfotos für die
+ * Hilfeseite).
  */
 const PORT = Number(process.env.E2E_PORT);
 const MATERIAL_DIR = process.env.E2E_MATERIAL_DIR ?? '';
@@ -44,6 +52,7 @@ const starte = async () => {
 	}
 	await rm(MATERIAL_DIR, { recursive: true, force: true });
 	await mkdir(MATERIAL_DIR, { recursive: true });
+	await legeTestfigurenAn(MATERIAL_DIR);
 	const kiOrdner = `${MATERIAL_DIR}-ki`;
 	const claude = path.join(kiOrdner, 'claude');
 	await mkdir(kiOrdner, { recursive: true });

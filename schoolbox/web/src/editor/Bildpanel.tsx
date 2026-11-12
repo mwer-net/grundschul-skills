@@ -250,7 +250,11 @@ export const SammlungDialog = ({
 	schliessen: () => void;
 	waehle: (eintrag: SammlungsBild) => void;
 }) => {
-	const { daten, fehler } = useLaden<Sammlung>(`${adresse}/bilder`);
+	// >> 177
+	const { daten: roh, fehler } = useLaden<Sammlung>(`${adresse}/bilder`);
+	// Unter „Willi & Co.“ stehen die Posen der Figurenbibliothek vor den übrigen Bildern aus assets/.
+	const daten = useMemo(() => roh && { ...roh, sammlung: [...roh.figuren, ...roh.sammlung] }, [roh]);
+	// << 177
 	const [gruppe, setGruppe] = useState<SammlungsGruppe>('sammlung');
 	const [suche, setSuche] = useState('');
 	const liste = useMemo(() => (daten ? daten[gruppe].filter((e) => passt(e, suche)) : []), [daten, gruppe, suche]);

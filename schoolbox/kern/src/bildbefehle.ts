@@ -33,12 +33,14 @@ export interface SammlungsBild {
 }
 
 export interface Sammlung {
-	/** assets/bilder: Willi, Wilma, Grafiken. */
+	/** assets/bilder ohne Figuren. */
 	sammlung: SammlungsBild[];
 	/** Bilder dieser Mappe, aus allen ihren Dokumenten. */
 	mappe: SammlungsBild[];
 	/** Bilder aus allen anderen Mappen, neueste zuerst. */
 	meine: SammlungsBild[];
+	/** Jede Pose der Figurenbibliothek (177), für „Willi & Co.“ im Dialog. */
+	figuren: SammlungsBild[];
 }
 
 const bildAn = (z: Zerlegung, nr: number) => {

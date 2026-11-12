@@ -361,6 +361,9 @@ test.describe('Bilder-Schublade (093)', () => {
 		}
 		await expect(bilder(page).locator('[data-sammlung-bild="_assets/bilder/willi.png"]')).toHaveCount(0);
 		await expect(bilder(page).locator('[data-sammlung-bild="_assets/bilder/wilma.png"]')).toHaveCount(0);
+		// Ohne Figuren und ohne Strichfassung neben ihrer Farbfassung (177): nur `wachstum.png`.
+		await expect(bilder(page).locator('[data-sammlung-bild]')).toHaveCount(1);
+		await expect(bilder(page).locator('[data-sammlung-bild="_assets/bilder/wachstum.png"]')).toHaveCount(1);
 		await expect(bilder(page).locator('[data-hinweis="figuren"]')).toHaveCount(0);
 		await bilder(page).getByRole('searchbox', { name: 'Bilder suchen' }).fill('keimling');
 		await expect(bilder(page).locator('[data-sammlung-bild]')).toHaveCount(1);

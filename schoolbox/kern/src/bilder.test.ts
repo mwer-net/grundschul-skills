@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import { execFile, execFileSync } from 'node:child_process';
 import { existsSync } from 'node:fs';
-import { mkdir, mkdtemp, readdir, readFile, writeFile } from 'node:fs/promises';
+import { copyFile, mkdir, mkdtemp, readdir, readFile, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
 import { describe, it } from 'node:test';
@@ -11,6 +11,7 @@ import { dokumentDir, mappenDir, neueMappe, neuesDokument } from './ablage';
 import { bildStamm, findeBild, nimmBildAuf, sammleBilder, uebernimmBild } from './bilder';
 import { BROWSER_HINWEIS, browserFehlt } from './browsertest';
 import { SchoolboxFehler } from './fehler';
+import { figurenDir } from './figurenbibliothek';
 import { ASSETS, BLATT_PY } from './konfig';
 
 const ausfuehren = promisify(execFile);
@@ -49,6 +50,22 @@ const foto = async (ordner: string, breite = 4000, hoehe = 3000, farbe = '#c8323
 	const datei = path.join(ordner, `foto-${breite}.jpg`);
 	execFileSync('python3', ['-c', FOTO_PY, datei, String(breite), String(hoehe), farbe]);
 	return readFile(datei);
+};
+
+/** Ein PNG mit Alphakanal, oben zur Hälfte durchsichtig: so sehen freigestellte Figuren aus. */
+const PNG_PY = `
+import sys
+from PIL import Image
+datei, breite, hoehe, farbe = sys.argv[1], int(sys.argv[2]), int(sys.argv[3]), sys.argv[4]
+bild = Image.new("RGBA", (breite, hoehe), farbe)
+bild.paste((0, 0, 0, 0), (0, 0, breite, hoehe // 2))
+bild.save(datei)
+`;
+
+const png = async (ordner: string, name: string, breite = 40, hoehe = 40, farbe = '#2a9d8f') => {
+	await mkdir(ordner, { recursive: true });
+	execFileSync('python3', ['-c', PNG_PY, path.join(ordner, name), String(breite), String(hoehe), farbe]);
+	return path.join(ordner, name);
 };
 
 const befund = (datei: string) =>
@@ -162,10 +179,16 @@ describe('uebernimmBild und sammleBilder', () => {
 		await mkdir(path.join(mappenDir(materialDir, hier.mappe), 'bilder'), { recursive: true });
 		await writeFile(path.join(mappenDir(materialDir, hier.mappe), 'bilder', 'geteilt.jpg'), daten);
 
-		const s = await sammleBilder(materialDir, hier.mappe);
-		const willi = s.sammlung.find((b) => b.name === 'willi.png');
-		assert.equal(willi?.schluessel, '_assets/bilder/willi.png');
-		assert.ok(willi?.alt.includes('Willi'));
+		const s = await sammleBilder(KONFIG, materialDir, hier.mappe);
+		// Willi und Wilma stehen nur unter den Figuren (177); die Strichfassung neben ihrer Farbfassung fehlt.
+		assert.deepEqual(
+			s.sammlung.map((b) => b.name),
+			['wachstum.png'],
+		);
+		assert.deepEqual(s.figuren.slice(0, 2), [
+			{ schluessel: '_assets/bilder/willi.png', name: 'willi.png', alt: ['Willi'] },
+			{ schluessel: '_assets/bilder/wilma.png', name: 'wilma.png', alt: ['Wilma'] },
+		]);
 		assert.deepEqual(s.mappe.map((b) => b.name).sort(), ['eigen.jpg', 'geteilt.jpg']);
 		assert.deepEqual(s.meine, [
 			{
@@ -176,7 +199,7 @@ describe('uebernimmBild und sammleBilder', () => {
 			},
 		]);
 
-		const nimm = (schluessel: string) => uebernimmBild(materialDir, hier.mappe, hier.dok, schluessel);
+		const nimm = (schluessel: string) => uebernimmBild(KONFIG, materialDir, hier.mappe, hier.dok, schluessel);
 		assert.deepEqual(await nimm('_assets/bilder/willi.png'), { src: 'bilder/willi.png' });
 		assert.deepEqual(await nimm(`${hier.mappe}/dokumente/${hier.dok}/bilder/eigen.jpg`), {
 			src: 'bilder/eigen.jpg',
@@ -190,6 +213,7 @@ describe('uebernimmBild und sammleBilder', () => {
 		// Ein eigenes willi.png verdeckt das aus assets/: dann eine Kopie unter neuem Namen.
 		await writeFile(path.join(hier.dir, 'bilder', 'willi.png'), daten);
 		assert.deepEqual(await nimm('_assets/bilder/willi.png'), { src: 'bilder/willi-2.png' });
+		assert.ok(existsSync(path.join(hier.dir, 'bilder', 'willi-2-strich.png')), 'die Strichfassung kommt mit');
 
 		for (const schluessel of [
 			'_assets/../konfig.ts',
@@ -199,9 +223,99 @@ describe('uebernimmBild und sammleBilder', () => {
 			`${hier.mappe}/dokumente/../../x/bilder/a.png`,
 			'../draussen/bilder/a.png',
 			`${hier.mappe}/bilder/fehlt.png`,
+			'_figuren/../x.png',
+			'_figuren/a/b.png',
+			'_figuren/figuren.json',
+			'_figuren/fehlt.png',
 		]) {
 			await assert.rejects(nimm(schluessel), SchoolboxFehler, schluessel);
 		}
+	});
+});
+
+describe('Strichfassungen und Figurenbibliothek in der Sammlung (177)', () => {
+	/** Eine Bibliothek mit Kuno (Farbe und Strich), ohne die einmalige Übernahme aus dem Bestand. */
+	const mitKuno = async (materialDir: string) => {
+		const dir = figurenDir(materialDir);
+		await png(dir, 'kuno.png', 40, 40, '#f28c28');
+		await png(dir, 'kuno-strich.png', 80, 80, '#000000');
+		const bibliothek = { version: 1, figuren: [{ id: 'kuno', name: 'Kuno', posen: [{ datei: 'kuno.png' }] }] };
+		await writeFile(path.join(dir, 'figuren.json'), JSON.stringify(bibliothek));
+		return dir;
+	};
+
+	it('eine Strichfassung steht nur ohne ihre Farbfassung da; Kopien einer Figur nur unter „Figuren“', async () => {
+		const { materialDir, neu } = await ablage();
+		const hier = await neu('Kartoffeln');
+		const dort = await neu('Igel');
+		const figuren = await mitKuno(materialDir);
+		const bilder = path.join(hier.dir, 'bilder');
+		await png(bilder, 'foto.png');
+		await png(bilder, 'foto-strich.png');
+		await png(bilder, 'nur-strich.png');
+		await copyFile(path.join(figuren, 'kuno.png'), path.join(bilder, 'kuno-2.png'));
+		await mkdir(path.join(dort.dir, 'bilder'), { recursive: true });
+		await copyFile(path.join(figuren, 'kuno.png'), path.join(dort.dir, 'bilder', 'kuno.png'));
+		await copyFile(path.join(ASSETS, 'bilder', 'wilma.png'), path.join(dort.dir, 'bilder', 'wilma.png'));
+
+		const s = await sammleBilder(KONFIG, materialDir, hier.mappe);
+		assert.deepEqual(
+			s.mappe.map((b) => b.name),
+			['foto.png', 'nur-strich.png'],
+		);
+		assert.deepEqual(s.meine, []);
+		assert.deepEqual(
+			s.figuren.map((b) => b.schluessel),
+			['_assets/bilder/willi.png', '_assets/bilder/wilma.png', '_figuren/kuno.png'],
+		);
+		assert.deepEqual(s.figuren.at(-1)?.alt, ['Kuno']);
+
+		// Gegenprobe: Ohne den Eintrag in figuren.json ist Kuno ein gewöhnliches Bild.
+		await writeFile(path.join(figuren, 'figuren.json'), JSON.stringify({ version: 1, figuren: [] }));
+		const ohne = await sammleBilder(KONFIG, materialDir, hier.mappe);
+		assert.deepEqual(
+			ohne.mappe.map((b) => b.name),
+			['foto.png', 'kuno-2.png', 'nur-strich.png'],
+		);
+		assert.deepEqual(
+			ohne.meine.map((b) => b.name),
+			['kuno.png'],
+		);
+	});
+
+	it('eine Pose kommt mit ihrer Strichfassung ins Dokument, unter freiem Namen und vollständig', async () => {
+		const { materialDir, neu } = await ablage();
+		const hier = await neu('Kartoffeln');
+		const dort = await neu('Igel');
+		await mitKuno(materialDir);
+		const bilder = path.join(hier.dir, 'bilder');
+		const nimm = (schluessel: string) => uebernimmBild(KONFIG, materialDir, hier.mappe, hier.dok, schluessel);
+
+		assert.deepEqual(await nimm('_figuren/kuno.png'), { src: 'bilder/kuno.png' });
+		assert.deepEqual((await readdir(bilder)).sort(), ['kuno-strich.png', 'kuno.png']);
+		assert.deepEqual(await nimm('_figuren/kuno.png'), { src: 'bilder/kuno.png' }, 'dasselbe bleibt');
+
+		// Eine fehlende Strichfassung kommt beim nächsten Mal wieder dazu.
+		await rm(path.join(bilder, 'kuno-strich.png'));
+		assert.deepEqual(await nimm('_figuren/kuno.png'), { src: 'bilder/kuno.png' });
+		assert.ok(existsSync(path.join(bilder, 'kuno-strich.png')));
+
+		// Ein anderes kuno.png im Dokument: dann kuno-2 mit kuno-2-strich, nie eine fremde Strichfassung.
+		const zweites = await neu('Rüben');
+		const andere = path.join(zweites.dir, 'bilder');
+		await png(andere, 'kuno.png', 40, 40, '#123456');
+		const nimmDort = (schluessel: string) =>
+			uebernimmBild(KONFIG, materialDir, zweites.mappe, zweites.dok, schluessel);
+		assert.deepEqual(await nimmDort('_figuren/kuno.png'), { src: 'bilder/kuno-2.png' });
+		assert.deepEqual((await readdir(andere)).sort(), ['kuno-2-strich.png', 'kuno-2.png', 'kuno.png']);
+
+		// Ein Bild aus einer anderen Mappe bringt seine Strichfassung mit.
+		await png(path.join(dort.dir, 'bilder'), 'igel.png');
+		await png(path.join(dort.dir, 'bilder'), 'igel-strich.png', 80, 80, '#000000');
+		assert.deepEqual(await nimm(`${dort.mappe}/dokumente/${dort.dok}/bilder/igel.png`), {
+			src: 'bilder/igel.png',
+		});
+		assert.ok(existsSync(path.join(bilder, 'igel-strich.png')));
 	});
 });
 

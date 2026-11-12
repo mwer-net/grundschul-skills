@@ -1,17 +1,52 @@
-import type { Figur } from '@schoolbox/kern/src/figuren';
-import { FIGUREN, figurSchluessel, figurSrc } from '@schoolbox/kern/src/figuren';
-import { useEffect, useState } from 'react';
+import { vorschaubildAdresse } from '@schoolbox/kern/src/bildbefehle';
+import type { BibliotheksFigur, Pose } from '@schoolbox/kern/src/figuren';
+import { EINGEBAUTE } from '@schoolbox/kern/src/figuren';
+import { useSyncExternalStore } from 'react';
 
-import { sende } from '../../api';
+import { lade, sende } from '../../api';
 
 /**
- * Woher eine Figur im Dokument ihr `src` bekommt (102): wie jedes Bild aus der Sammlung über `uebernimmBild`
- * (`POST <adresse>/bilder/uebernehmen`). Das geschieht vorher, beim Öffnen der Schublade, damit Klick und Ziehen
- * gleich das richtige `src` haben; bis dahin gilt der Normalfall `bilder/<datei>` aus den Assets.
+ * Die Figuren (177): Willi, Wilma und die Figurenbibliothek (`GET /api/figuren`), einmal je Sitzung geladen. Ins
+ * Dokument kommt eine Pose erst beim Ablegen, wie jedes Bild aus der Sammlung über `uebernimmBild`
+ * (`POST <adresse>/bilder/uebernehmen`), mit ihrer Strichfassung.
  */
 
-const BEKANNT = new Map<string, string>();
-const schluessel = (adresse: string, f: Figur) => `${adresse}|${f.id}`;
+let figuren: readonly BibliotheksFigur[] = EINGEBAUTE;
+let laden: Promise<void> | null = null;
+const HOERER = new Set<() => void>();
+
+/** Lädt die Liste einmal je Sitzung; scheitert das, versucht es der nächste Aufruf neu. */
+export const ladeFiguren = () => {
+	laden ??= lade<{ figuren: BibliotheksFigur[] }>('/api/figuren').then(
+		(antwort) => {
+			figuren = antwort.figuren;
+			for (const hoerer of HOERER) {
+				hoerer();
+			}
+		},
+		() => {
+			laden = null;
+		},
+	);
+	return laden;
+};
+
+/** Bis `/api/figuren` geantwortet hat, nur Willi und Wilma (⌘K fragt synchron). */
+export const figurenJetzt = () => figuren;
+
+const abonniere = (hoerer: () => void) => {
+	HOERER.add(hoerer);
+	void ladeFiguren();
+	return () => {
+		HOERER.delete(hoerer);
+	};
+};
+
+/** Die Figuren in fester Reihenfolge: Willi, Wilma, dann nach Namen; je Figur die Grundpose zuerst. */
+export const useFiguren = () => useSyncExternalStore(abonniere, figurenJetzt);
+
+/** Was Kachel, Inspektor und das Gut beim Ziehen zeigen: das Vorschaubild der Pose (178). */
+export const vorschauVon = (pose: Pick<Pose, 'schluessel'>) => vorschaubildAdresse(`/ansicht/${pose.schluessel}`);
 
 /** `/api/dokumente/<mappe>/<dok>` aus der `<base>` des Blatts (`/ansicht/<mappe>/dokumente/<dok>/`). */
 export const adresseVon = (doc: Document | null) => {
@@ -23,51 +58,23 @@ export const adresseVon = (doc: Document | null) => {
 	return treffer ? `/api/dokumente/${treffer[1]}/${treffer[2]}` : null;
 };
 
-/** Das `src`, soweit schon bekannt. */
-export const bekannteSrc = (adresse: string | null, f: Figur) =>
-	(adresse ? BEKANNT.get(schluessel(adresse, f)) : undefined) ?? figurSrc(f);
+const BEKANNT = new Map<string, string>();
 
-/** Übernimmt die Datei ins Dokument (falls nötig) und merkt sich das `src`. */
-export const holeSrc = async (adresse: string, f: Figur) => {
-	const da = BEKANNT.get(schluessel(adresse, f));
+/** Übernimmt die Pose ins Dokument (falls nötig) und merkt sich ihr `src` je Dokument. */
+export const holeSrc = async (adresse: string, pose: Pick<Pose, 'schluessel'>) => {
+	const merkmal = `${adresse}|${pose.schluessel}`;
+	const da = BEKANNT.get(merkmal);
 	if (da) {
 		return da;
 	}
-	const { src } = await sende<{ src: string }>(`${adresse}/bilder/uebernehmen`, { schluessel: figurSchluessel(f) });
-	BEKANNT.set(schluessel(adresse, f), src);
+	const { src } = await sende<{ src: string }>(`${adresse}/bilder/uebernehmen`, { schluessel: pose.schluessel });
+	BEKANNT.set(merkmal, src);
 	return src;
 };
 
-/** Holt die `src` aller Figuren einmal je Dokument; die Rückgabe liest sie. */
-export const useFigurSrc = (adresse: string | null) => {
-	const [, setStand] = useState(0);
-	useEffect(() => {
-		if (!adresse) {
-			return;
-		}
-		let aktiv = true;
-		for (const f of FIGUREN) {
-			if (!BEKANNT.has(schluessel(adresse, f))) {
-				holeSrc(adresse, f).then(
-					() => {
-						if (aktiv) {
-							setStand((n) => n + 1);
-						}
-					},
-					() => undefined,
-				);
-			}
-		}
-		return () => {
-			aktiv = false;
-		};
-	}, [adresse]);
-	return (f: Figur) => bekannteSrc(adresse, f);
-};
-
 /**
- * Lädt die Figuren im `iframe` vor: Dann kennt das Ablegen ihre Höhe schon beim ersten Klick (gemessen wird die
- * Vorschau, solange `--h` fehlt).
+ * Lädt Bilder im `iframe` vor: Dann kennt das Ablegen ihre Höhe schon beim ersten Klick (gemessen wird die Vorschau,
+ * solange `--h` fehlt).
  */
 export const ladeVor = (doc: Document | null, srcs: readonly string[]) => {
 	const Bild = doc?.defaultView?.Image;

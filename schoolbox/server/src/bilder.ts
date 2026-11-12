@@ -50,7 +50,7 @@ export const bilderApi = (kontext: Kontext) => {
 
 	router.get('/', async (req, res) => {
 		const { mappe } = ziel(req);
-		res.json(await sammleBilder(konfig.materialDir, mappe));
+		res.json(await sammleBilder(konfig, konfig.materialDir, mappe));
 	});
 
 	router.get('/fassung', async (req, res) => {
@@ -75,7 +75,7 @@ export const bilderApi = (kontext: Kontext) => {
 		const schluessel = leseText(req.body, 'schluessel');
 		res.json(
 			await kontext.sperre(dokSchluessel(mappe, dok), () =>
-				uebernimmBild(konfig.materialDir, mappe, dok, schluessel),
+				uebernimmBild(konfig, konfig.materialDir, mappe, dok, schluessel),
 			),
 		);
 	});

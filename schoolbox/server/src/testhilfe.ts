@@ -1,5 +1,5 @@
 import assert from 'node:assert/strict';
-import { copyFile, mkdtemp, readFile, rm, writeFile } from 'node:fs/promises';
+import { copyFile, mkdir, mkdtemp, readFile, rm, writeFile } from 'node:fs/promises';
 import http from 'node:http';
 import type { AddressInfo } from 'node:net';
 import { tmpdir } from 'node:os';
@@ -12,6 +12,7 @@ import {
 	ausgabeSchluessel,
 	dokumentDir,
 	erzeugePasswortHash,
+	figurenDir,
 	formatAusHtml,
 	HTML_DATEI,
 	ladeKonfig,
@@ -152,6 +153,27 @@ process.stdin.on('end', () => {
 	aendere(); ende({});
 });
 `;
+
+/**
+ * Die Testfigur „Kiki“ (177): erzeugt, nie aus dem Material, denn das Repo ist öffentlich. `kiki-strich.png` hat das
+ * Seitenverhältnis von `kiki.png`; `kiki-winkt.png` hat keine Strichfassung.
+ */
+const KIKI = {
+	'kiki.png': 'iVBORw0KGgoAAAANSUhEUgAAADAAAAAwCAYAAABXAvmHAAABPUlEQVR4nO2ZwQ3DIAxF06qnDJEJOluG6WyZIEP02p4sIUqwP3awSP1uqQj+H1OjmGkKgiAIgsCPm/WEy7J8uDH7vpvFNZlIIvoIrRnVyyXh2zqz7z1f75/fWo00G8jFS4Tn5EZaTDQZSMW3CM9JjaAmYAMk3kJ4DhlBTNyRAGeKT+dFioLYwNniCdSEyEAv8QRigjWgqfEWcPHFW6jX6qPxqga8V5+o6XhIJuBWI63j6ElcG7+tc/HUToHKKCem9Kwdz3FooHflOYKrSOoMeKM2kGeIyxg6nkP0J+ZARVhuy9hC3oQBb65rgL6KtCelFu4r7boZSPHKgiRu1YBlB01DTYd4C/XOgjQea8A7C1x8UQZ6VySkPyTeQr1MoM0tqIyebaKlM/d/vVFi6O40MfT9QMqwNzQlet+RDc8XewmrkP08BccAAAAASUVORK5CYII=',
+	'kiki-strich.png': 'iVBORw0KGgoAAAANSUhEUgAAADAAAAAwCAYAAABXAvmHAAABC0lEQVR4nO2ZUQ6EMAhEdeM5ev9zcZH1q4lp2kKBgkTe3yaVmRHWaHscSZIkSZL4cWoXLKX8sTUAoKarUohieoQ0jOjinnGKIe51PdgBWhMcAxo1WAGewhrzrF0PFZPMvFdtG4GdGhbmt2lZml/V/FEK6VjigemjASrbnw5MvWkA77tfmfm4KAWwu7H6HKeuB4BTbYQoZnq/pesxhgFqYevZb6n6o6DiDngjDtB2COvY6noM0p8YY9WE5ljmCHmTAbwJH2CKx2v0qofwHSAF8OqC+IPG+z2oMvNBHiGPT0rKOjSAdxfU9EPvSmwvbKnxtp258Huj39ydHhmgmnjF+cCTsCc0PazPyMJzAwSnsfzqQnPQAAAAAElFTkSuQmCC',
+	'kiki-winkt.png': 'iVBORw0KGgoAAAANSUhEUgAAADAAAAA4CAYAAAC7UXvqAAABg0lEQVR4nO2ZzY3DIBCFcbSnFOEKUluK2dpSwRSx1+Q00SwyzC8QR/OdLBmZ9xh42LiUZC3bagEc+74/W/cAYLvMFDOCn9UCpDzu1/f17ffvfX36CqSB1aSB1YSnUC+3EQAI239CDEhEt9p7zbgMHAmned2C5jg+w2rEbKAWLxFet62NWEyYDFDxGuE1tRGLCbUBFO8RXkONaE2oYnSEeAo+VxMKYqejxVNwSgHAFvI6PVM87UdSCXYNaDN+BL01IV4Ds0Zf21/XwCeMfil9HaIY5UaDbkjanbjX/nG//mt7hPtttO6A61DbnqNpYHbytOAS6fTfA24DdYW4imnbc4R8D2hFRE7LnEKrSQOr+V4D+Abo3Sm90G+Do/vfWwHKqipI+u0aiDxB8xDyQTO7CtL+WAOrq8D1L6rA7ETikocinkKzTGjEl6KM0dEmtOJLMf4njjobReiAaNeceYF6TqeRupKWwHAlTMT/AcSadiER6Tk/8sZ0eMbP/keWJEmSJKfmBc6bxFmoKpxwAAAAAElFTkSuQmCC',
+};
+
+/** Eine Figurenbibliothek mit Kiki und zwei Posen; mit `figuren.json` läuft keine Übernahme. */
+export const legeTestfigurenAn = async (materialDir: string) => {
+	const dir = figurenDir(materialDir);
+	await mkdir(dir, { recursive: true });
+	for (const [name, daten] of Object.entries(KIKI)) {
+		await writeFile(path.join(dir, name), Buffer.from(daten, 'base64'));
+	}
+	const kiki = { id: 'kiki', name: 'Kiki', posen: [{ datei: 'kiki.png' }, { datei: 'kiki-winkt.png' }] };
+	await writeFile(path.join(dir, 'figuren.json'), `${JSON.stringify({ version: 1, figuren: [kiki] }, null, '\t')}\n`);
+};
 
 export const BEISPIEL = path.join(ASSETS, 'beispiel-zehner-einer-kl2.html');
 export const TEST_PASSWORT = 'drei-kleine-woerter';

@@ -1,7 +1,8 @@
-"""Bilder für die Schoolbox aufbereiten (Pillow): Uploads aufnehmen, Vorschaubilder für die Kacheln.
+"""Bilder für die Schoolbox aufbereiten (Pillow): Uploads aufnehmen, Vorschaubilder für die Kacheln, Figuren messen.
 
     python3 bild.py aufnehmen <eingabe> <ziel-ohne-endung>
     python3 bild.py vorschaubilder <breite> <hoehe> <quelle> <ziel> [<quelle> <ziel> …]
+    python3 bild.py figuren <datei> [<datei> …]
 
 Aufnehmen schreibt <ziel>.png oder <ziel>.jpg und gibt {"datei", "breite", "hoehe"} als JSON aus. Ein Bild, das sich
 nicht lesen lässt, endet mit Exit 2 und einer Meldung auf stderr.
@@ -13,6 +14,10 @@ und hält die Farben von iPad-Fotos (Display P3) richtig.
 Vorschaubilder (178) schreibt je Paar ein WebP, höchstens <breite> breit und <hoehe> hoch, nie größer als die Quelle,
 mit der Änderungszeit der Quelle. Ein Paar, das nicht gelingt, hält die anderen nicht auf: Ausgabe ist die JSON-Liste
 [{"quelle", "ok"}] (bei "ok": false dazu "fehler"), Exit 0.
+
+Figuren (177) misst je Datei Größe und den Anteil der Pixel mit Alpha < 16 (ohne Alphakanal 0): Daran erkennt die
+Figurenbibliothek freigestellte Figuren. Ausgabe ist die JSON-Liste [{"datei", "breite", "hoehe", "durchsichtig"}];
+eine unlesbare Datei misst 0 × 0, Exit 0.
 """
 
 import json
@@ -99,6 +104,20 @@ def vorschaubilder(breite, hoehe, paare):
     return ergebnisse
 
 
+def figur(datei):
+    try:
+        with Image.open(datei) as bild:
+            breite, hoehe = bild.size
+            if bild.mode not in ("RGBA", "LA", "PA") and "transparency" not in bild.info:
+                return {"datei": datei, "breite": breite, "hoehe": hoehe, "durchsichtig": 0}
+            alpha = bild.convert("RGBA").getchannel("A")
+    except Exception:
+        # Breit gefangen wie bei den Vorschaubildern: Eine kaputte Datei darf die anderen nicht aufhalten.
+        return {"datei": datei, "breite": 0, "hoehe": 0, "durchsichtig": 0}
+    anteil = sum(alpha.histogram()[:16]) / max(1, breite * hoehe)
+    return {"datei": datei, "breite": breite, "hoehe": hoehe, "durchsichtig": round(anteil, 4)}
+
+
 def main():
     befehl = sys.argv[1] if len(sys.argv) > 1 else None
     if befehl == "aufnehmen" and len(sys.argv) == 4:
@@ -110,6 +129,8 @@ def main():
             sys.exit(__doc__)
         rest = sys.argv[4:]
         print(json.dumps(vorschaubilder(breite, hoehe, list(zip(rest[::2], rest[1::2])))))
+    elif befehl == "figuren" and len(sys.argv) >= 3:
+        print(json.dumps([figur(datei) for datei in sys.argv[2:]]))
     else:
         sys.exit(__doc__)
 

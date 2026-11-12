@@ -9,17 +9,7 @@ import type { Locator, Page } from '@playwright/test';
 
 import { material, oeffne, uhrzeit } from './editorhilfe';
 import type { Einsatz } from './gestaltung-daten';
-import {
-	BILDRAHMEN,
-	blattMit,
-	FIGUR_ANKER,
-	FIGUR_FREI,
-	FORM,
-	GRUPPE,
-	SCHMUCK,
-	SEITENFLAECHE,
-	STREUUNG,
-} from './gestaltung-daten';
+import { BILDRAHMEN, blattMit, FIGUR_ANKER, FORM, GRUPPE, SCHMUCK, SEITENFLAECHE, STREUUNG } from './gestaltung-daten';
 import { expect, test } from './hilfe';
 import { oeffneSchublade } from './schubladen-hilfe';
 
@@ -155,7 +145,7 @@ test.describe('Muster des Inspektors (182)', () => {
 	});
 
 	test('Gewählte Kachel: Rand in Tinte, Grund weiß; die Figur ist nicht mehr blau', async ({ druecke, page }) => {
-		await blatt(page, { vorne: [BILDRAHMEN, FIGUR_FREI] });
+		await blatt(page, { vorne: [BILDRAHMEN] });
 		await waehle(druecke, page, material(page).locator('img.bild-frei'), 'bildfrei');
 		// Ohne Rahmen-Stil und ohne bekannte Maske: „Gerade“ und „Keine“ sind gewählt.
 		for (const kachel of [
@@ -169,11 +159,15 @@ test.describe('Muster des Inspektors (182)', () => {
 		await expect(page.locator('[data-rahmenstil-knopf="schraeg"]')).toHaveCSS('background-color', WEISS);
 		await ohneSaetze(page);
 
-		await waehle(druecke, page, material(page).locator('img.figur-frei'), 'figurfrei');
-		const wilma = page.locator('[data-figur-wahl] button[aria-pressed="true"]');
-		await expect(wilma).toHaveCount(1);
-		await expect(wilma).toHaveCSS('border-top-color', TINTE);
-		await expect(wilma).toHaveCSS('background-color', WEISS);
+		// Kiki aus der Figurenbibliothek des Testservers (177) hat zwei Posen, also ein Raster.
+		await oeffneSchublade(page, 'figuren');
+		await druecke(page.locator('[data-schublade-figuren] [data-ablage-gut="Kiki"]'));
+		await expect(page.locator('[data-gestaltung-inspektor="figurfrei"]')).toBeVisible();
+		const kiki = page.locator('[data-figur-wahl] button[aria-pressed="true"]');
+		await expect(kiki).toHaveCount(1);
+		await expect(kiki).toHaveAccessibleName('Kiki');
+		await expect(kiki).toHaveCSS('border-top-color', TINTE);
+		await expect(kiki).toHaveCSS('background-color', WEISS);
 	});
 
 	test('Zahlenstrahl: Die Stepper in „Darstellung“ enden an derselben Kante, die Einheit steht im Feld', async ({
