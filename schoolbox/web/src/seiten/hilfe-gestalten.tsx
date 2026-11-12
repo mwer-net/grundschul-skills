@@ -143,10 +143,8 @@ export const GESTALTEN: Abschnitt = {
 				Material mehrere Seiten, steht in jedem Abschnitt „Gilt für“: „Alle Seiten“ ändert jede Seite, „Seite 2“
 				nur die Seite, auf der du gerade bist. Eine Seite, die du später hinzufügst, bleibt weiß. Druckst du in
 				Schwarz-Weiß, fallen Fläche und Kopfband weg und der Rahmen wird grau; das lässt sich unter „In s/w“
-				ändern. Ältere Blätter mit einem Kopfband aus einem Rezept zeigen es hier ebenso; du kannst es ändern
-				oder mit „Keine“ entfernen. In den Ebenen steht das Kopfband über dem, was hinten liegt, Seitenrahmen
-				und Seitenfläche ganz unten; ein Klick darauf öffnet den Abschnitt. ⌘Z nimmt jede Änderung in einem
-				Schritt zurück.
+				ändern. In den Ebenen steht das Kopfband über dem, was hinten liegt, Seitenrahmen und Seitenfläche ganz
+				unten; ein Klick darauf öffnet den Abschnitt. ⌘Z nimmt jede Änderung in einem Schritt zurück.
 			</p>
 
 			<h3>Figuren</h3>

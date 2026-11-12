@@ -48,7 +48,7 @@ Braucht ein Material ein Bild oder eine Grafik, die nicht in `assets/bilder/` li
 
    Danach Bild und Text nebeneinander: Tut im Bild dieselbe Figur, was die Geschichte oder Aufgabe sagt? Stimmen Gegenstände, Ort und jede Anzahl, die der Text nennt? Bei einem Befund nach Abschnitt 2a reparieren; ist das Bild gut und nur der Text weicht ab, den Text an das Bild anpassen. Die Viertel sind Arbeitsdateien und werden danach gelöscht.
 6. **Einbauen:** Datei neben die HTML-Quelle legen (`bilder/motiv.png`), mit `<img src="bilder/motiv.png" alt="…">` und fester Breite einsetzen; `blatt.py` bettet sie ins PDF und in die eigenständige HTML-Datei ein und meldet unscharfe Bilder.
-7. **Ablegen:** Neue Posen der Leitfigur in `assets/bilder/` aufnehmen und in der Tabelle oben mit Media-ID ergänzen, damit sie nie zweimal erzeugt werden. Bei mehreren KI-Bildern in einem Material eine Bildliste neben die Quelle legen (`bilder/canva-ids.tsv`: Datei, Media-ID, Motiv), damit eine spätere Reparatur das Original findet; ersetzte IDs dort mit Datum und Grund vermerken.
+7. **Ablegen:** Neue Posen der Leitfigur in `assets/bilder/` aufnehmen und in der Tabelle oben mit Media-ID ergänzen, damit sie nie zweimal erzeugt werden. Das gilt im Repository der Skills; in der Schoolbox entstehen neue Posen in der Schublade „Figuren“. Bei mehreren KI-Bildern in einem Material eine Bildliste neben die Quelle legen (`bilder/canva-ids.tsv`: Datei, Media-ID, Motiv), damit eine spätere Reparatur das Original findet; ersetzte IDs dort mit Datum und Grund vermerken.
 
 Meldet Canva `quota_cooldown` („credit usage is cooling down“), einige Minuten warten, nicht in einer Schleife neu anfragen. Bei vielen Bildern eins erzeugen und in der Wartezeit Text und Layout weiterbauen. Lehnt der Sicherheitsfilter ein Bild ab (`CLIENT_UNSAFE_INPUT`), das Motiv harmloser umformulieren.
 
@@ -72,14 +72,14 @@ KI-Bilder haben regelmäßig Fehler, die erst in voller Auflösung auffallen: ei
    Danach die Stelle vergrößert ansehen; sieht man die Naht, Maske kleiner oder Versatz ändern.
 6. Die neue Datei ersetzen, Bildliste aktualisieren, neu bauen.
 
-### 2b. In der Schoolbox (Unterrichtseinheit ohne Bash)
+### 2b. In der Schoolbox (ohne Bash)
 
-Baut die Schoolbox eine Unterrichtseinheit, gibt es kein Bash, kein curl und kein Python. Der Ablauf aus Abschnitt 2 gilt mit diesen Unterschieden:
+Baut die Schoolbox eine Unterrichtseinheit oder ein Bild aus der Schublade „Figuren“ oder „Bilder“, gibt es kein Bash, kein curl und kein Python. Der Ablauf aus Abschnitt 2 gilt mit diesen Unterschieden:
 
 - **Werkzeuge:** nur `generate-image`, `get-generate-image-job`, `remove-background`, `get-assets`, `search-designs`, `read-design`, `edit-design`, `resize-design` und `export-design`. Fehlt das Hilfsdesign und lässt es sich so nicht anlegen, keine Bilder erzeugen und mit Platzhaltern weiterbauen.
 - **Schritt 4, Datei holen:** statt `curl` je Bild einen Eintrag in `bilder.json` im Arbeitsordner: `{"datei": "motiv.png", "url": "<Export-URL>", "motiv": "…", "mediaId": "MA…"}`. Der Server lädt nur von `export-download.canva.com`, prüft Format und Größe und legt die Datei nach `bilder/`. Die Endung muss zum Export passen.
 - **Schritt 5, genau prüfen:** das geladene Bild mit Read ansehen. Viertel lassen sich nicht schneiden; bei Szenen mit mehreren Figuren deshalb besonders auf Hände, Augen und Anzahlen achten.
-- **Schritt 6 und 7:** Im Material `../../bilder/motiv.png`; die Bildliste `canva-ids.tsv` schreibt der Server.
+- **Schritt 6 und 7:** Im Material `../../bilder/motiv.png`; die Bildliste `canva-ids.tsv` schreibt der Server. Bilder aus der Schublade „Figuren“ legt der Server in die Figurenbibliothek, nicht nach `assets/bilder/`. Bilder aus der Schublade „Bilder“ legt der Server nach `bilder/` der Mappe und notiert sie in `canva-ids.tsv`.
 
 ## 3. Keine KI für exakte Abbildungen
 

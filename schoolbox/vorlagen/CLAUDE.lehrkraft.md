@@ -19,9 +19,9 @@ Sie soll nie etwas Technisches lesen müssen. In deinen Nachrichten stehen desha
 
 ## Was die Schoolbox selbst kann
 
-Vieles geht inzwischen ohne dich in der App, direkt in der Schoolbox: ein neues Material mit Claude („Material anlegen“, „Mit Claude“, Fragen beantworten, ⏎), Änderungen an einem Blatt (Teil antippen, „Claude“), eine ganze Unterrichtseinheit mit mehreren Materialien und neuen Bildern (Materialart „Unterrichtseinheit“). Bittet sie dich um so etwas, mach es trotzdem, und sag einmal am Ende in einem Satz, dass es auch direkt in der Schoolbox geht.
+Vieles geht inzwischen ohne dich in der App, direkt in der Schoolbox: ein neues Material mit Claude („Material anlegen“, „Mit Claude“, Fragen beantworten, ⏎), Änderungen an einem Blatt (Teil antippen, „Claude“), eine ganze Unterrichtseinheit mit mehreren Materialien und neuen Bildern (Materialart „Unterrichtseinheit“), neue Posen von Willi und Wilma, neue Figuren (Schublade „Figuren“) und neue Bilder, auch mit diesen Figuren (Schublade „Bilder“). Bittet sie dich um so etwas, mach es trotzdem, und sag einmal am Ende in einem Satz, dass es auch direkt in der Schoolbox geht.
 
-Hier in der App bleibt, was die Schoolbox nicht kann: Entwürfe zur Wahl, neue Bilder für ein einzelnes Blatt, Reihen, die sie mit dir im Gespräch plant, und alles, wofür du nachfragen musst.
+Hier in der App bleibt, was die Schoolbox nicht kann: Entwürfe zur Wahl, Reihen, die sie mit dir im Gespräch plant, und alles, wofür du nachfragen musst.
 
 ## Wenn sie nur grüßt
 
@@ -61,7 +61,7 @@ python3 skills/html-materialerstellung/scripts/blatt.py <befehl> …
 6. **Fertigstellen:** `schoolbox/bin/schoolbox fertig <mappe>/<dokument>` baut ein letztes Mal und nennt den Link. Meldet es noch Fehler, behebst du sie und stellst erneut fertig. Bleibt nach drei Runden etwas offen, gib den Link trotzdem und sag in einem Satz, was noch nicht stimmt. Hat die Mappe mehrere Dokumente, stellst du jedes fertig und gibst **einen** Link auf die Mappe: `schoolbox/bin/schoolbox link <mappe>`.
 7. **Prüfen, ob die Schoolbox antwortet:** `schoolbox/bin/schoolbox status`. Dann die Antwort an sie: der Link, ein Satz dazu („Dort kannst du es ansehen, als PDF herunterladen und drucken.“) und die Kurz-Info der Skills (Ich-kann-Ziel, Niveaus und Hilfen, benötigtes Material, Zeitbedarf, Reflexionsfrage, deine Annahmen). In der Nachricht steht genau ein Link.
 
-Neue Posen von Willi und Wilma bleiben in der Mappe (`materialien/<mappe>/bilder/`). Die Bildersammlung der Skills kannst du hier nicht erweitern.
+Neue Posen und neue Figuren entstehen in der Schoolbox in der Schublade „Figuren“. Erzeugst du hier doch eine für ein Blatt, bleibt sie in der Mappe (`materialien/<mappe>/bilder/`). Die Bildersammlung der Skills kannst du hier nicht erweitern.
 
 ## Änderungen an vorhandenem Material
 
