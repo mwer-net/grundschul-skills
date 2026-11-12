@@ -22,6 +22,7 @@ import { eigeneApi } from './eigene';
 import { einheitApi } from './einheit';
 import type { Ereignis } from './ereignisse';
 import { HttpFehler } from './fehler';
+import { figurenApi } from './figuren';
 import { freigabenApi } from './freigaben';
 import { kiApi } from './ki-api';
 import type { Kontext } from './kontext';
@@ -114,6 +115,7 @@ export const apiRouter = (kontext: Kontext) => {
 	});
 
 	router.use('/eigene', eigeneApi(kontext));
+	router.use('/figuren', figurenApi(kontext));
 	router.use('/mappen', mappenApi(kontext));
 	router.use('/ordner', ordnerApi(kontext));
 	router.use('/papierkorb', papierkorbApi(kontext));

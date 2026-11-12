@@ -1,9 +1,8 @@
 import type { Sammlung, SammlungsBild } from '@schoolbox/kern/src/bildbefehle';
 import { vorschaubildAdresse } from '@schoolbox/kern/src/bildbefehle';
 import { fuegeBausteinEin } from '@schoolbox/kern/src/einfuegen';
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 
-import { AmZeiger } from '../../bausteine/AmZeiger';
 import { Schublade, Schubladenabschnitt, Schubladensuche, STEUER_SEGMENT } from '../../bausteine/Schublade';
 import { Segment } from '../../bausteine/Segment';
 import { useLaden } from '../../lib/laden';
@@ -13,22 +12,16 @@ import { passt } from '../bild-sammlung';
 import type { BildZiehen, SammlungsGruppe } from '../Bildpanel';
 import { Hochladen, Laeuft, SammlungsKacheln } from '../Bildpanel';
 import { bildGut, mitGeholtemBild } from '../gestaltung/ablegen/bild-gut';
+import { useHolenAmZeiger } from '../gestaltung/ablegen/holen-am-zeiger';
 import type { SchubladenTeile } from '.';
 import { kopf } from './reihe';
 
-/** Reihenfolge in der Schublade; „Sammlung“ ist die Gruppe `sammlung` ohne Willi und Wilma (die gehören zu den Figuren). */
+/** Reihenfolge in der Schublade; Figuren stehen nur in „Figuren“ (177), der Server lässt sie hier schon weg. */
 const GRUPPEN: { wert: SammlungsGruppe; titel: string }[] = [
 	{ wert: 'mappe', titel: 'Dieser Ordner' },
 	{ wert: 'meine', titel: 'Meine Bilder' },
 	{ wert: 'sammlung', titel: 'Sammlung' },
 ];
-
-const FIGUR = /^(willi|wilma)[-.]/i;
-
-const ohneFiguren = (daten: Sammlung): Sammlung => ({
-	...daten,
-	sammlung: daten.sammlung.filter((e) => !FIGUR.test(e.name)),
-});
 
 /** Der Platzhalter aus dem Katalog, hinter der Auswahl; `setzeBildEin` füllt ihn im selben Schritt. */
 const neuerPlatz = (t: SchubladenTeile): NeuerPlatz | undefined => {
@@ -38,8 +31,7 @@ const neuerPlatz = (t: SchubladenTeile): NeuerPlatz | undefined => {
 
 export const Inhalt = (t: SchubladenTeile) => {
 	const { bild } = t;
-	const { daten: roh, fehler, neuLaden } = useLaden<Sammlung>(`${bild.adresse}/bilder`);
-	const daten = useMemo(() => (roh ? ohneFiguren(roh) : null), [roh]);
+	const { daten, fehler, neuLaden } = useLaden<Sammlung>(`${bild.adresse}/bilder`);
 	const [gewaehlt, setGruppe] = useState<SammlungsGruppe | null>(null);
 	const [suche, setSuche] = useState('');
 	// Ohne eigene Wahl die erste Gruppe mit Bildern, damit die Schublade nicht leer aufgeht.
@@ -55,21 +47,7 @@ export const Inhalt = (t: SchubladenTeile) => {
 		lief.current = bild.arbeit;
 	}, [bild.arbeit, neuLaden]);
 
-	// Ziehen (103): Erst beim Loslassen holt der Server das Bild in diesen Ordner; so lange steht das am Zeiger.
-	const zeiger = useRef({ x: 0, y: 0 });
-	const [geholt, setGeholt] = useState<{ x: number; y: number } | null>(null);
-	useEffect(() => {
-		const merke = (e: PointerEvent) => {
-			zeiger.current = { x: e.clientX, y: e.clientY };
-		};
-		window.addEventListener('pointermove', merke, true);
-		window.addEventListener('pointerup', merke, true);
-		return () => {
-			window.removeEventListener('pointermove', merke, true);
-			window.removeEventListener('pointerup', merke, true);
-		};
-	}, []);
-	const zeigeGeholt = useCallback((laeuft: boolean) => setGeholt(laeuft ? zeiger.current : null), []);
+	const { anzeige: holen, zeige: zeigeGeholt } = useHolenAmZeiger();
 	const { doc, einfuegen, folien, struktur } = t;
 	const platz = einfuegen.eintraege.find((e) => e.id === 'platzhalter');
 	const ziehen: BildZiehen = (eintrag, natur) => {
@@ -132,16 +110,7 @@ export const Inhalt = (t: SchubladenTeile) => {
 					/>
 				</Schubladenabschnitt>
 			</Schublade>
-			{geholt && (
-				<AmZeiger
-					className="rounded-lg bg-tinte px-3 py-2 font-medium whitespace-nowrap text-white shadow-2"
-					data-bild-holen
-					x={geholt.x + 10}
-					y={geholt.y + 10}
-				>
-					Bild wird geholt …
-				</AmZeiger>
-			)}
+			{holen}
 		</>
 	);
 };

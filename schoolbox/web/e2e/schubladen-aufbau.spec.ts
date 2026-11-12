@@ -16,6 +16,7 @@ const MIT_ABSCHNITTEN: SchubladenName[] = ['bausteine', 'werkzeuge', 'figuren', 
 const MIT_SUCHE = [
 	['bausteine', 'Baustein suchen'],
 	['werkzeuge', 'In Werkzeugen suchen'],
+	['figuren', 'Figuren suchen'],
 	['bilder', 'Bilder suchen'],
 ] as const;
 
@@ -163,7 +164,7 @@ test.describe('Ein Aufbau für alle Schubladen am Mac (167)', () => {
 			await expect(feld).toHaveAttribute('placeholder', 'Suchen …');
 			hoehen.push(Math.round((await feld.boundingBox())?.height ?? 0));
 		}
-		expect(hoehen).toEqual([26, 26, 26]);
+		expect(hoehen).toEqual([26, 26, 26, 26]);
 	});
 
 	test('eine Kachel: grau, ohne Rand, 5 px gerundet', async ({ page }) => {

@@ -1,7 +1,8 @@
 /**
  * Bilder im Editor (017): Uploads aufnehmen, die Bildersammlung zusammenstellen und
  * Bilder aus ihr ins Dokument übernehmen. Pillow erledigt die Bildarbeit (`kern/bild.py`). Bilder werden nie
- * überschrieben und nie gelöscht: Ältere Versionen des Materials verweisen noch auf sie.
+ * überschrieben und nie gelöscht: Ältere Versionen des Materials verweisen noch auf sie. Figuren zeigt die Sammlung
+ * nicht; sie stehen in der Figurenbibliothek (177).
  */
 
 import { existsSync, realpathSync } from 'node:fs';
@@ -15,8 +16,16 @@ import { fuehreAus } from './bauen';
 import type { Sammlung, SammlungsBild } from './bildbefehle';
 import { MAX_BILD_BYTES } from './bildbefehle';
 import { SchoolboxFehler } from './fehler';
+import {
+	FIGUREN_ORDNER,
+	figurenDir,
+	figurenInhalte,
+	gleichtFigur,
+	leseBibliothek,
+	strichNeben,
+} from './figurenbibliothek';
 import type { Konfig } from './konfig';
-import { ASSETS, BILD_PY, BLATT_PY } from './konfig';
+import { ASSETS, BILD_PY } from './konfig';
 import { liegtIn, sucheRessource } from './pfade';
 import { attribut, zerlege } from './quelltext';
 import { eindeutigeId, slug } from './slug';
@@ -25,6 +34,7 @@ import { eindeutigeId, slug } from './slug';
 export const ASSETS_SCHLUESSEL = '_assets';
 const BILDER = 'bilder';
 const BILD_DATEI = /\.(png|jpe?g|gif|webp|svg)$/i;
+const STRICH = '-strich';
 /** Namen, die Kameras vergeben (IMG_1234, image, DSC0001), sagen nichts über das Bild. */
 const GERAETENAME = /^(img|image|dscn?|pxl|photo)(-?\d.*)?$/;
 
@@ -43,8 +53,8 @@ export const druckfassung = async (konfig: Pick<Konfig, 'pythonBin'>, dokDir: st
 	if (datei === null || ![realpathSync(dokDir), realpathSync(ASSETS)].some((ordner) => liegtIn(datei, ordner))) {
 		return { strich: null };
 	}
-	const lauf = await fuehreAus(konfig.pythonBin, [BLATT_PY, 'fassung', datei]).catch(() => null);
-	return lauf?.code === 0 ? (JSON.parse(lauf.stdout) as { strich: string | null }) : { strich: null };
+	const strich = await strichNeben(konfig, datei);
+	return { strich: strich ? path.basename(strich) : null };
 };
 
 const stammVon = (datei: string) => path.basename(datei, path.extname(datei));
@@ -57,11 +67,14 @@ export const bildStamm = (datei: string) => {
 	return GERAETENAME.test(stamm) ? 'foto' : stamm;
 };
 
-/** Ein freier Name in `bilder/`, auch nicht wie eins aus assets/bilder: Das Dokument würde es sonst verdecken. */
+/**
+ * Ein freier Name in `bilder/`, auch nicht wie eins aus assets/bilder: Das Dokument würde es sonst verdecken. Frei ist
+ * er nur, wenn auch `<stamm>-strich` frei ist; sonst druckte `blatt.py` eine fremde Strichfassung (177).
+ */
 const freierStamm = async (bilderDir: string, wunsch: string) => {
 	const vorhanden = await Promise.all([bilderDir, path.join(ASSETS, BILDER)].map((d) => readdir(d).catch(() => [])));
 	const belegt = new Set(vorhanden.flat().map(stammVon));
-	return eindeutigeId(wunsch, (k) => belegt.has(k));
+	return eindeutigeId(wunsch, (k) => belegt.has(k) || belegt.has(`${k}${STRICH}`));
 };
 
 const verarbeite = async (
@@ -133,16 +146,26 @@ export const findeBild = (materialDir: string, mappe: string, dok: string, src: 
 	return datei;
 };
 
-/** Kopiert ein Bild in `bilder/` des Dokuments; liegt dort schon dasselbe unter demselben Namen, bleibt es dabei. */
-const kopiereHerein = async (datei: string, bilderDir: string) => {
+/**
+ * Kopiert ein Bild in `bilder/` des Dokuments; liegt dort schon dasselbe unter demselben Namen, bleibt es dabei. Die
+ * Strichfassung daneben (`blatt.py fassung`) kommt als `<stamm>-strich.*` mit, wenn sie dort noch fehlt.
+ */
+const kopiereHerein = async (konfig: Pick<Konfig, 'pythonBin'>, datei: string, bilderDir: string) => {
 	await mkdir(bilderDir, { recursive: true });
 	const inhalt = await readFile(datei);
+	const strich = await strichNeben(konfig, datei);
 	const gleich = path.join(bilderDir, path.basename(datei));
-	if (existsSync(gleich) && (await readFile(gleich)).equals(inhalt)) {
-		return path.basename(datei);
+	let name = path.basename(datei);
+	if (!existsSync(gleich) || !(await readFile(gleich)).equals(inhalt)) {
+		name = `${await freierStamm(bilderDir, bildStamm(datei))}${path.extname(datei).toLowerCase()}`;
+		await schreibeAtomar(path.join(bilderDir, name), inhalt);
 	}
-	const name = `${await freierStamm(bilderDir, bildStamm(datei))}${path.extname(datei).toLowerCase()}`;
-	await schreibeAtomar(path.join(bilderDir, name), inhalt);
+	if (strich) {
+		const ziel = path.join(bilderDir, `${stammVon(name)}${STRICH}${path.extname(strich).toLowerCase()}`);
+		if (!existsSync(ziel)) {
+			await kopiereAtomar(strich, ziel);
+		}
+	}
 	return name;
 };
 
@@ -154,6 +177,7 @@ const echt = (datei: string) => (existsSync(datei) ? realpathSync(datei) : null)
  * Teilen-Links und der Papierkorb sie nicht auseinanderreißen.
  */
 export const uebernimmBild = async (
+	konfig: Pick<Konfig, 'pythonBin'>,
 	materialDir: string,
 	mappe: string,
 	dok: string,
@@ -178,6 +202,12 @@ export const uebernimmBild = async (
 		if (echt(datei) !== null && sucheRessource(src, dokDir) === echt(datei)) {
 			return { src };
 		}
+	} else if (anfang === FIGUREN_ORDNER) {
+		if (rest.length !== 1) {
+			throw ungueltig();
+		}
+		datei = path.join(figurenDir(materialDir), ...rest);
+		grenze = figurenDir(materialDir);
 	} else {
 		pruefeId(anfang, 'Mappe');
 		const inMappe = rest.length === 2 && rest[0] === BILDER;
@@ -198,13 +228,18 @@ export const uebernimmBild = async (
 	if (wirklich === null || !liegtIn(wirklich, realpathSync(grenze))) {
 		throw ungueltig();
 	}
-	return { src: `${BILDER}/${await kopiereHerein(wirklich, path.join(dokDir, BILDER))}` };
+	return { src: `${BILDER}/${await kopiereHerein(konfig, wirklich, path.join(dokDir, BILDER))}` };
 };
 
-const bildDateien = async (ordner: string) =>
-	(await readdir(ordner, { withFileTypes: true }).catch(() => []))
+/** Die Bilder direkt im Ordner; eine Strichfassung nur, wenn ihre Farbfassung fehlt. */
+const bildDateien = async (ordner: string) => {
+	const namen = (await readdir(ordner, { withFileTypes: true }).catch(() => []))
 		.filter((e) => e.isFile() && !e.name.startsWith('.') && BILD_DATEI.test(e.name))
-		.map((e) => path.join(ordner, e.name));
+		.map((e) => e.name);
+	const staemme = new Set(namen.map(stammVon));
+	const farbeDa = (stamm: string) => stamm.endsWith(STRICH) && staemme.has(stamm.slice(0, -STRICH.length));
+	return namen.filter((n) => !farbeDa(stammVon(n))).map((n) => path.join(ordner, n));
+};
 
 /** Merkt sich, unter welchen Beschreibungen die Bilder eines Materials vorkommen. */
 const merkeAlt = (alt: Map<string, Set<string>>, html: string, dir: string) => {
@@ -220,8 +255,24 @@ const merkeAlt = (alt: Map<string, Set<string>>, html: string, dir: string) => {
 
 const leseText = (datei: string) => readFile(datei, 'utf8').catch(() => '');
 
-/** Alles, was die Bildersammlung im Editor zeigt. */
-export const sammleBilder = async (materialDir: string, mappeId: string): Promise<Sammlung> => {
+/** Alles, was die Bildersammlung im Editor zeigt. Was einer Figur gleicht, steht nur unter `figuren` (177). */
+export const sammleBilder = async (
+	konfig: Pick<Konfig, 'pythonBin'>,
+	materialDir: string,
+	mappeId: string,
+): Promise<Sammlung> => {
+	const figuren = await leseBibliothek(konfig, materialDir);
+	const inhalte = await figurenInhalte(materialDir);
+	/** Je Datei die Änderungszeit („Meine Bilder“: neueste zuerst); was einer Figur gleicht, fällt weg. */
+	const ohneFigurdateien = async (dateien: string[]) => {
+		const gesehen = await Promise.all(
+			dateien.map(async (d) => {
+				const info = await stat(d);
+				return (await gleichtFigur(inhalte, d, info)) ? [] : [{ d, zeit: info.mtimeMs }];
+			}),
+		);
+		return gesehen.flat();
+	};
 	const { mappen } = await sammleMappen(materialDir);
 	const alt = new Map<string, Set<string>>();
 	for (const html of (await readdir(ASSETS)).filter((n) => n.endsWith('.html'))) {
@@ -235,7 +286,7 @@ export const sammleBilder = async (materialDir: string, mappeId: string): Promis
 				merkeAlt(alt, await leseText(path.join(dokDir, 'material.html')), dokDir);
 			}
 			const ordner = [path.join(dir, BILDER), ...dokDirs.map((d) => path.join(d, BILDER))];
-			return { mappe, dateien: (await Promise.all(ordner.map(bildDateien))).flat() };
+			return { mappe, dateien: await ohneFigurdateien((await Promise.all(ordner.map(bildDateien))).flat()) };
 		}),
 	);
 	const eintrag = (datei: string, schluessel: string, mappe?: string): SammlungsBild => ({
@@ -247,18 +298,18 @@ export const sammleBilder = async (materialDir: string, mappeId: string): Promis
 	const nachName = (a: SammlungsBild, b: SammlungsBild) => a.name.localeCompare(b.name, 'de');
 	const relativ = (datei: string) => path.relative(materialDir, datei).split(path.sep).join('/');
 
-	const sammlung = (await bildDateien(path.join(ASSETS, BILDER)))
-		.map((d) => eintrag(d, `${ASSETS_SCHLUESSEL}/${BILDER}/${path.basename(d)}`))
+	const sammlung = (await ohneFigurdateien(await bildDateien(path.join(ASSETS, BILDER))))
+		.map(({ d }) => eintrag(d, `${ASSETS_SCHLUESSEL}/${BILDER}/${path.basename(d)}`))
 		.sort(nachName);
 	const eigene = fundorte.find((f) => f.mappe.id === mappeId);
-	const mappe = (eigene?.dateien ?? []).map((d) => eintrag(d, relativ(d))).sort(nachName);
-	const fremde = fundorte
+	const mappe = (eigene?.dateien ?? []).map(({ d }) => eintrag(d, relativ(d))).sort(nachName);
+	const meine = fundorte
 		.filter((f) => f.mappe.id !== mappeId)
-		.flatMap((f) => f.dateien.map((d) => ({ d, titel: f.mappe.titel })));
-	const zeiten = await Promise.all(fremde.map(({ d }) => stat(d).then((s) => s.mtimeMs)));
-	const meine = fremde
-		.map((f, i) => ({ ...f, zeit: zeiten[i] ?? 0 }))
+		.flatMap((f) => f.dateien.map((x) => ({ ...x, titel: f.mappe.titel })))
 		.sort((a, b) => b.zeit - a.zeit)
 		.map(({ d, titel }) => eintrag(d, relativ(d), titel));
-	return { sammlung, mappe, meine };
+	const posen = figuren.flatMap((f) =>
+		f.posen.map((p) => ({ schluessel: p.schluessel, name: path.basename(p.schluessel), alt: [f.name] })),
+	);
+	return { sammlung, mappe, meine, figuren: posen };
 };

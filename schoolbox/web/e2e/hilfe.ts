@@ -7,6 +7,7 @@ import type { Art, Fach, Format, Klasse } from '@schoolbox/kern';
 import {
 	dokumentDir,
 	entwurfVorschauDatei,
+	FIGUREN_ORDNER,
 	leseMeta,
 	neueMappe,
 	neuesDokument,
@@ -99,8 +100,9 @@ export const dokumentOrdner = (mappe: string, dok: string) => dokumentDir(MATERI
 
 export const waehle = (mappe: string, dok: string, name: string) => waehleEntwurf(MATERIAL_DIR, { mappe, dok }, name);
 
+/** Die Testfiguren des Testservers (177) bleiben liegen. */
 const leereAblage = async () => {
-	const namen = await readdir(MATERIAL_DIR);
+	const namen = (await readdir(MATERIAL_DIR)).filter((name) => name !== FIGUREN_ORDNER);
 	await Promise.all(namen.map((name) => rm(path.join(MATERIAL_DIR, name), { recursive: true, force: true })));
 };
 

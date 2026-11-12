@@ -1,15 +1,16 @@
 import assert from 'node:assert/strict';
-import { existsSync } from 'node:fs';
+import { existsSync, readFileSync } from 'node:fs';
 import path from 'node:path';
 import { describe, it } from 'node:test';
 
 import { blattMit } from '../../web/e2e/gestaltung-daten';
 import { KIT_KATALOG } from './bausteine';
 import { druckfassung } from './bilder';
-import { figurAn, FIGUREN, figurHtml, figurNach, spiegelnFuer, tauscheFigur } from './figuren';
+import type { BibliotheksFigur, Pose } from './figuren';
+import { EINGEBAUTE, figurAn, FIGUREN, figurHtml, figurNach, tauscheFigur } from './figuren';
 import { legeGestaltungAb, leseLage } from './gestaltung';
 import { leseStarter } from './katalog-starter';
-import { ASSETS } from './konfig';
+import { ASSETS, WURZEL } from './konfig';
 import { attribut, klassenVon, zerlege } from './quelltext';
 
 const BILDER = path.join(ASSETS, 'bilder');
@@ -81,24 +82,51 @@ describe('Liste der Figuren (102)', () => {
 	});
 });
 
-describe('Figur frei (102)', () => {
-	const wilma = figurNach('wilma');
-	assert.ok(wilma);
+const grundpose = (f: BibliotheksFigur | undefined) => {
+	const pose = f?.posen[0];
+	assert.ok(f && pose);
+	return { figur: f, pose };
+};
 
-	it('figurHtml: nur figur-frei, data-figur, Spiegeln nur gegen die Blickrichtung der Datei', () => {
-		const gleich = figurHtml(wilma, 'bilder/wilma.png', wilma.blickt);
-		assert.equal(gleich, '<img class="figur-frei" data-figur="wilma" src="bilder/wilma.png" alt="Wilma">');
-		const anders = wilma.blickt === 'rechts' ? 'links' : 'rechts';
-		assert.ok(spiegelnFuer(wilma, anders));
-		assert.match(figurHtml(wilma, 'bilder/wilma.png', anders), /style="--spiegeln:-1"/);
+describe('Figur frei (102, 177)', () => {
+	const { figur: wilma, pose: wilmaPose } = grundpose(EINGEBAUTE.find((f) => f.id === 'wilma'));
+	const { figur: willi } = grundpose(EINGEBAUTE.find((f) => f.id === 'willi'));
+	const lupe: Pose = { id: 'willi-lupe', schluessel: '_figuren/willi-lupe.png', strich: false };
+	const mitLupe: BibliotheksFigur = { ...willi, posen: [...willi.posen, lupe] };
+	const kuno: BibliotheksFigur = {
+		id: 'kuno',
+		name: 'Kuno',
+		eingebaut: false,
+		suchwoerter: [],
+		posen: [{ id: 'kuno', schluessel: '_figuren/kuno.png', strich: false }],
+	};
+	const figuren = [mitLupe, wilma, kuno];
+	const kurz = (an: ReturnType<typeof figurAn>) => an && { figur: an.figur.id, pose: an.pose?.id };
+
+	it('figurHtml: nur figur-frei, data-figur, ohne Spiegeln', () => {
+		assert.equal(
+			figurHtml(wilma, wilmaPose, 'bilder/wilma.png'),
+			'<img class="figur-frei" data-figur="wilma" src="bilder/wilma.png" alt="Wilma">',
+		);
+		assert.equal(
+			figurHtml(mitLupe, lupe, 'bilder/willi-lupe.png'),
+			'<img class="figur-frei" data-figur="willi-lupe" src="bilder/willi-lupe.png" alt="Willi">',
+		);
+		for (const f of figuren) {
+			for (const p of f.posen) {
+				assert.doesNotMatch(figurHtml(f, p, 'bilder/x.png'), /--spiegeln|style=/);
+			}
+		}
 	});
 
 	it('abgelegt mit 150 px Breite; Spiegeln bleibt im style, die Lage kommt dazu', () => {
 		const quelle = blattMit({});
-		const anders = wilma.blickt === 'rechts' ? 'links' : 'rechts';
+		// So setzt es ⇧H; figurHtml selbst spiegelt nie.
+		const html = figurHtml(wilma, wilmaPose, 'bilder/wilma.png');
+		const gespiegelt = html.replace('<img ', '<img style="--spiegeln:-1" ');
 		const { nr, quelle: neu } = legeGestaltungAb(quelle, {
 			seite: ersteSeite(quelle),
-			html: figurHtml(wilma, 'bilder/wilma.png', anders),
+			html: gespiegelt,
 			lage: { x: 100, y: 200, b: 150 },
 		});
 		assert.ok(nr !== null);
@@ -113,23 +141,79 @@ describe('Figur frei (102)', () => {
 		assert.match(neu, /<div class="ebene vorne">[\s\S]*figur-frei/);
 	});
 
-	it('tauscheFigur: andere Figur, Lage und Größe bleiben', () => {
-		const willi = figurNach('willi');
-		assert.ok(willi);
+	it('figurAn: die Pose zu data-figur, sonst die Figur davor, sonst die Datei einer Grundpose', () => {
+		const quelle = [
+			'<img class="figur-frei" data-figur="willi-lupe" src="bilder/willi-lupe.png" alt="Willi">',
+			'<img class="figur-frei" data-figur="kuno-tanzt" src="bilder/kuno-tanzt.png" alt="Kuno">',
+			'<img class="figur-frei" src="bilder/wilma.png" alt="Wilma">',
+			'<img class="figur-frei" data-figur="zebra" src="bilder/zebra.png" alt="Zebra">',
+		].join('');
+		const nrn = zerlege(quelle)
+			.knoten.filter((k) => k.tag === 'img')
+			.map((k) => k.nr);
+		const an = (i: number) => kurz(figurAn(quelle, nrn[i] ?? -1, figuren));
+		assert.deepEqual(an(0), { figur: 'willi', pose: 'willi-lupe' });
+		assert.deepEqual(an(1), { figur: 'kuno', pose: undefined });
+		assert.deepEqual(an(2), { figur: 'wilma', pose: 'wilma' });
+		assert.equal(an(3), undefined);
+	});
+
+	it('tauscheFigur: andere Figur oder Pose; Lage, Größe und style bleiben', () => {
 		const quelle = blattMit({});
 		const abgelegt = legeGestaltungAb(quelle, {
 			seite: ersteSeite(quelle),
-			html: figurHtml(wilma, 'bilder/wilma.png'),
+			html: figurHtml(wilma, wilmaPose, 'bilder/wilma.png'),
 			lage: { x: 40, y: 60, b: 150, drehen: 12 },
 		});
 		assert.ok(abgelegt.nr !== null);
-		assert.equal(figurAn(abgelegt.quelle, abgelegt.nr)?.id, 'wilma');
-		const { nr, quelle: neu } = tauscheFigur(abgelegt.quelle, abgelegt.nr, willi, 'bilder/willi.png');
+		assert.deepEqual(kurz(figurAn(abgelegt.quelle, abgelegt.nr, figuren)), { figur: 'wilma', pose: 'wilma' });
+		const stil = attribut(figurIn(abgelegt.quelle), 'style')?.wert;
+		assert.ok(stil);
+		const { nr, quelle: neu } = tauscheFigur(abgelegt.quelle, abgelegt.nr, mitLupe, lupe, 'bilder/willi-lupe.png');
 		assert.equal(nr, abgelegt.nr);
-		assert.equal(figurAn(neu, abgelegt.nr)?.id, 'willi');
+		assert.deepEqual(kurz(figurAn(neu, abgelegt.nr, figuren)), { figur: 'willi', pose: 'willi-lupe' });
 		assert.deepEqual(leseLage(neu, abgelegt.nr), leseLage(abgelegt.quelle, abgelegt.nr));
 		const k = figurIn(neu);
-		assert.equal(attribut(k, 'src')?.wert, 'bilder/willi.png');
+		assert.equal(attribut(k, 'style')?.wert, stil);
+		assert.equal(attribut(k, 'data-figur')?.wert, 'willi-lupe');
+		assert.equal(attribut(k, 'src')?.wert, 'bilder/willi-lupe.png');
 		assert.equal(attribut(k, 'alt')?.wert, 'Willi');
+	});
+});
+
+/** Der Wert der Spalte `kopf` in der Tabellenzeile, deren erste Zelle `erste` ist; ohne Backticks. */
+const tabellenwert = (md: string, kopf: string, erste: string) => {
+	const zeilen = md
+		.split('\n')
+		.map((z) => z.trim())
+		.filter((z) => z.startsWith('|'))
+		.map((z) =>
+			z
+				.split('|')
+				.slice(1, -1)
+				.map((zelle) => zelle.trim()),
+		);
+	const spalte = zeilen.find((z) => z.includes(kopf))?.indexOf(kopf) ?? -1;
+	return zeilen.find((z) => z[0] === erste)?.[spalte]?.replace(/^`|`$/g, '');
+};
+
+describe('Steckbrief und Canva-Referenz (177)', () => {
+	const lies = (...teile: string[]) => readFileSync(path.join(WURZEL, 'skills', ...teile), 'utf8');
+
+	it('Willi und Wilma gleichen den Skill-Dateien: „Aussehen“ und die Media-ID ihrer Datei', () => {
+		const aussehen = lies('grundschul-didaktik', 'references', 'kindgerecht-gestalten.md');
+		const bilder = lies('html-materialerstellung', 'references', 'bilder.md');
+		for (const f of FIGUREN) {
+			assert.ok(f.steckbrief && f.canva, f.id);
+			assert.equal(f.steckbrief, tabellenwert(aussehen, 'Aussehen', `${f.name} Waschbär`), f.id);
+			assert.equal(f.canva, tabellenwert(bilder, 'Canva-Media-ID', `\`${f.datei}\``), f.id);
+		}
+	});
+
+	it('Gegenprobe: ein geänderter Text ergibt einen anderen Wert', () => {
+		const md = '| Grafik | Aussehen |\n|---|---|\n| Willi Waschbär | blauer Waschbär mit Hut |\n';
+		assert.equal(tabellenwert(md, 'Aussehen', 'Willi Waschbär'), 'blauer Waschbär mit Hut');
+		assert.notEqual(tabellenwert(md, 'Aussehen', 'Willi Waschbär'), figurNach('willi')?.steckbrief);
+		assert.equal(tabellenwert(md, 'Aussehen', 'Wilma Waschbär'), undefined);
 	});
 });

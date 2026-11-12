@@ -1,76 +1,103 @@
-import type { Blick, Figur } from '@schoolbox/kern/src/figuren';
-import { FIGUR_BREITE, FIGUREN, figurHtml } from '@schoolbox/kern/src/figuren';
+import type { BibliotheksFigur, Pose } from '@schoolbox/kern/src/figuren';
+import { FIGUR_BREITE, figurHtml, poseName } from '@schoolbox/kern/src/figuren';
+import { schuetzeAttribut } from '@schoolbox/kern/src/quelltext';
 
 import { legeInMitte } from '../gestaltung/ablegen/ablegen';
 import type { GestaltungsGut } from '../gestaltung/ablegen/ziehgut';
 import { gestaltungsgut } from '../gestaltung/ablegen/ziehgut';
-import { adresseVon, bekannteSrc, holeSrc } from '../gestaltung/figuren-quelle';
+import { adresseVon, figurenJetzt, holeSrc, ladeFiguren } from '../gestaltung/figuren-quelle';
 import type { PalettenEintrag } from '../palette-suche';
 import type { SchubladenTeile, SchubladenZiele } from '.';
 
-export const BLICK = 'schoolbox.figuren-blick';
-
-/** Gemerkt je Gerät; ohne Wahl schaut die Figur wie in ihrer Datei. */
-export const leseBlick = (): Blick | null => {
-	try {
-		const wert = localStorage.getItem(BLICK);
-		return wert === 'links' || wert === 'rechts' ? wert : null;
-	} catch {
-		return null;
-	}
-};
-
-export const merkeBlick = (blick: Blick) => {
-	try {
-		localStorage.setItem(BLICK, blick);
-	} catch {
-		// Ohne Speicher gilt die Wahl nur bis zum Neuladen.
-	}
-};
-
-/** Ohne gemerkte Wahl die Richtung der ersten Figur (alle schauen heute nach rechts). */
-export const blickJetzt = () => leseBlick() ?? FIGUREN[0]?.blickt ?? 'rechts';
-
 /**
- * ⌘ beim Ziehen: der Baustein „Tipp“ mit dieser Figur als Leitfigur, so wie die Bibliothek ihn einfügt. Die Leitfigur
- * ist der Starter des Katalog-Eintrags der Figur (`willi`, `wilma`), mit dem `src` dieses Dokuments.
+ * Das `src` der Pose in diesem Dokument; erst jetzt kommt sie hinein (177). Scheitert das, holt `bild.hole` noch einmal
+ * und meldet den Fehler wie die Schublade „Bilder“; dann `null`.
  */
-export const tippMit = (t: SchubladenTeile, f: Figur, src: string): GestaltungsGut['imStapel'] => {
+export const srcFuer = (t: SchubladenTeile, pose: Pose) =>
+	holeSrc(adresseVon(t.doc) ?? t.bild.adresse, pose).catch(() => t.bild.hole(pose.schluessel));
+
+/** Der Baustein „Tipp“ mit der Pose als Leitfigur; Vorlage ist der Starter des Katalog-Eintrags `willi`. */
+const tippMitSrc = (t: SchubladenTeile, figur: BibliotheksFigur, src: string) => {
 	const tipp = t.einfuegen.eintraege.find((e) => e.id === 'tipp');
-	const leit = t.einfuegen.eintraege.find((e) => e.id === f.id)?.einfuegbar.html;
+	const leit = t.einfuegen.eintraege.find((e) => e.id === 'willi')?.einfuegbar.html;
 	const html = tipp?.einfuegbar.html;
 	if (!tipp || !leit || !html) {
+		return null;
+	}
+	const bild = leit
+		.replace(/\ssrc="[^"]*"/, () => ` src="${schuetzeAttribut(src)}"`)
+		.replace(/\salt="[^"]*"/, () => ` alt="${schuetzeAttribut(figur.name)}"`);
+	const mitFigur = html.replace(/<img\b[^>]*\bclass="figur"[^>]*>/, () => bild);
+	return { ...tipp, einfuegbar: { ...tipp.einfuegbar, html: mitFigur } };
+};
+
+/**
+ * ⌘ beim Ziehen: der Baustein „Tipp“ mit dieser Pose als Leitfigur, so wie die Bibliothek ihn einfügt. Gezeigt wird die
+ * Vorschau; abgelegt wird erst mit dem geholten `src`, in einem Schritt, damit nie `/ansicht/…` ins Material kommt.
+ */
+export const tippMit = (
+	t: SchubladenTeile,
+	figur: BibliotheksFigur,
+	pose: Pose,
+	vorschau: string,
+	zeige: (laeuft: boolean) => void = () => undefined,
+): GestaltungsGut['imStapel'] => {
+	const html = tippMitSrc(t, figur, vorschau)?.einfuegbar.html;
+	if (!html) {
 		return undefined;
 	}
-	const figur = leit.replace(/\ssrc="[^"]*"/, ` src="${src}"`);
-	const mitFigur = html.replace(/<img\b[^>]*\bclass="figur"[^>]*>/, figur);
 	return {
-		html: mitFigur,
-		legeAb: (ablage) =>
-			t.einfuegen.fuegeAn({ ...tipp, einfuegbar: { ...tipp.einfuegbar, html: mitFigur } }, ablage),
+		html,
+		legeAb: (ablage) => {
+			zeige(true);
+			void srcFuer(t, pose).then((src) => {
+				zeige(false);
+				const tipp = src ? tippMitSrc(t, figur, src) : null;
+				if (tipp) {
+					t.einfuegen.fuegeAn(tipp, ablage);
+				}
+			});
+		},
 	};
 };
 
-export const gutFuer = (t: SchubladenTeile, f: Figur, src: string, blick: Blick) =>
+/** Das Gut einer Pose; `src` ist beim Ziehen aus der Schublade die Vorschau, die `mitGeholtemBild` austauscht. */
+export const gutFuer = (
+	t: SchubladenTeile,
+	figur: BibliotheksFigur,
+	pose: Pose,
+	src: string,
+	zeige?: (laeuft: boolean) => void,
+) =>
 	gestaltungsgut({
-		name: f.name,
-		html: figurHtml(f, src, blick),
+		name: poseName(figur, pose),
+		html: figurHtml(figur, pose, src),
 		groesse: { b: FIGUR_BREITE },
-		imStapel: tippMit(t, f, src),
+		imStapel: tippMit(t, figur, pose, src, zeige),
 	});
 
-/** ⌘K: „Willi“, „Wilma“, „Figur“; Enter legt die Figur in die Mitte, wie ein Klick in der Schublade. */
-export const suche = (_k: unknown, z: SchubladenZiele): PalettenEintrag[] =>
-	FIGUREN.map((f) => ({
-		id: `figur:${f.id}`,
-		titel: f.name,
-		gruppe: 'Figuren',
-		symbol: 'figuren',
-		notiz: 'frei hinlegen',
-		suchwoerter: ['Figur', 'Figuren', ...f.suchwoerter],
-		aus: async () => {
-			const adresse = adresseVon(z.teile.doc) ?? z.teile.bild.adresse;
-			const src = await holeSrc(adresse, f).catch(() => bekannteSrc(adresse, f));
-			legeInMitte(z.teile, gutFuer(z.teile, f, src, blickJetzt()));
-		},
-	}));
+/** ⌘K: jede Figur mit ihrem Namen; Enter legt die Grundpose in die Mitte, wie ein Klick in der Schublade. */
+export const suche = (_k: unknown, z: SchubladenZiele): PalettenEintrag[] => {
+	void ladeFiguren();
+	return figurenJetzt().flatMap((figur) => {
+		const grund = figur.posen[0];
+		return grund
+			? [
+					{
+						id: `figur:${figur.id}`,
+						titel: figur.name,
+						gruppe: 'Figuren',
+						symbol: 'figuren' as const,
+						notiz: 'frei hinlegen',
+						suchwoerter: ['Figur', 'Figuren', ...figur.suchwoerter],
+						aus: async () => {
+							const src = await srcFuer(z.teile, grund);
+							if (src) {
+								legeInMitte(z.teile, gutFuer(z.teile, figur, grund, src));
+							}
+						},
+					},
+				]
+			: [];
+	});
+};

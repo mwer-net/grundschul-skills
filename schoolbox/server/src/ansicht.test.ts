@@ -4,10 +4,10 @@ import { copyFile, mkdir, readFile, symlink, writeFile } from 'node:fs/promises'
 import path from 'node:path';
 import { after, before, describe, it } from 'node:test';
 
-import { ASSETS, neuesDokument, VORSCHAU_DATEI } from '@schoolbox/kern';
+import { ASSETS, figurenDir, neuesDokument, VORSCHAU_DATEI } from '@schoolbox/kern';
 
 import type { TestServer } from './testhilfe';
-import { legeDokumentAn, rohAnfrage, schreibKoepfe, starteTestServer } from './testhilfe';
+import { legeDokumentAn, legeTestfigurenAn, rohAnfrage, schreibKoepfe, starteTestServer } from './testhilfe';
 
 const BREITE_PY = 'import io, sys\nfrom PIL import Image\nprint(Image.open(io.BytesIO(sys.stdin.buffer.read())).width)';
 
@@ -50,6 +50,8 @@ describe('/ansicht', () => {
 		await symlink(path.join(s.materialDir, 'geheim.txt'), path.join(angelegt.dir, 'bilder', 'link.png'));
 		await symlink('/etc/passwd', path.join(angelegt.dir, 'passwd.png'));
 		await mkdir(path.join(s.materialDir, 'zweite'));
+		await legeTestfigurenAn(s.materialDir);
+		await symlink(path.join(s.materialDir, 'geheim.txt'), path.join(figurenDir(s.materialDir), 'link.png'));
 	});
 	after(() => s.stop());
 
@@ -239,6 +241,19 @@ describe('/ansicht', () => {
 		});
 	});
 
+	it('Figurenbibliothek (177): Bilder direkt in _figuren/, auch als Vorschaubild; figuren.json nicht', async () => {
+		const adresse = `${s.url}/ansicht/_figuren/kiki.png`;
+		const antwort = await s.holen(adresse);
+		assert.equal(antwort.status, 200);
+		assert.equal(antwort.headers.get('content-type'), 'image/png');
+		const original = await readFile(path.join(figurenDir(s.materialDir), 'kiki.png'));
+		assert.ok((await bytesVon(antwort)).equals(original));
+		assert.equal(await pruefeWebp(await s.holen(`${adresse}?vorschaubild=1`), adresse), 48, 'nie größer');
+		for (const name of ['figuren.json', 'fehlt.png', '.kiki.png']) {
+			assert.equal((await s.holen(`${s.url}/ansicht/_figuren/${name}`)).status, 404, name);
+		}
+	});
+
 	it('wehrt Traversal ab: ..%2f, %2e%2e, rohe .., absolute Pfade, Symlinks hinaus', async () => {
 		const pfad = new URL(basis).pathname;
 		const versuche = [
@@ -251,6 +266,10 @@ describe('/ansicht', () => {
 			`${pfad}/etc/passwd`,
 			'/ansicht/_assets/..%2f..%2f..%2f..%2f..%2fetc%2fpasswd',
 			'/ansicht/_assets/../../etc/passwd',
+			'/ansicht/_figuren/..%2fgeheim.txt',
+			'/ansicht/_figuren/..%2f..%2f..%2fetc%2fpasswd',
+			'/ansicht/_figuren/../geheim.txt',
+			'/ansicht/_figuren/link.png',
 			`${pfad}bilder/link.png`,
 			`${pfad}passwd.png`,
 			'/ansicht/zweite/x',

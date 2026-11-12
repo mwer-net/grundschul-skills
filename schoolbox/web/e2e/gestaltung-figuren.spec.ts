@@ -1,12 +1,14 @@
 /**
- * Schublade „Figuren“ (102): Willi und Wilma frei hinlegen (Klick, Ziehen, ⌘ als Tipp), Blickrichtung, Spiegeln (⇧H),
- * proportional skalieren, Figur tauschen, s/w. Bestand: Blätter mit Leitfigur bleiben, wie sie sind.
+ * Schublade „Figuren“ (102, 177): Willi, Wilma und die Testfigur Kiki aus der Figurenbibliothek des Testservers frei
+ * hinlegen (Klick, Ziehen, ⌘ als Tipp), suchen, spiegeln (⇧H), proportional skalieren, Figur und Pose tauschen, s/w.
+ * Bestand: Blätter mit Leitfigur bleiben, wie sie sind.
  */
-import { writeFile } from 'node:fs/promises';
+import { readdir, writeFile } from 'node:fs/promises';
+import path from 'node:path';
 
 import type { Locator, Page } from '@playwright/test';
 
-import { gespeichert, material, oeffne, quelle, uhrzeit } from './editorhilfe';
+import { material, oeffne, quelle, uhrzeit } from './editorhilfe';
 import { blattMit, FIGUR_FREI } from './gestaltung-daten';
 import { expect, test } from './hilfe';
 import { oeffneSchublade, schubladenKnopf } from './schubladen-hilfe';
@@ -15,6 +17,8 @@ const MAUS = ['chromium', 'mac-safari'];
 
 const schublade = (page: Page) => page.locator('[data-schublade-figuren]');
 const kachel = (page: Page, name: string) => schublade(page).locator(`[data-ablage-gut="${name}"]`);
+const gruppen = (page: Page) => schublade(page).locator('[data-figuren-gruppe]');
+const gruppe = (page: Page, id: string) => schublade(page).locator(`[data-figuren-gruppe="${id}"]`);
 const anzeige = (page: Page) => page.locator('[data-zug-anzeige]');
 const zurueck = (page: Page) => page.getByRole('button', { name: 'Rückgängig (⌘Z)' });
 const frei = (page: Page) => material(page).locator('img.figur-frei');
@@ -57,6 +61,13 @@ const aufSeite = async (page: Page, ax: number, ay: number) => {
 	const unten = Math.min(r.y + r.height, sicht.y + sicht.height);
 	return { x: r.x + r.width * ax, y: oben + (unten - oben) * ay };
 };
+
+/** Was `blatt.py` in s/w für dieses `src` druckt (`/bilder/fassung`). */
+const strichVon = (page: Page, u: { id: string; dok: string }, src: string) =>
+	page.evaluate(
+		async (adresse) => ((await (await fetch(adresse)).json()) as { strich: string | null }).strich,
+		`/api/dokumente/${u.id}/${u.dok}/bilder/fassung?src=${encodeURIComponent(src)}`,
+	);
 
 /** Greift die Kachel und zieht über die Schwelle; die Maus bleibt unten. */
 const greife = async (page: Page, name: string) => {
@@ -148,29 +159,6 @@ test.describe('Figuren (102)', () => {
 		await expect.poll(() => quelle(page)).toBe(vorher);
 	});
 
-	test('Blickrichtung gegen die Datei ergibt --spiegeln:-1 und bleibt nach dem Neuladen', async ({ page }) => {
-		const u = await blatt(page);
-		await oeffneSchublade(page, 'figuren');
-		const blick = schublade(page).getByRole('group', { name: 'Blickrichtung' });
-		// Willi und Wilma zeigen in ihrer Datei nach rechts (`blickt` in `kern/src/figuren.ts`).
-		await expect(blick.getByRole('button', { name: 'schaut nach rechts' })).toHaveAttribute('aria-pressed', 'true');
-		await blick.getByRole('button', { name: 'schaut nach links' }).click();
-		await kachel(page, 'Wilma').click();
-		await expect.poll(async () => figurTag(await quelle(page))).toContain('--spiegeln:-1');
-		await gespeichert(page, u.material);
-
-		await page.reload();
-		await expect(page.locator('[data-leinwand][data-geladen]')).toBeVisible();
-		await oeffneSchublade(page, 'figuren');
-		await expect(blick.getByRole('button', { name: 'schaut nach links' })).toHaveAttribute('aria-pressed', 'true');
-		await blick.getByRole('button', { name: 'schaut nach rechts' }).click();
-		await kachel(page, 'Willi').click();
-		await expect.poll(async () => anzahl(await quelle(page), 'class="figur-frei"')).toBe(2);
-		expect(/<img class="figur-frei" data-figur="willi"[^>]*>/.exec(await quelle(page))?.[0]).not.toContain(
-			'--spiegeln',
-		);
-	});
-
 	test('⇧H spiegelt und spiegelt zurück, je ein Schritt; „Spiegeln“ an der Leiste tut dasselbe', async ({ page }) => {
 		await blatt(page, blattMit({ vorne: [FIGUR_FREI.replace(';--spiegeln:-1', '')] }));
 		await frei(page).click();
@@ -224,8 +212,10 @@ test.describe('Figuren (102)', () => {
 		await frei(page).click();
 		const wahl = page.locator('[data-figur-wahl]');
 		await expect(wahl).toHaveAttribute('data-figur-wahl', 'wilma');
+		// Wilma hat nur ihre Grundpose: kein Raster der Posen.
+		await expect(wahl.getByRole('group', { name: 'Pose' })).toHaveCount(0);
 		const lage = /style="[^"]*"/.exec(figurTag(await quelle(page)))?.[0];
-		await wahl.getByRole('button', { name: 'Willi' }).click();
+		await wahl.getByRole('combobox', { name: 'Figur' }).selectOption('willi');
 		await expect.poll(async () => figurTag(await quelle(page))).toContain('data-figur="willi"');
 		const tag = figurTag(await quelle(page));
 		expect(tag).toContain('alt="Willi"');
@@ -246,11 +236,7 @@ test.describe('Figuren (102)', () => {
 
 	test('s/w: Willi druckt sein Strichbild, Wilma ist grau', async ({ page }) => {
 		const u = await blatt(page, blattMit({ vorne: [FIGUR_FREI] }));
-		const fassung = (src: string) =>
-			page.evaluate(
-				async (adresse) => ((await (await fetch(adresse)).json()) as { strich: string | null }).strich,
-				`/api/dokumente/${u.id}/${u.dok}/bilder/fassung?src=${encodeURIComponent(src)}`,
-			);
+		const fassung = (src: string) => strichVon(page, u, src);
 		expect(await fassung('bilder/willi.png')).toBe('willi-strich.png');
 		expect(await fassung('bilder/wilma.png')).toBeNull();
 		await page.locator('[data-profilschalter]').getByRole('button', { name: 's/w', exact: true }).click();
@@ -276,5 +262,124 @@ test.describe('Figuren (102)', () => {
 		await oeffneSchublade(page, 'bausteine');
 		await page.getByRole('searchbox', { name: 'Baustein suchen' }).first().fill('Wilma');
 		await expect(page.locator('[data-bibliothek-eintrag="wilma"]')).toBeVisible();
+	});
+});
+
+test.describe('Figurenbibliothek (177)', () => {
+	test.skip(({ hasTouch }) => hasTouch || !MAUS.includes(test.info().project.name), 'mit der Maus');
+
+	test.beforeEach(async ({ page }) => {
+		await page.setViewportSize({ width: 1512, height: 860 });
+	});
+
+	test('je Figur ein Abschnitt mit ihren Posen: Willi, Wilma, Kiki; Öffnen holt nichts ins Dokument', async ({
+		page,
+	}) => {
+		const u = await blatt(page);
+		await page.keyboard.press('Alt+Digit4');
+		await expect(schublade(page).locator('[data-figuren-gruppe] > h3')).toHaveText(['Willi', 'Wilma', 'Kiki']);
+		for (const [i, id] of ['willi', 'wilma', 'kiki'].entries()) {
+			await expect(gruppen(page).nth(i)).toHaveAttribute('data-figuren-gruppe', id);
+		}
+		await expect(gruppe(page, 'kiki').locator('[data-ablage-gut]')).toHaveCount(2);
+		await kachel(page, 'Kiki winkt').hover();
+		await expect(page.locator('[data-tooltip]')).toHaveText('Kiki winkt');
+		// Gegenprobe: kein Segment mehr oben, kein Abschnitt „Willi & Co.“.
+		await expect(schublade(page).getByRole('group')).toHaveCount(0);
+		await expect(gruppe(page, 'willi-co')).toHaveCount(0);
+
+		// Die Kacheln zeigen ihr Vorschaubild; in `bilder/` des Dokuments kommt dabei nichts.
+		const bilder = schublade(page).locator('[data-figur-kachel]');
+		await expect
+			.poll(() => bilder.evaluateAll((alle) => alle.every((b) => (b as HTMLImageElement).naturalWidth > 0)))
+			.toBe(true);
+		const imDokument = await readdir(path.join(u.ordner, 'bilder')).catch(() => []);
+		expect(imDokument.filter((name) => name.startsWith('kiki'))).toEqual([]);
+	});
+
+	test('Klick auf „Kiki“ holt die Pose mit Strichfassung, in einem Schritt; „Kiki winkt“ hat keine', async ({
+		page,
+	}) => {
+		const u = await blatt(page);
+		await oeffneSchublade(page, 'figuren');
+		const vorher = await quelle(page);
+		await kachel(page, 'Kiki').click();
+		await expect.poll(async () => figurTag(await quelle(page))).toContain('data-figur="kiki"');
+		await expect(zurueck(page)).toHaveAttribute('data-schritt', 'Kiki abgelegt');
+		const tag = figurTag(await quelle(page));
+		expect(tag).toContain('src="bilder/kiki.png"');
+		expect(tag).toContain('alt="Kiki"');
+		expect(tag).toContain('--b:150px');
+		expect(await strichVon(page, u, 'bilder/kiki.png')).toBe('kiki-strich.png');
+		await zurueck(page).click();
+		await expect.poll(() => quelle(page)).toBe(vorher);
+
+		await kachel(page, 'Kiki winkt').click();
+		await expect.poll(async () => figurTag(await quelle(page))).toContain('data-figur="kiki-winkt"');
+		expect(figurTag(await quelle(page))).toContain('src="bilder/kiki-winkt.png"');
+		expect(await strichVon(page, u, 'bilder/kiki-winkt.png')).toBeNull();
+		expect(await quelle(page)).not.toContain('/ansicht/');
+	});
+
+	test('mit ⌘ gezogen: Tipp mit Kiki als Leitfigur, mit dem geholten src', async ({ page }) => {
+		await blatt(page);
+		await oeffneSchublade(page, 'figuren');
+		await greife(page, 'Kiki');
+		const ziel = await mitte(material(page).locator('.aufgabe').nth(1));
+		await page.mouse.move(ziel.x, ziel.y, { steps: 8 });
+		await page.keyboard.down('Meta');
+		await page.mouse.move(ziel.x, ziel.y + 4, { steps: 2 });
+		await expect(material(page).locator('[data-luecke]')).toHaveCount(1);
+		await page.mouse.up();
+		await page.keyboard.up('Meta');
+
+		await expect.poll(async () => anzahl(await quelle(page), 'class="tipp"')).toBe(1);
+		const q = await quelle(page);
+		expect(q).toMatch(/<div class="tipp"><img class="figur" src="bilder\/kiki\.png" alt="Kiki">/);
+		expect(q).not.toContain('/ansicht/');
+		expect(q).not.toContain('figur-frei');
+	});
+
+	test('Suche: „winkt“ lässt nur die Pose übrig, „zebra“ nichts', async ({ page }) => {
+		await blatt(page);
+		await oeffneSchublade(page, 'figuren');
+		const suche = schublade(page).getByRole('searchbox', { name: 'Figuren suchen' });
+		await suche.fill('winkt');
+		await expect(gruppen(page)).toHaveCount(1);
+		await expect(gruppe(page, 'kiki').locator('[data-ablage-gut]')).toHaveCount(1);
+		await expect(kachel(page, 'Kiki winkt')).toBeVisible();
+		await suche.fill('zebra');
+		await expect(gruppen(page)).toHaveCount(0);
+		await expect(schublade(page).locator('[data-schublade-leer]')).toHaveText('Nichts passt zu „zebra“.');
+		// Gegenprobe: Leer ist alles wieder da.
+		await suche.fill('');
+		await expect(gruppen(page)).toHaveCount(3);
+	});
+
+	test('Inspektor an Kiki: Menü „Figur“ und Raster der Posen tauschen; Lage und Größe bleiben', async ({ page }) => {
+		await blatt(page);
+		await oeffneSchublade(page, 'figuren');
+		await kachel(page, 'Kiki').click();
+		await expect.poll(async () => figurTag(await quelle(page))).toContain('data-figur="kiki"');
+		const wahl = page.locator('[data-figur-wahl]');
+		await expect(wahl).toHaveAttribute('data-figur-wahl', 'kiki');
+		const menue = wahl.getByRole('combobox', { name: 'Figur' });
+		await expect(menue).toHaveValue('kiki');
+		const posen = wahl.getByRole('group', { name: 'Pose' });
+		await expect(posen.getByRole('button')).toHaveCount(2);
+		await expect(posen.getByRole('button', { name: 'Kiki', exact: true })).toHaveAttribute('aria-pressed', 'true');
+		const lage = /style="[^"]*"/.exec(figurTag(await quelle(page)))?.[0];
+
+		await posen.getByRole('button', { name: 'Kiki winkt' }).click();
+		await expect.poll(async () => figurTag(await quelle(page))).toContain('data-figur="kiki-winkt"');
+		await expect(zurueck(page)).toHaveAttribute('data-schritt', 'Kiki winkt statt Kiki');
+		expect(/style="[^"]*"/.exec(figurTag(await quelle(page)))?.[0]).toBe(lage);
+		await expect(posen.getByRole('button', { name: 'Kiki winkt' })).toHaveAttribute('aria-pressed', 'true');
+
+		await menue.selectOption('willi');
+		await expect.poll(async () => figurTag(await quelle(page))).toContain('data-figur="willi"');
+		expect(figurTag(await quelle(page))).toMatch(/src="[^"]*willi\.png"/);
+		await expect(wahl).toHaveAttribute('data-figur-wahl', 'willi');
+		expect(/style="[^"]*"/.exec(figurTag(await quelle(page)))?.[0]).toBe(lage);
 	});
 });

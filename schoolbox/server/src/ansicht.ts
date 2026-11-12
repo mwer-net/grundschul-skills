@@ -8,12 +8,15 @@ import {
 	darstellungsHtml,
 	dokumentGeloescht,
 	einfuegbarAus,
+	FIGUREN_ORDNER,
+	figurenDir,
 	ID_MUSTER,
 	KATALOG,
 	leseStarter,
 	liegtIn,
 	mappenDir,
 	neueAufgabe,
+	POSEN_DATEI,
 	sucheRessource,
 	VORSCHAUBILD,
 	vorschaubild,
@@ -235,6 +238,18 @@ export const ansichtRouter = (kontext: Kontext) => {
 		const teile = pruefeTeile(req.params.teile);
 		const datei = existsSync(path.join(ASSETS, ...teile)) ? realpathSync(path.join(ASSETS, ...teile)) : null;
 		await sendeDatei(konfig, req, res, await pruefeGrenzen(datei, null), null, null);
+	});
+
+	// Figurenbibliothek (177): nur Bilder direkt in `_figuren/`, Grenze über realpath; `figuren.json` bleibt verborgen.
+	router.get(`/${FIGUREN_ORDNER}/:datei`, async (req, res) => {
+		const name = req.params.datei;
+		const datei = path.join(figurenDir(materialDir), name);
+		const echt = POSEN_DATEI.test(name) && !name.includes('\0') && existsSync(datei) ? realpathSync(datei) : null;
+		const info = echt && liegtIn(echt, realpathSync(figurenDir(materialDir))) ? await stat(echt) : null;
+		if (!echt || !info?.isFile()) {
+			throw nichtGefunden();
+		}
+		await sendeDatei(konfig, req, res, echt, null, null);
 	});
 
 	// Vorschau eines Katalogeintrags für die Bibliothek (044): mit denselben Assets wie ein Dokument.

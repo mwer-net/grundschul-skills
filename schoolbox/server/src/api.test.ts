@@ -35,6 +35,19 @@ describe('API', () => {
 		assert.deepEqual(await antwort.json(), { status: 'ok', version: 'test' });
 	});
 
+	it('/api/figuren: Willi und Wilma zuerst, mit ihrer Grundpose aus assets/ (177)', async () => {
+		const { figuren } = (await (await s.holen(`${s.url}/api/figuren`)).json()) as {
+			figuren: { id: string; posen: { schluessel: string }[] }[];
+		};
+		assert.deepEqual(
+			figuren.map((f) => [f.id, f.posen[0]?.schluessel]),
+			[
+				['willi', '_assets/bilder/willi.png'],
+				['wilma', '_assets/bilder/wilma.png'],
+			],
+		);
+	});
+
 	it('listet die Ablage mit Fach und Klasse je Dokument; die alte Liste gibt es nicht mehr', async () => {
 		const { dokumente, ordner } = (await (await s.holen(`${s.url}/api/ordner`)).json()) as {
 			dokumente: { mappe: string; fach: string; klasse: number }[];

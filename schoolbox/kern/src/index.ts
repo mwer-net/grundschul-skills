@@ -11,6 +11,8 @@ export * from './eigene';
 export * from './einfuegen';
 export * from './einheit';
 export * from './fehler';
+export * from './figurenbibliothek';
+export type { BibliotheksFigur, Pose } from './figuren';
 export * from './frei';
 export * from './freigaben';
 export * from './html';
