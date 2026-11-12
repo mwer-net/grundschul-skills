@@ -4,7 +4,9 @@ import { klassen } from './klassen';
 import { Symbol } from './Symbol';
 
 interface Eigenschaften extends ComponentProps<'button'> {
-	/** Sagt, was das Ziehen bewirkt, etwa „Ins Blatt ziehen“. Name für Hilfsmittel und Hinweis beim Überfahren. */
+	// >> 168
+	/** Sagt, was das Ziehen bewirkt, etwa „Zeile 2 verschieben“. Name für Hilfsmittel und Hinweis beim Überfahren. */
+	// << 168
 	beschriftung: string;
 }
 

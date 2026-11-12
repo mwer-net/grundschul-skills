@@ -19,16 +19,16 @@ const nummern = (html: string) => [...html.matchAll(/<span class="nr( stern)?">(
 const anweisungen = (html: string) => [...html.matchAll(/<span class="text">([^<]{0,12})/g)].map((m) => m[1]);
 const zurueck = (page: Page) => page.getByRole('button', { name: 'Rückgängig (⌘Z)' });
 
-/** Drückt die Karte und zieht über die Schwelle von `MAUS_WEG`; die Maus bleibt unten. */
+/** Drückt die Kachel und zieht über die Schwelle von `MAUS_WEG`; die Maus bleibt unten. */
 const greife = async (page: Page, id: string, suchwort: string) => {
 	await suche(page).fill(suchwort);
-	const karte = await page.locator(`[data-bibliothek-eintrag="${id}"] [data-einfuegen]`).boundingBox();
-	if (!karte) {
-		throw new Error('Karte nicht zu sehen');
+	const kachel = await page.locator(`[data-bibliothek-eintrag="${id}"] [data-einfuegen]`).boundingBox();
+	if (!kachel) {
+		throw new Error('Kachel nicht zu sehen');
 	}
-	await page.mouse.move(karte.x + 20, karte.y + karte.height / 2);
+	await page.mouse.move(kachel.x + 20, kachel.y + kachel.height / 2);
 	await page.mouse.down();
-	await page.mouse.move(karte.x + 40, karte.y + karte.height / 2 + 12, { steps: 3 });
+	await page.mouse.move(kachel.x + 40, kachel.y + kachel.height / 2 + 12, { steps: 3 });
 	await expect(page.locator('[data-zug-anzeige]')).toBeVisible();
 };
 
@@ -160,7 +160,7 @@ test.describe('Editor: Bausteine ziehen mit Lücke', () => {
 		expect(await quelle(page)).toBe(vorher);
 	});
 
-	test('Klick auf die Karte fügt wie heute hinter der Auswahl ein', async ({ druecke, page }) => {
+	test('Klick auf die Kachel fügt wie heute hinter der Auswahl ein', async ({ druecke, page }) => {
 		const { dok, id } = await uhrzeit();
 		await oeffne(page, id, dok);
 		await druecke(material(page).locator('.aufgabe').first().locator('> .nr'));
@@ -231,13 +231,13 @@ test.describe('Editor: Bausteine ziehen mit Lücke', () => {
 		expect(await quelle(page)).toBe(vorher);
 	});
 
-	test('Finger: Halten auf der Karte beginnt das Ziehen, Wischen rollt weiter', async ({ page }) => {
+	test('Finger: Halten auf der Kachel beginnt das Ziehen, Wischen rollt weiter', async ({ page }) => {
 		const { dok, id } = await uhrzeit();
 		await oeffne(page, id, dok);
 		await oeffneBausteine(page);
 		await suche(page).fill('Schreiblinie');
 		const vorschau = page.locator('[data-bibliothek-eintrag="schreiblinie"] [data-karten-vorschau]');
-		const karte = page.locator('[data-bibliothek-eintrag="schreiblinie"] > div').first();
+		const kachel = page.locator('[data-einfuegen="schreiblinie"]');
 		await aufgabeOhneLuecke(page, 1).evaluate((e) => e.scrollIntoView({ block: 'center' }));
 		const start = await vorschau.boundingBox();
 		const ziel = await aufgabeOhneLuecke(page, 1).boundingBox();
@@ -250,19 +250,19 @@ test.describe('Editor: Bausteine ziehen mit Lücke', () => {
 		const z = { clientX: ziel.x + ziel.width / 2, clientY: ziel.y + 10 };
 
 		// Wischen: Der Finger bewegt sich sofort, nichts wird gezogen.
-		await karte.dispatchEvent('pointerdown', { ...punkt, ...s });
-		await karte.dispatchEvent('pointermove', { ...punkt, clientX: s.clientX, clientY: s.clientY - 40 });
+		await kachel.dispatchEvent('pointerdown', { ...punkt, ...s });
+		await kachel.dispatchEvent('pointermove', { ...punkt, clientX: s.clientX, clientY: s.clientY - 40 });
 		await page.waitForTimeout(450);
 		await expect(page.locator('[data-zug-anzeige]')).toHaveCount(0);
-		await karte.dispatchEvent('pointerup', { ...punkt, clientX: s.clientX, clientY: s.clientY - 40 });
+		await kachel.dispatchEvent('pointerup', { ...punkt, clientX: s.clientX, clientY: s.clientY - 40 });
 
 		// Halten, dann ziehen.
-		await karte.dispatchEvent('pointerdown', { ...punkt, ...s });
+		await kachel.dispatchEvent('pointerdown', { ...punkt, ...s });
 		await page.waitForTimeout(450);
 		await expect(page.locator('[data-zug-anzeige]')).toBeVisible();
-		await karte.dispatchEvent('pointermove', { ...punkt, ...z });
+		await kachel.dispatchEvent('pointermove', { ...punkt, ...z });
 		await expect(luecke(page)).toHaveCount(1);
-		await karte.dispatchEvent('pointerup', { ...punkt, ...z });
+		await kachel.dispatchEvent('pointerup', { ...punkt, ...z });
 		await expect.poll(() => quelle(page)).not.toBe(vorher);
 		expect(await quelle(page)).toContain('schreiblinie');
 	});

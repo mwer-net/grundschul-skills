@@ -124,8 +124,10 @@ const ABSCHNITTE: Abschnitt[] = [
 					<Punkt titel="Bausteine">
 						{'links in der Schublade „Bausteine“ ('}
 						<SchubladenTaste id="bausteine" />
-						). Die Suche findet alles. Oben wählst du „Für dieses Blatt“ oder „Alle“. Karte antippen fügt
-						ein, am Griff links ziehst du sie ins Blatt.
+						{/* >> 168 */}
+						). Die Suche findet alles. Oben wählst du „Für dieses Blatt“ oder „Alle“. Antippen fügt ein;
+						gezogen landet der Baustein, wo du loslässt.
+						{/* << 168 */}
 					</Punkt>
 					<Punkt titel="Schrägstrich">in einer leeren Zeile „/“ tippen und weiterschreiben.</Punkt>
 				</ul>

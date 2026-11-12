@@ -43,8 +43,9 @@ const aufwaerts = (k: Knoten | null | undefined, klasse: string): Knoten | null 
 	return null;
 };
 
-export const neueAufgabe = (innen: string, anweisung = 'Anweisung') =>
-	`<div class="aufgabe"><span class="nr">0</span><div class="anw"><span class="text">${anweisung}</span></div><div class="koerper">${innen}</div></div>`;
+/** Nummer `0`, der Editor nummeriert danach neu; nur die Vorschau im Katalog gibt `1` mit (147). */
+export const neueAufgabe = (innen: string, anweisung = 'Anweisung', nr = 0) =>
+	`<div class="aufgabe"><span class="nr">${nr}</span><div class="anw"><span class="text">${anweisung}</span></div><div class="koerper">${innen}</div></div>`;
 
 /**
  * `baustein`: das HTML, das gewählt sein soll. Liegt es in einer neuen Hülle (Aufgabe, Zeile, Eintrag), meldet das
