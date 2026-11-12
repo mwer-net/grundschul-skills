@@ -311,6 +311,41 @@ test.describe('Sammlung (051)', () => {
 		await page.keyboard.type('/Meine Uhr');
 		await expect(page.locator('[data-slash-menue]')).toContainText('Meine Uhr');
 	});
+
+	test('Meine Bausteine: letzte Zeile unter „Mehr“, an der Kachel umbenennen und löschen (168)', async ({
+		druecke,
+		page,
+	}) => {
+		test.slow();
+		const { dok, id } = await uhrzeit();
+		await oeffne(page, id, dok);
+		await druecke(material(page).locator('x-uhr').first());
+		await imMehr(page, 'In Sammlung legen');
+		await page.locator('[data-sammlung-name]').fill('Meine Uhr');
+		await page.locator('[data-sammlung-speichern]').click();
+		await expect(page.getByText('In „Meine Bausteine“ gelegt.')).toBeVisible();
+
+		await oeffneSchublade(page, 'bausteine');
+		const mehr = page.locator('[data-bereich-gruppe="Mehr"] [data-bereich]');
+		await expect(mehr.last()).toHaveAttribute('data-bereich', 'Meine Bausteine');
+		await druecke(mehr.last());
+		const kachel = page.locator('[data-bibliothek] [data-bibliothek-eintrag]');
+		await expect(kachel).toHaveCount(1);
+		await expect(kachel.locator('[data-kachel-symbol]')).toBeVisible();
+		await expect(kachel.locator('[data-karten-vorschau]')).toHaveCount(0);
+
+		const vorher = await quelle(page);
+		await druecke(page.getByRole('button', { name: 'Meine Uhr umbenennen' }));
+		const feld = page.getByRole('textbox', { name: 'Neuer Name' });
+		await feld.fill('Uhr groß');
+		await feld.press('Enter');
+		await expect(kachel.locator('[data-kachel-name]')).toHaveText('Uhr groß');
+		// Gegenprobe: Der Stift liegt neben dem Einfügen-Knopf, nicht darin, und fügt nichts ein.
+		expect(await quelle(page)).toBe(vorher);
+
+		await druecke(page.getByRole('button', { name: 'Uhr groß aus der Sammlung löschen' }));
+		await expect(kachel).toHaveCount(0);
+	});
 });
 
 const zurueck = (page: Page) => page.getByRole('button', { name: 'Rückgängig (⌘Z)' });

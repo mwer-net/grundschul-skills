@@ -139,4 +139,23 @@ describe('Anlegen ohne Claude (045, 079) und Katalog (044)', () => {
 		assert.match(await v.text(), /blatt\.css/);
 		assert.equal((await s.holen(`${s.url}/ansicht/_katalog/gibt-es-nicht`)).status, 404);
 	});
+
+	it('Vorschau in der Schublade: Aufgabenpaket mit Hülle, Nummer 1 und Anweisung; ein Maßstab (168)', async () => {
+		s = await starteTestServer();
+		const { eintraege } = (await (await s.holen(`${s.url}/api/katalog`)).json()) as {
+			eintraege: { id: string; herkunft: string; anweisung?: string }[];
+		};
+		const paket = eintraege.find((e) => e.herkunft === 'paket');
+		assert.ok(paket?.anweisung, 'kein Aufgabenpaket im Katalog');
+		const mit = await (await s.holen(`${s.url}/ansicht/_katalog/${paket.id}?fit=1`)).text();
+		assert.match(mit, /class="aufgabe"/);
+		assert.ok(mit.includes('<span class="nr">1</span>'));
+		assert.ok(mit.includes(`<span class="text">${paket.anweisung}</span>`));
+		// Ein Maßstab wie ein Blatt von 200 px, die Streckung schmaler Einträge ist weg (147).
+		assert.ok(mit.includes('min-width:200px'));
+		assert.ok(!mit.includes('m.b < 120'));
+		// Gegenprobe: Ohne `fit` zeigt die Vorschau das Paket ohne Hülle, wie bisher.
+		const ohne = await (await s.holen(`${s.url}/ansicht/_katalog/${paket.id}`)).text();
+		assert.doesNotMatch(ohne, /class="aufgabe"/);
+	});
 });

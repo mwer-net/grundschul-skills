@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import { describe, it } from 'node:test';
 
-import { einfuegbarAus, fuegeBausteinEin, fuegeZusatzEin, verschiebeAufNeueSeite } from './einfuegen';
+import { einfuegbarAus, fuegeBausteinEin, fuegeZusatzEin, neueAufgabe, verschiebeAufNeueSeite } from './einfuegen';
 import { KATALOG } from './katalog';
 import { leseStarter } from './katalog-starter';
 import { klassenVon, zerlege } from './quelltext';
@@ -170,6 +170,21 @@ describe('Einfügen', () => {
 			n,
 		);
 		assert.equal(quelle.replace(/\s*<x-uhr><\/x-uhr>/, ''), BLATT);
+	});
+
+	it('neue Aufgabe: Nummer 0 wie bisher, nur die Vorschau im Katalog gibt 1 mit (168)', () => {
+		const vorschau = neueAufgabe('x', 'A', 1);
+		assert.ok(vorschau.includes('<span class="nr">1</span>'));
+		assert.ok(vorschau.includes('<span class="text">A</span>'));
+		// Gegenprobe: Ohne drittes Argument Zeichen für Zeichen wie vor 168, das eingefügte HTML bleibt gleich (26).
+		assert.equal(
+			neueAufgabe('x', 'A'),
+			'<div class="aufgabe"><span class="nr">0</span><div class="anw"><span class="text">A</span></div><div class="koerper">x</div></div>',
+		);
+		assert.equal(
+			neueAufgabe('x'),
+			'<div class="aufgabe"><span class="nr">0</span><div class="anw"><span class="text">Anweisung</span></div><div class="koerper">x</div></div>',
+		);
 	});
 
 	it('jeder Katalogeintrag lässt sich einfügen, und die Quelle bleibt zerlegbar', () => {

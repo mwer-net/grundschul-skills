@@ -2,7 +2,7 @@
  * Besitzer: 167. Ein Aufbau für alle Schubladen (146): Kopf, feste Steuerzeile, Inhalt mit Abschnitten. Andere Tickets
  * nutzen die Teile und überschreiben keine Klassen.
  */
-import type { ReactNode } from 'react';
+import type { ReactNode, Ref } from 'react';
 
 import { klassen } from './klassen';
 import { Symbol } from './Symbol';
@@ -21,6 +21,12 @@ export const SCHUBLADENKACHEL = 'overflow-hidden rounded-lg bg-flaeche-2 hover:b
 
 /** Eine Zeile Unterschrift unter einer Vorschau. */
 export const KACHELNAME = 'w-full truncate text-center text-xs text-leise';
+
+/**
+ * Name eines Bausteins in der Stufe „Eintrag“, bis zu zwei Zeilen. Die Vorschau eines Bausteins ist ein abstrakter
+ * Ausschnitt eines Blatts, erst der Name sagt, was sie zeigt (147, Annahme 4).
+ */
+export const KACHELNAME_ZWEIZEILIG = 'line-clamp-2 w-full text-center text-sm break-words hyphens-auto';
 
 /** Eine Zeile mit Symbol, Name, Zahl. */
 export const SCHUBLADENZEILE = 'flex h-zeile w-full items-center gap-2 rounded-md px-2 text-left hover:bg-flaeche-2';
@@ -87,6 +93,7 @@ export const Schubladensuche = ({
 export const Schublade = ({
 	children,
 	daten,
+	inhaltRef,
 	kopf,
 	steuerung,
 	titel,
@@ -98,6 +105,8 @@ export const Schublade = ({
 	children: ReactNode;
 	/** `data-*` an der Wurzel, etwa `data-bibliothek`. */
 	daten?: Daten;
+	/** Am rollenden Inhalt, etwa um den Rollstand zurückzusetzen. */
+	inhaltRef?: Ref<HTMLDivElement>;
 }) => (
 	<div className="flex min-h-0 flex-1 flex-col" {...daten}>
 		<Schubladenkopf titel={titel}>{kopf}</Schubladenkopf>
@@ -106,7 +115,11 @@ export const Schublade = ({
 				{steuerung}
 			</div>
 		)}
-		<div className="flex min-h-0 flex-1 flex-col gap-5 overflow-y-auto px-3 py-4" data-schublade-inhalt>
+		<div
+			ref={inhaltRef}
+			className="flex min-h-0 flex-1 flex-col gap-5 overflow-y-auto px-3 py-4"
+			data-schublade-inhalt
+		>
 			{children}
 		</div>
 	</div>

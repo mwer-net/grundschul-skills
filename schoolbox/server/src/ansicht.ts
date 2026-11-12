@@ -13,6 +13,7 @@ import {
 	leseStarter,
 	liegtIn,
 	mappenDir,
+	neueAufgabe,
 	sucheRessource,
 	VORSCHAUBILD,
 	vorschaubild,
@@ -101,15 +102,19 @@ const pruefeGrenzen = async (datei: string | null, mappeDir: string | null): Pro
 };
 
 /**
- * Passt den Inhalt ganz in den Rahmen (081). Gemessen wird erst, wenn `abbildungen.js` gezeichnet hat (das geschieht bei
- * `DOMContentLoaded`, dieser Lauschaufruf kommt danach) und die Schriften stehen. Bis dahin bleibt der Rahmen leer, damit
- * nichts springt. Notiz und Erwartungshorizont stehen sonst nur auf dem Lösungsblatt oder der Folie und wären hier leer.
- * Dazu `kl4`: Klasse 2 lehnte Starter mit größeren Zahlen ab, und die Vorschau zeigte die Fehlermeldung.
+ * Passt den Inhalt ganz in den Rahmen (081), in einem Maßstab für alle Einträge (147): wie ein Blatt von 200 px
+ * Breite. Der Inhalt ist so breit, wie er von selbst ist, mindestens 200 und höchstens 400 px. Schmales bleibt klein,
+ * Breites und Hohes wird kleiner, nichts wird beschnitten. Gemessen wird erst, wenn `abbildungen.js` gezeichnet hat
+ * (das geschieht bei `DOMContentLoaded`, dieser Lauschaufruf kommt danach) und die Schriften stehen. Bis dahin bleibt
+ * der Rahmen leer, damit nichts springt. Notiz und Erwartungshorizont stehen sonst nur auf dem Lösungsblatt oder der
+ * Folie und wären hier leer. Dazu `kl4`: Klasse 2 lehnte Starter mit größeren Zahlen ab, und die Vorschau zeigte die
+ * Fehlermeldung.
  */
 const VORSCHAU_FIT = {
-	stil: '<style>html{visibility:hidden}html,body{height:100%}body{padding:0}body>.koerper{position:absolute;left:0;top:0;width:max-content;max-width:400px;transform-origin:0 0}.notiz,x-erwartungshorizont{display:block}</style>',
+	stil: '<style>html{visibility:hidden}html,body{height:100%}body{padding:0}body>.koerper{position:absolute;left:0;top:0;width:max-content;min-width:200px;max-width:400px;transform-origin:0 0}.notiz,x-erwartungshorizont{display:block}</style>',
 	skript: `<script>(function () {
 	var rand = 4;
+	var SPALTE = 200;
 	var koerper = document.querySelector('body > .koerper');
 	var miss = function (mitKoerper) {
 		var flaechen = (mitKoerper ? [koerper] : []).concat(Array.from(koerper.querySelectorAll('*:not(svg *)')))
@@ -128,16 +133,10 @@ const VORSCHAU_FIT = {
 		var frei = { b: innerWidth - 2 * rand, h: innerHeight - 2 * rand };
 		if (frei.b <= 0 || frei.h <= 0) return;
 		koerper.style.transform = 'none';
-		koerper.style.width = '';
-		// Linien und anderes ohne eigene Breite wären sonst fast unsichtbar; was von selbst schmal ist, bleibt schmal.
 		var m = miss(true);
-		if (m.b < 120) {
-			koerper.style.width = '400px';
-			if (miss(false).b <= m.b + 1) koerper.style.width = '';
-			m = miss(true);
-		}
 		if (m.b > 0 && m.h > 0) {
-			var s = Math.min(1, frei.b / m.b, frei.h / m.h);
+			// Ein Maßstab für alle Einträge, Schmales bleibt klein (147).
+			var s = Math.min(frei.b / SPALTE, frei.b / m.b, frei.h / m.h);
 			var x = rand + (frei.b - m.b * s) / 2 - m.links * s;
 			var y = rand + (frei.h - m.h * s) / 2 - m.oben * s;
 			koerper.style.transform = 'translate(' + x + 'px,' + y + 'px) scale(' + s + ')';
@@ -158,7 +157,9 @@ const VORSCHAU_FIT = {
 
 const katalogVorschau = (e: KatalogEintrag, starter: ReadonlyMap<string, string>, assets: string, fit: boolean) => {
 	const b = einfuegbarAus(e, starter);
-	const innen = b.teile ? b.teile.join('') : (b.html ?? '');
+	// In der Schublade zeigt ein Aufgabenpaket, was eingefügt wird: Hülle mit Nummer und Anweisung (147).
+	const teile = b.teile?.join('');
+	const innen = (teile !== undefined && fit ? neueAufgabe(teile, b.anweisung, 1) : teile) ?? b.html ?? '';
 	return `<!doctype html><html lang="de"><head><meta charset="utf-8"><title>Vorschau</title><base href="${assets}">
 <link rel="stylesheet" href="blatt.css"><style>html,body{background:#fff;overflow:hidden}body{margin:0;padding:12px}.flaeche{min-width:240px;outline:1px dashed #aaa;outline-offset:-1px}</style>${fit ? VORSCHAU_FIT.stil : ''}</head>
 <body class="${fit ? 'kl4' : 'kl2'} farbe"><div class="koerper">${innen}</div><script src="abbildungen.js"></script>${fit ? VORSCHAU_FIT.skript : ''}</body></html>`;

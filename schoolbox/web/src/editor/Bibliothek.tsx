@@ -2,15 +2,17 @@ import { BEREICH_SYMBOL, KATALOG_BEREICHE, KATALOG_KATEGORIEN } from '@schoolbox
 import { MEINE_BAUSTEINE, MEINE_BAUSTEINE_SYMBOL, sucheImKatalog } from '@schoolbox/kern/src/katalog';
 import type { Art, Fach, Klasse } from '@schoolbox/kern/src/werte';
 import type { PointerEvent as ReactPointerEvent } from 'react';
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useLayoutEffect, useRef, useState } from 'react';
 
 import { meldung, sende } from '../api';
 import { AmZeiger } from '../bausteine/AmZeiger';
-import { Griff } from '../bausteine/Griff';
 import { useHinweis } from '../bausteine/hinweis';
 import { FELD_KLASSEN, klassen } from '../bausteine/klassen';
 import { Knopf } from '../bausteine/Knopf';
 import {
+	ABSCHNITT_TITEL,
+	KACHELNAME,
+	KACHELNAME_ZWEIZEILIG,
 	nichtsPasst,
 	NOTIZ,
 	raster,
@@ -26,6 +28,7 @@ import {
 import { Segment } from '../bausteine/Segment';
 import type { SymbolName } from '../bausteine/Symbol';
 import { Symbol } from '../bausteine/Symbol';
+import { SymbolKnopf } from '../bausteine/SymbolKnopf';
 import { Tooltip } from '../bausteine/Tooltip';
 import { nrVon } from './darstellung';
 import type { Einfuegen, Posten, SlashMenue } from './einfuegen';
@@ -277,7 +280,8 @@ export const Einfuegemarken = ({
 	);
 };
 
-/** Eigene Bausteine umbenennen und löschen (051). */
+
+/** Eigene Bausteine umbenennen und löschen (051), unter der Kachel und nicht darin: kein Knopf im Knopf. */
 const EigenVerwalten = ({ id, name, neuLaden }: { id: string; name: string; neuLaden: () => void }) => {
 	const [neu, setNeu] = useState<string | null>(null);
 	const zeige = useHinweis();
@@ -285,46 +289,68 @@ const EigenVerwalten = ({ id, name, neuLaden }: { id: string; name: string; neuL
 		sende(`/api/eigene/sammlung/${id}/${pfad}`, daten).then(neuLaden, (grund: unknown) =>
 			zeige({ text: meldung(grund), art: 'fehler' }),
 		);
+	if (neu === null) {
+		return (
+			<div className="flex justify-center gap-1" data-eigen-verwalten={id}>
+				<SymbolKnopf
+					symbol="stift"
+					beschriftung={`${name} umbenennen`}
+					groesse="klein"
+					onClick={() => setNeu(name)}
+				/>
+				<SymbolKnopf
+					symbol="papierkorb"
+					beschriftung={`${name} aus der Sammlung löschen`}
+					art="gefahr"
+					groesse="klein"
+					onClick={() => void sende2('loeschen', {})}
+				/>
+			</div>
+		);
+	}
 	return (
-		<div className="flex flex-wrap items-center gap-2 border-t border-rand p-1" data-eigen-verwalten={id}>
-			{neu === null ? (
-				<Knopf art="zweit" onClick={() => setNeu(name)}>
-					Umbenennen
-				</Knopf>
-			) : (
-				<>
-					<input
-						{...EIGENE_GESCHICHTE}
-						aria-label="Neuer Name"
-						className={`${FELD_KLASSEN} min-w-0 flex-1`}
-						value={neu}
-						onChange={(e) => setNeu(e.target.value)}
-					/>
-					<Knopf
-						disabled={neu.trim() === ''}
-						onClick={() => {
-							setNeu(null);
-							void sende2('aendern', { name: neu });
-						}}
-					>
-						Speichern
-					</Knopf>
-				</>
-			)}
-			<Knopf
-				art="gefahr"
-				aria-label={`${name} aus der Sammlung löschen`}
-				onClick={() => void sende2('loeschen', {})}
-			>
-				<Symbol name="papierkorb" />
-			</Knopf>
-		</div>
+		<form
+			className="flex items-center gap-1"
+			data-eigen-verwalten={id}
+			onSubmit={(ev) => {
+				ev.preventDefault();
+				if (neu.trim() !== '') {
+					setNeu(null);
+					void sende2('aendern', { name: neu });
+				}
+			}}
+		>
+			<input
+				{...EIGENE_GESCHICHTE}
+				aria-label="Neuer Name"
+				className={`${FELD_KLASSEN} min-w-0 flex-1`}
+				value={neu}
+				autoFocus
+				onFocus={(ev) => ev.currentTarget.select()}
+				onChange={(ev) => setNeu(ev.target.value)}
+				// Wie in Finder und den Ebenen: Esc lässt den Namen, wie er war.
+				onKeyDown={(ev) => {
+					if (ev.key === 'Escape') {
+						ev.stopPropagation();
+						setNeu(null);
+					}
+				}}
+			/>
+			<SymbolKnopf
+				type="submit"
+				symbol="haken"
+				beschriftung="Speichern"
+				groesse="klein"
+				disabled={neu.trim() === ''}
+			/>
+		</form>
 	);
 };
 
 /**
- * Jede Vorschau rechnet `abbildungen.js` und `blatt.css` neu durch. `loading="lazy"` allein lädt im Bereich alle zugleich,
- * weil Browser weit vorausladen; darum wartet die Adresse, bis die Karte zu sehen ist (Messung im Ticket 081).
+ * Jede Vorschau rechnet `abbildungen.js` und `blatt.css` neu durch. `loading="lazy"` allein lädt im Bereich alle
+ * zugleich, weil Browser weit vorausladen; darum wartet die Adresse, bis die Kachel zu sehen ist (Messung in 081, mit
+ * zwei Spalten in 147). Den Maßstab rechnet `?fit=1` im Rahmen.
  */
 const KartenVorschau = ({ id, name }: { id: string; name: string }) => {
 	const rahmen = useRef<HTMLIFrameElement>(null);
@@ -350,26 +376,26 @@ const KartenVorschau = ({ id, name }: { id: string; name: string }) => {
 			title={`Vorschau: ${name}`}
 			loading="lazy"
 			tabIndex={-1}
-			className="pointer-events-none block h-24 w-full border-0 bg-white"
+			// Fängt keine Zeiger: Druck und Klick gehören dem Knopf darum herum.
+			className="pointer-events-none block h-20 w-full rounded-sm border-0 bg-white"
 			data-karten-vorschau
 		/>
 	);
 };
 
 /**
- * Einheitlich: Griff links, Name, ganze Vorschau. Die ganze Karte klickt und fügt ein (der Name streckt seine Klickfläche
- * über die Karte). Ziehen (094) geht mit der Maus von überall ab `MAUS_WEG`, mit dem Finger am Griff sofort und
- * sonst nach kurzem Halten (`HALTEN_MS`), damit Wischen die Liste rollt. Gezogen wird mit Lücke im Blatt
- * (`zug-von-aussen.ts`).
+ * Ein Eintrag als Kachel (147): Vorschau, darunter der Name in bis zu zwei Zeilen. Ein Knopf, der Klick fügt ein.
+ * Gezogen wird von der ganzen Kachel, mit der Maus ab `MAUS_WEG`, mit dem Finger nach `HALTEN_MS`, damit Wischen die
+ * Liste rollt. Aussehen wie `AblageKachel`, abgelegt wird aber mit Lücke im Blatt (094, `zug-von-aussen.ts`).
  */
-const Karte = ({
+const BausteinKachel = ({
 	bereich,
 	doc,
 	einfuegen,
 	eintrag,
 }: {
 	eintrag: Posten;
-	/** Bei Suchtreffern: der Bereich neben dem Namen. */
+	/** Bei Suchtreffern: die Kategorie unter dem Namen. */
 	bereich?: string;
 	doc: Document | null;
 	einfuegen: Einfuegen;
@@ -379,7 +405,7 @@ const Karte = ({
 	const druckAn = useRef<{ x: number; y: number; id: number; maus: boolean; timer: number } | null>(null);
 	const gezogen = useRef(false);
 	const abbrechen = useRef<(() => void) | null>(null);
-	const karte = useRef<HTMLDivElement>(null);
+	const knopf = useRef<HTMLButtonElement>(null);
 
 	const loese = () => {
 		if (druckAn.current) {
@@ -402,9 +428,8 @@ const Karte = ({
 			return;
 		}
 		gezogen.current = true;
-		// Fängt erst hier: Vorher ginge der Klick sonst nicht mehr an den Namen.
 		try {
-			karte.current?.setPointerCapture(id);
+			knopf.current?.setPointerCapture(id);
 		} catch {
 			// Ohne Fangen kommen die Bewegungen über dem Blatt nicht an; der Zug endet beim Loslassen trotzdem.
 		}
@@ -425,7 +450,6 @@ const Karte = ({
 		});
 	};
 	const druck = (ev: ReactPointerEvent<HTMLElement>) => {
-		const amGriff = ev.target instanceof Element && ev.target.closest('[data-ziehgriff]') !== null;
 		gezogen.current = false;
 		loese();
 		if (!ev.isPrimary) {
@@ -433,10 +457,6 @@ const Karte = ({
 		}
 		const { clientX: x, clientY: y, pointerId: id } = ev;
 		if (ev.pointerType !== 'mouse') {
-			if (amGriff) {
-				beginne(x, y, id, false);
-				return;
-			}
 			druckAn.current = {
 				x,
 				y,
@@ -462,59 +482,62 @@ const Karte = ({
 	};
 
 	return (
-		<li className="overflow-hidden rounded-lg border border-rand bg-flaeche" data-bibliothek-eintrag={eintrag.id}>
-			<div
-				ref={karte}
-				className={klassen('group relative flex select-none', amZeiger && 'cursor-grabbing')}
-				onPointerDown={druck}
-				onPointerMove={bewege}
-				// Wer schnell zieht, ist schon aus der Karte, bevor die Schwelle gemessen wurde.
-				onPointerLeave={(ev) => {
-					if (druckAn.current?.maus && ev.pointerId === druckAn.current.id) {
-						beginne(ev.clientX, ev.clientY, ev.pointerId, ev.metaKey);
-					}
-				}}
-				onPointerUp={loese}
-				onPointerCancel={loese}
-				// Langes Drücken am iPad startet das Ziehen, kein Menü.
-				onContextMenu={(ev) => {
-					if (druckAn.current || abbrechen.current) {
-						ev.preventDefault();
-					}
-				}}
-			>
-				<Griff beschriftung="Ins Blatt ziehen" className="relative z-10" data-ziehgriff={eintrag.id} />
-				<div className="min-w-0 flex-1">
-					<div className="flex flex-wrap items-baseline gap-x-1.5 py-1 pr-5 pl-1">
-						<button
-							type="button"
-							aria-label={`${eintrag.name} einfügen`}
-							title={`${eintrag.name} einfügen`}
-							className="cursor-pointer text-left leading-tight font-medium after:absolute after:inset-0 after:content-['']"
-							data-einfuegen={eintrag.id}
-							onClick={(ev) => {
-								// `detail` ist 0 bei Enter und Leertaste: Die Tastatur hat nichts gezogen.
-								if (ev.detail === 0 || !gezogen.current) {
-									einfuegen.fuegeEin(eintrag);
-								}
-							}}
-						>
-							{eintrag.name}
-						</button>
-						{bereich && (
-							<span className="text-xs leading-tight text-dezent" data-treffer-bereich>
-								{bereich}
-							</span>
-						)}
-					</div>
-					<Symbol
-						name="plus"
-						className="pointer-events-none absolute top-1 right-1 size-3.5 text-brand-500 opacity-0 group-hover:opacity-100 [@media(any-pointer:coarse)]:hidden"
-					/>
-					{/* Eigene haben keine Katalog-Adresse, ein Eintrag mit nur `klasse` hat keinen Inhalt zum Zeigen. */}
-					{!eintrag.eigen && !eintrag.klasse && <KartenVorschau id={eintrag.id} name={eintrag.name} />}
-				</div>
-			</div>
+		<li className="flex flex-col gap-1" data-bibliothek-eintrag={eintrag.id}>
+			<Tooltip text={eintrag.name} aus={amZeiger !== null}>
+				<button
+					ref={knopf}
+					type="button"
+					aria-label={`${eintrag.name} einfügen`}
+					className={klassen(
+						SCHUBLADENKACHEL,
+						'flex w-full flex-1 flex-col items-center gap-1 p-2 select-none',
+						amZeiger ? 'cursor-grabbing' : 'cursor-grab',
+					)}
+					data-einfuegen={eintrag.id}
+					onPointerDown={druck}
+					onPointerMove={bewege}
+					// Wer schnell zieht, ist schon aus der Kachel, bevor die Schwelle gemessen wurde.
+					onPointerLeave={(ev) => {
+						if (druckAn.current?.maus && ev.pointerId === druckAn.current.id) {
+							beginne(ev.clientX, ev.clientY, ev.pointerId, ev.metaKey);
+						}
+					}}
+					onPointerUp={loese}
+					onPointerCancel={loese}
+					// Langes Drücken am iPad startet das Ziehen, kein Menü.
+					onContextMenu={(ev) => {
+						if (druckAn.current || abbrechen.current) {
+							ev.preventDefault();
+						}
+					}}
+					onClick={(ev) => {
+						// `detail` ist 0 bei Enter und Leertaste: Die Tastatur hat nichts gezogen.
+						if (ev.detail === 0 || !gezogen.current) {
+							einfuegen.fuegeEin(eintrag);
+						}
+					}}
+				>
+					{/* Eigene haben keine Katalog-Adresse, ein Eintrag mit nur `klasse` hat nichts zu zeigen. */}
+					{eintrag.eigen || eintrag.klasse ? (
+						<span className="flex h-20 w-full items-center justify-center" data-kachel-symbol>
+							<Symbol
+								name={eintrag.eigen ? MEINE_BAUSTEINE_SYMBOL : BEREICH_SYMBOL[eintrag.kategorie]}
+								className="size-7 text-dezent"
+							/>
+						</span>
+					) : (
+						<KartenVorschau id={eintrag.id} name={eintrag.name} />
+					)}
+					<span className={KACHELNAME_ZWEIZEILIG} data-kachel-name>
+						{eintrag.name}
+					</span>
+					{bereich && (
+						<span className={KACHELNAME} data-treffer-bereich>
+							{bereich}
+						</span>
+					)}
+				</button>
+			</Tooltip>
 			{eintrag.eigen && <EigenVerwalten id={eintrag.eigen} name={eintrag.name} neuLaden={einfuegen.neuLaden} />}
 			{amZeiger && (
 				<AmZeiger
@@ -560,10 +583,13 @@ const BereichZeile = ({
 	</li>
 );
 
+/** Die letzte Gruppe am Start („Mehr“) endet mit „Meine Bausteine“. */
+const LETZTE_GRUPPE = KATALOG_BEREICHE.length - 1;
+
 /**
- * Links in der Leiste, in zwei Stufen: Suche, Umschalter, „Zuletzt benutzt“ und die Bereiche aus dem Katalog; ein Bereich
- * zeigt seine Einträge mit Vorschau. Der Umschalter gilt für die Bereiche. Die Suche geht immer über alles, damit das
- * Finden nie am Filter scheitert (081).
+ * Links in der Leiste, in zwei Stufen: Suche, Umschalter, „Zuletzt benutzt“ und die Bereiche aus dem Katalog; ein
+ * Bereich zeigt seine Einträge als Kacheln in zwei Spalten, die Aufgabenpakete zuletzt unter „Fertige Aufgaben“ (147).
+ * Der Umschalter gilt für die Bereiche. Die Suche geht immer über alles, damit das Finden nie am Filter scheitert (081).
  */
 export const Bibliothek = ({
 	art,
@@ -579,6 +605,7 @@ export const Bibliothek = ({
 	const [suche, setSuche] = useState('');
 	const [bereich, setBereich] = useState<string | null>(null);
 	const [filter, setFilter] = useState<Filter>(() => (localStorage.getItem(FILTER) === 'alle' ? 'alle' : 'blatt'));
+	const inhalt = useRef<HTMLDivElement>(null);
 	const waehleFilter = (neu: Filter) => {
 		setFilter(neu);
 		localStorage.setItem(FILTER, neu);
@@ -588,25 +615,34 @@ export const Bibliothek = ({
 	const passend = eintraege.filter(passt);
 	const gezeigt = filter === 'alle' ? eintraege : passend;
 	const anzahl = (liste: readonly Posten[], k: string) => liste.filter((e) => e.kategorie === k).length;
-	const gruppen = KATALOG_BEREICHE.map(({ bereiche, gruppe }) => ({
+	const hatEigene = eintraege.some((e) => e.herkunft === 'eigen');
+	const gruppen = KATALOG_BEREICHE.map(({ bereiche, gruppe }, i) => ({
 		gruppe,
 		bereiche: bereiche.filter((k) => filter === 'alle' || anzahl(passend, k) > 0),
-	})).filter((g) => g.bereiche.length > 0);
+		eigene: i === LETZTE_GRUPPE && hatEigene,
+	})).filter((g) => g.bereiche.length > 0 || g.eigene);
 	const verborgen =
 		filter === 'alle'
 			? 0
 			: KATALOG_KATEGORIEN.filter((k) => anzahl(passend, k) === 0 && anzahl(eintraege, k) > 0).length;
-	const hatEigene = eintraege.some((e) => e.herkunft === 'eigen');
 	const sucht = suche.trim() !== '';
 	const treffer = sucht ? (sucheImKatalog(suche, eintraege) as Posten[]) : [];
 	const trefferPassend = treffer.filter(passt);
 	const trefferAnderswo = treffer.filter((e) => !passt(e));
 	const imBereich = gezeigt.filter((e) => e.kategorie === bereich);
+	const elemente = imBereich.filter((e) => e.herkunft !== 'paket');
+	const pakete = imBereich.filter((e) => e.herkunft === 'paket');
 	const zuletzt = einfuegen.zuletzt.slice(0, ZULETZT_ANZAHL);
-	const karten = (liste: Posten[], mitBereich: boolean) => (
-		<ul className="flex flex-col gap-2">
+	// Start und Kategorie teilen sich den Rollbereich; ein `key` an `Schublade` nähme der Suche den Fokus.
+	useLayoutEffect(() => {
+		if (inhalt.current) {
+			inhalt.current.scrollTop = 0;
+		}
+	}, [bereich, sucht]);
+	const kacheln = (liste: Posten[], mitBereich: boolean) => (
+		<ul className={raster(2)}>
 			{liste.map((e) => (
-				<Karte
+				<BausteinKachel
 					key={e.id}
 					eintrag={e}
 					{...(mitBereich ? { bereich: e.kategorie } : {})}
@@ -620,6 +656,7 @@ export const Bibliothek = ({
 		<Schublade
 			titel={kopf('bausteine').titel}
 			daten={{ 'data-bibliothek': '' }}
+			inhaltRef={inhalt}
 			steuerung={
 				<>
 					<Schubladensuche beschriftung="Baustein suchen" wert={suche} setWert={setSuche} />
@@ -631,6 +668,20 @@ export const Bibliothek = ({
 						waehle={waehleFilter}
 						aus={sucht}
 					/>
+					{!sucht && bereich !== null && (
+						<div className={klassen(ABSCHNITT_TITEL, 'flex items-center gap-2')}>
+							<button
+								type="button"
+								className="-ml-1 flex h-zeile min-w-0 items-center gap-1 rounded-md px-1 text-left hover:bg-flaeche-2"
+								data-bereich-zurueck
+								onClick={() => setBereich(null)}
+							>
+								<Symbol name="zurueck" className="size-3.5 flex-none" />
+								<span className="truncate">{bereich}</span>
+							</button>
+							<span className={klassen(NOTIZ, 'ml-auto')}>{imBereich.length}</span>
+						</div>
+					)}
 				</>
 			}
 		>
@@ -659,7 +710,7 @@ export const Bibliothek = ({
 							</ul>
 						</Schubladenabschnitt>
 					)}
-					{gruppen.map(({ bereiche, gruppe }) => (
+					{gruppen.map(({ bereiche, eigene, gruppe }) => (
 						<Schubladenabschnitt key={gruppe} titel={gruppe} daten={{ 'data-bereich-gruppe': gruppe }}>
 							<ul className={ZEILENLISTE}>
 								{bereiche.map((k) => (
@@ -671,21 +722,17 @@ export const Bibliothek = ({
 										waehle={() => setBereich(k)}
 									/>
 								))}
+								{eigene && (
+									<BereichZeile
+										name={MEINE_BAUSTEINE}
+										symbol={MEINE_BAUSTEINE_SYMBOL}
+										anzahl={anzahl(gezeigt, MEINE_BAUSTEINE)}
+										waehle={() => setBereich(MEINE_BAUSTEINE)}
+									/>
+								)}
 							</ul>
 						</Schubladenabschnitt>
 					))}
-					{hatEigene && (
-						<Schubladenabschnitt>
-							<ul className={ZEILENLISTE}>
-								<BereichZeile
-									name={MEINE_BAUSTEINE}
-									symbol={MEINE_BAUSTEINE_SYMBOL}
-									anzahl={anzahl(gezeigt, MEINE_BAUSTEINE)}
-									waehle={() => setBereich(MEINE_BAUSTEINE)}
-								/>
-							</ul>
-						</Schubladenabschnitt>
-					)}
 					{verborgen > 0 && (
 						<Knopf
 							art="leise"
@@ -703,40 +750,41 @@ export const Bibliothek = ({
 					<Schubladenleer>{nichtsPasst(suche)}</Schubladenleer>
 				) : (
 					<>
-						{trefferPassend.length > 0 && karten(trefferPassend, true)}
+						{trefferPassend.length > 0 && kacheln(trefferPassend, true)}
 						{trefferAnderswo.length > 0 && (
 							<Schubladenabschnitt
 								titel="Aus anderen Fächern und Klassen"
 								daten={{ 'data-treffer-anderswo': '' }}
 							>
-								{karten(trefferAnderswo, true)}
+								{kacheln(trefferAnderswo, true)}
 							</Schubladenabschnitt>
 						)}
 					</>
 				))}
-			{!sucht && bereich !== null && (
-				<Schubladenabschnitt>
-					<Knopf art="leise" className="-ml-1 self-start px-1" onClick={() => setBereich(null)}>
-						<Symbol name="zurueck" />
-						{bereich}
-					</Knopf>
-					{imBereich.length === 0 ? (
-						<Schubladenleer
-							aktion={
-								filter === 'blatt' && (
-									<Knopf art="zweit" onClick={() => waehleFilter('alle')}>
-										Alle zeigen
-									</Knopf>
-								)
-							}
-						>
-							Hier passt nichts zu diesem Blatt.
-						</Schubladenleer>
-					) : (
-						karten(imBereich, false)
-					)}
-				</Schubladenabschnitt>
-			)}
+			{!sucht &&
+				bereich !== null &&
+				(imBereich.length === 0 ? (
+					<Schubladenleer
+						aktion={
+							filter === 'blatt' && (
+								<Knopf art="zweit" onClick={() => waehleFilter('alle')}>
+									Alle zeigen
+								</Knopf>
+							)
+						}
+					>
+						Hier passt nichts zu diesem Blatt.
+					</Schubladenleer>
+				) : (
+					<>
+						{elemente.length > 0 && kacheln(elemente, false)}
+						{pakete.length > 0 && (
+							<Schubladenabschnitt titel="Fertige Aufgaben" daten={{ 'data-fertige-aufgaben': '' }}>
+								{kacheln(pakete, false)}
+							</Schubladenabschnitt>
+						)}
+					</>
+				))}
 		</Schublade>
 	);
 };
