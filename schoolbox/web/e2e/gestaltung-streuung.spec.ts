@@ -224,10 +224,10 @@ test.describe('Streuung (109, 174)', () => {
 		for (const wort of ['Konfetti', 'Punkte', 'Sterne']) {
 			await suche.fill(wort);
 			await expect(page.locator('[data-formen-abschnitt="werkzeuge"] [data-werkzeug="streuen"]')).toBeVisible();
-			await expect(page.locator('[data-formen-leer]')).toHaveCount(0);
+			await expect(page.locator('[data-schublade-werkzeuge] [data-schublade-leer]')).toHaveCount(0);
 		}
 		await suche.fill('Zebra');
-		await expect(page.locator('[data-formen-leer]')).toBeVisible();
+		await expect(page.locator('[data-schublade-werkzeuge] [data-schublade-leer]')).toBeVisible();
 		await expect(page.locator('[data-formen-abschnitt="werkzeuge"]')).toHaveCount(0);
 	});
 

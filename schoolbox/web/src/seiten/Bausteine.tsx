@@ -5,7 +5,7 @@ import { Farbreihe } from '../bausteine/Farbfeld';
 import { Feld } from '../bausteine/Feld';
 import { Hilfetipp } from '../bausteine/Hilfetipp';
 import { Karte } from '../bausteine/Karte';
-import { FELD_KLASSEN, KACHEL } from '../bausteine/klassen';
+import { FELD_KLASSEN, KACHEL, klassen } from '../bausteine/klassen';
 import { Knopf } from '../bausteine/Knopf';
 import { Kuerzel } from '../bausteine/Kuerzel';
 import { Menue } from '../bausteine/Menue';
@@ -13,8 +13,22 @@ import { useZeigeMenue } from '../bausteine/menue-kontext';
 import { Popover } from '../bausteine/Popover';
 import { Reiter } from '../bausteine/Reiter';
 import { Schalter } from '../bausteine/Schalter';
+import {
+	nichtsPasst,
+	NOTIZ,
+	raster,
+	Schublade,
+	Schubladenabschnitt,
+	SCHUBLADENKACHEL,
+	Schubladenleer,
+	Schubladensuche,
+	SCHUBLADENZEILE,
+	STEUER_SEGMENT,
+	ZEILENLISTE,
+} from '../bausteine/Schublade';
 import { Segment } from '../bausteine/Segment';
 import { Stepper } from '../bausteine/Stepper';
+import { Symbol } from '../bausteine/Symbol';
 import { SymbolKnopf } from '../bausteine/SymbolKnopf';
 import { Tooltip } from '../bausteine/Tooltip';
 import { Zeile } from '../bausteine/Zeile';
@@ -42,6 +56,7 @@ export const Bausteine = () => {
 	const [reiter, setReiter] = useState('auswahl');
 	const [farbe, setFarbe] = useState<string | null>('var(--haupt)');
 	const [kachel, setKachel] = useState('a');
+	const [suche, setSuche] = useState('');
 	const zeige = useZeigeMenue();
 	return (
 		<main className="mx-auto flex max-w-4xl flex-col gap-4 p-6">
@@ -186,6 +201,57 @@ export const Bausteine = () => {
 					</Abschnitt>
 				</div>
 			</Karte>
+			<div className="flex h-105 w-70 flex-col overflow-hidden rounded-lg border border-rand bg-flaeche">
+				<Schublade
+					titel="Schublade"
+					steuerung={
+						<>
+							<Schubladensuche beschriftung="Muster suchen" wert={suche} setWert={setSuche} />
+							<Segment
+								beschriftung="Welche"
+								className={STEUER_SEGMENT}
+								wert={segment}
+								waehle={setSegment}
+								werte={[
+									{ wert: 'a', titel: 'Für dieses Blatt' },
+									{ wert: 'b', titel: 'Alle' },
+								]}
+							/>
+						</>
+					}
+				>
+					<Schubladenabschnitt titel="Formen">
+						<div className={raster(3)}>
+							{(['stern', 'formen', 'bild'] as const).map((name) => (
+								<button
+									key={name}
+									type="button"
+									className={klassen(SCHUBLADENKACHEL, 'flex h-12 items-center justify-center')}
+								>
+									<Symbol name={name} className="size-5" />
+								</button>
+							))}
+						</div>
+					</Schubladenabschnitt>
+					<Schubladenabschnitt titel="Bereiche" notiz="2">
+						<ul className={ZEILENLISTE}>
+							{(['Aufgabe und Text', 'Schreiben'] as const).map((name, i) => (
+								<li key={name}>
+									<button type="button" className={SCHUBLADENZEILE}>
+										<Symbol
+											name={i === 0 ? 'schrift' : 'schreiben'}
+											className="size-3.5 flex-none text-leise"
+										/>
+										<span className="min-w-0 flex-1 truncate">{name}</span>
+										<span className={NOTIZ}>{i === 0 ? 11 : 12}</span>
+									</button>
+								</li>
+							))}
+						</ul>
+					</Schubladenabschnitt>
+					<Schubladenleer>{nichtsPasst('zebra')}</Schubladenleer>
+				</Schublade>
+			</div>
 		</main>
 	);
 };

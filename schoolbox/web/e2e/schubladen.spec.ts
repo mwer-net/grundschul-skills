@@ -365,7 +365,7 @@ test.describe('Bilder-Schublade (093)', () => {
 		await bilder(page).getByRole('searchbox', { name: 'Bilder suchen' }).fill('keimling');
 		await expect(bilder(page).locator('[data-sammlung-bild]')).toHaveCount(1);
 		await bilder(page).getByRole('searchbox', { name: 'Bilder suchen' }).fill('kartoffelsalat');
-		await expect(bilder(page).getByText('Kein Bild passt zur Suche.')).toBeVisible();
+		await expect(bilder(page).getByText('Nichts passt zu „kartoffelsalat“.')).toBeVisible();
 	});
 
 	test('„Foto hochladen“ zeigt den Hinweis', async ({ druecke, page }) => {

@@ -1,5 +1,7 @@
 import { formVon, vollstaendig } from '@schoolbox/kern/src/formen';
 
+import { klassen } from '../../../bausteine/klassen';
+import { raster, SCHUBLADENKACHEL } from '../../../bausteine/Schublade';
 import { AblageKachel } from '../../gestaltung/ablegen/Kachel';
 import type { Rahmen } from './Bildrahmen-daten';
 import { gutVon, namenVon, RAHMEN } from './Bildrahmen-daten';
@@ -35,14 +37,14 @@ const Vorschau = ({ r }: { r: Rahmen }) => {
 export const Kacheln = ({ suche, teile }: FormenTeile) => {
 	const liste = RAHMEN.filter((r) => passtZurSuche(namenVon(r), suche));
 	return (
-		<div className="grid grid-cols-4 gap-1" data-bildrahmen-kacheln>
+		<div className={raster(4)} data-bildrahmen-kacheln>
 			{liste.map((r) => (
 				<AblageKachel
 					key={r.id}
 					teile={teile}
 					gut={gutVon(r)}
 					daten={{ 'data-bildrahmen-kachel': r.id }}
-					className="flex h-12 items-center justify-center rounded-lg bg-flaeche-2 hover:bg-brand-50"
+					className={klassen(SCHUBLADENKACHEL, 'flex h-12 items-center justify-center')}
 				>
 					<Vorschau r={r} />
 				</AblageKachel>

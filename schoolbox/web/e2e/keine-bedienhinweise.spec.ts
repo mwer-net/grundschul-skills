@@ -45,7 +45,6 @@ test.describe('Keine Bedienhinweise (169)', () => {
 		for (const bleibt of [
 			'Willi & Co. findest du unter Figuren ⌥4.',
 			'Suche prüfen.',
-			'Kein Bild passt zur Suche.',
 			'Nichts passt zu „x“.',
 			'Bitte keine Fotos, auf denen Kinder zu erkennen sind.',
 		]) {

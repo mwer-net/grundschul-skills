@@ -1,5 +1,7 @@
 import { formVon, STRICH, vollstaendig } from '@schoolbox/kern/src/formen';
 
+import { klassen } from '../../../bausteine/klassen';
+import { raster, SCHUBLADENKACHEL } from '../../../bausteine/Schublade';
 import { AblageKachel } from '../../gestaltung/ablegen/Kachel';
 import type { Grundform } from './Grundformen-daten';
 import { GRUNDFORMEN, gutVon, namenVon } from './Grundformen-daten';
@@ -42,13 +44,13 @@ const Vorschau = ({ doc, g }: { g: Grundform; doc: Document | null }) => {
 export const Kacheln = ({ suche, teile }: FormenTeile) => {
 	const liste = GRUNDFORMEN.filter((g) => passtZurSuche(namenVon(g), suche));
 	return (
-		<div className="grid grid-cols-5 gap-1" data-grundformen>
+		<div className={raster(5)} data-grundformen>
 			{liste.map((g) => (
 				<AblageKachel
 					key={g.name}
 					teile={teile}
 					gut={gutVon(g)}
-					className="flex h-12 items-center justify-center rounded-lg bg-flaeche-2 hover:bg-brand-50"
+					className={klassen(SCHUBLADENKACHEL, 'flex h-12 items-center justify-center')}
 				>
 					<Vorschau g={g} doc={teile.doc} />
 				</AblageKachel>

@@ -10,6 +10,19 @@ import { Griff } from '../bausteine/Griff';
 import { useHinweis } from '../bausteine/hinweis';
 import { FELD_KLASSEN, klassen } from '../bausteine/klassen';
 import { Knopf } from '../bausteine/Knopf';
+import {
+	nichtsPasst,
+	NOTIZ,
+	raster,
+	Schublade,
+	Schubladenabschnitt,
+	SCHUBLADENKACHEL,
+	Schubladenleer,
+	Schubladensuche,
+	SCHUBLADENZEILE,
+	STEUER_SEGMENT,
+	ZEILENLISTE,
+} from '../bausteine/Schublade';
 import { Segment } from '../bausteine/Segment';
 import type { SymbolName } from '../bausteine/Symbol';
 import { Symbol } from '../bausteine/Symbol';
@@ -20,6 +33,7 @@ import type { Einblendung } from './Leinwand';
 import { LUECKE_UND_ORIGINAL } from './luecke';
 import type { Luecke } from './navigation';
 import { lueckeAn } from './navigation';
+import { kopf } from './schubladen/reihe';
 import { sichtfeldVon } from './sichtfeld';
 import { EIGENE_GESCHICHTE } from './tasten';
 import { TEXTWERKZEUG } from './text';
@@ -536,15 +550,10 @@ const BereichZeile = ({
 	waehle: () => void;
 }) => (
 	<li>
-		<button
-			type="button"
-			className="flex h-zeile w-full items-center gap-2 rounded-md px-2 text-left hover:bg-flaeche-2"
-			data-bereich={name}
-			onClick={waehle}
-		>
+		<button type="button" className={SCHUBLADENZEILE} data-bereich={name} onClick={waehle}>
 			<Symbol name={symbol} className="size-3.5 flex-none text-leise" />
 			<span className="min-w-0 flex-1 truncate">{name}</span>
-			<span className="flex-none text-xs text-dezent tabular-nums" data-bereich-anzahl>
+			<span className={NOTIZ} data-bereich-anzahl>
 				{anzahl}
 			</span>
 		</button>
@@ -608,54 +617,51 @@ export const Bibliothek = ({
 		</ul>
 	);
 	return (
-		<section data-bibliothek className="flex flex-col gap-2">
-			<div className="relative">
-				<Symbol name="suche" className="absolute top-1/2 left-2 size-3.5 -translate-y-1/2 text-dezent" />
-				<input
-					{...EIGENE_GESCHICHTE}
-					type="search"
-					aria-label="Baustein suchen"
-					placeholder="Baustein suchen …"
-					className={`${FELD_KLASSEN} w-full pl-7`}
-					value={suche}
-					onChange={(ev) => setSuche(ev.target.value)}
-				/>
-			</div>
-			<Segment
-				beschriftung="Welche Bausteine"
-				className="w-full [&>button]:flex-1"
-				werte={FILTER_WERTE}
-				wert={filter}
-				waehle={waehleFilter}
-				aus={sucht}
-			/>
+		<Schublade
+			titel={kopf('bausteine').titel}
+			daten={{ 'data-bibliothek': '' }}
+			steuerung={
+				<>
+					<Schubladensuche beschriftung="Baustein suchen" wert={suche} setWert={setSuche} />
+					<Segment
+						beschriftung="Welche Bausteine"
+						className={STEUER_SEGMENT}
+						werte={FILTER_WERTE}
+						wert={filter}
+						waehle={waehleFilter}
+						aus={sucht}
+					/>
+				</>
+			}
+		>
 			{!sucht && bereich === null && (
 				<>
 					{zuletzt.length > 0 && (
-						<div data-zuletzt-benutzt>
-							<h2 className="mb-1 text-xs font-semibold text-leise">Zuletzt benutzt</h2>
-							<ul className="grid grid-cols-2 gap-1">
+						<Schubladenabschnitt titel="Zuletzt benutzt" daten={{ 'data-zuletzt-benutzt': '' }}>
+							<ul className={raster(2)}>
 								{zuletzt.map((e) => (
 									<li key={e.id}>
 										<Tooltip text={e.name}>
 											<button
 												type="button"
-												className="h-knopf w-full truncate rounded-md border border-rand px-2 text-left hover:bg-flaeche-2"
+												className={klassen(
+													SCHUBLADENKACHEL,
+													'flex h-zeile w-full items-center px-2 text-left',
+												)}
 												data-zuletzt={e.id}
 												onClick={() => einfuegen.fuegeEin(e)}
 											>
-												{e.name}
+												<span className="truncate">{e.name}</span>
 											</button>
 										</Tooltip>
 									</li>
 								))}
 							</ul>
-						</div>
+						</Schubladenabschnitt>
 					)}
 					{gruppen.map(({ bereiche, gruppe }) => (
-						<div key={gruppe} data-bereich-gruppe={gruppe}>
-							<h2 className="px-2 text-xs font-semibold text-leise">{gruppe}</h2>
-							<ul className="flex flex-col">
+						<Schubladenabschnitt key={gruppe} titel={gruppe} daten={{ 'data-bereich-gruppe': gruppe }}>
+							<ul className={ZEILENLISTE}>
 								{bereiche.map((k) => (
 									<BereichZeile
 										key={k}
@@ -666,20 +672,27 @@ export const Bibliothek = ({
 									/>
 								))}
 							</ul>
-						</div>
+						</Schubladenabschnitt>
 					))}
 					{hatEigene && (
-						<ul className="flex flex-col">
-							<BereichZeile
-								name={MEINE_BAUSTEINE}
-								symbol={MEINE_BAUSTEINE_SYMBOL}
-								anzahl={anzahl(gezeigt, MEINE_BAUSTEINE)}
-								waehle={() => setBereich(MEINE_BAUSTEINE)}
-							/>
-						</ul>
+						<Schubladenabschnitt>
+							<ul className={ZEILENLISTE}>
+								<BereichZeile
+									name={MEINE_BAUSTEINE}
+									symbol={MEINE_BAUSTEINE_SYMBOL}
+									anzahl={anzahl(gezeigt, MEINE_BAUSTEINE)}
+									waehle={() => setBereich(MEINE_BAUSTEINE)}
+								/>
+							</ul>
+						</Schubladenabschnitt>
 					)}
 					{verborgen > 0 && (
-						<Knopf art="leise" className="self-start" data-weitere onClick={() => waehleFilter('alle')}>
+						<Knopf
+							art="leise"
+							className="-ml-2.5 self-start"
+							data-weitere
+							onClick={() => waehleFilter('alle')}
+						>
 							{`${verborgen === 1 ? '1 weiterer' : `${verborgen} weitere`} unter Alle`}
 						</Knopf>
 					)}
@@ -687,40 +700,43 @@ export const Bibliothek = ({
 			)}
 			{sucht &&
 				(treffer.length === 0 ? (
-					<p className="text-leise">{`Nichts passt zu „${suche.trim()}“.`}</p>
+					<Schubladenleer>{nichtsPasst(suche)}</Schubladenleer>
 				) : (
 					<>
 						{trefferPassend.length > 0 && karten(trefferPassend, true)}
 						{trefferAnderswo.length > 0 && (
-							<div data-treffer-anderswo>
-								<h2 className="mb-1 text-xs font-semibold text-leise">
-									Aus anderen Fächern und Klassen
-								</h2>
+							<Schubladenabschnitt
+								titel="Aus anderen Fächern und Klassen"
+								daten={{ 'data-treffer-anderswo': '' }}
+							>
 								{karten(trefferAnderswo, true)}
-							</div>
+							</Schubladenabschnitt>
 						)}
 					</>
 				))}
 			{!sucht && bereich !== null && (
-				<>
+				<Schubladenabschnitt>
 					<Knopf art="leise" className="-ml-1 self-start px-1" onClick={() => setBereich(null)}>
 						<Symbol name="zurueck" />
 						{bereich}
 					</Knopf>
 					{imBereich.length === 0 ? (
-						<>
-							<p className="text-leise">Hier passt nichts zu diesem Blatt.</p>
-							{filter === 'blatt' && (
-								<Knopf art="zweit" className="self-start" onClick={() => waehleFilter('alle')}>
-									Alle zeigen
-								</Knopf>
-							)}
-						</>
+						<Schubladenleer
+							aktion={
+								filter === 'blatt' && (
+									<Knopf art="zweit" onClick={() => waehleFilter('alle')}>
+										Alle zeigen
+									</Knopf>
+								)
+							}
+						>
+							Hier passt nichts zu diesem Blatt.
+						</Schubladenleer>
 					) : (
 						karten(imBereich, false)
 					)}
-				</>
+				</Schubladenabschnitt>
 			)}
-		</section>
+		</Schublade>
 	);
 };
