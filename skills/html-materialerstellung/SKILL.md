@@ -21,6 +21,7 @@ Warum: In HTML bestimmen wir Schrift (Fredoka, Andika, eingebettet), Abstände u
 | `assets/vorlage-minibuch.html` | Faltbuch aus einem A4-Blatt, acht Seiten mit Satzmuster, Faltanleitung auf dem Lösungsblatt (Abschnitt „Mini-Book“) |
 | `assets/vorlage-forscherbogen-12.html`, `assets/vorlage-forscherbogen-34.html` | Forscherbogen bildgestützt (Kl. 1/2) und schriftlich (Kl. 3/4); Sicherheitshinweise als `.nur-loesung` im Kopf, Malfläche `.malfeld` |
 | `assets/beispiel-zehner-einer-kl2.html` | geprüftes Beispiel in s/w (Bündeln, Stellentafel, Sternchenaufgabe, Lösungen) |
+| `assets/beispiel-reihe-kapitel.html` | geprüftes Kapitel einer Reihe: Seite für die Lehrkraft, Fall-Karte, Niveau-Seite mit Rahmen, Kapitel-Marke, Symbolen, Beweis-Rätsel und Fußzeile |
 | `assets/beispiel-deckblatt-formen.html` | geprüftes Deckblatt mit frei liegender Gestaltung: Seitenfläche, Formen, Schmuckschrift, Figur am Anker, Sprechblase, Konfetti (`references/gestaltung.md`) |
 | `assets/fonts/` | Fredoka (Überschrift), Andika (Text, einstöckiges a/g, Schulziffern), Playwrite DE VA (Vereinfachte Ausgangsschrift für Schreibvorlagen), OFL-Lizenz |
 | `assets/bilder/` | Willi, Wilma, Wachstumsgrafik farbig und als Strichzeichnung (`references/bilder.md`) |
@@ -28,6 +29,7 @@ Warum: In HTML bestimmen wir Schrift (Fredoka, Andika, eingebettet), Abstände u
 | `references/layout.md` | Raster, Platzbudget, Klassen und Regeln für sauberes HTML |
 | `references/visuelle-endkontrolle.md` | Pflichtprüfung des fertigen Blatts |
 | `references/bilder.md` | Leitfigur, KI-Bilder und -Grafiken mit Canva erzeugen und ins Blatt holen |
+| `references/verkauf.md` | nur wenn das Material verkauft werden soll (Eduki): Deckblatt, Handreichung, Quellenverzeichnis, Angebotstext |
 | `references/gestaltung.md` | frei liegende Gestaltung: Ebenen, Lage, Anker, Arten, s/w; Farben und Didaktik der Gestaltung stehen in `grundschul-didaktik/references/gestaltung.md` |
 
 ## Ablauf
@@ -73,6 +75,8 @@ Ist im Projekt eine Schoolbox eingerichtet (Ordner `schoolbox/`, Projektanweisun
 - Aufgabe: `.aufgabe` > `.nr` (oder `.nr.stern`) + `.anw` (`.text` + `.niveau` mit `<i>` je Punkt, in Klassenarbeiten stattdessen `.punkte`) + `.koerper`.
 - Items: `.reihe` mit `--spalten`, darin `.zelle` (`.links` für linksbündig), `.zeile` für Rechenzeilen, `.antwort` (`.kurz`, `.breit`, `.lang`), `.schreiblinie`, `.box` (Ankreuzkästchen).
 - Fuß (nur mit Selbsteinschätzung): `.fuss` mit Text, Wachstumsgrafik, `.reflexion`.
+- Anweisungs-Symbol: `<span class="sym" data-sym="schreiben"></span>` in `.anw` vor `.text`, genau eines je Aufgabe: `schreiben`, `malen`, `lesen`, `sprechen`, `schneiden`, `kleben`, `verbinden`, `ankreuzen`, `rechnen`, `suchen`, `partner`, `wuerfeln`, `legen`.
+- Reihe: `.seite.lk` (Seite für die Lehrkraft mit `.lk-kopf`, `.lk-leiste`, `.phase`, `.kasten`), `.seite.fall` (Fall-Karte mit `.fall-bild`, `.fall-band`, `.fall-innen`, `.fall-frage`), `.kapitel-marke` in der Namenszeile, `.aufgabe.beweis` mit `.beweis-marke`, `.fuss-zeile`. Abschauen in `assets/beispiel-reihe-kapitel.html`.
 - Karten: `.karten` mit `--spalten`, `.karte`, `.kartentext`, `.ecke`.
 - Folien: Abschnitt „Folien“.
 - Eigene Gestaltung kommt als Thema über die Kit-Bausteine, nicht als eigene Struktur: `references/layout.md`, Abschnitt „Baukasten und Thema“. Eigene Klassen und `<style>` sind die begründete Ausnahme.

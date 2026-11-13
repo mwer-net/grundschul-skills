@@ -236,6 +236,7 @@ Der Weg einer Änderung: Branch im Entwicklerklon, nach `main` zusammenführen u
 
 - Die Canva-KI erzeugt Bilder und Grafiken nach Bedarf: Sachbilder, Wortschatz- und Anlautbilder, Bildergeschichten, unbeschriftete Sachgrafiken, neue Posen von Willi und Wilma. Die Skills holen sie als PNG in Originalauflösung und bauen sie ins HTML ein (`html-materialerstellung/references/bilder.md`). Canva for Education ist für Lehrkräfte kostenlos.
 - Layout und Text entstehen nie in Canva, und exakte Abbildungen (Uhren, Mengen, Zahlenstrahl) nie per KI.
+- Die Schoolbox erreicht Canva über den MCP-Server von Canva, nicht über den Connector von claude.ai. Einmal einrichten: `claude mcp add --transport http --scope user canva https://mcp.canva.com/mcp`, dann in `claude` mit `/mcp` anmelden. Der Name `canva` ist fest (`CANVA_MCP` in `schoolbox/server/src/ki.ts`); die Läufe der Schoolbox bringen den Server selbst mit und nutzen nur diese Anmeldung.
 - Das fertige PDF lässt sich in Canva hochladen, wenn jemand dort weiterarbeiten möchte.
 
 ## Schriften

@@ -21,6 +21,7 @@ import {
 import { erzeugeReferenz } from '@schoolbox/kern/src/referenz';
 
 import {
+	CANVA_MCP,
 	canvaEinstellungen,
 	KI_GRENZEN,
 	kiArgumente,
@@ -1513,8 +1514,13 @@ describe('Aufruf für ein Canva-Bild (176)', () => {
 		'edit-design',
 		'resize-design',
 		'export-design',
-	].map((w) => `mcp__claude_ai_Canva__${w}`);
-	const KONNEKTOREN = ['mcp__claude_ai_Gmail', 'mcp__claude_ai_Google_Drive', 'mcp__claude_ai_Claude_Docs'];
+	].map((w) => `mcp__canva__${w}`);
+	const KONNEKTOREN = [
+		'mcp__claude_ai_Gmail',
+		'mcp__claude_ai_Google_Drive',
+		'mcp__claude_ai_Claude_Docs',
+		'mcp__claude_ai_Canva',
+	];
 	const SCHLUSS = ['--permission-mode', 'dontAsk'];
 
 	it('Schnappschuss: genau diese Liste', () => {
@@ -1526,6 +1532,9 @@ describe('Aufruf für ein Canva-Bild (176)', () => {
 			'/tmp/a',
 			'--settings',
 			canvaEinstellungen(),
+			'--strict-mcp-config',
+			'--mcp-config',
+			CANVA_MCP,
 			'--tools',
 			'Read,Edit,Write',
 			'--allowedTools',
@@ -1561,7 +1570,8 @@ describe('Aufruf für ein Canva-Bild (176)', () => {
 		assert.ok(!text.includes('material.html'));
 		assert.ok(!text.includes('dokumente/'));
 		assert.ok(!text.includes('--resume'));
-		assert.ok(!args.includes('--strict-mcp-config'));
+		assert.ok(args.includes('--strict-mcp-config'));
+		assert.equal(args[args.indexOf('--mcp-config') + 1], CANVA_MCP);
 		const verboten = args.slice(args.indexOf('--disallowedTools') + 1, args.indexOf('--permission-mode'));
 		for (const k of KONNEKTOREN) {
 			assert.ok(verboten.includes(k), k);
@@ -1617,6 +1627,9 @@ describe('Aufruf für ein Canva-Bild (176)', () => {
 			'/tmp/a',
 			'--settings',
 			canvaEinstellungen(),
+			'--strict-mcp-config',
+			'--mcp-config',
+			CANVA_MCP,
 			'--tools',
 			'Read,Edit,Write,Skill',
 			'--allowedTools',

@@ -204,6 +204,8 @@ export interface EinheitWahl {
 	leitfigur: (typeof EINHEIT_LEITFIGUR)[number];
 	aussehen: (typeof EINHEIT_AUSSEHEN)[number];
 	bilder: boolean;
+	verkauf: boolean;
+	autor: string;
 }
 
 export const leereEinheit = (): EinheitWahl => ({
@@ -220,6 +222,8 @@ export const leereEinheit = (): EinheitWahl => ({
 	leitfigur: 'beide',
 	aussehen: 'eigen',
 	bilder: true,
+	verkauf: false,
+	autor: '',
 });
 
 export const EINHEIT_FELDER = {
@@ -230,6 +234,7 @@ export const EINHEIT_FELDER = {
 	},
 	dauerText: { name: 'Anders …', platz: 'z. B. 5 Wochen, je 2 Stunden', zeichen: 60 },
 	nochEtwas: { name: 'Noch etwas …', platz: 'z. B. ein Elternbrief', zeichen: EINHEIT_ZEICHEN.frei },
+	autor: { name: 'Name auf dem Deckblatt', platz: 'z. B. dein Name bei Eduki', zeichen: EINHEIT_ZEICHEN.autor },
 	idee: { name: 'Idee', platz: 'z. B. Detektive lösen Fälle rund um die Uhr', zeichen: EINHEIT_ZEICHEN.idee },
 	ziel: { name: 'Ich-kann-Ziel', platz: 'z. B. Ich kann volle Stunden ablesen.', zeichen: EINHEIT_ZEICHEN.ziel },
 } as const;
@@ -538,7 +543,8 @@ export const ASSISTENT_SCHRITTE: readonly AssistentSchritt[] = [
 			'Vorgewählt ist, was eine Reihe meist braucht. Claude legt je Bestandteil ein oder mehrere Materialien an.',
 		wege: ['claude'],
 		einheit: 'nur',
-		antwort: (a) => `${einheitBestandteile(a.eh).length + (voll(a.eh.nochEtwas) ? 1 : 0)} Bestandteile`,
+		antwort: (a) =>
+			`${einheitBestandteile(a.eh).length + (voll(a.eh.nochEtwas) ? 1 : 0)} Bestandteile${a.eh.verkauf ? ' · für Eduki' : ''}`,
 	},
 	{
 		id: 'eRahmen',
@@ -755,6 +761,8 @@ export const einheitAngabenAus = (a: Antworten): EinheitAngaben => {
 		leitfigur: a.eh.leitfigur,
 		aussehen: a.eh.aussehen,
 		bilder: a.eh.bilder,
+		verkauf: a.eh.verkauf,
+		autor: a.eh.verkauf ? a.eh.autor.trim() : '',
 		bausteine: {
 			selbsteinschaetzung: an('selbsteinschaetzung'),
 			niveaus: an('niveaus'),

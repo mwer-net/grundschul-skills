@@ -9,7 +9,7 @@ import type { ChildProcessWithoutNullStreams } from 'node:child_process';
 import { spawn } from 'node:child_process';
 import { createHash, randomBytes } from 'node:crypto';
 import { existsSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
-import { appendFile, mkdir, readdir, readFile, rm, stat } from 'node:fs/promises';
+import { appendFile, copyFile, mkdir, readdir, readFile, rm, stat } from 'node:fs/promises';
 import { homedir, tmpdir } from 'node:os';
 import path from 'node:path';
 import { createInterface } from 'node:readline';
@@ -61,6 +61,30 @@ const PID = 'pid';
 const TAKT_MS = 2000;
 const MAX_PLAN_BYTES = 256 * 1024;
 const SLUG = /^[a-z0-9][a-z0-9-]{0,59}$/;
+const SEITENBILD = /^seite-(\d+)\.png$/;
+/** Mit `v-`, Seitenzahl und Endung bleibt der Name unter den 60 Zeichen, die ein Bild der Mappe haben darf. */
+const VORSCHAU_SLUG = 44;
+
+/**
+ * Einheit zum Verkauf: Das Deckblatt zeigt echte Seiten der Materialien (`html-materialerstellung/references/verkauf.md`).
+ * Dafür liegen die Seitenbilder jedes Baus als Bilder der Mappe im Arbeitsordner; in die Schoolbox kommt nur, was das
+ * Deckblatt nennt.
+ */
+const legeVorschauAb = async (arbeit: string, dokument: string, bilder: string[]) => {
+	const seiten = bilder.map((b) => SEITENBILD.exec(b)).filter((t): t is RegExpExecArray => t !== null);
+	if (seiten.length === 0) {
+		return null;
+	}
+	const kurz = dokument.slice(0, VORSCHAU_SLUG).replace(/-+$/, '');
+	await mkdir(path.join(arbeit, 'bilder'), { recursive: true });
+	for (const t of seiten) {
+		await copyFile(
+			path.join(arbeit, ANSICHT_ORDNER, dokument, t[0]),
+			path.join(arbeit, 'bilder', `v-${kurz}-${t[1]}.png`),
+		);
+	}
+	return `Seitenbilder für das Deckblatt: ../../bilder/v-${kurz}-<Seite>.png, Seite 1 bis ${seiten.length}.`;
+};
 const AENDERUNG_ZEICHEN = 2000;
 type Stufe = 'plan' | 'bau';
 const BILD_IM_DOKUMENT = /\.\.\/\.\.\/bilder\/([a-z0-9][a-z0-9-]{0,59}\.(?:png|jpg))/g;
@@ -381,7 +405,10 @@ export const erstelleEinheiten = (kontext: Kontext, pruefer: KiPruefer) => {
 				datei,
 				path.join(arbeitDir(s.id), ANSICHT_ORDNER, dokument),
 			);
-			return { text: ansichtText(ansicht, `${ANSICHT_ORDNER}/${dokument}`) };
+			const vorschau = s.verkauf ? await legeVorschauAb(arbeitDir(s.id), dokument, ansicht.bilder) : null;
+			return {
+				text: [ansichtText(ansicht, `${ANSICHT_ORDNER}/${dokument}`), vorschau].filter(Boolean).join('\n'),
+			};
 		};
 
 	const lauf = async (s: EinheitStand, text: string, sitzung: string | null, zeitMs = KI_GRENZEN.einheit.zeitMs) => {
@@ -640,6 +667,7 @@ export const erstelleEinheiten = (kontext: Kontext, pruefer: KiPruefer) => {
 			korrigiert: false,
 			auftrag: teil,
 			bilder: angaben.bilder,
+			verkauf: angaben.verkauf,
 			geladeneBilder: 0,
 			fehlgeschlageneBilder: 0,
 			planText: null,

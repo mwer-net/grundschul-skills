@@ -9,7 +9,7 @@ import type { EinheitStand, Pruefbericht } from '@schoolbox/kern';
 import { einheitAuftragAus, lesePlan, mappenDir, pruefeEinheitAngaben, themaBefund } from '@schoolbox/kern';
 
 import { einheitenWurzel } from './einheit';
-import { VERBRAUCH_DATEI } from './ki';
+import { CANVA_MCP, VERBRAUCH_DATEI } from './ki';
 import { CSRF_HEADER } from './schutz';
 import type { TestServer } from './testhilfe';
 import { KI_ATTRAPPE, starteTestServer } from './testhilfe';
@@ -46,7 +46,7 @@ describe('Plan und Thema der Einheit (139)', () => {
 		assert.match(schlicht, /schlicht, ohne thema\.css\./);
 	});
 
-	it('Plan: ungültige Slugs, doppelte und fremde Arten fallen heraus, höchstens max', () => {
+	it('Plan: ungültige Slugs, doppelte und fremde Formate fallen heraus, höchstens max; fremde Arten bleiben', () => {
 		const plan = lesePlan(
 			{
 				titel: 'Uhrzeit',
@@ -54,7 +54,7 @@ describe('Plan und Thema der Einheit (139)', () => {
 					{ slug: 'fall-1', art: 'arbeitsblatt', format: 'a4-hoch', fertig: true },
 					{ slug: 'fall-1', art: 'arbeitsblatt', format: 'a4-hoch' },
 					{ slug: '../boese', art: 'arbeitsblatt', format: 'a4-hoch' },
-					{ slug: 'fall-2', art: 'zauberei', format: 'a4-hoch' },
+					{ slug: 'fall-2', art: 'arbeitsblatt', format: 'riesig' },
 					{ slug: 'fall-3', art: 'arbeitsblatt', format: 'a4-hoch' },
 					{ slug: 'fall-4', art: 'arbeitsblatt', format: 'a4-hoch' },
 				],
@@ -69,6 +69,21 @@ describe('Plan und Thema der Einheit (139)', () => {
 			],
 		);
 		assert.equal(lesePlan('kaputt'), null);
+		const arten = lesePlan({
+			dokumente: [
+				{ slug: 'wortkarten', art: 'bild-und-wortkarten', format: 'a4-hoch', fertig: true },
+				{ slug: 'theke', art: 'stationenlernen', format: 'a4-hoch' },
+				{ slug: 'zauber', art: 'zauberei', format: 'a4-hoch' },
+			],
+		});
+		assert.deepEqual(
+			arten?.dokumente.map((d) => [d.slug, d.art, d.fertig]),
+			[
+				['wortkarten', 'karten', true],
+				['theke', 'stationen', false],
+				['zauber', 'sonstiges', false],
+			],
+		);
 	});
 
 	it('Thema: kein @import, kein url(), keine Skripte', () => {
@@ -161,7 +176,8 @@ describe('Lauf einer Einheit (139)', () => {
 		await bis(id, 'fertig');
 		const mit = (await aufrufe()).at(-1) ?? [];
 		assert.ok(mit.includes('--settings'));
-		assert.ok(!mit.includes('--strict-mcp-config'));
+		assert.ok(mit.includes('--strict-mcp-config'));
+		assert.ok(mit.includes(CANVA_MCP));
 	});
 
 	it('Skript im Material: nicht übernommen, eine Korrekturrunde, danach sauber', async () => {

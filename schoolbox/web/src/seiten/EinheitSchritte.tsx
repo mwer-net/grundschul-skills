@@ -237,12 +237,31 @@ export const SchrittEUmfang = ({
 	</>
 );
 
+/** Der Name auf dem Deckblatt bleibt für die nächste Einheit stehen. */
+const AUTOR = 'schoolbox.einheit.autor';
+const gemerkterAutor = () => {
+	try {
+		return (localStorage.getItem(AUTOR) ?? '').slice(0, EINHEIT_FELDER.autor.zeichen);
+	} catch {
+		return '';
+	}
+};
+const merkeAutor = (name: string) => {
+	try {
+		localStorage.setItem(AUTOR, name.trim());
+	} catch {
+		// Ohne Speicher tippt die Lehrkraft den Namen beim nächsten Mal neu.
+	}
+};
+
 /** Nimmt einen Bestandteil heraus oder dazu. */
 const umgeschaltet = (an: string[], name: string, gewaehlt: boolean) =>
 	gewaehlt ? an.filter((x) => x !== name) : [...an, name];
 
 export const SchrittEBestandteile = ({ a, setzeEh }: { a: Antworten; setzeEh: SetzeEh }) => {
 	const an = einheitBestandteile(a.eh);
+	const schalteVerkauf = (ein: boolean) =>
+		setzeEh({ verkauf: ein, autor: ein && a.eh.autor === '' ? gemerkterAutor() : a.eh.autor });
 	return (
 		<>
 			<div role="group" aria-label="Bestandteile" className="flex flex-wrap gap-1.5" data-einheit-bestandteile>
@@ -263,6 +282,31 @@ export const SchrittEBestandteile = ({ a, setzeEh }: { a: Antworten; setzeEh: Se
 				<Etikett zusatz="optional">{EINHEIT_FELDER.nochEtwas.name}</Etikett>
 				<EinheitFeld feld="nochEtwas" wert={a.eh.nochEtwas} setze={(t) => setzeEh({ nochEtwas: t })} />
 			</label>
+			<div className="mt-4 rounded-lg border border-rand px-3 py-2" data-einheit-verkauf={a.eh.verkauf}>
+				<div className="flex items-center gap-3">
+					<span className="min-w-0 flex-1">
+						<span className="block font-medium">Für den Verkauf auf Eduki</span>
+						<span className="block text-sm text-leise">
+							Dazu kommen ein Deckblatt, eine Handreichung für andere Lehrkräfte, das Quellenverzeichnis
+							und ein Text für dein Angebot.
+						</span>
+					</span>
+					<Schalter name="Für den Verkauf auf Eduki" an={a.eh.verkauf} setze={schalteVerkauf} />
+				</div>
+				{a.eh.verkauf && (
+					<label className="mt-2 block">
+						<Etikett zusatz="optional">{EINHEIT_FELDER.autor.name}</Etikett>
+						<EinheitFeld
+							feld="autor"
+							wert={a.eh.autor}
+							setze={(t) => {
+								merkeAutor(t);
+								setzeEh({ autor: t });
+							}}
+						/>
+					</label>
+				)}
+			</div>
 		</>
 	);
 };

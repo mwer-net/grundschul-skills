@@ -48,7 +48,17 @@
 			"mcp__claude_ai_Canva__read-design",
 			"mcp__claude_ai_Canva__edit-design",
 			"mcp__claude_ai_Canva__export-design",
-			"mcp__claude_ai_Canva__create-upload-url"
+			"mcp__claude_ai_Canva__create-upload-url",
+			"mcp__canva__generate-image",
+			"mcp__canva__get-generate-image-job",
+			"mcp__canva__remove-background",
+			"mcp__canva__get-assets",
+			"mcp__canva__search-designs",
+			"mcp__canva__resize-design",
+			"mcp__canva__read-design",
+			"mcp__canva__edit-design",
+			"mcp__canva__export-design",
+			"mcp__canva__create-upload-url"
 		]
 	}
 }

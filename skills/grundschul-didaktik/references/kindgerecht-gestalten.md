@@ -129,7 +129,7 @@ Eine durchgehende Geschichte trägt eine ganze Unterrichtsreihe besser als einze
 
 - **Rahmen:** ein Problem, das sich nur mit dem Lernziel der Reihe lösen lässt (etwas ist verschwunden, kaputt, verzaubert); jede Stunde ein Kapitel oder Fall, dessen Rätsel genau das Ich-kann-Ziel der Stunde ist. Die letzte Stunde löst den Rahmen auf (Überprüfung als „Prüfung“, Fest, Urkunde).
 - **Szenenkarte je Stunde** (Karte, Plakat oder Folie für den Kreisinput): Szenenbild über die volle Breite, Titel des Kapitels, kurze Geschichte (Kl. 1/2: drei bis fünf kurze Sätze zum Vorlesen), darunter die Frage der Stunde in einem Rätselkasten. Das Szenenbild ist hier Erzählanlass mit Funktion; der Weglass-Test gilt weiter für die Arbeitsblätter.
-- **Arbeitsblätter bleiben ruhig:** Sie greifen das Kapitel im Titel auf („Fall 3: …“) und haben höchstens die Leitfigur mit Tipp, keine Szenenbilder.
+- **Arbeitsblätter bleiben ruhig:** Sie greifen das Kapitel im Titel auf („Fall 3: …“) und haben höchstens die Leitfigur mit Tipp, keine Szenenbilder. Rahmen, Kapitel-Marke und Fußzeile halten die Blätter einer Reihe zusammen (`unterrichtsplanung/references/reihe-als-geschichte.md`, Abschnitt 3).
 - **Leitfigur in Bewegung:** Willi oder Wilma zeigt in jeder Szene eine andere Handlung und Pose passend zur Geschichte (rennt, kniet und misst, staunt, zeigt auf eine Spur, jubelt). Immer dieselbe Standardpose wirkt langweilig und erzählt nichts.
 - **Wiedererkennbar:** Leitfigur und höchstens ein bis zwei Nebenfiguren mit fester Aussehen-Beschreibung und denselben Referenzbildern in allen Szenen; der Szenen-Stil-Satz ist für die ganze Reihe gleich.
 - Szenen erst erzeugen, wenn alle Geschichten der Reihe stehen; danach jede Szene gegen ihren Text prüfen.

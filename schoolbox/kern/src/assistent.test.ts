@@ -382,4 +382,18 @@ describe('Assistent: Unterrichtseinheit (140)', () => {
 		assert.match(text, /5 Wochen/);
 		assert.doesNotMatch(text, /Lernzielkontrolle/);
 	});
+
+	it('Verkauf auf Eduki steht nur im Auftrag, wenn er gewählt ist', () => {
+		const auftrag = (eh: Partial<ReturnType<typeof leereEinheit>>) =>
+			einheitAuftragAus(
+				pruefeEinheitAngaben(einheitAngabenAus(einheit({ titel: 'Geld', eh: { ...leereEinheit(), ...eh } }))),
+			);
+		assert.doesNotMatch(auftrag({}), /Eduki/);
+		assert.doesNotMatch(auftrag({ autor: 'Lernwerkstatt Muster' }), /Eduki|Lernwerkstatt/);
+		assert.match(auftrag({ verkauf: true }), /Die Einheit soll auf Eduki verkauft werden\.$/);
+		assert.match(
+			auftrag({ verkauf: true, autor: ' Lernwerkstatt Muster ' }),
+			/auf Eduki verkauft werden, Name auf dem Deckblatt: Lernwerkstatt Muster\.$/,
+		);
+	});
 });

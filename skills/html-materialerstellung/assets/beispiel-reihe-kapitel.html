@@ -1,0 +1,247 @@
+<!doctype html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<title>Kl2_Mathe_Uhrzeit_Kapitel1</title>
+<link rel="stylesheet" href="blatt.css">
+<script src="abbildungen.js"></script>
+</head>
+<!-- Geprüftes Beispiel „Kapitel einer Reihe“ (unterrichtsplanung/references/reihe-als-geschichte.md, Abschnitt 3):
+     Seite für die Lehrkraft, Fall-Karte, Niveau-Seite ●● mit Vorder- und Rückseite, Detektiv-Karte. Die Seiten für ● und ●●● haben
+     denselben Aufbau. Alle Klassen kommen aus blatt.css. In einer Mappe kommen die Farben aus thema.css
+     (references/layout.md, „Baukasten und Thema“) statt aus der Palette, und Szenenbild und Pose der Figur liegen
+     unter ../../bilder/. -->
+<body class="kl2 farbe palette-himmel" data-zeit="20">
+
+<!-- Seite 1: für die Lehrkraft. Kopf, Leiste, Ich-kann-Ziel, je Phase eine Zeile, Kästen. -->
+<section class="seite lk">
+  <div class="lk-kopf"><span class="lk-marke">Für die Lehrkraft</span><h1>Kapitel 1: Die Turmuhr steht still</h1></div>
+  <div class="lk-leiste"><span>Stunde 1 von 5</span><span>Volle und halbe Stunden</span><span>45 Minuten</span></div>
+  <p class="ich-kann">Ich kann volle und halbe Stunden ablesen und einstellen.</p>
+  <p><b>Material:</b> Fall-Karte (Seite 2) am Whiteboard, Lernuhr für den Kreis, Detektiv-Karte (Begleitmaterial, je Kind eine), Blätter ● ●● ●●● doppelseitig (hier ●●: Seiten 3 und 4), Lösungsblatt zum Aushängen.</p>
+  <div class="phase">
+    <div class="phase-kopf">Kreisinput<small>12 min · Sitzkreis</small></div>
+    <div>
+      <ol>
+        <li>Fall-Karte zeigen und vorlesen. Die Kinder beschreiben das Bild: Was ist anders als sonst?</li>
+        <li>Lernuhr in die Mitte. Laut vordenken: „Ich schaue zuerst auf den kleinen Zeiger. Er steht genau auf der 4. Der große steht auf der 12. Also ist es 4 Uhr.“ Dann halb 5: „Der kleine Zeiger ist schon an der 4 vorbei. Der große steht auf der 6. Es ist halb 5.“</li>
+        <li>Zwei Kinder stellen eine Zeit ein, die anderen lesen ab. Erwartet: „halb 8, weil der kleine Zeiger zwischen 7 und 8 steht.“</li>
+        <li>Die drei Blätter vorstellen: „● Du liest ab. ●● Du liest ab und stellst ein. ●●● Du findest heraus, wie spät es eine Stunde später ist.“</li>
+      </ol>
+    </div>
+  </div>
+  <div class="phase">
+    <div class="phase-kopf">Lernaufgaben<small>25 min · frei gewählt</small></div>
+    <div>
+      <p>Die Kinder wählen ihr Blatt. Wer fertig ist, vergleicht mit dem Lösungsblatt und hilft dann als Hilfs-Detektiv.</p>
+      <p><b>Gemeinsam:</b> Das Beweis-Rätsel lösen immer zwei Kinder zusammen. Eines liest die Uhr, das andere prüft an der Lernuhr.</p>
+    </div>
+  </div>
+  <div class="phase">
+    <div class="phase-kopf">Reflexion<small>8 min · Sitzkreis</small></div>
+    <div>
+      <p>Beweis nennen lassen: <b>T</b> (die Eule hat es um halb 4 zuerst gemerkt). Alle tragen ihn in die Detektiv-Karte ein. Frage: „Bei welcher Uhr musstest du zweimal hinschauen? Was hat dir geholfen?“</p>
+    </div>
+  </div>
+  <div class="lk-spalten">
+    <div class="kasten"><b>Gut zu wissen</b>Bei „halb 5“ lesen viele Kinder „halb 4“, weil der kleine Zeiger näher an der 4 steht. Hilfe: „Halb 5 heißt: Der Weg zur 5 ist halb geschafft.“</div>
+    <div class="kasten hinweis"><b>Wenn die Zeit knapp ist</b>Die Rückseite ohne Beweis-Rätsel in die nächste Stunde legen. Das Rätsel lösen alle heute, damit jedes Kind seinen Buchstaben hat.</div>
+  </div>
+  <div class="kasten"><b>Nicht verraten</b>Wer die Uhr angehalten hat, erfahren die Kinder erst in Kapitel 5. Auf Seite 2 ist im Bild die erste Spur versteckt: die Feder am Fensterbrett.</div>
+  <div class="fuss-zeile">Das Rätsel der Turmuhr · Kapitel 1</div>
+</section>
+
+<!-- Seite 2: Fall-Karte für den Kreisinput. Bild randlos, Marke im Bild, Geschichte zum Vorlesen, Frage der Stunde. -->
+<section class="seite fall">
+  <div class="fall-bild">
+    <!-- im Material steht hier das Szenenbild als img, Querformat 16:9, aus dem Ordner bilder der Mappe -->
+    <div class="platzhalter">Bild: Marktplatz von Uhrenhausen am Morgen, die Turmuhr steht still, am Fensterbrett liegt eine Feder</div>
+    <div class="fall-band">Kapitel 1</div>
+  </div>
+  <div class="fall-innen">
+    <h1>Die Turmuhr steht still</h1>
+    <div class="fall-thema">Volle und halbe Stunden</div>
+    <div class="fall-text">
+      <p>Heute Morgen ist es still in Uhrenhausen. Kein Gong, kein Glockenschlag. Willi schaut zum Turm hinauf. „Wilma, die Turmuhr steht!“</p>
+      <p>Der Bäcker hat verschlafen. Der Bus ist ohne die Kinder losgefahren. Und niemand weiß mehr, wie spät es ist. Wilma zückt ihr Notizbuch. „Das ist ein Fall für uns. Zuerst müssen wir wissen: Wann ist die Uhr stehen geblieben?“</p>
+      <p>Oben am Turm hat jede Seite ein Zifferblatt. Und jedes zeigt eine andere Zeit.</p>
+    </div>
+    <div class="fall-frage"><b>Frage der Stunde</b><div>Wie liest du ab, wie spät es auf einer Uhr ist?</div></div>
+  </div>
+  <div class="fuss-zeile">Das Rätsel der Turmuhr · Kapitel 1</div>
+</section>
+
+<!-- Seite 3: Niveau-Seite ●●, Vorderseite. Rahmen in .ebene.hinten, Kapitel-Marke in der Namenszeile, die Figur in
+     ihrer Pose zur Geschichte im Tipp, genau ein Symbol je Aufgabe. -->
+<section class="seite">
+  <div class="namenszeile"><span class="kapitel-marke">Kapitel 1</span><span class="name">Name:</span><span class="datum">Datum:</span><span class="niveau"><i></i><i></i></span></div>
+  <span class="loesung-marke">Lösung</span>
+  <div class="kopf">
+    <div class="titel">
+      <h1>Spuren am Turm</h1>
+      <div class="ziel">Ich kann volle und halbe Stunden ablesen und einstellen.</div>
+    </div>
+    <div class="tipp"><!-- in der Reihe die Pose der Figur zur Geschichte (Willi mit Lupe) aus dem Ordner bilder der Mappe -->
+      <img class="figur" style="--figur:104px" src="bilder/willi.png" alt="Willi"><div class="blase">Erst der kleine Zeiger. Er zeigt die Stunde.</div></div>
+  </div>
+
+  <div class="aufgabe" data-min="5">
+    <span class="nr">1</span>
+    <div class="anw"><span class="sym" data-sym="suchen"></span><span class="text">Jede Seite vom Turm zeigt eine andere Zeit. Lies ab und schreibe auf.</span></div>
+    <div class="koerper">
+      <div class="reihe" style="--spalten:4">
+        <div class="zelle beispiel"><x-uhr zeit="3:00"></x-uhr><span class="antwort breit" data-l="3 Uhr"></span></div>
+        <div class="zelle"><x-uhr zeit="7:00"></x-uhr><span class="antwort breit" data-l="7 Uhr"></span></div>
+        <div class="zelle"><x-uhr zeit="4:30"></x-uhr><span class="antwort breit" data-l="halb 5"></span></div>
+        <div class="zelle"><x-uhr zeit="9:30"></x-uhr><span class="antwort breit" data-l="halb 10"></span></div>
+        <div class="zelle"><x-uhr zeit="12:00"></x-uhr><span class="antwort breit" data-l="12 Uhr"></span></div>
+        <div class="zelle"><x-uhr zeit="1:30"></x-uhr><span class="antwort breit" data-l="halb 2"></span></div>
+        <div class="zelle"><x-uhr zeit="10:00"></x-uhr><span class="antwort breit" data-l="10 Uhr"></span></div>
+        <div class="zelle"><x-uhr zeit="6:30"></x-uhr><span class="antwort breit" data-l="halb 7"></span></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Eine Aufgabe, die es nur in dieser Geschichte gibt: Zeugen befragen und ihre Zeiten festhalten. -->
+  <div class="aufgabe" data-min="5">
+    <span class="nr">2</span>
+    <div class="anw"><span class="sym" data-sym="schreiben"></span><span class="text">Wilma fragt die Zeugen: Wann hast du gemerkt, dass die Glocke fehlt? Zeichne die Zeiger in Wilmas Notizbuch.</span></div>
+    <div class="koerper">
+      <div class="reihe" style="--spalten:4">
+        <div class="zelle"><b>Bäcker</b><span>„Um 6 Uhr.“</span><x-uhr loesung="6:00" groesse="100"></x-uhr></div>
+        <div class="zelle"><b>Busfahrerin</b><span>„Um halb 7.“</span><x-uhr loesung="6:30" groesse="100"></x-uhr></div>
+        <div class="zelle"><b>Eule</b><span>„Um halb 4.“</span><x-uhr loesung="3:30" groesse="100"></x-uhr></div>
+        <div class="zelle"><b>Milchmann</b><span>„Um 5 Uhr.“</span><x-uhr loesung="5:00" groesse="100"></x-uhr></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="aufgabe" data-min="3">
+    <span class="nr">3</span>
+    <div class="anw"><span class="sym" data-sym="schreiben"></span><span class="text">Wer hat es zuerst gemerkt, wer zuletzt? Schreibe die Zeugen in der richtigen Reihenfolge auf.</span></div>
+    <div class="koerper">
+      <div class="reihe" style="--spalten:2">
+        <div class="zelle links"><div class="zeile">1. <span class="antwort breit" data-l="Eule"></span></div></div>
+        <div class="zelle links"><div class="zeile">2. <span class="antwort breit" data-l="Milchmann"></span></div></div>
+        <div class="zelle links"><div class="zeile">3. <span class="antwort breit" data-l="Bäcker"></span></div></div>
+        <div class="zelle links"><div class="zeile">4. <span class="antwort breit" data-l="Busfahrerin"></span></div></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="ebene hinten">
+    <div class="seitenrahmen" data-rahmen="gestrichelt" style="--rahmen-staerke:3px;--rahmen-abstand:24px;--rahmen-ecke:26px"></div>
+  </div>
+  <div class="fuss-zeile">Das Rätsel der Turmuhr · Kapitel 1</div>
+</section>
+
+<!-- Seite 4: Rückseite. Das Beweis-Rätsel steht am Ende und liefert auf allen drei Niveaus dasselbe Stück. -->
+<section class="seite" data-weiter>
+  <span class="loesung-marke">Lösung</span>
+  <div class="aufgabe" data-min="5">
+    <span class="nr">4</span>
+    <div class="anw"><span class="sym" data-sym="rechnen"></span><span class="text">Der Uhrmacher kommt immer eine Stunde später. Wann ist er da?</span></div>
+    <div class="koerper">
+      <div class="reihe" style="--spalten:2">
+        <div class="zelle links beispiel"><div class="zeile">3 Uhr → <span class="antwort breit" data-l="4 Uhr"></span></div></div>
+        <div class="zelle links"><div class="zeile">8 Uhr → <span class="antwort breit" data-l="9 Uhr"></span></div></div>
+        <div class="zelle links"><div class="zeile">halb 2 → <span class="antwort breit" data-l="halb 3"></span></div></div>
+        <div class="zelle links"><div class="zeile">halb 6 → <span class="antwort breit" data-l="halb 7"></span></div></div>
+        <div class="zelle links"><div class="zeile">11 Uhr → <span class="antwort breit" data-l="12 Uhr"></span></div></div>
+        <div class="zelle links"><div class="zeile">halb 10 → <span class="antwort breit" data-l="halb 11"></span></div></div>
+        <div class="zelle links"><div class="zeile">12 Uhr → <span class="antwort breit" data-l="1 Uhr"></span></div></div>
+        <div class="zelle links"><div class="zeile">halb 12 → <span class="antwort breit" data-l="halb 1"></span></div></div>
+        <div class="zelle links"><div class="zeile">5 Uhr → <span class="antwort breit" data-l="6 Uhr"></span></div></div>
+        <div class="zelle links"><div class="zeile">halb 4 → <span class="antwort breit" data-l="halb 5"></span></div></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="aufgabe" data-min="3">
+    <span class="nr">5</span>
+    <div class="anw"><span class="sym" data-sym="schreiben"></span><span class="text">Stell dir vor, bei dir zu Hause bleiben alle Uhren stehen. Was geht dann schief? Schreibe.</span></div>
+    <div class="koerper">
+      <div class="schreiblinie nicht-loesung"></div>
+      <div class="schreiblinie nicht-loesung"></div>
+      <div class="schreiblinie nicht-loesung"></div>
+      <div class="nur-loesung"><b>Eigene Antwort, zum Beispiel: Ich komme zu spät in die Schule.</b></div>
+    </div>
+  </div>
+
+  <div class="aufgabe beweis" data-min="3">
+    <span class="beweis-marke">Beweis-Rätsel</span>
+    <span class="nr">6</span>
+    <div class="anw"><span class="sym" data-sym="partner"></span><span class="text">Die Eule hat es zuerst gemerkt: um halb 4. Welche Uhr zeigt halb 4? Ihr Buchstabe ist euer Beweis.</span></div>
+    <div class="koerper">
+      <div class="reihe" style="--spalten:4">
+        <div class="zelle"><x-uhr zeit="4:30" groesse="96"></x-uhr><b>A</b></div>
+        <div class="zelle"><x-uhr zeit="3:00" groesse="96"></x-uhr><b>R</b></div>
+        <div class="zelle"><x-uhr zeit="3:30" groesse="96"></x-uhr><b>T</b></div>
+        <div class="zelle"><x-uhr zeit="6:15" groesse="96"></x-uhr><b>U</b></div>
+      </div>
+      <div class="zeile">Unser Beweis: <span class="antwort kurz" data-l="T"></span></div>
+    </div>
+  </div>
+
+  <div class="fuss">
+    <div class="text"><b>Ich kann volle und halbe Stunden ablesen und einstellen.</b> So gut kann ich das schon. Kreuze an:</div>
+    <div class="wachstum"><img src="bilder/wachstum.png" alt="Samen, Keimling, Pflanze, Blume"><i></i><i></i><i></i><i></i></div>
+    <div class="reflexion">Was hat dir geholfen? <span><span class="box"></span>das Beispiel</span><span><span class="box"></span>Willis Tipp</span><span><span class="box"></span>ein anderes Kind</span></div>
+  </div>
+  <div class="ebene hinten">
+    <div class="seitenrahmen" data-rahmen="gestrichelt" style="--rahmen-staerke:3px;--rahmen-abstand:24px;--rahmen-ecke:26px"></div>
+  </div>
+  <div class="fuss-zeile">Das Rätsel der Turmuhr · Kapitel 1</div>
+</section>
+<!-- Seite 5: Requisit der Reihe, zwei je Blatt zum Schneiden. Farbig; die Stempelfelder nehmen die Stücke der
+     Rätselkette auf. Im Paket steht die Karte im Begleitmaterial, hier nur als Muster. -->
+<section class="seite">
+  <div class="karten" style="--spalten:1">
+    <div class="karte pass">
+      <div class="pass-rahmen">
+        <div class="pass-kopf">Detektiv-Karte<small>Das Rätsel der Turmuhr</small></div>
+        <div class="pass-innen">
+          <div class="pass-zeile">
+            <img src="bilder/willi.png" alt="Willi">
+            <div>
+              <div class="namenszeile"><span class="name">Detektivin oder Detektiv:</span></div>
+              <p>Nach jedem Kapitel bekommst du einen Beweis. Trage ihn ein. Am Ende weißt du, wer die Turmuhr angehalten hat.</p>
+            </div>
+          </div>
+          <div class="stempel-reihe">
+            <div class="stempel">Kapitel 1<b data-l="T"></b></div>
+            <div class="stempel">Kapitel 2<b data-l="A"></b></div>
+            <div class="stempel">Kapitel 3<b data-l="U"></b></div>
+            <div class="stempel">Kapitel 4<b data-l="B"></b></div>
+            <div class="stempel">Kapitel 5<b data-l="E"></b></div>
+          </div>
+          <div class="zeile">Es war die <span class="antwort breit" data-l="TAUBE"></span>.</div>
+        </div>
+      </div>
+    </div>
+    <div class="karte pass">
+      <div class="pass-rahmen">
+        <div class="pass-kopf">Detektiv-Karte<small>Das Rätsel der Turmuhr</small></div>
+        <div class="pass-innen">
+          <div class="pass-zeile">
+            <img src="bilder/willi.png" alt="Willi">
+            <div>
+              <div class="namenszeile"><span class="name">Detektivin oder Detektiv:</span></div>
+              <p>Nach jedem Kapitel bekommst du einen Beweis. Trage ihn ein. Am Ende weißt du, wer die Turmuhr angehalten hat.</p>
+            </div>
+          </div>
+          <div class="stempel-reihe">
+            <div class="stempel">Kapitel 1<b data-l="T"></b></div>
+            <div class="stempel">Kapitel 2<b data-l="A"></b></div>
+            <div class="stempel">Kapitel 3<b data-l="U"></b></div>
+            <div class="stempel">Kapitel 4<b data-l="B"></b></div>
+            <div class="stempel">Kapitel 5<b data-l="E"></b></div>
+          </div>
+          <div class="zeile">Es war die <span class="antwort breit" data-l="TAUBE"></span>.</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+</body>
+</html>

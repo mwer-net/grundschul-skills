@@ -10,7 +10,7 @@ import { ARTEN, FAECHER, FORMATE, KLASSEN } from './werte';
 
 export const EINHEIT_PLAN = 'einheit.json';
 export const EINHEIT_THEMA = 'thema.css';
-export const EINHEIT_ZEICHEN = { thema: 200, ziel: 200, frei: 1500, idee: 300, titel: 120 };
+export const EINHEIT_ZEICHEN = { thema: 200, ziel: 200, frei: 1500, idee: 300, titel: 120, autor: 60 };
 export const EINHEIT_MAX_DOKUMENTE = 24;
 /** Auftrag „Als Text bearbeiten“ im Assistenten (140). */
 export const EINHEIT_AUFTRAG_ZEICHEN = 6000;
@@ -44,6 +44,10 @@ export interface EinheitAngaben {
 	aussehen: (typeof EINHEIT_AUSSEHEN)[number];
 	/** Neue Bilder mit Canva (138). */
 	bilder: boolean;
+	/** Für den Verkauf: Deckblatt, Quellenverzeichnis und Angebotstext kommen dazu (`html-materialerstellung/references/verkauf.md`). */
+	verkauf: boolean;
+	/** Name auf dem Deckblatt; nur mit `verkauf`. */
+	autor: string;
 	bausteine: { selbsteinschaetzung: boolean; niveaus: boolean; sternchen: boolean };
 	lerngruppe: string[];
 	klasseText: string;
@@ -117,6 +121,8 @@ export const pruefeEinheitAngaben = (roh: unknown): EinheitAngaben => {
 		leitfigur: eins(b.leitfigur, EINHEIT_LEITFIGUR, 'Die Leitfigur', 'beide'),
 		aussehen: eins(b.aussehen, EINHEIT_AUSSEHEN, 'Das Aussehen', 'eigen'),
 		bilder: b.bilder === undefined ? true : ja(b.bilder),
+		verkauf: ja(b.verkauf),
+		autor: ja(b.verkauf) ? text(b.autor, EINHEIT_ZEICHEN.autor, 'Name auf dem Deckblatt') : '',
 		bausteine: {
 			selbsteinschaetzung: ja(z.selbsteinschaetzung),
 			niveaus: ja(z.niveaus),
@@ -163,6 +169,9 @@ export const einheitAuftragAus = (a: EinheitAngaben): string => {
 			: '',
 		a.lerngruppe.length ? `Lerngruppe: ${a.lerngruppe.join(', ')}.` : '',
 		a.klasseText ? `Zur Klasse: ${a.klasseText}` : '',
+		a.verkauf
+			? `Die Einheit soll auf Eduki verkauft werden${a.autor ? `, Name auf dem Deckblatt: ${a.autor}` : ''}.`
+			: '',
 	];
 	return saetze.filter(Boolean).join('\n');
 };
@@ -184,6 +193,16 @@ export interface EinheitPlan {
 
 const kurz = (wert: unknown, max: number) => (typeof wert === 'string' ? wert.trim().slice(0, max) : '');
 
+/** Claude nennt als Art gern den Namen des Skills. Eine unbekannte Art darf kein fertiges Dokument verstecken. */
+const ART_AUS_SKILL: Record<string, Art> = {
+	'bild-und-wortkarten': 'karten',
+	'stationenlernen': 'stationen',
+};
+const artAus = (roh: unknown): Art => {
+	const art = typeof roh === 'string' ? (ART_AUS_SKILL[roh] ?? roh) : '';
+	return ARTEN.includes(art as Art) ? (art as Art) : 'sonstiges';
+};
+
 /**
  * Liest `einheit.json`. Ein ungültiger Eintrag fällt heraus, statt den ganzen Plan zu verwerfen: Claude schreibt die
  * Datei oft und ein Tippfehler darf keine fertigen Dokumente verstecken. Der Slug ist der einzige Pfadteil, der aus
@@ -202,14 +221,14 @@ export const lesePlan = (roh: unknown, max = EINHEIT_MAX_DOKUMENTE): EinheitPlan
 			if (!SLUG.test(slug) || slug.length > MAX_SLUG || gesehen.has(slug)) {
 				return null;
 			}
-			if (!ARTEN.includes(x.art as Art) || !FORMATE.includes(x.format as Format)) {
+			if (!FORMATE.includes(x.format as Format)) {
 				return null;
 			}
 			gesehen.add(slug);
 			return {
 				slug,
 				titel: kurz(x.titel, EINHEIT_ZEICHEN.titel) || slug,
-				art: x.art as Art,
+				art: artAus(x.art),
 				format: x.format as Format,
 				zweck: kurz(x.zweck, 300),
 				fertig: x.fertig === true,
@@ -270,6 +289,8 @@ export interface EinheitStand {
 	/** Der Teil der Lehrkraft am Auftrag, wie er an Claude ging. */
 	auftrag: string;
 	bilder: boolean;
+	/** Verkauf: `bauen` legt die Seitenbilder für das Deckblatt ab. */
+	verkauf?: boolean;
 	geladeneBilder: number;
 	fehlgeschlageneBilder: number;
 	/** Claudes Plan als Text: Geschichte, Rätselkette, Materialien. Die Lehrkraft gibt ihn frei, bevor gebaut wird. */

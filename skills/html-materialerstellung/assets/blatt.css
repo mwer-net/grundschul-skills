@@ -447,6 +447,123 @@ body.ohne-punkte .punkte,body.ohne-punkte x-gesamtpunkte{display:none}
 .thema-kopf{padding:12px 20px;margin-bottom:16px;background:var(--fuell);border:2px solid var(--haupt);border-radius:16px}
 .thema-kopf h1{margin:0}
 
+/* Deckblatt für den Verkauf (references/verkauf.md): Marke, Titel, Szenenbild, Klasse, Inhalt, Seitenvorschau.
+   Farben aus dem Thema; die Teile liegen fest, damit das Blatt auch als kleines Vorschaubild lesbar bleibt. */
+.seite.deckblatt{padding:66px 50px 40px;align-items:center;text-align:center;outline:none;
+  background:color-mix(in srgb,var(--haupt) 10%,#fff)}
+.seite.deckblatt>*{flex:none}
+.db-rahmen{position:absolute;inset:22px;border:4px dashed var(--dunkel);border-radius:30px}
+.db-marke{display:inline-flex;align-items:center;gap:8px;font:600 20px Fredoka,sans-serif;color:#fff;
+  background:var(--dunkel);border-radius:24px;padding:5px 18px;position:relative}
+.db-titel{font:600 var(--gr,66px)/1 Fredoka,sans-serif;margin:16px 0 8px;color:var(--dunkel);position:relative;
+  text-shadow:3px 3px 0 #fff,-3px 3px 0 #fff,3px -3px 0 #fff,-3px -3px 0 #fff,0 6px 0 color-mix(in srgb,var(--dunkel) 18%,transparent)}
+.db-titel span{color:var(--haupt)}
+.db-unter{font:600 26px/1.15 Fredoka,sans-serif;color:var(--dunkel);margin-bottom:18px;position:relative}
+.db-bild{width:600px;border-radius:24px;border:7px solid #fff;outline:4px solid var(--dunkel);overflow:hidden;
+  transform:rotate(-1.5deg);box-shadow:0 10px 0 color-mix(in srgb,var(--dunkel) 18%,transparent);position:relative}
+.db-bild img{width:100%;height:var(--h,auto);object-fit:cover;display:block}
+.db-klasse{position:absolute;top:214px;right:30px;width:128px;height:128px;border-radius:50%;z-index:2;
+  background:var(--akzent);border:5px solid var(--dunkel);display:flex;flex-direction:column;align-items:center;
+  justify-content:center;transform:rotate(12deg);box-shadow:0 5px 0 color-mix(in srgb,var(--dunkel) 25%,transparent)}
+.db-klasse b{font:600 22px/1 Fredoka,sans-serif;color:var(--dunkel)}
+.db-klasse span{font:600 56px/1 Fredoka,sans-serif;color:var(--dunkel)}
+.db-chips{display:flex;flex-wrap:wrap;gap:10px;justify-content:center;margin:26px 0 0;position:relative}
+.db-chip{background:var(--c,var(--dunkel));color:#fff;font:600 22px Fredoka,sans-serif;border-radius:22px;padding:6px 16px}
+.db-faecher{position:relative;width:680px;height:330px;margin-top:30px}
+.db-blatt{position:absolute;top:30px;width:178px;border:2px solid color-mix(in srgb,var(--dunkel) 45%,#fff);
+  border-radius:4px;background:#fff;box-shadow:0 6px 14px color-mix(in srgb,var(--dunkel) 28%,transparent)}
+.db-blatt:nth-child(1){left:20px;transform:rotate(-9deg)}
+.db-blatt:nth-child(2){left:178px;top:8px;transform:rotate(-3deg)}
+.db-blatt:nth-child(3){left:336px;top:8px;transform:rotate(3deg)}
+.db-blatt:nth-child(4){left:494px;transform:rotate(9deg)}
+.db-figur{position:absolute;right:18px;bottom:44px;height:200px;width:auto}
+
+/* == Reihe als Geschichte (unterrichtsplanung/references/reihe-als-geschichte.md) ==
+   Fall-Karte, Seite für die Lehrkraft, Kapitel-Marke, Beweis-Rätsel, Fußzeile der Reihe, Anweisungs-Symbole.
+   Farben kommen aus dem Thema; die Teile liegen fest, damit jedes Kapitel gleich aufgebaut ist. */
+.seite{counter-increment:blattseite}
+.seite.fall,body[data-zeit] .seite.fall{padding:0;background:color-mix(in srgb,var(--haupt) 9%,#fff)}
+.seite.fall>*{flex:none}
+.fall-bild{position:relative;height:var(--h,446px);overflow:hidden;border-bottom:6px solid var(--dunkel)}
+.fall-bild img{width:100%;height:100%;object-fit:cover;display:block}
+.fall-bild .platzhalter{height:100%;border-radius:0;border-width:0 0 2px}
+.fall-band{position:absolute;left:28px;top:24px;display:flex;align-items:center;gap:10px;background:var(--dunkel);color:#fff;
+  font:600 26px/1.2 Fredoka,sans-serif;padding:6px 22px;border-radius:30px;box-shadow:0 3px 0 rgba(0,0,0,.18)}
+.seite.fall>.fall-innen{padding:24px 54px 44px;display:flex;flex-direction:column;flex:1;min-height:0}
+.fall-innen h1{font-size:44px;margin:0 0 4px}
+.fall-thema{font:600 21px Fredoka,sans-serif;color:var(--akzent);margin-bottom:12px;letter-spacing:.02em}
+.fall-text{font-size:21px;line-height:1.5}
+.fall-text p{margin:0 0 10px}
+.fall-frage{margin-top:auto;display:flex;align-items:center;gap:20px;border:3px dashed var(--dunkel);border-radius:22px;
+  padding:14px 20px;background:#fff}
+.fall-frage>b{font:600 24px/1.1 Fredoka,sans-serif;color:var(--dunkel);flex:none;max-width:150px}
+.fall-frage>div{font-size:22px;font-weight:700;flex:1}
+.seite.fall .fuss-zeile{bottom:16px}
+
+.seite.lk{--fs:16px;--abstand:12px;font-size:16px;line-height:1.35}
+.lk-kopf{display:flex;align-items:center;gap:14px;border-bottom:3px solid var(--dunkel);padding-bottom:8px;margin-bottom:10px}
+.lk-kopf h1{margin:0;flex:1;font-size:32px}
+.lk-marke{font:600 15px Fredoka,sans-serif;color:#fff;background:var(--dunkel);border-radius:14px;padding:3px 12px;flex:none}
+.lk-leiste{display:flex;flex-wrap:wrap;gap:6px 10px;margin-bottom:10px}
+.lk-leiste span{font:600 14px Fredoka,sans-serif;color:var(--dunkel);border:1.5px solid var(--dunkel);border-radius:12px;padding:1px 10px}
+.seite.lk .ich-kann{font-weight:700;font-size:18px;margin:0 0 10px}
+.seite.lk h2{font:600 20px Fredoka,sans-serif;color:var(--dunkel);margin:12px 0 4px}
+.seite.lk p{margin:0 0 8px}
+.seite.lk ul,.seite.lk ol{margin:0 0 8px;padding-left:20px}
+.seite.lk li{margin-bottom:3px}
+.phase{display:grid;grid-template-columns:124px 1fr;gap:12px;margin-bottom:10px}
+.phase-kopf{font:600 17px/1.2 Fredoka,sans-serif;color:var(--dunkel);border-right:4px solid var(--akzent);padding-right:8px}
+.phase-kopf small{display:block;font:400 14px/1.3 Andika,sans-serif;color:#555;margin-top:2px}
+.phase>div>:last-child{margin-bottom:0}
+.kasten{border:2px solid color-mix(in srgb,var(--dunkel) 45%,#fff);border-radius:12px;padding:8px 12px;margin-top:8px}
+.kasten.hinweis{border-color:var(--akzent)}
+.kasten>b:first-child{font-family:Fredoka,sans-serif;font-weight:600;color:var(--dunkel);margin-right:6px}
+.kasten>:last-child{margin-bottom:0}
+.lk-spalten{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.lk-spalten>.kasten{margin-top:0}
+
+.kapitel-marke{flex:none;align-self:center;font:600 18px/1.2 Fredoka,sans-serif;color:var(--dunkel);
+  border:2.5px solid var(--dunkel);border-radius:22px;padding:2px 14px;white-space:nowrap;background:#fff}
+.namenszeile .kapitel-marke::after{content:none}
+.fuss-zeile{position:absolute;left:0;right:0;bottom:31px;text-align:center;font:600 11px/1 Fredoka,sans-serif;color:#777}
+.fuss-zeile::after{content:" · Seite " counter(blattseite)}
+.seite:has(>.karten) .fuss-zeile{display:none}
+.aufgabe.beweis{border:3px dashed var(--dunkel);border-radius:18px;padding:22px 14px 12px;position:relative;margin-top:calc(var(--abstand) + 10px)}
+.beweis-marke{position:absolute;top:-15px;left:18px;font:600 calc(var(--fs)*.82)/1.2 Fredoka,sans-serif;color:#fff;background:var(--dunkel);
+  border-radius:14px;padding:3px 14px}
+/* Pass, Ausweis, Sammelkarte: eine .karte mit farbigem Kopf und Stempelfeldern für die Stücke der Rätselkette */
+.karte.pass{display:block;padding:14px;text-align:left}
+.pass-rahmen{height:100%;border:3.5px solid var(--dunkel);border-radius:24px;overflow:hidden;display:flex;flex-direction:column;
+  background:color-mix(in srgb,var(--haupt) 9%,#fff)}
+.pass-kopf{background:var(--dunkel);color:#fff;font:600 30px/1.15 Fredoka,sans-serif;padding:10px 24px;display:flex;
+  align-items:center;gap:14px}
+.pass-kopf small{font:500 calc(var(--fs)*.82)/1.2 Fredoka,sans-serif;margin-left:auto;text-align:right;opacity:.9}
+.pass-innen{flex:1;padding:14px 24px 16px;display:flex;flex-direction:column;gap:12px;justify-content:space-between}
+.pass-innen .namenszeile{margin:0;font-size:18px}
+.pass-zeile{display:flex;align-items:center;gap:18px}
+.pass-zeile>img{height:150px;width:auto;max-height:none;max-width:none;flex:none}
+.pass-zeile>div{flex:1}
+.stempel-reihe{display:flex;gap:14px;justify-content:space-between}
+.stempel{flex:1;max-width:124px;aspect-ratio:1;border:3px dashed var(--dunkel);border-radius:50%;background:#fff;display:flex;
+  flex-direction:column;align-items:center;font:600 calc(var(--fs)*.82)/1.15 Fredoka,sans-serif;color:var(--dunkel);padding-top:10px;text-align:center}
+.stempel b{font:600 40px/1.1 Fredoka,sans-serif;color:var(--text);min-height:44px}
+.sym{flex:none;align-self:center;display:inline-block;width:1.3em;height:1.3em;vertical-align:-.25em;
+  background:center/contain no-repeat}
+.anw>.sym{align-self:flex-start;margin-right:-6px}
+.sym[data-sym="schreiben"]{background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%231D1D1B' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M4 20l1.2-5L16 4.2l3.8 3.8L9 18.8z'/%3E%3Cpath d='M13.5 6.7l3.8 3.8'/%3E%3C/svg%3E")}
+.sym[data-sym="malen"]{background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%231D1D1B' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M5 21l1.5-5.5L15.5 4l4.5 3.6-9 11.5z' fill='%231D1D1B'/%3E%3Cpath d='M3 21h18'/%3E%3C/svg%3E")}
+.sym[data-sym="lesen"]{background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%231D1D1B' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M12 6.5C9 5 6 5 3 6.5v12c3-1.5 6-1.5 9 0zM12 6.5c3-1.5 6-1.5 9 0v12c-3-1.5-6-1.5-9 0z'/%3E%3C/svg%3E")}
+.sym[data-sym="sprechen"]{background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%231D1D1B' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M4 5h16v11h-9l-5 4v-4H4z'/%3E%3C/svg%3E")}
+.sym[data-sym="schneiden"]{background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%231D1D1B' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Ccircle cx='6' cy='6.5' r='3'/%3E%3Ccircle cx='6' cy='17.5' r='3'/%3E%3Cpath d='M8.5 8L21 18M8.5 16L21 6'/%3E%3C/svg%3E")}
+.sym[data-sym="kleben"]{background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%231D1D1B' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M8 10h8v11H8zM9.5 10V6h5v4M11 6V3h2v3'/%3E%3C/svg%3E")}
+.sym[data-sym="verbinden"]{background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%231D1D1B' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Ccircle cx='5' cy='7' r='2.5' fill='%231D1D1B'/%3E%3Ccircle cx='19' cy='17' r='2.5' fill='%231D1D1B'/%3E%3Cpath d='M7 8.5l10 7'/%3E%3C/svg%3E")}
+.sym[data-sym="ankreuzen"]{background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%231D1D1B' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Crect x='4' y='4' width='16' height='16' rx='3'/%3E%3Cpath d='M8 12.5l3 3 5-6.5'/%3E%3C/svg%3E")}
+.sym[data-sym="rechnen"]{background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%231D1D1B' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M4 7h6M7 4v6M14 7h6M4.5 14.5l5 5M9.5 14.5l-5 5M14 15h6M14 19h6'/%3E%3C/svg%3E")}
+.sym[data-sym="suchen"]{background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%231D1D1B' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Ccircle cx='10' cy='10' r='6.5'/%3E%3Cpath d='M15 15l6 6'/%3E%3C/svg%3E")}
+.sym[data-sym="partner"]{background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%231D1D1B' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Ccircle cx='8' cy='8' r='3'/%3E%3Ccircle cx='17' cy='8' r='3'/%3E%3Cpath d='M2.5 20c0-4 2-6 5.5-6s5.5 2 5.5 6M15 14.2c.6-.1 1.3-.2 2-.2 3 0 4.5 2 4.5 6'/%3E%3C/svg%3E")}
+.sym[data-sym="wuerfeln"]{background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%231D1D1B' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Crect x='4' y='4' width='16' height='16' rx='3'/%3E%3Ccircle cx='8.5' cy='8.5' r='1' fill='%231D1D1B'/%3E%3Ccircle cx='15.5' cy='15.5' r='1' fill='%231D1D1B'/%3E%3Ccircle cx='12' cy='12' r='1' fill='%231D1D1B'/%3E%3C/svg%3E")}
+.sym[data-sym="legen"]{background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%231D1D1B' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Crect x='3' y='13' width='7' height='7' rx='1.5'/%3E%3Crect x='14' y='13' width='7' height='7' rx='1.5'/%3E%3Crect x='8.5' y='4' width='7' height='7' rx='1.5'/%3E%3C/svg%3E")}
+
 /* Gestaltung (Entscheidungen 41, 45, 46): zwei Ebenen am Ende der Seite, frei liegende Elemente mit data-lage="frei".
    Ein Material ohne Gestaltung trifft keine dieser Regeln. Der Stapelkontext nur bei Bedarf, sonst tauchten Elemente
    des Bestands mit negativem z-index auf. hinten ist −2, damit das Kopfband älterer Blätter (Rezepte bis 180,

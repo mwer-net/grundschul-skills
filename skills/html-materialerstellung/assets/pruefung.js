@@ -150,7 +150,7 @@
     const GESTALTUNG = ".ebene,[data-lage]";
 
     // 1. Seitenrand und Seitenende
-    const raus = alle.filter((e) => !e.closest(`.karten,.loesung-marke,[data-rand-ok],${GESTALTUNG}`)).filter((e) => {
+    const raus = alle.filter((e) => !e.closest(`.karten,.loesung-marke,.fuss-zeile,[data-rand-ok],${GESTALTUNG}`)).filter((e) => {
       const r = e.getBoundingClientRect();
       return r.left < innen.l || r.top < innen.t || r.right > innen.r || r.bottom > innen.b;
     });
@@ -229,7 +229,7 @@
     const walker = document.createTreeWalker(S, NodeFilter.SHOW_TEXT);
     while (walker.nextNode()) {
       const t = walker.currentNode, p = t.parentElement;
-      if (!t.textContent.trim() || !p || p.closest("svg,.nr,.namenszeile,.platzhalter,.loesung-marke,[data-klein-ok]") || !sichtbar(p)) continue;
+      if (!t.textContent.trim() || !p || p.closest("svg,.nr,.namenszeile,.platzhalter,.loesung-marke,.fuss-zeile,.seite.lk,[data-klein-ok]") || !sichtbar(p)) continue;
       const text = `„${t.textContent.trim().slice(0, 30)}“ (${getComputedStyle(p).fontSize})`;
       if (parseFloat(getComputedStyle(p).fontSize) < min - 0.5 && !klein.has(text)) klein.set(text, p);
     }
@@ -255,7 +255,7 @@
     alle.filter((e) => e.tagName === "DIV" || e.tagName === "SECTION").forEach((e) => {
       const c = getComputedStyle(e), r = e.getBoundingClientRect();
       const [R, G, Bl, a = 1] = rgb(c.backgroundColor);
-      if (a > 0.05 && (R + G + Bl) / 3 < 245 && r.width * r.height > 4000 && !e.closest(`.karten,[data-flaeche-ok],${GESTALTUNG}`))
+      if (a > 0.05 && (R + G + Bl) / 3 < 245 && r.width * r.height > 4000 && !e.closest(`.karten,.seite.fall,[data-flaeche-ok],${GESTALTUNG}`))
         melde("WARNUNG", nr, "flaeche", `Fläche hinter „${kurz(e)}“ (${c.backgroundColor}) → Aufgaben ohne Kasten und Fläche`, [ziel(e)]);
     });
 
@@ -302,7 +302,7 @@
 
     // 8. Ungenutzter Platz (Folien dürfen leer sein: eine Aussage je Folie)
     const fuss = S.querySelector(".fuss");
-    const inhalt = [...S.children].filter((e) => e !== fuss && !e.classList.contains("ebene") && sichtbar(e));
+    const inhalt = [...S.children].filter((e) => e !== fuss && !e.classList.contains("ebene") && !e.classList.contains("fuss-zeile") && sichtbar(e));
     const unten = Math.max(P.top + randOben, ...inhalt.map((e) => e.getBoundingClientRect().bottom));
     const rest = Math.round((fuss ? fuss.getBoundingClientRect().top - 16 : innen.b) - unten);
     if (zeitziel && auf.length && rest > FREI_MAX && !S.querySelector(".karten") && !folie && !B.classList.contains("minibuch"))

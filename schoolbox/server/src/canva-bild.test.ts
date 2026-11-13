@@ -6,7 +6,7 @@ import path from 'node:path';
 import { after, before, describe, it } from 'node:test';
 
 import { erstelleBildLader, ladeCanvaBild, leseBildWuensche, notiereCanvaId, pruefeCanvaUrl } from './canva-bild';
-import { CANVA_WERKZEUGE, canvaEinstellungen, kiArgumente, NIE_KONNEKTOR_WERKZEUGE } from './ki';
+import { CANVA_MCP, CANVA_WERKZEUGE, canvaEinstellungen, kiArgumente, NIE_KONNEKTOR_WERKZEUGE } from './ki';
 
 const PNG = Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a, 0, 0, 0, 0]);
 const JPG = Buffer.from([0xff, 0xd8, 0xff, 0xe0, 0, 0]);
@@ -131,7 +131,8 @@ describe('Konnektoren im Lauf (138)', () => {
 			const bis = ab.findIndex((x) => x.startsWith('--'));
 			return ab.slice(0, bis === -1 ? undefined : bis).join(' ');
 		};
-		assert.ok(!args.includes('--strict-mcp-config'));
+		assert.ok(args.includes('--strict-mcp-config'));
+		assert.equal(werte('--mcp-config'), CANVA_MCP);
 		const einstellungen = JSON.parse(args[args.indexOf('--settings') + 1] ?? '{}') as Record<string, unknown>;
 		assert.deepEqual(einstellungen, JSON.parse(canvaEinstellungen()));
 		const erlaubt = werte('--allowedTools');

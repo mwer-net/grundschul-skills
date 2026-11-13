@@ -250,6 +250,8 @@ interface Abhaengigkeiten {
 	ansicht: KiAnsicht;
 }
 
+export const CANVA_SERVER = 'canva';
+
 /**
  * Canva für die Bilder einer Einheit (138), genau der Ablauf aus `bilder.md` §2 und nichts sonst. Kein Löschen,
  * Teilen, Kommentieren, keine Ordner, kein Upload: Referenzbilder der Leitfigur liegen im selben Konto schon vor.
@@ -270,17 +272,32 @@ export const CANVA_WERKZEUGE = [
 	'resize-design',
 	// Die Seite als PNG oder JPEG exportieren; laden tut der Server (`canva-bild.ts`).
 	'export-design',
-].map((w) => `mcp__claude_ai_Canva__${w}`);
+].map((w) => `mcp__${CANVA_SERVER}__${w}`);
 
-/** Erste Sperre: Nur der Canva-Server wird überhaupt geladen. Gemessen mit `claude mcp list` (138). */
+/**
+ * Der Lauf bringt Canva selbst mit, statt sich auf den Konnektor von claude.ai zu verlassen: Der war ohne Meldung weg,
+ * und mit `--setting-sources project` lädt auch ein beim Nutzer eingerichteter Server nicht. Die Anmeldung stammt vom
+ * Server gleichen Namens und gleicher Adresse, den der Admin einmal mit `claude mcp add` einrichtet.
+ */
+export const CANVA_MCP = JSON.stringify({
+	mcpServers: { [CANVA_SERVER]: { type: 'http', url: 'https://mcp.canva.com/mcp' } },
+});
+
+/** Zweite Sperre neben `--strict-mcp-config`: Nur der Canva-Server und das eigene Werkzeug sind erlaubt. */
 export const CANVA_URL = 'https://mcp.canva.com/*';
-/** Zweite Sperre, falls die erste nicht greift: diese Server ausdrücklich verboten, ihre Werkzeuge ebenso. */
-export const NIE_KONNEKTOREN = ['claude.ai Gmail', 'claude.ai Google Drive', 'claude.ai Claude Docs'];
+/** Dritte Sperre, falls die anderen nicht greifen: diese Server ausdrücklich verboten, ihre Werkzeuge ebenso. */
+export const NIE_KONNEKTOREN = [
+	'claude.ai Gmail',
+	'claude.ai Google Drive',
+	'claude.ai Claude Docs',
+	'claude.ai Canva',
+];
 export const NIE_KONNEKTOR_URLS = ['https://gmailmcp.googleapis.com/*', 'https://drivemcp.googleapis.com/*'];
 export const NIE_KONNEKTOR_WERKZEUGE = [
 	'mcp__claude_ai_Gmail',
 	'mcp__claude_ai_Google_Drive',
 	'mcp__claude_ai_Claude_Docs',
+	'mcp__claude_ai_Canva',
 ];
 
 export const canvaEinstellungen = () =>
@@ -353,6 +370,9 @@ export const kiArgumente = (o: {
 			o.ablage,
 			'--settings',
 			canvaEinstellungen(),
+			'--strict-mcp-config',
+			'--mcp-config',
+			CANVA_MCP,
 			'--tools',
 			'Read,Edit,Write',
 			'--allowedTools',
@@ -386,8 +406,11 @@ export const kiArgumente = (o: {
 		'project',
 		'--add-dir',
 		o.ablage,
-		...(canva ? ['--settings', canvaEinstellungen()] : ['--strict-mcp-config']),
-		...(o.mcpDatei ? ['--mcp-config', o.mcpDatei] : []),
+		...(canva ? ['--settings', canvaEinstellungen()] : []),
+		'--strict-mcp-config',
+		...(o.mcpDatei || canva
+			? ['--mcp-config', ...(o.mcpDatei ? [o.mcpDatei] : []), ...(canva ? [CANVA_MCP] : [])]
+			: []),
 		'--tools',
 		o.einheit || canva ? 'Read,Edit,Write,Skill' : 'Read,Edit,Skill',
 		'--allowedTools',
@@ -465,10 +488,10 @@ export const limitPruefenArgumente = () => [
 const kennung = (inhalt: string) => createHash('sha256').update(inhalt).digest('hex').slice(0, 16);
 
 const SCHRITT_NAMEN: Record<string, string> = {
-	'Read': 'Liest das Blatt',
-	'Edit': 'Ändert das Blatt',
+	Read: 'Liest das Blatt',
+	Edit: 'Ändert das Blatt',
 	[WERKZEUG_BAUEN]: 'Baut und prüft das Blatt',
-	'mcp__claude_ai_Canva__generate-image': 'Erzeugt ein Bild in Canva',
+	[`mcp__${CANVA_SERVER}__generate-image`]: 'Erzeugt ein Bild in Canva',
 };
 
 const textSchritt = (name: string, eingabe: { skill?: unknown; file_path?: unknown }) => {
