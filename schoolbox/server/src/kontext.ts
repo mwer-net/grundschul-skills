@@ -2,7 +2,7 @@ import { createHash } from 'node:crypto';
 import { readFile } from 'node:fs/promises';
 import path from 'node:path';
 
-import { baueAusgabe, baueFolienZusatz, dokumentDir, pruefeFassung } from '@schoolbox/kern';
+import { baueAnsicht, baueAusgabe, baueFolienZusatz, dokumentDir, pruefeFassung } from '@schoolbox/kern';
 
 import type { Begrenzung } from './begrenzung';
 import { erstelleBegrenzung } from './begrenzung';
@@ -86,6 +86,7 @@ export const erstelleKontext = (konfig: ServerKonfig, version: string, bauer: Ba
 			konfig,
 			ereignisse,
 			pruefer,
+			ansicht: (dokDir, html, ziel) => baueAnsicht(konfig, dokDir, html, ziel),
 		}),
 		ordner: erstelleOrdnerSpeicher(materialDir, sperre, ereignisse),
 		version,

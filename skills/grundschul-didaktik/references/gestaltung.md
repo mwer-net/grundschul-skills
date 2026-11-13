@@ -2,32 +2,32 @@
 
 ## Seitenaufbau (A4 Hochformat als Standard)
 
-Die Bausteine (Selbsteinschätzung, Niveaus, Sternchenaufgabe) legt die Start-Abfrage fest (`rueckfragen.md`). Das Schema zeigt alle Bausteine; nicht gewählte entfallen. Das Layout ist kompakt: Der Platz geht an Aufgaben und Luft, nicht an Kästen. Farbe und s/w: Abschnitt „Farbe“ unten. Mindestgrößen und Platzbudget: `druck-und-platz.md`.
+Die Bausteine (Selbsteinschätzung, Niveaus, Sternchenaufgabe) legt die Start-Abfrage fest (`rueckfragen.md`). Das Schema zeigt alle Bausteine; nicht gewählte entfallen. Das Layout ist kompakt: Der Platz geht an Aufgaben, nicht an Kästen. Farbe und s/w: Abschnitt „Farbe“ unten. Mindestgrößen und Platzbudget: `druck-und-platz.md`.
 
 ```
 ┌──────────────────────────────────────────┐
-│ Name: ________   Datum: ______           │  ← Kopfzeile, 1 Zeile
+│ Name: ________   Datum: ______        ●  │  ← Kopfzeile, Niveau der Seite
 │ ÜBERSCHRIFT (groß)                       │  ← max. 5 Wörter
-│ Ich kann …  Wähle deine Aufgaben. …      │  ← Ich-kann-Ziel + Wahlhilfe (Niveaus)
+│ Ich kann …                               │  ← Ich-kann-Ziel
 │                                          │
-│ ❶ Anweisung in einem Satz.     [Willi] ● │  ← Grundlage, mit „So geht's",
+│ ❶ Anweisung in einem Satz.     [Willi]   │  ← mit „So geht's",
 │    ◷   ◷   ◷   ◷   ◷   ◷                 │    Tipp der Leitfigur hier
 │ ──────────────────────────────────────── │  ← Abstand, optional dünne Linie
-│ ❷ Anweisung …                         ●● │  ← Kern
+│ ❷ Anweisung …                            │  ← anderes Format, gleiches Ziel
 │    …                                     │
-│ ❸ …                                  ●●● │  ← Herausforderung
+│ ❸ … ❹ … ❺ …                              │  ← bis das Zeitziel erreicht ist
 │ ★ Sternchenaufgabe: Wer mag, …           │  ← optional, freiwillig für alle
 │ ──────────────────────────────────────── │
-│ Ich kann …   Samen→Keimling→Pflanze→Blume │  ← Selbsteinschätzung (optional)
+│ Ich kann …   Samen→Keimling→Pflanze→Blume │  ← Selbsteinschätzung zum Ankreuzen
 │ Was hat dir geholfen? ☐ … ☐ … ☐ …        │  ← Reflexionsfrage
 └──────────────────────────────────────────┘
 ```
 
 - Ränder: 60 px (≈ 1,6 cm) rundum (`blatt.css`).
-- Pro A4-Seite (Richtwert): Klasse 1: 2–3 Aufgaben, Klasse 2: 3–4, Klasse 3: 4–5, Klasse 4: 5–6. Übersicht vor Menge; Items je Aufgabe (Tabelle in `druck-und-platz.md`).
+- Menge: so viel, dass ein Kind des Niveaus das Zeitziel braucht (Standard 20 Minuten), jedes Niveau auf eigener Seite, die Seite gefüllt (`druck-und-platz.md`, Abschnitt „Menge nach Arbeitszeit“).
 - Lesefluss von oben nach unten, links nach rechts. Keine schräg platzierten Elemente, keine Zwei-Spalten-Texte in Klasse 1/2.
 - Aufgaben **ohne Kasten**: hängende Nummer, Abstand zur nächsten Aufgabe nach Klasse (`druck-und-platz.md`). Rahmen nur, wo er eine Funktion hat (Wortspeicher, Sprechblase, Antwortkästchen, Ausschneideteile). Einheitlich im ganzen Material.
-- Weißraum gezielt einsetzen: zwischen Aufgaben und als Schreibfläche, nicht als Innenabstand in Rahmen. In Kl. 1/2 ist sichtbare Luft gewollt; in Kl. 3/4 kein ungenutzter Leerstreifen.
+- Weißraum gezielt einsetzen: zwischen Aufgaben und als Schreibfläche, nicht als Innenabstand in Rahmen. Kein ungenutzter Leerstreifen, in keiner Klasse.
 
 ## Schrift
 

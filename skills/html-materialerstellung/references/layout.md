@@ -21,7 +21,7 @@ Maße in CSS-px (96 dpi): A4 = 794 × 1123 px, 1 cm ≈ 38 px.
 
 ## 2. Platzbudget
 
-Satzspiegel 1003 px Höhe: Kopf ≤ 160 px, Fuß ≤ 110 px (nur mit Selbsteinschätzung), Rest für Aufgaben. Aufgaben- und Item-Zahl nach dem Richtwert der Klasse (`druck-und-platz.md`); in Kl. 1/2 Übersicht vor Menge. `blatt.py` meldet Überlauf (FEHLER mit px) und Leerraum (HINWEIS). Passt es nicht: Item streichen oder zweite Seite. Bleibt Platz: Kl. 3/4 Item ergänzen, Kl. 1/2 `--abstand` erhöhen.
+Satzspiegel 1003 px Höhe: Kopf ca. 160 px, Fuß ca. 120 px (nur mit Selbsteinschätzung), Rest für Aufgaben. Die Menge folgt dem Zeitziel (`grundschul-didaktik/references/druck-und-platz.md`, Abschnitt „Menge nach Arbeitszeit“): `data-zeit` am `<body>`, `data-min` an jeder `.aufgabe`, je Niveau eine eigene `.seite`, Folgeseiten mit `data-weiter` und ohne Kopf. `blatt.py` meldet Überlauf (FEHLER mit px), zu wenig Arbeitszeit, zu hohen Kopf oder Fuß und Leerraum (WARNUNG). Passt es nicht: Rückseite. Bleibt Platz: Item, Reihe oder Aufgabe ergänzen. Muster: `assets/beispiel-niveaublatt-kl2.html`.
 
 Faustwerte Kl. 2 (24 px Schrift): Aufgabenzeile 34 px, Uhr 88 px + Antwortlinie ≈ 130 px, Rechenzeile 45 px, Schreiblinie 46 px, Leitfigur mit Sprechblase im Kopf ≈ 95 px.
 
@@ -70,7 +70,7 @@ Das Bauen meldet Abweichungen als Hinweis (`thema-layout`, `thema-klasse`, `kit-
 - [ ] `blatt.py bauen` ohne FEHLER, WARNUNGEN geprüft
 - [ ] Eine Spalte, Aufgaben ohne Kasten, Abstände einheitlich
 - [ ] Farbe nur als Akzent, keine Flächen, Gelb nie für Linien oder Schrift
-- [ ] Aufgaben- und Item-Zahl im Richtwert, Kl. 1/2 mit Luft
+- [ ] Zeitziel je Niveau erreicht, Seiten gefüllt
 - [ ] Lösungsblatt vollständig und deckungsgleich
 - [ ] Visuelle Endkontrolle bestanden (`visuelle-endkontrolle.md`)
 

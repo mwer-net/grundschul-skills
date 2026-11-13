@@ -62,6 +62,8 @@ const bisZumAuftrag = async (page: Page, dialog: Locator, thema: string) => {
 };
 
 test.describe('Assistent: Mit Claude (132)', () => {
+	// Eine andere Datei kann ihren Fall stehen lassen (Einheit).
+	test.beforeEach(() => fall('gut'));
 	test.afterEach(() => fall('gut'));
 
 	test('Nur mit ⏎ zum Vorschlag; Claude bekommt genau den Auftrag aus der Vorschau', async ({ page }) => {
@@ -76,7 +78,9 @@ test.describe('Assistent: Mit Claude (132)', () => {
 		await page.keyboard.press('Enter');
 		await expect(page).toHaveURL(/bearbeiten\?claude=1/);
 		await expect(leiste(page)).toHaveAttribute('data-entwurfsleiste', 'offen');
-		expect(await readFile(prompts, 'utf8')).toContain(`Auftrag der Lehrkraft (aus dem Assistenten):\n${vorschau}`);
+		expect(await readFile(prompts, 'utf8')).toContain(
+			`Antworten der Lehrkraft aus dem Assistenten (sie ersetzen die Start-Abfrage):\n${vorschau}`,
+		);
 		await leiste(page).getByRole('button', { name: 'Übernehmen' }).click();
 		await expect(leiste(page)).toBeHidden();
 		await expect.poll(() => quelleAufPlatte(mappe, dokVon(page))).toContain('von Claude');
@@ -150,7 +154,7 @@ test.describe('Neues Blatt im Editor (133)', () => {
 		await fall('haenger');
 		const { mappe } = await neuesBlatt(page);
 		const adresse = page.url();
-		await expect(entwurfKarte(page)).toContainText('Claude baut „Igel“');
+		await expect(entwurfKarte(page)).toContainText('Claude plant „Igel“');
 		await expect(entwurfKarte(page)).toContainText('Ändert das Blatt');
 		await expect(page.locator('[data-entwurf-pille]')).toContainText('Claude arbeitet');
 		await expect(page.locator('[data-schublade-knopf="bausteine"]')).toHaveCount(0);
@@ -205,6 +209,35 @@ test.describe('Neues Blatt im Editor (133)', () => {
 		await expect(leiste(page)).toBeHidden();
 		await expect.poll(async () => (await quelleAufPlatte(mappe, dok)).split('von Claude').length).toBe(3);
 		await expect(page.locator('[data-schublade-knopf="bausteine"]')).toBeVisible();
+	});
+
+	test('Aufgabenplan: erst der Plan zur Freigabe, „Ändern …“ zeigt ihn neu, „So bauen“ baut das Blatt', async ({
+		page,
+	}, testInfo) => {
+		await fall('plan');
+		const { dok, mappe } = await neuesBlatt(page);
+		const karte = entwurfKarte(page);
+		await expect(karte).toHaveAttribute('data-entwurf-karte', 'plan');
+		await expect(karte.locator('[data-entwurf-plan]')).toContainText('Seite ● Grundlage (21 min)');
+		await expect(page.locator('[data-schublade-knopf="bausteine"]')).toHaveCount(0);
+		await page.screenshot({ path: testInfo.outputPath('plan-karte.png') });
+
+		await page.reload();
+		await expect(karte).toHaveAttribute('data-entwurf-karte', 'plan');
+		await karte.getByRole('button', { name: 'Ändern …' }).click();
+		await karte.getByLabel('Was soll am Plan anders sein?').fill('Nur 15 Minuten.');
+		await karte.getByRole('button', { name: 'Plan ändern' }).click();
+		await expect(karte.locator('[data-entwurf-plan]')).toContainText('Geänderter Aufgabenplan');
+		expect(await quelleAufPlatte(mappe, dok)).not.toContain('von Claude');
+
+		await karte.getByRole('button', { name: 'So bauen' }).click();
+		await expect(leiste(page)).toHaveAttribute('data-entwurfsleiste', 'offen');
+		await expect(karte).toBeHidden();
+		await leiste(page).getByRole('button', { name: 'Übernehmen' }).click();
+		await expect.poll(() => quelleAufPlatte(mappe, dok)).toContain('von Claude');
+		const prompts = await readFile(path.join(`${MATERIAL_DIR}-ki`, 'prompts.txt'), 'utf8');
+		expect(prompts).toContain('Freigegebener Aufgabenplan:');
+		expect(prompts).toContain('Änderungswunsch der Lehrkraft: „Nur 15 Minuten.“');
 	});
 
 	test('Verwerfen lässt das leere Blatt, die Leiste führt zum Ordner', async ({ page }) => {

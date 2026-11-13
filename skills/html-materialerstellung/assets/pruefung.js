@@ -69,7 +69,23 @@
   const B = document.body;
   const melde = (stufe, seite, code, text, ziele = []) => M.push({ stufe, seite, code, text, ziele });
   const kl = +((B.className.match(/kl(\d)/) || [0, 2])[1]);
-  const RICHTWERT = { 1: 3, 2: 4, 3: 5, 4: 6 }[kl] || 6;
+  // Zeitziel in Minuten (`data-zeit` am body): Material, dessen Menge nach Arbeitszeit geplant ist (druck-und-platz.md,
+  // „Menge nach Arbeitszeit“). Ohne die Angabe gelten die alten Richtwerte, damit Bestand unverändert geprüft wird.
+  const zeitziel = +B.dataset.zeit || 0, loesungsblatt = B.classList.contains("loesung");
+  const RICHTWERT = zeitziel ? { 1: 5, 2: 6, 3: 7, 4: 8 }[kl] || 8 : { 1: 3, 2: 4, 3: 5, 4: 6 }[kl] || 6;
+  const KOPF_MAX = 210, FUSS_MAX = 150, FREI_MAX = 90;
+  const zeitGruppen = new Map(); // Punkte des Niveaus → Minuten; 0 steht für Aufgaben ohne Niveau
+  let zeitSeite = 0, zeitFehlt = [];
+  const meldeZeit = () => {
+    if (!zeitGruppen.size && !zeitFehlt.length) return;
+    if (zeitFehlt.length) melde("WARNUNG", zeitSeite, "zeit-fehlt", `${zeitFehlt.length} ${zeitFehlt.length === 1 ? "Aufgabe" : "Aufgaben"} ohne Zeitangabe → data-min an der Aufgabe ergänzen`, zeitFehlt);
+    const alle = zeitGruppen.get(0) || 0, niveaus = [...zeitGruppen.keys()].filter((n) => n > 0);
+    const wege = niveaus.length ? niveaus.map((n) => [n, alle + zeitGruppen.get(n)]) : [[0, alle]];
+    const [n, min] = wege.sort((a, b) => a[1] - b[1])[0];
+    if (!zeitFehlt.length && min < zeitziel * 0.85)
+      melde("WARNUNG", zeitSeite, "zeit-knapp", `${n ? `Die Aufgaben für ${"●".repeat(n)} reichen` : "Die Aufgaben reichen"} für etwa ${Math.round(min)} min, Ziel sind ${zeitziel} min → Aufgaben oder Items ergänzen${n ? ", oder je Niveau eine eigene Seite" : ""}`, []);
+    zeitGruppen.clear(); zeitFehlt = [];
+  };
   if (warten) window.kitAnteil = pruefeBaukasten(melde); // Nur beim Bauen: Im Editor hilft der Hinweis der Lehrkraft nicht.
   const fs = parseFloat(getComputedStyle(B).fontSize);
   const folie = B.classList.contains("folie"), mitNotizen = !!document.querySelector(".seite .notiz");
@@ -260,7 +276,21 @@
     // 7. Aufgaben: Anzahl, Abstände, Ausschnitte für die visuelle Endkontrolle
     const auf = [...S.querySelectorAll(".aufgabe")];
     const nichtStern = auf.filter((a) => !a.querySelector(".nr.stern")).length;
-    if (nichtStern > RICHTWERT) melde("WARNUNG", nr, "aufgaben-viele", `${nichtStern} Aufgaben (+★): Richtwert Klasse ${kl} sind höchstens ${RICHTWERT} → Übersicht vor Menge`, [ziel(S)]);
+    if (nichtStern > RICHTWERT) melde("WARNUNG", nr, "aufgaben-viele", `${nichtStern} Aufgaben (+★): Richtwert Klasse ${kl} sind höchstens ${RICHTWERT} → auf Vorder- und Rückseite verteilen`, [ziel(S)]);
+    // 7a. Menge nach Arbeitszeit: Jede Seite ist ein Weg; `data-weiter` an der Seite setzt die vorige fort.
+    if (zeitziel && auf.length && !loesungsblatt) {
+      if (!S.hasAttribute("data-weiter")) { meldeZeit(); zeitSeite = nr; }
+      auf.filter((a) => !a.querySelector(".nr.stern")).forEach((a) => {
+        const min = parseFloat(a.dataset.min), punkte = a.querySelectorAll(":scope > .anw .niveau i").length;
+        if (!(min > 0)) return zeitFehlt.push(ziel(a));
+        zeitGruppen.set(punkte, (zeitGruppen.get(punkte) || 0) + min);
+      });
+      const kopf = S.querySelector(":scope > .kopf");
+      const kopfHoehe = kopf ? Math.round(auf[0].getBoundingClientRect().top - (P.top + rand)) : 0;
+      if (kopfHoehe > KOPF_MAX) melde("WARNUNG", nr, "rahmen-gross", `Kopf ist ${kopfHoehe} px hoch (höchstens ${KOPF_MAX}) → Namenszeile, Kopf und Tipp als Bausteine aus der Vorlage, Tipp neben seine Aufgabe`, [ziel(kopf)]);
+      const fussEl = S.querySelector(":scope > .fuss"), fussHoehe = fussEl ? Math.round(fussEl.getBoundingClientRect().height) : 0;
+      if (fussHoehe > FUSS_MAX) melde("WARNUNG", nr, "rahmen-gross", `Fuß ist ${fussHoehe} px hoch (höchstens ${FUSS_MAX}) → Baustein .fuss aus der Vorlage unverändert übernehmen, Text kürzen`, [ziel(fussEl)]);
+    }
     for (let i = 1; i < auf.length; i++) {
       const gap = auf[i].getBoundingClientRect().top - auf[i - 1].getBoundingClientRect().bottom;
       if (gap < 20) melde("WARNUNG", nr, "abstand-knapp", `Nur ${Math.round(gap)} px zwischen Aufgabe ${i} und ${i + 1}`, [ziel(auf[i - 1]), ziel(auf[i])]);
@@ -271,14 +301,17 @@
     const inhalt = [...S.children].filter((e) => e !== fuss && !e.classList.contains("ebene") && sichtbar(e));
     const unten = Math.max(P.top + rand, ...inhalt.map((e) => e.getBoundingClientRect().bottom));
     const rest = Math.round((fuss ? fuss.getBoundingClientRect().top - 16 : innen.b) - unten);
-    if (rest > 150 && !S.querySelector(".karten") && !folie && !B.classList.contains("minibuch"))
-      melde("HINWEIS", nr, "platz-frei", `${rest} px frei unten → ${kl <= 2 ? "Abstand zwischen Aufgaben vergrößern (--abstand), nicht auffüllen" : "Item oder Aufgabe ergänzen"}`, [ziel(S)]);
+    if (zeitziel && auf.length && rest > FREI_MAX && !S.querySelector(".karten") && !folie && !B.classList.contains("minibuch"))
+      melde("WARNUNG", nr, "platz-frei", `${rest} px frei unten → Item, Reihe oder Aufgabe ergänzen (Menge nach Arbeitszeit)`, [ziel(S)]);
+    else if (rest > 150 && !S.querySelector(".karten") && !folie && !B.classList.contains("minibuch"))
+      melde("HINWEIS", nr, "platz-frei", `${rest} px frei unten → Item, Reihe oder Aufgabe ergänzen`, [ziel(S)]);
     if (folie && mitNotizen && !S.querySelector(".notiz")) melde("HINWEIS", nr, "notiz-fehlt", "Folie ohne Notiz für die Lehrkraft", [ziel(S)]);
 
     const ph = [...S.querySelectorAll(".platzhalter")].filter((e) => !ausgeblendet(e));
     if (ph.length) melde("HINWEIS", nr, "platzhalter", `${ph.length} Platzhalter (Entwurf)`, ph.map(ziel));
     seiten.push({ nr, rest, breite: Math.round(P.width), aufgaben: auf.map((a) => rel(a.getBoundingClientRect())) });
   });
+  meldeZeit();
 
   // Ausgeblendetes (data-aus) wird nicht gedruckt (F10): einmal je Material, Ziel ist das erste.
   const aus = [...document.querySelectorAll("[data-aus]")].filter((e) => !e.parentElement.closest("[data-aus]"));

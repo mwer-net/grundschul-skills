@@ -28,10 +28,19 @@ export const geplant = (s: EinheitStand) => s.plan?.dokumente.length ?? 0;
 export const fertig = (s: EinheitStand) => Object.keys(s.importiert).length;
 
 /** „3 von 12“; ohne Plan „plant …“. */
-export const fortschritt = (s: EinheitStand) => (s.plan ? `${fertig(s)} von ${geplant(s)}` : 'plant …');
+export const fortschritt = (s: EinheitStand) => {
+	if (s.status === 'plan') {
+		return 'Plan prüfen';
+	}
+	return s.plan && s.freigegeben !== false ? `${fertig(s)} von ${geplant(s)}` : 'plant …';
+};
 
 export const einheitAktion = (id: string, aktion: 'abbrechen' | 'weiter' | 'verwerfen') =>
 	sende(`/api/einheiten/${id}/${aktion}`);
+
+/** Den Plan freigeben; mit `aenderung` zeigt Claude ihn stattdessen neu. */
+export const einheitFreigeben = (id: string, aenderung?: string) =>
+	sende(`/api/einheiten/${id}/freigeben`, aenderung ? { aenderung } : {});
 
 /** Die jüngste Einheit dieses Ordners, verworfene zählen nicht. */
 export const einheitFuer = (einheiten: EinheitStand[], ordner: string | undefined) =>

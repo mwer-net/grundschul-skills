@@ -11,12 +11,12 @@ import { ARTEN, FAECHER, FORMATE, KLASSEN } from './werte';
 export const EINHEIT_PLAN = 'einheit.json';
 export const EINHEIT_THEMA = 'thema.css';
 export const EINHEIT_ZEICHEN = { thema: 200, ziel: 200, frei: 1500, idee: 300, titel: 120 };
-export const EINHEIT_MAX_DOKUMENTE = 20;
+export const EINHEIT_MAX_DOKUMENTE = 24;
 /** Auftrag „Als Text bearbeiten“ im Assistenten (140). */
 export const EINHEIT_AUFTRAG_ZEICHEN = 6000;
 /** Kasten „Verbrauch“ vor dem Start (140); Werte aus dem Messlauf in 139. */
 export const EINHEIT_VERBRAUCH =
-	'Eine Einheit dauert etwa 10 bis 30 Minuten und verbraucht viel von deinem Limit. Du kannst weiterarbeiten; die Materialien erscheinen im Ordner, sobald sie fertig sind.';
+	'Zuerst zeigt Claude dir den Plan: die Geschichte und alle Materialien. Das dauert einige Minuten. Nach deiner Freigabe baut Claude jedes Material, prüft es und sieht es sich an; je nach Umfang dauert das eine bis drei Stunden und verbraucht sehr viel von deinem Limit. Du kannst weiterarbeiten; die Materialien erscheinen im Ordner, sobald sie fertig sind.';
 const SLUG = new RegExp(ID_MUSTER);
 const MAX_SLUG = 60;
 
@@ -112,7 +112,7 @@ export const pruefeEinheitAngaben = (roh: unknown): EinheitAngaben => {
 		menge: eins(b.menge, EINHEIT_MENGE, 'Die Zahl der Materialien', 'claude'),
 		bestandteile: liste(b.bestandteile, 60, 20, 'Bestandteile'),
 		nochEtwas: text(b.nochEtwas, EINHEIT_ZEICHEN.frei, 'Noch etwas'),
-		rahmen: b.rahmen === undefined ? klasse === 1 || klasse === 2 : ja(b.rahmen),
+		rahmen: b.rahmen === undefined ? true : ja(b.rahmen),
 		idee: text(b.idee, EINHEIT_ZEICHEN.idee, 'Idee'),
 		leitfigur: eins(b.leitfigur, EINHEIT_LEITFIGUR, 'Die Leitfigur', 'beide'),
 		aussehen: eins(b.aussehen, EINHEIT_AUSSEHEN, 'Das Aussehen', 'eigen'),
@@ -243,7 +243,8 @@ export const themaBefund = (css: string): string | null => {
 
 // ——— Stand (Server und Oberfläche) ———
 
-export type EinheitStatus = 'laeuft' | 'fertig' | 'unvollstaendig' | 'verworfen';
+/** `plan`: Claude hat den Plan gezeigt und wartet auf die Freigabe der Lehrkraft. */
+export type EinheitStatus = 'laeuft' | 'plan' | 'fertig' | 'unvollstaendig' | 'verworfen';
 
 export interface EinheitBefund {
 	slug: string;
@@ -271,4 +272,7 @@ export interface EinheitStand {
 	bilder: boolean;
 	geladeneBilder: number;
 	fehlgeschlageneBilder: number;
+	/** Claudes Plan als Text: Geschichte, Rätselkette, Materialien. Die Lehrkraft gibt ihn frei, bevor gebaut wird. */
+	planText?: string | null;
+	freigegeben?: boolean;
 }

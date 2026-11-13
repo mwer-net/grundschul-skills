@@ -591,10 +591,10 @@ export const SchrittBausteine = ({
 			)}
 			{umfang !== null && (
 				<div className="mt-4 flex flex-wrap items-center gap-3">
-					<span className="font-medium">Umfang</span>
+					<span className="font-medium">Arbeitszeit je Kind</span>
 					<div className="min-w-0 flex-1">
 						<SegmentMitAnders
-							beschriftung="Umfang"
+							beschriftung="Arbeitszeit je Kind"
 							feld="umfangText"
 							werte={UMFAENGE.map((u) => ({ wert: u.wert, titel: u.name }))}
 							wert={a.umfang ?? umfang}

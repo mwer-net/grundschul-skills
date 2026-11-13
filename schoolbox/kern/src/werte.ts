@@ -66,8 +66,8 @@ export interface ArtAngaben {
 	nichtFragen?: boolean;
 	/** Zusatzbausteine; ohne Angabe wird nicht danach gefragt. */
 	bausteine?: { selbsteinschaetzung: string; niveaus: string; sternchen: string };
-	/** Empfohlener Umfang im Assistenten (131); ohne Angabe wird nicht nach Seiten gefragt. */
-	umfang?: '1' | 'claude';
+	/** Empfohlenes Zeitziel in Minuten im Assistenten; ohne Angabe wird nicht danach gefragt. */
+	umfang?: '20' | 'claude';
 }
 
 const A4_OPTIONEN = {
@@ -93,7 +93,7 @@ export const VORLAGE_FORMAT: Record<string, { name: string; format: Format; opti
 };
 
 export const ART_ANGABEN: Record<Art, ArtAngaben> = {
-	arbeitsblatt: { name: 'Arbeitsblatt', ...A4_OPTIONEN, bausteine: ALLE_BAUSTEINE, umfang: '1' },
+	arbeitsblatt: { name: 'Arbeitsblatt', ...A4_OPTIONEN, bausteine: ALLE_BAUSTEINE, umfang: '20' },
 	// Lesebüchlein als Mini-Book nennt der Skill `lesetext`.
 	lesetext: {
 		name: 'Lesetext',
@@ -103,7 +103,7 @@ export const ART_ANGABEN: Record<Art, ArtAngaben> = {
 			{ name: MINIBUCH.name, format: MINIBUCH.format, vorlage: 'minibuch', hinweis: MINIBUCH.optionen[0] },
 		],
 		bausteine: ALLE_BAUSTEINE,
-		umfang: '1',
+		umfang: '20',
 	},
 	lernzielkontrolle: {
 		name: 'Lernzielkontrolle',

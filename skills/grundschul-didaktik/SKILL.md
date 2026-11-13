@@ -81,7 +81,7 @@ Ausführlich in `references/gestaltung.md`. Die wichtigsten Werte:
 - Fließtext: serifenlose, kindgerechte Schrift mit eindeutigen Formen (I/l unterscheidbar, in Klasse 1/2 einstöckiges a und g). Bevorzugt die Druckschrift der Klasse (Lehrwerk), sonst Andika. Überschriften: eine runde, freundliche Display-Schrift (z. B. Fredoka, Baloo 2).
 - Eine Palette als Akzent an Nummernkreisen, Überschrift, Linien, Figur und Bildern; Text schwarz; keine Farbflächen hinter Aufgaben. Aufgaben ohne Kasten mit hängender Nummer, getrennt durch Abstand. Niveaus (falls gewählt) nur mit Punkten kennzeichnen (`references/druck-und-platz.md`).
 - Linksbündiger Flattersatz, keine Silbentrennung, Zeilenumbruch nach Sinneinheiten.
-- Seitenränder ≥ 1,5 cm, ausreichende Schreibflächen; Lineatur passend zur Klassenstufe. Platz geht an Übung und Luft, nicht an Rahmen: schlanker Kopf und Fuß; in Kl. 1/2 Übersicht vor Menge (Richtwerte in `references/druck-und-platz.md`).
+- Seitenränder ≥ 1,5 cm, ausreichende Schreibflächen; Lineatur passend zur Klassenstufe. Platz geht an Übung, nicht an Rahmen: schlanker Kopf und Fuß. Die Menge folgt dem Zeitziel (Standard 20 Minuten Arbeit je Kind und Niveau), nicht der Seitenzahl (`references/druck-und-platz.md`, Abschnitt „Menge nach Arbeitszeit“).
 - Klare Aufgaben mit Nummer, in Kl. 1/2 und bei eingeführtem Symbolset mit Arbeitsanweisungs-Symbol (`references/gestaltung.md`).
 - Kontrast mindestens 4,5:1; Farbe als einzige Information: siehe `references/gestaltung.md`, Abschnitt „Farbe“.
 
@@ -105,7 +105,7 @@ Prüfe jedes Material gegen diese Liste und korrigiere, bevor du es der Lehrkraf
 - [ ] Rechtschreibung, Zeichensetzung, Rechnungen und Lösungen geprüft
 - [ ] Keine personenbezogenen Daten von Kindern (echte Namen, Fotos, Förderbedarfe einzelner Kinder)
 - [ ] Farbe nur als Akzent; keine Flächen hinter Aufgaben; auch in der s/w-Ansicht lesbar
-- [ ] Übersichtlich: Aufgaben ohne Kasten, Aufgaben- und Item-Zahl im Richtwert der Klasse, jede Aufgabe auf einen Blick verständlich, Beispiel nicht gequetscht
+- [ ] Übersichtlich: Aufgaben ohne Kasten, Menge trägt das Zeitziel je Niveau, Seiten gefüllt, jede Aufgabe auf einen Blick verständlich, Beispiel nicht gequetscht
 - [ ] Lösung / Selbstkontrolle beigelegt (wenn sinnvoll)
 - [ ] Kopfzeile: Name, Datum, ggf. Thema – aber schlank
 

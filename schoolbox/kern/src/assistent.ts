@@ -84,9 +84,13 @@ export const LERNGRUPPE = [
 ] as const satisfies readonly (Wert<string> & { satz: string })[];
 export type Lerngruppe = (typeof LERNGRUPPE)[number]['wert'];
 
+/** Das Zeitziel: wie lange ein Kind am Material arbeitet. Daraus folgt die Menge (`druck-und-platz.md`). */
 export const UMFAENGE = [
-	{ wert: '1', name: '1 Seite', satz: 'eine Seite' },
-	{ wert: '2', name: '2 Seiten', satz: 'zwei Seiten' },
+	{ wert: '10', name: '10 min', satz: 'Arbeitszeit je Kind 10 Minuten' },
+	{ wert: '15', name: '15 min', satz: 'Arbeitszeit je Kind 15 Minuten' },
+	{ wert: '20', name: '20 min', satz: 'Arbeitszeit je Kind 20 Minuten' },
+	{ wert: '30', name: '30 min', satz: 'Arbeitszeit je Kind 30 Minuten' },
+	{ wert: '45', name: '45 min', satz: 'Arbeitszeit je Kind 45 Minuten' },
 	{ wert: 'claude', name: 'Claude entscheidet', satz: '' },
 ] as const satisfies readonly (Wert<string> & { satz: string })[];
 export type Umfang = (typeof UMFAENGE)[number]['wert'];
@@ -130,7 +134,7 @@ export const FREITEXT = {
 	thema: { name: 'Thema', platz: 'z. B. Uhrzeit: volle und halbe Stunden', zeichen: 200 },
 	ziel: { name: 'Ich-kann-Ziel', platz: 'Wenn leer, formuliert Claude das Ziel aus dem Thema.', zeichen: 200 },
 	funktionText: { name: 'Anders …', platz: 'z. B. Wiederholung nach den Ferien', zeichen: 80 },
-	umfangText: { name: 'Anders …', platz: 'z. B. drei Seiten', zeichen: 80 },
+	umfangText: { name: 'Anders …', platz: 'z. B. zwei Schulstunden', zeichen: 80 },
 	bausteineText: { name: 'Noch etwas aufs Blatt …', platz: 'z. B. ein Rätsel zum Schluss', zeichen: 300 },
 	sonst: { name: 'Sonst noch etwas für Claude?', platz: 'z. B. Bitte keine Digitaluhren.', zeichen: 1000 },
 	titel: { name: 'Titel', platz: '', zeichen: 120 },
@@ -194,7 +198,7 @@ export interface EinheitWahl {
 	/** `null`: die Empfehlung. */
 	bestandteile: string[] | null;
 	nochEtwas: string;
-	/** `null`: die Empfehlung (an in Klasse 1 und 2). */
+	/** `null`: die Empfehlung (an). */
 	rahmen: boolean | null;
 	idee: string;
 	leitfigur: (typeof EINHEIT_LEITFIGUR)[number];
@@ -233,7 +237,8 @@ export const EINHEIT_FELDER = {
 export const einheitBestandteile = (e: EinheitWahl): string[] =>
 	e.bestandteile ?? EINHEIT_BESTANDTEILE.filter((b) => b.empfohlen).map((b) => b.name);
 
-export const einheitRahmen = (e: EinheitWahl, klasse: Klasse) => e.rahmen ?? (klasse === 1 || klasse === 2);
+/** Eine Einheit ist eine Geschichte (`unterrichtsplanung/references/reihe-als-geschichte.md`): in jeder Klasse an. */
+export const einheitRahmen = (e: EinheitWahl) => e.rahmen ?? true;
 
 export interface Antworten {
 	weg: Weg;
@@ -544,7 +549,7 @@ export const ASSISTENT_SCHRITTE: readonly AssistentSchritt[] = [
 		einheit: 'nur',
 		antwort: (a) =>
 			[
-				einheitRahmen(a.eh, a.klasse) ? 'mit Rahmen' : 'ohne Rahmen',
+				einheitRahmen(a.eh) ? 'mit Rahmen' : 'ohne Rahmen',
 				EINHEIT_AUSSEHEN_WAHL.find((w) => w.wert === a.eh.aussehen)?.name,
 			].join(' · '),
 	},
@@ -641,7 +646,7 @@ const umfangTeile = (a: Antworten): Teil[] => {
 		return [];
 	}
 	if (voll(a.umfangText)) {
-		return [fest(', Umfang: '), frei(a.umfangText)];
+		return [fest(', Arbeitszeit je Kind: '), frei(a.umfangText)];
 	}
 	const satz = UMFAENGE.find((u) => u.wert === (a.umfang ?? umfangEmpfehlung(a.art)))?.satz;
 	return satz ? [fest(', '), antwort(satz)] : [];
@@ -745,7 +750,7 @@ export const einheitAngabenAus = (a: Antworten): EinheitAngaben => {
 		menge: a.eh.menge,
 		bestandteile: einheitBestandteile(a.eh),
 		nochEtwas: a.eh.nochEtwas.trim(),
-		rahmen: einheitRahmen(a.eh, a.klasse),
+		rahmen: einheitRahmen(a.eh),
 		idee: a.eh.idee.trim(),
 		leitfigur: a.eh.leitfigur,
 		aussehen: a.eh.aussehen,
@@ -797,6 +802,18 @@ const formatRoh = (wert: unknown) => {
  * Prüft Antworten aus dem Browser gegen diese Daten: nur bekannte Felder und Werte, Freitext als Text mit
  * Höchstlänge. Fehlende Felder bekommen den Wert von `leereAntworten`, die Empfehlung gilt dann.
  */
+/** Gespeicherte Antworten kennen noch „1 Seite“ und „2 Seiten“: Sie fallen auf die Empfehlung zurück. */
+const UMFANG_ALT: unknown[] = ['1', '2'];
+
+const pruefeUmfang = (roh: unknown) =>
+	roh === null || roh === undefined || UMFANG_ALT.includes(roh)
+		? null
+		: eins(
+				'umfang',
+				roh,
+				UMFAENGE.map((u) => u.wert),
+			);
+
 export const pruefeAntworten = (roh: unknown, vorbelegt: { fach: Fach; klasse: Klasse }): Antworten => {
 	if (typeof roh !== 'object' || roh === null || Array.isArray(roh)) {
 		throw fehler('Die Antworten fehlen.');
@@ -854,14 +871,7 @@ export const pruefeAntworten = (roh: unknown, vorbelegt: { fach: Fach; klasse: K
 					),
 		funktionText: pruefeText(r, 'funktionText'),
 		bausteine: schalter,
-		umfang:
-			r.umfang === null || r.umfang === undefined
-				? null
-				: eins(
-						'umfang',
-						r.umfang,
-						UMFAENGE.map((u) => u.wert),
-					),
+		umfang: pruefeUmfang(r.umfang),
 		umfangText: pruefeText(r, 'umfangText'),
 		bausteineText: pruefeText(r, 'bausteineText'),
 		lerngruppe: [...new Set(lerngruppe.map((l: unknown) => eins('lerngruppe', l, gruppen)))],

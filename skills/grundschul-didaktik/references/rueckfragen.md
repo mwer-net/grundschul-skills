@@ -80,6 +80,8 @@ a) Ja   ← Empfehlung
 b) Nein, alle bearbeiten dieselben Aufgaben
 ```
 
+Ja: Beim Arbeitsblatt bekommt jedes Niveau seine eigene Seite mit dem ganzen Zeitziel; die Kinder wählen ihre Seite.
+
 Nein: keine Niveau-Punkte, keine Wahlhilfe, keine getrennten Niveau-Blätter oder -Kartensätze. Die Aufgaben steigen trotzdem im Anspruch und beginnen mit einem vorgelösten Beispiel.
 
 **5. Sternchenaufgabe**
@@ -97,13 +99,13 @@ Die Antworten gelten für die ganze Unterhaltung, bis die Lehrkraft etwas andere
 ## Ablauf
 
 1. **Bestandsaufnahme (still):** Liste intern auf, welche Angaben vorliegen, welche fehlen und welche du sicher herleiten kannst.
-   - Herleitbar (nicht fragen, als Annahme nennen): Zahlenraum aus Klassenstufe und Halbjahr, Schriftgröße aus Klassenstufe, Lineatur, übliche Bearbeitungszeit.
+   - Herleitbar (nicht fragen, als Annahme nennen): Zahlenraum aus Klassenstufe und Halbjahr, Schriftgröße aus Klassenstufe, Lineatur. Das Zeitziel (wie lange ein Kind am Material arbeitet) ist 20 Minuten, wenn die Lehrkraft nichts anderes sagt; es bestimmt die Menge (`druck-und-platz.md`, Abschnitt „Menge nach Arbeitszeit“) und wird im Aufgabenplan genannt.
    - Nicht herleitbar (fragen): alles, was das Ergebnis sichtbar verändert und in der Anfrage fehlt.
 2. **Reihenfolge nach Abhängigkeit.** Frühere Antworten verändern spätere Fragen:
    0. Start-Abfrage: Materialart → Medium/Format → je nach Materialart Selbsteinschätzung → Churer Modell → Sternchenaufgabe (siehe oben)
    1. Klassenstufe (und ggf. Halbjahr)
    2. Fach, Thema, konkretes Lernziel
-   3. Funktion in der Reihe (Einführung / Übung / Vertiefung / Überprüfung)
+   3. Funktion in der Reihe (Einführung / Übung / Vertiefung / Überprüfung) und Zeitziel in Minuten
    4. Lerngruppe (Leistungsspanne, DaZ, Förderbedarfe)
    5. Materialspezifisches und Fachspezifisches (aus Material- und Fach-Skill), aber nur, was die Entwürfe nicht zeigen können. Aufgabenformate, Rahmen/Geschichte, Differenzierungsform, Spielform oder Kartentyp werden nicht gefragt, sondern als Varianten in die Entwürfe gelegt (`entwurf-und-aufgabenplan.md`).
    6. Klassenkonventionen (Schrift, Symbole, Farbcodes) – fest stehen und werden nicht gefragt: Bundesland Baden-Württemberg, Leitfigur Willi/Wilma Waschbär, Kennzeichnung der Niveaus mit ● / ●● / ●●● und Selbsteinschätzung mit Wachstumsstufen (sofern in der Start-Abfrage gewählt)

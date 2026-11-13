@@ -183,7 +183,7 @@ describe('Assistent: Freitext (131)', () => {
 		assert.doesNotMatch(text({ art: 'arbeitsblatt', artText: 'Rätselheft' }), /Rätselheft/);
 		assert.doesNotMatch(text({ art: 'karten', bausteineText: 'Rätsel', umfangText: 'drei' }), /Rätsel|drei/);
 		assert.match(text({ funktionText: 'Wiederholung' }), /Funktion in der Reihe: „Wiederholung“/);
-		assert.match(text({ umfangText: 'drei Seiten' }), /Umfang: „drei Seiten“/);
+		assert.match(text({ umfangText: 'drei Seiten' }), /Arbeitszeit je Kind: „drei Seiten“/);
 		assert.match(text({ bausteineText: 'ein Rätsel' }), /Zusätzlich aufs Blatt: „ein Rätsel“/);
 	});
 
@@ -207,7 +207,7 @@ describe('Assistent: Auftrag (131)', () => {
 		assert.equal(
 			auftragAus(a),
 			[
-				'Erstelle ein Arbeitsblatt für Mathematik, Klasse 2, Format A4 hoch, eine Seite.',
+				'Erstelle ein Arbeitsblatt für Mathematik, Klasse 2, Format A4 hoch, Arbeitszeit je Kind 20 Minuten.',
 				'Thema: „Uhrzeit: volle und halbe Stunden“. Formuliere das Ich-kann-Ziel selbst. Das Material dient zum Üben.',
 				'Mit Selbsteinschätzung und drei Niveaus zur Wahl, ohne Sternchenaufgabe.',
 				'Lerngruppe: große Leistungsspanne, Kinder mit Deutsch als Zweitsprache.',
@@ -262,7 +262,7 @@ describe('Assistent: Auftrag (131)', () => {
 			Object.entries(FREITEXT).map(([feld, { zeichen }]) => [feld, 'x'.repeat(zeichen)]),
 		) as Partial<Antworten>;
 		for (const art of ARTEN) {
-			const a = mit({ ...voll, art, lerngruppe: LERNGRUPPE.map((l) => l.wert), umfang: '2' });
+			const a = mit({ ...voll, art, lerngruppe: LERNGRUPPE.map((l) => l.wert), umfang: '30' });
 			assert.ok(auftragAus(a).length <= AUFTRAG_ZEICHEN, art);
 			assert.deepEqual(pruefeAntworten(a, a), a);
 		}
@@ -350,16 +350,14 @@ describe('Assistent: Unterrichtseinheit (140)', () => {
 		assert.ok(!ids(mit({ weg: 'claude' })).some((id) => id.startsWith('e')));
 	});
 
-	it('Empfehlungen: fünf Bestandteile vorgewählt, Rahmen nur in Klasse 1 und 2', () => {
+	it('Empfehlungen: fünf Bestandteile vorgewählt, Rahmengeschichte in jeder Klasse', () => {
 		assert.deepEqual(
 			einheitBestandteile(leereEinheit()),
 			EINHEIT_BESTANDTEILE.filter((b) => b.empfohlen).map((b) => b.name),
 		);
 		assert.equal(einheitBestandteile(leereEinheit()).length, 5);
-		assert.equal(einheitRahmen(leereEinheit(), 1), true);
-		assert.equal(einheitRahmen(leereEinheit(), 2), true);
-		assert.equal(einheitRahmen(leereEinheit(), 3), false);
-		assert.equal(einheitRahmen({ ...leereEinheit(), rahmen: true }, 4), true);
+		assert.equal(einheitRahmen(leereEinheit()), true);
+		assert.equal(einheitRahmen({ ...leereEinheit(), rahmen: false }), false);
 	});
 
 	it('nur mit Thema und sonst Empfehlungen: Angaben gehen durch die Prüfung des Servers', () => {

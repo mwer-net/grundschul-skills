@@ -17,6 +17,12 @@ export const MELDUNG_CODES = [
 	'aufgaben-viele',
 	'abstand-knapp',
 	'platz-frei',
+	/** Nur mit Zeitziel (`data-zeit`): Die geplanten Minuten der Aufgaben reichen nicht für das Ziel. */
+	'zeit-knapp',
+	/** Nur mit Zeitziel: Aufgaben ohne geschätzte Minuten (`data-min`). */
+	'zeit-fehlt',
+	/** Nur mit Zeitziel: Kopf oder Fuß nehmen den Aufgaben zu viel Platz. */
+	'rahmen-gross',
 	'notiz-fehlt',
 	'platzhalter',
 	'pruefskript',
@@ -152,6 +158,23 @@ const TABELLE: Record<MeldungCode, Uebersetzung> = {
 		tipp: text.includes('--abstand')
 			? 'Im Reiter „Blatt“ den Abstand vergrößern.'
 			: 'Einen Eintrag oder eine Aufgabe ergänzen, zum Beispiel durch Duplizieren.',
+	}),
+	'zeit-knapp': (_n, text) => {
+		const [, hat, ziel] = /etwa (\d+) min, Ziel sind (\d+) min/.exec(text) ?? [];
+		return {
+			satz: hat
+				? `Die Aufgaben reichen für etwa ${hat} Minuten, geplant sind ${ziel ?? ''}.`
+				: 'Die Aufgaben reichen nicht für die geplante Zeit.',
+			tipp: 'Eine Aufgabe oder Einträge ergänzen, zum Beispiel durch Duplizieren. Oder Claude darum bitten.',
+		};
+	},
+	'zeit-fehlt': () => ({
+		satz: 'Bei einigen Aufgaben fehlt die geschätzte Arbeitszeit.',
+		tipp: 'Claude bitten, die Zeiten zu ergänzen.',
+	}),
+	'rahmen-gross': (_n, text) => ({
+		satz: `${text.startsWith('Fuß') ? 'Der Fuß' : 'Der Kopf'} nimmt den Aufgaben viel Platz weg.`,
+		tipp: 'Text kürzen oder den Tipp der Figur neben seine Aufgabe ziehen.',
 	}),
 	'notiz-fehlt': () => ({ satz: 'Diese Folie hat keine Notiz für dich.', tipp: null }),
 	'platzhalter': (namen) => ({

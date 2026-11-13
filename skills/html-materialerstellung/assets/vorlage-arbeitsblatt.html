@@ -7,7 +7,8 @@
 <link rel="stylesheet" href="blatt.css">
 <script src="abbildungen.js"></script>
 </head>
-<!-- kl1–kl4 · farbe palette-sonnig|himmel|wiese|beere -->
+<!-- kl1–kl4 · farbe palette-sonnig|himmel|wiese|beere. Plant Claude die Menge nach Arbeitszeit, stehen am body
+     data-zeit (Zeitziel in Minuten) und an jeder Aufgabe data-min; Muster: beispiel-niveaublatt-kl2.html -->
 <body class="kl2 farbe palette-himmel">
 <section class="seite">
   <div class="namenszeile"><span class="name">Name:</span><span class="datum">Datum:</span></div>
@@ -66,10 +67,10 @@
     <div class="koerper"><div class="zeile">Es ist <span class="antwort breit" data-l="halb 1"></span>.</div></div>
   </div>
 
-  <!-- Fuß nur mit Selbsteinschätzung -->
+  <!-- Fuß nur mit Selbsteinschätzung: genau dieser Baustein, nur die Texte ändern sich -->
   <div class="fuss">
-    <div class="text"><b>Ich kann volle und halbe Stunden ablesen.</b><br>Male an, wie weit du schon bist:</div>
-    <img src="bilder/wachstum.png" alt="Samen, Keimling, Pflanze, Blume">
+    <div class="text"><b>Ich kann volle und halbe Stunden ablesen.</b> So gut kann ich das schon. Kreuze an:</div>
+    <div class="wachstum"><img src="bilder/wachstum.png" alt="Samen, Keimling, Pflanze, Blume"><i></i><i></i><i></i><i></i></div>
     <div class="reflexion">Was hat dir geholfen? <span><span class="box"></span>das Beispiel</span><span><span class="box"></span>Willis Tipp</span><span><span class="box"></span>ein anderes Kind</span></div>
   </div>
 </section>

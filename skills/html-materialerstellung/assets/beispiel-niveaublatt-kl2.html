@@ -1,0 +1,123 @@
+<!doctype html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<title>Kl2_Mathe_Uhrzeit_AB1</title>
+<link rel="stylesheet" href="blatt.css">
+<script src="abbildungen.js"></script>
+</head>
+<!-- Geprüftes Beispiel „Menge nach Arbeitszeit“: Zeitziel 20 min, Klasse 2, Niveau ●. Vorder- und Rückseite
+     gehören zusammen (data-weiter), beide Seiten sind gefüllt. Die Seiten für ●● und ●●● haben denselben Aufbau. -->
+<body class="kl2 farbe palette-himmel" data-zeit="20">
+<section class="seite">
+  <!-- Niveau-Punkte in der Namenszeile nur, wenn jedes Niveau seine eigene Seite hat (Menge nach Arbeitszeit) -->
+  <div class="namenszeile"><span class="name">Name:</span><span class="datum">Datum:</span><span class="niveau"><i></i></span></div>
+  <span class="loesung-marke">Lösung</span>
+  <div class="kopf">
+    <div class="titel">
+      <h1>Wie spät ist es?</h1>
+      <div class="ziel">Ich kann volle und halbe Stunden ablesen.</div>
+    </div>
+    <!-- Leitfigur mit Funktion: Tipp zu einer Aufgabe -->
+    <div class="tipp"><img class="figur" src="bilder/willi.png" alt="Willi"><div class="blase">Zu 1: Erst der kleine Zeiger. Er zeigt die Stunde.</div></div>
+  </div>
+
+  <!-- Aufgabe: Nummernkreis, Anweisung, Körper. data-min: geschätzte Minuten für ein Kind dieses Niveaus;
+       die Summe der Seite trifft das Zeitziel (data-zeit am body). -->
+  <div class="aufgabe" data-min="5">
+    <span class="nr">1</span>
+    <div class="anw"><span class="text">Lies ab. Schreibe die Uhrzeit auf.</span></div>
+    <div class="koerper">
+      <div class="reihe" style="--spalten:4">
+        <!-- erstes Item als Beispiel: class="beispiel" zeigt die Lösung schon auf dem Arbeitsblatt -->
+        <div class="zelle beispiel"><x-uhr zeit="3:00"></x-uhr><span class="antwort breit" data-l="3 Uhr"></span></div>
+        <div class="zelle"><x-uhr zeit="7:00"></x-uhr><span class="antwort breit" data-l="7 Uhr"></span></div>
+        <div class="zelle"><x-uhr zeit="10:00"></x-uhr><span class="antwort breit" data-l="10 Uhr"></span></div>
+        <div class="zelle"><x-uhr zeit="12:00"></x-uhr><span class="antwort breit" data-l="12 Uhr"></span></div>
+        <div class="zelle beispiel"><x-uhr zeit="4:30"></x-uhr><span class="antwort breit" data-l="halb 5"></span></div>
+        <div class="zelle"><x-uhr zeit="9:30"></x-uhr><span class="antwort breit" data-l="halb 10"></span></div>
+        <div class="zelle"><x-uhr zeit="1:30"></x-uhr><span class="antwort breit" data-l="halb 2"></span></div>
+        <div class="zelle"><x-uhr zeit="6:30"></x-uhr><span class="antwort breit" data-l="halb 7"></span></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="aufgabe" data-min="4">
+    <span class="nr">2</span>
+    <div class="anw"><span class="text">Zeichne die Zeiger ein.</span></div>
+    <div class="koerper">
+      <div class="reihe" style="--spalten:4">
+        <!-- loesung="…": Zeiger erscheinen nur auf dem Lösungsblatt -->
+        <div class="zelle"><b>9 Uhr</b><x-uhr loesung="9:00" groesse="100"></x-uhr></div>
+        <div class="zelle"><b>halb 5</b><x-uhr loesung="4:30" groesse="100"></x-uhr></div>
+        <div class="zelle"><b>halb 9</b><x-uhr loesung="8:30" groesse="100"></x-uhr></div>
+        <div class="zelle"><b>halb 12</b><x-uhr loesung="11:30" groesse="100"></x-uhr></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="aufgabe" data-min="3">
+    <span class="nr">3</span>
+    <div class="anw"><span class="text">Eine Stunde später. Wie spät ist es dann?</span></div>
+    <div class="koerper">
+      <div class="reihe" style="--spalten:2">
+        <div class="zelle links beispiel"><div class="zeile">3 Uhr → <span class="antwort breit" data-l="4 Uhr"></span></div></div>
+        <div class="zelle links"><div class="zeile">8 Uhr → <span class="antwort breit" data-l="9 Uhr"></span></div></div>
+        <div class="zelle links"><div class="zeile">11 Uhr → <span class="antwort breit" data-l="12 Uhr"></span></div></div>
+        <div class="zelle links"><div class="zeile">halb 2 → <span class="antwort breit" data-l="halb 3"></span></div></div>
+        <div class="zelle links"><div class="zeile">halb 6 → <span class="antwort breit" data-l="halb 7"></span></div></div>
+        <div class="zelle links"><div class="zeile">halb 10 → <span class="antwort breit" data-l="halb 11"></span></div></div>
+      </div>
+    </div>
+  </div>
+
+</section>
+<!-- Rückseite: setzt den Weg der Vorderseite fort, darum data-weiter. Kein zweiter Kopf, der Platz geht an Aufgaben. -->
+<section class="seite" data-weiter>
+  <span class="loesung-marke">Lösung</span>
+  <div class="aufgabe" data-min="3">
+    <span class="nr">4</span>
+    <div class="anw"><span class="text">Was passt zusammen? Verbinde.</span></div>
+    <div class="koerper">
+      <x-zuordnen paare="7 Uhr morgens: aufstehen; 12 Uhr mittags: Mittagessen; 4 Uhr nachmittags: draußen spielen; halb 8 abends: ins Bett gehen; 12 Uhr nachts: tief schlafen"></x-zuordnen>
+    </div>
+  </div>
+
+  <div class="aufgabe" data-min="4">
+    <span class="nr">5</span>
+    <div class="anw"><span class="text">Willi sagt: „Um halb 8 gehe ich in die Schule.“ Was machst du um halb 8? Schreibe.</span></div>
+    <div class="koerper">
+      <div class="schreiblinie nicht-loesung"></div>
+      <div class="schreiblinie nicht-loesung"></div>
+      <div class="nur-loesung"><b>Eigene Antwort, zum Beispiel: Um halb 8 gehe ich zur Schule.</b></div>
+    </div>
+  </div>
+
+  <div class="aufgabe" data-min="2">
+    <span class="nr">6</span>
+    <div class="anw"><span class="text">Eine halbe Stunde später. Wie spät ist es dann?</span></div>
+    <div class="koerper">
+      <div class="reihe" style="--spalten:2">
+        <div class="zelle links beispiel"><div class="zeile">2 Uhr → <span class="antwort breit" data-l="halb 3"></span></div></div>
+        <div class="zelle links"><div class="zeile">6 Uhr → <span class="antwort breit" data-l="halb 7"></span></div></div>
+        <div class="zelle links"><div class="zeile">9 Uhr → <span class="antwort breit" data-l="halb 10"></span></div></div>
+        <div class="zelle links"><div class="zeile">11 Uhr → <span class="antwort breit" data-l="halb 12"></span></div></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="aufgabe" data-min="2">
+    <span class="nr stern">★</span>
+    <div class="anw"><span class="text">Wer mag, knobelt: Der große Zeiger steht auf der 6, der kleine zwischen 2 und 3. Wie spät ist es?</span></div>
+    <div class="koerper"><div class="zeile">Es ist <span class="antwort breit" data-l="halb 3"></span>.</div></div>
+  </div>
+
+  <!-- Fuß nur mit Selbsteinschätzung: genau dieser Baustein, nur die Texte ändern sich -->
+  <div class="fuss">
+    <div class="text"><b>Ich kann volle und halbe Stunden ablesen.</b> So gut kann ich das schon. Kreuze an:</div>
+    <div class="wachstum"><img src="bilder/wachstum.png" alt="Samen, Keimling, Pflanze, Blume"><i></i><i></i><i></i><i></i></div>
+    <div class="reflexion">Was hat dir geholfen? <span><span class="box"></span>das Beispiel</span><span><span class="box"></span>Willis Tipp</span><span><span class="box"></span>ein anderes Kind</span></div>
+  </div>
+</section>
+</body>
+</html>

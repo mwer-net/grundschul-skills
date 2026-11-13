@@ -41,7 +41,7 @@ Farbe ist **Akzent**, das Layout bleibt kompakt:
 
 ## 4. Übersichtlich und platzsparend gestalten (beide Profile)
 
-Ziel: **Übersicht vor Menge.** Ein Kind muss jede Aufgabe auf einen Blick verstehen: was zu tun ist, wo es schreibt, wie das Beispiel geht. Gespart wird an Rahmen, Innenabständen und Deko, nie an Schriftgröße, Schreibfläche, dem Beispiel oder der Luft zwischen Aufgaben. In Kl. 1/2 gilt: lieber weniger Items mit Luft als eine volle Seite; eine Seite, die ein Erwachsener „vollgepackt" findet, überfordert ein Zweitklasskind.
+Ziel: **Übersicht und genug zu tun.** Ein Kind muss jede Aufgabe auf einen Blick verstehen: was zu tun ist, wo es schreibt, wie das Beispiel geht. Und das Blatt muss die Arbeitszeit tragen, für die es gedacht ist (Abschnitt „Menge nach Arbeitszeit“). Übersicht entsteht durch Ordnung: gleiche Abstände, eine Handlung je Aufgabe, ein Beispiel, klare Reihen. Sie entsteht nicht durch leere Fläche. Gespart wird an Rahmen, Innenabständen, Kopf, Fuß und Deko, nie an Schriftgröße, Schreibfläche, dem Beispiel oder dem Abstand zwischen Aufgaben.
 
 ### Aufbau einer Aufgabe ohne Kasten
 
@@ -54,15 +54,15 @@ Ziel: **Übersicht vor Menge.** Ein Kind muss jede Aufgabe auf einen Blick verst
 ```
 
 - **Hängende Nummer:** Nummernkreis (32–36 px, in der Hauptfarbe) links, Anweisung 12–16 px rechts daneben, die Arbeitsfläche beginnt bündig unter der Anweisung. Die Nummer markiert den Aufgabenbeginn, ein Kasten ist nicht nötig.
-- **Niveau-Punkte** (falls gewählt) rechtsbündig in der Anweisungszeile. Die Sternchenaufgabe trägt ★ an der Stelle der Nummer.
+- **Niveau-Punkte** (falls gewählt): Hat jedes Niveau seine eigene Seite, stehen sie einmal in der Namenszeile (`<span class="niveau">`); teilen sich die Niveaus eine Seite, rechtsbündig in der Anweisungszeile. Die Sternchenaufgabe trägt ★ an der Stelle der Nummer.
 - **Trennung durch Abstand:** zwischen Aufgaben wie in der Tabelle unter „Mindestgrößen“ (nie weniger), 12–16 px zwischen Anweisung und Arbeitsfläche. Einheitlich im ganzen Material.
 - **Rahmen nur mit Funktion:** Wortspeicher, Tipp-Sprechblase der Leitfigur, Ergebnis- oder Antwortkästchen, Ausschneideteile (gestrichelt), Lösungsstreifen. Rahmen dann als dünne Kontur ohne Füllung, Ecken gerundet.
 
 ### Kopf und Fuß schlank
 
-- **Kopf** (Name/Datum, Überschrift, Ich-kann-Ziel, Wahlhilfe nur mit Niveaus) zusammen höchstens ca. 160 px. Ich-kann-Ziel und Wahlhilfe in einer Zeile oder zwei kurzen Zeilen.
+- **Kopf** (Name/Datum, Überschrift, Ich-kann-Ziel, Tipp) zusammen ca. 160 px; `blatt.py` meldet ihn ab 210 px. Das Ich-kann-Ziel in einer oder zwei kurzen Zeilen. Eine Wahlhilfe braucht nur ein Blatt, auf dem sich die Niveaus eine Seite teilen. Auf einer Folgeseite (`data-weiter`) entfällt der Kopf.
 - **Tipp der Leitfigur** neben der Aufgabe, zu der er gehört (am Ende ihrer Item-Reihe oder neben dem Beispiel); fehlt dort der Platz, rechts im Kopf mit Bezug („Zu 1: …"). Nie zwischen Anweisung und Arbeitsfläche, nie mitten in einer Item-Reihe.
-- **Fuß** (nur wenn Selbsteinschätzung gewählt, sonst entfällt er und der Platz geht an Aufgaben) in einer Zeile bzw. einem schmalen Streifen (ca. 80–110 px): Ich-kann-Satz + Wachstumsgrafik zum Anmalen links/rechts, Reflexionsfrage mit Ankreuzfeldern darunter. Abgegrenzt durch eine Linie, nicht durch eine Fläche. Die Wachstumsgrafik passend zum Profil (farbig oder Strich-Version zum Anmalen).
+- **Fuß** (nur wenn Selbsteinschätzung gewählt, sonst entfällt er und der Platz geht an Aufgaben) als schmaler Streifen von ca. 110–130 px; `blatt.py` meldet ihn ab 150 px. Links der Ich-kann-Satz mit „So gut kann ich das schon. Kreuze an:“, rechts die Wachstumsgrafik mit vier Kreisen zum Ankreuzen darunter (Baustein `.wachstum` in der Vorlage), darunter die Reflexionsfrage mit Ankreuzfeldern. Abgegrenzt durch eine Linie, nicht durch eine Fläche. Nie „Male an“ ohne Kreise: Die Pflanzen sind schon farbig, das Kind wüsste nicht, was es anmalen soll.
 
 ### Aufgaben auf einen Blick verständlich
 
@@ -74,7 +74,7 @@ Ziel: **Übersicht vor Menge.** Ein Kind muss jede Aufgabe auf einen Blick verst
 ### Items pro Aufgabe
 
 - Items gleichmäßig über die Spaltenbreite (A4: 794 − 120 = 674 px) verteilen, Abstand 24–32 px, damit die Zuordnung Item → Antwortlinie klar bleibt.
-- Kl. 1/2: eine Reihe mit 3–4 Items je Aufgabe; kleine Items (Rechnungen, Zahlen) bis 6. Kl. 3/4: Reihen füllen, bei Übungsblättern gern 2 Reihen à 5–6 Items.
+- Reihen füllen: so viele Items nebeneinander, wie bei den Mindestgrößen unten Platz haben, und so viele Reihen, wie das Zeitziel verlangt. Kl. 1/2 meist 4 große oder 5–6 kleine Items je Reihe, Kl. 3/4 5–6.
 - **Schrift und Abstand je Klasse** (aus `blatt.css`):
 
 <!-- erzeugt: schrift-und-abstand -->
@@ -130,37 +130,72 @@ Lücken müssen breit genug sein, damit Kinder der Klasse darin schreiben könne
 | Bastelwürfel, Kante | 4 cm | 4 cm | 3 cm |
 | Diagramm, Höhe der Skala | 180 px | 160 px | 120 px |
 
-### Richtwerte pro A4-Seite
+### Menge nach Arbeitszeit
 
-| Klasse | Aufgaben | Items je Übungsaufgabe | belegte Fläche im Satzspiegel |
+Ein Blatt ist dann richtig gefüllt, wenn ein Kind des Niveaus daran so lange arbeitet, wie die Lehrkraft es braucht. Maß ist das **Zeitziel** in Minuten: Die Lehrkraft nennt es (Start-Abfrage, Assistent der Schoolbox); nennt sie keins, gelten **20 Minuten**. Es ist die reine Arbeitszeit eines Kindes an seinem Niveau, ohne Einführung und Besprechung.
+
+**So wird geplant:**
+
+1. **Jedes Niveau bekommt seine eigene Seite** mit dem ganzen Zeitziel: Seite ●, Seite ●●, Seite ●●●, die Punkte stehen in der Namenszeile. Die Lehrkraft kopiert je Kind die passende Seite, oder das Kind wählt. Teilen sich drei Niveaus eine Seite, arbeitet jedes Kind nur ein Drittel davon und ist nach wenigen Minuten fertig; das ist nur richtig, wenn die Lehrkraft es ausdrücklich so wünscht („alle Niveaus auf einem Blatt“) oder das Zeitziel bei höchstens 10 Minuten liegt.
+2. **Jede Aufgabe bekommt eine Minutenangabe** aus dem Zeitmodell unten. Die Summe je Niveau erreicht das Zeitziel (höchstens 15 % darunter, bis 25 % darüber). Die Sternchenaufgabe zählt nicht mit, sie ist Reserve für schnelle Kinder.
+3. **Reicht eine Seite nicht für das Zeitziel, geht es auf der Rückseite weiter** (`<section class="seite" data-weiter>`, ohne Kopf). Vorder- und Rückseite sind ein Blatt Papier. Bei 20 Minuten ist das in Kl. 1/2 der Normalfall, weil die Schrift groß ist.
+4. **Die Seite ist gefüllt.** Bleibt unten Platz, kommt ein Item, eine Reihe oder eine Aufgabe dazu, in jeder Klasse. Nie mit Leerraum, größerer Schrift oder Deko füllen.
+5. **Mehr Zeit kommt aus mehr Denk- und Schreibarbeit, nicht aus mehr vom Gleichen.** Nach 6–8 gleichen Items wechselt das Format: erst ablesen, dann selbst eintragen, dann anwenden, dann erklären oder selbst eine Aufgabe erfinden. So üben die Kinder dasselbe Ziel auf mehreren Wegen und bleiben dran.
+
+**Im HTML** steht das Zeitziel am `<body data-zeit="20">`, die Minuten an jeder Aufgabe (`<div class="aufgabe" data-min="5">`). `blatt.py` rechnet je Niveau nach und meldet `zeit-knapp`, `zeit-fehlt`, einen zu hohen Kopf oder Fuß und freien Platz. Geprüftes Muster: `html-materialerstellung/assets/beispiel-niveaublatt-kl2.html`.
+
+**Zeitmodell** (Richtwerte für ein Kind im mittleren Niveau, aus Unterrichtserfahrung; ● rechnet mit dem oberen, ●●● mit dem unteren Wert und bekommt dafür anspruchsvollere Items):
+
+| Tätigkeit | Kl. 1 | Kl. 2 | Kl. 3 | Kl. 4 |
+|---|---|---|---|---|
+| Anweisung lesen und Beispiel ansehen, je Aufgabe | 1 min | 45 s | 30 s | 30 s |
+| Kurze Antwort (Zahl, Wort, Kreuz, Verbindung), je Item | 30 s | 20–25 s | 15–20 s | 10–15 s |
+| Kopfrechnung mit Ergebnis, je Item | 30–40 s | 20–30 s | 15–20 s | 10–15 s |
+| Schriftliche Rechnung, je Item | – | 60–90 s | 60–90 s | 45–75 s |
+| Zahlenmauer, Rechendreieck, Malkreuz, je Stück | 2 min | 1,5–2 min | 1–1,5 min | 1 min |
+| Ablesen und eintragen (Uhr, Skala, Diagramm), je Item | 40–50 s | 30–40 s | 20–30 s | 20 s |
+| Einzeichnen oder messen (Zeiger, Strecke, Form), je Item | 1,5–2 min | 1–1,5 min | 1 min | 45 s |
+| Ein Wort abschreiben | 40–60 s | 30 s | 20 s | 15 s |
+| Einen eigenen Satz schreiben | 2–3 min | 1,5–2 min | 1–1,5 min | 1 min |
+| Eine Zeile in der Lineatur nachspuren und weiterschreiben | 2–3 min | 2 min | – | – |
+| Lesen, je 50 Wörter | 2–3 min | 1–1,5 min | 45 s | 30 s |
+| Ausmalen nach Regel, je Feld | 20–30 s | 15–20 s | 10–15 s | 10 s |
+| Offene Aufgabe (erklären, erfinden, begründen) | 4–6 min | 4–6 min | 5–8 min | 5–8 min |
+
+Daraus folgt, wie viel auf ein Blatt gehört. Für 20 Minuten sind das etwa:
+
+| Klasse | Aufgaben je Niveau | Arbeitsplätze (Items, Lücken, Zeilen) je Niveau | Seiten je Niveau |
 |---|---|---|---|
-| 1 | 2–3 | 3–4 | höchstens ca. 55 % |
-| 2 | 3–4 | 3–4 (kleine Items bis 6) | höchstens ca. 55 % |
-| 3 | 4–5 | 6–8 | höchstens ca. 65 % |
-| 4 | 5–6 | 6–10 | höchstens ca. 65 % |
+| 1 | 4–6 | 20–30 | 2 |
+| 2 | 5–7 | 25–40 | 1–2 |
+| 3 | 5–7 | 35–50 | 1–2 |
+| 4 | 6–8 | 40–60 | 1 |
 
-Die Sternchenaufgabe zählt mit. Passt der Inhalt nicht, wird gestrichen oder auf zwei Blätter verteilt, nie enger gesetzt. `blatt.py bauen` meldet zu viele Aufgaben, Überlauf und zu dichte Abstände.
+Für ein anderes Zeitziel im selben Verhältnis rechnen. Ein Blatt mit drei Aufgaben zu je vier Items ist in jeder Klasse nach fünf Minuten fertig.
 
-Für Kinder mit Konzentrationsschwierigkeiten dieselben Aufgaben auf zwei Blätter verteilen (weniger pro Seite) und je Aufgabe ein Abhak-Kästchen setzen (`differenzierung.md`).
+Passt der Inhalt nicht auf die Seite, geht er auf die Rückseite, er wird nie enger gesetzt. Für Kinder mit Konzentrationsschwierigkeiten dieselben Aufgaben auf mehr Seiten verteilen (weniger pro Seite) und je Aufgabe ein Abhak-Kästchen setzen (`differenzierung.md`).
 
 ### Platzbudget (A4, Satzspiegel 1003 px)
 
 | Bereich | Höhe |
 |---|---|
-| Kopf | ≤ 160 px |
-| Aufgaben inkl. Abstände | Rest, ca. 720–760 px |
-| Fuß | 80–110 px |
+| Kopf | ca. 160 px, höchstens 210 px; auf Folgeseiten keiner |
+| Aufgaben inkl. Abstände | Rest, ca. 700–760 px, auf Folgeseiten bis 1000 px |
+| Fuß | ca. 110–130 px, höchstens 150 px; nur auf der letzten Seite des Niveaus |
 
-Kl. 3/4: Passt eine weitere Aufgabe oder Item-Reihe hinein, wird sie ergänzt; bleiben unten mehr als ca. 150 px frei (`blatt.py` meldet das), Items ergänzen oder die Schreibfläche vergrößern. Kl. 1/2: Restplatz gleichmäßig als Luft zwischen die Aufgaben verteilen oder die Schreibfläche vergrößern, nicht auffüllen.
+Bleiben unten mehr als ca. 90 px frei, meldet `blatt.py` das; dann Item, Reihe oder Aufgabe ergänzen.
+
 
 ## 5. Checkliste
 
 - [ ] Weißer Hintergrund, kein Hintergrundbild, keine Flächen hinter Aufgaben, Kopf oder Fuß
 - [ ] Aufgaben ohne Kasten, mit hängender Nummer und einheitlichem Abstand
 - [ ] Rahmen nur mit Funktion
-- [ ] Kopf ≤ 160 px, Fuß ≤ 110 px, Tipp bei seiner Aufgabe oder mit „Zu 1: …" im Kopf
-- [ ] Aufgaben- und Item-Zahl im Richtwert der Klasse, jede Aufgabe auf einen Blick verständlich, Beispiel nicht gequetscht
-- [ ] Mindestgrößen eingehalten; Kl. 1/2 mit Luft, Kl. 3/4 ohne ungenutzte Leerstreifen
+- [ ] Kopf ca. 160 px, Fuß ca. 120 px, Tipp bei seiner Aufgabe oder mit „Zu 1: …" im Kopf
+- [ ] Zeitziel erreicht: `data-zeit` am Body, `data-min` an jeder Aufgabe, Summe je Niveau stimmt
+- [ ] Jedes Niveau auf eigener Seite, jede Seite gefüllt, Formate wechseln
+- [ ] Jede Aufgabe auf einen Blick verständlich, Beispiel nicht gequetscht
+- [ ] Mindestgrößen eingehalten, keine ungenutzten Leerstreifen
 - [ ] Keine Information nur über Farbe
 
 - [ ] Eine Palette, Farbe nur an Nummern, Überschrift, Linien, Figur, Bildern und Farbcodes

@@ -7,8 +7,9 @@ import { homedir, tmpdir } from 'node:os';
 import path from 'node:path';
 import { createInterface } from 'node:readline';
 
-import type { Fund, KiAktion, Konfig, Meldung, Pruefbericht } from '@schoolbox/kern';
+import type { Ansicht, Fund, KiAktion, Konfig, Meldung, Pruefbericht } from '@schoolbox/kern';
 import {
+	ANSICHT_ORDNER,
 	dokumentDir,
 	formatBefund,
 	ID_MUSTER,
@@ -25,15 +26,34 @@ import { liesReferenzen, loeseReferenz, pfadText } from '@schoolbox/kern/src/ref
 import { leseQuelle } from './dokumente';
 import type { Ereignisse } from './ereignisse';
 import { HttpFehler } from './fehler';
+import type { Bauen } from './ki-werkzeug';
+import { ansichtText, starteWerkzeug, WERKZEUG_BAUEN, WERKZEUG_SERVER } from './ki-werkzeug';
 
-/** Grenzen eines Auftrags. Aus den Messungen in Issue 056: Ein ganzes Blatt differenzieren brauchte 16 Runden und 2 min. */
+/**
+ * Grenzen eines Auftrags. Aus den Messungen in Issue 056: Ein ganzes Blatt differenzieren brauchte 16 Runden und 2 min.
+ * Seit Claude selbst baut und die Seiten ansieht, braucht jede Änderung einige Runden mehr.
+ */
 export const KI_GRENZEN = {
-	zeitMs: 8 * 60_000,
-	runden: 40,
+	zeitMs: 12 * 60_000,
+	runden: 60,
 	budgetUsd: 5,
 	/** Über das Guthaben ist es echtes Geld (Entscheidung 35). */
 	budgetGuthabenUsd: 1,
+	/**
+	 * Ein neues Blatt: Aufgabenplan, Bau, Prüfbericht und visuelle Endkontrolle in Schleife, wie in der Claude-App.
+	 * Qualität geht vor Verbrauch (Admin, 2026-11-13).
+	 */
+	blatt: {
+		zeitMs: 30 * 60_000,
+		runden: 150,
+		budgetUsd: 20,
+		budgetGuthabenUsd: 5,
+		/** So oft geht ein Blatt mit Fehlern noch einmal an Claude zurück. */
+		korrekturen: 2,
+	},
 	auftragZeichen: 4000,
+	/** Was der Server selbst an den Auftrag hängt: die Antworten aus dem Assistenten und der Aufgabenplan. */
+	anhangZeichen: 20_000,
 	materialBytes: 5 * 1024 * 1024,
 	ausgabeBytes: 50 * 1024 * 1024,
 	warten: 5,
@@ -58,11 +78,13 @@ export const KI_GRENZEN = {
 	 * vom Admin bestätigt (2026-11-11).
 	 */
 	einheit: {
-		zeitMs: 60 * 60_000,
-		runden: 400,
-		budgetUsd: 40,
-		budgetGuthabenUsd: 5,
-		dokumente: 20,
+		zeitMs: 3 * 60 * 60_000,
+		runden: 1500,
+		budgetUsd: 150,
+		budgetGuthabenUsd: 25,
+		dokumente: 24,
+		/** Die Planung vor der Freigabe: Geschichte und Plan, noch kein Material. */
+		planZeitMs: 15 * 60_000,
 		/** Über diesem Anteil am 5-Stunden-Fenster sagt der Start es vorher (Entscheidung 35: gesperrt wird nicht). */
 		warnAb: 0.5,
 		/** So lange bleibt ein unvollständiger Arbeitsordner für „Weiterbauen“ liegen. */
@@ -84,6 +106,8 @@ export const KI_GRENZEN = {
 export const KI_LIMIT_MODELL = 'haiku';
 /** Der Status `allowed_warning` kam in 056 schon bei 43 %: Für den Hinweis zählt darum die Auslastung. */
 export const KI_EFFORT = 'medium';
+/** Neue Blätter und Einheiten: Hier zählt das Ergebnis, nicht die Minute. */
+export const KI_EFFORT_GROSS = 'high';
 export const KI_WARN_AB = 0.8;
 const ANMELDUNG_GILT_MS = 60_000;
 const BEENDEN_MS = 4000;
@@ -140,6 +164,10 @@ export interface KiAuftrag {
 	grundlage?: string;
 	/** „Aufgabe 1“: worauf der Auftrag zielt, für Pille und Warteschlange. */
 	umfang?: string;
+	/** Die Antwort ist der Aufgabenplan eines neuen Blatts: Der Editor zeigt ihn zur Freigabe. */
+	plan?: boolean;
+	/** Neues Blatt in zwei Schritten: Dieser Lauf plant oder baut. */
+	phase?: 'plan' | 'bauen';
 }
 
 export interface VorschlagMeta {
@@ -198,9 +226,17 @@ export interface KiWunsch {
 	ohneRueckfragen?: boolean;
 	/** Der erste Entwurf eines neuen Blatts (133). Nachbessern daran erkennt der Server am offenen Vorschlag. */
 	neuesBlatt?: boolean;
+	/** Neues Blatt in zwei Schritten wie in der Claude-App: erst der Aufgabenplan, nach der Freigabe der Bau. */
+	phase?: 'plan' | 'bauen';
+	/** Der Teil der Lehrkraft aus dem Assistenten; die späteren Schritte am neuen Blatt brauchen ihn wieder. */
+	eingabe?: string;
+	/** Vom Server angehängt, nicht von der Lehrkraft getippt: zählt nicht zur Länge des Auftrags. */
+	anhang?: string;
 }
 
 export type KiPruefer = (dokDir: string, html: string) => Promise<Pruefbericht>;
+/** Baut eine Fassung mit Seitenbildern nach `ziel`, für das Werkzeug „bauen“. */
+export type KiAnsicht = (dokDir: string, html: string, ziel: string) => Promise<Ansicht>;
 
 type KiKonfig = Pick<Konfig, 'claudeBin' | 'kiAn' | 'kiModell' | 'materialDir'>;
 
@@ -208,6 +244,7 @@ interface Abhaengigkeiten {
 	konfig: KiKonfig;
 	ereignisse: Ereignisse;
 	pruefer: KiPruefer;
+	ansicht: KiAnsicht;
 }
 
 /**
@@ -245,7 +282,7 @@ export const NIE_KONNEKTOR_WERKZEUGE = [
 
 export const canvaEinstellungen = () =>
 	JSON.stringify({
-		allowedMcpServers: [{ serverUrl: CANVA_URL }],
+		allowedMcpServers: [{ serverUrl: CANVA_URL }, { serverName: WERKZEUG_SERVER }],
 		deniedMcpServers: [
 			...NIE_KONNEKTOREN.map((serverName) => ({ serverName })),
 			...NIE_KONNEKTOR_URLS.map((serverUrl) => ({ serverUrl })),
@@ -286,6 +323,11 @@ export const kiArgumente = (o: {
 	mitCanva?: boolean;
 	/** Ein Canva-Bild (176): nur die Bildwerkzeuge von Canva und zwei Dateien, kein Skill, kein Material. */
 	canvaBild?: boolean;
+	/** Die MCP-Konfiguration mit dem Werkzeug „bauen“ (`ki-werkzeug.ts`). */
+	mcpDatei?: string | null;
+	/** Ein neues Blatt: mehr Zeit, Runden und Gründlichkeit. */
+	gross?: boolean;
+	runden?: number;
 }) => {
 	const canva = o.mitCanva === true;
 	if (o.canvaBild === true) {
@@ -322,6 +364,8 @@ export const kiArgumente = (o: {
 			o.auftragDatei,
 		];
 	}
+	const blattRunden = o.gross ? KI_GRENZEN.blatt.runden : KI_GRENZEN.runden;
+	const blattBudget = o.gross ? KI_GRENZEN.blatt.budgetUsd : KI_GRENZEN.budgetUsd;
 	return [
 		'-p',
 		'--output-format',
@@ -330,17 +374,19 @@ export const kiArgumente = (o: {
 		'--model',
 		o.modell,
 		'--effort',
-		KI_EFFORT,
+		o.einheit || o.gross ? KI_EFFORT_GROSS : KI_EFFORT,
 		'--setting-sources',
 		'project',
 		'--add-dir',
 		o.ablage,
 		...(canva ? ['--settings', canvaEinstellungen()] : ['--strict-mcp-config']),
+		...(o.mcpDatei ? ['--mcp-config', o.mcpDatei] : []),
 		'--tools',
 		o.einheit ? 'Read,Edit,Write,Skill' : 'Read,Edit,Skill',
 		'--allowedTools',
 		...(o.einheit ? EINHEIT_RECHTE : [`Edit(./${WORKFILE})`]),
 		'Skill',
+		...(o.mcpDatei ? [WERKZEUG_BAUEN] : []),
 		...(canva ? CANVA_WERKZEUGE : []),
 		'--disallowedTools',
 		...NIE_LESEN,
@@ -348,9 +394,9 @@ export const kiArgumente = (o: {
 		'--permission-mode',
 		'dontAsk',
 		'--max-turns',
-		String(o.einheit ? KI_GRENZEN.einheit.runden : KI_GRENZEN.runden),
+		String(o.runden ?? (o.einheit ? KI_GRENZEN.einheit.runden : blattRunden)),
 		'--max-budget-usd',
-		String(o.budgetUsd ?? (o.einheit ? KI_GRENZEN.einheit.budgetUsd : KI_GRENZEN.budgetUsd)),
+		String(o.budgetUsd ?? (o.einheit ? KI_GRENZEN.einheit.budgetUsd : blattBudget)),
 		'--append-system-prompt-file',
 		o.auftragDatei,
 		...(o.sitzung ? ['--resume', o.sitzung] : []),
@@ -414,12 +460,23 @@ const kennung = (inhalt: string) => createHash('sha256').update(inhalt).digest('
 const SCHRITT_NAMEN: Record<string, string> = {
 	Read: 'Liest das Blatt',
 	Edit: 'Ändert das Blatt',
+	[WERKZEUG_BAUEN]: 'Baut und prüft das Blatt',
 };
 
-const textSchritt = (name: string, eingabe: { skill?: unknown }) =>
-	name === 'Skill' && typeof eingabe.skill === 'string'
-		? `Liest die Regeln: ${eingabe.skill}`
-		: (SCHRITT_NAMEN[name] ?? null);
+const textSchritt = (name: string, eingabe: { skill?: unknown; file_path?: unknown }) => {
+	if (name === 'Skill' && typeof eingabe.skill === 'string') {
+		return `Liest die Regeln: ${eingabe.skill}`;
+	}
+	if (name === 'Read' && typeof eingabe.file_path === 'string') {
+		if (eingabe.file_path.includes(`${ANSICHT_ORDNER}/`)) {
+			return 'Sieht sich die Seiten an';
+		}
+		if (eingabe.file_path.includes('/skills/')) {
+			return 'Liest in den Regeln nach';
+		}
+	}
+	return SCHRITT_NAMEN[name] ?? null;
+};
 
 const zeitpunkt = (sekunden: unknown) =>
 	typeof sekunden === 'number' ? new Date(sekunden * 1000).toISOString() : null;
@@ -478,7 +535,8 @@ const FEHLER_TEXTE: Record<string, string> = {
 	authentication_failed: 'Claude ist auf dem Server nicht angemeldet. Der Admin meldet es dort mit „claude“ an.',
 	error_max_turns: 'Der Auftrag war zu umfangreich. Wähle einen kleineren Teil des Blatts.',
 	error_max_budget_usd: 'Der Auftrag war zu umfangreich. Wähle einen kleineren Teil des Blatts.',
-	error_max_budget_guthaben: `Der Auftrag hat die Grenze von ${KI_GRENZEN.budgetGuthabenUsd} $ für einen Lauf über dein Guthaben erreicht. Wähle einen kleineren Teil des Blatts.`,
+	error_max_budget_guthaben:
+		'Der Auftrag hat die Grenze für einen Lauf über dein Guthaben erreicht. Wähle einen kleineren Teil des Blatts.',
 };
 const FEHLER_UNBEKANNT = 'Claude konnte den Auftrag nicht ausführen. Bitte versuch es noch einmal.';
 export { FEHLER_TEXTE, FEHLER_UNBEKANNT };
@@ -542,7 +600,7 @@ export const werteAus = (
 		const inhalt = (nachricht.content ?? []) as {
 			type?: string;
 			name?: string;
-			input?: { skill?: unknown };
+			input?: { skill?: unknown; file_path?: unknown };
 		}[];
 		for (const teil of inhalt) {
 			const text = teil.type === 'tool_use' && teil.name ? textSchritt(teil.name, teil.input ?? {}) : null;
@@ -570,6 +628,8 @@ export const werteAus = (
 	}
 };
 
+const ASSETS_OHNE = /\.(?:js|woff2?|ttf|otf)$|\/fonts$/;
+
 /** Skills derselben Version wie der Server, als Kopie: Durch einen Symlink lehnt `Read` die `references/` ab (056). */
 export const legeAblageAn = async (ablage: string, wurzelSkills: string) => {
 	const ziel = path.join(ablage, '.claude', 'skills');
@@ -584,6 +644,15 @@ export const legeAblageAn = async (ablage: string, wurzelSkills: string) => {
 			const references = path.join(wurzelSkills, name, 'references');
 			if (existsSync(references)) {
 				await cp(references, path.join(ziel, name, 'references'), { recursive: true });
+			}
+			// Vorlagen, Musterblätter und Bilder, auf die die Skills verweisen. Skripte und Schriften braucht Claude nicht:
+			// Gebaut wird im Server, und `abbildungen.js` beschreibt der Katalog in `references/`.
+			const assets = path.join(wurzelSkills, name, 'assets');
+			if (existsSync(assets)) {
+				await cp(assets, path.join(ziel, name, 'assets'), {
+					recursive: true,
+					filter: (quelle) => !ASSETS_OHNE.test(quelle),
+				});
 			}
 		}),
 	);
@@ -783,7 +852,13 @@ const prompt = (
 		w.skills?.length ? `Lade zuerst diese Skills: ${w.skills.join(', ')}.` : null,
 		fortsetzung ? null : verlaufAbschnitt(w.verlauf),
 		`Auftrag der Lehrkraft: ${w.auftrag}`,
-		w.ohneRueckfragen ? 'Keine Rückfragen: Niemand kann bei diesem Auftrag antworten. Ändere das Blatt.' : null,
+		w.anhang ?? null,
+		w.ohneRueckfragen && w.phase !== 'plan'
+			? 'Keine Rückfragen: Niemand kann bei diesem Auftrag antworten. Ändere das Blatt.'
+			: null,
+		w.phase === 'plan'
+			? 'Keine Rückfragen: Triff offene Entscheidungen selbst und nenne sie im Plan als Annahme. Ändere material.html in dieser Runde nicht.'
+			: null,
 		kopf,
 		fortsetzung
 			? 'material.html ist der jetzige Stand. Er kann sich geändert haben. Lies die Datei neu, bevor du sie änderst.'
@@ -835,6 +910,16 @@ const pruefeVerlaufGrenzen = ({ verlauf = [], zitat = '' }: KiWunsch) => {
 	}
 };
 
+const pruefeTextGrenzen = (wunsch: KiWunsch) => {
+	if (!wunsch.auftrag.trim() || wunsch.auftrag.length > KI_GRENZEN.auftragZeichen) {
+		throw new HttpFehler(400, `Der Auftrag muss zwischen 1 und ${KI_GRENZEN.auftragZeichen} Zeichen lang sein.`);
+	}
+	if ((wunsch.anhang?.length ?? 0) > KI_GRENZEN.anhangZeichen) {
+		throw new HttpFehler(400, 'Der Aufgabenplan ist zu lang geworden. Starte das Blatt bitte neu.');
+	}
+	pruefeVerlaufGrenzen(wunsch);
+};
+
 /**
  * Die Id wird zum Pfad: Was nicht dem Muster folgt, kommt nie bis zum Dateisystem. Die Namen der Vorschläge ohne
  * Gespräch sind vergeben (135).
@@ -868,13 +953,17 @@ const KEIN_RUECKFALL = new Set([
 const fortsetzenGescheitert = ({ fehler, gearbeitet }: Ergebnis) =>
 	Boolean(fehler) && !gearbeitet && !fehler?.includes(' ') && !KEIN_RUECKFALL.has(fehler ?? '');
 
-export const erstelleKi = ({ ereignisse, konfig, pruefer }: Abhaengigkeiten) => {
+export const erstelleKi = ({ ansicht, ereignisse, konfig, pruefer }: Abhaengigkeiten) => {
 	const wurzelTmp = kiTempWurzel(konfig.materialDir);
 	const pidDatei = path.join(wurzelTmp, 'pid');
 	const auftraege = new Map<string, KiAuftrag>();
 	/** Je Dokument der jüngste Auftrag am neuen Blatt und der erste Wunsch dafür (133). */
 	const entwurfAuftraege = new Map<string, string>();
 	const entwurfWuensche = new Map<string, KiWunsch>();
+	/** Der zuletzt gezeigte Aufgabenplan je Dokument: Die Freigabe baut genau ihn. */
+	const entwurfPlaene = new Map<string, string>();
+	const vorlage = async (name: string) =>
+		(await readFile(path.join(WURZEL, 'schoolbox', 'vorlagen', 'ki', `${name}.md`), 'utf8')).trim();
 	const dokSchluessel = (mappe: string, dok: string) => `${mappe}/${dok}`;
 	const warteschlange: { auftrag: KiAuftrag; wunsch: KiWunsch }[] = [];
 	let aktiv: {
@@ -1008,10 +1097,11 @@ export const erstelleKi = ({ ereignisse, konfig, pruefer }: Abhaengigkeiten) => 
 	const limitErreicht = () => limit?.status === 'rejected' && limit.guthaben === 'abgelehnt' && limitGilt();
 
 	/** Limit erreicht: Was jetzt noch läuft, läuft über Guthaben oder wird ohnehin abgelehnt. */
-	const budgetJetzt = () =>
-		(limit?.status === 'rejected' || limit?.laeuftUeberGuthaben) && limitGilt()
-			? KI_GRENZEN.budgetGuthabenUsd
-			: KI_GRENZEN.budgetUsd;
+	const ueberGuthaben = () => Boolean((limit?.status === 'rejected' || limit?.laeuftUeberGuthaben) && limitGilt());
+	const budgetJetzt = (gross: boolean) => {
+		const grenzen = gross ? KI_GRENZEN.blatt : KI_GRENZEN;
+		return ueberGuthaben() ? grenzen.budgetGuthabenUsd : grenzen.budgetUsd;
+	};
 
 	/**
 	 * Das Ende eines Laufs ist die Antwort des Kontos: Der Limit-Fehler ist der neue Stand. Ein Lauf ohne Fehler und
@@ -1035,7 +1125,14 @@ export const erstelleKi = ({ ereignisse, konfig, pruefer }: Abhaengigkeiten) => 
 	};
 
 	/** Ein Lauf von `claude`. Grenzen: Zeit und Menge der Ausgabe; Runden und Budget über die Argumente. */
-	const lauf = (arbeit: string, ablage: string, text: string, sitzung: string | null, a: KiAuftrag) =>
+	const lauf = (
+		arbeit: string,
+		ablage: string,
+		text: string,
+		sitzung: string | null,
+		a: KiAuftrag,
+		{ gross = false, mcpDatei = null }: { gross?: boolean; mcpDatei?: string | null } = {},
+	) =>
 		new Promise<Ergebnis>((resolve) => {
 			const stand: LaufStand = { sitzung, fehlerCode: null, ergebnis: {} };
 			// Abgebrochen, bevor der Prozess lief (die Ablage braucht einen Moment): gar nicht erst starten.
@@ -1043,10 +1140,12 @@ export const erstelleKi = ({ ereignisse, konfig, pruefer }: Abhaengigkeiten) => 
 				resolve({ fehler: null, sitzung, antwort: '', verbrauch: {}, kontext: 0, gearbeitet: false });
 				return;
 			}
-			const budgetUsd = budgetJetzt();
+			// Vor dem Start festgehalten: Meldet erst dieser Lauf das Limit, lief er noch nicht über Guthaben.
+			const mitGuthaben = ueberGuthaben();
+			const budgetUsd = budgetJetzt(gross);
 			const kind = spawn(
 				bin,
-				kiArgumente({ ablage, auftragDatei, budgetUsd, modell: konfig.kiModell, sitzung }),
+				kiArgumente({ ablage, auftragDatei, budgetUsd, modell: konfig.kiModell, sitzung, gross, mcpDatei }),
 				{
 					cwd: arbeit,
 					env: kiUmgebung(bin),
@@ -1067,7 +1166,7 @@ export const erstelleKi = ({ ereignisse, konfig, pruefer }: Abhaengigkeiten) => 
 			};
 			const frist = setTimeout(
 				() => stoppe('Der Auftrag hat zu lange gedauert und wurde beendet.'),
-				KI_GRENZEN.zeitMs,
+				gross ? KI_GRENZEN.blatt.zeitMs : KI_GRENZEN.zeitMs,
 			);
 			kind.stdin.on('error', () => undefined);
 			kind.stdin.end(text);
@@ -1107,10 +1206,7 @@ export const erstelleKi = ({ ereignisse, konfig, pruefer }: Abhaengigkeiten) => 
 					(code === 0 ? null : (stand.fehlerCode ?? 'unbekannt'));
 				uebernimmEnde(fehler, gemeldet);
 				resolve({
-					fehler:
-						fehler === 'error_max_budget_usd' && budgetUsd === KI_GRENZEN.budgetGuthabenUsd
-							? 'error_max_budget_guthaben'
-							: fehler,
+					fehler: fehler === 'error_max_budget_usd' && mitGuthaben ? 'error_max_budget_guthaben' : fehler,
 					sitzung: stand.sitzung,
 					antwort: stand.ergebnis.antwort ?? '',
 					verbrauch: stand.ergebnis.verbrauch ?? {},
@@ -1157,6 +1253,9 @@ export const erstelleKi = ({ ereignisse, konfig, pruefer }: Abhaengigkeiten) => 
 		}
 		return readFile(datei, 'utf8');
 	};
+
+	const KORREKTUR_KOPF =
+		'Die Prüfung der Schoolbox meldet noch diese Fehler. Behebe sie in material.html, baue mit dem Werkzeug „bauen“ und sieh dir die Seiten an, bis kein Fehler bleibt:';
 
 	const berichtText = (m: Meldung[]) =>
 		m
@@ -1215,6 +1314,24 @@ export const erstelleKi = ({ ereignisse, konfig, pruefer }: Abhaengigkeiten) => 
 		return { arbeit, ablage, sitzung: null, ende };
 	};
 
+	/**
+	 * Das Werkzeug „bauen“ für diesen Lauf: derselbe Bau wie später in der Schoolbox, mit dem Teil wieder im ganzen
+	 * Blatt. Die Sperre zuerst: Was nicht ins Material darf, soll auch hier nie im Browser laufen.
+	 */
+	const bauenFuer =
+		(arbeit: string, dir: string, quelle: string, ausschnitt: Ausschnitt): Bauen =>
+		async () => {
+			const neu = await leseErgebnis(arbeit);
+			const funde = sperrFunde(quelle, ausschnitt, neu);
+			if (funde.length > 0) {
+				return { text: sperrKorrektur(funde), fehler: true };
+			}
+			const ganz = ausschnitt.einsetzen(neu);
+			const gebaut = await ansicht(dir, ganz, path.join(arbeit, ANSICHT_ORDNER));
+			const format = formatBefund(ganz);
+			return { text: [ansichtText(gebaut), format ? `FEHLER: ${format}` : null].filter(Boolean).join('\n') };
+		};
+
 	/** Ein Gespräch behält seinen Ordner, denn die Sitzungsablage von `claude` hängt am `cwd` (Entscheidung 37). */
 	const gespraechPlatz = async (id: string, w: KiWunsch) => {
 		const { dok, mappe } = w;
@@ -1259,6 +1376,14 @@ export const erstelleKi = ({ ereignisse, konfig, pruefer }: Abhaengigkeiten) => 
 		await mkdir(wurzelTmp, { recursive: true, mode: 0o700 });
 		const platz = w.gespraechId ? await gespraechPlatz(w.gespraechId, w) : await einmalPlatz();
 		const { ablage, arbeit } = platz;
+		const gross = w.neuesBlatt === true;
+		const werkzeug = await starteWerkzeug(wurzelTmp, bauenFuer(arbeit, dir, quelle, ausschnitt)).catch(
+			(fehler: unknown) => {
+				console.error('Werkzeug für Claude:', fehler);
+				return null;
+			},
+		);
+		const mit = { gross, mcpDatei: werkzeug?.mcpDatei ?? null };
 		let verbrauch: Record<string, unknown> = {};
 		let ende: KiStatus = 'fehler';
 		let letzteSitzung: string | null = null;
@@ -1275,18 +1400,18 @@ export const erstelleKi = ({ ereignisse, konfig, pruefer }: Abhaengigkeiten) => 
 			const kopf = `Das Blatt: „${meta.titel}“, Art ${meta.art}.`;
 			const text = (fortsetzung: boolean) =>
 				prompt(w, ausschnitt, kopf, { aufVorschlag: Boolean(auf), fortsetzung });
-			let erst = await lauf(arbeit, ablage, text(Boolean(platz.sitzung)), platz.sitzung, a);
+			let erst = await lauf(arbeit, ablage, text(Boolean(platz.sitzung)), platz.sitzung, a, mit);
 			if (platz.sitzung && !aktiv?.abbruch && fortsetzenGescheitert(erst)) {
 				// Dem Nutzer wird das nicht gezeigt, der Verbrauch hält es fest.
 				rueckfall = true;
-				erst = await lauf(arbeit, ablage, text(false), null, a);
+				erst = await lauf(arbeit, ablage, text(false), null, a, mit);
 			}
 			letzteSitzung = erst.sitzung;
 			verbrauch = erst.verbrauch;
 			a.kontextGross = Boolean(w.gespraechId) && erst.kontext > KI_GRENZEN.gespraechKontextToken;
 			return erst;
 		};
-		/** Prüft das Ergebnis mit höchstens einer Korrekturrunde. `null`: Der Auftrag endet ohne Vorschlag. */
+		/** Prüft das Ergebnis und gibt es bei Fehlern an Claude zurück. `null`: Der Auftrag endet ohne Vorschlag. */
 		const pruefeMitKorrektur = async (erst: Ergebnis, erstesErgebnis: string) => {
 			// Die Sperre zuerst: Die Blattprüfung öffnet das Ergebnis im Browser, und was hier hängen bleibt, soll dort nie laufen.
 			const blattPruefung = async (html: string) =>
@@ -1295,35 +1420,40 @@ export const erstelleKi = ({ ereignisse, konfig, pruefer }: Abhaengigkeiten) => 
 			let funde = sperrFunde(quelle, ausschnitt, neu);
 			let bericht = funde.length > 0 ? null : await blattPruefung(neu);
 			let antwort = erst.antwort;
-			// Höchstens eine Korrekturrunde: Sie geht wie alles ans geteilte Limit.
-			if ((funde.length > 0 || (bericht?.fehler ?? 0) > 0) && erst.sitzung) {
-				a.schritte.push('Bessert nach');
+			let sitzung = erst.sitzung;
+			// Jede Runde geht ans geteilte Limit: eine für eine Änderung, mehr nur für ein neues Blatt.
+			const runden = gross ? KI_GRENZEN.blatt.korrekturen : 1;
+			for (let r = 0; r < runden && (funde.length > 0 || (bericht?.fehler ?? 0) > 0) && sitzung; r += 1) {
+				a.schritte.push(r === 0 ? 'Bessert nach' : 'Bessert noch einmal nach');
 				melde(a);
 				const zweit = await lauf(
 					arbeit,
 					ablage,
 					funde.length > 0
 						? sperrKorrektur(funde)
-						: `Die Prüfung meldet diese Fehler. Behebe sie in material.html:\n${berichtText(bericht?.meldungen ?? [])}`,
-					erst.sitzung,
+						: `${KORREKTUR_KOPF}\n${berichtText(bericht?.meldungen ?? [])}`,
+					sitzung,
 					a,
+					mit,
 				);
-				letzteSitzung = zweit.sitzung ?? letzteSitzung;
+				sitzung = zweit.sitzung ?? sitzung;
+				letzteSitzung = sitzung;
 				if (aktiv?.abbruch) {
 					ende = 'abgebrochen';
 					return null;
 				}
-				if (!zweit.fehler) {
-					neu = await leseErgebnis(arbeit);
-					antwort = zweit.antwort || antwort;
-					if (neu === ausschnitt.text && antwort.trim()) {
-						// Claude nimmt es zurück und erklärt, warum es so nicht geht.
-						alsAntwort(antwort);
-						return null;
-					}
-					funde = sperrFunde(quelle, ausschnitt, neu);
-					bericht = funde.length > 0 ? null : await blattPruefung(neu);
+				if (zweit.fehler) {
+					break;
 				}
+				neu = await leseErgebnis(arbeit);
+				antwort = zweit.antwort || antwort;
+				if (neu === ausschnitt.text && antwort.trim()) {
+					// Claude nimmt es zurück und erklärt, warum es so nicht geht.
+					alsAntwort(antwort);
+					return null;
+				}
+				funde = sperrFunde(quelle, ausschnitt, neu);
+				bericht = funde.length > 0 ? null : await blattPruefung(neu);
 			}
 			return { neu, funde, bericht, antwort };
 		};
@@ -1377,6 +1507,10 @@ export const erstelleKi = ({ ereignisse, konfig, pruefer }: Abhaengigkeiten) => 
 					throw new HttpFehler(422, 'Claude hat nichts am Blatt geändert.');
 				}
 				alsAntwort(erst.antwort);
+				if (w.phase === 'plan') {
+					a.plan = true;
+					entwurfPlaene.set(dokSchluessel(w.mappe, w.dok), erst.antwort);
+				}
 				return;
 			}
 			a.schritte.push('Prüft das Ergebnis');
@@ -1395,6 +1529,7 @@ export const erstelleKi = ({ ereignisse, konfig, pruefer }: Abhaengigkeiten) => 
 			a.ergebnis = 'vorschlag';
 			ende = 'fertig';
 		} finally {
+			await werkzeug?.ende().catch(() => undefined);
 			await platz.ende(letzteSitzung);
 			await rm(pidDatei, { force: true });
 			await notiereVerbrauch(a, ende, ausschnitt.umfang, start, {
@@ -1515,13 +1650,7 @@ export const erstelleKi = ({ ereignisse, konfig, pruefer }: Abhaengigkeiten) => 
 		if (limitErreicht()) {
 			throw new HttpFehler(429, limitErreichtText(limit?.zurueck ?? null));
 		}
-		if (!wunsch.auftrag.trim() || wunsch.auftrag.length > KI_GRENZEN.auftragZeichen) {
-			throw new HttpFehler(
-				400,
-				`Der Auftrag muss zwischen 1 und ${KI_GRENZEN.auftragZeichen} Zeichen lang sein.`,
-			);
-		}
-		pruefeVerlaufGrenzen(wunsch);
+		pruefeTextGrenzen(wunsch);
 		if (warteschlange.length >= KI_GRENZEN.warten) {
 			throw new HttpFehler(429, 'Es warten schon mehrere Aufträge. Bitte warte, bis einer fertig ist.');
 		}
@@ -1543,6 +1672,7 @@ export const erstelleKi = ({ ereignisse, konfig, pruefer }: Abhaengigkeiten) => 
 			antwort: null,
 			umfang: grundlage?.meta.umfang ?? teil.umfang,
 			...(wunsch.neuesBlatt ? { neuesBlatt: true } : {}),
+			...(wunsch.phase ? { phase: wunsch.phase } : {}),
 			...(wunsch.gespraechId ? { gespraech: wunsch.gespraechId } : {}),
 			...(referenz ? { referenz } : {}),
 			...(grundlage ? { grundlage: grundlage.schluessel } : {}),
@@ -1555,6 +1685,15 @@ export const erstelleKi = ({ ereignisse, konfig, pruefer }: Abhaengigkeiten) => 
 		melde(auftrag);
 		naechster();
 		return auftrag;
+	};
+
+	const planStand = (mappe: string, dok: string) => {
+		const erster = entwurfWuensche.get(dokSchluessel(mappe, dok));
+		const plan = entwurfPlaene.get(dokSchluessel(mappe, dok));
+		if (!erster || !plan) {
+			throw new HttpFehler(404, 'Den Aufgabenplan gibt es nicht mehr. Starte das Blatt bitte neu.');
+		}
+		return { erster, plan };
 	};
 
 	return {
@@ -1597,9 +1736,33 @@ export const erstelleKi = ({ ereignisse, konfig, pruefer }: Abhaengigkeiten) => 
 			}
 			return starte(wunsch);
 		},
+		/** Der Aufgabenplan ist freigegeben: Claude baut das Blatt danach (Schritt zwei wie in der Claude-App). */
+		planFreigeben: async (mappe: string, dok: string) => {
+			const { erster, plan } = planStand(mappe, dok);
+			return starte({
+				...erster,
+				phase: 'bauen',
+				auftrag: await vorlage('neu-bauen'),
+				anhang: `${erster.eingabe ?? ''}\n\nFreigegebener Aufgabenplan:\n${plan}`,
+			});
+		},
+		/** Die Lehrkraft will den Plan anders: Claude zeigt ihn neu, gebaut wird noch nichts. */
+		planAendern: async (mappe: string, dok: string, wunsch: string) => {
+			const { erster, plan } = planStand(mappe, dok);
+			if (!wunsch.trim() || wunsch.length > KI_GRENZEN.auftragZeichen) {
+				throw new HttpFehler(400, 'Schreib kurz, was am Plan anders sein soll.');
+			}
+			return starte({
+				...erster,
+				phase: 'plan',
+				auftrag: `${await vorlage('neu-plan-aendern')}\n\nÄnderungswunsch der Lehrkraft: „${wunsch.trim()}“`,
+				anhang: `${erster.eingabe ?? ''}\n\nBisheriger Aufgabenplan:\n${plan}`,
+			});
+		},
 		/** Entwurf angenommen, verworfen oder die Meldung geschlossen: Der Editor zeigt danach nichts mehr dazu. */
 		vergiss: (mappe: string, dok: string) => {
 			entwurfAuftraege.delete(dokSchluessel(mappe, dok));
+			entwurfPlaene.delete(dokSchluessel(mappe, dok));
 		},
 		abbrechen: (id: string) => {
 			const a = auftraege.get(id);

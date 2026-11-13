@@ -75,6 +75,16 @@ describe('Was der Editor zum neuen Blatt zeigt (133)', () => {
 		assert.equal(sperrtBlatt(entwurfPhase({ ...ruhe, startFehler: 'Limit' })), false);
 	});
 
+	it('Aufgabenplan: Die Antwort ist der Plan, das Blatt bleibt gesperrt, bis er freigegeben oder geschlossen ist', () => {
+		const plan = auftrag('fertig', { ergebnis: 'antwort', antwort: 'Seite ● (20 min) …', plan: true });
+		const phase = entwurfPhase({ ...ruhe, auftrag: plan });
+		assert.deepEqual(phase, { art: 'plan', text: 'Seite ● (20 min) …', fehler: null });
+		assert.equal(sperrtBlatt(phase), true);
+		assert.equal(entwurfPhase({ ...ruhe, auftrag: plan, fehler: 'Limit' })?.art, 'plan');
+		assert.equal(entwurfPhase({ ...ruhe, auftrag: plan, zu: 'a1' }), null);
+		assert.equal(entwurfPhase({ ...ruhe, auftrag: plan, vorschlag: vorschlag() })?.art, 'vorschlag');
+	});
+
 	it('Abgebrochen und verworfen: eine Zeile, bis sie geschlossen ist; ein fertiger Lauf ohne Entwurf: nichts', () => {
 		assert.deepEqual(entwurfPhase({ ...ruhe, auftrag: auftrag('abgebrochen') }), {
 			art: 'ende',

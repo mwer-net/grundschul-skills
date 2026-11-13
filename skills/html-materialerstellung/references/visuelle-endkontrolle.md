@@ -41,9 +41,11 @@ Die Endkontrolle bewertet streng: Im Zweifel ist es ein Befund. „Sieht im Gro�
 - [ ] Ziffern sitzen mittig in Nummernkreisen und Kästchen; Linien sichtbar und gleich dick.
 - [ ] Eine Schriftart für Text, Größen einheitlich nach Rolle.
 
-**E. Übersicht und Luft**
+**E. Übersicht und Menge**
 - [ ] Aufgaben klar voneinander getrennt, Abstände gleich.
-- [ ] Kl. 1/2: sichtbare Luft um jede Aufgabe; keine Häufung vieler kleiner Elemente. Wirkt die Seite voll, wird gestrichen, nicht verkleinert.
+- [ ] Die Seite ist gefüllt: kein leerer Streifen unten, kein Kopf oder Fuß, der ein Viertel der Seite nimmt. Bleibt Platz, kommt Arbeit dazu.
+- [ ] Die Menge trägt das Zeitziel: Würde ein Kind des Niveaus wirklich so lange daran arbeiten? Drei Aufgaben mit je vier Items sind nach fünf Minuten fertig.
+- [ ] Keine Häufung vieler kleiner Elemente ohne Ordnung. Wirkt die Seite unruhig, wird geordnet (Reihen, gleiche Abstände) oder auf die Rückseite verteilt, nicht verkleinert.
 - [ ] Das Auge wandert ruhig von oben nach unten; nichts lenkt ab (Deko, Fremdelemente).
 
 **F. Druck und Seiten**
@@ -68,7 +70,7 @@ Die Endkontrolle bewertet streng: Im Zweifel ist es ein Befund. „Sieht im Gro�
 | Abbildung ungenau (Anzahl falsch, Kreise schneiden sich, Menge gestreut) | Attribute des `x-…`-Elements prüfen (`n`, `z`, `e`, `zeit`); fehlt eine Darstellung, `abbildungen.js` erweitern statt freihand zeichnen |
 | Beispiel gequetscht | Beispiel auf Item-Größe bringen, Nachbarn auf 24–32 px Abstand; reicht die Breite nicht, ein Item der Reihe streichen |
 | Hinweis `kit-anteil`, `thema-layout` oder `thema-klasse` beim Bauen | Eigene Klassen durch Kit-Bausteine ersetzen, Aussehen in `thema.css` (`references/layout.md`, „Baukasten und Thema“) |
-| Seite zu voll oder Aufgabe unklar | Zuerst Items kürzen (Kl. 1/2: 3–4 je Aufgabe), dann die schwächste Aufgabe streichen, dann zweite Seite; nie Schrift oder Abstände verkleinern |
+| Seite zu voll oder Aufgabe unklar | Aufgabe auf die Rückseite verschieben (`data-weiter`) und beide Seiten füllen; unklare Aufgabe vereinfachen oder ein Beispiel ergänzen; nie Schrift oder Abstände verkleinern, nie unter das Zeitziel streichen |
 | Aufgabe mit zwei Darstellungsformen in einer Reihe | Auf eine Form reduzieren oder in zwei Aufgaben teilen (wenn der Richtwert es zulässt) |
 | Ungewollter Umbruch | Anweisung kürzen, `--spalten` senken oder `white-space:nowrap` für Rechenzeilen (`.zeile`); nie Schrift unter die Mindestgröße |
 | Tipp unterbricht die Reihe oder steht zwischen Anweisung und Arbeitsfläche | Tipp in den Kopf (`.kopf .tipp`, „Zu 1: …“) oder ans Reihenende |

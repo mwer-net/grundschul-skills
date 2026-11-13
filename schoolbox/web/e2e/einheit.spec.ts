@@ -31,6 +31,13 @@ const bisPruefen = async (page: Page, thema: string) => {
 	}
 };
 
+/** Der Plan steht im Band; gebaut wird erst nach „So bauen“. */
+const gibFrei = async (page: Page) => {
+	await expect(band(page)).toHaveAttribute('data-einheit-band', 'plan');
+	await expect(band(page).locator('[data-einheit-plan]')).toContainText('Zwei Fälle');
+	await band(page).getByRole('button', { name: 'So bauen' }).click();
+};
+
 test.describe('Unterrichtseinheit (140)', () => {
 	test('Mit Thema und ⏎ starten, Band und Platzhalter, fertige Kacheln, Pille, Meldung', async ({ page }) => {
 		await kiFall('einheit');
@@ -46,6 +53,7 @@ test.describe('Unterrichtseinheit (140)', () => {
 		await expect(page).toHaveURL(/\/o\//);
 		await expect(band(page)).toBeVisible();
 		await expect(page.locator('[data-einheit-pille]')).toBeVisible();
+		await gibFrei(page);
 		await expect(band(page)).toContainText('von 2 fertig');
 		await expect(page.locator('[data-objekt]').filter({ hasText: 'Fall 1' })).toBeVisible();
 		await expect(band(page)).toHaveAttribute('data-einheit-band', 'fertig', { timeout: 30_000 });
@@ -74,6 +82,7 @@ test.describe('Unterrichtseinheit (140)', () => {
 		await page.goto('/');
 		await bisPruefen(page, 'Wetter');
 		await page.keyboard.press('Enter');
+		await gibFrei(page);
 		await expect(band(page)).toHaveAttribute('data-einheit-band', 'laeuft');
 		await expect(page.locator('[data-objekt]').filter({ hasText: 'Fall 1' })).toBeVisible();
 		await expect(page.locator('[data-einheit-platzhalter] li')).toHaveCount(1);
@@ -94,6 +103,7 @@ test.describe('Unterrichtseinheit (140)', () => {
 		await kiFall('einheit-haenger');
 		await bisPruefen(page, 'Wind');
 		await page.keyboard.press('Enter');
+		await gibFrei(page);
 		await band(page).getByRole('button', { name: 'Abbrechen' }).click();
 		await band(page).getByRole('button', { name: 'Verwerfen' }).click();
 		await expect(page).toHaveURL(/\/$/);

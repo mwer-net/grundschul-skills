@@ -268,7 +268,7 @@ export const SchrittEBestandteile = ({ a, setzeEh }: { a: Antworten; setzeEh: Se
 };
 
 export const SchrittERahmen = ({ a, setzeEh }: { a: Antworten; setzeEh: SetzeEh }) => {
-	const rahmen = einheitRahmen(a.eh, a.klasse);
+	const rahmen = einheitRahmen(a.eh);
 	return (
 		<>
 			<div className="mb-4 rounded-lg border border-rand px-3 py-2">

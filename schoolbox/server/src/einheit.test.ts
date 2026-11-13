@@ -99,7 +99,13 @@ describe('Lauf einer Einheit (139)', () => {
 	const starte = async (angaben: object = ANGABEN) => {
 		const antwort = await api('/einheiten', { method: 'POST', body: JSON.stringify({ angaben, ordner: null }) });
 		assert.equal(antwort.status, 201, await antwort.clone().text());
-		return (await antwort.json()) as { id: string; ordner: string; mappe: string };
+		const einheit = (await antwort.json()) as { id: string; ordner: string; mappe: string };
+		// Erst der Plan, dann die Freigabe: Gebaut wird nicht ungefragt.
+		const plan = await bis(einheit.id, 'plan');
+		assert.match(plan.planText ?? '', /Zwei Fälle/);
+		assert.deepEqual(plan.importiert, {});
+		assert.equal((await api(`/einheiten/${einheit.id}/freigeben`, { method: 'POST', body: '{}' })).status, 200);
+		return einheit;
 	};
 	const bis = async (id: string, status: EinheitStand['status']) => {
 		await warte(async () => (await stand(id)).status === status);
@@ -200,6 +206,24 @@ describe('Lauf einer Einheit (139)', () => {
 		assert.equal(server.kontext.ordner.baum().ordner.find((o) => o.id === ordner)?.geloescht !== null, true);
 		assert.ok(!(await readdir(einheitenWurzel(server.materialDir))).includes(`einheit-${id}`));
 		assert.equal((await api(`/einheiten/${id}`)).status, 404);
+	});
+
+	it('Plan ändern: Claude zeigt ihn neu, gebaut wird erst nach der Freigabe; das Werkzeug „bauen“ ist erlaubt', async () => {
+		const antwort = await api('/einheiten', { method: 'POST', body: JSON.stringify({ angaben: ANGABEN }) });
+		const { id } = (await antwort.json()) as { id: string };
+		await bis(id, 'plan');
+		const wunsch = JSON.stringify({ aenderung: 'Lieber eine Schatzsuche.' });
+		assert.equal((await api(`/einheiten/${id}/freigeben`, { method: 'POST', body: wunsch })).status, 200);
+		await warte(async () => /Geänderter Plan/.test((await stand(id)).planText ?? ''));
+		const s = await bis(id, 'plan');
+		assert.deepEqual(s.importiert, {});
+		assert.equal((await api(`/einheiten/${id}/weiter`, { method: 'POST' })).status, 409);
+		assert.equal((await api(`/einheiten/${id}/freigeben`, { method: 'POST', body: '{}' })).status, 200);
+		await bis(id, 'fertig');
+		const aufrufe = (await readFile(path.join(path.dirname(bin), 'aufrufe.jsonl'), 'utf8')).trim().split('\n');
+		const args = (JSON.parse(aufrufe.at(-1) ?? '{}') as { args: string[] }).args;
+		assert.ok(args.includes('--mcp-config'));
+		assert.ok(args.includes('mcp__schoolbox__bauen'));
 	});
 
 	it('Fremde IDs gibt es nicht', async () => {

@@ -3,12 +3,19 @@ import { useEffect, useState } from 'react';
 import type { KiAuftrag, Vorschlag } from './ki';
 
 /** Was der Editor zum neuen Blatt zeigt (133): Karte, Entwurfsleiste, Fehlerkarte oder eine Zeile zum Ende. */
-export type EntwurfPhase = Laeuft | MitEntwurf | OhneEntwurf | Ende;
+export type EntwurfPhase = Laeuft | Plan | MitEntwurf | OhneEntwurf | Ende;
 
 interface Laeuft {
 	art: 'laeuft';
 	auftrag: KiAuftrag;
 	nachbessern: boolean;
+}
+
+/** Claude hat den Aufgabenplan gezeigt; gebaut wird erst nach der Freigabe, wie in der Claude-App. */
+interface Plan {
+	art: 'plan';
+	text: string;
+	fehler: string | null;
 }
 
 interface MitEntwurf {
@@ -46,9 +53,12 @@ export const entwurfPhase = (s: EntwurfStand): EntwurfPhase | null => {
 		return { art: 'laeuft', auftrag, nachbessern: Boolean(vorschlag && !vorschlag.konflikt) };
 	}
 	const offen = auftrag && auftrag.id !== s.zu;
+	const antwort = offen && auftrag.status === 'fertig' && auftrag.ergebnis === 'antwort' ? auftrag.antwort : null;
+	if (antwort && auftrag?.plan && !vorschlag) {
+		return { art: 'plan', text: antwort, fehler: s.fehler ?? s.startFehler };
+	}
 	// Claude hat geantwortet statt zu bauen: Für ein neues Blatt ist das wie ein Fehler mit Grund.
-	const statt = offen && auftrag.status === 'fertig' && auftrag.ergebnis === 'antwort' ? auftrag.antwort : null;
-	const fehler = s.fehler ?? s.startFehler ?? statt;
+	const fehler = s.fehler ?? s.startFehler ?? antwort;
 	if (vorschlag) {
 		return { art: 'vorschlag', vorschlag, fehler };
 	}
@@ -63,12 +73,15 @@ export const entwurfPhase = (s: EntwurfStand): EntwurfPhase | null => {
 
 /** Gesperrt ist das Blatt, solange Claude baut und solange der Entwurf offen ist (Festlegung F2 in 130). */
 export const sperrtBlatt = (phase: EntwurfPhase | null) =>
-	phase?.art === 'laeuft' || (phase?.art === 'vorschlag' && !phase.vorschlag.konflikt);
+	phase?.art === 'laeuft' || phase?.art === 'plan' || (phase?.art === 'vorschlag' && !phase.vorschlag.konflikt);
 
 /** Warum Bausteine und Inspektor nichts ändern; `null`, wenn das Blatt frei ist. */
 export const sperrGrund = (phase: EntwurfPhase | null) => {
 	if (phase?.art === 'laeuft') {
 		return 'Claude baut das Blatt. Bearbeiten geht wieder, sobald der Entwurf da ist.';
+	}
+	if (phase?.art === 'plan') {
+		return 'Erst den Aufgabenplan freigeben oder verwerfen, dann geht es hier weiter.';
 	}
 	return sperrtBlatt(phase) ? 'Erst den Entwurf übernehmen oder verwerfen, dann geht es hier weiter.' : null;
 };

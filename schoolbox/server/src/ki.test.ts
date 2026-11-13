@@ -625,7 +625,11 @@ describe('Aufträge an Claude', () => {
 			fach: 'mathematik',
 			klasse: 2,
 		});
-		assert.ok((await durch({ antworten })).includes(`Auftrag der Lehrkraft (aus dem Assistenten):\n${erwartet}`));
+		assert.ok(
+			(await durch({ antworten })).includes(
+				`Antworten der Lehrkraft aus dem Assistenten (sie ersetzen die Start-Abfrage):\n${erwartet}`,
+			),
+		);
 		await verwerfen();
 
 		for (const falsch of [
@@ -1565,7 +1569,10 @@ describe('Aufruf für ein Canva-Bild (176)', () => {
 		const einstellungen = JSON.parse(args[args.indexOf('--settings') + 1] ?? '{}') as {
 			allowedMcpServers: unknown[];
 		};
-		assert.deepEqual(einstellungen.allowedMcpServers, [{ serverUrl: 'https://mcp.canva.com/*' }]);
+		assert.deepEqual(einstellungen.allowedMcpServers, [
+			{ serverUrl: 'https://mcp.canva.com/*' },
+			{ serverName: 'schoolbox' },
+		]);
 	});
 
 	it('Blase und Einheit bleiben unverändert', () => {
@@ -1586,7 +1593,7 @@ describe('Aufruf für ein Canva-Bild (176)', () => {
 			...SPERREN,
 			...SCHLUSS,
 			'--max-turns',
-			'40',
+			'60',
 			'--max-budget-usd',
 			'1',
 			...ende,
@@ -1602,7 +1609,8 @@ describe('Aufruf für ein Canva-Bild (176)', () => {
 			'Edit(./bilder.json)',
 		];
 		assert.deepEqual(kiArgumente({ ...basis, einheit: true, mitCanva: true }), [
-			...KOPF,
+			...KOPF.slice(0, -1),
+			'high',
 			'--setting-sources',
 			'project',
 			'--add-dir',
@@ -1620,7 +1628,7 @@ describe('Aufruf für ein Canva-Bild (176)', () => {
 			...KONNEKTOREN,
 			...SCHLUSS,
 			'--max-turns',
-			'400',
+			'1500',
 			'--max-budget-usd',
 			'1',
 			...ende,

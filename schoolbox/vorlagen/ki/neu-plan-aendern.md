@@ -1,0 +1,1 @@
+Die Lehrkraft hat den Aufgabenplan gelesen und möchte ihn anders. Arbeite ihren Wunsch unten ein, prüfe die Zeiten neu und antworte nur mit dem ganzen, überarbeiteten Aufgabenplan in derselben Form (grundschul-didaktik, references/entwurf-und-aufgabenplan.md, Abschnitt „In der Schoolbox“). Ändere material.html noch nicht.

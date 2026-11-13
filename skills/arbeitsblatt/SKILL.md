@@ -12,30 +12,31 @@ Laden zusammen mit: `grundschul-didaktik` (Pflicht), dem passenden `fach-*`-Skil
 Zuerst die Start-Abfrage (`grundschul-didaktik/references/rueckfragen.md`): Materialart steht fest, Medium meist A4 hoch, dann Selbsteinschätzung unten *(Empfehlung: ja)*, Churer Modell mit Niveaus zur Selbstwahl *(Empfehlung: ja)*, Sternchenaufgabe *(Empfehlung: nein mit Niveaus, ja ohne)*. Danach nach dem Rückfrage-Protokoll, eine Frage pro Nachricht, jeweils mit Empfehlung:
 
 1. **Funktion:** Einführung (mit Beispiel, viel Anschauung), Übung (viele gleichartige Items, Selbstkontrolle), Vertiefung/Transfer (offene Aufgaben) oder Wiederholung? *Empfehlung meist: Übung.*
-2. **Umfang:** 1 Seite oder mehrere Blätter? Bearbeitungszeit (10 / 20 / 45 min)? *Empfehlung: 1 Seite, ca. 20 min.*
+2. **Zeitziel:** Wie lange soll ein Kind daran arbeiten (10 / 15 / 20 / 30 / 45 min)? *Empfehlung: 20 min.* Aus dem Zeitziel folgt die Menge, nicht aus der Seitenzahl (`grundschul-didaktik/references/druck-und-platz.md`, Abschnitt „Menge nach Arbeitszeit“).
 3. **Sozialform:** frei wählbar (Standard), Einzel- oder Partnerarbeit?
 
-Nicht fragen, sondern als Varianten in die Entwürfe legen: Differenzierungsform (Standard: 1 Blatt mit drei Bereichen ● / ●● / ●●●; bei großer Spanne 3 Blätter in gleichem Layout) und Rahmen/Geschichte (Leitfigur ist immer Willi oder Wilma Waschbär).
+Nicht fragen, sondern als Varianten in die Entwürfe legen: Differenzierungsform (Standard: je Niveau eine eigene Seite ● / ●● / ●●● in gleichem Layout, jede mit dem ganzen Zeitziel; ein Blatt mit drei Bereichen nur auf Wunsch oder bei höchstens 10 Minuten) und Rahmen/Geschichte (Leitfigur ist immer Willi oder Wilma Waschbär).
 
 ## Entwürfe und Aufgabenplan
 
 Nach den Rückfragen 2–3 Entwürfe zeigen, erst nach Freigabe des Aufgabenplans die Endfassung bauen (`grundschul-didaktik/references/entwurf-und-aufgabenplan.md`).
 
-- **Entwürfe unterscheiden sich** im Zugang (kompakt üben / Geschichte als Rahmen / entdeckend), in den Aufgabenformaten und der Item-Dichte; mit Churer Modell ggf. auch in der Differenzierungsform (ein Blatt mit drei Bereichen oder drei Blätter).
-- **Aufgabenplan:** jede Aufgabe mit wörtlicher Anweisung, allen Items, vorgelöstem Beispiel, Willi-/Wilma-Tipp, Niveau bzw. ★; Selbstkontrolle; Lösungsblatt; Bildliste.
+- **Entwürfe unterscheiden sich** im Zugang (kompakt üben / Geschichte als Rahmen / entdeckend), in den Aufgabenformaten und im Wechsel der Formate. Die Menge ist in allen Entwürfen gleich: Sie folgt dem Zeitziel.
+- **Aufgabenplan:** je Niveau jede Aufgabe mit wörtlicher Anweisung, allen Items, vorgelöstem Beispiel, Willi-/Wilma-Tipp, Minuten und ★; je Niveau die Summe der Minuten gegen das Zeitziel; Selbstkontrolle; Lösungsblatt; Bildliste.
 
 ## Aufbau
 
-1. Kopfzeile: `Name: ______  Datum: ______` (bei drei getrennten Niveau-Blättern zusätzlich die Niveau-Punkte). Unter der Überschrift das **Ich-kann-Ziel**, mit Churer Modell zusätzlich die Wahlhilfe („Wähle deine Aufgaben. Fang dort an, wo du sicher bist.").
+1. Kopfzeile: `Name: ______  Datum: ______`, mit Churer Modell rechts die Niveau-Punkte der Seite. Unter der Überschrift das **Ich-kann-Ziel**. Die Kinder wählen ihre Seite; die Wahlhilfe („Fang dort an, wo du sicher bist.") sagt die Lehrkraft beim Austeilen, sie steht nur auf einem Blatt, auf dem sich die Niveaus eine Seite teilen.
 2. Überschrift (max. 5 Wörter, kindgerecht: "Wie spät ist es?" statt "Uhrzeiten ablesen").
-3. Aufgaben steigend im Anspruch (Richtwert inkl. Sternchenaufgabe Kl. 1: 2–3, Kl. 2: 3–4, Kl. 3: 4–5, Kl. 4: 5–6), mit Churer Modell jede mit Niveau-Punkten, **ohne Kasten** mit hängender Nummer; jede Aufgabe auf einen Blick verständlich, Items in Kl. 1/2 mit Luft statt dicht gefüllt (`grundschul-didaktik/references/druck-und-platz.md`):
-   - ● Grundlage: Einstieg mit vorgelöstem Beispiel ("So geht's"), Vorwissen mit Hilfen.
-   - ●● Kern: Übung zum Lernziel, ggf. Anwendung / Sachsituation.
-   - ●●● Herausforderung: offen, knobelnd, begründen, erfinden; gern „Willi hat sich vertan".
+3. Aufgaben steigend im Anspruch, **ohne Kasten** mit hängender Nummer, jede auf einen Blick verständlich. So viele Aufgaben und Items, dass ein Kind des Niveaus das Zeitziel braucht, mit Wechsel der Formate; reicht eine Seite nicht, geht es auf der Rückseite weiter (`grundschul-didaktik/references/druck-und-platz.md`, Abschnitt „Menge nach Arbeitszeit“). Mit Churer Modell hat jedes Niveau seine eigene Seite zum selben Ziel:
+   - Seite ● Grundlage: kleine Schritte, jede Aufgabenart mit vorgelöstem Beispiel ("So geht's"), Hilfen (Wortspeicher, Anschauung), einfache Zahlen und Wörter.
+   - Seite ●● Kern: Übung zum Lernziel, dann Anwendung in einer Sachsituation.
+   - Seite ●●● Herausforderung: weniger Hilfen, größere Zahlen oder längere Texte, dazu offen, knobelnd, begründen, erfinden; gern „Willi hat sich vertan".
+   - Auf jeder Seite steigen die Aufgaben vom Sicheren zum Neuen. Alle Seiten sehen gleich aus und haben gleich viel Arbeit, kein Niveau ist „das kurze Blatt“.
    - Ohne Churer Modell dieselbe Steigerung ohne Punkte und Wahlhilfe: alle bearbeiten alle Aufgaben, die erste mit vorgelöstem Beispiel.
    - Willi oder Wilma gibt einen Strategietipp direkt bei der Aufgabe, zu der er gehört; Tipps und Rückmeldungen in „noch"-Sprache.
    - Falls gewählt: **Sternchenaufgabe ★** als letzte Aufgabe, freiwillig für alle („Wer mag, knobelt hier."), offen oder knobelnd, keine „mehr vom Gleichen". ★ statt Nummernkreis bzw. vor der Nummer.
-4. Fußzeile (nur wenn Selbsteinschätzung gewählt), schlank und ohne Fläche: Ich-kann-Satz + Wachstums-Selbsteinschätzung zum Anmalen (Samen → Keimling → Pflanze → Blume; s/w: Strich-Version, Farbe: farbige Grafik, Dateien in `html-materialerstellung/assets/bilder/`) und Reflexionsfrage („Was hat dir geholfen?"; Kl. 1/2 zum Ankreuzen oder mündlich im Kreis, ab Kl. 3 schriftlich). Optional ein Rückmeldefeld für die Lehrkraft. Ohne Selbsteinschätzung entfällt der Fuß, der Platz geht an Aufgaben.
+4. Fußzeile (nur wenn Selbsteinschätzung gewählt), schlank und ohne Fläche: Ich-kann-Satz mit „So gut kann ich das schon. Kreuze an:“ + Wachstumsgrafik mit vier Kreisen zum Ankreuzen (Samen → Keimling → Pflanze → Blume; Baustein `.wachstum` in der Vorlage) und Reflexionsfrage („Was hat dir geholfen?"; Kl. 1/2 zum Ankreuzen oder mündlich im Kreis, ab Kl. 3 schriftlich). Optional ein Rückmeldefeld für die Lehrkraft. Ohne Selbsteinschätzung entfällt der Fuß, der Platz geht an Aufgaben.
 5. Separates Lösungsblatt zur Selbstkontrolle (gleiches Layout, Lösungen fett, unterstrichen und in der Akzentfarbe).
 
 ## Bewährte Aufgabenformate
@@ -70,7 +71,8 @@ Suchsel und Kreuzworträtsel (`x-suchsel`, `x-kreuzwort`) nur mit Anschlussaufga
 Zusätzlich zur Basis-Checkliste:
 - [ ] Erstes Item jeder neuen Aufgabenart vorgelöst
 - [ ] Aufgaben steigen im Anspruch
-- [ ] Platz reicht für Kinderschrift (Mindestgrößen eingehalten), keine Kästen, schlanker Kopf und Fuß; Kl. 1/2 mit sichtbarer Luft, Kl. 3/4 ohne Leerstreifen
+- [ ] Platz reicht für Kinderschrift (Mindestgrößen eingehalten), keine Kästen, schlanker Kopf und Fuß, keine Leerstreifen
+- [ ] Zeitziel erreicht: Minuten je Aufgabe geschätzt, Summe je Niveau stimmt, jedes Niveau auf eigener Seite, Formate wechseln
 - [ ] Keine Flächen hinter Aufgaben, Text schwarz, Farbe nur als Akzent und nie als einzige Information (`grundschul-didaktik/references/gestaltung.md`)
 - [ ] Lösungsblatt vollständig und korrekt
 - [ ] Visuelle Endkontrolle bestanden: Abbildungen exakt, Beispiel nicht gequetscht, für ein Kind der Klasse auf einen Blick verständlich

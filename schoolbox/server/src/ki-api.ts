@@ -68,7 +68,7 @@ const eingabeVon = (body: Record<string, unknown>, dokument: Pick<Antworten, 'ar
 		throw new HttpFehler(400, fehlt);
 	}
 	const auftrag = body.auftragText === undefined ? auftragAus(antworten) : pruefeAuftragText(body.auftragText);
-	return `Auftrag der Lehrkraft (aus dem Assistenten):\n${auftrag}`;
+	return `Antworten der Lehrkraft aus dem Assistenten (sie ersetzen die Start-Abfrage):\n${auftrag}`;
 };
 
 /** Aufträge an Claude (057). Hängt am `apiRouter`: nur mit Sitzung, nie über Teilen-Links. */
@@ -119,6 +119,8 @@ export const kiApi = (router: RouterTyp, kontext: Kontext) => {
 			zitat: text(body.zitat),
 			ohneRueckfragen: aktion !== undefined,
 			neuesBlatt: aktion?.id === 'neu-entwurf',
+			// Ein neues Blatt beginnt wie in der Claude-App mit dem Aufgabenplan; gebaut wird nach der Freigabe.
+			...(aktion?.id === 'neu-entwurf' && eingabe ? { phase: 'plan' as const, eingabe } : {}),
 		});
 		res.status(202).json({ auftrag });
 	});
@@ -134,6 +136,19 @@ export const kiApi = (router: RouterTyp, kontext: Kontext) => {
 		const { dok, mappe } = req.params;
 		verlangeDokument(kontext, mappe, dok);
 		res.status(202).json({ auftrag: await ki.nochmal(mappe, dok) });
+	});
+
+	router.post('/dokumente/:mappe/:dok/ki/plan/freigeben', async (req, res) => {
+		const { dok, mappe } = req.params;
+		verlangeDokument(kontext, mappe, dok);
+		res.status(202).json({ auftrag: await ki.planFreigeben(mappe, dok) });
+	});
+
+	router.post('/dokumente/:mappe/:dok/ki/plan/aendern', async (req, res) => {
+		const { dok, mappe } = req.params;
+		verlangeDokument(kontext, mappe, dok);
+		const wunsch = text((req.body as Record<string, unknown> | undefined)?.wunsch) ?? '';
+		res.status(202).json({ auftrag: await ki.planAendern(mappe, dok, wunsch) });
 	});
 
 	router.post('/dokumente/:mappe/:dok/ki/entwurf/vergessen', (req, res) => {

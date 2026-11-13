@@ -16,6 +16,8 @@ import { createInterface } from 'node:readline';
 
 import type { EinheitAngaben, EinheitBefund, EinheitStand, PlanDokument, Pruefbericht } from '@schoolbox/kern';
 import {
+	ANSICHT_ORDNER,
+	baueAnsichtAus,
 	dokKnotenSchluessel,
 	dokumentDir,
 	EINHEIT_AUFTRAG_ZEICHEN,
@@ -47,6 +49,8 @@ import { schreibeQuelle } from './dokumente';
 import { HttpFehler } from './fehler';
 import type { Ergebnis, KiPruefer, LaufStand } from './ki';
 import { beendeKind, KI_GRENZEN, kiArgumente, kiPfad, kiUmgebung, legeAblageAn, VERBRAUCH_DATEI, werteAus } from './ki';
+import type { Bauen } from './ki-werkzeug';
+import { ansichtText, starteWerkzeug } from './ki-werkzeug';
 import type { Kontext } from './kontext';
 import { dokSchluessel } from './kontext';
 import { umgebung, wendeEffekteAn } from './ordner';
@@ -56,6 +60,9 @@ const STAND = 'stand.json';
 const PID = 'pid';
 const TAKT_MS = 2000;
 const MAX_PLAN_BYTES = 256 * 1024;
+const SLUG = /^[a-z0-9][a-z0-9-]{0,59}$/;
+const AENDERUNG_ZEICHEN = 2000;
+type Stufe = 'plan' | 'bau';
 const BILD_IM_DOKUMENT = /\.\.\/\.\.\/bilder\/([a-z0-9][a-z0-9-]{0,59}\.(?:png|jpg))/g;
 
 const kennung = (inhalt: string) => createHash('sha256').update(inhalt).digest('hex').slice(0, 16);
@@ -76,6 +83,14 @@ const KORREKTUR = (befunde: EinheitBefund[]) =>
 		...befunde.map((b) => `- dokumente/${b.slug}/material.html: ${b.texte.join(' · ')}`),
 		'Behebe nur diese Fehler in den genannten Dateien und setze danach in einheit.json „fertig“ für diese Materialien wieder auf true. Antworte am Ende in höchstens drei Zeilen.',
 	].join('\n');
+
+const PLAN = (teil: string) => `Schritt 1: der Plan.\n\nAuftrag der Lehrkraft (aus dem Assistenten):\n${teil}`;
+
+const PLAN_AENDERN = (wunsch: string) =>
+	`Schritt 1, Änderung. Die Lehrkraft hat den Plan gelesen und möchte ihn anders: „${wunsch}“\nArbeite das ein, schreibe einheit.json neu und antworte mit dem ganzen Plan. Baue noch nichts.`;
+
+const BAU =
+	'Schritt 2: der Bau. Die Lehrkraft hat den Plan in einheit.json freigegeben. Baue jetzt die Einheit genau nach diesem Plan.';
 
 const WEITER = (stand: EinheitStand) =>
 	[
@@ -343,7 +358,45 @@ export const erstelleEinheiten = (kontext: Kontext, pruefer: KiPruefer) => {
 
 	// ── Lauf ──
 
-	const lauf = (s: EinheitStand, text: string, sitzung: string | null) =>
+	/** Das Werkzeug `bauen` der Einheit: Sperre zuerst, dann derselbe Bau wie bei einem Blatt, je Material ein Ordner. */
+	const bauenFuer =
+		(s: EinheitStand): Bauen =>
+		async (dokument) => {
+			if (!dokument || !SLUG.test(dokument)) {
+				return { text: 'Nenne den Slug des Materials, wie er in einheit.json steht.', fehler: true };
+			}
+			const datei = path.join(arbeitDir(s.id), 'dokumente', dokument, 'material.html');
+			if (!existsSync(datei) || (await stat(datei)).size > KI_GRENZEN.materialBytes) {
+				return { text: `dokumente/${dokument}/material.html fehlt oder ist zu groß.`, fehler: true };
+			}
+			const roh = await readFile(datei, 'utf8');
+			const sperre = [...neueFunde(ERLAUBTER_KOPF, roh).map((f) => f.text), formatBefund(roh)].filter(
+				(t): t is string => typeof t === 'string',
+			);
+			if (sperre.length) {
+				return { text: `Nicht gebaut, der Server lehnt das Material ab: ${sperre.join(' · ')}`, fehler: true };
+			}
+			const ansicht = await baueAnsichtAus(
+				kontext.konfig,
+				datei,
+				path.join(arbeitDir(s.id), ANSICHT_ORDNER, dokument),
+			);
+			return { text: ansichtText(ansicht, `${ANSICHT_ORDNER}/${dokument}`) };
+		};
+
+	const lauf = async (s: EinheitStand, text: string, sitzung: string | null, zeitMs = KI_GRENZEN.einheit.zeitMs) => {
+		const werkzeug = await starteWerkzeug(dir(s.id), bauenFuer(s), 'einheit').catch((fehler: unknown) => {
+			console.error('Werkzeug der Einheit:', fehler);
+			return null;
+		});
+		try {
+			return await laufMit(s, text, sitzung, zeitMs, werkzeug?.mcpDatei ?? null);
+		} finally {
+			await werkzeug?.ende();
+		}
+	};
+
+	const laufMit = (s: EinheitStand, text: string, sitzung: string | null, zeitMs: number, mcpDatei: string | null) =>
 		new Promise<Ergebnis>((resolve) => {
 			const stand: LaufStand = { sitzung, fehlerCode: null, ergebnis: {} };
 			const kind = spawn(
@@ -356,6 +409,7 @@ export const erstelleEinheiten = (kontext: Kontext, pruefer: KiPruefer) => {
 					sitzung,
 					einheit: true,
 					mitCanva: s.bilder,
+					mcpDatei,
 				}),
 				{ cwd: arbeitDir(s.id), env: kiUmgebung(bin) },
 			);
@@ -370,7 +424,7 @@ export const erstelleEinheiten = (kontext: Kontext, pruefer: KiPruefer) => {
 			const frist = setTimeout(() => {
 				grund = 'Die Zeit für die Einheit ist abgelaufen.';
 				beendeKind(kind);
-			}, KI_GRENZEN.einheit.zeitMs);
+			}, zeitMs);
 			kind.stdin.on('error', () => undefined);
 			kind.stdin.end(text);
 			kind.stderr.resume();
@@ -414,6 +468,39 @@ export const erstelleEinheiten = (kontext: Kontext, pruefer: KiPruefer) => {
 		error_max_budget_usd: 'Das Budget der Einheit ist aufgebraucht.',
 	};
 
+	/** Schritt 1: Claude schreibt nur den Plan. Danach wartet die Einheit auf die Freigabe der Lehrkraft. */
+	const plane = async (s: EinheitStand, text: string, sitzung: string | null) => {
+		const start = Date.now();
+		const takt = setInterval(() => void abgleich(), TAKT_MS);
+		if (aktiv) {
+			aktiv.takt = takt;
+		}
+		let ergebnis: Ergebnis;
+		try {
+			ergebnis = await lauf(s, text, sitzung, KI_GRENZEN.einheit.planZeitMs);
+			s.sitzung = ergebnis.sitzung ?? s.sitzung;
+			await abgleich();
+			await notiereVerbrauch(s, ergebnis.fehler ? 'unvollstaendig' : 'plan', start, ergebnis.verbrauch);
+		} finally {
+			clearInterval(takt);
+		}
+		const dokumente = s.plan?.dokumente ?? [];
+		const gut = !ergebnis.fehler && aktiv?.abbruch !== true && dokumente.length > 0;
+		s.status = gut ? 'plan' : 'unvollstaendig';
+		s.planText = gut
+			? ergebnis.antwort.trim() || dokumente.map((d) => `${d.titel}: ${d.zweck}`).join('\n')
+			: (s.planText ?? null);
+		s.grund = gut
+			? null
+			: (s.grund ??
+				(ergebnis.fehler ? (FEHLER_TEXT[ergebnis.fehler] ?? ergebnis.fehler) : null) ??
+				'Claude hat keinen Plan geschrieben.');
+		s.ende = new Date().toISOString();
+		aktiv = null;
+		await merke(s);
+		await rm(path.join(dir(s.id), PID), { force: true });
+	};
+
 	const fuehreAus = async (s: EinheitStand, text: string, sitzung: string | null) => {
 		const start = Date.now();
 		const takt = setInterval(() => void abgleich(), TAKT_MS);
@@ -455,7 +542,7 @@ export const erstelleEinheiten = (kontext: Kontext, pruefer: KiPruefer) => {
 		await rm(path.join(dir(s.id), PID), { force: true });
 	};
 
-	const beginne = async (s: EinheitStand, text: string, sitzung: string | null) => {
+	const beginne = async (s: EinheitStand, text: string, sitzung: string | null, stufe: Stufe = 'bau') => {
 		aktiv = {
 			stand: s,
 			kind: null,
@@ -471,7 +558,7 @@ export const erstelleEinheiten = (kontext: Kontext, pruefer: KiPruefer) => {
 		s.grund = null;
 		s.ende = null;
 		await merke(s);
-		fuehreAus(s, text, sitzung).catch(async (fehler: unknown) => {
+		(stufe === 'plan' ? plane : fuehreAus)(s, text, sitzung).catch(async (fehler: unknown) => {
 			console.error('Einheit:', fehler);
 			aktiv = null;
 			s.status = 'unvollstaendig';
@@ -555,8 +642,10 @@ export const erstelleEinheiten = (kontext: Kontext, pruefer: KiPruefer) => {
 			bilder: angaben.bilder,
 			geladeneBilder: 0,
 			fehlgeschlageneBilder: 0,
+			planText: null,
+			freigegeben: false,
 		};
-		await beginne(s, `Auftrag der Lehrkraft (aus dem Assistenten):\n${teil}`, null);
+		await beginne(s, PLAN(teil), null, 'plan');
 		const fenster = kontext.ki.limit()?.fenster.fuenfStunden.auslastung ?? null;
 		return {
 			id,
@@ -577,6 +666,10 @@ export const erstelleEinheiten = (kontext: Kontext, pruefer: KiPruefer) => {
 		return s;
 	};
 
+	/** Die Sitzung kennt Auftrag und Plan schon; ohne sie trägt der Prompt den Stand. */
+	const sitzungVon = (s: EinheitStand) =>
+		s.sitzung && existsSync(path.join(projekte(), projektName(arbeitDir(s.id)))) ? s.sitzung : null;
+
 	const weiter = async (id: string) => {
 		verlangeFrei();
 		const s = await verlange(id);
@@ -587,13 +680,44 @@ export const erstelleEinheiten = (kontext: Kontext, pruefer: KiPruefer) => {
 			throw new HttpFehler(409, 'Der Ordner der Einheit liegt im Papierkorb.');
 		}
 		s.korrigiert = false;
-		// Die Sitzung kennt den Plan schon; ohne sie trägt der Prompt den Stand.
-		const sitzung = s.sitzung && existsSync(path.join(projekte(), projektName(arbeitDir(s.id)))) ? s.sitzung : null;
+		// Ist der Plan noch nicht freigegeben, beginnt Schritt 1 neu. Stände von vor der Freigabe-Stufe bauen weiter.
+		if (s.freigegeben === false) {
+			await beginne(s, PLAN(s.auftrag), null, 'plan');
+			return s;
+		}
+		const sitzung = sitzungVon(s);
 		await beginne(
 			s,
-			sitzung ? WEITER(s) : `Auftrag der Lehrkraft (aus dem Assistenten):\n${s.auftrag}\n\n${WEITER(s)}`,
+			sitzung
+				? WEITER(s)
+				: `Auftrag der Lehrkraft (aus dem Assistenten):\n${s.auftrag}\n\n${BAU}\n\n${WEITER(s)}`,
 			sitzung,
 		);
+		return s;
+	};
+
+	/** Die Lehrkraft gibt den Plan frei, oder sie will ihn anders: dann zeigt Claude ihn neu. */
+	const freigeben = async (id: string, aenderung: unknown) => {
+		verlangeFrei();
+		const s = await verlange(id);
+		if (s.status !== 'plan') {
+			throw new HttpFehler(409, 'Diese Einheit wartet nicht auf eine Freigabe.');
+		}
+		if (!lebenderOrdner(kontext.ordner.baum(), s.ordner)) {
+			throw new HttpFehler(409, 'Der Ordner der Einheit liegt im Papierkorb.');
+		}
+		const wunsch = typeof aenderung === 'string' ? aenderung.trim() : '';
+		if (wunsch.length > AENDERUNG_ZEICHEN) {
+			throw new HttpFehler(400, 'Der Änderungswunsch ist zu lang.');
+		}
+		const sitzung = sitzungVon(s);
+		const kopf = sitzung ? '' : `Auftrag der Lehrkraft (aus dem Assistenten):\n${s.auftrag}\n\n`;
+		if (wunsch) {
+			await beginne(s, `${kopf}${PLAN_AENDERN(wunsch)}`, sitzung, 'plan');
+			return s;
+		}
+		s.freigegeben = true;
+		await beginne(s, `${kopf}${BAU}`, sitzung, 'bau');
 		return s;
 	};
 
@@ -670,6 +794,7 @@ export const erstelleEinheiten = (kontext: Kontext, pruefer: KiPruefer) => {
 	return {
 		starte,
 		weiter,
+		freigeben,
 		abbrechen,
 		verwirf,
 		beendeReste,
@@ -731,6 +856,10 @@ export const einheitApi = (router: RouterTyp, kontext: Kontext) => {
 	});
 	router.post('/einheiten/:id/weiter', async (req, res) => {
 		res.json(await einheiten.weiter(pruefeEinheitId(req.params.id)));
+	});
+	router.post('/einheiten/:id/freigeben', async (req, res) => {
+		const b = (req.body ?? {}) as { aenderung?: unknown };
+		res.json(await einheiten.freigeben(pruefeEinheitId(req.params.id), b.aenderung));
 	});
 	router.post('/einheiten/:id/verwerfen', async (req, res) => {
 		await einheiten.verwirf(pruefeEinheitId(req.params.id));

@@ -88,6 +88,8 @@ process.stdin.on('end', () => {
 		const plan = (fertig) => fs.writeFileSync('einheit.json', JSON.stringify({ titel: 'Uhrzeit', annahmen: ['Klasse 2'], dokumente: [{ slug: 'fall-1', titel: 'Fall 1', art: 'arbeitsblatt', format: 'a4-hoch', zweck: 'Einstieg', fertig: fertig >= 1 }, { slug: 'fall-2', titel: 'Fall 2', art: 'arbeitsblatt', format: 'a4-hoch', zweck: 'Üben', fertig: fertig >= 2 }] }));
 		const warte = (ms) => new Promise((r) => setTimeout(r, ms));
 		(async () => {
+			// Schritt 1 schreibt nur den Plan; gebaut wird nach der Freigabe.
+			if (eingabe.includes('Schritt 1')) { plan(0); ende({ result: (eingabe.includes('möchte ihn anders') ? 'Geänderter Plan. ' : '') + 'Die Uhr im Rathaus ist stehen geblieben. Zwei Fälle.' }); return; }
 			if (eingabe.includes('Korrekturrunde')) { fs.writeFileSync('dokumente/fall-2/material.html', blatt('Fall 2')); plan(2); ende({ result: 'Behoben.' }); return; }
 			plan(0);
 			fs.writeFileSync('thema.css', ':root { --akzent: #c33; }');
@@ -134,6 +136,11 @@ process.stdin.on('end', () => {
 	if (fall === 'fehler') { sag({ type: 'assistant', error: 'rate_limit', message: { content: [] } }); ende({ is_error: true, result: 'limit' }); process.exit(1); }
 	if (fall === 'abmeldung') { sag({ type: 'assistant', error: 'authentication_failed', message: { content: [] } }); ende({ is_error: true, result: 'Not logged in' }); process.exit(1); }
 	if (fall === 'limit-budget') { ende({ subtype: 'error_max_budget_usd', is_error: true, result: '' }); process.exit(1); }
+	// Neues Blatt in zwei Schritten: erst der Aufgabenplan als Antwort, nach der Freigabe das Blatt.
+	if (fall === 'plan') {
+		if (eingabe.includes('Aufgabenplan') && !eingabe.includes('freigegeben')) { ende({ result: (eingabe.includes('möchte ihn anders') ? 'Geänderter ' : '') + 'Aufgabenplan Kl2_Mathe_Igel_AB1 · Zeitziel 20 min\n\nSeite ● Grundlage (21 min)\n1  Lies ab.  8 Uhren  5 min\n2  Zeichne die Zeiger ein.  4 Uhren  4 min\n\nAnnahme: Klasse 2' }); return; }
+		aendere(); ende({}); return;
+	}
 	if (fall === 'nichts') { ende({}); return; }
 	if (fall === 'leer') { ende({ result: '' }); return; }
 	// 131: Claude setzt am Body ein anderes Format; „format-fremd“ eines, das es nicht gibt, und bessert nicht nach.

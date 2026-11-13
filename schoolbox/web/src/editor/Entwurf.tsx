@@ -41,6 +41,75 @@ const Schritte = ({ auftrag }: { auftrag: KiAuftrag }) => (
 	</ul>
 );
 
+/** Der Aufgabenplan zur Freigabe: derselbe Schritt wie in der Claude-App, bevor Claude baut. */
+const PlanKarte = ({
+	entwurf,
+	karte,
+	ki,
+	phase,
+	titel,
+}: {
+	entwurf: Entwurf;
+	ki: ReturnType<typeof useKiZustand>;
+	phase: Extract<EntwurfPhase, { art: 'plan' }>;
+	titel: string;
+	karte: RefObject<HTMLDivElement | null>;
+}) => {
+	const [feldOffen, setFeldOffen] = useState(false);
+	const schliesseFeld = useCallback(() => setFeldOffen(false), []);
+	const hinweis = limitHinweis(ki.zustand.limit, ki.zustand.warnAb);
+	const gesperrt = hinweis?.art === 'gesperrt';
+	return (
+		<div className="pointer-events-none sticky top-0 z-10 h-0">
+			<div
+				ref={karte}
+				tabIndex={-1}
+				className="pointer-events-auto mx-auto mt-[6vh] flex max-h-[84vh] w-[46rem] max-w-[calc(100%-2rem)] flex-col rounded-xl border border-rand bg-flaeche p-4 text-sm shadow-lg outline-none"
+				role="dialog"
+				aria-label="Aufgabenplan"
+				data-entwurf-karte="plan"
+			>
+				<p className="flex items-center gap-2 font-semibold">
+					<Symbol name="funken" className="size-4 flex-none text-brand-600" />
+					<span className="min-w-0 flex-1 truncate">{`Aufgabenplan für „${titel}“`}</span>
+				</p>
+				<p className="mt-1 text-xs text-leise">
+					So würde Claude das Blatt bauen. Passt das? Danach entsteht genau dieses Blatt, mit Prüfung und
+					Lösung.
+				</p>
+				<div
+					className="mt-3 min-h-0 flex-1 overflow-y-auto rounded-md border border-rand bg-papier px-3 py-2 whitespace-pre-wrap"
+					data-entwurf-plan
+				>
+					{phase.text.trim()}
+				</div>
+				{phase.fehler && (
+					<p role="alert" className="mt-2 text-fehler" data-entwurf-fehler>
+						{phase.fehler}
+					</p>
+				)}
+				{hinweis && <LimitZeile className="mt-2" hinweis={hinweis} pruefeLimit={ki.pruefeLimit} />}
+				{feldOffen ? (
+					<PlanFeld sende={entwurf.planAendern} schliessen={schliesseFeld} />
+				) : (
+					<div className="mt-3 flex flex-wrap gap-2">
+						<Knopf disabled={gesperrt} onClick={entwurf.planFreigeben} data-entwurf-plan-freigeben>
+							So bauen
+						</Knopf>
+						<Knopf art="zweit" disabled={gesperrt} onClick={() => setFeldOffen(true)}>
+							<Symbol name="funken" />
+							Ändern …
+						</Knopf>
+						<Knopf art="leise" onClick={entwurf.schliesse}>
+							Verwerfen
+						</Knopf>
+					</div>
+				)}
+			</div>
+		</div>
+	);
+};
+
 /** Die Karte auf dem Blatt: Fortschritt, oder der Grund, warum kein Entwurf kam. */
 export const EntwurfKarte = ({
 	entwurf,
@@ -56,10 +125,15 @@ export const EntwurfKarte = ({
 	const { phase } = entwurf;
 	const laeuft = phase?.art === 'laeuft';
 	const jetzt = useJetzt(laeuft);
+	if (phase?.art === 'plan') {
+		return <PlanKarte entwurf={entwurf} karte={karte} ki={ki} phase={phase} titel={titel} />;
+	}
 	if (phase?.art !== 'laeuft' && phase?.art !== 'fehler') {
 		return null;
 	}
 	const hinweis = limitHinweis(ki.zustand.limit, ki.zustand.warnAb);
+	const plant = phase.art === 'laeuft' && phase.auftrag.phase === 'plan';
+	const laufTitel = plant ? `Claude plant „${titel}“` : `Claude baut „${titel}“`;
 	return (
 		<div className="pointer-events-none sticky top-0 z-10 h-0">
 			<div
@@ -74,7 +148,7 @@ export const EntwurfKarte = ({
 						<p className="flex items-center gap-2 font-semibold">
 							<Symbol name="funken" className="size-4 flex-none text-brand-600" />
 							<span className="min-w-0 flex-1 truncate">
-								{phase.nachbessern ? 'Claude bessert den Entwurf nach' : `Claude baut „${titel}“`}
+								{phase.nachbessern ? 'Claude bessert den Entwurf nach' : laufTitel}
 							</span>
 							<span className="flex-none font-normal text-leise tabular-nums">
 								{laufzeit(phase.auftrag.seit, jetzt)}
@@ -85,7 +159,9 @@ export const EntwurfKarte = ({
 						</div>
 						<Schritte auftrag={phase.auftrag} />
 						<p className="mt-3 text-xs text-leise">
-							Meist einige Minuten. Du kannst den Editor verlassen, die Arbeit läuft weiter.
+							{plant
+								? 'Zuerst kommt der Aufgabenplan, meist nach ein bis zwei Minuten. Gebaut wird, wenn du ihn freigibst.'
+								: 'Claude baut, prüft und sieht sich jede Seite an. Das dauert meist 5 bis 15 Minuten. Du kannst den Editor verlassen, die Arbeit läuft weiter.'}
 						</p>
 						<Knopf art="zweit" className="mt-3" onClick={entwurf.abbrechen}>
 							Abbrechen
@@ -143,7 +219,8 @@ const zusammenfassung = (v: Vorschlag) => {
 		? new DOMParser().parseFromString(v.quelle, 'text/html').querySelectorAll('.aufgabe:not(.aufgabe .aufgabe)')
 				.length
 		: 0;
-	const pruefung = v.meldungen.length === 0 ? 'Prüfung ohne Befund' : `${v.meldungen.length} Hinweise der Prüfung`;
+	const hinweise = v.meldungen.length === 0 ? 'Prüfung ohne Befund' : `${v.meldungen.length} Hinweise der Prüfung`;
+	const pruefung = v.fehler > 0 ? `${v.fehler} Fehler in der Prüfung: bitte nachbessern lassen` : hinweise;
 	return [aufgaben > 0 ? `${aufgaben} ${aufgaben === 1 ? 'Aufgabe' : 'Aufgaben'}` : null, pruefung]
 		.filter(Boolean)
 		.join(' · ');
@@ -181,6 +258,47 @@ const NachbessernFeld = ({ schliessen, sende }: { sende: (text: string) => Promi
 			<Knopf art="leise" onClick={schliessen}>
 				Abbrechen
 			</Knopf>
+		</form>
+	);
+};
+
+const PlanFeld = ({ schliessen, sende }: { sende: (text: string) => Promise<void>; schliessen: () => void }) => {
+	const [text, setText] = useState('');
+	const abschicken = (e: FormEvent) => {
+		e.preventDefault();
+		if (text.trim()) {
+			void sende(text.trim());
+			schliessen();
+		}
+	};
+	return (
+		<form className="mt-3 flex flex-col gap-2" onSubmit={abschicken}>
+			<textarea
+				autoFocus
+				aria-label="Was soll am Plan anders sein?"
+				placeholder="Was soll am Plan anders sein? Zum Beispiel: mehr Sachaufgaben, Aufgabe 3 weglassen, nur 15 Minuten."
+				className="min-h-20 rounded-md border border-rand-feld bg-flaeche px-2 py-1.5"
+				maxLength={FELD_ZEICHEN}
+				value={text}
+				onChange={(e) => setText(e.target.value)}
+				onKeyDown={(e) => {
+					if (e.key === 'Escape') {
+						e.preventDefault();
+						schliessen();
+					}
+					if (e.key === 'Enter' && (e.metaKey || e.ctrlKey)) {
+						abschicken(e);
+					}
+				}}
+			/>
+			<div className="flex gap-2">
+				<Knopf type="submit" disabled={!text.trim()}>
+					Plan ändern
+				</Knopf>
+				<Knopf art="leise" onClick={schliessen}>
+					Abbrechen
+				</Knopf>
+			</div>
 		</form>
 	);
 };
@@ -298,7 +416,12 @@ export const Entwurfsleiste = ({ entwurf }: { entwurf: Entwurf }) => {
 				<Symbol name="funken" className="size-4 flex-none text-brand-600" />
 				<div className="min-w-0 flex-1">
 					<p className="font-semibold">Entwurf von Claude</p>
-					<p className="truncate text-xs text-leise">
+					<p
+						className={klassen(
+							'truncate text-xs',
+							vorschlag.fehler > 0 && !vorschlag.konflikt ? 'text-fehler' : 'text-leise',
+						)}
+					>
 						{vorschlag.konflikt
 							? 'Das Blatt wurde seit dem Auftrag geändert. Dieser Entwurf lässt sich nicht mehr übernehmen.'
 							: zusammenfassung(vorschlag)}

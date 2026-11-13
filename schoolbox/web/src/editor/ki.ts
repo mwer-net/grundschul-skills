@@ -23,6 +23,9 @@ export interface KiAuftrag {
 	/** Nachbessern: der Vorschlag, auf dem er aufbaut. */
 	grundlage?: string;
 	umfang?: string;
+	/** Die Antwort ist der Aufgabenplan des neuen Blatts; gebaut wird nach der Freigabe. */
+	plan?: boolean;
+	phase?: 'plan' | 'bauen';
 }
 
 export interface KiFenster {
@@ -165,6 +168,8 @@ interface Wunsch {
 	gespraechId?: string;
 	verlauf?: { rolle: 'lehrkraft' | 'claude'; text: string }[];
 	zitat?: string;
+	/** Was am Aufgabenplan anders sein soll (`…/ki/plan/aendern`). */
+	wunsch?: string;
 }
 
 /** Passt zum `ID_MUSTER` des Servers. `randomUUID` gibt es nur auf sicheren Seiten. */
@@ -342,6 +347,8 @@ export const useKiAuftrag = (
 		starte,
 		/** Derselbe erste Auftrag fürs neue Blatt noch einmal; der Server kennt ihn (133). */
 		nochmal: () => (basis ? beginne(`${basis}/ki/nochmal`, {}) : Promise.resolve()),
+		planFreigeben: () => (basis ? beginne(`${basis}/ki/plan/freigeben`, {}) : Promise.resolve()),
+		planAendern: (wunsch: string) => (basis ? beginne(`${basis}/ki/plan/aendern`, { wunsch }) : Promise.resolve()),
 		/** Die Meldung zum neuen Blatt ist gelesen: Nach dem Neuladen steht sie nicht wieder da. */
 		vergiss: () => (basis ? sende(`${basis}/ki/entwurf/vergessen`).then(() => undefined) : Promise.resolve()),
 		laeuft: auftrag?.status === 'laeuft' || auftrag?.status === 'wartet',

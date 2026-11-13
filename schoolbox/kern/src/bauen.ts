@@ -1,7 +1,7 @@
 import { spawn } from 'node:child_process';
 import { randomBytes } from 'node:crypto';
 import { existsSync } from 'node:fs';
-import { copyFile, mkdir, mkdtemp, readFile, rm, writeFile } from 'node:fs/promises';
+import { copyFile, mkdir, mkdtemp, readdir, readFile, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
 
@@ -245,6 +245,82 @@ export const pruefeFassung = async (konfig: Pick<Konfig, 'pythonBin'>, dokDir: s
 	} finally {
 		await rm(quelle, { force: true });
 		await rm(tmp, { recursive: true, force: true });
+	}
+};
+
+/** Der Ordner im Arbeitsordner von Claude, in dem die Seitenbilder des letzten Baus liegen. */
+export const ANSICHT_ORDNER = 'ansicht';
+
+/** Was blatt.py an den Namen der Quelle hängt: `-s1.png`, `-s1-a2.png`, `-loesung-s1.png`. */
+const BILD_NAME = /^(-loesung)?-s(\d+)(?:-a(\d+))?\.png$/;
+
+export interface Ansicht {
+	bericht: Pruefbericht;
+	/** Dateinamen in `ziel`, in der Reihenfolge der Seiten: `seite-1.png`, `seite-1-aufgabe-1.png`, `loesung-seite-1.png`. */
+	bilder: string[];
+}
+
+/**
+ * Baut eine Fassung so, wie `blatt.py bauen` es in der Claude-App tut, und legt Prüfbericht und Seitenbilder für die
+ * visuelle Endkontrolle ab. `quelle` ist eine Datei, die neben den Bildern des Dokuments liegt; sie bleibt, wie sie ist.
+ */
+export const baueAnsichtAus = async (
+	konfig: Pick<Konfig, 'pythonBin'>,
+	quelle: string,
+	ziel: string,
+): Promise<Ansicht> => {
+	const tmp = await mkdtemp(path.join(tmpdir(), 'schoolbox-ansicht-'));
+	const berichtDatei = path.join(tmp, 'pruefbericht.json');
+	try {
+		const lauf = await fuehreAus(konfig.pythonBin, [
+			BLATT_PY,
+			'bauen',
+			quelle,
+			'-o',
+			tmp,
+			'--bericht',
+			berichtDatei,
+		]);
+		if ((lauf.code !== 0 && lauf.code !== 1) || !existsSync(berichtDatei)) {
+			throw new SchoolboxFehler(
+				`blatt.py ist abgebrochen (Exit ${lauf.code ?? 'Timeout'}):\n${lauf.stderr || lauf.stdout}`,
+				3,
+			);
+		}
+		const name = path.basename(quelle, path.extname(quelle));
+		const gefunden = (await readdir(tmp))
+			.filter((datei) => datei.startsWith(name))
+			.map((datei) => ({ datei, t: BILD_NAME.exec(datei.slice(name.length)) }))
+			.filter((e): e is { datei: string; t: RegExpExecArray } => e.t !== null)
+			.map(({ datei, t }) => ({
+				datei,
+				loesung: Boolean(t[1]),
+				seite: Number(t[2]),
+				aufgabe: t[3] ? Number(t[3]) : 0,
+			}))
+			.sort((a, b) => Number(a.loesung) - Number(b.loesung) || a.seite - b.seite || a.aufgabe - b.aufgabe);
+		await rm(ziel, { recursive: true, force: true });
+		await mkdir(ziel, { recursive: true });
+		const bilder: string[] = [];
+		for (const b of gefunden) {
+			const neu = `${b.loesung ? 'loesung-' : ''}seite-${b.seite}${b.aufgabe ? `-aufgabe-${b.aufgabe}` : ''}.png`;
+			await copyFile(path.join(tmp, b.datei), path.join(ziel, neu));
+			bilder.push(neu);
+		}
+		return { bericht: JSON.parse(await readFile(berichtDatei, 'utf8')) as Pruefbericht, bilder };
+	} finally {
+		await rm(tmp, { recursive: true, force: true });
+	}
+};
+
+/** Wie `pruefeFassung`, aber mit Seitenbildern: Die Fassung liegt dafür kurz im Dokumentordner. */
+export const baueAnsicht = async (konfig: Pick<Konfig, 'pythonBin'>, dokDir: string, html: string, ziel: string) => {
+	const quelle = path.join(dokDir, KI_PRUEFDATEI);
+	try {
+		await writeFile(quelle, html);
+		return await baueAnsichtAus(konfig, quelle, ziel);
+	} finally {
+		await rm(quelle, { force: true });
 	}
 };
 

@@ -74,6 +74,8 @@ export const useEntwurf = ({
 			setZu(null);
 			void ki.nochmal();
 		},
+		planFreigeben: () => void ki.planFreigeben(),
+		planAendern: (text: string) => ki.planAendern(text),
 		uebernehmen: () => void annimm(ki.annehmen),
 		verwerfen: async () => {
 			await ki.verwerfen();

@@ -25,7 +25,7 @@ Nach der Start-Abfrage nur fragen, was die Entwürfe nicht zeigen können: Klass
 **2–3 Entwürfe**, die sich auf ein bis zwei Achsen klar unterscheiden (Tabelle unten), nicht nur in Details. Jeder Entwurf hat:
 
 - Namen und eine Zeile Idee („B · Willis Tag – Geschichte als Rahmen, Uhrzeiten zuordnen")
-- Überschrift, Ich-kann-Ziel, ggf. Wahlhilfe – wörtlich
+- Überschrift und Ich-kann-Ziel – wörtlich
 - alle Aufgaben mit wörtlicher Anweisung, Aufgabenformat, Niveau-Punkten bzw. ★ nach Start-Abfrage und **Beispiel-Items** (2–5 je Aufgabe, nicht alle ausformuliert)
 - Platzhalter für Bilder und Abbildungen mit Größe (Uhr 88 px, Willi mit Tipp), keine echten Bilder
 - Kopf und Fuß nach den gewählten Bausteinen
@@ -46,10 +46,13 @@ Die Vorschau zeigt jeden Entwurf im echten Format und in der Schriftgröße der 
 
 ```
 B · Willis Tag – Geschichte als Rahmen
-Kopf: „Ein Tag mit Willi" · Ich kann volle und halbe Stunden ablesen. · Wähle deine Aufgaben.
-1 ●   Wann macht Willi was? Verbinde.      [4 Uhren 88 px in einer Reihe, darunter: aufstehen · Schule · …]
-2 ●●  Zeichne die Zeiger ein.              [Satz aus Willis Tag + 2 leere Uhren 100 px]
-3 ●●● Wie lange war Willi schwimmen?       [2 Schreiblinien]
+Kopf: „Ein Tag mit Willi" · Ich kann volle und halbe Stunden ablesen. · Zeitziel 20 min, je Niveau eine Seite
+Seite ●, gezeigt als Beispiel; ●● und ●●● im selben Aufbau
+1  Wann macht Willi was? Verbinde.      [5 Uhren 88 px, darunter: aufstehen · Schule · …]   4 min
+2  Lies ab. Schreibe die Uhrzeit auf.   [8 Uhren in zwei Reihen]                            5 min
+3  Zeichne die Zeiger ein.              [Satz aus Willis Tag + 4 leere Uhren 100 px]        5 min
+4  Eine Stunde später …                 [6 Zeilen]                                          3 min
+5  Was machst du um halb 8? Schreibe.   [2 Schreiblinien]                                   4 min
 Fuß: Wachstums-Selbsteinschätzung + Reflexionsfrage
 ```
 
@@ -74,26 +77,35 @@ Kleine Änderungen fließen direkt in den Aufgabenplan. Will die Lehrkraft etwas
 Der Aufgabenplan legt **jeden Inhalt exakt fest**, der später auf dem Blatt steht. Er ersetzt das bisherige Briefing zur Freigabe. Was er enthält, hängt von der Materialart ab (Tabelle unten). Immer:
 
 - Titel nach Schema `Kl2_Mathe_Uhrzeit_AB1`, Format, gewählter Entwurf
-- alle Texte wörtlich: Überschrift, Ich-kann-Ziel, Wahlhilfe, Anweisungen, Tipps, Fußtext, Reflexionsfrage
+- alle Texte wörtlich: Überschrift, Ich-kann-Ziel, Anweisungen, Tipps, Fußtext, Reflexionsfrage
+- Zeitziel, je Aufgabe die geschätzten Minuten, je Niveau die Summe (`druck-und-platz.md`, Abschnitt „Menge nach Arbeitszeit“)
 - alle Items vollständig, Rechnungen und Rechtschreibung geprüft
 - Lösungen bzw. Erwartungshorizont
 - Bildliste: welche Bilder wo, vorhandene Datei (Willi, Wilma, Wachstumsgrafik) oder neues KI-Motiv; exakte Abbildungen (Uhren, Zahlenstrahl, Mengen) mit Werten
-- Seiten: Niveau-Blätter, Lösungsblatt
+- Seiten: je Niveau eine Seite (mit Rückseite, wenn das Zeitziel sie braucht), Lösungsblatt
 
 Den gewählten Entwurf auf die finalen Items aktualisieren und `blatt.py bauen --nur-pruefen` laufen lassen: Passt alles auf die Seite? Erst dann den Plan zeigen.
 
 Format im Chat (Beispiel Arbeitsblatt):
 
 ```
-Aufgabenplan Kl2_Mathe_Uhrzeit_AB1 · A4 hoch · Entwurf A
-Kopf: „Wie spät ist es?" · Ich kann volle und halbe Stunden ablesen. · Wähle deine Aufgaben.
-1 ●  Lies ab. Schreibe die Uhrzeit auf.   5 Uhren 88 px + Antwortlinie
-     Uhren: 3:00 · 4:30 · 7:00 · 9:30 · 12:00
-     Willi (willi-strich.png): „Schau zuerst auf den kleinen Zeiger. Er zeigt die Stunde."
-     Lösung: 3 Uhr · halb 5 · 7 Uhr · halb 10 · 12 Uhr
-2 ●● …
-Fuß: Ich kann … · Male an, wie weit du schon bist: (wachstum-strich.png) · Was hat dir geholfen? ☐ … ☐ …
-Seite 2: Lösungsblatt (Lösungen fett, unterstrichen)
+Aufgabenplan Kl2_Mathe_Uhrzeit_AB1 · A4 hoch · Entwurf A · Zeitziel 20 min
+Kopf: „Wie spät ist es?" · Ich kann volle und halbe Stunden ablesen.
+
+Seite ● (Vorder- und Rückseite, 21 min)
+1  Lies ab. Schreibe die Uhrzeit auf.   8 Uhren 88 px + Antwortlinie, die erste vorgelöst   5 min
+   Uhren: 3:00 · 7:00 · 10:00 · 12:00 · 4:30 · 9:30 · 1:30 · 6:30
+   Willi: „Erst der kleine Zeiger. Er zeigt die Stunde."
+   Lösung: 3 Uhr · 7 Uhr · 10 Uhr · 12 Uhr · halb 5 · halb 10 · halb 2 · halb 7
+2  Zeichne die Zeiger ein.   4 leere Uhren 100 px: 9 Uhr · halb 5 · halb 9 · halb 12   4 min
+3  …
+★  Wer mag, knobelt: …   (zählt nicht zur Zeit)
+
+Seite ●● (… min)   …
+Seite ●●● (… min)  …
+
+Fuß (letzte Seite jedes Niveaus): Ich kann … So gut kann ich das schon. Kreuze an: (Wachstumsgrafik mit 4 Kreisen) · Was hat dir geholfen? ☐ … ☐ …
+Lösungsblatt zu jeder Seite (Lösungen fett, unterstrichen)
 Passt das so? Danach baue ich die Endfassung als PDF; der Inhalt ändert sich dann nicht mehr.
 ```
 
@@ -103,7 +115,7 @@ Erst nach dem Ok der Lehrkraft beginnt Phase 5. Änderungswünsche danach werden
 
 | Materialart | Entwürfe unterscheiden sich in | Aufgabenplan legt fest |
 |---|---|---|
-| `arbeitsblatt` | Zugang (kompakt üben / Geschichte als Rahmen / entdeckend), Aufgabenformate, Item-Dichte, Differenzierungsform (ein Blatt mit ● ●● ●●● oder drei Blätter) | jede Aufgabe mit Anweisung, allen Items, Beispiel, Tipp, Niveau bzw. ★; Selbstkontrolle; Lösungsblatt |
+| `arbeitsblatt` | Zugang (kompakt üben / Geschichte als Rahmen / entdeckend), Aufgabenformate und ihr Wechsel; die Menge folgt in allen Entwürfen dem Zeitziel | je Niveau jede Aufgabe mit Anweisung, allen Items, Beispiel, Tipp, Minuten und ★; Summe je Niveau; Selbstkontrolle; Lösungsblatt |
 | `klassenarbeit` | Aufgabenauswahl, Gewichtung der Anforderungsbereiche, Anordnung, ggf. gleichwertige Wahlaufgaben | Haupt- und Probearbeit parallel; jede Aufgabe mit Items, Punkten, Anforderungsbereich und Ich-kann-Ziel; Erwartungshorizont mit Teilpunkten; Bearbeitungszeit; Notenschlüssel (Schulvorgabe oder Vorschlag); ggf. Nachteilsausgleich-Fassung |
 | `lernzielkontrolle` | Aufgabenauswahl und Gewichtung der Anforderungsbereiche; bei Lernlandkarten die Bildidee | jede Aufgabe mit Items und Ich-kann-Ziel; Erwartungshorizont; Auswertungsraster je Ziel statt Punkten; ggf. Nachteilsausgleich-Fassung |
 | `lernspiel` | Spielform (z. B. Domino / Memory / Klammerkarten), Kartengestaltung | vollständige Kartenliste (Vorder- und Rückseite jeder Karte), geprüfte Kette bzw. Paare, Spielanleitung wörtlich, Kartensätze je Niveau, Raster pro Seite |
@@ -120,9 +132,28 @@ Erst nach dem Ok der Lehrkraft beginnt Phase 5. Änderungswünsche danach werden
 - **Folgematerial im selben Stil** („wie das letzte Blatt"): keine Entwürfe, direkt der Aufgabenplan mit dem bestätigten Layout.
 - **Kleine Korrektur an einem fertigen Material**: direkt in der HTML-Quelle ändern und neu bauen, kein neuer Plan.
 
+## In der Schoolbox
+
+Bestellt die Lehrkraft ein Material im Assistenten der Schoolbox, läuft derselbe Ablauf mit drei Unterschieden:
+
+1. **Die Antworten aus dem Assistenten sind die Start-Abfrage und die Rückfragen.** Sie stehen im Auftrag. Du fragst nichts nach; was offen ist, entscheidest du nach den Empfehlungen der Skills und nennst es im Plan als Annahme.
+2. **Es gilt „Mach einfach“:** kein Vergleich mehrerer Entwürfe, sondern gleich der Aufgabenplan nach deiner Empfehlung. Die Lehrkraft gibt ihn in der Schoolbox frei („So bauen“) oder schreibt, was anders sein soll; dann kommt der geänderte Plan. Vor der Freigabe änderst du `material.html` nicht.
+3. **Gebaut und geprüft wird mit dem Werkzeug `bauen`** statt mit `blatt.py bauen`. Es liefert denselben Prüfbericht und legt die Seitenbilder unter `ansicht/` ab; die visuelle Endkontrolle (`html-materialerstellung/references/visuelle-endkontrolle.md`) machst du an diesen Bildern, genau wie sonst.
+
+Der Plan ist die ganze Antwort, als einfacher Text ohne Markdown, im Format von Phase 4, so knapp, dass die Lehrkraft ihn in einer Minute prüfen kann:
+
+- erste Zeile: Titel, Klasse, Fach, Zeitziel, Seiten je Niveau
+- Ich-kann-Ziel wörtlich
+- je Niveau eine Überschrift mit der Summe der Minuten, darunter je Aufgabe eine Zeile: Nummer, Anweisung wörtlich, Format und Anzahl der Items (zwei, drei Items als Beispiel, nicht alle), Minuten
+- Tipp der Leitfigur, Fuß, Bilder (welche vorhandenen, welche Platzhalter)
+- zuletzt die Annahmen, je eine Zeile, die mit „Annahme:“ beginnt
+
+Alle Items, die Lösungen und die Rechenprüfung entstehen erst beim Bauen. Dort gilt der freigegebene Plan: gleiche Aufgaben, gleiche Reihenfolge, gleiche Menge. Zeigt der Prüfbericht, dass eine Seite nicht passt oder nicht gefüllt ist, änderst du Items oder verteilst auf die Rückseite, nicht den Plan.
+
 ## Was nicht passieren darf
 
 - KI-Bilder erzeugen oder alle Items ausarbeiten, bevor der Aufgabenplan freigegeben ist.
+- Ein Plan ohne Minuten, oder einer, dessen Summe je Niveau das Zeitziel nicht erreicht.
 - Entwürfe, die sich nur in Farben oder Details unterscheiden.
 - Inhalte beim Bauen umformulieren oder ausprobieren; Inhalt kommt nur aus dem Plan.
 - Mehr als zwei Entwurfsrunden ohne gezielte Rückfrage.
