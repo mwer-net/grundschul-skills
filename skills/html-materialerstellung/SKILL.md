@@ -67,7 +67,7 @@ Ist im Projekt eine Schoolbox eingerichtet (Ordner `schoolbox/`, Projektanweisun
 
 ## Gestaltungssystem kurz
 
-- `<body class="kl2 farbe palette-himmel">` (Paletten: sonnig, himmel, wiese, beere). Die Klasse setzt Schriftgröße (Kl. 1: 28 px, 2: 24, 3: 20, 4: 18) und Aufgabenabstand; die Palette Farben. s/w ist eine Ansicht davon, nicht `class="sw"` setzen (`grundschul-didaktik/references/gestaltung.md`). Text bleibt immer schwarz.
+- `<body class="kl2 farbe palette-himmel">` (Paletten: sonnig, himmel, wiese, beere). Die Klasse setzt Schriftgröße (Kl. 1: 28 px, 2: 24, 3: 20, 4: 18; mit `data-zeit` am `<body>` ab Kl. 2 kleiner: 21, 19, 16) und Aufgabenabstand; die Palette Farben. s/w ist eine Ansicht davon, nicht `class="sw"` setzen (`grundschul-didaktik/references/gestaltung.md`). Text bleibt immer schwarz.
 - Seite: `<section class="seite">`, mehrere Seiten = mehrere Sections.
 - Kopf: `.namenszeile`, `.kopf` mit `.titel` (h1, `.ziel`, `.wahlhilfe`) und optional `.tipp` (Leitfigur mit Sprechblase), `.loesung-marke`.
 - Aufgabe: `.aufgabe` > `.nr` (oder `.nr.stern`) + `.anw` (`.text` + `.niveau` mit `<i>` je Punkt, in Klassenarbeiten stattdessen `.punkte`) + `.koerper`.

@@ -79,15 +79,22 @@ const bausteineJeArt = () => {
 
 const klassenWerte = (wurzel: string) => {
 	const css = readFileSync(path.join(wurzel, BLATT_CSS), 'utf8');
+	const mitZeitziel = new Map(
+		[...css.matchAll(/^body\.kl([1-4])\[data-zeit\]\{--fs:(\d+)px(?:;--abstand:(\d+)px)?/gm)].map((t) => [
+			t[1],
+			`${t[2]} px${t[3] ? `, Abstand ${t[3]} px` : ''}`,
+		]),
+	);
 	const zeilen = [...css.matchAll(/^body\.kl([1-4])\{--fs:(\d+)px;--abstand:(\d+)px\}/gm)].map((t) => [
 		`Kl. ${t[1]}`,
 		`${t[2]} px`,
 		`${t[3]} px`,
+		mitZeitziel.get(t[1]) ?? 'wie ohne',
 	]);
 	if (zeilen.length !== 4) {
 		throw new Error(`${BLATT_CSS}: Schrift und Abstand von Kl. 1 bis 4 nicht gefunden.`);
 	}
-	return tabelle(['Klasse', 'Schrift', 'Abstand zwischen Aufgaben'], zeilen);
+	return tabelle(['Klasse', 'Schrift', 'Abstand zwischen Aufgaben', 'Schrift mit Zeitziel (`data-zeit`)'], zeilen);
 };
 
 const lueckenBreite = (wurzel: string) => {

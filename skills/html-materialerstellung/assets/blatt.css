@@ -19,6 +19,13 @@ body.kl1{--fs:28px;--abstand:36px}
 body.kl2{--fs:24px;--abstand:28px}
 body.kl3{--fs:20px;--abstand:28px}
 body.kl4{--fs:18px;--abstand:24px}
+/* Blätter mit Zeitziel (data-zeit, Menge nach Arbeitszeit): Lesetext ab Kl. 2 am unteren Rand der Spanne aus
+   grundschul-didaktik (16, 14, 12 pt), damit mehr Aufgaben auf die Seite passen. --schreib (altes Maß durch neues)
+   hält Antwortlinien und Kästchen so groß wie bisher: Kinder schreiben nicht kleiner, nur weil sie kleiner lesen.
+   Blätter ohne data-zeit bleiben, wie sie sind. */
+body.kl2[data-zeit]{--fs:21px;--abstand:24px;--schreib:1.143}
+body.kl3[data-zeit]{--fs:19px;--abstand:24px;--schreib:1.053}
+body.kl4[data-zeit]{--fs:16px;--schreib:1.125}
 body.folie{--fs:40px;--abstand:32px;--figur:150px} /* Folien: lesbar aus 6 m */
 body.folie.kl1,body.folie.kl2{--fs:48px}
 body.farbe{--linie:var(--akzent)}
@@ -117,6 +124,13 @@ h1{font-family:Fredoka,sans-serif;font-weight:600;color:var(--dunkel);font-size:
   line-height:1.2;padding:0 .15em;vertical-align:baseline}
 .antwort.kurz{min-width:1.6em}.antwort.breit{min-width:5em}.antwort.lang{display:block;width:100%;height:1.5em}
 .antwort::after{content:"\00a0"}
+body[data-zeit] .antwort{min-width:calc(2.4em*var(--schreib,1))}
+body[data-zeit] .antwort.kurz{min-width:calc(1.6em*var(--schreib,1))}
+body[data-zeit] .antwort.breit{min-width:calc(5em*var(--schreib,1))}
+body[data-zeit] .antwort.lang{height:calc(1.5em*var(--schreib,1))}
+body[data-zeit] .box{width:calc(1em*var(--schreib,1));height:calc(1em*var(--schreib,1))}
+/* Der Nummernkreis (34 px) ist höher als eine Zeile der kleineren Schrift und ragte auf einer Folgeseite in den Rand */
+body[data-zeit] .aufgabe{padding-top:max(0px,calc((34px - var(--fs)*1.4)/2))}
 .beispiel .antwort[data-l]::after,body.loesung .antwort[data-l]::after{content:attr(data-l);font-weight:700}
 body.loesung .antwort[data-l]{color:var(--dunkel)}
 .malfeld{border:2px solid var(--linie);border-radius:10px;height:var(--h,160px)}

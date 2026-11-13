@@ -78,12 +78,12 @@ Ziel: **Übersicht und genug zu tun.** Ein Kind muss jede Aufgabe auf einen Blic
 - **Schrift und Abstand je Klasse** (aus `blatt.css`):
 
 <!-- erzeugt: schrift-und-abstand -->
-| Klasse | Schrift | Abstand zwischen Aufgaben |
-|---|---|---|
-| Kl. 1 | 28 px | 36 px |
-| Kl. 2 | 24 px | 28 px |
-| Kl. 3 | 20 px | 28 px |
-| Kl. 4 | 18 px | 24 px |
+| Klasse | Schrift | Abstand zwischen Aufgaben | Schrift mit Zeitziel (`data-zeit`) |
+|---|---|---|---|
+| Kl. 1 | 28 px | 36 px | wie ohne |
+| Kl. 2 | 24 px | 28 px | 21 px, Abstand 24 px |
+| Kl. 3 | 20 px | 28 px | 19 px, Abstand 24 px |
+| Kl. 4 | 18 px | 24 px | 16 px |
 <!-- /erzeugt: schrift-und-abstand -->
 
 Lücken müssen breit genug sein, damit Kinder der Klasse darin schreiben können. Mindestbreite einer Lücke:

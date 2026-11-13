@@ -76,7 +76,7 @@ Ausführlich in `references/gestaltung.md`. Die wichtigsten Werte:
 | 3 | 14–16 pt | 1,5 | 2–3 Sätze |
 | 4 | 12–14 pt | 1,3–1,5 | bis 4 Sätze |
 
-`blatt.css` setzt das um: Kl. 1 28 px (21 pt), Kl. 2 24 px (18 pt), Kl. 3 20 px (15 pt), Kl. 4 18 px (13,5 pt).
+`blatt.css` setzt das um: Kl. 1 28 px (21 pt), Kl. 2 24 px (18 pt), Kl. 3 20 px (15 pt), Kl. 4 18 px (13,5 pt). Blätter mit Zeitziel (`data-zeit`, Menge nach Arbeitszeit) setzen ab Kl. 2 am unteren Rand der Spanne: 21 px (16 pt), 19 px (14 pt), 16 px (12 pt). Antwortlinien und Kästchen bleiben dabei so groß wie bisher.
 
 - Fließtext: serifenlose, kindgerechte Schrift mit eindeutigen Formen (I/l unterscheidbar, in Klasse 1/2 einstöckiges a und g). Bevorzugt die Druckschrift der Klasse (Lehrwerk), sonst Andika. Überschriften: eine runde, freundliche Display-Schrift (z. B. Fredoka, Baloo 2).
 - Eine Palette als Akzent an Nummernkreisen, Überschrift, Linien, Figur und Bildern; Text schwarz; keine Farbflächen hinter Aufgaben. Aufgaben ohne Kasten mit hängender Nummer, getrennt durch Abstand. Niveaus (falls gewählt) nur mit Punkten kennzeichnen (`references/druck-und-platz.md`).
