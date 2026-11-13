@@ -127,8 +127,8 @@
   if (B.classList.contains("minibuch") && feldzahl !== 8) melde("FEHLER", 0, "minibuch-seiten", `Ein Mini-Book hat genau 8 Seiten, dieses hat ${feldzahl} → --vorlage minibuch als Ausgangspunkt nehmen`);
   // nur äußere Seiten: In „Folien mit Notizen“ stecken die Folien verkleinert in einem Blatt
   [...document.querySelectorAll(".seite")].filter((s) => !s.parentElement.closest(".seite")).forEach((S, si) => {
-    const nr = si + 1, P = S.getBoundingClientRect(), rand = parseFloat(getComputedStyle(S).paddingLeft);
-    const innen = { l: P.left + rand - 1, t: P.top + rand - 1, r: P.right - rand + 1, b: P.bottom - rand + 1 };
+    const nr = si + 1, P = S.getBoundingClientRect(), stil = getComputedStyle(S), rand = parseFloat(stil.paddingLeft), randOben = parseFloat(stil.paddingTop), randUnten = parseFloat(stil.paddingBottom);
+    const innen = { l: P.left + rand - 1, t: P.top + randOben - 1, r: P.right - rand + 1, b: P.bottom - randUnten + 1 };
     const rel = (r) => [Math.round(r.left - P.left), Math.round(r.top - P.top), Math.round(r.width), Math.round(r.height)];
     // sb: das nächste Element mit Nummer, denn die Zeichnung einer Abbildung (svg) hat keine eigene
     const ziel = (e) => { const m = e.closest("[data-sb]"); return { sb: m ? +m.getAttribute("data-sb") : null, name: kurz(e), rechteck: rel(e.getBoundingClientRect()) }; };
@@ -286,7 +286,7 @@
         zeitGruppen.set(punkte, (zeitGruppen.get(punkte) || 0) + min);
       });
       const kopf = S.querySelector(":scope > .kopf");
-      const kopfHoehe = kopf ? Math.round(auf[0].getBoundingClientRect().top - (P.top + rand)) : 0;
+      const kopfHoehe = kopf ? Math.round(auf[0].getBoundingClientRect().top - (P.top + randOben)) : 0;
       if (kopfHoehe > KOPF_MAX) melde("WARNUNG", nr, "rahmen-gross", `Kopf ist ${kopfHoehe} px hoch (höchstens ${KOPF_MAX}) → Namenszeile, Kopf und Tipp als Bausteine aus der Vorlage, Tipp neben seine Aufgabe`, [ziel(kopf)]);
       const fussEl = S.querySelector(":scope > .fuss"), fussHoehe = fussEl ? Math.round(fussEl.getBoundingClientRect().height) : 0;
       if (fussHoehe > FUSS_MAX) melde("WARNUNG", nr, "rahmen-gross", `Fuß ist ${fussHoehe} px hoch (höchstens ${FUSS_MAX}) → Baustein .fuss aus der Vorlage unverändert übernehmen, Text kürzen`, [ziel(fussEl)]);
@@ -299,7 +299,7 @@
     // 8. Ungenutzter Platz (Folien dürfen leer sein: eine Aussage je Folie)
     const fuss = S.querySelector(".fuss");
     const inhalt = [...S.children].filter((e) => e !== fuss && !e.classList.contains("ebene") && sichtbar(e));
-    const unten = Math.max(P.top + rand, ...inhalt.map((e) => e.getBoundingClientRect().bottom));
+    const unten = Math.max(P.top + randOben, ...inhalt.map((e) => e.getBoundingClientRect().bottom));
     const rest = Math.round((fuss ? fuss.getBoundingClientRect().top - 16 : innen.b) - unten);
     if (zeitziel && auf.length && rest > FREI_MAX && !S.querySelector(".karten") && !folie && !B.classList.contains("minibuch"))
       melde("WARNUNG", nr, "platz-frei", `${rest} px frei unten → Item, Reihe oder Aufgabe ergänzen (Menge nach Arbeitszeit)`, [ziel(S)]);

@@ -8,12 +8,12 @@ Maße in CSS-px (96 dpi): A4 = 794 × 1123 px, 1 cm ≈ 38 px.
 
 | Regel | Wert | Umsetzung |
 |---|---|---|
-| Seitenrand | 60 px für alles (Bürodrucker drucken nicht randlos) | `.seite` hat das Padding; nichts mit negativen Rändern oder `position:absolute` hinausschieben |
+| Seitenrand | 60 px für alles (Bürodrucker drucken nicht randlos); mit `data-zeit` oben 38 px und unten 49 px, links und rechts weiter 60 px (Lochung) | `.seite` hat das Padding; nichts mit negativen Rändern oder `position:absolute` hinausschieben |
 | Spalte | eine Inhaltsspalte, alle Aufgaben bündig | `.aufgabe` mit hängender Nummer |
 | Aufgaben | ohne Kasten, ohne Fläche | keine `background` oder `border` an Aufgaben |
 | Abstand zwischen Aufgaben | je Klasse, Tabelle in `grundschul-didaktik/references/druck-und-platz.md` | `--abstand`, nur in kleinen Schritten anpassen, nie unter 24 px |
 | Nähe | Anweisung → Arbeitsfläche 12–16 px, Aufgabe → Aufgabe deutlich mehr | `.koerper` |
-| Nummernkreis | 34 px, gefüllt, weiße Ziffer; ★ für die Sternchenaufgabe | `.nr`, `.nr.stern` |
+| Nummernkreis | 34 px, gefüllt, weiße Ziffer; mit `data-zeit` so hoch wie 1,25 × Schrift (Kl. 2: 26 px); ★ für die Sternchenaufgabe | `.nr`, `.nr.stern` |
 | Rahmen mit Funktion | nur Sprechblase, Wortspeicher, Antwortkasten: Kontur 2 px, Ecken gerundet | `.blase`, `.box` |
 | Zeilenlänge | höchstens ca. 60 Zeichen | lange Anweisungen kürzen |
 | Schriftgrößen | höchstens drei: Überschrift, Text, Beschriftung; Mindestgröße der Klasse (Prüfung meldet < 80 % der Textgröße) | nur `.namenszeile` darf kleiner sein |
@@ -21,9 +21,9 @@ Maße in CSS-px (96 dpi): A4 = 794 × 1123 px, 1 cm ≈ 38 px.
 
 ## 2. Platzbudget
 
-Satzspiegel 1003 px Höhe: Kopf ca. 160 px, Fuß ca. 120 px (nur mit Selbsteinschätzung), Rest für Aufgaben. Die Menge folgt dem Zeitziel (`grundschul-didaktik/references/druck-und-platz.md`, Abschnitt „Menge nach Arbeitszeit“): `data-zeit` am `<body>`, `data-min` an jeder `.aufgabe`, je Niveau eine eigene `.seite`, Folgeseiten mit `data-weiter` und ohne Kopf. `blatt.py` meldet Überlauf (FEHLER mit px), zu wenig Arbeitszeit, zu hohen Kopf oder Fuß und Leerraum (WARNUNG). Passt es nicht: Rückseite. Bleibt Platz: Item, Reihe oder Aufgabe ergänzen. Muster: `assets/beispiel-niveaublatt-kl2.html`.
+Satzspiegel 1003 px Höhe, mit `data-zeit` 1036 px: Kopf ca. 160 px, Fuß ca. 120 px (nur mit Selbsteinschätzung), Rest für Aufgaben. Die Menge folgt dem Zeitziel (`grundschul-didaktik/references/druck-und-platz.md`, Abschnitt „Menge nach Arbeitszeit“): `data-zeit` am `<body>`, `data-min` an jeder `.aufgabe`, je Niveau eine eigene `.seite`, Folgeseiten mit `data-weiter` und ohne Kopf. `blatt.py` meldet Überlauf (FEHLER mit px), zu wenig Arbeitszeit, zu hohen Kopf oder Fuß und Leerraum (WARNUNG). Passt es nicht: Rückseite. Bleibt Platz: Item, Reihe oder Aufgabe ergänzen. Muster: `assets/beispiel-niveaublatt-kl2.html`.
 
-Faustwerte Kl. 2 (24 px Schrift): Aufgabenzeile 34 px, Uhr 88 px + Antwortlinie ≈ 130 px, Rechenzeile 45 px, Schreiblinie 46 px, Leitfigur mit Sprechblase im Kopf ≈ 95 px.
+Faustwerte Kl. 2 (24 px Schrift): Aufgabenzeile 34 px, Uhr 88 px + Antwortlinie ≈ 130 px, Rechenzeile 45 px, Schreiblinie 46 px, Leitfigur mit Sprechblase im Kopf ≈ 95 px. Mit `data-zeit` (21 px Schrift) sind Text- und Rechenzeilen etwa ein Achtel niedriger.
 
 **Folien** (`folie`): 1280 × 720 px, Rand 48 px, Satzspiegel 1184 × 624 px. Kopf mit Überschrift und Ziel ≈ 150 px, zweizeilige Überschrift ohne Ziel ≈ 175 px; den Rest füllt `.buehne`. Text 40 px (Kl. 1/2: 48 px), eine Textzeile ≈ 56 px, Nummernkreis 52 px, Abstand zwischen Aufgaben 32 px. Kein Fuß und keine Namenszeile; Platz bleibt frei, statt ihn zu füllen.
 

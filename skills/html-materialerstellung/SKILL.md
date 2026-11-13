@@ -13,7 +13,7 @@ Warum: In HTML bestimmen wir Schrift (Fredoka, Andika, eingebettet), Abstände u
 
 | Datei | Zweck |
 |---|---|
-| `assets/blatt.css` | Gestaltungssystem: A4-Seite, 60 px Rand, Kopf, Aufgaben mit hängender Nummer, Niveau-Punkte, Punktfelder, Antwortlinien, Sprechblase, Fuß, Karten, Platzhalter, Folien. Profile über Klassen am `<body>`. |
+| `assets/blatt.css` | Gestaltungssystem: A4-Seite, 60 px Rand (mit `data-zeit` oben und unten weniger), Kopf, Aufgaben mit hängender Nummer, Niveau-Punkte, Punktfelder, Antwortlinien, Sprechblase, Fuß, Karten, Platzhalter, Folien. Profile über Klassen am `<body>`. |
 | `assets/praesentation.js` | Präsentationsmodus für Folien: blättern, Schritte und Aufdecken, Timer, Schwarzbild; nur mit `?praesentation=1` aktiv. `blatt.py` bettet es in die Offline-Präsentation ein und baut damit `--schritte` und `--notizen` (Abschnitt „Folien“) |
 | `assets/abbildungen.js` | Exakte Abbildungen als SVG (`x-…`-Elemente), berechnet statt gezeichnet. Welche es gibt, wie man sie schreibt und welche Mindestgrößen gelten, steht im Katalog: `references/abbildungen.md`. Musterblätter: `assets/muster/`. |
 | `assets/vorlage-arbeitsblatt.html` | Muster mit allen Bausteinen; Ausgangspunkt für jedes Blatt |

@@ -175,12 +175,12 @@ Für ein anderes Zeitziel im selben Verhältnis rechnen. Ein Blatt mit drei Aufg
 
 Passt der Inhalt nicht auf die Seite, geht er auf die Rückseite, er wird nie enger gesetzt. Für Kinder mit Konzentrationsschwierigkeiten dieselben Aufgaben auf mehr Seiten verteilen (weniger pro Seite) und je Aufgabe ein Abhak-Kästchen setzen (`differenzierung.md`).
 
-### Platzbudget (A4, Satzspiegel 1003 px)
+### Platzbudget (A4, Satzspiegel 1036 px)
 
 | Bereich | Höhe |
 |---|---|
 | Kopf | ca. 160 px, höchstens 210 px; auf Folgeseiten keiner |
-| Aufgaben inkl. Abstände | Rest, ca. 700–760 px, auf Folgeseiten bis 1000 px |
+| Aufgaben inkl. Abstände | Rest, ca. 730–790 px, auf Folgeseiten bis 1030 px |
 | Fuß | ca. 110–130 px, höchstens 150 px; nur auf der letzten Seite des Niveaus |
 
 Bleiben unten mehr als ca. 90 px frei, meldet `blatt.py` das; dann Item, Reihe oder Aufgabe ergänzen.

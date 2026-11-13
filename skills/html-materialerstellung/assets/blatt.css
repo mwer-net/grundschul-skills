@@ -129,8 +129,15 @@ body[data-zeit] .antwort.kurz{min-width:calc(1.6em*var(--schreib,1))}
 body[data-zeit] .antwort.breit{min-width:calc(5em*var(--schreib,1))}
 body[data-zeit] .antwort.lang{height:calc(1.5em*var(--schreib,1))}
 body[data-zeit] .box{width:calc(1em*var(--schreib,1));height:calc(1em*var(--schreib,1))}
-/* Der Nummernkreis (34 px) ist höher als eine Zeile der kleineren Schrift und ragte auf einer Folgeseite in den Rand */
-body[data-zeit] .aufgabe{padding-top:max(0px,calc((34px - var(--fs)*1.4)/2))}
+/* Der Nummernkreis folgt der Schrift statt fest 34 px zu messen: Er bleibt in der Zeile und kostet weniger Breite */
+body[data-zeit]{--nr:max(22px,calc(var(--fs)*1.25))}
+body[data-zeit] .aufgabe{grid-template-columns:var(--nr) 1fr;column-gap:10px}
+body[data-zeit] .nr{width:var(--nr);height:var(--nr);font-size:calc(var(--nr)*.6);line-height:var(--nr);
+  margin-top:calc((var(--fs)*1.4 - var(--nr))/2)}
+/* Weniger Rand oben und unten. Unten bleiben 13 mm, weil Tintendrucker dort bis knapp 12 mm frei lassen.
+   Links und rechts bleiben 16 mm: Sonst trifft der Locher den Inhalt, bei doppelseitigem Druck auf beiden Seiten. */
+body[data-zeit]:not(.folie,.minibuch,.a5-hoch) .seite{padding-top:38px;padding-bottom:49px}
+body.loesung[data-zeit]:not(.folie,.minibuch,.a5-hoch) .loesung-marke{top:18px;font-size:13px;line-height:1.25}
 .beispiel .antwort[data-l]::after,body.loesung .antwort[data-l]::after{content:attr(data-l);font-weight:700}
 body.loesung .antwort[data-l]{color:var(--dunkel)}
 .malfeld{border:2px solid var(--linie);border-radius:10px;height:var(--h,160px)}
