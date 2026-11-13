@@ -102,6 +102,8 @@ const nimmAusschnitt = async (r: Rechteck | null) => {
 	const skala = window.devicePixelRatio || 1;
 	const ganz = await domToCanvas(document.documentElement, {
 		scale: skala,
+		// Bilder mit loading="lazy" außerhalb des Fensters laden nie; der Standard (30 s) ließe die Lehrkraft warten.
+		timeout: 2000,
 		width: window.innerWidth,
 		height: window.innerHeight,
 		style: { transform: `translate(${-window.scrollX}px, ${-window.scrollY}px)` },
@@ -251,6 +253,15 @@ export const Meldeknopf = () => {
 				>
 					<Symbol name="kaefer" className="size-5" />
 				</button>
+			)}
+			{nimmt && (
+				<div
+					{...{ [MELDE_UI]: '' }}
+					className="fixed bottom-3 left-3 rounded-md bg-tinte px-3 py-2 text-sm text-flaeche shadow-lg"
+					style={{ zIndex: 60 }}
+				>
+					Ausschnitt wird aufgenommen …
+				</div>
 			)}
 			{phase === 'auswahl' && !nimmt && (
 				<div

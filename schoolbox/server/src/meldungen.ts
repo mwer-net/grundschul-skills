@@ -63,8 +63,6 @@ export const meldungenApi = (kontext: Kontext) => {
 			[
 				`# Meldung (${sorte}) vom ${jetzt.toLocaleString('de-DE')}`,
 				'',
-				'Status: neu (Claude: daraus ein Ticket schreiben, dann hier „Status: Ticket NNN“ eintragen)',
-				'',
 				'## Beschreibung der Lehrkraft',
 				'',
 				text.trim(),
