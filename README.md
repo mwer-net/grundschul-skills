@@ -15,7 +15,7 @@ skills/
 ├── html-materialerstellung/    Technik: Material als HTML bauen, prüfen, als PDF ausgeben
 │   ├── assets/                 blatt.css (Gestaltungssystem) · abbildungen.js (Uhr, Mengen, Stellentafel, Timer …) ·
 │   │                           praesentation.js (Folien präsentieren, offline, PDF mit Schritten, Notizen) ·
-│   │                           vorlage-arbeitsblatt.html · vorlage-praesentation.html · fonts/ (Fredoka, Andika) ·
+│   │                           vorlage-arbeitsblatt.html · vorlage-praesentation.html · fonts/ (Fredoka, Andika, Playwrite DE VA) ·
 │   │                           bilder/ (Willi, Wilma, Wachstum)
 │   ├── references/             layout · visuelle-endkontrolle · bilder (KI-Bilder und -Grafiken mit Canva)
 │   └── scripts/                blatt.py (prüft Rand, Überlappung, Schrift; erzeugt PDF,
@@ -240,7 +240,7 @@ Der Weg einer Änderung: Branch im Entwicklerklon, nach `main` zusammenführen u
 
 ## Schriften
 
-Fredoka und Andika liegen unter der SIL Open Font License in `html-materialerstellung/assets/fonts/` und werden ins PDF eingebettet. Eine Schulschrift der Klasse kann dort ergänzt werden, sofern die Lizenz das erlaubt.
+Fredoka, Andika und Playwrite DE VA (Vereinfachte Ausgangsschrift) liegen unter der SIL Open Font License in `html-materialerstellung/assets/fonts/` und werden ins PDF eingebettet. Die Andika-Dateien sind eine Teilmenge mit den Schulziffern; was daran geändert ist, steht am Anfang von `OFL-Andika.txt`. Eine andere Schulschrift der Klasse kann dort ergänzt werden, sofern die Lizenz das erlaubt.
 
 ## Erweitern
 

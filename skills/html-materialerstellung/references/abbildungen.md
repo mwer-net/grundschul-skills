@@ -576,7 +576,7 @@ Muster: `assets/muster/deutsch.html`.
 <x-lineatur art="2" zeilen="3" vorlage="Rosine" vorlage-zeilen="1" anfang="Ha" loesung="Der Hund bellt."></x-lineatur>
 ```
 
-`art` `1`, `2`, `3`, `4`, `karo`, `karo-klein`; Maße in `grundschul-didaktik/references/gestaltung.md`. `zeilen` 1 bis 30. `vorlage` grau zum Nachspuren (Schriftgröße folgt dem Mittelband), `vorlage-zeilen` wie viele Zeilen, `anfang` schwarzes Vorbild am Zeilenanfang. `loesung` nur im Lösungsblatt, wird umbrochen und muss in die freien Zeilen passen. `mittelband` `linie` oder `getoent` (nur in Farbe, nur auf Wunsch). `band` 2 bis 10 mm überschreibt das Mittelband, falls das Heft der Klasse anders misst. `breite` in px, Standard ganze Spalte. Fest in Originalgröße; der Druckhinweis erscheint von selbst. Zu langer Text meldet einen Fehler, gekürzt wird nichts.
+`art` `1`, `2`, `3`, `4`, `karo`, `karo-klein`; Maße in `grundschul-didaktik/references/gestaltung.md`. `zeilen` 1 bis 30. `vorlage` grau zum Nachspuren (Schriftgröße folgt dem Mittelband), `vorlage-zeilen` wie viele Zeilen, `anfang` schwarzes Vorbild am Zeilenanfang. `loesung` nur im Lösungsblatt, wird umbrochen und muss in die freien Zeilen passen. `schrift="va"` setzt Vorlage, Vorbild und Lösung in Vereinfachter Ausgangsschrift (nicht im Karo); ohne Angabe Druckschrift. Text in Schreibschrift außerhalb der Linien: Klasse `schreibschrift`, nur als Vorlage zum Abschreiben, nie für Lesetext. `mittelband` `linie` oder `getoent` (nur in Farbe, nur auf Wunsch). `band` 2 bis 10 mm überschreibt das Mittelband, falls das Heft der Klasse anders misst. `breite` in px, Standard ganze Spalte. Fest in Originalgröße; der Druckhinweis erscheint von selbst. Zu langer Text meldet einen Fehler, gekürzt wird nichts.
 
 ### `x-silben`
 

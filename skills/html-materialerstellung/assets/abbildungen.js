@@ -3191,6 +3191,12 @@
 
   /* == Deutsch == */
   const ANDIKA_X_HOEHE = 0.5; // gemessen an Andika-Regular.woff2: „x“ bei 1000 px Schrift 500 px hoch
+  /* Vereinfachte Ausgangsschrift (Playwrite DE VA, gleiche x-Höhe wie Andika; die Schrift setzt blatt.css). Großbuchstaben
+     sind bis zu dreimal so breit wie kleine, die mittlere Breite reicht hier nicht: Zeichenbreiten in Hundertstel der Schriftgröße. */
+  const VA_ZEICHEN = " ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyzÄÖÜäöüß0123456789.,!?:;-–„“’()…";
+  const VA_BREITEN = [30,82,79,85,95,76,68,102,97,56,66,75,85,153,97,101,76,104,76,75,75,104,79,130,75,100,67,62,61,52,64,53,43,62,68,30,32,56,39,96,65,59,64,65,45,55,63,65,57,85,53,64,46,82,101,94,62,59,65,70,83,49,72,74,75,74,80,60,74,80,31,31,38,55,31,31,58,62,40,39,22,32,32,85];
+  const vaBreite = (t, groesse) => [...String(t)].reduce((s, z) => s + (VA_BREITEN[VA_ZEICHEN.indexOf(z)] ?? 70), 0) * groesse / 100;
+  const SCHREIBSCHRIFTEN = ["druck", "va"];
   /** Maße in mm. `oben`/`unten`: Abstand der Hilfslinien über und unter dem Mittelband; `abstand`: bis zur nächsten Zeile. */
   const LINEATUREN = {
     1: { band: 5, oben: 5, unten: 5, abstand: 7 }, 2: { band: 4, oben: 4, unten: 4, abstand: 6 },
@@ -3203,12 +3209,12 @@
     const mittel = band !== null && l.band > 0 ? band : l.band, oben = l.oben * faktor, unten = l.unten * faktor;
     return { band: mittel, oben, unten, abstand: l.abstand, hoehe: oben + mittel + unten, schrift: (mittel || band || l.schrift) / ANDIKA_X_HOEHE };
   };
-  const satzZeilen = (wort, breite, groesse) => {
+  const satzZeilen = (wort, breite, groesse, weit = (t) => textBreite(t, groesse)) => {
     const zeilen = [];
     let zeile = "";
     for (const w of wort.trim().split(/\s+/)) {
       const neu = zeile ? `${zeile} ${w}` : w;
-      if (zeile && textBreite(neu, groesse) > breite) {
+      if (zeile && weit(neu) > breite) {
         zeilen.push(zeile);
         zeile = w;
       } else zeile = neu;
@@ -3220,6 +3226,9 @@
   function lineatur(el) {
     const art = attr(el, "art", "1"), zeilen = num(el, "zeilen", 3), vorlage = attr(el, "vorlage", null), anfang = attr(el, "anfang", null);
     const vorlageZeilen = num(el, "vorlage-zeilen", 1), mittelband = attr(el, "mittelband", "linie"), band = attr(el, "band", null), loesung = attr(el, "loesung", null);
+    const schrift = attr(el, "schrift", "druck");
+    if (!SCHREIBSCHRIFTEN.includes(schrift)) abbruch(`Die Schrift „${schrift}“ gibt es nicht.`);
+    if (schrift !== "druck" && KARO[attr(el, "art", "1")]) abbruch("Schreibschrift gibt es nur auf Schreiblinien, nicht im Karo.");
     if (!LINEATUREN[art] && !KARO[art]) abbruch(`Die Lineatur „${art}“ gibt es nicht.`);
     if (!Number.isInteger(zeilen) || zeilen < 1 || zeilen > 30) abbruch("Es sind 1 bis 30 Zeilen.");
     if (mittelband !== "linie" && mittelband !== "getoent") abbruch(`Das Mittelband „${mittelband}“ gibt es nicht.`);
@@ -3251,7 +3260,8 @@
       hoehe = zeilen * teilung - m.abstand * mm + randOben + (m.unten > 0 ? 0.75 : groesse * 0.25);
       const grund = (z) => randOben + z * teilung + (m.oben + m.band) * mm, x0 = 0, x1 = breite - 1;
       const rest = breite - 8;
-      if (vorlage !== null && textBreite(vorlage, groesse) + (anfang ? textBreite(anfang, groesse) + 16 : 0) > rest) abbruch("Der Text ist zu lang für eine Zeile.");
+      const weit = (t) => (schrift === "va" ? vaBreite(t, groesse) : textBreite(t, groesse));
+      if (vorlage !== null && weit(vorlage) + (anfang ? weit(anfang) + 16 : 0) > rest) abbruch("Der Text ist zu lang für eine Zeile.");
       for (let z = 0; z < zeilen; z++) {
         const y = grund(z), linie = (lage, stark, name) => `<line class="linie" data-art="${name}" data-z="${z}" data-y="${r1(lage)}" x1="${x0}" y1="${r1(lage)}" x2="${r1(x1)}" y2="${r1(lage)}" stroke-width="${stark ? 1.5 : 1}" style="stroke:${stark ? SCHWARZ : "#808080"}"/>`;
         if (m.band > 0 && mittelband === "getoent" && !istSw()) s += `<rect class="getoent" x="${x0}" y="${r1(y - m.band * mm)}" width="${r1(x1)}" height="${r1(m.band * mm)}" fill="color-mix(in srgb,var(--haupt) 18%,#fff)" stroke="none"/>`;
@@ -3262,13 +3272,13 @@
         let x = 2;
         if (anfang !== null) {
           s += satz(x, y, anfang, groesse, SCHWARZ, "anfang");
-          x += textBreite(anfang, groesse) + 16;
+          x += weit(anfang) + 16;
         }
         if (vorlage !== null && z < vorlageZeilen) s += satz(x, y, vorlage, groesse, "#808080", "vorlage");
       }
       if (loesung !== null && loesungSichtbar(el)) {
         const erste = vorlage !== null ? Math.min(vorlageZeilen, zeilen) : 0;
-        const teile = satzZeilen(loesung, rest, groesse);
+        const teile = satzZeilen(loesung, rest, groesse, weit);
         if (teile.length > zeilen - erste) abbruch("Die Lösung passt nicht in die Zeilen.");
         teile.forEach((t, i) => {
           s += satz(2, grund(erste + i), t, groesse, SCHWARZ, "loesungstext");

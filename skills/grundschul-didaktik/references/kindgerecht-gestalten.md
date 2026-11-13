@@ -82,7 +82,8 @@ Dosierung: Leitfigur plus nur die Bilder, die die Aufgaben brauchen.
 - **Fließtext:** klare Druckschrift mit eindeutigen Formen. In Klasse 1/2 mit einstöckigem a und g, weil es der Form entspricht, die die Kinder schreiben (Lesetests zeigen keinen Nachteil des zweistöckigen a – entscheidend ist die Passung zur Schrift der Klasse). Standard: **Andika** (für Leseanfänger entwickelt, einstöckiges a und g; im HTML eingebettet). Ab Klasse 3 auch andere klare serifenlose Schriften wie **Nunito**.
 - **Überschriften:** eine runde, fröhliche Display-Schrift, z. B. **Fredoka**, **Baloo 2**, **Chewy** (nur Überschrift!).
 - Höchstens zwei Schriften. Keine Schreibschrift- oder Schmuckschriften für Lesetext, keine Großbuchstaben-Texte.
-- Schulschrift der Klasse (Druckschrift des Lehrwerks, ab Kl. 2 Lateinische oder Vereinfachte Ausgangsschrift), wenn verfügbar und lizenziert: als Schriftdatei in `html-materialerstellung/assets/fonts/` einbinden.
+- Ziffern in Schulform (1 ohne Fuß, offene 4, 7 mit Querstrich): `blatt.css` setzt sie von selbst.
+- Schreibvorlagen in verbundener Schrift: Vereinfachte Ausgangsschrift, eingebettet (`x-lineatur schrift="va"`). Eine andere Schulschrift der Klasse (Druckschrift des Lehrwerks, Lateinische Ausgangsschrift), wenn verfügbar und lizenziert: als Schriftdatei in `html-materialerstellung/assets/fonts/` einbinden.
 
 ## KI-Bilder und -Grafiken (Canva `generate-image`)
 

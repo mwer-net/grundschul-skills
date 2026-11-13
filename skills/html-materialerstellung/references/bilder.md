@@ -74,7 +74,7 @@ KI-Bilder haben regelmäßig Fehler, die erst in voller Auflösung auffallen: ei
 
 ### 2b. In der Schoolbox (ohne Bash)
 
-Baut die Schoolbox eine Unterrichtseinheit oder ein Bild aus der Schublade „Figuren“ oder „Bilder“, gibt es kein Bash, kein curl und kein Python. Der Ablauf aus Abschnitt 2 gilt mit diesen Unterschieden:
+Baut die Schoolbox ein neues Blatt, eine Unterrichtseinheit oder ein Bild aus der Schublade „Figuren“ oder „Bilder“, gibt es kein Bash, kein curl und kein Python. Der Ablauf aus Abschnitt 2 gilt mit diesen Unterschieden:
 
 - **Werkzeuge:** nur `generate-image`, `get-generate-image-job`, `remove-background`, `get-assets`, `search-designs`, `read-design`, `edit-design`, `resize-design` und `export-design`. Fehlt das Hilfsdesign und lässt es sich so nicht anlegen, keine Bilder erzeugen und mit Platzhaltern weiterbauen.
 - **Schritt 4, Datei holen:** statt `curl` je Bild einen Eintrag in `bilder.json` im Arbeitsordner: `{"datei": "motiv.png", "url": "<Export-URL>", "motiv": "…", "mediaId": "MA…"}`. Der Server lädt nur von `export-download.canva.com`, prüft Format und Größe und legt die Datei nach `bilder/`. Die Endung muss zum Export passen.

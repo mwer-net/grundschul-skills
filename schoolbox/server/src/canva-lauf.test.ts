@@ -351,6 +351,9 @@ describe('Canva-Lauf (176)', () => {
 			assert.equal(antwort.status, 201, await antwort.clone().text());
 			const { id } = (await antwort.json()) as { id: string };
 			const stand = async () => (await (await api(`/einheiten/${id}`)).json()) as EinheitStand;
+			// Gebaut wird erst nach der Freigabe des Plans.
+			await warte(async () => (await stand()).status === 'plan');
+			assert.equal((await api(`/einheiten/${id}/freigeben`, { method: 'POST', body: '{}' })).status, 200);
 			await warte(async () => Object.keys((await stand()).importiert).length === 1);
 			return {
 				stopp: async () => {

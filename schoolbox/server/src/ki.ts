@@ -15,6 +15,7 @@ import {
 	ID_MUSTER,
 	istEinElement,
 	leseMeta,
+	mappenDir,
 	neueFunde,
 	quelleVon,
 	schreibeAtomar,
@@ -23,6 +24,8 @@ import {
 } from '@schoolbox/kern';
 import { liesReferenzen, loeseReferenz, pfadText } from '@schoolbox/kern/src/referenz';
 
+import type { BlattBilder } from './blatt-bilder';
+import { erstelleBlattBilder } from './blatt-bilder';
 import { leseQuelle } from './dokumente';
 import type { Ereignisse } from './ereignisse';
 import { HttpFehler } from './fehler';
@@ -301,6 +304,9 @@ export const EINHEIT_RECHTE = [
 	'Edit(./bilder.json)',
 ];
 
+/** Ein neues Blatt mit Bildern aus Canva: neben dem Blatt nur die Bildliste, die der Server abholt (`blatt-bilder.ts`). */
+export const BLATT_BILD_RECHTE = ['Write(./bilder.json)', 'Edit(./bilder.json)'];
+
 /** Was ein Canva-Lauf schreiben darf (176): die Bildliste und sein Ergebnis, sonst nichts. */
 export const CANVA_BILD_RECHTE = [
 	'Write(./bilder.json)',
@@ -311,7 +317,8 @@ export const CANVA_BILD_RECHTE = [
 
 /**
  * Der Aufruf aus Issue 056: Skills ja, sonst nichts. Der Prompt kommt über stdin, weil `--tools` Werte schluckt.
- * `einheit` (139) schreibt mehrere Dateien und hat eigene Grenzen; `mitCanva` (138) nimmt nur sie.
+ * `einheit` (139) schreibt mehrere Dateien und hat eigene Grenzen. `mitCanva` (138): eine Einheit mit Bildern oder der
+ * Bau eines neuen Blatts.
  */
 export const kiArgumente = (o: {
 	ablage: string;
@@ -382,9 +389,9 @@ export const kiArgumente = (o: {
 		...(canva ? ['--settings', canvaEinstellungen()] : ['--strict-mcp-config']),
 		...(o.mcpDatei ? ['--mcp-config', o.mcpDatei] : []),
 		'--tools',
-		o.einheit ? 'Read,Edit,Write,Skill' : 'Read,Edit,Skill',
+		o.einheit || canva ? 'Read,Edit,Write,Skill' : 'Read,Edit,Skill',
 		'--allowedTools',
-		...(o.einheit ? EINHEIT_RECHTE : [`Edit(./${WORKFILE})`]),
+		...(o.einheit ? EINHEIT_RECHTE : [`Edit(./${WORKFILE})`, ...(canva ? BLATT_BILD_RECHTE : [])]),
 		'Skill',
 		...(o.mcpDatei ? [WERKZEUG_BAUEN] : []),
 		...(canva ? CANVA_WERKZEUGE : []),
@@ -458,9 +465,10 @@ export const limitPruefenArgumente = () => [
 const kennung = (inhalt: string) => createHash('sha256').update(inhalt).digest('hex').slice(0, 16);
 
 const SCHRITT_NAMEN: Record<string, string> = {
-	Read: 'Liest das Blatt',
-	Edit: 'Ändert das Blatt',
+	'Read': 'Liest das Blatt',
+	'Edit': 'Ändert das Blatt',
 	[WERKZEUG_BAUEN]: 'Baut und prüft das Blatt',
+	'mcp__claude_ai_Canva__generate-image': 'Erzeugt ein Bild in Canva',
 };
 
 const textSchritt = (name: string, eingabe: { skill?: unknown; file_path?: unknown }) => {
@@ -473,6 +481,9 @@ const textSchritt = (name: string, eingabe: { skill?: unknown; file_path?: unkno
 		}
 		if (eingabe.file_path.includes('/skills/')) {
 			return 'Liest in den Regeln nach';
+		}
+		if (/\/bilder\/[^/]+\.(png|jpg)$/.test(eingabe.file_path)) {
+			return 'Sieht sich ein Bild an';
 		}
 	}
 	return SCHRITT_NAMEN[name] ?? null;
@@ -1131,7 +1142,11 @@ export const erstelleKi = ({ ansicht, ereignisse, konfig, pruefer }: Abhaengigke
 		text: string,
 		sitzung: string | null,
 		a: KiAuftrag,
-		{ gross = false, mcpDatei = null }: { gross?: boolean; mcpDatei?: string | null } = {},
+		{
+			gross = false,
+			mcpDatei = null,
+			mitCanva = false,
+		}: { gross?: boolean; mcpDatei?: string | null; mitCanva?: boolean } = {},
 	) =>
 		new Promise<Ergebnis>((resolve) => {
 			const stand: LaufStand = { sitzung, fehlerCode: null, ergebnis: {} };
@@ -1145,7 +1160,16 @@ export const erstelleKi = ({ ansicht, ereignisse, konfig, pruefer }: Abhaengigke
 			const budgetUsd = budgetJetzt(gross);
 			const kind = spawn(
 				bin,
-				kiArgumente({ ablage, auftragDatei, budgetUsd, modell: konfig.kiModell, sitzung, gross, mcpDatei }),
+				kiArgumente({
+					ablage,
+					auftragDatei,
+					budgetUsd,
+					modell: konfig.kiModell,
+					sitzung,
+					gross,
+					mcpDatei,
+					mitCanva,
+				}),
 				{
 					cwd: arbeit,
 					env: kiUmgebung(bin),
@@ -1319,18 +1343,25 @@ export const erstelleKi = ({ ansicht, ereignisse, konfig, pruefer }: Abhaengigke
 	 * Blatt. Die Sperre zuerst: Was nicht ins Material darf, soll auch hier nie im Browser laufen.
 	 */
 	const bauenFuer =
-		(arbeit: string, dir: string, quelle: string, ausschnitt: Ausschnitt): Bauen =>
+		(arbeit: string, dir: string, quelle: string, ausschnitt: Ausschnitt, bilder: BlattBilder | null): Bauen =>
 		async () => {
 			const neu = await leseErgebnis(arbeit);
 			const funde = sperrFunde(quelle, ausschnitt, neu);
 			if (funde.length > 0) {
 				return { text: sperrKorrektur(funde), fehler: true };
 			}
-			const ganz = ausschnitt.einsetzen(neu);
+			const eingesetzt = ausschnitt.einsetzen(neu);
+			const ganz = bilder ? await bilder.einsetzen(eingesetzt) : eingesetzt;
 			const gebaut = await ansicht(dir, ganz, path.join(arbeit, ANSICHT_ORDNER));
 			const format = formatBefund(ganz);
 			return { text: [ansichtText(gebaut), format ? `FEHLER: ${format}` : null].filter(Boolean).join('\n') };
 		};
+
+	/** Neue Bilder gibt es nur beim Bau eines neuen Blatts: Der freigegebene Plan nennt sie. */
+	const bilderFuer = (w: KiWunsch, arbeit: string) =>
+		w.neuesBlatt === true && w.phase !== 'plan'
+			? erstelleBlattBilder(arbeit, mappenDir(konfig.materialDir, w.mappe))
+			: null;
 
 	/** Ein Gespräch behält seinen Ordner, denn die Sitzungsablage von `claude` hängt am `cwd` (Entscheidung 37). */
 	const gespraechPlatz = async (id: string, w: KiWunsch) => {
@@ -1377,13 +1408,15 @@ export const erstelleKi = ({ ansicht, ereignisse, konfig, pruefer }: Abhaengigke
 		const platz = w.gespraechId ? await gespraechPlatz(w.gespraechId, w) : await einmalPlatz();
 		const { ablage, arbeit } = platz;
 		const gross = w.neuesBlatt === true;
-		const werkzeug = await starteWerkzeug(wurzelTmp, bauenFuer(arbeit, dir, quelle, ausschnitt)).catch(
+		const blattBilder = bilderFuer(w, arbeit);
+		const mitBildern = async (html: string) => blattBilder?.einsetzen(html) ?? html;
+		const werkzeug = await starteWerkzeug(wurzelTmp, bauenFuer(arbeit, dir, quelle, ausschnitt, blattBilder)).catch(
 			(fehler: unknown) => {
 				console.error('Werkzeug für Claude:', fehler);
 				return null;
 			},
 		);
-		const mit = { gross, mcpDatei: werkzeug?.mcpDatei ?? null };
+		const mit = { gross, mcpDatei: werkzeug?.mcpDatei ?? null, mitCanva: blattBilder !== null };
 		let verbrauch: Record<string, unknown> = {};
 		let ende: KiStatus = 'fehler';
 		let letzteSitzung: string | null = null;
@@ -1414,8 +1447,10 @@ export const erstelleKi = ({ ansicht, ereignisse, konfig, pruefer }: Abhaengigke
 		/** Prüft das Ergebnis und gibt es bei Fehlern an Claude zurück. `null`: Der Auftrag endet ohne Vorschlag. */
 		const pruefeMitKorrektur = async (erst: Ergebnis, erstesErgebnis: string) => {
 			// Die Sperre zuerst: Die Blattprüfung öffnet das Ergebnis im Browser, und was hier hängen bleibt, soll dort nie laufen.
-			const blattPruefung = async (html: string) =>
-				mitFormat(ausschnitt.einsetzen(html), await pruefeSicher(dir, ausschnitt.einsetzen(html)));
+			const blattPruefung = async (html: string) => {
+				const ganz = await mitBildern(ausschnitt.einsetzen(html));
+				return mitFormat(ganz, await pruefeSicher(dir, ganz));
+			};
 			let neu = erstesErgebnis;
 			let funde = sperrFunde(quelle, ausschnitt, neu);
 			let bericht = funde.length > 0 ? null : await blattPruefung(neu);
@@ -1484,7 +1519,7 @@ export const erstelleKi = ({ ansicht, ereignisse, konfig, pruefer }: Abhaengigke
 					? {}
 					: { ausschnitt: { vorher: ausschnitt.vorher, nachher: neu.trim() } }),
 			};
-			await schreibeAtomar(path.join(ziel, WORKFILE), ausschnitt.einsetzen(neu));
+			await schreibeAtomar(path.join(ziel, WORKFILE), await mitBildern(ausschnitt.einsetzen(neu)));
 			await schreibeAtomar(path.join(ziel, VORSCHLAG_META), JSON.stringify(vorschlag, null, '\t'));
 			// Aus einem früheren Gespräch nachgebessert: Der alte Vorschlag geht im neuen auf.
 			if (auf && auf.schluessel !== schluessel) {
@@ -1529,6 +1564,7 @@ export const erstelleKi = ({ ansicht, ereignisse, konfig, pruefer }: Abhaengigke
 			a.ergebnis = 'vorschlag';
 			ende = 'fertig';
 		} finally {
+			blattBilder?.ende();
 			await werkzeug?.ende().catch(() => undefined);
 			await platz.ende(letzteSitzung);
 			await rm(pidDatei, { force: true });

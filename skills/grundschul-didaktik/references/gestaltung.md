@@ -31,7 +31,7 @@ Die Bausteine (Selbsteinschätzung, Niveaus, Sternchenaufgabe) legt die Start-Ab
 
 ## Schrift
 
-- Schulschrift oder kindgerechte Druckschrift: in Klasse 1/2 einstöckiges "a" und "g" (wie die Kinder schreiben), "I" (groß i) und "l" (klein L) unterscheidbar, deutliche Ober- und Unterlängen. Bewährt: Andika oder die Druckschrift des Lehrwerks der Klasse. Standard im HTML: Andika (eingebettet in `html-materialerstellung/assets/fonts/`). Eine Schulschrift der Klasse als WOFF2/TTF (Lizenz beachten) in `fonts/` legen und per `@font-face` einbinden.
+- Schulschrift oder kindgerechte Druckschrift: in Klasse 1/2 einstöckiges "a" und "g" (wie die Kinder schreiben), "I" (groß i) und "l" (klein L) unterscheidbar, deutliche Ober- und Unterlängen. Bewährt: Andika oder die Druckschrift des Lehrwerks der Klasse. Standard im HTML: Andika (eingebettet in `html-materialerstellung/assets/fonts/`) mit Schulziffern: 1 ohne Fuß, offene 4, 7 mit Querstrich. Für Schreibvorlagen in verbundener Schrift liegt die Vereinfachte Ausgangsschrift bei (`x-lineatur schrift="va"`). Eine andere Schulschrift der Klasse als WOFF2/TTF (Lizenz beachten) in `fonts/` legen und per `@font-face` einbinden.
 - Maximal zwei Schriften: eine für Überschriften, eine für alles andere.
 - Keine Großbuchstaben-Texte, kein Kursivsatz, keine Schmuckschriften für Lesetext. Hervorhebung durch Fettdruck.
 - Größen siehe Tabelle im SKILL.md. Überschriften ca. 1,5-fach.

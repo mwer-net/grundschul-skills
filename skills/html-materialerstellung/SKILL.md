@@ -22,7 +22,7 @@ Warum: In HTML bestimmen wir Schrift (Fredoka, Andika, eingebettet), Abstände u
 | `assets/vorlage-forscherbogen-12.html`, `assets/vorlage-forscherbogen-34.html` | Forscherbogen bildgestützt (Kl. 1/2) und schriftlich (Kl. 3/4); Sicherheitshinweise als `.nur-loesung` im Kopf, Malfläche `.malfeld` |
 | `assets/beispiel-zehner-einer-kl2.html` | geprüftes Beispiel in s/w (Bündeln, Stellentafel, Sternchenaufgabe, Lösungen) |
 | `assets/beispiel-deckblatt-formen.html` | geprüftes Deckblatt mit frei liegender Gestaltung: Seitenfläche, Formen, Schmuckschrift, Figur am Anker, Sprechblase, Konfetti (`references/gestaltung.md`) |
-| `assets/fonts/` | Fredoka (Überschrift), Andika (Text, einstöckiges a/g), OFL-Lizenz |
+| `assets/fonts/` | Fredoka (Überschrift), Andika (Text, einstöckiges a/g, Schulziffern), Playwrite DE VA (Vereinfachte Ausgangsschrift für Schreibvorlagen), OFL-Lizenz |
 | `assets/bilder/` | Willi, Wilma, Wachstumsgrafik farbig und als Strichzeichnung (`references/bilder.md`) |
 | `scripts/blatt.py` | baut, prüft, erzeugt PDF, Lösungsblatt, Vorschau und Ausschnitte; bei Folien die Offline-Präsentation, auf Wunsch `--schritte` und `--notizen`; `uebersicht` für Entwürfe |
 | `references/layout.md` | Raster, Platzbudget, Klassen und Regeln für sauberes HTML |

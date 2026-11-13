@@ -1,4 +1,10 @@
-Copyright (c) 2004-2022 SIL International  (http://www.sil.org/)
+Andika-Regular.woff2 und Andika-Bold.woff2 sind eine geänderte Fassung (Modified Version) der Andika 6.200 von
+SIL International: nur die Zeichen für deutsche und englische Texte, dazu die Ziffernformen cv01, cv04 und cv07.
+Erzeugt mit pyftsubset (fonttools). Weil der Name vorbehalten ist, heißt die Schrift in den Dateien
+„Schoolbox Lesetext“; „Andika“ ist nur der Name der CSS-Familie in blatt.css.
+Quelle: https://software.sil.org/andika/
+
+Copyright (c) 2004-2023 SIL International  (http://www.sil.org/)
 with Reserved Font Names "Andika" and "SIL".
 
 This Font Software is licensed under the SIL Open Font License, Version 1.1.

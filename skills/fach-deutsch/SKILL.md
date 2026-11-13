@@ -13,7 +13,7 @@ Nach dem Rückfrage-Protokoll aus `grundschul-didaktik` (eine Frage pro Nachrich
 
 1. **Kompetenzbereich:** Lesen, Schreiben (Texte verfassen), Richtig schreiben, Sprache untersuchen (Grammatik) oder Sprechen und Zuhören?
 2. **Lehrwerk / Fibel und Anlauttabelle:** Welche? Welche Buchstaben sind eingeführt (Kl. 1)? Silbenmethode (Farbe/Bögen)?
-3. **Schrift:** Druckschrift; als verbundene Schrift Lateinische (LA) oder Vereinfachte Ausgangsschrift (VA)? *Legt die Schule fest; einmal fragen, dann gilt es weiter.*
+3. **Schrift:** Druckschrift; als verbundene Schrift Lateinische (LA) oder Vereinfachte Ausgangsschrift (VA)? *Legt die Schule fest; einmal fragen, dann gilt es weiter.* Als Schriftdatei liegt die VA bei (`x-lineatur schrift="va"`). Ohne andere Angabe gilt sie für jede Vorlage in verbundener Schrift. Für die LA gibt es keine Datei: Dann bleibt die Vorlage in Druckschrift, und das sagst du der Lehrkraft.
 4. **Fachbegriffe:** "Nomen" oder "Namenwort", "Verb" oder "Tunwort/Zeitwort"? (Schul-/Lehrwerkskonvention)
 5. **Bei Sprache untersuchen:** Welche Wortartsymbole oder -farben nutzt die Klasse? Wie wird das Prädikat markiert? Welche Wortarten und Satzglieder sind schon eingeführt?
 
@@ -69,7 +69,7 @@ Schreibzeilen und Silben kommen als Elemente aus `html-materialerstellung/assets
 
 | Element | Darstellung |
 |---|---|
-| `<x-lineatur art="2" zeilen="3" vorlage="Rosine" loesung="Der Hund bellt.">` | Schreiblinien in Originalmaß, graue Nachspurvorlage, Antwort nur im Lösungsblatt |
+| `<x-lineatur art="2" zeilen="3" vorlage="Rosine" loesung="Der Hund bellt.">` | Schreiblinien in Originalmaß, graue Nachspurvorlage, Antwort nur im Lösungsblatt; `schrift="va"` für Schreibschrift |
 | `<x-silben>Ro\|si\|ne</x-silben>` | Silbenbögen, auf Wunsch blau-rot; `aufgabe="boegen"` oder `"trennen"` zum Selbermachen |
 | `<x-wortarten aufgabe="bestimmen">Der/Art Hund/N bellt/V.</x-wortarten>` | Montessori-Symbole oder Linienarten je Wortart, in s/w unterscheidbar |
 | `<x-satzglieder aufgabe="umstellen">[Der Hund]S [bellt]P [den Mann]AkO [an]P.</x-satzglieder>` | Satzglied-Kästchen mit Verbklammer; die Umstellung rechnet das Element selbst |

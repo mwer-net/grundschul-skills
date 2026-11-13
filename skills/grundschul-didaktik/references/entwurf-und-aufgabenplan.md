@@ -104,7 +104,7 @@ Seite ● (Vorder- und Rückseite, 21 min)
 Seite ●● (… min)   …
 Seite ●●● (… min)  …
 
-Fuß (letzte Seite jedes Niveaus): Ich kann … So gut kann ich das schon. Kreuze an: (Wachstumsgrafik mit 4 Kreisen) · Was hat dir geholfen? ☐ … ☐ …
+Fuß (letzte Seite jedes Niveaus): Ich kann … So gut kann ich das schon. Kreuze an: (Wachstumsgrafik mit 4 Kreisen) · Was hat dir geholfen? ● ☐ … ☐ … · ●● ☐ … ☐ … · ●●● ☐ … ☐ … (je Niveau nur, was dort vorkommt)
 Lösungsblatt zu jeder Seite (Lösungen fett, unterstrichen)
 Passt das so? Danach baue ich die Endfassung als PDF; der Inhalt ändert sich dann nicht mehr.
 ```
@@ -145,7 +145,7 @@ Der Plan ist die ganze Antwort, als einfacher Text ohne Markdown, im Format von 
 - erste Zeile: Titel, Klasse, Fach, Zeitziel, Seiten je Niveau
 - Ich-kann-Ziel wörtlich
 - je Niveau eine Überschrift mit der Summe der Minuten, darunter je Aufgabe eine Zeile: Nummer, Anweisung wörtlich, Format und Anzahl der Items (zwei, drei Items als Beispiel, nicht alle), Minuten
-- Tipp der Leitfigur, Fuß, Bilder (welche vorhandenen, welche Platzhalter)
+- Tipp der Leitfigur, Fuß, Bilder: welche vorhandenen, und welche neuen aus Canva (je Bild Motiv und Aufgabe; höchstens drei, nur wenn das Bild den Weglass-Test in `kindgerecht-gestalten.md` besteht, sonst „keine neuen Bilder“)
 - zuletzt die Annahmen, je eine Zeile, die mit „Annahme:“ beginnt
 
 Alle Items, die Lösungen und die Rechenprüfung entstehen erst beim Bauen. Dort gilt der freigegebene Plan: gleiche Aufgaben, gleiche Reihenfolge, gleiche Menge. Zeigt der Prüfbericht, dass eine Seite nicht passt oder nicht gefüllt ist, änderst du Items oder verteilst auf die Rückseite, nicht den Plan.

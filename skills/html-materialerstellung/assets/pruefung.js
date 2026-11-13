@@ -121,6 +121,10 @@
   await Promise.all(["16px Andika", "700 16px Andika", "600 16px Fredoka"].map((f) => document.fonts.load(f).catch(() => 0)));
   if (!document.fonts.check("16px Andika")) melde("FEHLER", 0, "schrift-fehlt", "Schrift Andika nicht geladen (fonts/ fehlt?)");
   if (!document.fonts.check("600 16px Fredoka")) melde("FEHLER", 0, "schrift-fehlt", "Schrift Fredoka nicht geladen (fonts/ fehlt?)");
+  if (document.querySelector('[schrift="va"],.schreibschrift')) {
+    await document.fonts.load('16px "Playwrite DE VA"').catch(() => 0);
+    if (!document.fonts.check('16px "Playwrite DE VA"')) melde("FEHLER", 0, "schrift-fehlt", "Schreibschrift nicht geladen (fonts/ fehlt?)");
+  }
 
   const seiten = [];
   const feldzahl = document.querySelectorAll(".seite").length;

@@ -2758,6 +2758,17 @@ export const ABBILDUNG_SCHEMA = {
 			{ art: 'text', attribut: 'loesung', name: 'Text in der Lösung', beispiel: 'Der Hund bellt.' },
 			{
 				art: 'auswahl',
+				attribut: 'schrift',
+				name: 'Schrift',
+				standard: 'druck',
+				hilfe: 'Schreibschrift ist die Vereinfachte Ausgangsschrift. Im Karo bleibt es Druckschrift.',
+				optionen: [
+					{ wert: 'druck', name: 'Druckschrift' },
+					{ wert: 'va', name: 'Schreibschrift' },
+				],
+			},
+			{
+				art: 'auswahl',
 				attribut: 'mittelband',
 				name: 'Mittelband',
 				standard: 'linie',

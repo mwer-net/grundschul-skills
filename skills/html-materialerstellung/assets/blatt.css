@@ -7,6 +7,8 @@
 @font-face{font-family:Andika;font-weight:400;src:url(fonts/Andika-Regular.woff2) format("woff2")}
 @font-face{font-family:Andika;font-weight:700;src:url(fonts/Andika-Bold.woff2) format("woff2")}
 @font-face{font-family:Fredoka;font-weight:600;src:url(fonts/Fredoka-SemiBold.woff2) format("woff2")}
+/* Vereinfachte Ausgangsschrift für Schreibvorlagen; die Buchstaben verbinden sich von selbst (calt) */
+@font-face{font-family:"Playwrite DE VA";font-weight:400;src:url(fonts/PlaywriteDEVA-Regular.woff2) format("woff2")}
 
 @page{size:A4;margin:0} /* andere Formate setzt blatt.py nach der body-Klasse */
 
@@ -37,7 +39,8 @@ body.farbe.palette-himmel{--linie:#3A86FF} /* Gelb nie für Linien */
 
 *{box-sizing:border-box}
 html,body{margin:0;padding:0}
-body{font-family:Andika,sans-serif;color:var(--text);font-size:var(--fs);line-height:1.4;background:#fff;
+/* Schulziffern: 1 ohne Fuß, offene 4, 7 mit Querstrich, wie die Kinder sie schreiben. Gleiche Breite wie die Normalformen */
+body{font-family:Andika,sans-serif;font-feature-settings:"cv01","cv04","cv07";color:var(--text);font-size:var(--fs);line-height:1.4;background:#fff;
   -webkit-print-color-adjust:exact;print-color-adjust:exact}
 @media screen{body{background:#e9e9e6;padding:24px 0}.seite{margin:0 auto 24px;box-shadow:0 2px 12px rgba(0,0,0,.18)}}
 
@@ -272,6 +275,8 @@ body.folie .vermutung .nr{margin-top:0}
 body.folie .platzhalter{font-size:24px}
 .notiz{display:none}
 x-lineatur{display:block}
+/* Schlägt das font-family-Attribut am SVG-Text: Vorlage, Vorbild und Lösung in Schreibschrift */
+x-lineatur[schrift="va"] text,.schreibschrift{font-family:"Playwrite DE VA",Andika,sans-serif}
 x-silben{display:block;line-height:1.9}
 x-silben .wort{white-space:nowrap}
 x-silben .silbe{display:inline-block;line-height:1.3;position:relative}
