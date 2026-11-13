@@ -29,6 +29,7 @@ import { kiApi } from './ki-api';
 import type { Kontext } from './kontext';
 import { dokSchluessel, kennung, leseBekannt } from './kontext';
 import { mappenApi } from './mappen';
+import { meldungenApi } from './meldungen';
 import { ordnerApi } from './ordner';
 import { papierkorbApi } from './papierkorb';
 import { pdfAntwort, sendePdf, waehlePdfVariante, waehleProfil } from './pdf';
@@ -88,6 +89,8 @@ export const apiRouter = (kontext: Kontext) => {
 	const { materialDir } = kontext.konfig;
 	const router = Router();
 	router.use(csrfSchutz);
+	// Vor dem allgemeinen JSON-Parser: Bildschirmausschnitte sind größer als MAX_JSON.
+	router.use(meldungenApi(kontext));
 	router.use(json({ limit: MAX_JSON }));
 	router.param('mappe', pruefeIdParam('Mappe'));
 	router.param('dok', pruefeIdParam('Dokument'));

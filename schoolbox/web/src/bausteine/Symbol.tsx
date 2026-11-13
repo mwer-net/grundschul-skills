@@ -17,6 +17,7 @@ import {
 	Award,
 	Bold,
 	BookOpen,
+	Bug,
 	Calculator,
 	CalendarDays,
 	ChartColumn,
@@ -253,6 +254,7 @@ const SYMBOLE = {
 	'route': Route,
 	'ziel': Target,
 	'kalender': CalendarDays,
+	'kaefer': Bug,
 } as const satisfies Record<string, LucideIcon>;
 
 export type SymbolName = keyof typeof SYMBOLE;

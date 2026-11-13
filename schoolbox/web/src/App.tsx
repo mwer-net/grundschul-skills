@@ -2,6 +2,7 @@ import { BrowserRouter, Route, Routes, useParams } from 'react-router-dom';
 
 import { ANMELDE_SEITE } from './api';
 import { HinweisAnbieter } from './bausteine/Hinweisleiste';
+import { Meldeknopf } from './bausteine/Meldeknopf';
 import { MenueAnbieter } from './bausteine/MenueAmPunkt';
 import { Rahmen } from './bausteine/Rahmen';
 import { TooltipAnbieter } from './bausteine/Tooltip';
@@ -78,6 +79,7 @@ export const App = () => (
 							<Route path="*" element={<NichtGefunden />} />
 						</Route>
 					</Routes>
+					<Meldeknopf />
 				</MenueAnbieter>
 			</TooltipAnbieter>
 		</HinweisAnbieter>
