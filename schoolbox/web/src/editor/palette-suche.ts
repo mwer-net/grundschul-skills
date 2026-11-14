@@ -13,6 +13,8 @@ export interface PalettenEintrag {
 	suchwoerter?: readonly string[];
 	/** Steht schon bei leerer Eingabe in der Liste. */
 	start?: boolean;
+	/** Steht da, tut aber gerade nichts; `notiz` sagt warum (200-N01). */
+	gesperrt?: boolean;
 	aus: () => unknown;
 }
 

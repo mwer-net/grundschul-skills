@@ -3,7 +3,7 @@ import { leseBlatt } from '@schoolbox/kern/src/kit-einstellungen';
 
 import { seitenWort } from '../lib/text';
 import type { Gruppe, Kontext } from './befehle';
-import { befehleFuer, kuerzelText, symbolVon, titelVon } from './befehle';
+import { BEFEHLE, befehleFuer, kuerzelText, symbolVon, titelVon } from './befehle';
 import type { Posten } from './einfuegen';
 import type { PalettenEintrag } from './palette-suche';
 import type { SchubladenZiele } from './schubladen';
@@ -42,16 +42,21 @@ const gruppeVon = (id: string, gruppe: Gruppe, auswahl: string | null) => {
 	return ZUR_AUSWAHL.includes(gruppe) && auswahl ? auswahl : GANZES_BLATT;
 };
 
-/** Alles, was gerade verfügbar ist: nur `orte: palette`, keine gesperrten Befehle. */
+/**
+ * Alles, was gerade verfügbar ist: nur `orte: palette`, keine gesperrten Befehle. Ausnahme `gesperrtZeigen`: Der
+ * Eintrag steht gesperrt mit seinem Grund da, wie in ⋯ und Rechtsklick (200-N01).
+ */
 export const befehleAlsEintraege = (k: Kontext, fuehreAus: (id: string) => unknown): PalettenEintrag[] => {
 	const auswahl = auswahlTitel(k);
-	return befehleFuer('palette', k)
+	const gesperrt = BEFEHLE.filter((b) => b.orte.includes('palette') && !b.verfuegbar(k) && b.gesperrtZeigen?.(k));
+	return [...befehleFuer('palette', k), ...gesperrt]
 		.filter((b) => !b.gesperrt?.(k))
 		.map((b) => {
+			const grund = b.verfuegbar(k) ? null : (b.warumNicht?.(k) ?? null);
 			const gruppe = gruppeVon(b.id, b.gruppe, auswahl);
 			const [erstes] = b.kuerzel ?? [];
 			const symbol = symbolVon(b, k);
-			const notiz = b.notiz?.(k);
+			const notiz = grund ?? b.notiz?.(k);
 			return {
 				id: b.id,
 				titel: titelVon(b, k),
@@ -61,6 +66,7 @@ export const befehleAlsEintraege = (k: Kontext, fuehreAus: (id: string) => unkno
 				...(notiz ? { notiz } : {}),
 				...(erstes ? { kuerzel: kuerzelText(erstes) } : {}),
 				...(b.suchwoerter ? { suchwoerter: b.suchwoerter } : {}),
+				...(grund ? { gesperrt: true } : {}),
 				aus: () => fuehreAus(b.id),
 			};
 		});

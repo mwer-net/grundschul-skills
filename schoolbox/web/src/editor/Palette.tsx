@@ -92,6 +92,9 @@ export const Palette = ({ eintraege, freitext, platzhalter, schliessen }: Eigens
 	};
 
 	const fuehreAus = (e: PalettenEintrag) => {
+		if (e.gesperrt) {
+			return;
+		}
 		merkeBenutzt(e.id);
 		zu(true);
 		// Erst wenn der Dialog weg ist: Die Aktion setzt den Fokus vielleicht selbst.
@@ -189,10 +192,12 @@ export const Palette = ({ eintraege, freitext, platzhalter, schliessen }: Eigens
 									id={zeileId(hier)}
 									role="option"
 									aria-selected={gewaehlt}
+									aria-disabled={e.gesperrt ? true : undefined}
 									data-palette-zeile={e.id}
 									className={klassen(
 										'flex h-zeile cursor-default items-center gap-2 px-3',
 										gewaehlt && 'bg-brand-50',
+										e.gesperrt && 'text-leise',
 									)}
 									onPointerMove={() => setStelle(hier)}
 									onClick={() => fuehreAus(e)}
@@ -203,7 +208,7 @@ export const Palette = ({ eintraege, freitext, platzhalter, schliessen }: Eigens
 									{/* Der Titel schrumpft zuletzt: Ein langer Pfad verdrängt ihn nicht (188-11). */}
 									<span className="max-w-[65%] flex-none truncate">{e.titel}</span>
 									{e.notiz && (
-										<span className="min-w-0 flex-1 truncate text-xs text-dezent">
+										<span className="min-w-0 flex-1 truncate text-xs text-dezent" title={e.notiz}>
 											{e.notiz}
 										</span>
 									)}

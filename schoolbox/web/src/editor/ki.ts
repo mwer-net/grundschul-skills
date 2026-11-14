@@ -28,6 +28,8 @@ export interface KiAuftrag {
 	phase?: 'plan' | 'bauen';
 	/** Die Bitte der Lehrkraft: Nach dem Neuladen steht sie wieder in der Blase (200, Urteil c). */
 	bitte?: string;
+	/** Getippter Text, keine Schnellaktion (200-N02). */
+	getippt?: boolean;
 	zitat?: string;
 }
 

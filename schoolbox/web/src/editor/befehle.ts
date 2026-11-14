@@ -161,6 +161,8 @@ export interface Befehl {
 	gesperrt?: (k: Kontext) => boolean;
 	/** Sagt, warum ein Kürzel gerade nichts tut, statt still zu bleiben. */
 	warumNicht?: (k: Kontext) => string | null;
+	/** Nicht verfügbar, steht aber gesperrt mit `warumNicht` in der Palette, statt zu fehlen (200-N01). */
+	gesperrtZeigen?: (k: Kontext) => boolean;
 	/** Einträge mit gleichem Wert stehen im Menü in einem Untermenü. */
 	untermenue?: string;
 	aktiv?: (k: Kontext) => boolean;
@@ -176,7 +178,7 @@ const gewaehlt = (k: Kontext) => k.pfad.at(-1);
 const istSeite = (k: Kontext) => gewaehlt(k)?.baustein.art === 'seite';
 /** 47: Bei Mehrfachauswahl gibt es Claude nicht. */
 /** Der Server nimmt eine Referenz je Auftrag; für mehrere Elemente gibt es die Seite. */
-const CLAUDE_MEHRERE = 'Claude ändert ein Element oder die ganze Seite. Wähle eines davon oder die Seite.';
+export const CLAUDE_MEHRERE = 'Claude ändert immer ein Element. Für mehrere: die Seite wählen.';
 const mehrfach = (k: Kontext) => (k.gestaltung?.nrn.length ?? 0) > 1;
 const einzigeSeite = (k: Kontext) => istSeite(k) && (k.werte?.seiten ?? 0) <= 1;
 /** „Folie“ in Präsentationen, sonst „Seite“ (192-12). */
@@ -824,6 +826,7 @@ export const BEFEHLE: Befehl[] = [
 		sichtbarUnter: 'leiste',
 		verfuegbar: (k) => !mehrfach(k),
 		warumNicht: () => CLAUDE_MEHRERE,
+		gesperrtZeigen: mehrfach,
 		aus: (k) => k.tu.claude(),
 	},
 	{
@@ -1163,6 +1166,8 @@ const alsEintrag = (b: Befehl, k: Kontext, fuehreAus: (id: string) => unknown): 
 		...(erstes ? { kuerzel: kuerzelText(erstes) } : {}),
 		...(b.gefahr ? { gefahr: true } : {}),
 		...(b.gesperrt?.(k) ? { aus: true } : {}),
+		// Gesperrt mit Grund: derselbe Satz wie bei der Taste, in ⋯ und Rechtsklick gleich (200-N01).
+		...(b.gesperrt?.(k) && b.warumNicht?.(k) ? { beschreibung: b.warumNicht(k) ?? '' } : {}),
 		...(b.aktiv ? { aktiv: b.aktiv(k) } : {}),
 		waehle: () => {
 			fuehreAus(b.id);

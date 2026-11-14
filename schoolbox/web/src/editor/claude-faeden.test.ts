@@ -82,6 +82,18 @@ describe('Fäden: Vorschläge und Aufträge finden ihren Faden (135)', () => {
 		);
 	});
 
+	it('Abbrechen nach dem Neuladen: Getippter Text kommt ins Feld zurück, eine Schnellaktion nicht (200-N02)', () => {
+		const getippt = auftrag('a2', { gespraech: 'g3', referenz: r, bitte: 'Leichter machen', getippt: true });
+		const [faden] = ergaenzeFaeden([], { a2: getippt }, []);
+		assert.ok(faden);
+		assert.equal(nachAbbruch(faden).entwurf, 'Leichter machen');
+		assert.deepEqual(nachAbbruch(faden).verlauf, []);
+		const aktion = auftrag('a3', { gespraech: 'g4', referenz: r, bitte: 'Einfache Sprache', getippt: false });
+		const [ohne] = ergaenzeFaeden([], { a3: aktion }, []);
+		assert.ok(ohne);
+		assert.equal(nachAbbruch(ohne).entwurf, '');
+	});
+
 	it('Kommen die Vorschläge vor den Aufträgen, übernimmt derselbe Faden den Auftrag', () => {
 		const erst = ergaenzeFaeden([], {}, [alt]);
 		const dann = ergaenzeFaeden(erst, { a1: nachbessern }, [alt]);

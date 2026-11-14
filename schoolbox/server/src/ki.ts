@@ -173,6 +173,8 @@ export interface KiAuftrag {
 	phase?: 'plan' | 'bauen';
 	/** Die Bitte der Lehrkraft, wie die Blase sie zeigt: Nach dem Neuladen steht sie wieder im Verlauf (200, Urteil c). */
 	bitte?: string;
+	/** Die Bitte ist getippter Text, keine Schnellaktion: Nach „Abbrechen“ kommt sie ins Feld zurück (200-N02). */
+	getippt?: boolean;
 	/** Die markierte Stelle dazu. */
 	zitat?: string;
 }
@@ -1766,7 +1768,7 @@ export const erstelleKi = ({ ansicht, ereignisse, konfig, pruefer }: Abhaengigke
 			...(wunsch.gespraechId ? { gespraech: wunsch.gespraechId } : {}),
 			...(referenz ? { referenz } : {}),
 			...(grundlage ? { grundlage: grundlage.schluessel } : {}),
-			...(wunsch.neuesBlatt ? {} : { bitte: wunsch.anzeige ?? wunsch.auftrag }),
+			...(wunsch.neuesBlatt ? {} : { bitte: wunsch.anzeige ?? wunsch.auftrag, getippt: !wunsch.anzeige }),
 			...(!wunsch.neuesBlatt && wunsch.zitat ? { zitat: wunsch.zitat } : {}),
 		};
 		auftraege.set(auftrag.id, auftrag);

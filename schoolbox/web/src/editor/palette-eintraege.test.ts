@@ -6,7 +6,7 @@ import { bausteinNach } from '@schoolbox/kern/src/bausteine';
 import { KATALOG } from '@schoolbox/kern/src/katalog';
 
 import type { Aktionen, Kontext } from './befehle';
-import { BEFEHLE, kuerzelText, titelVon } from './befehle';
+import { BEFEHLE, CLAUDE_MEHRERE, kuerzelText, titelVon } from './befehle';
 import type { Posten } from './einfuegen';
 import type { PalettenZiele } from './palette-eintraege';
 import { BAUSTEIN_EINFUEGEN, eintraegeImEditor } from './palette-eintraege';
@@ -58,9 +58,16 @@ describe('Inhalt der Palette im Editor', () => {
 		for (const k of [kontext(), kontext({ pfad: gewaehlt('aufgabe') }), kontext({ aktiv: false, frei: false })]) {
 			const ids = new Set(eintraegeImEditor(k, ziele()).map((e) => e.id));
 			for (const b of BEFEHLE) {
-				assert.equal(ids.has(b.id), b.orte.includes('palette') && b.verfuegbar(k), b.id);
+				assert.equal(ids.has(b.id), b.orte.includes('palette') && (b.verfuegbar(k) || Boolean(b.gesperrtZeigen?.(k))), b.id);
 			}
 		}
+	});
+
+	it('zeigt „Mit Claude ändern …“ bei mehreren Elementen gesperrt mit Grund (200-N01)', () => {
+		const k = kontext({ gestaltung: { nrn: [3, 4] } as never });
+		const claude = eintraegeImEditor(k, ziele()).find((e) => e.id === 'ansicht.claude');
+		assert.equal(claude?.gesperrt, true);
+		assert.equal(claude?.notiz, CLAUDE_MEHRERE);
 	});
 
 	it('fügt jeden Katalogeintrag ein, auch die eigene Sammlung', () => {

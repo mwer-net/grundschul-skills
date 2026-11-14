@@ -316,6 +316,8 @@ export const ergaenzeFaeden = (
 					ganz: !referenz,
 					auftragId: a.id,
 					verlauf,
+					// Wie ohne Neuladen: Nach „Abbrechen“ steht getippter Text wieder im Feld (200-N02, 200-18).
+					gesendet: a.bitte && a.getippt ? a.bitte : null,
 				}),
 			);
 		} else if (da.auftragId !== a.id && !laeuftNoch(da.auftragId ? auftraege[da.auftragId] : undefined)) {
