@@ -5,6 +5,7 @@ import {
 	einfuegbarAus,
 	fuegeBausteinEin,
 	fuegeZusatzEin,
+	klasseDesBlatts,
 	mitLineaturDerKlasse,
 	neueAufgabe,
 	schonDa,
@@ -288,6 +289,13 @@ describe('Einfügen nach 203', () => {
 	it('203-06: die Antwortlinie kommt mit „Es ist … .“ in eine eigene Zeile', () => {
 		const { quelle } = fuegeBausteinEin(BLATT, aus('antwort'), nrVon(BLATT, 'anw'), n);
 		assert.match(quelle, /<div class="zeile">Es ist <span class="antwort[^"]*"[^>]*><\/span>\.<\/div>/);
+	});
+
+	it('203-02: die Klasse des Blatts steht am body, nicht an der Mappe', () => {
+		assert.equal(klasseDesBlatts(BLATT), 2);
+		assert.equal(klasseDesBlatts('<body class="farbe kl4">'), 4);
+		assert.equal(klasseDesBlatts('<body class="farbe">'), undefined);
+		assert.equal(klasseDesBlatts('<div class="kl1"></div>'), undefined);
 	});
 
 	it('203-12: eine Lineatur ohne art bekommt die der Klasse, eine mit art bleibt', () => {

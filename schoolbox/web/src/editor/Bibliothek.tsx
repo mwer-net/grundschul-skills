@@ -633,7 +633,8 @@ export const Bibliothek = ({
 		localStorage.setItem(FILTER, neu);
 	};
 	const eintraege = einfuegen.angebot;
-	const passt = (e: Posten) => passtZuBlatt(e, { ...mappe, art });
+	// Fach und Materialart der Mappe, die Klasse des Blatts (203-02): Nach ihr zeichnen die Elemente.
+	const passt = (e: Posten) => passtZuBlatt(e, { ...mappe, art, klasse: einfuegen.blatt.klasse });
 	const passend = eintraege.filter(passt);
 	const gezeigt = filter === 'alle' ? eintraege : passend;
 	const anzahl = (liste: readonly Posten[], k: string) => liste.filter((e) => e.kategorie === k).length;

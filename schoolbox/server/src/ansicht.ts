@@ -139,9 +139,10 @@ const VORSCHAU_FIT = {
 		koerper.style.transform = 'none';
 		var m = miss(true);
 		if (m.b > 0 && m.h > 0) {
-			// Ein Maßstab für alle Einträge, Schmales bleibt klein (147). Was höher als HOCH ist (Bingo, Domino,
-			// Spielplan), zeigt seinen oberen linken Ausschnitt in halber Größe, sonst wäre nichts zu erkennen (203-17).
-			var hoch = m.h > HOCH;
+			// Ein Maßstab für alle Einträge, Schmales bleibt klein (147). Was höher als HOCH und höher als breit ist
+			// (Bingo, Domino, Spielplan), zeigt seinen oberen linken Ausschnitt in halber Größe, sonst wäre nichts zu
+			// erkennen (203-17). Breites wie der Inhalt einer Folie bleibt ganz.
+			var hoch = m.h > HOCH && m.h > m.b;
 			var s = hoch ? 0.5 : Math.min(frei.b / SPALTE, frei.b / m.b, frei.h / m.h);
 			var x = hoch ? rand - m.links * s : rand + (frei.b - m.b * s) / 2 - m.links * s;
 			var y = hoch ? rand - m.oben * s : rand + (frei.h - m.h * s) / 2 - m.oben * s;

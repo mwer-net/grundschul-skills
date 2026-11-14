@@ -184,6 +184,7 @@ export const useEinfuegen = ({ auswahl, blatt, dokument, folien, nachher, strukt
 	return {
 		eintraege,
 		angebot,
+		blatt,
 		fuerBlatt,
 		zuletzt: vorne,
 		fuegeEin,

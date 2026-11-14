@@ -303,8 +303,14 @@ export const festeStelle = (z: Zerlegung, ziel: Knoten | null, b: Einfuegbar, ht
  * `art` die Lineatur 1; das zu ändern wäre ein Eingriff ins Skill-Asset. Ohne Klasse am `<body>` bleibt alles, wie es
  * ist.
  */
+/** Die Klasse am `<body>` (`kl1` … `kl4`). Danach zeichnen die Elemente, nicht nach der Klasse der Mappe. */
+export const klasseDesBlatts = (quelle: string) => {
+	const k = /<body\b[^>]*\bclass="[^"]*\bkl([1-4])\b/.exec(quelle)?.[1];
+	return k === undefined ? undefined : (Number(k) as 1 | 2 | 3 | 4);
+};
+
 export const mitLineaturDerKlasse = (quelle: string, b: Einfuegbar): Einfuegbar => {
-	const klasse = /<body\b[^>]*\bclass="[^"]*\bkl([1-4])\b/.exec(quelle)?.[1];
+	const klasse = klasseDesBlatts(quelle);
 	if (!klasse) {
 		return b;
 	}

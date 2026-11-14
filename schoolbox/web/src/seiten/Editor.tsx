@@ -1,3 +1,4 @@
+import { klasseDesBlatts } from '@schoolbox/kern/src/einfuegen';
 import { formatAusHtml } from '@schoolbox/kern/src/html';
 import type { FuerBlatt } from '@schoolbox/kern/src/katalog';
 import { hatLoesung, kannLoesungHaben } from '@schoolbox/kern/src/loesungen';
@@ -597,7 +598,12 @@ const Bearbeitung = ({ dokument, mappe: mappenDaten }: { mappe: Mappe; dokument:
 	useAuswahlFolgt(geladen, html, auswahl, pfad, setAuswahl);
 	const { docJetzt, einfuegen, slash, verschiebeUeberlauf } = useEinfuegeWerkzeuge({
 		auswahl,
-		blatt: { fach: mappenDaten.fach, klasse: mappenDaten.klasse, art: meta.art },
+		// 203-02: Die Elemente zeichnen nach der Klasse des Blatts; sie kann von der Mappe abweichen.
+		blatt: {
+			fach: mappenDaten.fach,
+			klasse: (quelle === null ? undefined : klasseDesBlatts(quelle)) ?? mappenDaten.klasse,
+			art: meta.art,
+		},
 		dokument: { mappe, dok },
 		folien: format === 'folie',
 		geladen,
