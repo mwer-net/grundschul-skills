@@ -37,7 +37,11 @@ export const KLASSEN_NAMEN: Record<string, string> = {
 
 export const klasseName = (klasse: Klasse) => KLASSEN_NAMEN[klasse] ?? `Klasse ${klasse}`;
 
-export const anzahl = (n: number, eins: string, viele: string) => `${n === 1 ? 'Ein' : n} ${n === 1 ? eins : viele}`;
+/** Präsentationen haben Folien, alles andere Seiten (192-12). */
+export const seitenWort = (folie: boolean) => (folie ? 'Folie' : 'Seite');
+
+/** Immer mit Ziffer: „1 Seite“, „3 Folien“ (191-04). */
+export const anzahl = (n: number, eins: string, viele: string) => `${n} ${n === 1 ? eins : viele}`;
 
 const TAG_MS = 24 * 60 * 60 * 1000;
 const DATUM = new Intl.DateTimeFormat('de-DE', { day: 'numeric', month: 'long', year: 'numeric' });

@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 
 import { Palette } from '../editor/Palette';
 import type { PalettenEintrag } from '../editor/palette-suche';
+import { useSeitenbefehle } from '../lib/seitenbefehle';
 import { ART_NAME, FACH_NAME, klasseName } from '../lib/text';
 import { useAblage } from '../ordner/kontext';
 import { ortName, pfadVon, WURZEL_NAME } from '../ordner/objekte';
@@ -21,9 +22,11 @@ const ORDNER_ZU_BEGINN = 5;
 export const Seitenpalette = ({ abmelden, anlegen, neuerOrdner, schliessen }: Eigenschaften) => {
 	const { stand } = useAblage();
 	const navigate = useNavigate();
+	const seite = useSeitenbefehle();
 
 	const eintraege = useMemo(() => {
 		const liste: PalettenEintrag[] = [
+			...seite,
 			{
 				id: 'seite:neuer-ordner',
 				titel: 'Neuer Ordner',
@@ -88,7 +91,7 @@ export const Seitenpalette = ({ abmelden, anlegen, neuerOrdner, schliessen }: Ei
 			});
 		}
 		return liste;
-	}, [abmelden, navigate, neuerOrdner, stand]);
+	}, [abmelden, navigate, neuerOrdner, seite, stand]);
 
 	return (
 		<Palette

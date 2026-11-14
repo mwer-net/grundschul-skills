@@ -90,7 +90,8 @@ export const Dialog = ({ breit, children, fuss, schliessen, titel }: Eigenschaft
 			ref={dialog}
 			tabIndex={-1}
 			className={klassen(
-				'm-auto max-h-[calc(100dvh-2rem)] overflow-y-auto rounded-2xl bg-flaeche p-0 text-base text-tinte shadow-2 outline-none',
+				// Oben verankert: Wächst der Inhalt, wächst das Fenster nur nach unten, nichts springt (191-10).
+				'mx-auto mt-[15vh] mb-auto max-h-[calc(85dvh-1rem)] overflow-y-auto rounded-2xl bg-flaeche p-0 text-base text-tinte shadow-2 outline-none',
 				breit ? 'w-[min(56rem,calc(100vw-2rem))]' : 'w-[min(30rem,calc(100vw-2rem))]',
 			)}
 			aria-labelledby="dialog-titel"

@@ -1,8 +1,8 @@
 import type { RefObject } from 'react';
 import { useEffect } from 'react';
 
-/** Abstand zum unteren Fensterrand. */
-const RAND = 16;
+/** Abstand zum unteren Fensterrand: der untere Innenabstand von `main` (pb-16), sonst rollt die Seite (191-36). */
+const RAND = 64;
 
 /**
  * Setzt am Element `--rest`: die Höhe vom Element bis zum unteren Fensterrand. So passen die Entwürfe ins Fenster,
