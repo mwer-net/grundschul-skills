@@ -9,8 +9,6 @@ import type { Blatt } from './fluss-blatt';
 import { automatischeSeite, blaetterVon, hatFreieGestaltung, kinderEinzug } from './fluss-blatt';
 import type { Aenderung, Knoten, Zerlegung } from './quelltext';
 import { einrueckung, entferne, fuegeEin, klassenVon, quelleVon, rueckeUm, wendeAn, zerlege } from './quelltext';
-import type { Nummerierung } from './struktur';
-import { nummeriere } from './struktur';
 
 export * from './fluss-blatt';
 
@@ -194,9 +192,10 @@ const versatz = (a: Aenderung) => a.text.length - (a.bis - a.von);
 /**
  * Legt die Flussblöcke nach `plan` um: verschiebt sie mit Patches, legt automatische Seiten an, entfernt leere
  * (Regel 15) und lässt den Fuß ans Ende (Regel 8; er steht im Plan zuletzt). Blätter, die der Plan nicht nennt oder
- * die schon so liegen, bleiben Zeichen für Zeichen. Nummern zählt `nummeriere` wie immer durchs Dokument.
+ * die schon so liegen, bleiben Zeichen für Zeichen. Die Nummern bleiben, wie sie stehen: Der Fluss ändert die
+ * Reihenfolge nie, und ein Material zählt je Seite, je Blatt oder durch (206, Nachbesserung 2).
  */
-export const legeUm = (quelle: string, plan: FlussPlan, n: Nummerierung): Umgelegt => {
+export const legeUm = (quelle: string, plan: FlussPlan): Umgelegt => {
 	const z = zerlege(quelle);
 	const blaetter = blaetterVon(z);
 	const einsaetze: Einsatz[] = [];
@@ -239,13 +238,13 @@ export const legeUm = (quelle: string, plan: FlussPlan, n: Nummerierung): Umgele
 		}
 		return imWeg(k.start) ? null : (anStelle.get(verschoben(k.start)) ?? null);
 	});
-	return { quelle: nummeriere(neu, n), nummer: (nr) => nummern[nr] ?? null };
+	return { quelle: neu, nummer: (nr) => nummern[nr] ?? null };
 };
 
 /** Höchstens so viele Blätter misst ein Schritt, der das ganze Material betrifft (z. B. Abstand, Klasse, Format). */
 export const MAX_BLAETTER = 40;
 
-/** Was in `.nr` steht, zählt `nummeriere` neu; es ändert kein Blatt (Regel 3). */
+/** Was in `.nr` steht, zählen Schritte wie Einfügen neu; es ändert kein Blatt (Regel 3). */
 const NR_INHALT = /(<span\b[^>]*\bclass="(?:[^"]*\s)?nr(?:\s[^"]*)?"[^>]*>)[^<]*(<\/span>)/g;
 const ohneNummern = (text: string) => text.replace(NR_INHALT, '$1$2');
 
@@ -264,21 +263,47 @@ const blattTexte = (z: Zerlegung) => {
 	};
 };
 
+/** Ein Blatt mit allem, was seine Seiten im Bild bestimmt: Text ohne `.nr` und alles außerhalb der Blätter. */
+const schluesselVon = (rest: string, text: string) => `${rest}\u0001${text}`;
+
+/** Für jedes fließende Blatt (Nummer der ersten Seite) sein Schlüssel; gleiche Schlüssel liegen im Bild gleich. */
+export const blattSchluessel = (z: Zerlegung) => {
+	const t = blattTexte(z);
+	return new Map(
+		t.blaetter.flatMap((b, i) => (b.fliesst ? [[b.seiten[0]?.nr ?? -1, schluesselVon(t.rest, t.texte[i] ?? '')]] : [])),
+	);
+};
+
+/** Ein geändertes Blatt in `nachher` und der Schlüssel des Blatts, das in `vorher` an seiner Stelle stand. */
+export interface BlattPaar {
+	nr: number;
+	vorher: string | null;
+}
+
 /**
  * Regel 3: Welche Blätter (Nummer der ersten Seite in `nachher`) ein Schritt geändert hat, Blatt für Blatt verglichen,
  * ohne die Nummern in `.nr`. Ändert sich etwas außerhalb aller Blätter (Abstand und Klasse am `<body>`, Stil im Kopf),
  * sind es alle fließenden Blätter, höchstens `MAX_BLAETTER`. Gleiche Blätter vorn und hinten bleiben, auch wenn eine
- * Seite dazukam oder wegfiel.
+ * Seite dazukam oder wegfiel. Zu jedem das Blatt davor, wenn die Zahl der Blätter dazwischen gleich blieb.
  */
-export const geaenderteBlaetter = (vorher: string, nachher: Zerlegung): number[] => {
+export const geaenderteBlattPaare = (vorher: string, nachher: Zerlegung): BlattPaar[] => {
 	const n = blattTexte(nachher);
 	const a = blattTexte(zerlege(vorher));
-	const nummer = (b: Blatt) => b.seiten[0]?.nr ?? -1;
+	const paare = (von: number, bisN: number, bisA: number) => {
+		const gleichViele = bisN - von === bisA - von;
+		return n.blaetter.slice(von, bisN).flatMap((b, i) =>
+			b.fliesst
+				? [
+						{
+							nr: b.seiten[0]?.nr ?? -1,
+							vorher: gleichViele ? schluesselVon(a.rest, a.texte[von + i] ?? '') : null,
+						},
+					]
+				: [],
+		);
+	};
 	if (n.rest !== a.rest) {
-		return n.blaetter
-			.filter((b) => b.fliesst)
-			.slice(0, MAX_BLAETTER)
-			.map(nummer);
+		return paare(0, n.blaetter.length, a.blaetter.length).slice(0, MAX_BLAETTER);
 	}
 	let vorn = 0;
 	while (vorn < n.texte.length && vorn < a.texte.length && n.texte[vorn] === a.texte[vorn]) {
@@ -292,8 +317,8 @@ export const geaenderteBlaetter = (vorher: string, nachher: Zerlegung): number[]
 	) {
 		hinten += 1;
 	}
-	return n.blaetter
-		.slice(vorn, n.blaetter.length - hinten)
-		.filter((b) => b.fliesst)
-		.map(nummer);
+	return paare(vorn, n.blaetter.length - hinten, a.blaetter.length - hinten);
 };
+
+export const geaenderteBlaetter = (vorher: string, nachher: Zerlegung): number[] =>
+	geaenderteBlattPaare(vorher, nachher).map((p) => p.nr);

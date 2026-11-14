@@ -189,7 +189,7 @@ export const useEinfuegen = ({ auswahl, blatt, dokument, folien, nachher, ohneAu
 				if (q !== z.quelle) {
 					return { quelle: q, nr: auswahl };
 				}
-				const u = legeUm(q, plan, { jeSeite: folien });
+				const u = legeUm(q, plan);
 				return { quelle: u.quelle, nr: auswahl === null ? null : u.nummer(auswahl) };
 			});
 		};
