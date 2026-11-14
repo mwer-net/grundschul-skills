@@ -41,6 +41,7 @@ import {
 	VORLAGE_FORMAT,
 	wendeAktionAn,
 } from '@schoolbox/kern';
+import { istWuerfelbar } from '@schoolbox/kern/src/variante';
 import { Router } from 'express';
 
 import { leseQuelle, schreibeQuelle } from './dokumente';
@@ -166,6 +167,7 @@ export const ordnerApi = (kontext: Kontext) => {
 						klasse: mappe.klasse,
 						ordner: baum.dokumente[dokKnotenSchluessel(mappe.id, id)]?.ordner ?? null,
 						vorschau: await kontext.vorschau.stand(mappe.id, id, false),
+						wuerfelbar: await istWuerfelbar(path.join(dokumentDir(materialDir, mappe.id, id), 'material.html')),
 					})),
 			),
 		);

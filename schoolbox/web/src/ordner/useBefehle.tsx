@@ -22,7 +22,7 @@ import { befehlZuTaste, lageArt, menueVon } from './befehle';
 import { BewegenDialog, InfoDialog, TastenDialog, UebersichtDialog } from './dialoge';
 import type { Merkzettel } from './kontext';
 import { useAblage } from './kontext';
-import { bewegtText, geloeschtText, kopiertText } from './meldungen';
+import { bewegtText, dupliziertText, geloeschtText, gemerktText, kopiertText } from './meldungen';
 import {
 	dokObjekt,
 	dokumenteInFolge,
@@ -70,6 +70,8 @@ interface Optionen {
 	/** Spalten des Rasters, für ↑ und ↓. */
 	spalten: () => number;
 	sucheFokus: () => void;
+	/** Der offene Ordner fehlt: Keine Befehle der Ablage (189-02). */
+	gesperrt?: boolean;
 }
 
 const knotenVon = (objekte: readonly Objekt[]) => objekte.map((o) => o.knoten);
@@ -125,8 +127,9 @@ const pfeilTaste = (j: TastenStand, richtung: Richtung, erweitern: boolean, zeig
 		return;
 	}
 	const reihenfolge = j.objekte.map((x) => x.schluessel);
+	// Nach Esc gilt kein Zeiger mehr: → und ↓ beginnen vorn, ← und ↑ hinten (188-05).
 	const start =
-		zeiger.current !== null && reihenfolge.includes(zeiger.current)
+		j.o.auswahl.gewaehlt.length > 0 && zeiger.current !== null && reihenfolge.includes(zeiger.current)
 			? zeiger.current
 			: (j.o.auswahl.gewaehlt.at(-1) ?? null);
 	const neu = bewegeAuswahl(j.o.auswahl, start, richtung, {
@@ -161,8 +164,17 @@ const tippTaste = (
 /** Alle Befehle der Ablage: Register auf der einen Seite, hier die Wirkung. Menü, Leiste und Tasten teilen sich das. */
 export const useBefehle = (o: Optionen) => {
 	const { hier, objekte, seite, stand } = o;
-	const { kannRueckgaengig, kannWiederholen, merke, merkzettel, rueckgaengig, setBenennen, tu, wiederholen } =
-		useAblage();
+	const {
+		benennen,
+		kannRueckgaengig,
+		kannWiederholen,
+		merke,
+		merkzettel,
+		rueckgaengig,
+		setBenennen,
+		tu,
+		wiederholen,
+	} = useAblage();
 	const navigate = useNavigate();
 	const zeige = useHinweis();
 	const [dialog, setDialog] = useState<DialogStand | null>(null);
@@ -187,15 +199,24 @@ export const useBefehle = (o: Optionen) => {
 			fremd,
 			merkzettel,
 			quelle,
+			anzahl: objekte.length,
+			...(o.gesperrt ? { gesperrt: true } : {}),
 		}),
-		[fremd, merkzettel, ortHier],
+		[fremd, merkzettel, o.gesperrt, objekte.length, ortHier],
 	);
 
+	const legtAn = useRef(false);
 	const neuerOrdner = async (eltern: string | null, wo: 'feld' | 'baum', inhalt?: Knoten[]) => {
+		// Ein Doppelklick legt nicht zwei an: Solange einer entsteht oder sein Name offen ist, keiner mehr (188-08).
+		if (legtAn.current || benennen?.neu) {
+			return;
+		}
+		legtAn.current = true;
 		const antwort = await tu(
 			{ art: 'neu', eltern, ...(inhalt ? { inhalt } : {}) },
 			{ text: () => (inhalt ? 'Neuer Ordner mit der Auswahl angelegt.' : 'Neuer Ordner angelegt.') },
 		);
+		legtAn.current = false;
 		const id = antwort?.ergebnis.neu;
 		if (id) {
 			setBenennen({ schluessel: id, neu: true, wo });
@@ -211,6 +232,11 @@ export const useBefehle = (o: Optionen) => {
 		}
 		const quellen = merkzettel.knoten.flatMap((k) => objektZu(stand, k) ?? []);
 		const bewegen = merkzettel.modus === 'ausschneiden' || immerBewegen;
+		// Liegt schon alles dort, gibt es nichts zu bewegen: kein Schritt, keine Meldung (189-14).
+		if (bewegen && quellen.length > 0 && quellen.every((x) => elternVon(x) === ziel)) {
+			merke(null);
+			return;
+		}
 		const antwort = await tu(
 			bewegen
 				? { art: 'bewegen', knoten: merkzettel.knoten, ziel }
@@ -254,13 +280,16 @@ export const useBefehle = (o: Optionen) => {
 						if (dokumente.length === 0) {
 							return [];
 						}
-						const ortName = hier?.name ?? WURZEL_NAME;
-						const name = l.objekte.length > 1 ? `${ortName} (Auswahl)` : (erstes?.name ?? ortName);
+						// Der Name kommt vom Ort, auf den sich das Menü bezieht, nicht vom offenen Ordner (189-01).
+						const ortName = (stand && findeOrdner(stand, l.ort)?.name) ?? WURZEL_NAME;
+						const name =
+							l.objekte.length > 1 ? `${hier?.name ?? WURZEL_NAME} (Auswahl)` : (erstes?.name ?? ortName);
 						return sammlungWahl(dokumente, name);
 					})();
 		return wahl.map((w) => ({
 			titel: w.titel,
 			...(w.hinweis ? { beschreibung: w.hinweis } : {}),
+			...(pdf.laeuft ? { aus: true } : {}),
 			waehle: () => void pdf.hole(w),
 		}));
 	};
@@ -329,18 +358,12 @@ export const useBefehle = (o: Optionen) => {
 		const [erstes] = l.objekte;
 		const eltern = erstes ? elternVon(erstes) : null;
 		if (l.objekte.every((x) => elternVon(x) === eltern)) {
-			void tu(
-				{ art: 'kopieren', knoten: knotenVon(l.objekte), ziel: eltern },
-				{ text: (a) => kopiertText(stand, l.objekte, eltern, a) },
-			).then((a) => a && o.waehleKommend(a.ergebnis.knoten.map(schluesselVon)));
+			void tu({ art: 'kopieren', knoten: knotenVon(l.objekte), ziel: eltern }, { text: () => dupliziertText(l.objekte) }).then((a) => a && o.waehleKommend(a.ergebnis.knoten.map(schluesselVon)));
 			return;
 		}
 		// Aus der Suche: Jedes landet neben seinem Original.
 		for (const x of l.objekte) {
-			void tu(
-				{ art: 'kopieren', knoten: [x.knoten], ziel: elternVon(x) },
-				{ text: (a) => kopiertText(stand, [x], elternVon(x), a) },
-			);
+			void tu({ art: 'kopieren', knoten: [x.knoten], ziel: elternVon(x) }, { text: () => dupliziertText([x]) });
 		}
 	};
 	const inDenPapierkorb = (l: Lage) => {
@@ -359,13 +382,7 @@ export const useBefehle = (o: Optionen) => {
 	};
 	const merkeFuer = (modus: 'ausschneiden' | 'kopieren', l: Lage) => {
 		merke({ modus, knoten: knotenVon(l.objekte) });
-		const zahl = l.objekte.length === 1 ? 'Ein Objekt' : `${l.objekte.length} Objekte`;
-		zeige({
-			text:
-				modus === 'ausschneiden'
-					? `${zahl} zum Bewegen gemerkt. Im Zielordner: Einfügen.`
-					: `${zahl} zum Kopieren gemerkt.`,
-		});
+		zeige({ text: gemerktText(l.objekte, modus) });
 	};
 	const materialDialog = (l: Lage) => {
 		const [erstes] = l.objekte;
@@ -388,7 +405,13 @@ export const useBefehle = (o: Optionen) => {
 				gehe(hier.eltern);
 			}
 		},
-		neuerOrdner: (l) => void neuerOrdner(l.ort, 'feld'),
+		// Aus dem Baum öffnet sich das Namensfeld im Baum, auch an „Mein Material“ (188-36).
+		neuerOrdner: (l) => {
+			if (l.quelle === 'baum' && l.ort !== null) {
+				o.oeffneBaum(l.ort);
+			}
+			void neuerOrdner(l.ort, l.quelle === 'baum' ? 'baum' : 'feld');
+		},
 		neuerUnterordner: mitErstem(neuerUnterordner),
 		mitAuswahl: (l) => void neuerOrdner(ortHier, 'feld', knotenVon(l.objekte)),
 		materialAnlegen: materialDialog,
@@ -406,8 +429,11 @@ export const useBefehle = (o: Optionen) => {
 			}
 		},
 		variante: mitDok((d) => {
-			sende<{ titel: string }>(`/api/mappen/${d.mappe}/dokumente/${d.id}/variante`).then(
-				({ titel }) => zeige({ text: `Variante angelegt: „${titel}“.` }),
+			sende<{ id: string; titel: string }>(`/api/mappen/${d.mappe}/dokumente/${d.id}/variante`).then(
+				({ id, titel }) => {
+					o.waehleKommend([`${d.mappe}/${id}`]);
+					zeige({ text: `Variante angelegt: „${titel}“.` });
+				},
 				(grund: unknown) => zeige({ text: meldung(grund), art: 'fehler' }),
 			);
 		}),
@@ -423,7 +449,12 @@ export const useBefehle = (o: Optionen) => {
 			void fuegeEin(erstes?.istOrdner && l.quelle === 'baum' ? erstes.ordner.id : l.ort, false);
 		},
 		einfuegenBewegen: (l) => void fuegeEin(l.ort, true),
-		uebersicht: (l) => setDialog({ art: 'uebersicht', start: l.objekte[0]?.schluessel ?? null }),
+		uebersicht: (l) => {
+			const [erstes] = l.objekte;
+			if (erstes && !erstes.istOrdner) {
+				setDialog({ art: 'uebersicht', start: erstes.schluessel });
+			}
+		},
 		informationen: (l) =>
 			setDialog({
 				art: 'info',
@@ -464,6 +495,13 @@ export const useBefehle = (o: Optionen) => {
 		return menueVon(lage, quellen, ziel.length > 1 ? `${ziel.length} Objekte` : undefined);
 	};
 
+	/** Das ⋯ der Leiste: ohne das, was die Leiste schon als Knopf zeigt (188-31). */
+	const menueOhne = (ziel: Objekt[], ohne: readonly string[]): MenueEintrag[] => {
+		const [erstes] = ziel;
+		const lage = lageFuer(ziel, 'inhalt', erstes?.istOrdner ? erstes.ordner.id : ortHier);
+		return menueVon(lage, quellen, ziel.length > 1 ? `${ziel.length} Objekte` : undefined, ohne);
+	};
+
 	// Tasten: dieselben Befehle mit der Auswahl als Ziel.
 	const aktuell = useRef({ fuehreAus, lageFuer, gewaehlteObjekte, o, merkzettel, merke, objekte });
 	aktuell.current = { fuehreAus, lageFuer, gewaehlteObjekte, o, merkzettel, merke, objekte };
@@ -491,6 +529,17 @@ export const useBefehle = (o: Optionen) => {
 			if (richtung && ohneBefehlstaste(e)) {
 				e.preventDefault();
 				pfeilTaste(j, richtung, e.shiftKey, zeiger);
+				return;
+			}
+			// Mitten im Tippen ist die Leertaste Teil des Namens, nicht die Übersicht (188-04).
+			if (
+				e.key === ' ' &&
+				ohneBefehlstaste(e) &&
+				puffer.current.text !== '' &&
+				Date.now() - puffer.current.zeit <= PUFFER_MS
+			) {
+				e.preventDefault();
+				tippTaste(j, e.key, zeiger, puffer);
 				return;
 			}
 			const lage = j.lageFuer(j.gewaehlteObjekte);
@@ -534,10 +583,15 @@ export const useBefehle = (o: Optionen) => {
 			)}
 			{dialog?.art === 'uebersicht' && (
 				<UebersichtDialog
-					objekte={objekte}
+					objekte={objekte.filter((x) => !x.istOrdner)}
 					start={dialog.start}
 					schliessen={schliessen}
 					oeffne={(x) => void navigate(seiteVon(x))}
+					zeige={(x) => {
+						zeiger.current = x.schluessel;
+						o.setAuswahl({ gewaehlt: [x.schluessel], anker: x.schluessel });
+						zeigeObjekt(x.schluessel);
+					}}
 				/>
 			)}
 			{dialog?.art === 'tasten' && <TastenDialog schliessen={schliessen} />}
@@ -559,7 +613,9 @@ export const useBefehle = (o: Optionen) => {
 		gewaehlteObjekte,
 		lageFuer,
 		menueFuer,
+		menueOhne,
 		pdfMenue,
+		pdfLaeuft: pdf.laeuft,
 		neuerOrdner,
 		zeiger,
 		setDialog,

@@ -1,12 +1,13 @@
 import type { KeyboardEvent, MouseEvent, PointerEvent as ReactPointerEvent, ReactNode } from 'react';
-import { useMemo } from 'react';
+import { useEffect, useMemo, useRef } from 'react';
 
+import { Gekuerzt } from '../bausteine/Gekuerzt';
 import { klassen } from '../bausteine/klassen';
 import { Symbol } from '../bausteine/Symbol';
 import { Tooltip } from '../bausteine/Tooltip';
 import { useAblage } from './kontext';
 import { NamensFeld } from './NamensFeld';
-import { ordnerObjekt, WURZEL_NAME } from './objekte';
+import { ordnerObjekt, pfadVon, WURZEL_NAME } from './objekte';
 import type { AblageOrdner, AblageStand } from './typen';
 
 const NATUERLICH = new Intl.Collator('de', { numeric: true, sensitivity: 'base' });
@@ -30,6 +31,8 @@ interface Eigenschaften {
 	ziehen?: (e: ReactPointerEvent, id: string) => void;
 	/** Gezogen: blass samt dem sichtbaren Zweig darunter. */
 	blass?: ReadonlySet<string>;
+	/** Im Dialog: Die Zeile mit Fokus ist das Ziel (189-12). */
+	waehleBeiFokus?: boolean;
 }
 
 interface ZeileEigenschaften {
@@ -46,7 +49,38 @@ interface ZeileEigenschaften {
 	waehle: () => void;
 	kontext?: (e: MouseEvent) => void;
 	ziehen?: (e: ReactPointerEvent) => void;
+	waehleBeiFokus?: boolean;
 }
+
+/** ↑↓ von Zeile zu Zeile, → auf (offen: erste darunter), ← zu (zu: die darüberliegende Ebene), wie im Finder. */
+const pfeilImBaum = (e: KeyboardEvent<HTMLDivElement>, dreieck: 'auf' | 'zu' | null, klappe?: (a: boolean) => void) => {
+	const zeile = e.currentTarget;
+	const zeilen = [...(zeile.closest('[role="tree"]')?.querySelectorAll<HTMLElement>('[role="treeitem"]') ?? [])];
+	const hier = zeilen.indexOf(zeile);
+	const geheZu = (ziel: HTMLElement | null | undefined) => ziel?.focus();
+	if (e.key === 'ArrowDown') {
+		geheZu(zeilen[hier + 1]);
+	} else if (e.key === 'ArrowUp') {
+		geheZu(zeilen[hier - 1]);
+	} else if (e.key === 'ArrowRight') {
+		if (dreieck === 'zu') {
+			klappe?.(false);
+		} else if (dreieck === 'auf' || zeile.dataset.baumOrdner === 'wurzel') {
+			// „Mein Material“ ist immer offen: → geht zum ersten Ordner darunter.
+			geheZu(zeilen[hier + 1]);
+		}
+	} else if (e.key === 'ArrowLeft') {
+		if (dreieck === 'auf') {
+			klappe?.(false);
+		} else {
+			const gruppe = zeile.parentElement?.closest('[role="group"]');
+			geheZu(gruppe ? (gruppe.previousElementSibling as HTMLElement | null) : hier > 0 ? zeilen[0] : null);
+		}
+	} else {
+		return false;
+	}
+	return true;
+};
 
 const BaumZeile = ({
 	aktiv,
@@ -61,9 +95,19 @@ const BaumZeile = ({
 	symbol,
 	tiefe,
 	waehle,
+	waehleBeiFokus,
 	ziehen,
-}: ZeileEigenschaften) => (
+}: ZeileEigenschaften) => {
+	const zeile = useRef<HTMLDivElement>(null);
+	// Wechselt der Ort, rollt die Zeile ins Bild; ist sie schon zu sehen, bleibt alles stehen (189-10).
+	useEffect(() => {
+		if (aktiv) {
+			zeile.current?.scrollIntoView({ block: 'nearest' });
+		}
+	}, [aktiv]);
+	return (
 	<div
+		ref={zeile}
 		role="treeitem"
 		aria-selected={aktiv}
 		aria-expanded={dreieck === null ? undefined : dreieck === 'auf'}
@@ -84,9 +128,20 @@ const BaumZeile = ({
 				waehle();
 			}
 		}}
-		onKeyDown={(e: KeyboardEvent) => {
-			if (e.key === 'Enter' && !aus) {
+		onFocus={(e) => {
+			if (waehleBeiFokus && !aus && e.target === e.currentTarget) {
 				waehle();
+			}
+		}}
+		onKeyDown={(e: KeyboardEvent<HTMLDivElement>) => {
+			if (e.target !== e.currentTarget) {
+				return;
+			}
+			if (e.key === 'Enter' && !aus && !waehleBeiFokus) {
+				waehle();
+			} else if (pfeilImBaum(e, dreieck, klappe)) {
+				e.preventDefault();
+				e.stopPropagation();
 			}
 		}}
 		onContextMenu={kontext}
@@ -104,10 +159,14 @@ const BaumZeile = ({
 				<Symbol name={dreieck === 'auf' ? 'runter' : 'rechts'} className="size-3" />
 			</button>
 		) : (
-			<span className="size-4 flex-none" />
+			id !== null && <span className="size-4 flex-none" />
 		)}
 		<Symbol name={symbol} className={klassen('size-3.5 flex-none', aktiv ? 'text-brand-600' : 'text-leise')} />
-		<span className="min-w-0 flex-1 truncate">{name}</span>
+		{typeof name === 'string' ? (
+			<Gekuerzt text={name} className="flex-1" />
+		) : (
+			<span className="min-w-0 flex-1 truncate">{name}</span>
+		)}
 		{geteilt && (
 			<Tooltip text="Geteilt">
 				<span className="flex-none text-dezent">
@@ -117,7 +176,8 @@ const BaumZeile = ({
 			</Tooltip>
 		)}
 	</div>
-);
+	);
+};
 
 /** Der ganze Ordnerbaum: in der Seitenleiste und im Dialog „Bewegen nach …“. */
 const dreieckVon = (unter: boolean, auf: boolean) => {
@@ -137,10 +197,28 @@ export const Baum = ({
 	offen,
 	stand,
 	waehle,
+	waehleBeiFokus,
 	wurzelGesperrt,
 	ziehen,
 }: Eigenschaften) => {
 	const { benennen } = useAblage();
+	/** Ist ein Vorfahr zugeklappt, trägt der nächste sichtbare die Markierung (189-11). */
+	const markiert = useMemo(() => {
+		if (aktuell === null || aktuell === undefined) {
+			return aktuell;
+		}
+		const pfad = pfadVon(stand, aktuell);
+		let sichtbar = pfad[0]?.id ?? aktuell;
+		for (let i = 1; i < pfad.length; i += 1) {
+			const oben = pfad[i - 1];
+			const unten = pfad[i];
+			if (!oben || !unten || !offen.has(oben.id)) {
+				break;
+			}
+			sichtbar = unten.id;
+		}
+		return sichtbar;
+	}, [aktuell, offen, stand]);
 	const kinderVon = useMemo(() => {
 		const karte = new Map<string | null, AblageOrdner[]>();
 		for (const o of stand.ordner) {
@@ -164,7 +242,7 @@ export const Baum = ({
 						id={o.id}
 						tiefe={tiefe}
 						name={imFeld ? <NamensFeld objekt={ordnerObjekt(stand, o)} /> : o.name}
-						aktiv={aktuell === o.id}
+						aktiv={markiert === o.id}
 						aus={gesperrt?.(o.id) ?? false}
 						blass={istBlass}
 						geteilt={stand.geteilt.ordner.includes(o.id)}
@@ -172,6 +250,7 @@ export const Baum = ({
 						symbol="ordner"
 						klappe={(alles) => klappe(o.id, alles)}
 						waehle={() => waehle(o.id)}
+						waehleBeiFokus={waehleBeiFokus}
 						{...(kontext ? { kontext: (e: MouseEvent) => kontext(e, o) } : {})}
 						{...(ziehen ? { ziehen: (e: ReactPointerEvent) => ziehen(e, o.id) } : {})}
 					/>
@@ -186,12 +265,13 @@ export const Baum = ({
 				id={null}
 				tiefe={0}
 				name={WURZEL_NAME}
-				aktiv={aktuell === null}
+				aktiv={markiert === null}
 				aus={wurzelGesperrt ?? false}
 				blass={false}
 				dreieck={null}
 				symbol="blatt"
 				waehle={() => waehle(null)}
+				waehleBeiFokus={waehleBeiFokus}
 				{...(kontext ? { kontext: (e: MouseEvent) => kontext(e, null) } : {})}
 			/>
 			{zweig(null, 1, false)}

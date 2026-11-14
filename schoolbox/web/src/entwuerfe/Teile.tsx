@@ -1,5 +1,6 @@
 import type { ReactNode } from 'react';
 
+import { useBildFehler } from '../bausteine/bildFehler';
 import { klassen } from '../bausteine/klassen';
 import { Symbol } from '../bausteine/Symbol';
 import type { Format } from '../lib/text';
@@ -52,12 +53,16 @@ interface BildEigenschaften {
  * Erste Seite eines Entwurfs, so groß, wie ihr Rahmen es zulässt. Das Bild gibt es erst, wenn `schoolbox entwuerfe`
  * die Prüfung eingetragen hat.
  */
-export const EntwurfBild = ({ className, dokument, entwurf, zugang }: BildEigenschaften) =>
-	entwurf.pruefung ? (
+export const EntwurfBild = ({ className, dokument, entwurf, zugang }: BildEigenschaften) => {
+	const { fehlt, onError } = useBildFehler(
+		entwurf.pruefung ? entwurfVorschauAdresse(zugang, dokument.id, entwurf.name, dokument.meta.geaendert) : null,
+	);
+	return !fehlt ? (
 		<img
 			className={klassen('size-full object-contain object-top drop-shadow-md', className)}
 			src={entwurfVorschauAdresse(zugang, dokument.id, entwurf.name, dokument.meta.geaendert)}
 			alt=""
+			onError={onError}
 			decoding="async"
 			draggable={false}
 		/>
@@ -69,6 +74,7 @@ export const EntwurfBild = ({ className, dokument, entwurf, zugang }: BildEigens
 			<Symbol name="blatt" className="size-8" />
 		</div>
 	);
+};
 
 /** Statt der Vorschau eines Dokuments: alle Entwürfe klein nebeneinander, mit Buchstaben. */
 export const EntwurfMinis = ({ dokument, zugang }: { zugang: Zugang; dokument: DokumentEintrag }) => (

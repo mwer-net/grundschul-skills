@@ -8,7 +8,7 @@ import type { AuswahlStand } from './auswahl';
 import { Geist } from './Geist';
 import { useAblage } from './kontext';
 import { bewegtText, kopiertText } from './meldungen';
-import { findeOrdner, inEigenenZweig, ordnerObjekt, ortName, zielGueltig } from './objekte';
+import { findeOrdner, inEigenenZweig, nachkommen, ordnerObjekt, ortName, zielGueltig } from './objekte';
 import type { Objekt } from './typen';
 
 const FEDERN_MS = 700;
@@ -42,6 +42,8 @@ interface Zug {
 	/** Ein Ordner über einem seiner Nachkommen: Das steht schon vor dem Loslassen in der Statuszeile. */
 	inSichSelbst: boolean;
 	federn: number | null;
+	/** Was während des Zugs von selbst aufging: Am Ende klappt es wieder zu, außer dem Zweig des Ziels (189-36). */
+	aufgeklappt: { wo: 'baum' | 'liste'; id: string }[];
 	x: number;
 	y: number;
 }
@@ -95,8 +97,10 @@ export const useZiehen = (o: Optionen) => {
 	};
 
 	const setzeZeiger = (z: Zug) => {
-		const gezogen = z.kopiert ? 'copy' : 'grabbing';
-		document.documentElement.style.cursor = z.zielId === undefined ? 'not-allowed' : gezogen;
+		// „Verbot“ nur über einem Ziel, das den Zug ablehnt; über allem anderen bleibt die Hand (189-35).
+		// „Kopieren“ nur, wo Loslassen auch kopiert (189-N02).
+		const kopiert = z.kopiert && z.zielId !== undefined && z.zielId !== 'papierkorb';
+		document.documentElement.style.cursor = z.inSichSelbst ? 'not-allowed' : kopiert ? 'copy' : 'grabbing';
 	};
 
 	const federe = (z: Zug) => {
@@ -106,14 +110,22 @@ export const useZiehen = (o: Optionen) => {
 		}
 		const id = z.zielId;
 		const { klappeBaum, klappeListe } = neu.current.o;
-		if (el.closest('[data-baum-ordner]')) {
+		const baumZeile = el.closest('[data-baum-ordner]');
+		const listenZeile = el.closest('[data-art="ordner"]');
+		if (baumZeile) {
+			if (baumZeile.getAttribute('aria-expanded') === 'false') {
+				z.aufgeklappt.push({ wo: 'baum', id });
+			}
 			klappeBaum(id, true);
 		} else if (el.closest('[data-art="ordner"]')?.tagName === 'LI') {
 			// Am Finger gehen die Ereignisse an das Ursprungselement: Verschwindet die Kachel, kommen keine mehr.
 			if (!z.finger) {
 				void neu.current.navigate(`/o/${id}`);
 			}
-		} else if (el.closest('[data-art="ordner"]')) {
+		} else if (listenZeile) {
+			if (listenZeile.querySelector('[data-dreieck]')?.getAttribute('aria-label') === 'Aufklappen') {
+				z.aufgeklappt.push({ wo: 'liste', id });
+			}
 			klappeListe(id, true);
 		}
 	};
@@ -177,6 +189,13 @@ export const useZiehen = (o: Optionen) => {
 		setZug(null);
 		setStatus(null);
 		const { adresse, navigate: nav, stand: s, tu: machen } = neu.current;
+		const behalten = (id: string) =>
+			ablegen && s && typeof z.zielId === 'string' && z.zielId !== 'papierkorb' && nachkommen(s, id).has(z.zielId);
+		for (const { id, wo } of z.aufgeklappt.toReversed()) {
+			if (!behalten(id)) {
+				(wo === 'baum' ? neu.current.o.klappeBaum : neu.current.o.klappeListe)(id, false);
+			}
+		}
 		if (!ablegen) {
 			if (adresse !== z.startAdresse) {
 				void nav(z.startAdresse, { replace: true });
@@ -212,6 +231,7 @@ export const useZiehen = (o: Optionen) => {
 			kopiert,
 			inSichSelbst: false,
 			federn: null,
+			aufgeklappt: [],
 			x,
 			y,
 		};
@@ -375,8 +395,11 @@ export const useZiehen = (o: Optionen) => {
 		if (!darf(e)) {
 			return;
 		}
-		const objekt = (e.target as HTMLElement).closest<HTMLElement>('[data-objekt]')?.dataset.objekt;
-		druecke(e, objekt ? { objekte: () => neu.current.o.objekteZuZiehen(objekt) } : null);
+		const el = (e.target as HTMLElement).closest<HTMLElement>('[data-objekt]');
+		const objekt = el?.dataset.objekt;
+		// In der Liste greift nur Symbol und Name; daneben zieht der Druck einen Rahmen (188-U3).
+		const greift = objekt && (el.tagName === 'LI' || (e.target as HTMLElement).closest('[data-zieh-griff]'));
+		druecke(e, greift ? { objekte: () => neu.current.o.objekteZuZiehen(objekt) } : null);
 	};
 
 	/** Eine Zeile im Baum zieht genau ihren Ordner: nie die Auswahl im Inhalt und nie einen Rahmen. */

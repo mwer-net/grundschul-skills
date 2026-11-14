@@ -193,7 +193,8 @@ test.describe('Inventur außerhalb des Editors', () => {
 		await page.goto('/');
 		await expect(page.getByPlaceholder('Material und Ordner suchen')).toBeVisible();
 		const werkzeug = page.locator('[data-werkzeugleiste]');
-		await expect(werkzeug.getByRole('button', { name: 'Filter' })).toBeVisible();
+		// 189-30: Kein zweiter Eingang zur Suche in der Leiste.
+		await expect(werkzeug.getByRole('button', { name: 'Filter' })).toHaveCount(0);
 		await expect(werkzeug.getByRole('button', { name: 'Neuer Ordner' })).toBeVisible();
 		await expect(werkzeug.getByRole('button', { name: 'Material anlegen' })).toBeVisible();
 		// 189-31: Die Palette (⌘K) hat im Kopf der Ablage keinen Knopf mehr, das Suchfeld daneben genügt.
@@ -248,7 +249,8 @@ test.describe('Inventur außerhalb des Editors', () => {
 			await page.keyboard.press('Escape');
 		}
 		await objektMenue(page, 'Kreisinput');
-		for (const name of [/^PDF/, /Variante/, /Teilen/, /Präsentieren/]) {
+		// „Variante mit neuen Zahlen“ steht nur an Material, an dem sie etwas ändert (188-33).
+		for (const name of [/^PDF/, /Teilen/, /Präsentieren/]) {
 			await expect(page.getByRole('menuitem', { name })).toBeVisible();
 		}
 		await expect(page.getByRole('menuitem', { name: /Als Vorlage/ })).toHaveCount(0);

@@ -12,7 +12,19 @@ interface Eigenschaften {
 
 /** Name direkt tippen. ⏎ speichert, Esc stellt den alten Namen her (bei einem frischen Ordner: behält den Vorschlag). */
 export const NamensFeld = ({ className, objekt }: Eigenschaften) => {
-	const { setBenennen, tu } = useAblage();
+	const { benennen, setBenennen, tu } = useAblage();
+	// Der erste Name eines neuen Ordners ist kein Umbenennen: „Neuer Ordner angelegt.“ genügt (188-24).
+	const frisch = benennen?.neu === true && benennen.schluessel === objekt.schluessel;
+	const imDialog = benennen?.wo === 'dialog';
+	/** Nach dem Benennen im Dialog steht der Fokus auf der Zeile des Ordners: ⏎ bewegt dorthin (188-09). */
+	const fertigImDialog = () => {
+		if (imDialog && objekt.istOrdner) {
+			const id = objekt.ordner.id;
+			requestAnimationFrame(() =>
+				document.querySelector<HTMLElement>(`[data-bewegen-baum] [data-baum-ordner="${id}"]`)?.focus(),
+			);
+		}
+	};
 	const [wert, setWert] = useState(objekt.name);
 	const [fehler, setFehler] = useState<string | null>(null);
 	const feld = useRef<HTMLInputElement>(null);
@@ -31,15 +43,17 @@ export const NamensFeld = ({ className, objekt }: Eigenschaften) => {
 		if (name === '' || name === objekt.name) {
 			fertig.current = true;
 			setBenennen(null);
+			fertigImDialog();
 			return;
 		}
 		fertig.current = true;
 		try {
 			await tu(
 				{ art: 'umbenennen', knoten: objekt.knoten, name },
-				{ stillerFehler: true, text: () => `„${objekt.name}“ heißt jetzt „${name}“.` },
+				frisch ? { stillerFehler: true } : { stillerFehler: true, text: () => `„${objekt.name}“ heißt jetzt „${name}“.` },
 			);
 			setBenennen(null);
+			fertigImDialog();
 		} catch (grund) {
 			fertig.current = false;
 			setFehler(meldung(grund));
@@ -76,6 +90,7 @@ export const NamensFeld = ({ className, objekt }: Eigenschaften) => {
 						e.preventDefault();
 						fertig.current = true;
 						setBenennen(null);
+						fertigImDialog();
 					}
 				}}
 			/>

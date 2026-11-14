@@ -1,7 +1,51 @@
 import assert from 'node:assert/strict';
 import { describe, it } from 'node:test';
 
-import { BEFEHLE, kuerzelVon, MENUE, tastenAbschnitte } from './befehle';
+import type { Lage } from './befehle';
+import { BEFEHLE, gilt, kuerzelVon, leistenKnoepfe, MENUE, menueVon, tastenAbschnitte } from './befehle';
+import { dokObjekt, ordnerObjekt } from './objekte';
+import type { AblageDok, AblageStand } from './typen';
+
+const zeit = '2026-11-01T08:00:00.000Z';
+const blatt = (id: string, format: 'a4-hoch' | 'folie', entwuerfe = 0, wuerfelbar = false): AblageDok => ({
+	id,
+	mappe: 'mappe',
+	fach: 'mathematik',
+	klasse: 3,
+	ordner: null,
+	vorschau: null,
+	wuerfelbar,
+	meta: {
+		titel: id,
+		art: 'arbeitsblatt',
+		format,
+		druckprofil: 'sw',
+		hatLoesung: false,
+		druckhinweise: [],
+		status: 'fertig',
+		seiten: 1,
+		pruefung: null,
+		entwuerfe: Array.from({ length: entwuerfe }, (_, i) => ({ name: String.fromCharCode(65 + i), titel: '', idee: '' })),
+		erstellt: zeit,
+		geaendert: zeit,
+	},
+});
+const ordner = { id: 'o1', name: 'Klasse 3', eltern: null, behaelter: null, erstellt: zeit, geaendert: zeit };
+const stand = (...dokumente: AblageDok[]) =>
+	({ rev: 1, ordner: [ordner], dokumente, defekt: [], geteilt: { ordner: [], dokumente: [] } }) as AblageStand;
+const lage = (teil: Partial<Lage>): Lage => ({
+	art: 'leer',
+	objekte: [],
+	ort: null,
+	fremd: false,
+	merkzettel: null,
+	quelle: 'inhalt',
+	anzahl: 3,
+	...teil,
+});
+const material = (d: AblageDok): Lage => lage({ art: 'material', objekte: [dokObjekt(stand(d), d)] });
+const titel = (l: Lage, ohne: string[] = []) =>
+	menueVon(l, { fuehreAus: () => undefined, untermenue: () => null }, undefined, ohne).map((e) => e.titel);
 
 describe('Befehle der Ablage', () => {
 	it('jeder Befehl mit Taste steht in der Tastenliste (Entscheidung 30)', () => {
@@ -39,5 +83,58 @@ describe('Befehle der Ablage', () => {
 			.flatMap((a) => a.zeilen)
 			.find((z) => z.id === 'uebersicht');
 		assert.deepEqual(uebersicht?.tasten, ['Leertaste']);
+	});
+
+	it('Leiste: Bei offenen Entwürfen „Entwürfe vergleichen“ statt „Bearbeiten“ und „PDF“ (188-02)', () => {
+		assert.deepEqual(leistenKnoepfe(material(blatt('a', 'a4-hoch', 3))), ['entwuerfe', 'teilen']);
+		assert.deepEqual(leistenKnoepfe(material(blatt('b', 'a4-hoch'))), ['bearbeiten', 'pdf', 'teilen']);
+		// Bei der Folie ist „Präsentieren“ der Knopf, „Bearbeiten“ steht im ⋯.
+		assert.deepEqual(leistenKnoepfe(material(blatt('c', 'folie'))), ['praesentieren', 'pdf', 'teilen']);
+		// Was die Leiste zeigt, bietet das Menü auch an.
+		for (const d of [blatt('a', 'a4-hoch', 3), blatt('b', 'a4-hoch'), blatt('c', 'folie')]) {
+			for (const id of leistenKnoepfe(material(d))) {
+				assert.ok(gilt(id, material(d)), `${d.id}: ${id}`);
+			}
+		}
+	});
+
+	it('⋯ der Leiste ohne die Knöpfe daneben, das Kontextmenü vollständig (188-31)', () => {
+		const l = material(blatt('b', 'a4-hoch'));
+		const voll = titel(l);
+		const ohne = titel(l, leistenKnoepfe(l));
+		assert.ok(voll.includes('Bearbeiten') && !ohne.includes('Bearbeiten'));
+		assert.ok(ohne.every((t) => voll.includes(t)));
+	});
+
+	it('„Mein Material“ im Baum: nur, was die Wurzel betrifft (188-36, 189-01)', () => {
+		const imBaum = titel(lage({ quelle: 'baum' }));
+		for (const weg of ['Darstellung', 'Sortieren', 'Alles auswählen']) {
+			assert.ok(!imBaum.includes(weg), weg);
+		}
+		assert.ok(imBaum.includes('Neuer Ordner'));
+		// Gegenprobe: Auf der Fläche steht alles.
+		const flaeche = titel(lage({}));
+		assert.ok(flaeche.includes('Darstellung') && flaeche.includes('Alles auswählen'));
+	});
+
+	it('Fehlt der Ordner, gilt kein Befehl der Ablage (189-02)', () => {
+		const l = lage({ ort: 'gibt-es-nicht', gesperrt: true });
+		assert.deepEqual(titel(l), []);
+		assert.equal(gilt('neuerOrdner', l), false);
+		assert.equal(gilt('neuerOrdner', lage({})), true);
+	});
+
+	it('„Alles auswählen“ nur mit Inhalt, „Ausschneiden“ in keinem Menü, Übersicht nur für Material', () => {
+		assert.ok(!titel(lage({ anzahl: 0 })).includes('Alles auswählen'));
+		assert.ok(!Object.values(MENUE).some((g) => g.flat().includes('ausschneiden')));
+		const ord = lage({ art: 'ordner', objekte: [ordnerObjekt(stand(), ordner)] });
+		assert.equal(gilt('uebersicht', ord), false);
+		assert.equal(gilt('uebersicht', material(blatt('b', 'a4-hoch'))), true);
+	});
+
+	it('„Variante mit neuen Zahlen“ nur, wo sie etwas ändert (188-33)', () => {
+		assert.equal(gilt('variante', material(blatt('b', 'a4-hoch'))), false);
+		assert.equal(gilt('variante', material(blatt('w', 'a4-hoch', 0, true))), true);
+		assert.ok(titel(material(blatt('w', 'a4-hoch', 0, true))).includes('Variante mit neuen Zahlen'));
 	});
 });

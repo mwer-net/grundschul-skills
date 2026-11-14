@@ -1,5 +1,6 @@
 import type { MouseEvent } from 'react';
 
+import { Gekuerzt } from '../bausteine/Gekuerzt';
 import { Marke } from '../bausteine/Kachel';
 import { klassen } from '../bausteine/klassen';
 import { Knopf } from '../bausteine/Knopf';
@@ -19,7 +20,8 @@ export interface ObjektAnsicht {
 	gewaehlt: boolean;
 	blass: boolean;
 	benennt: boolean;
-	ort?: string;
+	/** In Suche und „Zuletzt“: kurz in der Zeile, voll beim Verweilen (189-13). */
+	ort?: { kurz: string; voll: string };
 	/** Das ⋯ am Finger (Regel aus 070: kein Halten fürs Menü). */
 	menue: (e: MouseEvent) => void;
 	/** Nur im Auswahlmodus am iPad: Haken statt Öffnen. */
@@ -113,14 +115,14 @@ export const Kachel = ({
 		ref={antwortetAufTipp}
 		{...(objekt.istOrdner ? { 'data-ablage-ziel': objekt.ordner.id } : {})}
 		className={klassen(
-			'ablage-objekt relative flex flex-col overflow-hidden rounded-[10px] border bg-flaeche',
+			'ablage-objekt relative flex flex-col rounded-[10px] border',
 			gewaehlt
-				? 'border-brand-500 bg-brand-50 outline outline-1 outline-brand-500'
-				: 'border-rand hover:border-rand-feld',
+				? 'border-brand-500 bg-brand-100 outline outline-1 outline-brand-500'
+				: 'border-rand bg-flaeche hover:border-rand-feld',
 			blass && 'opacity-50',
 		)}
 	>
-		<div className="relative">
+		<div className="relative overflow-hidden rounded-t-[9px]">
 			{objekt.istOrdner ? (
 				<OrdnerBild vorne={vorne ?? []} token={null} />
 			) : (
@@ -142,26 +144,29 @@ export const Kachel = ({
 		</div>
 		<div className="flex items-start gap-1 border-t border-rand px-2.5 py-2">
 			<div className="min-w-0 flex-1">
-				{benennt ? (
-					<NamensFeld objekt={objekt} />
-				) : (
-					<h2 className="flex items-center gap-1.5 text-sm font-medium" data-objekt-name>
-						{!objekt.istOrdner && (
-							<span
-								className="size-2 flex-none rounded-full"
-								style={{ background: FACH_FARBE[objekt.dok.fach] }}
-							/>
-						)}
-						<span className="truncate">{objekt.name}</span>
-						{objekt.geteilt && <GeteiltMarke />}
-					</h2>
-				)}
+				<h2 className="flex items-center gap-1.5 text-sm font-medium" data-objekt-name={!benennt || undefined}>
+					{!objekt.istOrdner && (
+						<span
+							className="size-2 flex-none rounded-full"
+							style={{ background: FACH_FARBE[objekt.dok.fach] }}
+						/>
+					)}
+					{benennt ? (
+						// Das Feld steht genau an der Stelle des Namens; die Kachel wächst nicht (188-15).
+						<span className="min-w-0 flex-1">
+							<NamensFeld objekt={objekt} className="-ml-[5px] h-4 py-0 leading-4" />
+						</span>
+					) : (
+						<Gekuerzt text={objekt.name} />
+					)}
+					{!benennt && objekt.geteilt && <GeteiltMarke />}
+				</h2>
 				<p className="truncate text-xs text-leise">
 					{objekt.istOrdner
 						? inhaltText(objekt.inhalt)
 						: `${ART_NAME[objekt.dok.meta.art]} · ${FORMAT_NAME[objekt.dok.meta.format]}`}
 				</p>
-				{ort && <p className="truncate text-xs text-dezent">{ort}</p>}
+				{ort && <OrtText ort={ort} className="text-xs text-dezent" />}
 			</div>
 			<FingerMenue menue={menue} name={objekt.name} />
 		</div>
@@ -172,13 +177,58 @@ export interface ZeileAnsicht extends ObjektAnsicht {
 	tiefe: number;
 	offen: boolean;
 	klappe: ((alles: boolean) => void) | null;
+	mitMaterial: boolean;
 }
 
-/** Spalten nach Platz: Unter dem Inhaltscontainer fallen Format, Klasse und Fach nacheinander weg. */
-export const LISTEN_RASTER =
-	'grid grid-cols-[minmax(0,1fr)_6.5rem_8rem] @3xl:grid-cols-[minmax(0,1fr)_6.5rem_8rem_7rem] @4xl:grid-cols-[minmax(0,1fr)_6.5rem_8rem_7rem_5rem_5rem_9rem]';
+/**
+ * Spalten nach Platz: Unter dem Inhaltscontainer fallen Format, Klasse und Fach nacheinander weg. Ohne Material in
+ * Sicht gibt es die drei gar nicht, der Platz geht an den Namen (188-35).
+ */
+export const listenRaster = (mitMaterial: boolean, mitOrt = false) => {
+	// Der Ort braucht Platz für den letzten Ordner ganz (189-13); der Name gibt ihn ab.
+	if (mitOrt) {
+		return mitMaterial
+			? 'grid grid-cols-[minmax(0,1fr)_6.5rem_14rem] @3xl:grid-cols-[minmax(0,1fr)_6.5rem_14rem_7rem] @4xl:grid-cols-[minmax(0,1fr)_6.5rem_14rem_7rem_5rem_5rem_9rem]'
+			: 'grid grid-cols-[minmax(0,1fr)_6.5rem_14rem] @4xl:grid-cols-[minmax(0,1fr)_6.5rem_14rem_9rem]';
+	}
+	return mitMaterial
+		? 'grid grid-cols-[minmax(0,1fr)_6.5rem_8rem] @3xl:grid-cols-[minmax(0,1fr)_6.5rem_8rem_7rem] @4xl:grid-cols-[minmax(0,1fr)_6.5rem_8rem_7rem_5rem_5rem_9rem]'
+		: 'grid grid-cols-[minmax(0,1fr)_6.5rem_8rem] @4xl:grid-cols-[minmax(0,1fr)_6.5rem_8rem_9rem]';
+};
 
-export const Zeile = ({ benennt, blass, gewaehlt, haken, klappe, menue, objekt, offen, ort, tiefe }: ZeileAnsicht) => (
+/** Gekürzt wird vorn: Der Ordner, in dem das Objekt liegt, steht immer ganz da; der volle Pfad im Tooltip (189-13). */
+const OrtText = ({ className, ort }: { className?: string; ort: { kurz: string; voll: string } }) => {
+	const trenner = ort.kurz.lastIndexOf(' › ');
+	const vorn = trenner < 0 ? '' : ort.kurz.slice(0, trenner);
+	const letzter = trenner < 0 ? ort.kurz : ort.kurz.slice(trenner + 3);
+	return (
+		<Tooltip text={ort.voll}>
+			<span className={klassen('flex min-w-0 whitespace-nowrap', className)} data-ort>
+				{vorn && <span className="min-w-0 truncate">{vorn}</span>}
+				{vorn && <span className="flex-none">{'\u00a0›\u00a0'}</span>}
+				<span className="max-w-full shrink-0 truncate">{letzter}</span>
+			</span>
+		</Tooltip>
+	);
+};
+
+/** Im laufenden Jahr ohne Jahr, sonst mit (188-18). */
+const geaendertText = (wann: string) =>
+	new Date(wann).getFullYear() === new Date().getFullYear() ? datum(wann).replace(/ \d{4}$/, '') : datum(wann);
+
+export const Zeile = ({
+	benennt,
+	blass,
+	gewaehlt,
+	haken,
+	klappe,
+	menue,
+	mitMaterial,
+	objekt,
+	offen,
+	ort,
+	tiefe,
+}: ZeileAnsicht) => (
 	<div
 		role="option"
 		aria-selected={gewaehlt}
@@ -188,13 +238,13 @@ export const Zeile = ({ benennt, blass, gewaehlt, haken, klappe, menue, objekt, 
 		{...(objekt.istOrdner ? { 'data-ablage-ziel': objekt.ordner.id } : {})}
 		className={klassen(
 			'ablage-objekt',
-			LISTEN_RASTER,
+			listenRaster(mitMaterial, ort !== undefined),
 			'h-[var(--hoehe-listenzeile)] items-center rounded-md px-1 text-sm',
 			gewaehlt ? 'bg-brand-100' : 'hover:bg-flaeche-2',
 			blass && 'opacity-50',
 		)}
 	>
-		<div className="flex min-w-0 items-center gap-1.5" style={{ paddingLeft: tiefe * 16 }}>
+		<div className="flex min-w-0 items-center gap-1.5 pr-3" style={{ paddingLeft: tiefe * 16 }}>
 			{haken && <Haken an={gewaehlt} />}
 			{klappe ? (
 				<button
@@ -214,7 +264,7 @@ export const Zeile = ({ benennt, blass, gewaehlt, haken, klappe, menue, objekt, 
 				<span className="size-4 flex-none" />
 			)}
 			{objekt.istOrdner ? (
-				<span className="flex h-[26px] w-5 flex-none items-center justify-center">
+				<span className="flex h-[26px] w-5 flex-none items-center justify-center" data-zieh-griff>
 					<Symbol name="ordner" className="size-4 text-brand-500" />
 				</span>
 			) : (
@@ -222,6 +272,7 @@ export const Zeile = ({ benennt, blass, gewaehlt, haken, klappe, menue, objekt, 
 					dok={objekt.dok}
 					token={null}
 					className="relative h-[26px] w-5 rounded-[2px] border border-rand"
+					data-zieh-griff=""
 				/>
 			)}
 			<div className="min-w-0 flex-1">
@@ -229,7 +280,7 @@ export const Zeile = ({ benennt, blass, gewaehlt, haken, klappe, menue, objekt, 
 					<NamensFeld objekt={objekt} />
 				) : (
 					<span className="flex min-w-0 items-center gap-1.5" data-objekt-name>
-						<span className="truncate">{objekt.name}</span>
+						<Gekuerzt text={objekt.name} data-zieh-griff />
 						{!objekt.istOrdner && objekt.dok.meta.status === 'entwurf' && <Marke>Entwurf</Marke>}
 						{objekt.geteilt && <GeteiltMarke />}
 					</span>
@@ -237,17 +288,25 @@ export const Zeile = ({ benennt, blass, gewaehlt, haken, klappe, menue, objekt, 
 			</div>
 			<FingerMenue menue={menue} name={objekt.name} />
 		</div>
-		<span className="truncate text-xs text-leise">{datum(objekt.geaendert).replace(/ \d{4}$/, '')}</span>
-		<span className="truncate pr-2 text-xs text-leise">{ort ?? (objekt.istOrdner ? 'Ordner' : objekt.art)}</span>
-		<span className="truncate text-xs text-leise @max-3xl:hidden">
-			{objekt.istOrdner ? STRICH : FACH_NAME[objekt.dok.fach]}
-		</span>
-		<span className="truncate text-xs text-leise @max-4xl:hidden">
-			{objekt.istOrdner ? STRICH : klasseName(objekt.dok.klasse).replace('Klasse ', '')}
-		</span>
-		<span className="truncate text-xs text-leise @max-4xl:hidden">
-			{objekt.istOrdner ? STRICH : FORMAT_NAME[objekt.dok.meta.format]}
-		</span>
+		<span className="truncate text-xs text-leise">{geaendertText(objekt.geaendert)}</span>
+		{ort ? (
+			<OrtText ort={ort} className="pr-2 text-xs text-leise" />
+		) : (
+			<span className="truncate pr-2 text-xs text-leise">{objekt.istOrdner ? 'Ordner' : objekt.art}</span>
+		)}
+		{mitMaterial && (
+			<>
+				<span className="truncate text-xs text-leise @max-3xl:hidden">
+					{objekt.istOrdner ? STRICH : FACH_NAME[objekt.dok.fach]}
+				</span>
+				<span className="truncate text-xs text-leise @max-4xl:hidden">
+					{objekt.istOrdner ? STRICH : klasseName(objekt.dok.klasse).replace('Klasse ', '')}
+				</span>
+				<span className="truncate text-xs text-leise @max-4xl:hidden">
+					{objekt.istOrdner ? STRICH : FORMAT_NAME[objekt.dok.meta.format]}
+				</span>
+			</>
+		)}
 		<span className="truncate text-xs text-leise @max-4xl:hidden">
 			{objekt.istOrdner ? inhaltText(objekt.inhalt) : seitenText(objekt.dok.meta.seiten)}
 		</span>

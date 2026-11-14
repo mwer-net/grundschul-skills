@@ -1,4 +1,5 @@
 import { readFileSync } from 'node:fs';
+import { readFile, stat } from 'node:fs/promises';
 import path from 'node:path';
 import { runInNewContext } from 'node:vm';
 
@@ -63,4 +64,45 @@ export const wuerfleNeu = (quelle: string, seed: string) => {
 		}
 	}
 	return { quelle: neu, geaendert };
+};
+
+/**
+ * Ob `wuerfleNeu` an dieser Quelle etwas ändern würde: dieselbe Frage, ohne zu würfeln. Die Ablage zeigt „Variante mit
+ * neuen Zahlen“ nur dort (188-33).
+ */
+export const wuerfelbar = (quelle: string) => {
+	try {
+		const z = zerlege(quelle);
+		return z.knoten.some((k, nr) => {
+			const schema = schemaVon(k.tag);
+			if (!schema) {
+				return false;
+			}
+			if (schema.felder.some((f) => f.art === 'mischen')) {
+				return true;
+			}
+			const zahlen = kerne().neueZahlen(k.tag, werteVon(schema, k, z), `pruefen|${nr}`);
+			return zahlen !== null && Object.keys(zahlen).length > 0;
+		});
+	} catch {
+		return false;
+	}
+};
+
+const GEMERKT = new Map<string, { zeit: number; wert: boolean }>();
+
+/** `wuerfelbar` für eine Datei, gemerkt bis zur nächsten Änderung: Die Ablage fragt bei jedem Laden. */
+export const istWuerfelbar = async (datei: string) => {
+	try {
+		const { mtimeMs } = await stat(datei);
+		const gemerkt = GEMERKT.get(datei);
+		if (gemerkt !== undefined && gemerkt.zeit === mtimeMs) {
+			return gemerkt.wert;
+		}
+		const wert = wuerfelbar(await readFile(datei, 'utf8'));
+		GEMERKT.set(datei, { zeit: mtimeMs, wert });
+		return wert;
+	} catch {
+		return false;
+	}
 };

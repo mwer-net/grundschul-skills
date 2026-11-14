@@ -8,6 +8,7 @@ import { istMac } from '../bausteine/kuerzel';
 import { useZeigeMenue } from '../bausteine/menue-kontext';
 import { Zustand } from '../bausteine/Zustand';
 import { useTitel } from '../lib/titel';
+import { PdfLaeuft } from '../pdf/PdfKnopf';
 import { AblageInhalt } from './AblageInhalt';
 import type { AuswahlStand } from './auswahl';
 import { bereinige, KEINE, klicke } from './auswahl';
@@ -17,6 +18,7 @@ import {
 	kinder,
 	objekteZahl,
 	ordnerObjekt,
+	ortKurz,
 	ortName,
 	pfadVon,
 	suche,
@@ -45,15 +47,27 @@ const UMBENENNEN_MS = 500;
 
 const SEITEN_TITEL = { zuletzt: 'Zuletzt geändert', suche: 'Suche', papierkorb: 'Papierkorb' };
 
-const Statuszeile = ({ gesamt, gewaehlt, status }: { gesamt: number; gewaehlt: number; status: ReactNode }) => {
-	const anzahlText = gewaehlt > 0 ? `${gewaehlt} von ${objekteZahl(gesamt)} ausgewählt` : objekteZahl(gesamt);
+/** „6 Objekte“, „1 von 6 ausgewählt“ (188-14); in der Suche „7 Treffer“ (189-25). Fehlt der Ordner, steht nichts da. */
+const Statuszeile = ({
+	gesamt,
+	gewaehlt,
+	status,
+	treffer,
+}: {
+	gesamt: number | null;
+	gewaehlt: number;
+	status: ReactNode;
+	treffer: boolean;
+}) => {
+	const ohneAuswahl = treffer ? `${gesamt} Treffer` : objekteZahl(gesamt ?? 0);
+	const anzahlText = gewaehlt > 0 ? `${gewaehlt} von ${gesamt} ausgewählt` : ohneAuswahl;
 	return (
 		<div
-			className="sticky bottom-0 flex h-6 flex-none items-center border-t border-rand bg-flaeche px-3 text-xs text-leise"
+			className="sticky bottom-0 flex h-6 flex-none items-center gap-1.5 border-t border-rand bg-flaeche px-3 text-xs text-leise"
 			aria-live="polite"
 			data-statuszeile
 		>
-			{status ?? anzahlText}
+			{status ?? (gesamt === null ? null : anzahlText)}
 		</div>
 	);
 };
@@ -122,7 +136,14 @@ export const Ablage = () => {
 		() => (gesetzt && gesetzt.ordner === (hier?.id ?? null) ? gesetzt.sortierung : leseSortierung(hier)),
 		[gesetzt, hier],
 	);
-	useTitel(seite.art === 'ordner' ? (hier?.name ?? undefined) : SEITEN_TITEL[seite.art]);
+	const suchwort = seite.art === 'suche' ? (parameter.get('q') ?? '').trim() : '';
+	useTitel(
+		seite.art === 'ordner'
+			? (hier?.name ?? (seite.ordner === null ? WURZEL_NAME : undefined))
+			: suchwort
+				? `„${suchwort}“ – Suche`
+				: SEITEN_TITEL[seite.art],
+	);
 
 	const klappeBaum = useCallback((id: string, an?: boolean) => {
 		setOffenBaum((alt) => {
@@ -228,7 +249,13 @@ export const Ablage = () => {
 		return je;
 	}, [darstellung, objekte, stand]);
 	const reihenfolge = useMemo(() => objekte.map((o) => o.schluessel), [objekte]);
-	useEffect(() => setAuswahl((a) => bereinige(a, reihenfolge)), [reihenfolge]);
+	// Solange die Ablage lädt, gibt es noch nichts zu bereinigen: Sonst ginge die gemerkte Auswahl verloren (188-39).
+	const geladen = stand !== null;
+	useEffect(() => {
+		if (geladen) {
+			setAuswahl((a) => bereinige(a, reihenfolge));
+		}
+	}, [geladen, reihenfolge]);
 	// Ziehen und Lasso starten auf der Fläche: Dabei darf nirgends Text markiert werden.
 	useEffect(() => {
 		const beimMarkieren = (e: Event) => {
@@ -243,7 +270,18 @@ export const Ablage = () => {
 
 	// Auswahl und Scrollstand je Verlaufseintrag: Zurück führt an dieselbe Stelle.
 	const kommend = useRef<string[] | null>(null);
+	// Nach ⌘Z ist das Zurückgeholte gewählt, sofern es hier liegt (188-26). Steht vor dem Effekt, der es wählt.
+	const { zurueckgeholt } = useAblage();
 	useEffect(() => {
+		if (zurueckgeholt) {
+			kommend.current = zurueckgeholt.schluessel;
+		}
+	}, [zurueckgeholt]);
+	useEffect(() => {
+		// Zurück aus Editor oder Präsentation lädt die Ablage neu: Auswahl und Rollstand erst, wenn sie da ist.
+		if (!geladen) {
+			return;
+		}
 		const gemerkt = sessionStorage.getItem(`${STELLE}${pathname}${search}`);
 		const { gewaehlt = [], scroll = 0 } = (gemerkt ? JSON.parse(gemerkt) : {}) as {
 			gewaehlt?: string[];
@@ -252,7 +290,7 @@ export const Ablage = () => {
 		setAuswahl({ gewaehlt, anker: gewaehlt[0] ?? null });
 		setHaken(false);
 		window.scrollTo(0, scroll);
-	}, [key, pathname, search]);
+	}, [geladen, key, pathname, search]);
 	// Was gerade entstand oder woher man kam, wird gewählt und sichtbar, sobald es da ist.
 	useEffect(() => {
 		const liste = kommend.current;
@@ -265,10 +303,13 @@ export const Ablage = () => {
 			);
 		}
 	}, [key, reihenfolge]);
-	const stelle = useRef({ auswahl, pathname, search });
-	stelle.current = { auswahl, pathname, search };
+	const stelle = useRef({ auswahl, pathname, search, geladen });
+	stelle.current = { auswahl, pathname, search, geladen };
 	const merkeStelle = useCallback(() => {
-		const { auswahl: a, pathname: p, search: s } = stelle.current;
+		const { auswahl: a, geladen: da, pathname: p, search: s } = stelle.current;
+		if (!da) {
+			return;
+		}
 		sessionStorage.setItem(`${STELLE}${p}${s}`, JSON.stringify({ gewaehlt: a.gewaehlt, scroll: window.scrollY }));
 	}, []);
 	useEffect(() => {
@@ -330,7 +371,12 @@ export const Ablage = () => {
 				return !an;
 			}),
 		spalten,
-		sucheFokus: () => document.querySelector<HTMLInputElement>('[data-suchfeld]')?.focus(),
+		sucheFokus: () => {
+			const feld = document.querySelector<HTMLInputElement>('[data-suchfeld]');
+			feld?.focus();
+			feld?.select();
+		},
+		gesperrt: ordnerFehlt,
 	});
 	const { fuehreAus, gewaehlteObjekte, lageFuer, menueFuer, zeiger } = befehle;
 
@@ -467,7 +513,19 @@ export const Ablage = () => {
 				<p className="text-leise">{fehler}</p>
 				<Knopf onClick={neuLaden}>Noch einmal versuchen</Knopf>
 			</Zustand>
-		) : null;
+		) : (
+			// Das Gerüst steht sofort, leer; der Inhalt füllt sich, ohne dass etwas springt (188-29).
+			<div className="-mx-4 -mt-3 -mb-16 flex min-h-[calc(100dvh-var(--kopf,0px))]" data-ablage data-laedt>
+				{leisteAn && (
+					<div className="sticky top-[var(--kopf,0px)] h-[calc(100dvh-var(--kopf,0px))] w-[220px] flex-none border-r border-rand bg-flaeche" />
+				)}
+				<div className="flex min-w-0 flex-1 flex-col">
+					<div className="h-[var(--hoehe-werkzeug)] flex-none border-b border-rand bg-flaeche" />
+					<div className="flex-1" />
+					<div className="sticky bottom-0 h-6 flex-none border-t border-rand bg-flaeche" />
+				</div>
+			</div>
+		);
 	}
 
 	const fremd = seite.art !== 'ordner';
@@ -476,7 +534,10 @@ export const Ablage = () => {
 			'ordner' in k ? k.ordner : `${k.mappe}/${k.dok}`,
 		),
 	);
-	const ortVon = (o: Objekt) => (fremd ? ortName(stand, o.istOrdner ? o.ordner.eltern : o.dok.ordner) : undefined);
+	const ortVon = (o: Objekt) => {
+		const id = o.istOrdner ? o.ordner.eltern : o.dok.ordner;
+		return fremd ? { kurz: ortKurz(stand, id), voll: ortName(stand, id) } : undefined;
+	};
 	const ansicht = ({ objekt, tiefe }: { objekt: Objekt; tiefe: number }) => {
 		const ort = ortVon(objekt);
 		const vorne = objekt.istOrdner ? vorneJe.get(objekt.ordner.id) : undefined;
@@ -495,7 +556,6 @@ export const Ablage = () => {
 			...(vorne === undefined ? {} : { vorne }),
 		};
 	};
-	const dieseLeiste = (id: string) => () => fuehreAus(id, lageFuer(gewaehlteObjekte));
 	const ziehtHier = seite.art === 'ordner';
 	const flaeche = {
 		'role': 'listbox',
@@ -539,24 +599,22 @@ export const Ablage = () => {
 					haken={haken}
 					setHaken={setHaken}
 					setKeineAuswahl={() => setAuswahl(KEINE)}
-					hier={hier}
 					leisteAn={leisteAn}
 					pfad={pfad}
 					seite={seite}
 					sortierung={sortierung}
 					sortiere={sortiere}
 				/>
-				{seite.art === 'suche' && <Suchleiste stand={stand} anzahl={objekte.length} />}
+				{seite.art === 'suche' && <Suchleiste stand={stand} />}
 				<div
 					ref={inhalt}
 					className="relative flex-1 p-3"
 					{...(ziehtHier ? { 'data-ablage-ziel': hier?.id ?? 'wurzel', 'data-flaeche': true } : {})}
-					{...(seite.art === 'papierkorb' ? {} : flaeche)}
+					{...(seite.art === 'papierkorb' || ordnerFehlt ? {} : flaeche)}
 				>
 					<AblageInhalt
 						ansicht={ansicht}
 						darstellung={darstellung}
-						dieseLeiste={dieseLeiste}
 						hier={hier}
 						klappeAlle={klappeAlle}
 						klappeListe={klappeListe}
@@ -574,7 +632,12 @@ export const Ablage = () => {
 					)}
 				</div>
 				{seite.art !== 'papierkorb' && (
-					<Statuszeile status={ziehen.status} gewaehlt={auswahl.gewaehlt.length} gesamt={objekte.length} />
+					<Statuszeile
+						status={ziehen.status ?? (befehle.pdfLaeuft ? <PdfLaeuft /> : null)}
+						gewaehlt={auswahl.gewaehlt.length}
+						gesamt={ordnerFehlt ? null : objekte.length}
+						treffer={seite.art === 'suche'}
+					/>
 				)}
 			</div>
 			{befehle.dialoge}
