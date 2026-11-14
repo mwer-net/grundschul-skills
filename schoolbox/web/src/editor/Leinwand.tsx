@@ -742,7 +742,20 @@ export const Leinwand = ({
 		};
 	}, [anker, skala, links, zoom, vorschau]);
 
-	const gewaehlt = doc && auswahl !== null ? elementZu(doc, auswahl) : null;
+	const ausgewaehlt = doc && auswahl !== null ? elementZu(doc, auswahl) : null;
+	// 194-20: In der Textsitzung umfasst der Rahmen den Absatz mit der Schreibmarke, auch einen eben neu entstandenen.
+	// Hat ein Werkzeug außerhalb den Fokus (Schnellauswahl nach „/“, 194-33), bleibt die Auswahl im Blatt stehen.
+	const marke = doc?.getSelection()?.anchorNode;
+	const schreibt =
+		doc?.activeElement?.closest?.('[contenteditable="true"]') ??
+		(marke?.nodeType === 3 ? marke.parentElement : (marke as Element | null | undefined))?.closest?.(
+			'[contenteditable="true"]',
+		) ??
+		null;
+	const gewaehlt =
+		ausgewaehlt && schreibt && schreibt !== ausgewaehlt && schreibt.parentElement === ausgewaehlt.parentElement
+			? schreibt
+			: ausgewaehlt;
 	// 194-09: Ein Element ohne Fläche (ausgeblendet, leer) bekommt keinen Rahmen links oben in der Ecke.
 	const flaeche = Boolean(gewaehlt && gewaehlt.getClientRects().length > 0);
 	const box = flaeche ? gewaehlt?.getBoundingClientRect() : undefined;
@@ -794,7 +807,7 @@ export const Leinwand = ({
 				{hover && doc && !zieht && !nurAnsehen && (
 					<Hoverrahmen ziel={hover} doc={doc} auswahl={auswahl} links={links} skala={skala} />
 				)}
-				{box && gewaehlt && flaeche && nrVon(gewaehlt) !== null && !zieht && (
+				{box && gewaehlt && flaeche && ausgewaehlt && nrVon(ausgewaehlt) !== null && !zieht && (
 					<div
 						ref={auswahlRahmen}
 						className="pointer-events-none absolute rounded-[2px] border-[1.5px] border-brand-500"
@@ -822,7 +835,7 @@ export const Leinwand = ({
 				/>
 				{!nurAnsehen && (
 					<Griffe
-						gewaehlt={gewaehlt}
+						gewaehlt={ausgewaehlt}
 						groesse={groesse?.nr === auswahl && !gestaltung ? groesse : null}
 						links={links}
 						skala={skala}

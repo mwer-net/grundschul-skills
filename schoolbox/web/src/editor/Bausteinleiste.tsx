@@ -11,10 +11,11 @@ import { SymbolKnopf } from '../bausteine/SymbolKnopf';
 import { BEFEHLE, kannVerschieben, kuerzelIm, kuerzelText, titelVon } from './befehle';
 import { ClaudeKnopf } from './ClaudeKnopf';
 import type { PfadTeil } from './darstellung';
+import { elementZu } from './darstellung';
 import { DREH_ABSTAND } from './gestaltung/auswahlrahmen';
 import { istGestaltungAuswahl } from './gestaltung/inspektor/kontext-ersatz';
 import type { Einblendung } from './Leinwand';
-import { fokusZurueckInsBlatt, lageDerLeiste } from './leistenlage';
+import { fokusZurueckInsBlatt, lageDerLeiste, LEISTEN_ABSTAND, raumFuerLeiste } from './leistenlage';
 import { useSichtfeld } from './sichtfeld';
 import type { Struktur } from './struktur';
 import type { useText } from './text';
@@ -74,68 +75,54 @@ const tastenInLeiste = (ereignis: KeyboardEvent<HTMLDivElement>, doc: Document) 
 	alle[(alle.indexOf(ziel) + schritt + alle.length) % alle.length]?.focus();
 };
 
-/** Was die Leiste beim Wechsel in die Textsitzung festhält, damit die Schriftknöpfe nicht springen. */
+/**
+ * Was die Leiste vor der Textsitzung war: ihre Breite und ob sie unter dem Element stand. Daraus folgt in der
+ * Sitzung die rechte Kante (204-15) und die Seite (204-N04), solange derselbe Baustein gewählt ist.
+ */
 interface Fest {
 	nr: number | null;
-	rechts: number;
-	pfeile: boolean;
-	claude: boolean;
-	duplizieren: boolean;
-	loeschen: boolean;
+	breite: number;
+	unter: boolean;
 }
 
-const KEIN_PLATZ: Fest = { nr: null, rechts: 0, pfeile: false, claude: false, duplizieren: false, loeschen: false };
+const KEIN_PLATZ: Fest = { nr: null, breite: 0, unter: false };
 
 const da = (befehle: Befehle, id: string) =>
 	Boolean(BEFEHLE.find((b) => b.id === id)?.verfuegbar(befehle.jetzt.current));
 
-
-/**
- * Ende der Leiste: Duplizieren, Löschen, ⋯; in der Sitzung „Fertig“ an derselben Stelle. Beide liegen übereinander
- * in einer Zelle, das jeweils andere unsichtbar: So ist die Leiste in beiden Zuständen gleich breit (204-15).
- */
+/** Ende der Leiste: Duplizieren, Löschen, ⋯; in der Textsitzung nur „Fertig“ (204-N01). */
 const LeistenEnde = ({
 	befehle,
 	fokusDanach,
-	platz,
 	seite,
+	sitzung,
 	text,
 	trenner,
 }: Pick<Eigenschaften, 'befehle' | 'text'> & {
 	fokusDanach: { current: HTMLElement | null };
-	platz: Fest | null;
 	seite: boolean;
+	sitzung: boolean;
 	trenner: boolean;
-}) => (
-	<span className="grid flex-none items-center *:col-start-1 *:row-start-1">
-		<span className={klassen('flex items-center gap-0.5', platz && 'invisible')} data-leiste-ende>
+}) =>
+	sitzung ? (
+		<>
 			{trenner && <Trenner />}
-			{(!platz || platz.duplizieren) && (
-				<BefehlKnopf platz={Boolean(platz)} befehle={befehle} id="auswahl.duplizieren" />
-			)}
-			{(!platz || platz.loeschen) && (
-				<BefehlKnopf platz={Boolean(platz)} befehle={befehle} id="auswahl.loeschen" />
-			)}
-			{platz ? (
-				<span className="size-knopf-klein flex-none" />
-			) : (
-				<Menue
-					name="Mehr zu diesem Baustein"
-					rechtsbuendig
-					ausloeser={MEHR_KNOPF}
-					eintraege={befehle.menue(seite ? 'seite' : 'baustein')}
-					fokusDanach={fokusDanach}
-				/>
-			)}
+			<TextFertig text={text} />
+		</>
+	) : (
+		<span className="flex flex-none items-center gap-0.5" data-leiste-ende>
+			{trenner && <Trenner />}
+			<BefehlKnopf befehle={befehle} id="auswahl.duplizieren" />
+			<BefehlKnopf befehle={befehle} id="auswahl.loeschen" />
+			<Menue
+				name="Mehr zu diesem Baustein"
+				rechtsbuendig
+				ausloeser={MEHR_KNOPF}
+				eintraege={befehle.menue(seite ? 'seite' : 'baustein')}
+				fokusDanach={fokusDanach}
+			/>
 		</span>
-		{platz && (
-			<span className="flex items-center justify-end gap-0.5">
-				{trenner && <Trenner />}
-				<TextFertig text={text} />
-			</span>
-		)}
-	</span>
-);
+	);
 
 const boxAufLeinwand = (e: Eigenschaften['e']) =>
 	e.box
@@ -179,23 +166,24 @@ export const Bausteinleiste = ({ befehle, e, pfad, struktur, text }: Eigenschaft
 
 	const { baustein, name } = gewaehlt;
 	// 204-15: Am Gestaltungselement steht die Leiste wie dessen eigene über dem Drehgriff.
-	const lage = lageDerLeiste(box, mass, sicht, gestaltung ? DREH_ABSTAND : 0);
-	const pfeile = kannVerschieben(befehle.jetzt.current);
-	// 194-13: Neu gemessen, sobald ein anderer Baustein gewählt ist, auch mitten in der Sitzung (Tab in der Tabelle).
-	if (!sitzung || fest.current.nr !== nr) {
-		fest.current = {
-			nr,
-			rechts: lage.links + mass.breite,
-			pfeile,
-			claude: da(befehle, 'auswahl.claude'),
-			duplizieren: da(befehle, 'auswahl.duplizieren'),
-			loeschen: da(befehle, 'auswahl.loeschen'),
-		};
+	const frei = gestaltung ? DREH_ABSTAND : 0;
+	const element = elementZu(e.doc, nr);
+	const bleibt = sitzung && fest.current.nr === nr;
+	// 204-N04: darunter, wenn sie darüber Inhalt verdecken würde und darunter Platz ist; in der Sitzung wie vorher.
+	const breite = bleibt ? fest.current.breite : mass.breite;
+	const waagerecht = lageDerLeiste(box, { breite, hoehe: mass.hoehe }, sicht, frei);
+	const raum = element && e.box ? raumFuerLeiste(e, e.box, waagerecht.links, breite, [element]) : null;
+	const vorher = lageDerLeiste(box, { breite, hoehe: mass.hoehe }, sicht, frei, raum, bleibt ? fest.current.unter : null);
+	if (!sitzung) {
+		fest.current = { nr, breite: mass.breite, unter: vorher.unter };
 	}
-	const platz = sitzung ? fest.current : null;
-	const links = platz ? platz.rechts - mass.breite : lage.links;
-	const claude = platz ? platz.claude : da(befehle, 'auswahl.claude');
-	const mitPfeilen = platz ? platz.pfeile : pfeile;
+	// 204-15: In der Sitzung bleibt die rechte Kante; 194-13: nach Tab gilt die Regel an der neuen Zelle.
+	const links = bleibt
+		? Math.max(sicht.links + LEISTEN_ABSTAND, vorher.links + fest.current.breite - mass.breite)
+		: vorher.links;
+	const top = vorher.top;
+	const claude = !sitzung && da(befehle, 'auswahl.claude');
+	const mitPfeilen = !sitzung && kannVerschieben(befehle.jetzt.current);
 	const mitText = kann(baustein, 'text');
 	// Nach dem Schreiben geht der Fokus nach einem Menü ins Blatt zurück, nicht auf ⋯ (204-13).
 	const blatt = { current: (e.doc.defaultView?.frameElement as HTMLElement | null | undefined) ?? null };
@@ -211,13 +199,13 @@ export const Bausteinleiste = ({ befehle, e, pfad, struktur, text }: Eigenschaft
 			aria-label={`Leiste für ${name}`}
 			data-bausteinleiste={baustein.art}
 			{...(sitzung ? { 'data-textbearbeitung': '' } : {})}
-			style={{ left: links, top: lage.top }}
+			style={{ left: links, top }}
 			onKeyDown={(ereignis) => tastenInLeiste(ereignis, e.doc)}
 			onClick={(ereignis) => fokusZurueckInsBlatt(ereignis, e.doc)}
 		>
-			{claude && <ClaudeKnopf befehle={befehle} platzhalter={sitzung} />}
+			{claude && <ClaudeKnopf befehle={befehle} />}
 			{mitPfeilen && (
-				<span className={klassen('flex items-center', sitzung && 'invisible')}>
+				<span className="flex items-center">
 					{claude && <Trenner />}
 					<BefehlKnopf platz befehle={befehle} id="auswahl.hoch" />
 					<BefehlKnopf platz befehle={befehle} id="auswahl.runter" />
@@ -232,8 +220,8 @@ export const Bausteinleiste = ({ befehle, e, pfad, struktur, text }: Eigenschaft
 			<LeistenEnde
 				befehle={befehle}
 				fokusDanach={blatt}
-				platz={platz}
 				seite={baustein.art === 'seite'}
+				sitzung={sitzung}
 				text={text}
 				trenner={claude || mitPfeilen || mitText}
 			/>

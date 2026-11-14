@@ -9,8 +9,9 @@ import { SymbolKnopf } from '../../../bausteine/SymbolKnopf';
 import { BEFEHLE, kuerzelIm, kuerzelText, titelVon } from '../../befehle';
 import { ClaudeKnopf } from '../../ClaudeKnopf';
 import type { PfadTeil } from '../../darstellung';
+import { elementZu } from '../../darstellung';
 import type { Einblendung } from '../../Leinwand';
-import { fokusZurueckInsBlatt, lageDerLeiste } from '../../leistenlage';
+import { fokusZurueckInsBlatt, lageDerLeiste, raumFuerLeiste } from '../../leistenlage';
 import { useSichtfeld } from '../../sichtfeld';
 import type { Struktur } from '../../struktur';
 import type { Befehle } from '../../useBefehle';
@@ -106,7 +107,11 @@ export const Leiste = ({ befehle, e, pfad, quelle, sitzung, struktur }: Eigensch
 		unten: e.box.bottom * e.skala,
 	};
 	// 204-15: dieselbe Regel wie an der Bausteinleiste, über dem Drehgriff.
-	const { links, top } = lageDerLeiste(box, mass, sicht, DREH_ABSTAND);
+	// 204-N04: unter das Element, wenn die Leiste darüber Inhalt verdecken würde und darunter Platz ist.
+	const waagerecht = lageDerLeiste(box, mass, sicht, DREH_ABSTAND);
+	const eigen = k.nrn.flatMap((nr) => elementZu(e.doc, nr) ?? []);
+	const raum = raumFuerLeiste(e, e.box, waagerecht.links, mass.breite, eigen);
+	const { links, top } = lageDerLeiste(box, mass, sicht, DREH_ABSTAND, raum);
 	const mehrfach = k.nrn.length > 1; // 113
 	const Knoepfe = LEISTEN[mehrfach ? 'mehrfach' : k.art] ?? null;
 	const name = pfad.at(-1)?.name ?? k.baustein.name;
