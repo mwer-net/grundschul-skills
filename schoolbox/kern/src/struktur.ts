@@ -116,17 +116,56 @@ const positionNach = (aenderungen: Aenderung[], a: Aenderung, versatz: number) =
 		a.von + versatz,
 	);
 
+const SCHRITT = 'data-schritt';
+
+/**
+ * Zählt die Schritte (`data-schritt`) der Folie neu, in der `nr` steht (192-16): Die verschiedenen Zahlen werden in
+ * der Reihenfolge ihres ersten Vorkommens zu 1 … n. Was vorher dieselbe Zahl hatte, behält eine gemeinsame; `kopie`:
+ * `nr` ist eine Kopie, ihre Schritte bekommen eigene Zahlen und erscheinen nicht mehr mit dem Vorbild. Andere Folien
+ * bleiben, wie sie sind. Ändert nur Attributwerte, die Nummern der Elemente bleiben.
+ */
+export const ordneSchritte = (quelle: string, nr: number | null, kopie = false) => {
+	const z = zerlege(quelle);
+	const k = nr === null ? undefined : z.knoten[nr];
+	const seite = k && (hat(k, 'seite') ? k : seiteVon(k));
+	if (!k || !seite) {
+		return quelle;
+	}
+	const zahl = (x: Knoten) => {
+		const wert = attribut(x, SCHRITT)?.wert?.trim() ?? '';
+		return /^\d+$/.test(wert) ? wert : null;
+	};
+	const schritte = z.knoten.filter((x) => x !== seite && enthaelt(seite, x) && zahl(x) !== null);
+	const neu = new Map<string, number>();
+	const aenderungen: Aenderung[] = [];
+	for (const x of schritte) {
+		const schluessel = `${kopie && enthaelt(k, x) ? 'kopie' : 'alt'}:${zahl(x) ?? ''}`;
+		if (!neu.has(schluessel)) {
+			neu.set(schluessel, neu.size + 1);
+		}
+		const wert = String(neu.get(schluessel));
+		if (wert !== zahl(x)) {
+			aenderungen.push(...setzeAttribut(z, x, SCHRITT, wert));
+		}
+	}
+	return aenderungen.length > 0 ? wendeAn(quelle, aenderungen) : quelle;
+};
+
 const ergebnis = (
 	quelle: string,
 	aenderungen: Aenderung[],
 	eingefuegt: Aenderung | undefined,
 	n: Nummerierung,
+	kopie = false,
 ): StrukturErgebnis => {
-	const neu = wendeAn(quelle, aenderungen);
+	let neu = wendeAn(quelle, aenderungen);
 	let nr: number | null = null;
 	if (eingefuegt) {
 		const start = positionNach(aenderungen, eingefuegt, eingefuegt.text.indexOf('<'));
 		nr = zerlege(neu).knoten.find((k) => k.start === start)?.nr ?? null;
+	}
+	if (n.jeSeite) {
+		neu = ordneSchritte(neu, nr, kopie);
 	}
 	// Neu zählen ändert nur Text in den Nummern, die Elemente und ihre Nummern im Editor bleiben dieselben.
 	return { quelle: nummeriere(neu, n), nr };
@@ -245,7 +284,8 @@ export const dupliziereBaustein = (quelle: string, nr: number, n: Nummerierung) 
 	const kopie = blatt.length > 1 ? blattText(z, blatt, letzte) : quelleVon(z, k);
 	const neu = neueIdsInGestaltung(kopie, quelle);
 	const aenderungen = neu === kopie && blatt.length === 1 ? dupliziere(z, k) : fuegeEin(z, letzte, 'nach', neu);
-	return ergebnis(quelle, aenderungen, aenderungen[0], n);
+	// Eine ganze Folie zu kopieren, behält deren Schritte; nur eine Kopie in derselben Folie zählt eigen (192-16).
+	return ergebnis(quelle, aenderungen, aenderungen[0], n, !hat(k, 'seite'));
 };
 
 export const loescheBaustein = (quelle: string, nr: number, n: Nummerierung) => {
@@ -273,7 +313,9 @@ export const loescheBaustein = (quelle: string, nr: number, n: Nummerierung) => 
 	}
 	// Dahinter rückt alles um das Gelöschte samt Inhalt auf.
 	const weg = z.knoten.length - zerlege(neu.quelle).knoten.length;
-	return { ...neu, nr: folge.nr > k.nr ? folge.nr - weg : folge.nr };
+	const danach = folge.nr > k.nr ? folge.nr - weg : folge.nr;
+	// Eine Lücke in den Schritten der Folie schließt sich (192-16).
+	return { quelle: n.jeSeite && !hat(k, 'seite') ? ordneSchritte(neu.quelle, danach) : neu.quelle, nr: danach };
 };
 
 /** `data-weiter="auto"` wird `data-weiter`: Die Seite gilt als fest (Regel 20). */

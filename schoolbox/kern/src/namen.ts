@@ -88,14 +88,18 @@ export const pdfDateiname = (
 const FOLIEN_DATEINAME: Record<FolienVariante, { zusatz: string; endung: string }> = {
 	schritte: { zusatz: 'Präsentation mit Schritten', endung: 'pdf' },
 	notizen: { zusatz: 'Folien mit Notizen', endung: 'pdf' },
-	praesentation: { zusatz: 'Präsentation', endung: 'html' },
+	// Die Datei für unterwegs heißt nicht wie das einfache PDF (192-15).
+	praesentation: { zusatz: 'Offline-Präsentation', endung: 'html' },
 };
 
 /** „… – Arbeitsblatt (schwarz-weiß).pdf“: Beide Ansichten lassen sich nebeneinander speichern. */
 const mitProfil = (name: string, profil: Druckprofil | undefined) =>
 	profil === 'sw' ? name.replace(/\.(\w+)$/, ' (schwarz-weiß).$1') : name;
 
-/** Wie `pdfDateiname`, dazu „… – Präsentation mit Schritten.pdf“, „… – Folien mit Notizen.pdf“, „… – Präsentation.html“. */
+/**
+ * Wie `pdfDateiname`, dazu „… – Präsentation mit Schritten.pdf“, „… – Folien mit Notizen.pdf“,
+ * „… – Offline-Präsentation.html“.
+ */
 export const ausgabeDateiname = (
 	mappe: { fach: Fach; klasse: Klasse },
 	dokument: { titel: string; art: Art },

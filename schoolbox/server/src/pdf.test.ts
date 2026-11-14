@@ -365,7 +365,7 @@ describe('PDF: Ablauf', () => {
 		assert.deepEqual(zusaetze.sort(), ['notizen', 'schritte']);
 		assert.equal(schritte.daten.dateiname, 'Kl2 Mathe Blatt – Präsentation mit Schritten.pdf');
 		assert.equal(notizen.daten.dateiname, 'Kl2 Mathe Blatt – Folien mit Notizen.pdf');
-		assert.equal(offline.daten.dateiname, 'Kl2 Mathe Blatt – Präsentation.html');
+		assert.equal(offline.daten.dateiname, 'Kl2 Mathe Blatt – Offline-Präsentation.html');
 		assert.deepEqual(schritte.daten.meldungen, []);
 		assert.deepEqual(notizen.daten.meldungen, [
 			{ stufe: 'FEHLER', seite: 1, text: NOTIZ_ZU_LANG, dok, titel: 'Blatt' },
