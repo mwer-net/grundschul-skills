@@ -75,7 +75,7 @@ export const GESTALTUNG_ARTEN: readonly GestaltungArt[] = [
 	{ art: 'kopfband', name: 'Kopfband', selektor: '.kopfband', faehigkeiten: ['fuellung'], ab: 'E1' },
 	{
 		art: 'flaeche',
-		name: 'Fläche',
+		name: 'Freie Fläche', // 203-15: „Fläche“ klang nach Geometrie
 		selektor: '.flaeche',
 		// Ein Block des Stapels wie ein Absatz (kein `ordnenIn`): Sie steht zwischen allen Bausteinen der Seite (115).
 		faehigkeiten: ['ordnen', 'duplizieren', 'loeschen', 'hoehe'],

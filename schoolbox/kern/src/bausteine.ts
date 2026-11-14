@@ -8,6 +8,8 @@ import type { Abbildung, KatalogAngaben } from './abbildungen';
 import { ABBILDUNG_SCHEMA } from './abbildungen';
 import { FIGUREN } from './figuren';
 import { GESTALTUNG_ARTEN } from './gestaltung-arten';
+import type { Art } from './werte';
+import { ARTEN } from './werte';
 
 export const FAEHIGKEITEN = [
 	/** Ziehen innerhalb des Elternelements bzw. der Seite (016). */
@@ -153,7 +155,7 @@ export const BAUSTEINE: readonly Baustein[] = [
 	},
 	{ art: 'namenszeile', name: 'Namenszeile', selektor: '.namenszeile', faehigkeiten: GRUND, ...KLEIN },
 	{ art: 'kopf', name: 'Kopf', selektor: '.kopf', faehigkeiten: GRUND, ...KLEIN },
-	{ art: 'fuss', name: 'Fuß', selektor: '.fuss', faehigkeiten: GRUND, ...KLEIN },
+	{ art: 'fuss', name: 'Selbsteinschätzung', selektor: '.fuss', faehigkeiten: GRUND, ...KLEIN }, // 203-15: hieß „Fuß“
 	{ art: 'reflexion', name: 'Reflexion', selektor: '.reflexion', faehigkeiten: GRUND, ...KLEIN },
 	{
 		art: 'reihe',
@@ -442,161 +444,224 @@ export interface KitEintrag extends KatalogAngaben {
 	klasse?: string;
 }
 
-/** Die Kit-Bausteine für den Katalog (`katalog.ts`). Starter stehen in `assets/muster/bausteine.html` (`data-katalog`). */
+const WILLI = '<img class="figur" src="bilder/willi.png" alt="Willi">';
+/** Platz für ein Bild auf der Bühne einer Folie, Maße wie in der Vorlage der Präsentation. */
+const BILDPLATZ = (h: number, b: number) => `<div class="platzhalter" style="--h:${h}px;width:${b}px">Bild</div>`;
+const SPALTE = '<div class="reihe" style="--spalten:1;width:620px">';
+const abstimmung = (buchstabe: string) => `<div class="vermutung"><span class="nr">${buchstabe}</span>Antwort</div>`;
+const schritt = (n: number, text: string) => `<div class="zelle links" data-schritt="${n}"><b>${text}</b></div>`;
+const lernaufgabe = (n: number, text: string) =>
+	`<div class="aufgabe"><span class="nr">${n}</span><div class="anw"><span class="text">${text}</span></div></div>`;
+const LESETEXT = [
+	'Hier steht dein Lesetext. Schreibe ihn selbst oder füge ihn ein.',
+	'Die Nummern am Rand zählt das Blatt von selbst, jede fünfte Zeile bekommt eine.',
+	'So finden die Kinder eine Stelle im Text schnell wieder.',
+	'Ein guter Lesetext hat kurze Sätze und bekannte Wörter.',
+	'Schwierige Wörter erklärst du in einem Wortspeicher oder unter dem Text.',
+	'Nach dem Lesen beantworten die Kinder eine Frage zum Text.',
+	'Die Frage steht in einer eigenen Aufgabe mit zwei Schreiblinien.',
+	'Weitere Fragen bekommst du mit „Duplizieren“ an der Aufgabe.',
+	'Mehr Linien stellst du an der Schreiblinie unter „Anzahl“ ein.',
+].join(' ');
+const RHYTHMEN = [
+	'takt="2/4" noten="4 8 8" silben="ta"',
+	'takt="3/4" noten="4 4 4" silben="ta"',
+	'takt="4/4" noten="2 4 4" silben="ta"',
+	'takt="2/4" noten="r4 4"',
+	'takt="3/4" noten="2."',
+	'takt="4/4" noten="4 r4 2"',
+	'takt="2/4" noten="8 8 8 8" silben="ta"',
+	'takt="4/4" noten="1" silben="ta"',
+];
+/** Materialarten mit Namenszeile und Selbsteinschätzung: alle außer Folien, Karten und Plakat (203-05). */
+const MIT_NAMENSZEILE: readonly Art[] = ARTEN.filter((a) => !['praesentation', 'karten', 'lernplakat'].includes(a));
+const KARTEN_ARTEN: readonly Art[] = ['karten', 'lernspiel', 'stationen'];
+
+/**
+ * Die Kit-Bausteine für den Katalog (`katalog.ts`). Starter stehen in `assets/muster/bausteine.html` (`data-katalog`);
+ * `html` setzt die Zusammensetzungen aus 203 aus vorhandenen Elementen und Klassen zusammen. Was nicht mehr angeboten
+ * wird (`angeboten: false`), bleibt hier: Andere Schubladen suchen nach der Kennung, `fuegeZusatzEin` nimmt den Starter.
+ */
 export const KIT_KATALOG: readonly KitEintrag[] = [
-	{
-		id: 'thema-band',
-		name: 'Band des Themas',
-		kategorie: 'Kopf und Rahmen',
-		suchbegriffe: ['Schmuck', 'Reihe', 'Thema'],
-		ort: 'seite',
-	},
-	{
-		id: 'thema-kopf',
-		name: 'Kopf des Themas',
-		kategorie: 'Kopf und Rahmen',
-		suchbegriffe: ['Titel', 'Reihe', 'Thema'],
-		ort: 'seite',
-	},
-	{
-		id: 'lesetext-zeilennummern',
-		name: 'Lesetext mit Zeilennummern',
-		kategorie: 'Sprache',
-		suchbegriffe: ['Absatz', 'Zeilen', 'Nummern', 'Lesen'],
-		ort: 'aufgabe',
-		faecher: ['deutsch'],
-	},
-	{
-		id: 'silbentext',
-		name: 'Silbentext',
-		kategorie: 'Sprache',
-		suchbegriffe: ['Silbenbögen', 'Lesen lernen', 'Text'],
-		ort: 'aufgabe',
-		faecher: ['deutsch'],
-	},
+	// Blatt
 	{
 		id: 'namenszeile',
 		name: 'Namenszeile',
-		kategorie: 'Kopf und Rahmen',
+		kategorie: 'Blatt',
 		suchbegriffe: ['Name', 'Datum'],
 		ort: 'seite',
+		arten: MIT_NAMENSZEILE,
 	},
-	{ id: 'kopf', name: 'Kopf', kategorie: 'Kopf und Rahmen', suchbegriffe: ['Titel', 'Überschrift'], ort: 'seite' },
+	{ id: 'kopf', name: 'Kopf', kategorie: 'Blatt', suchbegriffe: ['Titel', 'Überschrift', 'Lernziel', 'Wahlhilfe'], ort: 'seite' },
+	{ id: 'tipp', art: 'tipp', kategorie: 'Blatt', suchbegriffe: ['Leitfigur', 'Hilfe', 'Sprechblase', 'Willi'], ort: 'seite' },
+	{ id: 'platzhalter', art: 'platzhalter', kategorie: 'Blatt', suchbegriffe: ['Bild', 'Foto'], ort: 'aufgabe' },
+	// Fläche im Stapel: Platz zum freien Gestalten zwischen den Aufgaben (Briefing 3.7); Starter in `muster/bausteine.html`
 	{
-		id: 'ziel',
-		art: 'ziel',
-		kategorie: 'Kopf und Rahmen',
-		suchbegriffe: ['Ich-kann-Ziel', 'Lernziel'],
-		ort: 'zeile',
-	},
-	{
-		id: 'wahlhilfe',
-		art: 'wahlhilfe',
-		kategorie: 'Kopf und Rahmen',
-		suchbegriffe: ['Niveau', 'Wählen'],
-		ort: 'zeile',
+		id: 'flaeche',
+		art: 'flaeche',
+		kategorie: 'Blatt',
+		suchbegriffe: ['Fläche', 'Gestalten', 'Zeichnung', 'Freifläche', 'Stapel', 'Platz'],
+		ort: 'seite',
 	},
 	{
 		id: 'fuss',
-		name: 'Fuß',
-		kategorie: 'Kopf und Rahmen',
-		suchbegriffe: ['Selbsteinschätzung', 'Wachstum'],
+		art: 'fuss',
+		kategorie: 'Blatt',
+		suchbegriffe: ['Fuß', 'Reflexion', 'Was hat dir geholfen', 'Wachstum'],
 		ort: 'seite',
+		arten: MIT_NAMENSZEILE,
 	},
 	{
-		id: 'reflexion',
-		name: 'Reflexion',
-		kategorie: 'Selbstkontrolle',
-		suchbegriffe: ['Was hat dir geholfen'],
-		ort: 'zeile',
+		id: 'abschluss',
+		name: 'Punkte und Unterschrift',
+		kategorie: 'Blatt',
+		suchbegriffe: ['Gesamtpunkte', 'Unterschrift', 'Datum', 'Eltern', 'Bewertung'],
+		ort: 'seite',
+		arten: ['klassenarbeit', 'lernzielkontrolle'],
+		stelle: 'nach-letzter-aufgabe',
+		html: '<x-gesamtpunkte></x-gesamtpunkte><x-unterschrift felder="beides" text="Unterschrift der Eltern"></x-unterschrift>',
 	},
+	{
+		id: 'auswertung',
+		name: 'Auswertung für die Lehrkraft',
+		kategorie: 'Blatt',
+		suchbegriffe: ['Erwartungshorizont', 'Notenschlüssel', 'Notenspiegel', 'Bewertung', 'Noten'],
+		ort: 'seite',
+		arten: ['klassenarbeit'],
+		stelle: 'neue-seite',
+		html:
+			'<div class="kopf"><div class="titel"><h1>Für die Lehrkraft</h1></div></div>' +
+			'<x-erwartungshorizont></x-erwartungshorizont><x-notenschluessel></x-notenschluessel><x-notenspiegel></x-notenspiegel>',
+	},
+	// Aufgaben
 	{
 		id: 'aufgabe',
 		art: 'aufgabe',
-		kategorie: 'Aufgabe und Text',
-		suchbegriffe: ['Nummer', 'Aufgabenblock'],
+		kategorie: 'Aufgaben',
+		suchbegriffe: ['Nummer', 'Aufgabenblock', 'Aufgabentext', 'Anweisung'],
 		ort: 'seite',
+		// 203-18: Nummer und Aufgabentext, den Inhalt holt die nächste Kachel in die gewählte Aufgabe.
+		html: '<div class="aufgabe"><span class="nr">1</span><div class="anw"><span class="text">Anweisung</span></div><div class="koerper"></div></div>',
 	},
-	{
-		id: 'anweisung',
-		art: 'anweisung',
-		kategorie: 'Aufgabe und Text',
-		suchbegriffe: ['Arbeitsauftrag', 'Anweisung'],
-		ort: 'zeile',
-	},
-	{ id: 'text', art: 'absatz', kategorie: 'Aufgabe und Text', suchbegriffe: ['Absatz', 'Fließtext'], ort: 'aufgabe' },
+	{ id: 'text', art: 'absatz', kategorie: 'Aufgaben', suchbegriffe: ['Absatz', 'Fließtext'], ort: 'aufgabe' },
+	{ id: 'reihe', art: 'reihe', kategorie: 'Aufgaben', suchbegriffe: ['Spalten', 'Raster', 'Eintrag'], ort: 'aufgabe' },
 	{
 		id: 'tabelle',
 		art: 'tabelle',
-		kategorie: 'Aufgabe und Text',
+		kategorie: 'Aufgaben',
 		suchbegriffe: ['Raster', 'Spalten', 'Zeilen', 'Übersicht'],
 		ort: 'aufgabe',
 	},
-	{ id: 'reihe', art: 'reihe', kategorie: 'Aufgabe und Text', suchbegriffe: ['Spalten', 'Raster'], ort: 'aufgabe' },
-	{ id: 'zelle', art: 'item', kategorie: 'Aufgabe und Text', suchbegriffe: ['Item', 'Spalte'], ort: 'zeile' },
 	{
-		id: 'zeile',
-		name: 'Rechenzeile',
-		kategorie: 'Aufgabe und Text',
-		suchbegriffe: ['Satz', 'Zeile'],
-		ort: 'aufgabe',
-	},
-	{
-		id: 'beispiel',
-		name: 'Beispiel',
-		kategorie: 'Aufgabe und Text',
-		suchbegriffe: ['vorgelöst', 'Muster'],
+		id: 'antwort',
+		art: 'antwort',
+		kategorie: 'Aufgaben',
+		suchbegriffe: ['Antwortlinie', 'Lücke', 'Rechenzeile', 'Satz'],
 		ort: 'zeile',
-		klasse: 'beispiel',
+		// 203-06: Ohne Zeile drumherum kommt der ganze Satz, wie früher die „Rechenzeile“.
+		umZeile: ['Es ist ', '.'],
 	},
-	{
-		id: 'vermutung',
-		art: 'vermutung',
-		kategorie: 'Aufgabe und Text',
-		suchbegriffe: ['Forscherfrage', 'Antwort A'],
-		ort: 'aufgabe',
-	},
-	{
-		id: 'punkte',
-		name: 'Punkte',
-		kategorie: 'Aufgabe und Text',
-		suchbegriffe: ['Bewertung', 'Klassenarbeit'],
-		ort: 'zeile',
-	},
-	{ id: 'antwort', art: 'antwort', kategorie: 'Schreiben', suchbegriffe: ['Antwortlinie', 'Lücke'], ort: 'zeile' },
 	{
 		id: 'schreiblinie',
-		name: 'Schreiblinie',
-		kategorie: 'Schreiben',
-		suchbegriffe: ['Zeile', 'Linie'],
+		name: 'Schreiblinien',
+		kategorie: 'Aufgaben',
+		suchbegriffe: ['Schreiblinie', 'Zeile', 'Linie', 'Frage mit Schreiblinie', 'Freitext'],
 		ort: 'aufgabe',
+		// 203-06: drei Linien, die Zahl stellt „Anzahl“ im Inspektor.
+		html: '<div class="schreiblinie"></div>'.repeat(3),
+		anweisung: 'Schreibe deine Antwort auf.',
 	},
-	{ id: 'box', name: 'Kästchen', kategorie: 'Schreiben', suchbegriffe: ['Ankreuzen', 'Kasten'], ort: 'zeile' },
-	{ id: 'malfeld', name: 'Malfeld', kategorie: 'Schreiben', suchbegriffe: ['Zeichnen', 'Malen'], ort: 'aufgabe' },
-	{ id: 'tipp', art: 'tipp', kategorie: 'Bilder', suchbegriffe: ['Leitfigur', 'Hilfe'], ort: 'seite' },
-	{ id: 'blase', art: 'blase', kategorie: 'Bilder', suchbegriffe: ['Sprechblase', 'Sagen'], ort: 'zeile' },
-	// Die Leitfiguren (Willi, Wilma …): Name und Suchwörter aus der Liste der Figuren (102).
-	...FIGUREN.map((f): KitEintrag => ({
-		id: f.id,
-		name: f.name,
-		kategorie: 'Bilder',
-		suchbegriffe: [...f.suchwoerter],
-		ort: 'zeile',
-	})),
-	{ id: 'platzhalter', art: 'platzhalter', kategorie: 'Bilder', suchbegriffe: ['Bild', 'Foto'], ort: 'aufgabe' },
+	{ id: 'malfeld', name: 'Malfeld', kategorie: 'Aufgaben', suchbegriffe: ['Zeichnen', 'Malen'], ort: 'aufgabe' },
+	// Deutsch
+	{
+		id: 'lesetext-zeilennummern',
+		name: 'Lesetext mit Fragen',
+		kategorie: 'Deutsch',
+		suchbegriffe: ['Lesetext mit Zeilennummern', 'Absatz', 'Zeilen', 'Nummern', 'Lesen', 'Frage'],
+		ort: 'seite',
+		faecher: ['deutsch'],
+		// 203-08: Text direkt auf der Seite, darunter eine Frage mit zwei Linien.
+		html:
+			`<p class="text" data-zeilennummern="5">${LESETEXT}</p>` +
+			'<div class="aufgabe"><span class="nr">0</span><div class="anw"><span class="text">Frage zum Text?</span></div>' +
+			'<div class="koerper"><div class="schreiblinie"></div><div class="schreiblinie"></div></div></div>',
+	},
+	// Musik
+	{
+		id: 'rhythmuskarten',
+		name: 'Rhythmuskarten',
+		kategorie: 'Musik',
+		suchbegriffe: ['Rhythmus', 'Karten', 'Klatschen', 'Takt'],
+		ort: 'seite',
+		faecher: ['musik'],
+		arten: KARTEN_ARTEN,
+		// 203-09: der Kartenbogen aus `muster/musik.html`
+		html: `<div class="karten" style="--spalten:2">${RHYTHMEN.map(
+			(r) =>
+				`<div class="karte"><div class="kartentext" style="font-weight:400"><x-rhythmus art="karte" ${r}></x-rhythmus></div></div>`,
+		).join('')}</div>`,
+	},
+	// Spiele und Rätsel
 	{
 		id: 'karten',
 		art: 'karten',
 		kategorie: 'Spiele und Rätsel',
-		suchbegriffe: ['Kartenbogen', 'Ausschneiden', 'Memory', 'Quartett'],
+		suchbegriffe: ['Kartenbogen', 'Ausschneiden', 'Memory', 'Quartett', 'Karte'],
 		ort: 'seite',
+		arten: KARTEN_ARTEN,
+	},
+	// Folien (203-10): je der Inhalt einer Folie
+	{
+		id: 'folie-bild',
+		name: 'Bild und Frage',
+		kategorie: 'Folien',
+		suchbegriffe: ['Folie', 'Bild', 'Frage', 'Einstieg', 'Impuls'],
+		ort: 'folie',
+		arten: ['praesentation'],
+		html: `<div class="buehne">${BILDPLATZ(400, 520)}<div class="tipp">${WILLI}<div class="blase">Was siehst du?</div></div></div>`,
 	},
 	{
-		id: 'karte',
-		art: 'karte',
-		kategorie: 'Spiele und Rätsel',
-		suchbegriffe: ['Wortkarte', 'Bildkarte'],
-		ort: 'zeile',
+		id: 'vermutung',
+		name: 'Abstimmung',
+		kategorie: 'Folien',
+		suchbegriffe: ['Folie', 'Vermutung', 'Antwort A', 'Forscherfrage', 'Abstimmen', 'Antwort'],
+		ort: 'folie',
+		arten: ['praesentation'],
+		// 192: Die Kinder zeigen A, B oder C, ausgewertet wird an der Tafel; ein Feld zum Eintragen gäbe es am Beamer nicht.
+		html: `<div class="buehne">${BILDPLATZ(400, 420)}${SPALTE}${['A', 'B', 'C'].map(abstimmung).join('')}</div></div>`,
+	},
+	{
+		id: 'folie-schritte',
+		name: 'Schritt für Schritt',
+		kategorie: 'Folien',
+		suchbegriffe: ['Folie', 'Aufdecken', 'Schritte', 'nacheinander', 'Ablauf'],
+		ort: 'folie',
+		arten: ['praesentation'],
+		html:
+			`<div class="buehne">${BILDPLATZ(420, 520)}${SPALTE}` +
+			`${schritt(1, 'Zuerst …')}${schritt(2, 'Dann …')}${schritt(3, 'Am Ende …')}</div></div>`,
+	},
+	{
+		id: 'folie-merksatz',
+		name: 'Merksatz zum Aufdecken',
+		kategorie: 'Folien',
+		suchbegriffe: ['Folie', 'Merke', 'Aufdecken', 'Lösung', 'Sicherung'],
+		ort: 'folie',
+		arten: ['praesentation'],
+		html:
+			`<div class="buehne">${BILDPLATZ(300, 440)}<div class="tipp">${WILLI}<div class="blase">Merke dir: Hier steht der ` +
+			'Satz mit dem <span class="aufdecken"><b>Schlüsselwort</b></span>.</div></div></div>',
+	},
+	{
+		id: 'folie-arbeitszeit',
+		name: 'Arbeitszeit',
+		kategorie: 'Folien',
+		suchbegriffe: ['Folie', 'Timer', 'Lernaufgabe', 'Arbeitsphase', 'Zeit'],
+		ort: 'folie',
+		arten: ['praesentation'],
+		html:
+			`<div class="buehne"><div style="flex:1">${lernaufgabe(1, 'Erste Lernaufgabe')}${lernaufgabe(2, 'Zweite Lernaufgabe')}` +
+			'</div><x-timer minuten="20" groesse="280"></x-timer></div>',
 	},
 	{
 		id: 'notiz',
@@ -606,12 +671,43 @@ export const KIT_KATALOG: readonly KitEintrag[] = [
 		ort: 'seite',
 		arten: ['praesentation'],
 	},
-	// Fläche im Stapel: Platz zum freien Gestalten zwischen den Aufgaben (Briefing 3.7); Starter in `muster/bausteine.html`
-	{
-		id: 'flaeche',
-		art: 'flaeche',
-		kategorie: 'Ordnen',
-		suchbegriffe: ['Gestalten', 'Zeichnung', 'Freifläche', 'Stapel', 'Platz'],
-		ort: 'seite',
-	},
+	// Nicht mehr im Angebot (203-04, 203-06): Der Weg in der Klammer ist einfacher.
+	...(
+		[
+			// Gestaltung einer Reihe, setzt die Vorlage
+			{ id: 'thema-band', name: 'Band des Themas', suchbegriffe: ['Schmuck', 'Reihe', 'Thema'], ort: 'seite' },
+			{ id: 'thema-kopf', name: 'Kopf des Themas', suchbegriffe: ['Titel', 'Reihe', 'Thema'], ort: 'seite' },
+			// Kopf wählen › „Lernziel zeigen“ bzw. „Wahlhilfe zeigen“
+			{ id: 'ziel', art: 'ziel', suchbegriffe: ['Ich-kann-Ziel', 'Lernziel'], ort: 'zeile' },
+			{ id: 'wahlhilfe', art: 'wahlhilfe', suchbegriffe: ['Niveau', 'Wählen'], ort: 'zeile' },
+			// steht in der Selbsteinschätzung
+			{ id: 'reflexion', name: 'Reflexion', suchbegriffe: ['Was hat dir geholfen'], ort: 'zeile' },
+			// jede Aufgabe hat ihren Aufgabentext
+			{ id: 'anweisung', art: 'anweisung', suchbegriffe: ['Arbeitsauftrag', 'Anweisung'], ort: 'zeile' },
+			// „Duplizieren“ am Eintrag
+			{ id: 'zelle', art: 'item', suchbegriffe: ['Item', 'Spalte'], ort: 'zeile' },
+			// „Antwortlinie“
+			{ id: 'zeile', name: 'Rechenzeile', suchbegriffe: ['Satz', 'Zeile'], ort: 'aufgabe' },
+			// Eintrag wählen › „Als Beispiel“
+			{
+				id: 'beispiel',
+				name: 'Beispiel',
+				suchbegriffe: ['vorgelöst', 'Muster'],
+				ort: 'zeile',
+				klasse: 'beispiel',
+			},
+			// Inspektor der Aufgabe › „Bewertung · Punkte“
+			{ id: 'punkte', name: 'Punkte', suchbegriffe: ['Bewertung', 'Klassenarbeit'], ort: 'zeile' },
+			// „Ankreuzen“
+			{ id: 'box', name: 'Kästchen', suchbegriffe: ['Ankreuzen', 'Kasten'], ort: 'zeile' },
+			// „Tipp“ oder Schublade „Werkzeuge“ › Blasen
+			{ id: 'blase', art: 'blase', suchbegriffe: ['Sprechblase', 'Sagen'], ort: 'zeile' },
+			// Schublade „Figuren“; `figuren-daten.ts` nimmt den Starter von `willi` für ⌘-Ziehen (199)
+			...FIGUREN.map((f) => ({ id: f.id, name: f.name, suchbegriffe: [...f.suchwoerter], ort: 'zeile' as const })),
+			// „Duplizieren“ an der Karte
+			{ id: 'karte', art: 'karte', suchbegriffe: ['Wortkarte', 'Bildkarte'], ort: 'zeile' },
+			// „Silben“
+			{ id: 'silbentext', name: 'Silbentext', suchbegriffe: ['Silbenbögen', 'Lesen lernen', 'Text'], ort: 'aufgabe' },
+		] satisfies Omit<KitEintrag, 'kategorie'>[]
+	).map((e): KitEintrag => ({ ...e, kategorie: 'Blatt', angeboten: false })),
 ];

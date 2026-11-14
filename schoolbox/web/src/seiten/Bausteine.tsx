@@ -233,7 +233,7 @@ export const Bausteine = () => {
 					</Schubladenabschnitt>
 					<Schubladenabschnitt titel="Bereiche" notiz="2">
 						<ul className={ZEILENLISTE}>
-							{(['Aufgabe und Text', 'Schreiben'] as const).map((name, i) => (
+							{(['Aufgaben', 'Aufgabenformate'] as const).map((name, i) => (
 								<li key={name}>
 									<button type="button" className={SCHUBLADENZEILE}>
 										<Symbol
@@ -241,7 +241,7 @@ export const Bausteine = () => {
 											className="size-3.5 flex-none text-leise"
 										/>
 										<span className="min-w-0 flex-1 truncate">{name}</span>
-										<span className={NOTIZ}>{i === 0 ? 11 : 12}</span>
+										<span className={NOTIZ}>{i === 0 ? 10 : 8}</span>
 									</button>
 								</li>
 							))}

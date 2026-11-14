@@ -21,7 +21,7 @@ export const MELDUNG_CODES = [
 	'zeit-knapp',
 	/** Nur mit Zeitziel: Aufgaben ohne geschätzte Minuten (`data-min`). */
 	'zeit-fehlt',
-	/** Nur mit Zeitziel: Kopf oder Fuß nehmen den Aufgaben zu viel Platz. */
+	/** Nur mit Zeitziel: Kopf oder Selbsteinschätzung nehmen den Aufgaben zu viel Platz. */
 	'rahmen-gross',
 	'notiz-fehlt',
 	'platzhalter',
@@ -173,7 +173,7 @@ const TABELLE: Record<MeldungCode, Uebersetzung> = {
 		tipp: 'Claude bitten, die Zeiten zu ergänzen.',
 	}),
 	'rahmen-gross': (_n, text) => ({
-		satz: `${text.startsWith('Fuß') ? 'Der Fuß' : 'Der Kopf'} nimmt den Aufgaben viel Platz weg.`,
+		satz: `${text.startsWith('Fuß') ? 'Die Selbsteinschätzung' : 'Der Kopf'} nimmt den Aufgaben viel Platz weg.`,
 		tipp: 'Text kürzen oder den Tipp der Figur neben seine Aufgabe ziehen.',
 	}),
 	'notiz-fehlt': () => ({ satz: 'Diese Folie hat keine Notiz für dich.', tipp: null }),

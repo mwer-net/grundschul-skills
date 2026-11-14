@@ -266,41 +266,26 @@ export type Werte = Record<string, string | null>;
 export type Fehler = Record<string, string>;
 
 export const KATALOG_KATEGORIEN = [
-	'Kopf und Rahmen',
-	'Bewerten',
-	'Aufgabe und Text',
-	'Schreiben',
-	'Bilder',
+	'Blatt',
+	'Aufgaben',
+	'Aufgabenformate',
 	'Zahlen',
 	'Rechnen',
 	'Geometrie',
 	'Größen',
 	'Daten und Zufall',
-	'Sprache',
+	'Deutsch',
 	'Sachunterricht',
 	'Musik',
 	'Spiele und Rätsel',
-	'Selbstkontrolle',
 	'Folien',
-	'Ordnen',
 ] as const;
 
 export type Kategorie = (typeof KATALOG_KATEGORIEN)[number];
 
-/** Gliederung der Bereiche in der Bibliothek (081). `KATALOG_KATEGORIEN` bleibt die Quelle der Namen. */
+/** Gliederung der Bereiche in der Bibliothek (081, 203-11). `KATALOG_KATEGORIEN` bleibt die Quelle der Namen. */
 export const KATALOG_BEREICHE = [
-	{
-		gruppe: 'Grundgerüst',
-		bereiche: [
-			'Kopf und Rahmen',
-			'Aufgabe und Text',
-			'Schreiben',
-			'Bilder',
-			'Bewerten',
-			'Selbstkontrolle',
-			'Ordnen',
-		],
-	},
+	{ gruppe: 'Grundgerüst', bereiche: ['Blatt', 'Aufgaben', 'Aufgabenformate'] },
 	{
 		gruppe: 'Fächer',
 		bereiche: [
@@ -309,7 +294,7 @@ export const KATALOG_BEREICHE = [
 			'Geometrie',
 			'Größen',
 			'Daten und Zufall',
-			'Sprache',
+			'Deutsch',
 			'Sachunterricht',
 			'Musik',
 		],
@@ -319,27 +304,26 @@ export const KATALOG_BEREICHE = [
 
 /** Symbol je Bereich. Hier nur der Name; `web/src/bausteine/Symbol.tsx` bildet ihn auf das Bild ab. */
 export const BEREICH_SYMBOL = {
-	'Kopf und Rahmen': 'kopfUndRahmen',
-	'Bewerten': 'bewerten',
-	'Aufgabe und Text': 'schrift',
-	'Schreiben': 'schreiben',
-	'Bilder': 'bild',
+	'Blatt': 'kopfUndRahmen',
+	'Aufgaben': 'schrift',
+	'Aufgabenformate': 'schreiben',
 	'Zahlen': 'nummer',
 	'Rechnen': 'rechnen',
 	'Geometrie': 'formen',
 	'Größen': 'lineal',
 	'Daten und Zufall': 'diagramm',
-	'Sprache': 'buch',
+	'Deutsch': 'buch',
 	'Sachunterricht': 'natur',
 	'Musik': 'musik',
 	'Spiele und Rätsel': 'puzzle',
-	'Selbstkontrolle': 'erledigt',
 	'Folien': 'praesentieren',
-	'Ordnen': 'stapel',
 } as const satisfies Record<Kategorie, string>;
 
-/** Wo ein Baustein stehen darf: im Blatt als Ganzem, auf der Seite, in einer Aufgabe (`.koerper`) oder einer Zeile. */
-export const KATALOG_ORTE = ['blatt', 'seite', 'aufgabe', 'zeile'] as const;
+/**
+ * Wo ein Baustein stehen darf: im Blatt als Ganzem, auf der Seite, in einer Aufgabe (`.koerper`), in einer Zeile oder
+ * als Inhalt einer Folie (203-10: in die gewählte Folie, wenn sie nur Kopf und Notiz hat, sonst in eine neue dahinter).
+ */
+export const KATALOG_ORTE = ['blatt', 'seite', 'aufgabe', 'zeile', 'folie'] as const;
 
 export interface KatalogAngaben {
 	kategorie: Kategorie;
@@ -350,10 +334,32 @@ export interface KatalogAngaben {
 	klassen?: readonly Klasse[];
 	/** Nur bei diesen Materialarten. */
 	arten?: readonly Art[];
+	/**
+	 * `false`: nicht mehr im Angebot (Schublade, Schnellauswahl, Slash, Palette), weil es einen einfacheren Weg gibt
+	 * (203-04). Der Eintrag bleibt für die Suche per Kennung, die Vorschau und die Starter (Entscheidungen 26 und 27).
+	 */
+	angeboten?: false;
+	/**
+	 * Eigenes Starter-HTML aus vorhandenen Elementen und Klassen, wenn das Muster nicht zeigt, was die Kachel einfügen
+	 * soll (203). Die Muster bleiben, wie sie sind: Sie gehören den Skills.
+	 */
+	html?: string;
+	/** Aufgabentext, wenn das Element ohne passende Auswahl in eine neue Aufgabe kommt; sonst „Anweisung“ (203-06). */
+	anweisung?: string;
+	/** Nur Ort `zeile`: Text vor und nach dem Element, wenn es eine eigene Zeile braucht (203-06, Antwortlinie). */
+	umZeile?: readonly [string, string];
+	/**
+	 * Feste Stelle statt der Auswahl (203-07): hinter die letzte Aufgabe ihrer Seite bzw. auf eine neue letzte Seite.
+	 * Gibt es das Teil dort schon, wird es gewählt.
+	 */
+	stelle?: 'nach-letzter-aufgabe' | 'neue-seite';
 }
 
 export interface AbbildungSchema {
+	/** Wie in `NAMEN` in `abbildungen.js` (Meldungen im Blatt). */
 	name: string;
+	/** Name in der Oberfläche, wenn er vom Namen in `abbildungen.js` abweicht (203-15); das Skill-Asset bleibt. */
+	anzeige?: string;
 	/** Angaben für den Katalog (`katalog.ts`); fehlen nur bei `x-probe`, das es nur für Tests gibt. */
 	katalog?: KatalogAngaben;
 	felder: Feld[];
@@ -1501,6 +1507,8 @@ export const ABBILDUNG_SCHEMA = {
 			suchbegriffe: ['Uhrzeit', 'Zifferblatt', 'Zeiger', 'Uhr', 'lesen', 'digital'],
 			ort: 'aufgabe',
 			faecher: ['mathematik'],
+			// 203-01: mit Zeigern zum Ablesen; das Muster zeigt die Fassung „Zeichne die Zeiger ein“.
+			html: '<x-uhr zeit="4:30"></x-uhr>',
 		},
 		felder: [
 			{
@@ -1814,10 +1822,10 @@ export const ABBILDUNG_SCHEMA = {
 	'x-timer': {
 		name: 'Timer',
 		katalog: {
-			kategorie: 'Größen',
+			kategorie: 'Folien',
 			suchbegriffe: ['Zeitscheibe', 'Zeit', 'Minuten', 'Countdown', 'Stoppuhr'],
 			ort: 'aufgabe',
-			faecher: ['mathematik'],
+			arten: ['praesentation'],
 		},
 		felder: [
 			{ art: 'zahl', attribut: 'minuten', name: 'Minuten', min: 1, max: 120, standard: 10 },
@@ -2497,9 +2505,10 @@ export const ABBILDUNG_SCHEMA = {
 	},
 	'x-figur': {
 		name: 'Figur',
+		anzeige: 'Ebene Figur',
 		katalog: {
 			kategorie: 'Geometrie',
-			suchbegriffe: ['Dreieck', 'Viereck', 'Rechteck', 'Kreis', 'Fläche', 'Formen', 'rechter', 'Winkel'],
+			suchbegriffe: ['Figur', 'Dreieck', 'Viereck', 'Rechteck', 'Kreis', 'Fläche', 'Formen', 'rechter', 'Winkel'],
 			ort: 'aufgabe',
 			faecher: ['mathematik'],
 		},
@@ -2722,10 +2731,13 @@ export const ABBILDUNG_SCHEMA = {
 	},
 	'x-lineatur': {
 		name: 'Schreiblinien',
+		anzeige: 'Lineatur',
 		katalog: {
-			kategorie: 'Schreiben',
-			suchbegriffe: ['Schreiblinien', 'Lineatur', 'Zeilen', 'Hilfslinien', 'Schreiben', 'lernen'],
+			kategorie: 'Aufgaben',
+			suchbegriffe: ['Schreiblinien', 'Lineatur', 'Heftlinien', 'Zeilen', 'Hilfslinien', 'Schreiben', 'lernen'],
 			ort: 'aufgabe',
+			// 203-12: drei leere Zeilen ohne Vorlagewort; `art` setzt das Einfügen nach der Klasse des Blatts.
+			html: '<x-lineatur zeilen="3"></x-lineatur>',
 		},
 		felder: [
 			{
@@ -2803,7 +2815,7 @@ export const ABBILDUNG_SCHEMA = {
 	},
 	'x-lueckentext': {
 		name: 'Lückentext',
-		katalog: { kategorie: 'Schreiben', suchbegriffe: ['Lücke', 'Einsetzen', 'Ergänzen', 'Text'], ort: 'aufgabe' },
+		katalog: { kategorie: 'Aufgabenformate', suchbegriffe: ['Lücke', 'Einsetzen', 'Ergänzen', 'Text'], ort: 'aufgabe' },
 		felder: [
 			{
 				art: 'text',
@@ -2840,7 +2852,7 @@ export const ABBILDUNG_SCHEMA = {
 	},
 	'x-wortspeicher': {
 		name: 'Wortspeicher',
-		katalog: { kategorie: 'Schreiben', suchbegriffe: ['Wörter', 'Wortkasten', 'Lücke'], ort: 'aufgabe' },
+		katalog: { kategorie: 'Aufgabenformate', suchbegriffe: ['Wörter', 'Wortkasten', 'Lücke'], ort: 'aufgabe' },
 		felder: [
 			{
 				art: 'text',
@@ -2881,7 +2893,7 @@ export const ABBILDUNG_SCHEMA = {
 	'x-ankreuzen': {
 		name: 'Ankreuzen',
 		katalog: {
-			kategorie: 'Schreiben',
+			kategorie: 'Aufgabenformate',
 			suchbegriffe: ['Multiple Choice', 'Auswahl', 'Kreuzen', 'Antworten'],
 			ort: 'aufgabe',
 		},
@@ -2918,7 +2930,7 @@ export const ABBILDUNG_SCHEMA = {
 	'x-zuordnen': {
 		name: 'Zuordnen',
 		katalog: {
-			kategorie: 'Schreiben',
+			kategorie: 'Aufgabenformate',
 			suchbegriffe: ['Verbinden', 'Paare', 'Linien', 'Was gehört zusammen', 'Zuordnung'],
 			ort: 'aufgabe',
 		},
@@ -2952,7 +2964,7 @@ export const ABBILDUNG_SCHEMA = {
 	'x-sortieren': {
 		name: 'Sortieren',
 		katalog: {
-			kategorie: 'Schreiben',
+			kategorie: 'Aufgabenformate',
 			suchbegriffe: ['Reihenfolge', 'Ordnen', 'Satz ordnen', 'Bilderfolge', 'Nummerieren'],
 			ort: 'aufgabe',
 		},
@@ -3000,7 +3012,7 @@ export const ABBILDUNG_SCHEMA = {
 	'x-beschriften': {
 		name: 'Beschriften',
 		katalog: {
-			kategorie: 'Sachunterricht',
+			kategorie: 'Aufgabenformate',
 			suchbegriffe: ['Bild beschriften', 'Pflanze', 'Körper', 'Fahrrad', 'Teile benennen'],
 			ort: 'aufgabe',
 		},
@@ -3029,7 +3041,7 @@ export const ABBILDUNG_SCHEMA = {
 	'x-schreibrahmen': {
 		name: 'Schreibrahmen',
 		katalog: {
-			kategorie: 'Schreiben',
+			kategorie: 'Aufgabenformate',
 			suchbegriffe: ['Satzanfänge', 'Schreibhilfe', 'Text schreiben', 'Aufsatz', 'Planung'],
 			ort: 'aufgabe',
 		},
@@ -3068,7 +3080,7 @@ export const ABBILDUNG_SCHEMA = {
 	},
 	'x-richtigfalsch': {
 		name: 'Richtig oder falsch',
-		katalog: { kategorie: 'Schreiben', suchbegriffe: ['Aussagen', 'Stimmt', 'Ja Nein', 'Wahr'], ort: 'aufgabe' },
+		katalog: { kategorie: 'Aufgabenformate', suchbegriffe: ['Aussagen', 'Stimmt', 'Ja Nein', 'Wahr'], ort: 'aufgabe' },
 		felder: [
 			{
 				art: 'text',
@@ -3093,12 +3105,22 @@ export const ABBILDUNG_SCHEMA = {
 	},
 	'x-gesamtpunkte': {
 		name: 'Gesamtpunkte',
-		katalog: { kategorie: 'Bewerten', suchbegriffe: ['Punkte', 'Summe', 'Klassenarbeit'], ort: 'aufgabe' },
+		katalog: {
+			kategorie: 'Blatt',
+			suchbegriffe: ['Punkte', 'Summe', 'Klassenarbeit'],
+			ort: 'aufgabe',
+			angeboten: false,
+		},
 		felder: [],
 	},
 	'x-notenschluessel': {
 		name: 'Notenschlüssel',
-		katalog: { kategorie: 'Bewerten', suchbegriffe: ['Noten', 'Grenzen', 'Klassenarbeit'], ort: 'aufgabe' },
+		katalog: {
+			kategorie: 'Blatt',
+			suchbegriffe: ['Noten', 'Grenzen', 'Klassenarbeit'],
+			ort: 'aufgabe',
+			angeboten: false,
+		},
 		felder: [
 			{
 				art: 'text',
@@ -3123,15 +3145,22 @@ export const ABBILDUNG_SCHEMA = {
 	'x-notenspiegel': {
 		name: 'Notenspiegel',
 		katalog: {
-			kategorie: 'Bewerten',
+			kategorie: 'Blatt',
 			suchbegriffe: ['Verteilung', 'Durchschnitt', 'Klassenarbeit'],
 			ort: 'aufgabe',
+			// 203-07: zusammen in „Punkte und Unterschrift“ und „Auswertung für die Lehrkraft“
+			angeboten: false,
 		},
 		felder: [],
 	},
 	'x-unterschrift': {
 		name: 'Unterschrift und Datum',
-		katalog: { kategorie: 'Bewerten', suchbegriffe: ['Eltern', 'Datumszeile', 'Klassenarbeit'], ort: 'aufgabe' },
+		katalog: {
+			kategorie: 'Blatt',
+			suchbegriffe: ['Eltern', 'Datumszeile', 'Klassenarbeit'],
+			ort: 'aufgabe',
+			angeboten: false,
+		},
 		felder: [
 			{
 				art: 'auswahl',
@@ -3150,19 +3179,24 @@ export const ABBILDUNG_SCHEMA = {
 	'x-erwartungshorizont': {
 		name: 'Erwartungshorizont',
 		katalog: {
-			kategorie: 'Bewerten',
+			kategorie: 'Blatt',
 			suchbegriffe: ['Lösung', 'Teilpunkte', 'Anforderungsbereich', 'Klassenarbeit'],
 			ort: 'seite',
+			// 203-07: zusammen in „Punkte und Unterschrift“ und „Auswertung für die Lehrkraft“
+			angeboten: false,
 		},
 		felder: [],
 	},
 	'x-silben': {
 		name: 'Silben',
 		katalog: {
-			kategorie: 'Sprache',
-			suchbegriffe: ['Silbenbögen', 'Silbe', 'Klatschen', 'Lesen', 'lernen'],
+			kategorie: 'Deutsch',
+			suchbegriffe: ['Silbentext', 'Wörter in Silben lesen', 'Silbenbögen', 'Silbe', 'Klatschen', 'Lesen', 'lernen'],
 			ort: 'aufgabe',
 			faecher: ['deutsch'],
+			// 203-06: nimmt „Silbentext“ und „Wörter in Silben lesen“ auf
+			html: '<x-silben>Die Ro|si|ne ist süß.</x-silben>',
+			anweisung: 'Lies. Klatsche die Silben.',
 		},
 		felder: [
 			{
@@ -3225,7 +3259,7 @@ export const ABBILDUNG_SCHEMA = {
 	'x-wortarten': {
 		name: 'Wortarten',
 		katalog: {
-			kategorie: 'Sprache',
+			kategorie: 'Deutsch',
 			suchbegriffe: ['Nomen', 'Verb', 'Adjektiv', 'Montessori', 'Symbole', 'Grammatik'],
 			ort: 'aufgabe',
 			faecher: ['deutsch'],
@@ -3298,7 +3332,7 @@ export const ABBILDUNG_SCHEMA = {
 	'x-satzglieder': {
 		name: 'Satzglieder',
 		katalog: {
-			kategorie: 'Sprache',
+			kategorie: 'Deutsch',
 			suchbegriffe: ['Subjekt', 'Prädikat', 'Objekt', 'Satzbau', 'Umstellprobe'],
 			ort: 'aufgabe',
 			faecher: ['deutsch'],
@@ -3370,7 +3404,7 @@ export const ABBILDUNG_SCHEMA = {
 	'x-wortbausteine': {
 		name: 'Wortbausteine',
 		katalog: {
-			kategorie: 'Sprache',
+			kategorie: 'Deutsch',
 			suchbegriffe: ['Wortfamilie', 'Stamm', 'Vorsilbe', 'Endung', 'Morphem'],
 			ort: 'aufgabe',
 			faecher: ['deutsch'],
@@ -3694,6 +3728,10 @@ export const ABBILDUNG_SCHEMA = {
 			suchbegriffe: ['Wasserkreislauf', 'Zyklus', 'Lebenskreislauf', 'Pfeile'],
 			ort: 'aufgabe',
 			faecher: ['sachunterricht'],
+			// 203-19: Kurze Namen passen in ihre Kästen; das Muster bleibt für die Skills.
+			html:
+				'<x-kreislauf stationen="Meer; Wolken; Regen; Fluss" pfeile="verdunsten; ziehen weiter; regnen; fließen"' +
+				' offen="3 p1"></x-kreislauf>',
 		},
 		felder: [
 			{
@@ -4271,9 +4309,10 @@ export const ABBILDUNG_SCHEMA = {
 	},
 	'x-plan': {
 		name: 'Plan',
+		anzeige: 'Lageplan',
 		katalog: {
 			kategorie: 'Sachunterricht',
-			suchbegriffe: ['Lageplan', 'Ortsplan', 'Karte', 'Klassenzimmer', 'Wegbeschreibung'],
+			suchbegriffe: ['Plan', 'Lageplan', 'Ortsplan', 'Karte', 'Klassenzimmer', 'Wegbeschreibung'],
 			ort: 'aufgabe',
 			faecher: ['sachunterricht'],
 		},
@@ -4694,6 +4733,8 @@ export const ABBILDUNG_SCHEMA = {
 			suchbegriffe: ['Malfeld', 'Einmaleins', 'Punktebild', 'Multiplikation'],
 			ort: 'aufgabe',
 			faecher: ['mathematik'],
+			// 203-02: Der Starter liegt über dem Zahlenraum der kleineren Klassen.
+			klassen: [2, 3, 4],
 		},
 		felder: [
 			{ art: 'zahl', attribut: 'zeilen', name: 'Zeilen', min: 1, max: 10, standard: 5 },
@@ -4755,6 +4796,8 @@ export const ABBILDUNG_SCHEMA = {
 			suchbegriffe: ['Malnehmen', 'Multiplikation', 'halbschriftlich', 'Malkreuz'],
 			ort: 'aufgabe',
 			faecher: ['mathematik'],
+			// 203-02: Der Starter liegt über dem Zahlenraum der kleineren Klassen.
+			klassen: [3, 4],
 		},
 		felder: [
 			{ art: 'zahl', attribut: 'a', name: 'Erste Zahl', min: 1, max: 99, standard: 34 },
@@ -4779,6 +4822,8 @@ export const ABBILDUNG_SCHEMA = {
 			suchbegriffe: ['schriftliche', 'Addition', 'Subtraktion', 'Multiplikation', 'Division', 'Übertrag'],
 			ort: 'aufgabe',
 			faecher: ['mathematik'],
+			// 203-02: Der Starter liegt über dem Zahlenraum der kleineren Klassen.
+			klassen: [3, 4],
 		},
 		felder: [
 			{
@@ -4880,9 +4925,10 @@ export const ABBILDUNG_SCHEMA = {
 		name: 'Zahlenmauer',
 		katalog: {
 			kategorie: 'Rechnen',
-			suchbegriffe: ['Rechenmauer', 'Zahlenpyramide', 'Mauer'],
+			suchbegriffe: ['Zahlenmauer rechnen', 'Rechenmauer', 'Zahlenpyramide', 'Mauer'],
 			ort: 'aufgabe',
 			faecher: ['mathematik'],
+			anweisung: 'Fülle die Zahlenmauer aus.',
 		},
 		felder: [
 			{ art: 'zahlen', attribut: 'basis', name: 'Unterste Reihe', beispiel: '3 5 2' },
@@ -4907,10 +4953,12 @@ export const ABBILDUNG_SCHEMA = {
 	},
 	'x-rechenreihe': {
 		name: 'Rechenreihe',
+		anzeige: 'Rechenpäckchen',
 		katalog: {
 			kategorie: 'Rechnen',
-			suchbegriffe: ['Päckchen', 'Plusaufgaben', 'Minusaufgaben', 'Einmaleins', 'Platzhalter', 'Zehnerübergang'],
+			suchbegriffe: ['Rechenreihe', 'Päckchen', 'Plusaufgaben', 'Minusaufgaben', 'Einmaleins', 'Platzhalter', 'Zehnerübergang'],
 			ort: 'aufgabe',
+			faecher: ['mathematik'],
 		},
 		generiert: 'aufgaben',
 		felder: [
@@ -5181,6 +5229,8 @@ export const ABBILDUNG_SCHEMA = {
 			suchbegriffe: ['Rechenblume', 'Einmaleins', 'Kreis'],
 			ort: 'aufgabe',
 			faecher: ['mathematik'],
+			// 203-02: Der Starter liegt über dem Zahlenraum der kleineren Klassen.
+			klassen: [2, 3, 4],
 		},
 		felder: [
 			{
@@ -5523,6 +5573,12 @@ export const NUR_ZUR_LAUFZEIT = ['rest'];
 
 export const schemaVon = (tag: string): AbbildungSchema | undefined =>
 	(ABBILDUNG_SCHEMA as Record<string, AbbildungSchema>)[tag];
+
+/** Der Name eines Elements in Ebenen, Pfad, Inspektor und Katalog. */
+export const abbildungsName = (tag: string) => {
+	const schema = schemaVon(tag);
+	return schema ? (schema.anzeige ?? schema.name) : undefined;
+};
 
 export const attributeVon = (schema: AbbildungSchema) =>
 	schema.felder.flatMap((f) => {

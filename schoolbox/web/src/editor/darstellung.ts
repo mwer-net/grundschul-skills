@@ -1,4 +1,4 @@
-import { schemaVon } from '@schoolbox/kern/src/abbildungen';
+import { abbildungsName } from '@schoolbox/kern/src/abbildungen';
 import type { Baustein, Sicht } from '@schoolbox/kern/src/bausteine';
 import { bausteinUeber, FREI_TITEL, FREIES_ELEMENT, liegtFrei, nameFreiesElement } from '@schoolbox/kern/src/bausteine';
 import { nameDerGestaltung } from '@schoolbox/kern/src/gestaltung-arten';
@@ -101,7 +101,7 @@ export const nameVon = ({ baustein, element }: Treffer, umgebung: Element | null
 		return sonderfall.name;
 	}
 	if (baustein.art === 'abbildung') {
-		return schemaVon(element.localName)?.name ?? baustein.name;
+		return abbildungsName(element.localName) ?? baustein.name;
 	}
 	if (FREIES_ELEMENT.has(baustein.art)) {
 		return nameFreiesElement(element.getAttribute(FREI_TITEL));

@@ -13,7 +13,7 @@
  * der Quelle. Ein Browser-Test vergleicht beides (`e2e/claude.spec.ts`).
  */
 
-import { schemaVon } from './abbildungen';
+import { abbildungsName } from './abbildungen';
 import type { Baustein, Sicht } from './bausteine';
 import { bausteinUeber, FREI_TITEL, FREIES_ELEMENT, nameFreiesElement } from './bausteine';
 import { nameDerGestaltung } from './gestaltung-arten';
@@ -274,7 +274,7 @@ const nameVon = ({ baustein, k }: Treffer, art: string, index: number) => {
 		return baustein.sonderfall?.name ?? baustein.name;
 	}
 	if (baustein.art === 'abbildung') {
-		return schemaVon(k.tag)?.name ?? baustein.name;
+		return abbildungsName(k.tag) ?? baustein.name;
 	}
 	if (FREIES_ELEMENT.has(baustein.art)) {
 		return nameFreiesElement(attribut(k, FREI_TITEL)?.wert);

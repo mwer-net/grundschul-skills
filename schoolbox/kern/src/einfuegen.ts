@@ -23,13 +23,19 @@ import { nummeriere, seitenVon } from './struktur';
 
 export interface Einfuegbar {
 	id: string;
-	ort: 'blatt' | 'seite' | 'aufgabe' | 'zeile';
+	ort: 'blatt' | 'seite' | 'aufgabe' | 'zeile' | 'folie';
 	/** Fertiges HTML des Starters; bei Aufgabenpaketen die Teile im `.koerper`. */
 	html?: string;
+	/** Nur Aufgabenpakete: der Inhalt der neuen Aufgabe, Aufgabentext `anweisung`. */
 	teile?: readonly string[];
+	/** Aufgabentext der neuen Aufgabe: für Pakete immer, für Elemente, wenn sie eine Aufgabe brauchen (203-06). */
 	anweisung?: string;
 	/** Setzt nur eine Klasse: am `<body>` (`ort: 'blatt'`) oder am umgebenden Item. */
 	klasse?: string;
+	/** Text vor und nach dem Element, wenn es eine eigene Zeile braucht (203-06). */
+	umZeile?: readonly [string, string];
+	/** Feste Stelle statt der Auswahl (203-07). */
+	stelle?: 'nach-letzter-aufgabe' | 'neue-seite';
 }
 
 const hat = (k: Knoten | null | undefined, klasse: string) => Boolean(k && klassenVon(k).includes(klasse));
@@ -108,9 +114,16 @@ const inKoerper = (z: Zerlegung, koerper: Knoten, html: string): Aenderung[] => 
 		: [{ von: koerper.oeffnerEnde, bis: koerper.schliesserStart, text: html }];
 };
 
-/** In der gewählten Aufgabe bzw. im Item, sonst in einer neuen Aufgabe. */
-const inAufgabe = (z: Zerlegung, ziel: Knoten | null, html: string): Aenderung[] => {
-	const zelle = aufwaerts(ziel, 'zelle') ?? aufwaerts(ziel, 'karte');
+/**
+ * In der gewählten Aufgabe bzw. im Item, sonst in einer neuen Aufgabe. In einer gewählten Karte ans Ende ihres Inhalts
+ * (203-03): Ein Eintrag daneben läge lose im Kartenbogen.
+ */
+const inAufgabe = (z: Zerlegung, ziel: Knoten | null, html: string, anweisung?: string): Aenderung[] => {
+	const karte = aufwaerts(ziel, 'karte');
+	if (karte && hat(karte.eltern, 'karten')) {
+		return inKoerper(z, karte, html);
+	}
+	const zelle = aufwaerts(ziel, 'zelle') ?? karte;
 	if (zelle) {
 		return fuegeEin(
 			z,
@@ -121,11 +134,15 @@ const inAufgabe = (z: Zerlegung, ziel: Knoten | null, html: string): Aenderung[]
 	}
 	const aufgabe = aufwaerts(ziel, 'aufgabe');
 	const koerper = aufgabe?.kinder.find((k) => hat(k, 'koerper'));
-	return koerper ? inKoerper(z, koerper, html) : aufSeite(z, ziel, neueAufgabe(html));
+	return koerper ? inKoerper(z, koerper, html) : aufSeite(z, ziel, neueAufgabe(html, anweisung));
 };
 
+/** Die eigene Zeile eines Elements mit Ort `zeile`, mit dem Satz darum, wenn es einen hat (203-06). */
+export const zeileUm = (html: string, um?: readonly [string, string]) =>
+	`<div class="zeile">${um?.[0] ?? ''}${html}${um?.[1] ?? ''}</div>`;
+
 /** In einer Zeile bzw. einem Item; im Körper einer Aufgabe in einer neuen Zeile, sonst in einer neuen Aufgabe. */
-const inZeile = (z: Zerlegung, ziel: Knoten | null, html: string): Aenderung[] => {
+const inZeile = (z: Zerlegung, ziel: Knoten | null, b: Einfuegbar, html: string): Aenderung[] => {
 	const zeile = aufwaerts(ziel, 'zeile') ?? aufwaerts(ziel, 'zelle') ?? aufwaerts(ziel, 'karte');
 	if (zeile) {
 		const letztes = zeile.kinder.at(-1);
@@ -134,7 +151,7 @@ const inZeile = (z: Zerlegung, ziel: Knoten | null, html: string): Aenderung[] =
 		}
 		return [{ von: zeile.schliesserStart, bis: zeile.schliesserStart, text: html }];
 	}
-	return inAufgabe(z, ziel, `<div class="zeile">${html}</div>`);
+	return inAufgabe(z, ziel, zeileUm(html, b.umZeile), b.anweisung);
 };
 
 const setzeKlasse = (z: Zerlegung, k: Knoten, klasse: string) =>
@@ -160,21 +177,109 @@ const mitKlasse = (quelle: string, z: Zerlegung, b: Einfuegbar, ziel: Knoten | n
 };
 
 /**
- * Was der Katalog über einen Eintrag weiß, plus sein Starter-HTML. `aufgabe` in einem Aufgabenpaket ist die Hülle, kein
- * Teil.
+ * Was der Katalog über einen Eintrag weiß, plus sein Starter-HTML (`html` am Eintrag vor dem Muster). Ein Aufgabenpaket
+ * bekommt eine Hülle (Nummer, Aufgabentext); `aufgabe` in `teile` ist diese Hülle, kein Teil.
  */
-export const einfuegbarAus = (e: KatalogEintrag, starter: ReadonlyMap<string, string>): Einfuegbar => ({
-	id: e.id,
-	ort: e.ort,
-	...(e.klasse ? { klasse: e.klasse } : {}),
-	...(e.starter ? { html: starter.get(e.starter) ?? '' } : {}),
-	...(e.teile
-		? {
-				teile: e.teile.filter((t) => t !== 'aufgabe').map((t) => starter.get(t) ?? ''),
-				anweisung: e.anweisung ?? '',
-			}
-		: {}),
-});
+export const einfuegbarAus = (e: KatalogEintrag, starter: ReadonlyMap<string, string>): Einfuegbar => {
+	const html = e.html ?? (e.starter ? (starter.get(e.starter) ?? '') : undefined);
+	const angaben = {
+		id: e.id,
+		ort: e.ort,
+		...(e.umZeile ? { umZeile: e.umZeile } : {}),
+		...(e.stelle ? { stelle: e.stelle } : {}),
+	};
+	if (e.herkunft === 'paket') {
+		const teile = e.teile?.filter((t) => t !== 'aufgabe').map((t) => starter.get(t) ?? '') ?? [];
+		return { ...angaben, teile: html === undefined ? teile : [html], anweisung: e.anweisung ?? '' };
+	}
+	return {
+		...angaben,
+		...(e.klasse ? { klasse: e.klasse } : {}),
+		...(html === undefined ? {} : { html }),
+		...(e.anweisung ? { anweisung: e.anweisung } : {}),
+	};
+};
+
+/** Was eine Seite nur einmal hat (203-14): Einfügen wählt das vorhandene, statt ein zweites zu setzen. */
+const EINMAL: Readonly<Record<string, { klasse: string; meldung: string }>> = {
+	kopf: { klasse: 'kopf', meldung: 'Diese Seite hat schon einen Kopf. Er ist jetzt ausgewählt.' },
+	namenszeile: {
+		klasse: 'namenszeile',
+		meldung: 'Diese Seite hat schon eine Namenszeile. Sie ist jetzt ausgewählt.',
+	},
+	fuss: { klasse: 'fuss', meldung: 'Diese Seite hat schon eine Selbsteinschätzung. Sie ist jetzt ausgewählt.' },
+};
+
+const enthaelt = (k: Knoten, tag: string): boolean => k.kinder.some((c) => c.tag === tag || enthaelt(c, tag));
+
+/** Die Seite für die Lehrkraft (203-07) erkennt man an ihrem Notenschlüssel oder Erwartungshorizont. */
+const istSeiteDerLehrkraft = (s: Knoten) => enthaelt(s, 'x-notenschluessel') || enthaelt(s, 'x-erwartungshorizont');
+
+export interface SchonDa {
+	nr: number;
+	meldung: string;
+}
+
+/**
+ * Gibt es, was `b` einfügen würde, an seiner Stelle schon (203-07, 203-14)? Dann das vorhandene Element samt Meldung;
+ * der Aufrufer wählt es und fügt nichts ein.
+ */
+export const schonDa = (quelle: string, b: Einfuegbar, nr: number | null): SchonDa | null => {
+	const z = zerlege(quelle);
+	if (b.stelle === 'neue-seite') {
+		const seite = seitenVon(z).find(istSeiteDerLehrkraft);
+		return seite ? { nr: seite.nr, meldung: 'Die Seite für die Lehrkraft gibt es schon. Sie ist jetzt ausgewählt.' } : null;
+	}
+	const einmal = EINMAL[b.id];
+	if (!einmal) {
+		return null;
+	}
+	const ziel = nr === null ? null : (z.knoten[nr] ?? null);
+	const seite = (ziel && aufwaerts(ziel, 'seite')) ?? seitenVon(z).at(-1);
+	const da = seite?.kinder.find((k) => hat(k, einmal.klasse));
+	return da ? { nr: da.nr, meldung: einmal.meldung } : null;
+};
+
+/** Hinter die letzte Aufgabe ihrer Seite bzw. auf eine neue letzte Seite (203-07). */
+const anFesterStelle = (z: Zerlegung, b: Einfuegbar, html: string): Aenderung[] => {
+	const seiten = seitenVon(z);
+	const letzte = seiten.at(-1);
+	if (!letzte) {
+		throw new Error('Das Material hat keine Seite.');
+	}
+	if (b.stelle === 'neue-seite') {
+		const klasse = attribut(letzte, 'class')?.wert ?? 'seite';
+		return fuegeEin(z, letzte, 'nach', `<${letzte.tag} class="${klasse}">${html}</${letzte.tag}>`);
+	}
+	const mitAufgabe = seiten.findLast((s) => s.kinder.some((k) => hat(k, 'aufgabe'))) ?? letzte;
+	const aufgabe = mitAufgabe.kinder.findLast((k) => hat(k, 'aufgabe'));
+	return aufgabe ? fuegeEin(z, aufgabe, 'nach', html) : stelleAufSeite(z, mitAufgabe, html);
+};
+
+/** Was auf einer Folie kein Inhalt ist: Kopf, Notiz, Ebenen der Gestaltung (203-10). */
+const ohneInhalt = (seite: Knoten) =>
+	seite.kinder.every((k) => ['kopf', 'notiz', 'ebene', 'loesung-marke'].some((c) => hat(k, c)));
+
+/**
+ * Inhalt einer Folie (203-10): in die gewählte Folie, wenn sie nur Kopf und Notiz hat, hinter ihren Kopf; sonst auf eine
+ * neue Folie dahinter mit dem Kopf „Titel der Folie“. Im Blatt wie ein Baustein der Seite.
+ */
+const aufFolie = (z: Zerlegung, ziel: Knoten | null, html: string, n: Nummerierung): Aenderung[] => {
+	if (!n.jeSeite) {
+		return aufSeite(z, ziel, html);
+	}
+	const seite = (ziel && aufwaerts(ziel, 'seite')) ?? seitenVon(z).at(-1);
+	if (!seite) {
+		throw new Error('Das Material hat keine Seite.');
+	}
+	if (ohneInhalt(seite)) {
+		const kopf = seite.kinder.find((k) => hat(k, 'kopf'));
+		return kopf ? fuegeEin(z, kopf, 'nach', html) : stelleAufSeite(z, seite, html);
+	}
+	const klasse = attribut(seite, 'class')?.wert ?? 'seite';
+	const titel = '<div class="kopf"><div class="titel"><h1>Titel der Folie</h1></div></div>';
+	return fuegeEin(z, seite, 'nach', `<${seite.tag} class="${klasse}">${titel}${html}</${seite.tag}>`);
+};
 
 /** Kopf und Namenszeile gehören an den Anfang der Seite, der Fuß ans Ende; alles andere richtet sich nach der Auswahl. */
 export const festeStelle = (z: Zerlegung, ziel: Knoten | null, b: Einfuegbar, html: string): Aenderung[] | null => {
@@ -193,12 +298,32 @@ export const festeStelle = (z: Zerlegung, ziel: Knoten | null, b: Einfuegbar, ht
 };
 
 /** Fügt `b` an der Stelle `nr` ein (ohne Auswahl: am Ende der letzten Seite). Ein einziger Schritt im Verlauf. */
+/**
+ * Eine Lineatur ohne `art` bekommt beim Einfügen die der Klasse des Blatts (203-12). Das Element selbst nimmt ohne
+ * `art` die Lineatur 1; das zu ändern wäre ein Eingriff ins Skill-Asset. Ohne Klasse am `<body>` bleibt alles, wie es
+ * ist.
+ */
+export const mitLineaturDerKlasse = (quelle: string, b: Einfuegbar): Einfuegbar => {
+	const klasse = /<body\b[^>]*\bclass="[^"]*\bkl([1-4])\b/.exec(quelle)?.[1];
+	if (!klasse) {
+		return b;
+	}
+	const setze = (html: string) =>
+		html.replace(/<x-lineatur\b(?![^>]*\sart=)/g, `<x-lineatur art="${klasse}"`);
+	return {
+		...b,
+		...(b.html === undefined ? {} : { html: setze(b.html) }),
+		...(b.teile ? { teile: b.teile.map(setze) } : {}),
+	};
+};
+
 export const fuegeBausteinEin = (
 	quelle: string,
-	b: Einfuegbar,
+	baustein: Einfuegbar,
 	nr: number | null,
 	n: Nummerierung,
 ): StrukturErgebnis => {
+	const b = mitLineaturDerKlasse(quelle, baustein);
 	const z = zerlege(quelle);
 	const ziel = nr === null ? null : (z.knoten[nr] ?? null);
 	if (b.klasse) {
@@ -208,6 +333,9 @@ export const fuegeBausteinEin = (
 		return ergebnis(quelle, aufSeite(z, ziel, neueAufgabe(b.teile.join(''), b.anweisung)), n);
 	}
 	const html = b.html ?? '';
+	if (b.stelle) {
+		return ergebnis(quelle, anFesterStelle(z, b, html), n);
+	}
 	const fest = festeStelle(z, ziel, b, html);
 	if (fest) {
 		return ergebnis(quelle, fest, n);
@@ -215,7 +343,11 @@ export const fuegeBausteinEin = (
 	if (b.ort === 'seite') {
 		return ergebnis(quelle, aufSeite(z, ziel, html), n);
 	}
-	return ergebnis(quelle, b.ort === 'zeile' ? inZeile(z, ziel, html) : inAufgabe(z, ziel, html), n, html);
+	if (b.ort === 'folie') {
+		return ergebnis(quelle, aufFolie(z, ziel, html, n), n);
+	}
+	const aenderungen = b.ort === 'zeile' ? inZeile(z, ziel, b, html) : inAufgabe(z, ziel, html, b.anweisung);
+	return ergebnis(quelle, aenderungen, n, html);
 };
 
 export interface Zusatz {

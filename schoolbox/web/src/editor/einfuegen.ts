@@ -1,9 +1,9 @@
-import type { Einfuegbar } from '@schoolbox/kern/src/einfuegen';
-import { fuegeBausteinEin, verschiebeAufNeueSeite } from '@schoolbox/kern/src/einfuegen';
+import type { Einfuegbar, SchonDa } from '@schoolbox/kern/src/einfuegen';
+import { fuegeBausteinEin, schonDa, verschiebeAufNeueSeite } from '@schoolbox/kern/src/einfuegen';
 import { fuegeBausteinAn } from '@schoolbox/kern/src/einfuegen-ablage';
 import { neueIdsInGestaltung } from '@schoolbox/kern/src/gestaltung';
-import type { KatalogEintrag } from '@schoolbox/kern/src/katalog';
-import { sucheImKatalog } from '@schoolbox/kern/src/katalog';
+import type { FuerBlatt, KatalogEintrag } from '@schoolbox/kern/src/katalog';
+import { angebotFuerBlatt, istAngeboten } from '@schoolbox/kern/src/katalog';
 import type { Ablage } from '@schoolbox/kern/src/struktur';
 import { fuegeZeileEin, naechsteZelle, teileTabelle } from '@schoolbox/kern/src/tabelle';
 import { useCallback, useEffect, useRef, useState } from 'react';
@@ -71,29 +71,49 @@ export const tabelleZumTeilen = (seite: Element) => {
 
 interface Optionen {
 	dokument: { mappe: string; dok: string };
+	/** Fach und Klasse der Mappe, Art des Materials: was „Für dieses Blatt“ heißt (203-13). */
+	blatt: FuerBlatt;
 	struktur: Struktur;
 	auswahl: number | null;
 	folien: boolean;
 	nachher: () => void;
 }
 
-/** Katalog und Befehle: jedes Einfügen ist ein Schritt im Verlauf, danach ist der neue Baustein gewählt. */
-export const useEinfuegen = ({ auswahl, dokument, folien, nachher, struktur }: Optionen) => {
+/**
+ * Katalog und Befehle: jedes Einfügen ist ein Schritt im Verlauf, danach ist der neue Baustein gewählt. `eintraege` ist
+ * der ganze Katalog (andere Schubladen suchen darin per Kennung, z. B. `tipp` und `willi` in „Figuren“), `angebot` nur,
+ * was Schublade, Schnellauswahl, Slash und Palette zeigen (203-04).
+ */
+export const useEinfuegen = ({ auswahl, blatt, dokument, folien, nachher, struktur }: Optionen) => {
 	const { daten, neuLaden } = useLaden<{ eintraege: Posten[] }>('/api/katalog');
 	const [zuletzt, setZuletzt] = useState(leseZuletzt);
 	const zeige = useHinweis();
 	const eintraege = daten?.eintraege ?? [];
+	const angebot = eintraege.filter(istAngeboten);
 
 	/** Hinter `nr` (Klick) oder an der Ablage, die das Ziehen gefunden hat (094). */
 	const setzeEin = (e: Posten, einfuegbar: Einfuegbar, wo: number | null | { ablage: Ablage }) => {
+		// 203-14: Hat die Seite das Teil schon, wird es gewählt statt verdoppelt.
+		const gefunden: { da: SchonDa | null } = { da: null };
 		const ok = struktur.fuehreAus(
 			`${e.name} eingefügt`,
-			(q) =>
-				wo !== null && typeof wo === 'object'
+			(q) => {
+				const nr = wo !== null && typeof wo === 'object' ? ('in' in wo.ablage ? wo.ablage.in : wo.ablage.nr) : wo;
+				gefunden.da = schonDa(q, einfuegbar, nr);
+				if (gefunden.da) {
+					return { quelle: q, nr: gefunden.da.nr };
+				}
+				return wo !== null && typeof wo === 'object'
 					? fuegeBausteinAn(q, einfuegbar, wo.ablage, { jeSeite: folien })
-					: fuegeBausteinEin(q, einfuegbar, wo, { jeSeite: folien }),
+					: fuegeBausteinEin(q, einfuegbar, wo, { jeSeite: folien });
+			},
 			true,
 		);
+		if (gefunden.da) {
+			struktur.zeigeAn(gefunden.da.nr);
+			zeige({ text: gefunden.da.meldung });
+			return;
+		}
 		if (!ok) {
 			return;
 		}
@@ -157,8 +177,22 @@ export const useEinfuegen = ({ auswahl, dokument, folien, nachher, struktur }: O
 		}
 	};
 
-	const vorne = zuletzt.flatMap((id) => eintraege.find((e) => e.id === id) ?? []);
-	return { eintraege, zuletzt: vorne, fuegeEin, fuegeAn, jeSeite: folien, fuegeAblageEin, verschiebe, neuLaden };
+	const vorne = zuletzt.flatMap((id) => angebot.find((e) => e.id === id) ?? []);
+	/** Schnellauswahl, Slash und Palette (203-13): ohne Suchwort was zum Blatt passt, mit Suchwort alles im Angebot. */
+	const fuerBlatt = (anfrage = '', ohne: Parameters<typeof angebotFuerBlatt>[3] = []) =>
+		angebotFuerBlatt(angebot, blatt, anfrage, ohne);
+	return {
+		eintraege,
+		angebot,
+		fuerBlatt,
+		zuletzt: vorne,
+		fuegeEin,
+		fuegeAn,
+		jeSeite: folien,
+		fuegeAblageEin,
+		verschiebe,
+		neuLaden,
+	};
 };
 
 export type Einfuegen = ReturnType<typeof useEinfuegen>;
@@ -175,9 +209,19 @@ interface SlashOptionen {
 	doc: Document | null;
 	bearbeitet: boolean;
 	beende: () => void;
-	eintraege: Posten[];
+	/** Die Treffer zum Suchwort hinter dem `/`. */
+	liste: (filter: string) => Posten[];
 	waehle: (e: Posten) => void;
 }
+
+/** Das Slash-Menü steht im Text einer Aufgabe: Teile des Blatts und Folien gehören nicht dorthin (203-13). */
+export const NICHT_IM_TEXT = ['Blatt', 'Folien'] as const;
+
+/** Ohne Suchwort zuerst das zuletzt Benutzte, dann der Rest ohne Doppel. */
+export const mitZuletzt = (zuletzt: readonly Posten[], liste: readonly Posten[]) => {
+	const vorne = zuletzt.filter((z) => liste.some((e) => e.id === z.id));
+	return [...vorne, ...liste.filter((e) => !vorne.some((z) => z.id === e.id))];
+};
 
 const istZeilengrenze = (n: Node | null) => n === null || n.nodeName === 'BR';
 
@@ -191,12 +235,12 @@ const stelle = (doc: Document) => {
  * `/` öffnet das Menü nur, wenn es allein in seiner Zeile steht; `1/2` und „und/oder“ bleiben Text. Die Tasten laufen
  * im Fenster des Materials zuerst hier durch, damit Enter und Esc weder die Zeile noch die Auswahl verändern.
  */
-export const useSlash = ({ bearbeitet, beende, doc, eintraege, waehle }: SlashOptionen) => {
+export const useSlash = ({ bearbeitet, beende, doc, liste, waehle }: SlashOptionen) => {
 	const [offen, setOffen] = useState<{ knoten: Text; filter: string; index: number; x: number; y: number } | null>(
 		null,
 	);
 	const [gewaehlt, setGewaehlt] = useState<Posten | null>(null);
-	const treffer = offen ? (sucheImKatalog(offen.filter, eintraege) as Posten[]) : [];
+	const treffer = offen ? liste(offen.filter) : [];
 	const aktuell = useRef({ offen, treffer });
 	useEffect(() => {
 		aktuell.current = { offen, treffer };
@@ -239,15 +283,15 @@ export const useSlash = ({ bearbeitet, beende, doc, eintraege, waehle }: SlashOp
 			}
 		};
 		const taste = (e: KeyboardEvent) => {
-			const { offen: jetzt, treffer: liste } = aktuell.current;
+			const { offen: jetzt, treffer: zeilen } = aktuell.current;
 			if (!jetzt) {
 				return;
 			}
 			const schritt = ({ ArrowDown: 1, ArrowUp: -1 } as Record<string, number>)[e.key] ?? 0;
-			if (schritt !== 0 && liste.length > 0) {
-				setOffen({ ...jetzt, index: (jetzt.index + schritt + liste.length) % liste.length });
+			if (schritt !== 0 && zeilen.length > 0) {
+				setOffen({ ...jetzt, index: (jetzt.index + schritt + zeilen.length) % zeilen.length });
 			} else if (e.key === 'Enter') {
-				const e2 = liste[jetzt.index];
+				const e2 = zeilen[jetzt.index];
 				if (e2) {
 					nimm(e2);
 				} else {

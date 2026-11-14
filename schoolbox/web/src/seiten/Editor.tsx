@@ -1,4 +1,5 @@
 import { formatAusHtml } from '@schoolbox/kern/src/html';
+import type { FuerBlatt } from '@schoolbox/kern/src/katalog';
 import { hatLoesung, kannLoesungHaben } from '@schoolbox/kern/src/loesungen';
 import type { Verlauf, Zerlegung } from '@schoolbox/kern/src/quelltext';
 import { zerlege } from '@schoolbox/kern/src/quelltext';
@@ -37,7 +38,7 @@ import type { ClaudeHandlungen } from '../editor/claude-kontext';
 import { ClaudeKontext } from '../editor/claude-kontext';
 import { useClaudeApp } from '../editor/ClaudeApp';
 import { bausteinVon, editorHtml, elementZu, nrVon, pfadZu } from '../editor/darstellung';
-import { useEinfuegen, useSlash, useTabelleTab } from '../editor/einfuegen';
+import { mitZuletzt, NICHT_IM_TEXT, useEinfuegen, useSlash, useTabelleTab } from '../editor/einfuegen';
 import { EntwurfKarte, EntwurfPille, Entwurfsleiste, SperrHinweis } from '../editor/Entwurf';
 import { zeigeBlattGestaltung } from '../editor/gestaltung/blatt/zeige';
 import { gestaltungKontext } from '../editor/gestaltung/kontext';
@@ -297,6 +298,7 @@ const mitSchritt = (titel: string, name: string | undefined) => (name ? `${titel
 /** Bibliothek, Slash-Menü, Tab in Tabellen und „auf neue Seite“: alles, was auf dem gerade gezeigten Dokument arbeitet. */
 const useEinfuegeWerkzeuge = ({
 	auswahl,
+	blatt,
 	dokument,
 	folien,
 	geladen,
@@ -307,6 +309,7 @@ const useEinfuegeWerkzeuge = ({
 	text,
 }: {
 	auswahl: number | null;
+	blatt: FuerBlatt;
 	dokument: { mappe: string; dok: string };
 	folien: boolean;
 	geladen: { doc: Document; html: string } | null;
@@ -317,13 +320,16 @@ const useEinfuegeWerkzeuge = ({
 	text: ReturnType<typeof useText>;
 }) => {
 	const docJetzt = geladen?.html === html ? (geladen?.doc ?? null) : null;
-	const einfuegen = useEinfuegen({ dokument, struktur, auswahl, folien, nachher });
+	const einfuegen = useEinfuegen({ blatt, dokument, struktur, auswahl, folien, nachher });
 	const slash = useSlash({
 		// Das Dokument im Rahmen: Beim Tippen weicht die Quelle davon ab, das Menü muss trotzdem aufgehen.
 		doc: geladen?.doc ?? null,
 		bearbeitet: text.bearbeitet,
 		beende: text.beende,
-		eintraege: einfuegen.eintraege,
+		liste: (filter) =>
+			filter.trim()
+				? einfuegen.fuerBlatt(filter, NICHT_IM_TEXT)
+				: mitZuletzt(einfuegen.zuletzt, einfuegen.fuerBlatt('', NICHT_IM_TEXT)),
 		waehle: einfuegen.fuegeEin,
 	});
 	useTabelleTab({
@@ -591,6 +597,7 @@ const Bearbeitung = ({ dokument, mappe: mappenDaten }: { mappe: Mappe; dokument:
 	useAuswahlFolgt(geladen, html, auswahl, pfad, setAuswahl);
 	const { docJetzt, einfuegen, slash, verschiebeUeberlauf } = useEinfuegeWerkzeuge({
 		auswahl,
+		blatt: { fach: mappenDaten.fach, klasse: mappenDaten.klasse, art: meta.art },
 		dokument: { mappe, dok },
 		folien: format === 'folie',
 		geladen,
@@ -1071,7 +1078,8 @@ const Bearbeitung = ({ dokument, mappe: mappenDaten }: { mappe: Mappe; dokument:
 						platzhalter="Befehl oder Baustein suchen"
 						freitext={anClaudeWenn(ki.zustand.verfuegbar, claude.fuelle)}
 						eintraege={eintraegeImEditor(befehle.jetzt.current, {
-							posten: einfuegen.eintraege,
+							// 203-13: Treffer, die zum Blatt passen, vor den übrigen; nie, was nicht mehr angeboten wird.
+							posten: mitZuletzt(einfuegen.fuerBlatt(), einfuegen.angebot),
 							fuegeEin: (p) =>
 								einfuegen.fuegeEin(p, auswahl ?? (docJetzt ? seiteAn(docJetzt, seite.nr) : null)),
 							zeigeSeite: (nr) => {

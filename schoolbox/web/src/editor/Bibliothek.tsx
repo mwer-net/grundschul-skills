@@ -1,5 +1,5 @@
 import { BEREICH_SYMBOL, KATALOG_BEREICHE, KATALOG_KATEGORIEN } from '@schoolbox/kern/src/abbildungen';
-import { MEINE_BAUSTEINE, MEINE_BAUSTEINE_SYMBOL, sucheImKatalog } from '@schoolbox/kern/src/katalog';
+import { MEINE_BAUSTEINE, MEINE_BAUSTEINE_SYMBOL, passtZuBlatt, sucheImKatalog } from '@schoolbox/kern/src/katalog';
 import type { Art, Fach, Klasse } from '@schoolbox/kern/src/werte';
 import type { PointerEvent as ReactPointerEvent } from 'react';
 import { useEffect, useLayoutEffect, useRef, useState } from 'react';
@@ -44,11 +44,6 @@ import type { ZugAmZeiger } from './zug-von-aussen';
 import { zieheVonAussen, ziehgutBaustein } from './zug-von-aussen';
 
 const ZEILE = 'w-full rounded-md px-2 py-1 text-left hover:bg-flaeche-2';
-
-const passtZu = (e: Posten, m: { fach: Fach; klasse: Klasse }, art: Art) =>
-	(!e.faecher || e.faecher.includes(m.fach)) &&
-	(!e.klassen || e.klassen.includes(m.klasse)) &&
-	(!e.arten || e.arten.includes(art));
 
 const Liste = ({ aktiv, posten, waehle }: { posten: Posten[]; aktiv?: number; waehle: (e: Posten) => void }) => (
 	<ul className="flex flex-col">
@@ -100,7 +95,8 @@ export const Einfuegemarken = ({
 	const [luecke, setLuecke] = useState<Luecke | null>(null);
 	const { box, doc, hoehe, links, skala } = e;
 	const leer = [...doc.querySelectorAll('.seite:not([data-erzeugt])')].filter((s) => s.children.length === 0);
-	const liste = suche.trim() ? (sucheImKatalog(suche, einfuegen.eintraege) as Posten[]) : einfuegen.eintraege;
+	// 203-13: ohne Suchwort was zum Blatt passt, Aufgaben vorne; mit Suchwort alles im Angebot, Passendes zuerst.
+	const liste = einfuegen.fuerBlatt(suche);
 	/** Immer ganz im Sichtfeld, auch am unteren Rand (B15) und wenn der Baustein aus dem Bild gerollt ist. */
 	const oeffne = (nr: number | null, wunschLinks: number, wunschOben: number) => {
 		const sicht = sichtfeldVon(doc);
@@ -382,6 +378,36 @@ const KartenVorschau = ({ id, name }: { id: string; name: string }) => {
 };
 
 /**
+ * Der Name unter der Kachel (203-16): bis zu zwei Zeilen, getrennt nur an Leerzeichen. Passt ein Wort nicht in die
+ * Breite, wird die Schrift eine Stufe kleiner; erst wenn auch das nicht reicht, bricht das Wort.
+ */
+const Kachelname = ({ name }: { name: string }) => {
+	const feld = useRef<HTMLSpanElement>(null);
+	const [stufe, setStufe] = useState<0 | 1 | 2>(0);
+	useLayoutEffect(() => setStufe(0), [name]);
+	useLayoutEffect(() => {
+		const e = feld.current;
+		if (e && stufe < 2 && e.scrollWidth > e.clientWidth + 1) {
+			setStufe((s) => (s === 0 ? 1 : 2));
+		}
+	}, [name, stufe]);
+	return (
+		<span
+			ref={feld}
+			className={klassen(
+				'line-clamp-2 w-full text-center hyphens-manual',
+				stufe === 0 ? 'text-sm' : 'text-xs',
+				stufe === 2 && 'break-words',
+			)}
+			data-kachel-name
+			data-kachel-name-stufe={stufe}
+		>
+			{name}
+		</span>
+	);
+};
+
+/**
  * Ein Eintrag als Kachel (147): Vorschau, darunter der Name in bis zu zwei Zeilen. Ein Knopf, der Klick fügt ein.
  * Gezogen wird von der ganzen Kachel, mit der Maus ab `MAUS_WEG`, mit dem Finger nach `HALTEN_MS`, damit Wischen die
  * Liste rollt. Aussehen wie `AblageKachel`, abgelegt wird aber mit Lücke im Blatt (094, `zug-von-aussen.ts`).
@@ -526,9 +552,7 @@ const BausteinKachel = ({
 					) : (
 						<KartenVorschau id={eintrag.id} name={eintrag.name} />
 					)}
-					<span className={KACHELNAME_ZWEIZEILIG} data-kachel-name>
-						{eintrag.name}
-					</span>
+					<Kachelname name={eintrag.name} />
 					{bereich && (
 						<span className={KACHELNAME} data-treffer-bereich>
 							{bereich}
@@ -608,8 +632,8 @@ export const Bibliothek = ({
 		setFilter(neu);
 		localStorage.setItem(FILTER, neu);
 	};
-	const { eintraege } = einfuegen;
-	const passt = (e: Posten) => passtZu(e, mappe, art);
+	const eintraege = einfuegen.angebot;
+	const passt = (e: Posten) => passtZuBlatt(e, { ...mappe, art });
 	const passend = eintraege.filter(passt);
 	const gezeigt = filter === 'alle' ? eintraege : passend;
 	const anzahl = (liste: readonly Posten[], k: string) => liste.filter((e) => e.kategorie === k).length;
@@ -624,7 +648,7 @@ export const Bibliothek = ({
 			? 0
 			: KATALOG_KATEGORIEN.filter((k) => anzahl(passend, k) === 0 && anzahl(eintraege, k) > 0).length;
 	const sucht = suche.trim() !== '';
-	const treffer = sucht ? (sucheImKatalog(suche, eintraege) as Posten[]) : [];
+	const treffer = sucht ? sucheImKatalog(suche, eintraege) : [];
 	const trefferPassend = treffer.filter(passt);
 	const trefferAnderswo = treffer.filter((e) => !passt(e));
 	const imBereich = gezeigt.filter((e) => e.kategorie === bereich);

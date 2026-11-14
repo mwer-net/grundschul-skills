@@ -5,7 +5,7 @@
  */
 
 import type { Einfuegbar } from './einfuegen';
-import { ergebnis, festeStelle, fuegeBausteinEin, neueAufgabe } from './einfuegen';
+import { ergebnis, festeStelle, fuegeBausteinEin, mitLineaturDerKlasse, neueAufgabe, zeileUm } from './einfuegen';
 import type { Aenderung, Knoten, Zerlegung } from './quelltext';
 import { attribut, fuegeEin, klassenVon, zerlege } from './quelltext';
 import type { Ablage, Nummerierung, StrukturErgebnis } from './struktur';
@@ -20,17 +20,18 @@ export interface Huelle {
 
 /**
  * Was im Stapel einer Seite landet: Aufgabenpakete und Kleines (`ort: 'aufgabe' | 'zeile'`) in einer neuen Aufgabe,
- * alles mit `ort: 'seite'` so, wie es ist. Die Lücke beim Ziehen zeigt genau dieses HTML.
+ * mit dem eigenen Aufgabentext, wenn es einen hat (203-06); alles mit `ort: 'seite'` oder `'folie'` so, wie es ist.
+ * Die Lücke beim Ziehen zeigt genau dieses HTML.
  */
 export const huelleImStapel = (b: Einfuegbar): Huelle => {
 	if (b.teile) {
 		return { html: neueAufgabe(b.teile.join(''), b.anweisung) };
 	}
 	const html = b.html ?? '';
-	if (b.ort === 'seite') {
+	if (b.ort === 'seite' || b.ort === 'folie') {
 		return { html };
 	}
-	return { html: neueAufgabe(b.ort === 'zeile' ? `<div class="zeile">${html}</div>` : html), baustein: html };
+	return { html: neueAufgabe(b.ort === 'zeile' ? zeileUm(html, b.umZeile) : html, b.anweisung), baustein: html };
 };
 
 /** Als letztes Kind von `eltern`, vor einen Fuß und vor die Ebenen der Gestaltung. */
@@ -48,7 +49,13 @@ const amEnde = (z: Zerlegung, eltern: Knoten, html: string): Aenderung[] => {
 };
 
 /** Fügt `b` an der Ablage ein: vor oder hinter ein Element, oder ans Ende eines Elements (leere Seite). */
-export const fuegeBausteinAn = (quelle: string, b: Einfuegbar, ablage: Ablage, n: Nummerierung): StrukturErgebnis => {
+export const fuegeBausteinAn = (
+	quelle: string,
+	eintrag: Einfuegbar,
+	ablage: Ablage,
+	n: Nummerierung,
+): StrukturErgebnis => {
+	const b = mitLineaturDerKlasse(quelle, eintrag);
 	const z = zerlege(quelle);
 	const nr = 'in' in ablage ? ablage.in : ablage.nr;
 	const ziel = z.knoten[nr];

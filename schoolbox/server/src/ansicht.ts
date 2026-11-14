@@ -118,6 +118,7 @@ const VORSCHAU_FIT = {
 	skript: `<script>(function () {
 	var rand = 4;
 	var SPALTE = 200;
+	var HOCH = 400;
 	var koerper = document.querySelector('body > .koerper');
 	var miss = function (mitKoerper) {
 		var flaechen = (mitKoerper ? [koerper] : []).concat(Array.from(koerper.querySelectorAll('*:not(svg *)')))
@@ -138,11 +139,15 @@ const VORSCHAU_FIT = {
 		koerper.style.transform = 'none';
 		var m = miss(true);
 		if (m.b > 0 && m.h > 0) {
-			// Ein Maßstab für alle Einträge, Schmales bleibt klein (147).
-			var s = Math.min(frei.b / SPALTE, frei.b / m.b, frei.h / m.h);
-			var x = rand + (frei.b - m.b * s) / 2 - m.links * s;
-			var y = rand + (frei.h - m.h * s) / 2 - m.oben * s;
+			// Ein Maßstab für alle Einträge, Schmales bleibt klein (147). Was höher als HOCH ist (Bingo, Domino,
+			// Spielplan), zeigt seinen oberen linken Ausschnitt in halber Größe, sonst wäre nichts zu erkennen (203-17).
+			var hoch = m.h > HOCH;
+			var s = hoch ? 0.5 : Math.min(frei.b / SPALTE, frei.b / m.b, frei.h / m.h);
+			var x = hoch ? rand - m.links * s : rand + (frei.b - m.b * s) / 2 - m.links * s;
+			var y = hoch ? rand - m.oben * s : rand + (frei.h - m.h * s) / 2 - m.oben * s;
 			koerper.style.transform = 'translate(' + x + 'px,' + y + 'px) scale(' + s + ')';
+			if (hoch) document.documentElement.dataset.ausschnitt = '1';
+			else delete document.documentElement.dataset.ausschnitt;
 		}
 		document.documentElement.style.visibility = 'visible';
 		document.documentElement.dataset.fit = '1';
