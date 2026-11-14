@@ -190,4 +190,48 @@ test.describe('Seiten laufen weiter (206)', () => {
 		await expect(seiten(page).first().locator(':scope > .aufgabe')).not.toHaveCount(2);
 		expect(await ueberstand(page)).toBe(false);
 	});
+
+	test('Beim Tippen laufen die Blöcke dahinter mit, die Quelle bleibt bis zum Ende (206-07)', async ({ page }) => {
+		const doc = await vorbereiten(page, 4, 4);
+		const vorher = await quelle(page);
+		await expect(seiten(page)).toHaveCount(1);
+		const anweisung = material(page).locator('.aufgabe').filter({ hasText: 'Schreibe 4.' }).locator('.anw .text');
+		await anweisung.click();
+		await anweisung.click();
+		await expect(page.locator('[data-textbearbeitung]')).toBeVisible();
+		await page.keyboard.press('End');
+		await page.keyboard.insertText(' Und dann noch ein Satz, der immer weiter geht.'.repeat(30));
+		// Der Fuß wandert sichtbar auf eine zweite Seite, die Quelle ist noch die alte.
+		await expect(seiten(page)).toHaveCount(2);
+		await expect(seiten(page).last().locator(':scope > .fuss')).toHaveCount(1);
+		expect(await quelle(page)).toBe(vorher);
+		// Die Schreibmarke bleibt im getippten Block.
+		expect(
+			await material(page)
+				.locator('body')
+				.evaluate(() => getSelection()?.anchorNode?.parentElement?.closest('[contenteditable="true"]') !== null),
+		).toBe(true);
+
+		// Zurück zum alten Text: Alles steht wie vorher, Esc beendet ohne Schritt.
+		await anweisung.click({ clickCount: 3 });
+		await page.keyboard.insertText('Schreibe 4.');
+		await expect(seiten(page)).toHaveCount(1);
+		await page.keyboard.press('Escape');
+		await expect(page.locator('[data-textbearbeitung]')).toBeHidden();
+		expect(await quelle(page)).toBe(vorher);
+
+		// Wieder tippen und beenden: Der echte Fluss legt die Quelle um. Passt der getippte Block selbst nicht mehr,
+		// wandert jetzt auch er; beim Tippen blieb er stehen.
+		await anweisung.click();
+		await anweisung.click();
+		await page.keyboard.press('End');
+		await page.keyboard.insertText(' Und dann noch ein Satz, der immer weiter geht.'.repeat(30));
+		await expect(seiten(page)).toHaveCount(2);
+		await page.keyboard.press('Escape');
+		await expect.poll(async () => automatische(await quelle(page))).toBeGreaterThan(0);
+		await geladen(page);
+		await expect(seiten(page).last().locator(':scope > .fuss')).toHaveCount(1);
+		expect(await ueberstand(page)).toBe(false);
+		await gespeichert(page, doc.material);
+	});
 });

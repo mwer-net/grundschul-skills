@@ -9,6 +9,7 @@ import type { Blatt, FlussPlan } from '@schoolbox/kern/src/fluss';
 import {
 	aeussereSeiten as aeussereSeitenVon,
 	blaetterVon,
+	blattZu,
 	istFuss,
 	istUeberschrift,
 	legeUm,
@@ -20,7 +21,7 @@ import type { RefObject } from 'react';
 import { useCallback, useEffect, useRef } from 'react';
 
 import type { Bereich } from './bearbeitung';
-import { elementZu, nrVon } from './darstellung';
+import { elementZu, MITLAUFEN, nrVon } from './darstellung';
 
 /** Unterkante der Seite wie in `pruefung.js`: nach vorn erst bei mehr als 1 px Überstand, zurück nur ganz (Regel 14). */
 const TOLERANZ = 1;
@@ -38,6 +39,8 @@ const VORN = '.namenszeile, .kopf';
 const NICHT_GEMESSEN = '.karten, .loesung-marke, .fuss-zeile, [data-rand-ok], .ebene, [data-lage]';
 /** Im Probelauf schrumpft nichts in der Spalte der Seite: gemessen wird die echte Höhe jedes Blocks. */
 const PROBE_STIL = '.seite>*{flex-shrink:0!important}';
+/** So lange Ruhe beim Tippen, dann läuft das Bild mit (206-07). */
+const MITLAUFEN_MS = 150;
 
 const aeussereSeiten = (doc: Document) =>
 	[...doc.querySelectorAll<HTMLElement>('.seite:not([data-erzeugt])')].filter(
@@ -199,11 +202,11 @@ const probeSeite = (vorlage: HTMLElement, nach: Element) => {
  * Überschrift steht nie als Letztes, der Fuß nie allein. `bis` (Lösung, Regel 21): Seite `j` endet höchstens dort,
  * wo sie im Arbeitsblatt endete; so wird nur weitergeschoben, nie zurückgeholt.
  */
-const fuelle = (p: Probe, neu: HTMLElement[], bis: number[] | null) => {
+const fuelle = (p: Probe, neu: HTMLElement[], bis: number[] | null, ab = { block: 0, seite: 0 }) => {
 	const { folge, herkunft } = p;
 	const seiten: Element[][] = [];
-	let s = 0;
-	for (let j = 0; s < folge.length; j += 1) {
+	let s = ab.block;
+	for (let j = ab.seite; s < folge.length; j += 1) {
 		let seite = p.seiten[j] ?? neu[j - p.seiten.length];
 		if (!seite) {
 			const vorher = p.seiten[j - 1] ?? neu.at(-1) ?? p.seiten[0];
@@ -228,7 +231,8 @@ const fuelle = (p: Probe, neu: HTMLElement[], bis: number[] | null) => {
 		if (deckel !== undefined) {
 			m = Math.min(m, deckel - s);
 		}
-		m = Math.max(1, m);
+		// Auf der Seite, auf der getippt wird (206-07), stehen schon Blöcke: Dort darf keiner mehr dazukommen.
+		m = Math.max(j === ab.seite && ab.block > 0 ? 0 : 1, m);
 		if (s + m < folge.length) {
 			// Regel 8: Der Fuß steht nie allein, er nimmt den Block davor mit.
 			if (s + m === folge.length - 1 && folge.at(-1) === p.fuss && m > 1) {
@@ -350,6 +354,111 @@ export const probelauf = async (doc: Document, z: Zerlegung, o: Optionen): Promi
 		}
 		stil.remove();
 	}
+};
+
+/** Der Flussblock, in dem `el` steht: das Kind einer äußeren Seite. */
+const flussblockVon = (el: Element) => {
+	const body = el.ownerDocument.body;
+	let block: Element = el;
+	while (block.parentElement && !(block.parentElement.matches('.seite') && block.parentElement.parentElement === body)) {
+		block = block.parentElement;
+	}
+	return block.parentElement ? block : null;
+};
+
+/**
+ * 206-07: Regel 6 im sichtbaren Bild, während getippt wird. Die Quelle bleibt; nur die Blöcke **hinter** dem getippten
+ * Block wandern, er selbst und alles davor bleibt stehen (sonst verlöre er den Fokus). Gemessen wird nur die gezeigte
+ * Fassung. Zurück kommt, was alles wieder hinstellt; `null`, wenn nichts zu tun ist.
+ */
+export const laufeMit = (doc: Document, z: Zerlegung, getippt: Element): (() => void) | null => {
+	const block = flussblockVon(getippt);
+	const nr = block && nrVon(block);
+	const blatt = nr === null || nr === undefined ? null : blattZu(z, nr);
+	const seiten = blatt && blaetterImBild(doc).find((g) => g[0] && nrVon(g[0]) === blatt.seiten[0]?.nr);
+	const p = blatt?.fliesst && seiten && fliesstImBild(seiten) ? probeFuer(doc, z, blatt, seiten) : null;
+	const t = p && block ? p.folge.indexOf(block) : -1;
+	if (!p || t < 0 || t === p.folge.length - 1) {
+		return null;
+	}
+	const stellen = p.folge.slice(t + 1).map((b) => [b, b.parentNode, b.nextSibling] as const);
+	const neu: HTMLElement[] = [];
+	const stil = doc.createElement('style');
+	stil.textContent = PROBE_STIL;
+	doc.head.append(stil);
+	try {
+		fuelle(p, neu, null, { block: t + 1, seite: p.herkunft.get(block as Element) ?? 0 });
+	} finally {
+		stil.remove();
+	}
+	return () => {
+		for (const [b, eltern, danach] of [...stellen].reverse()) {
+			eltern?.insertBefore(b, danach);
+		}
+		neu.forEach((s) => s.remove());
+	};
+};
+
+/**
+ * 206-07: Nach jeder Tipp-Pause läuft das Bild mit (`laufeMit`). Endet das Tippen ohne Änderung (Esc), steht alles
+ * wieder wie vorher; mit Änderung bleibt das Bild, bis der echte Fluss (206-02) die neue Fassung zeigt.
+ */
+export const useMitlaufen = ({
+	doc,
+	zerlegung,
+	auswahl,
+	nachher,
+}: {
+	doc: Document | null;
+	zerlegung: Zerlegung | null;
+	auswahl: number | null;
+	/** Nachdem das Bild wieder wie vorher steht, z. B. für die Live-Prüfung. */
+	nachher: () => void;
+}) => {
+	const stand = useRef({ doc, zerlegung, auswahl, nachher });
+	useEffect(() => {
+		stand.current = { doc, zerlegung, auswahl, nachher };
+	});
+	const uhr = useRef<number | undefined>(undefined);
+	const zurueck = useRef<(() => void) | null>(null);
+	const raeume = useCallback(() => {
+		zurueck.current?.();
+		zurueck.current = null;
+	}, []);
+	useEffect(() => () => window.clearTimeout(uhr.current), []);
+	// Ein neues Bild hat die Vorschau nicht mehr.
+	useEffect(() => {
+		zurueck.current = null;
+	}, [doc]);
+	const getippt = useCallback(() => {
+		if (!MITLAUFEN) {
+			return;
+		}
+		window.clearTimeout(uhr.current);
+		uhr.current = window.setTimeout(() => {
+			const { doc: d, zerlegung: z, auswahl: nr } = stand.current;
+			const el = d && z && nr !== null ? elementZu(d, nr) : null;
+			if (!d || !z || !el) {
+				return;
+			}
+			// Zurück und neu in einem Zug: Dazwischen gibt es kein Bild. Die Live-Prüfung wartet länger und sieht es schon.
+			raeume();
+			zurueck.current = laufeMit(d, z, el);
+		}, MITLAUFEN_MS);
+	}, [raeume]);
+	const beendet = useCallback(
+		(geaendert: boolean) => {
+			window.clearTimeout(uhr.current);
+			if (geaendert) {
+				zurueck.current = null;
+			} else if (zurueck.current) {
+				raeume();
+				stand.current.nachher();
+			}
+		},
+		[raeume],
+	);
+	return { getippt, beendet };
 };
 
 /** Fließt die Seite (1-basiert wie in der Prüfung)? Dann regelt der Fluss den Überstand, nicht der Satz im Reiter. */

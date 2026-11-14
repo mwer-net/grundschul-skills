@@ -27,7 +27,7 @@ import { useAblage } from '../editor/ablage';
 import { Konfliktleiste, Speicheranzeige, Vorschauleiste } from '../editor/Anzeigen';
 import { Bausteinleiste } from '../editor/Bausteinleiste';
 import { useBearbeitung } from '../editor/bearbeitung';
-import { seiteFliesst, useFluss } from '../editor/fluss';
+import { seiteFliesst, useFluss, useMitlaufen } from '../editor/fluss';
 import type { MenueArt } from '../editor/befehle';
 import { istZoomTaste, kuerzelVon } from '../editor/befehle';
 import { Einfuegemarken } from '../editor/Bibliothek';
@@ -517,6 +517,17 @@ const Bearbeitung = ({ dokument, mappe: mappenDaten }: { mappe: Mappe; dokument:
 	const pruefung = usePruefung({ geladen, html, zerlegung, ausgang: b.ausgang, aus: vorschau !== null });
 	const schrittWeg = useRef<(richtung: 'zurueck' | 'vor') => void>(() => undefined);
 	const geschichte = useCallback((richtung: 'zurueck' | 'vor') => schrittWeg.current(richtung), []);
+	// 206-07: Beim Tippen laufen die Seiten im Bild mit; die Live-Prüfung sieht danach das neue Bild.
+	const mitlaufen = useMitlaufen({
+		doc: geladen && geladen.html === html ? geladen.doc : null,
+		zerlegung,
+		auswahl,
+		nachher: pruefung.getippt,
+	});
+	const getippt = useCallback(() => {
+		pruefung.getippt();
+		mitlaufen.getippt();
+	}, [pruefung.getippt, mitlaufen.getippt]);
 	const text = useText({
 		geschichte,
 		geladen,
@@ -527,7 +538,8 @@ const Bearbeitung = ({ dokument, mappe: mappenDaten }: { mappe: Mappe; dokument:
 		bearbeitbar: frei,
 		befehl: b.befehl,
 		pruefe: b.pruefe,
-		getippt: pruefung.getippt,
+		getippt,
+		beendet: mitlaufen.beendet,
 	});
 
 	useEffect(() => {
