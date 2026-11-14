@@ -6,6 +6,7 @@ import { Knopf } from '../bausteine/Knopf';
 import { Symbol } from '../bausteine/Symbol';
 import type { PdfMeldung } from '../typen';
 import { bitteAnClaude, jeDokument } from './claude';
+import { fasseZusammen } from './gleiche';
 
 interface Eigenschaften {
 	mappe: { id: string; titel: string };
@@ -64,8 +65,8 @@ export const PdfWarnung = ({ ganzeMappe, mappe, meldungen, schliessen, weiter, w
 					<div key={dok}>
 						{(ganzeMappe || gruppen.length > 1) && <h3 className="text-lg">{titel}</h3>}
 						<ul className="flex list-disc flex-col gap-1 pl-5">
-							{liste.map((m, i) => (
-								<li key={`${i}-${m.text}`}>{verstaendlich(m)}</li>
+							{fasseZusammen(liste.map(verstaendlich)).map((satz) => (
+								<li key={satz}>{satz}</li>
 							))}
 						</ul>
 					</div>

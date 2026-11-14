@@ -13,6 +13,7 @@ import { falte } from '../lib/text';
 import { dokumentSeite, editorSeite, entwuerfeSeite, praesentationSeite } from '../lib/zugang';
 import { usePdf } from '../pdf/usePdf';
 import { dokumentWahl, sammlungWahl } from '../pdf/wahl';
+import { SOFORT, vollbildFuerSofort } from '../praesentation/laufzeit';
 import { MaterialDialog } from '../seiten/Anlegen';
 import { TeilenDialog } from '../teilen/TeilenDialog';
 import type { AuswahlStand, Richtung } from './auswahl';
@@ -289,6 +290,7 @@ export const useBefehle = (o: Optionen) => {
 		return wahl.map((w) => ({
 			titel: w.titel,
 			...(w.hinweis ? { beschreibung: w.hinweis } : {}),
+			...(w.gruppe ? { gruppe: w.gruppe } : {}),
 			...(pdf.laeuft ? { aus: true } : {}),
 			waehle: () => void pdf.hole(w),
 		}));
@@ -392,7 +394,11 @@ export const useBefehle = (o: Optionen) => {
 	const AKTIONEN: Record<string, (l: Lage) => void> = {
 		oeffnen: mitErstem((x) => void navigate(seiteVon(x))),
 		bearbeiten: mitDok((d) => void navigate(editorSeite(zugangVon(d), d.id))),
-		praesentieren: mitDok((d) => void navigate(praesentationSeite(zugangVon(d), d.id))),
+		praesentieren: mitDok((d) => {
+			// Sofort im Vollbild (192 Urteil 2): Es geht nur im Klick selbst.
+			vollbildFuerSofort();
+			void navigate(praesentationSeite(zugangVon(d), d.id), { state: SOFORT });
+		}),
 		entwuerfe: mitDok((d) => void navigate(entwuerfeSeite(zugangVon(d), d.id))),
 		neuerTab: mitErstem((x) => void window.open(seiteVon(x), '_blank', 'noopener')),
 		imOrdnerZeigen: mitErstem(imOrdnerZeigen),

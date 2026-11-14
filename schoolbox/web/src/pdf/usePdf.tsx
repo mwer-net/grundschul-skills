@@ -2,8 +2,6 @@ import { useState } from 'react';
 
 import { meldung } from '../api';
 import { useHinweis } from '../bausteine/hinweis';
-import type { MenueEintrag } from '../bausteine/Menue';
-import type { SymbolName } from '../bausteine/Symbol';
 import type { PdfAntwort } from '../typen';
 import { PdfWarnung } from './PdfWarnung';
 
@@ -11,6 +9,8 @@ export interface PdfWahl {
 	titel: string;
 	/** Wofür die Datei gut ist; steht im Menü unter dem Titel. */
 	hinweis?: string;
+	/** Einträge gleicher Gruppe stehen zusammen, zwischen Gruppen liegt eine Linie (191-21). */
+	gruppe?: string;
 	vorbereiten: () => Promise<PdfAntwort>;
 }
 
@@ -62,26 +62,4 @@ export const usePdf = ({ ganzeMappe, mappe, warnen }: Optionen) => {
 	);
 
 	return { laeuft, hole, dialog };
-};
-
-/** Die Wahl als Menüeintrag: bei mehreren ein Untermenü. Wer das Menü schließt, sieht den Knopf nicht drehen: `start` meldet es. */
-export const pdfEintrag = (
-	titel: string,
-	symbol: SymbolName,
-	wahl: PdfWahl[],
-	hole: (w: PdfWahl) => unknown,
-	start?: () => void,
-): MenueEintrag => {
-	const los = (w: PdfWahl) => {
-		start?.();
-		hole(w);
-	};
-	const [erste] = wahl;
-	return wahl.length === 1 && erste
-		? { titel, symbol, waehle: () => los(erste) }
-		: {
-				titel,
-				symbol,
-				untermenue: wahl.map((w) => ({ titel: w.titel, beschreibung: w.hinweis, waehle: () => los(w) })),
-			};
 };
