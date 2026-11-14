@@ -14,7 +14,6 @@ import { limitHinweis, neueGespraechId, useKiZustand } from '../editor/ki';
 import { useEinheiten } from '../ordner/einheiten';
 import { useAblage } from '../ordner/kontext';
 import { ersterSchritt, LETZTE, mitWeg, ortDesAssistenten, wirksameAntworten } from './anlegen-hilfe';
-import type { AuftragText } from './AnlegenSchritte';
 import {
 	Fehler,
 	SchrittArt,
@@ -23,17 +22,20 @@ import {
 	SchrittFuerWen,
 	SchrittKlasse,
 	Schrittleiste,
-	SchrittPruefen,
 	SchrittStart,
 	SchrittThema,
 	SchrittTitel,
+	StartHinweis,
 } from './AnlegenSchritte';
+import type { GemerkterAssistent } from './assistent-gemerkt';
+import { ASSISTENT_FORTSETZEN, merkeAssistent } from './assistent-gemerkt';
 import {
+	EinheitVerbrauch,
+	fensterWarnung,
 	SchrittEBestandteile,
 	SchrittERahmen,
 	SchrittEThema,
 	SchrittEUmfang,
-	SchrittPruefenEinheit,
 } from './EinheitSchritte';
 import { legeMaterialAn } from './material-anlegen';
 
@@ -44,6 +46,8 @@ interface MaterialDialogEigenschaften {
 	thema?: string;
 	schliessen: () => void;
 	vorDemSprung?: (mappe: string, dok: string) => void;
+	/** „Weiter ausfüllen“ nach dem Schließen: dieselben Antworten im selben Schritt (190-02). */
+	fortsetzen?: GemerkterAssistent | null;
 }
 
 const mitThema = (basis: Antworten, thema: string): Antworten =>
@@ -52,105 +56,68 @@ const mitThema = (basis: Antworten, thema: string): Antworten =>
 const istTextfeld = (ziel: EventTarget | null) =>
 	ziel instanceof HTMLInputElement || ziel instanceof HTMLTextAreaElement || ziel instanceof HTMLSelectElement;
 
-const hauptText = (schritt: AssistentSchrittId, einheit: boolean) => {
-	if (schritt === 'pruefen') {
-		return einheit ? 'Einheit mit Claude erstellen' : 'Mit Claude erstellen';
+/** Die Freitextfelder hinter „Anders …“ je Schritt: Offen und leer geht es nicht weiter (190-19). */
+const ANDERS_FELDER: Partial<Record<AssistentSchrittId, readonly FreitextFeld[]>> = {
+	format: ['formatText'],
+	thema: ['funktionText', 'umfangText'],
+};
+
+const ANDERS_LEER = 'Bitte schreib, was du meinst, oder wähle eine Angabe.';
+
+/** Der letzte Fragenschritt mit Claude holt den Plan; im leeren Weg legt der Titel an (190-37). */
+const hauptText = (letzter: boolean, einheit: boolean, schritt: AssistentSchrittId) => {
+	if (letzter) {
+		return einheit ? 'Plan holen' : 'Aufgabenplan holen';
 	}
 	return schritt === 'titel' ? 'Leeres Blatt anlegen' : 'Weiter';
 };
 
-/** Beim Auftrag das leere Blatt statt Claude, unterwegs der Wechsel dorthin, sonst Abbrechen. */
-const Ausweg = ({
-	anlegenLeer,
-	doch,
-	einheit,
-	laeuft,
-	schliessen,
-	schritt,
-	zumLeerenBlatt,
-}: {
-	schritt: AssistentSchrittId;
-	einheit: boolean;
-	doch: boolean;
-	laeuft: boolean;
-	anlegenLeer: () => void;
-	zumLeerenBlatt: () => void;
-	schliessen: () => void;
-}) => {
-	if (schritt === 'pruefen' && !einheit) {
-		return (
-			<Knopf art="leise" disabled={laeuft} onClick={anlegenLeer}>
-				<Symbol name="blatt" />
-				Nur leeres Blatt anlegen
-			</Knopf>
-		);
-	}
-	if (doch && !einheit) {
-		return (
-			<Knopf art="leise" onClick={zumLeerenBlatt}>
-				<Symbol name="blatt" />
-				Doch lieber leeres Blatt
-			</Knopf>
-		);
-	}
-	return (
-		<Knopf art="leise" onClick={schliessen}>
-			Abbrechen
-		</Knopf>
-	);
-};
-
-/** Links der Ausweg, rechts Zurück, Überspringen und die Hauptaktion mit ⏎. */
+/** Links der Ausweg: unterwegs mit Claude der Wechsel zum leeren Blatt, sonst Abbrechen; rechts Zurück und ⏎. */
 const Fuss = ({
-	anlegenLeer,
-	claude,
-	einheit,
+	doch,
 	gesperrt,
+	hauptaktion,
 	index,
 	laeuft,
+	letzter,
 	schliessen,
-	schritt,
 	weiter,
 	zumLeerenBlatt,
 	zurueck,
 }: {
-	schritt: { id: AssistentSchrittId; optional?: boolean };
 	index: number;
-	claude: boolean;
-	einheit: boolean;
+	/** „Doch lieber leeres Blatt“ statt „Abbrechen“. */
+	doch: boolean;
+	letzter: boolean;
+	hauptaktion: string;
 	laeuft: boolean;
 	/** Die Hauptaktion geht gerade nicht: am Limit, oder es ist noch offen, ob es Claude gibt. */
 	gesperrt: boolean;
-	anlegenLeer: () => void;
 	zumLeerenBlatt: () => void;
 	schliessen: () => void;
 	zurueck: () => void;
 	weiter: () => void;
 }) => (
 	<div className="flex items-center gap-2 border-t border-rand pt-3">
-		<Ausweg
-			schritt={schritt.id}
-			doch={claude && index > 0}
-			einheit={einheit}
-			laeuft={laeuft}
-			anlegenLeer={anlegenLeer}
-			zumLeerenBlatt={zumLeerenBlatt}
-			schliessen={schliessen}
-		/>
+		{doch ? (
+			<Knopf art="leise" disabled={laeuft} onClick={zumLeerenBlatt}>
+				<Symbol name="blatt" />
+				Doch lieber leeres Blatt
+			</Knopf>
+		) : (
+			<Knopf art="leise" onClick={schliessen}>
+				Abbrechen
+			</Knopf>
+		)}
 		<span className="flex-1" />
 		{index > 0 && (
-			<Knopf art="zweit" onClick={zurueck}>
+			<Knopf art="zweit" disabled={laeuft} onClick={zurueck}>
 				Zurück
 			</Knopf>
 		)}
-		{schritt.optional && (
-			<Knopf art="zweit" onClick={weiter}>
-				Überspringen
-			</Knopf>
-		)}
 		<Knopf data-hauptaktion disabled={laeuft || gesperrt} onClick={weiter}>
-			{schritt.id === 'pruefen' && <Symbol name="funken" />}
-			{hauptText(schritt.id, einheit)}
+			{letzter && <Symbol name="funken" />}
+			{hauptaktion}
 		</Knopf>
 	</div>
 );
@@ -160,8 +127,9 @@ const Fuss = ({
  * und Auftrag kommen aus dem Kern (`assistent.ts`). Abbrechen legt nichts an; erst der letzte Schritt schreibt.
  */
 export const MaterialDialog = ({
+	fortsetzen,
 	ordner: festerOrdner,
-	schliessen,
+	schliessen: schliesseDialog,
 	thema,
 	vorDemSprung,
 }: MaterialDialogEigenschaften) => {
@@ -172,21 +140,28 @@ export const MaterialDialog = ({
 	const zeige = useHinweis();
 	const laeuftSchon = einheiten.find((e) => e.status === 'laeuft')?.titel ?? null;
 	const hinweis = limitHinweis(ki.zustand.limit, ki.zustand.warnAb);
+	const einheitWarnung = fensterWarnung(ki.zustand.limit, ki.zustand.einheitWarnAb);
 	const gesperrt = hinweis?.art === 'gesperrt';
 	const navigate = useNavigate();
 
 	const [antworten, setAntworten] = useState<Antworten>(() => {
+		if (fortsetzen) {
+			return fortsetzen.antworten;
+		}
 		const basis = leereAntworten(vorbelegt);
 		return thema ? mitThema(basis, thema) : basis;
 	});
-	const [titelEigen, setTitelEigen] = useState(false);
-	const [schritt, setSchritt] = useState<AssistentSchrittId>(() => ersterSchritt(thema));
-	const [besucht, setBesucht] = useState<ReadonlySet<AssistentSchrittId>>(() => new Set(['start', schritt]));
-	const [offen, setOffen] = useState<Partial<Record<FreitextFeld, boolean>>>({});
-	const [text, setText] = useState<AuftragText | null>(null);
+	const [titelEigen, setTitelEigen] = useState(fortsetzen?.titelEigen ?? false);
+	const [schritt, setSchritt] = useState<AssistentSchrittId>(() => fortsetzen?.schritt ?? ersterSchritt(thema));
+	const [besucht, setBesucht] = useState<ReadonlySet<AssistentSchrittId>>(
+		() => new Set(fortsetzen?.besucht ?? ['start', schritt]),
+	);
+	const [offen, setOffen] = useState<Partial<Record<FreitextFeld, boolean>>>(fortsetzen?.offen ?? {});
 	const [fehler, setFehler] = useState<string | null>(null);
 	const [laeuft, setLaeuft] = useState(false);
 	const wurzel = useRef<HTMLDivElement>(null);
+	// Text hinter einem zugeklappten „Anders …“: Kommt man zurück, steht er wieder da (190-19).
+	const zugeklappt = useRef<Partial<Record<FreitextFeld, string>>>({});
 
 	const wirksam = wirksameAntworten(antworten, vorbelegt, titelEigen);
 	// Für ⏎ direkt nach einem Klick: Der Stand ist dann schon gesetzt, aber noch nicht gezeichnet.
@@ -200,23 +175,59 @@ export const MaterialDialog = ({
 		}
 	}, [ki.geladen, ki.zustand.verfuegbar]);
 
+	// Jede Eingabe nimmt die Fehlermeldung weg; sie gehörte zur alten Antwort (190-03).
 	const setze = (teil: Partial<Antworten>) => {
 		setAntworten((a) => ({ ...a, ...teil }));
 		jetzt.current = { ...jetzt.current, ...teil };
+		setFehler(null);
 	};
 	const setzeOffen = (feld: FreitextFeld, an: boolean) => {
 		setOffen((o) => ({ ...o, [feld]: an }));
-		if (!an) {
+		if (an) {
+			setze({ [feld]: zugeklappt.current[feld] ?? jetzt.current[feld] });
+		} else {
+			zugeklappt.current[feld] = jetzt.current[feld];
 			setze({ [feld]: '' });
 		}
 	};
 	const setzeEh = (teil: Partial<EinheitWahl>) => {
 		setAntworten((a) => ({ ...a, eh: { ...a.eh, ...teil } }));
 		jetzt.current = { ...jetzt.current, eh: { ...jetzt.current.eh, ...teil } };
+		setFehler(null);
 	};
 	const setzeTitel = (titel: string) => {
 		setTitelEigen(true);
 		setze({ titel });
+	};
+
+	// Schließen fragt nicht (132); mit Antworten über „Start“ hinaus bleibt der Stand für „Weiter ausfüllen“ (190-02).
+	const angelegt = useRef(false);
+	const zustand = useRef({ titelEigen, schritt, besucht, offen });
+	zustand.current = { titelEigen, schritt, besucht, offen };
+	const schliessen = () => {
+		const z = zustand.current;
+		if (!angelegt.current && z.besucht.size >= 3) {
+			merkeAssistent({
+				ordner,
+				antworten: jetzt.current,
+				titelEigen: z.titelEigen,
+				schritt: z.schritt,
+				besucht: [...z.besucht],
+				offen: z.offen,
+			});
+			zeige({
+				text: 'Assistent geschlossen.',
+				aktion: {
+					titel: 'Weiter ausfüllen',
+					ausfuehren: () => window.dispatchEvent(new Event(ASSISTENT_FORTSETZEN)),
+				},
+			});
+		}
+		schliesseDialog();
+	};
+	const fertig = () => {
+		angelegt.current = true;
+		merkeAssistent(null);
 	};
 
 	const schritte = schritteFuer(wirksam);
@@ -225,6 +236,8 @@ export const MaterialDialog = ({
 		0,
 	);
 	const aktuell = schritte[index] ?? schritte[0];
+	const mitClaude = wirksam.weg === 'claude';
+	const letzter = mitClaude && index === schritte.length - 1;
 
 	const gehe = (id: AssistentSchrittId) => {
 		setFehler(null);
@@ -236,12 +249,13 @@ export const MaterialDialog = ({
 	// Öffnen sind beide Wege gesperrt, bis feststeht, ob es Claude gibt; danach noch einmal.
 	useEffect(() => {
 		const w = wurzel.current;
+		// Gesperrtes zählt nicht: Sonst bliebe der Fokus nach dem Laden auf nichts (190-06).
 		const ziel =
-			w?.querySelector<HTMLElement>('[data-fokus]') ??
-			w?.querySelector<HTMLElement>('[data-wahl][aria-pressed="true"]') ??
-			w?.querySelector<HTMLElement>('[data-hauptaktion]');
+			w?.querySelector<HTMLElement>('[data-fokus]:not(:disabled)') ??
+			w?.querySelector<HTMLElement>('[data-wahl][aria-pressed="true"]:not(:disabled)') ??
+			w?.querySelector<HTMLElement>('[data-hauptaktion]:not(:disabled)');
 		ziel?.focus();
-	}, [schritt, ki.geladen]);
+	}, [schritt, ki.geladen, wirksam.weg]);
 
 	/** Die Einheit: Der Server legt Ordner und Behälter an und startet den Lauf; danach öffnet der Ordner (140). */
 	const starteEinheit = async () => {
@@ -252,24 +266,17 @@ export const MaterialDialog = ({
 			setFehler(offenerSchritt.fehlt?.(a) ?? null);
 			return;
 		}
-		if (text !== null && text.wert.trim() === '') {
-			setFehler('Der Auftrag ist leer.');
-			return;
-		}
 		setLaeuft(true);
 		setFehler(null);
 		try {
 			localStorage.setItem(LETZTE, JSON.stringify({ fach: a.fach, klasse: a.klasse }));
-			const neu = await sende<{ id: string; ordner: string; warnung: string | null }>('/api/einheiten', {
+			const neu = await sende<{ id: string; ordner: string }>('/api/einheiten', {
 				angaben: einheitAngabenAus(a),
 				ordner,
-				...(text === null ? {} : { auftragText: text.wert }),
 			});
-			schliessen();
+			fertig();
+			schliesseDialog();
 			void navigate(`/o/${neu.ordner}`);
-			if (neu.warnung) {
-				zeige({ text: neu.warnung });
-			}
 		} catch (grund) {
 			setFehler(meldung(grund));
 			setLaeuft(false);
@@ -283,10 +290,6 @@ export const MaterialDialog = ({
 		if (offenerSchritt) {
 			gehe(offenerSchritt.id);
 			setFehler(offenerSchritt.fehlt?.(a) ?? null);
-			return;
-		}
-		if (mitClaude && text !== null && text.wert.trim() === '') {
-			setFehler('Der Auftrag ist leer.');
 			return;
 		}
 		const wahl = formatWahl(a);
@@ -309,9 +312,11 @@ export const MaterialDialog = ({
 				vorlage: wahl.vorlage ?? null,
 				fach: a.fach,
 				klasse: a.klasse,
-				assistent: mitClaude ? { antworten: { ...a, weg: 'claude' }, auftragText: text?.wert ?? null } : null,
+				assistent: mitClaude ? { antworten: { ...a, weg: 'claude' } } : null,
 				gespraechId: gespraech,
+				vorschlag: !zustand.current.titelEigen,
 			});
+			fertig();
 			vorDemSprung?.(mappe, id);
 			void navigate(adresse, { state });
 		} catch (grund) {
@@ -332,7 +337,23 @@ export const MaterialDialog = ({
 		if (!s || laeuft || (s.id === 'start' && !ki.geladen)) {
 			return;
 		}
-		if (s.id === 'pruefen') {
+		const fehlt = s.fehlt?.(a);
+		if (fehlt) {
+			setFehler(fehlt);
+			return;
+		}
+		const andersLeer = (ANDERS_FELDER[s.id] ?? []).find((f) => offen[f] === true && a[f].trim() === '');
+		if (andersLeer) {
+			setFehler(ANDERS_LEER);
+			wurzel.current?.querySelector<HTMLElement>(`[data-freitext="${andersLeer}"]`)?.focus();
+			return;
+		}
+		if (s.id === 'eUmfang' && offen.umfangText === true && a.eh.dauerText.trim() === '') {
+			setFehler(ANDERS_LEER);
+			wurzel.current?.querySelector<HTMLElement>('[data-anders-feld]')?.focus();
+			return;
+		}
+		if (a.weg === 'claude' && i === liste.length - 1) {
 			if (a.einheit) {
 				if (!gesperrt && laeuftSchon === null) {
 					void starteEinheit();
@@ -344,11 +365,6 @@ export const MaterialDialog = ({
 		}
 		if (s.id === 'titel') {
 			void anlegen(false);
-			return;
-		}
-		const fehlt = s.fehlt?.(a);
-		if (fehlt) {
-			setFehler(fehlt);
 			return;
 		}
 		const naechster = liste[i + 1];
@@ -411,15 +427,29 @@ export const MaterialDialog = ({
 				return;
 			}
 			if (ziel instanceof HTMLButtonElement) {
-				if (!ziel.dataset.wahl) {
+				// Im Fuß tut ein Knopf, was er sagt. Im Schritt wählt ⏎ eine Karte und geht weiter; einen Schalter oder
+				// Chip schaltet es nicht um, das tut die Leertaste (190-01).
+				if (!ziel.closest('[data-schritt-inhalt]')) {
 					return;
 				}
 				e.preventDefault();
-				ziel.click();
+				if (ziel.dataset.wahl && !ziel.disabled) {
+					ziel.click();
+				}
 			} else {
 				e.preventDefault();
 			}
 			weiter();
+			return;
+		}
+		// Esc in einem Feld mit Text verlässt nur das Feld; ein Versehen kostet nicht alle Antworten (190-02).
+		if (
+			e.key === 'Escape' &&
+			(ziel instanceof HTMLInputElement || ziel instanceof HTMLTextAreaElement) &&
+			ziel.value !== ''
+		) {
+			e.preventDefault();
+			wurzel.current?.querySelector<HTMLElement>('[data-hauptaktion]:not(:disabled)')?.focus();
 			return;
 		}
 		if (/^[1-9]$/.test(e.key) && !istTextfeld(ziel) && !e.metaKey && !e.ctrlKey && !e.altKey) {
@@ -463,6 +493,7 @@ export const MaterialDialog = ({
 				waehleArt={waehleArt}
 				waehleEinheit={waehleEinheit}
 				weiter={weiter}
+				laeuftSchon={laeuftSchon}
 			/>
 		),
 		format: () => (
@@ -479,12 +510,22 @@ export const MaterialDialog = ({
 		thema: () => (
 			<SchrittThema
 				a={wirksam}
-				offen={offen.funktionText === true}
+				offen={offen}
 				setze={setze}
-				setzeOffen={(o) => setzeOffen('funktionText', o)}
+				setzeOffen={setzeOffen}
+				setzeTitel={setzeTitel}
+				titelVorschlagen={!titelEigen}
 			/>
 		),
-		eThema: () => <SchrittEThema a={wirksam} setze={setze} setzeEh={setzeEh} />,
+		eThema: () => (
+			<SchrittEThema
+				a={wirksam}
+				setze={setze}
+				setzeEh={setzeEh}
+				setzeTitel={setzeTitel}
+				titelVorschlagen={!titelEigen}
+			/>
+		),
 		eUmfang: () => (
 			<SchrittEUmfang
 				a={wirksam}
@@ -500,44 +541,35 @@ export const MaterialDialog = ({
 		),
 		eBestandteile: () => <SchrittEBestandteile a={wirksam} setzeEh={setzeEh} />,
 		eRahmen: () => <SchrittERahmen a={wirksam} setzeEh={setzeEh} />,
-		bausteine: () => <SchrittBausteine a={wirksam} offen={offen} setze={setze} setzeOffen={setzeOffen} />,
-		klasse: () => <SchrittKlasse a={wirksam} setze={setze} />,
+		bausteine: () => <SchrittBausteine a={wirksam} setze={setze} />,
+		klasse: () => (
+			<SchrittKlasse
+				a={wirksam}
+				setze={setze}
+				schluss={
+					<StartHinweis
+						einheit={
+							wirksam.einheit ? (
+								<EinheitVerbrauch laeuftSchon={laeuftSchon} warnung={einheitWarnung} />
+							) : null
+						}
+						hinweis={hinweis}
+						gesperrt={gesperrt}
+						pruefeLimit={ki.pruefeLimit}
+					/>
+				}
+			/>
+		),
 		titel: () => <SchrittTitel a={wirksam} ordner={ordnerAngabe} setze={setze} setzeTitel={setzeTitel} />,
-		pruefen: () =>
-			wirksam.einheit ? (
-				<SchrittPruefenEinheit
-					a={wirksam}
-					ordner={ordnerAngabe}
-					text={text}
-					setzeText={setText}
-					setzeTitel={setzeTitel}
-					titelVorschlagen={!titelEigen}
-					hinweis={hinweis}
-					gesperrt={gesperrt}
-					laeuftSchon={laeuftSchon}
-					pruefeLimit={ki.pruefeLimit}
-				/>
-			) : (
-				<SchrittPruefen
-					a={wirksam}
-					ordner={ordnerAngabe}
-					text={text}
-					setzeText={setText}
-					setzeTitel={setzeTitel}
-					titelVorschlagen={!titelEigen}
-					hinweis={hinweis}
-					gesperrt={gesperrt}
-					pruefeLimit={ki.pruefeLimit}
-				/>
-			),
 	};
 
 	return (
 		<Dialog titel={titel} breit schliessen={schliessen}>
 			<div ref={wurzel} data-assistent={aktuell.id} className="flex flex-col gap-3">
-				<div className="grid min-h-[28rem] grid-cols-[12rem_1fr] gap-4 max-md:grid-cols-1">
+				{/* Feste Höhe: Kein Schritt lässt den Fuß springen; was nicht passt, rollt (190-17). */}
+				<div className="grid h-[32rem] grid-cols-[12rem_1fr] gap-4 max-md:h-auto max-md:grid-cols-1">
 					<Schrittleiste a={wirksam} aktuell={aktuell.id} besucht={besucht} gehe={gehe} />
-					<div className="min-w-0">
+					<div className="min-w-0 overflow-y-auto px-0.5 pb-1" data-schritt-inhalt>
 						<p className="text-xs font-medium text-leise">{`Schritt ${index + 1} von ${schritte.length}`}</p>
 						<h3 className="text-lg font-semibold">{aktuell.frage(wirksam)}</h3>
 						<p className="mb-3 text-leise">{aktuell.hilfe(wirksam)}</p>
@@ -546,16 +578,15 @@ export const MaterialDialog = ({
 					</div>
 				</div>
 				<Fuss
-					schritt={aktuell}
 					index={index}
-					claude={wirksam.weg === 'claude'}
-					einheit={wirksam.einheit && wirksam.weg === 'claude'}
+					doch={mitClaude && index > 0 && !wirksam.einheit}
+					letzter={letzter}
+					hauptaktion={hauptText(letzter, wirksam.einheit, aktuell.id)}
 					laeuft={laeuft}
 					gesperrt={
-						(aktuell.id === 'pruefen' && (gesperrt || (wirksam.einheit && laeuftSchon !== null))) ||
+						(letzter && (gesperrt || (wirksam.einheit && laeuftSchon !== null))) ||
 						(aktuell.id === 'start' && !ki.geladen)
 					}
-					anlegenLeer={() => void anlegen(false)}
 					zumLeerenBlatt={zumLeerenBlatt}
 					schliessen={schliessen}
 					zurueck={zurueck}

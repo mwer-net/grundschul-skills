@@ -1,9 +1,6 @@
-import type { Antworten, AssistentSchrittId, FormatWahl, FreitextFeld, Teil, Weg } from '@schoolbox/kern/src/assistent';
+import type { Antworten, AssistentSchrittId, FormatWahl, FreitextFeld, Weg } from '@schoolbox/kern/src/assistent';
 import {
 	ART_WAHL,
-	AUFTRAG_ZEICHEN,
-	auftragAus,
-	auftragSaetze,
 	bausteinSchalter,
 	formatOptionen,
 	FREITEXT,
@@ -23,6 +20,7 @@ import type { ReactNode } from 'react';
 import { useRef } from 'react';
 
 import { Chip } from '../bausteine/Chip';
+import { Gekuerzt } from '../bausteine/Gekuerzt';
 import { FELD_KLASSEN, klassen } from '../bausteine/klassen';
 import { Knopf } from '../bausteine/Knopf';
 import { Schalter } from '../bausteine/Schalter';
@@ -110,7 +108,9 @@ export const Wahl = ({
 		data-wahl={id}
 		data-wahl-nr={nr}
 		className={klassen(
-			'relative flex w-full gap-2.5 rounded-lg border p-2.5 text-left transition-colors duration-[120ms] disabled:opacity-50',
+			'relative flex w-full gap-2.5 rounded-lg border p-2.5 transition-colors duration-[120ms] disabled:opacity-50',
+			// Eine mittige Karte bleibt mittig (190-15).
+			!className?.includes('text-center') && 'text-left',
 			aktiv
 				? 'border-brand-500 bg-brand-50 ring-1 ring-brand-500'
 				: 'border-rand bg-flaeche hover:bg-flaeche-2 disabled:hover:bg-flaeche',
@@ -127,6 +127,17 @@ export const Wahl = ({
 	</button>
 );
 
+/** Ab 90 % der Höchstlänge „190 / 200“ unter dem Feld, an der Grenze in Warnfarbe (190-20). */
+export const Zaehler = ({ max, wert }: { wert: string; max: number }) =>
+	wert.length >= max * 0.9 ? (
+		<small
+			className={klassen('mt-0.5 block text-right text-xs', wert.length >= max ? 'text-warnung' : 'text-leise')}
+			data-zaehler
+		>
+			{`${wert.length} / ${max}`}
+		</small>
+	) : null;
+
 /** Einzeiliges Feld für eine Freitext-Stelle; öffnet sich mit Fokus (Festlegung F7). */
 const FreiFeld = ({
 	autoFokus,
@@ -139,16 +150,20 @@ const FreiFeld = ({
 	setze: (text: string) => void;
 	autoFokus: boolean;
 }) => (
-	<input
-		className={klassen(FELD, 'mt-2')}
-		aria-label={FREITEXT[feld].name}
-		placeholder={FREITEXT[feld].platz}
-		maxLength={FREITEXT[feld].zeichen}
-		value={wert}
-		autoFocus={autoFokus}
-		data-freitext={feld}
-		onChange={(e) => setze(e.target.value)}
-	/>
+	<>
+		<input
+			className={klassen(FELD, 'mt-2')}
+			aria-label={FREITEXT[feld].name}
+			placeholder={FREITEXT[feld].platz}
+			maxLength={FREITEXT[feld].zeichen}
+			value={wert}
+			autoFocus={autoFokus}
+			data-freitext={feld}
+			data-anders-feld
+			onChange={(e) => setze(e.target.value)}
+		/>
+		<Zaehler wert={wert} max={FREITEXT[feld].zeichen} />
+	</>
 );
 
 /** Woher Klasse und Fach vorbelegt sind, klein neben „Klasse“. */
@@ -157,7 +172,7 @@ const herkunftVon = (ordner: Ordnerangabe) => {
 		case 'behaelter':
 			return `legt der Ordner „${ordner.name}“ fest`;
 		case 'ordner':
-			return `aus dem Ordner „${ordner.name}“ übernommen`;
+			return `aus dem Ordner „${ordner.vorbelegt.ordnerName ?? ordner.name}“ übernommen`;
 		case 'zuletzt':
 			return 'zuletzt benutzt';
 		default:
@@ -257,6 +272,7 @@ export const SchrittArt = ({
 	offen,
 	setze,
 	waehleArt,
+	laeuftSchon,
 	waehleEinheit,
 	weiter,
 }: {
@@ -266,6 +282,8 @@ export const SchrittArt = ({
 	waehleArt: (art: Art) => void;
 	waehleEinheit: () => void;
 	weiter: () => void;
+	/** Titel der Einheit, die Claude gerade baut: Dann geht keine zweite (190-07). */
+	laeuftSchon: string | null;
 }) => {
 	// „Etwas anderes …“ fragt nur mit Claude nach dem Text; beim leeren Blatt zählt er nicht.
 	const mitText = (art: Art) => art === 'sonstiges' && a.weg === 'claude';
@@ -294,7 +312,7 @@ export const SchrittArt = ({
 			<Wahl
 				id="einheit"
 				aktiv={a.einheit}
-				gesperrt={a.weg !== 'claude'}
+				gesperrt={a.weg !== 'claude' || laeuftSchon !== null}
 				className="mt-2"
 				waehle={waehleEinheit}
 				weiter={weiter}
@@ -302,10 +320,12 @@ export const SchrittArt = ({
 				<Symbol name="ordner" className="mt-0.5 size-4 flex-none text-leise" />
 				<span className="min-w-0">
 					<span className="block font-medium">Unterrichtseinheit</span>
-					<span className="block text-sm text-leise">
-						{a.weg === 'claude'
-							? 'Ein Ordner mit mehreren Materialien zu einem Thema, gebaut in einem Lauf.'
-							: 'Nur mit Claude.'}
+					<span className="block text-sm text-leise" data-einheit-grund>
+						{a.weg !== 'claude' && 'Nur mit Claude.'}
+						{a.weg === 'claude' &&
+							(laeuftSchon === null
+								? 'Ein Ordner mit mehreren Materialien zu einem Thema, gebaut in einem Lauf.'
+								: `Claude baut gerade „${laeuftSchon}“.`)}
 					</span>
 				</span>
 			</Wahl>
@@ -375,7 +395,8 @@ export const SchrittFormat = ({
 }) => {
 	const optionen = formatOptionen(a);
 	const frei = a.weg === 'claude';
-	const spalten = Math.min(optionen.length + (frei ? 1 : 0), 4);
+	// „Anderes Format …“ ist keine Karte: so viele Spalten wie Optionen, keine allein in der zweiten Zeile (190-15).
+	const spalten = Math.min(optionen.length, 4);
 	return (
 		<>
 			<div className="grid gap-3 max-md:grid-cols-2!" style={{ gridTemplateColumns: `repeat(${spalten}, 1fr)` }}>
@@ -393,27 +414,30 @@ export const SchrittFormat = ({
 						weiter={weiter}
 					>
 						<Seitenform format={o.format} />
-						<span className="block font-medium">{o.name}</span>
+						<span className="block font-medium">{`${o.name.charAt(0).toUpperCase()}${o.name.slice(1)}`}</span>
 						{o.hinweis && <span className="block text-sm text-leise">{o.hinweis}</span>}
 						{o.empfohlen && <Empfohlen />}
 					</Wahl>
 				))}
-				{frei && (
-					<Wahl
-						id="anders"
-						nr={optionen.length + 1}
-						aktiv={offen}
-						className="flex-col items-center justify-center text-center"
-						waehle={() => setzeOffen(true)}
-					>
-						<span className="grid h-20 place-items-center">
-							<Symbol name="stift" className="size-6 text-leise" />
-						</span>
-						<span className="block font-medium">{FREITEXT.formatText.name}</span>
-						<span className="block text-sm text-leise">Claude darf das Format ändern</span>
-					</Wahl>
-				)}
 			</div>
+			{frei && (
+				<div className="mt-3 flex flex-wrap items-center gap-1.5 text-leise">
+					Oder:
+					<Knopf
+						art="leise"
+						groesse="klein"
+						aria-pressed={offen}
+						data-wahl="anders"
+						data-wahl-nr={optionen.length + 1}
+						className={klassen(offen && 'border-brand-500 bg-brand-50 text-tinte')}
+						onClick={() => setzeOffen(true)}
+					>
+						<Symbol name="stift" />
+						{FREITEXT.formatText.name}
+					</Knopf>
+					<span className="text-sm">Claude darf das Format ändern</span>
+				</div>
+			)}
 			{frei && offen && (
 				<FreiFeld feld="formatText" wert={a.formatText} autoFokus setze={(t) => setze({ formatText: t })} />
 			)}
@@ -481,13 +505,18 @@ export const SchrittThema = ({
 	offen,
 	setze,
 	setzeOffen,
+	setzeTitel,
+	titelVorschlagen,
 }: {
 	a: Antworten;
-	offen: boolean;
+	offen: Partial<Record<FreitextFeld, boolean>>;
 	setze: (teil: Partial<Antworten>) => void;
-	setzeOffen: (offen: boolean) => void;
+	setzeOffen: (feld: FreitextFeld, offen: boolean) => void;
+	setzeTitel: (titel: string) => void;
+	titelVorschlagen: boolean;
 }) => {
 	const ziel = useRef<HTMLInputElement>(null);
+	const umfang = umfangEmpfehlung(a.art);
 	return (
 		<>
 			<label className="mb-4 block">
@@ -500,7 +529,12 @@ export const SchrittThema = ({
 					data-fokus
 					onChange={(e) => setze({ thema: e.target.value })}
 				/>
+				<Zaehler wert={a.thema} max={FREITEXT.thema.zeichen} />
 			</label>
+			{/* Der Titel steht beim Thema und folgt ihm, bis man ihn selbst ändert (190-37). */}
+			<div className="mb-4">
+				<TitelFeld titel={a.titel} setzeTitel={setzeTitel} vorschlag={titelVorschlagen} fokus={false} />
+			</div>
 			<div className="mb-4">
 				<label className="block">
 					<Etikett zusatz="optional">{FREITEXT.ziel.name}</Etikett>
@@ -512,54 +546,62 @@ export const SchrittThema = ({
 						value={a.ziel}
 						onChange={(e) => setze({ ziel: e.target.value })}
 					/>
+					<Zaehler wert={a.ziel} max={FREITEXT.ziel.zeichen} />
 				</label>
 				<div className="mt-2 flex flex-wrap gap-1.5">
 					{ZIEL_ANFAENGE.map((anfang) => (
-						<button
+						<Knopf
 							key={anfang}
-							type="button"
-							className="inline-flex h-knopf-klein items-center rounded-md border border-dashed border-rand-feld px-2 text-sm text-leise hover:bg-flaeche-2"
+							art="leise"
+							groesse="klein"
 							onClick={() => {
 								setze({ ziel: anfang });
 								ziel.current?.focus();
 							}}
 						>
-							{`+ ${anfang.trim()} …`}
-						</button>
+							<Symbol name="plus" />
+							{`${anfang.trim()} …`}
+						</Knopf>
 					))}
 				</div>
 			</div>
-			<div>
+			<div className={klassen(umfang !== null && 'mb-4')}>
 				<Etikett>Wofür in der Reihe?</Etikett>
 				<SegmentMitAnders
 					beschriftung="Funktion in der Reihe"
 					feld="funktionText"
 					werte={FUNKTIONEN.map((f) => ({ wert: f.wert, titel: f.name }))}
 					wert={a.funktion ?? funktionEmpfehlung(a.art)}
-					waehle={(f) => setze({ funktion: f, funktionText: '' })}
-					offen={offen}
-					setzeOffen={setzeOffen}
+					waehle={(f) => setze({ funktion: f })}
+					offen={offen.funktionText === true}
+					setzeOffen={(o) => setzeOffen('funktionText', o)}
 					text={a.funktionText}
 					setzeText={(t) => setze({ funktionText: t })}
 				/>
 			</div>
+			{/* Die Arbeitszeit legt die Menge fest und gehört zum Thema, nicht zu den Bausteinen (190-38). */}
+			{umfang !== null && (
+				<div>
+					<Etikett>Arbeitszeit je Kind</Etikett>
+					<SegmentMitAnders
+						beschriftung="Arbeitszeit je Kind"
+						feld="umfangText"
+						werte={UMFAENGE.map((u) => ({ wert: u.wert, titel: u.name }))}
+						wert={a.umfang ?? umfang}
+						waehle={(u) => setze({ umfang: u })}
+						offen={offen.umfangText === true}
+						setzeOffen={(o) => setzeOffen('umfangText', o)}
+						text={a.umfangText}
+						setzeText={(t) => setze({ umfangText: t })}
+					/>
+				</div>
+			)}
 		</>
 	);
 };
 
-export const SchrittBausteine = ({
-	a,
-	offen,
-	setze,
-	setzeOffen,
-}: {
-	a: Antworten;
-	offen: Partial<Record<FreitextFeld, boolean>>;
-	setze: (teil: Partial<Antworten>) => void;
-	setzeOffen: (feld: FreitextFeld, offen: boolean) => void;
-}) => {
+export const SchrittBausteine = ({ a, setze }: { a: Antworten; setze: (teil: Partial<Antworten>) => void }) => {
 	const schalter = bausteinSchalter(a.einheit ? { ...a, art: 'arbeitsblatt' } : a);
-	const umfang = a.einheit ? null : umfangEmpfehlung(a.art);
 	const symbol = { selbsteinschaetzung: 'natur', niveaus: 'stapel', sternchen: 'stern' } as const;
 	return (
 		<>
@@ -579,7 +621,10 @@ export const SchrittBausteine = ({
 									{s.bedingung && ` · ${s.bedingung}`}
 								</span>
 							</span>
-							{s.empfohlen && <Empfohlen />}
+							{/* Die Marke hat immer ihren Platz: Die Schalter stehen untereinander (190-18). */}
+							<span className={klassen('flex-none', !s.empfohlen && 'invisible')} aria-hidden={!s.empfohlen}>
+								<Empfohlen />
+							</span>
 							<Schalter
 								name={s.name}
 								an={s.an}
@@ -589,45 +634,21 @@ export const SchrittBausteine = ({
 					))}
 				</div>
 			)}
-			{umfang !== null && (
-				<div className="mt-4 flex flex-wrap items-center gap-3">
-					<span className="font-medium">Arbeitszeit je Kind</span>
-					<div className="min-w-0 flex-1">
-						<SegmentMitAnders
-							beschriftung="Arbeitszeit je Kind"
-							feld="umfangText"
-							werte={UMFAENGE.map((u) => ({ wert: u.wert, titel: u.name }))}
-							wert={a.umfang ?? umfang}
-							waehle={(u) => setze({ umfang: u, umfangText: '' })}
-							offen={offen.umfangText === true}
-							setzeOffen={(o) => setzeOffen('umfangText', o)}
-							text={a.umfangText}
-							setzeText={(t) => setze({ umfangText: t })}
-						/>
-					</div>
-				</div>
-			)}
 			{a.einheit && <p className="mt-2 text-sm text-leise">Gilt für alle Blätter der Einheit.</p>}
-			<div className={klassen('mt-4', a.einheit && 'hidden')}>
-				{offen.bausteineText ? (
-					<FreiFeld
-						feld="bausteineText"
-						wert={a.bausteineText}
-						autoFokus
-						setze={(t) => setze({ bausteineText: t })}
-					/>
-				) : (
-					<Knopf art="leise" data-anders="bausteineText" onClick={() => setzeOffen('bausteineText', true)}>
-						<Symbol name="plus" />
-						{FREITEXT.bausteineText.name}
-					</Knopf>
-				)}
-			</div>
 		</>
 	);
 };
 
-export const SchrittKlasse = ({ a, setze }: { a: Antworten; setze: (teil: Partial<Antworten>) => void }) => (
+export const SchrittKlasse = ({
+	a,
+	schluss,
+	setze,
+}: {
+	a: Antworten;
+	setze: (teil: Partial<Antworten>) => void;
+	/** Der letzte Schritt trägt Dauer, Verbrauch und Limit (190-37). */
+	schluss: ReactNode;
+}) => (
 	<>
 		<div role="group" aria-label="Lerngruppe" className="mb-4 flex flex-wrap gap-1.5">
 			{LERNGRUPPE.map((l) => {
@@ -646,11 +667,44 @@ export const SchrittKlasse = ({ a, setze }: { a: Antworten; setze: (teil: Partia
 				value={a.sonst}
 				onChange={(e) => setze({ sonst: e.target.value })}
 			/>
+			<Zaehler wert={a.sonst} max={FREITEXT.sonst.zeichen} />
 		</label>
 		<p className="mt-2 flex items-center gap-2 rounded-md bg-warnung-hell px-3 py-1.5 text-sm text-warnung">
 			<Symbol name="info" />
 			Keine Namen von Kindern eintragen.
 		</p>
+		{schluss}
+	</>
+);
+
+/** Unter dem letzten Fragenschritt des Blatts: was nach dem Klick kommt, wie lange es dauert, das Limit (190-36). */
+export const StartHinweis = ({
+	einheit,
+	gesperrt,
+	hinweis,
+	pruefeLimit,
+}: {
+	einheit: ReactNode;
+	hinweis: ReturnType<typeof limitHinweis>;
+	gesperrt: boolean;
+	pruefeLimit: () => Promise<void>;
+}) => (
+	<>
+		{einheit ?? (
+			<p className="mt-3 flex items-center gap-2 text-sm text-leise" data-start-hinweis>
+				<Symbol name="uhr" className="flex-none" />
+				Zuerst kommt der Aufgabenplan, meist nach ein bis zwei Minuten. Der Bau danach dauert meist 5 bis 15
+				Minuten und verbraucht deutlich mehr als eine Änderung.
+			</p>
+		)}
+		{hinweis && (
+			<LimitZeile
+				key={hinweis.art}
+				className={klassen('mt-2 rounded-md px-3 py-1.5', gesperrt ? 'bg-red-50' : 'bg-warnung-hell')}
+				hinweis={hinweis}
+				pruefeLimit={pruefeLimit}
+			/>
+		)}
 	</>
 );
 
@@ -665,6 +719,7 @@ export const OrdnerFeld = ({ name }: { name: string }) => (
 );
 
 export const TitelFeld = ({
+	fokus = true,
 	setzeTitel,
 	titel,
 	vorschlag,
@@ -672,6 +727,8 @@ export const TitelFeld = ({
 	titel: string;
 	setzeTitel: (titel: string) => void;
 	vorschlag: boolean;
+	/** Das erste Feld des Schritts bekommt den Fokus; unter dem Thema ist es das Thema. */
+	fokus?: boolean;
 }) => (
 	<label className="block min-w-0 flex-1">
 		<Etikett zusatz={vorschlag ? 'Vorschlag, änderbar' : undefined}>Titel</Etikett>
@@ -679,127 +736,14 @@ export const TitelFeld = ({
 			className={FELD}
 			maxLength={TITEL_ZEICHEN}
 			value={titel}
-			data-fokus
+			data-fokus={fokus ? '' : undefined}
+			data-titel
 			onFocus={(e) => e.target.select()}
 			onChange={(e) => setzeTitel(e.target.value)}
 		/>
+		<Zaehler wert={titel} max={TITEL_ZEICHEN} />
 	</label>
 );
-
-const TeilText = ({ teil }: { teil: Teil }) => {
-	if (teil.art === 'antwort') {
-		return <b className="font-semibold">{teil.text}</b>;
-	}
-	if (teil.art === 'freitext') {
-		return (
-			<span className="rounded-sm bg-entwurf/40 px-0.5" data-freitext-teil>
-				{`„${teil.text}“`}
-			</span>
-		);
-	}
-	return <>{teil.text}</>;
-};
-
-export interface AuftragText {
-	wert: string;
-	/** Der Text aus den Antworten, als die Lehrkraft zu schreiben begann. */
-	basis: string;
-}
-
-export const SchrittPruefen = ({
-	a,
-	gesperrt,
-	hinweis,
-	ordner,
-	pruefeLimit,
-	setzeText,
-	setzeTitel,
-	text,
-	titelVorschlagen,
-}: {
-	a: Antworten;
-	ordner: Ordnerangabe;
-	text: AuftragText | null;
-	setzeText: (text: AuftragText | null) => void;
-	setzeTitel: (titel: string) => void;
-	titelVorschlagen: boolean;
-	hinweis: ReturnType<typeof limitHinweis>;
-	gesperrt: boolean;
-	pruefeLimit: () => Promise<void>;
-}) => {
-	const ausAntworten = auftragAus(a);
-	return (
-		<>
-			<div className="rounded-lg border border-brand-200 bg-brand-50/50 p-3" data-auftrag>
-				<div className="mb-2 flex items-center gap-2 text-xs font-semibold tracking-wide text-leise uppercase">
-					<Symbol name="funken" className="size-3.5 text-brand-500" />
-					Auftrag
-					<span className="flex-1" />
-					{text === null ? (
-						<Knopf
-							art="leise"
-							groesse="klein"
-							className="normal-case"
-							onClick={() => setzeText({ wert: ausAntworten, basis: ausAntworten })}
-						>
-							<Symbol name="stift" />
-							Als Text bearbeiten
-						</Knopf>
-					) : (
-						<Knopf art="leise" groesse="klein" className="normal-case" onClick={() => setzeText(null)}>
-							<Symbol name="zurueckholen" />
-							Zurücksetzen
-						</Knopf>
-					)}
-				</div>
-				{text === null ? (
-					<div className="flex flex-col gap-1.5">
-						{auftragSaetze(a).map((satz, i) => (
-							<p key={i}>
-								{satz.map((t, j) => (
-									<TeilText key={j} teil={t} />
-								))}
-							</p>
-						))}
-					</div>
-				) : (
-					<>
-						<textarea
-							className={klassen(FELD_KLASSEN, 'h-auto w-full py-1.5')}
-							aria-label="Auftrag"
-							rows={7}
-							maxLength={AUFTRAG_ZEICHEN}
-							value={text.wert}
-							autoFocus
-							onChange={(e) => setzeText({ ...text, wert: e.target.value })}
-						/>
-						{text.basis !== ausAntworten && (
-							<p className="mt-1 text-sm text-warnung" data-auftrag-veraltet>
-								Deine Antworten haben sich geändert. „Zurücksetzen“ baut den Text neu aus den Antworten.
-							</p>
-						)}
-					</>
-				)}
-			</div>
-			<div className="mt-3 flex items-end gap-3">
-				<TitelFeld titel={a.titel} setzeTitel={setzeTitel} vorschlag={titelVorschlagen} />
-				<OrdnerFeld name={ordner.name} />
-			</div>
-			<p className="mt-3 flex items-center gap-2 text-sm text-leise">
-				<Symbol name="uhr" />
-				Claude braucht einige Minuten und verbraucht deutlich mehr als eine Änderung.
-			</p>
-			{hinweis && (
-				<LimitZeile
-					key={hinweis.art}
-					className={klassen('mt-2 rounded-md px-3 py-1.5', gesperrt ? 'bg-red-50' : 'bg-warnung-hell')}
-					hinweis={hinweis}
-					pruefeLimit={pruefeLimit}
-				/>
-			)}
-		</>
-	);
-};
 
 export const SchrittTitel = ({
 	a,
@@ -869,9 +813,12 @@ export const Schrittleiste = ({
 					>
 						{fertig ? <Symbol name="haken" className="size-3" /> : i + 1}
 					</span>
-					<span className="min-w-0">
+					{/* Zwei Zeilen immer, damit nichts rückt; gekürzt zeigt der Tooltip alles (190-17). */}
+					<span className="min-w-0 flex-1">
 						<span className="block">{s.name}</span>
-						{antwort && <small className="block truncate font-normal text-leise">{antwort}</small>}
+						<small className="flex min-h-4 font-normal text-leise">
+							<Gekuerzt text={antwort} className="block" />
+						</small>
 					</span>
 				</button>
 			);

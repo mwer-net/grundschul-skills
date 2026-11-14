@@ -212,10 +212,9 @@ test.describe('Bildschirmfotos für die Hilfe', () => {
 		await dialog.getByRole('button', { name: 'Große Leistungsspanne' }).click();
 		await dialog.getByRole('button', { name: 'Kinder mit Deutsch als Zweitsprache' }).click();
 		await dialog.getByRole('textbox', { name: /Sonst noch etwas/ }).fill('Bitte keine Digitaluhren.');
-		await page.keyboard.press('ControlOrMeta+Enter');
-		await expect(dialog.locator('[data-assistent="pruefen"]')).toBeVisible();
+		// „Auftrag prüfen“ gibt es nicht mehr (190-37): Das Foto zeigt den letzten Schritt mit Dauer und Verbrauch.
 		await foto(page, 'anlegen-auftrag-mac.jpg');
-		await page.keyboard.press('Enter');
+		await page.keyboard.press('ControlOrMeta+Enter');
 		const leiste = page.locator('[data-entwurfsleiste="offen"]');
 		await expect(leiste).toBeVisible();
 		await leiste.locator('[data-entwurf-annahmen-knopf]').click();
@@ -234,7 +233,7 @@ test.describe('Bildschirmfotos für die Hilfe', () => {
 		await dialog.locator('[data-wahl="einheit"]').click();
 		await page.keyboard.press('Enter');
 		await page.keyboard.type('Uhrzeit');
-		for (const id of ['eUmfang', 'eBestandteile', 'eRahmen', 'bausteine', 'klasse', 'pruefen']) {
+		for (const id of ['eUmfang', 'eBestandteile', 'eRahmen', 'bausteine', 'klasse']) {
 			await page.keyboard.press('Enter');
 			await expect(dialog.locator(`[data-assistent="${id}"]`)).toBeVisible();
 		}
