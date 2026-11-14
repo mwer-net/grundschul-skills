@@ -63,6 +63,11 @@ interface Eigenschaften {
 	textsitzung?: boolean;
 	/** Das sichtbare Dokument, sobald es fertig ist, mit dem HTML, aus dem es entstand. */
 	geladen: (doc: Document, html: string) => void;
+	/**
+	 * Vor dem Zeigen, im noch unsichtbaren Rahmen (206): `true`, wenn stattdessen eine neue Fassung kommt. Dann bleibt
+	 * das alte Bild stehen, bis diese fertig ist.
+	 */
+	vorDemZeigen?: (doc: Document, html: string) => Promise<boolean>;
 	/** Vorschau einer Version: nichts auswählbar. */
 	nurAnsehen?: boolean;
 	/** Bausteine dürfen gezogen werden (nicht beim Tippen, nicht bei einem Konflikt). */
@@ -322,6 +327,7 @@ export const Leinwand = ({
 	taste,
 	textsitzung,
 	titel,
+	vorDemZeigen,
 	waehle,
 	ziehbar,
 	zoom,
@@ -349,6 +355,7 @@ export const Leinwand = ({
 		kontextmenue,
 		textsitzung,
 		jeSeite,
+		vorDemZeigen,
 	});
 	const skalaJetzt = useRef(1);
 	const ziehen = useRef<ZiehenSteuerung | null>(null);
@@ -380,8 +387,22 @@ export const Leinwand = ({
 			kontextmenue,
 			textsitzung,
 			jeSeite,
+			vorDemZeigen,
 		};
-	}, [waehle, taste, geladen, nurAnsehen, ziehbar, ablegen, html, auswahl, kontextmenue, textsitzung, jeSeite]);
+	}, [
+		waehle,
+		taste,
+		geladen,
+		nurAnsehen,
+		ziehbar,
+		ablegen,
+		html,
+		auswahl,
+		kontextmenue,
+		textsitzung,
+		jeSeite,
+		vorDemZeigen,
+	]);
 
 	// Losgelassen außerhalb des Materials: Das `iframe` bekommt das nicht immer mit.
 	useEffect(() => {
@@ -530,7 +551,19 @@ export const Leinwand = ({
 			setDoc(dokument);
 			rueckrufe.current.geladen(dokument, inhalt);
 		};
-		void dokument.fonts.ready.then(zeigen, zeigen);
+		const pruefen = async () => {
+			const vorher = rueckrufe.current.vorDemZeigen;
+			let ersetzt = false;
+			try {
+				ersetzt = vorher ? await vorher(dokument, inhalt) : false;
+			} catch {
+				ersetzt = false;
+			}
+			if (!ersetzt) {
+				zeigen();
+			}
+		};
+		void dokument.fonts.ready.then(pruefen, pruefen);
 	};
 
 	const sichtbar = rahmen.findLast((r) => r.masse !== null);

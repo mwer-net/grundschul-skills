@@ -1,9 +1,12 @@
 import type { Einfuegbar } from '@schoolbox/kern/src/einfuegen';
-import { fuegeBausteinEin, verschiebeAufNeueSeite } from '@schoolbox/kern/src/einfuegen';
+import { fuegeBausteinEin } from '@schoolbox/kern/src/einfuegen';
 import { fuegeBausteinAn } from '@schoolbox/kern/src/einfuegen-ablage';
+import { legeUm } from '@schoolbox/kern/src/fluss';
 import { neueIdsInGestaltung } from '@schoolbox/kern/src/gestaltung';
 import type { KatalogEintrag } from '@schoolbox/kern/src/katalog';
 import { sucheImKatalog } from '@schoolbox/kern/src/katalog';
+import { hatLoesung } from '@schoolbox/kern/src/loesungen';
+import type { Zerlegung } from '@schoolbox/kern/src/quelltext';
 import type { Ablage } from '@schoolbox/kern/src/struktur';
 import { fuegeZeileEin, naechsteZelle, teileTabelle } from '@schoolbox/kern/src/tabelle';
 import { useCallback, useEffect, useRef, useState } from 'react';
@@ -12,6 +15,7 @@ import { meldung } from '../api';
 import { useHinweis } from '../bausteine/hinweis';
 import { useLaden } from '../lib/laden';
 import { bausteinVon, nrVon } from './darstellung';
+import { blattDerSeite, istFlussblock, probelauf, seiteFliesst } from './fluss';
 import type { Struktur } from './struktur';
 import { leseAblage, mitBildern } from './zwischenablage';
 
@@ -33,27 +37,6 @@ const leseZuletzt = (): string[] => {
 	}
 };
 
-/** Die Kinder, die von hinten weg müssen, damit die Seite wieder passt. Das erste Kind bleibt immer. */
-export const ueberstehende = (seite: Element) => {
-	const stil = seite.ownerDocument.defaultView?.getComputedStyle(seite);
-	const grenze = seite.getBoundingClientRect().bottom - parseFloat(stil?.paddingBottom ?? '0');
-	const kinder = [...seite.children];
-	const unterkante = Math.max(...kinder.map((k) => k.getBoundingClientRect().bottom));
-	let zuViel = unterkante - grenze;
-	const raus: Element[] = [];
-	for (const k of kinder
-		.filter((e) => !e.classList.contains('fuss'))
-		.slice(1)
-		.toReversed()) {
-		if (zuViel <= 1) {
-			break;
-		}
-		raus.unshift(k);
-		zuViel -= k.getBoundingClientRect().height;
-	}
-	return raus.flatMap((k) => nrVon(k) ?? []);
-};
-
 /** Ragt eine Tabelle über die Seite, wird zwischen den Zeilen geteilt statt der ganzen Aufgabe (047). */
 export const tabelleZumTeilen = (seite: Element) => {
 	const stil = seite.ownerDocument.defaultView?.getComputedStyle(seite);
@@ -68,6 +51,12 @@ export const tabelleZumTeilen = (seite: Element) => {
 	}
 	return null;
 };
+
+export interface UmbruchKnopf {
+	titel: string;
+	art: 'umbrechen' | 'tabelle';
+	aus: () => void;
+}
 
 interface Optionen {
 	dokument: { mappe: string; dok: string };
@@ -136,29 +125,54 @@ export const useEinfuegen = ({ auswahl, dokument, folien, nachher, struktur }: O
 		nachher();
 	};
 
-	const verschiebe = (doc: Document, seitenNr: number) => {
-		const seite = [...doc.querySelectorAll('.seite:not([data-erzeugt])')][seitenNr - 1];
-		const geteilt = seite ? tabelleZumTeilen(seite) : null;
+	/**
+	 * Der Knopf an der Überlauf-Meldung einer Seite (206-05): Auf einer fließenden Seite bricht er das Blatt um, ein
+	 * Schritt wie jeder andere. Steht nur ein Block auf der Seite und ist es eine Tabelle, teilt er sie (Regel 9).
+	 */
+	const umbruchKnopf = (doc: Document, z: Zerlegung, seitenNr: number): UmbruchKnopf | null => {
+		const seite = [...doc.querySelectorAll('.seite')].filter((s) => !s.parentElement?.closest('.seite'))[
+			seitenNr - 1
+		];
+		if (!seite) {
+			return null;
+		}
+		const fliesst = seiteFliesst(doc, z, seitenNr);
+		const bloecke = [...seite.children].filter((k) => nrVon(k) !== null && istFlussblock(k)).length;
+		const geteilt = !fliesst || bloecke <= 1 ? tabelleZumTeilen(seite) : null;
 		if (geteilt) {
-			struktur.fuehreAus(
-				'Tabelle geteilt',
-				(q) => teileTabelle(q, geteilt.nr, geteilt.abZeile, { jeSeite: folien }),
-				true,
-			);
-			return;
+			return {
+				titel: 'Tabelle teilen',
+				art: 'tabelle',
+				aus: () =>
+					struktur.fuehreAus(
+						'Tabelle geteilt',
+						(q) => teileTabelle(q, geteilt.nr, geteilt.abZeile, { jeSeite: folien }),
+						true,
+					),
+			};
 		}
-		const nrs = seite ? ueberstehende(seite) : [];
-		if (nrs.length > 0) {
-			struktur.fuehreAus(
-				'Auf neue Seite verschoben',
-				(q) => verschiebeAufNeueSeite(q, nrs, { jeSeite: folien }),
-				true,
-			);
+		const blatt = blattDerSeite(doc, seitenNr);
+		if (!fliesst || bloecke <= 1 || blatt === null) {
+			return null;
 		}
+		const umbrechen = async () => {
+			const plan = await probelauf(doc, z, { alt: null, erzwungen: [blatt], mitLoesung: hatLoesung(z.quelle) });
+			if (!plan) {
+				return;
+			}
+			struktur.fuehreAus('Auf nächste Seite umgebrochen', (q) => {
+				if (q !== z.quelle) {
+					return { quelle: q, nr: auswahl };
+				}
+				const u = legeUm(q, plan, { jeSeite: folien });
+				return { quelle: u.quelle, nr: auswahl === null ? null : u.nummer(auswahl) };
+			});
+		};
+		return { titel: 'Auf nächste Seite umbrechen', art: 'umbrechen', aus: () => void umbrechen() };
 	};
 
 	const vorne = zuletzt.flatMap((id) => eintraege.find((e) => e.id === id) ?? []);
-	return { eintraege, zuletzt: vorne, fuegeEin, fuegeAn, jeSeite: folien, fuegeAblageEin, verschiebe, neuLaden };
+	return { eintraege, zuletzt: vorne, fuegeEin, fuegeAn, jeSeite: folien, fuegeAblageEin, umbruchKnopf, neuLaden };
 };
 
 export type Einfuegen = ReturnType<typeof useEinfuegen>;

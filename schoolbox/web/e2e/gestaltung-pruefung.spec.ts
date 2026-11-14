@@ -51,7 +51,7 @@ test.describe('Prüfung der Gestaltung (096)', () => {
 		await druecke(zusammenfassung(page));
 		const eintrag = page.locator('[data-pruefliste] [data-pruefpunkt="aussen"]');
 		await expect(eintrag).toContainText('liegt außerhalb der Seite');
-		await druecke(page.locator('[data-pruefliste] [data-in-seite-holen]'));
+		await druecke(page.locator('[data-pruefliste] [data-pruefknopf="in-seite-holen"]'));
 		await expect.poll(() => quelle(page)).toContain('--x:20px;--y:900px;--b:100px;--h:100px');
 		await expect(page.locator('[data-pruefpunkt="aussen"]')).toHaveCount(0);
 

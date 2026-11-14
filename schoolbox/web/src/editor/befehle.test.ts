@@ -180,6 +180,16 @@ describe('Was aus dem Inspektor gewandert ist', () => {
 	});
 });
 
+describe('Fester Umbruch (206-06)', () => {
+	it('beide Befehle stehen in Palette und Menü', () => {
+		for (const id of ['seite.ab-hier', 'seite.anschliessen']) {
+			const befehl = BEFEHLE.find((b) => b.id === id);
+			assert.ok(befehl?.orte.includes('palette'), id);
+			assert.ok(befehl?.orte.includes('menue'), id);
+		}
+	});
+});
+
 describe('Schubladen (093)', () => {
 	it('jede Schublade hat genau einen Befehl `ansicht.links-<id>` mit ihrer Taste, ⌥1 bis ⌥5 in Reihenfolge', () => {
 		assert.deepEqual(

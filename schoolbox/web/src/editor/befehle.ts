@@ -20,6 +20,7 @@ import {
 } from '@schoolbox/kern/src/tabelle';
 import type { Druckprofil } from '@schoolbox/kern/src/werte';
 
+import { kannAnschliessen, kannUmbrechenVor, schliesseAn, umbruchVor } from '@schoolbox/kern/src/einfuegen';
 import { istMac, kuerzelAnzeige } from '../bausteine/kuerzel';
 import { starteMeldung } from '../bausteine/melden';
 import type { MenueEintrag } from '../bausteine/Menue';
@@ -936,6 +937,52 @@ export const BEFEHLE: Befehl[] = [
 		aus: (k) => k.tu.struktur.neueSeite(true),
 	},
 	{
+		id: 'seite.ab-hier',
+		titel: 'Ab hier neue Seite',
+		gruppe: 'ordnen',
+		symbol: 'plus',
+		suchwoerter: ['seitenumbruch', 'umbruch', 'umbrechen'],
+		orte: ['menue', 'palette'],
+		sichtbarUnter: 'mehr',
+		verfuegbar: (k) => {
+			const g = gewaehlt(k);
+			return Boolean(k.aktiv && g && k.quelle && kannUmbrechenVor(k.quelle, g.nr));
+		},
+		aus: (k) => {
+			const g = gewaehlt(k);
+			if (g) {
+				k.tu.struktur.fuehreAus(
+					'Ab hier neue Seite',
+					(q) => umbruchVor(q, g.nr, { jeSeite: k.format === 'folie' }),
+					true,
+				);
+			}
+		},
+	},
+	{
+		id: 'seite.anschliessen',
+		titel: 'An vorige Seite anschließen',
+		gruppe: 'ordnen',
+		symbol: 'hoch',
+		suchwoerter: ['seitenumbruch', 'umbruch', 'zusammenführen', 'weiterlaufen'],
+		orte: ['menue', 'palette'],
+		sichtbarUnter: 'links',
+		verfuegbar: (k) => {
+			const g = gewaehlt(k);
+			return Boolean(k.aktiv && !k.festeSeiten && g && k.quelle && kannAnschliessen(k.quelle, g.nr));
+		},
+		aus: (k) => {
+			const g = gewaehlt(k);
+			if (g) {
+				k.tu.struktur.fuehreAus(
+					'An vorige Seite angeschlossen',
+					(q) => schliesseAn(q, g.nr, { jeSeite: k.format === 'folie' }),
+					true,
+				);
+			}
+		},
+	},
+	{
 		id: 'dokument.zurueck',
 		titel: 'Zurück zum Dokument',
 		gruppe: 'dokument',
@@ -1144,6 +1191,7 @@ const MENUE_LEER = ['auswahl.einfuegen', 'auswahl.einfuegen-danach', 'dokument.n
 const MENUE_MINIATUR = [
 	'dokument.neue-seite',
 	'dokument.seite-mit-namenszeile',
+	'seite.anschliessen',
 	'auswahl.duplizieren',
 	'auswahl.hoch',
 	'auswahl.runter',

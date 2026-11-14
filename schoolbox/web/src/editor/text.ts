@@ -32,6 +32,8 @@ interface Optionen {
 	pruefe: (urheber: Urheber) => Promise<void>;
 	/** Bei jeder Eingabe, z. B. für die Live-Prüfung: Die Quelle ändert sich erst am Ende. */
 	getippt?: () => void;
+	/** Am Ende der Eingabe, vor dem Schritt: `false`, wenn sich nichts geändert hat (z. B. Esc). */
+	beendet?: (geaendert: boolean) => void;
 	/** Rückgängig oder Wiederholen aus dem Menü des Browsers, während der Text bearbeitbar ist. */
 	geschichte: (richtung: 'zurueck' | 'vor') => void;
 }
@@ -44,6 +46,7 @@ export const useText = ({
 	auswahl,
 	bearbeitbar,
 	befehl,
+	beendet,
 	geladen,
 	geschichte,
 	getippt,
@@ -56,11 +59,11 @@ export const useText = ({
 	const [bearbeitet, setBearbeitet] = useState(false);
 	const [zustand, setZustand] = useState<TextZustand>(RUHE);
 	const steuerung = useRef<TextSteuerung | null>(null);
-	const rueckrufe = useRef({ befehl, setAuswahl, getippt, geschichte });
+	const rueckrufe = useRef({ befehl, setAuswahl, getippt, beendet, geschichte });
 
 	useEffect(() => {
-		rueckrufe.current = { befehl, setAuswahl, getippt, geschichte };
-	}, [befehl, setAuswahl, getippt, geschichte]);
+		rueckrufe.current = { befehl, setAuswahl, getippt, beendet, geschichte };
+	}, [befehl, setAuswahl, getippt, beendet, geschichte]);
 
 	useEffect(() => {
 		const element = doc && auswahl !== null ? elementZu(doc, auswahl) : null;
@@ -94,6 +97,7 @@ export const useText = ({
 				setZustand({ ...RUHE, fettMoeglich: s.zustand().fettMoeglich, farbe: s.zustand().farbe });
 				// 105: Die erste Sitzung neuer Schmuckschrift ist mit dem Anlegen ein Schritt; leer bleibt keiner.
 				const anlegen = endetNachAnlegen(zerlegung.quelle);
+				rueckrufe.current.beendet?.(ergebnis !== null);
 				if (ergebnis) {
 					const fertig = anlegen
 						? entferneLeereSchmuck(ergebnis.quelle, ergebnis.umrechnen(treffer.nr))

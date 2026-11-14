@@ -315,3 +315,59 @@ describe('Spalten und Abstand', () => {
 		assert.equal(setzeStilWert('color:red;--abstand:30px', '--abstand', '28px'), 'color:red;--abstand:28px');
 	});
 });
+
+describe('Seitenbefehle kennen das Blatt (206-03)', () => {
+	const aufgabe = (i: number) => `<div class="aufgabe"><span class="nr">${i}</span></div>`;
+	const QUELLE = `<!DOCTYPE html>
+<html lang="de">
+<head></head>
+<body class="kl2">
+<section class="seite">
+  ${[1, 2].map(aufgabe).join('\n  ')}
+</section>
+<section class="seite" data-weiter="auto">
+  ${[3, 4].map(aufgabe).join('\n  ')}
+</section>
+<section class="seite">
+  <p>B</p>
+</section>
+</body>
+</html>
+`;
+	const seiten = (q: string) => mitKlasse(zerlege(q), 'seite');
+	const [fest, auto, zweite] = seiten(QUELLE).map((s) => s.nr);
+	const weiter = (q: string) =>
+		seiten(q).map((s) => {
+			const a = attribut(s, 'data-weiter');
+			return a ? (a.wert ?? '') : null;
+		});
+	const texte = (q: string) => seiten(q).map((s) => innenVon(zerlege(q), s).replace(/\s+/g, ''));
+
+	it('eine neue Seite landet hinter der letzten automatischen Seite des Blatts', () => {
+		const { quelle } = fuegeSeiteEin(QUELLE, { nach: fest ?? -1, mitNamenszeile: false }, BLATT);
+		assert.deepEqual(weiter(quelle), [null, 'auto', null, null]);
+		assert.equal(texte(quelle)[2], '');
+	});
+
+	it('Verschieben nimmt das ganze Blatt mit, nie zwischen Seite und automatische Seite', () => {
+		const vor = verschiebeBaustein(QUELLE, zweite ?? -1, { nr: fest ?? -1, wo: 'vor' }, BLATT).quelle;
+		assert.deepEqual(texte(vor)[0], '<p>B</p>');
+		assert.deepEqual(weiter(vor), [null, null, 'auto']);
+		const zwischen = verschiebeBaustein(QUELLE, zweite ?? -1, { nr: auto ?? -1, wo: 'vor' }, BLATT).quelle;
+		assert.equal(zwischen, QUELLE);
+		const nach = verschiebeBaustein(QUELLE, fest ?? -1, { nr: zweite ?? -1, wo: 'nach' }, BLATT).quelle;
+		assert.equal(nach, vor);
+	});
+
+	it('Duplizieren einer Seite kopiert das Blatt hinter dessen letzte Seite', () => {
+		const { quelle } = dupliziereBaustein(QUELLE, fest ?? -1, BLATT);
+		assert.deepEqual(weiter(quelle), [null, 'auto', null, 'auto', null]);
+		assert.equal(texte(quelle)[4], '<p>B</p>');
+	});
+
+	it('nach dem Löschen der festen Seite ist die automatische fest', () => {
+		const { quelle } = loescheBaustein(QUELLE, fest ?? -1, BLATT);
+		assert.deepEqual(weiter(quelle), ['', null]);
+		assert.match(quelle, /<section class="seite" data-weiter>/);
+	});
+});

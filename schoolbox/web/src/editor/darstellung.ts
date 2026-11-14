@@ -13,6 +13,9 @@ import type { Druckprofil } from '@schoolbox/kern/src/werte';
  * der gerade bearbeitet wird. Aufziehen zoomt das Blatt, nicht die Seite (184). In der Lösungsansicht sind
  * Antwortlinien ohne Lösung gelb gestreift mit „?“ (019).
  */
+/** 206-07: Beim Tippen rücken die Blöcke hinter dem getippten Block schon im Bild weiter. `false`: erst am Ende. */
+export const MITLAUFEN = true;
+
 const EDITOR_STIL =
 	'<style data-editor data-grau-roh>html,body{-webkit-user-select:none;user-select:none;-webkit-touch-callout:none;' +
 	'touch-action:pan-x pan-y}' +
@@ -31,6 +34,8 @@ const EDITOR_STIL =
 	// eines Elements schneidet sie nicht ab, damit es beim Herausziehen zu sehen ist (`flaeche-ziel.ts`)
 	'.flaeche{outline:1px dashed rgba(0,0,0,.3);outline-offset:-1px}' +
 	'[data-flaeche-offen] .flaeche{overflow:visible!important}' +
+	// 206-07: Die Seite schneidet den Block, in dem getippt wird, nicht ab; die Schreibmarke bleibt zu sehen.
+	(MITLAUFEN ? 'body>.seite:has([contenteditable=true]){overflow:visible!important}' : '') +
 	'</style>';
 
 /** Die Prüfung aus blatt.py, hier ohne Selbststart: Der Editor ruft `pruefeBlatt` nach jeder Änderung (020). */

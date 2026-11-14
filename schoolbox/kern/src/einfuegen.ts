@@ -4,6 +4,17 @@
  * statt dass das Einfügen scheitert.
  */
 
+import {
+	aeussereSeiten,
+	AUTOMATISCH,
+	automatischeSeite,
+	blattZu,
+	flussbloeckeVon,
+	istAutomatisch,
+	istFlussblock,
+	kinderEinzug,
+	WEITER,
+} from './fluss-blatt';
 import type { KatalogEintrag } from './katalog';
 import type { Aenderung, Knoten, Zerlegung } from './quelltext';
 import {
@@ -242,24 +253,78 @@ export const fuegeZusatzEin = (
 	return schritte.reduce((q, b) => fuegeBausteinEin(q, b, null, n).quelle, quelle);
 };
 
-/**
- * Überlauf (044): Die genannten Kinder einer Seite kommen auf eine neue Seite direkt dahinter; was die Seite sonst
- * auszeichnet (Fuß), bleibt, wo es ist. Ein Schritt im Verlauf.
- */
-export const verschiebeAufNeueSeite = (quelle: string, nrs: readonly number[], n: Nummerierung): StrukturErgebnis => {
+/** Die Seite, deren direktes Kind `k` ist, wenn sie fließen kann (206, Regel 4); sonst `null`. */
+const fliessendeSeiteVon = (z: Zerlegung, k: Knoten) => {
+	const seite = k.eltern;
+	const blatt = seite ? blattZu(z, seite.nr) : null;
+	return seite && blatt?.fliesst && blatt.seiten.some((s) => s.nr === seite.nr) ? seite : null;
+};
+
+/** Kann vor diesem Block eine neue Seite beginnen? Ein Flussblock einer fließenden Seite, nicht ihr erster. */
+export const kannUmbrechenVor = (quelle: string, nr: number) => {
 	const z = zerlege(quelle);
-	const knoten = nrs.flatMap((nr) => z.knoten[nr] ?? []);
-	const seite = knoten[0]?.eltern;
-	if (!seite || !hat(seite, 'seite') || knoten.some((k) => k.eltern !== seite)) {
-		throw new Error('Diese Bausteine lassen sich nicht zusammen verschieben.');
+	const k = z.knoten[nr];
+	const seite = k ? fliessendeSeiteVon(z, k) : null;
+	return Boolean(k && seite && istFlussblock(k) && flussbloeckeVon(seite)[0] !== nr);
+};
+
+/**
+ * Fester Umbruch (206-06, Regel 17): Vor dem Block beginnt eine neue feste Seite, aussehend wie eine Folgeseite
+ * (Regel 12). Mit ihm gehen alle Flussblöcke dahinter. Automatische Seiten dahinter gehören danach zur neuen Seite.
+ */
+export const umbruchVor = (quelle: string, nr: number, n: Nummerierung): StrukturErgebnis => {
+	if (!kannUmbrechenVor(quelle, nr)) {
+		throw new Error('Vor diesem Baustein lässt sich keine neue Seite beginnen.');
 	}
-	const einzug = einrueckung(z, seite) ?? '';
-	const teile = knoten.map((k) => `${einzug}  ${rueckeUm(quelleVon(z, k), einrueckung(z, k), `${einzug}  `)}`);
-	const tag = seite.tag;
-	const klasse = attribut(seite, 'class')?.wert ?? 'seite';
-	const html = `<${tag} class="${klasse}">\n${teile.join('\n')}\n${einzug}</${tag}>`;
-	const raus = knoten.flatMap((k) => entferne(z, k));
-	const rein = fuegeEin(z, seite, 'nach', html);
-	const alle = [...raus, ...rein];
-	return { quelle: nummeriere(wendeAn(quelle, alle), n), nr: null };
+	const z = zerlege(quelle);
+	const k = z.knoten[nr] as Knoten;
+	const seite = k.eltern as Knoten;
+	const innen = kinderEinzug(z, seite);
+	const bloecke = seite.kinder.filter((c) => istFlussblock(c) && c.start >= k.start);
+	const inhalt = bloecke.map((b) => rueckeUm(quelleVon(z, b), einrueckung(z, b), innen));
+	const raus = bloecke.flatMap((b) => entferne(z, b));
+	const [rein] = fuegeEin(z, seite, 'nach', automatischeSeite(z, seite, { fest: true, inhalt }));
+	if (!rein) {
+		throw new Error('Vor diesem Baustein lässt sich keine neue Seite beginnen.');
+	}
+	const neu = wendeAn(quelle, [...raus, rein]);
+	const weg = raus.reduce((summe, a) => summe + (a.bis - a.von), 0);
+	const start = rein.von - weg + rein.text.indexOf('<');
+	const neueSeite = zerlege(neu).knoten.find((c) => c.start === start);
+	return { quelle: nummeriere(neu, n), nr: neueSeite ? (flussbloeckeVon(neueSeite)[0] ?? null) : null };
+};
+
+/**
+ * „An vorige Seite anschließen“ geht bei einer festen Seite ohne Namenszeile und Kopf, die nicht die erste ist und
+ * deren Blatt davor fließen kann.
+ */
+export const kannAnschliessen = (quelle: string, nr: number) => {
+	const z = zerlege(quelle);
+	const k = z.knoten[nr];
+	const seiten = aeussereSeiten(z);
+	const i = k ? seiten.indexOf(k) : -1;
+	const davor = seiten[i - 1];
+	return Boolean(
+		k &&
+			davor &&
+			!istAutomatisch(k) &&
+			blattZu(z, davor.nr)?.fliesst &&
+			k.kinder.every((c) => !klassenVon(c).some((name) => name === 'namenszeile' || name === 'kopf')) &&
+			folgtAufSeite(davor, k),
+	);
+};
+
+const folgtAufSeite = (davor: Knoten, seite: Knoten) => {
+	const geschwister = seite.eltern?.kinder ?? [];
+	return geschwister[geschwister.indexOf(seite) - 1] === davor;
+};
+
+/** Die feste Seite wird automatisch und gehört damit zum Blatt davor (Regel 17); der Fluss füllt danach neu. */
+export const schliesseAn = (quelle: string, nr: number, n: Nummerierung): StrukturErgebnis => {
+	if (!kannAnschliessen(quelle, nr)) {
+		throw new Error('Diese Seite lässt sich nicht an die vorige anschließen.');
+	}
+	const z = zerlege(quelle);
+	const k = z.knoten[nr] as Knoten;
+	return { quelle: nummeriere(wendeAn(quelle, setzeAttribut(z, k, WEITER, AUTOMATISCH)), n), nr };
 };

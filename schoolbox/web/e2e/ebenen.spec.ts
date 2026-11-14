@@ -1,3 +1,5 @@
+import { readFile, writeFile } from 'node:fs/promises';
+
 import type { Locator, Page } from '@playwright/test';
 
 import { aendere, geladen, material, oeffne, quelle, uhrzeit } from './editorhilfe';
@@ -446,6 +448,16 @@ test.describe('Ebenen, bis 093 „Gliederung“ (080)', () => {
 		await expect(page.getByRole('button', { name: 'Seite ziehen' })).toHaveCount(0);
 		await expect(page.getByRole('button', { name: 'Seite hinzufügen' })).toHaveCount(0);
 		await expect(page.locator('[data-feste-seiten]')).toBeVisible();
+	});
+
+	test('Automatische Seite (206): kein Griff, die feste davor hat einen', async ({ page }) => {
+		const { dok, id, material: datei } = await uhrzeit();
+		const folge = '<section class="seite" data-weiter="auto">\n  <p>Weiter</p>\n</section>\n</body>';
+		await writeFile(datei, (await readFile(datei, 'utf8')).replace('</body>', folge));
+		await oeffne(page, id, dok);
+		await expect(page.locator('[data-seite-zeile]')).toHaveCount(2);
+		await expect(griffVon(seitenZeile(page, 1))).toBeVisible();
+		await expect(griffVon(seitenZeile(page, 2))).toHaveCount(0);
 	});
 
 	test('Finger: Der Griff zieht, die Zeile lässt die Liste rollen', async ({ hasTouch, page }) => {
