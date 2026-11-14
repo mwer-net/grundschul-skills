@@ -109,6 +109,7 @@ describe('verstaendlich', () => {
 		const imEditor = erklaere(ueberlauf, ['Aufgabe 4']);
 		assert.equal(imEditor.satz, 'Aufgabe 4 ragt über das Blatt hinaus und wird beim Drucken abgeschnitten.');
 		assert.match(imEditor.tipp ?? '', /Spalten erhöhen/);
+		assert.doesNotMatch(imEditor.tipp ?? '', /neue Seite/); // 206: Die Seite entsteht von selbst.
 		assert.equal(
 			verstaendlich({ ...ueberlauf, text: `Lösungsblatt: ${ueberlauf.text}` }),
 			'Im Lösungsblatt, Seite 2: „4 Rechne“ ragt über das Blatt hinaus und wird beim Drucken abgeschnitten.',

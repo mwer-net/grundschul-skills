@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import { describe, it } from 'node:test';
 
-import { einfuegbarAus, fuegeBausteinEin, fuegeZusatzEin, neueAufgabe, verschiebeAufNeueSeite } from './einfuegen';
+import { einfuegbarAus, fuegeBausteinEin, fuegeZusatzEin, neueAufgabe } from './einfuegen';
 import { KATALOG } from './katalog';
 import { leseStarter } from './katalog-starter';
 import { klassenVon, zerlege } from './quelltext';
@@ -208,20 +208,5 @@ describe('Zusatzbausteine', () => {
 		assert.equal(fuegeZusatzEin(leer, {}, starter, n), leer);
 		const q = fuegeZusatzEin(leer, { niveaus: true, sternchen: true, selbsteinschaetzung: true }, starter, n);
 		assert.ok(q.indexOf('wahlhilfe') < q.indexOf('stern') && q.indexOf('stern') < q.indexOf('class="fuss"'));
-	});
-});
-
-describe('Überlauf', () => {
-	it('legt die Bausteine auf eine neue Seite dahinter und nummeriert neu; Fuß und Rest bleiben', () => {
-		const zweite = nrVon(BLATT, 'aufgabe', 1) ?? -1;
-		const { quelle } = verschiebeAufNeueSeite(BLATT, [zweite], n);
-		const seiten = zerlege(quelle).knoten.filter((k) => klassenVon(k).includes('seite'));
-		assert.equal(seiten.length, 2);
-		assert.ok(quelle.indexOf('Stern') > quelle.lastIndexOf('<section'));
-		assert.ok(quelle.indexOf('class="fuss"') < quelle.lastIndexOf('<section'));
-	});
-
-	it('lehnt Bausteine verschiedener Seiten ab', () => {
-		assert.throws(() => verschiebeAufNeueSeite(BLATT, [nrVon(BLATT, 'zelle') ?? -1], n), /nicht zusammen/);
 	});
 });

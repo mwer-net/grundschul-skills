@@ -241,25 +241,3 @@ export const fuegeZusatzEin = (
 	];
 	return schritte.reduce((q, b) => fuegeBausteinEin(q, b, null, n).quelle, quelle);
 };
-
-/**
- * Überlauf (044): Die genannten Kinder einer Seite kommen auf eine neue Seite direkt dahinter; was die Seite sonst
- * auszeichnet (Fuß), bleibt, wo es ist. Ein Schritt im Verlauf.
- */
-export const verschiebeAufNeueSeite = (quelle: string, nrs: readonly number[], n: Nummerierung): StrukturErgebnis => {
-	const z = zerlege(quelle);
-	const knoten = nrs.flatMap((nr) => z.knoten[nr] ?? []);
-	const seite = knoten[0]?.eltern;
-	if (!seite || !hat(seite, 'seite') || knoten.some((k) => k.eltern !== seite)) {
-		throw new Error('Diese Bausteine lassen sich nicht zusammen verschieben.');
-	}
-	const einzug = einrueckung(z, seite) ?? '';
-	const teile = knoten.map((k) => `${einzug}  ${rueckeUm(quelleVon(z, k), einrueckung(z, k), `${einzug}  `)}`);
-	const tag = seite.tag;
-	const klasse = attribut(seite, 'class')?.wert ?? 'seite';
-	const html = `<${tag} class="${klasse}">\n${teile.join('\n')}\n${einzug}</${tag}>`;
-	const raus = knoten.flatMap((k) => entferne(z, k));
-	const rein = fuegeEin(z, seite, 'nach', html);
-	const alle = [...raus, ...rein];
-	return { quelle: nummeriere(wendeAn(quelle, alle), n), nr: null };
-};

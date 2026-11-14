@@ -100,6 +100,21 @@ test.describe('Seiten laufen weiter (206)', () => {
 		await expect(seiten(page)).toHaveCount(1);
 	});
 
+	test('Alter Überstand: ein Knopf je Seite bricht um, ein Schritt (206-05)', async ({ page }) => {
+		await vorbereiten(page, 4, 8);
+		const vorher = await quelle(page);
+		await page.locator('[data-pruefung] > button').click();
+		await expect(page.locator('[data-pruefliste] [data-pruefpunkt="ueberlauf"]').first()).toBeVisible();
+		await expect(page.locator('[data-pruefliste] [data-pruefknopf="umbrechen"]')).toHaveCount(1);
+		await page.locator('[data-pruefliste] [data-pruefknopf="umbrechen"]').click();
+		await expect.poll(async () => automatische(await quelle(page))).toBeGreaterThan(0);
+		await geladen(page);
+		expect(await ueberstand(page)).toBe(false);
+		await material(page).locator('.kopf').first().click();
+		await page.keyboard.press('ControlOrMeta+z');
+		await expect.poll(() => quelle(page)).toBe(vorher);
+	});
+
 	test('Ein zweites Blatt bleibt Zeichen für Zeichen', async ({ page }) => {
 		const doc = await uhrzeit();
 		const zweite = '<section class="seite">\n  <h2>Zweites Blatt</h2>\n</section>\n</body>';

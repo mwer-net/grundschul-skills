@@ -8,6 +8,7 @@ import { verschobeneVerweise, verweisText } from '@schoolbox/kern/src/verweise';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 
 import { elementZu, pfadZu, trefferAn } from './darstellung';
+import { folgtAutomatische } from './fluss';
 
 /** Nach der letzten Eingabe so lange warten, bevor geprüft wird: Tippen bleibt flüssig. */
 const RUHE_MS = 500;
@@ -104,7 +105,9 @@ const nameIm = (doc: Document, ziel: MeldungZiel) => {
 
 const ausBericht = (doc: Document, meldungen: Meldung[]): Pruefpunkt[] => {
 	const seiten = seitenIn(doc);
-	return meldungen.map((m) => {
+	// 206: Vor einer automatischen Seite ist der Platz unten gewollt, dort ging der nächste Block nicht mehr hin.
+	const gemeldet = meldungen.filter((m) => !(m.code === 'platz-frei' && folgtAutomatische(doc, m.seite)));
+	return gemeldet.map((m) => {
 		const ziele = m.ziele ?? [];
 		const seite = seiten[m.seite - 1]?.getBoundingClientRect();
 		const ganzeSeite = (z: MeldungZiel) =>

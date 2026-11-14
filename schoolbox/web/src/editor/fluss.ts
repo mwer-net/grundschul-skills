@@ -89,7 +89,10 @@ export const unterkante = (block: Element) => {
 	return unten;
 };
 
-const flussKinder = (seite: Element) => [...seite.children].filter((k) => !k.matches(NICHT_IM_FLUSS));
+/** Ein Kind der Seite, das im Stapel steht und wandern darf (wie `istFlussblock` im Kern). */
+export const istFlussblock = (k: Element) => !k.matches(NICHT_IM_FLUSS);
+
+const flussKinder = (seite: Element) => [...seite.children].filter(istFlussblock);
 
 /** Regel 3: je Seite die Zahl der Flussblöcke, die Unterkante des letzten vor dem Fuß und die Höhe des Fußes. */
 const merkmalVon = (seiten: Element[]) =>

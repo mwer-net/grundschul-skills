@@ -5,6 +5,7 @@ import { Symbol } from '../bausteine/Symbol';
 import { Tooltip } from '../bausteine/Tooltip';
 import { kuerzelVon } from './befehle';
 import { halteFokus } from './halteFokus';
+import type { PruefKnopf } from './Pruefliste';
 import { Pruefstatus } from './Pruefliste';
 import type { Pruefpunkt, Pruefstand } from './pruefung';
 import type { ZoomWert } from './zoom';
@@ -124,7 +125,7 @@ interface Eigenschaften extends ZoomEigenschaften {
 	format: string;
 	pruefung: Pruefstand | null;
 	zeigePunkt: (p: Pruefpunkt) => void;
-	verschiebe?: ((p: Pruefpunkt) => void) | undefined;
+	knopf?: ((p: Pruefpunkt) => PruefKnopf | null) | undefined;
 	/** Links ist etwas zu sehen: Ebenen, eine Schublade oder beide. */
 	linksOffen: boolean;
 	rechtsOffen: boolean;
@@ -145,7 +146,7 @@ export const Statusleiste = ({
 	seite,
 	setRechtsOffen,
 	skala,
-	verschiebe,
+	knopf,
 	zeigeClaude,
 	zeigePunkt,
 	zoom,
@@ -167,7 +168,7 @@ export const Statusleiste = ({
 				</button>
 			</Tooltip>
 			<span className="truncate" data-seite-von>{`Seite ${seite.nr} von ${seite.von} · ${format}`}</span>
-			<Pruefstatus stand={pruefung} zeige={zeigePunkt} verschiebe={verschiebe} />
+			<Pruefstatus stand={pruefung} zeige={zeigePunkt} knopf={knopf} />
 			{claude && <ClaudeStand lauf={claude} oeffne={zeigeClaude} />}
 		</div>
 		<Zoom zoom={zoom} skala={skala} fuehreAus={fuehreAus} />

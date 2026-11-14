@@ -27,7 +27,7 @@ import { useAblage } from '../editor/ablage';
 import { Konfliktleiste, Speicheranzeige, Vorschauleiste } from '../editor/Anzeigen';
 import { Bausteinleiste } from '../editor/Bausteinleiste';
 import { useBearbeitung } from '../editor/bearbeitung';
-import { useFluss } from '../editor/fluss';
+import { seiteFliesst, useFluss } from '../editor/fluss';
 import type { MenueArt } from '../editor/befehle';
 import { istZoomTaste, kuerzelVon } from '../editor/befehle';
 import { Einfuegemarken } from '../editor/Bibliothek';
@@ -60,6 +60,7 @@ import { Palette } from '../editor/Palette';
 import { eintraegeImEditor } from '../editor/palette-eintraege';
 import { Blattwerkzeug } from '../editor/Panel';
 import { usePanels } from '../editor/panels';
+import type { PruefKnopf } from '../editor/Pruefliste';
 import type { Pruefpunkt } from '../editor/pruefung';
 import { holeInSeiteAus, ueberlaufendeSeiten, usePruefung } from '../editor/pruefung';
 import type { SchubladenId, SchubladenTeile } from '../editor/schubladen';
@@ -337,14 +338,23 @@ const useEinfuegeWerkzeuge = ({
 		struktur,
 		folien,
 	});
-	const verschiebeUeberlauf =
-		struktur.aktiv && docJetzt
-			? (p: Pruefpunkt) =>
-					p.code === 'aussen'
-						? holeInSeiteAus(docJetzt, struktur.aendereAttribute, p)
-						: einfuegen.verschiebe(docJetzt, p.seite)
+	const zerlegungJetzt = struktur.gezeigt?.zerlegung ?? null;
+	const pruefKnopf =
+		struktur.aktiv && docJetzt && zerlegungJetzt
+			? (p: Pruefpunkt): PruefKnopf | null => {
+					if (p.code === 'aussen') {
+						return p.bausteine.length > 0
+							? {
+									titel: 'In die Seite holen',
+									art: 'in-seite-holen',
+									aus: () => holeInSeiteAus(docJetzt, struktur.aendereAttribute, p),
+								}
+							: null;
+					}
+					return p.code === 'ueberlauf' ? einfuegen.umbruchKnopf(docJetzt, zerlegungJetzt, p.seite) : null;
+				}
 			: undefined;
-	return { docJetzt, einfuegen, slash, verschiebeUeberlauf };
+	return { docJetzt, einfuegen, slash, pruefKnopf };
 };
 
 const versionenWerte = (
@@ -603,7 +613,7 @@ const Bearbeitung = ({ dokument, mappe: mappenDaten }: { mappe: Mappe; dokument:
 	const loes = useLoesung({ pfad, struktur, loesung, rueckgaengig: zurueck });
 
 	useAuswahlFolgt(geladen, html, auswahl, pfad, setAuswahl);
-	const { docJetzt, einfuegen, slash, verschiebeUeberlauf } = useEinfuegeWerkzeuge({
+	const { docJetzt, einfuegen, slash, pruefKnopf } = useEinfuegeWerkzeuge({
 		auswahl,
 		dokument: { mappe, dok },
 		folien: format === 'folie',
@@ -944,7 +954,9 @@ const Bearbeitung = ({ dokument, mappe: mappenDaten }: { mappe: Mappe; dokument:
 			quelle={sicht.quelle}
 			seite={{ auswahl, sichtbar: seite.nr }}
 			struktur={struktur}
-			ueberlauf={ueberlaufendeSeiten(pruefung.stand)}
+			ueberlauf={ueberlaufendeSeiten(pruefung.stand).filter(
+				(n) => !(geladen && pruefung.stand?.doc === geladen.doc && seiteFliesst(geladen.doc, geladen.zerlegung, n)),
+			)}
 			loesung={loesung ? <Loesungsuebersicht l={loes} /> : null}
 		/>
 	);
@@ -1251,7 +1263,7 @@ const Bearbeitung = ({ dokument, mappe: mappenDaten }: { mappe: Mappe; dokument:
 					format={FORMAT_NAME[format]}
 					pruefung={pruefung.stand}
 					zeigePunkt={zeigePunkt}
-					verschiebe={verschiebeUeberlauf}
+					knopf={pruefKnopf}
 					zoom={zoom}
 					skala={skala}
 					fuehreAus={befehle.fuehreAus}
