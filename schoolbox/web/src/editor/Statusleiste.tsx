@@ -3,6 +3,7 @@ import { useEffect, useState } from 'react';
 import { klassen } from '../bausteine/klassen';
 import { Symbol } from '../bausteine/Symbol';
 import { Tooltip } from '../bausteine/Tooltip';
+import { FORMAT_NAME, seitenWort } from '../lib/text';
 import { kuerzelVon } from './befehle';
 import { halteFokus } from './halteFokus';
 import type { PruefKnopf } from './Pruefliste';
@@ -167,7 +168,7 @@ export const Statusleiste = ({
 					<Symbol name="leisteLinks" className="flex-none" />
 				</button>
 			</Tooltip>
-			<span className="truncate" data-seite-von>{`Seite ${seite.nr} von ${seite.von} · ${format}`}</span>
+			<span className="truncate" data-seite-von>{`${seitenWort(format === FORMAT_NAME.folie)} ${seite.nr} von ${seite.von} · ${format}`}</span>
 			<Pruefstatus stand={pruefung} zeige={zeigePunkt} knopf={knopf} />
 			{claude && <ClaudeStand lauf={claude} oeffne={zeigeClaude} />}
 		</div>

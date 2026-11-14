@@ -26,6 +26,7 @@ import { starteMeldung } from '../bausteine/melden';
 import type { MenueEintrag } from '../bausteine/Menue';
 import type { SymbolName } from '../bausteine/Symbol';
 import type { TastenAbschnitt } from '../bausteine/Tastenliste';
+import { seitenWort } from '../lib/text';
 import type { PfadTeil } from './darstellung';
 import { GESTALTUNG_BEFEHLE } from './gestaltung/befehle';
 import { dupliziereAlle, loescheAlle, mehrereGewaehlt } from './gestaltung/befehle/bewegen'; // 113
@@ -97,7 +98,6 @@ export interface Aktionen {
 	wiederholen: () => void;
 	speichern: () => void;
 	pdf: () => void;
-	drucken: () => void;
 	praesentieren: () => void;
 	zurueck: () => void;
 	hilfe: () => void;
@@ -162,7 +162,7 @@ export interface Befehl {
 	/** Sagt, warum ein Kürzel gerade nichts tut, statt still zu bleiben. */
 	warumNicht?: (k: Kontext) => string | null;
 	/** Spezifischer Eintrag der Leiste am Baustein, mit diesem kurzen Namen. */
-	leisteTitel?: string;
+	leisteTitel?: string | ((k: Kontext) => string);
 	leisteWenn?: (k: Kontext) => boolean;
 	/** Einträge mit gleichem Wert stehen im Menü in einem Untermenü. */
 	untermenue?: string;
@@ -180,6 +180,8 @@ const istSeite = (k: Kontext) => gewaehlt(k)?.baustein.art === 'seite';
 /** 47: Bei Mehrfachauswahl gibt es Claude nicht. */
 const mehrfach = (k: Kontext) => (k.gestaltung?.nrn.length ?? 0) > 1;
 const einzigeSeite = (k: Kontext) => istSeite(k) && (k.werte?.seiten ?? 0) <= 1;
+/** „Folie“ in Präsentationen, sonst „Seite“ (192-12). */
+const wort = (k: Kontext) => seitenWort(k.format === 'folie');
 const inZelle = (k: Kontext) => k.aktiv && ['tabellenzelle', 'tabellenzeile'].includes(gewaehlt(k)?.baustein.art ?? '');
 const istTabelle = (k: Kontext) => k.aktiv && gewaehlt(k)?.baustein.art === 'tabelle';
 const kannText = (k: Kontext) => {
@@ -653,7 +655,7 @@ export const BEFEHLE: Befehl[] = [
 			if (!g || !k.frei) {
 				return null;
 			}
-			return einzigeSeite(k) ? 'Die einzige Seite bleibt.' : `${g.name} lässt sich nicht löschen.`;
+			return einzigeSeite(k) ? `Die einzige ${wort(k)} bleibt.` : `${g.name} lässt sich nicht löschen.`;
 		},
 		aus: (k) => {
 			if (mehrereGewaehlt(k.gestaltung)) {
@@ -894,16 +896,6 @@ export const BEFEHLE: Befehl[] = [
 		aus: (k) => k.tu.pdf(),
 	},
 	{
-		id: 'dokument.drucken',
-		titel: 'Drucken',
-		gruppe: 'dokument',
-		symbol: 'drucker',
-		orte: ['palette'],
-		sichtbarUnter: 'kopf',
-		verfuegbar: () => true,
-		aus: (k) => k.tu.drucken(),
-	},
-	{
 		id: 'dokument.praesentieren',
 		titel: 'Präsentieren',
 		gruppe: 'dokument',
@@ -916,11 +908,11 @@ export const BEFEHLE: Befehl[] = [
 	},
 	{
 		id: 'dokument.neue-seite',
-		titel: (k) => (istSeite(k) ? 'Neue Seite danach' : 'Neue Seite'),
+		titel: (k) => (istSeite(k) ? `Neue ${wort(k)} danach` : `Neue ${wort(k)}`),
 		gruppe: 'dokument',
 		symbol: 'plus',
 		orte: ['menue', 'leiste', 'palette'],
-		leisteTitel: 'Seite danach',
+		leisteTitel: (k) => `${wort(k)} danach`,
 		leisteWenn: istSeite,
 		sichtbarUnter: 'links',
 		verfuegbar: (k) => k.aktiv && !k.festeSeiten,
@@ -928,7 +920,7 @@ export const BEFEHLE: Befehl[] = [
 	},
 	{
 		id: 'dokument.seite-mit-namenszeile',
-		titel: (k) => (istSeite(k) ? 'Mit Namenszeile danach' : 'Neue Seite mit Namenszeile'),
+		titel: (k) => (istSeite(k) ? 'Mit Namenszeile danach' : `Neue ${wort(k)} mit Namenszeile`),
 		gruppe: 'dokument',
 		symbol: 'plus',
 		orte: ['menue', 'palette'],

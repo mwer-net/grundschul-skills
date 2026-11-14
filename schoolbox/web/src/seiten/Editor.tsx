@@ -84,8 +84,9 @@ import { useEreignisse } from '../ereignisse';
 import { useLaden } from '../lib/laden';
 import { useAnsichtsProfil } from '../lib/profil';
 import { useTitel } from '../lib/titel';
-import { ansichtAdresse, dokumentSeite, druckSeite, inhaltAdresse, praesentationSeite } from '../lib/zugang';
+import { ansichtAdresse, dokumentSeite, inhaltAdresse, praesentationSeite } from '../lib/zugang';
 import { PdfKnopf } from '../pdf/PdfKnopf';
+import { beendeVollbild, SOFORT, vollbildFuerSofort } from '../praesentation/laufzeit';
 import { dokumentWahl, materialName } from '../pdf/wahl';
 import type { DokumentEintrag, Mappe, MappenEintrag } from '../typen';
 import { MaterialFehlt, NICHT_GEFUNDEN } from './NichtGefunden';
@@ -650,15 +651,16 @@ const Bearbeitung = ({ dokument, mappe: mappenDaten }: { mappe: Mappe; dokument:
 	const seite = useSichtbareSeite(geladen, ansicht, skala);
 	sichtbareSeite.current = () => (docJetzt ? seiteAn(docJetzt, seite.nr) : null);
 
-	const verlassen = async (ziel: string) => {
+	const verlassen = async (ziel: string, state?: unknown) => {
 		const gespeichert = await alles();
 		const trotzdem =
 			gespeichert ||
 			b.konflikt !== null ||
 			window.confirm('Deine letzten Änderungen sind noch nicht gespeichert. Trotzdem gehen?');
 		if (trotzdem) {
-			void navigate(ziel);
+			void navigate(ziel, { state });
 		}
+		return trotzdem;
 	};
 
 	const ablage = useAblage({
@@ -800,8 +802,11 @@ const Bearbeitung = ({ dokument, mappe: mappenDaten }: { mappe: Mappe; dokument:
 				wiederholen: vor,
 				speichern: () => zeige({ text: 'Wird automatisch gespeichert.' }),
 				pdf: () => document.querySelector<HTMLElement>('[data-pdf-knopf] button')?.click(),
-				drucken: () => void verlassen(druckSeite(zugang, dok, loesung ? 'loesung' : 'arbeitsblatt', profil)),
-				praesentieren: () => void verlassen(praesentationSeite(zugang, dok)),
+				praesentieren: () => {
+					// Vollbild nur im Klick selbst, also vor dem Speichern (192 Urteil 2); bleibt man hier, endet es.
+					vollbildFuerSofort();
+					void verlassen(praesentationSeite(zugang, dok), SOFORT).then((weg) => weg || beendeVollbild());
+				},
 				zurueck: () => void verlassen(dokumentSeite(zugang, dok)),
 				hilfe: () => void verlassen('/hilfe'),
 			},
@@ -1108,7 +1113,15 @@ const Bearbeitung = ({ dokument, mappe: mappenDaten }: { mappe: Mappe; dokument:
 						</Knopf>
 					)}
 					<span className="contents" data-pdf-knopf>
-						<PdfKnopf art="haupt" beschriftung="PDF" wahl={wahl} mappe={mappenDaten} warnen rechtsbuendig />
+						<PdfKnopf
+							art="haupt"
+							beschriftung="PDF"
+							wahl={wahl}
+							mappe={mappenDaten}
+							warnen
+							rechtsbuendig
+							echteMasse={dokument.echteMasse}
+						/>
 					</span>
 				</Kopfleiste>
 				{claudeApp.dialog}

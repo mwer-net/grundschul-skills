@@ -300,7 +300,7 @@ const spezifischeTeile = ({
 						onClick={() => befehle.fuehreAus(b.id)}
 					>
 						{typeof b.symbol === 'string' && <Symbol name={b.symbol} />}
-						{b.leisteTitel}
+						{typeof b.leisteTitel === 'function' ? b.leisteTitel(k) : b.leisteTitel}
 					</Knopf>
 				),
 			})),

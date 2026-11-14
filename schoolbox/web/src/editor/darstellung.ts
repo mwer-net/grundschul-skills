@@ -115,19 +115,22 @@ export const nameVon = ({ baustein, element }: Treffer, umgebung: Element | null
 	if (gestaltung) {
 		return gestaltung;
 	}
+	// Eine Seite einer Präsentation heißt Folie (192-12).
+	const name =
+		baustein.art === 'seite' && element.ownerDocument.body.classList.contains('folie') ? 'Folie' : baustein.name;
 	if (!baustein.zaehlen) {
-		return baustein.name;
+		return name;
 	}
 	// N08: Eine Aufgabe heißt wie ihre Nummer im Blatt; die zählt `nummeriere` über Seitengrenzen hinweg.
 	const nummer = element.querySelector(':scope > .nr')?.textContent?.trim() ?? '';
 	if (/^\d+$/.test(nummer)) {
-		return `${baustein.name} ${nummer}`;
+		return `${name} ${nummer}`;
 	}
 	const orte = umgebung ? blattSeitenZu(umgebung) : [element.ownerDocument];
 	const geschwister = orte
 		.flatMap((ort) => [...ort.querySelectorAll(baustein.selektor)])
 		.filter((e) => !(sonderfall && e.matches(sonderfall.selektor)) && bausteinVon(e) === baustein);
-	return `${baustein.name} ${geschwister.indexOf(element) + 1}`;
+	return `${name} ${geschwister.indexOf(element) + 1}`;
 };
 
 const istAeussereSeite = (e: Element | null): e is Element =>

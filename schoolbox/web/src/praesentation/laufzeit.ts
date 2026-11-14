@@ -17,6 +17,8 @@ export interface Laufzeit {
 	taste: (e: Pick<KeyboardEvent, 'key' | 'shiftKey' | 'metaKey' | 'ctrlKey' | 'altKey'>) => boolean;
 	vorladen: (beiFortschritt?: (fertig: number, gesamt: number) => void) => Promise<{ gesamt: number }>;
 	stand: () => FolienStand;
+	/** Springt auf Folie `n` (ab 1). */
+	gehe: (n: number) => void;
 }
 
 type MitLaufzeit = Window & { praesentation?: Laufzeit };
@@ -60,6 +62,18 @@ export const beendeVollbild = () => {
 		document.exitFullscreen().catch(() => undefined);
 	} else {
 		dok().webkitExitFullscreen?.();
+	}
+};
+
+/**
+ * „Präsentieren“ aus Ablage, Ansicht und Editor startet sofort (192 Urteil 2): Vollbild geht nur im Klick selbst,
+ * also hier, vor dem Seitenwechsel; die Hülle startet dann von selbst, sobald alles geladen ist.
+ */
+export const SOFORT = { sofort: true } as const;
+
+export const vollbildFuerSofort = () => {
+	if (vollbildMoeglich() && !istVollbild()) {
+		starteVollbild(document.documentElement);
 	}
 };
 

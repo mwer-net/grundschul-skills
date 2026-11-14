@@ -1,5 +1,6 @@
+import type { MouseEvent } from 'react';
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useLocation, useNavigate } from 'react-router-dom';
 
 import { klassen } from '../bausteine/klassen';
 import { Knopf, KnopfLink } from '../bausteine/Knopf';
@@ -26,12 +27,23 @@ import { MaterialFehlt, NICHT_GEFUNDEN } from './NichtGefunden';
 /** So lange bleibt die Steuerleiste nach der letzten Bewegung stehen. */
 const LEISTE_MS = 2000;
 const NUMMER_SPEICHER = 'schoolbox-foliennummer';
+/** Folie je Material in diesem Tab: Neu laden beginnt dort, „Beenden“ vergisst sie (192-10). */
+const folienSpeicher = (zugang: Zugang, dok: string) => `schoolbox-folie:${zugang.token ?? ''}:${zugang.mappe}/${dok}`;
+
+/** Auf Folie 1 ist noch nichts aufgedeckt: Dann gibt es kein „Zurück“ (192-07). */
+const amAnfang = (iframe: HTMLIFrameElement | null, stand: FolienStand | null) => {
+	if (!stand || stand.folie !== 1) {
+		return false;
+	}
+	const folie = iframe?.contentDocument?.querySelector('.seite.aktiv');
+	return !folie?.querySelector('[data-schritt]:not(.schritt-zu), .aufdecken:not(.zu)');
+};
 
 type Phase = { art: 'laedt'; fertig: number; gesamt: number } | { art: 'bereit' } | { art: 'ohne-folien' };
 
 const Ladestand = ({ phase }: { phase: Phase }) => {
 	if (phase.art === 'ohne-folien') {
-		return <p className="font-medium text-fehler">Dieses Dokument hat keine Folien zum Präsentieren.</p>;
+		return <p className="font-medium text-fehler">Dieses Material hat keine Folien.</p>;
 	}
 	if (phase.art === 'bereit') {
 		return (
@@ -55,21 +67,32 @@ interface StartEigenschaften {
 	folien: number | null;
 	phase: Phase;
 	zurueck: string;
+	zurueckGehen: (e: MouseEvent) => void;
 	starten: () => void;
 }
 
-const Startseite = ({ folien, phase, starten, titel, zurueck }: StartEigenschaften) => (
+const Startseite = ({ folien, phase, starten, titel, zurueck, zurueckGehen }: StartEigenschaften) => {
+	const startKnopf = useRef<HTMLButtonElement>(null);
+	// Enter startet: Der Knopf hat den Fokus von Anfang an und behält ihn, wenn das Laden endet (192-03).
+	useEffect(() => startKnopf.current?.focus(), []);
+	const bereit = phase.art === 'bereit';
+	return (
 	<div className="absolute inset-0 overflow-auto bg-papier">
 		<main className="mx-auto flex min-h-full max-w-3xl flex-col justify-center px-8 py-10 max-md:px-4">
-			<KnopfLink to={zurueck} art="leise" className="-ml-5 self-start">
+			<KnopfLink to={zurueck} onClick={zurueckGehen} art="leise" className="-ml-2.5 self-start">
 				<Symbol name="zurueck" />
-				Zurück zum Dokument
+				Zurück
 			</KnopfLink>
 			<h1 className="mt-2 text-2xl">{titel}</h1>
 			{folien !== null && (
 				<p className="mt-1 text-leise">{`Präsentation · ${anzahl(folien, 'Folie', 'Folien')}`}</p>
 			)}
-			<Knopf className="mt-4 h-11 self-start px-5 text-base" disabled={phase.art !== 'bereit'} onClick={starten}>
+			<Knopf
+				ref={startKnopf}
+				className="mt-4 h-11 self-start px-5 text-base aria-disabled:cursor-default aria-disabled:opacity-40"
+				aria-disabled={!bereit}
+				onClick={() => bereit && starten()}
+			>
 				<Symbol name="praesentieren" className="size-4 flex-none" />
 				Präsentation starten
 			</Knopf>
@@ -90,7 +113,8 @@ const Startseite = ({ folien, phase, starten, titel, zurueck }: StartEigenschaft
 			)}
 		</main>
 	</div>
-);
+	);
+};
 
 interface LeistenKnopfEigenschaften {
 	symbol: SymbolName;
@@ -98,16 +122,19 @@ interface LeistenKnopfEigenschaften {
 	/** Nur das Symbol zeigen; der Titel steht dann im `aria-label`. */
 	knapp?: boolean;
 	gedrueckt?: boolean;
+	/** Am Anfang bzw. Ende geht es nicht weiter (192-07). */
+	disabled?: boolean;
 	onClick: () => void;
 }
 
-const LeistenKnopf = ({ gedrueckt, knapp, onClick, symbol, titel }: LeistenKnopfEigenschaften) => (
+const LeistenKnopf = ({ disabled, gedrueckt, knapp, onClick, symbol, titel }: LeistenKnopfEigenschaften) => (
 	<button
 		type="button"
 		onClick={onClick}
+		disabled={disabled}
 		aria-label={knapp ? titel : undefined}
 		aria-pressed={gedrueckt}
-		className="inline-flex h-9 min-w-9 items-center justify-center gap-1.5 rounded-md px-2.5 text-sm font-medium hover:bg-white/15 active:bg-white/25 aria-pressed:bg-white/25"
+		className="inline-flex h-9 min-w-9 items-center justify-center gap-1.5 rounded-md px-2.5 text-sm font-medium enabled:hover:bg-white/15 enabled:active:bg-white/25 disabled:opacity-40 aria-pressed:bg-white/25"
 	>
 		<Symbol name={symbol} />
 		{!knapp && titel}
@@ -124,11 +151,16 @@ interface Eigenschaften {
  * steuert `praesentation.js` im Iframe; die Hülle lädt nie neu, auch wenn Claude das Material gerade ändert.
  */
 export const Praesentation = ({ dok, zugang }: Eigenschaften) => {
-	const { daten } = useInhalt(zugang);
+	const { daten, fehler } = useInhalt(zugang);
 	const dokument = daten?.dokumente.find((d) => d.id === dok);
 	const titel = dokument?.meta.titel ?? null;
 	useTitel(titel ? `Präsentation: ${titel}` : daten ? NICHT_GEFUNDEN : 'Präsentation');
 	const navigate = useNavigate();
+	const ort = useLocation();
+	// Aus Ablage, Ansicht oder Editor: sofort starten, Vollbild hat der Klick schon verlangt (192 Urteil 2).
+	const [sofort] = useState(() => (ort.state as { sofort?: boolean } | null)?.sofort === true);
+	// Kam man aus der Anwendung, führt „Beenden“ einen Schritt zurück; sonst zur Ansicht (192-02).
+	const ausAnwendung = ort.key !== 'default';
 	const buehne = useRef<HTMLDivElement>(null);
 	const iframe = useRef<HTMLIFrameElement>(null);
 	const [phase, setPhase] = useState<Phase>({ art: 'laedt', fertig: 0, gesamt: 0 });
@@ -140,12 +172,22 @@ export const Praesentation = ({ dok, zugang }: Eigenschaften) => {
 	const ueberLeiste = useRef(false);
 	const verstecken = useRef<number | undefined>(undefined);
 	const zurueck = dokumentSeite(zugang, dok);
+	const speicher = folienSpeicher(zugang, dok);
 	useWachHalten(laeuft);
 
-	const beenden = useCallback(() => {
+	const zurueckGehen = useCallback(() => {
 		beendeVollbild();
-		void navigate(zurueck);
-	}, [navigate, zurueck]);
+		if (ausAnwendung) {
+			void navigate(-1);
+		} else {
+			void navigate(zurueck, { replace: true });
+		}
+	}, [ausAnwendung, navigate, zurueck]);
+
+	const beenden = useCallback(() => {
+		sessionStorage.removeItem(speicher);
+		zurueckGehen();
+	}, [speicher, zurueckGehen]);
 	const beendenAktuell = useRef(beenden);
 	useEffect(() => {
 		beendenAktuell.current = beenden;
@@ -161,6 +203,16 @@ export const Praesentation = ({ dok, zugang }: Eigenschaften) => {
 		}, LEISTE_MS);
 	}, []);
 
+	// Ein Mausklick blättert und lässt die Leiste weg; nur Finger und Stift zeigen sie (192-06).
+	const tippen = useCallback(
+		(e: PointerEvent) => {
+			if (e.pointerType !== 'mouse') {
+				regung();
+			}
+		},
+		[regung],
+	);
+
 	const fokus = () => iframe.current?.contentWindow?.focus();
 
 	const geladen = () => {
@@ -170,13 +222,19 @@ export const Praesentation = ({ dok, zugang }: Eigenschaften) => {
 			setPhase({ art: 'ohne-folien' });
 			return;
 		}
-		fenster.addEventListener('praesentation:stand', (e) => setStand((e as CustomEvent<FolienStand | null>).detail));
+		fenster.addEventListener('praesentation:stand', (e) => {
+			const neu = (e as CustomEvent<FolienStand | null>).detail;
+			setStand(neu);
+			if (neu) {
+				sessionStorage.setItem(speicher, String(neu.folie));
+			}
+		});
 		fenster.addEventListener('praesentation:ende', (e) => {
 			e.preventDefault();
 			beendenAktuell.current();
 		});
 		fenster.addEventListener('pointermove', regung);
-		fenster.addEventListener('pointerdown', regung);
+		fenster.addEventListener('pointerdown', tippen);
 		setStand(laufzeit.stand());
 		laufzeit
 			.vorladen((fertig, gesamt) => setPhase({ art: 'laedt', fertig, gesamt }))
@@ -187,15 +245,34 @@ export const Praesentation = ({ dok, zugang }: Eigenschaften) => {
 	};
 
 	const starten = () => {
-		if (buehne.current && vollbildMoeglich()) {
+		if (buehne.current && vollbildMoeglich() && !istVollbild()) {
 			starteVollbild(buehne.current);
+		}
+		const gemerkt = Number(sessionStorage.getItem(speicher));
+		if (gemerkt > 1) {
+			laufzeitVon(iframe.current)?.gehe(gemerkt);
 		}
 		setLaeuft(true);
 		regung();
 		fokus();
 	};
 
+	const startenAktuell = useRef(starten);
 	useEffect(() => {
+		startenAktuell.current = starten;
+	});
+	useEffect(() => {
+		if (!sofort || phase.art !== 'bereit' || laeuft) {
+			return;
+		}
+		startenAktuell.current();
+		// Nach einem Neuladen steht wieder die Startseite: Vollbild verlangt einen Klick.
+		void navigate(`${ort.pathname}${ort.search}`, { replace: true, state: null });
+		// eslint-disable-next-line react-hooks/exhaustive-deps -- nur beim ersten „bereit“
+	}, [sofort, phase.art]);
+
+	useEffect(() => {
+		setVollbild(istVollbild());
 		const pruefe = () => setVollbild(istVollbild());
 		VOLLBILD_EREIGNISSE.forEach((name) => document.addEventListener(name, pruefe));
 		return () => {
@@ -210,7 +287,7 @@ export const Praesentation = ({ dok, zugang }: Eigenschaften) => {
 			return undefined;
 		}
 		window.addEventListener('pointermove', regung);
-		window.addEventListener('pointerdown', regung);
+		window.addEventListener('pointerdown', tippen);
 		// Hat ein Knopf der Leiste den Fokus, gehen die Tasten an die Hülle; sie reicht sie an die Folien weiter.
 		const taste = (e: KeyboardEvent) => {
 			const knopf = e.target instanceof Element && e.target.closest('button, a');
@@ -224,10 +301,10 @@ export const Praesentation = ({ dok, zugang }: Eigenschaften) => {
 		window.addEventListener('keydown', taste);
 		return () => {
 			window.removeEventListener('pointermove', regung);
-			window.removeEventListener('pointerdown', regung);
+			window.removeEventListener('pointerdown', tippen);
 			window.removeEventListener('keydown', taste);
 		};
-	}, [laeuft, regung]);
+	}, [laeuft, regung, tippen]);
 
 	useEffect(() => {
 		localStorage.setItem(NUMMER_SPEICHER, nummer ? 'an' : 'aus');
@@ -250,11 +327,12 @@ export const Praesentation = ({ dok, zugang }: Eigenschaften) => {
 	};
 	const laufzeit = () => laufzeitVon(iframe.current);
 
-	if (daten && !dokument) {
+	if ((daten && !dokument) || (!daten && fehler)) {
+		beendeVollbild();
 		return (
-			// Oben wie an jeder Stelle, an der Material fehlt (187-N01).
+			// Oben wie an jeder Stelle, an der Material fehlt (187-N01); ebenso bei unbekannter Mappe (192-04).
 			<main>
-				<MaterialFehlt geteilt={istGeteilt(zugang)} />
+				<MaterialFehlt fehler={fehler} geteilt={istGeteilt(zugang)} />
 			</main>
 		);
 	}
@@ -266,6 +344,9 @@ export const Praesentation = ({ dok, zugang }: Eigenschaften) => {
 				src={praesentationAnsicht(zugang, dok)}
 				title={titel ?? 'Präsentation'}
 				onLoad={geladen}
+				// Vor dem Start sind die Folien verdeckt: Tab führt nicht hinein (192-03).
+				inert={!laeuft}
+				tabIndex={laeuft ? undefined : -1}
 				className="absolute inset-0 size-full border-0"
 			/>
 			{laeuft ? (
@@ -291,12 +372,19 @@ export const Praesentation = ({ dok, zugang }: Eigenschaften) => {
 							symbol="zurueck"
 							titel="Zurück"
 							knapp
+							disabled={amAnfang(iframe.current, stand)}
 							onClick={mit(() => laufzeit()?.zurueck())}
 						/>
 						<span className="min-w-16 px-1 text-center font-medium tabular-nums" data-folie>
 							{stand ? `${stand.folie} / ${stand.folien}` : ''}
 						</span>
-						<LeistenKnopf symbol="weiter" titel="Weiter" knapp onClick={mit(() => laufzeit()?.weiter())} />
+						<LeistenKnopf
+							symbol="weiter"
+							titel="Weiter"
+							knapp
+							disabled={stand?.ende ?? false}
+							onClick={mit(() => laufzeit()?.weiter())}
+						/>
 						<span className="mx-1 h-8 w-px bg-flaeche/30" aria-hidden="true" />
 						<LeistenKnopf
 							symbol="bildschirm"
@@ -306,7 +394,7 @@ export const Praesentation = ({ dok, zugang }: Eigenschaften) => {
 						/>
 						<LeistenKnopf
 							symbol="nummer"
-							titel="Nummer"
+							titel="Foliennummer"
 							gedrueckt={nummer}
 							onClick={mit(() => setNummer((an) => !an))}
 						/>
@@ -320,12 +408,22 @@ export const Praesentation = ({ dok, zugang }: Eigenschaften) => {
 						<LeistenKnopf symbol="schliessen" titel="Beenden" onClick={beenden} />
 					</div>
 				</div>
+			) : sofort ? (
+				// Gleich geht es los: schwarz, nur der Ladestand.
+				<div className="absolute inset-0 flex items-center justify-center bg-black" role="status">
+					{phase.art === 'laedt' && <Symbol name="laden" className="size-6 animate-spin text-white/60" />}
+					{phase.art === 'ohne-folien' && <Ladestand phase={phase} />}
+				</div>
 			) : (
 				<Startseite
 					titel={titel ?? ''}
 					folien={stand?.folien ?? null}
 					phase={phase}
 					zurueck={zurueck}
+					zurueckGehen={(e) => {
+						e.preventDefault();
+						zurueckGehen();
+					}}
 					starten={starten}
 				/>
 			)}
