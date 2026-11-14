@@ -4,6 +4,7 @@ import type { AbschnittName } from './abschnitte';
  * Werte gelten und welche Regeln zwischen ihnen. Das Abbildungs-Panel baut daraus seine Eingaben; ein neues Element
  * braucht nur einen Eintrag hier. Rechnet nur über Text-Patches auf der Quelle, wie die anderen Editor-Befehle.
  */
+import { pxZuCm, zahlMitKomma } from './masse';
 import type { Knoten, Zerlegung } from './quelltext';
 import {
 	attribut,
@@ -31,6 +32,11 @@ interface Loesung {
 	 * Stelle `teil`. Ein Schalter am letzten Feld verschiebt alle zusammen.
 	 */
 	teil?: number;
+	/**
+	 * 197-10: Der Schalter schreibt das hier Berechnete nach `attribut` (an) oder entfernt es (aus); das Feld selbst
+	 * bleibt stehen. Für Glücksräder, deren Lösung die Füllungen der Felder sind.
+	 */
+	abgeleitet?: (w: Werte) => string;
 }
 
 interface FeldBasis {
@@ -74,7 +80,16 @@ export interface ZahlFeld extends FeldBasis {
 	 * „automatisch (N)“ bzw. „ohne“; leeren stellt das wieder her.
 	 */
 	automatisch?: 'automatisch' | 'ohne';
+	/** 197-N02: Was `abbildungen.js` je Klasse höchstens zeichnet; enger als `max`, gilt im Panel mit Klasse. */
+	maxJeKlasse?: (klasse: number) => number;
 }
+
+/** 197-N02: die obere Grenze eines Zahlenfelds in dieser Klasse. */
+export const zahlMax = (feld: ZahlFeld, klasse?: number) =>
+	klasse !== undefined && feld.maxJeKlasse ? Math.min(feld.max, feld.maxJeKlasse(klasse)) : feld.max;
+
+/** Zahlenraum je Klasse wie in `abbildungen.js` (`ZAHLENRAUM`). */
+const ZAHLENRAUM: (klasse: number) => number = (k) => (k === 1 ? 20 : k === 2 ? 100 : k === 3 ? 1000 : 1_000_000);
 
 export interface UhrzeitFeld extends FeldBasis {
 	art: 'uhrzeit';
@@ -93,7 +108,7 @@ export interface AuswahlFeld extends FeldBasis {
 	/** Im Panel stehen nur diese, je nach anderem Feld; der erste Eintrag gilt, solange es fehlt. `optionen` bleibt die Liste aller gültigen Werte. */
 	optionenJe?: { feld: string; werte: Record<string, { wert: string | null; name: string }[]> };
 	/** Im Panel stehen nur Optionen, für die das gilt, z. B. nur Satzglieder, die es im Satz gibt. `optionen` bleibt die Liste aller gültigen Werte. */
-	angeboten?: (wert: string | null, w: Werte) => boolean;
+	angeboten?: (wert: string | null, w: Werte, klasse?: number) => boolean;
 	/** 197-16: Ab welcher Klasse eine Option passt; darunter trägt sie im Panel „(über Klasse N)“, bleibt aber wählbar. */
 	abKlasse?: Record<string, number>;
 	/** Pfad eines kleinen Bilds zur gewählten Option; `{wert}` steht für den Wert. */
@@ -113,6 +128,8 @@ export interface ZahlenFeld extends FeldBasis {
 	beispiel: string;
 	/** 197-04: Kommazahlen erlaubt (3,5); gespeichert mit Punkt, gezeigt mit Komma. Sonst nur ganze Zahlen. */
 	komma?: boolean;
+	/** 197-11: Eine Zahl je Zeile dieser Liste, im Panel neben ihrer Beschriftung statt als Zahlenreihe. */
+	jeZeileVon?: string;
 }
 
 /** Eine Zahl je Stelle einer Stellentafel; die Stellen stehen im Feld `stellen`. */
@@ -198,6 +215,59 @@ export interface MehrfachFeld extends FeldBasis {
 	mindestens?: number;
 	/** Die Optionen hängen von einem anderen Feld ab; der erste Eintrag gilt, solange es fehlt. */
 	optionenJe?: { feld: string; werte: Record<string, Option[]> };
+	/** 197-11: Die Optionen entstehen aus den Werten, z. B. ein Haken je Station („1“, „2“ …) und Pfeil („p1“ …). */
+	optionenVon?: (w: Werte) => Option[];
+}
+
+/** 197-11: Was ein Mehrfach-Feld gerade anbietet. */
+export const mehrfachOptionen = (feld: MehrfachFeld, w: Werte | null | undefined): Option[] => {
+	if (feld.optionenVon) {
+		return w ? feld.optionenVon(w) : [];
+	}
+	const je = feld.optionenJe;
+	return je ? (je.werte[w?.[je.feld] ?? Object.keys(je.werte)[0] ?? ''] ?? []) : feld.optionen;
+};
+
+/**
+ * 197-11: Zwei Zahlen in einem Attribut, z. B. ein Malwinkel „3x7“, ein Kästchen „2,3“ oder Striche „10 1“. Das Panel
+ * zeigt zwei Zahlenfelder und setzt das Attribut daraus zusammen.
+ */
+export interface PaarFeld extends FeldBasis {
+	art: 'paar';
+	teile: [PaarTeil, PaarTeil];
+	trenner: 'x' | ',' | ' ';
+	/** Beide leer entfernt das Attribut. */
+	leer?: boolean;
+}
+
+export interface PaarTeil {
+	name: string;
+	min: number;
+	max: number;
+	/** Ohne Attribut; gilt auch, wenn nur die andere Zahl getippt ist. */
+	standard: number;
+	/** Kommazahlen erlaubt (gespeichert mit Punkt). */
+	komma?: boolean;
+}
+
+/** 197-11: Ein Haken je Zeile einer Liste: Wert ist die Nummer ab 1, Name der Text vor dem ersten `:`. */
+const nummernDerZeilen = (wert: string | null, vor: string): Option[] =>
+	(wert ?? '')
+		.split(';')
+		.map((z) => z.trim())
+		.filter(Boolean)
+		.map((z, i) => ({ wert: `${vor}${i + 1}`, name: `${i + 1}: ${(z.split(':')[0] ?? '').trim()}` }));
+
+/** 197-11: Die zwei Zahlen eines Paars, `null`, wo keine steht. */
+export const paarVon = (feld: PaarFeld, wert: string | null): [number | null, number | null] => {
+	const teile = (wert ?? '').split(feld.trenner === ' ' ? /\s+/ : feld.trenner).map((t) => t.trim());
+	const zahl = (t: string | undefined) => (t ? alsZahl(t) : null);
+	return wert?.trim() ? [zahl(teile[0]), zahl(teile[1])] : [null, null];
+};
+
+/** 197-11: Zwei Uhrzeiten wie „4:30-4:50“: zwei Uhrzeit-Wahlen. */
+export interface ZeitspanneFeld extends FeldBasis {
+	art: 'zeitspanne';
 }
 
 /** Ein Zustand einer Rasterzelle; `zeichen` steht im Panel in der Zelle. */
@@ -250,7 +320,7 @@ export interface MischenFeld extends FeldBasis {
 }
 
 type FeldAus018 = ZahlFeld | UhrzeitFeld | AuswahlFeld | SchalterFeld | ZahlenFeld | ZiffernFeld;
-type FeldAus023 = TextFeld | ListeFeld | MehrfachFeld | RasterFeld | MusterFeld | MischenFeld;
+type FeldAus023 = TextFeld | ListeFeld | MehrfachFeld | RasterFeld | MusterFeld | MischenFeld | PaarFeld | ZeitspanneFeld;
 
 /** Ein Bild aus der Sammlung oder hochgeladen (049); im Attribut steht nur der Pfad. */
 export interface BildFeld extends FeldBasis {
@@ -393,6 +463,8 @@ export interface AbbildungSchema {
 	/** Angaben für den Katalog (`katalog.ts`); fehlen nur bei `x-probe`, das es nur für Tests gibt. */
 	katalog?: KatalogAngaben;
 	felder: Feld[];
+	/** 197-N04: Eine Zeile im Inspektor, wenn es keine Felder gibt: woraus die Abbildung entsteht. */
+	zustand?: string;
 	/** Dieses Attribut erzeugt „Neue Zahlen“ aus den übrigen Feldern; ändert sich ein anderes Feld, entsteht es neu (050). */
 	generiert?: string;
 	/** 197-03: Diese Felder ordnen nur an; ändert sich eines, bleibt die erzeugte Liste. */
@@ -439,6 +511,14 @@ const SPRUNG_MUSTER = `${SPRUNG}(?:,${SPRUNG})*`;
 
 /** 197-10: Feld `teil` der Zahlen in `loesung`; der Schalter steht unter dem letzten. */
 const teilDerLoesung = (teil: number): Loesung => ({ attribut: 'loesung', name: 'Nur in der Lösung zeigen', teil });
+
+/** Die Füllungen der Felder eines Glücksrads, wie sie `loesung` erwartet („rot blau rot“). */
+const fuellungenDesRads = (w: Werte) =>
+	(w.felder ?? '')
+		.split(';')
+		.map((z) => z.split(':')[0]?.trim() ?? '')
+		.filter(Boolean)
+		.join(' ');
 
 const ZEHNER_EINER = (zehner: string, einer: string): AbbildungSchema['felder'] => [
 	{ art: 'zahl', attribut: 'z', name: zehner, min: 0, max: 10, standard: 0 },
@@ -653,6 +733,22 @@ export const markeTrennen = (satz: MarkSatz, i: number): MarkSatz => {
 };
 
 const namenOptionen = (namen: string[]): Option[] => namen.map((wert) => ({ wert, name: wert }));
+
+/**
+ * Jahreskreis: kleinste Größe in px, bei der die Beschriftung passt, wie in `jahreskreis` in `abbildungen.js`
+ * („September“ radial, „Donnerstag“ quer, Schrift 15 × 0,56). 24 Stunden prüft das Asset nicht.
+ */
+const kreisMindestens = (w: Werte) => {
+	const art = w.art ?? 'jahr';
+	const band = art === 'jahr' && w.jahreszeiten === 'ja' ? 18 : 0;
+	const roh =
+		art === 'jahr'
+			? (9 * 15 * 0.56 + 10 + 2 + band) / 0.41
+			: art === 'woche' || art === 'tag'
+				? 2 * (2 + (10 * 15 * 0.56) / (1.24 * Math.sin(Math.PI / (art === 'woche' ? 7 : 4))))
+				: 200;
+	return Math.max(200, Math.ceil(roh / 20) * 20);
+};
 
 const KREIS_OPTIONEN: Record<string, Option[]> = {
 	jahr: namenOptionen([
@@ -1013,11 +1109,116 @@ export const zahlStandard = (feld: ZahlFeld, w: Werte | null | undefined) =>
 	feld.standardJe && w ? feld.standardJe(w) : feld.standard;
 
 /** Was das Panel zur Wahl anbietet: die Optionen je nach anderem Feld (`optionenJe`), davon die `angeboten`en. */
-export const auswahlOptionen = (feld: AuswahlFeld, w: Werte | null | undefined) => {
+export const auswahlOptionen = (feld: AuswahlFeld, w: Werte | null | undefined, klasse?: number) => {
 	const je = feld.optionenJe;
 	const grund = je ? (je.werte[w?.[je.feld] ?? Object.keys(je.werte)[0] ?? ''] ?? feld.optionen) : feld.optionen;
 	const angeboten = feld.angeboten;
-	return angeboten && w ? grund.filter((o) => angeboten(o.wert, w)) : grund;
+	return angeboten && w ? grund.filter((o) => angeboten(o.wert, w, klasse)) : grund;
+};
+
+// ── 197-07: Was eine Wahl sonst am Blatt scheitern ließe ────────────────────
+
+/** Euro mit Komma aus den Stücken („2€ 50ct 20ct“ → „2,70“). */
+const summeDerStuecke = (stuecke: string | null) => {
+	const cent = (stuecke ?? '')
+		.split(/\s+/)
+		.filter(Boolean)
+		.reduce((a, t) => {
+			const m = /^(\d+)(ct|€)$/.exec(t);
+			return a + (m ? Number(m[1]) * (m[2] === 'ct' ? 1 : 100) : 0);
+		}, 0);
+	return cent > 0 ? (cent / 100).toFixed(2).replace('.', ',') : null;
+};
+
+/**
+ * Gitter: die erste Linie ab der Mitte, die die Figur nicht schneidet und Platz für das Spiegelbild lässt; `null`, wenn
+ * es keine gibt.
+ */
+const achseFuer = (w: Werte, achse: string): number | null => {
+	const quer = achse === 'waagerecht';
+	// 197-02: auf die Grenze des Felds gesetzt, sonst baut ein Entwurf wie „999999“ beim Tippen riesige Listen.
+	const grenze = Math.min(40, Number((quer ? w.zeilen : w.spalten) ?? (quer ? 8 : 10)) || 0);
+	const figur = gitterFigur(w);
+	const mitte = Math.max(1, Math.floor(grenze / 2));
+	const linien = [
+		...Array.from({ length: Math.max(0, grenze - mitte) }, (_, i) => mitte + i),
+		...Array.from({ length: mitte - 1 }, (_, i) => mitte - 1 - i),
+	].filter((bei) => bei > 0 && bei < grenze);
+	if (!figur) {
+		return linien[0] ?? null;
+	}
+	const [von, bis] = quer ? [figur.oben, figur.unten] : [figur.links, figur.rechts];
+	// Die Figur liegt ganz auf einer Seite, und ihr Spiegelbild passt auf die andere.
+	return linien.find((bei) => (bis <= bei && 2 * bei - von <= grenze) || (von >= bei && 2 * bei - bis >= 0)) ?? null;
+};
+
+/** Zeilen einer Liste (`a: b; c: d`) nach einer Bedingung an der ersten Spalte. */
+const zeilenMit = (wert: string | null, behalten: (erste: string) => boolean) => {
+	const zeilen = (wert ?? '').split(';').filter((z) => z.trim() !== '');
+	const neu = zeilen.filter((z) => behalten((z.split(':')[0] ?? '').trim()));
+	return neu.length === zeilen.length ? (wert ?? null) : neu.length > 0 ? neu.join(';') : null;
+};
+
+/** Zahlen einer Liste innerhalb der Grenzen; `null` heißt leer. */
+const zahlenZwischen = (wert: string | null, von: number, bis: number) => {
+	const zahlen = listeVon(wert);
+	const neu = zahlen.filter((z) => alsZahl(z) >= von && alsZahl(z) <= bis);
+	return neu.length === zahlen.length ? (wert ?? null) : neu.length > 0 ? neu.join(' ') : null;
+};
+
+/** Hat jede Zeile der Liste ein Bild? Erst dann gibt es „Bilder“ (197-07). */
+const jedeZeileMitBild = (tag: string, liste: string, spalte: number) => (w: Werte) => {
+	const feld = schemaVon(tag)?.felder.find((f) => f.attribut === liste);
+	const zeilen = feld?.art === 'liste' ? zeilenVon(feld, w[liste] ?? null) : [];
+	return zeilen.length > 0 && zeilen.every((z) => (z[spalte] ?? '').trim() !== '');
+};
+
+/** Punktfeld: Die Zerlegungslinie bleibt im Feld, auf der Grenze (197-07). */
+const linieImPunktfeld = (w: Werte): Werte => {
+	const grenze = alsZahl((w.richtung === 'spalten' ? w.spalten : w.zeilen) ?? '5');
+	const linie = listeVon(w.trenner ?? null).map(alsZahl);
+	if (linie.length === 0 || linie.every((k) => k >= 1 && k < grenze)) {
+		return {};
+	}
+	return { trenner: grenze > 1 ? String(Math.min(grenze - 1, Math.max(1, linie[0] ?? 1))) : null };
+};
+
+/** Zeitleiste: Ein Jahr 0 gibt es nur bei Lebensjahren; Ereignisse außerhalb der Leiste fallen weg (197-07). */
+const zeitleisteAngepasst = (w: Werte): Werte => {
+	const leben = w.art === 'leben';
+	const neu: Werte = {};
+	let von = alsZahl(w.von ?? '1900');
+	let bis = alsZahl(w.bis ?? '2020');
+	if (!leben && von === 0) {
+		von = 1;
+		neu.von = '1';
+	}
+	if (!leben && bis === 0) {
+		bis = 1;
+		neu.bis = '1';
+	}
+	const drin = (jahr: string) => {
+		const m = /^(-?\d+)(?:-(-?\d+))?$/.exec(jahr);
+		if (!m) {
+			// Was noch kein Jahr ist, meldet die Regel am Feld; es fällt nicht still weg.
+			return true;
+		}
+		const jahre = [m[1], m[2]].filter((j) => j !== undefined).map(Number);
+		return jahre.every((j) => j >= von && j <= bis && (leben || j !== 0));
+	};
+	const ereignisse = zeilenMit(w.ereignisse ?? null, drin);
+	return ereignisse === (w.ereignisse ?? null) ? neu : { ...neu, ereignisse };
+};
+
+/** Bingo: passen so viele Karten mit so vielen Feldern auf ein A4-Blatt (Rechnung wie `abbildungen.js`)? */
+const bingoPasst = (seite: number, je: number, klasse = 3) => {
+	const [spalten, reihen] = [je === 4 ? 2 : 1, je === 1 ? 1 : 2];
+	const zelle = Math.min(
+		(620 - 16 * (spalten - 1)) / spalten / seite,
+		(870 - 16 * (reihen - 1) - 40 * reihen) / reihen / seite,
+		130,
+	);
+	return Math.floor(zelle * 10) / 10 >= PX_JE_CM * (klasse <= 2 ? 2.5 : 2) - 0.5;
 };
 
 /** Für `nurWenn`: Das Feld gilt nur bei diesen Werten eines anderen Felds. Ein leeres Attribut zählt als `standard`. */
@@ -1175,7 +1376,8 @@ export const tafelAusschnitt = (von: number, bis: number, art: string, mitte: nu
 
 const tafelGrenzen = (w: Werte) => {
 	const von = Number(w.von ?? 1);
-	return { bis: Number(w.bis ?? von + 99), von };
+	// 197-02: höchstens 400 Zahlen wie die Regel an „bis“; ein Entwurf wie „999999“ baut sonst riesige Listen.
+	return { bis: Math.min(Number(w.bis ?? von + 99), von + 399), von };
 };
 
 /** Lücken und Markierungen außerhalb des Ausschnitts ließen das Zeichnen scheitern und wären im Raster nicht mehr zu erreichen. */
@@ -1610,13 +1812,10 @@ export const ABBILDUNG_SCHEMA = {
 				],
 			},
 			{
-				art: 'text',
+				art: 'zeitspanne',
 				attribut: 'sektor',
 				name: 'Zeitspanne als Fläche',
 				gruppe: 'Mehr',
-				beispiel: '4:30-4:50',
-				muster: '\\d{1,2}:\\d{2}-\\d{1,2}:\\d{2}',
-				musterHilfe: 'Zwei Uhrzeiten wie 4:30-4:50.',
 				loesung: { attribut: 'sektor-loesung', name: 'Fläche nur in der Lösung' },
 			},
 			{
@@ -1811,8 +2010,40 @@ export const ABBILDUNG_SCHEMA = {
 			faecher: ['mathematik'],
 		},
 		felder: [
-			{ art: 'zahl', attribut: 'von', name: 'Von', min: 0, max: 1000000, standard: 0 },
-			{ art: 'zahl', attribut: 'bis', name: 'Bis', min: 1, max: 1000000, standard: 20 },
+			{
+				art: 'zahl',
+				attribut: 'von',
+				name: 'Von',
+				min: 0,
+				max: 1000000,
+				standard: 0,
+				maxJeKlasse: ZAHLENRAUM,
+				// 197-07: Beschriftete Zahlen und Pfeile außerhalb fallen weg.
+				mitnehmen: (w): Werte => {
+					const [von, bis] = [alsZahl(w.von ?? '0'), alsZahl(w.bis ?? '20')];
+					return {
+						zahlen: zahlenZwischen(w.zahlen ?? null, von, bis),
+						pfeile: zahlenZwischen(w.pfeile ?? null, von, bis),
+					};
+				},
+			},
+			{
+				art: 'zahl',
+				attribut: 'bis',
+				name: 'Bis',
+				min: 1,
+				max: 1000000,
+				standard: 20,
+				maxJeKlasse: ZAHLENRAUM,
+				// 197-07: Beschriftete Zahlen und Pfeile außerhalb fallen weg.
+				mitnehmen: (w): Werte => {
+					const [von, bis] = [alsZahl(w.von ?? '0'), alsZahl(w.bis ?? '20')];
+					return {
+						zahlen: zahlenZwischen(w.zahlen ?? null, von, bis),
+						pfeile: zahlenZwischen(w.pfeile ?? null, von, bis),
+					};
+				},
+			},
 			{ art: 'zahl', attribut: 'schritt', name: 'Strichabstand', min: 1, max: 100000, standard: 1 },
 			{
 				art: 'zahl',
@@ -1988,6 +2219,8 @@ export const ABBILDUNG_SCHEMA = {
 				],
 				min: 2,
 				max: 12,
+				// 197-10: Auf dem Blatt bleiben die Felder weiß, die Lösung zeigt ihre Füllungen.
+				loesung: { attribut: 'loesung', name: 'Füllungen nur in der Lösung', abgeleitet: fuellungenDesRads },
 			},
 			{
 				art: 'zahlen',
@@ -1995,13 +2228,7 @@ export const ABBILDUNG_SCHEMA = {
 				name: 'Anteile',
 				beispiel: '1 1 2',
 				hilfe: 'Eine Zahl je Feld. Leer heißt: alle Felder gleich groß.',
-			},
-			{
-				art: 'text',
-				attribut: 'loesung',
-				name: 'Füllungen erst in der Lösung',
-				hilfe: 'Auf dem Blatt bleiben alle Felder weiß, z. B. „rot blau rot“.',
-				beispiel: 'rot blau rot',
+				jeZeileVon: 'felder',
 			},
 			{ art: 'schalter', attribut: 'zeiger', name: 'Zeiger', an: 'ja', aus: 'nein', standard: true },
 			{ art: 'schalter', attribut: 'legende', name: 'Legende', an: 'ja', aus: 'nein', standard: true },
@@ -2058,6 +2285,7 @@ export const ABBILDUNG_SCHEMA = {
 				min: 0,
 				max: 6,
 				standard: 0,
+				loesung: { attribut: 'loesung', name: 'Augen nur in der Lösung', vorrang: true },
 			},
 			{
 				art: 'text',
@@ -2065,8 +2293,8 @@ export const ABBILDUNG_SCHEMA = {
 				nurWenn: (w) => (w.ansicht ?? 'flach') === 'flach' && (w.art ?? 'augen') !== 'augen',
 				name: 'Zahl, Text oder Füllung',
 				max: 6,
+				loesung: { attribut: 'loesung', name: 'Nur in der Lösung zeigen', vorrang: true },
 			},
-			{ art: 'text', attribut: 'loesung', name: 'Nur in der Lösung', max: 6 },
 			{
 				art: 'auswahl',
 				attribut: 'ansicht',
@@ -2174,11 +2402,12 @@ export const ABBILDUNG_SCHEMA = {
 				max: 12,
 			},
 			{
-				art: 'zahlen',
+				art: 'mehrfach',
 				attribut: 'offen',
 				name: 'Offen zum Zeichnen',
-				beispiel: '2 3',
-				hilfe: 'Nummern der Einträge, die die Kinder selbst zeichnen.',
+				hilfe: 'Diese Einträge zeichnen die Kinder selbst.',
+				optionen: [],
+				optionenVon: (w) => nummernDerZeilen(w.werte ?? null, ''),
 			},
 			{ art: 'zahl', attribut: 'skala', name: 'Skalenschritt', min: 1, max: 100000, standard: 1 },
 			{
@@ -2258,13 +2487,8 @@ export const ABBILDUNG_SCHEMA = {
 					{ name: 'Anzahl', art: 'zahl', min: 0, max: 20, standard: '1' },
 				],
 				max: 8,
-			},
-			{
-				art: 'text',
-				attribut: 'loesung',
-				name: 'Kugeln erst in der Lösung',
-				hilfe: 'Auf dem Blatt bleibt das Gefäß leer, z. B. „rot: 3; blau: 1“.',
-				beispiel: 'rot: 3; blau: 1',
+				// 197-10: Auf dem Blatt bleibt das Gefäß dann leer.
+				loesung: { attribut: 'loesung', name: 'Kugeln nur in der Lösung', vorrang: true },
 			},
 			{
 				art: 'auswahl',
@@ -2457,14 +2681,17 @@ export const ABBILDUNG_SCHEMA = {
 				name: 'Achse',
 				gruppe: 'Aufgabe',
 				// 197-07: Spiegeln braucht eine Achse; eine neue Achse steht in der Mitte des Gitters.
-				angeboten: (wert, w) => wert !== null || w.aufgabe !== 'spiegeln',
+				// Beim Spiegeln nur eine Achse, die die Figur nicht schneidet; sie steht ab der Mitte (197-07).
+				angeboten: (wert, w) =>
+					w.aufgabe !== 'spiegeln' || (wert !== null && achseFuer(w, wert) !== null),
 				mitnehmen: (w, alt): Werte => {
 					if (!w.achse || w.achse === alt.achse) {
 						return {};
 					}
 					const quer = w.achse === 'waagerecht';
 					const laenge = Number((quer ? w.zeilen : w.spalten) ?? (quer ? 8 : 10));
-					return { 'achse-bei': String(Math.max(1, Math.floor(laenge / 2))) };
+					const bei = w.aufgabe === 'spiegeln' ? achseFuer(w, w.achse) : null;
+					return { 'achse-bei': String(bei ?? Math.max(1, Math.floor(laenge / 2))) };
 				},
 				optionen: [
 					{ wert: null, name: 'Keine' },
@@ -2567,13 +2794,18 @@ export const ABBILDUNG_SCHEMA = {
 				],
 			},
 			{
-				art: 'text',
+				art: 'paar',
 				attribut: 'start',
 				nurWenn: wenn('aufgabe', 'keine', 'weg'),
-				name: 'Start (Spalte,Zeile)',
+				name: 'Start',
 				gruppe: 'Aufgabe',
-				muster: '\\d+,\\d+',
-				musterHilfe: 'Zum Beispiel 2,3. Das Kästchen oben links ist 0,0.',
+				trenner: ',',
+				leer: true,
+				hilfe: 'Gezählt ab dem Kästchen oben links, es ist 0 und 0.',
+				teile: [
+					{ name: 'Spalte', min: 0, max: 39, standard: 0 },
+					{ name: 'Zeile', min: 0, max: 39, standard: 0 },
+				],
 			},
 			{
 				art: 'mehrfach',
@@ -2657,23 +2889,30 @@ export const ABBILDUNG_SCHEMA = {
 			faecher: ['mathematik'],
 		},
 		felder: [
-			{ art: 'zahl', attribut: 'n', name: 'Plättchen', min: 0, max: 100, standard: 0 },
-			{ art: 'zahl', attribut: 'n2', name: 'Zweite Sorte', min: 0, max: 100, standard: 0 },
+			{ art: 'zahl', attribut: 'n', name: 'Plättchen', min: 0, max: 100, standard: 0, loesung: teilDerLoesung(0) },
+			{ art: 'zahl', attribut: 'n2', name: 'Zweite Sorte', min: 0, max: 100, standard: 0, loesung: teilDerLoesung(1) },
 			{ art: 'zahl', attribut: 'zeilen', name: 'Zeilen', min: 1, max: 10, standard: 10 },
 			{ art: 'zahl', attribut: 'spalten', name: 'Spalten', min: 1, max: 10, standard: 10 },
 			{
-				art: 'text',
+				art: 'paar',
 				attribut: 'malwinkel',
 				name: 'Malwinkel',
-				muster: '([0-9]+x[0-9]+)?',
-				musterHilfe: 'So: 3x7.',
+				trenner: 'x',
+				leer: true,
+				teile: [
+					{ name: 'Zeilen', min: 1, max: 10, standard: 1 },
+					{ name: 'Spalten', min: 1, max: 10, standard: 1 },
+				],
 			},
 			{
+				// 197-10: Plättchen nur in der Lösung schaltet der Schalter an „Zweite Sorte“; hier bleibt der Malwinkel.
 				art: 'text',
 				attribut: 'loesung',
-				name: 'Nur in der Lösung zeigen',
-				muster: '[0-9 x]*',
-				musterHilfe: 'Plättchen wie 30 6 oder Malwinkel wie 3x7.',
+				name: 'Malwinkel nur in der Lösung',
+				// Ohne „x“ stehen hier die Plättchen des Schalters („30 6“); das Feld ist dann nicht zu sehen.
+				muster: '([0-9]+x[0-9]+|[0-9]+( [0-9]+)?)?',
+				musterHilfe: 'So: 3x7.',
+				nurWenn: (w) => /x/.test(w.loesung ?? ''),
 			},
 			{ art: 'zahl', ...GROESSE, min: 12, max: 40, standard: 22, schritt: 2 },
 		],
@@ -2734,6 +2973,11 @@ export const ABBILDUNG_SCHEMA = {
 			{ art: 'raster', attribut: 'markiert', name: 'Markierte Zahlen', form: true, gruppe: 'Markierung' },
 			{ art: 'zahl', ...GROESSE, min: 20, max: 50, standard: 32, schritt: 2 },
 		],
+		// 197-N02: `abbildungen.js` zeichnet höchstens 400 Zahlen; die Meldung steht an „Bis“.
+		regeln: (w): Fehler =>
+			w.zahl('bis') - w.zahl('von') + 1 > 400
+				? { bis: `Höchstens 400 Zahlen: „Bis“ höchstens ${zahlText(w.zahl('von') + 399)}.` }
+				: {},
 	},
 	'x-rechenrahmen': {
 		name: 'Rechenrahmen',
@@ -2773,7 +3017,7 @@ export const ABBILDUNG_SCHEMA = {
 			faecher: ['mathematik'],
 		},
 		felder: [
-			{ art: 'zahl', attribut: 'start', name: 'Start', min: 0, max: 1000000, standard: 0 },
+			{ art: 'zahl', attribut: 'start', name: 'Start', min: 0, max: 1000000, standard: 0, maxJeKlasse: ZAHLENRAUM },
 			{
 				art: 'liste',
 				attribut: 'spruenge',
@@ -3077,6 +3321,8 @@ export const ABBILDUNG_SCHEMA = {
 				attribut: 'art',
 				name: 'Art',
 				standard: 'saetze',
+				// 197-07: „Bilder“ erst, wenn jeder Eintrag ein Bild hat.
+				angeboten: (wert, w) => wert !== 'bilder' || jedeZeileMitBild('x-sortieren', 'eintraege', 1)(w),
 				optionen: [
 					{ wert: 'saetze', name: 'Sätze' },
 					{ wert: 'woerter', name: 'Wörter' },
@@ -3279,6 +3525,7 @@ export const ABBILDUNG_SCHEMA = {
 			angeboten: false,
 		},
 		felder: [],
+		zustand: 'Entsteht aus den Aufgaben und ihren Punkten.',
 	},
 	'x-silben': {
 		name: 'Silben',
@@ -3514,7 +3761,24 @@ export const ABBILDUNG_SCHEMA = {
 					{ wert: 'familie', name: 'Wortfamilie' },
 				],
 				// 197-07: „Wortfamilie finden“ gibt es nur bei einer Wortfamilie.
-				mitnehmen: (w): Werte => (w.art !== 'familie' && w.aufgabe === 'familie' ? { aufgabe: null } : {}),
+				// 197-07: Bei „Wortfamilie“ bleibt der Stamm in der Mitte, das Wort wird das erste der Familie.
+				mitnehmen: (w, alt): Werte => {
+					if (w.art !== 'familie') {
+						return w.aufgabe === 'familie' ? { aufgabe: null } : {};
+					}
+					const teile = (w.inhalt ?? '').split('|').map((t) => t.trim()).filter(Boolean);
+					if (alt.art === 'familie' || teile.length < 2) {
+						return {};
+					}
+					const stamm =
+						teile.find((t) => t.toLowerCase() === (w.stamm ?? '').toLowerCase()) ??
+						teile.reduce((a, b) => (b.length > a.length ? b : a));
+					const wort = teile.join('');
+					const woerter = (w.woerter ?? '').split(';').map((t) => t.trim()).filter(Boolean);
+					const aufgabe: Werte = w.aufgabe === 'zerlegen' || w.aufgabe === 'zusammensetzen' ? { aufgabe: null } : {};
+					const familie = [wort, ...woerter.filter((t) => t !== wort)].join('; ');
+					return { inhalt: stamm, stamm: null, woerter: familie, ...aufgabe };
+				},
 			},
 			{
 				art: 'text',
@@ -3594,9 +3858,10 @@ export const ABBILDUNG_SCHEMA = {
 					{ wert: 'jahre', name: 'Jahreszahlen' },
 					{ wert: 'leben', name: 'Lebensjahre' },
 				],
+				mitnehmen: zeitleisteAngepasst,
 			},
-			{ art: 'zahl', attribut: 'von', name: 'Von', min: -5000, max: 2100, standard: 1900 },
-			{ art: 'zahl', attribut: 'bis', name: 'Bis', min: -5000, max: 2100, standard: 2020 },
+			{ art: 'zahl', attribut: 'von', name: 'Von', min: -5000, max: 2100, standard: 1900, mitnehmen: zeitleisteAngepasst },
+			{ art: 'zahl', attribut: 'bis', name: 'Bis', min: -5000, max: 2100, standard: 2020, mitnehmen: zeitleisteAngepasst },
 			{
 				art: 'zahl',
 				attribut: 'schritt',
@@ -3685,7 +3950,21 @@ export const ABBILDUNG_SCHEMA = {
 					{ wert: 'stunden', name: 'Tageskreis: 24 Stunden' },
 				],
 				// 197-07: Jahreszeiten gibt es nur beim Jahreskreis.
-				mitnehmen: (w): Werte => ((w.art ?? 'jahr') === 'jahr' ? {} : { jahreszeiten: null }),
+				// „Markiert“ behält nur, was es im neuen Kreis gibt.
+				mitnehmen: (w): Werte => {
+					const art = w.art ?? 'jahr';
+					const erlaubt = KREIS_OPTIONEN[art] ?? [];
+					const markiert = listeVon(w.markiert ?? null);
+					const bleibt = markiert.filter((m) => erlaubt.some((o) => o.wert === m));
+					// Passt die Beschriftung der neuen Art nicht, wächst der Kreis mit (197-07).
+					const neu: Werte = { ...w, ...(art === 'jahr' ? {} : { jahreszeiten: null }) };
+					const mindestens = kreisMindestens(neu);
+					return {
+						...(art === 'jahr' ? {} : { jahreszeiten: null }),
+						...(bleibt.length === markiert.length ? {} : { markiert: bleibt.length > 0 ? bleibt.join(' ') : null }),
+						...(Number(w.groesse ?? 320) < mindestens ? { groesse: String(mindestens) } : {}),
+					};
+				},
 			},
 			{
 				art: 'auswahl',
@@ -3734,7 +4013,14 @@ export const ABBILDUNG_SCHEMA = {
 			}
 			const erlaubt = KREIS_OPTIONEN[art] ?? [];
 			const falsch = w.liste('markiert').find((m) => !erlaubt.some((o) => o.wert === m));
-			return falsch ? { markiert: `„${falsch}“ gehört nicht zu diesem Kreis.` } : {};
+			if (falsch) {
+				return { markiert: `„${falsch}“ gehört nicht zu diesem Kreis.` };
+			}
+			// 197-N02: Die Beschriftung braucht Platz; die Meldung steht an der Größe.
+			const mindestens = kreisMindestens({ art, jahreszeiten: w.text('jahreszeiten') });
+			return w.zahl('groesse') < mindestens
+				? { groesse: `Für diese Beschriftung mindestens ${zahlMitKomma(pxZuCm(mindestens))} cm.` }
+				: {};
 		},
 	},
 	'x-windrose': {
@@ -3872,14 +4158,39 @@ export const ABBILDUNG_SCHEMA = {
 				hilfe: 'Beschriftung je Pfeil, mit Semikolon getrennt.',
 			},
 			{
-				art: 'text',
+				art: 'mehrfach',
 				attribut: 'offen',
 				name: 'Offen zum Eintragen',
-				beispiel: '3 p2',
-				muster: '\\s*(p?\\d+\\s*)*',
-				musterHilfe: 'Nummern der Stationen, p und Nummer für einen Pfeil, z. B. 3 p2.',
+				optionen: [],
+				optionenVon: (w) => {
+					const stationen = nummernDerZeilen(w.stationen ?? null, '');
+					const pfeile = (w.pfeile ?? '').split(';').map((t) => t.trim());
+					const anzahl = w.art === 'ablauf' ? stationen.length - 1 : stationen.length;
+					return [
+						...stationen,
+						...Array.from({ length: Math.max(0, anzahl) }, (_, i) => ({
+							wert: `p${i + 1}`,
+							name: `Pfeil ${i + 1}${pfeile[i] ? `: ${pfeile[i]}` : ''}`,
+						})),
+					];
+				},
 			},
 		],
+		// 197-09: je Pfeil eine Beschriftung aus Wörtern; leer heißt ohne Beschriftung.
+		regeln: (w): Fehler => {
+			const pfeile = (w.text('pfeile') ?? '').split(';').map((t) => t.trim());
+			if (pfeile.every((t) => t === '')) {
+				return {};
+			}
+			const stationen = w.zeilen('stationen').length;
+			const anzahl = w.text('art') === 'ablauf' ? stationen - 1 : stationen;
+			if (pfeile.some((t) => t !== '' && !/\p{L}/u.test(t))) {
+				return { pfeile: 'Je Pfeil ein Wort wie „verdunsten“, mit Semikolon getrennt.' };
+			}
+			return pfeile.length === anzahl
+				? {}
+				: { pfeile: `Bitte ${anzahl} Beschriftungen, eine je Pfeil, mit Semikolon getrennt.` };
+		},
 	},
 	'x-verkehrszeichen': {
 		name: 'Verkehrszeichen',
@@ -3961,7 +4272,16 @@ export const ABBILDUNG_SCHEMA = {
 				min: 2,
 				max: 20,
 			},
-			{ art: 'zahl', attribut: 'spalten', name: 'Spalten', min: 5, max: 20, standard: 10 },
+			{
+				art: 'zahl',
+				attribut: 'spalten',
+				name: 'Spalten',
+				min: 5,
+				max: 20,
+				standard: 10,
+				// So viele Kästchen (1 cm bis Klasse 2, sonst 0,8 cm) passen in die Zeile von `abbildungen.js`.
+				maxJeKlasse: (k) => (k <= 2 ? 16 : 20),
+			},
 			{ art: 'zahl', attribut: 'zeilen', name: 'Zeilen', min: 5, max: 20, standard: 10 },
 			{
 				art: 'mehrfach',
@@ -3990,6 +4310,7 @@ export const ABBILDUNG_SCHEMA = {
 				attribut: 'wortliste',
 				name: 'Wortliste',
 				standard: 'text',
+				angeboten: (wert, w) => wert !== 'bilder' || jedeZeileMitBild('x-suchsel', 'woerter', 1)(w),
 				optionen: [
 					{ wert: 'text', name: 'Text' },
 					{ wert: 'bilder', name: 'Bilder' },
@@ -4137,13 +4458,28 @@ export const ABBILDUNG_SCHEMA = {
 				min: 8,
 				max: 60,
 			},
-			{ art: 'zahl', attribut: 'felder', name: 'Felder je Reihe', min: 3, max: 5, standard: 4 },
+			{
+				art: 'zahl',
+				attribut: 'felder',
+				name: 'Felder je Reihe',
+				min: 3,
+				max: 5,
+				standard: 4,
+				// 197-07: Passen die Karten je Seite nicht mehr, nimmt die Wahl weniger.
+				mitnehmen: (w): Werte => {
+					const seite = alsZahl(w.felder ?? '4');
+					const je = alsZahl(w['je-seite'] ?? '2');
+					const passt = [4, 2, 1].find((n) => n <= je && bingoPasst(seite, n, 1));
+					return passt === undefined || passt === je ? {} : { 'je-seite': String(passt) };
+				},
+			},
 			{ art: 'zahl', attribut: 'karten', name: 'Karten', min: 1, max: 40, standard: 4 },
 			{
 				art: 'auswahl',
 				attribut: 'je-seite',
 				name: 'Karten je Seite',
 				standard: '2',
+				angeboten: (wert, w, klasse) => bingoPasst(alsZahl(w.felder ?? '4'), alsZahl(wert ?? '2'), klasse),
 				optionen: [
 					{ wert: '1', name: '1' },
 					{ wert: '2', name: '2' },
@@ -4442,6 +4778,13 @@ export const ABBILDUNG_SCHEMA = {
 					{ wert: 'ort', name: 'Ortsplan' },
 					{ wert: 'raum', name: 'Raumplan' },
 				],
+				// 197-07: Symbole, die es in der neuen Art nicht gibt, fallen weg; ⌘Z holt sie zurück.
+				mitnehmen: (w): Werte => {
+					const symbole = PLAN_SYMBOLE[w.art ?? 'ort'] ?? [];
+					const orte = planObjekteVon(w.objekte ?? null);
+					const neu = new Map([...orte].filter(([, name]) => symbole.some((o) => o.wert === name)));
+					return neu.size === orte.size ? {} : { objekte: neu.size > 0 ? planObjekteText(neu) : null };
+				},
 			},
 			{ art: 'zahl', attribut: 'spalten', name: 'Spalten', min: 1, max: 26, standard: 6 },
 			{ art: 'zahl', attribut: 'zeilen', name: 'Zeilen', min: 1, max: 30, standard: 5 },
@@ -4594,6 +4937,9 @@ export const ABBILDUNG_SCHEMA = {
 					{ wert: 'betrag', name: 'Betrag bestimmen' },
 					{ wert: 'legen', name: 'Betrag legen' },
 				],
+				// 197-07: „Betrag legen“ bekommt die Summe der Stücke als Betrag.
+				mitnehmen: (w): Werte =>
+					w.aufgabe === 'legen' && !w.betrag?.trim() ? { betrag: summeDerStuecke(w.stuecke ?? null) } : {},
 			},
 			{
 				art: 'text',
@@ -4702,7 +5048,18 @@ export const ABBILDUNG_SCHEMA = {
 					{ wert: 'einzeichnen', name: 'Einzeichnen' },
 				],
 			},
-			{ art: 'zahlen', attribut: 'teilung', name: 'Striche: Haupt, Zwischen', beispiel: '10 1', gruppe: 'Skala' },
+			{
+				art: 'paar',
+				attribut: 'teilung',
+				name: 'Striche',
+				trenner: ' ',
+				leer: true,
+				gruppe: 'Skala',
+				teile: [
+					{ name: 'Hauptstrich alle', min: 0.1, max: 100_000, standard: 10, komma: true },
+					{ name: 'Zwischenstrich alle', min: 0.01, max: 10_000, standard: 1, komma: true },
+				],
+			},
 			{
 				art: 'zahl',
 				attribut: 'von',
@@ -4866,8 +5223,8 @@ export const ABBILDUNG_SCHEMA = {
 			klassen: [2, 3, 4],
 		},
 		felder: [
-			{ art: 'zahl', attribut: 'zeilen', name: 'Zeilen', min: 1, max: 10, standard: 5 },
-			{ art: 'zahl', attribut: 'spalten', name: 'Spalten', min: 1, max: 10, standard: 5 },
+			{ art: 'zahl', attribut: 'zeilen', name: 'Zeilen', min: 1, max: 10, standard: 5, mitnehmen: linieImPunktfeld },
+			{ art: 'zahl', attribut: 'spalten', name: 'Spalten', min: 1, max: 10, standard: 5, mitnehmen: linieImPunktfeld },
 			{
 				art: 'zahlen',
 				attribut: 'trenner',
@@ -4880,6 +5237,7 @@ export const ABBILDUNG_SCHEMA = {
 				attribut: 'richtung',
 				name: 'Linie zerlegt die',
 				standard: 'zeilen',
+				mitnehmen: linieImPunktfeld,
 				optionen: [
 					{ wert: 'zeilen', name: 'Zeilen' },
 					{ wert: 'spalten', name: 'Spalten' },
@@ -4966,6 +5324,14 @@ export const ABBILDUNG_SCHEMA = {
 					{ wert: 'mal', name: 'Mal' },
 					{ wert: 'geteilt', name: 'Geteilt' },
 				],
+				// 197-07: Außer bei Plus zwei Zahlen: die ersten zwei, die größere zuerst.
+				mitnehmen: (w): Werte => {
+					const zahlen = listeVon(w.zahlen ?? null);
+					if ((w.art ?? 'plus') === 'plus' || zahlen.length <= 2) {
+						return {};
+					}
+					return { zahlen: zahlen.slice(0, 2).sort((a, b) => alsZahl(b) - alsZahl(a)).join(' ') };
+				},
 			},
 			{ art: 'zahlen', attribut: 'zahlen', name: 'Zahlen', beispiel: '345 278' },
 			{
@@ -5237,7 +5603,30 @@ export const ABBILDUNG_SCHEMA = {
 			faecher: ['mathematik'],
 		},
 		felder: [
-			{ art: 'zahl', attribut: 'dach', name: 'Dach', min: 0, max: 1000000, standard: 7 },
+			{
+				art: 'zahl',
+				attribut: 'dach',
+				name: 'Dach',
+				min: 0,
+				max: 1000000,
+				standard: 7,
+				maxJeKlasse: ZAHLENRAUM,
+				// 197-07: Die Stockwerke gehen mit dem Dach; die erste Zahl bleibt, die zweite ergänzt.
+				mitnehmen: (w): Werte => {
+					const dach = alsZahl(w.dach ?? '7');
+					if (!w.zerlegungen?.trim() || !Number.isFinite(dach)) {
+						return {};
+					}
+					const neu = w.zerlegungen
+						.split(';')
+						.filter((z) => z.trim())
+						.map((z) => {
+							const links = Math.min(dach, Math.max(0, alsZahl(z.trim().split(/\s+/)[0] ?? '0') || 0));
+							return `${links} ${dach - links}`;
+						});
+					return { zerlegungen: neu.join('; ') };
+				},
+			},
 			{
 				art: 'liste',
 				attribut: 'zerlegungen',
@@ -5269,7 +5658,7 @@ export const ABBILDUNG_SCHEMA = {
 			faecher: ['mathematik'],
 		},
 		felder: [
-			{ art: 'zahl', attribut: 'start', name: 'Start', min: 0, max: 1000000, standard: 0 },
+			{ art: 'zahl', attribut: 'start', name: 'Start', min: 0, max: 1000000, standard: 0, maxJeKlasse: ZAHLENRAUM },
 			{
 				art: 'liste',
 				attribut: 'operatoren',
@@ -5564,7 +5953,7 @@ export const ABBILDUNG_SCHEMA = {
 			},
 			{ art: 'zahl', ...GROESSE, min: 16, max: 80, standard: 30, schritt: 2, gruppe: 'Mehr' },
 			{
-				art: 'text',
+				art: 'mischen',
 				attribut: 'seed',
 				nurWenn: wenn('aufgabe', 'keine', 'augen-ergaenzen'),
 				name: 'Mischung',
@@ -5740,11 +6129,23 @@ export const werteVon = (schema: AbbildungSchema, k: Knoten, z?: Zerlegung): Wer
 	);
 
 /** Wert eines Feldes und ob er nur in der Lösung steht; mit beiden Attributen gilt, was `abbildungen.js` zeichnet. */
+/**
+ * Die Zahlen einer geteilten Lösung („30 6“); leer, wenn dort etwas anderes steht (beim Hunderterfeld kann es ein
+ * Malwinkel wie „3x7“ sein, der bleibt unberührt).
+ */
+const zahlenDerLoesung = (wert: string | null) => {
+	const zahlen = listeVon(wert);
+	return zahlen.every((z) => /^\d+$/.test(z)) ? zahlen : [];
+};
+
 export const feldWert = (feld: Feld, w: Werte): { wert: string | null; nurLoesung: boolean } => {
 	const sichtbar = w[feld.attribut] ?? null;
 	const teil = feld.loesung?.teil;
+	if (feld.loesung?.abgeleitet) {
+		return { wert: sichtbar, nurLoesung: (w[feld.loesung.attribut] ?? null) !== null };
+	}
 	if (teil !== undefined && feld.loesung) {
-		const zahlen = listeVon(w[feld.loesung.attribut] ?? null);
+		const zahlen = zahlenDerLoesung(w[feld.loesung.attribut] ?? null);
 		return zahlen.length > 0 ? { wert: zahlen[teil] ?? '0', nurLoesung: true } : { wert: sichtbar, nurLoesung: false };
 	}
 	const loesung = feld.loesung ? (w[feld.loesung.attribut] ?? null) : null;
@@ -5908,12 +6309,16 @@ export const aendereFeld = (
 		if (nurLoesung) {
 			neu[lAttr] = zahlen.join(' ');
 		} else {
-			neu[lAttr] = null;
+			// Ein Malwinkel in der Lösung („3x7“) gehört nicht zu den Plättchen und bleibt.
+			neu[lAttr] = zahlenDerLoesung(w[lAttr] ?? null).length > 0 ? null : (w[lAttr] ?? null);
 			geschwister.forEach((f, i) => {
 				const z = zahlen[i] ?? null;
 				neu[f.attribut] = f.art === 'zahl' && z !== null && alsZahl(z) === f.standard ? null : z;
 			});
 		}
+	} else if (feld.loesung?.abgeleitet) {
+		neu[feld.attribut] = wert;
+		neu[feld.loesung.attribut] = nurLoesung ? feld.loesung.abgeleitet(neu) : null;
 	} else if (feld.loesung) {
 		neu[feld.attribut] = nurLoesung ? null : wert;
 		neu[feld.loesung.attribut] = nurLoesung ? wert : null;
@@ -5931,6 +6336,10 @@ export const aendereFeld = (
 			continue;
 		}
 		const liste = Array.from({ length: alt }, (_, i) => listeVon(ziffern)[i] ?? '');
+		// 197-07: Fiele vorn eine Ziffer außer 0 weg, bleibt die Tafel, wie sie ist; die Prüfung meldet es am Feld.
+		if (jetzt < alt && liste.slice(0, alt - jetzt).some((z) => z !== '' && z !== '0' && z !== '?')) {
+			continue;
+		}
 		// 197-U4: Eine neue Stelle vorn bekommt eine 0, damit die Tafel gezeichnet wird („Bei „T“ fehlt eine Zahl“).
 		const vorn = liste.some((z) => z !== '' && z !== '?') ? '0' : '';
 		const gerueckt = jetzt > alt ? [...Array<string>(jetzt - alt).fill(vorn), ...liste] : liste.slice(alt - jetzt);
@@ -6004,7 +6413,7 @@ const pruefeRaster = (feld: RasterFeld, wert: string | null): string | null => {
 	return null;
 };
 
-const pruefeZahl = (feld: ZahlFeld, wert: string | null) => {
+const pruefeZahl = (feld: ZahlFeld, wert: string | null, klasse?: number) => {
 	if (wert === null) {
 		return null;
 	}
@@ -6012,12 +6421,27 @@ const pruefeZahl = (feld: ZahlFeld, wert: string | null) => {
 	const schritt = feld.schritt ?? 1;
 	const ganz = Number.isInteger(schritt);
 	const passt = ganz ? Number.isInteger(n) : Math.abs(n / schritt - Math.round(n / schritt)) < 1e-6;
-	if (passt && n >= feld.min && n <= feld.max) {
+	const max = zahlMax(feld, klasse);
+	if (passt && n >= feld.min && n <= max) {
 		return null;
 	}
 	return ganz
-		? `Bitte eine ganze Zahl von ${zahlText(feld.min)} bis ${zahlText(feld.max)}.`
-		: `Bitte eine Zahl von ${zahlText(feld.min)} bis ${zahlText(feld.max)} in Schritten von ${zahlText(schritt)}.`;
+		? `Bitte eine ganze Zahl von ${zahlText(feld.min)} bis ${zahlText(max)}.`
+		: `Bitte eine Zahl von ${zahlText(feld.min)} bis ${zahlText(max)} in Schritten von ${zahlText(schritt)}.`;
+};
+
+const pruefePaar = (feld: PaarFeld, wert: string | null) => {
+	if (wert === null) {
+		return null;
+	}
+	const zahlen = paarVon(feld, wert);
+	const falsch = feld.teile.find((t, i) => {
+		const n = zahlen[i];
+		return n === null || n === undefined || !Number.isFinite(n) || n < t.min || n > t.max || (!t.komma && !Number.isInteger(n));
+	});
+	return falsch
+		? `„${falsch.name}“: bitte ${falsch.komma ? 'eine Zahl' : 'eine ganze Zahl'} von ${zahlText(falsch.min)} bis ${zahlText(falsch.max)}.`
+		: null;
 };
 
 const pruefeUhrzeit = (wert: string | null) => {
@@ -6033,7 +6457,8 @@ const pruefeZiffern = (feld: ZiffernFeld, wert: string | null, w: Werte) => {
 	const stellen = stellenVon(w, feld.stellen);
 	const liste = listeVon(wert);
 	if (liste.length > stellen.length) {
-		return `Die Tafel hat nur ${stellen.length} ${stellen.length === 1 ? 'Stelle' : 'Stellen'}.`;
+		const name = stellen.length === 1 ? 'Stelle' : 'Stellen';
+		return `Die Tafel hat nur ${stellen.length} ${name}. Lösch erst die Ziffern vorn oder nimm mehr Stellen.`;
 	}
 	const luecke = liste.findIndex((z) => z === '?');
 	if (luecke >= 0) {
@@ -6055,9 +6480,10 @@ const pruefeText = (feld: TextFeld, wert: string | null) => {
 		: null;
 };
 
-const pruefeMehrfach = (feld: MehrfachFeld, wert: string | null) => {
+const pruefeMehrfach = (feld: MehrfachFeld, wert: string | null, w: Werte) => {
 	const gewaehlt = listeVon(wert ?? feld.standard?.join(' ') ?? null);
-	const falsch = feld.optionenJe ? undefined : gewaehlt.find((g) => !feld.optionen.some((o) => o.wert === g));
+	const optionen = mehrfachOptionen(feld, w);
+	const falsch = feld.optionenJe ? undefined : gewaehlt.find((g) => !optionen.some((o) => o.wert === g));
 	if (falsch !== undefined) {
 		return `„${falsch}“ gibt es hier nicht.`;
 	}
@@ -6066,11 +6492,11 @@ const pruefeMehrfach = (feld: MehrfachFeld, wert: string | null) => {
 		: null;
 };
 
-const pruefeFeld = (feld: Feld, w: Werte): string | null => {
+const pruefeFeld = (feld: Feld, w: Werte, klasse?: number): string | null => {
 	const { wert } = feldWert(feld, w);
 	switch (feld.art) {
 		case 'zahl':
-			return pruefeZahl(feld, wert);
+			return pruefeZahl(feld, wert, klasse);
 		case 'uhrzeit':
 			return pruefeUhrzeit(wert);
 		case 'schalter':
@@ -6088,7 +6514,15 @@ const pruefeFeld = (feld: Feld, w: Werte): string | null => {
 		case 'liste':
 			return pruefeListe(feld, wert);
 		case 'mehrfach':
-			return pruefeMehrfach(feld, wert);
+			return pruefeMehrfach(feld, wert, w);
+		case 'paar':
+			return pruefePaar(feld, wert);
+		case 'zeitspanne': {
+			const teile = (wert ?? '').split('-');
+			return wert === null || (teile.length === 2 && teile.every((t) => pruefeUhrzeit(t) === null))
+				? null
+				: 'Bitte zwei Uhrzeiten, von und bis.';
+		}
 		case 'raster':
 			return pruefeRaster(feld, wert);
 		case 'muster':
@@ -6137,10 +6571,10 @@ const leser = (schema: AbbildungSchema, w: Werte): Lesen => {
 
 /** Leer heißt gültig. Erst jedes Feld für sich, dann die Regeln zwischen den Feldern. */
 /** 197-02: Nur die einzelnen Felder, ohne die Regeln über mehrere Felder. */
-export const pruefeFelder = (schema: AbbildungSchema, w: Werte): Fehler => {
+export const pruefeFelder = (schema: AbbildungSchema, w: Werte, klasse?: number): Fehler => {
 	const fehler: Fehler = {};
 	for (const feld of schema.felder) {
-		const meldung = pruefeFeld(feld, w);
+		const meldung = pruefeFeld(feld, w, klasse);
 		if (meldung) {
 			fehler[feld.attribut] = meldung;
 		}
@@ -6148,8 +6582,8 @@ export const pruefeFelder = (schema: AbbildungSchema, w: Werte): Fehler => {
 	return fehler;
 };
 
-export const pruefeWerte = (schema: AbbildungSchema, w: Werte): Fehler => {
-	const fehler = pruefeFelder(schema, w);
+export const pruefeWerte = (schema: AbbildungSchema, w: Werte, klasse?: number): Fehler => {
+	const fehler = pruefeFelder(schema, w, klasse);
 	return Object.keys(fehler).length > 0 || !schema.regeln ? fehler : schema.regeln(leser(schema, w));
 };
 

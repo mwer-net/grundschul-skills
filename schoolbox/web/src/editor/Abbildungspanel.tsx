@@ -9,6 +9,7 @@ import type {
 	MusterFeld,
 	NotenFeld,
 	Option,
+	PaarFeld,
 	PlanFeld,
 	PunkteFeld,
 	RasterFeld,
@@ -17,6 +18,7 @@ import type {
 	UhrzeitFeld,
 	UnterFeld,
 	ZahlenFeld,
+	ZeitspanneFeld,
 	ZahlFeld,
 	ZiffernFeld,
 } from '@schoolbox/kern/src/abbildungen';
@@ -34,6 +36,7 @@ import {
 	markierungLesen,
 	markierungNeuerText,
 	markierungText,
+	mehrfachOptionen,
 	MINI_ARTEN,
 	miniTeile,
 	notenAnfuegen,
@@ -41,11 +44,13 @@ import {
 	notenPunkt,
 	notenTon,
 	notenZuruecknehmen,
+	paarVon,
 	planObjekteText,
 	planObjekteVon,
 	rasterText,
 	rasterVon,
 	stellenVon,
+	zahlMax,
 	zahlStandard,
 	zeilenAlsText,
 	zeilenAusListe,
@@ -199,9 +204,10 @@ const Zahl = ({ abb, feld }: FeldEigenschaften<ZahlFeld>) => {
 	const wert = wertVon(feld, abb)?.wert ?? null;
 	const standard = zahlStandard(feld, abb.werte);
 	const cm = inCm(feld);
+	const max = zahlMax(feld, abb.klasse);
 	const grenzen = cm
-		? grenzenInCm({ min: feld.min, max: feld.max, schritt: feld.schritt ?? 1 })
-		: { min: feld.min, max: feld.max, schritt: feld.schritt ?? 1 };
+		? grenzenInCm({ min: feld.min, max, schritt: feld.schritt ?? 1 })
+		: { min: feld.min, max, schritt: feld.schritt ?? 1 };
 	const zeigen = (px: number) => (cm ? pxZuCm(px) : px);
 	const speichern = (n: number) => String(cm ? cmZuPx(n) : n);
 	const anzeige = (roh: string | null) => {
@@ -212,28 +218,62 @@ const Zahl = ({ abb, feld }: FeldEigenschaften<ZahlFeld>) => {
 		return Number.isFinite(n) ? zahlMitKomma(zeigen(n)) : roh;
 	};
 	const { feld: eingabe, setText, text } = useEingabe(anzeige(wert));
-	/** Der Wert beim Betreten des Felds: dorthin führen leer, Text und Esc zurück. */
+	/**
+	 * Der zuletzt übernommene Wert: dorthin führen leer, Text und Esc zurück (196-10). `getippt` ist der Text beim
+	 * Betreten oder nach dem letzten Übernehmen; solange er gleich bleibt, schreibt das Feld nichts (197-N01).
+	 */
 	const vorher = useRef<string | null>(wert);
+	const getippt = useRef<string | null>(null);
+	// Ohne Fokus folgt der zuletzt übernommene Wert dem Blatt, z. B. nach ⌘Z (197-N01).
+	useEffect(() => {
+		if (eingabe.current?.ownerDocument.activeElement !== eingabe.current) {
+			vorher.current = wert;
+		}
+	}, [wert, eingabe]);
+	/** Nimmt einen Entwurf dieses Felds zurück, ohne zu schreiben; ohne Entwurf geschieht nichts (würfelt nicht neu). */
+	const zurueckZu = (roh: string | null) => {
+		if (wert !== roh) {
+			abb.aendere(feld, roh, { uebernehmen: false });
+		}
+	};
 	const jetzt = zeigen(alsZahl(wert ?? String(standard)));
 	const setze = (n: number) => {
 		const neu = rasteEin(n, grenzen);
 		setText(zahlMitKomma(neu));
+		getippt.current = zahlMitKomma(neu);
+		// Derselbe gezeigte Wert schreibt nichts: 88 px bleiben 88 px, auch wenn 2,3 cm umgerechnet 87 px wären.
+		if (vorher.current !== null && neu === zeigen(alsZahl(vorher.current))) {
+			zurueckZu(vorher.current);
+			return;
+		}
+		vorher.current = speichern(neu);
 		abb.aendere(feld, speichern(neu));
 	};
 	const springe = (richtung: 1 | -1) => setze((Number.isFinite(jetzt) ? jetzt : zeigen(standard)) + richtung * grenzen.schritt);
 	const fertig = () => {
+		if (getippt.current !== null && text === getippt.current) {
+			zurueckZu(vorher.current);
+			return;
+		}
 		const n = liesZahl(text);
 		if (Number.isFinite(n)) {
 			setze(n);
 		} else if (text.trim() === '' && feld.automatisch) {
 			setText('');
+			getippt.current = '';
+			vorher.current = null;
 			abb.aendere(feld, null);
 		} else {
 			setText(anzeige(vorher.current));
-			abb.aendere(feld, vorher.current);
+			getippt.current = anzeige(vorher.current);
+			abb.aendere(feld, vorher.current, { uebernehmen: vorher.current !== wert });
 		}
 	};
-	const meldung = cm ? `Bitte eine Zahl von ${zahlMitKomma(grenzen.min)} bis ${zahlMitKomma(grenzen.max)} cm.` : undefined;
+	// Die Grenzen in cm statt px; eine Meldung der Zeichnung (197-N02) bleibt, wie sie ist.
+	const meldung =
+		cm && /^Bitte eine/.test(abb.fehler[feld.attribut] ?? '')
+			? `Bitte eine Zahl von ${zahlMitKomma(grenzen.min)} bis ${zahlMitKomma(grenzen.max)} cm.`
+			: undefined;
 	return (
 		<Rahmen daneben feld={feld} abb={abb} id={id} meldung={meldung}>
 			<div className={klassen(STEPPER_RAHMEN, 'has-[[aria-invalid=true]]:border-fehler')}>
@@ -268,7 +308,10 @@ const Zahl = ({ abb, feld }: FeldEigenschaften<ZahlFeld>) => {
 						aria-invalid={Boolean(abb.fehler[feld.attribut])}
 						value={text}
 						onFocus={() => {
+							// Ein Feld ohne Fokus folgt dem Blatt; beim Betreten gilt, was jetzt gespeichert ist.
 							vorher.current = wert;
+							setText(anzeige(wert));
+							getippt.current = anzeige(wert);
 						}}
 						onChange={(e) => {
 							setText(e.target.value);
@@ -279,7 +322,10 @@ const Zahl = ({ abb, feld }: FeldEigenschaften<ZahlFeld>) => {
 								uebernehmen: false,
 							});
 						}}
-						onBlur={fertig}
+						onBlur={() => {
+							fertig();
+							getippt.current = null;
+						}}
 						onKeyDown={(e) => {
 							if (e.key === 'Enter') {
 								e.preventDefault();
@@ -288,6 +334,7 @@ const Zahl = ({ abb, feld }: FeldEigenschaften<ZahlFeld>) => {
 								e.preventDefault();
 								e.stopPropagation();
 								setText(anzeige(vorher.current));
+								getippt.current = anzeige(vorher.current);
 								abb.aendere(feld, vorher.current, { uebernehmen: false });
 							}
 						}}
@@ -380,7 +427,7 @@ const Auswahl = ({ abb, feld }: FeldEigenschaften<AuswahlFeld>) => {
 	const wert = wertVon(feld, abb)?.wert ?? feld.standard ?? null;
 	const aus = feld.optionenAus && abb.werte ? (abb.werte[feld.optionenAus] ?? '') : '';
 	const dazu = aus.split('|').flatMap((t) => (t.trim() ? [{ wert: t.trim(), name: t.trim() }] : []));
-	const moeglich = [...auswahlOptionen(feld, abb.werte), ...dazu];
+	const moeglich = [...auswahlOptionen(feld, abb.werte, abb.klasse), ...dazu];
 	const bekannt = moeglich.some((o) => o.wert === wert);
 	// 197-16: Optionen über der Klasse des Blatts sagen es.
 	const klasse = Number(/\bkl([1-4])\b/.exec(abb.doc?.body.className ?? '')?.[1] ?? 0);
@@ -468,6 +515,168 @@ const KOMMAZAHL = /(\d),(\d)/g;
 const HAT_KOMMA = /\d,\d/;
 const zahlenZeigen = (wert: string | null, komma: boolean) => (komma ? (wert ?? '').replace(/(\d)\.(\d)/g, '$1,$2') : (wert ?? ''));
 
+/**
+ * 197-11: Eine Zahl je Zeile einer anderen Liste, z. B. der Anteil je Feld des Glücksrads, neben dem Namen der Zeile.
+ * Alle leer entfernt das Attribut.
+ */
+const ZahlenJeZeile = ({ abb, feld, liste }: FeldEigenschaften<ZahlenFeld> & { liste: string }) => {
+	const id = useId();
+	const zeilen = (abb.werte?.[liste] ?? '')
+		.split(';')
+		.map((z) => z.trim())
+		.filter(Boolean);
+	const zahlen = listeVon(wertVon(feld, abb)?.wert ?? null);
+	const setze = (i: number, roh: string) => {
+		const neu = zeilen.map((_, j) => (j === i ? roh.trim() : (zahlen[j] ?? '')));
+		const alleLeer = neu.every((z) => z === '');
+		// Eine Lücke bekäme sonst die nächste Zahl; leere Zeilen zählen mit 1, wie ohne Angabe.
+		abb.aendere(feld, alleLeer ? null : neu.map((z) => z || '1').join(' '));
+	};
+	return (
+		<Rahmen feld={feld} abb={abb} id={id}>
+			<div className="grid grid-cols-[1fr_auto] items-center gap-x-2 gap-y-1" data-zahlen-je-zeile>
+				{zeilen.map((z, i) => {
+					const [fuellung = '', text = ''] = z.split(':').map((t) => t.trim());
+					return (
+						<Fragment key={`${z}-${String(i)}-${zahlen[i] ?? ''}`}>
+							<span className="truncate text-leise">{text || fuellung}</span>
+							<input
+								id={i === 0 ? id : undefined}
+								type="text"
+								inputMode="numeric"
+								enterKeyHint="done"
+								autoComplete="off"
+								aria-label={`${feld.name}: ${text || fuellung}`}
+								className={`${EINGABE} w-14 text-center`}
+								aria-invalid={Boolean(abb.fehler[feld.attribut])}
+								placeholder="1"
+								defaultValue={zahlen.length > 0 ? (zahlen[i] ?? '') : ''}
+								onBlur={(e) => {
+									if (e.target.value.trim() !== (zahlen[i] ?? '')) {
+										setze(i, e.target.value);
+									}
+								}}
+								onKeyDown={fertigMitEnter}
+							/>
+						</Fragment>
+					);
+				})}
+			</div>
+		</Rahmen>
+	);
+};
+
+/** 197-11: Zwei Zahlen in einem Attribut (Malwinkel „3x7“, Start „2,3“, Striche „10 1“). */
+const Paar = ({ abb, feld }: FeldEigenschaften<PaarFeld>) => {
+	const id = useId();
+	const wert = wertVon(feld, abb)?.wert ?? null;
+	const [a, b] = paarVon(feld, wert);
+	const zeige = (n: number | null) => (n === null || !Number.isFinite(n) ? '' : zahlMitKomma(n));
+	const setze = (i: 0 | 1, roh: string) => {
+		const n = liesZahl(roh);
+		const jetzt: [number | null, number | null] = [a, b];
+		jetzt[i] = roh.trim() === '' ? null : Number.isFinite(n) ? n : jetzt[i];
+		if (feld.leer && jetzt[0] === null && jetzt[1] === null) {
+			abb.aendere(feld, null);
+			return;
+		}
+		const teile = jetzt.map((x, k) => String(x ?? feld.teile[k]?.standard ?? 0));
+		abb.aendere(feld, teile.join(feld.trenner));
+	};
+	return (
+		<Rahmen feld={feld} abb={abb} id={id}>
+			<div className="flex flex-wrap items-center gap-2" data-paar={feld.attribut}>
+				{feld.teile.map((t, i) => (
+					<label key={t.name} className="flex items-center gap-1 text-leise">
+						{t.name}
+						<input
+							key={zeige(i === 0 ? a : b)}
+							id={i === 0 ? id : undefined}
+							type="text"
+							inputMode="decimal"
+							enterKeyHint="done"
+							autoComplete="off"
+							aria-label={`${feld.name}: ${t.name}`}
+							className={`${EINGABE} w-14 text-center text-tinte`}
+							aria-invalid={Boolean(abb.fehler[feld.attribut])}
+							disabled={!abb.aktiv}
+							defaultValue={zeige(i === 0 ? a : b)}
+							onBlur={(e) => {
+								if (e.target.value.trim() !== zeige(i === 0 ? a : b)) {
+									setze(i === 0 ? 0 : 1, e.target.value);
+								}
+							}}
+							onKeyDown={fertigMitEnter}
+						/>
+					</label>
+				))}
+			</div>
+		</Rahmen>
+	);
+};
+
+/** 197-11: Zeitspanne „4:30-4:50“ als zwei Uhrzeiten; „–“ bei der ersten Stunde entfernt sie. */
+const Zeitspanne = ({ abb, feld }: FeldEigenschaften<ZeitspanneFeld>) => {
+	const id = useId();
+	const wert = wertVon(feld, abb)?.wert ?? null;
+	const [von = '', bis = ''] = (wert ?? '').split('-');
+	const lies = (t: string) => {
+		const m = /^(\d{1,2}):(\d{2})$/.exec(t.trim());
+		return m ? { h: Number(m[1]), m: Number(m[2]) } : null;
+	};
+	const zeiten = [lies(von), lies(bis)];
+	const setze = (i: 0 | 1, h: number | null, m: number | null) => {
+		if (h === null) {
+			abb.aendere(feld, null);
+			return;
+		}
+		const neu = zeiten.map((z) => (z ? `${z.h}:${zweistellig(z.m)}` : `${h}:${zweistellig(m ?? 0)}`));
+		neu[i] = `${h}:${zweistellig(m ?? 0)}`;
+		abb.aendere(feld, neu.join('-'));
+	};
+	return (
+		<Rahmen feld={feld} abb={abb} id={id}>
+			<div className="flex flex-wrap items-center gap-1" data-zeitspanne>
+				{zeiten.map((z, i) => (
+					<Fragment key={i === 0 ? 'von' : 'bis'}>
+						{i === 1 && <span className="px-1 text-leise">bis</span>}
+						<select
+							id={i === 0 ? id : undefined}
+							aria-label={i === 0 ? 'Von: Stunde' : 'Bis: Stunde'}
+							className={`${EINGABE} pr-4`}
+							disabled={!abb.aktiv || (i === 1 && !zeiten[0])}
+							value={z?.h ?? ''}
+							onChange={(e) => setze(i === 0 ? 0 : 1, e.target.value === '' ? null : Number(e.target.value), z?.m ?? 0)}
+						>
+							<option value="">–</option>
+							{(z && !STUNDEN.includes(z.h) ? [z.h, ...STUNDEN] : STUNDEN).map((h) => (
+								<option key={h} value={h}>
+									{h}
+								</option>
+							))}
+						</select>
+						<span className="text-leise">:</span>
+						<select
+							aria-label={i === 0 ? 'Von: Minuten' : 'Bis: Minuten'}
+							className={`${EINGABE} pr-4`}
+							disabled={!abb.aktiv || !z}
+							value={z?.m ?? ''}
+							onChange={(e) => z && setze(i === 0 ? 0 : 1, z.h, Number(e.target.value))}
+						>
+							{!z && <option value="">–</option>}
+							{(z && !MINUTEN.includes(z.m) ? [...MINUTEN, z.m].sort((x, y) => x - y) : MINUTEN).map((m) => (
+								<option key={m} value={m}>
+									{zweistellig(m)}
+								</option>
+							))}
+						</select>
+					</Fragment>
+				))}
+			</div>
+		</Rahmen>
+	);
+};
+
 const Zahlen = ({ abb, feld }: FeldEigenschaften<ZahlenFeld>) => {
 	const id = useId();
 	const wert = wertVon(feld, abb)?.wert ?? null;
@@ -528,7 +737,7 @@ const Ziffern = ({ abb, feld }: FeldEigenschaften<ZiffernFeld>) => {
 	if (!abb.werte) {
 		return null;
 	}
-	const stellen = stellenVon(abb.werte, feld.stellen);
+	const stellen = stellenVon(abb.geprueft ?? abb.werte, feld.stellen);
 	const liste = listeVon(feldWert(feld, abb.werte).wert);
 	const zellen = stellen.map((_, i) => (liste[i] === '?' ? '' : (liste[i] ?? '')));
 	const setze = (i: number, ziffer: string, uebernehmen: boolean) => {
@@ -721,8 +930,7 @@ const Mehrfach = ({ abb, feld }: FeldEigenschaften<MehrfachFeld>) => {
 	const id = useId();
 	const roh = wertVon(feld, abb)?.wert ?? null;
 	const gewaehlt = listeVon(roh ?? feld.standard?.join(' ') ?? null);
-	const je = feld.optionenJe;
-	const optionen = je ? (je.werte[abb.werte?.[je.feld] ?? Object.keys(je.werte)[0] ?? ''] ?? []) : feld.optionen;
+	const optionen = mehrfachOptionen(feld, abb.werte);
 	const setze = (wert: string, an: boolean) => {
 		const neu = optionen.map((o) => o.wert).filter((w) => (w === wert ? an : gewaehlt.includes(w)));
 		const gleich = feld.standard && neu.join(' ') === feld.standard.join(' ');
@@ -1407,17 +1615,21 @@ const ZELLEN_SPALTEN =
 const ZELLEN_ROLLEN =
 	'max-w-full overflow-x-auto [scrollbar-width:thin] [scrollbar-color:var(--color-rand-feld)_transparent]';
 
+/**
+ * 197-02: Wie viele Spalten oder Zeilen ein Raster im Panel hat, aus geprüften Werten und auf die Grenzen des Felds
+ * gesetzt. Ein Entwurf wie „9999“ baut so kein Raster aus Zehntausenden Knöpfen, auch eine zu große Quelle nicht.
+ */
 const rasterMass = (angabe: string | number | undefined, abb: AbbildungSteuerung, sonst: number) => {
 	if (typeof angabe === 'number') {
 		return angabe;
 	}
-	const roh = angabe ? abb.werte?.[angabe] : null;
-	const n = roh ? alsZahl(roh) : NaN;
-	if (Number.isFinite(n)) {
-		return n;
-	}
 	const feld = abb.schema?.felder.find((f) => f.attribut === angabe);
-	return feld?.art === 'zahl' ? feld.standard : sonst;
+	const roh = angabe ? abb.geprueft?.[angabe] : null;
+	const n = roh ? alsZahl(roh) : NaN;
+	if (feld?.art !== 'zahl') {
+		return Number.isFinite(n) ? Math.max(1, Math.min(n, 100)) : sonst;
+	}
+	return Math.round(Math.min(feld.max, Math.max(feld.min, Number.isFinite(n) ? n : feld.standard)));
 };
 
 /** Zelle in der Gestalt des Elements: Antippen nimmt sie in die Liste auf oder heraus. */
@@ -1697,8 +1909,9 @@ const Plan = ({ abb, feld }: FeldEigenschaften<PlanFeld>) => {
 	const id = useId();
 	const [gewaehlt, setGewaehlt] = useState<string | null>(null);
 	const w = abb.werte ?? {};
-	const spalten = Number(w.spalten ?? 6);
-	const zeilen = Number(w.zeilen ?? 5);
+	// 197-02: Die Planquadrate entstehen nur aus geprüften, begrenzten Werten.
+	const spalten = rasterMass('spalten', abb, 6);
+	const zeilen = rasterMass('zeilen', abb, 5);
 	const boden = rasterVon(w[feld.attribut] ?? null);
 	const orte = planObjekteVon(w[feld.objekte] ?? null);
 	const symbole = feld.symbole[w.art ?? 'ort'] ?? [];
@@ -2069,7 +2282,15 @@ const Eingabe = ({ abb, feld }: FeldEigenschaften<Feld>) => {
 		case 'schalter':
 			return <Schalter feld={feld} abb={abb} />;
 		case 'zahlen':
-			return <Zahlen feld={feld} abb={abb} />;
+			return feld.jeZeileVon ? (
+				<ZahlenJeZeile feld={feld} abb={abb} liste={feld.jeZeileVon} />
+			) : (
+				<Zahlen feld={feld} abb={abb} />
+			);
+		case 'paar':
+			return <Paar feld={feld} abb={abb} />;
+		case 'zeitspanne':
+			return <Zeitspanne feld={feld} abb={abb} />;
 		case 'ziffern':
 			return <Ziffern feld={feld} abb={abb} />;
 		case 'text':
@@ -2156,6 +2377,11 @@ export const AbbildungHinweise = ({ abb }: { abb: AbbildungSteuerung }) => {
 					Das ist das Beispiel. Die Lösung bleibt sichtbar.
 				</p>
 			)}
+			{abb.schema.zustand && abb.schema.felder.length === 0 && (
+				<p className="text-sm text-leise" data-abbildung-zustand>
+					{abb.schema.zustand}
+				</p>
+			)}
 			{abb.info && (
 				<p className="text-xs text-leise" data-abbildung-info>
 					{abb.info}
@@ -2211,7 +2437,8 @@ export const AbbildungFelder = ({ abb, abschnitt }: { abb: AbbildungSteuerung; a
 			{rest.map((feld, i) => {
 				const gruppe = ueberschrift(feld);
 				return (
-					<Fragment key={feld.attribut}>
+					// Ein anderes Element bekommt frische Felder: Getipptes und der alte Wert bleiben nicht hängen.
+					<Fragment key={`${String(abb.nr)}-${abb.schema?.name ?? ''}-${feld.attribut}`}>
 						{gruppe && rest[i - 1]?.gruppe !== feld.gruppe && (
 							<h4 className="mt-2 text-xs font-medium text-dezent" data-feldgruppe={gruppe}>
 								{gruppe}

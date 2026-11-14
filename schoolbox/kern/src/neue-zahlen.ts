@@ -34,11 +34,23 @@ export const KERN_NEUE_ZAHLEN: Record<string, Erzeuger> = {
 	'x-zwanzigerfeld': (w, raum, zufall) => plaettchen(w, Math.min(20, raum), zufall),
 	'x-hunderterfeld': (w, raum, zufall) =>
 		plaettchen(w, Math.min(raum, zahl(w, 'zeilen', 10) * zahl(w, 'spalten', 10)), zufall),
-	'x-wuerfel': (w, _, zufall) =>
-		(w.ansicht ?? 'flach') === 'flach' && ['augen', 'zahl'].includes(w.art ?? 'augen')
+	// 197-N03: Bei „Zahl“ steht die Zahl im Inhalt, nicht in `augen`; Füllung und Text haben keine neuen Zahlen.
+	'x-wuerfel': (w, _, zufall): Werte | null => {
+		if ((w.ansicht ?? 'flach') !== 'flach') {
+			return null;
+		}
+		const art = w.art ?? 'augen';
+		return art === 'augen'
 			? { augen: String(zwischen(1, 6, zufall)) }
-			: null,
+			: art === 'zahl'
+				? { inhalt: String(zwischen(1, 6, zufall)) }
+				: null;
+	},
 };
+
+/** Gibt es für diese Werte neue Zahlen aus dem Kern? Sonst fehlt der Knopf (197-N03). */
+export const hatNeueZahlenImKern = (tag: string, w: Werte | null) =>
+	Boolean(KERN_NEUE_ZAHLEN[tag]) && (w === null || neueZahlenImKern(tag, w, undefined, () => 0) !== null);
 
 export const neueZahlenImKern = (tag: string, w: Werte, klasse: number | undefined, zufall = Math.random) =>
 	KERN_NEUE_ZAHLEN[tag]?.(w, zahlenraumDerKlasse(klasse), zufall) ?? null;

@@ -75,7 +75,7 @@ test.describe('Editor: ganzes Blatt und Einstellungen (046, 048)', () => {
 		const stand = await quelle(page);
 		await text.fill('Der Hund bellt.');
 		await text.blur();
-		await expect(werkzeug.locator('[data-fehler="_element"]')).toContainText('keine Lücke');
+		await expect(werkzeug.locator('p[role="alert"][data-fehler]')).toContainText('keine Lücke');
 		expect(await quelle(page)).toBe(stand);
 	});
 });

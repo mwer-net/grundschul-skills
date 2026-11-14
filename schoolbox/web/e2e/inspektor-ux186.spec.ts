@@ -94,4 +94,50 @@ test.describe('Inspektor: Bausteine und Abbildungen (196, 197)', () => {
 			await expect(material(page).locator('x-schriftlich')).not.toHaveAttribute('data-fehler', /.+/);
 		}
 	});
+
+	test('197-02 (Abnahme): Das Raster im Panel wächst nicht mit einem ungültigen Entwurf', async ({ druecke, page }) => {
+		const { dok, id } = await uhrzeit();
+		await oeffne(page, id, dok);
+		const figur = '0 0 0 0 0 0 / 0 0 0 1 1 1 / 0 0 1 1 0 0 / 0 1 1 1 0 0 / 0 0 0 1 1 1 / 0 0 0 0 0 0';
+		await aendere(
+			page,
+			(await quelle(page)).replace(
+				/<x-uhr[^>]*><\/x-uhr>/,
+				`<x-gitter spalten="12" zeilen="6" aufgabe="spiegeln" achse="senkrecht" achse-bei="6" figur="${figur}"></x-gitter>`,
+			),
+		);
+		await druecke(material(page).locator('x-gitter'));
+		const zellen = page.locator('[data-raster="figur"] > div > *');
+		await expect(zellen).toHaveCount(72);
+		const spalten = page.locator('[data-feld="spalten"] input[type="text"]');
+		for (const unsinn of ['9999', '999999']) {
+			await spalten.fill(unsinn);
+			await expect(zellen).toHaveCount(72);
+			await spalten.press('Tab');
+			await expect(zellen).toHaveCount(72);
+			await expect(material(page).locator('x-gitter')).toHaveAttribute('spalten', '12');
+		}
+	});
+
+	test('197-N01: Anklicken und Verlassen eines cm-Felds schreibt nichts; ohne Fokus folgt es dem Blatt', async ({
+		druecke,
+		page,
+	}) => {
+		const { dok, id } = await uhrzeit();
+		await oeffne(page, id, dok);
+		await aendere(page, (await quelle(page)).replace(/<x-uhr[^>]*><\/x-uhr>/, '<x-uhr zeit="3:00" groesse="88"></x-uhr>'));
+		await druecke(material(page).locator('x-uhr').first());
+		const groesse = page.locator('[data-feld="groesse"] input[type="text"]');
+		await expect(groesse).toHaveValue('2,3');
+		const vorher = await quelle(page);
+		await groesse.click();
+		await groesse.press('Tab');
+		await groesse.click();
+		await groesse.press('Enter');
+		expect(await quelle(page)).toBe(vorher);
+		await groesse.press('Tab');
+		await aendere(page, vorher.replace('groesse="88"', 'groesse="120"'));
+		await expect(groesse).toHaveValue('3,2');
+	});
 });
+

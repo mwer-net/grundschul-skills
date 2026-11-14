@@ -10,7 +10,7 @@ import {
 	werteVon,
 } from '@schoolbox/kern/src/abbildungen';
 import { kann } from '@schoolbox/kern/src/bausteine';
-import { KERN_NEUE_ZAHLEN, neueZahlenImKern } from '@schoolbox/kern/src/neue-zahlen';
+import { hatNeueZahlenImKern, KERN_NEUE_ZAHLEN, neueZahlenImKern } from '@schoolbox/kern/src/neue-zahlen';
 import { loesungDaneben, schreibeUhrzeitUm, zeitDerUhr } from '@schoolbox/kern/src/uhrzeit-text';
 import { useEffect, useMemo, useRef, useState } from 'react';
 
@@ -157,16 +157,51 @@ export const useAbbildung = ({ adresse, basis: bildBasis, pfad, struktur }: Opti
 	const werte = entwurf && entwurf.basis === basis ? entwurf.werte : quelle;
 	const [ausBlatt, setAusBlatt] = useState<AusDemBlatt>(LEER);
 	/** 197-02: Besteht ein Feld seine eigene Prüfung nicht, bleibt im Blatt die letzte gültige Zeichnung. */
-	const feldFehler: Fehler = useMemo(() => (schema && werte ? pruefeFelder(schema, werte) : {}), [schema, werte]);
+	const klasse = klasseVon(doc);
+	const feldFehler: Fehler = useMemo(
+		() => (schema && werte ? pruefeFelder(schema, werte, klasse) : {}),
+		[schema, werte, klasse],
+	);
 	const zeichenbar = Object.keys(feldFehler).length === 0;
-	const regelFehler: Fehler = useMemo(() => (schema && werte ? pruefeWerte(schema, werte) : {}), [schema, werte]);
+	const regelFehler: Fehler = useMemo(
+		() => (schema && werte ? pruefeWerte(schema, werte, klasse) : {}),
+		[schema, werte, klasse],
+	);
+	/** 197-N02: Das zuletzt geänderte Feld dieser Abbildung; dort steht eine Meldung der Zeichnung ohne eigenes Feld. */
+	const [geaendertZuletzt, setGeaendertZuletzt] = useState<{ nr: number; attribut: string } | null>(null);
+	const zuletztFeld =
+		geaendertZuletzt?.nr === nr ? schema?.felder.find((f) => f.attribut === geaendertZuletzt.attribut) : undefined;
+	const meldungAm =
+		zuletztFeld && !zuletztFeld.ohneFeld && (!zuletztFeld.nurWenn || !werte || zuletztFeld.nurWenn(werte))
+			? zuletztFeld.attribut
+			: '_element';
 	const fehler: Fehler = useMemo(
 		() =>
 			ausBlatt.fehler && Object.keys(regelFehler).length === 0
-				? { ...regelFehler, _element: lesbareMeldung(ausBlatt.fehler, schema) }
+				? { ...regelFehler, [meldungAm]: lesbareMeldung(ausBlatt.fehler, schema) }
 				: regelFehler,
-		[regelFehler, ausBlatt.fehler, schema],
+		[regelFehler, ausBlatt.fehler, schema, meldungAm],
 	);
+	/**
+	 * 197-02: Was das Panel aus Zahlen baut (Raster, Planquadrate, Stellen), nimmt diese Werte: Ein Feld, das seine
+	 * Prüfung, eine Regel oder die Zeichnung nicht besteht, zählt mit dem gespeicherten Wert. So wird aus „9999“ im
+	 * Entwurf nie ein Raster.
+	 */
+	const geprueft = useMemo(() => {
+		const falsch = [...Object.keys(feldFehler), ...Object.keys(fehler)];
+		if (!schema || !werte || falsch.length === 0) {
+			return werte;
+		}
+		const neu: Werte = { ...werte };
+		for (const feld of schema.felder.filter((f) => falsch.includes(f.attribut))) {
+			for (const a of [feld.attribut, feld.loesung?.attribut]) {
+				if (a) {
+					neu[a] = quelle?.[a] ?? null;
+				}
+			}
+		}
+		return neu;
+	}, [schema, werte, quelle, feldFehler, fehler]);
 	const beispiel = useMemo(() => Boolean(doc && nr !== null && elementZu(doc, nr)?.closest('.beispiel')), [doc, nr]);
 
 	const zuletzt = useRef<{
@@ -216,7 +251,7 @@ export const useAbbildung = ({ adresse, basis: bildBasis, pfad, struktur }: Opti
 	const uebernimm = (neu?: Werte, was?: string) => {
 		const { doc: d, nr: n, quelle: q, schema: s, werte: w } = aktuell.current;
 		const fassung = neu ?? w;
-		if (!s || !q || !fassung || n === null || Object.keys(pruefeWerte(s, fassung)).length > 0) {
+		if (!s || !q || !fassung || n === null || Object.keys(pruefeWerte(s, fassung, klasseVon(d))).length > 0) {
 			return;
 		}
 		// Was nur das Zeichnen weiß (lösbar, passt aufs Gitter), meldet das Element; dann bleibt es beim Entwurf.
@@ -257,6 +292,9 @@ export const useAbbildung = ({ adresse, basis: bildBasis, pfad, struktur }: Opti
 			return;
 		}
 		const geaendert = aendereFeld(s, w, feld, wert, nurLoesung);
+		if (s.felder.some((f) => f.attribut === feld.attribut)) {
+			setGeaendertZuletzt({ nr: aktuell.current.nr ?? -1, attribut: feld.attribut });
+		}
 		if (s.generiert && feld.attribut === s.generiert && b) {
 			eigene.current.add(schluessel());
 		}
@@ -297,7 +335,7 @@ export const useAbbildung = ({ adresse, basis: bildBasis, pfad, struktur }: Opti
 	};
 
 	const kerne = (doc?.defaultView as Zeichner | null)?.schoolboxAbbildungen;
-	const hatNeueZahlen = Boolean(tag && (kerne?.NEUE_ZAHLEN.includes(tag) || KERN_NEUE_ZAHLEN[tag]));
+	const hatNeueZahlen = Boolean(tag && (kerne?.NEUE_ZAHLEN.includes(tag) || hatNeueZahlenImKern(tag, werte)));
 
 	/** 197-05: Kleinere Zahlen, wenn die Klasse die Stellen der gespeicherten Abbildung nicht erlaubt. */
 	const kleiner = (s: AbbildungSchema, w: Werte): Werte => {
@@ -361,7 +399,7 @@ export const useAbbildung = ({ adresse, basis: bildBasis, pfad, struktur }: Opti
 				break;
 			}
 			const neu = { ...w, ...werteNeu };
-			if (Object.keys(pruefeWerte(s, neu)).length > 0) {
+			if (Object.keys(pruefeWerte(s, neu, klasseVon(d))).length > 0) {
 				continue;
 			}
 			zeichne(d, n, neu, s);
@@ -400,6 +438,9 @@ export const useAbbildung = ({ adresse, basis: bildBasis, pfad, struktur }: Opti
 		nr,
 		schema,
 		werte,
+		geprueft,
+		/** Klasse des Blatts; manche Grenzen hängen davon ab (197-N02). */
+		klasse,
 		fehler,
 		beispiel,
 		info: ausBlatt.info,

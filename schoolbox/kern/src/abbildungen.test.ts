@@ -22,6 +22,7 @@ import {
 	markierungLesen,
 	markierungNeuerText,
 	markierungText,
+	mehrfachOptionen,
 	miniTeile,
 	NOTEN_VORSCHLAG,
 	notenAnfuegen,
@@ -31,6 +32,7 @@ import {
 	notenTon,
 	notenZuruecknehmen,
 	NUR_ZUR_LAUFZEIT,
+	paarVon,
 	planLage,
 	planObjekteText,
 	planObjekteVon,
@@ -47,6 +49,7 @@ import {
 	VERKEHRSZEICHEN,
 	vornMoeglich,
 	werteVon,
+	zahlMax,
 	zahlStandard,
 	zeilenAlsText,
 	zeilenAusListe,
@@ -2848,5 +2851,86 @@ describe('UX 186 · 197: Felder im Abbildungspanel', () => {
 		assert.equal(abschnittVon(feld(s, 'inhalt')), 'inhalt');
 		assert.equal(abschnittVon(feld(s, 'aufgabe')), 'inhalt');
 		assert.ok(s.felder.every((f) => abschnittVon(f) !== 'weitere'));
+	});
+});
+
+describe('UX 186 · 197: Nachbesserung nach der Abnahme', () => {
+	it('197-N02: Zahlenraum der Klasse als Grenze; Suchsel höchstens 16 Spalten bis Klasse 2', () => {
+		const dach = schema('x-zahlenhaus').felder.find((f) => f.attribut === 'dach') as ZahlFeld;
+		assert.deepEqual([1, 2, 3, 4].map((k) => zahlMax(dach, k)), [20, 100, 1000, 1_000_000]);
+		assert.ok(pruefeFelder(schema('x-zahlenhaus'), { dach: '999999' }, 1).dach);
+		const suchsel = schema('x-suchsel');
+		assert.ok(pruefeFelder(suchsel, { spalten: '20' }, 1).spalten);
+		assert.deepEqual(pruefeFelder(suchsel, { spalten: '20' }, 3), {});
+		assert.ok(pruefeWerte(schema('x-hundertertafel'), { von: '1', bis: '10000' }).bis);
+	});
+
+	it('197-10: Hunderterfeld: der Schalter nimmt beide Sorten in die Lösung und zurück', () => {
+		const s = schema('x-hunderterfeld');
+		const an = aendereFeld(s, { n: '30', n2: '6' }, feld(s, 'n2'), '6', true);
+		assert.equal(an.loesung, '30 6');
+		assert.equal(an.n ?? null, null);
+		assert.deepEqual(pruefeFelder(s, an), {});
+		const aus = aendereFeld(s, an, feld(s, 'n2'), '6', false);
+		assert.equal(aus.n, '30');
+		assert.equal(aus.n2, '6');
+		assert.equal(aus.loesung ?? null, null);
+	});
+
+	it('197-10: Urne und Würfel: Lösung hat Vorrang, Glücksrad leitet die Füllungen ab', () => {
+		const urne = schema('x-urne');
+		const u = aendereFeld(urne, { kugeln: 'rot: 3; blau: 5' }, feld(urne, 'kugeln'), 'rot: 3; blau: 5', true);
+		assert.equal(u.loesung, 'rot: 3; blau: 5');
+		assert.equal(u.kugeln ?? null, null);
+		const rad = schema('x-gluecksrad');
+		const r = aendereFeld(rad, { felder: 'rot: 1; blau: 2' }, feld(rad, 'felder'), 'rot: 1; blau: 2', true);
+		assert.equal(r.loesung, 'rot blau');
+		assert.equal(r.felder, 'rot: 1; blau: 2');
+	});
+
+	it('197-11: Paar und Mehrfach aus den Werten', () => {
+		const malwinkel = schema('x-hunderterfeld').felder.find((f) => f.attribut === 'malwinkel');
+		assert.ok(malwinkel?.art === 'paar');
+		assert.deepEqual(paarVon(malwinkel, '3x7'), [3, 7]);
+		assert.deepEqual(paarVon(malwinkel, null), [null, null]);
+		const offen = schema('x-diagramm').felder.find((f) => f.attribut === 'offen');
+		assert.ok(offen?.art === 'mehrfach');
+		assert.deepEqual(
+			mehrfachOptionen(offen, { werte: 'Mo: 3; Di: 7' }).map((o) => o.wert),
+			['1', '2'],
+		);
+	});
+
+	it('197-09: Kreislauf: Pfeile ohne Buchstaben oder in falscher Zahl melden sich am Feld', () => {
+		const s = schema('x-kreislauf');
+		const stationen = 'Meer; Wolken; Regen; Bach';
+		assert.ok(pruefeWerte(s, { stationen, pfeile: 'abc' }).pfeile);
+		assert.ok(pruefeWerte(s, { stationen, pfeile: '1; 2; 3; 4' }).pfeile);
+		assert.equal(pruefeWerte(s, { stationen, pfeile: 'a; b; c; d' }).pfeile, undefined);
+	});
+
+	it('197-07: Jahreskreis „Woche“ leert fremde Markierungen und wächst, bis die Beschriftung passt', () => {
+		const s = schema('x-jahreskreis');
+		const neu = aendereFeld(s, { groesse: '290', markiert: 'Juli' }, feld(s, 'art'), 'woche');
+		assert.equal(neu.markiert ?? null, null);
+		assert.equal(neu.groesse, '320');
+		assert.deepEqual(pruefeWerte(s, neu), {});
+		assert.ok(pruefeWerte(s, { art: 'woche', groesse: '240' }).groesse);
+	});
+
+	it('197-07: Gitter bietet beim Spiegeln nur Achsen an, deren Spiegelbild ins Gitter passt', () => {
+		const s = schema('x-gitter');
+		const achse = feld(s, 'achse');
+		assert.ok(achse.art === 'auswahl');
+		const w = {
+			spalten: '12',
+			zeilen: '6',
+			aufgabe: 'spiegeln',
+			figur: '0 0 0 0 0 0 / 0 0 0 1 1 1 / 0 0 1 1 0 0 / 0 1 1 1 0 0 / 0 0 0 1 1 1 / 0 0 0 0 0 0',
+		};
+		assert.deepEqual(
+			auswahlOptionen(achse, w).map((o) => o.wert),
+			['senkrecht'],
+		);
 	});
 });

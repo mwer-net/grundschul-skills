@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import { describe, it } from 'node:test';
 
-import { KERN_NEUE_ZAHLEN, neueZahlenImKern, zahlenraumDerKlasse } from './neue-zahlen';
+import { hatNeueZahlenImKern, KERN_NEUE_ZAHLEN, neueZahlenImKern, zahlenraumDerKlasse } from './neue-zahlen';
 
 /** Immer dieselbe Folge, damit die Grenzen sicher getroffen werden. */
 const folge = (...werte: number[]) => {
@@ -30,5 +30,13 @@ describe('197-U6: Neue Zahlen im Kern', () => {
 		assert.equal(neueZahlenImKern('x-wuerfel', { ansicht: 'netz' }, 1), null);
 		assert.equal(neueZahlenImKern('x-stellentafel', {}, 2), null);
 		assert.equal('x-diagramm' in KERN_NEUE_ZAHLEN, false);
+	});
+
+	it('197-N03: Würfel „Zahl“ würfelt `inhalt`, „Füllung“ und „Text“ haben keinen Knopf', () => {
+		const zahl = neueZahlenImKern('x-wuerfel', { art: 'zahl', inhalt: '3' }, 1, folge(0.9));
+		assert.deepEqual(zahl, { inhalt: '6' });
+		assert.equal(hatNeueZahlenImKern('x-wuerfel', { art: 'zahl' }), true);
+		assert.equal(hatNeueZahlenImKern('x-wuerfel', { art: 'muster' }), false);
+		assert.equal(hatNeueZahlenImKern('x-wuerfel', { art: 'text' }), false);
 	});
 });
