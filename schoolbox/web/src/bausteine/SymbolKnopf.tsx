@@ -34,7 +34,7 @@ export const SymbolKnopf = ({
 		<Knopf
 			art={art}
 			groesse={groesse}
-			className={klassen(groesse === 'klein' ? 'size-knopf-klein' : 'size-knopf', 'px-0', className)}
+			className={klassen(groesse === 'klein' ? 'size-knopf-klein' : 'size-knopf', className)}
 			aria-label={kuerzel ? `${beschriftung} (${kuerzelAnzeige(kuerzel)})` : beschriftung}
 			{...rest}
 		>

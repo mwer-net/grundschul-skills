@@ -19,6 +19,7 @@ import { KACHEL } from '../../../bausteine/klassen';
 import { Knopf } from '../../../bausteine/Knopf';
 import { Segment } from '../../../bausteine/Segment';
 import { Symbol } from '../../../bausteine/Symbol';
+import { Tooltip } from '../../../bausteine/Tooltip';
 import { sichtbar } from '../../../bausteine/verlauf';
 import { Zeile } from '../../../bausteine/Zeile';
 import { zeichneStreuungAnzeige } from '../anzeige-folgen';
@@ -248,19 +249,19 @@ export const StreuungTeil = ({ aktiv, k, quelle }: InspektorTeile) => {
 						data-streuung-ecke={stand.ecke}
 					>
 						{ECKEN.map((e) => (
-							<button
-								key={e.wert}
-								type="button"
-								className={KACHEL}
-								aria-pressed={stand.ecke === e.wert}
-								aria-label={e.titel}
-								title={e.titel}
-								disabled={!aktiv}
-								data-ecke={e.wert}
-								onClick={() => setze(k, 'Dichte Ecke geändert', { ecke: e.wert })}
-							>
-								{e.zeichen}
-							</button>
+							<Tooltip key={e.wert} text={e.titel}>
+								<button
+									type="button"
+									className={KACHEL}
+									aria-pressed={stand.ecke === e.wert}
+									aria-label={e.titel}
+									disabled={!aktiv}
+									data-ecke={e.wert}
+									onClick={() => setze(k, 'Dichte Ecke geändert', { ecke: e.wert })}
+								>
+									{e.zeichen}
+								</button>
+							</Tooltip>
 						))}
 					</div>
 				</Zeile>

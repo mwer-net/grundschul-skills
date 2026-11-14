@@ -39,7 +39,7 @@ const FEDERN_MS = 600;
 const EINZUG_PX = 12;
 
 const ART_KNOPF = (
-	<Knopf art="zweit" className="size-knopf rounded-l-none border-l-0 px-0">
+	<Knopf art="zweit" className="size-knopf rounded-l-none border-l-0">
 		<Symbol name="runter" className="size-3 flex-none" />
 	</Knopf>
 );

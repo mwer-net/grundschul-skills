@@ -4,6 +4,7 @@ import { Marke } from '../bausteine/Kachel';
 import { klassen } from '../bausteine/klassen';
 import { Knopf } from '../bausteine/Knopf';
 import { Symbol } from '../bausteine/Symbol';
+import { Tooltip } from '../bausteine/Tooltip';
 import { Vorschau } from '../bausteine/Vorschau';
 import { laufzeit, useJetzt } from '../editor/entwurf';
 import { ART_NAME, datum, FACH_FARBE, FACH_NAME, FORMAT_NAME, klasseName } from '../lib/text';
@@ -57,17 +58,19 @@ const antwortetAufTipp = (el: HTMLElement | null) => {
 };
 
 const GeteiltMarke = () => (
-	<span title="Geteilt" className="inline-flex flex-none items-center text-dezent" data-marke-geteilt>
-		<Symbol name="teilen" className="size-3" />
-		<span className="sr-only">geteilt</span>
-	</span>
+	<Tooltip text="Geteilt">
+		<span className="inline-flex flex-none items-center text-dezent" data-marke-geteilt>
+			<Symbol name="teilen" className="size-3" />
+			<span className="sr-only">geteilt</span>
+		</span>
+	</Tooltip>
 );
 
 const FingerMenue = ({ menue, name }: { menue: (e: MouseEvent) => void; name: string }) => (
 	<Knopf
 		art="leise"
 		groesse="klein"
-		className="nur-finger size-knopf-klein flex-none px-0"
+		className="nur-finger size-knopf-klein flex-none"
 		aria-label={`Aktionen: ${name}`}
 		data-finger-menue
 		onClick={(e) => {

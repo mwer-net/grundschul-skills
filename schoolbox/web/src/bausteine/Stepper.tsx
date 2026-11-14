@@ -25,15 +25,19 @@ interface Eigenschaften {
 export const STEPPER_RAHMEN =
 	'inline-flex h-feld flex-none items-stretch overflow-hidden rounded-md border border-rand-feld bg-flaeche has-[input:focus]:border-brand-500';
 
+/** Füllt die Höhe des Rahmens (22 px wie jedes Feld, 187-15); nur die Breite hat ein Mindestmaß. */
 export const STEPPER_STUFE =
-	'flex size-knopf-feld flex-none items-center justify-center text-leise hover:bg-flaeche-2 hover:text-tinte disabled:opacity-40';
+	'flex min-w-[var(--hoehe-feld)] flex-none items-center justify-center text-leise hover:bg-flaeche-2 hover:text-tinte disabled:opacity-40';
 
 export const STEPPER_WERT =
 	'flex min-w-9 flex-none items-center justify-center gap-0.5 border-x border-rand px-1 text-sm tabular-nums';
 
 export const STEPPER_EINHEIT = 'flex-none text-xs text-dezent';
 
-/** − Wert +, für alle Zahlen. Der Wert lässt sich direkt eintippen; übernommen wird beim Verlassen oder mit ⏎. */
+/**
+ * − Wert +, für alle Zahlen. Der Wert lässt sich direkt eintippen; übernommen wird beim Verlassen oder mit ⏎. Im Feld
+ * zählen ↑ und ↓ um einen Schritt, Esc verwirft das Getippte (187-16).
+ */
 export const Stepper = ({
 	aus,
 	className,
@@ -94,6 +98,22 @@ export const Stepper = ({
 						if (e.key === 'Enter') {
 							e.preventDefault();
 							uebernimm();
+						} else if (e.key === 'ArrowUp' || e.key === 'ArrowDown') {
+							e.preventDefault();
+							const n = Number(text.replace(',', '.'));
+							const basis = text.trim() !== '' && Number.isFinite(n) ? n : wert;
+							const neu = grenze(rund(basis + (e.key === 'ArrowUp' ? schritt : -schritt)));
+							setText(String(neu));
+							if (neu !== wert) {
+								setze(neu);
+							}
+						} else if (e.key === 'Escape' && text !== String(wert)) {
+							// Nur das Getippte verwerfen; ein zweites Esc gehört wieder der Umgebung.
+							e.preventDefault();
+							e.stopPropagation();
+							setText(String(wert));
+							const feld = e.currentTarget;
+							requestAnimationFrame(() => feld.select());
 						}
 					}}
 				/>

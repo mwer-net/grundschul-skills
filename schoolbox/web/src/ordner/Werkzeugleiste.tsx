@@ -14,7 +14,7 @@ import type { AblageOrdner, Darstellung, Seite, Sortierung } from './typen';
 import type { Befehle } from './useBefehle';
 
 const KNOPF_MEHR = (
-	<Knopf art="leise" className="size-knopf px-0">
+	<Knopf art="leise" className="size-knopf">
 		<Symbol name="mehr" />
 	</Knopf>
 );

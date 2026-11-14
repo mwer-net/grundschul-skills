@@ -57,13 +57,13 @@ describe('Farbreihe (182)', () => {
 		]);
 	});
 
-	it('jeder Punkt hat title und aria-label mit seinem Namen', () => {
+	it('jeder Punkt hat aria-label mit seinem Namen; der Name erscheint als Tooltip, nie als title (187-06)', () => {
 		const html = zeichne({ keine: 'Keine Füllung', schwarz: true, setze: () => undefined });
 		for (const name of ['Keine Füllung', 'Schwarz', 'Hauptfarbe', 'Füllfarbe', 'Weiß']) {
-			assert.match(html, new RegExp(`aria-label="${name}" title="${name}"`), name);
+			assert.match(html, new RegExp(`aria-label="${name}"`), name);
 		}
-		assert.match(html, /title="Eigene Farbe"/);
 		assert.match(html, /aria-label="Eigene Farbe"/);
+		assert.doesNotMatch(html, /\btitle="/);
 	});
 
 	it('aria-pressed genau am passenden Punkt', () => {

@@ -13,6 +13,7 @@ import { MASKEN_FORMEN } from '@schoolbox/kern/src/formen-masken';
 
 import { KACHEL } from '../../../bausteine/klassen';
 import { Knopf } from '../../../bausteine/Knopf';
+import { Tooltip } from '../../../bausteine/Tooltip';
 import { Zeile } from '../../../bausteine/Zeile';
 import type { GestaltungKontext } from '../kontext';
 import type { InspektorTeile } from './abschnitte';
@@ -65,24 +66,24 @@ export const RahmenstilWahl = ({ aktiv, k, quelle }: InspektorTeile) => {
 							// Ein Stil nimmt die Maske weg: Das steht am Knopf.
 							const nimmtMaske = s.wert !== 'gerade' && stand.maske !== null;
 							return (
-								<button
-									key={s.wert}
-									type="button"
-									className={KACHEL}
-									aria-pressed={stil === s.wert && stand.maske === null}
-									disabled={!aktiv}
-									data-rahmenstil-knopf={s.wert}
-									title={nimmtMaske ? `${s.titel}: nimmt die Maske weg` : s.titel}
-									onClick={() => {
-										setze(
-											k,
-											s.wert === 'gerade' ? 'Rahmen-Stil entfernt' : 'Rahmen-Stil geändert',
-											(q) => setzeRahmenstil(q, k.nr, s.wert === 'gerade' ? null : s.wert),
-										);
-									}}
-								>
-									{s.titel}
-								</button>
+								<Tooltip key={s.wert} text={nimmtMaske ? `${s.titel}: nimmt die Maske weg` : s.titel}>
+									<button
+										type="button"
+										className={KACHEL}
+										aria-pressed={stil === s.wert && stand.maske === null}
+										disabled={!aktiv}
+										data-rahmenstil-knopf={s.wert}
+										onClick={() => {
+											setze(
+												k,
+												s.wert === 'gerade' ? 'Rahmen-Stil entfernt' : 'Rahmen-Stil geändert',
+												(q) => setzeRahmenstil(q, k.nr, s.wert === 'gerade' ? null : s.wert),
+											);
+										}}
+									>
+										{s.titel}
+									</button>
+								</Tooltip>
 							);
 						})}
 					</div>
@@ -96,32 +97,33 @@ export const RahmenstilWahl = ({ aktiv, k, quelle }: InspektorTeile) => {
 					data-maske-wahl={stand.maske ?? 'keine'}
 				>
 					{!stand.leer && (
-						<button
-							type="button"
-							className={KACHEL}
-							aria-pressed={stand.maske === null}
-							disabled={!aktiv}
-							data-maske-knopf="keine"
-							title="Keine Maske"
-							onClick={() => setze(k, 'Maske entfernt', (q) => setzeMaske(q, k.nr, null))}
-						>
-							Keine
-						</button>
+						<Tooltip text="Keine Maske">
+							<button
+								type="button"
+								className={KACHEL}
+								aria-pressed={stand.maske === null}
+								disabled={!aktiv}
+								data-maske-knopf="keine"
+								onClick={() => setze(k, 'Maske entfernt', (q) => setzeMaske(q, k.nr, null))}
+							>
+								Keine
+							</button>
+						</Tooltip>
 					)}
 					{MASKEN_FORMEN.map((f) => (
-						<button
-							key={f.art}
-							type="button"
-							className={KACHEL}
-							aria-pressed={stand.maske === f.art}
-							aria-label={f.name}
-							disabled={!aktiv}
-							data-maske-knopf={f.art}
-							title={stand.rahmenstil ? `${f.name}: nimmt den Rahmen-Stil weg` : f.name}
-							onClick={() => setze(k, 'Maske geändert', (q) => setzeMaske(q, k.nr, f.art))}
-						>
-							<FormBild form={f} />
-						</button>
+						<Tooltip key={f.art} text={stand.rahmenstil ? `${f.name}: nimmt den Rahmen-Stil weg` : f.name}>
+							<button
+								type="button"
+								className={KACHEL}
+								aria-pressed={stand.maske === f.art}
+								aria-label={f.name}
+								disabled={!aktiv}
+								data-maske-knopf={f.art}
+								onClick={() => setze(k, 'Maske geändert', (q) => setzeMaske(q, k.nr, f.art))}
+							>
+								<FormBild form={f} />
+							</button>
+						</Tooltip>
 					))}
 				</div>
 			</Zeile>

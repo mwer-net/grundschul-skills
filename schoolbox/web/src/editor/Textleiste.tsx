@@ -14,7 +14,7 @@ import { SCHRIFT_TASTEN } from './textdom';
 
 type Text = ReturnType<typeof useText>;
 
-const FORM = 'size-knopf-klein px-0 aria-pressed:bg-flaeche-2 aria-pressed:text-tinte';
+const FORM = 'size-knopf-klein aria-pressed:bg-flaeche-2 aria-pressed:text-tinte';
 
 /**
  * Nur in Schmuckschrift und Form mit Text (105): Der Knopf klappt die Farben des Blatts auf, ein Klick färbt die
@@ -29,23 +29,24 @@ const WortFarbe = ({ text }: { text: Text }) => {
 	};
 	return (
 		<div className="flex items-center gap-0.5" data-wortfarbe-knoepfe>
-			<Knopf
-				art="leise"
-				groesse="klein"
-				className={FORM}
-				aria-label="Farbe für markierte Wörter"
-				title="Farbe für markierte Wörter"
-				aria-expanded={offen}
-				data-wortfarbe-knopf
-				{...halteFokus}
-				onClick={() => setOffen((o) => !o)}
-			>
-				<span
-					aria-hidden
-					className="size-4 rounded-full border border-black/20"
-					style={{ background: 'conic-gradient(#e76f51, #ffbe0b, #43aa8b, #3a86ff, #6a4c93, #e76f51)' }}
-				/>
-			</Knopf>
+			<Tooltip text="Farbe für markierte Wörter">
+				<Knopf
+					art="leise"
+					groesse="klein"
+					className={FORM}
+					aria-label="Farbe für markierte Wörter"
+					aria-expanded={offen}
+					data-wortfarbe-knopf
+					{...halteFokus}
+					onClick={() => setOffen((o) => !o)}
+				>
+					<span
+						aria-hidden
+						className="size-4 rounded-full border border-black/20"
+						style={{ background: 'conic-gradient(#e76f51, #ffbe0b, #43aa8b, #3a86ff, #6a4c93, #e76f51)' }}
+					/>
+				</Knopf>
+			</Tooltip>
 			{offen && (
 				<div role="group" aria-label="Farbe für markierte Wörter" className="flex items-center gap-0.5">
 					{[
@@ -65,16 +66,17 @@ const WortFarbe = ({ text }: { text: Text }) => {
 							onClick={() => waehle(f.wert)}
 						/>
 					))}
-					<Knopf
-						art="leise"
-						groesse="klein"
-						title="Farbe der Schrift wie der Rest"
-						data-farbe="ohne"
-						{...halteFokus}
-						onClick={() => waehle(null)}
-					>
-						Ohne
-					</Knopf>
+					<Tooltip text="Farbe der Schrift wie der Rest">
+						<Knopf
+							art="leise"
+							groesse="klein"
+							data-farbe="ohne"
+							{...halteFokus}
+							onClick={() => waehle(null)}
+						>
+							Ohne
+						</Knopf>
+					</Tooltip>
 				</div>
 			)}
 		</div>
@@ -126,17 +128,18 @@ export const Textknoepfe = ({ sitzung, text }: { sitzung: boolean; text: Text })
 					U
 				</Knopf>
 			</Tooltip>
-			<Knopf
-				art="leise"
-				groesse="klein"
-				className={FORM}
-				aria-label="Hervorheben"
-				title="Markierten Text hervorheben; in s/w fett und unterstrichen"
-				{...halteFokus}
-				onClick={() => wirke('mark')}
-			>
-				<Symbol name="markieren" />
-			</Knopf>
+			<Tooltip text="Markierten Text hervorheben; in s/w fett und unterstrichen">
+				<Knopf
+					art="leise"
+					groesse="klein"
+					className={FORM}
+					aria-label="Hervorheben"
+					{...halteFokus}
+					onClick={() => wirke('mark')}
+				>
+					<Symbol name="markieren" />
+				</Knopf>
+			</Tooltip>
 			{sitzung && zustand.farbe && <WortFarbe text={text} />}
 		</div>
 	);

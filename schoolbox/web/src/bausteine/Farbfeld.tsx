@@ -3,6 +3,7 @@ import type { ButtonHTMLAttributes } from 'react';
 import { useEffect, useId, useRef } from 'react';
 
 import { klassen } from './klassen';
+import { Tooltip } from './Tooltip';
 import { sichtbar } from './verlauf';
 
 export const SCHWARZ = '#000000';
@@ -68,45 +69,47 @@ const EigenerPunkt = ({ aus, eigen }: { aus?: boolean; eigen: Eigene }) => {
 		return () => element.removeEventListener('change', fertig);
 	}, []);
 	return (
-		<label
-			htmlFor={id}
-			title="Eigene Farbe"
-			data-gewaehlt={eigen.wert !== null || undefined}
-			className={klassen(FLAECHE, 'cursor-pointer', aus && 'pointer-events-none opacity-50')}
-		>
-			<span
-				aria-hidden
-				className={punktKlassen(eigen.wert !== null, aus)}
-				style={{ background: eigen.wert ?? FARBKREIS }}
-			/>
-			<input
-				ref={eingabe}
-				id={id}
-				type="color"
-				aria-label="Eigene Farbe"
-				data-farbe="eigen"
-				disabled={aus}
-				className="absolute inset-0 size-full cursor-pointer opacity-0"
-				value={eigen.wert ?? '#ffe0b8'}
-				onChange={(e) => eigen.zeige?.(e.target.value.toLowerCase())}
-			/>
-		</label>
+		<Tooltip text="Eigene Farbe">
+			<label
+				htmlFor={id}
+				data-gewaehlt={eigen.wert !== null || undefined}
+				className={klassen(FLAECHE, 'cursor-pointer', aus && 'pointer-events-none opacity-50')}
+			>
+				<span
+					aria-hidden
+					className={punktKlassen(eigen.wert !== null, aus)}
+					style={{ background: eigen.wert ?? FARBKREIS }}
+				/>
+				<input
+					ref={eingabe}
+					id={id}
+					type="color"
+					aria-label="Eigene Farbe"
+					data-farbe="eigen"
+					disabled={aus}
+					className="absolute inset-0 size-full cursor-pointer opacity-0"
+					value={eigen.wert ?? '#ffe0b8'}
+					onChange={(e) => eigen.zeige?.(e.target.value.toLowerCase())}
+				/>
+			</label>
+		</Tooltip>
 	);
 };
 
 /** Ein Farbpunkt: 24 px Trefferfläche, darin 18 px Farbe; mit dem Finger 44 und 28 px. Gewählt: Ring in Tinte. */
 export const Farbpunkt = ({ aus, farbe, gewaehlt, name, ...rest }: PunktEigenschaften) => (
-	<button
-		type="button"
-		className={FLAECHE}
-		aria-pressed={gewaehlt}
-		aria-label={name}
-		title={name}
-		disabled={aus}
-		{...rest}
-	>
-		<span aria-hidden className={punktKlassen(gewaehlt === true, aus)} style={{ background: farbe }} />
-	</button>
+	<Tooltip text={name}>
+		<button
+			type="button"
+			className={FLAECHE}
+			aria-pressed={gewaehlt}
+			aria-label={name}
+			disabled={aus}
+			{...rest}
+		>
+			<span aria-hidden className={punktKlassen(gewaehlt === true, aus)} style={{ background: farbe }} />
+		</button>
+	</Tooltip>
 );
 
 interface Gemeinsam {

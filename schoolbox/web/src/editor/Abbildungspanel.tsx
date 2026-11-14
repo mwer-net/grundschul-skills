@@ -66,6 +66,7 @@ import { Popover } from '../bausteine/Popover';
 import { Schalter as Umschalter } from '../bausteine/Schalter';
 import { STEPPER_EINHEIT, STEPPER_RAHMEN, STEPPER_STUFE, STEPPER_WERT } from '../bausteine/Stepper';
 import { Symbol } from '../bausteine/Symbol';
+import { Tooltip } from '../bausteine/Tooltip';
 import { folgeZeiger, rolleAmRand, schluckeKlick } from '../bausteine/zeigerzug';
 import { Zeile } from '../bausteine/Zeile';
 import type { AbbildungSteuerung } from './abbildung';
@@ -558,18 +559,18 @@ const Muster = ({
 }) => (
 	<div className="flex flex-wrap gap-2" role="radiogroup" aria-label={name} data-muster-wahl>
 		{optionen.map((o) => (
-			<button
-				key={o.wert}
-				type="button"
-				role="radio"
-				aria-checked={aktiv === o.wert}
-				aria-label={o.name}
-				title={o.name}
-				data-muster={o.wert}
-				className={`size-11 rounded-xl border ${aktiv === o.wert ? 'border-tinte ring-1 ring-tinte' : 'border-rand'}`}
-				style={{ background: (sw ? MUSTER_BILD : FARB_BILD)[o.wert] ?? '#fff' }}
-				onClick={() => setze(o.wert)}
-			/>
+			<Tooltip key={o.wert} text={o.name}>
+				<button
+					type="button"
+					role="radio"
+					aria-checked={aktiv === o.wert}
+					aria-label={o.name}
+					data-muster={o.wert}
+					className={`size-11 rounded-xl border ${aktiv === o.wert ? 'border-tinte ring-1 ring-tinte' : 'border-rand'}`}
+					style={{ background: (sw ? MUSTER_BILD : FARB_BILD)[o.wert] ?? '#fff' }}
+					onClick={() => setze(o.wert)}
+				/>
+			</Tooltip>
 		))}
 	</div>
 );
@@ -1180,7 +1181,9 @@ const Liste = ({ abb, feld }: FeldEigenschaften<ListeFeld>) => {
 						>
 							{spalten.map((u) =>
 								u.art === 'bild' || u.art === 'muster' ? (
-									<span key={u.name} className="w-(--hoehe-feld) flex-none" title={u.name} />
+									<Tooltip key={u.name} text={u.name}>
+										<span className="w-(--hoehe-feld) flex-none" />
+									</Tooltip>
 								) : (
 									<span key={u.name} className={klassen(spaltenKlasse(u), 'truncate')}>
 										{u.name}

@@ -7,6 +7,7 @@ import { meldung } from '../api';
 import { useHinweis } from '../bausteine/hinweis';
 import { Knopf } from '../bausteine/Knopf';
 import { Symbol } from '../bausteine/Symbol';
+import { Tooltip } from '../bausteine/Tooltip';
 import { laufzeit, useJetzt } from '../editor/entwurf';
 import { ART_NAME } from '../lib/text';
 import { einheitAktion, einheitFreigeben, fertig, fortschritt, geplant } from './einheiten';
@@ -19,19 +20,20 @@ export const EinheitPille = ({ einheiten }: { einheiten: EinheitStand[] }) => {
 	}
 	const wartet = laufend.status === 'plan';
 	return (
-		<Link
-			to={`/o/${laufend.ordner}`}
-			className="flex h-knopf-klein items-center gap-1.5 rounded-full border border-rand bg-flaeche-2 px-2.5 text-xs font-medium text-brand-700 no-underline hover:bg-rand"
-			title={
+		<Tooltip text={
 				wartet
 					? `Der Plan der Einheit „${laufend.titel}“ wartet auf deine Freigabe`
 					: `Claude baut die Einheit „${laufend.titel}“`
-			}
-			data-einheit-pille
-		>
-			<Symbol name={wartet ? 'funken' : 'laden'} className={wartet ? 'size-3' : 'size-3 animate-spin'} />
-			{`Einheit: ${fortschritt(laufend)}`}
-		</Link>
+			}>
+			<Link
+				to={`/o/${laufend.ordner}`}
+				className="flex h-knopf-klein items-center gap-1.5 rounded-full border border-rand bg-flaeche-2 px-2.5 text-xs font-medium text-brand-700 no-underline hover:bg-rand"
+				data-einheit-pille
+			>
+				<Symbol name={wartet ? 'funken' : 'laden'} className={wartet ? 'size-3' : 'size-3 animate-spin'} />
+				{`Einheit: ${fortschritt(laufend)}`}
+			</Link>
+		</Tooltip>
 	);
 };
 

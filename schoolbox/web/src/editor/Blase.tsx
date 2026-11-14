@@ -212,7 +212,7 @@ const Schnellaktionen = ({
 );
 
 const MEHR_KNOPF = (
-	<Knopf art="leise" groesse="klein" className="size-knopf-klein px-0">
+	<Knopf art="leise" groesse="klein" className="size-knopf-klein">
 		<Symbol name="mehr" />
 	</Knopf>
 );
