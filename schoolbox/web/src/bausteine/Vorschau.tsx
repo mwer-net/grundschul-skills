@@ -6,6 +6,7 @@ import { QUERFORMATE } from '../lib/text';
 import type { Zugang } from '../lib/zugang';
 import { vorschauAdresse } from '../lib/zugang';
 import type { DokumentEintrag } from '../typen';
+import { useBildFehler } from './bildFehler';
 import { klassen } from './klassen';
 import { Symbol } from './Symbol';
 
@@ -16,10 +17,14 @@ interface Eigenschaften {
 }
 
 const Bild = ({ dokument, zugang }: { zugang: Zugang; dokument: DokumentEintrag | undefined }) => {
+	const src = dokument?.vorschau
+		? vorschaubildAdresse(vorschauAdresse(zugang, dokument.id, dokument.vorschau))
+		: null;
+	const { fehlt, onError } = useBildFehler(src);
 	if (dokument !== undefined && zugang.token === null && hatOffeneEntwuerfe(dokument.meta)) {
 		return <EntwurfMinis zugang={zugang} dokument={dokument} />;
 	}
-	if (!dokument?.vorschau) {
+	if (!dokument || src === null || fehlt) {
 		return (
 			<div className="flex size-full items-center justify-center text-rand-feld" data-platzhalter>
 				<Symbol name="blatt" className="size-16" />
@@ -31,8 +36,9 @@ const Bild = ({ dokument, zugang }: { zugang: Zugang; dokument: DokumentEintrag 
 		<div className={quer ? 'flex size-full items-center justify-center p-3' : 'px-[12%]'}>
 			<img
 				className={klassen('bg-flaeche shadow-1', quer ? 'max-h-full max-w-full' : 'w-full')}
-				src={vorschaubildAdresse(vorschauAdresse(zugang, dokument.id, dokument.vorschau))}
+				src={src}
 				alt=""
+				onError={onError}
 				loading="lazy"
 				decoding="async"
 				draggable={false}

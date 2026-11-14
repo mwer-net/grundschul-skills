@@ -5,7 +5,7 @@ import path from 'node:path';
 import { after, before, describe, it } from 'node:test';
 
 import { dokumentDir, legeVarianteAn, leseMappe, leseMeta, neueMappe, neuesDokument } from './ablage';
-import { wuerfleNeu } from './variante';
+import { wuerfelbar, wuerfleNeu } from './variante';
 
 describe('Variante (050)', () => {
 	let material = '';
@@ -23,6 +23,14 @@ describe('Variante (050)', () => {
 		const ohneWerte = (t: string) => t.replace(/basis="[^"]*"/, 'basis=""').replace(/seed="[^"]*"/, 'seed=""');
 		assert.equal(ohneWerte(neu), ohneWerte(quelle), 'Gegenprobe: Nur basis und seed unterscheiden sich');
 		assert.match(neu, /offen="0-1"/);
+	});
+
+	it('wuerfelbar: wahr genau dann, wenn Würfeln etwas ändert (188-33)', () => {
+		const mit = '<!doctype html><html><body><section class="seite"><x-zahlenmauer basis="3 5 2"></x-zahlenmauer></section></body></html>';
+		const ohne = '<!doctype html><html><body><section class="seite"><p>Nur Text.</p></section></body></html>';
+		assert.equal(wuerfelbar(mit), true);
+		assert.equal(wuerfelbar(ohne), false);
+		assert.equal(wuerfelbar(mit), wuerfleNeu(mit, 's').geaendert > 0, 'Gegenprobe mit dem Würfeln selbst');
 	});
 
 	it('Ein Dokument ohne Generierbares bleibt unverändert', () => {

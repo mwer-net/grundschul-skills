@@ -6,7 +6,7 @@ import { useHinweis } from '../bausteine/hinweis';
 import { useEreignisse } from '../ereignisse';
 import type { AblageWerte, AktionsWahl, Benennen, Merkzettel } from './kontext';
 import { AblageKontext } from './kontext';
-import { erwarteterStand } from './objekte';
+import { erwarteterStand, schluesselVon } from './objekte';
 import type { AblageStand, Aktion, AktionsAntwort } from './typen';
 import { leseMerkzettel, schreibeMerkzettel } from './zwischenablage';
 
@@ -25,6 +25,7 @@ export const AblageAnbieter = ({ children }: { children: ReactNode }) => {
 	const [merkzettel, setMerkzettel] = useState<Merkzettel | null>(() => leseMerkzettel());
 	const [benennen, setBenennen] = useState<Benennen | null>(null);
 	const [stapel, setStapel] = useState<{ zurueck: Schritt[]; vor: Schritt[] }>({ zurueck: [], vor: [] });
+	const [zurueckgeholt, setZurueckgeholt] = useState<AblageWerte['zurueckgeholt']>(null);
 	const zeige = useHinweis();
 	const standRef = useRef(stand);
 	standRef.current = stand;
@@ -122,6 +123,12 @@ export const AblageAnbieter = ({ children }: { children: ReactNode }) => {
 			return;
 		}
 		setStapel((s) => ({ ...s, zurueck: s.zurueck.slice(0, -1) }));
+		const geholt = letzter.her.flatMap((a) =>
+			a.art === 'zuruecklegen' || a.art === 'bewegen' ? a.knoten.map(schluesselVon) : [],
+		);
+		if (geholt.length > 0) {
+			setZurueckgeholt((z) => ({ schluessel: geholt, nr: (z?.nr ?? 0) + 1 }));
+		}
 		try {
 			const her: Aktion[] = [];
 			for (const schritt of letzter.her) {
@@ -199,8 +206,9 @@ export const AblageAnbieter = ({ children }: { children: ReactNode }) => {
 			merke,
 			benennen,
 			setBenennen,
+			zurueckgeholt,
 		}),
-		[benennen, fehler, merke, merkzettel, neuLaden, rueckgaengig, stand, stapel, tu, wiederholen],
+		[benennen, fehler, merke, merkzettel, neuLaden, rueckgaengig, stand, stapel, tu, wiederholen, zurueckgeholt],
 	);
 
 	return <AblageKontext value={werte}>{children}</AblageKontext>;

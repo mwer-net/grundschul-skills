@@ -1,12 +1,11 @@
 import { useNavigate, useSearchParams } from 'react-router-dom';
 
-import { Karte } from '../bausteine/Karte';
-import { Knopf, KnopfLink } from '../bausteine/Knopf';
+import { Knopf } from '../bausteine/Knopf';
 import { Symbol } from '../bausteine/Symbol';
 import { Zustand } from '../bausteine/Zustand';
 import { useClaudeBaut } from './claude-baut';
 import type { ObjektAnsicht, ZeileAnsicht } from './darstellung';
-import { Kachel, LISTEN_RASTER, Zeile } from './darstellung';
+import { Kachel, listenRaster, Zeile } from './darstellung';
 import { EinheitBand } from './EinheitBand';
 import { einheitFuer, useEinheiten } from './einheiten';
 import { PapierkorbSeite } from './PapierkorbSeite';
@@ -15,8 +14,11 @@ import type { AblageOrdner, Darstellung, Objekt, Seite, Sortierung } from './typ
 
 const FILTER = ['fach', 'klasse', 'art'];
 
+/** Nur mit Material in Sicht (188-35). */
+const NUR_MATERIAL = new Set(['Fach', 'Klasse', 'Format']);
+
 const SPALTEN: { feld: 'name' | 'geaendert' | 'art' | null; titel: string; klasse?: string }[] = [
-	{ feld: 'name', titel: 'Name' },
+	{ feld: 'name', titel: 'Name', klasse: 'pr-3' },
 	{ feld: 'geaendert', titel: 'Geändert' },
 	{ feld: 'art', titel: 'Art' },
 	{ feld: null, titel: 'Fach', klasse: '@max-3xl:hidden' },
@@ -35,47 +37,18 @@ const OrdnerFehlt = () => {
 	return (
 		<Zustand symbol="suche" titel="Diesen Ordner gibt es nicht mehr">
 			<div className="flex gap-2">
-				<Knopf onClick={() => void navigate('/')}>Zu meinem Material</Knopf>
 				<Knopf art="zweit" onClick={() => void navigate('/papierkorb')}>
 					Im Papierkorb nachsehen
 				</Knopf>
+				<Knopf onClick={() => void navigate('/')}>Zu meinem Material</Knopf>
 			</div>
 		</Zustand>
 	);
 };
 
-const LeererOrdner = ({
-	dieseLeiste,
-	hier,
-}: {
-	dieseLeiste: (id: string) => () => void;
-	hier: AblageOrdner | null;
-}) => (
-	<Zustand symbol={hier ? 'ordner' : 'blatt'} titel={hier ? 'Dieser Ordner ist leer' : 'Noch kein Material'}>
-		{!hier && (
-			<>
-				<p className="text-lg">Schreib Claude, was du brauchst, zum Beispiel:</p>
-				<Karte className="px-6 py-4 text-lg">„Ich brauche ein Arbeitsblatt zur Uhrzeit für Klasse 2.“</Karte>
-				<p className="text-leise">Sobald Claude etwas angelegt hat, erscheint es hier von selbst.</p>
-			</>
-		)}
-		<div className="flex gap-2">
-			<Knopf art="zweit" onClick={dieseLeiste('neuerOrdner')}>
-				<Symbol name="ordnerNeu" />
-				Neuer Ordner
-			</Knopf>
-			<Knopf onClick={dieseLeiste('materialAnlegen')}>
-				<Symbol name="plus" />
-				Material anlegen
-			</Knopf>
-		</div>
-		{!hier && (
-			<KnopfLink to="/hilfe" art="zweit">
-				<Symbol name="hilfe" />
-				So geht’s
-			</KnopfLink>
-		)}
-	</Zustand>
+/** Nur Symbol und Titel: Anlegen steht in der Leiste, im Menü der Fläche und auf ⌥N (189-33). */
+const LeererOrdner = ({ hier }: { hier: AblageOrdner | null }) => (
+	<Zustand symbol={hier ? 'ordner' : 'blatt'} titel={hier ? 'Dieser Ordner ist leer' : 'Noch kein Material'} />
 );
 
 const KeinTreffer = () => {
@@ -121,13 +94,14 @@ const Liste = ({
 	sortierung,
 	zeilen,
 }: ListeEigenschaften) => {
-	const koepfe = SPALTEN.map((s) =>
+	const mitMaterial = zeilen.some((z) => !z.objekt.istOrdner);
+	const koepfe = SPALTEN.filter((s) => mitMaterial || !NUR_MATERIAL.has(s.titel)).map((s) =>
 		s.titel === 'Art' && seite.art !== 'ordner' ? { ...s, titel: 'Ort', feld: null } : s,
 	);
 	return (
 		<div>
 			<div
-				className={`${LISTEN_RASTER} sticky top-[calc(var(--kopf,0px)+var(--hoehe-werkzeug))] z-ueberlagerung h-6 items-center border-b border-rand bg-flaeche px-1 text-xs font-medium text-leise`}
+				className={`${listenRaster(mitMaterial)} sticky top-[calc(var(--kopf,0px)+var(--hoehe-werkzeug))] z-ueberlagerung h-6 items-center border-b border-rand bg-flaeche px-1 text-xs font-medium text-leise`}
 			>
 				{koepfe.map(({ feld, klasse, titel }) =>
 					feld && seite.art === 'ordner' ? (
@@ -158,6 +132,7 @@ const Liste = ({
 				const { objekt } = z;
 				const a: ZeileAnsicht = {
 					...ansicht(z),
+					mitMaterial,
 					offen: objekt.istOrdner && offenListe.has(objekt.ordner.id),
 					klappe:
 						objekt.istOrdner && seite.art === 'ordner'
@@ -205,14 +180,13 @@ const FlaecheInhalt = ({
 
 interface Eigenschaften extends ListeEigenschaften {
 	darstellung: Darstellung;
-	dieseLeiste: (id: string) => () => void;
 	hier: AblageOrdner | null;
 	objektZahl: number;
 	ordnerFehlt: boolean;
 }
 
 /** Was in der Fläche steht: Kacheln, Liste oder der passende leere Zustand. */
-export const AblageInhalt = ({ darstellung, dieseLeiste, hier, objektZahl, ordnerFehlt, ...liste }: Eigenschaften) => {
+export const AblageInhalt = ({ darstellung, hier, objektZahl, ordnerFehlt, ...liste }: Eigenschaften) => {
 	const { seite } = liste;
 	const baut = useClaudeBaut();
 	const { einheiten } = useEinheiten();
@@ -233,7 +207,7 @@ export const AblageInhalt = ({ darstellung, dieseLeiste, hier, objektZahl, ordne
 	}
 	if (objektZahl === 0) {
 		if (seite.art === 'ordner') {
-			return <LeererOrdner dieseLeiste={dieseLeiste} hier={hier} />;
+			return <LeererOrdner hier={hier} />;
 		}
 		return seite.art === 'suche' ? <KeinTreffer /> : <Zustand symbol="uhr" titel="Noch nichts geändert" />;
 	}

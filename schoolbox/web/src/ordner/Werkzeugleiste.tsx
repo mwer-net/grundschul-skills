@@ -6,17 +6,21 @@ import { Segment } from '../bausteine/Segment';
 import type { SymbolName } from '../bausteine/Symbol';
 import { Symbol } from '../bausteine/Symbol';
 import { SymbolKnopf } from '../bausteine/SymbolKnopf';
+import { Tooltip } from '../bausteine/Tooltip';
 import type { Lage } from './befehle';
-import { kuerzelVon } from './befehle';
+import { kuerzelVon, leistenKnoepfe } from './befehle';
 import { Pfad } from './Pfad';
 import { naechsteSortierung, SORTIER_NAME } from './sortierung';
 import type { AblageOrdner, Darstellung, Seite, Sortierung } from './typen';
 import type { Befehle } from './useBefehle';
 
-const KNOPF_MEHR = (
-	<Knopf art="leise" className="size-knopf">
-		<Symbol name="mehr" />
-	</Knopf>
+/** ⋯ mit Tooltip; solange das Menü offen ist, schweigt der Tooltip (188-20). Die Eigenschaften kommen vom Auslöser. */
+const MehrKnopf = (props: Record<string, unknown>) => (
+	<Tooltip text="Weitere Aktionen" aus={props['data-popup-open'] !== undefined}>
+		<Knopf {...props} art="leise" className="size-knopf">
+			<Symbol name="mehr" />
+		</Knopf>
+	</Tooltip>
 );
 
 const KnopfText = ({ symbol, text }: { symbol: SymbolName; text: string }) => (
@@ -26,52 +30,50 @@ const KnopfText = ({ symbol, text }: { symbol: SymbolName; text: string }) => (
 	</>
 );
 
-/** Häufige Aktionen der Auswahl: gleichwertig zum Kachelknopf von früher. */
-const AuswahlKnoepfe = ({ befehle, lage }: { befehle: Befehle; lage: Lage }) => {
-	const { fuehreAus, gewaehlteObjekte, pdfMenue } = befehle;
+const KNOPF: Record<string, { symbol: SymbolName; text: string }> = {
+	entwuerfe: { symbol: 'ebenen', text: 'Entwürfe vergleichen' },
+	praesentieren: { symbol: 'praesentieren', text: 'Präsentieren' },
+	bearbeiten: { symbol: 'stift', text: 'Bearbeiten' },
+	teilen: { symbol: 'teilen', text: 'Teilen' },
+	bewegenNach: { symbol: 'bewegenNach', text: 'Bewegen nach …' },
+};
+
+/** Häufige Aktionen der Auswahl, aus dem Register: nur, was das Menü auch anbietet (188-02). */
+const AuswahlKnoepfe = ({ befehle, ids, lage }: { befehle: Befehle; ids: string[]; lage: Lage }) => {
+	const { fuehreAus, gewaehlteObjekte, pdfLaeuft, pdfMenue } = befehle;
 	const [einziges] = gewaehlteObjekte;
-	const dieseLeiste = (id: string) => () => fuehreAus(id, lage);
-	const pdfEintraege = pdfMenue(lage);
 	const alsOrdner = einziges?.istOrdner ? 'Alles als PDF' : 'PDF';
 	const pdfTitel = gewaehlteObjekte.length > 1 ? 'Als PDF' : alsOrdner;
+	if (gewaehlteObjekte.length === 0) {
+		return null;
+	}
 	return (
 		<>
-			{/* Häufige Aktionen der Auswahl: gleichwertig zum Kachelknopf von früher. */}
-			{einziges && !einziges.istOrdner && gewaehlteObjekte.length === 1 && lage.art === 'material' && (
-				<>
-					{einziges.dok.meta.format === 'folie' ? (
-						<Knopf art="zweit" aria-label="Präsentieren" onClick={dieseLeiste('praesentieren')}>
-							<Symbol name="praesentieren" />
-							<span className="@max-5xl:hidden">Präsentieren</span>
+			{ids.map((id) => {
+				if (id === 'pdf') {
+					const eintraege = pdfMenue(lage);
+					return (
+						eintraege.length > 0 && (
+							<Menue
+								key={id}
+								name="PDF"
+								beschriftung={<KnopfText symbol="herunterladen" text={pdfTitel} />}
+								art="zweit"
+								disabled={pdfLaeuft}
+								eintraege={eintraege}
+							/>
+						)
+					);
+				}
+				const knopf = KNOPF[id];
+				return (
+					knopf && (
+						<Knopf key={id} art="zweit" aria-label={knopf.text} onClick={() => fuehreAus(id, lage)}>
+							<KnopfText symbol={knopf.symbol} text={knopf.text} />
 						</Knopf>
-					) : (
-						<Knopf art="zweit" aria-label="Bearbeiten" onClick={dieseLeiste('bearbeiten')}>
-							<Symbol name="stift" />
-							<span className="@max-5xl:hidden">Bearbeiten</span>
-						</Knopf>
-					)}
-				</>
-			)}
-			{gewaehlteObjekte.length > 0 && pdfEintraege.length > 0 && (
-				<Menue
-					name="PDF"
-					beschriftung={<KnopfText symbol="herunterladen" text={pdfTitel} />}
-					art="zweit"
-					eintraege={pdfEintraege}
-				/>
-			)}
-			{gewaehlteObjekte.length === 1 && (
-				<Knopf art="zweit" aria-label="Teilen" onClick={dieseLeiste('teilen')}>
-					<Symbol name="teilen" />
-					<span className="@max-5xl:hidden">Teilen</span>
-				</Knopf>
-			)}
-			{gewaehlteObjekte.length > 1 && (
-				<Knopf art="zweit" aria-label="Bewegen nach …" onClick={dieseLeiste('bewegenNach')}>
-					<Symbol name="bewegenNach" />
-					<span className="@max-5xl:hidden">Bewegen nach …</span>
-				</Knopf>
-			)}
+					)
+				);
+			})}
 		</>
 	);
 };
@@ -83,7 +85,6 @@ interface Eigenschaften {
 	haken: boolean;
 	setHaken: (an: boolean) => void;
 	setKeineAuswahl: () => void;
-	hier: AblageOrdner | null;
 	leisteAn: boolean;
 	pfad: AblageOrdner[];
 	seite: Seite;
@@ -97,7 +98,6 @@ export const Werkzeugleiste = ({
 	befehle,
 	darstellung,
 	haken,
-	hier,
 	leisteAn,
 	pfad,
 	seite,
@@ -108,30 +108,31 @@ export const Werkzeugleiste = ({
 	sortierung,
 }: Eigenschaften) => {
 	const navigate = useNavigate();
-	const { fuehreAus, gewaehlteObjekte, lageFuer, menueFuer } = befehle;
+	const { fuehreAus, gewaehlteObjekte, lageFuer, menueOhne } = befehle;
 	const lage = lageFuer(gewaehlteObjekte);
 	const dieseLeiste = (id: string) => () => fuehreAus(id, lage);
+	const knoepfe = leistenKnoepfe(lage);
 	return (
 		<div
 			className="sticky top-[var(--kopf,0px)] z-leiste flex h-[var(--hoehe-werkzeug)] flex-none items-center gap-1.5 border-b border-rand bg-flaeche px-2"
 			data-werkzeugleiste
 		>
+			{/* Immer dasselbe Symbol (189-23). Zurück und Vor bleiben beim Browser (188-30). */}
 			<SymbolKnopf
-				symbol={leisteAn ? 'leisteLinks' : 'leisteRechts'}
+				symbol="leisteLinks"
 				beschriftung={leisteAn ? 'Seitenleiste ausblenden' : 'Seitenleiste einblenden'}
 				kuerzel={kuerzelVon('seitenleiste')}
 				onClick={() => fuehreAus('seitenleiste', lage)}
 			/>
-			<SymbolKnopf symbol="links" beschriftung="Zurück" onClick={() => void navigate(-1)} />
-			<SymbolKnopf symbol="rechts" beschriftung="Vor" onClick={() => void navigate(1)} />
 			{seite.art === 'ordner' ? (
-				<Pfad pfad={pfad} gehe={(p) => void navigate(p)} />
+				<Pfad pfad={pfad} gehe={(p) => void navigate(p)} fehlt={lage.gesperrt === true} />
 			) : (
 				<h1 className="min-w-0 flex-1 truncate px-1 text-sm font-semibold">{SEITEN_TITEL[seite.art]}</h1>
 			)}
-			{seite.art !== 'papierkorb' && (
+			{/* Fehlt der Ordner, gibt es hier nichts zu tun (189-02). */}
+			{seite.art !== 'papierkorb' && !lage.gesperrt && (
 				<>
-					<AuswahlKnoepfe befehle={befehle} lage={lage} />
+					<AuswahlKnoepfe befehle={befehle} ids={knoepfe} lage={lage} />
 					<Segment
 						beschriftung="Darstellung"
 						wert={darstellung}
@@ -144,7 +145,9 @@ export const Werkzeugleiste = ({
 					{seite.art === 'ordner' && (
 						<Menue
 							name="Sortieren"
-							beschriftung={<KnopfText symbol="sortieren" text="Sortieren" />}
+							beschriftung={
+								<KnopfText symbol="sortieren" text={`Sortieren: ${SORTIER_NAME[sortierung.feld]}`} />
+							}
 							art="leise"
 							eintraege={(['name', 'geaendert', 'erstellt', 'art'] as const).map((feld) => ({
 								titel: SORTIER_NAME[feld],
@@ -152,16 +155,6 @@ export const Werkzeugleiste = ({
 								waehle: () => sortiere(naechsteSortierung(sortierung, feld)),
 							}))}
 						/>
-					)}
-					{seite.art === 'ordner' && (
-						<Knopf
-							art="leise"
-							aria-label="Filter"
-							onClick={() => void navigate(`/suche?${hier ? `in=${hier.id}&von=${hier.id}` : ''}`)}
-						>
-							<Symbol name="filter" />
-							<span className="@max-5xl:hidden">Filter</span>
-						</Knopf>
 					)}
 					<span className="nur-finger">
 						<Knopf
@@ -179,15 +172,16 @@ export const Werkzeugleiste = ({
 							<span className="@max-5xl:hidden">{haken ? 'Fertig' : 'Auswählen'}</span>
 						</Knopf>
 					</span>
+					{/* Ohne das, was daneben schon als Knopf steht (188-31). */}
 					<Menue
 						name="Weitere Aktionen"
 						rechtsbuendig
-						eintraege={menueFuer(gewaehlteObjekte)}
-						ausloeser={KNOPF_MEHR}
+						eintraege={menueOhne(gewaehlteObjekte, knoepfe)}
+						ausloeser={<MehrKnopf />}
 					/>
 				</>
 			)}
-			{seite.art === 'ordner' && (
+			{seite.art === 'ordner' && !lage.gesperrt && (
 				<>
 					<Knopf art="zweit" aria-label="Neuer Ordner" data-neuer-ordner onClick={dieseLeiste('neuerOrdner')}>
 						<Symbol name="ordnerNeu" />

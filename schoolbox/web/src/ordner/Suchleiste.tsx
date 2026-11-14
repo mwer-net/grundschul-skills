@@ -4,15 +4,21 @@ import { useSearchParams } from 'react-router-dom';
 import { Knopf } from '../bausteine/Knopf';
 import { Menue } from '../bausteine/Menue';
 import { Segment } from '../bausteine/Segment';
+import { Tooltip } from '../bausteine/Tooltip';
 import type { Art, Fach } from '../lib/text';
 import { ART_NAME, FACH_NAME, KLASSEN_NAMEN } from '../lib/text';
-import { ortName } from './objekte';
+import { findeOrdner, ortName, WURZEL_NAME } from './objekte';
 import type { AblageStand } from './typen';
 
 type FilterName = 'fach' | 'klasse' | 'art';
 
-/** Bereich und Filter stehen nur hier, in der URL. Der Ordner selbst bleibt damit ruhig. */
-export const Suchleiste = ({ anzahl, stand }: { stand: AblageStand; anzahl: number }) => {
+/** Lange Ordnernamen im Bereich kürzen mit „…“ (189-24). */
+const BEREICH_ZEICHEN = 24;
+const kurzerName = (name: string) =>
+	name.length > BEREICH_ZEICHEN ? `${name.slice(0, BEREICH_ZEICHEN - 1).trimEnd()}…` : name;
+
+/** Bereich und Filter stehen nur hier, in der URL. Die Zahl der Treffer steht in der Statuszeile (189-25). */
+export const Suchleiste = ({ stand }: { stand: AblageStand }) => {
 	const [parameter, setParameter] = useSearchParams();
 	const von = parameter.get('von');
 	const bereich = parameter.get('in');
@@ -76,15 +82,19 @@ export const Suchleiste = ({ anzahl, stand }: { stand: AblageStand; anzahl: numb
 			data-suchleiste
 		>
 			{von && (
-				<Segment
-					beschriftung="Bereich"
-					wert={bereich ? 'hier' : 'ueberall'}
-					waehle={waehleBereich}
-					werte={[
-						{ wert: 'ueberall', titel: 'Überall' },
-						{ wert: 'hier', titel: `In „${ortName(stand, von)}“` },
-					]}
-				/>
+				<Tooltip text={`In „${ortName(stand, von)}“`}>
+					<span className="inline-flex">
+						<Segment
+							beschriftung="Bereich"
+							wert={bereich ? 'hier' : 'ueberall'}
+							waehle={waehleBereich}
+							werte={[
+								{ wert: 'ueberall', titel: 'Überall' },
+								{ wert: 'hier', titel: `In „${kurzerName(findeOrdner(stand, von)?.name ?? WURZEL_NAME)}“` },
+							]}
+						/>
+					</span>
+				</Tooltip>
 			)}
 			{gruppen.map(({ name, titel, werte }) => {
 				const jetzt = werte.find((w) => w.wert === parameter.get(name));
@@ -105,9 +115,6 @@ export const Suchleiste = ({ anzahl, stand }: { stand: AblageStand; anzahl: numb
 					Zurücksetzen
 				</Knopf>
 			)}
-			<span className="ml-auto text-xs text-leise" aria-live="polite">
-				{anzahl === 1 ? '1 Treffer' : `${anzahl} Treffer`}
-			</span>
 		</div>
 	);
 };

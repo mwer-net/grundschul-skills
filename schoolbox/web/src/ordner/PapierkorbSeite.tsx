@@ -4,6 +4,7 @@ import { useState } from 'react';
 import { meldung, sende } from '../api';
 import { useHinweis } from '../bausteine/hinweis';
 import { Knopf } from '../bausteine/Knopf';
+import { Gekuerzt } from '../bausteine/Gekuerzt';
 import { Symbol } from '../bausteine/Symbol';
 import { Zustand } from '../bausteine/Zustand';
 import { useEreignisse } from '../ereignisse';
@@ -11,7 +12,7 @@ import { useLaden } from '../lib/laden';
 import { anzahl, datum, tageBis } from '../lib/text';
 import type { PapierkorbEintrag } from '../typen';
 import { useAblage } from './kontext';
-import { WURZEL_NAME } from './objekte';
+import { kurzerPfad, WURZEL_NAME } from './objekte';
 import type { Knoten } from './typen';
 
 interface KorbObjekt {
@@ -29,12 +30,18 @@ interface Inhalt {
 	tage: number;
 }
 
-const frist = (bis: string) => {
+/** Erst wenn es knapp wird, hängt der Rest am Datum: „… · noch 6 Tage“ (189-34). */
+const KNAPP_TAGE = 8;
+const geloeschtText = (geloescht: string, bis: string) => {
 	const tage = tageBis(bis);
-	return tage <= 1 ? 'Noch 1 Tag' : `Noch ${tage} Tage`;
+	if (tage >= KNAPP_TAGE) {
+		return datum(geloescht);
+	}
+	return `${datum(geloescht)} · ${tage <= 1 ? 'noch 1 Tag' : `noch ${tage} Tage`}`;
 };
 
-const RASTER = 'grid grid-cols-[minmax(0,1fr)_minmax(0,14rem)_6rem_6rem_auto] items-center gap-3 px-1';
+/** Die letzte Spalte ist fest breit, damit Kopf und Zeilen fluchten (189-16). */
+const RASTER = 'grid grid-cols-[minmax(0,1fr)_minmax(0,14rem)_10rem_9rem] items-center gap-3 px-1';
 
 const Zeile = ({
 	bis,
@@ -47,14 +54,14 @@ const Zeile = ({
 }: {
 	bis: string;
 	geloescht: string;
-	herkunft: string;
+	herkunft: string[];
 	kopf: ReactNode;
 	symbol: 'ordner' | 'blatt';
 	titel: string;
 	unter?: string;
 }) => (
 	<li
-		className={`${RASTER} min-h-[var(--hoehe-listenzeile)] rounded-md py-0.5 text-sm hover:bg-flaeche-2`}
+		className={`${RASTER} min-h-[var(--hoehe-listenzeile)] rounded-md py-0.5 text-sm select-none hover:bg-flaeche-2`}
 		data-korb-eintrag={titel}
 	>
 		<span className="flex min-w-0 items-center gap-1.5">
@@ -62,10 +69,13 @@ const Zeile = ({
 			<span className="truncate">{titel}</span>
 			{unter && <span className="flex-none text-xs text-leise">{unter}</span>}
 		</span>
-		<span className="truncate text-xs text-leise">{herkunft}</span>
-		<span className="truncate text-xs text-leise">{datum(geloescht)}</span>
-		<span className="truncate text-xs text-leise">{frist(bis)}</span>
-		{kopf}
+		<Gekuerzt
+			text={kurzerPfad(herkunft)}
+			voll={[WURZEL_NAME, ...herkunft].join(' › ')}
+			className="text-xs text-leise"
+		/>
+		<span className="truncate text-xs text-leise">{geloeschtText(geloescht, bis)}</span>
+		<span className="flex justify-end">{kopf}</span>
 	</li>
 );
 
@@ -132,13 +142,12 @@ export const PapierkorbSeite = () => {
 
 	return (
 		<div data-papierkorb>
-			<p className="mb-2 text-sm text-leise">{`Was du löschst, bleibt hier ${tage} Tage. So lange kannst du es zurückholen.`}</p>
+			<p className="mb-2 text-sm text-leise">{`Was du löschst, bleibt hier ${tage} Tage.`}</p>
 			<div className={`${RASTER} h-6 border-b border-rand text-xs font-medium text-leise`}>
 				<span>Name</span>
 				<span>Ursprünglich in</span>
 				<span>Gelöscht</span>
-				<span>Frist</span>
-				<span className="w-36" />
+				<span />
 			</div>
 			<ul>
 				{objekte.map((o) => {
@@ -151,7 +160,7 @@ export const PapierkorbSeite = () => {
 							{...(o.objekte === undefined
 								? {}
 								: { unter: anzahl(o.objekte, 'Objekt', 'Objekte').replace('Ein Objekt', '1 Objekt') })}
-							herkunft={[WURZEL_NAME, ...o.geloescht.herkunft].join(' › ')}
+							herkunft={o.geloescht.herkunft}
 							geloescht={o.geloescht.zeit}
 							bis={o.bis}
 							kopf={zurueck(schluessel, o.name, () => void legeZurueck(o, schluessel))}
@@ -163,7 +172,7 @@ export const PapierkorbSeite = () => {
 						key={e.eintrag}
 						titel={e.mappe?.titel ?? e.id}
 						symbol="ordner"
-						herkunft={WURZEL_NAME}
+						herkunft={[]}
 						geloescht={e.geloescht}
 						bis={e.bis}
 						kopf={zurueck(e.eintrag, e.mappe?.titel ?? e.id, () => void holeAlten(e))}

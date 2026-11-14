@@ -34,5 +34,11 @@ export const bewegtText = (stand: AblageStand, objekte: readonly Objekt[], ziel:
 export const kopiertText = (stand: AblageStand, objekte: readonly Objekt[], ziel: string | null, a: AktionsAntwort) =>
 	`${anzahlText(objekte, objekte.length)} nach „${ortName(stand, ziel)}“ kopiert.${zusatz(stand, a)}`;
 
+export const dupliziertText = (objekte: readonly Objekt[]) => `${anzahlText(objekte, objekte.length)} dupliziert.`;
+
+/** ⌘X und ⌘C: nur, was geschah. */
+export const gemerktText = (objekte: readonly Objekt[], modus: 'ausschneiden' | 'kopieren') =>
+	`${anzahlText(objekte, objekte.length)} ${modus === 'ausschneiden' ? 'ausgeschnitten' : 'kopiert'}.`;
+
 export const geloeschtText = (objekte: readonly Objekt[]) =>
 	`${anzahlText(objekte, objekte.length)} in den Papierkorb gelegt.`;

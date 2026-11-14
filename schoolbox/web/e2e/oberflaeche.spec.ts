@@ -74,7 +74,10 @@ test.describe('Mein Material', () => {
 	test('lädt ein, wenn es noch nichts gibt, und zeigt neues Material von selbst', async ({ page }) => {
 		await page.goto('/');
 		await expect(page.getByRole('heading', { name: 'Noch kein Material' })).toBeVisible();
-		await expect(page.getByText('Schreib Claude, was du brauchst')).toBeVisible();
+		// 189-33: Der leere Start zeigt nur Symbol und Titel; Anlegen steht genau einmal da, in der Leiste.
+		await expect(page.getByText('Schreib Claude, was du brauchst')).toHaveCount(0);
+		await expect(page.getByRole('button', { name: 'Material anlegen' })).toHaveCount(1);
+		await expect(page.getByRole('link', { name: 'So geht’s' })).toHaveCount(0);
 		await page.evaluate(() => {
 			document.body.dataset.nichtNeuGeladen = 'ja';
 		});
@@ -183,7 +186,8 @@ test.describe('Ordner', () => {
 		await druecke(page.locator('[data-ablage-ziel="papierkorb"]'));
 		await expect(page.getByRole('heading', { level: 1, name: 'Papierkorb' })).toBeVisible();
 		const eintrag = page.locator('[data-korb-eintrag="Die Kartoffel (Kopie)"]');
-		await expect(eintrag).toContainText('Noch 30 Tage');
+		// 189-34: Keine Spalte „Frist“; der Rest steht erst da, wenn es knapp wird.
+		await expect(eintrag).not.toContainText('Tage');
 		await druecke(eintrag.getByRole('button', { name: 'Die Kartoffel (Kopie) wiederherstellen' }));
 		await expect(page.getByRole('heading', { name: 'Der Papierkorb ist leer' })).toBeVisible();
 		await page.goto('/');
@@ -1080,11 +1084,15 @@ test.describe('Ordner und Dokumentansicht (075)', () => {
 		const namen = await page.getByRole('menuitem').allInnerTexts();
 		await page.keyboard.press('Escape');
 		await expect(page.getByRole('menu')).toHaveCount(0);
-		expect(namen.join()).toContain('Variante anlegen');
 		expect(namen.join()).not.toContain('Als Vorlage');
+		// 188-31: Das ⋯ lässt weg, was daneben als Knopf steht; das Kontextmenü bleibt vollständig.
+		expect(namen.join()).not.toContain('Bearbeiten');
 		await kachel.click({ button: 'right' });
-		await expect(page.getByRole('menuitem')).toHaveCount(namen.length);
-		expect(await page.getByRole('menuitem').allInnerTexts()).toEqual(namen);
+		const alle = await page.getByRole('menuitem').allInnerTexts();
+		expect(alle.join()).toContain('Bearbeiten');
+		for (const name of namen) {
+			expect(alle).toContain(name);
+		}
 		await page.keyboard.press('Escape');
 	});
 

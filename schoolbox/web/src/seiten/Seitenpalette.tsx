@@ -75,13 +75,15 @@ export const Seitenpalette = ({ abmelden, anlegen, neuerOrdner, schliessen }: Ei
 		});
 		for (const d of stand?.dokumente ?? []) {
 			const ort = stand ? ortName(stand, d.ordner) : '';
+			// Gesucht wird in den Ordnernamen ohne „Mein Material“, sonst passte „Material“ auf alles (188-38).
+			const ordnerNamen = stand ? pfadVon(stand, d.ordner).map((o) => o.name) : [];
 			liste.push({
 				id: `dokument:${d.mappe}/${d.id}`,
 				titel: d.meta.titel,
-				gruppe: 'Dokumente',
+				gruppe: 'Material',
 				symbol: 'blatt',
 				notiz: ort,
-				suchwoerter: [FACH_NAME[d.fach], klasseName(d.klasse), ort, ART_NAME[d.meta.art] ?? d.meta.art],
+				suchwoerter: [FACH_NAME[d.fach], klasseName(d.klasse), ...ordnerNamen, ART_NAME[d.meta.art] ?? d.meta.art],
 				aus: () => void navigate(`/m/${d.mappe}/${d.id}`),
 			});
 		}
@@ -90,7 +92,7 @@ export const Seitenpalette = ({ abmelden, anlegen, neuerOrdner, schliessen }: Ei
 
 	return (
 		<Palette
-			platzhalter="Ordner, Dokument oder Befehl suchen"
+			platzhalter="Ordner, Material oder Befehl suchen"
 			eintraege={eintraege}
 			schliessen={schliessen}
 			freitext={anlegen && { titel: (text) => `Material anlegen: „${text}“`, aus: anlegen }}
