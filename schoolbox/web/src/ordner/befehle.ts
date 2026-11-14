@@ -20,6 +20,10 @@ export interface Lage {
 	merkzettel: Merkzettel | null;
 	/** Woher das Menü kam. Im Baum steht das Namensfeld im Baum. */
 	quelle: 'inhalt' | 'baum';
+	/** Wie viele Objekte die Fläche gerade zeigt: „Alles auswählen“ braucht mindestens eins (188-37). */
+	anzahl: number;
+	/** Der offene Ordner fehlt: Dann gilt kein Befehl der Ablage (189-02). */
+	gesperrt?: boolean;
 }
 
 const PDF_TITEL: Partial<Record<MenueArt, string>> = { material: 'PDF', mehrere: 'Als PDF' };
@@ -58,6 +62,8 @@ export interface Befehl {
 }
 
 const belegt = (l: Lage) => l.objekte.length > 0;
+/** „Mein Material“ im Baum: Was die Fläche rechts umstellt, gehört nicht in sein Menü (188-36, 189-01). */
+const fuerDieFlaeche = (l: Lage) => !(l.quelle === 'baum' && l.art === 'leer');
 
 export const BEFEHLE: Befehl[] = [
 	{
@@ -139,22 +145,23 @@ export const BEFEHLE: Befehl[] = [
 	},
 	{
 		id: 'variante',
-		titel: 'Variante anlegen',
+		titel: 'Variante mit neuen Zahlen',
 		symbol: 'variante',
-		wenn: (l) => Boolean(fertigesDok(l)),
+		// Nur, wo etwas neu gewürfelt werden kann (188-33); die Ablage fragt das je Material beim Server.
+		wenn: (l) => fertigesDok(l)?.wuerfelbar === true,
 		abschnitt: 'Ablage',
 	},
 	{
 		id: 'entwuerfe',
 		titel: 'Entwürfe vergleichen',
-		symbol: 'kopieren',
+		symbol: 'ebenen',
 		wenn: (l) => (einDok(l)?.meta.entwuerfe.length ?? 0) > 0,
 		abschnitt: 'Ablage',
 	},
 	{
 		id: 'umbenennen',
 		titel: 'Umbenennen',
-		symbol: 'stift',
+		symbol: 'schreiben',
 		kuerzel: [{ key: 'Enter' }],
 		wenn: (l) => l.objekte.length === 1,
 		abschnitt: 'Ablage',
@@ -162,7 +169,7 @@ export const BEFEHLE: Befehl[] = [
 	{
 		id: 'duplizieren',
 		titel: 'Duplizieren',
-		symbol: 'kopieren',
+		symbol: 'duplizieren',
 		kuerzel: [
 			{ code: 'KeyD', wahl: true },
 			{ code: 'KeyD', befehl: true },
@@ -205,9 +212,10 @@ export const BEFEHLE: Befehl[] = [
 	{
 		id: 'uebersicht',
 		titel: 'Übersicht',
-		symbol: 'auge',
+		symbol: 'vollbild',
 		kuerzel: [{ key: ' ' }],
-		wenn: belegt,
+		// Nur für Material: An einem Ordner zeigte sie weniger als seine Kachel (188-34).
+		wenn: (l) => l.art === 'material',
 		abschnitt: 'Ansicht',
 	},
 	{
@@ -230,13 +238,20 @@ export const BEFEHLE: Befehl[] = [
 		wenn: belegt,
 		abschnitt: 'Ablage',
 	},
-	{ id: 'darstellung', titel: 'Darstellung', abschnitt: 'Ansicht' },
-	{ id: 'sortieren', titel: 'Sortieren', symbol: 'sortieren', wenn: (l) => !l.fremd, abschnitt: 'Ansicht' },
+	{ id: 'darstellung', titel: 'Darstellung', symbol: 'seiten', wenn: fuerDieFlaeche, abschnitt: 'Ansicht' },
+	{
+		id: 'sortieren',
+		titel: 'Sortieren',
+		symbol: 'sortieren',
+		wenn: (l) => !l.fremd && fuerDieFlaeche(l),
+		abschnitt: 'Ansicht',
+	},
 	{
 		id: 'allesWaehlen',
 		titel: 'Alles auswählen',
 		symbol: 'auswaehlen',
 		kuerzel: [{ code: 'KeyA', befehl: true }],
+		wenn: (l) => l.anzahl > 0 && fuerDieFlaeche(l),
 		abschnitt: 'Auswahl',
 	},
 	{
@@ -277,13 +292,17 @@ export const BEFEHLE: Befehl[] = [
 	{ id: 'tasten', titel: 'Tasten zeigen', kuerzel: [{ key: '?' }], abschnitt: 'Ansicht' },
 ];
 
-/** Die Einträge je Art, Gruppen in Reihenfolge. Rechtsklick und ⋯ lesen dasselbe (Ticket, Kontextmenüs). */
+/**
+ * Die Einträge je Art, Gruppen in Reihenfolge. Rechtsklick und ⋯ lesen dasselbe (Ticket, Kontextmenüs); das ⋯ der
+ * Leiste lässt weg, was daneben als Knopf steht (188-31). „Ausschneiden“ bleibt Taste ohne Eintrag (188-32): Sichtbar
+ * bewegt „Bewegen nach …“.
+ */
 export const MENUE: Record<MenueArt, string[][]> = {
 	material: [
 		['oeffnen', 'bearbeiten', 'praesentieren', 'neuerTab', 'imOrdnerZeigen'],
 		['pdf', 'teilen'],
 		['variante', 'entwuerfe'],
-		['umbenennen', 'duplizieren', 'ausschneiden', 'kopieren', 'bewegenNach'],
+		['umbenennen', 'duplizieren', 'kopieren', 'bewegenNach'],
 		['uebersicht', 'informationen'],
 		['papierkorb'],
 	],
@@ -291,11 +310,11 @@ export const MENUE: Record<MenueArt, string[][]> = {
 		['oeffnen', 'neuerTab', 'imOrdnerZeigen'],
 		['neuerUnterordner', 'materialHier', 'einfuegen'],
 		['pdf', 'teilen'],
-		['umbenennen', 'duplizieren', 'ausschneiden', 'kopieren', 'bewegenNach'],
+		['umbenennen', 'duplizieren', 'kopieren', 'bewegenNach'],
 		['informationen'],
 		['papierkorb'],
 	],
-	mehrere: [['mitAuswahl'], ['pdf'], ['duplizieren', 'ausschneiden', 'kopieren', 'bewegenNach'], ['papierkorb']],
+	mehrere: [['mitAuswahl'], ['pdf'], ['duplizieren', 'kopieren', 'bewegenNach'], ['papierkorb']],
 	leer: [
 		['neuerOrdner', 'materialAnlegen', 'einfuegen'],
 		['darstellung', 'sortieren', 'allesWaehlen'],
@@ -305,6 +324,9 @@ export const MENUE: Record<MenueArt, string[][]> = {
 
 /** Im Ordner-Menü zählt „Einfügen“ auch auf der Lage „Ordner“; „leer“ kennt in Suche und Zuletzt kein PDF. */
 const verfuegbar = (b: Befehl, l: Lage) => {
+	if (l.gesperrt) {
+		return false;
+	}
 	if (l.fremd && l.art === 'leer' && b.id === 'pdf') {
 		return false;
 	}
@@ -316,18 +338,47 @@ const verfuegbar = (b: Befehl, l: Lage) => {
 
 const titelVon = (b: Befehl, l: Lage) => (typeof b.titel === 'string' ? b.titel : b.titel(l));
 
+/** Ob ein Befehl hier gilt: dieselbe Frage für Menü, Taste und die Knöpfe der Leiste (188-02). */
+export const gilt = (id: string, l: Lage) => {
+	const b = BEFEHLE.find((x) => x.id === id);
+	return b !== undefined && verfuegbar(b, l);
+};
+
+const KNOEPFE: Record<MenueArt, string[]> = {
+	leer: ['neuerOrdner', 'materialAnlegen', 'darstellung', 'sortieren'],
+	material: ['entwuerfe', 'praesentieren', 'bearbeiten', 'pdf', 'teilen'],
+	ordner: ['pdf', 'teilen'],
+	mehrere: ['pdf', 'bewegenNach'],
+};
+
+/**
+ * Was die Leiste bei dieser Auswahl als Knopf zeigt, aus dem Register: Bei offenen Entwürfen „Entwürfe vergleichen“
+ * statt „Bearbeiten“ und „PDF“ (188-02), an der Folie „Präsentieren“ statt „Bearbeiten“. Das ⋯ daneben lässt genau
+ * diese weg (188-31), so hat jede Funktion in der Leiste einen sichtbaren Weg.
+ */
+export const leistenKnoepfe = (l: Lage): string[] => {
+	const da = KNOEPFE[l.art].filter((id) => gilt(id, l));
+	const haupt = da.includes('praesentieren') ? 'praesentieren' : 'bearbeiten';
+	return da.filter((id) => (id === 'bearbeiten' ? haupt === id : id !== 'entwuerfe' || !da.includes(haupt)));
+};
+
 export interface MenueQuellen {
 	fuehreAus: (id: string, l: Lage) => void;
 	untermenue: (id: string, l: Lage) => MenueEintrag[] | null;
 }
 
-/** Baut das Menü: Unverfügbares bleibt weg (070). */
-export const menueVon = (l: Lage, { fuehreAus, untermenue }: MenueQuellen, kopf?: string): MenueEintrag[] => {
+/** Baut das Menü: Unverfügbares bleibt weg (070). `ohne`: was die Leiste schon als Knopf zeigt (188-31). */
+export const menueVon = (
+	l: Lage,
+	{ fuehreAus, untermenue }: MenueQuellen,
+	kopf?: string,
+	ohne: readonly string[] = [],
+): MenueEintrag[] => {
 	const liste: MenueEintrag[] = kopf ? [{ titel: kopf, aus: true, gruppe: 'kopf' }] : [];
 	MENUE[l.art].forEach((gruppe, nr) => {
 		for (const id of gruppe) {
 			const b = BEFEHLE.find((x) => x.id === id);
-			if (!b || !verfuegbar(b, l)) {
+			if (!b || ohne.includes(id) || !verfuegbar(b, l)) {
 				continue;
 			}
 			const unter = untermenue(id, l);

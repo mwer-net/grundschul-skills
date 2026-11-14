@@ -37,6 +37,8 @@ export interface AblageWerte {
 	merke: (zettel: Merkzettel | null) => void;
 	benennen: Benennen | null;
 	setBenennen: (b: Benennen | null) => void;
+	/** Was das letzte ⌘Z aus dem Papierkorb oder von woanders zurückgeholt hat: Die Ablage wählt es. */
+	zurueckgeholt: { schluessel: string[]; nr: number } | null;
 }
 
 const leer: AblageWerte = {
@@ -52,6 +54,7 @@ const leer: AblageWerte = {
 	merke: () => undefined,
 	benennen: null,
 	setBenennen: () => undefined,
+	zurueckgeholt: null,
 };
 
 export const AblageKontext = createContext<AblageWerte>(leer);

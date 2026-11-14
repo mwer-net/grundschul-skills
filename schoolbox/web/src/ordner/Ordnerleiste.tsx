@@ -17,7 +17,7 @@ interface Eigenschaften {
 }
 
 const FESTE_ZEILE =
-	'flex h-[var(--hoehe-baumzeile)] w-full flex-none items-center gap-2 rounded-md px-1.5 text-left text-sm select-none';
+	'flex h-[var(--hoehe-baumzeile)] w-full flex-none items-center gap-2 cursor-default rounded-md px-1.5 text-left text-sm select-none';
 
 /**
  * Oben „Zuletzt geändert“, dann der Baum, unten der Papierkorb. Jede Ordnerzeile ist Ablageziel und lässt sich ziehen;

@@ -72,6 +72,11 @@ export const pfadVon = (stand: AblageStand, id: string | null) => {
 export const ortName = (stand: AblageStand, id: string | null) =>
 	[WURZEL_NAME, ...pfadVon(stand, id).map((o) => o.name)].join(' › ');
 
+/** Kurz für enge Spalten: die letzten zwei Ordner, „… › “ davor, wenn oben etwas fehlt (189-13). Voll: `ortName`. */
+export const kurzerPfad = (namen: readonly string[]) =>
+	namen.length < 2 ? [WURZEL_NAME, ...namen].join(' › ') : ['…', ...namen.slice(-2)].join(' › ');
+export const ortKurz = (stand: AblageStand, id: string | null) => kurzerPfad(pfadVon(stand, id).map((o) => o.name));
+
 /** Sortiert nach dem Gespeicherten, sonst nach der Herkunft des Ordners. */
 export type SortierungVon = (ordner: AblageOrdner | null) => Sortierung;
 
