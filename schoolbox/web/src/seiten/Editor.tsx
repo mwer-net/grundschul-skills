@@ -89,7 +89,7 @@ import { useAnsichtsProfil } from '../lib/profil';
 import { useTitel } from '../lib/titel';
 import { ansichtAdresse, dokumentSeite, inhaltAdresse, praesentationSeite } from '../lib/zugang';
 import { PdfKnopf } from '../pdf/PdfKnopf';
-import { beendeVollbild, SOFORT, vollbildFuerSofort } from '../praesentation/laufzeit';
+import { beendeVollbild, SOFORT, vollbildAnfragen, vollbildFuerSofort } from '../praesentation/laufzeit';
 import { dokumentWahl, materialName } from '../pdf/wahl';
 import type { DokumentEintrag, Mappe, MappenEintrag } from '../typen';
 import { MaterialFehlt, NICHT_GEFUNDEN } from './NichtGefunden';
@@ -842,10 +842,19 @@ const Bearbeitung = ({ dokument, mappe: mappenDaten }: { mappe: Mappe; dokument:
 				pdf: () => document.querySelector<HTMLElement>('[data-pdf-knopf] button')?.click(),
 				praesentieren: () => {
 					// Vollbild nur im Klick selbst, also vor dem Speichern (192 Urteil 2); bleibt man hier, endet es.
-					vollbildFuerSofort();
-					void verlassen(praesentationSeite(zugang, dok), { imKlick: vollbildFuerSofort, state: SOFORT }).then(
-						(weg) => weg || beendeVollbild(),
-					);
+					// Die Anfrage des Vollbilds kann erst nach der Nachfrage fertig werden: dann endet es danach.
+					const anfrage = vollbildAnfragen();
+					let weiter = false;
+					const imKlick = () => {
+						weiter = true;
+						vollbildFuerSofort();
+					};
+					void verlassen(praesentationSeite(zugang, dok), { imKlick, state: SOFORT }).then((weg) => {
+						if (!weg) {
+							beendeVollbild();
+							void anfrage.then(() => weiter || beendeVollbild());
+						}
+					});
 				},
 				zurueck: () => void verlassen(dokumentSeite(zugang, dok), { zurAnsicht: true }),
 				hilfe: () => void verlassen('/hilfe'),
@@ -1175,6 +1184,7 @@ const Bearbeitung = ({ dokument, mappe: mappenDaten }: { mappe: Mappe; dokument:
 						<PdfKnopf
 							art="haupt"
 							beschriftung="PDF"
+							tooltip={{ text: 'PDF', kuerzel: kuerzelVon('dokument.pdf') }}
 							wahl={wahl}
 							mappe={mappenDaten}
 							warnen
