@@ -315,15 +315,16 @@ const useEinfuegeWerkzeuge = ({
 }) => {
 	const docJetzt = geladen?.html === html ? (geladen?.doc ?? null) : null;
 	const einfuegen = useEinfuegen({ blatt, dokument, struktur, auswahl, folien, nachher });
+	const imText = einfuegen.fuerBlatt('', NICHT_IM_TEXT);
 	const slash = useSlash({
 		// Das Dokument im Rahmen: Beim Tippen weicht die Quelle davon ab, das Menü muss trotzdem aufgehen.
 		doc: geladen?.doc ?? null,
 		bearbeitet: text.bearbeitet,
 		beende: text.beende,
-		liste: (filter) =>
-			filter.trim()
-				? einfuegen.fuerBlatt(filter, NICHT_IM_TEXT)
-				: mitZuletzt(einfuegen.zuletzt, einfuegen.fuerBlatt('', NICHT_IM_TEXT)),
+		halte: text.halte,
+		liste: (filter) => einfuegen.fuerBlatt(filter, NICHT_IM_TEXT),
+		// Was zuletzt benutzt wurde und im Text stehen darf (203-13).
+		zuletzt: einfuegen.zuletzt.filter((z) => imText.some((e) => e.id === z.id)),
 		waehle: einfuegen.fuegeEin,
 	});
 	useTabelleTab({

@@ -459,7 +459,7 @@ test.describe('Editor: Bausteine einfügen', () => {
 		await expect.poll(() => quelle(page)).not.toBe(vorher);
 	});
 
-	test('Slash: / allein in einer Zeile öffnet das Menü, Esc lässt den Text stehen, mitten im Text nichts', async ({
+	test('194-33: / allein in einer Zeile öffnet die Schnellauswahl, Esc lässt die Marke in der Zeile', async ({
 		druecke,
 		page,
 	}) => {
@@ -471,19 +471,23 @@ test.describe('Editor: Bausteine einfügen', () => {
 		await expect(page.locator('[data-textbearbeitung]')).toBeVisible();
 		await page.keyboard.press('End');
 		await page.keyboard.type('1/2');
-		await expect(page.locator('[data-slash-menue]')).toHaveCount(0);
+		await expect(page.locator('[data-schnellauswahl]')).toHaveCount(0);
 		await page.keyboard.press('ControlOrMeta+a');
 		await page.keyboard.press('Delete');
 		await page.keyboard.type('/');
-		await expect(page.locator('[data-slash-menue]')).toBeVisible();
+		const fenster = page.locator('[data-schnellauswahl]');
+		await expect(fenster).toBeVisible();
+		await expect(fenster.getByRole('searchbox')).toBeFocused();
+		await expect(page.locator('[data-slash-menue]')).toHaveCount(0);
 		await page.keyboard.press('Escape');
-		await expect(page.locator('[data-slash-menue]')).toHaveCount(0);
-		await expect(text).toHaveText('/');
+		await expect(fenster).toHaveCount(0);
+		// Das „/“ kommt nicht in den Text; die Marke steht wieder in der Zeile.
 		await page.keyboard.type('uhr');
-		await expect(page.locator('[data-slash-menue]')).toHaveCount(0);
+		await expect(text).toHaveText('uhr');
+		await expect(fenster).toHaveCount(0);
 	});
 
-	test('Slash: Weitertippen filtert, Enter fügt ein', async ({ druecke, page }) => {
+	test('194-33: Getipptes nach / steht im Suchfeld, ↓ und Enter fügen ein', async ({ druecke, page }) => {
 		const { dok, id } = await uhrzeit();
 		await oeffne(page, id, dok);
 		const text = material(page).locator('.aufgabe .anw .text').first();
@@ -492,10 +496,13 @@ test.describe('Editor: Bausteine einfügen', () => {
 		await page.keyboard.press('ControlOrMeta+a');
 		await page.keyboard.press('Delete');
 		await page.keyboard.type('/schreiblin');
-		await expect(page.locator('[data-slash-menue] [data-katalog-eintrag]').first()).toContainText('Schreib');
+		const fenster = page.locator('[data-schnellauswahl]');
+		await expect(fenster.getByRole('searchbox')).toHaveValue('schreiblin');
+		await expect(fenster.locator('[data-katalog-eintrag]').first()).toContainText('Schreib');
 		await page.keyboard.press('Enter');
 		await expect.poll(() => quelle(page)).toContain('schreiblinie');
-		await expect(page.locator('[data-slash-menue]')).toHaveCount(0);
+		await expect(fenster).toHaveCount(0);
+		expect(await quelle(page)).not.toContain('>/<');
 	});
 
 	test('Überlauf: Nach dem Tippen läuft das Blatt von selbst auf Seite 2 (206)', async ({ druecke, page }) => {

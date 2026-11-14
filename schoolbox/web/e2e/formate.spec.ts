@@ -299,7 +299,7 @@ test.describe('Sammlung (051)', () => {
 		await expect.poll(async () => ((await quelle(page)).match(/<x-uhr/g) ?? []).length).toBe(uhren + 2);
 		await page.getByRole('button', { name: 'Auswahl' }).click();
 
-		// Im Slash-Menü steht derselbe Baustein.
+		// In der Schnellauswahl hinter „/“ steht derselbe Baustein (194-33).
 		const text = material(page).locator('.aufgabe .anw .text').first();
 		await druecke(text);
 		await druecke(text);
@@ -307,7 +307,7 @@ test.describe('Sammlung (051)', () => {
 		await page.keyboard.press('ControlOrMeta+a');
 		await page.keyboard.press('Delete');
 		await page.keyboard.type('/Meine Uhr');
-		await expect(page.locator('[data-slash-menue]')).toContainText('Meine Uhr');
+		await expect(page.locator('[data-schnellauswahl]')).toContainText('Meine Uhr');
 	});
 
 	test('Meine Bausteine: letzte Zeile unter „Mehr“, an der Kachel umbenennen und löschen (168)', async ({

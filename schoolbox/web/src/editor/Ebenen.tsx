@@ -254,6 +254,9 @@ const GESTALTUNG_ZEILEN = new Set<string>(['vorne', 'hinten', 'anker', 'flaeche'
 /** Was die Ebenen nach einem Klick schon zeigen, bevor das neue Blatt da ist (195-11). */
 type Vorab = Partial<Pick<GliederungKnoten, 'aus' | 'gesperrt' | 'titel' | 'name' | 'eigenerName'>>;
 
+/** 195-11: So lange gilt ein Vorabwert höchstens, falls das Blatt ihn nie zeigt. */
+const VORAB_MS = 10_000;
+
 /** Die `data-*` einer Zeile in den Ebenen. */
 const zeilenDaten = (k: GliederungKnoten, seite: number, zugeklappt: boolean) => ({
 	...(k.zeile === 'baustein' ? {} : { 'data-ebene-seite': seite }),
@@ -345,20 +348,18 @@ export const Ebenen = ({
 	const hoereAuf = useRef<(() => void) | null>(null);
 	const aufraeumen = useRef<(() => void) | null>(null);
 	const rollen = useRef(false);
-	// 195-11: Was ein Klick gerade gesetzt hat, gilt in der Zeile sofort; mit dem nächsten Blatt zählt dessen Stand.
-	const [vorab, setVorab] = useState<{ fuer: Zerlegung | null; je: Map<number, Vorab> }>(() => ({
-		fuer: null,
-		je: new Map(),
-	}));
+	// 195-11: Was ein Klick gerade gesetzt hat, gilt in der Zeile sofort und bleibt, bis das neu aufgebaute Blatt
+	// denselben Stand zeigt (höchstens `VORAB_MS`); an eine Zerlegung gebunden ginge er beim ersten Neuaufbau verloren.
+	const [vorab, setVorab] = useState<ReadonlyMap<number, { wert: Vorab; bis: number }>>(() => new Map());
 	const merke = (nr: number, wert: Vorab) =>
 		setVorab((alt) => {
-			const je = new Map(alt.fuer === zerlegung ? alt.je : []);
-			je.set(nr, { ...je.get(nr), ...wert });
-			return { fuer: zerlegung, je };
+			const je = new Map(alt);
+			je.set(nr, { wert: { ...je.get(nr)?.wert, ...wert }, bis: Date.now() + VORAB_MS });
+			return je;
 		});
 	const mitVorab = (k: GliederungKnoten): GliederungKnoten => {
-		const v = vorab.fuer === zerlegung ? vorab.je.get(k.nr) : undefined;
-		return v ? { ...k, ...v } : k;
+		const v = vorab.get(k.nr);
+		return v && v.bis > Date.now() ? { ...k, ...v.wert } : k;
 	};
 
 	const modell = useMemo<GliederungSeite[]>(
@@ -366,6 +367,23 @@ export const Ebenen = ({
 		[doc, zerlegung, stand.ids],
 	);
 	const aktuell = struktur.aktiv;
+	// 195-11: Zeigt das Blatt den vorab gesetzten Stand, ist der Vorabwert erledigt.
+	useEffect(() => {
+		if (vorab.size === 0) {
+			return;
+		}
+		const knoten = new Map(modell.flatMap((s) => alleKnoten(s.kinder)).map((k) => [k.nr, k]));
+		const jetzt = Date.now();
+		const bleibt = [...vorab].filter(([nr, v]) => {
+			const k = knoten.get(nr);
+			const erreicht =
+				k && Object.entries(v.wert).every(([feld, wert]) => k[feld as keyof Vorab] === wert);
+			return !erreicht && v.bis > jetzt;
+		});
+		if (bleibt.length !== vorab.size) {
+			setVorab(new Map(bleibt));
+		}
+	}, [modell, vorab]);
 	const zeilenNr = useMemo(
 		() => new Set(modell.flatMap((s) => [s.nr, ...alleKnoten(s.kinder).map((k) => k.nr)])),
 		[modell],
@@ -856,10 +874,14 @@ export const Ebenen = ({
 		}));
 		const kontext = { nr: k.nr, element, struktur, zeigeAn, zeigeSeitengestaltung };
 		const klick = (z: EbenenZeichen, an: boolean) => {
-			if (z.schaltet) {
-				merke(k.nr, { [z.schaltet]: !an });
+			if (!z.schaltet) {
+				z.klick(kontext, an);
+				return;
 			}
-			z.klick(kontext, an);
+			// 195-11: Zeile und Blatt zeigen den neuen Stand im nächsten Bild; der Befehl samt Neuaufbau läuft danach.
+			merke(k.nr, { [z.schaltet]: !an });
+			element.toggleAttribute(z.schaltet === 'aus' ? 'data-aus' : 'data-gesperrt', !an);
+			requestAnimationFrame(() => setTimeout(() => z.klick(kontext, an), 0));
 		};
 		const schalter = zeichen.filter(({ z }) => z.schalter);
 		const mehrKnopf = (
