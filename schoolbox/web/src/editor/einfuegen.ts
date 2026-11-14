@@ -4,7 +4,7 @@ import { fuegeBausteinAn } from '@schoolbox/kern/src/einfuegen-ablage';
 import { legeUm } from '@schoolbox/kern/src/fluss';
 import { neueIdsInGestaltung } from '@schoolbox/kern/src/gestaltung';
 import type { FuerBlatt, KatalogEintrag } from '@schoolbox/kern/src/katalog';
-import { angebotFuerBlatt, istAngeboten } from '@schoolbox/kern/src/katalog';
+import { angebotFuerBlatt, gehtImBlatt, istAngeboten } from '@schoolbox/kern/src/katalog';
 import { hatLoesung } from '@schoolbox/kern/src/loesungen';
 import type { Zerlegung } from '@schoolbox/kern/src/quelltext';
 import type { Ablage } from '@schoolbox/kern/src/struktur';
@@ -70,14 +70,15 @@ interface Optionen {
 
 /**
  * Katalog und Befehle: jedes Einfügen ist ein Schritt im Verlauf, danach ist der neue Baustein gewählt. `eintraege` ist
- * der ganze Katalog (andere Schubladen suchen darin per Kennung, z. B. `tipp` und `willi` in „Figuren“), `angebot` nur,
- * was Schublade, Schnellauswahl, Slash und Palette zeigen (203-04).
+ * der Katalog ohne das, was im Blatt nicht zeichnet (`gehtImBlatt`; andere Schubladen suchen darin per Kennung, z. B.
+ * `tipp` und `willi` in „Figuren“), `angebot` nur, was Schublade, Schnellauswahl, Slash und Palette zeigen (203-04).
  */
 export const useEinfuegen = ({ auswahl, blatt, dokument, folien, nachher, struktur }: Optionen) => {
 	const { daten, neuLaden } = useLaden<{ eintraege: Posten[] }>('/api/katalog');
 	const [zuletzt, setZuletzt] = useState(leseZuletzt);
 	const zeige = useHinweis();
-	const eintraege = daten?.eintraege ?? [];
+	// 203-02, 203-N01: Was in diesem Blatt nicht fehlerfrei zeichnet, gibt es hier nicht, auf keinem Weg.
+	const eintraege = (daten?.eintraege ?? []).filter((e) => gehtImBlatt(e, blatt));
 	const angebot = eintraege.filter(istAngeboten);
 
 	/** Hinter `nr` (Klick) oder an der Ablage, die das Ziehen gefunden hat (094). */
@@ -176,7 +177,7 @@ export const useEinfuegen = ({ auswahl, blatt, dokument, folien, nachher, strukt
 			return null;
 		}
 		const umbrechen = async () => {
-			const plan = await probelauf(doc, z, { alt: null, erzwungen: [blatt], mitLoesung: hatLoesung(z.quelle) });
+			const plan = await probelauf(doc, z, { blaetter: [blatt], mitLoesung: hatLoesung(z.quelle) });
 			if (!plan) {
 				return;
 			}

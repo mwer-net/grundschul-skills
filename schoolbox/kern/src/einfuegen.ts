@@ -361,7 +361,11 @@ export const fuegeBausteinEin = (
 		return ergebnis(quelle, aufSeite(z, ziel, html), n);
 	}
 	if (b.ort === 'folie') {
-		return ergebnis(quelle, aufFolie(z, ziel, html, n), n);
+		// 203-N03: Gewählt ist danach die Folie, auch wenn der Inhalt in eine leere Folie kam; die Hülle `.buehne` hat
+		// keinen Namen und hieße in Leiste und Inspektor „Block“.
+		const e = ergebnis(quelle, aufFolie(z, ziel, html, n), n);
+		const seite = aufwaerts(e.nr === null ? null : zerlege(e.quelle).knoten.find((k) => k.nr === e.nr), 'seite');
+		return seite ? { ...e, nr: seite.nr } : e;
 	}
 	const aenderungen = b.ort === 'zeile' ? inZeile(z, ziel, b, html) : inAufgabe(z, ziel, html, b.anweisung);
 	return ergebnis(quelle, aenderungen, n, html);
@@ -450,6 +454,19 @@ export const kannAnschliessen = (quelle: string, nr: number) => {
 			k.kinder.every((c) => !klassenVon(c).some((name) => name === 'namenszeile' || name === 'kopf')) &&
 			folgtAufSeite(davor, k),
 	);
+};
+
+/**
+ * Welche Seite „An vorige Seite anschließen“ meint (N06): die gewählte Seite selbst oder die Seite, deren erster
+ * Flussblock gewählt ist. `null`, wenn es dort nicht geht.
+ */
+export const seiteZumAnschliessen = (quelle: string, nr: number) => {
+	if (kannAnschliessen(quelle, nr)) {
+		return nr;
+	}
+	const k = zerlege(quelle).knoten[nr];
+	const seite = k?.eltern;
+	return k && seite && flussbloeckeVon(seite)[0] === nr && kannAnschliessen(quelle, seite.nr) ? seite.nr : null;
 };
 
 const folgtAufSeite = (davor: Knoten, seite: Knoten) => {

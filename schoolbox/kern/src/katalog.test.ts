@@ -17,7 +17,15 @@ import {
 import { KIT_KATALOG } from './bausteine';
 import { browserSkip, pruefeStapel } from './browsertest';
 import { einfuegbarAus } from './einfuegen';
-import { ANGEBOT, angebotFuerBlatt, KATALOG, kategorienFuer, passtZuBlatt, sucheImKatalog } from './katalog';
+import {
+	ANGEBOT,
+	angebotFuerBlatt,
+	gehtImBlatt,
+	KATALOG,
+	kategorienFuer,
+	passtZuBlatt,
+	sucheImKatalog,
+} from './katalog';
 import { leseStarter } from './katalog-starter';
 import { ASSETS } from './konfig';
 
@@ -305,6 +313,33 @@ describe('Angebot (203)', () => {
 		assert.equal(kategorienFuer('deutsch', ANGEBOT).indexOf('Deutsch'), 2);
 		assert.ok(passtZuBlatt({ faecher: ['mathematik'] }, blatt));
 		assert.ok(!passtZuBlatt({ arten: ['karten'] }, blatt));
+	});
+
+	it('Klasse und Folien filtern hart: kein Weg bietet an, was im Blatt nicht zeichnet (203-02, 203-N01)', () => {
+		const geht = (b: { klasse: 1 | 2 | 3 | 4; art: 'arbeitsblatt' | 'praesentation' }) =>
+			ids(ANGEBOT.filter((e) => gehtImBlatt(e, b)));
+		const k1 = geht({ klasse: 1, art: 'arbeitsblatt' });
+		const rechnen = ['x-rechenrad', 'x-punktfeld', 'x-malkreuz', 'x-schriftlich'];
+		for (const id of rechnen) {
+			assert.ok(!k1.includes(id), id);
+		}
+		const k2 = geht({ klasse: 2, art: 'arbeitsblatt' });
+		assert.ok(!k2.includes('x-malkreuz') && !k2.includes('x-schriftlich') && k2.includes('x-rechenrad'));
+		assert.ok(geht({ klasse: 4, art: 'arbeitsblatt' }).includes('x-malkreuz'));
+		const folien = ANGEBOT.filter((e) => e.kategorie === 'Folien').map((e) => e.id);
+		assert.equal(folien.length, 7);
+		assert.ok(folien.every((id) => !k1.includes(id)));
+		assert.ok(folien.every((id) => geht({ klasse: 1, art: 'praesentation' }).includes(id)));
+		// Die Suche findet nur, was der harte Filter übrig lässt (Schublade, Schnellauswahl, Palette).
+		const angebot = ANGEBOT.filter((e) => gehtImBlatt(e, { klasse: 1, art: 'arbeitsblatt' }));
+		for (const wort of ['malkreuz', 'rechenrad', 'punktfeld', 'schriftlich', 'merksatz', 'folie']) {
+			const blatt = { fach: 'mathematik', klasse: 1, art: 'arbeitsblatt' } as const;
+			const treffer = ids(angebotFuerBlatt(angebot, blatt, wort));
+			assert.ok(!treffer.some((id) => rechnen.includes(id)), wort);
+			assert.ok(!treffer.some((id) => folien.includes(id)), wort);
+		}
+		// Weich bleibt: Fach und die übrigen Arten.
+		assert.ok(gehtImBlatt({ kategorie: 'Blatt', arten: ['klassenarbeit'] }, { klasse: 1, art: 'arbeitsblatt' }));
 	});
 
 	it('die Uhr hat Zeiger, „Uhrzeit ablesen“ vier Uhren mit Beispiel (203-01)', () => {

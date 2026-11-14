@@ -207,6 +207,18 @@ export const passtZuBlatt = (e: Pick<KatalogEintrag, 'arten' | 'faecher' | 'klas
 	(!e.klassen || e.klassen.includes(b.klasse)) &&
 	(!e.arten || e.arten.includes(b.art));
 
+/**
+ * Der harte Filter (203-02, 203-N01): Was in diesem Blatt nicht fehlerfrei zeichnet, bietet kein Weg an, weder „Alle“
+ * noch Suche, Schnellauswahl, Slash, Palette oder „Zuletzt“. Das sind Einträge außerhalb ihrer `klassen` (die
+ * Zeichnung meldet sonst den Zahlenraum als Fehler) und Folien außerhalb ihrer `arten` (sie brauchen eine Folie).
+ * Fach und die übrigen `arten` bleiben weich (`passtZuBlatt`).
+ */
+export const gehtImBlatt = (
+	e: Pick<KatalogEintrag, 'arten' | 'kategorie' | 'klassen'>,
+	b: Pick<FuerBlatt, 'art' | 'klasse'>,
+) =>
+	(!e.klassen || e.klassen.includes(b.klasse)) && (e.kategorie !== 'Folien' || !e.arten || e.arten.includes(b.art));
+
 const FAECHER_DER_BIBLIOTHEK: readonly Kategorie[] = KATALOG_BEREICHE[1].bereiche;
 const VORNE: readonly Kategorie[] = ['Aufgaben', 'Aufgabenformate'];
 const HINTEN: readonly Kategorie[] = ['Blatt', 'Spiele und Rätsel', 'Folien'];

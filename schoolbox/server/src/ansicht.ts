@@ -120,8 +120,13 @@ const VORSCHAU_FIT = {
 	var SPALTE = 200;
 	var HOCH = 400;
 	var koerper = document.querySelector('body > .koerper');
+	// 203-N04: Der Inhalt einer Folie ist für 16:9 gebaut; gemessen wird nur, was darauf zu erkennen ist (Figur, Blase,
+	// Reihe, Timer), nicht der Bildplatz und nicht die Bühne selbst.
+	var folie = document.body.dataset.ort === 'folie';
+	var zaehlt = function (e) { return !folie || !(e.closest('.platzhalter') || e.classList.contains('buehne')); };
 	var miss = function (mitKoerper) {
-		var flaechen = (mitKoerper ? [koerper] : []).concat(Array.from(koerper.querySelectorAll('*:not(svg *)')))
+		var flaechen = (mitKoerper && !folie ? [koerper] : [])
+			.concat(Array.from(koerper.querySelectorAll('*:not(svg *)')).filter(zaehlt))
 			.map(function (e) { return e.getBoundingClientRect(); })
 			.filter(function (r) { return r.width > 0 && r.height > 0; });
 		var links = Math.min.apply(null, flaechen.map(function (r) { return r.left; }));
@@ -142,8 +147,8 @@ const VORSCHAU_FIT = {
 			// Ein Maßstab für alle Einträge, Schmales bleibt klein (147). Was höher als HOCH und höher als breit ist
 			// (Bingo, Domino, Spielplan), zeigt seinen oberen linken Ausschnitt in halber Größe, sonst wäre nichts zu
 			// erkennen (203-17). Breites wie der Inhalt einer Folie bleibt ganz.
-			var hoch = m.h > HOCH && m.h > m.b;
-			var s = hoch ? 0.5 : Math.min(frei.b / SPALTE, frei.b / m.b, frei.h / m.h);
+			var hoch = !folie && m.h > HOCH && m.h > m.b;
+			var s = hoch ? 0.5 : Math.min(folie ? Infinity : frei.b / SPALTE, frei.b / m.b, frei.h / m.h);
 			var x = hoch ? rand - m.links * s : rand + (frei.b - m.b * s) / 2 - m.links * s;
 			var y = hoch ? rand - m.oben * s : rand + (frei.h - m.h * s) / 2 - m.oben * s;
 			koerper.style.transform = 'translate(' + x + 'px,' + y + 'px) scale(' + s + ')';
@@ -171,7 +176,7 @@ const katalogVorschau = (e: KatalogEintrag, starter: ReadonlyMap<string, string>
 	const innen = (teile !== undefined && fit ? neueAufgabe(teile, b.anweisung, 1) : teile) ?? b.html ?? '';
 	return `<!doctype html><html lang="de"><head><meta charset="utf-8"><title>Vorschau</title><base href="${assets}">
 <link rel="stylesheet" href="blatt.css"><style>html,body{background:#fff;overflow:hidden}body{margin:0;padding:12px}.flaeche{min-width:240px;outline:1px dashed #aaa;outline-offset:-1px}</style>${fit ? VORSCHAU_FIT.stil : ''}</head>
-<body class="${fit ? 'kl4' : 'kl2'} farbe"><div class="koerper">${innen}</div><script src="abbildungen.js"></script>${fit ? VORSCHAU_FIT.skript : ''}</body></html>`;
+<body class="${fit ? 'kl4' : 'kl2'} farbe" data-ort="${b.ort}"><div class="koerper">${innen}</div><script src="abbildungen.js"></script>${fit ? VORSCHAU_FIT.skript : ''}</body></html>`;
 };
 
 const urlPfad = (teile: string[]) => teile.map(encodeURIComponent).join('/');

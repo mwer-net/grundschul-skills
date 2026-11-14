@@ -167,7 +167,7 @@ test.describe('Seiten laufen weiter (206)', () => {
 		const aufgabe4 = material(page).locator('.aufgabe').filter({ hasText: 'Schreibe 4.' });
 		await aufgabe4.locator('.nr').click({ button: 'right' });
 		await menue.getByRole('menuitem', { name: /Ab hier neue Seite/ }).click();
-		await expect.poll(async () => /data-weiter>/.test(await quelle(page))).toBe(true);
+		await expect.poll(async () => /data-weiter[\s>]/.test(await quelle(page))).toBe(true);
 		await geladen(page);
 		// Bis Aufgabe 3 auf der ersten Seite, Aufgabe 4 beginnt die feste Seite, der Rest läuft dahinter weiter.
 		await expect(seiten(page).first().locator(':scope > .aufgabe')).toHaveCount(3);
@@ -185,7 +185,7 @@ test.describe('Seiten laufen weiter (206)', () => {
 
 		await page.locator('[data-seite-zeile="2"]').click({ button: 'right' });
 		await menue.getByRole('menuitem', { name: /An vorige Seite anschließen/ }).click();
-		await expect.poll(async () => /data-weiter>/.test(await quelle(page))).toBe(false);
+		await expect.poll(async () => /data-weiter[\s>]/.test(await quelle(page))).toBe(false);
 		await geladen(page);
 		await expect(seiten(page).first().locator(':scope > .aufgabe')).not.toHaveCount(2);
 		expect(await ueberstand(page)).toBe(false);
@@ -233,5 +233,31 @@ test.describe('Seiten laufen weiter (206)', () => {
 		await expect(seiten(page).last().locator(':scope > .fuss')).toHaveCount(1);
 		expect(await ueberstand(page)).toBe(false);
 		await gespeichert(page, doc.material);
+	});
+
+	test('Namen zählen übers Blatt, ⌥↑ und ⌥↓ gehen über die Seitengrenze (N03, N08)', async ({ page }) => {
+		await vorbereiten(page, 4, 4);
+		await schritt(page, mitAufgaben(await quelle(page), 5, 8));
+		await expect.poll(async () => automatische(await quelle(page))).toBe(1);
+		await geladen(page);
+		const oben = seiten(page).last().locator(':scope > .aufgabe').first();
+		const nummer = (await oben.locator('.nr').innerText()).trim();
+		const text = (await oben.locator('.anw .text').innerText()).trim();
+		await oben.locator('.nr').click();
+		// N08: wie im Blatt, nicht „Aufgabe 1“ auf der Folgeseite
+		await expect(page.locator('[data-breadcrumb]')).toContainText(`Aufgabe ${nummer}`);
+
+		const vorher = await quelle(page);
+		await page.keyboard.press('Alt+ArrowUp');
+		await expect.poll(() => quelle(page)).not.toBe(vorher);
+		await geladen(page);
+		await expect(seiten(page).first().locator(':scope > .aufgabe .anw .text', { hasText: text })).toHaveCount(1);
+		expect(await ueberstand(page)).toBe(false);
+
+		const hoch = await quelle(page);
+		await page.keyboard.press('Alt+ArrowDown');
+		await expect.poll(() => quelle(page)).not.toBe(hoch);
+		await geladen(page);
+		await expect(seiten(page).last().locator(':scope > .aufgabe').first()).toContainText(text);
 	});
 });

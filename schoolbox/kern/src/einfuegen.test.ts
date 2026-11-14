@@ -12,6 +12,7 @@ import {
 	neueAufgabe,
 	schliesseAn,
 	schonDa,
+	seiteZumAnschliessen,
 	umbruchVor,
 } from './einfuegen';
 import { blaetterVon } from './fluss';
@@ -274,6 +275,25 @@ describe('Einfügen nach 203', () => {
 		assert.ok(neu.indexOf('class="buehne"') > neu.indexOf('Titel der Folie'));
 	});
 
+	it('203-N02, 203-N03: der Timer ist eine Folie für sich; gewählt ist danach die Folie, nicht die Bühne', () => {
+		const timer = aus('x-timer');
+		assert.equal(timer.ort, 'folie');
+		assert.doesNotMatch(timer.html ?? '', /class="(aufgabe|nr)"/);
+		const neu = fuegeBausteinEin(FOLIEN, timer, nrVon(FOLIEN, 'text'), jeSeite);
+		assert.equal(folien(neu.quelle).length, 3);
+		assert.doesNotMatch(neu.quelle, /<span class="nr/);
+		assert.ok(neu.quelle.indexOf('<x-timer') > neu.quelle.indexOf('Titel der Folie'));
+		assert.equal(neu.nr, folien(neu.quelle)[1]?.nr);
+		const rein = fuegeBausteinEin(FOLIEN, aus('folie-bild'), nrVon(FOLIEN, 'titel', 1), jeSeite);
+		assert.equal(rein.nr, folien(rein.quelle)[1]?.nr);
+	});
+
+	it('203-19: der Lageplan kommt ohne `boden`, mit Post und Spielplatz', () => {
+		const plan = aus('x-plan').html ?? '';
+		assert.match(plan, /<x-plan [^>]*objekte="post: B2; spielplatz: E3"/);
+		assert.doesNotMatch(plan, /boden/);
+	});
+
 	it('203-10: die Schritte einer Folie sind eindeutig und fortlaufend', () => {
 		for (const id of ['folie-schritte']) {
 			const schritte = [...(aus(id).html ?? '').matchAll(/data-schritt="(\d+)"/g)].map((t) => Number(t[1]));
@@ -384,6 +404,14 @@ describe('Fester Umbruch (206-06)', () => {
 		assert.match(an.quelle, /data-weiter="auto"/);
 		assert.equal(blaetterVon(zerlege(an.quelle)).length, 1);
 		assert.equal(an.quelle.replace(' data-weiter="auto"', ' data-weiter'), geteilt);
+	});
+
+	it('„An vorige Seite anschließen“ auch am ersten Block der festen Seite, nicht am zweiten (N06)', () => {
+		const geteilt = umbruchVor(SEITEN, aufgabeNr(SEITEN, 'A3'), N).quelle;
+		const zweite = blaetterVon(zerlege(geteilt))[1]?.seiten[0]?.nr ?? -1;
+		assert.equal(seiteZumAnschliessen(geteilt, zweite), zweite);
+		assert.equal(seiteZumAnschliessen(geteilt, aufgabeNr(geteilt, 'A3')), zweite);
+		assert.equal(seiteZumAnschliessen(geteilt, aufgabeNr(geteilt, 'A4')), null);
 	});
 
 	it('nicht an einer Seite mit Kopf oder Namenszeile', () => {

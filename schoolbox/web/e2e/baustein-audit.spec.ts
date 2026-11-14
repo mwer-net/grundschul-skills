@@ -14,7 +14,7 @@ import type { AbbildungSchema, Feld, Werte } from '@schoolbox/kern/src/abbildung
 import { abschnittVon, schemaVon, setzeAbbildung, werteVon } from '@schoolbox/kern/src/abbildungen';
 import { ABSCHNITT_TITEL } from '@schoolbox/kern/src/abschnitte';
 import type { KatalogEintrag } from '@schoolbox/kern/src/katalog';
-import { ANGEBOT } from '@schoolbox/kern/src/katalog';
+import { ANGEBOT, gehtImBlatt } from '@schoolbox/kern/src/katalog';
 import type { KitFeld } from '@schoolbox/kern/src/kit-einstellungen';
 import { KIT_FELDER, leseKit, setzeKit } from '@schoolbox/kern/src/kit-einstellungen';
 import { zerlege } from '@schoolbox/kern/src/quelltext';
@@ -876,7 +876,12 @@ const pruefeInhalt = async (
 	return { abgewiesen, faelle, ohneWirkung, kontakt };
 };
 
-const BEREICHE = [...new Set(ANGEBOT.map((e) => e.kategorie))];
+/**
+ * Geprüft wird im Arbeitsblatt (Klasse 2, sonst 4). Folien bietet dort kein Weg an (203-N01), sie gehören in eine
+ * Präsentation; die Maschine kennt nur das Arbeitsblatt.
+ */
+const IM_ARBEITSBLATT = ANGEBOT.filter((e) => gehtImBlatt(e, { klasse: 4, art: 'arbeitsblatt' }));
+const BEREICHE = [...new Set(IM_ARBEITSBLATT.map((e) => e.kategorie))];
 const FILTER = process.env.AUDIT_NUR?.split(',');
 
 test.beforeAll(() => {
@@ -902,7 +907,7 @@ test.describe('Prüfmaschine', () => {
 			const ergebnisse: Ergebnis[] = [];
 			let blatt4: Awaited<ReturnType<typeof leeresBlatt>> | null = null;
 			let auf4 = false;
-			for (const e of ANGEBOT.filter(
+			for (const e of IM_ARBEITSBLATT.filter(
 				(k) => k.kategorie === bereich && !k.klasse && (!FILTER || FILTER.includes(k.id)),
 			)) {
 				if (auf4) {
@@ -910,7 +915,17 @@ test.describe('Prüfmaschine', () => {
 					await oeffneSchublade(page, 'bausteine');
 					auf4 = false;
 				}
-				await aufLeeresBlatt(page, leer);
+				// 203-02: Was in Klasse 2 nicht zeichnet (Malkreuz, Schriftliche Rechnung), bietet sie gar nicht an.
+				const nurIn4 = !gehtImBlatt(e, { klasse: 2, art: 'arbeitsblatt' });
+				if (nurIn4) {
+					blatt4 ??= await leeresBlatt(4);
+					await oeffne(page, blatt4.id, blatt4.dok);
+					await oeffneSchublade(page, 'bausteine');
+					auf4 = true;
+					await aufLeeresBlatt(page, blatt4.leer);
+				} else {
+					await aufLeeresBlatt(page, leer);
+				}
 				await fuegeEin(page, e);
 				await page.waitForTimeout(120);
 				const verstoesse: Verstoss[] = [];
@@ -921,7 +936,7 @@ test.describe('Prüfmaschine', () => {
 				let rahmen = await rahmenVon(page);
 				let stand = await seitenUndFehler(rahmen);
 				// Manche Starter gehören in höhere Klassen (Malkreuz, schriftlich): Dort einsetzen, sonst sagt die Prüfung nichts.
-				if (stand.fehler.some((f) => /Klasse|über 100|Zahlenraum/.test(f.text))) {
+				if (!nurIn4 && stand.fehler.some((f) => /Klasse|über 100|Zahlenraum/.test(f.text))) {
 					await aufLeeresBlatt(page, leer);
 					blatt4 ??= await leeresBlatt(4);
 					await oeffne(page, blatt4.id, blatt4.dok);
@@ -987,7 +1002,7 @@ test.describe('Prüfmaschine', () => {
 		await oeffne(page, id, dok);
 		await oeffneSchublade(page, 'bausteine');
 		for (const [art, fall] of Object.entries(VOLLER_WEG)) {
-			const treffer = ANGEBOT.flatMap((e) => {
+			const treffer = ANGEBOT.filter((e) => gehtImBlatt(e, { klasse: 2, art: 'arbeitsblatt' })).flatMap((e) => {
 				const schema = schemaVon(e.id);
 				const feld = schema?.felder.find(
 					(f) =>

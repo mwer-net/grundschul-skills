@@ -516,11 +516,17 @@ const Bearbeitung = ({ dokument, mappe: mappenDaten }: { mappe: Mappe; dokument:
 	const schrittWeg = useRef<(richtung: 'zurueck' | 'vor') => void>(() => undefined);
 	const geschichte = useCallback((richtung: 'zurueck' | 'vor') => schrittWeg.current(richtung), []);
 	// 206-07: Beim Tippen laufen die Seiten im Bild mit; die Live-Prüfung sieht danach das neue Bild.
+	const halteText = useRef<(an: boolean) => void>(() => undefined);
 	const mitlaufen = useMitlaufen({
 		doc: geladen && geladen.html === html ? geladen.doc : null,
 		zerlegung,
 		auswahl,
-		nachher: pruefung.getippt,
+		nachher: () => {
+			pruefung.getippt();
+			// Die Statusleiste zählt die Seiten im Bild neu.
+			ansicht.current?.dispatchEvent(new Event('scroll'));
+		},
+		halte: (an) => halteText.current(an),
 	});
 	const getippt = useCallback(() => {
 		pruefung.getippt();
@@ -539,6 +545,9 @@ const Bearbeitung = ({ dokument, mappe: mappenDaten }: { mappe: Mappe; dokument:
 		getippt,
 		beendet: mitlaufen.beendet,
 	});
+	useEffect(() => {
+		halteText.current = text.halte;
+	}, [text.halte]);
 
 	useEffect(() => {
 		if (stand.art === 'gespeichert') {
@@ -600,10 +609,6 @@ const Bearbeitung = ({ dokument, mappe: mappenDaten }: { mappe: Mappe; dokument:
 	useEffect(() => {
 		nachBild.current = struktur.nachBild;
 	}, [struktur.nachBild]);
-	const sichtbaresBild = useRef<Document | null>(null);
-	useEffect(() => {
-		sichtbaresBild.current = geladen?.doc ?? null;
-	}, [geladen]);
 	const vorDemZeigen = useFluss({
 		flussFaellig: b.flussFaellig,
 		flussErledigt: b.flussErledigt,
@@ -611,7 +616,6 @@ const Bearbeitung = ({ dokument, mappe: mappenDaten }: { mappe: Mappe; dokument:
 		zerlegungZu,
 		nachFluss: struktur.nachFluss,
 		auswahl: auswahlJetzt,
-		sichtbar: sichtbaresBild,
 	});
 
 	const gliederungStand = useGliederungStand(sicht.zerlegung, auswahl);

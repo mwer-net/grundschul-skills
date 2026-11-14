@@ -240,6 +240,8 @@ export const BAUSTEINE: readonly Baustein[] = [
 		faehigkeiten: [...GRUND, 'bild'],
 		...KLEIN,
 	},
+	// 203-N03: der Inhalt einer Folie (Bild links, Figur oder Reihe rechts); hieße sonst „Block“.
+	{ art: 'buehne', name: 'Folieninhalt', selektor: '.buehne', faehigkeiten: GRUND },
 	{ art: 'notiz', name: 'Notiz', selektor: '.notiz', faehigkeiten: GRUND, ...KLEIN },
 	{ art: 'absatz', name: 'Absatz', selektor: 'p, li', faehigkeiten: [...GRUND, 'text'], zeilen: 'absatz', ...KLEIN },
 	{ art: 'zeile', name: 'Rechenzeile', selektor: '.zeile', faehigkeiten: GRUND, ...KLEIN },

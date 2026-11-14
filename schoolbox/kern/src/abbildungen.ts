@@ -1824,8 +1824,10 @@ export const ABBILDUNG_SCHEMA = {
 		katalog: {
 			kategorie: 'Folien',
 			suchbegriffe: ['Zeitscheibe', 'Zeit', 'Minuten', 'Countdown', 'Stoppuhr'],
-			ort: 'aufgabe',
+			// 203-N02: eine Folie für sich wie die übrigen Folien, ohne Aufgabe drumherum.
+			ort: 'folie',
 			arten: ['praesentation'],
+			html: '<x-timer minuten="10" groesse="280"></x-timer>',
 		},
 		felder: [
 			{ art: 'zahl', attribut: 'minuten', name: 'Minuten', min: 1, max: 120, standard: 10 },
@@ -4315,6 +4317,10 @@ export const ABBILDUNG_SCHEMA = {
 			suchbegriffe: ['Plan', 'Lageplan', 'Ortsplan', 'Karte', 'Klassenzimmer', 'Wegbeschreibung'],
 			ort: 'aufgabe',
 			faecher: ['sachunterricht'],
+			// 203-19: Der Starter im Muster nutzt `boden`, das in `abbildungen.js` unter der Karte weiterläuft.
+			html:
+				'<x-plan spalten="6" zeilen="3" kaestchen="0.9" aufgabe="einzeichnen" ' +
+				'objekte="post: B2; spielplatz: E3"></x-plan>',
 		},
 		felder: [
 			{

@@ -20,7 +20,7 @@ import {
 } from '@schoolbox/kern/src/tabelle';
 import type { Druckprofil } from '@schoolbox/kern/src/werte';
 
-import { kannAnschliessen, kannUmbrechenVor, schliesseAn, umbruchVor } from '@schoolbox/kern/src/einfuegen';
+import { kannUmbrechenVor, schliesseAn, seiteZumAnschliessen, umbruchVor } from '@schoolbox/kern/src/einfuegen';
 import { istMac, kuerzelAnzeige } from '../bausteine/kuerzel';
 import { starteMeldung } from '../bausteine/melden';
 import type { MenueEintrag } from '../bausteine/Menue';
@@ -969,16 +969,18 @@ export const BEFEHLE: Befehl[] = [
 		suchwoerter: ['seitenumbruch', 'umbruch', 'zusammenführen', 'weiterlaufen'],
 		orte: ['menue', 'palette'],
 		sichtbarUnter: 'links',
+		// Auch am ersten Block der Seite (N06), dort wo vorher „Ab hier neue Seite“ stand.
 		verfuegbar: (k) => {
 			const g = gewaehlt(k);
-			return Boolean(k.aktiv && !k.festeSeiten && g && k.quelle && kannAnschliessen(k.quelle, g.nr));
+			return Boolean(k.aktiv && !k.festeSeiten && g && k.quelle && seiteZumAnschliessen(k.quelle, g.nr) !== null);
 		},
 		aus: (k) => {
 			const g = gewaehlt(k);
-			if (g) {
+			const seite = g && k.quelle ? seiteZumAnschliessen(k.quelle, g.nr) : null;
+			if (g && seite !== null) {
 				k.tu.struktur.fuehreAus(
 					'An vorige Seite angeschlossen',
-					(q) => schliesseAn(q, g.nr, { jeSeite: k.format === 'folie' }),
+					(q) => ({ ...schliesseAn(q, seite, { jeSeite: k.format === 'folie' }), nr: g.nr }),
 					true,
 				);
 			}
