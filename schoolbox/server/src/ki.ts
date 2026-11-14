@@ -567,13 +567,30 @@ export const limitErreichtText = (zurueck: string | null) => {
 
 const FEHLER_TEXTE: Record<string, string> = {
 	authentication_failed: 'Claude ist auf dem Server nicht angemeldet. Der Admin meldet es dort mit „claude“ an.',
-	error_max_turns: 'Der Auftrag war zu umfangreich. Wähle einen kleineren Teil des Blatts.',
-	error_max_budget_usd: 'Der Auftrag war zu umfangreich. Wähle einen kleineren Teil des Blatts.',
-	error_max_budget_guthaben:
-		'Der Auftrag hat die Grenze für einen Lauf über dein Guthaben erreicht. Wähle einen kleineren Teil des Blatts.',
+	error_max_turns: 'Der Auftrag war zu umfangreich.',
+	error_max_budget_usd: 'Der Auftrag war zu umfangreich.',
+	error_max_budget_guthaben: 'Der Auftrag hat die Grenze für einen Lauf über dein Guthaben erreicht.',
 };
 const FEHLER_UNBEKANNT = 'Claude konnte den Auftrag nicht ausführen. Bitte versuch es noch einmal.';
 export { FEHLER_TEXTE, FEHLER_UNBEKANNT };
+
+const ZU_GROSS = new Set(['error_max_turns', 'error_max_budget_usd', 'error_max_budget_guthaben']);
+
+/**
+ * 200-22, 190-26: Der Rat nach „zu umfangreich“ passt zum Bezug. Am Element gibt es keinen kleineren Teil; an Seite
+ * und ganzem Material schon; ein neues Blatt wird mit kürzerer Arbeitszeit kleiner. `umfang`: `pfadText` oder
+ * „Ganzes Blatt“, `null` beim neuen Blatt.
+ */
+export const zuGrossText = (code: string, umfang: string | null) => {
+	const satz = FEHLER_TEXTE[code];
+	if (!satz || !ZU_GROSS.has(code)) {
+		return satz;
+	}
+	if (umfang === null) {
+		return `${satz} Nimm eine kürzere Arbeitszeit.`;
+	}
+	return umfang.includes(' › ') ? satz : `${satz} Wähle einen kleineren Teil des Blatts.`;
+};
 
 export interface Ergebnis {
 	fehler: string | null;
@@ -1268,11 +1285,11 @@ export const erstelleKi = ({ ansicht, ereignisse, konfig, pruefer }: Abhaengigke
 			});
 		});
 
-	const fehlerText = (code: string) => {
+	const fehlerText = (code: string, umfang: string | null) => {
 		if (code === 'rate_limit' || limitErreicht()) {
 			return limitErreichtText(limit?.zurueck ?? null);
 		}
-		return FEHLER_TEXTE[code] ?? (code.includes(' ') ? code : FEHLER_UNBEKANNT);
+		return zuGrossText(code, umfang) ?? (code.includes(' ') ? code : FEHLER_UNBEKANNT);
 	};
 
 	const notiereVerbrauch = async (
@@ -1562,7 +1579,7 @@ export const erstelleKi = ({ ansicht, ereignisse, konfig, pruefer }: Abhaengigke
 			}
 			if (erst.fehler) {
 				a.limitErreicht = erst.fehler === 'rate_limit' || limitErreicht();
-				throw new HttpFehler(500, fehlerText(erst.fehler));
+				throw new HttpFehler(500, fehlerText(erst.fehler, w.neuesBlatt ? null : ausschnitt.umfang));
 			}
 			const neu = await leseErgebnis(arbeit);
 			if (neu === ausschnitt.text) {
