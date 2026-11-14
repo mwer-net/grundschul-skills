@@ -12,6 +12,7 @@ import {
 	setzeGroesse,
 	setzeKopfzeile,
 	teileTabelle,
+	vorigeZelle,
 } from './tabelle';
 
 const QUELLE = `<!doctype html><html><head><title>t</title></head><body class="kl2 farbe">
@@ -78,6 +79,12 @@ describe('Kit-Tabelle', () => {
 		assert.deepEqual(groesseVon(quelle, nr ?? -1), { zeilen: 5, spalten: 3, kopf: true });
 		const klein = setzeGroesse(quelle, nr ?? -1, { zeilen: 2, spalten: 1 }, n);
 		assert.deepEqual(groesseVon(klein.quelle, klein.nr ?? -1), { zeilen: 2, spalten: 1, kopf: true });
+	});
+
+	it('194-07: ⇧Tab geht in die vorige Zelle, über den Zeilenanfang hinweg; in der ersten null', () => {
+		assert.deepEqual(vorigeZelle({ zeile: 1, spalte: 1 }, () => 3), { zeile: 1, spalte: 0 });
+		assert.deepEqual(vorigeZelle({ zeile: 1, spalte: 0 }, () => 3), { zeile: 0, spalte: 2 });
+		assert.equal(vorigeZelle({ zeile: 0, spalte: 0 }, () => 3), null);
 	});
 
 	it('Tab: nächste Zelle, am Ende null', () => {

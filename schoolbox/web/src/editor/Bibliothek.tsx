@@ -1,5 +1,6 @@
 import { BEREICH_SYMBOL, KATALOG_BEREICHE, KATALOG_KATEGORIEN } from '@schoolbox/kern/src/abbildungen';
 import { MEINE_BAUSTEINE, MEINE_BAUSTEINE_SYMBOL, passtZuBlatt, sucheImKatalog } from '@schoolbox/kern/src/katalog';
+import type { Ablage } from '@schoolbox/kern/src/struktur';
 import type { Art, Fach, Klasse } from '@schoolbox/kern/src/werte';
 import type { PointerEvent as ReactPointerEvent } from 'react';
 import { useEffect, useLayoutEffect, useRef, useState } from 'react';
@@ -68,6 +69,9 @@ const Liste = ({ aktiv, posten, waehle }: { posten: Posten[]; aktiv?: number; wa
 	</ul>
 );
 
+/** Was auf einer Seite stehen darf, die trotzdem als leer gilt (194-17). */
+const NUR_RAHMEN = '.namenszeile, .kopf, .fuss';
+
 const SCHNELL_BREITE = 320;
 const SCHNELL_HOEHE = 340;
 
@@ -89,14 +93,25 @@ export const Einfuegemarken = ({
 	einfuegen: Einfuegen;
 	slash: SlashMenue | null;
 }) => {
-	const [schnell, setSchnell] = useState<{ nr: number | null; left: number; top: number } | null>(null);
+	// 194-34: An der Linie gilt die Stelle zwischen den Bausteinen, nicht der Baustein davor als Auswahl.
+	const [schnell, setSchnell] = useState<{ nr: number | null | { ablage: Ablage }; left: number; top: number } | null>(
+		null,
+	);
 	const [suche, setSuche] = useState('');
 	const { box, doc, hoehe, links, skala } = e;
-	const leer = [...doc.querySelectorAll('.seite:not([data-erzeugt])')].filter((s) => s.children.length === 0);
+	// 194-17: Auch eine Seite, auf der nur Namenszeile, Kopf oder Fuß stehen, bekommt den Knopf.
+	const leer = [...doc.querySelectorAll('.seite:not([data-erzeugt])')].filter((s) =>
+		[...s.children].every((k) => k.matches(NUR_RAHMEN)),
+	);
 	// 203-13: ohne Suchwort was zum Blatt passt, Aufgaben vorne; mit Suchwort alles im Angebot, Passendes zuerst.
 	const liste = einfuegen.fuerBlatt(suche);
+	// 194-10: ↑ und ↓ wie im Slash-Menü, über „Zuletzt benutzt“ und „Alle“ hinweg; die erste Zeile ist vorgewählt.
+	const zuletztDa = !suche.trim() && einfuegen.zuletzt.length > 0;
+	const alle = zuletztDa ? [...einfuegen.zuletzt, ...liste] : liste;
+	const [aktivIndex, setAktivIndex] = useState(0);
+	const vorne = alle.length === 0 ? -1 : Math.min(aktivIndex, alle.length - 1);
 	/** Immer ganz im Sichtfeld, auch am unteren Rand (B15) und wenn der Baustein aus dem Bild gerollt ist. */
-	const oeffne = (nr: number | null, wunschLinks: number, wunschOben: number) => {
+	const oeffne = (nr: number | null | { ablage: Ablage }, wunschLinks: number, wunschOben: number) => {
 		const sicht = sichtfeldVon(doc);
 		const oben = sicht?.oben ?? 0;
 		const unten = Math.min(sicht?.unten ?? hoehe, hoehe);
@@ -104,6 +119,7 @@ export const Einfuegemarken = ({
 		const left = Math.max(8, Math.min(wunschLinks, rechts - SCHNELL_BREITE - 8));
 		const top = Math.max(oben + 8, Math.min(wunschOben, unten - SCHNELL_HOEHE - 8));
 		setSuche('');
+		setAktivIndex(0);
 		setSchnell({ nr, left, top });
 	};
 	const schliesse = () => {
@@ -130,6 +146,27 @@ export const Einfuegemarken = ({
 			box ? box.bottom * skala + 8 : (sicht?.oben ?? 0) + 80,
 		);
 	});
+
+	// 194-11: Ein Druck daneben, auch im Blatt, schließt die Schnellauswahl, ohne einzufügen.
+	const offen = schnell !== null;
+	useEffect(() => {
+		if (!offen) {
+			return undefined;
+		}
+		const druck = (ev: PointerEvent) => {
+			const ziel = ev.target as Partial<Element> | null;
+			if (!ziel?.closest?.('[data-schnellauswahl]')) {
+				setSchnell(null);
+			}
+		};
+		const blatt = doc.defaultView;
+		document.addEventListener('pointerdown', druck, true);
+		blatt?.addEventListener('pointerdown', druck, true);
+		return () => {
+			document.removeEventListener('pointerdown', druck, true);
+			blatt?.removeEventListener('pointerdown', druck, true);
+		};
+	}, [offen, doc]);
 
 	// 205: Die Leinwand meldet die Lücke unter dem Zeiger (`klickziel`). Wer die Linie zur Seite verlässt, nimmt sie mit.
 	const [verlassen, setVerlassen] = useState<Luecke | null>(null);
@@ -171,7 +208,9 @@ export const Einfuegemarken = ({
 							setVerlassen(luecke);
 						}
 					}}
-					onClick={() => oeffne(luecke.nr, links + luecke.x * skala, luecke.y * skala + 12)}
+					onClick={() =>
+						oeffne({ ablage: { nr: luecke.nr, wo: 'nach' } }, links + luecke.x * skala, luecke.y * skala + 12)
+					}
 				>
 					<span
 						className="pointer-events-none absolute inset-x-0 h-0.5 rounded-full bg-brand-500"
@@ -204,9 +243,18 @@ export const Einfuegemarken = ({
 							<Knopf
 								art="haupt"
 								data-erster-baustein
-								onClick={() => {
-									setAuswahl(nr);
-									oeffne(nr, links + r.left * skala + 20, (r.top + r.height / 3) * skala + 56);
+								onClick={(ev) => {
+									// Unter der Namenszeile (oder dem Kopf) einfügen, wenn es eine gibt (194-17).
+									const letzte = [...s.children].filter((k) => k.matches('.namenszeile, .kopf')).at(-1);
+									const nach = letzte ? nrVon(letzte) : null;
+									setAuswahl(nach ?? nr);
+									// 194-24: Der Kasten hängt am Knopf, 6 px darunter.
+									const k = ev.currentTarget;
+									oeffne(
+										nach ?? nr,
+										links + r.left * skala + k.offsetLeft,
+										(r.top + r.height / 3) * skala + k.offsetTop + k.offsetHeight + 6,
+									);
 								}}
 							>
 								<Symbol name="plus" />
@@ -229,27 +277,42 @@ export const Einfuegemarken = ({
 						className="mb-2 h-knopf w-full rounded-lg border border-rand px-3"
 						value={suche}
 						autoFocus
-						onChange={(ev) => setSuche(ev.target.value)}
+						onChange={(ev) => {
+							setSuche(ev.target.value);
+							setAktivIndex(0);
+						}}
 						onKeyDown={(ev) => {
 							if (ev.key === 'Escape') {
 								schliesse();
+							} else if (ev.key === 'ArrowDown' || ev.key === 'ArrowUp') {
+								ev.preventDefault();
+								const schritt = ev.key === 'ArrowDown' ? 1 : -1;
+								setAktivIndex((vorne + schritt + alle.length) % Math.max(1, alle.length));
 							} else if (ev.key === 'Enter') {
-								const erster = suche.trim() ? liste[0] : (einfuegen.zuletzt[0] ?? liste[0]);
-								if (erster) {
-									nimm(erster);
+								const gewaehlt = alle[vorne];
+								if (gewaehlt) {
+									nimm(gewaehlt);
 								}
 							}
 						}}
 					/>
 					<div className="max-h-64 overflow-y-auto">
-						{!suche.trim() && einfuegen.zuletzt.length > 0 && (
+						{zuletztDa && (
 							<>
-								<h3 className="px-3 text-sm text-leise">Zuletzt genutzt</h3>
-								<Liste posten={einfuegen.zuletzt} waehle={nimm} />
-								<h3 className="px-3 text-sm text-leise">Alle</h3>
+								<h3 className="px-2 text-sm text-leise">Zuletzt benutzt</h3>
+								<Liste posten={einfuegen.zuletzt} aktiv={vorne} waehle={nimm} />
+								<h3 className="px-2 text-sm text-leise">Alle</h3>
 							</>
 						)}
-						<Liste posten={liste} waehle={nimm} />
+						{alle.length === 0 ? (
+							<p className="px-2 py-2 text-leise">{nichtsPasst(suche)}</p>
+						) : (
+							<Liste
+								posten={liste}
+								aktiv={zuletztDa ? vorne - einfuegen.zuletzt.length : vorne}
+								waehle={nimm}
+							/>
+						)}
 					</div>
 				</div>
 			)}
@@ -261,7 +324,7 @@ export const Einfuegemarken = ({
 					style={{ left: links + slash.x * skala, top: schwebend(slash.y * skala + 4, hoehe) }}
 				>
 					{slash.treffer.length === 0 ? (
-						<p className="px-3 py-2 text-leise">Nichts gefunden</p>
+						<p className="px-2 py-2 text-leise">{nichtsPasst(slash.suche)}</p>
 					) : (
 						<Liste posten={slash.treffer} aktiv={slash.index} waehle={slash.waehle} />
 					)}

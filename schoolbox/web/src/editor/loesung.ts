@@ -124,7 +124,14 @@ export const useLoesung = ({ loesung, pfad, rueckgaengig, struktur }: Optionen) 
 		}
 	};
 
-	const verwirf = () => setEntwurf(null);
+	// 194-02: Der getippte Wert weicht sofort dem gespeicherten, sonst schriebe das folgende `blur` ihn doch.
+	const verwirf = () => {
+		aktuell.current = { ...aktuell.current, wert: aktuell.current.gespeichert };
+		if (zuletzt.current) {
+			zuletzt.current = { ...zuletzt.current, wert: zuletzt.current.gespeichert };
+		}
+		setEntwurf(null);
+	};
 
 	/** Die nächste Antwortlinie ohne Lösung nach der gewählten, sonst die erste. */
 	const naechsteFehlende = () => {
@@ -163,6 +170,7 @@ export const useLoesung = ({ loesung, pfad, rueckgaengig, struktur }: Optionen) 
 			hinweis({
 				text: `${abgeloest.join(', ')} ${abgeloest.length > 1 ? 'sind' : 'ist'} jetzt kein Beispiel mehr.`,
 				aktion: { titel: 'Rückgängig', ausfuehren: rueckgaengig },
+				zumSchritt: true,
 			});
 		}
 	};

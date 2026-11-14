@@ -704,7 +704,14 @@ const Bearbeitung = ({ dokument, mappe: mappenDaten }: { mappe: Mappe; dokument:
 				struktur,
 				fokussiereText: text.fokussiere,
 				waehle: setAuswahl,
-				eineEbeneHoch: () => setAuswahl(pfad.at(-2)?.nr ?? null),
+				eineEbeneHoch: () => {
+					// 194-36: Esc im Inspektor führt nur zurück ins Blatt; erst Esc im Blatt geht eine Ebene höher.
+					if (document.activeElement?.closest('[data-inspektor], [data-panel]')) {
+						docJetzt?.defaultView?.focus();
+						return;
+					}
+					setAuswahl(pfad.at(-2)?.nr ?? null);
+				},
 				nachbar: (richtung) => {
 					const ziel = docJetzt && auswahl !== null ? nachbarVon(docJetzt, auswahl, richtung) : null;
 					if (ziel !== null) {

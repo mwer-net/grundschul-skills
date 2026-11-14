@@ -2,7 +2,7 @@ import type { ReactNode } from 'react';
 import { useCallback, useEffect, useRef, useState } from 'react';
 
 import type { Hinweis } from './hinweis';
-import { HinweisKontext } from './hinweis';
+import { HinweisKontext, SchrittKontext } from './hinweis';
 import { klassen } from './klassen';
 import { Knopf } from './Knopf';
 import { SymbolKnopf } from './SymbolKnopf';
@@ -13,6 +13,7 @@ const DAUER_MIT_AKTION_MS = 10_000;
 export const HinweisAnbieter = ({ children }: { children: ReactNode }) => {
 	const [hinweis, setHinweis] = useState<(Hinweis & { nr: number }) | null>(null);
 	const zeige = useCallback((neu: Hinweis) => setHinweis({ ...neu, nr: Date.now() }), []);
+	const neuerSchritt = useCallback(() => setHinweis((alt) => (alt?.zumSchritt ? null : alt)), []);
 
 	useEffect(() => {
 		if (!hinweis) {
@@ -42,7 +43,7 @@ export const HinweisAnbieter = ({ children }: { children: ReactNode }) => {
 	const aktion = hinweis?.aktion;
 	return (
 		<HinweisKontext value={zeige}>
-			{children}
+			<SchrittKontext value={neuerSchritt}>{children}</SchrittKontext>
 			<div
 				ref={leiste}
 				popover="manual"

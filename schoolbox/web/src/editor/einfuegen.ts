@@ -8,7 +8,7 @@ import { angebotFuerBlatt, istAngeboten } from '@schoolbox/kern/src/katalog';
 import { hatLoesung } from '@schoolbox/kern/src/loesungen';
 import type { Zerlegung } from '@schoolbox/kern/src/quelltext';
 import type { Ablage } from '@schoolbox/kern/src/struktur';
-import { fuegeZeileEin, naechsteZelle, teileTabelle } from '@schoolbox/kern/src/tabelle';
+import { fuegeZeileEin, naechsteZelle, teileTabelle, vorigeZelle } from '@schoolbox/kern/src/tabelle';
 import { useCallback, useEffect, useRef, useState } from 'react';
 
 import { meldung } from '../api';
@@ -215,6 +215,8 @@ export type Einfuegen = ReturnType<typeof useEinfuegen>;
 export interface SlashMenue {
 	treffer: Posten[];
 	index: number;
+	/** Was nach dem `/` steht: für „Nichts passt zu …“ (194-12). */
+	suche: string;
 	x: number;
 	y: number;
 	waehle: (e: Posten) => void;
@@ -338,7 +340,7 @@ export const useSlash = ({ bearbeitet, beende, doc, liste, waehle }: SlashOption
 	}, [gewaehlt, bearbeitet, waehle]);
 
 	const menue: SlashMenue | null = offen
-		? { treffer, index: offen.index, x: offen.x, y: offen.y, waehle: nimm }
+		? { treffer, index: offen.index, suche: offen.filter, x: offen.x, y: offen.y, waehle: nimm }
 		: null;
 	return { menue };
 };
@@ -382,18 +384,27 @@ export const useTabelleTab = ({
 			const start = e.target as Partial<Element> | null;
 			const zelle = start?.closest?.('th, td') as HTMLTableCellElement | null;
 			const t = zelle?.closest('table');
-			if (e.key !== 'Tab' || e.shiftKey || !zelle || !t || bausteinVon(zelle)?.art !== 'tabellenzelle') {
+			if (e.key !== 'Tab' || !zelle || !t || bausteinVon(zelle)?.art !== 'tabellenzelle') {
 				return;
 			}
 			e.preventDefault();
 			e.stopImmediatePropagation();
 			const zeile = (zelle.parentElement as HTMLTableRowElement).rowIndex;
+			const tabelle = [...angezeigt.querySelectorAll('table')].indexOf(t);
+			// 194-07: ⇧Tab geht in die vorige Zelle; in der ersten bleibt die Marke, wo sie ist.
+			if (e.shiftKey) {
+				const vorige = vorigeZelle({ zeile, spalte: zelle.cellIndex }, (z) => t.rows[z]?.cells.length ?? 1);
+				if (vorige) {
+					setZiel({ tabelle, ...vorige, neu: false });
+					aktuell.current.beende();
+				}
+				return;
+			}
 			const weiter = naechsteZelle(
 				{ zeile, spalte: zelle.cellIndex },
 				t.rows.length,
 				t.rows[zeile]?.cells.length ?? 1,
 			);
-			const tabelle = [...angezeigt.querySelectorAll('table')].indexOf(t);
 			setZiel({ tabelle, zeile: weiter?.zeile ?? zeile + 1, spalte: weiter?.spalte ?? 0, neu: weiter === null });
 			aktuell.current.beende();
 		};

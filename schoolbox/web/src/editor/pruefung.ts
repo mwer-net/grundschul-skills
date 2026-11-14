@@ -10,6 +10,10 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { elementZu, pfadZu, trefferAn } from './darstellung';
 import { folgtAutomatische } from './fluss';
 
+/** Fehlende Lösungen in einem Satz, gleich in Prüfliste und Lösungsübersicht (194-38). */
+export const satzFehlend = (anzahl: number) =>
+	anzahl === 1 ? 'Eine Antwortlinie hat noch keine Lösung.' : `${anzahl} Antwortlinien haben noch keine Lösung.`;
+
 /** Nach der letzten Eingabe so lange warten, bevor geprüft wird: Tippen bleibt flüssig. */
 const RUHE_MS = 500;
 
@@ -150,10 +154,7 @@ const eigenePunkte = (doc: Document, zerlegung: Zerlegung, ausgang: Zerlegung | 
 	const punkte: Pruefpunkt[] = [];
 	const fehlend = hatLoesung(zerlegung.quelle) ? fehlendeLoesungen(zerlegung) : [];
 	if (fehlend.length > 0) {
-		const satz =
-			fehlend.length === 1
-				? 'Eine Antwortlinie hat noch keine Lösung.'
-				: `${fehlend.length} Antwortlinien haben noch keine Lösung.`;
+		const satz = satzFehlend(fehlend.length);
 		const m: Meldung = { stufe: 'HINWEIS', seite: 0, code: 'loesung-fehlt', text: satz };
 		punkte.push({
 			...erklaere(m),

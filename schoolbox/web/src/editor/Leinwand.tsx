@@ -511,9 +511,9 @@ export const Leinwand = ({
 	}, [html]);
 
 	/** Rollt beim Ziehen, wenn der Zeiger am Rand der Ansicht steht; Rückgabe in Koordinaten des Materials. */
-	const rolle = (frame: HTMLIFrameElement, y: number) => {
+	const rolle = (frame: HTMLIFrameElement, y: number, ms: number) => {
 		const skala = skalaJetzt.current;
-		return rolleAnsicht(behaelter.current, frame.getBoundingClientRect().top + y * skala) / skala;
+		return rolleAnsicht(behaelter.current, frame.getBoundingClientRect().top + y * skala, ms) / skala;
 	};
 
 	const verbinde = (dokument: Document, inhalt: string, frame: HTMLIFrameElement) => {
@@ -529,7 +529,7 @@ export const Leinwand = ({
 			beginnt: (nr) => rueckrufe.current.waehle(nr),
 			zeige: setZug,
 			ablegen: (nr, ablage) => rueckrufe.current.ablegen(nr, ablage),
-			rolle: (_x, y) => rolle(frame, y),
+			rolle: (_x, y, ms) => rolle(frame, y, ms),
 		});
 		ziehen.current = steuerung;
 		blattZoom.verbinde(dokument, frame);

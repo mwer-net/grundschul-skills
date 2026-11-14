@@ -223,6 +223,14 @@ export const groesseVon = (quelle: string, nr: number) => {
 	return { zeilen: m.zeilen.length, spalten: spalten(m), kopf: m.kopf };
 };
 
+/** Vorige Zelle für ⇧Tab (194-07); in der ersten `null`: Dann bleibt die Marke stehen. */
+export const vorigeZelle = (s: Stelle, spaltenIn: (zeile: number) => number): Stelle | null => {
+	if (s.spalte > 0) {
+		return { zeile: s.zeile, spalte: s.spalte - 1 };
+	}
+	return s.zeile > 0 ? { zeile: s.zeile - 1, spalte: Math.max(0, spaltenIn(s.zeile - 1) - 1) } : null;
+};
+
 /** Nächste Zelle für Tab; am Ende `null`: Dann kommt eine neue Zeile. */
 export const naechsteZelle = (s: Stelle, zeilen: number, spaltenZahl: number): Stelle | null => {
 	if (s.spalte + 1 < spaltenZahl) {

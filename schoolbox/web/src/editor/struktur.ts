@@ -282,7 +282,7 @@ export const useStruktur = (o: Optionen) => {
 	const verschiebe = (nr: number, ablage: Ablage, springen = false, beschreibung = 'Verschoben') => {
 		const e = fuehreAus(beschreibung, (q) => verschiebeBaustein(q, nr, ablage, nummerierung()), springen);
 		if (e && sternNichtAmEnde(e.quelle) && !sternNichtAmEnde(e.alt)) {
-			zeige({ text: 'Die Sternchenaufgabe steht jetzt nicht mehr am Ende.', aktion: zurueckKnopf() });
+			zeige({ text: 'Die Sternchenaufgabe steht jetzt nicht mehr am Ende.', aktion: zurueckKnopf(), zumSchritt: true });
 		}
 		return e !== null;
 	};
@@ -306,7 +306,7 @@ export const useStruktur = (o: Optionen) => {
 	const loesche = (nr: number, name: string, wie: 'Gelöscht' | 'Ausgeschnitten' = 'Gelöscht') => {
 		const mit = quelle ? mitAnkern(quelle, nr) : ''; // 106: „Gelöscht, mit Wilma“
 		if (fuehreAus(`${wie}${mit}`, (q) => loescheBaustein(q, nr, nummerierung()))) {
-			zeige({ text: `${name} ${wie.toLowerCase()}${mit}.`, aktion: zurueckKnopf() });
+			zeige({ text: `${name} ${wie.toLowerCase()}${mit}.`, aktion: zurueckKnopf(), zumSchritt: true });
 		}
 	};
 

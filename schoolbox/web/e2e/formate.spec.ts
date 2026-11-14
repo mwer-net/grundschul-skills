@@ -490,23 +490,24 @@ test.describe('Sprach-Werkzeuge (052, 083)', () => {
 		await expect.poll(() => quelle(page)).toBe(erst);
 	});
 
-	test('Buchstaben: Feld, Schalter, Stand', async ({ druecke, page }) => {
+	test('194-39: Buchstaben nur mit dem Feld: ⏎ hebt hervor, ein geleertes Feld nimmt es weg', async ({
+		druecke,
+		page,
+	}) => {
 		test.slow();
 		const { dok, id } = await lesetext();
 		await oeffne(page, id, dok);
 		const anfang = await quelle(page);
 		await waehleAbsatz(page, druecke);
 		const feld = page.locator('[data-sprache-buchstaben]');
-		const schalter = page.locator('[data-sprache-buchstaben-an] [role="switch"]');
-		await expect(schalter).toBeDisabled();
+		await expect(page.locator('[data-sprache-buchstaben-an]')).toHaveCount(0);
 		await feld.fill('ie, au');
-		await druecke(schalter);
+		await feld.press('Enter');
 		await expect.poll(() => quelle(page)).toContain('B<mark>ie</mark>ne');
 		await expect.poll(() => quelle(page)).toContain('l<mark>au</mark>t');
-		await expect(schalter).toHaveAttribute('aria-checked', 'true');
-		await druecke(schalter);
+		await feld.fill('');
+		await feld.press('Enter');
 		await expect.poll(() => quelle(page)).toBe(anfang);
-		await expect(feld).toHaveValue('ie, au');
 	});
 
 	const markiere = (page: Page, wort: string) =>

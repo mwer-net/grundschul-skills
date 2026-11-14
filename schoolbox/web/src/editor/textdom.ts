@@ -579,6 +579,16 @@ export const ruesteText = ({
 			}
 			r.deleteContents();
 		}
+		// 194-37: Enter auf einem leeren Punkt, den diese Sitzung angelegt hat, nimmt ihn weg und beendet das Schreiben.
+		const leer = !(aktuell.textContent ?? '').replace(/[\s\u00a0\u200b]/g, '');
+		if (aktuell.localName === 'li' && leer && !aktuell.hasAttribute(MARKE) && sitzung.elemente.length > 1) {
+			sitzung.elemente.splice(sitzung.elemente.indexOf(aktuell), 1);
+			sitzung.oeffner.delete(aktuell);
+			aktuell.remove();
+			aendert();
+			beende();
+			return;
+		}
 		const rest = doc.createRange();
 		rest.setStart(r.startContainer, r.startOffset);
 		rest.setEnd(aktuell, aktuell.childNodes.length);
