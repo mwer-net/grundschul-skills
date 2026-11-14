@@ -14,20 +14,38 @@ export interface KiAktion {
 	ohneFachSkill?: boolean;
 	/** Braucht einen Wunsch der Lehrkraft, der an den Prompt angehängt wird. */
 	eingabe?: boolean;
+	/** Am Element nur an diesen Arten (`schoolboxEditor.art`, 200-06); ohne: an keinem. Seite und Blatt gelten immer. */
+	arten?: string[];
 }
 
+/** Wo „Leichter“, „Schwerer“ und „Lösungen ergänzen“ etwas zu tun finden: Aufgaben und ihre Teile. */
+const AUFGABEN = ['aufgabe', 'reihe', 'item'];
+
 export const KI_AKTIONEN: readonly KiAktion[] = [
-	{ id: 'leichter', name: 'Leichter', auf: ['baustein', 'blatt'], skills: ['grundschul-didaktik'] },
-	{ id: 'schwerer', name: 'Schwerer', auf: ['baustein', 'blatt'], skills: ['grundschul-didaktik'] },
+	{ id: 'leichter', name: 'Leichter', auf: ['baustein', 'blatt'], skills: ['grundschul-didaktik'], arten: AUFGABEN },
+	{ id: 'schwerer', name: 'Schwerer', auf: ['baustein', 'blatt'], skills: ['grundschul-didaktik'], arten: AUFGABEN },
 	{
 		id: 'einfache-sprache',
 		name: 'Einfache Sprache',
 		auf: ['baustein', 'blatt'],
 		skills: ['grundschul-didaktik'],
 		ohneFachSkill: true,
+		arten: ['aufgabe', 'anweisung', 'freitext', 'ziel', 'tipp', 'blase', 'box', 'reflexion', 'wahlhilfe'],
 	},
-	{ id: 'loesungen', name: 'Lösungen ergänzen', auf: ['baustein', 'blatt'], skills: ['html-materialerstellung'] },
-	{ id: 'baustein-fuellen', name: 'Baustein füllen', auf: ['baustein'], skills: ['html-materialerstellung'] },
+	{
+		id: 'loesungen',
+		name: 'Lösungen ergänzen',
+		auf: ['baustein', 'blatt'],
+		skills: ['html-materialerstellung'],
+		arten: AUFGABEN,
+	},
+	{
+		id: 'baustein-fuellen',
+		name: 'Baustein füllen',
+		auf: ['baustein'],
+		skills: ['html-materialerstellung'],
+		arten: ['aufgabe', 'box', 'tipp', 'reflexion', 'wahlhilfe', 'block'],
+	},
 	{
 		id: 'aufgabe-dazu',
 		name: 'Aufgabe hinzufügen',

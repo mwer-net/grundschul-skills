@@ -30,6 +30,7 @@ import {
 	kiUmgebung,
 	liesLimit,
 	limitErreichtText,
+	zuGrossText,
 } from './ki';
 import { CSRF_HEADER } from './schutz';
 import type { TestServer } from './testhilfe';
@@ -1649,5 +1650,21 @@ describe('Aufruf für ein Canva-Bild (176)', () => {
 			'1',
 			...ende,
 		]);
+	});
+});
+
+describe('„Zu umfangreich“ je Bezug (200-22, 190-26)', () => {
+	it('am Element ohne Rat, an Seite und Blatt mit kleinerem Teil, beim neuen Blatt mit kürzerer Zeit', () => {
+		assert.equal(zuGrossText('error_max_turns', 'Seite 1 › Kopf › Überschrift'), 'Der Auftrag war zu umfangreich.');
+		assert.equal(
+			zuGrossText('error_max_budget_usd', 'Seite 1'),
+			'Der Auftrag war zu umfangreich. Wähle einen kleineren Teil des Blatts.',
+		);
+		assert.equal(
+			zuGrossText('error_max_turns', 'Ganzes Blatt'),
+			'Der Auftrag war zu umfangreich. Wähle einen kleineren Teil des Blatts.',
+		);
+		assert.equal(zuGrossText('error_max_turns', null), 'Der Auftrag war zu umfangreich. Nimm eine kürzere Arbeitszeit.');
+		assert.equal(zuGrossText('sonstwas', null), undefined);
 	});
 });

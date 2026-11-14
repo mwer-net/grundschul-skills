@@ -1,11 +1,12 @@
 import { verstaendlich } from '@schoolbox/kern/src/meldungen';
 import { useRef, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 
 import { Dialog } from '../bausteine/Dialog';
 import { Knopf } from '../bausteine/Knopf';
 import { Symbol } from '../bausteine/Symbol';
 import type { PdfMeldung } from '../typen';
-import { bitteAnClaude, jeDokument } from './claude';
+import { bitteAnClaude, bitteImEditor, jeDokument } from './claude';
 import { fasseZusammen } from './gleiche';
 
 interface Eigenschaften {
@@ -25,6 +26,20 @@ export const PdfWarnung = ({ ganzeMappe, mappe, meldungen, schliessen, weiter, w
 	const feld = useRef<HTMLTextAreaElement>(null);
 	const gruppen = jeDokument(meldungen);
 	const bitte = bitteAnClaude(mappe, meldungen);
+	const navigate = useNavigate();
+	// 191-U2: Beim PDF eines Blatts führt der Knopf in dessen Editor, die Bitte steht dort in der Blase. „Alles als
+	// PDF“ geht weiter über die Claude-App.
+	const [nurEins] = !ganzeMappe && gruppen.length === 1 ? gruppen : [];
+	const mappeDesBlatts = nurEins ? (nurEins.meldungen[0]?.mappe ?? mappe.id) : '';
+	const imEditor = () => {
+		if (!nurEins) {
+			return;
+		}
+		schliessen();
+		void navigate(`/m/${mappeDesBlatts}/${nurEins.dok}/bearbeiten`, {
+			state: { claudeBitte: bitteImEditor(nurEins.meldungen) },
+		});
+	};
 
 	const kopiere = async () => {
 		try {
@@ -43,8 +58,8 @@ export const PdfWarnung = ({ ganzeMappe, mappe, meldungen, schliessen, weiter, w
 			schliessen={schliessen}
 			fuss={
 				<>
-					<Knopf art="zweit" onClick={() => void kopiere()}>
-						<Symbol name="kopieren" />
+					<Knopf art="zweit" onClick={nurEins && mappeDesBlatts ? imEditor : () => void kopiere()}>
+						<Symbol name={nurEins && mappeDesBlatts ? 'funken' : 'kopieren'} />
 						Claude bitten, es zu reparieren
 					</Knopf>
 					<Knopf

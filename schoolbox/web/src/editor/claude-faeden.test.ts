@@ -11,7 +11,13 @@ import { loescheBaustein, verschiebeBaustein } from '@schoolbox/kern/src/struktu
 
 import type { ClaudeLage } from './claude-faeden';
 import {
+	antwortVon,
 	ergaenzeFaeden,
+	nachAbbruch,
+	nachricht,
+	pruefungText,
+	standText,
+	standVon,
 	lebt,
 	meintGanzesBlatt,
 	neuerFaden,
@@ -135,5 +141,38 @@ describe('Fäden: Anker am Element (134, 135)', () => {
 		assert.ok(hier && hier.nr !== null);
 		assert.equal(meintGanzesBlatt({ ganz: false, nr: hier.nr }, l), true);
 		assert.equal(meintGanzesBlatt({ ganz: false, nr: nrDer(BLATT, 0) }, l), false);
+	});
+});
+
+describe('Fäden: Stand und Wortlaut (200-01, 200-08, 200-12, 200-18)', () => {
+	const f = neuerFaden({ key: 'k', schluessel: 'k', referenz: null });
+
+	it('unterwegs gilt schon als Lauf', () => {
+		assert.equal(standVon(f, undefined, undefined, true), 'laeuft');
+		assert.equal(standVon(f, undefined, undefined), 'ruhig');
+	});
+
+	it('ein Wortlaut für Pille, Statusleiste und Laufzeile', () => {
+		assert.equal(standText('laeuft', 'Aufgabe 1', 6), 'Claude arbeitet an Aufgabe 1 · 0:06');
+		assert.equal(standText('laeuft', null, 66), 'Claude arbeitet · 1:06');
+		assert.equal(standText('laeuft', 'Aufgabe 1', null), 'Claude arbeitet an Aufgabe 1');
+		assert.equal(standText('wartet', 'Aufgabe 1', 3), 'Wartet auf Claude');
+		assert.equal(standText('frage', 'Aufgabe 1', 0), 'Claude fragt');
+	});
+
+	it('die Prüfung meldet sich nur mit Befund', () => {
+		const m = { stufe: 'hinweis', seite: 1, text: 'x' };
+		assert.equal(pruefungText({ fehler: 0, meldungen: [] }), null);
+		assert.equal(pruefungText({ fehler: 0, meldungen: [m] }), '1 Hinweis der Prüfung');
+		assert.equal(pruefungText({ fehler: 0, meldungen: [m, m] }), '2 Hinweise der Prüfung');
+		assert.equal(pruefungText({ fehler: 2, meldungen: [m] }), '2 Fehler in der Prüfung: bitte nachbessern lassen');
+	});
+
+	it('nach dem Abbruch steht der Auftrag wieder im Feld, der Verlauf wie vorher', () => {
+		const vorher = nachricht('claude', 'Hallo');
+		const g = { ...f, verlauf: [vorher, nachricht('lehrkraft', 'Länger', null, 'ab')], gesendet: 'Länger' };
+		assert.deepEqual(nachAbbruch(g), { verlauf: [vorher], entwurf: 'Länger', zitat: 'ab' });
+		const abgebrochen = { id: 'a', status: 'abgebrochen' } as Parameters<typeof antwortVon>[0];
+		assert.equal(antwortVon(abgebrochen, undefined), undefined);
 	});
 });

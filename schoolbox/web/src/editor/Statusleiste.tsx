@@ -5,6 +5,8 @@ import { Symbol } from '../bausteine/Symbol';
 import { Tooltip } from '../bausteine/Tooltip';
 import { seitenWort } from '../lib/text';
 import { kuerzelVon } from './befehle';
+import type { FadenStand } from './claude-faeden';
+import { standText } from './claude-faeden';
 import { halteFokus } from './halteFokus';
 import type { PruefKnopf } from './Pruefliste';
 import { Pruefstatus } from './Pruefliste';
@@ -77,28 +79,24 @@ const Zoom = ({ fuehreAus, skala, zoom }: ZoomEigenschaften) => {
 
 /** Was eingeklappte Gespräche gerade tun (135); `mehrere` zählt sie. */
 export interface ClaudeLauf {
-	art: 'arbeitet' | 'bereit' | 'antwort' | 'mehrere';
+	art: Exclude<FadenStand, 'ruhig'> | 'mehrere';
+	/** Der Name des Elements wie in der Pille (200-08). */
+	bezug: string;
 	/** Beginn in ms; zählt die Zeit in der Statusleiste. 0: unbekannt. */
 	seit: number;
 	anzahl: number;
 }
 
-const laufTitel = (lauf: ClaudeLauf, sekunden: number) => {
-	if (lauf.art === 'arbeitet') {
-		return lauf.seit > 0
-			? `Claude arbeitet … ${Math.floor(sekunden / 60)}:${String(sekunden % 60).padStart(2, '0')}`
-			: 'Claude arbeitet …';
-	}
-	return { bereit: 'Vorschlag bereit', antwort: 'Claude hat geantwortet', mehrere: `${lauf.anzahl} Aufträge` }[
-		lauf.art
-	];
-};
+const laufTitel = (lauf: ClaudeLauf, sekunden: number) =>
+	lauf.art === 'mehrere'
+		? `${lauf.anzahl} Aufträge`
+		: standText(lauf.art, lauf.bezug, lauf.art === 'laeuft' && lauf.seit > 0 ? sekunden : null);
 
 /** Für eingeklappte Gespräche, deren Element außer Sicht sein kann: Ein Klick rollt hin und klappt die Blase auf. */
 const ClaudeStand = ({ lauf, oeffne }: { lauf: ClaudeLauf; oeffne: () => void }) => {
 	const [jetzt, setJetzt] = useState(() => Date.now());
 	useEffect(() => {
-		if (lauf.art !== 'arbeitet') {
+		if (lauf.art !== 'laeuft') {
 			return undefined;
 		}
 		const uhr = window.setInterval(() => setJetzt(Date.now()), 1000);
@@ -112,7 +110,7 @@ const ClaudeStand = ({ lauf, oeffne }: { lauf: ClaudeLauf; oeffne: () => void })
 			data-claude-stand={lauf.art}
 			onClick={oeffne}
 		>
-			<Symbol name={lauf.art === 'arbeitet' ? 'laden' : 'funken'} className="size-3 flex-none" />
+			<Symbol name={lauf.art === 'laeuft' || lauf.art === 'wartet' ? 'laden' : 'funken'} className="size-3 flex-none" />
 			{laufTitel(lauf, sekunden)}
 		</button>
 	);

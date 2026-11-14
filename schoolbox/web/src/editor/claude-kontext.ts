@@ -18,13 +18,10 @@ export interface ClaudeHandlungen {
 export interface ClaudeSteuerung {
 	/** Öffnet die Blase am Element; ohne Angabe an der Auswahl, ohne Auswahl an der Seite. */
 	oeffne: (nr?: number | null) => void;
-	/** Elemente mit einem Gespräch, das läuft, wartet oder einen Vorschlag hat: ✦ in den Ebenen (135). */
-	merker: ReadonlySet<number>;
 }
 
 export const ClaudeKontext = createContext<ClaudeSteuerung>({
 	oeffne: () => undefined,
-	merker: new Set(),
 });
 
 export const useClaudeSteuerung = () => useContext(ClaudeKontext);

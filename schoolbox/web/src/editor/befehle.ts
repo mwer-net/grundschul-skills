@@ -175,6 +175,8 @@ export interface Befehl {
 const gewaehlt = (k: Kontext) => k.pfad.at(-1);
 const istSeite = (k: Kontext) => gewaehlt(k)?.baustein.art === 'seite';
 /** 47: Bei Mehrfachauswahl gibt es Claude nicht. */
+/** Der Server nimmt eine Referenz je Auftrag; für mehrere Elemente gibt es die Seite. */
+const CLAUDE_MEHRERE = 'Claude ändert ein Element oder die ganze Seite. Wähle eines davon oder die Seite.';
 const mehrfach = (k: Kontext) => (k.gestaltung?.nrn.length ?? 0) > 1;
 const einzigeSeite = (k: Kontext) => istSeite(k) && (k.werte?.seiten ?? 0) <= 1;
 /** „Folie“ in Präsentationen, sonst „Seite“ (192-12). */
@@ -532,13 +534,15 @@ export const BEFEHLE: Befehl[] = [
 		id: 'auswahl.claude',
 		titel: 'Mit Claude ändern …',
 		gruppe: 'ordnen',
-		symbol: 'sprechblase',
+		symbol: 'funken',
 		suchwoerter: ['ki', 'chat', 'frage'],
-		orte: ['menue', 'palette', 'gestaltung'],
+		// 200-14: In der Palette steht nur `ansicht.claude`, mit und ohne Auswahl.
+		orte: ['menue', 'gestaltung'],
 		sichtbarUnter: 'leiste',
-		verfuegbar: (k) => k.kiVerfuegbar && k.frei && Boolean(gewaehlt(k)) && !mehrfach(k),
-		gesperrt: (k) => k.claudeGrund !== null,
-		warumNicht: (k) => k.claudeGrund,
+		// Bei Mehrfachauswahl gesperrt mit Grund statt stumm weg (Urteil 200, Mehrere Elemente).
+		verfuegbar: (k) => k.kiVerfuegbar && k.frei && Boolean(gewaehlt(k)),
+		gesperrt: (k) => mehrfach(k) || k.claudeGrund !== null,
+		warumNicht: (k) => (mehrfach(k) ? CLAUDE_MEHRERE : k.claudeGrund),
 		aus: (k) => k.tu.claudeZurAuswahl(),
 	},
 	{
@@ -806,9 +810,9 @@ export const BEFEHLE: Befehl[] = [
 	},
 	{
 		id: 'ansicht.claude',
-		titel: 'Claude',
+		titel: 'Mit Claude ändern …',
 		gruppe: 'ansicht',
-		symbol: 'sprechblase',
+		symbol: 'funken',
 		kuerzel: [
 			{ code: 'KeyJ', befehl: true },
 			{ code: 'KeyJ', befehl: true, umschalt: true },
@@ -819,7 +823,7 @@ export const BEFEHLE: Befehl[] = [
 		orte: ['taste', 'palette'],
 		sichtbarUnter: 'leiste',
 		verfuegbar: (k) => !mehrfach(k),
-		warumNicht: () => 'Claude ändert immer ein Element. Wähle eines davon.',
+		warumNicht: () => CLAUDE_MEHRERE,
 		aus: (k) => k.tu.claude(),
 	},
 	{

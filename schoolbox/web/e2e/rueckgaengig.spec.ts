@@ -163,7 +163,7 @@ const FAELLE: Fall[] = [
 			await feld.fill('Mach es schöner');
 			await feld.press('Enter');
 			await page.locator('[data-ki-vorschlag]').getByRole('button', { name: 'Groß vergleichen' }).click();
-			await page.getByRole('button', { name: 'Annehmen' }).click();
+			await page.getByRole('dialog').getByRole('button', { name: 'Übernehmen' }).click();
 			await expect.poll(() => quelle(page)).toContain('von Claude');
 			await expect(material(page).locator('h1').first()).toContainText('von Claude');
 			await page.evaluate(() => (document.activeElement as HTMLElement | null)?.blur());

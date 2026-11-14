@@ -46,6 +46,8 @@ export interface KiAktion {
 	id: string;
 	name: string;
 	auf: ('baustein' | 'seite' | 'blatt')[];
+	/** Am Element nur an diesen Arten (200-06). */
+	arten?: string[];
 }
 
 export interface KiZustand {

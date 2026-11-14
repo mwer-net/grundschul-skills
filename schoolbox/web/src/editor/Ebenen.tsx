@@ -20,7 +20,6 @@ import { Symbol } from '../bausteine/Symbol';
 import { Tooltip } from '../bausteine/Tooltip';
 import { folgeZeiger, rolleAmRand, schluckeKlick } from '../bausteine/zeigerzug';
 import { seitenWort } from '../lib/text';
-import { useClaudeSteuerung } from './claude-kontext';
 import { bausteinVon, elementZu, nrVon } from './darstellung';
 import type { EbenenZiel } from './ebenen-legen';
 import { legeInEbenen, seiteUm } from './ebenen-legen';
@@ -309,25 +308,6 @@ const ohneSichSelbst = (ziel: EbenenZiel, von: EbenenZiel & { amAnker: boolean }
 	const gleich = !kopie && !von.amAnker && ziel.seite === von.seite && ziel.ebene === von.ebene;
 	const neu = gleich && ziel.platz > von.platz ? { ...ziel, platz: ziel.platz - 1 } : ziel;
 	return gleich && neu.platz === von.platz ? null : neu;
-};
-
-/** ✦ in der Zeile eines Elements, an dem ein Gespräch läuft, wartet oder einen Vorschlag hat. Klick wie auf die Pille (135). */
-const ClaudeMerker = ({ nr }: { nr: number }) => {
-	const claude = useClaudeSteuerung();
-	return claude.merker.has(nr) ? (
-		<Tooltip text="Gespräch mit Claude">
-			<button
-				type="button"
-				className="flex size-6 flex-none items-center justify-center rounded-sm text-brand-600 hover:bg-flaeche-2 [@media(any-pointer:coarse)]:size-11"
-				aria-label="Gespräch mit Claude öffnen"
-				data-ebenen-claude={nr}
-				data-nicht-ziehen
-				onClick={() => claude.oeffne(nr)}
-			>
-				<Symbol name="funken" className="size-3.5 flex-none" />
-			</button>
-		</Tooltip>
-	) : null;
 };
 
 export const Ebenen = ({
@@ -1034,7 +1014,6 @@ export const Ebenen = ({
 							</button>
 						</Tooltip>
 					)}
-					<ClaudeMerker nr={k.nr} />
 					{istGestaltungZeile && zeichenVon(k, aktiv)}
 				</div>
 				{hatKinder && !zugeklappt && (
@@ -1090,7 +1069,6 @@ export const Ebenen = ({
 							</span>
 						)}
 					</button>
-					<ClaudeMerker nr={s.nr} />
 				</div>
 				{!zugeklappt && s.kinder.map((k) => zeigeKnoten(k, 1, s.nr))}
 			</div>
