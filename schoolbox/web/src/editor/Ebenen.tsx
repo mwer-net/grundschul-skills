@@ -20,6 +20,7 @@ import type { SymbolName } from '../bausteine/Symbol';
 import { Symbol } from '../bausteine/Symbol';
 import { Tooltip } from '../bausteine/Tooltip';
 import { folgeZeiger, rolleAmRand, schluckeKlick } from '../bausteine/zeigerzug';
+import { seitenWort } from '../lib/text';
 import { useClaudeSteuerung } from './claude-kontext';
 import { bausteinVon, elementZu, nrVon } from './darstellung';
 import type { EbenenZiel } from './ebenen-legen';
@@ -347,6 +348,7 @@ export const Ebenen = ({
 	zeigeSeitengestaltung,
 	zerlegung,
 }: Eigenschaften) => {
+	const wort = seitenWort(doc?.body.classList.contains('folie') ?? false);
 	const liste = useRef<HTMLDivElement>(null);
 	const inhalt = useRef<HTMLDivElement>(null);
 	const [zug, setZug] = useState<Zug | null>(null);
@@ -1089,9 +1091,9 @@ export const Ebenen = ({
 	};
 
 	const zeigeSeite = (s: GliederungSeite, i: number) => {
-		const name = `Seite ${i + 1}`;
+		const name = `${wort} ${i + 1}`;
 		const zugeklappt = !stand.offen(s.schluessel) || zug?.seite === true;
-		const griffDaten = { nr: s.nr, name, art: 'Seite' };
+		const griffDaten = { nr: s.nr, name, art: wort };
 		// 206: Eine automatische Seite zieht man nicht, sie gehört zur Seite davor.
 		const ohneGriff = festeSeiten || istAutomatisch(zerlegung?.knoten[s.nr]);
 		return (
@@ -1192,12 +1194,12 @@ export const Ebenen = ({
 						<Knopf
 							art="zweit"
 							className={klassen('flex-1 px-2', namenszeile && 'rounded-r-none')}
-							aria-label="Seite hinzufügen"
+							aria-label={`${wort} hinzufügen`}
 							disabled={!struktur.aktiv}
 							onClick={() => void struktur.neueSeite(namenszeile && mitNamenszeile)}
 						>
 							<Symbol name="plus" />
-							Seite
+							{wort}
 						</Knopf>
 						{namenszeile && (
 							<Menue
@@ -1206,12 +1208,12 @@ export const Ebenen = ({
 								ausloeser={ART_KNOPF}
 								eintraege={[
 									{
-										titel: 'Leere Seite',
+										titel: `Leere ${wort}`,
 										aktiv: !mitNamenszeile,
 										waehle: () => neueSeiteMit(false),
 									},
 									{
-										titel: 'Seite mit Namenszeile',
+										titel: `${wort} mit Namenszeile`,
 										aktiv: mitNamenszeile,
 										waehle: () => neueSeiteMit(true),
 									},

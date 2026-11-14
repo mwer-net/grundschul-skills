@@ -7,7 +7,7 @@ import { istTempDatei, kopiereAtomar, schreibeAtomar, schreibeJson } from './ato
 import type { Zusatz } from './einfuegen';
 import { fuegeZusatzEin } from './einfuegen';
 import { SchoolboxFehler } from './fehler';
-import { entwurfAusTitel, formatAusHtml, setzeBodyKlassen, setzeTitel, titelAusHtml } from './html';
+import { druckprofilAusHtml, entwurfAusTitel, formatAusHtml, setzeBodyKlassen, setzeTitel, titelAusHtml } from './html';
 import { leseStarter } from './katalog-starter';
 import { ASSETS } from './konfig';
 import type { Baum } from './ordner';
@@ -289,13 +289,15 @@ export const registriereEntwuerfe = async (
 /**
  * Übernimmt einen registrierten Entwurf als material.html. Die Runde in `entwuerfe/` bleibt zum Nachsehen; die
  * Arbeitsdateien `entwurf-a.html` … im Dokumentordner haben ausgedient und würden sonst über Teilen-Links und Kopien
- * der Mappe mitwandern.
+ * der Mappe mitwandern. War schon einer gewählt, sichert eine Version den bisherigen Stand (191-N03). Die Farbfassung
+ * folgt dem Entwurf (191-N02); `urheber`: wer gewählt hat, `lehrkraft` beim Knopf in der Oberfläche (191-N04).
  */
 export const waehleEntwurf = async (
 	materialDir: string,
 	ziel: Ziel & { dok: string },
 	name: string,
 	jetzt = new Date(),
+	urheber: Urheber = 'claude',
 ): Promise<{ entwurf: Entwurf; version: Version | null }> => {
 	const meta = await leseMeta(materialDir, ziel.mappe, ziel.dok);
 	const entwurf = meta.entwuerfe.find((e) => e.name === name.trim().toUpperCase());
@@ -305,9 +307,16 @@ export const waehleEntwurf = async (
 	}
 	const dir = dokumentDir(materialDir, ziel.mappe, ziel.dok);
 	const quelle = path.join(dir, 'entwuerfe', `${entwurf.name}.html`);
-	pruefeFormat(meta, await readFile(quelle, 'utf8'), `Entwurf ${entwurf.name}`);
+	const html = await readFile(quelle, 'utf8');
+	pruefeFormat(meta, html, `Entwurf ${entwurf.name}`);
+	const zweiteWahl = Boolean(meta.gewaehlt);
+	if (zweiteWahl) {
+		await legeVersionAn(dir, urheber, jetzt, { zusammenfassen: false });
+	}
 	await kopiereAtomar(quelle, path.join(dir, 'material.html'));
-	const version = await legeVersionAn(dir, 'claude', jetzt);
+	// Bei einer zweiten Wahl nicht zusammenfassen: Sonst überschriebe sie die Version der ersten.
+	const version = await legeVersionAn(dir, urheber, jetzt, { zusammenfassen: !zweiteWahl });
+	meta.druckprofil = druckprofilAusHtml(html) ?? 'farbe';
 	meta.gewaehlt = entwurf.name;
 	meta.geaendert = jetzt.toISOString();
 	await schreibeMeta(materialDir, ziel.mappe, ziel.dok, meta);

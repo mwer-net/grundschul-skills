@@ -21,35 +21,42 @@ const Fehlt = ({ children }: { children: string }) => (
 	</p>
 );
 
-/** Die richtige Antwort einer Antwortlinie; sie steht nur auf dem Lösungsblatt (und im Beispiel). */
-const Antwort = ({ l }: { l: LoesungSteuerung }) => {
+/**
+ * Die richtige Antwort einer Antwortlinie; sie steht nur auf dem Lösungsblatt (und im Beispiel). 196-11: Hat der
+ * Baustein ein eigenes Feld „Lösung“, steht nur dieses da; hier bleiben der Satz darüber und der Weg zur nächsten.
+ */
+const Antwort = ({ l, ohneFeld }: { l: LoesungSteuerung; ohneFeld: boolean }) => {
 	const id = useId();
 	const weitere = l.fehlend.filter((nr) => nr !== l.antwort).length;
 	return (
 		<div data-loesungswerkzeug="antwort">
-			<label htmlFor={id} className="flex h-zeile items-center text-leise">
-				Richtige Antwort
-			</label>
-			<input
-				key={l.antwort}
-				id={id}
-				type="text"
-				enterKeyHint="done"
-				autoComplete="off"
-				autoFocus
-				className={EINGABE}
-				value={l.wert}
-				onChange={(e) => l.tippe(e.target.value)}
-				onBlur={l.uebernimm}
-				onKeyDown={(e) => {
-					if (e.key === 'Enter') {
-						l.uebernimm();
-					} else if (e.key === 'Escape') {
-						l.verwirf();
-						e.currentTarget.blur();
-					}
-				}}
-			/>
+			{!ohneFeld && (
+				<>
+					<label htmlFor={id} className="flex h-zeile items-center text-leise">
+						Richtige Antwort
+					</label>
+					<input
+						key={l.antwort}
+						id={id}
+						type="text"
+						enterKeyHint="done"
+						autoComplete="off"
+						autoFocus
+						className={EINGABE}
+						value={l.wert}
+						onChange={(e) => l.tippe(e.target.value)}
+						onBlur={l.uebernimm}
+						onKeyDown={(e) => {
+							if (e.key === 'Enter') {
+								l.uebernimm();
+							} else if (e.key === 'Escape') {
+								l.verwirf();
+								e.currentTarget.blur();
+							}
+						}}
+					/>
+				</>
+			)}
 			{weitere > 0 && (
 				<Knopf art="zweit" className="mt-2" {...HALTE} onClick={l.naechsteFehlende}>
 					<Symbol name="weiter" />
@@ -95,11 +102,11 @@ const Beispiel = ({ l }: { l: LoesungSteuerung }) => {
 };
 
 /** Lösung der gewählten Antwortlinie bzw. „Als Beispiel zeigen“ für das gewählte Item. */
-export const Loesungswerkzeug = ({ l }: { l: LoesungSteuerung }) => {
+export const Loesungswerkzeug = ({ l, ohneFeld = false }: { l: LoesungSteuerung; ohneFeld?: boolean }) => {
 	if (!l.aktiv) {
 		return null;
 	}
-	return l.antwort === null ? <Beispiel l={l} /> : <Antwort l={l} />;
+	return l.antwort === null ? <Beispiel l={l} /> : <Antwort l={l} ohneFeld={ohneFeld} />;
 };
 
 /** Ohne Auswahl in der Lösungsansicht: Wo fehlt noch eine Lösung? */

@@ -4,7 +4,7 @@ import { SCHRIFT_TASTEN } from '../editor/textdom';
 
 /**
  * Tasten ohne Befehlsregister, für den Abschnitt „Tasten“ der Hilfe (53): Textsitzung (`textdom.ts`), Präsentation
- * (`praesentation.js` im Skill), Assistent (`Anlegen.tsx`), Palette, Blase und die Gesten beim Ziehen. Ändert sich
+ * (`praesentation.js` im Skill), Entwurf groß (`EntwurfGross.tsx`), Assistent (`Anlegen.tsx`), Palette, Blase und die Gesten beim Ziehen. Ändert sich
  * eine dieser Tasten, steht es hier.
  */
 export const WEITERE_TASTEN: TastenAbschnitt[] = [
@@ -26,8 +26,17 @@ export const WEITERE_TASTEN: TastenAbschnitt[] = [
 		zeilen: [
 			{ id: 'praesentation-weiter', titel: 'Weiter', tasten: ['→', 'Leertaste', 'Klicker'] },
 			{ id: 'praesentation-zurueck', titel: 'Zurück', tasten: ['←'] },
+			{ id: 'praesentation-erste', titel: 'Erste Folie', tasten: ['Pos1', 'fn ←'] },
+			{ id: 'praesentation-letzte', titel: 'Letzte Folie', tasten: ['Ende', 'fn →'] },
 			{ id: 'praesentation-schwarz', titel: 'Folie schwarz und wieder sichtbar', tasten: ['B'] },
 			{ id: 'praesentation-beenden', titel: 'Beenden', tasten: ['Esc'] },
+		],
+	},
+	{
+		titel: 'Entwurf groß',
+		zeilen: [
+			{ id: 'entwurf-blaettern', titel: 'Voriger, nächster Entwurf', tasten: ['←', '→'] },
+			{ id: 'entwurf-uebersicht', titel: 'Alle Entwürfe', tasten: ['Esc'] },
 		],
 	},
 	{

@@ -163,6 +163,9 @@ test.describe('Editor: Struktur', () => {
 		const vorher = await readFile(datei, 'utf8');
 		await oeffne(page, id, dok);
 		await druecke(material(page).locator('.reihe').first().locator('x-uhr').first());
+		// 196-18: „Reihe · Spalten“ steht nur am direkten Kind der Reihe, nicht an der Uhr darin.
+		await expect(page.locator('[data-spalten]')).toHaveCount(0);
+		await druecke(page.locator('[data-breadcrumb]').getByRole('button', { name: /^Eintrag/ }));
 		const spalten = page.locator('[data-spalten]');
 		await expect(spalten).toHaveAttribute('data-spalten', '4');
 		await expect(page.locator('[data-abschnitt="eltern"]')).toContainText('Reihe');

@@ -328,7 +328,7 @@ test.describe('Editor: Feldtypen (023)', () => {
 		await druecke(probe(page));
 		await page.getByLabel('Titel').fill('falsch');
 		await page.getByLabel('Titel').press('Enter');
-		await expect(page.locator('[data-fehler="_element"]')).toHaveText('Dieser Titel geht nicht.');
+		await expect(page.locator('p[role="alert"][data-fehler]')).toHaveText('Dieser Titel geht nicht.');
 		await expect(probe(page)).toHaveAttribute('data-fehler', 'Dieser Titel geht nicht.');
 		await expect(probe(page)).toContainText('Dieser Titel geht nicht.');
 		expect(await readFile(datei, 'utf8')).toBe(stand);
@@ -336,7 +336,7 @@ test.describe('Editor: Feldtypen (023)', () => {
 		await page.getByLabel('Titel').fill('wieder gut');
 		await page.getByLabel('Titel').press('Enter');
 		await gespeichert(page, datei);
-		await expect(page.locator('[data-fehler="_element"]')).toHaveCount(0);
+		await expect(page.locator('p[role="alert"][data-fehler]')).toHaveCount(0);
 		expect(await tagVon(datei)).toContain('titel="wieder gut"');
 	});
 
@@ -474,7 +474,7 @@ test.describe('Daten und Zufall (024)', () => {
 		const vorne = page.getByLabel('Vorne', { exact: true });
 		await vorne.fill('6');
 		await vorne.press('Enter');
-		await expect(page.locator('[data-fehler="_element"]')).toContainText('liegen auf dem Würfel gegenüber');
+		await expect(page.locator('p[role="alert"][data-fehler]')).toContainText('liegen auf dem Würfel gegenüber');
 		expect(await readFile(datei, 'utf8')).toBe(stand);
 	});
 });
@@ -544,7 +544,7 @@ test.describe('Ebene Geometrie (025)', () => {
 		await druecke(material(page).locator('x-gitter'));
 		await page.getByLabel('Achse nach', { exact: true }).fill('3');
 		await page.getByLabel('Achse nach', { exact: true }).press('Enter');
-		await expect(page.locator('[data-fehler="_element"]')).toContainText('kreuzt die Achse');
+		await expect(page.locator('p[role="alert"][data-fehler]')).toContainText('kreuzt die Achse');
 		expect(await readFile(datei, 'utf8')).toBe(stand);
 	});
 
@@ -658,7 +658,7 @@ test.describe('Räumliche Geometrie (026)', () => {
 		const eckzelle = page.locator('[data-raster="bauplan"] [data-zelle="0-0"]');
 		await eckzelle.fill('2');
 		await eckzelle.press('Enter');
-		await expect(page.locator('[data-fehler="_element"]')).toContainText('nicht zu sehen');
+		await expect(page.locator('p[role="alert"][data-fehler]')).toContainText('nicht zu sehen');
 		expect(await readFile(datei, 'utf8')).toBe(stand);
 	});
 
@@ -930,7 +930,7 @@ test.describe('Rechenformate (028)', () => {
 
 		await druecke(material(page).locator('x-zahlenmauer'));
 		await druecke(stein('0-0'));
-		await expect(page.locator('[data-fehler="_element"]')).toContainText('mehrere Lösungen');
+		await expect(page.locator('p[role="alert"][data-fehler]')).toContainText('mehrere Lösungen');
 		expect(await readFile(datei, 'utf8')).toBe(stand);
 	});
 });
@@ -996,12 +996,12 @@ test.describe('Rechnen: Wahlen nehmen mit, was sie brauchen (084)', () => {
 		await druecke(material(page).locator('x-zahlenkette'));
 		const haken = (name: string) => page.locator('[data-feld="zeige"]').getByRole('switch', { name, exact: true });
 		await druecke(haken('Start'));
-		await expect(page.locator('[data-fehler="_element"]')).toContainText(
+		await expect(page.locator('p[role="alert"][data-fehler]')).toContainText(
 			'der Start, das Ziel oder die Zwischenergebnisse',
 		);
 		await druecke(haken('Start'));
 		await druecke(haken('Rechenschritte'));
-		await expect(page.locator('[data-fehler="_element"]')).toContainText(
+		await expect(page.locator('p[role="alert"][data-fehler]')).toContainText(
 			'Gib auch die Rechenschritte oder die Zwischenergebnisse vor.',
 		);
 	});
@@ -1187,7 +1187,7 @@ test.describe('Sachunterricht und Musik: Die Taktart nimmt die Noten mit (084)',
 		const { datei, stand } = await mitTag(page, '<x-rhythmus art="karte" takt="4/4" noten="4 2 4"></x-rhythmus>');
 		await druecke(material(page).locator('x-rhythmus'));
 		await page.locator('[data-feld="takt"] select').selectOption('2/4');
-		await expect(panel(page).locator('[data-fehler="_element"]')).toContainText('Passe die Noten an');
+		await expect(panel(page).locator('p[role="alert"][data-fehler]')).toContainText('Passe die Noten an');
 		expect(await readFile(datei, 'utf8')).toBe(stand);
 	});
 
@@ -1845,11 +1845,8 @@ test.describe('Lineatur und Silben (031)', () => {
 
 		const silben = material(page).locator('x-silben');
 		await druecke(silben);
-		// Der Text der Silben steht seit 083 unter „Weitere“, oben stehen die Lesehilfen.
-		const weitere = page.locator('[data-abschnitt="weitere"] > button');
-		if ((await weitere.getAttribute('aria-expanded')) !== 'true') {
-			await druecke(weitere);
-		}
+		// 196-22: Text und Aufgabe der Silben stehen offen unter „Inhalt“.
+		await expect(page.locator('[data-abschnitt="weitere"]')).toHaveCount(0);
 		const feld = page.getByRole('textbox', { name: 'Text', exact: true });
 		await expect(feld).toHaveValue('Rosi|ne');
 		await feld.evaluate((e: HTMLTextAreaElement) => {
@@ -2431,7 +2428,7 @@ test.describe('Musik (035)', () => {
 
 		await druecke(material(page).locator('x-rhythmus'));
 		await druecke(panel(page).getByRole('button', { name: 'Letzte Note zurücknehmen' }));
-		await expect(panel(page).locator('[data-fehler="_element"]')).toContainText('Takt 1 hat 1 Viertel statt 2');
+		await expect(panel(page).locator('p[role="alert"][data-fehler]')).toContainText('Takt 1 hat 1 Viertel statt 2');
 		expect(await readFile(datei, 'utf8')).toBe(stand);
 		await druecke(
 			panel(page)
@@ -2672,7 +2669,7 @@ test.describe('Rätsel (038)', () => {
 		);
 
 		await druecke(inhalt.locator('x-loesungswort').first());
-		await expect(page.locator('[data-fehler="_element"]')).toContainText('Eintrag 2 hat jetzt die Lösung 48');
+		await expect(page.locator('p[role="alert"][data-fehler]')).toContainText('Eintrag 2 hat jetzt die Lösung 48');
 
 		await druecke(zurueck(page));
 		await expect(inhalt.locator('x-loesungswort')).not.toHaveAttribute('data-fehler');

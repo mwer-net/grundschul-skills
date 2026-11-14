@@ -12,6 +12,7 @@ import {
 	schreibeMeta,
 	sichereFassung,
 	versionsPfad,
+	waehleEntwurf,
 } from '@schoolbox/kern';
 import type { RequestHandler } from 'express';
 import { json, Router } from 'express';
@@ -203,6 +204,29 @@ export const apiRouter = (kontext: Kontext) => {
 			}
 		});
 		res.json({ profil });
+	});
+
+	/** „Diesen Entwurf nehmen“ in den Entwürfen (191 Urteil 7): wie `schoolbox waehle`, nur aus der Oberfläche. */
+	router.post('/dokumente/:mappe/:dok/entwurf', async (req, res) => {
+		const { dok, mappe } = req.params;
+		verlangeDokument(kontext, mappe, dok);
+		const { name } = (req.body ?? {}) as { name?: unknown };
+		if (typeof name !== 'string' || !/^[A-Za-z]$/.test(name)) {
+			throw new HttpFehler(400, '„name“ fehlt oder ist ungültig.');
+		}
+		const entwurf = await kontext.sperre(dokSchluessel(mappe, dok), async () => {
+			await nimmFremdeAenderungAuf(kontext, mappe, dok);
+			const gewaehlt = await waehleEntwurf(materialDir, { mappe, dok }, name, new Date(), 'lehrkraft');
+			const bekannt = await leseBekannt(kontext, mappe, dok);
+			kontext.bekannt.set(dokSchluessel(mappe, dok), bekannt);
+			const version = kennung(await leseQuelle(dokumentDir(materialDir, mappe, dok)));
+			kontext.ereignisse.sende({
+				typ: 'dokument-geaendert',
+				daten: { mappe, dok, version, urheber: 'lehrkraft' },
+			});
+			return gewaehlt.entwurf;
+		});
+		res.json({ entwurf });
 	});
 
 	router.post('/dokumente/:mappe/:dok/pdf', async (req, res) => {

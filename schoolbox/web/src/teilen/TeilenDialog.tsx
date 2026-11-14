@@ -1,7 +1,9 @@
-import { useRef, useState } from 'react';
+import type { KeyboardEvent } from 'react';
+import { useEffect, useRef, useState } from 'react';
 
 import { meldung, sende } from '../api';
 import { Dialog } from '../bausteine/Dialog';
+import { FELD_KLASSEN, klassen } from '../bausteine/klassen';
 import { Knopf } from '../bausteine/Knopf';
 import { Symbol } from '../bausteine/Symbol';
 import { useLaden } from '../lib/laden';
@@ -21,18 +23,46 @@ type Eigenschaften = { schliessen: () => void } & (DokumentZiel | OrdnerZiel);
 const adresse = ({ pfad, url }: Freigabe) => url ?? `${window.location.origin}${pfad}`;
 const kannSenden = typeof navigator.share === 'function';
 
+/** Der Fokus folgt der Handlung (191-06, 191-07): auf die Hauptaktion des Dialogs, nie auf `body`. */
+const fokussiereHauptaktion = () =>
+	document.querySelector<HTMLElement>('dialog[open] [data-hauptaktion]:not(:disabled)')?.focus();
+
 interface ZeileEigenschaften {
 	freigabe: Freigabe;
 	titel: string;
+	/** „den Ordner“ oder „das Material“ (191-28). */
+	was: string;
+	/** Die erste Zeile trägt die Hauptaktion: Enter kopiert ihren Link. */
+	erste: boolean;
 	gesperrt: boolean;
 	widerrufe: () => void;
 }
 
-const LinkZeile = ({ freigabe, gesperrt, titel, widerrufe }: ZeileEigenschaften) => {
+const LinkZeile = ({ erste, freigabe, gesperrt, titel, was, widerrufe }: ZeileEigenschaften) => {
 	const feld = useRef<HTMLInputElement>(null);
+	const abschalten = useRef<HTMLButtonElement>(null);
+	const dochNicht = useRef<HTMLButtonElement>(null);
 	const [kopiert, setKopiert] = useState<'ja' | 'markiert' | null>(null);
-	const [frage, setFrage] = useState(false);
+	const [frage, setFrage] = useState<boolean | null>(null);
 	const link = adresse(freigabe);
+
+	// Nach „Abschalten“ auf „Doch nicht“, danach zurück auf „Abschalten“ (191-07).
+	useEffect(() => {
+		if (frage === true) {
+			dochNicht.current?.focus();
+		} else if (frage === false) {
+			abschalten.current?.focus();
+		}
+	}, [frage]);
+
+	// Esc schließt nur die Nachfrage, nicht den ganzen Dialog (191-08).
+	const tasteInFrage = (e: KeyboardEvent) => {
+		if (e.key === 'Escape') {
+			e.preventDefault();
+			e.stopPropagation();
+			setFrage(false);
+		}
+	};
 
 	const kopiere = async () => {
 		try {
@@ -52,10 +82,10 @@ const LinkZeile = ({ freigabe, gesperrt, titel, widerrufe }: ZeileEigenschaften)
 	};
 
 	return (
-		<li className="flex flex-col gap-3 rounded-2xl border border-rand p-4" data-freigabe={freigabe.token}>
+		<li className="flex flex-col gap-3 rounded-xl border border-rand p-4" data-freigabe={freigabe.token}>
 			<input
 				ref={feld}
-				className="h-knopf w-full rounded-xl border border-rand bg-papier px-3 text-sm"
+				className={klassen(FELD_KLASSEN, 'select-text')}
 				type="text"
 				readOnly
 				aria-label="Link zum Teilen"
@@ -63,20 +93,21 @@ const LinkZeile = ({ freigabe, gesperrt, titel, widerrufe }: ZeileEigenschaften)
 				onFocus={(e) => e.target.select()}
 			/>
 			{frage ? (
-				<div className="flex flex-col gap-3" role="alert">
-					<p>Wer diesen Link hat, kann das Material dann nicht mehr öffnen. Wirklich abschalten?</p>
-					<div className="flex flex-wrap gap-2">
-						<Knopf disabled={gesperrt} onClick={widerrufe}>
-							Ja, abschalten
-						</Knopf>
-						<Knopf art="zweit" onClick={() => setFrage(false)}>
+				<div className="flex flex-col gap-3" role="alert" onKeyDown={tasteInFrage}>
+					<p>{`Wer diesen Link hat, kann ${was} dann nicht mehr öffnen. Wirklich abschalten?`}</p>
+					{/* Rechts, wo „Abschalten“ stand, und in dessen Farbe (191-09). */}
+					<div className="flex flex-wrap justify-end gap-2">
+						<Knopf ref={dochNicht} art="zweit" onClick={() => setFrage(false)}>
 							Doch nicht
+						</Knopf>
+						<Knopf art="gefahr" disabled={gesperrt} onClick={widerrufe}>
+							Ja, abschalten
 						</Knopf>
 					</div>
 				</div>
 			) : (
 				<div className="flex flex-wrap items-center gap-2">
-					<Knopf onClick={() => void kopiere()}>
+					<Knopf data-hauptaktion={erste ? '' : undefined} onClick={() => void kopiere()}>
 						<Symbol name={kopiert === 'ja' ? 'haken' : 'kopieren'} />
 						{kopiert === 'ja' ? 'Kopiert' : 'Link kopieren'}
 					</Knopf>
@@ -86,7 +117,7 @@ const LinkZeile = ({ freigabe, gesperrt, titel, widerrufe }: ZeileEigenschaften)
 							Senden
 						</Knopf>
 					)}
-					<Knopf art="gefahr" className="ml-auto" onClick={() => setFrage(true)}>
+					<Knopf ref={abschalten} art="gefahr" className="ml-auto" onClick={() => setFrage(true)}>
 						Abschalten
 					</Knopf>
 				</div>
@@ -111,6 +142,15 @@ export const TeilenDialog = (e: Eigenschaften) => {
 	);
 	const [laeuft, setLaeuft] = useState(false);
 	const [panne, setPanne] = useState<string | null>(null);
+	// Nach dem Laden und nach jeder Aktion springt der Fokus auf die Hauptaktion, sobald die neue Liste steht (191-07).
+	// `alteListe`: die Antwort vor der Aktion; erst eine andere Antwort ist die nach der Aktion. `null`: beim Öffnen.
+	const [fokus, setFokus] = useState<{ alteListe: typeof daten | null } | false>({ alteListe: null });
+	useEffect(() => {
+		if (fokus && daten && daten !== fokus.alteListe && !laeuft) {
+			fokussiereHauptaktion();
+			setFokus(false);
+		}
+	}, [daten, fokus, laeuft]);
 
 	const fuehreAus = async (schritt: () => Promise<unknown>) => {
 		setLaeuft(true);
@@ -120,6 +160,7 @@ export const TeilenDialog = (e: Eigenschaften) => {
 		} catch (grund) {
 			setPanne(meldung(grund));
 		} finally {
+			setFokus({ alteListe: daten });
 			neuLaden();
 			setLaeuft(false);
 		}
@@ -131,7 +172,7 @@ export const TeilenDialog = (e: Eigenschaften) => {
 		.filter((f) => f.widerrufen === null && (imOrdner || ('dok' in f.ziel && f.ziel.dok === e.dokument.id)))
 		.sort((a, b) => b.erstellt.localeCompare(a.erstellt));
 	const meldungText = panne ?? fehler?.message;
-	const umfang = imOrdner ? 'alles in diesem Ordner, auch in den Unterordnern,' : 'dieses Dokument';
+	const umfang = imOrdner ? 'alles in diesem Ordner, auch in den Unterordnern,' : 'dieses Material';
 
 	return (
 		<Dialog titel={`„${titel}“ teilen`} schliessen={schliessen}>
@@ -144,27 +185,25 @@ export const TeilenDialog = (e: Eigenschaften) => {
 			)}
 			{aktive.length > 0 && (
 				<ul className="flex flex-col gap-3">
-					{aktive.map((freigabe) => (
+					{aktive.map((freigabe, nr) => (
 						<LinkZeile
 							key={freigabe.token}
 							freigabe={freigabe}
 							titel={titel}
+							was={imOrdner ? 'den Ordner' : 'das Material'}
+							erste={nr === 0}
 							gesperrt={laeuft}
 							widerrufe={() => void widerrufe(freigabe.token)}
 						/>
 					))}
 				</ul>
 			)}
-			{daten && (
+			{/* Ein Link je Material oder Ordner (191-44): Wer jemanden ausschließen will, schaltet ab und erstellt neu. */}
+			{daten && aktive.length === 0 && (
 				<div>
-					<Knopf
-						art={aktive.length === 0 ? 'haupt' : 'leise'}
-						className={aktive.length === 0 ? undefined : '-ml-5'}
-						disabled={laeuft}
-						onClick={() => void erstelle()}
-					>
+					<Knopf data-hauptaktion disabled={laeuft} onClick={() => void erstelle()}>
 						<Symbol name="plus" />
-						{aktive.length === 0 ? 'Link erstellen' : 'Noch einen Link erstellen'}
+						Link erstellen
 					</Knopf>
 				</div>
 			)}

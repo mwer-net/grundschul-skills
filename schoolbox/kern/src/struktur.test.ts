@@ -23,6 +23,7 @@ import {
 	hatNamenszeile,
 	loescheBaustein,
 	nummeriere,
+	ordneSchritte,
 	setzeAbstand,
 	setzeSpalten,
 	setzeStilWert,
@@ -369,5 +370,59 @@ describe('Seitenbefehle kennen das Blatt (206-03)', () => {
 		const { quelle } = loescheBaustein(QUELLE, fest ?? -1, BLATT);
 		assert.deepEqual(weiter(quelle), ['', null]);
 		assert.match(quelle, /<section class="seite" data-weiter>/);
+	});
+});
+
+describe('Schritte einer Folie (192-16)', () => {
+	const FOLIE = [
+		'<body class="folie">',
+		'<section class="seite"><p data-schritt="1">a</p><p data-schritt="2">b</p><p data-schritt="3">c</p></section>',
+		'<section class="seite"><p data-schritt="5">x</p><p data-schritt="5">y</p></section>',
+		'</body>',
+	].join('\n');
+	const schritte = (quelle: string, folie = 0) => {
+		const z = zerlege(quelle);
+		const s0 = mitKlasse(z, 'seite')[folie] as Knoten;
+		return z.knoten
+			.filter((k) => k.start > s0.start && k.ende <= s0.ende && attribut(k, 'data-schritt'))
+			.map((k) => attribut(k, 'data-schritt')?.wert);
+	};
+	const zeile = (quelle: string, i: number) =>
+		zerlege(quelle).knoten.filter((k) => attribut(k, 'data-schritt'))[i] as Knoten;
+
+	it('gibt einer Kopie eine eigene Zahl: danach 1, 2, 3, 4', () => {
+		const { quelle } = dupliziereBaustein(FOLIE, zeile(FOLIE, 1).nr, FOLIEN);
+		assert.deepEqual(schritte(quelle), ['1', '2', '3', '4']);
+		einSchritt(FOLIE, quelle);
+	});
+
+	it('ordnet nach der Stelle im Blatt: Die dritte Zeile nach vorn erscheint als erste', () => {
+		const { quelle } = verschiebeBaustein(FOLIE, zeile(FOLIE, 2).nr, { nr: zeile(FOLIE, 0).nr, wo: 'vor' }, FOLIEN);
+		const z = zerlege(quelle);
+		const erste = z.knoten.find((k) => attribut(k, 'data-schritt')) as Knoten;
+		assert.equal(innenVon(z, erste), 'c');
+		assert.deepEqual(schritte(quelle), ['1', '2', '3']);
+	});
+
+	it('schließt nach dem Löschen die Lücke', () => {
+		const { quelle } = loescheBaustein(FOLIE, zeile(FOLIE, 0).nr, FOLIEN);
+		assert.deepEqual(schritte(quelle), ['1', '2']);
+	});
+
+	it('lässt gemeinsame Zahlen gemeinsam und andere Folien, wie sie sind', () => {
+		const { quelle } = dupliziereBaustein(FOLIE, zeile(FOLIE, 0).nr, FOLIEN);
+		assert.deepEqual(schritte(quelle, 1), ['5', '5']);
+		assert.deepEqual(schritte(ordneSchritte(FOLIE, zeile(FOLIE, 3).nr), 1), ['1', '1']);
+	});
+
+	it('auf eine andere Folie verschoben: eigener Schritt dort, keine Lücke auf der alten', () => {
+		const { quelle } = verschiebeBaustein(FOLIE, zeile(FOLIE, 1).nr, { nr: zeile(FOLIE, 3).nr, wo: 'nach' }, FOLIEN);
+		assert.deepEqual(schritte(quelle, 0), ['1', '2']);
+		assert.deepEqual(schritte(quelle, 1), ['1', '2', '1']);
+	});
+
+	it('lässt Blätter ohne Folien unberührt', () => {
+		const { quelle } = dupliziereBaustein(FOLIE, zeile(FOLIE, 1).nr, BLATT);
+		assert.deepEqual(schritte(quelle), ['1', '2', '2', '3']);
 	});
 });

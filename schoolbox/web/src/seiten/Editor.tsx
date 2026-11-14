@@ -87,8 +87,9 @@ import { useEreignisse } from '../ereignisse';
 import { useLaden } from '../lib/laden';
 import { useAnsichtsProfil } from '../lib/profil';
 import { useTitel } from '../lib/titel';
-import { ansichtAdresse, dokumentSeite, druckSeite, inhaltAdresse, praesentationSeite } from '../lib/zugang';
+import { ansichtAdresse, dokumentSeite, inhaltAdresse, praesentationSeite } from '../lib/zugang';
 import { PdfKnopf } from '../pdf/PdfKnopf';
+import { beendeVollbild, SOFORT, vollbildFuerSofort } from '../praesentation/laufzeit';
 import { dokumentWahl, materialName } from '../pdf/wahl';
 import type { DokumentEintrag, Mappe, MappenEintrag } from '../typen';
 import { MaterialFehlt, NICHT_GEFUNDEN } from './NichtGefunden';
@@ -669,21 +670,30 @@ const Bearbeitung = ({ dokument, mappe: mappenDaten }: { mappe: Mappe; dokument:
 	 * 193-08: Kam man aus der Ansicht, geht „Zurück“ einen Schritt im Verlauf zurück; sonst ersetzt die Ansicht den
 	 * Eintrag. So führt das Zurück des Browsers danach dorthin, wo man vor dem Material war.
 	 */
-	const gehe = (ziel: string, zurAnsicht: boolean) => {
+	const gehe = (ziel: string, zurAnsicht: boolean, state?: unknown) => {
 		if (zurAnsicht && ausAnsicht) {
 			void navigate(-1);
 		} else {
-			void navigate(ziel, zurAnsicht ? { replace: true } : undefined);
+			void navigate(ziel, zurAnsicht ? { replace: true } : { state });
 		}
 	};
-	const verlassen = async (ziel: string, zurAnsicht = false) => {
+	/** Meldet, ob man gleich gegangen ist. `imKlick` läuft auch im Klick auf „Trotzdem gehen“ (Vollbild braucht ihn). */
+	const verlassen = async (
+		ziel: string,
+		{ imKlick, state, zurAnsicht = false }: { imKlick?: () => void; state?: unknown; zurAnsicht?: boolean } = {},
+	) => {
 		const gespeichert = await alles();
-		if (gespeichert || b.konflikt !== null) {
-			gehe(ziel, zurAnsicht);
+		const trotzdem = gespeichert || b.konflikt !== null;
+		if (trotzdem) {
+			gehe(ziel, zurAnsicht, state);
 		} else {
 			// 193-09: eine Nachfrage im Muster aller Dialoge statt des Fensters des Browsers.
-			setUngespeichert(() => () => gehe(ziel, zurAnsicht));
+			setUngespeichert(() => () => {
+				imKlick?.();
+				gehe(ziel, zurAnsicht, state);
+			});
 		}
+		return trotzdem;
 	};
 
 	const ablage = useAblage({
@@ -766,15 +776,8 @@ const Bearbeitung = ({ dokument, mappe: mappenDaten }: { mappe: Mappe; dokument:
 					panels.setRechtsOffen(true);
 					ablage.setSammlungName(pfad.at(-1)?.name ?? '');
 				},
-				neueZahlen: () => {
-					const geklappt = abbildung.neueZahlen();
-					if (!geklappt) {
-						zeige({
-							text: 'Hier gibt es gerade keine neuen Zahlen. Bei Sprüngen und Fehleraufgaben hängen die Zahlen zusammen.',
-						});
-					}
-					return geklappt;
-				},
+				// 197-20: Den Grund, wenn es keine gibt, meldet `neueZahlen` selbst.
+				neueZahlen: () => abbildung.neueZahlen(),
 				claudeApp: () => handlungen.current.zurApp(auswahl),
 				oeffneSchnellauswahl: (nr = auswahl) => setSchnellWunsch((w) => ({ n: w.n + 1, nr })),
 				bildErsetzen: () => {
@@ -837,9 +840,14 @@ const Bearbeitung = ({ dokument, mappe: mappenDaten }: { mappe: Mappe; dokument:
 				// 193-37: sofort speichern; die Antwort ist der Speicherstand im Kopf.
 				speichern: () => void alles(),
 				pdf: () => document.querySelector<HTMLElement>('[data-pdf-knopf] button')?.click(),
-				drucken: () => void verlassen(druckSeite(zugang, dok, loesung ? 'loesung' : 'arbeitsblatt', profil)),
-				praesentieren: () => void verlassen(praesentationSeite(zugang, dok)),
-				zurueck: () => void verlassen(dokumentSeite(zugang, dok), true),
+				praesentieren: () => {
+					// Vollbild nur im Klick selbst, also vor dem Speichern (192 Urteil 2); bleibt man hier, endet es.
+					vollbildFuerSofort();
+					void verlassen(praesentationSeite(zugang, dok), { imKlick: vollbildFuerSofort, state: SOFORT }).then(
+						(weg) => weg || beendeVollbild(),
+					);
+				},
+				zurueck: () => void verlassen(dokumentSeite(zugang, dok), { zurAnsicht: true }),
 				hilfe: () => void verlassen('/hilfe'),
 			},
 		},
@@ -1039,6 +1047,7 @@ const Bearbeitung = ({ dokument, mappe: mappenDaten }: { mappe: Mappe; dokument:
 				umriss={setUmriss}
 				blatt={ohneAuswahl}
 				zumBlatt={zumBlatt}
+				folien={format === 'folie'}
 			>
 				<Einstellungen
 					pfad={pfad}
@@ -1163,7 +1172,15 @@ const Bearbeitung = ({ dokument, mappe: mappenDaten }: { mappe: Mappe; dokument:
 						</Knopf>
 					)}
 					<span className="contents" data-pdf-knopf>
-						<PdfKnopf art="haupt" beschriftung="PDF" wahl={wahl} mappe={mappenDaten} warnen rechtsbuendig />
+						<PdfKnopf
+							art="haupt"
+							beschriftung="PDF"
+							wahl={wahl}
+							mappe={mappenDaten}
+							warnen
+							rechtsbuendig
+							echteMasse={dokument.echteMasse}
+						/>
 					</span>
 				</Kopfleiste>
 				{claudeApp.dialog}
@@ -1358,6 +1375,7 @@ const Bearbeitung = ({ dokument, mappe: mappenDaten }: { mappe: Mappe; dokument:
 					seite={seite}
 					blattGeladen={erstesBild}
 					format={FORMAT_NAME[format]}
+					folien={format === 'folie'}
 					pruefung={pruefung.stand}
 					zeigePunkt={zeigePunkt}
 					knopf={pruefKnopf}

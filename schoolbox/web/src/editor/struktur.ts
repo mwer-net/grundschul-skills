@@ -18,6 +18,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 
 import { meldung } from '../api';
 import { useHinweis } from '../bausteine/hinweis';
+import { seitenWort } from '../lib/text';
 import type { PfadTeil } from './darstellung';
 import { elementZu, nrVon, trefferAn, VERALTET, zielNachSchritt } from './darstellung';
 import type { Geladen } from './gezeigt';
@@ -315,7 +316,7 @@ export const useStruktur = (o: Optionen) => {
 
 	const neueSeite = (mitNamenszeile: boolean) =>
 		fuehreAus(
-			'Seite hinzugefügt',
+			`${seitenWort(aktuell.current.folien)} hinzugefügt`,
 			(q) => fuegeSeiteEin(q, { nach: werte?.seite ?? null, mitNamenszeile }, nummerierung()),
 			true,
 		);

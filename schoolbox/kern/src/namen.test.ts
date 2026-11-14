@@ -37,7 +37,7 @@ describe('pdfDateiname', () => {
 		);
 		assert.equal(
 			ausgabeDateiname(sache, folien, 'praesentation'),
-			'Kl3 Sachunterricht Die Kartoffel – Präsentation.html',
+			'Kl3 Sachunterricht Die Kartoffel – Offline-Präsentation.html',
 		);
 	});
 

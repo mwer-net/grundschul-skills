@@ -3,6 +3,7 @@ import { useEffect, useState } from 'react';
 import { klassen } from '../bausteine/klassen';
 import { Symbol } from '../bausteine/Symbol';
 import { Tooltip } from '../bausteine/Tooltip';
+import { seitenWort } from '../lib/text';
 import { kuerzelVon } from './befehle';
 import { halteFokus } from './halteFokus';
 import type { PruefKnopf } from './Pruefliste';
@@ -126,7 +127,10 @@ interface Eigenschaften extends ZoomEigenschaften {
 	seite: { nr: number; von: number };
 	/** Bis das Blatt geladen ist, steht nur das Format da (193-21): Die Seitenzahl wäre noch falsch. */
 	blattGeladen: boolean;
+	/** Der angezeigte Name des Formats, z. B. „Folien 16:9“. */
 	format: string;
+	/** Folien zählen „Folie 3 von 6“ (192-12). */
+	folien: boolean;
 	pruefung: Pruefstand | null;
 	zeigePunkt: (p: Pruefpunkt) => void;
 	knopf?: ((p: Pruefpunkt) => PruefKnopf | null) | undefined;
@@ -138,6 +142,7 @@ interface Eigenschaften extends ZoomEigenschaften {
 export const Statusleiste = ({
 	blattGeladen,
 	claude,
+	folien,
 	format,
 	fuehreAus,
 	pruefung,
@@ -157,7 +162,7 @@ export const Statusleiste = ({
 		{/* 193-35: Zu- und Aufklappen liegt am Symbol der Schubladenleiste, nicht noch einmal hier. */}
 		<div className="flex min-w-0 items-center gap-2 pl-1">
 			<span className="truncate" data-seite-von>
-				{blattGeladen ? `Seite ${seite.nr} von ${seite.von} · ${format}` : format}
+				{blattGeladen ? `${seitenWort(folien)} ${seite.nr} von ${seite.von} · ${format}` : format}
 			</span>
 			<Pruefstatus stand={pruefung} zeige={zeigePunkt} knopf={knopf} />
 			{claude && <ClaudeStand lauf={claude} oeffne={zeigeClaude} />}

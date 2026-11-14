@@ -184,10 +184,15 @@ export const loescheSpalte = (quelle: string, nr: number, n: Nummerierung) =>
 		};
 	});
 
+/** 196-07: Mehr als 12 Spalten passen nicht lesbar auf ein Blatt; Zeilen bis 30. */
+export const TABELLE_GRENZEN = { zeilen: 30, spalten: 12 } as const;
+
+const grenze = (n: number, max: number) => Math.min(max, Math.max(1, Math.round(n)));
+
 export const setzeGroesse = (quelle: string, nr: number, was: { zeilen?: number; spalten?: number }, n: Nummerierung) =>
 	aendere(quelle, nr, n, (m, s) => {
-		const zielSpalten = was.spalten ?? spalten(m);
-		const zielZeilen = was.zeilen ?? m.zeilen.length;
+		const zielSpalten = was.spalten === undefined ? spalten(m) : grenze(was.spalten, TABELLE_GRENZEN.spalten);
+		const zielZeilen = was.zeilen === undefined ? m.zeilen.length : grenze(was.zeilen, TABELLE_GRENZEN.zeilen);
 		const breit = (r: Zeile) => ({
 			...r,
 			zellen: [

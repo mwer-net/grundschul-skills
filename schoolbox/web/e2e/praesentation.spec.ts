@@ -16,6 +16,13 @@ const starte = async (page: Page, druecke: (ziel: Locator) => Promise<void>) => 
 	return page.frameLocator('iframe');
 };
 
+/** Aus Ablage, Ansicht und Editor startet „Präsentieren“ sofort, ohne Startseite (192 Urteil 2). */
+const laeuftSofort = async (page: Page) => {
+	await expect(page.getByRole('toolbar', { name: 'Präsentation steuern' })).toBeAttached();
+	await expect(page.getByRole('button', { name: 'Präsentation starten' })).toHaveCount(0);
+	return page.frameLocator('iframe');
+};
+
 const folienFenster = (page: Page): Frame => {
 	const fenster = page.frames().find((f) => f.url().includes('praesentation=1'));
 	if (!fenster) {
@@ -56,8 +63,7 @@ test.describe('Präsentation', () => {
 		await page.goto(`/m/${id}/${dokumente[0]}`);
 		await druecke(page.getByRole('link', { name: 'Präsentieren' }));
 		await expect(page).toHaveURL(new RegExp(`/m/${id}/${dokumente[0]}/praesentation$`));
-		await expect(page.getByText('Präsentation · 6 Folien')).toBeVisible();
-		const folie = await starte(page, druecke);
+		const folie = await laeuftSofort(page);
 		const nummer = folie.locator('.praesentation-nummer');
 		await expect(folie.locator('.seite.aktiv h1')).toHaveText('Was passiert mit dieser Kartoffel?');
 		await expect(nummer).toHaveText('1 / 6');
@@ -121,6 +127,37 @@ test.describe('Präsentation', () => {
 
 		await page.keyboard.press('Escape');
 		await expect(page).toHaveURL(new RegExp(`/m/${id}/${dokumente[0]}$`));
+	});
+
+	test('Startseite beim direkten Aufruf: Fokus auf Start, Zurück aus am Anfang, nach Neuladen dieselbe Folie', async ({
+		druecke,
+		hasTouch,
+		page,
+	}) => {
+		const { dokumente, id } = await kreisinput();
+		await page.goto(`/m/${id}/${dokumente[0]}/praesentation`);
+		await expect(page.getByText('Präsentation · 6 Folien')).toBeVisible();
+		await expect(page.getByRole('link', { name: 'Zurück' })).toBeVisible();
+		await expect(page.getByText('Alles geladen.')).toBeVisible();
+		if (!hasTouch) {
+			// Enter startet; die Folien dahinter bekommen keinen Fokus (192-03).
+			await expect(page.getByRole('button', { name: 'Präsentation starten' })).toBeFocused();
+		}
+		let folie = await starte(page, druecke);
+		// Auf der ersten Folie geht es nicht zurück (192-07).
+		await expect(page.getByRole('button', { name: 'Zurück' })).toBeDisabled();
+		await gehe(page, 4);
+		await expect(folie.locator('.praesentation-nummer')).toHaveText('4 / 6');
+		await expect(page.getByRole('button', { name: 'Zurück' })).toBeEnabled();
+
+		// Neu geladen: wieder die Startseite, danach dieselbe Folie (192-10).
+		await page.reload();
+		folie = await starte(page, druecke);
+		await expect(folie.locator('.praesentation-nummer')).toHaveText('4 / 6');
+
+		// Ein Blatt hat keine Folien (192-09).
+		await page.goto(`/m/${id}/${dokumente[1]}/praesentation`);
+		await expect(page.getByText('Dieses Material hat keine Folien.')).toBeVisible();
 	});
 
 	test('Antippen, Wischen, Aufdecken und Timer', async ({ druecke, hasTouch, page }) => {
@@ -214,44 +251,53 @@ test.describe('Präsentation', () => {
 		await context.setOffline(false);
 	});
 
-	test('Ohne Internet: PDF mit Schritten, Offline-Präsentation und Folien mit Notizen', async ({ druecke, page }) => {
+	test('„PDF“ einer Präsentation: Drucken oben, Ohne Internet darunter (191-40, 192-17)', async ({
+		druecke,
+		page,
+	}) => {
 		const { dokumente, id } = await kreisinput();
+		const ipad = test.info().project.name.startsWith('ipad');
 		await page.goto(`/m/${id}/${dokumente[1]}`);
 		await expect(page.getByRole('heading', { level: 1 })).toContainText('Teile der Kartoffel');
 		await oeffneMehr(druecke, page);
-		await expect(page.getByRole('menuitem', { name: 'Drucken' })).toBeVisible();
+		await expect(page.getByRole('menuitem', { name: 'Drucken' })).toHaveCount(0);
 		await expect(page.getByRole('menuitem', { name: 'Ohne Internet' })).toHaveCount(0);
 		await page.keyboard.press('Escape');
 
 		await page.goto(`/m/${id}/${dokumente[0]}`);
-		const knopf = page.getByRole('menuitem', { name: 'Ohne Internet' });
-		await oeffneMehr(druecke, page);
-		await druecke(knopf);
-		const eintraege = page.getByRole('menu').last().getByRole('menuitem');
-		await expect(eintraege).toHaveCount(3);
-		await expect(eintraege.nth(0)).toContainText('PDF zum PräsentierenFürs iPad');
-		await expect(eintraege.nth(0)).toContainText('Jeder Schritt ist eine eigene Seite.');
-		const ipad = test.info().project.name.startsWith('ipad');
-		await expect(eintraege.nth(1)).toContainText(ipad ? 'auf dem iPad läuft die Datei nicht' : 'in Safari öffnen');
+		const pdf = page.getByRole('button', { name: 'PDF', exact: true });
+		await druecke(pdf);
+		const eintraege = page.getByRole('menu').getByRole('menuitem');
+		// Die Datei für Safari läuft am iPad nicht und fehlt dort.
+		await expect(eintraege).toHaveText([
+			'Folien zum Drucken',
+			'Folien zum Drucken (in s/w)',
+			/^Folien mit Notizen/,
+			/^Ohne Internet: fürs iPad/,
+			...(ipad ? [] : [/^Ohne Internet: für den Mac/]),
+		]);
 		await expect(eintraege.nth(2)).toContainText('daneben deine Notizen');
-		await page.keyboard.press('Escape');
+		await expect(eintraege.nth(3)).toContainText('Jeder Schritt ist eine eigene Seite.');
+		await expect(page.getByRole('menu').getByRole('separator')).toHaveCount(1);
 		await page.keyboard.press('Escape');
 		await expect(page.getByRole('menu')).toHaveCount(0);
 
 		const name = 'Kl3 Sachunterricht Kreisinput Kartoffel';
 		// Die Offline-Präsentation liegt schon fertig im Bau; die beiden PDFs entstehen erst auf Anfrage.
-		for (const [titel, datei, gebaut] of [
-			['PDF zum Präsentieren', `${name} – Präsentation mit Schritten.pdf`, true],
-			['Offline-Präsentation', `${name} – Präsentation.html`, false],
+		const dateien: [string, string, boolean][] = [
+			['Ohne Internet: fürs iPad', `${name} – Präsentation mit Schritten.pdf`, true],
 			['Folien mit Notizen', `${name} – Folien mit Notizen.pdf`, true],
-		] as const) {
-			await oeffneMehr(druecke, page);
-			await expect(knopf).toBeEnabled();
-			await druecke(knopf);
+		];
+		if (!ipad) {
+			dateien.push(['Ohne Internet: für den Mac', `${name} – Offline-Präsentation.html`, false]);
+		}
+		for (const [titel, datei, gebaut] of dateien) {
+			await expect(pdf).toBeEnabled();
+			await druecke(pdf);
 			const download = page.waitForEvent('download');
 			await druecke(page.getByRole('menuitem', { name: new RegExp(`^${titel}`) }));
 			if (gebaut) {
-				await expect(page.getByText('Wird erstellt …')).toBeVisible();
+				await expect(page.getByRole('button', { name: 'PDF wird erstellt …' })).toBeVisible();
 			}
 			expect(await dateiname(download)).toBe(datei);
 		}
@@ -277,12 +323,12 @@ test.describe('Präsentation', () => {
 		const fremd = await browser.newContext({ hasTouch: test.info().project.use.hasTouch });
 		const besuch = await fremd.newPage();
 		await besuch.goto(`/f/${dokLink}`);
-		await oeffneMehr(druecke, besuch);
-		await expect(besuch.getByRole('menuitem', { name: 'Ohne Internet' })).toBeVisible();
+		await druecke(besuch.getByRole('button', { name: 'PDF', exact: true }));
+		await expect(besuch.getByRole('menuitem', { name: /^Ohne Internet: fürs iPad/ })).toBeVisible();
 		await besuch.keyboard.press('Escape');
 		await druecke(besuch.getByRole('link', { name: 'Präsentieren' }));
 		await expect(besuch).toHaveURL(new RegExp(`/f/${dokLink}/d/[^/]*${dokumente[0]}/praesentation$`));
-		const folie = await starte(besuch, druecke);
+		const folie = await laeuftSofort(besuch);
 		await besuch.keyboard.press('ArrowRight');
 		await expect(folie.locator('.praesentation-nummer')).toHaveText('2 / 6');
 		await besuch.goto(`/f/${dokLink}/praesentation`);
@@ -294,7 +340,7 @@ test.describe('Präsentation', () => {
 		await expect(kacheln.nth(1).getByRole('link', { name: 'Ansehen' })).toBeVisible();
 		await expect(kacheln.nth(1).getByRole('link', { name: 'Präsentieren' })).toHaveCount(0);
 		await druecke(kacheln.nth(0).getByRole('link', { name: 'Präsentieren' }));
-		await starte(besuch, druecke);
+		await laeuftSofort(besuch);
 		await fremd.close();
 	});
 });

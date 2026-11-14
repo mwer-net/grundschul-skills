@@ -3,6 +3,8 @@ import { readdir, readFile, writeFile } from 'node:fs/promises';
 import path from 'node:path';
 import { after, before, describe, it } from 'node:test';
 
+import { leseMeta, registriereEntwuerfe } from '@schoolbox/kern';
+
 import { kennung } from './kontext';
 import type { TestServer } from './testhilfe';
 import { legeDokumentAn, schreibKoepfe, starteTestServer } from './testhilfe';
@@ -221,5 +223,44 @@ describe('API', () => {
 		assert.equal(await readFile(path.join(dir, 'versionen', `${letzte?.id ?? ''}.html`), 'utf8'), vonClaude);
 		const leer = await s.holen(`${dokUrl()}/versionen`, { method: 'POST', headers: schreibKoepfe, body: '{}' });
 		assert.equal(leer.status, 400);
+	});
+
+	it('„Diesen Entwurf nehmen“ übernimmt den Entwurf als Material wie `schoolbox waehle` (191 Urteil 7)', async () => {
+		const neu = await legeDokumentAn(s.materialDir);
+		const quelle = await readFile(path.join(neu.dir, 'material.html'), 'utf8');
+		const dateien = [];
+		for (const name of ['a', 'b']) {
+			const datei = path.join(neu.dir, `entwurf-${name}.html`);
+			await writeFile(datei, quelle.replace('</body>', `<p>Inhalt ${name}</p></body>`));
+			dateien.push(datei);
+		}
+		await registriereEntwuerfe(s.materialDir, { mappe: neu.mappe, dok: neu.dok }, dateien);
+		const nimm = (body: unknown) =>
+			s.holen(`${s.url}/api/dokumente/${neu.mappe}/${neu.dok}/entwurf`, {
+				method: 'POST',
+				headers: schreibKoepfe,
+				body: JSON.stringify(body),
+			});
+		assert.equal((await nimm({})).status, 400);
+		assert.equal((await nimm({ name: '../a' })).status, 400);
+		assert.equal((await nimm({ name: 'C' })).status, 400, 'nicht registriert');
+		const antwort = await nimm({ name: 'B' });
+		assert.equal(antwort.status, 200);
+		assert.equal(((await antwort.json()) as { entwurf: { name: string } }).entwurf.name, 'B');
+		assert.match(await readFile(path.join(neu.dir, 'material.html'), 'utf8'), /Inhalt b/);
+		assert.equal((await leseMeta(s.materialDir, neu.mappe, neu.dok)).gewaehlt, 'B');
+		// 191-N03, 191-N04: umentscheiden geht, der Stand mit B bleibt als Version, Urheber ist die Lehrkraft.
+		assert.equal((await nimm({ name: 'A' })).status, 200);
+		assert.match(await readFile(path.join(neu.dir, 'material.html'), 'utf8'), /Inhalt a/);
+		const namen = (await readdir(path.join(neu.dir, 'versionen'))).sort();
+		assert.ok(namen.at(-1)?.endsWith('_lehrkraft.html'));
+		const staende = await Promise.all(namen.map((n) => readFile(path.join(neu.dir, 'versionen', n), 'utf8')));
+		assert.ok(staende.some((t) => t.includes('Inhalt b')));
+		const ohneKopf = await s.holen(`${s.url}/api/dokumente/${neu.mappe}/${neu.dok}/entwurf`, {
+			method: 'POST',
+			headers: { 'Content-Type': 'application/json' },
+			body: JSON.stringify({ name: 'A' }),
+		});
+		assert.equal(ohneKopf.status, 403);
 	});
 });

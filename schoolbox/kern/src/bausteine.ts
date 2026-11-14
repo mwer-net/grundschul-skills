@@ -255,6 +255,8 @@ export const BAUSTEINE: readonly Baustein[] = [
 		frei: 'text',
 		...KLEIN,
 	},
+	// 196-24: Aus „Als Liste“ wird eine Liste, kein „Block“; ihr Schalter führt zurück.
+	{ art: 'liste', name: 'Liste', selektor: 'ul, ol', faehigkeiten: GRUND },
 	{
 		art: 'block',
 		name: 'Block',

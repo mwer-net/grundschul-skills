@@ -238,8 +238,8 @@ export const erwarteterStand = (stand: AblageStand, aktion: { art: string } & Re
 };
 
 export const objekteText = (n: number) => anzahl(n, 'Objekt', 'Objekte');
-/** Für Zahlen in Spalten und Zeilen: „1 Objekt“ statt „Ein Objekt“. */
-export const objekteZahl = (n: number) => objekteText(n).replace('Ein Objekt', '1 Objekt');
+/** Für Zahlen in Spalten und Zeilen; seit 191-04 dasselbe wie `objekteText`. */
+export const objekteZahl = objekteText;
 
 /** „Leer“, „3 Ordner“, „1 Material“, „1 Ordner · 2 Materialien“: an Kachel, Zeile, Informationen und Teilen-Link. */
 export const inhaltText = ({ materialien, ordner }: Inhalt) => {

@@ -24,9 +24,9 @@ const MehrKnopf = (props: Record<string, unknown>) => (
 	</Tooltip>
 );
 
-const KnopfText = ({ symbol, text }: { symbol: SymbolName; text: string }) => (
+const KnopfText = ({ dreht, symbol, text }: { symbol: SymbolName; text: string; dreht?: boolean }) => (
 	<>
-		<Symbol name={symbol} />
+		<Symbol name={symbol} className={dreht ? 'animate-spin' : undefined} />
 		<span className="@max-5xl:hidden">{text}</span>
 	</>
 );
@@ -42,9 +42,6 @@ const KNOPF: Record<string, { symbol: SymbolName; text: string }> = {
 /** Häufige Aktionen der Auswahl, aus dem Register: nur, was das Menü auch anbietet (188-02). */
 const AuswahlKnoepfe = ({ befehle, ids, lage }: { befehle: Befehle; ids: string[]; lage: Lage }) => {
 	const { fuehreAus, gewaehlteObjekte, pdfLaeuft, pdfMenue } = befehle;
-	const [einziges] = gewaehlteObjekte;
-	const alsOrdner = einziges?.istOrdner ? 'Alles als PDF' : 'PDF';
-	const pdfTitel = gewaehlteObjekte.length > 1 ? 'Als PDF' : alsOrdner;
 	if (gewaehlteObjekte.length === 0) {
 		return null;
 	}
@@ -53,12 +50,21 @@ const AuswahlKnoepfe = ({ befehle, ids, lage }: { befehle: Befehle; ids: string[
 			{ids.map((id) => {
 				if (id === 'pdf') {
 					const eintraege = pdfMenue(lage);
+					const [einzig] = eintraege;
+					// Eine Datei: Der Knopf lädt sofort (191-41); sonst das Menü.
+					if (eintraege.length === 1 && einzig?.waehle) {
+						return (
+							<Knopf key={id} art="zweit" disabled={pdfLaeuft} onClick={einzig.waehle}>
+								<KnopfText symbol={pdfLaeuft ? 'laden' : 'herunterladen'} dreht={pdfLaeuft} text="PDF" />
+							</Knopf>
+						);
+					}
 					return (
 						eintraege.length > 0 && (
 							<Menue
 								key={id}
 								name="PDF"
-								beschriftung={<KnopfText symbol="herunterladen" text={pdfTitel} />}
+								beschriftung={<KnopfText symbol={pdfLaeuft ? 'laden' : 'herunterladen'} dreht={pdfLaeuft} text="PDF" />}
 								art="zweit"
 								disabled={pdfLaeuft}
 								eintraege={eintraege}

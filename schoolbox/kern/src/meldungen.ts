@@ -176,7 +176,11 @@ const TABELLE: Record<MeldungCode, Uebersetzung> = {
 		satz: `${text.startsWith('Fuß') ? 'Die Selbsteinschätzung' : 'Der Kopf'} nimmt den Aufgaben viel Platz weg.`,
 		tipp: 'Text kürzen oder den Tipp der Figur neben seine Aufgabe ziehen.',
 	}),
-	'notiz-fehlt': () => ({ satz: 'Diese Folie hat keine Notiz für dich.', tipp: null }),
+	// Das Feld „Notiz“ steht an der gewählten Folie (192-18, 192-01).
+	'notiz-fehlt': () => ({
+		satz: 'Diese Folie hat keine Notiz für dich.',
+		tipp: 'Die Folie antippen und rechts bei „Notiz“ eintragen.',
+	}),
 	'platzhalter': (namen) => ({
 		satz: namen.length > 1 ? `Auf der Seite fehlen noch ${namen.length} Bilder.` : 'Hier fehlt noch ein Bild.',
 		tipp: null,
@@ -187,7 +191,7 @@ const TABELLE: Record<MeldungCode, Uebersetzung> = {
 	}),
 	'abbildung': (_n, text) => ({
 		satz: text.replace(/^Abbildung „(.*?)“: /, '$1: '),
-		tipp: 'Die Abbildung antippen und die Angaben im Panel ändern. Oder im Chat Claude darum bitten.',
+		tipp: 'Die Abbildung antippen und die Angaben rechts ändern. Oder im Chat Claude darum bitten.',
 	}),
 	'masstab': () => ({
 		satz: 'Dieses Blatt hat echte Maße. Bitte in Originalgröße drucken (100 %, nicht „An Seite anpassen“).',

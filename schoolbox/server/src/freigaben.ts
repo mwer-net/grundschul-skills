@@ -24,6 +24,7 @@ import type { Request, RequestHandler } from 'express';
 import { Router } from 'express';
 
 import { ansichtRouter } from './ansicht';
+import { hatEchteMasse } from './dokumente';
 import { HttpFehler } from './fehler';
 import type { Kontext } from './kontext';
 import { FREIGABEN_SPERRE } from './kontext';
@@ -235,7 +236,12 @@ export const teilenRouter = (kontext: Kontext, sendeSeite: (status: number) => R
 			})),
 		);
 		const wurzel = ordnerVonZiel(baum, ziel);
-		return wurzel ? ordneNachFolge(baum, wurzel.id, eintraege) : eintraege;
+		if (!wurzel) {
+			return eintraege;
+		}
+		// Offene Entwürfe sind noch kein Material: Ein Ordner-Link zeigt es erst, wenn einer gewählt ist (191-03).
+		const fertig = eintraege.filter(({ meta }) => !(meta.entwuerfe.length > 0 && !meta.gewaehlt));
+		return ordneNachFolge(baum, wurzel.id, fertig);
 	};
 
 	router.get('/api/inhalt', async (req, res) => {
@@ -252,6 +258,7 @@ export const teilenRouter = (kontext: Kontext, sendeSeite: (status: number) => R
 				klasse: behaelter.klasse,
 				ordner,
 				vorschau: await kontext.vorschau.stand(mappe, id, true),
+				echteMasse: await hatEchteMasse(materialDir, mappe, id),
 			})),
 		);
 		const unterordner = wurzel
@@ -292,7 +299,10 @@ export const teilenRouter = (kontext: Kontext, sendeSeite: (status: number) => R
 		return { ...gemeint, adresse };
 	};
 
-	/** „Alles als PDF“ nur für Links auf einen Ordner oder eine ganze Mappe. */
+	/**
+	 * „PDF“ nur für Links auf einen Ordner oder eine ganze Mappe. `?ordner=<id>`: nur der gezeigte Unterordner samt
+	 * allem darunter, unter seinem Namen (191-01); er muss im geteilten Ordner liegen.
+	 */
 	const sammlungVon = async (req: Request, variante: MappenVariante, profil: Druckprofil | undefined) => {
 		const { ziel } = freigabeVon(req);
 		const baum = kontext.ordner.baum();
@@ -300,11 +310,30 @@ export const teilenRouter = (kontext: Kontext, sendeSeite: (status: number) => R
 		if (!wurzel) {
 			throw new HttpFehler(404, 'Nicht gefunden.');
 		}
-		const teile = (await leseErlaubte(baum, ziel)).map(({ id, mappe }) => ({ mappe, dok: id }));
+		const gewuenscht = text(req.query.ordner);
+		const gezeigt =
+			gewuenscht === undefined || gewuenscht === wurzel.id
+				? wurzel
+				: ordnerUnter(baum, wurzel.id).includes(gewuenscht)
+					? baum.ordner.find((o) => o.id === gewuenscht)
+					: undefined;
+		if (!gezeigt) {
+			throw new HttpFehler(404, 'Nicht gefunden.');
+		}
+		const darin = new Set(ordnerUnter(baum, gezeigt.id));
+		const teile = (await leseErlaubte(baum, ziel))
+			.filter(({ ordner }) => gezeigt === wurzel || (ordner !== null && darin.has(ordner)))
+			.map(({ id, mappe }) => ({ mappe, dok: id }));
 		if (teile.length > MAX_SAMMLUNG) {
 			throw new HttpFehler(400, `Das sind zu viele Dokumente für ein PDF (höchstens ${MAX_SAMMLUNG}).`);
 		}
-		return kontext.pdf.sammlung(teile, variante, profil, wurzel.name);
+		return kontext.pdf.sammlung(teile, variante, profil, gezeigt.name);
+	};
+
+	/** Die Adresse der Datei trägt den gezeigten Ordner weiter, sonst käme beim Laden wieder der ganze Link. */
+	const ordnerSuche = (req: Request) => {
+		const ordner = text(req.query.ordner);
+		return ordner ? `ordner=${encodeURIComponent(ordner)}` : '';
 	};
 
 	const tokenVon = (req: Request) => (req.params as { token?: string }).token ?? '';
@@ -321,7 +350,13 @@ export const teilenRouter = (kontext: Kontext, sendeSeite: (status: number) => R
 		const variante = waehleMappenVariante(req.params.variante);
 		const profil = waehleProfil(req.query.profil);
 		const pdf = await sammlungVon(req, variante, profil);
-		res.json(pdfAntwort(`${freigabePfad(tokenVon(req))}/alles/${variante}`, pdf, profil));
+		const antwort = pdfAntwort(`${freigabePfad(tokenVon(req))}/alles/${variante}`, pdf, profil);
+		const zusatz = ordnerSuche(req);
+		res.json(
+			zusatz
+				? { ...antwort, adresse: `${antwort.adresse}${antwort.adresse.includes('?') ? '&' : '?'}${zusatz}` }
+				: antwort,
+		);
 	});
 
 	router.use('/api', () => {

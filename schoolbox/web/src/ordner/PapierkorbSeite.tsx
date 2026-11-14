@@ -159,7 +159,7 @@ export const PapierkorbSeite = () => {
 							symbol={'ordner' in o.knoten ? 'ordner' : 'blatt'}
 							{...(o.objekte === undefined
 								? {}
-								: { unter: anzahl(o.objekte, 'Objekt', 'Objekte').replace('Ein Objekt', '1 Objekt') })}
+								: { unter: anzahl(o.objekte, 'Objekt', 'Objekte') })}
 							herkunft={o.geloescht.herkunft}
 							geloescht={o.geloescht.zeit}
 							bis={o.bis}
