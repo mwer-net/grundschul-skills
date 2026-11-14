@@ -60,6 +60,28 @@ test.describe('Editor: Live-Prüfung', () => {
 		await expect(page.locator('[data-pruefrahmen]')).toHaveCount(0);
 	});
 
+	test('194-03: Nach der Änderung sitzt der Rahmen weiter auf der Seite, nicht daneben', async ({ druecke, page }) => {
+		const { dok, id } = await uhrzeit();
+		await oeffne(page, id, dok);
+		const anweisung = material(page).locator('.aufgabe').nth(2).locator('.anw .text');
+		await druecke(anweisung);
+		await druecke(anweisung);
+		await page.keyboard.press('End');
+		await page.keyboard.insertText(' Und dann noch ein Satz, der immer weiter geht.'.repeat(30));
+		await page.getByRole('button', { name: 'Fertig' }).click();
+		await expect.poll(() => quelle(page)).toContain('immer weiter geht');
+		const rahmen = page.locator('[data-pruefrahmen="FEHLER"][data-code="ueberlauf"]').first();
+		await expect(rahmen).toBeVisible();
+		// Gemessen im Laderahmen, gezeichnet im sichtbaren: Beide stimmen in der Lage der Seite überein.
+		await expect
+			.poll(async () => {
+				const seite = await box(material(page).locator('.seite').first());
+				const r = await box(rahmen);
+				return r.x >= seite.x - 4 && r.x + r.width <= seite.x + seite.width + 4;
+			})
+			.toBe(true);
+	});
+
 	test('meldet den Tipp „Zu 1“, wenn Aufgabe 1 nach unten wandert', async ({ druecke, page }) => {
 		const { dok, id } = await uhrzeit();
 		await oeffne(page, id, dok);

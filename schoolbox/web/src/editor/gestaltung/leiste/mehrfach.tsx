@@ -21,7 +21,7 @@ const VERTEILEN: { id: string; titel: string; symbol: SymbolName }[] = [
 	{ id: 'auswahl.verteilen-senkrecht', titel: 'Senkrecht', symbol: 'verteilen-senkrecht' },
 ];
 
-/** Ein Knopf je Befehl, mit Symbol; gesperrt, wenn der Befehl gerade nicht geht. */
+/** Ein Knopf je Befehl, mit Symbol. */
 const Raster = ({
 	befehle,
 	eintraege,
@@ -42,32 +42,21 @@ const Raster = ({
 	</div>
 );
 
-/**
- * 120: „Gruppieren“; gesperrt mit Grund im Tooltip, wenn die Elemente nicht in derselben Ebene liegen. Gesperrt heißt
- * hier `aria-disabled`, sonst bekäme der Knopf keinen Zeiger und der Grund stünde nirgends (wie `ClaudeKnopf`).
- */
+/** 120, 204-12: „Gruppieren“ nur, wenn es geht (Elemente derselben Ebene); sonst fehlt der Knopf. */
 const GruppierenKnopf = ({ aktiv, befehle }: Pick<LeistenTeile, 'aktiv' | 'befehle'>) => {
 	const k = befehle.jetzt.current;
 	const befehl = befehle.fuer('gestaltung').find((b) => b.id === 'auswahl.gruppieren');
-	if (!befehl) {
+	if (!befehl || befehl.gesperrt?.(k)) {
 		return null;
 	}
-	const titel = typeof befehl.titel === 'function' ? befehl.titel(k) : befehl.titel;
-	const gesperrt = Boolean(befehl.gesperrt?.(k));
 	return (
-		<Tooltip text={titel} kuerzel={gesperrt ? undefined : kuerzelVon(befehl.id)}>
+		<Tooltip text="Gruppieren" kuerzel={kuerzelVon(befehl.id)}>
 			<Knopf
 				art="leise"
 				groesse="klein"
-				className="aria-disabled:cursor-default aria-disabled:opacity-50"
 				data-befehl={befehl.id}
 				disabled={!aktiv}
-				aria-disabled={gesperrt}
-				onClick={() => {
-					if (!gesperrt) {
-						befehle.fuehreAus(befehl.id);
-					}
-				}}
+				onClick={() => befehle.fuehreAus(befehl.id)}
 			>
 				<Symbol name="gruppe" />
 				Gruppieren
@@ -77,8 +66,8 @@ const GruppierenKnopf = ({ aktiv, befehle }: Pick<LeistenTeile, 'aktiv' | 'befeh
 };
 
 /**
- * Leiste bei Mehrfachauswahl (113, Briefing 5.7): Gruppieren (120), Ausrichten ▾ (sechs Knöpfe), Verteilen ▾, dann ⋯
- * aus dem Rahmen.
+ * Leiste bei Mehrfachauswahl (113, 204-12): Gruppieren (120) und ein Popover „Ausrichten“ mit sechs Knöpfen, ab drei
+ * Elementen dazu „Verteilen“ im selben Popover. Keine Anzahl: Die nennt der Inspektor.
  */
 const MehrfachKnoepfe = ({ aktiv, befehle, k }: LeistenTeile) => {
 	const ausrichtenKnopf = (
@@ -87,26 +76,17 @@ const MehrfachKnoepfe = ({ aktiv, befehle, k }: LeistenTeile) => {
 			Ausrichten
 		</Knopf>
 	);
-	const verteilenKnopf = (
-		<Knopf art="leise" groesse="klein" data-leiste-verteilen disabled={!aktiv}>
-			<Symbol name="verteilen-waagerecht" />
-			Verteilen
-		</Knopf>
-	);
 	return (
 		<>
-			<span className="px-1 text-sm text-leise tabular-nums" data-leiste-anzahl>
-				{`${k.nrn.length} gewählt`}
-			</span>
 			<GruppierenKnopf aktiv={aktiv} befehle={befehle} />
 			<Popover name="Ausrichten" className="w-auto" ausloeser={ausrichtenKnopf}>
 				<Raster befehle={befehle} name="ausrichten" eintraege={AUSRICHTEN} />
+				{k.nrn.length >= 3 && (
+					<div className="border-t border-rand">
+						<Raster befehle={befehle} name="verteilen" eintraege={VERTEILEN} />
+					</div>
+				)}
 			</Popover>
-			{k.nrn.length >= 3 && (
-				<Popover name="Verteilen" className="w-auto" ausloeser={verteilenKnopf}>
-					<Raster befehle={befehle} name="verteilen" eintraege={VERTEILEN} />
-				</Popover>
-			)}
 		</>
 	);
 };

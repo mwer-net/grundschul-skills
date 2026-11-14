@@ -207,7 +207,9 @@ test.describe('Anker (106)', () => {
 		await expect(aufgabe(page, 0).locator(':scope > .nr')).toHaveText('1');
 		await expect(aufgabe(page, 1).locator(':scope > .nr')).toHaveText('2');
 		await aufgabe(page, 0).locator('.nr').click();
-		await expect(page.locator('[data-bausteinleiste="aufgabe"]')).toContainText('Aufgabe 1');
-		await expect(page.locator('[data-bausteinleiste="aufgabe"] [data-leiste-griff]')).toBeVisible();
+		// 204-06: kein Name und kein Griff mehr in der Leiste; verschoben wird mit ↑↓.
+		const leiste = page.locator('[data-bausteinleiste="aufgabe"]');
+		await expect(leiste).toHaveAttribute('aria-label', 'Leiste für Aufgabe 1');
+		await expect(leiste.getByRole('button', { name: /Nach unten/ })).toBeVisible();
 	});
 });

@@ -57,8 +57,11 @@ export const gespeichert = async (page: Page, datei: string) => {
 	await expect(page.locator('[data-speicherstand="gespeichert"]')).toBeVisible();
 };
 
-/** Ein Befehl aus dem ⋯ der Leiste am gewählten Baustein. */
+/** Ein Befehl aus dem ⋯ der Leiste am gewählten Baustein oder Gestaltungselement (204-12: derselbe Bauplan). */
 export const imMehr = async (page: Page, name: string | RegExp) => {
-	await page.locator('[data-bausteinleiste]').getByRole('button', { name: 'Mehr zu diesem Baustein' }).click();
+	await page
+		.locator('[data-bausteinleiste], [data-gestaltungsleiste]')
+		.getByRole('button', { name: /^Mehr zu diesem (Baustein|Element)$/ })
+		.click();
 	await page.getByRole('menuitem', { name }).click();
 };

@@ -56,6 +56,8 @@ const bewirktNichts = (k: Kontext, richtung: Richtung) => {
 	}
 };
 
+const ganz = (id: string) => id === 'auswahl.ganz-vorne' || id === 'auswahl.ganz-hinten';
+
 export const REIHENFOLGE_BEFEHLE: Befehl[] = EINTRAEGE.map(({ id, richtung, symbol, taste, titel }): Befehl => ({
 	id,
 	titel,
@@ -65,8 +67,9 @@ export const REIHENFOLGE_BEFEHLE: Befehl[] = EINTRAEGE.map(({ id, richtung, symb
 	// Ohne Gestaltung bleiben die Tasten beim Browser.
 	tasteWenn: (k) => k.gestaltung !== null,
 	suchwoerter: ['reihenfolge', 'ebene', 'vordergrund', 'hintergrund', 'überlappen'],
-	orte: ['taste', 'palette', 'gestaltung'],
-	sichtbarUnter: 'mehr',
+	// 204-10: „Ganz nach vorne/hinten“ stehen im Inspektor „Anordnen“ und auf der Taste, nicht im Menü.
+	orte: ganz(id) ? ['taste', 'palette'] : ['taste', 'palette', 'gestaltung'],
+	sichtbarUnter: ganz(id) ? 'inspektor' : 'mehr',
 	verfuegbar: (k) => k.aktiv && k.gestaltung !== null,
 	gesperrt: (k) => bewirktNichts(k, richtung),
 	aus: (k) => {

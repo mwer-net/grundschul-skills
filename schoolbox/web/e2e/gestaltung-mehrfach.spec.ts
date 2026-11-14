@@ -169,7 +169,8 @@ test.describe('Mehrfachauswahl (113)', () => {
 		await einSchritt(page, vorher);
 
 		await waehleDrei(page);
-		await page.locator('[data-gestaltungsleiste="mehrfach"]').getByRole('button', { name: 'Verteilen' }).click();
+		// 204-12: Verteilen steht im Popover „Ausrichten“.
+		await page.locator('[data-gestaltungsleiste="mehrfach"]').getByRole('button', { name: 'Ausrichten' }).click();
 		await page.locator('[data-befehl="auswahl.verteilen-waagerecht"]').click();
 		// A endet bei 180, C beginnt bei 520: 340 Platz minus 60 für B, zweimal 140 Lücke. B beginnt bei 320.
 		await expect.poll(async () => lage(await quelle(page), 'B').x).toBe(320);

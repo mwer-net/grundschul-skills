@@ -130,11 +130,13 @@ test.describe('Editor: frei gestaltetes Material (054)', () => {
 		expect(await readFile(datei, 'utf8')).toBe(FREI);
 	});
 
-	test('Einfügen: Das Plus setzt hinter den gewählten fremden Block', async ({ druecke, page }) => {
+	test('Einfügen: „Neuer Baustein“ im ⋯ setzt hinter den gewählten fremden Block', async ({ druecke, page }) => {
 		const datei = await blatt(page);
 		await druecke(material(page).locator('#dritter'));
-		await zuDenWerkzeugen(page, page.locator('[data-einfuegen-plus]'));
-		await druecke(page.locator('[data-einfuegen-plus]'));
+		const mehr = page.locator('[data-bausteinleiste]').getByRole('button', { name: 'Mehr zu diesem Baustein' });
+		await zuDenWerkzeugen(page, mehr);
+		await druecke(mehr);
+		await druecke(page.getByRole('menuitem', { name: 'Neuer Baustein' }));
 		const fenster = page.locator('[data-schnellauswahl]');
 		await fenster.getByRole('searchbox').fill('Schreiblinie');
 		await druecke(fenster.locator('[data-katalog-eintrag="schreiblinie"]'));
@@ -153,9 +155,11 @@ test.describe('Editor: frei gestaltetes Material (054)', () => {
 		const zelle = material(page).locator('#zelle');
 		await druecke(zelle);
 		await expect(page.locator('[data-auswahl="tabellenzelle"]')).toBeVisible();
-		const zeile = page.locator('[data-bausteinleiste]').getByRole('button', { name: 'Zeile danach' });
-		await zuDenWerkzeugen(page, zeile);
-		await zeile.click();
+		// 204-08: Die Tabellenbefehle stehen im ⋯ der Leiste und im Inspektor.
+		const mehr = page.locator('[data-bausteinleiste]').getByRole('button', { name: 'Mehr zu diesem Baustein' });
+		await zuDenWerkzeugen(page, mehr);
+		await mehr.click();
+		await page.getByRole('menuitem', { name: 'Zeile danach' }).click();
 		await gespeichert(page, datei);
 		await expect(material(page).locator('#plan tr')).toHaveCount(3);
 		await druecke(zurueck(page));

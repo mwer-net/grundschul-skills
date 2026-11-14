@@ -94,27 +94,22 @@ export const Textknoepfe = ({ sitzung, text }: { sitzung: boolean; text: Text })
 	const { bold, underline } = SCHRIFT_TASTEN;
 	return (
 		<div role="group" aria-label="Schrift" className="flex items-center gap-0.5" data-textknoepfe>
-			<Tooltip
-				text={zustand.fettMoeglich ? bold.titel : 'Dieser Text ist schon fett'}
-				kuerzel={zustand.fettMoeglich ? kuerzelText(bold.kuerzel) : undefined}
-			>
-				<Knopf
-					art="leise"
-					groesse="klein"
-					className={klassen(FORM, 'font-semibold aria-disabled:cursor-default aria-disabled:opacity-50')}
-					aria-label={bold.titel}
-					aria-pressed={zustand.fett}
-					aria-disabled={!zustand.fettMoeglich}
-					{...halteFokus}
-					onClick={() => {
-						if (zustand.fettMoeglich) {
-							wirke('bold');
-						}
-					}}
-				>
-					B
-				</Knopf>
-			</Tooltip>
+			{/* 204-07: Wo die Schrift schon fett ist, wirkt „B“ nie; dann fehlt der Knopf. */}
+			{zustand.fettMoeglich && (
+				<Tooltip text={bold.titel} kuerzel={kuerzelText(bold.kuerzel)}>
+					<Knopf
+						art="leise"
+						groesse="klein"
+						className={klassen(FORM, 'font-semibold')}
+						aria-label={bold.titel}
+						aria-pressed={zustand.fett}
+						{...halteFokus}
+						onClick={() => wirke('bold')}
+					>
+						B
+					</Knopf>
+				</Tooltip>
+			)}
 			<Tooltip text={underline.titel} kuerzel={kuerzelText(underline.kuerzel)}>
 				<Knopf
 					art="leise"

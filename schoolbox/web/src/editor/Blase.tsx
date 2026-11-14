@@ -14,6 +14,7 @@ import { laeuftNoch, standVon } from './claude-faeden';
 import { elementZu, pfadZu } from './darstellung';
 import type { KiAktion, KiAuftrag, VorschlagAmBlatt } from './ki';
 import type { Einblendung } from './Leinwand';
+import { leisteDerAuswahl, schneiden } from './leistenlage';
 import { LimitZeile } from './LimitZeile';
 import type { Darstellung } from './Miniatur';
 import { Miniatur } from './Miniatur';
@@ -775,6 +776,21 @@ const Pille = ({
 	nr: number;
 	seiten: number;
 }) => {
+	const knopf = useRef<HTMLButtonElement>(null);
+	const [verdeckt, setVerdeckt] = useState(false);
+	// 200-03: Schneidet die Pille die Leiste der Auswahl, bleibt sie weg; der Stand steht in der Statusleiste. Die
+	// Leiste misst sich nach dem ersten Zeichnen noch einmal, deshalb ein zweiter Blick im nächsten Bild.
+	useLayoutEffect(() => {
+		const pruefe = () => {
+			const leiste = leisteDerAuswahl(document);
+			const eigen = knopf.current?.getBoundingClientRect();
+			const jetzt = Boolean(leiste && eigen && schneiden(eigen, leiste.getBoundingClientRect()));
+			setVerdeckt((alt) => (alt === jetzt ? alt : jetzt));
+		};
+		pruefe();
+		const bild = requestAnimationFrame(pruefe);
+		return () => cancelAnimationFrame(bild);
+	});
 	const k = kastenVon(e, nr);
 	if (!k) {
 		return null;
@@ -792,13 +808,16 @@ const Pille = ({
 	const bezug = bezugVon(e.doc, f, seiten);
 	return (
 		<button
+			ref={knopf}
 			type="button"
 			className={klassen(
 				'absolute z-ueberlagerung flex h-[26px] -translate-x-1/2 items-center gap-1.5 rounded-full border px-2.5 text-xs font-medium whitespace-nowrap shadow-1 [@media(any-pointer:coarse)]:h-11',
 				hervor ? 'border-brand-500 bg-brand-500 text-white' : 'border-rand bg-flaeche text-tinte',
 				e.zieht && 'pointer-events-none opacity-25',
+				verdeckt && 'invisible',
 			)}
 			style={{ left: (k.links + k.rechts) / 2, top }}
+			{...(verdeckt ? { 'data-pille-verdeckt': '' } : {})}
 			aria-label={stand === 'ruhig' ? `Gespräch mit Claude: ${bezug}` : undefined}
 			data-claude-pille={stand}
 			onClick={() => claude.oeffne(nr)}

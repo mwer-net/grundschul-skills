@@ -357,7 +357,11 @@ export const textHtml = (element: Element, z: Zerlegung, zeilen: Zeilen, farbe =
 	return html.replace(/(<br>\s*)+$/, '').replaceAll(AUS_DER_QUELLE, '');
 };
 
-const istLeer = (html: string) => html.replace(/<!--[\s\S]*?-->/g, '').trim() === '';
+const istLeer = (html: string) =>
+	html
+		.replace(/<!--[\s\S]*?-->/g, '')
+		.replace(/&nbsp;|\u00a0|<br\s*\/?>/g, '')
+		.trim() === '';
 
 const bereich = (doc: Document, s: AbstractRange) => {
 	const r = doc.createRange();
@@ -502,7 +506,8 @@ export const ruesteText = ({
 		const fassungen = s.elemente
 			.map((el) => ({
 				el,
-				html: textHtml(el, z, zeilen, farbig),
+				// 194-18: Reiner Leerraum wird als leer gespeichert; der Editor gibt dem leeren Text eine Zeile Höhe.
+				html: ((h: string) => (istLeer(h) ? '' : h))(textHtml(el, z, zeilen, farbig)),
 				neu: !s.originale.some((k) => nrVon(el) === k.nr),
 			}))
 			.filter((t, i, alle) => !t.neu || !istLeer(t.html) || alle.length === 1);
@@ -578,6 +583,16 @@ export const ruesteText = ({
 				return;
 			}
 			r.deleteContents();
+		}
+		// 194-37: Enter auf einem leeren Punkt, den diese Sitzung angelegt hat, nimmt ihn weg und beendet das Schreiben.
+		const leer = !(aktuell.textContent ?? '').replace(/[\s\u00a0\u200b]/g, '');
+		if (aktuell.localName === 'li' && leer && !aktuell.hasAttribute(MARKE) && sitzung.elemente.length > 1) {
+			sitzung.elemente.splice(sitzung.elemente.indexOf(aktuell), 1);
+			sitzung.oeffner.delete(aktuell);
+			aktuell.remove();
+			aendert();
+			beende();
+			return;
 		}
 		const rest = doc.createRange();
 		rest.setStart(r.startContainer, r.startOffset);
