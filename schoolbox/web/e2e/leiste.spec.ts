@@ -73,4 +73,24 @@ test.describe('Leiste am Element (204)', () => {
 		await page.keyboard.press('Escape');
 		await expect(page.locator('[data-auswahl="seite"]')).toBeVisible();
 	});
+
+	test('194-18: Eine geleerte Überschrift bleibt eine Zeile hoch und lässt sich anklicken', async ({ druecke, page }) => {
+		const { dok, id } = await uhrzeit();
+		await oeffne(page, id, dok);
+		const h1 = material(page).locator('h1').first();
+		await druecke(h1);
+		await druecke(h1);
+		await expect(page.locator('[data-textbearbeitung]')).toBeVisible();
+		await page.keyboard.press('ControlOrMeta+a');
+		await page.keyboard.press('Delete');
+		await page.keyboard.type(' ');
+		await page.keyboard.press('Escape');
+		await expect.poll(() => quelle(page)).toMatch(/<h1[^>]*><\/h1>/);
+		await page.keyboard.press('Escape');
+		await page.keyboard.press('Escape');
+		const box = await h1.boundingBox();
+		expect(box?.height ?? 0).toBeGreaterThan(10);
+		await druecke(h1);
+		await expect(page.locator('[data-auswahl="ueberschrift"]')).toBeVisible();
+	});
 });

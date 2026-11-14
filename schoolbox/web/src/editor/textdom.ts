@@ -357,7 +357,11 @@ export const textHtml = (element: Element, z: Zerlegung, zeilen: Zeilen, farbe =
 	return html.replace(/(<br>\s*)+$/, '').replaceAll(AUS_DER_QUELLE, '');
 };
 
-const istLeer = (html: string) => html.replace(/<!--[\s\S]*?-->/g, '').trim() === '';
+const istLeer = (html: string) =>
+	html
+		.replace(/<!--[\s\S]*?-->/g, '')
+		.replace(/&nbsp;|\u00a0|<br\s*\/?>/g, '')
+		.trim() === '';
 
 const bereich = (doc: Document, s: AbstractRange) => {
 	const r = doc.createRange();
@@ -502,7 +506,8 @@ export const ruesteText = ({
 		const fassungen = s.elemente
 			.map((el) => ({
 				el,
-				html: textHtml(el, z, zeilen, farbig),
+				// 194-18: Reiner Leerraum wird als leer gespeichert; der Editor gibt dem leeren Text eine Zeile Höhe.
+				html: ((h: string) => (istLeer(h) ? '' : h))(textHtml(el, z, zeilen, farbig)),
 				neu: !s.originale.some((k) => nrVon(el) === k.nr),
 			}))
 			.filter((t, i, alle) => !t.neu || !istLeer(t.html) || alle.length === 1);

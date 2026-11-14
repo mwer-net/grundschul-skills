@@ -187,7 +187,10 @@ const kannText = (k: Kontext) => {
 const EINMAL_JE_SEITE = ['namenszeile', 'kopf', 'fuss'];
 const kannDas = (k: Kontext, was: 'loeschen' | 'duplizieren') => {
 	const g = gewaehlt(k);
-	const einmal = was === 'duplizieren' && EINMAL_JE_SEITE.includes(g?.baustein.art ?? '');
+	// Auch ein Teil der Namenszeile („Name:“) verdoppelt sonst die Zeile in sich.
+	const einmal =
+		was === 'duplizieren' &&
+		(EINMAL_JE_SEITE.includes(g?.baustein.art ?? '') || k.pfad.some((t) => t.baustein.art === 'namenszeile'));
 	return k.aktiv && !einmal && Boolean(g && kannImFormat(g.baustein, was, k.format));
 };
 /** 194-31: Geht weder hinauf noch hinunter, stehen die Pfeile nicht im Menü und nicht in der Leiste (204-07). */
@@ -1279,17 +1282,45 @@ export const ordneGestaltung = (liste: readonly Befehl[]) =>
 		.map((befehl, n) => ({ befehl, n, ...platzIm(befehl.id) }))
 		.sort((a, b) => a.block - b.block || a.i - b.i || a.n - b.n);
 
+/**
+ * 204-N02: An der Tabellenzeile löscht „Löschen“ die Zeile; Spalten-Befehle haben dort keinen Gegenstand. An der
+ * Zelle sagen „Zeile löschen“ und „Spalte löschen“, was weggeht; ein „Löschen“ ohne Gegenstand fehlt dort.
+ */
+const OHNE_AN: Record<string, readonly string[]> = {
+	tabellenzeile: ['tabelle.zeile-weg', 'tabelle.spalte-weg', 'tabelle.spalte-davor', 'tabelle.spalte-danach'],
+	tabellenzelle: ['auswahl.loeschen'],
+};
+
+/** 204-N03: Zusammengehörige Paare stehen nebeneinander, an der Stelle des ersten. */
+const PAARE = ['tabelle.zeile-davor', 'tabelle.zeile-danach', 'tabelle.spalte-davor', 'tabelle.spalte-danach'];
+const paareZusammen = (liste: Befehl[]) => {
+	const paar = PAARE.flatMap((id) => liste.find((b) => b.id === id) ?? []);
+	const erste = liste.findIndex((b) => PAARE.includes(b.id));
+	if (erste === -1) {
+		return liste;
+	}
+	const rest = liste.filter((b) => !PAARE.includes(b.id));
+	const vor = liste.slice(0, erste).filter((b) => !PAARE.includes(b.id)).length;
+	return [...rest.slice(0, vor), ...paar, ...rest.slice(vor)];
+};
+
 /** Dieselbe Liste für Rechtsklick und ⋯. */
 export const befehleFuerMenue = (art: MenueArt, k: Kontext) => {
 	if (art === 'baustein') {
-		const liste = befehleFuer('menue', k).filter((b) => MENUE_BAUSTEIN.includes(b.gruppe));
+		const ohne = OHNE_AN[gewaehlt(k)?.baustein.art ?? ''] ?? [];
+		const liste = paareZusammen(
+			befehleFuer('menue', k).filter((b) => MENUE_BAUSTEIN.includes(b.gruppe) && !ohne.includes(b.id)),
+		);
 		const neu = BEFEHLE.find((b) => b.id === 'auswahl.einfuegen-danach' && b.verfuegbar(k));
 		if (!neu || OHNE_NEUEN_BAUSTEIN.includes(gewaehlt(k)?.baustein.art ?? '')) {
 			return liste;
 		}
-		// Als erster Eintrag der Gruppe mit „Duplizieren“.
-		const stelle = liste.findIndex((b) => b.gruppe === 'ablage');
-		return stelle === -1 ? [...liste, neu] : [...liste.slice(0, stelle), neu, ...liste.slice(stelle)];
+		// Als erster Eintrag der Gruppe mit „Duplizieren“, „Neuer Baustein davor“ direkt darunter (204-N03).
+		const davor = liste.find((b) => b.id === 'auswahl.einfuegen-davor');
+		const rest = liste.filter((b) => b !== davor);
+		const stelle = rest.findIndex((b) => b.gruppe === 'ablage');
+		const paar = davor ? [neu, { ...davor, gruppe: neu.gruppe }] : [neu];
+		return stelle === -1 ? [...rest, ...paar] : [...rest.slice(0, stelle), ...paar, ...rest.slice(stelle)];
 	}
 	if (art === 'gestaltung') {
 		return ordneGestaltung(befehleFuer('gestaltung', k))

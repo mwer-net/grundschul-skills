@@ -91,55 +91,7 @@ const titelVon = (element: Element, baustein: Baustein, name: string) => {
 	return name;
 };
 
-const gross = (text: string) => (text ? `${text[0]?.toUpperCase() ?? ''}${text.slice(1)}` : '');
-
-const SCHMUCK_LAENGE = 40;
-
-const kuerze = (text: string) => (text.length > SCHMUCK_LAENGE ? `${text.slice(0, SCHMUCK_LAENGE - 1)}…` : text);
-
-export interface GestaltungAngaben {
-	/** Art im Register, z. B. `bildfrei`. */
-	art: string;
-	/** Der Name wie im Pfad (`nameVon`): `data-name`, Figur oder Name der Art. */
-	name: string;
-	wert: (attribut: string) => string | null;
-	/** Der sichtbare Text, Leerraum zusammengezogen. */
-	text: string;
-	/** Teile einer Streuung oder Gruppe. */
-	teile: number;
-}
-
-/** Die Beschriftung einer Gestaltungszeile (1-ebenen.md, „Beschriftung“). `data-name` geht allem vor. */
-export const titelDerGestaltung = ({ art, name, teile, text, wert }: GestaltungAngaben) => {
-	if (wert('data-name')?.trim()) {
-		return name;
-	}
-	const form = gross((wert('data-form') ?? '').trim().replace(/[-_]+/g, ' '));
-	switch (art) {
-		case 'bildfrei': {
-			const datei =
-				(wert('src') ?? '')
-					.split(/[?#]/)[0]
-					?.split('/')
-					.at(-1)
-					?.replace(/\.[^.]+$/, '') ?? '';
-			return wert('alt')?.trim() || datei || name;
-		}
-		case 'form':
-			return form || name;
-		case 'formtext':
-			return text ? `${form || name} „${kuerze(text)}“` : form || name;
-		case 'schmuck':
-		case 'schmuckbogen':
-			return kuerze(text) || name;
-		case 'streuung':
-			return `${gross((wert('data-streuung') ?? '').trim()) || name} (${teile})`;
-		case 'gruppe':
-			return `${name} (${teile})`;
-		default:
-			return name;
-	}
-};
+export { titelDerGestaltung } from './gestaltung-titel';
 
 /** Wo der Baustein hin darf, grob: Gleiche Gruppe heißt, er könnte dort neben einem anderen liegen (vgl. `ordnungVon`). */
 const gruppeVon = (element: Element, baustein: Baustein) => {
@@ -266,13 +218,6 @@ export const stapelVon = (s: Pick<GliederungSeite, 'kinder'>): GliederungKnoten[
 	});
 
 /** Die Teile einer Streuung (Formen, ohne `defs`) bzw. die Elemente einer Gruppe. */
-const teileVon = (element: Element, art: string) => {
-	if (art === 'gruppe') {
-		return element.querySelectorAll(':scope > [data-lage]').length;
-	}
-	return [...element.querySelectorAll('*')].filter((e) => e.children.length === 0 && !e.closest('defs')).length;
-};
-
 const OHNE_STAPEL = { zeile: 'baustein', aus: false, gesperrt: false, eigenerName: null, lage: null } as const;
 
 /**
@@ -315,20 +260,12 @@ export const gliederungVon = (doc: Document, z: Zerlegung, ids: readonly number[
 		}
 		// Keine Prüfung auf Fläche wie bei Bausteinen: Ausgeblendetes (`data-aus`) und in s/w Weggelassenes (`data-sw`)
 		// hat keine, gehört aber gerade hierher, sonst käme man nie wieder heran.
+		// 196-15, 205-03: `nameVon` gibt Gestaltungselementen schon den Titel der Ebenen (`titelDerGestaltung`).
 		const name = nameVon({ nr, baustein, element }, null);
-		const wert = (a: string) => element.getAttribute(a);
 		const unten = zeile === 'kopfband' || zeile === 'seitenrahmen' || zeile === 'seitenflaeche';
 		return {
 			nr,
-			titel: unten
-				? name
-				: titelDerGestaltung({
-						art: baustein.art,
-						name,
-						wert,
-						text: textVon(element),
-						teile: teileVon(element, baustein.art),
-					}),
+			titel: name,
 			nummer: null,
 			name,
 			art: baustein.name,
@@ -351,7 +288,7 @@ export const gliederungVon = (doc: Document, z: Zerlegung, ids: readonly number[
 			kennung: baustein.art,
 			aus: element.hasAttribute('data-aus'),
 			gesperrt: element.hasAttribute('data-gesperrt'),
-			eigenerName: wert('data-name')?.trim() || null,
+			eigenerName: element.getAttribute('data-name')?.trim() || null,
 			lage,
 		};
 	};

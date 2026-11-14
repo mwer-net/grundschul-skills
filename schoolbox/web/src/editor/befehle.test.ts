@@ -258,9 +258,41 @@ describe('Menüs am Baustein, an der Seite, am Blattrand (194-29 bis 194-32, 204
 		}
 	});
 
+	it('204-N02: An der Tabellenzeile nur Zeilenbefehle und ein „Löschen“; an der Zelle kein „Löschen“ ohne Gegenstand', () => {
+		const zeile = idsIm('baustein', mitAuswahl('tabellenzeile'));
+		for (const id of ['tabelle.zeile-weg', 'tabelle.spalte-weg', 'tabelle.spalte-davor', 'tabelle.spalte-danach']) {
+			assert.equal(zeile.includes(id), false, id);
+		}
+		assert.ok(zeile.includes('tabelle.zeile-davor') && zeile.includes('tabelle.zeile-danach'));
+		assert.equal(zeile.filter((id) => id === 'auswahl.loeschen').length, zeile.includes('auswahl.loeschen') ? 1 : 0);
+		const zelle = idsIm('baustein', mitAuswahl('tabellenzelle'));
+		assert.equal(zelle.includes('auswahl.loeschen'), false);
+		assert.ok(zelle.includes('tabelle.zeile-weg') && zelle.includes('tabelle.spalte-weg'));
+	});
+
+	it('204-N03: Zeile davor, Zeile danach, Spalte davor, Spalte danach stehen nebeneinander', () => {
+		const zelle = idsIm('baustein', mitAuswahl('tabellenzelle'));
+		const start = zelle.indexOf('tabelle.zeile-davor');
+		assert.deepEqual(zelle.slice(start, start + 4), [
+			'tabelle.zeile-davor',
+			'tabelle.zeile-danach',
+			'tabelle.spalte-davor',
+			'tabelle.spalte-danach',
+		]);
+	});
+
+	it('Abnahme 204: Teile der Namenszeile lassen sich nicht duplizieren', () => {
+		const namenszeile = bausteinNach('namenszeile');
+		const k = mitAuswahl('absatz');
+		assert.ok(idsIm('baustein', k).includes('auswahl.duplizieren'));
+		const teil = namenszeile ? { ...k, pfad: [{ nr: 3, name: 'Namenszeile', baustein: namenszeile }, ...k.pfad] } : k;
+		assert.equal(idsIm('baustein', teil).includes('auswahl.duplizieren'), false);
+	});
+
 	it('204-09: „Neuer Baustein“ steht im ⋯ des Bausteins vor „Duplizieren“, nicht an Zelle und Seite', () => {
 		const ids = idsIm('baustein', mitAuswahl('aufgabe'));
-		assert.equal(ids.indexOf('auswahl.einfuegen-danach') + 1, ids.indexOf('auswahl.duplizieren'));
+		const davor = ids.includes('auswahl.einfuegen-davor') ? 1 : 0;
+		assert.equal(ids.indexOf('auswahl.einfuegen-danach') + 1 + davor, ids.indexOf('auswahl.duplizieren'));
 		assert.equal(idsIm('baustein', mitAuswahl('tabellenzelle')).includes('auswahl.einfuegen-danach'), false);
 	});
 
