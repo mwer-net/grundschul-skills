@@ -4,6 +4,7 @@
  * Aufgaben neu durch. So bleibt er ein einziger Schritt im Verlauf.
  */
 
+import { aeussereSeiten, blattZu, istAutomatisch, istSeite, WEITER } from './fluss-blatt';
 import { dupliziereGestaltung, istEbene, istGestaltung, loescheGestaltung, neueIdsInGestaltung } from './gestaltung';
 import type { Aenderung, Knoten, Zerlegung } from './quelltext';
 import {
@@ -169,9 +170,53 @@ const ablageImStapel = (z: Zerlegung, ziel: Knoten, wo: 'vor' | 'nach') => {
 	return erste ? { ziel: erste, wo: 'vor' as const } : { ziel, wo };
 };
 
+/** 206 (Regel 19): Die Seiten des Blatts, zu dem die Seite `k` gehört; sonst nur `k`. */
+const blattVon = (z: Zerlegung, k: Knoten) =>
+	istAussen(z, k) ? (blattZu(z, k.nr)?.seiten.map((s) => knotenAn(z, s.nr)) ?? [k]) : [k];
+
+/** Eine Seite des Dokuments, keine verkleinerte Folie in „Folien mit Notizen“. */
+const istAussen = (z: Zerlegung, k: Knoten) => istSeite(k) && aeussereSeiten(z).includes(k);
+
+/** Die Seiten eines Blatts als ein Stück Quelle, eingerückt wie `ziel`. */
+const blattText = (z: Zerlegung, seiten: Knoten[], ziel: Knoten) => {
+	const erste = seiten[0];
+	const letzte = seiten.at(-1);
+	if (!erste || !letzte) {
+		throw new Error('Das Blatt hat keine Seite.');
+	}
+	return rueckeUm(z.quelle.slice(erste.start, letzte.ende), einrueckung(z, erste), einrueckung(z, ziel));
+};
+
+/**
+ * Eine Seite zieht ihr Blatt mit (Regel 19): Ziel ist der Anfang bzw. das Ende eines anderen Blatts, nie eine Stelle
+ * zwischen einer Seite und ihren automatischen Seiten.
+ */
+const verschiebeBlatt = (z: Zerlegung, seiten: Knoten[], ziel: Knoten, wo: 'vor' | 'nach') => {
+	const zielBlatt = blattVon(z, ziel);
+	if (zielBlatt.some((s) => seiten.includes(s))) {
+		throw new Error('Dorthin lässt sich das Element nicht verschieben.');
+	}
+	const vorn = wo === 'vor' && !istAutomatisch(ziel);
+	const stelle = (vorn ? zielBlatt[0] : zielBlatt.at(-1)) ?? ziel;
+	const raus = seiten.flatMap((s) => entferne(z, s));
+	const [rein] = fuegeEin(z, stelle, vorn ? 'vor' : 'nach', blattText(z, seiten, stelle));
+	if (!rein) {
+		return [];
+	}
+	// Grenzt die Einfügestelle an den entfernten Bereich, landet sie an dessen Rand.
+	const getroffen = raus.find((r) => rein.von > r.von && rein.von < r.bis);
+	const pos = getroffen ? getroffen.bis : rein.von;
+	return [...raus, { ...rein, von: pos, bis: pos }];
+};
+
 export const verschiebeBaustein = (quelle: string, nr: number, ablage: Ablage, n: Nummerierung) => {
 	const z = zerlege(quelle);
 	const k = knotenAn(z, nr);
+	const blatt = blattVon(z, k);
+	if ('nr' in ablage && istAussen(z, k) && istAussen(z, knotenAn(z, ablage.nr))) {
+		const aenderungen = verschiebeBlatt(z, blatt, knotenAn(z, ablage.nr), ablage.wo);
+		return ergebnis(quelle, aenderungen, aenderungen.at(-1), n);
+	}
 	if ('nr' in ablage) {
 		const stelle = ablageImStapel(z, knotenAn(z, ablage.nr), ablage.wo);
 		const aenderungen = verschiebe(z, k, stelle.ziel, stelle.wo);
@@ -194,9 +239,12 @@ export const dupliziereBaustein = (quelle: string, nr: number, n: Nummerierung) 
 	if (istGestaltung(k)) {
 		return dupliziereGestaltung(quelle, nr);
 	}
-	const kopie = quelleVon(z, k);
+	// Eine Seite dupliziert ihr ganzes Blatt (Regel 19); die Kopie steht hinter dessen letzter Seite.
+	const blatt = blattVon(z, k);
+	const letzte = blatt.at(-1) ?? k;
+	const kopie = blatt.length > 1 ? blattText(z, blatt, letzte) : quelleVon(z, k);
 	const neu = neueIdsInGestaltung(kopie, quelle);
-	const aenderungen = neu === kopie ? dupliziere(z, k) : fuegeEin(z, k, 'nach', neu);
+	const aenderungen = neu === kopie && blatt.length === 1 ? dupliziere(z, k) : fuegeEin(z, letzte, 'nach', neu);
 	return ergebnis(quelle, aenderungen, aenderungen[0], n);
 };
 
@@ -213,13 +261,25 @@ export const loescheBaustein = (quelle: string, nr: number, n: Nummerierung) => 
 	const geschwister = (k.eltern?.kinder ?? []).filter((g) => !istEbene(g));
 	const stelle = geschwister.indexOf(k);
 	const folge = geschwister[stelle + 1] ?? geschwister[stelle - 1] ?? k.eltern;
-	const neu = ergebnis(quelle, entferne(z, k), undefined, n);
+	// Regel 20: Folgt auf eine feste Seite eine automatische, wird diese fest; ihr Inhalt bleibt in keinem fremden Blatt.
+	const naechste = geschwister[stelle + 1];
+	const fest =
+		istSeite(k) && !istAutomatisch(k) && istAutomatisch(naechste) && naechste
+			? festeSeite(naechste)
+			: [];
+	const neu = ergebnis(quelle, [...entferne(z, k), ...fest], undefined, n);
 	if (!folge) {
 		return neu;
 	}
 	// Dahinter rückt alles um das Gelöschte samt Inhalt auf.
 	const weg = z.knoten.length - zerlege(neu.quelle).knoten.length;
 	return { ...neu, nr: folge.nr > k.nr ? folge.nr - weg : folge.nr };
+};
+
+/** `data-weiter="auto"` wird `data-weiter`: Die Seite gilt als fest (Regel 20). */
+const festeSeite = (seite: Knoten): Aenderung[] => {
+	const weiter = attribut(seite, WEITER);
+	return weiter ? [{ von: weiter.start, bis: weiter.ende, text: WEITER }] : [];
 };
 
 /** Was eine neue Seite von der ersten übernimmt: Namenszeile und die Marke „Lösung“. */
@@ -236,7 +296,9 @@ export const fuegeSeiteEin = (
 ) => {
 	const z = zerlege(quelle);
 	const seiten = seitenVon(z);
-	const ziel = seiten.find((s) => s.nr === nach) ?? seiten.at(-1);
+	const gewaehlt = seiten.find((s) => s.nr === nach) ?? seiten.at(-1);
+	// Regel 18: hinter das ganze Blatt, nicht zwischen eine Seite und ihre automatischen Seiten.
+	const ziel = gewaehlt ? blattVon(z, gewaehlt).at(-1) : undefined;
 	if (!ziel) {
 		throw new Error('Das Material hat keine Seite.');
 	}

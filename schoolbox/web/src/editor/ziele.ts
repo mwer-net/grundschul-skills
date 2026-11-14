@@ -60,7 +60,21 @@ const ordnungAlsBlock = (element: Element, baustein: Baustein): Ordnung => {
 };
 
 /** Wohin der Baustein darf (Register: `ordnenIn`, sonst das Elternelement) und zwischen welche Geschwister. */
-export const ordnungVon = (element: Element, baustein: Baustein): Ordnung => {
+const AUTOMATISCHE_SEITE = '.seite[data-weiter="auto"]';
+
+/** 206: Eine automatische Seite wird mit ihrem Blatt geordnet, also wie die feste Seite davor. */
+const festeSeiteZu = (seite: Element) => {
+	let e: Element | null = seite;
+	while (e?.matches(AUTOMATISCHE_SEITE)) {
+		e = e.previousElementSibling;
+	}
+	return e?.matches('.seite') ? e : seite;
+};
+
+export const ordnungVon = (gewaehlt: Element, baustein: Baustein): Ordnung => {
+	// Seiten ordnen sich als Blätter: Automatische Seiten sind kein Ziel und keine eigene Stelle (Regel 19).
+	const seiten = gewaehlt.matches('.seite') && !gewaehlt.parentElement?.closest('.seite');
+	const element = seiten ? festeSeiteZu(gewaehlt) : gewaehlt;
 	const doc = element.ownerDocument;
 	const { ordnenIn } = baustein;
 	if (!ordnenIn && !baustein.ordnenInLeiste && liegtAlsBlock(element)) {
@@ -73,7 +87,8 @@ export const ordnungVon = (element: Element, baustein: Baustein): Ordnung => {
 			nrVon(e) !== null &&
 			bausteinVon(e) === baustein &&
 			(e === element || !element.contains(e)) &&
-			(gestaltung || !inGestaltung(e)),
+			(gestaltung || !inGestaltung(e)) &&
+			!(seiten && e !== element && e.matches(AUTOMATISCHE_SEITE)),
 	);
 	const gruppen = bereiche
 		// Ein `<tbody>`, das erst der Browser ergänzt hat, trägt keine Nummer.
