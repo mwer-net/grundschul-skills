@@ -12,6 +12,7 @@ import {
 	neueAufgabe,
 	schliesseAn,
 	schonDa,
+	seiteZumAnschliessen,
 	umbruchVor,
 } from './einfuegen';
 import { blaetterVon } from './fluss';
@@ -403,6 +404,14 @@ describe('Fester Umbruch (206-06)', () => {
 		assert.match(an.quelle, /data-weiter="auto"/);
 		assert.equal(blaetterVon(zerlege(an.quelle)).length, 1);
 		assert.equal(an.quelle.replace(' data-weiter="auto"', ' data-weiter'), geteilt);
+	});
+
+	it('„An vorige Seite anschließen“ auch am ersten Block der festen Seite, nicht am zweiten (N06)', () => {
+		const geteilt = umbruchVor(SEITEN, aufgabeNr(SEITEN, 'A3'), N).quelle;
+		const zweite = blaetterVon(zerlege(geteilt))[1]?.seiten[0]?.nr ?? -1;
+		assert.equal(seiteZumAnschliessen(geteilt, zweite), zweite);
+		assert.equal(seiteZumAnschliessen(geteilt, aufgabeNr(geteilt, 'A3')), zweite);
+		assert.equal(seiteZumAnschliessen(geteilt, aufgabeNr(geteilt, 'A4')), null);
 	});
 
 	it('nicht an einer Seite mit Kopf oder Namenszeile', () => {

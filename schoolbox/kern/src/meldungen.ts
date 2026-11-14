@@ -146,7 +146,7 @@ const TABELLE: Record<MeldungCode, Uebersetzung> = {
 			satz: anzahl
 				? `Auf der Seite stehen ${anzahl} Aufgaben. Für Klasse ${klasse ?? ''} sind höchstens ${hoechstens ?? ''} übersichtlich.`
 				: 'Auf der Seite stehen viele Aufgaben.',
-			tipp: 'Eine Aufgabe löschen oder auf eine neue Seite ziehen.',
+			tipp: 'Eine Aufgabe löschen oder mit „Ab hier neue Seite“ teilen.',
 		};
 	},
 	'abstand-knapp': ([a, b]) => ({

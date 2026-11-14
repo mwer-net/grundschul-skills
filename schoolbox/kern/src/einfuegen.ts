@@ -460,6 +460,19 @@ export const kannAnschliessen = (quelle: string, nr: number) => {
 	);
 };
 
+/**
+ * Welche Seite „An vorige Seite anschließen“ meint (N06): die gewählte Seite selbst oder die Seite, deren erster
+ * Flussblock gewählt ist. `null`, wenn es dort nicht geht.
+ */
+export const seiteZumAnschliessen = (quelle: string, nr: number) => {
+	if (kannAnschliessen(quelle, nr)) {
+		return nr;
+	}
+	const k = zerlege(quelle).knoten[nr];
+	const seite = k?.eltern;
+	return k && seite && flussbloeckeVon(seite)[0] === nr && kannAnschliessen(quelle, seite.nr) ? seite.nr : null;
+};
+
 const folgtAufSeite = (davor: Knoten, seite: Knoten) => {
 	const geschwister = seite.eltern?.kinder ?? [];
 	return geschwister[geschwister.indexOf(seite) - 1] === davor;

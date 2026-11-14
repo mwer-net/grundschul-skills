@@ -1,3 +1,5 @@
+import type { SyntheticEvent } from 'react';
+import { useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 
 import { Knopf } from '../bausteine/Knopf';
@@ -14,14 +16,38 @@ import { naechsteSortierung, SORTIER_NAME } from './sortierung';
 import type { AblageOrdner, Darstellung, Seite, Sortierung } from './typen';
 import type { Befehle } from './useBefehle';
 
-/** ⋯ mit Tooltip; solange das Menü offen ist, schweigt der Tooltip (188-20). Die Eigenschaften kommen vom Auslöser. */
-const MehrKnopf = (props: Record<string, unknown>) => (
-	<Tooltip text="Weitere Aktionen" aus={props['data-popup-open'] !== undefined}>
-		<Knopf {...props} art="leise" className="size-knopf">
-			<Symbol name="mehr" />
-		</Knopf>
-	</Tooltip>
-);
+/**
+ * ⋯ mit Tooltip; solange das Menü offen ist, schweigt der Tooltip (188-20), und danach auch, bis Fokus oder Zeiger den
+ * Knopf verlassen: Das Menü gibt den Fokus beim Schließen zurück. Die Eigenschaften kommen vom Auslöser.
+ */
+const MehrKnopf = (props: Record<string, unknown>) => {
+	const offen = props['data-popup-open'] !== undefined;
+	const [still, setStill] = useState(false);
+	useEffect(() => {
+		if (offen) {
+			setStill(true);
+		}
+	}, [offen]);
+	const weiter = (name: 'onBlur' | 'onPointerLeave') => (e: SyntheticEvent) => {
+		(props[name] as ((e: SyntheticEvent) => void) | undefined)?.(e);
+		if (!offen) {
+			setStill(false);
+		}
+	};
+	return (
+		<Tooltip text="Weitere Aktionen" aus={offen || still}>
+			<Knopf
+				{...props}
+				art="leise"
+				className="size-knopf"
+				onBlur={weiter('onBlur')}
+				onPointerLeave={weiter('onPointerLeave')}
+			>
+				<Symbol name="mehr" />
+			</Knopf>
+		</Tooltip>
+	);
+};
 
 const KnopfText = ({ symbol, text }: { symbol: SymbolName; text: string }) => (
 	<>
@@ -112,8 +138,33 @@ export const Werkzeugleiste = ({
 	const lage = lageFuer(gewaehlteObjekte);
 	const dieseLeiste = (id: string) => () => fuehreAus(id, lage);
 	const knoepfe = leistenKnoepfe(lage);
+	const leiste = useRef<HTMLDivElement>(null);
+	const [breite, setBreite] = useState(0);
+	const [weg, setWeg] = useState(0);
+	const art = `${knoepfe.join()}|${gewaehlteObjekte.length}`;
+	useLayoutEffect(() => {
+		const el = leiste.current;
+		if (!el) {
+			return;
+		}
+		const beobachter = new ResizeObserver(([e]) => setBreite(Math.round(e?.contentRect.width ?? 0)));
+		beobachter.observe(el);
+		return () => beobachter.disconnect();
+	}, []);
+	// Fehlt Platz, gehen die Auswahlknöpfe von rechts ins ⋯, zuletzt verliert „Material anlegen“ seinen Text: Der Pfad
+	// fällt nie unter sein Mindestmaß (189-03).
+	useLayoutEffect(() => setWeg(0), [art, breite]);
+	useLayoutEffect(() => {
+		const el = leiste.current;
+		if (el && weg <= knoepfe.length && el.scrollWidth > el.clientWidth + 1) {
+			setWeg(weg + 1);
+		}
+	}, [art, breite, knoepfe.length, weg]);
+	const gezeigt = knoepfe.slice(0, Math.max(0, knoepfe.length - weg));
+	const eng = weg > knoepfe.length;
 	return (
 		<div
+			ref={leiste}
 			className="sticky top-[var(--kopf,0px)] z-leiste flex h-[var(--hoehe-werkzeug)] flex-none items-center gap-1.5 border-b border-rand bg-flaeche px-2"
 			data-werkzeugleiste
 		>
@@ -132,7 +183,7 @@ export const Werkzeugleiste = ({
 			{/* Fehlt der Ordner, gibt es hier nichts zu tun (189-02). */}
 			{seite.art !== 'papierkorb' && !lage.gesperrt && (
 				<>
-					<AuswahlKnoepfe befehle={befehle} ids={knoepfe} lage={lage} />
+					<AuswahlKnoepfe befehle={befehle} ids={gezeigt} lage={lage} />
 					<Segment
 						beschriftung="Darstellung"
 						wert={darstellung}
@@ -176,7 +227,7 @@ export const Werkzeugleiste = ({
 					<Menue
 						name="Weitere Aktionen"
 						rechtsbuendig
-						eintraege={menueOhne(gewaehlteObjekte, knoepfe)}
+						eintraege={menueOhne(gewaehlteObjekte, gezeigt)}
 						ausloeser={<MehrKnopf />}
 					/>
 				</>
@@ -189,7 +240,7 @@ export const Werkzeugleiste = ({
 					</Knopf>
 					<Knopf aria-label="Material anlegen" data-material-anlegen onClick={dieseLeiste('materialAnlegen')}>
 						<Symbol name="plus" />
-						<span className={gewaehlteObjekte.length > 0 ? '@max-6xl:hidden' : undefined}>
+						<span className={eng ? 'hidden' : gewaehlteObjekte.length > 0 ? '@max-6xl:hidden' : undefined}>
 							Material anlegen
 						</span>
 					</Knopf>

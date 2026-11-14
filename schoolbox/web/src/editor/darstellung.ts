@@ -118,10 +118,36 @@ export const nameVon = ({ baustein, element }: Treffer, umgebung: Element | null
 	if (!baustein.zaehlen) {
 		return baustein.name;
 	}
-	const geschwister = [...(umgebung ?? element.ownerDocument).querySelectorAll(baustein.selektor)].filter(
-		(e) => !(sonderfall && e.matches(sonderfall.selektor)) && bausteinVon(e) === baustein,
-	);
+	// N08: Eine Aufgabe heißt wie ihre Nummer im Blatt; die zählt `nummeriere` über Seitengrenzen hinweg.
+	const nummer = element.querySelector(':scope > .nr')?.textContent?.trim() ?? '';
+	if (/^\d+$/.test(nummer)) {
+		return `${baustein.name} ${nummer}`;
+	}
+	const orte = umgebung ? blattSeitenZu(umgebung) : [element.ownerDocument];
+	const geschwister = orte
+		.flatMap((ort) => [...ort.querySelectorAll(baustein.selektor)])
+		.filter((e) => !(sonderfall && e.matches(sonderfall.selektor)) && bausteinVon(e) === baustein);
 	return `${baustein.name} ${geschwister.indexOf(element) + 1}`;
+};
+
+const istAeussereSeite = (e: Element | null): e is Element =>
+	e !== null && e.matches('.seite') && e.parentElement === e.ownerDocument.body;
+const istAutomatisch = (e: Element | null) => istAeussereSeite(e) && e.getAttribute('data-weiter') === 'auto';
+
+/** 206: Ist `umgebung` eine Seite, gezählt wird im ganzen Blatt (die feste Seite und die automatischen dahinter). */
+const blattSeitenZu = (umgebung: Element): Element[] => {
+	if (!istAeussereSeite(umgebung)) {
+		return [umgebung];
+	}
+	let erste = umgebung;
+	while (istAutomatisch(erste) && istAeussereSeite(erste.previousElementSibling)) {
+		erste = erste.previousElementSibling;
+	}
+	const seiten = [erste];
+	for (let n = erste.nextElementSibling; n && istAutomatisch(n); n = n.nextElementSibling) {
+		seiten.push(n);
+	}
+	return seiten;
 };
 
 export interface PfadTeil {

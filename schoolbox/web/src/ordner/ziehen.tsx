@@ -98,7 +98,9 @@ export const useZiehen = (o: Optionen) => {
 
 	const setzeZeiger = (z: Zug) => {
 		// „Verbot“ nur über einem Ziel, das den Zug ablehnt; über allem anderen bleibt die Hand (189-35).
-		document.documentElement.style.cursor = z.inSichSelbst ? 'not-allowed' : z.kopiert ? 'copy' : 'grabbing';
+		// „Kopieren“ nur, wo Loslassen auch kopiert (189-N02).
+		const kopiert = z.kopiert && z.zielId !== undefined && z.zielId !== 'papierkorb';
+		document.documentElement.style.cursor = z.inSichSelbst ? 'not-allowed' : kopiert ? 'copy' : 'grabbing';
 	};
 
 	const federe = (z: Zug) => {

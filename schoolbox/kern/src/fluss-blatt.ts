@@ -20,7 +20,14 @@ export const FLIESSENDE_FORMATE: readonly Format[] = ['a4-hoch', 'a4-quer', 'a5-
 const NICHT_IM_FLUSS = ['namenszeile', 'kopf', 'loesung-marke', 'fuss-zeile', 'ebene'];
 const KEIN_BLOCK = new Set(['style', 'script', 'template', 'link', 'meta', 'br', 'noscript']);
 /** Was eine automatische Seite aus `.ebene.hinten` der Seite davor übernimmt (Regel 12). */
-const UEBERNOMMEN_HINTEN = ['seitenflaeche', 'seitenrahmen'];
+export const UEBERNOMMEN_HINTEN = ['seitenflaeche', 'seitenrahmen'];
+/**
+ * N09: Ohne Kopf darüber zöge `.nr` (negativer Rand in `blatt.css`, bei kleiner Schrift bis etwa 4 px) die erste
+ * Aufgabe einer Folgeseite in den Seitenrand. Die Seite, die der Fluss anlegt, bringt dafür eine Regel mit (kein
+ * Flussblock, `KEIN_BLOCK`); `blatt.css` bleibt, wie es ist (26).
+ */
+export const FOLGESEITE_STIL =
+	'.seite[data-weiter]>.aufgabe:not(.aufgabe~.aufgabe)>.nr{margin-top:max(0px,(var(--fs)*1.4 - 34px)/2)}';
 /** Seitengestaltung; alles andere in einer Ebene ist freie Gestaltung der Lehrkraft (Regel 15). */
 const SEITENTEILE = ['seitenflaeche', 'seitenrahmen', 'kopfband'];
 const UEBERSCHRIFTEN = new Set(['h1', 'h2', 'h3']);
@@ -165,6 +172,7 @@ export const automatischeSeite = (
 			return [`${oeffner}\n${kinder.join('\n')}\n${innen}</${ebene.tag}>`];
 		});
 	const zeilen = [
+		`<style>${FOLGESEITE_STIL}</style>`,
 		...marke.map((k) => kopie(z, k, innen)),
 		...inhalt,
 		...fusszeile.map((k) => kopie(z, k, innen)),
@@ -172,7 +180,5 @@ export const automatischeSeite = (
 	];
 	const oeffner = `<${vorlage.tag} class="seite" ${fest ? WEITER : `${WEITER}="${AUTOMATISCH}"`}>`;
 	const schliesser = `</${vorlage.tag}>`;
-	return zeilen.length === 0
-		? `${oeffner}${schliesser}`
-		: `${oeffner}\n${zeilen.map((zeile) => `${innen}${zeile}`).join('\n')}\n${einzug}${schliesser}`;
+	return `${oeffner}\n${zeilen.map((zeile) => `${innen}${zeile}`).join('\n')}\n${einzug}${schliesser}`;
 };

@@ -166,7 +166,7 @@ export const Kachel = ({
 						? inhaltText(objekt.inhalt)
 						: `${ART_NAME[objekt.dok.meta.art]} · ${FORMAT_NAME[objekt.dok.meta.format]}`}
 				</p>
-				{ort && <Gekuerzt text={ort.kurz} voll={ort.voll} className="block text-xs text-dezent" />}
+				{ort && <OrtText ort={ort} className="text-xs text-dezent" />}
 			</div>
 			<FingerMenue menue={menue} name={objekt.name} />
 		</div>
@@ -184,10 +184,33 @@ export interface ZeileAnsicht extends ObjektAnsicht {
  * Spalten nach Platz: Unter dem Inhaltscontainer fallen Format, Klasse und Fach nacheinander weg. Ohne Material in
  * Sicht gibt es die drei gar nicht, der Platz geht an den Namen (188-35).
  */
-export const listenRaster = (mitMaterial: boolean) =>
-	mitMaterial
+export const listenRaster = (mitMaterial: boolean, mitOrt = false) => {
+	// Der Ort braucht Platz für den letzten Ordner ganz (189-13); der Name gibt ihn ab.
+	if (mitOrt) {
+		return mitMaterial
+			? 'grid grid-cols-[minmax(0,1fr)_6.5rem_14rem] @3xl:grid-cols-[minmax(0,1fr)_6.5rem_14rem_7rem] @4xl:grid-cols-[minmax(0,1fr)_6.5rem_14rem_7rem_5rem_5rem_9rem]'
+			: 'grid grid-cols-[minmax(0,1fr)_6.5rem_14rem] @4xl:grid-cols-[minmax(0,1fr)_6.5rem_14rem_9rem]';
+	}
+	return mitMaterial
 		? 'grid grid-cols-[minmax(0,1fr)_6.5rem_8rem] @3xl:grid-cols-[minmax(0,1fr)_6.5rem_8rem_7rem] @4xl:grid-cols-[minmax(0,1fr)_6.5rem_8rem_7rem_5rem_5rem_9rem]'
 		: 'grid grid-cols-[minmax(0,1fr)_6.5rem_8rem] @4xl:grid-cols-[minmax(0,1fr)_6.5rem_8rem_9rem]';
+};
+
+/** Gekürzt wird vorn: Der Ordner, in dem das Objekt liegt, steht immer ganz da; der volle Pfad im Tooltip (189-13). */
+const OrtText = ({ className, ort }: { className?: string; ort: { kurz: string; voll: string } }) => {
+	const trenner = ort.kurz.lastIndexOf(' › ');
+	const vorn = trenner < 0 ? '' : ort.kurz.slice(0, trenner);
+	const letzter = trenner < 0 ? ort.kurz : ort.kurz.slice(trenner + 3);
+	return (
+		<Tooltip text={ort.voll}>
+			<span className={klassen('flex min-w-0 whitespace-nowrap', className)} data-ort>
+				{vorn && <span className="min-w-0 truncate">{vorn}</span>}
+				{vorn && <span className="flex-none">{'\u00a0›\u00a0'}</span>}
+				<span className="max-w-full shrink-0 truncate">{letzter}</span>
+			</span>
+		</Tooltip>
+	);
+};
 
 /** Im laufenden Jahr ohne Jahr, sonst mit (188-18). */
 const geaendertText = (wann: string) =>
@@ -215,7 +238,7 @@ export const Zeile = ({
 		{...(objekt.istOrdner ? { 'data-ablage-ziel': objekt.ordner.id } : {})}
 		className={klassen(
 			'ablage-objekt',
-			listenRaster(mitMaterial),
+			listenRaster(mitMaterial, ort !== undefined),
 			'h-[var(--hoehe-listenzeile)] items-center rounded-md px-1 text-sm',
 			gewaehlt ? 'bg-brand-100' : 'hover:bg-flaeche-2',
 			blass && 'opacity-50',
@@ -267,7 +290,7 @@ export const Zeile = ({
 		</div>
 		<span className="truncate text-xs text-leise">{geaendertText(objekt.geaendert)}</span>
 		{ort ? (
-			<Gekuerzt text={ort.kurz} voll={ort.voll} className="pr-2 text-xs text-leise" />
+			<OrtText ort={ort} className="pr-2 text-xs text-leise" />
 		) : (
 			<span className="truncate pr-2 text-xs text-leise">{objekt.istOrdner ? 'Ordner' : objekt.art}</span>
 		)}

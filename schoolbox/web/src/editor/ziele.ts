@@ -223,6 +223,12 @@ export const platzAn = ({ element, gruppen }: Ordnung, x: number, y: number): Pl
 	return bester && !bester.ohneWirkung ? { ablage: bester.ablage, marke: bester.marke } : null;
 };
 
+/** Folgt die eine Seite als automatische direkt auf die andere? Dann gehören beide zu einem Blatt (206). */
+const imSelbenBlatt = (a: Element, b: Element) => {
+	const [vorn, hinten] = a.compareDocumentPosition(b) & Node.DOCUMENT_POSITION_FOLLOWING ? [a, b] : [b, a];
+	return hinten.matches('.seite[data-weiter="auto"]') && vorn.matches('.seite') && vorn.nextElementSibling === hinten;
+};
+
 /** Für die Knöpfe „nach oben/unten“: eins weiter in Dokumentreihenfolge, über Bereichsgrenzen hinweg an den Rand. */
 export const nachbarAblage = ({ element, gruppen }: Ordnung, richtung: -1 | 1): Ablage | null => {
 	const folge = gruppen.flatMap((g) => g.glieder.map((e) => ({ e, bereich: g.bereich })));
@@ -233,7 +239,9 @@ export const nachbarAblage = ({ element, gruppen }: Ordnung, richtung: -1 | 1): 
 	if (!eigen || !ziel || nr === null) {
 		return null;
 	}
-	const gleicherBereich = ziel.bereich === eigen.bereich;
+	// 206: Die Seiten eines Blatts sind ein Strom; über ihre Grenze tauscht der Block mit dem Nachbarn, sonst bliebe er
+	// an derselben Stelle im Strom (toter Klick), und der Fluss legt danach um.
+	const gleicherBereich = ziel.bereich === eigen.bereich || imSelbenBlatt(eigen.bereich, ziel.bereich);
 	if (richtung === 1) {
 		return { nr, wo: gleicherBereich ? 'nach' : 'vor' };
 	}

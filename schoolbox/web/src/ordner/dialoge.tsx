@@ -57,6 +57,13 @@ export const BewegenDialog = ({ objekte, schliessen }: { objekte: Objekt[]; schl
 		);
 	};
 	const [erstes] = objekte;
+	/** Der Dialog fokussiert beim Öffnen `[autofocus]`: die gewählte Zeile, anfangs „Mein Material“ (189-12). */
+	const erstenFokus = (el: HTMLDivElement | null) => {
+		const zeile =
+			el?.querySelector('[role="treeitem"][aria-selected="true"]') ??
+			el?.querySelector('[data-baum-ordner="wurzel"]');
+		zeile?.setAttribute('autofocus', '');
+	};
 	/** ⏎ bewegt, wo immer der Fokus im Baum steht; ein offenes Namensfeld behält ⏎ für sich (188-09). */
 	const taste = (e: ReactKeyboardEvent<HTMLDivElement>) => {
 		if (e.key !== 'Enter' || e.metaKey || e.ctrlKey || e.altKey || benennen?.wo === 'dialog') {
@@ -99,6 +106,7 @@ export const BewegenDialog = ({ objekte, schliessen }: { objekte: Objekt[]; schl
 			className="h-[min(22rem,50dvh)] overflow-y-auto rounded-lg border border-rand p-1"
 			data-bewegen-baum
 			onKeyDown={taste}
+			ref={erstenFokus}
 		>
 				<Baum
 					stand={stand}

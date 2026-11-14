@@ -2,7 +2,7 @@ import assert from 'node:assert/strict';
 import { describe, it } from 'node:test';
 
 import type { FlussPlan } from './fluss';
-import { automatischeSeite, blaetterVon, blattZu, istAutomatisch, legeUm } from './fluss';
+import { automatischeSeite, blaetterVon, blattZu, FOLGESEITE_STIL, geaenderteBlaetter, istAutomatisch, legeUm } from './fluss';
 import { klassenVon, zerlege } from './quelltext';
 import { nummeriere } from './struktur';
 
@@ -101,7 +101,15 @@ describe('Umlegen (206-01)', () => {
 		const seiten = blaetterVon(z)[0]?.seiten ?? [];
 		assert.equal(seiten.length, 2);
 		assert.ok(istAutomatisch(z.knoten[seiten[1]?.nr ?? -1]));
-		assert.deepEqual(klassenDerSeite(quelle, 1), ['loesung-marke', 'aufgabe', 'aufgabe', 'fuss', 'fuss-zeile', 'ebene hinten']);
+		assert.deepEqual(klassenDerSeite(quelle, 1), [
+			'style',
+			'loesung-marke',
+			'aufgabe',
+			'aufgabe',
+			'fuss',
+			'fuss-zeile',
+			'ebene hinten',
+		]);
 		assert.match(quelle, /data-weiter="auto"/);
 		// Kopfband und Namenszeile kommen nicht mit
 		assert.equal(quelle.match(/kopfband/g)?.length, 1);
@@ -114,7 +122,7 @@ describe('Umlegen (206-01)', () => {
 			`<section class="seite">\n  ${[1, 2, 3].map(aufgabe).join('\n  ')}\n</section>`,
 		]);
 		const { quelle } = legeUm(schlicht, plan(schlicht, [2, 1]), BLATT);
-		assert.deepEqual(klassenDerSeite(quelle, 1), ['aufgabe']);
+		assert.deepEqual(klassenDerSeite(quelle, 1), ['style', 'aufgabe']);
 	});
 
 	it('ändert außerhalb des Blatts kein Zeichen', () => {
@@ -177,5 +185,37 @@ describe('automatischeSeite', () => {
 		const html = automatischeSeite(z, vorlage, { fest: true });
 		assert.match(html, /^<section class="seite" data-weiter>/);
 		assert.doesNotMatch(html, /kopfband|namenszeile/);
+	});
+});
+
+describe('Welche Blätter ein Schritt ändert (N01, N02)', () => {
+	const seite = (von: number, bis: number) =>
+		`<section class="seite">\n  <header class="kopf">K</header>\n  ${Array.from({ length: bis - von + 1 }, (_, i) => aufgabe(von + i)).join('\n  ')}\n</section>`;
+	const DREI = dokument([seite(1, 3), seite(4, 6), seite(7, 9)], { koerper: 'kl2" style="--abstand:28px' });
+	const ersteSeiten = (q: string) => blaetterVon(zerlege(q)).map((b) => b.seiten[0]?.nr);
+
+	it('eine Aufgabe mehr in Blatt 1: nur Blatt 1, auch wenn alle Nummern dahinter neu sind', () => {
+		const neu = nummeriere(DREI.replace(aufgabe(3), `${aufgabe(3)}\n  ${aufgabe(99)}`), BLATT);
+		assert.notEqual(neu.slice(neu.indexOf('A7')), DREI.slice(DREI.indexOf('A7')));
+		assert.deepEqual(geaenderteBlaetter(DREI, zerlege(neu)), ersteSeiten(neu).slice(0, 1));
+	});
+
+	it('Text in Blatt 2: nur Blatt 2', () => {
+		const neu = DREI.replace('>A5<', '>A5 länger<');
+		assert.deepEqual(geaenderteBlaetter(DREI, zerlege(neu)), ersteSeiten(neu).slice(1, 2));
+	});
+
+	it('Abstand am body: alle fließenden Blätter; nichts geändert: keines', () => {
+		const neu = DREI.replace('--abstand:28px', '--abstand:120px');
+		assert.deepEqual(geaenderteBlaetter(DREI, zerlege(neu)), ersteSeiten(neu));
+		assert.deepEqual(geaenderteBlaetter(DREI, zerlege(DREI)), []);
+	});
+});
+
+describe('Folgeseite ohne Überstand nach oben (N09)', () => {
+	it('bringt die Regel für die erste Nummer mit, die kein Flussblock ist', () => {
+		const { quelle } = legeUm(QUELLE, plan(QUELLE, [3, 3]), BLATT);
+		assert.ok(quelle.includes(`<style>${FOLGESEITE_STIL}</style>`));
+		assert.equal(blaetterVon(zerlege(quelle))[0]?.folge.length, 6);
 	});
 });

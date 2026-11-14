@@ -19,6 +19,8 @@ const STUECK =
 
 /** So schmal wird der aktuelle Ordner höchstens, bevor weitere Stufen hinter „…“ gehen (189-03). */
 const LETZTER_MIN = 96;
+/** „…“ (klein), Trenner und die Abstände davor: was ganz gekürzt vor dem aktuellen Ordner steht. */
+const VORSPANN = 68;
 
 const Trenner = () => <Symbol name="rechts" className="size-3 flex-none text-dezent" />;
 
@@ -74,9 +76,16 @@ export const Pfad = ({ fehlt = false, gehe, pfad }: Eigenschaften) => {
 	const mitte = davor.slice(0, weg);
 	const sichtbar = davor.slice(weg);
 	const ohneWurzel = weg > davor.length;
+	const letzterMin = Math.min(LETZTER_MIN, natuerlich + 8);
 
 	return (
-		<div ref={leiste} className="flex min-w-0 flex-1 items-center gap-0.5 overflow-hidden" data-pfad>
+		<div
+			ref={leiste}
+			className="flex min-w-0 flex-1 items-center gap-0.5 overflow-hidden"
+			// Ganz gekürzt bleiben „…“, Trenner und der aktuelle Ordner; weniger Platz nimmt die Leiste den Knöpfen.
+			style={letzter ? { minWidth: VORSPANN + letzterMin } : undefined}
+			data-pfad
+		>
 			{ohneWurzel ? null : letzter || fehlt ? (
 				<Link
 					to="/"
@@ -124,7 +133,7 @@ export const Pfad = ({ fehlt = false, gehe, pfad }: Eigenschaften) => {
 					<h1
 						ref={kopf}
 						className="flex min-w-0 flex-none px-1 text-sm font-semibold"
-						style={{ minWidth: ohneWurzel ? 0 : Math.min(LETZTER_MIN, natuerlich + 8), flexShrink: 1 }}
+						style={{ minWidth: letzterMin, flexShrink: 1 }}
 						data-ablage-ziel={letzter.id}
 					>
 						<Gekuerzt text={letzter.name} />
