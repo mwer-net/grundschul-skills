@@ -249,6 +249,13 @@ describe('API', () => {
 		assert.equal(((await antwort.json()) as { entwurf: { name: string } }).entwurf.name, 'B');
 		assert.match(await readFile(path.join(neu.dir, 'material.html'), 'utf8'), /Inhalt b/);
 		assert.equal((await leseMeta(s.materialDir, neu.mappe, neu.dok)).gewaehlt, 'B');
+		// 191-N03, 191-N04: umentscheiden geht, der Stand mit B bleibt als Version, Urheber ist die Lehrkraft.
+		assert.equal((await nimm({ name: 'A' })).status, 200);
+		assert.match(await readFile(path.join(neu.dir, 'material.html'), 'utf8'), /Inhalt a/);
+		const namen = (await readdir(path.join(neu.dir, 'versionen'))).sort();
+		assert.ok(namen.at(-1)?.endsWith('_lehrkraft.html'));
+		const staende = await Promise.all(namen.map((n) => readFile(path.join(neu.dir, 'versionen', n), 'utf8')));
+		assert.ok(staende.some((t) => t.includes('Inhalt b')));
 		const ohneKopf = await s.holen(`${s.url}/api/dokumente/${neu.mappe}/${neu.dok}/entwurf`, {
 			method: 'POST',
 			headers: { 'Content-Type': 'application/json' },

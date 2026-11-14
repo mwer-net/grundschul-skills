@@ -142,14 +142,15 @@ export const TeilenDialog = (e: Eigenschaften) => {
 	);
 	const [laeuft, setLaeuft] = useState(false);
 	const [panne, setPanne] = useState<string | null>(null);
-	// Nach dem Laden und nach jeder Aktion springt der Fokus auf die Hauptaktion, sobald die neue Liste steht.
-	const [fokusDanach, setFokusDanach] = useState(true);
+	// Nach dem Laden und nach jeder Aktion springt der Fokus auf die Hauptaktion, sobald die neue Liste steht (191-07).
+	// `alteListe`: die Antwort vor der Aktion; erst eine andere Antwort ist die nach der Aktion. `null`: beim Öffnen.
+	const [fokus, setFokus] = useState<{ alteListe: typeof daten | null } | false>({ alteListe: null });
 	useEffect(() => {
-		if (daten && fokusDanach && !laeuft) {
+		if (fokus && daten && daten !== fokus.alteListe && !laeuft) {
 			fokussiereHauptaktion();
-			setFokusDanach(false);
+			setFokus(false);
 		}
-	}, [daten, fokusDanach, laeuft]);
+	}, [daten, fokus, laeuft]);
 
 	const fuehreAus = async (schritt: () => Promise<unknown>) => {
 		setLaeuft(true);
@@ -159,8 +160,8 @@ export const TeilenDialog = (e: Eigenschaften) => {
 		} catch (grund) {
 			setPanne(meldung(grund));
 		} finally {
+			setFokus({ alteListe: daten });
 			neuLaden();
-			setFokusDanach(true);
 			setLaeuft(false);
 		}
 	};

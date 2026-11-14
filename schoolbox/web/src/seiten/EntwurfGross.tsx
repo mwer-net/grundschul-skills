@@ -99,11 +99,18 @@ export const EntwurfGross = ({ dok, name, zugang }: Eigenschaften) => {
 					</span>
 				</div>
 				<div className="flex flex-none items-center gap-1.5">
-					{offen && (
+					{/* Nach einer Wahl lässt sich umentscheiden; der bisherige Stand bleibt als Version (191-N03). */}
+					{offen ? (
 						<Knopf disabled={nehmen.laeuft} onClick={() => nehmen.nimm(entwurf.name)}>
 							<Symbol name="haken" />
 							Diesen Entwurf nehmen
 						</Knopf>
+					) : (
+						entwurf.name !== dokument.meta.gewaehlt && (
+							<Knopf art="zweit" disabled={nehmen.laeuft} onClick={() => nehmen.nimm(entwurf.name)}>
+								Stattdessen diesen nehmen
+							</Knopf>
+						)
 					)}
 					{/* Zurück und vor stehen immer an derselben Stelle; was nicht geht, ist gesperrt (191-38). */}
 					<KnopfLink

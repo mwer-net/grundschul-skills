@@ -11,6 +11,7 @@ import { gehoertDemElement, istFeld, TASTEN_SPERRE_OHNE_LISTE } from '../editor/
 import { hatOffeneEntwuerfe } from '../entwuerfe/offen';
 import { falte } from '../lib/text';
 import { dokumentSeite, editorSeite, entwuerfeSeite, praesentationSeite } from '../lib/zugang';
+import { ECHTE_MASSE } from '../pdf/PdfKnopf';
 import { usePdf } from '../pdf/usePdf';
 import { dokumentWahl, sammlungWahl } from '../pdf/wahl';
 import { SOFORT, vollbildFuerSofort } from '../praesentation/laufzeit';
@@ -287,13 +288,18 @@ export const useBefehle = (o: Optionen) => {
 							l.objekte.length > 1 ? `${hier?.name ?? WURZEL_NAME} (Auswahl)` : (erstes?.name ?? ortName);
 						return sammlungWahl(dokumente, name);
 					})();
-		return wahl.map((w) => ({
+		const eintraege: MenueEintrag[] = wahl.map((w) => ({
 			titel: w.titel,
 			...(w.hinweis ? { beschreibung: w.hinweis } : {}),
 			...(w.gruppe ? { gruppe: w.gruppe } : {}),
 			...(pdf.laeuft ? { aus: true } : {}),
 			waehle: () => void pdf.hole(w),
 		}));
+		// Dieselbe leise Zeile wie am PDF-Knopf der Ansicht (191-N01).
+		const masse = erstes && !erstes.istOrdner && l.objekte.length === 1 && erstes.dok.echteMasse;
+		return masse && eintraege.length > 0
+			? [...eintraege, { titel: ECHTE_MASSE, gruppe: 'masse', aus: true }]
+			: eintraege;
 	};
 
 	const unterMenue = (id: string, l: Lage): MenueEintrag[] | null => {

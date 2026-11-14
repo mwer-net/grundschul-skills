@@ -100,7 +100,12 @@ export const Entwuerfe = ({ dok, zugang }: Eigenschaften) => {
 								)}
 							>
 								{/* Rechts oben liegt „Diesen Entwurf nehmen“, neben dem Link (kein Knopf im Link). */}
-								<div className={klassen('flex flex-none items-start gap-2 p-3', !gewaehlt && 'pr-48')}>
+								<div
+									className={klassen(
+										'flex flex-none items-start gap-2 p-3',
+										entwurf.name !== meta.gewaehlt && (gewaehlt ? 'pr-56' : 'pr-48'),
+									)}
+								>
 									<Buchstabe name={entwurf.name} />
 									<div className="min-w-0">
 										<h2 className="text-base font-semibold">
@@ -124,7 +129,8 @@ export const Entwuerfe = ({ dok, zugang }: Eigenschaften) => {
 								</div>
 							</Kachel>
 						</Link>
-						{!gewaehlt && (
+						{/* Nach einer Wahl tragen die anderen Karten „Stattdessen diesen nehmen“ (191-N03). */}
+						{entwurf.name !== meta.gewaehlt && (
 							<Knopf
 								art="zweit"
 								groesse="klein"
@@ -132,7 +138,7 @@ export const Entwuerfe = ({ dok, zugang }: Eigenschaften) => {
 								disabled={nehmen.laeuft}
 								onClick={() => nehmen.nimm(entwurf.name)}
 							>
-								Diesen Entwurf nehmen
+								{gewaehlt ? 'Stattdessen diesen nehmen' : 'Diesen Entwurf nehmen'}
 							</Knopf>
 						)}
 					</li>

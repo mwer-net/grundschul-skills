@@ -216,7 +216,7 @@ export const apiRouter = (kontext: Kontext) => {
 		}
 		const entwurf = await kontext.sperre(dokSchluessel(mappe, dok), async () => {
 			await nimmFremdeAenderungAuf(kontext, mappe, dok);
-			const gewaehlt = await waehleEntwurf(materialDir, { mappe, dok }, name);
+			const gewaehlt = await waehleEntwurf(materialDir, { mappe, dok }, name, new Date(), 'lehrkraft');
 			const bekannt = await leseBekannt(kontext, mappe, dok);
 			kontext.bekannt.set(dokSchluessel(mappe, dok), bekannt);
 			const version = kennung(await leseQuelle(dokumentDir(materialDir, mappe, dok)));

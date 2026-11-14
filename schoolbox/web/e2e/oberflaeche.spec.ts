@@ -482,6 +482,18 @@ test.describe('Entwürfe', () => {
 		await page.goto(`/m/${id}/${dok}/entwuerfe`);
 		await expect(page.locator('[data-entwurf="C"]')).toContainText('Gewählt');
 		await expect(page.getByRole('button', { name: 'Diesen Entwurf nehmen' })).toHaveCount(0);
+
+		// Umentscheiden (191-N03): Die anderen Karten bieten „Stattdessen diesen nehmen“, C als Version bleibt.
+		await expect(page.locator('[data-entwurf="C"]').getByRole('button')).toHaveCount(0);
+		await expect(page.getByRole('button', { name: 'Stattdessen diesen nehmen' })).toHaveCount(2);
+		await druecke(page.locator('[data-entwurf="A"]').getByRole('button', { name: 'Stattdessen diesen nehmen' }));
+		await expect(page).toHaveURL(new RegExp(`/m/${id}/${dok}$`));
+		await expect(page.frameLocator('[data-blattansicht] iframe').last().getByText('Inhalt A')).toBeVisible();
+		const versionen = (await (await page.request.get(`/api/dokumente/${id}/${dok}/versionen`)).json()) as {
+			versionen: { urheber: string }[];
+		};
+		// 191-N04: gewählt hat die Lehrkraft.
+		expect(versionen.versionen.at(-1)?.urheber).toBe('lehrkraft');
 	});
 
 	test('nach „schoolbox waehle … B“ zeigt die Dokumentseite B, die Entwürfe bleiben erreichbar', async ({
