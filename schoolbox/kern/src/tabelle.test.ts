@@ -81,6 +81,11 @@ describe('Kit-Tabelle', () => {
 		assert.deepEqual(groesseVon(klein.quelle, klein.nr ?? -1), { zeilen: 2, spalten: 1, kopf: true });
 	});
 
+	it('196-07: höchstens 12 Spalten und 30 Zeilen', () => {
+		const gross = setzeGroesse(QUELLE, zelle(QUELLE, 'a'), { zeilen: 99, spalten: 99 }, n);
+		assert.deepEqual(groesseVon(gross.quelle, gross.nr ?? -1), { zeilen: 30, spalten: 12, kopf: true });
+	});
+
 	it('194-07: ⇧Tab geht in die vorige Zelle, über den Zeilenanfang hinweg; in der ersten null', () => {
 		assert.deepEqual(vorigeZelle({ zeile: 1, spalte: 1 }, () => 3), { zeile: 1, spalte: 0 });
 		assert.deepEqual(vorigeZelle({ zeile: 1, spalte: 0 }, () => 3), { zeile: 0, spalte: 2 });

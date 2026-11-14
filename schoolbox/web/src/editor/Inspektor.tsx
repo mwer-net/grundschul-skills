@@ -1,11 +1,12 @@
 import { ABSCHNITT_TITEL } from '@schoolbox/kern/src/abschnitte';
 import { FREIES_ELEMENT, kann } from '@schoolbox/kern/src/bausteine';
-import { sichtbarkeitFest } from '@schoolbox/kern/src/kit-einstellungen';
+import { KIT_FELDER, leseNotiz, setzeNotiz, sichtbarkeitFest } from '@schoolbox/kern/src/kit-einstellungen';
 import type { ReactNode } from 'react';
 import { useEffect, useLayoutEffect, useRef, useState } from 'react';
 
 import { Abschnitt } from '../bausteine/Abschnitt';
-import { klassen } from '../bausteine/klassen';
+import { Feld } from '../bausteine/Feld';
+import { FELD_KLASSEN, klassen } from '../bausteine/klassen';
 import { Knopf } from '../bausteine/Knopf';
 import { Menue } from '../bausteine/Menue';
 import { Reiter } from '../bausteine/Reiter';
@@ -14,7 +15,7 @@ import type { AbbildungSteuerung } from './abbildung';
 import { hatWeitere } from './abbildung-felder';
 import { AbbildungFelder, AbbildungHinweise } from './Abbildungspanel';
 import type { Ablage } from './ablage';
-import { AusgeblendetHinweis } from './AusgeblendetHinweis';
+import { AusgeblendetHinweis, GesperrtHinweis, gesperrtIn } from './AusgeblendetHinweis';
 import type { BildSteuerung } from './bild';
 import { BildKontext } from './bild';
 import { BildDarstellung, Bildwerkzeug } from './Bildpanel';
@@ -126,19 +127,23 @@ interface Eigenschaften {
 	blatt: ReactNode;
 	/** Zählt hoch, wenn die Palette zu einer Einstellung des Blatts springt. */
 	zumBlatt: number;
+	/** Präsentation: Eine gewählte Folie zeigt ihre Notiz im Reiter „Auswahl“, eine Seite sonst den Reiter „Blatt“. */
+	folien: boolean;
 	children: ReactNode;
 }
 
 /** Rechts neben dem Blatt: zwei Reiter, damit immer klar ist, worauf sich eine Einstellung bezieht. */
-export const Inspektor = ({ blatt, children, pfad, umriss, waehle, zumBlatt }: Eigenschaften) => {
+export const Inspektor = ({ blatt, children, folien, pfad, umriss, waehle, zumBlatt }: Eigenschaften) => {
 	const gewaehlt = pfad.at(-1);
 	const nr = gewaehlt?.nr ?? null;
-	const [wunsch, setWunsch] = useState<ReiterName>('auswahl');
+	// 196-23: Für eine Seite gilt, was im Reiter „Blatt“ steht („Gilt für“ bietet sie an).
+	const seite = gewaehlt?.baustein.art === 'seite' && !folien;
+	const [wunsch, setWunsch] = useState<ReiterName>(seite ? 'blatt' : 'auswahl');
 	const [zuletzt, setZuletzt] = useState(nr);
 	if (zuletzt !== nr) {
 		setZuletzt(nr);
 		if (nr !== null) {
-			setWunsch('auswahl');
+			setWunsch(seite ? 'blatt' : 'auswahl');
 		}
 	}
 	const [blattZuletzt, setBlattZuletzt] = useState(zumBlatt);
@@ -225,20 +230,74 @@ interface EinstellungenEigenschaften {
 const eintraegeIn = (doc: Document | null, nr: number | undefined) =>
 	(doc && nr !== undefined ? elementZu(doc, nr)?.children.length : 0) ?? 0;
 
+/** 196-16: Sichtbarkeit nur, wo sie im Stapel einen Sinn hat; Namenszeile, Kopf und Fuß gehören zu jedem Blatt. */
+const OHNE_SICHTBARKEIT = new Set(['namenszeile', 'kopf', 'fuss']);
+const EIGENE_SICHTBARKEIT = new Set(['aufgabe', 'sternchenaufgabe', 'item', 'karte', 'tabellenzeile']);
+const STAPEL = new Set(['aufgabe', 'sternchenaufgabe', 'seite']);
+
+export const hatSichtbarkeit = (pfad: PfadTeil[], folien: boolean) => {
+	const art = pfad.at(-1)?.baustein.art;
+	const eltern = pfad.at(-2)?.baustein.art;
+	// 196-17: Folien haben keine Lösungsansicht.
+	if (folien || !art) {
+		return false;
+	}
+	return EIGENE_SICHTBARKEIT.has(art) || (eltern !== undefined && STAPEL.has(eltern) && !OHNE_SICHTBARKEIT.has(art));
+};
+
 const SichtbarkeitWenn = ({
+	aus,
 	baustein,
+	folien,
 	nr,
+	pfad,
 	quelle,
 	struktur,
 }: {
+	aus: boolean;
 	baustein: PfadTeil['baustein'];
+	folien: boolean;
 	nr: number;
+	pfad: PfadTeil[];
 	quelle: string | null;
 	struktur: Struktur;
 }) =>
-	quelle && kann(baustein, 'ordnen') && baustein.art !== 'seite' && !sichtbarkeitFest(quelle, nr) ? (
-		<Sichtbarkeit nr={nr} quelle={quelle} struktur={struktur} />
+	quelle &&
+	kann(baustein, 'ordnen') &&
+	baustein.art !== 'seite' &&
+	hatSichtbarkeit(pfad, folien) &&
+	!sichtbarkeitFest(quelle, nr) ? (
+		<Sichtbarkeit aus={aus} nr={nr} quelle={quelle} struktur={struktur} />
 	) : null;
+
+/** 196-23, 192-01: Die Notiz der gewählten Folie; mehrzeilig, Verlassen übernimmt, Esc stellt wieder her. */
+const FolienNotiz = ({ aus, nr, quelle, struktur }: { aus: boolean; nr: number; quelle: string; struktur: Struktur }) => {
+	const wert = leseNotiz(quelle, nr);
+	const [text, setText] = useState(wert);
+	useEffect(() => setText(wert), [wert]);
+	return (
+		<textarea
+			className={klassen(FELD_KLASSEN, 'h-auto min-h-16 py-1')}
+			aria-label="Notiz"
+			data-folien-notiz
+			disabled={aus}
+			rows={4}
+			value={text}
+			onChange={(e) => setText(e.target.value)}
+			onBlur={() =>
+				text.trim() !== wert &&
+				struktur.fuehreAus('Notiz geändert', (q) => ({ quelle: setzeNotiz(q, nr, text), nr }))
+			}
+			onKeyDown={(e) => {
+				if (e.key === 'Escape' && text !== wert) {
+					e.preventDefault();
+					e.stopPropagation();
+					setText(wert);
+				}
+			}}
+		/>
+	);
+};
 
 /** Öffnet die Blase an diesem Element (134). */
 const FreiesElementHinweis = () => {
@@ -341,15 +400,42 @@ export const Einstellungen = ({
 		return null;
 	}
 	const { baustein, nr } = gewaehlt;
-	const aktiv = struktur.aktiv && struktur.werte !== null;
+	// 196-13: Gesperrt (Konflikt, Vorschlag offen) bleiben die Abschnitte stehen, nur bedienen lassen sie sich nicht.
+	// Gesperrt (`data-gesperrt`) ebenso, bis „Entsperren“.
+	const gesperrt = gesperrtIn(doc, nr);
+	const aus = !struktur.aktiv || gesperrt !== null;
+	const aktiv = quelle !== null && struktur.werte !== null;
 	const folien = format === 'folie';
-	const kit = { art: baustein.art, folien, nr, quelle, struktur };
-	const spalten = aktiv ? struktur.werte?.spalten : null;
+	const kit = { art: baustein.art, aus, folien, nr, quelle, struktur };
+	const spalten = aktiv ? (struktur.werte?.spalten ?? null) : null;
+	// 196-18: „Reihe · Spalten“ nur an der Reihe selbst und an ihrem direkten Kind
+	const reiheHier = spalten !== null && (spalten.nr === nr || pfad.at(-2)?.nr === spalten.nr);
 	const anzahl = eintraegeIn(doc, spalten?.nr);
+	// 196-05: An Zeile und Zelle steht der Aufbau der Tabelle unten als ihr Eltern-Abschnitt.
+	const inTabelle = baustein.art === 'tabellenzeile' || baustein.art === 'tabellenzelle';
+	// 196-20: Am Baustein „Punkte“ die Punkte seiner Aufgabe
+	const aufgabe =
+		baustein.art === 'punkte'
+			? pfad.findLast((t) => t.baustein.art === 'aufgabe' || t.baustein.art === 'sternchenaufgabe')
+			: undefined;
+	// 196-21: Keine Lesehilfen an „Name:“ und „Datum:“; an der Zelle nach der Lösung
+	const sprachSpaeter = baustein.art === 'tabellenzelle';
+	const sprache = !pfad.some((t) => t.baustein.art === 'namenszeile') && (
+		<Sprachwerkzeug
+			pfad={pfad}
+			aktiv={frei}
+			geladen={geladen}
+			quelle={quelle}
+			bearbeitet={text.bearbeitet}
+			beende={text.beende}
+			struktur={struktur}
+		/>
+	);
 	const hinweise = (
 		<div className="flex flex-col gap-2 px-3 pb-2 empty:hidden" data-abschnitt="hinweise">
 			{FREIES_ELEMENT.has(baustein.art) && <FreiesElementHinweis />}
 			<AusgeblendetHinweis doc={doc} nr={nr} quelle={quelle} struktur={struktur} />
+			<GesperrtHinweis gesperrt={gesperrt} struktur={struktur} />
 			<UnsichtbarHinweis doc={doc} loesung={loesung} nr={nr} quelle={quelle} schalte={schalteAnsicht} />
 			<Pruefhinweise stand={pruefung} nr={nr} />
 			<AbbildungHinweise abb={abb} />
@@ -361,62 +447,90 @@ export const Einstellungen = ({
 		return (
 			<div>
 				{hinweise}
-				<Gestaltung bild={bild} doc={doc} pfad={pfad} quelle={quelle} struktur={struktur} />
+				<fieldset disabled={gesperrt !== null} className="contents">
+					<Gestaltung bild={bild} doc={doc} pfad={pfad} quelle={quelle} struktur={struktur} />
+				</fieldset>
 			</div>
 		);
 	}
 	return (
 		<div {...(abb.aktiv ? { 'data-abbildungswerkzeug': '' } : {})}>
-			{hinweise}
-			<Sprachwerkzeug
-				pfad={pfad}
-				aktiv={frei}
-				geladen={geladen}
-				quelle={quelle}
-				bearbeitet={text.bearbeitet}
-				beende={text.beende}
-				struktur={struktur}
-			/>
-			<Abschnitt name="inhalt" titel={ABSCHNITT_TITEL.inhalt}>
-				<Bildwerkzeug bild={bild} />
-				<AbbildungFelder abb={abb} abschnitt="inhalt" />
-				{aktiv && (
-					<>
-						<TabellenWerkzeug folien={folien} nr={nr} pfad={pfad} quelle={quelle} struktur={struktur} />
-						<KitWerkzeug {...kit} abschnitt="inhalt" />
-					</>
-				)}
-			</Abschnitt>
+		{hinweise}
+		<fieldset disabled={gesperrt !== null} className="contents" data-gesperrt-felder={gesperrt !== null || undefined}>
+		{!sprachSpaeter && sprache}
+		<Abschnitt name="inhalt" titel={ABSCHNITT_TITEL.inhalt}>
+			<Bildwerkzeug bild={bild} />
+			<AbbildungFelder abb={abb} abschnitt="inhalt" />
+			{aktiv && quelle && baustein.art === 'seite' && folien && (
+				<Feld titel="Notiz">
+					<FolienNotiz aus={aus} nr={nr} quelle={quelle} struktur={struktur} />
+				</Feld>
+			)}
+			{aktiv && (
+				<>
+					{!inTabelle && (
+						<TabellenWerkzeug aus={aus} folien={folien} nr={nr} pfad={pfad} quelle={quelle} struktur={struktur} />
+					)}
+					<KitWerkzeug {...kit} abschnitt="inhalt" />
+				</>
+			)}
+		</Abschnitt>
 			<Abschnitt name="darstellung" titel={ABSCHNITT_TITEL.darstellung}>
 				<BildDarstellung bild={bild} />
 				<AbbildungFelder abb={abb} abschnitt="darstellung" />
 				{aktiv && <KitWerkzeug {...kit} abschnitt="darstellung" />}
-				{spalten?.nr === nr && <Spaltenwahl spalten={spalten} struktur={struktur} />}
+				{spalten?.nr === nr && <Spaltenwahl aus={aus} spalten={spalten} struktur={struktur} />}
 			</Abschnitt>
 			<Abschnitt name="loesung" titel={ABSCHNITT_TITEL.loesung}>
-				<Loesungswerkzeug l={loes} />
+				<Loesungswerkzeug
+					l={loes}
+					ohneFeld={aktiv && Boolean(KIT_FELDER[baustein.art]?.some((f) => f.name === 'loesung'))}
+				/>
 				<AbbildungFelder abb={abb} abschnitt="loesung" />
 				{aktiv && <KitWerkzeug {...kit} abschnitt="loesung" />}
 			</Abschnitt>
+			{sprachSpaeter && sprache}
 			<Abschnitt name="bewertung" titel={ABSCHNITT_TITEL.bewertung}>
 				<AbbildungFelder abb={abb} abschnitt="bewertung" />
 				{aktiv && <KitWerkzeug {...kit} abschnitt="bewertung" />}
 			</Abschnitt>
 			<Abschnitt name="sichtbarkeit" titel="Sichtbarkeit">
-				{aktiv && <SichtbarkeitWenn baustein={baustein} nr={nr} quelle={quelle} struktur={struktur} />}
+				{aktiv && (
+					<SichtbarkeitWenn
+						aus={aus}
+						baustein={baustein}
+						folien={folien}
+						nr={nr}
+						pfad={pfad}
+						quelle={quelle}
+						struktur={struktur}
+					/>
+				)}
 			</Abschnitt>
+			{aktiv && inTabelle && (
+				<Abschnitt name="eltern-tabelle" titel="Tabelle">
+					<TabellenWerkzeug aus={aus} folien={folien} nr={nr} pfad={pfad} quelle={quelle} struktur={struktur} />
+				</Abschnitt>
+			)}
+			{aktiv && aufgabe && (
+				<Abschnitt name="eltern-aufgabe" titel="Aufgabe">
+					<KitWerkzeug {...kit} art="aufgabe" nr={aufgabe.nr} nur={['punkte']} abschnitt="bewertung" />
+				</Abschnitt>
+			)}
 			<Abschnitt
 				name="eltern"
 				titel={spalten?.name ?? ''}
-				notiz={anzahl > 0 ? `gilt für alle ${anzahl} Einträge` : undefined}
+				// 196-32: Bei einem Eintrag gibt es kein „alle“
+				notiz={anzahl > 1 ? `gilt für alle ${anzahl} Einträge` : undefined}
 			>
-				{spalten && spalten.nr !== nr && <Spaltenwahl spalten={spalten} struktur={struktur} />}
+				{spalten && reiheHier && spalten.nr !== nr && <Spaltenwahl aus={aus} spalten={spalten} struktur={struktur} />}
 			</Abschnitt>
 			{hatWeitere(abb) && (
 				<Abschnitt name="weitere" titel={ABSCHNITT_TITEL.weitere} einklappbar zu>
 					<AbbildungFelder abb={abb} abschnitt="weitere" />
 				</Abschnitt>
 			)}
+		</fieldset>
 		</div>
 	);
 };

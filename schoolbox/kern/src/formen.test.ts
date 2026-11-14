@@ -4,7 +4,7 @@ import path from 'node:path';
 import { describe, it } from 'node:test';
 
 import { blattMit } from '../../web/e2e/gestaltung-daten';
-import { FORMEN, formHtml, formVon, zeichneForm } from './formen';
+import { FORMEN, formHtml, formName, formVon, zeichneForm } from './formen';
 import { ergaenzeFormen, legeForm, leseForm, setzeFormParameter, setzeKontur, wechsleForm } from './formen-aendern';
 import { umrandung, zuegeAus } from './formen-geometrie';
 import { pruefeFreiesHtml } from './frei';
@@ -155,5 +155,17 @@ describe('ergaenzeFormen bei Formen, die schon selbst zeichnen', () => {
 			],
 		});
 		assert.equal(ergaenzeFormen(roh), roh);
+	});
+});
+
+describe('196-15: Name einer Form', () => {
+	it('Ebenen und Inspektor nehmen denselben Namen, auch für Formen, die das Register nicht kennt', () => {
+		const bekannt = Object.values(FORMEN)[0];
+		assert.ok(bekannt);
+		assert.equal(formName(bekannt.art), bekannt.name);
+		assert.equal(formName('kreis') ?? '', formVon('kreis')?.name ?? 'Kreis');
+		assert.equal(formName('roter_ballon'), formVon('roter_ballon')?.name ?? 'Roter ballon');
+		assert.equal(formName(null), null);
+		assert.equal(formName('  '), null);
 	});
 });

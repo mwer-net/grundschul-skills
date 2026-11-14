@@ -81,9 +81,9 @@ export const BlattKopfband = (t: BlattTeile) => {
 		<Abschnitt titel="Kopfband" name="kopfband">
 			<div className="contents" data-blatt-kopfband={jetzt?.form ?? 'keine'}>
 				<GiltFuer gilt={gilt} setze={setGilt} t={t} />
-				<Zeile titel="Art" einstellung="kopfband" darunter>
+				<div className="py-0.5" data-einstellung="kopfband">
 					<Segment beschriftung="Kopfband" werte={ARTEN} wert={art} waehle={waehleArt} voll />
-				</Zeile>
+				</div>
 				{jetzt && (
 					<>
 						<Zeile titel="Form" darunter>
@@ -123,7 +123,7 @@ export const BlattKopfband = (t: BlattTeile) => {
 						<Regler
 							name="hoehe"
 							titel="Höhe"
-							einheit=" px"
+							cm
 							min={MIN_HOEHE}
 							max={maxHoehe}
 							wert={Math.round(hoeheJetzt ?? KOPFBAND_HOEHE)}

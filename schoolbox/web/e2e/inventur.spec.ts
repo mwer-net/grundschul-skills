@@ -150,6 +150,8 @@ test.describe('Inventur Editor', () => {
 		await druecke(leiste(page).getByRole('button', { name: 'Mehr zu diesem Baustein' }));
 		await expect(page.getByRole('menuitem', { name: /Neue Zahlen/ })).toBeVisible();
 		await page.keyboard.press('Escape');
+		// 196-18: Die Spalten der Reihe stehen am Eintrag, nicht an der Uhr darin.
+		await druecke(page.locator('[data-breadcrumb]').getByRole('button', { name: /^Eintrag/ }));
 		await expect(page.locator('[data-abschnitt="eltern"]')).toBeVisible();
 	});
 

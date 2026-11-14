@@ -6,6 +6,7 @@ import { useEffect, useMemo, useState } from 'react';
 
 import { Abschnitt } from '../bausteine/Abschnitt';
 import { useHinweis } from '../bausteine/hinweis';
+import { FELD_KLASSEN } from '../bausteine/klassen';
 import { Knopf } from '../bausteine/Knopf';
 import { Schalter } from '../bausteine/Schalter';
 import { Segment } from '../bausteine/Segment';
@@ -45,7 +46,8 @@ const nummernWertVon = (schritt: number | null): NummernWert => {
 	return schritt === 1 ? '1' : '5';
 };
 
-const FELD = 'h-knopf rounded-lg border border-linie bg-flaeche px-2';
+// 196-31: dieselben Felder wie überall im Inspektor
+const FELD = FELD_KLASSEN;
 const eng = (t: string) => t.replace(/\s+/g, ' ').replace(/^ /, '');
 
 interface Markierung extends Bereich {
@@ -274,7 +276,7 @@ export const Sprachwerkzeug = ({
 					<label className="block text-leise">
 						Lücken
 						<select
-							className={`${FELD} mt-0.5 block w-full text-tinte`}
+							className={`${FELD} mt-0.5 block`}
 							value={regel}
 							data-sprache-regel
 							onChange={(e) => setRegel(e.target.value as LueckenRegel)}
@@ -291,7 +293,7 @@ export const Sprachwerkzeug = ({
 							Jedes
 							<input
 								{...EIGENE_GESCHICHTE}
-								className={`${FELD} w-14 text-tinte`}
+								className={`${FELD} w-14!`}
 								type="number"
 								min={2}
 								max={20}

@@ -96,7 +96,7 @@ export const BlattRahmen = (t: BlattTeile) => {
 		<Abschnitt titel="Rahmen" name="seitenrahmen">
 			<div className="contents" data-blatt-rahmen={art}>
 				<GiltFuer gilt={gilt} setze={setGilt} t={t} />
-				<Zeile titel="Art" einstellung="seitenrahmen" darunter>
+				<div className="py-0.5" data-einstellung="seitenrahmen">
 					<div
 						className="grid grid-cols-5 gap-1"
 						role="group"
@@ -118,7 +118,7 @@ export const BlattRahmen = (t: BlattTeile) => {
 							</Tooltip>
 						))}
 					</div>
-				</Zeile>
+				</div>
 				{jetzt && (
 					<>
 						<Zeile titel="Farbe" darunter>
@@ -134,7 +134,6 @@ export const BlattRahmen = (t: BlattTeile) => {
 						<Zeile titel="Stärke" name="Stärke">
 							<Stepper
 								name="Stärke"
-								einheit="px"
 								wert={jetzt.staerke ?? RAHMEN_STAERKE}
 								min={1}
 								max={12}
@@ -143,8 +142,8 @@ export const BlattRahmen = (t: BlattTeile) => {
 						</Zeile>
 						<Regler
 							name="abstand"
-							titel="Abstand"
-							einheit=" px"
+							titel="Abstand zum Rand"
+							cm
 							min={0}
 							max={60}
 							wert={jetzt.abstand ?? vorgabeAbstand}
@@ -154,7 +153,7 @@ export const BlattRahmen = (t: BlattTeile) => {
 						<Regler
 							name="ecken"
 							titel="Ecken"
-							einheit=" px"
+							cm
 							min={0}
 							max={48}
 							wert={jetzt.ecke ?? 0}

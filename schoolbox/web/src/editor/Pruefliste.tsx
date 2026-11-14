@@ -6,6 +6,11 @@ import type { Pruefpunkt, Pruefstand } from './pruefung';
 
 /** Diese zeigt das Bild-Panel selbst, live beim Ziehen an den Ecken (017). */
 const IM_BILDPANEL = new Set(['bild-unscharf']);
+/**
+ * Was das Panel am gewählten Element schon selbst sagt: die Meldung der Abbildung (197-08), „ausgeblendet“ mit
+ * dem Knopf „Einblenden“ (196-14); der Hinweis auf echte Maße gehört an „PDF“ (197-15). In der Prüfliste bleiben sie.
+ */
+const IM_PANEL = new Set(['abbildung', 'ausgeblendet', 'masstab']);
 
 const FARBE: Record<Pruefpunkt['stufe'], string> = {
 	FEHLER: 'border-fehler',
@@ -170,7 +175,7 @@ export const Pruefstatus = ({ knopf, stand, zeige }: Eigenschaften) => {
 /** Im Panel des gewählten Bausteins: was die Prüfung genau zu ihm sagt. */
 export const Pruefhinweise = ({ nr, stand }: { stand: Pruefstand | null; nr: number | null }) => {
 	const eigene = (stand?.punkte ?? []).filter(
-		(p) => nr !== null && p.bausteine.includes(nr) && !IM_BILDPANEL.has(p.code ?? ''),
+		(p) => nr !== null && p.bausteine.includes(nr) && !IM_BILDPANEL.has(p.code ?? '') && !IM_PANEL.has(p.code ?? ''),
 	);
 	if (eigene.length === 0) {
 		return null;

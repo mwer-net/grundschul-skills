@@ -745,15 +745,8 @@ const Bearbeitung = ({ dokument, mappe: mappenDaten }: { mappe: Mappe; dokument:
 					panels.setRechtsOffen(true);
 					ablage.setSammlungName(pfad.at(-1)?.name ?? '');
 				},
-				neueZahlen: () => {
-					const geklappt = abbildung.neueZahlen();
-					if (!geklappt) {
-						zeige({
-							text: 'Hier gibt es gerade keine neuen Zahlen. Bei Sprüngen und Fehleraufgaben hängen die Zahlen zusammen.',
-						});
-					}
-					return geklappt;
-				},
+				// 197-20: Den Grund, wenn es keine gibt, meldet `neueZahlen` selbst.
+				neueZahlen: () => abbildung.neueZahlen(),
 				claudeApp: () => handlungen.current.zurApp(auswahl),
 				oeffneSchnellauswahl: (nr = auswahl) => setSchnellWunsch((w) => ({ n: w.n + 1, nr })),
 				bildErsetzen: () => {
@@ -1011,6 +1004,7 @@ const Bearbeitung = ({ dokument, mappe: mappenDaten }: { mappe: Mappe; dokument:
 				umriss={setUmriss}
 				blatt={ohneAuswahl}
 				zumBlatt={zumBlatt}
+				folien={format === 'folie'}
 			>
 				<Einstellungen
 					pfad={pfad}
