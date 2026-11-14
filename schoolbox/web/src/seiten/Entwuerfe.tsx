@@ -13,18 +13,22 @@ import { useTitel } from '../lib/titel';
 import type { Zugang } from '../lib/zugang';
 import { dokumentSeite, entwuerfeSeite, mappenSeite } from '../lib/zugang';
 import { useOrdnerDesDokuments } from '../ordner/kontext';
+import { MaterialFehlt, NICHT_GEFUNDEN } from './NichtGefunden';
 
 interface Eigenschaften {
 	zugang: Zugang;
 	dok: string;
 }
 
-export const NichtDa = () => (
-	<Zustand symbol="suche" titel="Diese Entwürfe gibt es nicht mehr">
-		<p className="text-leise">Vielleicht wurde das Material gelöscht.</p>
-		<KnopfLink to="/">Zu meinem Material</KnopfLink>
-	</Zustand>
-);
+export const NichtDa = () => {
+	useTitel(NICHT_GEFUNDEN);
+	return (
+		<Zustand symbol="suche" titel="Diese Entwürfe gibt es nicht mehr">
+			<p className="text-leise">Vielleicht wurde das Material gelöscht.</p>
+			<KnopfLink to="/">Zu meinem Material</KnopfLink>
+		</Zustand>
+	);
+};
 
 /**
  * Die Entwürfe eines Dokuments zum Vergleichen: am Mac und auf dem iPad quer nebeneinander und ohne zu scrollen, auf
@@ -36,8 +40,11 @@ export const Entwuerfe = ({ dok, zugang }: Eigenschaften) => {
 	const zurueckOrt = useOrdnerDesDokuments(zugang.mappe, dok);
 	const liste = useRef<HTMLUListElement>(null);
 	useRestHoehe(liste, Boolean(dokument?.meta.entwuerfe.length));
-	useTitel(dokument ? `Entwürfe: ${dokument.meta.titel}` : undefined);
+	useTitel(dokument ? `Entwürfe: ${dokument.meta.titel}` : daten || fehler ? NICHT_GEFUNDEN : undefined);
 
+	if (!dokument && (daten || fehler)) {
+		return <MaterialFehlt fehler={fehler} />;
+	}
 	if (!daten || !dokument || dokument.meta.entwuerfe.length === 0) {
 		return daten || fehler ? <NichtDa /> : null;
 	}

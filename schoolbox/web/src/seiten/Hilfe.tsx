@@ -2,6 +2,7 @@ import type { ReactNode } from 'react';
 import { useEffect } from 'react';
 import { useLocation } from 'react-router-dom';
 
+import { Karte } from '../bausteine/Karte';
 import { KnopfLink } from '../bausteine/Knopf';
 import { Kuerzel } from '../bausteine/Kuerzel';
 import { Symbol } from '../bausteine/Symbol';
@@ -47,9 +48,15 @@ const Foto = ({ alt, datei, geraet }: Bild) => (
 	</figure>
 );
 
+/** Karten im Seitenfluss tragen Rand statt Schatten; den Schatten haben nur Menüs und Dialoge (187-20). */
 const Beispiel = ({ children }: { children: ReactNode }) => (
-	<li className="rounded-2xl bg-flaeche px-5 py-3 shadow-2">{children}</li>
+	<li>
+		<Karte className="px-5 py-3">{children}</Karte>
+	</li>
 );
+
+/** Tasten in der Hilfe so groß wie der Text daneben (187-19). */
+const TASTE_IM_TEXT = 'text-[length:inherit]';
 
 /** ⌥1 … aus der Leiste, wie sie im Register steht; im Fließtext so groß wie der Text. */
 const SchubladenTaste = ({ id }: { id: Parameters<typeof kopf>[0] }) => (
@@ -194,7 +201,7 @@ const ABSCHNITTE: Abschnitt[] = [
 		inhalt: (
 			<ul>
 				<li>
-					Im Dokument speichert „PDF“ das Blatt, auf Wunsch mit Lösung. „Drucken“ unter ⋯ öffnet den
+					Im geöffneten Material speichert „PDF“ das Blatt, auf Wunsch mit Lösung. „Drucken“ unter ⋯ öffnet den
 					Druckdialog.
 				</li>
 				<li>„Lösung“ oben zeigt das Lösungsblatt.</li>
@@ -264,7 +271,7 @@ const ABSCHNITTE: Abschnitt[] = [
 					<Punkt titel="Ebenen">
 						die Schublade links (
 						<SchubladenTaste id="ebenen" />
-						), früher „Gliederung“, zeigt alle Seiten als Baum: darin die Aufgaben und alles, was du im
+						) zeigt alle Seiten als Baum: darin die Aufgaben und alles, was du im
 						Blatt anklicken kannst, etwa eine Uhr in einem Eintrag. Was du im Blatt wählst, ist dort
 						markiert, Klick auf eine Zeile springt zur Stelle und zeigt rechts ihre Einstellungen. Am Griff
 						ziehst du, was sich umstellen lässt: Aufgaben innerhalb der Seite oder auf eine andere, Einträge
@@ -331,8 +338,8 @@ const ABSCHNITTE: Abschnitt[] = [
 					<Punkt titel="⋯">
 						in der Leiste am Baustein und auf jeder Kachel zeigt dasselbe, auch am iPad.
 					</Punkt>
-					<Punkt titel="Suchen und Befehle">
-						⌘K öffnet ein Feld, in dem du jeden Befehl, jeden Ordner und jedes Dokument findest. Du musst
+					<Punkt titel="Befehle">
+						⌘K öffnet ein Feld, in dem du jeden Befehl, jeden Ordner und jedes Material findest. Du musst
 						nur ungefähr wissen, wie es heißt.
 					</Punkt>
 				</ul>
@@ -346,16 +353,16 @@ const ABSCHNITTE: Abschnitt[] = [
 		inhalt: (
 			<>
 				<h3>Im Editor</h3>
-				<div data-hilfe-tasten="editor">
-					<EditorTasten ebene="h4" />
+				<div className="max-w-[48rem]" data-hilfe-tasten="editor">
+					<EditorTasten ebene="h4" tastenKlasse={TASTE_IM_TEXT} />
 				</div>
 				<h3>In der Ablage</h3>
-				<div data-hilfe-tasten="ablage">
-					<AblageTasten ebene="h4" />
+				<div className="max-w-[48rem]" data-hilfe-tasten="ablage">
+					<AblageTasten ebene="h4" tastenKlasse={TASTE_IM_TEXT} />
 				</div>
 				<h3>Beim Schreiben, Präsentieren und Anlegen</h3>
-				<div data-hilfe-tasten="weitere">
-					<Tastenliste abschnitte={WEITERE_TASTEN} ebene="h4" />
+				<div className="max-w-[48rem]" data-hilfe-tasten="weitere">
+					<Tastenliste abschnitte={WEITERE_TASTEN} ebene="h4" tastenKlasse={TASTE_IM_TEXT} />
 				</div>
 			</>
 		),
@@ -368,8 +375,8 @@ const ABSCHNITTE: Abschnitt[] = [
 			<>
 				<h3>Neues Material mit Claude</h3>
 				<p>
-					„Material anlegen“ in einem Ordner, dann „Mit Claude“, siehe oben. Schneller geht es über das
-					Befehlsfeld (⌘K): Thema tippen und „Material anlegen: …“ wählen. Der Assistent beginnt dann bei der
+					„Material anlegen“ in einem Ordner, dann „Mit Claude“, siehe oben. Schneller geht es über
+					„Befehle“ (⌘K): Thema tippen und „Material anlegen: …“ wählen. Der Assistent beginnt dann bei der
 					Art, das Thema steht schon da.
 				</p>
 				<p>
@@ -419,7 +426,7 @@ const ABSCHNITTE: Abschnitt[] = [
 				<p>
 					„—“ oder Esc klappen die Blase ein, das Gespräch läuft weiter. × beendet es, ohne Nachfrage: Der
 					Verlauf ist weg, und Claude fängt beim nächsten Mal von vorn an. Das gilt auch für „Neu beginnen“
-					unter ⋯, für ein anderes Dokument, für Neuladen und wenn du den Teil löschst. Ein offener Vorschlag
+					unter ⋯, für ein anderes Material, für Neuladen und wenn du den Teil löschst. Ein offener Vorschlag
 					bleibt dabei stehen. Ein langes Gespräch verbraucht mit jeder Nachricht mehr; dann schlägt die Blase
 					„Neu beginnen“ vor.
 				</p>
@@ -499,7 +506,7 @@ const ABSCHNITTE: Abschnitt[] = [
 		titel: 'Teilen mit Kolleginnen',
 		inhalt: (
 			<ul>
-				<li>Ordner oder Dokument auswählen, „Teilen“, dann „Link erstellen“ und „Link kopieren“.</li>
+				<li>Ordner oder Material auswählen, „Teilen“, dann „Link erstellen“ und „Link kopieren“.</li>
 				<li>
 					Wer den Link hat, kann ansehen, präsentieren und das PDF herunterladen. Ändern kann sie nichts, und
 					deine anderen Ordner sieht sie nicht. Legst du etwas in den geteilten Ordner, sieht sie es auch;
@@ -520,7 +527,7 @@ const ABSCHNITTE: Abschnitt[] = [
 					Fehlt dir etwas in der Schoolbox, oder stört dich etwas immer wieder: „Notier das bitte als Wunsch.“
 					Claude schreibt es für die Weiterentwicklung auf.
 				</li>
-				<li>Aus Versehen gelöscht? Im Papierkorb oben bleibt alles 30 Tage.</li>
+				<li>Aus Versehen gelöscht? Im Papierkorb links unten bleibt alles 30 Tage.</li>
 				<li>Keine Namen von Kindern in Materialien oder an Claude; Claude schlägt dann Fantasienamen vor.</li>
 			</ul>
 		),
@@ -534,7 +541,7 @@ const Kurzanleitung = () => {
 		return null;
 	}
 	return (
-		<div className="mt-6 flex flex-wrap items-center gap-4 rounded-2xl bg-flaeche px-6 py-4 shadow-2">
+		<Karte className="mt-6 flex flex-wrap items-center gap-4 px-6 py-4">
 			<Symbol name="drucker" className="size-8 flex-none text-brand-500" />
 			<p className="min-w-0 flex-1">
 				<strong>Kurzanleitung zum Ausdrucken</strong>
@@ -542,7 +549,7 @@ const Kurzanleitung = () => {
 				Alles Wichtige auf einer Seite, für neben den Laptop.
 			</p>
 			<KnopfLink to={dokumentSeite(KURZANLEITUNG, KURZANLEITUNG_DOK)}>Kurzanleitung öffnen</KnopfLink>
-		</div>
+		</Karte>
 	);
 };
 
@@ -572,7 +579,7 @@ export const Hilfe = () => {
 				))}
 			</nav>
 			{ABSCHNITTE.map(({ bilder, id, inhalt, titel }) => (
-				<section key={id} id={id} className="mt-12 scroll-mt-28" data-abschnitt={id}>
+				<section key={id} id={id} className="mt-12 scroll-mt-14" data-abschnitt={id}>
 					<h2 className="text-2xl">{titel}</h2>
 					<div className="hilfe-text mt-3 text-lg">{inhalt}</div>
 					{bilder.length > 0 && (

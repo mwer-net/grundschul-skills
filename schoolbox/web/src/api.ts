@@ -15,8 +15,9 @@ const NICHT_ERREICHBAR = 'Die Schoolbox ist gerade nicht erreichbar. Bitte versu
 export const sichererPfad = (weiter: string | null) =>
 	weiter && weiter.startsWith('/') && !weiter.startsWith('//') && !weiter.startsWith('/\\') ? weiter : '/';
 
+/** Mit Sprungmarke: Nach der Anmeldung steht man wieder an derselben Stelle (187-03). */
 export const zurAnmeldung = () => {
-	const weiter = `${window.location.pathname}${window.location.search}`;
+	const weiter = `${window.location.pathname}${window.location.search}${window.location.hash}`;
 	window.location.replace(`${ANMELDE_SEITE}?weiter=${encodeURIComponent(weiter)}`);
 };
 

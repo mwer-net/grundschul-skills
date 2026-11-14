@@ -5,12 +5,11 @@ import { klassen } from '../bausteine/klassen';
 import { Knopf, KnopfLink } from '../bausteine/Knopf';
 import type { SymbolName } from '../bausteine/Symbol';
 import { Symbol } from '../bausteine/Symbol';
-import { Zustand } from '../bausteine/Zustand';
 import { useInhalt } from '../lib/inhalt';
 import { anzahl } from '../lib/text';
 import { useTitel } from '../lib/titel';
 import type { Zugang } from '../lib/zugang';
-import { dokumentSeite, praesentationAnsicht } from '../lib/zugang';
+import { dokumentSeite, istGeteilt, praesentationAnsicht } from '../lib/zugang';
 import type { FolienStand } from '../praesentation/laufzeit';
 import {
 	beendeVollbild,
@@ -22,6 +21,7 @@ import {
 	vollbildMoeglich,
 	wachHaltenMoeglich,
 } from '../praesentation/laufzeit';
+import { MaterialFehlt, NICHT_GEFUNDEN } from './NichtGefunden';
 
 /** So lange bleibt die Steuerleiste nach der letzten Bewegung stehen. */
 const LEISTE_MS = 2000;
@@ -127,7 +127,7 @@ export const Praesentation = ({ dok, zugang }: Eigenschaften) => {
 	const { daten } = useInhalt(zugang);
 	const dokument = daten?.dokumente.find((d) => d.id === dok);
 	const titel = dokument?.meta.titel ?? null;
-	useTitel(titel ? `Präsentation: ${titel}` : 'Präsentation');
+	useTitel(titel ? `Präsentation: ${titel}` : daten ? NICHT_GEFUNDEN : 'Präsentation');
 	const navigate = useNavigate();
 	const buehne = useRef<HTMLDivElement>(null);
 	const iframe = useRef<HTMLIFrameElement>(null);
@@ -253,9 +253,7 @@ export const Praesentation = ({ dok, zugang }: Eigenschaften) => {
 	if (daten && !dokument) {
 		return (
 			<main className="flex min-h-dvh items-center justify-center">
-				<Zustand symbol="suche" titel="Dieses Dokument gibt es nicht mehr">
-					<p className="text-leise">Vielleicht wurde es gelöscht.</p>
-				</Zustand>
+				<MaterialFehlt geteilt={istGeteilt(zugang)} />
 			</main>
 		);
 	}

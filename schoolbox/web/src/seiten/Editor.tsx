@@ -11,17 +11,15 @@ import { flushSync } from 'react-dom';
 import type { SetURLSearchParams } from 'react-router-dom';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 
-import type { ApiFehler } from '../api';
 import { lade, meldung } from '../api';
 import { useHinweis } from '../bausteine/hinweis';
 import { klassen } from '../bausteine/klassen';
-import { Knopf, KnopfLink } from '../bausteine/Knopf';
+import { Knopf } from '../bausteine/Knopf';
 import { useZeigeMenue } from '../bausteine/menue-kontext';
 import { ProfilSchalter } from '../bausteine/ProfilSchalter';
 import { Segment } from '../bausteine/Segment';
 import { Symbol } from '../bausteine/Symbol';
 import { SymbolKnopf } from '../bausteine/SymbolKnopf';
-import { Zustand } from '../bausteine/Zustand';
 import { useAbbildung } from '../editor/abbildung';
 import { useAblage } from '../editor/ablage';
 import { Konfliktleiste, Speicheranzeige, Vorschauleiste } from '../editor/Anzeigen';
@@ -86,6 +84,7 @@ import { ansichtAdresse, dokumentSeite, druckSeite, inhaltAdresse, praesentation
 import { PdfKnopf } from '../pdf/PdfKnopf';
 import { dokumentWahl, materialName } from '../pdf/wahl';
 import type { DokumentEintrag, Mappe, MappenEintrag } from '../typen';
+import { MaterialFehlt, NICHT_GEFUNDEN } from './NichtGefunden';
 
 interface Eigenschaften {
 	mappe: string;
@@ -262,15 +261,6 @@ const useZeigePunkt = ({
 /** Ein Lösungsblatt gibt es nach dem Stand im Editor, nicht nach dem beim Öffnen (PDF-Auswahl). */
 const mitStand = (dokument: DokumentEintrag, verlauf: { quelle: string } | null): DokumentEintrag =>
 	verlauf ? { ...dokument, meta: { ...dokument.meta, hatLoesung: hatLoesung(verlauf.quelle) } } : dokument;
-
-const Fehlt = ({ fehler }: { fehler: ApiFehler | null }) => (
-	<Zustand symbol="suche" titel="Dieses Dokument gibt es nicht mehr">
-		<p className="text-leise">
-			{fehler && fehler.status !== 404 ? fehler.message : 'Vielleicht wurde es gelöscht.'}
-		</p>
-		<KnopfLink to="/">Zu meinem Material</KnopfLink>
-	</Zustand>
-);
 
 const ZITAT_ZEICHEN = 500;
 /** Im Editor lässt sich das Format ändern (046): Es gilt, was in der Quelle steht. */
@@ -451,7 +441,7 @@ const Bearbeitung = ({ dokument, mappe: mappenDaten }: { mappe: Mappe; dokument:
 
 	const format = formatVon(b.verlauf, meta.format);
 	const quelle = b.verlauf?.quelle ?? null;
-	useTitel(`${meta.titel} bearbeiten`);
+	useTitel(b.ladeFehler ? NICHT_GEFUNDEN : `${meta.titel} bearbeiten`);
 	const sperre = sperreDesBlatts(vorschau !== null, b.konflikt !== null, entwurf.sperrt);
 	const sichtbareSeite = useRef<() => number | null>(() => null);
 	const claude = useClaude({
@@ -919,7 +909,7 @@ const Bearbeitung = ({ dokument, mappe: mappenDaten }: { mappe: Mappe; dokument:
 	const darstellung = useMemo(() => ({ basis, loesung, profil }), [basis, loesung, profil]);
 
 	if (b.ladeFehler) {
-		return <Fehlt fehler={b.ladeFehler} />;
+		return <MaterialFehlt fehler={b.ladeFehler} />;
 	}
 
 	const ohneAuswahl = (
@@ -1259,7 +1249,7 @@ export const Editor = ({ dok, mappe }: Eigenschaften) => {
 	const { daten, fehler } = useLaden<MappenEintrag>(inhaltAdresse({ mappe, token: null }));
 	const dokument = daten?.dokumente.find((d) => d.id === dok);
 	if (fehler || (daten && !dokument)) {
-		return <Fehlt fehler={fehler} />;
+		return <MaterialFehlt fehler={fehler} />;
 	}
 	return daten && dokument ? <Bearbeitung key={`${mappe}/${dok}`} mappe={daten.mappe} dokument={dokument} /> : null;
 };

@@ -2,7 +2,6 @@ import type { Druckprofil } from '@schoolbox/kern/src/werte';
 import { useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 
-import type { ApiFehler } from '../api';
 import { Blattansicht } from '../bausteine/Blattansicht';
 import { useHinweis } from '../bausteine/hinweis';
 import { Marke } from '../bausteine/Kachel';
@@ -12,7 +11,6 @@ import { Menue } from '../bausteine/Menue';
 import { ProfilSchalter } from '../bausteine/ProfilSchalter';
 import { Segment } from '../bausteine/Segment';
 import { Symbol } from '../bausteine/Symbol';
-import { Zustand } from '../bausteine/Zustand';
 import { hatOffeneEntwuerfe } from '../entwuerfe/offen';
 import { ClaudeHinweis } from '../entwuerfe/Teile';
 import { useEreignisse } from '../ereignisse';
@@ -36,6 +34,7 @@ import { pdfEintrag, usePdf } from '../pdf/usePdf';
 import { dokumentWahl, folienWahl, materialName } from '../pdf/wahl';
 import { TeilenDialog } from '../teilen/TeilenDialog';
 import type { DokumentEintrag, Mappe } from '../typen';
+import { MaterialFehlt, NICHT_GEFUNDEN } from './NichtGefunden';
 
 interface Eigenschaften {
 	zugang: Zugang;
@@ -45,7 +44,7 @@ interface Eigenschaften {
 }
 
 const MEHR_KNOPF = (
-	<Knopf art="zweit" className="size-knopf px-0">
+	<Knopf art="zweit" className="size-knopf">
 		<Symbol name="mehr" />
 	</Knopf>
 );
@@ -157,15 +156,6 @@ const EntwuerfeOffen = ({ adresse, anzahlEntwuerfe }: { adresse: string; anzahlE
 	</div>
 );
 
-const DokumentFehlt = ({ fehler, geteilt }: { fehler: ApiFehler | null; geteilt: boolean }) => (
-	<Zustand symbol="suche" titel="Dieses Dokument gibt es nicht mehr">
-		<p className="text-leise">
-			{fehler && fehler.status !== 404 ? fehler.message : 'Vielleicht wurde es gelöscht.'}
-		</p>
-		{!geteilt && <KnopfLink to="/">Zu meinem Material</KnopfLink>}
-	</Zustand>
-);
-
 /**
  * Ein Dokument ansehen, als PDF herunterladen, drucken und teilen; für die Lehrkraft und genauso hinter Teilen-Links.
  * Ändert Claude das Material, lädt die Ansicht von selbst neu.
@@ -179,7 +169,7 @@ export const Dokumentansicht = ({ dok, zugang, zurueckZurMappe }: Eigenschaften)
 	const zeige = useHinweis();
 	const dokument = daten?.dokumente.find((d) => d.id === dok);
 	const zurueckOrt = useOrdnerDesDokuments(geteilt ? null : zugang.mappe, dok);
-	useTitel(dokument?.meta.titel);
+	useTitel(dokument?.meta.titel ?? (fehler || daten ? NICHT_GEFUNDEN : undefined));
 	const ansicht = useAnsichtsProfil(zugang, dok, dokument?.meta);
 
 	useEreignisse(({ dok: geaendert, mappe, typ, wieder }) => {
@@ -198,7 +188,7 @@ export const Dokumentansicht = ({ dok, zugang, zurueckZurMappe }: Eigenschaften)
 		if (!fehler && !daten) {
 			return null;
 		}
-		return <DokumentFehlt fehler={fehler} geteilt={geteilt} />;
+		return <MaterialFehlt fehler={fehler} geteilt={geteilt} />;
 	}
 
 	const { mappe } = daten;

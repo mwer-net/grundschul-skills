@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
 
-import { meldung } from '../api';
+import { ApiFehler, meldung } from '../api';
 import { Knopf } from '../bausteine/Knopf';
 import { Symbol } from '../bausteine/Symbol';
 import { Zustand } from '../bausteine/Zustand';
@@ -11,13 +11,14 @@ import type { Zugang } from '../lib/zugang';
 import { bereiteDokumentVor, istGeteilt } from '../lib/zugang';
 import { PdfWarnung } from '../pdf/PdfWarnung';
 import type { PdfAntwort } from '../typen';
+import { MaterialFehlt, NICHT_GEFUNDEN } from './NichtGefunden';
 
 interface MitPdf {
 	art: 'warnung' | 'abgebrochen';
 	antwort: PdfAntwort;
 }
 
-type Stand = { art: 'laeuft' } | MitPdf | { art: 'fehler'; text: string };
+type Stand = { art: 'laeuft' } | MitPdf | { art: 'fehler'; text: string } | { art: 'fehlt' };
 
 /** Zeigt das PDF im Browser; Safari bringt dafür einen eigenen Betrachter mit Drucken bzw. Teilen-Menü mit. */
 const oeffne = ({ adresse }: PdfAntwort) =>
@@ -35,7 +36,7 @@ export const Drucken = ({ dok, zugang }: { zugang: Zugang; dok: string }) => {
 	const [stand, setStand] = useState<Stand>({ art: 'laeuft' });
 	const { mappe, token } = zugang;
 	const { daten } = useInhalt(zugang);
-	useTitel('Drucken');
+	useTitel(stand.art === 'fehlt' ? NICHT_GEFUNDEN : 'Drucken');
 
 	useEffect(() => {
 		let aktiv = true;
@@ -53,7 +54,12 @@ export const Drucken = ({ dok, zugang }: { zugang: Zugang; dok: string }) => {
 			},
 			(grund: unknown) => {
 				if (aktiv) {
-					setStand({ art: 'fehler', text: meldung(grund) });
+					// Ein Material, das es nicht gibt, druckt auch „Noch einmal versuchen“ nicht (187-04).
+					setStand(
+						grund instanceof ApiFehler && grund.status === 404
+							? { art: 'fehlt' }
+							: { art: 'fehler', text: meldung(grund) },
+					);
 				}
 			},
 		);
@@ -79,6 +85,7 @@ export const Drucken = ({ dok, zugang }: { zugang: Zugang; dok: string }) => {
 					<Knopf onClick={() => window.location.reload()}>Noch einmal versuchen</Knopf>
 				</Zustand>
 			)}
+			{stand.art === 'fehlt' && <MaterialFehlt geteilt={istGeteilt(zugang)} />}
 			{stand.art === 'abgebrochen' && (
 				<Zustand symbol="drucker" titel="Nicht gedruckt">
 					<p className="text-leise">Du kannst diesen Tab schließen.</p>
