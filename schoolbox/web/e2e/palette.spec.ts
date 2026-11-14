@@ -141,7 +141,7 @@ test.describe('Befehlspalette (073)', () => {
 	test('außerhalb des Editors öffnet sie einen Ordner', async ({ page }) => {
 		await legeMappeAn('Kartoffelernte', 'sachunterricht', 3, []);
 		await page.goto('/');
-		await page.locator('[data-palette-knopf]').click();
+		await page.keyboard.press('ControlOrMeta+k');
 		await feld(page).fill('kartoffeler');
 		await expect(palette(page).getByRole('option').first()).toContainText('Kartoffelernte');
 		await page.keyboard.press('Enter');
@@ -153,7 +153,7 @@ test.describe('Befehlspalette (073)', () => {
 		page,
 	}) => {
 		await page.goto('/');
-		await page.locator('[data-palette-knopf]').click();
+		await page.keyboard.press('ControlOrMeta+k');
 		await feld(page).fill('Uhrzeit für Klasse 2');
 		const anlegen = palette(page).getByRole('option', { name: 'Material anlegen: „Uhrzeit für Klasse 2“' });
 		await expect(anlegen).toBeVisible();

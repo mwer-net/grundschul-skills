@@ -196,11 +196,13 @@ test.describe('Inventur außerhalb des Editors', () => {
 		await expect(werkzeug.getByRole('button', { name: 'Filter' })).toBeVisible();
 		await expect(werkzeug.getByRole('button', { name: 'Neuer Ordner' })).toBeVisible();
 		await expect(werkzeug.getByRole('button', { name: 'Material anlegen' })).toBeVisible();
-		await expect(page.locator('[data-kopf-rechts]').getByRole('button', { name: 'Befehle' })).toBeVisible();
+		// 189-31: Die Palette (⌘K) hat im Kopf der Ablage keinen Knopf mehr, das Suchfeld daneben genügt.
+		await expect(page.locator('[data-kopf-rechts]').getByRole('button', { name: 'Befehle' })).toHaveCount(0);
 		await expect(page.getByRole('link', { name: 'Hilfe' })).toBeVisible();
 		await expect(page.locator('[data-ablage-ziel="papierkorb"]')).toBeVisible();
-		await druecke(page.locator('[data-kopf-rechts]').getByRole('button', { name: 'Konto' }));
-		await expect(page.getByRole('menuitem', { name: 'Abmelden' })).toBeVisible();
+		// 189-32: Abmelden ist ein Knopf, kein Menü mit einem Eintrag.
+		await expect(page.locator('[data-kopf-rechts]').getByRole('button', { name: 'Abmelden' })).toBeVisible();
+		await expect(page.locator('[data-kopf-rechts]').getByRole('button', { name: 'Konto' })).toHaveCount(0);
 	});
 
 	test('Ordner: alle Wege ohne Ziehen und ohne Taste im Menü', async ({ page }) => {

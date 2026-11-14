@@ -1,8 +1,8 @@
-import { useEffect, useState } from 'react';
-import { Link, Outlet, useLocation, useMatch, useNavigate, useSearchParams } from 'react-router-dom';
+import type { KeyboardEvent as ReactKeyboardEvent } from 'react';
+import { useEffect, useRef, useState } from 'react';
+import { Link, Outlet, useLocation, useMatch, useNavigate, useNavigationType, useSearchParams } from 'react-router-dom';
 
 import { meldung, sende } from '../api';
-import { kuerzelVon } from '../editor/befehle';
 import { useKiZustand } from '../editor/ki';
 import { TASTEN_SPERRE } from '../editor/tasten';
 import { EinheitPille } from '../ordner/EinheitBand';
@@ -12,23 +12,98 @@ import { MaterialDialog } from '../seiten/Anlegen';
 import { Seitenpalette } from '../seiten/Seitenpalette';
 import { useHinweis } from './hinweis';
 import { klassen } from './klassen';
-import { Knopf, KnopfLink } from './Knopf';
-import { useKopfHoehe } from './kopf';
-import { Menue } from './Menue';
+import { KnopfLink } from './Knopf';
+import { ERSTES_WAEHLEN, useKopfHoehe } from './kopf';
 import { Symbol } from './Symbol';
-import { Tooltip } from './Tooltip';
+import { SymbolKnopf } from './SymbolKnopf';
 
-/** Kopfzeile aller Seiten nach der Anmeldung: Name, Suche, Hilfe, Papierkorb, Abmelden. */
-const KONTO_KNOPF = (
-	<Knopf art="leise" className="size-knopf px-0">
-		<Symbol name="mehr" />
-	</Knopf>
-);
+/** Mit einem dieser Filter bleibt die Trefferliste stehen, auch wenn das Suchfeld leer wird (189-06). */
+const FILTER = ['in', 'fach', 'klasse', 'art'];
+
+/** Seiten der Ablage: Nur dort führt ↓ aus dem Suchfeld in die Treffer (189-07). */
+const IN_DER_ABLAGE = /^\/($|o\/|suche$|zuletzt$|papierkorb$)/;
+
+/**
+ * Suchfeld im Kopf wie im Finder. Das Feld hält seinen Text selbst; die Adresse folgt ihm (187-01: sonst kamen beim
+ * schnellen Tippen Buchstaben abhanden). Ein Suchgang ist ein Eintrag im Verlauf (189-04); leer oder Esc führt an den
+ * Ort zurück, an dem er begann (189-05, 189-06).
+ */
+const useKopfsuche = (ordnerId: string | undefined) => {
+	const [parameter] = useSearchParams();
+	const { pathname, search } = useLocation();
+	const navigationsArt = useNavigationType();
+	const navigate = useNavigate();
+	const adressText = pathname === '/suche' ? (parameter.get('q') ?? '') : '';
+	const [text, setText] = useState(adressText);
+	const feld = useRef<HTMLInputElement>(null);
+	/** Adresse, an der der laufende Suchgang begann; `null`, solange keiner läuft. */
+	const ausgang = useRef<string | null>(null);
+
+	// Aus der Adresse nur, wenn sie sich ohne Tippen geändert hat: Zurück im Browser, Klick auf einen Ordner.
+	useEffect(() => {
+		if (navigationsArt === 'POP' || document.activeElement !== feld.current) {
+			setText(adressText);
+		}
+		if (pathname !== '/suche') {
+			ausgang.current = null;
+		}
+	}, [adressText, navigationsArt, pathname]);
+
+	const verlasse = () => {
+		const start = ausgang.current;
+		ausgang.current = null;
+		if (start !== null) {
+			// Der Suchgang ist genau ein Eintrag über dem Ausgangsort.
+			void navigate(-1);
+		} else if (pathname === '/suche') {
+			const von = parameter.get('von');
+			void navigate(von ? `/o/${von}` : '/', { replace: true });
+		}
+	};
+
+	const sucheNach = (wert: string) => {
+		setText(wert);
+		const filter = pathname === '/suche' && FILTER.some((f) => parameter.has(f));
+		if (wert === '' && !filter) {
+			verlasse();
+			return;
+		}
+		const neu = new URLSearchParams(pathname === '/suche' ? parameter : undefined);
+		if (ordnerId) {
+			neu.set('von', ordnerId);
+		}
+		if (wert) {
+			neu.set('q', wert);
+		} else {
+			neu.delete('q');
+		}
+		const ersteTaste = ausgang.current === null && pathname !== '/suche';
+		if (ersteTaste) {
+			ausgang.current = pathname + search;
+		}
+		void navigate(`/suche?${neu.toString()}`, { replace: !ersteTaste });
+	};
+
+	const taste = (e: ReactKeyboardEvent<HTMLInputElement>) => {
+		if (e.key === 'Escape') {
+			e.preventDefault();
+			if (text !== '') {
+				setText('');
+				verlasse();
+			}
+			e.currentTarget.blur();
+		} else if (e.key === 'ArrowDown' && !e.altKey && !e.metaKey && IN_DER_ABLAGE.test(pathname)) {
+			e.preventDefault();
+			e.currentTarget.blur();
+			window.dispatchEvent(new Event(ERSTES_WAEHLEN));
+		}
+	};
+
+	return { feld, text, sucheNach, taste };
+};
 
 const RahmenInnen = () => {
-	const [parameter] = useSearchParams();
 	const { pathname } = useLocation();
-	const suche = pathname === '/suche' ? (parameter.get('q') ?? '') : '';
 	const navigate = useNavigate();
 	const zeige = useHinweis();
 	const kopf = useKopfHoehe<HTMLElement>();
@@ -42,7 +117,11 @@ const RahmenInnen = () => {
 	const ohneKopf = useMatch('/m/:mappe/:dok') !== null;
 	const inOrdner = useMatch('/o/:ordner');
 	const ordnerId = inOrdner?.params.ordner;
+	const suche = useKopfsuche(ordnerId);
+	const inHilfe = pathname === '/hilfe';
 
+	// ⌘K öffnet die Palette. Einen Knopf dafür hat nur der Editor; hier stünde er als zweite Suche neben dem Suchfeld
+	// (189-31). Die Taste steht in der Tastenübersicht.
 	useEffect(() => {
 		const taste = (e: KeyboardEvent) => {
 			if ((e.metaKey || e.ctrlKey) && e.code === 'KeyK' && !document.querySelector(TASTEN_SPERRE)) {
@@ -53,19 +132,6 @@ const RahmenInnen = () => {
 		window.addEventListener('keydown', taste);
 		return () => window.removeEventListener('keydown', taste);
 	}, []);
-
-	const sucheNach = (wert: string) => {
-		const neu = new URLSearchParams(pathname === '/suche' ? parameter : undefined);
-		if (ordnerId) {
-			neu.set('von', ordnerId);
-		}
-		if (wert) {
-			neu.set('q', wert);
-		} else {
-			neu.delete('q');
-		}
-		void navigate(`/suche?${neu.toString()}`, { replace: pathname === '/suche' });
-	};
 
 	const abmelden = async () => {
 		try {
@@ -111,36 +177,39 @@ const RahmenInnen = () => {
 								className="pointer-events-none absolute top-1/2 left-2 size-4 -translate-y-1/2 text-leise"
 							/>
 							<input
+								ref={suche.feld}
 								type="search"
 								name="suche"
-								className="h-knopf w-full rounded-md bg-flaeche-2 pr-2 pl-7 text-sm placeholder:text-leise focus:bg-flaeche focus:outline-1 focus:outline-brand-500"
+								className="h-knopf w-full rounded-md border border-transparent bg-flaeche-2 pr-2 pl-7 text-sm placeholder:text-leise focus:border-brand-500 focus:bg-flaeche focus:outline-none"
 								placeholder="Material und Ordner suchen"
 								enterKeyHint="search"
 								autoComplete="off"
 								autoCorrect="off"
 								spellCheck={false}
-								value={suche}
-								onChange={(e) => sucheNach(e.target.value)}
+								data-suchfeld
+								value={suche.text}
+								onChange={(e) => suche.sucheNach(e.target.value)}
+								onKeyDown={suche.taste}
 							/>
 						</label>
 					</div>
 					<div className="ml-auto flex flex-none items-center gap-1" data-kopf-rechts>
 						<EinheitPille einheiten={einheiten} />
-						<Tooltip text="Befehle" kuerzel={kuerzelVon('ansicht.palette')}>
-							<Knopf art="leise" aria-label="Befehle" data-palette-knopf onClick={() => setPalette(true)}>
-								<Symbol name="suche" className="md:hidden" />
-								<span className="max-md:hidden">Befehle</span>
-							</Knopf>
-						</Tooltip>
-						<KnopfLink to="/hilfe" art="leise" aria-label="Hilfe">
+						<KnopfLink
+							to="/hilfe"
+							art="leise"
+							aria-label="Hilfe"
+							aria-current={inHilfe ? 'page' : undefined}
+							className={klassen(inHilfe && 'bg-flaeche-2')}
+						>
 							<Symbol name="hilfe" className="md:hidden" />
 							<span className="max-md:hidden">Hilfe</span>
 						</KnopfLink>
-						<Menue
-							name="Konto"
-							rechtsbuendig
-							ausloeser={KONTO_KNOPF}
-							eintraege={[{ titel: 'Abmelden', symbol: 'abmelden', waehle: () => void abmelden() }]}
+						<SymbolKnopf
+							symbol="abmelden"
+							beschriftung="Abmelden"
+							data-abmelden
+							onClick={() => void abmelden()}
 						/>
 					</div>
 				</div>

@@ -531,8 +531,7 @@ test.describe('Bedienung', () => {
 	test('abmelden führt zur Anmeldung, anmelden zurück zur gewünschten Seite', async ({ druecke, page }) => {
 		const { id } = await dreiMappen();
 		await page.goto('/');
-		await oeffneMehr(druecke, page, 'Konto');
-		await druecke(page.getByRole('menuitem', { name: 'Abmelden' }));
+		await druecke(page.locator('[data-kopf-rechts]').getByRole('button', { name: 'Abmelden' }));
 		await expect(page).toHaveURL(/\/anmelden$/);
 		await page.goto(`/m/${id}`);
 		await expect(page).toHaveURL(/\/anmelden\?weiter=/);
@@ -1037,7 +1036,7 @@ test.describe('Inspektor (072)', () => {
 		await oeffneBlatt(page);
 		const knoepfe = page.locator('[data-palette]').getByRole('button');
 		await expect(knoepfe).toHaveCount(4);
-		await expect(knoepfe.first()).toHaveAttribute('title', 'Orange und Türkis');
+		await expect(knoepfe.first()).toHaveAttribute('aria-label', 'Orange und Türkis');
 		await expect(knoepfe.first().locator('span')).toHaveAttribute('style', /linear-gradient/);
 		await druecke(knoepfe.nth(2));
 		await expect(blatt(page).locator('body')).toHaveClass(/palette-wiese/);
