@@ -138,8 +138,9 @@ export const useBearbeitung = (mappe: string, dok: string, auswahl: RefObject<nu
 					setAusgang(aktuell.quelle);
 				} else {
 					uebernimm(aktuell);
+					// Ein eigenes „Übernehmen“ steht im Blatt und in Rückgängig, ein Hinweis sagte es doppelt (200-10).
+					zeige({ text: GEAENDERT[urheber ?? 'claude'] });
 				}
-				zeige({ text: GEAENDERT[urheber ?? 'claude'] });
 				return;
 			}
 			meldeKonflikt();

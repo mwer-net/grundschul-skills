@@ -305,7 +305,7 @@ test.describe('Editor: Mit Claude ändern (058, 059)', () => {
 		await expect
 			.poll(() => rahmen.locator('html').evaluate((el) => el.scrollWidth <= window.innerWidth + 1))
 			.toBe(true);
-		await page.getByRole('button', { name: 'Annehmen' }).click();
+		await page.getByRole('dialog').getByRole('button', { name: 'Übernehmen' }).click();
 		await expect(panel(page).locator('[data-ki-vorschlag]')).toBeHidden();
 		await expect.poll(() => quelleAufPlatte(mappe, dok)).toContain('von Claude');
 	});
@@ -329,7 +329,7 @@ test.describe('Editor: Mit Claude ändern (058, 059)', () => {
 		await panel(page).getByLabel('Was soll Claude ändern?').fill('Dauert');
 		await panel(page).getByRole('button', { name: 'Senden' }).click();
 		const lauf = panel(page).locator('[data-ki-lauf]');
-		await expect(lauf.getByText(/Claude ändert Seite 1/)).toBeVisible();
+		await expect(lauf.getByText(/Claude arbeitet/)).toBeVisible();
 		await lauf.getByRole('button', { name: 'Abbrechen' }).click();
 		await expect(lauf).toBeHidden();
 		await expect(panel(page).locator('[data-ki-vorschlag]')).toBeHidden();

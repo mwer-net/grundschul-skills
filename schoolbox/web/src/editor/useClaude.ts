@@ -1,6 +1,7 @@
-import { erzeugeReferenz } from '@schoolbox/kern/src/referenz';
+import { erzeugeReferenz, pfadVon } from '@schoolbox/kern/src/referenz';
 import type { RefObject } from 'react';
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
+import { useLocation, useNavigate } from 'react-router-dom';
 
 import { ApiFehler, lade, meldung, sende } from '../api';
 import { useEreignisse } from '../ereignisse';
@@ -9,17 +10,18 @@ import type { ClaudeLage, Faden, FadenStand } from './claude-faeden';
 import {
 	antwortVon,
 	ergaenzeFaeden,
-	ersteSeite,
 	laeuftNoch,
 	lebt,
 	loeseAnker,
 	MAX_GESPRAECHE,
 	meintGanzesBlatt,
+	nachAbbruch,
 	nachricht,
 	neuerFaden,
 	ohneGespraech,
 	seitenVon,
 	standVon,
+	stehtAus,
 	verankert,
 	vorschlagDes,
 } from './claude-faeden';
@@ -34,22 +36,40 @@ const fokusFrei = () => {
 	return !aktiv || aktiv === document.body || Boolean(aktiv.closest('[data-claude-blase]'));
 };
 
-const MERKEN = new Set(['laeuft', 'wartet', 'vorschlag']);
-const VOLL = `Höchstens ${MAX_GESPRAECHE} Gespräche mit Claude gleichzeitig. Beende erst eines mit ×.`;
+const VOLL = `Höchstens ${MAX_GESPRAECHE} Aufträge an Claude gleichzeitig. Entscheide erst einen Vorschlag oder warte, bis einer fertig ist.`;
+
+/** Der Name des Elements wie in den Ebenen; „Ganzes Material“ ohne Referenz (wie `bezugVon` in der Blase). */
+const bezugIm = (l: ClaudeLage | null, f: Faden) => {
+	if (!l || f.nr === null || (f.ganz && seitenVon(l.z, l.loesung).length > 1)) {
+		return 'Ganzes Material';
+	}
+	return pfadVon(l.z, f.nr, l.loesung).at(-1)?.name ?? 'Ganzes Material';
+};
 
 /** Die Statusleiste: was eingeklappte Gespräche tun; bei mehreren nur die Zahl (135). */
-const laufVon = (liste: { f: Faden; stand: FadenStand; auftrag: KiAuftrag | undefined }[]): ClaudeLauf | null => {
+const laufVon = (
+	liste: { f: Faden; stand: FadenStand; auftrag: KiAuftrag | undefined }[],
+	l: ClaudeLage | null,
+): ClaudeLauf | null => {
 	const [eins] = liste;
-	if (!eins) {
+	if (!eins || eins.stand === 'ruhig') {
 		return null;
 	}
 	if (liste.length > 1) {
-		return { art: 'mehrere', seit: 0, anzahl: liste.length };
+		return { art: 'mehrere', bezug: '', seit: 0, anzahl: liste.length };
 	}
 	const seit = eins.auftrag?.seit ? Date.parse(eins.auftrag.seit) || 0 : 0;
-	const art = { laeuft: 'arbeitet', wartet: 'arbeitet', vorschlag: 'bereit' } as const;
-	return { art: art[eins.stand as keyof typeof art] ?? 'antwort', seit, anzahl: 1 };
+	return { art: eins.stand, bezug: bezugIm(l, eins.f), seit, anzahl: 1 };
 };
+
+/**
+ * 191-U2: Aus der PDF-Warnung kommt eine vorbereitete Bitte mit. `seite`: die eine betroffene Seite (ab 1); ohne
+ * gilt das ganze Material.
+ */
+export interface ClaudeBitte {
+	text: string;
+	seite: number | null;
+}
 
 interface Angaben {
 	mappe: string;
@@ -149,6 +169,17 @@ export const useClaude = ({ auswahl, dok, frei, handlungen, ki, mappe, seite, wa
 	const [lage, setLage] = useState<ClaudeLage | null>(null);
 	const [fokus, setFokus] = useState(0);
 	const erledigt = useRef(new Set<string>());
+	/** 200-01: abgeschickt, aber noch ohne Auftrag am Server. Die Ref sperrt sofort, der Zustand zeichnet neu. */
+	const unterwegsRef = useRef(new Set<string>());
+	const [unterwegs, setUnterwegs] = useState<ReadonlySet<string>>(new Set());
+	const markiere = (key: string, an: boolean) => {
+		if (an) {
+			unterwegsRef.current.add(key);
+		} else {
+			unterwegsRef.current.delete(key);
+		}
+		setUnterwegs(new Set(unterwegsRef.current));
+	};
 	const jetzt = useRef({ faeden, offen, auswahl, auftraege, vorschlaege, lage });
 	jetzt.current = { faeden, offen, auswahl, auftraege, vorschlaege, lage };
 	const hinweis = limitHinweis(zustand.limit, zustand.warnAb);
@@ -165,6 +196,10 @@ export const useClaude = ({ auswahl, dok, frei, handlungen, ki, mappe, seite, wa
 
 	const auftragVon = useCallback((f: Faden) => (f.auftragId ? auftraege[f.auftragId] : undefined), [auftraege]);
 	const vorschlagVon = useCallback((f: Faden) => vorschlagDes(f, vorschlaege, auftraege), [auftraege, vorschlaege]);
+	const standDes = useCallback(
+		(f: Faden) => standVon(f, auftragVon(f), vorschlagVon(f), unterwegs.has(f.key)),
+		[auftragVon, unterwegs, vorschlagVon],
+	);
 
 	useEffect(() => {
 		setFaeden((alt) => {
@@ -191,18 +226,25 @@ export const useClaude = ({ auswahl, dok, frei, handlungen, ki, mappe, seite, wa
 		for (const f of alle) {
 			const hier = verankert(f, lage, vorher);
 			if (!hier) {
+				// 200-11: Mit dem Element enden Gespräch, Lauf und Vorschlag; „Rückgängig“ bringt nur das Element zurück.
 				if (f.gespraech) {
 					beendeGespraechAufServer(f.gespraech);
 				}
+				const auftrag = f.auftragId ? a[f.auftragId] : undefined;
+				if (auftrag && laeuftNoch(auftrag)) {
+					erledigt.current.add(auftrag.id);
+					void sende(`/api/ki/${auftrag.id}/abbrechen`)
+						.catch(() => undefined)
+						.then(() => pruefe(auftrag.id));
+				}
 				const vorschlag = vorschlagDes(f, v, a);
-				// Ein Auftrag oder Vorschlag bleibt, ohne Gespräch an der ersten Seite.
-				const bleibt = laeuftNoch(f.auftragId ? a[f.auftragId] : undefined) || Boolean(vorschlag);
-				teile.set(
-					f.key,
-					bleibt
-						? { ...ohneGespraech(f, vorschlag), referenz: null, nr: ersteSeite(lage.z, lage.loesung) }
-						: null,
-				);
+				if (vorschlag) {
+					void sende(`${basis}/vorschlag/verwerfen`, { gespraech: vorschlag.schluessel })
+						.catch(() => undefined)
+						.then(() => ladeVorschlaege())
+						.catch(() => undefined);
+				}
+				teile.set(f.key, null);
 			} else if (hier.nr !== f.nr || hier.referenz !== f.referenz) {
 				teile.set(f.key, hier);
 				// Die offene Blase zog mit ihrem Element um, etwa nach dem Annehmen: Die Auswahl geht mit.
@@ -222,7 +264,7 @@ export const useClaude = ({ auswahl, dok, frei, handlungen, ki, mappe, seite, wa
 				}),
 			);
 		}
-	}, [auftragVon, lage, unverankert, waehle]);
+	}, [auftragVon, basis, ladeVorschlaege, lage, pruefe, unverankert, waehle]);
 
 	// Eine andere Auswahl klappt die offene Blase ein (135); sie gehört zu ihrem Element.
 	useEffect(() => {
@@ -253,6 +295,13 @@ export const useClaude = ({ auswahl, dok, frei, handlungen, ki, mappe, seite, wa
 			const vorschlag = vorschlagVon(f);
 			const text = antwortVon(a, vorschlag);
 			const sichtbar = f.key === offen;
+			if (a.status === 'abgebrochen') {
+				aendere(f.key, (alt) => ({ ...nachAbbruch(alt), fehler: null, gesendet: null }));
+				if (sichtbar) {
+					setFokus((n) => n + 1);
+				}
+				continue;
+			}
 			aendere(f.key, (alt) => ({
 				schluessel: vorschlag?.schluessel ?? alt.schluessel,
 				verlauf: text ? [...alt.verlauf, nachricht('claude', text, a.id)].slice(-MAX_NACHRICHTEN) : alt.verlauf,
@@ -276,7 +325,7 @@ export const useClaude = ({ auswahl, dok, frei, handlungen, ki, mappe, seite, wa
 			const zitat = f.zitat;
 			aendere(f.key, (alt) => ({
 				gespraech,
-				verlauf: [...alt.verlauf, nachricht('lehrkraft', inhalt.text)].slice(-MAX_NACHRICHTEN),
+				verlauf: [...alt.verlauf, nachricht('lehrkraft', inhalt.text, null, zitat)].slice(-MAX_NACHRICHTEN),
 				entwurf: '',
 				zitat: null,
 				fehler: null,
@@ -321,14 +370,23 @@ export const useClaude = ({ auswahl, dok, frei, handlungen, ki, mappe, seite, wa
 	);
 
 	const finde = (key: string) => jetzt.current.faeden.find((f) => f.key === key);
+	/** Der Stand nach dem, was gerade bekannt ist, auch zwischen zwei Bildern. */
+	const standJetzt = (f: Faden) => {
+		const { auftraege: a, vorschlaege: v } = jetzt.current;
+		const auftrag = f.auftragId ? a[f.auftragId] : undefined;
+		return standVon(f, auftrag, vorschlagDes(f, v, a), unterwegsRef.current.has(f.key));
+	};
+	/** Die Grenze zählt nur Fäden, an denen etwas aussteht (200-04). */
+	const ausstehend = (alle: readonly Faden[]) => alle.filter((f) => stehtAus(standJetzt(f))).length;
 
 	/** Warum gerade nichts abgeschickt werden kann; `null`: es geht. */
 	const sperreVon = (f: Faden) => {
-		if (laeuftNoch(auftragVon(f))) {
+		if (unterwegsRef.current.has(f.key) || laeuftNoch(auftragVon(f))) {
 			return 'Claude arbeitet gerade.';
 		}
+		// Derselbe Satz wie in der Zeile über dem Feld (190-24).
 		if (gesperrtLimit) {
-			return 'Das Nutzungslimit ist erreicht.';
+			return hinweis?.text ?? null;
 		}
 		return frei ? null : 'Das Blatt ist gerade gesperrt.';
 	};
@@ -336,7 +394,8 @@ export const useClaude = ({ auswahl, dok, frei, handlungen, ki, mappe, seite, wa
 	const sendeAn = (key: string, inhalt: { text: string; aktion?: string }) => {
 		const f = finde(key);
 		if (f && inhalt.text.trim() && sperreVon(f) === null) {
-			void sendeFaden(f, inhalt);
+			markiere(key, true);
+			void sendeFaden(f, inhalt).finally(() => markiere(key, false));
 		}
 	};
 
@@ -353,7 +412,7 @@ export const useClaude = ({ auswahl, dok, frei, handlungen, ki, mappe, seite, wa
 		}
 		const zitat = handlungen.current.holeZitat() || null;
 		const da = alle.find((f) => f.nr === nr);
-		if (!da && alle.length >= MAX_GESPRAECHE) {
+		if (!da && ausstehend(alle) >= MAX_GESPRAECHE) {
 			return null;
 		}
 		let key: string;
@@ -373,13 +432,41 @@ export const useClaude = ({ auswahl, dok, frei, handlungen, ki, mappe, seite, wa
 		return key;
 	};
 
+	/** ×, Esc, ⌘J, Klick daneben (200-05). Das Gespräch endet dabei, wenn nichts aussteht (`beendeWennRuhig`). */
 	const einklappen = () => {
 		setOffen(null);
 		handlungen.current.zumBlatt();
 	};
 
-	/** × und „Neu beginnen“ (Entscheidung 37): Die Sitzung ist weg, ein offener Vorschlag und ein Lauf bleiben. */
-	const beende = (key: string, weiter: boolean) => {
+	/**
+	 * 200-04: Eine geschlossene Blase ohne Ausstehendes beendet ihr Gespräch. Ein getippter Text bleibt am Element und
+	 * steht beim nächsten Öffnen im Feld; ohne ihn ist der Faden weg.
+	 */
+	const beendeWennRuhig = (key: string) => {
+		const f = finde(key);
+		if (!f || stehtAus(standJetzt(f))) {
+			return;
+		}
+		if (f.gespraech) {
+			beendeGespraechAufServer(f.gespraech);
+		}
+		if (f.entwurf.trim()) {
+			aendere(key, { ...ohneGespraech(f, undefined), entwurf: f.entwurf });
+		} else {
+			setFaeden((alt) => alt.filter((x) => x.key !== key));
+		}
+	};
+	const vorigOffen = useRef<string | null>(null);
+	useEffect(() => {
+		const vor = vorigOffen.current;
+		vorigOffen.current = offen;
+		if (vor && vor !== offen) {
+			beendeWennRuhig(vor);
+		}
+	});
+
+	/** „Neu beginnen“ (Entscheidung 37): Die Sitzung ist weg, ein offener Vorschlag und ein Lauf bleiben. */
+	const neuBeginnen = (key: string) => {
 		const f = finde(key);
 		if (!f) {
 			return;
@@ -392,11 +479,7 @@ export const useClaude = ({ auswahl, dok, frei, handlungen, ki, mappe, seite, wa
 			erledigt.current.add(f.auftragId);
 		}
 		aendere(key, ohneGespraech(f, vorschlagVon(f)));
-		if (weiter) {
-			setFokus((n) => n + 1);
-		} else {
-			einklappen();
-		}
+		setFokus((n) => n + 1);
 	};
 
 	/** Wo das Element des Fadens im gezeigten Blatt liegt; auf einem gezeigten Vorschlag über die Referenz. */
@@ -410,23 +493,40 @@ export const useClaude = ({ auswahl, dok, frei, handlungen, ki, mappe, seite, wa
 	const imBlatt = offenerVorschlag?.referenz ? !offenerFaden?.ganz : seiten === 1;
 	const zeigt = offenerVorschlag && !offenerVorschlag.konflikt && imBlatt ? (offenerVorschlag.quelle ?? null) : null;
 
-	const merker = useMemo(
-		() =>
-			new Set(
-				faeden.flatMap((f) =>
-					f.nr !== null && MERKEN.has(standVon(f, auftragVon(f), vorschlagVon(f))) ? [f.nr] : [],
-				),
-			),
-		[auftragVon, faeden, vorschlagVon],
-	);
-
 	const eingeklappt = faeden
 		.filter((f) => f.key !== offen && f.nr !== null)
-		.map((f) => ({ f, auftrag: auftragVon(f), stand: standVon(f, auftragVon(f), vorschlagVon(f)) }))
-		.filter((x) => x.stand !== 'ruhig');
+		.map((f) => ({ f, auftrag: auftragVon(f), stand: standDes(f) }))
+		.filter((x) => stehtAus(x.stand));
 
-	const steuerung: ClaudeSteuerung = { oeffne, merker };
-	const belegt = faeden.length >= MAX_GESPRAECHE && !faeden.some((f) => f.nr === auswahl);
+	const steuerung: ClaudeSteuerung = { oeffne };
+
+	// 191-U2: Die Bitte aus der PDF-Warnung steht im Feld, nicht abgeschickt; die Lehrkraft schickt sie selbst ab.
+	const ort = useLocation();
+	const navigate = useNavigate();
+	const bitte = (ort.state as { claudeBitte?: ClaudeBitte } | null)?.claudeBitte;
+	const mitLage = lage !== null;
+	useEffect(() => {
+		const l = jetzt.current.lage;
+		if (!bitte || !l) {
+			return;
+		}
+		// Einmal: Neuladen oder Zurück bringen die Bitte nicht wieder.
+		void navigate(`${ort.pathname}${ort.search}`, {
+			replace: true,
+			state: { ...(ort.state as object), claudeBitte: undefined },
+		});
+		const alle = seitenVon(l.z, l.loesung);
+		const eine = bitte.seite === null ? undefined : alle[bitte.seite - 1];
+		const key = oeffne(eine?.nr ?? alle[0]?.nr ?? null);
+		if (key) {
+			aendere(key, { entwurf: bitte.text, ...(!eine && alle.length > 1 ? { ganz: true } : {}) });
+			requestAnimationFrame(() => setFokus((n) => n + 1));
+		}
+		// `oeffne` und der Ort lesen den Stand im Augenblick; neu läuft der Effekt nur mit einer neuen Bitte.
+		// eslint-disable-next-line react-hooks/exhaustive-deps
+	}, [bitte, mitLage]);
+	const belegt =
+		ausstehend(faeden) >= MAX_GESPRAECHE && !faeden.some((f) => f.nr === auswahl && stehtAus(standDes(f)));
 	const schluesselVon = (f: Faden) => vorschlagVon(f)?.schluessel ?? f.schluessel;
 
 	return {
@@ -448,7 +548,10 @@ export const useClaude = ({ auswahl, dok, frei, handlungen, ki, mappe, seite, wa
 		/** Der Knopf „Claude“: gesperrt, wenn schon so viele Gespräche laufen, wie die Warteschlange fasst (135). */
 		knopfGrund: belegt ? VOLL : null,
 		setzeLage: setLage,
-		lauf: laufVon(eingeklappt),
+		lauf: laufVon(eingeklappt, lage),
+		standDes,
+		/** Abgeschickt oder am Server in Arbeit (200-01): Laufzeile statt Feld zum Abschicken. */
+		laeuft: (f: Faden) => unterwegs.has(f.key) || laeuftNoch(auftragVon(f)),
 		/** Klick in der Statusleiste: rollt zum zuletzt aktiven Gespräch und klappt es auf. */
 		zeigeLauf: (zeigeAn: (nr: number) => void) => {
 			const [juengstes] = eingeklappt.map((x) => x.f).sort((a, b) => b.zuletzt - a.zuletzt);
@@ -460,8 +563,7 @@ export const useClaude = ({ auswahl, dok, frei, handlungen, ki, mappe, seite, wa
 		steuerung,
 		oeffne,
 		einklappen,
-		schliesse: (key: string) => beende(key, false),
-		neuBeginnen: (key: string) => beende(key, true),
+		neuBeginnen,
 		/** ⌘J: öffnet die Blase an der Auswahl; steht der Fokus schon in ihrem Feld, klappt sie ein (135). */
 		taste: (): string | null => {
 			const imFeld = Boolean(document.activeElement?.closest('[data-claude-blase]'));
@@ -474,11 +576,15 @@ export const useClaude = ({ auswahl, dok, frei, handlungen, ki, mappe, seite, wa
 			}
 			return VOLL;
 		},
-		/** Die Palette schreibt ins Feld; abgeschickt wird von Hand. */
+		/**
+		 * Die Palette schreibt ins Feld; abgeschickt wird von Hand. Der Fokus kommt ein Bild später ins Feld: Die
+		 * Palette gibt ihn beim Schließen dem Blatt zurück, und das kommt im `iframe` erst danach an (200-19).
+		 */
 		fuelle: (text: string) => {
 			const key = oeffne();
 			if (key) {
 				aendere(key, { entwurf: text });
+				requestAnimationFrame(() => setFokus((n) => n + 1));
 			}
 		},
 		setEntwurf: (key: string, text: string) => aendere(key, { entwurf: text }),
@@ -518,12 +624,34 @@ export const useClaude = ({ auswahl, dok, frei, handlungen, ki, mappe, seite, wa
 				return;
 			}
 			const gespraech = schluesselVon(f);
+			let angenommen = false;
 			await handlungen.current.annimm(() =>
-				sende(`${basis}/vorschlag/annehmen`, { gespraech }).catch((grund: unknown) =>
-					aendere(key, { fehler: meldung(grund) }),
+				sende(`${basis}/vorschlag/annehmen`, { gespraech }).then(
+					() => {
+						angenommen = true;
+					},
+					(grund: unknown) => aendere(key, { fehler: meldung(grund) }),
 				),
 			);
 			await ladeVorschlaege().catch(() => undefined);
+			// 200-10: Die Änderung steht im Blatt, das Gespräch ist erledigt; das Element bleibt gewählt.
+			if (angenommen) {
+				const nachher = finde(key);
+				if (nachher?.gespraech) {
+					beendeGespraechAufServer(nachher.gespraech);
+				}
+				setFaeden((alt) =>
+					alt.flatMap((x) => {
+						if (x.key !== key) {
+							return [x];
+						}
+						return x.entwurf.trim() ? [{ ...x, ...ohneGespraech(x, undefined), entwurf: x.entwurf }] : [];
+					}),
+				);
+				if (jetzt.current.offen === key) {
+					einklappen();
+				}
+			}
 		},
 		verwerfen: async (key: string) => {
 			const f = finde(key);
