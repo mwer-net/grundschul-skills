@@ -81,11 +81,12 @@ export const useEntwurf = ({
 		try {
 			const stand = await lade<AblageStand>('/api/ordner');
 			const name = stand.dokumente.find((d) => d.mappe === mappe && d.id === dok)?.meta.titel ?? 'Das Blatt';
+			// Erst vergessen, solange das Blatt noch da ist; sonst meldet die Ablage den Plan danach als wartend.
+			await vergiss().catch(() => undefined);
 			const { umkehr } = await sende<{ umkehr: Aktion[] }>('/api/ordner/aktion', {
 				art: 'papierkorb',
 				knoten: [{ mappe, dok }],
 			});
-			void vergiss().catch(() => undefined);
 			void navigate(ortDesDokuments(stand, mappe, dok)?.adresse ?? '/');
 			const zurueck = async () => {
 				try {

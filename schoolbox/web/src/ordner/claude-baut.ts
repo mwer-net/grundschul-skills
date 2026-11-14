@@ -11,8 +11,11 @@ import type { ClaudeBaut } from './darstellung';
  * Welche Dokumente Claude gerade als neues Blatt baut (133), mit dem Beginn des Laufs, und an welchen ein Aufgabenplan
  * auf die Freigabe wartet (190-34). Schlüssel `mappe/dok`.
  */
+/** Vor der ersten Antwort des Servers: Das ist noch kein Stand, aus dem eine Meldung folgen dürfte. */
+const UNGELADEN: ReadonlyMap<string, ClaudeBaut> = new Map();
+
 export const useClaudeBaut = (an = true) => {
-	const [laufend, setLaufend] = useState<ReadonlyMap<string, ClaudeBaut>>(new Map());
+	const [laufend, setLaufend] = useState<ReadonlyMap<string, ClaudeBaut>>(UNGELADEN);
 	const neu = useCallback(() => {
 		if (!an) {
 			return;
@@ -54,6 +57,9 @@ export const usePlanDaMeldung = () => {
 	titel.current = stand;
 	const vorher = useRef<ReadonlyMap<string, ClaudeBaut> | null>(null);
 	useEffect(() => {
+		if (baut === UNGELADEN) {
+			return;
+		}
 		const alt = vorher.current;
 		vorher.current = baut;
 		if (alt === null) {
@@ -65,7 +71,11 @@ export const usePlanDaMeldung = () => {
 			if (!b.plan || alt.get(schluessel)?.plan || ort.current.startsWith(editor)) {
 				continue;
 			}
-			const name = titel.current?.dokumente.find((d) => d.mappe === mappe && d.id === dok)?.meta.titel ?? 'dein Blatt';
+			// Nicht (mehr) in der Ablage, etwa eben verworfen: keine Meldung.
+			const name = titel.current?.dokumente.find((d) => d.mappe === mappe && d.id === dok)?.meta.titel;
+			if (!name) {
+				continue;
+			}
 			zeige({
 				text: `Aufgabenplan für „${name}“ ist da`,
 				aktion: { titel: 'Öffnen', ausfuehren: () => void navigate(editor) },

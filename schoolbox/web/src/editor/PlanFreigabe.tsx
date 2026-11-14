@@ -39,7 +39,9 @@ export const PlanFreigabe = ({
 }) => {
 	const [feldOffen, setFeldOffen] = useState(false);
 	const [wunsch, setWunsch] = useState('');
-	const [belegt, setBelegt] = useState(false);
+	// Woran gerade gearbeitet wird: Der Kreisel steht am geklickten Knopf, gesperrt sind alle.
+	const [arbeit, setArbeit] = useState<'bauen' | 'aendern' | 'verwerfen' | null>(null);
+	const belegt = arbeit !== null;
 	const unterwegs = useRef(false);
 	const bauen = useRef<HTMLButtonElement>(null);
 	const groesse = klein ? 'klein' : 'standard';
@@ -47,7 +49,7 @@ export const PlanFreigabe = ({
 	// Ein neuer Plan ist eine neue Frage: Die Sperre der alten gilt nicht mehr.
 	useEffect(() => {
 		unterwegs.current = false;
-		setBelegt(false);
+		setArbeit(null);
 	}, [text]);
 
 	useEffect(() => {
@@ -56,21 +58,21 @@ export const PlanFreigabe = ({
 		}
 	}, [fokus, feldOffen]);
 
-	const tue = async (arbeit: () => Promise<unknown>) => {
+	const tue = async (was: 'bauen' | 'aendern' | 'verwerfen', aufgabe: () => Promise<unknown>) => {
 		if (unterwegs.current) {
 			return false;
 		}
 		unterwegs.current = true;
-		setBelegt(true);
+		setArbeit(was);
 		let angenommen = false;
 		try {
-			angenommen = (await arbeit()) !== false;
+			angenommen = (await aufgabe()) !== false;
 		} catch {
 			angenommen = false;
 		}
 		if (!angenommen) {
 			unterwegs.current = false;
-			setBelegt(false);
+			setArbeit(null);
 		}
 		return angenommen;
 	};
@@ -78,7 +80,7 @@ export const PlanFreigabe = ({
 	const sendeWunsch = async (e?: FormEvent) => {
 		e?.preventDefault();
 		const t = wunsch.trim();
-		if (t && (await tue(() => aendern(t)))) {
+		if (t && (await tue('aendern', () => aendern(t)))) {
 			setWunsch('');
 			setFeldOffen(false);
 		}
@@ -133,11 +135,11 @@ export const PlanFreigabe = ({
 						ref={bauen}
 						groesse={groesse}
 						disabled={gesperrt || belegt}
-						aria-busy={belegt}
+						aria-busy={arbeit === 'bauen'}
 						data-plan-freigeben
-						onClick={() => void tue(freigeben)}
+						onClick={() => void tue('bauen', freigeben)}
 					>
-						{belegt && <Symbol name="laden" className="animate-spin" />}
+						{arbeit === 'bauen' && <Symbol name="laden" className="animate-spin" />}
 						So bauen
 					</Knopf>
 					<Knopf art="zweit" groesse={groesse} disabled={gesperrt || belegt} onClick={() => setFeldOffen(true)}>
@@ -148,8 +150,9 @@ export const PlanFreigabe = ({
 						groesse={groesse}
 						disabled={belegt}
 						data-plan-verwerfen
-						onClick={() => void tue(verwerfen)}
+						onClick={() => void tue('verwerfen', verwerfen)}
 					>
+						{arbeit === 'verwerfen' && <Symbol name="laden" className="animate-spin" />}
 						Verwerfen
 					</Knopf>
 				</div>
