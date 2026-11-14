@@ -125,12 +125,19 @@ test.describe('Seiten laufen weiter (206)', () => {
 		expect(automatische(await quelle(page))).toBe(0);
 	});
 
-	test('Die Lösung wird mitgemessen und läuft nicht über', async ({ page }) => {
+	test('Die Lösung wird mitgemessen: Was nur dort übersteht, geht auf die nächste Seite (206-04)', async ({ page }) => {
 		const doc = await vorbereiten(page, 4, 4);
-		await page.goto(`/m/${doc.id}/${doc.dok}/bearbeiten?fassung=loesung`);
-		await geladen(page);
-		await schritt(page, mitAufgaben(await quelle(page), 5, 8));
+		const loesung = `<div class="aufgabe">
+    <span class="nr">5</span>
+    <div class="anw"><span class="text">Nur in der Lösung lang.</span></div>
+    <div class="koerper"><div class="nur-loesung" style="height:700px">Lösung</div></div>
+  </div>`;
+		const q = await quelle(page);
+		await schritt(page, q.replace('  <!-- Fuß nur mit', `  ${loesung}\n\n  <!-- Fuß nur mit`));
 		await expect.poll(async () => automatische(await quelle(page))).toBe(1);
+		await geladen(page);
+		expect(await ueberstand(page)).toBe(false);
+		await page.goto(`/m/${doc.id}/${doc.dok}/bearbeiten?fassung=loesung`);
 		await geladen(page);
 		expect(await ueberstand(page)).toBe(false);
 	});
