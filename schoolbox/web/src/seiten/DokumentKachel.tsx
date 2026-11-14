@@ -1,6 +1,7 @@
 import type { MouseEvent } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 
+import { Gekuerzt } from '../bausteine/Gekuerzt';
 import { Marke } from '../bausteine/Kachel';
 import { Knopf, KnopfLink } from '../bausteine/Knopf';
 import type { MenueEintrag } from '../bausteine/Menue';
@@ -13,7 +14,6 @@ import { ART_NAME, FORMAT_NAME } from '../lib/text';
 import type { Zugang } from '../lib/zugang';
 import { dokumentSeite, editorSeite, entwuerfeSeite, istGeteilt, praesentationSeite } from '../lib/zugang';
 import { PdfKnopf } from '../pdf/PdfKnopf';
-import { pdfEintrag, usePdf } from '../pdf/usePdf';
 import { dokumentWahl } from '../pdf/wahl';
 import type { DokumentEintrag, Mappe } from '../typen';
 
@@ -43,18 +43,17 @@ export const DokumentKachel = ({ dokument, mappe, teile, variante, zugang }: Eig
 	const folie = meta.format === 'folie';
 	const navigate = useNavigate();
 	const zeigeMenue = useZeigeMenue();
-	const pdf = usePdf({ mappe, warnen: !geteilt });
 	const wahl = dokumentWahl(zugang, dokument, folie ? undefined : meta.druckprofil);
 
+	// Die PDF steht bei jedem Format als Knopf da, auch neben „Präsentieren“ (188-28).
 	const mehr: MenueEintrag[] = [
-		...(folie && !waehlen ? [pdfEintrag('PDF', 'herunterladen', wahl, (w) => void pdf.hole(w))] : []),
 		...(variante && !waehlen ? [{ titel: 'Variante anlegen', symbol: 'variante' as const, waehle: variante }] : []),
 		...(teile ? [{ titel: 'Teilen', symbol: 'teilen' as const, waehle: teile }] : []),
 		...(!geteilt && !waehlen && meta.entwuerfe.length > 0
 			? [
 					{
 						titel: 'Entwürfe vergleichen',
-						symbol: 'kopieren' as const,
+						symbol: 'ebenen' as const,
 						waehle: () => void navigate(entwuerfeSeite(zugang, id)),
 					},
 				]
@@ -71,7 +70,7 @@ export const DokumentKachel = ({ dokument, mappe, teile, variante, zugang }: Eig
 	return (
 		<li
 			data-dokument={id}
-			className="flex flex-col overflow-hidden rounded-[10px] border border-rand bg-flaeche"
+			className="flex flex-col overflow-hidden rounded-[10px] border border-rand bg-flaeche hover:border-rand-feld"
 			onContextMenu={rechtsklick}
 		>
 			<Link
@@ -88,14 +87,16 @@ export const DokumentKachel = ({ dokument, mappe, teile, variante, zugang }: Eig
 					)}
 				</div>
 				<div className="border-t border-rand px-2.5 pt-2">
-					<h2 className="truncate text-sm font-medium">{meta.titel}</h2>
+					<h2 className="flex text-sm font-medium">
+						<Gekuerzt text={meta.titel} />
+					</h2>
 					<p className="truncate text-xs text-leise">{`${ART_NAME[meta.art]} · ${FORMAT_NAME[meta.format]}`}</p>
 				</div>
 			</Link>
 			<div className="mt-auto flex items-center gap-1 px-1.5 py-1.5">
 				{waehlen && (
 					<KnopfLink to={seite} art="leise" groesse="klein">
-						<Symbol name="kopieren" />
+						<Symbol name="ebenen" />
 						Entwürfe vergleichen
 					</KnopfLink>
 				)}
@@ -111,7 +112,7 @@ export const DokumentKachel = ({ dokument, mappe, teile, variante, zugang }: Eig
 						Präsentieren
 					</KnopfLink>
 				)}
-				{!waehlen && !folie && (
+				{!waehlen && (
 					<PdfKnopf
 						knapp
 						art="leise"
@@ -122,13 +123,20 @@ export const DokumentKachel = ({ dokument, mappe, teile, variante, zugang }: Eig
 						warnen={!geteilt}
 					/>
 				)}
-				{mehr.length > 0 && (
+				{/* Ein ⋯ erst ab zwei Einträgen; ein einzelner steht als Knopf da (188-28). */}
+				{mehr.length > 1 && (
 					<span className="ml-auto">
 						<Menue name="Weitere Aktionen" rechtsbuendig eintraege={mehr} ausloeser={MEHR_KNOPF} />
 					</span>
 				)}
+				{mehr.length === 1 &&
+					mehr.map((e) => (
+						<Knopf key={e.titel} art="leise" groesse="klein" className="ml-auto px-1.5!" onClick={e.waehle}>
+							{e.symbol && <Symbol name={e.symbol} />}
+							{e.titel}
+						</Knopf>
+					))}
 			</div>
-			{pdf.dialog}
 		</li>
 	);
 };

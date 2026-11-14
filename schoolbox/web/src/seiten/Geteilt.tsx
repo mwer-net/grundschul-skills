@@ -124,7 +124,7 @@ const GeteilteAblage = ({ inhalt, token }: { inhalt: Inhalt; token: string }) =>
 							<li
 								key={o.schluessel}
 								data-geteilt-ordner={o.ordner.id}
-								className="overflow-hidden rounded-[10px] border border-rand bg-flaeche"
+								className="overflow-hidden rounded-[10px] border border-rand bg-flaeche hover:border-rand-feld"
 							>
 								<Link to={`/f/${token}/o/${o.ordner.id}`} className="block text-tinte no-underline">
 									<OrdnerBild

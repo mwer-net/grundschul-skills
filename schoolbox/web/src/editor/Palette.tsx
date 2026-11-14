@@ -193,9 +193,10 @@ export const Palette = ({ eintraege, freitext, platzhalter, schliessen }: Eigens
 									<span className="flex size-4 flex-none items-center justify-center text-leise">
 										{e.symbol && <Symbol name={e.symbol} className="size-3.5" />}
 									</span>
-									<span className="min-w-0 truncate">{e.titel}</span>
+									{/* Der Titel schrumpft zuletzt: Ein langer Pfad verdrängt ihn nicht (188-11). */}
+									<span className="max-w-[65%] flex-none truncate">{e.titel}</span>
 									{e.notiz && (
-										<span className="min-w-0 flex-none truncate text-xs text-dezent">
+										<span className="min-w-0 flex-1 truncate text-xs text-dezent">
 											{e.notiz}
 										</span>
 									)}
