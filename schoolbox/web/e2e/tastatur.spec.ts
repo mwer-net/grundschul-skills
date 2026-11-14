@@ -191,11 +191,12 @@ test.describe('Tastatur (069)', () => {
 		await expect(page.getByRole('button', { name: 'Einpassen' })).toHaveAttribute('aria-pressed', 'true');
 	});
 
-	test('⌘S meldet sich, ⌘P öffnet das PDF-Menü', async ({ page }) => {
+	test('⌘S speichert sofort, ⌘P öffnet das PDF-Menü', async ({ page }) => {
 		const { dok, id } = await uhrzeit();
 		await oeffne(page, id, dok);
 		await page.keyboard.press('ControlOrMeta+s');
-		await expect(page.getByText('Wird automatisch gespeichert.')).toBeVisible();
+		await expect(page.getByText('Wird automatisch gespeichert.')).toHaveCount(0);
+		await expect(page.locator('[data-speicherstand="gespeichert"]')).toBeVisible();
 		await page.keyboard.press('ControlOrMeta+p');
 		await expect(page.getByRole('menu')).toBeVisible();
 		await page.keyboard.press('Escape');

@@ -9,7 +9,7 @@ import type { Aktionen, Kontext } from './befehle';
 import { BEFEHLE, kuerzelText, titelVon } from './befehle';
 import type { Posten } from './einfuegen';
 import type { PalettenZiele } from './palette-eintraege';
-import { BAUSTEIN_EINFUEGEN, eintraegeImEditor } from './palette-eintraege';
+import { ANSICHT, BAUSTEIN_EINFUEGEN, eintraegeImEditor, GANZES_BLATT, MATERIAL, WERKZEUGE } from './palette-eintraege';
 import { suchePalette } from './palette-suche';
 
 const tu = new Proxy({}, { get: () => () => undefined }) as Aktionen;
@@ -53,12 +53,15 @@ const ziele = (mehr: Partial<PalettenZiele> = {}): PalettenZiele => ({
 	...mehr,
 });
 
+const FORM_WERKZEUGE = ['rechteck', 'ellipse', 'vieleck', 'linie', 'stern'].map((w) => `werkzeug.${w}`);
+
 describe('Inhalt der Palette im Editor', () => {
 	it('zeigt jeden Befehl mit Ort „palette“, sobald er verfügbar ist, und keinen anderen', () => {
 		for (const k of [kontext(), kontext({ pfad: gewaehlt('aufgabe') }), kontext({ aktiv: false, frei: false })]) {
 			const ids = new Set(eintraegeImEditor(k, ziele()).map((e) => e.id));
 			for (const b of BEFEHLE) {
-				assert.equal(ids.has(b.id), b.orte.includes('palette') && b.verfuegbar(k), b.id);
+				const nurKachel = FORM_WERKZEUGE.includes(b.id);
+				assert.equal(ids.has(b.id), !nurKachel && b.orte.includes('palette') && b.verfuegbar(k), b.id);
 			}
 		}
 	});
@@ -168,6 +171,39 @@ describe('Inhalt der Palette im Editor', () => {
 				`${wort} → ${id}`,
 			);
 		}
+	});
+
+	it('ordnet nach Material, Werkzeugen und Ansicht; ohne Auswahl beginnt sie mit drei Gruppen (193-23, 193-39)', () => {
+		const liste = eintraegeImEditor(kontext(), ziele());
+		const gruppe = (id: string) => liste.find((e) => e.id === id)?.gruppe;
+		assert.equal(gruppe('dokument.zurueck'), MATERIAL);
+		assert.equal(gruppe('ansicht.loesung'), ANSICHT);
+		assert.equal(gruppe('ansicht.versionen'), MATERIAL);
+		assert.ok(!liste.some((e) => e.gruppe === 'Dokument'));
+		const start = [...new Set(liste.filter((e) => e.start).map((e) => e.gruppe))];
+		assert.deepEqual(
+			start.filter((g) => g !== WERKZEUGE),
+			[GANZES_BLATT, ANSICHT],
+		);
+		for (const e of liste.filter((x) => x.id.startsWith('werkzeug.'))) {
+			assert.equal(e.gruppe, WERKZEUGE, e.id);
+		}
+		assert.ok(suchePalette('material', liste).some((e) => e.id === 'dokument.zurueck'));
+	});
+
+	it('nimmt die Form-Werkzeuge zum Aufziehen heraus (193-38)', () => {
+		const ids = new Set(eintraegeImEditor(kontext(), ziele()).map((e) => e.id));
+		for (const id of FORM_WERKZEUGE) {
+			assert.ok(!ids.has(id), id);
+		}
+	});
+
+	it('findet „Titel des Blatts“ über „umbenennen“ und die rechte Leiste über „inspektor“ (193-25, 193-40)', () => {
+		const liste = eintraegeImEditor(kontext(), ziele());
+		assert.equal(suchePalette('umbenennen', liste)[0]?.id, 'einstellung:titel');
+		const leiste = suchePalette('inspektor', liste)[0];
+		assert.equal(leiste?.id, 'ansicht.inspektor');
+		assert.equal(leiste?.titel, 'Rechte Leiste ein/aus');
 	});
 
 	it('titelVon liefert für jeden Palettenbefehl einen Text', () => {

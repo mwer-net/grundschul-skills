@@ -248,7 +248,11 @@ test.describe('Blase am Element (134)', () => {
 		await expect.poll(() => quelleAufPlatte(mappe, dok)).toContain('data-von-claude');
 		await expect(karte(page)).toHaveCount(0);
 		await expect(material(page).locator('.aufgabe').first()).toHaveAttribute('data-von-claude', '');
-		await page.getByRole('button', { name: 'Rückgängig' }).click();
+		// 193-12: Die Meldung sagt, was die Lehrkraft getan hat, und bietet „Rückgängig“ an.
+		const meldung = page.getByRole('status');
+		await expect(meldung).toContainText('Vorschlag übernommen.');
+		await expect(meldung).not.toContainText('Claude hat das Material geändert.');
+		await meldung.getByRole('button', { name: 'Rückgängig' }).click();
 		await expect.poll(() => quelleAufPlatte(mappe, dok)).not.toContain('data-von-claude');
 	});
 

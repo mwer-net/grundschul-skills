@@ -1,5 +1,6 @@
 import { Tooltip as BaseTooltip } from '@base-ui/react/tooltip';
-import type { ReactElement, ReactNode } from 'react';
+import type { FocusEvent, ReactElement, ReactNode } from 'react';
+import { useEffect, useState } from 'react';
 
 import { Kuerzel } from './Kuerzel';
 
@@ -8,6 +9,10 @@ export const TooltipAnbieter = ({ children }: { children: ReactNode }) => (
 		{children}
 	</BaseTooltip.Provider>
 );
+
+/** Fokus, der aus einem Menü, Popover oder Dialog zurückkommt (Esc, Auswahl), zeigt keinen Tooltip. */
+const ausEinemPopup = (e: FocusEvent) =>
+	e.relatedTarget instanceof Element && e.relatedTarget.closest('[role="menu"], [role="dialog"], [role="listbox"]');
 
 /**
  * Am Mac nach 400 ms, bei Fokus sofort. Auf dem iPad erscheint er nicht: Nichts Nötiges darf nur hier stehen.
@@ -27,9 +32,33 @@ export const Tooltip = ({
 	/** Während eines Zugs (167). */
 	aus?: boolean;
 	children: ReactElement<Record<string, unknown>>;
-}) => (
-	<BaseTooltip.Root disabled={aus}>
-		<BaseTooltip.Trigger render={children} />
+}) => {
+	// Ist der Knopf selbst Auslöser eines Menüs, schweigt der Tooltip, solange es offen ist, und danach, bis Fokus oder
+	// Zeiger den Knopf verlassen: Das Menü gibt den Fokus beim Schließen zurück (188-20).
+	const offen = children.props['data-popup-open'] !== undefined;
+	const [still, setStill] = useState(false);
+	useEffect(() => {
+		if (offen) {
+			setStill(true);
+		}
+	}, [offen]);
+	const weiter = () => {
+		if (!offen) {
+			setStill(false);
+		}
+	};
+	return (
+		<BaseTooltip.Root disabled={aus || offen || still}>
+			<BaseTooltip.Trigger
+				render={children}
+				onFocus={(e) => {
+					if (ausEinemPopup(e)) {
+						setStill(true);
+					}
+				}}
+				onBlur={weiter}
+				onPointerLeave={weiter}
+			/>
 		<BaseTooltip.Portal>
 			<BaseTooltip.Positioner className="z-menue" side={seite} sideOffset={4} collisionPadding={8}>
 				<BaseTooltip.Popup
@@ -40,6 +69,7 @@ export const Tooltip = ({
 					{kuerzel && <Kuerzel text={kuerzel} className="text-white/70" />}
 				</BaseTooltip.Popup>
 			</BaseTooltip.Positioner>
-		</BaseTooltip.Portal>
-	</BaseTooltip.Root>
-);
+			</BaseTooltip.Portal>
+		</BaseTooltip.Root>
+	);
+};

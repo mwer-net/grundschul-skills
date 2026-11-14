@@ -1,8 +1,8 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useState } from 'react';
 
 import type { SchubladenId } from './schubladen/reihe';
 import type { LinksStand, LinksZeigt } from './schubladen/spalten';
-import { ALT, linksAusSpeicher, schalte, schalteLeiste, SPEICHER } from './schubladen/spalten';
+import { ALT, linksAusSpeicher, schalte, SPEICHER } from './schubladen/spalten';
 
 export type RechtsName = 'inspektor' | 'versionen';
 
@@ -42,8 +42,6 @@ const vergiss = (schluessel: string) => {
 export const usePanels = (neu: boolean) => {
 	const [start] = useState(() => linksAusSpeicher(lies, neu));
 	const [stand, setStand] = useState<LinksStand>(start.stand);
-	// Was „Linke Leiste“ geschlossen hat, bis zum Neuladen.
-	const vorher = useRef<LinksStand | null>(null);
 	const [rechts, setRechts] = useState<RechtsName>('inspektor');
 	const [rechtsOffen, setRechtsZustand] = useState(() => lies(SPEICHER_RECHTS) !== 'zu');
 
@@ -69,12 +67,6 @@ export const usePanels = (neu: boolean) => {
 		setRechts,
 		/** Klick in der Leiste, ⌥1 … ⌥5 und ⌘K. */
 		schalteLinks: (id: SchubladenId, zeigt: LinksZeigt, eng: boolean) => setze(schalte(stand, id, zeigt, eng)),
-		/** „Linke Leiste“ in der Statusleiste. */
-		schalteLeiste: (zeigt: LinksZeigt) => {
-			const ergebnis = schalteLeiste(stand, zeigt, vorher.current);
-			vorher.current = ergebnis.vorher;
-			setze(ergebnis.stand);
-		},
 		setRechtsOffen: (offen: boolean) => {
 			setRechtsZustand(offen);
 			merke(SPEICHER_RECHTS, offen ? 'offen' : 'zu');

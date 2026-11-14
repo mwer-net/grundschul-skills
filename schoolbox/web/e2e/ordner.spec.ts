@@ -810,6 +810,26 @@ test.describe('Befunde der Durchsicht 186 (A)', () => {
 		await expect(page.locator('[data-seitenleiste] [data-namensfeld] input')).toBeFocused();
 	});
 
+	test('Nach Esc im ⋯ erscheint kein Tooltip am Knopf, beim nächsten Zeigen wieder (188-20, 193 aus Abnahme)', async ({
+		hasTouch,
+		page,
+	}) => {
+		test.skip(hasTouch, 'Tooltips gibt es nur mit Maus');
+		await reihe();
+		await page.goto('/');
+		await oeffneObjekt(page, 'Reihe');
+		const mehr = leiste(page).getByRole('button', { name: 'Weitere Aktionen' });
+		await mehr.click();
+		await expect(page.getByRole('menu')).toBeVisible();
+		await page.keyboard.press('Escape');
+		await expect(mehr).toBeFocused();
+		await page.waitForTimeout(600);
+		await expect(page.locator('[data-tooltip]')).toHaveCount(0);
+		await page.mouse.move(0, 0);
+		await mehr.hover();
+		await expect(page.locator('[data-tooltip]')).toHaveText('Weitere Aktionen');
+	});
+
 	test('Ordner, den es nicht gibt: Leiste ohne Befehle, Pfad führt zurück, ⌥N tut nichts (189-02)', async ({
 		hasTouch,
 		page,

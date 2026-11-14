@@ -197,6 +197,24 @@ test.describe('Editor: Bausteine ziehen mit Lücke', () => {
 		await expect(material(page).locator('[data-luecke-weg]')).toHaveCount(0);
 	});
 
+	test('Nach dem Ziehen ist der gewählte Baustein ganz im Blick wie nach ⌥↑ (193, aus Abnahme 206)', async ({ page }) => {
+		const { dok, id } = await uhrzeit();
+		await oeffne(page, id, dok);
+		const text = material(page).locator('.aufgabe').nth(2).locator('.anw .text');
+		const r = await text.boundingBox();
+		if (!r) {
+			throw new Error('nicht zu sehen');
+		}
+		await page.mouse.move(r.x + r.width / 2, r.y + r.height / 2);
+		await page.mouse.down();
+		await page.mouse.move(r.x + r.width / 2 + 10, r.y + r.height / 2 - 10, { steps: 3 });
+		await fahreZu(page, aufgabeOhneLuecke(page, 0), 0.1);
+		await page.mouse.up();
+		await expect.poll(async () => anweisungen(await quelle(page))[0]).toBe('Willi sagt: ');
+		const gewaehlt = page.locator('[data-auswahlrahmen]').first();
+		await expect(gewaehlt).toBeInViewport({ ratio: 0.9 });
+	});
+
 	test('Ein Starter mit Abbildung (x-uhr) erscheint gezeichnet in der Lücke', async ({ page }) => {
 		const { dok, id } = await uhrzeit();
 		await oeffne(page, id, dok);

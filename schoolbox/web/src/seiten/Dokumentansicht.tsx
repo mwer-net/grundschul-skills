@@ -117,7 +117,12 @@ const Knoepfe = ({ dokument, entwuerfe, loesung, mappe, profil, teilen, zugang }
 	return (
 		<div className="ml-auto flex flex-none flex-wrap items-center gap-1.5 max-md:ml-0">
 			{!geteilt && !offen && (
-				<KnopfLink to={editorSeite(zugang, dok)} art={praesentieren ? 'zweit' : 'haupt'}>
+				<KnopfLink
+					to={editorSeite(zugang, dok)}
+					// 193-08: Der Zurück-Pfeil im Editor geht dann einen Schritt im Verlauf zurück.
+					state={{ ausAnsicht: true }}
+					art={praesentieren ? 'zweit' : 'haupt'}
+				>
 					<Symbol name="stift" />
 					Bearbeiten
 				</KnopfLink>

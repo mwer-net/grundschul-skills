@@ -45,7 +45,7 @@ export const Versionen = ({ gewaehlt, versionen, waehle }: Eigenschaften) => {
 								>
 									<Symbol
 										name={v.urheber === 'claude' ? 'sprechblase' : 'stift'}
-										className="flex-none text-leise"
+										className="size-3.5 flex-none text-leise"
 									/>
 									<span className="font-medium">{uhrzeit(v.zeit)}</span>
 									<span className="text-leise">{URHEBER_NAME[v.urheber]}</span>

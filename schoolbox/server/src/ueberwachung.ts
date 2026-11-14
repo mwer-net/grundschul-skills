@@ -1,3 +1,4 @@
+import type { FSWatcher } from 'node:fs';
 import { existsSync, watch } from 'node:fs';
 import { readdir } from 'node:fs/promises';
 import path from 'node:path';
@@ -71,6 +72,48 @@ export const starteUeberwachung = async (kontext: Kontext, ruheMs = RUHE_MS): Pr
 		}
 	};
 
+	const meldeDokument = (mappe: string, dok: string) =>
+		plane(`dok:${mappe}/${dok}`, () => pruefeDokument(mappe, dok));
+
+	/**
+	 * 193-01: Der Server ersetzt material.html atomar (temporäre Datei und `rename`). Danach verliert der rekursive
+	 * Beobachter unter Linux diese Datei. Ein eigener, nicht rekursiver Beobachter je Dokumentordner sieht beides.
+	 */
+	const dokumentBeobachter = new Map<string, FSWatcher>();
+	const beobachteDokument = (mappe: string, dok: string) => {
+		const schluessel = `${mappe}/${dok}`;
+		const dir = path.join(materialDir, mappe, 'dokumente', dok);
+		if (dokumentBeobachter.has(schluessel) || !existsSync(dir)) {
+			return;
+		}
+		try {
+			const w = watch(dir, (_typ, name) => {
+				if (name && DOKUMENT_DATEIEN.has(name.toString())) {
+					meldeDokument(mappe, dok);
+				}
+			});
+			const weg = () => {
+				w.close();
+				dokumentBeobachter.delete(schluessel);
+			};
+			w.on('error', weg);
+			dokumentBeobachter.set(schluessel, w);
+		} catch {
+			// Der Ordner ist zwischen Prüfen und Beobachten verschwunden.
+		}
+	};
+	const beobachteMappe = async (mappe: string) => {
+		const dokumente = await readdir(path.join(materialDir, mappe, 'dokumente')).catch(() => []);
+		for (const dok of dokumente) {
+			if (ID_REGEX.test(dok)) {
+				beobachteDokument(mappe, dok);
+			}
+		}
+	};
+	for (const mappe of bekannteMappen) {
+		await beobachteMappe(mappe);
+	}
+
 	const beobachter = watch(materialDir, { recursive: true }, (_typ, name) => {
 		const teile = name?.split(path.sep) ?? [];
 		const [mappe, ordner, dok, datei] = teile;
@@ -80,9 +123,14 @@ export const starteUeberwachung = async (kontext: Kontext, ruheMs = RUHE_MS): Pr
 		if (teile.length <= 2 && (ordner === undefined || ordner === 'mappe.json')) {
 			plane(`mappe:${mappe}`, () => pruefeMappe(mappe));
 		}
-		const istDokumentDatei = teile.length === 4 && ordner === 'dokumente' && DOKUMENT_DATEIEN.has(datei ?? '');
-		if (istDokumentDatei && dok !== undefined && ID_REGEX.test(dok)) {
-			plane(`dok:${mappe}/${dok}`, () => pruefeDokument(mappe, dok));
+		if (ordner === 'dokumente' && dok !== undefined && ID_REGEX.test(dok)) {
+			beobachteDokument(mappe, dok);
+			if (teile.length === 4 && DOKUMENT_DATEIEN.has(datei ?? '')) {
+				meldeDokument(mappe, dok);
+			}
+		} else if (teile.length === 1 || (teile.length === 2 && ordner === 'dokumente')) {
+			// Neue Mappe oder neuer Ordner „dokumente“, etwa per rename: Die Dokumente darin gleich mit beobachten.
+			void beobachteMappe(mappe);
 		}
 	});
 	beobachter.on('error', (fehler) => console.error('Überwachung der Ablage:', fehler));
@@ -90,6 +138,10 @@ export const starteUeberwachung = async (kontext: Kontext, ruheMs = RUHE_MS): Pr
 	return {
 		stop: () => {
 			beobachter.close();
+			for (const w of dokumentBeobachter.values()) {
+				w.close();
+			}
+			dokumentBeobachter.clear();
 			for (const t of timer.values()) {
 				clearTimeout(t);
 			}

@@ -4,6 +4,24 @@ export const TASTEN_SPERRE_OHNE_LISTE =
 /** Die Fläche der Ablage ist selbst eine `listbox`, aber kein offenes Auswahlfeld: ⌘K und ⌘J gelten dort weiter. */
 export const TASTEN_SPERRE = `${TASTEN_SPERRE_OHNE_LISTE}, [role="listbox"]:not([data-ablage-liste])`;
 
+const SCHRITT_TASTE = (e: Pick<KeyboardEvent, 'code' | 'metaKey' | 'ctrlKey' | 'altKey'>) =>
+	e.code === 'KeyZ' && (e.metaKey || e.ctrlKey) && !e.altKey;
+
+/**
+ * Sperrt etwas Offenes die Tasten des Editors? Ein Popover ohne Schleier (Prüfliste) lässt ⌘Z und ⇧⌘Z durch: Sie
+ * wirken auf das Blatt, solange kein Textfeld den Fokus hat (aus der Abnahme von 193).
+ */
+export const tastenGesperrt = (e: Pick<KeyboardEvent, 'code' | 'metaKey' | 'ctrlKey' | 'altKey'>) => {
+	const offen = [...document.querySelectorAll(TASTEN_SPERRE)];
+	if (offen.length === 0) {
+		return false;
+	}
+	const nurPopover = offen.every(
+		(o) => o.matches('[role="dialog"]') && o.tagName !== 'DIALOG' && o.getAttribute('aria-modal') !== 'true',
+	);
+	return !(nurPopover && SCHRITT_TASTE(e));
+};
+
 /** Ereignisse kommen auch aus dem `iframe`: `instanceof` kennt dessen Klassen nicht. */
 const element = (ziel: EventTarget | null) => {
 	const e = ziel as Partial<Element> | null;

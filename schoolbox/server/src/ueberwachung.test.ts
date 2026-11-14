@@ -85,6 +85,34 @@ describe('Dateiüberwachung', () => {
 		);
 	});
 
+	it('bemerkt Änderungen von außen auch, nachdem der Server die Datei atomar ersetzt hat (193-01)', async () => {
+		s = await starteTestServer({ ueberwachung: true, ruheMs: 300 });
+		const { dir, dok, mappe } = await legeDokumentAn(s.materialDir, { jetzt: VOR_10_MINUTEN() });
+		strom = sammleEreignisse(s.url, s.cookie);
+		await strom.bereit;
+		const url = `${s.url}/api/dokumente/${mappe}/${dok}`;
+		const { quelle, version } = (await (await s.holen(url)).json()) as { quelle: string; version: string };
+		const eigen = quelle.replace('</section>', '<p>Lehrkraft</p>\n</section>');
+		const antwort = await s.holen(url, {
+			method: 'PUT',
+			headers: schreibKoepfe,
+			body: JSON.stringify({ quelle: eigen, basisVersion: version }),
+		});
+		assert.equal(antwort.status, 200);
+		await warte(900);
+		const datei = path.join(dir, 'material.html');
+		const vonAussen = eigen.replace('</section>', '<p>Claude</p>\n</section>');
+		await writeFile(datei, vonAussen);
+		await warte(1200);
+		const claude = strom.ereignisse.filter(
+			(e) => e.typ === 'dokument-geaendert' && (e.daten as { urheber?: string }).urheber === 'claude',
+		);
+		assert.deepEqual(
+			claude.map((e) => e.daten),
+			[{ mappe, dok, version: kennung(vonAussen), urheber: 'claude' }],
+		);
+	});
+
 	it('meldet neue Mappen mit mappe-neu, auch wenn sie per rename entstehen', async () => {
 		s = await starteTestServer({ ueberwachung: true, ruheMs: 300 });
 		strom = sammleEreignisse(s.url, s.cookie);

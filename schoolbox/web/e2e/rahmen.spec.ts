@@ -98,8 +98,8 @@ test.describe('Käfer (193-27)', () => {
 				expect(schneiden(k, await box(knopf)), (await knopf.getAttribute('aria-label')) ?? '').toBe(false);
 			}
 		}
-		// Der Klick auf „Linke Leiste“ startet keine Auswahl des Käfers.
-		await page.getByRole('button', { name: 'Linke Leiste' }).click();
+		// Ein Klick auf den Anfang der Statusleiste startet keine Auswahl des Käfers.
+		await page.locator('[data-seite-von]').click();
 		await expect(page.getByRole('dialog', { name: 'Bereich für die Meldung wählen' })).toHaveCount(0);
 	});
 

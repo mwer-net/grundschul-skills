@@ -61,15 +61,17 @@ const Zoom = ({ fuehreAus, skala, zoom }: ZoomEigenschaften) => {
 					<Symbol name="plus" className="size-3 flex-none" />
 				</button>
 			</Tooltip>
-			<button
-				type="button"
-				className={klassen(KNOPF, 'aria-pressed:text-tinte')}
-				aria-pressed={zoom === 'einpassen'}
-				onClick={() => fuehreAus('ansicht.einpassen')}
-			>
-				<Symbol name="vollbild" className="size-3 flex-none" />
-				Einpassen
-			</button>
+			<Tooltip text="Einpassen" kuerzel={kuerzelVon('ansicht.einpassen')}>
+				<button
+					type="button"
+					className={klassen(KNOPF, 'aria-pressed:text-tinte')}
+					aria-pressed={zoom === 'einpassen'}
+					onClick={() => fuehreAus('ansicht.einpassen')}
+				>
+					<Symbol name="vollbild" className="size-3 flex-none" />
+					Einpassen
+				</button>
+			</Tooltip>
 		</div>
 	);
 };
@@ -122,27 +124,24 @@ interface Eigenschaften extends ZoomEigenschaften {
 	claude: ClaudeLauf | null;
 	zeigeClaude: () => void;
 	seite: { nr: number; von: number };
+	/** Bis das Blatt geladen ist, steht nur das Format da (193-21): Die Seitenzahl wäre noch falsch. */
+	blattGeladen: boolean;
 	format: string;
 	pruefung: Pruefstand | null;
 	zeigePunkt: (p: Pruefpunkt) => void;
 	knopf?: ((p: Pruefpunkt) => PruefKnopf | null) | undefined;
-	/** Links ist etwas zu sehen: Ebenen, eine Schublade oder beide. */
-	linksOffen: boolean;
 	rechtsOffen: boolean;
-	/** Schließt alles, was links zu sehen ist, und holt es wieder (183). */
-	schalteLinks: () => void;
 	setRechtsOffen: (offen: boolean) => void;
 }
 
 /** Unterste Zeile des Editors: wo man ist, ob alles passt, wie groß das Blatt gezeigt wird. */
 export const Statusleiste = ({
+	blattGeladen,
 	claude,
 	format,
 	fuehreAus,
-	linksOffen,
 	pruefung,
 	rechtsOffen,
-	schalteLinks,
 	seite,
 	setRechtsOffen,
 	skala,
@@ -155,19 +154,11 @@ export const Statusleiste = ({
 		className="z-leiste grid min-h-6 flex-none grid-cols-[1fr_auto_1fr] items-center gap-2 border-t border-rand bg-flaeche px-1 text-xs text-leise"
 		data-statusleiste
 	>
-		<div className="flex min-w-0 items-center gap-2">
-			<Tooltip text="Linke Leiste">
-				<button
-					type="button"
-					className={klassen(KNOPF, 'aria-pressed:text-tinte')}
-					aria-label="Linke Leiste"
-					aria-pressed={linksOffen}
-					onClick={schalteLinks}
-				>
-					<Symbol name="leisteLinks" className="flex-none" />
-				</button>
-			</Tooltip>
-			<span className="truncate" data-seite-von>{`Seite ${seite.nr} von ${seite.von} · ${format}`}</span>
+		{/* 193-35: Zu- und Aufklappen liegt am Symbol der Schubladenleiste, nicht noch einmal hier. */}
+		<div className="flex min-w-0 items-center gap-2 pl-1">
+			<span className="truncate" data-seite-von>
+				{blattGeladen ? `Seite ${seite.nr} von ${seite.von} · ${format}` : format}
+			</span>
 			<Pruefstatus stand={pruefung} zeige={zeigePunkt} knopf={knopf} />
 			{claude && <ClaudeStand lauf={claude} oeffne={zeigeClaude} />}
 		</div>
@@ -199,7 +190,7 @@ export const Statusleiste = ({
 					aria-pressed={rechtsOffen}
 					onClick={() => setRechtsOffen(!rechtsOffen)}
 				>
-					<Symbol name="leisteRechts" className="flex-none" />
+					<Symbol name="leisteRechts" className="size-3.5 flex-none" />
 				</button>
 			</Tooltip>
 		</div>

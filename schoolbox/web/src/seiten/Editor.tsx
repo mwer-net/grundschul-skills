@@ -1,5 +1,5 @@
 import { klasseDesBlatts } from '@schoolbox/kern/src/einfuegen';
-import { formatAusHtml } from '@schoolbox/kern/src/html';
+import { formatAusHtml, titelAusHtml } from '@schoolbox/kern/src/html';
 import type { FuerBlatt } from '@schoolbox/kern/src/katalog';
 import { hatLoesung, kannLoesungHaben } from '@schoolbox/kern/src/loesungen';
 import type { Verlauf, Zerlegung } from '@schoolbox/kern/src/quelltext';
@@ -11,9 +11,11 @@ import type { ReactNode } from 'react';
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import { flushSync } from 'react-dom';
 import type { SetURLSearchParams } from 'react-router-dom';
-import { useNavigate, useSearchParams } from 'react-router-dom';
+import { useLocation, useNavigate, useSearchParams } from 'react-router-dom';
 
 import { lade, meldung } from '../api';
+import { Dialog } from '../bausteine/Dialog';
+import { Gekuerzt } from '../bausteine/Gekuerzt';
 import { useHinweis } from '../bausteine/hinweis';
 import { klassen } from '../bausteine/klassen';
 import { Knopf } from '../bausteine/Knopf';
@@ -71,7 +73,7 @@ import { angezeigt, istEng, sichtbar } from '../editor/schubladen/spalten';
 import { Statusleiste } from '../editor/Statusleiste';
 import type { Struktur } from '../editor/struktur';
 import { useStruktur } from '../editor/struktur';
-import { behaeltUndo, beobachteFelder, gehoertDemElement, istFeld, loeseFeld, TASTEN_SPERRE } from '../editor/tasten';
+import { behaeltUndo, beobachteFelder, gehoertDemElement, istFeld, loeseFeld, tastenGesperrt } from '../editor/tasten';
 import { TastenUebersicht } from '../editor/TastenUebersicht';
 import { TEXT_GEAENDERT, useText } from '../editor/text';
 import { useBefehle } from '../editor/useBefehle';
@@ -108,7 +110,6 @@ const BEDIENBAR = 'input, select, textarea, button';
 const Trenner = () => <span aria-hidden className="mx-1 h-4 w-px flex-none bg-rand" />;
 
 interface KopfEigenschaften {
-	mappe: string;
 	titel: string;
 	stand: ReactNode;
 	verlassen: () => void;
@@ -116,19 +117,20 @@ interface KopfEigenschaften {
 	children: ReactNode;
 }
 
-/** Drei Zonen: links wo man ist, in der Mitte die Ansicht, rechts die Aktionen mit genau einer Hauptaktion. */
-const Kopfleiste = ({ children, mappe, mitte, stand, titel, verlassen }: KopfEigenschaften) => (
+/**
+ * Drei Zonen: links was offen ist, in der Mitte die Ansicht, rechts die Aktionen mit genau einer Hauptaktion. Den
+ * Ordner nennt die Ansicht, einen Klick entfernt (193-36); ein gekürzter Titel steht ganz im Tooltip (193-26).
+ */
+const Kopfleiste = ({ children, mitte, stand, titel, verlassen }: KopfEigenschaften) => (
 	<header
 		className="@container z-kopf flex min-h-10 flex-none items-center gap-2 border-b border-rand bg-flaeche px-2 max-lg:flex-wrap max-lg:py-1"
 		data-kopf
 	>
 		<div className="flex min-w-0 flex-1 items-center gap-1.5">
 			<SymbolKnopf symbol="zurueck" beschriftung="Zurück" onClick={verlassen} />
-			<span className="truncate text-leise @max-[1150px]:hidden">{mappe}</span>
-			<span aria-hidden className="text-dezent @max-[1150px]:hidden">
-				/
-			</span>
-			<h1 className="min-w-0 truncate text-sm font-medium">{titel}</h1>
+			<h1 className="flex min-w-0 text-sm font-medium" data-kopf-titel>
+				<Gekuerzt text={titel} />
+			</h1>
 			<div className="flex-none">{stand}</div>
 		</div>
 		<div className="flex flex-none items-center gap-1.5">{mitte}</div>
@@ -417,6 +419,8 @@ const Bearbeitung = ({ dokument, mappe: mappenDaten }: { mappe: Mappe; dokument:
 	const b = useBearbeitung(mappe, dok, auswahlJetzt);
 	const { alles, stand } = b.speicher;
 	const [geladen, setGeladen] = useState<Geladen | null>(null);
+	// Einmal gezeigt, gilt das Blatt als geladen, auch wenn ein Schritt den Rahmen kurz neu lädt (193-21).
+	const [erstesBild, setErstesBild] = useState(false);
 	const panels = usePanels(suche.get('neu') === '1');
 	// Leiste, Spalten und Blatt, ohne Inspektor; gemessen vor dem ersten Bild, damit das iPad beim Laden nicht springt.
 	const bereichRef = useRef<HTMLDivElement>(null);
@@ -461,7 +465,9 @@ const Bearbeitung = ({ dokument, mappe: mappenDaten }: { mappe: Mappe; dokument:
 
 	const format = formatVon(b.verlauf, meta.format);
 	const quelle = b.verlauf?.quelle ?? null;
-	useTitel(b.ladeFehler ? NICHT_GEFUNDEN : `${meta.titel} bearbeiten`);
+	// 193-07: Nach dem Umbenennen im Reiter „Blatt“ gilt sofort der Titel der Quelle, auch für ⌘Z.
+	const titel = (quelle === null ? null : titelAusHtml(quelle)) ?? meta.titel;
+	useTitel(b.ladeFehler ? NICHT_GEFUNDEN : `${titel} bearbeiten`);
 	const sperre = sperreDesBlatts(vorschau !== null, b.konflikt !== null, entwurf.sperrt);
 	const sichtbareSeite = useRef<() => number | null>(() => null);
 	const claude = useClaude({
@@ -503,6 +509,7 @@ const Bearbeitung = ({ dokument, mappe: mappenDaten }: { mappe: Mappe; dokument:
 			const z = zerlegungZu(h);
 			if (z) {
 				setGeladen({ doc: d, html: h, zerlegung: z });
+				setErstesBild(true);
 				nachBild.current(d, z, h === htmlJetzt.current);
 			}
 		},
@@ -652,14 +659,26 @@ const Bearbeitung = ({ dokument, mappe: mappenDaten }: { mappe: Mappe; dokument:
 	const seite = useSichtbareSeite(geladen, ansicht, skala);
 	sichtbareSeite.current = () => (docJetzt ? seiteAn(docJetzt, seite.nr) : null);
 
-	const verlassen = async (ziel: string) => {
+	const ausAnsicht = (useLocation().state as { ausAnsicht?: boolean } | null)?.ausAnsicht === true;
+	const [ungespeichert, setUngespeichert] = useState<(() => void) | null>(null);
+	/**
+	 * 193-08: Kam man aus der Ansicht, geht „Zurück“ einen Schritt im Verlauf zurück; sonst ersetzt die Ansicht den
+	 * Eintrag. So führt das Zurück des Browsers danach dorthin, wo man vor dem Material war.
+	 */
+	const gehe = (ziel: string, zurAnsicht: boolean) => {
+		if (zurAnsicht && ausAnsicht) {
+			void navigate(-1);
+		} else {
+			void navigate(ziel, zurAnsicht ? { replace: true } : undefined);
+		}
+	};
+	const verlassen = async (ziel: string, zurAnsicht = false) => {
 		const gespeichert = await alles();
-		const trotzdem =
-			gespeichert ||
-			b.konflikt !== null ||
-			window.confirm('Deine letzten Änderungen sind noch nicht gespeichert. Trotzdem gehen?');
-		if (trotzdem) {
-			void navigate(ziel);
+		if (gespeichert || b.konflikt !== null) {
+			gehe(ziel, zurAnsicht);
+		} else {
+			// 193-09: eine Nachfrage im Muster aller Dialoge statt des Fensters des Browsers.
+			setUngespeichert(() => () => gehe(ziel, zurAnsicht));
 		}
 	};
 
@@ -811,11 +830,12 @@ const Bearbeitung = ({ dokument, mappe: mappenDaten }: { mappe: Mappe; dokument:
 				tasten: () => setTastenOffen(true),
 				rueckgaengig: zurueck,
 				wiederholen: vor,
-				speichern: () => zeige({ text: 'Wird automatisch gespeichert.' }),
+				// 193-37: sofort speichern; die Antwort ist der Speicherstand im Kopf.
+				speichern: () => void alles(),
 				pdf: () => document.querySelector<HTMLElement>('[data-pdf-knopf] button')?.click(),
 				drucken: () => void verlassen(druckSeite(zugang, dok, loesung ? 'loesung' : 'arbeitsblatt', profil)),
 				praesentieren: () => void verlassen(praesentationSeite(zugang, dok)),
-				zurueck: () => void verlassen(dokumentSeite(zugang, dok)),
+				zurueck: () => void verlassen(dokumentSeite(zugang, dok), true),
 				hilfe: () => void verlassen('/hilfe'),
 			},
 		},
@@ -859,14 +879,23 @@ const Bearbeitung = ({ dokument, mappe: mappenDaten }: { mappe: Mappe; dokument:
 	};
 
 	const { jetzt: befehlsKontext, zuTaste } = befehle;
+	const inVorschau = useRef(false);
+	inVorschau.current = vorschau !== null;
 	const taste = useCallback(
 		(e: KeyboardEvent) => {
 			// Schon vergeben: Die Textsitzung hört vorher hin und beendet sich bei Esc selbst.
-			if (e.defaultPrevented || document.querySelector(TASTEN_SPERRE) || gehoertDemElement(e)) {
+			if (e.defaultPrevented || tastenGesperrt(e) || gehoertDemElement(e)) {
 				// Zoom-Tasten nie an den Browser: Sonst zoomt bei offenem Menü die ganze Oberfläche (56).
 				if (istZoomTaste(e)) {
 					e.preventDefault();
 				}
+				return;
+			}
+			// 193-19: Esc verlässt die Vorschau einer Version wie „Zurück zum jetzigen Stand“.
+			const ohneZusatz = !e.metaKey && !e.ctrlKey && !e.altKey && !e.shiftKey;
+			if (e.key === 'Escape' && ohneZusatz && inVorschau.current && !istFeld(e.target)) {
+				e.preventDefault();
+				setVorschau(null);
 				return;
 			}
 			const { pfad: kette, textsitzung } = befehlsKontext.current;
@@ -885,8 +914,8 @@ const Bearbeitung = ({ dokument, mappe: mappenDaten }: { mappe: Mappe; dokument:
 	useEffect(() => {
 		// Beim Schließen eines Menüs ist es unten am Fenster schon weg: Esc ginge sonst zusätzlich eine Ebene hoch.
 		let offenBeimDruck = false;
-		const vorher = () => {
-			offenBeimDruck = Boolean(document.querySelector(TASTEN_SPERRE));
+		const vorher = (e: KeyboardEvent) => {
+			offenBeimDruck = tastenGesperrt(e);
 		};
 		const amFenster = (e: KeyboardEvent) => {
 			if (!offenBeimDruck) {
@@ -944,8 +973,8 @@ const Bearbeitung = ({ dokument, mappe: mappenDaten }: { mappe: Mappe; dokument:
 	}));
 	// Aus der Quelle im Editor, nicht aus der Darstellung: Nach dem Tippen gilt schon der neue Text.
 	const ort = useMemo(
-		() => ({ mappe: mappenDaten, dokument: { id: dok, titel: meta.titel } }),
-		[mappenDaten, dok, meta.titel],
+		() => ({ mappe: mappenDaten, dokument: { id: dok, titel } }),
+		[mappenDaten, dok, titel],
 	);
 	useEffect(() => {
 		handlungen.current = {
@@ -1082,8 +1111,7 @@ const Bearbeitung = ({ dokument, mappe: mappenDaten }: { mappe: Mappe; dokument:
 		<ClaudeKontext.Provider value={claude.steuerung}>
 			<div className="flex h-dvh flex-col bg-papier" data-editor>
 				<Kopfleiste
-					mappe={mappenDaten.titel}
-					titel={meta.titel}
+					titel={titel}
 					stand={<Speicheranzeige stand={stand} erneut={() => void b.speicher.speichere()} />}
 					verlassen={() => befehle.fuehreAus('dokument.zurueck')}
 					mitte={kopfMitte}
@@ -1164,6 +1192,31 @@ const Bearbeitung = ({ dokument, mappe: mappenDaten }: { mappe: Mappe; dokument:
 						}}
 					/>
 				)}
+				{ungespeichert && (
+					<Dialog
+						titel="Noch nicht gespeichert"
+						schliessen={() => setUngespeichert(null)}
+						fuss={
+							<>
+								<Knopf
+									art="gefahr"
+									data-trotzdem-verlassen
+									onClick={() => {
+										setUngespeichert(null);
+										ungespeichert();
+									}}
+								>
+									Trotzdem verlassen
+								</Knopf>
+								<Knopf data-hauptaktion onClick={() => setUngespeichert(null)}>
+									Hier bleiben
+								</Knopf>
+							</>
+						}
+					>
+						<p>Deine letzten Änderungen sind noch nicht gespeichert.</p>
+					</Dialog>
+				)}
 				{tastenOffen && (
 					<TastenUebersicht kontext={befehle.jetzt.current} schliessen={() => setTastenOffen(false)} />
 				)}
@@ -1182,7 +1235,7 @@ const Bearbeitung = ({ dokument, mappe: mappenDaten }: { mappe: Mappe; dokument:
 							className="min-h-0 min-w-0 flex-1 touch-pan-x touch-pan-y overflow-y-auto bg-leinwand"
 						>
 							<Entwurfsleiste entwurf={entwurf} />
-							<EntwurfKarte entwurf={entwurf} ki={ki} titel={meta.titel} karte={entwurfKarte} />
+							<EntwurfKarte entwurf={entwurf} ki={ki} titel={titel} karte={entwurfKarte} />
 							{b.konflikt && (
 								<Konfliktleiste
 									urheber={b.konflikt.urheber}
@@ -1196,6 +1249,7 @@ const Bearbeitung = ({ dokument, mappe: mappenDaten }: { mappe: Mappe; dokument:
 							{vorschau && (
 								<Vorschauleiste
 									version={vorschau.version}
+									jetzig={vorschau.quelle === quelle}
 									laeuft={b.laeuft}
 									wiederherstellen={() => void wiederherstellen(vorschau.version.id)}
 									schliessen={() => setVorschau(null)}
@@ -1204,7 +1258,7 @@ const Bearbeitung = ({ dokument, mappe: mappenDaten }: { mappe: Mappe; dokument:
 							{html !== null && (
 								<Leinwand
 									html={html}
-									titel={meta.titel}
+									titel={titel}
 									auswahl={auswahl}
 									waehle={setAuswahl}
 									zoom={zoom}
@@ -1218,7 +1272,8 @@ const Bearbeitung = ({ dokument, mappe: mappenDaten }: { mappe: Mappe; dokument:
 									nurAnsehen={nurAnsehen}
 									ziehbar={struktur.aktiv}
 									einfuegeLinie={frei && struktur.aktiv}
-									ablegen={struktur.verschiebe}
+									// Nach dem Ziehen ist der Baustein im Blick wie nach ⌥↑↓ (193, aus Abnahme 206).
+									ablegen={(nr, ablage) => struktur.verschiebe(nr, ablage, true)}
 									jeSeite={format === 'folie'}
 									einblendung={(e) => (
 										<>
@@ -1298,6 +1353,7 @@ const Bearbeitung = ({ dokument, mappe: mappenDaten }: { mappe: Mappe; dokument:
 
 				<Statusleiste
 					seite={seite}
+					blattGeladen={erstesBild}
 					format={FORMAT_NAME[format]}
 					pruefung={pruefung.stand}
 					zeigePunkt={zeigePunkt}
@@ -1305,8 +1361,6 @@ const Bearbeitung = ({ dokument, mappe: mappenDaten }: { mappe: Mappe; dokument:
 					zoom={zoom}
 					skala={skala}
 					fuehreAus={befehle.fuehreAus}
-					linksOffen={sichtbar(zeigt).length > 0}
-					schalteLinks={() => panels.schalteLeiste(zeigt)}
 					rechtsOffen={panels.rechtsOffen}
 					setRechtsOffen={panels.setRechtsOffen}
 					claude={claude.lauf}
