@@ -3,7 +3,17 @@ import path from 'node:path';
 
 import type { Locator, Page } from '@playwright/test';
 
-import { expect, legeMappeAn, MATERIAL_DIR, objekt, objektMenue, oeffneObjekt, test, waehleObjekt } from './hilfe';
+import {
+	expect,
+	legeEntwuerfeAn,
+	legeMappeAn,
+	MATERIAL_DIR,
+	objekt,
+	objektMenue,
+	oeffneObjekt,
+	test,
+	waehleObjekt,
+} from './hilfe';
 
 const leiste = (page: Page) => page.locator('[data-werkzeugleiste]');
 const baum = (page: Page, name: string) => page.locator('[data-baum-ordner]').filter({ hasText: name }).first();
@@ -148,7 +158,7 @@ test.describe('Kerngeschichte', () => {
 		await objekt(page, 'Station 1').first().click();
 		await objekt(page, 'Station 3').click({ modifiers: ['Shift'] });
 		await page.keyboard.press('ControlOrMeta+x');
-		await expect(meldung(page)).toContainText('gemerkt');
+		await expect(meldung(page)).toContainText('3 Objekte ausgeschnitten.');
 		await baum(page, 'Mathe').click();
 		await expect(page.getByRole('heading', { level: 1, name: 'Mathe' })).toBeVisible();
 		await page.keyboard.press('ControlOrMeta+v');
@@ -596,12 +606,20 @@ test.describe('Ohne Ziehen', () => {
 		await expect(kacheln(page)).toHaveCount(2);
 	});
 
-	test('Ausschneiden und Einfügen über das Menü', async ({ druecke, page }) => {
+	test('⌘X, dann Einfügen über das Menü; „Ausschneiden“ steht in keinem Menü (188-32)', async ({
+		druecke,
+		hasTouch,
+		page,
+	}) => {
+		test.skip(hasTouch, 'Tasten nur mit Maus und Tastatur');
 		await legeMappeAn('Quelle', 'mathematik', 3, [{ titel: 'Blatt A' }]);
 		await legeMappeAn('Ziel', 'mathematik', 3, [{ titel: 'Blatt B' }]);
 		await page.goto('/');
 		await objektMenue(page, 'Quelle');
-		await druecke(eintrag(page, /^Ausschneiden/));
+		await expect(eintrag(page, /^Ausschneiden/)).toHaveCount(0);
+		await page.keyboard.press('Escape');
+		await objekt(page, 'Quelle').click();
+		await page.keyboard.press('ControlOrMeta+x');
 		await objektMenue(page, 'Ziel');
 		await druecke(eintrag(page, /^Einfügen/));
 		await expect(kacheln(page)).toHaveCount(1);
@@ -653,7 +671,7 @@ test.describe('Ohne Ziehen', () => {
 
 		await objekt(page, 'Blatt A').click();
 		await page.keyboard.press('ControlOrMeta+x');
-		await expect(meldung(page)).toContainText('gemerkt');
+		await expect(meldung(page)).toContainText('„Blatt A“ ausgeschnitten.');
 		await page.keyboard.press('Escape');
 		await baum(page, 'Ziel').click();
 		await expect(page.getByRole('heading', { level: 1, name: 'Ziel' })).toBeVisible();
@@ -746,6 +764,67 @@ test.describe('Suche, Zuletzt, Papierkorb', () => {
 		await expect(objekt(page, 'Reihe')).toBeVisible();
 		await oeffneObjekt(page, 'Reihe');
 		await expect(objekt(page, 'Station 2')).toBeVisible();
+	});
+});
+
+test.describe('Befunde der Durchsicht 186 (A)', () => {
+	test('⌘F setzt den Fokus ins Suchfeld und markiert den Inhalt (188-01)', async ({ hasTouch, page }) => {
+		test.skip(hasTouch, 'Tasten nur mit Maus und Tastatur');
+		await reihe();
+		await page.goto('/');
+		const feld = page.locator('[data-suchfeld]');
+		await feld.fill('Station');
+		await page.keyboard.press('Escape');
+		await feld.fill('Station');
+		await feld.blur();
+		await page.keyboard.press('ControlOrMeta+f');
+		await expect(feld).toBeFocused();
+		expect(await feld.evaluate((el: HTMLInputElement) => [el.selectionStart, el.selectionEnd])).toEqual([0, 7]);
+	});
+
+	test('Leiste bei offenen Entwürfen: „Entwürfe vergleichen“, kein „Bearbeiten“ (188-02)', async ({ page }) => {
+		const { dokumente, id } = await legeMappeAn('Mit Entwürfen', 'mathematik', 3, [{ titel: 'Wählen' }]);
+		await legeEntwuerfeAn(id, dokumente[0] ?? '', [{ titel: 'Eins' }, { titel: 'Zwei' }]);
+		await page.goto(`/m/${id}`);
+		await waehleObjekt(page, 'Wählen');
+		await expect(leiste(page).getByRole('button', { name: 'Entwürfe vergleichen' })).toBeVisible();
+		await expect(leiste(page).getByRole('button', { name: 'Bearbeiten' })).toHaveCount(0);
+		await expect(leiste(page).getByRole('button', { name: 'PDF' })).toHaveCount(0);
+	});
+
+	test('Menü auf „Mein Material“ im Baum: nur die Wurzel, „Neuer Ordner“ im Baum (189-01, 188-36)', async ({
+		druecke,
+		hasTouch,
+		page,
+	}) => {
+		test.skip(hasTouch, 'Rechtsklick gibt es nur mit Maus');
+		await reihe();
+		await page.goto('/');
+		await oeffneObjekt(page, 'Reihe');
+		await baum(page, 'Mein Material').click({ button: 'right' });
+		const namen = await page.getByRole('menuitem').allInnerTexts();
+		for (const weg of ['Darstellung', 'Sortieren', 'Alles auswählen']) {
+			expect(namen.join()).not.toContain(weg);
+		}
+		await druecke(eintrag(page, /^Neuer Ordner/));
+		await expect(page.locator('[data-seitenleiste] [data-namensfeld] input')).toBeFocused();
+	});
+
+	test('Ordner, den es nicht gibt: Leiste ohne Befehle, Pfad führt zurück, ⌥N tut nichts (189-02)', async ({
+		hasTouch,
+		page,
+	}) => {
+		await page.goto('/o/gibt-es-nicht');
+		await expect(page.getByRole('heading', { name: 'Diesen Ordner gibt es nicht mehr' })).toBeVisible();
+		await expect(leiste(page).locator('[data-neuer-ordner]')).toHaveCount(0);
+		await expect(leiste(page).getByRole('button', { name: 'Weitere Aktionen' })).toHaveCount(0);
+		await expect(pfad(page).getByRole('link', { name: 'Mein Material' })).toBeVisible();
+		await expect(status(page)).toHaveText('');
+		if (!hasTouch) {
+			await page.keyboard.press('Alt+KeyN');
+			await expect(page.locator('[data-namensfeld]')).toHaveCount(0);
+			await expect(page.getByRole('alert')).toHaveCount(0);
+		}
 	});
 });
 

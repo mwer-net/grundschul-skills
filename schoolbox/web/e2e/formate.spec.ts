@@ -266,9 +266,11 @@ test.describe('Generatoren (050)', () => {
 		await page.goto(`/m/${id}`);
 		await expect(page.locator('[data-objekt]')).toHaveCount(1);
 		await objektMenue(page, 'Wie spät ist es?');
-		await page.getByRole('menuitem', { name: 'Variante anlegen' }).click();
+		// 188-33: Der Eintrag nennt, was entsteht, und die neue Variante ist danach gewählt.
+		await page.getByRole('menuitem', { name: 'Variante mit neuen Zahlen' }).click();
 		await expect(page.getByText('Wie spät ist es? (B)', { exact: true }).first()).toBeVisible();
 		await expect(page.locator('[data-objekt]')).toHaveCount(2);
+		await expect(page.locator('[data-objekt][aria-selected="true"]')).toContainText('Wie spät ist es? (B)');
 	});
 });
 

@@ -76,10 +76,10 @@ test.describe('Hilfe', () => {
 		await expect(page.getByRole('heading', { level: 1 })).toContainText('Kurzanleitung');
 	});
 
-	test('steht auch auf der leeren Übersicht', async ({ druecke, page }) => {
+	test('steht im Kopf, nicht noch einmal auf der leeren Übersicht (189-33)', async ({ page }) => {
 		await page.goto('/');
-		await druecke(page.getByRole('link', { name: 'So geht’s' }));
-		await expect(page).toHaveURL(/\/hilfe$/);
+		await expect(page.getByRole('heading', { name: 'Noch kein Material' })).toBeVisible();
+		await expect(page.getByRole('link', { name: 'So geht’s' })).toHaveCount(0);
 	});
 
 	test('Die Hilfe kennt keine Formen-Schere (173)', async ({ page }) => {
