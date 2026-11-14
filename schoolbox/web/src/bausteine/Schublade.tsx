@@ -143,7 +143,7 @@ export const Schubladenabschnitt = ({
 /** Ein grauer Satz, wenn nichts zu zeigen ist; darunter höchstens eine Aktion. */
 export const Schubladenleer = ({ aktion, children }: { children: ReactNode; aktion?: ReactNode }) => (
 	<div className="flex flex-col items-start gap-2" data-schublade-leer>
-		<p className="text-sm text-leise">{children}</p>
+		<p className="max-w-full text-sm break-words text-leise">{children}</p>
 		{aktion}
 	</div>
 );

@@ -8,6 +8,7 @@ import { Menue } from '../bausteine/Menue';
 import type { SymbolName } from '../bausteine/Symbol';
 import { Symbol } from '../bausteine/Symbol';
 import { SymbolKnopf } from '../bausteine/SymbolKnopf';
+import { Tooltip } from '../bausteine/Tooltip';
 import { BEFEHLE, kannVerschieben, kuerzelIm, kuerzelText, titelVon } from './befehle';
 import { ClaudeKnopf } from './ClaudeKnopf';
 import type { PfadTeil } from './darstellung';
@@ -53,10 +54,15 @@ const BefehlKnopf = ({ befehle, id, platz }: { befehle: Befehle; id: string; pla
 	);
 };
 
-const MEHR_KNOPF = (
-	<Knopf art="leise" groesse="klein" className="size-knopf-klein">
-		<Symbol name="mehr" />
-	</Knopf>
+const MEHR_NAME = 'Mehr zu diesem Baustein';
+
+/** ⋯ mit Tooltip; der Tooltip schweigt bei offenem Menü und nach dem Schließen (`Tooltip`, 188-20). */
+const MehrKnopf = (props: Record<string, unknown>) => (
+	<Tooltip text={MEHR_NAME}>
+		<Knopf {...props} art="leise" groesse="klein" className="size-knopf-klein">
+			<Symbol name="mehr" />
+		</Knopf>
+	</Tooltip>
 );
 
 const tastenInLeiste = (ereignis: KeyboardEvent<HTMLDivElement>, doc: Document) => {
@@ -115,9 +121,9 @@ const LeistenEnde = ({
 			<BefehlKnopf befehle={befehle} id="auswahl.duplizieren" />
 			<BefehlKnopf befehle={befehle} id="auswahl.loeschen" />
 			<Menue
-				name="Mehr zu diesem Baustein"
+				name={MEHR_NAME}
 				rechtsbuendig
-				ausloeser={MEHR_KNOPF}
+				ausloeser={<MehrKnopf />}
 				eintraege={befehle.menue(seite ? 'seite' : 'baustein')}
 				fokusDanach={fokusDanach}
 			/>

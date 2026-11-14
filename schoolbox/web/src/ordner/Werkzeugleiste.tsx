@@ -1,5 +1,4 @@
-import type { SyntheticEvent } from 'react';
-import { useEffect, useLayoutEffect, useRef, useState } from 'react';
+import { useLayoutEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 
 import { Knopf } from '../bausteine/Knopf';
@@ -16,38 +15,14 @@ import { naechsteSortierung, SORTIER_NAME } from './sortierung';
 import type { AblageOrdner, Darstellung, Seite, Sortierung } from './typen';
 import type { Befehle } from './useBefehle';
 
-/**
- * ⋯ mit Tooltip; solange das Menü offen ist, schweigt der Tooltip (188-20), und danach auch, bis Fokus oder Zeiger den
- * Knopf verlassen: Das Menü gibt den Fokus beim Schließen zurück. Die Eigenschaften kommen vom Auslöser.
- */
-const MehrKnopf = (props: Record<string, unknown>) => {
-	const offen = props['data-popup-open'] !== undefined;
-	const [still, setStill] = useState(false);
-	useEffect(() => {
-		if (offen) {
-			setStill(true);
-		}
-	}, [offen]);
-	const weiter = (name: 'onBlur' | 'onPointerLeave') => (e: SyntheticEvent) => {
-		(props[name] as ((e: SyntheticEvent) => void) | undefined)?.(e);
-		if (!offen) {
-			setStill(false);
-		}
-	};
-	return (
-		<Tooltip text="Weitere Aktionen" aus={offen || still}>
-			<Knopf
-				{...props}
-				art="leise"
-				className="size-knopf"
-				onBlur={weiter('onBlur')}
-				onPointerLeave={weiter('onPointerLeave')}
-			>
-				<Symbol name="mehr" />
-			</Knopf>
-		</Tooltip>
-	);
-};
+/** ⋯ mit Tooltip; der Tooltip schweigt bei offenem Menü und nach dem Schließen (`Tooltip`, 188-20). */
+const MehrKnopf = (props: Record<string, unknown>) => (
+	<Tooltip text="Weitere Aktionen">
+		<Knopf {...props} art="leise" className="size-knopf">
+			<Symbol name="mehr" />
+		</Knopf>
+	</Tooltip>
+);
 
 const KnopfText = ({ dreht, symbol, text }: { symbol: SymbolName; text: string; dreht?: boolean }) => (
 	<>

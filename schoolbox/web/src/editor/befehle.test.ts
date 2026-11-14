@@ -675,6 +675,18 @@ describe('Zoom-Tasten (184)', () => {
 		assert.ok(!istZoomTaste(taste({ key: 'k', code: 'KeyK', metaKey: true })));
 	});
 
+	it('Tastenübersicht: Werkzeuge haben einen eigenen Abschnitt nach „Im Blatt bewegen“ (193-39)', () => {
+		const abschnitte = tastenAbschnitte(undefined, true);
+		assert.deepEqual(
+			abschnitte.map((a) => a.titel),
+			['Gewählter Baustein', 'Im Blatt bewegen', 'Werkzeuge', 'Ansicht', 'Material'],
+		);
+		const bewegen = abschnitte.find((a) => a.titel === 'Im Blatt bewegen');
+		assert.ok(!bewegen?.zeilen.some((z) => z.id.startsWith('werkzeug.')));
+		const werkzeuge = abschnitte.find((a) => a.titel === 'Werkzeuge');
+		assert.ok(werkzeuge?.zeilen.every((z) => z.id.startsWith('werkzeug.')));
+	});
+
 	it('Tooltip und Tastenliste zeigen das ⌘-Kürzel zuerst, die Taste ohne ⌘ bleibt', () => {
 		assert.equal(kuerzelVon('ansicht.zoom-rein', true), '⌘+');
 		assert.equal(kuerzelVon('ansicht.zoom-raus', true), '⌘-');

@@ -61,6 +61,16 @@ export interface GliederungKnoten {
 	eigenerName: string | null;
 	/** Nur Gestaltung in einer Ebene: Nummer der `.seite` und Platz von vorne (0 liegt ganz vorne). */
 	lage: { seite: number; platz: number } | null;
+	/**
+	 * In dieser Ansicht nicht zu sehen, weil es nur in der anderen Fassung steht; `selbst`, wenn das Element die Klasse
+	 * trägt und nicht nur darin liegt.
+	 */
+	nurIn?: NurIn;
+}
+
+export interface NurIn {
+	fassung: 'loesung' | 'arbeitsblatt';
+	selbst: boolean;
 }
 
 export interface GliederungSeite {
@@ -83,7 +93,8 @@ const textVon = (element: Element | null | undefined) =>
 
 const titelVon = (element: Element, baustein: Baustein, name: string) => {
 	if (baustein.art === 'aufgabe') {
-		return textVon(element.querySelector('.anw')) || name;
+		// 195-15: Der Text der Anweisung, ohne die Punkte dahinter.
+		return textVon(element.querySelector('.anw > .text') ?? element.querySelector('.anw')) || name;
 	}
 	if (baustein.art !== 'anweisung' && kann(baustein, 'text')) {
 		return textVon(element) || name;
@@ -112,7 +123,22 @@ interface Roh {
 	kinder: Roh[];
 	/** 195-25: Die Zeile im Tabellenkopf ist kein Element; ihre Zellen stehen unter einer festen Zeile „Kopfzeile“. */
 	kopfzeile?: true;
+	nurIn?: NurIn;
 }
+
+const ANDERE_FASSUNG = '.nur-loesung, .nicht-loesung';
+
+/** Steht das unsichtbare `element` nur in der anderen Fassung (Lösung bzw. Arbeitsblatt)? */
+const nurInVon = (element: Element): NurIn | undefined => {
+	const traeger = element.closest(ANDERE_FASSUNG);
+	if (!traeger) {
+		return undefined;
+	}
+	return {
+		fassung: traeger.classList.contains('nur-loesung') ? 'loesung' : 'arbeitsblatt',
+		selbst: traeger === element,
+	};
+};
 
 const KOPFZEILE = 'thead > tr';
 
@@ -131,11 +157,13 @@ const rohIn = (elemente: ReadonlyMap<number, Element>, eltern: Knoten): Roh[] =>
 		if (!baustein) {
 			return rohIn(elemente, k);
 		}
-		// Was gerade nicht zu sehen ist, etwa ein Lösungstext auf dem Arbeitsblatt, gehört nicht in die Liste.
-		if (element.getClientRects().length === 0) {
+		// Was gerade nicht zu sehen ist, gehört nicht in die Liste; außer was nur in der anderen Fassung steht, etwa eine
+		// Aufgabe „Nur Lösung“ auf dem Arbeitsblatt: Die Zeile bleibt, blass, damit man sie findet.
+		const nurIn = element.getClientRects().length === 0 ? nurInVon(element) : undefined;
+		if (element.getClientRects().length === 0 && !nurIn) {
 			return [];
 		}
-		return [{ nr: k.nr, element, baustein, kinder: rohIn(elemente, k) }];
+		return [{ nr: k.nr, element, baustein, kinder: rohIn(elemente, k), ...(nurIn ? { nurIn } : {}) }];
 	});
 
 /** 106: Was am Baustein hängt, das vorderste (in der Quelle letzte) zuerst. */
@@ -349,6 +377,7 @@ export const gliederungVon = (doc: Document, z: Zerlegung, ids: readonly number[
 			],
 			...OHNE_STAPEL,
 			kennung: r.baustein.art,
+			...(r.nurIn ? { nurIn: r.nurIn } : {}),
 		};
 	};
 	return seiten.map((seite, i) => {
@@ -380,10 +409,11 @@ export const gliederungVon = (doc: Document, z: Zerlegung, ids: readonly number[
 				(kinder): GliederungKnoten => ({
 					// Keine Zahl der Quelle: negativ, damit sie keine Auswahl trifft.
 					nr: -seite.nr - 1,
-					titel: 'Hauptstapel',
+					// 195-23: Die Lehrkraft sieht „Bausteine“; „Hauptstapel“ bleibt der Begriff im Code.
+					titel: 'Bausteine',
 					nummer: null,
-					name: 'Hauptstapel',
-					art: 'Hauptstapel',
+					name: 'Bausteine',
+					art: 'Bausteine',
 					aufgabe: false,
 					fest: false,
 					ziehbar: false,

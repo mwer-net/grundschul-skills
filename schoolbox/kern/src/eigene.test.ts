@@ -10,6 +10,7 @@ import { dokumentDir, leseMappe, neueMappe, neuesDokument, sammleMappen, verfueg
 import {
 	bilderIn,
 	eigeneBausteine,
+	holeEigenenBausteinZurueck,
 	legeInSammlung,
 	loescheEigenenBaustein,
 	sammlungsOrdner,
@@ -80,6 +81,16 @@ describe('Sammlung (051)', () => {
 			!existsSync(path.join(sammlungsOrdner(material, b.id), 'bilder', 'willi.png')),
 			'Assets bleiben in den Assets',
 		);
+		await loescheEigenenBaustein(material, b.id);
+		assert.deepEqual(await eigeneBausteine(material), []);
+		// 195-08: Rückgängig holt ihn samt Bild zurück; danach ist der Papierkorb leer.
+		await holeEigenenBausteinZurueck(material, b.id);
+		assert.deepEqual(
+			(await eigeneBausteine(material)).map((x) => x.name),
+			['Hund-Aufgabe'],
+		);
+		assert.ok(existsSync(path.join(sammlungsOrdner(material, b.id), 'bilder', 'hund.png')));
+		await assert.rejects(holeEigenenBausteinZurueck(material, b.id));
 		await loescheEigenenBaustein(material, b.id);
 		assert.deepEqual(await eigeneBausteine(material), []);
 	});

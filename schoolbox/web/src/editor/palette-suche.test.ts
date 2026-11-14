@@ -32,6 +32,15 @@ describe('Suche der Palette', () => {
 		assert.deepEqual(titel(suchePalette('spa', liste)), ['Spalten', 'Rand spalten', 'Kaspar', 'Sonnige Paare']);
 	});
 
+	it('wertet ein ganzes Wort vor einem Anfang (193-24)', () => {
+		const liste = [eintrag('Lösungswort'), eintrag('Erwartungshorizont', ['lösung']), eintrag('Lösung zeigen')];
+		assert.equal(suchePalette('Lösung', liste)[0]?.titel, 'Lösung zeigen');
+		assert.deepEqual(titel(suchePalette('rück', [eintrag('Zurück'), eintrag('Rückgängig')])), [
+			'Rückgängig',
+			'Zurück',
+		]);
+	});
+
 	it('nimmt den Titel vor den Suchwörtern derselben Stufe', () => {
 		const liste = [eintrag('Weg', []), eintrag('Löschen', ['weg'])];
 		assert.deepEqual(titel(suchePalette('weg', [...liste].reverse())), ['Weg', 'Löschen']);

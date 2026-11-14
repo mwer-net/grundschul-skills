@@ -558,10 +558,11 @@ const REGISTER: Befehl[] = [
 	...SICHTBARKEIT,
 	{
 		id: 'auswahl.in-sammlung',
-		titel: 'In Sammlung legen',
+		// 195-21: Der Ort heißt überall „Meine Bausteine“.
+		titel: 'Zu „Meine Bausteine“ legen',
 		gruppe: 'ordnen',
 		symbol: 'plus',
-		suchwoerter: ['meine bausteine', 'merken', 'speichern'],
+		suchwoerter: ['meine bausteine', 'sammlung', 'merken', 'speichern'],
 		orte: ['menue', 'palette', 'gestaltung'],
 		sichtbarUnter: 'mehr',
 		verfuegbar: (k) => k.aktiv && Boolean(gewaehlt(k)) && !istSeite(k),
@@ -813,9 +814,10 @@ const REGISTER: Befehl[] = [
 	...WERKZEUG_BEFEHLE,
 	{
 		id: 'ansicht.inspektor',
-		titel: 'Inspektor ein/aus',
+		titel: 'Rechte Leiste ein/aus',
 		gruppe: 'ansicht',
 		kuerzel: [{ code: 'KeyI', wahl: true }],
+		suchwoerter: ['inspektor', 'rechte leiste'],
 		orte: ['taste', 'palette'],
 		sichtbarUnter: 'statusleiste',
 		verfuegbar: () => true,
@@ -878,7 +880,7 @@ const REGISTER: Befehl[] = [
 	},
 	{
 		id: 'ansicht.tasten',
-		titel: 'Tasten-Übersicht',
+		titel: 'Tasten',
 		gruppe: 'ansicht',
 		symbol: 'hilfe',
 		kuerzel: [{ key: '?' }],
@@ -924,6 +926,8 @@ const REGISTER: Befehl[] = [
 		titel: 'Speichern',
 		gruppe: 'dokument',
 		kuerzel: [{ code: 'KeyS', befehl: true }],
+		// 193-05: auch beim Tippen, sonst öffnet Safari „Seite sichern“.
+		modus: ['auswahl', 'ohne', 'text'],
 		orte: ['taste'],
 		sichtbarUnter: 'kopf',
 		verfuegbar: () => true,
@@ -1022,9 +1026,10 @@ const REGISTER: Befehl[] = [
 	},
 	{
 		id: 'dokument.zurueck',
-		titel: 'Zurück zum Dokument',
+		titel: 'Zurück',
 		gruppe: 'dokument',
 		symbol: 'zurueck',
+		suchwoerter: ['material', 'ansicht', 'schließen'],
 		orte: ['palette'],
 		sichtbarUnter: 'kopf',
 		verfuegbar: () => true,
@@ -1110,19 +1115,27 @@ export const kuerzelVon = (id: string, mac?: boolean): string | undefined => {
 	return erstes ? kuerzelText(erstes, mac) : undefined;
 };
 
-const TASTEN_ABSCHNITTE: { titel: string; gruppen: Gruppe[] }[] = [
+/** Werkzeuge stehen in der Gruppe `blatt`, haben aber einen eigenen Abschnitt (193-39). */
+export const istWerkzeug = (id: string) => id.startsWith('werkzeug.');
+
+const TASTEN_ABSCHNITTE: { titel: string; gruppen: Gruppe[]; werkzeuge?: boolean }[] = [
 	{ titel: 'Gewählter Baustein', gruppen: ['bearbeiten', 'ablage', 'ordnen', 'gefahr'] },
-	{ titel: 'Im Blatt bewegen', gruppen: ['baustein', 'blatt'] },
+	{ titel: 'Im Blatt bewegen', gruppen: ['baustein', 'blatt'], werkzeuge: false },
+	{ titel: 'Werkzeuge', gruppen: ['blatt'], werkzeuge: true },
 	{ titel: 'Ansicht', gruppen: ['ansicht'] },
 	{ titel: 'Material', gruppen: ['dokument'] },
 ];
 
 /** Tastenübersicht und Hilfe aus dem Register. Ohne Kontext (Hilfe) gilt `hilfeTitel`. */
 export const tastenAbschnitte = (k?: Kontext, mac?: boolean): TastenAbschnitt[] =>
-	TASTEN_ABSCHNITTE.map(({ gruppen, titel }) => ({
+	TASTEN_ABSCHNITTE.map(({ gruppen, titel, werkzeuge }) => ({
 		titel,
 		zeilen: BEFEHLE.filter(
-			(b) => gruppen.includes(b.gruppe) && b.kuerzel?.length && (b.inUebersicht?.() ?? true),
+			(b) =>
+				gruppen.includes(b.gruppe) &&
+				(werkzeuge === undefined || werkzeuge === istWerkzeug(b.id)) &&
+				b.kuerzel?.length &&
+				(b.inUebersicht?.() ?? true),
 		).map((b) => ({
 			id: b.id,
 			titel: k ? titelVon(b, k) : (b.hilfeTitel ?? (typeof b.titel === 'string' ? b.titel : b.id)),

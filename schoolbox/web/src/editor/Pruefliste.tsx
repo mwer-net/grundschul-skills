@@ -148,7 +148,8 @@ export const Pruefstatus = ({ knopf, stand, zeige }: Eigenschaften) => {
 								</ul>
 							)}
 							{hinweise.length > 0 && (
-								<details className="mt-1 text-leise" data-hinweise>
+								// 193-22: Gibt es nur Hinweise, steht ihr Satz gleich da, statt den Auslöser zu wiederholen.
+								<details className="mt-1 text-leise" data-hinweise open={wichtig.length === 0}>
 									<summary className="flex h-menue cursor-pointer items-center font-medium">
 										{hinweise.length === 1 ? '1 Hinweis' : `${hinweise.length} Hinweise`}
 									</summary>

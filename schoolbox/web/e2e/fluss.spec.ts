@@ -110,7 +110,8 @@ test.describe('Seiten laufen weiter (206)', () => {
 		await expect.poll(async () => automatische(await quelle(page))).toBeGreaterThan(0);
 		await geladen(page);
 		expect(await ueberstand(page)).toBe(false);
-		await material(page).locator('.kopf').first().click();
+		// Aus der Abnahme von 193: Die Liste bleibt offen, ⌘Z wirkt trotzdem auf das Blatt.
+		await expect(page.locator('[data-pruefliste]')).toBeVisible();
 		await page.keyboard.press('ControlOrMeta+z');
 		await expect.poll(() => quelle(page)).toBe(vorher);
 	});

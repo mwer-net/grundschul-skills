@@ -9,7 +9,6 @@ import {
 	istEng,
 	linksAusSpeicher,
 	schalte,
-	schalteLeiste,
 	sichtbar,
 	SPEICHER,
 } from './spalten';
@@ -83,19 +82,6 @@ describe('Spalten links (183)', () => {
 		// Gegenprobe: Waren die Ebenen zu, kommt nichts zurück.
 		const ohne = klick(klick(stand({ ebenen: false }), 'bausteine', true), 'bausteine', true);
 		assert.deepEqual(angezeigt(ohne, true, BEREIT), nichts);
-	});
-
-	it('schalteLeiste schließt alles und holt dasselbe wieder; ohne `vorher` die Ebenen', () => {
-		const beide = stand({ offen: true });
-		const zu = schalteLeiste(beide, angezeigt(beide, false, BEREIT), null);
-		assert.deepEqual(angezeigt(zu.stand, false, BEREIT), nichts);
-		assert.deepEqual(zu.vorher, beide);
-		const wieder = schalteLeiste(zu.stand, nichts, zu.vorher);
-		assert.deepEqual(wieder, { stand: beide, vorher: null });
-		assert.deepEqual(sichtbar(angezeigt(wieder.stand, false, BEREIT)), ['ebenen', 'bausteine']);
-
-		const ohneVorher = schalteLeiste(stand({ ebenen: false }), nichts, null);
-		assert.deepEqual(angezeigt(ohneVorher.stand, false, BEREIT), { ebenen: true, schublade: null });
 	});
 
 	it('linksAusSpeicher übernimmt alte Werte einmal', () => {

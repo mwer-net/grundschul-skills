@@ -117,10 +117,23 @@ const nameIm = (doc: Document, ziel: MeldungZiel) => {
 	return treffer.element === element ? wer : `${eigen} in ${wer}`;
 };
 
+/**
+ * 193-28: Das Prüfskript misst den Abstand auch zu Aufgaben, die in dieser Fassung gar nicht stehen („Nur Lösung“ auf
+ * dem Arbeitsblatt). Sie haben keinen Kasten, der Abstand wird negativ. Solche Meldungen zeigt der Editor nicht.
+ */
+const nichtGezeigt = (doc: Document, m: Meldung) =>
+	m.code === 'abstand-knapp' &&
+	(m.ziele ?? []).some((z) => {
+		const element = z.sb === null ? null : elementZu(doc, z.sb);
+		return element !== null && element.getClientRects().length === 0;
+	});
+
 const ausBericht = (doc: Document, meldungen: Meldung[]): Pruefpunkt[] => {
 	const seiten = seitenIn(doc);
 	// 206: Vor einer automatischen Seite ist der Platz unten gewollt, dort ging der nächste Block nicht mehr hin.
-	const gemeldet = meldungen.filter((m) => !(m.code === 'platz-frei' && folgtAutomatische(doc, m.seite)));
+	const gemeldet = meldungen.filter(
+		(m) => !(m.code === 'platz-frei' && folgtAutomatische(doc, m.seite)) && !nichtGezeigt(doc, m),
+	);
 	return gemeldet.map((m) => {
 		const ziele = m.ziele ?? [];
 		const seite = seiten[m.seite - 1]?.getBoundingClientRect();

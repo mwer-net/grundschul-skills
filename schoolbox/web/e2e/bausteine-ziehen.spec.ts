@@ -171,6 +171,26 @@ test.describe('Editor: Bausteine ziehen mit Lücke', () => {
 		await expect(luecke(page)).toHaveCount(0);
 	});
 
+	test('Ohne Auswahl fügt der Klick auf die Kachel auf der Seite im Blick ein, nicht am Ende (195-05)', async ({
+		page,
+	}) => {
+		const { dok, id } = await uhrzeit();
+		await oeffne(page, id, dok);
+		// Zwei Seiten, die zweite leer; im Blick ist Seite 1.
+		await aendere(page, (await quelle(page)).replace(/<\/body>/, '<section class="seite"></section></body>'));
+		await expect(page.locator('[data-seite-von]')).toContainText('Seite 1 von 2');
+		await oeffneBausteine(page);
+		await suche(page).fill('Aufgabe');
+		await page.locator('[data-einfuegen="aufgabe"]').click();
+		await expect
+			.poll(async () => {
+				const html = await quelle(page);
+				const letzte = html.lastIndexOf('<section class="seite"');
+				return html.slice(letzte).includes('class="aufgabe');
+			})
+			.toBe(false);
+	});
+
 	test('Ziehen im Blatt zeigt dieselbe Lücke statt der Linie', async ({ page }) => {
 		const { dok, id } = await uhrzeit();
 		await oeffne(page, id, dok);
@@ -195,6 +215,24 @@ test.describe('Editor: Bausteine ziehen mit Lücke', () => {
 		await expect.poll(async () => anweisungen(await quelle(page))[0]).toBe('Willi sagt: ');
 		await expect(luecke(page)).toHaveCount(0);
 		await expect(material(page).locator('[data-luecke-weg]')).toHaveCount(0);
+	});
+
+	test('Nach dem Ziehen ist der gewählte Baustein ganz im Blick wie nach ⌥↑ (193, aus Abnahme 206)', async ({ page }) => {
+		const { dok, id } = await uhrzeit();
+		await oeffne(page, id, dok);
+		const text = material(page).locator('.aufgabe').nth(2).locator('.anw .text');
+		const r = await text.boundingBox();
+		if (!r) {
+			throw new Error('nicht zu sehen');
+		}
+		await page.mouse.move(r.x + r.width / 2, r.y + r.height / 2);
+		await page.mouse.down();
+		await page.mouse.move(r.x + r.width / 2 + 10, r.y + r.height / 2 - 10, { steps: 3 });
+		await fahreZu(page, aufgabeOhneLuecke(page, 0), 0.1);
+		await page.mouse.up();
+		await expect.poll(async () => anweisungen(await quelle(page))[0]).toBe('Willi sagt: ');
+		const gewaehlt = page.locator('[data-auswahlrahmen]').first();
+		await expect(gewaehlt).toBeInViewport({ ratio: 0.9 });
 	});
 
 	test('Ein Starter mit Abbildung (x-uhr) erscheint gezeichnet in der Lücke', async ({ page }) => {

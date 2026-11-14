@@ -1,4 +1,4 @@
-import { BEREICH_SYMBOL, KATALOG_BEREICHE, KATALOG_KATEGORIEN } from '@schoolbox/kern/src/abbildungen';
+import { BEREICH_SYMBOL, KATALOG_BEREICHE } from '@schoolbox/kern/src/abbildungen';
 import { MEINE_BAUSTEINE, MEINE_BAUSTEINE_SYMBOL, passtZuBlatt, sucheImKatalog } from '@schoolbox/kern/src/katalog';
 import type { Ablage } from '@schoolbox/kern/src/struktur';
 import type { Art, Fach, Klasse } from '@schoolbox/kern/src/werte';
@@ -7,6 +7,7 @@ import { useEffect, useLayoutEffect, useRef, useState } from 'react';
 
 import { meldung, sende } from '../api';
 import { AmZeiger } from '../bausteine/AmZeiger';
+import { Gekuerzt } from '../bausteine/Gekuerzt';
 import { useHinweis } from '../bausteine/hinweis';
 import { FELD_KLASSEN, klassen } from '../bausteine/klassen';
 import { Knopf } from '../bausteine/Knopf';
@@ -14,7 +15,6 @@ import {
 	ABSCHNITT_TITEL,
 	KACHELNAME,
 	KACHELNAME_ZWEIZEILIG,
-	NOTIZ,
 	Schublade,
 	Schubladenabschnitt,
 	SCHUBLADENKACHEL,
@@ -377,9 +377,32 @@ const EigenVerwalten = ({ id, name, neuLaden }: { id: string; name: string; neuL
 	const [neu, setNeu] = useState<string | null>(null);
 	const zeige = useHinweis();
 	const sende2 = (pfad: string, daten: object) =>
-		sende(`/api/eigene/sammlung/${id}/${pfad}`, daten).then(neuLaden, (grund: unknown) =>
-			zeige({ text: meldung(grund), art: 'fehler' }),
+		sende(`/api/eigene/sammlung/${id}/${pfad}`, daten).then(
+			() => {
+				neuLaden();
+				return true;
+			},
+			(grund: unknown) => {
+				zeige({ text: meldung(grund), art: 'fehler' });
+				return false;
+			},
 		);
+	// 195-08: Gelöscht liegt der Baustein im Papierkorb der Sammlung; „Rückgängig“ holt ihn zurück.
+	const loesche = async () => {
+		if (await sende2('loeschen', {})) {
+			zeige({
+				text: `„${name}“ aus „${MEINE_BAUSTEINE}“ gelöscht.`,
+				aktion: { titel: 'Rückgängig', ausfuehren: () => void sende2('wiederherstellen', {}) },
+			});
+		}
+	};
+	// 195-20: Enter, ein Klick daneben und der Haken übernehmen den Namen; leer oder unverändert bleibt er.
+	const uebernimm = (wert: string) => {
+		setNeu(null);
+		if (wert.trim() !== '' && wert.trim() !== name) {
+			void sende2('aendern', { name: wert });
+		}
+	};
 	if (neu === null) {
 		return (
 			<div className="flex justify-center gap-1" data-eigen-verwalten={id}>
@@ -391,10 +414,10 @@ const EigenVerwalten = ({ id, name, neuLaden }: { id: string; name: string; neuL
 				/>
 				<SymbolKnopf
 					symbol="papierkorb"
-					beschriftung={`${name} aus der Sammlung löschen`}
+					beschriftung={`${name} aus „${MEINE_BAUSTEINE}“ löschen`}
 					art="gefahr"
 					groesse="klein"
-					onClick={() => void sende2('loeschen', {})}
+					onClick={() => void loesche()}
 				/>
 			</div>
 		);
@@ -405,9 +428,11 @@ const EigenVerwalten = ({ id, name, neuLaden }: { id: string; name: string; neuL
 			data-eigen-verwalten={id}
 			onSubmit={(ev) => {
 				ev.preventDefault();
-				if (neu.trim() !== '') {
-					setNeu(null);
-					void sende2('aendern', { name: neu });
+				uebernimm(neu);
+			}}
+			onBlur={(ev) => {
+				if (!ev.currentTarget.contains(ev.relatedTarget)) {
+					uebernimm(neu);
 				}
 			}}
 		>
@@ -443,7 +468,7 @@ const EigenVerwalten = ({ id, name, neuLaden }: { id: string; name: string; neuL
  * zugleich, weil Browser weit vorausladen; darum wartet die Adresse, bis die Kachel zu sehen ist (Messung in 081, mit
  * zwei Spalten in 147). Den Maßstab rechnet `?fit=1` im Rahmen.
  */
-const KartenVorschau = ({ id, name }: { id: string; name: string }) => {
+const KartenVorschau = ({ adresse, name }: { adresse: string; name: string }) => {
 	const rahmen = useRef<HTMLIFrameElement>(null);
 	const [zuSehen, setZuSehen] = useState(false);
 	useEffect(() => {
@@ -463,7 +488,7 @@ const KartenVorschau = ({ id, name }: { id: string; name: string }) => {
 	return (
 		<iframe
 			ref={rahmen}
-			{...(zuSehen ? { src: `/ansicht/_katalog/${id}?fit=1` } : {})}
+			{...(zuSehen ? { src: `${adresse}?fit=1` } : {})}
 			title={`Vorschau: ${name}`}
 			loading="lazy"
 			tabIndex={-1}
@@ -478,7 +503,7 @@ const KartenVorschau = ({ id, name }: { id: string; name: string }) => {
  * Der Name unter der Kachel (203-16): bis zu zwei Zeilen, getrennt nur an Leerzeichen. Passt ein Wort nicht in die
  * Breite, wird die Schrift eine Stufe kleiner; erst wenn auch das nicht reicht, bricht das Wort.
  */
-const Kachelname = ({ name }: { name: string }) => {
+const Kachelname = ({ meldeGekuerzt, name }: { name: string; meldeGekuerzt: (gekuerzt: boolean) => void }) => {
 	const feld = useRef<HTMLSpanElement>(null);
 	const [stufe, setStufe] = useState<0 | 1 | 2>(0);
 	useLayoutEffect(() => setStufe(0), [name]);
@@ -486,8 +511,12 @@ const Kachelname = ({ name }: { name: string }) => {
 		const e = feld.current;
 		if (e && stufe < 2 && e.scrollWidth > e.clientWidth + 1) {
 			setStufe((s) => (s === 0 ? 1 : 2));
+			return;
 		}
-	}, [name, stufe]);
+		if (e) {
+			meldeGekuerzt(e.scrollHeight > e.clientHeight + 1 || e.scrollWidth > e.clientWidth + 1);
+		}
+	}, [meldeGekuerzt, name, stufe]);
 	return (
 		<span
 			ref={feld}
@@ -522,6 +551,7 @@ const BausteinKachel = ({
 	einfuegen: Einfuegen;
 }) => {
 	const [amZeiger, setAmZeiger] = useState<ZugAmZeiger | null>(null);
+	const [nameGekuerzt, setNameGekuerzt] = useState(false);
 	/** Gedrückt, aber noch kein Zug: Maus unter `MAUS_WEG`, Finger vor `HALTEN_MS`. */
 	const druckAn = useRef<{ x: number; y: number; id: number; maus: boolean; timer: number } | null>(null);
 	const gezogen = useRef(false);
@@ -604,7 +634,8 @@ const BausteinKachel = ({
 
 	return (
 		<li className="flex flex-col gap-1" data-bibliothek-eintrag={eintrag.id}>
-			<Tooltip text={eintrag.name} aus={amZeiger !== null}>
+			{/* 195-27: Der Tooltip nennt den Namen nur, wenn er unter der Kachel gekürzt ist. */}
+			<Tooltip text={eintrag.name} aus={amZeiger !== null || !nameGekuerzt}>
 				<button
 					ref={knopf}
 					type="button"
@@ -638,18 +669,20 @@ const BausteinKachel = ({
 						}
 					}}
 				>
-					{/* Eigene haben keine Katalog-Adresse, ein Eintrag mit nur `klasse` hat nichts zu zeigen. */}
-					{eintrag.eigen || eintrag.klasse ? (
+					{/* Eigene zeigen sich aus der Sammlung (195), ein Eintrag mit nur `klasse` hat nichts zu zeigen. */}
+					{eintrag.eigen ? (
+						<KartenVorschau
+							adresse={`/ansicht/_sammlung/${encodeURIComponent(eintrag.eigen)}`}
+							name={eintrag.name}
+						/>
+					) : eintrag.klasse ? (
 						<span className="flex h-20 w-full items-center justify-center" data-kachel-symbol>
-							<Symbol
-								name={eintrag.eigen ? MEINE_BAUSTEINE_SYMBOL : BEREICH_SYMBOL[eintrag.kategorie]}
-								className="size-7 text-dezent"
-							/>
+							<Symbol name={BEREICH_SYMBOL[eintrag.kategorie]} className="size-7 text-dezent" />
 						</span>
 					) : (
-						<KartenVorschau id={eintrag.id} name={eintrag.name} />
+						<KartenVorschau adresse={`/ansicht/_katalog/${eintrag.id}`} name={eintrag.name} />
 					)}
-					<Kachelname name={eintrag.name} />
+					<Kachelname name={eintrag.name} meldeGekuerzt={setNameGekuerzt} />
 					{bereich && (
 						<span className={KACHELNAME} data-treffer-bereich>
 							{bereich}
@@ -680,6 +713,7 @@ const FILTER_WERTE: { wert: Filter; titel: string }[] = [
 	{ wert: 'alle', titel: 'Alle' },
 ];
 
+/** 195-24: Ohne Zahl; `data-bereich-anzahl` trägt sie nur noch für die Prüfung. */
 const BereichZeile = ({
 	anzahl,
 	name,
@@ -692,12 +726,15 @@ const BereichZeile = ({
 	waehle: () => void;
 }) => (
 	<li>
-		<button type="button" className={SCHUBLADENZEILE} data-bereich={name} onClick={waehle}>
+		<button
+			type="button"
+			className={SCHUBLADENZEILE}
+			data-bereich={name}
+			data-bereich-anzahl={anzahl}
+			onClick={waehle}
+		>
 			<Symbol name={symbol} className="size-3.5 flex-none text-leise" />
 			<span className="min-w-0 flex-1 truncate">{name}</span>
-			<span className={NOTIZ} data-bereich-anzahl>
-				{anzahl}
-			</span>
 		</button>
 	</li>
 );
@@ -742,10 +779,6 @@ export const Bibliothek = ({
 		bereiche: bereiche.filter((k) => anzahl(gezeigt, k) > 0),
 		eigene: i === LETZTE_GRUPPE && hatEigene,
 	})).filter((g) => g.bereiche.length > 0 || g.eigene);
-	const verborgen =
-		filter === 'alle'
-			? 0
-			: KATALOG_KATEGORIEN.filter((k) => anzahl(passend, k) === 0 && anzahl(eintraege, k) > 0).length;
 	const sucht = suche.trim() !== '';
 	const treffer = sucht ? sucheImKatalog(suche, eintraege) : [];
 	const trefferPassend = treffer.filter(passt);
@@ -754,6 +787,12 @@ export const Bibliothek = ({
 	const elemente = imBereich.filter((e) => e.herkunft !== 'paket');
 	const pakete = imBereich.filter((e) => e.herkunft === 'paket');
 	const zuletzt = einfuegen.zuletzt.slice(0, ZULETZT_ANZAHL);
+	// 195-10: Ist der letzte eigene Baustein gelöscht, geht es zurück zum Start; dort bietet die Meldung „Rückgängig“.
+	useEffect(() => {
+		if (bereich === MEINE_BAUSTEINE && !hatEigene) {
+			setBereich(null);
+		}
+	}, [bereich, hatEigene]);
 	// Start und Kategorie teilen sich den Rollbereich; ein `key` an `Schublade` nähme der Suche den Fokus.
 	useLayoutEffect(() => {
 		if (inhalt.current) {
@@ -795,7 +834,6 @@ export const Bibliothek = ({
 						<Symbol name="zurueck" className="size-3.5 flex-none" />
 						<span className="truncate">{bereich}</span>
 					</button>
-					<span className={klassen(NOTIZ, 'ml-auto')}>{imBereich.length}</span>
 				</div>
 			)}
 		</>
@@ -815,19 +853,17 @@ export const Bibliothek = ({
 							<ul className={raster(2)}>
 								{zuletzt.map((e) => (
 									<li key={e.id}>
-										<Tooltip text={e.name}>
-											<button
-												type="button"
-												className={klassen(
-													SCHUBLADENKACHEL,
-													'flex h-zeile w-full items-center px-2 text-left',
-												)}
-												data-zuletzt={e.id}
-												onClick={() => einfuegen.fuegeEin(e)}
-											>
-												<span className="truncate">{e.name}</span>
-											</button>
-										</Tooltip>
+										<button
+											type="button"
+											className={klassen(
+												SCHUBLADENKACHEL,
+												'flex h-zeile w-full items-center px-2 text-left',
+											)}
+											data-zuletzt={e.id}
+											onClick={() => einfuegen.fuegeEin(e)}
+										>
+											<Gekuerzt text={e.name} />
+										</button>
 									</li>
 								))}
 							</ul>
@@ -856,16 +892,6 @@ export const Bibliothek = ({
 							</ul>
 						</Schubladenabschnitt>
 					))}
-					{verborgen > 0 && (
-						<Knopf
-							art="leise"
-							className="-ml-2.5 self-start"
-							data-weitere
-							onClick={() => waehleFilter('alle')}
-						>
-							{`${verborgen === 1 ? '1 weiterer' : `${verborgen} weitere`} unter Alle`}
-						</Knopf>
-					)}
 				</>
 			)}
 			{sucht &&

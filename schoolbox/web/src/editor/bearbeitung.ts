@@ -69,6 +69,7 @@ export const useBearbeitung = (mappe: string, dok: string, auswahl: RefObject<nu
 	const quelle = useRef<string | null>(null);
 	/** Solange ein Vorschlag angenommen wird, ist die Änderung vom Server ein Schritt in Rückgängig. */
 	const alsSchritt = useRef<string | null>(null);
+	const zurueckNachVorschlag = useRef<() => void>(() => undefined);
 	/** 206: Nach einem Schritt legt der Editor die Seiten des betroffenen Blatts um, als Teil desselben Schritts. */
 	const fluss = useRef<Fluss | null>(null);
 	const flussFuer = (alt: string | null, neu: string, runden = FLUSS_RUNDEN) => {
@@ -136,9 +137,14 @@ export const useBearbeitung = (mappe: string, dok: string, auswahl: RefObject<nu
 						v ? nimmAuf(v, aktuell.quelle, schritt, gewaehlt) : neuerVerlauf(aktuell.quelle),
 					);
 					setAusgang(aktuell.quelle);
-				} else {
-					uebernimm(aktuell);
+					// 193-12: Die Lehrkraft hat selbst übernommen; wie jeder Schritt mit „Rückgängig“.
+					zeige({
+						text: 'Vorschlag übernommen.',
+						aktion: { titel: 'Rückgängig', ausfuehren: () => zurueckNachVorschlag.current() },
+					});
+					return;
 				}
+				uebernimm(aktuell);
 				zeige({ text: GEAENDERT[urheber ?? 'claude'] });
 				return;
 			}
@@ -189,6 +195,9 @@ export const useBearbeitung = (mappe: string, dok: string, auswahl: RefObject<nu
 		const gewaehlt = auswahl.current;
 		setVerlauf((v) => v && macheRueckgaengig(v, gewaehlt));
 	}, [auswahl, neuerSchritt]);
+	useEffect(() => {
+		zurueckNachVorschlag.current = rueckgaengig;
+	}, [rueckgaengig]);
 	const wiederholen = useCallback(() => {
 		neuerSchritt();
 		fluss.current = null;

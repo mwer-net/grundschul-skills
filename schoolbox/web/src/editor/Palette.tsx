@@ -193,8 +193,14 @@ export const Palette = ({ eintraege, freitext, platzhalter, schliessen }: Eigens
 									<span className="flex size-4 flex-none items-center justify-center text-leise">
 										{e.symbol && <Symbol name={e.symbol} className="size-3.5" />}
 									</span>
-									{/* Der Titel schrumpft zuletzt: Ein langer Pfad verdrängt ihn nicht (188-11). */}
-									<span className="max-w-[65%] flex-none truncate">{e.titel}</span>
+									{/* Mit Notiz schrumpft der Titel zuletzt (188-11); ohne Notiz hat er die ganze Breite (193-14). */}
+									<span
+										className={
+											e.notiz ? 'max-w-[65%] flex-none truncate' : 'min-w-0 flex-1 truncate'
+										}
+									>
+										{e.titel}
+									</span>
 									{e.notiz && (
 										<span className="min-w-0 flex-1 truncate text-xs text-dezent">
 											{e.notiz}

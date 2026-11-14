@@ -1,6 +1,6 @@
 import type { Locator, Page } from '@playwright/test';
 
-import { material, oeffne, quelle, uhrzeit } from './editorhilfe';
+import { aendere, material, oeffne, quelle, uhrzeit } from './editorhilfe';
 import { expect, test } from './hilfe';
 
 const zusammenfassung = (page: Page) => page.locator('[data-pruefung] > button');
@@ -14,6 +14,31 @@ const box = async (ziel: Locator) => {
 };
 
 test.describe('Editor: Live-Prüfung', () => {
+	test('meldet „dicht beieinander“ nicht für Aufgaben, die nur in der Lösung stehen (193-28)', async ({
+		druecke,
+		page,
+	}) => {
+		const { dok, id } = await uhrzeit();
+		await oeffne(page, id, dok);
+		await expect(page.locator('[data-pruefung="ok"]')).toBeVisible();
+		let n = 0;
+		const neu = (await quelle(page)).replace(/class="aufgabe(?=[" ])/g, (treffer) => {
+			n += 1;
+			return n === 2 || n === 3 ? 'class="aufgabe nur-loesung' : treffer;
+		});
+		expect(n).toBeGreaterThanOrEqual(3);
+		await aendere(page, neu);
+		await expect(material(page).locator('.aufgabe.nur-loesung').first()).toBeHidden();
+		await page.waitForTimeout(1500);
+		const liste = page.locator('[data-pruefliste]');
+		if (await zusammenfassung(page).isEnabled()) {
+			await druecke(zusammenfassung(page));
+			await expect(liste).toBeVisible();
+			await expect(liste).not.toContainText('dicht beieinander');
+		}
+		await expect(zusammenfassung(page)).not.toContainText('Ding');
+	});
+
 	test('Text, der die Seite sprengt, ist innerhalb einer Sekunde rot markiert; Antippen wählt die Stelle', async ({
 		druecke,
 		page,

@@ -279,7 +279,7 @@ test.describe('Sammlung (051)', () => {
 		const { dok, id } = await uhrzeit();
 		await oeffne(page, id, dok);
 		await druecke(material(page).locator('x-uhr').first());
-		await imMehr(page, 'In Sammlung legen');
+		await imMehr(page, 'Zu „Meine Bausteine“ legen');
 		await page.locator('[data-sammlung-name]').fill('Meine Uhr');
 		await page.locator('[data-sammlung-speichern]').click();
 		await expect(page.getByText('In „Meine Bausteine“ gelegt.')).toBeVisible();
@@ -318,7 +318,7 @@ test.describe('Sammlung (051)', () => {
 		const { dok, id } = await uhrzeit();
 		await oeffne(page, id, dok);
 		await druecke(material(page).locator('x-uhr').first());
-		await imMehr(page, 'In Sammlung legen');
+		await imMehr(page, 'Zu „Meine Bausteine“ legen');
 		await page.locator('[data-sammlung-name]').fill('Meine Uhr');
 		await page.locator('[data-sammlung-speichern]').click();
 		await expect(page.getByText('In „Meine Bausteine“ gelegt.')).toBeVisible();
@@ -329,8 +329,9 @@ test.describe('Sammlung (051)', () => {
 		await druecke(mehr.last());
 		const kachel = page.locator('[data-bibliothek] [data-bibliothek-eintrag]');
 		await expect(kachel).toHaveCount(1);
-		await expect(kachel.locator('[data-kachel-symbol]')).toBeVisible();
-		await expect(kachel.locator('[data-karten-vorschau]')).toHaveCount(0);
+		// 195: Eigene Bausteine zeigen eine Vorschau wie der Katalog.
+		await expect(kachel.locator('[data-karten-vorschau]')).toHaveAttribute('src', /\/ansicht\/_sammlung\/eigen-meine-uhr|\/ansicht\/_sammlung\/meine-uhr/);
+		await expect(kachel.locator('[data-kachel-symbol]')).toHaveCount(0);
 
 		const vorher = await quelle(page);
 		await druecke(page.getByRole('button', { name: 'Meine Uhr umbenennen' }));
@@ -341,8 +342,38 @@ test.describe('Sammlung (051)', () => {
 		// Gegenprobe: Der Stift liegt neben dem Einfügen-Knopf, nicht darin, und fügt nichts ein.
 		expect(await quelle(page)).toBe(vorher);
 
-		await druecke(page.getByRole('button', { name: 'Uhr groß aus der Sammlung löschen' }));
+		// 195-20: Ein Klick daneben übernimmt den Namen wie Enter.
+		await druecke(page.getByRole('button', { name: 'Uhr groß umbenennen' }));
+		await page.getByRole('textbox', { name: 'Neuer Name' }).fill('Uhr klein');
+		await page.locator('[data-bibliothek] h2').first().click();
+		await expect(kachel.locator('[data-kachel-name]')).toHaveText('Uhr klein');
+
+		// 195-08, 195-10: Löschen meldet sich mit „Rückgängig“; leer geht die Schublade zurück zum Start.
+		await druecke(page.getByRole('button', { name: 'Uhr klein aus „Meine Bausteine“ löschen' }));
 		await expect(kachel).toHaveCount(0);
+		await expect(page.getByRole('status')).toContainText('„Uhr klein“ aus „Meine Bausteine“ gelöscht.');
+		await expect(page.locator('[data-bereich-gruppe="Mehr"]')).toBeVisible();
+		await page.getByRole('status').getByRole('button', { name: 'Rückgängig' }).click();
+		await expect(page.locator('[data-bereich="Meine Bausteine"]')).toBeVisible();
+	});
+
+	test('„Zu „Meine Bausteine“ legen“: Feld mit Fokus, Enter legt ab, Esc schließt (195-09, 194-15)', async ({
+		druecke,
+		page,
+	}) => {
+		const { dok, id } = await uhrzeit();
+		await oeffne(page, id, dok);
+		await druecke(material(page).locator('x-uhr').first());
+		await imMehr(page, 'Zu „Meine Bausteine“ legen');
+		const feld = page.getByRole('textbox', { name: 'Name', exact: true });
+		await expect(feld).toBeFocused();
+		await page.keyboard.press('Escape');
+		await expect(page.locator('[data-sammlung-name]')).toHaveCount(0);
+		await imMehr(page, 'Zu „Meine Bausteine“ legen');
+		await expect(feld).toBeFocused();
+		await page.keyboard.type('Uhr per Enter');
+		await page.keyboard.press('Enter');
+		await expect(page.getByText('In „Meine Bausteine“ gelegt.')).toBeVisible();
 	});
 });
 

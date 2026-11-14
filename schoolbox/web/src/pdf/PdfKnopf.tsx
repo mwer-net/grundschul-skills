@@ -1,8 +1,11 @@
+import type { ComponentProps } from 'react';
+
 import type { KnopfArt, KnopfGroesse } from '../bausteine/klassen';
 import { Knopf } from '../bausteine/Knopf';
 import type { MenueEintrag } from '../bausteine/Menue';
 import { Menue } from '../bausteine/Menue';
 import { Symbol } from '../bausteine/Symbol';
+import { Tooltip } from '../bausteine/Tooltip';
 import type { PdfWahl } from './usePdf';
 import { usePdf } from './usePdf';
 
@@ -29,6 +32,8 @@ interface Eigenschaften {
 	knapp?: boolean;
 	/** Das Material hat echte Maße: Das Menü sagt unten, wie zu drucken ist, auch bei nur einer Datei. */
 	echteMasse?: boolean;
+	/** Name und Kürzel des Befehls, im Editor (204). */
+	tooltip?: { text: string; kuerzel?: string };
 }
 
 /** Für die Statuszeile der Ablage: Kreisel und Text. */
@@ -38,6 +43,19 @@ export const PdfLaeuft = ({ text = PDF_LAEUFT }: { text?: string }) => (
 		{text}
 	</>
 );
+
+/** Ein Knopf, mit `tooltip` darin; nimmt auch die Eigenschaften eines Menü-Auslösers an. */
+const MitTooltip = ({
+	tooltip,
+	...knopf
+}: ComponentProps<typeof Knopf> & { tooltip: Eigenschaften['tooltip'] }) =>
+	tooltip ? (
+		<Tooltip text={tooltip.text} kuerzel={tooltip.kuerzel}>
+			<Knopf {...knopf} />
+		</Tooltip>
+	) : (
+		<Knopf {...knopf} />
+	);
 
 /** Solange der Server baut, dreht sich statt des Symbols ein Kreisel; Breite und Wort bleiben (191-22). */
 export const PdfKnopf = ({
@@ -49,6 +67,7 @@ export const PdfKnopf = ({
 	knapp,
 	mappe,
 	rechtsbuendig,
+	tooltip,
 	wahl,
 	warnen,
 }: Eigenschaften) => {
@@ -85,12 +104,18 @@ export const PdfKnopf = ({
 							<Knopf art={art} groesse={groesse} className="px-1.5!">
 								{inhalt}
 							</Knopf>
+						) : tooltip ? (
+							<MitTooltip tooltip={tooltip} art={art} groesse={groesse}>
+								{inhalt}
+								<Symbol name="runter" className="size-3 flex-none" />
+							</MitTooltip>
 						) : undefined
 					}
 					eintraege={eintraege}
 				/>
 			) : (
-				<Knopf
+				<MitTooltip
+					tooltip={tooltip}
 					art={art}
 					groesse={groesse}
 					className={knapp ? 'px-1.5!' : undefined}
@@ -99,7 +124,7 @@ export const PdfKnopf = ({
 					onClick={() => erste && void hole(erste)}
 				>
 					{inhalt}
-				</Knopf>
+				</MitTooltip>
 			)}
 			{dialog}
 		</>

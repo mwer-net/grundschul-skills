@@ -81,9 +81,6 @@ test.describe('Schubladenleiste (093)', () => {
 		await expect(offen(page)).toHaveCount(0);
 		await expect(schubladenKnopf(page, 'bilder')).toHaveAttribute('aria-pressed', 'false');
 		expect(await blattBreite(page)).toBeGreaterThan(schmal + 200);
-		// Ohne etwas, das sie selbst geschlossen hat, öffnet die Statusleiste die Ebenen.
-		await druecke(page.getByRole('button', { name: 'Linke Leiste' }));
-		await expect(offen(page)).toHaveAttribute('data-panel-links', 'ebenen');
 	});
 
 	test('alle fünf Schubladen sind überall: Leiste, Palette, Tastenübersicht, Hilfe', async ({ page }) => {
@@ -301,19 +298,13 @@ test.describe('Ebenen und Schublade nebeneinander am Mac (183)', () => {
 		await expect(schubladenKnopf(page, 'ebenen')).toHaveAttribute('aria-pressed', 'true');
 	});
 
-	test('„Linke Leiste“ schließt Ebenen und Schublade und holt beide wieder', async ({ druecke, page }) => {
+	test('Die Statusleiste hat keinen Knopf „Linke Leiste“; die Schubladenleiste ist der Weg (193-35)', async ({
+		page,
+	}) => {
 		await blatt(page);
+		await expect(page.locator('[data-statusleiste]').getByRole('button', { name: 'Linke Leiste' })).toHaveCount(0);
 		await page.keyboard.press('Alt+Digit2');
 		await expect(offen(page)).toHaveCount(2);
-		const knopf = page.getByRole('button', { name: 'Linke Leiste' });
-		await expect(knopf).toHaveAttribute('aria-pressed', 'true');
-		await druecke(knopf);
-		await expect(offen(page)).toHaveCount(0);
-		await expect(knopf).toHaveAttribute('aria-pressed', 'false');
-		await druecke(knopf);
-		await expect(spalte(page, 'ebenen')).toBeVisible();
-		await expect(spalte(page, 'bausteine')).toBeVisible();
-		await expect(knopf).toHaveAttribute('aria-pressed', 'true');
 	});
 
 	test('keine Stecknadel, kein Teiler; ⌘K kennt kein Anheften, aber „Ebenen“', async ({ page }) => {
