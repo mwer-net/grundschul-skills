@@ -31,6 +31,8 @@ export interface EbenenZeichen {
 	/** Was der Klick tut, z. B. „Ausblenden“. */
 	titel: (gesetzt: boolean) => string;
 	klick: (k: EbenenZeichenKontext, gesetzt: boolean) => void;
+	/** Welches Feld der Zeile der Klick umschaltet; die Ebenen zeigen es sofort, vor dem neuen Blatt (195-11). */
+	schaltet?: 'aus' | 'gesperrt';
 }
 
 /**

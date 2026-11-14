@@ -91,9 +91,17 @@ const werteVon = (doc: Document, pfad: PfadTeil[]): StrukturWerte => {
 	if (gewaehlt && element && kann(gewaehlt.baustein, 'ordnen')) {
 		const ordnung = ordnungVon(element, gewaehlt.baustein);
 		const gruppe = ordnung.gruppen.find((g) => g.glieder.includes(element));
+		// 204-04: Nachbarn ohne Fläche (die Lösungsmarke im Arbeitsblatt) zählen nicht; sonst täte der Pfeil nichts.
+		const sichtbar = {
+			...ordnung,
+			gruppen: ordnung.gruppen.map((g) => ({
+				...g,
+				glieder: g.glieder.filter((e) => e === element || e.getClientRects().length > 0),
+			})),
+		};
 		nach = {
-			zurueck: nachbarAblage(ordnung, -1),
-			vor: nachbarAblage(ordnung, 1),
+			zurueck: nachbarAblage(sichtbar, -1),
+			vor: nachbarAblage(sichtbar, 1),
 			quer: nebeneinander(gruppe?.glieder ?? []),
 		};
 	}

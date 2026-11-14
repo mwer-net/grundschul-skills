@@ -52,6 +52,7 @@ import { useGliederungStand } from '../editor/gliederung-stand';
 import { halteFokus } from '../editor/halteFokus';
 import { Einstellungen, Inspektor, Umriss } from '../editor/Inspektor';
 import { limitHinweis, useKiZustand } from '../editor/ki';
+import type { MenueTreffer } from '../editor/Leinwand';
 import { Leinwand } from '../editor/Leinwand';
 import { useLoesung } from '../editor/loesung';
 import { Loesungsuebersicht } from '../editor/Loesungspanel';
@@ -751,12 +752,16 @@ const Bearbeitung = ({ dokument, mappe: mappenDaten }: { mappe: Mappe; dokument:
 						ort?.querySelector<HTMLElement>('label, button')?.focus();
 					});
 				},
+				// 194-08: Erst die Leiste am Element, sonst der Inspektor.
 				zurLeiste: () =>
-					document
-						.querySelector<HTMLElement>(
+					(
+						document.querySelector<HTMLElement>(
+							'[data-bausteinleiste] button:not(:disabled), [data-gestaltungsleiste] button:not(:disabled)',
+						) ??
+						document.querySelector<HTMLElement>(
 							'[data-panel] input, [data-panel] select, [data-panel] textarea, [data-panel] button',
 						)
-						?.focus(),
+					)?.focus(),
 				fassung: (w) => setSuche(w === 'loesung' ? { fassung: 'loesung' } : {}, { replace: true }),
 				profil: waehleProfil,
 				zoomSchritt: (richtung) => {
@@ -1040,8 +1045,18 @@ const Bearbeitung = ({ dokument, mappe: mappenDaten }: { mappe: Mappe; dokument:
 		},
 	};
 
-	const leinwandMenue = (treffer: { nr: number; art: string } | null, punkt: { x: number; y: number }) =>
-		menueAn(treffer?.nr ?? null, !treffer || treffer.art === 'seite' ? 'leer' : 'baustein', punkt);
+	// 204-05: Der Rechtsklick zeigt das Menü dessen, was er gewählt hat, wie das ⋯ an dessen Leiste.
+	const menueArtVon = (treffer: MenueTreffer | null): MenueArt => {
+		if (!treffer) {
+			return 'leer';
+		}
+		if (treffer.gestaltung) {
+			return 'gestaltung';
+		}
+		return treffer.art === 'seite' ? 'seite' : 'baustein';
+	};
+	const leinwandMenue = (treffer: MenueTreffer | null, punkt: { x: number; y: number }) =>
+		menueAn(treffer?.nr ?? null, menueArtVon(treffer), punkt);
 	const kopfMitte = (
 		<KopfMitte
 			dokument={dokument}
@@ -1209,15 +1224,9 @@ const Bearbeitung = ({ dokument, mappe: mappenDaten }: { mappe: Mappe; dokument:
 													<Bausteinleiste
 														e={e}
 														pfad={pfad}
-														quelle={sicht.quelle}
-														format={format}
 														struktur={struktur}
 														befehle={befehle}
 														text={text}
-														abb={abbildung}
-														bild={bild}
-														loes={loes}
-														waehle={setAuswahl}
 													/>
 													<GestaltungUeberlagerung
 														e={e}

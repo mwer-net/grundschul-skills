@@ -1,6 +1,6 @@
 import type { Locator, Page } from '@playwright/test';
 
-import { material, oeffne, quelle, uhrzeit } from './editorhilfe';
+import { imMehr, material, oeffne, quelle, uhrzeit } from './editorhilfe';
 import { expect, test } from './hilfe';
 import { oeffneSchublade } from './schubladen-hilfe';
 
@@ -60,8 +60,6 @@ const wirksameSchrift = (page: Page) =>
 		return parseFloat(getComputedStyle(eltern).fontSize) * massstab;
 	});
 
-const wartePlus = (page: Page) => expect(page.locator('[data-einfuegen-plus]')).toBeVisible();
-
 test.describe('Editor: Bausteine einfügen', () => {
 	test('Bibliothek: Klick fügt ein, ein Schritt in Rückgängig, Rest unverändert', async ({ page }) => {
 		const { dok, id } = await uhrzeit();
@@ -120,12 +118,16 @@ test.describe('Editor: Bausteine einfügen', () => {
 		expect(await quelle(page)).toBe(vorher);
 	});
 
-	test('„+ Baustein“ in der Leiste öffnet die Schnellauswahl', async ({ druecke, page }) => {
+	test('204-09: „Neuer Baustein“ im ⋯ der Leiste öffnet die Schnellauswahl; ein „+“ steht dort nicht', async ({
+		druecke,
+		page,
+	}) => {
 		const { dok, id } = await uhrzeit();
 		await oeffne(page, id, dok);
 		await druecke(material(page).locator('.aufgabe').first().locator('.nr'));
-		await wartePlus(page);
-		await page.locator('[data-einfuegen-plus]').click();
+		await expect(page.locator('[data-bausteinleiste]')).toBeVisible();
+		await expect(page.locator('[data-einfuegen-plus]')).toHaveCount(0);
+		await imMehr(page, 'Neuer Baustein');
 		const fenster = page.locator('[data-schnellauswahl]');
 		await fenster.getByRole('searchbox').fill('Schreiblinie');
 		await fenster.locator('[data-katalog-eintrag="schreiblinie"]').click();

@@ -95,4 +95,18 @@ describe('Kit-Tabelle', () => {
 		);
 		assert.throws(() => teileTabelle(QUELLE, zelle(QUELLE, 'a'), 1, n), /nicht teilen/);
 	});
+
+	it('204-02: Kopfspalte bleibt th, neue Zellen wie ihr Nachbar, die Auswahl bleibt an der Tabelle', () => {
+		const spalte = QUELLE.replace('<td data-l="1">a</td>', '<th>a</th>').replace('<td>c</td>', '<th>c</th>');
+		const tabelle = zerlege(spalte).knoten.find((k) => k.tag === 'table')?.nr ?? -1;
+		const koerper = (q: string) => (q.match(/<tbody>[\s\S]*<\/tbody>/)?.[0].match(/<th>/g) ?? []).length;
+		const zeile = fuegeZeileEin(spalte, zelle(spalte, 'c'), 'nach', n);
+		assert.equal(koerper(spalte), 2);
+		assert.equal(koerper(zeile.quelle), 3);
+		assert.equal(koerper(fuegeSpalteEin(zeile.quelle, zelle(zeile.quelle, 'b'), 'nach', n).quelle), 3);
+		assert.equal(koerper(loescheZeile(zeile.quelle, zelle(zeile.quelle, 'c'), n).quelle), 2);
+		const groesser = setzeGroesse(spalte, tabelle, { zeilen: 4 }, n);
+		assert.equal(koerper(groesser.quelle), 3);
+		assert.equal(groesser.nr, tabelle);
+	});
 });

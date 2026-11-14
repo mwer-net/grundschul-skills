@@ -409,10 +409,16 @@ const knotenVon = (z: Zerlegung, nr: number) => {
 	return k;
 };
 
-/** Was das Panel zu `art` am Element `nr` anzeigt. */
+/**
+ * Was das Panel zu `art` am Element `nr` anzeigt. Gibt es das Element nicht mehr (etwa gleich nach ⌘Z), ist nichts zu
+ * lesen: Lesen wirft nicht, nur Schreiben (195-01).
+ */
 export const leseKit = (quelle: string, nr: number, art: string): Record<string, Wert> => {
 	const z = zerlege(quelle);
-	const k = knotenVon(z, nr);
+	const k = z.knoten[nr];
+	if (!k) {
+		return {};
+	}
 	return Object.fromEntries(
 		(KIT_FELDER[art] ?? []).flatMap((f) => {
 			const regel = REGELN[`${art}.${f.name}`];

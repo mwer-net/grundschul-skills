@@ -3,7 +3,7 @@ import path from 'node:path';
 
 import type { Locator, Page } from '@playwright/test';
 
-import { aendere, material, oeffne, quelle, uhrzeit } from './editorhilfe';
+import { aendere, imMehr, material, oeffne, quelle, uhrzeit } from './editorhilfe';
 import { blattMit } from './gestaltung-daten';
 import { expect, test } from './hilfe';
 import { oeffneSchublade } from './schubladen-hilfe';
@@ -145,10 +145,8 @@ test.describe('Rahmen-Stile und Bildrahmen (111)', () => {
 			await expect(bild).toHaveAttribute('data-rahmenstil', stil);
 		}
 		expect(await quelle(page)).toContain('--drehen:-3deg');
-		// Die Leiste am Bild zeigt dieselbe Wahl im Popover.
-		await page.locator('[data-leiste-rahmenstil]').click();
-		await page.locator('[role="dialog"] [data-rahmenstil-knopf="gerade"]').click();
-		await expect(bild).not.toHaveAttribute('data-rahmenstil');
+		// 204-12: Die Wahl steht nur noch im Inspektor, nicht in der Leiste am Bild.
+		await expect(page.locator('[data-leiste-rahmenstil]')).toHaveCount(0);
 		expect(vorher).not.toContain('data-rahmenstil');
 	});
 
@@ -303,15 +301,20 @@ test.describe('Bildrahmen füllen wie einen Platzhalter (172)', () => {
 	const rahmenVon = (page: Page) => material(page).locator('.bildrahmen');
 	const gefuellt = /<img class="bild-frei"[^>]*data-maske="stern" src="bilder\//;
 
-	test('Leiste „Bild einsetzen“ öffnet „Bilder“, ein Klick füllt den Rahmen, ⌘Z holt ihn zurück', async ({
+	test('„Bild austauschen“ im ⋯ führt zum Bildwerkzeug, „Bilder“ füllt den Rahmen, ⌘Z holt ihn zurück', async ({
 		page,
 	}) => {
 		const vorher = blattMit({ vorne: [STERN_RAHMEN] });
 		await oeffneMit(page, vorher);
 		await waehle(page, rahmenVon(page), 'bildrahmen');
 		await expect(page.locator('[data-bild-austauschen]')).toHaveCount(0);
-		await page.locator('[data-bild-einsetzen]').click();
-		await expect(page.locator('[data-panel-links="bilder"]')).toBeVisible();
+		// 204-12, 204-14: kein eigener Knopf in der Leiste mehr; derselbe Name in ⋯, Rechtsklick und Inspektor.
+		await expect(page.locator('[data-bild-einsetzen]')).toHaveCount(0);
+		await imMehr(page, 'Bild austauschen');
+		await expect
+			.poll(() => page.evaluate(() => Boolean(document.activeElement?.closest('[data-bildwerkzeug]'))))
+			.toBe(true);
+		await oeffneSchublade(page, 'bilder');
 
 		await bilder(page).getByRole('button', { name: 'Sammlung', exact: true }).click();
 		await kachel(page, WACHSTUM).click();
@@ -324,8 +327,8 @@ test.describe('Bildrahmen füllen wie einen Platzhalter (172)', () => {
 		// Gegenprobe: Am freien Bild steht „Austauschen“, nicht „Bild einsetzen“.
 		await aendere(page, blattMit({ vorne: [BILD] }));
 		await waehle(page, material(page).locator('img.bild-frei'), 'bildfrei');
-		await expect(page.locator('[data-bild-austauschen]')).toBeVisible();
-		await expect(page.locator('[data-bild-einsetzen]')).toHaveCount(0);
+		await expect(page.locator('[data-bildwerkzeug="bild"]')).toContainText('Austauschen');
+		await expect(page.locator('[data-bildwerkzeug="platzhalter"]')).toHaveCount(0);
 	});
 
 	test('„Foto hochladen“ in „Bilder“ füllt den gewählten Rahmen, kein neuer Baustein', async ({ page }) => {
@@ -365,13 +368,13 @@ test.describe('Bildrahmen füllen wie einen Platzhalter (172)', () => {
 		expect(await quelle(page)).not.toContain('bildrahmen');
 	});
 
-	test('Rechtsklick auf den leeren Rahmen bietet „Bild ersetzen“', async ({ hasTouch, page }) => {
+	test('Rechtsklick auf den leeren Rahmen bietet „Bild austauschen“', async ({ hasTouch, page }) => {
 		test.skip(hasTouch, 'Rechtsklick gibt es nur mit der Maus');
 		await oeffneMit(page, blattMit({ vorne: [STERN_RAHMEN] }));
 		const rahmen = rahmenVon(page);
 		await rahmen.evaluate((e) => e.scrollIntoView({ block: 'center' }));
 		await rahmen.click({ button: 'right' });
-		const eintrag = page.getByRole('menuitem', { name: /Bild ersetzen/ });
+		const eintrag = page.getByRole('menuitem', { name: /Bild austauschen/ });
 		await expect(eintrag).toBeVisible();
 		await eintrag.click();
 		await expect
@@ -385,13 +388,13 @@ test.describe('Bildrahmen füllen wie einen Platzhalter (172)', () => {
 		await kreis.click({ button: 'right' });
 		await expect(page.getByRole('menu')).toBeVisible();
 		await expect(page.getByRole('menuitem', { name: /Duplizieren/ })).toBeVisible();
-		await expect(page.getByRole('menuitem', { name: /Bild ersetzen/ })).toHaveCount(0);
+		await expect(page.getByRole('menuitem', { name: /Bild austauschen/ })).toHaveCount(0);
 	});
 
-	test('iPad quer: „Bild einsetzen“ ist ohne Rollen zu sehen', async ({ page }) => {
+	test('iPad quer: Die Leiste am Rahmen ist ohne Rollen zu sehen', async ({ page }) => {
 		await oeffneMit(page, blattMit({ vorne: [STERN_RAHMEN] }));
 		await page.setViewportSize({ width: 1180, height: 820 });
 		await waehle(page, rahmenVon(page), 'bildrahmen');
-		await expect(page.locator('[data-bild-einsetzen]')).toBeInViewport();
+		await expect(page.locator('[data-gestaltungsleiste]')).toBeInViewport();
 	});
 });

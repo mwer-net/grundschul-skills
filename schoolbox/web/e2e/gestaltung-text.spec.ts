@@ -273,8 +273,9 @@ test.describe('Bestand mit Schmuckschrift (175)', () => {
 
 		const titel = material(page).locator('div.schmuck[data-schmuck="titel"]');
 		await titel.click();
-		await expect(page.locator('[data-leiste-kontur]')).toBeVisible();
-		await expect(page.locator('[data-leiste-bogen]')).toBeVisible();
+		// 204-12: Kontur und Bogen stehen im Inspektor, nicht mehr in der Leiste.
+		await expect(page.locator('[data-gestaltungsleiste]')).toBeVisible();
+		await expect(page.locator('[data-leiste-kontur], [data-leiste-bogen]')).toHaveCount(0);
 		await titel.dblclick();
 		await expect(page.locator('[data-textknoepfe]')).toBeVisible();
 		await page.keyboard.press('Escape');
@@ -283,8 +284,7 @@ test.describe('Bestand mit Schmuckschrift (175)', () => {
 
 		// Gegenprobe: Der Schalter „Bogen“ macht aus dem Bogen einen geraden Titel; eine Änderung sähe der Test also.
 		await material(page).locator('svg.schmuck[data-schmuck="bogen"]').click();
-		await page.locator('[data-leiste-bogen]').click();
-		await page.getByRole('dialog').getByRole('switch', { name: 'Bogen', exact: true }).click();
+		await page.locator('[data-panel]').getByRole('switch', { name: 'Bogen', exact: true }).click();
 		await expect.poll(() => quelle(page)).not.toContain('data-schmuck="bogen"');
 		await gespeichert(page, u.material);
 		expect(await readFile(u.material, 'utf8')).not.toBe(vorher);

@@ -192,8 +192,7 @@ test.describe('Aufgabenformate (049)', () => {
 			['x-schreibrahmen', 'Schreibrahmen'],
 		] as const) {
 			await druecke(material(page).locator('.aufgabe').first().locator('.nr'));
-			await expect(page.locator('[data-einfuegen-plus]')).toBeVisible();
-			await page.locator('[data-einfuegen-plus]').click();
+			await imMehr(page, 'Neuer Baustein');
 			const fenster = page.locator('[data-schnellauswahl]');
 			await fenster.getByRole('searchbox').fill(suche);
 			await fenster.locator(`[data-katalog-eintrag="${art}"]`).click();
@@ -215,19 +214,16 @@ test.describe('Generatoren (050)', () => {
 		return { dok, id, datei };
 	};
 
-	test('Neue Zahlen: nur die Zahlen ändern sich, ein Schritt in Rückgängig', async ({ druecke, hasTouch, page }) => {
+	test('Neue Zahlen: nur die Zahlen ändern sich, ein Schritt in Rückgängig', async ({ druecke, page }) => {
 		test.slow();
 		const { datei } = await mitElement(page, '<x-zahlenmauer basis="3 5 2" offen="0-1"></x-zahlenmauer>');
 		const vorher = await quelle(page);
 		await druecke(material(page).locator('x-zahlenmauer'));
 		const leiste = page.locator('[data-bausteinleiste]');
-		// Am iPad passt die Leiste nur ohne die spezifischen Einträge; Befehle stehen dann im ⋯ (071).
-		if (hasTouch) {
-			await druecke(leiste.getByRole('button', { name: 'Mehr zu diesem Baustein' }));
-			await druecke(page.getByRole('menuitem', { name: /Neue Zahlen/ }));
-		} else {
-			await druecke(leiste.getByRole('button', { name: 'Neue Zahlen' }));
-		}
+		// 204-08: In der Leiste stehen keine Knöpfe der Art mehr; „Neue Zahlen“ steht im ⋯.
+		await expect(leiste.getByRole('button', { name: 'Neue Zahlen' })).toHaveCount(0);
+		await druecke(leiste.getByRole('button', { name: 'Mehr zu diesem Baustein' }));
+		await druecke(page.getByRole('menuitem', { name: /Neue Zahlen/ }));
 		await expect.poll(() => quelle(page)).not.toBe(vorher);
 		const nachher = await quelle(page);
 		expect(nachher.replace(/basis="[^"]*"/, '')).toBe(vorher.replace(/basis="[^"]*"/, ''));

@@ -31,6 +31,12 @@ const blatt = async (page: Page, einsatz: Einsatz = { vorne: [WILMA, BLASE] }) =
 
 const teil = (page: Page, name: string) => material(page).locator(`[data-name="${name}"]`);
 const gruppe = (page: Page) => material(page).locator('.gruppe');
+/** 204-12: „Drehen“ ist aus der Leiste gewandert; gedreht wird im Inspektor (oder am Drehgriff). */
+const dreheUm90 = async (page: Page) => {
+	const feld = page.locator('[data-panel] [data-zahl="Drehung"] input');
+	await feld.fill('90');
+	await feld.press('Enter');
+};
 const mehrfach = (page: Page) => page.locator('[data-gestaltung-rahmen="mehrfach"]');
 
 const mitte = async (ziel: Locator) => {
@@ -91,7 +97,7 @@ test.describe('Gruppen (120)', () => {
 		await expect.poll(() => quelle(page)).not.toMatch(/class="gruppe"[^>]*--x:120px/);
 		await geladen(page);
 
-		await page.locator('[data-gestaltungsleiste] [data-drehen]').click();
+		await dreheUm90(page);
 		await expect.poll(() => quelle(page)).toMatch(/class="gruppe"[^>]*--drehen:/);
 		await geladen(page);
 
@@ -138,7 +144,7 @@ test.describe('Gruppen (120)', () => {
 	test('Ein Teil einer gedrehten Gruppe: Rahmen ohne Griffe, Pfeiltasten gehen', async ({ page }) => {
 		await blatt(page);
 		await gruppiere(page);
-		await page.locator('[data-gestaltungsleiste] [data-drehen]').click();
+		await dreheUm90(page);
 		await expect.poll(() => quelle(page)).toMatch(/class="gruppe"[^>]*--drehen:90deg/);
 		await geladen(page);
 		await teil(page, 'Blase').dblclick();

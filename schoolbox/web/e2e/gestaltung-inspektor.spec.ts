@@ -101,7 +101,8 @@ test.describe('Inspektor und Leiste am Element (099)', () => {
 		await druecke(leiste(page).getByRole('button', { name: /^Mehr zu/ }));
 		const eintraege = await page.getByRole('menuitem').allTextContents();
 		const stelle = (wort: string) => eintraege.findIndex((e) => e.includes(wort));
-		const reihe = ['Duplizieren', 'Kopieren', 'Löschen', 'Claude'].map(stelle);
+		// 204-10: dieselbe Liste wie beim Rechtsklick, Löschen zuletzt.
+		const reihe = ['Duplizieren', 'Kopieren', 'Claude', 'Löschen'].map(stelle);
 		expect(reihe.every((i) => i !== -1)).toBe(true);
 		expect([...reihe].sort((a, b) => a - b)).toEqual(reihe);
 	});

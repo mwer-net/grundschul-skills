@@ -1,5 +1,5 @@
 import type { Baustein } from '@schoolbox/kern/src/bausteine';
-import { kann } from '@schoolbox/kern/src/bausteine';
+import { bausteinNach, kann } from '@schoolbox/kern/src/bausteine';
 import { istGestaltung } from '@schoolbox/kern/src/gestaltung';
 import type { EbenenName } from '@schoolbox/kern/src/gestaltung-arten';
 import type { Knoten, Zerlegung } from '@schoolbox/kern/src/quelltext';
@@ -55,6 +55,8 @@ export interface GliederungKnoten {
 	aus: boolean;
 	/** `data-gesperrt`: im Blatt nicht wählbar, hier schon. */
 	gesperrt: boolean;
+	/** Eine Zeile ohne eigenes Element wählt dieses, die Kopfzeile ihre Tabelle (195-25). */
+	waehlt?: number;
 	/** `data-name`, sonst `null`; damit beginnt das Umbenennen. */
 	eigenerName: string | null;
 	/** Nur Gestaltung in einer Ebene: Nummer der `.seite` und Platz von vorne (0 liegt ganz vorne). */
@@ -156,7 +158,11 @@ interface Roh {
 	element: Element;
 	baustein: Baustein;
 	kinder: Roh[];
+	/** 195-25: Die Zeile im Tabellenkopf ist kein Element; ihre Zellen stehen unter einer festen Zeile „Kopfzeile“. */
+	kopfzeile?: true;
 }
+
+const KOPFZEILE = 'thead > tr';
 
 const rohIn = (elemente: ReadonlyMap<number, Element>, eltern: Knoten): Roh[] =>
 	eltern.kinder.flatMap((k): Roh[] => {
@@ -165,6 +171,11 @@ const rohIn = (elemente: ReadonlyMap<number, Element>, eltern: Knoten): Roh[] =>
 			return [];
 		}
 		const baustein = bausteinVon(element);
+		const zeile = element.matches(KOPFZEILE) ? bausteinNach('tabellenzeile') : undefined;
+		if (zeile && element.getClientRects().length > 0) {
+			const kinder = rohIn(elemente, k);
+			return kinder.length > 0 ? [{ nr: k.nr, element, baustein: zeile, kinder, kopfzeile: true }] : [];
+		}
 		if (!baustein) {
 			return rohIn(elemente, k);
 		}
@@ -282,7 +293,7 @@ export const gliederungVon = (doc: Document, z: Zerlegung, ids: readonly number[
 	const roh = seiten.map((s) => rohIn(elemente, s));
 	const gruppen = new Map<string, number>();
 	for (const r of roh.flatMap(alleRoh)) {
-		if (!istFest(r.baustein)) {
+		if (!istFest(r.baustein) && !r.kopfzeile) {
 			const g = gruppeVon(r.element, r.baustein);
 			gruppen.set(g, (gruppen.get(g) ?? 0) + 1);
 		}
@@ -345,6 +356,24 @@ export const gliederungVon = (doc: Document, z: Zerlegung, ids: readonly number[
 		};
 	};
 	const baue = (r: Roh, schluessel: string): GliederungKnoten => {
+		if (r.kopfzeile) {
+			const tabelle = trefferAn(r.element.closest('table'))?.nr;
+			return {
+				nr: r.nr,
+				titel: 'Kopfzeile',
+				nummer: null,
+				name: 'Kopfzeile',
+				art: 'Kopfzeile',
+				aufgabe: false,
+				fest: true,
+				ziehbar: false,
+				schluessel,
+				kinder: r.kinder.map((k, i) => baue(k, `${schluessel}/${i}:${k.baustein.art}`)),
+				...OHNE_STAPEL,
+				kennung: 'tabellenzeile',
+				...(tabelle === undefined ? {} : { waehlt: tabelle }),
+			};
+		}
 		const umgebung = trefferAn(r.element.parentElement)?.element ?? null;
 		const name = nameVon({ nr: r.nr, baustein: r.baustein, element: r.element }, umgebung);
 		const aufgabe = r.baustein.art === 'aufgabe';

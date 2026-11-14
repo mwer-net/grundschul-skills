@@ -104,7 +104,7 @@ export const KOMBINIEREN_BEFEHLE: Befehl[] = KOMBI_ARTEN.map(({ art, id, symbol,
 	modus: ['auswahl'],
 	suchwoerter: ['kombinieren', 'formen', 'pfad', titel.toLowerCase(), art],
 	orte: ['palette', 'gestaltung'],
-	sichtbarUnter: 'leiste',
+	sichtbarUnter: 'mehr',
 	verfuegbar: kann,
 	aus: (k) => (k.gestaltung ? kombiniereIm(k.gestaltung, art) : false),
 }));

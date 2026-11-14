@@ -24,6 +24,7 @@ import { bausteinVon, elementZu, nrVon } from './darstellung';
 import type { EbenenZiel } from './ebenen-legen';
 import { legeInEbenen, seiteUm } from './ebenen-legen';
 import { lageInSeite, messeAnhaengen } from './gestaltung/anker-lage';
+import type { EbenenZeichen } from './gestaltung/ebenen-zeichen';
 import { EBENEN_ZEICHEN } from './gestaltung/ebenen-zeichen';
 import { nrnFuer, schalteDazu, useMehrfach } from './gestaltung/mehrfach';
 import type { GliederungKnoten, GliederungSeite } from './gliederung-modell';
@@ -250,6 +251,9 @@ const linieAn = (y: number | null, zeile: Element, f: DOMRect) =>
 
 const GESTALTUNG_ZEILEN = new Set<string>(['vorne', 'hinten', 'anker', 'flaeche', 'gruppe']);
 
+/** Was die Ebenen nach einem Klick schon zeigen, bevor das neue Blatt da ist (195-11). */
+type Vorab = Partial<Pick<GliederungKnoten, 'aus' | 'gesperrt' | 'titel' | 'name' | 'eigenerName'>>;
+
 /** Die `data-*` einer Zeile in den Ebenen. */
 const zeilenDaten = (k: GliederungKnoten, seite: number, zugeklappt: boolean) => ({
 	...(k.zeile === 'baustein' ? {} : { 'data-ebene-seite': seite }),
@@ -341,6 +345,21 @@ export const Ebenen = ({
 	const hoereAuf = useRef<(() => void) | null>(null);
 	const aufraeumen = useRef<(() => void) | null>(null);
 	const rollen = useRef(false);
+	// 195-11: Was ein Klick gerade gesetzt hat, gilt in der Zeile sofort; mit dem nächsten Blatt zählt dessen Stand.
+	const [vorab, setVorab] = useState<{ fuer: Zerlegung | null; je: Map<number, Vorab> }>(() => ({
+		fuer: null,
+		je: new Map(),
+	}));
+	const merke = (nr: number, wert: Vorab) =>
+		setVorab((alt) => {
+			const je = new Map(alt.fuer === zerlegung ? alt.je : []);
+			je.set(nr, { ...je.get(nr), ...wert });
+			return { fuer: zerlegung, je };
+		});
+	const mitVorab = (k: GliederungKnoten): GliederungKnoten => {
+		const v = vorab.fuer === zerlegung ? vorab.je.get(k.nr) : undefined;
+		return v ? { ...k, ...v } : k;
+	};
 
 	const modell = useMemo<GliederungSeite[]>(
 		() => (doc && zerlegung ? gliederungVon(doc, zerlegung, stand.ids) : []),
@@ -809,6 +828,9 @@ export const Ebenen = ({
 		if (neuerName === (k.eigenerName ?? '') || (!k.eigenerName && neuerName === k.titel)) {
 			return;
 		}
+		if (neuerName) {
+			merke(k.nr, { titel: neuerName, name: neuerName, eigenerName: neuerName });
+		}
 		struktur.aendereAttribute(neuerName ? 'Umbenannt' : 'Name entfernt', (q) =>
 			setzeName(q, k.nr, neuerName || null),
 		);
@@ -828,8 +850,17 @@ export const Ebenen = ({
 		if (!element) {
 			return null;
 		}
-		const zeichen = EBENEN_ZEICHEN.filter((z) => z.fuer(element)).map((z) => ({ z, an: z.gesetzt(element) }));
+		const zeichen = EBENEN_ZEICHEN.filter((z) => z.fuer(element)).map((z) => ({
+			z,
+			an: z.schaltet ? k[z.schaltet] : z.gesetzt(element),
+		}));
 		const kontext = { nr: k.nr, element, struktur, zeigeAn, zeigeSeitengestaltung };
+		const klick = (z: EbenenZeichen, an: boolean) => {
+			if (z.schaltet) {
+				merke(k.nr, { [z.schaltet]: !an });
+			}
+			z.klick(kontext, an);
+		};
 		const schalter = zeichen.filter(({ z }) => z.schalter);
 		const mehrKnopf = (
 			<button type="button" className="flex size-11 items-center justify-center rounded-sm text-leise">
@@ -854,7 +885,7 @@ export const Ebenen = ({
 								data-ebenen-zeichen={z.id}
 								{...(an ? { 'data-gesetzt': true } : {})}
 								disabled={!aktuell}
-								onClick={() => z.klick(kontext, an)}
+								onClick={() => klick(z, an)}
 							>
 								<Symbol name={z.symbol(an)} className="size-3.5 flex-none" />
 							</button>
@@ -869,7 +900,7 @@ export const Ebenen = ({
 							eintraege={schalter.map(({ an, z }) => ({
 								titel: z.titel(an),
 								symbol: z.symbol(!an),
-								waehle: () => z.klick(kontext, an),
+								waehle: () => klick(z, an),
 							}))}
 						/>
 					</span>
@@ -878,7 +909,8 @@ export const Ebenen = ({
 		);
 	};
 
-	const zeigeKnoten = (k: GliederungKnoten, tiefe: number, seite: number): ReactNode => {
+	const zeigeKnoten = (gelesen: GliederungKnoten, tiefe: number, seite: number): ReactNode => {
+		const k = mitVorab(gelesen);
 		const hatKinder = k.kinder.length > 0;
 		const zugeklappt = hatKinder && !stand.offen(k.schluessel);
 		const gezogen = zug?.nr === k.nr ? { opacity: 0.35 } : undefined;
@@ -892,7 +924,7 @@ export const Ebenen = ({
 		const waehleZeile = () =>
 			k.zeile === 'seitenrahmen' || k.zeile === 'seitenflaeche' || k.zeile === 'kopfband'
 				? zeigeSeitengestaltung(seite, k.zeile)
-				: waehle(hauptstapel ? seite : k.nr);
+				: waehle(hauptstapel ? seite : (k.waehlt ?? k.nr));
 		return (
 			<div key={k.schluessel} data-knoten={k.nr}>
 				<div
@@ -909,7 +941,7 @@ export const Ebenen = ({
 					data-zeilen-art={k.zeile}
 					{...zeilenDaten(k, seite, zugeklappt)}
 					onPointerDown={(e) => druecke(e, false, k, k.ziehbar)}
-					onContextMenu={(e) => (hauptstapel ? e.preventDefault() : menue(e, k.nr, 'baustein'))}
+					onContextMenu={(e) => (hauptstapel ? e.preventDefault() : menue(e, k.waehlt ?? k.nr, 'baustein'))}
 				>
 					{k.ziehbar ? <Griff beschriftung={`${k.art} ziehen`} tabIndex={-1} data-griff-zeile /> : LUECKE}
 					{hatKinder ? pfeil(k.schluessel, zugeklappt) : LUECKE}
@@ -1048,7 +1080,11 @@ export const Ebenen = ({
 					art="leise"
 					groesse="klein"
 					className="text-xs"
-					onClick={() => stand.setzeAlle(alleSchluessel(modell), alleZu)}
+					onClick={() => {
+						stand.setzeAlle(alleSchluessel(modell), alleZu);
+						// 195-14: Die gewählte Zeile bleibt im Blick, wie nach einem Klick im Blatt.
+						rollen.current = true;
+					}}
 				>
 					{alleZu ? 'Alle aufklappen' : 'Alle einklappen'}
 				</Knopf>

@@ -867,7 +867,7 @@ test.describe('Leisten im Blatt (071)', () => {
 		await expect(leiste(page)).toBeInViewport();
 	});
 
-	test('jede Art zeigt ihre Einträge, die Leiste bleibt schmal', async ({ druecke, hasTouch, page }) => {
+	test('jede Art hat dieselbe schmale Leiste, Text dazu seine Schriftknöpfe (204)', async ({ druecke, page }) => {
 		await oeffneBlatt(page);
 		const pruefe = async (ziel: Locator, art: string, namen: string[]) => {
 			await druecke(ziel);
@@ -878,12 +878,9 @@ test.describe('Leisten im Blatt (071)', () => {
 			expect((await leiste(page).boundingBox())?.width ?? 999).toBeLessThanOrEqual(640);
 		};
 		await pruefe(blatt(page).locator('x-uhr').first(), 'abbildung', ['Mehr zu diesem Baustein', 'Duplizieren']);
-		if (hasTouch) {
-			// Am iPad passt das Feld nicht mehr in die Leiste; es bleibt im Inspektor (071).
-			await expect(page.locator('[data-panel]').getByRole('combobox', { name: 'Stunde' })).toBeVisible();
-			return;
-		}
-		await expect(leiste(page).getByRole('combobox', { name: 'Stunde' })).toBeVisible();
+		// 204-08: Die Felder der Art stehen im Inspektor, nicht in der Leiste.
+		await expect(page.locator('[data-panel]').getByRole('combobox', { name: 'Stunde' })).toBeVisible();
+		await expect(leiste(page).getByRole('combobox', { name: 'Stunde' })).toHaveCount(0);
 		// Esc führt bis zur Aufgabe hoch: Die Leiste eines Eintrags stünde sonst über der Anweisung.
 		for (let i = 0; i < 4; i++) {
 			if ((await leiste(page).getAttribute('data-bausteinleiste')) === 'aufgabe') {
@@ -896,30 +893,15 @@ test.describe('Leisten im Blatt (071)', () => {
 		await expect(leiste(page).getByRole('button', { name: 'Fertig' })).toHaveCount(0);
 	});
 
-	test('Änderung in der Leiste steht auch im Inspektor und umgekehrt', async ({ druecke, hasTouch, page }) => {
-		test.skip(hasTouch, 'Am iPad steht das Feld nur im Inspektor (071).');
-		await oeffneBlatt(page);
-		await druecke(blatt(page).locator('x-uhr').first());
-		const stunde = leiste(page).getByRole('combobox', { name: 'Stunde' });
-		const imInspektor = page.locator('[data-panel]').getByRole('combobox', { name: 'Stunde' });
-		await stunde.selectOption('7');
-		await expect(imInspektor).toHaveValue('7');
-		await imInspektor.selectOption('11');
-		await expect(stunde).toHaveValue('11');
-	});
-
 	test('Schnellauswahl am unteren Rand ist ganz sichtbar', async ({ druecke, page }) => {
 		await oeffneBlatt(page);
 		await page.setViewportSize({ width: 1280, height: 600 });
 		const letzte = blatt(page).locator('.aufgabe').last();
 		await letzte.scrollIntoViewIfNeeded();
 		await druecke(letzte);
-		// Der Treffer kann ein Text oder ein Eintrag sein: Esc führt hoch bis zur Aufgabe, dort gibt es „+ Baustein“.
-		const plus = page.locator('[data-einfuegen-plus]');
-		for (let i = 0; i < 4 && (await plus.count()) === 0; i++) {
-			await page.keyboard.press('Escape');
-		}
-		await druecke(plus);
+		// 204-09: „Neuer Baustein“ steht im ⋯ jeder Leiste.
+		await druecke(leiste(page).getByRole('button', { name: 'Mehr zu diesem Baustein' }));
+		await druecke(page.getByRole('menuitem', { name: 'Neuer Baustein' }));
 		const fenster = page.locator('[data-schnellauswahl]');
 		await expect(fenster).toBeInViewport({ ratio: 1 });
 		await page.keyboard.press('Escape');
@@ -932,9 +914,7 @@ test.describe('Leisten im Blatt (071)', () => {
 		await blatt(page).locator('.aufgabe').first().tap();
 		await expect(leiste(page)).toBeVisible();
 		for (const knopf of await leiste(page).locator('button:visible').all()) {
-			if ((await knopf.getAttribute('data-leiste-griff')) === null) {
-				expect((await knopf.boundingBox())?.height ?? 0).toBeGreaterThanOrEqual(44);
-			}
+			expect((await knopf.boundingBox())?.height ?? 0).toBeGreaterThanOrEqual(44);
 		}
 		await leiste(page).getByRole('button', { name: 'Mehr zu diesem Baustein' }).tap();
 		await expect(page.getByRole('menu')).toBeVisible();

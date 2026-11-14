@@ -25,7 +25,7 @@ export const SPIEGELN_BEFEHLE: Befehl[] = [
 		tasteWenn: verfuegbar,
 		suchwoerter: ['spiegeln', 'umdrehen', 'blickrichtung', 'links', 'rechts', 'waagerecht'],
 		orte: ['taste', 'palette', 'gestaltung'],
-		sichtbarUnter: 'leiste',
+		sichtbarUnter: 'mehr',
 		verfuegbar,
 		aus: (k) => {
 			const g = k.gestaltung;
