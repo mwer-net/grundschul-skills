@@ -6,7 +6,6 @@ import {
 	macheRueckgaengig,
 	neuerVerlauf,
 	nimmAuf,
-	unterschied,
 	wiederhole,
 } from '@schoolbox/kern/src/quelltext';
 import { fasseMitAnlegenZusammen } from '@schoolbox/kern/src/schmuck';
@@ -45,19 +44,9 @@ interface Fluss {
 	quelle: string;
 	runden: number;
 	seit: number;
-	/** Was der Schritt in `quelle` geändert hat (Regel 3: Das Blatt darum ist betroffen). */
-	bereich: Bereich;
+	/** Die Fassung vor dem Schritt: Betroffen sind die Blätter, die sich gegen sie geändert haben (Regel 3). */
+	vorher: string | null;
 }
-
-export interface Bereich {
-	von: number;
-	bis: number;
-}
-
-const bereichVon = (alt: string | null, neu: string): Bereich => {
-	const s = alt === null ? null : unterschied(alt, neu, '');
-	return s ? { von: s.von, bis: s.von + s.neu.length } : { von: 0, bis: 0 };
-};
 
 const mitFormen = (b: Basis): Basis => ({ ...b, quelle: ergaenzeBoegen(ergaenzeStreuungen(ergaenzeFormen(b.quelle))) });
 
@@ -82,7 +71,7 @@ export const useBearbeitung = (mappe: string, dok: string, auswahl: RefObject<nu
 	/** 206: Nach einem Schritt legt der Editor die Seiten des betroffenen Blatts um, als Teil desselben Schritts. */
 	const fluss = useRef<Fluss | null>(null);
 	const flussFuer = (alt: string | null, neu: string, runden = FLUSS_RUNDEN) => {
-		fluss.current = runden > 0 ? { quelle: neu, runden, seit: Date.now(), bereich: bereichVon(alt, neu) } : null;
+		fluss.current = runden > 0 ? { quelle: neu, runden, seit: Date.now(), vorher: alt } : null;
 	};
 	const wartet = useCallback(() => fluss.current !== null && Date.now() - fluss.current.seit < FLUSS_MS, []);
 
@@ -204,9 +193,9 @@ export const useBearbeitung = (mappe: string, dok: string, auswahl: RefObject<nu
 	}, [auswahl]);
 	const quelleJetzt = useCallback(() => quelle.current, []);
 
-	/** Darf das Bild dieser Fassung noch umgelegt werden? Dann: was der Schritt darin geändert hat. */
+	/** Darf das Bild dieser Fassung noch umgelegt werden? Dann: die Fassung davor (`null`: keine bekannt). */
 	const flussFaellig = useCallback(
-		(q: string) => (wartet() && fluss.current?.quelle === q ? fluss.current.bereich : null),
+		(q: string) => (wartet() && fluss.current?.quelle === q ? { vorher: fluss.current.vorher } : null),
 		[wartet],
 	);
 	const flussErledigt = useCallback(() => {

@@ -241,3 +241,59 @@ export const legeUm = (quelle: string, plan: FlussPlan, n: Nummerierung): Umgele
 	});
 	return { quelle: nummeriere(neu, n), nummer: (nr) => nummern[nr] ?? null };
 };
+
+/** Höchstens so viele Blätter misst ein Schritt, der das ganze Material betrifft (z. B. Abstand, Klasse, Format). */
+export const MAX_BLAETTER = 40;
+
+/** Was in `.nr` steht, zählt `nummeriere` neu; es ändert kein Blatt (Regel 3). */
+const NR_INHALT = /(<span\b[^>]*\bclass="(?:[^"]*\s)?nr(?:\s[^"]*)?"[^>]*>)[^<]*(<\/span>)/g;
+const ohneNummern = (text: string) => text.replace(NR_INHALT, '$1$2');
+
+const blattTexte = (z: Zerlegung) => {
+	const blaetter = blaetterVon(z);
+	const grenzen = blaetter.map((b) => ({
+		von: z.knoten[b.seiten[0]?.nr ?? -1]?.start ?? 0,
+		bis: z.knoten[b.seiten.at(-1)?.nr ?? -1]?.ende ?? 0,
+	}));
+	const vorn = z.quelle.slice(0, grenzen[0]?.von ?? z.quelle.length);
+	const hinten = z.quelle.slice(grenzen.at(-1)?.bis ?? z.quelle.length);
+	return {
+		blaetter,
+		texte: grenzen.map((g) => ohneNummern(z.quelle.slice(g.von, g.bis))),
+		rest: ohneNummern(vorn) + '\u0000' + hinten,
+	};
+};
+
+/**
+ * Regel 3: Welche Blätter (Nummer der ersten Seite in `nachher`) ein Schritt geändert hat, Blatt für Blatt verglichen,
+ * ohne die Nummern in `.nr`. Ändert sich etwas außerhalb aller Blätter (Abstand und Klasse am `<body>`, Stil im Kopf),
+ * sind es alle fließenden Blätter, höchstens `MAX_BLAETTER`. Gleiche Blätter vorn und hinten bleiben, auch wenn eine
+ * Seite dazukam oder wegfiel.
+ */
+export const geaenderteBlaetter = (vorher: string, nachher: Zerlegung): number[] => {
+	const n = blattTexte(nachher);
+	const a = blattTexte(zerlege(vorher));
+	const nummer = (b: Blatt) => b.seiten[0]?.nr ?? -1;
+	if (n.rest !== a.rest) {
+		return n.blaetter
+			.filter((b) => b.fliesst)
+			.slice(0, MAX_BLAETTER)
+			.map(nummer);
+	}
+	let vorn = 0;
+	while (vorn < n.texte.length && vorn < a.texte.length && n.texte[vorn] === a.texte[vorn]) {
+		vorn += 1;
+	}
+	let hinten = 0;
+	while (
+		hinten < n.texte.length - vorn &&
+		hinten < a.texte.length - vorn &&
+		n.texte[n.texte.length - 1 - hinten] === a.texte[a.texte.length - 1 - hinten]
+	) {
+		hinten += 1;
+	}
+	return n.blaetter
+		.slice(vorn, n.blaetter.length - hinten)
+		.filter((b) => b.fliesst)
+		.map(nummer);
+};

@@ -10,9 +10,13 @@ import {
 	aeussereSeiten as aeussereSeitenVon,
 	blaetterVon,
 	blattZu,
+	FOLGESEITE_STIL,
+	geaenderteBlaetter,
 	istFuss,
 	istUeberschrift,
 	legeUm,
+	MAX_BLAETTER,
+	UEBERNOMMEN_HINTEN,
 } from '@schoolbox/kern/src/fluss';
 import { hatLoesung } from '@schoolbox/kern/src/loesungen';
 import type { Zerlegung } from '@schoolbox/kern/src/quelltext';
@@ -20,13 +24,10 @@ import { zerlege } from '@schoolbox/kern/src/quelltext';
 import type { RefObject } from 'react';
 import { useCallback, useEffect, useRef } from 'react';
 
-import type { Bereich } from './bearbeitung';
 import { elementZu, MITLAUFEN, nrVon } from './darstellung';
 
 /** Unterkante der Seite wie in `pruefung.js`: nach vorn erst bei mehr als 1 px Überstand, zurück nur ganz (Regel 14). */
 const TOLERANZ = 1;
-/** Regel 3: So viel muss sich die Unterkante bewegen, damit ein Schritt das Blatt betrifft. */
-const BEWEGT = 0.5;
 /** Länger wartet der Probelauf nicht auf Bilder, die noch laden. */
 const BILDER_MS = 2000;
 /** Höchstens so viele Umbauten folgen auf einen Schritt (Regel 29): danach wird gezeigt, was da ist. */
@@ -97,54 +98,6 @@ export const istFlussblock = (k: Element) => !k.matches(NICHT_IM_FLUSS);
 
 const flussKinder = (seite: Element) => [...seite.children].filter(istFlussblock);
 
-/** Regel 3: je Seite die Zahl der Flussblöcke, die Unterkante des letzten vor dem Fuß und die Höhe des Fußes. */
-const merkmalVon = (seiten: Element[]) =>
-	seiten.map((s) => {
-		const oben = s.getBoundingClientRect().top;
-		const kinder = flussKinder(s);
-		const fuss = kinder.find((k) => k.classList.contains('fuss'));
-		const letzter = kinder.filter((k) => k !== fuss).at(-1);
-		return [
-			istAuto(s) ? 1 : 0,
-			kinder.length,
-			letzter ? unterkante(letzter) - oben : 0,
-			fuss ? fuss.getBoundingClientRect().height : 0,
-		];
-	});
-
-const gleicheMerkmale = (a: number[][], b: number[][]) =>
-	a.length === b.length &&
-	a.every((zeile, i) => zeile.every((wert, j) => Math.abs(wert - (b[i]?.[j] ?? Infinity)) <= BEWEGT));
-
-/**
- * Welche Blätter der Schritt bewegt hat (Regel 3): gleiche Blätter vorn und hinten bleiben, was dazwischen anders ist,
- * zählt. So berührt ein Tippfehler auf Seite 1 kein altes Blatt auf Seite 5, auch wenn eine Seite dazukam.
- */
-const betroffen = (neu: HTMLElement[][], alt: HTMLElement[][]) => {
-	const a = alt.map(merkmalVon);
-	const n = neu.map(merkmalVon);
-	let vorn = 0;
-	while (vorn < n.length && vorn < a.length && gleicheMerkmale(n[vorn] ?? [], a[vorn] ?? [])) {
-		vorn += 1;
-	}
-	let hinten = 0;
-	while (
-		hinten < n.length - vorn &&
-		hinten < a.length - vorn &&
-		gleicheMerkmale(n[n.length - 1 - hinten] ?? [], a[a.length - 1 - hinten] ?? [])
-	) {
-		hinten += 1;
-	}
-	return new Set(neu.slice(vorn, neu.length - hinten).map((g) => g[0]));
-};
-
-/** Liegt die Änderung im Blatt oder grenzt an? Ein Tippen auf Seite 1 betrifft Blatt 1, auch wenn das Bild schon so war. */
-const beruehrt = (z: Zerlegung, blatt: Blatt, { bis, von }: Bereich) => {
-	const erste = z.knoten[blatt.seiten[0]?.nr ?? -1];
-	const letzte = z.knoten[blatt.seiten.at(-1)?.nr ?? -1];
-	return Boolean(erste && letzte && von <= letzte.ende && bis >= erste.start);
-};
-
 const bilderGeladen = async (doc: Document) => {
 	const offen = [...doc.images].filter((b) => !b.complete);
 	if (offen.length === 0) {
@@ -180,16 +133,32 @@ const ankerIn = (seite: Element) => {
 	return kinder.slice(vorn + 1).find((k) => k.matches(HINTEN)) ?? null;
 };
 
-/** Eine Folgeseite nur zum Messen, wie sie der Kern anlegen würde (Regel 12). */
+const ohneMarke = (k: Element) => {
+	const kopie = k.cloneNode(true) as Element;
+	kopie.removeAttribute('data-sb');
+	kopie.querySelectorAll('[data-sb]').forEach((c) => c.removeAttribute('data-sb'));
+	return kopie;
+};
+
+/**
+ * Eine Folgeseite zum Messen und für das Mitlaufen beim Tippen, wie sie der Kern anlegt (`automatischeSeite`,
+ * Regel 12): Lösung-Marke, Fußzeile und aus der hinteren Ebene Seitenfläche und Seitenrahmen, kein Kopfband.
+ */
 const probeSeite = (vorlage: HTMLElement, nach: Element) => {
-	const seite = vorlage.cloneNode(false) as HTMLElement;
-	seite.removeAttribute('data-sb');
+	const seite = vorlage.ownerDocument.createElement(vorlage.localName);
+	seite.className = 'seite';
 	seite.setAttribute('data-weiter', 'auto');
-	for (const kind of vorlage.children) {
-		if (kind.matches('.loesung-marke, .fuss-zeile')) {
-			const kopie = kind.cloneNode(true) as Element;
+	const regel = vorlage.ownerDocument.createElement('style');
+	regel.textContent = FOLGESEITE_STIL;
+	seite.append(regel);
+	const kinder = [...vorlage.children];
+	seite.append(...kinder.filter((k) => k.matches('.loesung-marke, .fuss-zeile')).map(ohneMarke));
+	for (const ebene of kinder.filter((k) => k.matches('.ebene.hinten'))) {
+		const teile = [...ebene.children].filter((c) => UEBERNOMMEN_HINTEN.some((name) => c.classList.contains(name)));
+		if (teile.length > 0) {
+			const kopie = ebene.cloneNode(false) as Element;
 			kopie.removeAttribute('data-sb');
-			kopie.querySelectorAll('[data-sb]').forEach((k) => k.removeAttribute('data-sb'));
+			kopie.append(...teile.map(ohneMarke));
 			seite.append(kopie);
 		}
 	}
@@ -202,7 +171,7 @@ const probeSeite = (vorlage: HTMLElement, nach: Element) => {
  * Überschrift steht nie als Letztes, der Fuß nie allein. `bis` (Lösung, Regel 21): Seite `j` endet höchstens dort,
  * wo sie im Arbeitsblatt endete; so wird nur weitergeschoben, nie zurückgeholt.
  */
-const fuelle = (p: Probe, neu: HTMLElement[], bis: number[] | null, ab = { block: 0, seite: 0 }) => {
+const fuelle = (p: Probe, neu: HTMLElement[], bis: number[] | null, ab = { block: 0, seite: 0, besetzt: false }) => {
 	const { folge, herkunft } = p;
 	const seiten: Element[][] = [];
 	let s = ab.block;
@@ -232,7 +201,7 @@ const fuelle = (p: Probe, neu: HTMLElement[], bis: number[] | null, ab = { block
 			m = Math.min(m, deckel - s);
 		}
 		// Auf der Seite, auf der getippt wird (206-07), stehen schon Blöcke: Dort darf keiner mehr dazukommen.
-		m = Math.max(j === ab.seite && ab.block > 0 ? 0 : 1, m);
+		m = Math.max(j === ab.seite && ab.besetzt ? 0 : 1, m);
 		if (s + m < folge.length) {
 			// Regel 8: Der Fuß steht nie allein, er nimmt den Block davor mit.
 			if (s + m === folge.length - 1 && folge.at(-1) === p.fuss && m > 1) {
@@ -274,12 +243,8 @@ const probeFuer = (doc: Document, z: Zerlegung, blatt: Blatt, seiten: HTMLElemen
 type Fenster = Window & { zeichneAbbildungen?: () => void };
 
 interface Optionen {
-	/** Das sichtbare Bild vor dem Schritt (Regel 3); `null` mit `erzwungen`: nur die genannten Blätter. */
-	alt: Document | null;
-	/** Was der Schritt in der Quelle geändert hat: Das Blatt darum ist betroffen, auch wenn das Bild schon so aussah. */
-	bereich?: Bereich;
-	/** Diese Blätter (Nummer der ersten Seite) auf jeden Fall, z. B. „Auf nächste Seite umbrechen“ (206-05). */
-	erzwungen?: readonly number[];
+	/** Diese Blätter (Nummer der ersten Seite), z. B. aus `geaenderteBlaetter` oder „Auf nächste Seite umbrechen“. */
+	blaetter: readonly number[];
 	/** Das Dokument hat Lösungen: Die andere Fassung wird mitgemessen (Regel 21). */
 	mitLoesung: boolean;
 }
@@ -291,15 +256,11 @@ interface Optionen {
 export const probelauf = async (doc: Document, z: Zerlegung, o: Optionen): Promise<FlussPlan | null> => {
 	const imBild = blaetterImBild(doc);
 	const quellBlaetter = blaetterVon(z);
-	const zuPruefen = o.erzwungen ? null : betroffen(imBild, o.alt ? blaetterImBild(o.alt) : []);
 	const proben: Probe[] = [];
 	for (const blatt of quellBlaetter) {
 		const erste = blatt.seiten[0]?.nr;
 		const seiten = imBild.find((g) => g[0] && nrVon(g[0]) === erste);
-		const gewollt = o.erzwungen
-			? o.erzwungen.includes(erste ?? -1)
-			: (seiten && zuPruefen?.has(seiten[0])) || (o.bereich && beruehrt(z, blatt, o.bereich));
-		if (!blatt.fliesst || !seiten || !gewollt || !fliesstImBild(seiten)) {
+		if (!blatt.fliesst || !seiten || !o.blaetter.includes(erste ?? -1) || !fliesstImBild(seiten)) {
 			continue;
 		}
 		const probe = probeFuer(doc, z, blatt, seiten);
@@ -360,16 +321,18 @@ export const probelauf = async (doc: Document, z: Zerlegung, o: Optionen): Promi
 const flussblockVon = (el: Element) => {
 	const body = el.ownerDocument.body;
 	let block: Element = el;
-	while (block.parentElement && !(block.parentElement.matches('.seite') && block.parentElement.parentElement === body)) {
+	const istSeite = (e: Element) => e.matches('.seite') && e.parentElement === body;
+	while (block.parentElement && !istSeite(block.parentElement)) {
 		block = block.parentElement;
 	}
 	return block.parentElement ? block : null;
 };
 
 /**
- * 206-07: Regel 6 im sichtbaren Bild, während getippt wird. Die Quelle bleibt; nur die Blöcke **hinter** dem getippten
- * Block wandern, er selbst und alles davor bleibt stehen (sonst verlöre er den Fokus). Gemessen wird nur die gezeigte
- * Fassung. Zurück kommt, was alles wieder hinstellt; `null`, wenn nichts zu tun ist.
+ * 206-07: Regel 6 im sichtbaren Bild, während getippt wird. Die Quelle bleibt; es wandern die Blöcke hinter dem
+ * getippten Block. Passt er selbst nicht mehr und steht er nicht oben auf seiner Seite, wandert er mit (N04); die
+ * Schreibmarke stellt `useMitlaufen` wieder her. Gemessen wird nur die gezeigte Fassung. Zurück kommt, was alles wieder
+ * hinstellt; `null`, wenn nichts zu tun ist.
  */
 export const laufeMit = (doc: Document, z: Zerlegung, getippt: Element): (() => void) | null => {
 	const block = flussblockVon(getippt);
@@ -378,16 +341,22 @@ export const laufeMit = (doc: Document, z: Zerlegung, getippt: Element): (() => 
 	const seiten = blatt && blaetterImBild(doc).find((g) => g[0] && nrVon(g[0]) === blatt.seiten[0]?.nr);
 	const p = blatt?.fliesst && seiten && fliesstImBild(seiten) ? probeFuer(doc, z, blatt, seiten) : null;
 	const t = p && block ? p.folge.indexOf(block) : -1;
-	if (!p || t < 0 || t === p.folge.length - 1) {
+	if (!p || !block || t < 0) {
 		return null;
 	}
-	const stellen = p.folge.slice(t + 1).map((b) => [b, b.parentNode, b.nextSibling] as const);
-	const neu: HTMLElement[] = [];
 	const stil = doc.createElement('style');
 	stil.textContent = PROBE_STIL;
 	doc.head.append(stil);
+	const seite = p.herkunft.get(block) ?? 0;
+	const obenAuf = flussKinder(block.parentElement as Element)[0] === block;
+	const passt = obenAuf || unterkante(block) <= grenzeVon(block.parentElement as Element) + TOLERANZ;
+	const ab = passt ? { block: t + 1, seite, besetzt: true } : { block: t, seite: seite + 1, besetzt: false };
+	const stellen = p.folge.slice(ab.block).map((b) => [b, b.parentNode, b.nextSibling] as const);
+	const neu: HTMLElement[] = [];
 	try {
-		fuelle(p, neu, null, { block: t + 1, seite: p.herkunft.get(block as Element) ?? 0 });
+		if (ab.block < p.folge.length) {
+			fuelle(p, neu, null, ab);
+		}
 	} finally {
 		stil.remove();
 	}
@@ -399,6 +368,47 @@ export const laufeMit = (doc: Document, z: Zerlegung, getippt: Element): (() => 
 	};
 };
 
+interface Marke {
+	aktiv: Element | null;
+	stellen: [Node, number, Node, number] | null;
+}
+
+/** Fokus und Schreibmarke merken: Wandert der getippte Block, nimmt ihm der Browser beides. */
+const merke = (doc: Document): Marke => {
+	const auswahl = doc.getSelection();
+	const r = auswahl && auswahl.rangeCount > 0 ? auswahl.getRangeAt(0) : null;
+	return {
+		aktiv: doc.activeElement,
+		stellen: r ? [r.startContainer, r.startOffset, r.endContainer, r.endOffset] : null,
+	};
+};
+
+const stelleHer = (doc: Document, { aktiv, stellen }: Marke) => {
+	if (aktiv instanceof HTMLElement && doc.activeElement !== aktiv) {
+		aktiv.focus({ preventScroll: true });
+	}
+	const auswahl = doc.getSelection();
+	if (!auswahl || !stellen) {
+		return;
+	}
+	const [start, von, ende, bis] = stellen;
+	const r = doc.createRange();
+	r.setStart(start, von);
+	r.setEnd(ende, bis);
+	const alt = auswahl.rangeCount > 0 ? auswahl.getRangeAt(0) : null;
+	const gleich =
+		alt &&
+		alt.compareBoundaryPoints(Range.START_TO_START, r) === 0 &&
+		alt.compareBoundaryPoints(Range.END_TO_END, r) === 0;
+	if (!gleich) {
+		auswahl.removeAllRanges();
+		auswahl.addRange(r);
+	}
+	// Die Schreibmarke bleibt im Blick, auch wenn ihr Block auf die nächste Seite ging.
+	const bei = start instanceof Element ? start : start.parentElement;
+	bei?.scrollIntoView({ block: 'nearest' });
+};
+
 /**
  * 206-07: Nach jeder Tipp-Pause läuft das Bild mit (`laufeMit`). Endet das Tippen ohne Änderung (Esc), steht alles
  * wieder wie vorher; mit Änderung bleibt das Bild, bis der echte Fluss (206-02) die neue Fassung zeigt.
@@ -408,27 +418,34 @@ export const useMitlaufen = ({
 	zerlegung,
 	auswahl,
 	nachher,
+	halte,
 }: {
 	doc: Document | null;
 	zerlegung: Zerlegung | null;
 	auswahl: number | null;
-	/** Nachdem das Bild wieder wie vorher steht, z. B. für die Live-Prüfung. */
+	/** Wenn sich die Seiten im Bild geändert haben, z. B. für die Live-Prüfung und die Seitenzahl. */
 	nachher: () => void;
+	/** Hält die Textsitzung, solange der getippte Block wandert (sonst endete sie mit dem Fokus). */
+	halte: (an: boolean) => void;
 }) => {
-	const stand = useRef({ doc, zerlegung, auswahl, nachher });
+	const stand = useRef({ doc, zerlegung, auswahl, nachher, halte });
 	useEffect(() => {
-		stand.current = { doc, zerlegung, auswahl, nachher };
+		stand.current = { doc, zerlegung, auswahl, nachher, halte };
 	});
 	const uhr = useRef<number | undefined>(undefined);
 	const zurueck = useRef<(() => void) | null>(null);
+	/** Der Inhalt des getippten Blocks beim letzten Mitlaufen: Nur die Schreibmarke bewegt, dann bleibt das Bild. */
+	const zuletzt = useRef<string | null>(null);
 	const raeume = useCallback(() => {
 		zurueck.current?.();
 		zurueck.current = null;
+		zuletzt.current = null;
 	}, []);
 	useEffect(() => () => window.clearTimeout(uhr.current), []);
 	// Ein neues Bild hat die Vorschau nicht mehr.
 	useEffect(() => {
 		zurueck.current = null;
+		zuletzt.current = null;
 	}, [doc]);
 	const getippt = useCallback(() => {
 		if (!MITLAUFEN) {
@@ -438,12 +455,25 @@ export const useMitlaufen = ({
 		uhr.current = window.setTimeout(() => {
 			const { doc: d, zerlegung: z, auswahl: nr } = stand.current;
 			const el = d && z && nr !== null ? elementZu(d, nr) : null;
-			if (!d || !z || !el) {
+			const block = el && flussblockVon(el);
+			if (!d || !z || !el || !block || block.innerHTML === zuletzt.current) {
 				return;
 			}
-			// Zurück und neu in einem Zug: Dazwischen gibt es kein Bild. Die Live-Prüfung wartet länger und sieht es schon.
-			raeume();
-			zurueck.current = laufeMit(d, z, el);
+			const seitenVorher = d.querySelectorAll('body > .seite').length;
+			const marke = merke(d);
+			// Zurück und neu in einem Zug: Dazwischen gibt es kein Bild.
+			stand.current.halte(true);
+			try {
+				raeume();
+				zurueck.current = laufeMit(d, z, el);
+				zuletzt.current = block.innerHTML;
+				stelleHer(d, marke);
+			} finally {
+				stand.current.halte(false);
+			}
+			if (d.querySelectorAll('body > .seite').length !== seitenVorher) {
+				stand.current.nachher();
+			}
 		}, MITLAUFEN_MS);
 	}, [raeume]);
 	const beendet = useCallback(
@@ -451,6 +481,7 @@ export const useMitlaufen = ({
 			window.clearTimeout(uhr.current);
 			if (geaendert) {
 				zurueck.current = null;
+				zuletzt.current = null;
 			} else if (zurueck.current) {
 				raeume();
 				stand.current.nachher();
@@ -510,7 +541,7 @@ const seiteIn = (z: Zerlegung, nr: number | null) => {
 };
 
 interface FlussOptionen {
-	flussFaellig: (quelle: string) => Bereich | null;
+	flussFaellig: (quelle: string) => { vorher: string | null } | null;
 	flussErledigt: () => void;
 	fliesse: (neu: string) => void;
 	zerlegungZu: (html: string) => Zerlegung | null;
@@ -522,9 +553,16 @@ interface FlussOptionen {
 		springen: boolean,
 	) => void;
 	auswahl: RefObject<number | null>;
-	/** Das Bild, das gerade zu sehen ist (Regel 3). */
-	sichtbar: RefObject<Document | null>;
 }
+
+/** Regel 3: die geänderten Blätter; ohne Fassung davor alle fließenden (höchstens `MAX_BLAETTER`). */
+const welcheBlaetter = (z: Zerlegung, vorher: string | null) =>
+	vorher === null
+		? blaetterVon(z)
+				.filter((b) => b.fliesst)
+				.slice(0, MAX_BLAETTER)
+				.map((b) => b.seiten[0]?.nr ?? -1)
+		: geaenderteBlaetter(vorher, z);
 
 /**
  * Für `Leinwand.vorDemZeigen`: Nach einem Schritt misst der Editor die neue Fassung im unsichtbaren Rahmen. Muss etwas
@@ -538,13 +576,12 @@ export const useFluss = (o: FlussOptionen) => {
 	return useCallback(async (doc: Document, html: string) => {
 		const { flussFaellig, zerlegungZu } = aktuell.current;
 		const z = zerlegungZu(html);
-		const bereich = z && flussFaellig(z.quelle);
-		if (!z || !bereich) {
+		const faellig = z && flussFaellig(z.quelle);
+		if (!z || !faellig) {
 			return false;
 		}
 		const plan = await probelauf(doc, z, {
-			alt: aktuell.current.sichtbar.current,
-			bereich,
+			blaetter: welcheBlaetter(z, faellig.vorher),
 			mitLoesung: hatLoesung(z.quelle),
 		});
 		const { auswahl, fliesse, flussErledigt, nachFluss } = aktuell.current;
