@@ -156,4 +156,38 @@ test.describe('Seiten laufen weiter (206)', () => {
 		await geladen(page);
 		expect(await ueberstand(page)).toBe(false);
 	});
+
+	test('Fester Umbruch: „Ab hier neue Seite“ und „An vorige Seite anschließen“ (206-06)', async ({ hasTouch, page }) => {
+		test.skip(hasTouch, 'am iPad ist ⋯ der Weg');
+		await vorbereiten(page, 4, 4);
+		await schritt(page, mitAufgaben(await quelle(page), 5, 9));
+		await expect.poll(async () => automatische(await quelle(page))).toBeGreaterThan(0);
+		await geladen(page);
+		const menue = page.getByRole('menu');
+		const aufgabe4 = material(page).locator('.aufgabe').filter({ hasText: 'Schreibe 4.' });
+		await aufgabe4.locator('.nr').click({ button: 'right' });
+		await menue.getByRole('menuitem', { name: /Ab hier neue Seite/ }).click();
+		await expect.poll(async () => /data-weiter>/.test(await quelle(page))).toBe(true);
+		await geladen(page);
+		// Bis Aufgabe 3 auf der ersten Seite, Aufgabe 4 beginnt die feste Seite, der Rest läuft dahinter weiter.
+		await expect(seiten(page).first().locator(':scope > .aufgabe')).toHaveCount(3);
+		const fest = seiten(page).and(material(page).locator('[data-weiter=""]'));
+		await expect(fest.locator(':scope > .aufgabe').first()).toContainText('Schreibe 4.');
+		await expect(page.locator('[data-auswahl="aufgabe"]')).toBeVisible();
+		expect(await ueberstand(page)).toBe(false);
+
+		// Aufgabe 1 löschen: Die feste Seite beginnt weiter mit Aufgabe 4.
+		await material(page).locator('.aufgabe').first().locator('.nr').click();
+		await page.keyboard.press('Backspace');
+		await geladen(page);
+		await expect(seiten(page).first().locator(':scope > .aufgabe')).toHaveCount(2);
+		await expect(fest.locator(':scope > .aufgabe').first()).toContainText('Schreibe 4.');
+
+		await page.locator('[data-seite-zeile="2"]').click({ button: 'right' });
+		await menue.getByRole('menuitem', { name: /An vorige Seite anschließen/ }).click();
+		await expect.poll(async () => /data-weiter>/.test(await quelle(page))).toBe(false);
+		await geladen(page);
+		await expect(seiten(page).first().locator(':scope > .aufgabe')).not.toHaveCount(2);
+		expect(await ueberstand(page)).toBe(false);
+	});
 });

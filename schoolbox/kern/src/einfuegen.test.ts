@@ -1,7 +1,17 @@
 import assert from 'node:assert/strict';
 import { describe, it } from 'node:test';
 
-import { einfuegbarAus, fuegeBausteinEin, fuegeZusatzEin, neueAufgabe } from './einfuegen';
+import {
+	einfuegbarAus,
+	fuegeBausteinEin,
+	fuegeZusatzEin,
+	kannAnschliessen,
+	kannUmbrechenVor,
+	neueAufgabe,
+	schliesseAn,
+	umbruchVor,
+} from './einfuegen';
+import { blaetterVon } from './fluss';
 import { KATALOG } from './katalog';
 import { leseStarter } from './katalog-starter';
 import { klassenVon, zerlege } from './quelltext';
@@ -208,5 +218,75 @@ describe('Zusatzbausteine', () => {
 		assert.equal(fuegeZusatzEin(leer, {}, starter, n), leer);
 		const q = fuegeZusatzEin(leer, { niveaus: true, sternchen: true, selbsteinschaetzung: true }, starter, n);
 		assert.ok(q.indexOf('wahlhilfe') < q.indexOf('stern') && q.indexOf('stern') < q.indexOf('class="fuss"'));
+	});
+});
+
+describe('Fester Umbruch (206-06)', () => {
+	const N = { jeSeite: false };
+	const aufgabe = (i: number) =>
+		`<div class="aufgabe"><span class="nr">${i}</span><div class="anw"><span class="text">A${i}</span></div></div>`;
+	const SEITEN = `<!DOCTYPE html>
+<html lang="de">
+<head><link rel="stylesheet" href="blatt.css"></head>
+<body class="kl2">
+<section class="seite">
+  <div class="namenszeile"><span class="name">Name</span></div>
+  <header class="kopf"><div class="titel"><h1>T</h1></div></header>
+  ${[1, 2, 3, 4].map(aufgabe).join('\n  ')}
+  <div class="fuss">F</div>
+</section>
+</body>
+</html>
+`;
+	const aufgabeNr = (q: string, text: string) =>
+		zerlege(q).knoten.find((k) => klassenVon(k).includes('aufgabe') && q.slice(k.start, k.ende).includes(text))?.nr ??
+		-1;
+	const texteJeSeite = (q: string) => {
+		const z = zerlege(q);
+		return blaetterVon(z).map((b) => b.folge.map((nr) => q.slice(z.knoten[nr]?.start, z.knoten[nr]?.ende).match(/A\d|F/)?.[0]));
+	};
+
+	it('„Ab hier neue Seite“ beginnt vor dem Block ein neues festes Blatt, mit allem dahinter', () => {
+		const nr = aufgabeNr(SEITEN, 'A3');
+		assert.ok(kannUmbrechenVor(SEITEN, nr));
+		const e = umbruchVor(SEITEN, nr, N);
+		assert.deepEqual(texteJeSeite(e.quelle), [
+			['A1', 'A2'],
+			['A3', 'A4', 'F'],
+		]);
+		assert.match(e.quelle, /<section class="seite" data-weiter>/);
+		assert.doesNotMatch(e.quelle, /data-weiter="auto"/);
+		assert.equal(e.quelle.match(/namenszeile/g)?.length, 1);
+		// Die Auswahl bleibt auf dem Block
+		const z = zerlege(e.quelle);
+		assert.match(e.quelle.slice(z.knoten[e.nr ?? -1]?.start, z.knoten[e.nr ?? -1]?.ende), /A3/);
+	});
+
+	it('nicht vor dem ersten Flussblock, nicht vor dem Kopf und nicht auf einer Folie', () => {
+		assert.equal(kannUmbrechenVor(SEITEN, aufgabeNr(SEITEN, 'A1')), false);
+		const kopf = zerlege(SEITEN).knoten.find((k) => klassenVon(k).includes('kopf'))?.nr ?? -1;
+		assert.equal(kannUmbrechenVor(SEITEN, kopf), false);
+		const folie = SEITEN.replace('<body class="kl2">', '<body class="kl2 folie">');
+		assert.equal(kannUmbrechenVor(folie, aufgabeNr(folie, 'A3')), false);
+		assert.throws(() => umbruchVor(SEITEN, aufgabeNr(SEITEN, 'A1'), N));
+	});
+
+	it('„An vorige Seite anschließen“ macht die feste Seite automatisch, hin und zurück zeichengleich', () => {
+		const geteilt = umbruchVor(SEITEN, aufgabeNr(SEITEN, 'A3'), N).quelle;
+		const seiten = blaetterVon(zerlege(geteilt)).flatMap((b) => b.seiten);
+		const zweite = seiten[1]?.nr ?? -1;
+		assert.equal(kannAnschliessen(geteilt, seiten[0]?.nr ?? -1), false);
+		assert.ok(kannAnschliessen(geteilt, zweite));
+		const an = schliesseAn(geteilt, zweite, N);
+		assert.match(an.quelle, /data-weiter="auto"/);
+		assert.equal(blaetterVon(zerlege(an.quelle)).length, 1);
+		assert.equal(an.quelle.replace(' data-weiter="auto"', ' data-weiter'), geteilt);
+	});
+
+	it('nicht an einer Seite mit Kopf oder Namenszeile', () => {
+		const zwei = SEITEN.replace('</section>\n</body>', `</section>\n${SEITEN.slice(SEITEN.indexOf('<section'), SEITEN.indexOf('</body>'))}</body>`);
+		const zweite = blaetterVon(zerlege(zwei))[1]?.seiten[0]?.nr ?? -1;
+		assert.ok(zweite > 0);
+		assert.equal(kannAnschliessen(zwei, zweite), false);
 	});
 });
