@@ -25,6 +25,8 @@ interface Eigenschaften {
 	struktur: Pick<Struktur, 'aktiv' | 'fuehreAus'>;
 	waehle: (nr: number | null) => void;
 	textsitzung: boolean;
+	/** 198-N04: Rechtsklick auf einen Griff öffnet das Menü des Elements wie der Rechtsklick aufs Element. */
+	menue?: (nr: number, punkt: { x: number; y: number }) => void;
 }
 
 /** 106: Rahmen um das Ziel eines Zusatzgriffs und eine Linie vom Griff zum Zeiger (Anker). Koordinaten des Materials. */
@@ -175,7 +177,7 @@ const EinzelRahmen = ({
  * Alles über dem Blatt, was zur Gestaltung gehört (097): Auswahlrahmen mit Griffen, Wert am Zeiger, Druckrand-Linie und
  * die Hilfslinien des Einrastens. Die Gesten selbst stecken in `useGeste`.
  */
-export const GestaltungUeberlagerung = ({ e, pfad, struktur, textsitzung, waehle }: Eigenschaften) => {
+export const GestaltungUeberlagerung = ({ e, menue, pfad, struktur, textsitzung, waehle }: Eigenschaften) => {
 	const { links, skala } = e;
 	const geste = useGeste({ doc: e.doc, skala, pfad, struktur, waehle, textsitzung });
 	const { stand } = geste;
@@ -196,7 +198,15 @@ export const GestaltungUeberlagerung = ({ e, pfad, struktur, textsitzung, waehle
 	const mehrfach = mehrfachRahmen(e.doc, istFrei && gewaehlt ? gewaehlt.nr : null, stand?.kasten ?? null);
 
 	return (
-		<>
+		<div
+			className="contents"
+			onContextMenu={(ev) => {
+				ev.preventDefault();
+				if (gewaehlt && istFrei && bedienbar && !stand) {
+					menue?.(gewaehlt.nr, { x: ev.clientX, y: ev.clientY });
+				}
+			}}
+		>
 			{stand && <GestenLinien links={links} skala={skala} stand={stand} />}
 			{ablageLinien && <Hilfslinien links={links} skala={skala} {...ablageLinien} />}
 			<Durchblick e={e} />
@@ -226,6 +236,6 @@ export const GestaltungUeberlagerung = ({ e, pfad, struktur, textsitzung, waehle
 				/>
 			)}
 			{stand && <GestenWerte links={links} skala={skala} stand={stand} />}
-		</>
+		</div>
 	);
 };

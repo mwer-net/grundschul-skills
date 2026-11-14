@@ -1,5 +1,5 @@
 import { klassen } from '../../../bausteine/klassen';
-import { KACHELNAME, SCHUBLADENKACHEL } from '../../../bausteine/Schublade';
+import { SCHUBLADENKACHEL } from '../../../bausteine/Schublade';
 import { raster } from '../../../bausteine/schubladenhilfe';
 import { Symbol } from '../../../bausteine/Symbol';
 import { SymbolKnopf } from '../../../bausteine/SymbolKnopf';
@@ -37,7 +37,7 @@ export const Zeichenkacheln = ({ lage, suche }: { lage: SchubladenLage; suche: s
 							aria-pressed={aktiv}
 							className={klassen(
 								SCHUBLADENKACHEL,
-								'flex h-16 flex-col items-center justify-center gap-1.5 px-1 select-none',
+								'flex min-h-16 flex-col items-center justify-center gap-1 px-1 py-2 select-none',
 								aktiv && 'bg-brand-50 text-brand-700',
 							)}
 							data-werkzeug={w.id}
@@ -45,7 +45,15 @@ export const Zeichenkacheln = ({ lage, suche }: { lage: SchubladenLage; suche: s
 							onClick={(ev) => waehleWerkzeug(w.id, ev.shiftKey)}
 						>
 							<Symbol name={w.symbol} className="size-5" />
-							<span className={klassen(KACHELNAME, aktiv && 'text-brand-700')}>{w.titel}</span>
+							{/* 198-N03: zweizeilig statt „Form aus P…“; die Reihe wächst mit. */}
+							<span
+								className={klassen(
+									'w-full text-center text-xs leading-tight text-balance text-leise',
+									aktiv && 'text-brand-700',
+								)}
+							>
+								{w.titel}
+							</span>
 						</button>
 					</Tooltip>
 				);

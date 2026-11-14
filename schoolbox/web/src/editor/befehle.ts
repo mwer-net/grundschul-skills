@@ -133,6 +133,8 @@ export interface Kontext {
 	feldBehaeltUndo: () => boolean;
 	/** Das gewählte Gestaltungselement, sonst `null` (097). */
 	gestaltung: GestaltungKontext | null;
+	/** 198-03: Die Auswahl (oder ein Teil der Mehrfachauswahl) liegt in einem gesperrten Element (`data-gesperrt`). */
+	gesperrt?: boolean;
 	tu: Aktionen;
 }
 
@@ -318,7 +320,42 @@ const SCHUBLADEN_BEFEHLE: Befehl[] = REIHE.map(({ id, symbol, taste, titel }): B
 	inUebersicht: () => schubladeVon(id)?.bereit(JEDE_LAGE) ?? false,
 }));
 
-export const BEFEHLE: Befehl[] = [
+/** 198-03: Was an einem gesperrten Element geht: ansehen, kopieren, wählen, aus- und einblenden, entsperren. */
+const AN_GESPERRTEM = [
+	'auswahl.kopieren',
+	'auswahl.einfuegen',
+	'auswahl.in-sammlung',
+	'auswahl.sperren',
+	'auswahl.ausblenden',
+	'auswahl.aufheben',
+	'auswahl.eltern',
+	'auswahl.vorheriger',
+	'auswahl.naechster',
+	'auswahl.zur-leiste',
+];
+
+export const GESPERRT_GRUND = 'Gesperrt. Erst entsperren.';
+
+/**
+ * 198-03: Die Sperre gilt im Befehl, nicht in der Geste. Jeder Befehl an der Auswahl, der sie ändert, verschiebt,
+ * löscht, verdoppelt, ausschneidet, kombiniert, gruppiert oder umordnet, ist bei Gesperrtem nicht verfügbar: Menüs,
+ * Leiste und ⌘K zeigen ihn nicht, die Taste sagt den Grund. In der Mehrfachauswahl genügt ein gesperrter Teil.
+ */
+const mitSperre = (b: Befehl): Befehl => {
+	const sperrbar =
+		(b.id.startsWith('auswahl.') || b.id.startsWith('tabelle.')) && !AN_GESPERRTEM.includes(b.id) &&
+		!b.id.startsWith('auswahl.sichtbarkeit.');
+	if (!sperrbar) {
+		return b;
+	}
+	return {
+		...b,
+		verfuegbar: (k) => !k.gesperrt && b.verfuegbar(k),
+		warumNicht: (k) => (k.gesperrt ? GESPERRT_GRUND : (b.warumNicht?.(k) ?? null)),
+	};
+};
+
+const REGISTER: Befehl[] = [
 	// Auswahl
 	{
 		id: 'auswahl.bearbeiten',
@@ -1020,6 +1057,8 @@ export const BEFEHLE: Befehl[] = [
 	},
 	...GESTALTUNG_BEFEHLE,
 ];
+
+export const BEFEHLE: Befehl[] = REGISTER.map(mitSperre);
 
 export const titelVon = (b: Befehl, k: Kontext) => (typeof b.titel === 'function' ? b.titel(k) : b.titel);
 

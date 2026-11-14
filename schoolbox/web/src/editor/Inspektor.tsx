@@ -462,7 +462,12 @@ export const Einstellungen = ({
 			<AusgeblendetHinweis doc={doc} nr={nr} quelle={quelle} struktur={struktur} />
 			<GesperrtHinweis gesperrt={gesperrt} struktur={struktur} />
 			<UnsichtbarHinweis doc={doc} loesung={loesung} nr={nr} quelle={quelle} schalte={schalteAnsicht} />
-			<Pruefhinweise stand={pruefung} nr={nr} knopf={inSeiteHolen(doc, struktur, gesperrt !== null)} />
+			<Pruefhinweise
+				stand={pruefung}
+				nr={nr}
+				gesperrt={gesperrt !== null}
+				knopf={inSeiteHolen(doc, struktur, gesperrt !== null)}
+			/>
 			<AbbildungHinweise abb={abb} />
 			{aktiv && quelle && <SammlungName ablage={ablage} />}
 		</div>

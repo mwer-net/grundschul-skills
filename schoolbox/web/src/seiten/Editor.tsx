@@ -30,6 +30,7 @@ import { useBearbeitung } from '../editor/bearbeitung';
 import { seiteFliesst, useFluss, useMitlaufen } from '../editor/fluss';
 import type { MenueArt } from '../editor/befehle';
 import { istZoomTaste, kuerzelVon } from '../editor/befehle';
+import { gesperrtIn } from '../editor/AusgeblendetHinweis';
 import { Einfuegemarken } from '../editor/Bibliothek';
 import { useBild } from '../editor/bild';
 import { useBildAusFinder } from '../editor/bild-finder';
@@ -41,7 +42,7 @@ import { bausteinVon, editorHtml, elementZu, nrVon, pfadZu } from '../editor/dar
 import { mitZuletzt, NICHT_IM_TEXT, useEinfuegen, useSlash, useTabelleTab } from '../editor/einfuegen';
 import { EntwurfKarte, EntwurfPille, Entwurfsleiste, SperrHinweis } from '../editor/Entwurf';
 import { zeigeBlattGestaltung } from '../editor/gestaltung/blatt/zeige';
-import { gestaltungKontext } from '../editor/gestaltung/kontext';
+import { gestaltungKontext, istGestaltungElement } from '../editor/gestaltung/kontext';
 import { Leiste as GestaltungLeiste } from '../editor/gestaltung/leiste/Leiste';
 import { folgeAuswahl, nrnFuer, useMehrfach } from '../editor/gestaltung/mehrfach';
 import { GestaltungUeberlagerung } from '../editor/gestaltung/ueberlagerung';
@@ -675,6 +676,7 @@ const Bearbeitung = ({ dokument, mappe: mappenDaten }: { mappe: Mappe; dokument:
 		struktur,
 	});
 
+	const gestaltungJetzt = gestaltungKontext({ doc: docJetzt, pfad, struktur });
 	const befehle = useBefehle(
 		{
 			pfad,
@@ -696,7 +698,9 @@ const Bearbeitung = ({ dokument, mappe: mappenDaten }: { mappe: Mappe; dokument:
 			festeSeiten: format === 'minibuch',
 			hatBild: bild.nimmtBild,
 			linksOffen: sichtbar(zeigt),
-			gestaltung: gestaltungKontext({ doc: docJetzt, pfad, struktur }),
+			gestaltung: gestaltungJetzt,
+			// 198-03: Die Sperre gilt im Befehl, gleich von wo er kommt (Tasten, Menüs, ⌘K, Leiste, Ebenen).
+			gesperrt: [auswahl, ...(gestaltungJetzt?.nrn ?? [])].some((nr) => nr !== null && gesperrtIn(docJetzt, nr) !== null),
 			davor: (() => {
 				const element = docJetzt && auswahl !== null ? elementZu(docJetzt, auswahl) : null;
 				const vorher = element?.previousElementSibling;
@@ -1047,7 +1051,9 @@ const Bearbeitung = ({ dokument, mappe: mappenDaten }: { mappe: Mappe; dokument:
 			panels.setRechts('inspektor');
 			panels.setRechtsOffen(true);
 		},
-		kontextmenue: menueAn,
+		// Rechtsklick auf die Zeile eines freien Elements: dieselbe Liste wie am Element im Blatt (`menueFuer`).
+		kontextmenue: (nr, art, punkt) =>
+			menueAn(nr, art === 'baustein' && istGestaltungElement(docJetzt && elementZu(docJetzt, nr)) ? 'gestaltung' : art, punkt),
 		zeigeSeitengestaltung: (nr, teil) => zeigeBlattGestaltung(nr, teil, struktur.zeigeAn, zeigeEinstellung),
 		ki: {
 			verfuegbar: ki.zustand.verfuegbar,
@@ -1254,6 +1260,7 @@ const Bearbeitung = ({ dokument, mappe: mappenDaten }: { mappe: Mappe; dokument:
 														struktur={struktur}
 														waehle={setAuswahl}
 														textsitzung={text.bearbeitet}
+														menue={(nr, punkt) => menueAn(nr, 'gestaltung', punkt)}
 													/>
 													<GestaltungLeiste
 														e={e}

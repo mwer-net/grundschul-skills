@@ -43,9 +43,15 @@ export const Gestaltungsinspektor = ({ doc, pfad, quelle, struktur }: Eigenschaf
 				const teile = g.teile.map(({ Inhalt, id }) => (
 					<Inhalt key={id} k={k} quelle={quelle} aktiv={struktur.aktiv && !zu} />
 				));
-				// Das Fieldset nur gesperrt: `Abschnitt` blendet sich aus, wenn kein Teil etwas zeigt.
+				// Das Fieldset nur gesperrt: `Abschnitt` blendet sich aus, wenn kein Teil etwas zeigt. Ein leeres Fieldset
+				// zählt ebenso als leer (198-N01: sonst stand gesperrt „Kombinieren“ ohne Inhalt da).
 				return (
-					<Abschnitt key={g.nr} name={g.name} titel={g.titel}>
+					<Abschnitt
+						key={g.nr}
+						name={g.name}
+						titel={g.titel}
+						{...(zu ? { className: 'has-[>div>fieldset:empty]:hidden' } : {})}
+					>
 						{zu ? (
 							<fieldset disabled className="contents" data-gesperrt-felder>
 								{teile}

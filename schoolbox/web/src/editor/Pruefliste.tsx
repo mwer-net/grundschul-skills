@@ -175,12 +175,15 @@ export const Pruefstatus = ({ knopf, stand, zeige }: Eigenschaften) => {
 
 /** Im Panel des gewählten Bausteins: was die Prüfung genau zu ihm sagt. */
 export const Pruefhinweise = ({
+	gesperrt = false,
 	knopf,
 	nr,
 	stand,
 }: {
 	stand: Pruefstand | null;
 	nr: number | null;
+	/** 198-03: Am gesperrten Element ist „Entsperren“ der erste Schritt; der Tipp, es zu verschieben, fällt weg. */
+	gesperrt?: boolean;
 	/** 198-20: „In die Seite holen“ am Hinweis im Inspektor, wie in der Liste der Prüfung. */
 	knopf?: ((p: Pruefpunkt) => PruefKnopf | null) | undefined;
 }) => {
@@ -199,7 +202,7 @@ export const Pruefhinweise = ({
 						key={`${p.code}-${i}`}
 						className={klassen('rounded-md border-l-2 bg-papier py-1 pr-2 pl-2', FARBE[p.stufe])}
 					>
-						<Satz p={p} mitSeite={false} mitKnopf={k !== null} />
+						<Satz p={p} mitSeite={false} mitKnopf={k !== null || gesperrt} />
 						{k && (
 							<Knopf
 								art="zweit"

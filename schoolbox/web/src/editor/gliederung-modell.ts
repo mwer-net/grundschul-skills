@@ -272,7 +272,8 @@ export const gliederungVon = (doc: Document, z: Zerlegung, ids: readonly number[
 			aufgabe: false,
 			fest: unten,
 			// 115: Kinder einer Fläche bleiben in ihrer Fläche; ihre Reihenfolge ändern Befehle, nicht der Zug in der Liste.
-			ziehbar: !unten && zeile !== 'flaeche' && zeile !== 'gruppe',
+			// 198-03: Gesperrtes (auch in gesperrter Gruppe) bleibt in der Liste liegen wie im Blatt.
+			ziehbar: !unten && zeile !== 'flaeche' && zeile !== 'gruppe' && !element.closest('[data-gesperrt]'),
 			schluessel,
 			// 120: Die Kinder einer Gruppe, das vorderste zuerst (wie in einer Ebene).
 			kinder:

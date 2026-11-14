@@ -107,6 +107,9 @@ const LinienMass = ({ aus, k, lage }: { k: GestaltungKontext; lage: Lage; aus: b
 	}
 	const [a, b] = enden;
 	const laenge = Math.round(Math.hypot(b.x - a.x, b.y - a.y));
+	// 198-N02: höchstens die Diagonale der Seite, wie B und H höchstens das Seitenmaß (198-12).
+	const seite = k.element.closest('.seite') as HTMLElement | null;
+	const maxLaenge = seite ? Math.round(Math.hypot(seite.offsetWidth, seite.offsetHeight)) : Number.POSITIVE_INFINITY;
 	const winkel = (Math.round((Math.atan2(b.y - a.y, b.x - a.x) * 180) / Math.PI) + 360) % 360;
 	const setze = (l: number, w: number) => {
 		const rad = (w * Math.PI) / 180;
@@ -121,7 +124,7 @@ const LinienMass = ({ aus, k, lage }: { k: GestaltungKontext; lage: Lage; aus: b
 				einheit="px"
 				wert={laenge}
 				aus={aus}
-				setze={(l) => setze(Math.max(MIN_LAENGE, Math.round(l)), winkel)}
+				setze={(l) => setze(begrenze(Math.round(l), MIN_LAENGE, maxLaenge), winkel)}
 			/>
 			<Zahl
 				titel="Winkel"
