@@ -15,7 +15,7 @@ import { dokumentDir, mappenDir, pruefeId, sammleMappen } from './ablage';
 import { kopiereAtomar, schreibeAtomar } from './atomar';
 import { fuehreAus } from './bauen';
 import type { Sammlung, SammlungsBild } from './bildbefehle';
-import { MAX_BILD_BYTES } from './bildbefehle';
+import { beschreibungAus, MAX_BILD_BYTES } from './bildbefehle';
 import { SchoolboxFehler } from './fehler';
 import {
 	FIGUREN_ORDNER,
@@ -27,6 +27,7 @@ import {
 } from './figurenbibliothek';
 import type { Konfig } from './konfig';
 import { ASSETS, BILD_PY } from './konfig';
+import { PAPIERKORB_TAGE } from './papierkorb';
 import { liegtIn, sucheRessource } from './pfade';
 import { attribut, zerlege } from './quelltext';
 import { eindeutigeId, slug } from './slug';
@@ -131,7 +132,31 @@ export const nimmBildAuf = async (
 	if (daten.length > MAX_BILD_BYTES) {
 		throw new SchoolboxFehler('Das Bild ist zu groß (höchstens 25 MB).');
 	}
-	return verarbeite(konfig, 'aufnehmen', daten, path.join(dokDir, BILDER), bildStamm(dateiname));
+	const bild = await verarbeite(konfig, 'aufnehmen', daten, path.join(dokDir, BILDER), bildStamm(dateiname));
+	// 199-N05: Die Kachel heißt wie das eingesetzte Bild („Kürbis ernte“), nicht wie die Datei („kuerbis-ernte-3“).
+	const titel = beschreibungAus(dateiname);
+	if (titel) {
+		const ordner = path.join(dokDir, BILDER);
+		const namen = await leseNamen(ordner);
+		namen.set(path.basename(bild.src), titel);
+		await schreibeAtomar(
+			path.join(ordner, NAMEN),
+			`${JSON.stringify(Object.fromEntries([...namen].sort(([a], [b]) => a.localeCompare(b))), null, 2)}\n`,
+		);
+	}
+	return bild;
+};
+
+/** 199-N05: In jedem `bilder/`: Datei → Name aus dem Hochladen. */
+const NAMEN = '.namen.json';
+
+const leseNamen = async (ordner: string): Promise<Map<string, string>> => {
+	try {
+		const daten = JSON.parse(await readFile(path.join(ordner, NAMEN), 'utf8')) as Record<string, unknown>;
+		return new Map(Object.entries(daten).flatMap(([k, v]) => (typeof v === 'string' && v ? [[k, v]] : [])));
+	} catch {
+		return new Map();
+	}
 };
 
 /** Die Datei hinter einem `src` des Dokuments; nur Bilder in seiner Mappe oder in assets/. */
@@ -245,16 +270,38 @@ export const uebernimmBild = async (
 	return { src: `${BILDER}/${await kopiereHerein(konfig, wirklich, path.join(dokDir, BILDER))}` };
 };
 
-/** In jedem `bilder/` einer Mappe: die Dateien, die „Entfernen“ aus der Bildauswahl genommen hat (199). */
+/**
+ * In jedem `bilder/` einer Mappe: die Dateien, die „Entfernen“ aus der Bildauswahl genommen hat (199), je mit dem
+ * Zeitpunkt (`seit`, 199-N02). Nach `PAPIERKORB_TAGE` löscht `raeumeAusgeblendeteBilderAuf` sie endgültig.
+ */
 const AUSGEBLENDET = '.ausgeblendet.json';
 
-const leseAusgeblendet = async (ordner: string): Promise<Set<string>> => {
+/** Datei → seit wann ausgeblendet (ISO); `null` bei Einträgen von vor 199-N02. */
+type Ausgeblendet = Map<string, string | null>;
+
+const leseAusgeblendet = async (ordner: string): Promise<Ausgeblendet> => {
 	try {
-		const daten = JSON.parse(await readFile(path.join(ordner, AUSGEBLENDET), 'utf8')) as { dateien?: unknown };
-		return new Set(Array.isArray(daten.dateien) ? daten.dateien.filter((d) => typeof d === 'string') : []);
+		const daten = JSON.parse(await readFile(path.join(ordner, AUSGEBLENDET), 'utf8')) as {
+			dateien?: unknown;
+			seit?: unknown;
+		};
+		const seit = daten.seit && typeof daten.seit === 'object' ? (daten.seit as Record<string, unknown>) : {};
+		const dateien = Array.isArray(daten.dateien) ? daten.dateien.filter((d) => typeof d === 'string') : [];
+		return new Map(dateien.map((d) => [d, typeof seit[d] === 'string' ? seit[d] : null]));
 	} catch {
-		return new Set();
+		return new Map();
 	}
+};
+
+const schreibeAusgeblendet = async (ordner: string, liste: Ausgeblendet) => {
+	const datei = path.join(ordner, AUSGEBLENDET);
+	if (liste.size === 0) {
+		await rm(datei, { force: true });
+		return;
+	}
+	const dateien = [...liste.keys()].sort();
+	const seit = Object.fromEntries(dateien.flatMap((d) => (liste.get(d) ? [[d, liste.get(d)]] : [])));
+	await schreibeAtomar(datei, `${JSON.stringify({ dateien, seit }, null, 2)}\n`);
 };
 
 /**
@@ -372,8 +419,15 @@ export const sammleBilder = async (
 		}),
 	);
 	const relativ = (datei: string) => path.relative(materialDir, datei).split(path.sep).join('/');
+	const namenJe = new Map<string, Map<string, string>>();
+	for (const ordner of new Set(fundorte.flatMap((f) => f.dateien.map((x) => path.dirname(x.d))))) {
+		namenJe.set(ordner, await leseNamen(ordner));
+	}
+	const titelVon = (kopien: string[]) =>
+		kopien.map((k) => namenJe.get(path.dirname(k))?.get(path.basename(k))).find((t) => t !== undefined);
 	const eintrag = (datei: string, schluessel: string, mappe?: string, kopien: string[] = [datei]): SammlungsBild => {
 		const echte = kopien.map((k) => realpathSync(k));
+		const titel = titelVon(kopien);
 		const alt = new Set(echte.flatMap((k) => [...(v.alt.get(k) ?? [])]));
 		const genutzt = new Set(echte.flatMap((k) => [...(v.genutzt.get(k) ?? [])]));
 		return {
@@ -381,6 +435,7 @@ export const sammleBilder = async (
 			name: path.basename(datei),
 			alt: [...alt],
 			...(mappe === undefined ? {} : { mappe }),
+			...(titel ? { titel } : {}),
 			...(schluessel.startsWith(`${ASSETS_SCHLUESSEL}/`)
 				? {}
 				: { kopien: kopien.map(relativ), genutzt: [...genutzt].sort((a, b) => a.localeCompare(b, 'de')) }),
@@ -440,22 +495,33 @@ const eigeneBilddatei = (materialDir: string, schluessel: string) => {
 	return datei;
 };
 
+/** Wer welches Bild zeigt: echte Pfade der Dateien → Titel der Materialien. */
+const genutzteBilder = async (materialDir: string) => {
+	const v: Vorkommen = { alt: new Map(), genutzt: new Map() };
+	for (const m of await materialien(materialDir)) {
+		merkeAlt(v, await leseText(path.join(m.dokDir, 'material.html')), m.dokDir, m.titel);
+	}
+	return v.genutzt;
+};
+
 /**
  * 199: „Entfernen“ in der Bildauswahl. Nimmt die Dateien (ein Bild mit seinen Kopien, `kopien`) aus der Auswahl, wenn
- * kein Material sie zeigt; `aus: false` holt sie zurück (Rückgängig). Gelöscht wird nichts: Ältere Versionen und der
- * Papierkorb verweisen noch auf die Dateien.
+ * kein Material sie zeigt; `aus: false` holt sie zurück (Rückgängig). 199-N02: Wie der Papierkorb löscht
+ * `raeumeAusgeblendeteBilderAuf` sie nach `PAPIERKORB_TAGE` Tagen endgültig.
  */
-export const blendeBildAus = async (materialDir: string, schluessel: readonly string[], aus = true) => {
+export const blendeBildAus = async (
+	materialDir: string,
+	schluessel: readonly string[],
+	aus = true,
+	jetzt = new Date(),
+) => {
 	if (schluessel.length === 0) {
 		throw ungueltig();
 	}
 	const dateien = schluessel.map((s) => eigeneBilddatei(materialDir, s));
 	if (aus) {
-		const v: Vorkommen = { alt: new Map(), genutzt: new Map() };
-		for (const m of await materialien(materialDir)) {
-			merkeAlt(v, await leseText(path.join(m.dokDir, 'material.html')), m.dokDir, m.titel);
-		}
-		const genutzt = [...new Set(dateien.flatMap((d) => [...(v.genutzt.get(realpathSync(d)) ?? [])]))];
+		const wer = await genutzteBilder(materialDir);
+		const genutzt = [...new Set(dateien.flatMap((d) => [...(wer.get(realpathSync(d)) ?? [])]))];
 		if (genutzt.length > 0) {
 			throw new SchoolboxFehler(`Das Bild steht noch in „${genutzt[0]}“ und bleibt deshalb.`);
 		}
@@ -464,10 +530,69 @@ export const blendeBildAus = async (materialDir: string, schluessel: readonly st
 		const ordner = path.dirname(datei);
 		const liste = await leseAusgeblendet(ordner);
 		if (aus) {
-			liste.add(path.basename(datei));
+			liste.set(path.basename(datei), jetzt.toISOString());
 		} else {
 			liste.delete(path.basename(datei));
 		}
-		await schreibeAtomar(path.join(ordner, AUSGEBLENDET), `${JSON.stringify({ dateien: [...liste].sort() }, null, 2)}\n`);
+		await schreibeAusgeblendet(ordner, liste);
 	}
+};
+
+const TAG_MS = 24 * 60 * 60 * 1000;
+
+/**
+ * 199-N02: Löscht ausgeblendete Bilder (samt Strichfassung), die seit `PAPIERKORB_TAGE` Tagen ausgeblendet sind und
+ * die kein Material der Ablage zeigt; ältere Versionen zeigen dann einen leeren Bildplatz. Ein Eintrag ohne Zeitpunkt
+ * (vor 199-N02) bekommt jetzt einen. Läuft mit dem Papierkorb. Gibt die gelöschten Dateien zurück.
+ */
+export const raeumeAusgeblendeteBilderAuf = async (materialDir: string, jetzt = new Date()): Promise<string[]> => {
+	const { mappen } = await sammleMappen(materialDir);
+	const ordner = mappen.flatMap(({ dokumente, mappe }) => {
+		const dir = mappenDir(materialDir, mappe.id);
+		return [path.join(dir, BILDER), ...dokumente.map((d) => path.join(dir, 'dokumente', d.id, BILDER))];
+	});
+	const grenze = jetzt.getTime() - PAPIERKORB_TAGE * TAG_MS;
+	let wer: Map<string, Set<string>> | null = null;
+	const geloescht: string[] = [];
+	for (const o of ordner) {
+		const liste = await leseAusgeblendet(o);
+		if (liste.size === 0) {
+			continue;
+		}
+		let geaendert = false;
+		for (const [name, seit] of liste) {
+			const datei = path.join(o, name);
+			if (!existsSync(datei)) {
+				liste.delete(name);
+				geaendert = true;
+				continue;
+			}
+			if (seit === null) {
+				liste.set(name, jetzt.toISOString());
+				geaendert = true;
+				continue;
+			}
+			if (new Date(seit).getTime() > grenze) {
+				continue;
+			}
+			wer ??= await genutzteBilder(materialDir);
+			if (wer.has(realpathSync(datei))) {
+				continue; // Steht (wieder) in einem Material: bleibt ausgeblendet, aber da.
+			}
+			const stamm = stammVon(name);
+			const strich = (await readdir(o).catch(() => [])).filter(
+				(n) => stammVon(n) === `${stamm}${STRICH}` && BILD_DATEI.test(n),
+			);
+			for (const n of [name, ...strich]) {
+				await rm(path.join(o, n), { force: true });
+				geloescht.push(path.join(o, n));
+			}
+			liste.delete(name);
+			geaendert = true;
+		}
+		if (geaendert) {
+			await schreibeAusgeblendet(o, liste);
+		}
+	}
+	return geloescht;
 };

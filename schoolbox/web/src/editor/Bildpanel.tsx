@@ -67,15 +67,17 @@ export const Hochladen = ({
 			id={feld}
 			type="file"
 			accept="image/*"
+			// 199-N04: mehrere auf einmal; die erste wird eingesetzt, die übrigen liegen in „Dieser Ordner“.
+			multiple
 			className="sr-only"
 			tabIndex={-1}
 			data-bild-datei
 			onChange={(e) => {
-				const datei = e.target.files?.[0];
+				const dateien = [...(e.target.files ?? [])];
 				e.target.value = '';
 				setHinweis(false);
-				if (datei) {
-					void bild.hochladen(datei, frei);
+				if (dateien.length > 0) {
+					void bild.hochladen(dateien, frei);
 				}
 			}}
 		/>
@@ -144,8 +146,11 @@ export type SammlungsGruppe = (typeof BILDGRUPPEN)[number]['wert'];
 export const bilderZahl = (zahl: number) => (zahl === 0 ? undefined : `${zahl} ${zahl === 1 ? 'Bild' : 'Bilder'}`);
 
 /** 199-21: Ohne Beschreibung der Name aus der Datei („marktplatz.jpg“ → „Marktplatz“), Kameranamen bleiben. */
-export const bildName = (eintrag: SammlungsBild) =>
-	eintrag.alt[0] ?? (beschreibungAus(eintrag.name) || eintrag.name);
+/** 199-N05: Die Beschreibung des Bilds, sonst sein Name aus dem Hochladen, erst dann aus dem Dateinamen. */
+export const bildBeschreibung = (eintrag: SammlungsBild) =>
+	eintrag.alt[0] ?? eintrag.titel ?? beschreibungAus(eintrag.name);
+
+export const bildName = (eintrag: SammlungsBild) => bildBeschreibung(eintrag) || eintrag.name;
 
 /** Ziehen aus der Bilder-Schublade (103): das Gut zu einem Eintrag, sobald die Maße der Vorschau bekannt sind. */
 export type BildZiehen = (
@@ -314,7 +319,8 @@ export const SammlungDialog = ({
 	return (
 		<Dialog titel="Bild wählen" schliessen={schliessen} breit>
 			<Schubladensuche beschriftung="Bilder suchen" wert={suche} setWert={setSuche} />
-			<div className="flex items-center gap-3">
+			{/* 199-N06: Der Zähler steht unter dem Umschalter; daneben ragte er aus dem Fenster. */}
+			<div className="flex flex-col gap-1">
 				<Segment
 					beschriftung="Welche Bilder?"
 					className={STEUER_SEGMENT}
@@ -322,7 +328,11 @@ export const SammlungDialog = ({
 					wert={gruppe}
 					waehle={setGruppe}
 				/>
-				{zahl && <span className={klassen(NOTIZ, 'flex-none')}>{zahl}</span>}
+				{zahl && (
+					<span className={NOTIZ} data-bilder-zahl>
+						{zahl}
+					</span>
+				)}
 			</div>
 			<SammlungsKacheln
 				geladen={Boolean(daten)}
@@ -514,7 +524,7 @@ export const Bildwerkzeug = ({ bild }: { bild: BildSteuerung }) => {
 					schliessen={() => setSammlung(false)}
 					waehle={(eintrag) => {
 						setSammlung(false);
-						void bild.uebernimm(eintrag.schluessel, eintrag.alt[0] ?? beschreibungAus(eintrag.name));
+						void bild.uebernimm(eintrag.schluessel, bildBeschreibung(eintrag));
 					}}
 				/>
 			)}

@@ -9,6 +9,7 @@ import {
 	loescheFaelligeAusBaum,
 	ordnerUnter,
 	PAPIERKORB_TAGE,
+	raeumeAusgeblendeteBilderAuf,
 	sammleMappen,
 	stelleWiederHer,
 } from '@schoolbox/kern';
@@ -149,6 +150,14 @@ export const raeumePapierkorbAuf = async (kontext: Kontext, jetzt = new Date()):
 export const starteAufraeumen = (kontext: Kontext) => {
 	const lauf = () => {
 		raeumePapierkorbAuf(kontext).catch((fehler: unknown) => console.error('Papierkorb:', fehler));
+		// 199-N02: Entfernte Bilder gehen nach derselben Frist wie der Papierkorb.
+		raeumeAusgeblendeteBilderAuf(kontext.konfig.materialDir)
+			.then((weg) => {
+				if (weg.length > 0) {
+					console.log(`Bilder: ${weg.length} entfernte Datei(en) nach ${PAPIERKORB_TAGE} Tagen endgültig gelöscht.`);
+				}
+			})
+			.catch((fehler: unknown) => console.error('Bilder:', fehler));
 	};
 	lauf();
 	const takt = setInterval(lauf, TAG_MS);

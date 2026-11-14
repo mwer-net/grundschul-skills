@@ -490,4 +490,43 @@ test.describe('Dateien aus dem Finder (199)', () => {
 		expect(lagen[0]).not.toEqual(lagen[1]);
 		await expect(page.locator('[data-auswahl="bildfrei"]')).toBeVisible();
 	});
+
+	test('199-N04: zwei Dateien auf der Schublade „Bilder“: beide hochgeladen, die erste eingesetzt, Hinweis', async ({
+		page,
+	}) => {
+		await oeffneMit(page, blattMit());
+		await oeffneSchublade(page, 'bilder');
+		await bilder(page).evaluate(async (schublade) => {
+			const png = async (farbe: string) => {
+				const leinwand = document.createElement('canvas');
+				leinwand.width = 120;
+				leinwand.height = 80;
+				const c = leinwand.getContext('2d');
+				if (c) {
+					c.fillStyle = farbe;
+					c.fillRect(0, 0, 120, 80);
+				}
+				return new Promise<Blob | null>((fertig) => leinwand.toBlob(fertig, 'image/png'));
+			};
+			const daten = new DataTransfer();
+			for (const [name, farbe] of [
+				['erstes.png', '#e07a2f'],
+				['zweites.png', '#2f7ae0'],
+			] as const) {
+				const blob = await png(farbe);
+				if (blob) {
+					daten.items.add(new File([blob], name, { type: 'image/png' }));
+				}
+			}
+			const optionen = { bubbles: true, cancelable: true, dataTransfer: daten };
+			schublade.dispatchEvent(new DragEvent('dragover', optionen));
+			schublade.dispatchEvent(new DragEvent('drop', optionen));
+		});
+		await expect(page.getByText('2 Bilder hochgeladen, das erste eingesetzt.')).toBeVisible({ timeout: 15_000 });
+		await expect(material(page).locator('img.bild-frei')).toHaveCount(1);
+		await expect.poll(() => quelle(page)).toMatch(/erstes[^"]*\.png/);
+		expect(await quelle(page)).not.toMatch(/zweites[^"]*\.png/);
+		// Das zweite liegt in „Dieser Ordner“.
+		await expect(bilder(page).locator('[data-sammlung-bild*="zweites"]')).toHaveCount(1);
+	});
 });

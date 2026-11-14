@@ -10,6 +10,7 @@ import { describe, it } from 'node:test';
 import { dokumentDir, mappenDir, neueMappe, neuesDokument } from './ablage';
 import { SchoolboxFehler } from './fehler';
 import type { BibliotheksFigur } from './figuren';
+import { NAME_VERGEBEN } from './figuren';
 import {
 	benenneFigur,
 	entfernePose,
@@ -399,6 +400,24 @@ describe('Canva-Referenz, Steckbrief und entfernePose (176)', () => {
 		assert.equal(await benenneFigur(KONFIG, materialDir, 'gibtsnicht', 'X'), false);
 		await assert.rejects(benenneFigur(KONFIG, materialDir, 'willi', 'Bert'), SchoolboxFehler);
 		await assert.rejects(benenneFigur(KONFIG, materialDir, 'kiki', '   '), SchoolboxFehler);
+	});
+
+	it('199-N01: lehnt einen Namen ab, den schon eine Figur trägt, ohne Groß/klein und Leerzeichen', async () => {
+		const { bild, materialDir } = await mitKiki();
+		await nimmPoseAuf(KONFIG, materialDir, { datei: bild, figur: 'momo', name: 'Momo Maus' });
+		for (const name of ['Willi', 'wilma', ' WILLI ', 'momomaus', 'Momo  Maus']) {
+			await assert.rejects(benenneFigur(KONFIG, materialDir, 'kiki', name), { message: NAME_VERGEBEN }, name);
+		}
+		assert.equal((await leseBibliothek(KONFIG, materialDir)).find((f) => f.id === 'kiki')?.name, 'Kiki');
+		assert.equal(await benenneFigur(KONFIG, materialDir, 'kiki', 'KIKI'), true, 'der eigene Name zählt nicht');
+	});
+
+	it('199-22: Posen stehen nach Entstehung, nicht nach Kennung', async () => {
+		const { bild, materialDir } = await mitKiki();
+		await nimmPoseAuf(KONFIG, materialDir, { datei: bild, figur: 'kiki', wort: 'lupe' });
+		await nimmPoseAuf(KONFIG, materialDir, { datei: bild, figur: 'kiki', wort: 'buch' });
+		const posen = (await leseBibliothek(KONFIG, materialDir)).find((f) => f.id === 'kiki')?.posen.map((p) => p.id);
+		assert.deepEqual(posen, ['kiki', 'kiki-winkt', 'kiki-lupe', 'kiki-buch']);
 	});
 
 	it('trug die Pose die Referenz der Figur, ist sie weg; sonst bleibt sie', async () => {

@@ -1,6 +1,7 @@
 import type { Baustein } from '@schoolbox/kern/src/bausteine';
 import { kann } from '@schoolbox/kern/src/bausteine';
 import {
+	beschreibungAus,
 	BILD_KANTE,
 	BILD_MIN,
 	MAX_BILD_BYTES,
@@ -26,7 +27,6 @@ const DPI_MIN = 150;
 const HEIC_TYP = /^image\/hei[cf]/i;
 const HEIC_NAME = /\.hei[cf]$/i;
 /** Wie `bildStamm` im Kern: Kameranamen taugen nicht als Beschreibung. */
-const GERAETENAME = /^(img|image|dscn?|pxl|photo)[\s_-]*\d*$/i;
 /** Höhe eines neuen Bildplatzhalters (`--h` in blatt.css): So groß wird ein Bild, das ihn füllt. */
 const PLATZHALTER_HOEHE = 80;
 
@@ -90,14 +90,8 @@ interface Optionen {
 	rueckgaengig?: () => void;
 }
 
-/** Eine Beschreibung aus dem Dateinamen: „kürbis-ernte.jpg“ → „Kürbis ernte“, „IMG_1234.JPG“ → keine. */
-export const beschreibungAus = (dateiname: string) => {
-	const stamm = dateiname
-		.replace(/\.[^.]*$/, '')
-		.replace(/[_-]+/g, ' ')
-		.trim();
-	return GERAETENAME.test(stamm) ? '' : `${stamm.charAt(0).toUpperCase()}${stamm.slice(1)}`;
-};
+/** 199-N05: steht in `bildbefehle.ts`, damit der Server beim Hochladen denselben Namen merkt. */
+export { beschreibungAus };
 
 const ladeBild = async (url: string) => {
 	const bild = new Image();
@@ -336,16 +330,38 @@ export const useBild = ({ adresse, basis, pfad, struktur }: Optionen) => {
 		[zeige],
 	);
 
-	/** `frei`: aus der Bilder-Schublade, siehe `setzeEin`. */
-	const hochladen = (datei: File, frei?: FreiAblegen) =>
+	/**
+	 * `frei`: aus der Bilder-Schublade, siehe `setzeEin`. 199-N04: Mehrere Dateien werden alle hochgeladen; eingesetzt
+	 * wird die erste, die übrigen liegen danach unter „Dieser Ordner“, und der Hinweis sagt das.
+	 */
+	const hochladen = (dateien: File | readonly File[], frei?: FreiAblegen) =>
 		arbeite('hochladen', async () => {
-			const { daten, name } = await bereiteVor(datei);
-			const bild = await sendeDatei<{ src: string; breite: number; hoehe: number }>(
-				`${adresse}/bilder`,
-				daten,
-				name,
-			);
-			await setzeEin(bild.src, beschreibungAus(datei.name), bild, frei);
+			const liste = Array.isArray(dateien) ? dateien : [dateien as File];
+			const [erste, ...weitere] = liste;
+			if (!erste) {
+				return;
+			}
+			const lade = async (datei: File) => {
+				const { daten, name } = await bereiteVor(datei);
+				return sendeDatei<{ src: string; breite: number; hoehe: number }>(`${adresse}/bilder`, daten, name);
+			};
+			const bild = await lade(erste);
+			await setzeEin(bild.src, beschreibungAus(erste.name), bild, frei);
+			let fehler = 0;
+			for (const datei of weitere) {
+				await lade(datei).catch(() => {
+					fehler += 1;
+				});
+			}
+			if (weitere.length > 0) {
+				const geladen = liste.length - fehler;
+				zeige({
+					text:
+						fehler > 0
+							? `${geladen} von ${liste.length} Bildern hochgeladen, das erste eingesetzt.`
+							: `${liste.length} Bilder hochgeladen, das erste eingesetzt.`,
+				});
+			}
 		});
 
 	const uebernimm = (schluessel: string, alt: string, frei?: FreiAblegen) =>

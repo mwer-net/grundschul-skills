@@ -11,10 +11,9 @@ import { Segment } from '../../bausteine/Segment';
 import { useEreignisse } from '../../ereignisse';
 import { useLaden } from '../../lib/laden';
 import type { FreiAblegen } from '../bild';
-import { beschreibungAus } from '../bild';
 import { passt } from '../bild-sammlung';
 import type { BildZiehen, SammlungsGruppe } from '../Bildpanel';
-import { BILDGRUPPEN, bilderZahl, Hochladen, Laeuft, SammlungsKacheln } from '../Bildpanel';
+import { BILDGRUPPEN, bildBeschreibung, bilderZahl, Hochladen, Laeuft, SammlungsKacheln } from '../Bildpanel';
 import { bildLaeufe, canvaAktion, starteBild, useCanvaLaeufe } from '../canva';
 import { legeInMitte } from '../gestaltung/ablegen/ablegen';
 import { bildGut, mitGeholtemBild } from '../gestaltung/ablegen/bild-gut';
@@ -62,7 +61,7 @@ export const Inhalt = (t: SchubladenTeile) => {
 		return {
 			teile: { doc, folien, struktur: holend },
 			gut: bildGut(
-				{ src: vorschau, alt: eintrag.alt[0] ?? beschreibungAus(eintrag.name), natur },
+				{ src: vorschau, alt: bildBeschreibung(eintrag), natur },
 				{ platz, jeSeite: folien, struktur: holend },
 			),
 		};
@@ -74,16 +73,17 @@ export const Inhalt = (t: SchubladenTeile) => {
 	 */
 	const frei: FreiAblegen = (b) => void legeInMitte({ doc, folien, struktur }, bildGut(b));
 	const waehle = (eintrag: SammlungsBild) =>
-		void bild.uebernimm(eintrag.schluessel, eintrag.alt[0] ?? beschreibungAus(eintrag.name), frei);
+		void bild.uebernimm(eintrag.schluessel, bildBeschreibung(eintrag), frei);
 	const zeigeHinweis = useHinweis();
 	const entferne = (eintrag: SammlungsBild) => {
 		const schluessel = eintrag.kopien ?? [eintrag.schluessel];
 		const ziel = `${bild.adresse}/bilder/entfernen`;
-		void sende(ziel, { schluessel }).then(
-			() => {
+		void sende<{ tage?: number }>(ziel, { schluessel }).then(
+			({ tage = 30 }) => {
 				neuLaden();
 				zeigeHinweis({
-					text: 'Bild entfernt.',
+					// 199-N02: ehrlich, wann es wirklich weg ist (Frist wie der Papierkorb, vom Server).
+					text: `Bild entfernt. Es wird in ${tage} Tagen endgültig gelöscht.`,
 					aktion: {
 						titel: 'Rückgängig',
 						ausfuehren: () =>
@@ -118,12 +118,13 @@ export const Inhalt = (t: SchubladenTeile) => {
 				return;
 			}
 			e.preventDefault();
-			const datei = [...e.dataTransfer.files].find((d) => d.type.startsWith('image/'));
-			if (!datei) {
+			// 199-N04: alle Bilder hochladen, das erste einsetzen.
+			const dateien = [...e.dataTransfer.files].filter((d) => d.type.startsWith('image/'));
+			if (dateien.length === 0) {
 				zeigeHinweis({ text: 'Hier lassen sich nur Bilder ablegen.' });
 				return;
 			}
-			void bild.hochladen(datei, frei);
+			void bild.hochladen(dateien, frei);
 		},
 	};
 	const [canvaFehler, setCanvaFehler] = useState<string | null>(null);

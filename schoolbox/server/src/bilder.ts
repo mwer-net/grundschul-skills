@@ -11,6 +11,7 @@ import {
 	MAX_BILD_BYTES,
 	MAX_FIGUREN_JE_BILD,
 	nimmBildAuf,
+	PAPIERKORB_TAGE,
 	sammleBilder,
 	uebernimmBild,
 	WURZEL,
@@ -99,7 +100,7 @@ export const bilderApi = (kontext: Kontext) => {
 
 	/**
 	 * 199: „Entfernen“ an einer Kachel nimmt das Bild samt Kopien aus der Auswahl, wenn kein Material es zeigt;
-	 * `zurueck: true` holt es wieder (Rückgängig). Keine Datei wird gelöscht.
+	 * `zurueck: true` holt es wieder (Rückgängig). 199-N02: Nach `tage` Tagen löscht der Aufräumlauf die Datei.
 	 */
 	router.post('/entfernen', async (req, res) => {
 		ziel(req);
@@ -109,7 +110,7 @@ export const bilderApi = (kontext: Kontext) => {
 			throw new HttpFehler(400, '„schluessel“ fehlt.');
 		}
 		await blendeBildAus(konfig.materialDir, liste, body?.zurueck !== true);
-		res.json({ ok: true });
+		res.json({ ok: true, tage: PAPIERKORB_TAGE });
 	});
 
 	/** Ein neues Bild über Canva (176). Es landet in `bilder/` der Mappe; material.html ändert sich nicht. */

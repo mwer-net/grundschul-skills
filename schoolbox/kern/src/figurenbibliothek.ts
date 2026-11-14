@@ -19,7 +19,7 @@ import { kopiereAtomar, schreibeJson } from './atomar';
 import { fuehreAus } from './bauen';
 import { SchoolboxFehler } from './fehler';
 import type { BibliotheksFigur, Pose } from './figuren';
-import { eingebauteFigur, FIGUREN } from './figuren';
+import { eingebauteFigur, FIGUREN, figurNameVergeben, NAME_VERGEBEN } from './figuren';
 import type { Konfig } from './konfig';
 import { ASSETS, BILD_PY, BLATT_PY } from './konfig';
 import { slug } from './slug';
@@ -99,10 +99,9 @@ const dateienIn = async (materialDir: string) => new Set(await readdir(figurenDi
 const strichIn = (kennung: string, dateien: ReadonlySet<string>) =>
 	RASTER.map((e) => `${kennung}${STRICH}${e}`).find((d) => dateien.has(d)) ?? null;
 
-const nachKennung = (posen: Pose[]) => [...posen].sort((a, b) => a.id.localeCompare(b.id, 'de'));
-
 /**
- * Die Figuren in fester Reihenfolge: Willi, Wilma, dann nach Namen; je Figur die Grundpose zuerst, dann nach Kennung.
+ * Die Figuren in fester Reihenfolge: Willi, Wilma, dann nach Namen; je Figur die Grundpose zuerst, dann die Posen in
+ * der Reihenfolge der Bibliothek, also nach Entstehung (199-22: Die fertige Pose steht, wo ihre Auftragskachel stand).
  * Nur Posen, deren Datei da ist, jede Kennung einmal. Eine Figur ohne Pose fällt weg.
  */
 const figurenAus = (gespeichert: Gespeichert | null, dateien: ReadonlySet<string>): BibliotheksFigur[] => {
@@ -134,7 +133,7 @@ const figurenAus = (gespeichert: Gespeichert | null, dateien: ReadonlySet<string
 		}
 	}
 	const eingebaute = FIGUREN.map((f) =>
-		eingebauteFigur(f, nachKennung(posenVon(eintraege.find((e) => e.id === f.id)))),
+		eingebauteFigur(f, posenVon(eintraege.find((e) => e.id === f.id))),
 	);
 	const andere = eintraege
 		.filter((e) => !eingebaut(e.id))
@@ -155,7 +154,7 @@ const figurenAus = (gespeichert: Gespeichert | null, dateien: ReadonlySet<string
 					suchwoerter: Array.isArray(e.suchwoerter)
 						? e.suchwoerter.filter((w): w is string => typeof w === 'string')
 						: [],
-					posen: [grund, ...nachKennung(weitere)],
+					posen: [grund, ...weitere],
 				},
 			];
 		})
@@ -687,6 +686,12 @@ export const benenneFigur = async (
 		const eintrag = gespeichert.figuren.find((f) => istObjekt(f) && f.id === figurId);
 		if (!eintrag) {
 			return false;
+		}
+		const andere = gespeichert.figuren.flatMap((f) =>
+			istObjekt(f) && typeof f.id === 'string' ? [{ id: f.id, name: text(f.name) ?? gross(f.id) }] : [],
+		);
+		if (figurNameVergeben(neu, andere, figurId)) {
+			throw new SchoolboxFehler(NAME_VERGEBEN);
 		}
 		eintrag.name = neu;
 		return true;

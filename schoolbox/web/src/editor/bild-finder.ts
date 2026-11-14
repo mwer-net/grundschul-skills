@@ -4,7 +4,7 @@ import { useHinweis } from '../bausteine/hinweis';
 import { gesehen, merkeGesehen } from './bild-sammlung';
 import { FOTO_HINWEIS } from './Bildpanel';
 import { nrVon } from './darstellung';
-import { legeAb } from './gestaltung/ablegen/ablegen';
+import { legeAb, legeInMitte } from './gestaltung/ablegen/ablegen';
 import { bildBausteinAn, bildGut } from './gestaltung/ablegen/bild-gut';
 import { eckeVon, markiereZiel, seiteUnter } from './gestaltung/ablegen/vorschau';
 import { zielFuer } from './gestaltung/ablegen/ziele';
@@ -99,11 +99,16 @@ export const useBildAusFinder = (
 			};
 			const platz = t.einfuegen.eintraege.find((p) => p.id === 'platzhalter');
 			const gut = bildGut(bild, { platz, jeSeite: t.folien, struktur: t.struktur });
+			// 199-N03: Wo es keinen Ort gibt (neben der Seite, ⌘ ohne Stapel), kommt das Bild frei in die Mitte der
+			// sichtbaren Seite wie aus der Schublade; hochgeladen und nirgends zu sehen gibt es nicht.
+			const inDieMitte = () => void legeInMitte({ doc: blatt, folien: t.folien, struktur: t.struktur }, gut);
 			if (cmd) {
 				const ordnung = gut.imStapel ? ordnungFuer(blatt, gut.imStapel.html) : null;
 				const ablage = ordnung ? platzAn(ordnung, x, y)?.ablage : undefined;
 				if (platz && ablage) {
 					t.struktur.fuehreAus('Bild eingefügt', bildBausteinAn(platz, bild, ablage, t.folien), true);
+				} else {
+					inDieMitte();
 				}
 				return;
 			}
@@ -115,6 +120,7 @@ export const useBildAusFinder = (
 			const seite = seiteUnter(blatt, x, y);
 			const nr = seite ? nrVon(seite) : null;
 			if (!seite || nr === null) {
+				inDieMitte();
 				return;
 			}
 			const ecke = eckeVon(seite);

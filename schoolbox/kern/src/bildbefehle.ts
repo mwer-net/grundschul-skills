@@ -34,7 +34,20 @@ export interface SammlungsBild {
 	kopien?: string[];
 	/** 199: Titel der Materialien, die das Bild zeigen; leer heißt, es lässt sich aus der Auswahl entfernen. */
 	genutzt?: string[];
+	/** 199-N05: Der Name aus dem Hochladen („Kürbis ernte“ aus „kürbis-ernte.png“), nicht der Dateiname mit Zähler. */
+	titel?: string;
 }
+
+const GERAETENAME = /^(img|image|dscn?|pxl|photo)[\s_-]*\d*$/i;
+
+/** Eine Beschreibung aus dem Dateinamen: „kürbis-ernte.jpg“ → „Kürbis ernte“, „IMG_1234.JPG“ → keine. */
+export const beschreibungAus = (dateiname: string) => {
+	const stamm = dateiname
+		.replace(/\.[^.]*$/, '')
+		.replace(/[_-]+/g, ' ')
+		.trim();
+	return GERAETENAME.test(stamm) ? '' : `${stamm.charAt(0).toUpperCase()}${stamm.slice(1)}`;
+};
 
 export interface Sammlung {
 	/** assets/bilder ohne Figuren. */

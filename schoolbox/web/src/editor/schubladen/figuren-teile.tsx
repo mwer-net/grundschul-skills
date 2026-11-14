@@ -1,7 +1,7 @@
 import type { CanvaStand } from '@schoolbox/kern/src/canva-auftrag';
 import { CANVA_TEXT_ZEICHEN } from '@schoolbox/kern/src/canva-auftrag';
 import type { BibliotheksFigur, Pose } from '@schoolbox/kern/src/figuren';
-import { poseName } from '@schoolbox/kern/src/figuren';
+import { figurNameVergeben, NAME_VERGEBEN, poseName } from '@schoolbox/kern/src/figuren';
 import type { FigurRueckweg } from '@schoolbox/kern/src/figurenbibliothek';
 import type { FormEvent } from 'react';
 import { useEffect, useRef, useState } from 'react';
@@ -46,15 +46,19 @@ const passt = (figur: BibliotheksFigur, pose: Pose, woerter: readonly string[]) 
  * Verlassen übernimmt, Esc bricht ab (199, entschieden vom Admin). Willi und Wilma heißen fest.
  */
 const FigurTitel = ({
+	alle,
 	bearbeitet,
 	figur,
 	setBearbeitet,
 }: {
 	figur: BibliotheksFigur;
+	/** 199-N01: alle Figuren, gegen deren Namen der neue geprüft wird. */
+	alle: readonly BibliotheksFigur[];
 	bearbeitet: boolean;
 	setBearbeitet: (an: boolean) => void;
 }) => {
 	const [name, setName] = useState(figur.name);
+	const vergeben = name.trim() !== '' && figurNameVergeben(name.trim(), alle, figur.id);
 	const zeigeHinweis = useHinweis();
 	// Enter und Esc beenden; das `blur` beim Verschwinden des Felds zählt dann nicht mehr.
 	const fertigSchon = useRef(false);
@@ -64,6 +68,10 @@ const FigurTitel = ({
 	}, [figur.name, bearbeitet]);
 	const fertig = (uebernehmen: boolean) => {
 		if (fertigSchon.current) {
+			return;
+		}
+		// 199-N01: Ein vergebener Name bleibt im offenen Feld stehen, der Satz darunter sagt warum.
+		if (uebernehmen && vergeben) {
 			return;
 		}
 		fertigSchon.current = true;
@@ -79,34 +87,44 @@ const FigurTitel = ({
 	};
 	if (bearbeitet) {
 		return (
-			<input
-				// Wie `EIGENE_GESCHICHTE`: ⌘Z im Feld gehört dem Feld.
-				data-eigene-geschichte=""
-				data-figur-name-feld={figur.id}
-				aria-label="Name der Figur"
-				// Das Feld erscheint erst auf Doppelklick oder „Figur umbenennen“: Dorthin gehört der Fokus.
-				// eslint-disable-next-line jsx-a11y/no-autofocus
-				autoFocus
-				maxLength={40}
-				value={name}
-				onFocus={(e) => e.currentTarget.select()}
-				onChange={(e) => setName(e.target.value)}
-				onBlur={() => fertig(true)}
-				onKeyDown={(e) => {
-					if (e.key === 'Enter') {
-						e.preventDefault();
-						fertig(true);
-					} else if (e.key === 'Escape') {
-						e.preventDefault();
-						e.stopPropagation();
-						fertig(false);
-					}
-				}}
-				className={klassen(
-					ABSCHNITT_TITEL,
-					'h-knopf w-full rounded-lg border border-brand-500 bg-flaeche px-2 focus:outline-none',
+			<div className="flex flex-col gap-1">
+				<input
+					// Wie `EIGENE_GESCHICHTE`: ⌘Z im Feld gehört dem Feld.
+					data-eigene-geschichte=""
+					data-figur-name-feld={figur.id}
+					aria-label="Name der Figur"
+					// Das Feld erscheint erst auf Doppelklick oder „Figur umbenennen“: Dorthin gehört der Fokus.
+					// eslint-disable-next-line jsx-a11y/no-autofocus
+					autoFocus
+					maxLength={40}
+					value={name}
+					onFocus={(e) => e.currentTarget.select()}
+					onChange={(e) => setName(e.target.value)}
+					onBlur={() => fertig(true)}
+					onKeyDown={(e) => {
+						if (e.key === 'Enter') {
+							e.preventDefault();
+							fertig(true);
+						} else if (e.key === 'Escape') {
+							e.preventDefault();
+							e.stopPropagation();
+							fertig(false);
+						}
+					}}
+					className={klassen(
+						ABSCHNITT_TITEL,
+						'h-knopf w-full rounded-lg border border-brand-500 bg-flaeche px-2 focus:outline-none',
+						vergeben && 'border-fehler',
+					)}
+					aria-invalid={vergeben}
+					aria-describedby={vergeben ? `figur-name-${figur.id}` : undefined}
+				/>
+				{vergeben && (
+					<p id={`figur-name-${figur.id}`} className="text-xs text-fehler" data-figur-name-vergeben>
+						{NAME_VERGEBEN}
+					</p>
 				)}
-			/>
+			</div>
 		);
 	}
 	return (
@@ -331,6 +349,7 @@ export const Inhalt = (t: SchubladenTeile) => {
 				{gezeigt.map(({ figur, posen }) => (
 					<Schubladenabschnitt key={figur.id} daten={{ 'data-figuren-gruppe': figur.id }}>
 						<FigurTitel
+							alle={figuren}
 							figur={figur}
 							bearbeitet={umbenennen === figur.id}
 							setBearbeitet={(an) => setUmbenennen(an ? figur.id : null)}
