@@ -123,7 +123,7 @@ export const BlattKopfband = (t: BlattTeile) => {
 						<Regler
 							name="hoehe"
 							titel="Höhe"
-							einheit=" px"
+							cm
 							min={MIN_HOEHE}
 							max={maxHoehe}
 							wert={Math.round(hoeheJetzt ?? KOPFBAND_HOEHE)}

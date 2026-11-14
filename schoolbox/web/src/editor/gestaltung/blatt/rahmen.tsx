@@ -134,7 +134,6 @@ export const BlattRahmen = (t: BlattTeile) => {
 						<Zeile titel="Stärke" name="Stärke">
 							<Stepper
 								name="Stärke"
-								einheit="px"
 								wert={jetzt.staerke ?? RAHMEN_STAERKE}
 								min={1}
 								max={12}
@@ -144,7 +143,7 @@ export const BlattRahmen = (t: BlattTeile) => {
 						<Regler
 							name="abstand"
 							titel="Abstand zum Rand"
-							einheit=" px"
+							cm
 							min={0}
 							max={60}
 							wert={jetzt.abstand ?? vorgabeAbstand}
@@ -154,7 +153,7 @@ export const BlattRahmen = (t: BlattTeile) => {
 						<Regler
 							name="ecken"
 							titel="Ecken"
-							einheit=" px"
+							cm
 							min={0}
 							max={48}
 							wert={jetzt.ecke ?? 0}

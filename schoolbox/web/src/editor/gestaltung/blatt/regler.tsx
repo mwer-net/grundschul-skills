@@ -1,3 +1,4 @@
+import { pxZuCm, zahlMitKomma } from '@schoolbox/kern/src/masse';
 import type { ReactNode, RefObject } from 'react';
 import { useEffect, useId, useRef, useState } from 'react';
 
@@ -9,7 +10,10 @@ interface Eigenschaften {
 	min: number;
 	max: number;
 	schritt?: number;
-	einheit: string;
+	/** Hinter dem Wert, z. B. „°“; mit `cm` entfällt sie. */
+	einheit?: string;
+	/** 196-28: Der Wert ist in px gespeichert und erscheint in cm mit einer Nachkommastelle, wie „Abstand“. */
+	cm?: boolean;
 	/** Während des Ziehens: nur ansehen. */
 	zeige: (wert: number) => void;
 	/** Beim Loslassen: ein Schritt im Verlauf (4.6). */
@@ -79,7 +83,8 @@ export const useReglerSchreiben = (element: RefObject<HTMLInputElement | null>, 
 /** Regler wie der Abstand im Reiter „Blatt“: Anzeige beim Ziehen, Schreiben beim Loslassen. */
 export const Regler = ({
 	aus,
-	einheit,
+	cm = false,
+	einheit = '',
 	extra,
 	max,
 	min,
@@ -103,7 +108,7 @@ export const Regler = ({
 				</label>
 				<span className="ml-auto flex flex-none items-center gap-2">
 					{extra}
-					<span className="text-leise tabular-nums" data-regler-wert>{`${jetzt}${einheit}`}</span>
+					<span className="text-leise tabular-nums" data-regler-wert>{cm ? `${zahlMitKomma(pxZuCm(jetzt))} cm` : `${jetzt}${einheit}`}</span>
 				</span>
 			</div>
 			<input

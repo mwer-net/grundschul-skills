@@ -1,5 +1,5 @@
 import { cmZuPx, grenzenInCm, liesZahl, pxZuCm, rasteEin, zahlMitKomma } from '@schoolbox/kern/src/masse';
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useLayoutEffect, useRef, useState } from 'react';
 
 import { klassen } from './klassen';
 import { Symbol } from './Symbol';
@@ -71,11 +71,26 @@ export const Stepper = ({
 	const [text, setText] = useState(zahlMitKomma(jetzt));
 	useEffect(() => setText(zahlMitKomma(jetzt)), [jetzt]);
 	const feld = useRef<HTMLInputElement>(null);
+	// Auch ohne Neuaufbau: ⌘Z löst das Feld (`loeseFeld`), der Fokus geht ins Leere, dann kommt der alte Wert. Bis die
+	// neue Fassung gezeichnet ist, ist das Feld gesperrt und nimmt keinen Fokus; darum auch nach `aus`.
 	useEffect(() => {
-		if (zuletzt?.name === name && Date.now() - zuletzt.zeit < 1500 && feld.current) {
+		const leer = !document.activeElement || document.activeElement === document.body;
+		if (zuletzt?.name === name && Date.now() - zuletzt.zeit < 1500 && feld.current && leer && !aus) {
 			feld.current.focus();
-			zuletzt = null;
+			if (document.activeElement === feld.current) {
+				zuletzt = null;
+			}
 		}
+	}, [name, jetzt, aus]);
+	// Wird das Feld mit dem Fokus ausgehängt (⌘Z baut den Inspektor neu), feuert kein `blur`: Hier merken, solange es
+	// noch im Dokument steht.
+	useLayoutEffect(() => {
+		const e = feld.current;
+		return () => {
+			if (e && e.ownerDocument.activeElement === e) {
+				zuletzt = { name, zeit: Date.now() };
+			}
+		};
 	}, [name]);
 	const raste = (n: number) =>
 		Number.isFinite(grenzen.min) && Number.isFinite(grenzen.max)
@@ -84,12 +99,15 @@ export const Stepper = ({
 	const gib = (n: number) => {
 		const neu = raste(n);
 		setText(zahlMitKomma(neu));
-		const px = cm ? cmZuPx(neu) : neu;
-		if (px !== wert) {
-			setze(px);
+		// 197-N01: In der gezeigten Einheit vergleichen; 2,3 cm aus 88 px schreiben nicht 87 px zurück.
+		if (neu !== jetzt) {
+			setze(cm ? cmZuPx(neu) : neu);
 		}
 	};
 	const uebernimm = () => {
+		if (text === zahlMitKomma(jetzt)) {
+			return;
+		}
 		const n = liesZahl(text);
 		if (!Number.isFinite(n)) {
 			setText(zahlMitKomma(jetzt));

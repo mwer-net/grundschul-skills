@@ -1,6 +1,6 @@
 import { ABSCHNITT_TITEL } from '@schoolbox/kern/src/abschnitte';
 import { FREIES_ELEMENT, kann } from '@schoolbox/kern/src/bausteine';
-import { leseNotiz, setzeNotiz, sichtbarkeitFest } from '@schoolbox/kern/src/kit-einstellungen';
+import { KIT_FELDER, leseNotiz, setzeNotiz, sichtbarkeitFest } from '@schoolbox/kern/src/kit-einstellungen';
 import type { ReactNode } from 'react';
 import { useEffect, useLayoutEffect, useRef, useState } from 'react';
 
@@ -15,7 +15,7 @@ import type { AbbildungSteuerung } from './abbildung';
 import { hatWeitere } from './abbildung-felder';
 import { AbbildungFelder, AbbildungHinweise } from './Abbildungspanel';
 import type { Ablage } from './ablage';
-import { AusgeblendetHinweis } from './AusgeblendetHinweis';
+import { AusgeblendetHinweis, GesperrtHinweis, gesperrtIn } from './AusgeblendetHinweis';
 import type { BildSteuerung } from './bild';
 import { BildKontext } from './bild';
 import { BildDarstellung, Bildwerkzeug } from './Bildpanel';
@@ -401,7 +401,9 @@ export const Einstellungen = ({
 	}
 	const { baustein, nr } = gewaehlt;
 	// 196-13: Gesperrt (Konflikt, Vorschlag offen) bleiben die Abschnitte stehen, nur bedienen lassen sie sich nicht.
-	const aus = !struktur.aktiv;
+	// Gesperrt (`data-gesperrt`) ebenso, bis „Entsperren“.
+	const gesperrt = gesperrtIn(doc, nr);
+	const aus = !struktur.aktiv || gesperrt !== null;
 	const aktiv = quelle !== null && struktur.werte !== null;
 	const folien = format === 'folie';
 	const kit = { art: baustein.art, aus, folien, nr, quelle, struktur };
@@ -433,6 +435,7 @@ export const Einstellungen = ({
 		<div className="flex flex-col gap-2 px-3 pb-2 empty:hidden" data-abschnitt="hinweise">
 			{FREIES_ELEMENT.has(baustein.art) && <FreiesElementHinweis />}
 			<AusgeblendetHinweis doc={doc} nr={nr} quelle={quelle} struktur={struktur} />
+			<GesperrtHinweis gesperrt={gesperrt} struktur={struktur} />
 			<UnsichtbarHinweis doc={doc} loesung={loesung} nr={nr} quelle={quelle} schalte={schalteAnsicht} />
 			<Pruefhinweise stand={pruefung} nr={nr} />
 			<AbbildungHinweise abb={abb} />
@@ -444,13 +447,16 @@ export const Einstellungen = ({
 		return (
 			<div>
 				{hinweise}
-				<Gestaltung bild={bild} doc={doc} pfad={pfad} quelle={quelle} struktur={struktur} />
+				<fieldset disabled={gesperrt !== null} className="contents">
+					<Gestaltung bild={bild} doc={doc} pfad={pfad} quelle={quelle} struktur={struktur} />
+				</fieldset>
 			</div>
 		);
 	}
 	return (
 		<div {...(abb.aktiv ? { 'data-abbildungswerkzeug': '' } : {})}>
 		{hinweise}
+		<fieldset disabled={gesperrt !== null} className="contents" data-gesperrt-felder={gesperrt !== null || undefined}>
 		{!sprachSpaeter && sprache}
 		<Abschnitt name="inhalt" titel={ABSCHNITT_TITEL.inhalt}>
 			<Bildwerkzeug bild={bild} />
@@ -476,7 +482,10 @@ export const Einstellungen = ({
 				{spalten?.nr === nr && <Spaltenwahl aus={aus} spalten={spalten} struktur={struktur} />}
 			</Abschnitt>
 			<Abschnitt name="loesung" titel={ABSCHNITT_TITEL.loesung}>
-				<Loesungswerkzeug l={loes} />
+				<Loesungswerkzeug
+					l={loes}
+					ohneFeld={aktiv && Boolean(KIT_FELDER[baustein.art]?.some((f) => f.name === 'loesung'))}
+				/>
 				<AbbildungFelder abb={abb} abschnitt="loesung" />
 				{aktiv && <KitWerkzeug {...kit} abschnitt="loesung" />}
 			</Abschnitt>
@@ -521,6 +530,7 @@ export const Einstellungen = ({
 					<AbbildungFelder abb={abb} abschnitt="weitere" />
 				</Abschnitt>
 			)}
+		</fieldset>
 		</div>
 	);
 };

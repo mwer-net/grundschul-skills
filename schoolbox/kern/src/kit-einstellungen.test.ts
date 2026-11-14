@@ -125,6 +125,23 @@ describe('Einstellungen der Kit-Bausteine', () => {
 		assert.equal(setzeKit(liste, tag(liste, 'ul'), 'liste', 'liste', false), BLATT);
 	});
 
+	it('196-24 (Abnahme): Klasse und data-* des Absatzes gehen an die Liste und zurück, Quelle zeichengleich', () => {
+		const mit = BLATT.replace('<p>Absatz</p>', '<p class="text" data-zeilennummern="5">Absatz</p>');
+		const liste = setzeKit(mit, tag(mit, 'p'), 'absatz', 'liste', true);
+		assert.match(liste, /<li class="text" data-zeilennummern="5">Absatz<\/li>/);
+		assert.equal(setzeKit(liste, tag(liste, 'ul'), 'liste', 'liste', false), mit);
+	});
+
+	it('196-N01: Die Notiz behält ihre Absätze; unverändert übernommen bleibt die Quelle gleich', () => {
+		const s = tag(BLATT, 'section');
+		const zwei = setzeNotiz(BLATT, s, 'Erst fragen.\n\nDann zeigen.');
+		assert.match(zwei, /<aside class="notiz"><p>Erst fragen\.<\/p><p>Dann zeigen\.<\/p><\/aside>/);
+		assert.equal(leseNotiz(zwei, s), 'Erst fragen.\n\nDann zeigen.');
+		assert.equal(setzeNotiz(zwei, s, leseNotiz(zwei, s)), zwei);
+		const eins = setzeNotiz(BLATT, s, 'Nur eine Zeile');
+		assert.match(eins, /<aside class="notiz">Nur eine Zeile<\/aside>/);
+	});
+
 	it('196-19, 196-23: Erwartungshorizont erkennen; Notiz einer Folie lesen, schreiben, löschen', () => {
 		assert.equal(hatErwartungshorizont(BLATT), false);
 		assert.equal(hatErwartungshorizont(BLATT.replace('<p>Absatz</p>', '<x-erwartungshorizont></x-erwartungshorizont>')), true);

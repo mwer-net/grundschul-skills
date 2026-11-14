@@ -138,7 +138,8 @@ export const useLoesung = ({ loesung, pfad, rueckgaengig, struktur }: Optionen) 
 
 	const item = gewaehlt && knoten && kann(gewaehlt.baustein, 'beispiel') ? gewaehlt.nr : null;
 	const beispiel = useMemo(() => {
-		if (item === null || !zerlegung || !knoten || loesung) {
+		// 196-12: in beiden Ansichten
+		if (item === null || !zerlegung || !knoten) {
 			return null;
 		}
 		const an = istBeispiel(knoten);
@@ -148,7 +149,7 @@ export const useLoesung = ({ loesung, pfad, rueckgaengig, struktur }: Optionen) 
 		const andere = andereBeispiele(zerlegung, item).map((k) => k.nr);
 		const namen = doc ? andere.map((nr) => pfadZu(doc, nr).at(-1)?.name ?? 'Ein anderer Eintrag') : [];
 		return { an, andere: namen };
-	}, [item, zerlegung, knoten, loesung, doc]);
+	}, [item, zerlegung, knoten, doc]);
 
 	const setzeAlsBeispiel = (an: boolean) => {
 		if (item === null) {
@@ -180,7 +181,7 @@ export const useLoesung = ({ loesung, pfad, rueckgaengig, struktur }: Optionen) 
 		fehlend,
 		antwortlinien,
 		naechsteFehlende,
-		/** „Als Beispiel zeigen“ für das gewählte Item, nur auf dem Arbeitsblatt und nur mit etwas zum Zeigen. */
+		/** „Als Beispiel zeigen“ für das gewählte Item, in beiden Ansichten, nur mit etwas zum Zeigen. */
 		beispiel,
 		setzeAlsBeispiel,
 	};

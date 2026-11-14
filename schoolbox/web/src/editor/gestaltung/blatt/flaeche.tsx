@@ -109,7 +109,7 @@ export const BlattFlaeche = (t: BlattTeile) => {
 								<Regler
 									name="mustergroesse"
 									titel="Größe"
-									einheit=" px"
+									cm
 									min={8}
 									max={64}
 									schritt={2}

@@ -414,7 +414,7 @@ const REGELN: Readonly<Record<string, Regel>> = {
 			if (an) {
 				return [];
 			}
-			const absaetze = k.kinder.filter((c) => c.tag === 'li').map((c) => `<p>${innenVon(z, c)}</p>`);
+			const absaetze = k.kinder.filter((c) => c.tag === 'li').map((c) => `<p${oeffnerVon(z, c)}>${innenVon(z, c)}</p>`);
 			return [{ von: k.start, bis: k.ende, text: absaetze.join('') }];
 		},
 	},
@@ -422,17 +422,25 @@ const REGELN: Readonly<Record<string, Regel>> = {
 		lies: (k) => k.tag === 'li',
 		setze: (z, k, an) => {
 			if (an && k.tag === 'p') {
-				return [{ von: k.start, bis: k.ende, text: `<ul><li>${innenVon(z, k)}</li></ul>` }];
+				return [{ von: k.start, bis: k.ende, text: `<ul><li${oeffnerVon(z, k)}>${innenVon(z, k)}</li></ul>` }];
 			}
 			const liste = k.eltern;
 			if (!an && k.tag === 'li' && liste) {
-				const absaetze = liste.kinder.filter((c) => c.tag === 'li').map((c) => `<p>${innenVon(z, c)}</p>`);
+				const absaetze = liste.kinder
+					.filter((c) => c.tag === 'li')
+					.map((c) => `<p${oeffnerVon(z, c)}>${innenVon(z, c)}</p>`);
 				return [{ von: liste.start, bis: liste.ende, text: absaetze.join('') }];
 			}
 			return [];
 		},
 	},
 };
+
+/**
+ * 196-24: Die Attribute im Start-Tag, wie sie dastehen (` class="text" data-zeilennummern="5"`). „Als Liste“ nimmt sie
+ * vom Absatz an den Eintrag mit und zurück: an und wieder aus ergibt dieselbe Quelle.
+ */
+const oeffnerVon = (z: Zerlegung, k: Knoten) => z.quelle.slice(k.start + 1 + k.tag.length, k.oeffnerEnde - 1);
 
 const knotenVon = (z: Zerlegung, nr: number) => {
 	const k = z.knoten[nr];
@@ -498,31 +506,60 @@ export const setzeKitMitAuswahl = (
 /** Gibt es im Material einen Erwartungshorizont? Nur dort wirkt „Anforderung“ (196-19). */
 export const hatErwartungshorizont = (quelle: string) => /<x-erwartungshorizont\b/.test(quelle);
 
-/** 196-23, 192-01: die Notiz einer Folie (`aside.notiz` in der Seite), als Text. */
+/** Text eines Stücks HTML ohne Tags, Leerraum zusammengefasst. */
+const nurText = (html: string) =>
+	html
+		.replace(/<[^>]*>/g, ' ')
+		.replace(/&nbsp;/g, ' ')
+		.replace(/&lt;/g, '<')
+		.replace(/&gt;/g, '>')
+		.replace(/&amp;/g, '&')
+		.replace(/\s+/g, ' ')
+		.trim();
+
+/**
+ * 196-23, 192-01: die Notiz einer Folie (`aside.notiz` in der Seite), als Text. 196-N01: je Absatz (`<p>`) ein Block,
+ * getrennt durch eine Leerzeile.
+ */
 export const leseNotiz = (quelle: string, seite: number) => {
 	const z = zerlege(quelle);
 	const notiz = z.knoten[seite]?.kinder.find((c) => hat(c, 'notiz'));
-	return notiz
-		? innenVon(z, notiz)
-				.replace(/<[^>]*>/g, ' ')
-				.replace(/&nbsp;/g, ' ')
-				.replace(/&lt;/g, '<')
-				.replace(/&gt;/g, '>')
-				.replace(/&amp;/g, '&')
-				.replace(/\s+/g, ' ')
-				.trim()
-		: '';
+	if (!notiz) {
+		return '';
+	}
+	const absaetze = notiz.kinder.filter((c) => c.tag === 'p');
+	return absaetze.length > 0
+		? absaetze
+				.map((p) => nurText(innenVon(z, p)))
+				.filter(Boolean)
+				.join('\n\n')
+		: nurText(innenVon(z, notiz));
 };
 
+/**
+ * Schreibt die Notiz: jede Zeile des Felds ein Absatz `<p>` (196-N01). Steht derselbe Text da wie gelesen, bleibt die
+ * Quelle zeichengleich; eine Notiz ohne Absätze bleibt bei einer Zeile ohne `<p>`.
+ */
 export const setzeNotiz = (quelle: string, seite: number, text: string) => {
+	if (text.trim() === leseNotiz(quelle, seite).trim()) {
+		return quelle;
+	}
 	const z = zerlege(quelle);
 	const s = knotenVon(z, seite);
 	const notiz = s.kinder.find((c) => hat(c, 'notiz'));
-	const t = text.trim();
+	const zeilen = text
+		.split('\n')
+		.map((t) => t.trim())
+		.filter(Boolean);
+	const mitAbsaetzen = zeilen.length > 1 || Boolean(notiz?.kinder.some((c) => c.tag === 'p'));
+	const innen = mitAbsaetzen ? zeilen.map((t) => `<p>${schuetzeText(t)}</p>`).join('') : schuetzeText(zeilen[0] ?? '');
 	if (!notiz) {
-		return t ? wendeAn(quelle, fuegeInnenEin(z, s, 'ende', `<aside class="notiz">${schuetzeText(t)}</aside>`)) : quelle;
+		return zeilen.length > 0 ? wendeAn(quelle, fuegeInnenEin(z, s, 'ende', `<aside class="notiz">${innen}</aside>`)) : quelle;
 	}
-	return wendeAn(quelle, t ? [{ von: notiz.oeffnerEnde, bis: notiz.schliesserStart, text: schuetzeText(t) }] : entferne(z, notiz));
+	return wendeAn(
+		quelle,
+		zeilen.length > 0 ? [{ von: notiz.oeffnerEnde, bis: notiz.schliesserStart, text: innen }] : entferne(z, notiz),
+	);
 };
 
 /** Grenzen stehen nur in `KIT_FELDER`: Was darüber hinausgeht, wird nicht geschrieben, sondern begrenzt. */

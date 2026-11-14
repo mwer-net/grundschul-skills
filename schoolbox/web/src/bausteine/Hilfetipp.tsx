@@ -13,9 +13,12 @@ const AUSLOESER = (
 	</button>
 );
 
-/** Kleines ⓘ neben einem Label. Erklärt, was sonst als dauerhafter Satz im Panel stünde. */
+/**
+ * Kleines ⓘ neben einem Label. Erklärt, was sonst als dauerhafter Satz im Panel stünde. Es öffnet nach links, damit es
+ * die Felder darunter nicht deckt (196-34).
+ */
 export const Hilfetipp = ({ children, name }: { name: string; children: ReactNode }) => (
-	<Popover name={`Hilfe zu ${name}`} ausloeser={AUSLOESER}>
+	<Popover name={`Hilfe zu ${name}`} ausloeser={AUSLOESER} seite="left">
 		<p className="leading-4">{children}</p>
 	</Popover>
 );
