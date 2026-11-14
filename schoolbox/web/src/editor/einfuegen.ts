@@ -176,7 +176,7 @@ export const useEinfuegen = ({ auswahl, blatt, dokument, folien, nachher, strukt
 			return null;
 		}
 		const umbrechen = async () => {
-			const plan = await probelauf(doc, z, { alt: null, erzwungen: [blatt], mitLoesung: hatLoesung(z.quelle) });
+			const plan = await probelauf(doc, z, { blaetter: [blatt], mitLoesung: hatLoesung(z.quelle) });
 			if (!plan) {
 				return;
 			}
