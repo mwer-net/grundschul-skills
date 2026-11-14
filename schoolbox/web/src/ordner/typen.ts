@@ -21,6 +21,8 @@ export interface AblageDok extends DokumentEintrag {
 	fach: Fach;
 	klasse: Klasse;
 	ordner: string | null;
+	/** Lässt sich daraus eine Variante mit neuen Zahlen würfeln (188-33)? */
+	wuerfelbar?: boolean;
 }
 
 export interface AblageStand {
