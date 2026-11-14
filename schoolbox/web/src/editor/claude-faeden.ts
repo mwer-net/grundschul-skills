@@ -306,7 +306,18 @@ export const ergaenzeFaeden = (
 		const da = neu.find((f) => f.auftragId === a.id) ?? von(schluessel) ?? von(a.grundlage);
 		if (!da) {
 			const referenz = a.referenz ?? null;
-			neu.push(neuerFaden({ key: schluessel, schluessel, referenz, ganz: !referenz, auftragId: a.id }));
+			// Nach dem Neuladen: Die Bitte des laufenden Auftrags steht wieder im Verlauf (200, Urteil c).
+			const verlauf = a.bitte ? [nachricht('lehrkraft', a.bitte, null, a.zitat ?? null)] : [];
+			neu.push(
+				neuerFaden({
+					key: schluessel,
+					schluessel,
+					referenz,
+					ganz: !referenz,
+					auftragId: a.id,
+					verlauf,
+				}),
+			);
 		} else if (da.auftragId !== a.id && !laeuftNoch(da.auftragId ? auftraege[da.auftragId] : undefined)) {
 			neu[neu.indexOf(da)] = { ...da, auftragId: a.id };
 		}

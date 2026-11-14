@@ -73,6 +73,15 @@ describe('Fäden: Vorschläge und Aufträge finden ihren Faden (135)', () => {
 		assert.equal(faeden[0] && vorschlagDes(faeden[0], [alt], { a1: nachbessern }), alt);
 	});
 
+	it('Neuladen im Lauf: Die Bitte der Lehrkraft steht wieder im Verlauf (200, Urteil c)', () => {
+		const laufend = auftrag('a2', { gespraech: 'g3', referenz: r, bitte: 'Leichter machen', zitat: 'Aufgabe 1' });
+		const [faden] = ergaenzeFaeden([], { a2: laufend }, []);
+		assert.deepEqual(
+			faden?.verlauf.map((n) => [n.rolle, n.text, n.zitat]),
+			[['lehrkraft', 'Leichter machen', 'Aufgabe 1']],
+		);
+	});
+
 	it('Kommen die Vorschläge vor den Aufträgen, übernimmt derselbe Faden den Auftrag', () => {
 		const erst = ergaenzeFaeden([], {}, [alt]);
 		const dann = ergaenzeFaeden(erst, { a1: nachbessern }, [alt]);

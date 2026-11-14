@@ -26,6 +26,9 @@ export interface KiAuftrag {
 	/** Die Antwort ist der Aufgabenplan des neuen Blatts; gebaut wird nach der Freigabe. */
 	plan?: boolean;
 	phase?: 'plan' | 'bauen';
+	/** Die Bitte der Lehrkraft: Nach dem Neuladen steht sie wieder in der Blase (200, Urteil c). */
+	bitte?: string;
+	zitat?: string;
 }
 
 export interface KiFenster {
