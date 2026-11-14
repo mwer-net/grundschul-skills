@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import { describe, it } from 'node:test';
 
-import { annahmenAus, entwurfPhase, laufzeit, sperrtBlatt } from './entwurf';
+import { annahmenAus, entwurfPhase, laufzeit, quelleDes, sperrGrund, sperrtBlatt } from './entwurf';
 import type { KiAuftrag, Vorschlag } from './ki';
 
 const auftrag = (status: KiAuftrag['status'], mehr: Partial<KiAuftrag> = {}): KiAuftrag => ({
@@ -43,9 +43,14 @@ describe('Was der Editor zum neuen Blatt zeigt (133)', () => {
 			art: 'laeuft',
 			auftrag: a,
 			nachbessern: false,
+			vorschlag: null,
 		});
-		const v = vorschlag();
-		assert.equal(entwurfPhase({ ...ruhe, auftrag: a, laeuft: true, vorschlag: v })?.art, 'laeuft');
+		const v = { ...vorschlag(), quelle: '<p>Entwurf</p>' };
+		const nachbessern = entwurfPhase({ ...ruhe, auftrag: a, laeuft: true, vorschlag: v });
+		assert.equal(nachbessern?.art, 'laeuft');
+		// Beim Nachbessern bleibt der Entwurf auf dem Blatt (190-10).
+		assert.equal(quelleDes(nachbessern), '<p>Entwurf</p>');
+		assert.match(sperrGrund(nachbessern) ?? '', /bessert den Entwurf nach/);
 		assert.equal(sperrtBlatt(entwurfPhase({ ...ruhe, auftrag: a, laeuft: true })), true);
 	});
 
@@ -70,7 +75,8 @@ describe('Was der Editor zum neuen Blatt zeigt (133)', () => {
 		});
 		assert.deepEqual(entwurfPhase({ ...ruhe, startFehler: 'Limit' }), { art: 'fehler', text: 'Limit' });
 		const antwort = auftrag('fertig', { ergebnis: 'antwort', antwort: 'Für welche Klasse?' });
-		assert.deepEqual(entwurfPhase({ ...ruhe, auftrag: antwort }), { art: 'fehler', text: 'Für welche Klasse?' });
+		// Eine Antwort statt eines Blatts ist eine Rückfrage (190-08).
+		assert.deepEqual(entwurfPhase({ ...ruhe, auftrag: antwort }), { art: 'frage', text: 'Für welche Klasse?' });
 		assert.equal(entwurfPhase({ ...ruhe, auftrag: antwort, zu: 'a1' }), null);
 		assert.equal(sperrtBlatt(entwurfPhase({ ...ruhe, startFehler: 'Limit' })), false);
 	});

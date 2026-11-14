@@ -30,26 +30,58 @@ export interface ObjektAnsicht {
 	vorne?: readonly Objekt[];
 }
 
-/** Claude baut das Blatt gerade (133): `seit` ist der Beginn, `null` wartet es noch. */
+/**
+ * Claude baut das Blatt gerade (133): `seit` ist der Beginn, `null` wartet es noch. `plan`: Der Aufgabenplan wartet
+ * auf die Freigabe (190-34).
+ */
 export interface ClaudeBaut {
 	seit: string | null;
+	plan?: boolean;
 }
 
-const ClaudeBautMarke = ({ seit }: ClaudeBaut) => {
-	const jetzt = useJetzt(true);
-	const zeit = laufzeit(seit, jetzt);
+/** Der Satz der Marke, in Kachel und Listenzeile gleich (190-11). */
+const ClaudeBautText = ({ plan, seit }: ClaudeBaut) => {
+	const jetzt = useJetzt(!plan);
+	const zeit = plan ? null : laufzeit(seit, jetzt);
 	return (
-		<span
-			role="status"
-			className="absolute inset-x-2 bottom-2 flex items-center gap-1.5 rounded-md border border-rand bg-flaeche/95 px-2 py-1 text-xs font-medium text-brand-700 shadow-sm"
-			data-claude-baut
-		>
-			<Symbol name="laden" className="size-3 flex-none animate-spin" />
-			<span className="min-w-0 flex-1 truncate">Claude baut …</span>
+		<>
+			{!plan && <Symbol name="laden" className="size-3 flex-none animate-spin" />}
+			<span className="min-w-0 flex-1 truncate">{plan ? 'Plan prüfen' : 'Claude baut …'}</span>
 			{zeit && <span className="flex-none text-leise tabular-nums">{zeit}</span>}
-		</span>
+		</>
 	);
 };
+
+const ClaudeBautMarke = (claude: ClaudeBaut) => (
+	<span
+		role="status"
+		className="absolute inset-x-2 bottom-2 flex items-center gap-1.5 rounded-md border border-rand bg-flaeche/95 px-2 py-1 text-xs font-medium text-brand-700 shadow-sm"
+		data-claude-baut={claude.plan ? 'plan' : ''}
+	>
+		<ClaudeBautText {...claude} />
+	</span>
+);
+
+/** In der Ansicht neben dem Titel: dieselbe Pille wie die der Einheit, Klick öffnet den Editor (190-11, 190-34). */
+export const ClaudeBautPille = (claude: ClaudeBaut) => (
+	<span
+		role="status"
+		className="inline-flex h-7 flex-none items-center gap-1.5 rounded-full border border-brand-200 bg-brand-50 px-2.5 text-xs font-medium text-brand-700 tabular-nums hover:bg-brand-100"
+		data-claude-baut={claude.plan ? 'plan' : ''}
+	>
+		<ClaudeBautText {...claude} />
+	</span>
+);
+
+const ClaudeBautZeile = (claude: ClaudeBaut) => (
+	<span
+		role="status"
+		className="flex flex-none items-center gap-1.5 text-xs font-medium text-brand-700"
+		data-claude-baut={claude.plan ? 'plan' : ''}
+	>
+		<ClaudeBautText {...claude} />
+	</span>
+);
 
 /**
  * Die Ablage behandelt Klicks gesammelt. Safari am Finger hält ein Element ohne eigenen Lauscher für nicht antippbar und
@@ -133,7 +165,7 @@ export const Kachel = ({
 							<Marke>Entwurf</Marke>
 						</span>
 					)}
-					{claude && <ClaudeBautMarke seit={claude.seit} />}
+					{claude && <ClaudeBautMarke {...claude} />}
 				</>
 			)}
 			{haken && (
@@ -178,6 +210,7 @@ export interface ZeileAnsicht extends ObjektAnsicht {
 	offen: boolean;
 	klappe: ((alles: boolean) => void) | null;
 	mitMaterial: boolean;
+	claude?: ClaudeBaut | undefined;
 }
 
 /**
@@ -219,6 +252,7 @@ const geaendertText = (wann: string) =>
 export const Zeile = ({
 	benennt,
 	blass,
+	claude,
 	gewaehlt,
 	haken,
 	klappe,
@@ -281,7 +315,11 @@ export const Zeile = ({
 				) : (
 					<span className="flex min-w-0 items-center gap-1.5" data-objekt-name>
 						<Gekuerzt text={objekt.name} data-zieh-griff />
-						{!objekt.istOrdner && objekt.dok.meta.status === 'entwurf' && <Marke>Entwurf</Marke>}
+						{claude ? (
+							<ClaudeBautZeile {...claude} />
+						) : (
+							!objekt.istOrdner && objekt.dok.meta.status === 'entwurf' && <Marke>Entwurf</Marke>
+						)}
 						{objekt.geteilt && <GeteiltMarke />}
 					</span>
 				)}

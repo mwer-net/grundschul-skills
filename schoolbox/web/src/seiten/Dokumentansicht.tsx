@@ -1,7 +1,7 @@
 import type { Druckprofil } from '@schoolbox/kern/src/werte';
 import type { ReactNode } from 'react';
 import { useEffect, useMemo, useState } from 'react';
-import { Navigate, useNavigate, useSearchParams } from 'react-router-dom';
+import { Link, Navigate, useNavigate, useSearchParams } from 'react-router-dom';
 
 import { Blattansicht } from '../bausteine/Blattansicht';
 import { Gekuerzt } from '../bausteine/Gekuerzt';
@@ -30,6 +30,8 @@ import {
 	mappenSeite,
 	praesentationSeite,
 } from '../lib/zugang';
+import { useClaudeBaut } from '../ordner/claude-baut';
+import { ClaudeBautPille } from '../ordner/darstellung';
 import { useOrdnerDesDokuments } from '../ordner/kontext';
 import { PdfKnopf } from '../pdf/PdfKnopf';
 import { dokumentWahl, materialName } from '../pdf/wahl';
@@ -244,6 +246,7 @@ export const Dokumentansicht = ({ dok, zugang, zurueckZurMappe }: Eigenschaften)
 	const ansicht = useAnsichtsProfil(zugang, dok, dokument?.meta);
 	const oeffneTeilen = useMemo(() => () => setTeilen(true), []);
 	useBefehleDerAnsicht(zugang, dokument, oeffneTeilen);
+	const claude = useClaudeBaut(!geteilt).get(`${zugang.mappe}/${dok}`);
 
 	useEreignisse(({ dok: geaendert, mappe, typ, wieder }) => {
 		if (typ === 'dokument-geaendert' && mappe === zugang.mappe && geaendert === dok) {
@@ -322,7 +325,14 @@ export const Dokumentansicht = ({ dok, zugang, zurueckZurMappe }: Eigenschaften)
 							className={`flex min-w-0 items-center gap-2 text-sm font-semibold ${zurueck ? 'ml-[11px]' : ''}`}
 						>
 							<Gekuerzt text={meta.titel} />
-							{meta.status === 'entwurf' && <Marke>Entwurf</Marke>}
+							{/* Baut Claude an diesem Blatt, sagt die Ansicht es wie die Kachel; Klick öffnet den Editor (190-11). */}
+							{claude ? (
+								<Link to={editorSeite(zugang, dok)} state={AUS_ANSICHT} className="no-underline">
+									<ClaudeBautPille {...claude} />
+								</Link>
+							) : (
+								meta.status === 'entwurf' && <Marke>Entwurf</Marke>
+							)}
 						</h1>
 						<p className="ml-1 truncate text-xs text-leise max-lg:hidden">
 							{[

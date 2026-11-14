@@ -39,7 +39,7 @@ import { ClaudeKontext } from '../editor/claude-kontext';
 import { useClaudeApp } from '../editor/ClaudeApp';
 import { bausteinVon, editorHtml, elementZu, nrVon, pfadZu } from '../editor/darstellung';
 import { mitZuletzt, NICHT_IM_TEXT, useEinfuegen, useSlash, useTabelleTab } from '../editor/einfuegen';
-import { EntwurfKarte, EntwurfPille, Entwurfsleiste, SperrHinweis } from '../editor/Entwurf';
+import { EntwurfKarte, Entwurfsleiste, SperrHinweis } from '../editor/Entwurf';
 import { zeigeBlattGestaltung } from '../editor/gestaltung/blatt/zeige';
 import { gestaltungKontext } from '../editor/gestaltung/kontext';
 import { Leiste as GestaltungLeiste } from '../editor/gestaltung/leiste/Leiste';
@@ -1093,13 +1093,6 @@ const Bearbeitung = ({ dokument, mappe: mappenDaten }: { mappe: Mappe; dokument:
 					verlassen={() => befehle.fuehreAus('dokument.zurueck')}
 					mitte={kopfMitte}
 				>
-					<EntwurfPille
-						entwurf={entwurf}
-						zurKarte={() => {
-							ansicht.current?.scrollTo({ top: 0, behavior: 'smooth' });
-							entwurfKarte.current?.focus({ preventScroll: true });
-						}}
-					/>
 					<SymbolKnopf
 						symbol="rueckgaengig"
 						beschriftung="Rückgängig"
@@ -1186,7 +1179,6 @@ const Bearbeitung = ({ dokument, mappe: mappenDaten }: { mappe: Mappe; dokument:
 						<Schubladen
 							zeigt={zeigt}
 							lage={{ frei }}
-							grund={entwurf.grund}
 							teile={schubladenTeile}
 							waehle={(id: SchubladenId) => befehle.fuehreAus(`ansicht.links-${id}`)}
 						/>

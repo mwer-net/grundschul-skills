@@ -46,7 +46,7 @@ const assistent = async (page: Page, mappe: string) => {
 	return dialog;
 };
 
-/** Mit allen Empfehlungen bis „Auftrag prüfen“: Art wählen, Thema tippen, sonst nur ⏎ (132). */
+/** Mit allen Empfehlungen bis zum letzten Schritt „Deine Klasse“: Art wählen, Thema tippen, sonst nur ⏎ (132, 190-37). */
 const bisZumAuftrag = async (page: Page, dialog: Locator, thema: string) => {
 	await page.keyboard.press('Enter');
 	await dialog.locator('[data-wahl="lesetext"]').click();
@@ -57,8 +57,8 @@ const bisZumAuftrag = async (page: Page, dialog: Locator, thema: string) => {
 	await page.keyboard.type(thema);
 	await page.keyboard.press('Enter');
 	await page.keyboard.press('Enter');
-	await page.keyboard.press('Enter');
-	await expect(dialog.locator('[data-assistent="pruefen"]')).toBeVisible();
+	await expect(dialog.locator('[data-assistent="klasse"]')).toBeVisible();
+	await expect(dialog.locator('[data-hauptaktion]')).toHaveText('Aufgabenplan holen');
 };
 
 test.describe('Assistent: Mit Claude (132)', () => {
@@ -66,39 +66,22 @@ test.describe('Assistent: Mit Claude (132)', () => {
 	test.beforeEach(() => fall('gut'));
 	test.afterEach(() => fall('gut'));
 
-	test('Nur mit ⏎ zum Vorschlag; Claude bekommt genau den Auftrag aus der Vorschau', async ({ page }) => {
+	test('Nur mit ⏎ zum Vorschlag; Claude bekommt die Antworten als Auftrag', async ({ page }) => {
 		const { id: mappe } = await uhrzeit();
 		const dialog = await assistent(page, mappe);
 		await expect(dialog.locator('[data-wahl="claude"]')).toHaveAttribute('aria-pressed', 'true');
 		await bisZumAuftrag(page, dialog, 'Igel im Herbst');
-		const vorschau = (await dialog.locator('[data-auftrag] p').allInnerTexts()).join('\n');
-		expect(vorschau).toContain('Thema: „Igel im Herbst“');
 		const prompts = path.join(`${MATERIAL_DIR}-ki`, 'prompts.txt');
 		await writeFile(prompts, '');
 		await page.keyboard.press('Enter');
 		await expect(page).toHaveURL(/bearbeiten\?claude=1/);
 		await expect(leiste(page)).toHaveAttribute('data-entwurfsleiste', 'offen');
-		expect(await readFile(prompts, 'utf8')).toContain(
-			`Antworten der Lehrkraft aus dem Assistenten (sie ersetzen die Start-Abfrage):\n${vorschau}`,
-		);
+		const prompt = await readFile(prompts, 'utf8');
+		expect(prompt).toContain('Antworten der Lehrkraft aus dem Assistenten (sie ersetzen die Start-Abfrage):');
+		expect(prompt).toContain('Thema: „Igel im Herbst“');
 		await leiste(page).getByRole('button', { name: 'Übernehmen' }).click();
 		await expect(leiste(page)).toBeHidden();
 		await expect.poll(() => quelleAufPlatte(mappe, dokVon(page))).toContain('von Claude');
-	});
-
-	test('Als Text bearbeitet: Claude bekommt den Text der Lehrkraft', async ({ page }) => {
-		const { id: mappe } = await uhrzeit();
-		const dialog = await assistent(page, mappe);
-		await bisZumAuftrag(page, dialog, 'Igel');
-		await dialog.getByRole('button', { name: 'Als Text bearbeiten' }).click();
-		await dialog.getByRole('textbox', { name: 'Auftrag' }).fill('Ein Igel-Blatt mit EIGENEM Text.');
-		const prompts = path.join(`${MATERIAL_DIR}-ki`, 'prompts.txt');
-		await writeFile(prompts, '');
-		await dialog.getByRole('button', { name: 'Mit Claude erstellen' }).click();
-		await expect(leiste(page)).toBeVisible();
-		const prompt = await readFile(prompts, 'utf8');
-		expect(prompt).toContain('Ein Igel-Blatt mit EIGENEM Text.');
-		expect(prompt).not.toContain('Thema: „Igel“');
 	});
 
 	test('Ohne angemeldetes claude bleibt nur das leere Blatt', async ({ page }) => {
@@ -114,14 +97,15 @@ test.describe('Assistent: Mit Claude (132)', () => {
 		await expect(dialog.locator('[data-schritt="thema"]')).toHaveCount(0);
 	});
 
-	test('Am Limit: „Mit Claude erstellen“ ist gesperrt, das leere Blatt nie', async ({ page }) => {
+	test('Am Limit: „Aufgabenplan holen“ ist gesperrt, das leere Blatt nie', async ({ page }) => {
 		await page.route('**/api/ki/status', (r) => r.fulfill({ json: sperre }));
 		const { id: mappe } = await uhrzeit();
 		const dialog = await assistent(page, mappe);
 		await bisZumAuftrag(page, dialog, 'Igel');
 		await expect(dialog.locator('[data-ki-limit="gesperrt"]')).toContainText('Wieder möglich ab');
-		await expect(dialog.getByRole('button', { name: 'Mit Claude erstellen' })).toBeDisabled();
-		await dialog.getByRole('button', { name: 'Nur leeres Blatt anlegen' }).click();
+		await expect(dialog.locator('[data-hauptaktion]')).toBeDisabled();
+		await dialog.getByRole('button', { name: 'Doch lieber leeres Blatt' }).click();
+		await dialog.locator('[data-hauptaktion]').click();
 		await expect(page).toHaveURL(/bearbeiten\?neu=1/);
 	});
 });
@@ -156,7 +140,6 @@ test.describe('Neues Blatt im Editor (133)', () => {
 		const adresse = page.url();
 		await expect(entwurfKarte(page)).toContainText('Claude plant „Igel“');
 		await expect(entwurfKarte(page)).toContainText('Ändert das Blatt');
-		await expect(page.locator('[data-entwurf-pille]')).toContainText('Claude arbeitet');
 		await expect(page.locator('[data-schublade-knopf="bausteine"]')).toHaveCount(0);
 		await expect(page.getByRole('button', { name: 'Versionen' })).toBeEnabled();
 
@@ -174,11 +157,11 @@ test.describe('Neues Blatt im Editor (133)', () => {
 		await expect(entwurfKarte(page)).toBeHidden();
 		await expect(entwurfKarte(zweite)).toBeHidden();
 		await zweite.close();
-		await expect(leiste(page)).toContainText('Abgebrochen. Das leere Blatt bleibt');
-		await expect(page.locator('[data-entwurf-pille]')).toHaveCount(0);
-		await expect(page.locator('[data-schublade-knopf="bausteine"]')).toBeVisible();
-		await page.reload();
-		await expect(leiste(page)).toHaveCount(0);
+		// Vor dem ersten Bau geht das unberührte Blatt in den Papierkorb, mit „Rückgängig“ (190-41).
+		await expect(page).not.toHaveURL(/bearbeiten/);
+		await expect(page.getByText('„Igel“ in den Papierkorb gelegt.')).toBeVisible();
+		await page.getByRole('button', { name: 'Rückgängig' }).click();
+		await expect(page.locator('[data-objekt]').filter({ hasText: 'Igel' })).toBeVisible();
 	});
 
 	test('Entwurfsleiste: Annahmen, Nachbessern im selben Gespräch, ⏎ übernimmt', async ({ page }) => {

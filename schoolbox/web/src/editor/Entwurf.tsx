@@ -1,4 +1,4 @@
-import type { FormEvent, RefObject } from 'react';
+import type { FormEvent, KeyboardEvent as TastenEreignis, RefObject } from 'react';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 
@@ -13,6 +13,7 @@ import { annahmenAus, laufzeit, useJetzt } from './entwurf';
 import type { KiAuftrag, useKiZustand, Vorschlag } from './ki';
 import { limitHinweis } from './ki';
 import { LimitZeile } from './LimitZeile';
+import { PlanFreigabe } from './PlanFreigabe';
 import { istTextfeld, TASTEN_SPERRE } from './tasten';
 import type { Entwurf } from './useEntwurf';
 
@@ -55,10 +56,7 @@ const PlanKarte = ({
 	titel: string;
 	karte: RefObject<HTMLDivElement | null>;
 }) => {
-	const [feldOffen, setFeldOffen] = useState(false);
-	const schliesseFeld = useCallback(() => setFeldOffen(false), []);
 	const hinweis = limitHinweis(ki.zustand.limit, ki.zustand.warnAb);
-	const gesperrt = hinweis?.art === 'gesperrt';
 	return (
 		<div className="pointer-events-none sticky top-0 z-10 h-0">
 			<div
@@ -74,39 +72,98 @@ const PlanKarte = ({
 					<span className="min-w-0 flex-1 truncate">{`Aufgabenplan für „${titel}“`}</span>
 				</p>
 				<p className="mt-1 text-xs text-leise">
-					So würde Claude das Blatt bauen. Passt das? Danach entsteht genau dieses Blatt, mit Prüfung und
-					Lösung.
+					So würde Claude das Blatt bauen. Passt das? Der Bau dauert meist 5 bis 15 Minuten.
 				</p>
-				<div
-					className="mt-3 min-h-0 flex-1 overflow-y-auto rounded-md border border-rand bg-papier px-3 py-2 whitespace-pre-wrap"
-					data-entwurf-plan
-				>
-					{phase.text.trim()}
-				</div>
 				{phase.fehler && (
 					<p role="alert" className="mt-2 text-fehler" data-entwurf-fehler>
 						{phase.fehler}
 					</p>
 				)}
 				{hinweis && <LimitZeile className="mt-2" hinweis={hinweis} pruefeLimit={ki.pruefeLimit} />}
-				{feldOffen ? (
-					<PlanFeld sende={entwurf.planAendern} schliessen={schliesseFeld} />
-				) : (
-					<div className="mt-3 flex flex-wrap gap-2">
-						<Knopf disabled={gesperrt} onClick={entwurf.planFreigeben} data-entwurf-plan-freigeben>
-							So bauen
-						</Knopf>
-						<Knopf art="zweit" disabled={gesperrt} onClick={() => setFeldOffen(true)}>
-							<Symbol name="funken" />
-							Ändern …
-						</Knopf>
-						<Knopf art="leise" onClick={entwurf.schliesse}>
-							Verwerfen
-						</Knopf>
-					</div>
-				)}
+				<div className="mt-3 flex min-h-0 flex-1 flex-col">
+					<PlanFreigabe
+						text={phase.text}
+						gesperrt={hinweis?.art === 'gesperrt'}
+						freigeben={entwurf.planFreigeben}
+						aendern={entwurf.planAendern}
+						verwerfen={entwurf.planVerwerfen}
+						fokus
+						planKlasse="min-h-0 flex-1"
+						attribute={{ 'data-entwurf-plan': '' }}
+					/>
+				</div>
 			</div>
 		</div>
+	);
+};
+
+/** Die Karte nach einem Lauf ohne Blatt: Fehler oder Rückfrage. Esc wirkt wie „Selbst füllen“ (190-31). */
+const OhneBlattKarte = ({
+	entwurf,
+	hinweis,
+	ki,
+	phase,
+}: {
+	entwurf: Entwurf;
+	hinweis: ReturnType<typeof limitHinweis>;
+	ki: ReturnType<typeof useKiZustand>;
+	phase: Extract<EntwurfPhase, { art: 'fehler' | 'frage' }>;
+}) => {
+	const gesperrt = hinweis?.art === 'gesperrt';
+	const frage = phase.art === 'frage';
+	const [antwort, setAntwort] = useState('');
+	const nochmal = useRef<HTMLButtonElement>(null);
+	const selbst = useRef<HTMLButtonElement>(null);
+	const { schliesse } = entwurf;
+	useEffect(() => {
+		if (!frage) {
+			(gesperrt ? selbst : nochmal).current?.focus({ preventScroll: true });
+		}
+	}, [frage, gesperrt]);
+	useEffect(() => {
+		const taste = (e: KeyboardEvent) => {
+			if (e.key === 'Escape' && !document.querySelector(TASTEN_SPERRE) && !istTextfeld(e.target)) {
+				e.preventDefault();
+				schliesse();
+			}
+		};
+		document.addEventListener('keydown', taste);
+		return () => document.removeEventListener('keydown', taste);
+	}, [schliesse]);
+	return (
+		<>
+			<p className="flex items-center gap-2 font-semibold">
+				<Symbol name={frage ? 'funken' : 'achtung'} className="size-4 flex-none" />
+				{frage ? 'Claude fragt nach' : 'Claude hat kein Blatt gebaut'}
+			</p>
+			{/* Mit Limit-Hinweis sagt die Zeile, was los ist; derselbe Satz zweimal entfällt (190-09). */}
+			{!(hinweis && !frage) && (
+				<p className="mt-1 whitespace-pre-line" data-entwurf-grund>
+					{phase.text}
+				</p>
+			)}
+			{hinweis && <LimitZeile className="mt-2" hinweis={hinweis} pruefeLimit={ki.pruefeLimit} />}
+			{frage ? (
+				<NachbessernFeld
+					text={antwort}
+					setText={setAntwort}
+					frage="Deine Antwort für Claude"
+					sende={entwurf.antworten}
+				/>
+			) : (
+				<p className="mt-2 text-xs text-leise">Das leere Blatt bleibt im Ordner.</p>
+			)}
+			<div className="mt-3 flex gap-2">
+				{!frage && !gesperrt && (
+					<Knopf ref={nochmal} onClick={() => void entwurf.nochmal()} data-entwurf-nochmal>
+						Nochmal
+					</Knopf>
+				)}
+				<Knopf ref={selbst} art="zweit" onClick={schliesse}>
+					Selbst füllen
+				</Knopf>
+			</div>
+		</>
 	);
 };
 
@@ -128,7 +185,7 @@ export const EntwurfKarte = ({
 	if (phase?.art === 'plan') {
 		return <PlanKarte entwurf={entwurf} karte={karte} ki={ki} phase={phase} titel={titel} />;
 	}
-	if (phase?.art !== 'laeuft' && phase?.art !== 'fehler') {
+	if (phase?.art !== 'laeuft' && phase?.art !== 'fehler' && phase?.art !== 'frage') {
 		return null;
 	}
 	const hinweis = limitHinweis(ki.zustand.limit, ki.zustand.warnAb);
@@ -163,142 +220,108 @@ export const EntwurfKarte = ({
 								? 'Zuerst kommt der Aufgabenplan, meist nach ein bis zwei Minuten. Gebaut wird, wenn du ihn freigibst.'
 								: 'Claude baut, prüft und sieht sich jede Seite an. Das dauert meist 5 bis 15 Minuten. Du kannst den Editor verlassen, die Arbeit läuft weiter.'}
 						</p>
-						<Knopf art="zweit" className="mt-3" onClick={entwurf.abbrechen}>
+						<Knopf art="zweit" className="mt-3" onClick={() => void entwurf.abbrechen()}>
 							Abbrechen
 						</Knopf>
 					</>
 				) : (
-					<>
-						<p className="flex items-center gap-2 font-semibold">
-							<Symbol name="achtung" className="size-4 flex-none" />
-							Claude hat kein Blatt gebaut
-						</p>
-						<p className="mt-1 whitespace-pre-line" data-entwurf-grund>
-							{phase.text}
-						</p>
-						{hinweis && <LimitZeile className="mt-2" hinweis={hinweis} pruefeLimit={ki.pruefeLimit} />}
-						<p className="mt-2 text-xs text-leise">Das leere Blatt bleibt im Ordner.</p>
-						<div className="mt-3 flex gap-2">
-							<Knopf disabled={hinweis?.art === 'gesperrt'} onClick={entwurf.nochmal}>
-								Nochmal
-							</Knopf>
-							<Knopf art="zweit" onClick={entwurf.schliesse}>
-								Selbst füllen
-							</Knopf>
-						</div>
-					</>
+					<OhneBlattKarte entwurf={entwurf} hinweis={hinweis} ki={ki} phase={phase} />
 				)}
 			</div>
 		</div>
 	);
 };
 
-/** Im Kopf, solange Claude baut. Ein Klick führt zur Karte. */
-export const EntwurfPille = ({ entwurf, zurKarte }: { entwurf: Entwurf; zurKarte: () => void }) => {
-	const { phase } = entwurf;
-	const jetzt = useJetzt(phase?.art === 'laeuft');
-	if (phase?.art !== 'laeuft') {
-		return null;
-	}
-	const zeit = laufzeit(phase.auftrag.seit, jetzt);
-	return (
-		<button
-			type="button"
-			className="inline-flex h-7 flex-none items-center gap-1.5 rounded-full border border-brand-200 bg-brand-50 px-2.5 text-xs font-medium text-brand-700 tabular-nums [@media(any-pointer:coarse)]:h-11"
-			data-entwurf-pille
-			onClick={zurKarte}
-		>
-			<Symbol name="laden" className="size-3 flex-none animate-spin" />
-			{zeit ? `Claude arbeitet · ${zeit}` : 'Claude wartet'}
-		</button>
-	);
-};
-
+/** Die Zahl der Hinweise richtig gebeugt; ohne Befund sagt die Leiste nichts dazu (190-26, Wortlaut aus 200-12). */
 const zusammenfassung = (v: Vorschlag) => {
 	const aufgaben = v.quelle
 		? new DOMParser().parseFromString(v.quelle, 'text/html').querySelectorAll('.aufgabe:not(.aufgabe .aufgabe)')
 				.length
 		: 0;
-	const hinweise = v.meldungen.length === 0 ? 'Prüfung ohne Befund' : `${v.meldungen.length} Hinweise der Prüfung`;
+	const n = v.meldungen.length;
+	const hinweise = n === 0 ? null : `${n} ${n === 1 ? 'Hinweis' : 'Hinweise'} der Prüfung`;
 	const pruefung = v.fehler > 0 ? `${v.fehler} Fehler in der Prüfung: bitte nachbessern lassen` : hinweise;
 	return [aufgaben > 0 ? `${aufgaben} ${aufgaben === 1 ? 'Aufgabe' : 'Aufgaben'}` : null, pruefung]
 		.filter(Boolean)
 		.join(' · ');
 };
 
-const NachbessernFeld = ({ schliessen, sende }: { sende: (text: string) => Promise<void>; schliessen: () => void }) => {
-	const [text, setText] = useState('');
-	const abschicken = (e: FormEvent) => {
+const ZEILEN_HOCH = 5;
+
+/**
+ * Mehrzeilig bis fünf Zeilen, ⏎ sendet, ⇧⏎ neue Zeile (190-27). Den Text hält der Aufrufer: Er bleibt nach Esc stehen,
+ * bis er gesendet oder der Entwurf entschieden ist.
+ */
+const NachbessernFeld = ({
+	frage,
+	schliessen,
+	sende,
+	setText,
+	text,
+}: {
+	text: string;
+	setText: (text: string) => void;
+	sende: (text: string) => Promise<boolean>;
+	schliessen?: () => void;
+	frage: string;
+}) => {
+	const [belegt, setBelegt] = useState(false);
+	const feld = useRef<HTMLTextAreaElement>(null);
+	useEffect(() => {
+		const el = feld.current;
+		if (!el) {
+			return;
+		}
+		const zeile = Number.parseFloat(getComputedStyle(el).lineHeight) || 20;
+		el.style.height = 'auto';
+		el.style.height = `${Math.min(el.scrollHeight, zeile * ZEILEN_HOCH + 12)}px`;
+	}, [text]);
+	const abschicken = async (e: FormEvent | TastenEreignis<HTMLTextAreaElement>) => {
 		e.preventDefault();
-		if (text.trim()) {
-			void sende(text.trim());
-			schliessen();
+		const t = text.trim();
+		if (!t || belegt) {
+			return;
+		}
+		setBelegt(true);
+		const angenommen = await sende(t);
+		setBelegt(false);
+		if (angenommen) {
+			setText('');
+			schliessen?.();
 		}
 	};
 	return (
-		<form className="mt-2 flex items-center gap-2 border-t border-rand pt-2" onSubmit={abschicken}>
-			<input
+		<form className="mt-2 flex items-end gap-2 border-t border-rand pt-2" onSubmit={(e) => void abschicken(e)}>
+			<textarea
+				ref={feld}
 				autoFocus
-				aria-label="Was soll Claude am Entwurf ändern?"
-				placeholder="Was soll Claude am Entwurf ändern?"
-				className="h-8 min-w-0 flex-1 rounded-md border border-rand-feld bg-flaeche px-2 [@media(any-pointer:coarse)]:h-11"
+				rows={1}
+				aria-label={frage}
+				placeholder={frage}
+				className="min-w-0 flex-1 resize-none rounded-md border border-rand-feld bg-flaeche px-2 py-1.5"
 				maxLength={FELD_ZEICHEN}
 				value={text}
+				data-entwurf-feld
 				onChange={(e) => setText(e.target.value)}
 				onKeyDown={(e) => {
-					if (e.key === 'Escape') {
+					if (e.key === 'Escape' && schliessen) {
 						e.preventDefault();
+						e.stopPropagation();
 						schliessen();
+					}
+					if (e.key === 'Enter' && !e.shiftKey && !e.nativeEvent.isComposing) {
+						void abschicken(e);
 					}
 				}}
 			/>
-			<Knopf type="submit" disabled={!text.trim()}>
+			<Knopf type="submit" disabled={!text.trim() || belegt}>
 				Senden
 			</Knopf>
-			<Knopf art="leise" onClick={schliessen}>
-				Abbrechen
-			</Knopf>
-		</form>
-	);
-};
-
-const PlanFeld = ({ schliessen, sende }: { sende: (text: string) => Promise<void>; schliessen: () => void }) => {
-	const [text, setText] = useState('');
-	const abschicken = (e: FormEvent) => {
-		e.preventDefault();
-		if (text.trim()) {
-			void sende(text.trim());
-			schliessen();
-		}
-	};
-	return (
-		<form className="mt-3 flex flex-col gap-2" onSubmit={abschicken}>
-			<textarea
-				autoFocus
-				aria-label="Was soll am Plan anders sein?"
-				placeholder="Was soll am Plan anders sein? Zum Beispiel: mehr Sachaufgaben, Aufgabe 3 weglassen, nur 15 Minuten."
-				className="min-h-20 rounded-md border border-rand-feld bg-flaeche px-2 py-1.5"
-				maxLength={FELD_ZEICHEN}
-				value={text}
-				onChange={(e) => setText(e.target.value)}
-				onKeyDown={(e) => {
-					if (e.key === 'Escape') {
-						e.preventDefault();
-						schliessen();
-					}
-					if (e.key === 'Enter' && (e.metaKey || e.ctrlKey)) {
-						abschicken(e);
-					}
-				}}
-			/>
-			<div className="flex gap-2">
-				<Knopf type="submit" disabled={!text.trim()}>
-					Plan ändern
-				</Knopf>
+			{schliessen && (
 				<Knopf art="leise" onClick={schliessen}>
 					Abbrechen
 				</Knopf>
-			</div>
+			)}
 		</form>
 	);
 };
@@ -384,6 +407,8 @@ export const Entwurfsleiste = ({ entwurf }: { entwurf: Entwurf }) => {
 	const { phase } = entwurf;
 	const [annahmenOffen, setAnnahmenOffen] = useState(false);
 	const [feldOffen, setFeldOffen] = useState(false);
+	// Der Text bleibt nach Esc stehen, bis er gesendet oder der Entwurf entschieden ist (190-27).
+	const [nachbessern, setNachbessern] = useState('');
 	const [fehlerZu, setFehlerZu] = useState<string | null>(null);
 	const vorschlag = phase?.art === 'vorschlag' ? phase.vorschlag : null;
 	const offen = Boolean(vorschlag && !vorschlag.konflikt);
@@ -475,7 +500,15 @@ export const Entwurfsleiste = ({ entwurf }: { entwurf: Entwurf }) => {
 					</Knopf>
 				</p>
 			)}
-			{feldOffen && <NachbessernFeld sende={entwurf.nachbessern} schliessen={schliesseFeld} />}
+			{feldOffen && (
+				<NachbessernFeld
+					text={nachbessern}
+					setText={setNachbessern}
+					frage="Was soll Claude am Entwurf ändern?"
+					sende={entwurf.nachbessern}
+					schliessen={schliesseFeld}
+				/>
+			)}
 		</div>
 	);
 };
@@ -483,7 +516,7 @@ export const Entwurfsleiste = ({ entwurf }: { entwurf: Entwurf }) => {
 /** Warum Bausteine und Inspektor gerade nichts ändern. */
 export const SperrHinweis = ({ grund, sichtbar }: { grund: string | null; sichtbar: boolean }) =>
 	grund && sichtbar ? (
-		<p className="m-3 text-sm text-leise" data-sperre-grund>
+		<p className="m-3 text-xs text-leise" data-sperre-grund>
 			{grund}
 		</p>
 	) : null;

@@ -52,6 +52,8 @@ export interface KiZustand {
 	verfuegbar: boolean;
 	limit: KiLimit | null;
 	warnAb: number;
+	/** Auslastung des 5-Stunden-Fensters, ab der der Assistent vor einer Einheit warnt (190-12). */
+	einheitWarnAb: number;
 	aktionen: KiAktion[];
 }
 
@@ -77,7 +79,7 @@ export interface VorschlagAmBlatt extends Vorschlag {
 	referenz?: string;
 }
 
-const LEER: KiZustand = { verfuegbar: false, limit: null, warnAb: 1, aktionen: [] };
+const LEER: KiZustand = { verfuegbar: false, limit: null, warnAb: 1, einheitWarnAb: 1, aktionen: [] };
 
 /** Ohne angemeldetes `claude` bleibt `verfuegbar` falsch, und nichts davon erscheint im Editor. */
 export const useKiZustand = () => {
@@ -170,6 +172,8 @@ interface Wunsch {
 	zitat?: string;
 	/** Was am Aufgabenplan anders sein soll (`…/ki/plan/aendern`). */
 	wunsch?: string;
+	/** Antwort auf eine Rückfrage (`…/ki/entwurf/antworten`). */
+	antwort?: string;
 }
 
 /** Passt zum `ID_MUSTER` des Servers. `randomUUID` gibt es nur auf sicheren Seiten. */
@@ -275,22 +279,33 @@ export const useKiAuftrag = (
 		[gehoertHierher, ladeVorschlag, nachLauf],
 	);
 
+	/** `ersetzen`: Der Server weiß es besser als der Stand hier, z. B. nach „Abbrechen“ im Bau (190-33). */
+	const ladeStand = useCallback(
+		(ersetzen: boolean) => {
+			if (!basis) {
+				return;
+			}
+			lade<{ auftraege: KiAuftrag[]; entwurf?: KiAuftrag | null }>(`${basis}/ki`).then(
+				({ auftraege, entwurf: amBlatt }) => {
+					const zuletzt = entwurf ? (amBlatt ?? null) : (auftraege.find((a) => !a.neuesBlatt) ?? null);
+					setAuftrag((alt) => (ersetzen ? zuletzt : (alt ?? zuletzt)));
+					if (zuletzt) {
+						void pruefe(zuletzt.id);
+					}
+				},
+				() => undefined,
+			);
+		},
+		[basis, entwurf, pruefe],
+	);
+
 	useEffect(() => {
 		if (!basis) {
 			return;
 		}
 		void ladeVorschlag().catch(() => undefined);
-		lade<{ auftraege: KiAuftrag[]; entwurf?: KiAuftrag | null }>(`${basis}/ki`).then(
-			({ auftraege, entwurf: amBlatt }) => {
-				const zuletzt = entwurf ? (amBlatt ?? null) : (auftraege.find((a) => !a.neuesBlatt) ?? null);
-				setAuftrag((alt) => alt ?? zuletzt);
-				if (zuletzt) {
-					void pruefe(zuletzt.id);
-				}
-			},
-			() => undefined,
-		);
-	}, [basis, entwurf, ladeVorschlag, pruefe]);
+		ladeStand(false);
+	}, [basis, ladeVorschlag, ladeStand]);
 
 	// Aus dem Assistenten: Der Auftrag kann schon zu Ende sein, bevor der Editor offen ist.
 	useEffect(() => {
@@ -313,21 +328,24 @@ export const useKiAuftrag = (
 		}
 	});
 
+	/** `true`, wenn der Server den Auftrag angenommen hat. */
 	const beginne = async (adresse: string, wunsch: Wunsch) => {
 		setFehler(null);
 		try {
 			const { auftrag: neu } = await sende<{ auftrag: KiAuftrag }>(adresse, wunsch);
 			setAuftrag(neu);
 			await pruefe(neu.id);
+			return true;
 		} catch (grund) {
 			setFehler(meldung(grund));
 			if (grund instanceof ApiFehler && grund.status === 429) {
 				setAbgelehnt((n) => n + 1);
 			}
 			nachLauf();
+			return false;
 		}
 	};
-	const starte = (wunsch: Wunsch) => (basis ? beginne(`${basis}/ki`, wunsch) : Promise.resolve());
+	const starte = (wunsch: Wunsch) => (basis ? beginne(`${basis}/ki`, wunsch) : Promise.resolve(false));
 
 	const handle = async (arbeit: () => Promise<unknown>) => {
 		setFehler(null);
@@ -346,12 +364,18 @@ export const useKiAuftrag = (
 		abgelehnt,
 		starte,
 		/** Derselbe erste Auftrag fürs neue Blatt noch einmal; der Server kennt ihn (133). */
-		nochmal: () => (basis ? beginne(`${basis}/ki/nochmal`, {}) : Promise.resolve()),
-		planFreigeben: () => (basis ? beginne(`${basis}/ki/plan/freigeben`, {}) : Promise.resolve()),
-		planAendern: (wunsch: string) => (basis ? beginne(`${basis}/ki/plan/aendern`, { wunsch }) : Promise.resolve()),
+		nochmal: () => (basis ? beginne(`${basis}/ki/nochmal`, {}) : Promise.resolve(false)),
+		planFreigeben: () => (basis ? beginne(`${basis}/ki/plan/freigeben`, {}) : Promise.resolve(false)),
+		planAendern: (wunsch: string) =>
+			basis ? beginne(`${basis}/ki/plan/aendern`, { wunsch }) : Promise.resolve(false),
+		/** Antwort auf Claudes Rückfrage am neuen Blatt (190-08). */
+		antworten: (antwort: string) =>
+			basis ? beginne(`${basis}/ki/entwurf/antworten`, { antwort }) : Promise.resolve(false),
 		/** Die Meldung zum neuen Blatt ist gelesen: Nach dem Neuladen steht sie nicht wieder da. */
 		vergiss: () => (basis ? sende(`${basis}/ki/entwurf/vergessen`).then(() => undefined) : Promise.resolve()),
 		laeuft: auftrag?.status === 'laeuft' || auftrag?.status === 'wartet',
+		/** Den Stand neu vom Server holen, auch gegen den hier gehaltenen. */
+		ladeStand: () => ladeStand(true),
 		setFehler,
 		abbrechen: () => (auftrag ? handle(() => sende(`/api/ki/${auftrag.id}/abbrechen`)) : Promise.resolve()),
 		annehmen: () => handle(() => sende(`${basis}/vorschlag/annehmen`)),

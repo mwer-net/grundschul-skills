@@ -12,6 +12,7 @@ import {
 	AUFTRAG_ZEICHEN,
 	auftragAus,
 	dokumentDir,
+	FREITEXT,
 	KI_AKTIONEN,
 	leereAntworten,
 	listeVersionen,
@@ -642,14 +643,16 @@ describe('Aufträge an Claude', () => {
 		]) {
 			assert.equal((await neu({ antworten: falsch })).status, 400, JSON.stringify(falsch));
 		}
-		assert.equal((await neu({ antworten, auftragText: 'x'.repeat(AUFTRAG_ZEICHEN + 1) })).status, 400);
-
+		// „Als Text bearbeiten“ gibt es nicht mehr (190-37): Ein mitgeschickter Text ändert den Auftrag nicht.
 		const eigen = await durch({ antworten, auftragText: 'Ein Igel-Blatt mit EIGENEM Text.' });
-		assert.match(eigen, /Ein Igel-Blatt mit EIGENEM Text\./);
-		assert.doesNotMatch(eigen, /Thema: „Igel im Herbst“/);
+		assert.doesNotMatch(eigen, /EIGENEM/);
+		assert.match(eigen, /Thema: „Igel im Herbst“/);
 		await verwerfen();
 		// Der längste Auftrag passt samt Vorlage unter die Grenze des Servers.
-		await durch({ antworten, auftragText: 'x'.repeat(AUFTRAG_ZEICHEN) });
+		const felder = ['thema', 'ziel', 'funktionText', 'umfangText', 'sonst'] as const;
+		const lang = Object.fromEntries(felder.map((f) => [f, 'x'.repeat(FREITEXT[f].zeichen)]));
+		assert.ok(auftragAus({ ...leereAntworten({ fach: 'deutsch', klasse: 1 }), ...lang }).length <= AUFTRAG_ZEICHEN);
+		await durch({ antworten: { ...antworten, ...lang } });
 		await verwerfen();
 
 		try {

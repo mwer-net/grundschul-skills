@@ -1,6 +1,10 @@
 import { useEffect, useRef, useState } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 
+import { lade, meldung, sende } from '../api';
+import { useHinweis } from '../bausteine/hinweis';
+import { ortDesDokuments } from '../ordner/kontext';
+import type { AblageStand, Aktion } from '../ordner/typen';
 import { entwurfPhase, quelleDes, sperrGrund, sperrtBlatt } from './entwurf';
 import { neueGespraechId, useGespraecheEnden, useKiAuftrag } from './ki';
 
@@ -41,16 +45,25 @@ export const useEntwurf = ({
 	const [startFehler, setStartFehler] = useState(ankunft.kiFehler ?? null);
 	const [zu, setZu] = useState<string | null>(null);
 	const [verworfen, setVerworfen] = useState(false);
-	const { auftrag, setFehler, vergiss } = ki;
+	const { auftrag, ladeStand, setFehler, vergiss } = ki;
 	const phase = entwurfPhase({ ...ki, startFehler, zu, verworfen });
+	const zeige = useHinweis();
 
-	// Ein Abbruch ist gesehen, sobald er hier steht: Nach dem Neuladen muss er nicht wieder kommen.
-	const abgebrochen = auftrag?.status === 'abgebrochen' ? auftrag.id : null;
+	// Ein Abbruch ist gesehen, sobald er hier steht: Nach dem Neuladen muss er nicht wieder kommen. Im Bau bleibt der
+	// Plan: Der Server zeigt wieder ihn (190-33).
+	const abgebrochen = auftrag?.status === 'abgebrochen' ? auftrag : null;
+	const abgebrochenId = abgebrochen?.id ?? null;
+	const imBau = abgebrochen?.phase === 'bauen';
 	useEffect(() => {
-		if (abgebrochen) {
+		if (!abgebrochenId) {
+			return;
+		}
+		if (imBau) {
+			ladeStand();
+		} else {
 			void vergiss().catch(() => undefined);
 		}
-	}, [abgebrochen, vergiss]);
+	}, [abgebrochenId, imBau, ladeStand, vergiss]);
 
 	const schliesse = () => {
 		setStartFehler(null);
@@ -58,6 +71,39 @@ export const useEntwurf = ({
 		setZu(auftrag?.id ?? null);
 		setVerworfen(false);
 		void vergiss().catch(() => undefined);
+	};
+
+	/**
+	 * Wer den Plan verwirft oder vor dem ersten Bau abbricht, wollte das Blatt so nicht: Das unberührte leere Blatt geht
+	 * in den Papierkorb, die Seite in den Ordner, die Meldung trägt „Rückgängig“ (190-41).
+	 */
+	const wegwerfen = async () => {
+		try {
+			const stand = await lade<AblageStand>('/api/ordner');
+			const name = stand.dokumente.find((d) => d.mappe === mappe && d.id === dok)?.meta.titel ?? 'Das Blatt';
+			const { umkehr } = await sende<{ umkehr: Aktion[] }>('/api/ordner/aktion', {
+				art: 'papierkorb',
+				knoten: [{ mappe, dok }],
+			});
+			void vergiss().catch(() => undefined);
+			void navigate(ortDesDokuments(stand, mappe, dok)?.adresse ?? '/');
+			const zurueck = async () => {
+				try {
+					for (const aktion of umkehr) {
+						await sende('/api/ordner/aktion', aktion);
+					}
+					zeige({ text: 'Rückgängig gemacht.' });
+				} catch (grund) {
+					zeige({ text: `Das lässt sich nicht mehr zurücknehmen: ${meldung(grund)}`, art: 'fehler' });
+				}
+			};
+			zeige({
+				text: `„${name}“ in den Papierkorb gelegt.`,
+				aktion: { titel: 'Rückgängig', ausfuehren: () => void zurueck() },
+			});
+		} catch (grund) {
+			zeige({ text: meldung(grund), art: 'fehler' });
+		}
 	};
 
 	return {
@@ -68,23 +114,31 @@ export const useEntwurf = ({
 		grund: sperrGrund(phase),
 		/** Was das Blatt zeigt: den offenen Entwurf, sonst `quelle`. */
 		zeigt: (quelle: string | null) => quelleDes(phase) ?? quelle,
-		abbrechen: () => void ki.abbrechen(),
+		/** Vor dem ersten Bau geht das leere Blatt mit (190-41); im Bau bleibt der Plan (190-33). */
+		abbrechen: async () => {
+			const vorDemBau = auftrag?.phase !== 'bauen' && !(phase?.art === 'laeuft' && phase.nachbessern);
+			await ki.abbrechen();
+			if (vorDemBau) {
+				await wegwerfen();
+			}
+		},
 		nochmal: () => {
 			setStartFehler(null);
 			setZu(null);
-			void ki.nochmal();
+			return ki.nochmal();
 		},
-		planFreigeben: () => void ki.planFreigeben(),
+		planFreigeben: () => ki.planFreigeben(),
 		planAendern: (text: string) => ki.planAendern(text),
+		planVerwerfen: wegwerfen,
+		/** Antwort auf Claudes Rückfrage (190-08). */
+		antworten: (text: string) => ki.antworten(text),
 		uebernehmen: () => void annimm(ki.annehmen),
 		verwerfen: async () => {
 			await ki.verwerfen();
 			setVerworfen(true);
 		},
 		nachbessern: (text: string) =>
-			ki
-				.starte({ auftrag: text, aufVorschlag: true, gespraechId: (gespraech.current ??= neueGespraechId()) })
-				.then(() => undefined),
+			ki.starte({ auftrag: text, aufVorschlag: true, gespraechId: (gespraech.current ??= neueGespraechId()) }),
 		schliesse,
 	};
 };

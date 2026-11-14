@@ -1001,6 +1001,10 @@ export const erstelleKi = ({ ansicht, ereignisse, konfig, pruefer }: Abhaengigke
 	const entwurfWuensche = new Map<string, KiWunsch>();
 	/** Der zuletzt gezeigte Aufgabenplan je Dokument: Die Freigabe baut genau ihn. */
 	const entwurfPlaene = new Map<string, string>();
+	/** Der Auftrag, der den Plan zeigte: Nach „Abbrechen“ im Bau steht er wieder da (190-33). */
+	const entwurfPlanAuftraege = new Map<string, string>();
+	/** Freigabe oder Änderung des Plans, solange der Auftrag dafür noch nicht steht: kein zweiter Lauf (190-32). */
+	const planBelegt = new Set<string>();
 	const vorlage = async (name: string) =>
 		(await readFile(path.join(WURZEL, 'schoolbox', 'vorlagen', 'ki', `${name}.md`), 'utf8')).trim();
 	const dokSchluessel = (mappe: string, dok: string) => `${mappe}/${dok}`;
@@ -1573,6 +1577,7 @@ export const erstelleKi = ({ ansicht, ereignisse, konfig, pruefer }: Abhaengigke
 				if (w.phase === 'plan') {
 					a.plan = true;
 					entwurfPlaene.set(dokSchluessel(w.mappe, w.dok), erst.antwort);
+					entwurfPlanAuftraege.set(dokSchluessel(w.mappe, w.dok), a.id);
 				}
 				return;
 			}
@@ -1751,6 +1756,26 @@ export const erstelleKi = ({ ansicht, ereignisse, konfig, pruefer }: Abhaengigke
 		return auftrag;
 	};
 
+	/** Läuft oder wartet für dieses Blatt schon ein Auftrag am neuen Blatt? */
+	const entwurfOffen = (schluessel: string) => {
+		const a = auftraege.get(entwurfAuftraege.get(schluessel) ?? '');
+		return a?.status === 'laeuft' || a?.status === 'wartet';
+	};
+
+	/** Der Plan geht nur einmal los: Die Sperre steht vor dem ersten `await` (190-32). */
+	const mitPlan = async (mappe: string, dok: string, tue: () => Promise<KiAuftrag>) => {
+		const schluessel = dokSchluessel(mappe, dok);
+		if (planBelegt.has(schluessel) || entwurfOffen(schluessel)) {
+			throw new HttpFehler(409, 'Claude arbeitet schon an diesem Blatt.');
+		}
+		planBelegt.add(schluessel);
+		try {
+			return await tue();
+		} finally {
+			planBelegt.delete(schluessel);
+		}
+	};
+
 	const planStand = (mappe: string, dok: string) => {
 		const erster = entwurfWuensche.get(dokSchluessel(mappe, dok));
 		const plan = entwurfPlaene.get(dokSchluessel(mappe, dok));
@@ -1789,9 +1814,17 @@ export const erstelleKi = ({ ansicht, ereignisse, konfig, pruefer }: Abhaengigke
 		starte,
 		entwurf: (mappe: string, dok: string) =>
 			auftraege.get(entwurfAuftraege.get(dokSchluessel(mappe, dok)) ?? '') ?? null,
-		/** Laufende Entwürfe neuer Blätter, für die Kacheln der Ablage (133). */
-		entwuerfe: () =>
-			[...auftraege.values()].filter((a) => a.neuesBlatt && (a.status === 'laeuft' || a.status === 'wartet')),
+		/** Laufende Entwürfe neuer Blätter und wartende Aufgabenpläne, für Kacheln und Zeilen der Ablage (133, 190-34). */
+		entwuerfe: () => {
+			const offen = [...auftraege.values()].filter(
+				(a) => a.neuesBlatt && (a.status === 'laeuft' || a.status === 'wartet'),
+			);
+			const plaene = [...entwurfAuftraege.entries()]
+				.filter(([schluessel]) => entwurfPlaene.has(schluessel))
+				.map(([, id]) => auftraege.get(id))
+				.filter((a): a is KiAuftrag => a?.status === 'fertig' && a.plan === true);
+			return [...offen, ...plaene];
+		},
 		/** „Nochmal“ nach einem Fehler: derselbe erste Auftrag noch einmal, auch wenn die Seite ihn nicht mehr kennt. */
 		nochmal: (mappe: string, dok: string) => {
 			const wunsch = entwurfWuensche.get(dokSchluessel(mappe, dok));
@@ -1801,37 +1834,65 @@ export const erstelleKi = ({ ansicht, ereignisse, konfig, pruefer }: Abhaengigke
 			return starte(wunsch);
 		},
 		/** Der Aufgabenplan ist freigegeben: Claude baut das Blatt danach (Schritt zwei wie in der Claude-App). */
-		planFreigeben: async (mappe: string, dok: string) => {
-			const { erster, plan } = planStand(mappe, dok);
-			return starte({
-				...erster,
-				phase: 'bauen',
-				auftrag: await vorlage('neu-bauen'),
-				anhang: `${erster.eingabe ?? ''}\n\nFreigegebener Aufgabenplan:\n${plan}`,
-			});
-		},
+		planFreigeben: (mappe: string, dok: string) =>
+			mitPlan(mappe, dok, async () => {
+				const { erster, plan } = planStand(mappe, dok);
+				return starte({
+					...erster,
+					phase: 'bauen',
+					auftrag: await vorlage('neu-bauen'),
+					anhang: `${erster.eingabe ?? ''}\n\nFreigegebener Aufgabenplan:\n${plan}`,
+				});
+			}),
+		/** Claude hat im Bau zurückgefragt (190-08): Die Antwort geht ins selbe Gespräch, gebaut wird weiter. */
+		entwurfAntworten: (mappe: string, dok: string, antwort: string) =>
+			mitPlan(mappe, dok, async () => {
+				const schluessel = dokSchluessel(mappe, dok);
+				const erster = entwurfWuensche.get(schluessel);
+				if (!erster) {
+					throw new HttpFehler(404, 'Den Auftrag gibt es nicht mehr. Vielleicht wurde der Server neu gestartet.');
+				}
+				if (!antwort.trim() || antwort.length > KI_GRENZEN.auftragZeichen) {
+					throw new HttpFehler(400, 'Schreib kurz deine Antwort für Claude.');
+				}
+				const plan = entwurfPlaene.get(schluessel);
+				return starte({
+					...erster,
+					phase: 'bauen',
+					auftrag: `${await vorlage('neu-bauen')}\n\nAntwort der Lehrkraft auf deine Rückfrage: „${antwort.trim()}“`,
+					anhang: `${erster.eingabe ?? ''}${plan ? `\n\nFreigegebener Aufgabenplan:\n${plan}` : ''}`,
+				});
+			}),
 		/** Die Lehrkraft will den Plan anders: Claude zeigt ihn neu, gebaut wird noch nichts. */
-		planAendern: async (mappe: string, dok: string, wunsch: string) => {
-			const { erster, plan } = planStand(mappe, dok);
-			if (!wunsch.trim() || wunsch.length > KI_GRENZEN.auftragZeichen) {
-				throw new HttpFehler(400, 'Schreib kurz, was am Plan anders sein soll.');
-			}
-			return starte({
-				...erster,
-				phase: 'plan',
-				auftrag: `${await vorlage('neu-plan-aendern')}\n\nÄnderungswunsch der Lehrkraft: „${wunsch.trim()}“`,
-				anhang: `${erster.eingabe ?? ''}\n\nBisheriger Aufgabenplan:\n${plan}`,
-			});
-		},
+		planAendern: (mappe: string, dok: string, wunsch: string) =>
+			mitPlan(mappe, dok, async () => {
+				const { erster, plan } = planStand(mappe, dok);
+				if (!wunsch.trim() || wunsch.length > KI_GRENZEN.auftragZeichen) {
+					throw new HttpFehler(400, 'Schreib kurz, was am Plan anders sein soll.');
+				}
+				return starte({
+					...erster,
+					phase: 'plan',
+					auftrag: `${await vorlage('neu-plan-aendern')}\n\nÄnderungswunsch der Lehrkraft: „${wunsch.trim()}“`,
+					anhang: `${erster.eingabe ?? ''}\n\nBisheriger Aufgabenplan:\n${plan}`,
+				});
+			}),
 		/** Entwurf angenommen, verworfen oder die Meldung geschlossen: Der Editor zeigt danach nichts mehr dazu. */
 		vergiss: (mappe: string, dok: string) => {
 			entwurfAuftraege.delete(dokSchluessel(mappe, dok));
 			entwurfPlaene.delete(dokSchluessel(mappe, dok));
+			entwurfPlanAuftraege.delete(dokSchluessel(mappe, dok));
 		},
 		abbrechen: (id: string) => {
 			const a = auftraege.get(id);
 			if (!a) {
 				return false;
+			}
+			// Abbrechen im Bau: Der freigegebene Plan bleibt und steht wieder zur Freigabe (190-33).
+			const schluessel = dokSchluessel(a.mappe, a.dok);
+			const planAuftrag = entwurfPlanAuftraege.get(schluessel);
+			if (a.phase === 'bauen' && planAuftrag && entwurfPlaene.has(schluessel)) {
+				entwurfAuftraege.set(schluessel, planAuftrag);
 			}
 			const stelle = warteschlange.findIndex((w) => w.auftrag.id === id);
 			if (stelle >= 0) {
