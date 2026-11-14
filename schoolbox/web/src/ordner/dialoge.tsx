@@ -1,10 +1,12 @@
-import { useEffect, useState } from 'react';
+import type { KeyboardEvent as ReactKeyboardEvent } from 'react';
+import { useEffect, useRef, useState } from 'react';
 
 import { Dialog } from '../bausteine/Dialog';
 import { Knopf } from '../bausteine/Knopf';
 import { Symbol } from '../bausteine/Symbol';
 import { Tastenliste } from '../bausteine/Tastenliste';
 import { hatOffeneEntwuerfe } from '../entwuerfe/offen';
+import { EntwurfMinis } from '../entwuerfe/Teile';
 import { ART_NAME, datum, FACH_NAME, FORMAT_NAME, klasseName } from '../lib/text';
 import { vorschauAdresse } from '../lib/zugang';
 import { Baum } from './Baum';
@@ -17,7 +19,7 @@ import type { AblageOrdner, Objekt } from './typen';
 
 /** Der Weg ohne Ziehen: Ziel im Baum wählen, auf Wunsch dort einen neuen Ordner anlegen. */
 export const BewegenDialog = ({ objekte, schliessen }: { objekte: Objekt[]; schliessen: () => void }) => {
-	const { setBenennen, stand, tu } = useAblage();
+	const { benennen, setBenennen, stand, tu } = useAblage();
 	const [ziel, setZiel] = useState<string | null | undefined>(undefined);
 	const [offen, setOffen] = useState<ReadonlySet<string>>(new Set());
 	if (!stand) {
@@ -44,17 +46,31 @@ export const BewegenDialog = ({ objekte, schliessen }: { objekte: Objekt[]; schl
 			setBenennen({ schluessel: id, neu: true, wo: 'dialog' });
 		}
 	};
-	const bewege = async () => {
-		if (ziel === undefined || gesperrt(ziel)) {
+	const bewege = async (wohin: string | null | undefined = ziel) => {
+		if (wohin === undefined || gesperrt(wohin)) {
 			return;
 		}
 		schliessen();
 		await tu(
-			{ art: 'bewegen', knoten: objekte.map((o) => o.knoten), ziel },
-			{ text: (a) => bewegtText(stand, objekte, ziel, a) },
+			{ art: 'bewegen', knoten: objekte.map((o) => o.knoten), ziel: wohin },
+			{ text: (a) => bewegtText(stand, objekte, wohin, a) },
 		);
 	};
 	const [erstes] = objekte;
+	/** ⏎ bewegt, wo immer der Fokus im Baum steht; ein offenes Namensfeld behält ⏎ für sich (188-09). */
+	const taste = (e: ReactKeyboardEvent<HTMLDivElement>) => {
+		if (e.key !== 'Enter' || e.metaKey || e.ctrlKey || e.altKey || benennen?.wo === 'dialog') {
+			return;
+		}
+		const zeile = (e.target as HTMLElement).closest<HTMLElement>('[data-baum-ordner]');
+		const roh = zeile?.dataset.baumOrdner;
+		const id = roh === undefined ? ziel : roh === 'wurzel' ? null : roh;
+		if (id !== undefined && !gesperrt(id)) {
+			e.preventDefault();
+			setZiel(id);
+			void bewege(id);
+		}
+	};
 	return (
 		<Dialog
 			titel={`${objekte.length === 1 && erstes ? `„${erstes.name}“` : `${objekte.length} Objekte`} bewegen nach …`}
@@ -78,7 +94,12 @@ export const BewegenDialog = ({ objekte, schliessen }: { objekte: Objekt[]; schl
 				</>
 			}
 		>
-			<div className="max-h-[50dvh] overflow-y-auto rounded-lg border border-rand p-1" data-bewegen-baum>
+			{/* Feste Höhe: Aufklappen ändert Größe und Lage des Dialogs nicht (188-25). */}
+		<div
+			className="h-[min(22rem,50dvh)] overflow-y-auto rounded-lg border border-rand p-1"
+			data-bewegen-baum
+			onKeyDown={taste}
+		>
 				<Baum
 					stand={stand}
 					aktuell={ziel}
@@ -88,6 +109,7 @@ export const BewegenDialog = ({ objekte, schliessen }: { objekte: Objekt[]; schl
 					gesperrt={gesperrt}
 					wurzelGesperrt={gesperrt(null)}
 					benennWo="dialog"
+					waehleBeiFokus
 				/>
 			</div>
 		</Dialog>
@@ -157,11 +179,14 @@ export const UebersichtDialog = ({
 	oeffne,
 	schliessen,
 	start,
+	zeige,
 }: {
 	objekte: Objekt[];
 	start: string | null;
 	schliessen: () => void;
 	oeffne: (o: Objekt) => void;
+	/** Jeder Schritt nimmt die Auswahl mit (188-10). */
+	zeige: (o: Objekt) => void;
 }) => {
 	const [stelle, setStelle] = useState(() =>
 		Math.max(
@@ -170,6 +195,13 @@ export const UebersichtDialog = ({
 		),
 	);
 	const objekt = objekte[stelle];
+	const zeigeRef = useRef(zeige);
+	zeigeRef.current = zeige;
+	useEffect(() => {
+		if (objekt) {
+			zeigeRef.current(objekt);
+		}
+	}, [objekt]);
 	useEffect(() => {
 		const taste = (e: KeyboardEvent) => {
 			if (e.key === 'ArrowLeft') {
@@ -187,8 +219,9 @@ export const UebersichtDialog = ({
 	if (!objekt) {
 		return null;
 	}
+	const entwuerfe = !objekt.istOrdner && hatOffeneEntwuerfe(objekt.dok.meta) ? objekt.dok : null;
 	const bild =
-		!objekt.istOrdner && objekt.dok.vorschau && !hatOffeneEntwuerfe(objekt.dok.meta)
+		!objekt.istOrdner && objekt.dok.vorschau && !entwuerfe
 			? vorschauAdresse({ mappe: objekt.dok.mappe, token: null }, objekt.dok.id, objekt.dok.vorschau)
 			: null;
 	return (
@@ -227,9 +260,12 @@ export const UebersichtDialog = ({
 				className="flex h-[65dvh] items-center justify-center rounded-lg bg-leinwand p-3"
 				data-uebersicht={objekt.schluessel}
 			>
-				{bild ? (
+				{/* Offene Entwürfe: dieselben Minis wie an der Kachel, nur groß (188-22). */}
+				{entwuerfe && <EntwurfMinis zugang={{ mappe: entwuerfe.mappe, token: null }} dokument={entwuerfe} />}
+				{!entwuerfe && bild && (
 					<img src={bild} alt="" className="h-full max-w-full bg-white object-contain shadow-2" />
-				) : (
+				)}
+				{!entwuerfe && !bild && (
 					<Symbol name={objekt.istOrdner ? 'ordner' : 'blatt'} className="size-24 text-brand-200" />
 				)}
 			</div>
