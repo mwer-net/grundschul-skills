@@ -26,6 +26,11 @@ interface Loesung {
 	name: string;
 	/** Stehen beide Attribute in der Quelle, zeichnet `abbildungen.js` dieses (sonst das sichtbare). */
 	vorrang?: boolean;
+	/**
+	 * 197-10: Mehrere Felder teilen ein Lösungs-Attribut mit Zahlen nach Leerzeichen („1 2 3 4“); dieses Feld ist die
+	 * Stelle `teil`. Ein Schalter am letzten Feld verschiebt alle zusammen.
+	 */
+	teil?: number;
 }
 
 interface FeldBasis {
@@ -64,6 +69,11 @@ export interface ZahlFeld extends FeldBasis {
 	standardJe?: (w: Werte) => number;
 	schritt?: number;
 	einheit?: string;
+	/**
+	 * 197-12: Ohne Attribut rechnet die Zeichnung selbst. Das Feld bleibt dann leer und zeigt als Platzhalter
+	 * „automatisch (N)“ bzw. „ohne“; leeren stellt das wieder her.
+	 */
+	automatisch?: 'automatisch' | 'ohne';
 }
 
 export interface UhrzeitFeld extends FeldBasis {
@@ -84,6 +94,8 @@ export interface AuswahlFeld extends FeldBasis {
 	optionenJe?: { feld: string; werte: Record<string, { wert: string | null; name: string }[]> };
 	/** Im Panel stehen nur Optionen, für die das gilt, z. B. nur Satzglieder, die es im Satz gibt. `optionen` bleibt die Liste aller gültigen Werte. */
 	angeboten?: (wert: string | null, w: Werte) => boolean;
+	/** 197-16: Ab welcher Klasse eine Option passt; darunter trägt sie im Panel „(über Klasse N)“, bleibt aber wählbar. */
+	abKlasse?: Record<string, number>;
 	/** Pfad eines kleinen Bilds zur gewählten Option; `{wert}` steht für den Wert. */
 	vorschau?: string;
 }
@@ -99,6 +111,8 @@ export interface SchalterFeld extends FeldBasis {
 export interface ZahlenFeld extends FeldBasis {
 	art: 'zahlen';
 	beispiel: string;
+	/** 197-04: Kommazahlen erlaubt (3,5); gespeichert mit Punkt, gezeigt mit Komma. Sonst nur ganze Zahlen. */
+	komma?: boolean;
 }
 
 /** Eine Zahl je Stelle einer Stellentafel; die Stellen stehen im Feld `stellen`. */
@@ -118,7 +132,23 @@ export interface TextFeld extends FeldBasis {
 	beispiel?: string;
 	/** Knopf, der das Zeichen an der Cursor-Stelle einfügt, z. B. den Silbenstrich; mit `bis` umschließt er die Markierung. */
 	einfuegen?: { zeichen: string; name: string; bis?: string };
+	/** 197-17: Eine Liste kurzer Texte, im Blatt mit `;` getrennt; im Panel ein Eintrag je Zeile. */
+	jeZeile?: boolean;
 }
+
+/** 197-17: Mit `;` getrennt im Blatt, eine Zeile je Eintrag im Panel. */
+export const zeilenAusListe = (wert: string | null) =>
+	(wert ?? '')
+		.split(';')
+		.map((t) => t.trim())
+		.filter(Boolean)
+		.join('\n');
+export const listeAusZeilen = (text: string) =>
+	text
+		.split('\n')
+		.map((t) => t.trim())
+		.filter(Boolean)
+		.join('; ');
 
 const NUR_BUCHSTABEN = /^[A-Za-zÄÖÜäöüß]+$/;
 
@@ -365,6 +395,8 @@ export interface AbbildungSchema {
 	felder: Feld[];
 	/** Dieses Attribut erzeugt „Neue Zahlen“ aus den übrigen Feldern; ändert sich ein anderes Feld, entsteht es neu (050). */
 	generiert?: string;
+	/** 197-03: Diese Felder ordnen nur an; ändert sich eines, bleibt die erzeugte Liste. */
+	generiertOhne?: string[];
 	/** Regeln über mehrere Felder; laufen nur, wenn jedes Feld für sich gültig ist. */
 	regeln?: (w: Lesen) => Fehler;
 }
@@ -385,6 +417,28 @@ export interface Lesen {
 const STELLEN_STANDARD = 'Z E';
 
 const GROESSE = { attribut: 'groesse', name: 'Größe', einheit: 'px' } as const;
+
+const MONATE = [
+	'Januar',
+	'Februar',
+	'März',
+	'April',
+	'Mai',
+	'Juni',
+	'Juli',
+	'August',
+	'September',
+	'Oktober',
+	'November',
+	'Dezember',
+];
+
+/** 197-09: Sprünge einer Zeitspanne, „bis 9:00“, „+30 min“, „+1 h“, mit Komma getrennt. */
+const SPRUNG = '\\s*(?:bis\\s+\\d{1,2}[:.]\\d{2}|[+]\\s?\\d+\\s?(?:min|h))\\s*';
+const SPRUNG_MUSTER = `${SPRUNG}(?:,${SPRUNG})*`;
+
+/** 197-10: Feld `teil` der Zahlen in `loesung`; der Schalter steht unter dem letzten. */
+const teilDerLoesung = (teil: number): Loesung => ({ attribut: 'loesung', name: 'Nur in der Lösung zeigen', teil });
 
 const ZEHNER_EINER = (zehner: string, einer: string): AbbildungSchema['felder'] => [
 	{ art: 'zahl', attribut: 'z', name: zehner, min: 0, max: 10, standard: 0 },
@@ -1351,6 +1405,16 @@ const zahlenFuerZauberform = (w: Werte): Werte => {
 	};
 };
 
+/** 197-12: Wie weit die Achse ohne „Bis“ reicht: bis zum größten Wert, auf den Skalenschritt aufgerundet. */
+const diagrammBis = (w: Werte) => {
+	const werte = (w.werte ?? '')
+		.split(/[;\n]/)
+		.map((z) => alsZahl(z.split(':').at(-1)?.trim() ?? ''))
+		.filter(Number.isFinite);
+	const schritt = Math.max(1, alsZahl(w.skala ?? '1') || 1);
+	return Math.max(schritt, Math.ceil(Math.max(0, ...werte) / schritt) * schritt);
+};
+
 /** Nutzbare Breite eines Blatts in px; dieselbe Zahl steht in `abbildungen.js`, ein Test hält beide gleich. */
 export const SATZSPIEGEL = 620;
 const PX_JE_CM = 96 / 2.54;
@@ -1596,7 +1660,7 @@ export const ABBILDUNG_SCHEMA = {
 					{ wert: 'nuss', name: 'Nüsse' },
 				],
 			},
-			{ art: 'zahl', attribut: 'reihe', name: 'In einer Reihe', min: 1, max: 10, standard: 10 },
+			{ art: 'zahl', attribut: 'reihe', name: 'Stück je Reihe', min: 1, max: 10, standard: 10 },
 			{
 				art: 'zahl',
 				attribut: 'buendel',
@@ -1634,16 +1698,10 @@ export const ABBILDUNG_SCHEMA = {
 			faecher: ['mathematik'],
 		},
 		felder: [
-			{ art: 'zahl', attribut: 't', name: 'Tausenderwürfel', min: 0, max: 9, standard: 0 },
-			{ art: 'zahl', attribut: 'h', name: 'Hunderterplatten', min: 0, max: 9, standard: 0 },
-			...ZEHNER_EINER('Zehnerstangen', 'Einerwürfel'),
-			{
-				art: 'zahlen',
-				attribut: 'loesung',
-				name: 'Nur in der Lösung zeigen',
-				beispiel: '1 2 3 4',
-				hilfe: 'Vier Zahlen: Tausender, Hunderter, Zehner, Einer.',
-			},
+			{ art: 'zahl', attribut: 't', name: 'Tausenderwürfel', min: 0, max: 9, standard: 0, loesung: teilDerLoesung(0) },
+			{ art: 'zahl', attribut: 'h', name: 'Hunderterplatten', min: 0, max: 9, standard: 0, loesung: teilDerLoesung(1) },
+			{ art: 'zahl', attribut: 'z', name: 'Zehnerstangen', min: 0, max: 10, standard: 0, loesung: teilDerLoesung(2) },
+			{ art: 'zahl', attribut: 'e', name: 'Einerwürfel', min: 0, max: 20, standard: 0, loesung: teilDerLoesung(3) },
 			{ art: 'zahl', ...GROESSE, min: 4, max: 16, standard: 8 },
 		],
 		regeln: (w): Fehler =>
@@ -1707,6 +1765,7 @@ export const ABBILDUNG_SCHEMA = {
 				beispiel: '3 0 12',
 				hilfe: 'Von links nach rechts, bis 15 je Stelle. In der Lösung steht dieselbe Angabe unter „Nur in der Lösung zeigen“.',
 			},
+			{ art: 'zahl', attribut: 'zeilen', name: 'Zeilen', min: 1, max: 6, standard: 1 },
 			{
 				art: 'ziffern',
 				attribut: 'werte',
@@ -1714,7 +1773,6 @@ export const ABBILDUNG_SCHEMA = {
 				stellen: 'stellen',
 				loesung: { attribut: 'loesung', name: 'Nur in der Lösung zeigen' },
 			},
-			{ art: 'zahl', attribut: 'zeilen', name: 'Zeilen', min: 1, max: 6, standard: 1 },
 		],
 	},
 	'x-zwanzigerfeld': {
@@ -1738,15 +1796,9 @@ export const ABBILDUNG_SCHEMA = {
 					{ wert: 'zwanziger', name: 'Zwanzigerfeld' },
 				],
 			},
-			{ art: 'zahl', attribut: 'n', name: 'Plättchen', min: 0, max: 20, standard: 0 },
-			{ art: 'zahl', attribut: 'n2', name: 'Zweite Sorte', min: 0, max: 20, standard: 0 },
-			{
-				art: 'zahlen',
-				attribut: 'loesung',
-				name: 'Nur in der Lösung zeigen',
-				beispiel: '5 2',
-				hilfe: 'Plättchen und zweite Sorte.',
-			},
+			{ art: 'zahl', attribut: 'n', name: 'Plättchen', min: 0, max: 20, standard: 0, loesung: teilDerLoesung(0) },
+			{ art: 'zahl', attribut: 'n2', name: 'Zweite Sorte', min: 0, max: 20, standard: 0, loesung: teilDerLoesung(1) },
+
 			{ art: 'zahl', ...GROESSE, min: 12, max: 40, standard: 22, schritt: 2 },
 		],
 	},
@@ -1765,8 +1817,7 @@ export const ABBILDUNG_SCHEMA = {
 			{
 				art: 'zahl',
 				attribut: 'marken',
-				name: 'Längere alle',
-				hilfe: 'Alle so viele Striche kommt ein längerer.',
+				name: 'Langer Strich alle',
 				min: 1,
 				max: 100,
 				standard: 5,
@@ -1830,12 +1881,22 @@ export const ABBILDUNG_SCHEMA = {
 			html: '<x-timer minuten="10" groesse="280"></x-timer>',
 		},
 		felder: [
-			{ art: 'zahl', attribut: 'minuten', name: 'Minuten', min: 1, max: 120, standard: 10 },
+			{
+				art: 'zahl',
+				attribut: 'minuten',
+				name: 'Minuten',
+				min: 1,
+				max: 120,
+				standard: 10,
+				mitnehmen: (w): Werte => (w.skala && Number(w.minuten ?? 10) > Number(w.skala) ? { skala: null } : {}),
+			},
 			{
 				art: 'auswahl',
 				attribut: 'skala',
 				name: 'Skala',
 				hilfe: 'Für kurze Phasen 5 oder 10 Minuten, sonst ist die Scheibe kaum zu sehen.',
+				// 197-07: nur Skalen, die die Minuten fassen
+				angeboten: (wert, w) => wert === null || Number(wert) >= Number(w.minuten ?? 10),
 				optionen: [
 					{ wert: null, name: 'Passend (60 bzw. 120)' },
 					{ wert: '5', name: '5 Minuten' },
@@ -1948,7 +2009,7 @@ export const ABBILDUNG_SCHEMA = {
 				art: 'schalter',
 				attribut: 'bastel',
 				abschnitt: 'darstellung',
-				name: 'Bastelvorlage (12 cm)',
+				name: 'Zum Ausschneiden (12 cm)',
 				an: 'ja',
 				aus: 'nein',
 				standard: false,
@@ -2130,8 +2191,17 @@ export const ABBILDUNG_SCHEMA = {
 				standard: 0,
 				hilfe: 'Nur beim Liniendiagramm, z. B. −10 für Temperaturen unter null.',
 			},
-			{ art: 'zahl', attribut: 'bis', name: 'Bis', min: 1, max: 100000, standard: 10 },
-			{ art: 'text', attribut: 'einheit', name: 'Achse', max: 20 },
+			{
+				art: 'zahl',
+				attribut: 'bis',
+				name: 'Bis',
+				min: 1,
+				max: 100000,
+				standard: 10,
+				automatisch: 'automatisch',
+				standardJe: diagrammBis,
+			},
+			{ art: 'text', attribut: 'einheit', name: 'Name der Achse', max: 20 },
 			{
 				art: 'auswahl',
 				attribut: 'symbol',
@@ -2275,7 +2345,7 @@ export const ABBILDUNG_SCHEMA = {
 			{
 				art: 'liste',
 				attribut: 'stufen',
-				name: 'Stufen',
+				name: 'Auswahl aus',
 				zeilenTrenner: '/',
 				hilfe: 'Je Stufe die Wörter mit Leerzeichen, z. B. „Waffel Becher“.',
 				unter: [{ name: 'Wörter', art: 'text', standard: 'A B' }],
@@ -2300,7 +2370,7 @@ export const ABBILDUNG_SCHEMA = {
 				aus: 'nein',
 				standard: true,
 			},
-			{ art: 'zahl', attribut: 'vorgegeben', name: 'Schon ausgefüllt', min: 0, max: 24, standard: 1 },
+			{ art: 'zahl', attribut: 'vorgegeben', name: 'Im Blatt steht schon', min: 0, max: 24, standard: 1 },
 		],
 	},
 	'x-gitter': {
@@ -2359,6 +2429,8 @@ export const ABBILDUNG_SCHEMA = {
 				attribut: 'linien',
 				name: 'Aus Linien',
 				gruppe: 'Figur',
+				// Nur Claude füllt es; leer gehört es nicht ins Panel.
+				nurWenn: (w) => Boolean(w.linien?.trim()),
 				muster: '[-0-9.,; ]*',
 				musterHilfe: 'Punkte wie 0,0 3,0 3,2; mehrere Figuren mit ; trennen.',
 				hilfe: 'Diese Figur besteht aus Linien und lässt sich nur über Claude ändern.',
@@ -2366,12 +2438,12 @@ export const ABBILDUNG_SCHEMA = {
 			{
 				art: 'auswahl',
 				attribut: 'aufgabe',
-				name: 'Kinder sollen',
+				name: 'Aufgabe',
 				standard: 'keine',
 				gruppe: 'Aufgabe',
 				mitnehmen: gitterFuerAufgabe,
 				optionen: [
-					{ wert: 'keine', name: 'Keine' },
+					{ wert: 'keine', name: 'Nur zeigen' },
 					{ wert: 'spiegeln', name: 'Spiegeln' },
 					{ wert: 'fortsetzen', name: 'Fortsetzen' },
 					{ wert: 'vergroessern', name: 'Vergrößern' },
@@ -2384,6 +2456,16 @@ export const ABBILDUNG_SCHEMA = {
 				nurWenn: wennNicht('aufgabe', 'keine', 'fortsetzen'),
 				name: 'Achse',
 				gruppe: 'Aufgabe',
+				// 197-07: Spiegeln braucht eine Achse; eine neue Achse steht in der Mitte des Gitters.
+				angeboten: (wert, w) => wert !== null || w.aufgabe !== 'spiegeln',
+				mitnehmen: (w, alt): Werte => {
+					if (!w.achse || w.achse === alt.achse) {
+						return {};
+					}
+					const quer = w.achse === 'waagerecht';
+					const laenge = Number((quer ? w.zeilen : w.spalten) ?? (quer ? 8 : 10));
+					return { 'achse-bei': String(Math.max(1, Math.floor(laenge / 2))) };
+				},
 				optionen: [
 					{ wert: null, name: 'Keine' },
 					{ wert: 'senkrecht', name: 'Senkrecht' },
@@ -2440,7 +2522,7 @@ export const ABBILDUNG_SCHEMA = {
 				art: 'auswahl',
 				attribut: 'faktor',
 				nurWenn: wenn('aufgabe', 'keine', 'vergroessern'),
-				name: 'Größe',
+				name: 'Vergrößern',
 				standard: '2',
 				gruppe: 'Aufgabe',
 				mitnehmen: gitterFuerAufgabe,
@@ -2549,6 +2631,7 @@ export const ABBILDUNG_SCHEMA = {
 				attribut: 'masse',
 				name: 'Maße in cm',
 				beispiel: '4 3',
+				komma: true,
 				hilfe: 'Mit Maßen zeichnet die Figur in echten Zentimetern.',
 			},
 			{ art: 'zahl', attribut: 'drehung', name: 'Drehung in Grad', min: 0, max: 359, standard: 0, schritt: 15 },
@@ -2631,7 +2714,7 @@ export const ABBILDUNG_SCHEMA = {
 				max: 10000,
 				standard: 45,
 			},
-			{ art: 'raster', attribut: 'luecken', name: 'Zahlen antippen', form: true, gruppe: 'Lücken' },
+			{ art: 'raster', attribut: 'luecken', name: 'Leere Felder', form: true, gruppe: 'Lücken' },
 			{
 				art: 'zahl',
 				attribut: 'zufall',
@@ -2641,7 +2724,13 @@ export const ABBILDUNG_SCHEMA = {
 				standard: 0,
 				gruppe: 'Lücken',
 			},
-			{ art: 'mischen', attribut: 'seed', name: 'Anordnung', gruppe: 'Lücken' },
+			{
+				art: 'mischen',
+				attribut: 'seed',
+				name: 'Anordnung',
+				gruppe: 'Lücken',
+				nurWenn: (w) => Number(w.zufall ?? 0) > 0,
+			},
 			{ art: 'raster', attribut: 'markiert', name: 'Markierte Zahlen', form: true, gruppe: 'Markierung' },
 			{ art: 'zahl', ...GROESSE, min: 20, max: 50, standard: 32, schritt: 2 },
 		],
@@ -2670,8 +2759,8 @@ export const ABBILDUNG_SCHEMA = {
 				attribut: 'stellung',
 				name: 'Kugeln links je Reihe',
 				beispiel: '7 3',
+				loesung: { attribut: 'loesung', name: 'Nur in der Lösung zeigen' },
 			},
-			{ art: 'zahlen', attribut: 'loesung', name: 'Nur in der Lösung zeigen', beispiel: '7 3' },
 			{ art: 'zahl', ...GROESSE, min: 10, max: 30, standard: 18, schritt: 2 },
 		],
 	},
@@ -2699,7 +2788,7 @@ export const ABBILDUNG_SCHEMA = {
 			{
 				art: 'mehrfach',
 				attribut: 'zeige',
-				name: 'Schon vorgegeben',
+				name: 'Im Blatt steht schon',
 				standard: ['start', 'spruenge'],
 				optionen: [
 					{ wert: 'start', name: 'Start' },
@@ -2861,6 +2950,7 @@ export const ABBILDUNG_SCHEMA = {
 				attribut: 'woerter',
 				name: 'Wörter',
 				zeilen: 3,
+				jeZeile: true,
 				beispiel: 'Hund; Maus; Pferd',
 				hilfe: 'Leer: die Wörter aus den Lücken dieser Aufgabe.',
 			},
@@ -3053,8 +3143,8 @@ export const ABBILDUNG_SCHEMA = {
 				attribut: 'satzanfaenge',
 				name: 'Satzanfänge',
 				zeilen: 4,
+				jeZeile: true,
 				beispiel: 'Zuerst; Dann; Am Ende',
-				hilfe: '; trennt die Satzanfänge.',
 			},
 			{ art: 'zahl', attribut: 'linien', name: 'Linien je Satz', min: 1, max: 6, standard: 2 },
 			{
@@ -3069,7 +3159,7 @@ export const ABBILDUNG_SCHEMA = {
 					{ wert: '4', name: 'Lineatur 4' },
 				],
 			},
-			{ art: 'text', attribut: 'wortspeicher', name: 'Wortspeicher', hilfe: '; trennt die Wörter.' },
+			{ art: 'text', attribut: 'wortspeicher', name: 'Wortspeicher', zeilen: 3, jeZeile: true, beispiel: 'Hund; Maus' },
 			{ art: 'schalter', attribut: 'planung', name: 'Planung', an: '1', aus: '0', standard: false },
 			{
 				art: 'text',
@@ -3140,7 +3230,7 @@ export const ABBILDUNG_SCHEMA = {
 				min: 0,
 				max: 500,
 				standard: 0,
-				hilfe: '0 heißt: aus den Aufgaben zählen.',
+				automatisch: 'automatisch',
 			},
 		],
 	},
@@ -3421,6 +3511,8 @@ export const ABBILDUNG_SCHEMA = {
 					{ wert: 'wort', name: 'Ein Wort zerlegt' },
 					{ wert: 'familie', name: 'Wortfamilie' },
 				],
+				// 197-07: „Wortfamilie finden“ gibt es nur bei einer Wortfamilie.
+				mitnehmen: (w): Werte => (w.art !== 'familie' && w.aufgabe === 'familie' ? { aufgabe: null } : {}),
 			},
 			{
 				art: 'text',
@@ -3457,6 +3549,7 @@ export const ABBILDUNG_SCHEMA = {
 					{ wert: 'zusammensetzen', name: 'Wort zusammensetzen' },
 					{ wert: 'familie', name: 'Wortfamilie finden' },
 				],
+				angeboten: (wert, w) => wert !== 'familie' || w.art === 'familie',
 			},
 		],
 		regeln: (w): Fehler => {
@@ -3588,6 +3681,8 @@ export const ABBILDUNG_SCHEMA = {
 					{ wert: 'tag', name: 'Tageskreis: vier Tageszeiten' },
 					{ wert: 'stunden', name: 'Tageskreis: 24 Stunden' },
 				],
+				// 197-07: Jahreszeiten gibt es nur beim Jahreskreis.
+				mitnehmen: (w): Werte => ((w.art ?? 'jahr') === 'jahr' ? {} : { jahreszeiten: null }),
 			},
 			{
 				art: 'auswahl',
@@ -3599,7 +3694,15 @@ export const ABBILDUNG_SCHEMA = {
 					{ wert: 'leer', name: 'Leer, Kinder tragen ein' },
 				],
 			},
-			{ art: 'schalter', attribut: 'jahreszeiten', name: 'Jahreszeiten', an: 'ja', aus: 'nein', standard: false },
+			{
+				art: 'schalter',
+				attribut: 'jahreszeiten',
+				nurWenn: (w) => (w.art ?? 'jahr') === 'jahr',
+				name: 'Jahreszeiten',
+				an: 'ja',
+				aus: 'nein',
+				standard: false,
+			},
 			{
 				art: 'mehrfach',
 				attribut: 'markiert',
@@ -3713,7 +3816,7 @@ export const ABBILDUNG_SCHEMA = {
 				name: 'Aufgabe',
 				standard: 'keine',
 				optionen: [
-					{ wert: 'keine', name: 'Keine' },
+					{ wert: 'keine', name: 'Nur zeigen' },
 					{ wert: 'leuchtet', name: 'Leuchtet die Lampe?' },
 					{ wert: 'vervollstaendigen', name: 'Kabel ergänzen' },
 					{ wert: 'benennen', name: 'Teile benennen' },
@@ -3816,6 +3919,8 @@ export const ABBILDUNG_SCHEMA = {
 				attribut: 'symbol',
 				name: 'Symbol',
 				optionen: [{ wert: null, name: 'Keins' }, ...WETTER],
+				// 197-07: „Keins“ legt das Symbol in die Lösung, statt es zu löschen.
+				mitnehmen: (w, alt): Werte => (!w.symbol && !w.loesung && alt.symbol ? { loesung: alt.symbol } : {}),
 			},
 			{
 				art: 'auswahl',
@@ -3943,7 +4048,8 @@ export const ABBILDUNG_SCHEMA = {
 					{ wert: 'senkrecht', name: 'Lösungswort senkrecht' },
 				],
 			},
-			{ art: 'text', attribut: 'loesungswort', name: 'Lösungswort' },
+			// 197-07: nur bei „Lösungswort senkrecht“
+			{ art: 'text', attribut: 'loesungswort', name: 'Lösungswort', nurWenn: (w) => w.art === 'senkrecht' },
 		],
 		regeln: (w): Fehler => {
 			for (const [, wort = ''] of w.zeilen('eintraege')) {
@@ -4229,7 +4335,7 @@ export const ABBILDUNG_SCHEMA = {
 				name: 'Aufgabe',
 				standard: 'keine',
 				optionen: [
-					{ wert: 'keine', name: 'Keine' },
+					{ wert: 'keine', name: 'Nur zeigen' },
 					{ wert: 'silben', name: 'Silben schreiben' },
 					{ wert: 'noten', name: 'Noten schreiben' },
 					{ wert: 'ergaenzen', name: 'Note ergänzen' },
@@ -4280,7 +4386,7 @@ export const ABBILDUNG_SCHEMA = {
 				name: 'Aufgabe',
 				standard: 'keine',
 				optionen: [
-					{ wert: 'keine', name: 'Keine' },
+					{ wert: 'keine', name: 'Nur zeigen' },
 					{ wert: 'benennen', name: 'Noten benennen' },
 					{ wert: 'zeichnen', name: 'Noten zeichnen' },
 				],
@@ -4517,7 +4623,7 @@ export const ABBILDUNG_SCHEMA = {
 			{
 				art: 'auswahl',
 				attribut: 'massstab',
-				name: 'Größe',
+				name: 'Maßstab',
 				standard: '0.5',
 				hilfe: 'Scheine bleiben immer höchstens 75 % groß.',
 				optionen: [
@@ -4601,6 +4707,7 @@ export const ABBILDUNG_SCHEMA = {
 				max: 10000,
 				standard: 0,
 				standardJe: (w) => skalaStandard(w)[0],
+				automatisch: 'automatisch',
 				gruppe: 'Skala',
 			},
 			{
@@ -4611,6 +4718,7 @@ export const ABBILDUNG_SCHEMA = {
 				max: 100000,
 				standard: 15,
 				standardJe: (w) => skalaStandard(w)[1],
+				automatisch: 'automatisch',
 				gruppe: 'Skala',
 			},
 			{
@@ -4653,7 +4761,15 @@ export const ABBILDUNG_SCHEMA = {
 				muster: '\\d+([.,]\\d+)? ?(cm|mm)?',
 				musterHilfe: 'Zum Beispiel 7 cm oder 45 mm.',
 			},
-			{ art: 'text', attribut: 'beschriftung', name: 'Buchstaben an den Enden', beispiel: 'A B' },
+			{
+				art: 'text',
+				attribut: 'beschriftung',
+				name: 'Buchstaben an den Enden',
+				beispiel: 'A B',
+				// 197-09
+				muster: '\\s*\\p{L}\\s+\\p{L}\\s*',
+				musterHilfe: 'Zwei Buchstaben, z. B. A B.',
+			},
 			{
 				art: 'auswahl',
 				attribut: 'richtung',
@@ -4685,14 +4801,14 @@ export const ABBILDUNG_SCHEMA = {
 					{ wert: 'jahr', name: 'Ganzes Jahr' },
 				],
 			},
+			// 197-11: Monatsnamen statt 1 bis 12; im Blatt bleibt die Zahl.
 			{
-				art: 'zahl',
+				art: 'auswahl',
 				attribut: 'monat',
 				nurWenn: wenn('art', 'monat', 'monat'),
 				name: 'Monat',
-				min: 1,
-				max: 12,
-				standard: 1,
+				standard: '1',
+				optionen: MONATE.map((name, i) => ({ wert: String(i + 1), name })),
 			},
 			{ art: 'zahl', attribut: 'jahr', name: 'Jahr', min: 1900, max: 2100, standard: 2026 },
 			{ art: 'raster', attribut: 'markiert', name: 'Markierte Tage', form: true },
@@ -4716,6 +4832,9 @@ export const ABBILDUNG_SCHEMA = {
 				attribut: 'spruenge',
 				name: 'Sprünge',
 				beispiel: 'bis 9:00, +30 min, +15 min',
+				// 197-09
+				muster: SPRUNG_MUSTER,
+				musterHilfe: 'Sprünge wie „bis 9:00“, „+30 min“ oder „+1 h“, mit Komma getrennt.',
 				hilfe: 'Mit Komma getrennt: „bis 9:00“, „+40 min“ oder „+1 h“. Der letzte endet bei „Bis“. Leer: zur vollen Stunde und dann weiter.',
 			},
 			{
@@ -4898,7 +5017,8 @@ export const ABBILDUNG_SCHEMA = {
 				aus: 'nein',
 				standard: false,
 			},
-			{ art: 'mischen', attribut: 'seed', name: 'Fehler', knopf: 'Anderer Fehler' },
+			// 197-15: nur bei einer Fehleraufgabe, direkt unter ihrem Schalter
+			{ art: 'mischen', attribut: 'seed', name: 'Fehler', knopf: 'Anderer Fehler', nurWenn: (w) => w.fehlerhaft === 'ja' },
 		],
 		regeln: (w): Fehler => {
 			const art = w.text('art') ?? 'plus';
@@ -4967,6 +5087,7 @@ export const ABBILDUNG_SCHEMA = {
 			faecher: ['mathematik'],
 		},
 		generiert: 'aufgaben',
+		generiertOhne: ['spalten'],
 		felder: [
 			{
 				art: 'auswahl',
@@ -4996,6 +5117,7 @@ export const ABBILDUNG_SCHEMA = {
 					{ wert: '1000', name: 'bis 1000' },
 					{ wert: '1000000', name: 'bis 1 Million' },
 				],
+				abKlasse: { '100': 2, '1000': 3, '1000000': 4 },
 			},
 			{ art: 'zahl', attribut: 'anzahl', name: 'Anzahl', min: 1, max: 60, standard: 10 },
 			{
@@ -5025,7 +5147,7 @@ export const ABBILDUNG_SCHEMA = {
 			{
 				art: 'auswahl',
 				attribut: 'platzhalter',
-				name: 'Platzhalter',
+				name: 'Lücke',
 				standard: 'ergebnis',
 				optionen: [
 					{ wert: 'ergebnis', name: 'Beim Ergebnis' },
@@ -5158,7 +5280,7 @@ export const ABBILDUNG_SCHEMA = {
 			{
 				art: 'mehrfach',
 				attribut: 'zeige',
-				name: 'Schon vorgegeben',
+				name: 'Im Blatt steht schon',
 				standard: ['start', 'operatoren'],
 				optionen: [
 					{ wert: 'start', name: 'Start' },
@@ -5221,7 +5343,7 @@ export const ABBILDUNG_SCHEMA = {
 				min: 0,
 				max: 100000,
 				standard: 0,
-				hilfe: '0: ohne Summe, eine Forscheraufgabe.',
+				automatisch: 'ohne',
 			},
 			{ art: 'raster', attribut: 'vorgegeben', name: 'Vorgegebene Felder', form: true },
 			{ art: 'mischen', attribut: 'seed', name: 'Lösung' },
@@ -5256,7 +5378,7 @@ export const ABBILDUNG_SCHEMA = {
 			{
 				art: 'auswahl',
 				attribut: 'offen',
-				name: 'Offen',
+				name: 'Kinder füllen aus',
 				standard: 'aussen',
 				optionen: [
 					{ wert: 'aussen', name: 'Außen' },
@@ -5283,7 +5405,7 @@ export const ABBILDUNG_SCHEMA = {
 				wachsen: { spalten: 4, zeilen: 4 },
 				hilfe: 'Die unterste Zeile ist vorne.',
 			},
-			{ art: 'mehrfach', attribut: 'zeige', name: 'Vorgegeben', optionen: WUERFELBAU_TEILE },
+			{ art: 'mehrfach', attribut: 'zeige', name: 'Im Blatt steht schon', optionen: WUERFELBAU_TEILE },
 			{
 				art: 'mehrfach',
 				attribut: 'fragen',
@@ -5313,7 +5435,7 @@ export const ABBILDUNG_SCHEMA = {
 				art: 'zahl',
 				attribut: 'einheit',
 				abschnitt: 'darstellung',
-				name: 'Würfelkante',
+				name: 'Größe',
 				min: 14,
 				max: 50,
 				standard: 26,
@@ -5331,6 +5453,18 @@ export const ABBILDUNG_SCHEMA = {
 			faecher: ['mathematik'],
 		},
 		felder: [
+			// 197-15: zuerst, was für ein Körper
+			{
+				art: 'auswahl',
+				attribut: 'art',
+				name: 'Körper',
+				standard: 'wuerfel',
+				mitnehmen: masseFuerQuader,
+				optionen: [
+					{ wert: 'wuerfel', name: 'Würfel' },
+					{ wert: 'quader', name: 'Quader' },
+				],
+			},
 			{
 				art: 'auswahl',
 				attribut: 'netz',
@@ -5350,7 +5484,7 @@ export const ABBILDUNG_SCHEMA = {
 				standard: 'keine',
 				mitnehmen: netzFuerAufgabe,
 				optionen: [
-					{ wert: 'keine', name: 'Keine' },
+					{ wert: 'keine', name: 'Nur zeigen' },
 					{ wert: 'netz-oder-nicht', name: 'Netz oder nicht?' },
 					{ wert: 'gegenueber', name: 'Gegenüberliegende Fläche' },
 					{ wert: 'augen-ergaenzen', name: 'Augen ergänzen' },
@@ -5407,25 +5541,12 @@ export const ABBILDUNG_SCHEMA = {
 				gruppe: 'Bastelvorlage',
 			},
 			{
-				art: 'auswahl',
-				attribut: 'art',
-				abschnitt: 'inhalt',
-				name: 'Körper',
-				standard: 'wuerfel',
-				gruppe: 'Weitere Angaben',
-				mitnehmen: masseFuerQuader,
-				optionen: [
-					{ wert: 'wuerfel', name: 'Würfel' },
-					{ wert: 'quader', name: 'Quader' },
-				],
-			},
-			{
 				art: 'zahlen',
 				attribut: 'masse',
 				nurWenn: wenn('art', 'wuerfel', 'quader'),
 				name: 'Maße des Quaders',
 				beispiel: '4 2 1',
-				gruppe: 'Weitere Angaben',
+				gruppe: 'Mehr',
 			},
 			{
 				art: 'zahl',
@@ -5435,15 +5556,15 @@ export const ABBILDUNG_SCHEMA = {
 				max: 270,
 				standard: 0,
 				schritt: 90,
-				gruppe: 'Weitere Angaben',
+				gruppe: 'Mehr',
 			},
-			{ art: 'zahl', ...GROESSE, min: 16, max: 80, standard: 30, schritt: 2, gruppe: 'Weitere Angaben' },
+			{ art: 'zahl', ...GROESSE, min: 16, max: 80, standard: 30, schritt: 2, gruppe: 'Mehr' },
 			{
 				art: 'text',
 				attribut: 'seed',
 				nurWenn: wenn('aufgabe', 'keine', 'augen-ergaenzen'),
 				name: 'Mischung',
-				gruppe: 'Weitere Angaben',
+				gruppe: 'Mehr',
 			},
 		],
 	},
@@ -5504,8 +5625,9 @@ export const ABBILDUNG_SCHEMA = {
 				attribut: 'masse',
 				name: 'Maße',
 				beispiel: '4 2 2',
+				komma: true,
 				hilfe: 'Würfel und Kugel: eine Zahl. Zylinder und Kegel: Durchmesser und Höhe. Sonst: Länge, Breite und Höhe.',
-				gruppe: 'Weitere Angaben',
+				gruppe: 'Mehr',
 			},
 			{
 				art: 'zahl',
@@ -5515,9 +5637,9 @@ export const ABBILDUNG_SCHEMA = {
 				max: 359,
 				standard: 0,
 				schritt: 15,
-				gruppe: 'Weitere Angaben',
+				gruppe: 'Mehr',
 			},
-			{ art: 'zahl', ...GROESSE, min: 14, max: 60, standard: 30, schritt: 2, gruppe: 'Weitere Angaben' },
+			{ art: 'zahl', ...GROESSE, min: 14, max: 60, standard: 30, schritt: 2, gruppe: 'Mehr' },
 		],
 	},
 	'x-tangram': {
@@ -5545,7 +5667,7 @@ export const ABBILDUNG_SCHEMA = {
 			{
 				art: 'mehrfach',
 				attribut: 'teile',
-				name: 'Schon eingezeichnet',
+				name: 'Im Blatt steht schon',
 				optionen: [
 					{ wert: 'gross1', name: 'Großes Dreieck 1' },
 					{ wert: 'gross2', name: 'Großes Dreieck 2' },
@@ -5559,7 +5681,7 @@ export const ABBILDUNG_SCHEMA = {
 			{
 				art: 'schalter',
 				attribut: 'bogen',
-				name: 'Bogen zum Ausschneiden (12 cm)',
+				name: 'Zum Ausschneiden (12 cm)',
 				an: 'ja',
 				aus: 'nein',
 				standard: false,
@@ -5616,6 +5738,11 @@ export const werteVon = (schema: AbbildungSchema, k: Knoten, z?: Zerlegung): Wer
 /** Wert eines Feldes und ob er nur in der Lösung steht; mit beiden Attributen gilt, was `abbildungen.js` zeichnet. */
 export const feldWert = (feld: Feld, w: Werte): { wert: string | null; nurLoesung: boolean } => {
 	const sichtbar = w[feld.attribut] ?? null;
+	const teil = feld.loesung?.teil;
+	if (teil !== undefined && feld.loesung) {
+		const zahlen = listeVon(w[feld.loesung.attribut] ?? null);
+		return zahlen.length > 0 ? { wert: zahlen[teil] ?? '0', nurLoesung: true } : { wert: sichtbar, nurLoesung: false };
+	}
 	const loesung = feld.loesung ? (w[feld.loesung.attribut] ?? null) : null;
 	if (loesung !== null && (sichtbar === null || feld.loesung?.vorrang)) {
 		return { wert: loesung, nurLoesung: true };
@@ -5763,7 +5890,27 @@ export const aendereFeld = (
 	nurLoesung = feldWert(feld, w).nurLoesung,
 ): Werte => {
 	const neu = { ...w };
-	if (feld.loesung) {
+	const teil = feld.loesung?.teil;
+	if (feld.loesung && teil !== undefined) {
+		// Alle Felder mit diesem Lösungs-Attribut wandern zusammen (197-10).
+		const lAttr = feld.loesung.attribut;
+		const geschwister = schema.felder.filter((f) => f.loesung?.attribut === lAttr && f.loesung.teil !== undefined);
+		const zahlen = geschwister.map((f) =>
+			f === feld ? (wert ?? '0') : (feldWert(f, w).wert ?? String(f.art === 'zahl' ? f.standard : 0)),
+		);
+		for (const f of geschwister) {
+			neu[f.attribut] = null;
+		}
+		if (nurLoesung) {
+			neu[lAttr] = zahlen.join(' ');
+		} else {
+			neu[lAttr] = null;
+			geschwister.forEach((f, i) => {
+				const z = zahlen[i] ?? null;
+				neu[f.attribut] = f.art === 'zahl' && z !== null && alsZahl(z) === f.standard ? null : z;
+			});
+		}
+	} else if (feld.loesung) {
 		neu[feld.attribut] = nurLoesung ? null : wert;
 		neu[feld.loesung.attribut] = nurLoesung ? wert : null;
 	} else {
@@ -5780,7 +5927,9 @@ export const aendereFeld = (
 			continue;
 		}
 		const liste = Array.from({ length: alt }, (_, i) => listeVon(ziffern)[i] ?? '');
-		const gerueckt = jetzt > alt ? [...Array<string>(jetzt - alt).fill(''), ...liste] : liste.slice(alt - jetzt);
+		// 197-U4: Eine neue Stelle vorn bekommt eine 0, damit die Tafel gezeichnet wird („Bei „T“ fehlt eine Zahl“).
+		const vorn = liste.some((z) => z !== '' && z !== '?') ? '0' : '';
+		const gerueckt = jetzt > alt ? [...Array<string>(jetzt - alt).fill(vorn), ...liste] : liste.slice(alt - jetzt);
 		Object.assign(neu, aendereFeld(schema, neu, f, ziffernText(gerueckt), nur));
 	}
 	return feld.mitnehmen ? { ...neu, ...feld.mitnehmen(neu, w) } : neu;
@@ -5983,7 +6132,8 @@ const leser = (schema: AbbildungSchema, w: Werte): Lesen => {
 };
 
 /** Leer heißt gültig. Erst jedes Feld für sich, dann die Regeln zwischen den Feldern. */
-export const pruefeWerte = (schema: AbbildungSchema, w: Werte): Fehler => {
+/** 197-02: Nur die einzelnen Felder, ohne die Regeln über mehrere Felder. */
+export const pruefeFelder = (schema: AbbildungSchema, w: Werte): Fehler => {
 	const fehler: Fehler = {};
 	for (const feld of schema.felder) {
 		const meldung = pruefeFeld(feld, w);
@@ -5991,6 +6141,11 @@ export const pruefeWerte = (schema: AbbildungSchema, w: Werte): Fehler => {
 			fehler[feld.attribut] = meldung;
 		}
 	}
+	return fehler;
+};
+
+export const pruefeWerte = (schema: AbbildungSchema, w: Werte): Fehler => {
+	const fehler = pruefeFelder(schema, w);
 	return Object.keys(fehler).length > 0 || !schema.regeln ? fehler : schema.regeln(leser(schema, w));
 };
 
@@ -6042,10 +6197,9 @@ export const GRUPPEN_ABSCHNITT: Readonly<Record<string, AbschnittName>> = {
 	'Markierung': 'inhalt',
 	'Raster': 'inhalt',
 	'Bastelvorlage': 'darstellung',
-	'Gitter': 'darstellung',
+	'Gitter': 'inhalt',
 	'Maße': 'darstellung',
 	'Skala': 'darstellung',
-	'Weitere Angaben': 'darstellung',
 	'Mehr': 'weitere',
 };
 

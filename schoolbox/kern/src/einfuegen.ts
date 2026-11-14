@@ -325,8 +325,12 @@ export const mitLineaturDerKlasse = (quelle: string, b: Einfuegbar): Einfuegbar 
 	if (!klasse) {
 		return b;
 	}
+	// 197-16: Die Rechenreihe startet im Zahlenraum der Klasse.
+	const raum = { 1: '20', 2: '100', 3: '1000', 4: '1000000' }[klasse];
 	const setze = (html: string) =>
-		html.replace(/<x-lineatur\b(?![^>]*\sart=)/g, `<x-lineatur art="${klasse}"`);
+		html
+			.replace(/<x-lineatur\b(?![^>]*\sart=)/g, `<x-lineatur art="${klasse}"`)
+			.replace(/<x-rechenreihe\b(?![^>]*\szahlenraum=)/g, `<x-rechenreihe zahlenraum="${raum}"`);
 	return {
 		...b,
 		...(b.html === undefined ? {} : { html: setze(b.html) }),

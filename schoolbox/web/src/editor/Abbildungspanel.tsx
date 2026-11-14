@@ -25,6 +25,7 @@ import {
 	alsZahl,
 	auswahlOptionen,
 	feldWert,
+	listeAusZeilen,
 	listeVon,
 	markeSetzen,
 	markeTrennen,
@@ -47,12 +48,14 @@ import {
 	stellenVon,
 	zahlStandard,
 	zeilenAlsText,
+	zeilenAusListe,
 	zeilenAusText,
 	zeilenText,
 	zeilenVon,
 	ziffernText,
 } from '@schoolbox/kern/src/abbildungen';
 import type { AbschnittName } from '@schoolbox/kern/src/abschnitte';
+import { cmZuPx, grenzenInCm, inCm, liesZahl, pxZuCm, rasteEin, zahlMitKomma } from '@schoolbox/kern/src/masse';
 import type { CSSProperties, KeyboardEvent, PointerEvent as ReactPointerEvent, ReactNode } from 'react';
 import { Fragment, useEffect, useId, useMemo, useRef, useState } from 'react';
 
@@ -85,9 +88,12 @@ interface FeldEigenschaften<F extends Feld> {
 
 const wertVon = (feld: Feld, abb: AbbildungSteuerung) => (abb.werte ? feldWert(feld, abb.werte) : null);
 
+/** 196-09: Enter übernimmt (wie Verlassen) und lässt den Fokus im Feld. */
 const fertigMitEnter = (e: KeyboardEvent<HTMLInputElement>) => {
 	if (e.key === 'Enter') {
-		e.currentTarget.blur();
+		const feld = e.currentTarget;
+		feld.blur();
+		feld.focus();
 	}
 };
 
@@ -127,14 +133,23 @@ const Haken = ({
 /** „Zeiger nur in der Lösung“ usw.: verschiebt den Wert zwischen sichtbarem und Lösungs-Attribut. */
 const LoesungSchalter = ({ abb, feld }: FeldEigenschaften<Feld>) => {
 	const w = wertVon(feld, abb);
-	if (!feld.loesung || !w) {
+	const l = feld.loesung;
+	if (!l || !w) {
+		return null;
+	}
+	// 197-10: Teilen sich Felder die Lösung, steht der Schalter einmal, unter dem letzten.
+	const teil = l.teil;
+	if (
+		teil !== undefined &&
+		abb.schema?.felder.some((f) => f.loesung?.attribut === l.attribut && (f.loesung.teil ?? -1) > teil)
+	) {
 		return null;
 	}
 	return (
 		<Haken
-			name={feld.loesung.name}
+			name={l.name}
 			aktiv={w.nurLoesung}
-			aus={w.wert === null}
+			aus={teil === undefined && w.wert === null}
 			setze={(an) => abb.aendere(feld, w.wert, { nurLoesung: an })}
 		/>
 	);
@@ -146,15 +161,18 @@ const Rahmen = ({
 	daneben = false,
 	feld,
 	id,
+	meldung,
 }: {
 	feld: Feld;
 	abb: AbbildungSteuerung;
 	id: string;
+	/** Eigener Wortlaut der Meldung am Feld, z. B. in cm statt px. */
+	meldung?: string | undefined;
 	/** Kurze Werte stehen rechts neben dem Namen; Listen und Raster brauchen die ganze Breite. */
 	daneben?: boolean;
 	children: ReactNode;
 }) => {
-	const fehler = abb.fehler[feld.attribut];
+	const fehler = abb.fehler[feld.attribut] ? (meldung ?? abb.fehler[feld.attribut]) : undefined;
 	return (
 		<div data-feld={feld.attribut}>
 			<Zeile titel={feld.name} fuer={id} hilfe={feld.hilfe} darunter={!daneben}>
@@ -171,30 +189,59 @@ const Rahmen = ({
 	);
 };
 
+/**
+ * Zahl mit −/+ (196-10, 197-02, 197-12, 197-19): Getippt wird mit Komma oder Punkt; was nicht passt, ist rot und wird
+ * nicht gezeichnet. Enter oder Verlassen setzt die nächste erlaubte Zahl, leer oder Text den alten Wert; Esc stellt
+ * ihn wieder her. Maße in px erscheinen in cm (197-U3), gespeichert bleibt px.
+ */
 const Zahl = ({ abb, feld }: FeldEigenschaften<ZahlFeld>) => {
 	const id = useId();
 	const wert = wertVon(feld, abb)?.wert ?? null;
 	const standard = zahlStandard(feld, abb.werte);
-	const { feld: eingabe, setText, text } = useEingabe(wert ?? String(standard));
-	const jetzt = alsZahl(wert ?? String(standard));
-	const schritt = feld.schritt ?? 1;
-	const springe = (richtung: 1 | -1) => {
-		const basis = Number.isFinite(jetzt) ? jetzt : standard;
-		const neu = Math.min(
-			feld.max,
-			Math.max(feld.min, Math.round((basis + richtung * schritt) / schritt) * schritt),
-		);
-		setText(String(neu));
-		abb.aendere(feld, String(neu));
+	const cm = inCm(feld);
+	const grenzen = cm
+		? grenzenInCm({ min: feld.min, max: feld.max, schritt: feld.schritt ?? 1 })
+		: { min: feld.min, max: feld.max, schritt: feld.schritt ?? 1 };
+	const zeigen = (px: number) => (cm ? pxZuCm(px) : px);
+	const speichern = (n: number) => String(cm ? cmZuPx(n) : n);
+	const anzeige = (roh: string | null) => {
+		if (roh === null) {
+			return feld.automatisch ? '' : zahlMitKomma(zeigen(standard));
+		}
+		const n = alsZahl(roh);
+		return Number.isFinite(n) ? zahlMitKomma(zeigen(n)) : roh;
 	};
+	const { feld: eingabe, setText, text } = useEingabe(anzeige(wert));
+	/** Der Wert beim Betreten des Felds: dorthin führen leer, Text und Esc zurück. */
+	const vorher = useRef<string | null>(wert);
+	const jetzt = zeigen(alsZahl(wert ?? String(standard)));
+	const setze = (n: number) => {
+		const neu = rasteEin(n, grenzen);
+		setText(zahlMitKomma(neu));
+		abb.aendere(feld, speichern(neu));
+	};
+	const springe = (richtung: 1 | -1) => setze((Number.isFinite(jetzt) ? jetzt : zeigen(standard)) + richtung * grenzen.schritt);
+	const fertig = () => {
+		const n = liesZahl(text);
+		if (Number.isFinite(n)) {
+			setze(n);
+		} else if (text.trim() === '' && feld.automatisch) {
+			setText('');
+			abb.aendere(feld, null);
+		} else {
+			setText(anzeige(vorher.current));
+			abb.aendere(feld, vorher.current);
+		}
+	};
+	const meldung = cm ? `Bitte eine Zahl von ${zahlMitKomma(grenzen.min)} bis ${zahlMitKomma(grenzen.max)} cm.` : undefined;
 	return (
-		<Rahmen daneben feld={feld} abb={abb} id={id}>
+		<Rahmen daneben feld={feld} abb={abb} id={id} meldung={meldung}>
 			<div className={klassen(STEPPER_RAHMEN, 'has-[[aria-invalid=true]]:border-fehler')}>
 				<button
 					type="button"
 					className={STEPPER_STUFE}
 					aria-label={`${feld.name}: weniger`}
-					disabled={Number.isFinite(jetzt) && jetzt <= feld.min}
+					disabled={!abb.aktiv || (Number.isFinite(jetzt) && jetzt <= grenzen.min)}
 					onClick={() => springe(-1)}
 				>
 					<Symbol name="minus" className="size-3 flex-none" />
@@ -204,33 +251,54 @@ const Zahl = ({ abb, feld }: FeldEigenschaften<ZahlFeld>) => {
 						ref={eingabe}
 						id={id}
 						type="text"
-						inputMode="numeric"
+						inputMode="decimal"
 						enterKeyHint="done"
 						autoComplete="off"
+						disabled={!abb.aktiv}
+						placeholder={
+							feld.automatisch && feld.standardJe
+								? `${feld.automatisch} (${zahlMitKomma(zeigen(standard))})`
+								: feld.automatisch
+						}
 						className={klassen(
-							'w-9 min-w-0 bg-transparent outline-none',
+							'min-w-0 bg-transparent outline-none placeholder:text-leise',
+							feld.automatisch ? 'w-28' : cm ? 'w-10' : 'w-9',
 							feld.einheit ? 'text-right' : 'text-center',
 						)}
 						aria-invalid={Boolean(abb.fehler[feld.attribut])}
 						value={text}
+						onFocus={() => {
+							vorher.current = wert;
+						}}
 						onChange={(e) => {
 							setText(e.target.value);
 							const roh = e.target.value.trim();
-							abb.aendere(feld, roh === '' ? null : roh, { uebernehmen: false });
+							const n = liesZahl(roh);
+							// Nur den Entwurf ändern; gezeichnet wird er erst, wenn das Feld passt (197-02).
+							abb.aendere(feld, roh === '' ? (feld.automatisch ? null : vorher.current) : Number.isFinite(n) ? speichern(n) : roh, {
+								uebernehmen: false,
+							});
 						}}
-						onBlur={() => {
-							setText(wert ?? String(standard));
-							abb.uebernimm();
+						onBlur={fertig}
+						onKeyDown={(e) => {
+							if (e.key === 'Enter') {
+								e.preventDefault();
+								fertig();
+							} else if (e.key === 'Escape') {
+								e.preventDefault();
+								e.stopPropagation();
+								setText(anzeige(vorher.current));
+								abb.aendere(feld, vorher.current, { uebernehmen: false });
+							}
 						}}
-						onKeyDown={fertigMitEnter}
 					/>
-					{feld.einheit && <span className={STEPPER_EINHEIT}>{feld.einheit}</span>}
+					{feld.einheit && <span className={STEPPER_EINHEIT}>{cm ? 'cm' : feld.einheit}</span>}
 				</span>
 				<button
 					type="button"
 					className={STEPPER_STUFE}
 					aria-label={`${feld.name}: mehr`}
-					disabled={Number.isFinite(jetzt) && jetzt >= feld.max}
+					disabled={!abb.aktiv || (Number.isFinite(jetzt) && jetzt >= grenzen.max)}
 					onClick={() => springe(1)}
 				>
 					<Symbol name="plus" className="size-3 flex-none" />
@@ -264,6 +332,8 @@ const uhrzeitVon = ({ abb, feld }: FeldEigenschaften<UhrzeitFeld>) => {
 const Uhrzeit = ({ abb, feld }: FeldEigenschaften<UhrzeitFeld>) => {
 	const id = useId();
 	const { minute, minuten, setze, stunde, stunden } = uhrzeitVon({ abb, feld });
+	// 197-14: Eine leere Uhr gibt es nur, solange die Zeiger nicht nur in der Lösung stehen.
+	const leerErlaubt = !wertVon(feld, abb)?.nurLoesung;
 	return (
 		<Rahmen daneben feld={feld} abb={abb} id={id}>
 			<div className="flex items-center gap-1" data-uhrzeit>
@@ -275,7 +345,7 @@ const Uhrzeit = ({ abb, feld }: FeldEigenschaften<UhrzeitFeld>) => {
 					value={stunde ?? ''}
 					onChange={(e) => setze(e.target.value === '' ? null : Number(e.target.value), minute)}
 				>
-					<option value="">–</option>
+					{(leerErlaubt || stunde === null) && <option value="">–</option>}
 					{stunden.map((h) => (
 						<option key={h} value={h}>
 							{h}
@@ -312,7 +382,13 @@ const Auswahl = ({ abb, feld }: FeldEigenschaften<AuswahlFeld>) => {
 	const dazu = aus.split('|').flatMap((t) => (t.trim() ? [{ wert: t.trim(), name: t.trim() }] : []));
 	const moeglich = [...auswahlOptionen(feld, abb.werte), ...dazu];
 	const bekannt = moeglich.some((o) => o.wert === wert);
-	const optionen = bekannt ? moeglich : [...moeglich, { wert, name: wert ?? '–' }];
+	// 197-16: Optionen über der Klasse des Blatts sagen es.
+	const klasse = Number(/\bkl([1-4])\b/.exec(abb.doc?.body.className ?? '')?.[1] ?? 0);
+	const mitKlasse = (o: { wert: string | null; name: string }) => {
+		const ab = o.wert === null ? undefined : feld.abKlasse?.[o.wert];
+		return klasse && ab && ab > klasse ? { ...o, name: `${o.name} (über Klasse ${klasse})` } : o;
+	};
+	const optionen = (bekannt ? moeglich : [...moeglich, { wert, name: wert ?? '–' }]).map(mitKlasse);
 	const index = optionen.findIndex((o) => o.wert === wert);
 	const blaettere = (schritt: number) => abb.aendere(feld, optionen[index + schritt]?.wert ?? null);
 	// Lange Texte bekämen neben dem Namen zu wenig Platz: Sie stehen über die ganze Breite (G6).
@@ -384,10 +460,27 @@ const Schalter = ({ abb, feld }: FeldEigenschaften<SchalterFeld>) => {
 	);
 };
 
+/**
+ * 197-04: Ziffer, Komma, Ziffer ist eine Zahl. Felder mit `komma` nehmen sie (gespeichert mit Punkt, gezeigt mit
+ * Komma); die übrigen melden es am Feld und ändern nichts.
+ */
+const KOMMAZAHL = /(\d),(\d)/g;
+const HAT_KOMMA = /\d,\d/;
+const zahlenZeigen = (wert: string | null, komma: boolean) => (komma ? (wert ?? '').replace(/(\d)\.(\d)/g, '$1,$2') : (wert ?? ''));
+
 const Zahlen = ({ abb, feld }: FeldEigenschaften<ZahlenFeld>) => {
 	const id = useId();
 	const wert = wertVon(feld, abb)?.wert ?? null;
-	const { feld: eingabe, setText, text } = useEingabe(wert ?? '');
+	const komma = Boolean(feld.komma);
+	const { feld: eingabe, setText, text } = useEingabe(zahlenZeigen(wert, komma));
+	const [ganz, setGanz] = useState(false);
+	/** Die Zahlen, wie sie gespeichert werden; `null`, wenn eine Kommazahl hier nicht geht. */
+	const sauber = (roh: string) => {
+		if (!komma && HAT_KOMMA.test(roh)) {
+			return null;
+		}
+		return listeVon(komma ? roh.replace(KOMMAZAHL, '$1.$2') : roh).join(' ');
+	};
 	return (
 		<Rahmen feld={feld} abb={abb} id={id}>
 			<input
@@ -398,20 +491,33 @@ const Zahlen = ({ abb, feld }: FeldEigenschaften<ZahlenFeld>) => {
 				enterKeyHint="done"
 				autoComplete="off"
 				className={`${EINGABE} w-full`}
-				placeholder={`z. B. ${feld.beispiel}`}
-				aria-invalid={Boolean(abb.fehler[feld.attribut])}
+				placeholder={`z. B. ${zahlenZeigen(feld.beispiel, komma)}`}
+				aria-invalid={ganz || Boolean(abb.fehler[feld.attribut])}
 				value={text}
 				onChange={(e) => {
 					setText(e.target.value);
-					abb.aendere(feld, e.target.value.trim() === '' ? null : e.target.value, { uebernehmen: false });
+					const neu = sauber(e.target.value);
+					setGanz(neu === null);
+					if (neu !== null) {
+						abb.aendere(feld, neu === '' ? null : neu, { uebernehmen: false });
+					}
 				}}
 				onBlur={() => {
-					const sauber = listeVon(text).join(' ');
-					setText(sauber);
-					abb.aendere(feld, sauber === '' ? null : sauber);
+					const neu = sauber(text);
+					if (neu === null) {
+						return;
+					}
+					setText(zahlenZeigen(neu, komma));
+					abb.aendere(feld, neu === '' ? null : neu);
 				}}
 				onKeyDown={fertigMitEnter}
 			/>
+			{ganz && (
+				<p className="mt-2 flex gap-2 font-medium text-fehler" role="alert" data-fehler={feld.attribut}>
+					<Symbol name="achtung" className="size-3.5 flex-none" />
+					Hier gehen nur ganze Zahlen.
+				</p>
+			)}
 		</Rahmen>
 	);
 };
@@ -459,7 +565,10 @@ const Ziffern = ({ abb, feld }: FeldEigenschaften<ZiffernFeld>) => {
 
 const Text = ({ abb, feld }: FeldEigenschaften<TextFeld>) => {
 	const id = useId();
-	const wert = wertVon(feld, abb)?.wert ?? null;
+	const roh = wertVon(feld, abb)?.wert ?? null;
+	// 197-17: Listen mit `;` stehen im Panel zeilenweise.
+	const wert = feld.jeZeile ? zeilenAusListe(roh) || null : roh;
+	const imBlatt = (t: string) => (feld.jeZeile ? listeAusZeilen(t) : t);
 	const [text, setText] = useState(wert ?? '');
 	const eingabe = useRef<HTMLInputElement & HTMLTextAreaElement>(null);
 
@@ -471,16 +580,29 @@ const Text = ({ abb, feld }: FeldEigenschaften<TextFeld>) => {
 
 	const vorschau = (neu: string) => {
 		setText(neu);
-		abb.aendere(feld, neu === '' ? null : neu, { uebernehmen: false });
+		abb.aendere(feld, neu.trim() === '' ? null : imBlatt(neu), { uebernehmen: false });
+	};
+	/** 196-09: Esc stellt den Wert beim Betreten wieder her. */
+	const vorher = useRef<string | null>(wert);
+	const zurueck = (e: KeyboardEvent<HTMLInputElement | HTMLTextAreaElement>) => {
+		if (e.key === 'Escape') {
+			e.preventDefault();
+			e.stopPropagation();
+			setText(vorher.current ?? '');
+			abb.aendere(feld, vorher.current === null ? null : imBlatt(vorher.current), { uebernehmen: false });
+		}
 	};
 	const gemeinsam = {
 		id,
+		'onFocus': () => {
+			vorher.current = wert;
+		},
 		'autoComplete': 'off',
 		'className': `${EINGABE} w-full`,
 		'aria-invalid': Boolean(abb.fehler[feld.attribut]),
-		'placeholder': feld.beispiel && `z. B. ${feld.beispiel}`,
+		'placeholder': feld.beispiel && `z. B. ${feld.jeZeile ? zeilenAusListe(feld.beispiel) : feld.beispiel}`,
 		'value': text,
-		'onBlur': () => abb.aendere(feld, text.trim() === '' ? null : text.trim()),
+		'onBlur': () => abb.aendere(feld, text.trim() === '' ? null : imBlatt(text.trim())),
 	};
 	return (
 		<Rahmen feld={feld} abb={abb} id={id}>
@@ -491,6 +613,7 @@ const Text = ({ abb, feld }: FeldEigenschaften<TextFeld>) => {
 					rows={feld.zeilen}
 					className={`${gemeinsam.className} py-2`}
 					onChange={(e) => vorschau(e.target.value)}
+					onKeyDown={zurueck}
 				/>
 			) : (
 				<input
@@ -499,7 +622,10 @@ const Text = ({ abb, feld }: FeldEigenschaften<TextFeld>) => {
 					type="text"
 					enterKeyHint="done"
 					onChange={(e) => vorschau(e.target.value)}
-					onKeyDown={fertigMitEnter}
+					onKeyDown={(e) => {
+						zurueck(e);
+						fertigMitEnter(e);
+					}}
 				/>
 			)}
 			{feld.einfuegen && (
@@ -618,9 +744,9 @@ const Mehrfach = ({ abb, feld }: FeldEigenschaften<MehrfachFeld>) => {
 	);
 };
 
-/** Bleibt beim Rollen oben: Man mischt, während man auf lange Listen schaut. */
+/** Steht an seinem Feld (197-15); oben steht nur „Neue Zahlen“ (197-06). */
 const Mischen = ({ abb, feld }: FeldEigenschaften<MischenFeld>) => (
-	<div className="sticky top-0 z-10 flex items-center gap-1 bg-flaeche py-1" data-feld={feld.attribut}>
+	<div className="flex items-center gap-1 py-1" data-feld={feld.attribut}>
 		<Knopf
 			art="zweit"
 			onClick={() => abb.aendere(feld, String(Math.floor(Math.random() * 1_000_000) + 1))}
@@ -2042,9 +2168,9 @@ export const AbbildungHinweise = ({ abb }: { abb: AbbildungSteuerung }) => {
 				</p>
 			)}
 			{ungueltig && abb.offen && (
-				<div className="rounded-md bg-warnung-hell p-2" role="status" data-nicht-uebernommen>
-					<p>Noch nicht gespeichert, weil eine Angabe nicht passt.</p>
-					<Knopf art="zweit" className="mt-2" onClick={abb.zuruecksetzen}>
+				<div className="flex items-center justify-between gap-2" role="status" data-nicht-uebernommen>
+					<p className="text-xs">Noch nicht gespeichert.</p>
+					<Knopf art="zweit" onClick={abb.zuruecksetzen}>
 						<Symbol name="rueckgaengig" />
 						Zurücksetzen
 					</Knopf>
@@ -2064,19 +2190,24 @@ export const AbbildungFelder = ({ abb, abschnitt }: { abb: AbbildungSteuerung; a
 	const felder = abb.schema.felder.filter(
 		(f) => abschnittVon(f) === abschnitt && !f.ohneFeld && sichtbarWenn(f, abb),
 	);
-	// Der Knopf „Neu mischen“ steht oben und bleibt beim Rollen stehen.
-	const oben = felder.filter((f) => f.art === 'mischen');
-	const rest = felder.filter((f) => f.art !== 'mischen');
+	const rest = felder;
 	// Eine Überschrift lohnt erst ab zwei Feldern; „Mehr“ ist nur der Sammelplatz.
 	const ueberschrift = (feld: Feld) =>
 		feld.gruppe && feld.gruppe !== 'Mehr' && rest.filter((f) => f.gruppe === feld.gruppe).length > 1
 			? feld.gruppe
 			: undefined;
-	return felder.length === 0 ? null : (
+	// 197-06: „Neue Zahlen“ als erste Zeile unter „Inhalt“; bleibt beim Rollen oben.
+	const wuerfel = abschnitt === 'inhalt' && abb.hatNeueZahlen;
+	return felder.length === 0 && !wuerfel ? null : (
 		<div className="flex flex-col gap-1">
-			{oben.map((feld) => (
-				<Eingabe key={feld.attribut} feld={feld} abb={abb} />
-			))}
+			{wuerfel && (
+				<div className="sticky top-0 z-10 bg-flaeche py-1" data-neue-zahlen>
+					<Knopf art="zweit" disabled={!abb.aktiv} onClick={() => abb.neueZahlen()}>
+						<Symbol name="neueZahlen" />
+						Neue Zahlen
+					</Knopf>
+				</div>
+			)}
 			{rest.map((feld, i) => {
 				const gruppe = ueberschrift(feld);
 				return (
@@ -2085,6 +2216,11 @@ export const AbbildungFelder = ({ abb, abschnitt }: { abb: AbbildungSteuerung; a
 							<h4 className="mt-2 text-xs font-medium text-dezent" data-feldgruppe={gruppe}>
 								{gruppe}
 							</h4>
+						)}
+						{feld.attribut === abb.schema?.generiert && abb.eigeneAufgaben && (
+							<p className="text-xs text-leise" data-eigene-aufgaben>
+								Eigene Aufgaben. Die Einstellungen oben wirken erst wieder nach ‚Neue Zahlen‘.
+							</p>
 						)}
 						<Eingabe feld={feld} abb={abb} />
 					</Fragment>
