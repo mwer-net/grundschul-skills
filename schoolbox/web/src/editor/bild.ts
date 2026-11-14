@@ -3,7 +3,6 @@ import { kann } from '@schoolbox/kern/src/bausteine';
 import {
 	BILD_KANTE,
 	BILD_MIN,
-	entferneBild,
 	MAX_BILD_BYTES,
 	setzeBeschreibung,
 	setzeBildBreite,
@@ -31,8 +30,14 @@ const GERAETENAME = /^(img|image|dscn?|pxl|photo)[\s_-]*\d*$/i;
 /** Höhe eines neuen Bildplatzhalters (`--h` in blatt.css): So groß wird ein Bild, das ihn füllt. */
 const PLATZHALTER_HOEHE = 80;
 
-/** Fügt einen leeren Bildplatzhalter ein (093: Klick in der Bilder-Schublade ohne gewähltes Bild). */
+/** Fügt einen leeren Bildplatzhalter ein (⌘-Ziehen aus der Bilder-Schublade und dem Finder). */
 export type NeuerPlatz = (quelle: string) => StrukturErgebnis;
+
+/**
+ * 199-02: Ohne leeren Platz in der Auswahl legt die Schublade ein Bild frei in die Mitte der sichtbaren Seite, wie eine
+ * Figur. `src` ist schon der echte Pfad im Dokument.
+ */
+export type FreiAblegen = (bild: { src: string; alt: string; natur: { breite: number; hoehe: number } | null }) => void;
 
 export interface BildWerte {
 	nr: number;
@@ -81,7 +86,8 @@ interface Optionen {
 	adresse: string;
 	/** Adresse der Darstellung, gegen die `src` aufgelöst wird (`/ansicht/<mappe>/dokumente/<dok>/`). */
 	basis: string;
-	rueckgaengig: () => void;
+	/** Früher für „Bild entfernt. Rückgängig“; seit 199-10 löscht ⌫ das Bild wie jede Auswahl. */
+	rueckgaengig?: () => void;
 }
 
 /** Eine Beschreibung aus dem Dateinamen: „kürbis-ernte.jpg“ → „Kürbis ernte“, „IMG_1234.JPG“ → keine. */
@@ -237,7 +243,7 @@ const nimmtBild = (b: Baustein) => kann(b, 'bild') || b.art === 'bildrahmen';
  * dazu. Hochladen, Übernehmen legen zuerst eine Datei auf dem Server an; danach ändert ein Befehl nur `src` (bzw. setzt
  * das Bild an die Stelle des Platzhalters oder in den Rahmen). Jeder Befehl ist ein Schritt im Verlauf.
  */
-export const useBild = ({ adresse, basis, pfad, rueckgaengig, struktur }: Optionen) => {
+export const useBild = ({ adresse, basis, pfad, struktur }: Optionen) => {
 	const doc = struktur.gezeigt?.doc ?? null;
 	const zeige = useHinweis();
 	const [werte, setWerte] = useState<BildWerte | null>(null);
@@ -287,19 +293,14 @@ export const useBild = ({ adresse, basis, pfad, rueckgaengig, struktur }: Option
 
 	/**
 	 * Das neue Bild an die Stelle des alten, des Platzhalters bzw. in den leeren Bildrahmen; Größe und Rest bleiben.
-	 * Ist nichts davon gewählt und `neu` gegeben, entsteht ein neuer Bild-Baustein: Platzhalter einfügen und füllen ist
-	 * ein Schritt.
+	 * Mit `frei` (Bilder-Schublade, 199-02/05) füllt es nur einen leeren Platz; sonst legt `frei` ein neues Bild ab, auch
+	 * wenn gerade ein Bild gewählt ist: Die Schublade fügt hinzu, der Inspektor tauscht aus.
 	 */
 	const setzeEin = useCallback(
-		async (src: string, alt: string, natur: { breite: number; hoehe: number } | null, neu?: NeuerPlatz) => {
+		async (src: string, alt: string, natur: { breite: number; hoehe: number } | null, frei?: FreiAblegen) => {
 			const w = aktuell.current;
-			if (!w && neu) {
-				const masse = natur ?? (await masseVon(src));
-				fuehreAus(
-					'Bild eingefügt',
-					bildInNeuemPlatz(neu, { src, alt, breite: breiteImNeuenPlatz(masse) }),
-					true,
-				);
+			if (frei && (!w || !w.platzhalter)) {
+				frei({ src, alt, natur: natur ?? (await masseVon(src).catch(() => null)) });
 				return;
 			}
 			if (!w) {
@@ -311,14 +312,14 @@ export const useBild = ({ adresse, basis, pfad, rueckgaengig, struktur }: Option
 				return;
 			}
 			if (!w.platzhalter) {
-				ausfuehren('Bild getauscht', (q) => tauscheBild(q, w.nr, src, alt));
+				ausfuehren('Bild ausgetauscht', (q) => tauscheBild(q, w.nr, src, alt));
 				return;
 			}
 			const masse = natur ?? (await masseVon(src));
 			const breite = Math.min(w.max, w.breite, (w.hoehe * masse.breite) / Math.max(1, masse.hoehe));
 			ausfuehren('Bild eingesetzt', (q) => setzeBildEin(q, w.nr, { src, alt: alt || w.alt, breite }));
 		},
-		[masseVon, ausfuehren, fuehreAus],
+		[masseVon, ausfuehren],
 	);
 
 	const arbeite = useCallback(
@@ -335,8 +336,8 @@ export const useBild = ({ adresse, basis, pfad, rueckgaengig, struktur }: Option
 		[zeige],
 	);
 
-	/** `neu`: ohne gewähltes Bild als neuer Bild-Baustein (Bilder-Schublade). */
-	const hochladen = (datei: File, neu?: NeuerPlatz) =>
+	/** `frei`: aus der Bilder-Schublade, siehe `setzeEin`. */
+	const hochladen = (datei: File, frei?: FreiAblegen) =>
 		arbeite('hochladen', async () => {
 			const { daten, name } = await bereiteVor(datei);
 			const bild = await sendeDatei<{ src: string; breite: number; hoehe: number }>(
@@ -344,13 +345,13 @@ export const useBild = ({ adresse, basis, pfad, rueckgaengig, struktur }: Option
 				daten,
 				name,
 			);
-			await setzeEin(bild.src, beschreibungAus(datei.name), bild, neu);
+			await setzeEin(bild.src, beschreibungAus(datei.name), bild, frei);
 		});
 
-	const uebernimm = (schluessel: string, alt: string, neu?: NeuerPlatz) =>
+	const uebernimm = (schluessel: string, alt: string, frei?: FreiAblegen) =>
 		arbeite('sammlung', async () => {
 			const { src } = await sende<{ src: string }>(`${adresse}/bilder/uebernehmen`, { schluessel });
-			await setzeEin(src, alt, null, neu);
+			await setzeEin(src, alt, null, frei);
 		});
 
 	/**
@@ -400,12 +401,6 @@ export const useBild = ({ adresse, basis, pfad, rueckgaengig, struktur }: Option
 		}
 	};
 
-	const entferne = () => {
-		if (ausfuehren('Bild entfernt', (q, w) => entferneBild(q, w.nr))) {
-			zeige({ text: 'Bild entfernt.', aktion: { titel: 'Rückgängig', ausfuehren: rueckgaengig }, zumSchritt: true });
-		}
-	};
-
 	// Freie Bilder (103): Größe nur über `--b` (Griffe, „Anordnen“), sonst zwei Größenlogiken.
 	const groesse: Groesse | null =
 		werte && !werte.platzhalter && !werte.frei && struktur.aktiv
@@ -427,7 +422,9 @@ export const useBild = ({ adresse, basis, pfad, rueckgaengig, struktur }: Option
 		zeigeBreite,
 		setzeBreite,
 		beschreibe,
-		entferne,
+		/** 199-11: Die Leitfigur im Tipp tauscht Figur und Pose wie die freie Figur. */
+		doc,
+		fuehreAus,
 	};
 };
 

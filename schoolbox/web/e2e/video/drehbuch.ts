@@ -468,11 +468,11 @@ test('7a · Editor: Text und Aufbau', async ({ browser }) => {
 
 test('7b · Editor: Bilder, Uhr, Lösung', async ({ browser }) => {
 	const { m, seite, szene } = await imEditor(browser, 'k07b-bilder', await uhrzeitFertig());
-	szene.text('Bild aus der Sammlung');
+	szene.text('Figur tauschen');
 	await szene.klicke(m.locator('img.figur').first(), { pause: 600 });
-	await szene.klicke(seite.getByRole('button', { name: 'Aus der Sammlung' }), { pause: 700 });
-	const sammlung = seite.getByRole('dialog', { name: 'Bild aus der Sammlung' });
-	await szene.klicke(sammlung.locator('[data-sammlung-bild="_assets/bilder/wilma.png"]'), { pause: 800 });
+	// 199-11: Die Leitfigur tauscht Figur und Pose im Inspektor wie die freie Figur.
+	await seite.locator('[data-bildwerkzeug="figur"]').getByRole('combobox', { name: 'Figur' }).selectOption({ label: 'Wilma' });
+	await szene.pause(800);
 	szene.text('Farbig? Graustufen für s/w');
 	const farbig = seite.locator('[data-hinweis="farbig"]');
 	await szene.gehe(farbig);

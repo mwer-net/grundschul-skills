@@ -376,11 +376,12 @@ export const BEFEHLE: Befehl[] = [
 	}),
 	{
 		id: 'auswahl.bild-ersetzen',
-		// 204-14: ein Wort für das Austauschen, wie „Austauschen“ im Inspektor.
-		titel: 'Bild austauschen',
+		// 204-14, 199-15: ein Wort für das Austauschen, wie „Austauschen“ im Inspektor; am leeren Platz „einsetzen“.
+		titel: (k) =>
+			['platzhalter', 'bildrahmen'].includes(gewaehlt(k)?.baustein.art ?? '') ? 'Bild einsetzen' : 'Bild austauschen',
 		gruppe: 'bearbeiten',
 		symbol: 'bild',
-		suchwoerter: ['ersetzen', 'tauschen'],
+		suchwoerter: ['ersetzen', 'tauschen', 'einsetzen'],
 		orte: ['menue', 'palette', 'gestaltung'],
 		sichtbarUnter: 'inspektor',
 		verfuegbar: (k) => k.aktiv && k.hatBild,

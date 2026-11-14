@@ -109,18 +109,21 @@ test.afterEach(async ({ page }) => {
 });
 
 test.describe('Bild beschreiben (179)', () => {
-	test('Aufbau: Suche, „Welche Bilder?“, dann das Feld; „Foto hochladen“ im selben Rahmen', async ({ page }) => {
+	test('199-14: Suche, „Welche Bilder?“, das Feld, darunter „Foto hochladen“ für sich', async ({ page }) => {
 		await oeffneBilder(page);
 		const y = async (ziel: Locator) => (await ziel.boundingBox())?.y ?? Number.NaN;
 		const reihe = [
 			suche(page),
 			steuerung(page).getByRole('group', { name: 'Welche Bilder?' }),
 			steuerung(page).getByRole('textbox', { name: 'Bild beschreiben' }),
+			hochladen(page),
 		];
 		const oben = await Promise.all(reihe.map(y));
 		expect(oben).toEqual([...oben].sort((a, b) => a - b));
 		await expect(feld(page)).toHaveAttribute('placeholder', 'Bild beschreiben …');
-		await expect(schublade(page).locator('[data-bild-beschreiben]').getByText('Foto hochladen')).toBeVisible();
+		await expect(schublade(page).locator('[data-bild-beschreiben]').getByText('Foto hochladen')).toHaveCount(0);
+		const breite = async (ziel: Locator) => (await ziel.boundingBox())?.width ?? 0;
+		expect(Math.abs((await breite(hochladen(page))) - (await breite(suche(page))))).toBeLessThanOrEqual(1);
 		await expect(schublade(page).locator('[data-bild-datei]')).toHaveCount(1);
 		await expect(senden(page)).toBeDisabled();
 	});
@@ -153,7 +156,7 @@ test.describe('Bild beschreiben (179)', () => {
 		await expect(page.locator('[data-gestaltung-inspektor="bildrahmen"]')).toBeVisible();
 		await gruppenKnopf(page, 'Dieser Ordner').click();
 		await expect(notiz(page)).toHaveText('1 Bild');
-		await gruppenKnopf(page, 'Sammlung').click();
+		await gruppenKnopf(page, 'Mitgeliefert').click();
 		await suche(page).fill('x');
 
 		await beschreibe(page, WUNSCH);
@@ -279,9 +282,8 @@ test.describe('Bild beschreiben (179)', () => {
 		const [breit, hoch] = await knopf.evaluate((e) => [e.scrollWidth <= e.clientWidth, e.clientHeight]);
 		expect(breit).toBe(true);
 		expect(hoch).toBeLessThanOrEqual(48);
-		const linie = await Promise.all([mitte(figuren(page).first()), mitte(senden(page)), mitte(knopf)]);
+		const linie = await Promise.all([mitte(figuren(page).first()), mitte(senden(page))]);
 		expect(Math.abs((linie[0] ?? 0) - (linie[1] ?? 0))).toBeLessThanOrEqual(1);
-		expect(Math.abs((linie[1] ?? 0) - (linie[2] ?? 0))).toBeLessThanOrEqual(1);
 	});
 });
 

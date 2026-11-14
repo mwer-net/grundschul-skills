@@ -2307,8 +2307,9 @@ test.describe('Sachunterricht: Natur und Technik (034)', () => {
 		await druecke(lauf);
 		const zeile = panel(page).locator('[data-liste="stationen"] [data-zeile="0"]');
 		await druecke(zeile.locator('[data-bild-knopf]').first());
-		await druecke(page.getByRole('menuitem', { name: 'Aus der Sammlung' }));
-		const dialog = page.getByRole('dialog', { name: 'Bild aus der Sammlung' });
+		await druecke(page.getByRole('menuitem', { name: 'Aus Bildern wählen' }));
+		const dialog = page.getByRole('dialog', { name: 'Bild wählen' });
+		await druecke(dialog.getByRole('button', { name: 'Mitgeliefert', exact: true }));
 		await druecke(dialog.locator('[data-sammlung-bild="_assets/bilder/wachstum.png"]'));
 		await expect(dialog).toBeHidden();
 		await expect.poll(() => readFile(datei, 'utf8')).toMatch(/stationen="A: [^;"]*wachstum[^;"]*\.png; B; C"/);

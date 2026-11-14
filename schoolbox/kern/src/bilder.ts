@@ -5,6 +5,7 @@
  * nicht; sie stehen in der Figurenbibliothek (177).
  */
 
+import { createHash } from 'node:crypto';
 import { existsSync, realpathSync } from 'node:fs';
 import { mkdir, mkdtemp, readdir, readFile, rm, stat, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
@@ -244,29 +245,97 @@ export const uebernimmBild = async (
 	return { src: `${BILDER}/${await kopiereHerein(konfig, wirklich, path.join(dokDir, BILDER))}` };
 };
 
-/** Die Bilder direkt im Ordner; eine Strichfassung nur, wenn ihre Farbfassung fehlt. */
+/** In jedem `bilder/` einer Mappe: die Dateien, die „Entfernen“ aus der Bildauswahl genommen hat (199). */
+const AUSGEBLENDET = '.ausgeblendet.json';
+
+const leseAusgeblendet = async (ordner: string): Promise<Set<string>> => {
+	try {
+		const daten = JSON.parse(await readFile(path.join(ordner, AUSGEBLENDET), 'utf8')) as { dateien?: unknown };
+		return new Set(Array.isArray(daten.dateien) ? daten.dateien.filter((d) => typeof d === 'string') : []);
+	} catch {
+		return new Set();
+	}
+};
+
+/**
+ * Die Bilder direkt im Ordner; eine Strichfassung nur, wenn ihre Farbfassung fehlt. Ausgeblendete (199: „Entfernen“
+ * in der Bildauswahl) fehlen; die Dateien selbst bleiben liegen, ältere Versionen verweisen noch auf sie.
+ */
 const bildDateien = async (ordner: string) => {
+	const aus = await leseAusgeblendet(ordner);
 	const namen = (await readdir(ordner, { withFileTypes: true }).catch(() => []))
-		.filter((e) => e.isFile() && !e.name.startsWith('.') && BILD_DATEI.test(e.name))
+		.filter((e) => e.isFile() && !e.name.startsWith('.') && BILD_DATEI.test(e.name) && !aus.has(e.name))
 		.map((e) => e.name);
 	const staemme = new Set(namen.map(stammVon));
 	const farbeDa = (stamm: string) => stamm.endsWith(STRICH) && staemme.has(stamm.slice(0, -STRICH.length));
 	return namen.filter((n) => !farbeDa(stammVon(n))).map((n) => path.join(ordner, n));
 };
 
-/** Merkt sich, unter welchen Beschreibungen die Bilder eines Materials vorkommen. */
-const merkeAlt = (alt: Map<string, Set<string>>, html: string, dir: string) => {
+/** Je Datei (echter Pfad): unter welchen Beschreibungen sie vorkommt und welche Materialien sie zeigen. */
+interface Vorkommen {
+	alt: Map<string, Set<string>>;
+	genutzt: Map<string, Set<string>>;
+}
+
+/** Merkt sich, unter welchen Beschreibungen die Bilder eines Materials vorkommen und, mit `titel`, wer sie nutzt. */
+const merkeAlt = (v: Vorkommen, html: string, dir: string, titel?: string) => {
 	for (const k of zerlege(html).knoten) {
 		const src = k.tag === 'img' ? attribut(k, 'src')?.wert : null;
+		const datei = src ? sucheRessource(src, dir) : null;
+		if (!datei) {
+			continue;
+		}
 		const text = attribut(k, 'alt')?.wert?.trim();
-		const datei = src && text ? sucheRessource(src, dir) : null;
-		if (datei && text) {
-			alt.set(datei, new Set([...(alt.get(datei) ?? []), text]));
+		if (text) {
+			v.alt.set(datei, new Set([...(v.alt.get(datei) ?? []), text]));
+		}
+		if (titel !== undefined) {
+			v.genutzt.set(datei, new Set([...(v.genutzt.get(datei) ?? []), titel]));
 		}
 	}
 };
 
 const leseText = (datei: string) => readFile(datei, 'utf8').catch(() => '');
+
+/** Jedes Material der Ablage (ohne Papierkorb) mit seinem Ordner und Titel. */
+const materialien = async (materialDir: string) => {
+	const { mappen } = await sammleMappen(materialDir);
+	return mappen.flatMap(({ dokumente, mappe }) =>
+		dokumente.map((d) => ({
+			mappe,
+			dokDir: path.join(mappenDir(materialDir, mappe.id), 'dokumente', d.id),
+			titel: d.meta.titel || mappe.titel,
+		})),
+	);
+};
+
+const pruefsumme = async (datei: string) => createHash('sha256').update(await readFile(datei)).digest('hex');
+
+/**
+ * 199-06: Je Gruppe erscheint eine Datei gleichen Inhalts einmal (jedes Material hat seine Kopie). Gleiche Größe ist
+ * die Vorprüfung, erst dann zählt die Prüfsumme. Die erste Datei bleibt (Reihenfolge der Gruppe), die anderen werden
+ * ihre Kopien.
+ */
+const ohneDoppelte = async <T extends { d: string; groesse: number }>(liste: T[]) => {
+	const zahl = new Map<number, number>();
+	for (const x of liste) {
+		zahl.set(x.groesse, (zahl.get(x.groesse) ?? 0) + 1);
+	}
+	const erste = new Map<string, { x: T; kopien: string[] }>();
+	const ergebnis: { x: T; kopien: string[] }[] = [];
+	for (const x of liste) {
+		const schluessel = (zahl.get(x.groesse) ?? 0) > 1 ? `#${await pruefsumme(x.d)}` : `@${x.d}`;
+		const da = erste.get(schluessel);
+		if (da) {
+			da.kopien.push(x.d);
+			continue;
+		}
+		const neu = { x, kopien: [x.d] };
+		erste.set(schluessel, neu);
+		ergebnis.push(neu);
+	}
+	return ergebnis;
+};
 
 /** Alles, was die Bildersammlung im Editor zeigt. Was einer Figur gleicht, steht nur unter `figuren` (177). */
 export const sammleBilder = async (
@@ -276,55 +345,129 @@ export const sammleBilder = async (
 ): Promise<Sammlung> => {
 	const figuren = await leseBibliothek(konfig, materialDir);
 	const inhalte = await figurenInhalte(materialDir);
-	/** Je Datei die Änderungszeit („Meine Bilder“: neueste zuerst); was einer Figur gleicht, fällt weg. */
+	/** Je Datei die Änderungszeit („Andere Ordner“: neueste zuerst); was einer Figur gleicht, fällt weg. */
 	const ohneFigurdateien = async (dateien: string[]) => {
 		const gesehen = await Promise.all(
 			dateien.map(async (d) => {
 				const info = await stat(d);
-				return (await gleichtFigur(inhalte, d, info)) ? [] : [{ d, zeit: info.mtimeMs }];
+				return (await gleichtFigur(inhalte, d, info)) ? [] : [{ d, zeit: info.mtimeMs, groesse: info.size }];
 			}),
 		);
 		return gesehen.flat();
 	};
 	const { mappen } = await sammleMappen(materialDir);
-	const alt = new Map<string, Set<string>>();
+	const v: Vorkommen = { alt: new Map(), genutzt: new Map() };
 	for (const html of (await readdir(ASSETS)).filter((n) => n.endsWith('.html'))) {
-		merkeAlt(alt, await leseText(path.join(ASSETS, html)), ASSETS);
+		merkeAlt(v, await leseText(path.join(ASSETS, html)), ASSETS);
 	}
 	const fundorte = await Promise.all(
 		mappen.map(async ({ dokumente, mappe }) => {
 			const dir = mappenDir(materialDir, mappe.id);
-			const dokDirs = dokumente.map((d) => path.join(dir, 'dokumente', d.id));
-			for (const dokDir of dokDirs) {
-				merkeAlt(alt, await leseText(path.join(dokDir, 'material.html')), dokDir);
+			const dokDirs = dokumente.map((d) => ({ dir: path.join(dir, 'dokumente', d.id), titel: d.meta.titel }));
+			for (const dok of dokDirs) {
+				merkeAlt(v, await leseText(path.join(dok.dir, 'material.html')), dok.dir, dok.titel || mappe.titel);
 			}
-			const ordner = [path.join(dir, BILDER), ...dokDirs.map((d) => path.join(d, BILDER))];
+			const ordner = [path.join(dir, BILDER), ...dokDirs.map((d) => path.join(d.dir, BILDER))];
 			return { mappe, dateien: await ohneFigurdateien((await Promise.all(ordner.map(bildDateien))).flat()) };
 		}),
 	);
-	const eintrag = (datei: string, schluessel: string, mappe?: string): SammlungsBild => ({
-		schluessel,
-		name: path.basename(datei),
-		alt: [...(alt.get(realpathSync(datei)) ?? [])],
-		...(mappe === undefined ? {} : { mappe }),
-	});
-	const nachName = (a: SammlungsBild, b: SammlungsBild) => a.name.localeCompare(b.name, 'de');
 	const relativ = (datei: string) => path.relative(materialDir, datei).split(path.sep).join('/');
+	const eintrag = (datei: string, schluessel: string, mappe?: string, kopien: string[] = [datei]): SammlungsBild => {
+		const echte = kopien.map((k) => realpathSync(k));
+		const alt = new Set(echte.flatMap((k) => [...(v.alt.get(k) ?? [])]));
+		const genutzt = new Set(echte.flatMap((k) => [...(v.genutzt.get(k) ?? [])]));
+		return {
+			schluessel,
+			name: path.basename(datei),
+			alt: [...alt],
+			...(mappe === undefined ? {} : { mappe }),
+			...(schluessel.startsWith(`${ASSETS_SCHLUESSEL}/`)
+				? {}
+				: { kopien: kopien.map(relativ), genutzt: [...genutzt].sort((a, b) => a.localeCompare(b, 'de')) }),
+		};
+	};
+	const nachName = (a: SammlungsBild, b: SammlungsBild) => a.name.localeCompare(b.name, 'de');
 
 	const sammlung = (await ohneFigurdateien(await bildDateien(path.join(ASSETS, BILDER))))
 		.map(({ d }) => eintrag(d, `${ASSETS_SCHLUESSEL}/${BILDER}/${path.basename(d)}`))
 		.sort(nachName);
 	const eigene = fundorte.find((f) => f.mappe.id === mappeId);
-	const mappe = [...(eigene?.dateien ?? [])]
-		.sort((a, b) => b.zeit - a.zeit || path.basename(a.d).localeCompare(path.basename(b.d), 'de'))
-		.map(({ d }) => eintrag(d, relativ(d)));
-	const meine = fundorte
-		.filter((f) => f.mappe.id !== mappeId)
-		.flatMap((f) => f.dateien.map((x) => ({ ...x, titel: f.mappe.titel })))
-		.sort((a, b) => b.zeit - a.zeit)
-		.map(({ d, titel }) => eintrag(d, relativ(d), titel));
+	const mappe = (
+		await ohneDoppelte(
+			[...(eigene?.dateien ?? [])].sort(
+				(a, b) => b.zeit - a.zeit || path.basename(a.d).localeCompare(path.basename(b.d), 'de'),
+			),
+		)
+	).map(({ kopien, x }) => eintrag(x.d, relativ(x.d), undefined, kopien));
+	const meine = (
+		await ohneDoppelte(
+			fundorte
+				.filter((f) => f.mappe.id !== mappeId)
+				.flatMap((f) => f.dateien.map((x) => ({ ...x, titel: f.mappe.titel })))
+				.sort((a, b) => b.zeit - a.zeit),
+		)
+	).map(({ kopien, x }) => eintrag(x.d, relativ(x.d), x.titel, kopien));
 	const posen = figuren.flatMap((f) =>
 		f.posen.map((p) => ({ schluessel: p.schluessel, name: path.basename(p.schluessel), alt: [f.name] })),
 	);
 	return { sammlung, mappe, meine, figuren: posen };
+};
+
+/** Die Datei zu einem Schlüssel aus „Dieser Ordner“ oder „Andere Ordner“; Mitgeliefertes und Figuren nicht. */
+const eigeneBilddatei = (materialDir: string, schluessel: string) => {
+	const teile = schluessel.split('/');
+	const name = teile.at(-1) ?? '';
+	const [anfang = ''] = teile;
+	if (
+		teile.some((t) => !t || t.startsWith('.') || t.includes('\\')) ||
+		!BILD_DATEI.test(name) ||
+		anfang === ASSETS_SCHLUESSEL ||
+		anfang === FIGUREN_ORDNER
+	) {
+		throw ungueltig();
+	}
+	pruefeId(anfang, 'Mappe');
+	const rest = teile.slice(1);
+	const ok = (rest.length === 2 && rest[0] === BILDER) || (rest.length === 4 && rest[0] === 'dokumente' && rest[2] === BILDER);
+	if (!ok) {
+		throw ungueltig();
+	}
+	const datei = path.join(mappenDir(materialDir, anfang), ...rest);
+	const wirklich = echt(datei);
+	if (wirklich === null || !liegtIn(wirklich, realpathSync(mappenDir(materialDir, anfang)))) {
+		throw ungueltig();
+	}
+	return datei;
+};
+
+/**
+ * 199: „Entfernen“ in der Bildauswahl. Nimmt die Dateien (ein Bild mit seinen Kopien, `kopien`) aus der Auswahl, wenn
+ * kein Material sie zeigt; `aus: false` holt sie zurück (Rückgängig). Gelöscht wird nichts: Ältere Versionen und der
+ * Papierkorb verweisen noch auf die Dateien.
+ */
+export const blendeBildAus = async (materialDir: string, schluessel: readonly string[], aus = true) => {
+	if (schluessel.length === 0) {
+		throw ungueltig();
+	}
+	const dateien = schluessel.map((s) => eigeneBilddatei(materialDir, s));
+	if (aus) {
+		const v: Vorkommen = { alt: new Map(), genutzt: new Map() };
+		for (const m of await materialien(materialDir)) {
+			merkeAlt(v, await leseText(path.join(m.dokDir, 'material.html')), m.dokDir, m.titel);
+		}
+		const genutzt = [...new Set(dateien.flatMap((d) => [...(v.genutzt.get(realpathSync(d)) ?? [])]))];
+		if (genutzt.length > 0) {
+			throw new SchoolboxFehler(`Das Bild steht noch in „${genutzt[0]}“ und bleibt deshalb.`);
+		}
+	}
+	for (const datei of dateien) {
+		const ordner = path.dirname(datei);
+		const liste = await leseAusgeblendet(ordner);
+		if (aus) {
+			liste.add(path.basename(datei));
+		} else {
+			liste.delete(path.basename(datei));
+		}
+		await schreibeAtomar(path.join(ordner, AUSGEBLENDET), `${JSON.stringify({ dateien: [...liste].sort() }, null, 2)}\n`);
+	}
 };

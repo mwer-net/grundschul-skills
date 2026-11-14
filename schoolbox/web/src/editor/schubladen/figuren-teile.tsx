@@ -2,6 +2,7 @@ import type { CanvaStand } from '@schoolbox/kern/src/canva-auftrag';
 import { CANVA_TEXT_ZEICHEN } from '@schoolbox/kern/src/canva-auftrag';
 import type { BibliotheksFigur, Pose } from '@schoolbox/kern/src/figuren';
 import { poseName } from '@schoolbox/kern/src/figuren';
+import type { FigurRueckweg } from '@schoolbox/kern/src/figurenbibliothek';
 import type { FormEvent } from 'react';
 import { useEffect, useRef, useState } from 'react';
 
@@ -10,6 +11,7 @@ import { useHinweis } from '../../bausteine/hinweis';
 import { klassen } from '../../bausteine/klassen';
 import { Menue } from '../../bausteine/Menue';
 import {
+	ABSCHNITT_TITEL,
 	Schublade,
 	Schubladenabschnitt,
 	SCHUBLADENKACHEL,
@@ -28,7 +30,7 @@ import { LimitZeile } from '../LimitZeile';
 import type { SchubladenTeile } from '.';
 import { CanvaKacheln } from './CanvaKachel';
 import { gutFuer, srcFuer } from './figuren-daten';
-import { MehrKreis, SendenKreis } from './kreise';
+import { KACHEL_MEHR, SendenKreis } from './kreise';
 import { kopf } from './reihe';
 
 // Später: 128 setzt einen Abschnitt „Sticker“ unter die Figuren (nur bei „ja“ zu F3), als eigenen Abschnitt in `Inhalt`.
@@ -39,15 +41,88 @@ const passt = (figur: BibliotheksFigur, pose: Pose, woerter: readonly string[]) 
 	return woerter.every((wort) => text.includes(wort));
 };
 
-/** Das ⋯ an einer Posenkachel: beim Überfahren und bei Fokus, am iPad immer. */
-const MEHR = (
-	<button
-		type="button"
-		className="absolute top-0 right-0 flex size-7 items-start justify-end p-1 opacity-0 group-hover:opacity-100 group-has-[:focus-visible]:opacity-100 data-[popup-open]:opacity-100 [@media(any-pointer:coarse)]:size-11 [@media(any-pointer:coarse)]:opacity-100"
-	>
-		<MehrKreis />
-	</button>
-);
+/**
+ * Der Titel eines Figurenabschnitts. Doppelklick (oder ⋯ → „Figur umbenennen“) macht ihn zum Feld: Enter oder
+ * Verlassen übernimmt, Esc bricht ab (199, entschieden vom Admin). Willi und Wilma heißen fest.
+ */
+const FigurTitel = ({
+	bearbeitet,
+	figur,
+	setBearbeitet,
+}: {
+	figur: BibliotheksFigur;
+	bearbeitet: boolean;
+	setBearbeitet: (an: boolean) => void;
+}) => {
+	const [name, setName] = useState(figur.name);
+	const zeigeHinweis = useHinweis();
+	// Enter und Esc beenden; das `blur` beim Verschwinden des Felds zählt dann nicht mehr.
+	const fertigSchon = useRef(false);
+	useEffect(() => {
+		setName(figur.name);
+		fertigSchon.current = false;
+	}, [figur.name, bearbeitet]);
+	const fertig = (uebernehmen: boolean) => {
+		if (fertigSchon.current) {
+			return;
+		}
+		fertigSchon.current = true;
+		setBearbeitet(false);
+		const neu = name.trim();
+		if (!uebernehmen || !neu || neu === figur.name) {
+			return;
+		}
+		void sende(`/api/figuren/${encodeURIComponent(figur.id)}/umbenennen`, { name: neu }).then(
+			() => ladeFigurenNeu(),
+			(grund: unknown) => zeigeHinweis({ text: meldung(grund), art: 'fehler' }),
+		);
+	};
+	if (bearbeitet) {
+		return (
+			<input
+				// Wie `EIGENE_GESCHICHTE`: ⌘Z im Feld gehört dem Feld.
+				data-eigene-geschichte=""
+				data-figur-name-feld={figur.id}
+				aria-label="Name der Figur"
+				// Das Feld erscheint erst auf Doppelklick oder „Figur umbenennen“: Dorthin gehört der Fokus.
+				// eslint-disable-next-line jsx-a11y/no-autofocus
+				autoFocus
+				maxLength={40}
+				value={name}
+				onFocus={(e) => e.currentTarget.select()}
+				onChange={(e) => setName(e.target.value)}
+				onBlur={() => fertig(true)}
+				onKeyDown={(e) => {
+					if (e.key === 'Enter') {
+						e.preventDefault();
+						fertig(true);
+					} else if (e.key === 'Escape') {
+						e.preventDefault();
+						e.stopPropagation();
+						fertig(false);
+					}
+				}}
+				className={klassen(
+					ABSCHNITT_TITEL,
+					'h-knopf w-full rounded-lg border border-brand-500 bg-flaeche px-2 focus:outline-none',
+				)}
+			/>
+		);
+	}
+	return (
+		<h3
+			className={klassen(ABSCHNITT_TITEL, 'truncate')}
+			data-figur-titel={figur.id}
+			onDoubleClick={figur.eingebaut ? undefined : () => setBearbeitet(true)}
+		>
+			{figur.name}
+		</h3>
+	);
+};
+
+/** Läuft für diesen Text schon ein Auftrag? Dann sendet Enter nicht noch einmal (199, entschieden vom Admin). */
+const laeuftSchon = (laeufe: readonly CanvaStand[], text: string) =>
+	laeufe.some((l) => l.art === 'figur' && l.status !== 'fehler' && l.text.trim() === text.trim());
 
 /**
  * „Figur beschreiben“ unter der Suche (Optik wie `Schubladensuche`). Nach der Antwort bleibt der Text markiert:
@@ -56,9 +131,11 @@ const MEHR = (
 const FigurBeschreiben = ({
 	fehler,
 	ki,
+	laeufe,
 	setFehler,
 }: {
 	ki: SchubladenTeile['ki'];
+	laeufe: readonly CanvaStand[];
 	fehler: string | null;
 	setFehler: (fehler: string | null) => void;
 }) => {
@@ -66,7 +143,8 @@ const FigurBeschreiben = ({
 	const [sendet, setSendet] = useState(false);
 	const feld = useRef<HTMLInputElement>(null);
 	const gesperrt = ki.hinweis?.art === 'gesperrt';
-	const kannSenden = text.trim() !== '' && !sendet && !gesperrt;
+	const doppelt = text.trim() !== '' && laeuftSchon(laeufe, text);
+	const kannSenden = text.trim() !== '' && !sendet && !gesperrt && !doppelt;
 	const schicke = async (ev: FormEvent) => {
 		ev.preventDefault();
 		if (!kannSenden) {
@@ -119,6 +197,11 @@ const FigurBeschreiben = ({
 					{fehler}
 				</p>
 			)}
+			{doppelt && !fehler && (
+				<p className="text-xs text-leise" data-figur-laeuft-schon>
+					Diese Figur wird schon gemalt. Ändere die Beschreibung für eine weitere Fassung.
+				</p>
+			)}
 			{gesperrt && ki.hinweis && <LimitZeile hinweis={ki.hinweis} pruefeLimit={ki.pruefeLimit} />}
 		</>
 	);
@@ -149,11 +232,26 @@ export const Inhalt = (t: SchubladenTeile) => {
 			() => canvaAktion(stand.id, 'verwerfen'),
 			(grund: unknown) => setFehler(meldung(grund)),
 		);
-	const entferne = (pose: Pose) =>
-		void sende(`/api/figuren/posen/${encodeURIComponent(pose.id)}/entfernen`).then(
-			() => ladeFigurenNeu(),
+	// 199-03: Entfernen geht sofort, der Hinweis bietet „Rückgängig“ (wie ⌫ im Blatt).
+	const entferne = (figur: BibliotheksFigur, pose: Pose) =>
+		void sende<{ rueckweg: FigurRueckweg }>(`/api/figuren/posen/${encodeURIComponent(pose.id)}/entfernen`).then(
+			({ rueckweg }) => {
+				ladeFigurenNeu();
+				zeigeHinweis({
+					text: rueckweg.art === 'figur' ? `${figur.name} entfernt.` : 'Pose entfernt.',
+					aktion: {
+						titel: 'Rückgängig',
+						ausfuehren: () =>
+							void sende('/api/figuren/wiederherstellen', { rueckweg }).then(
+								() => ladeFigurenNeu(),
+								(grund: unknown) => zeigeHinweis({ text: meldung(grund), art: 'fehler' }),
+							),
+					},
+				});
+			},
 			(grund: unknown) => zeigeHinweis({ text: meldung(grund), art: 'fehler' }),
 		);
+	const [umbenennen, setUmbenennen] = useState<string | null>(null);
 
 	const { doc, folien, struktur } = t;
 	const kachel = (figur: BibliotheksFigur, pose: Pose) => {
@@ -193,13 +291,16 @@ export const Inhalt = (t: SchubladenTeile) => {
 				<Menue
 					name="Weitere Aktionen"
 					rechtsbuendig
-					ausloeser={MEHR}
+					ausloeser={KACHEL_MEHR}
 					eintraege={[
+						...(figur.eingebaut
+							? []
+							: [{ titel: 'Figur umbenennen', symbol: 'stift' as const, waehle: () => setUmbenennen(figur.id) }]),
 						{
-							titel: grundpose ? 'Figur entfernen' : 'Entfernen',
+							titel: grundpose ? 'Figur entfernen' : 'Pose entfernen',
 							symbol: 'papierkorb',
 							gefahr: true,
-							waehle: () => entferne(pose),
+							waehle: () => entferne(figur, pose),
 						},
 					]}
 				/>
@@ -211,7 +312,7 @@ export const Inhalt = (t: SchubladenTeile) => {
 		<>
 			<Schubladensuche beschriftung="Figuren suchen" wert={suche} setWert={setSuche} />
 			{!(t.ki.geladen && !t.ki.verfuegbar) && (
-				<FigurBeschreiben ki={t.ki} fehler={fehler} setFehler={setFehler} />
+				<FigurBeschreiben ki={t.ki} laeufe={laeufe} fehler={fehler} setFehler={setFehler} />
 			)}
 		</>
 	);
@@ -222,15 +323,22 @@ export const Inhalt = (t: SchubladenTeile) => {
 				{neueFigur && (
 					<Schubladenabschnitt titel="Neue Figur" daten={{ 'data-canva-neu': '' }}>
 						<div className={raster(3)}>
-							<CanvaKacheln laeufe={laeufe} figur={null} nochmal={nochmal} />
+							<CanvaKacheln laeufe={laeufe} figur={null} nochmal={nochmal} nur="fehler" />
+							<CanvaKacheln laeufe={laeufe} figur={null} nochmal={nochmal} nur="offen" />
 						</div>
 					</Schubladenabschnitt>
 				)}
 				{gezeigt.map(({ figur, posen }) => (
-					<Schubladenabschnitt key={figur.id} titel={figur.name} daten={{ 'data-figuren-gruppe': figur.id }}>
+					<Schubladenabschnitt key={figur.id} daten={{ 'data-figuren-gruppe': figur.id }}>
+						<FigurTitel
+							figur={figur}
+							bearbeitet={umbenennen === figur.id}
+							setBearbeitet={(an) => setUmbenennen(an ? figur.id : null)}
+						/>
 						<div className={raster(3)}>
-							{canva && <CanvaKacheln laeufe={laeufe} figur={figur.id} nochmal={nochmal} />}
+							{canva && <CanvaKacheln laeufe={laeufe} figur={figur.id} nochmal={nochmal} nur="fehler" />}
 							{posen.map((pose) => kachel(figur, pose))}
+							{canva && <CanvaKacheln laeufe={laeufe} figur={figur.id} nochmal={nochmal} nur="offen" />}
 						</div>
 					</Schubladenabschnitt>
 				))}

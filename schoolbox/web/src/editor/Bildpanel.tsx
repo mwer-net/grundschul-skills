@@ -3,23 +3,34 @@ import { vorschaubildAdresse } from '@schoolbox/kern/src/bildbefehle';
 import type { ReactNode } from 'react';
 import { useEffect, useId, useMemo, useRef, useState } from 'react';
 
-import { Chip } from '../bausteine/Chip';
 import { Dialog } from '../bausteine/Dialog';
 import { FELD_KLASSEN, klassen, knopfKlassen } from '../bausteine/klassen';
 import { Knopf } from '../bausteine/Knopf';
-import { KACHELNAME, SCHUBLADENKACHEL, Schubladenleer } from '../bausteine/Schublade';
+import { Menue } from '../bausteine/Menue';
+import {
+	KACHELNAME,
+	NOTIZ,
+	SCHUBLADENKACHEL,
+	Schubladenleer,
+	Schubladensuche,
+	STEUER_SEGMENT,
+} from '../bausteine/Schublade';
 import { nichtsPasst, raster } from '../bausteine/schubladenhilfe';
+import { Segment } from '../bausteine/Segment';
 import { Symbol } from '../bausteine/Symbol';
 import { Tooltip } from '../bausteine/Tooltip';
 import { Zeile } from '../bausteine/Zeile';
 import { useLaden } from '../lib/laden';
-import type { BildSteuerung, BildWerte, NeuerPlatz } from './bild';
+import type { BildSteuerung, BildWerte, FreiAblegen } from './bild';
 import { beschreibungAus } from './bild';
 import { gesehen, merkeGesehen, passt } from './bild-sammlung';
+import { elementZu } from './darstellung';
 import type { AblegenTeile } from './gestaltung/ablegen/ablegen';
 import { AblageKachel } from './gestaltung/ablegen/Kachel';
 import type { GestaltungsGut } from './gestaltung/ablegen/ziehgut';
-import { EIGENE_GESCHICHTE } from './tasten';
+import { adresseVon } from './gestaltung/figuren-quelle';
+import { FigurAuswahl } from './gestaltung/inspektor/figur-teile';
+import { KACHEL_MEHR } from './schubladen/kreise';
 
 /** Der Hinweis selbst; 103 zeigt ihn auch, wenn ein Foto aus dem Finder aufs Blatt fällt. */
 export const FOTO_HINWEIS = 'Bitte keine Fotos, auf denen Kinder zu erkennen sind.';
@@ -33,21 +44,21 @@ export const Laeuft = ({ text }: { text: string }) => (
 
 /**
  * „Foto hochladen“ ist ein `<label>` für ein verstecktes Dateifeld: So öffnet Safari auf dem iPad die Fotomediathek
- * zuverlässig. Das Feld bleibt immer im Dokument, auch während der Hinweis steht. `neu`: ohne gewähltes Bild entsteht
- * ein neuer Bild-Baustein (Bilder-Schublade).
+ * zuverlässig. Das Feld bleibt immer im Dokument, auch während der Hinweis steht. `frei`: aus der Bilder-Schublade legt
+ * das Foto ein neues Bild in die Mitte (199-02), außer ein leerer Platz ist gewählt.
  */
 export const Hochladen = ({
+	aus = false,
 	bild,
 	breit = false,
-	klein = false,
-	neu,
+	frei,
 }: {
 	bild: BildSteuerung;
-	neu?: NeuerPlatz | undefined;
-	/** Über die ganze Breite, wie in der Bilder-Schublade. */
+	frei?: FreiAblegen | undefined;
+	/** Über die ganze Breite, wie in der Bilder-Schublade und im Inspektor. */
 	breit?: boolean;
-	/** Klein in der unteren Zeile von „Bild beschreiben …“. */
-	klein?: boolean;
+	/** 199-17: gesperrtes Blatt (Versionsvorschau, Konflikt) wie die Kacheln daneben. */
+	aus?: boolean;
 }) => {
 	const feld = useId();
 	const [hinweis, setHinweis] = useState(false);
@@ -64,23 +75,29 @@ export const Hochladen = ({
 				e.target.value = '';
 				setHinweis(false);
 				if (datei) {
-					void bild.hochladen(datei, neu);
+					void bild.hochladen(datei, frei);
 				}
 			}}
 		/>
 	);
 	if (hinweis) {
 		return (
-			<div className="basis-full rounded-xl border border-entwurf bg-warnung-hell p-4" role="note">
+			<div className="w-full basis-full rounded-xl border border-entwurf bg-warnung-hell p-3" role="note">
 				{eingabe}
 				<p className="font-medium">{FOTO_HINWEIS}</p>
-				<div className="mt-3 flex flex-wrap gap-2">
-					<label htmlFor={feld} className={knopfKlassen('haupt', 'cursor-pointer')} onClick={merkeGesehen}>
-						Verstanden, Foto wählen
-					</label>
-					<Knopf art="leise" onClick={() => setHinweis(false)}>
+				{/* 199-23: eine Zeile wie in jedem Dialog, „Abbrechen“ links, die Hauptaktion rechts. */}
+				<div className="mt-3 flex items-center justify-end gap-2" data-foto-hinweis-knoepfe>
+					<Knopf art="leise" groesse="klein" onClick={() => setHinweis(false)}>
 						Abbrechen
 					</Knopf>
+					<label
+						htmlFor={feld}
+						className={knopfKlassen('haupt', 'cursor-pointer', 'klein')}
+						data-hauptaktion
+						onClick={merkeGesehen}
+					>
+						Verstanden, Foto wählen
+					</label>
 				</div>
 			</div>
 		);
@@ -88,14 +105,10 @@ export const Hochladen = ({
 	return (
 		<>
 			{eingabe}
-			{gesehen() ? (
+			{gesehen() && !aus ? (
 				<label
 					htmlFor={feld}
-					className={knopfKlassen(
-						'zweit',
-						klassen('cursor-pointer', breit && 'w-full'),
-						klein ? 'klein' : 'standard',
-					)}
+					className={knopfKlassen('zweit', klassen('cursor-pointer', breit && 'w-full'), 'standard')}
 				>
 					<Symbol name="hochladen" />
 					Foto hochladen
@@ -103,8 +116,8 @@ export const Hochladen = ({
 			) : (
 				<Knopf
 					art="zweit"
-					groesse={klein ? 'klein' : 'standard'}
 					className={breit ? 'w-full' : undefined}
+					disabled={aus}
 					onClick={() => setHinweis(true)}
 				>
 					<Symbol name="hochladen" />
@@ -115,13 +128,24 @@ export const Hochladen = ({
 	);
 };
 
-const GRUPPEN = [
-	{ art: 'sammlung', titel: 'Willi & Co.' },
-	{ art: 'mappe', titel: 'Dieser Ordner' },
-	{ art: 'meine', titel: 'Meine Bilder' },
+/**
+ * Die drei Gruppen der Bildauswahl, in Schublade und Dialog gleich (199-12, 199-13): erst die Bilder dieses Ordners,
+ * dann die der anderen Ordner, dann die mitgelieferten. Figuren stehen nur in „Figuren“ (55).
+ */
+export const BILDGRUPPEN = [
+	{ wert: 'mappe', titel: 'Dieser Ordner' },
+	{ wert: 'meine', titel: 'Andere Ordner' },
+	{ wert: 'sammlung', titel: 'Mitgeliefert' },
 ] as const;
 
-export type SammlungsGruppe = (typeof GRUPPEN)[number]['art'];
+export type SammlungsGruppe = (typeof BILDGRUPPEN)[number]['wert'];
+
+/** „3 Bilder“ neben der Gruppe; ohne Bilder nichts. */
+export const bilderZahl = (zahl: number) => (zahl === 0 ? undefined : `${zahl} ${zahl === 1 ? 'Bild' : 'Bilder'}`);
+
+/** 199-21: Ohne Beschreibung der Name aus der Datei („marktplatz.jpg“ → „Marktplatz“), Kameranamen bleiben. */
+export const bildName = (eintrag: SammlungsBild) =>
+	eintrag.alt[0] ?? (beschreibungAus(eintrag.name) || eintrag.name);
 
 /** Ziehen aus der Bilder-Schublade (103): das Gut zu einem Eintrag, sobald die Maße der Vorschau bekannt sind. */
 export type BildZiehen = (
@@ -129,25 +153,26 @@ export type BildZiehen = (
 	natur: { breite: number; hoehe: number } | null,
 ) => { gut: GestaltungsGut; teile: AblegenTeile } | null;
 
+/**
+ * Eine Bildkachel, in Schublade und Dialog gleich (199-12). `entferne`: das ⋯ an der Kachel mit „Entfernen“; steht das
+ * Bild noch in einem Material, ist der Eintrag gesperrt und sagt, wo (199, entschieden vom Admin).
+ */
 const Kachel = ({
 	aus,
 	eintrag,
-	klein,
+	entferne,
 	waehle,
 	ziehen,
 }: {
 	eintrag: SammlungsBild;
 	waehle: () => void;
-	klein: boolean;
 	aus: boolean;
 	ziehen?: BildZiehen | undefined;
+	entferne?: ((eintrag: SammlungsBild) => void) | undefined;
 }) => {
 	const [natur, setNatur] = useState<{ breite: number; hoehe: number } | null>(null);
-	const name = eintrag.alt[0] ?? eintrag.name;
-	// In der Schublade die Kachel aller Schubladen, im Dialog wie bisher.
-	const klasse = klein
-		? klassen(SCHUBLADENKACHEL, 'flex w-full flex-col items-center gap-1 p-2')
-		: 'flex w-full flex-col gap-1 rounded-xl border border-rand bg-flaeche p-2 text-left hover:border-brand-200 hover:bg-flaeche-2 disabled:opacity-50';
+	const name = bildName(eintrag);
+	const klasse = klassen(SCHUBLADENKACHEL, 'flex w-full flex-col items-center gap-1 p-2');
 	const inhalt = (
 		<>
 			<img
@@ -156,33 +181,36 @@ const Kachel = ({
 				loading="lazy"
 				decoding="async"
 				draggable={false}
-				className={klein ? 'h-24 w-full object-contain' : 'h-28 w-full rounded-lg bg-papier object-contain'}
+				className="h-24 w-full object-contain"
 				onLoad={(e) => {
 					const { naturalHeight: hoehe, naturalWidth: breite } = e.currentTarget;
 					setNatur(breite > 0 ? { breite, hoehe } : null);
 				}}
 			/>
-			<span className={klein ? KACHELNAME : 'truncate font-medium'}>{name}</span>
-			{eintrag.mappe && (
-				<span className={klein ? KACHELNAME : 'truncate text-sm text-leise'}>{eintrag.mappe}</span>
-			)}
+			<span className={KACHELNAME}>{name}</span>
 		</>
 	);
 	const zug = ziehen?.(eintrag, natur);
-	const knopf = (
-		<button
-			type="button"
-			className={klasse}
-			disabled={aus}
-			data-sammlung-bild={eintrag.schluessel}
-			onClick={waehle}
-		>
-			{inhalt}
-		</button>
+	const genutzt = eintrag.genutzt?.[0];
+	const mehr = entferne && eintrag.kopien && (
+		<Menue
+			name="Weitere Aktionen"
+			rechtsbuendig
+			ausloeser={KACHEL_MEHR}
+			eintraege={[
+				{
+					titel: 'Entfernen',
+					symbol: 'papierkorb',
+					gefahr: true,
+					aus: aus || Boolean(genutzt),
+					...(genutzt ? { beschreibung: `Steht in „${genutzt}“.` } : {}),
+					waehle: () => entferne(eintrag),
+				},
+			]}
+		/>
 	);
-	const ohneZug = klein ? <Tooltip text={name}>{knopf}</Tooltip> : knopf;
 	return (
-		<li className="min-w-0">
+		<li className="group relative min-w-0">
 			{zug ? (
 				<AblageKachel
 					teile={zug.teile}
@@ -196,8 +224,19 @@ const Kachel = ({
 					{inhalt}
 				</AblageKachel>
 			) : (
-				ohneZug
+				<Tooltip text={eintrag.mappe ? `${name} · ${eintrag.mappe}` : name}>
+					<button
+						type="button"
+						className={klasse}
+						disabled={aus}
+						data-sammlung-bild={eintrag.schluessel}
+						onClick={waehle}
+					>
+						{inhalt}
+					</button>
+				</Tooltip>
 			)}
+			{mehr}
 		</li>
 	);
 };
@@ -205,9 +244,10 @@ const Kachel = ({
 /** Ein Wortlaut für jede Suche ohne Treffer, in der Schublade wie im Dialog. */
 const leerText = (suche: string) => (suche.trim() ? nichtsPasst(suche) : 'Hier gibt es noch keine Bilder.');
 
-/** Kacheln einer Gruppe mit Laden, Fehler und Leerzustand; im Dialog groß, in der Bilder-Schublade klein. */
+/** Kacheln einer Gruppe mit Laden, Fehler und Leerzustand; Schublade und Dialog zeigen dieselben Kacheln (199-12). */
 export const SammlungsKacheln = ({
 	aus = false,
+	entferne,
 	fehler,
 	geladen,
 	gruppe,
@@ -230,38 +270,32 @@ export const SammlungsKacheln = ({
 	ziehen?: BildZiehen | undefined;
 	/** Erste `<li>` derselben Liste: die Canva-Aufträge in „Dieser Ordner“. */
 	vorne?: ReactNode;
+	entferne?: ((eintrag: SammlungsBild) => void) | undefined;
 }) => (
 	<>
 		{fehler && <p className="font-medium text-fehler">{fehler}</p>}
 		{!geladen && !fehler && <Laeuft text="Bilder werden geladen …" />}
-		{geladen &&
-			liste.length === 0 &&
-			!vorne &&
-			(klein ? (
-				<Schubladenleer>{leerText(suche)}</Schubladenleer>
-			) : (
-				<p className="text-leise">{leerText(suche)}</p>
-			))}
-		<ul
-			className={klein ? raster(2) : 'grid grid-cols-4 gap-3 max-lg:grid-cols-3 max-md:grid-cols-2'}
-			data-sammlung={gruppe}
-		>
+		{geladen && liste.length === 0 && !vorne && <Schubladenleer>{leerText(suche)}</Schubladenleer>}
+		<ul className={klein ? raster(2) : raster(4)} data-sammlung={gruppe}>
 			{vorne}
 			{liste.map((eintrag) => (
 				<Kachel
 					key={eintrag.schluessel}
 					eintrag={eintrag}
-					klein={klein}
 					aus={aus}
 					waehle={() => waehle(eintrag)}
 					ziehen={ziehen}
+					entferne={entferne}
 				/>
 			))}
 		</ul>
 	</>
 );
 
-/** Bilder zum Austauschen: Leitfiguren und Grafiken aus assets/, Bilder dieser Mappe und aller anderen. */
+/**
+ * „Bild wählen“ (199-13): dieselben drei Gruppen, Suche und Kacheln wie die Bilder-Schublade. Figuren stehen nur in
+ * der Schublade „Figuren“ (55); die Leitfigur tauscht ihre Pose im Inspektor.
+ */
 export const SammlungDialog = ({
 	adresse,
 	schliessen,
@@ -271,42 +305,25 @@ export const SammlungDialog = ({
 	schliessen: () => void;
 	waehle: (eintrag: SammlungsBild) => void;
 }) => {
-	const { daten: roh, fehler } = useLaden<Sammlung>(`${adresse}/bilder`);
-	// Unter „Willi & Co.“ stehen die Posen der Figurenbibliothek vor den übrigen Bildern aus assets/.
-	const daten = useMemo(() => roh && { ...roh, sammlung: [...roh.figuren, ...roh.sammlung] }, [roh]);
-	const [gruppe, setGruppe] = useState<SammlungsGruppe>('sammlung');
+	const { daten, fehler } = useLaden<Sammlung>(`${adresse}/bilder`);
+	const [gruppe, setGruppe] = useState<SammlungsGruppe>('mappe');
 	const [suche, setSuche] = useState('');
 	const liste = useMemo(() => (daten ? daten[gruppe].filter((e) => passt(e, suche)) : []), [daten, gruppe, suche]);
+	const zahl = daten ? bilderZahl(daten[gruppe].length) : undefined;
 
 	return (
-		<Dialog titel="Bild aus der Sammlung" schliessen={schliessen} breit>
-			<div className="flex flex-wrap items-center gap-2" role="group" aria-label="Welche Bilder?">
-				{GRUPPEN.map((g) => (
-					<Chip
-						key={g.art}
-						titel={`${g.titel}${daten ? ` (${daten[g.art].length})` : ''}`}
-						aktiv={gruppe === g.art}
-						waehle={() => setGruppe(g.art)}
-					/>
-				))}
+		<Dialog titel="Bild wählen" schliessen={schliessen} breit>
+			<Schubladensuche beschriftung="Bilder suchen" wert={suche} setWert={setSuche} />
+			<div className="flex items-center gap-3">
+				<Segment
+					beschriftung="Welche Bilder?"
+					className={STEUER_SEGMENT}
+					werte={[...BILDGRUPPEN]}
+					wert={gruppe}
+					waehle={setGruppe}
+				/>
+				{zahl && <span className={klassen(NOTIZ, 'flex-none')}>{zahl}</span>}
 			</div>
-			<label className="relative block">
-				<span className="sr-only">Bilder suchen</span>
-				<Symbol
-					name="suche"
-					className="pointer-events-none absolute top-1/2 left-4 size-5 -translate-y-1/2 text-leise"
-				/>
-				<input
-					{...EIGENE_GESCHICHTE}
-					type="search"
-					className="h-knopf w-full rounded-lg border border-rand bg-papier pr-4 pl-12 placeholder:text-leise focus:border-brand-500 focus:bg-flaeche focus:outline-none"
-					placeholder="Suchen, z. B. Willi oder Kartoffel"
-					autoComplete="off"
-					spellCheck={false}
-					value={suche}
-					onChange={(e) => setSuche(e.target.value)}
-				/>
-			</label>
 			<SammlungsKacheln
 				geladen={Boolean(daten)}
 				fehler={fehler?.message ?? null}
@@ -319,31 +336,19 @@ export const SammlungDialog = ({
 	);
 };
 
-const Vorschau = ({ w }: { w: BildWerte }) => (
-	<figure className="mt-3">
-		<img
-			src={w.url}
-			alt=""
-			className="max-h-40 w-full rounded-xl border border-rand bg-[repeating-conic-gradient(#f1efe9_0_25%,#fff_0_50%)] bg-[length:16px_16px] object-contain"
-		/>
-		{w.natur && (
-			<figcaption className="mt-1 text-sm text-leise">{`${w.natur.breite} × ${w.natur.hoehe} Pixel`}</figcaption>
-		)}
-	</figure>
-);
-
-/** Im s/w-Druck kann eine andere Datei erscheinen als am Bildschirm (041); entschieden wird das nur an einer Stelle. */
+/**
+ * Im s/w-Druck kann eine andere Datei erscheinen als am Bildschirm (041); entschieden wird das nur an einer Stelle.
+ * 199-16: Nur dann steht der Hinweis; Graustufen zeigt die s/w-Ansicht schon selbst.
+ */
 const Druckfassung = ({ adresse, src }: { adresse: string; src: string }) => {
 	const { daten } = useLaden<{ strich: string | null }>(`${adresse}/bilder/fassung?src=${encodeURIComponent(src)}`);
-	if (!daten) {
+	if (!daten?.strich) {
 		return null;
 	}
 	return (
 		<p className="flex gap-2 rounded-xl bg-brand-50 p-3" data-hinweis="druckfassung">
 			<Symbol name="drucker" className="size-3.5 flex-none" />
-			{daten.strich
-				? `Im s/w-PDF erscheint hier die Strichzeichnung „${daten.strich}“.`
-				: 'Im s/w-PDF erscheint dieses Bild in Graustufen.'}
+			{`Im s/w-PDF erscheint hier die Strichzeichnung „${daten.strich}“.`}
 		</p>
 	);
 };
@@ -353,12 +358,12 @@ const Hinweise = ({ adresse, w }: { adresse: string; w: BildWerte }) => {
 		return null;
 	}
 	return (
-		<div className="mt-3 flex flex-col gap-3" data-bild-hinweise>
+		<div className="mt-2 flex flex-col gap-2" data-bild-hinweise>
 			{w.sw && <Druckfassung adresse={adresse} src={w.src} />}
 			{w.unscharf && (
 				<p className="flex gap-2 rounded-xl bg-warnung-hell p-3" data-hinweis="dpi">
 					<Symbol name="achtung" className="size-3.5 flex-none" />
-					{`Das Bild ist für diese Größe zu klein und wird im Druck unscharf (${w.dpi ?? 0} dpi). Mach es kleiner oder nimm ein größeres Bild.`}
+					Das Bild ist für diese Größe zu klein und wird im Druck unscharf. Mach es kleiner oder nimm ein größeres Bild.
 				</p>
 			)}
 		</div>
@@ -420,7 +425,7 @@ const Groesse = ({ bild, w }: { bild: BildSteuerung; w: BildWerte }) => {
 	);
 };
 
-const Beschreibung = ({ bild, w }: { bild: BildSteuerung; w: BildWerte }) => {
+const Beschreibung = ({ aus, bild, w }: { bild: BildSteuerung; w: BildWerte; aus: boolean }) => {
 	const [text, setText] = useState(w.alt);
 
 	useEffect(() => {
@@ -433,7 +438,7 @@ const Beschreibung = ({ bild, w }: { bild: BildSteuerung; w: BildWerte }) => {
 			<input
 				type="text"
 				className={FELD_KLASSEN}
-				placeholder="Was zeigt das Bild?"
+				disabled={aus}
 				value={text}
 				data-bild-beschreibung
 				enterKeyHint="done"
@@ -455,48 +460,54 @@ export const BildDarstellung = ({ bild }: { bild: BildSteuerung }) => {
 };
 
 /**
- * Für Bilder, Bildplatzhalter und leere Bildrahmen: austauschen bzw. einsetzen, Beschreibung, Entfernen. Die Größe
- * steht unter „Darstellung“. Freie Bilder (103) zeigen es ohne Entfernen: Das geht dort über ⌫ und ⋯ wie bei aller
- * Gestaltung.
+ * Für Bilder, Bildplatzhalter und leere Bildrahmen (199-15, 199-17): zuerst austauschen bzw. einsetzen, dann die
+ * Hinweise zum Druck, dann die Beschreibung. Entfernen geht wie bei aller Gestaltung über ⌫ und ⋯. Die Größe steht
+ * unter „Darstellung“. Die Leitfigur im Tipp tauscht Figur und Pose wie die freie Figur (199-11). Bei gesperrtem Blatt
+ * bleibt alles sichtbar, die Knöpfe sind aus.
  */
-export const Bildwerkzeug = ({ bild, ohneEntfernen = false }: { bild: BildSteuerung; ohneEntfernen?: boolean }) => {
+export const Bildwerkzeug = ({ bild }: { bild: BildSteuerung }) => {
 	const [sammlung, setSammlung] = useState(false);
 	const w = bild.werte;
-	if (!bild.aktiv || !w) {
+	if (!w) {
 		return null;
 	}
-	const beschaeftigt = bild.arbeit !== null;
+	const aus = !bild.aktiv || bild.arbeit !== null;
+	const leitfigur = w.figur && !w.frei && bild.doc ? elementZu(bild.doc, w.nr) : null;
+	if (leitfigur) {
+		return (
+			<div data-bildwerkzeug="figur">
+				<FigurAuswahl
+					adresse={adresseVon(bild.doc) ?? bild.adresse}
+					aktiv={bild.aktiv}
+					an={0}
+					nr={w.nr}
+					quelle={leitfigur.outerHTML}
+					fuehreAus={bild.fuehreAus}
+					mitTitel
+				/>
+				<Hinweise adresse={bild.adresse} w={w} />
+			</div>
+		);
+	}
 	return (
 		<div data-bildwerkzeug={w.platzhalter ? 'platzhalter' : 'bild'}>
-			{!w.platzhalter && <Vorschau w={w} />}
-			{!w.platzhalter && <Hinweise adresse={bild.adresse} w={w} />}
-			<span className="mb-0.5 flex min-h-5 items-center text-leise">
-				{w.platzhalter ? 'Bild einsetzen' : 'Austauschen'}
-			</span>
-			<div className="flex flex-wrap gap-1">
-				{bild.arbeit === 'hochladen' || bild.arbeit === 'sammlung' ? (
-					<Laeuft text={bild.arbeit === 'hochladen' ? 'Foto wird hochgeladen …' : 'Bild wird eingesetzt …'} />
-				) : (
-					<>
-						<Hochladen bild={bild} />
-						<Knopf art="zweit" disabled={beschaeftigt} onClick={() => setSammlung(true)}>
-							<Symbol name="bild" />
-							Aus der Sammlung
-						</Knopf>
-					</>
-				)}
-			</div>
-			{!w.platzhalter && (
-				<>
-					<Beschreibung bild={bild} w={w} />
-					{!ohneEntfernen && (
-						<Knopf art="gefahr" className="mt-2 self-start" disabled={beschaeftigt} onClick={bild.entferne}>
-							<Symbol name="papierkorb" />
-							Bild entfernen
-						</Knopf>
+			<Zeile titel={w.platzhalter ? 'Bild einsetzen' : 'Austauschen'} darunter>
+				<div className="flex flex-col gap-1">
+					{bild.arbeit === 'hochladen' || bild.arbeit === 'sammlung' ? (
+						<Laeuft text={bild.arbeit === 'hochladen' ? 'Foto wird hochgeladen …' : 'Bild wird eingesetzt …'} />
+					) : (
+						<>
+							<Hochladen bild={bild} breit aus={aus} />
+							<Knopf art="zweit" className="w-full" disabled={aus} onClick={() => setSammlung(true)}>
+								<Symbol name="bild" />
+								Aus Bildern wählen
+							</Knopf>
+						</>
 					)}
-				</>
-			)}
+				</div>
+			</Zeile>
+			{!w.platzhalter && <Hinweise adresse={bild.adresse} w={w} />}
+			{!w.platzhalter && <Beschreibung bild={bild} w={w} aus={!bild.aktiv} />}
 			{sammlung && (
 				<SammlungDialog
 					adresse={bild.adresse}

@@ -28,8 +28,12 @@ export interface SammlungsBild {
 	name: string;
 	/** Beschreibungen (`alt`), unter denen das Bild in Materialien vorkommt; für die Suche. */
 	alt: string[];
-	/** Nur bei „Meine Bilder“: Titel der Mappe. */
+	/** Nur bei „Andere Ordner“: Titel der Mappe. */
 	mappe?: string;
+	/** 199-06: Schlüssel aller Dateien gleichen Inhalts, die diese Kachel zeigt (sie selbst zuerst); nicht bei assets/. */
+	kopien?: string[];
+	/** 199: Titel der Materialien, die das Bild zeigen; leer heißt, es lässt sich aus der Auswahl entfernen. */
+	genutzt?: string[];
 }
 
 export interface Sammlung {

@@ -2,7 +2,7 @@ import type { Rahmenstil } from '@schoolbox/kern/src/bildrahmen';
 import {
 	leseBildrahmen,
 	RAHMENSTIL_NAMEN,
-	RAHMENSTILE,
+	RAHMENSTIL_WAHL,
 	setzeMaske,
 	setzeRahmenstil,
 	setzeZuschnittZurueck,
@@ -19,17 +19,18 @@ import type { GestaltungKontext } from '../kontext';
 import type { InspektorTeile } from './abschnitte';
 
 /**
- * Rahmen-Stil und Maske (111, 5.8 Abschnitt 4), nach „Bild“: Rahmen-Stil (gerade, schräg, Polaroid, rund, Kontur),
- * Maske (keine, dann die Formen ohne Text) und „Zuschnitt zurücksetzen“. Maske und Rahmen-Stil schließen sich aus:
- * Wählt man das eine, verliert das andere seinen Ring; der `title` der Kachel sagt es vorher. Beim leeren Bildrahmen
- * gibt es nur die Form. Die Leiste am Bild zeigt dieselbe Wahl im Popover „Rahmen-Stil“.
+ * Rahmen-Stil und Form (111, 5.8 Abschnitt 4), nach „Bild“: Rahmen-Stil (Ohne, Polaroid, Kontur), Form (Ohne, dann
+ * die Formen ohne Text; in der Quelle `data-maske`) und „Ausschnitt zurücksetzen“, sobald der Ausschnitt verschoben
+ * oder zugeschnitten ist. Form und Rahmen-Stil schließen sich aus: Wählt man das eine, verliert das andere seinen
+ * Ring; der Tooltip der Kachel sagt es vorher. Beim leeren Bildrahmen gibt es nur die Form. Ein Stil aus dem Bestand,
+ * der nicht mehr zur Wahl steht („Schräg“, „Rund“, 199-01/07), drückt keinen Knopf; „Ohne“ nimmt ihn weg.
  */
 
-type StilWahl = Rahmenstil | 'gerade';
+type StilWahl = Rahmenstil | 'ohne';
 
 const STILE: { wert: StilWahl; titel: string }[] = [
-	{ wert: 'gerade', titel: 'Gerade' },
-	...RAHMENSTILE.map((wert) => ({ wert, titel: RAHMENSTIL_NAMEN[wert] })),
+	{ wert: 'ohne', titel: 'Ohne' },
+	...RAHMENSTIL_WAHL.map((wert) => ({ wert, titel: RAHMENSTIL_NAMEN[wert] })),
 ];
 
 /** Kleines Bild der Form für die Knöpfe der Maske. */
@@ -51,7 +52,7 @@ export const RahmenstilWahl = ({ aktiv, k, quelle }: InspektorTeile) => {
 	if (!stand) {
 		return null;
 	}
-	const stil: StilWahl = stand.rahmenstil ?? 'gerade';
+	const stil: StilWahl = stand.rahmenstil ?? 'ohne';
 	return (
 		<div className="flex flex-col gap-1" data-gestaltung-rahmenstil>
 			{!stand.leer && (
@@ -63,21 +64,21 @@ export const RahmenstilWahl = ({ aktiv, k, quelle }: InspektorTeile) => {
 						data-rahmenstil-wahl={stil}
 					>
 						{STILE.map((s) => {
-							// Ein Stil nimmt die Maske weg: Das steht am Knopf.
-							const nimmtMaske = s.wert !== 'gerade' && stand.maske !== null;
+							// Ein Stil nimmt die Form weg: Das steht am Knopf.
+							const nimmtForm = s.wert !== 'ohne' && stand.maske !== null;
 							return (
-								<Tooltip key={s.wert} text={nimmtMaske ? `${s.titel}: nimmt die Maske weg` : s.titel}>
+								<Tooltip key={s.wert} text={nimmtForm ? `${s.titel}: nimmt die Form weg` : s.titel}>
 									<button
 										type="button"
 										className={KACHEL}
-										aria-pressed={stil === s.wert && stand.maske === null}
+										aria-pressed={stil === s.wert && (s.wert === 'ohne' || stand.maske === null)}
 										disabled={!aktiv}
 										data-rahmenstil-knopf={s.wert}
 										onClick={() => {
 											setze(
 												k,
-												s.wert === 'gerade' ? 'Rahmen-Stil entfernt' : 'Rahmen-Stil geändert',
-												(q) => setzeRahmenstil(q, k.nr, s.wert === 'gerade' ? null : s.wert),
+												s.wert === 'ohne' ? 'Rahmen-Stil entfernt' : 'Rahmen-Stil geändert',
+												(q) => setzeRahmenstil(q, k.nr, s.wert === 'ohne' ? null : s.wert),
 											);
 										}}
 									>
@@ -89,24 +90,24 @@ export const RahmenstilWahl = ({ aktiv, k, quelle }: InspektorTeile) => {
 					</div>
 				</Zeile>
 			)}
-			<Zeile titel={stand.leer ? 'Form des Rahmens' : 'Maske'} darunter>
+			<Zeile titel="Form" darunter>
 				<div
 					className="grid grid-cols-5 gap-1"
 					role="group"
-					aria-label="Maske"
+					aria-label="Form"
 					data-maske-wahl={stand.maske ?? 'keine'}
 				>
 					{!stand.leer && (
-						<Tooltip text="Keine Maske">
+						<Tooltip text="Ohne Form">
 							<button
 								type="button"
 								className={KACHEL}
 								aria-pressed={stand.maske === null}
 								disabled={!aktiv}
 								data-maske-knopf="keine"
-								onClick={() => setze(k, 'Maske entfernt', (q) => setzeMaske(q, k.nr, null))}
+								onClick={() => setze(k, 'Form entfernt', (q) => setzeMaske(q, k.nr, null))}
 							>
-								Keine
+								Ohne
 							</button>
 						</Tooltip>
 					)}
@@ -119,7 +120,7 @@ export const RahmenstilWahl = ({ aktiv, k, quelle }: InspektorTeile) => {
 								aria-label={f.name}
 								disabled={!aktiv}
 								data-maske-knopf={f.art}
-								onClick={() => setze(k, 'Maske geändert', (q) => setzeMaske(q, k.nr, f.art))}
+								onClick={() => setze(k, 'Form geändert', (q) => setzeMaske(q, k.nr, f.art))}
 							>
 								<FormBild form={f} />
 							</button>
@@ -127,16 +128,16 @@ export const RahmenstilWahl = ({ aktiv, k, quelle }: InspektorTeile) => {
 					))}
 				</div>
 			</Zeile>
-			{!stand.leer && (
+			{!stand.leer && stand.zuschnitt && (
 				<Knopf
 					art="zweit"
 					groesse="klein"
 					className="self-start"
-					disabled={!aktiv || !stand.zuschnitt}
+					disabled={!aktiv}
 					data-zuschnitt-zurueck
-					onClick={() => setze(k, 'Zuschnitt zurückgesetzt', (q) => setzeZuschnittZurueck(q, k.nr))}
+					onClick={() => setze(k, 'Ausschnitt zurückgesetzt', (q) => setzeZuschnittZurueck(q, k.nr))}
 				>
-					Zuschnitt zurücksetzen
+					Ausschnitt zurücksetzen
 				</Knopf>
 			)}
 		</div>

@@ -149,16 +149,16 @@ test.describe('Muster des Inspektors (182)', () => {
 	test('Gewählte Kachel: Rand in Tinte, Grund weiß; die Figur ist nicht mehr blau', async ({ druecke, page }) => {
 		await blatt(page, { vorne: [BILDRAHMEN] });
 		await waehle(druecke, page, material(page).locator('img.bild-frei'), 'bildfrei');
-		// Ohne Rahmen-Stil und ohne bekannte Maske: „Gerade“ und „Keine“ sind gewählt.
+		// Ohne Rahmen-Stil und ohne bekannte Form: zweimal „Ohne“ gewählt.
 		for (const kachel of [
-			page.locator('[data-rahmenstil-knopf="gerade"]'),
+			page.locator('[data-rahmenstil-knopf="ohne"]'),
 			page.locator('[data-maske-knopf="keine"]'),
 		]) {
 			await expect(kachel).toHaveAttribute('aria-pressed', 'true');
 			await expect(kachel).toHaveCSS('border-top-color', TINTE);
 			await expect(kachel).toHaveCSS('background-color', WEISS);
 		}
-		await expect(page.locator('[data-rahmenstil-knopf="schraeg"]')).toHaveCSS('background-color', WEISS);
+		await expect(page.locator('[data-rahmenstil-knopf="polaroid"]')).toHaveCSS('background-color', WEISS);
 		await ohneSaetze(page);
 
 		// Kiki aus der Figurenbibliothek des Testservers (177) hat zwei Posen, also ein Raster.

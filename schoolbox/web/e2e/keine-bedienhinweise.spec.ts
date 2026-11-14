@@ -26,7 +26,7 @@ const ohneBedienung = async (page: Page, name: SchubladenName) => {
 
 const zurSammlung = async (page: Page, druecke: (ziel: Locator) => Promise<void>) => {
 	await oeffneSchublade(page, 'bilder');
-	await druecke(links(page, 'bilder').getByRole('button', { name: 'Sammlung', exact: true }));
+	await druecke(links(page, 'bilder').getByRole('button', { name: 'Mitgeliefert', exact: true }));
 	await expect(links(page, 'bilder').locator('[data-bilder-gruppe="sammlung"]')).toBeVisible();
 };
 
