@@ -95,13 +95,14 @@ const Liste = ({
 	zeilen,
 }: ListeEigenschaften) => {
 	const mitMaterial = zeilen.some((z) => !z.objekt.istOrdner);
+	const mitOrt = seite.art !== 'ordner';
 	const koepfe = SPALTEN.filter((s) => mitMaterial || !NUR_MATERIAL.has(s.titel)).map((s) =>
 		s.titel === 'Art' && seite.art !== 'ordner' ? { ...s, titel: 'Ort', feld: null } : s,
 	);
 	return (
 		<div>
 			<div
-				className={`${listenRaster(mitMaterial)} sticky top-[calc(var(--kopf,0px)+var(--hoehe-werkzeug))] z-ueberlagerung h-6 items-center border-b border-rand bg-flaeche px-1 text-xs font-medium text-leise`}
+				className={`${listenRaster(mitMaterial, mitOrt)} sticky top-[calc(var(--kopf,0px)+var(--hoehe-werkzeug))] z-ueberlagerung h-6 items-center border-b border-rand bg-flaeche px-1 text-xs font-medium text-leise`}
 			>
 				{koepfe.map(({ feld, klasse, titel }) =>
 					feld && seite.art === 'ordner' ? (
