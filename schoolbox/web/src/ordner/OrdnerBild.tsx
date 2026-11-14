@@ -1,5 +1,6 @@
 import { vorschaubildAdresse } from '@schoolbox/kern/src/bildbefehle';
 
+import { useBildFehler } from '../bausteine/bildFehler';
 import { klassen } from '../bausteine/klassen';
 import { Symbol } from '../bausteine/Symbol';
 import { hatOffeneEntwuerfe } from '../entwuerfe/offen';
@@ -17,16 +18,23 @@ export const BlattMini = ({
 	dok,
 	token,
 	...rest
-}: { dok: AblageDok; token: string | null; className?: string } & DatenAttribute) => (
+}: { dok: AblageDok; token: string | null; className?: string } & DatenAttribute) => {
+	const { fehlt, onError } = useBildFehler(
+		dok.vorschau && !(token === null && hatOffeneEntwuerfe(dok.meta))
+			? vorschaubildAdresse(vorschauAdresse({ mappe: dok.mappe, token }, dok.id, dok.vorschau))
+			: null,
+	);
+	return (
 	<span
 		className={klassen('flex flex-none items-center justify-center overflow-hidden bg-flaeche', className)}
 		{...rest}
 	>
-		{dok.vorschau && !(token === null && hatOffeneEntwuerfe(dok.meta)) ? (
+		{dok.vorschau && !fehlt ? (
 			<img
 				className="size-full object-cover object-top"
 				src={vorschaubildAdresse(vorschauAdresse({ mappe: dok.mappe, token }, dok.id, dok.vorschau))}
 				alt=""
+				onError={onError}
 				loading="lazy"
 				decoding="async"
 				draggable={false}
@@ -35,7 +43,8 @@ export const BlattMini = ({
 			<Symbol name="blatt" className="size-3 text-dezent" />
 		)}
 	</span>
-);
+	);
+};
 
 /**
  * Ein Ordner, aus dem bis zu drei Dinge herausschauen, die direkt darin liegen: Material als Blatt, Unterordner als
