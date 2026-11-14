@@ -415,6 +415,12 @@ describe('Schritte einer Folie (192-16)', () => {
 		assert.deepEqual(schritte(ordneSchritte(FOLIE, zeile(FOLIE, 3).nr), 1), ['1', '1']);
 	});
 
+	it('auf eine andere Folie verschoben: eigener Schritt dort, keine Lücke auf der alten', () => {
+		const { quelle } = verschiebeBaustein(FOLIE, zeile(FOLIE, 1).nr, { nr: zeile(FOLIE, 3).nr, wo: 'nach' }, FOLIEN);
+		assert.deepEqual(schritte(quelle, 0), ['1', '2']);
+		assert.deepEqual(schritte(quelle, 1), ['1', '2', '1']);
+	});
+
 	it('lässt Blätter ohne Folien unberührt', () => {
 		const { quelle } = dupliziereBaustein(FOLIE, zeile(FOLIE, 1).nr, BLATT);
 		assert.deepEqual(schritte(quelle), ['1', '2', '2', '3']);

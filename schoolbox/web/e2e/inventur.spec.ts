@@ -71,6 +71,8 @@ test.describe('Inventur Editor', () => {
 		]);
 		await oeffne(page, id, dokumente[0] ?? '');
 		await expect(kopf(page).getByRole('button', { name: 'Präsentieren' })).toBeVisible();
+		// 192-12: Folien zählen Folien.
+		await expect(page.locator('[data-seite-von]')).toContainText(/^Folie 1 von \d+ · Folien 16:9$/);
 	});
 
 	test('Statusleiste: Zoom, Prüfstatus, Befehle, Tasten, beide Leisten', async ({ page }) => {

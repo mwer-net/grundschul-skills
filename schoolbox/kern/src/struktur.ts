@@ -157,6 +157,7 @@ const ergebnis = (
 	eingefuegt: Aenderung | undefined,
 	n: Nummerierung,
 	kopie = false,
+	herkunft?: number,
 ): StrukturErgebnis => {
 	let neu = wendeAn(quelle, aenderungen);
 	let nr: number | null = null;
@@ -166,6 +167,11 @@ const ergebnis = (
 	}
 	if (n.jeSeite) {
 		neu = ordneSchritte(neu, nr, kopie);
+		// Auf eine andere Folie verschoben: Auch die Folie, von der es kam, zählt ohne Lücke.
+		const alt = herkunft === undefined ? undefined : seitenVon(zerlege(neu))[herkunft];
+		if (alt) {
+			neu = ordneSchritte(neu, alt.nr);
+		}
 	}
 	// Neu zählen ändert nur Text in den Nummern, die Elemente und ihre Nummern im Editor bleiben dieselben.
 	return { quelle: nummeriere(neu, n), nr };
@@ -256,10 +262,18 @@ export const verschiebeBaustein = (quelle: string, nr: number, ablage: Ablage, n
 		const aenderungen = verschiebeBlatt(z, blatt, knotenAn(z, ablage.nr), ablage.wo);
 		return ergebnis(quelle, aenderungen, aenderungen.at(-1), n);
 	}
+	// Über Folien hinweg (192-16): Das Verschobene bekommt auf der neuen Folie eigene Schritte.
+	const seiten = seitenVon(z);
+	const von = hat(k, 'seite') ? undefined : seiteVon(k);
+	const ueberFolien = (ziel: Knoten) => {
+		const nach = hat(ziel, 'seite') ? ziel : seiteVon(ziel);
+		return von && nach && nach !== von ? { kopie: true, herkunft: seiten.indexOf(von) } : { kopie: false };
+	};
 	if ('nr' in ablage) {
 		const stelle = ablageImStapel(z, knotenAn(z, ablage.nr), ablage.wo);
 		const aenderungen = verschiebe(z, k, stelle.ziel, stelle.wo);
-		return ergebnis(quelle, aenderungen, aenderungen[1], n);
+		const { herkunft, kopie } = ueberFolien(stelle.ziel);
+		return ergebnis(quelle, aenderungen, aenderungen[1], n, kopie, herkunft);
 	}
 	const eltern = knotenAn(z, ablage.in);
 	if (enthaelt(k, eltern) || enthaelt(eltern, k)) {
@@ -268,7 +282,8 @@ export const verschiebeBaustein = (quelle: string, nr: number, ablage: Ablage, n
 	const stelle = stelleAmEnde(z, eltern);
 	const raus = entferne(z, k);
 	const rein = stelle.fuegeEin(rueckeUm(quelleVon(z, k), einrueckung(z, k), stelle.einzug));
-	return ergebnis(quelle, [...raus, ...rein], rein[0], n);
+	const { herkunft, kopie } = ueberFolien(eltern);
+	return ergebnis(quelle, [...raus, ...rein], rein[0], n, kopie, herkunft);
 };
 
 /** Gestaltung liegt frei und hat eigene Regeln (`gestaltung.ts`); in einer Seite oder Aufgabe bekommt sie neue Ids. */

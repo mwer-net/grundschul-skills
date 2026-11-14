@@ -1312,6 +1312,7 @@ const Bearbeitung = ({ dokument, mappe: mappenDaten }: { mappe: Mappe; dokument:
 				<Statusleiste
 					seite={seite}
 					format={FORMAT_NAME[format]}
+					folien={format === 'folie'}
 					pruefung={pruefung.stand}
 					zeigePunkt={zeigePunkt}
 					knopf={pruefKnopf}

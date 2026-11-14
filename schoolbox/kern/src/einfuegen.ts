@@ -30,7 +30,7 @@ import {
 	zerlege,
 } from './quelltext';
 import type { Nummerierung, StrukturErgebnis } from './struktur';
-import { nummeriere, seitenVon } from './struktur';
+import { nummeriere, ordneSchritte, seitenVon } from './struktur';
 
 export interface Einfuegbar {
 	id: string;
@@ -76,8 +76,12 @@ export const ergebnis = (quelle: string, a: Aenderung[], n: Nummerierung, bauste
 	}
 	const innen = baustein ? erste.text.indexOf(baustein) : -1;
 	const start = erste.von + (innen < 0 ? erste.text.indexOf('<') : innen);
-	const nr = zerlege(neu).knoten.find((k) => k.start === start)?.nr ?? null;
-	return { quelle: nummeriere(neu, n), nr };
+	const knoten = zerlege(neu).knoten;
+	const nr = knoten.find((k) => k.start === start)?.nr ?? null;
+	// Eingefügte Schritte bekommen auf der Folie eigene Zahlen nach ihrer Stelle (192-16), wie beim Duplizieren.
+	const aussen = knoten.find((k) => k.start === erste.von + erste.text.indexOf('<'))?.nr ?? null;
+	const geordnet = n.jeSeite ? ordneSchritte(neu, aussen, true) : neu;
+	return { quelle: nummeriere(geordnet, n), nr };
 };
 
 /** Oberstes Kind der Seite, in dem `k` liegt. */

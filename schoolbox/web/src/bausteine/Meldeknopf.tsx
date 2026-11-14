@@ -352,7 +352,9 @@ export const Meldeknopf = () => {
 	const [nimmt, setNimmt] = useState(false);
 	/** Wo der Fokus vor der Meldung stand: Dorthin kehrt er zurück. */
 	const vorher = useRef<Element | null>(null);
-	const verborgen = pathname === ANMELDE_SEITE || pathname.startsWith('/f/');
+	// Beim Präsentieren liegt das Vollbild auf der ganzen Seite: kein Käfer auf dem Beamerbild (192-N01).
+	const verborgen =
+		pathname === ANMELDE_SEITE || pathname.startsWith('/f/') || pathname.endsWith('/praesentation');
 	// Im Editor steht der Käfer am Fuß der Schubladenleiste, über der Statusleiste (193-27).
 	const imEditor = pathname.endsWith('/bearbeiten');
 
