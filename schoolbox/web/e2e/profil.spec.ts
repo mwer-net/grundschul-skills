@@ -4,7 +4,7 @@ import type { Page } from '@playwright/test';
 import { legeFreigabeAn, leseMeta } from '@schoolbox/kern';
 
 import { material, oeffne, quelle, uhrzeit, versionen } from './editorhilfe';
-import { expect, legeMappeAn, oeffneMehr, test } from './hilfe';
+import { expect, legeMappeAn, test } from './hilfe';
 
 const MATERIAL_DIR = process.env.E2E_MATERIAL_DIR ?? '';
 
@@ -67,7 +67,7 @@ test.describe('Farbe und s/w', () => {
 		expect(await versionen(ordner)).toEqual(stand);
 	});
 
-	test('Dokumentansicht: Menü und Drucken nehmen die aktuelle Ansicht, die andere ist wählbar', async ({
+	test('Dokumentansicht: „PDF“ nimmt die aktuelle Ansicht und fragt nicht noch einmal (191-40)', async ({
 		druecke,
 		page,
 	}) => {
@@ -75,15 +75,11 @@ test.describe('Farbe und s/w', () => {
 		await page.goto(`/m/${id}/${dok}`);
 		await druecke(sw(page));
 		await erwarteAnsicht(page, true);
-		const tab = page.context().waitForEvent('page');
-		await oeffneMehr(druecke, page);
-		await druecke(page.getByRole('menuitem', { name: 'Drucken' }));
-		const druck = await tab;
-		expect(druck.url()).toMatch(/profil=sw/);
-		await druck.close();
+		const anfrage = page.waitForRequest((r) => r.method() === 'POST' && /\/pdf$/.test(r.url()));
+		// Ohne Lösung gibt es eine Datei: Der Knopf lädt sofort, ohne Menü (191-41).
 		await druecke(page.getByRole('button', { name: 'PDF', exact: true }));
-		await expect(page.getByRole('menuitem', { name: /in Farbe/ }).first()).toBeVisible();
-		await page.keyboard.press('Escape');
+		await expect(page.getByRole('menu')).toHaveCount(0);
+		expect((await anfrage).postDataJSON()).toMatchObject({ profil: 'sw' });
 	});
 
 	test('Editor: Bearbeiten in s/w schreibt keine Farbe und keine sw-Klasse in die Quelle', async ({

@@ -215,7 +215,7 @@ test.describe('Inventur außerhalb des Editors', () => {
 			/In neuem Tab/,
 			/Neuer Unterordner/,
 			/Material hier anlegen/,
-			/Alles als PDF/,
+			/^PDF/,
 			/^Teilen/,
 			/^Umbenennen/,
 			/^Duplizieren/,
@@ -259,7 +259,10 @@ test.describe('Inventur außerhalb des Editors', () => {
 		await expect(page).toHaveURL(new RegExp(`/m/${id}/${dokumente[0]}`));
 	});
 
-	test('Dokument: Bearbeiten, PDF, Schalter; Drucken und Teilen im ⋯', async ({ druecke, page }) => {
+	test('Dokument: Bearbeiten, PDF, Schalter; Teilen im ⋯, Drucken gibt es nicht mehr (191-42)', async ({
+		druecke,
+		page,
+	}) => {
 		const { dokumente, id } = await legeMappeAn('Kartoffeln', 'sachunterricht', 3, [
 			{ titel: 'Teile der Kartoffel', vorlage: 'arbeitsblatt', loesung: true },
 		]);
@@ -269,9 +272,8 @@ test.describe('Inventur außerhalb des Editors', () => {
 		await expect(page.locator('[data-profilschalter]').getByRole('button', { name: 'Farbe' })).toBeVisible();
 		await expect(page.getByRole('button', { name: 'Lösung' })).toBeVisible();
 		await oeffneMehr(druecke, page);
-		for (const name of ['Drucken', 'Teilen']) {
-			await expect(page.getByRole('menuitem', { name })).toBeVisible();
-		}
+		await expect(page.getByRole('menuitem', { name: 'Teilen' })).toBeVisible();
+		await expect(page.getByRole('menuitem', { name: 'Drucken' })).toHaveCount(0);
 	});
 
 	test('Folien im Dokument: Präsentieren und Ohne Internet', async ({ druecke, page }) => {
@@ -280,7 +282,11 @@ test.describe('Inventur außerhalb des Editors', () => {
 		]);
 		await page.goto(`/m/${id}/${dokumente[0]}`);
 		await expect(page.getByRole('link', { name: 'Präsentieren' })).toBeVisible();
+		// „Ohne Internet“ steht im Menü „PDF“, nicht mehr unter ⋯ (192-17).
+		await druecke(page.getByRole('button', { name: 'PDF', exact: true }));
+		await expect(page.getByRole('menuitem', { name: /^Ohne Internet: fürs iPad/ })).toBeVisible();
+		await page.keyboard.press('Escape');
 		await oeffneMehr(druecke, page);
-		await expect(page.getByRole('menuitem', { name: 'Ohne Internet' })).toBeVisible();
+		await expect(page.getByRole('menuitem', { name: 'Ohne Internet' })).toHaveCount(0);
 	});
 });

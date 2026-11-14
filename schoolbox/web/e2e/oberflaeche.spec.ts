@@ -218,6 +218,9 @@ test.describe('Teilen', () => {
 		await druecke(dialog.getByRole('button', { name: 'Link erstellen', exact: true }));
 		const feld = dialog.getByRole('textbox', { name: 'Link zum Teilen' });
 		await expect(feld).toHaveValue(/^http:\/\/127\.0\.0\.1:\d+\/f\/[\w-]+$/);
+		// Der Fokus folgt der Handlung; ein zweiter Link ist nicht vorgesehen (191-06, 191-44).
+		await expect(dialog.getByRole('button', { name: 'Link kopieren' })).toBeFocused();
+		await expect(dialog.getByRole('button', { name: /Link erstellen/ })).toHaveCount(0);
 		const link = await feld.inputValue();
 		await druecke(dialog.getByRole('button', { name: 'Link kopieren' }));
 		await expect(dialog.getByText(/Kopiert|Der Link ist markiert/)).toBeVisible();
@@ -249,11 +252,23 @@ test.describe('Teilen', () => {
 		await objektMenue(page, 'Die Kartoffel');
 		await druecke(page.getByRole('menuitem', { name: 'Teilen' }));
 		await expect(feld).toHaveValue(link);
-		await druecke(dialog.getByRole('button', { name: 'Abschalten', exact: true }));
+		const abschalten = dialog.getByRole('button', { name: 'Abschalten', exact: true });
+		await druecke(abschalten);
+		await expect(dialog).toContainText('Wer diesen Link hat, kann den Ordner dann nicht mehr öffnen.');
+		// Erst „Doch nicht“, dann „Ja, abschalten“, rechts (191-09); Esc schließt nur die Nachfrage (191-07, 191-08).
+		await expect(dialog.getByRole('alert').getByRole('button')).toHaveText(['Doch nicht', 'Ja, abschalten']);
+		if (!test.info().project.use.hasTouch) {
+			await expect(dialog.getByRole('button', { name: 'Doch nicht' })).toBeFocused();
+			await page.keyboard.press('Escape');
+			await expect(dialog).toBeVisible();
+			await expect(abschalten).toBeFocused();
+			await druecke(abschalten);
+		}
 		await druecke(dialog.getByRole('button', { name: 'Ja, abschalten' }));
 		await expect(feld).toHaveCount(0);
+		await expect(dialog.getByRole('button', { name: 'Link erstellen', exact: true })).toBeFocused();
 		await besuch.goto(link);
-		await expect(besuch.getByRole('heading', { name: 'Schade!' })).toBeVisible();
+		await expect(besuch.getByRole('heading', { name: 'Dieser Link gilt nicht mehr' })).toBeVisible();
 		await fremd.close();
 	});
 });
@@ -276,12 +291,6 @@ test.describe('Dokument und PDF', () => {
 		await expect(loesung).toHaveAttribute('aria-pressed', 'true');
 		await expect(page).toHaveURL(/\?fassung=loesung$/);
 		await expect(blatt).toHaveAttribute('src', /\?loesung=1&profil=sw$/);
-		const druckTab = page.context().waitForEvent('page');
-		await oeffneMehr(druecke, page);
-		await druecke(page.getByRole('menuitem', { name: 'Drucken' }));
-		const gedruckt = await druckTab;
-		expect(gedruckt.url()).toMatch(/fassung=loesung&profil=sw/);
-		await gedruckt.close();
 
 		// Claude ändert das Material: Die Ansicht lädt neu, ohne die Seite neu zu laden
 		await page.evaluate(() => {
@@ -317,17 +326,13 @@ test.describe('Dokument und PDF', () => {
 		await page.goto(`/m/${id}/${dokumente[0]}`);
 		await druecke(page.getByRole('button', { name: 'PDF', exact: true }));
 		const menue = page.getByRole('menu');
-		await expect(menue.getByRole('menuitem')).toHaveText([
-			'Arbeitsblatt',
-			'Lösung',
-			'Arbeitsblatt und Lösung',
-			'Arbeitsblatt (in Farbe)',
-			'Lösung (in Farbe)',
-			'Arbeitsblatt und Lösung (in Farbe)',
-		]);
+		// Die Farbfassung nimmt der Umschalter; das Menü fragt nicht noch einmal (191-40).
+		await expect(menue.getByRole('menuitem')).toHaveText(['Arbeitsblatt', 'Lösung', 'Arbeitsblatt mit Lösung']);
 		const download = page.waitForEvent('download');
 		await druecke(menue.getByRole('menuitem', { name: 'Lösung', exact: true }));
+		// Beim Bauen dreht sich der Kreisel, das Wort bleibt (191-22).
 		await expect(page.getByRole('button', { name: 'PDF wird erstellt …' })).toBeVisible();
+		await expect(page.getByRole('button', { name: 'PDF wird erstellt …' })).toHaveText('PDF');
 		expect(await dateiname(download)).toBe('Kl2 Sachunterricht Blätter sammeln – Lösung (schwarz-weiß).pdf');
 
 		await page.goto('/');
@@ -346,32 +351,14 @@ test.describe('Dokument und PDF', () => {
 		expect(await dateiname(alles)).toBe('Kl2 Sachunterricht Bäume im Herbst – Alles.pdf');
 	});
 
-	test('„Drucken“ öffnet das PDF in einem eigenen Tab', async ({ context, druecke, page }) => {
+	test('„Drucken“ gibt es nicht mehr; alte Adressen führen zur Ansicht (191-42)', async ({ druecke, page }) => {
 		const { dokumente, id } = await herbst();
-		// Den PDF-Betrachter des Browsers gibt es im Test nicht; geprüft wird, dass der Tab das PDF zum Ansehen öffnet.
-		await context.route(/\/pdf\/.*[?&]anzeigen=1$/, (route) =>
-			route.fulfill({ contentType: 'text/html', body: '<p>Hier ist das PDF</p>' }),
-		);
-		await page.goto(`/m/${id}/${dokumente[0]}`);
-		const tab = context.waitForEvent('page');
+		await page.goto(`/m/${id}/${dokumente[0]}/drucken`);
+		await expect(page).toHaveURL(new RegExp(`/m/${id}/${dokumente[0]}$`));
+		await expect(page.getByRole('heading', { level: 1, name: 'Blätter sammeln' })).toBeVisible();
 		await oeffneMehr(druecke, page);
-		await druecke(page.getByRole('menuitem', { name: 'Drucken' }));
-		const druck = await tab;
-		await expect(druck.getByText('Hier ist das PDF')).toBeVisible();
-		expect(decodeURIComponent(druck.url())).toMatch(
-			/\/pdf\/arbeitsblatt\/Kl2 Sachunterricht Blätter sammeln – Arbeitsblatt \(schwarz-weiß\)\.pdf\?profil=sw&anzeigen=1$/,
-		);
-
-		await page.goto(`/m/${id}/${dokumente[1]}`);
-		const zweiter = context.waitForEvent('page');
-		await oeffneMehr(druecke, page);
-		await druecke(page.getByRole('menuitem', { name: 'Drucken' }));
-		const warnung = (await zweiter).getByRole('dialog', { name: 'Beim Prüfen ist etwas aufgefallen' });
-		await expect(warnung).toBeVisible();
-		await druecke(warnung.getByRole('button', { name: 'Schließen' }));
-		await expect((await zweiter).getByRole('heading', { name: 'Nicht gedruckt' })).toBeVisible();
-		await druecke((await zweiter).getByRole('button', { name: 'Doch drucken' }));
-		await expect((await zweiter).getByText('Hier ist das PDF')).toBeVisible();
+		await expect(page.getByRole('menuitem', { name: 'Drucken' })).toHaveCount(0);
+		await page.keyboard.press('Escape');
 	});
 
 	test('ein Teilen-Link zeigt Dokumente und lädt PDFs, ohne zu warnen', async ({ browser, druecke, page }) => {
@@ -389,13 +376,11 @@ test.describe('Dokument und PDF', () => {
 		await druecke(besuch.locator('[data-dokument]').nth(1).getByRole('link', { name: 'Ansehen' }));
 		await expect(besuch.getByRole('heading', { level: 1, name: 'Kastanien zählen' })).toBeVisible();
 		await blattGeladen(besuch);
-		await oeffneMehr(druecke, besuch);
-		await expect(besuch.getByRole('menuitem', { name: 'Drucken' })).toBeVisible();
-		await expect(besuch.getByRole('menuitem', { name: 'Teilen' })).toHaveCount(0);
-		await besuch.keyboard.press('Escape');
+		// Ohne ⋯: Entwürfe, Teilen und Hilfe gibt es im Link nicht; ohne Lösung lädt „PDF“ sofort (191-41).
+		await expect(besuch.getByRole('button', { name: 'Weitere Aktionen', exact: true })).toHaveCount(0);
+		await druecke(besuch.getByRole('button', { name: 'Farbe', exact: true }));
 		const download = besuch.waitForEvent('download');
 		await druecke(besuch.getByRole('button', { name: 'PDF', exact: true }));
-		await druecke(besuch.getByRole('menuitem', { name: 'Arbeitsblatt (in Farbe)' }));
 		expect(await dateiname(download)).toBe('Kl2 Sachunterricht Kastanien zählen – Arbeitsblatt.pdf');
 		await druecke(besuch.getByRole('link', { name: 'Bäume im Herbst' }));
 		await expect(besuch).toHaveURL(new RegExp(`/f/${token}$`));
@@ -404,7 +389,7 @@ test.describe('Dokument und PDF', () => {
 });
 
 test.describe('Entwürfe', () => {
-	test('drei Entwürfe nebeneinander bzw. zum Wischen, ohne Auswahlknopf; was nicht passt, ist markiert', async ({
+	test('drei Entwürfe nebeneinander bzw. zum Wischen, je mit „Diesen Entwurf nehmen“; was nicht passt, ist markiert', async ({
 		page,
 	}) => {
 		const { dok, id } = await uhrzeitMitEntwuerfen();
@@ -415,8 +400,8 @@ test.describe('Entwürfe', () => {
 		await oeffneObjekt(page, 'Uhrzeit ablesen');
 		await expect(page).toHaveURL(new RegExp(`/m/${id}/${dok}/entwuerfe$`));
 
-		await expect(page.getByText('Schreib Claude, welcher Entwurf es werden soll')).toBeVisible();
-		await expect(page.getByRole('button', { name: /wähl/i })).toHaveCount(0);
+		await expect(page.getByText('Nimm einen Entwurf, oder schreib Claude, was anders sein soll.')).toBeVisible();
+		await expect(page.getByRole('button', { name: 'Diesen Entwurf nehmen' })).toHaveCount(3);
 		const entwuerfe = page.locator('[data-entwurf]');
 		await expect(entwuerfe).toHaveCount(3);
 		await expect(entwuerfe.nth(0)).toContainText('Uhren lesen');
@@ -471,16 +456,46 @@ test.describe('Entwürfe', () => {
 		await expect(page).toHaveURL(new RegExp(`/m/${id}/${dok}/entwuerfe$`));
 	});
 
+	test('blättert mit ← und →, Esc führt zur Übersicht (191 Urteil 3)', async ({ hasTouch, page }) => {
+		test.skip(hasTouch, 'Tasten gibt es nur am Mac');
+		const { dok, id } = await uhrzeitMitEntwuerfen();
+		await page.goto(`/m/${id}/${dok}/entwuerfe/A`);
+		await expect(page.getByRole('heading', { level: 1 })).toContainText('Entwurf A');
+		await page.keyboard.press('ArrowRight');
+		await expect(page).toHaveURL(new RegExp('/entwuerfe/B$'));
+		await page.keyboard.press('ArrowLeft');
+		await expect(page).toHaveURL(new RegExp('/entwuerfe/A$'));
+		// Vor A gibt es nichts: Die Seite bleibt.
+		await page.keyboard.press('ArrowLeft');
+		await expect(page).toHaveURL(new RegExp('/entwuerfe/A$'));
+		await page.keyboard.press('Escape');
+		await expect(page).toHaveURL(new RegExp(`/m/${id}/${dok}/entwuerfe$`));
+	});
+
+	test('„Diesen Entwurf nehmen“ macht ihn zum Material (191 Urteil 7)', async ({ druecke, page }) => {
+		const { dok, id } = await uhrzeitMitEntwuerfen();
+		await page.goto(`/m/${id}/${dok}/entwuerfe/C`);
+		await druecke(page.getByRole('button', { name: 'Diesen Entwurf nehmen' }));
+		await expect(page).toHaveURL(new RegExp(`/m/${id}/${dok}$`));
+		await expect(page.getByText('Entwurf C ist gewählt.')).toBeVisible();
+		await expect(page.frameLocator('[data-blattansicht] iframe').last().getByText('Inhalt C')).toBeVisible();
+		await page.goto(`/m/${id}/${dok}/entwuerfe`);
+		await expect(page.locator('[data-entwurf="C"]')).toContainText('Gewählt');
+		await expect(page.getByRole('button', { name: 'Diesen Entwurf nehmen' })).toHaveCount(0);
+	});
+
 	test('nach „schoolbox waehle … B“ zeigt die Dokumentseite B, die Entwürfe bleiben erreichbar', async ({
 		druecke,
 		page,
 	}) => {
 		const { dok, id } = await uhrzeitMitEntwuerfen();
+		// Solange keiner gewählt ist, führt die Ansicht zu den Entwürfen (191-02).
 		await page.goto(`/m/${id}/${dok}`);
-		await expect(page.locator('[data-entwuerfe-offen]')).toBeVisible();
+		await expect(page).toHaveURL(new RegExp(`/m/${id}/${dok}/entwuerfe$`));
 
 		await waehle(id, dok, 'B');
-		await expect(page.locator('[data-entwuerfe-offen]')).toHaveCount(0);
+		await page.goto(`/m/${id}/${dok}`);
+		await expect(page).toHaveURL(new RegExp(`/m/${id}/${dok}$`));
 		await expect(page.frameLocator('[data-blattansicht] iframe').last().getByText('Inhalt B')).toBeVisible();
 
 		await oeffneMehr(druecke, page);
