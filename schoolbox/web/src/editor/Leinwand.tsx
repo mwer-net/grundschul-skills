@@ -7,9 +7,15 @@ import { klassen } from '../bausteine/klassen';
 import { Symbol } from '../bausteine/Symbol';
 import { meldeDaneben } from '../bausteine/ueberlagerung';
 import type { Groesse } from './bild';
-import { elementZu, nrVon, trefferAn, VERALTET } from './darstellung';
+import { bausteinVon, elementZu, nrVon, VERALTET } from './darstellung';
+import { nrnFuer } from './gestaltung/mehrfach';
+import { Hoverrahmen } from './Hoverrahmen';
+import type { Klickziel } from './klickziel';
+import { gleichesZiel, klickziel, knotenVon } from './klickziel';
 import { LUECKE_GEAENDERT } from './luecke';
+import type { Luecke } from './navigation';
 import type { Pruefstand } from './pruefung';
+import { seitenIn } from './pruefung';
 import { useBlattZoom } from './useBlattZoom';
 import type { ZiehenSteuerung, ZugAnzeige } from './ziehen';
 import { rollbarUm, rolleAnsicht, ruesteZiehen } from './ziehen';
@@ -41,6 +47,15 @@ export interface Einblendung {
 	breite: number;
 	zieht: boolean;
 	ziehen: RefObject<ZiehenSteuerung | null>;
+	/** Die Einfüge-Linie unter dem Zeiger (205: aus `klickziel`, wie der Hover-Rahmen). */
+	luecke: Luecke | null;
+}
+
+/** Was der Rechtsklick getroffen hat. `gestaltung`: ein Gestaltungselement, dann gilt dessen Menü (204-10). */
+export interface MenueTreffer {
+	nr: number;
+	art: string;
+	gestaltung: boolean;
 }
 
 interface Eigenschaften {
@@ -58,7 +73,9 @@ interface Eigenschaften {
 	/** Tasten aus dem Material, z. B. Cmd+Z, während der Fokus im `iframe` liegt. */
 	taste: (e: KeyboardEvent) => void;
 	/** Rechtsklick ins Blatt, Punkt in Koordinaten des Elternfensters. `treffer` ist leer neben dem Blatt. */
-	kontextmenue?: (treffer: { nr: number; art: string } | null, punkt: { x: number; y: number }) => void;
+	kontextmenue?: (treffer: MenueTreffer | null, punkt: { x: number; y: number }) => void;
+	/** Die Einfüge-Linie ist an: Im Zwischenraum zweier Teile gehört der Klick ihr (205-04). */
+	einfuegeLinie?: boolean;
 	/** Beim Tippen bleibt das Browsermenü: Rechtschreibung und Einfügen brauchen es. */
 	textsitzung?: boolean;
 	/** Das sichtbare Dokument, sobald es fertig ist, mit dem HTML, aus dem es entstand. */
@@ -99,6 +116,22 @@ const LADE_BREITE = 1600;
  * die Stelle unter dem Zeiger mit jedem Bild einer Geste ein Stück.
  */
 const genau = (gemerkt: number, jetzt: number) => (Math.abs(jetzt - gemerkt) < 1 ? gemerkt : jetzt);
+
+/**
+ * 194-04: Wohin die Ansicht senkrecht rollt, damit der Rahmen `r` zu sehen ist; `null`, wenn er schon ganz zu sehen
+ * ist. Höher als die Ansicht oder oben abgeschnitten: an den oberen Rand, unten abgeschnitten: an den unteren.
+ */
+export const senkrechtesZiel = (
+	r: { top: number; bottom: number; height: number },
+	ansicht: { scrollTop: number; clientHeight: number; getBoundingClientRect: () => { top: number } },
+) => {
+	const oben = ansicht.getBoundingClientRect().top;
+	const start = r.top - oben + ansicht.scrollTop;
+	if (r.height > ansicht.clientHeight || r.top < oben) {
+		return start;
+	}
+	return r.bottom > oben + ansicht.clientHeight ? start + r.height - ansicht.clientHeight : null;
+};
 /** Weiter bewegt oder länger gedrückt ist kein Antippen mehr, sondern Wischen bzw. Halten. */
 const TIPP_WEG = 10;
 const TIPP_MS = 800;
@@ -208,13 +241,18 @@ interface PruefrahmenEigenschaften {
 }
 
 /** Fehler rot, Warnungen orange; Hinweise bekommen keinen Rahmen. */
-const Pruefrahmen = ({ aus, doc, links, pruefung, skala }: PruefrahmenEigenschaften) =>
-	aus || pruefung?.doc !== doc
-		? null
-		: pruefung.punkte
-				.filter((p) => p.stufe !== 'HINWEIS')
-				.flatMap((p, i) =>
-					p.rahmen.map((r, j) => (
+const Pruefrahmen = ({ aus, doc, links, pruefung, skala }: PruefrahmenEigenschaften) => {
+	if (aus || !doc || pruefung?.doc !== doc) {
+		return null;
+	}
+	// 194-03: Die Rechtecke gelten zu ihrer Seite; gezeichnet wird, wo diese Seite jetzt steht (auch nach dem Rollen).
+	const seiten = seitenIn(doc);
+	return pruefung.punkte
+		.filter((p) => p.stufe !== 'HINWEIS')
+		.flatMap((p, i) => {
+			const seite = seiten[p.seite - 1]?.getBoundingClientRect();
+			return seite
+				? p.rahmen.map((r, j) => (
 						<div
 							key={`${i}-${j}`}
 							className={klassen(
@@ -224,14 +262,16 @@ const Pruefrahmen = ({ aus, doc, links, pruefung, skala }: PruefrahmenEigenschaf
 							data-pruefrahmen={p.stufe}
 							data-code={p.code ?? undefined}
 							style={{
-								left: links + r.links * skala - 3,
-								top: r.oben * skala - 3,
+								left: links + (seite.left + r.links) * skala - 3,
+								top: (seite.top + r.oben) * skala - 3,
 								width: r.breite * skala + 6,
 								height: r.hoehe * skala + 6,
 							}}
 						/>
-					)),
-				);
+					))
+				: [];
+		});
+};
 
 /**
  * Das Material im Editor. Wie die Blattansicht lädt jede neue Fassung unsichtbar und ersetzt die alte erst, wenn sie
@@ -247,11 +287,13 @@ const Ueberlagerung = ({
 	links,
 	masse,
 	skala,
+	luecke,
 	ziehen,
 	zieht,
 }: {
 	zieht: boolean;
 	ziehen: RefObject<ZiehenSteuerung | null>;
+	luecke: Luecke | null;
 	aus: boolean | undefined;
 	box: DOMRect | undefined;
 	doc: Document | null;
@@ -271,6 +313,7 @@ const Ueberlagerung = ({
 				breite: masse.breite * skala,
 				zieht,
 				ziehen,
+				luecke,
 			});
 
 /** Einfügemarke und Name am Zeiger, solange ein Baustein gezogen wird. */
@@ -314,6 +357,7 @@ export const Leinwand = ({
 	ablegen,
 	auswahl,
 	einblendung,
+	einfuegeLinie = false,
 	geladen,
 	groesse,
 	html,
@@ -343,6 +387,10 @@ export const Leinwand = ({
 	const [vonAussen, setVonAussen] = useState(false);
 	const [, setLueckenStand] = useState(0);
 	const [ziehBreite, setZiehBreite] = useState<number | null>(null);
+	/** 205: Was ein Klick unter dem Zeiger wählen würde; der Hover-Rahmen zeigt es. */
+	const [hover, setHover] = useState<Klickziel | null>(null);
+	/** Die letzte Stelle der Maus im Blatt: ⌥ und eine neue Fassung rechnen das Ziel dort neu. */
+	const mausStelle = useRef<{ x: number; y: number } | null>(null);
 	const rueckrufe = useRef({
 		waehle,
 		taste,
@@ -356,6 +404,7 @@ export const Leinwand = ({
 		textsitzung,
 		jeSeite,
 		vorDemZeigen,
+		einfuegeLinie,
 	});
 	const skalaJetzt = useRef(1);
 	const ziehen = useRef<ZiehenSteuerung | null>(null);
@@ -388,6 +437,7 @@ export const Leinwand = ({
 			textsitzung,
 			jeSeite,
 			vorDemZeigen,
+			einfuegeLinie,
 		};
 	}, [
 		waehle,
@@ -402,6 +452,7 @@ export const Leinwand = ({
 		textsitzung,
 		jeSeite,
 		vorDemZeigen,
+		einfuegeLinie,
 	]);
 
 	// Losgelassen außerhalb des Materials: Das `iframe` bekommt das nicht immer mit.
@@ -411,12 +462,15 @@ export const Leinwand = ({
 		return () => window.removeEventListener('pointerup', los);
 	}, []);
 
+	// 194-04: nur senkrecht; waagerecht rollt allein die Hand, sonst stünde das Blatt danach abgeschnitten.
 	useEffect(() => {
 		const rahmenElement = auswahlRahmen.current;
 		const ansicht = rollbarUm(behaelter.current);
-		if (springe > 0 && rahmenElement) {
-			const hoch = ansicht && rahmenElement.offsetHeight > ansicht.clientHeight;
-			rahmenElement.scrollIntoView({ block: hoch ? 'start' : 'nearest', behavior: 'smooth' });
+		if (springe > 0 && rahmenElement && ansicht) {
+			const ziel = senkrechtesZiel(rahmenElement.getBoundingClientRect(), ansicht);
+			if (ziel !== null) {
+				ansicht.scrollTo({ top: ziel, behavior: 'smooth' });
+			}
 		}
 	}, [springe]);
 
@@ -435,6 +489,8 @@ export const Leinwand = ({
 			beobachter.observe(ansicht);
 		}
 		const merke = () => {
+			// 205: Rollen nimmt den Hover-Rahmen weg, bis sich die Maus wieder bewegt.
+			setHover(null);
 			const alt = rollstand.current;
 			rollstand.current = { x: genau(alt.x, element.scrollLeft), y: genau(alt.y, ansicht?.scrollTop ?? 0) };
 		};
@@ -455,9 +511,9 @@ export const Leinwand = ({
 	}, [html]);
 
 	/** Rollt beim Ziehen, wenn der Zeiger am Rand der Ansicht steht; Rückgabe in Koordinaten des Materials. */
-	const rolle = (frame: HTMLIFrameElement, y: number) => {
+	const rolle = (frame: HTMLIFrameElement, y: number, ms: number) => {
 		const skala = skalaJetzt.current;
-		return rolleAnsicht(behaelter.current, frame.getBoundingClientRect().top + y * skala) / skala;
+		return rolleAnsicht(behaelter.current, frame.getBoundingClientRect().top + y * skala, ms) / skala;
 	};
 
 	const verbinde = (dokument: Document, inhalt: string, frame: HTMLIFrameElement) => {
@@ -473,7 +529,7 @@ export const Leinwand = ({
 			beginnt: (nr) => rueckrufe.current.waehle(nr),
 			zeige: setZug,
 			ablegen: (nr, ablage) => rueckrufe.current.ablegen(nr, ablage),
-			rolle: (_x, y) => rolle(frame, y),
+			rolle: (_x, y, ms) => rolle(frame, y, ms),
 		});
 		ziehen.current = steuerung;
 		blattZoom.verbinde(dokument, frame);
@@ -482,7 +538,50 @@ export const Leinwand = ({
 		dokument.addEventListener(ZUG_VON_AUSSEN, (e) => setVonAussen((e as CustomEvent<boolean>).detail));
 		let start: { x: number; y: number; zeit: number; id: number } | null = null;
 		let markiertBeimDruecken = false;
+		const erlaubt = () =>
+			!rueckrufe.current.nurAnsehen &&
+			rueckrufe.current.html === inhalt &&
+			!dokument.documentElement.hasAttribute(VERALTET);
+		const zielAn = (ziel: Element | null, x: number, y: number, alt: boolean) =>
+			klickziel({
+				doc: dokument,
+				ziel,
+				x,
+				y,
+				alt,
+				gewaehlt: rueckrufe.current.auswahl,
+				luecken: rueckrufe.current.einfuegeLinie,
+			});
+		const zeigeHover = (neu: Klickziel | null) => setHover((alt) => (gleichesZiel(alt, neu) ? alt : neu));
+		const neuAmZeiger = (alt: boolean) => {
+			const p = mausStelle.current;
+			if (p && erlaubt()) {
+				zeigeHover(zielAn(dokument.elementFromPoint(p.x, p.y), p.x, p.y, alt));
+			}
+		};
+		// 205: nur die Maus ohne gedrückte Taste; ⌥ rechnet neu, jede andere Taste (Tippen) nimmt den Rahmen weg.
+		dokument.addEventListener('pointermove', (e) => {
+			if (e.pointerType !== 'mouse' || e.buttons !== 0 || !erlaubt()) {
+				mausStelle.current = null;
+				zeigeHover(null);
+				return;
+			}
+			mausStelle.current = { x: e.clientX, y: e.clientY };
+			zeigeHover(zielAn(knotenVon(e), e.clientX, e.clientY, e.altKey));
+		});
+		dokument.documentElement.addEventListener('pointerleave', () => {
+			mausStelle.current = null;
+			// Die Linie bleibt stehen, solange der Zeiger auf ihrer Pille über dem Blatt liegt.
+			setHover((alt) => (alt?.art === 'luecke' ? alt : null));
+		});
+		dokument.addEventListener('keyup', (e) => {
+			if (e.key === 'Alt') {
+				neuAmZeiger(false);
+			}
+		});
+		neuAmZeiger(false);
 		dokument.addEventListener('pointerdown', (e) => {
+			zeigeHover(null);
 			meldeDaneben();
 			const markiert = dokument.getSelection();
 			markiertBeimDruecken = Boolean(markiert && !markiert.isCollapsed);
@@ -504,12 +603,23 @@ export const Leinwand = ({
 			if (weg > TIPP_WEG || e.timeStamp - s.zeit > TIPP_MS) {
 				return;
 			}
-			// `instanceof Element` gilt im `iframe` nicht: Es hat eigene Klassen.
-			const ziel = (e.target as Node | null)?.nodeType === 1 ? (e.target as Element) : null;
-			rueckrufe.current.waehle(trefferAn(ziel)?.nr ?? null);
+			// 205: Klick, Rechtsklick und Hover-Rahmen fragen dieselbe Funktion; die Linie wählt selbst (Einfuegemarken).
+			const ziel = zielAn(knotenVon(e), e.clientX, e.clientY, e.pointerType === 'mouse' && e.altKey);
+			if (ziel?.art === 'luecke') {
+				return;
+			}
+			rueckrufe.current.waehle(ziel?.nr ?? null);
 			frame.contentWindow?.focus();
 		});
-		dokument.addEventListener('keydown', (e) => rueckrufe.current.taste(e));
+		dokument.addEventListener('keydown', (e) => {
+			if (e.key === 'Alt') {
+				neuAmZeiger(true);
+			} else {
+				mausStelle.current = null;
+				zeigeHover(null);
+			}
+			rueckrufe.current.taste(e);
+		});
 		dokument.addEventListener('contextmenu', (e) => {
 			if (rueckrufe.current.textsitzung || markiertBeimDruecken) {
 				return;
@@ -522,10 +632,21 @@ export const Leinwand = ({
 			if (finger || rueckrufe.current.nurAnsehen || dokument.documentElement.hasAttribute(VERALTET)) {
 				return;
 			}
-			const ziel = (e.target as Node | null)?.nodeType === 1 ? (e.target as Element) : null;
-			const treffer = trefferAn(ziel);
+			const ziel = zielAn(knotenVon(e), e.clientX, e.clientY, e.altKey);
+			const element = ziel && ziel.art !== 'luecke' ? ziel : null;
+			const art = element ? bausteinVon(element.element)?.art : undefined;
+			let treffer: MenueTreffer | null =
+				element && art ? { nr: element.nr, art, gestaltung: element.art === 'gestaltung' } : null;
+			// 204-05: Ein Element der Mehrfachauswahl lässt die Auswahl stehen; das Menü gilt dann allen.
+			const gewaehlt = rueckrufe.current.auswahl;
+			if (treffer?.gestaltung && gewaehlt !== null && treffer.nr !== gewaehlt) {
+				const mehr = nrnFuer(dokument, gewaehlt);
+				if (mehr.length > 1 && mehr.includes(treffer.nr)) {
+					treffer = { ...treffer, nr: gewaehlt };
+				}
+			}
 			const r = frame.getBoundingClientRect();
-			rueckrufe.current.kontextmenue?.(treffer && { nr: treffer.nr, art: treffer.baustein.art }, {
+			rueckrufe.current.kontextmenue?.(treffer, {
 				x: r.left + e.clientX * skalaJetzt.current,
 				y: r.top + e.clientY * skalaJetzt.current,
 			});
@@ -576,6 +697,10 @@ export const Leinwand = ({
 	const { vorschau } = blattZoom;
 	const { innenBreite, links, skala } = massstabVon({ breite, masse, sichtHoehe, zoom: vorschau ?? zoom });
 	skalaJetzt.current = skala;
+	// 205: Ein Zoom verschiebt alles unter dem Zeiger; der Rahmen kommt mit der nächsten Bewegung wieder.
+	useEffect(() => {
+		setHover(null);
+	}, [skala]);
 	useEffect(() => {
 		if (vorschau === null) {
 			meldeSkala?.(skala);
@@ -617,8 +742,23 @@ export const Leinwand = ({
 		};
 	}, [anker, skala, links, zoom, vorschau]);
 
-	const gewaehlt = doc && auswahl !== null ? elementZu(doc, auswahl) : null;
-	const box = gewaehlt?.getBoundingClientRect();
+	const ausgewaehlt = doc && auswahl !== null ? elementZu(doc, auswahl) : null;
+	// 194-20: In der Textsitzung umfasst der Rahmen den Absatz mit der Schreibmarke, auch einen eben neu entstandenen.
+	// Hat ein Werkzeug außerhalb den Fokus (Schnellauswahl nach „/“, 194-33), bleibt die Auswahl im Blatt stehen.
+	const marke = doc?.getSelection()?.anchorNode;
+	const schreibt =
+		doc?.activeElement?.closest?.('[contenteditable="true"]') ??
+		(marke?.nodeType === 3 ? marke.parentElement : (marke as Element | null | undefined))?.closest?.(
+			'[contenteditable="true"]',
+		) ??
+		null;
+	const gewaehlt =
+		ausgewaehlt && schreibt && schreibt !== ausgewaehlt && schreibt.parentElement === ausgewaehlt.parentElement
+			? schreibt
+			: ausgewaehlt;
+	// 194-09: Ein Element ohne Fläche (ausgeblendet, leer) bekommt keinen Rahmen links oben in der Ecke.
+	const flaeche = Boolean(gewaehlt && gewaehlt.getClientRects().length > 0);
+	const box = flaeche ? gewaehlt?.getBoundingClientRect() : undefined;
 	const zieht = zug !== null || vonAussen;
 	// Gestaltung hat ihren eigenen, gedrehten Rahmen mit Griffen (097); dieser bleibt nur fürs Hinrollen.
 	const gestaltung = gewaehlt?.matches(GESTALTUNG_SELEKTOR) === true;
@@ -664,7 +804,10 @@ export const Leinwand = ({
 					/>
 				))}
 				<Pruefrahmen pruefung={pruefung} doc={doc} aus={nurAnsehen} links={links} skala={skala} />
-				{box && gewaehlt && nrVon(gewaehlt) !== null && !zieht && (
+				{hover && doc && !zieht && !nurAnsehen && (
+					<Hoverrahmen ziel={hover} doc={doc} auswahl={auswahl} links={links} skala={skala} />
+				)}
+				{box && gewaehlt && flaeche && ausgewaehlt && nrVon(ausgewaehlt) !== null && !zieht && (
 					<div
 						ref={auswahlRahmen}
 						className="pointer-events-none absolute rounded-[2px] border-[1.5px] border-brand-500"
@@ -684,6 +827,7 @@ export const Leinwand = ({
 					doc={doc}
 					einblendung={einblendung}
 					links={links}
+					luecke={hover?.art === 'luecke' && !zieht ? hover.luecke : null}
 					masse={masse}
 					skala={skala}
 					zieht={zieht}
@@ -691,7 +835,7 @@ export const Leinwand = ({
 				/>
 				{!nurAnsehen && (
 					<Griffe
-						gewaehlt={gewaehlt}
+						gewaehlt={ausgewaehlt}
 						groesse={groesse?.nr === auswahl && !gestaltung ? groesse : null}
 						links={links}
 						skala={skala}

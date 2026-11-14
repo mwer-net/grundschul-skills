@@ -1,11 +1,13 @@
 import assert from 'node:assert/strict';
 import { describe, it } from 'node:test';
 
+import { anzahl } from '../lib/text';
 import {
 	dokObjekt,
 	inEigenenZweig,
 	inhaltText,
 	inhaltVon,
+	objekteText,
 	ordnerObjekt,
 	seitenText,
 	VORNE,
@@ -106,6 +108,13 @@ describe('Ordner zeigen, was drin ist (164)', () => {
 			assert.ok(!ergebnis.includes('Objekt'), ergebnis);
 			assert.ok(!ergebnis.includes('0 '), ergebnis);
 		}
+	});
+
+	it('anzahl und objekteText schreiben bei eins die Ziffer, nie „Ein“ (191-04)', () => {
+		assert.equal(anzahl(1, 'Seite', 'Seiten'), '1 Seite');
+		assert.equal(anzahl(1, 'Folie', 'Folien'), '1 Folie');
+		assert.equal(anzahl(6, 'Folie', 'Folien'), '6 Folien');
+		assert.equal(objekteText(1), '1 Objekt');
 	});
 
 	it('seitenText: „1 Seite“, „3 Seiten“, ungezählt „–“', () => {

@@ -2,7 +2,8 @@ import assert from 'node:assert/strict';
 import { describe, it } from 'node:test';
 
 import { fuegeBausteinAn, huelleImStapel } from './einfuegen-ablage';
-import { klassenVon, zerlege } from './quelltext';
+import { fuegeBausteinEin } from './einfuegen';
+import { attribut, klassenVon, zerlege } from './quelltext';
 
 const aufgabe = (text: string, nr = '1') =>
 	`<div class="aufgabe"><span class="nr">${nr}</span><div class="anw"><span class="text">${text}</span></div><div class="koerper"></div></div>`;
@@ -124,5 +125,54 @@ describe('Einfügen an einer Ablage', () => {
 
 	it('eine unbekannte Nummer bricht ab, ohne die Quelle zu ändern', () => {
 		assert.throws(() => fuegeBausteinAn(BLATT, NEU, { nr: 9999, wo: 'vor' }, nein));
+	});
+});
+
+describe('Einfügen auf einer Folie zählt die Schritte neu (192-16)', () => {
+	const zelle = (text: string, schritt: string) =>
+		`<div class="zelle links" data-schritt="${schritt}"><b>${text}</b></div>`;
+	const FOLIE = `<!doctype html><html><head><title>t</title></head>
+<body class="kl3 folie">
+<section class="seite">
+  <div class="kopf"><div class="titel"><h1>T</h1></div></div>
+  <div class="buehne"><div class="reihe" style="--spalten:1">
+    ${zelle('eins', '1')}
+    ${zelle('zwei', '2')}
+    ${zelle('drei', '3')}
+  </div></div>
+</section>
+<section class="seite"><div class="tipp" data-schritt="1">x</div></section>
+</body></html>`;
+	const folien = { jeSeite: true };
+	const zellen = (quelle: string) => zerlege(quelle).knoten.filter((k) => klassenVon(k).includes('zelle'));
+	const schritte = (quelle: string) => zellen(quelle).map((k) => attribut(k, 'data-schritt')?.wert);
+	const texte = (quelle: string) => zellen(quelle).map((k) => quelle.slice(k.start, k.ende).replace(/<[^>]+>/g, ''));
+	const kopie = { id: 'ablage', ort: 'zeile' as const, html: zelle('eins', '1') };
+
+	it('⌘V hinter die dritte Zeile: 1, 2, 3, 4', () => {
+		const ziel = zellen(FOLIE)[2]?.nr ?? -1;
+		const { quelle } = fuegeBausteinAn(FOLIE, kopie, { nr: ziel, wo: 'nach' }, folien);
+		assert.deepEqual(schritte(quelle), ['1', '2', '3', '4']);
+		assert.deepEqual(texte(quelle), ['eins', 'zwei', 'drei', 'eins']);
+	});
+
+	it('⌘V hinter die erste Zeile: Die Kopie ist Schritt 2', () => {
+		const ziel = zellen(FOLIE)[0]?.nr ?? -1;
+		const { quelle } = fuegeBausteinAn(FOLIE, kopie, { nr: ziel, wo: 'nach' }, folien);
+		assert.deepEqual(schritte(quelle), ['1', '2', '3', '4']);
+		assert.deepEqual(texte(quelle), ['eins', 'eins', 'zwei', 'drei']);
+	});
+
+	it('aus Schublade und Ablage über `fuegeBausteinEin`: ebenso fortlaufend, die andere Folie bleibt', () => {
+		const ziel = zellen(FOLIE)[2]?.nr ?? -1;
+		const { quelle } = fuegeBausteinEin(FOLIE, kopie, ziel, folien);
+		assert.deepEqual(new Set(schritte(quelle)).size, schritte(quelle).length);
+		assert.match(quelle, /<div class="tipp" data-schritt="1">x<\/div>/);
+	});
+
+	it('auf einem Blatt bleibt alles, wie es ist', () => {
+		const ziel = zellen(FOLIE)[2]?.nr ?? -1;
+		const { quelle } = fuegeBausteinAn(FOLIE, kopie, { nr: ziel, wo: 'nach' }, { jeSeite: false });
+		assert.deepEqual(schritte(quelle), ['1', '2', '3', '1']);
 	});
 });

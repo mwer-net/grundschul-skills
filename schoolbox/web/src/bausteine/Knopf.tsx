@@ -1,4 +1,4 @@
-import type { AnchorHTMLAttributes, ButtonHTMLAttributes } from 'react';
+import type { AnchorHTMLAttributes, ComponentProps } from 'react';
 import type { LinkProps } from 'react-router-dom';
 import { Link } from 'react-router-dom';
 
@@ -16,7 +16,7 @@ export const Knopf = ({
 	groesse,
 	type = 'button',
 	...rest
-}: ButtonHTMLAttributes<HTMLButtonElement> & Aussehen) => (
+}: ComponentProps<'button'> & Aussehen) => (
 	<button type={type} className={knopfKlassen(art, className, groesse)} {...rest} />
 );
 

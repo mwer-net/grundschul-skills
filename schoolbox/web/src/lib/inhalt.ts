@@ -5,12 +5,26 @@ import { useLaden } from './laden';
 import type { Zugang } from './zugang';
 import { inhaltAdresse } from './zugang';
 
-type GeteiltesDok = DokumentEintrag & { mappe?: string; fach?: Mappe['fach']; klasse?: Mappe['klasse'] };
+type GeteiltesDok = DokumentEintrag & {
+	mappe?: string;
+	fach?: Mappe['fach'];
+	klasse?: Mappe['klasse'];
+	ordner?: string | null;
+};
 
 interface Roh extends Omit<MappenEintrag, 'mappe' | 'dokumente'> {
 	mappe?: Mappe;
 	titel?: string;
 	dokumente: GeteiltesDok[];
+	/** Nur Ordner-Links: die Wurzel und die Ordner darunter. */
+	wurzel?: string | null;
+	ordner?: { id: string; name: string }[];
+}
+
+/** Wohin „Zurück“ aus einem Material eines geteilten Ordners führt: in seinen Ordner, nicht in die Wurzel (191-15). */
+export interface GeteilterOrt {
+	adresse: string;
+	name: string;
 }
 
 /**
@@ -39,5 +53,15 @@ export const useInhalt = (zugang: Zugang) => {
 			} as Mappe,
 		};
 	}, [daten, zugang.mappe]);
-	return { daten: eintrag, fehler, neuLaden };
+	const ortVon = (dok: string): GeteilterOrt | null => {
+		if (!daten || zugang.token === null) {
+			return null;
+		}
+		const ordner = daten.dokumente.find((d) => d.id === dok && (d.mappe ?? zugang.mappe) === zugang.mappe)?.ordner;
+		const gefunden = ordner && ordner !== daten.wurzel ? daten.ordner?.find((o) => o.id === ordner) : undefined;
+		return gefunden
+			? { adresse: `/f/${zugang.token}/o/${gefunden.id}`, name: gefunden.name }
+			: { adresse: `/f/${zugang.token}`, name: daten.titel ?? '' };
+	};
+	return { daten: eintrag, fehler, neuLaden, ortVon };
 };

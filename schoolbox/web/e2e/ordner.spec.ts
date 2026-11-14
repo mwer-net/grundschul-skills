@@ -829,9 +829,7 @@ test.describe('Befunde der Durchsicht 186 (A)', () => {
 });
 
 test.describe('Bestand', () => {
-	test('„Alles als PDF“ nennt den Ordner; Material im Ordner ohne Behälter fragt Fach und Klasse', async ({
-		page,
-	}) => {
+	test('Material im Ordner ohne Behälter fragt Fach und Klasse', async ({ page }) => {
 		await page.goto('/');
 		await neuerOrdner(page, 'Leer');
 		await oeffneObjekt(page, 'Leer');

@@ -67,6 +67,14 @@ export const Blattansicht = ({ adresse, stand, titel }: Eigenschaften) => {
 	}, [adresse, stand]);
 
 	const geladen = (nr: number, frame: HTMLIFrameElement) => {
+		// Der Bildschirm-Hintergrund des Blatts käme als zweiter Grauton mit Kante dazu; wie im Editor (191-17).
+		const doc = frame.contentDocument;
+		if (doc && !doc.querySelector('style[data-blattansicht]')) {
+			const stil = doc.createElement('style');
+			stil.dataset.blattansicht = '';
+			stil.textContent = '@media screen{html,body{background:transparent!important}}';
+			doc.head.append(stil);
+		}
 		const fertig = () => {
 			const masse = miss(frame);
 			if (masse) {

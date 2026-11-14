@@ -11,8 +11,10 @@ import { gehoertDemElement, istFeld, TASTEN_SPERRE_OHNE_LISTE } from '../editor/
 import { hatOffeneEntwuerfe } from '../entwuerfe/offen';
 import { falte } from '../lib/text';
 import { dokumentSeite, editorSeite, entwuerfeSeite, praesentationSeite } from '../lib/zugang';
+import { ECHTE_MASSE } from '../pdf/PdfKnopf';
 import { usePdf } from '../pdf/usePdf';
 import { dokumentWahl, sammlungWahl } from '../pdf/wahl';
+import { SOFORT, vollbildFuerSofort } from '../praesentation/laufzeit';
 import { MaterialDialog } from '../seiten/Anlegen';
 import { TeilenDialog } from '../teilen/TeilenDialog';
 import type { AuswahlStand, Richtung } from './auswahl';
@@ -286,12 +288,18 @@ export const useBefehle = (o: Optionen) => {
 							l.objekte.length > 1 ? `${hier?.name ?? WURZEL_NAME} (Auswahl)` : (erstes?.name ?? ortName);
 						return sammlungWahl(dokumente, name);
 					})();
-		return wahl.map((w) => ({
+		const eintraege: MenueEintrag[] = wahl.map((w) => ({
 			titel: w.titel,
 			...(w.hinweis ? { beschreibung: w.hinweis } : {}),
+			...(w.gruppe ? { gruppe: w.gruppe } : {}),
 			...(pdf.laeuft ? { aus: true } : {}),
 			waehle: () => void pdf.hole(w),
 		}));
+		// Dieselbe leise Zeile wie am PDF-Knopf der Ansicht (191-N01).
+		const masse = erstes && !erstes.istOrdner && l.objekte.length === 1 && erstes.dok.echteMasse;
+		return masse && eintraege.length > 0
+			? [...eintraege, { titel: ECHTE_MASSE, gruppe: 'masse', aus: true }]
+			: eintraege;
 	};
 
 	const unterMenue = (id: string, l: Lage): MenueEintrag[] | null => {
@@ -392,7 +400,11 @@ export const useBefehle = (o: Optionen) => {
 	const AKTIONEN: Record<string, (l: Lage) => void> = {
 		oeffnen: mitErstem((x) => void navigate(seiteVon(x))),
 		bearbeiten: mitDok((d) => void navigate(editorSeite(zugangVon(d), d.id))),
-		praesentieren: mitDok((d) => void navigate(praesentationSeite(zugangVon(d), d.id))),
+		praesentieren: mitDok((d) => {
+			// Sofort im Vollbild (192 Urteil 2): Es geht nur im Klick selbst.
+			vollbildFuerSofort();
+			void navigate(praesentationSeite(zugangVon(d), d.id), { state: SOFORT });
+		}),
 		entwuerfe: mitDok((d) => void navigate(entwuerfeSeite(zugangVon(d), d.id))),
 		neuerTab: mitErstem((x) => void window.open(seiteVon(x), '_blank', 'noopener')),
 		imOrdnerZeigen: mitErstem(imOrdnerZeigen),

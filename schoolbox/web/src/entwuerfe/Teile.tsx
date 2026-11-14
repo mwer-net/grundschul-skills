@@ -94,7 +94,7 @@ export const ClaudeHinweis = ({ children }: { children?: ReactNode }) => (
 	<div className="flex items-start gap-3 rounded-lg border border-rand bg-flaeche px-3 py-2">
 		<Symbol name="sprechblase" className="mt-0.5 size-4 flex-none text-tinte" />
 		<div>
-			<p className="font-medium">Schreib Claude, welcher Entwurf es werden soll, und was anders sein soll.</p>
+			<p className="font-medium">Nimm einen Entwurf, oder schreib Claude, was anders sein soll.</p>
 			{children}
 		</div>
 	</div>

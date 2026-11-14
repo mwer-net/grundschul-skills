@@ -39,6 +39,20 @@ export const istAusgabeVeraltet = async (dir: string): Promise<boolean> => {
 	return bericht === null || quelle.mtimeMs > bericht.mtimeMs;
 };
 
+/**
+ * Hat die letzte Prüfung echte Maße gemeldet (`masstab`)? Dann sagt der PDF-Knopf, wie zu drucken ist (191-45). Ohne
+ * Prüfbericht: nein.
+ */
+export const hatEchteMasse = async (materialDir: string, mappe: string, dok: string): Promise<boolean> => {
+	try {
+		const datei = path.join(dokumentDir(materialDir, mappe, dok), 'ausgabe', 'pruefbericht.json');
+		const bericht = JSON.parse(await readFile(datei, 'utf8')) as { meldungen?: { code?: string }[] };
+		return bericht.meldungen?.some((m) => m.code === 'masstab') ?? false;
+	} catch {
+		return false;
+	}
+};
+
 export interface Aufnahme {
 	vorher: Bekannt | undefined;
 	jetzt: Bekannt;

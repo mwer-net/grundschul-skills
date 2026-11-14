@@ -15,6 +15,7 @@ import type { Zugang } from '../lib/zugang';
 import { dokumentSeite, editorSeite, entwuerfeSeite, istGeteilt, praesentationSeite } from '../lib/zugang';
 import { PdfKnopf } from '../pdf/PdfKnopf';
 import { dokumentWahl } from '../pdf/wahl';
+import { SOFORT, vollbildFuerSofort } from '../praesentation/laufzeit';
 import type { DokumentEintrag, Mappe } from '../typen';
 
 interface Eigenschaften {
@@ -107,7 +108,14 @@ export const DokumentKachel = ({ dokument, mappe, teile, variante, zugang }: Eig
 					</KnopfLink>
 				)}
 				{!waehlen && folie && (
-					<KnopfLink to={praesentationSeite(zugang, id)} art="leise" groesse="klein" className="px-1.5!">
+					<KnopfLink
+						to={praesentationSeite(zugang, id)}
+						state={SOFORT}
+						onClick={vollbildFuerSofort}
+						art="leise"
+						groesse="klein"
+						className="px-1.5!"
+					>
 						<Symbol name="praesentieren" />
 						Präsentieren
 					</KnopfLink>
@@ -121,6 +129,7 @@ export const DokumentKachel = ({ dokument, mappe, teile, variante, zugang }: Eig
 						wahl={wahl}
 						mappe={mappe}
 						warnen={!geteilt}
+						echteMasse={dokument.echteMasse}
 					/>
 				)}
 				{/* Ein ⋯ erst ab zwei Einträgen; ein einzelner steht als Knopf da (188-28). */}

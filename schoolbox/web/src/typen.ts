@@ -8,6 +8,8 @@ export interface DokumentEintrag {
 	meta: DokumentMeta;
 	/** Kennung der Vorschau für die Adresse des Bildes, `null` solange es keine gibt. */
 	vorschau: string | null;
+	/** Die Prüfung hat echte Maße gemeldet: in Originalgröße drucken (191-45). */
+	echteMasse?: boolean;
 }
 
 export interface MappenEintrag {

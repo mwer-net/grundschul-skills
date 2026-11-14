@@ -1,14 +1,16 @@
 import type { CSSProperties } from 'react';
 import { useRef } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, Navigate } from 'react-router-dom';
 
 import { Kachel } from '../bausteine/Kachel';
-import { KnopfLink } from '../bausteine/Knopf';
+import { klassen } from '../bausteine/klassen';
+import { Knopf, KnopfLink } from '../bausteine/Knopf';
 import { Symbol } from '../bausteine/Symbol';
 import { Zustand } from '../bausteine/Zustand';
 import { useRestHoehe } from '../entwuerfe/hoehe';
 import { useEntwuerfe } from '../entwuerfe/laden';
 import { Buchstabe, ClaudeHinweis, EntwurfBild, EntwurfStatus } from '../entwuerfe/Teile';
+import { useEntwurfNehmen } from '../entwuerfe/waehlen';
 import { useTitel } from '../lib/titel';
 import type { Zugang } from '../lib/zugang';
 import { dokumentSeite, entwuerfeSeite, mappenSeite } from '../lib/zugang';
@@ -32,11 +34,12 @@ export const NichtDa = () => {
 
 /**
  * Die Entwürfe eines Dokuments zum Vergleichen: am Mac und auf dem iPad quer nebeneinander und ohne zu scrollen, auf
- * dem iPad hoch zum Durchwischen. Wählen kann die Lehrkraft nur bei Claude; ein Knopf hier würde Claude nicht
- * erreichen und wäre deshalb irreführend.
+ * dem iPad hoch zum Durchwischen. „Diesen Entwurf nehmen“ übernimmt ihn als Material (191 Urteil 7); was anders
+ * werden soll, schreibt die Lehrkraft Claude.
  */
 export const Entwuerfe = ({ dok, zugang }: Eigenschaften) => {
 	const { daten, dokument, fehler } = useEntwuerfe(zugang, dok);
+	const nehmen = useEntwurfNehmen(zugang, dok);
 	const zurueckOrt = useOrdnerDesDokuments(zugang.mappe, dok);
 	const liste = useRef<HTMLUListElement>(null);
 	useRestHoehe(liste, Boolean(dokument?.meta.entwuerfe.length));
@@ -45,15 +48,19 @@ export const Entwuerfe = ({ dok, zugang }: Eigenschaften) => {
 	if (!dokument && (daten || fehler)) {
 		return <MaterialFehlt fehler={fehler} />;
 	}
-	if (!daten || !dokument || dokument.meta.entwuerfe.length === 0) {
+	if (!daten || !dokument) {
 		return daten || fehler ? <NichtDa /> : null;
+	}
+	// Das Material gibt es, nur keine Entwürfe: dann das Material selbst (191-25).
+	if (dokument.meta.entwuerfe.length === 0) {
+		return <Navigate replace to={dokumentSeite(zugang, dok)} />;
 	}
 
 	const { meta } = dokument;
 	const gewaehlt = meta.entwuerfe.find((e) => e.name === meta.gewaehlt);
 	return (
 		<>
-			<KnopfLink to={zurueckOrt?.adresse ?? mappenSeite(zugang)} art="leise" className="-ml-5">
+			<KnopfLink to={zurueckOrt?.adresse ?? mappenSeite(zugang)} art="leise" className="-ml-2.5">
 				<Symbol name="zurueck" />
 				{zurueckOrt?.name ?? daten.mappe.titel}
 			</KnopfLink>
@@ -61,16 +68,14 @@ export const Entwuerfe = ({ dok, zugang }: Eigenschaften) => {
 			<div className="mt-3">
 				{gewaehlt ? (
 					<div className="flex flex-wrap items-center gap-x-6 gap-y-3 rounded-2xl border border-rand bg-flaeche px-5 py-3">
-						<p className="font-medium">{`Entwurf ${gewaehlt.name} ist gewählt. Claude arbeitet damit weiter.`}</p>
+						<p className="font-medium">{`Entwurf ${gewaehlt.name} ist gewählt.`}</p>
 						<KnopfLink to={dokumentSeite(zugang, dok)} art="zweit" className="ml-auto max-md:ml-0">
 							Zum Material
 							<Symbol name="weiter" />
 						</KnopfLink>
 					</div>
 				) : (
-					<ClaudeHinweis>
-						<p className="text-leise">Tippe einen Entwurf an, um ihn groß anzusehen.</p>
-					</ClaudeHinweis>
+					<ClaudeHinweis />
 				)}
 			</div>
 			{/* Mac und iPad quer: so hoch wie der Rest des Fensters, damit alle Entwürfe ohne Scrollen zu sehen sind. */}
@@ -86,15 +91,21 @@ export const Entwuerfe = ({ dok, zugang }: Eigenschaften) => {
 						className="relative min-h-0 min-w-0 max-lg:w-[85%] max-lg:flex-none max-lg:snap-center"
 						data-entwurf={entwurf.name}
 					>
-						<Link to={entwuerfeSeite(zugang, dok, entwurf.name)} className="block h-full no-underline">
+						<Link to={entwuerfeSeite(zugang, dok, entwurf.name)} className="group block h-full no-underline">
+							{/* Hover wie die Kacheln der Ablage (191-35); nur der gewählte trägt den Auswahlrahmen (191-37). */}
 							<Kachel
-								className={
-									entwurf.pruefung?.passt === false
-										? 'flex h-full flex-col ring-2 ring-entwurf'
-										: 'flex h-full flex-col'
-								}
+								className={klassen(
+									'flex h-full flex-col group-hover:border-rand-feld',
+									entwurf.name === meta.gewaehlt && 'border-tinte ring-1 ring-tinte group-hover:border-tinte',
+								)}
 							>
-								<div className="flex flex-none items-start gap-2 p-3">
+								{/* Rechts oben liegt „Diesen Entwurf nehmen“, neben dem Link (kein Knopf im Link). */}
+								<div
+									className={klassen(
+										'flex flex-none items-start gap-2 p-3',
+										entwurf.name !== meta.gewaehlt && (gewaehlt ? 'pr-56' : 'pr-48'),
+									)}
+								>
 									<Buchstabe name={entwurf.name} />
 									<div className="min-w-0">
 										<h2 className="text-base font-semibold">
@@ -118,6 +129,18 @@ export const Entwuerfe = ({ dok, zugang }: Eigenschaften) => {
 								</div>
 							</Kachel>
 						</Link>
+						{/* Nach einer Wahl tragen die anderen Karten „Stattdessen diesen nehmen“ (191-N03). */}
+						{entwurf.name !== meta.gewaehlt && (
+							<Knopf
+								art="zweit"
+								groesse="klein"
+								className="absolute top-3 right-3"
+								disabled={nehmen.laeuft}
+								onClick={() => nehmen.nimm(entwurf.name)}
+							>
+								{gewaehlt ? 'Stattdessen diesen nehmen' : 'Diesen Entwurf nehmen'}
+							</Knopf>
+						)}
 					</li>
 				))}
 			</ul>

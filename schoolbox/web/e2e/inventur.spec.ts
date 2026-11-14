@@ -71,6 +71,8 @@ test.describe('Inventur Editor', () => {
 		]);
 		await oeffne(page, id, dokumente[0] ?? '');
 		await expect(kopf(page).getByRole('button', { name: 'Präsentieren' })).toBeVisible();
+		// 192-12: Folien zählen Folien.
+		await expect(page.locator('[data-seite-von]')).toContainText(/^Folie 1 von \d+ · Folien 16:9$/);
 	});
 
 	test('Statusleiste: Zoom, Prüfstatus, Befehle, Tasten, beide Leisten', async ({ page }) => {
@@ -106,21 +108,19 @@ test.describe('Inventur Editor', () => {
 		}
 	});
 
-	test('Leiste am Baustein: Ebene, Pfeile, Duplizieren, Löschen, Einfügen, Ablage, Sammlung', async ({ page }) => {
+	test('Leiste am Baustein: Pfeile, Duplizieren, Löschen, im ⋯ Einfügen und Sammlung (204)', async ({ page }) => {
 		await offenesBlatt(page);
 		await material(page).locator('.aufgabe').first().locator('.nr').click();
 		await expect(leiste(page)).toBeVisible();
 		for (const name of ['Nach oben', 'Nach unten', 'Duplizieren', 'Löschen', 'Mehr zu diesem Baustein']) {
 			await expect(leiste(page).getByRole('button', { name })).toBeVisible();
 		}
-		await expect(
-			leiste(page)
-				.getByRole('button', { name: /Baustein/ })
-				.first(),
-		).toBeVisible();
+		// 204-06, 204-09: kein Ebenen-Menü und kein „+“ in der Leiste.
+		await expect(leiste(page).getByRole('button', { name: 'Ebene wählen' })).toHaveCount(0);
+		await expect(leiste(page).locator('[data-einfuegen-plus], [data-leiste-griff]')).toHaveCount(0);
 
 		await leiste(page).getByRole('button', { name: 'Mehr zu diesem Baustein' }).click();
-		for (const name of [/Kopieren/, /Ausschneiden/, /In Sammlung legen/, /Mit Claude ändern/]) {
+		for (const name of [/Kopieren/, /Ausschneiden/, /In Sammlung legen/, /Mit Claude ändern/, /^Neuer Baustein/]) {
 			await expect(page.getByRole('menuitem', { name })).toBeVisible();
 		}
 		await page.keyboard.press('Escape');
@@ -142,18 +142,14 @@ test.describe('Inventur Editor', () => {
 		await expect(page.locator('[data-abschnitt="sichtbarkeit"]')).toBeVisible();
 	});
 
-	test('Tabelle, Spalten und Neue Zahlen haben ihren Platz', async ({ druecke, hasTouch, page }) => {
+	test('Tabelle, Spalten und Neue Zahlen haben ihren Platz', async ({ druecke, page }) => {
 		await offenesBlatt(page);
 		await druecke(material(page).locator('x-uhr').first());
-		// Am iPad stehen die Befehle der Leiste im ⋯ (071), am Mac dann, wenn die Leiste zu breit wird (134).
-		const direkt = leiste(page).getByRole('button', { name: 'Neue Zahlen' });
-		if (hasTouch || (await direkt.count()) === 0) {
-			await druecke(leiste(page).getByRole('button', { name: 'Mehr zu diesem Baustein' }));
-			await expect(page.getByRole('menuitem', { name: /Neue Zahlen/ })).toBeVisible();
-			await page.keyboard.press('Escape');
-		} else {
-			await expect(direkt).toBeVisible();
-		}
+		// 204-08: „Neue Zahlen“ steht im ⋯, nicht als Knopf in der Leiste.
+		await expect(leiste(page).getByRole('button', { name: 'Neue Zahlen' })).toHaveCount(0);
+		await druecke(leiste(page).getByRole('button', { name: 'Mehr zu diesem Baustein' }));
+		await expect(page.getByRole('menuitem', { name: /Neue Zahlen/ })).toBeVisible();
+		await page.keyboard.press('Escape');
 		// 196-18: Die Spalten der Reihe stehen am Eintrag, nicht an der Uhr darin.
 		await druecke(page.locator('[data-breadcrumb]').getByRole('button', { name: /^Eintrag/ }));
 		await expect(page.locator('[data-abschnitt="eltern"]')).toBeVisible();
@@ -217,7 +213,7 @@ test.describe('Inventur außerhalb des Editors', () => {
 			/In neuem Tab/,
 			/Neuer Unterordner/,
 			/Material hier anlegen/,
-			/Alles als PDF/,
+			/^PDF/,
 			/^Teilen/,
 			/^Umbenennen/,
 			/^Duplizieren/,
@@ -261,7 +257,10 @@ test.describe('Inventur außerhalb des Editors', () => {
 		await expect(page).toHaveURL(new RegExp(`/m/${id}/${dokumente[0]}`));
 	});
 
-	test('Dokument: Bearbeiten, PDF, Schalter; Drucken und Teilen im ⋯', async ({ druecke, page }) => {
+	test('Dokument: Bearbeiten, PDF, Schalter; Teilen im ⋯, Drucken gibt es nicht mehr (191-42)', async ({
+		druecke,
+		page,
+	}) => {
 		const { dokumente, id } = await legeMappeAn('Kartoffeln', 'sachunterricht', 3, [
 			{ titel: 'Teile der Kartoffel', vorlage: 'arbeitsblatt', loesung: true },
 		]);
@@ -271,9 +270,8 @@ test.describe('Inventur außerhalb des Editors', () => {
 		await expect(page.locator('[data-profilschalter]').getByRole('button', { name: 'Farbe' })).toBeVisible();
 		await expect(page.getByRole('button', { name: 'Lösung' })).toBeVisible();
 		await oeffneMehr(druecke, page);
-		for (const name of ['Drucken', 'Teilen']) {
-			await expect(page.getByRole('menuitem', { name })).toBeVisible();
-		}
+		await expect(page.getByRole('menuitem', { name: 'Teilen' })).toBeVisible();
+		await expect(page.getByRole('menuitem', { name: 'Drucken' })).toHaveCount(0);
 	});
 
 	test('Folien im Dokument: Präsentieren und Ohne Internet', async ({ druecke, page }) => {
@@ -282,7 +280,11 @@ test.describe('Inventur außerhalb des Editors', () => {
 		]);
 		await page.goto(`/m/${id}/${dokumente[0]}`);
 		await expect(page.getByRole('link', { name: 'Präsentieren' })).toBeVisible();
+		// „Ohne Internet“ steht im Menü „PDF“, nicht mehr unter ⋯ (192-17).
+		await druecke(page.getByRole('button', { name: 'PDF', exact: true }));
+		await expect(page.getByRole('menuitem', { name: /^Ohne Internet: fürs iPad/ })).toBeVisible();
+		await page.keyboard.press('Escape');
 		await oeffneMehr(druecke, page);
-		await expect(page.getByRole('menuitem', { name: 'Ohne Internet' })).toBeVisible();
+		await expect(page.getByRole('menuitem', { name: 'Ohne Internet' })).toHaveCount(0);
 	});
 });

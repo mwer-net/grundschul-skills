@@ -383,3 +383,40 @@ test.describe('Rückgängig: Pfeil und Taste (085)', () => {
 		await expect(sitzung(page)).toHaveCount(0);
 	});
 });
+
+test.describe('Rückgängig rollt nur senkrecht (194-04)', () => {
+	test('200 %: Uhr, Neue Zahlen, Rückgängig: Die Leinwand bleibt waagerecht, wo sie war', async ({
+		druecke,
+		page,
+	}) => {
+		const { dok, id } = await uhrzeit();
+		await oeffne(page, id, dok);
+		for (let i = 0; i < 4; i++) {
+			await page.getByRole('button', { name: 'Größer' }).click();
+		}
+		const leinwand = page.locator('[data-leinwand]');
+		const uhr = material(page).locator('x-uhr').first();
+		await uhr.evaluate((e) => e.scrollIntoView({ block: 'center', inline: 'center' }));
+		await druecke(uhr);
+		await expect(page.locator('[data-auswahl="abbildung"]')).toBeVisible();
+		const vorher = await leinwand.evaluate((l) => l.scrollLeft);
+		const html = await quelle(page);
+		await page.keyboard.press('Alt+KeyN');
+		await expect.poll(() => quelle(page)).not.toBe(html);
+		await druecke(pfeilZurueck(page));
+		await expect.poll(() => quelle(page)).toBe(html);
+		await expect.poll(() => leinwand.evaluate((l) => l.scrollLeft)).toBe(vorher);
+	});
+
+	test('194-06: Ein weiterer Schritt nimmt die Meldung mit „Rückgängig“ weg', async ({ druecke, page }) => {
+		const { dok, id } = await uhrzeit();
+		await oeffne(page, id, dok);
+		await druecke(material(page).locator('.aufgabe').nth(1).locator('.nr'));
+		await page.keyboard.press('Backspace');
+		const meldung = page.locator('[role="status"]').getByRole('button', { name: 'Rückgängig' });
+		await expect(meldung).toBeVisible();
+		await druecke(material(page).locator('x-uhr').first());
+		await page.keyboard.press('Alt+KeyN');
+		await expect(meldung).toHaveCount(0);
+	});
+});

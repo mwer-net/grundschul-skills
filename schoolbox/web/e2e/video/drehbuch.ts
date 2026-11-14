@@ -354,8 +354,8 @@ test('5 · Mappe', async ({ browser }) => {
 		await szene.pause(500);
 	}
 	szene.text('Alles als ein PDF');
-	await szene.klicke(seite.getByRole('button', { name: 'Alles als PDF' }), { pause: 900 });
-	await szene.klicke(seite.getByRole('menuitem', { name: 'Ohne Lösungen' }), { pause: 300 });
+	await szene.klicke(seite.getByRole('button', { name: 'PDF', exact: true }), { pause: 900 });
+	await szene.klicke(seite.getByRole('menuitem', { name: 'Ohne Lösungen, in Farbe' }), { pause: 300 });
 	const warnung = seite.getByRole('dialog', { name: 'Beim Prüfen ist etwas aufgefallen' });
 	szene.tempo(3);
 	await warnung.waitFor({ timeout: 90_000 });
@@ -391,16 +391,9 @@ test('6 · Dokument', async ({ browser }) => {
 	await szene.klicke(seite.getByRole('button', { name: 'Arbeitsblatt', exact: true }), { pause: 700 });
 	szene.text('PDF: Blatt, Lösung oder beides');
 	await szene.klicke(seite.getByRole('button', { name: 'PDF herunterladen' }), { pause: 1300 });
-	await szene.klicke(seite.getByRole('menuitem', { name: 'Arbeitsblatt und Lösung' }), { pause: 300 });
+	await szene.klicke(seite.getByRole('menuitem', { name: 'Arbeitsblatt mit Lösung' }), { pause: 300 });
 	szene.tempo(3);
 	await expect(seite.getByRole('button', { name: 'PDF herunterladen' })).toBeEnabled({ timeout: 60_000 });
-	szene.tempo(1);
-	await szene.pause(800);
-	szene.text('Drucken: das PDF im Browser');
-	const druck = await szene.folge(() => szene.klicke(seite.getByRole('link', { name: 'Drucken' }), { pause: 0 }));
-	szene.tempo(3);
-	await druck.waitForURL(/anzeigen=1/, { timeout: 60_000 });
-	await warte(2500);
 	szene.tempo(1);
 	await szene.pause(2200);
 	await szene.ende();
@@ -667,7 +660,7 @@ test('8a · Präsentieren', async ({ browser }) => {
 	await szene.gehe(folie.locator('.praesentation-nummer'));
 	await szene.pause(1500);
 	await szene.taste('Escape', 300);
-	const ohneInternet = seite.getByRole('button', { name: 'Ohne Internet' });
+	const ohneInternet = seite.getByRole('button', { name: 'PDF', exact: true });
 	await ohneInternet.waitFor();
 	await bilderGeladen(seite);
 	szene.text('Offline: PDF, Datei, Notizen');
@@ -728,7 +721,7 @@ test('9 · Teilen', async ({ browser }) => {
 	await szene.klicke(dialog.getByRole('button', { name: 'Abschalten', exact: true }), { pause: 700 });
 	await szene.klicke(seite.getByRole('button', { name: 'Ja, abschalten' }), { pause: 800 });
 	await besuch.reload();
-	await besuch.getByRole('heading', { name: 'Schade!' }).waitFor();
+	await besuch.getByRole('heading', { name: 'Dieser Link gilt nicht mehr' }).waitFor();
 	szene.zeige(besuch);
 	szene.banner('Zweites Fenster · ohne Anmeldung');
 	await szene.pause(1800);

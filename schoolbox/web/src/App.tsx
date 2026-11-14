@@ -1,5 +1,5 @@
 import type { ReactNode } from 'react';
-import { BrowserRouter, Route, Routes, useLocation, useParams } from 'react-router-dom';
+import { BrowserRouter, Navigate, Route, Routes, useLocation, useParams } from 'react-router-dom';
 
 import { ANMELDE_SEITE } from './api';
 import { Fehlergrenze } from './bausteine/Fehlergrenze';
@@ -13,7 +13,6 @@ import { MappeWeiter } from './ordner/MappeWeiter';
 import { Anmeldung } from './seiten/Anmeldung';
 import { Bausteine } from './seiten/Bausteine';
 import { Dokumentansicht } from './seiten/Dokumentansicht';
-import { Drucken } from './seiten/Drucken';
 import { Editor } from './seiten/Editor';
 import { Entwuerfe } from './seiten/Entwuerfe';
 import { EntwurfGross } from './seiten/EntwurfGross';
@@ -38,9 +37,10 @@ const EntwurfSeite = () => {
 	return <EntwurfGross key={`${mappe}/${dok}`} zugang={{ mappe, token: null }} dok={dok} name={name} />;
 };
 
+/** „Drucken“ gibt es nicht mehr (191-42); alte Lesezeichen landen in der Ansicht, wo „PDF“ steht. */
 const DruckSeite = () => {
 	const { dok = '', mappe = '' } = useParams();
-	return <Drucken zugang={{ mappe, token: null }} dok={dok} />;
+	return <Navigate replace to={`/m/${mappe}/${dok}`} />;
 };
 
 const EditorSeite = () => {

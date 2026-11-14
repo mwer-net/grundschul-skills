@@ -1,7 +1,7 @@
 import { ausFlaeche, inFlaeche } from '@schoolbox/kern/src/flaeche';
 import type { LageTeil } from '@schoolbox/kern/src/gestaltung';
 import { kopiereGestaltungNach, setzeLage, setzeStilWerte, verschiebeAufSeite } from '@schoolbox/kern/src/gestaltung';
-import { GESTALTUNG_SELEKTOR, gestaltungArtNach } from '@schoolbox/kern/src/gestaltung-arten';
+import { gestaltungArtNach } from '@schoolbox/kern/src/gestaltung-arten';
 import { skaliereGruppe } from '@schoolbox/kern/src/gruppen';
 import { SEITEN_TEIL_SELEKTOR } from '@schoolbox/kern/src/seitengestaltung';
 import type { StrukturErgebnis } from '@schoolbox/kern/src/struktur';
@@ -12,6 +12,7 @@ import { meldeDaneben } from '../../bausteine/ueberlagerung';
 import { folgeZeiger, schluckeKlick } from '../../bausteine/zeigerzug';
 import type { PfadTeil } from '../darstellung';
 import { bausteinVon, elementZu, nrVon, VERALTET } from '../darstellung';
+import { gestaltungUnter, klickziel } from '../klickziel';
 import type { Struktur } from '../struktur';
 import { FINGER_WEG, HALTEN_MS, MAUS_WEG } from '../ziehen';
 import { zeigeNachGroesse } from './anzeige-folgen';
@@ -162,30 +163,6 @@ export const messe = (element: Element): Messung | null => {
 	};
 };
 
-/**
- * Das äußerste Gestaltungselement mit Nummer um `start` (eine Gruppe vor ihren Kindern). 120: Liegt das gewählte
- * Element (`gewaehlt`, etwa ein Kind einer Gruppe) auf dem Weg, gilt es.
- */
-export const gestaltungUnter = (start: Element | null, gewaehlt: number | null = null) => {
-	let gefunden: Element | null = null;
-	for (let e = start; e && !e.matches('.seite'); e = e.parentElement) {
-		if (e.matches(GESTALTUNG_SELEKTOR) && nrVon(e) !== null) {
-			if (gewaehlt !== null && nrVon(e) === gewaehlt) {
-				return e;
-			}
-			gefunden = e;
-		}
-	}
-	return gefunden;
-};
-
-/** ⌥-Klick: das hinterste Gestaltungselement unter dem Zeiger. Gesperrtes trifft die Prüfung nicht (`pointer-events`). */
-export const hintersteAn = (doc: Document, x: number, y: number) =>
-	doc
-		.elementsFromPoint(x, y)
-		.filter((e) => e.matches(GESTALTUNG_SELEKTOR) && nrVon(e) !== null)
-		.at(-1) ?? null;
-
 const rechteckVon = (e: Element): Flaeche => {
 	const r = e.getBoundingClientRect();
 	return { links: r.left, oben: r.top, breite: r.width, hoehe: r.height };
@@ -310,17 +287,6 @@ const drueckZiel = (e: PointerEvent) => {
 		return null;
 	}
 	return ziel;
-};
-
-/** Mit ⌥ zuerst das gewählte Element unter dem Zeiger, sonst das hinterste dort. */
-const elementBeimDruck = (doc: Document, ziel: Element, gewaehlt: number | null, e: PointerEvent) => {
-	const element = gestaltungUnter(ziel, gewaehlt);
-	if (e.pointerType !== 'mouse' || !e.altKey) {
-		return element;
-	}
-	const unter = doc.elementsFromPoint(e.clientX, e.clientY);
-	const auswahl = unter.find((u) => u.matches(GESTALTUNG_SELEKTOR) && nrVon(u) === gewaehlt);
-	return auswahl ?? hintersteAn(doc, e.clientX, e.clientY) ?? element;
 };
 
 const ohneTasten = (e: PointerEvent) => e.pointerType === 'mouse' && !e.shiftKey && !e.altKey && !e.metaKey;
@@ -727,8 +693,18 @@ export const useGeste = (o: Optionen) => {
 			}
 			const maus = e.pointerType === 'mouse';
 			const gewaehlt = aktuell.current.pfad.at(-1)?.nr ?? null;
-			const element = elementBeimDruck(doc, ziel, gewaehlt, e);
-			const nr = element ? nrVon(element) : null;
+			// 205: dieselbe Regel wie Klick, Rechtsklick und Hover-Rahmen.
+			const treffer = klickziel({
+				doc,
+				ziel,
+				x: e.clientX,
+				y: e.clientY,
+				alt: maus && e.altKey,
+				gewaehlt,
+				luecken: false,
+			});
+			const element = treffer?.art === 'gestaltung' ? treffer.element : null;
+			const nr = treffer?.art === 'gestaltung' ? treffer.nr : null;
 			if (!element || nr === null) {
 				const neu = ohneTasten(e) && erlaubt() ? bandAb(e, ziel) : null;
 				if (neu) {

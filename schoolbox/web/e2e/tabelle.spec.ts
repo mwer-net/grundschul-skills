@@ -15,12 +15,14 @@ test.describe('Editor: Tabelle', () => {
 		await druecke(zelle);
 		// Mit dem Finger beginnt das Tippen schon beim Antippen; „Fertig“ führt zurück zur Leiste der Zelle.
 		const fertig = page.getByRole('button', { name: 'Fertig' });
-		const zeileDanach = page.locator('[data-bausteinleiste]').getByRole('button', { name: 'Zeile danach' });
-		await expect(fertig.or(zeileDanach)).toBeVisible();
+		// 204-08: „Zeile danach“ steht im ⋯ der Leiste.
+		const mehr = page.locator('[data-bausteinleiste]').getByRole('button', { name: 'Mehr zu diesem Baustein' });
+		await expect(fertig.or(mehr)).toBeVisible();
 		if (await fertig.isVisible()) {
 			await fertig.click();
 		}
-		await zeileDanach.click();
+		await mehr.click();
+		await page.getByRole('menuitem', { name: 'Zeile danach' }).click();
 		await expect(tabelle.locator('tbody tr')).toHaveCount(3);
 		const vorher = await quelle(page);
 		await page.getByRole('button', { name: 'Rückgängig' }).click();

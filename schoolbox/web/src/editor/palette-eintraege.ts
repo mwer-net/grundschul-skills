@@ -1,6 +1,7 @@
 import { MEINE_BAUSTEINE } from '@schoolbox/kern/src/katalog';
 import { leseBlatt } from '@schoolbox/kern/src/kit-einstellungen';
 
+import { seitenWort } from '../lib/text';
 import type { Gruppe, Kontext } from './befehle';
 import { befehleFuer, kuerzelText, symbolVon, titelVon } from './befehle';
 import type { Posten } from './einfuegen';
@@ -114,7 +115,7 @@ export const eintraegeImEditor = (k: Kontext, z: PalettenZiele): PalettenEintrag
 	for (let nr = 1; nr <= (k.werte?.seiten ?? 0); nr += 1) {
 		liste.push({
 			id: `seite:${nr}`,
-			titel: `Seite ${nr}`,
+			titel: `${seitenWort(k.format === 'folie')} ${nr}`,
 			gruppe: SEITE,
 			symbol: 'seiten',
 			suchwoerter: ['springen', 'gehe zu'],

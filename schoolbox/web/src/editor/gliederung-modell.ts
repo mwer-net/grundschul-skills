@@ -1,6 +1,5 @@
-import { formName } from '@schoolbox/kern/src/formen';
 import type { Baustein } from '@schoolbox/kern/src/bausteine';
-import { kann } from '@schoolbox/kern/src/bausteine';
+import { bausteinNach, kann } from '@schoolbox/kern/src/bausteine';
 import { istGestaltung } from '@schoolbox/kern/src/gestaltung';
 import type { EbenenName } from '@schoolbox/kern/src/gestaltung-arten';
 import type { Knoten, Zerlegung } from '@schoolbox/kern/src/quelltext';
@@ -56,6 +55,8 @@ export interface GliederungKnoten {
 	aus: boolean;
 	/** `data-gesperrt`: im Blatt nicht wählbar, hier schon. */
 	gesperrt: boolean;
+	/** Eine Zeile ohne eigenes Element wählt dieses, die Kopfzeile ihre Tabelle (195-25). */
+	waehlt?: number;
 	/** `data-name`, sonst `null`; damit beginnt das Umbenennen. */
 	eigenerName: string | null;
 	/** Nur Gestaltung in einer Ebene: Nummer der `.seite` und Platz von vorne (0 liegt ganz vorne). */
@@ -90,56 +91,7 @@ const titelVon = (element: Element, baustein: Baustein, name: string) => {
 	return name;
 };
 
-const gross = (text: string) => (text ? `${text[0]?.toUpperCase() ?? ''}${text.slice(1)}` : '');
-
-const SCHMUCK_LAENGE = 40;
-
-const kuerze = (text: string) => (text.length > SCHMUCK_LAENGE ? `${text.slice(0, SCHMUCK_LAENGE - 1)}…` : text);
-
-export interface GestaltungAngaben {
-	/** Art im Register, z. B. `bildfrei`. */
-	art: string;
-	/** Der Name wie im Pfad (`nameVon`): `data-name`, Figur oder Name der Art. */
-	name: string;
-	wert: (attribut: string) => string | null;
-	/** Der sichtbare Text, Leerraum zusammengezogen. */
-	text: string;
-	/** Teile einer Streuung oder Gruppe. */
-	teile: number;
-}
-
-/** Die Beschriftung einer Gestaltungszeile (1-ebenen.md, „Beschriftung“). `data-name` geht allem vor. */
-export const titelDerGestaltung = ({ art, name, teile, text, wert }: GestaltungAngaben) => {
-	if (wert('data-name')?.trim()) {
-		return name;
-	}
-	// 196-15: derselbe Name wie im Pfad des Inspektors
-	const form = formName(wert('data-form')) ?? '';
-	switch (art) {
-		case 'bildfrei': {
-			const datei =
-				(wert('src') ?? '')
-					.split(/[?#]/)[0]
-					?.split('/')
-					.at(-1)
-					?.replace(/\.[^.]+$/, '') ?? '';
-			return wert('alt')?.trim() || datei || name;
-		}
-		case 'form':
-			return form || name;
-		case 'formtext':
-			return text ? `${form || name} „${kuerze(text)}“` : form || name;
-		case 'schmuck':
-		case 'schmuckbogen':
-			return kuerze(text) || name;
-		case 'streuung':
-			return `${gross((wert('data-streuung') ?? '').trim()) || name} (${teile})`;
-		case 'gruppe':
-			return `${name} (${teile})`;
-		default:
-			return name;
-	}
-};
+export { titelDerGestaltung } from './gestaltung-titel';
 
 /** Wo der Baustein hin darf, grob: Gleiche Gruppe heißt, er könnte dort neben einem anderen liegen (vgl. `ordnungVon`). */
 const gruppeVon = (element: Element, baustein: Baustein) => {
@@ -158,7 +110,11 @@ interface Roh {
 	element: Element;
 	baustein: Baustein;
 	kinder: Roh[];
+	/** 195-25: Die Zeile im Tabellenkopf ist kein Element; ihre Zellen stehen unter einer festen Zeile „Kopfzeile“. */
+	kopfzeile?: true;
 }
+
+const KOPFZEILE = 'thead > tr';
 
 const rohIn = (elemente: ReadonlyMap<number, Element>, eltern: Knoten): Roh[] =>
 	eltern.kinder.flatMap((k): Roh[] => {
@@ -167,6 +123,11 @@ const rohIn = (elemente: ReadonlyMap<number, Element>, eltern: Knoten): Roh[] =>
 			return [];
 		}
 		const baustein = bausteinVon(element);
+		const zeile = element.matches(KOPFZEILE) ? bausteinNach('tabellenzeile') : undefined;
+		if (zeile && element.getClientRects().length > 0) {
+			const kinder = rohIn(elemente, k);
+			return kinder.length > 0 ? [{ nr: k.nr, element, baustein: zeile, kinder, kopfzeile: true }] : [];
+		}
 		if (!baustein) {
 			return rohIn(elemente, k);
 		}
@@ -257,13 +218,6 @@ export const stapelVon = (s: Pick<GliederungSeite, 'kinder'>): GliederungKnoten[
 	});
 
 /** Die Teile einer Streuung (Formen, ohne `defs`) bzw. die Elemente einer Gruppe. */
-const teileVon = (element: Element, art: string) => {
-	if (art === 'gruppe') {
-		return element.querySelectorAll(':scope > [data-lage]').length;
-	}
-	return [...element.querySelectorAll('*')].filter((e) => e.children.length === 0 && !e.closest('defs')).length;
-};
-
 const OHNE_STAPEL = { zeile: 'baustein', aus: false, gesperrt: false, eigenerName: null, lage: null } as const;
 
 /**
@@ -284,7 +238,7 @@ export const gliederungVon = (doc: Document, z: Zerlegung, ids: readonly number[
 	const roh = seiten.map((s) => rohIn(elemente, s));
 	const gruppen = new Map<string, number>();
 	for (const r of roh.flatMap(alleRoh)) {
-		if (!istFest(r.baustein)) {
+		if (!istFest(r.baustein) && !r.kopfzeile) {
 			const g = gruppeVon(r.element, r.baustein);
 			gruppen.set(g, (gruppen.get(g) ?? 0) + 1);
 		}
@@ -306,20 +260,12 @@ export const gliederungVon = (doc: Document, z: Zerlegung, ids: readonly number[
 		}
 		// Keine Prüfung auf Fläche wie bei Bausteinen: Ausgeblendetes (`data-aus`) und in s/w Weggelassenes (`data-sw`)
 		// hat keine, gehört aber gerade hierher, sonst käme man nie wieder heran.
+		// 196-15, 205-03: `nameVon` gibt Gestaltungselementen schon den Titel der Ebenen (`titelDerGestaltung`).
 		const name = nameVon({ nr, baustein, element }, null);
-		const wert = (a: string) => element.getAttribute(a);
 		const unten = zeile === 'kopfband' || zeile === 'seitenrahmen' || zeile === 'seitenflaeche';
 		return {
 			nr,
-			titel: unten
-				? name
-				: titelDerGestaltung({
-						art: baustein.art,
-						name,
-						wert,
-						text: textVon(element),
-						teile: teileVon(element, baustein.art),
-					}),
+			titel: name,
 			nummer: null,
 			name,
 			art: baustein.name,
@@ -342,11 +288,29 @@ export const gliederungVon = (doc: Document, z: Zerlegung, ids: readonly number[
 			kennung: baustein.art,
 			aus: element.hasAttribute('data-aus'),
 			gesperrt: element.hasAttribute('data-gesperrt'),
-			eigenerName: wert('data-name')?.trim() || null,
+			eigenerName: element.getAttribute('data-name')?.trim() || null,
 			lage,
 		};
 	};
 	const baue = (r: Roh, schluessel: string): GliederungKnoten => {
+		if (r.kopfzeile) {
+			const tabelle = trefferAn(r.element.closest('table'))?.nr;
+			return {
+				nr: r.nr,
+				titel: 'Kopfzeile',
+				nummer: null,
+				name: 'Kopfzeile',
+				art: 'Kopfzeile',
+				aufgabe: false,
+				fest: true,
+				ziehbar: false,
+				schluessel,
+				kinder: r.kinder.map((k, i) => baue(k, `${schluessel}/${i}:${k.baustein.art}`)),
+				...OHNE_STAPEL,
+				kennung: 'tabellenzeile',
+				...(tabelle === undefined ? {} : { waehlt: tabelle }),
+			};
+		}
 		const umgebung = trefferAn(r.element.parentElement)?.element ?? null;
 		const name = nameVon({ nr: r.nr, baustein: r.baustein, element: r.element }, umgebung);
 		const aufgabe = r.baustein.art === 'aufgabe';

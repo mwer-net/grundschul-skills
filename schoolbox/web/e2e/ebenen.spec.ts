@@ -662,6 +662,22 @@ test.describe('Ebenen mit Gestaltung (101)', () => {
 		await expect(zurueck(page)).toHaveAttribute('data-schritt', 'C kopiert');
 	});
 
+	test('195-11: Auge und Schloss zeigen den neuen Stand sofort in Zeile und Blatt', async ({ hasTouch, page }) => {
+		test.skip(hasTouch, 'Zeichen in der Zeile mit der Maus; am iPad im ⋯');
+		await blatt(page);
+		const a = zeileVon(page, 'A');
+		await a.hover();
+		const auge = a.locator('[data-ebenen-zeichen="auge"]');
+		await auge.click();
+		// Vor dem Neuaufbau: Zeile und Element im Blatt zeigen den Stand schon (Abnahme: unter 150 ms).
+		await expect(a).toHaveAttribute('data-aus', '', { timeout: 300 });
+		await expect(auge).toHaveAttribute('aria-pressed', 'true', { timeout: 300 });
+		await expect(material(page).locator('[data-name="A"]')).toBeHidden({ timeout: 300 });
+		await expect.poll(() => quelle(page)).toMatch(/data-name="A"[^>]* data-aus/);
+		// Nach dem Neuaufbau bleibt es so.
+		await expect(a).toHaveAttribute('data-aus', '');
+	});
+
 	test('Auge blendet aus: nicht im Blatt, nicht im Druck, die Prüfung meldet es', async ({
 		druecke,
 		hasTouch,

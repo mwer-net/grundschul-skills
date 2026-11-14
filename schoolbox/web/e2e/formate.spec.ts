@@ -192,8 +192,7 @@ test.describe('Aufgabenformate (049)', () => {
 			['x-schreibrahmen', 'Schreibrahmen'],
 		] as const) {
 			await druecke(material(page).locator('.aufgabe').first().locator('.nr'));
-			await expect(page.locator('[data-einfuegen-plus]')).toBeVisible();
-			await page.locator('[data-einfuegen-plus]').click();
+			await imMehr(page, 'Neuer Baustein');
 			const fenster = page.locator('[data-schnellauswahl]');
 			await fenster.getByRole('searchbox').fill(suche);
 			await fenster.locator(`[data-katalog-eintrag="${art}"]`).click();
@@ -215,19 +214,16 @@ test.describe('Generatoren (050)', () => {
 		return { dok, id, datei };
 	};
 
-	test('Neue Zahlen: nur die Zahlen ändern sich, ein Schritt in Rückgängig', async ({ druecke, hasTouch, page }) => {
+	test('Neue Zahlen: nur die Zahlen ändern sich, ein Schritt in Rückgängig', async ({ druecke, page }) => {
 		test.slow();
 		const { datei } = await mitElement(page, '<x-zahlenmauer basis="3 5 2" offen="0-1"></x-zahlenmauer>');
 		const vorher = await quelle(page);
 		await druecke(material(page).locator('x-zahlenmauer'));
 		const leiste = page.locator('[data-bausteinleiste]');
-		// Am iPad passt die Leiste nur ohne die spezifischen Einträge; Befehle stehen dann im ⋯ (071).
-		if (hasTouch) {
-			await druecke(leiste.getByRole('button', { name: 'Mehr zu diesem Baustein' }));
-			await druecke(page.getByRole('menuitem', { name: /Neue Zahlen/ }));
-		} else {
-			await druecke(leiste.getByRole('button', { name: 'Neue Zahlen' }));
-		}
+		// 204-08: In der Leiste stehen keine Knöpfe der Art mehr; „Neue Zahlen“ steht im ⋯.
+		await expect(leiste.getByRole('button', { name: 'Neue Zahlen' })).toHaveCount(0);
+		await druecke(leiste.getByRole('button', { name: 'Mehr zu diesem Baustein' }));
+		await druecke(page.getByRole('menuitem', { name: /Neue Zahlen/ }));
 		await expect.poll(() => quelle(page)).not.toBe(vorher);
 		const nachher = await quelle(page);
 		expect(nachher.replace(/basis="[^"]*"/, '')).toBe(vorher.replace(/basis="[^"]*"/, ''));
@@ -303,7 +299,7 @@ test.describe('Sammlung (051)', () => {
 		await expect.poll(async () => ((await quelle(page)).match(/<x-uhr/g) ?? []).length).toBe(uhren + 2);
 		await page.getByRole('button', { name: 'Auswahl' }).click();
 
-		// Im Slash-Menü steht derselbe Baustein.
+		// In der Schnellauswahl hinter „/“ steht derselbe Baustein (194-33).
 		const text = material(page).locator('.aufgabe .anw .text').first();
 		await druecke(text);
 		await druecke(text);
@@ -311,7 +307,7 @@ test.describe('Sammlung (051)', () => {
 		await page.keyboard.press('ControlOrMeta+a');
 		await page.keyboard.press('Delete');
 		await page.keyboard.type('/Meine Uhr');
-		await expect(page.locator('[data-slash-menue]')).toContainText('Meine Uhr');
+		await expect(page.locator('[data-schnellauswahl]')).toContainText('Meine Uhr');
 	});
 
 	test('Meine Bausteine: letzte Zeile unter „Mehr“, an der Kachel umbenennen und löschen (168)', async ({
@@ -494,23 +490,24 @@ test.describe('Sprach-Werkzeuge (052, 083)', () => {
 		await expect.poll(() => quelle(page)).toBe(erst);
 	});
 
-	test('Buchstaben: Feld, Schalter, Stand', async ({ druecke, page }) => {
+	test('194-39: Buchstaben nur mit dem Feld: ⏎ hebt hervor, ein geleertes Feld nimmt es weg', async ({
+		druecke,
+		page,
+	}) => {
 		test.slow();
 		const { dok, id } = await lesetext();
 		await oeffne(page, id, dok);
 		const anfang = await quelle(page);
 		await waehleAbsatz(page, druecke);
 		const feld = page.locator('[data-sprache-buchstaben]');
-		const schalter = page.locator('[data-sprache-buchstaben-an] [role="switch"]');
-		await expect(schalter).toBeDisabled();
+		await expect(page.locator('[data-sprache-buchstaben-an]')).toHaveCount(0);
 		await feld.fill('ie, au');
-		await druecke(schalter);
+		await feld.press('Enter');
 		await expect.poll(() => quelle(page)).toContain('B<mark>ie</mark>ne');
 		await expect.poll(() => quelle(page)).toContain('l<mark>au</mark>t');
-		await expect(schalter).toHaveAttribute('aria-checked', 'true');
-		await druecke(schalter);
+		await feld.fill('');
+		await feld.press('Enter');
 		await expect.poll(() => quelle(page)).toBe(anfang);
-		await expect(feld).toHaveValue('ie, au');
 	});
 
 	const markiere = (page: Page, wort: string) =>

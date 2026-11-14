@@ -363,11 +363,8 @@ test.describe('Blase am Element (134)', () => {
 		await expect(nachrichten(page)).toHaveCount(0);
 	});
 
-	test('Präsentation und Druck haben keine Blase', async ({ page }) => {
+	test('Die Präsentation hat keine Blase', async ({ page }) => {
 		const { dok, mappe } = await offenesBlatt(page);
-		await page.goto(`/m/${mappe}/${dok}/drucken`);
-		await page.keyboard.press('ControlOrMeta+j');
-		await expect(page.locator('[data-claude-blase]')).toHaveCount(0);
 		await page.goto(`/m/${mappe}/${dok}/praesentation`);
 		await page.keyboard.press('ControlOrMeta+j');
 		await expect(page.locator('[data-claude-blase]')).toHaveCount(0);

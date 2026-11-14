@@ -26,8 +26,6 @@ export interface Lage {
 	gesperrt?: boolean;
 }
 
-const PDF_TITEL: Partial<Record<MenueArt, string>> = { material: 'PDF', mehrere: 'Als PDF' };
-
 export const lageArt = (objekte: readonly Objekt[]): MenueArt => {
 	const [erstes] = objekte;
 	if (!erstes) {
@@ -131,7 +129,8 @@ export const BEFEHLE: Befehl[] = [
 	{ id: 'materialHier', titel: 'Material hier anlegen', symbol: 'plus', abschnitt: 'Ablage' },
 	{
 		id: 'pdf',
-		titel: (l) => PDF_TITEL[l.art] ?? 'Alles als PDF',
+		// Überall „PDF“: Was hineinkommt, sagt die Auswahl (191-43).
+		titel: 'PDF',
 		symbol: 'herunterladen',
 		wenn: (l) => l.art !== 'material' || Boolean(fertigesDok(l)),
 		abschnitt: 'Ablage',
@@ -386,13 +385,19 @@ export const menueVon = (
 				continue;
 			}
 			const [erstes] = b.kuerzel ?? [];
+			// Nur eine Datei: Der Eintrag lädt sie selbst, ohne Untermenü mit einem Eintrag (191-41).
+			const einzig = unter?.length === 1 && unter[0]?.waehle ? unter[0].waehle : undefined;
 			liste.push({
 				titel: titelVon(b, l),
 				gruppe: String(nr),
 				...(b.symbol ? { symbol: b.symbol } : {}),
 				...(b.gefahr ? { gefahr: true } : {}),
 				...(erstes ? { kuerzel: kuerzelText(erstes) } : {}),
-				...(unter ? { untermenue: unter } : { waehle: () => fuehreAus(id, l) }),
+				...(einzig
+					? { waehle: einzig }
+					: unter
+						? { untermenue: unter }
+						: { waehle: () => fuehreAus(id, l) }),
 			});
 		}
 	});

@@ -44,7 +44,7 @@ import {
 import { istWuerfelbar } from '@schoolbox/kern/src/variante';
 import { Router } from 'express';
 
-import { leseQuelle, schreibeQuelle } from './dokumente';
+import { hatEchteMasse, leseQuelle, schreibeQuelle } from './dokumente';
 import { HttpFehler } from './fehler';
 import type { Kontext } from './kontext';
 import { dokSchluessel } from './kontext';
@@ -168,6 +168,8 @@ export const ordnerApi = (kontext: Kontext) => {
 						ordner: baum.dokumente[dokKnotenSchluessel(mappe.id, id)]?.ordner ?? null,
 						vorschau: await kontext.vorschau.stand(mappe.id, id, false),
 						wuerfelbar: await istWuerfelbar(path.join(dokumentDir(materialDir, mappe.id, id), 'material.html')),
+						// Das PDF-Menü der Ablage ist dasselbe wie überall (191-N01).
+						echteMasse: await hatEchteMasse(materialDir, mappe.id, id),
 					})),
 			),
 		);

@@ -12,6 +12,7 @@ import {
 	setzeGroesse,
 	setzeKopfzeile,
 	teileTabelle,
+	vorigeZelle,
 } from './tabelle';
 
 const QUELLE = `<!doctype html><html><head><title>t</title></head><body class="kl2 farbe">
@@ -85,6 +86,12 @@ describe('Kit-Tabelle', () => {
 		assert.deepEqual(groesseVon(gross.quelle, gross.nr ?? -1), { zeilen: 30, spalten: 12, kopf: true });
 	});
 
+	it('194-07: ⇧Tab geht in die vorige Zelle, über den Zeilenanfang hinweg; in der ersten null', () => {
+		assert.deepEqual(vorigeZelle({ zeile: 1, spalte: 1 }, () => 3), { zeile: 1, spalte: 0 });
+		assert.deepEqual(vorigeZelle({ zeile: 1, spalte: 0 }, () => 3), { zeile: 0, spalte: 2 });
+		assert.equal(vorigeZelle({ zeile: 0, spalte: 0 }, () => 3), null);
+	});
+
 	it('Tab: nächste Zelle, am Ende null', () => {
 		assert.deepEqual(naechsteZelle({ zeile: 0, spalte: 0 }, 2, 2), { zeile: 0, spalte: 1 });
 		assert.deepEqual(naechsteZelle({ zeile: 0, spalte: 1 }, 2, 2), { zeile: 1, spalte: 0 });
@@ -99,5 +106,19 @@ describe('Kit-Tabelle', () => {
 			quelle.indexOf('>a<') < quelle.indexOf('Nachher') && quelle.indexOf('Nachher') < quelle.indexOf('>c<'),
 		);
 		assert.throws(() => teileTabelle(QUELLE, zelle(QUELLE, 'a'), 1, n), /nicht teilen/);
+	});
+
+	it('204-02: Kopfspalte bleibt th, neue Zellen wie ihr Nachbar, die Auswahl bleibt an der Tabelle', () => {
+		const spalte = QUELLE.replace('<td data-l="1">a</td>', '<th>a</th>').replace('<td>c</td>', '<th>c</th>');
+		const tabelle = zerlege(spalte).knoten.find((k) => k.tag === 'table')?.nr ?? -1;
+		const koerper = (q: string) => (q.match(/<tbody>[\s\S]*<\/tbody>/)?.[0].match(/<th>/g) ?? []).length;
+		const zeile = fuegeZeileEin(spalte, zelle(spalte, 'c'), 'nach', n);
+		assert.equal(koerper(spalte), 2);
+		assert.equal(koerper(zeile.quelle), 3);
+		assert.equal(koerper(fuegeSpalteEin(zeile.quelle, zelle(zeile.quelle, 'b'), 'nach', n).quelle), 3);
+		assert.equal(koerper(loescheZeile(zeile.quelle, zelle(zeile.quelle, 'c'), n).quelle), 2);
+		const groesser = setzeGroesse(spalte, tabelle, { zeilen: 4 }, n);
+		assert.equal(koerper(groesser.quelle), 3);
+		assert.equal(groesser.nr, tabelle);
 	});
 });

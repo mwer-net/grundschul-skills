@@ -187,9 +187,10 @@ const ABSCHNITTE: Abschnitt[] = [
 					Vor dem fertigen Material schickt Claude einen Link zu zwei oder drei Entwürfen. Dort siehst du sie
 					nebeneinander. Tippe einen an, um ihn groß zu sehen.
 				</li>
+				<li>„Diesen Entwurf nehmen“ macht ihn zum Material.</li>
 				<li>
-					Ausgewählt wird in der Claude-App: Schreib Claude, welcher es werden soll und was anders sein soll,
-					etwa „B, aber mit größerer Schrift“.
+					Soll noch etwas anders werden, schreib es Claude in der Claude-App, etwa „B, aber mit größerer
+					Schrift“.
 				</li>
 			</ul>
 		),
@@ -201,8 +202,8 @@ const ABSCHNITTE: Abschnitt[] = [
 		inhalt: (
 			<ul>
 				<li>
-					Im geöffneten Material speichert „PDF“ das Blatt, auf Wunsch mit Lösung. „Drucken“ unter ⋯ öffnet den
-					Druckdialog.
+					Im geöffneten Material lädt „PDF“ das Blatt, auf Wunsch mit Lösung. Gedruckt wird aus der Vorschau,
+					am iPad über „Teilen“ und „Drucken“.
 				</li>
 				<li>„Lösung“ oben zeigt das Lösungsblatt.</li>
 				<li>
@@ -212,7 +213,7 @@ const ABSCHNITTE: Abschnitt[] = [
 				<li>
 					Steht ein gelber Kasten über dem Blatt, sind das Druckhinweise, zum Beispiel „auf festes Papier“.
 				</li>
-				<li>Ein ganzer Ordner auf einmal: Ordner auswählen, dann „Alles als PDF“.</li>
+				<li>Ein ganzer Ordner auf einmal: Ordner auswählen, dann „PDF“.</li>
 				<li>
 					Warnt die Schoolbox vor dem Herunterladen, passt etwas nicht ganz aufs Blatt. Du kannst trotzdem
 					drucken oder Claude bitten, es zu reparieren.
@@ -235,14 +236,14 @@ const ABSCHNITTE: Abschnitt[] = [
 					</li>
 				</ul>
 				<h3>Ohne Internet</h3>
-				<p>Lade die Präsentation vorher herunter, unter ⋯ „Ohne Internet“:</p>
+				<p>Lade die Präsentation vorher herunter, unter „PDF“:</p>
 				<ul>
 					<Punkt titel="iPad">
-						„PDF zum Präsentieren“, in der Dateien-App öffnen. Jeder Schritt ist eine Seite; einfach
+						„Ohne Internet: fürs iPad“, in der Dateien-App öffnen. Jeder Schritt ist eine Seite; einfach
 						weiterblättern.
 					</Punkt>
 					<Punkt titel="Mac">
-						„Offline-Präsentation“. Die Datei aus den Downloads in Safari öffnen; sie läuft wie in der
+						„Ohne Internet: für den Mac“. Die Datei aus den Downloads in Safari öffnen; sie läuft wie in der
 						Schoolbox.
 					</Punkt>
 					<li>„Folien mit Notizen“ ist zum Ausdrucken, als Spickzettel für dich.</li>
@@ -251,7 +252,7 @@ const ABSCHNITTE: Abschnitt[] = [
 		),
 		bilder: [
 			{ datei: 'praesentation-ipad.jpg', alt: 'Eine Folie im Präsentationsmodus', geraet: 'iPad' },
-			{ datei: 'ohne-internet-ipad.jpg', alt: 'Das Menü „Ohne Internet“', geraet: 'iPad' },
+			{ datei: 'ohne-internet-ipad.jpg', alt: 'Das Menü „PDF“ einer Präsentation', geraet: 'iPad' },
 		],
 	},
 	{

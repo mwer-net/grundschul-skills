@@ -1,4 +1,4 @@
-import type { AusgabeVariante, MappenVariante, PdfVariante } from '@schoolbox/kern/src/namen';
+import type { AusgabeVariante, MappenVariante } from '@schoolbox/kern/src/namen';
 import { entwurfVorschauDatei } from '@schoolbox/kern/src/namen';
 import type { Druckprofil } from '@schoolbox/kern/src/werte';
 
@@ -7,7 +7,7 @@ import type { PdfAntwort } from '../typen';
 
 /**
  * Woher eine Seite ihre Daten holt: die Lehrkraft über die API mit Anmeldung, ein Teilen-Link über `/f/<token>`, nur
- * lesend. Ansicht, Vorschau, PDF und Drucken sind für beide gleich gebaut, nur die Adressen unterscheiden sich.
+ * lesend. Ansicht, Vorschau und PDF sind für beide gleich gebaut, nur die Adressen unterscheiden sich.
  */
 export interface Zugang {
 	mappe: string;
@@ -65,9 +65,6 @@ export const praesentationAnsicht = (zugang: Zugang, dok: string) =>
 /** Bearbeiten kann nur die Lehrkraft; Teilen-Links öffnen den Editor nie. */
 export const editorSeite = (zugang: Zugang, dok: string) => `/m/${zugang.mappe}/${dok}/bearbeiten`;
 
-export const druckSeite = (zugang: Zugang, dok: string, variante: PdfVariante, profil?: Druckprofil) =>
-	`${dokumentSeite(zugang, dok)}/drucken?fassung=${variante}${profil ? `&profil=${profil}` : ''}`;
-
 const profilSuche = (profil?: Druckprofil) => (profil ? `?profil=${profil}` : '');
 
 export const bereiteDokumentVor = (zugang: Zugang, dok: string, variante: AusgabeVariante, profil?: Druckprofil) =>
@@ -77,7 +74,18 @@ export const bereiteDokumentVor = (zugang: Zugang, dok: string, variante: Ausgab
 				`/f/${zugang.token}/api/pdf/${teilenAdresse(zugang, dok)}/${variante}${profilSuche(profil)}`,
 			);
 
-export const bereiteMappeVor = (zugang: Zugang, variante: MappenVariante, profil?: Druckprofil) =>
-	zugang.token === null
-		? sende<PdfAntwort>(`/api/mappen/${zugang.mappe}/pdf`, { variante, profil })
-		: lade<PdfAntwort>(`/f/${zugang.token}/api/alles/${variante}${profilSuche(profil)}`);
+/** `ordner`: bei einem geteilten Ordner der gezeigte Unterordner samt allem darunter (191-01). */
+export const bereiteMappeVor = (zugang: Zugang, variante: MappenVariante, profil?: Druckprofil, ordner?: string) => {
+	if (zugang.token === null) {
+		return sende<PdfAntwort>(`/api/mappen/${zugang.mappe}/pdf`, { variante, profil });
+	}
+	const suche = new URLSearchParams();
+	if (profil) {
+		suche.set('profil', profil);
+	}
+	if (ordner) {
+		suche.set('ordner', ordner);
+	}
+	const text = suche.toString();
+	return lade<PdfAntwort>(`/f/${zugang.token}/api/alles/${variante}${text ? `?${text}` : ''}`);
+};

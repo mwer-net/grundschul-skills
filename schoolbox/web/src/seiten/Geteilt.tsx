@@ -1,7 +1,7 @@
 import { standardSortierung } from '@schoolbox/kern/src/ordner-sortierung';
 import type { ReactNode } from 'react';
 import { useMemo } from 'react';
-import { Link, Route, Routes, useParams } from 'react-router-dom';
+import { Link, Navigate, Route, Routes, useParams } from 'react-router-dom';
 
 import { useKopfHoehe } from '../bausteine/kopf';
 import { Symbol } from '../bausteine/Symbol';
@@ -17,7 +17,6 @@ import { mappenWahl } from '../pdf/wahl';
 import type { DokumentEintrag, Mappe } from '../typen';
 import { Dokumentansicht } from './Dokumentansicht';
 import { DokumentKachel } from './DokumentKachel';
-import { Drucken } from './Drucken';
 import { Praesentation } from './Praesentation';
 
 interface InhaltDok extends DokumentEintrag {
@@ -46,6 +45,29 @@ const zugangVon = (token: string, adresse: string, standard: string): { zugang: 
 		: { zugang: { mappe: links, token }, dok: rechts };
 };
 
+/** So meldet der Server einen abgeschalteten Link; der Titel sagt es schon. */
+const GILT_NICHT_MEHR = 'Dieser Link gilt nicht mehr.';
+
+/** Alle Ordner unter `id` (ohne ihn selbst), aus der Liste des Links. */
+const ordnerDarunter = (ordner: readonly AblageOrdner[], id: string): string[] => {
+	const kinderVon = (eltern: string): string[] =>
+		ordner.filter((o) => o.eltern === eltern).flatMap((o) => [o.id, ...kinderVon(o.id)]);
+	return kinderVon(id);
+};
+
+/** Abgeschalteter oder unbekannter Link: mit Kopfzeile wie jede Seite des Links (191-32). */
+const LinkTot = ({ nachricht }: { nachricht: string }) => {
+	useTitel('Dieser Link gilt nicht mehr');
+	return (
+		<GeteiltRahmen>
+			<Zustand symbol="achtung" titel="Dieser Link gilt nicht mehr">
+				{nachricht !== GILT_NICHT_MEHR && <p>{nachricht}</p>}
+				<p className="text-leise">Bitte frag nach einem neuen Link.</p>
+			</Zustand>
+		</GeteiltRahmen>
+	);
+};
+
 /** Nur lesend: Ein Klick öffnet, es gibt keine Auswahl. Unterordner und Pfad wie in der Ablage. */
 const GeteilteAblage = ({ inhalt, token }: { inhalt: Inhalt; token: string }) => {
 	const { ordner: offen } = useParams();
@@ -71,7 +93,8 @@ const GeteilteAblage = ({ inhalt, token }: { inhalt: Inhalt; token: string }) =>
 		defekt: [],
 		geteilt: { ordner: [], dokumente: [] },
 	};
-	const hier = ordner.find((o) => o.id === offen) ?? wurzelOrdner;
+	const gefunden = ordner.find((o) => o.id === offen);
+	const hier = gefunden ?? wurzelOrdner;
 	useTitel(hier?.name ?? inhalt.titel);
 	const objekte = kinder(stand, hier?.id ?? null, standardSortierung(hier));
 	const pfad: AblageOrdner[] = [];
@@ -81,35 +104,40 @@ const GeteilteAblage = ({ inhalt, token }: { inhalt: Inhalt; token: string }) =>
 			break;
 		}
 	}
+	// Ein unbekannter Unterordner zeigt nicht still die Wurzel (191-33).
+	if (offen !== undefined && !gefunden) {
+		return <Navigate replace to={`/f/${token}`} />;
+	}
 	const zugangWurzel: Zugang = { mappe: inhalt.dokumente[0]?.mappe ?? '', token };
-	const pdfBezug = { id: '', titel: inhalt.titel };
+	const pdfBezug = { id: '', titel: hier?.name ?? inhalt.titel };
+	// Im Unterordner nur, was darin und darunter liegt (191-01); die Wurzel braucht keine Angabe.
+	const unterordner = hier && hier.id !== inhalt.wurzel ? hier.id : undefined;
+	const darin = unterordner
+		? new Set([unterordner, ...ordnerDarunter(ordner, unterordner)])
+		: null;
+	const dokumenteHier = darin ? inhalt.dokumente.filter((d) => d.ordner !== null && darin.has(d.ordner)) : inhalt.dokumente;
 	return (
 		<>
-			<div className="flex items-start justify-between gap-4 max-lg:flex-col max-lg:gap-3">
-				<div className="min-w-0">
-					<nav
-						aria-label="Pfad"
-						className="flex flex-wrap items-center gap-1 text-sm text-leise"
-						data-geteilt-pfad
-					>
-						{pfad.slice(0, -1).map((o) => (
-							<span key={o.id} className="flex items-center gap-1">
-								<Link
-									className="text-leise"
-									to={o.id === inhalt.wurzel ? `/f/${token}` : `/f/${token}/o/${o.id}`}
-								>
-									{o.name}
-								</Link>
-								<Symbol name="rechts" className="size-3 text-dezent" />
-							</span>
-						))}
-					</nav>
-					<h1 className="text-2xl">{hier?.name ?? inhalt.titel}</h1>
-				</div>
-				{inhalt.dokumente.length > 0 && (
+			<div className="flex items-center justify-between gap-4 max-lg:flex-col max-lg:items-start max-lg:gap-3">
+				{/* Pfad und Titel in einer Zeile: Der Wechsel in einen Unterordner verschiebt nichts (191-31). */}
+				<nav aria-label="Pfad" className="flex min-w-0 flex-wrap items-center gap-1.5 text-2xl" data-geteilt-pfad>
+					{pfad.slice(0, -1).map((o) => (
+						<span key={o.id} className="flex items-center gap-1.5">
+							<Link
+								className="text-leise no-underline hover:text-tinte"
+								to={o.id === inhalt.wurzel ? `/f/${token}` : `/f/${token}/o/${o.id}`}
+							>
+								{o.name}
+							</Link>
+							<Symbol name="rechts" className="size-4 text-dezent" />
+						</span>
+					))}
+					<h1 className="text-2xl font-semibold">{hier?.name ?? inhalt.titel}</h1>
+				</nav>
+				{dokumenteHier.length > 0 && (
 					<PdfKnopf
-						beschriftung="Alles als PDF"
-						wahl={mappenWahl(zugangWurzel, inhalt.dokumente)}
+						beschriftung="PDF"
+						wahl={mappenWahl(zugangWurzel, dokumenteHier, unterordner)}
 						mappe={pdfBezug}
 						warnen={false}
 					/>
@@ -118,7 +146,7 @@ const GeteilteAblage = ({ inhalt, token }: { inhalt: Inhalt; token: string }) =>
 			{objekte.length === 0 ? (
 				<Zustand symbol="ordner" titel="Dieser Ordner ist leer" />
 			) : (
-				<ul className="mt-4 grid grid-cols-[repeat(auto-fill,minmax(19rem,1fr))] gap-4">
+				<ul className="mt-4 grid grid-cols-[repeat(auto-fill,minmax(190px,1fr))] gap-3">
 					{objekte.map((o) =>
 						o.istOrdner ? (
 							<li
@@ -158,10 +186,10 @@ const GeteiltesDokument = ({ einzeln, standard, token }: { token: string; standa
 	return <Dokumentansicht zugang={ort.zugang} dok={ort.dok} zurueckZurMappe={!einzeln} />;
 };
 
-const GeteiltDrucken = ({ standard, token }: { token: string; standard: string }) => {
+/** „Drucken“ gibt es nicht mehr (191-42): alte Adressen landen in der Ansicht. */
+const GeteiltDrucken = ({ token }: { token: string }) => {
 	const { dok = '' } = useParams();
-	const ort = zugangVon(token, dok, standard);
-	return <Drucken zugang={ort.zugang} dok={ort.dok} />;
+	return <Navigate replace to={`/f/${token}/d/${dok}`} />;
 };
 
 const GeteiltPraesentieren = ({ standard, token }: { token: string; standard: string }) => {
@@ -170,17 +198,22 @@ const GeteiltPraesentieren = ({ standard, token }: { token: string; standard: st
 	return <Praesentation key={dok} zugang={ort.zugang} dok={ort.dok} />;
 };
 
-const GeteiltRahmen = ({ children }: { children: ReactNode }) => {
+const Kopf = () => {
 	const kopf = useKopfHoehe<HTMLElement>();
 	return (
-		<div className="flex min-h-dvh flex-col">
-			<header ref={kopf} className="sticky top-0 z-kopf border-b border-rand bg-flaeche">
-				<div className="flex h-10 items-center px-4 text-base font-semibold text-tinte">Schoolbox</div>
-			</header>
-			<main className="w-full flex-1 px-4 pt-3 pb-16">{children}</main>
-		</div>
+		<header ref={kopf} className="sticky top-0 z-kopf border-b border-rand bg-flaeche">
+			<div className="flex h-10 items-center px-4 text-base font-semibold text-tinte">Schoolbox</div>
+		</header>
 	);
 };
+
+/** Ordner und Fehler mit Kopfzeile; ein Material hat nur seine eigene Leiste, ganz oben wie in der Ansicht (191-13). */
+const GeteiltRahmen = ({ children, kopf = true }: { children: ReactNode; kopf?: boolean }) => (
+	<div className="flex min-h-dvh flex-col">
+		{kopf && <Kopf />}
+		<main className={`w-full flex-1 px-4 pb-16 ${kopf ? 'pt-3' : ''}`}>{children}</main>
+	</div>
+);
 
 /**
  * Teilen-Links: ein Dokument oder einen ganzen Ordner ansehen, als PDF holen und drucken, ohne Anmeldung. Weiterteilen
@@ -191,12 +224,7 @@ export const Geteilt = () => {
 	const { daten, fehler } = useLaden<Inhalt>(`/f/${token}/api/inhalt`);
 
 	if (!daten) {
-		return fehler ? (
-			<Zustand symbol="achtung" titel="Schade!">
-				<p>{fehler.message}</p>
-				<p className="text-leise">Bitte frag nach einem neuen Link.</p>
-			</Zustand>
-		) : null;
+		return fehler ? <LinkTot nachricht={fehler.message} /> : null;
 	}
 
 	const standard = 'mappe' in daten.ziel ? daten.ziel.mappe : '';
@@ -208,21 +236,27 @@ export const Geteilt = () => {
 		) : (
 			<Dokumentansicht zugang={zugang} dok={einzeln} zurueckZurMappe={false} />
 		);
+	const ordnerSeite = (inhalt: ReactNode) => <GeteiltRahmen>{inhalt}</GeteiltRahmen>;
+	const materialSeite = (inhalt: ReactNode) => <GeteiltRahmen kopf={false}>{inhalt}</GeteiltRahmen>;
 	const ansehen = (
-		<GeteiltRahmen>
-			<Routes>
-				<Route index element={start} />
-				<Route path="o/:ordner" element={<GeteilteAblage token={token} inhalt={daten} />} />
+		<Routes>
+			<Route index element={einzeln === null ? ordnerSeite(start) : materialSeite(start)} />
+			{einzeln === null && (
+				<Route path="o/:ordner" element={ordnerSeite(<GeteilteAblage token={token} inhalt={daten} />)} />
+			)}
+			{einzeln === null && (
 				<Route
 					path="d/:dok"
-					element={<GeteiltesDokument token={token} standard={standard} einzeln={einzeln !== null} />}
+					element={materialSeite(<GeteiltesDokument token={token} standard={standard} einzeln={false} />)}
 				/>
-			</Routes>
-		</GeteiltRahmen>
+			)}
+			{/* Unbekannte Unterpfade landen am Anfang des Links (191-33). */}
+			<Route path="*" element={<Navigate replace to={`/f/${token}`} />} />
+		</Routes>
 	);
 	return (
 		<Routes>
-			<Route path="d/:dok/drucken" element={<GeteiltDrucken token={token} standard={standard} />} />
+			<Route path="d/:dok/drucken" element={<GeteiltDrucken token={token} />} />
 			<Route path="d/:dok/praesentation" element={<GeteiltPraesentieren token={token} standard={standard} />} />
 			{einzeln !== null && (
 				<Route path="praesentation" element={<Praesentation zugang={zugang} dok={einzeln} />} />

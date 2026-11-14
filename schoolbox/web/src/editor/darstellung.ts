@@ -8,6 +8,8 @@ import { MARKE, markiere, stelleDesSchritts } from '@schoolbox/kern/src/quelltex
 import { SEITEN_TEILE } from '@schoolbox/kern/src/seitengestaltung';
 import type { Druckprofil } from '@schoolbox/kern/src/werte';
 
+import { gestaltungsText, teileVon, titelDerGestaltung } from './gestaltung-titel';
+
 /**
  * Nur im Editor: kein Markieren von Text, kein Lupen-Menü beim langen Drücken auf dem iPad. Ausnahme ist der Text,
  * der gerade bearbeitet wird. Aufziehen zoomt das Blatt, nicht die Seite (184). In der Lösungsansicht sind
@@ -32,6 +34,8 @@ const EDITOR_STIL =
 	'{pointer-events:none!important}[data-lage="frei"]:not(:focus){cursor:move}' +
 	// Fläche im Stapel: nur im Editor ein gestrichelter Umriss (leer ist sie sonst nicht zu sehen); beim Ziehen
 	// eines Elements schneidet sie nicht ab, damit es beim Herausziehen zu sehen ist (`flaeche-ziel.ts`)
+	// 194-18: Ein geleerter Text behält im Editor eine Zeile Höhe und bleibt anklickbar.
+	':is(h1,h2,h3,h4,p):empty{min-height:1em;min-height:1lh}' +
 	'.flaeche{outline:1px dashed rgba(0,0,0,.3);outline-offset:-1px}' +
 	'[data-flaeche-offen] .flaeche{overflow:visible!important}' +
 	// 206-07: Die Seite schneidet den Block, in dem getippt wird, nicht ab; die Schreibmarke bleibt zu sehen.
@@ -113,21 +117,31 @@ export const nameVon = ({ baustein, element }: Treffer, umgebung: Element | null
 	}
 	const gestaltung = nameDerGestaltung(baustein, (n) => element.getAttribute(n));
 	if (gestaltung) {
-		return gestaltung;
+		// 196-15, 205-03: derselbe Name wie in den Ebenen, für Schild, Inspektor, Pfad und Leiste.
+		return titelDerGestaltung({
+			art: baustein.art,
+			name: gestaltung,
+			wert: (n) => element.getAttribute(n),
+			text: gestaltungsText(element),
+			teile: teileVon(element, baustein.art),
+		});
 	}
+	// Eine Seite einer Präsentation heißt Folie (192-12).
+	const name =
+		baustein.art === 'seite' && element.ownerDocument.body.classList.contains('folie') ? 'Folie' : baustein.name;
 	if (!baustein.zaehlen) {
-		return baustein.name;
+		return name;
 	}
 	// N08: Eine Aufgabe heißt wie ihre Nummer im Blatt; die zählt `nummeriere` über Seitengrenzen hinweg.
 	const nummer = element.querySelector(':scope > .nr')?.textContent?.trim() ?? '';
 	if (/^\d+$/.test(nummer)) {
-		return `${baustein.name} ${nummer}`;
+		return `${name} ${nummer}`;
 	}
 	const orte = umgebung ? blattSeitenZu(umgebung) : [element.ownerDocument];
 	const geschwister = orte
 		.flatMap((ort) => [...ort.querySelectorAll(baustein.selektor)])
 		.filter((e) => !(sonderfall && e.matches(sonderfall.selektor)) && bausteinVon(e) === baustein);
-	return `${baustein.name} ${geschwister.indexOf(element) + 1}`;
+	return `${name} ${geschwister.indexOf(element) + 1}`;
 };
 
 const istAeussereSeite = (e: Element | null): e is Element =>

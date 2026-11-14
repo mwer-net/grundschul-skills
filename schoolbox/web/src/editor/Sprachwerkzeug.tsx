@@ -175,22 +175,19 @@ export const Sprachwerkzeug = ({
 		const schritt = ({ aus: null, 1: 1, 5: 5 } as const)[wert];
 		struktur.aendereAttribute('Zeilennummern', (q) => setzeZeilennummern(q, nr, schritt).quelle);
 	};
-	/** Der Schalter ist an: Er nimmt weg, was markiert ist. Sonst markiert er, was im Feld steht. */
-	const schalteBuchstaben = (an: boolean) => {
+	/**
+	 * 194-39: Nur das Feld. ⏎ oder Verlassen hebt hervor, was darin steht; ein geleertes Feld nimmt die Hervorhebung
+	 * weg. Ein Wechsel ist ein Schritt, damit Rückgängig beides zurücknimmt.
+	 */
+	const uebernimmBuchstaben = () => {
 		const alt = stand.buchstaben;
-		if (!an && alt) {
-			setEingabe({ nr, text: alt });
-			void wende('Buchstaben aus', (s, q) => s.schalteMarkierung(q, nr, alt, bereich, false));
-		} else if (an && buchstaben.trim()) {
+		if (!buchstaben.trim()) {
+			if (alt) {
+				void wende('Buchstaben aus', (s, q) => s.schalteMarkierung(q, nr, alt, bereich, false));
+			}
+		} else if (!alt) {
 			void wende('Buchstaben', (s, q) => s.schalteMarkierung(q, nr, buchstaben, bereich, true));
-		}
-	};
-	/** ⏎ im Feld, während der Schalter an ist: tauscht in einem Schritt, damit Rückgängig beides zurücknimmt. */
-	const tauscheBuchstaben = () => {
-		const alt = stand.buchstaben;
-		if (!alt) {
-			schalteBuchstaben(true);
-		} else if (buchstaben.trim() && buchstaben !== alt) {
+		} else if (buchstaben !== alt) {
 			void wende('Buchstaben', (s, q) => {
 				const ohne = s.schalteMarkierung(q, nr, alt, bereich, false);
 				return s.schalteMarkierung(ohne.quelle, nr, buchstaben, bereich, true);
@@ -239,14 +236,7 @@ export const Sprachwerkzeug = ({
 								fuer="sprache-buchstaben"
 								hilfe="Hebt diese Buchstaben im Text hervor."
 							>
-								<span {...halteFokus} data-sprache-buchstaben-an>
-									<Schalter
-										name="Buchstaben hervorheben"
-										an={stand.buchstaben !== null}
-										aus={stand.buchstaben === null && buchstaben.trim() === ''}
-										setze={schalteBuchstaben}
-									/>
-								</span>
+								<span />
 							</Zeile>
 							<input
 								{...EIGENE_GESCHICHTE}
@@ -256,10 +246,11 @@ export const Sprachwerkzeug = ({
 								value={buchstaben}
 								data-sprache-buchstaben
 								onChange={(e) => setEingabe({ nr, text: e.target.value })}
+								onBlur={uebernimmBuchstaben}
 								onKeyDown={(e) => {
 									if (e.key === 'Enter') {
 										e.preventDefault();
-										tauscheBuchstaben();
+										uebernimmBuchstaben();
 									}
 								}}
 							/>

@@ -58,7 +58,8 @@ export const useAblage = ({ dokument, fuegeAblageEin, pfad, quelle, sammlungGeae
 
 	const kopiere = () => {
 		if (lege()) {
-			zeige({ text: `„${gewaehlt?.name}“ kopiert. Du kannst es in jedem Dokument einfügen.` });
+			// 194-40: ohne Erklärsatz, wie die übrigen Meldungen.
+			zeige({ text: `${gewaehlt?.name ?? 'Baustein'} kopiert.` });
 		}
 	};
 

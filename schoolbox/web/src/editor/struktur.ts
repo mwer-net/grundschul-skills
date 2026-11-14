@@ -18,6 +18,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 
 import { meldung } from '../api';
 import { useHinweis } from '../bausteine/hinweis';
+import { seitenWort } from '../lib/text';
 import type { PfadTeil } from './darstellung';
 import { elementZu, nrVon, trefferAn, VERALTET, zielNachSchritt } from './darstellung';
 import type { Geladen } from './gezeigt';
@@ -91,9 +92,17 @@ const werteVon = (doc: Document, pfad: PfadTeil[]): StrukturWerte => {
 	if (gewaehlt && element && kann(gewaehlt.baustein, 'ordnen')) {
 		const ordnung = ordnungVon(element, gewaehlt.baustein);
 		const gruppe = ordnung.gruppen.find((g) => g.glieder.includes(element));
+		// 204-04: Nachbarn ohne Fläche (die Lösungsmarke im Arbeitsblatt) zählen nicht; sonst täte der Pfeil nichts.
+		const sichtbar = {
+			...ordnung,
+			gruppen: ordnung.gruppen.map((g) => ({
+				...g,
+				glieder: g.glieder.filter((e) => e === element || e.getClientRects().length > 0),
+			})),
+		};
 		nach = {
-			zurueck: nachbarAblage(ordnung, -1),
-			vor: nachbarAblage(ordnung, 1),
+			zurueck: nachbarAblage(sichtbar, -1),
+			vor: nachbarAblage(sichtbar, 1),
 			quer: nebeneinander(gruppe?.glieder ?? []),
 		};
 	}
@@ -274,7 +283,7 @@ export const useStruktur = (o: Optionen) => {
 	const verschiebe = (nr: number, ablage: Ablage, springen = false, beschreibung = 'Verschoben') => {
 		const e = fuehreAus(beschreibung, (q) => verschiebeBaustein(q, nr, ablage, nummerierung()), springen);
 		if (e && sternNichtAmEnde(e.quelle) && !sternNichtAmEnde(e.alt)) {
-			zeige({ text: 'Die Sternchenaufgabe steht jetzt nicht mehr am Ende.', aktion: zurueckKnopf() });
+			zeige({ text: 'Die Sternchenaufgabe steht jetzt nicht mehr am Ende.', aktion: zurueckKnopf(), zumSchritt: true });
 		}
 		return e !== null;
 	};
@@ -298,7 +307,7 @@ export const useStruktur = (o: Optionen) => {
 	const loesche = (nr: number, name: string, wie: 'Gelöscht' | 'Ausgeschnitten' = 'Gelöscht') => {
 		const mit = quelle ? mitAnkern(quelle, nr) : ''; // 106: „Gelöscht, mit Wilma“
 		if (fuehreAus(`${wie}${mit}`, (q) => loescheBaustein(q, nr, nummerierung()))) {
-			zeige({ text: `${name} ${wie.toLowerCase()}${mit}.`, aktion: zurueckKnopf() });
+			zeige({ text: `${name} ${wie.toLowerCase()}${mit}.`, aktion: zurueckKnopf(), zumSchritt: true });
 		}
 	};
 
@@ -307,7 +316,7 @@ export const useStruktur = (o: Optionen) => {
 
 	const neueSeite = (mitNamenszeile: boolean) =>
 		fuehreAus(
-			'Seite hinzugefügt',
+			`${seitenWort(aktuell.current.folien)} hinzugefügt`,
 			(q) => fuegeSeiteEin(q, { nach: werte?.seite ?? null, mitNamenszeile }, nummerierung()),
 			true,
 		);

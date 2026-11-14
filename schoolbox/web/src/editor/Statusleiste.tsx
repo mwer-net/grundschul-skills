@@ -3,6 +3,7 @@ import { useEffect, useState } from 'react';
 import { klassen } from '../bausteine/klassen';
 import { Symbol } from '../bausteine/Symbol';
 import { Tooltip } from '../bausteine/Tooltip';
+import { seitenWort } from '../lib/text';
 import { kuerzelVon } from './befehle';
 import { halteFokus } from './halteFokus';
 import type { PruefKnopf } from './Pruefliste';
@@ -122,7 +123,10 @@ interface Eigenschaften extends ZoomEigenschaften {
 	claude: ClaudeLauf | null;
 	zeigeClaude: () => void;
 	seite: { nr: number; von: number };
+	/** Der angezeigte Name des Formats, z. B. „Folien 16:9“. */
 	format: string;
+	/** Folien zählen „Folie 3 von 6“ (192-12). */
+	folien: boolean;
 	pruefung: Pruefstand | null;
 	zeigePunkt: (p: Pruefpunkt) => void;
 	knopf?: ((p: Pruefpunkt) => PruefKnopf | null) | undefined;
@@ -137,6 +141,7 @@ interface Eigenschaften extends ZoomEigenschaften {
 /** Unterste Zeile des Editors: wo man ist, ob alles passt, wie groß das Blatt gezeigt wird. */
 export const Statusleiste = ({
 	claude,
+	folien,
 	format,
 	fuehreAus,
 	linksOffen,
@@ -167,7 +172,7 @@ export const Statusleiste = ({
 					<Symbol name="leisteLinks" className="flex-none" />
 				</button>
 			</Tooltip>
-			<span className="truncate" data-seite-von>{`Seite ${seite.nr} von ${seite.von} · ${format}`}</span>
+			<span className="truncate" data-seite-von>{`${seitenWort(folien)} ${seite.nr} von ${seite.von} · ${format}`}</span>
 			<Pruefstatus stand={pruefung} zeige={zeigePunkt} knopf={knopf} />
 			{claude && <ClaudeStand lauf={claude} oeffne={zeigeClaude} />}
 		</div>

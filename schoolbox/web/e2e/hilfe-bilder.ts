@@ -137,9 +137,8 @@ test.describe('Bildschirmfotos für die Hilfe', () => {
 		nurAuf('ipad');
 		const { dok, id } = await kartoffeln();
 		await page.goto(`/m/${id}/${dok}`);
-		await oeffneMehr(druecke, page);
-		await druecke(page.getByRole('menuitem', { name: 'Ohne Internet' }));
-		await expect(page.getByRole('menu').last()).toBeVisible();
+		await druecke(page.getByRole('button', { name: 'PDF', exact: true }));
+		await expect(page.getByRole('menu')).toBeVisible();
 		await foto(page, 'ohne-internet-ipad.jpg');
 
 		await page.goto(`/m/${id}/${dok}/praesentation`);

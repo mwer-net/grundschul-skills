@@ -52,6 +52,7 @@ import { useGliederungStand } from '../editor/gliederung-stand';
 import { halteFokus } from '../editor/halteFokus';
 import { Einstellungen, Inspektor, Umriss } from '../editor/Inspektor';
 import { limitHinweis, useKiZustand } from '../editor/ki';
+import type { MenueTreffer } from '../editor/Leinwand';
 import { Leinwand } from '../editor/Leinwand';
 import { useLoesung } from '../editor/loesung';
 import { Loesungsuebersicht } from '../editor/Loesungspanel';
@@ -84,8 +85,9 @@ import { useEreignisse } from '../ereignisse';
 import { useLaden } from '../lib/laden';
 import { useAnsichtsProfil } from '../lib/profil';
 import { useTitel } from '../lib/titel';
-import { ansichtAdresse, dokumentSeite, druckSeite, inhaltAdresse, praesentationSeite } from '../lib/zugang';
+import { ansichtAdresse, dokumentSeite, inhaltAdresse, praesentationSeite } from '../lib/zugang';
 import { PdfKnopf } from '../pdf/PdfKnopf';
+import { beendeVollbild, SOFORT, vollbildFuerSofort } from '../praesentation/laufzeit';
 import { dokumentWahl, materialName } from '../pdf/wahl';
 import type { DokumentEintrag, Mappe, MappenEintrag } from '../typen';
 import { MaterialFehlt, NICHT_GEFUNDEN } from './NichtGefunden';
@@ -314,15 +316,16 @@ const useEinfuegeWerkzeuge = ({
 }) => {
 	const docJetzt = geladen?.html === html ? (geladen?.doc ?? null) : null;
 	const einfuegen = useEinfuegen({ blatt, dokument, struktur, auswahl, folien, nachher });
+	const imText = einfuegen.fuerBlatt('', NICHT_IM_TEXT);
 	const slash = useSlash({
 		// Das Dokument im Rahmen: Beim Tippen weicht die Quelle davon ab, das Menü muss trotzdem aufgehen.
 		doc: geladen?.doc ?? null,
 		bearbeitet: text.bearbeitet,
 		beende: text.beende,
-		liste: (filter) =>
-			filter.trim()
-				? einfuegen.fuerBlatt(filter, NICHT_IM_TEXT)
-				: mitZuletzt(einfuegen.zuletzt, einfuegen.fuerBlatt('', NICHT_IM_TEXT)),
+		halte: text.halte,
+		liste: (filter) => einfuegen.fuerBlatt(filter, NICHT_IM_TEXT),
+		// Was zuletzt benutzt wurde und im Text stehen darf (203-13).
+		zuletzt: einfuegen.zuletzt.filter((z) => imText.some((e) => e.id === z.id)),
 		waehle: einfuegen.fuegeEin,
 	});
 	useTabelleTab({
@@ -650,15 +653,16 @@ const Bearbeitung = ({ dokument, mappe: mappenDaten }: { mappe: Mappe; dokument:
 	const seite = useSichtbareSeite(geladen, ansicht, skala);
 	sichtbareSeite.current = () => (docJetzt ? seiteAn(docJetzt, seite.nr) : null);
 
-	const verlassen = async (ziel: string) => {
+	const verlassen = async (ziel: string, state?: unknown) => {
 		const gespeichert = await alles();
 		const trotzdem =
 			gespeichert ||
 			b.konflikt !== null ||
 			window.confirm('Deine letzten Änderungen sind noch nicht gespeichert. Trotzdem gehen?');
 		if (trotzdem) {
-			void navigate(ziel);
+			void navigate(ziel, { state });
 		}
+		return trotzdem;
 	};
 
 	const ablage = useAblage({
@@ -707,7 +711,14 @@ const Bearbeitung = ({ dokument, mappe: mappenDaten }: { mappe: Mappe; dokument:
 				struktur,
 				fokussiereText: text.fokussiere,
 				waehle: setAuswahl,
-				eineEbeneHoch: () => setAuswahl(pfad.at(-2)?.nr ?? null),
+				eineEbeneHoch: () => {
+					// 194-36: Esc im Inspektor führt nur zurück ins Blatt; erst Esc im Blatt geht eine Ebene höher.
+					if (document.activeElement?.closest('[data-inspektor], [data-panel]')) {
+						docJetzt?.defaultView?.focus();
+						return;
+					}
+					setAuswahl(pfad.at(-2)?.nr ?? null);
+				},
 				nachbar: (richtung) => {
 					const ziel = docJetzt && auswahl !== null ? nachbarVon(docJetzt, auswahl, richtung) : null;
 					if (ziel !== null) {
@@ -748,12 +759,16 @@ const Bearbeitung = ({ dokument, mappe: mappenDaten }: { mappe: Mappe; dokument:
 						ort?.querySelector<HTMLElement>('label, button')?.focus();
 					});
 				},
+				// 194-08: Erst die Leiste am Element, sonst der Inspektor.
 				zurLeiste: () =>
-					document
-						.querySelector<HTMLElement>(
+					(
+						document.querySelector<HTMLElement>(
+							'[data-bausteinleiste] button:not(:disabled), [data-gestaltungsleiste] button:not(:disabled)',
+						) ??
+						document.querySelector<HTMLElement>(
 							'[data-panel] input, [data-panel] select, [data-panel] textarea, [data-panel] button',
 						)
-						?.focus(),
+					)?.focus(),
 				fassung: (w) => setSuche(w === 'loesung' ? { fassung: 'loesung' } : {}, { replace: true }),
 				profil: waehleProfil,
 				zoomSchritt: (richtung) => {
@@ -793,8 +808,11 @@ const Bearbeitung = ({ dokument, mappe: mappenDaten }: { mappe: Mappe; dokument:
 				wiederholen: vor,
 				speichern: () => zeige({ text: 'Wird automatisch gespeichert.' }),
 				pdf: () => document.querySelector<HTMLElement>('[data-pdf-knopf] button')?.click(),
-				drucken: () => void verlassen(druckSeite(zugang, dok, loesung ? 'loesung' : 'arbeitsblatt', profil)),
-				praesentieren: () => void verlassen(praesentationSeite(zugang, dok)),
+				praesentieren: () => {
+					// Vollbild nur im Klick selbst, also vor dem Speichern (192 Urteil 2); bleibt man hier, endet es.
+					vollbildFuerSofort();
+					void verlassen(praesentationSeite(zugang, dok), SOFORT).then((weg) => weg || beendeVollbild());
+				},
 				zurueck: () => void verlassen(dokumentSeite(zugang, dok)),
 				hilfe: () => void verlassen('/hilfe'),
 			},
@@ -1038,8 +1056,18 @@ const Bearbeitung = ({ dokument, mappe: mappenDaten }: { mappe: Mappe; dokument:
 		},
 	};
 
-	const leinwandMenue = (treffer: { nr: number; art: string } | null, punkt: { x: number; y: number }) =>
-		menueAn(treffer?.nr ?? null, !treffer || treffer.art === 'seite' ? 'leer' : 'baustein', punkt);
+	// 204-05: Der Rechtsklick zeigt das Menü dessen, was er gewählt hat, wie das ⋯ an dessen Leiste.
+	const menueArtVon = (treffer: MenueTreffer | null): MenueArt => {
+		if (!treffer) {
+			return 'leer';
+		}
+		if (treffer.gestaltung) {
+			return 'gestaltung';
+		}
+		return treffer.art === 'seite' ? 'seite' : 'baustein';
+	};
+	const leinwandMenue = (treffer: MenueTreffer | null, punkt: { x: number; y: number }) =>
+		menueAn(treffer?.nr ?? null, menueArtVon(treffer), punkt);
 	const kopfMitte = (
 		<KopfMitte
 			dokument={dokument}
@@ -1102,7 +1130,15 @@ const Bearbeitung = ({ dokument, mappe: mappenDaten }: { mappe: Mappe; dokument:
 						</Knopf>
 					)}
 					<span className="contents" data-pdf-knopf>
-						<PdfKnopf art="haupt" beschriftung="PDF" wahl={wahl} mappe={mappenDaten} warnen rechtsbuendig />
+						<PdfKnopf
+							art="haupt"
+							beschriftung="PDF"
+							wahl={wahl}
+							mappe={mappenDaten}
+							warnen
+							rechtsbuendig
+							echteMasse={dokument.echteMasse}
+						/>
 					</span>
 				</Kopfleiste>
 				{claudeApp.dialog}
@@ -1188,6 +1224,7 @@ const Bearbeitung = ({ dokument, mappe: mappenDaten }: { mappe: Mappe; dokument:
 									vorDemZeigen={vorDemZeigen}
 									nurAnsehen={nurAnsehen}
 									ziehbar={struktur.aktiv}
+									einfuegeLinie={frei && struktur.aktiv}
 									ablegen={struktur.verschiebe}
 									jeSeite={format === 'folie'}
 									einblendung={(e) => (
@@ -1206,15 +1243,9 @@ const Bearbeitung = ({ dokument, mappe: mappenDaten }: { mappe: Mappe; dokument:
 													<Bausteinleiste
 														e={e}
 														pfad={pfad}
-														quelle={sicht.quelle}
-														format={format}
 														struktur={struktur}
 														befehle={befehle}
 														text={text}
-														abb={abbildung}
-														bild={bild}
-														loes={loes}
-														waehle={setAuswahl}
 													/>
 													<GestaltungUeberlagerung
 														e={e}
@@ -1275,6 +1306,7 @@ const Bearbeitung = ({ dokument, mappe: mappenDaten }: { mappe: Mappe; dokument:
 				<Statusleiste
 					seite={seite}
 					format={FORMAT_NAME[format]}
+					folien={format === 'folie'}
 					pruefung={pruefung.stand}
 					zeigePunkt={zeigePunkt}
 					knopf={pruefKnopf}

@@ -10,10 +10,14 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { elementZu, pfadZu, trefferAn } from './darstellung';
 import { folgtAutomatische } from './fluss';
 
+/** Fehlende Lösungen in einem Satz, gleich in Prüfliste und Lösungsübersicht (194-38). */
+export const satzFehlend = (anzahl: number) =>
+	anzahl === 1 ? 'Eine Antwortlinie hat noch keine Lösung.' : `${anzahl} Antwortlinien haben noch keine Lösung.`;
+
 /** Nach der letzten Eingabe so lange warten, bevor geprüft wird: Tippen bleibt flüssig. */
 const RUHE_MS = 500;
 
-/** In Koordinaten des Materials im `iframe`. */
+/** In Koordinaten der eigenen Seite (194-03): Gemessen wird im Laderahmen, gezeichnet im sichtbaren. */
 export interface Rechteck {
 	links: number;
 	oben: number;
@@ -77,12 +81,22 @@ export const holeInSeiteAus = (
 
 type PruefeBlatt = (optionen: { warten: boolean }) => Promise<{ meldungen: Meldung[] }>;
 
-const seitenIn = (doc: Document) =>
+export const seitenIn = (doc: Document) =>
 	[...doc.querySelectorAll('.seite')].filter((s) => !s.parentElement?.closest('.seite'));
+
+/** Die Seite des Blatts um `element`, nicht eine Karte darin: Zu ihr zählen `seite` und die Rechtecke. */
+const aeussereSeite = (element: Element | null | undefined) => {
+	let seite = element?.closest('.seite') ?? null;
+	for (let aussen = seite?.parentElement?.closest('.seite'); aussen; aussen = aussen.parentElement?.closest('.seite')) {
+		seite = aussen;
+	}
+	return seite;
+};
 
 const rechteckVon = (element: Element): Rechteck => {
 	const r = element.getBoundingClientRect();
-	return { links: r.left, oben: r.top, breite: r.width, hoehe: r.height };
+	const s = aeussereSeite(element)?.getBoundingClientRect();
+	return { links: r.left - (s?.left ?? 0), oben: r.top - (s?.top ?? 0), breite: r.width, hoehe: r.height };
 };
 
 /**
@@ -117,12 +131,7 @@ const ausBericht = (doc: Document, meldungen: Meldung[]): Pruefpunkt[] => {
 				? []
 				: ziele
 						.filter((z) => !ganzeSeite(z))
-						.map(({ rechteck: [x = 0, y = 0, breite = 0, hoehe = 0] }) => ({
-							links: seite.left + x,
-							oben: seite.top + y,
-							breite,
-							hoehe,
-						}));
+						.map(({ rechteck: [x = 0, y = 0, breite = 0, hoehe = 0] }) => ({ links: x, oben: y, breite, hoehe }));
 		const bausteine = ziele.flatMap((z) => {
 			const nr = z.sb === null ? null : trefferAn(elementZu(doc, z.sb))?.nr;
 			return nr === null || nr === undefined ? [] : [nr];
@@ -136,7 +145,7 @@ const ausBericht = (doc: Document, meldungen: Meldung[]): Pruefpunkt[] => {
 };
 
 const seiteVon = (doc: Document, element: Element | null) => {
-	const seite = element?.closest('.seite');
+	const seite = aeussereSeite(element);
 	return seite ? seitenIn(doc).indexOf(seite) + 1 : 0;
 };
 
@@ -145,10 +154,7 @@ const eigenePunkte = (doc: Document, zerlegung: Zerlegung, ausgang: Zerlegung | 
 	const punkte: Pruefpunkt[] = [];
 	const fehlend = hatLoesung(zerlegung.quelle) ? fehlendeLoesungen(zerlegung) : [];
 	if (fehlend.length > 0) {
-		const satz =
-			fehlend.length === 1
-				? 'Eine Antwortlinie hat noch keine Lösung.'
-				: `${fehlend.length} Antwortlinien haben noch keine Lösung.`;
+		const satz = satzFehlend(fehlend.length);
 		const m: Meldung = { stufe: 'HINWEIS', seite: 0, code: 'loesung-fehlt', text: satz };
 		punkte.push({
 			...erklaere(m),

@@ -19,11 +19,13 @@ import type { SymbolName } from '../bausteine/Symbol';
 import { Symbol } from '../bausteine/Symbol';
 import { Tooltip } from '../bausteine/Tooltip';
 import { folgeZeiger, rolleAmRand, schluckeKlick } from '../bausteine/zeigerzug';
+import { seitenWort } from '../lib/text';
 import { useClaudeSteuerung } from './claude-kontext';
 import { bausteinVon, elementZu, nrVon } from './darstellung';
 import type { EbenenZiel } from './ebenen-legen';
 import { legeInEbenen, seiteUm } from './ebenen-legen';
 import { lageInSeite, messeAnhaengen } from './gestaltung/anker-lage';
+import type { EbenenZeichen } from './gestaltung/ebenen-zeichen';
 import { EBENEN_ZEICHEN } from './gestaltung/ebenen-zeichen';
 import { nrnFuer, schalteDazu, useMehrfach } from './gestaltung/mehrfach';
 import type { GliederungKnoten, GliederungSeite } from './gliederung-modell';
@@ -250,6 +252,12 @@ const linieAn = (y: number | null, zeile: Element, f: DOMRect) =>
 
 const GESTALTUNG_ZEILEN = new Set<string>(['vorne', 'hinten', 'anker', 'flaeche', 'gruppe']);
 
+/** Was die Ebenen nach einem Klick schon zeigen, bevor das neue Blatt da ist (195-11). */
+type Vorab = Partial<Pick<GliederungKnoten, 'aus' | 'gesperrt' | 'titel' | 'name' | 'eigenerName'>>;
+
+/** 195-11: So lange gilt ein Vorabwert höchstens, falls das Blatt ihn nie zeigt. */
+const VORAB_MS = 10_000;
+
 /** Die `data-*` einer Zeile in den Ebenen. */
 const zeilenDaten = (k: GliederungKnoten, seite: number, zugeklappt: boolean) => ({
 	...(k.zeile === 'baustein' ? {} : { 'data-ebene-seite': seite }),
@@ -333,6 +341,7 @@ export const Ebenen = ({
 	zeigeSeitengestaltung,
 	zerlegung,
 }: Eigenschaften) => {
+	const wort = seitenWort(doc?.body.classList.contains('folie') ?? false);
 	const liste = useRef<HTMLDivElement>(null);
 	const inhalt = useRef<HTMLDivElement>(null);
 	const [zug, setZug] = useState<Zug | null>(null);
@@ -341,12 +350,42 @@ export const Ebenen = ({
 	const hoereAuf = useRef<(() => void) | null>(null);
 	const aufraeumen = useRef<(() => void) | null>(null);
 	const rollen = useRef(false);
+	// 195-11: Was ein Klick gerade gesetzt hat, gilt in der Zeile sofort und bleibt, bis das neu aufgebaute Blatt
+	// denselben Stand zeigt (höchstens `VORAB_MS`); an eine Zerlegung gebunden ginge er beim ersten Neuaufbau verloren.
+	const [vorab, setVorab] = useState<ReadonlyMap<number, { wert: Vorab; bis: number }>>(() => new Map());
+	const merke = (nr: number, wert: Vorab) =>
+		setVorab((alt) => {
+			const je = new Map(alt);
+			je.set(nr, { wert: { ...je.get(nr)?.wert, ...wert }, bis: Date.now() + VORAB_MS });
+			return je;
+		});
+	const mitVorab = (k: GliederungKnoten): GliederungKnoten => {
+		const v = vorab.get(k.nr);
+		return v && v.bis > Date.now() ? { ...k, ...v.wert } : k;
+	};
 
 	const modell = useMemo<GliederungSeite[]>(
 		() => (doc && zerlegung ? gliederungVon(doc, zerlegung, stand.ids) : []),
 		[doc, zerlegung, stand.ids],
 	);
 	const aktuell = struktur.aktiv;
+	// 195-11: Zeigt das Blatt den vorab gesetzten Stand, ist der Vorabwert erledigt.
+	useEffect(() => {
+		if (vorab.size === 0) {
+			return;
+		}
+		const knoten = new Map(modell.flatMap((s) => alleKnoten(s.kinder)).map((k) => [k.nr, k]));
+		const jetzt = Date.now();
+		const bleibt = [...vorab].filter(([nr, v]) => {
+			const k = knoten.get(nr);
+			const erreicht =
+				k && Object.entries(v.wert).every(([feld, wert]) => k[feld as keyof Vorab] === wert);
+			return !erreicht && v.bis > jetzt;
+		});
+		if (bleibt.length !== vorab.size) {
+			setVorab(new Map(bleibt));
+		}
+	}, [modell, vorab]);
 	const zeilenNr = useMemo(
 		() => new Set(modell.flatMap((s) => [s.nr, ...alleKnoten(s.kinder).map((k) => k.nr)])),
 		[modell],
@@ -809,6 +848,9 @@ export const Ebenen = ({
 		if (neuerName === (k.eigenerName ?? '') || (!k.eigenerName && neuerName === k.titel)) {
 			return;
 		}
+		if (neuerName) {
+			merke(k.nr, { titel: neuerName, name: neuerName, eigenerName: neuerName });
+		}
 		struktur.aendereAttribute(neuerName ? 'Umbenannt' : 'Name entfernt', (q) =>
 			setzeName(q, k.nr, neuerName || null),
 		);
@@ -828,8 +870,21 @@ export const Ebenen = ({
 		if (!element) {
 			return null;
 		}
-		const zeichen = EBENEN_ZEICHEN.filter((z) => z.fuer(element)).map((z) => ({ z, an: z.gesetzt(element) }));
+		const zeichen = EBENEN_ZEICHEN.filter((z) => z.fuer(element)).map((z) => ({
+			z,
+			an: z.schaltet ? k[z.schaltet] : z.gesetzt(element),
+		}));
 		const kontext = { nr: k.nr, element, struktur, zeigeAn, zeigeSeitengestaltung };
+		const klick = (z: EbenenZeichen, an: boolean) => {
+			if (!z.schaltet) {
+				z.klick(kontext, an);
+				return;
+			}
+			// 195-11: Zeile und Blatt zeigen den neuen Stand im nächsten Bild; der Befehl samt Neuaufbau läuft danach.
+			merke(k.nr, { [z.schaltet]: !an });
+			element.toggleAttribute(z.schaltet === 'aus' ? 'data-aus' : 'data-gesperrt', !an);
+			requestAnimationFrame(() => setTimeout(() => z.klick(kontext, an), 0));
+		};
 		const schalter = zeichen.filter(({ z }) => z.schalter);
 		const mehrKnopf = (
 			<button type="button" className="flex size-11 items-center justify-center rounded-sm text-leise">
@@ -854,7 +909,7 @@ export const Ebenen = ({
 								data-ebenen-zeichen={z.id}
 								{...(an ? { 'data-gesetzt': true } : {})}
 								disabled={!aktuell}
-								onClick={() => z.klick(kontext, an)}
+								onClick={() => klick(z, an)}
 							>
 								<Symbol name={z.symbol(an)} className="size-3.5 flex-none" />
 							</button>
@@ -869,7 +924,7 @@ export const Ebenen = ({
 							eintraege={schalter.map(({ an, z }) => ({
 								titel: z.titel(an),
 								symbol: z.symbol(!an),
-								waehle: () => z.klick(kontext, an),
+								waehle: () => klick(z, an),
 							}))}
 						/>
 					</span>
@@ -878,7 +933,8 @@ export const Ebenen = ({
 		);
 	};
 
-	const zeigeKnoten = (k: GliederungKnoten, tiefe: number, seite: number): ReactNode => {
+	const zeigeKnoten = (gelesen: GliederungKnoten, tiefe: number, seite: number): ReactNode => {
+		const k = mitVorab(gelesen);
 		const hatKinder = k.kinder.length > 0;
 		const zugeklappt = hatKinder && !stand.offen(k.schluessel);
 		const gezogen = zug?.nr === k.nr ? { opacity: 0.35 } : undefined;
@@ -892,7 +948,7 @@ export const Ebenen = ({
 		const waehleZeile = () =>
 			k.zeile === 'seitenrahmen' || k.zeile === 'seitenflaeche' || k.zeile === 'kopfband'
 				? zeigeSeitengestaltung(seite, k.zeile)
-				: waehle(hauptstapel ? seite : k.nr);
+				: waehle(hauptstapel ? seite : (k.waehlt ?? k.nr));
 		return (
 			<div key={k.schluessel} data-knoten={k.nr}>
 				<div
@@ -909,7 +965,7 @@ export const Ebenen = ({
 					data-zeilen-art={k.zeile}
 					{...zeilenDaten(k, seite, zugeklappt)}
 					onPointerDown={(e) => druecke(e, false, k, k.ziehbar)}
-					onContextMenu={(e) => (hauptstapel ? e.preventDefault() : menue(e, k.nr, 'baustein'))}
+					onContextMenu={(e) => (hauptstapel ? e.preventDefault() : menue(e, k.waehlt ?? k.nr, 'baustein'))}
 				>
 					{k.ziehbar ? <Griff beschriftung={`${k.art} ziehen`} tabIndex={-1} data-griff-zeile /> : LUECKE}
 					{hatKinder ? pfeil(k.schluessel, zugeklappt) : LUECKE}
@@ -989,9 +1045,9 @@ export const Ebenen = ({
 	};
 
 	const zeigeSeite = (s: GliederungSeite, i: number) => {
-		const name = `Seite ${i + 1}`;
+		const name = `${wort} ${i + 1}`;
 		const zugeklappt = !stand.offen(s.schluessel) || zug?.seite === true;
-		const griffDaten = { nr: s.nr, name, art: 'Seite' };
+		const griffDaten = { nr: s.nr, name, art: wort };
 		// 206: Eine automatische Seite zieht man nicht, sie gehört zur Seite davor.
 		const ohneGriff = festeSeiten || istAutomatisch(zerlegung?.knoten[s.nr]);
 		const anzahl = stapelVon(s).filter((k) => !k.fest).length;
@@ -1048,7 +1104,11 @@ export const Ebenen = ({
 					art="leise"
 					groesse="klein"
 					className="text-xs"
-					onClick={() => stand.setzeAlle(alleSchluessel(modell), alleZu)}
+					onClick={() => {
+						stand.setzeAlle(alleSchluessel(modell), alleZu);
+						// 195-14: Die gewählte Zeile bleibt im Blick, wie nach einem Klick im Blatt.
+						rollen.current = true;
+					}}
 				>
 					{alleZu ? 'Alle aufklappen' : 'Alle einklappen'}
 				</Knopf>
@@ -1077,12 +1137,12 @@ export const Ebenen = ({
 						<Knopf
 							art="zweit"
 							className={klassen('flex-1 px-2', namenszeile && 'rounded-r-none')}
-							aria-label="Seite hinzufügen"
+							aria-label={`${wort} hinzufügen`}
 							disabled={!struktur.aktiv}
 							onClick={() => void struktur.neueSeite(namenszeile && mitNamenszeile)}
 						>
 							<Symbol name="plus" />
-							Seite
+							{wort}
 						</Knopf>
 						{namenszeile && (
 							<Menue
@@ -1091,12 +1151,12 @@ export const Ebenen = ({
 								ausloeser={ART_KNOPF}
 								eintraege={[
 									{
-										titel: 'Leere Seite',
+										titel: `Leere ${wort}`,
 										aktiv: !mitNamenszeile,
 										waehle: () => neueSeiteMit(false),
 									},
 									{
-										titel: 'Seite mit Namenszeile',
+										titel: `${wort} mit Namenszeile`,
 										aktiv: mitNamenszeile,
 										waehle: () => neueSeiteMit(true),
 									},

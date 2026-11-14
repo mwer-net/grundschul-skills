@@ -6,6 +6,7 @@ import { Schalter } from '../bausteine/Schalter';
 import { Symbol } from '../bausteine/Symbol';
 import { Zeile } from '../bausteine/Zeile';
 import type { LoesungSteuerung } from './loesung';
+import { satzFehlend } from './pruefung';
 
 /** Sonst übernimmt das Feld schon beim Drücken, der Hinweis darüber verschwindet, und der Knopf springt weg. */
 const HALTE = { onMouseDown: (e: MouseEvent) => e.preventDefault() };
@@ -64,12 +65,9 @@ const Antwort = ({ l, ohneFeld }: { l: LoesungSteuerung; ohneFeld: boolean }) =>
 			)}
 			{/* Gleich hoch mit und ohne Lösung: Am iPad hoch wächst das Panel mit, und ein Antippen ginge daneben. */}
 			<div className="mt-1 h-knopf">
+				{/* 194-38: Ein Satz nur beim Beispiel und wenn die Lösung fehlt; sonst bleibt der Platz leer. */}
 				{l.wert.trim() ? (
-					<p className="text-xs text-leise">
-						{l.imBeispiel
-							? 'Das ist das Beispiel: Die Antwort steht auch auf dem Arbeitsblatt.'
-							: 'Steht nur auf dem Lösungsblatt.'}
-					</p>
+					l.imBeispiel && <p className="text-xs text-leise">Steht als Beispiel auch auf dem Arbeitsblatt.</p>
 				) : (
 					<Fehlt>Hier fehlt noch die Lösung.</Fehlt>
 				)}
@@ -131,9 +129,7 @@ export const Loesungsuebersicht = ({ l }: { l: LoesungSteuerung }) => {
 				<>
 					<div>
 						<Fehlt>
-							{anzahl === 1
-								? 'Bei einer Antwortlinie fehlt noch die Lösung.'
-								: `Bei ${anzahl} Antwortlinien fehlt noch die Lösung.`}
+							{satzFehlend(anzahl)}
 						</Fehlt>
 					</div>
 					<Knopf art="zweit" className="mt-1" onClick={l.naechsteFehlende}>

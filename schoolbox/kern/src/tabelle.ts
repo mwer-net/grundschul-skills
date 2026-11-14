@@ -60,14 +60,19 @@ export const modellHtml = ({ attribute, kopf, zeilen }: Modell) => {
 
 const leer = (tag: 'th' | 'td' = 'td'): Zelle => ({ tag, attribute: '', innen: '' });
 
-/** Die Kopfzeile besteht aus `th`, alles andere aus `td`. */
+/**
+ * Die Kopfzeile besteht aus `th`; jede andere Zelle bleibt, was sie ist, auch ein `th` einer Kopfspalte (204-02).
+ */
 const ordne = (m: Modell): Modell => ({
 	...m,
-	zeilen: m.zeilen.map((r, i) => ({
-		...r,
-		zellen: r.zellen.map((c) => ({ ...c, tag: m.kopf && i === 0 ? ('th' as const) : ('td' as const) })),
-	})),
+	zeilen: m.zeilen.map((r, i) =>
+		m.kopf && i === 0 ? { ...r, zellen: r.zellen.map((c) => ({ ...c, tag: 'th' as const })) } : r,
+	),
 });
+
+/** Die Art einer neuen Zelle an `spalte` unter `vorbild`: wie die Zelle dort, in der Kopfzeile aber `td`. */
+const artUnter = (m: Modell, vorbild: number, spalte: number): Zelle['tag'] =>
+	m.kopf && vorbild === 0 ? 'td' : (m.zeilen[vorbild]?.zellen[spalte]?.tag ?? 'td');
 
 interface Stelle {
 	zeile: number;
@@ -94,6 +99,18 @@ const zelleNr = (quelle: string, start: number, { spalte, zeile }: Stelle) => {
 	return r?.kinder[spalte]?.nr ?? t?.nr ?? null;
 };
 
+/** Die Auswahl bleibt, wo der Befehl ausgelöst wurde (204-02): an der Tabelle, an der Zeile oder an der Zelle. */
+const auswahlNach = (quelle: string, start: number, stelle: Stelle, war: Knoten['tag'] | undefined) => {
+	if (war === 'table') {
+		return zerlege(quelle).knoten.find((k) => k.start === start)?.nr ?? null;
+	}
+	if (war === 'tr') {
+		const t = zerlege(quelle).knoten.find((k) => k.start === start);
+		return (t ? zeilenKnoten(t)[stelle.zeile]?.nr : undefined) ?? t?.nr ?? null;
+	}
+	return zelleNr(quelle, start, stelle);
+};
+
 const aendere = (
 	quelle: string,
 	nr: number,
@@ -103,8 +120,8 @@ const aendere = (
 	const z = zerlege(quelle);
 	const t = tabelleVon(z, nr);
 	const { modell, stelle } = rechne(leseModell(z, t), stelleVon(z, t, nr));
-	const neu = wendeAn(quelle, [{ von: t.start, bis: t.ende, text: modellHtml(ordne(modell)) }]);
-	return { quelle: nummeriere(neu, n), nr: zelleNr(neu, t.start, stelle) };
+	const neu = nummeriere(wendeAn(quelle, [{ von: t.start, bis: t.ende, text: modellHtml(ordne(modell)) }]), n);
+	return { quelle: neu, nr: auswahlNach(neu, t.start, stelle, z.knoten[nr]?.tag) };
 };
 
 const spalten = (m: Modell) => Math.max(1, ...m.zeilen.map((r) => r.zellen.length));
@@ -114,7 +131,12 @@ export type Wo = 'vor' | 'nach';
 export const fuegeZeileEin = (quelle: string, nr: number, wo: Wo, n: Nummerierung) =>
 	aendere(quelle, nr, n, (m, s) => {
 		const ziel = Math.max(m.kopf ? 1 : 0, wo === 'vor' ? s.zeile : s.zeile + 1);
-		const zeile: Zeile = { attribute: '', zellen: Array.from({ length: spalten(m) }, () => leer()) };
+		// Wie die Zeile, neben der sie entsteht: Eine Kopfspalte bekommt wieder ein `th` (204-02).
+		const vorbild = wo === 'vor' && ziel < m.zeilen.length ? ziel : ziel - 1;
+		const zeile: Zeile = {
+			attribute: '',
+			zellen: Array.from({ length: spalten(m) }, (_, i) => leer(artUnter(m, vorbild, i))),
+		};
 		return {
 			modell: { ...m, zeilen: [...m.zeilen.slice(0, ziel), zeile, ...m.zeilen.slice(ziel)] },
 			stelle: { zeile: ziel, spalte: s.spalte },
@@ -141,7 +163,7 @@ export const fuegeSpalteEin = (quelle: string, nr: number, wo: Wo, n: Nummerieru
 				...m,
 				zeilen: m.zeilen.map((r) => ({
 					...r,
-					zellen: [...r.zellen.slice(0, ziel), leer(), ...r.zellen.slice(ziel)],
+					zellen: [...r.zellen.slice(0, ziel), leer(r.zellen[s.spalte]?.tag), ...r.zellen.slice(ziel)],
 				})),
 			},
 			stelle: { zeile: s.zeile, spalte: ziel },
@@ -175,24 +197,43 @@ export const setzeGroesse = (quelle: string, nr: number, was: { zeilen?: number;
 			...r,
 			zellen: [
 				...r.zellen,
-				...Array.from({ length: Math.max(0, zielSpalten - r.zellen.length) }, () => leer()),
+				...Array.from({ length: Math.max(0, zielSpalten - r.zellen.length) }, () => leer(r.zellen.at(-1)?.tag)),
 			].slice(0, zielSpalten),
 		});
+		const letzte = m.zeilen.length - 1;
 		const dazu = Array.from({ length: Math.max(0, zielZeilen - m.zeilen.length) }, (): Zeile => ({
 			attribute: '',
-			zellen: [],
+			zellen: Array.from({ length: spalten(m) }, (_, i) => leer(artUnter(m, letzte, i))),
 		}));
 		return { modell: { ...m, zeilen: [...m.zeilen, ...dazu].slice(0, zielZeilen).map(breit) }, stelle: s };
 	});
 
 export const setzeKopfzeile = (quelle: string, nr: number, an: boolean, n: Nummerierung) =>
-	aendere(quelle, nr, n, (m, s) => ({ modell: { ...m, kopf: an }, stelle: s }));
+	aendere(quelle, nr, n, (m, s) => ({
+		// Ohne Kopf wird die bisherige Kopfzeile eine gewöhnliche Zeile.
+		modell: {
+			...m,
+			kopf: an,
+			zeilen: m.zeilen.map((r, i) =>
+				!an && m.kopf && i === 0 ? { ...r, zellen: r.zellen.map((c) => ({ ...c, tag: 'td' as const })) } : r,
+			),
+		},
+		stelle: s,
+	}));
 
 /** Die Maße der Tabelle für das Panel. */
 export const groesseVon = (quelle: string, nr: number) => {
 	const z = zerlege(quelle);
 	const m = leseModell(z, tabelleVon(z, nr));
 	return { zeilen: m.zeilen.length, spalten: spalten(m), kopf: m.kopf };
+};
+
+/** Vorige Zelle für ⇧Tab (194-07); in der ersten `null`: Dann bleibt die Marke stehen. */
+export const vorigeZelle = (s: Stelle, spaltenIn: (zeile: number) => number): Stelle | null => {
+	if (s.spalte > 0) {
+		return { zeile: s.zeile, spalte: s.spalte - 1 };
+	}
+	return s.zeile > 0 ? { zeile: s.zeile - 1, spalte: Math.max(0, spaltenIn(s.zeile - 1) - 1) } : null;
 };
 
 /** Nächste Zelle für Tab; am Ende `null`: Dann kommt eine neue Zeile. */
