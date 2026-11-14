@@ -4,7 +4,7 @@ import path from 'node:path';
 import { dokKnotenSchluessel, dokumentGeloescht, legeVarianteAn, leseMappenEintrag, mappenDir } from '@schoolbox/kern';
 import { Router } from 'express';
 
-import { verlangeDokument } from './dokumente';
+import { hatEchteMasse, verlangeDokument } from './dokumente';
 import { HttpFehler } from './fehler';
 import type { Kontext } from './kontext';
 import { pruefeIdParam } from './schutz';
@@ -34,6 +34,7 @@ export const mappenApi = (kontext: Kontext) => {
 					id: dok,
 					meta,
 					vorschau: await kontext.vorschau.stand(id, dok, true),
+					echteMasse: await hatEchteMasse(materialDir, id, dok),
 				})),
 			),
 		});

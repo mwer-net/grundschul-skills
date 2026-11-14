@@ -3,7 +3,7 @@ import { copyFile, mkdir, readFile, writeFile } from 'node:fs/promises';
 import path from 'node:path';
 import { afterEach, describe, it } from 'node:test';
 
-import { ASSETS, FREIGABEN_SCHEMA, neueMappe, pruefeSchema } from '@schoolbox/kern';
+import { ASSETS, FREIGABEN_SCHEMA, neueMappe, pruefeSchema, registriereEntwuerfe, waehleEntwurf } from '@schoolbox/kern';
 
 import type { TestServer } from './testhilfe';
 import {
@@ -179,6 +179,42 @@ describe('Teilen: Ordner-Links', () => {
 		assert.equal((await fetch(`${server.url}${adresse}`)).status, 200);
 		const dokLink = await teile({ mappe: a.mappe, dok: a.dok });
 		assert.equal((await fetch(`${dokLink}/api/alles/alles`)).status, 404);
+	});
+
+	it('„PDF“ im Unterordner: nur was darunter liegt, nach ihm benannt; ein Ordner außerhalb ist 404 (191-01)', async () => {
+		const { bewege, neu, server, teile } = await lauf();
+		const a = await legeDokumentAn(server.materialDir);
+		const b = await legeDokumentAn(server.materialDir);
+		const oben = await neu('Geteilt');
+		const unten = await neu('Darin', oben);
+		const fremd = await neu('Fremd');
+		await bewege([{ mappe: a.mappe, dok: a.dok }], oben);
+		await bewege([{ mappe: b.mappe, dok: b.dok }], unten);
+		const f = await teile({ ordner: oben });
+		const darin = await fetch(`${f}/api/alles/alles?ordner=${unten}`);
+		assert.equal(darin.status, 200);
+		const { adresse, dateiname } = (await darin.json()) as { adresse: string; dateiname: string };
+		assert.match(dateiname, /Darin/);
+		assert.match(adresse, new RegExp(`[?&]ordner=${unten}$`), 'die Datei bleibt beim Unterordner');
+		assert.equal((await fetch(`${server.url}${adresse}`)).status, 200);
+		assert.match(((await (await fetch(`${f}/api/alles/alles`)).json()) as { dateiname: string }).dateiname, /Geteilt/);
+		assert.equal((await fetch(`${f}/api/alles/alles?ordner=${fremd}`)).status, 404);
+		assert.equal((await fetch(`${f}/alles/alles/x.pdf?ordner=${fremd}`)).status, 404);
+	});
+
+	it('Material mit offenen Entwürfen zeigt ein Ordner-Link erst, wenn einer gewählt ist (191-03)', async () => {
+		const { bewege, inhalt, neu, server, teile } = await lauf();
+		const a = await legeDokumentAn(server.materialDir);
+		const ordner = await neu('Geteilt');
+		await bewege([{ mappe: a.mappe, dok: a.dok }], ordner);
+		const f = await teile({ ordner });
+		assert.equal((await inhalt(f)).dokumente.length, 1);
+		const datei = path.join(a.dir, 'entwurf-a.html');
+		await writeFile(datei, await readFile(path.join(a.dir, 'material.html'), 'utf8'));
+		await registriereEntwuerfe(server.materialDir, { mappe: a.mappe, dok: a.dok }, [datei]);
+		assert.deepEqual((await inhalt(f)).dokumente, [], 'offene Entwürfe: nicht gelistet');
+		await waehleEntwurf(server.materialDir, { mappe: a.mappe, dok: a.dok }, 'A');
+		assert.equal((await inhalt(f)).dokumente.length, 1, 'gewählt: wieder da');
 	});
 
 	it('schreiben über einen Ordner-Link: 403', async () => {
