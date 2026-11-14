@@ -5,9 +5,23 @@ import { Symbol } from '../bausteine/Symbol';
 import { vorschauAdresse } from '../lib/zugang';
 import type { Objekt } from './typen';
 
+/** Breite und Höhe samt Versatz der drei Blätter; `AmZeiger` setzt 8 px neben den Zeiger. */
+const BREITE = 48 + 10;
+const HOEHE = 64 + 10;
+const ABSTAND = 8;
+
+/** Reicht der Platz unter oder rechts vom Zeiger nicht, hängt der Geist darüber oder links davon (189-27). */
+const imFenster = (wert: number, groesse: number, fenster: number) =>
+	wert + ABSTAND + groesse > fenster - ABSTAND ? wert - groesse - 2 * ABSTAND : wert;
+
 /** Was am Zeiger hängt, solange gezogen wird: bis zu drei Blätter und die Anzahl. */
 export const Geist = ({ objekte, x, y }: { objekte: Objekt[]; x: number; y: number }) => (
-	<AmZeiger className="h-16 w-12" x={x} y={y} data-geist>
+	<AmZeiger
+		className="h-16 w-12"
+		x={imFenster(x, BREITE, window.innerWidth)}
+		y={imFenster(y, HOEHE, window.innerHeight)}
+		data-geist
+	>
 		{objekte.slice(0, 3).map((o, i) => (
 			<div
 				key={o.schluessel}
