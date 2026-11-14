@@ -34,7 +34,6 @@ import type { Einfuegen, Posten, SlashMenue } from './einfuegen';
 import type { Einblendung } from './Leinwand';
 import { LUECKE_UND_ORIGINAL } from './luecke';
 import type { Luecke } from './navigation';
-import { lueckeAn } from './navigation';
 import { kopf } from './schubladen/reihe';
 import { sichtfeldVon } from './sichtfeld';
 import { EIGENE_GESCHICHTE } from './tasten';
@@ -92,7 +91,6 @@ export const Einfuegemarken = ({
 }) => {
 	const [schnell, setSchnell] = useState<{ nr: number | null; left: number; top: number } | null>(null);
 	const [suche, setSuche] = useState('');
-	const [luecke, setLuecke] = useState<Luecke | null>(null);
 	const { box, doc, hoehe, links, skala } = e;
 	const leer = [...doc.querySelectorAll('.seite:not([data-erzeugt])')].filter((s) => s.children.length === 0);
 	// 203-13: ohne Suchwort was zum Blatt passt, Aufgaben vorne; mit Suchwort alles im Angebot, Passendes zuerst.
@@ -106,7 +104,6 @@ export const Einfuegemarken = ({
 		const left = Math.max(8, Math.min(wunschLinks, rechts - SCHNELL_BREITE - 8));
 		const top = Math.max(oben + 8, Math.min(wunschOben, unten - SCHNELL_HOEHE - 8));
 		setSuche('');
-		setLuecke(null);
 		setSchnell({ nr, left, top });
 	};
 	const schliesse = () => {
@@ -134,22 +131,9 @@ export const Einfuegemarken = ({
 		);
 	});
 
-	// Mit der Maus über einer Lücke: Linie und Pille. Am iPad gibt es kein Überfahren, dort genügt die Leiste.
-	useEffect(() => {
-		if (!aktiv) {
-			setLuecke(null);
-			return undefined;
-		}
-		const bewege = (ereignis: PointerEvent) => {
-			const neu =
-				ereignis.pointerType === 'mouse' && ereignis.buttons === 0
-					? lueckeAn(doc, ereignis.clientX, ereignis.clientY)
-					: null;
-			setLuecke((alt) => (alt?.nr === neu?.nr && alt?.y === neu?.y ? alt : neu));
-		};
-		doc.addEventListener('pointermove', bewege);
-		return () => doc.removeEventListener('pointermove', bewege);
-	}, [aktiv, doc]);
+	// 205: Die Leinwand meldet die Lücke unter dem Zeiger (`klickziel`). Wer die Linie zur Seite verlässt, nimmt sie mit.
+	const [verlassen, setVerlassen] = useState<Luecke | null>(null);
+	const luecke = aktiv && e.luecke !== verlassen ? e.luecke : null;
 
 	return (
 		<>
@@ -169,27 +153,39 @@ export const Einfuegemarken = ({
 						</span>
 					);
 				})}
-			{aktiv && luecke && !schnell && !e.zieht && (
-				<div
-					className="absolute z-ueberlagerung"
+			{luecke && !schnell && !e.zieht && (
+				// 205-04: Der ganze Zwischenraum ist der Knopf, nicht nur die Pille.
+				<button
+					type="button"
+					aria-label="Baustein einfügen"
+					className="group absolute z-ueberlagerung flex cursor-pointer items-center"
 					data-einfuege-luecke
 					style={{
 						left: links + luecke.x * skala,
-						top: luecke.y * skala - 1,
+						top: luecke.von * skala,
 						width: luecke.laenge * skala,
+						height: Math.max(8, (luecke.bis - luecke.von) * skala),
 					}}
+					onPointerLeave={(ev) => {
+						if (!(ev.relatedTarget instanceof HTMLIFrameElement)) {
+							setVerlassen(luecke);
+						}
+					}}
+					onClick={() => oeffne(luecke.nr, links + luecke.x * skala, luecke.y * skala + 12)}
 				>
-					<div className="pointer-events-none h-0.5 rounded-full bg-brand-500" />
-					<button
-						type="button"
-						className="absolute top-1/2 left-1/2 inline-flex h-knopf-klein -translate-x-1/2 -translate-y-1/2 items-center gap-1 rounded-full bg-brand-500 px-2 text-xs font-medium whitespace-nowrap text-white"
+					<span
+						className="pointer-events-none absolute inset-x-0 h-0.5 rounded-full bg-brand-500"
+						style={{ top: (luecke.y - luecke.von) * skala - 1 }}
+					/>
+					<span
+						className="absolute left-1/2 inline-flex h-knopf-klein -translate-x-1/2 -translate-y-1/2 items-center gap-1 rounded-full bg-brand-500 px-2 text-xs font-medium whitespace-nowrap text-white group-hover:bg-brand-600"
 						data-einfuegen-luecke
-						onClick={() => oeffne(luecke.nr, links + luecke.x * skala, luecke.y * skala + 12)}
+						style={{ top: (luecke.y - luecke.von) * skala }}
 					>
 						<Symbol name="plus" />
 						Baustein
-					</button>
-				</div>
+					</span>
+				</button>
 			)}
 			{aktiv &&
 				leer.map((s) => {

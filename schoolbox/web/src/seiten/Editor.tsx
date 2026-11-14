@@ -1190,6 +1190,7 @@ const Bearbeitung = ({ dokument, mappe: mappenDaten }: { mappe: Mappe; dokument:
 									vorDemZeigen={vorDemZeigen}
 									nurAnsehen={nurAnsehen}
 									ziehbar={struktur.aktiv}
+									einfuegeLinie={frei && struktur.aktiv}
 									ablegen={struktur.verschiebe}
 									jeSeite={format === 'folie'}
 									einblendung={(e) => (
