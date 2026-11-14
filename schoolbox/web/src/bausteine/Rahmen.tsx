@@ -92,7 +92,14 @@ const useKopfsuche = (ordnerId: string | undefined) => {
 				verlasse();
 			}
 			e.currentTarget.blur();
-		} else if (e.key === 'ArrowDown' && !e.altKey && !e.metaKey && IN_DER_ABLAGE.test(pathname)) {
+		} else if (
+			e.key === 'ArrowDown' &&
+			!e.altKey &&
+			!e.metaKey &&
+			IN_DER_ABLAGE.test(pathname) &&
+			// Ohne Treffer bleiben Fokus und Marke im Feld (189-N01).
+			document.querySelector('[data-ablage-inhalt] [data-objekt]')
+		) {
 			e.preventDefault();
 			e.currentTarget.blur();
 			window.dispatchEvent(new Event(ERSTES_WAEHLEN));

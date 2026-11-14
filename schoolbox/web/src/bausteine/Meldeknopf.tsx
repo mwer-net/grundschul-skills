@@ -104,60 +104,126 @@ const sichtbarerRahmen = (rahmen: HTMLIFrameElement) => {
 	return stil.visibility !== 'hidden' && stil.display !== 'none' && Number(stil.opacity) > 0;
 };
 
+/** Eigenschaften, die Lage und Größe eines Rahmens bestimmen; das Bild an seiner Stelle übernimmt sie. */
+const RAHMEN_STIL = [
+	'position',
+	'top',
+	'right',
+	'bottom',
+	'left',
+	'z-index',
+	'display',
+	'flex',
+	'align-self',
+	'margin',
+	'border',
+	'border-radius',
+	'box-sizing',
+	'transform',
+	'transform-origin',
+	'opacity',
+	'visibility',
+	'vertical-align',
+];
+
 /**
  * Das Blatt liegt in einem `iframe` mit eigenen Schriften und Bildern; beim Nachzeichnen des ganzen Fensters kämen
- * sie nicht mit (193-30). Darum wird jeder sichtbare Rahmen für sich aufgenommen und an seiner Stelle eingesetzt.
+ * sie nicht mit (193-30). Darum wird jeder sichtbare Rahmen zuerst für sich aufgenommen.
  */
-const zeichneRahmen = async (ganz: HTMLCanvasElement, skala: number) => {
-	const stift = ganz.getContext('2d');
-	for (const rahmen of document.querySelectorAll('iframe')) {
-		const doc = rahmen.contentDocument;
-		const fenster = rahmen.contentWindow;
-		const ort = rahmen.getBoundingClientRect();
-		const imFenster = ort.right > 0 && ort.bottom > 0 && ort.left < window.innerWidth && ort.top < window.innerHeight;
-		if (!stift || !doc?.documentElement || !fenster || !imFenster || !sichtbarerRahmen(rahmen)) {
-			continue;
-		}
-		try {
-			await doc.fonts.ready;
-			const breite = rahmen.clientWidth;
-			const hoehe = rahmen.clientHeight;
-			const bild = await domToCanvas(doc.documentElement, {
-				scale: skala * (breite > 0 ? (ort.width - rahmen.clientLeft * 2) / breite : 1),
-				timeout: 2000,
-				width: breite,
-				height: hoehe,
-				style: { transform: `translate(${-fenster.scrollX}px, ${-fenster.scrollY}px)` },
-				// Nur, was im Rahmen zu sehen ist: Ein langes Blatt hätte sonst jedes Bild aller Seiten zu laden.
-				filter: (node) => !istElement(node) || imRahmen(node, fenster),
-			});
-			stift.drawImage(
-				bild,
-				(ort.left + rahmen.clientLeft) * skala,
-				(ort.top + rahmen.clientTop) * skala,
-				(ort.width - rahmen.clientLeft * 2) * skala,
-				(ort.height - rahmen.clientTop * 2) * skala,
-			);
-		} catch (fehler) {
-			merkeFehler(`Bildschirmausschnitt, Blatt: ${meldung(fehler)}`);
+const nimmRahmen = async (rahmen: HTMLIFrameElement, skala: number) => {
+	const doc = rahmen.contentDocument;
+	const fenster = rahmen.contentWindow;
+	const ort = rahmen.getBoundingClientRect();
+	const imFenster = ort.right > 0 && ort.bottom > 0 && ort.left < window.innerWidth && ort.top < window.innerHeight;
+	if (!doc?.documentElement || !fenster || !imFenster || !sichtbarerRahmen(rahmen)) {
+		return null;
+	}
+	try {
+		await doc.fonts.ready;
+		const breite = rahmen.clientWidth;
+		const bild = await domToCanvas(doc.documentElement, {
+			scale: skala * (breite > 0 ? (ort.width - rahmen.clientLeft * 2) / breite : 1),
+			timeout: 2000,
+			width: breite,
+			height: rahmen.clientHeight,
+			style: { transform: `translate(${-fenster.scrollX}px, ${-fenster.scrollY}px)` },
+			// Nur, was im Rahmen zu sehen ist: Ein langes Blatt hätte sonst jedes Bild aller Seiten zu laden.
+			filter: (node) => !istElement(node) || imRahmen(node, fenster),
+		});
+		return bild.toDataURL('image/png');
+	} catch (fehler) {
+		merkeFehler(`Bildschirmausschnitt, Blatt: ${meldung(fehler)}`);
+		return null;
+	}
+};
+
+/** Ersatz für einen Rahmen im Klon: an seiner Stelle und in seiner Ebene, damit alles darüber auch im Bild darüber liegt. */
+const ersatzFuer = (rahmen: HTMLIFrameElement, bild: string | null, doc: Document) => {
+	const ersatz = doc.createElement(bild ? 'img' : 'div');
+	const stil = getComputedStyle(rahmen);
+	for (const name of RAHMEN_STIL) {
+		ersatz.style.setProperty(name, stil.getPropertyValue(name));
+	}
+	ersatz.style.setProperty('box-sizing', 'border-box');
+	ersatz.style.setProperty('width', `${rahmen.offsetWidth}px`);
+	ersatz.style.setProperty('height', `${rahmen.offsetHeight}px`);
+	if (ersatz instanceof HTMLImageElement && bild) {
+		ersatz.src = bild;
+		ersatz.alt = '';
+	}
+	return ersatz;
+};
+
+const ELTERN = 'data-melde-eltern';
+
+const nimmFenster = async (skala: number) => {
+	const rahmen = [...document.querySelectorAll('iframe')].filter((f) => !f.closest(`[${MELDE_UI}]`));
+	const bilder = new Map<HTMLIFrameElement, string | null>();
+	for (const f of rahmen) {
+		bilder.set(f, await nimmRahmen(f, skala));
+	}
+	// Die Eltern der Rahmen tragen kurz eine Nummer: So findet sich im Klon, welcher Rahmen wo stand.
+	const eltern = [...new Set(rahmen.map((f) => f.parentElement).filter((e) => e !== null))];
+	eltern.forEach((e, i) => e.setAttribute(ELTERN, String(i)));
+	try {
+		return await domToCanvas(document.documentElement, {
+			scale: skala,
+			// Bilder mit loading="lazy" außerhalb des Fensters laden nie; der Standard (30 s) ließe die Lehrkraft warten.
+			timeout: 2000,
+			width: window.innerWidth,
+			height: window.innerHeight,
+			style: { transform: `translate(${-window.scrollX}px, ${-window.scrollY}px)` },
+			// Der Inhalt der Rahmen kommt als Bild (oben); ihn hier nachzuzeichnen kostet nur Zeit.
+			filter: (node) =>
+				node.ownerDocument === document && !(node instanceof Element && node.hasAttribute(MELDE_UI)),
+			onCloneEachNode: (klon) => {
+				const nr = istElement(klon) ? klon.getAttribute(ELTERN) : null;
+				const echt = nr === null ? undefined : eltern[Number(nr)];
+				if (!istElement(klon) || !echt) {
+					return;
+				}
+				klon.removeAttribute(ELTERN);
+				// Ein Rahmen wird im Klon zu seinem `<html>`; der Reihe nach gehört es zu den Rahmen im Original.
+				const klone = [...klon.children].filter((k) => k.tagName === 'HTML');
+				const echte = [...echt.children].filter((k): k is HTMLIFrameElement => k instanceof HTMLIFrameElement);
+				klone.forEach((k, i) => {
+					const f = echte[i];
+					if (f && k.ownerDocument) {
+						k.replaceWith(ersatzFuer(f, bilder.get(f) ?? null, k.ownerDocument));
+					}
+				});
+			},
+		});
+	} finally {
+		for (const e of eltern) {
+			e.removeAttribute(ELTERN);
 		}
 	}
 };
 
 const nimmAusschnitt = async (r: Rechteck | null) => {
 	const skala = window.devicePixelRatio || 1;
-	const ganz = await domToCanvas(document.documentElement, {
-		scale: skala,
-		// Bilder mit loading="lazy" außerhalb des Fensters laden nie; der Standard (30 s) ließe die Lehrkraft warten.
-		timeout: 2000,
-		width: window.innerWidth,
-		height: window.innerHeight,
-		style: { transform: `translate(${-window.scrollX}px, ${-window.scrollY}px)` },
-		// Die Rahmen kommen getrennt (`zeichneRahmen`); hier nur ihr Platz.
-		filter: (node) =>
-			!(node instanceof Element && (node.hasAttribute(MELDE_UI) || node.tagName === 'IFRAME')),
-	});
-	await zeichneRahmen(ganz, skala);
+	const ganz = await nimmFenster(skala);
 	if (!r) {
 		return ganz.toDataURL('image/png');
 	}
@@ -307,6 +373,9 @@ export const Meldeknopf = () => {
 		requestAnimationFrame(() => {
 			if (ziel instanceof HTMLElement && ziel.isConnected) {
 				ziel.focus();
+			} else {
+				// Begann die Meldung mit dem Knopf, ist er inzwischen neu gezeichnet (193-N01).
+				document.querySelector<HTMLElement>('[data-meldeknopf]')?.focus();
 			}
 		});
 	};

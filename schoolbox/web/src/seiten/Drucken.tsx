@@ -68,6 +68,15 @@ export const Drucken = ({ dok, zugang }: { zugang: Zugang; dok: string }) => {
 		};
 	}, [dok, mappe, profil, token, variante]);
 
+	if (stand.art === 'fehlt') {
+		// Oben wie an jeder Stelle, an der Material fehlt (187-N01); nur die Zustände des Drucks stehen mittig.
+		return (
+			<main>
+				<MaterialFehlt geteilt={istGeteilt(zugang)} />
+			</main>
+		);
+	}
+
 	return (
 		<main className="flex min-h-dvh items-center justify-center">
 			{stand.art === 'laeuft' && (
@@ -85,7 +94,6 @@ export const Drucken = ({ dok, zugang }: { zugang: Zugang; dok: string }) => {
 					<Knopf onClick={() => window.location.reload()}>Noch einmal versuchen</Knopf>
 				</Zustand>
 			)}
-			{stand.art === 'fehlt' && <MaterialFehlt geteilt={istGeteilt(zugang)} />}
 			{stand.art === 'abgebrochen' && (
 				<Zustand symbol="drucker" titel="Nicht gedruckt">
 					<p className="text-leise">Du kannst diesen Tab schließen.</p>

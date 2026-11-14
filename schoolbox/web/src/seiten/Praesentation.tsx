@@ -252,7 +252,8 @@ export const Praesentation = ({ dok, zugang }: Eigenschaften) => {
 
 	if (daten && !dokument) {
 		return (
-			<main className="flex min-h-dvh items-center justify-center">
+			// Oben wie an jeder Stelle, an der Material fehlt (187-N01).
+			<main>
 				<MaterialFehlt geteilt={istGeteilt(zugang)} />
 			</main>
 		);
