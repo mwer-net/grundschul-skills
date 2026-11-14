@@ -8,8 +8,9 @@ import { angebotFuerBlatt, gehtImBlatt, istAngeboten } from '@schoolbox/kern/src
 import { hatLoesung } from '@schoolbox/kern/src/loesungen';
 import type { Zerlegung } from '@schoolbox/kern/src/quelltext';
 import type { Ablage } from '@schoolbox/kern/src/struktur';
-import { fuegeZeileEin, naechsteZelle, teileTabelle } from '@schoolbox/kern/src/tabelle';
+import { fuegeZeileEin, naechsteZelle, teileTabelle, vorigeZelle } from '@schoolbox/kern/src/tabelle';
 import { useCallback, useEffect, useRef, useState } from 'react';
+import { flushSync } from 'react-dom';
 
 import { meldung } from '../api';
 import { useHinweis } from '../bausteine/hinweis';
@@ -213,20 +214,34 @@ export const useEinfuegen = ({ auswahl, blatt, dokument, folien, nachher, strukt
 
 export type Einfuegen = ReturnType<typeof useEinfuegen>;
 
+/**
+ * 194-33: „/“ öffnet die Schnellauswahl an der Marke, mit Suchfeld; dieselbe Liste, dieselben Tasten. `n` zählt die
+ * Öffnungen, `x`, `oben`, `unten` sind die Kante des „/“ im Blatt.
+ */
 export interface SlashMenue {
-	treffer: Posten[];
-	index: number;
+	n: number;
 	x: number;
-	y: number;
+	oben: number;
+	unten: number;
+	/** Die Treffer zum Suchwort, ohne Teile des Blatts (203-13). */
+	liste: (filter: string) => Posten[];
+	zuletzt: Posten[];
 	waehle: (e: Posten) => void;
+	/** Esc: zu, die Marke steht wieder in der Zeile. */
+	schliesse: () => void;
+	/** Druck daneben: zu, ohne die Marke zurückzuholen. */
+	brichAb: () => void;
 }
 
 interface SlashOptionen {
 	doc: Document | null;
 	bearbeitet: boolean;
 	beende: () => void;
-	/** Die Treffer zum Suchwort hinter dem `/`. */
+	/** Hält die Textsitzung, solange das Suchfeld außerhalb des Blatts den Fokus hat. */
+	halte: (an: boolean) => void;
+	/** Die Treffer zum Suchwort. */
 	liste: (filter: string) => Posten[];
+	zuletzt: Posten[];
 	waehle: (e: Posten) => void;
 }
 
@@ -239,7 +254,11 @@ export const mitZuletzt = (zuletzt: readonly Posten[], liste: readonly Posten[])
 	return [...vorne, ...liste.filter((e) => !vorne.some((z) => z.id === e.id))];
 };
 
-const istZeilengrenze = (n: Node | null) => n === null || n.nodeName === 'BR';
+/** Leere Textknoten (bleiben nach Enter am Zeilenende stehen) trennen keine Zeile; über sie wird weitergesehen. */
+const istZeilengrenze = (n: Node | null, weiter: (k: Node) => Node | null): boolean =>
+	n === null ||
+	n.nodeName === 'BR' ||
+	(n.nodeType === 3 && (n as Text).data === '' && istZeilengrenze(weiter(n), weiter));
 
 /** Die Textstelle, in der getippt wird, falls sie in einem bearbeitbaren Träger liegt. */
 const stelle = (doc: Document) => {
@@ -248,87 +267,79 @@ const stelle = (doc: Document) => {
 };
 
 /**
- * `/` öffnet das Menü nur, wenn es allein in seiner Zeile steht; `1/2` und „und/oder“ bleiben Text. Die Tasten laufen
- * im Fenster des Materials zuerst hier durch, damit Enter und Esc weder die Zeile noch die Auswahl verändern.
+ * `/` öffnet die Schnellauswahl nur, wenn es allein in seiner Zeile steht; `1/2` und „und/oder“ bleiben Text. Das `/`
+ * kommt nicht in den Text: Es wird sofort entfernt, das Suchfeld bekommt den Fokus, die Sitzung bleibt gehalten.
  */
-export const useSlash = ({ bearbeitet, beende, doc, liste, waehle }: SlashOptionen) => {
-	const [offen, setOffen] = useState<{ knoten: Text; filter: string; index: number; x: number; y: number } | null>(
+export const useSlash = ({ bearbeitet, beende, doc, halte, liste, waehle, zuletzt }: SlashOptionen) => {
+	const [offen, setOffen] = useState<{ knoten: Text; n: number; x: number; oben: number; unten: number } | null>(
 		null,
 	);
 	const [gewaehlt, setGewaehlt] = useState<Posten | null>(null);
-	const treffer = offen ? liste(offen.filter) : [];
-	const aktuell = useRef({ offen, treffer });
+	const zaehler = useRef(0);
+	const aktuell = useRef(offen);
 	useEffect(() => {
-		aktuell.current = { offen, treffer };
+		aktuell.current = offen;
 	});
 
 	const nimm = useCallback(
 		(e: Posten) => {
-			const knoten = aktuell.current.offen?.knoten;
-			if (knoten) {
-				knoten.data = '';
-			}
+			halte(false);
 			setOffen(null);
 			setGewaehlt(e);
 			beende();
 		},
-		[beende],
+		[beende, halte],
 	);
+	const brichAb = useCallback(() => {
+		halte(false);
+		setOffen(null);
+	}, [halte]);
+	const schliesse = useCallback(() => {
+		const knoten = aktuell.current?.knoten;
+		brichAb();
+		const traeger = knoten?.parentElement?.closest<HTMLElement>('[contenteditable="true"]');
+		const auswahl = doc?.getSelection();
+		if (!doc || !knoten?.isConnected || !traeger || !auswahl) {
+			return;
+		}
+		doc.defaultView?.focus();
+		traeger.focus();
+		const r = doc.createRange();
+		r.setStart(knoten, 0);
+		r.collapse(true);
+		auswahl.removeAllRanges();
+		auswahl.addRange(r);
+	}, [brichAb, doc]);
 
 	useEffect(() => {
-		const fenster = doc?.defaultView;
-		if (!doc || !fenster) {
+		if (!doc) {
 			return undefined;
 		}
 		const tippt = () => {
 			const k = stelle(doc);
-			const jetzt = aktuell.current.offen;
-			if (jetzt) {
-				setOffen(
-					k === jetzt.knoten && k.data.startsWith('/')
-						? { ...jetzt, filter: k.data.slice(1), index: 0 }
-						: null,
-				);
+			if (
+				aktuell.current ||
+				k?.data !== '/' ||
+				!istZeilengrenze(k.previousSibling, (n) => n.previousSibling) ||
+				!istZeilengrenze(k.nextSibling, (n) => n.nextSibling)
+			) {
 				return;
 			}
-			if (k?.data === '/' && istZeilengrenze(k.previousSibling) && istZeilengrenze(k.nextSibling)) {
-				const r = doc.createRange();
-				r.selectNodeContents(k);
-				const box = r.getBoundingClientRect();
-				setOffen({ knoten: k, filter: '', index: 0, x: box.left, y: box.bottom });
-			}
-		};
-		const taste = (e: KeyboardEvent) => {
-			const { offen: jetzt, treffer: zeilen } = aktuell.current;
-			if (!jetzt) {
-				return;
-			}
-			const schritt = ({ ArrowDown: 1, ArrowUp: -1 } as Record<string, number>)[e.key] ?? 0;
-			if (schritt !== 0 && zeilen.length > 0) {
-				setOffen({ ...jetzt, index: (jetzt.index + schritt + zeilen.length) % zeilen.length });
-			} else if (e.key === 'Enter') {
-				const e2 = zeilen[jetzt.index];
-				if (e2) {
-					nimm(e2);
-				} else {
-					setOffen(null);
-				}
-			} else if (e.key === 'Escape') {
-				setOffen(null);
-			} else {
-				return;
-			}
-			e.preventDefault();
-			e.stopImmediatePropagation();
+			const r = doc.createRange();
+			r.selectNodeContents(k);
+			const box = r.getBoundingClientRect();
+			k.data = '';
+			halte(true);
+			zaehler.current += 1;
+			// Sofort zeichnen: Das Suchfeld hat den Fokus, bevor die nächste Taste kommt.
+			flushSync(() => setOffen({ knoten: k, n: zaehler.current, x: box.left, oben: box.top, unten: box.bottom }));
 		};
 		doc.addEventListener('input', tippt);
-		fenster.addEventListener('keydown', taste, true);
 		return () => {
 			doc.removeEventListener('input', tippt);
-			fenster.removeEventListener('keydown', taste, true);
 			setOffen(null);
 		};
-	}, [doc, nimm]);
+	}, [doc, halte]);
 
 	// Erst einfügen, wenn das Tippen abgeschlossen ist: Sonst nimmt der Befehlsweg nichts an.
 	useEffect(() => {
@@ -339,7 +350,7 @@ export const useSlash = ({ bearbeitet, beende, doc, liste, waehle }: SlashOption
 	}, [gewaehlt, bearbeitet, waehle]);
 
 	const menue: SlashMenue | null = offen
-		? { treffer, index: offen.index, x: offen.x, y: offen.y, waehle: nimm }
+		? { n: offen.n, x: offen.x, oben: offen.oben, unten: offen.unten, liste, zuletzt, waehle: nimm, schliesse, brichAb }
 		: null;
 	return { menue };
 };
@@ -383,18 +394,27 @@ export const useTabelleTab = ({
 			const start = e.target as Partial<Element> | null;
 			const zelle = start?.closest?.('th, td') as HTMLTableCellElement | null;
 			const t = zelle?.closest('table');
-			if (e.key !== 'Tab' || e.shiftKey || !zelle || !t || bausteinVon(zelle)?.art !== 'tabellenzelle') {
+			if (e.key !== 'Tab' || !zelle || !t || bausteinVon(zelle)?.art !== 'tabellenzelle') {
 				return;
 			}
 			e.preventDefault();
 			e.stopImmediatePropagation();
 			const zeile = (zelle.parentElement as HTMLTableRowElement).rowIndex;
+			const tabelle = [...angezeigt.querySelectorAll('table')].indexOf(t);
+			// 194-07: ⇧Tab geht in die vorige Zelle; in der ersten bleibt die Marke, wo sie ist.
+			if (e.shiftKey) {
+				const vorige = vorigeZelle({ zeile, spalte: zelle.cellIndex }, (z) => t.rows[z]?.cells.length ?? 1);
+				if (vorige) {
+					setZiel({ tabelle, ...vorige, neu: false });
+					aktuell.current.beende();
+				}
+				return;
+			}
 			const weiter = naechsteZelle(
 				{ zeile, spalte: zelle.cellIndex },
 				t.rows.length,
 				t.rows[zeile]?.cells.length ?? 1,
 			);
-			const tabelle = [...angezeigt.querySelectorAll('table')].indexOf(t);
 			setZiel({ tabelle, zeile: weiter?.zeile ?? zeile + 1, spalte: weiter?.spalte ?? 0, neu: weiter === null });
 			aktuell.current.beende();
 		};

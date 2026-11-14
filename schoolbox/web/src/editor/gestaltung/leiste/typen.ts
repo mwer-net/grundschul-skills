@@ -11,5 +11,5 @@ export interface LeistenTeile {
 	aktiv: boolean;
 }
 
-/** Die Knöpfe einer Art, links vor „Drehen“ und ⋯ (Briefing 5.7). */
+/** Die Knöpfe einer Art zwischen „Claude“ und „Duplizieren“ (204-12). */
 export type LeistenKnoepfe = ComponentType<LeistenTeile>;

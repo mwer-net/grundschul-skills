@@ -107,6 +107,19 @@ const figurName = (wert: string) => {
  * Der Name eines Gestaltungselements in Ebenen und Pfad: `data-name`, sonst `data-frei-titel` (117), sonst die Figur aus `data-figur`, sonst die Form
  * aus `data-form` (104), sonst der Name der Art. `null` für alles, was kein Gestaltungselement ist; dann gilt der Name aus dem Register.
  */
+/**
+ * 205-03: Der Name einer Form für Schild, Inspektor und Ebenen: aus dem Formen-Register, sonst das Wort aus
+ * `data-form` („kreis“ → „Kreis“). `null` ohne `data-form`.
+ */
+export const formTitel = (form: string | null | undefined): string | null => {
+	const roh = (form ?? '').trim();
+	if (!roh) {
+		return null;
+	}
+	const wort = roh.replace(/[-_]+/g, ' ');
+	return formName(roh) ?? `${wort[0]?.toUpperCase() ?? ''}${wort.slice(1)}`;
+};
+
 export const nameDerGestaltung = (baustein: Baustein, wert: (name: string) => string | null): string | null => {
 	if (!baustein.faehigkeiten.includes('lage')) {
 		return null;
@@ -116,7 +129,7 @@ export const nameDerGestaltung = (baustein: Baustein, wert: (name: string) => st
 		wert('data-name')?.trim() ||
 		wert('data-frei-titel')?.trim() ||
 		figurName(wert('data-figur') ?? '') ||
-		formName(wert('data-form')) ||
+		formTitel(wert('data-form')) ||
 		baustein.name
 	); // 104: Name der Form
 };

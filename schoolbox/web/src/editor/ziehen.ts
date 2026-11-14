@@ -18,7 +18,12 @@ export interface ZugAnzeige {
 
 /** So nah am oberen bzw. unteren Rand rollt die Ansicht beim Ziehen mit. */
 const ROLL_RAND = 64;
-const ROLL_MAX = 18;
+/** Am Rand so schnell, in Pixeln je Sekunde; nach innen linear weniger (194-19: nach Zeit, nicht je Bild). */
+const ROLL_PX_S = 900;
+/** Beim Rollen wird die Lücke höchstens so oft neu gesucht. */
+const ROLL_NEU_MS = 100;
+/** Was unter einem ganzen Pixel blieb, rollt beim nächsten Bild mit. */
+const rollRest = new WeakMap<Element, number>();
 
 /** Das Element, das die Ansicht um `element` rollt. */
 export const rollbarUm = (element: HTMLElement | null) => {
@@ -34,18 +39,25 @@ export const rollbarUm = (element: HTMLElement | null) => {
  * Rollt die Ansicht um `element`, wenn `bildschirmY` (Koordinaten des Elternfensters) an ihrem oberen oder unteren Rand
  * steht; liefert, um wie viele Pixel des Bildschirms sie rollte. Ziehen im Blatt und aus der Schublade teilen das.
  */
-export const rolleAnsicht = (element: HTMLElement | null, bildschirmY: number) => {
+export const rolleAnsicht = (element: HTMLElement | null, bildschirmY: number, ms = 1000 / 60) => {
 	const ansicht = rollbarUm(element);
 	if (!ansicht) {
 		return 0;
 	}
 	const { bottom, top } = ansicht.getBoundingClientRect();
-	const schritt =
+	const anteil =
 		bildschirmY < top + ROLL_RAND
-			? -ROLL_MAX * Math.min(1, (top + ROLL_RAND - bildschirmY) / ROLL_RAND)
-			: ROLL_MAX * Math.max(0, Math.min(1, (bildschirmY - bottom + ROLL_RAND) / ROLL_RAND));
+			? -Math.min(1, (top + ROLL_RAND - bildschirmY) / ROLL_RAND)
+			: Math.max(0, Math.min(1, (bildschirmY - bottom + ROLL_RAND) / ROLL_RAND));
+	if (anteil === 0) {
+		rollRest.delete(ansicht);
+		return 0;
+	}
+	const schritt = (ROLL_PX_S * anteil * Math.min(ms, 100)) / 1000 + (rollRest.get(ansicht) ?? 0);
+	const ganz = Math.trunc(schritt);
+	rollRest.set(ansicht, schritt - ganz);
 	const vorher = ansicht.scrollTop;
-	ansicht.scrollTop += Math.round(schritt);
+	ansicht.scrollTop += ganz;
 	return ansicht.scrollTop - vorher;
 };
 
@@ -60,7 +72,8 @@ interface Optionen {
 	zeige: (anzeige: ZugAnzeige | null) => void;
 	ablegen: (nr: number, ablage: Ablage) => void;
 	/** Rollt die Ansicht, wenn der Zeiger am Rand steht; liefert, um wie viel sich das Material darunter verschob. */
-	rolle: (x: number, y: number) => number;
+	/** `ms`: Zeit seit dem letzten Bild, damit das Rollen nach Zeit läuft (194-19). */
+	rolle: (x: number, y: number, ms: number) => number;
 }
 
 /** Auf dem iPad startet Ziehen erst nach kurzem Halten, damit Wischen weiter rollt. */
@@ -170,13 +183,24 @@ export const ruesteZiehen = (o: Optionen): ZiehenSteuerung => {
 		o.zeige({ name: zug.name, x: zug.x, y: zug.y, platz, luecke });
 	};
 
-	const rolle = () => {
+	let letztesBild = 0;
+	let neuGesucht = 0;
+	let offen = false;
+	const rolle = (jetzt: number) => {
 		if (!zug) {
 			return;
 		}
-		const verschoben = o.rolle(zug.x, zug.y);
+		const ms = letztesBild ? jetzt - letztesBild : 1000 / 60;
+		letztesBild = jetzt;
+		const verschoben = o.rolle(zug.x, zug.y, ms);
 		if (verschoben) {
 			zug.y += verschoben;
+			offen = true;
+		}
+		// Die Lücke höchstens alle 100 ms neu suchen; steht die Ansicht, sofort den letzten Stand.
+		if (offen && (!verschoben || jetzt - neuGesucht >= ROLL_NEU_MS)) {
+			neuGesucht = jetzt;
+			offen = false;
 			aktualisiere();
 		}
 		fenster?.requestAnimationFrame(rolle);
@@ -211,6 +235,7 @@ export const ruesteZiehen = (o: Optionen): ZiehenSteuerung => {
 		}
 		o.beginnt(nr);
 		aktualisiere();
+		letztesBild = 0;
 		fenster?.requestAnimationFrame(rolle);
 	};
 

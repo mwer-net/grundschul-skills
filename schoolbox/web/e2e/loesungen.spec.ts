@@ -67,6 +67,28 @@ test.describe('Editor: Lösungen', () => {
 		expect(await readFile(datei, 'utf8')).toBe(vorher);
 	});
 
+	test('194-02: Esc im Feld verwirft die Eingabe; Blatt und Feld zeigen die alte Lösung, kein Schritt', async ({
+		druecke,
+		hasTouch,
+		page,
+	}) => {
+		test.skip(hasTouch, 'Esc gibt es nur an der Tastatur');
+		const { dok, id, material: datei } = await uhrzeit();
+		const vorher = await readFile(datei, 'utf8');
+		await oeffne(page, id, dok);
+		await druecke(fassung(page, 'Lösung'));
+		await druecke(material(page).locator('.antwort').nth(1));
+		await expect(antwort(page)).toHaveValue('halb 5');
+		await antwort(page).press('End');
+		await page.keyboard.type(' XYZ');
+		await page.keyboard.press('Escape');
+		await expect(antwort(page).or(page.locator('[data-auswahl]')).first()).toBeVisible();
+		await expect.poll(() => sichtbar(material(page).locator('.antwort').nth(1))).toBe('"halb 5"');
+		await expect(zurueck(page)).toBeDisabled();
+		await gespeichert(page, datei);
+		expect(await readFile(datei, 'utf8')).toBe(vorher);
+	});
+
 	test('fehlende Lösungen sind markiert und lassen sich der Reihe nach nachtragen', async ({ druecke, page }) => {
 		const { dok, id, material: datei } = await uhrzeit();
 		await writeFile(
@@ -78,7 +100,7 @@ test.describe('Editor: Lösungen', () => {
 
 		await druecke(fassung(page, 'Lösung'));
 		const uebersicht = page.locator('[data-loesungsuebersicht]');
-		await expect(uebersicht).toContainText('Bei 2 Antwortlinien fehlt noch die Lösung.');
+		await expect(uebersicht).toContainText('2 Antwortlinien haben noch keine Lösung.');
 		await expect.poll(() => sichtbar(material(page).locator('.antwort').nth(2))).toBe('"?"');
 		await expect.poll(() => sichtbar(material(page).locator('.antwort').nth(1))).toBe('"halb 5"');
 
@@ -94,7 +116,7 @@ test.describe('Editor: Lösungen', () => {
 		expect(await readFile(datei, 'utf8')).toContain('data-l="7 Uhr"');
 
 		await page.getByRole('button', { name: 'Auswahl aufheben' }).click();
-		await expect(uebersicht).toContainText('Bei einer Antwortlinie fehlt noch die Lösung.');
+		await expect(uebersicht).toContainText('Eine Antwortlinie hat noch keine Lösung.');
 	});
 
 	test('Wechsel der Ansicht verliert keine offene Eingabe', async ({ druecke, page }) => {

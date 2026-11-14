@@ -4,7 +4,7 @@ import { Tooltip } from '../../../bausteine/Tooltip';
 import { kuerzelVon } from '../../befehle';
 import type { LeistenKnoepfe, LeistenTeile } from './typen';
 
-/** Gruppe (120, Briefing 5.7): „Auflösen“ vor „Drehen“ und ⋯. */
+/** Gruppe (120): „Gruppe auflösen“, dasselbe Wort wie im Register (204-14). */
 const GruppeKnoepfe = ({ aktiv, befehle }: LeistenTeile) => (
 	<Tooltip text="Gruppe auflösen" kuerzel={kuerzelVon('auswahl.gruppe-aufloesen')}>
 		<Knopf
@@ -15,7 +15,7 @@ const GruppeKnoepfe = ({ aktiv, befehle }: LeistenTeile) => (
 			onClick={() => befehle.fuehreAus('auswahl.gruppe-aufloesen')}
 		>
 			<Symbol name="aufloesen" />
-			Auflösen
+			Gruppe auflösen
 		</Knopf>
 	</Tooltip>
 );

@@ -8,7 +8,7 @@ import path from 'node:path';
 
 import type { Locator, Page } from '@playwright/test';
 
-import { material, oeffne, quelle, uhrzeit } from './editorhilfe';
+import { imMehr, material, oeffne, quelle, uhrzeit } from './editorhilfe';
 import { blattMit, FIGUR_FREI } from './gestaltung-daten';
 import { expect, test } from './hilfe';
 import { oeffneSchublade, schubladenKnopf } from './schubladen-hilfe';
@@ -171,11 +171,10 @@ test.describe('Figuren (102)', () => {
 		await page.keyboard.press('Shift+KeyH');
 		await expect.poll(async () => figurTag(await quelle(page))).not.toContain('--spiegeln');
 
-		const knopf = page.locator('[data-gestaltungsleiste="figurfrei"] [data-spiegeln]');
-		await expect(knopf).toHaveAttribute('aria-pressed', 'false');
-		await knopf.click();
+		// 204-12: „Spiegeln“ steht im ⋯ der Leiste, nicht mehr als eigener Knopf.
+		await expect(page.locator('[data-gestaltungsleiste="figurfrei"] [data-spiegeln]')).toHaveCount(0);
+		await imMehr(page, 'Spiegeln');
 		await expect.poll(async () => figurTag(await quelle(page))).toContain('--spiegeln:-1');
-		await expect(knopf).toHaveAttribute('aria-pressed', 'true');
 	});
 
 	test('⇧H gilt nicht für die Leitfigur im Stapel', async ({ page }) => {

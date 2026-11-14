@@ -10,6 +10,7 @@ export const SICHTBARKEIT_ZEICHEN: EbenenZeichen[] = [
 		fuer: (e) => e.matches(GESTALTUNG_SELEKTOR),
 		gesetzt: (e) => e.hasAttribute('data-gesperrt'),
 		schalter: true,
+		schaltet: 'gesperrt',
 		symbol: (an) => (an ? 'schloss' : 'entsperrt'),
 		titel: (an) => (an ? 'Entsperren' : 'Sperren'),
 		klick: ({ nr, struktur }, an) =>
@@ -20,6 +21,7 @@ export const SICHTBARKEIT_ZEICHEN: EbenenZeichen[] = [
 		fuer: (e) => e.matches(GESTALTUNG_SELEKTOR),
 		gesetzt: (e) => e.hasAttribute('data-aus'),
 		schalter: true,
+		schaltet: 'aus',
 		symbol: (an) => (an ? 'ausgeblendet' : 'auge'),
 		titel: (an) => (an ? 'Einblenden' : 'Ausblenden'),
 		klick: ({ nr, struktur }, an) =>

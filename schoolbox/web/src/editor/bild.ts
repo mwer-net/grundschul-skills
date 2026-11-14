@@ -402,7 +402,7 @@ export const useBild = ({ adresse, basis, pfad, rueckgaengig, struktur }: Option
 
 	const entferne = () => {
 		if (ausfuehren('Bild entfernt', (q, w) => entferneBild(q, w.nr))) {
-			zeige({ text: 'Bild entfernt.', aktion: { titel: 'Rückgängig', ausfuehren: rueckgaengig } });
+			zeige({ text: 'Bild entfernt.', aktion: { titel: 'Rückgängig', ausfuehren: rueckgaengig }, zumSchritt: true });
 		}
 	};
 

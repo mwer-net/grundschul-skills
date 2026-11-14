@@ -15,7 +15,7 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 
 import type { ApiFehler } from '../api';
 import { lade, meldung, sende } from '../api';
-import { useHinweis } from '../bausteine/hinweis';
+import { useHinweis, useNeuerSchritt } from '../bausteine/hinweis';
 import { FLUSS_RUNDEN } from './fluss';
 import type { Basis } from './speichern';
 import { useSpeichern } from './speichern';
@@ -59,6 +59,7 @@ const mitFormen = (b: Basis): Basis => ({ ...b, quelle: ergaenzeBoegen(ergaenzeS
 export const useBearbeitung = (mappe: string, dok: string, auswahl: RefObject<number | null>) => {
 	const adresse = `/api/dokumente/${mappe}/${dok}`;
 	const zeige = useHinweis();
+	const neuerSchritt = useNeuerSchritt();
 	const [verlauf, setVerlauf] = useState<Verlauf | null>(null);
 	/** Die Quelle beim Öffnen bzw. letzten Neuladen; daran misst die Prüfung, was sich durch Umsortieren verschob. */
 	const [ausgang, setAusgang] = useState<string | null>(null);
@@ -164,6 +165,7 @@ export const useBearbeitung = (mappe: string, dok: string, auswahl: RefObject<nu
 	const befehl = useCallback(
 		(neu: string, beschreibung: string, mitAnlegen = false) => {
 			if (!konflikt) {
+				neuerSchritt();
 				const gewaehlt = auswahl.current;
 				if (neu !== quelle.current) {
 					flussFuer(quelle.current, neu);
@@ -178,19 +180,21 @@ export const useBearbeitung = (mappe: string, dok: string, auswahl: RefObject<nu
 				);
 			}
 		},
-		[auswahl, konflikt],
+		[auswahl, konflikt, neuerSchritt],
 	);
 
 	const rueckgaengig = useCallback(() => {
+		neuerSchritt();
 		fluss.current = null;
 		const gewaehlt = auswahl.current;
 		setVerlauf((v) => v && macheRueckgaengig(v, gewaehlt));
-	}, [auswahl]);
+	}, [auswahl, neuerSchritt]);
 	const wiederholen = useCallback(() => {
+		neuerSchritt();
 		fluss.current = null;
 		const gewaehlt = auswahl.current;
 		setVerlauf((v) => v && wiederhole(v, gewaehlt));
-	}, [auswahl]);
+	}, [auswahl, neuerSchritt]);
 	const quelleJetzt = useCallback(() => quelle.current, []);
 
 	/** Darf das Bild dieser Fassung noch umgelegt werden? Dann: die Fassung davor (`null`: keine bekannt). */

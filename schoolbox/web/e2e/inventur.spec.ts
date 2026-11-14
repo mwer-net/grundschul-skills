@@ -106,21 +106,19 @@ test.describe('Inventur Editor', () => {
 		}
 	});
 
-	test('Leiste am Baustein: Ebene, Pfeile, Duplizieren, Löschen, Einfügen, Ablage, Sammlung', async ({ page }) => {
+	test('Leiste am Baustein: Pfeile, Duplizieren, Löschen, im ⋯ Einfügen und Sammlung (204)', async ({ page }) => {
 		await offenesBlatt(page);
 		await material(page).locator('.aufgabe').first().locator('.nr').click();
 		await expect(leiste(page)).toBeVisible();
 		for (const name of ['Nach oben', 'Nach unten', 'Duplizieren', 'Löschen', 'Mehr zu diesem Baustein']) {
 			await expect(leiste(page).getByRole('button', { name })).toBeVisible();
 		}
-		await expect(
-			leiste(page)
-				.getByRole('button', { name: /Baustein/ })
-				.first(),
-		).toBeVisible();
+		// 204-06, 204-09: kein Ebenen-Menü und kein „+“ in der Leiste.
+		await expect(leiste(page).getByRole('button', { name: 'Ebene wählen' })).toHaveCount(0);
+		await expect(leiste(page).locator('[data-einfuegen-plus], [data-leiste-griff]')).toHaveCount(0);
 
 		await leiste(page).getByRole('button', { name: 'Mehr zu diesem Baustein' }).click();
-		for (const name of [/Kopieren/, /Ausschneiden/, /In Sammlung legen/, /Mit Claude ändern/]) {
+		for (const name of [/Kopieren/, /Ausschneiden/, /In Sammlung legen/, /Mit Claude ändern/, /^Neuer Baustein/]) {
 			await expect(page.getByRole('menuitem', { name })).toBeVisible();
 		}
 		await page.keyboard.press('Escape');
@@ -142,18 +140,14 @@ test.describe('Inventur Editor', () => {
 		await expect(page.locator('[data-abschnitt="sichtbarkeit"]')).toBeVisible();
 	});
 
-	test('Tabelle, Spalten und Neue Zahlen haben ihren Platz', async ({ druecke, hasTouch, page }) => {
+	test('Tabelle, Spalten und Neue Zahlen haben ihren Platz', async ({ druecke, page }) => {
 		await offenesBlatt(page);
 		await druecke(material(page).locator('x-uhr').first());
-		// Am iPad stehen die Befehle der Leiste im ⋯ (071), am Mac dann, wenn die Leiste zu breit wird (134).
-		const direkt = leiste(page).getByRole('button', { name: 'Neue Zahlen' });
-		if (hasTouch || (await direkt.count()) === 0) {
-			await druecke(leiste(page).getByRole('button', { name: 'Mehr zu diesem Baustein' }));
-			await expect(page.getByRole('menuitem', { name: /Neue Zahlen/ })).toBeVisible();
-			await page.keyboard.press('Escape');
-		} else {
-			await expect(direkt).toBeVisible();
-		}
+		// 204-08: „Neue Zahlen“ steht im ⋯, nicht als Knopf in der Leiste.
+		await expect(leiste(page).getByRole('button', { name: 'Neue Zahlen' })).toHaveCount(0);
+		await druecke(leiste(page).getByRole('button', { name: 'Mehr zu diesem Baustein' }));
+		await expect(page.getByRole('menuitem', { name: /Neue Zahlen/ })).toBeVisible();
+		await page.keyboard.press('Escape');
 		await expect(page.locator('[data-abschnitt="eltern"]')).toBeVisible();
 	});
 

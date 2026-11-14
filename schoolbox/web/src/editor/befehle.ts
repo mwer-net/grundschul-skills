@@ -37,8 +37,8 @@ import type { SchubladenId } from './schubladen/reihe';
 import { befehlZuSchublade, REIHE } from './schubladen/reihe';
 import type { Struktur, StrukturWerte } from './struktur';
 
-/** `gestaltung`: im ⋯ der Leiste am Element (099), Reihenfolge aus `gestaltung/leiste/mehr.ts`. */
-export type Ort = 'taste' | 'menue' | 'leiste' | 'palette' | 'gestaltung';
+/** `gestaltung`: ⋯ und Rechtsklick am Gestaltungselement (204-10), Reihenfolge aus `GESTALTUNG_MENUE`. */
+export type Ort = 'taste' | 'menue' | 'palette' | 'gestaltung';
 export type Gruppe = 'bearbeiten' | 'ablage' | 'ordnen' | 'baustein' | 'gefahr' | 'ansicht' | 'blatt' | 'dokument';
 /** In welchem Zustand des Editors ein Kürzel wirkt. `text` gilt auch für Felder der Bedienung. */
 export type Modus = 'auswahl' | 'ohne' | 'text';
@@ -161,9 +161,6 @@ export interface Befehl {
 	gesperrt?: (k: Kontext) => boolean;
 	/** Sagt, warum ein Kürzel gerade nichts tut, statt still zu bleiben. */
 	warumNicht?: (k: Kontext) => string | null;
-	/** Spezifischer Eintrag der Leiste am Baustein, mit diesem kurzen Namen. */
-	leisteTitel?: string | ((k: Kontext) => string);
-	leisteWenn?: (k: Kontext) => boolean;
 	/** Einträge mit gleichem Wert stehen im Menü in einem Untermenü. */
 	untermenue?: string;
 	aktiv?: (k: Kontext) => boolean;
@@ -188,10 +185,18 @@ const kannText = (k: Kontext) => {
 	const g = gewaehlt(k);
 	return k.frei && Boolean(g && kann(g.baustein, 'text'));
 };
+/** 194-32: Namenszeile, Kopf und Fuß gibt es je Seite einmal; Ausschneiden und Kopieren bleiben. */
+const EINMAL_JE_SEITE = ['namenszeile', 'kopf', 'fuss'];
 const kannDas = (k: Kontext, was: 'loeschen' | 'duplizieren') => {
 	const g = gewaehlt(k);
-	return k.aktiv && Boolean(g && kannImFormat(g.baustein, was, k.format));
+	// Auch ein Teil der Namenszeile („Name:“) verdoppelt sonst die Zeile in sich.
+	const einmal =
+		was === 'duplizieren' &&
+		(EINMAL_JE_SEITE.includes(g?.baustein.art ?? '') || k.pfad.some((t) => t.baustein.art === 'namenszeile'));
+	return k.aktiv && !einmal && Boolean(g && kannImFormat(g.baustein, was, k.format));
 };
+/** 194-31: Geht weder hinauf noch hinunter, stehen die Pfeile nicht im Menü und nicht in der Leiste (204-07). */
+export const kannVerschieben = (k: Kontext) => Boolean(k.werte?.nach?.zurueck || k.werte?.nach?.vor);
 
 const tabelle =
 	(
@@ -236,7 +241,8 @@ const SICHTBARKEIT: Befehl[] = SICHTBARKEITEN.map((s) => ({
 	id: `auswahl.sichtbarkeit.${s.wert || 'beide'}`,
 	titel: s.titel,
 	gruppe: 'ordnen',
-	orte: ['menue', 'palette'],
+	// 194-29: nur Palette und Inspektor, nicht im Menü.
+	orte: ['palette'],
 	sichtbarUnter: 'inspektor',
 	untermenue: 'Sichtbarkeit',
 	suchwoerter: ['sichtbarkeit', 'verstecken', 'ausblenden', 'zeigen'],
@@ -316,13 +322,13 @@ export const BEFEHLE: Befehl[] = [
 	// Auswahl
 	{
 		id: 'auswahl.bearbeiten',
-		titel: (k) => (kannText(k) ? 'Text bearbeiten' : 'Erstes Teil wählen'),
-		hilfeTitel: 'Text bearbeiten',
+		titel: (k) => (kannText(k) ? 'Text bearbeiten' : 'Eine Ebene tiefer'),
+		hilfeTitel: 'Eine Ebene tiefer',
 		gruppe: 'bearbeiten',
 		symbol: 'stift',
 		kuerzel: [{ key: 'Enter' }],
 		modus: ['auswahl'],
-		orte: ['taste', 'menue', 'palette'],
+		orte: ['taste', 'menue', 'palette', 'gestaltung'],
 		sichtbarUnter: 'inspektor',
 		verfuegbar: (k) => Boolean(gewaehlt(k)),
 		imMenue: kannText,
@@ -336,19 +342,18 @@ export const BEFEHLE: Befehl[] = [
 		kuerzel: [{ code: 'KeyN', wahl: true }],
 		modus: ['auswahl'],
 		suchwoerter: ['würfeln', 'neu', 'zufall'],
-		orte: ['taste', 'menue', 'leiste', 'palette'],
-		sichtbarUnter: 'leiste',
-		leisteTitel: 'Neue Zahlen',
+		// 204-08: im ⋯, auf ⌥N und als Knopf im Inspektor (197-06).
+		orte: ['taste', 'menue', 'palette'],
+		sichtbarUnter: 'mehr',
 		verfuegbar: (k) => k.aktiv && k.hatNeueZahlen,
 		aus: (k) => k.tu.neueZahlen(),
 	},
 	spaltenBefehl('auswahl.spalten-mehr', 'Spalten erhöhen', 1, ['mehr', 'breiter', 'nebeneinander']),
 	spaltenBefehl('auswahl.spalten-weniger', 'Spalten verringern', -1, ['weniger', 'schmaler']),
 	tabelle('tabelle.zeile-danach', 'Zeile danach', 'Zeile eingefügt', (q, nr, n) => fuegeZeileEin(q, nr, 'nach', n))(
-		['menue', 'leiste', 'palette'],
+		['menue', 'palette'],
 		false,
 		{
-			leisteTitel: 'Zeile',
 			verfuegbar: (k) => inZelle(k) || istTabelle(k),
 			aus: (k) =>
 				istTabelle(k)
@@ -360,9 +365,7 @@ export const BEFEHLE: Befehl[] = [
 	),
 	tabelle('tabelle.spalte-danach', 'Spalte danach', 'Spalte eingefügt', (q, nr, n) =>
 		fuegeSpalteEin(q, nr, 'nach', n),
-	)(['menue', 'leiste', 'palette'], false, {
-		leisteTitel: 'Spalte',
-		leisteWenn: istTabelle,
+	)(['menue', 'palette'], false, {
 		verfuegbar: (k) => inZelle(k) || istTabelle(k),
 		aus: (k) =>
 			istTabelle(k)
@@ -373,12 +376,13 @@ export const BEFEHLE: Befehl[] = [
 	}),
 	{
 		id: 'auswahl.bild-ersetzen',
-		titel: 'Bild ersetzen',
+		// 204-14: ein Wort für das Austauschen, wie „Austauschen“ im Inspektor.
+		titel: 'Bild austauschen',
 		gruppe: 'bearbeiten',
 		symbol: 'bild',
-		orte: ['menue', 'leiste', 'palette'],
+		suchwoerter: ['ersetzen', 'tauschen'],
+		orte: ['menue', 'palette', 'gestaltung'],
 		sichtbarUnter: 'inspektor',
-		leisteTitel: 'Ersetzen',
 		verfuegbar: (k) => k.aktiv && k.hatBild,
 		aus: (k) => k.tu.bildErsetzen(),
 	},
@@ -402,7 +406,7 @@ export const BEFEHLE: Befehl[] = [
 		],
 		modus: ['auswahl'],
 		suchwoerter: ['kopie', 'verdoppeln'],
-		orte: ['taste', 'menue', 'leiste', 'palette', 'gestaltung'],
+		orte: ['taste', 'menue', 'palette', 'gestaltung'],
 		sichtbarUnter: 'leiste',
 		verfuegbar: (k) => kannDas(k, 'duplizieren'),
 		warumNicht: (k) => (gewaehlt(k) && k.frei ? `${gewaehlt(k)?.name} lässt sich nicht duplizieren.` : null),
@@ -421,7 +425,7 @@ export const BEFEHLE: Befehl[] = [
 		symbol: 'ausschneiden',
 		kuerzel: [{ code: 'KeyX', befehl: true, wenn: (k) => !k.textMarkiert() }],
 		modus: ['auswahl'],
-		orte: ['taste', 'menue', 'leiste', 'palette'],
+		orte: ['taste', 'menue', 'palette', 'gestaltung'],
 		sichtbarUnter: 'mehr',
 		verfuegbar: (k) => kannDas(k, 'loeschen') && !istSeite(k),
 		aus: (k) => k.tu.schneideAus(),
@@ -433,20 +437,20 @@ export const BEFEHLE: Befehl[] = [
 		symbol: 'kopieren',
 		kuerzel: [{ code: 'KeyC', befehl: true, wenn: (k) => !k.textMarkiert() }],
 		modus: ['auswahl'],
-		orte: ['taste', 'menue', 'leiste', 'palette', 'gestaltung'],
+		orte: ['taste', 'menue', 'palette', 'gestaltung'],
 		sichtbarUnter: 'mehr',
 		verfuegbar: (k) => k.aktiv && Boolean(gewaehlt(k)) && !istSeite(k),
 		aus: (k) => k.tu.kopiere(),
 	},
 	{
 		id: 'auswahl.einfuegen',
-		titel: (k) => (gewaehlt(k) && !istSeite(k) ? 'Darunter einfügen' : 'Hier einfügen'),
-		hilfeTitel: 'Darunter einfügen',
+		// 194-30: „Einfügen“ ist die Ablage; einen neuen Baustein holt „Neuer Baustein“.
+		titel: 'Einfügen',
 		gruppe: 'ablage',
 		symbol: 'hochladen',
 		kuerzel: [{ code: 'KeyV', befehl: true }],
 		suchwoerter: ['ablage', 'zwischenablage', 'hinzufügen', 'neu'],
-		orte: ['taste', 'menue', 'leiste', 'palette'],
+		orte: ['taste', 'menue', 'palette'],
 		sichtbarUnter: 'mehr',
 		verfuegbar: (k) => k.aktiv && k.hatAblage,
 		warumNicht: (k) => (k.aktiv ? 'In der Ablage liegt nichts.' : null),
@@ -454,7 +458,7 @@ export const BEFEHLE: Befehl[] = [
 	},
 	{
 		id: 'auswahl.einfuegen-davor',
-		titel: 'Baustein davor',
+		titel: 'Neuer Baustein davor',
 		gruppe: 'ablage',
 		symbol: 'plus',
 		orte: ['menue', 'palette'],
@@ -474,9 +478,10 @@ export const BEFEHLE: Befehl[] = [
 		],
 		modus: ['auswahl'],
 		suchwoerter: ['verschieben', 'links', 'oben'],
-		orte: ['taste', 'menue', 'leiste', 'palette'],
+		orte: ['taste', 'menue', 'palette'],
 		sichtbarUnter: 'leiste',
 		verfuegbar: (k) => k.aktiv && Boolean(k.werte?.nach),
+		imMenue: kannVerschieben,
 		gesperrt: (k) => !k.werte?.nach?.zurueck,
 		aus: (k) => {
 			const g = gewaehlt(k);
@@ -498,9 +503,10 @@ export const BEFEHLE: Befehl[] = [
 		],
 		modus: ['auswahl'],
 		suchwoerter: ['verschieben', 'rechts', 'unten'],
-		orte: ['taste', 'menue', 'leiste', 'palette'],
+		orte: ['taste', 'menue', 'palette'],
 		sichtbarUnter: 'leiste',
 		verfuegbar: (k) => k.aktiv && Boolean(k.werte?.nach),
+		imMenue: kannVerschieben,
 		gesperrt: (k) => !k.werte?.nach?.vor,
 		aus: (k) => {
 			const g = gewaehlt(k);
@@ -517,7 +523,7 @@ export const BEFEHLE: Befehl[] = [
 		gruppe: 'ordnen',
 		symbol: 'plus',
 		suchwoerter: ['meine bausteine', 'merken', 'speichern'],
-		orte: ['menue', 'leiste', 'palette'],
+		orte: ['menue', 'palette', 'gestaltung'],
 		sichtbarUnter: 'mehr',
 		verfuegbar: (k) => k.aktiv && Boolean(gewaehlt(k)) && !istSeite(k),
 		aus: (k) => k.tu.inSammlung(),
@@ -528,7 +534,7 @@ export const BEFEHLE: Befehl[] = [
 		gruppe: 'ordnen',
 		symbol: 'sprechblase',
 		suchwoerter: ['ki', 'chat', 'frage'],
-		orte: ['menue', 'leiste', 'palette', 'gestaltung'],
+		orte: ['menue', 'palette', 'gestaltung'],
 		sichtbarUnter: 'leiste',
 		verfuegbar: (k) => k.kiVerfuegbar && k.frei && Boolean(gewaehlt(k)) && !mehrfach(k),
 		gesperrt: (k) => k.claudeGrund !== null,
@@ -541,7 +547,7 @@ export const BEFEHLE: Befehl[] = [
 		gruppe: 'bearbeiten',
 		symbol: 'stern',
 		orte: ['menue', 'palette'],
-		sichtbarUnter: 'leiste',
+		sichtbarUnter: 'inspektor',
 		verfuegbar: (k) => {
 			const g = gewaehlt(k);
 			return k.aktiv && Boolean(g && KIT_FELDER[g.baustein.art]?.some((f) => f.name === 'stern'));
@@ -628,7 +634,8 @@ export const BEFEHLE: Befehl[] = [
 	},
 	{
 		id: 'auswahl.einfuegen-danach',
-		titel: 'Baustein einfügen',
+		// 194-30: am Blattrand und im ⋯ des Bausteins (204-09), mit `/`.
+		titel: 'Neuer Baustein',
 		gruppe: 'blatt',
 		symbol: 'plus',
 		kuerzel: [{ key: '/' }],
@@ -646,7 +653,7 @@ export const BEFEHLE: Befehl[] = [
 		kuerzel: [{ key: 'Backspace' }, { key: 'Delete' }],
 		modus: ['auswahl'],
 		suchwoerter: ['entfernen', 'weg', 'wegmachen'],
-		orte: ['taste', 'menue', 'leiste', 'palette', 'gestaltung'],
+		orte: ['taste', 'menue', 'palette', 'gestaltung'],
 		sichtbarUnter: 'leiste',
 		gefahr: true,
 		verfuegbar: (k) => kannDas(k, 'loeschen') && !einzigeSeite(k),
@@ -666,9 +673,8 @@ export const BEFEHLE: Befehl[] = [
 		},
 	},
 	tabelle('tabelle.zeile-weg', 'Zeile löschen', 'Zeile gelöscht', (q, nr, n) => loescheZeile(q, nr, n))(
-		['menue', 'leiste', 'palette'],
+		['menue', 'palette'],
 		true,
-		{ leisteTitel: 'Zeile' },
 	),
 	tabelle('tabelle.spalte-weg', 'Spalte löschen', 'Spalte gelöscht', (q, nr, n) => loescheSpalte(q, nr, n))(
 		['menue', 'palette'],
@@ -758,7 +764,8 @@ export const BEFEHLE: Befehl[] = [
 		symbol: 'vollbild',
 		kuerzel: [{ key: '0' }],
 		suchwoerter: ['zoom', 'ganze seite'],
-		orte: ['taste', 'menue', 'palette'],
+		// 194-29: nicht im Menü am Blattrand; der Knopf steht in der Statusleiste.
+		orte: ['taste', 'palette'],
 		sichtbarUnter: 'statusleiste',
 		verfuegbar: () => true,
 		aus: (k) => k.tu.einpassen(),
@@ -911,9 +918,7 @@ export const BEFEHLE: Befehl[] = [
 		titel: (k) => (istSeite(k) ? `Neue ${wort(k)} danach` : `Neue ${wort(k)}`),
 		gruppe: 'dokument',
 		symbol: 'plus',
-		orte: ['menue', 'leiste', 'palette'],
-		leisteTitel: (k) => `${wort(k)} danach`,
-		leisteWenn: istSeite,
+		orte: ['menue', 'palette'],
 		sichtbarUnter: 'links',
 		verfuegbar: (k) => k.aktiv && !k.festeSeiten,
 		aus: (k) => k.tu.struktur.neueSeite(false),
@@ -1048,6 +1053,12 @@ const tasteName = ({ code, key }: Kuerzel) => {
 export const kuerzelText = (k: Kuerzel, mac?: boolean) =>
 	kuerzelAnzeige(`${k.wahl ? '⌥' : ''}${k.umschalt ? '⇧' : ''}${k.befehl ? '⌘' : ''}${tasteName(k)}`, mac);
 
+/**
+ * 194-14: Das Kürzel, das zur Lage passt: eines, dessen `wenn` gerade gilt (⌥← in einer Reihe), sonst das erste.
+ * Beide Tasten wirken weiter; nur die Anzeige wechselt.
+ */
+export const kuerzelIm = (b: Befehl, k: Kontext) => b.kuerzel?.find((t) => t.wenn?.(k)) ?? b.kuerzel?.[0];
+
 /** Das angezeigte Kürzel eines Befehls für Tooltips (53); `undefined`, wenn er keins hat. */
 export const kuerzelVon = (id: string, mac?: boolean): string | undefined => {
 	const befehl = BEFEHLE.find((b) => b.id === id);
@@ -1139,7 +1150,7 @@ export const istZoomTaste = (e: TastenEreignis) =>
 	BEFEHLE.some((b) => ZOOM_BEFEHLE.includes(b.id) && b.kuerzel?.some((t) => t.befehl && passtTaste(t, e)));
 
 const alsEintrag = (b: Befehl, k: Kontext, fuehreAus: (id: string) => unknown): MenueEintrag => {
-	const [erstes] = b.kuerzel ?? [];
+	const erstes = kuerzelIm(b, k);
 	const symbol = symbolVon(b, k);
 	return {
 		titel: titelVon(b, k),
@@ -1178,10 +1189,11 @@ export const menueAusBefehlen = (liste: Befehl[], k: Kontext, fuehreAus: (id: st
 	return eintraege;
 };
 
-export type MenueArt = 'baustein' | 'leer' | 'miniatur';
+/** `gestaltung`: am Gestaltungselement (204-10), `seite`: am Rand der Seite (204-11), `leer`: ohne Auswahl. */
+export type MenueArt = 'baustein' | 'leer' | 'miniatur' | 'gestaltung' | 'seite';
 
-/** Für eine leere Stelle im Blatt die eigene kurze Liste, nicht mit Baustein-Befehlen gemischt. */
-const MENUE_LEER = ['auswahl.einfuegen', 'auswahl.einfuegen-danach', 'dokument.neue-seite', 'ansicht.einpassen'];
+/** Für eine leere Stelle im Blatt die eigene kurze Liste, nicht mit Baustein-Befehlen gemischt (194-29). */
+const MENUE_LEER = ['auswahl.einfuegen', 'auswahl.einfuegen-danach', 'dokument.neue-seite'];
 const MENUE_MINIATUR = [
 	'dokument.neue-seite',
 	'dokument.seite-mit-namenszeile',
@@ -1191,18 +1203,133 @@ const MENUE_MINIATUR = [
 	'auswahl.runter',
 	'auswahl.loeschen',
 ];
+/** 204-11: ⋯ und Rechtsklick an der Seite, eine Liste. */
+const MENUE_SEITE = [
+	'auswahl.einfuegen',
+	'auswahl.einfuegen-danach',
+	'dokument.neue-seite',
+	'seite.anschliessen',
+	'auswahl.duplizieren',
+	'auswahl.hoch',
+	'auswahl.runter',
+	'auswahl.claude',
+	'auswahl.loeschen',
+];
 const MENUE_BAUSTEIN: Gruppe[] = ['bearbeiten', 'ablage', 'ordnen', 'gefahr'];
-const MENUE_MAX = 12;
+/** 204-09: „Neuer Baustein“ steht im ⋯ jedes Bausteins, an dem es früher „+ Baustein“ gab. */
+const OHNE_NEUEN_BAUSTEIN = ['seite', 'tabellenzelle', 'tabellenzeile', 'item', 'karte'];
+
+/**
+ * 204-10: ⋯ und Rechtsklick am Gestaltungselement, je Zeile ein Block im Menü. Wer einen Befehl mit Ort
+ * `'gestaltung'` einträgt, der hier fehlt, landet im leeren Block vor „In Sammlung legen“.
+ */
+export const GESTALTUNG_MENUE: readonly (readonly string[])[] = [
+	['auswahl.bearbeiten', 'auswahl.bild-ersetzen'],
+	['auswahl.duplizieren', 'auswahl.ausschneiden', 'auswahl.kopieren'],
+	// 100: „Ganz nach vorne/hinten“ stehen im Inspektor „Anordnen“ und auf der Taste.
+	['auswahl.nach-vorne', 'auswahl.nach-hinten'],
+	// 113: ein Untermenü „Ausrichten“, Verteilen darin.
+	[
+		'auswahl.ausrichten-links',
+		'auswahl.ausrichten-mitte',
+		'auswahl.ausrichten-rechts',
+		'auswahl.ausrichten-oben',
+		'auswahl.ausrichten-mittig',
+		'auswahl.ausrichten-unten',
+		'auswahl.verteilen-waagerecht',
+		'auswahl.verteilen-senkrecht',
+	],
+	// 121
+	['auswahl.vereinen', 'auswahl.abziehen', 'auswahl.schneiden', 'auswahl.ausschliessen'],
+	// 101
+	['auswahl.sperren', 'auswahl.ausblenden'],
+	// 106, 115
+	['auswahl.anhaengen', 'auswahl.loesen', 'auswahl.in-stapel', 'auswahl.spiegeln'],
+	[],
+	['auswahl.in-sammlung', 'auswahl.claude'],
+	['auswahl.loeschen'],
+];
+/** Gruppieren und Auflösen stehen in der Leiste (204-12), nicht noch einmal im Menü. */
+const NUR_IN_DER_LEISTE = ['auswahl.gruppieren', 'auswahl.gruppe-aufloesen'];
+const AUSRICHTEN_BLOCK = 3;
+const NACH_VORNE_BLOCK = 2;
+
+/** Der Block für Unbekanntes: der leere vor „In Sammlung legen“. */
+const WEITERE = GESTALTUNG_MENUE.findIndex((block) => block.length === 0);
+
+const platzIm = (id: string) => {
+	for (const [block, ids] of GESTALTUNG_MENUE.entries()) {
+		const i = ids.indexOf(id);
+		if (i !== -1) {
+			return { block, i };
+		}
+	}
+	return { block: WEITERE, i: 0 };
+};
+
+/** Sortiert nach `GESTALTUNG_MENUE`; Unbekanntes behält seine Reihenfolge aus dem Register. */
+export const ordneGestaltung = (liste: readonly Befehl[]) =>
+	liste
+		.filter((befehl) => !NUR_IN_DER_LEISTE.includes(befehl.id))
+		.map((befehl, n) => ({ befehl, n, ...platzIm(befehl.id) }))
+		.sort((a, b) => a.block - b.block || a.i - b.i || a.n - b.n);
+
+/**
+ * 204-N02: An der Tabellenzeile löscht „Löschen“ die Zeile; Spalten-Befehle haben dort keinen Gegenstand. An der
+ * Zelle sagen „Zeile löschen“ und „Spalte löschen“, was weggeht; ein „Löschen“ ohne Gegenstand fehlt dort.
+ */
+const OHNE_AN: Record<string, readonly string[]> = {
+	tabellenzeile: ['tabelle.zeile-weg', 'tabelle.spalte-weg', 'tabelle.spalte-davor', 'tabelle.spalte-danach'],
+	tabellenzelle: ['auswahl.loeschen'],
+};
+
+/** 204-N03: Zusammengehörige Paare stehen nebeneinander, an der Stelle des ersten. */
+const PAARE = ['tabelle.zeile-davor', 'tabelle.zeile-danach', 'tabelle.spalte-davor', 'tabelle.spalte-danach'];
+const paareZusammen = (liste: Befehl[]) => {
+	const paar = PAARE.flatMap((id) => liste.find((b) => b.id === id) ?? []);
+	const erste = liste.findIndex((b) => PAARE.includes(b.id));
+	if (erste === -1) {
+		return liste;
+	}
+	const rest = liste.filter((b) => !PAARE.includes(b.id));
+	const vor = liste.slice(0, erste).filter((b) => !PAARE.includes(b.id)).length;
+	return [...rest.slice(0, vor), ...paar, ...rest.slice(vor)];
+};
 
 /** Dieselbe Liste für Rechtsklick und ⋯. */
 export const befehleFuerMenue = (art: MenueArt, k: Kontext) => {
 	if (art === 'baustein') {
-		const liste = befehleFuer('menue', k).filter((b) => MENUE_BAUSTEIN.includes(b.gruppe));
-		const eintraege = new Set(liste.map((b) => b.untermenue ?? b.id)).size;
-		// „Davor einfügen“ steht auch unter „+ Baustein“. Die Sammlung weicht nur, wenn es sonst nicht passt, und bleibt in der Palette.
-		const entbehrlich = ['auswahl.einfuegen-davor', 'auswahl.in-sammlung'].slice(0, eintraege - MENUE_MAX);
-		return liste.filter((b) => !entbehrlich.includes(b.id));
+		const ohne = OHNE_AN[gewaehlt(k)?.baustein.art ?? ''] ?? [];
+		const liste = paareZusammen(
+			befehleFuer('menue', k).filter((b) => MENUE_BAUSTEIN.includes(b.gruppe) && !ohne.includes(b.id)),
+		);
+		const neu = BEFEHLE.find((b) => b.id === 'auswahl.einfuegen-danach' && b.verfuegbar(k));
+		if (!neu || OHNE_NEUEN_BAUSTEIN.includes(gewaehlt(k)?.baustein.art ?? '')) {
+			return liste;
+		}
+		// Als erster Eintrag der Gruppe mit „Duplizieren“, „Neuer Baustein davor“ direkt darunter (204-N03).
+		const davor = liste.find((b) => b.id === 'auswahl.einfuegen-davor');
+		const rest = liste.filter((b) => b !== davor);
+		const stelle = rest.findIndex((b) => b.gruppe === 'ablage');
+		const paar = davor ? [neu, { ...davor, gruppe: neu.gruppe }] : [neu];
+		return stelle === -1 ? [...rest, ...paar] : [...rest.slice(0, stelle), ...paar, ...rest.slice(stelle)];
 	}
-	const ids = art === 'leer' ? MENUE_LEER : MENUE_MINIATUR;
+	if (art === 'gestaltung') {
+		return ordneGestaltung(befehleFuer('gestaltung', k))
+			.filter(({ befehl, block }) => block !== NACH_VORNE_BLOCK || !befehl.gesperrt?.(k))
+			.map(({ befehl, block }) => (block === AUSRICHTEN_BLOCK ? { ...befehl, untermenue: 'Ausrichten' } : befehl));
+	}
+	const ids = { leer: MENUE_LEER, seite: MENUE_SEITE, miniatur: MENUE_MINIATUR }[art];
 	return ids.flatMap((id) => BEFEHLE.find((b) => b.id === id && b.verfuegbar(k)) ?? []);
+};
+
+/** Die Einträge eines Menüs. Am Gestaltungselement trennt eine Linie die Blöcke von `GESTALTUNG_MENUE`. */
+export const menueFuer = (art: MenueArt, k: Kontext, fuehreAus: (id: string) => unknown): MenueEintrag[] => {
+	const liste = befehleFuerMenue(art, k);
+	const eintraege = menueAusBefehlen(liste, k, fuehreAus);
+	if (art !== 'gestaltung') {
+		return eintraege;
+	}
+	const bloecke = new Map(liste.map((b) => [b.untermenue ?? titelVon(b, k), platzIm(b.id).block]));
+	return eintraege.map((e) => ({ ...e, gruppe: `gestaltung-${bloecke.get(e.titel) ?? WEITERE}` }));
 };

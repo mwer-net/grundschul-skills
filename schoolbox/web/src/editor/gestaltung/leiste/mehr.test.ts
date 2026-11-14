@@ -2,26 +2,42 @@ import assert from 'node:assert/strict';
 import { describe, it } from 'node:test';
 
 import type { Befehl } from '../../befehle';
-import { BEFEHLE } from '../../befehle';
-import { ordneMehr } from './mehr';
+import { BEFEHLE, ordneGestaltung } from '../../befehle';
 
-describe('⋯ der Leiste am Element (099)', () => {
-	it('ordnet die vorhandenen Befehle wie Briefing 5.7, „Claude fragen“ zuletzt', () => {
-		const vorhanden = ['auswahl.duplizieren', 'auswahl.kopieren', 'auswahl.loeschen', 'auswahl.claude'];
-		const ids = ordneMehr(BEFEHLE.filter((b) => b.orte.includes('gestaltung'))).map((x) => x.befehl.id);
+describe('⋯ und Rechtsklick am Gestaltungselement (204-10)', () => {
+	it('ordnet wie die Baustein-Liste: Bearbeiten, Ablage, Reihenfolge … Sammlung, Claude, Löschen zuletzt', () => {
+		const vorhanden = [
+			'auswahl.bearbeiten',
+			'auswahl.duplizieren',
+			'auswahl.ausschneiden',
+			'auswahl.kopieren',
+			'auswahl.nach-vorne',
+			'auswahl.sperren',
+			'auswahl.in-sammlung',
+			'auswahl.claude',
+			'auswahl.loeschen',
+		];
+		const ids = ordneGestaltung(BEFEHLE.filter((b) => b.orte.includes('gestaltung'))).map((x) => x.befehl.id);
 		assert.deepEqual(
 			ids.filter((id) => vorhanden.includes(id)),
 			vorhanden,
 		);
-		assert.equal(ids.at(-1), 'auswahl.claude');
+		assert.equal(ids.at(-1), 'auswahl.loeschen');
 	});
 
-	it('stellt Unbekanntes vor „Claude fragen“, Bekanntes an seinen Platz', () => {
+	it('„Ganz nach vorne/hinten“, Gruppieren und Auflösen stehen nicht im Menü', () => {
+		const ids = ordneGestaltung(BEFEHLE.filter((b) => b.orte.includes('gestaltung'))).map((x) => x.befehl.id);
+		for (const id of ['auswahl.ganz-vorne', 'auswahl.ganz-hinten', 'auswahl.gruppieren', 'auswahl.gruppe-aufloesen']) {
+			assert.equal(ids.includes(id), false, id);
+		}
+	});
+
+	it('stellt Unbekanntes vor „In Sammlung legen“, Bekanntes an seinen Platz', () => {
 		const befehl = (id: string) => ({ id }) as Befehl;
-		const liste = ['auswahl.claude', 'auswahl.neu', 'auswahl.sperren', 'auswahl.duplizieren'].map(befehl);
+		const liste = ['auswahl.loeschen', 'auswahl.claude', 'auswahl.neu', 'auswahl.sperren', 'auswahl.duplizieren'];
 		assert.deepEqual(
-			ordneMehr(liste).map((x) => x.befehl.id),
-			['auswahl.duplizieren', 'auswahl.sperren', 'auswahl.neu', 'auswahl.claude'],
+			ordneGestaltung(liste.map(befehl)).map((x) => x.befehl.id),
+			['auswahl.duplizieren', 'auswahl.sperren', 'auswahl.neu', 'auswahl.claude', 'auswahl.loeschen'],
 		);
 	});
 });

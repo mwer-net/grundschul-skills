@@ -36,6 +36,9 @@ export interface Luecke {
 	x: number;
 	y: number;
 	laenge: number;
+	/** Der ganze Zwischenraum, in dem die Linie gilt: Er nimmt den Klick an (205-04). */
+	von: number;
+	bis: number;
 }
 
 /** Zeigt die Maus auf den freien Raum zwischen zwei Teilen einer Seite? Der Baustein davor ist die Einfügestelle. */
@@ -53,7 +56,9 @@ export const lueckeAn = (doc: Document, x: number, y: number): Luecke | null => 
 		const ende = naechstes?.top ?? unten.bottom + 28;
 		if (y >= unten.bottom - 2 && y <= ende + 2) {
 			const nr = nrVon(k);
-			return nr === null ? null : { nr, x: unten.left, y: (unten.bottom + ende) / 2, laenge: unten.width };
+			const von = unten.bottom - 2;
+			const bis = ende + 2;
+			return nr === null ? null : { nr, x: unten.left, y: (unten.bottom + ende) / 2, laenge: unten.width, von, bis };
 		}
 	}
 	return null;

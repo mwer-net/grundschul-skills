@@ -1,11 +1,15 @@
 import assert from 'node:assert/strict';
 import { describe, it } from 'node:test';
 
-import type { Kontext, Kuerzel, Modus } from './befehle';
+import { bausteinNach } from '@schoolbox/kern/src/bausteine';
+
+import type { Kontext, Kuerzel, MenueArt, Modus } from './befehle';
 import {
 	BEFEHLE,
+	befehleFuerMenue,
 	befehlZuTaste,
 	istZoomTaste,
+	kuerzelIm,
 	kuerzelText,
 	kuerzelVon,
 	MODUS_VORGABE,
@@ -172,11 +176,140 @@ describe('Was aus dem Inspektor gewandert ist', () => {
 			'tabelle.spalte-weg',
 		]) {
 			const befehl = BEFEHLE.find((b) => b.id === id);
-			assert.ok(
-				befehl?.orte.some((o) => o === 'menue' || o === 'leiste'),
-				id,
-			);
+			assert.ok(befehl?.orte.includes('menue'), id);
 		}
+	});
+});
+
+/** Ein Kontext mit einem gewählten Baustein der Art `art`; alles andere aus, bis auf das, was der Fall ändert. */
+const mitAuswahl = (art: string | null, mehr: Partial<Kontext> = {}): Kontext => {
+	const baustein = art ? bausteinNach(art) : undefined;
+	return {
+		pfad: baustein ? [{ nr: 7, name: baustein.name, baustein }] : [],
+		format: 'arbeitsblatt',
+		aktiv: true,
+		frei: true,
+		textsitzung: false,
+		quelle: null,
+		werte: null,
+		mitLoesung: false,
+		loesung: false,
+		profil: undefined,
+		hatAblage: false,
+		hatNeueZahlen: false,
+		kiVerfuegbar: false,
+		claudeGrund: null,
+		namenszeile: true,
+		festeSeiten: false,
+		hatBild: false,
+		linksOffen: [],
+		davor: null,
+		textMarkiert: () => false,
+		feldBehaeltUndo: () => false,
+		gestaltung: null,
+		tu: {} as Kontext['tu'],
+		...mehr,
+	};
+};
+const idsIm = (art: MenueArt, k: Kontext) => befehleFuerMenue(art, k).map((b) => b.id);
+
+describe('Menüs am Baustein, an der Seite, am Blattrand (194-29 bis 194-32, 204-09, 204-11)', () => {
+	it('194-29: keine Sichtbarkeit und kein Einpassen im Menü; mit Ablage kommt nur „Einfügen“ dazu', () => {
+		const ohne = idsIm('baustein', mitAuswahl('aufgabe', { davor: 3 }));
+		const mit = idsIm('baustein', mitAuswahl('aufgabe', { davor: 3, hatAblage: true }));
+		assert.equal(ohne.some((id) => id.startsWith('auswahl.sichtbarkeit')), false);
+		assert.deepEqual(
+			mit.filter((id) => !ohne.includes(id)),
+			['auswahl.einfuegen'],
+		);
+		assert.ok(mit.includes('auswahl.einfuegen-davor'));
+		assert.deepEqual(idsIm('leer', mitAuswahl(null)), ['auswahl.einfuegen-danach', 'dokument.neue-seite']);
+		assert.equal(idsIm('leer', mitAuswahl(null, { hatAblage: true })).length, 3);
+	});
+
+	it('194-30: „Einfügen“ ist die Ablage, „Neuer Baustein“ der neue Baustein, Eingabe „Eine Ebene tiefer“', () => {
+		const titel = (id: string, k: Kontext) => {
+			const b = BEFEHLE.find((x) => x.id === id);
+			return typeof b?.titel === 'function' ? b.titel(k) : b?.titel;
+		};
+		const k = mitAuswahl('uhr');
+		assert.equal(titel('auswahl.einfuegen', k), 'Einfügen');
+		assert.equal(titel('auswahl.einfuegen-davor', k), 'Neuer Baustein davor');
+		assert.equal(titel('auswahl.einfuegen-danach', k), 'Neuer Baustein');
+		assert.equal(titel('auswahl.bearbeiten', k), 'Eine Ebene tiefer');
+	});
+
+	it('194-31: ohne Nachbarn keine Pfeile im Menü, mit einem Nachbarn beide', () => {
+		const ids = (werte: Kontext['werte']) =>
+			befehleFuerMenue('baustein', mitAuswahl('aufgabe', { werte }))
+				.filter((b) => !b.imMenue || b.imMenue(mitAuswahl('aufgabe', { werte })))
+				.map((b) => b.id);
+		const allein = { nach: { quer: false } } as unknown as Kontext['werte'];
+		const nachbar = { nach: { quer: false, vor: { vor: 9 } } } as unknown as Kontext['werte'];
+		assert.equal(ids(allein).includes('auswahl.hoch'), false);
+		assert.ok(ids(nachbar).includes('auswahl.hoch') && ids(nachbar).includes('auswahl.runter'));
+	});
+
+	it('194-32: Namenszeile, Kopf und Fuß lassen sich nicht duplizieren, wohl aber kopieren', () => {
+		for (const art of ['namenszeile', 'kopf', 'fuss']) {
+			const ids = idsIm('baustein', mitAuswahl(art));
+			assert.equal(ids.includes('auswahl.duplizieren'), false, art);
+			assert.ok(ids.includes('auswahl.kopieren'), art);
+		}
+	});
+
+	it('204-N02: An der Tabellenzeile nur Zeilenbefehle und ein „Löschen“; an der Zelle kein „Löschen“ ohne Gegenstand', () => {
+		const zeile = idsIm('baustein', mitAuswahl('tabellenzeile'));
+		for (const id of ['tabelle.zeile-weg', 'tabelle.spalte-weg', 'tabelle.spalte-davor', 'tabelle.spalte-danach']) {
+			assert.equal(zeile.includes(id), false, id);
+		}
+		assert.ok(zeile.includes('tabelle.zeile-davor') && zeile.includes('tabelle.zeile-danach'));
+		assert.equal(zeile.filter((id) => id === 'auswahl.loeschen').length, zeile.includes('auswahl.loeschen') ? 1 : 0);
+		const zelle = idsIm('baustein', mitAuswahl('tabellenzelle'));
+		assert.equal(zelle.includes('auswahl.loeschen'), false);
+		assert.ok(zelle.includes('tabelle.zeile-weg') && zelle.includes('tabelle.spalte-weg'));
+	});
+
+	it('204-N03: Zeile davor, Zeile danach, Spalte davor, Spalte danach stehen nebeneinander', () => {
+		const zelle = idsIm('baustein', mitAuswahl('tabellenzelle'));
+		const start = zelle.indexOf('tabelle.zeile-davor');
+		assert.deepEqual(zelle.slice(start, start + 4), [
+			'tabelle.zeile-davor',
+			'tabelle.zeile-danach',
+			'tabelle.spalte-davor',
+			'tabelle.spalte-danach',
+		]);
+	});
+
+	it('Abnahme 204: Teile der Namenszeile lassen sich nicht duplizieren', () => {
+		const namenszeile = bausteinNach('namenszeile');
+		const k = mitAuswahl('absatz');
+		assert.ok(idsIm('baustein', k).includes('auswahl.duplizieren'));
+		const teil = namenszeile ? { ...k, pfad: [{ nr: 3, name: 'Namenszeile', baustein: namenszeile }, ...k.pfad] } : k;
+		assert.equal(idsIm('baustein', teil).includes('auswahl.duplizieren'), false);
+	});
+
+	it('204-09: „Neuer Baustein“ steht im ⋯ des Bausteins vor „Duplizieren“, nicht an Zelle und Seite', () => {
+		const ids = idsIm('baustein', mitAuswahl('aufgabe'));
+		const davor = ids.includes('auswahl.einfuegen-davor') ? 1 : 0;
+		assert.equal(ids.indexOf('auswahl.einfuegen-danach') + 1 + davor, ids.indexOf('auswahl.duplizieren'));
+		assert.equal(idsIm('baustein', mitAuswahl('tabellenzelle')).includes('auswahl.einfuegen-danach'), false);
+	});
+
+	it('204-11: Die Seite hat eine eigene Liste; „Löschen“ erst ab zwei Seiten', () => {
+		const werte = (seiten: number) => ({ seiten }) as unknown as Kontext['werte'];
+		const eine = idsIm('seite', mitAuswahl('seite', { werte: werte(1) }));
+		assert.deepEqual(eine.slice(0, 2), ['auswahl.einfuegen-danach', 'dokument.neue-seite']);
+		assert.equal(eine.includes('auswahl.loeschen'), false);
+		assert.ok(idsIm('seite', mitAuswahl('seite', { werte: werte(2) })).includes('auswahl.loeschen'));
+	});
+
+	it('194-14: In einer Reihe zeigt „Nach links“ ⌥←, sonst ⌥↑', () => {
+		const hoch = BEFEHLE.find((b) => b.id === 'auswahl.hoch');
+		assert.ok(hoch);
+		const quer = mitAuswahl('item', { werte: { nach: { quer: true } } as unknown as Kontext['werte'] });
+		assert.equal(kuerzelIm(hoch, quer)?.key, 'ArrowLeft');
+		assert.equal(kuerzelIm(hoch, mitAuswahl('aufgabe'))?.key, 'ArrowUp');
 	});
 });
 
