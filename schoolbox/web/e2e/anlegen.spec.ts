@@ -61,7 +61,7 @@ test.describe('Anlegen ohne Claude', () => {
 		const { dir } = await imEditor(page);
 		const versionen = await readdir(path.join(dir, 'versionen'));
 		expect(versionen.some((v) => v.includes('lehrkraft'))).toBe(true);
-		await page.locator('[data-bereich="Aufgabe und Text"]').click();
+		await page.locator('[data-bereich="Aufgaben"]').click();
 		await page.locator('[data-einfuegen="aufgabe"]').click();
 		await expect(page.frameLocator('[data-editor-rahmen="sichtbar"]').locator('.aufgabe')).toHaveCount(1);
 		await expect.poll(async () => readFile(path.join(dir, 'material.html'), 'utf8')).toContain('class="aufgabe"');

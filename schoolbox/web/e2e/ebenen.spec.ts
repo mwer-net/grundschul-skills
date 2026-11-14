@@ -130,7 +130,7 @@ test.describe('Ebenen, bis 093 „Gliederung“ (080)', () => {
 		for (const zeile of await zeilen.all()) {
 			await expect(griffVon(zeile)).toBeVisible();
 		}
-		await expect(page.locator('[data-gliederung-fest]')).toHaveText(['Namenszeile', 'Kopf', 'Fuß']);
+		await expect(page.locator('[data-gliederung-fest]')).toHaveText(['Namenszeile', 'Kopf', 'Selbsteinschätzung']);
 		await expect(page.locator('[data-gliederung-fest]').getByRole('button', { name: /ziehen$/ })).toHaveCount(0);
 		await expect(griffVon(seitenZeile(page, 1))).toBeVisible();
 	});

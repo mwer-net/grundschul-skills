@@ -774,10 +774,10 @@ test.describe('Linke Leiste (067)', () => {
 	test('Bereich auf und zurück; „Zuletzt benutzt“ erscheint erst nach dem Einfügen', async ({ page }) => {
 		await oeffneBausteine(page);
 		await expect(page.locator('[data-zuletzt-benutzt]')).toHaveCount(0);
-		await page.locator('[data-bereich="Aufgabe und Text"]').click();
+		await page.locator('[data-bereich="Aufgaben"]').click();
 		await expect(page.locator('[data-bereich]')).toHaveCount(0);
 		await page.locator('[data-einfuegen="aufgabe"]').click();
-		await page.getByRole('button', { name: 'Aufgabe und Text' }).click();
+		await page.getByRole('button', { name: 'Aufgaben', exact: true }).click();
 		await expect(page.locator('[data-zuletzt="aufgabe"]')).toBeVisible();
 	});
 

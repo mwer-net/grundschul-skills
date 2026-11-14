@@ -16,7 +16,8 @@ import {
 } from './abbildungen';
 import { KIT_KATALOG } from './bausteine';
 import { browserSkip, pruefeStapel } from './browsertest';
-import { KATALOG, sucheImKatalog } from './katalog';
+import { einfuegbarAus } from './einfuegen';
+import { ANGEBOT, angebotFuerBlatt, KATALOG, kategorienFuer, passtZuBlatt, sucheImKatalog } from './katalog';
 import { leseStarter } from './katalog-starter';
 import { ASSETS } from './konfig';
 
@@ -93,7 +94,10 @@ describe('Katalog', () => {
 	});
 
 	it('jeder Starter steht in den Mustern, jede Kennung im Katalog', () => {
-		const verlangt = new Set(KATALOG.flatMap((e) => [...(e.starter ? [e.starter] : []), ...(e.teile ?? [])]));
+		// Wer eigenes HTML hat (203-09, 203-10), braucht keinen Starter im Muster.
+		const verlangt = new Set(
+			KATALOG.flatMap((e) => [...(e.starter && e.html === undefined ? [e.starter] : []), ...(e.teile ?? [])]),
+		);
 		assert.deepEqual(
 			[...verlangt].filter((id) => !STARTER.has(id)),
 			[],
@@ -118,6 +122,7 @@ describe('Katalog', () => {
 		assert.ok(!NUR_ZUR_LAUFZEIT.includes('data-katalog'));
 	});
 
+	// HTML steht in katalog.ts nur in Vorlagenstrings, also nur im `html` eines Pakets (203-09).
 	it('Wächter: Kein x-Eintrag hat eigenen Namen oder HTML, Kit-Einträge haben genau eine Namensquelle', () => {
 		const quelle = readFileSync(path.join(__dirname, 'katalog.ts'), 'utf8');
 		assert.deepEqual(
@@ -210,8 +215,14 @@ describe('Suche', () => {
 			['Umstellprobe', 'x-satzglieder'],
 			['Himmelsrichtungen', 'x-windrose'],
 			['Stromkreis', 'x-schaltplan'],
-			['Ich-kann-Ziel', 'ziel'],
-			['Leitfigur', 'willi'],
+			['Rechenreihe', 'x-rechenreihe'],
+			['Rechenpäckchen', 'x-rechenreihe'],
+			['Schreiblinien', 'x-lineatur'],
+			['Plan', 'x-plan'],
+			['Fuß', 'fuss'],
+			['Fläche', 'flaeche'],
+			['Rechenübersicht', 'paket-rechenuebersicht'],
+			['Silbentext', 'x-silben'],
 		] as const) {
 			assert.ok(treffer(anfrage).includes(id), `${anfrage} → ${id}`);
 		}
@@ -219,7 +230,7 @@ describe('Suche', () => {
 
 	it('Treffer im Namen stehen vorn, leere Suche liefert alles, Unsinn nichts', () => {
 		assert.equal(treffer('Zahlenstrahl')[0], 'x-zahlenstrahl');
-		assert.equal(treffer('').length, KATALOG.length);
+		assert.equal(treffer('').length, ANGEBOT.length);
 		assert.deepEqual(treffer('gibtsnicht'), []);
 	});
 
@@ -235,6 +246,74 @@ describe('Suche', () => {
 			);
 		}
 		assert.ok(treffer('Saulendiagramm').includes('x-diagramm'));
+	});
+});
+
+describe('Angebot (203)', () => {
+	const ids = (liste: readonly { id: string }[]) => liste.map((e) => e.id);
+
+	it('102 Bausteine in 13 Kategorien, jede mit mindestens drei', () => {
+		assert.equal(ANGEBOT.length, 102);
+		assert.equal(KATALOG_KATEGORIEN.length, 13);
+		for (const k of KATALOG_KATEGORIEN) {
+			const zahl = ANGEBOT.filter((e) => e.kategorie === k).length;
+			assert.ok(zahl >= 3, `${k}: ${zahl}`);
+		}
+		assert.deepEqual(
+			KATALOG_BEREICHE.map((g) => g.bereiche.length),
+			[3, 8, 2],
+		);
+	});
+
+	it('was nicht mehr angeboten wird, bleibt im Katalog und wird ohne Katalog nicht gefunden (203-04)', () => {
+		for (const id of ['thema-band', 'ziel', 'reflexion', 'beispiel', 'willi', 'karte', 'silbentext']) {
+			assert.ok(KATALOG.some((e) => e.id === id), id);
+			assert.ok(!ANGEBOT.some((e) => e.id === id), id);
+		}
+		for (const tag of ['x-gesamtpunkte', 'x-notenschluessel', 'x-erwartungshorizont']) {
+			assert.ok(!ANGEBOT.some((e) => e.id === tag), tag);
+		}
+		assert.ok(!ids(sucheImKatalog('Ich-kann-Ziel')).includes('ziel'));
+		assert.ok(ids(sucheImKatalog('Leitfigur', KATALOG)).includes('willi'));
+	});
+
+	it('Klasse 1 bekommt keine Rechen-Bausteine, die dort eine Fehlerbox zeichnen (203-02)', () => {
+		const klasse = (id: string) => KATALOG.find((e) => e.id === id)?.klassen;
+		assert.deepEqual(klasse('x-malkreuz'), [3, 4]);
+		assert.deepEqual(klasse('x-schriftlich'), [3, 4]);
+		assert.deepEqual(klasse('x-punktfeld'), [2, 3, 4]);
+		assert.deepEqual(klasse('x-rechenrad'), [2, 3, 4]);
+		const blatt = { fach: 'mathematik', klasse: 1, art: 'arbeitsblatt' } as const;
+		const angebot = ids(angebotFuerBlatt(ANGEBOT, blatt));
+		for (const id of ['x-malkreuz', 'x-schriftlich', 'x-punktfeld', 'x-rechenrad']) {
+			assert.ok(!angebot.includes(id), id);
+		}
+		// Gesucht ist es trotzdem zu finden.
+		assert.ok(ids(angebotFuerBlatt(ANGEBOT, blatt, 'malkreuz')).includes('x-malkreuz'));
+	});
+
+	it('ohne Suchwort: was zum Blatt passt, Aufgaben vorne, keine Notiz im Arbeitsblatt (203-05, 203-13)', () => {
+		const blatt = { fach: 'mathematik', klasse: 2, art: 'arbeitsblatt' } as const;
+		const liste = ids(angebotFuerBlatt(ANGEBOT, blatt));
+		assert.deepEqual(liste.slice(0, 3), ['aufgabe', 'text', 'reihe']);
+		assert.ok(!liste.includes('notiz'));
+		assert.ok(!liste.includes('x-malkreuz'));
+		assert.ok(!liste.includes('x-timer'));
+		const folie = ids(angebotFuerBlatt(ANGEBOT, { ...blatt, art: 'praesentation' }));
+		assert.ok(folie.includes('notiz') && folie.includes('folie-bild') && folie.includes('x-timer'));
+		assert.ok(!folie.includes('namenszeile'));
+		assert.equal(kategorienFuer('deutsch', ANGEBOT).indexOf('Deutsch'), 2);
+		assert.ok(passtZuBlatt({ faecher: ['mathematik'] }, blatt));
+		assert.ok(!passtZuBlatt({ arten: ['karten'] }, blatt));
+	});
+
+	it('die Uhr hat Zeiger, „Uhrzeit ablesen“ vier Uhren mit Beispiel (203-01)', () => {
+		const leer = new Map<string, string>();
+		const uhr = einfuegbarAus(KATALOG.find((e) => e.id === 'x-uhr')!, STARTER);
+		assert.match(uhr.html ?? '', /<x-uhr [^>]*zeit="\d+:\d\d"/);
+		const paket = einfuegbarAus(KATALOG.find((e) => e.id === 'paket-uhr')!, leer).teile?.join('') ?? '';
+		assert.equal([...paket.matchAll(/<x-uhr [^>]*zeit="\d+:\d\d"/g)].length, 4);
+		assert.equal([...paket.matchAll(/class="zelle beispiel"/g)].length, 1);
 	});
 });
 

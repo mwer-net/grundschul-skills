@@ -22,15 +22,19 @@ interface Katalogeintrag {
 	kategorie: string;
 	herkunft: string;
 	eigen?: string;
+	angeboten?: false;
 }
+/** Was die Schublade anbietet (203-04): ohne die Einträge mit `angeboten: false`. */
 const katalog = async (page: Page) =>
-	((await (await page.request.get('/api/katalog')).json()) as { eintraege: Katalogeintrag[] }).eintraege;
+	((await (await page.request.get('/api/katalog')).json()) as { eintraege: Katalogeintrag[] }).eintraege.filter(
+		(e) => e.angeboten !== false,
+	);
 
 /** Größe der Vorschau in einer Kachel, gemessen in der Schublade am Mac neben den Ebenen. */
 const vorschauGroesse = async (page: Page) => {
 	await page.setViewportSize(MAC);
 	await oeffneBausteine(page);
-	await page.locator('[data-bereich="Aufgabe und Text"]').click();
+	await page.locator('[data-bereich="Aufgaben"]').click();
 	const rahmen = await page.locator('[data-karten-vorschau]').first().boundingBox();
 	if (!rahmen) {
 		throw new Error('keine Vorschau zu sehen');
@@ -88,32 +92,32 @@ test.describe('Editor: Bausteine einfügen', () => {
 		}
 	});
 
-	test('Baustein nur in der Lösung: Der Hinweis sagt es und schaltet um', async ({ page }) => {
+	test('Erwartungshorizont kommt mit der Auswertung auf eine eigene Seite, ein zweites Mal wählt sie (203-07)', async ({
+		page,
+	}) => {
 		await oeffneBausteine(page);
 		await suche(page).fill('Erwartungshorizont');
-		await page.locator('[data-einfuegen="x-erwartungshorizont"]').click();
-		const hinweis = page.locator('[data-hinweis="unsichtbar"]');
-		await expect(hinweis).toContainText('nur in der Lösung');
-		// E-B1: Die Sichtbarkeit gibt blatt.css vor, eine Auswahl darunter widerspräche dem Hinweis.
-		await expect(page.locator('[data-abschnitt="sichtbarkeit"]')).toBeHidden();
-		await hinweis.getByRole('button', { name: 'Zur Lösung' }).click();
-		await expect(material(page).locator('body.loesung x-erwartungshorizont')).toBeVisible();
-		await expect(hinweis).toBeHidden();
-		await expect(page.locator('[data-abschnitt="sichtbarkeit"]')).toBeHidden();
+		await expect(page.locator('[data-einfuegen="x-erwartungshorizont"]')).toHaveCount(0);
+		const vorher = await quelle(page);
+		const seiten = (q: string) => q.match(/<section class="seite/g)?.length ?? 0;
+		await page.locator('[data-einfuegen="auswertung"]').click();
+		await expect.poll(async () => seiten(await quelle(page))).toBe(seiten(vorher) + 1);
+		const danach = await quelle(page);
+		expect(danach.lastIndexOf('x-erwartungshorizont')).toBeGreaterThan(danach.lastIndexOf('<section'));
+		await page.locator('[data-einfuegen="auswertung"]').click();
+		await expect(page.locator('[role="status"]').filter({ hasText: 'gibt es schon' }).first()).toBeVisible();
+		expect(await quelle(page)).toBe(danach);
 	});
 
-	test('„Beispiel“ wählt den Eintrag oder sagt, was zu wählen ist', async ({ druecke, page }) => {
+	test('„Kopf“ auf einer Seite mit Kopf wählt den vorhandenen und sagt es (203-14)', async ({ page }) => {
 		await oeffneBausteine(page);
-		await suche(page).fill('Beispiel');
+		await suche(page).fill('Kopf');
 		const vorher = await quelle(page);
-		await page.locator('[data-einfuegen="beispiel"]').click();
-		await expect(page.locator('[role="status"]').filter({ hasText: 'zum Beispiel' }).first()).toBeVisible();
+		expect(vorher).toContain('class="kopf"');
+		await page.locator('[data-einfuegen="kopf"]').click();
+		await expect(page.locator('[role="status"]').filter({ hasText: 'schon einen Kopf' }).first()).toBeVisible();
+		await expect(page.locator('[data-inspektor] [data-auswahl]')).toContainText('Kopf');
 		expect(await quelle(page)).toBe(vorher);
-		// Im Testblatt ist der erste Eintrag schon das Beispiel, also der zweite.
-		await druecke(material(page).locator('.reihe > *').nth(1));
-		await page.locator('[data-einfuegen="beispiel"]').click();
-		await expect.poll(() => quelle(page)).not.toBe(vorher);
-		await expect(page.locator('[data-inspektor] [data-auswahl]')).toBeVisible();
 	});
 
 	test('„+ Baustein“ in der Leiste öffnet die Schnellauswahl', async ({ druecke, page }) => {
@@ -170,7 +174,7 @@ test.describe('Editor: Bausteine einfügen', () => {
 		const anderswo = page.locator('[data-treffer-anderswo]');
 		await expect(anderswo.getByRole('heading', { name: 'Aus anderen Fächern und Klassen' })).toBeVisible();
 		const kachel = anderswo.locator('[data-bibliothek-eintrag="x-silben"]');
-		await expect(kachel.locator('[data-treffer-bereich]')).toHaveText('Sprache');
+		await expect(kachel.locator('[data-treffer-bereich]')).toHaveText('Deutsch');
 		await anderswo.locator('[data-einfuegen="x-silben"]').click();
 		await expect.poll(() => quelle(page)).toContain('x-silben');
 	});
@@ -198,12 +202,12 @@ test.describe('Editor: Bausteine einfügen', () => {
 
 	test('Null-Bereiche nur unter „Alle“, „weitere“ schaltet um', async ({ page }) => {
 		await oeffneBausteine(page);
-		const sprache = page.locator('[data-bereich="Sprache"]');
+		const sprache = page.locator('[data-bereich="Deutsch"]');
 		await expect(sprache).toHaveCount(0);
 		const weitere = page.locator('[data-weitere]');
 		const gesamt = await page.request.get('/api/katalog');
-		const { eintraege } = (await gesamt.json()) as { eintraege: { kategorie: string }[] };
-		const alleBereiche = new Set(eintraege.map((e) => e.kategorie)).size;
+		const { eintraege } = (await gesamt.json()) as { eintraege: { kategorie: string; angeboten?: false }[] };
+		const alleBereiche = new Set(eintraege.filter((e) => e.angeboten !== false).map((e) => e.kategorie)).size;
 		const verborgen = alleBereiche - (await page.locator('[data-bereich]').count());
 		await expect(weitere).toHaveText(`${verborgen} weitere unter Alle`);
 		await weitere.click();
@@ -212,12 +216,22 @@ test.describe('Editor: Bausteine einfügen', () => {
 		await expect(weitere).toHaveCount(0);
 	});
 
-	test('Vollständig: Über alle Bereiche unter „Alle“ gezählt ist der ganze Katalog', async ({ page }) => {
+	test('Vollständig: Über alle Bereiche unter „Alle“ gezählt ist das ganze Angebot, 102 in 13 (203-11)', async ({
+		page,
+	}) => {
 		await oeffneBausteine(page);
 		await page.getByRole('button', { name: 'Alle', exact: true }).click();
 		const anzahlen = await page.locator('[data-bereich-anzahl]').allTextContents();
-		const { eintraege } = (await (await page.request.get('/api/katalog')).json()) as { eintraege: unknown[] };
+		const eintraege = await katalog(page);
 		expect(anzahlen.reduce((s, a) => s + Number(a), 0)).toBe(eintraege.length);
+		expect(eintraege.length).toBe(102);
+		expect(anzahlen.length).toBe(13);
+		expect(anzahlen.every((a) => Number(a) >= 3)).toBe(true);
+		expect(
+			await page
+				.locator('[data-bereich-gruppe]')
+				.evaluateAll((l) => l.map((g) => g.querySelectorAll('[data-bereich]').length)),
+		).toEqual([3, 8, 2]);
 	});
 
 	test('Klick auf die Kachel fügt ein, es gibt keinen Griff', async ({ page }) => {
@@ -227,7 +241,7 @@ test.describe('Editor: Bausteine einfügen', () => {
 		// Die Kachel ist ein einziger Knopf, ohne eigenen Griff daneben und ohne natives `title`.
 		await expect(page.locator('[data-bibliothek-eintrag="schreiblinie"] button')).toHaveCount(1);
 		const kachel = page.locator('[data-einfuegen="schreiblinie"]');
-		await expect(kachel).toHaveAttribute('aria-label', 'Schreiblinie einfügen');
+		await expect(kachel).toHaveAttribute('aria-label', 'Schreiblinien einfügen');
 		expect(await kachel.getAttribute('title')).toBeNull();
 		// Mitten in die Vorschau: Auch dort klickt die Kachel.
 		await page.locator('[data-bibliothek-eintrag="schreiblinie"] [data-karten-vorschau]').click({ force: true });
@@ -272,6 +286,11 @@ test.describe('Editor: Bausteine einfügen', () => {
 			await page.locator('html[data-fit]').waitFor({ state: 'attached' });
 			const passt = await page.evaluate(() => {
 				const h = document.documentElement;
+				// Was höher ist als 400 px, zeigt nur seinen oberen linken Ausschnitt (203-17).
+				if (h.dataset.ausschnitt) {
+					const r = document.querySelector('body > .koerper')?.getBoundingClientRect();
+					return Boolean(r && r.left >= 0 && r.top >= 0 && r.left < 12 && r.top < 12);
+				}
 				return h.scrollHeight <= h.clientHeight && h.scrollWidth <= h.clientWidth;
 			});
 			expect(passt, id).toBe(true);
@@ -302,7 +321,7 @@ test.describe('Editor: Bausteine einfügen', () => {
 		await alle(page).click();
 		const spalte = page.locator('[data-panel-links="bausteine"]');
 		expect((await spalte.boundingBox())?.width).toBe(280);
-		await spalte.locator('[data-bereich="Aufgabe und Text"]').click();
+		await spalte.locator('[data-bereich="Aufgaben"]').click();
 		const eintraege = spalte.locator('[data-bibliothek-eintrag]');
 		const [a, b, c] = [
 			await eintraege.nth(0).boundingBox(),
@@ -335,10 +354,16 @@ test.describe('Editor: Bausteine einfügen', () => {
 					e.scrollWidth <= e.clientWidth && e.scrollHeight <= e.clientHeight && e.clientHeight <= 2 * zeile
 				);
 			});
-		expect(await passtInZweiZeilen('paket-beobachtung')).toBe(true);
+		expect(await passtInZweiZeilen('paket-malen')).toBe(true);
 		await zurueck.click();
 		await spalte.locator('[data-bereich="Rechnen"]').click();
-		expect(await passtInZweiZeilen('paket-zahlenstrahl')).toBe(true);
+		expect(await passtInZweiZeilen('paket-rechenuebersicht')).toBe(true);
+		// 203-16: Kein Wort bricht in der Mitte; ein langes Wort steht eine Stufe kleiner.
+		await zurueck.click();
+		await spalte.locator('[data-bereich="Zahlen"]').click();
+		const name = spalte.locator('[data-bibliothek-eintrag="x-dienes"] [data-kachel-name]');
+		await expect(name).toHaveAttribute('data-kachel-name-stufe', /^[01]$/);
+		expect(await passtInZweiZeilen('x-dienes')).toBe(true);
 	});
 
 	test('Kopfzeile: Name und Anzahl der Kategorie, führt zurück, Rollstand von vorn', async ({ page }) => {
@@ -396,9 +421,9 @@ test.describe('Editor: Bausteine einfügen', () => {
 		await vorschau.scrollIntoViewIfNeeded();
 		await expect(vorschau.contentFrame().locator('.aufgabe .anw')).toBeVisible();
 
-		// Gegenprobe: Kopf und Rahmen hat keine Aufgabenpakete.
+		// Gegenprobe: Blatt hat keine Aufgabenpakete.
 		await page.locator('[data-bereich-zurueck]').click();
-		await page.locator('[data-bereich="Kopf und Rahmen"]').click();
+		await page.locator('[data-bereich="Blatt"]').click();
 		await expect(page.locator('[data-bibliothek-eintrag]').first()).toBeVisible();
 		await expect(fertig).toHaveCount(0);
 	});
@@ -406,7 +431,7 @@ test.describe('Editor: Bausteine einfügen', () => {
 	test('iPad quer: zwei Spalten, Tippen fügt ein', async ({ druecke, page }) => {
 		test.skip(test.info().project.name !== 'ipad-quer', 'nur iPad quer');
 		await oeffneBausteine(page);
-		await druecke(page.locator('[data-bereich="Aufgabe und Text"]'));
+		await druecke(page.locator('[data-bereich="Aufgaben"]'));
 		const eintraege = page.locator('[data-bibliothek-eintrag]');
 		const [a, b] = [await eintraege.nth(0).boundingBox(), await eintraege.nth(1).boundingBox()];
 		if (!a || !b) {

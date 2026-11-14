@@ -111,9 +111,9 @@ describe('Fläche im Stapel (115)', () => {
 		assert.equal(leseFlaechenHoehe(setzeFlaechenHoehe(quelle, f, 5), f), FLAECHE_MIN);
 	});
 
-	it('Die Fläche steht im Katalog und ordnet sich als Block zwischen die Bausteine', () => {
+	it('Die Freie Fläche steht im Katalog und ordnet sich als Block zwischen die Bausteine', () => {
 		const eintrag = KIT_KATALOG.find((e) => e.id === 'flaeche');
-		assert.equal(eintrag?.kategorie, 'Ordnen');
+		assert.equal(eintrag?.kategorie, 'Blatt');
 		assert.equal(eintrag?.ort, 'seite');
 		assert.equal(gestaltungArtNach('flaeche')?.ordnenIn, undefined);
 	});

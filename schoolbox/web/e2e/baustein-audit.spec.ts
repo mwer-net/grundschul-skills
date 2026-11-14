@@ -1,7 +1,7 @@
 /**
- * Prüfmaschine aus Ticket 084: schleift über `KATALOG` und `ABBILDUNG_SCHEMA`, keine Liste von Hand. Je Eintrag: auf
- * leerem Blatt einfügen, gewählten Baustein und Inspektor prüfen, dann jedes Feld mit allen Werten auf dem Schnellweg
- * (Attribut setzen, neu zeichnen). Je Feldart ein Vertreter läuft den vollen Weg über die Oberfläche.
+ * Prüfmaschine aus Ticket 084: schleift über das Angebot (`ANGEBOT`, 203-04) und `ABBILDUNG_SCHEMA`, keine Liste von
+ * Hand. Je Eintrag: auf leerem Blatt einfügen, gewählten Baustein und Inspektor prüfen, dann jedes Feld mit allen Werten
+ * auf dem Schnellweg (Attribut setzen, neu zeichnen). Je Feldart ein Vertreter läuft den vollen Weg über die Oberfläche.
  * `W1`…`W9` wie im Ticket. Läuft nur mit `pnpm test:audit`.
  */
 
@@ -14,7 +14,7 @@ import type { AbbildungSchema, Feld, Werte } from '@schoolbox/kern/src/abbildung
 import { abschnittVon, schemaVon, setzeAbbildung, werteVon } from '@schoolbox/kern/src/abbildungen';
 import { ABSCHNITT_TITEL } from '@schoolbox/kern/src/abschnitte';
 import type { KatalogEintrag } from '@schoolbox/kern/src/katalog';
-import { KATALOG } from '@schoolbox/kern/src/katalog';
+import { ANGEBOT } from '@schoolbox/kern/src/katalog';
 import type { KitFeld } from '@schoolbox/kern/src/kit-einstellungen';
 import { KIT_FELDER, leseKit, setzeKit } from '@schoolbox/kern/src/kit-einstellungen';
 import { zerlege } from '@schoolbox/kern/src/quelltext';
@@ -876,7 +876,7 @@ const pruefeInhalt = async (
 	return { abgewiesen, faelle, ohneWirkung, kontakt };
 };
 
-const BEREICHE = [...new Set(KATALOG.map((e) => e.kategorie))];
+const BEREICHE = [...new Set(ANGEBOT.map((e) => e.kategorie))];
 const FILTER = process.env.AUDIT_NUR?.split(',');
 
 test.beforeAll(() => {
@@ -902,7 +902,7 @@ test.describe('Prüfmaschine', () => {
 			const ergebnisse: Ergebnis[] = [];
 			let blatt4: Awaited<ReturnType<typeof leeresBlatt>> | null = null;
 			let auf4 = false;
-			for (const e of KATALOG.filter(
+			for (const e of ANGEBOT.filter(
 				(k) => k.kategorie === bereich && !k.klasse && (!FILTER || FILTER.includes(k.id)),
 			)) {
 				if (auf4) {
@@ -916,7 +916,7 @@ test.describe('Prüfmaschine', () => {
 				const verstoesse: Verstoss[] = [];
 				const gesehen = new Set<string>();
 				const schema = schemaVon(e.id);
-				const nurLoesung = ['x-erwartungshorizont', 'notiz'].includes(e.id);
+				const nurLoesung = ['notiz'].includes(e.id);
 				pruefeNamen(e, schema, verstoesse);
 				let rahmen = await rahmenVon(page);
 				let stand = await seitenUndFehler(rahmen);
@@ -987,7 +987,7 @@ test.describe('Prüfmaschine', () => {
 		await oeffne(page, id, dok);
 		await oeffneSchublade(page, 'bausteine');
 		for (const [art, fall] of Object.entries(VOLLER_WEG)) {
-			const treffer = KATALOG.flatMap((e) => {
+			const treffer = ANGEBOT.flatMap((e) => {
 				const schema = schemaVon(e.id);
 				const feld = schema?.felder.find(
 					(f) =>

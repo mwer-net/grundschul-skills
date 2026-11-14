@@ -1,7 +1,15 @@
 import assert from 'node:assert/strict';
 import { describe, it } from 'node:test';
 
-import { einfuegbarAus, fuegeBausteinEin, fuegeZusatzEin, neueAufgabe, verschiebeAufNeueSeite } from './einfuegen';
+import {
+	einfuegbarAus,
+	fuegeBausteinEin,
+	fuegeZusatzEin,
+	mitLineaturDerKlasse,
+	neueAufgabe,
+	schonDa,
+	verschiebeAufNeueSeite,
+} from './einfuegen';
 import { KATALOG } from './katalog';
 import { leseStarter } from './katalog-starter';
 import { klassenVon, zerlege } from './quelltext';
@@ -198,6 +206,99 @@ describe('Einfügen', () => {
 			assert.ok(zahl(quelle) >= zahl(BLATT), e.id);
 			assert.ok(!e.starter || (b.html ?? '').length > 0, `${e.id}: Starter fehlt`);
 		}
+	});
+});
+
+describe('Einfügen nach 203', () => {
+	const starter = leseStarter();
+	const aus = (id: string) => {
+		const e = KATALOG.find((k) => k.id === id);
+		assert.ok(e, id);
+		return einfuegbarAus(e, starter);
+	};
+	const KARTEN = BLATT.replace(
+		'<div class="aufgabe">\n    <span class="nr stern">',
+		'<div class="karten"><div class="karte"><div class="kartentext">K</div></div></div>\n  <div class="aufgabe">\n    <span class="nr stern">',
+	);
+	const FOLIEN = `<!doctype html><html><head><title>t</title></head><body class="kl3 farbe folie">
+<section class="seite"><div class="kopf"><div class="titel"><h1>Eins</h1></div></div><p class="text">Inhalt</p><aside class="notiz">N</aside></section>
+<section class="seite"><div class="kopf"><div class="titel"><h1>Zwei</h1></div></div><aside class="notiz">N</aside></section>
+</body></html>`;
+	const folien = (q: string) => zerlege(q).knoten.filter((k) => klassenVon(k).includes('seite'));
+	const jeSeite = { jeSeite: true };
+
+	it('203-03: in eine gewählte Karte, nicht lose daneben in den Kartenbogen', () => {
+		const karte = nrVon(KARTEN, 'kartentext');
+		const { quelle } = fuegeBausteinEin(KARTEN, aus('x-uhr'), karte, n);
+		const k = zerlege(quelle).knoten.find((x) => klassenVon(x).includes('karte'));
+		assert.ok(k?.kinder.some((c) => c.tag === 'x-uhr'));
+		assert.equal(quelle.match(/class="karte"/g)?.length, 1);
+	});
+
+	it('203-14: Kopf, Namenszeile und Selbsteinschätzung gibt es je Seite nur einmal', () => {
+		for (const id of ['kopf', 'namenszeile', 'fuss']) {
+			const da = schonDa(BLATT, aus(id), null);
+			assert.equal(da?.nr, nrVon(BLATT, id), id);
+			assert.match(da?.meldung ?? '', /schon/);
+		}
+		const leer = BLATT.replace(/<section class="seite">[\s\S]*<\/section>/, '<section class="seite"></section>');
+		assert.equal(schonDa(leer, aus('kopf'), null), null);
+		assert.equal(schonDa(BLATT, aus('x-uhr'), null), null);
+	});
+
+	it('203-07: Punkte und Unterschrift hinter die letzte Aufgabe, die Auswertung auf eine eigene Seite', () => {
+		const abschluss = fuegeBausteinEin(BLATT, aus('abschluss'), null, n).quelle;
+		assert.ok(abschluss.indexOf('x-gesamtpunkte') > abschluss.indexOf('Stern'));
+		assert.ok(abschluss.indexOf('x-gesamtpunkte') < abschluss.indexOf('class="fuss"'));
+		const auswertung = fuegeBausteinEin(BLATT, aus('auswertung'), nrVon(BLATT, 'anw'), n).quelle;
+		assert.equal(folien(auswertung).length, 2);
+		assert.ok(auswertung.indexOf('x-notenschluessel') > auswertung.lastIndexOf('<section'));
+		assert.match(schonDa(auswertung, aus('auswertung'), null)?.meldung ?? '', /Lehrkraft/);
+	});
+
+	it('203-10: Folieninhalt in eine Folie mit nur Kopf und Notiz, sonst auf eine neue Folie dahinter', () => {
+		const zweite = nrVon(FOLIEN, 'titel', 1);
+		const rein = fuegeBausteinEin(FOLIEN, aus('folie-bild'), zweite, jeSeite).quelle;
+		assert.equal(folien(rein).length, 2);
+		assert.ok(rein.indexOf('class="buehne"') > rein.indexOf('Zwei'));
+		const erste = nrVon(FOLIEN, 'titel', 0);
+		const neu = fuegeBausteinEin(FOLIEN, aus('folie-bild'), erste, jeSeite).quelle;
+		assert.equal(folien(neu).length, 3);
+		assert.ok(neu.indexOf('Titel der Folie') > neu.indexOf('Inhalt'));
+		assert.ok(neu.indexOf('Titel der Folie') < neu.indexOf('Zwei'));
+		assert.ok(neu.indexOf('class="buehne"') > neu.indexOf('Titel der Folie'));
+	});
+
+	it('203-10: die Schritte einer Folie sind eindeutig und fortlaufend', () => {
+		for (const id of ['folie-schritte']) {
+			const schritte = [...(aus(id).html ?? '').matchAll(/data-schritt="(\d+)"/g)].map((t) => Number(t[1]));
+			assert.deepEqual(
+				schritte,
+				schritte.map((_, i) => i + 1),
+			);
+		}
+	});
+
+	it('203-18: eine neue Aufgabe ist nur Nummer und Aufgabentext', () => {
+		const html = aus('aufgabe').html ?? '';
+		assert.match(html, /class="nr"/);
+		assert.match(html, /<div class="koerper"><\/div>/);
+	});
+
+	it('203-06: die Antwortlinie kommt mit „Es ist … .“ in eine eigene Zeile', () => {
+		const { quelle } = fuegeBausteinEin(BLATT, aus('antwort'), nrVon(BLATT, 'anw'), n);
+		assert.match(quelle, /<div class="zeile">Es ist <span class="antwort[^"]*"[^>]*><\/span>\.<\/div>/);
+	});
+
+	it('203-12: eine Lineatur ohne art bekommt die der Klasse, eine mit art bleibt', () => {
+		const b = { id: 'l', ort: 'aufgabe' as const, html: '<x-lineatur zeilen="3"></x-lineatur>' };
+		assert.equal(mitLineaturDerKlasse(BLATT, b).html, '<x-lineatur art="2" zeilen="3"></x-lineatur>');
+		const karo = { ...b, html: '<x-lineatur art="karo" zeilen="3"></x-lineatur>' };
+		assert.equal(mitLineaturDerKlasse(BLATT, karo).html, karo.html);
+		assert.equal(mitLineaturDerKlasse('<body class="sw">', b), b);
+		const { quelle } = fuegeBausteinEin(BLATT, aus('x-lineatur'), nrVon(BLATT, 'anw'), n);
+		assert.match(quelle, /<x-lineatur art="2" zeilen="3">/);
+		assert.ok(!quelle.includes('Rosine'));
 	});
 });
 

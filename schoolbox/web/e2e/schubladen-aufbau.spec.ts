@@ -171,7 +171,7 @@ test.describe('Ein Aufbau für alle Schubladen am Mac (167)', () => {
 		await blatt(page);
 		// „Zuletzt benutzt“ erscheint erst nach dem Einfügen.
 		await oeffneSchublade(page, 'bausteine');
-		await spalte(page, 'bausteine').locator('[data-bereich="Aufgabe und Text"]').click();
+		await spalte(page, 'bausteine').locator('[data-bereich="Aufgaben"]').click();
 		// Die Bausteine einer Kategorie sind dieselbe Kachel (168), ihre Vorschau liegt weiß darin.
 		await page.mouse.move(1, 1);
 		const bausteine = spalte(page, 'bausteine').locator('[data-einfuegen]');
@@ -180,7 +180,7 @@ test.describe('Ein Aufbau für alle Schubladen am Mac (167)', () => {
 		const vorschau = spalte(page, 'bausteine').locator('[data-karten-vorschau]').first();
 		expect(await vorschau.evaluate((e) => getComputedStyle(e).backgroundColor)).toBe('rgb(255, 255, 255)');
 		await spalte(page, 'bausteine').locator('[data-einfuegen="aufgabe"]').click();
-		await spalte(page, 'bausteine').getByRole('button', { name: 'Aufgabe und Text' }).click();
+		await spalte(page, 'bausteine').getByRole('button', { name: 'Aufgaben', exact: true }).click();
 		await expect(spalte(page, 'bausteine').locator('[data-zuletzt]').first()).toBeVisible();
 		await page.mouse.move(1, 1);
 		kacheln.push(...(await kachelStil(spalte(page, 'bausteine').locator('[data-zuletzt]'))));

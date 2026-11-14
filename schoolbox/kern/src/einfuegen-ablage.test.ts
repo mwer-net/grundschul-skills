@@ -109,6 +109,19 @@ describe('Einfügen an einer Ablage', () => {
 		assert.match(huelleImStapel({ id: 'z', ort: 'zeile', html: '<span>z</span>' }).html, /class="zeile"><span>z/);
 	});
 
+	it('203-06: eine Zeile im Stapel trägt ihren Satz mit, 203-12: die Lineatur die der Klasse', () => {
+		const antwort = {
+			id: 'antwort',
+			ort: 'zeile' as const,
+			html: '<span class="antwort"></span>',
+			umZeile: ['Es ist ', '.'] as const,
+		};
+		assert.match(huelleImStapel(antwort).html, /class="zeile">Es ist <span class="antwort"><\/span>\.</);
+		const lineatur = { id: 'x-lineatur', ort: 'aufgabe' as const, html: '<x-lineatur zeilen="3"></x-lineatur>' };
+		const { quelle } = fuegeBausteinAn(BLATT, lineatur, { nr: nrVon(BLATT, 'aufgabe', 0), wo: 'nach' }, nein);
+		assert.match(quelle, /<x-lineatur art="\d" zeilen="3">/);
+	});
+
 	it('eine unbekannte Nummer bricht ab, ohne die Quelle zu ändern', () => {
 		assert.throws(() => fuegeBausteinAn(BLATT, NEU, { nr: 9999, wo: 'vor' }, nein));
 	});
