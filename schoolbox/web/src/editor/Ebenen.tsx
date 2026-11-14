@@ -43,10 +43,15 @@ const FEDERN_MS = 600;
 /** So weit rückt jede Ebene des Baums ein. */
 const EINZUG_PX = 12;
 
-const ART_KNOPF = (
-	<Knopf art="zweit" className="size-knopf rounded-l-none border-l-0">
-		<Symbol name="runter" className="size-3 flex-none" />
-	</Knopf>
+const ART_NAME = 'Art der neuen Seite';
+
+/** Pfeil neben „+ Seite“ mit Tooltip, wie ⋯ in der Ablage (`Tooltip`, 188-20). */
+const ArtKnopf = (props: Record<string, unknown>) => (
+	<Tooltip text={ART_NAME}>
+		<Knopf {...props} art="zweit" className="size-knopf rounded-l-none border-l-0">
+			<Symbol name="runter" className="size-3 flex-none" />
+		</Knopf>
+	</Tooltip>
 );
 
 const LUECKE = <span className="w-5 flex-none [@media(any-pointer:coarse)]:w-11" />;
@@ -463,12 +468,31 @@ export const Ebenen = ({
 		}
 	};
 
-	/** Hat das Gezogene in der Zeile `nr` oder neben einem ihrer Kinder ein erlaubtes Ziel? Nur dann klappt sie auf. */
-	const zielDarin = (l: Lauf, z: Zerlegung, nr: number) =>
-		erlaubt(l, { in: nr }) ||
-		(z.knoten[nr]?.kinder ?? []).some(
-			(k) => k.nr !== l.nr && (erlaubt(l, { nr: k.nr, wo: 'vor' }) || erlaubt(l, { nr: k.nr, wo: 'nach' })),
-		);
+	/**
+	 * Hätte das Gezogene über einer Kindzeile der Zeile `nr` ein Ziel, wie `zielAb` es dort fände (die Kindzeile selbst,
+	 * sonst `nr`)? Nur dann klappt sie auf (195-07).
+	 */
+	const zielDarin = (l: Lauf, z: Zerlegung, nr: number) => {
+		const gilt = (ablage: Ablage) => !ohneWirkung(z, l.nr, ablage) && erlaubt(l, ablage);
+		const { modell: m } = neu.current;
+		const seite = m.find((s) => s.nr === nr);
+		// In einer Seite gilt über ihren Zeilen nur „daneben“, `in` die Seite nur über ihrer eigenen Zeile (`zielAb`).
+		const kinder = seite
+			? stapelVon(seite)
+			: (m.flatMap((s) => alleKnoten(s.kinder)).find((k) => k.nr === nr)?.kinder ?? []);
+		return kinder.some((k) => {
+			if (k.nr === l.nr) {
+				return false;
+			}
+			if (l.nebenZiele.has(k.nr)) {
+				return gilt({ nr: k.nr, wo: 'vor' }) || gilt({ nr: k.nr, wo: 'nach' });
+			}
+			if (l.inZiele.has(k.nr)) {
+				return gilt({ in: k.nr });
+			}
+			return !seite && l.inZiele.has(nr) && gilt({ in: nr });
+		});
+	};
 
 	/** Fragt den Kern einmal je Stelle, ob er dort ablegen würde. */
 	const erlaubt = (l: Lauf, ablage: Ablage) => {
@@ -968,6 +992,8 @@ export const Ebenen = ({
 		const tooltip = k.titel === k.name ? k.titel : `${k.name}: ${k.titel}`;
 		const symbol = k.zeile === 'baustein' ? undefined : SYMBOL_DER_ART[k.kennung];
 		const istGestaltungZeile = GESTALTUNG_ZEILEN.has(k.zeile);
+		// Steht nur in der anderen Fassung: blass wie Ausgeblendetes, der Träger mit Zusatz.
+		const blass = k.aus || k.nurIn !== undefined;
 		const aktiv = aktiveZeile === k.nr || mehrfach.has(k.nr);
 		const hauptstapel = k.zeile === 'hauptstapel';
 		// Der Hauptstapel hat kein eigenes Element: Sein Klick wählt die Seite.
@@ -1060,14 +1086,19 @@ export const Ebenen = ({
 								}}
 							>
 								{k.nummer && (
-									<span className="w-3.5 flex-none text-center font-medium text-leise">
+									<span
+										className={klassen(
+											'w-3.5 flex-none text-center font-medium text-leise',
+											blass && 'opacity-50',
+										)}
+									>
 										{k.nummer}
 									</span>
 								)}
 								{symbol && (
 									<Symbol
 										name={symbol}
-										className={klassen('size-3.5 flex-none text-leise', k.aus && 'opacity-50')}
+										className={klassen('size-3.5 flex-none text-leise', blass && 'opacity-50')}
 									/>
 								)}
 								{/* 195-12: Bausteinzeilen zeigen den Tooltip nur, wenn der Text gekürzt ist. */}
@@ -1075,8 +1106,13 @@ export const Ebenen = ({
 									text={k.titel}
 									seite="right"
 									aus={zug !== null || istGestaltungZeile}
-									className={klassen(k.aus && 'opacity-50')}
+									className={klassen(blass && 'opacity-50')}
 								/>
+								{k.nurIn?.selbst && (
+									<span className="flex-none text-xs text-leise" data-nur-in={k.nurIn.fassung}>
+										{k.nurIn.fassung === 'loesung' ? 'nur in der Lösung' : 'nur im Arbeitsblatt'}
+									</span>
+								)}
 							</button>
 						</Tooltip>
 					)}
@@ -1203,9 +1239,9 @@ export const Ebenen = ({
 						</Knopf>
 						{namenszeile && (
 							<Menue
-								name="Art der neuen Seite"
+								name={ART_NAME}
 								disabled={!struktur.aktiv}
-								ausloeser={ART_KNOPF}
+								ausloeser={<ArtKnopf />}
 								eintraege={[
 									{
 										titel: `Leere ${wort}`,

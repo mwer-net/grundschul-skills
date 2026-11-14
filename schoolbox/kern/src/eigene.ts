@@ -4,7 +4,7 @@
  * seit 137 nicht mehr; ein alter Ordner `_vorlagen` bleibt liegen und wird nicht gelesen.
  */
 import { existsSync } from 'node:fs';
-import { copyFile, mkdir, readdir, readFile, rename, rm, stat } from 'node:fs/promises';
+import { copyFile, mkdir, readdir, readFile, rename, rm, stat, utimes } from 'node:fs/promises';
 import path from 'node:path';
 
 import { dokumentDir, pruefeId } from './ablage';
@@ -17,8 +17,10 @@ type Ort = KatalogEintrag['ort'];
 
 const SAMMLUNG = '_sammlung';
 const BAUSTEIN_META = 'baustein.json';
-/** Gelöschte Bausteine bleiben hier, bis derselbe noch einmal gelöscht wird; „Rückgängig“ holt sie zurück (195-08). */
+/** Gelöschte Bausteine bleiben hier, solange „Rückgängig“ sie zurückholen kann (195-08). */
 const GELOESCHT = '.geloescht';
+/** Die Meldung mit „Rückgängig“ steht 10 s; danach bleibt ein gelöschter Baustein noch so lange als Reserve. */
+export const GELOESCHT_FRIST_MS = 2 * 60 * 1000;
 const BILD = /^bilder\/[^/\\]+$/;
 
 export interface EigenerBaustein {
@@ -134,10 +136,29 @@ export const loescheEigenenBaustein = async (materialDir: string, id: string) =>
 	if (!existsSync(dir)) {
 		return;
 	}
+	// Eine neue Meldung ersetzt die alte: Nur der jetzt gelöschte lässt sich noch zurückholen.
 	const ziel = geloeschtDir(materialDir, id);
-	await rm(ziel, { recursive: true, force: true });
+	await rm(path.dirname(ziel), { recursive: true, force: true });
 	await mkdir(path.dirname(ziel), { recursive: true });
 	await rename(dir, ziel);
+	// Die Zeit des Löschens, nach der `leereGeloeschte` geht; ein verschobener Ordner behält sonst seine alte.
+	const jetzt = new Date();
+	await utimes(ziel, jetzt, jetzt);
+};
+
+/** Entfernt gelöschte Bausteine, die „Rückgängig“ nicht mehr anbietet: älter als `GELOESCHT_FRIST_MS`. */
+export const leereGeloeschte = async (materialDir: string, jetzt = Date.now()) => {
+	const korb = path.join(sammlungDir(materialDir), GELOESCHT);
+	if (!existsSync(korb)) {
+		return;
+	}
+	for (const name of await readdir(korb)) {
+		const eintrag = path.join(korb, name);
+		const info = await stat(eintrag).catch(() => null);
+		if (info && jetzt - info.mtimeMs > GELOESCHT_FRIST_MS) {
+			await rm(eintrag, { recursive: true, force: true });
+		}
+	}
 };
 
 export const holeEigenenBausteinZurueck = async (materialDir: string, id: string) => {

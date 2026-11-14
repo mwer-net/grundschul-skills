@@ -1,8 +1,10 @@
 import {
 	benenneBausteinUm,
+	GELOESCHT_FRIST_MS,
 	bilderIn,
 	dokumentDir,
 	holeEigenenBausteinZurueck,
+	leereGeloeschte,
 	legeInSammlung,
 	loescheEigenenBaustein,
 	sammlungsOrdner,
@@ -56,6 +58,10 @@ export const eigeneApi = (kontext: Kontext) => {
 
 	router.post('/sammlung/:id/loeschen', async (req, res) => {
 		await loescheEigenenBaustein(materialDir, req.params.id);
+		// Sobald „Rückgängig“ nicht mehr angeboten wird, ist der Baustein endgültig weg (195-08).
+		setTimeout(() => {
+			leereGeloeschte(materialDir).catch((fehler: unknown) => console.error('Meine Bausteine:', fehler));
+		}, GELOESCHT_FRIST_MS + 1000).unref();
 		res.json({ ok: true });
 	});
 

@@ -299,10 +299,15 @@ export const ansichtRouter = (kontext: Kontext) => {
 	});
 
 	router.get('/_sammlung/:id/bilder/:datei', async (req, res) => {
-		const dir = sammlungsOrdner(materialDir, req.params.id);
-		const datei = path.join(dir, 'bilder', req.params.datei);
-		const echt = !req.params.datei.includes('\0') && existsSync(datei) ? realpathSync(datei) : null;
-		const info = echt && liegtIn(echt, realpathSync(dir)) ? await stat(echt) : null;
+		// Nur ein Dateiname direkt in `bilder/`; `..%2F` käme sonst bis zu `baustein.json` (195-N01).
+		const name = req.params.datei;
+		if (/[/\\\0]/.test(name) || name.includes('..')) {
+			throw nichtGefunden();
+		}
+		const bilder = path.join(sammlungsOrdner(materialDir, req.params.id), 'bilder');
+		const datei = path.join(bilder, name);
+		const echt = existsSync(datei) ? realpathSync(datei) : null;
+		const info = echt && liegtIn(echt, realpathSync(bilder)) ? await stat(echt) : null;
 		if (!echt || !info?.isFile()) {
 			throw nichtGefunden();
 		}

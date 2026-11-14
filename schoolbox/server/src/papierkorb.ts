@@ -3,6 +3,7 @@ import {
 	dokKnotenSchluessel,
 	entferneFreigabenVon,
 	istPapierkorbEintrag,
+	leereGeloeschte,
 	leerePapierkorb,
 	leereVorschaubilder,
 	listePapierkorb,
@@ -149,6 +150,8 @@ export const raeumePapierkorbAuf = async (kontext: Kontext, jetzt = new Date()):
 export const starteAufraeumen = (kontext: Kontext) => {
 	const lauf = () => {
 		raeumePapierkorbAuf(kontext).catch((fehler: unknown) => console.error('Papierkorb:', fehler));
+		// Was vor einem Neustart in „Meine Bausteine“ gelöscht wurde, ohne dass der Takt des Löschens noch kam (195-08).
+		leereGeloeschte(kontext.konfig.materialDir).catch((fehler: unknown) => console.error('Meine Bausteine:', fehler));
 	};
 	lauf();
 	const takt = setInterval(lauf, TAG_MS);
