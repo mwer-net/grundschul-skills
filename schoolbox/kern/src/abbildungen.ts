@@ -3114,7 +3114,8 @@ export const ABBILDUNG_SCHEMA = {
 				art: 'text',
 				attribut: 'alt',
 				name: 'Was zeigt das Bild?',
-				hilfe: 'Für Vorlesegeräte und wenn das Bild fehlt.',
+				// 197-U5: nicht im Panel; der Wert bleibt, wie Claude ihn schreibt
+				ohneFeld: true,
 			},
 			{ art: 'punkte', attribut: 'punkte', name: 'Punkte' },
 			{
@@ -3296,7 +3297,8 @@ export const ABBILDUNG_SCHEMA = {
 				attribut: 'inhalt',
 				name: 'Text',
 				quelle: 'inhalt',
-				abschnitt: 'weitere',
+				// 196-22: Text und Aufgabe offen unter „Inhalt“, nicht im zugeklappten „Weitere“
+				abschnitt: 'inhalt',
 				auszeichnung: true,
 				zeilen: 4,
 				beispiel: 'Die Ro|si|ne ist süß.',
@@ -3320,7 +3322,7 @@ export const ABBILDUNG_SCHEMA = {
 				attribut: 'farben',
 				nurWenn: wenn('darstellung', 'boegen', 'farbe', 'beides'),
 				name: 'Farben der Klasse',
-				abschnitt: 'weitere',
+				abschnitt: 'darstellung',
 				beispiel: 'blau rot',
 				hilfe: 'Zwei aus blau, rot, gruen, lila, braun, schwarz.',
 			},
@@ -3328,7 +3330,7 @@ export const ABBILDUNG_SCHEMA = {
 				art: 'auswahl',
 				attribut: 'aufgabe',
 				name: 'Aufgabe',
-				abschnitt: 'weitere',
+				abschnitt: 'inhalt',
 				standard: 'keine',
 				optionen: [
 					{ wert: 'keine', name: 'Nur zeigen' },
@@ -3634,6 +3636,7 @@ export const ABBILDUNG_SCHEMA = {
 				min: 200,
 				max: 1600,
 				standard: 620,
+				schritt: 20,
 				einheit: 'px',
 				gruppe: 'Mehr',
 			},
@@ -3719,6 +3722,7 @@ export const ABBILDUNG_SCHEMA = {
 				min: 200,
 				max: 1200,
 				standard: 320,
+				schritt: 20,
 				einheit: 'px',
 				gruppe: 'Mehr',
 			},
@@ -3763,7 +3767,7 @@ export const ABBILDUNG_SCHEMA = {
 					{ wert: 'leer', name: 'Leer, Kinder tragen ein' },
 				],
 			},
-			{ art: 'zahl', attribut: 'groesse', name: 'Größe', min: 120, max: 600, standard: 170, einheit: 'px' },
+			{ art: 'zahl', attribut: 'groesse', name: 'Größe', min: 120, max: 600, standard: 170, schritt: 20, einheit: 'px' },
 		],
 	},
 	'x-schaltplan': {
@@ -4351,7 +4355,7 @@ export const ABBILDUNG_SCHEMA = {
 			},
 			{ art: 'schalter', attribut: 'linie', name: 'Rhythmuslinie', an: 'ja', aus: 'nein', standard: false },
 			{ art: 'schalter', attribut: 'auftakt', name: 'Mit Auftakt', an: 'ja', aus: 'nein', standard: false },
-			{ art: 'zahl', attribut: 'breite', name: 'Breite', min: 120, max: 620, standard: 620, einheit: 'px' },
+			{ art: 'zahl', attribut: 'breite', name: 'Breite', min: 120, max: 620, standard: 620, schritt: 20, einheit: 'px' },
 		],
 	},
 	'x-noten': {
@@ -4412,7 +4416,7 @@ export const ABBILDUNG_SCHEMA = {
 				],
 			},
 			{ art: 'schalter', attribut: 'auftakt', name: 'Mit Auftakt', an: 'ja', aus: 'nein', standard: false },
-			{ art: 'zahl', attribut: 'breite', name: 'Breite', min: 200, max: 620, standard: 620, einheit: 'px' },
+			{ art: 'zahl', attribut: 'breite', name: 'Breite', min: 200, max: 620, standard: 620, schritt: 20, einheit: 'px' },
 		],
 	},
 	'x-plan': {

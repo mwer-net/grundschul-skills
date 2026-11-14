@@ -1845,11 +1845,8 @@ test.describe('Lineatur und Silben (031)', () => {
 
 		const silben = material(page).locator('x-silben');
 		await druecke(silben);
-		// Der Text der Silben steht seit 083 unter „Weitere“, oben stehen die Lesehilfen.
-		const weitere = page.locator('[data-abschnitt="weitere"] > button');
-		if ((await weitere.getAttribute('aria-expanded')) !== 'true') {
-			await druecke(weitere);
-		}
+		// 196-22: Text und Aufgabe der Silben stehen offen unter „Inhalt“.
+		await expect(page.locator('[data-abschnitt="weitere"]')).toHaveCount(0);
 		const feld = page.getByRole('textbox', { name: 'Text', exact: true });
 		await expect(feld).toHaveValue('Rosi|ne');
 		await feld.evaluate((e: HTMLTextAreaElement) => {
