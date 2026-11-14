@@ -876,6 +876,10 @@ const verlaufAbschnitt = (verlauf: KiNachricht[] | undefined) =>
 			].join('\n')
 		: null;
 
+/** Regel 27 aus 206: Folgeseiten des Editors bleiben seine Sache. */
+const FOLGESEITEN =
+	'Seiten mit data-weiter="auto" legt der Editor selbst an: Leg keine an, entferne keine und lass die Bausteine in ihrer Reihenfolge.';
+
 const prompt = (
 	w: KiWunsch,
 	ausschnitt: Ausschnitt,
@@ -894,6 +898,7 @@ const prompt = (
 			? 'Keine Rückfragen: Triff offene Entscheidungen selbst und nenne sie im Plan als Annahme. Ändere material.html in dieser Runde nicht.'
 			: null,
 		kopf,
+		ausschnitt.text.includes('data-weiter="auto"') ? FOLGESEITEN : null,
 		fortsetzung
 			? 'material.html ist der jetzige Stand. Er kann sich geändert haben. Lies die Datei neu, bevor du sie änderst.'
 			: null,

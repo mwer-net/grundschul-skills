@@ -9,6 +9,7 @@ import { useTitel } from '../lib/titel';
 import type { Zugang } from '../lib/zugang';
 import { entwuerfeSeite, entwurfAnsichtAdresse } from '../lib/zugang';
 import { NichtDa } from './Entwuerfe';
+import { MaterialFehlt, NICHT_GEFUNDEN } from './NichtGefunden';
 
 /** Mehr Meldungen erschlagen eher, als dass sie helfen; um den Rest kümmert sich Claude ohnehin. */
 const MAX_MELDUNGEN = 3;
@@ -25,8 +26,11 @@ export const EntwurfGross = ({ dok, name, zugang }: Eigenschaften) => {
 	const liste = dokument?.meta.entwuerfe ?? [];
 	const nr = liste.findIndex((e) => e.name === name);
 	const entwurf = liste[nr];
-	useTitel(entwurf && dokument ? `Entwurf ${entwurf.name}: ${dokument.meta.titel}` : undefined);
+	useTitel(entwurf && dokument ? `Entwurf ${entwurf.name}: ${dokument.meta.titel}` : daten || fehler ? NICHT_GEFUNDEN : undefined);
 
+	if (!dokument && (daten || fehler)) {
+		return <MaterialFehlt fehler={fehler} />;
+	}
 	if (!dokument || !entwurf) {
 		return daten || fehler ? <NichtDa /> : null;
 	}

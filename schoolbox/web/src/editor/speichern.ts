@@ -6,6 +6,9 @@ import { ApiFehler, meldung, sende } from '../api';
 export const SPEICHERN_MS = 1500;
 /** Ohne Verbindung: so oft ein neuer Versuch. */
 const ERNEUT_MS = 5000;
+/** Solange der Fluss (206) noch umlegt: so oft nachsehen, höchstens so lange vor dem PDF oder Verlassen. */
+const FLUSS_NACHSEHEN_MS = 300;
+const FLUSS_HOECHSTENS_MS = 5000;
 
 /** Der Stand, den der Server zuletzt bestätigt hat; `version` ist die `basisVersion` für das nächste Speichern. */
 export interface Basis {
@@ -26,13 +29,15 @@ interface Optionen {
 	quelle: string | null;
 	/** Der Server meldet beim Speichern einen neueren Stand (409). */
 	beiKonflikt: () => void;
+	/** Der Editor legt die Seiten noch um (206): mit dem Speichern warten, bis die Fassung fertig ist. */
+	wartet?: () => boolean;
 }
 
 /**
  * Speichert von selbst, 1,5 s nach der letzten Änderung, immer mit der zuletzt bestätigten Version. Ohne Änderung
  * gegenüber dieser Version wird nie gespeichert. Ohne Verbindung versucht es alle paar Sekunden weiter.
  */
-export const useSpeichern = ({ adresse, beiKonflikt, quelle }: Optionen) => {
+export const useSpeichern = ({ adresse, beiKonflikt, quelle, wartet }: Optionen) => {
 	const [stand, setStand] = useState<SpeicherStand>({ art: 'gespeichert' });
 	const basis = useRef<Basis | null>(null);
 	const aktuell = useRef(quelle);
@@ -40,10 +45,12 @@ export const useSpeichern = ({ adresse, beiKonflikt, quelle }: Optionen) => {
 	const timer = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
 	const konflikt = useRef(false);
 	const konfliktMelden = useRef(beiKonflikt);
+	const fliesst = useRef(wartet);
 
 	useEffect(() => {
 		konfliktMelden.current = beiKonflikt;
-	}, [beiKonflikt]);
+		fliesst.current = wartet;
+	}, [beiKonflikt, wartet]);
 
 	const offen = useCallback(() => aktuell.current !== null && aktuell.current !== basis.current?.quelle, []);
 
@@ -113,7 +120,14 @@ export const useSpeichern = ({ adresse, beiKonflikt, quelle }: Optionen) => {
 		}
 		setStand((alt) => (alt.art === 'speichert' || alt.art === 'offline' ? alt : { art: 'wartet' }));
 		clearTimeout(timer.current);
-		timer.current = setTimeout(() => void speichere(), SPEICHERN_MS);
+		const spaeter = () => {
+			if (fliesst.current?.()) {
+				timer.current = setTimeout(spaeter, FLUSS_NACHSEHEN_MS);
+				return;
+			}
+			void speichere();
+		};
+		timer.current = setTimeout(spaeter, SPEICHERN_MS);
 	}, [quelle, offen, speichere]);
 
 	// Seite schließen oder neu laden mit offenen Änderungen: Der Browser fragt nach.
@@ -152,6 +166,10 @@ export const useSpeichern = ({ adresse, beiKonflikt, quelle }: Optionen) => {
 
 	/** Speichert sofort alles Offene, z. B. vor dem PDF oder dem Verlassen. `false`: Es ist nicht gespeichert. */
 	const alles = useCallback(async () => {
+		const ende = Date.now() + FLUSS_HOECHSTENS_MS;
+		while (fliesst.current?.() && Date.now() < ende) {
+			await new Promise((weiter) => setTimeout(weiter, FLUSS_NACHSEHEN_MS));
+		}
 		let ok = true;
 		while (ok && (offen() || laeuft.current)) {
 			ok = await speichere();

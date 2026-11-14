@@ -11,6 +11,7 @@ import { Abschnitt } from '../../../bausteine/Abschnitt';
 import { Farbwahl } from '../../../bausteine/Farbwahl';
 import { KACHEL } from '../../../bausteine/klassen';
 import { Stepper } from '../../../bausteine/Stepper';
+import { Tooltip } from '../../../bausteine/Tooltip';
 import { Zeile } from '../../../bausteine/Zeile';
 import { SwZeile } from './flaeche';
 import { useGiltFuer, zielVon } from './gilt';
@@ -103,18 +104,18 @@ export const BlattRahmen = (t: BlattTeile) => {
 						data-rahmen-art={art}
 					>
 						{ARTEN.map((a) => (
-							<button
-								key={a.wert}
-								type="button"
-								className={KACHEL}
-								aria-pressed={art === a.wert}
-								aria-label={a.titel}
-								title={a.titel}
-								data-wert={a.wert}
-								onClick={() => waehleArt(a.wert)}
-							>
-								{a.bild}
-							</button>
+							<Tooltip key={a.wert} text={a.titel}>
+								<button
+									type="button"
+									className={KACHEL}
+									aria-pressed={art === a.wert}
+									aria-label={a.titel}
+									data-wert={a.wert}
+									onClick={() => waehleArt(a.wert)}
+								>
+									{a.bild}
+								</button>
+							</Tooltip>
 						))}
 					</div>
 				</Zeile>

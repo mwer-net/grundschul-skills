@@ -10,6 +10,7 @@ import {
 import { Abschnitt } from '../../../bausteine/Abschnitt';
 import { KACHEL } from '../../../bausteine/klassen';
 import { Segment } from '../../../bausteine/Segment';
+import { Tooltip } from '../../../bausteine/Tooltip';
 import { Zeile } from '../../../bausteine/Zeile';
 import { SwZeile } from './flaeche';
 import { FuellungZeilen } from './fuellung';
@@ -88,20 +89,20 @@ export const BlattKopfband = (t: BlattTeile) => {
 						<Zeile titel="Form" darunter>
 							<div className="grid grid-cols-4 gap-1" role="group" aria-label="Form" data-kopfband-form>
 								{FORMEN.map((f) => (
-									<button
-										key={f.wert}
-										type="button"
-										className={KACHEL}
-										aria-pressed={jetzt.form === f.wert}
-										aria-label={f.titel}
-										title={f.titel}
-										data-wert={f.wert}
-										onClick={() => aendere(`Kopfband: ${f.titel}`, { form: f.wert })}
-									>
-										<svg aria-hidden viewBox="0 0 28 16" className="h-4 w-7 flex-none text-leise">
-											<path d={f.d} fill="currentColor" />
-										</svg>
-									</button>
+									<Tooltip key={f.wert} text={f.titel}>
+										<button
+											type="button"
+											className={KACHEL}
+											aria-pressed={jetzt.form === f.wert}
+											aria-label={f.titel}
+											data-wert={f.wert}
+											onClick={() => aendere(`Kopfband: ${f.titel}`, { form: f.wert })}
+										>
+											<svg aria-hidden viewBox="0 0 28 16" className="h-4 w-7 flex-none text-leise">
+												<path d={f.d} fill="currentColor" />
+											</svg>
+										</button>
+									</Tooltip>
 								))}
 							</div>
 						</Zeile>

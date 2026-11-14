@@ -1,6 +1,7 @@
 import type { PointerEvent as ReactPointerEvent } from 'react';
 
 import { klassen } from '../../bausteine/klassen';
+import { Tooltip } from '../../bausteine/Tooltip';
 import type { GriffName, Kasten } from './geste';
 import { ECKEN, GRIFFE } from './geste';
 import type { ZusatzGriff } from './griffe';
@@ -104,13 +105,14 @@ export const Auswahlrahmen = ({
 			}}
 		>
 			{gesperrt ? (
-				<span
-					className="absolute -top-2.5 -right-2.5 flex size-5 items-center justify-center rounded-full bg-brand-500 text-white shadow"
-					title="Gesperrt: im Blatt nicht zu ziehen"
-					data-gestaltung-schloss
-				>
-					<Schloss />
-				</span>
+				<Tooltip text="Gesperrt: im Blatt nicht zu ziehen">
+					<span
+						className="absolute -top-2.5 -right-2.5 flex size-5 items-center justify-center rounded-full bg-brand-500 text-white shadow"
+						data-gestaltung-schloss
+					>
+						<Schloss />
+					</span>
+				</Tooltip>
 			) : (
 				bedienbar && (
 					<>
@@ -120,17 +122,18 @@ export const Auswahlrahmen = ({
 									className="absolute left-1/2 w-px bg-brand-500"
 									style={{ top: -DREH_ABSTAND, height: DREH_ABSTAND }}
 								/>
-								<button
-									type="button"
-									aria-label="Drehen"
-									title="Drehen"
-									className={klassen(GRIFF, 'left-1/2 cursor-grab', inGeste && 'cursor-grabbing')}
-									style={{ top: -DREH_ABSTAND }}
-									data-gestaltung-griff="drehen"
-									onPointerDown={(e) => starteGriff(e, element, 'drehen')}
-								>
-									<span className="block size-2.5 flex-none rounded-full border border-brand-500 bg-flaeche shadow" />
-								</button>
+								<Tooltip text="Drehen">
+									<button
+										type="button"
+										aria-label="Drehen"
+										className={klassen(GRIFF, 'left-1/2 cursor-grab', inGeste && 'cursor-grabbing')}
+										style={{ top: -DREH_ABSTAND }}
+										data-gestaltung-griff="drehen"
+										onPointerDown={(e) => starteGriff(e, element, 'drehen')}
+									>
+										<span className="block size-2.5 flex-none rounded-full border border-brand-500 bg-flaeche shadow" />
+									</button>
+								</Tooltip>
 								{griffe.map((griff) => {
 									const { x, y } = GRIFFE[griff];
 									return (
@@ -153,20 +156,20 @@ export const Auswahlrahmen = ({
 							const wo = griff.wo(element, kasten);
 							return (
 								wo && (
-									<button
-										key={griff.id}
-										type="button"
-										aria-label={griff.name}
-										title={griff.name}
-										className={klassen(GRIFF, griff.zeiger ?? 'cursor-pointer')}
-										style={{ left: wo.x * skala, top: wo.y * skala }}
-										data-gestaltung-griff={griff.id}
-										onPointerDown={(e) => starteZusatz(e, element, griff, wo)}
-									>
-										{griff.zeichne?.() ?? (
-											<span className="block size-2.5 flex-none rounded-full border border-brand-500 bg-flaeche shadow" />
-										)}
-									</button>
+									<Tooltip key={griff.id} text={griff.name}>
+										<button
+											type="button"
+											aria-label={griff.name}
+											className={klassen(GRIFF, griff.zeiger ?? 'cursor-pointer')}
+											style={{ left: wo.x * skala, top: wo.y * skala }}
+											data-gestaltung-griff={griff.id}
+											onPointerDown={(e) => starteZusatz(e, element, griff, wo)}
+										>
+											{griff.zeichne?.() ?? (
+												<span className="block size-2.5 flex-none rounded-full border border-brand-500 bg-flaeche shadow" />
+											)}
+										</button>
+									</Tooltip>
 								)
 							);
 						})}
@@ -231,17 +234,18 @@ export const MehrfachRahmen = ({
 						className="absolute left-1/2 w-px bg-brand-500"
 						style={{ top: -DREH_ABSTAND, height: DREH_ABSTAND }}
 					/>
-					<button
-						type="button"
-						aria-label="Auswahl drehen"
-						title="Drehen"
-						className={klassen(GRIFF, 'left-1/2 cursor-grab', inGeste && 'cursor-grabbing')}
-						style={{ top: -DREH_ABSTAND }}
-						data-gestaltung-griff="drehen"
-						onPointerDown={(e) => starteMehrfach(e, 'drehen')}
-					>
-						<span className="block size-2.5 flex-none rounded-full border border-brand-500 bg-flaeche shadow" />
-					</button>
+					<Tooltip text="Drehen">
+						<button
+							type="button"
+							aria-label="Auswahl drehen"
+							className={klassen(GRIFF, 'left-1/2 cursor-grab', inGeste && 'cursor-grabbing')}
+							style={{ top: -DREH_ABSTAND }}
+							data-gestaltung-griff="drehen"
+							onPointerDown={(e) => starteMehrfach(e, 'drehen')}
+						>
+							<span className="block size-2.5 flex-none rounded-full border border-brand-500 bg-flaeche shadow" />
+						</button>
+					</Tooltip>
 					{ECKEN.map((griff) => {
 						const { x, y } = GRIFFE[griff];
 						return (

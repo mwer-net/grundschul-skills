@@ -59,6 +59,24 @@ export const BewegenDialog = ({ objekte, schliessen }: { objekte: Objekt[]; schl
 		<Dialog
 			titel={`${objekte.length === 1 && erstes ? `„${erstes.name}“` : `${objekte.length} Objekte`} bewegen nach …`}
 			schliessen={schliessen}
+			fuss={
+				<>
+					<Knopf art="zweit" className="mr-auto" onClick={() => void neuerOrdner()}>
+						<Symbol name="ordnerNeu" />
+						Neuer Ordner
+					</Knopf>
+					<Knopf art="leise" onClick={schliessen}>
+						Abbrechen
+					</Knopf>
+					<Knopf
+						data-hauptaktion
+						disabled={ziel === undefined || gesperrt(ziel)}
+						onClick={() => void bewege()}
+					>
+						Hierher bewegen
+					</Knopf>
+				</>
+			}
 		>
 			<div className="max-h-[50dvh] overflow-y-auto rounded-lg border border-rand p-1" data-bewegen-baum>
 				<Baum
@@ -71,24 +89,6 @@ export const BewegenDialog = ({ objekte, schliessen }: { objekte: Objekt[]; schl
 					wurzelGesperrt={gesperrt(null)}
 					benennWo="dialog"
 				/>
-			</div>
-			<div className="flex items-center justify-between gap-2">
-				<Knopf art="zweit" onClick={() => void neuerOrdner()}>
-					<Symbol name="ordnerNeu" />
-					Neuer Ordner
-				</Knopf>
-				<span className="flex gap-2">
-					<Knopf art="leise" onClick={schliessen}>
-						Abbrechen
-					</Knopf>
-					<Knopf
-						data-hauptaktion
-						disabled={ziel === undefined || gesperrt(ziel)}
-						onClick={() => void bewege()}
-					>
-						Hierher bewegen
-					</Knopf>
-				</span>
 			</div>
 		</Dialog>
 	);
@@ -192,7 +192,37 @@ export const UebersichtDialog = ({
 			? vorschauAdresse({ mappe: objekt.dok.mappe, token: null }, objekt.dok.id, objekt.dok.vorschau)
 			: null;
 	return (
-		<Dialog titel={objekt.name} breit schliessen={schliessen}>
+		<Dialog
+			titel={objekt.name}
+			breit
+			schliessen={schliessen}
+			fuss={
+				<>
+					<span className="mr-auto flex items-center gap-1">
+						<Knopf
+							art="leise"
+							disabled={stelle === 0}
+							aria-label="Vorheriges"
+							onClick={() => setStelle(stelle - 1)}
+						>
+							<Symbol name="links" />
+						</Knopf>
+						<Knopf
+							art="leise"
+							disabled={stelle === objekte.length - 1}
+							aria-label="Nächstes"
+							onClick={() => setStelle(stelle + 1)}
+						>
+							<Symbol name="rechts" />
+						</Knopf>
+						<span className="text-sm text-leise">{`${stelle + 1} von ${objekte.length}`}</span>
+					</span>
+					<Knopf data-hauptaktion onClick={() => oeffne(objekt)}>
+						{objekt.istOrdner ? 'Öffnen' : 'Ansehen'}
+					</Knopf>
+				</>
+			}
+		>
 			<div
 				className="flex h-[65dvh] items-center justify-center rounded-lg bg-leinwand p-3"
 				data-uebersicht={objekt.schluessel}
@@ -203,38 +233,14 @@ export const UebersichtDialog = ({
 					<Symbol name={objekt.istOrdner ? 'ordner' : 'blatt'} className="size-24 text-brand-200" />
 				)}
 			</div>
-			<div className="flex items-center justify-between gap-2">
-				<span className="flex items-center gap-1">
-					<Knopf
-						art="leise"
-						disabled={stelle === 0}
-						aria-label="Vorheriges"
-						onClick={() => setStelle(stelle - 1)}
-					>
-						<Symbol name="links" />
-					</Knopf>
-					<Knopf
-						art="leise"
-						disabled={stelle === objekte.length - 1}
-						aria-label="Nächstes"
-						onClick={() => setStelle(stelle + 1)}
-					>
-						<Symbol name="rechts" />
-					</Knopf>
-					<span className="text-sm text-leise">{`${stelle + 1} von ${objekte.length}`}</span>
-				</span>
-				<Knopf data-hauptaktion onClick={() => oeffne(objekt)}>
-					{objekt.istOrdner ? 'Öffnen' : 'Ansehen'}
-				</Knopf>
-			</div>
 		</Dialog>
 	);
 };
 
 /** Die Tasten der Ablage aus dem Register, dazu was ohne Befehl gilt. Auch in der Hilfe. */
-export const AblageTasten = ({ ebene }: { ebene?: 'h3' | 'h4' }) => (
+export const AblageTasten = ({ ebene, tastenKlasse }: { ebene?: 'h3' | 'h4'; tastenKlasse?: string }) => (
 	<>
-		<Tastenliste abschnitte={tastenAbschnitte()} ebene={ebene} />
+		<Tastenliste abschnitte={tastenAbschnitte()} ebene={ebene} tastenKlasse={tastenKlasse} />
 		<p className="mt-3 text-leise">
 			Dazu: Pfeile bewegen die Auswahl, ⇧ erweitert. Buchstaben springen zum Namen. Esc hebt auf.
 		</p>

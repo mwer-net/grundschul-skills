@@ -4,6 +4,7 @@ import { useNavigate } from 'react-router-dom';
 
 import { meldung, sende } from '../api';
 import { useHinweis } from '../bausteine/hinweis';
+import { ERSTES_WAEHLEN } from '../bausteine/kopf';
 import { istMac } from '../bausteine/kuerzel';
 import type { MenueEintrag } from '../bausteine/Menue';
 import { gehoertDemElement, istFeld, TASTEN_SPERRE_OHNE_LISTE } from '../editor/tasten';
@@ -505,6 +506,22 @@ export const useBefehle = (o: Optionen) => {
 		};
 		window.addEventListener('keydown', taste);
 		return () => window.removeEventListener('keydown', taste);
+	}, []);
+
+	// ↓ im Suchfeld des Kopfs (189-07): Der Fokus verlässt das Feld, der erste Treffer ist gewählt.
+	useEffect(() => {
+		const erstesWaehlen = () => {
+			const j = aktuell.current;
+			const [erstes] = j.objekte;
+			if (!erstes) {
+				return;
+			}
+			zeiger.current = erstes.schluessel;
+			j.o.setAuswahl({ gewaehlt: [erstes.schluessel], anker: erstes.schluessel });
+			zeigeObjekt(erstes.schluessel);
+		};
+		window.addEventListener(ERSTES_WAEHLEN, erstesWaehlen);
+		return () => window.removeEventListener(ERSTES_WAEHLEN, erstesWaehlen);
 	}, []);
 
 	const schliessen = () => setDialog(null);

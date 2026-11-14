@@ -28,6 +28,7 @@ import { FELD_KLASSEN, klassen } from '../bausteine/klassen';
 import { Knopf } from '../bausteine/Knopf';
 import { Schalter } from '../bausteine/Schalter';
 import { Stepper } from '../bausteine/Stepper';
+import { Tooltip } from '../bausteine/Tooltip';
 import { Zeile } from '../bausteine/Zeile';
 import { klasseName } from '../lib/text';
 import type { Ablage } from './ablage';
@@ -443,19 +444,20 @@ export const Blattwerkzeug = ({
 						</span>
 						<span className="ml-auto flex flex-none items-center gap-2">
 							{gesetzt && (
-								<button
-									type="button"
-									data-abstand-vorgabe
-									className="text-xs text-leise underline hover:text-tinte"
-									title={
+								<Tooltip text={
 										vorgabe === null
 											? 'Eigenen Abstand entfernen'
 											: `Zurück zur Vorgabe: ${vorgabe} px`
-									}
-									onClick={struktur.abstandZurVorgabe}
-								>
-									Vorgabe
-								</button>
+									}>
+									<button
+										type="button"
+										data-abstand-vorgabe
+										className="text-xs text-leise underline hover:text-tinte"
+										onClick={struktur.abstandZurVorgabe}
+									>
+										Vorgabe
+									</button>
+								</Tooltip>
 							)}
 							<span className="text-leise tabular-nums" data-abstand-wert>{`${jetzt} px`}</span>
 						</span>
@@ -479,13 +481,14 @@ export const Blattwerkzeug = ({
 							}}
 						/>
 						{vorgabeImRegler && (
-							<span
-								aria-hidden
-								data-abstand-marke={vorgabe}
-								title={`Vorgabe: ${vorgabe} px`}
-								className="absolute bottom-0 h-2 w-0.5 -translate-x-1/2 bg-leise"
-								style={{ left: markeBei(vorgabe) }}
-							/>
+							<Tooltip text={`Vorgabe: ${vorgabe} px`}>
+								<span
+									aria-hidden
+									data-abstand-marke={vorgabe}
+									className="absolute bottom-0 h-2 w-0.5 -translate-x-1/2 bg-leise"
+									style={{ left: markeBei(vorgabe) }}
+								/>
+							</Tooltip>
 						)}
 					</div>
 					{ueberlauf.length > 0 && (

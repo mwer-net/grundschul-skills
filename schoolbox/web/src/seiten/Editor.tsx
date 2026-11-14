@@ -13,22 +13,21 @@ import { flushSync } from 'react-dom';
 import type { SetURLSearchParams } from 'react-router-dom';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 
-import type { ApiFehler } from '../api';
 import { lade, meldung } from '../api';
 import { useHinweis } from '../bausteine/hinweis';
 import { klassen } from '../bausteine/klassen';
-import { Knopf, KnopfLink } from '../bausteine/Knopf';
+import { Knopf } from '../bausteine/Knopf';
 import { useZeigeMenue } from '../bausteine/menue-kontext';
 import { ProfilSchalter } from '../bausteine/ProfilSchalter';
 import { Segment } from '../bausteine/Segment';
 import { Symbol } from '../bausteine/Symbol';
 import { SymbolKnopf } from '../bausteine/SymbolKnopf';
-import { Zustand } from '../bausteine/Zustand';
 import { useAbbildung } from '../editor/abbildung';
 import { useAblage } from '../editor/ablage';
 import { Konfliktleiste, Speicheranzeige, Vorschauleiste } from '../editor/Anzeigen';
 import { Bausteinleiste } from '../editor/Bausteinleiste';
 import { useBearbeitung } from '../editor/bearbeitung';
+import { seiteFliesst, useFluss, useMitlaufen } from '../editor/fluss';
 import type { MenueArt } from '../editor/befehle';
 import { istZoomTaste, kuerzelVon } from '../editor/befehle';
 import { Einfuegemarken } from '../editor/Bibliothek';
@@ -61,6 +60,7 @@ import { Palette } from '../editor/Palette';
 import { eintraegeImEditor } from '../editor/palette-eintraege';
 import { Blattwerkzeug } from '../editor/Panel';
 import { usePanels } from '../editor/panels';
+import type { PruefKnopf } from '../editor/Pruefliste';
 import type { Pruefpunkt } from '../editor/pruefung';
 import { holeInSeiteAus, ueberlaufendeSeiten, usePruefung } from '../editor/pruefung';
 import type { SchubladenId, SchubladenTeile } from '../editor/schubladen';
@@ -88,6 +88,7 @@ import { ansichtAdresse, dokumentSeite, druckSeite, inhaltAdresse, praesentation
 import { PdfKnopf } from '../pdf/PdfKnopf';
 import { dokumentWahl, materialName } from '../pdf/wahl';
 import type { DokumentEintrag, Mappe, MappenEintrag } from '../typen';
+import { MaterialFehlt, NICHT_GEFUNDEN } from './NichtGefunden';
 
 interface Eigenschaften {
 	mappe: string;
@@ -265,15 +266,6 @@ const useZeigePunkt = ({
 const mitStand = (dokument: DokumentEintrag, verlauf: { quelle: string } | null): DokumentEintrag =>
 	verlauf ? { ...dokument, meta: { ...dokument.meta, hatLoesung: hatLoesung(verlauf.quelle) } } : dokument;
 
-const Fehlt = ({ fehler }: { fehler: ApiFehler | null }) => (
-	<Zustand symbol="suche" titel="Dieses Dokument gibt es nicht mehr">
-		<p className="text-leise">
-			{fehler && fehler.status !== 404 ? fehler.message : 'Vielleicht wurde es gelöscht.'}
-		</p>
-		<KnopfLink to="/">Zu meinem Material</KnopfLink>
-	</Zustand>
-);
-
 const ZITAT_ZEICHEN = 500;
 /** Im Editor lässt sich das Format ändern (046): Es gilt, was in der Quelle steht. */
 const formatVon = (verlauf: { quelle: string } | null, sonst: Format) =>
@@ -343,14 +335,23 @@ const useEinfuegeWerkzeuge = ({
 		struktur,
 		folien,
 	});
-	const verschiebeUeberlauf =
-		struktur.aktiv && docJetzt
-			? (p: Pruefpunkt) =>
-					p.code === 'aussen'
-						? holeInSeiteAus(docJetzt, struktur.aendereAttribute, p)
-						: einfuegen.verschiebe(docJetzt, p.seite)
+	const zerlegungJetzt = struktur.gezeigt?.zerlegung ?? null;
+	const pruefKnopf =
+		struktur.aktiv && docJetzt && zerlegungJetzt
+			? (p: Pruefpunkt): PruefKnopf | null => {
+					if (p.code === 'aussen') {
+						return p.bausteine.length > 0
+							? {
+									titel: 'In die Seite holen',
+									art: 'in-seite-holen',
+									aus: () => holeInSeiteAus(docJetzt, struktur.aendereAttribute, p),
+								}
+							: null;
+					}
+					return p.code === 'ueberlauf' ? einfuegen.umbruchKnopf(docJetzt, zerlegungJetzt, p.seite) : null;
+				}
 			: undefined;
-	return { docJetzt, einfuegen, slash, verschiebeUeberlauf };
+	return { docJetzt, einfuegen, slash, pruefKnopf };
 };
 
 const versionenWerte = (
@@ -458,7 +459,7 @@ const Bearbeitung = ({ dokument, mappe: mappenDaten }: { mappe: Mappe; dokument:
 
 	const format = formatVon(b.verlauf, meta.format);
 	const quelle = b.verlauf?.quelle ?? null;
-	useTitel(`${meta.titel} bearbeiten`);
+	useTitel(b.ladeFehler ? NICHT_GEFUNDEN : `${meta.titel} bearbeiten`);
 	const sperre = sperreDesBlatts(vorschau !== null, b.konflikt !== null, entwurf.sperrt);
 	const sichtbareSeite = useRef<() => number | null>(() => null);
 	const claude = useClaude({
@@ -513,6 +514,17 @@ const Bearbeitung = ({ dokument, mappe: mappenDaten }: { mappe: Mappe; dokument:
 	const pruefung = usePruefung({ geladen, html, zerlegung, ausgang: b.ausgang, aus: vorschau !== null });
 	const schrittWeg = useRef<(richtung: 'zurueck' | 'vor') => void>(() => undefined);
 	const geschichte = useCallback((richtung: 'zurueck' | 'vor') => schrittWeg.current(richtung), []);
+	// 206-07: Beim Tippen laufen die Seiten im Bild mit; die Live-Prüfung sieht danach das neue Bild.
+	const mitlaufen = useMitlaufen({
+		doc: geladen && geladen.html === html ? geladen.doc : null,
+		zerlegung,
+		auswahl,
+		nachher: pruefung.getippt,
+	});
+	const getippt = useCallback(() => {
+		pruefung.getippt();
+		mitlaufen.getippt();
+	}, [pruefung.getippt, mitlaufen.getippt]);
 	const text = useText({
 		geschichte,
 		geladen,
@@ -523,7 +535,8 @@ const Bearbeitung = ({ dokument, mappe: mappenDaten }: { mappe: Mappe; dokument:
 		bearbeitbar: frei,
 		befehl: b.befehl,
 		pruefe: b.pruefe,
-		getippt: pruefung.getippt,
+		getippt,
+		beendet: mitlaufen.beendet,
 	});
 
 	useEffect(() => {
@@ -586,6 +599,19 @@ const Bearbeitung = ({ dokument, mappe: mappenDaten }: { mappe: Mappe; dokument:
 	useEffect(() => {
 		nachBild.current = struktur.nachBild;
 	}, [struktur.nachBild]);
+	const sichtbaresBild = useRef<Document | null>(null);
+	useEffect(() => {
+		sichtbaresBild.current = geladen?.doc ?? null;
+	}, [geladen]);
+	const vorDemZeigen = useFluss({
+		flussFaellig: b.flussFaellig,
+		flussErledigt: b.flussErledigt,
+		fliesse: b.fliesse,
+		zerlegungZu,
+		nachFluss: struktur.nachFluss,
+		auswahl: auswahlJetzt,
+		sichtbar: sichtbaresBild,
+	});
 
 	const gliederungStand = useGliederungStand(sicht.zerlegung, auswahl);
 
@@ -596,7 +622,7 @@ const Bearbeitung = ({ dokument, mappe: mappenDaten }: { mappe: Mappe; dokument:
 	const loes = useLoesung({ pfad, struktur, loesung, rueckgaengig: zurueck });
 
 	useAuswahlFolgt(geladen, html, auswahl, pfad, setAuswahl);
-	const { docJetzt, einfuegen, slash, verschiebeUeberlauf } = useEinfuegeWerkzeuge({
+	const { docJetzt, einfuegen, slash, pruefKnopf } = useEinfuegeWerkzeuge({
 		auswahl,
 		// 203-02: Die Elemente zeichnen nach der Klasse des Blatts; sie kann von der Mappe abweichen.
 		blatt: {
@@ -647,7 +673,8 @@ const Bearbeitung = ({ dokument, mappe: mappenDaten }: { mappe: Mappe; dokument:
 			aktiv: struktur.aktiv,
 			frei,
 			textsitzung: text.bearbeitet,
-			quelle,
+			// Die Auswahl hat die Nummern des Bilds: gelesen wird in dessen Quelle (206: nach ⌘Z eines Umbaus fehlt sie).
+			quelle: sicht.quelle,
 			werte: struktur.werte,
 			mitLoesung,
 			loesung,
@@ -932,7 +959,7 @@ const Bearbeitung = ({ dokument, mappe: mappenDaten }: { mappe: Mappe; dokument:
 	const darstellung = useMemo(() => ({ basis, loesung, profil }), [basis, loesung, profil]);
 
 	if (b.ladeFehler) {
-		return <Fehlt fehler={b.ladeFehler} />;
+		return <MaterialFehlt fehler={b.ladeFehler} />;
 	}
 
 	const ohneAuswahl = (
@@ -942,7 +969,9 @@ const Bearbeitung = ({ dokument, mappe: mappenDaten }: { mappe: Mappe; dokument:
 			quelle={sicht.quelle}
 			seite={{ auswahl, sichtbar: seite.nr }}
 			struktur={struktur}
-			ueberlauf={ueberlaufendeSeiten(pruefung.stand)}
+			ueberlauf={ueberlaufendeSeiten(pruefung.stand).filter(
+				(n) => !(geladen && pruefung.stand?.doc === geladen.doc && seiteFliesst(geladen.doc, geladen.zerlegung, n)),
+			)}
 			loesung={loesung ? <Loesungsuebersicht l={loes} /> : null}
 		/>
 	);
@@ -1158,6 +1187,7 @@ const Bearbeitung = ({ dokument, mappe: mappenDaten }: { mappe: Mappe; dokument:
 									textsitzung={text.bearbeitet}
 									kontextmenue={leinwandMenue}
 									geladen={merken}
+									vorDemZeigen={vorDemZeigen}
 									nurAnsehen={nurAnsehen}
 									ziehbar={struktur.aktiv}
 									ablegen={struktur.verschiebe}
@@ -1249,7 +1279,7 @@ const Bearbeitung = ({ dokument, mappe: mappenDaten }: { mappe: Mappe; dokument:
 					format={FORMAT_NAME[format]}
 					pruefung={pruefung.stand}
 					zeigePunkt={zeigePunkt}
-					verschiebe={verschiebeUeberlauf}
+					knopf={pruefKnopf}
 					zoom={zoom}
 					skala={skala}
 					fuehreAus={befehle.fuehreAus}
@@ -1273,7 +1303,7 @@ export const Editor = ({ dok, mappe }: Eigenschaften) => {
 	const { daten, fehler } = useLaden<MappenEintrag>(inhaltAdresse({ mappe, token: null }));
 	const dokument = daten?.dokumente.find((d) => d.id === dok);
 	if (fehler || (daten && !dokument)) {
-		return <Fehlt fehler={fehler} />;
+		return <MaterialFehlt fehler={fehler} />;
 	}
 	return daten && dokument ? <Bearbeitung key={`${mappe}/${dok}`} mappe={daten.mappe} dokument={dokument} /> : null;
 };

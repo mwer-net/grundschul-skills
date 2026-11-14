@@ -119,6 +119,8 @@ import {
 	X,
 } from 'lucide-react';
 
+import { klassen } from './klassen';
+
 // Ein Name je Bedeutung (063). Eine neue Bedeutung bekommt einen neuen Namen, auch wenn das Bild schon da ist.
 // Ein Name, der nur ähnlich klingt, wird nicht geliehen: ‚bewegen‘ war der Ordner der Ablage und stand an V (149).
 const SYMBOLE = {
@@ -260,7 +262,8 @@ const SYMBOLE = {
 export type SymbolName = keyof typeof SYMBOLE;
 
 /** Die einzige Schnittstelle zu den Symbolen. Sie schmücken nur; die Bedeutung steht als Text oder im `aria-label`. */
+/** 14 px und nie gestaucht; `className` ergänzt das, eine eigene `size-…` ersetzt die Größe (sonst wären es 24 px). */
 export const Symbol = ({ className, name }: { name: SymbolName; className?: string }) => {
 	const Bild = SYMBOLE[name];
-	return <Bild className={className ?? 'size-3.5 flex-none'} strokeWidth={1.75} aria-hidden="true" />;
+	return <Bild className={klassen('size-3.5 flex-none', className)} strokeWidth={1.75} aria-hidden="true" />;
 };

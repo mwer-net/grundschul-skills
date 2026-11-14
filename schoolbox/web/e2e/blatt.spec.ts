@@ -1,3 +1,5 @@
+import { readFile, writeFile } from 'node:fs/promises';
+
 import type { Locator, Page } from '@playwright/test';
 
 import { aendere, geladen, material, oeffne, quelle, uhrzeit } from './editorhilfe';
@@ -124,15 +126,26 @@ test.describe('Reiter „Blatt“: Abstand, Punkte (082)', () => {
 		await expect(regler(page)).toHaveValue('60');
 	});
 
-	test('läuft eine Seite über, sagt es der Regler und kürzt nichts', async ({ page }) => {
+	test('großer Abstand: Das Blatt läuft auf eine zweite Seite weiter, kein Satz „läuft über“ (206)', async ({ page }) => {
 		const { dok, id } = await uhrzeit();
 		await oeffne(page, id, dok);
 		const hinweis = page.locator('[data-abstand-ueberlauf]');
+		await regler(page).fill('120');
+		await expect.poll(() => quelle(page)).toContain('data-weiter="auto"');
+		expect(await quelle(page)).toContain('--abstand:120px');
+		await expect(material(page).locator('body > .seite')).toHaveCount(2);
 		await expect(hinweis).toHaveCount(0);
+		await expect(regler(page)).toHaveValue('120');
+	});
+
+	test('läuft eine Folie über, sagt es der Regler und kürzt nichts', async ({ page }) => {
+		const { dok, id, material: datei } = await uhrzeit();
+		await writeFile(datei, (await readFile(datei, 'utf8')).replace('<body class="kl2', '<body class="kl2 folie'));
+		await oeffne(page, id, dok);
+		const hinweis = page.locator('[data-abstand-ueberlauf]');
 		await regler(page).fill('120');
 		await expect(hinweis).toHaveText('Seite 1 läuft über.');
-		expect(await quelle(page)).toContain('--abstand:120px');
-		await expect(regler(page)).toHaveValue('120');
+		expect(await quelle(page)).not.toContain('data-weiter');
 	});
 
 	test('„Punkte zeigen“ gibt es nur, wenn er wirkt', async ({ druecke, page }) => {

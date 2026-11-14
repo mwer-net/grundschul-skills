@@ -3,6 +3,7 @@ import { useMemo } from 'react';
 
 import { klassen } from '../bausteine/klassen';
 import { Symbol } from '../bausteine/Symbol';
+import { Tooltip } from '../bausteine/Tooltip';
 import { useAblage } from './kontext';
 import { NamensFeld } from './NamensFeld';
 import { ordnerObjekt, WURZEL_NAME } from './objekte';
@@ -108,10 +109,12 @@ const BaumZeile = ({
 		<Symbol name={symbol} className={klassen('size-3.5 flex-none', aktiv ? 'text-brand-600' : 'text-leise')} />
 		<span className="min-w-0 flex-1 truncate">{name}</span>
 		{geteilt && (
-			<span title="Geteilt" className="flex-none text-dezent">
-				<Symbol name="teilen" className="size-3" />
-				<span className="sr-only">geteilt</span>
-			</span>
+			<Tooltip text="Geteilt">
+				<span className="flex-none text-dezent">
+					<Symbol name="teilen" className="size-3" />
+					<span className="sr-only">geteilt</span>
+				</span>
+			</Tooltip>
 		)}
 	</div>
 );

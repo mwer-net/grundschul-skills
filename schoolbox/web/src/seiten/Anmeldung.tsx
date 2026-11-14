@@ -1,5 +1,5 @@
 import type { FormEvent } from 'react';
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
 
 import { lade, meldung, sende, sichererPfad } from '../api';
@@ -10,7 +10,10 @@ import { useTitel } from '../lib/titel';
 
 export const Anmeldung = () => {
 	const [parameter] = useSearchParams();
-	const weiter = sichererPfad(parameter.get('weiter'));
+	// Leitet der Server zur Anmeldung um, bleibt die Sprungmarke an dieser Adresse hängen statt in `weiter` (187-03).
+	const ziel = sichererPfad(parameter.get('weiter'));
+	const weiter = ziel.includes('#') ? ziel : `${ziel}${window.location.hash}`;
+	const feld = useRef<HTMLInputElement>(null);
 	const [passwort, setPasswort] = useState('');
 	const [bleiben, setBleiben] = useState(true);
 	const [fehler, setFehler] = useState<string | null>(null);
@@ -37,15 +40,17 @@ export const Anmeldung = () => {
 		} catch (grund) {
 			setFehler(meldung(grund));
 			setLaeuft(false);
+			// Wie am Anmeldefenster des Mac: Neu tippen ersetzt das falsche Passwort (187-09).
+			requestAnimationFrame(() => feld.current?.select());
 		}
 	};
 
 	return (
-		<main className="flex min-h-dvh items-center justify-center p-4">
+		// Feste Oberkante: Die Fehlermeldung schiebt nur den Knopf nach unten (187-08).
+		<main className="flex min-h-dvh items-start justify-center p-4 pt-[30vh]">
 			<Kachel className="w-full max-w-sm">
 				<form className="flex flex-col gap-3 p-5" onSubmit={(e) => void absenden(e)}>
 					<h1 className="text-2xl font-semibold text-tinte">Schoolbox</h1>
-					<p className="text-leise">Bitte gib dein Passwort ein.</p>
 					{/* Safari speichert Passwörter zu einem Benutzernamen; diesen sieht niemand. */}
 					<input
 						className="sr-only"
@@ -61,6 +66,7 @@ export const Anmeldung = () => {
 						Passwort
 						<input
 							className={`${FELD_KLASSEN} w-full font-normal`}
+							ref={feld}
 							name="password"
 							type="password"
 							autoComplete="current-password"

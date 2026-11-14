@@ -30,16 +30,23 @@ const Satz = ({ mitSeite, p }: { p: Pruefpunkt; mitSeite: boolean }) => (
 	</>
 );
 
+/** Der Knopf unter einer Meldung: „Auf nächste Seite umbrechen“, „Tabelle teilen“ (206-05), „In die Seite holen“ (096). */
+export interface PruefKnopf {
+	titel: string;
+	art: 'umbrechen' | 'tabelle' | 'in-seite-holen';
+	aus: () => void;
+}
+
 const Eintrag = ({
+	knopf,
 	mitSeite,
 	p,
-	verschiebe,
 	zeige,
 }: {
 	p: Pruefpunkt;
 	mitSeite: boolean;
 	zeige: (p: Pruefpunkt) => void;
-	verschiebe?: ((p: Pruefpunkt) => void) | undefined;
+	knopf: PruefKnopf | null;
 }) => (
 	<li>
 		<button
@@ -55,14 +62,9 @@ const Eintrag = ({
 		>
 			<Satz p={p} mitSeite={mitSeite} />
 		</button>
-		{verschiebe && p.code === 'ueberlauf' && (
-			<Knopf art="zweit" className="mt-1 w-full" data-ueberlauf-verschieben onClick={() => verschiebe(p)}>
-				Auf neue Seite verschieben
-			</Knopf>
-		)}
-		{verschiebe && p.code === 'aussen' && p.bausteine.length > 0 && (
-			<Knopf art="zweit" className="mt-1 w-full" data-in-seite-holen onClick={() => verschiebe(p)}>
-				In die Seite holen
+		{knopf && (
+			<Knopf art="zweit" className="mt-1 w-full" data-pruefknopf={knopf.art} onClick={knopf.aus}>
+				{knopf.titel}
 			</Knopf>
 		)}
 	</li>
@@ -72,8 +74,8 @@ interface Eigenschaften {
 	stand: Pruefstand | null;
 	/** Zum Element rollen und es auswählen. */
 	zeige: (p: Pruefpunkt) => void;
-	/** Legt, was über die Seite ragt, auf eine neue Seite (044); bei `aussen` holt es das Element in die Seite (096). */
-	verschiebe?: ((p: Pruefpunkt) => void) | undefined;
+	/** Was die Meldung anbietet; der Überlauf einer Seite nur an ihrer ersten Meldung (206-05). */
+	knopf?: ((p: Pruefpunkt) => PruefKnopf | null) | undefined;
 }
 
 const FARBE_STATUS = { ok: 'text-gut', warnung: 'text-warnung', fehler: 'text-fehler' } as const;
@@ -82,12 +84,17 @@ const FARBE_STATUS = { ok: 'text-gut', warnung: 'text-warnung', fehler: 'text-fe
  * In der Statusleiste: „Alles passt“ oder „2 Dinge prüfen“, die Liste geht als Popover auf. Hinweise stehen grau und
  * eingeklappt darunter.
  */
-export const Pruefstatus = ({ stand, verschiebe, zeige }: Eigenschaften) => {
+export const Pruefstatus = ({ knopf, stand, zeige }: Eigenschaften) => {
 	if (!stand) {
 		return null;
 	}
 	const { mehrereSeiten, punkte } = stand;
 	const wichtig = punkte.filter((p) => p.stufe !== 'HINWEIS');
+	const ersteUeberlaeufe = punkte.filter(
+		(p, i) => p.code === 'ueberlauf' && punkte.findIndex((q) => q.code === 'ueberlauf' && q.seite === p.seite) === i,
+	);
+	const knopfZu = (p: Pruefpunkt) =>
+		knopf && (p.code !== 'ueberlauf' || ersteUeberlaeufe.includes(p)) ? knopf(p) : null;
 	const hinweise = punkte.filter((p) => p.stufe === 'HINWEIS');
 	const zustand = zustandVon(wichtig);
 	const titel = wichtig.length === 1 ? '1 Ding prüfen' : `${wichtig.length} Dinge prüfen`;
@@ -129,7 +136,7 @@ export const Pruefstatus = ({ stand, verschiebe, zeige }: Eigenschaften) => {
 											p={p}
 											mitSeite={mehrereSeiten}
 											zeige={waehle}
-											verschiebe={verschiebe}
+											knopf={knopfZu(p)}
 										/>
 									))}
 								</ul>
@@ -146,7 +153,7 @@ export const Pruefstatus = ({ stand, verschiebe, zeige }: Eigenschaften) => {
 												p={p}
 												mitSeite={mehrereSeiten}
 												zeige={waehle}
-												verschiebe={verschiebe}
+												knopf={knopfZu(p)}
 											/>
 										))}
 									</ul>

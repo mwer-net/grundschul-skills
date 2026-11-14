@@ -28,7 +28,7 @@ export const Ordnerleiste = ({ blass, gehe, klappe, kontext, offen, seite, stand
 		aria-label="Ablage"
 		data-ordnerleiste
 		data-seitenleiste
-		className="sticky top-[var(--kopf,0px)] flex h-[calc(100dvh-var(--kopf,0px))] w-[220px] flex-none flex-col gap-1 border-r border-rand bg-flaeche p-1.5"
+		className="sticky top-[var(--kopf,0px)] flex h-[calc(100dvh-var(--kopf,0px))] w-[220px] flex-none flex-col gap-1 border-r border-rand bg-flaeche px-1.5 pt-1.5 pb-12"
 	>
 		<button
 			type="button"

@@ -146,7 +146,7 @@ const KitFeldInLeiste = ({
  * Löschen, ⋯. Beim Tippen bleiben nur Name, Schrift und „Fertig“, ohne dass die Schriftknöpfe den Platz wechseln.
  */
 const MEHR_KNOPF = (
-	<Knopf art="leise" groesse="klein" className="size-knopf-klein px-0">
+	<Knopf art="leise" groesse="klein" className="size-knopf-klein">
 		<Symbol name="mehr" />
 	</Knopf>
 );

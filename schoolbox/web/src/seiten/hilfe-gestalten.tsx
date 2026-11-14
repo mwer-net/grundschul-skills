@@ -22,7 +22,7 @@ export const GESTALTEN: Abschnitt = {
 			</p>
 			<h3>Bausteine ziehen</h3>
 			<p>
-				Einen Baustein in der Schublade „Bausteine“ antippen fügt ihn hinter der Auswahl ein, wie bisher. Du
+				Einen Baustein in der Schublade „Bausteine“ antippen fügt ihn hinter der Auswahl ein. Du
 				kannst ihn auch an die richtige Stelle ziehen: mit der Maus oder am iPad nach kurzem Halten. Schon vor
 				dem Loslassen öffnet sich im Blatt eine Lücke, und die Nummern dahinter rücken nach. Loslassen fügt ein,
 				⌘Z nimmt es in einem Schritt zurück. Esc oder Loslassen neben der Seite bricht ab, das Blatt bleibt, wie
@@ -43,12 +43,12 @@ export const GESTALTEN: Abschnitt = {
 				Beim Ziehen und beim Größe ändern rastet das Element an der Mitte der Seite, am Innenrand, am Druckrand,
 				an den Kanten und Mitten anderer Gestaltungselemente und an den Kanten der Bausteine ein; eine rosa
 				Linie zeigt, woran. Hältst du dabei ⌘, rastet nichts ein. Die Pfeiltasten schieben ein gewähltes Element
-				um 1 Pixel, mit ⇧ um 10 Pixel; ist ein Baustein gewählt, wählen sie wie bisher den nächsten. Was vorne
+				um 1 Pixel, mit ⇧ um 10 Pixel; ist ein Baustein gewählt, wählen sie den nächsten. Was vorne
 				oder hinten liegt, ändern ⌥⇧⌘F (nach vorne), ⇧⌘F (ganz nach vorne), ⌥⇧⌘B (nach hinten) und ⇧⌘B (ganz
 				nach hinten), auch im ⋯ der Leiste. Liegt es schon ganz vorne in der Ebene „hinten“, wechselt es nach
 				„vorne“, und umgekehrt. Solange du G hältst, zeigt das Blatt seinen Aufbau: den Rand des Stapels, den
 				Druckrand, Anker und Ausgeblendetes. Lässt du los, sieht es wieder aus wie gedruckt. Am iPad schaltet
-				„Durchblick ein/aus“ in der Befehlssuche ⌘K das um.
+				„Durchblick ein/aus“ in den Befehlen (⌘K) das um.
 			</p>
 
 			<h3>Mehrere Elemente auf einmal</h3>
@@ -62,7 +62,7 @@ export const GESTALTEN: Abschnitt = {
 			<p data-hilfe-ausrichten>
 				Die Leiste zeigt bei mehreren „Ausrichten“ und ab drei Elementen „Verteilen“. Ausrichten bringt alle an
 				eine Kante oder Mitte der gemeinsamen Auswahl, Verteilen setzt gleiche Abstände. Ein einzelnes Element
-				richtest du über „Mehr“ an der Seite aus, innerhalb des Rands. Rechts im Inspektor stehen Lage und Größe
+				richtest du über ⋯ an der Seite aus, innerhalb des Rands. Rechts im Inspektor stehen Lage und Größe
 				der ganzen Auswahl; steht dort „gemischt“, haben die Elemente verschiedene Werte, und ein neuer Wert
 				gilt für alle.
 			</p>
@@ -157,7 +157,7 @@ export const GESTALTEN: Abschnitt = {
 				{' oder '}
 				mit „Spiegeln“ in der Leiste darüber, drehst sie dort oder am runden Griff, und an den Ecken bleibt sie
 				beim Größe ändern im Verhältnis. Rechts im Inspektor tauschst du sie gegen eine andere Figur oder Pose,
-				Platz und Größe bleiben. Hältst du beim Ziehen ⌘, kommt die Figur wie bisher als Tipp mit Sprechblase in
+				Platz und Größe bleiben. Hältst du beim Ziehen ⌘, kommt die Figur als Tipp mit Sprechblase in
 				den Stapel. In Schwarz-Weiß druckt eine Figur mit Strichzeichnung diese, die anderen in Graustufen. Als
 				Leitfigur in einer Zeile findest du beide weiter unter „Bausteine“, „Bilder“.
 			</p>
@@ -321,7 +321,7 @@ export const GESTALTEN: Abschnitt = {
 			<p data-hilfe-flaeche-hinein>
 				Ein Element kommt auf drei Wegen in eine Fläche: Du ziehst es auf eine vorhandene Fläche, du wählst „In
 				den Stapel“ im Menü ⋯ der Leiste am Element (dann entsteht eine neue Fläche passender Höhe an der
-				Stelle, wo das Element liegt), oder du ziehst es mit gedrückter ⌘-Taste aus der Schublade. Zieht du ein
+				Stelle, wo das Element liegt), oder du ziehst es mit gedrückter ⌘-Taste aus der Schublade. Ziehst du ein
 				Element aus der Fläche auf die Seite, liegt es danach wieder frei vor deinen Aufgaben. Es bleibt dabei
 				an derselben Stelle auf dem Blatt. Passt etwas nicht ganz in die Fläche, zeigt dir die Prüfung
 				„abgeschnitten“: Mach die Fläche höher oder das Element kleiner.

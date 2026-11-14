@@ -285,6 +285,15 @@ body[data-zieht] iframe {
 		margin-top: 0.5rem;
 	}
 
+	/* Lesbare Zeilen (187-18): Fließtext höchstens rund 90 Zeichen; Bilder und Tastenlisten behalten die Breite. */
+	.hilfe-text > p,
+	.hilfe-text > ul,
+	.hilfe-text > ol,
+	.hilfe-text > h3,
+	.hilfe-text > h4 {
+		max-width: 44rem;
+	}
+
 	.hilfe-text h3 {
 		margin-top: 1rem;
 		font-size: var(--text-lg);

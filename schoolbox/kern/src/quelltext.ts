@@ -571,6 +571,32 @@ export const nimmAuf = (v: Verlauf, neu: string, beschreibung: string, auswahl: 
 		: v;
 };
 
+/**
+ * Die neue Fassung gehört zum letzten Schritt (Entscheidung 36): Er nimmt sie mit auf und behält Namen und Auswahl.
+ * Kommt dabei die Quelle von vor dem Schritt heraus, bleibt kein Schritt. Ohne Schritt davor wird es einer mit
+ * `beschreibung`.
+ */
+export const fasseMitLetztemZusammen = (
+	v: Verlauf,
+	neu: string,
+	auswahl: number | null = null,
+	beschreibung = 'Text geändert',
+): Verlauf => {
+	const letzter = v.zurueck.at(-1);
+	if (!letzter) {
+		const schritt = unterschied(v.quelle, neu, beschreibung);
+		return schritt ? { quelle: neu, zurueck: [{ ...schritt, auswahlVorher: auswahl }], vor: [] } : v;
+	}
+	const vorher = rueckwaerts(v.quelle, letzter);
+	const schritt = unterschied(vorher, neu, letzter.beschreibung);
+	const frueher = v.zurueck.slice(0, -1);
+	return {
+		quelle: neu,
+		zurueck: schritt ? [...frueher, { ...schritt, auswahlVorher: letzter.auswahlVorher ?? null }] : frueher,
+		vor: [],
+	};
+};
+
 export const macheRueckgaengig = (v: Verlauf, auswahl: number | null = null): Verlauf => {
 	const schritt = v.zurueck.at(-1);
 	if (!schritt) {

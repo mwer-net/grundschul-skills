@@ -1,6 +1,8 @@
-import { BrowserRouter, Route, Routes, useParams } from 'react-router-dom';
+import type { ReactNode } from 'react';
+import { BrowserRouter, Route, Routes, useLocation, useParams } from 'react-router-dom';
 
 import { ANMELDE_SEITE } from './api';
+import { Fehlergrenze } from './bausteine/Fehlergrenze';
 import { HinweisAnbieter } from './bausteine/Hinweisleiste';
 import { Meldeknopf } from './bausteine/Meldeknopf';
 import { MenueAnbieter } from './bausteine/MenueAmPunkt';
@@ -51,11 +53,18 @@ const PraesentationSeite = () => {
 	return <Praesentation key={`${mappe}/${dok}`} zugang={{ mappe, token: null }} dok={dok} />;
 };
 
+/** Eine andere Adresse versucht es nach einem Absturz neu. */
+const Grenze = ({ children }: { children: ReactNode }) => {
+	const { pathname } = useLocation();
+	return <Fehlergrenze schluessel={pathname}>{children}</Fehlergrenze>;
+};
+
 export const App = () => (
 	<BrowserRouter>
 		<HinweisAnbieter>
 			<TooltipAnbieter>
 				<MenueAnbieter>
+					<Grenze>
 					<Routes>
 						<Route path={ANMELDE_SEITE} element={<Anmeldung />} />
 						{import.meta.env.DEV && <Route path="_bausteine" element={<Bausteine />} />}
@@ -79,6 +88,7 @@ export const App = () => (
 							<Route path="*" element={<NichtGefunden />} />
 						</Route>
 					</Routes>
+					</Grenze>
 					<Meldeknopf />
 				</MenueAnbieter>
 			</TooltipAnbieter>

@@ -483,7 +483,7 @@ test.describe('Editor: Bausteine einfügen', () => {
 		await expect(page.locator('[data-slash-menue]')).toHaveCount(0);
 	});
 
-	test('Überlauf: Die Meldung bietet das Verschieben an, danach passt alles', async ({ druecke, page }) => {
+	test('Überlauf: Nach dem Tippen läuft das Blatt von selbst auf Seite 2 (206)', async ({ druecke, page }) => {
 		const { dok, id } = await uhrzeit();
 		await oeffne(page, id, dok);
 		const anweisung = material(page).locator('.aufgabe').nth(2).locator('.anw .text');
@@ -492,12 +492,9 @@ test.describe('Editor: Bausteine einfügen', () => {
 		await page.keyboard.press('End');
 		await page.keyboard.insertText(' Und dann noch ein Satz, der immer weiter geht.'.repeat(20));
 		await material(page).locator('.kopf').first().click();
-		const summe = page.locator('[data-pruefung] > button');
-		await expect(page.locator('[data-pruefung="fehler"]')).toBeVisible();
-		await summe.click();
-		await page.locator('[data-ueberlauf-verschieben]').first().click();
+		await expect.poll(() => quelle(page)).toContain('data-weiter="auto"');
+		await expect(material(page).locator('body > .seite')).toHaveCount(2);
 		await expect(page.locator('[data-pruefung="ok"]')).toBeVisible();
-		await expect(material(page).locator('.seite')).toHaveCount(2);
 	});
 
 	test('Ebenen: Klick springt, das Menü ordnet', async ({ hasTouch, page }) => {

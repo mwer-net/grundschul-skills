@@ -22,6 +22,13 @@ test.describe('Kontextmenü (070)', () => {
 		await expect(menue.getByRole('menuitem', { name: /Neue Zahlen/ })).toHaveCount(0);
 		await expect(menue.getByRole('menuitem').last()).toHaveText(/Löschen/);
 		expect(await menue.getByRole('menuitem').count()).toBeLessThanOrEqual(12);
+		// 206-06: Vor der ersten Aufgabe beginnt keine neue Seite, vor der zweiten schon.
+		await expect(menue.getByRole('menuitem', { name: /Ab hier neue Seite/ })).toHaveCount(0);
+		await page.keyboard.press('Escape');
+		await material(page).locator('.aufgabe').nth(1).locator('.nr').click({ button: 'right' });
+		await expect(menue.getByRole('menuitem', { name: /Ab hier neue Seite/ })).toBeVisible();
+		await expect(menue.getByRole('menuitem').last()).toHaveText(/Löschen/);
+		expect(await menue.getByRole('menuitem').count()).toBeLessThanOrEqual(12);
 	});
 
 	test('Duplizieren aus dem Menü, Rückgängig, die Tastatur bleibt im Blatt', async ({ page }) => {

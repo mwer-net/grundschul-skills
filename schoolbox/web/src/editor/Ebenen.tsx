@@ -1,4 +1,5 @@
 import { ankerZiele, haengeAn, loeseAnker } from '@schoolbox/kern/src/anker';
+import { istAutomatisch } from '@schoolbox/kern/src/fluss-blatt';
 import { setzeName } from '@schoolbox/kern/src/gestaltung';
 import type { EbenenName } from '@schoolbox/kern/src/gestaltung-arten';
 import type { Zerlegung } from '@schoolbox/kern/src/quelltext';
@@ -39,7 +40,7 @@ const FEDERN_MS = 600;
 const EINZUG_PX = 12;
 
 const ART_KNOPF = (
-	<Knopf art="zweit" className="size-knopf rounded-l-none border-l-0 px-0">
+	<Knopf art="zweit" className="size-knopf rounded-l-none border-l-0">
 		<Symbol name="runter" className="size-3 flex-none" />
 	</Knopf>
 );
@@ -991,6 +992,8 @@ export const Ebenen = ({
 		const name = `Seite ${i + 1}`;
 		const zugeklappt = !stand.offen(s.schluessel) || zug?.seite === true;
 		const griffDaten = { nr: s.nr, name, art: 'Seite' };
+		// 206: Eine automatische Seite zieht man nicht, sie gehört zur Seite davor.
+		const ohneGriff = festeSeiten || istAutomatisch(zerlegung?.knoten[s.nr]);
 		const anzahl = stapelVon(s).filter((k) => !k.fest).length;
 		return (
 			<div
@@ -1012,10 +1015,10 @@ export const Ebenen = ({
 					data-seite-id={s.id}
 					{...(zugeklappt ? { 'data-zu': true } : {})}
 					data-seite-zeile={i + 1}
-					onPointerDown={(e) => druecke(e, true, griffDaten, !festeSeiten)}
+					onPointerDown={(e) => druecke(e, true, griffDaten, !ohneGriff)}
 					onContextMenu={(e) => menue(e, s.nr, 'miniatur')}
 				>
-					{festeSeiten ? LUECKE : <Griff beschriftung="Seite ziehen" tabIndex={-1} data-griff-zeile />}
+					{ohneGriff ? LUECKE : <Griff beschriftung="Seite ziehen" tabIndex={-1} data-griff-zeile />}
 					{pfeil(s.schluessel, zugeklappt)}
 					<button
 						type="button"

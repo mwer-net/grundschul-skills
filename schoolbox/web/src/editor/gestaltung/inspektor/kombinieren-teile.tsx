@@ -2,6 +2,7 @@ import { useEffect } from 'react';
 
 import { Knopf } from '../../../bausteine/Knopf';
 import { Symbol } from '../../../bausteine/Symbol';
+import { Tooltip } from '../../../bausteine/Tooltip';
 import { Zeile } from '../../../bausteine/Zeile';
 import {
 	KOMBI_ARTEN,
@@ -31,18 +32,18 @@ export const Kombinieren = ({ aktiv, k }: InspektorTeile) => {
 			<Zeile titel="Kombinieren">
 				<span className="flex items-center gap-0.5" role="group" aria-label="Kombinieren">
 					{KOMBI_ARTEN.map(({ art, id, symbol, titel }) => (
-						<Knopf
-							key={art}
-							art="leise"
-							groesse="klein"
-							aria-label={titel}
-							title={grund ?? `${titel}: ${KOMBI_HINWEIS}`}
-							data-befehl={id}
-							disabled={!aktiv || grund !== null}
-							onClick={() => kombiniereIm(k, art)}
-						>
-							<Symbol name={symbol} />
-						</Knopf>
+						<Tooltip key={art} text={grund ?? `${titel}: ${KOMBI_HINWEIS}`}>
+							<Knopf
+								art="leise"
+								groesse="klein"
+								aria-label={titel}
+								data-befehl={id}
+								disabled={!aktiv || grund !== null}
+								onClick={() => kombiniereIm(k, art)}
+							>
+								<Symbol name={symbol} />
+							</Knopf>
+						</Tooltip>
 					))}
 				</span>
 			</Zeile>

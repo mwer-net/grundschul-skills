@@ -133,12 +133,6 @@ test.describe('Kürzel nur in Menü, Palette, Tooltip und Hilfe (53)', () => {
 	});
 
 	test('Tooltips zeigen Name und Kürzel aus dem Register, ohne Gesten', async ({ page }) => {
-		await page.goto('/');
-		await page.locator('[data-kopf-rechts] [data-palette-knopf]').hover();
-		await expect(tooltip(page)).toContainText('Befehle');
-		await expect(tooltip(page)).toContainText(/⌘K|Strg\+K/);
-		await zeigerWeg(page);
-
 		const { dok, id } = await uhrzeit();
 		await oeffne(page, id, dok);
 		await schubladenKnopf(page, 'werkzeuge').hover();
@@ -147,6 +141,7 @@ test.describe('Kürzel nur in Menü, Palette, Tooltip und Hilfe (53)', () => {
 		await zeigerWeg(page);
 
 		await page.locator('[data-statusleiste] [data-palette-knopf]').hover();
+		await expect(tooltip(page)).toContainText('Befehle');
 		await expect(tooltip(page)).toContainText(/⌘K|Strg\+K/);
 		await zeigerWeg(page);
 
@@ -178,12 +173,13 @@ test.describe('Kürzel nur in Menü, Palette, Tooltip und Hilfe (53)', () => {
 		await expect(tooltip(page)).toHaveCount(0);
 	});
 
-	test('Ablage: Suchfeld ohne Kürzel, „Befehle“ im Kopf öffnet die Palette', async ({ page }) => {
+	test('Ablage: Suchfeld ohne Kürzel, ⌘K öffnet die Palette (189-31: ohne Knopf im Kopf)', async ({ page }) => {
 		await page.goto('/');
 		const suche = page.getByPlaceholder('Material und Ordner suchen');
 		await expect(suche).toBeVisible();
 		await expect(page.locator('header kbd')).toHaveCount(0);
-		await page.locator('[data-kopf-rechts]').getByRole('button', { name: 'Befehle' }).click();
+		await expect(page.locator('[data-kopf-rechts] [data-palette-knopf]')).toHaveCount(0);
+		await page.keyboard.press('ControlOrMeta+k');
 		await expect(page.locator('[data-befehlspalette]')).toBeVisible();
 		await page.keyboard.press('Escape');
 		await expect(page.locator('[data-befehlspalette]')).toBeHidden();

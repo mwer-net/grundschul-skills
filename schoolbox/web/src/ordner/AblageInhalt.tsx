@@ -1,5 +1,6 @@
 import { useNavigate, useSearchParams } from 'react-router-dom';
 
+import { Karte } from '../bausteine/Karte';
 import { Knopf, KnopfLink } from '../bausteine/Knopf';
 import { Symbol } from '../bausteine/Symbol';
 import { Zustand } from '../bausteine/Zustand';
@@ -54,9 +55,7 @@ const LeererOrdner = ({
 		{!hier && (
 			<>
 				<p className="text-lg">Schreib Claude, was du brauchst, zum Beispiel:</p>
-				<p className="rounded-2xl bg-flaeche px-6 py-4 text-lg shadow-2">
-					„Ich brauche ein Arbeitsblatt zur Uhrzeit für Klasse 2.“
-				</p>
+				<Karte className="px-6 py-4 text-lg">„Ich brauche ein Arbeitsblatt zur Uhrzeit für Klasse 2.“</Karte>
 				<p className="text-leise">Sobald Claude etwas angelegt hat, erscheint es hier von selbst.</p>
 			</>
 		)}

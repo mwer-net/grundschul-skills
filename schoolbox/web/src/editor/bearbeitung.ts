@@ -1,7 +1,14 @@
 import { ergaenzeBoegen } from '@schoolbox/kern/src/bogen';
 import { ergaenzeFormen } from '@schoolbox/kern/src/formen-aendern';
 import type { Verlauf } from '@schoolbox/kern/src/quelltext';
-import { macheRueckgaengig, neuerVerlauf, nimmAuf, wiederhole } from '@schoolbox/kern/src/quelltext';
+import {
+	fasseMitLetztemZusammen,
+	macheRueckgaengig,
+	neuerVerlauf,
+	nimmAuf,
+	unterschied,
+	wiederhole,
+} from '@schoolbox/kern/src/quelltext';
 import { fasseMitAnlegenZusammen } from '@schoolbox/kern/src/schmuck';
 import { ergaenzeStreuungen } from '@schoolbox/kern/src/streuen';
 import type { RefObject } from 'react';
@@ -10,6 +17,7 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import type { ApiFehler } from '../api';
 import { lade, meldung, sende } from '../api';
 import { useHinweis } from '../bausteine/hinweis';
+import { FLUSS_RUNDEN } from './fluss';
 import type { Basis } from './speichern';
 import { useSpeichern } from './speichern';
 
@@ -29,6 +37,28 @@ const GEAENDERT: Record<'claude' | 'lehrkraft', string> = {
  * wird nur angezeigt und mit dem nächsten Schritt geschrieben, nicht schon beim Öffnen. 109: Streuungen ohne Teile
  * ebenso, 110: Titel im Bogen ebenso.
  */
+/** Länger wartet das Speichern nicht auf den Fluss; dann gilt die Fassung, wie sie ist. */
+const FLUSS_MS = 10_000;
+
+interface Fluss {
+	/** Die Fassung, deren Bild noch umgelegt werden darf. */
+	quelle: string;
+	runden: number;
+	seit: number;
+	/** Was der Schritt in `quelle` geändert hat (Regel 3: Das Blatt darum ist betroffen). */
+	bereich: Bereich;
+}
+
+export interface Bereich {
+	von: number;
+	bis: number;
+}
+
+const bereichVon = (alt: string | null, neu: string): Bereich => {
+	const s = alt === null ? null : unterschied(alt, neu, '');
+	return s ? { von: s.von, bis: s.von + s.neu.length } : { von: 0, bis: 0 };
+};
+
 const mitFormen = (b: Basis): Basis => ({ ...b, quelle: ergaenzeBoegen(ergaenzeStreuungen(ergaenzeFormen(b.quelle))) });
 
 /**
@@ -49,6 +79,12 @@ export const useBearbeitung = (mappe: string, dok: string, auswahl: RefObject<nu
 	const quelle = useRef<string | null>(null);
 	/** Solange ein Vorschlag angenommen wird, ist die Änderung vom Server ein Schritt in Rückgängig. */
 	const alsSchritt = useRef<string | null>(null);
+	/** 206: Nach einem Schritt legt der Editor die Seiten des betroffenen Blatts um, als Teil desselben Schritts. */
+	const fluss = useRef<Fluss | null>(null);
+	const flussFuer = (alt: string | null, neu: string, runden = FLUSS_RUNDEN) => {
+		fluss.current = runden > 0 ? { quelle: neu, runden, seit: Date.now(), bereich: bereichVon(alt, neu) } : null;
+	};
+	const wartet = useCallback(() => fluss.current !== null && Date.now() - fluss.current.seit < FLUSS_MS, []);
 
 	useEffect(() => {
 		quelle.current = verlauf?.quelle ?? null;
@@ -64,6 +100,7 @@ export const useBearbeitung = (mappe: string, dok: string, auswahl: RefObject<nu
 	const speicher = useSpeichern({
 		adresse,
 		quelle: verlauf?.quelle ?? null,
+		wartet,
 		beiKonflikt: () => {
 			setKonflikt({ urheber: null });
 			void sichere();
@@ -74,6 +111,7 @@ export const useBearbeitung = (mappe: string, dok: string, auswahl: RefObject<nu
 	const uebernimm = useCallback(
 		(geladen: Basis) => {
 			const neu = mitFormen(geladen);
+			fluss.current = null;
 			setzeBasis(neu);
 			quelle.current = neu.quelle;
 			setVerlauf(neuerVerlauf(neu.quelle));
@@ -103,6 +141,7 @@ export const useBearbeitung = (mappe: string, dok: string, auswahl: RefObject<nu
 					setzeBasis(aktuell);
 					quelle.current = aktuell.quelle;
 					const gewaehlt = auswahl.current;
+					flussFuer(quelle.current, aktuell.quelle);
 					setVerlauf((v) =>
 						v ? nimmAuf(v, aktuell.quelle, schritt, gewaehlt) : neuerVerlauf(aktuell.quelle),
 					);
@@ -137,6 +176,9 @@ export const useBearbeitung = (mappe: string, dok: string, auswahl: RefObject<nu
 		(neu: string, beschreibung: string, mitAnlegen = false) => {
 			if (!konflikt) {
 				const gewaehlt = auswahl.current;
+				if (neu !== quelle.current) {
+					flussFuer(quelle.current, neu);
+				}
 				// 105: Die erste Textsitzung neuer Schmuckschrift wird mit dem Anlegen ein Schritt.
 				setVerlauf(
 					(v) =>
@@ -151,14 +193,35 @@ export const useBearbeitung = (mappe: string, dok: string, auswahl: RefObject<nu
 	);
 
 	const rueckgaengig = useCallback(() => {
+		fluss.current = null;
 		const gewaehlt = auswahl.current;
 		setVerlauf((v) => v && macheRueckgaengig(v, gewaehlt));
 	}, [auswahl]);
 	const wiederholen = useCallback(() => {
+		fluss.current = null;
 		const gewaehlt = auswahl.current;
 		setVerlauf((v) => v && wiederhole(v, gewaehlt));
 	}, [auswahl]);
 	const quelleJetzt = useCallback(() => quelle.current, []);
+
+	/** Darf das Bild dieser Fassung noch umgelegt werden? Dann: was der Schritt darin geändert hat. */
+	const flussFaellig = useCallback(
+		(q: string) => (wartet() && fluss.current?.quelle === q ? fluss.current.bereich : null),
+		[wartet],
+	);
+	const flussErledigt = useCallback(() => {
+		fluss.current = null;
+	}, []);
+	/** Die umgelegte Fassung wird Teil des letzten Schritts; ein Umbau darf ihr noch folgen (Regel 29). */
+	const fliesse = useCallback(
+		(neu: string) => {
+			const gewaehlt = auswahl.current;
+			flussFuer(quelle.current, neu, (fluss.current?.runden ?? 1) - 1);
+			quelle.current = neu;
+			setVerlauf((v) => v && fasseMitLetztemZusammen(v, neu, gewaehlt));
+		},
+		[auswahl],
+	);
 
 	const arbeite = async (arbeit: () => Promise<void>) => {
 		setLaeuft(true);
@@ -198,6 +261,9 @@ export const useBearbeitung = (mappe: string, dok: string, auswahl: RefObject<nu
 		laeuft,
 		speicher,
 		befehl,
+		fliesse,
+		flussFaellig,
+		flussErledigt,
 		rueckgaengig,
 		wiederholen,
 		pruefe,

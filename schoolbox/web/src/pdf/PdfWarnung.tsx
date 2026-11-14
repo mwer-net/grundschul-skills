@@ -37,7 +37,27 @@ export const PdfWarnung = ({ ganzeMappe, mappe, meldungen, schliessen, weiter, w
 	};
 
 	return (
-		<Dialog titel="Beim Prüfen ist etwas aufgefallen" schliessen={schliessen}>
+		<Dialog
+			titel="Beim Prüfen ist etwas aufgefallen"
+			schliessen={schliessen}
+			fuss={
+				<>
+					<Knopf art="zweit" onClick={() => void kopiere()}>
+						<Symbol name="kopieren" />
+						Claude bitten, es zu reparieren
+					</Knopf>
+					<Knopf
+						data-hauptaktion
+						onClick={() => {
+							schliessen();
+							weiter();
+						}}
+					>
+						{weiterTitel}
+					</Knopf>
+				</>
+			}
+		>
 			<p>Du kannst das PDF trotzdem nehmen. Schau es dir aber vorher genau an:</p>
 			<div className="flex flex-col gap-3 rounded-xl bg-papier p-4">
 				{gruppen.map(({ dok, meldungen: liste, titel }) => (
@@ -69,20 +89,6 @@ export const PdfWarnung = ({ ganzeMappe, mappe, meldungen, schliessen, weiter, w
 					/>
 				</label>
 			)}
-			<div className="flex flex-wrap gap-2">
-				<Knopf
-					onClick={() => {
-						schliessen();
-						weiter();
-					}}
-				>
-					{weiterTitel}
-				</Knopf>
-				<Knopf art="zweit" onClick={() => void kopiere()}>
-					<Symbol name="kopieren" />
-					Claude bitten, es zu reparieren
-				</Knopf>
-			</div>
 		</Dialog>
 	);
 };

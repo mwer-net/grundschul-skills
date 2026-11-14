@@ -85,7 +85,7 @@ export interface Erklaerung {
 
 type Uebersetzung = (namen: string[], text: string) => Erklaerung;
 
-const KUERZEN = 'Text kürzen, einen Eintrag löschen oder die Spalten erhöhen. Oder eine neue Seite anlegen.';
+const KUERZEN = 'Text kürzen, einen Eintrag löschen oder die Spalten erhöhen.';
 
 /** Code → verständlicher Satz. `namen` sind die betroffenen Elemente, schon so geschrieben, wie sie dastehen sollen. */
 const TABELLE: Record<MeldungCode, Uebersetzung> = {
