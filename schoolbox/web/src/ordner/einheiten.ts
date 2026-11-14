@@ -1,6 +1,6 @@
 import type { EinheitStand } from '@schoolbox/kern/src/einheit';
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useLocation, useNavigate } from 'react-router-dom';
 
 import { lade, sende } from '../api';
 import { useHinweis } from '../bausteine/hinweis';
@@ -52,10 +52,14 @@ export const einheitFuer = (einheiten: EinheitStand[], ordner: string | undefine
 export const useEinheitFertigMeldung = (einheiten: EinheitStand[]) => {
 	const zeige = useHinweis();
 	const navigate = useNavigate();
+	const { pathname } = useLocation();
+	const ort = useRef(pathname);
+	ort.current = pathname;
 	const vorher = useRef(new Map<string, string>());
 	useEffect(() => {
 		for (const e of einheiten) {
-			if (vorher.current.get(e.id) === 'laeuft' && e.status === 'fertig') {
+			// Im Ordner der Einheit sagt das Band es schon; „Öffnen“ führte nirgends hin (190-29).
+			if (vorher.current.get(e.id) === 'laeuft' && e.status === 'fertig' && ort.current !== `/o/${e.ordner}`) {
 				zeige({
 					text: `„${e.titel}“ ist fertig: ${fertig(e)} Materialien`,
 					aktion: { titel: 'Öffnen', ausfuehren: () => void navigate(`/o/${e.ordner}`) },

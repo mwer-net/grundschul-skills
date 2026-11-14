@@ -14,13 +14,12 @@ import { homedir, tmpdir } from 'node:os';
 import path from 'node:path';
 import { createInterface } from 'node:readline';
 
-import type { EinheitAngaben, EinheitBefund, EinheitStand, PlanDokument, Pruefbericht } from '@schoolbox/kern';
+import type { Aktion, EinheitAngaben, EinheitBefund, EinheitStand, PlanDokument, Pruefbericht } from '@schoolbox/kern';
 import {
 	ANSICHT_ORDNER,
 	baueAnsichtAus,
 	dokKnotenSchluessel,
 	dokumentDir,
-	EINHEIT_AUFTRAG_ZEICHEN,
 	EINHEIT_PLAN,
 	EINHEIT_THEMA,
 	einheitAuftragAus,
@@ -603,8 +602,30 @@ export const erstelleEinheiten = (kontext: Kontext, pruefer: KiPruefer) => {
 		}
 	};
 
-	const starte = async (roh: { angaben: unknown; ordner: unknown; auftragText?: unknown }) => {
+	/**
+	 * Start, Weiterbauen und Freigabe nacheinander: Die Sperre steht vor dem ersten `await`, ein zweiter Klick
+	 * bekommt 409 statt eines zweiten Laufs (190-32).
+	 */
+	let startet = false;
+	const exklusiv = async <T>(tue: () => Promise<T>): Promise<T> => {
 		verlangeFrei();
+		if (startet) {
+			throw new HttpFehler(409, 'Die Einheit startet schon.');
+		}
+		startet = true;
+		try {
+			return await tue();
+		} finally {
+			startet = false;
+		}
+	};
+
+	/** Was „Rückgängig“ nach dem Verwerfen braucht (190-30); nur bis zum Neustart. */
+	const verworfen = new Map<string, { status: EinheitStand['status']; grund: string | null; umkehr: Aktion[] }>();
+
+	const starte = (roh: { angaben: unknown; ordner: unknown }) => exklusiv(() => starteJetzt(roh));
+
+	const starteJetzt = async (roh: { angaben: unknown; ordner: unknown }) => {
 		if (!(await kontext.ki.angemeldet())) {
 			throw new HttpFehler(503, 'Claude ist auf dem Server nicht verfügbar.');
 		}
@@ -618,17 +639,7 @@ export const erstelleEinheiten = (kontext: Kontext, pruefer: KiPruefer) => {
 		if (ziel !== null && typeof ziel !== 'string') {
 			throw new HttpFehler(400, 'Der Ordner ist ungültig.');
 		}
-		let teil = einheitAuftragAus(angaben);
-		if (roh.auftragText !== undefined) {
-			if (
-				typeof roh.auftragText !== 'string' ||
-				roh.auftragText.trim() === '' ||
-				roh.auftragText.length > EINHEIT_AUFTRAG_ZEICHEN
-			) {
-				throw new HttpFehler(400, 'Der Auftrag ist leer oder zu lang.');
-			}
-			teil = roh.auftragText.trim();
-		}
+		const teil = einheitAuftragAus(angaben);
 		// Ordner und Behälter entstehen sofort; die Oberfläche öffnet den Ordner und wartet dort (140).
 		const { mappe, ordner } = await kontext.ordner.aendere(async (baum) => {
 			if (ziel !== null && !lebenderOrdner(baum, ziel)) {
@@ -674,16 +685,8 @@ export const erstelleEinheiten = (kontext: Kontext, pruefer: KiPruefer) => {
 			freigegeben: false,
 		};
 		await beginne(s, PLAN(teil), null, 'plan');
-		const fenster = kontext.ki.limit()?.fenster.fuenfStunden.auslastung ?? null;
-		return {
-			id,
-			ordner,
-			mappe,
-			warnung:
-				fenster !== null && fenster >= KI_GRENZEN.einheit.warnAb
-					? `Dein 5-Stunden-Fenster ist schon zu ${Math.round(fenster * 100)} % genutzt. Die Einheit kann daran scheitern; „Weiterbauen“ geht danach.`
-					: null,
-		};
+		// Die Warnung zum 5-Stunden-Fenster steht vor dem Start im Assistenten (190-12).
+		return { id, ordner, mappe };
 	};
 
 	const verlange = async (id: string) => {
@@ -698,8 +701,9 @@ export const erstelleEinheiten = (kontext: Kontext, pruefer: KiPruefer) => {
 	const sitzungVon = (s: EinheitStand) =>
 		s.sitzung && existsSync(path.join(projekte(), projektName(arbeitDir(s.id)))) ? s.sitzung : null;
 
-	const weiter = async (id: string) => {
-		verlangeFrei();
+	const weiter = (id: string) => exklusiv(() => weiterJetzt(id));
+
+	const weiterJetzt = async (id: string) => {
 		const s = await verlange(id);
 		if (s.status !== 'unvollstaendig') {
 			throw new HttpFehler(409, 'Diese Einheit ist nicht unterbrochen.');
@@ -725,8 +729,9 @@ export const erstelleEinheiten = (kontext: Kontext, pruefer: KiPruefer) => {
 	};
 
 	/** Die Lehrkraft gibt den Plan frei, oder sie will ihn anders: dann zeigt Claude ihn neu. */
-	const freigeben = async (id: string, aenderung: unknown) => {
-		verlangeFrei();
+	const freigeben = (id: string, aenderung: unknown) => exklusiv(() => freigebenJetzt(id, aenderung));
+
+	const freigebenJetzt = async (id: string, aenderung: unknown) => {
 		const s = await verlange(id);
 		if (s.status !== 'plan') {
 			throw new HttpFehler(409, 'Diese Einheit wartet nicht auf eine Freigabe.');
@@ -758,9 +763,13 @@ export const erstelleEinheiten = (kontext: Kontext, pruefer: KiPruefer) => {
 		return s;
 	};
 
-	/** Ordner in den Papierkorb (F3), Lauf beenden, Arbeitsordner weg. Wiederherstellbar ist der Ordner. */
+	/**
+	 * Ordner in den Papierkorb (F3), Lauf beenden. Der Stand bleibt bis zum Aufräumen, damit „Rückgängig“ Ordner und
+	 * Stand zurückholt (190-30); die Antwort sagt, ob das geht.
+	 */
 	const verwirf = async (id: string) => {
 		const s = await verlange(id);
+		const vorher = { status: s.status, grund: s.grund };
 		if (aktiv?.stand.id === s.id) {
 			stoppe('Verworfen.');
 			await new Promise<void>((resolve) => {
@@ -772,18 +781,56 @@ export const erstelleEinheiten = (kontext: Kontext, pruefer: KiPruefer) => {
 				}, 200);
 			});
 		}
-		await kontext.ordner.aendere(async (baum) => {
+		const umkehr = await kontext.ordner.aendere(async (baum) => {
 			if (!lebenderOrdner(baum, s.ordner)) {
-				return { baum, ergebnis: null };
+				return { baum, ergebnis: [] as Aktion[] };
 			}
 			const u = await umgebung(materialDir);
 			const r = wendeAktionAn(baum, { art: 'papierkorb', knoten: [{ ordner: s.ordner }] }, u);
 			await wendeEffekteAn(kontext, r.effekte, u.jetzt);
-			return { baum: r.baum, ergebnis: null, loescht: r.loescht };
+			return { baum: r.baum, ergebnis: r.umkehr, loescht: r.loescht };
 		});
+		// Ein unterbrochener Lauf kommt als „unterbrochen“ zurück: Weiterbauen geht dann wie nach einem Abbruch.
+		const zurueck = vorher.status === 'laeuft' ? { status: 'unvollstaendig' as const, grund: 'Verworfen.' } : vorher;
+		verworfen.set(s.id, { ...zurueck, umkehr });
 		s.status = 'verworfen';
-		melde(s);
+		s.ende ??= new Date().toISOString();
+		await merke(s);
+		return { rueckgaengig: umkehr.length > 0 };
+	};
+
+	/** „Rückgängig“ nach dem Verwerfen: Ordner aus dem Papierkorb, Stand wie vorher (190-30). */
+	const zurueckholen = async (id: string) => {
+		const s = await lese(pruefeEinheitId(id));
+		const alt = verworfen.get(id);
+		if (!s || s.status !== 'verworfen' || !alt) {
+			throw new HttpFehler(404, 'Diese Einheit lässt sich nicht mehr zurückholen.');
+		}
+		await kontext.ordner.aendere(async (baum) => {
+			const u = await umgebung(materialDir);
+			let neu = baum;
+			for (const aktion of alt.umkehr) {
+				const r = wendeAktionAn(neu, aktion, u);
+				await wendeEffekteAn(kontext, r.effekte, u.jetzt);
+				neu = r.baum;
+			}
+			return { baum: neu, ergebnis: null };
+		});
+		verworfen.delete(id);
+		s.status = alt.status;
+		s.grund = alt.grund;
+		await merke(s);
+		return s;
+	};
+
+	/** Das Band „… ist fertig“ schließen (190-42): Der Stand geht, der Ordner mit den Materialien bleibt. */
+	const schliesse = async (id: string) => {
+		const s = await verlange(id);
+		if (s.status !== 'fertig') {
+			throw new HttpFehler(409, 'Nur eine fertige Einheit lässt sich schließen.');
+		}
 		await loesche(s.id);
+		melde(s);
 	};
 
 	/** Was ein Neustart hinterlässt: laufende werden unvollständig, alte Arbeitsordner gehen. */
@@ -825,6 +872,8 @@ export const erstelleEinheiten = (kontext: Kontext, pruefer: KiPruefer) => {
 		freigeben,
 		abbrechen,
 		verwirf,
+		zurueckholen,
+		schliesse,
 		beendeReste,
 		/** Die Einheiten, die die Oberfläche zeigt: laufende und unterbrochene; fertige nur bis zum nächsten Aufräumen. */
 		liste: async () => (await alle()).filter((s) => s.status !== 'verworfen'),
@@ -871,10 +920,8 @@ export const einheitApi = (router: RouterTyp, kontext: Kontext) => {
 		res.json({ einheiten: await einheiten.liste(), laeuft: einheiten.laeuft()?.id ?? null });
 	});
 	router.post('/einheiten', async (req, res) => {
-		const b = (req.body ?? {}) as { angaben?: unknown; ordner?: unknown; auftragText?: unknown };
-		res.status(201).json(
-			await einheiten.starte({ angaben: b.angaben, ordner: b.ordner, auftragText: b.auftragText }),
-		);
+		const b = (req.body ?? {}) as { angaben?: unknown; ordner?: unknown };
+		res.status(201).json(await einheiten.starte({ angaben: b.angaben, ordner: b.ordner }));
 	});
 	router.get('/einheiten/:id', async (req, res) => {
 		res.json(await einheiten.stand(pruefeEinheitId(req.params.id)));
@@ -890,7 +937,13 @@ export const einheitApi = (router: RouterTyp, kontext: Kontext) => {
 		res.json(await einheiten.freigeben(pruefeEinheitId(req.params.id), b.aenderung));
 	});
 	router.post('/einheiten/:id/verwerfen', async (req, res) => {
-		await einheiten.verwirf(pruefeEinheitId(req.params.id));
+		res.json({ ok: true, ...(await einheiten.verwirf(pruefeEinheitId(req.params.id))) });
+	});
+	router.post('/einheiten/:id/zurueckholen', async (req, res) => {
+		res.json(await einheiten.zurueckholen(pruefeEinheitId(req.params.id)));
+	});
+	router.post('/einheiten/:id/schliessen', async (req, res) => {
+		await einheiten.schliesse(pruefeEinheitId(req.params.id));
 		res.json({ ok: true });
 	});
 };
