@@ -200,19 +200,13 @@ test.describe('Editor: Bausteine einfügen', () => {
 		await expect(alleKnopf).toHaveAttribute('aria-pressed', 'true');
 	});
 
-	test('Null-Bereiche nur unter „Alle“, „weitere“ schaltet um', async ({ page }) => {
+	test('Null-Bereiche nur unter „Alle“; keine Zeile „weitere unter Alle“ (195-26)', async ({ page }) => {
 		await oeffneBausteine(page);
 		const sprache = page.locator('[data-bereich="Deutsch"]');
 		await expect(sprache).toHaveCount(0);
-		const weitere = page.locator('[data-weitere]');
-		const eintraege = (await katalog(page)).filter((e) => gehtImBlatt(e, IM_UHRZEITBLATT));
-		const alleBereiche = new Set(eintraege.map((e) => e.kategorie)).size;
-		const verborgen = alleBereiche - (await page.locator('[data-bereich]').count());
-		await expect(weitere).toHaveText(`${verborgen} weitere unter Alle`);
-		await weitere.click();
-		await expect(page.getByRole('button', { name: 'Alle', exact: true })).toHaveAttribute('aria-pressed', 'true');
+		await expect(page.locator('[data-weitere]')).toHaveCount(0);
+		await page.getByRole('button', { name: 'Alle', exact: true }).click();
 		await expect(sprache).toBeVisible();
-		await expect(weitere).toHaveCount(0);
 	});
 
 	test('Vollständig: „Alle“ zeigt das ganze Angebot, das im Blatt zeichnet (203-11, 203-02, 203-N01)', async ({

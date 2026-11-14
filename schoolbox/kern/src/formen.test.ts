@@ -168,4 +168,17 @@ describe('196-15: Name einer Form', () => {
 		assert.equal(formName(null), null);
 		assert.equal(formName('  '), null);
 	});
+
+	it('198-06: ein Wort je Art wie die Kachel, das Register (Referenz der Skills) bleibt', () => {
+		const lies = (werte: Record<string, string>) => (name: string) => werte[name] ?? null;
+		assert.equal(formName('ellipse'), 'Kreis');
+		assert.equal(formName('pfeil'), 'Blockpfeil');
+		assert.equal(formName('vieleck', lies({ 'data-ecken': '4' })), 'Raute');
+		assert.equal(formName('vieleck', lies({})), 'Sechseck');
+		assert.equal(formName('vieleck', lies({ 'data-ecken': '7' })), 'Vieleck');
+		assert.equal(formName('linie', lies({ 'data-ende': 'pfeil' })), 'Pfeil');
+		assert.equal(formName('linie', lies({})), 'Linie');
+		assert.equal(formName('sprechblase', lies({ 'data-blase': 'gedanke' })), 'Denkblase');
+		assert.equal(formVon('ellipse')?.name, 'Ellipse');
+	});
 });

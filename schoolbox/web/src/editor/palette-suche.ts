@@ -39,6 +39,8 @@ export const merkeBenutzt = (id: string) => {
 	}
 };
 
+/** Das Suchwort ist ein ganzes Wort des Texts: „Lösung“ trifft „Lösung zeigen“ vor „Lösungswort“ (193-24). */
+const GANZ = 5;
 const ANFANG = 4;
 const WORTANFANG = 3;
 const TEILWORT = 2;
@@ -58,6 +60,9 @@ const istFolge = (wort: string, text: string) => {
 };
 
 const stufe = (wort: string, text: string, folge = true) => {
+	if (text.split(WORTGRENZE).includes(wort)) {
+		return GANZ;
+	}
 	if (text.startsWith(wort)) {
 		return ANFANG;
 	}

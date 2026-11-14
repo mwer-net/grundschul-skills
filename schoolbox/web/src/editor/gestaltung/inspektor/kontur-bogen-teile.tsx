@@ -27,6 +27,7 @@ import { Farbwahl } from '../../../bausteine/Farbwahl';
 import { klassen } from '../../../bausteine/klassen';
 import { Schalter } from '../../../bausteine/Schalter';
 import { Segment } from '../../../bausteine/Segment';
+import { Stepper } from '../../../bausteine/Stepper';
 import { Tooltip } from '../../../bausteine/Tooltip';
 import { Zeile } from '../../../bausteine/Zeile';
 import { Regler } from '../blatt/regler';
@@ -55,59 +56,46 @@ const setzeKontur = (k: GestaltungKontext, kontur: SchriftKontur | null) =>
 		nr: k.nr,
 	}));
 
-/** Schalter „Kontur“, Stärke 0–16 px und Farbe (5-text.md). Beim Einschalten 6 px, Weiß. */
+/**
+ * 198-11: Kontur der Schrift wie die der Formen: Farbreihe „Kontur“ mit „Keine“ vorn, darunter „Stärke“ als − n + ab
+ * 1 px. „Keine“ nimmt die Kontur heraus und blendet die Stärke aus. Eine Farbe gewählt: 6 px wie bisher beim Einschalten.
+ */
 export const KonturWahl = ({ aktiv, k, quelle }: KonturBogenTeile) => {
 	const kontur = leseSchriftKontur(quelle, k.nr);
-	const an = kontur !== null;
 	const aktuell = kontur ?? SCHRIFT_KONTUR_STANDARD;
 	const imBogen = k.element.tagName.toLowerCase() === 'svg';
-	const setzeStaerke = (n: number) =>
-		setzeKontur(k, n > 0 ? { staerke: Math.min(SCHRIFT_KONTUR_MAX, n), farbe: aktuell.farbe } : null);
 	return (
 		<div className="flex flex-col gap-1" data-kontur-wahl>
-			<Zeile titel="Kontur">
-				<Schalter
-					name="Kontur"
-					an={an}
+			<Zeile titel="Kontur" darunter>
+				<Farbwahl
+					name="kontur-farbe"
+					beschriftung="Kontur"
+					keine="Keine Kontur"
+					schwarz
+					doc={k.doc}
 					aus={!aktiv}
-					data-kontur-schalter
-					setze={(neu) => setzeKontur(k, neu ? SCHRIFT_KONTUR_STANDARD : null)}
+					wert={kontur?.farbe ?? null}
+					setze={(farbe) => setzeKontur(k, farbe === null ? null : { staerke: aktuell.staerke, farbe })}
+					zeige={(farbe) => {
+						if (!imBogen && kontur) {
+							zeigeVariable(k, '--kontur-farbe', farbe);
+						}
+					}}
 				/>
 			</Zeile>
-			{an && (
-				<>
-					<Zeile titel="Stärke" name={`Konturstärke, 0 bis ${SCHRIFT_KONTUR_MAX} px`}>
-						<span className="flex w-28" data-kontur-staerke>
-							<Zahl
-								name="Konturstärke"
-								einheit="px"
-								wert={aktuell.staerke}
-								aus={!aktiv}
-								zeige={(n) => {
-									if (!imBogen) {
-										zeigeVariable(k, '--kontur', n === null ? null : `${Math.round(n)}px`);
-									}
-								}}
-								setze={setzeStaerke}
-							/>
-						</span>
-					</Zeile>
-					<Zeile titel="Konturfarbe" darunter>
-						<Farbwahl
-							name="kontur-farbe"
-							beschriftung="Konturfarbe"
-							doc={k.doc}
+			{kontur && (
+				<Zeile titel="Stärke" name={`Konturstärke, 1 bis ${SCHRIFT_KONTUR_MAX} px`}>
+					<span data-kontur-staerke>
+						<Stepper
+							name="Konturstärke"
+							wert={Math.max(1, kontur.staerke)}
+							min={1}
+							max={SCHRIFT_KONTUR_MAX}
 							aus={!aktiv}
-							wert={aktuell.farbe}
-							setze={(farbe) => setzeKontur(k, { staerke: aktuell.staerke, farbe })}
-							zeige={(farbe) => {
-								if (!imBogen) {
-									zeigeVariable(k, '--kontur-farbe', farbe);
-								}
-							}}
+							setze={(staerke) => setzeKontur(k, { staerke, farbe: kontur.farbe })}
 						/>
-					</Zeile>
-				</>
+					</span>
+				</Zeile>
 			)}
 		</div>
 	);

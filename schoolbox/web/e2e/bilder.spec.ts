@@ -29,7 +29,6 @@ const bisDarin = (datei: string, text: string) =>
 	expect.poll(() => readFile(datei, 'utf8'), { timeout: 15_000 }).toContain(text);
 
 const zurueck = (page: Page) => page.getByRole('button', { name: 'Rückgängig (⌘Z)' });
-const hinweis = (page: Page) => page.locator('div[role="status"][aria-live]');
 
 /** Zeilen der neuen Fassung, die sich geändert haben. */
 const geaendert = (alt: string, neu: string) => {
@@ -80,15 +79,22 @@ const zieheGriff = async (page: Page, hasTouch: boolean, griff: Locator, dx: num
 };
 
 const sammlung = async (page: Page, druecke: (z: Locator) => Promise<void>, schluessel: string) => {
-	await druecke(page.getByRole('button', { name: 'Aus der Sammlung' }));
-	const dialog = page.getByRole('dialog', { name: 'Bild aus der Sammlung' });
+	await druecke(page.getByRole('button', { name: 'Aus Bildern wählen' }));
+	const dialog = page.getByRole('dialog', { name: 'Bild wählen' });
 	await expect(dialog).toBeVisible();
+	// 199-12: Der Dialog beginnt in „Dieser Ordner“ wie die Schublade.
+	if (schluessel.startsWith('_assets/')) {
+		await druecke(dialog.getByRole('button', { name: 'Mitgeliefert', exact: true }));
+	}
 	await druecke(dialog.locator(`[data-sammlung-bild="${schluessel}"]`));
 	await expect(dialog).toBeHidden();
 };
 
 test.describe('Editor: Bilder', () => {
-	test('tauscht die Leitfigur aus der Sammlung: nur src und alt, Größe bleibt', async ({ druecke, page }) => {
+	test('199-11: Die Leitfigur tauscht Figur und Pose wie die freie Figur, die Größe bleibt', async ({
+		druecke,
+		page,
+	}) => {
 		const { dok, id, material: datei } = await uhrzeit();
 		await writeFile(
 			datei,
@@ -100,21 +106,20 @@ test.describe('Editor: Bilder', () => {
 		const vorher = await readFile(datei, 'utf8');
 		await oeffne(page, id, dok);
 		await druecke(material(page).locator('img.figur'));
-		await expect(page.locator('[data-bildwerkzeug="bild"]')).toBeVisible();
+		const werkzeug = page.locator('[data-bildwerkzeug="figur"]');
+		await expect(werkzeug).toBeVisible();
+		// Kein Austauschen und keine Beschreibung: Die Figur trägt ihren Namen.
+		await expect(werkzeug.getByRole('button', { name: 'Aus Bildern wählen' })).toHaveCount(0);
+		await expect(page.locator('[data-bild-beschreibung]')).toHaveCount(0);
 
-		await druecke(page.getByRole('button', { name: 'Aus der Sammlung' }));
-		const dialog = page.getByRole('dialog', { name: 'Bild aus der Sammlung' });
-		await dialog.getByRole('searchbox').fill('wilma');
-		await expect(dialog.locator('[data-sammlung-bild]')).toHaveCount(1);
-		await druecke(dialog.locator('[data-sammlung-bild="_assets/bilder/wilma.png"]'));
-		await bisDarin(datei, 'bilder/wilma.png');
+		await werkzeug.getByRole('combobox', { name: 'Figur' }).selectOption({ label: 'Wilma' });
+		await bisDarin(datei, 'alt="Wilma"');
 		await gespeichert(page, datei);
 		const nachher = await readFile(datei, 'utf8');
-		expect(geaendert(vorher, nachher)).toEqual([
-			'    <div class="tipp"><img class="figur" style="--figur:70px" src="bilder/wilma.png" alt="Wilma"><div class="blase">Zu 1: Erst der kleine Zeiger. Er zeigt die Stunde.</div></div>',
-		]);
-		await expect(page.locator('[data-auswahl="figur"]')).toBeVisible();
-		await expect(material(page).locator('img.figur')).toHaveAttribute('src', 'bilder/wilma.png');
+		const zeilen = geaendert(vorher, nachher);
+		expect(zeilen).toHaveLength(1);
+		expect(zeilen[0]).toMatch(/<img class="figur"[^>]*style="--figur:70px"[^>]*alt="Wilma"/);
+		await expect(material(page).locator('img.figur')).toHaveAttribute('alt', 'Wilma');
 
 		await druecke(zurueck(page));
 		await gespeichert(page, datei);
@@ -158,18 +163,21 @@ test.describe('Editor: Bilder', () => {
 		);
 	});
 
-	test('entfernt ein Bild mit Hinweis „Rückgängig“', async ({ druecke, page }) => {
+	test('199-10: kein „Bild entfernen“ im Bildpanel, ⌫ löscht das Bild weiter', async ({ druecke, page }) => {
 		const { dok, id, material: datei } = await uhrzeit();
 		const vorher = await readFile(datei, 'utf8');
 		await oeffne(page, id, dok);
 		await druecke(material(page).locator('img[src="bilder/wachstum.png"]'));
-		await druecke(page.getByRole('button', { name: 'Bild entfernen' }));
-		await expect(hinweis(page)).toContainText('Bild entfernt.');
+		const werkzeug = page.locator('[data-bildwerkzeug="bild"]');
+		await expect(werkzeug).toBeVisible();
+		await expect(werkzeug.getByRole('button', { name: 'Bild entfernen' })).toHaveCount(0);
+		// 199-09: Keine Vorschau mehr, der Abschnitt beginnt mit „Austauschen“.
+		await expect(werkzeug.locator('figure')).toHaveCount(0);
+		await expect(werkzeug.locator('[data-zeile]').first()).toContainText('Austauschen');
+		await page.keyboard.press('Backspace');
 		await gespeichert(page, datei);
-		const ohne = await readFile(datei, 'utf8');
-		expect(ohne).not.toContain(GRAFIK);
-		expect(ohne.split('\n').length).toBe(vorher.split('\n').length - 1);
-		await druecke(hinweis(page).getByRole('button', { name: 'Rückgängig' }));
+		expect(await readFile(datei, 'utf8')).not.toContain(GRAFIK);
+		await druecke(zurueck(page));
 		await gespeichert(page, datei);
 		expect(await readFile(datei, 'utf8')).toBe(vorher);
 	});
@@ -202,7 +210,7 @@ test.describe('Editor: Bilder', () => {
 			'0 (1200, 900)',
 		);
 		await expect(page.locator('[data-auswahl="bild"]')).toBeVisible();
-		await expect(page.getByPlaceholder('Was zeigt das Bild?')).toBeVisible();
+		await expect(page.locator('[data-bild-beschreibung]')).toBeVisible();
 		await expect(material(page).locator('img[src="bilder/foto.jpg"]')).toHaveJSProperty('naturalWidth', 1200);
 
 		// In derselben Sitzung kein Hinweis mehr: „Foto hochladen“ öffnet gleich die Auswahl.

@@ -8,7 +8,15 @@ import { describe, it } from 'node:test';
 import { promisify } from 'node:util';
 
 import { dokumentDir, mappenDir, neueMappe, neuesDokument } from './ablage';
-import { bildStamm, findeBild, nimmBildAuf, sammleBilder, uebernimmBild } from './bilder';
+import {
+	bildStamm,
+	blendeBildAus,
+	findeBild,
+	nimmBildAuf,
+	raeumeAusgeblendeteBilderAuf,
+	sammleBilder,
+	uebernimmBild,
+} from './bilder';
 import { BROWSER_HINWEIS, browserFehlt } from './browsertest';
 import { SchoolboxFehler } from './fehler';
 import { figurenDir } from './figurenbibliothek';
@@ -363,5 +371,87 @@ describe('„Dieser Ordner“ in der Sammlung (179)', () => {
 			s.mappe.map((b) => b.name),
 			['zzz.jpg', 'aaa.jpg'],
 		);
+	});
+});
+
+describe('Doppelte und entfernte Bilder (199)', () => {
+	it('199-06: dieselbe Datei unter zwei Namen steht einmal da, mit beiden Kopien', async () => {
+		const { materialDir, neu } = await ablage();
+		const hier = await neu('Garten');
+		const bilder = path.join(mappenDir(materialDir, hier.mappe), 'bilder');
+		await png(bilder, 'kuerbis.png');
+		await copyFile(path.join(bilder, 'kuerbis.png'), path.join(bilder, 'kuerbis-2.png'));
+		// Gleich groß, anderer Inhalt: zwei Bilder.
+		await png(bilder, 'gurke.png', 40, 40, '#e76f51');
+
+		const s = await sammleBilder(KONFIG, materialDir, hier.mappe);
+		assert.equal(s.mappe.length, 2);
+		const kuerbis = s.mappe.find((b) => b.name.startsWith('kuerbis'));
+		assert.equal(kuerbis?.kopien?.length, 2);
+	});
+
+	it('„Entfernen“ blendet ein ungenutztes Bild aus, Rückgängig holt es; ein genutztes bleibt', async () => {
+		const { materialDir, neu } = await ablage();
+		const hier = await neu('Garten');
+		const bilder = path.join(mappenDir(materialDir, hier.mappe), 'bilder');
+		await png(bilder, 'falsch.png', 30, 30);
+		await png(bilder, 'genutzt.png', 50, 50);
+		const html = path.join(hier.dir, 'material.html');
+		const roh = await readFile(html, 'utf8');
+		const bild = '<img src="../../bilder/genutzt.png" alt="">';
+		await writeFile(html, roh.includes('</body>') ? roh.replace('</body>', `${bild}</body>`) : `${roh}${bild}`);
+
+		const vorher = await sammleBilder(KONFIG, materialDir, hier.mappe);
+		const falsch = vorher.mappe.find((b) => b.name === 'falsch.png');
+		const genutzt = vorher.mappe.find((b) => b.name === 'genutzt.png');
+		assert.ok(falsch && genutzt);
+		assert.deepEqual(genutzt.genutzt, ['Blatt']);
+
+		await blendeBildAus(materialDir, falsch.kopien ?? [falsch.schluessel]);
+		const ohne = await sammleBilder(KONFIG, materialDir, hier.mappe);
+		assert.equal(
+			ohne.mappe.some((b) => b.name === 'falsch.png'),
+			false,
+		);
+		// Die Datei bleibt: Ältere Versionen zeigen sie weiter.
+		assert.equal(existsSync(path.join(bilder, 'falsch.png')), true);
+
+		await blendeBildAus(materialDir, falsch.kopien ?? [falsch.schluessel], false);
+		const wieder = await sammleBilder(KONFIG, materialDir, hier.mappe);
+		assert.equal(
+			wieder.mappe.some((b) => b.name === 'falsch.png'),
+			true,
+		);
+
+		await assert.rejects(blendeBildAus(materialDir, [genutzt.schluessel]), SchoolboxFehler);
+		await assert.rejects(blendeBildAus(materialDir, ['_assets/bilder/wachstum.png']), SchoolboxFehler);
+	});
+
+	it('199-N02: ausgeblendet und 30 Tage ungenutzt wird ein Bild samt Strichfassung gelöscht, vorher nicht', async () => {
+		const { materialDir, neu } = await ablage();
+		const hier = await neu('Garten');
+		const bilder = path.join(mappenDir(materialDir, hier.mappe), 'bilder');
+		await png(bilder, 'falsch.png', 30, 30);
+		await png(bilder, 'falsch-strich.png', 30, 30);
+		await png(bilder, 'bleibt.png', 40, 40);
+		const tag = 24 * 60 * 60 * 1000;
+		const damals = new Date('2026-01-01T10:00:00Z');
+		await blendeBildAus(materialDir, [`${hier.mappe}/bilder/falsch.png`], true, damals);
+		await blendeBildAus(materialDir, [`${hier.mappe}/bilder/bleibt.png`], true, damals);
+		// „bleibt“ steht danach (etwa per ⌘Z) wieder in einem Material.
+		const html = path.join(hier.dir, 'material.html');
+		const roh = await readFile(html, 'utf8');
+		const bild = '<img src="../../bilder/bleibt.png" alt="">';
+		await writeFile(html, roh.includes('</body>') ? roh.replace('</body>', `${bild}</body>`) : `${roh}${bild}`);
+
+		assert.deepEqual(await raeumeAusgeblendeteBilderAuf(materialDir, new Date(damals.getTime() + 29 * tag)), []);
+		assert.equal(existsSync(path.join(bilder, 'falsch.png')), true, 'vor Ablauf bleibt die Datei');
+
+		const weg = await raeumeAusgeblendeteBilderAuf(materialDir, new Date(damals.getTime() + 30 * tag));
+		assert.deepEqual(weg.map((d) => path.basename(d)).sort(), ['falsch-strich.png', 'falsch.png']);
+		assert.equal(existsSync(path.join(bilder, 'falsch.png')), false);
+		assert.equal(existsSync(path.join(bilder, 'bleibt.png')), true, 'genutzt bleibt');
+		const s = await sammleBilder(KONFIG, materialDir, hier.mappe);
+		assert.equal(s.mappe.some((b) => b.name === 'bleibt.png'), false, 'bleibt aber ausgeblendet');
 	});
 });

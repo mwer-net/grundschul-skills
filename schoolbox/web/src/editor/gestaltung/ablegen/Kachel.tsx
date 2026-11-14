@@ -4,7 +4,10 @@ import { useEffect, useRef } from 'react';
 import { AmZeiger } from '../../../bausteine/AmZeiger';
 import { klassen } from '../../../bausteine/klassen';
 import { Tooltip } from '../../../bausteine/Tooltip';
+import { kuerzelText } from '../../befehle';
 import { FINGER_WEG, HALTEN_MS, MAUS_WEG } from '../../ziehen';
+import { werkzeugVon } from '../werkzeuge';
+import { useWerkzeugStand } from '../werkzeuge/stand';
 import type { AblegenTeile } from './ablegen';
 import { GEHT_NOCH_NICHT } from './ablegen';
 import { useAblegen } from './useAblegen';
@@ -13,7 +16,7 @@ import type { GestaltungsGut } from './ziehgut';
 /**
  * Ein Eintrag einer Schublade mit Gestaltung (102–105): Klick legt in die Mitte, Ziehen legt frei ab. Wie die Karten
  * der Bausteine (094): mit der Maus ab `MAUS_WEG`, mit dem Finger nach `HALTEN_MS`, damit Wischen die Liste rollt.
- * Den Namen zeigt der Tooltip, ohne Kürzel; während des Zugs ist er aus (167).
+ * Den Namen zeigt der Tooltip, die Taste nur an einer Kachel mit Werkzeug (198); beim Ziehen ist er aus (167).
  */
 export const AblageKachel = ({
 	aus = false,
@@ -24,6 +27,7 @@ export const AblageKachel = ({
 	gut,
 	klick: eigenerKlick,
 	teile,
+	werkzeug,
 }: {
 	teile: AblegenTeile;
 	gut: GestaltungsGut;
@@ -36,7 +40,15 @@ export const AblageKachel = ({
 	aus?: boolean;
 	/** `data-*`-Attribute am Knopf, etwa für Tests. */
 	daten?: Readonly<Record<`data-${string}`, string>>;
+	/**
+	 * 198 (Urteil 1): Das Werkzeug, das diese Form aufzieht (R, O, Y, L, T). Seine Taste steht im Tooltip, und solange
+	 * es aktiv ist, ist die Kachel hervorgehoben; einen eigenen Knopf hat es nicht mehr.
+	 */
+	werkzeug?: string;
 }) => {
+	const stand = useWerkzeugStand();
+	const taste = werkzeug ? werkzeugVon(werkzeug)?.taste : undefined;
+	const werkzeugAktiv = werkzeug !== undefined && stand.id === werkzeug;
 	const { amZeiger, klick, ziehe } = useAblegen(teile);
 	const druckAn = useRef<{ x: number; y: number; id: number; maus: boolean; timer: number } | null>(null);
 	const gezogen = useRef(false);
@@ -97,14 +109,20 @@ export const AblageKachel = ({
 
 	return (
 		<>
-			<Tooltip text={name} aus={amZeiger !== null}>
+			<Tooltip text={name} aus={amZeiger !== null} {...(taste ? { kuerzel: kuerzelText(taste) } : {})}>
 				<button
 					ref={knopf}
 					type="button"
 					aria-label={name}
-					className={klassen('select-none', amZeiger ? 'cursor-grabbing' : 'cursor-grab', className)}
+					className={klassen(
+						'select-none',
+						amZeiger ? 'cursor-grabbing' : 'cursor-grab',
+						className,
+						werkzeugAktiv && 'bg-brand-50 text-brand-700',
+					)}
 					disabled={aus}
 					{...daten}
+					{...(werkzeug ? { 'data-werkzeug': werkzeug, 'aria-pressed': werkzeugAktiv } : {})}
 					data-ablage-gut={gut.name}
 					onPointerDown={druck}
 					onPointerMove={bewege}

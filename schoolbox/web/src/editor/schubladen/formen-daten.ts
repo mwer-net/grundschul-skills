@@ -6,13 +6,14 @@ import type { FormenAbschnitt } from './formen/typ';
 import { abschnitt as werkzeuge } from './formen/Werkzeuge';
 
 /**
- * Abschnitte in der Reihenfolge der Schublade „Werkzeuge“ (3-formen.md, Inhalt; 175: Text gleich nach der
- * Werkzeugreihe). Jedes Ticket füllt nur seine Datei unter `formen/`; ein Abschnitt, der `null` ist, fehlt ganz.
+ * Abschnitte in der Reihenfolge der Schublade „Werkzeuge“ (3-formen.md, Inhalt; 198-18: Text, Formen, Sprechblasen;
+ * „Zeichnen“ mit Stift, Form aus Punkten und Konfetti danach, 198-10). Jedes Ticket füllt nur seine Datei unter
+ * `formen/`; ein Abschnitt, der `null` ist, fehlt ganz.
  */
 export const ABSCHNITTE: readonly FormenAbschnitt[] = [
-	werkzeuge, // 104 (Knöpfe aus 098; R O Y L ★ bringt 107)
 	text, // 175 (Schmuckschrift aus der früheren Schublade „Text“, 105)
-	grundformen, // 104
+	grundformen, // 104, 198-18: mit Linie und Pfeil
 	blasen, // 107
+	werkzeuge, // 098, 198-10: nur noch die drei Zeichenwerkzeuge
 	bildrahmen, // 111
 ].filter((a): a is FormenAbschnitt => a !== null);

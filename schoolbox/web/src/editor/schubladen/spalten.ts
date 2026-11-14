@@ -53,16 +53,6 @@ export const schalte = (s: LinksStand, id: SchubladenId, zeigt: LinksZeigt, eng:
 	return zeigt.schublade === id ? { ...s, offen: false } : { ...s, schublade: id, offen: true };
 };
 
-/** „Linke Leiste“ schließt alles Sichtbare und holt es wieder; ohne `vorher` (nach dem Neuladen) die Ebenen. */
-export const schalteLeiste = (
-	s: LinksStand,
-	zeigt: LinksZeigt,
-	vorher: LinksStand | null,
-): { stand: LinksStand; vorher: LinksStand | null } =>
-	zeigt.ebenen || zeigt.schublade !== null
-		? { stand: { ...s, ebenen: false, offen: false }, vorher: s }
-		: { stand: vorher ?? { ...s, ebenen: true, offen: false }, vorher: null };
-
 /** Die sichtbaren Spalten von links nach rechts. */
 export const sichtbar = (zeigt: LinksZeigt): SchubladenId[] => [
 	...(zeigt.ebenen ? (['ebenen'] as const) : []),

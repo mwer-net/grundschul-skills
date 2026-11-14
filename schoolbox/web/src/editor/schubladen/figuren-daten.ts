@@ -16,18 +16,24 @@ import type { SchubladenTeile, SchubladenZiele } from '.';
 export const srcFuer = (t: SchubladenTeile, pose: Pose) =>
 	holeSrc(adresseVon(t.doc) ?? t.bild.adresse, pose).catch(() => t.bild.hole(pose.schluessel));
 
-/** Der Baustein „Tipp“ mit der Pose als Leitfigur; Vorlage ist der Starter des Katalog-Eintrags `willi`. */
+/**
+ * Der Baustein „Tipp“ mit der Pose als Leitfigur: In der Leitfigur seines Starters stehen `src` und `alt` der Pose.
+ * Hängt nur am Eintrag `tipp`, nicht an `willi` (199, für 203: Willi kann aus dem Katalog gehen).
+ */
 const tippMitSrc = (t: SchubladenTeile, figur: BibliotheksFigur, src: string) => {
 	const tipp = t.einfuegen.eintraege.find((e) => e.id === 'tipp');
-	const leit = t.einfuegen.eintraege.find((e) => e.id === 'willi')?.einfuegbar.html;
 	const html = tipp?.einfuegbar.html;
-	if (!tipp || !leit || !html) {
+	if (!tipp || !html || !/<img\b[^>]*\bclass="figur"/.test(html)) {
 		return null;
 	}
-	const bild = leit
-		.replace(/\ssrc="[^"]*"/, () => ` src="${schuetzeAttribut(src)}"`)
-		.replace(/\salt="[^"]*"/, () => ` alt="${schuetzeAttribut(figur.name)}"`);
-	const mitFigur = html.replace(/<img\b[^>]*\bclass="figur"[^>]*>/, () => bild);
+	const mitFigur = html.replace(/<img\b[^>]*\bclass="figur"[^>]*>/, (leit) => {
+		const mitSrc = /\ssrc="[^"]*"/.test(leit)
+			? leit.replace(/\ssrc="[^"]*"/, () => ` src="${schuetzeAttribut(src)}"`)
+			: leit.replace(/^<img\b/, () => `<img src="${schuetzeAttribut(src)}"`);
+		return /\salt="[^"]*"/.test(mitSrc)
+			? mitSrc.replace(/\salt="[^"]*"/, () => ` alt="${schuetzeAttribut(figur.name)}"`)
+			: mitSrc.replace(/^<img\b/, () => `<img alt="${schuetzeAttribut(figur.name)}"`);
+	});
 	return { ...tipp, einfuegbar: { ...tipp.einfuegbar, html: mitFigur } };
 };
 

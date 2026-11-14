@@ -18,7 +18,7 @@ export const merkeGesehen = () => {
 
 /** Findet nach Name, Beschreibungen und Mappe, ohne Groß- und Kleinschreibung und Umlaute. */
 export const passt = (eintrag: SammlungsBild, suche: string) => {
-	const text = falte([eintrag.name, ...eintrag.alt, eintrag.mappe ?? ''].join(' '));
+	const text = falte([eintrag.name, ...eintrag.alt, eintrag.titel ?? '', eintrag.mappe ?? ''].join(' '));
 	return falte(suche)
 		.split(' ')
 		.filter(Boolean)

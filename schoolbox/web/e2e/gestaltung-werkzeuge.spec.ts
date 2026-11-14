@@ -5,7 +5,7 @@ import { blattMit, FIGUR_FREI } from './gestaltung-daten';
 import { expect, test } from './hilfe';
 import { oeffneSchublade } from './schubladen-hilfe';
 
-/** 107: Werkzeuge R O Y L ★, Sprechblase mit Zipfel, Denkblase, Band, Linie und Pfeil. */
+/** 107: Werkzeuge R O Y L (198: ohne Stern), Sprechblase mit Zipfel, Denkblase, Band, Linie und Pfeil. */
 
 const zurueck = (page: Page) => page.getByRole('button', { name: 'Rückgängig (⌘Z)' });
 const formen = (page: Page, art: string) => material(page).locator(`svg.form[data-form="${art}"]`);
@@ -67,7 +67,7 @@ const groesse = async (page: Page, art: string) => {
 	return { b, h };
 };
 
-test.describe('Werkzeuge R O Y L ★ (107)', () => {
+test.describe('Werkzeuge R O Y L (107)', () => {
 	for (const [taste, art] of [
 		['KeyR', 'rechteck'],
 		['KeyO', 'ellipse'],
@@ -80,21 +80,21 @@ test.describe('Werkzeuge R O Y L ★ (107)', () => {
 			await expect(aktivesWerkzeug(page)).toHaveAttribute('data-werkzeug', art);
 			await ziehe(page, await aufSeite(page, 0.3, 0.4), 160, 90);
 			await expect.poll(async () => anzahl(await quelle(page), art)).toBe(1);
-			await expect(aktivesWerkzeug(page)).toHaveAttribute('data-werkzeug', 'auswahl');
+			await expect(aktivesWerkzeug(page)).toHaveCount(0);
 			await expect(zurueck(page)).toHaveAttribute('data-schritt', /.+/);
 			await zurueck(page).click();
 			await expect.poll(async () => anzahl(await quelle(page), art)).toBe(0);
 		});
 	}
 
-	test('der Stern zeichnet über seinen Knopf; Esc bricht ab', async ({ page }) => {
+	test('der Stern ist nur Kachel, ohne Werkzeug; Esc bricht ein Werkzeug ab (198 Urteil 1)', async ({ page }) => {
 		await oeffneFormen(page);
-		await page.locator('[data-werkzeug="stern"]').click();
-		await ziehe(page, await aufSeite(page, 0.3, 0.4), 120, 120);
-		await expect(formen(page, 'stern')).toHaveCount(1);
+		await expect(page.locator('[data-werkzeug="stern"]')).toHaveCount(0);
+		// Die Kachel trägt die Taste ihres Werkzeugs im Tooltip und zeigt es aktiv.
 		await page.keyboard.press('KeyR');
+		await expect(aktivesWerkzeug(page)).toHaveAttribute('data-werkzeug', 'rechteck');
 		await page.keyboard.press('Escape');
-		await expect(aktivesWerkzeug(page)).toHaveAttribute('data-werkzeug', 'auswahl');
+		await expect(aktivesWerkzeug(page)).toHaveCount(0);
 		await ziehe(page, await aufSeite(page, 0.6, 0.6), 80, 80);
 		expect(anzahl(await quelle(page), 'rechteck')).toBe(0);
 	});
@@ -135,7 +135,7 @@ test.describe('Werkzeuge R O Y L ★ (107)', () => {
 		await page.keyboard.type('Rate mal!');
 		await page.keyboard.press('Escape');
 		await expect.poll(() => quelle(page)).toContain('Rate mal!');
-		await expect(aktivesWerkzeug(page)).toHaveAttribute('data-werkzeug', 'auswahl');
+		await expect(aktivesWerkzeug(page)).toHaveCount(0);
 	});
 });
 
@@ -251,15 +251,36 @@ test.describe('Linie und Pfeil (107)', () => {
 	});
 });
 
+test.describe('Klick auf eine Kachel (198-05)', () => {
+	test('dreimal „Kreis“: jeder liegt 16 px weiter rechts unten als der vorige', async ({ page }) => {
+		await oeffneFormen(page);
+		const kreis = page.locator('[data-schublade-werkzeuge] [data-ablage-gut="Kreis"]');
+		for (let i = 1; i <= 3; i += 1) {
+			await kreis.click();
+			await expect.poll(async () => anzahl(await quelle(page), 'ellipse')).toBe(i);
+			await geladen(page);
+		}
+		const html = await quelle(page);
+		const lagen = [...html.matchAll(/data-form="ellipse"[^>]*--x:(-?\d+)px;--y:(-?\d+)px/g)].map((m) => [
+			Number(m[1]),
+			Number(m[2]),
+		]);
+		expect(lagen).toHaveLength(3);
+		const [a] = lagen;
+		expect(lagen).toEqual([0, 1, 2].map((i) => [(a?.[0] ?? 0) + 16 * i, (a?.[1] ?? 0) + 16 * i]));
+	});
+});
+
 test.describe('Symbole (170)', () => {
-	test('V zeigt den Mauszeiger in der Reihe und in der Palette, im Editor gibt es kein Ordner-Symbol', async ({
+	test('V zeigt den Mauszeiger in der Palette, die Zeichenkacheln je ein eigenes Bild, kein Ordner-Symbol', async ({
 		page,
 	}) => {
 		await oeffneFormen(page);
-		await expect(page.locator('[data-werkzeug="auswahl"] svg.lucide-mouse-pointer-2')).toBeVisible();
+		// 198 (Urteil 1): V hat keinen Knopf mehr in der Schublade.
+		await expect(page.locator('[data-werkzeug="auswahl"]')).toHaveCount(0);
 		// Kein Werkzeug leiht sich das Bild eines anderen: Lucide setzt den Namen als erste Klasse `lucide-…`.
 		const bilder = await page
-			.getByRole('toolbar', { name: 'Werkzeuge' })
+			.locator('[data-zeichnen]')
 			.locator('svg')
 			.evaluateAll((svgs) => svgs.map((s) => [...s.classList].find((k) => k.startsWith('lucide-')) ?? ''));
 		expect(bilder.length).toBeGreaterThan(1);

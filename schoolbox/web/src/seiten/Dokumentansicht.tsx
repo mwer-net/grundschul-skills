@@ -110,6 +110,7 @@ const Knoepfe = ({ dokument, entwuerfe, mappe, profil, teilen, zugang }: Knoepfe
 			{!geteilt && (
 				<KnopfLink
 					to={editorSeite(zugang, dok)}
+					// 193-08: Der Zurück-Pfeil im Editor geht dann einen Schritt im Verlauf zurück.
 					state={AUS_ANSICHT}
 					art={praesentieren ? 'zweit' : 'haupt'}
 				>

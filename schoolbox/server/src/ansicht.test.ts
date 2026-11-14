@@ -55,6 +55,20 @@ describe('/ansicht', () => {
 	});
 	after(() => s.stop());
 
+	it('Bilder eines eigenen Bausteins: nur aus seinem Ordner „bilder“ (195-N01)', async () => {
+		const dir = path.join(s.materialDir, '_sammlung', 'igel');
+		await mkdir(path.join(dir, 'bilder'), { recursive: true });
+		await writeFile(path.join(dir, 'baustein.json'), '{"html":"GEHEIMER-INHALT"}');
+		await copyFile(path.join(ASSETS, 'bilder', 'willi.png'), path.join(dir, 'bilder', 'igel.jpg'));
+		const ort = `${s.url}/ansicht/_sammlung/igel/bilder/`;
+		assert.equal((await s.holen(`${ort}igel.jpg`)).status, 200);
+		for (const name of ['..%2Fbaustein.json', '%2E%2E%2Fbaustein.json', '..%5Cbaustein.json', 'a..b.jpg']) {
+			const antwort = await s.holen(`${ort}${name}`);
+			assert.equal(antwort.status, 404, name);
+			assert.doesNotMatch(await antwort.text(), /GEHEIMER-INHALT/, name);
+		}
+	});
+
 	it('Ein Vorschlag kommt mit CSP, das Blatt selbst bleibt, wie es war', async () => {
 		const dir = path.join(s.materialDir, mappe, 'dokumente', dokId, 'vorschlag');
 		await mkdir(dir, { recursive: true });

@@ -4,7 +4,7 @@ import { describe, it } from 'node:test';
 import { BAUSTEINE } from '@schoolbox/kern/src/bausteine';
 
 import type { InspektorTeil } from './index';
-import { ABSCHNITTE, gruppiere, INSPEKTOR_TEILE, MEHRFACH_TEILE } from './index';
+import { ABSCHNITTE, gruppiere, gruppiereMehrfach, INSPEKTOR_TEILE, MEHRFACH_TEILE } from './index';
 
 const art = (name: string) => {
 	const b = BAUSTEINE.find((x) => x.art === name);
@@ -15,12 +15,25 @@ const art = (name: string) => {
 const Leer = () => null;
 
 describe('Gestaltungs-Inspektor: Gruppierung (099)', () => {
-	it('zeigt bei einer Figur Bild, Aussehen, Anordnen und Sichtbarkeit in dieser Reihenfolge (185)', () => {
+	it('zeigt bei einer Figur Figur, Aussehen, Anordnen und Sichtbarkeit in dieser Reihenfolge (185, 199-20)', () => {
 		const gruppen = gruppiere(INSPEKTOR_TEILE, 'figurfrei', art('figurfrei'));
 		assert.deepEqual(
 			gruppen.map((g) => g.titel),
-			['Bild', 'Aussehen', 'Anordnen', 'Sichtbarkeit'],
+			['Figur', 'Aussehen', 'Anordnen', 'Sichtbarkeit'],
 		);
+		assert.equal(gruppiere(INSPEKTOR_TEILE, 'bildfrei', art('bildfrei'))[0]?.titel, 'Bild');
+	});
+
+	it('stellt „Kombinieren“ als eigenen Abschnitt gleich nach „Form“, nur bei Mehrfachauswahl (198-16)', () => {
+		const gruppen = gruppiereMehrfach(
+			[...MEHRFACH_TEILE, ...INSPEKTOR_TEILE],
+			[
+				{ art: 'form', baustein: art('form') },
+				{ art: 'form', baustein: art('form') },
+			],
+		);
+		assert.equal(gruppen.find((g) => g.nr === 10)?.titel, 'Kombinieren');
+		assert.ok(!gruppiere(INSPEKTOR_TEILE, 'form', art('form')).some((g) => g.nr === 10));
 	});
 
 	it('zeigt bei einer Form Form, Füllung und Kontur, Aussehen, Anordnen und Sichtbarkeit (185)', () => {
@@ -66,7 +79,7 @@ describe('Gestaltungs-Inspektor: Gruppierung (099)', () => {
 		}
 	});
 
-	it('legt jeden Teil in einen der acht Abschnitte (185)', () => {
+	it('legt jeden Teil in einen der neun Abschnitte (185, 198-16)', () => {
 		const namen = Object.values(ABSCHNITTE).map((a) => a.name);
 		assert.deepEqual(namen, [
 			'form',
@@ -77,13 +90,14 @@ describe('Gestaltungs-Inspektor: Gruppierung (099)', () => {
 			'aussehen',
 			'anordnen',
 			'sichtbarkeit',
+			'kombinieren',
 		]);
 		for (const teil of [...INSPEKTOR_TEILE, ...MEHRFACH_TEILE]) {
 			assert.ok(teil.abschnitt in ABSCHNITTE, teil.id);
 		}
 	});
 
-	it('ordnet die Abschnitte nach Nummer, nicht nach der Liste', () => {
+	it('ordnet die Abschnitte nach `REIHENFOLGE`, nicht nach der Liste', () => {
 		const spaet: InspektorTeil = { id: 'form', abschnitt: 3, reihenfolge: 1, fuer: () => true, Inhalt: Leer };
 		const gruppen = gruppiere([...INSPEKTOR_TEILE, spaet], 'form', art('form'));
 		assert.deepEqual(

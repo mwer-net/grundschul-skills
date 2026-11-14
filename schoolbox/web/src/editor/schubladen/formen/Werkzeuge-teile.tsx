@@ -1,5 +1,6 @@
-import { Werkzeugknoepfe } from '../../gestaltung/werkzeuge/werkzeugknoepfe';
+import { Zeichenkacheln } from '../../gestaltung/werkzeuge/werkzeugknoepfe';
+import type { FormenTeile } from './typ';
 import { LAGE } from './Werkzeuge-daten';
 
-/** Die Knöpfe aus 098; V allein zeigt `Werkzeugknoepfe` nicht, dann fehlt der Abschnitt (bis 107 R O Y L bringt). */
-export const Inhalt = () => <Werkzeugknoepfe lage={LAGE} />;
+/** 198-10: die Kacheln Stift, Form aus Punkten und Konfetti; die Suche zeigt nur, was passt. */
+export const Inhalt = ({ suche }: FormenTeile) => <Zeichenkacheln lage={LAGE} suche={suche} />;

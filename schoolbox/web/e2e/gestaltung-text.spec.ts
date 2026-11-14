@@ -94,12 +94,15 @@ test.describe('Text in der Schublade „Werkzeuge“ (105, 175)', () => {
 		await expect(schublade(page).locator('[data-grundformen] [data-ablage-gut]').first()).toBeVisible();
 	});
 
-	test('keine Überschrift „Werkzeuge“ in der Schublade, nur der Kopf heißt so', async ({ page }) => {
+	test('keine Überschrift „Werkzeuge“ in der Schublade, nur der Kopf heißt so; die Zeichenkacheln unter „Zeichnen“', async ({
+		page,
+	}) => {
 		await oeffneText(page);
 		await expect(schublade(page).locator('[data-schubladenkopf]')).toHaveText('Werkzeuge');
-		await expect(schublade(page).locator('[data-formen-abschnitt="werkzeuge"] h3')).toHaveCount(0);
 		await expect(schublade(page).getByRole('heading', { name: 'Werkzeuge', level: 3 })).toHaveCount(0);
-		await expect(schublade(page).getByRole('toolbar', { name: 'Werkzeuge' })).toBeVisible();
+		// 198-10: Statt der Werkzeugreihe ohne Titel der Abschnitt „Zeichnen“ mit drei Kacheln.
+		await expect(schublade(page).locator('[data-formen-abschnitt="werkzeuge"] h3')).toHaveText('Zeichnen');
+		await expect(schublade(page).locator('[data-zeichnen] [data-werkzeug]')).toHaveCount(3);
 	});
 
 	test('⌘K „Stempel“ legt einen Stempel ab, Gruppe „Werkzeuge“; „Titel mit Kontur“ gibt es nicht', async ({

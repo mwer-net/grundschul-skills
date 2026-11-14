@@ -3,7 +3,7 @@ import { leseBlatt } from '@schoolbox/kern/src/kit-einstellungen';
 
 import { seitenWort } from '../lib/text';
 import type { Gruppe, Kontext } from './befehle';
-import { BEFEHLE, befehleFuer, kuerzelText, symbolVon, titelVon } from './befehle';
+import { BEFEHLE, befehleFuer, istWerkzeug, kuerzelText, symbolVon, titelVon } from './befehle';
 import type { Posten } from './einfuegen';
 import type { PalettenEintrag } from './palette-suche';
 import type { SchubladenZiele } from './schubladen';
@@ -11,7 +11,7 @@ import { SCHUBLADEN } from './schubladen';
 
 /** Sprungziele im Reiter „Blatt“; `ort` steht dort als `data-einstellung`. */
 export const BLATT_EINSTELLUNGEN = [
-	{ ort: 'titel', titel: 'Titel des Blatts', suchwoerter: ['überschrift', 'name'] },
+	{ ort: 'titel', titel: 'Titel des Blatts', suchwoerter: ['überschrift', 'name', 'umbenennen'] },
 	{ ort: 'klasse', titel: 'Klasse des Blatts', suchwoerter: ['jahrgang'] },
 	{ ort: 'farbschema', titel: 'Farbschema', suchwoerter: ['farbe', 'palette'] },
 	{ ort: 'format', titel: 'Format des Blatts', suchwoerter: ['a4', 'quer', 'hoch', 'karten'] },
@@ -25,7 +25,9 @@ export const BLATT_EINSTELLUNGEN = [
 export const GANZES_BLATT = 'Ganzes Blatt';
 export const BAUSTEIN_EINFUEGEN = 'Baustein einfügen';
 export const SEITE = 'Seite';
-export const DOKUMENT = 'Dokument';
+export const MATERIAL = 'Material';
+export const WERKZEUGE = 'Werkzeuge';
+export const ANSICHT = 'Ansicht';
 
 const ZUR_AUSWAHL: Gruppe[] = ['bearbeiten', 'ablage', 'ordnen', 'baustein', 'gefahr'];
 const IM_DOKUMENT = ['ansicht.versionen', 'ansicht.claude'];
@@ -35,12 +37,24 @@ export const auswahlTitel = (k: Kontext) => {
 	return name ? `Auswahl: ${name}` : null;
 };
 
+/** Die Form-Werkzeuge zum Aufziehen: in der Palette steht je Form nur die Kachel, die sofort ablegt (193-38). */
+const NUR_ALS_KACHEL = new Set(['rechteck', 'ellipse', 'vieleck', 'linie', 'stern'].map((w) => `werkzeug.${w}`));
+
 const gruppeVon = (id: string, gruppe: Gruppe, auswahl: string | null) => {
 	if (gruppe === 'dokument' || IM_DOKUMENT.includes(id)) {
-		return DOKUMENT;
+		return MATERIAL;
+	}
+	if (istWerkzeug(id)) {
+		return WERKZEUGE;
+	}
+	if (gruppe === 'ansicht') {
+		return ANSICHT;
 	}
 	return ZUR_AUSWAHL.includes(gruppe) && auswahl ? auswahl : GANZES_BLATT;
 };
+
+/** Ohne Auswahl beginnt die Palette mit dem Blatt, den Werkzeugen und der Ansicht (193-39). */
+const OHNE_AUSWAHL = [GANZES_BLATT, WERKZEUGE, ANSICHT];
 
 /**
  * Alles, was gerade verfügbar ist: nur `orte: palette`, keine gesperrten Befehle. Ausnahme `gesperrtZeigen`: Der
@@ -50,7 +64,7 @@ export const befehleAlsEintraege = (k: Kontext, fuehreAus: (id: string) => unkno
 	const auswahl = auswahlTitel(k);
 	const gesperrt = BEFEHLE.filter((b) => b.orte.includes('palette') && !b.verfuegbar(k) && b.gesperrtZeigen?.(k));
 	return [...befehleFuer('palette', k), ...gesperrt]
-		.filter((b) => !b.gesperrt?.(k))
+		.filter((b) => !b.gesperrt?.(k) && !NUR_ALS_KACHEL.has(b.id))
 		.map((b) => {
 			const grund = b.verfuegbar(k) ? null : (b.warumNicht?.(k) ?? null);
 			const gruppe = gruppeVon(b.id, b.gruppe, auswahl);
@@ -61,7 +75,7 @@ export const befehleAlsEintraege = (k: Kontext, fuehreAus: (id: string) => unkno
 				id: b.id,
 				titel: titelVon(b, k),
 				gruppe,
-				start: gruppe === auswahl || (!auswahl && gruppe === GANZES_BLATT),
+				start: gruppe === auswahl || (!auswahl && OHNE_AUSWAHL.includes(gruppe)),
 				...(symbol ? { symbol } : {}),
 				...(notiz ? { notiz } : {}),
 				...(erstes ? { kuerzel: kuerzelText(erstes) } : {}),
@@ -82,7 +96,15 @@ export interface PalettenZiele {
 	schubladen?: SchubladenZiele;
 }
 
-const ORDNUNG = (auswahl: string | null) => [auswahl, BAUSTEIN_EINFUEGEN, GANZES_BLATT, SEITE, DOKUMENT];
+const ORDNUNG = (auswahl: string | null) => [
+	auswahl,
+	BAUSTEIN_EINFUEGEN,
+	GANZES_BLATT,
+	WERKZEUGE,
+	ANSICHT,
+	SEITE,
+	MATERIAL,
+];
 
 /** Der ganze Inhalt der Palette im Editor. */
 export const eintraegeImEditor = (k: Kontext, z: PalettenZiele): PalettenEintrag[] => {

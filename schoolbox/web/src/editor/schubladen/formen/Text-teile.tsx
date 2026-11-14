@@ -65,6 +65,7 @@ export const Kacheln = ({ suche, teile }: FormenTeile) => {
 						teile={teile}
 						gut={gutVon(art, fs)}
 						daten={{ 'data-schmuck-kachel': art }}
+						{...(art === 'titel' ? { werkzeug: 'text' } : {})}
 						className={klassen(SCHUBLADENKACHEL, 'flex h-16 flex-col items-center justify-center gap-0.5')}
 					>
 						<span

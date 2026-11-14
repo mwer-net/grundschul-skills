@@ -248,7 +248,11 @@ test.describe('Blase am Element (134)', () => {
 		await expect.poll(() => quelleAufPlatte(mappe, dok)).toContain('data-von-claude');
 		await expect(karte(page)).toHaveCount(0);
 		await expect(material(page).locator('.aufgabe').first()).toHaveAttribute('data-von-claude', '');
-		await page.getByRole('button', { name: 'Rückgängig' }).click();
+		// 193-12: Die Meldung sagt, was die Lehrkraft getan hat, und bietet „Rückgängig“ an.
+		const meldung = page.getByRole('status');
+		await expect(meldung).toContainText('Vorschlag übernommen.');
+		await expect(meldung).not.toContainText('Claude hat das Material geändert.');
+		await meldung.getByRole('button', { name: 'Rückgängig' }).click();
 		await expect.poll(() => quelleAufPlatte(mappe, dok)).not.toContain('data-von-claude');
 	});
 
@@ -259,11 +263,11 @@ test.describe('Blase am Element (134)', () => {
 		await expect(page.getByRole('dialog').getByRole('button', { name: 'Übernehmen' })).toBeFocused();
 		await page.keyboard.press('Enter');
 		await expect.poll(() => quelleAufPlatte(mappe, dok)).toContain('von Claude');
-		// 200-10: Blase zu, keine Pille, kein Hinweis.
+		// 200-10: Blase zu, keine Pille, kein „Claude hat das Material geändert.“; 193-12: „Rückgängig“ in der Meldung.
 		await expect(blase(page)).toHaveCount(0);
 		await expect(pille(page)).toHaveCount(0);
 		await expect(page.getByText('Claude hat das Material geändert.')).toHaveCount(0);
-		await page.getByRole('button', { name: 'Rückgängig' }).click();
+		await page.getByRole('status').getByRole('button', { name: 'Rückgängig' }).click();
 		await expect.poll(() => quelleAufPlatte(mappe, dok)).not.toContain('von Claude');
 	});
 

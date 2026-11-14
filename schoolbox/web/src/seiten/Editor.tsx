@@ -1,5 +1,5 @@
 import { klasseDesBlatts } from '@schoolbox/kern/src/einfuegen';
-import { formatAusHtml } from '@schoolbox/kern/src/html';
+import { formatAusHtml, titelAusHtml } from '@schoolbox/kern/src/html';
 import type { FuerBlatt } from '@schoolbox/kern/src/katalog';
 import { hatLoesung, kannLoesungHaben } from '@schoolbox/kern/src/loesungen';
 import type { Verlauf, Zerlegung } from '@schoolbox/kern/src/quelltext';
@@ -11,9 +11,11 @@ import type { ReactNode } from 'react';
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import { flushSync } from 'react-dom';
 import type { SetURLSearchParams } from 'react-router-dom';
-import { useNavigate, useSearchParams } from 'react-router-dom';
+import { useLocation, useNavigate, useSearchParams } from 'react-router-dom';
 
 import { lade, meldung } from '../api';
+import { Dialog } from '../bausteine/Dialog';
+import { Gekuerzt } from '../bausteine/Gekuerzt';
 import { useHinweis } from '../bausteine/hinweis';
 import { klassen } from '../bausteine/klassen';
 import { Knopf } from '../bausteine/Knopf';
@@ -30,6 +32,7 @@ import { useBearbeitung } from '../editor/bearbeitung';
 import { seiteFliesst, useFluss, useMitlaufen } from '../editor/fluss';
 import type { MenueArt } from '../editor/befehle';
 import { istZoomTaste, kuerzelVon } from '../editor/befehle';
+import { gesperrtIn } from '../editor/AusgeblendetHinweis';
 import { Einfuegemarken } from '../editor/Bibliothek';
 import { useBild } from '../editor/bild';
 import { useBildAusFinder } from '../editor/bild-finder';
@@ -41,7 +44,7 @@ import { bausteinVon, editorHtml, elementZu, nrVon, pfadZu } from '../editor/dar
 import { mitZuletzt, NICHT_IM_TEXT, useEinfuegen, useSlash, useTabelleTab } from '../editor/einfuegen';
 import { EntwurfKarte, Entwurfsleiste, SperrHinweis } from '../editor/Entwurf';
 import { zeigeBlattGestaltung } from '../editor/gestaltung/blatt/zeige';
-import { gestaltungKontext } from '../editor/gestaltung/kontext';
+import { gestaltungKontext, istGestaltungElement } from '../editor/gestaltung/kontext';
 import { Leiste as GestaltungLeiste } from '../editor/gestaltung/leiste/Leiste';
 import { folgeAuswahl, nrnFuer, useMehrfach } from '../editor/gestaltung/mehrfach';
 import { GestaltungUeberlagerung } from '../editor/gestaltung/ueberlagerung';
@@ -71,7 +74,7 @@ import { angezeigt, istEng, sichtbar } from '../editor/schubladen/spalten';
 import { Statusleiste } from '../editor/Statusleiste';
 import type { Struktur } from '../editor/struktur';
 import { useStruktur } from '../editor/struktur';
-import { behaeltUndo, beobachteFelder, gehoertDemElement, istFeld, loeseFeld, TASTEN_SPERRE } from '../editor/tasten';
+import { behaeltUndo, beobachteFelder, gehoertDemElement, istFeld, loeseFeld, tastenGesperrt } from '../editor/tasten';
 import { TastenUebersicht } from '../editor/TastenUebersicht';
 import { TEXT_GEAENDERT, useText } from '../editor/text';
 import { useBefehle } from '../editor/useBefehle';
@@ -87,7 +90,7 @@ import { useAnsichtsProfil } from '../lib/profil';
 import { useTitel } from '../lib/titel';
 import { ansichtAdresse, dokumentSeite, inhaltAdresse, praesentationSeite } from '../lib/zugang';
 import { PdfKnopf } from '../pdf/PdfKnopf';
-import { beendeVollbild, SOFORT, vollbildFuerSofort } from '../praesentation/laufzeit';
+import { beendeVollbild, SOFORT, vollbildAnfragen, vollbildFuerSofort } from '../praesentation/laufzeit';
 import { dokumentWahl, materialName } from '../pdf/wahl';
 import type { DokumentEintrag, Mappe, MappenEintrag } from '../typen';
 import { MaterialFehlt, NICHT_GEFUNDEN } from './NichtGefunden';
@@ -109,7 +112,6 @@ const BEDIENBAR = 'input, select, textarea, button';
 const Trenner = () => <span aria-hidden className="mx-1 h-4 w-px flex-none bg-rand" />;
 
 interface KopfEigenschaften {
-	mappe: string;
 	titel: string;
 	stand: ReactNode;
 	verlassen: () => void;
@@ -117,19 +119,20 @@ interface KopfEigenschaften {
 	children: ReactNode;
 }
 
-/** Drei Zonen: links wo man ist, in der Mitte die Ansicht, rechts die Aktionen mit genau einer Hauptaktion. */
-const Kopfleiste = ({ children, mappe, mitte, stand, titel, verlassen }: KopfEigenschaften) => (
+/**
+ * Drei Zonen: links was offen ist, in der Mitte die Ansicht, rechts die Aktionen mit genau einer Hauptaktion. Den
+ * Ordner nennt die Ansicht, einen Klick entfernt (193-36); ein gekürzter Titel steht ganz im Tooltip (193-26).
+ */
+const Kopfleiste = ({ children, mitte, stand, titel, verlassen }: KopfEigenschaften) => (
 	<header
 		className="@container z-kopf flex min-h-10 flex-none items-center gap-2 border-b border-rand bg-flaeche px-2 max-lg:flex-wrap max-lg:py-1"
 		data-kopf
 	>
 		<div className="flex min-w-0 flex-1 items-center gap-1.5">
 			<SymbolKnopf symbol="zurueck" beschriftung="Zurück" onClick={verlassen} />
-			<span className="truncate text-leise @max-[1150px]:hidden">{mappe}</span>
-			<span aria-hidden className="text-dezent @max-[1150px]:hidden">
-				/
-			</span>
-			<h1 className="min-w-0 truncate text-sm font-medium">{titel}</h1>
+			<h1 className="flex min-w-0 text-sm font-medium" data-kopf-titel>
+				<Gekuerzt text={titel} />
+			</h1>
 			<div className="flex-none">{stand}</div>
 		</div>
 		<div className="flex flex-none items-center gap-1.5">{mitte}</div>
@@ -299,11 +302,13 @@ const useEinfuegeWerkzeuge = ({
 	geladen,
 	html,
 	nachher,
+	ohneAuswahl,
 	setAuswahl,
 	struktur,
 	text,
 }: {
 	auswahl: number | null;
+	ohneAuswahl: () => number | null;
 	blatt: FuerBlatt;
 	dokument: { mappe: string; dok: string };
 	folien: boolean;
@@ -315,7 +320,7 @@ const useEinfuegeWerkzeuge = ({
 	text: ReturnType<typeof useText>;
 }) => {
 	const docJetzt = geladen?.html === html ? (geladen?.doc ?? null) : null;
-	const einfuegen = useEinfuegen({ blatt, dokument, struktur, auswahl, folien, nachher });
+	const einfuegen = useEinfuegen({ blatt, dokument, struktur, auswahl, ohneAuswahl, folien, nachher });
 	const imText = einfuegen.fuerBlatt('', NICHT_IM_TEXT);
 	const slash = useSlash({
 		// Das Dokument im Rahmen: Beim Tippen weicht die Quelle davon ab, das Menü muss trotzdem aufgehen.
@@ -342,7 +347,8 @@ const useEinfuegeWerkzeuge = ({
 	const pruefKnopf =
 		struktur.aktiv && docJetzt && zerlegungJetzt
 			? (p: Pruefpunkt): PruefKnopf | null => {
-					if (p.code === 'aussen') {
+					// 198-20: auch im Druckrand; dort war der Tipp „Etwas nach innen ziehen“.
+					if (p.code === 'aussen' || p.code === 'druckrand') {
 						return p.bausteine.length > 0
 							? {
 									titel: 'In die Seite holen',
@@ -418,6 +424,8 @@ const Bearbeitung = ({ dokument, mappe: mappenDaten }: { mappe: Mappe; dokument:
 	const b = useBearbeitung(mappe, dok, auswahlJetzt);
 	const { alles, stand } = b.speicher;
 	const [geladen, setGeladen] = useState<Geladen | null>(null);
+	// Einmal gezeigt, gilt das Blatt als geladen, auch wenn ein Schritt den Rahmen kurz neu lädt (193-21).
+	const [erstesBild, setErstesBild] = useState(false);
 	const panels = usePanels(suche.get('neu') === '1');
 	// Leiste, Spalten und Blatt, ohne Inspektor; gemessen vor dem ersten Bild, damit das iPad beim Laden nicht springt.
 	const bereichRef = useRef<HTMLDivElement>(null);
@@ -462,7 +470,9 @@ const Bearbeitung = ({ dokument, mappe: mappenDaten }: { mappe: Mappe; dokument:
 
 	const format = formatVon(b.verlauf, meta.format);
 	const quelle = b.verlauf?.quelle ?? null;
-	useTitel(b.ladeFehler ? NICHT_GEFUNDEN : `${meta.titel} bearbeiten`);
+	// 193-07: Nach dem Umbenennen im Reiter „Blatt“ gilt sofort der Titel der Quelle, auch für ⌘Z.
+	const titel = (quelle === null ? null : titelAusHtml(quelle)) ?? meta.titel;
+	useTitel(b.ladeFehler ? NICHT_GEFUNDEN : `${titel} bearbeiten`);
 	const sperre = sperreDesBlatts(vorschau !== null, b.konflikt !== null, entwurf.sperrt);
 	const sichtbareSeite = useRef<() => number | null>(() => null);
 	const claude = useClaude({
@@ -504,6 +514,7 @@ const Bearbeitung = ({ dokument, mappe: mappenDaten }: { mappe: Mappe; dokument:
 			const z = zerlegungZu(h);
 			if (z) {
 				setGeladen({ doc: d, html: h, zerlegung: z });
+				setErstesBild(true);
 				nachBild.current(d, z, h === htmlJetzt.current);
 			}
 		},
@@ -642,6 +653,8 @@ const Bearbeitung = ({ dokument, mappe: mappenDaten }: { mappe: Mappe; dokument:
 		geladen,
 		html,
 		nachher: () => panels.setRechtsOffen(true),
+		// 195-05: Kachel, Palette und Ablage fügen ohne Auswahl auf der Seite im Blick ein.
+		ohneAuswahl: () => sichtbareSeite.current(),
 		setAuswahl,
 		struktur,
 		text,
@@ -653,14 +666,34 @@ const Bearbeitung = ({ dokument, mappe: mappenDaten }: { mappe: Mappe; dokument:
 	const seite = useSichtbareSeite(geladen, ansicht, skala);
 	sichtbareSeite.current = () => (docJetzt ? seiteAn(docJetzt, seite.nr) : null);
 
-	const verlassen = async (ziel: string, state?: unknown) => {
+	const ausAnsicht = (useLocation().state as { ausAnsicht?: boolean } | null)?.ausAnsicht === true;
+	const [ungespeichert, setUngespeichert] = useState<(() => void) | null>(null);
+	/**
+	 * 193-08: Kam man aus der Ansicht, geht „Zurück“ einen Schritt im Verlauf zurück; sonst ersetzt die Ansicht den
+	 * Eintrag. So führt das Zurück des Browsers danach dorthin, wo man vor dem Material war.
+	 */
+	const gehe = (ziel: string, zurAnsicht: boolean, state?: unknown) => {
+		if (zurAnsicht && ausAnsicht) {
+			void navigate(-1);
+		} else {
+			void navigate(ziel, zurAnsicht ? { replace: true } : { state });
+		}
+	};
+	/** Meldet, ob man gleich gegangen ist. `imKlick` läuft auch im Klick auf „Trotzdem gehen“ (Vollbild braucht ihn). */
+	const verlassen = async (
+		ziel: string,
+		{ imKlick, state, zurAnsicht = false }: { imKlick?: () => void; state?: unknown; zurAnsicht?: boolean } = {},
+	) => {
 		const gespeichert = await alles();
-		const trotzdem =
-			gespeichert ||
-			b.konflikt !== null ||
-			window.confirm('Deine letzten Änderungen sind noch nicht gespeichert. Trotzdem gehen?');
+		const trotzdem = gespeichert || b.konflikt !== null;
 		if (trotzdem) {
-			void navigate(ziel, { state });
+			gehe(ziel, zurAnsicht, state);
+		} else {
+			// 193-09: eine Nachfrage im Muster aller Dialoge statt des Fensters des Browsers.
+			setUngespeichert(() => () => {
+				imKlick?.();
+				gehe(ziel, zurAnsicht, state);
+			});
 		}
 		return trotzdem;
 	};
@@ -674,6 +707,7 @@ const Bearbeitung = ({ dokument, mappe: mappenDaten }: { mappe: Mappe; dokument:
 		struktur,
 	});
 
+	const gestaltungJetzt = gestaltungKontext({ doc: docJetzt, pfad, struktur });
 	const befehle = useBefehle(
 		{
 			pfad,
@@ -695,7 +729,9 @@ const Bearbeitung = ({ dokument, mappe: mappenDaten }: { mappe: Mappe; dokument:
 			festeSeiten: format === 'minibuch',
 			hatBild: bild.nimmtBild,
 			linksOffen: sichtbar(zeigt),
-			gestaltung: gestaltungKontext({ doc: docJetzt, pfad, struktur }),
+			gestaltung: gestaltungJetzt,
+			// 198-03: Die Sperre gilt im Befehl, gleich von wo er kommt (Tasten, Menüs, ⌘K, Leiste, Ebenen).
+			gesperrt: [auswahl, ...(gestaltungJetzt?.nrn ?? [])].some((nr) => nr !== null && gesperrtIn(docJetzt, nr) !== null),
 			davor: (() => {
 				const element = docJetzt && auswahl !== null ? elementZu(docJetzt, auswahl) : null;
 				const vorher = element?.previousElementSibling;
@@ -806,14 +842,26 @@ const Bearbeitung = ({ dokument, mappe: mappenDaten }: { mappe: Mappe; dokument:
 				tasten: () => setTastenOffen(true),
 				rueckgaengig: zurueck,
 				wiederholen: vor,
-				speichern: () => zeige({ text: 'Wird automatisch gespeichert.' }),
+				// 193-37: sofort speichern; die Antwort ist der Speicherstand im Kopf.
+				speichern: () => void alles(),
 				pdf: () => document.querySelector<HTMLElement>('[data-pdf-knopf] button')?.click(),
 				praesentieren: () => {
 					// Vollbild nur im Klick selbst, also vor dem Speichern (192 Urteil 2); bleibt man hier, endet es.
-					vollbildFuerSofort();
-					void verlassen(praesentationSeite(zugang, dok), SOFORT).then((weg) => weg || beendeVollbild());
+					// Die Anfrage des Vollbilds kann erst nach der Nachfrage fertig werden: dann endet es danach.
+					const anfrage = vollbildAnfragen();
+					let weiter = false;
+					const imKlick = () => {
+						weiter = true;
+						vollbildFuerSofort();
+					};
+					void verlassen(praesentationSeite(zugang, dok), { imKlick, state: SOFORT }).then((weg) => {
+						if (!weg) {
+							beendeVollbild();
+							void anfrage.then(() => weiter || beendeVollbild());
+						}
+					});
 				},
-				zurueck: () => void verlassen(dokumentSeite(zugang, dok)),
+				zurueck: () => void verlassen(dokumentSeite(zugang, dok), { zurAnsicht: true }),
 				hilfe: () => void verlassen('/hilfe'),
 			},
 		},
@@ -857,14 +905,23 @@ const Bearbeitung = ({ dokument, mappe: mappenDaten }: { mappe: Mappe; dokument:
 	};
 
 	const { jetzt: befehlsKontext, zuTaste } = befehle;
+	const inVorschau = useRef(false);
+	inVorschau.current = vorschau !== null;
 	const taste = useCallback(
 		(e: KeyboardEvent) => {
 			// Schon vergeben: Die Textsitzung hört vorher hin und beendet sich bei Esc selbst.
-			if (e.defaultPrevented || document.querySelector(TASTEN_SPERRE) || gehoertDemElement(e)) {
+			if (e.defaultPrevented || tastenGesperrt(e) || gehoertDemElement(e)) {
 				// Zoom-Tasten nie an den Browser: Sonst zoomt bei offenem Menü die ganze Oberfläche (56).
 				if (istZoomTaste(e)) {
 					e.preventDefault();
 				}
+				return;
+			}
+			// 193-19: Esc verlässt die Vorschau einer Version wie „Zurück zum jetzigen Stand“.
+			const ohneZusatz = !e.metaKey && !e.ctrlKey && !e.altKey && !e.shiftKey;
+			if (e.key === 'Escape' && ohneZusatz && inVorschau.current && !istFeld(e.target)) {
+				e.preventDefault();
+				setVorschau(null);
 				return;
 			}
 			const { pfad: kette, textsitzung } = befehlsKontext.current;
@@ -883,8 +940,8 @@ const Bearbeitung = ({ dokument, mappe: mappenDaten }: { mappe: Mappe; dokument:
 	useEffect(() => {
 		// Beim Schließen eines Menüs ist es unten am Fenster schon weg: Esc ginge sonst zusätzlich eine Ebene hoch.
 		let offenBeimDruck = false;
-		const vorher = () => {
-			offenBeimDruck = Boolean(document.querySelector(TASTEN_SPERRE));
+		const vorher = (e: KeyboardEvent) => {
+			offenBeimDruck = tastenGesperrt(e);
 		};
 		const amFenster = (e: KeyboardEvent) => {
 			if (!offenBeimDruck) {
@@ -942,8 +999,8 @@ const Bearbeitung = ({ dokument, mappe: mappenDaten }: { mappe: Mappe; dokument:
 	}));
 	// Aus der Quelle im Editor, nicht aus der Darstellung: Nach dem Tippen gilt schon der neue Text.
 	const ort = useMemo(
-		() => ({ mappe: mappenDaten, dokument: { id: dok, titel: meta.titel } }),
-		[mappenDaten, dok, meta.titel],
+		() => ({ mappe: mappenDaten, dokument: { id: dok, titel } }),
+		[mappenDaten, dok, titel],
 	);
 	useEffect(() => {
 		handlungen.current = {
@@ -1046,7 +1103,9 @@ const Bearbeitung = ({ dokument, mappe: mappenDaten }: { mappe: Mappe; dokument:
 			panels.setRechts('inspektor');
 			panels.setRechtsOffen(true);
 		},
-		kontextmenue: menueAn,
+		// Rechtsklick auf die Zeile eines freien Elements: dieselbe Liste wie am Element im Blatt (`menueFuer`).
+		kontextmenue: (nr, art, punkt) =>
+			menueAn(nr, art === 'baustein' && istGestaltungElement(docJetzt && elementZu(docJetzt, nr)) ? 'gestaltung' : art, punkt),
 		zeigeSeitengestaltung: (nr, teil) => zeigeBlattGestaltung(nr, teil, struktur.zeigeAn, zeigeEinstellung),
 		ki: {
 			verfuegbar: ki.zustand.verfuegbar,
@@ -1081,8 +1140,7 @@ const Bearbeitung = ({ dokument, mappe: mappenDaten }: { mappe: Mappe; dokument:
 		<ClaudeKontext.Provider value={claude.steuerung}>
 			<div className="flex h-dvh flex-col bg-papier" data-editor>
 				<Kopfleiste
-					mappe={mappenDaten.titel}
-					titel={meta.titel}
+					titel={titel}
 					stand={<Speicheranzeige stand={stand} erneut={() => void b.speicher.speichere()} />}
 					verlassen={() => befehle.fuehreAus('dokument.zurueck')}
 					mitte={kopfMitte}
@@ -1126,6 +1184,7 @@ const Bearbeitung = ({ dokument, mappe: mappenDaten }: { mappe: Mappe; dokument:
 						<PdfKnopf
 							art="haupt"
 							beschriftung="PDF"
+							tooltip={{ text: 'PDF', kuerzel: kuerzelVon('dokument.pdf') }}
 							wahl={wahl}
 							mappe={mappenDaten}
 							warnen
@@ -1142,8 +1201,7 @@ const Bearbeitung = ({ dokument, mappe: mappenDaten }: { mappe: Mappe; dokument:
 						eintraege={eintraegeImEditor(befehle.jetzt.current, {
 							// 203-13: Treffer, die zum Blatt passen, vor den übrigen; nie, was nicht mehr angeboten wird.
 							posten: mitZuletzt(einfuegen.fuerBlatt(), einfuegen.angebot),
-							fuegeEin: (p) =>
-								einfuegen.fuegeEin(p, auswahl ?? (docJetzt ? seiteAn(docJetzt, seite.nr) : null)),
+							fuegeEin: (p) => einfuegen.fuegeEin(p),
 							zeigeSeite: (nr) => {
 								const ziel = docJetzt ? seiteAn(docJetzt, nr) : null;
 								if (ziel !== null) {
@@ -1164,6 +1222,31 @@ const Bearbeitung = ({ dokument, mappe: mappenDaten }: { mappe: Mappe; dokument:
 						}}
 					/>
 				)}
+				{ungespeichert && (
+					<Dialog
+						titel="Noch nicht gespeichert"
+						schliessen={() => setUngespeichert(null)}
+						fuss={
+							<>
+								<Knopf
+									art="gefahr"
+									data-trotzdem-verlassen
+									onClick={() => {
+										setUngespeichert(null);
+										ungespeichert();
+									}}
+								>
+									Trotzdem verlassen
+								</Knopf>
+								<Knopf data-hauptaktion onClick={() => setUngespeichert(null)}>
+									Hier bleiben
+								</Knopf>
+							</>
+						}
+					>
+						<p>Deine letzten Änderungen sind noch nicht gespeichert.</p>
+					</Dialog>
+				)}
 				{tastenOffen && (
 					<TastenUebersicht kontext={befehle.jetzt.current} schliessen={() => setTastenOffen(false)} />
 				)}
@@ -1181,7 +1264,7 @@ const Bearbeitung = ({ dokument, mappe: mappenDaten }: { mappe: Mappe; dokument:
 							className="min-h-0 min-w-0 flex-1 touch-pan-x touch-pan-y overflow-y-auto bg-leinwand"
 						>
 							<Entwurfsleiste entwurf={entwurf} />
-							<EntwurfKarte entwurf={entwurf} ki={ki} titel={meta.titel} karte={entwurfKarte} />
+							<EntwurfKarte entwurf={entwurf} ki={ki} titel={titel} karte={entwurfKarte} />
 							{b.konflikt && (
 								<Konfliktleiste
 									urheber={b.konflikt.urheber}
@@ -1195,6 +1278,7 @@ const Bearbeitung = ({ dokument, mappe: mappenDaten }: { mappe: Mappe; dokument:
 							{vorschau && (
 								<Vorschauleiste
 									version={vorschau.version}
+									jetzig={vorschau.quelle === quelle}
 									laeuft={b.laeuft}
 									wiederherstellen={() => void wiederherstellen(vorschau.version.id)}
 									schliessen={() => setVorschau(null)}
@@ -1203,7 +1287,7 @@ const Bearbeitung = ({ dokument, mappe: mappenDaten }: { mappe: Mappe; dokument:
 							{html !== null && (
 								<Leinwand
 									html={html}
-									titel={meta.titel}
+									titel={titel}
 									auswahl={auswahl}
 									waehle={setAuswahl}
 									zoom={zoom}
@@ -1217,7 +1301,8 @@ const Bearbeitung = ({ dokument, mappe: mappenDaten }: { mappe: Mappe; dokument:
 									nurAnsehen={nurAnsehen}
 									ziehbar={struktur.aktiv}
 									einfuegeLinie={frei && struktur.aktiv}
-									ablegen={struktur.verschiebe}
+									// Nach dem Ziehen ist der Baustein im Blick wie nach ⌥↑↓ (193, aus Abnahme 206).
+									ablegen={(nr, ablage) => struktur.verschiebe(nr, ablage, true)}
 									jeSeite={format === 'folie'}
 									einblendung={(e) => (
 										<>
@@ -1245,6 +1330,7 @@ const Bearbeitung = ({ dokument, mappe: mappenDaten }: { mappe: Mappe; dokument:
 														struktur={struktur}
 														waehle={setAuswahl}
 														textsitzung={text.bearbeitet}
+														menue={(nr, punkt) => menueAn(nr, 'gestaltung', punkt)}
 													/>
 													<GestaltungLeiste
 														e={e}
@@ -1258,6 +1344,7 @@ const Bearbeitung = ({ dokument, mappe: mappenDaten }: { mappe: Mappe; dokument:
 														e={e}
 														struktur={struktur}
 														folien={format === 'folie'}
+														waehle={setAuswahl}
 													/>
 												</>
 											)}
@@ -1297,6 +1384,7 @@ const Bearbeitung = ({ dokument, mappe: mappenDaten }: { mappe: Mappe; dokument:
 
 				<Statusleiste
 					seite={seite}
+					blattGeladen={erstesBild}
 					format={FORMAT_NAME[format]}
 					folien={format === 'folie'}
 					pruefung={pruefung.stand}
@@ -1305,8 +1393,6 @@ const Bearbeitung = ({ dokument, mappe: mappenDaten }: { mappe: Mappe; dokument:
 					zoom={zoom}
 					skala={skala}
 					fuehreAus={befehle.fuehreAus}
-					linksOffen={sichtbar(zeigt).length > 0}
-					schalteLinks={() => panels.schalteLeiste(zeigt)}
 					rechtsOffen={panels.rechtsOffen}
 					setRechtsOffen={panels.setRechtsOffen}
 					claude={claude.lauf}

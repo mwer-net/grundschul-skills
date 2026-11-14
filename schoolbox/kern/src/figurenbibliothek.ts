@@ -19,7 +19,7 @@ import { kopiereAtomar, schreibeJson } from './atomar';
 import { fuehreAus } from './bauen';
 import { SchoolboxFehler } from './fehler';
 import type { BibliotheksFigur, Pose } from './figuren';
-import { eingebauteFigur, FIGUREN } from './figuren';
+import { eingebauteFigur, FIGUREN, figurNameVergeben, NAME_VERGEBEN } from './figuren';
 import type { Konfig } from './konfig';
 import { ASSETS, BILD_PY, BLATT_PY } from './konfig';
 import { slug } from './slug';
@@ -99,10 +99,9 @@ const dateienIn = async (materialDir: string) => new Set(await readdir(figurenDi
 const strichIn = (kennung: string, dateien: ReadonlySet<string>) =>
 	RASTER.map((e) => `${kennung}${STRICH}${e}`).find((d) => dateien.has(d)) ?? null;
 
-const nachKennung = (posen: Pose[]) => [...posen].sort((a, b) => a.id.localeCompare(b.id, 'de'));
-
 /**
- * Die Figuren in fester Reihenfolge: Willi, Wilma, dann nach Namen; je Figur die Grundpose zuerst, dann nach Kennung.
+ * Die Figuren in fester Reihenfolge: Willi, Wilma, dann nach Namen; je Figur die Grundpose zuerst, dann die Posen in
+ * der Reihenfolge der Bibliothek, also nach Entstehung (199-22: Die fertige Pose steht, wo ihre Auftragskachel stand).
  * Nur Posen, deren Datei da ist, jede Kennung einmal. Eine Figur ohne Pose fällt weg.
  */
 const figurenAus = (gespeichert: Gespeichert | null, dateien: ReadonlySet<string>): BibliotheksFigur[] => {
@@ -134,7 +133,7 @@ const figurenAus = (gespeichert: Gespeichert | null, dateien: ReadonlySet<string
 		}
 	}
 	const eingebaute = FIGUREN.map((f) =>
-		eingebauteFigur(f, nachKennung(posenVon(eintraege.find((e) => e.id === f.id)))),
+		eingebauteFigur(f, posenVon(eintraege.find((e) => e.id === f.id))),
 	);
 	const andere = eintraege
 		.filter((e) => !eingebaut(e.id))
@@ -155,7 +154,7 @@ const figurenAus = (gespeichert: Gespeichert | null, dateien: ReadonlySet<string
 					suchwoerter: Array.isArray(e.suchwoerter)
 						? e.suchwoerter.filter((w): w is string => typeof w === 'string')
 						: [],
-					posen: [grund, ...nachKennung(weitere)],
+					posen: [grund, ...weitere],
 				},
 			];
 		})
@@ -557,36 +556,144 @@ export const nimmPoseAuf = async (
 };
 
 /**
+ * 199-03: Was „Entfernen“ aus `figuren.json` genommen hat, damit Rückgängig es wieder einsetzt: die ganze Figur mit
+ * ihrer Stelle in der Liste oder die Posen mit ihrer Stelle in der Figur, dazu die Referenz, die die Figur dabei verlor.
+ */
+export type FigurRueckweg =
+	| { art: 'figur'; index: number; eintrag: GespeicherteFigur }
+	| { art: 'pose'; figur: string; posen: { index: number; pose: GespeichertePose }[]; canva?: string };
+
+/**
  * Streicht eine Pose aus `figuren.json`; die Grundpose nimmt die ganze Figur mit. Trug die Pose die Referenz der Figur
  * (`canva`), verliert die Figur sie, damit das nächste Canva-Bild ihre Referenz wird. Dateien in `_figuren/` bleiben
- * liegen. Die Grundposen von Willi und Wilma werfen. `false`: Diese Pose gibt es nicht.
+ * liegen. Die Grundposen von Willi und Wilma werfen. `null`: Diese Pose gibt es nicht; sonst der Rückweg (199-03).
  */
 export const entfernePose = async (
 	konfig: Pick<Konfig, 'pythonBin'>,
 	materialDir: string,
 	poseId: string,
-): Promise<boolean> => {
+): Promise<FigurRueckweg | null> => {
 	if (eingebaut(poseId)) {
 		throw new SchoolboxFehler('Willi und Wilma lassen sich nicht entfernen.');
 	}
-	return aendereBibliothek(konfig, materialDir, (gespeichert, dateien) => {
+	return aendereBibliothek(konfig, materialDir, (gespeichert, dateien): FigurRueckweg | null => {
 		const figur = figurenAus(gespeichert, dateien).find((f) => f.posen.some((p) => p.id === poseId));
 		const eintrag = figur && gespeichert.figuren.find((f) => istObjekt(f) && f.id === figur.id);
 		if (!figur || !eintrag || !Array.isArray(eintrag.posen)) {
-			return false;
+			return null;
 		}
 		if (!figur.eingebaut && figur.posen[0]?.id === poseId) {
+			const index = gespeichert.figuren.indexOf(eintrag);
 			gespeichert.figuren = gespeichert.figuren.filter((f) => f !== eintrag);
-			return true;
+			return { art: 'figur', index, eintrag };
 		}
-		const weg = eintrag.posen.filter(
-			(p: unknown) => istObjekt(p) && typeof p.datei === 'string' && stammVon(p.datei) === poseId,
+		const weg = eintrag.posen.flatMap((p: unknown, index) =>
+			istObjekt(p) && typeof p.datei === 'string' && stammVon(p.datei) === poseId
+				? [{ index, pose: p as GespeichertePose }]
+				: [],
 		);
-		eintrag.posen = eintrag.posen.filter((p) => !weg.includes(p));
+		eintrag.posen = eintrag.posen.filter((p) => !weg.some((w) => w.pose === p));
 		const referenz = text(eintrag.canva);
-		if (referenz && weg.some((p) => text(p.canva) === referenz)) {
+		const verliert = referenz && weg.some((w) => text(w.pose.canva) === referenz);
+		if (verliert) {
 			delete eintrag.canva;
 		}
+		return { art: 'pose', figur: figur.id, posen: weg, ...(verliert ? { canva: referenz } : {}) };
+	});
+};
+
+/** Eine gespeicherte Pose aus dem Rückweg: nur Dateien direkt in `_figuren/`. */
+const istPose = (p: unknown): p is GespeichertePose =>
+	istObjekt(p) && typeof p.datei === 'string' && POSEN_DATEI.test(p.datei);
+
+/**
+ * 199-03: Rückgängig zu `entfernePose`. Setzt die Figur bzw. die Posen an ihre alte Stelle, wenn es sie nicht schon
+ * wieder gibt. Die Dateien liegen noch da, weil Entfernen sie nie löscht. `false`: Der Rückweg passt nicht.
+ */
+export const setzeEntferntesEin = async (
+	konfig: Pick<Konfig, 'pythonBin'>,
+	materialDir: string,
+	rueckweg: unknown,
+): Promise<boolean> => {
+	if (!istObjekt(rueckweg)) {
+		return false;
+	}
+	return aendereBibliothek(konfig, materialDir, (gespeichert) => {
+		const stelle = (n: unknown, laenge: number) =>
+			typeof n === 'number' && Number.isInteger(n) ? Math.min(Math.max(0, n), laenge) : laenge;
+		if (rueckweg.art === 'figur') {
+			const e = rueckweg.eintrag;
+			if (
+				!istObjekt(e) ||
+				typeof e.id !== 'string' ||
+				!FIGUR_ID.test(e.id) ||
+				eingebaut(e.id) ||
+				!Array.isArray(e.posen) ||
+				!e.posen.every(istPose)
+			) {
+				return false;
+			}
+			if (gespeichert.figuren.some((f) => istObjekt(f) && f.id === e.id)) {
+				return true;
+			}
+			gespeichert.figuren.splice(stelle(rueckweg.index, gespeichert.figuren.length), 0, e as GespeicherteFigur);
+			return true;
+		}
+		if (rueckweg.art !== 'pose' || typeof rueckweg.figur !== 'string' || !Array.isArray(rueckweg.posen)) {
+			return false;
+		}
+		const eintrag = gespeichert.figuren.find((f) => istObjekt(f) && f.id === rueckweg.figur);
+		if (!eintrag || !Array.isArray(eintrag.posen)) {
+			return false;
+		}
+		const posen = rueckweg.posen.filter(
+			(w): w is { index: number; pose: GespeichertePose } => istObjekt(w) && istPose(w.pose),
+		);
+		for (const w of [...posen].sort((a, b) => a.index - b.index)) {
+			if (!eintrag.posen.some((p) => istObjekt(p) && p.datei === w.pose.datei)) {
+				eintrag.posen.splice(stelle(w.index, eintrag.posen.length), 0, w.pose);
+			}
+		}
+		const canva = text(rueckweg.canva);
+		if (canva && !text(eintrag.canva)) {
+			eintrag.canva = canva;
+		}
+		return true;
+	});
+};
+
+/**
+ * 199: Eine Figur der Bibliothek bekommt einen neuen Namen (Doppelklick auf ihren Abschnittstitel). Willi und Wilma
+ * behalten ihre Namen. `false`: Diese Figur gibt es nicht.
+ */
+export const benenneFigur = async (
+	konfig: Pick<Konfig, 'pythonBin'>,
+	materialDir: string,
+	figurId: string,
+	name: string,
+): Promise<boolean> => {
+	const neu = name.trim().replace(/\s+/g, ' ');
+	if (!neu) {
+		throw new SchoolboxFehler('Die Figur braucht einen Namen.');
+	}
+	if (neu.length > 40) {
+		throw new SchoolboxFehler('Höchstens 40 Zeichen.');
+	}
+	if (eingebaut(figurId)) {
+		throw new SchoolboxFehler('Willi und Wilma behalten ihre Namen.');
+	}
+	return aendereBibliothek(konfig, materialDir, (gespeichert) => {
+		const eintrag = gespeichert.figuren.find((f) => istObjekt(f) && f.id === figurId);
+		if (!eintrag) {
+			return false;
+		}
+		const andere = gespeichert.figuren.flatMap((f) =>
+			istObjekt(f) && typeof f.id === 'string' ? [{ id: f.id, name: text(f.name) ?? gross(f.id) }] : [],
+		);
+		if (figurNameVergeben(neu, andere, figurId)) {
+			throw new SchoolboxFehler(NAME_VERGEBEN);
+		}
+		eintrag.name = neu;
 		return true;
 	});
 };

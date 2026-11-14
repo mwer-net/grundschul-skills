@@ -13,3 +13,13 @@ export const MehrKreis = () => (
 		<Symbol name="mehr" className="size-3.5" />
 	</span>
 );
+
+/** Das ⋯ an einer Kachel (Pose, Bild): beim Überfahren und bei Fokus, am iPad immer. Die Kachel trägt `group`. */
+export const KACHEL_MEHR = (
+	<button
+		type="button"
+		className="absolute top-0 right-0 flex size-7 items-start justify-end p-1 opacity-0 group-hover:opacity-100 group-has-[:focus-visible]:opacity-100 data-[popup-open]:opacity-100 [@media(any-pointer:coarse)]:size-11 [@media(any-pointer:coarse)]:opacity-100"
+	>
+		<MehrKreis />
+	</button>
+);

@@ -22,21 +22,24 @@ interface Eigenschaften {
 }
 
 /** Ein Zahlenfeld des Gestaltungs-Inspektors: Tippen ändert nur die Anzeige, Bestätigen schreibt (099). */
+/** 198 (196-10): Dezimalzahlen mit Komma wie überall in der Oberfläche („2,5“). */
+const alsText = (wert: number) => String(wert).replace('.', ',');
+
 export const Zahl = ({ aus, einheit, fest, name, setze, titel, wert, zeige }: Eigenschaften) => {
-	const [text, setText] = useState(String(wert));
-	useEffect(() => setText(String(wert)), [wert]);
+	const [text, setText] = useState(alsText(wert));
+	useEffect(() => setText(alsText(wert)), [wert]);
 	const zahl = (t: string) => {
 		const n = Number(t.replace(',', '.').replace('−', '-'));
 		return t.trim() === '' || !Number.isFinite(n) ? null : n;
 	};
 	const zurueck = () => {
-		setText(String(wert));
+		setText(alsText(wert));
 		zeige?.(null);
 	};
 	const uebernimm = () => {
 		const n = zahl(text);
 		if (n === null || n === wert) {
-			setText(String(wert));
+			setText(alsText(wert));
 			if (n === null) {
 				zeige?.(null);
 			}

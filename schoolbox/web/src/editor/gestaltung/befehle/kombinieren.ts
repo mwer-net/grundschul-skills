@@ -11,20 +11,14 @@ import type { GestaltungKontext } from '../kontext';
 import { leereMehrfach } from '../mehrfach';
 
 /** Titel der Knöpfe im Inspektor (Briefing): Das Ergebnis ist keine Form mit Einstellungen mehr. */
+// 198 (Urteil 3): nur Vereinen (Haus aus Rechteck und Dreieck) und Abziehen (Mond); „Schnitt“ und „Ausschluss“ kann der
+// Kern weiter, die Oberfläche zeigt sie nicht. Was sie früher ergaben, ist eine eigene Form wie jede andere.
 export const KOMBI_HINWEIS = 'Ergibt eine eigene Form. Ecken, Zacken und andere Einstellungen gehen verloren.';
 
 export const KOMBI_ARTEN: readonly { art: KombiArt; id: string; titel: string; schritt: string; symbol: SymbolName }[] =
 	[
 		{ art: 'vereinen', id: 'auswahl.vereinen', titel: 'Vereinen', schritt: 'Vereint', symbol: 'vereinen' },
 		{ art: 'abziehen', id: 'auswahl.abziehen', titel: 'Abziehen', schritt: 'Abgezogen', symbol: 'abziehen' },
-		{ art: 'schneiden', id: 'auswahl.schneiden', titel: 'Schnitt', schritt: 'Geschnitten', symbol: 'schnitt' },
-		{
-			art: 'ausschliessen',
-			id: 'auswahl.ausschliessen',
-			titel: 'Ausschluss',
-			schritt: 'Ausgeschlossen',
-			symbol: 'ausschluss',
-		},
 	];
 
 /** Darf das Element mitmachen? Formen ohne Text und eigene Pfade (wie `istKombinierbar` im Kern, am Blatt). */
@@ -95,7 +89,7 @@ export const kombiniereIm = (g: GestaltungKontext, art: KombiArt) => {
 
 const kann = (k: Kontext) => k.aktiv && kombiGrundIm(k.gestaltung) === null;
 
-/** Vereinen, Abziehen, Schnitt, Ausschluss (121, Briefing 3-formen): keine Taste, in Palette, ⋯ und Inspektor. */
+/** Vereinen und Abziehen (121, 198-16): keine Taste, im Inspektor (Abschnitt „Kombinieren“) und in der Palette. */
 export const KOMBINIEREN_BEFEHLE: Befehl[] = KOMBI_ARTEN.map(({ art, id, symbol, titel }) => ({
 	id,
 	titel,
@@ -103,8 +97,8 @@ export const KOMBINIEREN_BEFEHLE: Befehl[] = KOMBI_ARTEN.map(({ art, id, symbol,
 	symbol,
 	modus: ['auswahl'],
 	suchwoerter: ['kombinieren', 'formen', 'pfad', titel.toLowerCase(), art],
-	orte: ['palette', 'gestaltung'],
-	sichtbarUnter: 'mehr',
+	orte: ['palette'],
+	sichtbarUnter: 'inspektor',
 	verfuegbar: kann,
 	aus: (k) => (k.gestaltung ? kombiniereIm(k.gestaltung, art) : false),
 }));

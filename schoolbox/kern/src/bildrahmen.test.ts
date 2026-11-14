@@ -8,6 +8,7 @@ import {
 	fuelleBildrahmen,
 	legeBildrahmen,
 	leseBildrahmen,
+	RAHMENSTIL_WAHL,
 	setzeAusschnitt,
 	setzeMaske,
 	setzeRahmenstil,
@@ -121,12 +122,18 @@ describe('Bildrahmen (111)', () => {
 		assert.match(element(wolke, nr), /data-bogen="6"/);
 	});
 
-	it('„schräg“ dreht ein gerade liegendes Bild um −3°, ein gedrehtes bleibt', () => {
+	it('199-01: kein Stil ändert die Drehung; „ohne“ nimmt einen alten Stil „schräg“ weg', () => {
 		const gerade = blattMit({ vorne: [BILD_FREI.replace(';--drehen:-3deg', '')] });
 		const nr = finde(gerade, mitKlasse('bild-frei')).nr;
-		assert.equal(leseLage(setzeRahmenstil(gerade, nr, 'schraeg'), nr).drehen, -3);
+		for (const stil of [...RAHMENSTIL_WAHL, 'schraeg', 'rund'] as const) {
+			assert.equal(leseLage(setzeRahmenstil(gerade, nr, stil), nr).drehen, undefined);
+		}
 		const gedreht = blattMit({ vorne: [BILD_FREI.replace('-3deg', '10deg')] });
-		assert.equal(leseLage(setzeRahmenstil(gedreht, nr, 'schraeg'), nr).drehen, 10);
+		assert.equal(leseLage(setzeRahmenstil(gedreht, nr, 'polaroid'), nr).drehen, 10);
+		const alt = setzeRahmenstil(gedreht, nr, 'schraeg');
+		assert.equal(leseBildrahmen(alt, nr)?.rahmenstil, 'schraeg');
+		assert.ok(!element(setzeRahmenstil(alt, nr, null), nr).includes('data-rahmenstil'));
+		assert.deepEqual([...RAHMENSTIL_WAHL], ['polaroid', 'kontur']);
 		assert.throws(() => setzeRahmenstil(blattMit({ vorne: [RAHMEN] }), nr, 'rund'));
 	});
 

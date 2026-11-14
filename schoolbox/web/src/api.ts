@@ -46,8 +46,14 @@ const anfrage = async <T>(url: string, init?: RequestInit): Promise<T> => {
 export const lade = <T>(url: string) => anfrage<T>(url);
 
 /** Schreibende Anfragen: JSON plus eigener Kopf, sonst lehnt der Server sie ab (CSRF-Schutz). */
-export const sende = <T>(url: string, daten: unknown = {}, methode: 'POST' | 'PUT' = 'POST') =>
+export const sende = <T>(
+	url: string,
+	daten: unknown = {},
+	methode: 'POST' | 'PUT' = 'POST',
+	weiter: Pick<RequestInit, 'signal'> = {},
+) =>
 	anfrage<T>(url, {
+		...weiter,
 		method: methode,
 		headers: { 'Content-Type': 'application/json', 'x-schoolbox': '1' },
 		body: JSON.stringify(daten),

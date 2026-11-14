@@ -93,6 +93,24 @@ export const eingebauteFigur = (f: Figur, weitere: readonly Pose[] = []): Biblio
 /** Solange die Figurenbibliothek nicht gelesen ist, gibt es nur diese. */
 export const EINGEBAUTE: readonly BibliotheksFigur[] = FIGUREN.map((f) => eingebauteFigur(f));
 
+/** 199-N01: Der Satz am Feld, wenn eine andere Figur schon so heißt. */
+export const NAME_VERGEBEN = 'So heißt schon eine Figur.';
+
+const namensKern = (name: string) => name.toLocaleLowerCase('de').replace(/\s+/g, '');
+
+/**
+ * 199-N01: Trägt eine andere Figur (auch Willi oder Wilma) schon diesen Namen? Groß- und Kleinschreibung und
+ * Leerzeichen zählen nicht.
+ */
+export const figurNameVergeben = (
+	name: string,
+	figuren: readonly Pick<BibliotheksFigur, 'id' | 'name'>[],
+	ausser: string,
+) => {
+	const kern = namensKern(name);
+	return [...FIGUREN, ...figuren].some((f) => f.id !== ausser && namensKern(f.name) === kern);
+};
+
 /** „Willi“ für die Grundpose, „Willi lupe“ für `willi-lupe`: der Name der Figur und der Rest der Kennung. */
 export const poseName = (figur: Pick<BibliotheksFigur, 'id' | 'name'>, pose: Pick<Pose, 'id'>) => {
 	const rest = pose.id.startsWith(`${figur.id}-`) ? pose.id.slice(figur.id.length + 1).replace(/[-_]+/g, ' ') : '';

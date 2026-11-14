@@ -231,7 +231,8 @@ test.describe('Ebenen, bis 093 „Gliederung“ (080)', () => {
 		const hand = zeiger(page, hasTouch);
 		await hand.runter(await mitte(griffVon(seitenZeile(page, 3))));
 		await expect(aufgaben(page)).toHaveCount(0);
-		await expect(page.locator('[data-seite-anzahl]')).toHaveText(['4', '0', '0']);
+		// 195-24: keine Zahlen an eingeklappten Seiten.
+		await expect(page.locator('[data-seite-anzahl]')).toHaveCount(0);
 		// Vor die erste Seite: Die neuen Seiten 2 und 3 sind beide leer, ein Tausch der beiden änderte die Quelle nicht.
 		await hand.zu(await an(seitenZeile(page, 1), 'oben'));
 		await expect(marke(page)).toBeVisible();
@@ -247,7 +248,6 @@ test.describe('Ebenen, bis 093 „Gliederung“ (080)', () => {
 		await expect(zurueck(page)).toHaveAttribute('data-schritt', 'Seite verschoben');
 		// Die Seite mit den Aufgaben (jetzt Seite 2) blieb zu, die anderen beiden stehen wieder offen.
 		await expect(seitenZeile(page, 2)).toHaveAttribute('data-zu');
-		await expect(seitenZeile(page, 2).locator('[data-seite-anzahl]')).toHaveText('4');
 		await expect(page.locator('[data-seite-zeile][data-zu]')).toHaveCount(1);
 
 		// Jetzt wandert die eingeklappte Seite selbst: Sie bleibt zu, nicht die Zeile, die jetzt an ihrer Stelle steht.
@@ -322,17 +322,22 @@ test.describe('Ebenen, bis 093 „Gliederung“ (080)', () => {
 		await blatt(page);
 		await druecke(seitenZeile(page, 1).getByRole('button', { name: 'Einklappen' }));
 		await expect(aufgaben(page)).toHaveCount(0);
-		await expect(page.locator('[data-seite-anzahl]')).toHaveText('4');
 		await druecke(seitenZeile(page, 1).getByRole('button', { name: 'Aufklappen' }));
 		await expect(aufgaben(page)).toHaveCount(4);
 
+		// 195-13: Wie beim Öffnen heißt der Knopf „Alle aufklappen“; danach führt „Alle einklappen“ dorthin zurück.
+		const zeilen = await page.locator('[data-gliederung-liste] [data-zeile-nr]').count();
+		await druecke(page.getByRole('button', { name: 'Alle aufklappen' }));
+		await expect(page.getByRole('button', { name: 'Alle einklappen' })).toBeVisible();
 		await druecke(page.getByRole('button', { name: 'Alle einklappen' }));
-		await expect(aufgaben(page)).toHaveCount(0);
+		await expect(page.locator('[data-gliederung-liste] [data-zeile-nr]')).toHaveCount(zeilen);
+		await expect(aufgaben(page)).toHaveCount(4);
 		await expect(page.getByRole('button', { name: 'Alle aufklappen' })).toBeVisible();
 
-		// Die Zeile der Seite wählt, ohne sie aufzuklappen.
-		// Eingeklappt steht die Zahl der Aufgaben mit im Namen des Knopfs („Seite 1 4“).
-		await druecke(seitenZeile(page, 1).getByRole('button', { name: /^Seite 1( \d+)?$/ }));
+		// Die Zeile der Seite wählt, ohne sie aufzuklappen (195-24: ohne Zahl im Namen).
+		await druecke(seitenZeile(page, 1).getByRole('button', { name: 'Einklappen' }));
+		await expect(aufgaben(page)).toHaveCount(0);
+		await druecke(seitenZeile(page, 1).getByRole('button', { name: 'Seite 1', exact: true }));
 		await expect(page.locator('[data-auswahl="seite"]')).toBeVisible();
 		await expect(aufgaben(page)).toHaveCount(0);
 
@@ -361,7 +366,7 @@ test.describe('Ebenen, bis 093 „Gliederung“ (080)', () => {
 		await blatt(page);
 		const aufgabe = aufgaben(page).nth(0);
 		await expect(aufgabe).toBeVisible();
-		await druecke(page.getByRole('button', { name: 'Alle einklappen' }));
+		await druecke(seitenZeile(page, 1).getByRole('button', { name: 'Einklappen' }));
 		await expect(aufgaben(page)).toHaveCount(0);
 
 		await druecke(material(page).locator('.reihe').first().locator('x-uhr').nth(2));
@@ -582,7 +587,8 @@ test.describe('Ebenen mit Gestaltung (101)', () => {
 		expect(await titel(page)).toEqual(['B', 'A', 'D']);
 		// Die Aufgaben stehen unter dem Hauptstapel, mit ihren Nummern, und der Hauptstapel ist offen.
 		const stapel = page.locator('[data-zeilen-art="hauptstapel"]');
-		await expect(stapel).toContainText('fließt');
+		// 195-23: Die Zeile heißt „Bausteine“, ohne „fließt“.
+		await expect(stapel).toHaveText('Bausteine');
 		await expect(aufgaben(page)).toHaveCount(4);
 		await expect(aufgaben(page).first()).toContainText('1');
 	});

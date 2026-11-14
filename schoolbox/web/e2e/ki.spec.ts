@@ -140,7 +140,11 @@ test.describe('Neues Blatt im Editor (133)', () => {
 		const adresse = page.url();
 		await expect(entwurfKarte(page)).toContainText('Claude plant „Igel“');
 		await expect(entwurfKarte(page)).toContainText('Ändert das Blatt');
-		await expect(page.locator('[data-schublade-knopf="bausteine"]')).toHaveCount(0);
+		// 195-02: Alle fünf bleiben an ihrem Platz, die nicht bereiten ausgegraut und ohne Wirkung.
+		await expect(page.locator('[data-schublade-knopf]')).toHaveCount(5);
+		await expect(page.locator('[data-schublade-knopf="bausteine"]')).toHaveAttribute('aria-disabled', 'true');
+		await page.locator('[data-schublade-knopf="bausteine"]').click();
+		await expect(page.locator('[data-panel-links="bausteine"]')).toHaveCount(0);
 		await expect(page.getByRole('button', { name: 'Versionen' })).toBeEnabled();
 
 		await page.reload();
@@ -173,7 +177,7 @@ test.describe('Neues Blatt im Editor (133)', () => {
 		});
 		const { dok, mappe } = await neuesBlatt(page);
 		await expect(leiste(page)).toHaveAttribute('data-entwurfsleiste', 'offen');
-		await expect(page.locator('[data-schublade-knopf="bausteine"]')).toHaveCount(0);
+		await expect(page.locator('[data-schublade-knopf="bausteine"]')).toHaveAttribute('aria-disabled', 'true');
 		await leiste(page).getByRole('button', { name: 'Annahmen (1)' }).click();
 		await expect(leiste(page).locator('[data-entwurf-annahmen]')).toContainText('Klasse 2');
 
@@ -202,7 +206,7 @@ test.describe('Neues Blatt im Editor (133)', () => {
 		const karte = entwurfKarte(page);
 		await expect(karte).toHaveAttribute('data-entwurf-karte', 'plan');
 		await expect(karte.locator('[data-entwurf-plan]')).toContainText('Seite ● Grundlage (21 min)');
-		await expect(page.locator('[data-schublade-knopf="bausteine"]')).toHaveCount(0);
+		await expect(page.locator('[data-schublade-knopf="bausteine"]')).toHaveAttribute('aria-disabled', 'true');
 		await page.screenshot({ path: testInfo.outputPath('plan-karte.png') });
 
 		await page.reload();

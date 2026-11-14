@@ -762,14 +762,19 @@ test.describe('Editor-Rahmen (066)', () => {
 
 	test('beide Leisten lassen sich schließen und öffnen', async ({ druecke, page }) => {
 		await oeffneBlatt(page);
-		await expect(page.locator('[data-panel-links]')).toBeVisible();
-		await druecke(page.getByRole('button', { name: 'Linke Leiste' }));
-		await expect(page.locator('[data-panel-links]')).toHaveCount(0);
+		const links = page.locator('[data-panel-links]');
+		await expect(links.first()).toBeVisible();
+		// 193-35: Links schließt das Symbol der offenen Schublade; einen zweiten Knopf in der Statusleiste gibt es nicht.
+		await expect(page.locator('[data-statusleiste]').getByRole('button', { name: 'Linke Leiste' })).toHaveCount(0);
+		for (const id of await links.evaluateAll((s) => s.map((e) => e.getAttribute('data-panel-links')))) {
+			await druecke(page.locator(`[data-schublade-knopf="${id}"]`));
+		}
+		await expect(links).toHaveCount(0);
 		await druecke(page.getByRole('button', { name: 'Rechte Leiste' }));
 		await expect(page.locator('[data-panel]')).toHaveCount(0);
-		await druecke(page.getByRole('button', { name: 'Linke Leiste' }));
+		await druecke(page.locator('[data-schublade-knopf="ebenen"]'));
 		await druecke(page.getByRole('button', { name: 'Rechte Leiste' }));
-		await expect(page.locator('[data-panel-links]')).toBeVisible();
+		await expect(page.locator('[data-panel-links="ebenen"]')).toBeVisible();
 		await expect(page.locator('[data-panel="inspektor"]')).toBeVisible();
 	});
 });

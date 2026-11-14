@@ -126,23 +126,21 @@ export const KonturWahl = ({ aktiv, k, quelle }: FarbTeile) => {
 				}}
 				zeige={(farbe) => zeigeAmPfad(k, 'stroke', farbe)}
 			/>
-			<Zeile titel="Stärke" name="Stärke der Kontur">
-				<span data-form-staerke>
-					<Stepper
-						name="Stärke der Kontur"
-						wert={kontur?.staerke ?? 0}
-						min={0}
-						max={KONTUR_MAX}
-						aus={!aktiv}
-						setze={(staerke) => {
-							setze(
-								'Stärke der Kontur',
-								staerke > 0 ? { farbe: kontur?.farbe ?? KONTUR, staerke } : null,
-							);
-						}}
-					/>
-				</span>
-			</Zeile>
+			{/* 198-11: „Keine“ in der Farbreihe ist der eine Weg zu keiner Kontur; die Stärke beginnt bei 1. */}
+			{kontur && (
+				<Zeile titel="Stärke" name="Stärke der Kontur">
+					<span data-form-staerke>
+						<Stepper
+							name="Stärke der Kontur"
+							wert={Math.max(1, kontur.staerke)}
+							min={1}
+							max={KONTUR_MAX}
+							aus={!aktiv}
+							setze={(staerke) => setze('Stärke der Kontur', { farbe: kontur.farbe || KONTUR, staerke })}
+						/>
+					</span>
+				</Zeile>
+			)}
 		</div>
 	);
 };

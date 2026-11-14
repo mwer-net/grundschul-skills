@@ -1,5 +1,5 @@
 import type { InspektorTeil } from './abschnitte';
-import { MehrfachFuellung, MehrfachPosition } from './mehrfach-teile';
+import { MehrfachFuellung, MehrfachKontur, MehrfachPosition } from './mehrfach-teile';
 
 /** Teile, die nur bei Mehrfachauswahl erscheinen; `fuer` prüft jede gewählte Art. */
 export const MEHRFACH_TEILE: InspektorTeil[] = [
@@ -18,5 +18,13 @@ export const MEHRFACH_TEILE: InspektorTeil[] = [
 		mehrfach: true,
 		fuer: (art) => art === 'form' || art === 'formtext',
 		Inhalt: MehrfachFuellung,
+	},
+	{
+		id: 'mehrfach-kontur',
+		abschnitt: 6,
+		reihenfolge: 0.5,
+		mehrfach: true,
+		fuer: (art) => art === 'form' || art === 'formtext',
+		Inhalt: MehrfachKontur,
 	},
 ];

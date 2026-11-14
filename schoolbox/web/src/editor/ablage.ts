@@ -50,7 +50,7 @@ export const useAblage = ({ dokument, fuegeAblageEin, pfad, quelle, sammlungGeae
 		if (!teil || !gewaehlt) {
 			return false;
 		}
-		const eintrag = { ...teil, name: gewaehlt.name, ...dokument };
+		const eintrag = { ...teil, name: gewaehlt.name, ...dokument, nr: gewaehlt.nr };
 		schreibeAblage(eintrag);
 		setAbgelegt(eintrag);
 		return true;

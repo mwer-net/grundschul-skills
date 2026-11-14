@@ -9,11 +9,20 @@ import { Tooltip } from './Tooltip';
  * Text selbst); ungekürzt bleibt er still. Gemessen wird bei jeder Größenänderung.
  */
 export const Gekuerzt = ({
+	aus = false,
 	className,
+	seite,
 	text,
 	voll,
 	...rest
-}: { text: string; voll?: string; className?: string } & Omit<HTMLAttributes<HTMLSpanElement>, 'children'> &
+}: {
+	text: string;
+	voll?: string;
+	className?: string;
+	/** Wie am `Tooltip`: daneben statt darüber, still während eines Zugs. */
+	seite?: 'top' | 'right';
+	aus?: boolean;
+} & Omit<HTMLAttributes<HTMLSpanElement>, 'children'> &
 	Record<`data-${string}`, string | boolean | undefined>) => {
 	const feld = useRef<HTMLSpanElement>(null);
 	const [gekuerzt, setGekuerzt] = useState(false);
@@ -29,7 +38,7 @@ export const Gekuerzt = ({
 		return () => beobachter.disconnect();
 	}, [text, voll]);
 	return (
-		<Tooltip text={voll ?? text} aus={!gekuerzt}>
+		<Tooltip text={voll ?? text} aus={aus || !gekuerzt} seite={seite}>
 			<span ref={feld} className={klassen('min-w-0 truncate', className)} {...rest}>
 				{text}
 			</span>

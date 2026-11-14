@@ -5,6 +5,8 @@ import { SCHUBLADENKACHEL } from '../../../bausteine/Schublade';
 import { raster } from '../../../bausteine/schubladenhilfe';
 import { AblageKachel } from '../../gestaltung/ablegen/Kachel';
 import type { Grundform } from './Grundformen-daten';
+import { gutVon as linieGut, LINIEN, namenVon as linieNamen } from './Blasen-daten';
+import { Vorschau as LinieVorschau } from './Blasen-teile';
 import { GRUNDFORMEN, gutVon, namenVon } from './Grundformen-daten';
 import type { FormenTeile } from './typ';
 import { passtZurSuche } from './typ';
@@ -24,7 +26,7 @@ const Vorschau = ({ doc, g }: { g: Grundform; doc: Document | null }) => {
 	}
 	const strich = (STRICH * 2) / 3;
 	const { d, viewBox } = form.zeichne(
-		vollstaendig(form, (attr) => g.param?.[attr]),
+		vollstaendig(form, (attr) => (g.vorschau ?? g.param)?.[attr]),
 		40,
 		40,
 		strich,
@@ -44,6 +46,8 @@ const Vorschau = ({ doc, g }: { g: Grundform; doc: Document | null }) => {
 
 export const Kacheln = ({ suche, teile }: FormenTeile) => {
 	const liste = GRUNDFORMEN.filter((g) => passtZurSuche(namenVon(g), suche));
+	// 198-18: Linie und Pfeil gehören zu den Formen, nicht zu den Blasen.
+	const linien = LINIEN.filter((e) => passtZurSuche(linieNamen(e), suche));
 	return (
 		<div className={raster(5)} data-grundformen>
 			{liste.map((g) => (
@@ -51,9 +55,22 @@ export const Kacheln = ({ suche, teile }: FormenTeile) => {
 					key={g.name}
 					teile={teile}
 					gut={gutVon(g)}
+					{...(g.werkzeug ? { werkzeug: g.werkzeug } : {})}
 					className={klassen(SCHUBLADENKACHEL, 'flex h-12 items-center justify-center')}
 				>
 					<Vorschau g={g} doc={teile.doc} />
+				</AblageKachel>
+			))}
+			{linien.map((e) => (
+				<AblageKachel
+					key={e.id}
+					teile={teile}
+					gut={linieGut(e, undefined)}
+					daten={{ 'data-blase-kachel': e.id }}
+					{...(e.id === 'linie' ? { werkzeug: 'linie' } : {})}
+					className={klassen(SCHUBLADENKACHEL, 'flex h-12 items-center justify-center')}
+				>
+					<LinieVorschau e={e} doc={teile.doc} />
 				</AblageKachel>
 			))}
 		</div>

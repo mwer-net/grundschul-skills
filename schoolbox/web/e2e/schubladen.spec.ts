@@ -21,6 +21,7 @@ const palette = (page: Page) => page.locator('[data-befehlspalette]');
 const bilder = (page: Page) => page.locator('[data-schublade-bilder]');
 const ALLE: SchubladenName[] = ['ebenen', 'bausteine', 'werkzeuge', 'figuren', 'bilder'];
 const WACHSTUM = '_assets/bilder/wachstum.png';
+const GRAFIK_IM_FLUSS = '<img src="bilder/wachstum.png" alt="Samen, Keimling, Pflanze, Blume">';
 
 const blatt = async (page: Page) => {
 	const { dok, id, material: datei } = await uhrzeit();
@@ -30,7 +31,7 @@ const blatt = async (page: Page) => {
 
 const zurSammlung = async (page: Page) => {
 	await oeffneSchublade(page, 'bilder');
-	await bilder(page).getByRole('button', { name: 'Sammlung', exact: true }).click();
+	await bilder(page).getByRole('button', { name: 'Mitgeliefert', exact: true }).click();
 	await expect(bilder(page).locator(`[data-sammlung-bild="${WACHSTUM}"]`)).toBeVisible();
 };
 
@@ -80,9 +81,6 @@ test.describe('Schubladenleiste (093)', () => {
 		await expect(offen(page)).toHaveCount(0);
 		await expect(schubladenKnopf(page, 'bilder')).toHaveAttribute('aria-pressed', 'false');
 		expect(await blattBreite(page)).toBeGreaterThan(schmal + 200);
-		// Ohne etwas, das sie selbst geschlossen hat, öffnet die Statusleiste die Ebenen.
-		await druecke(page.getByRole('button', { name: 'Linke Leiste' }));
-		await expect(offen(page)).toHaveAttribute('data-panel-links', 'ebenen');
 	});
 
 	test('alle fünf Schubladen sind überall: Leiste, Palette, Tastenübersicht, Hilfe', async ({ page }) => {
@@ -300,19 +298,13 @@ test.describe('Ebenen und Schublade nebeneinander am Mac (183)', () => {
 		await expect(schubladenKnopf(page, 'ebenen')).toHaveAttribute('aria-pressed', 'true');
 	});
 
-	test('„Linke Leiste“ schließt Ebenen und Schublade und holt beide wieder', async ({ druecke, page }) => {
+	test('Die Statusleiste hat keinen Knopf „Linke Leiste“; die Schubladenleiste ist der Weg (193-35)', async ({
+		page,
+	}) => {
 		await blatt(page);
+		await expect(page.locator('[data-statusleiste]').getByRole('button', { name: 'Linke Leiste' })).toHaveCount(0);
 		await page.keyboard.press('Alt+Digit2');
 		await expect(offen(page)).toHaveCount(2);
-		const knopf = page.getByRole('button', { name: 'Linke Leiste' });
-		await expect(knopf).toHaveAttribute('aria-pressed', 'true');
-		await druecke(knopf);
-		await expect(offen(page)).toHaveCount(0);
-		await expect(knopf).toHaveAttribute('aria-pressed', 'false');
-		await druecke(knopf);
-		await expect(spalte(page, 'ebenen')).toBeVisible();
-		await expect(spalte(page, 'bausteine')).toBeVisible();
-		await expect(knopf).toHaveAttribute('aria-pressed', 'true');
 	});
 
 	test('keine Stecknadel, kein Teiler; ⌘K kennt kein Anheften, aber „Ebenen“', async ({ page }) => {
@@ -353,10 +345,10 @@ test.describe('Schublade an der Stelle der Ebenen, wenn es eng ist (183)', () =>
 });
 
 test.describe('Bilder-Schublade (093)', () => {
-	test('zeigt drei Gruppen mit Suche; Willi & Co. stehen nicht in der Sammlung', async ({ page }) => {
+	test('zeigt drei Gruppen mit Suche; Figuren stehen nicht unter „Mitgeliefert“', async ({ page }) => {
 		await blatt(page);
 		await zurSammlung(page);
-		for (const name of ['Dieser Ordner', 'Meine Bilder', 'Sammlung']) {
+		for (const name of ['Dieser Ordner', 'Andere Ordner', 'Mitgeliefert']) {
 			await expect(bilder(page).getByRole('button', { name, exact: true })).toBeVisible();
 		}
 		await expect(bilder(page).locator('[data-sammlung-bild="_assets/bilder/willi.png"]')).toHaveCount(0);
@@ -399,26 +391,35 @@ test.describe('Bilder-Schublade (093)', () => {
 		await expect(material(page).locator('.platzhalter')).toHaveCount(0);
 	});
 
-	test('ohne gewähltes Bild fügt der Klick einen Bild-Baustein ein, ⌘Z nimmt beides in einem Schritt zurück', async ({
+	test('199-02, 199-05: Klick legt ein freies Bild in die Mitte, keine Aufgabe; ein gewähltes Bild bleibt', async ({
 		druecke,
 		page,
 	}) => {
 		const { datei } = await blatt(page);
-		const bild = material(page).locator('img[src="bilder/wachstum.png"]');
-		const vorher = await bild.count();
-		await druecke(material(page).locator('.aufgabe .nr').first());
+		const vorher = await readFile(datei, 'utf8');
+		const aufgaben = (vorher.match(/class="aufgabe/g) ?? []).length;
+		const frei = material(page).locator('img.bild-frei[src*="wachstum"]');
+		// Ein Bild im Fluss ist gewählt: Die Schublade fügt hinzu, sie tauscht nicht aus.
+		await druecke(material(page).locator('img[src="bilder/wachstum.png"]').first());
 		await zurSammlung(page);
 		await druecke(bilder(page).locator(`[data-sammlung-bild="${WACHSTUM}"]`));
-		await expect(bild).toHaveCount(vorher + 1);
-		await expect(material(page).locator('.platzhalter')).toHaveCount(0);
+		await expect(frei).toHaveCount(1);
 		await gespeichert(page, datei);
-		await expect(page.getByRole('button', { name: /^Rückgängig/ }).first()).toHaveAttribute(
-			'data-schritt',
-			'Bild eingefügt',
+		const nachher = await readFile(datei, 'utf8');
+		expect((nachher.match(/class="aufgabe/g) ?? []).length).toBe(aufgaben);
+		expect(nachher).not.toContain('class="platzhalter"');
+		expect(nachher).toContain(GRAFIK_IM_FLUSS);
+		await expect(frei).toHaveAttribute('style', /--b:320px/);
+		// 199-19 (mit 198-05): Der zweite Klick legt das Bild 16 px versetzt, nicht deckungsgleich.
+		await druecke(bilder(page).locator(`[data-sammlung-bild="${WACHSTUM}"]`));
+		await expect(frei).toHaveCount(2);
+		const lagen = await frei.evaluateAll((liste) =>
+			liste.map((b) => `${(b as HTMLElement).style.getPropertyValue('--x')}|${(b as HTMLElement).style.getPropertyValue('--y')}`),
 		);
+		expect(new Set(lagen).size).toBe(2);
 
 		await page.keyboard.press('ControlOrMeta+z');
-		await expect(bild).toHaveCount(vorher);
-		await expect(material(page).locator('.platzhalter')).toHaveCount(0);
+		await page.keyboard.press('ControlOrMeta+z');
+		await expect(frei).toHaveCount(0);
 	});
 });

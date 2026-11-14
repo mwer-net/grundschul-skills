@@ -1,11 +1,10 @@
 /**
- * Besitzer: 179. „Bild beschreiben …“ in der Steuerzeile von „Bilder“: oben das Feld für den Wunsch, unten „Foto
- * hochladen“, die Bildchen der erkannten Figuren und Senden. Das Bild malt Claude in Canva (176); es landet in „Dieser
+ * Besitzer: 179. „Bild beschreiben …“ in der Steuerzeile von „Bilder“: oben das Feld für den Wunsch, unten die
+ * Bildchen der erkannten Figuren und Senden. „Foto hochladen“ steht in einer eigenen Zeile darunter (199-14). Das Bild malt Claude in Canva (176); es landet in „Dieser
  * Ordner“. Optik und Senden wie „Figur beschreiben …“ in „Figuren“.
  */
 import { CANVA_TEXT_ZEICHEN } from '@schoolbox/kern/src/canva-auftrag';
 import { figurenFuerBild } from '@schoolbox/kern/src/figuren-namen';
-import type { ReactNode } from 'react';
 import { useLayoutEffect, useRef, useState } from 'react';
 
 import { meldung } from '../../api';
@@ -23,15 +22,12 @@ const ZEILEN = 4;
 export const BildBeschreiben = ({
 	fehler,
 	gesendet,
-	hochladen,
 	ki,
 	ort,
 	setFehler,
 }: {
 	ki: SchubladenTeile['ki'];
 	ort: SchubladenTeile['dokument'];
-	/** „Foto hochladen“ oder „Foto wird hochgeladen …“ in der unteren Zeile. */
-	hochladen: ReactNode;
 	/** Nach der Antwort des Servers: „Dieser Ordner“ zeigen, die Suche leeren. */
 	gesendet: () => void;
 	fehler: string | null;
@@ -107,8 +103,7 @@ export const BildBeschreiben = ({
 						className="min-w-0 flex-1 resize-none bg-transparent text-sm leading-5 outline-none placeholder:text-leise"
 					/>
 				</div>
-				<div className="flex flex-wrap items-center gap-1.5">
-					{hochladen}
+				<div className="flex items-center gap-1.5">
 					<span className="ml-auto flex items-center gap-1.5">
 						{figuren.length > 0 && (
 							<span className="flex items-center">

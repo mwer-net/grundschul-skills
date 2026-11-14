@@ -45,14 +45,16 @@ export const vollbildMoeglich = () => Boolean(dok().fullscreenEnabled || dok().w
 export const istVollbild = () => Boolean(dok().fullscreenElement ?? dok().webkitFullscreenElement);
 
 /** Muss direkt in der Nutzergeste laufen (Antippen von „Präsentation starten“), sonst lehnt Safari ab. */
-export const starteVollbild = (element: HTMLElement) => {
+const fordereVollbild = (element: HTMLElement): Promise<void> => {
 	const el = element as WebkitElement;
 	if (el.requestFullscreen) {
-		el.requestFullscreen().catch(() => undefined);
-	} else {
-		el.webkitRequestFullscreen?.();
+		return el.requestFullscreen().catch(() => undefined);
 	}
+	el.webkitRequestFullscreen?.();
+	return Promise.resolve();
 };
+
+export const starteVollbild = (element: HTMLElement) => void fordereVollbild(element);
 
 export const beendeVollbild = () => {
 	if (!istVollbild()) {
@@ -71,11 +73,10 @@ export const beendeVollbild = () => {
  */
 export const SOFORT = { sofort: true } as const;
 
-export const vollbildFuerSofort = () => {
-	if (vollbildMoeglich() && !istVollbild()) {
-		starteVollbild(document.documentElement);
-	}
-};
+export const vollbildAnfragen = (): Promise<void> =>
+	vollbildMoeglich() && !istVollbild() ? fordereVollbild(document.documentElement) : Promise.resolve();
+
+export const vollbildFuerSofort = () => void vollbildAnfragen();
 
 export const VOLLBILD_EREIGNISSE = ['fullscreenchange', 'webkitfullscreenchange'] as const;
 

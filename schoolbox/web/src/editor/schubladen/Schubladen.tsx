@@ -3,7 +3,7 @@ import { kuerzelText } from '../befehle';
 import { useCanvaMeldung } from '../canva';
 import { halteFokus } from '../halteFokus';
 import type { SchubladenId, SchubladenLage, SchubladenTeile } from '.';
-import { SCHUBLADEN, schubladeVon } from '.';
+import { JEDE_LAGE, SCHUBLADEN, schubladeVon } from '.';
 import type { LinksZeigt } from './spalten';
 import { breiteVon, sichtbar } from './spalten';
 
@@ -29,8 +29,10 @@ export const Schubladen = ({ grund = null, lage, teile, waehle, zeigt }: Eigensc
 	return (
 		<>
 			<Schubladenleiste
-				eintraege={SCHUBLADEN.filter((s) => s.bereit(lage)).map((s) => ({
+				// Jede Schublade behält ihren Platz; was gerade nicht bereit ist, steht ausgegraut da (195-02).
+				eintraege={SCHUBLADEN.filter((s) => s.bereit(JEDE_LAGE)).map((s) => ({
 					id: s.id,
+					gesperrt: !s.bereit(lage),
 					titel: s.titel,
 					symbol: s.symbol,
 					kuerzel: kuerzelText({ code: s.taste, wahl: true }),
