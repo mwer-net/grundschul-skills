@@ -70,12 +70,13 @@ const tippfrei = (k: Kontext) => !k.textsitzung && !k.feldBehaeltUndo();
 export const DURCHBLICK_BEFEHLE: Befehl[] = [
 	{
 		id: 'ansicht.durchblick',
-		titel: 'Durchblick ein/aus',
+		// 193-38/198: sagt, was man sieht; „Durchblick“ bleibt Suchwort. Ein/aus zeigt der Haken (`aktiv`).
+		titel: 'Aufbau des Blatts zeigen',
 		gruppe: 'ansicht',
 		symbol: 'ebenen',
 		kuerzel: [{ code: 'KeyG' }],
 		tasteWenn: tippfrei,
-		suchwoerter: ['aufbau', 'stapel', 'druckrand', 'anker', 'ausgeblendet', 'röntgen'],
+		suchwoerter: ['durchblick', 'aufbau', 'stapel', 'druckrand', 'anker', 'ausgeblendet', 'röntgen'],
 		orte: ['taste', 'palette'],
 		sichtbarUnter: 'blatt',
 		verfuegbar: () => true,

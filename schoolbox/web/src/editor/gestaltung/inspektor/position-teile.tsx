@@ -1,3 +1,5 @@
+import { setzeLinie } from '@schoolbox/kern/src/formen-aendern';
+import { punkteAus } from '@schoolbox/kern/src/formen-linie';
 import type { Lage, LageTeil } from '@schoolbox/kern/src/gestaltung';
 import { leseLage, setzeLage } from '@schoolbox/kern/src/gestaltung';
 import { gestaltungArtNach } from '@schoolbox/kern/src/gestaltung-arten';
@@ -5,6 +7,7 @@ import { drehungImBereich } from '@schoolbox/kern/src/gestaltung-inspektor';
 import { nurGleichmaessig, skaliereGruppe } from '@schoolbox/kern/src/gruppen';
 import { useMemo, useState } from 'react';
 
+import { Schalter } from '../../../bausteine/Schalter';
 import { Symbol } from '../../../bausteine/Symbol';
 import { Tooltip } from '../../../bausteine/Tooltip';
 import type { Kasten } from '../geste';
@@ -58,6 +61,83 @@ const groesseMitSchloss = (
 	return lage.h === undefined ? { b } : { b, h: neu };
 };
 
+/** 198-12: Kleinste Breite und Höhe aus dem Inspektor, in px. */
+const MIN_GROESSE = 8;
+/** 198-04: Kürzeste Linie aus dem Inspektor, in px. */
+const MIN_LAENGE = 10;
+
+/**
+ * 198-12: Die Seite, auf deren Ebene das Element unmittelbar liegt, mit ihrem Maß; `null` in Gruppe, Stapel oder am
+ * Anker, wo X und Y nicht ab der Seite gelten.
+ */
+const seiteVon = (element: Element) => {
+	const ebene = element.parentElement;
+	const seite = ebene?.matches('.ebene') ? ebene.parentElement : null;
+	if (!seite?.matches('.seite') || element.hasAttribute('data-anker')) {
+		return null;
+	}
+	const html = seite as HTMLElement;
+	return { b: html.offsetWidth, h: html.offsetHeight };
+};
+
+const begrenze = (wert: number, min: number, max: number) => Math.min(Math.max(wert, min), Math.max(min, max));
+
+/** 198-04: Anfang und Ende einer Linie in Koordinaten der Seite (wie `--x`), aus `data-punkte` und der Lage. */
+const endenDerLinie = (element: Element, lage: Lage) => {
+	const p = punkteAus(element.getAttribute('data-punkte'));
+	if (!p) {
+		return null;
+	}
+	const x = lage.x ?? 0;
+	const y = lage.y ?? 0;
+	return [
+		{ x: x + p[0].x, y: y + p[0].y },
+		{ x: x + p[1].x, y: y + p[1].y },
+	] as const;
+};
+
+/**
+ * 198-04: Länge und Winkel statt Breite, Höhe und Kette. Beide setzen das Ende ab dem Anfang; 0° zeigt nach rechts,
+ * 90° nach unten wie die Drehung.
+ */
+const LinienMass = ({ aus, k, lage }: { k: GestaltungKontext; lage: Lage; aus: boolean }) => {
+	const enden = endenDerLinie(k.element, lage);
+	if (!enden) {
+		return null;
+	}
+	const [a, b] = enden;
+	const laenge = Math.round(Math.hypot(b.x - a.x, b.y - a.y));
+	const winkel = (Math.round((Math.atan2(b.y - a.y, b.x - a.x) * 180) / Math.PI) + 360) % 360;
+	const setze = (l: number, w: number) => {
+		const rad = (w * Math.PI) / 180;
+		const ende = { x: Math.round(a.x + Math.cos(rad) * l), y: Math.round(a.y + Math.sin(rad) * l) };
+		return k.fuehreAus('Linie geändert', (q) => ({ quelle: setzeLinie(q, k.nr, a, ende), nr: k.nr }));
+	};
+	return (
+		<div className="flex gap-1.5" data-linien-mass>
+			<Zahl
+				titel="Länge"
+				name="Länge"
+				einheit="px"
+				wert={laenge}
+				aus={aus}
+				setze={(l) => setze(Math.max(MIN_LAENGE, Math.round(l)), winkel)}
+			/>
+			<Zahl
+				titel="Winkel"
+				name="Winkel"
+				einheit="°"
+				wert={winkel}
+				aus={aus}
+				setze={(w) => setze(laenge, ((Math.round(w) % 360) + 360) % 360)}
+			/>
+		</div>
+	);
+};
+
+/** 198-09: Nur Bild und Figur lassen sich spiegeln (wie `auswahl.spiegeln`). */
+const SPIEGELBAR = new Set(['figurfrei', 'bildfrei']);
+
 /** 171: Während einer Geste am Element dieselben Werte wie am Zeiger, gerundet wie nach dem Loslassen; sonst `ruhe`. */
 const imLauf = (live: LiveLage | null, nr: number, ruhe: Kasten): Kasten => {
 	if (!live || live.gruppe || live.nr !== nr) {
@@ -90,8 +170,30 @@ export const Position = ({ aktiv, k, quelle }: InspektorTeile) => {
 	const zeige = (teil: keyof Lage) => (wert: number | null) =>
 		k.zeigeLage(k.nr, { [teil]: wert ?? lage[teil] ?? null });
 	const mitSchloss = groesse === 'proportional' || groesse === 'frei';
+	const seite = seiteVon(k.element);
+	// 198-12: Größe zwischen 8 px und dem Seitenmaß; X und Y nur so weit, dass das Element halb auf der Seite bleibt.
 	const groesseSetzen = (feld: 'b' | 'h') => (wert: number) =>
-		schreibe(k, 'Größe geändert', groesseMitSchloss(lage, jetzt, feld, wert, mitSchloss && schloss));
+		schreibe(
+			k,
+			'Größe geändert',
+			groesseMitSchloss(
+				lage,
+				jetzt,
+				feld,
+				begrenze(wert, MIN_GROESSE, seite ? seite[feld] : Number.POSITIVE_INFINITY),
+				mitSchloss && schloss,
+			),
+		);
+	const lageIn = (feld: 'x' | 'y', wert: number) => {
+		if (!seite) {
+			return Math.round(wert);
+		}
+		const ausdehnung = feld === 'x' ? jetzt.b : groesse === 'text' ? mass.h : jetzt.h;
+		const voll = feld === 'x' ? seite.b : seite.h;
+		return Math.round(begrenze(wert, -ausdehnung / 2, voll - ausdehnung / 2));
+	};
+	const linie = k.element.matches('svg.form[data-form="linie"]');
+	const gespiegelt = (lage.spiegeln ?? 1) < 0;
 
 	return (
 		<div className="flex flex-col gap-1.5" data-gestaltung-position>
@@ -103,7 +205,7 @@ export const Position = ({ aktiv, k, quelle }: InspektorTeile) => {
 					wert={zeigt.x}
 					aus={aus}
 					zeige={zeige('x')}
-					setze={(x) => schreibe(k, 'Verschoben', { x })}
+					setze={(x) => schreibe(k, 'Verschoben', { x: lageIn('x', x) })}
 				/>
 				<Zahl
 					titel="Y"
@@ -112,10 +214,11 @@ export const Position = ({ aktiv, k, quelle }: InspektorTeile) => {
 					wert={zeigt.y}
 					aus={aus}
 					zeige={zeige('y')}
-					setze={(y) => schreibe(k, 'Verschoben', { y })}
+					setze={(y) => schreibe(k, 'Verschoben', { y: lageIn('y', y) })}
 				/>
 			</div>
-			<div className="flex items-center gap-1">
+			{linie && <LinienMass k={k} lage={lage} aus={aus} />}
+			<div className={linie ? 'hidden' : 'flex items-center gap-1'}>
 				<Zahl
 					titel="B"
 					name="Breite"
@@ -153,8 +256,8 @@ export const Position = ({ aktiv, k, quelle }: InspektorTeile) => {
 					/>
 				)}
 			</div>
-			{/* 107: Eine Linie hat zwei Endpunkte und keine Drehung. */}
-			{!k.element.matches('svg.form[data-form="linie"]') && (
+			{/* 107: Eine Linie hat zwei Endpunkte und keine Drehung; ihr Winkel steht oben (198-04). */}
+			{!linie && (
 				<div className="flex gap-1.5">
 					<Zahl
 						titel="Drehung"
@@ -170,7 +273,20 @@ export const Position = ({ aktiv, k, quelle }: InspektorTeile) => {
 							});
 						}}
 					/>
-					<span className="flex-1" />
+					{SPIEGELBAR.has(k.art) ? (
+						<label className="flex min-w-0 flex-1 items-center justify-between gap-1.5 pl-1.5 text-sm">
+							<span className="truncate">Spiegeln</span>
+							<Schalter
+								name="Spiegeln"
+								an={gespiegelt}
+								aus={aus}
+								data-spiegeln
+								setze={(an) => schreibe(k, 'Gespiegelt', { spiegeln: an ? -1 : null })}
+							/>
+						</label>
+					) : (
+						<span className="flex-1" />
+					)}
 				</div>
 			)}
 		</div>

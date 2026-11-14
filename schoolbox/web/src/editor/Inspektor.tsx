@@ -1,5 +1,6 @@
 import { ABSCHNITT_TITEL } from '@schoolbox/kern/src/abschnitte';
 import { FREIES_ELEMENT, kann } from '@schoolbox/kern/src/bausteine';
+import { GESTALTUNG_SELEKTOR } from '@schoolbox/kern/src/gestaltung-arten';
 import { KIT_FELDER, leseNotiz, setzeNotiz, sichtbarkeitFest } from '@schoolbox/kern/src/kit-einstellungen';
 import type { ReactNode } from 'react';
 import { useEffect, useLayoutEffect, useRef, useState } from 'react';
@@ -28,8 +29,10 @@ import type { Einblendung } from './Leinwand';
 import type { LoesungSteuerung } from './loesung';
 import { Loesungswerkzeug } from './Loesungspanel';
 import { KitWerkzeug, SammlungName, Sichtbarkeit, Spaltenwahl, TabellenWerkzeug } from './Panel';
+import type { PruefKnopf } from './Pruefliste';
 import { Pruefhinweise } from './Pruefliste';
-import type { Pruefstand } from './pruefung';
+import type { Pruefpunkt, Pruefstand } from './pruefung';
+import { holeInSeiteAus } from './pruefung';
 import { Sprachwerkzeug } from './Sprachwerkzeug';
 import type { Struktur } from './struktur';
 import type { useText } from './text';
@@ -377,6 +380,28 @@ const Gestaltung = ({
 		</BildKontext.Provider>
 	) : null;
 
+/**
+ * 198-20: „In die Seite holen“ am Hinweis „außerhalb der Seite“ und „im Druckrand“ eines Gestaltungselements, statt des
+ * Tipps. Gesperrt oder ohne bearbeitbares Blatt gibt es den Knopf nicht.
+ */
+const inSeiteHolen =
+	(doc: Document | null, struktur: Struktur, gesperrt: boolean) =>
+	(p: Pruefpunkt): PruefKnopf | null => {
+		const nr = p.bausteine[0];
+		const element = doc && nr !== undefined ? elementZu(doc, nr) : null;
+		if (!doc || gesperrt || !struktur.aktiv || (p.code !== 'aussen' && p.code !== 'druckrand')) {
+			return null;
+		}
+		if (!element?.matches(GESTALTUNG_SELEKTOR)) {
+			return null;
+		}
+		return {
+			titel: 'In die Seite holen',
+			art: 'in-seite-holen',
+			aus: () => holeInSeiteAus(doc, struktur.aendereAttribute, p),
+		};
+	};
+
 /** Feste Abschnitte in fester Reihenfolge; was leer bleibt, blendet `Abschnitt` aus. */
 export const Einstellungen = ({
 	abb,
@@ -437,7 +462,7 @@ export const Einstellungen = ({
 			<AusgeblendetHinweis doc={doc} nr={nr} quelle={quelle} struktur={struktur} />
 			<GesperrtHinweis gesperrt={gesperrt} struktur={struktur} />
 			<UnsichtbarHinweis doc={doc} loesung={loesung} nr={nr} quelle={quelle} schalte={schalteAnsicht} />
-			<Pruefhinweise stand={pruefung} nr={nr} />
+			<Pruefhinweise stand={pruefung} nr={nr} knopf={inSeiteHolen(doc, struktur, gesperrt !== null)} />
 			<AbbildungHinweise abb={abb} />
 			{aktiv && quelle && <SammlungName ablage={ablage} />}
 		</div>
@@ -447,9 +472,8 @@ export const Einstellungen = ({
 		return (
 			<div>
 				{hinweise}
-				<fieldset disabled={gesperrt !== null} className="contents">
-					<Gestaltung bild={bild} doc={doc} pfad={pfad} quelle={quelle} struktur={struktur} />
-				</fieldset>
+				{/* 198-03: Die Sperre der Felder setzt der Gestaltungsinspektor je Abschnitt; die Sichtbarkeit bleibt bedienbar. */}
+				<Gestaltung bild={bild} doc={doc} pfad={pfad} quelle={quelle} struktur={struktur} />
 			</div>
 		);
 	}

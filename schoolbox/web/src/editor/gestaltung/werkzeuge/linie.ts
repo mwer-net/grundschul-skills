@@ -20,6 +20,7 @@ export const werkzeug: Werkzeug | null = {
 	id: 'linie',
 	titel: 'Linie',
 	symbol: 'linie',
+	ohnePalette: true,
 	taste: { code: 'KeyL' },
 	zeiger: 'crosshair',
 	bereit: (k) => k.frei,

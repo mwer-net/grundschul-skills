@@ -1,7 +1,8 @@
-import { formVon } from '@schoolbox/kern/src/formen';
-import { leseForm, setzeFuellung } from '@schoolbox/kern/src/formen-aendern';
+import { formVon, KONTUR, KONTUR_MAX, STRICH } from '@schoolbox/kern/src/formen';
+import { leseForm, setzeFuellung, setzeKontur } from '@schoolbox/kern/src/formen-aendern';
 import { fuerAlle } from '@schoolbox/kern/src/gestaltung';
 
+import { Stepper } from '../../../bausteine/Stepper';
 import { Zeile } from '../../../bausteine/Zeile';
 import { pfadDerForm } from '../anzeige-folgen';
 import { skaliereMit } from '../geste';
@@ -118,6 +119,72 @@ export const MehrfachFuellung = (t: InspektorTeile) => {
 					}}
 				/>
 			</Zeile>
+		</div>
+	);
+};
+
+/**
+ * 198-19: Kontur und Stärke für alle gewählten Formen, auch Linien. Ein Wert gilt für alle; bei verschiedenen Werten ist
+ * keiner markiert („gemischt“). „Keine“ nimmt jede Kontur heraus, dann fehlt die Stärke.
+ */
+export const MehrfachKontur = ({ aktiv, k, quelle }: InspektorTeile) => {
+	const konturen = k.nrn.map((n) => leseForm(quelle, n)?.kontur ?? null);
+	if (k.nrn.some((n) => leseForm(quelle, n) === null)) {
+		return null;
+	}
+	const farben = konturen.map((x) => x?.farbe ?? null);
+	const gleicheFarbe = farben.every((f) => f === farben[0]);
+	const staerken = konturen.flatMap((x) => (x ? [x.staerke] : []));
+	const gleicheStaerke = staerken.every((n) => n === staerken[0]);
+	const setzeAlle = (beschreibung: string, neu: (alt: (typeof konturen)[number]) => (typeof konturen)[number]) =>
+		k.fuehreAus(beschreibung, (q) => ({
+			quelle: fuerAlle(q, k.nrn, (q2, n) => setzeKontur(q2, n, neu(leseForm(q2, n)?.kontur ?? null))).quelle,
+			nr: k.nr,
+		}));
+	const titel = (wort: string, gemischt: boolean) => (
+		<span className="flex items-center gap-1.5">
+			{wort}
+			{gemischt && <Gemischt />}
+		</span>
+	);
+	return (
+		<div className="flex flex-col gap-1" data-gestaltung-kontur="mehrfach">
+			<Zeile titel={titel('Kontur', !gleicheFarbe)} name="Kontur" darunter>
+				<Farben
+					name="form-kontur"
+					beschriftung="Kontur"
+					doc={k.doc}
+					aus={!aktiv}
+					wert={gleicheFarbe ? (farben[0] ?? null) : null}
+					gemischt={!gleicheFarbe}
+					setze={(farbe) =>
+						setzeAlle(farbe === null ? 'Kontur entfernt' : 'Kontur geändert', (alt) =>
+							farbe === null ? null : { farbe, staerke: alt?.staerke || STRICH },
+						)
+					}
+					zeige={(farbe) => {
+						for (const { element } of elementeZu(k.doc, k.nrn)) {
+							(pfadDerForm(element) as SVGElement | null)?.style.setProperty('stroke', farbe);
+						}
+					}}
+				/>
+			</Zeile>
+			{staerken.length > 0 && (
+				<Zeile titel={titel('Stärke', !gleicheStaerke)} name="Stärke der Kontur">
+					<span data-form-staerke>
+						<Stepper
+							name="Stärke der Kontur"
+							wert={Math.max(1, staerken[0] ?? STRICH)}
+							min={1}
+							max={KONTUR_MAX}
+							aus={!aktiv}
+							setze={(staerke) =>
+								setzeAlle('Stärke der Kontur', (alt) => ({ farbe: alt?.farbe || KONTUR, staerke }))
+							}
+						/>
+					</span>
+				</Zeile>
+			)}
 		</div>
 	);
 };

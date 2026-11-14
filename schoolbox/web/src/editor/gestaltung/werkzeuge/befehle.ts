@@ -43,7 +43,7 @@ export const befehleFuerWerkzeuge = (alle: readonly Werkzeug[]): Befehl[] =>
 			// Ein Werkzeug, das es noch nicht gibt, lässt seine Taste dem Browser.
 			tasteWenn: verfuegbar,
 			suchwoerter: ['werkzeug', 'zeichnen', ...(w.suchwoerter ?? [])],
-			orte: kuerzel.length > 0 ? ['taste', 'palette'] : ['palette'],
+			orte: [...(kuerzel.length > 0 ? (['taste'] as const) : []), ...(w.ohnePalette ? [] : (['palette'] as const))],
 			sichtbarUnter: 'links',
 			verfuegbar,
 			// 116: Gehört ⇧ zur eigenen Taste (⇧P), hält es nicht.

@@ -59,6 +59,21 @@ test.describe('Prüfung der Gestaltung (096)', () => {
 		await expect.poll(() => quelle(page)).toBe(vorher);
 	});
 
+	test('198-20: Der Hinweis im Inspektor endet mit dem Knopf „In die Seite holen“, ohne Tipp', async ({ page }) => {
+		const { dok, id } = await uhrzeit();
+		await oeffne(page, id, dok);
+		const form =
+			'<svg class="form" data-lage="frei" data-name="Kreis" data-form="kreis" viewBox="0 0 100 100" style="--x:-100px;--y:300px;--b:100px;--h:100px"><circle cx="50" cy="50" r="48" style="fill:var(--haupt)"/></svg>';
+		await aendere(page, mitEbene(await quelle(page), [form]));
+		await material(page).locator('[data-name="Kreis"]').click({ position: { x: 95, y: 50 } });
+		const hinweis = page.locator('[data-pruefhinweise]');
+		await expect(hinweis).toContainText('liegt außerhalb der Seite');
+		await expect(hinweis).not.toContainText('Tipp:');
+		await hinweis.locator('[data-pruefknopf="in-seite-holen"]').click();
+		await expect.poll(() => quelle(page)).toContain('--x:20px;--y:300px');
+		await expect(page.locator('[data-pruefhinweise]')).toHaveCount(0);
+	});
+
 	test('Ausgeblendetes zeigt der Inspektor mit „Einblenden“', async ({ druecke, page }) => {
 		const { dok, id } = await uhrzeit();
 		await oeffne(page, id, dok);

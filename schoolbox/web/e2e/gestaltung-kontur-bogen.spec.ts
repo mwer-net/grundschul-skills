@@ -68,21 +68,27 @@ test.describe('Schmuckschrift mit Kontur', () => {
 		expect(weiss).toBeGreaterThan(200);
 	});
 
-	test('Schalter „Kontur“ im Inspektor, je ein Schritt; Stärke und Farbe', async ({ page }) => {
+	test('198-11: Farbreihe „Kontur“ mit „Keine“, Stärke als − n + ab 1, je ein Schritt', async ({ page }) => {
 		await oeffneBlatt(page, [TITEL]);
 		await waehle(page, titel(page), 'schmuck');
-		const schalter = page.getByRole('switch', { name: 'Kontur', exact: true });
-		await expect(schalter).toHaveAttribute('aria-checked', 'false');
-		await schalter.click();
+		const reihe = page.locator('[data-farbwahl="kontur-farbe"]');
+		await expect(reihe.locator('[data-farbe="keine"]')).toHaveAttribute('aria-pressed', 'true');
+		await expect(page.locator('[data-kontur-staerke]')).toHaveCount(0);
+		await reihe.locator('[data-farbe="#ffffff"]').click();
 		await expect.poll(() => quelle(page)).toMatch(/data-kontur=""[^>]*--kontur:6px;--kontur-farbe:#ffffff/);
-		await expect(schalter).toHaveAttribute('aria-checked', 'true');
 		// Seit 171 schreibt der Inspektor erst, wenn das Bild des Schritts zu sehen ist.
 		await expect(titel(page)).toHaveAttribute('data-kontur', '');
-		await page.getByRole('textbox', { name: 'Konturstärke' }).fill('9');
+		const staerke = page.locator('[data-kontur-staerke]');
+		// Kleinster Wert 1: „Keine“ ist der einzige Weg zu keiner Kontur.
+		await staerke.getByRole('textbox', { name: 'Konturstärke' }).fill('0');
+		await page.keyboard.press('Enter');
+		await expect.poll(() => quelle(page)).toContain('--kontur:1px');
+		await staerke.getByRole('textbox', { name: 'Konturstärke' }).fill('9');
 		await page.keyboard.press('Enter');
 		await expect.poll(() => quelle(page)).toContain('--kontur:9px');
-		await schalter.click();
+		await reihe.locator('[data-farbe="keine"]').click();
 		await expect.poll(() => quelle(page)).not.toContain('data-kontur');
+		await expect(page.locator('[data-kontur-staerke]')).toHaveCount(0);
 		await zurueck(page).click();
 		await expect.poll(() => quelle(page)).toContain('--kontur:9px');
 	});
@@ -104,6 +110,31 @@ test.describe('Schmuckschrift mit Kontur', () => {
 			}
 		}
 		expect(bunt).toBe(0);
+	});
+});
+
+test.describe('Vorschau im Inspektor (198-02)', () => {
+	test.skip(({ hasTouch }) => hasTouch, 'Inspektor nur am Mac');
+
+	test('Esc und ungültige Eingabe holen den gespeicherten Wert zurück', async ({ page }) => {
+		const gross = TITEL.replace('--gr:56px', '--gr:160px');
+		await oeffneBlatt(page, [gross]);
+		await waehle(page, titel(page), 'schmuck');
+		const vorher = await titel(page).boundingBox();
+		const feld = page.getByRole('textbox', { name: 'Schriftgröße' });
+
+		await feld.fill('40');
+		await expect.poll(async () => (await titel(page).boundingBox())?.height ?? 0).toBeLessThan((vorher?.height ?? 0) / 2);
+		await feld.press('Escape');
+		await expect.poll(async () => (await titel(page).boundingBox())?.height).toBe(vorher?.height);
+		await expect(feld).toHaveValue('160');
+
+		await feld.fill('40');
+		await feld.fill('abc');
+		await feld.press('Enter');
+		await expect.poll(async () => (await titel(page).boundingBox())?.height).toBe(vorher?.height);
+		await expect(feld).toHaveValue('160');
+		expect(await quelle(page)).toContain('--gr:160px');
 	});
 });
 

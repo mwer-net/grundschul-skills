@@ -67,13 +67,15 @@ const fertig = (geschlossen: boolean): Fortgang => {
 
 /**
  * Pfad ⇧P (116): Klick setzt einen Eckpunkt, Ziehen beim Setzen einen Kurvenpunkt mit symmetrischen Griffen. Enter
- * beendet offen, ein Klick auf den ersten Punkt schließt, Backspace nimmt den letzten Punkt weg, Esc bricht ohne
+ * oder Doppelklick (198-15) beendet offen, ein Klick auf den ersten Punkt schließt, Backspace nimmt den letzten Punkt weg, Esc bricht ohne
  * Element ab. Die Vorschau zeigt das nächste Stück bis zum Zeiger. Mehrere Drücke: `mehrteilig` in `useWerkzeug.ts`.
  */
 export const werkzeug: Werkzeug | null = {
 	id: 'pfad',
-	titel: 'Pfad',
+	titel: 'Form aus Punkten',
 	symbol: 'pfad',
+	suchwoerter: ['pfad', 'punkte', 'ecken'],
+	kachel: true,
 	taste: { code: 'KeyP', umschalt: true },
 	zeiger: 'crosshair',
 	bereit: (k) => k.frei,
@@ -113,6 +115,15 @@ export const werkzeug: Werkzeug | null = {
 			}
 			return null;
 		},
+		// 198-15: Der Doppelklick hat beim zweiten Druck denselben Punkt noch einmal gesetzt; der fällt weg.
+		doppel: () => {
+			const [a, b] = punkte.slice(-2);
+			if (a && b && Math.hypot(a.p.x - b.p.x, a.p.y - b.p.y) * skala < SCHLIESSEN) {
+				punkte.pop();
+			}
+			return punkte.length >= 2 ? fertig(false) : 'abbruch';
+		},
+		hinweis: 'Enter: fertig · Esc: verwerfen',
 		abbruch: () => {
 			punkte = [];
 			schliesst = false;

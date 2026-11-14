@@ -541,6 +541,12 @@ describe('Werkzeuge (098)', () => {
 		assert.equal(belegt.get('U:KeyR'), 'werkzeug.rechteck');
 		assert.equal(befehle.find((b) => b.id === 'werkzeug.stern')?.kuerzel, undefined);
 		assert.deepEqual(befehle.find((b) => b.id === 'werkzeug.stern')?.orte, ['palette']);
+		// 198 (Urteil 1), 193-38: Das Werkzeug Stern ist weg; R, O, Y, L und T bleiben Tasten ohne Zeile in der Palette.
+		assert.equal(BEFEHLE.find((b) => b.id === 'werkzeug.stern'), undefined);
+		for (const id of ['rechteck', 'ellipse', 'vieleck', 'linie', 'text']) {
+			assert.deepEqual(BEFEHLE.find((b) => b.id === `werkzeug.${id}`)?.orte, ['taste'], id);
+		}
+		assert.deepEqual(BEFEHLE.find((b) => b.id === 'werkzeug.stift')?.orte, ['taste', 'palette']);
 	});
 
 	it('Keine Formen-Schere (173)', () => {

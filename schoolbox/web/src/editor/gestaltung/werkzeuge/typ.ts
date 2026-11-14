@@ -39,8 +39,16 @@ export interface Werkzeug {
 	symbol: SymbolName;
 	/** Weitere Wörter für ⌘K und die Suche der Schublade (174: „Konfetti“ findet „Streuen“). */
 	suchwoerter?: readonly string[];
-	/** Ohne ⌘ und ohne ⌥; nie beim Tippen. Stern und Streuen haben keine Taste, nur den Knopf. */
+	/** Ohne ⌘ und ohne ⌥; nie beim Tippen. Streuen hat keine Taste, nur die Kachel. */
 	taste?: Kuerzel;
+	/**
+	 * 198-10: Eine Kachel mit Symbol und Wort im Abschnitt „Zeichnen“ der Schublade (Stift, Form aus Punkten, Konfetti).
+	 * Die übrigen Werkzeuge haben nur ihre Taste; sichtbar ist dort die Kachel der Form, die die Taste im Tooltip nennt
+	 * (198 Urteil 1, Entscheidung 30).
+	 */
+	kachel?: boolean;
+	/** 193-38: nicht in ⌘K, weil dort die Kachel derselben Form steht (Rechteck, Kreis, Sechseck, Linie). */
+	ohnePalette?: boolean;
 	/** CSS-Cursor über dem Blatt, solange das Werkzeug aktiv ist. */
 	zeiger: string;
 	/** Nur bereite Werkzeuge haben Befehl, Taste und Knopf. */
@@ -72,6 +80,10 @@ export interface Mehrteilig {
 	hoch: (p: Punkt) => Fortgang;
 	schwebe: (p: Punkt) => Entwurf | null;
 	taste: (taste: string) => Fortgang | null;
+	/** 198-15: Doppelklick setzt den letzten Punkt und beendet. */
+	doppel?: () => Fortgang;
+	/** 198-15: Was am Zeiger steht, solange es läuft. */
+	hinweis?: string;
 	/** Vergisst alles, ohne Element (Esc, Werkzeugwechsel). */
 	abbruch: () => void;
 }

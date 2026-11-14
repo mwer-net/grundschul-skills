@@ -24,13 +24,14 @@ const strichAus = (lage: { x: number; y: number; b: number; h: number }): Strich
 
 /**
  * Streuen (5.10): Aufziehen legt Konfetti in dieser Größe an, hinten; Punkte und Sterne wählt der Inspektor (174). Die
- * Vorschau zeigt die Teile schon beim Aufziehen. Keine Taste, nur der Knopf.
+ * Vorschau zeigt die Teile schon beim Aufziehen. Keine Taste, nur die Kachel.
  */
 export const werkzeug: Werkzeug | null = {
 	id: 'streuen',
-	titel: 'Streuen',
+	titel: 'Konfetti',
 	symbol: 'streuung',
-	suchwoerter: ['streuung', 'konfetti', 'punkte', 'sterne'],
+	suchwoerter: ['streuen', 'streuung', 'punkte', 'sterne'],
+	kachel: true,
 	zeiger: 'crosshair',
 	bereit: (k) => k.frei,
 	beginne: (p) => {

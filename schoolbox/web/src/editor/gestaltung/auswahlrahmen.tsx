@@ -32,8 +32,9 @@ const NAME: Record<GriffName, string> = {
 };
 
 /** Trefferfläche 8 px am Mac, 44 px unter `any-pointer: coarse` (Entscheidung 28); zu sehen ist immer das kleine Quadrat. */
+/** 198-21: Sichtbar bleibt der Punkt mit 8 px (`PUNKT`), die Trefferfläche des Knopfs ist 16 × 16 px. */
 const GRIFF =
-	'pointer-events-auto absolute flex size-2 -translate-x-1/2 -translate-y-1/2 touch-none items-center justify-center [@media(any-pointer:coarse)]:size-11';
+	'pointer-events-auto absolute flex size-4 -translate-x-1/2 -translate-y-1/2 touch-none items-center justify-center [@media(any-pointer:coarse)]:size-11';
 const PUNKT = 'block size-2 flex-none rounded-[1px] border border-brand-500 bg-flaeche shadow';
 
 const Schloss = () => (

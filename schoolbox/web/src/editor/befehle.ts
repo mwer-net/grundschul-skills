@@ -451,7 +451,8 @@ export const BEFEHLE: Befehl[] = [
 		symbol: 'hochladen',
 		kuerzel: [{ code: 'KeyV', befehl: true }],
 		suchwoerter: ['ablage', 'zwischenablage', 'hinzufügen', 'neu'],
-		orte: ['taste', 'menue', 'palette'],
+		// 198-08: auch im Menü am Gestaltungselement, neben Kopieren.
+		orte: ['taste', 'menue', 'palette', 'gestaltung'],
 		sichtbarUnter: 'mehr',
 		verfuegbar: (k) => k.aktiv && k.hatAblage,
 		warumNicht: (k) => (k.aktiv ? 'In der Ablage liegt nichts.' : null),
@@ -1226,7 +1227,7 @@ const OHNE_NEUEN_BAUSTEIN = ['seite', 'tabellenzelle', 'tabellenzeile', 'item', 
  */
 export const GESTALTUNG_MENUE: readonly (readonly string[])[] = [
 	['auswahl.bearbeiten', 'auswahl.bild-ersetzen'],
-	['auswahl.duplizieren', 'auswahl.ausschneiden', 'auswahl.kopieren'],
+	['auswahl.duplizieren', 'auswahl.ausschneiden', 'auswahl.kopieren', 'auswahl.einfuegen'],
 	// 100: „Ganz nach vorne/hinten“ stehen im Inspektor „Anordnen“ und auf der Taste.
 	['auswahl.nach-vorne', 'auswahl.nach-hinten'],
 	// 113: ein Untermenü „Ausrichten“, Verteilen darin.
@@ -1240,8 +1241,8 @@ export const GESTALTUNG_MENUE: readonly (readonly string[])[] = [
 		'auswahl.verteilen-waagerecht',
 		'auswahl.verteilen-senkrecht',
 	],
-	// 121
-	['auswahl.vereinen', 'auswahl.abziehen', 'auswahl.schneiden', 'auswahl.ausschliessen'],
+	// 198-08: Gruppieren an der Mehrfachauswahl, Auflösen an der Gruppe. Kombinieren steht nur im Inspektor (198-16).
+	['auswahl.gruppieren', 'auswahl.gruppe-aufloesen'],
 	// 101
 	['auswahl.sperren', 'auswahl.ausblenden'],
 	// 106, 115
@@ -1250,8 +1251,6 @@ export const GESTALTUNG_MENUE: readonly (readonly string[])[] = [
 	['auswahl.in-sammlung', 'auswahl.claude'],
 	['auswahl.loeschen'],
 ];
-/** Gruppieren und Auflösen stehen in der Leiste (204-12), nicht noch einmal im Menü. */
-const NUR_IN_DER_LEISTE = ['auswahl.gruppieren', 'auswahl.gruppe-aufloesen'];
 const AUSRICHTEN_BLOCK = 3;
 const NACH_VORNE_BLOCK = 2;
 
@@ -1271,7 +1270,6 @@ const platzIm = (id: string) => {
 /** Sortiert nach `GESTALTUNG_MENUE`; Unbekanntes behält seine Reihenfolge aus dem Register. */
 export const ordneGestaltung = (liste: readonly Befehl[]) =>
 	liste
-		.filter((befehl) => !NUR_IN_DER_LEISTE.includes(befehl.id))
 		.map((befehl, n) => ({ befehl, n, ...platzIm(befehl.id) }))
 		.sort((a, b) => a.block - b.block || a.i - b.i || a.n - b.n);
 

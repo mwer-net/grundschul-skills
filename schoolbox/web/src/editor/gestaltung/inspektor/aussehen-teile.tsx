@@ -10,6 +10,7 @@ import {
 } from '@schoolbox/kern/src/aussehen';
 import { formVon } from '@schoolbox/kern/src/formen';
 import { leseForm } from '@schoolbox/kern/src/formen-aendern';
+import { liesPfad } from '@schoolbox/kern/src/vektor';
 
 import { Segment } from '../../../bausteine/Segment';
 import { Zeile } from '../../../bausteine/Zeile';
@@ -45,8 +46,12 @@ const SCHATTEN_WAHL: { wert: SchattenStufe; titel: string }[] = [
  * Enden wirken nur an offenen Strichen: an den Strichen einer gestrichelten Kontur und am offenen Pfad. Linie und Pfeil
  * enden immer rund, Punkte sind immer rund (`konturStilNeu` im Kern).
  */
-const endenWirken = (klasse: string | undefined, stil: KonturStil) =>
-	klasse !== 'linie' && (stil === 'gestrichelt' || (klasse === 'pfad' && stil === 'durchgezogen'));
+const endenWirken = (klasse: string | undefined, stil: KonturStil, offen: boolean) =>
+	klasse !== 'linie' && (stil === 'gestrichelt' || (klasse === 'pfad' && stil === 'durchgezogen' && offen));
+
+/** 198-22: Hat die eigene Form ein offenes Ende? Ein geschlossener Stiftzug hat keins. */
+const offenerPfad = (element: Element) =>
+	[...element.querySelectorAll('path')].some((p) => liesPfad(p.getAttribute('d') ?? '')?.some((z) => !z.zu) ?? false);
 
 export const KonturStilWahl = ({ aktiv, k, quelle }: InspektorTeile) => {
 	const form = leseKonturStil(quelle, k.nr);
@@ -55,6 +60,11 @@ export const KonturStilWahl = ({ aktiv, k, quelle }: InspektorTeile) => {
 	const ohneKontur = k.art === 'form' && !stand?.kontur;
 	const setze = (beschreibung: string, neu: typeof form) =>
 		k.fuehreAus(beschreibung, (q) => ({ quelle: setzeKonturStil(q, k.nr, neu), nr: k.nr }));
+	// 198-11: Ohne Kontur fehlen Stärke und Stil ganz, statt grau dazustehen.
+	if (ohneKontur) {
+		return null;
+	}
+	const klasse = formVon(stand?.art)?.klasse;
 	return (
 		<div className="flex flex-col gap-1" data-gestaltung-kontur-stil>
 			<Zeile titel="Stil" name="Stil der Kontur">
@@ -63,19 +73,19 @@ export const KonturStilWahl = ({ aktiv, k, quelle }: InspektorTeile) => {
 						beschriftung="Stil der Kontur"
 						werte={STILE}
 						wert={form.stil}
-						aus={!aktiv || ohneKontur}
+						aus={!aktiv}
 						waehle={(stil) => setze('Stil der Kontur', { ...form, stil })}
 					/>
 				</span>
 			</Zeile>
-			{endenWirken(formVon(stand?.art)?.klasse, form.stil) && (
+			{endenWirken(klasse, form.stil, klasse === 'pfad' && offenerPfad(k.element)) && (
 				<Zeile titel="Enden" name="Enden der Kontur">
 					<span data-aussehen-kontur-enden={form.enden}>
 						<Segment
 							beschriftung="Enden der Kontur"
 							werte={ENDEN}
 							wert={form.enden}
-							aus={!aktiv || ohneKontur}
+							aus={!aktiv}
 							waehle={(enden) => setze('Enden der Kontur', { ...form, enden })}
 						/>
 					</span>

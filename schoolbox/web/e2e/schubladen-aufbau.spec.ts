@@ -120,7 +120,7 @@ test.describe('Ein Aufbau für alle Schubladen am Mac (167)', () => {
 			expect(new Set(linien), name).toEqual(new Set(['0px']));
 		}
 		await oeffneSchublade(page, 'werkzeuge');
-		await expect(titel(page, 'werkzeuge')).toHaveText(['Text', 'Grundformen', 'Blasen und Linien', 'Bildrahmen']);
+		await expect(titel(page, 'werkzeuge')).toHaveText(['Text', 'Formen', 'Sprechblasen', 'Zeichnen', 'Bildrahmen']);
 		const nummern = await page
 			.locator('[data-panel-links] .rounded-full')
 			.evaluateAll((liste) => liste.filter((e) => /^\d+$/.test(e.textContent?.trim() ?? '')).length);

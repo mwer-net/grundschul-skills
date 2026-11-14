@@ -342,7 +342,8 @@ const useEinfuegeWerkzeuge = ({
 	const pruefKnopf =
 		struktur.aktiv && docJetzt && zerlegungJetzt
 			? (p: Pruefpunkt): PruefKnopf | null => {
-					if (p.code === 'aussen') {
+					// 198-20: auch im Druckrand; dort war der Tipp „Etwas nach innen ziehen“.
+					if (p.code === 'aussen' || p.code === 'druckrand') {
 						return p.bausteine.length > 0
 							? {
 									titel: 'In die Seite holen',
@@ -1266,6 +1267,7 @@ const Bearbeitung = ({ dokument, mappe: mappenDaten }: { mappe: Mappe; dokument:
 														e={e}
 														struktur={struktur}
 														folien={format === 'folie'}
+														waehle={setAuswahl}
 													/>
 												</>
 											)}

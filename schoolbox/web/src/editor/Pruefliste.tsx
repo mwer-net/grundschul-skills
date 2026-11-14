@@ -25,13 +25,14 @@ const zustandVon = (wichtig: Pruefpunkt[]) => {
 	return wichtig.some((p) => p.stufe === 'FEHLER') ? 'fehler' : 'warnung';
 };
 
-const Satz = ({ mitSeite, p }: { p: Pruefpunkt; mitSeite: boolean }) => (
+/** 198-20: Steht ein Knopf darunter, ist er der Tipp; der Satz „Tipp: …“ fällt dann weg. */
+const Satz = ({ mitKnopf = false, mitSeite, p }: { p: Pruefpunkt; mitSeite: boolean; mitKnopf?: boolean }) => (
 	<>
 		<span className="block">
 			{mitSeite && p.seite > 0 && <span className="text-leise">{`Seite ${p.seite}: `}</span>}
 			{p.satz}
 		</span>
-		{p.tipp && <span className="mt-1 block text-leise">{`Tipp: ${p.tipp}`}</span>}
+		{p.tipp && !mitKnopf && <span className="mt-1 block text-leise">{`Tipp: ${p.tipp}`}</span>}
 	</>
 );
 
@@ -65,7 +66,7 @@ const Eintrag = ({
 			disabled={p.bausteine.length === 0}
 			onClick={() => zeige(p)}
 		>
-			<Satz p={p} mitSeite={mitSeite} />
+			<Satz p={p} mitSeite={mitSeite} mitKnopf={knopf !== null} />
 		</button>
 		{knopf && (
 			<Knopf art="zweit" className="mt-1 w-full" data-pruefknopf={knopf.art} onClick={knopf.aus}>
@@ -173,7 +174,16 @@ export const Pruefstatus = ({ knopf, stand, zeige }: Eigenschaften) => {
 };
 
 /** Im Panel des gewählten Bausteins: was die Prüfung genau zu ihm sagt. */
-export const Pruefhinweise = ({ nr, stand }: { stand: Pruefstand | null; nr: number | null }) => {
+export const Pruefhinweise = ({
+	knopf,
+	nr,
+	stand,
+}: {
+	stand: Pruefstand | null;
+	nr: number | null;
+	/** 198-20: „In die Seite holen“ am Hinweis im Inspektor, wie in der Liste der Prüfung. */
+	knopf?: ((p: Pruefpunkt) => PruefKnopf | null) | undefined;
+}) => {
 	const eigene = (stand?.punkte ?? []).filter(
 		(p) => nr !== null && p.bausteine.includes(nr) && !IM_BILDPANEL.has(p.code ?? '') && !IM_PANEL.has(p.code ?? ''),
 	);
@@ -182,14 +192,28 @@ export const Pruefhinweise = ({ nr, stand }: { stand: Pruefstand | null; nr: num
 	}
 	return (
 		<ul className="mt-2 flex flex-col gap-1" data-pruefhinweise>
-			{eigene.map((p, i) => (
-				<li
-					key={`${p.code}-${i}`}
-					className={klassen('rounded-md border-l-2 bg-papier py-1 pr-2 pl-2', FARBE[p.stufe])}
-				>
-					<Satz p={p} mitSeite={false} />
-				</li>
-			))}
+			{eigene.map((p, i) => {
+				const k = knopf?.(p) ?? null;
+				return (
+					<li
+						key={`${p.code}-${i}`}
+						className={klassen('rounded-md border-l-2 bg-papier py-1 pr-2 pl-2', FARBE[p.stufe])}
+					>
+						<Satz p={p} mitSeite={false} mitKnopf={k !== null} />
+						{k && (
+							<Knopf
+								art="zweit"
+								groesse="klein"
+								className="mt-1.5"
+								data-pruefknopf={k.art}
+								onClick={k.aus}
+							>
+								{k.titel}
+							</Knopf>
+						)}
+					</li>
+				);
+			})}
 		</ul>
 	);
 };

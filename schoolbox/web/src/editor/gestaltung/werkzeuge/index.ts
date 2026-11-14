@@ -3,7 +3,6 @@ import { werkzeug as ellipse } from './ellipse';
 import { werkzeug as linie } from './linie';
 import { werkzeug as pfad } from './pfad';
 import { werkzeug as rechteck } from './rechteck';
-import { werkzeug as stern } from './stern';
 import { werkzeug as stift } from './stift';
 import { werkzeug as streuen } from './streuen';
 import { werkzeug as test } from './test';
@@ -15,13 +14,15 @@ export type { Entwurf, Punkt, Strich, Tasten, Werkzeug } from './typ';
 
 export const AUSWAHL = 'auswahl';
 
-/** Alles außer V, in der Reihenfolge der Knöpfe (5.10). Ein Ticket füllt nur seine Datei und trägt hier nichts ein. */
+/**
+ * Alles außer V (5.10). Ein Ticket füllt nur seine Datei und trägt hier nichts ein. 198 (Urteil 1): Den Stern zum
+ * Aufziehen gibt es nicht mehr; er hatte keine Taste und ist als Kachel da.
+ */
 const ZEICHNEN: readonly Werkzeug[] = [
 	rechteck,
 	ellipse,
 	vieleck,
 	linie,
-	stern,
 	text,
 	stift,
 	pfad,

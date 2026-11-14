@@ -130,17 +130,16 @@ test.describe('Muster des Inspektors (182)', () => {
 		expect(new Set(await rund(palette, 18)).size).toBe(1);
 	});
 
-	test('Schmuckschrift: Schalter „Kontur“, danach „Stärke“ mit genau einer Beschriftung', async ({
+	test('Titel: Farbreihe „Kontur“, danach „Stärke“ mit genau einer Beschriftung (198-11)', async ({
 		druecke,
 		page,
 	}) => {
 		await blatt(page, { vorne: [SCHMUCK.replace(' data-kontur', '')] });
 		await waehle(druecke, page, material(page).locator('div.schmuck'), 'schmuck');
-		const schalter = page.getByRole('switch', { name: 'Kontur', exact: true });
-		await expect(schalter).toHaveAttribute('aria-checked', 'false');
+		const reihe = page.locator('[data-farbwahl="kontur-farbe"]');
+		await expect(reihe.locator('[data-farbe="keine"]')).toHaveAttribute('aria-pressed', 'true');
 		await expect(inspektor(page).getByText('Stärke', { exact: true })).toHaveCount(0);
-		await druecke(schalter);
-		await expect(schalter).toHaveAttribute('aria-checked', 'true');
+		await druecke(reihe.locator('[data-farbe="#ffffff"]'));
 		await expect(inspektor(page).getByText('Stärke', { exact: true })).toHaveCount(1);
 		await expect(inspektor(page).getByText('Größe', { exact: true })).toHaveCount(1);
 		await expect(page.getByRole('switch', { name: 'Bogen', exact: true })).toBeVisible();
