@@ -10,6 +10,7 @@ import type { MouseEvent as ReactMouseEvent, PointerEvent as ReactPointerEvent, 
 import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 
 import { AmZeiger } from '../bausteine/AmZeiger';
+import { Gekuerzt } from '../bausteine/Gekuerzt';
 import { Griff } from '../bausteine/Griff';
 import { klassen } from '../bausteine/klassen';
 import { Knopf } from '../bausteine/Knopf';
@@ -24,6 +25,7 @@ import { bausteinVon, elementZu, nrVon } from './darstellung';
 import type { EbenenZiel } from './ebenen-legen';
 import { legeInEbenen, seiteUm } from './ebenen-legen';
 import { lageInSeite, messeAnhaengen } from './gestaltung/anker-lage';
+import { setzeHover, useHover } from './hover-verknuepfung';
 import type { EbenenZeichen } from './gestaltung/ebenen-zeichen';
 import { EBENEN_ZEICHEN } from './gestaltung/ebenen-zeichen';
 import { nrnFuer, schalteDazu, useMehrfach } from './gestaltung/mehrfach';
@@ -92,6 +94,8 @@ interface Lauf {
 	geprueft: Map<string, boolean>;
 	feder: number | null;
 	federSchluessel: string | null;
+	/** Was dieser Zug aufgeklappt hat; Esc klappt es wieder zu (195-07). */
+	aufgeklappt: string[];
 	/** Nur Gestaltung: wo sie liegt und wohin sie käme (101). `amAnker`: Kindzeile mit ⚓ (106). */
 	gestaltung: (EbenenZiel & { name: string; amAnker: boolean }) | null;
 	ziel: EbenenZiel | null;
@@ -303,6 +307,9 @@ const zielInSeite = (
 	return null;
 };
 
+/** 195-22: Mit der Maus nur an der Zeile unter dem Zeiger; sein Platz bleibt frei. Mit dem Finger immer. */
+const GRIFF_BEIM_ZEIGER = 'opacity-0 group-hover:opacity-100 focus-visible:opacity-100 [@media(any-pointer:coarse)]:opacity-100';
+
 /** Ohne sich selbst gezählt: Wer weiter hinten in derselben Ebene landet, rückt um einen Platz auf. `null`: keine Wirkung. */
 const ohneSichSelbst = (ziel: EbenenZiel, von: EbenenZiel & { amAnker: boolean }, kopie: boolean) => {
 	const gleich = !kopie && !von.amAnker && ziel.seite === von.seite && ziel.ebene === von.ebene;
@@ -311,10 +318,10 @@ const ohneSichSelbst = (ziel: EbenenZiel, von: EbenenZiel & { amAnker: boolean }
 };
 
 /** ✦ in der Zeile eines Elements, an dem ein Gespräch läuft, wartet oder einen Vorschlag hat. Klick wie auf die Pille (135). */
-const ClaudeMerker = ({ nr }: { nr: number }) => {
+const ClaudeMerker = ({ aus, nr }: { nr: number; aus: boolean }) => {
 	const claude = useClaudeSteuerung();
 	return claude.merker.has(nr) ? (
-		<Tooltip text="Gespräch mit Claude">
+		<Tooltip text="Gespräch mit Claude" seite="right" aus={aus}>
 			<button
 				type="button"
 				className="flex size-6 flex-none items-center justify-center rounded-sm text-brand-600 hover:bg-flaeche-2 [@media(any-pointer:coarse)]:size-11"
@@ -343,6 +350,9 @@ export const Ebenen = ({
 	const liste = useRef<HTMLDivElement>(null);
 	const inhalt = useRef<HTMLDivElement>(null);
 	const [zug, setZug] = useState<Zug | null>(null);
+	/** 195: Was der Zeiger im Blatt zeigt, ist hier leicht hervorgehoben. */
+	const imBlatt = useHover('blatt');
+	useEffect(() => () => setzeHover('zeile', null), []);
 	const [umbenennen, setUmbenennen] = useState<number | null>(null);
 	const lauf = useRef<Lauf | null>(null);
 	const hoereAuf = useRef<(() => void) | null>(null);
@@ -445,10 +455,18 @@ export const Ebenen = ({
 			l.federSchluessel = schluessel;
 			l.feder = window.setTimeout(() => {
 				l.feder = null;
+				l.aufgeklappt.push(schluessel);
 				neu.current.stand.klappe(schluessel, true);
 			}, FEDERN_MS);
 		}
 	};
+
+	/** Hat das Gezogene in der Zeile `nr` oder neben einem ihrer Kinder ein erlaubtes Ziel? Nur dann klappt sie auf. */
+	const zielDarin = (l: Lauf, z: Zerlegung, nr: number) =>
+		erlaubt(l, { in: nr }) ||
+		(z.knoten[nr]?.kinder ?? []).some(
+			(k) => k.nr !== l.nr && (erlaubt(l, { nr: k.nr, wo: 'vor' }) || erlaubt(l, { nr: k.nr, wo: 'nach' })),
+		);
 
 	/** Fragt den Kern einmal je Stelle, ob er dort ablegen würde. */
 	const erlaubt = (l: Lauf, ablage: Ablage) => {
@@ -566,8 +584,10 @@ export const Ebenen = ({
 		flaeche: HTMLElement,
 		setze: Setze,
 	) => {
-		// Eine eingeklappte Zeile geht nach kurzer Zeit auf, damit man hineinziehen kann.
-		const feder = !l.seite && zeile.dataset.zu !== undefined ? (zeile.dataset.schluessel ?? null) : null;
+		// Eine eingeklappte Zeile geht nach kurzer Zeit auf, damit man hineinziehen kann, aber nur, wenn darin ein Ziel
+		// ist (195-07).
+		const zu = !l.seite && zeile.dataset.zu !== undefined;
+		const feder = zu && zielDarin(l, z, Number(zeile.dataset.zeileNr)) ? (zeile.dataset.schluessel ?? null) : null;
 		const treffer = zielAb(l, start, y);
 		if (treffer === 'selbst') {
 			setze(null, null, null, false, null);
@@ -607,6 +627,11 @@ export const Ebenen = ({
 		}
 		lauf.current = null;
 		beendeFeder(l);
+		if (!ablegen) {
+			for (const schluessel of l.aufgeklappt) {
+				neu.current.stand.klappe(schluessel, false);
+			}
+		}
 		document.documentElement.style.cursor = '';
 		document.body.removeAttribute('data-zieht');
 		setZug(null);
@@ -692,6 +717,7 @@ export const Ebenen = ({
 			geprueft: new Map(),
 			feder: null,
 			federSchluessel: null,
+			aufgeklappt: [],
 			gestaltung,
 			ziel: null,
 			anker: null,
@@ -824,7 +850,8 @@ export const Ebenen = ({
 		}
 	};
 
-	const alleZu = modell.length > 0 && modell.every((s) => !stand.offen(s.schluessel));
+	// 195-13: Ein Knopf, zwei Zustände: Steht die Liste wie beim Öffnen, klappt er alles auf, sonst dorthin zurück.
+	const wieBeimOeffnen = stand.wieVorgabe(alleSchluessel(modell));
 
 	const pfeil = (schluessel: string, zugeklappt: boolean) => (
 		<button
@@ -894,7 +921,7 @@ export const Ebenen = ({
 				{zeichen
 					.filter(({ an, z }) => an || z.schalter)
 					.map(({ an, z }) => (
-						<Tooltip key={z.id} text={z.titel(an)}>
+						<Tooltip key={z.id} text={z.titel(an)} aus={zug !== null}>
 							<button
 								type="button"
 								className={klassen(
@@ -953,6 +980,7 @@ export const Ebenen = ({
 					className={klassen(
 						'group flex items-stretch rounded-md transition-colors duration-500',
 						k.fest && 'text-dezent',
+						imBlatt === k.nr && zug === null && !aktiv && 'bg-flaeche-2',
 						stand.leuchtet === k.nr && 'bg-brand-100',
 						zug?.hinein === k.nr && 'bg-brand-50 outline-2 -outline-offset-2 outline-brand-500',
 					)}
@@ -963,9 +991,20 @@ export const Ebenen = ({
 					data-zeilen-art={k.zeile}
 					{...zeilenDaten(k, seite, zugeklappt)}
 					onPointerDown={(e) => druecke(e, false, k, k.ziehbar)}
+					onPointerEnter={() => setzeHover('zeile', hauptstapel || lauf.current ? null : k.nr)}
+					onPointerLeave={() => setzeHover('zeile', null)}
 					onContextMenu={(e) => (hauptstapel ? e.preventDefault() : menue(e, k.waehlt ?? k.nr, 'baustein'))}
 				>
-					{k.ziehbar ? <Griff beschriftung={`${k.art} ziehen`} tabIndex={-1} data-griff-zeile /> : LUECKE}
+					{k.ziehbar ? (
+						<Griff
+							beschriftung={`${k.art} ziehen`}
+							tabIndex={-1}
+							className={zug?.nr === k.nr ? undefined : GRIFF_BEIM_ZEIGER}
+							data-griff-zeile
+						/>
+					) : (
+						LUECKE
+					)}
 					{hatKinder ? pfeil(k.schluessel, zugeklappt) : LUECKE}
 					{umbenennen === k.nr ? (
 						<input
@@ -989,7 +1028,11 @@ export const Ebenen = ({
 							}}
 						/>
 					) : (
-						<Tooltip text={istGestaltungZeile ? `${tooltip} · Doppelklick benennt um` : tooltip}>
+						<Tooltip
+							text={`${tooltip} · Doppelklick benennt um`}
+							seite="right"
+							aus={zug !== null || !istGestaltungZeile}
+						>
 							<button
 								type="button"
 								className="flex h-zeile min-w-0 flex-1 items-center gap-1.5 rounded-md px-1 text-left select-none hover:bg-flaeche-2 aria-[current=true]:bg-brand-100 aria-[current=true]:text-tinte"
@@ -1025,14 +1068,17 @@ export const Ebenen = ({
 										className={klassen('size-3.5 flex-none text-leise', k.aus && 'opacity-50')}
 									/>
 								)}
-								<span className={klassen('truncate', k.aus && 'opacity-50')}>{k.titel}</span>
-								{hauptstapel && (
-									<span className="ml-auto flex-none pr-1 text-xs text-leise">fließt</span>
-								)}
+								{/* 195-12: Bausteinzeilen zeigen den Tooltip nur, wenn der Text gekürzt ist. */}
+								<Gekuerzt
+									text={k.titel}
+									seite="right"
+									aus={zug !== null || istGestaltungZeile}
+									className={klassen(k.aus && 'opacity-50')}
+								/>
 							</button>
 						</Tooltip>
 					)}
-					<ClaudeMerker nr={k.nr} />
+					<ClaudeMerker nr={k.nr} aus={zug !== null} />
 					{istGestaltungZeile && zeichenVon(k, aktiv)}
 				</div>
 				{hatKinder && !zugeklappt && (
@@ -1048,7 +1094,6 @@ export const Ebenen = ({
 		const griffDaten = { nr: s.nr, name, art: 'Seite' };
 		// 206: Eine automatische Seite zieht man nicht, sie gehört zur Seite davor.
 		const ohneGriff = festeSeiten || istAutomatisch(zerlegung?.knoten[s.nr]);
-		const anzahl = stapelVon(s).filter((k) => !k.fest).length;
 		return (
 			<div
 				key={s.id}
@@ -1059,10 +1104,13 @@ export const Ebenen = ({
 			>
 				<div
 					className={klassen(
-						'flex items-stretch rounded-md font-medium transition-colors duration-500',
+						'group flex items-stretch rounded-md font-medium transition-colors duration-500',
+						imBlatt === s.nr && zug === null && 'bg-flaeche-2',
 						zug?.hinein === s.nr && 'bg-brand-50 outline-2 -outline-offset-2 outline-brand-500',
 						stand.leuchtet === s.nr && 'bg-brand-100',
 					)}
+					onPointerEnter={() => setzeHover('zeile', lauf.current ? null : s.nr)}
+					onPointerLeave={() => setzeHover('zeile', null)}
 					data-zeile-nr={s.nr}
 					data-nr={s.nr}
 					data-schluessel={s.schluessel}
@@ -1072,8 +1120,18 @@ export const Ebenen = ({
 					onPointerDown={(e) => druecke(e, true, griffDaten, !ohneGriff)}
 					onContextMenu={(e) => menue(e, s.nr, 'miniatur')}
 				>
-					{ohneGriff ? LUECKE : <Griff beschriftung="Seite ziehen" tabIndex={-1} data-griff-zeile />}
-					{pfeil(s.schluessel, zugeklappt)}
+					{ohneGriff ? (
+						LUECKE
+					) : (
+						<Griff
+							beschriftung="Seite ziehen"
+							tabIndex={-1}
+							className={zug?.nr === s.nr ? undefined : GRIFF_BEIM_ZEIGER}
+							data-griff-zeile
+						/>
+					)}
+					{/* 195-16: Eine leere Seite hat nichts zu klappen. */}
+					{s.kinder.length > 0 ? pfeil(s.schluessel, zugeklappt) : LUECKE}
 					<button
 						type="button"
 						className="flex h-zeile min-w-0 flex-1 items-center justify-between gap-1 rounded-md px-1 text-left select-none hover:bg-flaeche-2 aria-[current=true]:bg-brand-100"
@@ -1082,13 +1140,8 @@ export const Ebenen = ({
 						onClick={() => waehle(s.nr)}
 					>
 						{name}
-						{zugeklappt && (
-							<span className="font-normal text-leise" data-seite-anzahl>
-								{anzahl}
-							</span>
-						)}
 					</button>
-					<ClaudeMerker nr={s.nr} />
+					<ClaudeMerker nr={s.nr} aus={zug !== null} />
 				</div>
 				{!zugeklappt && s.kinder.map((k) => zeigeKnoten(k, 1, s.nr))}
 			</div>
@@ -1103,12 +1156,16 @@ export const Ebenen = ({
 					groesse="klein"
 					className="text-xs"
 					onClick={() => {
-						stand.setzeAlle(alleSchluessel(modell), alleZu);
+						if (wieBeimOeffnen) {
+							stand.setzeAlle(alleSchluessel(modell), true);
+						} else {
+							stand.zurueck();
+						}
 						// 195-14: Die gewählte Zeile bleibt im Blick, wie nach einem Klick im Blatt.
 						rollen.current = true;
 					}}
 				>
-					{alleZu ? 'Alle aufklappen' : 'Alle einklappen'}
+					{wieBeimOeffnen ? 'Alle aufklappen' : 'Alle einklappen'}
 				</Knopf>
 			</Schubladenkopf>
 			<div ref={liste} className="min-h-0 flex-1 overflow-y-auto" data-gliederung-liste>

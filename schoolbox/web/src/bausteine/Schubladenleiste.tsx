@@ -13,6 +13,8 @@ export interface LeistenEintrag<T extends string> {
 	kuerzel: string;
 	/** Danach eine Trennlinie (nach den Ebenen, die nur ordnen). */
 	trenner?: boolean;
+	/** Gerade nicht bereit: bleibt an seinem Platz, ausgegraut, ohne Wirkung; der Tooltip bleibt. */
+	gesperrt?: boolean;
 }
 
 interface Eigenschaften<T extends string> {
@@ -41,12 +43,21 @@ export const Schubladenleiste = <T extends string>({ eintraege, knopf, offen, wa
 						type="button"
 						aria-label={e.titel}
 						aria-pressed={offen.includes(e.id)}
+						aria-disabled={e.gesperrt || undefined}
 						className={klassen(
-							'flex min-h-11 flex-col items-center justify-center gap-0.5 rounded-lg px-0 py-1 text-leise hover:bg-flaeche-2 hover:text-tinte',
-							offen.includes(e.id) && 'bg-brand-50 text-brand-700 hover:bg-brand-50 hover:text-brand-700',
+							'flex min-h-11 flex-col items-center justify-center gap-0.5 rounded-lg px-0 py-1',
+							offen.includes(e.id)
+								? 'bg-brand-50 text-brand-700'
+								: e.gesperrt
+									? 'cursor-default text-leise opacity-50'
+									: 'text-leise hover:bg-flaeche-2 hover:text-tinte',
 						)}
 						data-schublade-knopf={e.id}
-						onClick={() => waehle(e.id)}
+						onClick={() => {
+							if (!e.gesperrt) {
+								waehle(e.id);
+							}
+						}}
 						{...knopf}
 					>
 						<Symbol name={e.symbol} className="size-5 flex-none" />

@@ -6,6 +6,8 @@ import { HAUPTSTAPEL, seitenAbgleich, seitenTexte } from './gliederung-modell';
 
 const LEUCHTEN_MS = 1200;
 
+const vorgabe = (schluessel: string) => !schluessel.includes('/') || schluessel.endsWith(`/${HAUPTSTAPEL}`);
+
 /**
  * Was vom Reiter bleibt, wenn er zugeht: auf- und zugeklappte Zeilen (für die Sitzung, nie in der Quelle), als Schlüssel aus
  * `gliederung-modell`. Liegt darum beim Editor. Aufgeklappt wird, was zur Auswahl führt, das macht die Gliederung.
@@ -48,8 +50,12 @@ export const useGliederungStand = (zerlegung: Zerlegung | null, auswahl: number 
 		leuchtet,
 		eigene,
 		/** Seiten und ihr Hauptstapel (101) sind ohne Zutun offen, alles darunter zu, damit die Liste kurz bleibt. */
-		offen: (schluessel: string) =>
-			geschaltet.get(schluessel) ?? (!schluessel.includes('/') || schluessel.endsWith(`/${HAUPTSTAPEL}`)),
+		offen: (schluessel: string) => geschaltet.get(schluessel) ?? vorgabe(schluessel),
+		/** Steht jede genannte Zeile wie beim Öffnen (195-13)? */
+		wieVorgabe: (schluessel: readonly string[]) =>
+			schluessel.every((s) => (geschaltet.get(s) ?? vorgabe(s)) === vorgabe(s)),
+		/** Zurück zum Ausgangszustand: Seiten offen, alles darunter zu (195-13). */
+		zurueck: () => setGeschaltet((alt) => (alt.size === 0 ? alt : new Map())),
 		klappe: (schluessel: string, oeffnen: boolean) =>
 			setGeschaltet((alt) => (alt.get(schluessel) === oeffnen ? alt : new Map(alt).set(schluessel, oeffnen))),
 		/** Öffnet alle genannten Zeilen auf einmal, ohne neuen Zustand, wenn sie schon offen sind. */

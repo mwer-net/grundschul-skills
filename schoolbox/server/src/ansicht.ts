@@ -5,7 +5,9 @@ import path from 'node:path';
 import type { KatalogEintrag, Konfig } from '@schoolbox/kern';
 import {
 	ASSETS,
+	bilderIn,
 	darstellungsHtml,
+	eigeneBausteine,
 	dokumentGeloescht,
 	einfuegbarAus,
 	FIGUREN_ORDNER,
@@ -17,6 +19,7 @@ import {
 	mappenDir,
 	neueAufgabe,
 	POSEN_DATEI,
+	sammlungsOrdner,
 	sucheRessource,
 	VORSCHAUBILD,
 	vorschaubild,
@@ -174,10 +177,13 @@ const katalogVorschau = (e: KatalogEintrag, starter: ReadonlyMap<string, string>
 	// In der Schublade zeigt ein Aufgabenpaket, was eingefügt wird: Hülle mit Nummer und Anweisung (147).
 	const teile = b.teile?.join('');
 	const innen = (teile !== undefined && fit ? neueAufgabe(teile, b.anweisung, 1) : teile) ?? b.html ?? '';
-	return `<!doctype html><html lang="de"><head><meta charset="utf-8"><title>Vorschau</title><base href="${assets}">
-<link rel="stylesheet" href="blatt.css"><style>html,body{background:#fff;overflow:hidden}body{margin:0;padding:12px}.flaeche{min-width:240px;outline:1px dashed #aaa;outline-offset:-1px}</style>${fit ? VORSCHAU_FIT.stil : ''}</head>
-<body class="${fit ? 'kl4' : 'kl2'} farbe" data-ort="${b.ort}"><div class="koerper">${innen}</div><script src="abbildungen.js"></script>${fit ? VORSCHAU_FIT.skript : ''}</body></html>`;
+	return vorschauSeite(innen, b.ort, assets, fit);
 };
+
+const vorschauSeite = (innen: string, ort: string, assets: string, fit: boolean) =>
+	`<!doctype html><html lang="de"><head><meta charset="utf-8"><title>Vorschau</title><base href="${assets}">
+<link rel="stylesheet" href="blatt.css"><style>html,body{background:#fff;overflow:hidden}body{margin:0;padding:12px}.flaeche{min-width:240px;outline:1px dashed #aaa;outline-offset:-1px}</style>${fit ? VORSCHAU_FIT.stil : ''}</head>
+<body class="${fit ? 'kl4' : 'kl2'} farbe" data-ort="${ort}"><div class="koerper">${innen}</div><script src="abbildungen.js"></script>${fit ? VORSCHAU_FIT.skript : ''}</body></html>`;
 
 const urlPfad = (teile: string[]) => teile.map(encodeURIComponent).join('/');
 
@@ -272,6 +278,35 @@ export const ansichtRouter = (kontext: Kontext) => {
 		res.set('Cache-Control', 'no-cache')
 			.type('html')
 			.send(katalogVorschau(eintrag, leseStarter(), `${req.baseUrl}/${ASSETS_PFAD}/`, req.query.fit === '1'));
+	});
+
+	// Vorschau eines eigenen Bausteins (195, wie `_katalog`): eigene Bilder kommen aus seinem Ordner, der Rest aus den
+	// Assets.
+	router.get('/_sammlung/:id', async (req, res) => {
+		const baustein = (await eigeneBausteine(materialDir)).find((b) => b.id === req.params.id);
+		if (!baustein) {
+			throw nichtGefunden();
+		}
+		const dir = sammlungsOrdner(materialDir, baustein.id);
+		let html = baustein.html;
+		for (const bild of bilderIn(html, dir)) {
+			const stelle = new RegExp(`(["'(])${bild.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}`, 'g');
+			html = html.replace(stelle, `$1../_sammlung/${encodeURIComponent(baustein.id)}/${bild}`);
+		}
+		res.set('Cache-Control', 'no-cache')
+			.type('html')
+			.send(vorschauSeite(html, baustein.ort, `${req.baseUrl}/${ASSETS_PFAD}/`, req.query.fit === '1'));
+	});
+
+	router.get('/_sammlung/:id/bilder/:datei', async (req, res) => {
+		const dir = sammlungsOrdner(materialDir, req.params.id);
+		const datei = path.join(dir, 'bilder', req.params.datei);
+		const echt = !req.params.datei.includes('\0') && existsSync(datei) ? realpathSync(datei) : null;
+		const info = echt && liegtIn(echt, realpathSync(dir)) ? await stat(echt) : null;
+		if (!echt || !info?.isFile()) {
+			throw nichtGefunden();
+		}
+		await sendeDatei(konfig, req, res, echt, null, null);
 	});
 
 	router.get('/:mappe/dokumente/:dok', (req, res) => {

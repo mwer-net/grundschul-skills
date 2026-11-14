@@ -300,11 +300,13 @@ const useEinfuegeWerkzeuge = ({
 	geladen,
 	html,
 	nachher,
+	ohneAuswahl,
 	setAuswahl,
 	struktur,
 	text,
 }: {
 	auswahl: number | null;
+	ohneAuswahl: () => number | null;
 	blatt: FuerBlatt;
 	dokument: { mappe: string; dok: string };
 	folien: boolean;
@@ -316,7 +318,7 @@ const useEinfuegeWerkzeuge = ({
 	text: ReturnType<typeof useText>;
 }) => {
 	const docJetzt = geladen?.html === html ? (geladen?.doc ?? null) : null;
-	const einfuegen = useEinfuegen({ blatt, dokument, struktur, auswahl, folien, nachher });
+	const einfuegen = useEinfuegen({ blatt, dokument, struktur, auswahl, ohneAuswahl, folien, nachher });
 	const imText = einfuegen.fuerBlatt('', NICHT_IM_TEXT);
 	const slash = useSlash({
 		// Das Dokument im Rahmen: Beim Tippen weicht die Quelle davon ab, das Menü muss trotzdem aufgehen.
@@ -648,6 +650,8 @@ const Bearbeitung = ({ dokument, mappe: mappenDaten }: { mappe: Mappe; dokument:
 		geladen,
 		html,
 		nachher: () => panels.setRechtsOffen(true),
+		// 195-05: Kachel, Palette und Ablage fügen ohne Auswahl auf der Seite im Blick ein.
+		ohneAuswahl: () => sichtbareSeite.current(),
 		setAuswahl,
 		struktur,
 		text,
@@ -1170,8 +1174,7 @@ const Bearbeitung = ({ dokument, mappe: mappenDaten }: { mappe: Mappe; dokument:
 						eintraege={eintraegeImEditor(befehle.jetzt.current, {
 							// 203-13: Treffer, die zum Blatt passen, vor den übrigen; nie, was nicht mehr angeboten wird.
 							posten: mitZuletzt(einfuegen.fuerBlatt(), einfuegen.angebot),
-							fuegeEin: (p) =>
-								einfuegen.fuegeEin(p, auswahl ?? (docJetzt ? seiteAn(docJetzt, seite.nr) : null)),
+							fuegeEin: (p) => einfuegen.fuegeEin(p),
 							zeigeSeite: (nr) => {
 								const ziel = docJetzt ? seiteAn(docJetzt, nr) : null;
 								if (ziel !== null) {

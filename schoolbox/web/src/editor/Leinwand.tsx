@@ -10,6 +10,7 @@ import type { Groesse } from './bild';
 import { bausteinVon, elementZu, nrVon, VERALTET } from './darstellung';
 import { nrnFuer } from './gestaltung/mehrfach';
 import { Hoverrahmen } from './Hoverrahmen';
+import { setzeHover, useHover, zielZurZeile } from './hover-verknuepfung';
 import type { Klickziel } from './klickziel';
 import { gleichesZiel, klickziel, knotenVon } from './klickziel';
 import { LUECKE_GEAENDERT } from './luecke';
@@ -389,6 +390,13 @@ export const Leinwand = ({
 	const [ziehBreite, setZiehBreite] = useState<number | null>(null);
 	/** 205: Was ein Klick unter dem Zeiger wählen würde; der Hover-Rahmen zeigt es. */
 	const [hover, setHover] = useState<Klickziel | null>(null);
+	// 195: Was der Zeiger hier zeigt, hebt die Ebenen-Zeile hervor; was er in den Ebenen zeigt, rahmt das Blatt.
+	const hoverNr = hover && hover.art !== 'luecke' ? hover.nr : null;
+	useEffect(() => {
+		setzeHover('blatt', hoverNr);
+		return () => setzeHover('blatt', null);
+	}, [hoverNr]);
+	const ebenenZeile = useHover('zeile');
 	/** Die letzte Stelle der Maus im Blatt: ⌥ und eine neue Fassung rechnen das Ziel dort neu. */
 	const mausStelle = useRef<{ x: number; y: number } | null>(null);
 	const rueckrufe = useRef({
@@ -707,8 +715,8 @@ export const Leinwand = ({
 		}
 	}, [meldeSkala, skala, vorschau]);
 
-	// Ein Zoom hält die Stelle unter dem Zeiger fest, ohne Zeiger die Mitte der Fläche. Ändern Fenster oder Blatt den
-	// Maßstab, bleibt der Rollstand.
+	// Ein Zoom hält die Stelle unter dem Zeiger fest, ohne Zeiger die Mitte der Fläche. Ändern Fenster oder Schublade
+	// den Maßstab, bleibt die Stelle am oberen Rand stehen (195-04).
 	const lage = useRef({ skala, links, zoom, vorschau });
 	const { anker } = blattZoom;
 	useLayoutEffect(() => {
@@ -719,14 +727,17 @@ export const Leinwand = ({
 		const element = behaelter.current;
 		const ansicht = element?.parentElement;
 		const gezoomt = vorher.zoom !== zoom || vorher.vorschau !== vorschau;
-		if (!gezoomt || vorher.skala === skala || !element || !ansicht) {
+		// Ganz oben bleibt ganz oben; das gilt auch beim ersten Messen.
+		if (vorher.skala === skala || !element || !ansicht || (!gezoomt && rollstand.current.y <= 0)) {
 			return;
 		}
 		const kasten = element.getBoundingClientRect();
 		const sicht = ansicht.getBoundingClientRect();
-		const punkt = zeiger
-			? { x: zeiger.x - kasten.left, y: zeiger.y - sicht.top }
-			: { x: element.clientWidth / 2, y: ansicht.clientHeight / 2 };
+		const punkt = !gezoomt
+			? { x: element.clientWidth / 2, y: 0 }
+			: zeiger
+				? { x: zeiger.x - kasten.left, y: zeiger.y - sicht.top }
+				: { x: element.clientWidth / 2, y: ansicht.clientHeight / 2 };
 		const neu = rollenNachZoom({
 			vorher,
 			nachher: { skala, links },
@@ -760,6 +771,7 @@ export const Leinwand = ({
 	const flaeche = Boolean(gewaehlt && gewaehlt.getClientRects().length > 0);
 	const box = flaeche ? gewaehlt?.getBoundingClientRect() : undefined;
 	const zieht = zug !== null || vonAussen;
+	const ausEbenen = !hover && doc && ebenenZeile !== null && !zieht ? zielZurZeile(doc, ebenenZeile) : null;
 	// Gestaltung hat ihren eigenen, gedrehten Rahmen mit Griffen (097); dieser bleibt nur fürs Hinrollen.
 	const gestaltung = gewaehlt?.matches(GESTALTUNG_SELEKTOR) === true;
 
@@ -806,6 +818,9 @@ export const Leinwand = ({
 				<Pruefrahmen pruefung={pruefung} doc={doc} aus={nurAnsehen} links={links} skala={skala} />
 				{hover && doc && !zieht && !nurAnsehen && (
 					<Hoverrahmen ziel={hover} doc={doc} auswahl={auswahl} links={links} skala={skala} />
+				)}
+				{ausEbenen && doc && !nurAnsehen && (
+					<Hoverrahmen ziel={ausEbenen} doc={doc} auswahl={auswahl} links={links} skala={skala} />
 				)}
 				{box && gewaehlt && flaeche && ausgewaehlt && nrVon(ausgewaehlt) !== null && !zieht && (
 					<div

@@ -171,6 +171,26 @@ test.describe('Editor: Bausteine ziehen mit Lücke', () => {
 		await expect(luecke(page)).toHaveCount(0);
 	});
 
+	test('Ohne Auswahl fügt der Klick auf die Kachel auf der Seite im Blick ein, nicht am Ende (195-05)', async ({
+		page,
+	}) => {
+		const { dok, id } = await uhrzeit();
+		await oeffne(page, id, dok);
+		// Zwei Seiten, die zweite leer; im Blick ist Seite 1.
+		await aendere(page, (await quelle(page)).replace(/<\/body>/, '<section class="seite"></section></body>'));
+		await expect(page.locator('[data-seite-von]')).toContainText('Seite 1 von 2');
+		await oeffneBausteine(page);
+		await suche(page).fill('Aufgabe');
+		await page.locator('[data-einfuegen="aufgabe"]').click();
+		await expect
+			.poll(async () => {
+				const html = await quelle(page);
+				const letzte = html.lastIndexOf('<section class="seite"');
+				return html.slice(letzte).includes('class="aufgabe');
+			})
+			.toBe(false);
+	});
+
 	test('Ziehen im Blatt zeigt dieselbe Lücke statt der Linie', async ({ page }) => {
 		const { dok, id } = await uhrzeit();
 		await oeffne(page, id, dok);

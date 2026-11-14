@@ -517,10 +517,11 @@ export const BEFEHLE: Befehl[] = [
 	...SICHTBARKEIT,
 	{
 		id: 'auswahl.in-sammlung',
-		titel: 'In Sammlung legen',
+		// 195-21: Der Ort heißt überall „Meine Bausteine“.
+		titel: 'Zu „Meine Bausteine“ legen',
 		gruppe: 'ordnen',
 		symbol: 'plus',
-		suchwoerter: ['meine bausteine', 'merken', 'speichern'],
+		suchwoerter: ['meine bausteine', 'sammlung', 'merken', 'speichern'],
 		orte: ['menue', 'palette', 'gestaltung'],
 		sichtbarUnter: 'mehr',
 		verfuegbar: (k) => k.aktiv && Boolean(gewaehlt(k)) && !istSeite(k),

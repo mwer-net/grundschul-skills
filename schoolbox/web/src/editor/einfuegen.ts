@@ -65,6 +65,8 @@ interface Optionen {
 	blatt: FuerBlatt;
 	struktur: Struktur;
 	auswahl: number | null;
+	/** Ohne Auswahl: die Seite im Blick (`seiteAn`), wie in der Palette (195-05); `null` heißt ans Ende. */
+	ohneAuswahl?: () => number | null;
 	folien: boolean;
 	nachher: () => void;
 }
@@ -74,7 +76,8 @@ interface Optionen {
  * der Katalog ohne das, was im Blatt nicht zeichnet (`gehtImBlatt`; andere Schubladen suchen darin per Kennung, z. B.
  * `tipp` und `willi` in „Figuren“), `angebot` nur, was Schublade, Schnellauswahl, Slash und Palette zeigen (203-04).
  */
-export const useEinfuegen = ({ auswahl, blatt, dokument, folien, nachher, struktur }: Optionen) => {
+export const useEinfuegen = ({ auswahl, blatt, dokument, folien, nachher, ohneAuswahl, struktur }: Optionen) => {
+	const ziel = () => auswahl ?? ohneAuswahl?.() ?? null;
 	const { daten, neuLaden } = useLaden<{ eintraege: Posten[] }>('/api/katalog');
 	const [zuletzt, setZuletzt] = useState(leseZuletzt);
 	const zeige = useHinweis();
@@ -114,7 +117,7 @@ export const useEinfuegen = ({ auswahl, blatt, dokument, folien, nachher, strukt
 		nachher();
 	};
 
-	const fuegeEin = (e: Posten, nr: number | null | { ablage: Ablage } = auswahl) => {
+	const fuegeEin = (e: Posten, nr: number | null | { ablage: Ablage } = ziel()) => {
 		if (e.eigen) {
 			void mitBildern(dokument, { sammlung: e.eigen }, e.einfuegbar.html ?? '').then(
 				(html) => setzeEin(e, { ...e.einfuegbar, html }, nr),
@@ -129,7 +132,7 @@ export const useEinfuegen = ({ auswahl, blatt, dokument, folien, nachher, strukt
 	const fuegeAn = (e: Posten, ablage: Ablage) => fuegeEin(e, { ablage });
 
 	/** Aus der Zwischenablage eines anderen Dokuments, samt Bildern. */
-	const fuegeAblageEin = async (nr: number | null = auswahl) => {
+	const fuegeAblageEin = async (nr: number | null = ziel()) => {
 		const a = leseAblage();
 		if (!a) {
 			return;

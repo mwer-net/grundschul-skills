@@ -4,7 +4,7 @@
  * seit 137 nicht mehr; ein alter Ordner `_vorlagen` bleibt liegen und wird nicht gelesen.
  */
 import { existsSync } from 'node:fs';
-import { copyFile, mkdir, readdir, readFile, rm, stat } from 'node:fs/promises';
+import { copyFile, mkdir, readdir, readFile, rename, rm, stat } from 'node:fs/promises';
 import path from 'node:path';
 
 import { dokumentDir, pruefeId } from './ablage';
@@ -17,6 +17,8 @@ type Ort = KatalogEintrag['ort'];
 
 const SAMMLUNG = '_sammlung';
 const BAUSTEIN_META = 'baustein.json';
+/** Gelöschte Bausteine bleiben hier, bis derselbe noch einmal gelöscht wird; „Rückgängig“ holt sie zurück (195-08). */
+const GELOESCHT = '.geloescht';
 const BILD = /^bilder\/[^/\\]+$/;
 
 export interface EigenerBaustein {
@@ -124,5 +126,28 @@ export const benenneBausteinUm = async (materialDir: string, id: string, name: s
 	await schreibeAtomar(datei, `${JSON.stringify({ ...alt, name }, null, '\t')}\n`);
 };
 
-export const loescheEigenenBaustein = (materialDir: string, id: string) =>
-	rm(sammlungDir(materialDir, id), { recursive: true, force: true });
+const geloeschtDir = (materialDir: string, id: string) =>
+	path.join(sammlungDir(materialDir), GELOESCHT, pruefeId(id, 'Baustein'));
+
+export const loescheEigenenBaustein = async (materialDir: string, id: string) => {
+	const dir = sammlungDir(materialDir, id);
+	if (!existsSync(dir)) {
+		return;
+	}
+	const ziel = geloeschtDir(materialDir, id);
+	await rm(ziel, { recursive: true, force: true });
+	await mkdir(path.dirname(ziel), { recursive: true });
+	await rename(dir, ziel);
+};
+
+export const holeEigenenBausteinZurueck = async (materialDir: string, id: string) => {
+	const von = geloeschtDir(materialDir, id);
+	const dir = sammlungDir(materialDir, id);
+	if (!existsSync(von)) {
+		throw new SchoolboxFehler('Dieser Baustein lässt sich nicht mehr zurückholen.');
+	}
+	if (existsSync(dir)) {
+		throw new SchoolboxFehler('Ein Baustein mit diesem Namen liegt schon in „Meine Bausteine“.');
+	}
+	await rename(von, dir);
+};

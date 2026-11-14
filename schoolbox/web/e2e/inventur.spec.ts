@@ -75,7 +75,7 @@ test.describe('Inventur Editor', () => {
 
 	test('Statusleiste: Zoom, Prüfstatus, Befehle, Tasten, beide Leisten', async ({ page }) => {
 		await offenesBlatt(page);
-		for (const name of ['Kleiner', 'Größer', 'Einpassen', 'Befehle', 'Tasten', 'Linke Leiste', 'Rechte Leiste']) {
+		for (const name of ['Kleiner', 'Größer', 'Einpassen', 'Befehle', 'Tasten', 'Rechte Leiste']) {
 			await expect(status(page).getByRole('button', { name })).toBeVisible();
 		}
 		await expect(status(page).locator('[data-seite-von]')).toContainText('Seite 1 von');
@@ -118,7 +118,7 @@ test.describe('Inventur Editor', () => {
 		await expect(leiste(page).locator('[data-einfuegen-plus], [data-leiste-griff]')).toHaveCount(0);
 
 		await leiste(page).getByRole('button', { name: 'Mehr zu diesem Baustein' }).click();
-		for (const name of [/Kopieren/, /Ausschneiden/, /In Sammlung legen/, /Mit Claude ändern/, /^Neuer Baustein/]) {
+		for (const name of [/Kopieren/, /Ausschneiden/, /Zu „Meine Bausteine“ legen/, /Mit Claude ändern/, /^Neuer Baustein/]) {
 			await expect(page.getByRole('menuitem', { name })).toBeVisible();
 		}
 		await page.keyboard.press('Escape');

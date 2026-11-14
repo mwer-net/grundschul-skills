@@ -83,7 +83,8 @@ const textVon = (element: Element | null | undefined) =>
 
 const titelVon = (element: Element, baustein: Baustein, name: string) => {
 	if (baustein.art === 'aufgabe') {
-		return textVon(element.querySelector('.anw')) || name;
+		// 195-15: Der Text der Anweisung, ohne die Punkte dahinter.
+		return textVon(element.querySelector('.anw > .text') ?? element.querySelector('.anw')) || name;
 	}
 	if (baustein.art !== 'anweisung' && kann(baustein, 'text')) {
 		return textVon(element) || name;
@@ -379,10 +380,11 @@ export const gliederungVon = (doc: Document, z: Zerlegung, ids: readonly number[
 				(kinder): GliederungKnoten => ({
 					// Keine Zahl der Quelle: negativ, damit sie keine Auswahl trifft.
 					nr: -seite.nr - 1,
-					titel: 'Hauptstapel',
+					// 195-23: Die Lehrkraft sieht „Bausteine“; „Hauptstapel“ bleibt der Begriff im Code.
+					titel: 'Bausteine',
 					nummer: null,
-					name: 'Hauptstapel',
-					art: 'Hauptstapel',
+					name: 'Bausteine',
+					art: 'Bausteine',
 					aufgabe: false,
 					fest: false,
 					ziehbar: false,

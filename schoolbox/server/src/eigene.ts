@@ -2,6 +2,7 @@ import {
 	benenneBausteinUm,
 	bilderIn,
 	dokumentDir,
+	holeEigenenBausteinZurueck,
 	legeInSammlung,
 	loescheEigenenBaustein,
 	sammlungsOrdner,
@@ -55,6 +56,11 @@ export const eigeneApi = (kontext: Kontext) => {
 
 	router.post('/sammlung/:id/loeschen', async (req, res) => {
 		await loescheEigenenBaustein(materialDir, req.params.id);
+		res.json({ ok: true });
+	});
+
+	router.post('/sammlung/:id/wiederherstellen', async (req, res) => {
+		await holeEigenenBausteinZurueck(materialDir, req.params.id);
 		res.json({ ok: true });
 	});
 

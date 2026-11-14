@@ -116,26 +116,51 @@ const ZeileWahl = ({
 };
 
 /** Name fürs Hineinlegen in die Sammlung; die Aktion selbst steht im ⋯ (051). */
+/**
+ * „Zu „Meine Bausteine“ legen“ (194-15, 195-09): Feld und Knopf sind ein Formular. Das Feld hat den Fokus mit
+ * markiertem Vorschlag, Enter legt ab, Esc schließt ohne Ablegen und gibt den Fokus ans Blatt zurück.
+ */
 export const SammlungName = ({ ablage }: { ablage: Ablage }) => {
 	const { sammle, sammlungName: name, setSammlungName: setName } = ablage;
 	if (name === null) {
 		return null;
 	}
 	return (
-		<div className="flex items-end gap-2" data-wiederverwenden>
-			<Feld titel="Name in der Sammlung" className="min-w-0 flex-1">
+		<form
+			className="flex items-end gap-2"
+			data-wiederverwenden
+			onSubmit={(e) => {
+				e.preventDefault();
+				if (name.trim() !== '') {
+					void sammle();
+				}
+			}}
+		>
+			<Feld titel="Name" className="min-w-0 flex-1">
 				<input
 					{...EIGENE_GESCHICHTE}
 					className={FELD_KLASSEN}
 					value={name}
+					autoFocus
 					data-sammlung-name
+					onFocus={(e) => e.currentTarget.select()}
 					onChange={(e) => setName(e.target.value)}
+					onKeyDown={(e) => {
+						if (e.key === 'Escape') {
+							e.preventDefault();
+							e.stopPropagation();
+							setName(null);
+							document
+								.querySelector<HTMLIFrameElement>('[data-editor-rahmen="sichtbar"]')
+								?.contentWindow?.focus();
+						}
+					}}
 				/>
 			</Feld>
-			<Knopf disabled={name.trim() === ''} data-sammlung-speichern onClick={() => void sammle()}>
+			<Knopf type="submit" disabled={name.trim() === ''} data-sammlung-speichern>
 				Hineinlegen
 			</Knopf>
-		</div>
+		</form>
 	);
 };
 
