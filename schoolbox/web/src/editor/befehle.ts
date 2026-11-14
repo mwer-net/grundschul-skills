@@ -21,6 +21,7 @@ import {
 import type { Druckprofil } from '@schoolbox/kern/src/werte';
 
 import { istMac, kuerzelAnzeige } from '../bausteine/kuerzel';
+import { starteMeldung } from '../bausteine/melden';
 import type { MenueEintrag } from '../bausteine/Menue';
 import type { SymbolName } from '../bausteine/Symbol';
 import type { TastenAbschnitt } from '../bausteine/Tastenliste';
@@ -955,6 +956,20 @@ export const BEFEHLE: Befehl[] = [
 		verfuegbar: () => true,
 		aus: (k) => k.tu.hilfe(),
 	},
+	{
+		id: 'dokument.melden',
+		titel: 'Problem melden',
+		gruppe: 'dokument',
+		symbol: 'kaefer',
+		kuerzel: [{ code: 'KeyK', wahl: true, umschalt: true }],
+		// Wie ⌘K auch beim Schreiben im Blatt (193-31).
+		modus: ['auswahl', 'ohne', 'text'],
+		suchwoerter: ['fehler', 'wunsch', 'käfer', 'problem'],
+		orte: ['taste', 'palette'],
+		sichtbarUnter: 'links',
+		verfuegbar: () => true,
+		aus: () => starteMeldung(),
+	},
 	...GESTALTUNG_BEFEHLE,
 ];
 
@@ -1006,7 +1021,7 @@ const TASTEN_ABSCHNITTE: { titel: string; gruppen: Gruppe[] }[] = [
 	{ titel: 'Gewählter Baustein', gruppen: ['bearbeiten', 'ablage', 'ordnen', 'gefahr'] },
 	{ titel: 'Im Blatt bewegen', gruppen: ['baustein', 'blatt'] },
 	{ titel: 'Ansicht', gruppen: ['ansicht'] },
-	{ titel: 'Dokument', gruppen: ['dokument'] },
+	{ titel: 'Material', gruppen: ['dokument'] },
 ];
 
 /** Tastenübersicht und Hilfe aus dem Register. Ohne Kontext (Hilfe) gilt `hilfeTitel`. */

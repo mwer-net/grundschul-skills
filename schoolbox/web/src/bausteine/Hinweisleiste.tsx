@@ -1,5 +1,5 @@
 import type { ReactNode } from 'react';
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 
 import type { Hinweis } from './hinweis';
 import { HinweisKontext } from './hinweis';
@@ -23,12 +23,30 @@ export const HinweisAnbieter = ({ children }: { children: ReactNode }) => {
 		return () => clearTimeout(timer);
 	}, [hinweis]);
 
+	// Im Top Layer, damit eine Meldung auch über einem offenen Dialog steht (193-32). Jede neue Meldung legt sich
+	// nach oben; ein Dialog, der danach aufgeht, liegt wieder darüber.
+	const leiste = useRef<HTMLDivElement>(null);
+	useEffect(() => {
+		const element = leiste.current;
+		if (!element?.showPopover) {
+			return;
+		}
+		if (element.matches(':popover-open')) {
+			element.hidePopover();
+		}
+		if (hinweis) {
+			element.showPopover();
+		}
+	}, [hinweis]);
+
 	const aktion = hinweis?.aktion;
 	return (
 		<HinweisKontext value={zeige}>
 			{children}
 			<div
-				className="pointer-events-none fixed inset-x-0 bottom-8 z-meldung flex justify-center px-3"
+				ref={leiste}
+				popover="manual"
+				className="pointer-events-none fixed inset-x-0 top-auto bottom-8 z-meldung m-0 flex h-auto w-auto justify-center overflow-visible border-0 bg-transparent px-3 py-0"
 				role="status"
 				aria-live="polite"
 			>
