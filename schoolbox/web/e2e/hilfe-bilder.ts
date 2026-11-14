@@ -212,13 +212,21 @@ test.describe('Bildschirmfotos für die Hilfe', () => {
 		await dialog.getByRole('button', { name: 'Große Leistungsspanne' }).click();
 		await dialog.getByRole('button', { name: 'Kinder mit Deutsch als Zweitsprache' }).click();
 		await dialog.getByRole('textbox', { name: /Sonst noch etwas/ }).fill('Bitte keine Digitaluhren.');
-		// „Auftrag prüfen“ gibt es nicht mehr (190-37): Das Foto zeigt den letzten Schritt mit Dauer und Verbrauch.
-		await foto(page, 'anlegen-auftrag-mac.jpg');
+		// Ohne „Auftrag prüfen“ (190-37) zeigt Claude zuerst den Aufgabenplan; das Foto zeigt ihn vor „So bauen“.
+		await writeFile(path.join(`${MATERIAL_DIR}-ki`, 'fall.txt'), 'plan');
 		await page.keyboard.press('ControlOrMeta+Enter');
+		const plan = page.locator('[data-entwurf-karte="plan"]');
+		await expect(plan.locator('[data-entwurf-plan]')).toContainText('Aufgabenplan');
+		await foto(page, 'anlegen-plan-mac.jpg');
+		await plan.getByRole('button', { name: 'So bauen' }).click();
 		const leiste = page.locator('[data-entwurfsleiste="offen"]');
-		await expect(leiste).toBeVisible();
-		await leiste.locator('[data-entwurf-annahmen-knopf]').click();
+		await expect(leiste).toBeVisible({ timeout: 30_000 });
+		const annahmen = leiste.locator('[data-entwurf-annahmen-knopf]');
+		if ((await annahmen.count()) > 0) {
+			await annahmen.click();
+		}
 		await foto(page, 'entwurf-mac.jpg');
+		await writeFile(path.join(`${MATERIAL_DIR}-ki`, 'fall.txt'), 'gut');
 	});
 
 	test('Einheit', async ({ page }) => {
