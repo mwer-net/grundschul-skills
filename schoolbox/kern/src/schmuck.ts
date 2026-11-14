@@ -10,12 +10,11 @@ import { legeGestaltungAb, leseLage, loescheGestaltung, setzeStilWerte } from '.
 import type { Knoten, Verlauf } from './quelltext';
 import {
 	attribut,
+	fasseMitLetztemZusammen,
 	innenVon,
 	klassenVon,
-	rueckwaerts,
 	schuetzeText,
 	setzeAttribut,
-	unterschied,
 	wendeAn,
 	zerlege,
 } from './quelltext';
@@ -234,21 +233,8 @@ export const entferneLeereSchmuck = (quelle: string, nr: number): StrukturErgebn
  * Anlegen) nimmt die Fassung nach der Sitzung mit auf und behält seinen Namen. Kommt dabei die Quelle von vor dem
  * Anlegen heraus (leerer Text, Element wieder weg), bleibt kein Schritt.
  */
-export const fasseMitAnlegenZusammen = (v: Verlauf, neu: string, auswahl: number | null = null): Verlauf => {
-	const anlegen = v.zurueck.at(-1);
-	if (!anlegen) {
-		const schritt = unterschied(v.quelle, neu, 'Text geändert');
-		return schritt ? { quelle: neu, zurueck: [{ ...schritt, auswahlVorher: auswahl }], vor: [] } : v;
-	}
-	const vorher = rueckwaerts(v.quelle, anlegen);
-	const schritt = unterschied(vorher, neu, anlegen.beschreibung);
-	const frueher = v.zurueck.slice(0, -1);
-	return {
-		quelle: neu,
-		zurueck: schritt ? [...frueher, { ...schritt, auswahlVorher: anlegen.auswahlVorher ?? null }] : frueher,
-		vor: [],
-	};
-};
+export const fasseMitAnlegenZusammen = (v: Verlauf, neu: string, auswahl: number | null = null): Verlauf =>
+	fasseMitLetztemZusammen(v, neu, auswahl);
 
 // ── Kontur (110) ────────────────────────────────────────────────────────────
 

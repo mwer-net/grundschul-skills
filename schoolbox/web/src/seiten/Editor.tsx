@@ -27,6 +27,7 @@ import { useAblage } from '../editor/ablage';
 import { Konfliktleiste, Speicheranzeige, Vorschauleiste } from '../editor/Anzeigen';
 import { Bausteinleiste } from '../editor/Bausteinleiste';
 import { useBearbeitung } from '../editor/bearbeitung';
+import { useFluss } from '../editor/fluss';
 import type { MenueArt } from '../editor/befehle';
 import { istZoomTaste, kuerzelVon } from '../editor/befehle';
 import { Einfuegemarken } from '../editor/Bibliothek';
@@ -579,6 +580,19 @@ const Bearbeitung = ({ dokument, mappe: mappenDaten }: { mappe: Mappe; dokument:
 	useEffect(() => {
 		nachBild.current = struktur.nachBild;
 	}, [struktur.nachBild]);
+	const sichtbaresBild = useRef<Document | null>(null);
+	useEffect(() => {
+		sichtbaresBild.current = geladen?.doc ?? null;
+	}, [geladen]);
+	const vorDemZeigen = useFluss({
+		flussFaellig: b.flussFaellig,
+		flussErledigt: b.flussErledigt,
+		fliesse: b.fliesse,
+		zerlegungZu,
+		nachFluss: struktur.nachFluss,
+		auswahl: auswahlJetzt,
+		sichtbar: sichtbaresBild,
+	});
 
 	const gliederungStand = useGliederungStand(sicht.zerlegung, auswahl);
 
@@ -634,7 +648,8 @@ const Bearbeitung = ({ dokument, mappe: mappenDaten }: { mappe: Mappe; dokument:
 			aktiv: struktur.aktiv,
 			frei,
 			textsitzung: text.bearbeitet,
-			quelle,
+			// Die Auswahl hat die Nummern des Bilds: gelesen wird in dessen Quelle (206: nach ⌘Z eines Umbaus fehlt sie).
+			quelle: sicht.quelle,
 			werte: struktur.werte,
 			mitLoesung,
 			loesung,
@@ -1144,6 +1159,7 @@ const Bearbeitung = ({ dokument, mappe: mappenDaten }: { mappe: Mappe; dokument:
 									textsitzung={text.bearbeitet}
 									kontextmenue={leinwandMenue}
 									geladen={merken}
+									vorDemZeigen={vorDemZeigen}
 									nurAnsehen={nurAnsehen}
 									ziehbar={struktur.aktiv}
 									ablegen={struktur.verschiebe}

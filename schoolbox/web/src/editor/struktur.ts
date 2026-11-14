@@ -224,6 +224,26 @@ export const useStruktur = (o: Optionen) => {
 	);
 
 	/**
+	 * Der Fluss (206) hat die Fassung `alt` umgelegt: Die Auswahl, ob sie noch wartet oder schon gilt, bleibt am selben
+	 * Element und wartet auf das Bild der umgelegten Fassung. Wandert es auf eine andere Seite, rollt die Ansicht mit.
+	 */
+	const nachFluss = useCallback((alt: string, neu: string, nummer: (nr: number) => number | null, gewaehlt: number | null, springen: boolean) => {
+		const f = aktuell.current.folge;
+		const vorher = f && f.quelle === alt ? f : f ? null : { quelle: alt, nr: gewaehlt, springen: false };
+		if (!vorher) {
+			return;
+		}
+		const nr = vorher.nr === null ? null : nummer(vorher.nr);
+		if (!f && nr === vorher.nr && !springen) {
+			return;
+		}
+		const naechste = { quelle: neu, nr, springen: vorher.springen || springen };
+		aktuell.current.folge = naechste;
+		aktuell.current.gleich = false;
+		setFolge(naechste);
+	}, []);
+
+	/**
 	 * Nur Attribute ändern sich (Abbildungen): Die Nummern bleiben gleich, deshalb bleibt die Auswahl stehen und die
 	 * alte Darstellung darf bis zur neuen weiter antippen.
 	 */
@@ -315,6 +335,7 @@ export const useStruktur = (o: Optionen) => {
 		aktiv,
 		gezeigt,
 		nachBild,
+		nachFluss,
 		fuehreAus,
 		aendereAttribute,
 		werte,
