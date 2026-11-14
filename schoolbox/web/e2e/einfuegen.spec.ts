@@ -1,4 +1,6 @@
 import type { Locator, Page } from '@playwright/test';
+import type { KatalogEintrag } from '@schoolbox/kern/src/katalog';
+import { gehtImBlatt } from '@schoolbox/kern/src/katalog';
 
 import { material, oeffne, quelle, uhrzeit } from './editorhilfe';
 import { expect, test } from './hilfe';
@@ -17,18 +19,14 @@ const MAC = { width: 1512, height: 982 };
 /** `HALTEN_MS` (300) und etwas Luft. */
 const HALTEN = 400;
 
-interface Katalogeintrag {
-	id: string;
-	kategorie: string;
-	herkunft: string;
-	eigen?: string;
-	angeboten?: false;
-}
+type Katalogeintrag = KatalogEintrag & { eigen?: string };
 /** Was die Schublade anbietet (203-04): ohne die Einträge mit `angeboten: false`. */
 const katalog = async (page: Page) =>
 	((await (await page.request.get('/api/katalog')).json()) as { eintraege: Katalogeintrag[] }).eintraege.filter(
 		(e) => e.angeboten !== false,
 	);
+/** Das Blatt aus `uhrzeit()`: Arbeitsblatt in Klasse 2. Nur was dort zeichnet, steht in der Schublade (203-02, 203-N01). */
+const IM_UHRZEITBLATT = { klasse: 2, art: 'arbeitsblatt' } as const;
 
 /** Größe der Vorschau in einer Kachel, gemessen in der Schublade am Mac neben den Ebenen. */
 const vorschauGroesse = async (page: Page) => {
@@ -205,9 +203,8 @@ test.describe('Editor: Bausteine einfügen', () => {
 		const sprache = page.locator('[data-bereich="Deutsch"]');
 		await expect(sprache).toHaveCount(0);
 		const weitere = page.locator('[data-weitere]');
-		const gesamt = await page.request.get('/api/katalog');
-		const { eintraege } = (await gesamt.json()) as { eintraege: { kategorie: string; angeboten?: false }[] };
-		const alleBereiche = new Set(eintraege.filter((e) => e.angeboten !== false).map((e) => e.kategorie)).size;
+		const eintraege = (await katalog(page)).filter((e) => gehtImBlatt(e, IM_UHRZEITBLATT));
+		const alleBereiche = new Set(eintraege.map((e) => e.kategorie)).size;
 		const verborgen = alleBereiche - (await page.locator('[data-bereich]').count());
 		await expect(weitere).toHaveText(`${verborgen} weitere unter Alle`);
 		await weitere.click();
@@ -216,22 +213,30 @@ test.describe('Editor: Bausteine einfügen', () => {
 		await expect(weitere).toHaveCount(0);
 	});
 
-	test('Vollständig: Über alle Bereiche unter „Alle“ gezählt ist das ganze Angebot, 102 in 13 (203-11)', async ({
+	test('Vollständig: „Alle“ zeigt das ganze Angebot, das im Blatt zeichnet (203-11, 203-02, 203-N01)', async ({
 		page,
 	}) => {
 		await oeffneBausteine(page);
 		await page.getByRole('button', { name: 'Alle', exact: true }).click();
 		const anzahlen = await page.locator('[data-bereich-anzahl]').allTextContents();
-		const eintraege = await katalog(page);
+		const angebot = await katalog(page);
+		expect(angebot.length).toBe(102);
+		// Klasse 2, Arbeitsblatt: ohne Malkreuz und Schriftliche Rechnung, ohne die sieben Folien.
+		const eintraege = angebot.filter((e) => gehtImBlatt(e, IM_UHRZEITBLATT));
+		expect(eintraege.length).toBe(102 - 2 - 7);
 		expect(anzahlen.reduce((s, a) => s + Number(a), 0)).toBe(eintraege.length);
-		expect(eintraege.length).toBe(102);
-		expect(anzahlen.length).toBe(13);
+		expect(anzahlen.length).toBe(12);
 		expect(anzahlen.every((a) => Number(a) >= 3)).toBe(true);
 		expect(
 			await page
 				.locator('[data-bereich-gruppe]')
 				.evaluateAll((l) => l.map((g) => g.querySelectorAll('[data-bereich]').length)),
-		).toEqual([3, 8, 2]);
+		).toEqual([3, 8, 1]);
+		await expect(page.locator('[data-bereich="Folien"]')).toHaveCount(0);
+		await suche(page).fill('malkreuz');
+		await expect(page.locator('[data-einfuegen="x-malkreuz"]')).toHaveCount(0);
+		await suche(page).fill('merksatz');
+		await expect(page.locator('[data-einfuegen="folie-merksatz"]')).toHaveCount(0);
 	});
 
 	test('Klick auf die Kachel fügt ein, es gibt keinen Griff', async ({ page }) => {
@@ -290,6 +295,14 @@ test.describe('Editor: Bausteine einfügen', () => {
 				if (h.dataset.ausschnitt) {
 					const r = document.querySelector('body > .koerper')?.getBoundingClientRect();
 					return Boolean(r && r.left >= 0 && r.top >= 0 && r.left < 12 && r.top < 12);
+				}
+				// Folien zeigen ihren erkennbaren Inhalt ganz, der Bildplatz darf hinausragen (203-N04).
+				if (document.body.dataset.ort === 'folie') {
+					return [...document.querySelectorAll('body > .koerper *:not(svg *)')]
+						.filter((e) => !e.closest('.platzhalter') && !e.classList.contains('buehne'))
+						.map((e) => e.getBoundingClientRect())
+						.filter((r) => r.width > 0 && r.height > 0)
+						.every((r) => r.left >= -1 && r.top >= -1 && r.right <= innerWidth + 1 && r.bottom <= innerHeight + 1);
 				}
 				return h.scrollHeight <= h.clientHeight && h.scrollWidth <= h.clientWidth;
 			});

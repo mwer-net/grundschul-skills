@@ -641,7 +641,8 @@ export const Bibliothek = ({
 	const hatEigene = eintraege.some((e) => e.herkunft === 'eigen');
 	const gruppen = KATALOG_BEREICHE.map(({ bereiche, gruppe }, i) => ({
 		gruppe,
-		bereiche: bereiche.filter((k) => filter === 'alle' || anzahl(passend, k) > 0),
+		// 203-N01: Auch unter „Alle“ fehlt, was hier nichts hat (Folien außerhalb einer Präsentation).
+		bereiche: bereiche.filter((k) => anzahl(gezeigt, k) > 0),
 		eigene: i === LETZTE_GRUPPE && hatEigene,
 	})).filter((g) => g.bereiche.length > 0 || g.eigene);
 	const verborgen =
