@@ -1,4 +1,5 @@
-import { useEffect, useState } from 'react';
+import { cmZuPx, grenzenInCm, liesZahl, pxZuCm, rasteEin, zahlMitKomma } from '@schoolbox/kern/src/masse';
+import { useEffect, useRef, useState } from 'react';
 
 import { klassen } from './klassen';
 import { Symbol } from './Symbol';
@@ -19,6 +20,8 @@ interface Eigenschaften {
 	className?: string;
 	/** Steht im Wertfeld rechts der Zahl, nie daneben (182). */
 	einheit?: string;
+	/** 197-U3: `wert`, Grenzen und Schritt in px, gezeigt und getippt in cm. */
+	cm?: boolean;
 }
 
 /** Rahmen, Stufen und Wertfeld; `Abbildungspanel.tsx` nutzt sie für seine Zahlen, damit beide gleich aussehen. */
@@ -35,12 +38,20 @@ export const STEPPER_WERT =
 export const STEPPER_EINHEIT = 'flex-none text-xs text-dezent';
 
 /**
- * − Wert +, für alle Zahlen. Der Wert lässt sich direkt eintippen; übernommen wird beim Verlassen oder mit ⏎. Im Feld
- * zählen ↑ und ↓ um einen Schritt, Esc verwirft das Getippte (187-16).
+ * 196-30: Nach ⌘Z zeichnet der Inspektor neu und das Feld verlöre den Fokus. Ging er eben ins Leere, holt ein Stepper
+ * gleichen Namens ihn zurück.
+ */
+let zuletzt: { name: string; zeit: number } | null = null;
+
+/**
+ * − Wert +, für alle Zahlen. Der Wert lässt sich direkt eintippen, mit Komma oder Punkt; übernommen wird beim
+ * Verlassen oder mit ⏎, auf den Schritt gerundet und auf die Grenzen gesetzt (196-10, 196-29). Im Feld zählen ↑ und ↓
+ * um einen Schritt, Esc verwirft das Getippte (187-16). Mit `cm` steht der Wert in px, gezeigt in cm (196-28).
  */
 export const Stepper = ({
 	aus,
 	className,
+	cm = false,
 	einheit,
 	id,
 	max,
@@ -52,79 +63,98 @@ export const Stepper = ({
 	setze,
 	wert,
 }: Eigenschaften) => {
-	const [text, setText] = useState(String(wert));
-	useEffect(() => setText(String(wert)), [wert]);
-	const grenze = (n: number) => Math.min(max ?? Infinity, Math.max(min ?? -Infinity, n));
-	const uebernimm = () => {
-		const n = Number(text.replace(',', '.'));
-		if (text.trim() === '' || !Number.isFinite(n)) {
-			setText(String(wert));
-			return;
+	const grenzen = cm
+		? grenzenInCm({ min: min ?? 0, max: max ?? 10_000, schritt })
+		: { min: min ?? -Infinity, max: max ?? Infinity, schritt };
+	const zeigen = (n: number) => (cm ? pxZuCm(n) : n);
+	const jetzt = zeigen(wert);
+	const [text, setText] = useState(zahlMitKomma(jetzt));
+	useEffect(() => setText(zahlMitKomma(jetzt)), [jetzt]);
+	const feld = useRef<HTMLInputElement>(null);
+	useEffect(() => {
+		if (zuletzt?.name === name && Date.now() - zuletzt.zeit < 1500 && feld.current) {
+			feld.current.focus();
+			zuletzt = null;
 		}
-		const neu = grenze(n);
-		setText(String(neu));
-		if (neu !== wert) {
-			setze(neu);
+	}, [name]);
+	const raste = (n: number) =>
+		Number.isFinite(grenzen.min) && Number.isFinite(grenzen.max)
+			? rasteEin(n, grenzen)
+			: Math.min(grenzen.max, Math.max(grenzen.min, Number(n.toFixed(4))));
+	const gib = (n: number) => {
+		const neu = raste(n);
+		setText(zahlMitKomma(neu));
+		const px = cm ? cmZuPx(neu) : neu;
+		if (px !== wert) {
+			setze(px);
 		}
 	};
-	const rund = (n: number) => Number(n.toFixed(4));
+	const uebernimm = () => {
+		const n = liesZahl(text);
+		if (!Number.isFinite(n)) {
+			setText(zahlMitKomma(jetzt));
+			return;
+		}
+		gib(n);
+	};
 	return (
 		<div className={klassen(STEPPER_RAHMEN, aus && 'opacity-50')}>
 			<button
 				type="button"
 				className={STEPPER_STUFE}
 				aria-label={minusName ?? `${name} kleiner`}
-				disabled={aus || (min !== undefined && wert <= min)}
-				onClick={() => setze(grenze(rund(wert - schritt)))}
+				disabled={aus || jetzt <= grenzen.min}
+				onClick={() => gib(jetzt - grenzen.schritt)}
 			>
 				<Symbol name="minus" className="size-3 flex-none" />
 			</button>
 			<label className={STEPPER_WERT}>
 				<input
+					ref={feld}
 					id={id}
 					type="text"
 					inputMode="decimal"
 					aria-label={name}
 					disabled={aus}
+					data-stepper={name}
 					className={klassen(
 						'w-7 min-w-0 bg-transparent outline-none',
-						einheit ? 'text-right' : 'text-center',
+						cm && 'w-9',
+						einheit || cm ? 'text-right' : 'text-center',
 						className,
 					)}
 					value={text}
 					onChange={(e) => setText(e.target.value)}
-					onBlur={uebernimm}
+					onBlur={(e) => {
+						uebernimm();
+						zuletzt = e.relatedTarget ? null : { name, zeit: Date.now() };
+					}}
 					onKeyDown={(e) => {
 						if (e.key === 'Enter') {
 							e.preventDefault();
 							uebernimm();
 						} else if (e.key === 'ArrowUp' || e.key === 'ArrowDown') {
 							e.preventDefault();
-							const n = Number(text.replace(',', '.'));
-							const basis = text.trim() !== '' && Number.isFinite(n) ? n : wert;
-							const neu = grenze(rund(basis + (e.key === 'ArrowUp' ? schritt : -schritt)));
-							setText(String(neu));
-							if (neu !== wert) {
-								setze(neu);
-							}
-						} else if (e.key === 'Escape' && text !== String(wert)) {
+							const n = liesZahl(text);
+							gib((Number.isFinite(n) ? n : jetzt) + (e.key === 'ArrowUp' ? grenzen.schritt : -grenzen.schritt));
+						} else if (e.key === 'Escape' && text !== zahlMitKomma(jetzt)) {
 							// Nur das Getippte verwerfen; ein zweites Esc gehört wieder der Umgebung.
 							e.preventDefault();
 							e.stopPropagation();
-							setText(String(wert));
-							const feld = e.currentTarget;
-							requestAnimationFrame(() => feld.select());
+							setText(zahlMitKomma(jetzt));
+							const ziel = e.currentTarget;
+							requestAnimationFrame(() => ziel.select());
 						}
 					}}
 				/>
-				{einheit && <span className={STEPPER_EINHEIT}>{einheit}</span>}
+				{(cm || einheit) && <span className={STEPPER_EINHEIT}>{cm ? 'cm' : einheit}</span>}
 			</label>
 			<button
 				type="button"
 				className={STEPPER_STUFE}
 				aria-label={plusName ?? `${name} größer`}
-				disabled={aus || (max !== undefined && wert >= max)}
-				onClick={() => setze(grenze(rund(wert + schritt)))}
+				disabled={aus || jetzt >= grenzen.max}
+				onClick={() => gib(jetzt + grenzen.schritt)}
 			>
 				<Symbol name="plus" className="size-3 flex-none" />
 			</button>

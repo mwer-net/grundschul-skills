@@ -1,3 +1,4 @@
+import { formName } from '@schoolbox/kern/src/formen';
 import type { Baustein } from '@schoolbox/kern/src/bausteine';
 import { kann } from '@schoolbox/kern/src/bausteine';
 import { istGestaltung } from '@schoolbox/kern/src/gestaltung';
@@ -112,7 +113,8 @@ export const titelDerGestaltung = ({ art, name, teile, text, wert }: GestaltungA
 	if (wert('data-name')?.trim()) {
 		return name;
 	}
-	const form = gross((wert('data-form') ?? '').trim().replace(/[-_]+/g, ' '));
+	// 196-15: derselbe Name wie im Pfad des Inspektors
+	const form = formName(wert('data-form')) ?? '';
 	switch (art) {
 		case 'bildfrei': {
 			const datei =

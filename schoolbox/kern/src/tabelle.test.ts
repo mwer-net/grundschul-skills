@@ -80,6 +80,11 @@ describe('Kit-Tabelle', () => {
 		assert.deepEqual(groesseVon(klein.quelle, klein.nr ?? -1), { zeilen: 2, spalten: 1, kopf: true });
 	});
 
+	it('196-07: höchstens 12 Spalten und 30 Zeilen', () => {
+		const gross = setzeGroesse(QUELLE, zelle(QUELLE, 'a'), { zeilen: 99, spalten: 99 }, n);
+		assert.deepEqual(groesseVon(gross.quelle, gross.nr ?? -1), { zeilen: 30, spalten: 12, kopf: true });
+	});
+
 	it('Tab: nächste Zelle, am Ende null', () => {
 		assert.deepEqual(naechsteZelle({ zeile: 0, spalte: 0 }, 2, 2), { zeile: 0, spalte: 1 });
 		assert.deepEqual(naechsteZelle({ zeile: 0, spalte: 1 }, 2, 2), { zeile: 1, spalte: 0 });

@@ -1,7 +1,9 @@
 import type { AbschnittName } from '@schoolbox/kern/src/abschnitte';
+import { ABSCHNITT_TITEL } from '@schoolbox/kern/src/abschnitte';
 import type { BlattWerte as BlattWerteTyp } from '@schoolbox/kern/src/kit-einstellungen';
 import {
 	BLATT_FORMATE,
+	hatErwartungshorizont,
 	KIT_FELDER,
 	leseBlatt,
 	leseKit,
@@ -10,11 +12,13 @@ import {
 	PALETTEN_FARBNAME,
 	setzeBlatt,
 	setzeKit,
+	setzeKitMitAuswahl,
 	setzeSichtbarkeit,
 	SICHTBARKEITEN,
 } from '@schoolbox/kern/src/kit-einstellungen';
+import { inCm, pxZuCm, zahlMitKomma } from '@schoolbox/kern/src/masse';
 import { ABSTAND, gesetzterAbstand, SPALTEN } from '@schoolbox/kern/src/struktur';
-import { groesseVon, setzeGroesse, setzeKopfzeile } from '@schoolbox/kern/src/tabelle';
+import { groesseVon, setzeGroesse, setzeKopfzeile, TABELLE_GRENZEN } from '@schoolbox/kern/src/tabelle';
 import type { Format as Format2 } from '@schoolbox/kern/src/werte';
 import { FORMAT_NAME, KLASSEN } from '@schoolbox/kern/src/werte';
 import type { ReactNode } from 'react';
@@ -35,6 +39,7 @@ import type { Ablage } from './ablage';
 import type { PfadTeil } from './darstellung';
 import type { BlattSeite } from './gestaltung/blatt';
 import { BlattGestaltung } from './gestaltung/blatt';
+import { useReglerSchreiben } from './gestaltung/blatt/regler';
 import { palettenFarben } from './palettenfarben';
 import type { Spalten, Struktur } from './struktur';
 import { EIGENE_GESCHICHTE } from './tasten';
@@ -72,6 +77,10 @@ const ZeileStepper = ({
 	min?: number;
 	max?: number;
 	schritt?: number;
+	/** 196-28: Einheit im Wertfeld; Maße in px erscheinen in cm (197-U3). */
+	einheit?: string;
+	cm?: boolean;
+	aus?: boolean;
 }) => {
 	const id = useId();
 	return (
@@ -115,6 +124,60 @@ const ZeileWahl = ({
 	);
 };
 
+/**
+ * 196-09: Einzeiliges Textfeld wie überall im Inspektor: ⏎ übernimmt und der Fokus bleibt im Feld, Verlassen übernimmt,
+ * Esc stellt den alten Wert wieder her. `leerErlaubt: false` zeigt nach dem Leeren wieder den alten Wert (196-35).
+ */
+export const Texteingabe = ({
+	aus,
+	leerErlaubt = true,
+	name,
+	setze,
+	wert,
+	...rest
+}: {
+	wert: string;
+	setze: (wert: string) => void;
+	name?: string;
+	leerErlaubt?: boolean;
+	aus?: boolean;
+	'data-einstellung'?: string;
+}) => {
+	const [text, setText] = useState(wert);
+	useEffect(() => setText(wert), [wert]);
+	const uebernimm = () => {
+		const neu = text.trim();
+		if (!leerErlaubt && neu === '') {
+			setText(wert);
+			return;
+		}
+		if (neu !== wert.trim()) {
+			setze(neu);
+		}
+	};
+	return (
+		<input
+			{...rest}
+			className={FELD_KLASSEN}
+			aria-label={name}
+			disabled={aus}
+			value={text}
+			onChange={(e) => setText(e.target.value)}
+			onBlur={uebernimm}
+			onKeyDown={(e) => {
+				if (e.key === 'Enter') {
+					e.preventDefault();
+					uebernimm();
+				} else if (e.key === 'Escape' && text !== wert) {
+					e.preventDefault();
+					e.stopPropagation();
+					setText(wert);
+				}
+			}}
+		/>
+	);
+};
+
 /** Name fürs Hineinlegen in die Sammlung; die Aktion selbst steht im ⋯ (051). */
 export const SammlungName = ({ ablage }: { ablage: Ablage }) => {
 	const { sammle, sammlungName: name, setSammlungName: setName } = ablage;
@@ -139,7 +202,15 @@ export const SammlungName = ({ ablage }: { ablage: Ablage }) => {
 	);
 };
 
-export const Spaltenwahl = ({ spalten, struktur }: { spalten: Spalten; struktur: Struktur }) => {
+export const Spaltenwahl = ({
+	aus = false,
+	spalten,
+	struktur,
+}: {
+	spalten: Spalten;
+	struktur: Struktur;
+	aus?: boolean;
+}) => {
 	const id = useId();
 	return (
 		<Zeile titel="Spalten" fuer={id}>
@@ -152,6 +223,7 @@ export const Spaltenwahl = ({ spalten, struktur }: { spalten: Spalten; struktur:
 					max={SPALTEN.max}
 					minusName="Eine Spalte weniger"
 					plusName="Eine Spalte mehr"
+					aus={aus}
 					setze={(n) => struktur.spalten(spalten.nr, n)}
 				/>
 			</div>
@@ -164,26 +236,52 @@ export const KitWerkzeug = ({
 	abschnitt,
 	art,
 	folien,
+	aus = false,
 	nr,
+	nur,
 	quelle,
 	struktur,
 }: {
+	/** Nur diese Felder, z. B. „Punkte“ der Aufgabe am Baustein „Punkte“ (196-20). */
+	nur?: readonly string[];
 	abschnitt: AbschnittName;
 	art: string;
 	folien: boolean;
 	nr: number;
 	quelle: string | null;
 	struktur: Struktur;
+	/** 196-13: gesperrt (Konflikt, Vorschlag offen): Felder bleiben stehen, lassen sich aber nicht bedienen. */
+	aus?: boolean;
 }) => {
-	const felder = (KIT_FELDER[art] ?? []).filter((f) => (f.abschnitt ?? 'darstellung') === abschnitt);
+	// 196-19: „Anforderung“ wirkt nur im Erwartungshorizont
+	const felder = (KIT_FELDER[art] ?? []).filter(
+		(f) =>
+			(f.abschnitt ?? 'darstellung') === abschnitt &&
+			(!nur || nur.includes(f.name)) &&
+			(f.name !== 'afb' || (quelle && hatErwartungshorizont(quelle))),
+	);
 	if (felder.length === 0 || !quelle) {
 		return null;
 	}
 	const werte = leseKit(quelle, nr, art);
-	const setze = (name: string, titel: string, wert: string | number | boolean) =>
-		struktur.aendereAttribute(`${titel} geändert`, (q) => setzeKit(q, nr, art, name, wert, { jeSeite: folien }));
+	const n = { jeSeite: folien };
+	const setze = (name: string, titel: string, wert: string | number | boolean) => {
+		// 196-02: Entfernt oder einwickelt die Einstellung etwas, wandert die Auswahl mit dem Element.
+		const versuch = (() => {
+			try {
+				return setzeKitMitAuswahl(quelle, nr, art, name, wert, n);
+			} catch {
+				return null;
+			}
+		})();
+		if (versuch && versuch.nr !== nr) {
+			struktur.fuehreAus(`${titel} geändert`, (q) => setzeKitMitAuswahl(q, nr, art, name, wert, n));
+			return;
+		}
+		struktur.aendereAttribute(`${titel} geändert`, (q) => setzeKit(q, nr, art, name, wert, n));
+	};
 	return (
-		<div className="flex flex-col gap-1" data-kit={art}>
+		<fieldset className="flex flex-col gap-1" disabled={aus} data-kit={art}>
 			{felder.map((f) => {
 				const wert = werte[f.name];
 				const { hilfe, titel } = f;
@@ -209,7 +307,10 @@ export const KitWerkzeug = ({
 							min={f.min}
 							max={f.max}
 							schritt={f.schritt}
-							setze={(n) => setze(f.name, titel, n)}
+							cm={inCm({ einheit: f.einheit, attribut: f.name })}
+							{...(f.einheit && f.einheit !== 'px' ? { einheit: f.einheit } : {})}
+							aus={aus}
+							setze={(zahl) => setze(f.name, titel, zahl)}
 						/>
 					);
 				}
@@ -225,29 +326,30 @@ export const KitWerkzeug = ({
 						/>
 					);
 				}
-				return (
+				const feld = <Texteingabe wert={String(wert)} name={titel} aus={aus} setze={(t) => setze(f.name, titel, t)} />;
+				// 196-33: Heißt das Feld wie sein Abschnitt („Lösung“), steht der Name nur einmal.
+				return titel === ABSCHNITT_TITEL[abschnitt] ? (
+					<div key={f.name}>{feld}</div>
+				) : (
 					<Feld key={f.name} titel={titel}>
-						<input
-							key={String(wert)}
-							className={FELD_KLASSEN}
-							defaultValue={String(wert)}
-							onBlur={(e) => setze(f.name, titel, e.target.value)}
-						/>
+						{feld}
 					</Feld>
 				);
 			})}
-		</div>
+		</fieldset>
 	);
 };
 
 /** Größe und Kopfzeile der Kit-Tabelle (047). Einfügen und Löschen an einer Stelle stehen in der Leiste und im ⋯. */
 export const TabellenWerkzeug = ({
+	aus = false,
 	folien,
 	nr,
 	pfad,
 	quelle,
 	struktur,
 }: {
+	aus?: boolean;
 	folien: boolean;
 	nr: number;
 	pfad: PfadTeil[];
@@ -259,14 +361,17 @@ export const TabellenWerkzeug = ({
 	}
 	const n = { jeSeite: folien };
 	const g = groesseVon(quelle, nr);
+	// 196-04: Ist die Tabelle selbst gewählt, bleibt sie es; ihre Nummer ändert sich nicht, nur die ihrer Zellen.
+	const tabelleGewaehlt = pfad.at(-1)?.baustein.art === 'tabelle';
+	const bleibe = (e: { quelle: string; nr: number | null }) => (tabelleGewaehlt ? { quelle: e.quelle, nr } : e);
 	const groesse = (was: 'zeilen' | 'spalten', wert: number) =>
-		struktur.fuehreAus('Tabellengröße geändert', (q) => setzeGroesse(q, nr, { [was]: wert }, n));
+		struktur.fuehreAus('Tabellengröße geändert', (q) => bleibe(setzeGroesse(q, nr, { [was]: wert }, n)));
 	return (
-		<div className="flex flex-col gap-1" data-tabelle-werkzeug>
+		<fieldset className="flex flex-col gap-1" disabled={aus} data-tabelle-werkzeug>
 			<ZeileSchalter
 				titel="Kopfzeile"
 				an={g.kopf}
-				setze={(an) => struktur.fuehreAus('Kopfzeile geändert', (q) => setzeKopfzeile(q, nr, an, n))}
+				setze={(an) => struktur.fuehreAus('Kopfzeile geändert', (q) => bleibe(setzeKopfzeile(q, nr, an, n)))}
 			/>
 			{(['zeilen', 'spalten'] as const).map((was) => (
 				<ZeileStepper
@@ -274,20 +379,32 @@ export const TabellenWerkzeug = ({
 					titel={was === 'zeilen' ? 'Zeilen' : 'Spalten'}
 					wert={g[was]}
 					min={1}
-					max={30}
+					max={TABELLE_GRENZEN[was]}
+					aus={aus}
 					setze={(wert) => groesse(was, wert)}
 				/>
 			))}
-		</div>
+		</fieldset>
 	);
 };
 
 const aendereSichtbarkeit = (struktur: Struktur, nr: number, wert: string) =>
 	struktur.aendereAttribute('Sichtbarkeit geändert', (q) => setzeSichtbarkeit(q, nr, wert));
 
-export const Sichtbarkeit = ({ nr, quelle, struktur }: { nr: number; quelle: string; struktur: Struktur }) => (
+export const Sichtbarkeit = ({
+	aus = false,
+	nr,
+	quelle,
+	struktur,
+}: {
+	nr: number;
+	quelle: string;
+	struktur: Struktur;
+	aus?: boolean;
+}) => (
 	<select
 		className={FELD_KLASSEN}
+		disabled={aus}
 		aria-label="Sichtbarkeit"
 		data-sichtbarkeit
 		value={leseSichtbarkeit(quelle, nr)}
@@ -354,17 +471,11 @@ export const Blattwerkzeug = ({
 		}
 	}, [wert]);
 
-	const zeigt = aktiv && wert !== null && quelle !== null;
+	// 196-13: Gesperrt (Konflikt, Vorschlag offen) bleibt alles stehen, nur bedienen lässt es sich nicht.
+	const zeigt = quelle !== null && (wert !== null || !aktiv);
+	const gesperrt = !aktiv;
 
-	useEffect(() => {
-		const element = regler.current;
-		if (!element) {
-			return undefined;
-		}
-		const fertig = () => setzeAbstand.current(Number(element.value));
-		element.addEventListener('change', fertig);
-		return () => element.removeEventListener('change', fertig);
-	}, [zeigt]);
+	useReglerSchreiben(regler, (px) => setzeAbstand.current(px), zeigt);
 
 	if (!zeigt) {
 		return loesung ? <div data-blatt>{loesung}</div> : null;
@@ -375,20 +486,20 @@ export const Blattwerkzeug = ({
 	const w = leseBlatt(quelle);
 	const setze = (titel: string, neu: Partial<BlattWerteTyp>) =>
 		struktur.aendereAttribute(`${titel} geändert`, (q) => setzeBlatt(q, neu));
+	const cm = (px: number) => `${zahlMitKomma(pxZuCm(px))} cm`;
 	return (
-		<div data-blatt>
+		<fieldset data-blatt disabled={gesperrt} className="min-w-0">
 			<div className="px-3 py-2">
-				<p className="text-xs text-leise">Dokument</p>
+				<p className="text-xs text-leise">Material</p>
 				<h2 className="text-base font-semibold">Ganzes Blatt</h2>
 			</div>
 			<Abschnitt name="angaben" titel="Angaben">
 				<Feld titel="Titel" lage="daneben">
-					<input
-						key={w.titel}
-						className={FELD_KLASSEN}
+					<Texteingabe
 						data-einstellung="titel"
-						defaultValue={w.titel}
-						onBlur={(e) => e.target.value.trim() && setze('Titel', { titel: e.target.value.trim() })}
+						wert={w.titel}
+						leerErlaubt={false}
+						setze={(titel) => setze('Titel', { titel })}
 					/>
 				</Feld>
 				<ZeileWahl
@@ -426,7 +537,11 @@ export const Blattwerkzeug = ({
 					einstellung="format"
 					hilfe="Passt danach etwas nicht mehr, meldet es die Prüfung."
 					wert={w.format}
-					optionen={(w.format === 'minibuch' ? ['minibuch' as const] : BLATT_FORMATE).map((f) => ({
+					// Folien nur für Präsentationen: Ein Blatt in 16:9 ergibt lauter Prüfmeldungen (Urteil 196).
+					optionen={(w.format === 'minibuch'
+						? ['minibuch' as const]
+						: BLATT_FORMATE.filter((f) => f !== 'folie' || w.format === 'folie')
+					).map((f) => ({
 						wert: f,
 						titel: FORMAT_NAME[f],
 					}))}
@@ -439,7 +554,7 @@ export const Blattwerkzeug = ({
 							<Hilfetipp name="Abstand">
 								Platz zwischen den Aufgaben, auf allen Seiten.
 								{vorgabeImRegler &&
-									` Die Marke am Regler zeigt die Vorgabe für dieses Blatt: ${vorgabe} px.`}
+									` Die Marke am Regler zeigt die Vorgabe für dieses Blatt: ${cm(vorgabe)}.`}
 							</Hilfetipp>
 						</span>
 						<span className="ml-auto flex flex-none items-center gap-2">
@@ -447,7 +562,7 @@ export const Blattwerkzeug = ({
 								<Tooltip text={
 										vorgabe === null
 											? 'Eigenen Abstand entfernen'
-											: `Zurück zur Vorgabe: ${vorgabe} px`
+											: `Zurück zur Vorgabe: ${cm(vorgabe)}`
 									}>
 									<button
 										type="button"
@@ -459,7 +574,9 @@ export const Blattwerkzeug = ({
 									</button>
 								</Tooltip>
 							)}
-							<span className="text-leise tabular-nums" data-abstand-wert>{`${jetzt} px`}</span>
+							<span className="text-leise tabular-nums" data-abstand-wert>
+								{cm(jetzt)}
+							</span>
 						</span>
 					</div>
 					<div className="relative">
@@ -481,7 +598,7 @@ export const Blattwerkzeug = ({
 							}}
 						/>
 						{vorgabeImRegler && (
-							<Tooltip text={`Vorgabe: ${vorgabe} px`}>
+							<Tooltip text={`Vorgabe: ${cm(vorgabe)}`}>
 								<span
 									aria-hidden
 									data-abstand-marke={vorgabe}
@@ -513,6 +630,6 @@ export const Blattwerkzeug = ({
 				</Abschnitt>
 			)}
 			<BlattGestaltung doc={doc} quelle={quelle} struktur={struktur} seite={seite} />
-		</div>
+		</fieldset>
 	);
 };

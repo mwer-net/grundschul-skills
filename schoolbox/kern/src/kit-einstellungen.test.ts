@@ -2,12 +2,16 @@ import assert from 'node:assert/strict';
 import { describe, it } from 'node:test';
 
 import {
+	hatErwartungshorizont,
 	KIT_FELDER,
 	leseBlatt,
 	leseKit,
+	leseNotiz,
 	leseSichtbarkeit,
 	setzeBlatt,
 	setzeKit,
+	setzeKitMitAuswahl,
+	setzeNotiz,
 	setzeSichtbarkeit,
 	sichtbarkeitFest,
 } from './kit-einstellungen';
@@ -75,10 +79,61 @@ describe('Einstellungen der Kit-Bausteine', () => {
 		const k = nr(BLATT, 'kopf');
 		const mit = setzeKit(BLATT, k, 'kopf', 'ziel', true);
 		assert.match(mit, /class="ziel"/);
-		assert.equal(setzeKit(mit, k, 'kopf', 'ziel', false), BLATT);
+		// 196-03: aus blendet aus, an zeigt wieder, Wortlaut und Stelle bleiben
+		const eigen = mit.replace('Ich kann …', 'Ich kann Silben klatschen.');
+		const aus = setzeKit(eigen, k, 'kopf', 'ziel', false);
+		assert.match(aus, /<div class="ziel" hidden="?"?>Ich kann Silben klatschen\.<\/div>/);
+		assert.equal(leseKit(aus, k, 'kopf').ziel, false);
+		assert.equal(setzeKit(aus, k, 'kopf', 'ziel', true), eigen);
 		const ohne = setzeKit(BLATT, k, 'kopf', 'namenszeile', false);
 		assert.doesNotMatch(ohne, /namenszeile/);
 		assert.match(setzeKit(ohne, nr(ohne, 'kopf'), 'kopf', 'namenszeile', true), /namenszeile/);
+	});
+
+	it('196-01: Punkte mit Linie für die erreichten Punkte ändern nur die Zahl', () => {
+		const q = BLATT.replace('<span class="text">A</span>', '<span class="text">A</span><span class="punkte"><span class="antwort kurz"></span> / 6 P.</span>');
+		const a = nr(q, 'aufgabe');
+		assert.equal(leseKit(q, a, 'aufgabe').punkte, 6);
+		const sieben = setzeKit(q, a, 'aufgabe', 'punkte', 7);
+		assert.match(sieben, /<span class="punkte"><span class="antwort kurz"><\/span> \/ 7 P\.<\/span>/);
+		assert.match(setzeKit(q, a, 'aufgabe', 'punkte', 6.5), /\/ 6,5 P\./);
+	});
+
+	it('196-02: Nach einer Einstellung, die Elemente entfernt oder einwickelt, bleibt dasselbe Element gewählt', () => {
+		const k = nr(BLATT, 'kopf');
+		const ohne = setzeKitMitAuswahl(BLATT, k, 'kopf', 'namenszeile', false);
+		assert.doesNotMatch(ohne.quelle, /namenszeile/);
+		assert.ok(klassenVon(zerlege(ohne.quelle).knoten[ohne.nr] ?? zerlege(ohne.quelle).knoten[0]!).includes('kopf'));
+		const p = tag(BLATT, 'p');
+		const liste = setzeKitMitAuswahl(BLATT, p, 'absatz', 'liste', true);
+		assert.equal(zerlege(liste.quelle).knoten[liste.nr]?.tag, 'ul');
+		const gleich = setzeKitMitAuswahl(BLATT, nr(BLATT, 'malfeld'), 'malfeld', 'hoehe', 200);
+		assert.equal(gleich.nr, nr(BLATT, 'malfeld'));
+	});
+
+	it('196-08: Jede Linie einer Folge zeigt und ändert die ganze Folge', () => {
+		const drei = setzeKit(BLATT, nr(BLATT, 'schreiblinie'), 'schreiblinie', 'anzahl', 3);
+		for (const i of [0, 1, 2]) {
+			assert.equal(leseKit(drei, nr(drei, 'schreiblinie', i), 'schreiblinie').anzahl, 3);
+		}
+		assert.equal(n(setzeKit(drei, nr(drei, 'schreiblinie', 2), 'schreiblinie', 'abstand', 40), 'height:40px'), 3);
+	});
+
+	it('196-24: Die Liste schaltet „Als Liste“ aus und wird wieder ein Absatz', () => {
+		const liste = setzeKit(BLATT, tag(BLATT, 'p'), 'absatz', 'liste', true);
+		assert.equal(leseKit(liste, tag(liste, 'ul'), 'liste').liste, true);
+		assert.equal(setzeKit(liste, tag(liste, 'ul'), 'liste', 'liste', false), BLATT);
+	});
+
+	it('196-19, 196-23: Erwartungshorizont erkennen; Notiz einer Folie lesen, schreiben, löschen', () => {
+		assert.equal(hatErwartungshorizont(BLATT), false);
+		assert.equal(hatErwartungshorizont(BLATT.replace('<p>Absatz</p>', '<x-erwartungshorizont></x-erwartungshorizont>')), true);
+		const s = tag(BLATT, 'section');
+		assert.equal(leseNotiz(BLATT, s), '');
+		const mit = setzeNotiz(BLATT, s, 'Erst fragen, <dann> zeigen');
+		assert.match(mit, /<aside class="notiz">Erst fragen, &lt;dann&gt; zeigen<\/aside>/);
+		assert.equal(leseNotiz(mit, s), 'Erst fragen, <dann> zeigen');
+		assert.equal(setzeNotiz(mit, s, '  '), BLATT);
 	});
 
 	it('Absatz wird Liste und zurück, der Inhalt bleibt', () => {

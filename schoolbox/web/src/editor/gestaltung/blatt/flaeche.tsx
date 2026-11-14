@@ -80,9 +80,9 @@ export const BlattFlaeche = (t: BlattTeile) => {
 		<Abschnitt titel="Seitenfläche" name="seitenflaeche">
 			<div className="contents" data-blatt-flaeche={art}>
 				<GiltFuer gilt={gilt} setze={setGilt} t={t} />
-				<Zeile titel="Art" einstellung="seitenflaeche" darunter>
+				<div className="py-0.5" data-einstellung="seitenflaeche">
 					<Segment beschriftung="Seitenfläche" werte={ARTEN} wert={art} waehle={waehleArt} voll />
-				</Zeile>
+				</div>
 				{jetzt && (
 					<>
 						<FuellungZeilen

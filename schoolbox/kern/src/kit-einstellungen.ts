@@ -13,6 +13,7 @@ import {
 	innenVon,
 	klassenVon,
 	quelleVon,
+	schuetzeText,
 	setzeAttribut,
 	wendeAn,
 	zerlege,
@@ -74,7 +75,8 @@ export const KIT_FELDER: Readonly<Record<string, readonly KitFeld[]>> = {
 			standard: 1,
 			leiste: true,
 		},
-		{ typ: 'zahl', name: 'abstand', titel: 'Abstand', min: 20, max: 60, schritt: 2, einheit: 'px', standard: 34 },
+		// 196-26: „Abstand“ heißt schon der Platz zwischen den Aufgaben
+		{ typ: 'zahl', name: 'abstand', titel: 'Zeilenabstand', min: 20, max: 60, schritt: 2, einheit: 'px', standard: 34 },
 	],
 	antwort: [
 		{
@@ -143,12 +145,15 @@ export const KIT_FELDER: Readonly<Record<string, readonly KitFeld[]>> = {
 			],
 		},
 	],
+	// 196-03: Inhalt, nicht Darstellung
 	kopf: [
-		{ typ: 'schalter', name: 'ziel', titel: 'Lernziel zeigen' },
-		{ typ: 'schalter', name: 'wahlhilfe', titel: 'Wahlhilfe zeigen' },
-		{ typ: 'schalter', name: 'namenszeile', titel: 'Namenszeile zeigen' },
+		{ typ: 'schalter', name: 'ziel', titel: 'Lernziel zeigen', abschnitt: 'inhalt' },
+		{ typ: 'schalter', name: 'wahlhilfe', titel: 'Wahlhilfe zeigen', abschnitt: 'inhalt' },
+		{ typ: 'schalter', name: 'namenszeile', titel: 'Namenszeile zeigen', abschnitt: 'inhalt' },
 	],
 	absatz: [{ typ: 'schalter', name: 'liste', titel: 'Als Liste' }],
+	// 196-24: Die Liste zeigt denselben Schalter; aus macht wieder Absätze.
+	liste: [{ typ: 'schalter', name: 'liste', titel: 'Als Liste' }],
 	tabelle: [
 		{ typ: 'schalter', name: 'kopfspalte', titel: 'Kopfspalte' },
 		{
@@ -173,8 +178,9 @@ export const KIT_FELDER: Readonly<Record<string, readonly KitFeld[]>> = {
 		},
 		{ typ: 'schalter', name: 'ohne-linien-innen', titel: 'Ohne Linien innen' },
 	],
-	tabellenzeile: [{ typ: 'schalter', name: 'beispiel', titel: 'Als Beispiel zeigen' }],
-	tabellenzelle: [{ typ: 'text', name: 'loesung', titel: 'Lösung' }],
+	// 196-06: unter „Lösung“ wie bei Antwortlinie und Eintrag
+	tabellenzeile: [{ typ: 'schalter', name: 'beispiel', titel: 'Als Beispiel zeigen', abschnitt: 'loesung' }],
+	tabellenzelle: [{ typ: 'text', name: 'loesung', titel: 'Lösung', abschnitt: 'loesung' }],
 };
 
 const hat = (k: Knoten | null | undefined, klasse: string) => Boolean(k && klassenVon(k).includes(klasse));
@@ -211,14 +217,19 @@ const seiteVon = (k: Knoten) => {
 	}
 	return e;
 };
+/** 196-08: die ganze Folge von Schreiblinien um `k`, nach vorn und nach hinten. */
 const gleicheFolge = (k: Knoten) => {
 	const geschwister = k.eltern?.kinder ?? [k];
 	const i = geschwister.indexOf(k);
+	let anfang = i;
+	while (hat(geschwister[anfang - 1], 'schreiblinie')) {
+		anfang -= 1;
+	}
 	let ende = i;
 	while (hat(geschwister[ende + 1], 'schreiblinie')) {
 		ende += 1;
 	}
-	return geschwister.slice(i, ende + 1);
+	return geschwister.slice(anfang, ende + 1);
 };
 const klassenOhne = (k: Knoten, weg: readonly string[], dazu: string) =>
 	[...klassenVon(k).filter((c) => !weg.includes(c)), ...(dazu ? [dazu] : [])].join(' ');
@@ -230,15 +241,20 @@ interface Regel {
 	setze: (z: Zerlegung, k: Knoten, wert: Wert) => Aenderung[];
 }
 
+/** 196-03: Aus blendet aus (`hidden`), Text und Stelle bleiben; an zeigt es wieder. Fehlt es ganz, kommt es dazu. */
 const kindAnAus = (klasse: string, html: string): Regel => ({
-	lies: (k) => Boolean(nachfahre(k, klasse)),
+	lies: (k) => {
+		const da = nachfahre(k, klasse);
+		return Boolean(da && !attribut(da, 'hidden'));
+	},
 	setze: (z, k, an) => {
 		const da = nachfahre(k, klasse);
-		if (an === Boolean(da)) {
-			return [];
-		}
 		if (da) {
-			return entferne(z, da);
+			const versteckt = Boolean(attribut(da, 'hidden'));
+			return an === versteckt ? setzeAttribut(z, da, 'hidden', an ? null : '') : [];
+		}
+		if (!an) {
+			return [];
 		}
 		const titel = nachfahre(k, 'titel');
 		return fuegeInnenEin(z, titel ?? k, 'ende', html);
@@ -352,9 +368,16 @@ const REGELN: Readonly<Record<string, Regel>> = {
 			if (!anw) {
 				throw new Error('Diese Aufgabe hat keinen Aufgabentext.');
 			}
-			const da = kindMit(anw, 'punkte');
+			const da = kindMit(anw, 'punkte') ?? nachfahre(k, 'punkte');
 			const n = Number(wert);
-			const html = n > 0 ? `<span class="punkte">(${String(n).replace('.', ',')} P.)</span>` : '';
+			const zahl = String(n).replace('.', ',');
+			const html = n > 0 ? `<span class="punkte">(${zahl} P.)</span>` : '';
+			// 196-01: Mit Linie für die erreichten Punkte („___ / 6 P.“) ändert sich nur die Zahl.
+			const innen = da ? innenVon(z, da) : '';
+			if (da && n > 0 && nachfahre(da, 'antwort') && /\d+(?:[.,]\d+)?\s*P/.test(innen)) {
+				const neu = innen.replace(/\d+(?:[.,]\d+)?(\s*P)/, `${zahl}$1`);
+				return [{ von: da.oeffnerEnde, bis: da.schliesserStart, text: neu }];
+			}
 			if (da) {
 				return n > 0 ? [{ von: da.start, bis: da.ende, text: html }] : entferne(z, da);
 			}
@@ -383,6 +406,16 @@ const REGELN: Readonly<Record<string, Regel>> = {
 						'vor',
 						'<div class="namenszeile"><span class="name">Name:</span><span class="datum">Datum:</span></div>',
 					);
+		},
+	},
+	'liste.liste': {
+		lies: () => true,
+		setze: (z, k, an) => {
+			if (an) {
+				return [];
+			}
+			const absaetze = k.kinder.filter((c) => c.tag === 'li').map((c) => `<p>${innenVon(z, c)}</p>`);
+			return [{ von: k.start, bis: k.ende, text: absaetze.join('') }];
 		},
 	},
 	'absatz.liste': {
@@ -419,6 +452,77 @@ export const leseKit = (quelle: string, nr: number, art: string): Record<string,
 			return regel ? [[f.name, regel.lies(k, z)] as const] : [];
 		}),
 	);
+};
+
+/** Wo der Anfang `start` nach diesen Änderungen liegt; ersetzt eine Änderung ihn, liegt er an deren Anfang. */
+const startNach = (start: number, aenderungen: readonly Aenderung[]) => {
+	let verschub = 0;
+	for (const a of [...aenderungen].sort((x, y) => x.von - y.von)) {
+		if (a.bis <= start) {
+			verschub += a.text.length - (a.bis - a.von);
+		} else if (a.von <= start) {
+			return a.von + verschub;
+		}
+	}
+	return start + verschub;
+};
+
+/**
+ * 196-02: Wie `setzeKit`, dazu die Nummer desselben Elements danach. Entfernt oder einwickelt die Einstellung etwas,
+ * verschieben sich die Nummern; gewählt bleibt das Element (oder was an seine Stelle trat, z. B. die Liste).
+ */
+export const setzeKitMitAuswahl = (
+	quelle: string,
+	nr: number,
+	art: string,
+	name: string,
+	wert: Wert,
+	n: Nummerierung = { jeSeite: false },
+) => {
+	const z = zerlege(quelle);
+	const k = knotenVon(z, nr);
+	const regel = REGELN[`${art}.${name}`];
+	const feld = KIT_FELDER[art]?.find((f) => f.name === name);
+	if (!regel || !feld) {
+		throw new Error(`Die Einstellung „${name}“ gibt es hier nicht.`);
+	}
+	const begrenzt = feld.typ === 'zahl' ? Math.min(feld.max, Math.max(feld.min, Number(wert))) : wert;
+	const aenderungen = regel.setze(z, k, begrenzt);
+	const ohneNummern = wendeAn(quelle, aenderungen);
+	const neu = name === 'stern' ? nummeriere(ohneNummern, n) : ohneNummern;
+	const start = startNach(k.start, aenderungen);
+	const danach = zerlege(neu).knoten.find((c) => c.start === start)?.nr ?? nr;
+	return { quelle: neu, nr: danach };
+};
+
+/** Gibt es im Material einen Erwartungshorizont? Nur dort wirkt „Anforderung“ (196-19). */
+export const hatErwartungshorizont = (quelle: string) => /<x-erwartungshorizont\b/.test(quelle);
+
+/** 196-23, 192-01: die Notiz einer Folie (`aside.notiz` in der Seite), als Text. */
+export const leseNotiz = (quelle: string, seite: number) => {
+	const z = zerlege(quelle);
+	const notiz = z.knoten[seite]?.kinder.find((c) => hat(c, 'notiz'));
+	return notiz
+		? innenVon(z, notiz)
+				.replace(/<[^>]*>/g, ' ')
+				.replace(/&nbsp;/g, ' ')
+				.replace(/&lt;/g, '<')
+				.replace(/&gt;/g, '>')
+				.replace(/&amp;/g, '&')
+				.replace(/\s+/g, ' ')
+				.trim()
+		: '';
+};
+
+export const setzeNotiz = (quelle: string, seite: number, text: string) => {
+	const z = zerlege(quelle);
+	const s = knotenVon(z, seite);
+	const notiz = s.kinder.find((c) => hat(c, 'notiz'));
+	const t = text.trim();
+	if (!notiz) {
+		return t ? wendeAn(quelle, fuegeInnenEin(z, s, 'ende', `<aside class="notiz">${schuetzeText(t)}</aside>`)) : quelle;
+	}
+	return wendeAn(quelle, t ? [{ von: notiz.oeffnerEnde, bis: notiz.schliesserStart, text: schuetzeText(t) }] : entferne(z, notiz));
 };
 
 /** Grenzen stehen nur in `KIT_FELDER`: Was darüber hinausgeht, wird nicht geschrieben, sondern begrenzt. */

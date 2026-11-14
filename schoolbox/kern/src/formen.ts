@@ -85,8 +85,14 @@ export const FORMEN: Readonly<Record<string, Form>> = Object.fromEntries(ALLE.ma
 export const formVon = (art: string | null | undefined): Form | undefined =>
 	art && Object.hasOwn(FORMEN, art) ? FORMEN[art] : undefined;
 
-/** Name in Ebenen und Pfad (`nameDerGestaltung`); `null` für unbekannte Formen. */
-export const formName = (art: string | null | undefined) => formVon(art)?.name ?? null;
+/**
+ * Name in Ebenen und Pfad (`nameDerGestaltung`, `titelDerGestaltung`): eine Quelle für beide (196-15). Eine Form, die
+ * das Register nicht kennt (`data-form="kreis"` von Claude), heißt nach ihrem Attribut; ohne Attribut `null`.
+ */
+export const formName = (art: string | null | undefined) => {
+	const roh = (art ?? '').trim().replace(/[-_]+/g, ' ');
+	return formVon(art)?.name ?? (roh ? `${roh[0]?.toUpperCase() ?? ''}${roh.slice(1)}` : null);
+};
 
 /** Standards beim Ablegen (3-formen.md). */
 export const STRICH = 3;

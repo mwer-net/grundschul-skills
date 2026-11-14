@@ -982,6 +982,7 @@ const Bearbeitung = ({ dokument, mappe: mappenDaten }: { mappe: Mappe; dokument:
 				umriss={setUmriss}
 				blatt={ohneAuswahl}
 				zumBlatt={zumBlatt}
+				folien={format === 'folie'}
 			>
 				<Einstellungen
 					pfad={pfad}

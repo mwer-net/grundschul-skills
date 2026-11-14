@@ -154,6 +154,8 @@ test.describe('Inventur Editor', () => {
 		} else {
 			await expect(direkt).toBeVisible();
 		}
+		// 196-18: Die Spalten der Reihe stehen am Eintrag, nicht an der Uhr darin.
+		await druecke(page.locator('[data-breadcrumb]').getByRole('button', { name: /^Eintrag/ }));
 		await expect(page.locator('[data-abschnitt="eltern"]')).toBeVisible();
 	});
 
