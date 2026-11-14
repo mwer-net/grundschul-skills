@@ -274,6 +274,8 @@ export interface EinheitStand {
 	status: EinheitStatus;
 	grund: string | null;
 	start: string;
+	/** Beginn des laufenden Schritts (Plan oder Bau): Die Laufzeit im Band zählt ab hier, wie beim Blatt (190-N04). */
+	laufSeit?: string;
 	ende: string | null;
 	sitzung: string | null;
 	plan: EinheitPlan | null;

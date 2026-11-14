@@ -105,3 +105,20 @@ export const wirksameAntworten = (antworten: Antworten, vorbelegt: Vorbelegung, 
 	...(vorbelegt.quelle === 'behaelter' ? { fach: vorbelegt.fach, klasse: vorbelegt.klasse } : {}),
 	titel: titelEigen ? antworten.titel : titelVorschlag(antworten),
 });
+
+const vergleichbar = (name: string) => name.trim().toLocaleLowerCase('de');
+
+/**
+ * Ein selbst geschriebener Titel, den es im Ordner schon gibt: Der Satz steht am Titelfeld, sobald der Titel feststeht
+ * (190-N01). Der Server prüft gleich (`namenIn`); ein vorgeschlagener Titel weicht dort auf „… 2“ aus.
+ */
+export const titelFehler = (stand: AblageStand | null, ordner: string | null, titel: string): string | null => {
+	const t = vergleichbar(titel);
+	if (!stand || t === '') {
+		return null;
+	}
+	const vergeben =
+		stand.ordner.some((o) => o.eltern === ordner && vergleichbar(o.name) === t) ||
+		stand.dokumente.some((d) => d.ordner === ordner && vergleichbar(d.meta.titel) === t);
+	return vergeben ? `In diesem Ordner gibt es „${titel.trim()}“ schon. Wähle bitte einen anderen Titel.` : null;
+};

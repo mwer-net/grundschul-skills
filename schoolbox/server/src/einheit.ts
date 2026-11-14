@@ -583,6 +583,7 @@ export const erstelleEinheiten = (kontext: Kontext, pruefer: KiPruefer) => {
 		s.status = 'laeuft';
 		s.grund = null;
 		s.ende = null;
+		s.laufSeit = new Date().toISOString();
 		await merke(s);
 		(stufe === 'plan' ? plane : fuehreAus)(s, text, sitzung).catch(async (fehler: unknown) => {
 			console.error('Einheit:', fehler);

@@ -9,7 +9,7 @@ import { Symbol } from '../bausteine/Symbol';
 import { ortDesDokuments } from '../ordner/kontext';
 import type { AblageStand } from '../ordner/typen';
 import type { EntwurfPhase } from './entwurf';
-import { annahmenAus, laufzeit, useJetzt } from './entwurf';
+import { annahmenAus, laufWort, laufzeit, useJetzt } from './entwurf';
 import type { KiAuftrag, useKiZustand, Vorschlag } from './ki';
 import { limitHinweis } from './ki';
 import { LimitZeile } from './LimitZeile';
@@ -190,7 +190,7 @@ export const EntwurfKarte = ({
 	}
 	const hinweis = limitHinweis(ki.zustand.limit, ki.zustand.warnAb);
 	const plant = phase.art === 'laeuft' && phase.auftrag.phase === 'plan';
-	const laufTitel = plant ? `Claude plant „${titel}“` : `Claude baut „${titel}“`;
+	const laufTitel = `${laufWort(plant)} „${titel}“`;
 	return (
 		<div className="pointer-events-none sticky top-0 z-10 h-0">
 			<div

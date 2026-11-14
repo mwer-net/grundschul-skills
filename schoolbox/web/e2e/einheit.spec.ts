@@ -88,9 +88,17 @@ test.describe('Unterrichtseinheit (140)', () => {
 		await bisPruefen(page, 'Herbst');
 		await page.keyboard.press('Enter');
 		await expect(band(page)).toHaveAttribute('data-einheit-band', 'plan');
+		const freigaben: string[] = [];
+		page.on('request', (r) => {
+			if (r.method() === 'POST' && r.url().endsWith('/freigeben')) {
+				freigaben.push(r.url());
+			}
+		});
 		await band(page).locator('[data-plan-freigeben]').dblclick();
 		await expect(band(page)).toHaveAttribute('data-einheit-band', /laeuft|fertig/);
 		await expect(page.getByRole('status').filter({ hasText: 'arbeitet schon' })).toHaveCount(0);
+		// Die Sperre greift schon im Klick: Der Server sieht genau eine Freigabe.
+		expect(freigaben).toHaveLength(1);
 	});
 
 	test('Abbrechen, Weiterbauen, Verwerfen in den Papierkorb; Pille auf anderen Seiten', async ({ page }) => {

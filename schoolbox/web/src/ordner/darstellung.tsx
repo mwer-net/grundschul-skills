@@ -7,7 +7,7 @@ import { Knopf } from '../bausteine/Knopf';
 import { Symbol } from '../bausteine/Symbol';
 import { Tooltip } from '../bausteine/Tooltip';
 import { Vorschau } from '../bausteine/Vorschau';
-import { laufzeit, useJetzt } from '../editor/entwurf';
+import { laufWort, laufzeit, useJetzt } from '../editor/entwurf';
 import { ART_NAME, datum, FACH_FARBE, FACH_NAME, FORMAT_NAME, klasseName } from '../lib/text';
 import { NamensFeld } from './NamensFeld';
 import { inhaltText, seitenText, STRICH } from './objekte';
@@ -37,16 +37,18 @@ export interface ObjektAnsicht {
 export interface ClaudeBaut {
 	seit: string | null;
 	plan?: boolean;
+	/** Claude plant noch, gebaut wird erst nach der Freigabe (190-N03). */
+	plant?: boolean;
 }
 
 /** Der Satz der Marke, in Kachel und Listenzeile gleich (190-11). */
-const ClaudeBautText = ({ plan, seit }: ClaudeBaut) => {
+const ClaudeBautText = ({ plan, plant = false, seit }: ClaudeBaut) => {
 	const jetzt = useJetzt(!plan);
 	const zeit = plan ? null : laufzeit(seit, jetzt);
 	return (
 		<>
 			{!plan && <Symbol name="laden" className="size-3 flex-none animate-spin" />}
-			<span className="min-w-0 flex-1 truncate">{plan ? 'Plan prüfen' : 'Claude baut …'}</span>
+			<span className="min-w-0 flex-1 truncate">{plan ? 'Plan prüfen' : `${laufWort(plant)} …`}</span>
 			{zeit && <span className="flex-none text-leise tabular-nums">{zeit}</span>}
 		</>
 	);

@@ -13,7 +13,7 @@ import { Symbol } from '../bausteine/Symbol';
 import { limitHinweis, neueGespraechId, useKiZustand } from '../editor/ki';
 import { useEinheiten } from '../ordner/einheiten';
 import { useAblage } from '../ordner/kontext';
-import { ersterSchritt, LETZTE, mitWeg, ortDesAssistenten, wirksameAntworten } from './anlegen-hilfe';
+import { ersterSchritt, LETZTE, mitWeg, ortDesAssistenten, titelFehler, wirksameAntworten } from './anlegen-hilfe';
 import {
 	Fehler,
 	SchrittArt,
@@ -28,7 +28,7 @@ import {
 	StartHinweis,
 } from './AnlegenSchritte';
 import type { GemerkterAssistent } from './assistent-gemerkt';
-import { ASSISTENT_FORTSETZEN, merkeAssistent } from './assistent-gemerkt';
+import { ASSISTENT_FORTSETZEN, gemerkterAssistent, merkeAssistent } from './assistent-gemerkt';
 import {
 	EinheitVerbrauch,
 	fensterWarnung,
@@ -81,6 +81,7 @@ const Fuss = ({
 	laeuft,
 	letzter,
 	schliessen,
+	vonVorn,
 	weiter,
 	zumLeerenBlatt,
 	zurueck,
@@ -94,6 +95,8 @@ const Fuss = ({
 	/** Die Hauptaktion geht gerade nicht: am Limit, oder es ist noch offen, ob es Claude gibt. */
 	gesperrt: boolean;
 	zumLeerenBlatt: () => void;
+	/** Nur nach dem Fortsetzen eines gemerkten Stands (190-02). */
+	vonVorn?: () => void;
 	schliessen: () => void;
 	zurueck: () => void;
 	weiter: () => void;
@@ -107,6 +110,11 @@ const Fuss = ({
 		) : (
 			<Knopf art="leise" onClick={schliessen}>
 				Abbrechen
+			</Knopf>
+		)}
+		{vonVorn && (
+			<Knopf art="leise" disabled={laeuft} onClick={vonVorn} data-von-vorn>
+				Von vorn beginnen
 			</Knopf>
 		)}
 		<span className="flex-1" />
@@ -144,20 +152,26 @@ export const MaterialDialog = ({
 	const gesperrt = hinweis?.art === 'gesperrt';
 	const navigate = useNavigate();
 
-	const [antworten, setAntworten] = useState<Antworten>(() => {
-		if (fortsetzen) {
-			return fortsetzen.antworten;
-		}
+	// Jeder Weg in den Assistenten desselben Ordners setzt beim gemerkten Stand fort, bis neu geladen oder ein Material
+	// angelegt ist (190-02). Ein Thema aus der Palette ist ein neuer Wunsch und beginnt neu.
+	const [gemerkt] = useState(() => {
+		const g = fortsetzen ?? (thema ? null : gemerkterAssistent());
+		return g && g.ordner === ordner ? g : null;
+	});
+	const neueAntworten = () => {
 		const basis = leereAntworten(vorbelegt);
 		return thema ? mitThema(basis, thema) : basis;
-	});
-	const [titelEigen, setTitelEigen] = useState(fortsetzen?.titelEigen ?? false);
-	const [schritt, setSchritt] = useState<AssistentSchrittId>(() => fortsetzen?.schritt ?? ersterSchritt(thema));
+	};
+	const [antworten, setAntworten] = useState<Antworten>(() => gemerkt?.antworten ?? neueAntworten());
+	const [titelEigen, setTitelEigen] = useState(gemerkt?.titelEigen ?? false);
+	const [schritt, setSchritt] = useState<AssistentSchrittId>(() => gemerkt?.schritt ?? ersterSchritt(thema));
 	const [besucht, setBesucht] = useState<ReadonlySet<AssistentSchrittId>>(
-		() => new Set(fortsetzen?.besucht ?? ['start', schritt]),
+		() => new Set(gemerkt?.besucht ?? ['start', schritt]),
 	);
-	const [offen, setOffen] = useState<Partial<Record<FreitextFeld, boolean>>>(fortsetzen?.offen ?? {});
+	const [offen, setOffen] = useState<Partial<Record<FreitextFeld, boolean>>>(gemerkt?.offen ?? {});
+	const [fortgesetzt, setFortgesetzt] = useState(gemerkt !== null);
 	const [fehler, setFehler] = useState<string | null>(null);
+	const [titelFehlerText, setTitelFehler] = useState<string | null>(null);
 	const [laeuft, setLaeuft] = useState(false);
 	const wurzel = useRef<HTMLDivElement>(null);
 	// Text hinter einem zugeklappten „Anders …“: Kommt man zurück, steht er wieder da (190-19).
@@ -197,6 +211,7 @@ export const MaterialDialog = ({
 	};
 	const setzeTitel = (titel: string) => {
 		setTitelEigen(true);
+		setTitelFehler(null);
 		setze({ titel });
 	};
 
@@ -229,6 +244,29 @@ export const MaterialDialog = ({
 		angelegt.current = true;
 		merkeAssistent(null);
 	};
+	/** „Von vorn beginnen“: Der gemerkte Stand ist weg, der Assistent steht wie frisch geöffnet (190-02). */
+	const vonVorn = () => {
+		merkeAssistent(null);
+		const neu = neueAntworten();
+		const erster = ersterSchritt(thema);
+		zugeklappt.current = {};
+		jetzt.current = neu;
+		setAntworten(neu);
+		setTitelEigen(false);
+		setOffen({});
+		setSchritt(erster);
+		setBesucht(new Set(['start', erster]));
+		setFehler(null);
+		setTitelFehler(null);
+		setFortgesetzt(false);
+	};
+	/** Ein eigener Titel, den es im Ordner schon gibt (190-N01); ein Vorschlag weicht am Server aus. */
+	const titelVergeben = () =>
+		zustand.current.titelEigen && !jetzt.current.einheit ? titelFehler(stand, ordner, jetzt.current.titel) : null;
+	const titelPruefung = {
+		fehler: titelFehlerText,
+		pruefen: () => setTitelFehler(titelVergeben()),
+	};
 
 	const schritte = schritteFuer(wirksam);
 	const index = Math.max(
@@ -243,6 +281,14 @@ export const MaterialDialog = ({
 		setFehler(null);
 		setSchritt(id);
 		setBesucht((b) => new Set([...b, id]));
+	};
+	/** Zeigt den Fehler am Titelfeld, auch aus einem späteren Schritt heraus, und setzt den Fokus hinein. */
+	const zeigeTitelFehler = (text: string, id: AssistentSchrittId) => {
+		if (id !== zustand.current.schritt) {
+			gehe(id);
+		}
+		setTitelFehler(text);
+		requestAnimationFrame(() => wurzel.current?.querySelector<HTMLElement>('[data-titel]')?.focus());
 	};
 
 	// Neuer Schritt: Fokus aufs erste Feld, sonst auf die gewählte Antwort, damit ⏎ und Ziffern gleich greifen. Beim
@@ -290,6 +336,12 @@ export const MaterialDialog = ({
 		if (offenerSchritt) {
 			gehe(offenerSchritt.id);
 			setFehler(offenerSchritt.fehlt?.(a) ?? null);
+			return;
+		}
+		const doppelt = titelVergeben();
+		const titelSchritt = pruefen.find((s) => s.id === 'thema' || s.id === 'titel');
+		if (doppelt && titelSchritt) {
+			zeigeTitelFehler(doppelt, titelSchritt.id);
 			return;
 		}
 		const wahl = formatWahl(a);
@@ -340,6 +392,11 @@ export const MaterialDialog = ({
 		const fehlt = s.fehlt?.(a);
 		if (fehlt) {
 			setFehler(fehlt);
+			return;
+		}
+		const doppelt = s.id === 'thema' || s.id === 'titel' ? titelVergeben() : null;
+		if (doppelt) {
+			zeigeTitelFehler(doppelt, s.id);
 			return;
 		}
 		const andersLeer = (ANDERS_FELDER[s.id] ?? []).find((f) => offen[f] === true && a[f].trim() === '');
@@ -514,6 +571,7 @@ export const MaterialDialog = ({
 				setze={setze}
 				setzeOffen={setzeOffen}
 				setzeTitel={setzeTitel}
+				titelPruefung={titelPruefung}
 				titelVorschlagen={!titelEigen}
 			/>
 		),
@@ -560,7 +618,15 @@ export const MaterialDialog = ({
 				}
 			/>
 		),
-		titel: () => <SchrittTitel a={wirksam} ordner={ordnerAngabe} setze={setze} setzeTitel={setzeTitel} />,
+		titel: () => (
+			<SchrittTitel
+				a={wirksam}
+				ordner={ordnerAngabe}
+				setze={setze}
+				setzeTitel={setzeTitel}
+				titelPruefung={titelPruefung}
+			/>
+		),
 	};
 
 	return (
@@ -588,6 +654,7 @@ export const MaterialDialog = ({
 						(aktuell.id === 'start' && !ki.geladen)
 					}
 					zumLeerenBlatt={zumLeerenBlatt}
+					vonVorn={fortgesetzt ? vonVorn : undefined}
 					schliessen={schliessen}
 					zurueck={zurueck}
 					weiter={weiter}

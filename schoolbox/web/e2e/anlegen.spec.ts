@@ -226,6 +226,39 @@ test.describe('Assistent (132)', () => {
 		await expect(dialog(page)).not.toContainText('Bitte schreib, was du meinst');
 	});
 
+	test('Geschlossen: Jeder Weg setzt beim gemerkten Schritt fort, „Von vorn beginnen“ vergisst (190-02)', async ({
+		page,
+	}) => {
+		await page.goto('/');
+		await oeffneAssistent(page);
+		await page.keyboard.press('Enter');
+		await dialog(page).locator('[data-wahl="arbeitsblatt"]').click();
+		await page.keyboard.press('Enter');
+		await page.keyboard.press('Enter');
+		await expect(schritt(page, 'thema')).toBeVisible();
+		await page.keyboard.type('Igel im Herbst');
+		await dialog(page).getByRole('button', { name: 'Schließen' }).click();
+		await expect(dialog(page)).toBeHidden();
+
+		// Über den Knopf, ohne den Hinweis „Weiter ausfüllen“
+		await page.locator('[data-werkzeugleiste] [data-material-anlegen]').click();
+		await expect(schritt(page, 'thema')).toBeVisible();
+		await expect(dialog(page).locator('[data-fokus]').first()).toHaveValue('Igel im Herbst');
+		await dialog(page).getByRole('button', { name: 'Schließen' }).click();
+		await expect(dialog(page)).toBeHidden();
+
+		// Über ⌘K
+		await page.keyboard.press('ControlOrMeta+k');
+		await page.keyboard.type('Material anlegen');
+		await page.keyboard.press('Enter');
+		await expect(schritt(page, 'thema')).toBeVisible();
+		await dialog(page).getByRole('button', { name: 'Von vorn beginnen' }).click();
+		await expect(schritt(page, 'start')).toBeVisible();
+		await expect(dialog(page).getByRole('button', { name: 'Von vorn beginnen' })).toHaveCount(0);
+		await dialog(page).getByRole('button', { name: 'Abbrechen' }).click();
+		await oeffneAssistent(page);
+	});
+
 	test('„Doch lieber leeres Blatt“ behält Art, Format und Titel', async ({ page }) => {
 		await page.goto('/');
 		await neuerOrdner(page, `Wechsel ${Date.now()}`);

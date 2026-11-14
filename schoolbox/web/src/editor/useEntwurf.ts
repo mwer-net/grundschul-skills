@@ -54,8 +54,10 @@ export const useEntwurf = ({
 	const abgebrochen = auftrag?.status === 'abgebrochen' ? auftrag : null;
 	const abgebrochenId = abgebrochen?.id ?? null;
 	const imBau = abgebrochen?.phase === 'bauen';
+	// Liegt das Blatt schon im Papierkorb, gibt es dort nichts mehr zu vergessen (sonst 404).
+	const imPapierkorb = useRef(false);
 	useEffect(() => {
-		if (!abgebrochenId) {
+		if (!abgebrochenId || imPapierkorb.current) {
 			return;
 		}
 		if (imBau) {
@@ -75,14 +77,18 @@ export const useEntwurf = ({
 
 	/**
 	 * Wer den Plan verwirft oder vor dem ersten Bau abbricht, wollte das Blatt so nicht: Das unberührte leere Blatt geht
-	 * in den Papierkorb, die Seite in den Ordner, die Meldung trägt „Rückgängig“ (190-41).
+	 * in den Papierkorb, die Seite in den Ordner, die Meldung trägt „Rückgängig“ (190-41). Ein verworfener Plan bleibt am
+	 * Server, solange das Blatt im Papierkorb liegt: „Rückgängig“ bringt das Blatt mit seinem Plan zurück (190-N02).
+	 * Ein abgebrochener Lauf hat nichts zu behalten; ihn vergisst der Server, solange das Blatt noch da ist.
 	 */
-	const wegwerfen = async () => {
+	const wegwerfen = async (vergessen: boolean) => {
 		try {
 			const stand = await lade<AblageStand>('/api/ordner');
 			const name = stand.dokumente.find((d) => d.mappe === mappe && d.id === dok)?.meta.titel ?? 'Das Blatt';
-			// Erst vergessen, solange das Blatt noch da ist; sonst meldet die Ablage den Plan danach als wartend.
-			await vergiss().catch(() => undefined);
+			if (vergessen) {
+				await vergiss().catch(() => undefined);
+			}
+			imPapierkorb.current = true;
 			const { umkehr } = await sende<{ umkehr: Aktion[] }>('/api/ordner/aktion', {
 				art: 'papierkorb',
 				knoten: [{ mappe, dok }],
@@ -103,6 +109,7 @@ export const useEntwurf = ({
 				aktion: { titel: 'Rückgängig', ausfuehren: () => void zurueck() },
 			});
 		} catch (grund) {
+			imPapierkorb.current = false;
 			zeige({ text: meldung(grund), art: 'fehler' });
 		}
 	};
@@ -120,7 +127,7 @@ export const useEntwurf = ({
 			const vorDemBau = auftrag?.phase !== 'bauen' && !(phase?.art === 'laeuft' && phase.nachbessern);
 			await ki.abbrechen();
 			if (vorDemBau) {
-				await wegwerfen();
+				await wegwerfen(true);
 			}
 		},
 		nochmal: () => {
@@ -130,7 +137,7 @@ export const useEntwurf = ({
 		},
 		planFreigeben: () => ki.planFreigeben(),
 		planAendern: (text: string) => ki.planAendern(text),
-		planVerwerfen: wegwerfen,
+		planVerwerfen: () => wegwerfen(false),
 		/** Antwort auf Claudes Rückfrage (190-08). */
 		antworten: (text: string) => ki.antworten(text),
 		uebernehmen: () => void annimm(ki.annehmen),

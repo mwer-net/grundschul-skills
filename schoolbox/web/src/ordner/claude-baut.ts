@@ -20,7 +20,9 @@ export const useClaudeBaut = (an = true) => {
 		if (!an) {
 			return;
 		}
-		lade<{ entwuerfe: { mappe: string; dok: string; seit?: string; status: string; plan?: boolean }[] }>(
+		lade<{
+			entwuerfe: { mappe: string; dok: string; seit?: string; status: string; plan?: boolean; phase?: string }[];
+		}>(
 			'/api/ki/entwuerfe',
 		).then(
 			({ entwuerfe }) =>
@@ -28,7 +30,11 @@ export const useClaudeBaut = (an = true) => {
 					new Map(
 						entwuerfe.map((a) => [
 							`${a.mappe}/${a.dok}`,
-							{ seit: a.seit ?? null, plan: a.status === 'fertig' && a.plan === true },
+							{
+									seit: a.seit ?? null,
+									plan: a.status === 'fertig' && a.plan === true,
+									plant: a.phase === 'plan',
+								},
 						]),
 					),
 				),

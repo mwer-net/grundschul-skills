@@ -189,7 +189,7 @@ export const EinheitBand = ({ s }: { s: EinheitStand }) => {
 			<div className="flex flex-wrap items-center gap-x-3 gap-y-1">
 				{laeuft && <Symbol name="laden" className="size-4 animate-spin text-brand-700" />}
 				<span className="font-medium">{kopf}</span>
-				{laeuft && <span className="text-leise tabular-nums">{laufzeit(s.start, jetzt)}</span>}
+				{laeuft && <span className="text-leise tabular-nums">{laufzeit(s.laufSeit ?? s.start, jetzt)}</span>}
 				<span className="text-leise">{zahl}</span>
 				{s.grund && !laeuft && <span className="text-sm text-leise">{s.grund}</span>}
 				<span className="ml-auto flex items-center gap-2">

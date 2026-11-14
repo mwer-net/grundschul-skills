@@ -83,6 +83,12 @@ export const entwurfPhase = (s: EntwurfStand): EntwurfPhase | null => {
 	return s.verworfen ? { art: 'ende', wie: 'verworfen' } : null;
 };
 
+/**
+ * Der Lauf eines neuen Blatts heißt überall gleich, im Editor, an Kachel, Zeile und Pille (190-N03): Bis zur Freigabe
+ * plant Claude, danach baut es.
+ */
+export const laufWort = (plant: boolean) => (plant ? 'Claude plant' : 'Claude baut');
+
 /** Gesperrt ist das Blatt, solange Claude baut und solange der Entwurf offen ist (Festlegung F2 in 130). */
 export const sperrtBlatt = (phase: EntwurfPhase | null) =>
 	phase?.art === 'laeuft' || phase?.art === 'plan' || (phase?.art === 'vorschlag' && !phase.vorschlag.konflikt);
@@ -90,9 +96,12 @@ export const sperrtBlatt = (phase: EntwurfPhase | null) =>
 /** Warum Bausteine und Inspektor nichts ändern; `null`, wenn das Blatt frei ist. */
 export const sperrGrund = (phase: EntwurfPhase | null) => {
 	if (phase?.art === 'laeuft') {
-		return phase.nachbessern
-			? 'Claude bessert den Entwurf nach. Bearbeiten geht wieder, sobald er fertig ist.'
-			: 'Claude baut das Blatt. Bearbeiten geht wieder, sobald der Entwurf da ist.';
+		if (phase.nachbessern) {
+			return 'Claude bessert den Entwurf nach. Bearbeiten geht wieder, sobald er fertig ist.';
+		}
+		return phase.auftrag.phase === 'plan'
+			? `${laufWort(true)} den Aufgabenplan. Bearbeiten geht wieder, sobald das Blatt fertig ist.`
+			: `${laufWort(false)} das Blatt. Bearbeiten geht wieder, sobald der Entwurf da ist.`;
 	}
 	if (phase?.art === 'plan') {
 		return 'Erst den Aufgabenplan freigeben oder verwerfen, dann geht es hier weiter.';

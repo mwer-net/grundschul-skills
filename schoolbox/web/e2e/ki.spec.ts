@@ -223,6 +223,19 @@ test.describe('Neues Blatt im Editor (133)', () => {
 		expect(prompts).toContain('Änderungswunsch der Lehrkraft: „Nur 15 Minuten.“');
 	});
 
+	test('Plan verwerfen, „Rückgängig“: Das Blatt kommt mit seinem Plan zurück (190-N02)', async ({ page }) => {
+		await fall('plan');
+		const { dok, mappe } = await neuesBlatt(page);
+		const karte = entwurfKarte(page);
+		await expect(karte).toHaveAttribute('data-entwurf-karte', 'plan');
+		await page.locator('[data-plan-verwerfen]').click();
+		await page.getByRole('button', { name: 'Rückgängig', exact: true }).click();
+		await expect(page.getByText('Rückgängig gemacht.')).toBeVisible();
+		await page.goto(`/m/${mappe}/${dok}/bearbeiten`);
+		await expect(karte).toHaveAttribute('data-entwurf-karte', 'plan');
+		await expect(karte.locator('[data-entwurf-plan]')).toContainText('Seite ● Grundlage (21 min)');
+	});
+
 	test('Verwerfen lässt das leere Blatt, die Leiste führt zum Ordner', async ({ page }) => {
 		const { dok, mappe } = await neuesBlatt(page);
 		const vorher = await quelleAufPlatte(mappe, dok);

@@ -52,6 +52,10 @@ describe('Was der Editor zum neuen Blatt zeigt (133)', () => {
 		assert.equal(quelleDes(nachbessern), '<p>Entwurf</p>');
 		assert.match(sperrGrund(nachbessern) ?? '', /bessert den Entwurf nach/);
 		assert.equal(sperrtBlatt(entwurfPhase({ ...ruhe, auftrag: a, laeuft: true })), true);
+		// Bis zur Freigabe plant Claude, danach baut es (190-N03).
+		const plant = entwurfPhase({ ...ruhe, auftrag: { ...a, phase: 'plan' }, laeuft: true });
+		assert.match(sperrGrund(plant) ?? '', /^Claude plant den Aufgabenplan/);
+		assert.match(sperrGrund(entwurfPhase({ ...ruhe, auftrag: a, laeuft: true })) ?? '', /^Claude baut das Blatt/);
 	});
 
 	it('Der Entwurf sperrt das Blatt, ein veralteter nicht; ein Fehler beim Nachbessern steht in der Leiste', () => {

@@ -17,7 +17,7 @@ import { ART_KURZ, FACH_NAME } from '@schoolbox/kern/src/namen';
 import type { Art, Format } from '@schoolbox/kern/src/werte';
 import { FAECHER, KLASSEN } from '@schoolbox/kern/src/werte';
 import type { ReactNode } from 'react';
-import { useRef } from 'react';
+import { useId, useRef } from 'react';
 
 import { Chip } from '../bausteine/Chip';
 import { Gekuerzt } from '../bausteine/Gekuerzt';
@@ -506,6 +506,7 @@ export const SchrittThema = ({
 	setze,
 	setzeOffen,
 	setzeTitel,
+	titelPruefung,
 	titelVorschlagen,
 }: {
 	a: Antworten;
@@ -513,6 +514,7 @@ export const SchrittThema = ({
 	setze: (teil: Partial<Antworten>) => void;
 	setzeOffen: (feld: FreitextFeld, offen: boolean) => void;
 	setzeTitel: (titel: string) => void;
+	titelPruefung: TitelPruefung;
 	titelVorschlagen: boolean;
 }) => {
 	const ziel = useRef<HTMLInputElement>(null);
@@ -533,7 +535,13 @@ export const SchrittThema = ({
 			</label>
 			{/* Der Titel steht beim Thema und folgt ihm, bis man ihn selbst ändert (190-37). */}
 			<div className="mb-4">
-				<TitelFeld titel={a.titel} setzeTitel={setzeTitel} vorschlag={titelVorschlagen} fokus={false} />
+				<TitelFeld
+					titel={a.titel}
+					setzeTitel={setzeTitel}
+					vorschlag={titelVorschlagen}
+					fokus={false}
+					pruefung={titelPruefung}
+				/>
 			</div>
 			<div className="mb-4">
 				<label className="block">
@@ -718,8 +726,15 @@ export const OrdnerFeld = ({ name }: { name: string }) => (
 	</div>
 );
 
+/** Der Titel prüft sich beim Verlassen; den Fehler zeigt er am Feld, nicht erst im letzten Schritt (190-N01). */
+export interface TitelPruefung {
+	fehler: string | null;
+	pruefen: () => void;
+}
+
 export const TitelFeld = ({
 	fokus = true,
+	pruefung,
 	setzeTitel,
 	titel,
 	vorschlag,
@@ -729,36 +744,51 @@ export const TitelFeld = ({
 	vorschlag: boolean;
 	/** Das erste Feld des Schritts bekommt den Fokus; unter dem Thema ist es das Thema. */
 	fokus?: boolean;
-}) => (
-	<label className="block min-w-0 flex-1">
-		<Etikett zusatz={vorschlag ? 'Vorschlag, änderbar' : undefined}>Titel</Etikett>
-		<input
-			className={FELD}
-			maxLength={TITEL_ZEICHEN}
-			value={titel}
-			data-fokus={fokus ? '' : undefined}
-			data-titel
-			onFocus={(e) => e.target.select()}
-			onChange={(e) => setzeTitel(e.target.value)}
-		/>
-		<Zaehler wert={titel} max={TITEL_ZEICHEN} />
-	</label>
-);
+	pruefung?: TitelPruefung;
+}) => {
+	const fehlerId = useId();
+	const fehler = pruefung?.fehler ?? null;
+	return (
+		<label className="block min-w-0 flex-1">
+			<Etikett zusatz={vorschlag ? 'Vorschlag, änderbar' : undefined}>Titel</Etikett>
+			<input
+				className={klassen(FELD, fehler && 'border-fehler')}
+				maxLength={TITEL_ZEICHEN}
+				value={titel}
+				data-fokus={fokus ? '' : undefined}
+				data-titel
+				aria-invalid={fehler ? true : undefined}
+				aria-describedby={fehler ? fehlerId : undefined}
+				onFocus={(e) => e.target.select()}
+				onBlur={pruefung?.pruefen}
+				onChange={(e) => setzeTitel(e.target.value)}
+			/>
+			{fehler && (
+				<span id={fehlerId} role="alert" className="mt-1 block text-sm text-fehler" data-titel-fehler>
+					{fehler}
+				</span>
+			)}
+			<Zaehler wert={titel} max={TITEL_ZEICHEN} />
+		</label>
+	);
+};
 
 export const SchrittTitel = ({
 	a,
 	ordner,
 	setze,
 	setzeTitel,
+	titelPruefung,
 }: {
 	a: Antworten;
 	ordner: Ordnerangabe;
 	setze: (teil: Partial<Antworten>) => void;
 	setzeTitel: (titel: string) => void;
+	titelPruefung: TitelPruefung;
 }) => (
 	<>
-		<div className="mb-4 flex items-end gap-3">
-			<TitelFeld titel={a.titel} setzeTitel={setzeTitel} vorschlag={false} />
+		<div className="mb-4 flex items-start gap-3">
+			<TitelFeld titel={a.titel} setzeTitel={setzeTitel} vorschlag={false} pruefung={titelPruefung} />
 			<OrdnerFeld name={ordner.name} />
 		</div>
 		{ordner.vorbelegt.quelle !== 'behaelter' && <KlasseUndFach a={a} ordner={ordner} setze={setze} />}

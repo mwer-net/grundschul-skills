@@ -44,6 +44,7 @@ export const PlanFreigabe = ({
 	const belegt = arbeit !== null;
 	const unterwegs = useRef(false);
 	const bauen = useRef<HTMLButtonElement>(null);
+	const feld = useRef<HTMLTextAreaElement>(null);
 	const groesse = klein ? 'klein' : 'standard';
 
 	// Ein neuer Plan ist eine neue Frage: Die Sperre der alten gilt nicht mehr.
@@ -51,6 +52,15 @@ export const PlanFreigabe = ({
 		unterwegs.current = false;
 		setArbeit(null);
 	}, [text]);
+
+	// Das wieder geöffnete Feld setzt die Marke ans Ende des stehen gebliebenen Texts (190-N05).
+	useEffect(() => {
+		const f = feld.current;
+		if (feldOffen && f) {
+			f.focus();
+			f.setSelectionRange(f.value.length, f.value.length);
+		}
+	}, [feldOffen]);
 
 	useEffect(() => {
 		if (fokus && !feldOffen) {
@@ -100,7 +110,7 @@ export const PlanFreigabe = ({
 			{feldOffen ? (
 				<form className="mt-3 flex max-w-[46rem] flex-col gap-2" onSubmit={(e) => void sendeWunsch(e)}>
 					<textarea
-						autoFocus
+						ref={feld}
 						aria-label="Was soll am Plan anders sein?"
 						placeholder="Was soll am Plan anders sein? Zum Beispiel: mehr Sachaufgaben, Aufgabe 3 weglassen, nur 15 Minuten."
 						className="min-h-20 rounded-md border border-rand-feld bg-flaeche px-2 py-1.5"
