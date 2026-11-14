@@ -7,7 +7,15 @@ export const VonHand = ({ schliessen, text }: { text: string; schliessen: () => 
 	const feld = useRef<HTMLTextAreaElement>(null);
 	useEffect(() => feld.current?.select(), []);
 	return (
-		<Dialog titel="In der Claude-App weiterarbeiten" schliessen={schliessen}>
+		<Dialog
+			titel="In der Claude-App weiterarbeiten"
+			schliessen={schliessen}
+			fuss={
+				<Knopf onClick={schliessen} data-hauptaktion>
+					Fertig
+				</Knopf>
+			}
+		>
 			<label className="flex flex-col gap-2">
 				<span>
 					Kopiere diesen Text und füge ihn im Claude-Chat ein. Schreib dahinter, was du ändern möchtest.
@@ -21,9 +29,6 @@ export const VonHand = ({ schliessen, text }: { text: string; schliessen: () => 
 					data-claude-text
 				/>
 			</label>
-			<div>
-				<Knopf onClick={schliessen}>Fertig</Knopf>
-			</div>
 		</Dialog>
 	);
 };

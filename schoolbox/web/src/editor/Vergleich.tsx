@@ -28,7 +28,7 @@ const passeEin = (rahmen: HTMLIFrameElement, doc: Document) => {
 	}
 };
 
-/** Nichts ändert sich ohne „Annehmen“ (Entscheidung 25). */
+/** Nichts ändert sich ohne „Übernehmen“ (Entscheidung 25). Enter übernimmt, Esc schließt nur den Dialog (200-02). */
 export const Vergleich = ({
 	adresse,
 	annehmen,
@@ -62,24 +62,41 @@ export const Vergleich = ({
 	};
 	const trenner = adresse.includes('?') ? '&' : '?';
 	return (
-		<Dialog titel="Vorschlag von Claude" schliessen={schliessen} breit>
+		<Dialog
+			titel="Vorschlag von Claude"
+			schliessen={schliessen}
+			breit
+			fuss={
+				<>
+					<Knopf art="zweit" onClick={verwerfen}>
+						Verwerfen
+					</Knopf>
+					<Knopf art="zweit" onClick={nachbessern}>
+						Nachbessern
+					</Knopf>
+					<Knopf onClick={annehmen} disabled={konflikt} data-hauptaktion data-vergleich-uebernehmen>
+						Übernehmen
+					</Knopf>
+				</>
+			}
+		>
 			<div className="grid h-[70dvh] grid-cols-2 gap-3">
 				<figure className="flex min-h-0 flex-col">
-					<figcaption className="mb-1 font-medium">Jetzt</figcaption>
+					<figcaption className="mb-1 font-medium">Vorher</figcaption>
 					<iframe
 						ref={alt}
 						src={adresse}
-						title="Jetzt"
+						title="Vorher"
 						onLoad={fertig}
 						className="min-h-0 flex-1 rounded-xl border border-rand bg-flaeche"
 					/>
 				</figure>
 				<figure className="flex min-h-0 flex-col">
-					<figcaption className="mb-1 font-medium">Vorschlag</figcaption>
+					<figcaption className="mb-1 font-medium">Nachher</figcaption>
 					<iframe
 						ref={neu}
 						src={`${adresse}${trenner}vorschlag=${encodeURIComponent(schluessel ?? '1')}`}
-						title="Vorschlag"
+						title="Nachher"
 						onLoad={fertig}
 						data-vorschlag-rahmen
 						className="min-h-0 flex-1 rounded-xl border border-rand bg-flaeche"
@@ -91,17 +108,6 @@ export const Vergleich = ({
 					Das Blatt wurde seit dem Auftrag geändert. Starte den Auftrag bitte neu.
 				</p>
 			)}
-			<div className="mt-3 flex flex-wrap gap-2">
-				<Knopf onClick={annehmen} disabled={konflikt}>
-					Annehmen
-				</Knopf>
-				<Knopf art="zweit" onClick={nachbessern}>
-					Nachbessern
-				</Knopf>
-				<Knopf art="zweit" onClick={verwerfen}>
-					Verwerfen
-				</Knopf>
-			</div>
 		</Dialog>
 	);
 };
