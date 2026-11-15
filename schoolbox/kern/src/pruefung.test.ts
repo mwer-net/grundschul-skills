@@ -408,18 +408,26 @@ describe('pruefung.js: was die Fassung selbst so setzt (207)', { skip: browserSk
 				datei,
 				BLATT.replace(
 					/<section class="seite"><p data-zeilennummern[\s\S]*?<\/section>/,
-					'<section class="seite"><x-malkreuz a="34" b="6"></x-malkreuz><x-zahlenhaus dach="2000000" zerlegungen="1000000 1000000"></x-zahlenhaus></section>',
+					'<section class="seite"><x-malkreuz a="34" b="6"></x-malkreuz><x-zahlenhaus dach="2000000" zerlegungen="1000000 1000000"></x-zahlenhaus>' +
+						'<x-zahlenstrahl von="0" bis="200" schritt="10" zahlen="0 100 200"></x-zahlenstrahl>' +
+						'<x-zahlenhaus dach="7" zerlegungen="3 4,5"></x-zahlenhaus></section>',
 				),
 			);
 			const meldungen = (await pruefe(datei)).filter((m) => m.seite === 1);
 			const warnung = meldungen.filter((m) => m.code === 'zahlenraum');
 			assert.deepEqual(
 				warnung.map(({ stufe, text }) => ({ stufe, text })),
-				[{ stufe: 'WARNUNG', text: 'Abbildung „Malkreuz“: Ein Feld wäre 204. In Klasse 2 geht es bis 100.' }],
+				[
+					{ stufe: 'WARNUNG', text: 'Abbildung „Malkreuz“: Ein Feld wäre 204. In Klasse 2 geht es bis 100.' },
+					// 207-N01: Der Zahlenstrahl hat keine Felder.
+					{ stufe: 'WARNUNG', text: 'Abbildung „Zahlenstrahl“: Er geht bis 200. In Klasse 2 geht es bis 100.' },
+				],
 			);
 			const fehler = meldungen.filter((m) => m.code === 'abbildung').map((m) => m.text);
-			assert.equal(fehler.length, 1, 'nur das Zahlenhaus über einer Million');
+			assert.equal(fehler.length, 2, 'das Zahlenhaus über einer Million und das mit Kommazahl');
 			assert.match(fehler[0] ?? '', /^Abbildung „Zahlenhaus“: Ein Feld wäre 2\D000\D000\. Mehr als 1\D000\D000 geht nicht\.$/);
+			// 207-N03: nie „NaN“ in einer Meldung.
+			assert.equal(fehler[1], 'Abbildung „Zahlenhaus“: 4,5 ist keine ganze Zahl. Nimm ganze Zahlen.');
 		} finally {
 			await rm(tmp, { recursive: true, force: true });
 		}

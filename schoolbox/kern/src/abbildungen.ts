@@ -6351,7 +6351,9 @@ export const unterschiede = (alt: Werte, neu: Werte) =>
 
 // ── Prüfen ──────────────────────────────────────────────────────────────────
 
-const zahlText = (n: number) => String(n).replace('.', ',');
+/** Wie die Oberfläche Zahlen schreibt: Komma, ab 10 000 mit Tausenderpunkt (207-N03); Jahreszahlen bleiben 2100. */
+const zahlText = (n: number) =>
+	Math.abs(n) >= 10_000 ? n.toLocaleString('de-DE', { maximumFractionDigits: 6 }) : String(n).replace('.', ',');
 
 const pruefeUnterfeld = (u: UnterFeld, wert: string): string | null => {
 	if (wert === '') {

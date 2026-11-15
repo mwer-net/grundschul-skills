@@ -262,6 +262,12 @@ const Zahl = ({ abb, feld }: FeldEigenschaften<ZahlFeld>) => {
 			return;
 		}
 		const n = liesZahl(text);
+		// 207-N03: „7,5“ in einem Feld für ganze Zahlen wird nicht still zu 7. Der Entwurf bleibt rot mit dem Hinweis am
+		// Feld, gespeichert bleibt der alte Wert.
+		if (Number.isFinite(n) && !cm && Number.isInteger(grenzen.schritt) && !Number.isInteger(n)) {
+			abb.aendere(feld, String(n), { uebernehmen: false });
+			return;
+		}
 		if (Number.isFinite(n)) {
 			setze(n);
 		} else if (text.trim() === '' && feld.automatisch) {

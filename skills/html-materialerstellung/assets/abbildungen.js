@@ -99,6 +99,15 @@
   const abbruch = (meldung) => {
     throw new Abbildungsfehler(meldung);
   };
+  /**
+   * Wie abbruch, aber der Grund ist der Platz (207-N02): Das Element bekommt zusätzlich data-fehler-platz. Daran
+   * erkennt das Panel, dass eine kleinere (oder größere) Zahl passen würde; andere Fehler setzt es nie selbst um.
+   */
+  const abbruchPlatz = (meldung) => {
+    const f = new Abbildungsfehler(meldung);
+    f.platz = true;
+    throw f;
+  };
   /** Das Element, das gerade gezeichnet wird (zeichne); warne() hängt eine Warnung daran, ohne abzubrechen. */
   let imBau = null;
   /** Gezeichnet wird trotzdem; pruefung.js meldet data-warnung als WARNUNG. Die erste Warnung je Element zählt. */
@@ -345,7 +354,7 @@
       s += `<rect class="einer" x="${x + c * (u * 1.6)}" y="${tiefe + u * 10 - (r + 1) * u * 1.6 + u * 0.6}" width="${u}" height="${u}" stroke-width="1.4"/>`;
     }
     const w = x + Math.ceil(e / 5) * u * 1.6;
-    if (w > SATZSPIEGEL) abbruch("So viele Blöcke passen nicht in eine Zeile. Nimm eine kleinere Größe.");
+    if (w > SATZSPIEGEL) abbruchPlatz("So viele Blöcke passen nicht in eine Zeile. Nimm eine kleinere Größe.");
     el.setAttribute("data-wert", t * 1000 + h * 100 + z * 10 + e);
     el.innerHTML = svg(r1(Math.max(w, u)), u * 10 + tiefe, s);
   }
@@ -426,7 +435,7 @@
     if (!(mittel >= 1)) abbruch("Die mittleren Striche brauchen einen Abstand ab 1.");
     if (!(von < bis)) abbruch("„Bis“ muss größer sein als „Von“.");
     if (!(schritt > 0) || (bis - von) / schritt > 1000) abbruch("Das wären mehr als 1000 Striche. Nimm einen größeren Strichabstand oder eine kürzere Spanne.");
-    warneRaum([von, bis]);
+    warneRaum([von, bis], (g) => `Er geht bis ${g}.`);
     const zahlen = (el.getAttribute("zahlen") || `${von} ${bis}`).split(/\s+/).map(Number);
     const pfeile = (el.getAttribute("pfeile") || "").split(/\s+/).filter(Boolean).map(Number);
     const x = (v) => r1(10 + ((v - von) / (bis - von)) * (breite - 20));
@@ -1977,13 +1986,13 @@
     const start = num(el, "start", 0), breite = num(el, "breite", 560);
     const spruenge = liste(el, "spruenge").map(leseSprung);
     if (spruenge.length === 0) abbruch("Der Rechenstrich braucht mindestens einen Sprung, zum Beispiel +30.");
-    if (breite > SATZSPIEGEL) abbruch("Der Rechenstrich ist breiter als die Seite. Mach ihn schmaler.");
+    if (breite > SATZSPIEGEL) abbruchPlatz("Der Rechenstrich ist breiter als die Seite. Mach ihn schmaler.");
     const hoch = spruenge.some((s) => s > 0), runter = spruenge.some((s) => s < 0);
     if (spruenge.includes(0)) abbruch("Ein Sprung um 0 ist kein Sprung.");
     if (hoch && runter && attr(el, "gemischt", "nein") !== "ja") abbruch("Vor- und Rückwärtssprünge in einer Aufgabe: Das braucht „Gemischte Sprünge“.");
     const zeige = attr(el, "zeige", null) === null ? ["start", "spruenge"] : liste(el, "zeige");
     const werte = rechenstrichWerte(start, spruenge);
-    warneRaum(werte);
+    warneRaum(werte, (g) => `Er geht bis ${g}.`);
     const massstab = attr(el, "massstab", "nein") === "ja" || (hoch && runter);
     const klein = Math.min(...werte), gross = Math.max(...werte), rand = 30, innen = breite - 2 * rand;
     const xVon = (w, i) => {
@@ -1995,7 +2004,7 @@
     if (massstab) {
       orte.slice(1).forEach((x, i) => {
         const b = Math.abs(x - orte[i]);
-        if (b < 28) abbruch(`Der Bogen für ${sprungText(spruenge[i])} wäre zu schmal. Mach den Rechenstrich breiter oder nimm ihn ohne Maßstab.`);
+        if (b < 28) abbruchPlatz(`Der Bogen für ${sprungText(spruenge[i])} wäre zu schmal. Mach den Rechenstrich breiter oder nimm ihn ohne Maßstab.`);
       });
     }
     const bogenHoehe = 34, oben = 30 + bogenHoehe, linie = oben + 2;
@@ -2030,9 +2039,10 @@
      WARNUNG (data-warnung am Element). Nur was gar nicht geht, bricht ab: keine ganze Zahl, unter 0, über eine Million. */
   const ZAHLENRAUM = { 1: 20, 2: 100, 3: 1000, 4: 1000000 };
   const ZAHLEN_HOECHSTENS = 1000000;
-  const warneRaum = (werte) => {
+  // `wie` sagt, was zu groß ist: bei Rechenformaten ein Feld, bei Zahlenstrahl und Rechenstrich die Strecke (207-N01).
+  const warneRaum = (werte, wie = (g) => `Ein Feld wäre ${g}.`) => {
     const k = klasse(), grenze = ZAHLENRAUM[k] ?? ZAHLEN_HOECHSTENS, groesste = Math.max(...werte);
-    if (groesste > grenze) warne(`Ein Feld wäre ${zahl(groesste)}. In Klasse ${k} geht es bis ${zahl(grenze)}.`);
+    if (groesste > grenze) warne(`${wie(zahl(groesste))} In Klasse ${k} geht es bis ${zahl(grenze)}.`);
   };
   const pruefeRaum = (werte) => {
     for (const w of werte) {
@@ -2174,11 +2184,15 @@
     const dach = dachRoh;
     const zeilen = alleZerlegungen
       ? Array.from({ length: dach + 1 }, (_, i) => [i, dach - i])
-      : (el.getAttribute("zerlegungen") || "").split(";").map((t) => t.trim()).filter(Boolean).map((t) => t.split(/\s+/).map(Number));
+      : (el.getAttribute("zerlegungen") || "").split(";").map((t) => t.trim()).filter(Boolean).map((t) => t.split(/\s+/));
     if (zeilen.length === 0) abbruch("Das Zahlenhaus braucht mindestens ein Stockwerk.");
     if (zeilen.length > 21) abbruch("Das Zahlenhaus hat höchstens 21 Stockwerke.");
-    for (const z of zeilen) {
+    for (let i = 0; i < zeilen.length; i++) {
+      const roh = zeilen[i], z = (zeilen[i] = roh.map(Number));
       if (z.length !== 2) abbruch("Jedes Stockwerk hat zwei Zahlen.");
+      // Eine Kommazahl hieß hier „NaN“ (207-N03); gezeichnet wird wie vorher nichts.
+      const keine = roh.find((t) => !Number.isFinite(Number(t)));
+      if (keine !== undefined) abbruch(`${keine} ist keine ganze Zahl. Nimm ganze Zahlen.`);
       if (z[0] + z[1] !== dach) abbruch(`${zahl(z[0])} und ${zahl(z[1])} ergeben nicht ${zahl(dach)}.`);
     }
     pruefeRaum([dach, ...zeilen.flat()]);
@@ -2232,7 +2246,7 @@
     const pfeilbild = attr(el, "art", "kette") === "pfeilbild";
     const { b, schrift } = feldMass(werte, 44), h = Math.max(30, schrift * 1.8), luecke = pfeilbild ? 62 : 56, oben = pfeilbild ? 40 : 24;
     const breite = werte.length * b + ops.length * luecke;
-    if (breite > SATZSPIEGEL) abbruch("Die Kette ist zu lang für eine Zeile. Nimm weniger Schritte.");
+    if (breite > SATZSPIEGEL) abbruchPlatz("Die Kette ist zu lang für eine Zeile. Nimm weniger Schritte.");
     let s = "";
     const wortHoehe = 14;
     werte.forEach((w, i) => {
@@ -2978,7 +2992,7 @@
     let s = "", breite = 0, hoehe = 0;
     if (art === "lineal" || art === "massband") {
       const proEinheit = original ? cm(einheit === "mm" ? 0.1 : 1) : (Number(groesse) || 480) / (bis - von), L = (bis - von) * proEinheit;
-      if (L + 24 > SATZSPIEGEL) abbruch("Das passt nicht auf die Seite. Wähle „Bis“ kleiner.");
+      if (L + 24 > SATZSPIEGEL) abbruchPlatz("Das passt nicht auf die Seite. Wähle „Bis“ kleiner.");
       const x0 = 12, koerper = art === "lineal" ? 46 : 34;
       s += `<rect x="0.8" y="0.8" width="${r1(L + 24)}" height="${koerper}" rx="${art === "lineal" ? 3 : 1}" stroke-width="1.6" fill="${art === "lineal" ? "#fff" : "#f4f4f4"}"/>`;
       for (const st of striche) {
@@ -3066,7 +3080,7 @@
     if (richtung !== "waagerecht" && richtung !== "schraeg") abbruch(`Die Richtung „${richtung}“ gibt es nicht.`);
     if (!(laenge > 0)) abbruch("Die Strecke braucht eine Länge.");
     const L = cm(laenge), winkel = richtung === "schraeg" ? Math.PI / 6 : 0, dx = L * Math.cos(winkel), dy = L * Math.sin(winkel), rand = 14;
-    if (dx + rand * 2 > SATZSPIEGEL) abbruch("Diese Strecke passt in Originalgröße nicht auf die Seite.");
+    if (dx + rand * 2 > SATZSPIEGEL) abbruchPlatz("Diese Strecke passt in Originalgröße nicht auf die Seite.");
     masstab(el);
     const x1 = rand, y1 = dy + 18, x2 = x1 + dx, y2 = y1 - dy, nx = Math.sin(winkel) * 7, ny = Math.cos(winkel) * 7;
     let s = `<line class="strecke" data-laenge="${laenge}" x1="${r1(x1)}" y1="${r1(y1)}" x2="${r1(x2)}" y2="${r1(y2)}" stroke-width="1.6"/>`;
@@ -3263,7 +3277,7 @@
       s += `<path class="karo" d="${gitter}" stroke="#808080" stroke-width="0.6"/>`;
       const zeichen = (wort, zeile, farbe, klasse2) => {
         const teile = [...wort];
-        if (teile.length > spalten) abbruch("Der Text ist zu lang für eine Zeile.");
+        if (teile.length > spalten) abbruchPlatz("Der Text ist zu lang für eine Zeile.");
         return teile.map((t, i) => (t === " " ? "" : `<g class="${klasse2}">${text((i + 0.5) * k + 0.5, (zeile + 0.5) * k + 0.5, t, { groesse: k * 0.72, farbe })}</g>`)).join("");
       };
       let frei = 0;
@@ -3276,7 +3290,7 @@
       const grund = (z) => randOben + z * teilung + (m.oben + m.band) * mm, x0 = 0, x1 = breite - 1;
       const rest = breite - 8;
       const weit = (t) => (schrift === "va" ? vaBreite(t, groesse) : textBreite(t, groesse));
-      if (vorlage !== null && weit(vorlage) + (anfang ? weit(anfang) + 16 : 0) > rest) abbruch("Der Text ist zu lang für eine Zeile.");
+      if (vorlage !== null && weit(vorlage) + (anfang ? weit(anfang) + 16 : 0) > rest) abbruchPlatz("Der Text ist zu lang für eine Zeile.");
       for (let z = 0; z < zeilen; z++) {
         const y = grund(z), linie = (lage, stark, name) => `<line class="linie" data-art="${name}" data-z="${z}" data-y="${r1(lage)}" x1="${x0}" y1="${r1(lage)}" x2="${r1(x1)}" y2="${r1(lage)}" stroke-width="${stark ? 1.5 : 1}" style="stroke:${stark ? SCHWARZ : "#808080"}"/>`;
         if (m.band > 0 && mittelband === "getoent" && !istSw()) s += `<rect class="getoent" x="${x0}" y="${r1(y - m.band * mm)}" width="${r1(x1)}" height="${r1(m.band * mm)}" fill="color-mix(in srgb,var(--haupt) 18%,#fff)" stroke="none"/>`;
@@ -3603,7 +3617,7 @@
       const kx = Math.min(Math.max(k.x, k.w / 2 + 1), breite - k.w / 2 - 1);
       const zuerst = seite === "unten" ? ["oben", "unten"] : ["unten", "oben"];
       const wahl = [0, 1, 2].flatMap((n) => zuerst.map((s) => ({ s, n }))).find(({ s, n }) => frei(k, s, n, kx));
-      if (!wahl) abbruch("Die Ereignisse liegen zu dicht. Mach die Leiste breiter oder den Zeitraum kürzer.");
+      if (!wahl) abbruchPlatz("Die Ereignisse liegen zu dicht. Mach die Leiste breiter oder den Zeitraum kürzer.");
       belegt.push({ k, seite: wahl.s, n: wahl.n, kx });
       seite = wahl.s;
     }
@@ -3668,8 +3682,8 @@
     const groesse = n === 24 ? 13 : 15;
     const radial = n === 12;
     const laenge = r - r0 - 10;
-    if (radial && textBreite("September", groesse) > laenge) abbruch("Der Kreis ist zu klein für die Beschriftung.");
-    if (!radial && n !== 24 && textBreite("Donnerstag", groesse) > 2 * (r * 0.62) * Math.sin(Math.PI / n)) abbruch("Der Kreis ist zu klein für die Beschriftung.");
+    if (radial && textBreite("September", groesse) > laenge) abbruchPlatz("Der Kreis ist zu klein für die Beschriftung.");
+    if (!radial && n !== 24 && textBreite("Donnerstag", groesse) > 2 * (r * 0.62) * Math.sin(Math.PI / n)) abbruchPlatz("Der Kreis ist zu klein für die Beschriftung.");
     const punkt = (rad, w) => [c + rad * Math.sin(w), c - rad * Math.cos(w)];
     const sektor = (a, b, innen, aussen) => {
       const [x1, y1] = punkt(aussen, a), [x2, y2] = punkt(aussen, b), [x3, y3] = punkt(innen, b), [x4, y4] = punkt(innen, a), gross = b - a > Math.PI ? 1 : 0;
@@ -4621,7 +4635,7 @@
     const { b } = blattMass(), g = spielSchrift(), breite = Math.floor((b - 24) / 2), hoehe = 118;
     const station = (z, i) => {
       const zeile = Math.floor(i / 2), rechts = zeile % 2 === 0 ? i % 2 === 1 : i % 2 === 0;
-      if (!textPasst(z, breite - 16, hoehe - 50, g)) abbruch(`„${z}“ passt nicht auf die Station. Kürze den Text.`);
+      if (!textPasst(z, breite - 16, hoehe - 50, g)) abbruchPlatz(`„${z}“ passt nicht auf die Station. Kürze den Text.`);
       return `<div class="land-station" data-station="${i + 1}" style="grid-column:${rechts ? 2 : 1};grid-row:${zeile + 1}"><span class="domino-nr" data-klein-ok>${i + 1}</span>` +
         `<div class="land-text">${maskiere(z)}</div><div class="ampel" aria-label="Zum Anmalen"><i></i><i></i><i></i></div></div>`;
     };
@@ -4641,7 +4655,7 @@
     if (inhalt.length > felder) abbruch(`Das sind ${inhalt.length} Inhalte für ${felder} Felder.`);
     const { b, h } = blattMass(), [c, r] = spielplanRaster(form, felder, b, h), luecke = 8;
     const s = Math.floor(Math.min((b - luecke * (c - 1)) / c, (h - luecke * (r - 1)) / r, 130));
-    if (s < cm(1.8)) abbruch("Die Felder würden kleiner als 1,8 cm. Nimm weniger Felder oder ein größeres Format (A4 quer, A3).");
+    if (s < cm(1.8)) abbruchPlatz("Die Felder würden kleiner als 1,8 cm. Nimm weniger Felder oder ein größeres Format (A4 quer, A3).");
     const weg = spielplanWeg(form, felder, c, r), mitte = ([x, y]) => [x * (s + luecke) + s / 2, y * (s + luecke) + s / 2];
     const leitern = (attr(el, "leitern", "") || "").split(/[;\s]+/).filter(Boolean).map((t) => {
       const m = /^(\d+)-(\d+)$/.exec(t);
@@ -4867,7 +4881,7 @@
 
   const kaestchenWort = (wort, sichtbar) => {
     const z = raetselZelle(), buchstaben = [...wort];
-    if (buchstaben.length * z > SATZSPIEGEL) abbruch("Das Lösungswort ist zu lang für eine Zeile.");
+    if (buchstaben.length * z > SATZSPIEGEL) abbruchPlatz("Das Lösungswort ist zu lang für eine Zeile.");
     let s = "";
     buchstaben.forEach((b, i) => {
       s += `<rect class="wort-kaestchen" x="${r1(i * z + 1)}" y="1" width="${r1(z - 2)}" height="${r1(z - 2)}" fill="#fff" stroke-width="2"/>` +
@@ -5743,6 +5757,7 @@
 
   const zeichne = (f, el) => {
     el.removeAttribute("data-fehler");
+    el.removeAttribute("data-fehler-platz");
     el.removeAttribute("data-warnung");
     imBau = el;
     try {
@@ -5752,6 +5767,7 @@
       el.removeAttribute("data-warnung");
       if (!(e instanceof Abbildungsfehler)) console.error(`${NAMEN[el.localName] || el.localName}:`, e);
       meldeFehler(el, e instanceof Abbildungsfehler ? e.message : "Mit diesen Angaben lässt sich die Abbildung nicht zeichnen. Ändere eine Angabe.");
+      if (e instanceof Abbildungsfehler && e.platz) el.setAttribute("data-fehler-platz", "");
     } finally {
       imBau = null;
     }

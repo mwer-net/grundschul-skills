@@ -37,28 +37,20 @@ export interface AusDemBlatt {
 	fehler: string | null;
 	/** 207: gezeichnet, aber über dem Zahlenraum der Klasse (`data-warnung`); nur ein Prüfpunkt, kein Fehler. */
 	warnung: string | null;
+	/** 207-N02: Der Fehler kommt vom Platz (`data-fehler-platz`); nur dann sucht das Panel eine passende Zahl. */
+	platz: boolean;
 	zellen: Record<string, FormZelle[]>;
 	info: string | null;
 	sw: boolean;
 }
 
 /**
- * 207 (197-N02): Grenzen, die vom Platz abhängen, kennt nur die Zeichnung in `abbildungen.js`. Lehnt sie eine Zahl
- * ab, die vorige aber nicht, nimmt das Panel die nächste Zahl zur Eingabe hin, die sich noch zeichnen lässt. So bleibt
- * die Zeichnung die eine Quelle der Grenze, und nichts, was zeichnet, wird abgewiesen.
+ * 207 (197-N02, 207-N02): Grenzen, die vom Platz abhängen, kennt nur die Zeichnung in `abbildungen.js`. Bricht sie
+ * wegen des Platzes ab (`data-fehler-platz`), die gespeicherte Zahl aber zeichnet, nimmt das Panel die nächste Zahl
+ * zur Eingabe hin, die sich noch zeichnen lässt. Jeder andere Fehler (keine Lösung, zu viele Linien) bleibt stehen,
+ * wie er ist, mit dem Text der Zeichnung. So bleibt die Zeichnung die eine Quelle, und nichts, was zeichnet, wird
+ * abgewiesen.
  */
-const PLATZGRENZE = new Set([
-	'x-diagramm',
-	'x-zauberdreieck',
-	'x-skala',
-	'x-zeitleiste',
-	'x-dienes',
-	'x-spielplan',
-	'x-lineatur',
-	'x-rhythmus',
-	'x-noten',
-]);
-
 const zeichenbarBis = (doc: Document, nr: number, s: AbbildungSchema, vorher: Werte, neu: Werte, feld: Feld) => {
 	if (feld.art !== 'zahl' || feld.loesung) {
 		return null;
@@ -69,13 +61,15 @@ const zeichenbarBis = (doc: Document, nr: number, s: AbbildungSchema, vorher: We
 		return null;
 	}
 	const mit = (z: number): Werte => ({ ...neu, [feld.attribut]: String(z) });
-	const geht = (z: number) => {
+	const stand = (z: number) => {
 		zeichne(doc, nr, mit(z), s);
-		return !liesVomBlatt(doc, nr).fehler;
+		return liesVomBlatt(doc, nr);
 	};
-	if (geht(ziel) || !geht(alt)) {
+	const amZiel = stand(ziel);
+	if (!amZiel.fehler || !amZiel.platz || stand(alt).fehler) {
 		return null;
 	}
+	const geht = (z: number) => !stand(z).fehler;
 	const schritt = Number.isInteger(alt) && Number.isInteger(ziel) ? 1 : (feld.schritt ?? 1);
 	let gut = alt;
 	let schlecht = ziel;
@@ -88,7 +82,7 @@ const zeichenbarBis = (doc: Document, nr: number, s: AbbildungSchema, vorher: We
 			schlecht = mitte;
 		}
 	}
-	return gut === alt ? null : { werte: mit(gut), wert: gut, hoeher: ziel > alt };
+	return gut === alt ? null : { werte: mit(gut), wert: gut, grund: amZiel.fehler };
 };
 
 const klasseVon = (doc: Document | null | undefined) => {
@@ -96,7 +90,7 @@ const klasseVon = (doc: Document | null | undefined) => {
 	return k ? Number(k) : undefined;
 };
 
-const LEER: AusDemBlatt = { fehler: null, warnung: null, zellen: {}, info: null, sw: true };
+const LEER: AusDemBlatt = { fehler: null, warnung: null, platz: false, zellen: {}, info: null, sw: true };
 
 interface Optionen {
 	pfad: PfadTeil[];
@@ -172,6 +166,7 @@ const liesVomBlatt = (doc: Document, nr: number): AusDemBlatt => {
 	return {
 		fehler: element?.getAttribute('data-fehler') ?? null,
 		warnung: element?.getAttribute('data-warnung') ?? null,
+		platz: element?.hasAttribute('data-fehler-platz') ?? false,
 		zellen: element?._abbZellen ?? {},
 		info: element?._abbInfo ?? null,
 		sw: !doc.body.classList.contains('farbe'),
@@ -364,13 +359,11 @@ export const useAbbildung = ({ adresse, basis: bildBasis, pfad, struktur }: Opti
 		// Verglichen wird mit dem Gespeicherten: Beim Tippen steht die neue Zahl schon im Entwurf.
 		const { doc: d, nr: n, quelle: q } = aktuell.current;
 		const grenze =
-			uebernehmen && d && q && n !== null && tag && PLATZGRENZE.has(tag)
-				? zeichenbarBis(d, n, s, q, gewollt, feld)
-				: null;
+			uebernehmen && d && q && n !== null ? zeichenbarBis(d, n, s, q, gewollt, feld) : null;
 		const neu = grenze?.werte ?? gewollt;
 		if (grenze) {
 			const z = grenze.wert.toLocaleString('de-DE');
-			zeige({ text: `${feld.name}: ${grenze.hoeher ? 'Mehr' : 'Weniger'} passt hier nicht. Jetzt steht ${z} da.` });
+			zeige({ text: `${feld.name}: ${lesbareMeldung(grenze.grund, s)} Jetzt steht ${z} da.` });
 		}
 		aktuell.current = { ...aktuell.current, werte: neu };
 		setEntwurf({ basis: b, werte: neu });
