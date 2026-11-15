@@ -247,7 +247,13 @@ const Zahl = ({ abb, feld }: FeldEigenschaften<ZahlFeld>) => {
 			return;
 		}
 		vorher.current = speichern(neu);
-		abb.aendere(feld, speichern(neu));
+		const gesetzt = abb.aendere(feld, speichern(neu));
+		// 207: Passt die Zahl nicht auf den Platz, setzt das Panel die nächste, die passt; das Feld zeigt sie.
+		if (gesetzt && gesetzt !== vorher.current) {
+			vorher.current = gesetzt;
+			setText(anzeige(gesetzt));
+			getippt.current = anzeige(gesetzt);
+		}
 	};
 	const springe = (richtung: 1 | -1) => setze((Number.isFinite(jetzt) ? jetzt : zeigen(standard)) + richtung * grenzen.schritt);
 	const fertig = () => {

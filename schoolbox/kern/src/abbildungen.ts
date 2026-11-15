@@ -80,16 +80,16 @@ export interface ZahlFeld extends FeldBasis {
 	 * „automatisch (N)“ bzw. „ohne“; leeren stellt das wieder her.
 	 */
 	automatisch?: 'automatisch' | 'ohne';
-	/** 197-N02: Was `abbildungen.js` je Klasse höchstens zeichnet; enger als `max`, gilt im Panel mit Klasse. */
+	/**
+	 * 197-N02: Was `abbildungen.js` je Klasse höchstens zeichnet, weil sonst der Platz fehlt; enger als `max`, gilt im
+	 * Panel mit Klasse. Der Zahlenraum der Klasse gehört nicht hierher: Darüber wird gezeichnet und gewarnt (207).
+	 */
 	maxJeKlasse?: (klasse: number) => number;
 }
 
 /** 197-N02: die obere Grenze eines Zahlenfelds in dieser Klasse. */
 export const zahlMax = (feld: ZahlFeld, klasse?: number) =>
 	klasse !== undefined && feld.maxJeKlasse ? Math.min(feld.max, feld.maxJeKlasse(klasse)) : feld.max;
-
-/** Zahlenraum je Klasse wie in `abbildungen.js` (`ZAHLENRAUM`). */
-const ZAHLENRAUM: (klasse: number) => number = (k) => (k === 1 ? 20 : k === 2 ? 100 : k === 3 ? 1000 : 1_000_000);
 
 export interface UhrzeitFeld extends FeldBasis {
 	art: 'uhrzeit';
@@ -2017,7 +2017,6 @@ export const ABBILDUNG_SCHEMA = {
 				min: 0,
 				max: 1000000,
 				standard: 0,
-				maxJeKlasse: ZAHLENRAUM,
 				// 197-07: Beschriftete Zahlen und Pfeile außerhalb fallen weg.
 				mitnehmen: (w): Werte => {
 					const [von, bis] = [alsZahl(w.von ?? '0'), alsZahl(w.bis ?? '20')];
@@ -2034,7 +2033,6 @@ export const ABBILDUNG_SCHEMA = {
 				min: 1,
 				max: 1000000,
 				standard: 20,
-				maxJeKlasse: ZAHLENRAUM,
 				// 197-07: Beschriftete Zahlen und Pfeile außerhalb fallen weg.
 				mitnehmen: (w): Werte => {
 					const [von, bis] = [alsZahl(w.von ?? '0'), alsZahl(w.bis ?? '20')];
@@ -3017,7 +3015,7 @@ export const ABBILDUNG_SCHEMA = {
 			faecher: ['mathematik'],
 		},
 		felder: [
-			{ art: 'zahl', attribut: 'start', name: 'Start', min: 0, max: 1000000, standard: 0, maxJeKlasse: ZAHLENRAUM },
+			{ art: 'zahl', attribut: 'start', name: 'Start', min: 0, max: 1000000, standard: 0 },
 			{
 				art: 'liste',
 				attribut: 'spruenge',
@@ -5610,7 +5608,6 @@ export const ABBILDUNG_SCHEMA = {
 				min: 0,
 				max: 1000000,
 				standard: 7,
-				maxJeKlasse: ZAHLENRAUM,
 				// 197-07: Die Stockwerke gehen mit dem Dach; die erste Zahl bleibt, die zweite ergänzt.
 				mitnehmen: (w): Werte => {
 					const dach = alsZahl(w.dach ?? '7');
@@ -5658,7 +5655,7 @@ export const ABBILDUNG_SCHEMA = {
 			faecher: ['mathematik'],
 		},
 		felder: [
-			{ art: 'zahl', attribut: 'start', name: 'Start', min: 0, max: 1000000, standard: 0, maxJeKlasse: ZAHLENRAUM },
+			{ art: 'zahl', attribut: 'start', name: 'Start', min: 0, max: 1000000, standard: 0 },
 			{
 				art: 'liste',
 				attribut: 'operatoren',

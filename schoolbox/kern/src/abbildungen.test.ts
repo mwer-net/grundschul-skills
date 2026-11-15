@@ -163,12 +163,13 @@ describe('Schema der Abbildungen', () => {
 		assert.match(pruefeWerte(plan, { spalten: '2.5' }).spalten ?? '', /ganze Zahl/);
 	});
 
-	it('abbildungen.js nennt jedes Element wie das Schema', () => {
+	it('abbildungen.js nennt jedes Element wie die Oberfläche (207: „Rechenpäckchen“ statt „Rechenreihe“)', () => {
 		const block = /const NAMEN = \{([^}]*)\}/.exec(JS)?.[1] ?? '';
 		const namen = new Map([...block.matchAll(/"(x-[a-z0-9-]+)":\s*"([^"]+)"/g)].map((t) => [t[1], t[2]]));
 		for (const [tag, s] of Object.entries(ABBILDUNG_SCHEMA)) {
-			assert.equal(namen.get(tag), s.name, tag);
+			assert.equal(namen.get(tag), (s as AbbildungSchema).anzeige ?? s.name, tag);
 		}
+		assert.equal(namen.get('x-rechenreihe'), 'Rechenpäckchen');
 	});
 });
 
@@ -2855,10 +2856,11 @@ describe('UX 186 · 197: Felder im Abbildungspanel', () => {
 });
 
 describe('UX 186 · 197: Nachbesserung nach der Abnahme', () => {
-	it('197-N02: Zahlenraum der Klasse als Grenze; Suchsel höchstens 16 Spalten bis Klasse 2', () => {
+	it('197-N02, 207: Zahlenraum der Klasse ist keine Grenze mehr; Suchsel höchstens 16 Spalten bis Klasse 2', () => {
 		const dach = schema('x-zahlenhaus').felder.find((f) => f.attribut === 'dach') as ZahlFeld;
-		assert.deepEqual([1, 2, 3, 4].map((k) => zahlMax(dach, k)), [20, 100, 1000, 1_000_000]);
-		assert.ok(pruefeFelder(schema('x-zahlenhaus'), { dach: '999999' }, 1).dach);
+		assert.deepEqual([1, 2, 3, 4].map((k) => zahlMax(dach, k)), [1_000_000, 1_000_000, 1_000_000, 1_000_000]);
+		assert.deepEqual(pruefeFelder(schema('x-zahlenhaus'), { dach: '999999' }, 1), {});
+		assert.ok(pruefeFelder(schema('x-zahlenhaus'), { dach: '2000000' }, 1).dach);
 		const suchsel = schema('x-suchsel');
 		assert.ok(pruefeFelder(suchsel, { spalten: '20' }, 1).spalten);
 		assert.deepEqual(pruefeFelder(suchsel, { spalten: '20' }, 3), {});
