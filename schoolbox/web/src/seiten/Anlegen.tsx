@@ -690,8 +690,9 @@ export const MaterialDialog = ({
 	return (
 		<Dialog titel={titel} breit schliessen={schliessen}>
 			<div ref={wurzel} data-assistent={aktuell.id} className="flex flex-col gap-3">
-				{/* Feste Höhe: Kein Schritt lässt den Fuß springen; was nicht passt, rollt (190-17). */}
-				<div className="grid h-[32rem] grid-cols-[12rem_1fr] gap-4 max-md:h-auto max-md:grid-cols-1">
+				{/* Feste Höhe: Kein Schritt lässt den Fuß springen; was nicht passt, rollt (190-17). In einem niedrigen
+				    Fenster endet sie an der Höhe des Dialogs, damit Titel und Fuß zu sehen bleiben. */}
+				<div className="grid h-[min(32rem,calc(85dvh-10rem))] grid-cols-[12rem_1fr] gap-4 max-md:h-auto max-md:grid-cols-1">
 					<Schrittleiste
 						a={wirksam}
 						aktuell={aktuell.id}
