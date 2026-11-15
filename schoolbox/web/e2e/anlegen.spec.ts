@@ -34,7 +34,10 @@ const oeffneAssistent = async (page: Page) => {
  * wählen, dann zurück ins erste Feld des Schritts, damit ⏎ weitergeht.
  */
 const waehleKlasseFach = async (page: Page, klasse: string, fach: string) => {
-	await dialog(page).getByRole('group', { name: 'Klasse' }).getByRole('button', { name: klasse, exact: true }).click();
+	await dialog(page)
+		.getByRole('group', { name: 'Klasse' })
+		.getByRole('button', { name: klasse, exact: true })
+		.click();
 	await dialog(page).getByRole('group', { name: 'Fach' }).getByRole('button', { name: fach, exact: true }).click();
 	await dialog(page).locator('[data-fokus], [data-hauptaktion]').first().focus();
 };

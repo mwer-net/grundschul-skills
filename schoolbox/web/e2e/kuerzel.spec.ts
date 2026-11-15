@@ -116,7 +116,10 @@ test.describe('Kürzel nur in Menü, Palette, Tooltip und Hilfe (53)', () => {
 		await expect(schritt(page, 'fuerWen')).toBeVisible();
 		await keinKuerzel(page, 'Assistent: Für wen');
 		// S-14: In „Mein Material“ ohne Anhaltspunkt ist nichts vorgewählt; Klasse und Fach wählen.
-		await dialog(page).getByRole('group', { name: 'Klasse' }).getByRole('button', { name: '2', exact: true }).click();
+		await dialog(page)
+			.getByRole('group', { name: 'Klasse' })
+			.getByRole('button', { name: '2', exact: true })
+			.click();
 		await dialog(page).getByRole('group', { name: 'Fach' }).getByRole('button', { name: 'Mathematik' }).click();
 		await dialog(page).locator('[data-hauptaktion]').click();
 		await expect(schritt(page, 'eThema')).toBeVisible();
