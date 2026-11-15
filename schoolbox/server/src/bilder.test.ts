@@ -92,7 +92,8 @@ describe('Bilder-API', () => {
 		const gross = await hochladen(Buffer.alloc(MAX_BILD_BYTES + 1));
 		assert.equal(gross.status, 413);
 		assert.match(((await gross.json()) as { fehler: string }).fehler, /höchstens 25 MB/);
-		assert.deepEqual(await readdir(path.join(dir, 'bilder')), ['kuerbis-ernte.jpg']);
+		// 199-N05: Neben dem Bild aus dem ersten Hochladen steht nur sein Name.
+		assert.deepEqual((await readdir(path.join(dir, 'bilder'))).sort(), ['.namen.json', 'kuerbis-ernte.jpg']);
 	});
 
 	it('zeigt die Sammlung und übernimmt Bilder daraus', async () => {

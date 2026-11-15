@@ -204,6 +204,10 @@ describe('uebernimmBild und sammleBilder', () => {
 				name: 'igel.jpg',
 				alt: ['Igel im Laub'],
 				mappe: 'Igel',
+				// 199: Name des Bildes, seine Kopien und die Materialien, die es zeigen.
+				titel: 'Igel',
+				kopien: [`${dort.mappe}/dokumente/${dort.dok}/bilder/igel.jpg`],
+				genutzt: ['Blatt'],
 			},
 		]);
 
@@ -260,7 +264,8 @@ describe('Strichfassungen und Figurenbibliothek in der Sammlung (177)', () => {
 		const bilder = path.join(hier.dir, 'bilder');
 		await png(bilder, 'foto.png');
 		await png(bilder, 'foto-strich.png');
-		await png(bilder, 'nur-strich.png');
+		// Anderer Inhalt als foto.png: Gleiche Dateien stehen seit 199-06 nur einmal da.
+		await png(bilder, 'nur-strich.png', 40, 40, '#264653');
 		await copyFile(path.join(figuren, 'kobi.png'), path.join(bilder, 'kobi-2.png'));
 		await mkdir(path.join(dort.dir, 'bilder'), { recursive: true });
 		await copyFile(path.join(figuren, 'kobi.png'), path.join(dort.dir, 'bilder', 'kobi.png'));
@@ -362,7 +367,8 @@ describe('„Dieser Ordner“ in der Sammlung (179)', () => {
 		const bilder = path.join(mappenDir(materialDir, hier.mappe), 'bilder');
 		await mkdir(bilder, { recursive: true });
 		await writeFile(path.join(bilder, 'aaa.jpg'), daten);
-		await writeFile(path.join(bilder, 'zzz.jpg'), daten);
+		// Anderer Inhalt: Gleiche Dateien stehen seit 199-06 nur einmal da.
+		await writeFile(path.join(bilder, 'zzz.jpg'), await foto(hier.dir, 300, 200, '#3264c8'));
 		const vorEinerStunde = new Date(Date.now() - 60 * 60 * 1000);
 		await utimes(path.join(bilder, 'aaa.jpg'), vorEinerStunde, vorEinerStunde);
 
@@ -375,8 +381,18 @@ describe('„Dieser Ordner“ in der Sammlung (179)', () => {
 });
 
 describe('Doppelte und entfernte Bilder (199)', () => {
+	/** Die PNGs hier sehen aus wie freigestellte Figuren: ohne Bibliothek holte die einmalige Übernahme (156) sie. */
+	const ohneUebernahme = async (materialDir: string) => {
+		await mkdir(figurenDir(materialDir), { recursive: true });
+		await writeFile(
+			path.join(figurenDir(materialDir), 'figuren.json'),
+			JSON.stringify({ version: 1, figuren: [] }),
+		);
+	};
+
 	it('199-06: dieselbe Datei unter zwei Namen steht einmal da, mit beiden Kopien', async () => {
 		const { materialDir, neu } = await ablage();
+		await ohneUebernahme(materialDir);
 		const hier = await neu('Garten');
 		const bilder = path.join(mappenDir(materialDir, hier.mappe), 'bilder');
 		await png(bilder, 'kuerbis.png');
@@ -392,6 +408,7 @@ describe('Doppelte und entfernte Bilder (199)', () => {
 
 	it('„Entfernen“ blendet ein ungenutztes Bild aus, Rückgängig holt es; ein genutztes bleibt', async () => {
 		const { materialDir, neu } = await ablage();
+		await ohneUebernahme(materialDir);
 		const hier = await neu('Garten');
 		const bilder = path.join(mappenDir(materialDir, hier.mappe), 'bilder');
 		await png(bilder, 'falsch.png', 30, 30);

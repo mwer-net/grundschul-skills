@@ -418,7 +418,8 @@ describe('Bestand (Entscheidung 26)', () => {
 			assert.equal(raeumeEbenenAuf(quelle), quelle, datei);
 			for (const seite of z.knoten.filter((k) => klassenVon(k).includes('seite')).slice(0, 2)) {
 				for (const k of [seite, ...seite.kinder]) {
-					const wie = nummeriere(wendeAn(quelle, dupliziere(z, k)), N);
+					// 206, Nachbesserung 3: Gezählt wird nur im Zählbereich der Änderung, wie er vorher zählte.
+					const wie = nummeriere(wendeAn(quelle, dupliziere(z, k)), N, quelle);
 					assert.equal(dupliziereBaustein(quelle, k.nr, N).quelle, wie, `${datei}: ${k.tag} ${k.nr}`);
 				}
 			}

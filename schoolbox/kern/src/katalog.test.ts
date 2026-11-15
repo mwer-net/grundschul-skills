@@ -142,6 +142,8 @@ describe('Katalog', () => {
 				quelle
 					.replace(/\/\*[\s\S]*?\*\//g, '')
 					.replace(/`[^`]*`/g, '')
+					// Ohne Platzhalter schreibt der Stil des Projekts die Vorlage in einfache Anführungszeichen.
+					.replace(/html: '[^']*'/g, '')
 					.replace(/<[A-Z][^>]*>/g, ''),
 			),
 		);

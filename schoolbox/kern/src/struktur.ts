@@ -138,10 +138,15 @@ const bereicheWie = (vorher: string, z: Zerlegung) => {
 	const rand = gleicherRand(vorher, z.quelle);
 	const versatz = z.quelle.length - vorher.length;
 	const anfaenge = new Map<number, number>();
-	for (const [start, wert] of zaehlAnfaenge(zerlege(vorher))) {
-		if (start < rand.vorn) {
+	const alt = zerlege(vorher);
+	for (const [start, wert] of zaehlAnfaenge(alt)) {
+		// Eine duplizierte Seite steht hinter ihrem Vorbild und beginnt wie die Seite danach. Reicht der gleiche Anfang
+		// nur in diese Seite hinein und steht sie ab ihrem Anfang unverändert am Ende, ist sie dorthin gerückt.
+		const ende = alt.knoten.find((k) => k.start === start)?.ende ?? start;
+		const gerueckt = ende > rand.vorn && vorher.slice(start) === z.quelle.slice(start + versatz);
+		if (start < rand.vorn && !gerueckt) {
 			anfaenge.set(start, wert);
-		} else if (start >= vorher.length - rand.hinten) {
+		} else if (gerueckt || start >= vorher.length - rand.hinten) {
 			anfaenge.set(start + versatz, wert);
 		}
 	}

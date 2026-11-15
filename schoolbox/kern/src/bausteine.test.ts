@@ -140,7 +140,9 @@ describe('Frei gestaltetes Material (054)', () => {
 
 	it('Blöcke: direkte Kinder der Seite und einfacher Rahmen, nicht tiefer', () => {
 		assert.equal(artVon('<div class="a"><p>x</p></div>', 'a'), 'block');
-		assert.equal(artVon('<ul class="a"><li>x</li></ul>', 'a'), 'block');
+		// 196-24: Eine Liste heißt „Liste“, nicht „Block“.
+		assert.equal(artVon('<ul class="a"><li>x</li></ul>', 'a'), 'liste');
+		assert.equal(artVon('<div class="r"><ol class="a"><li>x</li></ol></div>', 'a'), 'liste');
 		assert.equal(artVon('<div class="r"><div class="a"><p>x</p></div></div>', 'a'), 'block');
 		assert.equal(artVon('<div class="r">Text<div class="a"><p>x</p></div></div>', 'a'), undefined);
 		assert.equal(artVon('<div class="reihe"><section class="a"><p>x</p></section></div>', 'a'), undefined);

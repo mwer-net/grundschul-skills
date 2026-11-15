@@ -172,7 +172,8 @@ describe('PDF mit blatt.py', () => {
 			);
 			const { stdout } = await ausfuehren('pdffonts', [datei]);
 			const schriften = stdout.split('\n').slice(2).filter(Boolean);
-			assert.ok(schriften.some((z) => z.includes('Andika')));
+			// Die Andika-Teilmenge mit Schulziffern heißt in der Datei „Schoolbox Lesetext“ (Reserved Font Name der OFL).
+			assert.ok(schriften.some((z) => z.includes('SchoolboxLesetext')));
 			assert.ok(
 				schriften.every((z) => /\byes\s+yes\s+yes\b/.test(z)),
 				`${referenz}: alle Schriften eingebettet`,

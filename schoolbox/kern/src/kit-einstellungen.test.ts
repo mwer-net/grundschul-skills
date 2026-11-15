@@ -82,7 +82,8 @@ describe('Einstellungen der Kit-Bausteine', () => {
 		// 196-03: aus blendet aus, an zeigt wieder, Wortlaut und Stelle bleiben
 		const eigen = mit.replace('Ich kann …', 'Ich kann Silben klatschen.');
 		const aus = setzeKit(eigen, k, 'kopf', 'ziel', false);
-		assert.match(aus, /<div class="ziel" hidden="?"?>Ich kann Silben klatschen\.<\/div>/);
+		// Ein neues Attribut steht direkt hinter dem Tag-Namen (`setzeAttribut`).
+		assert.match(aus, /<div hidden="" class="ziel">Ich kann Silben klatschen\.<\/div>/);
 		assert.equal(leseKit(aus, k, 'kopf').ziel, false);
 		assert.equal(setzeKit(aus, k, 'kopf', 'ziel', true), eigen);
 		const ohne = setzeKit(BLATT, k, 'kopf', 'namenszeile', false);

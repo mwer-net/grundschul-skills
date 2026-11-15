@@ -48,7 +48,7 @@
 		{
 			"stufe": "WARNUNG",
 			"seite": 1,
-			"text": "6 Aufgaben (+★): Richtwert Klasse 2 sind höchstens 4 → Übersicht vor Menge"
+			"text": "6 Aufgaben (+★): Richtwert Klasse 2 sind höchstens 4 → auf Vorder- und Rückseite verteilen"
 		},
 		{
 			"stufe": "WARNUNG",
@@ -73,7 +73,7 @@
 		{
 			"stufe": "HINWEIS",
 			"seite": 2,
-			"text": "699 px frei unten → Abstand zwischen Aufgaben vergrößern (--abstand), nicht auffüllen"
+			"text": "699 px frei unten → Item, Reihe oder Aufgabe ergänzen"
 		},
 		{
 			"stufe": "HINWEIS",
@@ -138,7 +138,39 @@
 		{
 			"stufe": "HINWEIS",
 			"seite": 1,
-			"text": "624 px frei unten → Abstand zwischen Aufgaben vergrößern (--abstand), nicht auffüllen"
+			"text": "624 px frei unten → Item, Reihe oder Aufgabe ergänzen"
+		}
+	],
+	"pruefung-zeit.html": [
+		{
+			"stufe": "WARNUNG",
+			"seite": 1,
+			"text": "Kopf ist 282 px hoch (höchstens 210) → Namenszeile, Kopf und Tipp als Bausteine aus der Vorlage, Tipp neben seine Aufgabe"
+		},
+		{
+			"stufe": "WARNUNG",
+			"seite": 1,
+			"text": "672 px frei unten → Item, Reihe oder Aufgabe ergänzen (Menge nach Arbeitszeit)"
+		},
+		{
+			"stufe": "WARNUNG",
+			"seite": 1,
+			"text": "1 Aufgabe ohne Zeitangabe → data-min an der Aufgabe ergänzen"
+		},
+		{
+			"stufe": "WARNUNG",
+			"seite": 2,
+			"text": "Fuß ist 200 px hoch (höchstens 150) → Baustein .fuss aus der Vorlage unverändert übernehmen, Text kürzen"
+		},
+		{
+			"stufe": "WARNUNG",
+			"seite": 2,
+			"text": "791 px frei unten → Item, Reihe oder Aufgabe ergänzen (Menge nach Arbeitszeit)"
+		},
+		{
+			"stufe": "WARNUNG",
+			"seite": 2,
+			"text": "Die Aufgaben reichen für etwa 3 min, Ziel sind 20 min → Aufgaben oder Items ergänzen"
 		}
 	]
 }

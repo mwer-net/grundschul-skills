@@ -2764,7 +2764,7 @@ export const ABBILDUNG_SCHEMA = {
 				attribut: 'aufgabe',
 				name: 'Aufgabe',
 				standard: 'keine',
-				gruppe: 'Aufgabe',
+				gruppe: 'Was die Kinder tun',
 				mitnehmen: gitterFuerAufgabe,
 				optionen: [
 					{ wert: 'keine', name: 'Nur zeigen' },
@@ -2782,7 +2782,7 @@ export const ABBILDUNG_SCHEMA = {
 				nurWenn: (w) =>
 					wennNicht('aufgabe', 'keine', 'fortsetzen', 'weg')(w) || (w.aufgabe === 'weg' && !!w.achse),
 				name: 'Achse',
-				gruppe: 'Aufgabe',
+				gruppe: 'Was die Kinder tun',
 				// 197-07: Spiegeln braucht eine Achse; eine neue Achse steht in der Mitte des Gitters.
 				// Beim Spiegeln nur eine Achse, die die Figur nicht schneidet; sie steht ab der Mitte (197-07).
 				angeboten: (wert, w) =>
@@ -2816,7 +2816,7 @@ export const ABBILDUNG_SCHEMA = {
 				min: 1,
 				max: 39,
 				standard: 5,
-				gruppe: 'Aufgabe',
+				gruppe: 'Was die Kinder tun',
 			},
 			{
 				art: 'zahl',
@@ -2827,7 +2827,7 @@ export const ABBILDUNG_SCHEMA = {
 				max: 40,
 				standard: 4,
 				standardJe: (w) => gitterFigur(w)?.rechts ?? 4,
-				gruppe: 'Aufgabe',
+				gruppe: 'Was die Kinder tun',
 			},
 			{
 				art: 'zahl',
@@ -2837,7 +2837,7 @@ export const ABBILDUNG_SCHEMA = {
 				min: 1,
 				max: 10,
 				standard: 2,
-				gruppe: 'Aufgabe',
+				gruppe: 'Was die Kinder tun',
 			},
 			{
 				art: 'auswahl',
@@ -2845,7 +2845,7 @@ export const ABBILDUNG_SCHEMA = {
 				nurWenn: wenn('aufgabe', 'keine', 'fortsetzen'),
 				name: 'Fortsetzen durch',
 				standard: 'schieben',
-				gruppe: 'Aufgabe',
+				gruppe: 'Was die Kinder tun',
 				mitnehmen: gitterFuerAufgabe,
 				optionen: [
 					{ wert: 'schieben', name: 'Schieben' },
@@ -2859,7 +2859,7 @@ export const ABBILDUNG_SCHEMA = {
 				nurWenn: wenn('aufgabe', 'keine', 'vergroessern'),
 				name: 'Vergrößern',
 				standard: '2',
-				gruppe: 'Aufgabe',
+				gruppe: 'Was die Kinder tun',
 				mitnehmen: gitterFuerAufgabe,
 				optionen: [
 					{ wert: '2', name: 'Doppelt so groß' },
@@ -2873,7 +2873,7 @@ export const ABBILDUNG_SCHEMA = {
 				name: 'Weg',
 				zeilenTrenner: ' ',
 				feldTrenner: '',
-				gruppe: 'Aufgabe',
+				gruppe: 'Was die Kinder tun',
 				unter: [
 					{ name: 'Schritte', art: 'zahl', min: 1, max: 40, standard: '1' },
 					{
@@ -2895,7 +2895,7 @@ export const ABBILDUNG_SCHEMA = {
 				nurWenn: wenn('aufgabe', 'keine', 'weg'),
 				name: 'Beim Weg',
 				standard: 'gehen',
-				gruppe: 'Aufgabe',
+				gruppe: 'Was die Kinder tun',
 				optionen: [
 					{ wert: 'gehen', name: 'Kinder gehen die Pfeile' },
 					{ wert: 'beschreiben', name: 'Kinder schreiben die Pfeile' },
@@ -2906,7 +2906,7 @@ export const ABBILDUNG_SCHEMA = {
 				attribut: 'start',
 				nurWenn: wenn('aufgabe', 'keine', 'weg'),
 				name: 'Start',
-				gruppe: 'Aufgabe',
+				gruppe: 'Was die Kinder tun',
 				trenner: ',',
 				leer: true,
 				hilfe: 'Gezählt ab dem Kästchen oben links, es ist 0 und 0.',
@@ -2920,7 +2920,7 @@ export const ABBILDUNG_SCHEMA = {
 				art: 'mehrfach',
 				attribut: 'zaehlen',
 				name: 'Zählen lassen',
-				gruppe: 'Aufgabe',
+				gruppe: 'Was die Kinder tun',
 				optionen: [
 					{ wert: 'flaeche', name: 'Fläche' },
 					{ wert: 'umfang', name: 'Umfang' },
@@ -6282,7 +6282,8 @@ export const ABBILDUNG_SCHEMA = {
 				schritt: 90,
 				gruppe: 'Mehr',
 			},
-			{ art: 'zahl', ...GROESSE, min: 16, max: 80, standard: 30, schritt: 2, gruppe: 'Mehr' },
+			// Größe bleibt Darstellung (084), wie vor 197-13 unter „Weitere Angaben“.
+			{ art: 'zahl', ...GROESSE, min: 16, max: 80, standard: 30, schritt: 2 },
 			{
 				art: 'mischen',
 				attribut: 'seed',
@@ -6363,7 +6364,8 @@ export const ABBILDUNG_SCHEMA = {
 				schritt: 15,
 				gruppe: 'Mehr',
 			},
-			{ art: 'zahl', ...GROESSE, min: 14, max: 60, standard: 30, schritt: 2, gruppe: 'Mehr' },
+			// Größe bleibt Darstellung (084), wie vor 197-13 unter „Weitere Angaben“.
+			{ art: 'zahl', ...GROESSE, min: 14, max: 60, standard: 30, schritt: 2 },
 		],
 	},
 	'x-tangram': {
@@ -6970,18 +6972,19 @@ export const setzeAbbildung = (quelle: string, nr: number, werte: Werte): Strukt
 
 /** Welche Gruppe des Schemas in welchen Abschnitt des Inspektors gehört; ein Test prüft, dass keine fehlt. */
 export const GRUPPEN_ABSCHNITT: Readonly<Record<string, AbschnittName>> = {
-	Aufgabe: 'inhalt',
-	Einfach: 'inhalt',
-	Figur: 'inhalt',
-	Listen: 'inhalt',
-	Lücken: 'inhalt',
-	Markierung: 'inhalt',
-	Raster: 'inhalt',
-	Bastelvorlage: 'darstellung',
-	Gitter: 'inhalt',
-	Maße: 'darstellung',
-	Skala: 'darstellung',
-	Mehr: 'weitere',
+	// 197-13: Das Feld im Gitter heißt jetzt „Aufgabe“; seine Gruppe wiederholt den Namen nicht (084).
+	'Was die Kinder tun': 'inhalt',
+	'Einfach': 'inhalt',
+	'Figur': 'inhalt',
+	'Listen': 'inhalt',
+	'Lücken': 'inhalt',
+	'Markierung': 'inhalt',
+	'Raster': 'inhalt',
+	'Bastelvorlage': 'darstellung',
+	'Gitter': 'inhalt',
+	'Maße': 'darstellung',
+	'Skala': 'darstellung',
+	'Mehr': 'weitere',
 };
 
 const DARSTELLUNG = new Set([

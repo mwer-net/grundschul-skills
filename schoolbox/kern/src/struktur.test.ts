@@ -331,7 +331,17 @@ describe('Zählbereiche bleiben, wie sie gezählt waren (206, Nachbesserung 3)',
 	});
 
 	it('ohne Fassung davor zählt nummeriere wie bisher durch', () => {
-		assert.deepEqual(nummern(nummeriere(HEFT, BLATT)), ['1', '2', '3', '4', '5', '6', '7', '8', '9', '10', '11']);
+		assert.deepEqual(nummern(nummeriere(HEFT, BLATT)), ['1', '2', '3', '4', '5', '6', '7', '8', '9', '10']);
+	});
+
+	it('eine duplizierte Seite zählt weiter, die Seite danach bleibt Zeichen für Zeichen', () => {
+		const { quelle } = dupliziereBaustein(HEFT, seite(HEFT, 0).nr, BLATT);
+		assert.deepEqual(nummern(quelle), ['1', '2', '3', '4', '5', '6', '1', '2', '1', '2', '3', '4', '1']);
+		const vorher = seitenText(HEFT);
+		assert.deepEqual(
+			seitenText(quelle).filter((_, i) => i !== 2),
+			vorher,
+		);
 	});
 });
 

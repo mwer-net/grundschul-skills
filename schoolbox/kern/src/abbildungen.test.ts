@@ -648,10 +648,15 @@ describe('Felder ändern', () => {
 		const stellen = feld(s, 'stellen');
 		const start: Werte = { stellen: null, werte: null, loesung: '3 5', zeilen: null };
 		const mehr = aendereFeld(s, start, stellen, 'H Z E');
-		assert.equal(mehr.loesung, '? 3 5');
-		assert.match(pruefeWerte(s, mehr).werte ?? '', /Bei „H“ fehlt/);
-		const weniger = aendereFeld(s, { ...start, stellen: 'H Z E', loesung: '1 3 5' }, stellen, null);
+		// 197-U4: Die neue Stelle vorn bekommt eine 0, damit die Tafel gezeichnet wird.
+		assert.equal(mehr.loesung, '0 3 5');
+		assert.deepEqual(pruefeWerte(s, mehr), {});
+		const weniger = aendereFeld(s, { ...start, stellen: 'H Z E', loesung: '0 3 5' }, stellen, null);
 		assert.equal(weniger.loesung, '3 5');
+		// 197-07: Fiele vorn eine Ziffer außer 0 weg, bleibt die Tafel; die Prüfung meldet es am Feld.
+		const verloren = aendereFeld(s, { ...start, stellen: 'H Z E', loesung: '1 3 5' }, stellen, null);
+		assert.equal(verloren.loesung, '1 3 5');
+		assert.match(pruefeWerte(s, verloren).werte ?? '', /hat nur 2 Stellen/);
 	});
 
 	it('ziffernText: leere Stellen rechts fallen weg, eine leere Tafel hat keinen Wert', () => {

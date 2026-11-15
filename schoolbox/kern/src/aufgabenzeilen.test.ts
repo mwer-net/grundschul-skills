@@ -41,7 +41,7 @@ describe('S-06: Ankreuzen und Richtig/falsch als Zeilen', () => {
 	});
 
 	it('Trennzeichen kommen nicht in eine Zelle', () => {
-		assert.equal('4, 5; 6:7'.replace(VERBOTEN.antwort, ''), '4 567');
+		assert.equal('4, 5; 6:7'.replace(VERBOTEN.antwort, ''), '4 5 67');
 		assert.equal('*4'.replace(VERBOTEN.antwort, ''), '4');
 		assert.equal('Frage; zwei'.replace(VERBOTEN.frage, ''), 'Frage zwei');
 	});
