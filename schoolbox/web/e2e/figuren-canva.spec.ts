@@ -83,8 +83,8 @@ test.describe('Figuren über Canva (176)', () => {
 		await expect(laufend).toHaveAttribute('data-status', 'laeuft');
 		await expect(laufend).toHaveAttribute('aria-label', WILLI_LUPE);
 		await expect(laufend.locator('.animate-spin')).toBeVisible();
-		// Immer als erste im Raster, vor der Grundpose.
-		await expect(gruppe(page, 'willi').locator('[data-canva-kachel], [data-ablage-gut]').first()).toHaveAttribute(
+		// 199-22: am Ende der Gruppe, wo die fertige Pose erscheint.
+		await expect(gruppe(page, 'willi').locator('[data-canva-kachel], [data-ablage-gut]').last()).toHaveAttribute(
 			'data-canva-kachel',
 		);
 		// Nach der Antwort steht der Text markiert im Feld.

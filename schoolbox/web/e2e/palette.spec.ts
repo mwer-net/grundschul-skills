@@ -3,6 +3,11 @@ import { expect, legeMappeAn, test } from './hilfe';
 
 const palette = (page: import('@playwright/test').Page) => page.locator('[data-befehlspalette]');
 const feld = (page: import('@playwright/test').Page) => palette(page).getByRole('combobox');
+/** Erst wenn die Ablage steht, hört die Seite auf ⌘K; ein früherer Tastendruck ginge verloren. */
+const zurAblage = async (page: import('@playwright/test').Page) => {
+	await page.goto('/');
+	await expect(page.locator('[data-ablage]')).toBeVisible();
+};
 
 test.describe('Befehlspalette (073)', () => {
 	test('öffnet mit der Taste und über die Statusleiste, findet Spalten', async ({ page }) => {
@@ -140,7 +145,7 @@ test.describe('Befehlspalette (073)', () => {
 
 	test('außerhalb des Editors öffnet sie einen Ordner', async ({ page }) => {
 		await legeMappeAn('Kartoffelernte', 'sachunterricht', 3, []);
-		await page.goto('/');
+		await zurAblage(page);
 		await page.keyboard.press('ControlOrMeta+k');
 		await feld(page).fill('kartoffeler');
 		await expect(palette(page).getByRole('option').first()).toContainText('Kartoffelernte');
@@ -152,7 +157,7 @@ test.describe('Befehlspalette (073)', () => {
 	test('außerhalb des Editors legt Freitext Material an: der Assistent beginnt bei der Art (136)', async ({
 		page,
 	}) => {
-		await page.goto('/');
+		await zurAblage(page);
 		await page.keyboard.press('ControlOrMeta+k');
 		await feld(page).fill('Uhrzeit für Klasse 2');
 		const anlegen = palette(page).getByRole('option', { name: 'Material anlegen: „Uhrzeit für Klasse 2“' });
@@ -167,7 +172,7 @@ test.describe('Befehlspalette (073)', () => {
 	test('„Material anlegen“ ist ein Befehl: erste Zeile, öffnet den Assistenten bei „Start“ (190-05)', async ({
 		page,
 	}) => {
-		await page.goto('/');
+		await zurAblage(page);
 		await page.keyboard.press('ControlOrMeta+k');
 		await feld(page).fill('mat');
 		await expect(palette(page).getByRole('option').first()).toHaveText(/Material anlegen/);
