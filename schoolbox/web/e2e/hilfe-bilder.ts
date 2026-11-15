@@ -3,7 +3,9 @@
  * Jeder Schritt legt Testmaterial an, öffnet die Seite wie die Lehrkraft und fotografiert sie.
  */
 
-import { readFile, writeFile } from 'node:fs/promises';
+import { createHash } from 'node:crypto';
+import { readFile, rm, writeFile } from 'node:fs/promises';
+import { tmpdir } from 'node:os';
 import path from 'node:path';
 
 import type { Page } from '@playwright/test';
@@ -96,6 +98,13 @@ const oeffne = async (page: Page, mappe: string, dok: string) => {
 const nurAuf = (geraet: 'mac' | 'ipad') => test.skip(test.info().project.name !== geraet, `nur ${geraet}`);
 
 test.describe('Bildschirmfotos für die Hilfe', () => {
+	// Einheiten liegen neben der Ablage (wie `einheitenWurzel` in server/src/einheit.ts) und überleben ein Zurücksetzen
+	// der Materialien: Reste eines abgebrochenen Laufs zeigten sonst in der Übersicht eine Pille „Einheit: Plan prüfen“.
+	test.beforeAll(async () => {
+		const kennung = createHash('sha256').update(MATERIAL_DIR).digest('hex').slice(0, 16);
+		await rm(path.join(tmpdir(), `schoolbox-einheit-${kennung}`), { recursive: true, force: true });
+	});
+
 	test('Übersicht', async ({ page }) => {
 		nurAuf('mac');
 		await kartoffeln();
@@ -152,6 +161,18 @@ test.describe('Bildschirmfotos für die Hilfe', () => {
 		await expect(page.getByText('Alles geladen.')).toBeVisible();
 		await druecke(page.getByRole('button', { name: 'Präsentation starten' }));
 		await expect(page.getByRole('toolbar', { name: 'Präsentation steuern' })).toBeAttached();
+		// Folie 2 mit der Abstimmung: Striche bei zwei Antworten, bei B schon ein Bündel aus fünf.
+		const fenster = page.frames().find((f) => f.url().includes('praesentation=1'));
+		await fenster?.evaluate(() => {
+			(window as unknown as { praesentation: { gehe: (n: number) => void } }).praesentation.gehe(2);
+		});
+		const antworten = page.frameLocator('iframe').locator('.seite.aktiv .vermutung');
+		for (const [i, anzahl] of [[0, 2], [1, 7]] as const) {
+			for (let k = 0; k < anzahl; k++) {
+				await druecke(antworten.nth(i));
+			}
+		}
+		await expect(antworten.nth(1).locator('.praesentation-striche line')).toHaveCount(7);
 		await page.waitForTimeout(800);
 		await foto(page, 'praesentation-ipad.jpg');
 	});
@@ -210,8 +231,10 @@ test.describe('Bildschirmfotos für die Hilfe', () => {
 		await page.keyboard.press('Enter');
 		await page.keyboard.press('Enter');
 		await expect(dialog.locator('[data-assistent="format"]')).toBeVisible();
-		await foto(page, 'anlegen-format-mac.jpg');
 		await page.keyboard.press('Enter');
+		// Klasse und Fach kommen hier aus dem Ordner; daneben steht, woher.
+		await expect(dialog.locator('[data-assistent="fuerWen"]')).toBeVisible();
+		await foto(page, 'anlegen-fuer-wen-mac.jpg');
 		await page.keyboard.press('Enter');
 		await page.keyboard.type('Uhrzeit: volle und halbe Stunden');
 		await page.keyboard.press('Enter');
@@ -246,7 +269,12 @@ test.describe('Bildschirmfotos für die Hilfe', () => {
 		await expect(dialog.locator('[data-hauptaktion]')).toBeEnabled();
 		await page.keyboard.press('Enter');
 		await dialog.locator('[data-wahl="einheit"]').click();
+		// In der leeren Ablage gibt es kein Vorbild für Klasse und Fach: selbst wählen.
+		await expect(dialog.locator('[data-assistent="fuerWen"]')).toBeVisible();
+		await dialog.getByRole('group', { name: 'Klasse' }).getByRole('button', { name: '2', exact: true }).click();
+		await dialog.getByRole('group', { name: 'Fach' }).getByRole('button', { name: 'Mathematik' }).click();
 		await page.keyboard.press('Enter');
+		await expect(dialog.locator('[data-assistent="eThema"]')).toBeVisible();
 		await page.keyboard.type('Uhrzeit');
 		for (const id of ['eUmfang', 'eBestandteile', 'eRahmen', 'bausteine', 'klasse']) {
 			await page.keyboard.press('Enter');
@@ -259,6 +287,9 @@ test.describe('Bildschirmfotos für die Hilfe', () => {
 		await expect(page.locator('[data-objekt]')).toHaveCount(1);
 		await foto(page, 'einheit-mac.jpg');
 		await page.locator('[data-einheit-band]').getByRole('button', { name: 'Abbrechen' }).click();
+		// Verwerfen, sonst bleibt die Einheit neben der Ablage liegen und zeigt beim nächsten Lauf eine Pille.
+		await page.locator('[data-einheit-band]').getByRole('button', { name: 'Verwerfen' }).click();
+		await expect(page.locator('[data-einheit-band]')).toHaveCount(0);
 		await writeFile(path.join(`${MATERIAL_DIR}-ki`, 'fall.txt'), 'gut');
 	});
 
