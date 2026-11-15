@@ -149,7 +149,11 @@ describe('Entwürfe', () => {
 		assert.equal((await listeVersionen(dir)).length, 1);
 		assert.equal((await leseMeta(materialDir, mappe, id)).gewaehlt, 'B');
 		assert.ok(!existsSync(path.join(dir, 'entwurf-b.html')), 'Arbeitsdateien räumt waehle auf');
-		assert.equal((await leseMeta(materialDir, mappe, id)).druckprofil, 'sw', 'die Fassung folgt dem Entwurf (191-N02)');
+		assert.equal(
+			(await leseMeta(materialDir, mappe, id)).druckprofil,
+			'sw',
+			'die Fassung folgt dem Entwurf (191-N02)',
+		);
 		// 191-N03, 191-N04: Eine zweite Wahl lässt den Stand der ersten als Version zurück, Urheber wie angegeben.
 		await waehleEntwurf(materialDir, ziel, 'A', new Date(), 'lehrkraft');
 		assert.ok((await readFile(path.join(dir, 'material.html'), 'utf8')).includes('>A</body>'));
@@ -158,7 +162,10 @@ describe('Entwürfe', () => {
 		const inhalte = await Promise.all(
 			versionen.map((v) => readFile(path.join(dir, 'versionen', `${v.id}.html`), 'utf8')),
 		);
-		assert.ok(inhalte.some((t) => t.includes('>B</body>')), 'der Stand mit B bleibt als Version');
+		assert.ok(
+			inhalte.some((t) => t.includes('>B</body>')),
+			'der Stand mit B bleibt als Version',
+		);
 		assert.ok(inhalte.some((t) => t.includes('>A</body>')));
 		await registriereEntwuerfe(materialDir, ziel, dateien);
 		assert.equal((await leseMeta(materialDir, mappe, id)).gewaehlt, null, 'eine neue Runde wählt neu');

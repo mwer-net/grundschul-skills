@@ -82,7 +82,9 @@ describe('Suche der Palette', () => {
 		assert.equal(bewerte('mtk', eintrag('Mathematik')), 0);
 		assert.equal(bewerte('igel', eintrag('Richtig oder falsch')), 0);
 		assert.equal(bewerte('igel', eintrag('Zwanzigerfeld')), 0);
-		const langerOrdner = eintrag('Projektwoche Wetter und Jahreszeiten mit einem sehr langen Ordnernamen, der kaum passt');
+		const langerOrdner = eintrag(
+			'Projektwoche Wetter und Jahreszeiten mit einem sehr langen Ordnernamen, der kaum passt',
+		);
 		for (const anfrage of ['neue seite', 'teilen', 'präsentieren', 'tasten', 'Uhrzeit']) {
 			assert.equal(bewerte(anfrage, langerOrdner), 0, anfrage);
 		}

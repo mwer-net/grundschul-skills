@@ -27,10 +27,7 @@ const mitAufgaben = (q: string, von: number, bis: number) => {
 
 /** Ein Schritt wie ein Befehl der Lehrkraft. Danach darf der Fluss die Quelle noch umlegen. */
 const schritt = (page: Page, neu: string) =>
-	page.evaluate(
-		(text) => (window as unknown as { schoolboxEditor: TestZugriff }).schoolboxEditor.aendere(text),
-		neu,
-	);
+	page.evaluate((text) => (window as unknown as { schoolboxEditor: TestZugriff }).schoolboxEditor.aendere(text), neu);
 
 const seiten = (page: Page) => material(page).locator('body > .seite');
 
@@ -141,7 +138,9 @@ test.describe('Seiten laufen weiter (206)', () => {
 		expect(automatische(await quelle(page))).toBe(0);
 	});
 
-	test('Die Lösung wird mitgemessen: Was nur dort übersteht, geht auf die nächste Seite (206-04)', async ({ page }) => {
+	test('Die Lösung wird mitgemessen: Was nur dort übersteht, geht auf die nächste Seite (206-04)', async ({
+		page,
+	}) => {
 		const doc = await vorbereiten(page, 4, 4);
 		const loesung = `<div class="aufgabe">
     <span class="nr">5</span>
@@ -158,7 +157,10 @@ test.describe('Seiten laufen weiter (206)', () => {
 		expect(await ueberstand(page)).toBe(false);
 	});
 
-	test('Fester Umbruch: „Ab hier neue Seite“ und „An vorige Seite anschließen“ (206-06)', async ({ hasTouch, page }) => {
+	test('Fester Umbruch: „Ab hier neue Seite“ und „An vorige Seite anschließen“ (206-06)', async ({
+		hasTouch,
+		page,
+	}) => {
 		test.skip(hasTouch, 'am iPad ist ⋯ der Weg');
 		await vorbereiten(page, 4, 4);
 		await schritt(page, mitAufgaben(await quelle(page), 5, 9));
@@ -210,7 +212,9 @@ test.describe('Seiten laufen weiter (206)', () => {
 		expect(
 			await material(page)
 				.locator('body')
-				.evaluate(() => getSelection()?.anchorNode?.parentElement?.closest('[contenteditable="true"]') !== null),
+				.evaluate(
+					() => getSelection()?.anchorNode?.parentElement?.closest('[contenteditable="true"]') !== null,
+				),
 		).toBe(true);
 
 		// Zurück zum alten Text: Alles steht wie vorher, Esc beendet ohne Schritt.

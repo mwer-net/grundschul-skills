@@ -26,7 +26,12 @@ export const materialEintraege = (
 				gruppe,
 				symbol: 'blatt',
 				notiz: stand ? ortName(stand, d.ordner) : '',
-				suchwoerter: [FACH_NAME[d.fach], klasseName(d.klasse), ...ordnerNamen, ART_NAME[d.meta.art] ?? d.meta.art],
+				suchwoerter: [
+					FACH_NAME[d.fach],
+					klasseName(d.klasse),
+					...ordnerNamen,
+					ART_NAME[d.meta.art] ?? d.meta.art,
+				],
 				aus: () => oeffne(`/m/${d.mappe}/${d.id}`),
 			},
 		];

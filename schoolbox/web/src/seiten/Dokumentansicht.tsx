@@ -215,7 +215,11 @@ const Leiste = ({ children, titel, zurueck }: LeisteEigenschaften) => (
 		<div className="flex min-w-0 flex-1 items-center gap-1 text-sm">
 			{zurueck && (
 				<>
-					<KnopfLink to={zurueck.adresse} art="leise" className="-ml-2.5 max-w-52 min-w-0 flex-none text-leise">
+					<KnopfLink
+						to={zurueck.adresse}
+						art="leise"
+						className="-ml-2.5 max-w-52 min-w-0 flex-none text-leise"
+					>
 						<Symbol name="zurueck" />
 						<Gekuerzt text={zurueck.name} />
 					</KnopfLink>
@@ -320,7 +324,7 @@ export const Dokumentansicht = ({ dok, zugang, zurueckZurMappe }: Eigenschaften)
 		<>
 			<Leiste
 				zurueck={zurueck}
-				titel={
+				titel={(
 					<>
 						<h1
 							className={`flex min-w-0 items-center gap-2 text-sm font-semibold ${zurueck ? 'ml-[11px]' : ''}`}
@@ -341,12 +345,16 @@ export const Dokumentansicht = ({ dok, zugang, zurueckZurMappe }: Eigenschaften)
 								ART_NAME[meta.art],
 								FORMAT_NAME[meta.format],
 								...(meta.seiten > 0
-									? [folie ? anzahl(meta.seiten, 'Folie', 'Folien') : anzahl(meta.seiten, 'Seite', 'Seiten')]
+									? [
+											folie
+												? anzahl(meta.seiten, 'Folie', 'Folien')
+												: anzahl(meta.seiten, 'Seite', 'Seiten'),
+										]
 									: []),
 							].join(' · ')}
 						</p>
 					</>
-				}
+				)}
 			>
 				<div className="flex flex-none items-center gap-1.5">
 					{meta.hatLoesung && (

@@ -2,9 +2,9 @@ import type { ReactNode } from 'react';
 import { useState } from 'react';
 
 import { meldung, sende } from '../api';
+import { Gekuerzt } from '../bausteine/Gekuerzt';
 import { useHinweis } from '../bausteine/hinweis';
 import { Knopf } from '../bausteine/Knopf';
-import { Gekuerzt } from '../bausteine/Gekuerzt';
 import { Symbol } from '../bausteine/Symbol';
 import { Zustand } from '../bausteine/Zustand';
 import { useEreignisse } from '../ereignisse';
@@ -157,9 +157,7 @@ export const PapierkorbSeite = () => {
 							key={schluessel}
 							titel={o.name}
 							symbol={'ordner' in o.knoten ? 'ordner' : 'blatt'}
-							{...(o.objekte === undefined
-								? {}
-								: { unter: anzahl(o.objekte, 'Objekt', 'Objekte') })}
+							{...(o.objekte === undefined ? {} : { unter: anzahl(o.objekte, 'Objekt', 'Objekte') })}
 							herkunft={o.geloescht.herkunft}
 							geloescht={o.geloescht.zeit}
 							bis={o.bis}

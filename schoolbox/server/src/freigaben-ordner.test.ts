@@ -3,7 +3,14 @@ import { copyFile, mkdir, readFile, writeFile } from 'node:fs/promises';
 import path from 'node:path';
 import { afterEach, describe, it } from 'node:test';
 
-import { ASSETS, FREIGABEN_SCHEMA, neueMappe, pruefeSchema, registriereEntwuerfe, waehleEntwurf } from '@schoolbox/kern';
+import {
+	ASSETS,
+	FREIGABEN_SCHEMA,
+	neueMappe,
+	pruefeSchema,
+	registriereEntwuerfe,
+	waehleEntwurf,
+} from '@schoolbox/kern';
 
 import type { TestServer } from './testhilfe';
 import {
@@ -197,7 +204,10 @@ describe('Teilen: Ordner-Links', () => {
 		assert.match(dateiname, /Darin/);
 		assert.match(adresse, new RegExp(`[?&]ordner=${unten}$`), 'die Datei bleibt beim Unterordner');
 		assert.equal((await fetch(`${server.url}${adresse}`)).status, 200);
-		assert.match(((await (await fetch(`${f}/api/alles/alles`)).json()) as { dateiname: string }).dateiname, /Geteilt/);
+		assert.match(
+			((await (await fetch(`${f}/api/alles/alles`)).json()) as { dateiname: string }).dateiname,
+			/Geteilt/,
+		);
 		assert.equal((await fetch(`${f}/api/alles/alles?ordner=${fremd}`)).status, 404);
 		assert.equal((await fetch(`${f}/alles/alles/x.pdf?ordner=${fremd}`)).status, 404);
 	});

@@ -298,7 +298,10 @@ test.describe('Editor: Bausteine einfügen', () => {
 						.filter((e) => !e.closest('.platzhalter') && !e.classList.contains('buehne'))
 						.map((e) => e.getBoundingClientRect())
 						.filter((r) => r.width > 0 && r.height > 0)
-						.every((r) => r.left >= -1 && r.top >= -1 && r.right <= innerWidth + 1 && r.bottom <= innerHeight + 1);
+						.every(
+							(r) =>
+								r.left >= -1 && r.top >= -1 && r.right <= innerWidth + 1 && r.bottom <= innerHeight + 1,
+						);
 				}
 				return h.scrollHeight <= h.clientHeight && h.scrollWidth <= h.clientWidth;
 			});

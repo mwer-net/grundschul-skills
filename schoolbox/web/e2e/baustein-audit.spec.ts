@@ -1002,21 +1002,23 @@ test.describe('Prüfmaschine', () => {
 		await oeffne(page, id, dok);
 		await oeffneSchublade(page, 'bausteine');
 		for (const [art, fall] of Object.entries(VOLLER_WEG)) {
-			const treffer = ANGEBOT.filter((e) => gehtImBlatt(e, { klasse: 2, art: 'arbeitsblatt' })).flatMap((e) => {
-				const schema = schemaVon(e.id);
-				const feld = schema?.felder.find(
-					(f) =>
-						f.art === art &&
-						!f.ohneFeld &&
-						!f.nurWenn &&
-						abschnittVon(f) !== 'weitere' &&
-						// Freier Text: Ein Feld mit festem Muster würde die Probe zu Recht abweisen.
-						(f.art !== 'text' || (!f.muster && e.id === 'x-unterschrift')) &&
-						(f.art !== 'zahlen' || abschnittVon(f) === 'inhalt') &&
-						e.id !== 'x-probe',
-				);
-				return schema && feld ? [{ e, feld, schema }] : [];
-			}).find(({ e }) => !FILTER || FILTER.includes(e.id));
+			const treffer = ANGEBOT.filter((e) => gehtImBlatt(e, { klasse: 2, art: 'arbeitsblatt' }))
+				.flatMap((e) => {
+					const schema = schemaVon(e.id);
+					const feld = schema?.felder.find(
+						(f) =>
+							f.art === art &&
+							!f.ohneFeld &&
+							!f.nurWenn &&
+							abschnittVon(f) !== 'weitere' &&
+							// Freier Text: Ein Feld mit festem Muster würde die Probe zu Recht abweisen.
+							(f.art !== 'text' || (!f.muster && e.id === 'x-unterschrift')) &&
+							(f.art !== 'zahlen' || abschnittVon(f) === 'inhalt') &&
+							e.id !== 'x-probe',
+					);
+					return schema && feld ? [{ e, feld, schema }] : [];
+				})
+				.find(({ e }) => !FILTER || FILTER.includes(e.id));
 			if (!treffer) {
 				continue;
 			}

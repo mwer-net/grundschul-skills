@@ -59,16 +59,16 @@ export const Tooltip = ({
 				onBlur={weiter}
 				onPointerLeave={weiter}
 			/>
-		<BaseTooltip.Portal>
-			<BaseTooltip.Positioner className="z-menue" side={seite} sideOffset={4} collisionPadding={8}>
-				<BaseTooltip.Popup
-					className="flex items-center gap-2 rounded-md bg-tinte px-1.5 py-1 text-xs text-white shadow-1"
-					data-tooltip
-				>
-					{text}
-					{kuerzel && <Kuerzel text={kuerzel} className="text-white/70" />}
-				</BaseTooltip.Popup>
-			</BaseTooltip.Positioner>
+			<BaseTooltip.Portal>
+				<BaseTooltip.Positioner className="z-menue" side={seite} sideOffset={4} collisionPadding={8}>
+					<BaseTooltip.Popup
+						className="flex items-center gap-2 rounded-md bg-tinte px-1.5 py-1 text-xs text-white shadow-1"
+						data-tooltip
+					>
+						{text}
+						{kuerzel && <Kuerzel text={kuerzel} className="text-white/70" />}
+					</BaseTooltip.Popup>
+				</BaseTooltip.Positioner>
 			</BaseTooltip.Portal>
 		</BaseTooltip.Root>
 	);

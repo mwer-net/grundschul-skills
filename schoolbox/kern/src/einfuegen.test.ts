@@ -362,11 +362,13 @@ describe('Fester Umbruch (206-06)', () => {
 </html>
 `;
 	const aufgabeNr = (q: string, text: string) =>
-		zerlege(q).knoten.find((k) => klassenVon(k).includes('aufgabe') && q.slice(k.start, k.ende).includes(text))?.nr ??
-		-1;
+		zerlege(q).knoten.find((k) => klassenVon(k).includes('aufgabe') && q.slice(k.start, k.ende).includes(text))
+			?.nr ?? -1;
 	const texteJeSeite = (q: string) => {
 		const z = zerlege(q);
-		return blaetterVon(z).map((b) => b.folge.map((nr) => q.slice(z.knoten[nr]?.start, z.knoten[nr]?.ende).match(/A\d|F/)?.[0]));
+		return blaetterVon(z).map((b) =>
+			b.folge.map((nr) => q.slice(z.knoten[nr]?.start, z.knoten[nr]?.ende).match(/A\d|F/)?.[0]),
+		);
 	};
 
 	it('„Ab hier neue Seite“ beginnt vor dem Block ein neues festes Blatt, mit allem dahinter', () => {
@@ -415,7 +417,10 @@ describe('Fester Umbruch (206-06)', () => {
 	});
 
 	it('nicht an einer Seite mit Kopf oder Namenszeile', () => {
-		const zwei = SEITEN.replace('</section>\n</body>', `</section>\n${SEITEN.slice(SEITEN.indexOf('<section'), SEITEN.indexOf('</body>'))}</body>`);
+		const zwei = SEITEN.replace(
+			'</section>\n</body>',
+			`</section>\n${SEITEN.slice(SEITEN.indexOf('<section'), SEITEN.indexOf('</body>'))}</body>`,
+		);
 		const zweite = blaetterVon(zerlege(zwei))[1]?.seiten[0]?.nr ?? -1;
 		assert.ok(zweite > 0);
 		assert.equal(kannAnschliessen(zwei, zweite), false);

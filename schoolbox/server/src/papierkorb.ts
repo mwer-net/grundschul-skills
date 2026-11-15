@@ -155,12 +155,16 @@ export const starteAufraeumen = (kontext: Kontext) => {
 		raeumeAusgeblendeteBilderAuf(kontext.konfig.materialDir)
 			.then((weg) => {
 				if (weg.length > 0) {
-					console.log(`Bilder: ${weg.length} entfernte Datei(en) nach ${PAPIERKORB_TAGE} Tagen endgültig gelöscht.`);
+					console.log(
+						`Bilder: ${weg.length} entfernte Datei(en) nach ${PAPIERKORB_TAGE} Tagen endgültig gelöscht.`,
+					);
 				}
 			})
 			.catch((fehler: unknown) => console.error('Bilder:', fehler));
 		// Was vor einem Neustart in „Meine Bausteine“ gelöscht wurde, ohne dass der Takt des Löschens noch kam (195-08).
-		leereGeloeschte(kontext.konfig.materialDir).catch((fehler: unknown) => console.error('Meine Bausteine:', fehler));
+		leereGeloeschte(kontext.konfig.materialDir).catch((fehler: unknown) =>
+			console.error('Meine Bausteine:', fehler),
+		);
 	};
 	lauf();
 	const takt = setInterval(lauf, TAG_MS);

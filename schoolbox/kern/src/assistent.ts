@@ -225,7 +225,11 @@ export const EINHEIT_FELDER = {
 	dauerText: { name: 'Anders …', platz: 'z. B. 5 Wochen, je 2 Stunden', zeichen: 60 },
 	nochEtwas: { name: 'Noch etwas …', platz: 'z. B. ein Elternbrief', zeichen: EINHEIT_ZEICHEN.frei },
 	autor: { name: 'Name auf dem Deckblatt', platz: 'z. B. dein Name bei Eduki', zeichen: EINHEIT_ZEICHEN.autor },
-	idee: { name: 'Idee für die Geschichte', platz: 'z. B. Detektive lösen Fälle rund um die Uhr', zeichen: EINHEIT_ZEICHEN.idee },
+	idee: {
+		name: 'Idee für die Geschichte',
+		platz: 'z. B. Detektive lösen Fälle rund um die Uhr',
+		zeichen: EINHEIT_ZEICHEN.idee,
+	},
 	ziel: { name: 'Ich-kann-Ziel', platz: 'z. B. Ich kann volle Stunden ablesen.', zeichen: EINHEIT_ZEICHEN.ziel },
 } as const;
 
@@ -883,4 +887,3 @@ export const pruefeAntworten = (roh: unknown, vorbelegt: { fach: Fach; klasse: K
 		eh: leereEinheit(),
 	};
 };
-

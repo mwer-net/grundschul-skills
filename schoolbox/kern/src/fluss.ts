@@ -28,7 +28,8 @@ export interface Umgelegt {
 
 /** Was eine Seite außer ihren Flussblöcken trägt und das hinten steht: neue Blöcke kommen davor. */
 const HINTEN = ['fuss-zeile', 'ebene'];
-const steht = (k: Knoten) => klassenVon(k).some((c) => HINTEN.includes(c)) || k.attribute.some((a) => a.name === 'data-lage');
+const steht = (k: Knoten) =>
+	klassenVon(k).some((c) => HINTEN.includes(c)) || k.attribute.some((a) => a.name === 'data-lage');
 
 interface Einsatz {
 	aenderung: Aenderung;
@@ -247,9 +248,7 @@ const legeBlattUm = (z: Zerlegung, blatt: Blatt, seiten: number[][], einsaetze: 
 			});
 			return html;
 		};
-		const html = bloecke
-			.map(seite)
-			.join(`\n${einrueckung(z, letzte) ?? ''}`);
+		const html = bloecke.map(seite).join(`\n${einrueckung(z, letzte) ?? ''}`);
 		const [aenderung] = fuegeEin(z, letzte, 'nach', html);
 		if (aenderung) {
 			einsaetze.push({ aenderung, bloecke: bloecke.flat() });
@@ -330,7 +329,7 @@ const blattTexte = (z: Zerlegung) => {
 	return {
 		blaetter,
 		texte: grenzen.map((g) => ohneNummern(z.quelle.slice(g.von, g.bis))),
-		rest: ohneNummern(vorn) + '\u0000' + hinten,
+		rest: `${ohneNummern(vorn)}\u0000${hinten}`,
 	};
 };
 
@@ -341,7 +340,9 @@ const schluesselVon = (rest: string, text: string) => `${rest}\u0001${text}`;
 export const blattSchluessel = (z: Zerlegung) => {
 	const t = blattTexte(z);
 	return new Map(
-		t.blaetter.flatMap((b, i) => (b.fliesst ? [[b.seiten[0]?.nr ?? -1, schluesselVon(t.rest, t.texte[i] ?? '')]] : [])),
+		t.blaetter.flatMap((b, i) =>
+			b.fliesst ? [[b.seiten[0]?.nr ?? -1, schluesselVon(t.rest, t.texte[i] ?? '')]] : [],
+		),
 	);
 };
 

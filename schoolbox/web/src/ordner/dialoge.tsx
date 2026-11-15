@@ -82,7 +82,7 @@ export const BewegenDialog = ({ objekte, schliessen }: { objekte: Objekt[]; schl
 		<Dialog
 			titel={`${objekte.length === 1 && erstes ? `„${erstes.name}“` : `${objekte.length} Objekte`} bewegen nach …`}
 			schliessen={schliessen}
-			fuss={
+			fuss={(
 				<>
 					<Knopf art="zweit" className="mr-auto" onClick={() => void neuerOrdner()}>
 						<Symbol name="ordnerNeu" />
@@ -99,15 +99,15 @@ export const BewegenDialog = ({ objekte, schliessen }: { objekte: Objekt[]; schl
 						Hierher bewegen
 					</Knopf>
 				</>
-			}
+			)}
 		>
 			{/* Feste Höhe: Aufklappen ändert Größe und Lage des Dialogs nicht (188-25). */}
-		<div
-			className="h-[min(22rem,50dvh)] overflow-y-auto rounded-lg border border-rand p-1"
-			data-bewegen-baum
-			onKeyDown={taste}
-			ref={erstenFokus}
-		>
+			<div
+				className="h-[min(22rem,50dvh)] overflow-y-auto rounded-lg border border-rand p-1"
+				data-bewegen-baum
+				onKeyDown={taste}
+				ref={erstenFokus}
+			>
 				<Baum
 					stand={stand}
 					aktuell={ziel}
@@ -237,7 +237,7 @@ export const UebersichtDialog = ({
 			titel={objekt.name}
 			breit
 			schliessen={schliessen}
-			fuss={
+			fuss={(
 				<>
 					<span className="mr-auto flex items-center gap-1">
 						<Knopf
@@ -262,7 +262,7 @@ export const UebersichtDialog = ({
 						{objekt.istOrdner ? 'Öffnen' : 'Ansehen'}
 					</Knopf>
 				</>
-			}
+			)}
 		>
 			<div
 				className="flex h-[65dvh] items-center justify-center rounded-lg bg-leinwand p-3"

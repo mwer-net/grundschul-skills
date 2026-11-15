@@ -65,29 +65,29 @@ export const App = () => (
 			<TooltipAnbieter>
 				<MenueAnbieter>
 					<Grenze>
-					<Routes>
-						<Route path={ANMELDE_SEITE} element={<Anmeldung />} />
-						{import.meta.env.DEV && <Route path="_bausteine" element={<Bausteine />} />}
-						<Route path="/f/:token/*" element={<Geteilt />} />
-						<Route path="m/:mappe/:dok/drucken" element={<DruckSeite />} />
-						<Route path="m/:mappe/:dok/praesentation" element={<PraesentationSeite />} />
-						<Route path="m/:mappe/:dok/bearbeiten" element={<EditorSeite />} />
-						<Route element={<Rahmen />}>
-							<Route element={<Ablage />}>
-								<Route index />
-								<Route path="o/:ordner" />
-								<Route path="zuletzt" />
-								<Route path="suche" />
-								<Route path="papierkorb" />
+						<Routes>
+							<Route path={ANMELDE_SEITE} element={<Anmeldung />} />
+							{import.meta.env.DEV && <Route path="_bausteine" element={<Bausteine />} />}
+							<Route path="/f/:token/*" element={<Geteilt />} />
+							<Route path="m/:mappe/:dok/drucken" element={<DruckSeite />} />
+							<Route path="m/:mappe/:dok/praesentation" element={<PraesentationSeite />} />
+							<Route path="m/:mappe/:dok/bearbeiten" element={<EditorSeite />} />
+							<Route element={<Rahmen />}>
+								<Route element={<Ablage />}>
+									<Route index />
+									<Route path="o/:ordner" />
+									<Route path="zuletzt" />
+									<Route path="suche" />
+									<Route path="papierkorb" />
+								</Route>
+								<Route path="m/:mappe" element={<MappeWeiter />} />
+								<Route path="m/:mappe/:dok" element={<DokumentSeite />} />
+								<Route path="m/:mappe/:dok/entwuerfe" element={<EntwuerfeSeite />} />
+								<Route path="m/:mappe/:dok/entwuerfe/:name" element={<EntwurfSeite />} />
+								<Route path="hilfe" element={<Hilfe />} />
+								<Route path="*" element={<NichtGefunden />} />
 							</Route>
-							<Route path="m/:mappe" element={<MappeWeiter />} />
-							<Route path="m/:mappe/:dok" element={<DokumentSeite />} />
-							<Route path="m/:mappe/:dok/entwuerfe" element={<EntwuerfeSeite />} />
-							<Route path="m/:mappe/:dok/entwuerfe/:name" element={<EntwurfSeite />} />
-							<Route path="hilfe" element={<Hilfe />} />
-							<Route path="*" element={<NichtGefunden />} />
-						</Route>
-					</Routes>
+						</Routes>
 					</Grenze>
 					<Meldeknopf />
 				</MenueAnbieter>

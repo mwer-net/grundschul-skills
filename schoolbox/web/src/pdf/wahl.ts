@@ -77,9 +77,7 @@ export const dokumentWahl = (
 	});
 	return [
 		eintrag(name, 'arbeitsblatt'),
-		...(dokument.meta.hatLoesung
-			? [eintrag('Lösung', 'loesung'), eintrag(`${name} mit Lösung`, 'beides')]
-			: []),
+		...(dokument.meta.hatLoesung ? [eintrag('Lösung', 'loesung'), eintrag(`${name} mit Lösung`, 'beides')] : []),
 	];
 };
 
@@ -107,11 +105,7 @@ const stapelWahl = (
  * „PDF“ eines geteilten Ordners: Die Wahl gilt für alle Dokumente darin (042). `ordner`: der gezeigte Unterordner
  * samt seinen Unterordnern; ohne ihn der ganze Link (191-01).
  */
-export const mappenWahl = (
-	zugang: Zugang,
-	dokumente: Pick<DokumentEintrag, 'meta'>[],
-	ordner?: string,
-): PdfWahl[] =>
+export const mappenWahl = (zugang: Zugang, dokumente: Pick<DokumentEintrag, 'meta'>[], ordner?: string): PdfWahl[] =>
 	stapelWahl(
 		dokumente.some((d) => d.meta.hatLoesung),
 		(variante, profil) => bereiteMappeVor(zugang, variante, profil, ordner),

@@ -99,14 +99,7 @@ const EigenerPunkt = ({ aus, eigen }: { aus?: boolean; eigen: Eigene }) => {
 /** Ein Farbpunkt: 24 px Trefferfläche, darin 18 px Farbe; mit dem Finger 44 und 28 px. Gewählt: Ring in Tinte. */
 export const Farbpunkt = ({ aus, farbe, gewaehlt, name, ...rest }: PunktEigenschaften) => (
 	<Tooltip text={name}>
-		<button
-			type="button"
-			className={FLAECHE}
-			aria-pressed={gewaehlt}
-			aria-label={name}
-			disabled={aus}
-			{...rest}
-		>
+		<button type="button" className={FLAECHE} aria-pressed={gewaehlt} aria-label={name} disabled={aus} {...rest}>
 			<span aria-hidden className={punktKlassen(gewaehlt === true, aus)} style={{ background: farbe }} />
 		</button>
 	</Tooltip>

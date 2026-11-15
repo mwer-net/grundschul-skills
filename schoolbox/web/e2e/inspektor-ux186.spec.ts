@@ -17,7 +17,9 @@ test.describe('Inspektor: Bausteine und Abbildungen (196, 197)', () => {
 		);
 		await druecke(material(page).locator('.aufgabe').first().locator('.nr'));
 		await page.locator('[data-kit="aufgabe"]').getByRole('button', { name: 'Punkte größer' }).click();
-		await expect.poll(() => quelle(page)).toContain('<span class="punkte"><span class="antwort kurz"></span> / 6,5 P.</span>');
+		await expect
+			.poll(() => quelle(page))
+			.toContain('<span class="punkte"><span class="antwort kurz"></span> / 6,5 P.</span>');
 	});
 
 	test('196-02: Nach „Namenszeile zeigen“ aus bleibt der Kopf gewählt', async ({ druecke, page }) => {
@@ -36,7 +38,10 @@ test.describe('Inspektor: Bausteine und Abbildungen (196, 197)', () => {
 	test('197-02: Ein ungültiger Wert wird nicht gezeichnet, gültige sofort', async ({ druecke, page }) => {
 		const { dok, id } = await uhrzeit();
 		await oeffne(page, id, dok);
-		await aendere(page, (await quelle(page)).replace(/<x-uhr[^>]*><\/x-uhr>/, '<x-zahlenmauer basis="3 5 2"></x-zahlenmauer>'));
+		await aendere(
+			page,
+			(await quelle(page)).replace(/<x-uhr[^>]*><\/x-uhr>/, '<x-zahlenmauer basis="3 5 2"></x-zahlenmauer>'),
+		);
 		await druecke(material(page).locator('x-zahlenmauer'));
 		const feld = page.getByLabel('Unterste Reihe');
 		const fehler: string[] = [];
@@ -68,7 +73,10 @@ test.describe('Inspektor: Bausteine und Abbildungen (196, 197)', () => {
 	test('197-04: Ein Komma in einer Liste ganzer Zahlen meldet sich am Feld', async ({ druecke, page }) => {
 		const { dok, id, material: datei } = await uhrzeit();
 		await oeffne(page, id, dok);
-		await aendere(page, (await quelle(page)).replace(/<x-uhr[^>]*><\/x-uhr>/, '<x-zahlenmauer basis="3 5 2"></x-zahlenmauer>'));
+		await aendere(
+			page,
+			(await quelle(page)).replace(/<x-uhr[^>]*><\/x-uhr>/, '<x-zahlenmauer basis="3 5 2"></x-zahlenmauer>'),
+		);
 		await gespeichert(page, datei);
 		await druecke(material(page).locator('x-zahlenmauer'));
 		await page.getByLabel('Unterste Reihe').fill('1,5 2 3');
@@ -97,7 +105,10 @@ test.describe('Inspektor: Bausteine und Abbildungen (196, 197)', () => {
 		}
 	});
 
-	test('197-02 (Abnahme): Das Raster im Panel wächst nicht mit einem ungültigen Entwurf', async ({ druecke, page }) => {
+	test('197-02 (Abnahme): Das Raster im Panel wächst nicht mit einem ungültigen Entwurf', async ({
+		druecke,
+		page,
+	}) => {
 		const { dok, id } = await uhrzeit();
 		await oeffne(page, id, dok);
 		const figur = '0 0 0 0 0 0 / 0 0 0 1 1 1 / 0 0 1 1 0 0 / 0 1 1 1 0 0 / 0 0 0 1 1 1 / 0 0 0 0 0 0';
@@ -127,7 +138,10 @@ test.describe('Inspektor: Bausteine und Abbildungen (196, 197)', () => {
 	}) => {
 		const { dok, id } = await uhrzeit();
 		await oeffne(page, id, dok);
-		await aendere(page, (await quelle(page)).replace(/<x-uhr[^>]*><\/x-uhr>/, '<x-uhr zeit="3:00" groesse="88"></x-uhr>'));
+		await aendere(
+			page,
+			(await quelle(page)).replace(/<x-uhr[^>]*><\/x-uhr>/, '<x-uhr zeit="3:00" groesse="88"></x-uhr>'),
+		);
 		await druecke(material(page).locator('x-uhr').first());
 		const groesse = page.locator('[data-feld="groesse"] input[type="text"]');
 		await expect(groesse).toHaveValue('2,3');
@@ -142,4 +156,3 @@ test.describe('Inspektor: Bausteine und Abbildungen (196, 197)', () => {
 		await expect(groesse).toHaveValue('3,2');
 	});
 });
-

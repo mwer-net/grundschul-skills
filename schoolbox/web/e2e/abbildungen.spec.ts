@@ -871,7 +871,10 @@ test.describe('Rechenformate (028)', () => {
 		const raum = await gezeichnet(page, '<x-zahlenmauer basis="6 6 7"></x-zahlenmauer>', 'kl1 sw');
 		// 207: Über dem Zahlenraum der Klasse wird gezeichnet; die Prüfung warnt.
 		await expect(raum.locator('x-zahlenmauer')).not.toHaveAttribute('data-fehler', /.+/);
-		await expect(raum.locator('x-zahlenmauer')).toHaveAttribute('data-warnung', 'Ein Feld wäre 25. In Klasse 1 geht es bis 20.');
+		await expect(raum.locator('x-zahlenmauer')).toHaveAttribute(
+			'data-warnung',
+			'Ein Feld wäre 25. In Klasse 1 geht es bis 20.',
+		);
 	});
 
 	test('Zauberdreieck mit Summe 9 und zwei Ecken ist eindeutig, Rad mit Rest wird abgelehnt', async ({ page }) => {

@@ -19,7 +19,7 @@ export interface Vorbelegung {
 /** Der Ordner und alle darunter. */
 const mitUnterordnern = (stand: AblageStand, ordner: string): Set<string> => {
 	const ids = new Set([ordner]);
-	for (let neu = true; neu; ) {
+	for (let neu = true; neu;) {
 		neu = false;
 		for (const o of stand.ordner) {
 			if (o.eltern !== null && ids.has(o.eltern) && !ids.has(o.id)) {
@@ -47,7 +47,8 @@ export const klasseAusNamen = (name: string): Klasse | null => {
 	return treffer ? (Number(treffer) as Klasse) : null;
 };
 
-export const fachAusNamen = (name: string): Fach | null => FACH_IM_NAMEN.find(([muster]) => muster.test(name))?.[1] ?? null;
+export const fachAusNamen = (name: string): Fach | null =>
+	FACH_IM_NAMEN.find(([muster]) => muster.test(name))?.[1] ?? null;
 
 interface Fund {
 	fach?: Fach;

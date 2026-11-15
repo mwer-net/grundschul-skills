@@ -694,9 +694,7 @@ test.describe('Blase am Limit (086)', () => {
 test.describe('Mehrere Gespräche (135)', () => {
 	test.afterEach(() => fall('gut'));
 
-	test('Ein zweites Element wartet und startet nach dem ersten; Pillen je Stand', async ({
-		page,
-	}) => {
+	test('Ein zweites Element wartet und startet nach dem ersten; Pillen je Stand', async ({ page }) => {
 		const { dok, mappe } = await offenesBlatt(page);
 		await fall('haenger');
 		await aufgabe(page, 0).locator('.nr').click();

@@ -1664,7 +1664,10 @@ describe('„Zu umfangreich“ je Bezug (200-22, 190-26)', () => {
 			zuGrossText('error_max_turns', 'Ganzes Blatt'),
 			'Der Auftrag war zu umfangreich. Wähle einen kleineren Teil des Blatts.',
 		);
-		assert.equal(zuGrossText('error_max_turns', null), 'Der Auftrag war zu umfangreich. Nimm eine kürzere Arbeitszeit.');
+		assert.equal(
+			zuGrossText('error_max_turns', null),
+			'Der Auftrag war zu umfangreich. Nimm eine kürzere Arbeitszeit.',
+		);
 		assert.equal(zuGrossText('sonstwas', null), undefined);
 	});
 });

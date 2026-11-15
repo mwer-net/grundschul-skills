@@ -98,7 +98,11 @@ export const BlattKopfband = (t: BlattTeile) => {
 											data-wert={f.wert}
 											onClick={() => aendere(`Kopfband: ${f.titel}`, { form: f.wert })}
 										>
-											<svg aria-hidden viewBox="0 0 28 16" className="h-4 w-7 flex-none text-leise">
+											<svg
+												aria-hidden
+												viewBox="0 0 28 16"
+												className="h-4 w-7 flex-none text-leise"
+											>
 												<path d={f.d} fill="currentColor" />
 											</svg>
 										</button>

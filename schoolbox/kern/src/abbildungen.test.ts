@@ -13,8 +13,8 @@ import {
 	auswahlOptionen,
 	feldWert,
 	GRUPPEN_ABSCHNITT,
-	listeAusZeilen,
 	LERNLANDKARTE_PLATZHALTER,
+	listeAusZeilen,
 	markeSetzen,
 	markeTrennen,
 	markeVerbinden,
@@ -2858,7 +2858,10 @@ describe('UX 186 · 197: Felder im Abbildungspanel', () => {
 describe('UX 186 · 197: Nachbesserung nach der Abnahme', () => {
 	it('197-N02, 207: Zahlenraum der Klasse ist keine Grenze mehr; Suchsel höchstens 16 Spalten bis Klasse 2', () => {
 		const dach = schema('x-zahlenhaus').felder.find((f) => f.attribut === 'dach') as ZahlFeld;
-		assert.deepEqual([1, 2, 3, 4].map((k) => zahlMax(dach, k)), [1_000_000, 1_000_000, 1_000_000, 1_000_000]);
+		assert.deepEqual(
+			[1, 2, 3, 4].map((k) => zahlMax(dach, k)),
+			[1_000_000, 1_000_000, 1_000_000, 1_000_000],
+		);
 		assert.deepEqual(pruefeFelder(schema('x-zahlenhaus'), { dach: '999999' }, 1), {});
 		assert.ok(pruefeFelder(schema('x-zahlenhaus'), { dach: '2000000' }, 1).dach);
 		const suchsel = schema('x-suchsel');

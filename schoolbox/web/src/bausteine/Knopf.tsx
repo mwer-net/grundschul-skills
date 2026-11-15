@@ -10,13 +10,7 @@ interface Aussehen {
 	groesse?: KnopfGroesse;
 }
 
-export const Knopf = ({
-	art,
-	className,
-	groesse,
-	type = 'button',
-	...rest
-}: ComponentProps<'button'> & Aussehen) => (
+export const Knopf = ({ art, className, groesse, type = 'button', ...rest }: ComponentProps<'button'> & Aussehen) => (
 	<button type={type} className={knopfKlassen(art, className, groesse)} {...rest} />
 );
 

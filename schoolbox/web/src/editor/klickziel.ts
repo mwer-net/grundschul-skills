@@ -10,9 +10,9 @@ import { lueckeAn } from './navigation';
  * etwas anderes zeigt, als der Klick wählt.
  */
 export type Klickziel =
-	| { art: 'gestaltung'; nr: number; element: Element }
-	| { art: 'baustein'; nr: number; element: Element }
-	| { art: 'luecke'; luecke: Luecke };
+	| { art: 'gestaltung'; nr: number; element: Element } |
+	{ art: 'baustein'; nr: number; element: Element } |
+	{ art: 'luecke'; luecke: Luecke };
 
 export interface KlickStelle {
 	doc: Document;
@@ -97,7 +97,13 @@ export const gleichesZiel = (a: Klickziel | null, b: Klickziel | null) => {
 		return a === b;
 	}
 	if (a.art === 'luecke' || b.art === 'luecke') {
-		return a.art === b.art && 'luecke' in a && 'luecke' in b && a.luecke.nr === b.luecke.nr && a.luecke.y === b.luecke.y;
+		return (
+			a.art === b.art &&
+			'luecke' in a &&
+			'luecke' in b &&
+			a.luecke.nr === b.luecke.nr &&
+			a.luecke.y === b.luecke.y
+		);
 	}
 	return a.art === b.art && a.nr === b.nr;
 };

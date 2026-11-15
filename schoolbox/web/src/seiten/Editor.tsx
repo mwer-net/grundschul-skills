@@ -27,12 +27,11 @@ import { SymbolKnopf } from '../bausteine/SymbolKnopf';
 import { useAbbildung } from '../editor/abbildung';
 import { useAblage } from '../editor/ablage';
 import { Konfliktleiste, Speicheranzeige, Vorschauleiste } from '../editor/Anzeigen';
+import { gesperrtIn } from '../editor/AusgeblendetHinweis';
 import { Bausteinleiste } from '../editor/Bausteinleiste';
 import { useBearbeitung } from '../editor/bearbeitung';
-import { seiteFliesst, useFluss, useMitlaufen } from '../editor/fluss';
 import type { MenueArt } from '../editor/befehle';
 import { istZoomTaste, kuerzelVon } from '../editor/befehle';
-import { gesperrtIn } from '../editor/AusgeblendetHinweis';
 import { Einfuegemarken } from '../editor/Bibliothek';
 import { useBild } from '../editor/bild';
 import { useBildAusFinder } from '../editor/bild-finder';
@@ -43,6 +42,7 @@ import { useClaudeApp } from '../editor/ClaudeApp';
 import { bausteinVon, editorHtml, elementZu, nrVon, pfadZu } from '../editor/darstellung';
 import { mitZuletzt, NICHT_IM_TEXT, useEinfuegen, useSlash, useTabelleTab } from '../editor/einfuegen';
 import { EntwurfKarte, Entwurfsleiste, SperrHinweis } from '../editor/Entwurf';
+import { seiteFliesst, useFluss, useMitlaufen } from '../editor/fluss';
 import { zeigeBlattGestaltung } from '../editor/gestaltung/blatt/zeige';
 import { gestaltungKontext, istGestaltungElement } from '../editor/gestaltung/kontext';
 import { Leiste as GestaltungLeiste } from '../editor/gestaltung/leiste/Leiste';
@@ -62,8 +62,6 @@ import { Loesungsuebersicht } from '../editor/Loesungspanel';
 import { ersterAufSeite, erstesKindVon, nachbarVon, seiteAn } from '../editor/navigation';
 import { Palette } from '../editor/Palette';
 import { eintraegeImEditor } from '../editor/palette-eintraege';
-import { materialEintraege } from '../lib/material-eintraege';
-import type { AblageStand } from '../ordner/typen';
 import { Blattwerkzeug } from '../editor/Panel';
 import { usePanels } from '../editor/panels';
 import type { PruefKnopf } from '../editor/Pruefliste';
@@ -88,12 +86,14 @@ import type { ZoomWert } from '../editor/zoom';
 import { gemerkterZoom, merkeZoom, naechsteStufe, useSichtbareSeite } from '../editor/zoom';
 import { useEreignisse } from '../ereignisse';
 import { useLaden } from '../lib/laden';
+import { materialEintraege } from '../lib/material-eintraege';
 import { useAnsichtsProfil } from '../lib/profil';
 import { useTitel } from '../lib/titel';
 import { ansichtAdresse, dokumentSeite, inhaltAdresse, praesentationSeite } from '../lib/zugang';
+import type { AblageStand } from '../ordner/typen';
 import { PdfKnopf } from '../pdf/PdfKnopf';
-import { beendeVollbild, SOFORT, vollbildAnfragen, vollbildFuerSofort } from '../praesentation/laufzeit';
 import { dokumentWahl, materialName } from '../pdf/wahl';
+import { beendeVollbild, SOFORT, vollbildAnfragen, vollbildFuerSofort } from '../praesentation/laufzeit';
 import type { DokumentEintrag, Mappe, MappenEintrag } from '../typen';
 import { MaterialFehlt, NICHT_GEFUNDEN } from './NichtGefunden';
 
@@ -652,7 +652,7 @@ const Bearbeitung = ({ dokument, mappe: mappenDaten }: { mappe: Mappe; dokument:
 	const loes = useLoesung({ pfad, struktur, loesung, rueckgaengig: zurueck });
 
 	useAuswahlFolgt(geladen, html, auswahl, pfad, setAuswahl);
-	const { docJetzt, einfuegen, slash, pruefKnopf } = useEinfuegeWerkzeuge({
+	const { docJetzt, einfuegen, pruefKnopf, slash } = useEinfuegeWerkzeuge({
 		auswahl,
 		// 203-02: Die Elemente zeichnen nach der Klasse des Blatts; sie kann von der Mappe abweichen.
 		blatt: {
@@ -743,7 +743,9 @@ const Bearbeitung = ({ dokument, mappe: mappenDaten }: { mappe: Mappe; dokument:
 			linksOffen: sichtbar(zeigt),
 			gestaltung: gestaltungJetzt,
 			// 198-03: Die Sperre gilt im Befehl, gleich von wo er kommt (Tasten, Menüs, ⌘K, Leiste, Ebenen).
-			gesperrt: [auswahl, ...(gestaltungJetzt?.nrn ?? [])].some((nr) => nr !== null && gesperrtIn(docJetzt, nr) !== null),
+			gesperrt: [auswahl, ...(gestaltungJetzt?.nrn ?? [])].some(
+				(nr) => nr !== null && gesperrtIn(docJetzt, nr) !== null,
+			),
 			davor: (() => {
 				const element = docJetzt && auswahl !== null ? elementZu(docJetzt, auswahl) : null;
 				const vorher = element?.previousElementSibling;
@@ -1010,10 +1012,7 @@ const Bearbeitung = ({ dokument, mappe: mappenDaten }: { mappe: Mappe; dokument:
 		},
 	}));
 	// Aus der Quelle im Editor, nicht aus der Darstellung: Nach dem Tippen gilt schon der neue Text.
-	const ort = useMemo(
-		() => ({ mappe: mappenDaten, dokument: { id: dok, titel } }),
-		[mappenDaten, dok, titel],
-	);
+	const ort = useMemo(() => ({ mappe: mappenDaten, dokument: { id: dok, titel } }), [mappenDaten, dok, titel]);
 	useEffect(() => {
 		handlungen.current = {
 			vorbereiten: alles,
@@ -1054,7 +1053,12 @@ const Bearbeitung = ({ dokument, mappe: mappenDaten }: { mappe: Mappe; dokument:
 			seite={{ auswahl, sichtbar: seite.nr }}
 			struktur={struktur}
 			ueberlauf={ueberlaufendeSeiten(pruefung.stand).filter(
-				(n) => !(geladen && pruefung.stand?.doc === geladen.doc && seiteFliesst(geladen.doc, geladen.zerlegung, n)),
+				(n) =>
+					!(
+						geladen &&
+						pruefung.stand?.doc === geladen.doc &&
+						seiteFliesst(geladen.doc, geladen.zerlegung, n)
+					),
 			)}
 			loesung={loesung ? <Loesungsuebersicht l={loes} /> : null}
 		/>
@@ -1117,7 +1121,11 @@ const Bearbeitung = ({ dokument, mappe: mappenDaten }: { mappe: Mappe; dokument:
 		},
 		// Rechtsklick auf die Zeile eines freien Elements: dieselbe Liste wie am Element im Blatt (`menueFuer`).
 		kontextmenue: (nr, art, punkt) =>
-			menueAn(nr, art === 'baustein' && istGestaltungElement(docJetzt && elementZu(docJetzt, nr)) ? 'gestaltung' : art, punkt),
+			menueAn(
+				nr,
+				art === 'baustein' && istGestaltungElement(docJetzt && elementZu(docJetzt, nr)) ? 'gestaltung' : art,
+				punkt,
+			),
 		zeigeSeitengestaltung: (nr, teil) => zeigeBlattGestaltung(nr, teil, struktur.zeigeAn, zeigeEinstellung),
 		ki: {
 			verfuegbar: ki.zustand.verfuegbar,
@@ -1245,7 +1253,7 @@ const Bearbeitung = ({ dokument, mappe: mappenDaten }: { mappe: Mappe; dokument:
 					<Dialog
 						titel="Noch nicht gespeichert"
 						schliessen={() => setUngespeichert(null)}
-						fuss={
+						fuss={(
 							<>
 								<Knopf
 									art="gefahr"
@@ -1261,7 +1269,7 @@ const Bearbeitung = ({ dokument, mappe: mappenDaten }: { mappe: Mappe; dokument:
 									Hier bleiben
 								</Knopf>
 							</>
-						}
+						)}
 					>
 						<p>Deine letzten Änderungen sind noch nicht gespeichert.</p>
 					</Dialog>

@@ -9,8 +9,8 @@ import { meldeDaneben } from '../bausteine/ueberlagerung';
 import type { Groesse } from './bild';
 import { bausteinVon, elementZu, nrVon, VERALTET } from './darstellung';
 import { nrnFuer } from './gestaltung/mehrfach';
-import { Hoverrahmen } from './Hoverrahmen';
 import { setzeHover, useHover, zielZurZeile } from './hover-verknuepfung';
+import { Hoverrahmen } from './Hoverrahmen';
 import type { Klickziel } from './klickziel';
 import { gleichesZiel, klickziel, knotenVon } from './klickziel';
 import { LUECKE_GEAENDERT } from './luecke';
@@ -286,9 +286,9 @@ const Ueberlagerung = ({
 	doc,
 	einblendung,
 	links,
+	luecke,
 	masse,
 	skala,
-	luecke,
 	ziehen,
 	zieht,
 }: {

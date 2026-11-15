@@ -29,9 +29,13 @@ describe('197-01: Die Zeit neben der Uhr folgt der Uhr', () => {
 	});
 
 	it('meldet eine Lösung daneben, die nicht mitgehen kann', () => {
-		const fremd = blatt('<div class="aufgabe"><x-uhr zeit="3:00"></x-uhr><span class="antwort" data-l="Mittag"></span></div>');
+		const fremd = blatt(
+			'<div class="aufgabe"><x-uhr zeit="3:00"></x-uhr><span class="antwort" data-l="Mittag"></span></div>',
+		);
 		assert.notEqual(loesungDaneben(fremd, uhrNr(fremd), 'x-uhr', '3:00'), null);
-		const passt = blatt('<div class="aufgabe"><x-uhr zeit="3:00"></x-uhr><span class="antwort" data-l="3 Uhr"></span></div>');
+		const passt = blatt(
+			'<div class="aufgabe"><x-uhr zeit="3:00"></x-uhr><span class="antwort" data-l="3 Uhr"></span></div>',
+		);
 		assert.equal(loesungDaneben(passt, uhrNr(passt), 'x-uhr', '3:00'), null);
 		assert.equal(zeitDerUhr({ zeit: null, loesung: '4:15' }), '4:15');
 	});

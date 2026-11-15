@@ -1875,7 +1875,10 @@ export const erstelleKi = ({ ansicht, ereignisse, konfig, pruefer }: Abhaengigke
 				const schluessel = dokSchluessel(mappe, dok);
 				const erster = entwurfWuensche.get(schluessel);
 				if (!erster) {
-					throw new HttpFehler(404, 'Den Auftrag gibt es nicht mehr. Vielleicht wurde der Server neu gestartet.');
+					throw new HttpFehler(
+						404,
+						'Den Auftrag gibt es nicht mehr. Vielleicht wurde der Server neu gestartet.',
+					);
 				}
 				if (!antwort.trim() || antwort.length > KI_GRENZEN.auftragZeichen) {
 					throw new HttpFehler(400, 'Schreib kurz deine Antwort für Claude.');

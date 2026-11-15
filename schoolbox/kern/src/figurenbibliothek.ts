@@ -132,9 +132,7 @@ const figurenAus = (gespeichert: Gespeichert | null, dateien: ReadonlySet<string
 			eintraege.push(e);
 		}
 	}
-	const eingebaute = FIGUREN.map((f) =>
-		eingebauteFigur(f, posenVon(eintraege.find((e) => e.id === f.id))),
-	);
+	const eingebaute = FIGUREN.map((f) => eingebauteFigur(f, posenVon(eintraege.find((e) => e.id === f.id))));
 	const andere = eintraege
 		.filter((e) => !eingebaut(e.id))
 		.flatMap((e): BibliotheksFigur[] => {
@@ -560,8 +558,8 @@ export const nimmPoseAuf = async (
  * ihrer Stelle in der Liste oder die Posen mit ihrer Stelle in der Figur, dazu die Referenz, die die Figur dabei verlor.
  */
 export type FigurRueckweg =
-	| { art: 'figur'; index: number; eintrag: GespeicherteFigur }
-	| { art: 'pose'; figur: string; posen: { index: number; pose: GespeichertePose }[]; canva?: string };
+	| { art: 'figur'; index: number; eintrag: GespeicherteFigur } |
+	{ art: 'pose'; figur: string; posen: { index: number; pose: GespeichertePose }[]; canva?: string };
 
 /**
  * Streicht eine Pose aus `figuren.json`; die Grundpose nimmt die ganze Figur mit. Trug die Pose die Referenz der Figur

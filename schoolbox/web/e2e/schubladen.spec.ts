@@ -417,7 +417,10 @@ test.describe('Bilder-Schublade (093)', () => {
 		await druecke(bilder(page).locator(`[data-sammlung-bild="${WACHSTUM}"]`));
 		await expect(frei).toHaveCount(2);
 		const lagen = await frei.evaluateAll((liste) =>
-			liste.map((b) => `${(b as HTMLElement).style.getPropertyValue('--x')}|${(b as HTMLElement).style.getPropertyValue('--y')}`),
+			liste.map(
+				(b) =>
+					`${(b as HTMLElement).style.getPropertyValue('--x')}|${(b as HTMLElement).style.getPropertyValue('--y')}`,
+			),
 		);
 		expect(new Set(lagen).size).toBe(2);
 

@@ -106,7 +106,12 @@ describe('Assistent: Schritte (131)', () => {
 		});
 		// Die Arbeitszeit steht beim Thema (190-38); „Claude entscheidet“ nennt die Leiste nicht.
 		const lesen = mit({ art: 'lernspiel', thema: 'Uhrzeit' });
-		assert.equal(schritteFuer(lesen).find((s) => s.id === 'thema')?.antwort(lesen), 'Uhrzeit · Übung');
+		assert.equal(
+			schritteFuer(lesen)
+				.find((s) => s.id === 'thema')
+				?.antwort(lesen),
+			'Uhrzeit · Übung',
+		);
 		assert.equal(
 			schritteFuer(mit({ formatText: 'A5 quer' }))[2]?.antwort(mit({ formatText: 'A5 quer' })),
 			'Anders: A5 quer',
@@ -190,7 +195,10 @@ describe('Assistent: Freitext (131)', () => {
 		assert.match(text({ funktionText: 'Wiederholung' }), /Funktion in der Reihe: „Wiederholung“/);
 		assert.match(text({ umfangText: 'drei Seiten' }), /Arbeitszeit je Kind: „drei Seiten“/);
 		// Kein zweiter Punkt hinter einem Freitext, der schon mit einem Satzzeichen endet (190-21).
-		assert.match(text({ thema: 'Wie spät ist es?', ziel: 'Ich kann die Uhr lesen.' }), /„Wie spät ist es\?“ Ich-kann/);
+		assert.match(
+			text({ thema: 'Wie spät ist es?', ziel: 'Ich kann die Uhr lesen.' }),
+			/„Wie spät ist es\?“ Ich-kann/,
+		);
 		assert.doesNotMatch(text({ thema: 'Uhr.', ziel: 'Ich kann die Uhr lesen.' }), /“\./);
 	});
 

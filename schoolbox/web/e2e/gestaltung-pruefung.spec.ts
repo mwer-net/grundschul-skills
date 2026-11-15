@@ -65,7 +65,9 @@ test.describe('Prüfung der Gestaltung (096)', () => {
 		const form =
 			'<svg class="form" data-lage="frei" data-name="Kreis" data-form="kreis" viewBox="0 0 100 100" style="--x:-100px;--y:300px;--b:100px;--h:100px"><circle cx="50" cy="50" r="48" style="fill:var(--haupt)"/></svg>';
 		await aendere(page, mitEbene(await quelle(page), [form]));
-		await material(page).locator('[data-name="Kreis"]').click({ position: { x: 95, y: 50 } });
+		await material(page)
+			.locator('[data-name="Kreis"]')
+			.click({ position: { x: 95, y: 50 } });
 		const hinweis = page.locator('[data-pruefhinweise]');
 		await expect(hinweis).toContainText('liegt außerhalb der Seite');
 		await expect(hinweis).not.toContainText('Tipp:');

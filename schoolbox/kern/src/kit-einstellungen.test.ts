@@ -91,7 +91,10 @@ describe('Einstellungen der Kit-Bausteine', () => {
 	});
 
 	it('196-01: Punkte mit Linie für die erreichten Punkte ändern nur die Zahl', () => {
-		const q = BLATT.replace('<span class="text">A</span>', '<span class="text">A</span><span class="punkte"><span class="antwort kurz"></span> / 6 P.</span>');
+		const q = BLATT.replace(
+			'<span class="text">A</span>',
+			'<span class="text">A</span><span class="punkte"><span class="antwort kurz"></span> / 6 P.</span>',
+		);
 		const a = nr(q, 'aufgabe');
 		assert.equal(leseKit(q, a, 'aufgabe').punkte, 6);
 		const sieben = setzeKit(q, a, 'aufgabe', 'punkte', 7);
@@ -144,7 +147,10 @@ describe('Einstellungen der Kit-Bausteine', () => {
 
 	it('196-19, 196-23: Erwartungshorizont erkennen; Notiz einer Folie lesen, schreiben, löschen', () => {
 		assert.equal(hatErwartungshorizont(BLATT), false);
-		assert.equal(hatErwartungshorizont(BLATT.replace('<p>Absatz</p>', '<x-erwartungshorizont></x-erwartungshorizont>')), true);
+		assert.equal(
+			hatErwartungshorizont(BLATT.replace('<p>Absatz</p>', '<x-erwartungshorizont></x-erwartungshorizont>')),
+			true,
+		);
 		const s = tag(BLATT, 'section');
 		assert.equal(leseNotiz(BLATT, s), '');
 		const mit = setzeNotiz(BLATT, s, 'Erst fragen, <dann> zeigen');

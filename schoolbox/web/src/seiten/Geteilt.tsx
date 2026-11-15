@@ -112,15 +112,19 @@ const GeteilteAblage = ({ inhalt, token }: { inhalt: Inhalt; token: string }) =>
 	const pdfBezug = { id: '', titel: hier?.name ?? inhalt.titel };
 	// Im Unterordner nur, was darin und darunter liegt (191-01); die Wurzel braucht keine Angabe.
 	const unterordner = hier && hier.id !== inhalt.wurzel ? hier.id : undefined;
-	const darin = unterordner
-		? new Set([unterordner, ...ordnerDarunter(ordner, unterordner)])
-		: null;
-	const dokumenteHier = darin ? inhalt.dokumente.filter((d) => d.ordner !== null && darin.has(d.ordner)) : inhalt.dokumente;
+	const darin = unterordner ? new Set([unterordner, ...ordnerDarunter(ordner, unterordner)]) : null;
+	const dokumenteHier = darin
+		? inhalt.dokumente.filter((d) => d.ordner !== null && darin.has(d.ordner))
+		: inhalt.dokumente;
 	return (
 		<>
 			<div className="flex items-center justify-between gap-4 max-lg:flex-col max-lg:items-start max-lg:gap-3">
 				{/* Pfad und Titel in einer Zeile: Der Wechsel in einen Unterordner verschiebt nichts (191-31). */}
-				<nav aria-label="Pfad" className="flex min-w-0 flex-wrap items-center gap-1.5 text-2xl" data-geteilt-pfad>
+				<nav
+					aria-label="Pfad"
+					className="flex min-w-0 flex-wrap items-center gap-1.5 text-2xl"
+					data-geteilt-pfad
+				>
 					{pfad.slice(0, -1).map((o) => (
 						<span key={o.id} className="flex items-center gap-1.5">
 							<Link

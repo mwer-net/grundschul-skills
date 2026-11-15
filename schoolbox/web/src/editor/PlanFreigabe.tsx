@@ -153,7 +153,12 @@ export const PlanFreigabe = ({
 						{arbeit === 'bauen' && <Symbol name="laden" className="animate-spin" />}
 						So bauen
 					</Knopf>
-					<Knopf art="zweit" groesse={groesse} disabled={gesperrt || belegt} onClick={() => setFeldOffen(true)}>
+					<Knopf
+						art="zweit"
+						groesse={groesse}
+						disabled={gesperrt || belegt}
+						onClick={() => setFeldOffen(true)}
+					>
 						Ändern …
 					</Knopf>
 					<Knopf

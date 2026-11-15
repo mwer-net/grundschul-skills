@@ -45,10 +45,7 @@ export const PdfLaeuft = ({ text = PDF_LAEUFT }: { text?: string }) => (
 );
 
 /** Ein Knopf, mit `tooltip` darin; nimmt auch die Eigenschaften eines Menü-Auslösers an. */
-const MitTooltip = ({
-	tooltip,
-	...knopf
-}: ComponentProps<typeof Knopf> & { tooltip: Eigenschaften['tooltip'] }) =>
+const MitTooltip = ({ tooltip, ...knopf }: ComponentProps<typeof Knopf> & { tooltip: Eigenschaften['tooltip'] }) =>
 	tooltip ? (
 		<Tooltip text={tooltip.text} kuerzel={tooltip.kuerzel}>
 			<Knopf {...knopf} />

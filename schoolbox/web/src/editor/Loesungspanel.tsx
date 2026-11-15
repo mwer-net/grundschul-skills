@@ -128,9 +128,7 @@ export const Loesungsuebersicht = ({ l }: { l: LoesungSteuerung }) => {
 			) : (
 				<>
 					<div>
-						<Fehlt>
-							{satzFehlend(anzahl)}
-						</Fehlt>
+						<Fehlt>{satzFehlend(anzahl)}</Fehlt>
 					</div>
 					<Knopf art="zweit" className="mt-1" onClick={l.naechsteFehlende}>
 						<Symbol name="weiter" />

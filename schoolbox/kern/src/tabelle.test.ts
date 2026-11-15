@@ -87,9 +87,18 @@ describe('Kit-Tabelle', () => {
 	});
 
 	it('194-07: ⇧Tab geht in die vorige Zelle, über den Zeilenanfang hinweg; in der ersten null', () => {
-		assert.deepEqual(vorigeZelle({ zeile: 1, spalte: 1 }, () => 3), { zeile: 1, spalte: 0 });
-		assert.deepEqual(vorigeZelle({ zeile: 1, spalte: 0 }, () => 3), { zeile: 0, spalte: 2 });
-		assert.equal(vorigeZelle({ zeile: 0, spalte: 0 }, () => 3), null);
+		assert.deepEqual(
+			vorigeZelle({ zeile: 1, spalte: 1 }, () => 3),
+			{ zeile: 1, spalte: 0 },
+		);
+		assert.deepEqual(
+			vorigeZelle({ zeile: 1, spalte: 0 }, () => 3),
+			{ zeile: 0, spalte: 2 },
+		);
+		assert.equal(
+			vorigeZelle({ zeile: 0, spalte: 0 }, () => 3),
+			null,
+		);
 	});
 
 	it('Tab: nächste Zelle, am Ende null', () => {

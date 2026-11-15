@@ -160,8 +160,7 @@ export const MehrfachKontur = ({ aktiv, k, quelle }: InspektorTeile) => {
 					setze={(farbe) =>
 						setzeAlle(farbe === null ? 'Kontur entfernt' : 'Kontur geändert', (alt) =>
 							farbe === null ? null : { farbe, staerke: alt?.staerke || STRICH },
-						)
-					}
+						)}
 					zeige={(farbe) => {
 						for (const { element } of elementeZu(k.doc, k.nrn)) {
 							(pfadDerForm(element) as SVGElement | null)?.style.setProperty('stroke', farbe);
@@ -179,8 +178,7 @@ export const MehrfachKontur = ({ aktiv, k, quelle }: InspektorTeile) => {
 							max={KONTUR_MAX}
 							aus={!aktiv}
 							setze={(staerke) =>
-								setzeAlle('Stärke der Kontur', (alt) => ({ farbe: alt?.farbe || KONTUR, staerke }))
-							}
+								setzeAlle('Stärke der Kontur', (alt) => ({ farbe: alt?.farbe || KONTUR, staerke }))}
 						/>
 					</span>
 				</Zeile>

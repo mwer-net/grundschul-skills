@@ -33,10 +33,10 @@ import { Tooltip } from '../bausteine/Tooltip';
 import { nrVon } from './darstellung';
 import type { Einfuegen, Posten, SlashMenue } from './einfuegen';
 import type { Einblendung } from './Leinwand';
+import { lageDerLeiste, umfeldDerLeiste } from './leistenlage';
 import { LUECKE_UND_ORIGINAL } from './luecke';
 import type { Luecke } from './navigation';
 import { kopf } from './schubladen/reihe';
-import { lageDerLeiste, umfeldDerLeiste } from './leistenlage';
 import { sichtfeldVon, useSichtfeld } from './sichtfeld';
 import { EIGENE_GESCHICHTE } from './tasten';
 import { TEXTWERKZEUG } from './text';
@@ -63,7 +63,12 @@ const Sichtbarkeitsmarke = ({ e, element }: { e: Einblendung; element: Element }
 		}
 	});
 	const r = element.getBoundingClientRect();
-	const box = { links: e.links + r.left * e.skala, rechts: e.links + r.right * e.skala, oben: r.top * e.skala, unten: r.bottom * e.skala };
+	const box = {
+		links: e.links + r.left * e.skala,
+		rechts: e.links + r.right * e.skala,
+		oben: r.top * e.skala,
+		unten: r.bottom * e.skala,
+	};
 	const lage = sicht
 		? lageDerLeiste(box, mass, { ...sicht, oben: -1e6, unten: 1e6 }, 0, umfeldDerLeiste(e, r, [element], true))
 		: { links: box.links, top: box.oben - mass.hoehe };
@@ -276,7 +281,9 @@ export const Einfuegemarken = ({
 					}}
 					onClick={(ev) => {
 						// 205-04: Die Schnellauswahl hängt an der Pille, wo immer auf der Linie geklickt wurde.
-						const pille = ev.currentTarget.querySelector('[data-einfuegen-luecke]')?.getBoundingClientRect();
+						const pille = ev.currentTarget
+							.querySelector('[data-einfuegen-luecke]')
+							?.getBoundingClientRect();
 						const knopf = ev.currentTarget.getBoundingClientRect();
 						const versatz = pille ? pille.left - knopf.left : 0;
 						const halbe = pille ? pille.height / 2 : 12;
@@ -323,7 +330,9 @@ export const Einfuegemarken = ({
 								data-erster-baustein
 								onClick={(ev) => {
 									// Unter der Namenszeile (oder dem Kopf) einfügen, wenn es eine gibt (194-17).
-									const letzte = [...s.children].filter((k) => k.matches('.namenszeile, .kopf')).at(-1);
+									const letzte = [...s.children]
+										.filter((k) => k.matches('.namenszeile, .kopf'))
+										.at(-1);
 									const nach = letzte ? nrVon(letzte) : null;
 									setAuswahl(nach ?? nr);
 									// 194-24: Der Kasten hängt am Knopf, 6 px darunter.

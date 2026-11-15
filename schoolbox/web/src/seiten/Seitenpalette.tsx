@@ -4,8 +4,8 @@ import { useNavigate } from 'react-router-dom';
 import { Palette } from '../editor/Palette';
 import type { PalettenEintrag } from '../editor/palette-suche';
 import { bewerte } from '../editor/palette-suche';
-import { useSeitenbefehle } from '../lib/seitenbefehle';
 import { materialEintraege } from '../lib/material-eintraege';
+import { useSeitenbefehle } from '../lib/seitenbefehle';
 import { BEFEHLE } from '../ordner/befehle';
 import { useAblage } from '../ordner/kontext';
 import { pfadVon, WURZEL_NAME } from '../ordner/objekte';
@@ -32,7 +32,15 @@ const GANZ_WORT = 8;
  * Diese Befehle der Ablage („löschen“, „umbenennen“) sind nie das Thema eines neuen Materials (S-02). „Teilen“ fehlt
  * mit Absicht: Es ist auch ein Thema in Mathematik.
  */
-const NIE_THEMA = new Set(['papierkorb', 'umbenennen', 'duplizieren', 'kopieren', 'ausschneiden', 'einfuegen', 'bewegenNach']);
+const NIE_THEMA = new Set([
+	'papierkorb',
+	'umbenennen',
+	'duplizieren',
+	'kopieren',
+	'ausschneiden',
+	'einfuegen',
+	'bewegenNach',
+]);
 const istBefehlswort = (text: string) =>
 	BEFEHLE.some(
 		(b) =>

@@ -18,8 +18,8 @@ import type {
 	UhrzeitFeld,
 	UnterFeld,
 	ZahlenFeld,
-	ZeitspanneFeld,
 	ZahlFeld,
+	ZeitspanneFeld,
 	ZiffernFeld,
 } from '@schoolbox/kern/src/abbildungen';
 import {
@@ -215,7 +215,12 @@ const Zahl = ({ abb, feld }: FeldEigenschaften<ZahlFeld>) => {
 	const rand = feld.bisZumRand ? abb.grenzen[feld.attribut] : undefined;
 	const schritt = feld.schritt ?? 1;
 	const bisRand =
-		rand === undefined ? grenzen.max : Math.min(grenzen.max, zeigen(Math.max(feld.min, Math.floor((rand - feld.min) / schritt) * schritt + feld.min)));
+		rand === undefined
+			? grenzen.max
+			: Math.min(
+					grenzen.max,
+					zeigen(Math.max(feld.min, Math.floor((rand - feld.min) / schritt) * schritt + feld.min)),
+				);
 	const anzeige = (roh: string | null) => {
 		if (roh === null) {
 			return feld.automatisch ? '' : zahlMitKomma(zeigen(standard));
@@ -261,7 +266,8 @@ const Zahl = ({ abb, feld }: FeldEigenschaften<ZahlFeld>) => {
 			getippt.current = anzeige(gesetzt);
 		}
 	};
-	const springe = (richtung: 1 | -1) => setze((Number.isFinite(jetzt) ? jetzt : zeigen(standard)) + richtung * grenzen.schritt);
+	const springe = (richtung: 1 | -1) =>
+		setze((Number.isFinite(jetzt) ? jetzt : zeigen(standard)) + richtung * grenzen.schritt);
 	const fertig = () => {
 		if (getippt.current !== null && text === getippt.current) {
 			zurueckZu(vorher.current);
@@ -336,9 +342,19 @@ const Zahl = ({ abb, feld }: FeldEigenschaften<ZahlFeld>) => {
 							const roh = e.target.value.trim();
 							const n = liesZahl(roh);
 							// Nur den Entwurf ändern; gezeichnet wird er erst, wenn das Feld passt (197-02).
-							abb.aendere(feld, roh === '' ? (feld.automatisch ? null : vorher.current) : Number.isFinite(n) ? speichern(n) : roh, {
-								uebernehmen: false,
-							});
+							abb.aendere(
+								feld,
+								roh === ''
+									? feld.automatisch
+										? null
+										: vorher.current
+									: Number.isFinite(n)
+										? speichern(n)
+										: roh,
+								{
+									uebernehmen: false,
+								},
+							);
 						}}
 						onBlur={() => {
 							fertig();
@@ -531,7 +547,8 @@ const Schalter = ({ abb, feld }: FeldEigenschaften<SchalterFeld>) => {
  */
 const KOMMAZAHL = /(\d),(\d)/g;
 const HAT_KOMMA = /\d,\d/;
-const zahlenZeigen = (wert: string | null, komma: boolean) => (komma ? (wert ?? '').replace(/(\d)\.(\d)/g, '$1,$2') : (wert ?? ''));
+const zahlenZeigen = (wert: string | null, komma: boolean) =>
+	komma ? (wert ?? '').replace(/(\d)\.(\d)/g, '$1,$2') : (wert ?? '');
 
 /**
  * 197-11: Eine Zahl je Zeile einer anderen Liste, z. B. der Anteil je Feld des Glücksrads, neben dem Namen der Zeile.
@@ -672,7 +689,8 @@ const Zeitspanne = ({ abb, feld }: FeldEigenschaften<ZeitspanneFeld>) => {
 							className={`${EINGABE} pr-4`}
 							disabled={!abb.aktiv || (i === 1 && !zeiten[0])}
 							value={z?.h ?? ''}
-							onChange={(e) => setze(i === 0 ? 0 : 1, e.target.value === '' ? null : Number(e.target.value), z?.m ?? 0)}
+							onChange={(e) =>
+								setze(i === 0 ? 0 : 1, e.target.value === '' ? null : Number(e.target.value), z?.m ?? 0)}
 						>
 							<option value="">–</option>
 							{(z && !STUNDEN.includes(z.h) ? [z.h, ...STUNDEN] : STUNDEN).map((h) => (
@@ -690,11 +708,13 @@ const Zeitspanne = ({ abb, feld }: FeldEigenschaften<ZeitspanneFeld>) => {
 							onChange={(e) => z && setze(i === 0 ? 0 : 1, z.h, Number(e.target.value))}
 						>
 							{!z && <option value="">–</option>}
-							{(z && !MINUTEN.includes(z.m) ? [...MINUTEN, z.m].sort((x, y) => x - y) : MINUTEN).map((m) => (
-								<option key={m} value={m}>
-									{zweistellig(m)}
-								</option>
-							))}
+							{(z && !MINUTEN.includes(z.m) ? [...MINUTEN, z.m].sort((x, y) => x - y) : MINUTEN).map(
+								(m) => (
+									<option key={m} value={m}>
+										{zweistellig(m)}
+									</option>
+								),
+							)}
 						</select>
 					</Fragment>
 				))}
@@ -882,7 +902,9 @@ export const Text = ({ abb, feld }: FeldEigenschaften<TextFeld>) => {
 			{/* S-06: Die Schreibweise der Lücken steht am Feld, nicht nur im ⓘ. */}
 			{feld.einfuegen?.zeichen === '[' && (
 				<p className="mt-1 text-xs text-leise" data-luecken-hinweis>
-					Wort markieren und „{feld.einfuegen.name}“ drücken, oder [Wort] tippen. [[Wort]] steht schon
+					Wort markieren und „
+{feld.einfuegen.name}
+“ drücken, oder [Wort] tippen. [[Wort]] steht schon
 					eingetragen da.
 				</p>
 			)}

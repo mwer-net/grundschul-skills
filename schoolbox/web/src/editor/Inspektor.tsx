@@ -274,7 +274,17 @@ const SichtbarkeitWenn = ({
 	) : null;
 
 /** 196-23, 192-01: Die Notiz der gewählten Folie; mehrzeilig, Verlassen übernimmt, Esc stellt wieder her. */
-const FolienNotiz = ({ aus, nr, quelle, struktur }: { aus: boolean; nr: number; quelle: string; struktur: Struktur }) => {
+const FolienNotiz = ({
+	aus,
+	nr,
+	quelle,
+	struktur,
+}: {
+	aus: boolean;
+	nr: number;
+	quelle: string;
+	struktur: Struktur;
+}) => {
 	const wert = leseNotiz(quelle, nr);
 	const [text, setText] = useState(wert);
 	useEffect(() => setText(wert), [wert]);
@@ -289,8 +299,7 @@ const FolienNotiz = ({ aus, nr, quelle, struktur }: { aus: boolean; nr: number; 
 			onChange={(e) => setText(e.target.value)}
 			onBlur={() =>
 				text.trim() !== wert &&
-				struktur.fuehreAus('Notiz geändert', (q) => ({ quelle: setzeNotiz(q, nr, text), nr }))
-			}
+				struktur.fuehreAus('Notiz geändert', (q) => ({ quelle: setzeNotiz(q, nr, text), nr }))}
 			onKeyDown={(e) => {
 				if (e.key === 'Escape' && text !== wert) {
 					e.preventDefault();
@@ -484,82 +493,102 @@ export const Einstellungen = ({
 	}
 	return (
 		<div {...(abb.aktiv ? { 'data-abbildungswerkzeug': '' } : {})}>
-		{hinweise}
-		<fieldset disabled={gesperrt !== null} className="contents" data-gesperrt-felder={gesperrt !== null || undefined}>
-		{!sprachSpaeter && sprache}
-		<Abschnitt name="inhalt" titel={ABSCHNITT_TITEL.inhalt}>
-			<Bildwerkzeug bild={bild} />
-			<AbbildungFelder abb={abb} abschnitt="inhalt" />
-			{aktiv && quelle && baustein.art === 'seite' && folien && (
-				<Feld titel="Notiz">
-					<FolienNotiz aus={aus} nr={nr} quelle={quelle} struktur={struktur} />
-				</Feld>
-			)}
-			{aktiv && (
-				<>
-					{!inTabelle && (
-						<TabellenWerkzeug aus={aus} folien={folien} nr={nr} pfad={pfad} quelle={quelle} struktur={struktur} />
-					)}
-					<KitWerkzeug {...kit} abschnitt="inhalt" />
-				</>
-			)}
-		</Abschnitt>
-			<Abschnitt name="darstellung" titel={ABSCHNITT_TITEL.darstellung}>
-				<BildDarstellung bild={bild} />
-				<AbbildungFelder abb={abb} abschnitt="darstellung" />
-				{aktiv && <KitWerkzeug {...kit} abschnitt="darstellung" />}
-				{spalten?.nr === nr && <Spaltenwahl aus={aus} spalten={spalten} struktur={struktur} />}
-			</Abschnitt>
-			<Abschnitt name="loesung" titel={ABSCHNITT_TITEL.loesung}>
-				<Loesungswerkzeug
-					l={loes}
-					ohneFeld={aktiv && Boolean(KIT_FELDER[baustein.art]?.some((f) => f.name === 'loesung'))}
-				/>
-				<AbbildungFelder abb={abb} abschnitt="loesung" />
-				{aktiv && <KitWerkzeug {...kit} abschnitt="loesung" />}
-			</Abschnitt>
-			{sprachSpaeter && sprache}
-			<Abschnitt name="bewertung" titel={ABSCHNITT_TITEL.bewertung}>
-				<AbbildungFelder abb={abb} abschnitt="bewertung" />
-				{aktiv && <KitWerkzeug {...kit} abschnitt="bewertung" />}
-			</Abschnitt>
-			<Abschnitt name="sichtbarkeit" titel="Sichtbarkeit">
-				{aktiv && (
-					<SichtbarkeitWenn
-						aus={aus}
-						baustein={baustein}
-						folien={folien}
-						nr={nr}
-						pfad={pfad}
-						quelle={quelle}
-						struktur={struktur}
-					/>
-				)}
-			</Abschnitt>
-			{aktiv && inTabelle && (
-				<Abschnitt name="eltern-tabelle" titel="Tabelle">
-					<TabellenWerkzeug aus={aus} folien={folien} nr={nr} pfad={pfad} quelle={quelle} struktur={struktur} />
-				</Abschnitt>
-			)}
-			{aktiv && aufgabe && (
-				<Abschnitt name="eltern-aufgabe" titel="Aufgabe">
-					<KitWerkzeug {...kit} art="aufgabe" nr={aufgabe.nr} nur={['punkte']} abschnitt="bewertung" />
-				</Abschnitt>
-			)}
-			<Abschnitt
-				name="eltern"
-				titel={spalten?.name ?? ''}
-				// 196-32: Bei einem Eintrag gibt es kein „alle“
-				notiz={anzahl > 1 ? `gilt für alle ${anzahl} Einträge` : undefined}
+			{hinweise}
+			<fieldset
+				disabled={gesperrt !== null}
+				className="contents"
+				data-gesperrt-felder={gesperrt !== null || undefined}
 			>
-				{spalten && reiheHier && spalten.nr !== nr && <Spaltenwahl aus={aus} spalten={spalten} struktur={struktur} />}
-			</Abschnitt>
-			{hatWeitere(abb) && (
-				<Abschnitt name="weitere" titel={ABSCHNITT_TITEL.weitere} einklappbar zu>
-					<AbbildungFelder abb={abb} abschnitt="weitere" />
+				{!sprachSpaeter && sprache}
+				<Abschnitt name="inhalt" titel={ABSCHNITT_TITEL.inhalt}>
+					<Bildwerkzeug bild={bild} />
+					<AbbildungFelder abb={abb} abschnitt="inhalt" />
+					{aktiv && quelle && baustein.art === 'seite' && folien && (
+						<Feld titel="Notiz">
+							<FolienNotiz aus={aus} nr={nr} quelle={quelle} struktur={struktur} />
+						</Feld>
+					)}
+					{aktiv && (
+						<>
+							{!inTabelle && (
+								<TabellenWerkzeug
+									aus={aus}
+									folien={folien}
+									nr={nr}
+									pfad={pfad}
+									quelle={quelle}
+									struktur={struktur}
+								/>
+							)}
+							<KitWerkzeug {...kit} abschnitt="inhalt" />
+						</>
+					)}
 				</Abschnitt>
-			)}
-		</fieldset>
+				<Abschnitt name="darstellung" titel={ABSCHNITT_TITEL.darstellung}>
+					<BildDarstellung bild={bild} />
+					<AbbildungFelder abb={abb} abschnitt="darstellung" />
+					{aktiv && <KitWerkzeug {...kit} abschnitt="darstellung" />}
+					{spalten?.nr === nr && <Spaltenwahl aus={aus} spalten={spalten} struktur={struktur} />}
+				</Abschnitt>
+				<Abschnitt name="loesung" titel={ABSCHNITT_TITEL.loesung}>
+					<Loesungswerkzeug
+						l={loes}
+						ohneFeld={aktiv && Boolean(KIT_FELDER[baustein.art]?.some((f) => f.name === 'loesung'))}
+					/>
+					<AbbildungFelder abb={abb} abschnitt="loesung" />
+					{aktiv && <KitWerkzeug {...kit} abschnitt="loesung" />}
+				</Abschnitt>
+				{sprachSpaeter && sprache}
+				<Abschnitt name="bewertung" titel={ABSCHNITT_TITEL.bewertung}>
+					<AbbildungFelder abb={abb} abschnitt="bewertung" />
+					{aktiv && <KitWerkzeug {...kit} abschnitt="bewertung" />}
+				</Abschnitt>
+				<Abschnitt name="sichtbarkeit" titel="Sichtbarkeit">
+					{aktiv && (
+						<SichtbarkeitWenn
+							aus={aus}
+							baustein={baustein}
+							folien={folien}
+							nr={nr}
+							pfad={pfad}
+							quelle={quelle}
+							struktur={struktur}
+						/>
+					)}
+				</Abschnitt>
+				{aktiv && inTabelle && (
+					<Abschnitt name="eltern-tabelle" titel="Tabelle">
+						<TabellenWerkzeug
+							aus={aus}
+							folien={folien}
+							nr={nr}
+							pfad={pfad}
+							quelle={quelle}
+							struktur={struktur}
+						/>
+					</Abschnitt>
+				)}
+				{aktiv && aufgabe && (
+					<Abschnitt name="eltern-aufgabe" titel="Aufgabe">
+						<KitWerkzeug {...kit} art="aufgabe" nr={aufgabe.nr} nur={['punkte']} abschnitt="bewertung" />
+					</Abschnitt>
+				)}
+				<Abschnitt
+					name="eltern"
+					titel={spalten?.name ?? ''}
+					// 196-32: Bei einem Eintrag gibt es kein „alle“
+					notiz={anzahl > 1 ? `gilt für alle ${anzahl} Einträge` : undefined}
+				>
+					{spalten && reiheHier && spalten.nr !== nr && (
+						<Spaltenwahl aus={aus} spalten={spalten} struktur={struktur} />
+					)}
+				</Abschnitt>
+				{hatWeitere(abb) && (
+					<Abschnitt name="weitere" titel={ABSCHNITT_TITEL.weitere} einklappbar zu>
+						<AbbildungFelder abb={abb} abschnitt="weitere" />
+					</Abschnitt>
+				)}
+			</fieldset>
 		</div>
 	);
 };

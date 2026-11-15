@@ -218,7 +218,10 @@ describe('Menüs am Baustein, an der Seite, am Blattrand (194-29 bis 194-32, 204
 	it('194-29: keine Sichtbarkeit und kein Einpassen im Menü; mit Ablage kommt nur „Einfügen“ dazu', () => {
 		const ohne = idsIm('baustein', mitAuswahl('aufgabe', { davor: 3 }));
 		const mit = idsIm('baustein', mitAuswahl('aufgabe', { davor: 3, hatAblage: true }));
-		assert.equal(ohne.some((id) => id.startsWith('auswahl.sichtbarkeit')), false);
+		assert.equal(
+			ohne.some((id) => id.startsWith('auswahl.sichtbarkeit')),
+			false,
+		);
 		assert.deepEqual(
 			mit.filter((id) => !ohne.includes(id)),
 			['auswahl.einfuegen'],
@@ -265,7 +268,10 @@ describe('Menüs am Baustein, an der Seite, am Blattrand (194-29 bis 194-32, 204
 			assert.equal(zeile.includes(id), false, id);
 		}
 		assert.ok(zeile.includes('tabelle.zeile-davor') && zeile.includes('tabelle.zeile-danach'));
-		assert.equal(zeile.filter((id) => id === 'auswahl.loeschen').length, zeile.includes('auswahl.loeschen') ? 1 : 0);
+		assert.equal(
+			zeile.filter((id) => id === 'auswahl.loeschen').length,
+			zeile.includes('auswahl.loeschen') ? 1 : 0,
+		);
 		const zelle = idsIm('baustein', mitAuswahl('tabellenzelle'));
 		assert.equal(zelle.includes('auswahl.loeschen'), false);
 		assert.ok(zelle.includes('tabelle.zeile-weg') && zelle.includes('tabelle.spalte-weg'));
@@ -286,7 +292,9 @@ describe('Menüs am Baustein, an der Seite, am Blattrand (194-29 bis 194-32, 204
 		const namenszeile = bausteinNach('namenszeile');
 		const k = mitAuswahl('absatz');
 		assert.ok(idsIm('baustein', k).includes('auswahl.duplizieren'));
-		const teil = namenszeile ? { ...k, pfad: [{ nr: 3, name: 'Namenszeile', baustein: namenszeile }, ...k.pfad] } : k;
+		const teil = namenszeile
+			? { ...k, pfad: [{ nr: 3, name: 'Namenszeile', baustein: namenszeile }, ...k.pfad] }
+			: k;
 		assert.equal(idsIm('baustein', teil).includes('auswahl.duplizieren'), false);
 	});
 
@@ -543,7 +551,10 @@ describe('Werkzeuge (098)', () => {
 		assert.equal(befehle.find((b) => b.id === 'werkzeug.stern')?.kuerzel, undefined);
 		assert.deepEqual(befehle.find((b) => b.id === 'werkzeug.stern')?.orte, ['palette']);
 		// 198 (Urteil 1), 193-38: Das Werkzeug Stern ist weg; R, O, Y, L und T bleiben Tasten ohne Zeile in der Palette.
-		assert.equal(BEFEHLE.find((b) => b.id === 'werkzeug.stern'), undefined);
+		assert.equal(
+			BEFEHLE.find((b) => b.id === 'werkzeug.stern'),
+			undefined,
+		);
 		for (const id of ['rechteck', 'ellipse', 'vieleck', 'linie', 'text']) {
 			assert.deepEqual(BEFEHLE.find((b) => b.id === `werkzeug.${id}`)?.orte, ['taste'], id);
 		}
@@ -685,7 +696,10 @@ describe('Zoom-Tasten (184)', () => {
 		const baustein = abschnitte.find((a) => a.titel === 'Gewählter Baustein');
 		const frei = abschnitte.find((a) => a.titel === 'Freies Element');
 		for (const id of ['auswahl.nach-vorne', 'auswahl.sperren', 'auswahl.spiegeln', 'auswahl.gruppieren']) {
-			assert.ok(frei?.zeilen.some((z) => z.id === id), id);
+			assert.ok(
+				frei?.zeilen.some((z) => z.id === id),
+				id,
+			);
 			assert.ok(!baustein?.zeilen.some((z) => z.id === id), id);
 		}
 		assert.ok(frei?.zeilen.some((z) => z.id.startsWith('auswahl.schiebe-')));
@@ -720,12 +734,19 @@ describe('Sperre im Befehl (198-03)', () => {
 	const zu = mitAuswahl('absatz', { hatAblage: true, davor: 3, gesperrt: true });
 
 	it('Löschen, Duplizieren, Ausschneiden, Schieben und Ordnen gehen am Gesperrten nicht und sagen warum', () => {
-		for (const id of ['auswahl.loeschen', 'auswahl.duplizieren', 'auswahl.ausschneiden', 'auswahl.einfuegen-davor']) {
+		for (const id of [
+			'auswahl.loeschen',
+			'auswahl.duplizieren',
+			'auswahl.ausschneiden',
+			'auswahl.einfuegen-davor',
+		]) {
 			assert.equal(befehl(id).verfuegbar(offen), true, `${id} ungesperrt`);
 			assert.equal(befehl(id).verfuegbar(zu), false, id);
 			assert.equal(befehl(id).warumNicht?.(zu), GESPERRT_GRUND, id);
 		}
-		for (const b of BEFEHLE.filter((x) => /^auswahl\.(schiebe|nach-|ganz-|gruppieren|vereinen|abziehen)/.test(x.id))) {
+		for (const b of BEFEHLE.filter((x) =>
+			/^auswahl\.(schiebe|nach-|ganz-|gruppieren|vereinen|abziehen)/.test(x.id),
+		)) {
 			assert.equal(b.verfuegbar(zu), false, b.id);
 		}
 	});
@@ -737,7 +758,14 @@ describe('Sperre im Befehl (198-03)', () => {
 	});
 
 	it('⌫ findet den Befehl weiter, damit die Taste den Grund nennt statt still zu bleiben', () => {
-		const taste = { code: 'Backspace', key: 'Backspace', metaKey: false, ctrlKey: false, altKey: false, shiftKey: false };
+		const taste = {
+			code: 'Backspace',
+			key: 'Backspace',
+			metaKey: false,
+			ctrlKey: false,
+			altKey: false,
+			shiftKey: false,
+		};
 		assert.equal(befehlZuTaste(taste, 'auswahl', zu)?.id, 'auswahl.loeschen');
 	});
 

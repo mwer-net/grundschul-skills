@@ -3,7 +3,17 @@ import { describe, it } from 'node:test';
 
 import { suchePalette } from '../editor/palette-suche';
 import type { Lage } from './befehle';
-import { BEFEHLE, ERST_WAEHLEN, gilt, kuerzelVon, leistenKnoepfe, MENUE, menueVon, paletteVon, tastenAbschnitte } from './befehle';
+import {
+	BEFEHLE,
+	ERST_WAEHLEN,
+	gilt,
+	kuerzelVon,
+	leistenKnoepfe,
+	MENUE,
+	menueVon,
+	paletteVon,
+	tastenAbschnitte,
+} from './befehle';
 import { dokObjekt, ordnerObjekt } from './objekte';
 import type { AblageDok, AblageStand } from './typen';
 
@@ -26,7 +36,11 @@ const blatt = (id: string, format: 'a4-hoch' | 'folie', entwuerfe = 0, wuerfelba
 		status: 'fertig',
 		seiten: 1,
 		pruefung: null,
-		entwuerfe: Array.from({ length: entwuerfe }, (_, i) => ({ name: String.fromCharCode(65 + i), titel: '', idee: '' })),
+		entwuerfe: Array.from({ length: entwuerfe }, (_, i) => ({
+			name: String.fromCharCode(65 + i),
+			titel: '',
+			idee: '',
+		})),
 		erstellt: zeit,
 		geaendert: zeit,
 	},

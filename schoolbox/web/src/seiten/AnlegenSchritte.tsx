@@ -269,10 +269,10 @@ export const SchrittStart = ({
 
 export const SchrittArt = ({
 	a,
+	laeuftSchon,
 	offen,
 	setze,
 	waehleArt,
-	laeuftSchon,
 	waehleEinheit,
 	weiter,
 }: {
@@ -630,7 +630,10 @@ export const SchrittBausteine = ({ a, setze }: { a: Antworten; setze: (teil: Par
 								</span>
 							</span>
 							{/* Die Marke hat immer ihren Platz: Die Schalter stehen untereinander (190-18). */}
-							<span className={klassen('flex-none', !s.empfohlen && 'invisible')} aria-hidden={!s.empfohlen}>
+							<span
+								className={klassen('flex-none', !s.empfohlen && 'invisible')}
+								aria-hidden={!s.empfohlen}
+							>
 								<Empfohlen />
 							</span>
 							<Schalter

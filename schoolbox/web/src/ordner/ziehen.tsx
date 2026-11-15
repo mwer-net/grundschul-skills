@@ -190,7 +190,11 @@ export const useZiehen = (o: Optionen) => {
 		setStatus(null);
 		const { adresse, navigate: nav, stand: s, tu: machen } = neu.current;
 		const behalten = (id: string) =>
-			ablegen && s && typeof z.zielId === 'string' && z.zielId !== 'papierkorb' && nachkommen(s, id).has(z.zielId);
+			ablegen &&
+			s &&
+			typeof z.zielId === 'string' &&
+			z.zielId !== 'papierkorb' &&
+			nachkommen(s, id).has(z.zielId);
 		for (const { id, wo } of z.aufgeklappt.toReversed()) {
 			if (!behalten(id)) {
 				(wo === 'baum' ? neu.current.o.klappeBaum : neu.current.o.klappeListe)(id, false);

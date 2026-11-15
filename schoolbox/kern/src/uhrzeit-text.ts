@@ -93,12 +93,18 @@ export const schreibeUhrzeitUm = (quelle: string, nr: number, alt: string | null
 		return quelle;
 	}
 	const innen = quelle.slice(feld.oeffnerEnde, feld.schliesserStart);
-	const umgeschrieben = innen.replace(/(<[^>]*>)|([^<]+)/g, (_, tag: string | undefined, text: string | undefined) => {
-		if (tag) {
-			return tag.replace(/(\sdata-l=")([^"]*)(")/, (__, vor: string, wert: string, nach: string) => vor + ersetze(wert, a, n) + nach);
-		}
-		return ersetze(text ?? '', a, n);
-	});
+	const umgeschrieben = innen.replace(
+		/(<[^>]*>)|([^<]+)/g,
+		(_, tag: string | undefined, text: string | undefined) => {
+			if (tag) {
+				return tag.replace(
+					/(\sdata-l=")([^"]*)(")/,
+					(__, vor: string, wert: string, nach: string) => vor + ersetze(wert, a, n) + nach,
+				);
+			}
+			return ersetze(text ?? '', a, n);
+		},
+	);
 	return quelle.slice(0, feld.oeffnerEnde) + umgeschrieben + quelle.slice(feld.schliesserStart);
 };
 

@@ -74,7 +74,10 @@ test.describe('Leiste am Element (204)', () => {
 		await expect(page.locator('[data-auswahl="seite"]')).toBeVisible();
 	});
 
-	test('194-18: Eine geleerte Überschrift bleibt eine Zeile hoch und lässt sich anklicken', async ({ druecke, page }) => {
+	test('194-18: Eine geleerte Überschrift bleibt eine Zeile hoch und lässt sich anklicken', async ({
+		druecke,
+		page,
+	}) => {
 		const { dok, id } = await uhrzeit();
 		await oeffne(page, id, dok);
 		const h1 = material(page).locator('h1').first();

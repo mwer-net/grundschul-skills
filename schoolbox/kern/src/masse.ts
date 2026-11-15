@@ -14,7 +14,7 @@ export const cmZuPx = (cm: number) => Math.round(cm * PX_JE_CM);
 const stellen = (schritt: number) => (String(schritt).split('.')[1] ?? '').length;
 
 /** Auf den Schritt gerundet und auf die Grenzen gesetzt (196-10, 196-29). */
-export const rasteEin = (wert: number, { min, max, schritt }: Grenzen) => {
+export const rasteEin = (wert: number, { max, min, schritt }: Grenzen) => {
 	const gerundet = Number((Math.round(wert / schritt) * schritt).toFixed(stellen(schritt)));
 	return Math.min(max, Math.max(min, gerundet));
 };
@@ -35,7 +35,7 @@ export interface Grenzen {
 }
 
 /** Grenzen in px als Grenzen in cm; die Ränder bleiben so, dass sie umgerechnet innerhalb der px-Grenzen liegen. */
-export const grenzenInCm = ({ min, max, schritt }: Grenzen): Grenzen => {
+export const grenzenInCm = ({ max, min, schritt }: Grenzen): Grenzen => {
 	let von = Math.max(0.1, pxZuCm(min));
 	if (cmZuPx(von) < min) {
 		von = zehntel(von + 0.1);

@@ -120,7 +120,11 @@ const aendere = (
 	const z = zerlege(quelle);
 	const t = tabelleVon(z, nr);
 	const { modell, stelle } = rechne(leseModell(z, t), stelleVon(z, t, nr));
-	const neu = nummeriere(wendeAn(quelle, [{ von: t.start, bis: t.ende, text: modellHtml(ordne(modell)) }]), n, quelle);
+	const neu = nummeriere(
+		wendeAn(quelle, [{ von: t.start, bis: t.ende, text: modellHtml(ordne(modell)) }]),
+		n,
+		quelle,
+	);
 	return { quelle: neu, nr: auswahlNach(neu, t.start, stelle, z.knoten[nr]?.tag) };
 };
 

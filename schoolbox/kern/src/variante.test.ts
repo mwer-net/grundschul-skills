@@ -26,7 +26,8 @@ describe('Variante (050)', () => {
 	});
 
 	it('wuerfelbar: wahr genau dann, wenn Würfeln etwas ändert (188-33)', () => {
-		const mit = '<!doctype html><html><body><section class="seite"><x-zahlenmauer basis="3 5 2"></x-zahlenmauer></section></body></html>';
+		const mit =
+			'<!doctype html><html><body><section class="seite"><x-zahlenmauer basis="3 5 2"></x-zahlenmauer></section></body></html>';
 		const ohne = '<!doctype html><html><body><section class="seite"><p>Nur Text.</p></section></body></html>';
 		assert.equal(wuerfelbar(mit), true);
 		assert.equal(wuerfelbar(ohne), false);

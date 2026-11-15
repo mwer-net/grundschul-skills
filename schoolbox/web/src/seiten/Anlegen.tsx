@@ -198,7 +198,8 @@ export const MaterialDialog = ({
 	const zugeklappt = useRef<Partial<Record<FreitextFeld, string>>>({});
 
 	const wirksam = wirksameAntworten(antworten, vorbelegt, titelEigen, gewaehlt);
-	const klasseFachOffen = vorbelegt.quelle === 'behaelter' ? { fach: false, klasse: false } : offenVon(vorbelegt, gewaehlt);
+	const klasseFachOffen =
+		vorbelegt.quelle === 'behaelter' ? { fach: false, klasse: false } : offenVon(vorbelegt, gewaehlt);
 	const offenJetzt = useRef(klasseFachOffen);
 	offenJetzt.current = klasseFachOffen;
 	const ordnerAngabe = { ...ortAngabe, offen: klasseFachOffen, gewaehlt, mahnen };
@@ -662,7 +663,7 @@ export const MaterialDialog = ({
 			<SchrittKlasse
 				a={wirksam}
 				setze={setze}
-				schluss={
+				schluss={(
 					<StartHinweis
 						einheit={
 							wirksam.einheit ? (
@@ -673,7 +674,7 @@ export const MaterialDialog = ({
 						gesperrt={gesperrt}
 						pruefeLimit={ki.pruefeLimit}
 					/>
-				}
+				)}
 			/>
 		),
 		titel: () => (

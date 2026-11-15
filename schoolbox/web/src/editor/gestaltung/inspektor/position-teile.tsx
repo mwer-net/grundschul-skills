@@ -76,7 +76,7 @@ const seiteVon = (element: Element) => {
 	if (!seite?.matches('.seite') || element.hasAttribute('data-anker')) {
 		return null;
 	}
-	const html = seite as HTMLElement;
+	const html = seite;
 	return { b: html.offsetWidth, h: html.offsetHeight };
 };
 

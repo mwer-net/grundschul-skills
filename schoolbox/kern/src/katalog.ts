@@ -33,7 +33,7 @@ const AUFGABENPAKETE: readonly Omit<KatalogEintrag, 'herkunft'>[] = [
 		kategorie: 'Aufgaben',
 		suchbegriffe: ['Malfeld', 'Lineatur', 'Zeichnen', 'Schreiben'],
 		ort: 'seite',
-		html: `<div class="malfeld" style="--h:160px"></div><x-lineatur zeilen="3"></x-lineatur>`,
+		html: '<div class="malfeld" style="--h:160px"></div><x-lineatur zeilen="3"></x-lineatur>',
 		anweisung: 'Male. Schreibe dazu.',
 	},
 	{
@@ -216,8 +216,7 @@ export const passtZuBlatt = (e: Pick<KatalogEintrag, 'arten' | 'faecher' | 'klas
 export const gehtImBlatt = (
 	e: Pick<KatalogEintrag, 'arten' | 'kategorie' | 'klassen'>,
 	b: Pick<FuerBlatt, 'art' | 'klasse'>,
-) =>
-	(!e.klassen || e.klassen.includes(b.klasse)) && (e.kategorie !== 'Folien' || !e.arten || e.arten.includes(b.art));
+) => (!e.klassen || e.klassen.includes(b.klasse)) && (e.kategorie !== 'Folien' || !e.arten || e.arten.includes(b.art));
 
 const FAECHER_DER_BIBLIOTHEK: readonly Kategorie[] = KATALOG_BEREICHE[1].bereiche;
 const VORNE: readonly Kategorie[] = ['Aufgaben', 'Aufgabenformate'];

@@ -93,7 +93,8 @@ export const useEinfuegen = ({ auswahl, blatt, dokument, folien, nachher, ohneAu
 		const ok = struktur.fuehreAus(
 			`${e.name} eingefügt`,
 			(q) => {
-				const nr = wo !== null && typeof wo === 'object' ? ('in' in wo.ablage ? wo.ablage.in : wo.ablage.nr) : wo;
+				const nr =
+					wo !== null && typeof wo === 'object' ? ('in' in wo.ablage ? wo.ablage.in : wo.ablage.nr) : wo;
 				gefunden.da = schonDa(q, einfuegbar, nr);
 				if (gefunden.da) {
 					return { quelle: q, nr: gefunden.da.nr };
@@ -371,7 +372,17 @@ export const useSlash = ({ bearbeitet, beende, doc, halte, liste, waehle, zuletz
 	}, [gewaehlt, bearbeitet, waehle]);
 
 	const menue: SlashMenue | null = offen
-		? { n: offen.n, x: offen.x, oben: offen.oben, unten: offen.unten, liste, zuletzt, waehle: nimm, schliesse, brichAb }
+		? {
+				n: offen.n,
+				x: offen.x,
+				oben: offen.oben,
+				unten: offen.unten,
+				liste,
+				zuletzt,
+				waehle: nimm,
+				schliesse,
+				brichAb,
+			}
 		: null;
 	return { menue };
 };

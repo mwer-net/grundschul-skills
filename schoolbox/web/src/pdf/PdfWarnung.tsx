@@ -56,7 +56,7 @@ export const PdfWarnung = ({ ganzeMappe, mappe, meldungen, schliessen, weiter, w
 		<Dialog
 			titel="Beim Prüfen ist etwas aufgefallen"
 			schliessen={schliessen}
-			fuss={
+			fuss={(
 				<>
 					<Knopf art="zweit" onClick={nurEins && mappeDesBlatts ? imEditor : () => void kopiere()}>
 						<Symbol name={nurEins && mappeDesBlatts ? 'funken' : 'kopieren'} />
@@ -72,7 +72,7 @@ export const PdfWarnung = ({ ganzeMappe, mappe, meldungen, schliessen, weiter, w
 						{weiterTitel}
 					</Knopf>
 				</>
-			}
+			)}
 		>
 			<p>Du kannst das PDF trotzdem nehmen. Schau es dir aber vorher genau an:</p>
 			<div className="flex flex-col gap-3 rounded-xl bg-papier p-4">

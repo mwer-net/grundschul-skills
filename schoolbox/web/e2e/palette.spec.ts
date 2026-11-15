@@ -164,7 +164,9 @@ test.describe('Befehlspalette (073)', () => {
 		await expect(page.locator('[data-claude-blase]')).toHaveCount(0);
 	});
 
-	test('„Material anlegen“ ist ein Befehl: erste Zeile, öffnet den Assistenten bei „Start“ (190-05)', async ({ page }) => {
+	test('„Material anlegen“ ist ein Befehl: erste Zeile, öffnet den Assistenten bei „Start“ (190-05)', async ({
+		page,
+	}) => {
 		await page.goto('/');
 		await page.keyboard.press('ControlOrMeta+k');
 		await feld(page).fill('mat');

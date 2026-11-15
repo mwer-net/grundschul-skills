@@ -18,17 +18,9 @@ export const AUSWAHL = 'auswahl';
  * Alles außer V (5.10). Ein Ticket füllt nur seine Datei und trägt hier nichts ein. 198 (Urteil 1): Den Stern zum
  * Aufziehen gibt es nicht mehr; er hatte keine Taste und ist als Kachel da.
  */
-const ZEICHNEN: readonly Werkzeug[] = [
-	rechteck,
-	ellipse,
-	vieleck,
-	linie,
-	text,
-	stift,
-	pfad,
-	streuen,
-	test,
-].filter((w): w is Werkzeug => w !== null);
+const ZEICHNEN: readonly Werkzeug[] = [rechteck, ellipse, vieleck, linie, text, stift, pfad, streuen, test].filter(
+	(w): w is Werkzeug => w !== null,
+);
 
 /**
  * Die Werkzeuge (098, Andockstelle): V und alle, die ein Ticket gefüllt hat. V ist bereit, sobald ein anderes

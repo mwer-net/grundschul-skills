@@ -167,7 +167,9 @@ export const ordnerApi = (kontext: Kontext) => {
 						klasse: mappe.klasse,
 						ordner: baum.dokumente[dokKnotenSchluessel(mappe.id, id)]?.ordner ?? null,
 						vorschau: await kontext.vorschau.stand(mappe.id, id, false),
-						wuerfelbar: await istWuerfelbar(path.join(dokumentDir(materialDir, mappe.id, id), 'material.html')),
+						wuerfelbar: await istWuerfelbar(
+							path.join(dokumentDir(materialDir, mappe.id, id), 'material.html'),
+						),
 						// Das PDF-Menü der Ablage ist dasselbe wie überall (191-N01).
 						echteMasse: await hatEchteMasse(materialDir, mappe.id, id),
 					})),

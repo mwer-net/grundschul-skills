@@ -75,7 +75,12 @@ export const Dialog = ({ breit, children, fuss, schliessen, titel }: Eigenschaft
 		}
 		const element = dialog.current;
 		const mitBefehl = ereignis.metaKey || ereignis.ctrlKey;
-		if (!element || ereignis.shiftKey || ereignis.altKey || (!mitBefehl && !enterBestaetigt(ereignis.target, element))) {
+		if (
+			!element ||
+			ereignis.shiftKey ||
+			ereignis.altKey ||
+			(!mitBefehl && !enterBestaetigt(ereignis.target, element))
+		) {
 			return;
 		}
 		const knopf = hauptaktion(element);

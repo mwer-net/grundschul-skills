@@ -313,7 +313,13 @@ export const Inhalt = (t: SchubladenTeile) => {
 					eintraege={[
 						...(figur.eingebaut
 							? []
-							: [{ titel: 'Figur umbenennen', symbol: 'stift' as const, waehle: () => setUmbenennen(figur.id) }]),
+							: [
+									{
+										titel: 'Figur umbenennen',
+										symbol: 'stift' as const,
+										waehle: () => setUmbenennen(figur.id),
+									},
+								]),
 						{
 							titel: grundpose ? 'Figur entfernen' : 'Pose entfernen',
 							symbol: 'papierkorb',

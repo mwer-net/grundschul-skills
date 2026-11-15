@@ -87,7 +87,11 @@ export const seitenIn = (doc: Document) =>
 /** Die Seite des Blatts um `element`, nicht eine Karte darin: Zu ihr zählen `seite` und die Rechtecke. */
 const aeussereSeite = (element: Element | null | undefined) => {
 	let seite = element?.closest('.seite') ?? null;
-	for (let aussen = seite?.parentElement?.closest('.seite'); aussen; aussen = aussen.parentElement?.closest('.seite')) {
+	for (
+		let aussen = seite?.parentElement?.closest('.seite');
+		aussen;
+		aussen = aussen.parentElement?.closest('.seite')
+	) {
 		seite = aussen;
 	}
 	return seite;
@@ -128,7 +132,9 @@ const breiteStatt = (doc: Document, m: Meldung, ziele: MeldungZiel[]) => {
 	for (const z of ziele) {
 		const element = z.sb === null ? null : elementZu(doc, z.sb);
 		const tag = element?.localName ?? '';
-		const feld = tag.startsWith('x-') ? schemaVon(tag)?.felder.find((f) => f.art === 'zahl' && f.bisZumRand) : undefined;
+		const feld = tag.startsWith('x-')
+			? schemaVon(tag)?.felder.find((f) => f.art === 'zahl' && f.bisZumRand)
+			: undefined;
 		if (feld) {
 			return `Die Abbildung antippen und rechts „${feld.name}“ verringern.`;
 		}
@@ -152,7 +158,12 @@ const ausBericht = (doc: Document, meldungen: Meldung[]): Pruefpunkt[] => {
 				? []
 				: ziele
 						.filter((z) => !ganzeSeite(z))
-						.map(({ rechteck: [x = 0, y = 0, breite = 0, hoehe = 0] }) => ({ links: x, oben: y, breite, hoehe }));
+						.map(({ rechteck: [x = 0, y = 0, breite = 0, hoehe = 0] }) => ({
+							links: x,
+							oben: y,
+							breite,
+							hoehe,
+						}));
 		const bausteine = ziele.flatMap((z) => {
 			const nr = z.sb === null ? null : trefferAn(elementZu(doc, z.sb))?.nr;
 			return nr === null || nr === undefined ? [] : [nr];

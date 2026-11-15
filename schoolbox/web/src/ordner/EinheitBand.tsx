@@ -143,13 +143,10 @@ export const EinheitBand = ({ s }: { s: EinheitStand }) => {
 						aktion: {
 							titel: 'Rückgängig',
 							ausfuehren: () => {
-								sende(`/api/einheiten/${s.id}/zurueckholen`).then(
-									() => {
-										void navigate(`/o/${s.ordner}`);
-										zeige({ text: 'Rückgängig gemacht.' });
-									},
-									fehler,
-								);
+								sende(`/api/einheiten/${s.id}/zurueckholen`).then(() => {
+									void navigate(`/o/${s.ordner}`);
+									zeige({ text: 'Rückgängig gemacht.' });
+								}, fehler);
 							},
 						},
 					}

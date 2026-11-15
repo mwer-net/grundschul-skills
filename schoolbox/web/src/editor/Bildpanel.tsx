@@ -373,7 +373,8 @@ const Hinweise = ({ adresse, w }: { adresse: string; w: BildWerte }) => {
 			{w.unscharf && (
 				<p className="flex gap-2 rounded-xl bg-warnung-hell p-3" data-hinweis="dpi">
 					<Symbol name="achtung" className="size-3.5 flex-none" />
-					Das Bild ist für diese Größe zu klein und wird im Druck unscharf. Mach es kleiner oder nimm ein größeres Bild.
+					Das Bild ist für diese Größe zu klein und wird im Druck unscharf. Mach es kleiner oder nimm ein
+					größeres Bild.
 				</p>
 			)}
 		</div>
@@ -504,7 +505,9 @@ export const Bildwerkzeug = ({ bild }: { bild: BildSteuerung }) => {
 			<Zeile titel={w.platzhalter ? 'Bild einsetzen' : 'Austauschen'} darunter>
 				<div className="flex flex-col gap-1">
 					{bild.arbeit === 'hochladen' || bild.arbeit === 'sammlung' ? (
-						<Laeuft text={bild.arbeit === 'hochladen' ? 'Foto wird hochgeladen …' : 'Bild wird eingesetzt …'} />
+						<Laeuft
+							text={bild.arbeit === 'hochladen' ? 'Foto wird hochgeladen …' : 'Bild wird eingesetzt …'}
+						/>
 					) : (
 						<>
 							<Hochladen bild={bild} breit aus={aus} />

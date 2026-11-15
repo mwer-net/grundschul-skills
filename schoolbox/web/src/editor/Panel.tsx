@@ -136,11 +136,11 @@ export const Texteingabe = ({
 	wert,
 	...rest
 }: {
-	wert: string;
-	setze: (wert: string) => void;
-	name?: string;
-	leerErlaubt?: boolean;
-	aus?: boolean;
+	'wert': string;
+	'setze': (wert: string) => void;
+	'name'?: string;
+	'leerErlaubt'?: boolean;
+	'aus'?: boolean;
 	'data-einstellung'?: string;
 }) => {
 	const [text, setText] = useState(wert);
@@ -260,8 +260,8 @@ export const Spaltenwahl = ({
 export const KitWerkzeug = ({
 	abschnitt,
 	art,
-	folien,
 	aus = false,
+	folien,
 	nr,
 	nur,
 	quelle,
@@ -351,7 +351,9 @@ export const KitWerkzeug = ({
 						/>
 					);
 				}
-				const feld = <Texteingabe wert={String(wert)} name={titel} aus={aus} setze={(t) => setze(f.name, titel, t)} />;
+				const feld = (
+					<Texteingabe wert={String(wert)} name={titel} aus={aus} setze={(t) => setze(f.name, titel, t)} />
+				);
 				// 196-33: Heißt das Feld wie sein Abschnitt („Lösung“), steht der Name nur einmal.
 				return titel === ABSCHNITT_TITEL[abschnitt] ? (
 					<div key={f.name}>{feld}</div>
@@ -584,11 +586,13 @@ export const Blattwerkzeug = ({
 						</span>
 						<span className="ml-auto flex flex-none items-center gap-2">
 							{gesetzt && (
-								<Tooltip text={
+								<Tooltip
+									text={
 										vorgabe === null
 											? 'Eigenen Abstand entfernen'
 											: `Zurück zur Vorgabe: ${cm(vorgabe)}`
-									}>
+									}
+								>
 									<button
 										type="button"
 										data-abstand-vorgabe

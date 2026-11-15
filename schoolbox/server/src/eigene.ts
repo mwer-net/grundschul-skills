@@ -1,8 +1,8 @@
 import {
 	benenneBausteinUm,
-	GELOESCHT_FRIST_MS,
 	bilderIn,
 	dokumentDir,
+	GELOESCHT_FRIST_MS,
 	holeEigenenBausteinZurueck,
 	leereGeloeschte,
 	legeInSammlung,

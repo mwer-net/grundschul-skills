@@ -45,8 +45,8 @@ interface Optionen {
 export const useText = ({
 	auswahl,
 	bearbeitbar,
-	befehl,
 	beendet,
+	befehl,
 	geladen,
 	geschichte,
 	getippt,

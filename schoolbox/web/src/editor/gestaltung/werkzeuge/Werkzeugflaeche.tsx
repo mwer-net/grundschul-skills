@@ -1,7 +1,7 @@
-import type { Einblendung } from '../../Leinwand';
-import type { Struktur } from '../../struktur';
 import { useEffect } from 'react';
 
+import type { Einblendung } from '../../Leinwand';
+import type { Struktur } from '../../struktur';
 import { Testfach } from '../Testfach';
 import { imTest } from '../testzugang';
 import { WertAmZeiger } from '../wert-am-zeiger';

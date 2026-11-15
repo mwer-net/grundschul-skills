@@ -86,7 +86,9 @@ const seiteFliesst = (z: Zerlegung, seite: Knoten) =>
 
 const folgtDirekt = (davor: Knoten, seite: Knoten) => {
 	const geschwister = davor.eltern?.kinder;
-	return Boolean(geschwister && seite.eltern === davor.eltern && geschwister[geschwister.indexOf(davor) + 1] === seite);
+	return Boolean(
+		geschwister && seite.eltern === davor.eltern && geschwister[geschwister.indexOf(davor) + 1] === seite,
+	);
 };
 
 export const flussbloeckeVon = (seite: Knoten) => seite.kinder.filter(istFlussblock).map((k) => k.nr);

@@ -112,7 +112,10 @@ const ClaudeStand = ({ lauf, oeffne }: { lauf: ClaudeLauf; oeffne: () => void })
 			data-claude-stand={lauf.art}
 			onClick={oeffne}
 		>
-			<Symbol name={lauf.art === 'laeuft' || lauf.art === 'wartet' ? 'laden' : 'funken'} className="size-3 flex-none" />
+			<Symbol
+				name={lauf.art === 'laeuft' || lauf.art === 'wartet' ? 'laden' : 'funken'}
+				className="size-3 flex-none"
+			/>
 			{laufTitel(lauf, sekunden)}
 		</button>
 	);
@@ -143,12 +146,12 @@ export const Statusleiste = ({
 	folien,
 	format,
 	fuehreAus,
+	knopf,
 	pruefung,
 	rechtsOffen,
 	seite,
 	setRechtsOffen,
 	skala,
-	knopf,
 	zeigeClaude,
 	zeigePunkt,
 	zoom,

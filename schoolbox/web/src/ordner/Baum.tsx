@@ -106,76 +106,76 @@ const BaumZeile = ({
 		}
 	}, [aktiv]);
 	return (
-	<div
-		ref={zeile}
-		role="treeitem"
-		aria-selected={aktiv}
-		aria-expanded={dreieck === null ? undefined : dreieck === 'auf'}
-		aria-disabled={aus || undefined}
-		tabIndex={-1}
-		data-baum-ordner={id ?? 'wurzel'}
-		data-ablage-ziel={id ?? 'wurzel'}
-		className={klassen(
-			'ablage-objekt flex h-[var(--hoehe-baumzeile)] items-center gap-1 rounded-md pr-1 text-sm select-none',
-			aktiv ? 'bg-brand-100 font-medium text-tinte' : 'text-tinte hover:bg-flaeche-2',
-			aus && 'opacity-40',
-			blass && 'opacity-50',
-		)}
-		style={{ paddingLeft: einzug(tiefe) }}
-		onPointerDown={ziehen}
-		onClick={() => {
-			if (!aus) {
-				waehle();
-			}
-		}}
-		onFocus={(e) => {
-			if (waehleBeiFokus && !aus && e.target === e.currentTarget) {
-				waehle();
-			}
-		}}
-		onKeyDown={(e: KeyboardEvent<HTMLDivElement>) => {
-			if (e.target !== e.currentTarget) {
-				return;
-			}
-			if (e.key === 'Enter' && !aus && !waehleBeiFokus) {
-				waehle();
-			} else if (pfeilImBaum(e, dreieck, klappe)) {
-				e.preventDefault();
-				e.stopPropagation();
-			}
-		}}
-		onContextMenu={kontext}
-	>
-		{dreieck ? (
-			<button
-				type="button"
-				aria-label={dreieck === 'auf' ? 'Zuklappen' : 'Aufklappen'}
-				className="baum-dreieck flex size-4 flex-none items-center justify-center rounded-sm text-dezent hover:bg-rand"
-				onClick={(e) => {
+		<div
+			ref={zeile}
+			role="treeitem"
+			aria-selected={aktiv}
+			aria-expanded={dreieck === null ? undefined : dreieck === 'auf'}
+			aria-disabled={aus || undefined}
+			tabIndex={-1}
+			data-baum-ordner={id ?? 'wurzel'}
+			data-ablage-ziel={id ?? 'wurzel'}
+			className={klassen(
+				'ablage-objekt flex h-[var(--hoehe-baumzeile)] items-center gap-1 rounded-md pr-1 text-sm select-none',
+				aktiv ? 'bg-brand-100 font-medium text-tinte' : 'text-tinte hover:bg-flaeche-2',
+				aus && 'opacity-40',
+				blass && 'opacity-50',
+			)}
+			style={{ paddingLeft: einzug(tiefe) }}
+			onPointerDown={ziehen}
+			onClick={() => {
+				if (!aus) {
+					waehle();
+				}
+			}}
+			onFocus={(e) => {
+				if (waehleBeiFokus && !aus && e.target === e.currentTarget) {
+					waehle();
+				}
+			}}
+			onKeyDown={(e: KeyboardEvent<HTMLDivElement>) => {
+				if (e.target !== e.currentTarget) {
+					return;
+				}
+				if (e.key === 'Enter' && !aus && !waehleBeiFokus) {
+					waehle();
+				} else if (pfeilImBaum(e, dreieck, klappe)) {
+					e.preventDefault();
 					e.stopPropagation();
-					klappe?.(e.altKey);
-				}}
-			>
-				<Symbol name={dreieck === 'auf' ? 'runter' : 'rechts'} className="size-3" />
-			</button>
-		) : (
-			id !== null && <span className="size-4 flex-none" />
-		)}
-		<Symbol name={symbol} className={klassen('size-3.5 flex-none', aktiv ? 'text-brand-600' : 'text-leise')} />
-		{typeof name === 'string' ? (
-			<Gekuerzt text={name} className="flex-1" />
-		) : (
-			<span className="min-w-0 flex-1 truncate">{name}</span>
-		)}
-		{geteilt && (
-			<Tooltip text="Geteilt">
-				<span className="flex-none text-dezent">
-					<Symbol name="teilen" className="size-3" />
-					<span className="sr-only">geteilt</span>
-				</span>
-			</Tooltip>
-		)}
-	</div>
+				}
+			}}
+			onContextMenu={kontext}
+		>
+			{dreieck ? (
+				<button
+					type="button"
+					aria-label={dreieck === 'auf' ? 'Zuklappen' : 'Aufklappen'}
+					className="baum-dreieck flex size-4 flex-none items-center justify-center rounded-sm text-dezent hover:bg-rand"
+					onClick={(e) => {
+						e.stopPropagation();
+						klappe?.(e.altKey);
+					}}
+				>
+					<Symbol name={dreieck === 'auf' ? 'runter' : 'rechts'} className="size-3" />
+				</button>
+			) : (
+				id !== null && <span className="size-4 flex-none" />
+			)}
+			<Symbol name={symbol} className={klassen('size-3.5 flex-none', aktiv ? 'text-brand-600' : 'text-leise')} />
+			{typeof name === 'string' ? (
+				<Gekuerzt text={name} className="flex-1" />
+			) : (
+				<span className="min-w-0 flex-1 truncate">{name}</span>
+			)}
+			{geteilt && (
+				<Tooltip text="Geteilt">
+					<span className="flex-none text-dezent">
+						<Symbol name="teilen" className="size-3" />
+						<span className="sr-only">geteilt</span>
+					</span>
+				</Tooltip>
+			)}
+		</div>
 	);
 };
 

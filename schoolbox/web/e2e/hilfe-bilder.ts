@@ -167,7 +167,10 @@ test.describe('Bildschirmfotos für die Hilfe', () => {
 			(window as unknown as { praesentation: { gehe: (n: number) => void } }).praesentation.gehe(2);
 		});
 		const antworten = page.frameLocator('iframe').locator('.seite.aktiv .vermutung');
-		for (const [i, anzahl] of [[0, 2], [1, 7]] as const) {
+		for (const [i, anzahl] of [
+			[0, 2],
+			[1, 7],
+		] as const) {
 			for (let k = 0; k < anzahl; k++) {
 				await druecke(antworten.nth(i));
 			}

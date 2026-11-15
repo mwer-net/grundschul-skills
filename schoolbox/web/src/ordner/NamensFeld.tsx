@@ -50,7 +50,9 @@ export const NamensFeld = ({ className, objekt }: Eigenschaften) => {
 		try {
 			await tu(
 				{ art: 'umbenennen', knoten: objekt.knoten, name },
-				frisch ? { stillerFehler: true } : { stillerFehler: true, text: () => `„${objekt.name}“ heißt jetzt „${name}“.` },
+				frisch
+					? { stillerFehler: true }
+					: { stillerFehler: true, text: () => `„${objekt.name}“ heißt jetzt „${name}“.` },
 			);
 			setBenennen(null);
 			fertigImDialog();

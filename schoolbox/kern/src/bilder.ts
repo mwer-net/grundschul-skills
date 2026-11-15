@@ -356,7 +356,10 @@ const materialien = async (materialDir: string) => {
 	);
 };
 
-const pruefsumme = async (datei: string) => createHash('sha256').update(await readFile(datei)).digest('hex');
+const pruefsumme = async (datei: string) =>
+	createHash('sha256')
+		.update(await readFile(datei))
+		.digest('hex');
 
 /**
  * 199-06: Je Gruppe erscheint eine Datei gleichen Inhalts einmal (jedes Material hat seine Kopie). Gleiche Größe ist
@@ -483,7 +486,9 @@ const eigeneBilddatei = (materialDir: string, schluessel: string) => {
 	}
 	pruefeId(anfang, 'Mappe');
 	const rest = teile.slice(1);
-	const ok = (rest.length === 2 && rest[0] === BILDER) || (rest.length === 4 && rest[0] === 'dokumente' && rest[2] === BILDER);
+	const ok =
+		(rest.length === 2 && rest[0] === BILDER) ||
+		(rest.length === 4 && rest[0] === 'dokumente' && rest[2] === BILDER);
 	if (!ok) {
 		throw ungueltig();
 	}

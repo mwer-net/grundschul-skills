@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import { describe, it } from 'node:test';
 
-import { LEISTEN_ABSTAND, lageDerLeiste, schneiden } from './leistenlage';
+import { lageDerLeiste, LEISTEN_ABSTAND, schneiden } from './leistenlage';
 
 const SICHT = { links: 0, rechts: 1000, oben: 0, unten: 800 };
 const MASS = { breite: 300, hoehe: 30 };
@@ -9,7 +9,11 @@ const MASS = { breite: 300, hoehe: 30 };
 describe('Lage der Leiste (204-15, 204-16)', () => {
 	it('über dem Element, rechtsbündig', () => {
 		const box = { links: 100, rechts: 700, oben: 200, unten: 300 };
-		assert.deepEqual(lageDerLeiste(box, MASS, SICHT), { links: 400, top: 200 - 30 - LEISTEN_ABSTAND, wahl: 'oben:-300' });
+		assert.deepEqual(lageDerLeiste(box, MASS, SICHT), {
+			links: 400,
+			top: 200 - 30 - LEISTEN_ABSTAND,
+			wahl: 'oben:-300',
+		});
 	});
 
 	it('ein schmales Element: Die Leiste beginnt an seiner linken Kante und bleibt im Sichtfeld', () => {

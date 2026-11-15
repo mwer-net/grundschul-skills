@@ -10,11 +10,11 @@ export const VonHand = ({ schliessen, text }: { text: string; schliessen: () => 
 		<Dialog
 			titel="In der Claude-App weiterarbeiten"
 			schliessen={schliessen}
-			fuss={
+			fuss={(
 				<Knopf onClick={schliessen} data-hauptaktion>
 					Fertig
 				</Knopf>
-			}
+			)}
 		>
 			<label className="flex flex-col gap-2">
 				<span>

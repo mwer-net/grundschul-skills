@@ -132,7 +132,8 @@ export const lageDerLeiste = (
 			const weg =
 				Math.max(0, box.links - r.right, r.left - box.rechts) +
 				Math.max(0, box.oben - frei - A - r.bottom, r.top - box.unten - A);
-			const w = umfeld.inhalt.reduce((summe, c) => summe + flaeche(r, c), 0) + eigen + weg * ENTFERNUNG + i / 1000;
+			const w =
+				umfeld.inhalt.reduce((summe, c) => summe + flaeche(r, c), 0) + eigen + weg * ENTFERNUNG + i / 1000;
 			if (w < wert) {
 				wert = w;
 				beste = p;
@@ -227,7 +228,9 @@ export const umfeldDerLeiste = (
 			top: r.top * e.skala - LUFT,
 			bottom: r.bottom * e.skala + LUFT,
 		})),
-		seite: sr ? { links: k(sr.left), rechts: k(sr.right), oben: sr.top * e.skala, unten: sr.bottom * e.skala } : null,
+		seite: sr
+			? { links: k(sr.left), rechts: k(sr.right), oben: sr.top * e.skala, unten: sr.bottom * e.skala }
+			: null,
 	};
 };
 

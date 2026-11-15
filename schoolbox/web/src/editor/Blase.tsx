@@ -296,17 +296,7 @@ interface FeldAngaben {
 }
 
 /** Im Lauf bleibt „Senden“ gesperrt an seinem Platz; abgebrochen wird in der Laufzeile (200-09). */
-const Feld = ({
-	breite,
-	entwurf,
-	feld,
-	kannSenden,
-	platzhalter,
-	sende,
-	setEntwurf,
-	setZitat,
-	zitat,
-}: FeldAngaben) => {
+const Feld = ({ breite, entwurf, feld, kannSenden, platzhalter, sende, setEntwurf, setZitat, zitat }: FeldAngaben) => {
 	useLayoutEffect(() => {
 		const el = feld.current;
 		if (el) {
@@ -460,8 +450,8 @@ const Inhalt = ({
 	claude,
 	darstellung,
 	jetzt,
-	verworfen,
 	vergleichen,
+	verworfen,
 }: {
 	bild: Lagebild;
 	claude: Claude;
@@ -599,7 +589,8 @@ const Blase = ({ adresse, claude, darstellung, e, f, jetzt, nr, seiten }: Blasen
 	const art = pfadZu(e.doc, nr).at(-1)?.baustein.art ?? '';
 	// 200-06: Am Element nur, was zu seiner Art passt; Gestaltungselemente haben keine.
 	const passt = (a: KiAktion) =>
-		a.auf.some((u) => umfaenge.includes(u)) && (umfaenge.includes('baustein') ? (a.arten ?? []).includes(art) : true);
+		a.auf.some((u) => umfaenge.includes(u)) &&
+		(umfaenge.includes('baustein') ? (a.arten ?? []).includes(art) : true);
 	const aktionen = gesperrt || f.verlauf.length > 0 || f.entwurf.trim() ? [] : claude.aktionen.filter(passt);
 	const kannSenden = Boolean(f.entwurf.trim()) && claude.sperreVon(f) === null;
 	const warten = warteHinweis(claude, bild, bezug);
@@ -677,13 +668,7 @@ const Blase = ({ adresse, claude, darstellung, e, f, jetzt, nr, seiten }: Blasen
 					style={{ left: lage.spitze - 7 }}
 					data-claude-spitze
 				/>
-				<Kopf
-					bezug={bezug(f)}
-					feld={feld}
-					stufen={stufen}
-					mehr={mehr}
-					schliessen={claude.einklappen}
-				/>
+				<Kopf bezug={bezug(f)} feld={feld} stufen={stufen} mehr={mehr} schliessen={claude.einklappen} />
 				<div
 					ref={liste}
 					className="flex max-h-[360px] min-h-0 flex-col gap-2 overflow-y-auto px-3 py-2 empty:hidden"

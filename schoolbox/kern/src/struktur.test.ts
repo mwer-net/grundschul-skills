@@ -266,8 +266,10 @@ describe('nummeriere', () => {
 });
 
 describe('Zählbereiche bleiben, wie sie gezählt waren (206, Nachbesserung 3)', () => {
-	const mitNr = (n: number | string) => `<div class="aufgabe"><span class="nr">${n}</span><div class="anw"><span class="text">A${n}</span></div></div>`;
-	const blatt = (...nrn: (number | string)[]) => `<section class="seite">\n  ${nrn.map(mitNr).join('\n  ')}\n</section>`;
+	const mitNr = (n: number | string) =>
+		`<div class="aufgabe"><span class="nr">${n}</span><div class="anw"><span class="text">A${n}</span></div></div>`;
+	const blatt = (...nrn: (number | string)[]) =>
+		`<section class="seite">\n  ${nrn.map(mitNr).join('\n  ')}\n</section>`;
 	const dok = (...seiten: string[]) => `<html><body>\n${seiten.join('\n')}\n</body></html>`;
 	/** Wie im großen Übungsheft: Seite 1 und 2 zählen je für sich, Seite 4 setzt Seite 3 fort, dazu eine Bewertung. */
 	const HEFT = dok(blatt(1, 2, 3), blatt(1, 2), blatt(1, 2), blatt(3, 4), blatt(1));
@@ -293,14 +295,33 @@ describe('Zählbereiche bleiben, wie sie gezählt waren (206, Nachbesserung 3)',
 	it('am Anfang einer eigenen Zählung: die neue Aufgabe ist 1, der Bereich zählt weiter', () => {
 		const ziel = aufgabe(HEFT, 3);
 		const neu = `${HEFT.slice(0, ziel.start)}${mitNr(0)}\n  ${HEFT.slice(ziel.start)}`;
-		assert.deepEqual(nummern(nummeriere(neu, BLATT, HEFT)), ['1', '2', '3', '1', '2', '3', '1', '2', '3', '4', '1']);
+		assert.deepEqual(nummern(nummeriere(neu, BLATT, HEFT)), [
+			'1',
+			'2',
+			'3',
+			'1',
+			'2',
+			'3',
+			'1',
+			'2',
+			'3',
+			'4',
+			'1',
+		]);
 	});
 
 	it('einseitig und durchlaufend gezählt: wie bisher durch das ganze Dokument', () => {
 		const eine = dok(blatt(1, 2, 3));
 		assert.deepEqual(nummern(dupliziereBaustein(eine, aufgabe(eine, 0).nr, BLATT).quelle), ['1', '2', '3', '4']);
 		const durch = dok(blatt(1, 2), blatt(3, 4), blatt(5));
-		assert.deepEqual(nummern(dupliziereBaustein(durch, aufgabe(durch, 0).nr, BLATT).quelle), ['1', '2', '3', '4', '5', '6']);
+		assert.deepEqual(nummern(dupliziereBaustein(durch, aufgabe(durch, 0).nr, BLATT).quelle), [
+			'1',
+			'2',
+			'3',
+			'4',
+			'5',
+			'6',
+		]);
 	});
 
 	it('unklare Zählung: nur der Bereich der Änderung zählt neu, der Rest bleibt', () => {
@@ -465,7 +486,12 @@ describe('Schritte einer Folie (192-16)', () => {
 	});
 
 	it('auf eine andere Folie verschoben: eigener Schritt dort, keine Lücke auf der alten', () => {
-		const { quelle } = verschiebeBaustein(FOLIE, zeile(FOLIE, 1).nr, { nr: zeile(FOLIE, 3).nr, wo: 'nach' }, FOLIEN);
+		const { quelle } = verschiebeBaustein(
+			FOLIE,
+			zeile(FOLIE, 1).nr,
+			{ nr: zeile(FOLIE, 3).nr, wo: 'nach' },
+			FOLIEN,
+		);
 		assert.deepEqual(schritte(quelle, 0), ['1', '2']);
 		assert.deepEqual(schritte(quelle, 1), ['1', '2', '1']);
 	});

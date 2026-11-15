@@ -2,16 +2,7 @@ import assert from 'node:assert/strict';
 import { describe, it } from 'node:test';
 
 import type { LinksStand, LinksZeigt } from './spalten';
-import {
-	ALT,
-	angezeigt,
-	BREITE,
-	istEng,
-	linksAusSpeicher,
-	schalte,
-	sichtbar,
-	SPEICHER,
-} from './spalten';
+import { ALT, angezeigt, BREITE, istEng, linksAusSpeicher, schalte, sichtbar, SPEICHER } from './spalten';
 
 const BEREIT = () => true;
 const stand = (mehr: Partial<LinksStand> = {}): LinksStand => ({

@@ -496,8 +496,20 @@ export const KIT_KATALOG: readonly KitEintrag[] = [
 		ort: 'seite',
 		arten: MIT_NAMENSZEILE,
 	},
-	{ id: 'kopf', name: 'Kopf', kategorie: 'Blatt', suchbegriffe: ['Titel', 'Überschrift', 'Lernziel', 'Wahlhilfe'], ort: 'seite' },
-	{ id: 'tipp', art: 'tipp', kategorie: 'Blatt', suchbegriffe: ['Leitfigur', 'Hilfe', 'Sprechblase', 'Willi'], ort: 'seite' },
+	{
+		id: 'kopf',
+		name: 'Kopf',
+		kategorie: 'Blatt',
+		suchbegriffe: ['Titel', 'Überschrift', 'Lernziel', 'Wahlhilfe'],
+		ort: 'seite',
+	},
+	{
+		id: 'tipp',
+		art: 'tipp',
+		kategorie: 'Blatt',
+		suchbegriffe: ['Leitfigur', 'Hilfe', 'Sprechblase', 'Willi'],
+		ort: 'seite',
+	},
 	{ id: 'platzhalter', art: 'platzhalter', kategorie: 'Blatt', suchbegriffe: ['Bild', 'Foto'], ort: 'aufgabe' },
 	// Fläche im Stapel: Platz zum freien Gestalten zwischen den Aufgaben (Briefing 3.7); Starter in `muster/bausteine.html`
 	{
@@ -548,7 +560,13 @@ export const KIT_KATALOG: readonly KitEintrag[] = [
 		html: '<div class="aufgabe"><span class="nr">1</span><div class="anw"><span class="text">Anweisung</span></div><div class="koerper"></div></div>',
 	},
 	{ id: 'text', art: 'absatz', kategorie: 'Aufgaben', suchbegriffe: ['Absatz', 'Fließtext'], ort: 'aufgabe' },
-	{ id: 'reihe', art: 'reihe', kategorie: 'Aufgaben', suchbegriffe: ['Spalten', 'Raster', 'Eintrag'], ort: 'aufgabe' },
+	{
+		id: 'reihe',
+		art: 'reihe',
+		kategorie: 'Aufgaben',
+		suchbegriffe: ['Spalten', 'Raster', 'Eintrag'],
+		ort: 'aufgabe',
+	},
 	{
 		id: 'tabelle',
 		art: 'tabelle',
@@ -707,11 +725,21 @@ export const KIT_KATALOG: readonly KitEintrag[] = [
 			// „Tipp“ oder Schublade „Werkzeuge“ › Blasen
 			{ id: 'blase', art: 'blase', suchbegriffe: ['Sprechblase', 'Sagen'], ort: 'zeile' },
 			// Schublade „Figuren“; `figuren-daten.ts` nimmt den Starter von `willi` für ⌘-Ziehen (199)
-			...FIGUREN.map((f) => ({ id: f.id, name: f.name, suchbegriffe: [...f.suchwoerter], ort: 'zeile' as const })),
+			...FIGUREN.map((f) => ({
+				id: f.id,
+				name: f.name,
+				suchbegriffe: [...f.suchwoerter],
+				ort: 'zeile' as const,
+			})),
 			// „Duplizieren“ an der Karte
 			{ id: 'karte', art: 'karte', suchbegriffe: ['Wortkarte', 'Bildkarte'], ort: 'zeile' },
 			// „Silben“
-			{ id: 'silbentext', name: 'Silbentext', suchbegriffe: ['Silbenbögen', 'Lesen lernen', 'Text'], ort: 'aufgabe' },
+			{
+				id: 'silbentext',
+				name: 'Silbentext',
+				suchbegriffe: ['Silbenbögen', 'Lesen lernen', 'Text'],
+				ort: 'aufgabe',
+			},
 		] satisfies Omit<KitEintrag, 'kategorie'>[]
 	).map((e): KitEintrag => ({ ...e, kategorie: 'Blatt', angeboten: false })),
 ];

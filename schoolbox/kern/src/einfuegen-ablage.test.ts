@@ -1,8 +1,8 @@
 import assert from 'node:assert/strict';
 import { describe, it } from 'node:test';
 
-import { fuegeBausteinAn, huelleImStapel } from './einfuegen-ablage';
 import { fuegeBausteinEin } from './einfuegen';
+import { fuegeBausteinAn, huelleImStapel } from './einfuegen-ablage';
 import { attribut, klassenVon, zerlege } from './quelltext';
 
 const aufgabe = (text: string, nr = '1') =>

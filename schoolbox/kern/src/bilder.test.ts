@@ -452,6 +452,10 @@ describe('Doppelte und entfernte Bilder (199)', () => {
 		assert.equal(existsSync(path.join(bilder, 'falsch.png')), false);
 		assert.equal(existsSync(path.join(bilder, 'bleibt.png')), true, 'genutzt bleibt');
 		const s = await sammleBilder(KONFIG, materialDir, hier.mappe);
-		assert.equal(s.mappe.some((b) => b.name === 'bleibt.png'), false, 'bleibt aber ausgeblendet');
+		assert.equal(
+			s.mappe.some((b) => b.name === 'bleibt.png'),
+			false,
+			'bleibt aber ausgeblendet',
+		);
 	});
 });

@@ -74,7 +74,9 @@ const fastWortanfang = (wort: string, text: string) =>
 	wort.length >= TIPPFEHLER_AB &&
 	text
 		.split(WORTGRENZE)
-		.some((w) => [-1, 0, 1].some((d) => w.length >= wort.length + d && einFehler(wort, w.slice(0, wort.length + d))));
+		.some((w) =>
+			[-1, 0, 1].some((d) => w.length >= wort.length + d && einFehler(wort, w.slice(0, wort.length + d))),
+		);
 
 /**
  * Nur Treffer, die man nachvollziehen kann: ganzes Wort, Anfang, Wortanfang, Teilwort, ab fünf Buchstaben ein

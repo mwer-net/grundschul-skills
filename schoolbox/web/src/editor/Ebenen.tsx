@@ -25,13 +25,13 @@ import { bausteinVon, elementZu, nrVon } from './darstellung';
 import type { EbenenZiel } from './ebenen-legen';
 import { legeInEbenen, seiteUm } from './ebenen-legen';
 import { lageInSeite, messeAnhaengen } from './gestaltung/anker-lage';
-import { setzeHover, useHover } from './hover-verknuepfung';
 import type { EbenenZeichen } from './gestaltung/ebenen-zeichen';
 import { EBENEN_ZEICHEN } from './gestaltung/ebenen-zeichen';
 import { nrnFuer, schalteDazu, useMehrfach } from './gestaltung/mehrfach';
 import type { GliederungKnoten, GliederungSeite } from './gliederung-modell';
 import { alleSchluessel, gliederungVon, ketteZu, ohneWirkung, stapelVon, zeileZurAuswahl } from './gliederung-modell';
 import type { GliederungStand } from './gliederung-stand';
+import { setzeHover, useHover } from './hover-verknuepfung';
 import { kopf } from './schubladen/reihe';
 import type { Struktur } from './struktur';
 import { MAUS_WEG } from './ziehen';
@@ -313,7 +313,8 @@ const zielInSeite = (
 };
 
 /** 195-22: Mit der Maus nur an der Zeile unter dem Zeiger; sein Platz bleibt frei. Mit dem Finger immer. */
-const GRIFF_BEIM_ZEIGER = 'opacity-0 group-hover:opacity-100 focus-visible:opacity-100 [@media(any-pointer:coarse)]:opacity-100';
+const GRIFF_BEIM_ZEIGER =
+	'opacity-0 group-hover:opacity-100 focus-visible:opacity-100 [@media(any-pointer:coarse)]:opacity-100';
 
 /** Ohne sich selbst gezählt: Wer weiter hinten in derselben Ebene landet, rückt um einen Platz auf. `null`: keine Wirkung. */
 const ohneSichSelbst = (ziel: EbenenZiel, von: EbenenZiel & { amAnker: boolean }, kopie: boolean) => {
@@ -373,8 +374,7 @@ export const Ebenen = ({
 		const jetzt = Date.now();
 		const bleibt = [...vorab].filter(([nr, v]) => {
 			const k = knoten.get(nr);
-			const erreicht =
-				k && Object.entries(v.wert).every(([feld, wert]) => k[feld as keyof Vorab] === wert);
+			const erreicht = k && Object.entries(v.wert).every(([feld, wert]) => k[feld as keyof Vorab] === wert);
 			return !erreicht && v.bis > jetzt;
 		});
 		if (bleibt.length !== vorab.size) {

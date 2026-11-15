@@ -57,7 +57,9 @@ test.describe('Kombinieren (121)', () => {
 		await expect.poll(() => quelle(page)).toBe(vorher);
 	});
 
-	test('Abziehen im Inspektor; Schnitt und Ausschluss gibt es nicht, das ⋯ kombiniert nicht (198-16)', async ({ page }) => {
+	test('Abziehen im Inspektor; Schnitt und Ausschluss gibt es nicht, das ⋯ kombiniert nicht (198-16)', async ({
+		page,
+	}) => {
 		await blatt(page);
 		const vorher = await quelle(page);
 		await waehle(page, 'Rechteck', 'Kreis');

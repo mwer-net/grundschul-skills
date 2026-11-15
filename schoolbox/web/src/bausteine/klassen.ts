@@ -67,19 +67,19 @@ const seiten = (vorne: string, ...teile: string[]) => teile.map((t) => `${vorne}
 
 /** Eine spätere Klasse dieser Gruppe nimmt auch die genannten früheren weg (`p-2` nach `px-3`). */
 const UMFASST: Record<string, string[]> = {
-	p: seiten('p', 'x', 'y', 't', 'r', 'b', 'l', 's', 'e'),
-	px: seiten('p', 'l', 'r', 's', 'e'),
-	py: seiten('p', 't', 'b'),
-	m: seiten('m', 'x', 'y', 't', 'r', 'b', 'l', 's', 'e'),
-	mx: seiten('m', 'l', 'r', 's', 'e'),
-	my: seiten('m', 't', 'b'),
-	gap: ['gap-x', 'gap-y'],
-	size: ['w', 'h'],
+	'p': seiten('p', 'x', 'y', 't', 'r', 'b', 'l', 's', 'e'),
+	'px': seiten('p', 'l', 'r', 's', 'e'),
+	'py': seiten('p', 't', 'b'),
+	'm': seiten('m', 'x', 'y', 't', 'r', 'b', 'l', 's', 'e'),
+	'mx': seiten('m', 'l', 'r', 's', 'e'),
+	'my': seiten('m', 't', 'b'),
+	'gap': ['gap-x', 'gap-y'],
+	'size': ['w', 'h'],
 	'min-size': ['min-w', 'min-h'],
-	inset: ['inset-x', 'inset-y', 'top', 'right', 'bottom', 'left', 'start', 'end'],
+	'inset': ['inset-x', 'inset-y', 'top', 'right', 'bottom', 'left', 'start', 'end'],
 	'inset-x': ['left', 'right', 'start', 'end'],
 	'inset-y': ['top', 'bottom'],
-	overflow: ['overflow-x', 'overflow-y'],
+	'overflow': ['overflow-x', 'overflow-y'],
 	'border-width': seiten('border-width-', 'x', 'y', 't', 'r', 'b', 'l', 's', 'e'),
 	'border-color': seiten('border-color-', 'x', 'y', 't', 'r', 'b', 'l', 's', 'e'),
 	'rounded-alle': seiten('rounded-', 't', 'r', 'b', 'l', 'tl', 'tr', 'br', 'bl', 's', 'e', 'ss', 'se', 'es', 'ee'),
@@ -100,10 +100,7 @@ const zerlege = (klasse: string) => {
 			anfang = i + 1;
 		}
 	}
-	const kern = klasse
-		.slice(anfang)
-		.replace(/^!|!$/g, '')
-		.replace(/^-/, '');
+	const kern = klasse.slice(anfang).replace(/^!|!$/g, '').replace(/^-/, '');
 	return { kern, varianten: varianten.sort().join(':') };
 };
 

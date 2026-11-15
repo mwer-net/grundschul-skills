@@ -181,9 +181,7 @@ test.describe('Assistent (132)', () => {
 		await expect(dialog(page)).toContainText('Schritt 3 von 7');
 	});
 
-	test('Freitext bei Art und Format steht in der Leiste; Zurückspringen behält „Anders …“', async ({
-		page,
-	}) => {
+	test('Freitext bei Art und Format steht in der Leiste; Zurückspringen behält „Anders …“', async ({ page }) => {
 		await page.goto('/');
 		await oeffneAssistent(page);
 		await page.keyboard.press('Enter');

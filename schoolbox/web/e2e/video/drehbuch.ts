@@ -471,7 +471,10 @@ test('7b · Editor: Bilder, Uhr, Lösung', async ({ browser }) => {
 	szene.text('Figur tauschen');
 	await szene.klicke(m.locator('img.figur').first(), { pause: 600 });
 	// 199-11: Die Leitfigur tauscht Figur und Pose im Inspektor wie die freie Figur.
-	await seite.locator('[data-bildwerkzeug="figur"]').getByRole('combobox', { name: 'Figur' }).selectOption({ label: 'Wilma' });
+	await seite
+		.locator('[data-bildwerkzeug="figur"]')
+		.getByRole('combobox', { name: 'Figur' })
+		.selectOption({ label: 'Wilma' });
 	await szene.pause(800);
 	szene.text('Farbig? Graustufen für s/w');
 	const farbig = seite.locator('[data-hinweis="farbig"]');

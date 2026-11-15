@@ -68,4 +68,3 @@ export const titelDerGestaltung = ({ art, name, teile, text, wert }: GestaltungA
 			return name;
 	}
 };
-

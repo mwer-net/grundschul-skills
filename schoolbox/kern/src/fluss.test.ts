@@ -91,7 +91,9 @@ describe('Blätter erkennen (206-01)', () => {
 		assert.equal(blaetterVon(zerlege(folie))[0]?.fliesst, false);
 		const deckblatt = dokument([ERSTE.replace('class="seite"', 'class="seite deckblatt"')]);
 		assert.equal(blaetterVon(zerlege(deckblatt))[0]?.fliesst, false);
-		const karten = dokument(['<section class="seite">\n  <div class="karten"><div class="karte">K</div></div>\n</section>']);
+		const karten = dokument([
+			'<section class="seite">\n  <div class="karten"><div class="karte">K</div></div>\n</section>',
+		]);
 		assert.equal(blaetterVon(zerlege(karten))[0]?.fliesst, false);
 	});
 
@@ -128,9 +130,7 @@ describe('Umlegen (206-01)', () => {
 	});
 
 	it('ohne Lösung-Marke und Ebene entsteht eine schlichte Folgeseite', () => {
-		const schlicht = dokument([
-			`<section class="seite">\n  ${[1, 2, 3].map(aufgabe).join('\n  ')}\n</section>`,
-		]);
+		const schlicht = dokument([`<section class="seite">\n  ${[1, 2, 3].map(aufgabe).join('\n  ')}\n</section>`]);
 		const { quelle } = legeUm(schlicht, plan(schlicht, [2, 1]));
 		assert.deepEqual(klassenDerSeite(quelle, 1), ['style', 'aufgabe']);
 	});
@@ -242,7 +242,9 @@ describe('Eine neutrale Änderung ändert nichts sonst (Nachbesserung 2)', () =>
 		const z = zerlege(HEFT);
 		const [, zwei] = blaetterVon(z);
 		assert.ok(zwei);
-		const geteilt: FlussPlan = [{ blatt: zwei.seiten[0]?.nr ?? -1, seiten: [zwei.folge.slice(0, 2), zwei.folge.slice(2)] }];
+		const geteilt: FlussPlan = [
+			{ blatt: zwei.seiten[0]?.nr ?? -1, seiten: [zwei.folge.slice(0, 2), zwei.folge.slice(2)] },
+		];
 		const u = legeUm(HEFT, geteilt);
 		assert.notEqual(u.quelle, HEFT);
 		assert.deepEqual(nummern(u.quelle), nummern(HEFT));

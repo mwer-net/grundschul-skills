@@ -275,7 +275,10 @@ describe('Angebot (203)', () => {
 
 	it('was nicht mehr angeboten wird, bleibt im Katalog und wird ohne Katalog nicht gefunden (203-04)', () => {
 		for (const id of ['thema-band', 'ziel', 'reflexion', 'beispiel', 'willi', 'karte', 'silbentext']) {
-			assert.ok(KATALOG.some((e) => e.id === id), id);
+			assert.ok(
+				KATALOG.some((e) => e.id === id),
+				id,
+			);
 			assert.ok(!ANGEBOT.some((e) => e.id === id), id);
 		}
 		for (const tag of ['x-gesamtpunkte', 'x-notenschluessel', 'x-erwartungshorizont']) {
@@ -344,9 +347,16 @@ describe('Angebot (203)', () => {
 
 	it('die Uhr hat Zeiger, „Uhrzeit ablesen“ vier Uhren mit Beispiel (203-01)', () => {
 		const leer = new Map<string, string>();
-		const uhr = einfuegbarAus(KATALOG.find((e) => e.id === 'x-uhr')!, STARTER);
+		const uhr = einfuegbarAus(
+			KATALOG.find((e) => e.id === 'x-uhr')!,
+			STARTER,
+		);
 		assert.match(uhr.html ?? '', /<x-uhr [^>]*zeit="\d+:\d\d"/);
-		const paket = einfuegbarAus(KATALOG.find((e) => e.id === 'paket-uhr')!, leer).teile?.join('') ?? '';
+		const paket =
+			einfuegbarAus(
+				KATALOG.find((e) => e.id === 'paket-uhr')!,
+				leer,
+			).teile?.join('') ?? '';
 		assert.equal([...paket.matchAll(/<x-uhr [^>]*zeit="\d+:\d\d"/g)].length, 4);
 		assert.equal([...paket.matchAll(/class="zelle beispiel"/g)].length, 1);
 	});

@@ -4,8 +4,8 @@ import { useLocation, useNavigate } from 'react-router-dom';
 import { lade } from '../api';
 import { useHinweis } from '../bausteine/hinweis';
 import { useEreignisse } from '../ereignisse';
-import { useAblage } from './kontext';
 import type { ClaudeBaut } from './darstellung';
+import { useAblage } from './kontext';
 
 /**
  * Welche Dokumente Claude gerade als neues Blatt baut (133), mit dem Beginn des Laufs, und an welchen ein Aufgabenplan
@@ -22,19 +22,17 @@ export const useClaudeBaut = (an = true) => {
 		}
 		lade<{
 			entwuerfe: { mappe: string; dok: string; seit?: string; status: string; plan?: boolean; phase?: string }[];
-		}>(
-			'/api/ki/entwuerfe',
-		).then(
+		}>('/api/ki/entwuerfe').then(
 			({ entwuerfe }) =>
 				setLaufend(
 					new Map(
 						entwuerfe.map((a) => [
 							`${a.mappe}/${a.dok}`,
 							{
-									seit: a.seit ?? null,
-									plan: a.status === 'fertig' && a.plan === true,
-									plant: a.phase === 'plan',
-								},
+								seit: a.seit ?? null,
+								plan: a.status === 'fertig' && a.plan === true,
+								plant: a.phase === 'plan',
+							},
 						]),
 					),
 				),

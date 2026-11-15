@@ -2,8 +2,8 @@ import type { MenueEintrag } from '../bausteine/Menue';
 import type { SymbolName } from '../bausteine/Symbol';
 import type { TastenAbschnitt } from '../bausteine/Tastenliste';
 import type { Kuerzel } from '../editor/befehle';
-import type { PalettenEintrag } from '../editor/palette-suche';
 import { kuerzelText, passtTaste } from '../editor/befehle';
+import type { PalettenEintrag } from '../editor/palette-suche';
 import { hatOffeneEntwuerfe } from '../entwuerfe/offen';
 import type { Merkzettel } from './kontext';
 import type { Objekt } from './typen';
@@ -471,7 +471,9 @@ export const paletteVon = (l: Lage, { fuehreAus, untermenue }: MenueQuellen, nam
 		};
 		if (unter && unter.length > 1) {
 			return unter.flatMap((u, i) =>
-				u.waehle && !u.aus ? [{ ...gemeinsam, id: `ablage:${id}:${i}`, titel: `${titel}: ${u.titel}`, aus: u.waehle }] : [],
+				u.waehle && !u.aus
+					? [{ ...gemeinsam, id: `ablage:${id}:${i}`, titel: `${titel}: ${u.titel}`, aus: u.waehle }]
+					: [],
 			);
 		}
 		const einzig = unter?.[0]?.waehle;

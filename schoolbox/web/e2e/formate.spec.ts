@@ -330,7 +330,10 @@ test.describe('Sammlung (051)', () => {
 		const kachel = page.locator('[data-bibliothek] [data-bibliothek-eintrag]');
 		await expect(kachel).toHaveCount(1);
 		// 195: Eigene Bausteine zeigen eine Vorschau wie der Katalog.
-		await expect(kachel.locator('[data-karten-vorschau]')).toHaveAttribute('src', /\/ansicht\/_sammlung\/eigen-meine-uhr|\/ansicht\/_sammlung\/meine-uhr/);
+		await expect(kachel.locator('[data-karten-vorschau]')).toHaveAttribute(
+			'src',
+			/\/ansicht\/_sammlung\/eigen-meine-uhr|\/ansicht\/_sammlung\/meine-uhr/,
+		);
 		await expect(kachel.locator('[data-kachel-symbol]')).toHaveCount(0);
 
 		const vorher = await quelle(page);

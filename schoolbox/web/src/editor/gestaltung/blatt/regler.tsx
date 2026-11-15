@@ -28,7 +28,11 @@ interface Eigenschaften {
  * 196-36: Der Regler schreibt beim Loslassen einen Schritt im Verlauf. Mit den Pfeiltasten wäre jeder Druck einer;
  * Drücke innerhalb von 800 ms werden ein Schritt, geschrieben nach der Pause oder beim Verlassen.
  */
-export const useReglerSchreiben = (element: RefObject<HTMLInputElement | null>, setze: (wert: number) => void, an: unknown = true) => {
+export const useReglerSchreiben = (
+	element: RefObject<HTMLInputElement | null>,
+	setze: (wert: number) => void,
+	an: unknown = true,
+) => {
 	const setzeJetzt = useRef(setze);
 	useEffect(() => {
 		setzeJetzt.current = setze;
@@ -108,7 +112,9 @@ export const Regler = ({
 				</label>
 				<span className="ml-auto flex flex-none items-center gap-2">
 					{extra}
-					<span className="text-leise tabular-nums" data-regler-wert>{cm ? `${zahlMitKomma(pxZuCm(jetzt))} cm` : `${jetzt}${einheit}`}</span>
+					<span className="text-leise tabular-nums" data-regler-wert>
+						{cm ? `${zahlMitKomma(pxZuCm(jetzt))} cm` : `${jetzt}${einheit}`}
+					</span>
 				</span>
 			</div>
 			<input

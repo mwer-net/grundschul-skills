@@ -217,7 +217,9 @@ test.describe('Editor: Bausteine ziehen mit Lücke', () => {
 		await expect(material(page).locator('[data-luecke-weg]')).toHaveCount(0);
 	});
 
-	test('Nach dem Ziehen ist der gewählte Baustein ganz im Blick wie nach ⌥↑ (193, aus Abnahme 206)', async ({ page }) => {
+	test('Nach dem Ziehen ist der gewählte Baustein ganz im Blick wie nach ⌥↑ (193, aus Abnahme 206)', async ({
+		page,
+	}) => {
 		const { dok, id } = await uhrzeit();
 		await oeffne(page, id, dok);
 		const text = material(page).locator('.aufgabe').nth(2).locator('.anw .text');

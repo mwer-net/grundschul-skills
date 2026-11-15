@@ -113,8 +113,9 @@ test.describe('Figuren (102)', () => {
 			return [...f.ownerDocument.querySelectorAll('.seite [data-sb]')]
 				.filter((e) => !e.contains(f) && !f.contains(e) && !e.querySelector('[data-sb]'))
 				.map((e) => e.getBoundingClientRect())
-				.filter((b) => b.width > 0 && b.left < r.right && r.left < b.right && b.top < r.bottom && r.top < b.bottom)
-				.length;
+				.filter(
+					(b) => b.width > 0 && b.left < r.right && r.left < b.right && b.top < r.bottom && r.top < b.bottom,
+				).length;
 		});
 		expect(ueber).toBe(0);
 		expect(await frei(page).evaluate((e) => Math.round(e.getBoundingClientRect().width))).toBe(150);

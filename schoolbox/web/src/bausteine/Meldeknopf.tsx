@@ -95,7 +95,9 @@ const istElement = (node: Node): node is Element => node.nodeType === Node.ELEME
 const imRahmen = (element: Element, fenster: Window) => {
 	const ort = element.getBoundingClientRect();
 	const leer = ort.width === 0 && ort.height === 0;
-	return leer || (ort.bottom >= 0 && ort.right >= 0 && ort.top <= fenster.innerHeight && ort.left <= fenster.innerWidth);
+	return (
+		leer || (ort.bottom >= 0 && ort.right >= 0 && ort.top <= fenster.innerHeight && ort.left <= fenster.innerWidth)
+	);
 };
 
 /** Sichtbar und nicht der Rahmen, der gerade im Hintergrund lädt. */
@@ -252,13 +254,7 @@ const normiere = (a: { x: number; y: number }, b: { x: number; y: number }): Rec
 });
 
 /** Auswahl über allem, auch über einem offenen Dialog (193-41): ein eigenes `<dialog>` im Top Layer. */
-const AuswahlFlaeche = ({
-	abbrechen,
-	fertig,
-}: {
-	abbrechen: () => void;
-	fertig: (r: Rechteck | null) => void;
-}) => {
+const AuswahlFlaeche = ({ abbrechen, fertig }: { abbrechen: () => void; fertig: (r: Rechteck | null) => void }) => {
 	const flaeche = useRef<HTMLDialogElement>(null);
 	const [start, setStart] = useState<{ x: number; y: number } | null>(null);
 	const [rechteck, setRechteck] = useState<Rechteck | null>(null);
@@ -353,8 +349,7 @@ export const Meldeknopf = () => {
 	/** Wo der Fokus vor der Meldung stand: Dorthin kehrt er zurück. */
 	const vorher = useRef<Element | null>(null);
 	// Beim Präsentieren liegt das Vollbild auf der ganzen Seite: kein Käfer auf dem Beamerbild (192-N01).
-	const verborgen =
-		pathname === ANMELDE_SEITE || pathname.startsWith('/f/') || pathname.endsWith('/praesentation');
+	const verborgen = pathname === ANMELDE_SEITE || pathname.startsWith('/f/') || pathname.endsWith('/praesentation');
 	// Im Editor steht der Käfer am Fuß der Schubladenleiste, über der Statusleiste (193-27).
 	const imEditor = pathname.endsWith('/bearbeiten');
 
@@ -471,18 +466,22 @@ export const Meldeknopf = () => {
 				<Dialog
 					titel="Problem melden"
 					schliessen={zurueck}
-					fuss={
+					fuss={(
 						<>
 							<Knopf art="leise" onClick={zurueck}>
 								Abbrechen
 							</Knopf>
 							<Tooltip text="Absenden" kuerzel={kuerzelText({ code: 'Enter', befehl: true })}>
-								<Knopf data-hauptaktion disabled={!text.trim() || laeuft} onClick={() => void absenden()}>
+								<Knopf
+									data-hauptaktion
+									disabled={!text.trim() || laeuft}
+									onClick={() => void absenden()}
+								>
 									{laeuft ? 'Wird gesendet …' : 'Absenden'}
 								</Knopf>
 							</Tooltip>
 						</>
-					}
+					)}
 				>
 					{bild ? (
 						<img
@@ -491,9 +490,17 @@ export const Meldeknopf = () => {
 							className="max-h-[280px] self-start rounded border border-rand object-contain"
 						/>
 					) : (
-						<p className="text-sm text-leise">Kein Bild möglich – Text und Seite werden trotzdem gesendet.</p>
+						<p className="text-sm text-leise">
+							Kein Bild möglich – Text und Seite werden trotzdem gesendet.
+						</p>
 					)}
-					<Segment beschriftung="Art der Meldung" werte={ARTEN} wert={art} waehle={setArt} className="self-start" />
+					<Segment
+						beschriftung="Art der Meldung"
+						werte={ARTEN}
+						wert={art}
+						waehle={setArt}
+						className="self-start"
+					/>
 					<textarea
 						value={text}
 						onChange={(e) => setText(e.target.value)}

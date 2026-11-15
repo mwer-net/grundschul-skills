@@ -23,7 +23,7 @@ export const Gekuerzt = ({
 	seite?: 'top' | 'right';
 	aus?: boolean;
 } & Omit<HTMLAttributes<HTMLSpanElement>, 'children'> &
-	Record<`data-${string}`, string | boolean | undefined>) => {
+Record<`data-${string}`, string | boolean | undefined>) => {
 	const feld = useRef<HTMLSpanElement>(null);
 	const [gekuerzt, setGekuerzt] = useState(false);
 	useLayoutEffect(() => {

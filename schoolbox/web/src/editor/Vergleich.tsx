@@ -66,7 +66,7 @@ export const Vergleich = ({
 			titel="Vorschlag von Claude"
 			schliessen={schliessen}
 			breit
-			fuss={
+			fuss={(
 				<>
 					<Knopf art="zweit" onClick={verwerfen}>
 						Verwerfen
@@ -78,7 +78,7 @@ export const Vergleich = ({
 						Übernehmen
 					</Knopf>
 				</>
-			}
+			)}
 		>
 			<div className="grid h-[70dvh] grid-cols-2 gap-3">
 				<figure className="flex min-h-0 flex-col">

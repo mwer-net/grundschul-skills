@@ -1,4 +1,5 @@
 import { kann, kannImFormat } from '@schoolbox/kern/src/bausteine';
+import { kannUmbrechenVor, schliesseAn, seiteZumAnschliessen, umbruchVor } from '@schoolbox/kern/src/einfuegen';
 import {
 	KIT_FELDER,
 	leseKit,
@@ -20,7 +21,6 @@ import {
 } from '@schoolbox/kern/src/tabelle';
 import type { Druckprofil } from '@schoolbox/kern/src/werte';
 
-import { kannUmbrechenVor, schliesseAn, seiteZumAnschliessen, umbruchVor } from '@schoolbox/kern/src/einfuegen';
 import { istMac, kuerzelAnzeige } from '../bausteine/kuerzel';
 import { starteMeldung } from '../bausteine/melden';
 import type { MenueEintrag } from '../bausteine/Menue';
@@ -347,7 +347,8 @@ export const GESPERRT_GRUND = 'Gesperrt. Erst entsperren.';
  */
 const mitSperre = (b: Befehl): Befehl => {
 	const sperrbar =
-		(b.id.startsWith('auswahl.') || b.id.startsWith('tabelle.')) && !AN_GESPERRTEM.includes(b.id) &&
+		(b.id.startsWith('auswahl.') || b.id.startsWith('tabelle.')) &&
+		!AN_GESPERRTEM.includes(b.id) &&
 		!b.id.startsWith('auswahl.sichtbarkeit.');
 	if (!sperrbar) {
 		return b;
@@ -419,7 +420,9 @@ const REGISTER: Befehl[] = [
 		id: 'auswahl.bild-ersetzen',
 		// 204-14, 199-15: ein Wort für das Austauschen, wie „Austauschen“ im Inspektor; am leeren Platz „einsetzen“.
 		titel: (k) =>
-			['platzhalter', 'bildrahmen'].includes(gewaehlt(k)?.baustein.art ?? '') ? 'Bild einsetzen' : 'Bild austauschen',
+			['platzhalter', 'bildrahmen'].includes(gewaehlt(k)?.baustein.art ?? '')
+				? 'Bild einsetzen'
+				: 'Bild austauschen',
 		gruppe: 'bearbeiten',
 		symbol: 'bild',
 		suchwoerter: ['ersetzen', 'tauschen', 'einsetzen'],
@@ -1388,7 +1391,9 @@ export const befehleFuerMenue = (art: MenueArt, k: Kontext) => {
 	if (art === 'gestaltung') {
 		return ordneGestaltung(befehleFuer('gestaltung', k))
 			.filter(({ befehl, block }) => block !== NACH_VORNE_BLOCK || !befehl.gesperrt?.(k))
-			.map(({ befehl, block }) => (block === AUSRICHTEN_BLOCK ? { ...befehl, untermenue: 'Ausrichten' } : befehl));
+			.map(({ befehl, block }) =>
+				block === AUSRICHTEN_BLOCK ? { ...befehl, untermenue: 'Ausrichten' } : befehl,
+			);
 	}
 	const ids = { leer: MENUE_LEER, seite: MENUE_SEITE, miniatur: MENUE_MINIATUR }[art];
 	return ids.flatMap((id) => BEFEHLE.find((b) => b.id === id && b.verfuegbar(k)) ?? []);

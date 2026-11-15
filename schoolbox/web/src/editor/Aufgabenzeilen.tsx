@@ -34,7 +34,7 @@ const ZEICHEN_HINWEIS = {
 };
 
 /** Die Zeilen als Zustand: Folgen dem Wert, sobald er sich von außen ändert (⌘Z, Claude, Text). */
-const useZeilen = <T,>(
+const useZeilen = <T>(
 	wert: string | null,
 	lesen: (roh: string | null) => T[],
 	text: (zeilen: T[]) => string | null,
@@ -108,9 +108,9 @@ const Zelle = ({
 const ZeilenOderText = ({
 	abb,
 	feld,
+	kurzschrift,
 	liste,
 	verlustfrei,
-	kurzschrift,
 }: FeldEigenschaften<TextFeld> & {
 	verlustfrei: (roh: string | null) => boolean;
 	liste: (umschalten: ReactNode) => ReactNode;
@@ -186,7 +186,9 @@ const FragenZeilen = ({ abb, feld, umschalten }: FeldEigenschaften<TextFeld> & {
 							'flex flex-col gap-0.5 rounded-sm',
 							zug?.von === i && 'opacity-40',
 							zug?.nach === i && 'shadow-[0_-2px_0_0_var(--color-brand-500)]',
-							zug?.nach === fragen.length && i === fragen.length - 1 && 'shadow-[0_2px_0_0_var(--color-brand-500)]',
+							zug?.nach === fragen.length &&
+							i === fragen.length - 1 &&
+								'shadow-[0_2px_0_0_var(--color-brand-500)]',
 						)}
 						data-zeile={i}
 					>
@@ -211,7 +213,11 @@ const FragenZeilen = ({ abb, feld, umschalten }: FeldEigenschaften<TextFeld> & {
 								wert={frage.frage}
 								verboten={VERBOTEN.frage}
 								zuViel={() => setZuViel(true)}
-								setze={(w, sofort) => schreibe(mitFrage(i, (f) => ({ ...f, frage: w })), sofort)}
+								setze={(w, sofort) =>
+									schreibe(
+										mitFrage(i, (f) => ({ ...f, frage: w })),
+										sofort,
+									)}
 							/>
 							<ZeilenMenue
 								abb={abb}
@@ -236,16 +242,19 @@ const FragenZeilen = ({ abb, feld, umschalten }: FeldEigenschaften<TextFeld> & {
 										title="Richtig"
 										className={klassen(
 											'flex size-5 flex-none items-center justify-center rounded-sm border',
-											a.richtig ? 'border-brand-500 bg-brand-500 text-white' : 'border-rand-feld bg-flaeche',
+											a.richtig
+												? 'border-brand-500 bg-brand-500 text-white'
+												: 'border-rand-feld bg-flaeche',
 										)}
 										onClick={() =>
 											schreibe(
 												mitFrage(i, (f) => ({
 													...f,
-													antworten: f.antworten.map((b, m) => (m === j ? { ...b, richtig: !b.richtig } : b)),
+													antworten: f.antworten.map((b, m) =>
+														m === j ? { ...b, richtig: !b.richtig } : b,
+													),
 												})),
-											)
-										}
+											)}
 									>
 										{a.richtig && <Symbol name="haken" className="size-3" />}
 									</button>
@@ -259,11 +268,12 @@ const FragenZeilen = ({ abb, feld, umschalten }: FeldEigenschaften<TextFeld> & {
 											schreibe(
 												mitFrage(i, (f) => ({
 													...f,
-													antworten: f.antworten.map((b, m) => (m === j ? { ...b, text: w } : b)),
+													antworten: f.antworten.map((b, m) =>
+														m === j ? { ...b, text: w } : b,
+													),
 												})),
 												sofort,
-											)
-										}
+											)}
 									/>
 									<button
 										type="button"
@@ -272,8 +282,12 @@ const FragenZeilen = ({ abb, feld, umschalten }: FeldEigenschaften<TextFeld> & {
 										disabled={frage.antworten.length <= 1}
 										className="flex size-(--hoehe-feld) flex-none items-center justify-center rounded-md text-leise hover:bg-flaeche-2 disabled:opacity-40"
 										onClick={() =>
-											schreibe(mitFrage(i, (f) => ({ ...f, antworten: f.antworten.filter((_, m) => m !== j) })))
-										}
+											schreibe(
+												mitFrage(i, (f) => ({
+													...f,
+													antworten: f.antworten.filter((_, m) => m !== j),
+												})),
+											)}
 									>
 										<Symbol name="schliessen" className="size-3" />
 									</button>
@@ -285,7 +299,9 @@ const FragenZeilen = ({ abb, feld, umschalten }: FeldEigenschaften<TextFeld> & {
 								className="self-start"
 								data-antwort-neu={i}
 								onClick={() => {
-									schreibe(mitFrage(i, (f) => ({ ...f, antworten: [...f.antworten, neueAntwort(f)] })));
+									schreibe(
+										mitFrage(i, (f) => ({ ...f, antworten: [...f.antworten, neueAntwort(f)] })),
+									);
 									const n = frage.antworten.length;
 									requestAnimationFrame(() => {
 										const neu = behaelter.current?.querySelector<HTMLInputElement>(
@@ -376,7 +392,7 @@ const AussagenZeilen = ({ abb, feld, umschalten }: FeldEigenschaften<TextFeld> &
 							zug?.von === i && 'opacity-40',
 							zug?.nach === i && 'shadow-[0_-2px_0_0_var(--color-brand-500)]',
 							zug?.nach === aussagen.length &&
-								i === aussagen.length - 1 &&
+							i === aussagen.length - 1 &&
 								'shadow-[0_2px_0_0_var(--color-brand-500)]',
 						)}
 						data-zeile={i}

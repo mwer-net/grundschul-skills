@@ -85,7 +85,10 @@ test.describe('Editor: Live-Prüfung', () => {
 		await expect(page.locator('[data-pruefrahmen]')).toHaveCount(0);
 	});
 
-	test('194-03: Nach der Änderung sitzt der Rahmen weiter auf der Seite, nicht daneben', async ({ druecke, page }) => {
+	test('194-03: Nach der Änderung sitzt der Rahmen weiter auf der Seite, nicht daneben', async ({
+		druecke,
+		page,
+	}) => {
 		const { dok, id } = await uhrzeit();
 		await oeffne(page, id, dok);
 		const anweisung = material(page).locator('.aufgabe').nth(2).locator('.anw .text');

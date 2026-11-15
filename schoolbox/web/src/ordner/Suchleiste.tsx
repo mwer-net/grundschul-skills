@@ -90,7 +90,10 @@ export const Suchleiste = ({ stand }: { stand: AblageStand }) => {
 							waehle={waehleBereich}
 							werte={[
 								{ wert: 'ueberall', titel: 'Überall' },
-								{ wert: 'hier', titel: `In „${kurzerName(findeOrdner(stand, von)?.name ?? WURZEL_NAME)}“` },
+								{
+									wert: 'hier',
+									titel: `In „${kurzerName(findeOrdner(stand, von)?.name ?? WURZEL_NAME)}“`,
+								},
 							]}
 						/>
 					</span>

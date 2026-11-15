@@ -120,7 +120,13 @@ test.describe('Inventur Editor', () => {
 		await expect(leiste(page).locator('[data-einfuegen-plus], [data-leiste-griff]')).toHaveCount(0);
 
 		await leiste(page).getByRole('button', { name: 'Mehr zu diesem Baustein' }).click();
-		for (const name of [/Kopieren/, /Ausschneiden/, /Zu „Meine Bausteine“ legen/, /Mit Claude ändern/, /^Neuer Baustein/]) {
+		for (const name of [
+			/Kopieren/,
+			/Ausschneiden/,
+			/Zu „Meine Bausteine“ legen/,
+			/Mit Claude ändern/,
+			/^Neuer Baustein/,
+		]) {
 			await expect(page.getByRole('menuitem', { name })).toBeVisible();
 		}
 		await page.keyboard.press('Escape');

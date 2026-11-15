@@ -792,7 +792,8 @@ export const erstelleEinheiten = (kontext: Kontext, pruefer: KiPruefer) => {
 			return { baum: r.baum, ergebnis: r.umkehr, loescht: r.loescht };
 		});
 		// Ein unterbrochener Lauf kommt als „unterbrochen“ zurück: Weiterbauen geht dann wie nach einem Abbruch.
-		const zurueck = vorher.status === 'laeuft' ? { status: 'unvollstaendig' as const, grund: 'Verworfen.' } : vorher;
+		const zurueck =
+			vorher.status === 'laeuft' ? { status: 'unvollstaendig' as const, grund: 'Verworfen.' } : vorher;
 		verworfen.set(s.id, { ...zurueck, umkehr });
 		s.status = 'verworfen';
 		s.ende ??= new Date().toISOString();

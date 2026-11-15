@@ -327,8 +327,8 @@ export const SchrittERahmen = ({ a, setzeEh }: { a: Antworten; setzeEh: SetzeEh 
 			<span className="min-w-0 flex-1">
 				<span className="block font-medium">Neue Bilder mit Canva</span>
 				<span className="block text-sm text-leise">
-					Szenen und Motive passend zur Geschichte. Verbraucht dein Canva-Kontingent; Mail und Dateien
-					bleiben gesperrt.
+					Szenen und Motive passend zur Geschichte. Verbraucht dein Canva-Kontingent; Mail und Dateien bleiben
+					gesperrt.
 				</span>
 			</span>
 			<Empfohlen />

@@ -1,6 +1,13 @@
 import { abbildungsName } from '@schoolbox/kern/src/abbildungen';
 import type { Baustein, Sicht } from '@schoolbox/kern/src/bausteine';
-import { bausteinNach, bausteinUeber, FREI_TITEL, FREIES_ELEMENT, liegtFrei, nameFreiesElement } from '@schoolbox/kern/src/bausteine';
+import {
+	bausteinNach,
+	bausteinUeber,
+	FREI_TITEL,
+	FREIES_ELEMENT,
+	liegtFrei,
+	nameFreiesElement,
+} from '@schoolbox/kern/src/bausteine';
 import { nameDerGestaltung } from '@schoolbox/kern/src/gestaltung-arten';
 import { darstellungsHtml } from '@schoolbox/kern/src/html';
 import type { LetzterSchritt, Zerlegung } from '@schoolbox/kern/src/quelltext';
@@ -37,10 +44,10 @@ const EDITOR_STIL =
 	// 194-18: Ein geleerter Text behält im Editor eine Zeile Höhe und bleibt anklickbar.
 	':is(h1,h2,h3,h4,p):empty{min-height:1em;min-height:1lh}' +
 	'.flaeche{outline:1px dashed rgba(0,0,0,.3);outline-offset:-1px}' +
-	'[data-flaeche-offen] .flaeche{overflow:visible!important}' +
+	`[data-flaeche-offen] .flaeche{overflow:visible!important}${
 	// 206-07: Die Seite schneidet den Block, in dem getippt wird, nicht ab; die Schreibmarke bleibt zu sehen.
-	(MITLAUFEN ? 'body>.seite:has([contenteditable=true]){overflow:visible!important}' : '') +
-	'</style>';
+	MITLAUFEN ? 'body>.seite:has([contenteditable=true]){overflow:visible!important}' : ''
+	}</style>`;
 
 /** Die Prüfung aus blatt.py, hier ohne Selbststart: Der Editor ruft `pruefeBlatt` nach jeder Änderung (020). */
 const PRUEFUNG = '<script src="pruefung.js" data-manuell defer></script>';

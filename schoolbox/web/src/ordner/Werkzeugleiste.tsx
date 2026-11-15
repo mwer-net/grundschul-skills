@@ -55,7 +55,11 @@ const AuswahlKnoepfe = ({ befehle, ids, lage }: { befehle: Befehle; ids: string[
 					if (eintraege.length === 1 && einzig?.waehle) {
 						return (
 							<Knopf key={id} art="zweit" disabled={pdfLaeuft} onClick={einzig.waehle}>
-								<KnopfText symbol={pdfLaeuft ? 'laden' : 'herunterladen'} dreht={pdfLaeuft} text="PDF" />
+								<KnopfText
+									symbol={pdfLaeuft ? 'laden' : 'herunterladen'}
+									dreht={pdfLaeuft}
+									text="PDF"
+								/>
 							</Knopf>
 						);
 					}
@@ -64,7 +68,13 @@ const AuswahlKnoepfe = ({ befehle, ids, lage }: { befehle: Befehle; ids: string[
 							<Menue
 								key={id}
 								name="PDF"
-								beschriftung={<KnopfText symbol={pdfLaeuft ? 'laden' : 'herunterladen'} dreht={pdfLaeuft} text="PDF" />}
+								beschriftung={(
+									<KnopfText
+										symbol={pdfLaeuft ? 'laden' : 'herunterladen'}
+										dreht={pdfLaeuft}
+										text="PDF"
+									/>
+								)}
 								art="zweit"
 								disabled={pdfLaeuft}
 								eintraege={eintraege}

@@ -1,7 +1,7 @@
 import { Abschnitt } from '../../../bausteine/Abschnitt';
+import { gesperrtIn } from '../../AusgeblendetHinweis';
 import type { PfadTeil } from '../../darstellung';
 import { bausteinVon, elementZu } from '../../darstellung';
-import { gesperrtIn } from '../../AusgeblendetHinweis';
 import type { Struktur } from '../../struktur';
 import { gruppiere, gruppiereMehrfach, INSPEKTOR_TEILE, MEHRFACH_TEILE } from './index';
 import { kontextFuerGestaltung } from './kontext-ersatz';

@@ -16,7 +16,6 @@ import { loesungDaneben, schreibeUhrzeitUm, zeitDerUhr } from '@schoolbox/kern/s
 import { useEffect, useMemo, useRef, useState } from 'react';
 
 import { useHinweis } from '../bausteine/hinweis';
-
 import type { PfadTeil } from './darstellung';
 import { elementZu } from './darstellung';
 import { zuSehen } from './gezeigt';
@@ -112,7 +111,11 @@ const zeichenbarBis = (doc: Document, nr: number, s: AbbildungSchema, vorher: We
 const randGrenze = (doc: Document, nr: number, feld: Feld) => {
 	const element = elementZu(doc, nr);
 	let seite = element?.closest('.seite') ?? null;
-	for (let aussen = seite?.parentElement?.closest('.seite'); aussen; aussen = aussen.parentElement?.closest('.seite')) {
+	for (
+		let aussen = seite?.parentElement?.closest('.seite');
+		aussen;
+		aussen = aussen.parentElement?.closest('.seite')
+	) {
 		seite = aussen;
 	}
 	// Das Blatt ist ein eigenes Fenster: `instanceof HTMLElement` gilt dort nicht.
@@ -129,7 +132,8 @@ const randGrenze = (doc: Document, nr: number, feld: Feld) => {
 	// Ohne Attribut nimmt die Zeichnung manchmal die Breite der Zeile (Zeitleiste); dann zählt die gezeichnete.
 	const bild = element.querySelector(':scope > svg');
 	const attribut = element.getAttribute(feld.attribut);
-	const wert = attribut === null && bild ? bild.getBoundingClientRect().width / massstab : Number(attribut ?? feld.standard);
+	const wert =
+		attribut === null && bild ? bild.getBoundingClientRect().width / massstab : Number(attribut ?? feld.standard);
 	return Number.isFinite(wert) ? wert + (rand - rechts) / massstab : null;
 };
 
@@ -281,8 +285,7 @@ export const useAbbildung = ({ adresse, basis: bildBasis, pfad, struktur }: Opti
 	const [geaendertZuletzt, setGeaendertZuletzt] = useState<{ nr: number; attribut: string } | null>(null);
 	const zuletztFeld =
 		geaendertZuletzt?.nr === nr ? schema?.felder.find((f) => f.attribut === geaendertZuletzt.attribut) : undefined;
-	const meldungAm =
-		zuletztFeld && zuSehenIm(schema, werte, zuletztFeld.attribut) ? zuletztFeld.attribut : '_element';
+	const meldungAm = zuletztFeld && zuSehenIm(schema, werte, zuletztFeld.attribut) ? zuletztFeld.attribut : '_element';
 	/**
 	 * S-03 (UX 186): Eine Eingabe, eine Meldung. Eine Regel über mehrere Felder meldet an jedem beteiligten; gezeigt wird
 	 * die am zuletzt geänderten Feld, sonst die erste an einem sichtbaren Feld. Felder, die ihre eigene Prüfung nicht
@@ -445,15 +448,17 @@ export const useAbbildung = ({ adresse, basis: bildBasis, pfad, struktur }: Opti
 			!s.generiertOhne?.includes(feld.attribut) &&
 			!eigeneListe(s, w);
 		const erzeugt = wuerfeln ? gewuerfelt(geaendert) : null;
-		const gewollt = wuerfeln && s.generiert ? { ...geaendert, [s.generiert]: erzeugt?.[s.generiert] ?? null } : geaendert;
+		const gewollt =
+			wuerfeln && s.generiert ? { ...geaendert, [s.generiert]: erzeugt?.[s.generiert] ?? null } : geaendert;
 		// Verglichen wird mit dem Gespeicherten: Beim Tippen steht die neue Zahl schon im Entwurf.
 		const { doc: d, nr: n, quelle: q } = aktuell.current;
 		const amRand = uebernehmen && d && n !== null ? bisZumRand(d, n, feld, gewollt) : null;
-		const grenze =
-			!amRand && uebernehmen && d && q && n !== null ? zeichenbarBis(d, n, s, q, gewollt, feld) : null;
+		const grenze = !amRand && uebernehmen && d && q && n !== null ? zeichenbarBis(d, n, s, q, gewollt, feld) : null;
 		const neu = amRand?.werte ?? grenze?.werte ?? gewollt;
 		if (amRand) {
-			zeige({ text: `${feld.name}: Mehr passt nicht auf die Seite. Jetzt steht ${zahlImFeld(feld, amRand.wert)} da.` });
+			zeige({
+				text: `${feld.name}: Mehr passt nicht auf die Seite. Jetzt steht ${zahlImFeld(feld, amRand.wert)} da.`,
+			});
 		} else if (grenze) {
 			const z = zahlImFeld(feld, grenze.wert);
 			zeige({ text: `${feld.name}: ${lesbareMeldung(grenze.grund, s)} Jetzt steht ${z} da.` });
@@ -529,7 +534,10 @@ export const useAbbildung = ({ adresse, basis: bildBasis, pfad, struktur }: Opti
 		if (!s || !w || b === null || n === null || !d) {
 			return false;
 		}
-		const daneben = tag && struktur.gezeigt ? loesungDaneben(zuSehen(struktur.gezeigt).zerlegung?.quelle ?? '', n, tag, zeitDerUhr(w)) : null;
+		const daneben =
+			tag && struktur.gezeigt
+				? loesungDaneben(zuSehen(struktur.gezeigt).zerlegung?.quelle ?? '', n, tag, zeitDerUhr(w))
+				: null;
 		if (daneben !== null) {
 			zeige({
 				text: `Neben ${tag === 'x-uhr' ? 'der Uhr' : 'der Abbildung'} steht eine Lösung. Ändere sie zuerst.`,

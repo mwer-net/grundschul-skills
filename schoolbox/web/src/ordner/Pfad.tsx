@@ -87,12 +87,7 @@ export const Pfad = ({ fehlt = false, gehe, pfad }: Eigenschaften) => {
 			data-pfad
 		>
 			{ohneWurzel ? null : letzter || fehlt ? (
-				<Link
-					to="/"
-					className={STUECK}
-					data-ablage-ziel="wurzel"
-					data-pfad-stueck="wurzel"
-				>
+				<Link to="/" className={STUECK} data-ablage-ziel="wurzel" data-pfad-stueck="wurzel">
 					<Gekuerzt text={WURZEL_NAME} />
 				</Link>
 			) : (

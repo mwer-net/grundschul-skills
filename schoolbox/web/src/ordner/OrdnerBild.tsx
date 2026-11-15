@@ -25,24 +25,24 @@ export const BlattMini = ({
 			: null,
 	);
 	return (
-	<span
-		className={klassen('flex flex-none items-center justify-center overflow-hidden bg-flaeche', className)}
-		{...rest}
-	>
-		{dok.vorschau && !fehlt ? (
-			<img
-				className="size-full object-cover object-top"
-				src={vorschaubildAdresse(vorschauAdresse({ mappe: dok.mappe, token }, dok.id, dok.vorschau))}
-				alt=""
-				onError={onError}
-				loading="lazy"
-				decoding="async"
-				draggable={false}
-			/>
-		) : (
-			<Symbol name="blatt" className="size-3 text-dezent" />
-		)}
-	</span>
+		<span
+			className={klassen('flex flex-none items-center justify-center overflow-hidden bg-flaeche', className)}
+			{...rest}
+		>
+			{dok.vorschau && !fehlt ? (
+				<img
+					className="size-full object-cover object-top"
+					src={vorschaubildAdresse(vorschauAdresse({ mappe: dok.mappe, token }, dok.id, dok.vorschau))}
+					alt=""
+					onError={onError}
+					loading="lazy"
+					decoding="async"
+					draggable={false}
+				/>
+			) : (
+				<Symbol name="blatt" className="size-3 text-dezent" />
+			)}
+		</span>
 	);
 };
 

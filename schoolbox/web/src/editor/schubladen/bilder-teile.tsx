@@ -13,7 +13,7 @@ import { useLaden } from '../../lib/laden';
 import type { FreiAblegen } from '../bild';
 import { passt } from '../bild-sammlung';
 import type { BildZiehen, SammlungsGruppe } from '../Bildpanel';
-import { BILDGRUPPEN, bildBeschreibung, bilderZahl, Hochladen, Laeuft, SammlungsKacheln } from '../Bildpanel';
+import { bildBeschreibung, bilderZahl, BILDGRUPPEN, Hochladen, Laeuft, SammlungsKacheln } from '../Bildpanel';
 import { bildLaeufe, canvaAktion, starteBild, useCanvaLaeufe } from '../canva';
 import { legeInMitte } from '../gestaltung/ablegen/ablegen';
 import { bildGut, mitGeholtemBild } from '../gestaltung/ablegen/bild-gut';
@@ -72,8 +72,7 @@ export const Inhalt = (t: SchubladenTeile) => {
 	 * freies Bild in die Mitte der sichtbaren Seite; nur ein gewählter Platzhalter oder leerer Bildrahmen wird gefüllt.
 	 */
 	const frei: FreiAblegen = (b) => void legeInMitte({ doc, folien, struktur }, bildGut(b));
-	const waehle = (eintrag: SammlungsBild) =>
-		void bild.uebernimm(eintrag.schluessel, bildBeschreibung(eintrag), frei);
+	const waehle = (eintrag: SammlungsBild) => void bild.uebernimm(eintrag.schluessel, bildBeschreibung(eintrag), frei);
 	const zeigeHinweis = useHinweis();
 	const entferne = (eintrag: SammlungsBild) => {
 		const schluessel = eintrag.kopien ?? [eintrag.schluessel];

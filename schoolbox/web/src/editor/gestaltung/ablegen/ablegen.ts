@@ -164,9 +164,12 @@ export const legeInMitte = async (teile: AblegenTeile, gut: GestaltungsGut) => {
 	const h = hoehe ?? hoeheVon(doc, beste.seite, gut);
 	// Nur Bilder (Upload, Bibliothek, Figuren); Formen und Text kommen weiter in die Mitte.
 	const frei =
-		hoehe === undefined ? null : freieStelle(freierBereich(doc, beste), inhaltAuf(beste.seite), gut.groesse.b, h, true);
+		hoehe === undefined
+			? null
+			: freieStelle(freierBereich(doc, beste), inhaltAuf(beste.seite), gut.groesse.b, h, true);
 	if (frei) {
-		const klein = frei.breite < gut.groesse.b ? { ...gut, groesse: { ...gut.groesse, b: Math.round(frei.breite) } } : gut;
+		const klein =
+			frei.breite < gut.groesse.b ? { ...gut, groesse: { ...gut.groesse, b: Math.round(frei.breite) } } : gut;
 		const ort = ortUm(doc, beste.seite, klein, frei.x, frei.y, (h * klein.groesse.b) / gut.groesse.b);
 		if (ort) {
 			return legeAb(teile.struktur, klein, versetztNeben(beste.seite, ort));

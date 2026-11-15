@@ -91,12 +91,16 @@ export const Entwuerfe = ({ dok, zugang }: Eigenschaften) => {
 						className="relative min-h-0 min-w-0 max-lg:w-[85%] max-lg:flex-none max-lg:snap-center"
 						data-entwurf={entwurf.name}
 					>
-						<Link to={entwuerfeSeite(zugang, dok, entwurf.name)} className="group block h-full no-underline">
+						<Link
+							to={entwuerfeSeite(zugang, dok, entwurf.name)}
+							className="group block h-full no-underline"
+						>
 							{/* Hover wie die Kacheln der Ablage (191-35); nur der gewählte trägt den Auswahlrahmen (191-37). */}
 							<Kachel
 								className={klassen(
 									'flex h-full flex-col group-hover:border-rand-feld',
-									entwurf.name === meta.gewaehlt && 'border-tinte ring-1 ring-tinte group-hover:border-tinte',
+									entwurf.name === meta.gewaehlt &&
+									'border-tinte ring-1 ring-tinte group-hover:border-tinte',
 								)}
 							>
 								{/* Rechts oben liegt „Diesen Entwurf nehmen“, neben dem Link (kein Knopf im Link). */}

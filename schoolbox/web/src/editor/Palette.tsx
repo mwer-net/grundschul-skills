@@ -21,8 +21,8 @@ interface Eigenschaften {
 				aus: (text: string) => void;
 				/** Ist die Eingabe der Anfang eines Befehls, fehlt die Zeile (190-05). */
 				ausser?: (text: string) => boolean;
-		  }
-		| undefined;
+		  } |
+		  undefined;
 	/** `true`: Es folgt gleich die Aktion der Zeile. */
 	schliessen: (ausgefuehrt: boolean) => void;
 }

@@ -97,7 +97,8 @@ export const Pruefstatus = ({ knopf, stand, zeige }: Eigenschaften) => {
 	const { mehrereSeiten, punkte } = stand;
 	const wichtig = punkte.filter((p) => p.stufe !== 'HINWEIS');
 	const ersteUeberlaeufe = punkte.filter(
-		(p, i) => p.code === 'ueberlauf' && punkte.findIndex((q) => q.code === 'ueberlauf' && q.seite === p.seite) === i,
+		(p, i) =>
+			p.code === 'ueberlauf' && punkte.findIndex((q) => q.code === 'ueberlauf' && q.seite === p.seite) === i,
 	);
 	const knopfZu = (p: Pruefpunkt) =>
 		knopf && (p.code !== 'ueberlauf' || ersteUeberlaeufe.includes(p)) ? knopf(p) : null;
@@ -189,7 +190,8 @@ export const Pruefhinweise = ({
 	knopf?: ((p: Pruefpunkt) => PruefKnopf | null) | undefined;
 }) => {
 	const eigene = (stand?.punkte ?? []).filter(
-		(p) => nr !== null && p.bausteine.includes(nr) && !IM_BILDPANEL.has(p.code ?? '') && !IM_PANEL.has(p.code ?? ''),
+		(p) =>
+			nr !== null && p.bausteine.includes(nr) && !IM_BILDPANEL.has(p.code ?? '') && !IM_PANEL.has(p.code ?? ''),
 	);
 	if (eigene.length === 0) {
 		return null;

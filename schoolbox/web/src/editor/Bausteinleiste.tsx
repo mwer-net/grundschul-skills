@@ -179,7 +179,14 @@ export const Bausteinleiste = ({ befehle, e, pfad, struktur, text }: Eigenschaft
 	// 204-N04, Schlussdurchsicht: die Stelle, die am wenigsten fremden Inhalt verdeckt; in der Sitzung wie vorher.
 	const breite = bleibt ? fest.current.breite : mass.breite;
 	const umfeld = element && e.box ? umfeldDerLeiste(e, e.box, [element]) : null;
-	const vorher = lageDerLeiste(box, { breite, hoehe: mass.hoehe }, sicht, frei, umfeld, bleibt ? fest.current.wahl : null);
+	const vorher = lageDerLeiste(
+		box,
+		{ breite, hoehe: mass.hoehe },
+		sicht,
+		frei,
+		umfeld,
+		bleibt ? fest.current.wahl : null,
+	);
 	if (!sitzung) {
 		fest.current = { nr, breite: mass.breite, wahl: vorher.wahl };
 	}

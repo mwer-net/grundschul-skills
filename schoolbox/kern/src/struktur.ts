@@ -82,7 +82,11 @@ const aeussereSeiteVon = (k: Knoten) => {
 
 /** Eine Aufgabennummer, die `nummeriere` zählt: eine Zahl, kein Stern. */
 const zaehltMit = (z: Zerlegung, k: Knoten) =>
-	hat(k, 'nr') && !hat(k, 'stern') && k.kinder.length === 0 && hat(k.eltern, 'aufgabe') && /^\d+$/.test(innenVon(z, k).trim());
+	hat(k, 'nr') &&
+	!hat(k, 'stern') &&
+	k.kinder.length === 0 &&
+	hat(k.eltern, 'aufgabe') &&
+	/^\d+$/.test(innenVon(z, k).trim());
 
 /**
  * Wo im Bestand eine eigene Zählung beginnt (206, Nachbesserung 3): Die erste Aufgabe einer Seite setzt die Zählung
@@ -116,7 +120,11 @@ const gleicherRand = (a: string, b: string) => {
 		vorn += 1;
 	}
 	let hinten = 0;
-	while (hinten < a.length - vorn && hinten < b.length - vorn && a[a.length - 1 - hinten] === b[b.length - 1 - hinten]) {
+	while (
+		hinten < a.length - vorn &&
+		hinten < b.length - vorn &&
+		a[a.length - 1 - hinten] === b[b.length - 1 - hinten]
+	) {
 		hinten += 1;
 	}
 	return { vorn, hinten };
@@ -171,7 +179,7 @@ export const nummeriere = (quelle: string, { jeSeite }: Nummerierung, vorher?: s
 			return true;
 		}
 		const bis = bereichsGrenzen.find((g) => g > von) ?? Infinity;
-		const { von: aenderungVon, bis: aenderungBis } = bereiche.geaendert;
+		const { bis: aenderungBis, von: aenderungVon } = bereiche.geaendert;
 		return aenderungVon < bis && aenderungBis >= von;
 	};
 	for (const k of z.knoten) {
@@ -417,10 +425,7 @@ export const loescheBaustein = (quelle: string, nr: number, n: Nummerierung) => 
 	const folge = geschwister[stelle + 1] ?? geschwister[stelle - 1] ?? k.eltern;
 	// Regel 20: Folgt auf eine feste Seite eine automatische, wird diese fest; ihr Inhalt bleibt in keinem fremden Blatt.
 	const naechste = geschwister[stelle + 1];
-	const fest =
-		istSeite(k) && !istAutomatisch(k) && istAutomatisch(naechste) && naechste
-			? festeSeite(naechste)
-			: [];
+	const fest = istSeite(k) && !istAutomatisch(k) && istAutomatisch(naechste) && naechste ? festeSeite(naechste) : [];
 	const neu = ergebnis(quelle, [...entferne(z, k), ...fest], undefined, n);
 	if (!folge) {
 		return neu;

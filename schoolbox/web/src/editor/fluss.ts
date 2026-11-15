@@ -37,7 +37,8 @@ const BILDER_MS = 2000;
 /** Höchstens so viele Umbauten folgen auf einen Schritt (Regel 29): danach wird gezeigt, was da ist. */
 export const FLUSS_RUNDEN = 2;
 
-const NICHT_IM_FLUSS = '.namenszeile, .kopf, .loesung-marke, .fuss-zeile, .ebene, [data-lage], style, script, template, link, meta, br, noscript';
+const NICHT_IM_FLUSS =
+	'.namenszeile, .kopf, .loesung-marke, .fuss-zeile, .ebene, [data-lage], style, script, template, link, meta, br, noscript';
 const HINTEN = '.fuss-zeile, .ebene, [data-lage]';
 const VORN = '.namenszeile, .kopf';
 /** Was `pruefung.js` beim Überlauf nicht misst. */
@@ -156,7 +157,7 @@ const passungVon = (seiten: Element[]) =>
 			const naechster = naechste ? flussKinder(naechste)[0] : undefined;
 			let platz = 0;
 			if (naechster && passt === bloecke.length) {
-				const { parentNode, nextSibling } = naechster;
+				const { nextSibling, parentNode } = naechster;
 				seite.insertBefore(naechster, ankerIn(seite));
 				platz = unterkante(naechster) <= grenzeVon(seite) + TOLERANZ ? 1 : 0;
 				parentNode?.insertBefore(naechster, nextSibling);
@@ -168,12 +169,10 @@ const passungVon = (seiten: Element[]) =>
 /** Die Passung jedes fließenden Blatts (Nummer der ersten Seite), im Arbeitsblatt und, wenn es eine gibt, der Lösung. */
 const passungen = (doc: Document, z: Zerlegung, mitLoesung: boolean) => {
 	const imBild = blaetterImBild(doc);
-	const blaetter = [...blattSchluessel(z).keys()]
-		.slice(0, MAX_BLAETTER)
-		.flatMap((nr) => {
-			const seiten = imBild.find((g) => g[0] && nrVon(g[0]) === nr);
-			return seiten && fliesstImBild(seiten) ? [[nr, seiten] as const] : [];
-		});
+	const blaetter = [...blattSchluessel(z).keys()].slice(0, MAX_BLAETTER).flatMap((nr) => {
+		const seiten = imBild.find((g) => g[0] && nrVon(g[0]) === nr);
+		return seiten && fliesstImBild(seiten) ? [[nr, seiten] as const] : [];
+	});
 	const ergebnis = new Map<number, string>();
 	if (blaetter.length === 0) {
 		return ergebnis;
@@ -208,7 +207,6 @@ interface Probe {
 	ueberschrift: Set<Element>;
 	fuss: Element | null;
 }
-
 
 const ohneMarke = (k: Element) => {
 	const kopie = k.cloneNode(true) as Element;
@@ -482,11 +480,11 @@ const stelleHer = (doc: Document, { aktiv, stellen }: Marke) => {
  * wieder wie vorher; mit Änderung bleibt das Bild, bis der echte Fluss (206-02) die neue Fassung zeigt.
  */
 export const useMitlaufen = ({
-	doc,
-	zerlegung,
 	auswahl,
-	nachher,
+	doc,
 	halte,
+	nachher,
+	zerlegung,
 }: {
 	doc: Document | null;
 	zerlegung: Zerlegung | null;
@@ -521,7 +519,7 @@ export const useMitlaufen = ({
 		}
 		window.clearTimeout(uhr.current);
 		uhr.current = window.setTimeout(() => {
-			const { doc: d, zerlegung: z, auswahl: nr } = stand.current;
+			const { auswahl: nr, doc: d, zerlegung: z } = stand.current;
 			const el = d && z && nr !== null ? elementZu(d, nr) : null;
 			const block = el && flussblockVon(el);
 			if (!d || !z || !el || !block || block.innerHTML === zuletzt.current) {
@@ -562,9 +560,7 @@ export const useMitlaufen = ({
 
 /** Fließt die Seite (1-basiert wie in der Prüfung)? Dann regelt der Fluss den Überstand, nicht der Satz im Reiter. */
 export const seiteFliesst = (doc: Document, z: Zerlegung, seitenNr: number) => {
-	const seite = [...doc.querySelectorAll('.seite')].filter((s) => !s.parentElement?.closest('.seite'))[
-		seitenNr - 1
-	];
+	const seite = [...doc.querySelectorAll('.seite')].filter((s) => !s.parentElement?.closest('.seite'))[seitenNr - 1];
 	const nr = seite ? nrVon(seite) : null;
 	if (nr === null || !seite) {
 		return false;
@@ -576,9 +572,7 @@ export const seiteFliesst = (doc: Document, z: Zerlegung, seitenNr: number) => {
 
 /** Die Nummer der ersten Seite des Blatts, zu dem die Seite (1-basiert) gehört. */
 export const blattDerSeite = (doc: Document, seitenNr: number) => {
-	const seite = [...doc.querySelectorAll('.seite')].filter((s) => !s.parentElement?.closest('.seite'))[
-		seitenNr - 1
-	];
+	const seite = [...doc.querySelectorAll('.seite')].filter((s) => !s.parentElement?.closest('.seite'))[seitenNr - 1];
 	const gruppe = blaetterImBild(doc).find((g) => g.includes(seite as HTMLElement));
 	const erste = gruppe?.[0];
 	return erste ? nrVon(erste) : null;
@@ -624,7 +618,12 @@ const UNKLAR = '?';
  * geändert hat. Ohne Fassung davor alle fließenden (höchstens `MAX_BLAETTER`); ist die Passung davor unbekannt,
  * zählt das Blatt wie geändert.
  */
-const welcheBlaetter = (z: Zerlegung, vorher: string | null, jetzt: Map<number, string>, gemerkt: Map<string, string>) =>
+const welcheBlaetter = (
+	z: Zerlegung,
+	vorher: string | null,
+	jetzt: Map<number, string>,
+	gemerkt: Map<string, string>,
+) =>
 	vorher === null
 		? blaetterVon(z)
 				.filter((b) => b.fliesst)

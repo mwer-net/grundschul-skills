@@ -76,8 +76,8 @@ const ABSCHNITTE: Abschnitt[] = [
 						Rahmen auf der freien Fläche. Am iPad: „Auswählen“.
 					</Punkt>
 					<Punkt titel="Bewegen">
-						In einen Ordner, den Baum links oder den Pfad oben ziehen, mit ⌥ entsteht eine Kopie. Oder ⌘X und
-						⌘V, oder im Menü „Bewegen nach …“. Am iPad: halten, dann ziehen.
+						In einen Ordner, den Baum links oder den Pfad oben ziehen, mit ⌥ entsteht eine Kopie. Oder ⌘X
+						und ⌘V, oder im Menü „Bewegen nach …“. Am iPad: halten, dann ziehen.
 					</Punkt>
 					<Punkt titel="Rückgängig">⌘Z nimmt jedes Bewegen, Umbenennen und Löschen zurück.</Punkt>
 					<Punkt titel="Löschen">
@@ -97,30 +97,32 @@ const ABSCHNITTE: Abschnitt[] = [
 		inhalt: (
 			<>
 				<p>
-					In einem Ordner „Material anlegen“, oben oder im Rechtsklick. Der Assistent fragt Schritt für Schritt,
-					links stehen deine Antworten, ein Klick darauf springt zurück. Vorgewählt ist die Empfehlung, ⏎
-					übernimmt sie. Klasse und Fach kommen aus dem Ordner, seinem Namen oder wie beim letzten Mal; daneben
-					steht, woher. Findet sich nichts, wählst du sie selbst.
+					In einem Ordner „Material anlegen“, oben oder im Rechtsklick. Der Assistent fragt Schritt für
+					Schritt, links stehen deine Antworten, ein Klick darauf springt zurück. Vorgewählt ist die
+					Empfehlung, ⏎ übernimmt sie. Klasse und Fach kommen aus dem Ordner, seinem Namen oder wie beim
+					letzten Mal; daneben steht, woher. Findet sich nichts, wählst du sie selbst.
 				</p>
 				<ul>
 					<Punkt titel="Mit Claude">
 						Art, Format, für wen, Thema und Ziel, Bausteine wie Niveaus und was Claude über deine Klasse
 						wissen sollte. Passt keine Antwort, schreibst du unter „Anders …“ selbst. „Aufgabenplan holen“
 						legt das Blatt an, und Claude zeigt zuerst den Plan der Aufgaben: „So bauen“ startet den Bau,
-						„Ändern …“ sagt Claude, was am Plan anders sein soll. „Verwerfen“ legt das Blatt in den Papierkorb,
-						„Rückgängig“ holt es mit dem Plan zurück. Das Bauen dauert einige Minuten und verbraucht deutlich
-						mehr als eine Änderung.
+						„Ändern …“ sagt Claude, was am Plan anders sein soll. „Verwerfen“ legt das Blatt in den
+						Papierkorb, „Rückgängig“ holt es mit dem Plan zurück. Das Bauen dauert einige Minuten und
+						verbraucht deutlich mehr als eine Änderung.
 					</Punkt>
 					<Punkt titel="Leeres Blatt">
 						nur Art, Format und Titel, dann baust du selbst. „Doch lieber leeres Blatt“ wechselt jederzeit
 						dorthin und behält, was du schon gewählt hast.
 					</Punkt>
 					<Punkt titel="Unterbrechen">
-						Esc schließt den Assistenten, deine Antworten bleiben: „Weiter ausfüllen“ macht dort weiter, „Von
-						vorn beginnen“ fängt neu an.
+						Esc schließt den Assistenten, deine Antworten bleiben: „Weiter ausfüllen“ macht dort weiter,
+						„Von vorn beginnen“ fängt neu an.
 					</Punkt>
 					<Punkt titel="Wiederverwenden">
-						{'ein fertiges Blatt duplizieren (⌘D) und die Kopie ändern. Einen einzelnen Baustein legst du mit '}
+						{
+							'ein fertiges Blatt duplizieren (⌘D) und die Kopie ändern. Einen einzelnen Baustein legst du mit '
+						}
 						{befehlName('auswahl.in-sammlung')}
 						{
 							' im ⋯ ab; er steht dann unter „Meine Bausteine“ in jedem Blatt, mit Vorschau. Dort benennst du ihn um oder löschst ihn, „Rückgängig“ holt ihn zurück.'
@@ -131,15 +133,19 @@ const ABSCHNITTE: Abschnitt[] = [
 				<h3>Bausteine einfügen</h3>
 				<ul>
 					<Punkt titel="Zwischen zwei Bausteinen">
-						mit der Maus in die Lücke, dann „+ Baustein“. Es öffnet die Schnellauswahl: tippen, mit ↑ ↓ wählen,
-						⏎ fügt ein. Auf einer leeren Seite steht „Ersten Baustein einfügen“. Mit gewähltem Baustein geht es
-						über {befehlName('auswahl.einfuegen-danach')} im ⋯ oder „/“.
+						mit der Maus in die Lücke, dann „+ Baustein“. Es öffnet die Schnellauswahl: tippen, mit ↑ ↓
+						wählen, ⏎ fügt ein. Auf einer leeren Seite steht „Ersten Baustein einfügen“. Mit gewähltem
+						Baustein geht es über
+{' '}
+{befehlName('auswahl.einfuegen-danach')}
+{' '}
+im ⋯ oder „/“.
 					</Punkt>
 					<Punkt titel="Schublade">
 						„Bausteine“ links (
 						<SchubladenTaste id="bausteine" />
-						), mit Suche und oben „Für dieses Blatt“ oder „Alle“. Antippen fügt hinter der Auswahl ein, gezogen
-						landet der Baustein, wo du loslässt.
+						), mit Suche und oben „Für dieses Blatt“ oder „Alle“. Antippen fügt hinter der Auswahl ein,
+						gezogen landet der Baustein, wo du loslässt.
 					</Punkt>
 					<Punkt titel="Schrägstrich">in einer leeren Zeile „/“ tippen und weiterschreiben.</Punkt>
 				</ul>
@@ -177,8 +183,8 @@ const ABSCHNITTE: Abschnitt[] = [
 				</ul>
 				<ol start={3}>
 					<li>
-						Claude fragt kurz nach, zeigt dir Entwürfe und einen Plan der Aufgaben. Ist alles fertig, schickt
-						Claude dir einen Link in die Schoolbox.
+						Claude fragt kurz nach, zeigt dir Entwürfe und einen Plan der Aufgaben. Ist alles fertig,
+						schickt Claude dir einen Link in die Schoolbox.
 					</li>
 					<li>
 						Alles, was Claude für dich gemacht hat, steht hier unter „Mein Material“. Eine Anfrage ist ein
@@ -216,8 +222,8 @@ const ABSCHNITTE: Abschnitt[] = [
 		inhalt: (
 			<ul>
 				<li>
-					Im geöffneten Material lädt das Menü „PDF“ das Arbeitsblatt, die Lösung oder beides. Gedruckt wird aus
-					dem PDF, am iPad über „Teilen“ und „Drucken“.
+					Im geöffneten Material lädt das Menü „PDF“ das Arbeitsblatt, die Lösung oder beides. Gedruckt wird
+					aus dem PDF, am iPad über „Teilen“ und „Drucken“.
 				</li>
 				<li>„Lösung“ oben zeigt das Lösungsblatt.</li>
 				<li>
@@ -228,8 +234,8 @@ const ABSCHNITTE: Abschnitt[] = [
 				<li>Ein ganzer Ordner auf einmal: Ordner auswählen, dann „PDF“.</li>
 				<li>
 					Passt vor dem Herunterladen etwas nicht ganz aufs Blatt, sagt es die Schoolbox. Du lädst trotzdem
-					herunter, oder „Claude bitten, es zu reparieren“ öffnet das Blatt im Editor, die Bitte steht schon in
-					der Blase.
+					herunter, oder „Claude bitten, es zu reparieren“ öffnet das Blatt im Editor, die Bitte steht schon
+					in der Blase.
 				</li>
 			</ul>
 		),
@@ -244,8 +250,8 @@ const ABSCHNITTE: Abschnitt[] = [
 				<ul>
 					<li>Öffne die Präsentation und tippe auf „Präsentieren“. Sie startet sofort im Vollbild.</li>
 					<li>
-						Weiter mit Pfeiltaste, Leertaste oder Klicker, am iPad rechts antippen oder nach links wischen. Esc
-						beendet.
+						Weiter mit Pfeiltaste, Leertaste oder Klicker, am iPad rechts antippen oder nach links wischen.
+						Esc beendet.
 					</li>
 					<li>
 						Abstimmen: Ein Klick auf eine Antwort setzt einen Strich, je fünf werden ein Bündel. Rechtsklick
@@ -265,7 +271,11 @@ const ABSCHNITTE: Abschnitt[] = [
 			</>
 		),
 		bilder: [
-			{ datei: 'praesentation-ipad.jpg', alt: 'Eine Folie im Präsentationsmodus, abgestimmt mit Strichen', geraet: 'iPad' },
+			{
+				datei: 'praesentation-ipad.jpg',
+				alt: 'Eine Folie im Präsentationsmodus, abgestimmt mit Strichen',
+				geraet: 'iPad',
+			},
 			{ datei: 'ohne-internet-ipad.jpg', alt: 'Das Menü „PDF“ einer Präsentation', geraet: 'iPad' },
 		],
 	},
@@ -275,7 +285,7 @@ const ABSCHNITTE: Abschnitt[] = [
 		inhalt: (
 			<>
 				<p>
-					{'„Bearbeiten“ öffnet das Blatt zum Ändern. Alles speichert von selbst ('}
+					„Bearbeiten“ öffnet das Blatt zum Ändern. Alles speichert von selbst (
 					<BefehlTaste id="dokument.speichern" />
 					{
 						' speichert sofort); beim Verlassen speichert der Editor den Rest, und nur wenn das nicht klappt, fragt er nach.'
@@ -283,11 +293,13 @@ const ABSCHNITTE: Abschnitt[] = [
 				</p>
 				<ul>
 					<Punkt titel="Wählen">
-						Fährst du mit der Maus über das Blatt, zeigen ein Rahmen und ein Name, was ein Klick wählen würde.
-						Über dem gewählten Baustein steht eine Leiste mit Claude, „Nach oben“, „Nach unten“, Duplizieren,
-						Löschen und ⋯; das ⋯ ist dasselbe Menü wie der Rechtsklick.
+						Fährst du mit der Maus über das Blatt, zeigen ein Rahmen und ein Name, was ein Klick wählen
+						würde. Über dem gewählten Baustein steht eine Leiste mit Claude, „Nach oben“, „Nach unten“,
+						Duplizieren, Löschen und ⋯; das ⋯ ist dasselbe Menü wie der Rechtsklick.
 					</Punkt>
-					<Punkt titel="Text">antippen und lostippen. Fett und unterstrichen stehen in der Leiste über dem Text.</Punkt>
+					<Punkt titel="Text">
+						antippen und lostippen. Fett und unterstrichen stehen in der Leiste über dem Text.
+					</Punkt>
 					<Punkt titel="Umsortieren">
 						Aufgaben und Kärtchen im Blatt ziehen (am iPad kurz halten, dann ziehen) oder „Nach oben“ und
 						„Nach unten“ in der Leiste.
@@ -304,18 +316,19 @@ const ABSCHNITTE: Abschnitt[] = [
 					<Punkt titel="Ebenen">
 						die Schublade links (
 						<SchubladenTaste id="ebenen" />
-						) zeigt alle Seiten als Baum mit allem, was du im Blatt anklicken kannst. Ein Klick auf eine Zeile
-						springt zur Stelle. Zeilen ziehst du an einen anderen Platz, Aufgaben auch auf eine andere Seite.
-						Namenszeile, Kopf und Selbsteinschätzung bleiben an ihrem Platz und sind grau. Oben klappt „Alle
-						aufklappen“ jede Zeile auf, danach macht „Alle einklappen“ die Liste wieder kurz.
+) zeigt alle Seiten als Baum mit allem, was du im Blatt anklicken
+						kannst. Ein Klick auf eine Zeile springt zur Stelle. Zeilen ziehst du an einen anderen Platz,
+						Aufgaben auch auf eine andere Seite. Namenszeile, Kopf und Selbsteinschätzung bleiben an ihrem
+						Platz und sind grau. Oben klappt „Alle aufklappen“ jede Zeile auf, danach macht „Alle
+						einklappen“ die Liste wieder kurz.
 					</Punkt>
 					<Punkt titel="Einstellungen">
 						rechts im Inspektor: „Auswahl“ für das Gewählte, „Blatt“ für Klasse, Farben, Format, den Abstand
 						zwischen den Aufgaben und die Gestaltung der Seite. „Vorgabe“ stellt einen Wert zurück.
 					</Punkt>
 					<Punkt titel="Listen">
-						jeder Eintrag steht in einer Zeile, ⋯ öffnet Art und Entfernen. Beim Ankreuzen setzt du den Haken an
-						jeder richtigen Antwort, bei Richtig oder falsch je Aussage den Schalter „Richtig“. Bei
+						jeder Eintrag steht in einer Zeile, ⋯ öffnet Art und Entfernen. Beim Ankreuzen setzt du den
+						Haken an jeder richtigen Antwort, bei Richtig oder falsch je Aussage den Schalter „Richtig“. Bei
 						langen Listen wie Bingo schreibt „Als Text bearbeiten“ alles auf einmal, eine Zeile je Eintrag.
 					</Punkt>
 					<Punkt titel="Nur in der Lösung">
@@ -327,18 +340,18 @@ const ABSCHNITTE: Abschnitt[] = [
 						einzelne Buchstaben, bei Absätzen auch Zeilennummern. Derselbe Regler schaltet es wieder aus.
 					</Punkt>
 					<Punkt titel="Übung daraus machen">
-						bei Absätzen, Zellen und Listenpunkten: Lücken, Wörter mischen, Buchstaben mischen. Rückgängig holt
-						den Text zurück.
+						bei Absätzen, Zellen und Listenpunkten: Lücken, Wörter mischen, Buchstaben mischen. Rückgängig
+						holt den Text zurück.
 					</Punkt>
 					<Punkt titel="Bilder">
-						{'in der Schublade „Bilder“ ('}
+						in der Schublade „Bilder“ (
 						<SchubladenTaste id="bilder" />
-						{'), siehe „Gestalten“.'}
+						), siehe „Gestalten“.
 					</Punkt>
 					<Punkt titel="Zahlen">
 						eine Zahl über dem Zahlenraum der Klasse wird gezeichnet, unten steht dann etwa „1 Ding prüfen“;
-						das PDF geht trotzdem. Passt eine Zahl nicht aufs Blatt, setzt der Inspektor die größte,
-						die passt, und sagt, warum.
+						das PDF geht trotzdem. Passt eine Zahl nicht aufs Blatt, setzt der Inspektor die größte, die
+						passt, und sagt, warum.
 					</Punkt>
 					<Punkt titel="Lösung">oben auf „Lösung“ wechseln und die Lösungen eintragen.</Punkt>
 					<Punkt titel="Rückgängig">
@@ -359,7 +372,9 @@ const ABSCHNITTE: Abschnitt[] = [
 		titel: 'Schneller arbeiten',
 		inhalt: (
 			<ul>
-				<Punkt titel="Rechtsklick">auf einen Baustein, ein Element oder eine Kachel zeigt alles, was damit geht.</Punkt>
+				<Punkt titel="Rechtsklick">
+					auf einen Baustein, ein Element oder eine Kachel zeigt alles, was damit geht.
+				</Punkt>
 				<Punkt titel="⋯">in der Leiste und auf jeder Kachel zeigt dasselbe, auch am iPad.</Punkt>
 				<Punkt titel="Befehle">
 					{'„Befehle“ unten oder '}
@@ -405,32 +420,37 @@ const ABSCHNITTE: Abschnitt[] = [
 				</p>
 				<p>
 					Danach öffnet der Editor das neue Blatt mit dem Aufgabenplan. Solange Claude baut, liegt darauf eine
-					Karte mit den Schritten, und das Blatt ist gesperrt. Du kannst den Editor verlassen, die Arbeit läuft
-					weiter.
+					Karte mit den Schritten, und das Blatt ist gesperrt. Du kannst den Editor verlassen, die Arbeit
+					läuft weiter.
 				</p>
 				<ul>
-					<Punkt titel="Übernehmen">oder ⏎: Der Vorschlag wird dein Blatt. Rückgängig nimmt ihn zurück.</Punkt>
+					<Punkt titel="Übernehmen">
+						oder ⏎: Der Vorschlag wird dein Blatt. Rückgängig nimmt ihn zurück.
+					</Punkt>
 					<Punkt titel="Nachbessern …">
 						schreib, was anders sein soll. Claude bessert den Vorschlag nach und kennt den ersten Auftrag.
 					</Punkt>
 					<Punkt titel="Verwerfen">das leere Blatt bleibt im Ordner, du füllst es selbst.</Punkt>
 					<Punkt titel="Annahmen">was Claude selbst entschieden hat, zum Aufklappen.</Punkt>
 				</ul>
-				<p>Klappt es nicht, steht der Grund auf dem Blatt, mit „Nochmal“, am Limit auch, ab wann es wieder geht.</p>
+				<p>
+					Klappt es nicht, steht der Grund auf dem Blatt, mit „Nochmal“, am Limit auch, ab wann es wieder
+					geht.
+				</p>
 				<h3>Etwas am Blatt ändern</h3>
 				<ol>
 					<li>
 						{'Einen Teil des Blatts wählen, dann „Claude“ in seiner Leiste oder '}
 						<BefehlTaste id="auswahl.claude" />
-						{'. Ohne Auswahl gilt es der Seite. Claude ändert immer ein Element; für mehrere wählst du die Seite.'}
+						. Ohne Auswahl gilt es der Seite. Claude ändert immer ein Element; für mehrere wählst du die Seite.
 					</li>
 					<li>
 						Oben in der Blase steht, worauf sich dein Auftrag bezieht. Ein Tipp darauf wählt eine Stufe
 						darüber: die ganze Aufgabe, die Seite oder das ganze Material.
 					</li>
 					<li>
-						Schreiben, Enter. Die Blase zeigt, wie lange Claude schon arbeitet. Lädst du die Seite neu, steht
-						deine Bitte wieder darin.
+						Schreiben, Enter. Die Blase zeigt, wie lange Claude schon arbeitet. Lädst du die Seite neu,
+						steht deine Bitte wieder darin.
 					</li>
 					<li>
 						Am Ende steht der Vorschlag gestrichelt im Blatt, in der Blase „Vorher“ und „Nachher“.
@@ -440,8 +460,8 @@ const ABSCHNITTE: Abschnitt[] = [
 				</ol>
 				<h3>Ein Gespräch</h3>
 				<p>
-					Claude merkt sich, worüber ihr gesprochen habt; du kannst einfach antworten, auch mit „Ja, mach das“.
-					Ist dein Wunsch offen, fragt Claude kurz zurück, sonst macht es und nennt seine Annahme.
+					Claude merkt sich, worüber ihr gesprochen habt; du kannst einfach antworten, auch mit „Ja, mach
+					das“. Ist dein Wunsch offen, fragt Claude kurz zurück, sonst macht es und nennt seine Annahme.
 				</p>
 				<p>
 					× „Schließen“, Esc oder ein Klick daneben schließen die Blase. Arbeitet Claude noch, fragt es oder
@@ -475,8 +495,8 @@ const ABSCHNITTE: Abschnitt[] = [
 				<h3>Verbrauch</h3>
 				<p>
 					Alles zählt für das Limit deines Claude-Kontos, zusammen mit der Claude-App. Eine Änderung braucht
-					wenig, ein neues Bild etwas mehr, neues Material deutlich mehr. Wird es knapp oder arbeitet Claude mit
-					gekauftem Guthaben weiter, steht das in der Blase.
+					wenig, ein neues Bild etwas mehr, neues Material deutlich mehr. Wird es knapp oder arbeitet Claude
+					mit gekauftem Guthaben weiter, steht das in der Blase.
 				</p>
 			</>
 		),
@@ -517,8 +537,8 @@ const ABSCHNITTE: Abschnitt[] = [
 			<ul>
 				<li>Sag Claude Bescheid, ganz normal in Worten. Am Material kann Claude fast alles reparieren.</li>
 				<li>
-					Fehlt dir etwas oder stört dich etwas immer wieder: „Notier das bitte als Wunsch.“ Claude schreibt es
-					für die Weiterentwicklung auf.
+					Fehlt dir etwas oder stört dich etwas immer wieder: „Notier das bitte als Wunsch.“ Claude schreibt
+					es für die Weiterentwicklung auf.
 				</li>
 				<li>Aus Versehen gelöscht? Im Papierkorb links unten bleibt alles 30 Tage.</li>
 				<li>Keine Namen von Kindern in Materialien oder an Claude; Claude schlägt dann Fantasienamen vor.</li>

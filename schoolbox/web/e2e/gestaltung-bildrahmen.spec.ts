@@ -130,7 +130,9 @@ test.describe('Rahmen-Stile und Bildrahmen (111)', () => {
 		const bild = material(page).locator('img.bild-frei');
 		await waehle(page, bild, 'bildfrei');
 		await expect(abschnitt(page).locator('[data-rahmenstil-knopf]')).toHaveCount(3);
-		await expect(abschnitt(page).locator('[data-rahmenstil-knopf="schraeg"], [data-rahmenstil-knopf="rund"]')).toHaveCount(0);
+		await expect(
+			abschnitt(page).locator('[data-rahmenstil-knopf="schraeg"], [data-rahmenstil-knopf="rund"]'),
+		).toHaveCount(0);
 		for (const [stil, titel] of [
 			['polaroid', 'Polaroid'],
 			['kontur', 'Kontur'],

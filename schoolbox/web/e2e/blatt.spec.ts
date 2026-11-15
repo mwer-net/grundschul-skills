@@ -126,7 +126,9 @@ test.describe('Reiter „Blatt“: Abstand, Punkte (082)', () => {
 		await expect(regler(page)).toHaveValue('60');
 	});
 
-	test('großer Abstand: Das Blatt läuft auf eine zweite Seite weiter, kein Satz „läuft über“ (206)', async ({ page }) => {
+	test('großer Abstand: Das Blatt läuft auf eine zweite Seite weiter, kein Satz „läuft über“ (206)', async ({
+		page,
+	}) => {
 		const { dok, id } = await uhrzeit();
 		await oeffne(page, id, dok);
 		const hinweis = page.locator('[data-abstand-ueberlauf]');

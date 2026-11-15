@@ -21,7 +21,6 @@ import type { AuswahlStand, Richtung } from './auswahl';
 import { alles, bewege as bewegeAuswahl, findeNachName, KEINE } from './auswahl';
 import type { Lage } from './befehle';
 import { befehlZuTaste, lageArt, menueVon, paletteVon } from './befehle';
-import { useAuswahlFuerPalette } from './palette-auswahl';
 import { BewegenDialog, InfoDialog, TastenDialog, UebersichtDialog } from './dialoge';
 import type { Merkzettel } from './kontext';
 import { useAblage } from './kontext';
@@ -36,6 +35,7 @@ import {
 	schluesselVon,
 	WURZEL_NAME,
 } from './objekte';
+import { useAuswahlFuerPalette } from './palette-auswahl';
 import { leseSortierung, naechsteSortierung, SORTIER_NAME } from './sortierung';
 import type { AblageDok, AblageOrdner, AblageStand, Darstellung, Knoten, Objekt, Seite, Sortierung } from './typen';
 
@@ -367,7 +367,10 @@ export const useBefehle = (o: Optionen) => {
 		const [erstes] = l.objekte;
 		const eltern = erstes ? elternVon(erstes) : null;
 		if (l.objekte.every((x) => elternVon(x) === eltern)) {
-			void tu({ art: 'kopieren', knoten: knotenVon(l.objekte), ziel: eltern }, { text: () => dupliziertText(l.objekte) }).then((a) => a && o.waehleKommend(a.ergebnis.knoten.map(schluesselVon)));
+			void tu(
+				{ art: 'kopieren', knoten: knotenVon(l.objekte), ziel: eltern },
+				{ text: () => dupliziertText(l.objekte) },
+			).then((a) => a && o.waehleKommend(a.ergebnis.knoten.map(schluesselVon)));
 			return;
 		}
 		// Aus der Suche: Jedes landet neben seinem Original.

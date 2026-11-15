@@ -76,7 +76,16 @@ export const KIT_FELDER: Readonly<Record<string, readonly KitFeld[]>> = {
 			leiste: true,
 		},
 		// 196-26: „Abstand“ heißt schon der Platz zwischen den Aufgaben
-		{ typ: 'zahl', name: 'abstand', titel: 'Zeilenabstand', min: 20, max: 60, schritt: 2, einheit: 'px', standard: 34 },
+		{
+			typ: 'zahl',
+			name: 'abstand',
+			titel: 'Zeilenabstand',
+			min: 20,
+			max: 60,
+			schritt: 2,
+			einheit: 'px',
+			standard: 34,
+		},
 	],
 	antwort: [
 		{
@@ -414,7 +423,9 @@ const REGELN: Readonly<Record<string, Regel>> = {
 			if (an) {
 				return [];
 			}
-			const absaetze = k.kinder.filter((c) => c.tag === 'li').map((c) => `<p${oeffnerVon(z, c)}>${innenVon(z, c)}</p>`);
+			const absaetze = k.kinder
+				.filter((c) => c.tag === 'li')
+				.map((c) => `<p${oeffnerVon(z, c)}>${innenVon(z, c)}</p>`);
 			return [{ von: k.start, bis: k.ende, text: absaetze.join('') }];
 		},
 	},
@@ -558,9 +569,13 @@ export const setzeNotiz = (quelle: string, seite: number, text: string) => {
 		.map((t) => t.trim())
 		.filter(Boolean);
 	const mitAbsaetzen = zeilen.length > 1 || Boolean(notiz?.kinder.some((c) => c.tag === 'p'));
-	const innen = mitAbsaetzen ? zeilen.map((t) => `<p>${schuetzeText(t)}</p>`).join('') : schuetzeText(zeilen[0] ?? '');
+	const innen = mitAbsaetzen
+		? zeilen.map((t) => `<p>${schuetzeText(t)}</p>`).join('')
+		: schuetzeText(zeilen[0] ?? '');
 	if (!notiz) {
-		return zeilen.length > 0 ? wendeAn(quelle, fuegeInnenEin(z, s, 'ende', `<aside class="notiz">${innen}</aside>`)) : quelle;
+		return zeilen.length > 0
+			? wendeAn(quelle, fuegeInnenEin(z, s, 'ende', `<aside class="notiz">${innen}</aside>`))
+			: quelle;
 	}
 	return wendeAn(
 		quelle,

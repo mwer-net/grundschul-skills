@@ -124,7 +124,9 @@ test.describe('Vorschau im Inspektor (198-02)', () => {
 		const feld = page.getByRole('textbox', { name: 'Schriftgröße' });
 
 		await feld.fill('40');
-		await expect.poll(async () => (await titel(page).boundingBox())?.height ?? 0).toBeLessThan((vorher?.height ?? 0) / 2);
+		await expect
+			.poll(async () => (await titel(page).boundingBox())?.height ?? 0)
+			.toBeLessThan((vorher?.height ?? 0) / 2);
 		await feld.press('Escape');
 		await expect.poll(async () => (await titel(page).boundingBox())?.height).toBe(vorher?.height);
 		await expect(feld).toHaveValue('160');

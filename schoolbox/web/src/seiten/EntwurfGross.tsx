@@ -42,7 +42,13 @@ export const EntwurfGross = ({ dok, name, zugang }: Eigenschaften) => {
 	const entwurf = liste[nr];
 	const vorher = liste[nr - 1];
 	const nachher = liste[nr + 1];
-	useTitel(entwurf && dokument ? `Entwurf ${entwurf.name}: ${dokument.meta.titel}` : daten || fehler ? NICHT_GEFUNDEN : undefined);
+	useTitel(
+		entwurf && dokument
+			? `Entwurf ${entwurf.name}: ${dokument.meta.titel}`
+			: daten || fehler
+				? NICHT_GEFUNDEN
+				: undefined,
+	);
 
 	const da = Boolean(entwurf);
 	const vorherName = vorher?.name;
@@ -56,7 +62,13 @@ export const EntwurfGross = ({ dok, name, zugang }: Eigenschaften) => {
 				return;
 			}
 			const ziel =
-				e.key === 'ArrowLeft' ? vorherName : e.key === 'ArrowRight' ? nachherName : e.key === 'Escape' ? '' : null;
+				e.key === 'ArrowLeft'
+					? vorherName
+					: e.key === 'ArrowRight'
+						? nachherName
+						: e.key === 'Escape'
+							? ''
+							: null;
 			if (ziel === null || ziel === undefined || document.querySelector('dialog[open], [role=menu]')) {
 				return;
 			}

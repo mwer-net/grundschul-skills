@@ -58,7 +58,9 @@ export const lueckeAn = (doc: Document, x: number, y: number): Luecke | null => 
 			const nr = nrVon(k);
 			const von = unten.bottom - 2;
 			const bis = ende + 2;
-			return nr === null ? null : { nr, x: unten.left, y: (unten.bottom + ende) / 2, laenge: unten.width, von, bis };
+			return nr === null
+				? null
+				: { nr, x: unten.left, y: (unten.bottom + ende) / 2, laenge: unten.width, von, bis };
 		}
 	}
 	return null;

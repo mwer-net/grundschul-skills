@@ -77,42 +77,42 @@ const Startseite = ({ folien, phase, starten, titel, zurueck, zurueckGehen }: St
 	useEffect(() => startKnopf.current?.focus(), []);
 	const bereit = phase.art === 'bereit';
 	return (
-	<div className="absolute inset-0 overflow-auto bg-papier">
-		<main className="mx-auto flex min-h-full max-w-3xl flex-col justify-center px-8 py-10 max-md:px-4">
-			<KnopfLink to={zurueck} onClick={zurueckGehen} art="leise" className="-ml-2.5 self-start">
-				<Symbol name="zurueck" />
-				Zurück
-			</KnopfLink>
-			<h1 className="mt-2 text-2xl">{titel}</h1>
-			{folien !== null && (
-				<p className="mt-1 text-leise">{`Präsentation · ${anzahl(folien, 'Folie', 'Folien')}`}</p>
-			)}
-			<Knopf
-				ref={startKnopf}
-				className="mt-4 h-11 self-start px-5 text-base aria-disabled:cursor-default aria-disabled:opacity-40"
-				aria-disabled={!bereit}
-				onClick={() => bereit && starten()}
-			>
-				<Symbol name="praesentieren" className="size-4 flex-none" />
-				Präsentation starten
-			</Knopf>
-			<div className="mt-4 min-h-7" role="status">
-				<Ladestand phase={phase} />
-			</div>
-			{!vollbildMoeglich() && (
-				<p className="mt-4 text-leise">
-					Für Vollbild auf dem iPad: in Safari auf „Teilen“ und „Zum Home-Bildschirm“ tippen und die Schoolbox
-					von dort öffnen.
-				</p>
-			)}
-			{!wachHaltenMoeglich() && (
-				<p className="mt-4 text-leise">
-					Dieses Gerät kann den Bildschirm nicht von selbst anlassen. Stell in den Einstellungen die
-					automatische Sperre bzw. den Ruhezustand für die Stunde ab.
-				</p>
-			)}
-		</main>
-	</div>
+		<div className="absolute inset-0 overflow-auto bg-papier">
+			<main className="mx-auto flex min-h-full max-w-3xl flex-col justify-center px-8 py-10 max-md:px-4">
+				<KnopfLink to={zurueck} onClick={zurueckGehen} art="leise" className="-ml-2.5 self-start">
+					<Symbol name="zurueck" />
+					Zurück
+				</KnopfLink>
+				<h1 className="mt-2 text-2xl">{titel}</h1>
+				{folien !== null && (
+					<p className="mt-1 text-leise">{`Präsentation · ${anzahl(folien, 'Folie', 'Folien')}`}</p>
+				)}
+				<Knopf
+					ref={startKnopf}
+					className="mt-4 h-11 self-start px-5 text-base aria-disabled:cursor-default aria-disabled:opacity-40"
+					aria-disabled={!bereit}
+					onClick={() => bereit && starten()}
+				>
+					<Symbol name="praesentieren" className="size-4 flex-none" />
+					Präsentation starten
+				</Knopf>
+				<div className="mt-4 min-h-7" role="status">
+					<Ladestand phase={phase} />
+				</div>
+				{!vollbildMoeglich() && (
+					<p className="mt-4 text-leise">
+						Für Vollbild auf dem iPad: in Safari auf „Teilen“ und „Zum Home-Bildschirm“ tippen und die
+						Schoolbox von dort öffnen.
+					</p>
+				)}
+				{!wachHaltenMoeglich() && (
+					<p className="mt-4 text-leise">
+						Dieses Gerät kann den Bildschirm nicht von selbst anlassen. Stell in den Einstellungen die
+						automatische Sperre bzw. den Ruhezustand für die Stunde ab.
+					</p>
+				)}
+			</main>
+		</div>
 	);
 };
 

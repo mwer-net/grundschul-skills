@@ -259,7 +259,9 @@ export const schonDa = (quelle: string, b: Einfuegbar, nr: number | null): Schon
 	const z = zerlege(quelle);
 	if (b.stelle === 'neue-seite') {
 		const seite = seitenVon(z).find(istSeiteDerLehrkraft);
-		return seite ? { nr: seite.nr, meldung: 'Die Seite für die Lehrkraft gibt es schon. Sie ist jetzt ausgewählt.' } : null;
+		return seite
+			? { nr: seite.nr, meldung: 'Die Seite für die Lehrkraft gibt es schon. Sie ist jetzt ausgewählt.' }
+			: null;
 	}
 	const einmal = EINMAL[b.id];
 	if (!einmal) {
@@ -472,11 +474,11 @@ export const kannAnschliessen = (quelle: string, nr: number) => {
 	const davor = seiten[i - 1];
 	return Boolean(
 		k &&
-			davor &&
-			!istAutomatisch(k) &&
-			blattZu(z, davor.nr)?.fliesst &&
-			k.kinder.every((c) => !klassenVon(c).some((name) => name === 'namenszeile' || name === 'kopf')) &&
-			folgtAufSeite(davor, k),
+		davor &&
+		!istAutomatisch(k) &&
+		blattZu(z, davor.nr)?.fliesst &&
+		k.kinder.every((c) => !klassenVon(c).some((name) => name === 'namenszeile' || name === 'kopf')) &&
+		folgtAufSeite(davor, k),
 	);
 };
 
