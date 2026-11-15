@@ -6,7 +6,7 @@ import { pathToFileURL } from 'node:url';
 import type { Page } from '@playwright/test';
 import { ASSETS } from '@schoolbox/kern/src/konfig';
 
-import { aendere, gespeichert, material, oeffne, quelle, uhrzeit } from './editorhilfe';
+import { aendere, geladen, gespeichert, material, oeffne, quelle, uhrzeit } from './editorhilfe';
 import { expect, test } from './hilfe';
 
 const zurueck = (page: Page) => page.getByRole('button', { name: 'Rückgängig (⌘Z)' });
@@ -51,8 +51,9 @@ test.describe('Editor: Abbildungen', () => {
 		await expect.poll(() => minutenzeiger(page, 1)).toBe('23 50');
 		await gespeichert(page, datei);
 		const nachher = await readFile(datei, 'utf8');
+		// 197-01: Die Lösung daneben folgt der Uhr („halb 5“ → „halb 6“ → „5:45 Uhr“).
 		expect(geaendert(vorher, nachher)).toEqual([
-			'        <div class="zelle"><x-uhr zeit="5:45"></x-uhr><span class="antwort breit" data-l="halb 5"></span></div>',
+			'        <div class="zelle"><x-uhr zeit="5:45"></x-uhr><span class="antwort breit" data-l="5:45 Uhr"></span></div>',
 		]);
 		expect(nachher).not.toContain('<svg');
 		await expect(page.locator('[data-auswahl="abbildung"]')).toBeVisible();
@@ -72,6 +73,7 @@ test.describe('Editor: Abbildungen', () => {
 	});
 
 	test('ungültige Eingaben zeigen einen Hinweis und werden nicht gespeichert', async ({ druecke, page }) => {
+		test.slow();
 		const { dok, id, material: datei } = await uhrzeit();
 		await writeFile(
 			datei,
@@ -88,24 +90,26 @@ test.describe('Editor: Abbildungen', () => {
 		await druecke(strahl);
 		await expect(page.locator('[data-breadcrumb]')).toContainText('Zahlenstrahl');
 
-		const bis = page.getByLabel('Bis', { exact: true });
-		await bis.fill('10');
-		await bis.press('Enter');
+		// 197-07: Ein kleineres „Bis“ nimmt Pfeile außerhalb mit; ungültig bleibt ein Pfeil außerhalb des Strahls.
+		const pfeile = page.getByLabel('Pfeile mit Kästchen', { exact: true });
+		await pfeile.fill('7 25');
+		await pfeile.press('Enter');
 		// S-03 (UX 186): eine Meldung am geänderten Feld; das Blatt bleibt beim gespeicherten Stand.
-		await expect(page.locator('[data-fehler="bis"]')).toHaveText(
-			'Nimm für „Bis“ mindestens 13, sonst liegt diese Zahl aus „Pfeile mit Kästchen“ außerhalb.',
+		await expect(page.locator('[data-fehler="pfeile"]')).toHaveText(
+			'Nimm Zahlen von 0 bis 20. 25 liegt außerhalb.',
 		);
 		await expect(page.locator('[data-fehler]')).toHaveCount(1);
 		await expect(page.locator('[data-nicht-uebernommen]')).toBeVisible();
-		await expect(strahl).toHaveAttribute('bis', '20');
+		await expect(strahl).toHaveAttribute('pfeile', '7 13');
 		expect(await quelle(page)).toBe(vorher);
 		await page.waitForTimeout(2000);
 		expect(await readFile(datei, 'utf8')).toBe(vorher);
 
 		await druecke(page.getByRole('button', { name: 'Zurücksetzen' }));
-		await expect(strahl).toHaveAttribute('bis', '20');
+		await expect(strahl).toHaveAttribute('pfeile', '7 13');
 		await expect(page.locator('[data-fehler]')).toHaveCount(0);
 
+		const bis = page.getByLabel('Bis', { exact: true });
 		await bis.fill('30');
 		await bis.press('Enter');
 		await gespeichert(page, datei);
@@ -122,7 +126,8 @@ test.describe('Editor: Abbildungen', () => {
 		await expect(buendel.locator('input[type="text"]')).toHaveValue('3');
 		await gespeichert(page, datei);
 		expect(await readFile(datei, 'utf8')).toContain('<x-menge buendel="2" n="23" form="nuss">');
-		await expect(material(page).locator('x-menge rect')).toHaveCount(3);
+		// 197-02: Den ungültigen Entwurf (3) zeichnet das Blatt nicht, es bleibt bei der letzten gültigen Zeichnung.
+		await expect(material(page).locator('x-menge rect')).toHaveCount(2);
 
 		await druecke(page.getByRole('button', { name: 'Auswahl aufheben' }));
 		await expect(material(page).locator('x-menge rect')).toHaveCount(2);
@@ -325,18 +330,16 @@ test.describe('Editor: Feldtypen (023)', () => {
 		expect(await tagVon(datei)).toContain('form="2"');
 	});
 
-	test('Fehler aus dem Element: gestrichelter Kasten, Hinweis im Panel, nicht gespeichert', async ({
-		druecke,
-		page,
-	}) => {
+	test('Fehler aus dem Element: Hinweis im Panel, das Blatt bleibt, nicht gespeichert', async ({ druecke, page }) => {
 		const { datei } = await mitProbe(page, 'titel="gut"');
 		const stand = await readFile(datei, 'utf8');
 		await druecke(probe(page));
 		await page.getByLabel('Titel').fill('falsch');
 		await page.getByLabel('Titel').press('Enter');
 		await expect(page.locator('p[role="alert"][data-fehler]')).toHaveText('Dieser Titel geht nicht.');
-		await expect(probe(page)).toHaveAttribute('data-fehler', 'Dieser Titel geht nicht.');
-		await expect(probe(page)).toContainText('Dieser Titel geht nicht.');
+		// S-03 (UX 186): Die Meldung steht nur im Panel, das Blatt zeigt den gespeicherten Stand ohne roten Kasten.
+		await expect(probe(page)).toHaveAttribute('titel', 'gut');
+		await expect(probe(page)).not.toContainText('Dieser Titel geht nicht.');
 		expect(await readFile(datei, 'utf8')).toBe(stand);
 
 		await page.getByLabel('Titel').fill('wieder gut');
@@ -1065,7 +1068,9 @@ test.describe('Größen: Wahlen nehmen mit, was sie brauchen (084)', () => {
 		expect(tag).toContain('wert="260"');
 		expect(tag).not.toMatch(/\b(von|bis|teilung)=/);
 		await expect(einheit.locator('option')).toHaveText(['Passend zum Gerät', 'ml', 'l']);
-		await expect(page.locator('[data-feld="bis"] input')).toHaveValue('500');
+		// 197-12: Ohne Attribut ist das Feld leer und nennt den geltenden Wert als Platzhalter.
+		await expect(page.locator('[data-feld="bis"] input')).toHaveValue('');
+		await expect(page.locator('[data-feld="bis"] input')).toHaveAttribute('placeholder', 'automatisch (500)');
 
 		await einheit.selectOption({ label: 'l' });
 		await gespeichert(page, datei);
@@ -1139,19 +1144,32 @@ test.describe('Schreiben und Sprache: Wahlen zeigen den Weg (084)', () => {
 		await expect(satz.locator('.sg-umstellung .sg-kasten').first()).toHaveAttribute('data-rolle', 'DaO');
 	});
 
-	test('Sortieren: Bei „Bilder“ steht die Meldung an der Liste, mit Bildern wird es übernommen', async ({
+	test('Sortieren: „Bilder“ steht erst zur Wahl, wenn jeder Eintrag ein Bild hat, dann wird es übernommen', async ({
 		druecke,
 		page,
 	}) => {
 		const { datei, stand } = await mitTag(page, '<x-sortieren eintraege="Samen; Stängel; Blume"></x-sortieren>');
 		await druecke(material(page).locator('x-sortieren'));
-		await page.locator('[data-feld="art"] select').selectOption({ label: 'Bilder' });
-		const meldung = page.locator('[data-fehler="eintraege"]');
-		await expect(meldung).toContainText('Bild-Knopf');
-		await expect(meldung).toContainText('Zeile 1, 2 und 3');
+		// 197-07 (e): Ohne Bilder gibt es die Wahl nicht, also auch keine Meldung und nichts zu speichern.
+		const art = page.locator('[data-feld="art"] select');
+		await expect(art.locator('option')).toHaveText(['Sätze', 'Wörter', 'Zahlen']);
 		await expect(page.locator('[data-liste="eintraege"] [data-zeile]')).toHaveCount(3);
-		// Nichts gespeichert, solange Bilder fehlen.
 		expect(await readFile(datei, 'utf8')).toBe(stand);
+
+		const bild = 'bilder/wachstum.png';
+		await aendere(
+			page,
+			(await quelle(page)).replace(
+				'eintraege="Samen; Stängel; Blume"',
+				`eintraege="Samen: ${bild}; Stängel: ${bild}; Blume: ${bild}"`,
+			),
+		);
+		await gespeichert(page, datei);
+		await druecke(material(page).locator('x-sortieren'));
+		await art.selectOption({ label: 'Bilder' });
+		await gespeichert(page, datei);
+		expect(await readFile(datei, 'utf8')).toMatch(/<x-sortieren[^>]*art="bilder"/);
+		await expect(page.locator('[data-fehler]')).toHaveCount(0);
 	});
 });
 
@@ -1218,16 +1236,16 @@ test.describe('Spiele und Rätsel: Wahlen zeigen den Weg (084)', () => {
 		return { datei, stand: await readFile(datei, 'utf8') };
 	};
 
-	test('Suchsel: Bei der Wortliste „Bilder“ steht die Meldung an der Liste und nennt das Menü der Zeile', async ({
+	test('Suchsel: Die Wortliste „Bilder“ steht erst zur Wahl, wenn jedes Wort ein Bild hat', async ({
 		druecke,
 		page,
 	}) => {
 		const { datei, stand } = await mitTag(page, '<x-suchsel seed="1" woerter="Oma; Opa; Mama"></x-suchsel>');
 		await druecke(material(page).locator('x-suchsel'));
-		await page.locator('[data-feld="wortliste"] select').selectOption({ label: 'Bilder' });
-		const meldung = page.locator('[data-fehler="woerter"]');
-		await expect(meldung).toContainText('Menü ⋯ der Zeile');
-		await expect(meldung).toContainText('Zeile 1, 2 und 3');
+		// 197-07 (e): Ohne Bilder gibt es die Wahl nicht, also auch keine Meldung und nichts zu speichern.
+		const wortliste = page.locator('[data-feld="wortliste"] select');
+		await expect(wortliste.locator('option')).not.toHaveCount(0);
+		await expect(wortliste.locator('option', { hasText: 'Bilder' })).toHaveCount(0);
 		expect(await readFile(datei, 'utf8')).toBe(stand);
 	});
 
@@ -2676,9 +2694,13 @@ test.describe('Rätsel (038)', () => {
 		await druecke(
 			page.getByRole('group', { name: 'Was zeigen?' }).getByRole('button', { name: 'Lösung', exact: true }),
 		);
+		// Die Lösung kommt in einem neuen Rahmen; ein Klick in den alten wählt nichts.
+		await geladen(page);
 		await druecke(inhalt.locator('.antwort').nth(1));
-		await page.getByLabel('Richtige Antwort').fill('48');
-		await page.getByLabel('Richtige Antwort').press('Enter');
+		// 196-11: Die Antwortlinie hat ein eigenes Feld „Lösung“ im Inspektor.
+		const loesung = page.locator('[data-inspektor]').getByLabel('Lösung', { exact: true });
+		await loesung.fill('48');
+		await loesung.press('Enter');
 		await gespeichert(page, datei);
 		await expect(inhalt.locator('x-loesungswort')).toHaveAttribute(
 			'data-fehler',
