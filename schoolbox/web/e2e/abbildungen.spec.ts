@@ -1049,6 +1049,7 @@ test.describe('Größen: Wahlen nehmen mit, was sie brauchen (084)', () => {
 		druecke,
 		page,
 	}) => {
+		test.slow();
 		const { datei, stand } = await mitTag(
 			page,
 			'<x-skala art="lineal" von="0" bis="12" wert="7.5" aufgabe="ablesen"></x-skala>',
@@ -1422,6 +1423,11 @@ test.describe('Geometrie: Wahlen nehmen mit, was sie brauchen (084)', () => {
 		await gespeichert(page, datei);
 		await expect(page.locator('[data-fehler]')).toHaveCount(0);
 		expect(await readFile(datei, 'utf8')).toMatch(/<x-wuerfelnetz [^>]*masse="4 2 1"/);
+		// Die Maße stehen unter „Weitere“, das sich seinen Zustand merkt (197).
+		const weitere = page.locator('[data-abschnitt="weitere"] > button');
+		if ((await weitere.getAttribute('aria-expanded')) !== 'true') {
+			await druecke(weitere);
+		}
 		await expect(page.getByLabel('Maße des Quaders')).toHaveValue('4 2 1');
 		await druecke(zurueck(page));
 		await gespeichert(page, datei);
