@@ -34,7 +34,7 @@ const ZEICHEN_HINWEIS = {
 };
 
 /** Die Zeilen als Zustand: Folgen dem Wert, sobald er sich von außen ändert (⌘Z, Claude, Text). */
-const useZeilen = <T>(
+const useZeilen = <T extends object>(
 	wert: string | null,
 	lesen: (roh: string | null) => T[],
 	text: (zeilen: T[]) => string | null,
@@ -188,7 +188,7 @@ const FragenZeilen = ({ abb, feld, umschalten }: FeldEigenschaften<TextFeld> & {
 							zug?.nach === i && 'shadow-[0_-2px_0_0_var(--color-brand-500)]',
 							zug?.nach === fragen.length &&
 							i === fragen.length - 1 &&
-								'shadow-[0_2px_0_0_var(--color-brand-500)]',
+							'shadow-[0_2px_0_0_var(--color-brand-500)]',
 						)}
 						data-zeile={i}
 					>
@@ -393,7 +393,7 @@ const AussagenZeilen = ({ abb, feld, umschalten }: FeldEigenschaften<TextFeld> &
 							zug?.nach === i && 'shadow-[0_-2px_0_0_var(--color-brand-500)]',
 							zug?.nach === aussagen.length &&
 							i === aussagen.length - 1 &&
-								'shadow-[0_2px_0_0_var(--color-brand-500)]',
+							'shadow-[0_2px_0_0_var(--color-brand-500)]',
 						)}
 						data-zeile={i}
 					>
