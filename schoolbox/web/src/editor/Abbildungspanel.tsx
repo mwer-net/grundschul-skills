@@ -211,6 +211,11 @@ const Zahl = ({ abb, feld }: FeldEigenschaften<ZahlFeld>) => {
 		: { min: feld.min, max, schritt: feld.schritt ?? 1 };
 	const zeigen = (px: number) => (cm ? pxZuCm(px) : px);
 	const speichern = (n: number) => String(cm ? cmZuPx(n) : n);
+	// S-01: „mehr“ endet am Satzspiegel der Seite; eine größere Eingabe setzt das Panel zurück und sagt es.
+	const rand = feld.bisZumRand ? abb.grenzen[feld.attribut] : undefined;
+	const schritt = feld.schritt ?? 1;
+	const bisRand =
+		rand === undefined ? grenzen.max : Math.min(grenzen.max, zeigen(Math.max(feld.min, Math.floor((rand - feld.min) / schritt) * schritt + feld.min)));
 	const anzeige = (roh: string | null) => {
 		if (roh === null) {
 			return feld.automatisch ? '' : zahlMitKomma(zeigen(standard));
@@ -358,7 +363,7 @@ const Zahl = ({ abb, feld }: FeldEigenschaften<ZahlFeld>) => {
 					type="button"
 					className={STEPPER_STUFE}
 					aria-label={`${feld.name}: mehr`}
-					disabled={!abb.aktiv || (Number.isFinite(jetzt) && jetzt >= grenzen.max)}
+					disabled={!abb.aktiv || (Number.isFinite(jetzt) && jetzt >= bisRand)}
 					onClick={() => springe(1)}
 				>
 					<Symbol name="plus" className="size-3 flex-none" />
@@ -584,16 +589,24 @@ const Paar = ({ abb, feld }: FeldEigenschaften<PaarFeld>) => {
 	const id = useId();
 	const wert = wertVon(feld, abb)?.wert ?? null;
 	const [a, b] = paarVon(feld, wert);
-	const zeige = (n: number | null) => (n === null || !Number.isFinite(n) ? '' : zahlMitKomma(n));
-	const setze = (i: 0 | 1, roh: string) => {
-		const n = liesZahl(roh);
-		const jetzt: [number | null, number | null] = [a, b];
-		jetzt[i] = roh.trim() === '' ? null : Number.isFinite(n) ? n : jetzt[i];
+	const roh = (wert ?? '').split(feld.trenner === ' ' ? /\s+/ : feld.trenner).map((t) => t.trim());
+	/** S-05 (UX 186): Was keine Zahl ist („A1“), bleibt im Feld stehen und ist rot; gespeichert wird es nicht. */
+	const zeige = (i: 0 | 1) => {
+		const n = i === 0 ? a : b;
+		return n === null ? '' : Number.isFinite(n) ? zahlMitKomma(n) : (roh[i] ?? '');
+	};
+	const setze = (i: 0 | 1, getippt: string) => {
+		const n = liesZahl(getippt);
+		const jetzt: [string | null, string | null] = [
+			a === null ? null : Number.isFinite(a) ? String(a) : (roh[0] ?? null),
+			b === null ? null : Number.isFinite(b) ? String(b) : (roh[1] ?? null),
+		];
+		jetzt[i] = getippt.trim() === '' ? null : Number.isFinite(n) ? String(n) : getippt.trim();
 		if (feld.leer && jetzt[0] === null && jetzt[1] === null) {
 			abb.aendere(feld, null);
 			return;
 		}
-		const teile = jetzt.map((x, k) => String(x ?? feld.teile[k]?.standard ?? 0));
+		const teile = jetzt.map((x, k) => x ?? String(feld.teile[k]?.standard ?? 0));
 		abb.aendere(feld, teile.join(feld.trenner));
 	};
 	return (
@@ -603,7 +616,7 @@ const Paar = ({ abb, feld }: FeldEigenschaften<PaarFeld>) => {
 					<label key={t.name} className="flex items-center gap-1 text-leise">
 						{t.name}
 						<input
-							key={zeige(i === 0 ? a : b)}
+							key={zeige(i === 0 ? 0 : 1)}
 							id={i === 0 ? id : undefined}
 							type="text"
 							inputMode="decimal"
@@ -613,9 +626,9 @@ const Paar = ({ abb, feld }: FeldEigenschaften<PaarFeld>) => {
 							className={`${EINGABE} w-14 text-center text-tinte`}
 							aria-invalid={Boolean(abb.fehler[feld.attribut])}
 							disabled={!abb.aktiv}
-							defaultValue={zeige(i === 0 ? a : b)}
+							defaultValue={zeige(i === 0 ? 0 : 1)}
 							onBlur={(e) => {
-								if (e.target.value.trim() !== zeige(i === 0 ? a : b)) {
+								if (e.target.value.trim() !== zeige(i === 0 ? 0 : 1)) {
 									setze(i === 0 ? 0 : 1, e.target.value);
 								}
 							}}

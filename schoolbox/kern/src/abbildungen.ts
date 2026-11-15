@@ -85,6 +85,11 @@ export interface ZahlFeld extends FeldBasis {
 	 * Panel mit Klasse. Der Zahlenraum der Klasse gehört nicht hierher: Darüber wird gezeichnet und gewarnt (207).
 	 */
 	maxJeKlasse?: (klasse: number) => number;
+	/**
+	 * S-01 (UX 186): Die Zahl ist die Breite der Zeichnung. Im Panel endet sie am rechten Rand des Satzspiegels der
+	 * Seite, auf der die Abbildung steht (Format und Ränder zählen); gespeicherte größere Werte zeichnen wie bisher.
+	 */
+	bisZumRand?: true;
 }
 
 /** 197-N02: die obere Grenze eines Zahlenfelds in dieser Klasse. */
@@ -248,6 +253,8 @@ export interface PaarTeil {
 	standard: number;
 	/** Kommazahlen erlaubt (gespeichert mit Punkt). */
 	komma?: boolean;
+	/** S-05 (UX 186): Die obere Grenze hängt von anderen Feldern ab, z. B. der letzten Spalte des Gitters. */
+	maxJe?: (w: Werte) => number;
 }
 
 /** 197-11: Ein Haken je Zeile einer Liste: Wert ist die Nummer ab 1, Name der Text vor dem ersten `:`. */
@@ -525,8 +532,15 @@ const ZEHNER_EINER = (zehner: string, einer: string): AbbildungSchema['felder'] 
 	{ art: 'zahl', attribut: 'e', name: einer, min: 0, max: 20, standard: 0 },
 ];
 
+/**
+ * S-03 (UX 186): Eine Regel über mehrere Felder meldet an jedem beteiligten Feld; das Panel zeigt davon nur die eine
+ * Meldung am Feld, das die Lehrkraft zuletzt geändert hat.
+ */
+const beiAllen = (felder: string[], meldung: string): Fehler =>
+	Object.fromEntries(felder.map((f) => [f, meldung]));
+
 const mindestensEins = (w: Lesen): Fehler =>
-	w.zahl('z') + w.zahl('e') === 0 ? { e: 'Mindestens ein Zehner oder ein Einer.' } : {};
+	w.zahl('z') + w.zahl('e') === 0 ? beiAllen(['z', 'e'], 'Nimm mindestens einen Zehner oder einen Einer.') : {};
 
 export const FARBEN: Option[] = [
 	{ wert: 'rot', name: 'Rot' },
@@ -1289,7 +1303,7 @@ const senkrechtFehlt = (eintraege: string[][], geheimRoh: string | null): Fehler
 	const n = eintraege.length;
 	const weg = `Aus jedem Wort kommt der Reihe nach ein Buchstabe, es braucht also ${n} Buchstaben.`;
 	if (!geheimRoh) {
-		return { loesungswort: `Hier fehlt das Lösungswort. ${weg}` };
+		return { loesungswort: `Trag ein Lösungswort ein. ${weg}` };
 	}
 	const geheim = raetselBuchstaben(geheimRoh);
 	if (geheim.length !== n) {
@@ -1713,6 +1727,9 @@ const gitterFuerAufgabe = (w: Werte): Werte => {
 			return gitterFuerFortsetzen(w);
 		case 'vergroessern':
 			return gitterFuerVergroessern(w);
+		// S-05 (UX 186): Der Weg hat keine Achse; eine vorhandene fällt mit der Wahl weg.
+		case 'weg':
+			return w.achse ? { 'achse': null, 'achse-bei': null } : {};
 		default:
 			return {};
 	}
@@ -1874,15 +1891,19 @@ export const ABBILDUNG_SCHEMA = {
 		regeln: (w): Fehler => {
 			const buendel = w.zahl('buendel');
 			if (buendel > 0 && w.zahl('reihe') !== 10) {
-				return { buendel: 'Zehner einkreisen geht nur mit 10 in einer Reihe.' };
+				return {
+					buendel: 'Stelle zuerst „Stück je Reihe“ auf 10. Eingekreist werden nur volle Zehnerreihen.',
+					reihe: 'Lass 10 Stück je Reihe, solange Zehner eingekreist werden, oder nimm 0 Zehnerbündel.',
+				};
 			}
 			const voll = Math.floor(w.zahl('n') / 10);
 			if (buendel > voll) {
 				return {
 					buendel:
 						voll === 0
-							? 'Es gibt keinen vollen Zehner zum Einkreisen.'
-							: `Es gibt nur ${voll} volle ${voll === 1 ? 'Zehnerreihe' : 'Zehnerreihen'}.`,
+							? 'Nimm 0 Zehnerbündel. Es gibt noch keinen vollen Zehner zum Einkreisen.'
+							: `Nimm höchstens ${voll} Zehnerbündel. Mehr volle Zehnerreihen gibt es nicht.`,
+					n: `Nimm für „Anzahl“ mindestens ${buendel * 10}, oder weniger Zehnerbündel.`,
 				};
 			}
 			return {};
@@ -1905,7 +1926,7 @@ export const ABBILDUNG_SCHEMA = {
 		],
 		regeln: (w): Fehler =>
 			w.zahl('t') + w.zahl('h') + w.zahl('z') + w.zahl('e') === 0 && w.zahlen('loesung').length === 0
-				? { e: 'Mindestens ein Block, auf dem Blatt oder in der Lösung.' }
+				? beiAllen(['t', 'h', 'z', 'e', 'loesung'], 'Nimm mindestens einen Block, auf dem Blatt oder in der Lösung.')
 				: {},
 	},
 	'x-strichpunkt': {
@@ -2068,6 +2089,7 @@ export const ABBILDUNG_SCHEMA = {
 			{
 				art: 'zahl',
 				attribut: 'breite',
+				bisZumRand: true,
 				name: 'Breite',
 				einheit: 'px',
 				min: 200,
@@ -2081,19 +2103,34 @@ export const ABBILDUNG_SCHEMA = {
 			const von = w.zahl('von');
 			const bis = w.zahl('bis');
 			if (von >= bis) {
-				return { bis: '„Bis“ muss größer sein als „Von“.' };
-			}
-			const striche = (bis - von) / w.zahl('schritt');
-			if (striche > 200) {
 				return {
-					schritt: `Das wären ${Math.ceil(striche)} Striche. Nimm einen größeren Abstand (höchstens 200).`,
+					bis: `Nimm für „Bis“ eine Zahl über ${zahlText(von)}.`,
+					von: `Nimm für „Von“ eine Zahl unter ${zahlText(bis)}.`,
+				};
+			}
+			const schritt = w.zahl('schritt');
+			const striche = (bis - von) / schritt;
+			if (striche > 200) {
+				const wie = `Das wären ${Math.ceil(striche)} Striche, höchstens 200 gehen.`;
+				return {
+					schritt: `${wie} Nimm einen größeren Strichabstand.`,
+					bis: `${wie} Nimm für „Bis“ höchstens ${zahlText(von + 200 * schritt)}.`,
+					von: `${wie} Nimm für „Von“ mindestens ${zahlText(bis - 200 * schritt)}.`,
 				};
 			}
 			const fehler: Fehler = {};
-			for (const feld of ['zahlen', 'pfeile']) {
+			for (const [feld, name] of [
+				['zahlen', 'Beschriftete Zahlen'],
+				['pfeile', 'Pfeile mit Kästchen'],
+			] as const) {
 				const draussen = w.zahlen(feld).find((z) => z < von || z > bis);
 				if (draussen !== undefined) {
-					fehler[feld] = `${draussen} liegt nicht zwischen ${von} und ${bis}.`;
+					fehler[feld] = `Nimm Zahlen von ${zahlText(von)} bis ${zahlText(bis)}. ${zahlText(draussen)} liegt außerhalb.`;
+					const grenze = draussen > bis ? 'bis' : 'von';
+					fehler[grenze] ??=
+						grenze === 'bis'
+							? `Nimm für „Bis“ mindestens ${zahlText(draussen)}, sonst liegt diese Zahl aus „${name}“ außerhalb.`
+							: `Nimm für „Von“ höchstens ${zahlText(draussen)}, sonst liegt diese Zahl aus „${name}“ außerhalb.`;
 				}
 			}
 			return fehler;
@@ -2141,7 +2178,10 @@ export const ABBILDUNG_SCHEMA = {
 		regeln: (w): Fehler => {
 			const skala = w.text('skala');
 			return skala !== null && w.zahl('minuten') > Number(skala)
-				? { skala: `Die Skala reicht nur bis ${skala}. Nimm eine größere oder „Passend“.` }
+				? {
+						skala: `Die Skala reicht nur bis ${skala}. Nimm eine größere oder „Passend“.`,
+						minuten: `Nimm höchstens ${skala} Minuten, so weit reicht die Skala. Oder nimm eine größere Skala.`,
+					}
 				: {};
 		},
 	},
@@ -2245,10 +2285,13 @@ export const ABBILDUNG_SCHEMA = {
 			const felder = w.zeilen('felder').length;
 			const anteile = w.zahlen('anteile');
 			if (anteile.length > 0 && anteile.reduce((a, b) => a + b, 0) <= 0) {
-				return { anteile: 'Die Anteile müssen zusammen mehr als 0 ergeben.' };
+				return { anteile: 'Nimm Anteile, die zusammen mehr als 0 ergeben.' };
 			}
 			if (anteile.length > 0 && felder > 0 && anteile.length !== felder) {
-				return { anteile: `Bitte genau ${felder} Zahlen, eine je Feld.` };
+				return {
+					anteile: `Gib genau ${felder} Zahlen an, eine je Feld.`,
+					felder: `Nimm ${anteile.length} Felder, so viele Zahlen stehen bei „Anteile“. Oder ändere die Anteile.`,
+				};
 			}
 			return {};
 		},
@@ -2457,13 +2500,23 @@ export const ABBILDUNG_SCHEMA = {
 			const bis = w.text('bis');
 			const zahlen = w.zeilen('werte').map((z) => alsZahl(z[1] || '0'));
 			if (w.text('art') !== 'linie' && zahlen.some((v) => v < 0)) {
-				return { werte: 'Werte unter null gehen nur beim Liniendiagramm.' };
+				return {
+					werte: 'Nimm Werte ab 0. Werte unter null gehen nur beim Liniendiagramm.',
+					art: 'Nimm das Liniendiagramm, denn ein Wert liegt unter null. Oder ändere die Werte.',
+				};
 			}
 			if (w.text('art') !== 'linie' && w.zeilen('werte').some((z) => !z[1])) {
-				return { werte: 'Leere Werte gehen nur beim Liniendiagramm.' };
+				return {
+					werte: 'Trag bei jedem Eintrag einen Wert ein. Leere Werte gehen nur beim Liniendiagramm.',
+					art: 'Nimm das Liniendiagramm, denn ein Wert ist leer. Oder trag ihn ein.',
+				};
 			}
-			return bis !== null && Math.max(0, ...zahlen) > alsZahl(bis)
-				? { bis: `Ein Wert ist größer als ${bis}.` }
+			const groesster = Math.max(0, ...zahlen);
+			return bis !== null && groesster > alsZahl(bis)
+				? {
+						bis: `Nimm für „Bis“ mindestens ${zahlText(groesster)}, so groß ist der größte Wert.`,
+						werte: `Nimm Werte bis ${bis}, so weit reicht „Bis“.`,
+					}
 				: {};
 		},
 	},
@@ -2504,7 +2557,7 @@ export const ABBILDUNG_SCHEMA = {
 		],
 		regeln: (w): Fehler => {
 			const summe = w.zeilen('kugeln').reduce((a, z) => a + alsZahl(z[1] ?? '0'), 0);
-			return summe > 20 ? { kugeln: `Höchstens 20 Kugeln, hier sind es ${summe}.` } : {};
+			return summe > 20 ? { kugeln: `Nimm höchstens 20 Kugeln, hier sind es ${summe}.` } : {};
 		},
 	},
 	'x-wahrscheinlichkeit': {
@@ -2541,7 +2594,12 @@ export const ABBILDUNG_SCHEMA = {
 		regeln: (w): Fehler => {
 			const erlaubt = w.text('stufen') === '5' ? STUFEN_FUENF.map((o) => o.wert) : STUFEN_DREI;
 			const falsch = w.zeilen('ereignisse').find((z) => !erlaubt.includes(z[1] ?? ''));
-			return falsch ? { ereignisse: `„${falsch[1] ?? ''}“ steht nicht auf dieser Skala.` } : {};
+			return falsch
+				? {
+						ereignisse: `Wähle für jedes Ereignis eine Stufe dieser Skala. „${falsch[1] ?? ''}“ gibt es hier nicht.`,
+						stufen: `Bei diesen Stufen gibt es „${falsch[1] ?? ''}“ nicht. Ändere zuerst das Ereignis „${falsch[0] ?? ''}“.`,
+					}
+				: {};
 		},
 	},
 	'x-kombinatorik': {
@@ -2675,7 +2733,8 @@ export const ABBILDUNG_SCHEMA = {
 			{
 				art: 'auswahl',
 				attribut: 'achse',
-				nurWenn: wennNicht('aufgabe', 'keine', 'fortsetzen'),
+				// S-05 (UX 186): Beim Weg gibt es keine Achse.
+				nurWenn: wennNicht('aufgabe', 'keine', 'fortsetzen', 'weg'),
 				name: 'Achse',
 				gruppe: 'Aufgabe',
 				// 197-07: Spiegeln braucht eine Achse; eine neue Achse steht in der Mitte des Gitters.
@@ -2700,7 +2759,7 @@ export const ABBILDUNG_SCHEMA = {
 			{
 				art: 'zahl',
 				attribut: 'achse-bei',
-				nurWenn: (w) => !!w.achse && (w.aufgabe ?? 'keine') !== 'fortsetzen',
+				nurWenn: (w) => !!w.achse && !['fortsetzen', 'weg'].includes(w.aufgabe ?? 'keine'),
 				name: 'Achse nach',
 				hilfe: 'So viele Kästchen von links, bei waagerechter Achse von oben.',
 				min: 1,
@@ -2800,9 +2859,10 @@ export const ABBILDUNG_SCHEMA = {
 				trenner: ',',
 				leer: true,
 				hilfe: 'Gezählt ab dem Kästchen oben links, es ist 0 und 0.',
+				// S-05 (UX 186): Der Start liegt im Gitter; die Grenze am Feld nennt die letzte Spalte und Zeile.
 				teile: [
-					{ name: 'Spalte', min: 0, max: 39, standard: 0 },
-					{ name: 'Zeile', min: 0, max: 39, standard: 0 },
+					{ name: 'Spalte', min: 0, max: 39, standard: 0, maxJe: (w) => alsZahl(w.spalten ?? '10') - 1 },
+					{ name: 'Zeile', min: 0, max: 39, standard: 0, maxJe: (w) => alsZahl(w.zeilen ?? '8') - 1 },
 				],
 			},
 			{
@@ -2974,7 +3034,10 @@ export const ABBILDUNG_SCHEMA = {
 		// 197-N02: `abbildungen.js` zeichnet höchstens 400 Zahlen; die Meldung steht an „Bis“.
 		regeln: (w): Fehler =>
 			w.zahl('bis') - w.zahl('von') + 1 > 400
-				? { bis: `Höchstens 400 Zahlen: „Bis“ höchstens ${zahlText(w.zahl('von') + 399)}.` }
+				? {
+						bis: `Nimm für „Bis“ höchstens ${zahlText(w.zahl('von') + 399)}. Mehr als 400 Zahlen gehen nicht.`,
+						von: `Nimm für „Von“ mindestens ${zahlText(w.zahl('bis') - 399)}. Mehr als 400 Zahlen gehen nicht.`,
+					}
 				: {},
 	},
 	'x-rechenrahmen': {
@@ -3053,6 +3116,7 @@ export const ABBILDUNG_SCHEMA = {
 			{
 				art: 'zahl',
 				attribut: 'breite',
+				bisZumRand: true,
 				name: 'Breite',
 				einheit: 'px',
 				min: 200,
@@ -3136,6 +3200,7 @@ export const ABBILDUNG_SCHEMA = {
 			{
 				art: 'zahl',
 				attribut: 'breite',
+				bisZumRand: true,
 				name: 'Breite',
 				einheit: 'px',
 				min: 100,
@@ -3238,7 +3303,8 @@ export const ABBILDUNG_SCHEMA = {
 				name: 'Fragen',
 				zeilen: 5,
 				beispiel: 'Wie viele Beine hat ein Hund?: *4, 3, 6',
-				hilfe: 'Frage: Antworten mit Komma; * markiert die richtige; ; trennt die Fragen.',
+				// S-06 (UX 186): Das Panel zeigt Zeilen; die Kurzschrift erklärt es nur unter „Als Text bearbeiten“.
+				hilfe: 'Je Frage eine Zeile, darunter ihre Antworten. Hake an, was richtig ist.',
 			},
 			{
 				art: 'schalter',
@@ -3425,7 +3491,7 @@ export const ABBILDUNG_SCHEMA = {
 				name: 'Aussagen',
 				zeilen: 5,
 				beispiel: 'Hunde bellen: r; Katzen fliegen: f',
-				hilfe: 'Aussage: r oder f; ; trennt die Aussagen.',
+				hilfe: 'Je Aussage eine Zeile. Schalte „Richtig“ ein, wenn sie stimmt; sonst ist sie falsch.',
 			},
 			{
 				art: 'auswahl',
@@ -3587,10 +3653,10 @@ export const ABBILDUNG_SCHEMA = {
 		regeln: (w): Fehler => {
 			const wort = w.text('inhalt') ?? '';
 			if (wort.includes('||')) {
-				return { inhalt: 'Zwei Silbenstriche stehen direkt nebeneinander.' };
+				return { inhalt: 'Lösch einen der zwei Silbenstriche, die direkt nebeneinander stehen.' };
 			}
 			if (/(^|[\s„"'(])\||\|($|[\s.,;:!?“"')])/.test(wort)) {
-				return { inhalt: 'Ein Silbenstrich steht am Anfang oder Ende eines Worts.' };
+				return { inhalt: 'Setz Silbenstriche nur innerhalb eines Worts, nicht an den Anfang oder das Ende.' };
 			}
 			return {};
 		},
@@ -3665,7 +3731,7 @@ export const ABBILDUNG_SCHEMA = {
 			const unbekannt = markierungLesen(w.text('inhalt') ?? '').woerter.find(
 				(t) => t.marke !== null && !WORTART_OPTIONEN.some((o) => o.wert === t.marke),
 			);
-			return unbekannt ? { inhalt: `Das Kürzel „${unbekannt.marke ?? ''}“ gibt es nicht.` } : {};
+			return unbekannt ? { inhalt: `Ändere das Kürzel „${unbekannt.marke ?? ''}“, das gibt es nicht.` } : {};
 		},
 	},
 	'x-satzglieder': {
@@ -3730,14 +3796,14 @@ export const ABBILDUNG_SCHEMA = {
 			}
 			const zaehler = [...wert].filter((z) => z === '[').length;
 			if (zaehler !== [...wert].filter((z) => z === ']').length) {
-				return { inhalt: 'Eine eckige Klammer ist nicht geschlossen.' };
+				return { inhalt: 'Schließ jede eckige Klammer.' };
 			}
 			const { woerter } = markierungLesen(wert, true);
 			const unbekannt = woerter.find((t) => t.marke !== null && !ROLLEN_OPTIONEN.some((o) => o.wert === t.marke));
 			if (unbekannt) {
-				return { inhalt: `Das Satzglied „${unbekannt.marke ?? ''}“ gibt es nicht.` };
+				return { inhalt: `Ändere das Satzglied „${unbekannt.marke ?? ''}“, das gibt es nicht.` };
 			}
-			return woerter.some((t) => t.marke === 'P') ? {} : { inhalt: 'Jeder Satz braucht ein Prädikat.' };
+			return woerter.some((t) => t.marke === 'P') ? {} : { inhalt: 'Markiere in jedem Satz ein Prädikat.' };
 		},
 	},
 	'x-wortbausteine': {
@@ -3823,19 +3889,33 @@ export const ABBILDUNG_SCHEMA = {
 			const stamm = w.text('stamm');
 			const aufgabe = w.text('aufgabe');
 			if (wort !== '' && teile.some((t) => !/^[\p{L}-]+$/u.test(t))) {
-				return { inhalt: 'Bausteine bestehen aus Buchstaben, dazwischen je ein Strich.' };
+				return { inhalt: 'Schreib die Bausteine nur mit Buchstaben, dazwischen je einen Strich.' };
 			}
 			if (stamm !== null && !teile.some((t) => t.toLowerCase() === stamm.toLowerCase())) {
-				return { stamm: `Der Stamm „${stamm}“ ist keiner der Bausteine.` };
+				return {
+					stamm: `Wähle als Stamm einen der Bausteine. „${stamm}“ ist keiner.`,
+					inhalt: `Lass den Stamm „${stamm}“ in den Bausteinen, oder wähle zuerst einen anderen Stamm.`,
+				};
 			}
 			if (familie && teile.length > 1) {
-				return { inhalt: 'Bei einer Wortfamilie steht in der Mitte nur der Stamm.' };
+				return {
+					inhalt: 'Schreib bei einer Wortfamilie nur den Stamm in die Mitte.',
+					art: 'Lass für eine Wortfamilie bei „Bausteine“ zuerst nur den Stamm stehen.',
+				};
 			}
 			if (familie && w.zeilen('woerter').length === 0) {
-				return { woerter: 'Eine Wortfamilie braucht Wörter.' };
+				return {
+					woerter: 'Trag Wörter der Familie ein.',
+					art: 'Trag für die Wortfamilie auch Wörter der Familie ein.',
+				};
 			}
 			const passt = familie ? aufgabe !== 'zerlegen' && aufgabe !== 'zusammensetzen' : aufgabe !== 'familie';
-			return passt ? {} : { aufgabe: 'Diese Aufgabe passt nicht zur Art.' };
+			return passt
+				? {}
+				: {
+						aufgabe: 'Wähle eine Aufgabe, die zur Art passt.',
+						art: 'Wähle zuerst eine Aufgabe, die zu dieser Art passt.',
+					};
 		},
 	},
 	'x-zeitleiste': {
@@ -3894,6 +3974,7 @@ export const ABBILDUNG_SCHEMA = {
 			{
 				art: 'zahl',
 				attribut: 'breite',
+				bisZumRand: true,
 				abschnitt: 'darstellung',
 				name: 'Breite',
 				min: 200,
@@ -3909,19 +3990,31 @@ export const ABBILDUNG_SCHEMA = {
 			const von = w.zahl('von');
 			const bis = w.zahl('bis');
 			if (von >= bis) {
-				return { bis: 'Das Ende liegt nach dem Anfang.' };
+				return {
+					von: `Nimm für „Von“ eine Zahl unter ${zahlText(bis)}, dem Ende der Leiste.`,
+					bis: `Nimm für „Bis“ eine Zahl über ${zahlText(von)}, dem Anfang der Leiste.`,
+				};
 			}
 			for (const zeile of w.zeilen('ereignisse')) {
 				const m = /^(-?\d+)(?:-(-?\d+))?$/.exec((zeile[0] ?? '').trim());
 				if (!m) {
-					return { ereignisse: `„${zeile[0] ?? ''}“ ist kein Jahr und kein Zeitraum.` };
+					return {
+						ereignisse: `Schreib statt „${zeile[0] ?? ''}“ ein Jahr wie 1990 oder einen Zeitraum wie 1990-2000.`,
+					};
 				}
 				const jahre = [m[1], m[2]].filter((j) => j !== undefined).map(Number);
 				if (!leben && jahre.includes(0)) {
-					return { ereignisse: 'Ein Jahr 0 gibt es nicht.' };
+					return { ereignisse: 'Nimm statt 0 das Jahr 1 oder -1. Ein Jahr 0 gibt es nicht.' };
 				}
-				if (jahre.some((j) => j < von || j > bis)) {
-					return { ereignisse: `${zeile[0] ?? ''} liegt außerhalb der Leiste.` };
+				const frueh = Math.min(...jahre);
+				const spaet = Math.max(...jahre);
+				if (frueh < von || spaet > bis) {
+					const wann = zeile[0] ?? '';
+					return {
+						ereignisse: `Nimm Jahre von ${zahlText(von)} bis ${zahlText(bis)}. ${wann} liegt außerhalb der Leiste.`,
+						...(frueh < von ? { von: `Nimm für „Von“ höchstens ${zahlText(frueh)}, sonst liegt ${wann} außerhalb.` } : {}),
+						...(spaet > bis ? { bis: `Nimm für „Bis“ mindestens ${zahlText(spaet)}, sonst liegt ${wann} außerhalb.` } : {}),
+					};
 				}
 			}
 			return {};
@@ -4007,17 +4100,20 @@ export const ABBILDUNG_SCHEMA = {
 		regeln: (w): Fehler => {
 			const art = w.text('art') ?? 'jahr';
 			if (w.text('jahreszeiten') === 'ja' && art !== 'jahr') {
-				return { jahreszeiten: 'Jahreszeiten gibt es nur beim Jahreskreis.' };
+				return beiAllen(['jahreszeiten', 'art'], 'Schalte die Jahreszeiten aus. Es gibt sie nur beim Jahreskreis.');
 			}
 			const erlaubt = KREIS_OPTIONEN[art] ?? [];
 			const falsch = w.liste('markiert').find((m) => !erlaubt.some((o) => o.wert === m));
 			if (falsch) {
-				return { markiert: `„${falsch}“ gehört nicht zu diesem Kreis.` };
+				return {
+					markiert: `Markiere nur, was zu diesem Kreis gehört. „${falsch}“ gehört nicht dazu.`,
+					art: `Nimm zuerst die Markierung „${falsch}“ weg. Sie gehört nicht zu diesem Kreis.`,
+				};
 			}
 			// 197-N02: Die Beschriftung braucht Platz; die Meldung steht an der Größe.
 			const mindestens = kreisMindestens({ art, jahreszeiten: w.text('jahreszeiten') });
 			return w.zahl('groesse') < mindestens
-				? { groesse: `Für diese Beschriftung mindestens ${zahlMitKomma(pxZuCm(mindestens))} cm.` }
+				? { groesse: `Nimm für „Größe“ mindestens ${zahlMitKomma(pxZuCm(mindestens))} cm, sonst passt die Beschriftung nicht.` }
 				: {};
 		},
 	},
@@ -4112,7 +4208,7 @@ export const ABBILDUNG_SCHEMA = {
 			},
 		],
 		regeln: (w): Fehler =>
-			w.zeilen('teile').some((z) => z[0] === 'batterie') ? {} : { teile: 'Im Kreis fehlt die Batterie.' },
+			w.zeilen('teile').some((z) => z[0] === 'batterie') ? {} : { teile: 'Füge eine Batterie hinzu. Ohne sie ist der Stromkreis nicht vollständig.' },
 	},
 	'x-kreislauf': {
 		name: 'Kreislauf',
@@ -4183,11 +4279,16 @@ export const ABBILDUNG_SCHEMA = {
 			const stationen = w.zeilen('stationen').length;
 			const anzahl = w.text('art') === 'ablauf' ? stationen - 1 : stationen;
 			if (pfeile.some((t) => t !== '' && !/\p{L}/u.test(t))) {
-				return { pfeile: 'Je Pfeil ein Wort wie „verdunsten“, mit Semikolon getrennt.' };
+				return { pfeile: 'Schreib je Pfeil ein Wort wie „verdunsten“, mit Semikolon getrennt.' };
 			}
+			const ablauf = w.text('art') === 'ablauf';
 			return pfeile.length === anzahl
 				? {}
-				: { pfeile: `Bitte ${anzahl} Beschriftungen, eine je Pfeil, mit Semikolon getrennt.` };
+				: {
+						pfeile: `Schreib ${anzahl} Beschriftungen, eine je Pfeil, mit Semikolon getrennt.`,
+						stationen: `Nimm ${ablauf ? pfeile.length + 1 : pfeile.length} Stationen, dazu passen die ${pfeile.length} beschrifteten Pfeile. Oder ändere zuerst die Pfeile.`,
+						art: `In dieser Form gibt es ${anzahl} Pfeile, beschriftet sind ${pfeile.length}. Ändere zuerst die Pfeile.`,
+					};
 		},
 	},
 	'x-verkehrszeichen': {
@@ -4245,7 +4346,7 @@ export const ABBILDUNG_SCHEMA = {
 			{ art: 'zahl', attribut: 'wind', name: 'Wind (Striche)', min: 0, max: 3, standard: 0 },
 			{ art: 'zahl', ...GROESSE, min: 24, max: 200, standard: 60, schritt: 4 },
 		],
-		regeln: (w): Fehler => (w.text('symbol') || w.text('loesung') ? {} : { symbol: 'Bitte ein Symbol wählen.' }),
+		regeln: (w): Fehler => (w.text('symbol') || w.text('loesung') ? {} : { symbol: 'Wähle ein Symbol.' }),
 	},
 	'x-suchsel': {
 		name: 'Suchsel',
@@ -4320,10 +4421,15 @@ export const ABBILDUNG_SCHEMA = {
 			const breite = Math.max(w.zahl('spalten'), w.zahl('zeilen'));
 			for (const [wort = ''] of w.zeilen('woerter')) {
 				if (!NUR_BUCHSTABEN.test(wort)) {
-					return { woerter: `„${wort}“ darf nur aus Buchstaben bestehen.` };
+					return { woerter: `Schreib „${wort}“ nur mit Buchstaben.` };
 				}
-				if ([...wort].length > breite) {
-					return { woerter: `„${wort}“ ist länger als das Gitter.` };
+				const laenge = [...wort].length;
+				if (laenge > breite) {
+					return {
+						woerter: `Nimm ein Wort mit höchstens ${breite} Buchstaben. „${wort}“ ist länger als das Gitter.`,
+						spalten: `Nimm mindestens ${laenge} Spalten, so lang ist „${wort}“.`,
+						zeilen: `Nimm mindestens ${laenge} Zeilen, so lang ist „${wort}“.`,
+					};
 				}
 			}
 			// Jeder Mini-Inhalt gilt als Bild, wie in `abbildungen.js` und der Referenz; die Art steht im ⋯ der Zeile.
@@ -4377,12 +4483,12 @@ export const ABBILDUNG_SCHEMA = {
 		regeln: (w): Fehler => {
 			for (const [, wort = ''] of w.zeilen('eintraege')) {
 				if (!NUR_BUCHSTABEN.test(wort)) {
-					return { eintraege: `„${wort}“ darf nur aus Buchstaben bestehen.` };
+					return { eintraege: `Schreib „${wort}“ nur mit Buchstaben.` };
 				}
 			}
 			const geheim = w.text('loesungswort');
 			if (geheim && !NUR_BUCHSTABEN.test(geheim)) {
-				return { loesungswort: 'Das Lösungswort darf nur aus Buchstaben bestehen.' };
+				return { loesungswort: 'Schreib das Lösungswort nur mit Buchstaben.' };
 			}
 			return w.text('art') === 'senkrecht' ? senkrechtFehlt(w.zeilen('eintraege'), geheim) : {};
 		},
@@ -4431,7 +4537,7 @@ export const ABBILDUNG_SCHEMA = {
 			},
 		],
 		regeln: (w): Fehler =>
-			NUR_BUCHSTABEN.test(w.text('wort') ?? '') ? {} : { wort: 'Das Wort darf nur aus Buchstaben bestehen.' },
+			NUR_BUCHSTABEN.test(w.text('wort') ?? '') ? {} : { wort: 'Schreib das Wort nur mit Buchstaben.' },
 	},
 	'x-bingo': {
 		name: 'Bingo',
@@ -4500,7 +4606,11 @@ export const ABBILDUNG_SCHEMA = {
 			const noetig = seite * seite - (w.text('frei') === 'ja' && seite % 2 === 1 ? 1 : 0) + 4;
 			const anzahl = w.zeilen('eintraege').length;
 			return anzahl < noetig
-				? { eintraege: `Das sind ${anzahl} Einträge; für verschiedene Karten braucht es mindestens ${noetig}.` }
+				? {
+						eintraege: `Trag mindestens ${noetig} Einträge ein, damit die Karten verschieden werden. Jetzt sind es ${anzahl}.`,
+						felder: `Nimm weniger Felder je Reihe. Für ${seite} × ${seite} Felder braucht es mindestens ${noetig} Einträge, jetzt sind es ${anzahl}.`,
+						frei: `Lass den Joker an, oder trag mehr Einträge ein. Ohne Joker braucht es ${noetig}, jetzt sind es ${anzahl}.`,
+					}
 				: {};
 		},
 	},
@@ -4558,11 +4668,11 @@ export const ABBILDUNG_SCHEMA = {
 			const loesungen = zeilen.map((z) => z[1] ?? '');
 			const doppelt = loesungen.find((l, i) => loesungen.indexOf(l) !== i);
 			if (doppelt) {
-				return { paare: `Die Lösung „${doppelt}“ kommt zweimal vor. Dann ist die Kette nicht eindeutig.` };
+				return { paare: `Ändere eine der zwei Lösungen „${doppelt}“, sonst ist die Kette nicht eindeutig.` };
 			}
 			const auchAufgabe = loesungen.find((l) => aufgaben.includes(l));
 			return auchAufgabe
-				? { paare: `„${auchAufgabe}“ ist zugleich Lösung und Aufgabe. Dann ist die Kette nicht eindeutig.` }
+				? { paare: `Ändere „${auchAufgabe}“. Es ist zugleich Lösung und Aufgabe, dann ist die Kette nicht eindeutig.` }
 				: {};
 		},
 	},
@@ -4689,7 +4799,7 @@ export const ABBILDUNG_SCHEMA = {
 			},
 			{ art: 'schalter', attribut: 'linie', name: 'Rhythmuslinie', an: 'ja', aus: 'nein', standard: false },
 			{ art: 'schalter', attribut: 'auftakt', name: 'Mit Auftakt', an: 'ja', aus: 'nein', standard: false },
-			{ art: 'zahl', attribut: 'breite', name: 'Breite', min: 120, max: 620, standard: 620, schritt: 20, einheit: 'px' },
+			{ art: 'zahl', attribut: 'breite', name: 'Breite', min: 120, max: 620, standard: 620, schritt: 20, einheit: 'px', bisZumRand: true },
 		],
 	},
 	'x-noten': {
@@ -4750,7 +4860,7 @@ export const ABBILDUNG_SCHEMA = {
 				],
 			},
 			{ art: 'schalter', attribut: 'auftakt', name: 'Mit Auftakt', an: 'ja', aus: 'nein', standard: false },
-			{ art: 'zahl', attribut: 'breite', name: 'Breite', min: 200, max: 620, standard: 620, schritt: 20, einheit: 'px' },
+			{ art: 'zahl', attribut: 'breite', name: 'Breite', min: 200, max: 620, standard: 620, schritt: 20, einheit: 'px', bisZumRand: true },
 		],
 	},
 	'x-plan': {
@@ -4859,18 +4969,34 @@ export const ABBILDUNG_SCHEMA = {
 		regeln: (w): Fehler => {
 			const spalten = w.zahl('spalten');
 			const zeilen = w.zahl('zeilen');
-			if (spalten * w.zahl('kaestchen') * (96 / 2.54) + 26 > 620) {
-				return { spalten: 'Der Plan ist zu breit für die Seite. Nimm weniger Spalten.' };
+			const kaestchen = w.zahl('kaestchen');
+			if (spalten * kaestchen * PX_JE_CM + 26 > SATZSPIEGEL) {
+				const hoechstensSpalten = Math.max(1, Math.floor((SATZSPIEGEL - 26) / (kaestchen * PX_JE_CM)));
+				const hoechstensKaestchen = Math.floor(((SATZSPIEGEL - 26) / (spalten * PX_JE_CM)) * 10) / 10;
+				return {
+					spalten: `Nimm höchstens ${hoechstensSpalten} Spalten, sonst wird der Plan zu breit für die Seite.`,
+					kaestchen:
+						hoechstensKaestchen >= 0.8
+							? `Nimm für „Kästchen“ höchstens ${zahlMitKomma(hoechstensKaestchen)} cm, sonst wird der Plan zu breit für die Seite.`
+							: 'Nimm kleinere Kästchen und weniger Spalten, sonst wird der Plan zu breit für die Seite.',
+				};
 			}
 			const symbole = PLAN_SYMBOLE[w.text('art') ?? 'ort'] ?? [];
 			const objekte = planObjekteVon(w.text('objekte'));
 			const falsch = [...objekte.values()].find((name) => !symbole.some((o) => o.wert === name));
 			if (falsch) {
-				return { boden: `Das Symbol „${falsch}“ gibt es hier nicht.` };
+				return {
+					boden: `Nimm ein Symbol dieser Art. „${falsch}“ gibt es hier nicht.`,
+					art: `Bei dieser Art gibt es das Symbol „${falsch}“ nicht. Nimm es zuerst aus dem Plan.`,
+				};
 			}
 			const draussen = [...objekte.keys()].find((q) => planLage(q, spalten, zeilen) === null);
 			if (draussen) {
-				return { boden: `Das Planquadrat ${draussen} liegt außerhalb des Plans.` };
+				return {
+					boden: `Nimm ein Planquadrat im Plan. ${draussen} liegt außerhalb.`,
+					spalten: `Nimm mehr Spalten, in ${draussen} steht noch ein Symbol. Oder nimm es zuerst aus dem Plan.`,
+					zeilen: `Nimm mehr Zeilen, in ${draussen} steht noch ein Symbol. Oder nimm es zuerst aus dem Plan.`,
+				};
 			}
 			const weg = (w.text('weg') ?? '').split(/\s+/).filter(Boolean);
 			if (w.text('aufgabe') !== 'weg') {
@@ -4878,13 +5004,13 @@ export const ABBILDUNG_SCHEMA = {
 			}
 			const lagen = weg.map((q) => planLage(q, spalten, zeilen));
 			if (weg.length < 2 || lagen.some((l) => l === null)) {
-				return { weg: 'Ein Weg hat mindestens zwei Planquadrate im Plan.' };
+				return { weg: 'Gib für den Weg mindestens zwei Planquadrate im Plan an.' };
 			}
 			const nebeneinander = lagen.every((l, i) => {
 				const v = lagen[i - 1];
 				return !v || !l || Math.abs(l.x - v.x) + Math.abs(l.y - v.y) === 1;
 			});
-			return nebeneinander ? {} : { weg: 'Die Planquadrate des Wegs liegen nebeneinander.' };
+			return nebeneinander ? {} : { weg: 'Nimm für den Weg Planquadrate, die nebeneinander liegen.' };
 		},
 	},
 	'x-geld': {
@@ -4983,7 +5109,7 @@ export const ABBILDUNG_SCHEMA = {
 			},
 		],
 		regeln: (w): Fehler =>
-			w.text('aufgabe') === 'legen' && !w.text('betrag') ? { betrag: 'Welcher Betrag soll gelegt werden?' } : {},
+			w.text('aufgabe') === 'legen' && !w.text('betrag') ? { betrag: 'Trag den Betrag zum Legen ein.' } : {},
 	},
 	'x-skala': {
 		name: 'Messgerät',
@@ -5263,13 +5389,13 @@ export const ABBILDUNG_SCHEMA = {
 			const trenner = w.zahlen('trenner');
 			const grenze = w.zahl(w.text('richtung') === 'spalten' ? 'spalten' : 'zeilen');
 			if (trenner.length > 1 || trenner.some((k) => k < 1 || k >= grenze)) {
-				fehler.trenner = `Eine Linie innerhalb des Feldes: 1 bis ${grenze - 1}.`;
+				fehler.trenner = `Nimm für die Zerlegungslinie eine Zahl von 1 bis ${grenze - 1}.`;
 			}
 			const frei = w.zahlen('abdecken');
 			const [freiZeilen = 0, freiSpalten = 0] = frei;
 			const passt = frei.length === 2 && freiZeilen <= w.zahl('zeilen') && freiSpalten <= w.zahl('spalten');
 			if (frei.length > 0 && !passt) {
-				fehler.abdecken = 'Zwei Zahlen, die im Feld liegen.';
+				fehler.abdecken = `Gib zwei Zahlen an: höchstens ${w.zahl('zeilen')} Zeilen und ${w.zahl('spalten')} Spalten.`;
 			}
 			return fehler;
 		},
@@ -5393,25 +5519,40 @@ export const ABBILDUNG_SCHEMA = {
 			const zahlen = w.zahlen('zahlen');
 			const [erste = 0, zweite = 0] = zahlen;
 			if (zahlen.some((z) => String(z).length > 7)) {
-				return { zahlen: 'Eine Zahl hat höchstens 7 Stellen.' };
+				return { zahlen: 'Nimm Zahlen mit höchstens 7 Stellen.' };
 			}
 			if (art === 'plus' && (zahlen.length < 2 || zahlen.length > 4)) {
-				return { zahlen: 'Bei Plus stehen 2 bis 4 Zahlen untereinander.' };
+				return {
+					zahlen: 'Gib bei Plus 2 bis 4 Zahlen an.',
+					art: 'Plus geht mit 2 bis 4 Zahlen. Ändere zuerst die Zahlen.',
+				};
 			}
 			if (art !== 'plus' && zahlen.length !== 2) {
-				return { zahlen: 'Hier gehören genau 2 Zahlen hinein.' };
+				return {
+					zahlen: 'Gib genau 2 Zahlen an.',
+					art: 'Diese Rechnung braucht genau 2 Zahlen. Ändere zuerst die Zahlen.',
+				};
 			}
 			if (art === 'minus' && erste < zweite) {
-				return { zahlen: 'Die erste Zahl muss mindestens so groß sein wie die zweite.' };
+				return {
+					zahlen: 'Nimm als erste Zahl die größere.',
+					art: 'Bei Minus kommt die größere Zahl zuerst. Ändere zuerst die Zahlen.',
+				};
 			}
 			if (art === 'minus' && !w.text('verfahren')) {
-				return { verfahren: 'Bitte das Verfahren wählen, das die Klasse gelernt hat.' };
+				return { verfahren: 'Wähle das Verfahren, das die Klasse gelernt hat.' };
 			}
 			if (art === 'geteilt' && (zweite < 2 || zweite > 9)) {
-				return { zahlen: 'Geteilt wird durch 2 bis 9.' };
+				return {
+					zahlen: 'Nimm als zweite Zahl 2 bis 9. Geteilt wird durch eine Ziffer.',
+					art: 'Geteilt wird durch 2 bis 9. Ändere zuerst die zweite Zahl.',
+				};
 			}
 			return art === 'mal' && String(zweite).length > 3
-				? { zahlen: 'Der zweite Faktor hat höchstens 3 Stellen.' }
+				? {
+						zahlen: 'Nimm als zweiten Faktor eine Zahl mit höchstens 3 Stellen.',
+						art: 'Mal geht mit einem zweiten Faktor bis 3 Stellen. Ändere zuerst die Zahlen.',
+					}
 				: {};
 		},
 	},
@@ -5442,7 +5583,7 @@ export const ABBILDUNG_SCHEMA = {
 		],
 		regeln: (w): Fehler => {
 			const anzahl = w.zahlen('basis').length;
-			return anzahl < 2 || anzahl > 5 ? { basis: 'Eine Zahlenmauer hat unten 2 bis 5 Steine.' } : {};
+			return anzahl < 2 || anzahl > 5 ? { basis: 'Gib unten 2 bis 5 Steine an.' } : {};
 		},
 	},
 	'x-rechenreihe': {
@@ -5611,7 +5752,8 @@ export const ABBILDUNG_SCHEMA = {
 				// 197-07: Die Stockwerke gehen mit dem Dach; die erste Zahl bleibt, die zweite ergänzt.
 				mitnehmen: (w): Werte => {
 					const dach = alsZahl(w.dach ?? '7');
-					if (!w.zerlegungen?.trim() || !Number.isFinite(dach)) {
+					// 207-N03: Ein Dach wie „7,5“ ist rot; die Stockwerke bleiben dann, wie sie sind (kein „4.5“).
+					if (!w.zerlegungen?.trim() || !Number.isInteger(dach)) {
 						return {};
 					}
 					const neu = w.zerlegungen
@@ -6357,19 +6499,19 @@ const zahlText = (n: number) =>
 
 const pruefeUnterfeld = (u: UnterFeld, wert: string): string | null => {
 	if (wert === '') {
-		return u.leer ? null : `„${u.name}“ fehlt.`;
+		return u.leer ? null : `Trag „${u.name}“ ein.`;
 	}
 	if (u.art === 'zahl') {
 		const n = alsZahl(wert);
 		if (Number.isNaN(n)) {
-			return `„${wert}“ ist keine Zahl.`;
+			return `Schreib bei „${u.name}“ eine Zahl. „${wert}“ ist keine.`;
 		}
 		if ((u.min !== undefined && n < u.min) || (u.max !== undefined && n > u.max)) {
-			return `„${u.name}“: bitte von ${u.min ?? ''} bis ${u.max ?? ''}.`;
+			return `Nimm für „${u.name}“ eine Zahl von ${u.min ?? ''} bis ${u.max ?? ''}.`;
 		}
 	}
 	if ((u.art === 'auswahl' || u.art === 'muster') && u.optionen && !u.optionen.some((o) => o.wert === wert)) {
-		return `„${wert}“ gibt es bei „${u.name}“ nicht.`;
+		return `Wähle bei „${u.name}“ etwas aus der Liste. „${wert}“ gibt es nicht.`;
 	}
 	return null;
 };
@@ -6380,7 +6522,7 @@ const pruefeListe = (feld: ListeFeld, wert: string | null): string | null => {
 		return `Bitte mindestens ${feld.min} ${feld.min === 1 ? 'Zeile' : 'Zeilen'}.`;
 	}
 	if (feld.max !== undefined && zeilen.length > feld.max) {
-		return `Höchstens ${feld.max} Zeilen.`;
+		return `Nimm höchstens ${feld.max} Zeilen.`;
 	}
 	for (const [i, zeile] of zeilen.entries()) {
 		for (const [j, u] of feld.unter.entries()) {
@@ -6429,17 +6571,18 @@ const pruefeZahl = (feld: ZahlFeld, wert: string | null, klasse?: number) => {
 		: `Bitte eine Zahl von ${zahlText(feld.min)} bis ${zahlText(max)} in Schritten von ${zahlText(schritt)}.`;
 };
 
-const pruefePaar = (feld: PaarFeld, wert: string | null) => {
+const pruefePaar = (feld: PaarFeld, wert: string | null, w: Werte) => {
 	if (wert === null) {
 		return null;
 	}
 	const zahlen = paarVon(feld, wert);
+	const max = (t: PaarTeil) => Math.min(t.max, Math.max(t.min, t.maxJe?.(w) ?? t.max));
 	const falsch = feld.teile.find((t, i) => {
 		const n = zahlen[i];
-		return n === null || n === undefined || !Number.isFinite(n) || n < t.min || n > t.max || (!t.komma && !Number.isInteger(n));
+		return n === null || n === undefined || !Number.isFinite(n) || n < t.min || n > max(t) || (!t.komma && !Number.isInteger(n));
 	});
 	return falsch
-		? `„${falsch.name}“: bitte ${falsch.komma ? 'eine Zahl' : 'eine ganze Zahl'} von ${zahlText(falsch.min)} bis ${zahlText(falsch.max)}.`
+		? `Nimm für „${falsch.name}“ ${falsch.komma ? 'eine Zahl' : 'eine ganze Zahl'} von ${zahlText(falsch.min)} bis ${zahlText(max(falsch))}.`
 		: null;
 };
 
@@ -6472,7 +6615,7 @@ const pruefeText = (feld: TextFeld, wert: string | null) => {
 		return null;
 	}
 	if (feld.max !== undefined && wert.length > feld.max) {
-		return `Höchstens ${feld.max} Zeichen.`;
+		return `Nimm höchstens ${feld.max} Zeichen.`;
 	}
 	return feld.muster && !new RegExp(`^(?:${feld.muster})$`, 'su').test(wert)
 		? (feld.musterHilfe ?? 'Diese Zeichen gehen hier nicht.')
@@ -6501,7 +6644,7 @@ const pruefeFeld = (feld: Feld, w: Werte, klasse?: number): string | null => {
 		case 'schalter':
 			return wert === null || wert === feld.an || wert === feld.aus
 				? null
-				: `Nur „${feld.an}“ oder „${feld.aus}“.`;
+				: `Nimm „${feld.an}“ oder „${feld.aus}“.`;
 		case 'zahlen': {
 			const falsch = listeVon(wert).find((z) => Number.isNaN(alsZahl(z)));
 			return falsch === undefined ? null : `„${falsch}“ ist keine Zahl. Trenne die Zahlen mit Leerzeichen.`;
@@ -6515,7 +6658,7 @@ const pruefeFeld = (feld: Feld, w: Werte, klasse?: number): string | null => {
 		case 'mehrfach':
 			return pruefeMehrfach(feld, wert, w);
 		case 'paar':
-			return pruefePaar(feld, wert);
+			return pruefePaar(feld, wert, w);
 		case 'zeitspanne': {
 			const teile = (wert ?? '').split('-');
 			return wert === null || (teile.length === 2 && teile.every((t) => pruefeUhrzeit(t) === null))

@@ -1,3 +1,4 @@
+import { schemaVon } from '@schoolbox/kern/src/abbildungen';
 import { holeInSeite } from '@schoolbox/kern/src/gestaltung-pruefung';
 import { fehlendeLoesungen, hatLoesung } from '@schoolbox/kern/src/loesungen';
 import type { Meldung, MeldungCode, MeldungZiel } from '@schoolbox/kern/src/meldungen';
@@ -117,6 +118,25 @@ const nameIm = (doc: Document, ziel: MeldungZiel) => {
 };
 
 /**
+ * S-01 (UX 186): Ragt eine Abbildung mit einer Breite im Panel über das Blatt, hilft „Breite verringern“, nicht Text
+ * kürzen oder Spalten; `null` für alles andere.
+ */
+const breiteStatt = (doc: Document, m: Meldung, ziele: MeldungZiel[]) => {
+	if (m.code !== 'ueberlauf' && m.code !== 'rand') {
+		return null;
+	}
+	for (const z of ziele) {
+		const element = z.sb === null ? null : elementZu(doc, z.sb);
+		const tag = element?.localName ?? '';
+		const feld = tag.startsWith('x-') ? schemaVon(tag)?.felder.find((f) => f.art === 'zahl' && f.bisZumRand) : undefined;
+		if (feld) {
+			return `Die Abbildung antippen und rechts „${feld.name}“ verringern.`;
+		}
+	}
+	return null;
+};
+
+/**
  * Abstände nur zwischen gezeigten Aufgaben (193-28) und kein „Platz frei“ vor einer automatischen Seite (206) regelt
  * das Prüfskript selbst (207); der Editor zeigt den Bericht, wie er kommt.
  */
@@ -141,7 +161,15 @@ const ausBericht = (doc: Document, meldungen: Meldung[]): Pruefpunkt[] => {
 			m,
 			ziele.map((z) => nameIm(doc, z)),
 		);
-		return { stufe: m.stufe, code: m.code ?? null, seite: m.seite, satz, tipp, bausteine, rahmen };
+		return {
+			stufe: m.stufe,
+			code: m.code ?? null,
+			seite: m.seite,
+			satz,
+			tipp: breiteStatt(doc, m, ziele) ?? tipp,
+			bausteine,
+			rahmen,
+		};
 	});
 };
 

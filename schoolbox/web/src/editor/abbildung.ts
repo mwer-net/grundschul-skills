@@ -10,6 +10,7 @@ import {
 	werteVon,
 } from '@schoolbox/kern/src/abbildungen';
 import { kann } from '@schoolbox/kern/src/bausteine';
+import { inCm, pxZuCm, zahlMitKomma } from '@schoolbox/kern/src/masse';
 import { hatNeueZahlenImKern, KERN_NEUE_ZAHLEN, neueZahlenImKern } from '@schoolbox/kern/src/neue-zahlen';
 import { loesungDaneben, schreibeUhrzeitUm, zeitDerUhr } from '@schoolbox/kern/src/uhrzeit-text';
 import { useEffect, useMemo, useRef, useState } from 'react';
@@ -51,6 +52,24 @@ export interface AusDemBlatt {
  * wie er ist, mit dem Text der Zeichnung. So bleibt die Zeichnung die eine Quelle, und nichts, was zeichnet, wird
  * abgewiesen.
  */
+/**
+ * S-01 (UX 186): Ein Feld mit `bisZumRand` endet am Satzspiegel. Eine größere Eingabe wird zur größten Zahl, die noch
+ * auf die Seite passt (in Schritten des Felds); die Hinweisleiste sagt es. Gespeicherte Werte bleiben, wie sie sind.
+ */
+const bisZumRand = (doc: Document, nr: number, feld: Feld, neu: Werte) => {
+	if (feld.art !== 'zahl' || !feld.bisZumRand) {
+		return null;
+	}
+	const ziel = Number(neu[feld.attribut]);
+	const rand = randGrenze(doc, nr, feld);
+	if (rand === null || !Number.isFinite(ziel) || ziel <= rand) {
+		return null;
+	}
+	const schritt = feld.schritt ?? 1;
+	const wert = Math.floor((rand - feld.min) / schritt) * schritt + feld.min;
+	return wert < feld.min || wert >= ziel ? null : { werte: { ...neu, [feld.attribut]: String(wert) }, wert };
+};
+
 const zeichenbarBis = (doc: Document, nr: number, s: AbbildungSchema, vorher: Werte, neu: Werte, feld: Feld) => {
 	if (feld.art !== 'zahl' || feld.loesung) {
 		return null;
@@ -85,12 +104,60 @@ const zeichenbarBis = (doc: Document, nr: number, s: AbbildungSchema, vorher: We
 	return gut === alt ? null : { werte: mit(gut), wert: gut, grund: amZiel.fehler };
 };
 
+/**
+ * S-01 (UX 186): Bis wohin ein Feld mit `bisZumRand` reicht, ohne dass die Zeichnung über den Satzspiegel ihrer Seite
+ * ragt. Gemessen am gezeichneten Element: dessen Wert plus der Platz bis zum rechten Rand des Satzspiegels (Format und
+ * Ränder der Seite zählen, auch ein Zoom). Die Zeichnung wächst mit dem Wert um genau so viel; `null` ohne Seite.
+ */
+const randGrenze = (doc: Document, nr: number, feld: Feld) => {
+	const element = elementZu(doc, nr);
+	let seite = element?.closest('.seite') ?? null;
+	for (let aussen = seite?.parentElement?.closest('.seite'); aussen; aussen = aussen.parentElement?.closest('.seite')) {
+		seite = aussen;
+	}
+	// Das Blatt ist ein eigenes Fenster: `instanceof HTMLElement` gilt dort nicht.
+	if (feld.art !== 'zahl' || !feld.bisZumRand || !element || !seite || !('offsetWidth' in seite)) {
+		return null;
+	}
+	const s = seite.getBoundingClientRect();
+	const breite = Number(seite.offsetWidth);
+	const massstab = breite > 0 ? s.width / breite : 1;
+	const rand = s.right - parseFloat(getComputedStyle(seite).paddingRight) * massstab;
+	// Das Element selbst ist oft ein Block über die ganze Zeile; es zählt, was darin gezeichnet ist.
+	const innen = [...element.querySelectorAll('*')];
+	const rechts = Math.max(...(innen.length > 0 ? innen : [element]).map((e) => e.getBoundingClientRect().right));
+	// Ohne Attribut nimmt die Zeichnung manchmal die Breite der Zeile (Zeitleiste); dann zählt die gezeichnete.
+	const bild = element.querySelector(':scope > svg');
+	const attribut = element.getAttribute(feld.attribut);
+	const wert = attribut === null && bild ? bild.getBoundingClientRect().width / massstab : Number(attribut ?? feld.standard);
+	return Number.isFinite(wert) ? wert + (rand - rechts) / massstab : null;
+};
+
+/** Die Grenzen aller Felder mit `bisZumRand`, so wie die Abbildung gerade gezeichnet ist. */
+const randGrenzen = (doc: Document, nr: number, s: AbbildungSchema | undefined) =>
+	Object.fromEntries(
+		(s?.felder ?? []).flatMap((f) => {
+			const g = f.art === 'zahl' && f.bisZumRand ? randGrenze(doc, nr, f) : null;
+			return g === null ? [] : [[f.attribut, g]];
+		}),
+	) as Record<string, number>;
+
+/** Wie das Panel eine Zahl zeigt: Maße in px als cm (197-U3). */
+const zahlImFeld = (feld: Feld, wert: number) =>
+	feld.art === 'zahl' && inCm(feld) ? `${zahlMitKomma(pxZuCm(wert))} cm` : wert.toLocaleString('de-DE');
+
 const klasseVon = (doc: Document | null | undefined) => {
 	const k = /\bkl([1-4])\b/.exec(doc?.body.className ?? '')?.[1];
 	return k ? Number(k) : undefined;
 };
 
 const LEER: AusDemBlatt = { fehler: null, warnung: null, platz: false, zellen: {}, info: null, sw: true };
+
+/** Ist das Feld gerade im Panel zu sehen? Sonst steht seine Meldung über den Feldern. */
+const zuSehenIm = (schema: AbbildungSchema | undefined, werte: Werte | null, attribut: string) => {
+	const feld = schema?.felder.find((f) => f.attribut === attribut);
+	return Boolean(feld && !feld.ohneFeld && (!feld.nurWenn || !werte || feld.nurWenn(werte)));
+};
 
 interface Optionen {
 	pfad: PfadTeil[];
@@ -206,7 +273,6 @@ export const useAbbildung = ({ adresse, basis: bildBasis, pfad, struktur }: Opti
 		() => (schema && werte ? pruefeFelder(schema, werte, klasse) : {}),
 		[schema, werte, klasse],
 	);
-	const zeichenbar = Object.keys(feldFehler).length === 0;
 	const regelFehler: Fehler = useMemo(
 		() => (schema && werte ? pruefeWerte(schema, werte, klasse) : {}),
 		[schema, werte, klasse],
@@ -216,16 +282,23 @@ export const useAbbildung = ({ adresse, basis: bildBasis, pfad, struktur }: Opti
 	const zuletztFeld =
 		geaendertZuletzt?.nr === nr ? schema?.felder.find((f) => f.attribut === geaendertZuletzt.attribut) : undefined;
 	const meldungAm =
-		zuletztFeld && !zuletztFeld.ohneFeld && (!zuletztFeld.nurWenn || !werte || zuletztFeld.nurWenn(werte))
-			? zuletztFeld.attribut
-			: '_element';
-	const fehler: Fehler = useMemo(
-		() =>
-			ausBlatt.fehler && Object.keys(regelFehler).length === 0
-				? { ...regelFehler, [meldungAm]: lesbareMeldung(ausBlatt.fehler, schema) }
-				: regelFehler,
-		[regelFehler, ausBlatt.fehler, schema, meldungAm],
-	);
+		zuletztFeld && zuSehenIm(schema, werte, zuletztFeld.attribut) ? zuletztFeld.attribut : '_element';
+	/**
+	 * S-03 (UX 186): Eine Eingabe, eine Meldung. Eine Regel über mehrere Felder meldet an jedem beteiligten; gezeigt wird
+	 * die am zuletzt geänderten Feld, sonst die erste an einem sichtbaren Feld. Felder, die ihre eigene Prüfung nicht
+	 * bestehen, melden jedes für sich.
+	 */
+	const fehler: Fehler = useMemo(() => {
+		if (ausBlatt.fehler && Object.keys(regelFehler).length === 0) {
+			return { [meldungAm]: lesbareMeldung(ausBlatt.fehler, schema) };
+		}
+		const an = Object.keys(regelFehler);
+		if (an.length <= 1 || Object.keys(feldFehler).length > 0) {
+			return regelFehler;
+		}
+		const eins = an.includes(meldungAm) ? meldungAm : an.find((a) => zuSehenIm(schema, werte, a));
+		return eins ? { [eins]: regelFehler[eins] ?? '' } : { _element: regelFehler[an[0] ?? ''] ?? '' };
+	}, [regelFehler, feldFehler, ausBlatt.fehler, schema, meldungAm, werte]);
 	/**
 	 * 197-02: Was das Panel aus Zahlen baut (Raster, Planquadrate, Stellen), nimmt diese Werte: Ein Feld, das seine
 	 * Prüfung, eine Regel oder die Zeichnung nicht besteht, zählt mit dem gespeicherten Wert. So wird aus „9999“ im
@@ -280,16 +353,33 @@ export const useAbbildung = ({ adresse, basis: bildBasis, pfad, struktur }: Opti
 		zuletzt.current = doc && nr !== null && quelle ? { doc, nr, werte: quelle, schema } : null;
 	}, [doc, nr, quelle, schema]);
 
+	/**
+	 * S-03 (UX 186, wie 207-N03): Was nicht stimmt, steht nur am Feld. Das Blatt zeigt dann den gespeicherten Stand und
+	 * keinen zweiten, roten Kasten. Den Fehler der Zeichnung (lösbar, passt aufs Gitter) liest das Panel am Entwurf.
+	 */
+	const [grenzen, setGrenzen] = useState<Record<string, number>>({});
 	useEffect(() => {
-		if (doc && nr !== null && werte) {
-			if (zeichenbar) {
-				zeichne(doc, nr, werte, schema);
-				setAusBlatt(liesVomBlatt(doc, nr));
-			}
-		} else {
+		if (!doc || nr === null || !werte) {
 			setAusBlatt(LEER);
+			return;
 		}
-	}, [doc, nr, werte, schema, zeichenbar]);
+		if (Object.keys(regelFehler).length > 0) {
+			if (quelle) {
+				zeichne(doc, nr, quelle, schema);
+			}
+			setAusBlatt(liesVomBlatt(doc, nr));
+		} else {
+			zeichne(doc, nr, werte, schema);
+			const blatt = liesVomBlatt(doc, nr);
+			if (blatt.fehler && quelle && unterschiede(quelle, werte).length > 0) {
+				zeichne(doc, nr, quelle, schema);
+				setAusBlatt({ ...liesVomBlatt(doc, nr), fehler: blatt.fehler, platz: blatt.platz });
+			} else {
+				setAusBlatt(blatt);
+			}
+		}
+		setGrenzen(randGrenzen(doc, nr, schema));
+	}, [doc, nr, werte, quelle, schema, regelFehler]);
 
 	/** Übernimmt den Entwurf als einen Schritt, wenn er gültig ist und sich etwas geändert hat. */
 	const uebernimm = (neu?: Werte, was?: string) => {
@@ -358,11 +448,14 @@ export const useAbbildung = ({ adresse, basis: bildBasis, pfad, struktur }: Opti
 		const gewollt = wuerfeln && s.generiert ? { ...geaendert, [s.generiert]: erzeugt?.[s.generiert] ?? null } : geaendert;
 		// Verglichen wird mit dem Gespeicherten: Beim Tippen steht die neue Zahl schon im Entwurf.
 		const { doc: d, nr: n, quelle: q } = aktuell.current;
+		const amRand = uebernehmen && d && n !== null ? bisZumRand(d, n, feld, gewollt) : null;
 		const grenze =
-			uebernehmen && d && q && n !== null ? zeichenbarBis(d, n, s, q, gewollt, feld) : null;
-		const neu = grenze?.werte ?? gewollt;
-		if (grenze) {
-			const z = grenze.wert.toLocaleString('de-DE');
+			!amRand && uebernehmen && d && q && n !== null ? zeichenbarBis(d, n, s, q, gewollt, feld) : null;
+		const neu = amRand?.werte ?? grenze?.werte ?? gewollt;
+		if (amRand) {
+			zeige({ text: `${feld.name}: Mehr passt nicht auf die Seite. Jetzt steht ${zahlImFeld(feld, amRand.wert)} da.` });
+		} else if (grenze) {
+			const z = zahlImFeld(feld, grenze.wert);
 			zeige({ text: `${feld.name}: ${lesbareMeldung(grenze.grund, s)} Jetzt steht ${z} da.` });
 		}
 		aktuell.current = { ...aktuell.current, werte: neu };
@@ -503,6 +596,8 @@ export const useAbbildung = ({ adresse, basis: bildBasis, pfad, struktur }: Opti
 		geprueft,
 		/** Klasse des Blatts; manche Grenzen hängen davon ab (197-N02). */
 		klasse,
+		/** S-01: Bis wohin Felder mit `bisZumRand` auf die Seite passen, in den Einheiten des Attributs. */
+		grenzen,
 		fehler,
 		beispiel,
 		info: ausBlatt.info,

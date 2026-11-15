@@ -110,9 +110,12 @@ const ZeilenOderText = ({
 	feld,
 	liste,
 	verlustfrei,
+	kurzschrift,
 }: FeldEigenschaften<TextFeld> & {
 	verlustfrei: (roh: string | null) => boolean;
 	liste: (umschalten: ReactNode) => ReactNode;
+	/** Das ⓘ im Text: Nur dort steht, wie die Kurzschrift geht; `feld.hilfe` beschreibt die Zeilen. */
+	kurzschrift: string;
 }) => {
 	const wert = wertVon(feld, abb)?.wert ?? null;
 	const [alsText, setAlsText] = useState(() => !verlustfrei(wert));
@@ -131,7 +134,7 @@ const ZeilenOderText = ({
 	);
 	return text ? (
 		<>
-			<Text feld={feld} abb={abb} />
+			<Text feld={{ ...feld, hilfe: kurzschrift }} abb={abb} />
 			<div className="mt-1 flex flex-wrap items-center gap-1" data-zeilen-umschalten={feld.attribut}>
 				{umschalten}
 				{!passt && <span className="text-xs text-leise">Dieser Text passt nicht in Zeilen.</span>}
@@ -447,6 +450,7 @@ export const aufgabenZeilen = (abb: AbbildungSteuerung, feld: TextFeld) => {
 				abb={abb}
 				feld={feld}
 				verlustfrei={fragenVerlustfrei}
+				kurzschrift="Je Frage: erst die Frage, dann ein Doppelpunkt und die Antworten mit Komma. Ein * vor der Antwort markiert die richtige. Ein Semikolon trennt die Fragen."
 				liste={(u) => <FragenZeilen abb={abb} feld={feld} umschalten={u} />}
 			/>
 		);
@@ -457,6 +461,7 @@ export const aufgabenZeilen = (abb: AbbildungSteuerung, feld: TextFeld) => {
 				abb={abb}
 				feld={feld}
 				verlustfrei={aussagenVerlustfrei}
+				kurzschrift="Je Aussage: erst die Aussage, dann ein Doppelpunkt und r für richtig oder f für falsch. Ein Semikolon trennt die Aussagen."
 				liste={(u) => <AussagenZeilen abb={abb} feld={feld} umschalten={u} />}
 			/>
 		);

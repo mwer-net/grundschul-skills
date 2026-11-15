@@ -2707,7 +2707,7 @@
     if (!["plus", "minus", "mal", "geteilt"].includes(art)) abbruch(`Die Art „${art}“ gibt es nicht.`);
     if (zahlen.some((z) => !Number.isInteger(z) || z < 0)) abbruch("Schriftlich gerechnet wird nur mit ganzen Zahlen ab 0.");
     if (zahlen.some((z) => String(z).length > 7)) abbruch("Eine Zahl hat höchstens 7 Stellen.");
-    if (art === "plus" && (zahlen.length < 2 || zahlen.length > 4)) abbruch("Bei Plus stehen 2 bis 4 Zahlen untereinander.");
+    if (art === "plus" && (zahlen.length < 2 || zahlen.length > 4)) abbruch("Gib bei Plus 2 bis 4 Zahlen an.");
     if (art !== "plus" && zahlen.length !== 2) abbruch("Hier gehören genau 2 Zahlen hinein.");
     if (art === "minus" && zahlen[0] < zahlen[1]) abbruch("Die erste Zahl muss mindestens so groß sein wie die zweite.");
     if (art === "minus" && !VERFAHREN.includes(verfahren)) abbruch("Wähle das Verfahren, das die Klasse gelernt hat.");
@@ -3574,7 +3574,7 @@
   function zeitleiste(el) {
     const art = attr(el, "art", "jahre"), leben = art === "leben", von = num(el, "von", 1900), bis = num(el, "bis", 2020), liste2 = attr(el, "ereignisliste", "ja") === "ja";
     if (!["jahre", "leben"].includes(art)) abbruch(`Die Art „${art}“ gibt es nicht.`);
-    if (!(von < bis)) abbruch("Der Anfang liegt vor dem Ende.");
+    if (!(von < bis)) abbruch("Nimm für „von“ eine Zahl unter „bis“.");
     if (!leben && (von === 0 || bis === 0)) abbruch("Ein Jahr 0 gibt es nicht.");
     const spanne = zeitPos(bis) - zeitPos(von);
     const vorschlag = spanne <= 20 ? 1 : spanne <= 100 ? 10 : spanne <= 1000 ? 100 : 1000;

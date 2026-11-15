@@ -91,9 +91,13 @@ test.describe('Editor: Abbildungen', () => {
 		const bis = page.getByLabel('Bis', { exact: true });
 		await bis.fill('10');
 		await bis.press('Enter');
-		await expect(page.locator('[data-fehler="pfeile"]')).toHaveText('13 liegt nicht zwischen 0 und 10.');
+		// S-03 (UX 186): eine Meldung am geänderten Feld; das Blatt bleibt beim gespeicherten Stand.
+		await expect(page.locator('[data-fehler="bis"]')).toHaveText(
+			'Nimm für „Bis“ mindestens 13, sonst liegt diese Zahl aus „Pfeile mit Kästchen“ außerhalb.',
+		);
+		await expect(page.locator('[data-fehler]')).toHaveCount(1);
 		await expect(page.locator('[data-nicht-uebernommen]')).toBeVisible();
-		await expect(strahl).toHaveAttribute('bis', '10');
+		await expect(strahl).toHaveAttribute('bis', '20');
 		expect(await quelle(page)).toBe(vorher);
 		await page.waitForTimeout(2000);
 		expect(await readFile(datei, 'utf8')).toBe(vorher);
@@ -112,7 +116,9 @@ test.describe('Editor: Abbildungen', () => {
 		for (let i = 0; i < 3; i += 1) {
 			await druecke(page.getByRole('button', { name: 'Zehnerbündel: mehr' }));
 		}
-		await expect(page.locator('[data-fehler="buendel"]')).toHaveText('Es gibt nur 2 volle Zehnerreihen.');
+		await expect(page.locator('[data-fehler="buendel"]')).toHaveText(
+			'Nimm höchstens 2 Zehnerbündel. Mehr volle Zehnerreihen gibt es nicht.',
+		);
 		await expect(buendel.locator('input[type="text"]')).toHaveValue('3');
 		await gespeichert(page, datei);
 		expect(await readFile(datei, 'utf8')).toContain('<x-menge buendel="2" n="23" form="nuss">');
@@ -1550,7 +1556,7 @@ test.describe('Einmaleins und schriftliches Rechnen (029)', () => {
 		await druecke(element);
 		await page.getByLabel('Zahlen').fill('5 9');
 		await page.getByLabel('Zahlen').press('Enter');
-		await expect(page.locator('[data-fehler="zahlen"]')).toContainText('mindestens so groß');
+		await expect(page.locator('[data-fehler="zahlen"]')).toContainText('erste Zahl die größere');
 		expect(await readFile(datei, 'utf8')).toBe(stand);
 	});
 });

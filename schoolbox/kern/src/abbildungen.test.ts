@@ -189,15 +189,15 @@ describe('Prüfen', () => {
 
 	it('Menge: Bündel nur bei 10 je Reihe und nur volle Zehner', () => {
 		assert.deepEqual(pruefe('x-menge', { 'n': '36', 'buendel-loesung': '3' }), {});
-		assert.match(pruefe('x-menge', { n: '36', buendel: '4' }).buendel ?? '', /nur 3 volle Zehnerreihen/);
+		assert.match(pruefe('x-menge', { n: '36', buendel: '4' }).buendel ?? '', /höchstens 3 Zehnerbündel/);
 		assert.match(pruefe('x-menge', { n: '8', buendel: '1' }).buendel ?? '', /keinen vollen Zehner/);
-		assert.match(pruefe('x-menge', { n: '36', reihe: '5', buendel: '1' }).buendel ?? '', /10 in einer Reihe/);
+		assert.match(pruefe('x-menge', { n: '36', reihe: '5', buendel: '1' }).buendel ?? '', /„Stück je Reihe“ auf 10/);
 	});
 
 	it('Zahlenstrahl: von < bis, Zahlen und Pfeile im Bereich, nicht zu viele Striche', () => {
 		assert.deepEqual(pruefe('x-zahlenstrahl', { von: '0', bis: '100', schritt: '10', pfeile: '30 70' }), {});
-		assert.match(pruefe('x-zahlenstrahl', { von: '20', bis: '20' }).bis ?? '', /größer/);
-		assert.match(pruefe('x-zahlenstrahl', { pfeile: '7 25' }).pfeile ?? '', /25 liegt nicht zwischen 0 und 20/);
+		assert.match(pruefe('x-zahlenstrahl', { von: '20', bis: '20' }).bis ?? '', /„Bis“ eine Zahl über 20/);
+		assert.match(pruefe('x-zahlenstrahl', { pfeile: '7 25' }).pfeile ?? '', /von 0 bis 20\. 25 liegt außerhalb/);
 		assert.match(pruefe('x-zahlenstrahl', { bis: '1000' }).schritt ?? '', /1000 Striche/);
 		assert.match(pruefe('x-zahlenstrahl', { zahlen: '0 fünf' }).zahlen ?? '', /keine Zahl/);
 	});
@@ -215,7 +215,7 @@ describe('Prüfen', () => {
 	});
 
 	it('Strich-Punkt und Dienes: mindestens ein Zehner oder Einer', () => {
-		assert.match(pruefe('x-strichpunkt', { z: '0', e: '0' }).e ?? '', /Mindestens/);
+		assert.match(pruefe('x-strichpunkt', { z: '0', e: '0' }).e ?? '', /mindestens einen Zehner/);
 		assert.deepEqual(pruefe('x-dienes', { z: '3' }), {});
 	});
 });
@@ -502,7 +502,7 @@ describe('Felder ändern', () => {
 		// Erst die Wörter selbst, dann die Bilder.
 		assert.match(
 			pruefe('x-suchsel', { woerter: 'Oma1; Opa', wortliste: 'bilder' }).woerter ?? '',
-			/nur aus Buchstaben/,
+			/nur mit Buchstaben/,
 		);
 	});
 
@@ -517,7 +517,7 @@ describe('Felder ändern', () => {
 		);
 		assert.match(
 			pruefe('x-kreuzwort', { eintraege, art: 'senkrecht' }).loesungswort ?? '',
-			/^Hier fehlt das Lösungswort\. .*8 Buchstaben\.$/,
+			/^Trag ein Lösungswort ein\. .*8 Buchstaben\.$/,
 		);
 		const vier = 'a: STUHL; b: TAFEL; c: STIFT; d: DOSE';
 		assert.match(
@@ -749,11 +749,11 @@ describe('neue Feldtypen', () => {
 	});
 
 	it('Prüfen: Text, Liste, Mehrfach, Raster, Muster und Regeln', () => {
-		assert.match(pruefe('x-probe', { titel: 'x'.repeat(21) }).titel ?? '', /Höchstens 20/);
+		assert.match(pruefe('x-probe', { titel: 'x'.repeat(21) }).titel ?? '', /höchstens 20/);
 		assert.match(pruefe('x-probe', { inhalt: 'Ro1' }).inhalt ?? '', /Nur Buchstaben/);
 		assert.deepEqual(pruefe('x-probe', { inhalt: 'Ro|si|ne' }), {});
 		assert.match(pruefe('x-probe', { eintraege: 'A: 200' }).eintraege ?? '', /Zeile 1.*0 bis 99/);
-		assert.match(pruefe('x-probe', { eintraege: 'A: ∅' }).eintraege ?? '', /Zeile 1: „Zahl“ fehlt/);
+		assert.match(pruefe('x-probe', { eintraege: 'A: ∅' }).eintraege ?? '', /Zeile 1: Trag „Zahl“ ein/);
 		assert.match(pruefe('x-probe', { eintraege: 'A: 1; B: 1; C: 1; D: 1' }).eintraege ?? '', /Vier geht nicht/);
 		assert.match(pruefe('x-probe', { arten: 'vier' }).arten ?? '', /gibt es hier nicht/);
 		assert.match(pruefe('x-probe', { feld: '0 2' }).feld ?? '', /„2“ geht/);
@@ -1099,11 +1099,11 @@ describe('Daten und Zufall (024)', () => {
 	it('prüft die Regeln über mehrere Felder', () => {
 		assert.match(pruefe('x-gluecksrad', { felder: 'rot; blau', anteile: '0 0' }).anteile ?? '', /mehr als 0/);
 		assert.match(pruefe('x-gluecksrad', { felder: 'rot; blau', anteile: '1 1 2' }).anteile ?? '', /genau 2 Zahlen/);
-		assert.match(pruefe('x-diagramm', { werte: 'A: 12', bis: '10' }).bis ?? '', /größer als 10/);
+		assert.match(pruefe('x-diagramm', { werte: 'A: 12', bis: '10' }).bis ?? '', /„Bis“ mindestens 12/);
 		assert.match(pruefe('x-urne', { kugeln: 'rot: 15; blau: 6' }).kugeln ?? '', /21/);
 		assert.match(
 			pruefe('x-wahrscheinlichkeit', { ereignisse: 'A: sehr wahrscheinlich' }).ereignisse ?? '',
-			/nicht auf/,
+			/gibt es hier nicht/,
 		);
 		assert.deepEqual(pruefe('x-wahrscheinlichkeit', { stufen: '5', ereignisse: 'A: sehr wahrscheinlich' }), {});
 	});
@@ -1857,7 +1857,7 @@ describe('Sachunterricht: Zeit und Raum (033)', () => {
 		);
 		assert.ok(pruefe('x-zeitleiste', { von: '2000', bis: '1900' }).bis);
 		assert.match(pruefe('x-zeitleiste', { ereignisse: '1800: Alt' }).ereignisse ?? '', /außerhalb/);
-		assert.match(pruefe('x-zeitleiste', { ereignisse: 'um 1900: Alt' }).ereignisse ?? '', /kein Jahr/);
+		assert.match(pruefe('x-zeitleiste', { ereignisse: 'um 1900: Alt' }).ereignisse ?? '', /ein Jahr wie 1990/);
 		assert.match(pruefe('x-zeitleiste', { von: '-100', ereignisse: '0: Null' }).ereignisse ?? '', /Jahr 0/);
 		assert.deepEqual(pruefe('x-zeitleiste', { art: 'leben', von: '0', bis: '10', ereignisse: '0: Geburt' }), {});
 	});
@@ -2179,7 +2179,7 @@ describe('Rätsel (038)', () => {
 		const kreuz = schemaVonSicher('x-kreuzwort');
 		assert.match(
 			pruefeWerte(kreuz, { art: 'senkrecht', eintraege: 'a: HUND; b: UHR' }).loesungswort ?? '',
-			/fehlt/,
+			/Trag ein Lösungswort ein/,
 		);
 		assert.deepEqual(pruefeWerte(schemaVonSicher('x-loesungswort'), { wort: 'SONNE', bezug: '3' }), {});
 	});
@@ -2237,7 +2237,7 @@ describe('Spiele (037)', () => {
 		const s = schemaVonSicher('x-domino');
 		const text = paare.map(([a, l]) => `${a}: ${l}`).join('; ');
 		assert.deepEqual(pruefeWerte(s, { paare: text }), {});
-		assert.match(pruefeWerte(s, { paare: text.replace('l2', 'l1') }).paare ?? '', /zweimal/);
+		assert.match(pruefeWerte(s, { paare: text.replace('l2', 'l1') }).paare ?? '', /zwei Lösungen/);
 	});
 
 	it('Domino und Bingo: Mini-Inhalte behalten ihre Doppelpunkte', () => {
