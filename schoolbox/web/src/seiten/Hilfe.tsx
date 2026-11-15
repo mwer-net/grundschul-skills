@@ -99,7 +99,8 @@ const ABSCHNITTE: Abschnitt[] = [
 				<p>
 					In einem Ordner „Material anlegen“, oben oder im Rechtsklick. Der Assistent fragt Schritt für Schritt,
 					links stehen deine Antworten, ein Klick darauf springt zurück. Vorgewählt ist die Empfehlung, ⏎
-					übernimmt sie.
+					übernimmt sie. Klasse und Fach kommen aus dem Ordner, seinem Namen oder wie beim letzten Mal; daneben
+					steht, woher. Findet sich nichts, wählst du sie selbst.
 				</p>
 				<ul>
 					<Punkt titel="Mit Claude">
@@ -242,11 +243,20 @@ const ABSCHNITTE: Abschnitt[] = [
 						Weiter mit Pfeiltaste, Leertaste oder Klicker, am iPad rechts antippen oder nach links wischen. Esc
 						beendet.
 					</li>
+					<li>
+						Abstimmen: Ein Klick auf eine Antwort setzt einen Strich, je fünf werden ein Bündel. Rechtsklick
+						oder langes Drücken nimmt einen Strich weg.
+					</li>
+					<li>
+						Timer: antippen startet und hält an, langes Drücken stellt ihn zurück. Kommst du später auf die
+						Folie zurück, beginnt ein angehaltener Timer von vorn.
+					</li>
 				</ul>
 				<h3>Ohne Internet</h3>
 				<p>
-					Lade die Präsentation vorher unter „PDF“ herunter; dort steht, welche Datei für iPad und Mac ist.
-					„Folien mit Notizen“ ist zum Ausdrucken, als Spickzettel für dich.
+					Lade die Präsentation vorher unter „PDF“ herunter; dort steht, welche Datei für iPad und Mac ist. In
+					der Datei für den Mac beendet Esc die Präsentation mit einem Druck. „Folien mit Notizen“ ist zum
+					Ausdrucken, als Spickzettel für dich.
 				</p>
 			</>
 		),
@@ -280,7 +290,7 @@ const ABSCHNITTE: Abschnitt[] = [
 					</Punkt>
 					<Punkt titel="Seiten">
 						{
-							'Passt eine Aufgabe nicht mehr auf die Seite, rutscht sie von selbst auf die nächste. Soll eine Seite früher enden, nimm '
+							'Passt eine Aufgabe nicht mehr auf die Seite, rutscht sie von selbst auf die nächste; was passt, bleibt, wo es ist. Soll eine Seite früher enden, nimm '
 						}
 						{befehlName('seite.ab-hier')}
 						{' im ⋯ des Bausteins; '}
@@ -293,18 +303,20 @@ const ABSCHNITTE: Abschnitt[] = [
 						) zeigt alle Seiten als Baum mit allem, was du im Blatt anklicken kannst. Ein Klick auf eine Zeile
 						springt zur Stelle. Zeilen ziehst du an einen anderen Platz, Aufgaben auch auf eine andere Seite.
 						Namenszeile, Kopf und Selbsteinschätzung bleiben an ihrem Platz und sind grau. Oben klappt „Alle
-						einklappen“ die Liste kurz.
+						aufklappen“ jede Zeile auf, danach macht „Alle einklappen“ die Liste wieder kurz.
 					</Punkt>
 					<Punkt titel="Einstellungen">
 						rechts im Inspektor: „Auswahl“ für das Gewählte, „Blatt“ für Klasse, Farben, Format, den Abstand
 						zwischen den Aufgaben und die Gestaltung der Seite. „Vorgabe“ stellt einen Wert zurück.
 					</Punkt>
 					<Punkt titel="Listen">
-						jeder Eintrag steht in einer Zeile, ⋯ öffnet Art und Entfernen. Bei langen Listen wie Bingo
-						schreibt „Als Text bearbeiten“ alles auf einmal, eine Zeile je Eintrag.
+						jeder Eintrag steht in einer Zeile, ⋯ öffnet Art und Entfernen. Beim Ankreuzen setzt du den Haken an
+						jeder richtigen Antwort, bei Richtig oder falsch je Aussage den Schalter „Richtig“. Bei
+						langen Listen wie Bingo schreibt „Als Text bearbeiten“ alles auf einmal, eine Zeile je Eintrag.
 					</Punkt>
 					<Punkt titel="Nur in der Lösung">
-						steht etwas nur in der Lösung, sagt es der Inspektor und bringt dich mit „Zur Lösung“ dorthin.
+						was nur in der Lösung steht, zeigen die Ebenen im Arbeitsblatt als graue Zeile. Wählst du sie,
+						bringt dich „Zur Lösung“ im Inspektor dorthin.
 					</Punkt>
 					<Punkt titel="Lesehilfen">
 						Text antippen, dann im Inspektor unter „Lesehilfen“: Silben als Bögen oder in Farbe, Vokale,
@@ -318,6 +330,11 @@ const ABSCHNITTE: Abschnitt[] = [
 						{'in der Schublade „Bilder“ ('}
 						<SchubladenTaste id="bilder" />
 						{'), siehe „Gestalten“.'}
+					</Punkt>
+					<Punkt titel="Zahlen">
+						eine Zahl über dem Zahlenraum der Klasse wird gezeichnet, unten steht dann etwa „1 Ding prüfen“;
+						das PDF geht trotzdem. Passt eine Zahl nicht aufs Blatt, setzt der Inspektor die größte,
+						die passt, und sagt, warum.
 					</Punkt>
 					<Punkt titel="Lösung">oben auf „Lösung“ wechseln und die Lösungen eintragen.</Punkt>
 					<Punkt titel="Rückgängig">
@@ -344,7 +361,7 @@ const ABSCHNITTE: Abschnitt[] = [
 					{'„Befehle“ unten oder '}
 					<BefehlTaste id="ansicht.palette" />
 					{
-						' öffnet ein Feld, in dem du jeden Befehl, jeden Baustein und jedes Material findest. Ungefähr der Name reicht.'
+						' öffnet ein Feld, in dem du jeden Befehl, jeden Baustein und jedes Material findest; im Editor stehen die anderen Materialien unter „Andere Materialien“. Ungefähr der Name reicht. Ist in der Ablage etwas gewählt, steht oben „Auswahl: …“ mit allem, was der Rechtsklick kann.'
 					}
 				</Punkt>
 			</ul>
@@ -388,9 +405,9 @@ const ABSCHNITTE: Abschnitt[] = [
 					weiter.
 				</p>
 				<ul>
-					<Punkt titel="Übernehmen">oder ⏎: Der Entwurf wird dein Blatt. Rückgängig nimmt ihn zurück.</Punkt>
+					<Punkt titel="Übernehmen">oder ⏎: Der Vorschlag wird dein Blatt. Rückgängig nimmt ihn zurück.</Punkt>
 					<Punkt titel="Nachbessern …">
-						schreib, was anders sein soll. Claude arbeitet am Entwurf weiter und kennt den ersten Auftrag.
+						schreib, was anders sein soll. Claude bessert den Vorschlag nach und kennt den ersten Auftrag.
 					</Punkt>
 					<Punkt titel="Verwerfen">das leere Blatt bleibt im Ordner, du füllst es selbst.</Punkt>
 					<Punkt titel="Annahmen">was Claude selbst entschieden hat, zum Aufklappen.</Punkt>
@@ -466,7 +483,7 @@ const ABSCHNITTE: Abschnitt[] = [
 				alt: 'Ein Vorschlag gestrichelt im Blatt, in der Blase Vorher und Nachher',
 				geraet: 'Mac',
 			},
-			{ datei: 'entwurf-mac.jpg', alt: 'Der Entwurf von Claude mit der Leiste über dem Blatt', geraet: 'Mac' },
+			{ datei: 'entwurf-mac.jpg', alt: 'Der Vorschlag von Claude mit der Leiste über dem Blatt', geraet: 'Mac' },
 			{
 				datei: 'einheit-mac.jpg',
 				alt: 'Ein Ordner, in dem Claude eine Einheit baut: oben das Band, darunter ein fertiges Material',

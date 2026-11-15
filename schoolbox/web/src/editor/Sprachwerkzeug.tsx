@@ -155,7 +155,7 @@ export const Sprachwerkzeug = ({
 		);
 		if (ok && unsicher.length > 0) {
 			zeige({
-				text: `Prüfe diese Trennung: ${[...new Set(unsicher)].join(', ')}. Tippe die Silben an und ändere die Striche unter „Weitere“, „Text“.`,
+				text: `Prüfe diese Trennung: ${[...new Set(unsicher)].join(', ')}. Tippe die Silben an und ändere die Striche unter „Inhalt“, „Text“.`,
 			});
 		}
 	};

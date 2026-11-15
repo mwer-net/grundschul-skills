@@ -64,7 +64,7 @@ export const GESTALTEN: Abschnitt = {
 			<h3>Figuren</h3>
 			<p data-hilfe-figuren>
 				In der Schublade „Figuren“ stehen Willi, Wilma und die anderen Figuren mit ihren Posen. Ein Klick legt die
-				Figur in die Mitte der Seite, gezogen liegt sie, wo du loslässt. {befehlName('auswahl.spiegeln')} (
+				Figur an eine freie Stelle der Seite, bei wenig Platz kleiner; gezogen liegt sie, wo du loslässt. {befehlName('auswahl.spiegeln')} (
 				<BefehlTaste id="auswahl.spiegeln" />) steht im ⋯ und im Inspektor, dort tauschst du auch Figur oder Pose.
 				Eigene Figuren benennst du mit einem Doppelklick auf den Namen um; „Entfernen“ im ⋯ der Kachel nimmst du
 				mit „Rückgängig“ zurück. Oben in der Schublade beschreibst du eine neue Figur oder Pose, Claude malt sie
@@ -73,7 +73,7 @@ export const GESTALTEN: Abschnitt = {
 
 			<h3>Bilder</h3>
 			<p data-hilfe-bilder-frei>
-				In der Schublade „Bilder“ legt ein Klick das Bild frei in die Mitte der Seite. Ist ein Platzhalter oder
+				In der Schublade „Bilder“ legt ein Klick das Bild an eine freie Stelle der Seite, bei wenig Platz kleiner. Ist ein Platzhalter oder
 				Bildrahmen gewählt, füllt der Klick ihn. Gezogen liegt das Bild, wo du loslässt; auf ein Bild oder einen
 				Platzhalter gezogen tauscht oder füllt es, ein Wort am Zeiger sagt es vorher. Ein gewähltes Bild tauschst
 				du über „Bild austauschen“ im ⋯ oder im Inspektor unter „Austauschen“. „Foto
