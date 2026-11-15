@@ -1,6 +1,6 @@
 import { abbildungsName } from '@schoolbox/kern/src/abbildungen';
 import type { Baustein, Sicht } from '@schoolbox/kern/src/bausteine';
-import { bausteinUeber, FREI_TITEL, FREIES_ELEMENT, liegtFrei, nameFreiesElement } from '@schoolbox/kern/src/bausteine';
+import { bausteinNach, bausteinUeber, FREI_TITEL, FREIES_ELEMENT, liegtFrei, nameFreiesElement } from '@schoolbox/kern/src/bausteine';
 import { nameDerGestaltung } from '@schoolbox/kern/src/gestaltung-arten';
 import { darstellungsHtml } from '@schoolbox/kern/src/html';
 import type { LetzterSchritt, Zerlegung } from '@schoolbox/kern/src/quelltext';
@@ -75,8 +75,14 @@ export const nrVon = (element: Element) => {
 	return wert === null ? null : Number(wert);
 };
 
+/**
+ * S-19: Der Lösungstext (`.nur-loesung` ohne eigene Art) ist auch auf dem Arbeitsblatt ein Baustein, dort unsichtbar:
+ * So hat er in den Ebenen eine blasse Zeile „nur in der Lösung“, und gewählt bietet der Inspektor „Zur Lösung“.
+ */
+const LOESUNGSTEXT = bausteinNach('loesungstext')?.selektor;
+
 const SICHT: Sicht<Element> = {
-	passt: (e, selektor) => e.matches(selektor),
+	passt: (e, selektor) => e.matches(selektor === LOESUNGSTEXT ? '.nur-loesung' : selektor),
 	tag: (e) => e.localName,
 	eltern: (e) => e.parentElement,
 	kinder: (e) => [...e.children],

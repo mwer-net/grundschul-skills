@@ -9,95 +9,226 @@ export interface Kante {
 /** Abstand der Leiste zum Element und zum Rand des Sichtfelds. */
 export const LEISTEN_ABSTAND = 6;
 
-/** Freier Streifen über und unter dem Element bis zum nächsten Inhalt, in Pixeln der Leinwand (204-N04). */
-export interface Raum {
-	oben: number;
-	unten: number;
+/** Ein Rechteck wie `DOMRect`: Inhalt im Blatt oder auf der Leinwand. */
+export interface Rechteck {
+	left: number;
+	right: number;
+	top: number;
+	bottom: number;
+}
+
+/** Was um das Element liegt, in Pixeln der Leinwand: fremder Inhalt und die Seite (für den Platz am Seitenrand). */
+export interface Umfeld {
+	inhalt: readonly Rechteck[];
+	seite: Kante | null;
 }
 
 /**
- * Wo die Leiste am Element steht (204-15, 204-16), für Bausteine und Gestaltungselemente dieselbe Regel: über dem
- * Element, sonst darunter, sonst oben im Sichtfeld. Waagerecht rechtsbündig; ist das Element schmaler als die Leiste,
- * beginnt sie an seiner linken Kante. Sie bleibt ganz im Sichtfeld. `frei`: Platz über dem Element, den der Drehgriff
- * eines Gestaltungselements braucht.
- *
- * 204-N04: Mit `raum` steht die Leiste unter dem Element, wenn sie darüber Inhalt verdecken würde, darunter aber
- * nicht. `unter` hält eine schon getroffene Wahl fest (Textsitzung).
+ * Die Stelle, die die Leiste gewählt hat, gemessen am Element: `oben:<dx>`, `unten:<dx>`, `obenEng:<dx>`,
+ * `untenEng:<dx>` (linke Kante der Leiste minus rechte Kante des Elements), `neben-rechts`, `neben-links`, `sicht`. In der Textsitzung bleibt sie (204-15).
+ */
+export type Wahl = string;
+
+/** Luft um fremden Inhalt, in Pixeln der Leinwand. */
+const LUFT = 2;
+
+/** Was ein Pixel Abstand zum Element kostet, in Pixeln verdeckter Fläche. */
+const ENTFERNUNG = 2;
+
+const flaeche = (a: Rechteck, b: Rechteck) =>
+	Math.max(0, Math.min(a.right, b.right) - Math.max(a.left, b.left)) *
+	Math.max(0, Math.min(a.bottom, b.bottom) - Math.max(a.top, b.top));
+
+/**
+ * Wo die Leiste am Element steht (204-15, 204-16, 204-N04), für Bausteine und Gestaltungselemente dieselbe Regel.
+ * Ohne `umfeld`: über dem Element, sonst darunter, sonst oben im Sichtfeld; waagerecht rechtsbündig, bei einem Element
+ * schmaler als die Leiste ab seiner linken Kante. Mit `umfeld` (Schlussdurchsicht): unter allen Stellen über und unter
+ * dem Element (rechts-, linksbündig, mittig, am Seitenrand, neben fremdem Inhalt) und neben der Seite die, die am
+ * wenigsten fremden Inhalt verdeckt; Abstand zum Element kostet etwas, bei Gleichstand gilt die frühere Stelle. Oben im
+ * Sichtfeld nur, wenn sonst nichts passt. Die Leiste bleibt ganz im Sichtfeld. `frei`: Platz über dem Element, den der
+ * Drehgriff eines Gestaltungselements braucht. `wahl` hält eine schon getroffene Wahl fest.
  */
 export const lageDerLeiste = (
 	box: Kante,
 	mass: { breite: number; hoehe: number },
 	sicht: Kante,
 	frei = 0,
-	raum: Raum | null = null,
-	unter: boolean | null = null,
+	umfeld: Umfeld | null = null,
+	wahl: Wahl | null = null,
 ) => {
-	const oben = box.oben - frei - mass.hoehe - LEISTEN_ABSTAND;
-	const unten = box.unten + LEISTEN_ABSTAND;
-	const passtOben = oben >= sicht.oben + LEISTEN_ABSTAND;
-	const passtUnten = unten + mass.hoehe <= sicht.unten - LEISTEN_ABSTAND;
-	const verdecktOben = raum !== null && raum.oben < frei + mass.hoehe + LEISTEN_ABSTAND;
-	const freiUnten = raum !== null && raum.unten >= mass.hoehe + LEISTEN_ABSTAND;
-	const wunschUnter = unter ?? (verdecktOben && freiUnten);
-	let top = sicht.oben + LEISTEN_ABSTAND;
-	if (wunschUnter && passtUnten) {
-		top = unten;
-	} else if (passtOben) {
-		top = oben;
-	} else if (passtUnten) {
-		top = unten;
+	const { breite: b, hoehe: h } = mass;
+	const A = LEISTEN_ABSTAND;
+	const imSicht = (x: number) => Math.max(sicht.links + A, Math.min(x, sicht.rechts - b - A));
+	// `eng`: mit 2 px Abstand, wenn die 6 px gerade fremden Inhalt anschneiden würden.
+	const zeilen = {
+		oben: box.oben - frei - h - A,
+		unten: box.unten + A,
+		obenEng: box.oben - frei - h - 2,
+		untenEng: box.unten + 2,
+	};
+	const passt = (top: number) => top >= sicht.oben + A && top + h <= sicht.unten - A;
+	const schmal = box.rechts - box.links < b;
+	const anker = schmal ? box.links : box.rechts - b;
+	const seite = umfeld?.seite ?? null;
+	const nebenTop = Math.max(sicht.oben + A, Math.min(box.oben, sicht.unten - h - A));
+	const neben = { 'neben-rechts': (seite?.rechts ?? 0) + A, 'neben-links': (seite?.links ?? 0) - b - A };
+	const ganzImSicht = (x: number) => x >= sicht.links + A && x + b <= sicht.rechts - A;
+	const imBlatt = (x: number) => !seite || (x >= seite.links && x + b <= seite.rechts);
+	const sichtStelle = { wahl: 'sicht', links: imSicht(anker), top: sicht.oben + A };
+
+	// Eine schon getroffene Wahl gilt weiter, gemessen an der Box von jetzt.
+	const [seitenname, dx] = (wahl ?? '').split(':');
+	if (wahl !== null && seitenname !== undefined && seitenname in zeilen) {
+		return { links: imSicht(box.rechts + Number(dx)), top: zeilen[seitenname as keyof typeof zeilen], wahl };
 	}
-	const schmal = box.rechts - box.links < mass.breite;
-	const wunsch = schmal ? box.links : box.rechts - mass.breite;
-	const links = Math.max(sicht.links + LEISTEN_ABSTAND, Math.min(wunsch, sicht.rechts - mass.breite - LEISTEN_ABSTAND));
-	return { links, top, unter: top === unten };
+	if (wahl !== null && seite && (wahl === 'neben-rechts' || wahl === 'neben-links')) {
+		return { links: neben[wahl], top: nebenTop, wahl };
+	}
+
+	const stellen: { wahl: Wahl; links: number; top: number }[] = [];
+	for (const zeile of umfeld ? (['oben', 'unten', 'obenEng', 'untenEng'] as const) : (['oben', 'unten'] as const)) {
+		const top = zeilen[zeile];
+		if (!passt(top)) {
+			continue;
+		}
+		const xe = [anker];
+		if (umfeld) {
+			xe.push(box.links, (box.links + box.rechts - b) / 2);
+			if (seite) {
+				xe.push(seite.rechts - b, seite.links);
+			}
+			// Gleich neben fremdem Inhalt in dieser Zeile.
+			for (const c of umfeld.inhalt) {
+				if (c.bottom > top && c.top < top + h) {
+					xe.push(c.right + A, c.left - b - A);
+				}
+			}
+		}
+		for (const x of xe) {
+			const links = imSicht(x);
+			if (x === anker || imBlatt(links)) {
+				stellen.push({ wahl: `${zeile}:${Math.round(links - box.rechts)}`, links, top });
+			}
+		}
+	}
+	if (seite && passt(nebenTop)) {
+		for (const [name, x] of Object.entries(neben)) {
+			if (ganzImSicht(x)) {
+				stellen.push({ wahl: name, links: x, top: nebenTop });
+			}
+		}
+	}
+	if (stellen.length === 0) {
+		return { ...sichtStelle };
+	}
+	let beste = stellen[0] ?? sichtStelle;
+	if (umfeld) {
+		let wert = Number.POSITIVE_INFINITY;
+		stellen.forEach((p, i) => {
+			const r = { left: p.links, right: p.links + b, top: p.top, bottom: p.top + h };
+			// Das eigene Element zu verdecken ist auch nicht gut, aber besser als fremden Inhalt.
+			const eigen = flaeche(r, { left: box.links, right: box.rechts, top: box.oben, bottom: box.unten }) / 4;
+			// Weit weg vom Element kostet auch: Eine Leiste, die man suchen muss, hilft nicht.
+			const weg =
+				Math.max(0, box.links - r.right, r.left - box.rechts) +
+				Math.max(0, box.oben - frei - A - r.bottom, r.top - box.unten - A);
+			const w = umfeld.inhalt.reduce((summe, c) => summe + flaeche(r, c), 0) + eigen + weg * ENTFERNUNG + i / 1000;
+			if (w < wert) {
+				wert = w;
+				beste = p;
+			}
+		});
+	}
+	return { links: beste.links, top: beste.top, wahl: beste.wahl };
+};
+
+/** Was man sieht, ohne dass es Text ist: Bilder, Formen, Uhren, Niveau-Punkte, Nummern, Linien, Kästchen. */
+export const SICHTBARES_OHNE_TEXT =
+	'img, svg, x-uhr, canvas, .niveau, .nr, .box, .schreiblinie, .antwort, .leerstelle, .punkte, hr';
+
+/**
+ * Fremder Inhalt (Text, Bilder, Formen, Uhren) um `eigen` in Koordinaten des Blatts: auf der eigenen Seite und den
+ * Nachbarseiten. Was in `ohne` liegt (sonst `eigen`), zählt nicht; der Text der umgebenden Aufgabe zählt.
+ */
+export const fremderInhalt = (eigen: readonly Element[], ohne: readonly Element[] = eigen): Rechteck[] => {
+	const erstes = eigen[0];
+	const doc = erstes?.ownerDocument;
+	if (!erstes || !doc) {
+		return [];
+	}
+	const seite = erstes.closest('.seite');
+	const wurzeln = seite
+		? [seite.previousElementSibling, seite, seite.nextElementSibling].filter(
+				(s): s is Element => s?.matches('.seite') ?? false,
+			)
+		: [doc.body];
+	const aus: Rechteck[] = [];
+	const fremd = (k: Node) => !ohne.some((el) => el.contains(k));
+	const nimm = (r: DOMRect) => {
+		if (r.width >= 1 && r.height >= 1) {
+			aus.push({ left: r.left, right: r.right, top: r.top, bottom: r.bottom });
+		}
+	};
+	const bereich = doc.createRange();
+	for (const wurzel of wurzeln) {
+		const lauf = doc.createTreeWalker(wurzel, NodeFilter.SHOW_TEXT);
+		for (let k = lauf.nextNode(); k; k = lauf.nextNode()) {
+			const stil = k.parentElement ? doc.defaultView?.getComputedStyle(k.parentElement) : null;
+			if (!k.nodeValue?.trim() || !fremd(k) || stil?.visibility === 'hidden') {
+				continue;
+			}
+			bereich.selectNodeContents(k);
+			for (const r of bereich.getClientRects()) {
+				nimm(r);
+			}
+		}
+		for (const m of wurzel.querySelectorAll(SICHTBARES_OHNE_TEXT)) {
+			if (fremd(m) && !m.parentElement?.closest('svg')) {
+				nimm(m.getBoundingClientRect());
+			}
+		}
+	}
+	return aus;
+};
+
+const gemerkt = {
+	ohneEigenes: new WeakMap<Element, { schluessel: string; inhalt: Rechteck[] }>(),
+	mitEigenem: new WeakMap<Element, { schluessel: string; inhalt: Rechteck[] }>(),
 };
 
 /**
- * 204-N04: Wie viel Platz ohne Text und Bild über und unter `box` (Koordinaten des Blatts) bleibt, im waagerechten
- * Streifen `von`–`bis`, den die Leiste belegt, gesucht in `wurzel` (der Seite). Inhalt in `eigen` zählt nicht; der Text der umgebenden Aufgabe zählt.
- * Ergebnis in Pixeln des Blatts; ohne Inhalt in der Richtung `Infinity`.
+ * Das Umfeld der Leiste an `eigen` in Pixeln der Leinwand. Gemerkt je Element, solange seine Box und die Höhe der
+ * Seite gleich bleiben: Die Lage ändert sich nur bei Auswahlwechsel oder Größenänderung, nicht bei jedem Zeichnen.
+ * `mitEigenem`: Auch der Inhalt von `eigen` zählt (Plakette „Nur Arbeitsblatt“, die nichts verdecken darf).
  */
-export const freierRaum = (
-	wurzel: Element,
-	box: { top: number; bottom: number },
-	von: number,
-	bis: number,
+export const umfeldDerLeiste = (
+	e: { links: number; skala: number },
+	box: { top: number; bottom: number; left: number; right: number },
 	eigen: readonly Element[],
-): Raum => {
-	let oben = Number.POSITIVE_INFINITY;
-	let unten = Number.POSITIVE_INFINITY;
-	const miss = (r: DOMRect) => {
-		if (r.width < 1 || r.height < 1 || Math.min(r.right, bis) - Math.max(r.left, von) <= 1) {
-			return;
-		}
-		if (r.top < box.top - 0.5) {
-			oben = Math.min(oben, Math.max(0, box.top - Math.min(r.bottom, box.top)));
-		}
-		if (r.bottom > box.bottom + 0.5) {
-			unten = Math.min(unten, Math.max(0, Math.max(r.top, box.bottom) - box.bottom));
-		}
+	mitEigenem = false,
+): Umfeld | null => {
+	const erstes = eigen[0];
+	if (!erstes) {
+		return null;
+	}
+	const seite = erstes.closest('.seite');
+	const sr = seite?.getBoundingClientRect();
+	const schluessel = [box.top, box.bottom, box.left, box.right, sr?.top, sr?.height, eigen.length].join('|');
+	const speicher = mitEigenem ? gemerkt.mitEigenem : gemerkt.ohneEigenes;
+	const alt = speicher.get(erstes);
+	const inhalt = alt?.schluessel === schluessel ? alt.inhalt : fremderInhalt(eigen, mitEigenem ? [] : eigen);
+	speicher.set(erstes, { schluessel, inhalt });
+	const k = (x: number) => e.links + x * e.skala;
+	return {
+		// Ein wenig Luft um den Inhalt: Was ihn gerade berührt, wirkt auch verdeckt.
+		inhalt: inhalt.map((r) => ({
+			left: k(r.left) - LUFT,
+			right: k(r.right) + LUFT,
+			top: r.top * e.skala - LUFT,
+			bottom: r.bottom * e.skala + LUFT,
+		})),
+		seite: sr ? { links: k(sr.left), rechts: k(sr.right), oben: sr.top * e.skala, unten: sr.bottom * e.skala } : null,
 	};
-	const fremd = (k: Node) => !eigen.some((el) => el.contains(k));
-	const doc = wurzel.ownerDocument;
-	const lauf = doc.createTreeWalker(wurzel, NodeFilter.SHOW_TEXT);
-	const bereich = doc.createRange();
-	for (let k = lauf.nextNode(); k; k = lauf.nextNode()) {
-		const stil = k.parentElement ? doc.defaultView?.getComputedStyle(k.parentElement) : null;
-		if (!k.nodeValue?.trim() || !fremd(k) || stil?.visibility === 'hidden') {
-			continue;
-		}
-		bereich.selectNodeContents(k);
-		for (const r of bereich.getClientRects()) {
-			miss(r);
-		}
-	}
-	for (const b of wurzel.querySelectorAll('img, svg, x-uhr, canvas')) {
-		if (fremd(b) && !b.parentElement?.closest('svg')) {
-			miss(b.getBoundingClientRect());
-		}
-	}
-	return { oben, unten };
 };
 
 /**
@@ -121,29 +252,3 @@ export const schneiden = (
 /** Die Leiste der Auswahl im Elternfenster, ob Baustein oder Gestaltung. */
 export const leisteDerAuswahl = (doc: Document) =>
 	doc.querySelector<HTMLElement>('[data-bausteinleiste], [data-gestaltungsleiste]');
-
-const gemerkt = new WeakMap<Element, { schluessel: string; raum: Raum }>();
-
-/**
- * `freierRaum` in Pixeln der Leinwand, für die Leiste an `eigen` mit der Box `box` (Blatt) und dem waagerechten Platz
- * `links`–`links + breite` (Leinwand). Gemerkt je Seite, solange Box und Platz gleich bleiben.
- */
-export const raumFuerLeiste = (
-	e: { links: number; skala: number },
-	box: { top: number; bottom: number },
-	links: number,
-	breite: number,
-	eigen: readonly Element[],
-): Raum | null => {
-	const wurzel = eigen[0]?.closest('.seite') ?? eigen[0]?.ownerDocument.body;
-	if (!wurzel) {
-		return null;
-	}
-	const von = (links - e.links) / e.skala;
-	const bis = (links + breite - e.links) / e.skala;
-	const schluessel = [box.top, box.bottom, von, bis, ...eigen.map((el) => el.getAttribute('data-sb'))].join('|');
-	const alt = gemerkt.get(wurzel);
-	const roh = alt?.schluessel === schluessel ? alt.raum : freierRaum(wurzel, box, von, bis, eigen);
-	gemerkt.set(wurzel, { schluessel, raum: roh });
-	return { oben: roh.oben * e.skala, unten: roh.unten * e.skala };
-};

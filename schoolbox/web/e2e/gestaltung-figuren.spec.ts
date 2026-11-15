@@ -85,7 +85,7 @@ test.describe('Figuren (102)', () => {
 		await page.setViewportSize({ width: 1512, height: 860 });
 	});
 
-	test('⌥4 öffnet die Schublade; Klick legt Wilma 150 px breit in die Mitte, gewählt, ein Schritt', async ({
+	test('⌥4 öffnet die Schublade; Klick legt Wilma 150 px breit an eine freie Stelle, gewählt, ein Schritt', async ({
 		page,
 	}) => {
 		await blatt(page);
@@ -107,11 +107,16 @@ test.describe('Figuren (102)', () => {
 		expect(tag).not.toContain('--h');
 		expect(await quelle(page)).toMatch(/<div class="ebene vorne">[\s\S]*class="figur-frei"/);
 		await expect(frei(page)).toBeVisible();
-		// Mitte und Figur im selben Moment: Im ganzen Lauf rückte das Blatt nach dem Klick um 20 px.
-		const ziel = await aufSeite(page, 0.5, 0.5);
-		const m = await mitte(frei(page));
-		expect(Math.abs(m.x - ziel.x)).toBeLessThan(20);
-		expect(Math.abs(m.y - ziel.y)).toBeLessThan(20);
+		// S-10: an einer freien Stelle der Seite, ohne Inhalt zu verdecken.
+		const ueber = await frei(page).evaluate((f) => {
+			const r = f.getBoundingClientRect();
+			return [...f.ownerDocument.querySelectorAll('.seite [data-sb]')]
+				.filter((e) => !e.contains(f) && !f.contains(e) && !e.querySelector('[data-sb]'))
+				.map((e) => e.getBoundingClientRect())
+				.filter((b) => b.width > 0 && b.left < r.right && r.left < b.right && b.top < r.bottom && r.top < b.bottom)
+				.length;
+		});
+		expect(ueber).toBe(0);
 		expect(await frei(page).evaluate((e) => Math.round(e.getBoundingClientRect().width))).toBe(150);
 		await expect(page.locator('[data-gestaltung-rahmen]')).toBeVisible();
 		await expect(page.locator('[data-gestaltungsleiste="figurfrei"]')).toBeVisible();
@@ -224,7 +229,7 @@ test.describe('Figuren (102)', () => {
 		await expect(wahl).toHaveAttribute('data-figur-wahl', 'willi');
 	});
 
-	test('⌘K findet „Wilma“; Enter legt sie in die Mitte', async ({ page }) => {
+	test('⌘K findet „Wilma“; Enter legt sie an eine freie Stelle', async ({ page }) => {
 		await blatt(page);
 		await page.keyboard.press('ControlOrMeta+k');
 		await palette(page).getByRole('combobox').fill('Wilma');

@@ -391,7 +391,7 @@ test.describe('Bilder-Schublade (093)', () => {
 		await expect(material(page).locator('.platzhalter')).toHaveCount(0);
 	});
 
-	test('199-02, 199-05: Klick legt ein freies Bild in die Mitte, keine Aufgabe; ein gewähltes Bild bleibt', async ({
+	test('199-02, 199-05, S-10: Klick legt ein freies Bild an eine freie Stelle, keine Aufgabe; ein gewähltes Bild bleibt', async ({
 		druecke,
 		page,
 	}) => {
@@ -409,8 +409,11 @@ test.describe('Bilder-Schublade (093)', () => {
 		expect((nachher.match(/class="aufgabe/g) ?? []).length).toBe(aufgaben);
 		expect(nachher).not.toContain('class="platzhalter"');
 		expect(nachher).toContain(GRAFIK_IM_FLUSS);
-		await expect(frei).toHaveAttribute('style', /--b:320px/);
-		// 199-19 (mit 198-05): Der zweite Klick legt das Bild 16 px versetzt, nicht deckungsgleich.
+		// S-10: höchstens so breit wie gewohnt (320 px), für eine freie Stelle bis auf 80 px kleiner.
+		const breite = Number((await frei.getAttribute('style'))?.match(/--b:(\d+)px/)?.[1]);
+		expect(breite).toBeLessThanOrEqual(320);
+		expect(breite).toBeGreaterThanOrEqual(80);
+		// 199-19 (mit 198-05, S-10): Der zweite Klick legt das Bild nicht deckungsgleich.
 		await druecke(bilder(page).locator(`[data-sammlung-bild="${WACHSTUM}"]`));
 		await expect(frei).toHaveCount(2);
 		const lagen = await frei.evaluateAll((liste) =>

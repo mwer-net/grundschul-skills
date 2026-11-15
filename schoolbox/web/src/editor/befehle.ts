@@ -671,7 +671,8 @@ const REGISTER: Befehl[] = [
 		id: 'blatt.erster',
 		titel: 'Ersten Baustein wählen',
 		gruppe: 'blatt',
-		kuerzel: [{ key: 'ArrowDown' }, { key: 'Enter' }],
+		// S-15: In der Übersicht steht ↓ schon bei „Nächster Baustein“; hier zeigt sie ⏎. ↓ wirkt weiter, ohne Auswahl.
+		kuerzel: [{ key: 'Enter' }, { key: 'ArrowDown', wenn: (k) => !gewaehlt(k) }],
 		modus: ['ohne'],
 		orte: ['taste'],
 		sichtbarUnter: 'blatt',
@@ -1126,8 +1127,16 @@ export const kuerzelVon = (id: string, mac?: boolean): string | undefined => {
 /** Werkzeuge stehen in der Gruppe `blatt`, haben aber einen eigenen Abschnitt (193-39). */
 export const istWerkzeug = (id: string) => id.startsWith('werkzeug.');
 
-const TASTEN_ABSCHNITTE: { titel: string; gruppen: Gruppe[]; werkzeuge?: boolean }[] = [
-	{ titel: 'Gewählter Baustein', gruppen: ['bearbeiten', 'ablage', 'ordnen', 'gefahr'] },
+/**
+ * S-15: Was nur an freien Elementen wirkt (Nach vorne, Sperren, Spiegeln, Ausrichten, Gruppieren, Schieben …), steht
+ * in der Tastenübersicht in einem eigenen Abschnitt. Quelle ist das Register der Gestaltungsbefehle; der Durchblick
+ * gehört zur Ansicht.
+ */
+const NUR_FREI = new Set(GESTALTUNG_BEFEHLE.filter((b) => b.gruppe !== 'ansicht').map((b) => b.id));
+
+const TASTEN_ABSCHNITTE: { titel: string; gruppen: Gruppe[]; werkzeuge?: boolean; frei?: boolean }[] = [
+	{ titel: 'Gewählter Baustein', gruppen: ['bearbeiten', 'ablage', 'ordnen', 'gefahr'], frei: false },
+	{ titel: 'Freies Element', gruppen: ['bearbeiten', 'ablage', 'ordnen', 'gefahr'], frei: true },
 	{ titel: 'Im Blatt bewegen', gruppen: ['baustein', 'blatt'], werkzeuge: false },
 	{ titel: 'Werkzeuge', gruppen: ['blatt'], werkzeuge: true },
 	{ titel: 'Ansicht', gruppen: ['ansicht'] },
@@ -1136,12 +1145,13 @@ const TASTEN_ABSCHNITTE: { titel: string; gruppen: Gruppe[]; werkzeuge?: boolean
 
 /** Tastenübersicht und Hilfe aus dem Register. Ohne Kontext (Hilfe) gilt `hilfeTitel`. */
 export const tastenAbschnitte = (k?: Kontext, mac?: boolean): TastenAbschnitt[] =>
-	TASTEN_ABSCHNITTE.map(({ gruppen, titel, werkzeuge }) => ({
+	TASTEN_ABSCHNITTE.map(({ frei, gruppen, titel, werkzeuge }) => ({
 		titel,
 		zeilen: BEFEHLE.filter(
 			(b) =>
 				gruppen.includes(b.gruppe) &&
 				(werkzeuge === undefined || werkzeuge === istWerkzeug(b.id)) &&
+				(frei === undefined || frei === NUR_FREI.has(b.id)) &&
 				b.kuerzel?.length &&
 				(b.inUebersicht?.() ?? true),
 		).map((b) => ({

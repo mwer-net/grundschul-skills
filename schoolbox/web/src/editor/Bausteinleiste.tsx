@@ -16,7 +16,8 @@ import { elementZu } from './darstellung';
 import { DREH_ABSTAND } from './gestaltung/auswahlrahmen';
 import { istGestaltungAuswahl } from './gestaltung/inspektor/kontext-ersatz';
 import type { Einblendung } from './Leinwand';
-import { fokusZurueckInsBlatt, lageDerLeiste, LEISTEN_ABSTAND, raumFuerLeiste } from './leistenlage';
+import type { Wahl } from './leistenlage';
+import { fokusZurueckInsBlatt, lageDerLeiste, LEISTEN_ABSTAND, umfeldDerLeiste } from './leistenlage';
 import { useSichtfeld } from './sichtfeld';
 import type { Struktur } from './struktur';
 import type { useText } from './text';
@@ -82,16 +83,16 @@ const tastenInLeiste = (ereignis: KeyboardEvent<HTMLDivElement>, doc: Document) 
 };
 
 /**
- * Was die Leiste vor der Textsitzung war: ihre Breite und ob sie unter dem Element stand. Daraus folgt in der
- * Sitzung die rechte Kante (204-15) und die Seite (204-N04), solange derselbe Baustein gewählt ist.
+ * Was die Leiste vor der Textsitzung war: ihre Breite und ihre Stelle. Daraus folgt in der Sitzung die rechte Kante
+ * (204-15) und die Stelle (204-N04), solange derselbe Baustein gewählt ist.
  */
 interface Fest {
 	nr: number | null;
 	breite: number;
-	unter: boolean;
+	wahl: Wahl | null;
 }
 
-const KEIN_PLATZ: Fest = { nr: null, breite: 0, unter: false };
+const KEIN_PLATZ: Fest = { nr: null, breite: 0, wahl: null };
 
 const da = (befehle: Befehle, id: string) =>
 	Boolean(BEFEHLE.find((b) => b.id === id)?.verfuegbar(befehle.jetzt.current));
@@ -175,13 +176,12 @@ export const Bausteinleiste = ({ befehle, e, pfad, struktur, text }: Eigenschaft
 	const frei = gestaltung ? DREH_ABSTAND : 0;
 	const element = elementZu(e.doc, nr);
 	const bleibt = sitzung && fest.current.nr === nr;
-	// 204-N04: darunter, wenn sie darüber Inhalt verdecken würde und darunter Platz ist; in der Sitzung wie vorher.
+	// 204-N04, Schlussdurchsicht: die Stelle, die am wenigsten fremden Inhalt verdeckt; in der Sitzung wie vorher.
 	const breite = bleibt ? fest.current.breite : mass.breite;
-	const waagerecht = lageDerLeiste(box, { breite, hoehe: mass.hoehe }, sicht, frei);
-	const raum = element && e.box ? raumFuerLeiste(e, e.box, waagerecht.links, breite, [element]) : null;
-	const vorher = lageDerLeiste(box, { breite, hoehe: mass.hoehe }, sicht, frei, raum, bleibt ? fest.current.unter : null);
+	const umfeld = element && e.box ? umfeldDerLeiste(e, e.box, [element]) : null;
+	const vorher = lageDerLeiste(box, { breite, hoehe: mass.hoehe }, sicht, frei, umfeld, bleibt ? fest.current.wahl : null);
 	if (!sitzung) {
-		fest.current = { nr, breite: mass.breite, unter: vorher.unter };
+		fest.current = { nr, breite: mass.breite, wahl: vorher.wahl };
 	}
 	// 204-15: In der Sitzung bleibt die rechte Kante; 194-13: nach Tab gilt die Regel an der neuen Zelle.
 	const links = bleibt

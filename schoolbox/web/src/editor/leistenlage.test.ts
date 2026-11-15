@@ -9,7 +9,7 @@ const MASS = { breite: 300, hoehe: 30 };
 describe('Lage der Leiste (204-15, 204-16)', () => {
 	it('über dem Element, rechtsbündig', () => {
 		const box = { links: 100, rechts: 700, oben: 200, unten: 300 };
-		assert.deepEqual(lageDerLeiste(box, MASS, SICHT), { links: 400, top: 200 - 30 - LEISTEN_ABSTAND });
+		assert.deepEqual(lageDerLeiste(box, MASS, SICHT), { links: 400, top: 200 - 30 - LEISTEN_ABSTAND, wahl: 'oben:-300' });
 	});
 
 	it('ein schmales Element: Die Leiste beginnt an seiner linken Kante und bleibt im Sichtfeld', () => {
@@ -33,5 +33,25 @@ describe('Pille über der Leiste (200-03)', () => {
 		assert.equal(schneiden({ left: 676, right: 900, top: 466, bottom: 492 }, leiste), true);
 		assert.equal(schneiden({ left: 676, right: 900, top: 445, bottom: 471 }, leiste), false);
 		assert.equal(schneiden({ left: 100, right: 300, top: 466, bottom: 492 }, leiste), false);
+	});
+});
+
+describe('Leiste verdeckt so wenig wie möglich (Schlussdurchsicht)', () => {
+	const box = { links: 100, rechts: 700, oben: 200, unten: 300 };
+	const seite = { links: 50, rechts: 750, oben: 0, unten: 1000 };
+	it('Text über der rechten Hälfte: daneben über dem Element, nicht darauf', () => {
+		const inhalt = [{ left: 400, right: 700, top: 160, bottom: 190 }];
+		const lage = lageDerLeiste(box, MASS, SICHT, 0, { inhalt, seite });
+		assert.equal(lage.top, 200 - 30 - LEISTEN_ABSTAND);
+		assert.ok(lage.links + MASS.breite <= 400);
+	});
+	it('über dem ganzen Element Text: darunter', () => {
+		const inhalt = [{ left: 50, right: 750, top: 160, bottom: 190 }];
+		assert.equal(lageDerLeiste(box, MASS, SICHT, 0, { inhalt, seite }).top, 300 + LEISTEN_ABSTAND);
+	});
+	it('in der Textsitzung bleibt die Wahl, auch wenn jetzt anderes freier wäre', () => {
+		const inhalt = [{ left: 50, right: 750, top: 160, bottom: 190 }];
+		const lage = lageDerLeiste({ ...box, unten: 340 }, MASS, SICHT, 0, { inhalt, seite }, 'oben:-300');
+		assert.deepEqual(lage, { links: 400, top: 200 - 30 - LEISTEN_ABSTAND, wahl: 'oben:-300' });
 	});
 });
