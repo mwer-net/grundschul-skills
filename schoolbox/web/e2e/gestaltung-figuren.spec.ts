@@ -206,11 +206,16 @@ test.describe('Figuren (102)', () => {
 		const tag = figurTag(await quelle(page));
 		expect(Number(/--b:(\d+)px/.exec(tag)?.[1])).toBeGreaterThan(170);
 		expect(tag).not.toContain('--h');
-		const nachher = await frei(page).boundingBox();
-		if (!vorher || !nachher) {
+		if (!vorher) {
 			throw new Error('Figur nicht zu sehen');
 		}
-		expect(Math.abs(nachher.width / nachher.height - vorher.width / vorher.height)).toBeLessThan(0.02);
+		// Nach dem Speichern lädt der Rahmen neu (171): bis dahin hat die Figur kurz keine Box.
+		await expect
+			.poll(async () => {
+				const nachher = await frei(page).boundingBox();
+				return nachher ? Math.abs(nachher.width / nachher.height - vorher.width / vorher.height) : 1;
+			})
+			.toBeLessThan(0.02);
 	});
 
 	test('Inspektor: andere Figur wählen, Lage und Größe bleiben', async ({ page }) => {
@@ -250,7 +255,7 @@ test.describe('Figuren (102)', () => {
 		await expect.poll(() => frei(page).evaluate((e) => getComputedStyle(e).filter)).toContain('grayscale');
 	});
 
-	test('Bestand: die Leitfigur im Tipp bleibt, wie sie war; der Baustein „Willi“ fügt sie weiter ein', async ({
+	test('Bestand: die Leitfigur im Tipp bleibt, wie sie war; neue Leitfiguren kommen aus „Figuren“ (203)', async ({
 		page,
 	}) => {
 		await blatt(page, mitTipp(blattMit()));
@@ -265,9 +270,12 @@ test.describe('Figuren (102)', () => {
 		await expect(page.locator('[data-gestaltungsleiste]')).toHaveCount(0);
 		await expect(page.locator('[data-bausteinleiste]')).toBeVisible();
 
+		// 203: „Willi“ und „Wilma“ sind aus „Bausteine“ raus, die Schublade „Figuren“ bringt sie.
 		await oeffneSchublade(page, 'bausteine');
 		await page.getByRole('searchbox', { name: 'Baustein suchen' }).first().fill('Wilma');
-		await expect(page.locator('[data-bibliothek-eintrag="wilma"]')).toBeVisible();
+		await expect(page.locator('[data-bibliothek-eintrag="wilma"]')).toHaveCount(0);
+		await oeffneSchublade(page, 'figuren');
+		await expect(gruppe(page, 'wilma')).toBeVisible();
 	});
 });
 
