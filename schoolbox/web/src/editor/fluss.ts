@@ -162,8 +162,8 @@ const passungVon = (seiten: Element[]) =>
 				const stellen = kommende.map((k) => ({ k, nextSibling: k.nextSibling, parentNode: k.parentNode }));
 				const anker = ankerIn(seite);
 				kommende.forEach((k) => seite.insertBefore(k, anker));
-				const grenze = grenzeVon(seite);
-				while (platz < kommende.length && unterkante(kommende[platz] as Element) <= grenze + TOLERANZ) {
+				const unten = grenzeVon(seite);
+				while (platz < kommende.length && unterkante(kommende[platz] as Element) <= unten + TOLERANZ) {
 					platz += 1;
 				}
 				for (const { k, nextSibling, parentNode } of stellen.reverse()) {

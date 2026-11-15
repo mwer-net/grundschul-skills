@@ -174,9 +174,14 @@ test.describe('Seiten laufen weiter (206)', () => {
 		const menue = page.getByRole('menu');
 		// Seite 1 ist mit den vier Aufgaben der Vorlage voll, die hohen Aufgaben stehen alle auf Folgeseiten. Der feste
 		// Umbruch kommt deshalb mitten in eine Folgeseite, vor Aufgabe 6 (Ticket: vor Aufgabe 4, als sie auf Seite 1 stand).
-		const aufgabe = (n: number) => material(page).locator('.aufgabe').filter({ hasText: `Schreibe ${n}.` });
+		const aufgabe = (n: number) =>
+			material(page)
+				.locator('.aufgabe')
+				.filter({ hasText: `Schreibe ${n}.` });
 		const seiteVon = (n: number) =>
-			aufgabe(n).evaluate((a) => [...a.ownerDocument.querySelectorAll('body > .seite')].indexOf(a.parentElement as Element));
+			aufgabe(n).evaluate((a) =>
+				[...a.ownerDocument.querySelectorAll('body > .seite')].indexOf(a.parentElement as Element),
+			);
 		await expect.poll(async () => (await seiteVon(6)) === (await seiteVon(5))).toBe(true);
 		await aufgabe(6).locator('.nr').click({ button: 'right' });
 		await menue.getByRole('menuitem', { name: /Ab hier neue Seite/ }).click();
