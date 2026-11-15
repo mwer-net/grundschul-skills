@@ -29,15 +29,24 @@ export interface KlickStelle {
 	luecken: boolean;
 }
 
+/** Liegt das gewählte Element `gewaehlt` als Geschwister neben `e` in derselben Gruppe? */
+const geschwisterIn = (e: Element, gewaehlt: number) => {
+	const gruppe = e.parentElement;
+	return Boolean(
+		gruppe?.matches(GESTALTUNG_SELEKTOR) && [...gruppe.children].some((k) => k !== e && nrVon(k) === gewaehlt),
+	);
+};
+
 /**
  * Das äußerste Gestaltungselement mit Nummer um `start` (eine Gruppe vor ihren Kindern). 120: Liegt das gewählte
- * Element (`gewaehlt`, etwa ein Kind einer Gruppe) auf dem Weg, gilt es.
+ * Element (`gewaehlt`, etwa ein Kind einer Gruppe) auf dem Weg, gilt es. 198-14 (Canva, Figma): Ist ein Kind gewählt,
+ * gilt auch sein Geschwister in derselben Gruppe; erst ein Klick außerhalb der Gruppe verlässt sie.
  */
 export const gestaltungUnter = (start: Element | null, gewaehlt: number | null = null) => {
 	let gefunden: Element | null = null;
 	for (let e = start; e && !e.matches('.seite'); e = e.parentElement) {
 		if (e.matches(GESTALTUNG_SELEKTOR) && nrVon(e) !== null) {
-			if (gewaehlt !== null && nrVon(e) === gewaehlt) {
+			if (gewaehlt !== null && (nrVon(e) === gewaehlt || geschwisterIn(e, gewaehlt))) {
 				return e;
 			}
 			gefunden = e;

@@ -29,7 +29,7 @@ const nimmAn = async (page: Page, fall: string, auftrag: string, angenommen: (pa
 	await expect(chat(page).locator('[data-ki-vorschlag]')).toBeVisible();
 	await chat(page).getByRole('button', { name: 'Groß vergleichen' }).click();
 	await expect(page.frameLocator('[data-vorschlag-rahmen]').locator('[data-form]').first()).toBeAttached();
-	await page.getByRole('dialog').getByRole('button', { name: 'Annehmen' }).click();
+	await page.getByRole('dialog').getByRole('button', { name: 'Übernehmen' }).click();
 	await expect(angenommen(page)).toHaveCount(1);
 	// Die Blase ohne SVG ergänzt der Editor beim Laden; geschrieben wird das erst mit dem nächsten Schritt (104).
 	await expect(page.locator('[data-speicherstand="gespeichert"]')).toBeVisible();

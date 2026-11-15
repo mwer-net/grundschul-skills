@@ -547,13 +547,45 @@ export const dupliziereGestaltung = (quelle: string, nr: number): StrukturErgebn
 	return ergebnis(quelle, a, a[0], a[0]?.text.indexOf('<') ?? 0);
 };
 
-/** Löscht das Element, mit ihm eine leer gewordene Ebene. Gewählt ist danach der Nachbar, sonst die Seite bzw. der Baustein. */
+/**
+ * 198-01: Eine kopierte Gestaltung einfügen wie ⌘D, nie als Baustein in eine Aufgabe. Steht das Original `von` noch
+ * Zeichen für Zeichen im Dokument, ist es `dupliziereGestaltung` (gleiche Ebene oder gleicher Anker, 16 px versetzt).
+ * Sonst liegt die Kopie frei in der Ebene der Seite, in der `bei` liegt (ohne `bei` der ersten), an ihrer alten Lage;
+ * ein Anker fällt weg, weil es den Baustein dort nicht gibt. `null`, wenn `html` kein einzelnes Gestaltungselement ist.
+ */
+export const fuegeGestaltungKopieEin = (
+	quelle: string,
+	html: string,
+	bei: number | null,
+	von: number | null,
+): StrukturErgebnis | null => {
+	const teil = zerlege(html.trim());
+	const wurzel = teil.wurzeln[0];
+	if (teil.wurzeln.length !== 1 || !wurzel || !istGestaltung(wurzel)) {
+		return null;
+	}
+	const z = zerlege(quelle);
+	const original = von === null ? undefined : z.knoten[von];
+	if (original && istGestaltung(original) && quelleVon(z, original) === html.trim()) {
+		return dupliziereGestaltung(quelle, original.nr);
+	}
+	const ziel = bei === null ? undefined : z.knoten[bei];
+	const seite = (ziel && (hat(ziel, 'seite') ? ziel : seiteUm(ziel))) ?? seitenIn(z)[0];
+	if (!seite) {
+		return null;
+	}
+	const frei = wendeAn(teil.quelle, setzeAttribut(teil, wurzel, 'data-anker', null));
+	return legeGestaltungAb(quelle, { seite: seite.nr, html: frei });
+};
+
+/**
+ * Löscht das Element, mit ihm eine leer gewordene Ebene. Gewählt ist danach die Seite, also kein Element (198-07, wie
+ * Canva und Keynote): Ein zweites ⌫ löscht nichts, das niemand gewählt hat. Ohne Seite der Baustein darum.
+ */
 export const loescheGestaltung = (quelle: string, nr: number): StrukturErgebnis => {
 	const z = zerlege(quelle);
 	const k = gestaltungAn(z, nr);
-	const geschwister = (k.eltern?.kinder ?? []).filter(istGestaltung);
-	const i = geschwister.indexOf(k);
-	const folge = geschwister[i + 1] ?? geschwister[i - 1] ?? (istEbene(k.eltern) ? seiteUm(k) : k.eltern);
+	const folge = seiteUm(k) ?? k.eltern;
 	const aenderungen = entferneMitEbene(z, k);
 	const neu = wendeAn(quelle, aenderungen);
 	if (!folge) {

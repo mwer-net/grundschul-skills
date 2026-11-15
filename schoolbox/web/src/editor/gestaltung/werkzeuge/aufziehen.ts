@@ -3,7 +3,7 @@ import { formHtml, formVon } from '@schoolbox/kern/src/formen';
 import type { Entwurf, Punkt, Strich, Tasten, Werkzeug } from './typ';
 
 /**
- * Formen aufziehen (107, Briefing 5.10): R, O, Y und ★ teilen sich diese Regeln. ⇧ gibt gleiche Seiten (Quadrat,
+ * Formen aufziehen (107, Briefing 5.10): R, O und Y teilen sich diese Regeln. ⇧ gibt gleiche Seiten (Quadrat,
  * Kreis), ⌥ zieht aus der Mitte auf. Ein Klick ohne Ziehen legt die Standardgröße mit der Mitte am Klick ab. Beim
  * Aufziehen heißt ⌥ nur „aus der Mitte“, nie „Kopie“ wie in der Geste (097).
  */
@@ -50,6 +50,7 @@ export const formWerkzeug = ({ art, id, param, symbol, taste, titel }: FormWerkz
 		titel,
 		symbol,
 		...(taste ? { taste } : {}),
+		ohnePalette: true,
 		zeiger: 'crosshair',
 		bereit: (k) => k.frei,
 		beginne: (p) => {

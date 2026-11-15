@@ -23,8 +23,8 @@ const farbe = (doc: Document | null, variable: string, ersatz: string) => {
 	return (body && fenster?.getComputedStyle(body).getPropertyValue(variable).trim()) || ersatz;
 };
 
-/** Vorschau aus derselben Funktion, die die Form im Blatt zeichnet, verkleinert. */
-const Vorschau = ({ doc, e }: { e: Eintrag; doc: Document | null }) => {
+/** Vorschau aus derselben Funktion, die die Form im Blatt zeichnet, verkleinert; auch für Linie und Pfeil. */
+export const Vorschau = ({ doc, e }: { e: Eintrag; doc: Document | null }) => {
 	const html = gutVon(e, undefined).html;
 	const form = formVon(e.art);
 	const vorlage = document.createElement('template');

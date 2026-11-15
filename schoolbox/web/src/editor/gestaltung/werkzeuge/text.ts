@@ -36,8 +36,9 @@ const mitSitzung = (strich: Strich): Strich => {
  */
 export const werkzeug: Werkzeug | null = {
 	id: 'text',
-	titel: 'Text',
+	titel: 'Titel',
 	symbol: 'schrift',
+	ohnePalette: true,
 	taste: { code: 'KeyT' },
 	zeiger: 'text',
 	bereit: (k) => k.frei,

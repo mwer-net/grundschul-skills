@@ -37,6 +37,7 @@ export const werkzeug: Werkzeug | null = {
 	id: 'stift',
 	titel: 'Stift',
 	symbol: 'stift',
+	kachel: true,
 	taste: { code: 'KeyP' },
 	zeiger: 'crosshair',
 	bereit: (k) => k.frei,

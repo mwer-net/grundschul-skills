@@ -183,7 +183,7 @@ test.describe('Vorschaubilder in „Bilder“ (178)', () => {
 		});
 		await oeffneMit(page, blattMit());
 		await oeffneSchublade(page, 'bilder');
-		await bilder(page).getByRole('button', { name: 'Sammlung', exact: true }).click();
+		await bilder(page).getByRole('button', { name: 'Mitgeliefert', exact: true }).click();
 		const k = kachel(page, WACHSTUM);
 		await expect(k).toBeVisible();
 		const hoehe = () => k.evaluate((e) => e.getBoundingClientRect().height);
@@ -210,7 +210,7 @@ test.describe('Bilder frei (103)', () => {
 	test('Ziehen aus der Sammlung legt frei ab, höchstens 320 px, gewählt; ⌘Z nimmt es zurück', async ({ page }) => {
 		const vorher = blattMit();
 		await oeffneMit(page, vorher);
-		await zurGruppe(page, 'Sammlung', WACHSTUM);
+		await zurGruppe(page, 'Mitgeliefert', WACHSTUM);
 		const loslassen = await ziehe(page, WACHSTUM, await freieStelle(page));
 		await expect(material(page).locator('[data-ablage-vorschau] img.bild-frei')).toBeVisible();
 		await loslassen();
@@ -283,7 +283,7 @@ test.describe('Bilder frei (103)', () => {
 	test('Auf ein Bild gezogen tauscht es aus, Lage und Größe bleiben; ⌘Z stellt es wieder her', async ({ page }) => {
 		const vorher = blattMit({ vorne: [FREI.replace('wachstum.png', 'wilma.png')] });
 		await oeffneMit(page, vorher);
-		await zurGruppe(page, 'Sammlung', WACHSTUM);
+		await zurGruppe(page, 'Mitgeliefert', WACHSTUM);
 		const loslassen = await ziehe(page, WACHSTUM, await mitteVon(page, 'img.bild-frei'));
 		await expect(anzeige(page)).toHaveText('austauschen');
 		await expect(material(page).locator('img.bild-frei[data-ablage-ziel]')).toHaveCount(1);
@@ -299,7 +299,7 @@ test.describe('Bilder frei (103)', () => {
 
 	test('Auf einen Platzhalter gezogen füllt es ihn', async ({ page }) => {
 		await oeffneMit(page, blattMit({ stapel: [PLATZHALTER] }));
-		await zurGruppe(page, 'Sammlung', WACHSTUM);
+		await zurGruppe(page, 'Mitgeliefert', WACHSTUM);
 		const loslassen = await ziehe(page, WACHSTUM, await mitteVon(page, '.platzhalter'));
 		await expect(anzeige(page)).toHaveText('einsetzen');
 		await loslassen();
@@ -314,7 +314,7 @@ test.describe('Bilder frei (103)', () => {
 
 	test('Mit ⌘ entsteht ein Bild-Baustein im Stapel, mit Lücke', async ({ page }) => {
 		await oeffneMit(page, blattMit());
-		await zurGruppe(page, 'Sammlung', WACHSTUM);
+		await zurGruppe(page, 'Mitgeliefert', WACHSTUM);
 		const loslassen = await ziehe(page, WACHSTUM, await mitteVon(page, '.aufgabe >> nth=1'), true);
 		await expect(material(page).locator('[data-luecke]')).toBeVisible();
 		await loslassen();
@@ -394,5 +394,139 @@ test.describe('Bilder frei (103)', () => {
 		const hinweise = page.locator('[data-pruefliste] [data-hinweise]');
 		await druecke(hinweise.locator('summary'));
 		await expect(hinweise.locator('[data-pruefpunkt="bild-unscharf"]')).toBeVisible();
+	});
+});
+
+test.describe('Dateien aus dem Finder (199)', () => {
+	/** Ein Drop mit Dateien neben dem Blatt, im Editor selbst; gibt zurück, ob der Editor ihn abgefangen hat. */
+	const fallenDraussen = (page: Page, selektor: string) =>
+		page.locator(selektor).evaluate((ziel) => {
+			const daten = new DataTransfer();
+			daten.items.add(new File(['x'], 'notiz.txt', { type: 'text/plain' }));
+			const optionen = { bubbles: true, cancelable: true, dataTransfer: daten };
+			const ueber = new DragEvent('dragover', optionen);
+			ziel.dispatchEvent(ueber);
+			const fall = new DragEvent('drop', optionen);
+			ziel.dispatchEvent(fall);
+			return { ueber: ueber.defaultPrevented, wirkung: daten.dropEffect, fall: fall.defaultPrevented };
+		});
+
+	test('199-04: neben dem Blatt öffnet der Browser die Datei nicht', async ({ page }) => {
+		await oeffneMit(page, blattMit());
+		const r = await fallenDraussen(page, 'body');
+		expect(r.ueber).toBe(true);
+		expect(r.wirkung).toBe('none');
+		expect(r.fall).toBe(true);
+	});
+
+	test('199-18: keine Bilddatei → Hinweis; zwei Bilder → zwei freie Bilder, versetzt', async ({ page }) => {
+		await oeffneMit(page, blattMit());
+		await material(page)
+			.locator('body')
+			.evaluate((body) => {
+				const doc = body.ownerDocument;
+				const seite = doc.querySelector('.seite')?.getBoundingClientRect();
+				const daten = new DataTransfer();
+				daten.items.add(new File(['x'], 'notiz.txt', { type: 'text/plain' }));
+				const optionen = {
+					bubbles: true,
+					cancelable: true,
+					clientX: (seite?.left ?? 0) + 100,
+					clientY: (seite?.top ?? 0) + 100,
+					dataTransfer: daten,
+				};
+				doc.body.dispatchEvent(new DragEvent('drop', optionen));
+			});
+		await expect(page.getByText('Hier lassen sich nur Bilder ablegen.')).toBeVisible();
+
+		await material(page)
+			.locator('body')
+			.evaluate(async (body) => {
+				const doc = body.ownerDocument;
+				const png = async (farbe: string) => {
+					const leinwand = doc.createElement('canvas');
+					leinwand.width = 120;
+					leinwand.height = 80;
+					const c = leinwand.getContext('2d');
+					if (c) {
+						c.fillStyle = farbe;
+						c.fillRect(0, 0, 120, 80);
+					}
+					return new Promise<Blob | null>((fertig) => leinwand.toBlob(fertig, 'image/png'));
+				};
+				const daten = new DataTransfer();
+				for (const [name, farbe] of [
+					['eins.png', '#e07a2f'],
+					['zwei.png', '#2f7ae0'],
+				] as const) {
+					const blob = await png(farbe);
+					if (blob) {
+						daten.items.add(new File([blob], name, { type: 'image/png' }));
+					}
+				}
+				const seite = doc.querySelector('.seite')?.getBoundingClientRect();
+				const x = (seite?.left ?? 0) + (seite?.width ?? 0) / 2;
+				const y = (seite?.top ?? 0) + 200;
+				const optionen = { bubbles: true, cancelable: true, clientX: x, clientY: y, dataTransfer: daten };
+				const unter = doc.elementFromPoint(x, y) ?? doc.body;
+				unter.dispatchEvent(new DragEvent('dragover', optionen));
+				unter.dispatchEvent(new DragEvent('drop', optionen));
+			});
+		const hinweis = page.getByRole('button', { name: 'Verstanden, hochladen' });
+		if (await hinweis.isVisible().catch(() => false)) {
+			await hinweis.click();
+		}
+		await expect.poll(() => quelle(page), { timeout: 15_000 }).toMatch(/eins[^"]*\.png/);
+		await expect.poll(() => quelle(page), { timeout: 15_000 }).toMatch(/zwei[^"]*\.png/);
+		await expect(material(page).locator('img.bild-frei')).toHaveCount(2);
+		const lagen = await material(page)
+			.locator('img.bild-frei')
+			.evaluateAll((liste) =>
+				liste.map((b) => {
+					const r = b.getBoundingClientRect();
+					return { x: Math.round(r.left), y: Math.round(r.top) };
+				}),
+			);
+		expect(lagen[0]).not.toEqual(lagen[1]);
+		await expect(page.locator('[data-auswahl="bildfrei"]')).toBeVisible();
+	});
+
+	test('199-N04: zwei Dateien auf der Schublade „Bilder“: beide hochgeladen, die erste eingesetzt, Hinweis', async ({
+		page,
+	}) => {
+		await oeffneMit(page, blattMit());
+		await oeffneSchublade(page, 'bilder');
+		await bilder(page).evaluate(async (schublade) => {
+			const png = async (farbe: string) => {
+				const leinwand = document.createElement('canvas');
+				leinwand.width = 120;
+				leinwand.height = 80;
+				const c = leinwand.getContext('2d');
+				if (c) {
+					c.fillStyle = farbe;
+					c.fillRect(0, 0, 120, 80);
+				}
+				return new Promise<Blob | null>((fertig) => leinwand.toBlob(fertig, 'image/png'));
+			};
+			const daten = new DataTransfer();
+			for (const [name, farbe] of [
+				['erstes.png', '#e07a2f'],
+				['zweites.png', '#2f7ae0'],
+			] as const) {
+				const blob = await png(farbe);
+				if (blob) {
+					daten.items.add(new File([blob], name, { type: 'image/png' }));
+				}
+			}
+			const optionen = { bubbles: true, cancelable: true, dataTransfer: daten };
+			schublade.dispatchEvent(new DragEvent('dragover', optionen));
+			schublade.dispatchEvent(new DragEvent('drop', optionen));
+		});
+		await expect(page.getByText('2 Bilder hochgeladen, das erste eingesetzt.')).toBeVisible({ timeout: 15_000 });
+		await expect(material(page).locator('img.bild-frei')).toHaveCount(1);
+		await expect.poll(() => quelle(page)).toMatch(/erstes[^"]*\.png/);
+		expect(await quelle(page)).not.toMatch(/zweites[^"]*\.png/);
+		// Das zweite liegt in „Dieser Ordner“.
+		await expect(bilder(page).locator('[data-sammlung-bild*="zweites"]')).toHaveCount(1);
 	});
 });

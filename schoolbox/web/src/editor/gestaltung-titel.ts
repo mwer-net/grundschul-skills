@@ -19,8 +19,6 @@ export const teileVon = (element: Element, art: string) => {
 	return [...element.querySelectorAll('*')].filter((e) => e.children.length === 0 && !e.closest('defs')).length;
 };
 
-const gross = (text: string) => (text ? `${text[0]?.toUpperCase() ?? ''}${text.slice(1)}` : '');
-
 const SCHMUCK_LAENGE = 40;
 
 const kuerze = (text: string) => (text.length > SCHMUCK_LAENGE ? `${text.slice(0, SCHMUCK_LAENGE - 1)}…` : text);
@@ -43,7 +41,7 @@ export const titelDerGestaltung = ({ art, name, teile, text, wert }: GestaltungA
 		return name;
 	}
 	// 205-03: dasselbe Wort wie Schild und Inspektor (`nameDerGestaltung`).
-	const form = formTitel(wert('data-form')) ?? '';
+	const form = formTitel(wert('data-form'), wert) ?? '';
 	switch (art) {
 		case 'bildfrei': {
 			const datei =
@@ -58,11 +56,12 @@ export const titelDerGestaltung = ({ art, name, teile, text, wert }: GestaltungA
 			return form || name;
 		case 'formtext':
 			return text ? `${form || name} „${kuerze(text)}“` : form || name;
+		// 198-06: die Art vorn wie bei der Sprechblase, der Wortlaut dahinter.
 		case 'schmuck':
 		case 'schmuckbogen':
-			return kuerze(text) || name;
+			return text ? `${name} „${kuerze(text)}“` : name;
 		case 'streuung':
-			return `${gross((wert('data-streuung') ?? '').trim()) || name} (${teile})`;
+			return `${name} (${teile})`;
 		case 'gruppe':
 			return `${name} (${teile})`;
 		default:

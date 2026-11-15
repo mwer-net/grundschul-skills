@@ -7,10 +7,11 @@ import type { MenueEintrag } from '../bausteine/Menue';
 import { Menue } from '../bausteine/Menue';
 import { Symbol } from '../bausteine/Symbol';
 import { SymbolKnopf } from '../bausteine/SymbolKnopf';
+import { Tooltip } from '../bausteine/Tooltip';
 import type { ChatNachricht } from './chat-verlauf';
 import { istRueckfrage } from './chat-verlauf';
 import type { Faden, FadenStand } from './claude-faeden';
-import { laeuftNoch, standVon } from './claude-faeden';
+import { pruefungText, standText } from './claude-faeden';
 import { elementZu, pfadZu } from './darstellung';
 import type { KiAktion, KiAuftrag, VorschlagAmBlatt } from './ki';
 import type { Einblendung } from './Leinwand';
@@ -52,23 +53,32 @@ const kastenVon = (e: Einblendung, nr: number | null): Kasten | null => {
 		: null;
 };
 
-/** Unter dem Element; ist es höher als die Sicht, am unteren Rand der Sicht. Die Seite: oben unter ihrer Leiste. */
-const blasenLage = (k: Kasten, sicht: Sicht, hoehe: number, seite: boolean) => {
+/** Der Auswahlrahmen liegt so weit um das Element (B2 S. 2). */
+const RAHMEN = 4.5;
+
+/**
+ * Unter dem Element; ist es höher als die Sicht, am unteren Rand der Sicht. Die Seite: oben unter ihrer Leiste. Ist
+ * das Element breiter als die Blase, schließt sie links mit dem Auswahlrahmen ab, der Zipfel 40 px rechts der Kante
+ * (200-15). Nie auf der Leiste der Auswahl: `leisteUnten` ist deren Unterkante (200-16).
+ */
+const blasenLage = (k: Kasten, sicht: Sicht, hoehe: number, seite: boolean, leisteUnten: number | null) => {
 	const breite = Math.max(260, Math.min(BREITE, sicht.rechts - sicht.links - 2 * RAND));
-	const mitte = (k.links + k.rechts) / 2;
-	const ziel = k.rechts - k.links > breite ? k.links + 40 : mitte;
-	const links = Math.max(sicht.links + RAND, Math.min(ziel - breite / 2, sicht.rechts - breite - RAND));
+	const breit = k.rechts - k.links > breite;
+	const ziel = breit ? k.links + 40 : (k.links + k.rechts) / 2;
+	const wunsch = breit ? k.links - RAHMEN : ziel - breite / 2;
+	const links = Math.max(sicht.links + RAND, Math.min(wunsch, sicht.rechts - breite - RAND));
 	let top = k.unten + ABSTAND;
 	if (seite) {
 		top = Math.max(k.oben + ABSTAND, sicht.oben + UNTER_SEITENLEISTE);
 	} else if (k.unten > sicht.unten && k.oben < sicht.unten) {
 		top = Math.max(k.oben + ABSTAND, sicht.unten - hoehe - RAND);
 	}
+	if (leisteUnten !== null) {
+		top = Math.max(top, leisteUnten + RAND);
+	}
 	const spitze = Math.max(18, Math.min(ziel - links, breite - 18));
 	return { links, top, breite, spitze };
 };
-
-const uhr = (sekunden: number) => `${Math.floor(sekunden / 60)}:${String(sekunden % 60).padStart(2, '0')}`;
 
 const useSekunden = (seit: string | undefined, an: boolean) => {
 	const [jetzt, setJetzt] = useState(() => Date.now());
@@ -94,28 +104,27 @@ const bezugVon = (doc: Document, f: Pick<Faden, 'ganz' | 'nr'>, seiten: number) 
 
 const Sprechblase = ({ n }: { n: ChatNachricht }) =>
 	n.rolle === 'lehrkraft' ? (
-		<p
+		<div
 			className="ml-auto max-w-[85%] rounded-lg bg-tinte/6 px-2 py-1 whitespace-pre-line"
 			data-chat-nachricht="lehrkraft"
 		>
-			{n.text}
-		</p>
+			{n.zitat && <p className="truncate text-xs text-leise">{`„${n.zitat}“`}</p>}
+			<p>{n.text}</p>
+		</div>
 	) : (
 		<p className="whitespace-pre-line" data-chat-nachricht="claude">
 			{n.text}
 		</p>
 	);
 
-const Lauf = ({ abbrechen, auftrag, bezug }: { auftrag: KiAuftrag; bezug: string; abbrechen: () => void }) => {
-	const sekunden = useSekunden(auftrag.seit, auftrag.status === 'laeuft');
+/** Die Laufzeile ohne Bezug, den nennt der Kopf (200-08). Vor der Antwort des Servers zählt sie ab dem Senden. */
+const Lauf = ({ abbrechen, auftrag }: { auftrag: KiAuftrag | undefined; abbrechen: () => void }) => {
+	const stand = auftrag?.status === 'wartet' ? 'wartet' : 'laeuft';
+	const sekunden = useSekunden(auftrag?.status === 'laeuft' ? auftrag.seit : undefined, stand === 'laeuft');
 	return (
 		<div className="flex items-center gap-2" data-ki-lauf role="status">
 			<Symbol name="laden" className="size-3.5 flex-none animate-spin text-leise" />
-			<p className="min-w-0 flex-1">
-				{auftrag.status === 'wartet'
-					? `Wartet auf Claude: ${bezug}`
-					: `Claude ändert ${bezug} … ${uhr(sekunden)}`}
-			</p>
+			<p className="min-w-0 flex-1">{standText(stand, null, sekunden)}</p>
 			<Knopf art="zweit" groesse="klein" onClick={abbrechen}>
 				Abbrechen
 			</Knopf>
@@ -148,9 +157,8 @@ const VorschlagKarte = ({
 }: VorschlagAngaben) => (
 	<div className="rounded-lg border border-tinte/15 bg-white/50 p-2.5" data-ki-vorschlag>
 		<p className="font-semibold">Vorschlag</p>
-		<p className="text-xs text-leise">
-			{`${v.umfang} · ${v.meldungen.length === 0 ? 'Prüfung ohne Befund' : `${v.meldungen.length} Hinweise der Prüfung`}`}
-		</p>
+		{/* 200-12: Den Bezug nennt der Kopf; eine Zeile nur, wenn die Prüfung etwas meldet. */}
+		{pruefungText(v) && <p className="text-xs text-leise">{pruefungText(v)}</p>}
 		{zeigeText && v.antwort && <p className="mt-1 whitespace-pre-line">{v.antwort}</p>}
 		{v.meldungen.length > 0 && (
 			<ul className="mt-1 list-disc pl-5" data-ki-meldungen>
@@ -212,10 +220,13 @@ const Schnellaktionen = ({
 	</div>
 );
 
-const MEHR_KNOPF = (
-	<Knopf art="leise" groesse="klein" className="size-knopf-klein">
-		<Symbol name="mehr" />
-	</Knopf>
+/** Auslöser des Menüs mit Tooltip (200-21): `Menu.Trigger` reicht Ereignisse, ARIA und `ref` als Props herein. */
+const MehrKnopf = (props: ComponentProps<'button'>) => (
+	<Tooltip text="Mehr">
+		<Knopf art="leise" groesse="klein" className="size-knopf-klein" {...props}>
+			<Symbol name="mehr" />
+		</Knopf>
+	</Tooltip>
 );
 
 /** Auslöser des Stufenmenüs: `Menu.Trigger` reicht Ereignisse, ARIA und `ref` als Props herein. */
@@ -228,7 +239,6 @@ const BezugKnopf = ({ bezug, ...rest }: { bezug: string } & ComponentProps<'butt
 
 const Kopf = ({
 	bezug,
-	einklappen,
 	feld,
 	mehr,
 	schliessen,
@@ -239,7 +249,6 @@ const Kopf = ({
 	feld: RefObject<HTMLTextAreaElement | null>;
 	stufen: MenueEintrag[] | null;
 	mehr: MenueEintrag[];
-	einklappen: () => void;
 	schliessen: () => void;
 }) => (
 	<div className="flex flex-none items-center gap-1.5 border-b border-tinte/12 py-0.5 pr-1 pl-3" data-claude-kopf>
@@ -261,17 +270,11 @@ const Kopf = ({
 			</span>
 		)}
 		<span className="ml-auto flex flex-none items-center">
-			<Menue name="Claude: weitere Aktionen" rechtsbuendig eintraege={mehr} ausloeser={MEHR_KNOPF} />
-			<SymbolKnopf
-				symbol="minus"
-				beschriftung="Einklappen"
-				groesse="klein"
-				data-claude-einklappen
-				onClick={einklappen}
-			/>
+			<Menue name="Claude: weitere Aktionen" rechtsbuendig eintraege={mehr} ausloeser={<MehrKnopf />} />
+			{/* 200-05: ein Knopf, derselbe Weg wie Esc und ⌘J; das Gespräch endet, wenn nichts aussteht. */}
 			<SymbolKnopf
 				symbol="schliessen"
-				beschriftung="Gespräch beenden"
+				beschriftung="Schließen"
 				groesse="klein"
 				data-claude-schliessen
 				onClick={schliessen}
@@ -284,23 +287,20 @@ interface FeldAngaben {
 	entwurf: string;
 	feld: RefObject<HTMLTextAreaElement | null>;
 	platzhalter: string;
-	laeuft: boolean;
 	kannSenden: boolean;
 	zitat: string | null;
 	setEntwurf: (text: string) => void;
 	setZitat: (zitat: string | null) => void;
 	sende: () => void;
-	abbrechen: () => void;
 	breite: number;
 }
 
+/** Im Lauf bleibt „Senden“ gesperrt an seinem Platz; abgebrochen wird in der Laufzeile (200-09). */
 const Feld = ({
-	abbrechen,
 	breite,
 	entwurf,
 	feld,
 	kannSenden,
-	laeuft,
 	platzhalter,
 	sende,
 	setEntwurf,
@@ -341,17 +341,7 @@ const Feld = ({
 					className="min-w-0 flex-1 resize-none bg-transparent leading-5 outline-none placeholder:text-leise"
 					onChange={(e) => setEntwurf(e.target.value)}
 				/>
-				{laeuft ? (
-					<Knopf
-						art="zweit"
-						groesse="klein"
-						aria-label="Abbrechen"
-						className="size-knopf-klein rounded-full px-0"
-						onClick={abbrechen}
-					>
-						<Symbol name="schliessen" />
-					</Knopf>
-				) : (
+				<Tooltip text="Senden">
 					<Knopf
 						groesse="klein"
 						aria-label="Senden"
@@ -361,7 +351,7 @@ const Feld = ({
 					>
 						<Symbol name="senden" />
 					</Knopf>
-				)}
+				</Tooltip>
 			</div>
 			<p className="px-3 pb-1 text-[11px] leading-[14px] text-leise">Keine Namen von Kindern eintragen.</p>
 		</>
@@ -430,7 +420,7 @@ const lagebildVon = (claude: Claude, f: Faden): Lagebild => {
 		f,
 		auftrag,
 		vorschlag,
-		laeuft: laeuftNoch(auftrag),
+		laeuft: claude.laeuft(f),
 		offenerVorschlag: vorschlag && !vorschlag.konflikt ? vorschlag : undefined,
 	};
 };
@@ -561,11 +551,28 @@ const Blase = ({ adresse, claude, darstellung, e, f, jetzt, nr, seiten }: Blasen
 		kasten.current?.scrollIntoView({ block: 'nearest', inline: 'nearest' });
 	}, [f.key, mitVorschlag]);
 
+	// Cursor ans Ende: nach der Palette und nach „Abbrechen“ geht es im Text weiter (200-18, 200-19).
 	useEffect(() => {
-		if (claude.fokus > 0) {
-			feld.current?.focus({ preventScroll: true });
+		const el = feld.current;
+		if (claude.fokus > 0 && el) {
+			el.focus({ preventScroll: true });
+			el.setSelectionRange(el.value.length, el.value.length);
 		}
 	}, [claude.fokus]);
+
+	// 200-16: Die Leiste der Auswahl misst sich nach dem ersten Zeichnen noch einmal, darum ein zweiter Blick.
+	const [leisteUnten, setLeisteUnten] = useState<number | null>(null);
+	useLayoutEffect(() => {
+		const miss = () => {
+			const leiste = leisteDerAuswahl(document)?.getBoundingClientRect();
+			const basis = kasten.current?.offsetParent?.getBoundingClientRect();
+			const wert = leiste && basis && leiste.height > 0 ? Math.round(leiste.bottom - basis.top) : null;
+			setLeisteUnten((alt) => (alt === wert ? alt : wert));
+		};
+		miss();
+		const bild = requestAnimationFrame(miss);
+		return () => cancelAnimationFrame(bild);
+	});
 
 	const nachrichten = f.verlauf.length;
 	useEffect(() => {
@@ -578,15 +585,16 @@ const Blase = ({ adresse, claude, darstellung, e, f, jetzt, nr, seiten }: Blasen
 	if (!k || !sicht) {
 		return null;
 	}
-	const lage = blasenLage(k, sicht, hoehe, seite);
+	const lage = blasenLage(k, sicht, hoehe, seite, leisteUnten);
 	const bezug = (x: Faden) => bezugVon(e.doc, x, seiten);
 	const gesperrt = laeuft || Boolean(offenerVorschlag);
 	const stufen = gesperrt ? null : stufenVon(e.doc, f, seiten, (z, ganz) => claude.waehleStufe(f.key, z, ganz));
 	const umfaenge = umfaengeVon(f, seite, seiten);
-	const aktionen =
-		gesperrt || f.verlauf.length > 0 || f.entwurf.trim()
-			? []
-			: claude.aktionen.filter((a) => a.auf.some((u) => umfaenge.includes(u)));
+	const art = pfadZu(e.doc, nr).at(-1)?.baustein.art ?? '';
+	// 200-06: Am Element nur, was zu seiner Art passt; Gestaltungselemente haben keine.
+	const passt = (a: KiAktion) =>
+		a.auf.some((u) => umfaenge.includes(u)) && (umfaenge.includes('baustein') ? (a.arten ?? []).includes(art) : true);
+	const aktionen = gesperrt || f.verlauf.length > 0 || f.entwurf.trim() ? [] : claude.aktionen.filter(passt);
 	const kannSenden = Boolean(f.entwurf.trim()) && claude.sperreVon(f) === null;
 	const warten = warteHinweis(claude, bild, bezug);
 	const mehr: MenueEintrag[] = [
@@ -667,8 +675,7 @@ const Blase = ({ adresse, claude, darstellung, e, f, jetzt, nr, seiten }: Blasen
 					feld={feld}
 					stufen={stufen}
 					mehr={mehr}
-					einklappen={claude.einklappen}
-					schliessen={() => claude.schliesse(f.key)}
+					schliessen={claude.einklappen}
 				/>
 				<div
 					ref={liste}
@@ -682,9 +689,9 @@ const Blase = ({ adresse, claude, darstellung, e, f, jetzt, nr, seiten }: Blasen
 						vergleichen={() => setVergleich(true)}
 					/>
 				</div>
-				{bild.auftrag && laeuft && (
+				{laeuft && (
 					<div className="border-t border-tinte/12 px-3 py-1.5">
-						<Lauf auftrag={bild.auftrag} bezug={bezug(f)} abbrechen={() => void claude.abbrechen(f.key)} />
+						<Lauf auftrag={bild.auftrag} abbrechen={() => void claude.abbrechen(f.key)} />
 					</div>
 				)}
 				{warten && (
@@ -706,12 +713,10 @@ const Blase = ({ adresse, claude, darstellung, e, f, jetzt, nr, seiten }: Blasen
 							<Schnellaktionen aktionen={aktionen} sende={(inhalt) => claude.sende(f.key, inhalt)} />
 						)}
 						<Feld
-							abbrechen={() => void claude.abbrechen(f.key)}
 							breite={lage.breite}
 							entwurf={f.entwurf}
 							feld={feld}
 							kannSenden={kannSenden}
-							laeuft={laeuft}
 							platzhalter={platzhalterVon(bild)}
 							sende={sende}
 							setEntwurf={(text) => claude.setEntwurf(f.key, text)}
@@ -727,14 +732,6 @@ const Blase = ({ adresse, claude, darstellung, e, f, jetzt, nr, seiten }: Blasen
 	);
 };
 
-const PILLEN_TEXT: Record<Exclude<FadenStand, 'laeuft'>, string | null> = {
-	wartet: 'Wartet auf Claude',
-	frage: 'Claude fragt',
-	vorschlag: 'Vorschlag bereit',
-	antwort: 'Claude hat geantwortet',
-	ruhig: null,
-};
-
 const PillenText = ({
 	auftrag,
 	bezug,
@@ -744,20 +741,15 @@ const PillenText = ({
 	auftrag: KiAuftrag | undefined;
 	bezug: string;
 }) => {
-	const sekunden = useSekunden(auftrag?.seit, stand === 'laeuft');
-	if (stand === 'laeuft') {
-		return (
-			<>
-				<Symbol name="laden" className="size-3.5 flex-none animate-spin" />
-				{`Claude arbeitet an ${bezug} · ${uhr(sekunden)}`}
-			</>
-		);
-	}
-	const text = PILLEN_TEXT[stand];
+	const sekunden = useSekunden(auftrag?.status === 'laeuft' ? auftrag.seit : undefined, stand === 'laeuft');
 	return (
 		<>
-			<Symbol name="funken" className="size-3.5 flex-none" />
-			{text}
+			{stand === 'laeuft' || stand === 'wartet' ? (
+				<Symbol name="laden" className="size-3.5 flex-none animate-spin" />
+			) : (
+				<Symbol name="funken" className="size-3.5 flex-none" />
+			)}
+			{standText(stand, bezug, sekunden)}
 		</>
 	);
 };
@@ -796,7 +788,7 @@ const Pille = ({
 		return null;
 	}
 	const auftrag = claude.auftragVon(f);
-	const stand = standVon(f, auftrag, claude.vorschlagVon(f));
+	const stand = claude.standDes(f);
 	const seite = pfadZu(e.doc, nr).length === 1;
 	const hervor = stand === 'frage' || stand === 'vorschlag';
 	let top = k.unten - 13;
@@ -818,7 +810,6 @@ const Pille = ({
 			)}
 			style={{ left: (k.links + k.rechts) / 2, top }}
 			{...(verdeckt ? { 'data-pille-verdeckt': '' } : {})}
-			aria-label={stand === 'ruhig' ? `Gespräch mit Claude: ${bezug}` : undefined}
 			data-claude-pille={stand}
 			onClick={() => claude.oeffne(nr)}
 		>
@@ -865,10 +856,12 @@ export const ClaudeSchicht = ({
 		)}
 		{claude.faeden.map((f) => {
 			const nr = claude.nrImBlatt(f);
-			if (nr === null) {
+			const offen = f.key === claude.offen?.key;
+			// 200-04: Eine Pille nur, wo etwas aussteht; ein gemerkter Text allein zeigt keine.
+			if (nr === null || (!offen && claude.standDes(f) === 'ruhig')) {
 				return null;
 			}
-			return f.key === claude.offen?.key ? (
+			return offen ? (
 				<Blase
 					key={f.key}
 					e={e}

@@ -89,9 +89,48 @@ export const formVon = (art: string | null | undefined): Form | undefined =>
  * Name in Ebenen und Pfad (`nameDerGestaltung`, `titelDerGestaltung`): eine Quelle für beide (196-15). Eine Form, die
  * das Register nicht kennt (`data-form="kreis"` von Claude), heißt nach ihrem Attribut; ohne Attribut `null`.
  */
-export const formName = (art: string | null | undefined) => {
+export const formName = (art: string | null | undefined, lies?: (attr: string) => string | null | undefined) => {
 	const roh = (art ?? '').trim().replace(/[-_]+/g, ' ');
-	return formVon(art)?.name ?? (roh ? `${roh[0]?.toUpperCase() ?? ''}${roh.slice(1)}` : null);
+	const form = formVon(art);
+	if (form) {
+		return anzeigeName(form.art, lies) ?? form.name;
+	}
+	return roh ? `${roh[0]?.toUpperCase() ?? ''}${roh.slice(1)}` : null;
+};
+
+/** 198-06: Vielecke heißen nach ihrer Eckenzahl wie die Kacheln (Raute, Sechseck); sonst „Vieleck“. */
+const VIELECK_NAMEN: Readonly<Record<number, string>> = {
+	3: 'Dreieck',
+	4: 'Raute',
+	5: 'Fünfeck',
+	6: 'Sechseck',
+	8: 'Achteck',
+};
+
+/**
+ * 198-06: Das Wort der Oberfläche, wo es vom Namen im Register abweicht (der bleibt für die Referenz der Skills):
+ * dasselbe wie die Kachel der Schublade. Mit `lies` zählen die Parameter (Ecken, Enden der Linie, Art der Blase).
+ */
+const anzeigeName = (art: string, lies?: (attr: string) => string | null | undefined): string | null => {
+	switch (art) {
+		case 'ellipse':
+			return 'Kreis';
+		case 'pfeil':
+			return 'Blockpfeil';
+		case 'vieleck': {
+			if (!lies) {
+				return null;
+			}
+			const ecken = Math.round(Number(lies('data-ecken') ?? 6));
+			return VIELECK_NAMEN[ecken] ?? 'Vieleck';
+		}
+		case 'linie':
+			return lies && (lies('data-anfang') === 'pfeil' || lies('data-ende') === 'pfeil') ? 'Pfeil' : 'Linie';
+		case 'sprechblase':
+			return lies?.('data-blase') === 'gedanke' ? 'Denkblase' : null;
+		default:
+			return null;
+	}
 };
 
 /** Standards beim Ablegen (3-formen.md). */

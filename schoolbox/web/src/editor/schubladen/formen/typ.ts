@@ -21,7 +21,6 @@ export interface FormenTeile {
  */
 export interface FormenAbschnitt {
 	id: string;
-	/** Die Werkzeugreihe hat keinen Titel, die Schublade heißt schon so. */
 	titel?: string;
 	/** Hat der Abschnitt bei dieser Suche etwas zu zeigen? Sonst fehlt er samt Titel. */
 	zeigt: (t: FormenTeile) => boolean;

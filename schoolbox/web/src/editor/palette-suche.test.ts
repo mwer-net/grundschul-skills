@@ -78,6 +78,12 @@ describe('Suche der Palette', () => {
 		assert.equal(start[2]?.gruppe, 'Test');
 	});
 
+	it('verstreute Buchstaben zählen nur im Titel, nicht in den Suchwörtern (188-38)', () => {
+		assert.ok(bewerte('mtk', eintrag('Mathematik')) > 0);
+		assert.equal(bewerte('mtk', eintrag('Uhrzeit', ['Mathematik', 'Klasse 2'])), 0);
+		assert.ok(bewerte('mathe', eintrag('Uhrzeit', ['Mathematik'])) > 0);
+	});
+
 	it('gruppiert in der Reihenfolge des besten Treffers', () => {
 		const gruppen = gruppiere([
 			eintrag('A', [], { gruppe: 'Zwei' }),

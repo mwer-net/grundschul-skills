@@ -1,6 +1,6 @@
 import { legeGestaltungAb } from '@schoolbox/kern/src/gestaltung';
-import type { PointerEvent as ReactPointerEvent } from 'react';
-import { useEffect, useRef } from 'react';
+import type { MouseEvent as ReactMouseEvent, PointerEvent as ReactPointerEvent } from 'react';
+import { useEffect, useRef, useState } from 'react';
 
 import { schluckeKlick } from '../../../bausteine/zeigerzug';
 import { nrVon } from '../../darstellung';
@@ -66,6 +66,8 @@ export const useWerkzeug = ({
 	const mehr = useRef<Mehrlauf | null>(null);
 	/** Der letzte Zeiger auf der Seite des mehrteiligen Werkzeugs (Vorschau nach Backspace). */
 	const zuletzt = useRef<Punkt | null>(null);
+	/** 198-15: Wo der Hinweis des laufenden mehrteiligen Werkzeugs steht, in Koordinaten des Materials. */
+	const [amZeiger, setAmZeiger] = useState<Punkt | null>(null);
 
 	const brichAb = () => {
 		strich.current = null;
@@ -75,6 +77,7 @@ export const useWerkzeug = ({
 	/** 116: Legt ab, was ein mehrteiliges Werkzeug meldet, oder bricht es ab. */
 	const fahreFort = (m: Mehrlauf, fortgang: Exclude<Fortgang, 'weiter'>) => {
 		mehr.current = null;
+		setAmZeiger(null);
 		entferneVorschau(doc);
 		if (fortgang === 'abbruch') {
 			m.w.mehrteilig?.abbruch();
@@ -153,6 +156,7 @@ export const useWerkzeug = ({
 				mehr.current = null;
 				entferneVorschau(doc);
 			}
+			setAmZeiger(null);
 		};
 		// eslint-disable-next-line react-hooks/exhaustive-deps -- `fahreFort` und `zeigeEntwurf` lesen nur Refs und `doc`
 	}, [werkzeug, doc]);
@@ -201,6 +205,7 @@ export const useWerkzeug = ({
 				};
 				werkzeug.mehrteilig.runter(aufSeite(ev, seite), skala);
 				zeigeEntwurf(seite, werkzeug.mehrteilig.ziehe(aufSeite(ev, seite)));
+				setAmZeiger(werkzeug.mehrteilig.laeuft() ? p : null);
 				return;
 			}
 			strich.current = { id: ev.pointerId, w: werkzeug, seite, nr, x: ev.clientX, y: ev.clientY };
@@ -214,6 +219,7 @@ export const useWerkzeug = ({
 				if (!s && m.w.mehrteilig?.laeuft()) {
 					zuletzt.current = aufSeite(ev, m.seite);
 					zeigeEntwurf(m.seite, m.w.mehrteilig.schwebe(zuletzt.current));
+					setAmZeiger(imMaterial(ev));
 				}
 				return;
 			}
@@ -271,7 +277,18 @@ export const useWerkzeug = ({
 			}
 		},
 		onPointerCancel: brichAb,
+		// 198-15: Doppelklick beendet den Pfad offen, wie Enter.
+		onDoubleClick: (ev: ReactMouseEvent<HTMLElement>) => {
+			const m = mehr.current;
+			const fortgang = m?.w.mehrteilig?.doppel?.();
+			if (!m || !fortgang) {
+				return;
+			}
+			ev.preventDefault();
+			fahreFort(m, fortgang === 'weiter' ? 'abbruch' : fortgang);
+		},
 	};
 
-	return { werkzeug, griffe };
+	const hinweis = werkzeug?.mehrteilig?.hinweis;
+	return { werkzeug, griffe, amZeiger: hinweis && amZeiger ? { text: hinweis, zeiger: amZeiger } : null };
 };

@@ -32,6 +32,7 @@ import { useBearbeitung } from '../editor/bearbeitung';
 import { seiteFliesst, useFluss, useMitlaufen } from '../editor/fluss';
 import type { MenueArt } from '../editor/befehle';
 import { istZoomTaste, kuerzelVon } from '../editor/befehle';
+import { gesperrtIn } from '../editor/AusgeblendetHinweis';
 import { Einfuegemarken } from '../editor/Bibliothek';
 import { useBild } from '../editor/bild';
 import { useBildAusFinder } from '../editor/bild-finder';
@@ -41,9 +42,9 @@ import { ClaudeKontext } from '../editor/claude-kontext';
 import { useClaudeApp } from '../editor/ClaudeApp';
 import { bausteinVon, editorHtml, elementZu, nrVon, pfadZu } from '../editor/darstellung';
 import { mitZuletzt, NICHT_IM_TEXT, useEinfuegen, useSlash, useTabelleTab } from '../editor/einfuegen';
-import { EntwurfKarte, EntwurfPille, Entwurfsleiste, SperrHinweis } from '../editor/Entwurf';
+import { EntwurfKarte, Entwurfsleiste, SperrHinweis } from '../editor/Entwurf';
 import { zeigeBlattGestaltung } from '../editor/gestaltung/blatt/zeige';
-import { gestaltungKontext } from '../editor/gestaltung/kontext';
+import { gestaltungKontext, istGestaltungElement } from '../editor/gestaltung/kontext';
 import { Leiste as GestaltungLeiste } from '../editor/gestaltung/leiste/Leiste';
 import { folgeAuswahl, nrnFuer, useMehrfach } from '../editor/gestaltung/mehrfach';
 import { GestaltungUeberlagerung } from '../editor/gestaltung/ueberlagerung';
@@ -346,7 +347,8 @@ const useEinfuegeWerkzeuge = ({
 	const pruefKnopf =
 		struktur.aktiv && docJetzt && zerlegungJetzt
 			? (p: Pruefpunkt): PruefKnopf | null => {
-					if (p.code === 'aussen') {
+					// 198-20: auch im Druckrand; dort war der Tipp „Etwas nach innen ziehen“.
+					if (p.code === 'aussen' || p.code === 'druckrand') {
 						return p.bausteine.length > 0
 							? {
 									titel: 'In die Seite holen',
@@ -705,6 +707,7 @@ const Bearbeitung = ({ dokument, mappe: mappenDaten }: { mappe: Mappe; dokument:
 		struktur,
 	});
 
+	const gestaltungJetzt = gestaltungKontext({ doc: docJetzt, pfad, struktur });
 	const befehle = useBefehle(
 		{
 			pfad,
@@ -726,7 +729,9 @@ const Bearbeitung = ({ dokument, mappe: mappenDaten }: { mappe: Mappe; dokument:
 			festeSeiten: format === 'minibuch',
 			hatBild: bild.nimmtBild,
 			linksOffen: sichtbar(zeigt),
-			gestaltung: gestaltungKontext({ doc: docJetzt, pfad, struktur }),
+			gestaltung: gestaltungJetzt,
+			// 198-03: Die Sperre gilt im Befehl, gleich von wo er kommt (Tasten, Menüs, ⌘K, Leiste, Ebenen).
+			gesperrt: [auswahl, ...(gestaltungJetzt?.nrn ?? [])].some((nr) => nr !== null && gesperrtIn(docJetzt, nr) !== null),
 			davor: (() => {
 				const element = docJetzt && auswahl !== null ? elementZu(docJetzt, auswahl) : null;
 				const vorher = element?.previousElementSibling;
@@ -1098,7 +1103,9 @@ const Bearbeitung = ({ dokument, mappe: mappenDaten }: { mappe: Mappe; dokument:
 			panels.setRechts('inspektor');
 			panels.setRechtsOffen(true);
 		},
-		kontextmenue: menueAn,
+		// Rechtsklick auf die Zeile eines freien Elements: dieselbe Liste wie am Element im Blatt (`menueFuer`).
+		kontextmenue: (nr, art, punkt) =>
+			menueAn(nr, art === 'baustein' && istGestaltungElement(docJetzt && elementZu(docJetzt, nr)) ? 'gestaltung' : art, punkt),
 		zeigeSeitengestaltung: (nr, teil) => zeigeBlattGestaltung(nr, teil, struktur.zeigeAn, zeigeEinstellung),
 		ki: {
 			verfuegbar: ki.zustand.verfuegbar,
@@ -1138,13 +1145,6 @@ const Bearbeitung = ({ dokument, mappe: mappenDaten }: { mappe: Mappe; dokument:
 					verlassen={() => befehle.fuehreAus('dokument.zurueck')}
 					mitte={kopfMitte}
 				>
-					<EntwurfPille
-						entwurf={entwurf}
-						zurKarte={() => {
-							ansicht.current?.scrollTo({ top: 0, behavior: 'smooth' });
-							entwurfKarte.current?.focus({ preventScroll: true });
-						}}
-					/>
 					<SymbolKnopf
 						symbol="rueckgaengig"
 						beschriftung="Rückgängig"
@@ -1256,7 +1256,6 @@ const Bearbeitung = ({ dokument, mappe: mappenDaten }: { mappe: Mappe; dokument:
 						<Schubladen
 							zeigt={zeigt}
 							lage={{ frei }}
-							grund={entwurf.grund}
 							teile={schubladenTeile}
 							waehle={(id: SchubladenId) => befehle.fuehreAus(`ansicht.links-${id}`)}
 						/>
@@ -1331,6 +1330,7 @@ const Bearbeitung = ({ dokument, mappe: mappenDaten }: { mappe: Mappe; dokument:
 														struktur={struktur}
 														waehle={setAuswahl}
 														textsitzung={text.bearbeitet}
+														menue={(nr, punkt) => menueAn(nr, 'gestaltung', punkt)}
 													/>
 													<GestaltungLeiste
 														e={e}
@@ -1344,6 +1344,7 @@ const Bearbeitung = ({ dokument, mappe: mappenDaten }: { mappe: Mappe; dokument:
 														e={e}
 														struktur={struktur}
 														folien={format === 'folie'}
+														waehle={setAuswahl}
 													/>
 												</>
 											)}

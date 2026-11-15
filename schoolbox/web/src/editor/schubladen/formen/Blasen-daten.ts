@@ -8,12 +8,16 @@ import type { GestaltungsGut } from '../../gestaltung/ablegen/ziehgut';
 import { gestaltungsgut } from '../../gestaltung/ablegen/ziehgut';
 import { wuenscheTextsitzung } from '../../gestaltung/textsitzung';
 
-/** Reihenfolge der Kacheln (107): drei Blasen, Band, Linie, Pfeil. */
+/** Reihenfolge der Kacheln (107): drei Blasen, Band; Linie und Pfeil stehen seit 198-18 bei den Formen. */
 export const EINTRAEGE: readonly Eintrag[] = [
 	{ id: 'sprechblase-rund', name: 'Sprechblase', art: 'sprechblase', blase: 'rund', auch: ['Blase', 'rund'] },
 	{ id: 'sprechblase-eckig', name: 'Sprechblase eckig', art: 'sprechblase', blase: 'eckig', auch: ['Blase'] },
 	{ id: 'denkblase', name: 'Denkblase', art: 'sprechblase', blase: 'gedanke', auch: ['Gedanke', 'Gedankenblase'] },
 	{ id: 'band', name: 'Band', art: 'band', auch: ['Banner', 'Schleife'] },
+];
+
+/** 198-18: Linie und Pfeil, im Abschnitt „Formen“ nach den Grundformen. */
+export const LINIEN: readonly Eintrag[] = [
 	{ id: 'linie', name: 'Linie', art: 'linie', auch: ['Strich'] },
 	{ id: 'pfeil', name: 'Pfeil', art: 'linie', ende: 'pfeil', auch: ['Linie'] },
 ];

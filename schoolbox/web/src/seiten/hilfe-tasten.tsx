@@ -4,8 +4,8 @@ import { SCHRIFT_TASTEN } from '../editor/textdom';
 
 /**
  * Tasten ohne Befehlsregister, für den Abschnitt „Tasten“ der Hilfe (53): Textsitzung (`textdom.ts`), Präsentation
- * (`praesentation.js` im Skill), Entwurf groß (`EntwurfGross.tsx`), Assistent (`Anlegen.tsx`), Palette, Blase und die Gesten beim Ziehen. Ändert sich
- * eine dieser Tasten, steht es hier.
+ * (`praesentation.js` im Skill), Entwurf groß (`EntwurfGross.tsx`), Assistent (`Anlegen.tsx`), Palette,
+ * Schnellauswahl (`Bibliothek.tsx`), Blase und die Gesten beim Ziehen. Ändert sich eine dieser Tasten, steht es hier.
  */
 export const WEITERE_TASTEN: TastenAbschnitt[] = [
 	{
@@ -50,12 +50,12 @@ export const WEITERE_TASTEN: TastenAbschnitt[] = [
 		],
 	},
 	{
-		titel: 'Befehle und Claude',
+		titel: 'Befehle, Schnellauswahl und Claude',
 		zeilen: [
 			{ id: 'palette-waehlen', titel: 'Eintrag wählen', tasten: ['↑', '↓'] },
-			{ id: 'palette-ausfuehren', titel: 'Ausführen', tasten: ['⏎'] },
+			{ id: 'palette-ausfuehren', titel: 'Ausführen oder einfügen', tasten: ['⏎'] },
 			{ id: 'claude-senden', titel: 'Senden oder übernehmen', tasten: ['⏎'] },
-			{ id: 'claude-einklappen', titel: 'Blase einklappen, Feld schließen', tasten: ['Esc'] },
+			{ id: 'claude-einklappen', titel: 'Blase, Feld oder Liste schließen', tasten: ['Esc'] },
 		],
 	},
 	{
@@ -64,7 +64,7 @@ export const WEITERE_TASTEN: TastenAbschnitt[] = [
 			{ id: 'ziehen-gerade', titel: 'Gerade, Quadrat, in 15°-Schritten', tasten: ['⇧'] },
 			{ id: 'ziehen-mitte', titel: 'Aus der Mitte, Kopie beim Ziehen', tasten: ['⌥'] },
 			{ id: 'ziehen-stapel', titel: 'In den Stapel statt frei, ohne Einrasten', tasten: ['⌘'] },
-			{ id: 'ziehen-halten', titel: 'Werkzeug halten', tasten: ['⇧-Klick'] },
+			{ id: 'ziehen-halten', titel: 'Werkzeug halten', tasten: ['⇧ mit seiner Taste', '⇧-Klick'] },
 			{ id: 'ziehen-punkt', titel: 'Punkt löschen', tasten: ['⌥-Klick'] },
 			{ id: 'ziehen-schieben', titel: 'Schieben um 1 px, um 10 px', tasten: ['Pfeile', '⇧ Pfeile'] },
 			{ id: 'ziehen-abbrechen', titel: 'Abbrechen', tasten: ['Esc'] },

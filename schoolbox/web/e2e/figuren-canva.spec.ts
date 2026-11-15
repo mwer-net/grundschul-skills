@@ -157,11 +157,22 @@ test.describe('Figuren über Canva (176)', () => {
 			await kachel(page, 'Kiki winkt').hover();
 		}
 		await druecke(mehr(page, 'Kiki winkt'));
-		await expect(page.getByRole('menuitem')).toHaveText(['Entfernen']);
-		await druecke(page.getByRole('menuitem', { name: 'Entfernen' }));
+		await expect(page.getByRole('menuitem')).toHaveText(['Figur umbenennen', 'Pose entfernen']);
+		await druecke(page.getByRole('menuitem', { name: 'Pose entfernen' }));
 		await expect(kachel(page, 'Kiki winkt')).toHaveCount(0);
 		await expect(kachel(page, 'Kiki')).toBeVisible();
 		expect(existsSync(path.join(BIBLIOTHEK, 'kiki-winkt.png'))).toBe(true);
+		// 199-03: Der Hinweis bietet „Rückgängig“; die Pose steht wieder an ihrer Stelle.
+		const leiste = hinweis(page);
+		await expect(leiste).toContainText('Pose entfernt.');
+		await druecke(leiste.getByRole('button', { name: 'Rückgängig' }));
+		await expect(kachel(page, 'Kiki winkt')).toBeVisible();
+		if (!hasTouch) {
+			await kachel(page, 'Kiki winkt').hover();
+		}
+		await druecke(mehr(page, 'Kiki winkt'));
+		await druecke(page.getByRole('menuitem', { name: 'Pose entfernen' }));
+		await expect(kachel(page, 'Kiki winkt')).toHaveCount(0);
 
 		if (!hasTouch) {
 			await kachel(page, 'Kiki').hover();
@@ -170,6 +181,36 @@ test.describe('Figuren über Canva (176)', () => {
 		await druecke(page.getByRole('menuitem', { name: 'Figur entfernen' }));
 		await expect(gruppe(page, 'kiki')).toHaveCount(0);
 		expect(existsSync(path.join(BIBLIOTHEK, 'kiki.png'))).toBe(true);
+		await expect(leiste).toContainText('Kiki entfernt.');
+		await druecke(leiste.getByRole('button', { name: 'Rückgängig' }));
+		await expect(gruppe(page, 'kiki')).toBeVisible();
+	});
+
+	test('199: Enter zweimal mit demselben Text startet einen Auftrag und sagt, warum', async ({ page }) => {
+		await oeffneFiguren(page);
+		await beschreibe(page, 'Willi winkt');
+		await expect(canvaKacheln(page)).toHaveCount(1);
+		await feld(page).press('Enter');
+		await expect(schublade(page).locator('[data-figur-laeuft-schon]')).toBeVisible();
+		await expect(canvaKacheln(page)).toHaveCount(1);
+		await expect(schublade(page).getByRole('button', { name: 'Senden' })).toBeDisabled();
+	});
+
+	test('199: Figur umbenennen per Doppelklick auf den Titel; Willi heißt fest', async ({ page }) => {
+		await oeffneFiguren(page);
+		await gruppe(page, 'willi').locator('[data-figur-titel]').dblclick();
+		await expect(schublade(page).locator('[data-figur-name-feld]')).toHaveCount(0);
+		await gruppe(page, 'kiki').locator('[data-figur-titel]').dblclick();
+		const name = schublade(page).locator('[data-figur-name-feld="kiki"]');
+		await expect(name).toBeFocused();
+		await name.fill('Kiki die Katze');
+		await name.press('Enter');
+		await expect(gruppe(page, 'kiki').locator('[data-figur-titel]')).toHaveText('Kiki die Katze');
+		// Esc bricht ab.
+		await gruppe(page, 'kiki').locator('[data-figur-titel]').dblclick();
+		await name.fill('Anders');
+		await name.press('Escape');
+		await expect(gruppe(page, 'kiki').locator('[data-figur-titel]')).toHaveText('Kiki die Katze');
 	});
 
 	test('Zwei Namen: „Eine Figur je Bild.“ unter dem Feld, keine Kachel; Tippen nimmt den Text weg', async ({

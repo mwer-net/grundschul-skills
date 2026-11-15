@@ -93,19 +93,24 @@ export const CanvaKachel = ({
 	);
 };
 
-/** Die Aufträge mit diesem Ziel (`null`: „Neue Figur“), Fehler zuerst, weil sie die ganze Zeile nehmen. */
+/**
+ * Die Aufträge mit diesem Ziel (`null`: „Neue Figur“). 199-22: `fehler` vor den Posen, weil ein Fehler die ganze
+ * Zeile nimmt; wartende und laufende (`offen`) hinter den Posen, wo die fertige Pose erscheint.
+ */
 export const CanvaKacheln = ({
 	figur,
 	laeufe,
 	nochmal,
+	nur,
 }: {
 	laeufe: readonly CanvaStand[];
 	figur: string | null;
 	nochmal: (stand: CanvaStand) => void;
+	nur: 'fehler' | 'offen';
 }) =>
 	laeufe
 		.filter((l) => l.art === 'figur' && (l.ziel.figur ?? null) === figur)
-		.sort((a, b) => Number(b.status === 'fehler') - Number(a.status === 'fehler'))
+		.filter((l) => (l.status === 'fehler') === (nur === 'fehler'))
 		.map((stand) => <CanvaKachel key={stand.id} stand={stand} nochmal={nochmal} />);
 
 /** Je Auftrag ein `<li>` der Liste „Dieser Ordner“; ein Fehler nimmt die ganze Zeile. */

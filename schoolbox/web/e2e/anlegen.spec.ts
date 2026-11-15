@@ -181,7 +181,7 @@ test.describe('Assistent (132)', () => {
 		await expect(dialog(page)).toContainText('Schritt 3 von 7');
 	});
 
-	test('Freitext bei Art und Format kommt wörtlich in den Auftrag; Zurückspringen über die Leiste', async ({
+	test('Freitext bei Art und Format steht in der Leiste; Zurückspringen behält „Anders …“', async ({
 		page,
 	}) => {
 		await page.goto('/');
@@ -198,19 +198,65 @@ test.describe('Assistent (132)', () => {
 		await expect(leiste(page, 'format')).toContainText('Anders: A5 quer');
 		await page.keyboard.press('Enter');
 		await page.keyboard.type('Tiere im Winter');
-		await page.keyboard.press('Enter');
-		await page.keyboard.press('Enter');
-		await expect(schritt(page, 'pruefen')).toBeVisible();
-		const auftrag = dialog(page).locator('[data-auftrag]');
-		await expect(auftrag).toContainText('Erstelle dieses Material: „Rätselheft“');
-		await expect(auftrag).toContainText('Format: „A5 quer“ (angelegt als A4 hoch)');
+		// Der Titel steht beim Thema und folgt ihm (190-37).
 		await expect(dialog(page).getByRole('textbox', { name: 'Titel' })).toHaveValue('Tiere im Winter');
+		await page.keyboard.press('Enter');
+		await expect(schritt(page, 'klasse')).toBeVisible();
+		await expect(leiste(page, 'art')).toContainText('Rätselheft');
+		await expect(dialog(page).locator('[data-hauptaktion]')).toHaveText('Aufgabenplan holen');
 
-		await leiste(page, 'art').click();
-		await dialog(page).locator('[data-wahl="lesetext"]').click();
-		await leiste(page, 'pruefen').click();
-		await expect(auftrag).toContainText('Erstelle einen Lesetext');
-		await expect(auftrag).not.toContainText('Rätselheft');
+		// Zurück zu einer Art mit Wahl: Der Text hinter „Anders …“ bleibt für die Rückkehr (190-19).
+		await leiste(page, 'format').click();
+		await dialog(page).locator('[data-wahl-nr="1"]').click();
+		await dialog(page).locator('[data-wahl="anders"]').click();
+		await expect(dialog(page).locator('[data-freitext="formatText"]')).toHaveValue('A5 quer');
+	});
+
+	test('Leeres „Anders …“ geht nicht stumm weiter (190-19)', async ({ page }) => {
+		await page.goto('/');
+		await oeffneAssistent(page);
+		await page.keyboard.press('Enter');
+		await dialog(page).locator('[data-wahl="arbeitsblatt"]').click();
+		await page.keyboard.press('Enter');
+		await dialog(page).locator('[data-wahl="anders"]').click();
+		await page.keyboard.press('Enter');
+		await expect(dialog(page)).toContainText('Bitte schreib, was du meinst, oder wähle eine Angabe.');
+		await expect(dialog(page).locator('[data-freitext="formatText"]')).toBeFocused();
+		await page.keyboard.type('A5');
+		await expect(dialog(page)).not.toContainText('Bitte schreib, was du meinst');
+	});
+
+	test('Geschlossen: Jeder Weg setzt beim gemerkten Schritt fort, „Von vorn beginnen“ vergisst (190-02)', async ({
+		page,
+	}) => {
+		await page.goto('/');
+		await oeffneAssistent(page);
+		await page.keyboard.press('Enter');
+		await dialog(page).locator('[data-wahl="arbeitsblatt"]').click();
+		await page.keyboard.press('Enter');
+		await page.keyboard.press('Enter');
+		await expect(schritt(page, 'thema')).toBeVisible();
+		await page.keyboard.type('Igel im Herbst');
+		await dialog(page).getByRole('button', { name: 'Schließen' }).click();
+		await expect(dialog(page)).toBeHidden();
+
+		// Über den Knopf, ohne den Hinweis „Weiter ausfüllen“
+		await page.locator('[data-werkzeugleiste] [data-material-anlegen]').click();
+		await expect(schritt(page, 'thema')).toBeVisible();
+		await expect(dialog(page).locator('[data-fokus]').first()).toHaveValue('Igel im Herbst');
+		await dialog(page).getByRole('button', { name: 'Schließen' }).click();
+		await expect(dialog(page)).toBeHidden();
+
+		// Über ⌘K
+		await page.keyboard.press('ControlOrMeta+k');
+		await page.keyboard.type('Material anlegen');
+		await page.keyboard.press('Enter');
+		await expect(schritt(page, 'thema')).toBeVisible();
+		await dialog(page).getByRole('button', { name: 'Von vorn beginnen' }).click();
+		await expect(schritt(page, 'start')).toBeVisible();
+		await expect(dialog(page).getByRole('button', { name: 'Von vorn beginnen' })).toHaveCount(0);
+		await dialog(page).getByRole('button', { name: 'Abbrechen' }).click();
+		await oeffneAssistent(page);
 	});
 
 	test('„Doch lieber leeres Blatt“ behält Art, Format und Titel', async ({ page }) => {
@@ -229,34 +275,5 @@ test.describe('Assistent (132)', () => {
 		await page.keyboard.press('Enter');
 		const { dir } = await imEditor(page);
 		expect(await metaVon(dir)).toMatchObject({ titel: 'Igel im Herbst', art: 'arbeitsblatt', format: 'a4-quer' });
-	});
-
-	test('Text bearbeiten: Geänderte Antworten überschreiben ihn nicht, „Zurücksetzen“ baut ihn neu', async ({
-		page,
-	}) => {
-		await page.goto('/');
-		await oeffneAssistent(page);
-		await page.keyboard.press('Enter');
-		await page.keyboard.press('Enter');
-		await page.keyboard.press('Enter');
-		await page.keyboard.press('Enter');
-		await page.keyboard.type('Uhrzeit');
-		for (let i = 0; i < 3; i += 1) {
-			await page.keyboard.press('Enter');
-		}
-		await expect(schritt(page, 'pruefen')).toBeVisible();
-		await dialog(page).getByRole('button', { name: 'Als Text bearbeiten' }).click();
-		const text = dialog(page).getByRole('textbox', { name: 'Auftrag' });
-		await expect(text).toBeFocused();
-		await text.evaluate((el: HTMLTextAreaElement) => el.setSelectionRange(el.value.length, el.value.length));
-		await text.pressSequentially(' Mit Bildern.');
-		await leiste(page, 'thema').click();
-		await dialog(page).getByRole('textbox', { name: 'Thema' }).fill('Uhrzeit mit Minuten');
-		await leiste(page, 'pruefen').click();
-		await expect(dialog(page).locator('[data-auftrag-veraltet]')).toBeVisible();
-		await expect(text).toHaveValue(/Thema: „Uhrzeit“[\s\S]* Mit Bildern\.$/);
-		await dialog(page).getByRole('button', { name: 'Zurücksetzen' }).click();
-		await expect(dialog(page).locator('[data-auftrag]')).toContainText('Thema: „Uhrzeit mit Minuten“');
-		await expect(dialog(page).locator('[data-auftrag]')).not.toContainText('Mit Bildern');
 	});
 });

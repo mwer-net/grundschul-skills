@@ -1,13 +1,70 @@
 import { klassen } from '../../../bausteine/klassen';
+import { SCHUBLADENKACHEL } from '../../../bausteine/Schublade';
+import { raster } from '../../../bausteine/schubladenhilfe';
+import { Symbol } from '../../../bausteine/Symbol';
 import { SymbolKnopf } from '../../../bausteine/SymbolKnopf';
+import { Tooltip } from '../../../bausteine/Tooltip';
 import { kuerzelText } from '../../befehle';
 import type { SchubladenLage } from '../../schubladen';
+import { passtZurSuche } from '../../schubladen/formen/typ';
+import type { Werkzeug } from '.';
 import { WERKZEUGE } from '.';
 import { useWerkzeugStand, waehleWerkzeug } from './stand';
 
+/** Die Namen, unter denen die Suche der Schublade ein Werkzeug findet. */
+export const namenVon = (w: Werkzeug) => [w.titel, ...(w.suchwoerter ?? [])];
+
+/** 198-10: Werkzeuge mit eigener Kachel im Abschnitt „Zeichnen“, in dieser Lage und zu dieser Suche. */
+export const zeichenwerkzeuge = (lage: SchubladenLage, suche = '') =>
+	WERKZEUGE.filter((w) => w.kachel && w.bereit(lage) && passtZurSuche(namenVon(w), suche));
+
 /**
- * Eine Reihe Knöpfe für alle bereiten Werkzeuge (5.10, 5.12): Tooltip mit Name und Taste, das aktive hervorgehoben;
- * ⇧-Klick hält das Werkzeug bis Esc (Hilfe). 104 setzt sie oben in die Schublade „Werkzeuge“.
+ * Abschnitt „Zeichnen“ der Schublade (198-10): Stift, Form aus Punkten und Konfetti als Kacheln mit Symbol und Wort wie
+ * Stempel und Etikett. Der Tooltip nennt die Taste; das aktive Werkzeug ist hervorgehoben, ⇧-Klick hält es bis Esc
+ * (Hilfe). Die Formen zum Aufziehen haben keine Kachel hier, ihre Taste steht im Tooltip der Form (198 Urteil 1).
+ */
+export const Zeichenkacheln = ({ lage, suche }: { lage: SchubladenLage; suche: string }) => {
+	const stand = useWerkzeugStand();
+	return (
+		<div className={raster(3)} data-zeichnen>
+			{zeichenwerkzeuge(lage, suche).map((w) => {
+				const aktiv = stand.id === w.id;
+				return (
+					<Tooltip key={w.id} text={w.titel} {...(w.taste ? { kuerzel: kuerzelText(w.taste) } : {})}>
+						<button
+							type="button"
+							aria-label={w.titel}
+							aria-pressed={aktiv}
+							className={klassen(
+								SCHUBLADENKACHEL,
+								'flex min-h-16 flex-col items-center justify-center gap-1 px-1 py-2 select-none',
+								aktiv && 'bg-brand-50 text-brand-700',
+							)}
+							data-werkzeug={w.id}
+							data-gehalten={aktiv && stand.halten ? '' : undefined}
+							onClick={(ev) => waehleWerkzeug(w.id, ev.shiftKey)}
+						>
+							<Symbol name={w.symbol} className="size-5" />
+							{/* 198-N03: zweizeilig statt „Form aus P…“; die Reihe wächst mit. */}
+							<span
+								className={klassen(
+									'w-full text-center text-xs leading-tight text-balance text-leise',
+									aktiv && 'text-brand-700',
+								)}
+							>
+								{w.titel}
+							</span>
+						</button>
+					</Tooltip>
+				);
+			})}
+		</div>
+	);
+};
+
+/**
+ * Nur im Test (`Testfach.tsx`): eine Reihe Knöpfe für alle bereiten Werkzeuge mit V, Tooltip mit Name und Taste, das
+ * aktive hervorgehoben. In der Schublade stehen seit 198 nur die Kacheln „Zeichnen“.
  */
 export const Werkzeugknoepfe = ({ className, lage }: { lage: SchubladenLage; className?: string }) => {
 	const stand = useWerkzeugStand();

@@ -59,7 +59,7 @@ const blatt = async (page: Page) => {
 };
 
 /** „Bilder“ mit der gewählten Gruppe; die Kacheln oder der Leerzustand stehen. */
-const bilderGruppe = async (page: Page, gruppe: 'Dieser Ordner' | 'Sammlung') => {
+const bilderGruppe = async (page: Page, gruppe: 'Dieser Ordner' | 'Mitgeliefert') => {
 	await oeffneSchublade(page, 'bilder');
 	await spalte(page, 'bilder').getByRole('button', { name: gruppe, exact: true }).click();
 	await expect(spalte(page, 'bilder').locator('[data-schublade-leer], [data-sammlung-bild]').first()).toBeVisible();
@@ -105,7 +105,7 @@ test.describe('Ein Aufbau für alle Schubladen am Mac (167)', () => {
 		await blatt(page);
 		for (const name of MIT_ABSCHNITTEN) {
 			if (name === 'bilder') {
-				await bilderGruppe(page, 'Sammlung');
+				await bilderGruppe(page, 'Mitgeliefert');
 			} else {
 				await oeffneSchublade(page, name);
 			}
@@ -120,7 +120,7 @@ test.describe('Ein Aufbau für alle Schubladen am Mac (167)', () => {
 			expect(new Set(linien), name).toEqual(new Set(['0px']));
 		}
 		await oeffneSchublade(page, 'werkzeuge');
-		await expect(titel(page, 'werkzeuge')).toHaveText(['Text', 'Grundformen', 'Blasen und Linien', 'Bildrahmen']);
+		await expect(titel(page, 'werkzeuge')).toHaveText(['Text', 'Formen', 'Sprechblasen', 'Zeichnen', 'Bildrahmen']);
 		const nummern = await page
 			.locator('[data-panel-links] .rounded-full')
 			.evaluateAll((liste) => liste.filter((e) => /^\d+$/.test(e.textContent?.trim() ?? '')).length);
@@ -131,7 +131,7 @@ test.describe('Ein Aufbau für alle Schubladen am Mac (167)', () => {
 		await blatt(page);
 		for (const [name] of MIT_SUCHE) {
 			if (name === 'bilder') {
-				await bilderGruppe(page, 'Sammlung');
+				await bilderGruppe(page, 'Mitgeliefert');
 			} else {
 				await oeffneSchublade(page, name);
 			}
@@ -191,7 +191,7 @@ test.describe('Ein Aufbau für alle Schubladen am Mac (167)', () => {
 			await page.mouse.move(1, 1);
 			kacheln.push(...(await kachelStil(spalte(page, name).locator('[data-ablage-gut]'))));
 		}
-		await bilderGruppe(page, 'Sammlung');
+		await bilderGruppe(page, 'Mitgeliefert');
 		await page.mouse.move(1, 1);
 		kacheln.push(...(await kachelStil(spalte(page, 'bilder').locator('[data-sammlung-bild]'))));
 
@@ -205,7 +205,7 @@ test.describe('Ein Aufbau für alle Schubladen am Mac (167)', () => {
 		await blatt(page);
 		for (const [name] of MIT_SUCHE) {
 			if (name === 'bilder') {
-				await bilderGruppe(page, 'Sammlung');
+				await bilderGruppe(page, 'Mitgeliefert');
 			} else {
 				await oeffneSchublade(page, name);
 			}
@@ -256,7 +256,7 @@ test.describe('Ein Aufbau für alle Schubladen am Mac (167)', () => {
 		await expect(gruppe.locator('h3')).not.toHaveText(/\d/);
 		await expect(gruppe.locator('[data-schublade-leer]')).toHaveText('Hier gibt es noch keine Bilder.');
 
-		await bilderGruppe(page, 'Sammlung');
+		await bilderGruppe(page, 'Mitgeliefert');
 		await expect(gruppe.locator('h3 > span').nth(1)).toHaveText(/^(1 Bild|\d+ Bilder)$/);
 	});
 });

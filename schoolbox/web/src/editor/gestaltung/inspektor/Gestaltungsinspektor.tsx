@@ -1,6 +1,7 @@
 import { Abschnitt } from '../../../bausteine/Abschnitt';
 import type { PfadTeil } from '../../darstellung';
 import { bausteinVon, elementZu } from '../../darstellung';
+import { gesperrtIn } from '../../AusgeblendetHinweis';
 import type { Struktur } from '../../struktur';
 import { gruppiere, gruppiereMehrfach, INSPEKTOR_TEILE, MEHRFACH_TEILE } from './index';
 import { kontextFuerGestaltung } from './kontext-ersatz';
@@ -22,7 +23,9 @@ export const Gestaltungsinspektor = ({ doc, pfad, quelle, struktur }: Eigenschaf
 	if (!k || !quelle) {
 		return null;
 	}
-	const aktiv = struktur.aktiv;
+	// 198-03: Gesperrt nennt `Inspektor.tsx` die Sperre und bietet „Entsperren“; bis dahin lässt sich hier nur die
+	// Sichtbarkeit (Abschnitt 9) bedienen. Eigene Bedienelemente ohne Formularfeld folgen `aktiv`.
+	const gesperrt = gesperrtIn(doc, pfad.at(-1)?.nr ?? -1) !== null;
 	return (
 		<div data-gestaltung-inspektor={k.art}>
 			{(k.nrn.length > 1
@@ -35,13 +38,30 @@ export const Gestaltungsinspektor = ({ doc, pfad, quelle, struktur }: Eigenschaf
 						}),
 					)
 				: gruppiere(INSPEKTOR_TEILE, k.art, k.baustein)
-			).map((g) => (
-				<Abschnitt key={g.nr} name={g.name} titel={g.titel}>
-					{g.teile.map(({ Inhalt, id }) => (
-						<Inhalt key={id} k={k} quelle={quelle} aktiv={aktiv} />
-					))}
-				</Abschnitt>
-			))}
+			).map((g) => {
+				const zu = gesperrt && g.nr !== 9;
+				const teile = g.teile.map(({ Inhalt, id }) => (
+					<Inhalt key={id} k={k} quelle={quelle} aktiv={struktur.aktiv && !zu} />
+				));
+				// Das Fieldset nur gesperrt: `Abschnitt` blendet sich aus, wenn kein Teil etwas zeigt. Ein leeres Fieldset
+				// zählt ebenso als leer (198-N01: sonst stand gesperrt „Kombinieren“ ohne Inhalt da).
+				return (
+					<Abschnitt
+						key={g.nr}
+						name={g.name}
+						titel={g.titel}
+						{...(zu ? { className: 'has-[>div>fieldset:empty]:hidden' } : {})}
+					>
+						{zu ? (
+							<fieldset disabled className="contents" data-gesperrt-felder>
+								{teile}
+							</fieldset>
+						) : (
+							teile
+						)}
+					</Abschnitt>
+				);
+			})}
 		</div>
 	);
 };

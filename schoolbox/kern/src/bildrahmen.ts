@@ -1,8 +1,8 @@
 /**
  * Rahmen-Stile, Masken und Bildrahmen (111, Briefing schubladen/6-bilder.md und 3-formen.md „Bildrahmen“).
  *
- * - **Rahmen-Stil** (`data-rahmenstil`: `schraeg`, `polaroid`, `rund`, `kontur`) nur an `img.bild-frei`. Das Aussehen
- *   steht in `blatt.css`.
+ * - **Rahmen-Stil** (`data-rahmenstil`: `polaroid`, `kontur`; im Bestand auch `schraeg`, `rund`) nur an
+ *   `img.bild-frei`. Das Aussehen steht in `blatt.css`.
  * - **Maske** (`data-maske` = Name einer Form ohne Text, dazu ihre Parameter als `data-*` wie bei der Form) mit dem
  *   `clip-path` im `style`, gerechnet von `maskeFuer` (`formen-masken.ts`).
  * - Maske und Rahmen-Stil schließen sich aus: Wer das eine setzt, verliert das andere.
@@ -16,14 +16,21 @@ import type { FormWerte } from './formen';
 import { formVon, parameterText, setzeAttributAn, stilWert, vollstaendig } from './formen';
 import { istMaskenForm, maskeFuer } from './formen-masken';
 import type { Ablegen } from './gestaltung';
-import { legeGestaltungAb, leseLage, setzeLage, setzeStilWerte } from './gestaltung';
+import { legeGestaltungAb, leseLage, setzeStilWerte } from './gestaltung';
 import { LAGE } from './gestaltung-arten';
 import type { Knoten } from './quelltext';
 import { attribut, klassenVon, schuetzeAttribut, wendeAn, zerlege } from './quelltext';
 import type { StrukturErgebnis } from './struktur';
 
+/** Alle Stile, die `blatt.css` kennt; der Bestand behält jeden davon (Entscheidung 26). */
 export const RAHMENSTILE = ['schraeg', 'polaroid', 'rund', 'kontur'] as const;
 export type Rahmenstil = (typeof RAHMENSTILE)[number];
+
+/**
+ * Die Stile zur Wahl (199-01, 199-07): „Schräg“ setzte nur eine Drehung (dafür gibt es den Drehgriff und „Drehung“),
+ * „Rund“ ist die Form „Ellipse“ noch einmal. Beide bleiben im Bestand gültig und sehen gleich aus.
+ */
+export const RAHMENSTIL_WAHL = ['polaroid', 'kontur'] as const satisfies readonly Rahmenstil[];
 
 export const RAHMENSTIL_NAMEN: Record<Rahmenstil, string> = {
 	schraeg: 'Schräg',
@@ -31,9 +38,6 @@ export const RAHMENSTIL_NAMEN: Record<Rahmenstil, string> = {
 	rund: 'Rund',
 	kontur: 'Kontur',
 };
-
-/** So schräg liegt ein Bild, wenn „schräg“ gewählt wird und es vorher gerade lag. */
-export const SCHRAEG_GRAD = -3;
 
 /** Größe eines leeren Bildrahmens, wenn nichts anderes gesagt ist. */
 export const BILDRAHMEN_GROESSE = { b: 220, h: 220 };
@@ -128,8 +132,8 @@ const ohneMaske = (quelle: string, nr: number) => {
 };
 
 /**
- * Rahmen-Stil am freien Bild; `null` heißt gerade. Ein Stil nimmt die Maske weg. „Schräg“ dreht ein gerade liegendes
- * Bild um −3°.
+ * Rahmen-Stil am freien Bild; `null` heißt ohne. Ein Stil nimmt die Form (Maske) weg. Die Lage bleibt, wie sie ist
+ * (199-01): Kein Stil dreht das Bild.
  */
 export const setzeRahmenstil = (quelle: string, nr: number, stil: Rahmenstil | null): string => {
 	if (!istBildFrei(knotenAn(quelle, nr))) {
@@ -138,9 +142,6 @@ export const setzeRahmenstil = (quelle: string, nr: number, stil: Rahmenstil | n
 	let q = mitAttribut(quelle, nr, 'data-rahmenstil', stil);
 	if (stil !== null) {
 		q = ohneMaske(q, nr);
-	}
-	if (stil === 'schraeg' && !leseLage(q, nr).drehen) {
-		q = setzeLage(q, nr, { drehen: SCHRAEG_GRAD });
 	}
 	return q;
 };

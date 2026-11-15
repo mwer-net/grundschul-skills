@@ -80,7 +80,7 @@ test.describe('Stift und Pfad (116)', () => {
 		await expect.poll(async () => anzahl(await quelle(page))).toBe(1);
 		const geschlossen = await quelle(page);
 		expect(geschlossen).toMatch(/data-form="pfad"[^>]*><path d="M[^"]*Z" style="fill:var\(--akzent\)/);
-		await expect(aktivesWerkzeug(page)).toHaveAttribute('data-werkzeug', 'auswahl');
+		await expect(aktivesWerkzeug(page)).toHaveCount(0);
 
 		await geladen(page);
 		await page.keyboard.press('KeyP');
@@ -127,7 +127,7 @@ test.describe('Stift und Pfad (116)', () => {
 		await page.mouse.click(a.x + 80, a.y);
 		await page.keyboard.press('Backspace');
 		await page.keyboard.press('Escape');
-		await expect(aktivesWerkzeug(page)).toHaveAttribute('data-werkzeug', 'auswahl');
+		await expect(aktivesWerkzeug(page)).toHaveCount(0);
 		await expect(material(page).locator('[data-ablage-vorschau]')).toHaveCount(0);
 		expect(await quelle(page)).toBe(vorher);
 	});

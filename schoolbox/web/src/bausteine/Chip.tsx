@@ -14,7 +14,7 @@ export const Chip = ({ aktiv, farbe, titel, waehle }: Eigenschaften) => (
 		aria-pressed={aktiv}
 		className={klassen(
 			'inline-flex h-knopf-klein items-center gap-1.5 rounded-md border px-2 text-sm font-medium whitespace-nowrap transition-colors duration-[120ms]',
-			aktiv ? 'border-rand-feld bg-flaeche-2 text-tinte' : 'border-rand bg-flaeche text-leise hover:bg-flaeche-2',
+			aktiv ? 'border-brand-500 bg-brand-50 text-tinte' : 'border-rand bg-flaeche text-leise hover:bg-flaeche-2',
 		)}
 		onClick={waehle}
 	>

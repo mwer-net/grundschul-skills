@@ -8,6 +8,7 @@ import {
 	BEFEHLE,
 	befehleFuerMenue,
 	befehlZuTaste,
+	GESPERRT_GRUND,
 	istZoomTaste,
 	kuerzelIm,
 	kuerzelText,
@@ -541,6 +542,12 @@ describe('Werkzeuge (098)', () => {
 		assert.equal(belegt.get('U:KeyR'), 'werkzeug.rechteck');
 		assert.equal(befehle.find((b) => b.id === 'werkzeug.stern')?.kuerzel, undefined);
 		assert.deepEqual(befehle.find((b) => b.id === 'werkzeug.stern')?.orte, ['palette']);
+		// 198 (Urteil 1), 193-38: Das Werkzeug Stern ist weg; R, O, Y, L und T bleiben Tasten ohne Zeile in der Palette.
+		assert.equal(BEFEHLE.find((b) => b.id === 'werkzeug.stern'), undefined);
+		for (const id of ['rechteck', 'ellipse', 'vieleck', 'linie', 'text']) {
+			assert.deepEqual(BEFEHLE.find((b) => b.id === `werkzeug.${id}`)?.orte, ['taste'], id);
+		}
+		assert.deepEqual(BEFEHLE.find((b) => b.id === 'werkzeug.stift')?.orte, ['taste', 'palette']);
 	});
 
 	it('Keine Formen-Schere (173)', () => {
@@ -688,5 +695,45 @@ describe('Zoom-Tasten (184)', () => {
 		const ansicht = tastenAbschnitte(undefined, true).find((a) => a.titel === 'Ansicht');
 		const zeile = ansicht?.zeilen.find((z) => z.id === 'ansicht.zoom-100');
 		assert.deepEqual(zeile?.tasten, ['⌘0', '1']);
+	});
+});
+
+describe('Sperre im Befehl (198-03)', () => {
+	const befehl = (id: string) => {
+		const b = BEFEHLE.find((x) => x.id === id);
+		assert.ok(b, id);
+		return b;
+	};
+	const offen = mitAuswahl('absatz', { hatAblage: true, davor: 3 });
+	const zu = mitAuswahl('absatz', { hatAblage: true, davor: 3, gesperrt: true });
+
+	it('Löschen, Duplizieren, Ausschneiden, Schieben und Ordnen gehen am Gesperrten nicht und sagen warum', () => {
+		for (const id of ['auswahl.loeschen', 'auswahl.duplizieren', 'auswahl.ausschneiden', 'auswahl.einfuegen-davor']) {
+			assert.equal(befehl(id).verfuegbar(offen), true, `${id} ungesperrt`);
+			assert.equal(befehl(id).verfuegbar(zu), false, id);
+			assert.equal(befehl(id).warumNicht?.(zu), GESPERRT_GRUND, id);
+		}
+		for (const b of BEFEHLE.filter((x) => /^auswahl\.(schiebe|nach-|ganz-|gruppieren|vereinen|abziehen)/.test(x.id))) {
+			assert.equal(b.verfuegbar(zu), false, b.id);
+		}
+	});
+
+	it('Kopieren, Einfügen, Wählen und die Sichtbarkeit bleiben', () => {
+		for (const id of ['auswahl.kopieren', 'auswahl.einfuegen', 'auswahl.aufheben', 'auswahl.eltern']) {
+			assert.equal(befehl(id).verfuegbar(zu), befehl(id).verfuegbar(offen), id);
+		}
+	});
+
+	it('⌫ findet den Befehl weiter, damit die Taste den Grund nennt statt still zu bleiben', () => {
+		const taste = { code: 'Backspace', key: 'Backspace', metaKey: false, ctrlKey: false, altKey: false, shiftKey: false };
+		assert.equal(befehlZuTaste(taste, 'auswahl', zu)?.id, 'auswahl.loeschen');
+	});
+
+	it('das Menü am Gesperrten zeigt nur, was erlaubt ist', () => {
+		const ids = befehleFuerMenue('baustein', zu).map((b) => b.id);
+		assert.ok(ids.includes('auswahl.kopieren'));
+		for (const id of ['auswahl.loeschen', 'auswahl.duplizieren', 'auswahl.ausschneiden']) {
+			assert.ok(!ids.includes(id), id);
+		}
 	});
 });

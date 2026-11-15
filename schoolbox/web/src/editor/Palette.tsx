@@ -15,7 +15,14 @@ interface Eigenschaften {
 	 * Letzte Zeile, sobald etwas getippt ist: im Editor „An Claude schicken“ (füllt das Feld der Blase, abgeschickt wird
 	 * von Hand), sonst „Material anlegen“ mit dem Text als Thema (136).
 	 */
-	freitext?: { titel: (text: string) => string; aus: (text: string) => void } | undefined;
+	freitext?:
+		| {
+				titel: (text: string) => string;
+				aus: (text: string) => void;
+				/** Ist die Eingabe der Anfang eines Befehls, fehlt die Zeile (190-05). */
+				ausser?: (text: string) => boolean;
+		  }
+		| undefined;
 	/** `true`: Es folgt gleich die Aktion der Zeile. */
 	schliessen: (ausgefuehrt: boolean) => void;
 }
@@ -43,7 +50,7 @@ export const Palette = ({ eintraege, freitext, platzhalter, schliessen }: Eigens
 	const gruppen = useMemo(() => {
 		const text = anfrage.trim();
 		const treffer = gruppiere(text ? suchePalette(anfrage, eintraege, zuletzt) : startliste(eintraege, zuletzt));
-		if (!text || !freitext) {
+		if (!text || !freitext || freitext.ausser?.(text)) {
 			return treffer;
 		}
 		const zeile: PalettenEintrag = {
@@ -85,6 +92,9 @@ export const Palette = ({ eintraege, freitext, platzhalter, schliessen }: Eigens
 	};
 
 	const fuehreAus = (e: PalettenEintrag) => {
+		if (e.gesperrt) {
+			return;
+		}
 		merkeBenutzt(e.id);
 		zu(true);
 		// Erst wenn der Dialog weg ist: Die Aktion setzt den Fokus vielleicht selbst.
@@ -182,10 +192,12 @@ export const Palette = ({ eintraege, freitext, platzhalter, schliessen }: Eigens
 									id={zeileId(hier)}
 									role="option"
 									aria-selected={gewaehlt}
+									aria-disabled={e.gesperrt ? true : undefined}
 									data-palette-zeile={e.id}
 									className={klassen(
 										'flex h-zeile cursor-default items-center gap-2 px-3',
 										gewaehlt && 'bg-brand-50',
+										e.gesperrt && 'text-leise',
 									)}
 									onPointerMove={() => setStelle(hier)}
 									onClick={() => fuehreAus(e)}
@@ -202,7 +214,7 @@ export const Palette = ({ eintraege, freitext, platzhalter, schliessen }: Eigens
 										{e.titel}
 									</span>
 									{e.notiz && (
-										<span className="min-w-0 flex-1 truncate text-xs text-dezent">
+										<span className="min-w-0 flex-1 truncate text-xs text-dezent" title={e.notiz}>
 											{e.notiz}
 										</span>
 									)}

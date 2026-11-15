@@ -1041,7 +1041,7 @@ const BildWahl = (e: BildWahlEigenschaften) => {
 		<div className="flex flex-wrap items-center gap-2" role="group" aria-label={name}>
 			{wert && <img className="h-12 w-12 flex-none object-contain" alt="" src={`${abb.bildBasis}${wert}`} />}
 			<Knopf art="zweit" className="flex-1" onClick={oeffneSammlung}>
-				Aus der Sammlung
+				Aus Bildern wählen
 			</Knopf>
 			<Knopf art="zweit" className="flex-1" onClick={oeffneDatei}>
 				Hochladen
@@ -1078,7 +1078,7 @@ const BildKnopf = (e: BildWahlEigenschaften) => {
 			<Menue
 				name={name}
 				eintraege={[
-					{ titel: 'Aus der Sammlung', waehle: oeffneSammlung },
+					{ titel: 'Aus Bildern wählen', waehle: oeffneSammlung },
 					{ titel: 'Hochladen', waehle: oeffneDatei },
 					...(wert ? [{ titel: 'Bild entfernen', gefahr: true, waehle: () => aendere('', true) }] : []),
 				]}

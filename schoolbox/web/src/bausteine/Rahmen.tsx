@@ -5,10 +5,13 @@ import { Link, Outlet, useLocation, useMatch, useNavigate, useNavigationType, us
 import { meldung, sende } from '../api';
 import { useKiZustand } from '../editor/ki';
 import { TASTEN_SPERRE } from '../editor/tasten';
+import { usePlanDaMeldung } from '../ordner/claude-baut';
 import { EinheitPille } from '../ordner/EinheitBand';
 import { useEinheiten, useEinheitFertigMeldung } from '../ordner/einheiten';
 import { AblageAnbieter } from '../ordner/useOrdner';
 import { MaterialDialog } from '../seiten/Anlegen';
+import type { GemerkterAssistent } from '../seiten/assistent-gemerkt';
+import { ASSISTENT_FORTSETZEN, gemerkterAssistent } from '../seiten/assistent-gemerkt';
 import { Seitenpalette } from '../seiten/Seitenpalette';
 import { useHinweis } from './hinweis';
 import { klassen } from './klassen';
@@ -117,9 +120,17 @@ const RahmenInnen = () => {
 	const [palette, setPalette] = useState(false);
 	// 136: Freitext aus der Palette öffnet den Assistenten mit dem Text als Thema.
 	const [thema, setThema] = useState<string | null>(null);
+	// 190-02: „Weiter ausfüllen“ aus der Hinweisleiste öffnet den geschlossenen Assistenten wieder.
+	const [fortsetzen, setFortsetzen] = useState<GemerkterAssistent | null>(null);
+	useEffect(() => {
+		const oeffne = () => setFortsetzen(gemerkterAssistent());
+		window.addEventListener(ASSISTENT_FORTSETZEN, oeffne);
+		return () => window.removeEventListener(ASSISTENT_FORTSETZEN, oeffne);
+	}, []);
 	const ki = useKiZustand();
 	const { einheiten } = useEinheiten();
 	useEinheitFertigMeldung(einheiten);
+	usePlanDaMeldung();
 	// Die Dokumentansicht hat ihren eigenen einzeiligen Kopf: Das Blatt soll oben im Fenster beginnen.
 	const ohneKopf = useMatch('/m/:mappe/:dok') !== null;
 	const inOrdner = useMatch('/o/:ordner');
@@ -160,10 +171,18 @@ const RahmenInnen = () => {
 					}}
 					abmelden={() => void abmelden()}
 					anlegen={ki.zustand.verfuegbar ? setThema : undefined}
+					materialAnlegen={() => setThema('')}
 				/>
 			)}
 			{thema !== null && (
 				<MaterialDialog ordner={ordnerId ?? null} thema={thema} schliessen={() => setThema(null)} />
+			)}
+			{fortsetzen !== null && (
+				<MaterialDialog
+					ordner={fortsetzen.ordner}
+					fortsetzen={fortsetzen}
+					schliessen={() => setFortsetzen(null)}
+				/>
 			)}
 			<header
 				ref={kopf}

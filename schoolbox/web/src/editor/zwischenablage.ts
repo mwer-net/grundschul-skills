@@ -8,6 +8,8 @@ export interface Abgelegt {
 	name: string;
 	mappe: string;
 	dok: string;
+	/** 198-01: Nummer des Originals; ⌘V einer Gestaltung im selben Dokument legt die Kopie daneben wie ⌘D. */
+	nr?: number;
 }
 
 /** Nur was dieser Editor selbst abgelegt hat: `localStorage` gehört der Schoolbox, nichts kommt von außen. */

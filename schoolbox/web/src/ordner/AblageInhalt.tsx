@@ -86,6 +86,7 @@ interface ListeEigenschaften {
 
 const Liste = ({
 	ansicht,
+	baut,
 	klappeAlle,
 	klappeListe,
 	offenListe,
@@ -93,7 +94,7 @@ const Liste = ({
 	sortiere,
 	sortierung,
 	zeilen,
-}: ListeEigenschaften) => {
+}: ListeEigenschaften & { baut: ReturnType<typeof useClaudeBaut> }) => {
 	const mitMaterial = zeilen.some((z) => !z.objekt.istOrdner);
 	const mitOrt = seite.art !== 'ordner';
 	const koepfe = SPALTEN.filter((s) => mitMaterial || !NUR_MATERIAL.has(s.titel)).map((s) =>
@@ -133,6 +134,7 @@ const Liste = ({
 				const { objekt } = z;
 				const a: ZeileAnsicht = {
 					...ansicht(z),
+					claude: objekt.istOrdner ? undefined : baut.get(`${objekt.dok.mappe}/${objekt.dok.id}`),
 					mitMaterial,
 					offen: objekt.istOrdner && offenListe.has(objekt.ordner.id),
 					klappe:
@@ -164,19 +166,13 @@ const FlaecheInhalt = ({
 			<ul className="grid grid-cols-[repeat(auto-fill,minmax(190px,1fr))] gap-3">
 				{zeilen.map((z) => {
 					const { objekt } = z;
-					const seit = objekt.istOrdner ? undefined : baut.get(`${objekt.dok.mappe}/${objekt.dok.id}`);
-					return (
-						<Kachel
-							key={objekt.schluessel}
-							{...ansicht(z)}
-							claude={seit === undefined ? undefined : { seit }}
-						/>
-					);
+					const claude = objekt.istOrdner ? undefined : baut.get(`${objekt.dok.mappe}/${objekt.dok.id}`);
+					return <Kachel key={objekt.schluessel} {...ansicht(z)} claude={claude} />;
 				})}
 			</ul>
 		);
 	}
-	return <Liste {...liste} />;
+	return <Liste {...liste} baut={baut} />;
 };
 
 interface Eigenschaften extends ListeEigenschaften {

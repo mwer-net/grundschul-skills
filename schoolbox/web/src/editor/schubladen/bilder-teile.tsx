@@ -1,20 +1,21 @@
 import type { Sammlung, SammlungsBild } from '@schoolbox/kern/src/bildbefehle';
 import { vorschaubildAdresse } from '@schoolbox/kern/src/bildbefehle';
 import type { CanvaStand } from '@schoolbox/kern/src/canva-auftrag';
-import { fuegeBausteinEin } from '@schoolbox/kern/src/einfuegen';
+import type { DragEvent } from 'react';
 import { useEffect, useMemo, useRef, useState } from 'react';
 
-import { meldung } from '../../api';
+import { meldung, sende } from '../../api';
+import { useHinweis } from '../../bausteine/hinweis';
 import { Schublade, Schubladenabschnitt, Schubladensuche, STEUER_SEGMENT } from '../../bausteine/Schublade';
 import { Segment } from '../../bausteine/Segment';
 import { useEreignisse } from '../../ereignisse';
 import { useLaden } from '../../lib/laden';
-import type { NeuerPlatz } from '../bild';
-import { beschreibungAus } from '../bild';
+import type { FreiAblegen } from '../bild';
 import { passt } from '../bild-sammlung';
 import type { BildZiehen, SammlungsGruppe } from '../Bildpanel';
-import { Hochladen, Laeuft, SammlungsKacheln } from '../Bildpanel';
+import { BILDGRUPPEN, bildBeschreibung, bilderZahl, Hochladen, Laeuft, SammlungsKacheln } from '../Bildpanel';
 import { bildLaeufe, canvaAktion, starteBild, useCanvaLaeufe } from '../canva';
+import { legeInMitte } from '../gestaltung/ablegen/ablegen';
 import { bildGut, mitGeholtemBild } from '../gestaltung/ablegen/bild-gut';
 import { useHolenAmZeiger } from '../gestaltung/ablegen/holen-am-zeiger';
 import type { SchubladenTeile } from '.';
@@ -22,18 +23,8 @@ import { BildBeschreiben } from './bild-beschreiben';
 import { CanvaBildKacheln } from './CanvaKachel';
 import { kopf } from './reihe';
 
-/** Reihenfolge in der Schublade; Figuren stehen nur in „Figuren“ (177), der Server lässt sie hier schon weg. */
-const GRUPPEN: { wert: SammlungsGruppe; titel: string }[] = [
-	{ wert: 'mappe', titel: 'Dieser Ordner' },
-	{ wert: 'meine', titel: 'Meine Bilder' },
-	{ wert: 'sammlung', titel: 'Sammlung' },
-];
-
-/** Der Platzhalter aus dem Katalog, hinter der Auswahl; `setzeBildEin` füllt ihn im selben Schritt. */
-const neuerPlatz = (t: SchubladenTeile): NeuerPlatz | undefined => {
-	const platz = t.einfuegen.eintraege.find((e) => e.id === 'platzhalter');
-	return platz ? (q) => fuegeBausteinEin(q, platz.einfuegbar, t.auswahl, { jeSeite: t.folien }) : undefined;
-};
+/** Zieht jemand Dateien herein? Nur dann nimmt die Schublade das Ablegen an (199, entschieden vom Admin). */
+const mitDateien = (e: DragEvent) => [...e.dataTransfer.types].includes('Files');
 
 export const Inhalt = (t: SchubladenTeile) => {
 	const { bild } = t;
@@ -45,7 +36,7 @@ export const Inhalt = (t: SchubladenTeile) => {
 	const mitClaude = !(t.ki.geladen && !t.ki.verfuegbar);
 	const meineLaeufe = mitClaude ? bildLaeufe(laeufe, t.dokument) : [];
 	// Ohne eigene Wahl die erste Gruppe mit Bildern oder Aufträgen, damit die Schublade nicht leer aufgeht.
-	const ersteMitBildern = GRUPPEN.find(
+	const ersteMitBildern = BILDGRUPPEN.find(
 		(g) => (daten?.[g.wert].length ?? 0) > 0 || (g.wert === 'mappe' && meineLaeufe.length > 0),
 	);
 	const gruppe = gewaehlt ?? ersteMitBildern?.wert ?? 'mappe';
@@ -70,17 +61,72 @@ export const Inhalt = (t: SchubladenTeile) => {
 		return {
 			teile: { doc, folien, struktur: holend },
 			gut: bildGut(
-				{ src: vorschau, alt: eintrag.alt[0] ?? beschreibungAus(eintrag.name), natur },
+				{ src: vorschau, alt: bildBeschreibung(eintrag), natur },
 				{ platz, jeSeite: folien, struktur: holend },
 			),
 		};
 	};
 
-	// Gewählt ist ein Bild, ein Platzhalter oder ein leerer Bildrahmen (172): Klick und „Foto hochladen“ füllen es.
-	const ziel = bild.werte;
-	const neu = ziel ? undefined : neuerPlatz(t);
+	/**
+	 * 199-02, 199-05: Die Schublade fügt hinzu, der Inspektor tauscht aus. Klick und „Foto hochladen“ legen ein neues
+	 * freies Bild in die Mitte der sichtbaren Seite; nur ein gewählter Platzhalter oder leerer Bildrahmen wird gefüllt.
+	 */
+	const frei: FreiAblegen = (b) => void legeInMitte({ doc, folien, struktur }, bildGut(b));
 	const waehle = (eintrag: SammlungsBild) =>
-		void bild.uebernimm(eintrag.schluessel, eintrag.alt[0] ?? beschreibungAus(eintrag.name), neu);
+		void bild.uebernimm(eintrag.schluessel, bildBeschreibung(eintrag), frei);
+	const zeigeHinweis = useHinweis();
+	const entferne = (eintrag: SammlungsBild) => {
+		const schluessel = eintrag.kopien ?? [eintrag.schluessel];
+		const ziel = `${bild.adresse}/bilder/entfernen`;
+		void sende<{ tage?: number }>(ziel, { schluessel }).then(
+			({ tage = 30 }) => {
+				neuLaden();
+				zeigeHinweis({
+					// 199-N02: ehrlich, wann es wirklich weg ist (Frist wie der Papierkorb, vom Server).
+					text: `Bild entfernt. Es wird in ${tage} Tagen endgültig gelöscht.`,
+					aktion: {
+						titel: 'Rückgängig',
+						ausfuehren: () =>
+							void sende(ziel, { schluessel, zurueck: true }).then(neuLaden, (grund: unknown) =>
+								zeigeHinweis({ text: meldung(grund), art: 'fehler' }),
+							),
+					},
+				});
+			},
+			(grund: unknown) => zeigeHinweis({ text: meldung(grund), art: 'fehler' }),
+		);
+	};
+	// Eine Datei aus dem Finder auf der Schublade: hochladen wie mit „Foto hochladen“.
+	const [drueber, setDrueber] = useState(false);
+	const ablegen = {
+		onDragOver: (e: DragEvent) => {
+			if (!mitDateien(e) || !bild.aktiv) {
+				return;
+			}
+			e.preventDefault();
+			e.dataTransfer.dropEffect = 'copy';
+			setDrueber(true);
+		},
+		onDragLeave: (e: DragEvent) => {
+			if (!e.currentTarget.contains(e.relatedTarget as Node | null)) {
+				setDrueber(false);
+			}
+		},
+		onDrop: (e: DragEvent) => {
+			setDrueber(false);
+			if (!mitDateien(e) || !bild.aktiv) {
+				return;
+			}
+			e.preventDefault();
+			// 199-N04: alle Bilder hochladen, das erste einsetzen.
+			const dateien = [...e.dataTransfer.files].filter((d) => d.type.startsWith('image/'));
+			if (dateien.length === 0) {
+				zeigeHinweis({ text: 'Hier lassen sich nur Bilder ablegen.' });
+				return;
+			}
+			void bild.hochladen(dateien, frei);
+		},
+	};
 	const [canvaFehler, setCanvaFehler] = useState<string | null>(null);
 	useEreignisse((e) => {
 		if (e.typ === 'canva-stand' && e.art === 'bild' && e.status === 'fertig') {
@@ -97,11 +143,10 @@ export const Inhalt = (t: SchubladenTeile) => {
 		bild.arbeit === 'hochladen' ? (
 			<Laeuft text="Foto wird hochgeladen …" />
 		) : (
-			<Hochladen bild={bild} neu={neu} breit={!mitClaude} klein={mitClaude} />
+			<Hochladen bild={bild} frei={frei} breit aus={!bild.aktiv} />
 		);
-	const titel = GRUPPEN.find((g) => g.wert === gruppe)?.titel ?? '';
-	const zahl = daten?.[gruppe].length ?? 0;
-	const anzahl = zahl === 0 ? undefined : `${zahl} ${zahl === 1 ? 'Bild' : 'Bilder'}`;
+	const titel = BILDGRUPPEN.find((g) => g.wert === gruppe)?.titel ?? '';
+	const anzahl = bilderZahl(daten?.[gruppe].length ?? 0);
 
 	const steuerung = (
 		<>
@@ -109,15 +154,14 @@ export const Inhalt = (t: SchubladenTeile) => {
 			<Segment
 				beschriftung="Welche Bilder?"
 				className={STEUER_SEGMENT}
-				werte={GRUPPEN.map((g) => ({ wert: g.wert, titel: g.titel }))}
+				werte={[...BILDGRUPPEN]}
 				wert={gruppe}
 				waehle={setGruppe}
 			/>
-			{mitClaude ? (
+			{mitClaude && (
 				<BildBeschreiben
 					ki={t.ki}
 					ort={t.dokument}
-					hochladen={hochladen}
 					fehler={canvaFehler}
 					setFehler={setCanvaFehler}
 					gesendet={() => {
@@ -125,14 +169,17 @@ export const Inhalt = (t: SchubladenTeile) => {
 						setSuche('');
 					}}
 				/>
-			) : (
-				hochladen
 			)}
+			{hochladen}
 		</>
 	);
 
 	return (
-		<>
+		<div
+			className={drueber ? 'contents *:outline-2 *:-outline-offset-2 *:outline-brand-500' : 'contents'}
+			data-bilder-ablage={drueber ? 'drueber' : undefined}
+			{...ablegen}
+		>
 			<Schublade titel={kopf('bilder').titel} daten={{ 'data-schublade-bilder': '' }} steuerung={steuerung}>
 				<Schubladenabschnitt titel={titel} notiz={anzahl} daten={{ 'data-bilder-gruppe': gruppe }}>
 					{bild.arbeit === 'sammlung' && <Laeuft text="Bild wird eingesetzt …" />}
@@ -146,6 +193,7 @@ export const Inhalt = (t: SchubladenTeile) => {
 						suche={suche}
 						waehle={waehle}
 						ziehen={ziehen}
+						entferne={entferne}
 						vorne={
 							auftraege.length > 0 ? <CanvaBildKacheln laeufe={auftraege} nochmal={nochmal} /> : undefined
 						}
@@ -153,6 +201,6 @@ export const Inhalt = (t: SchubladenTeile) => {
 				</Schubladenabschnitt>
 			</Schublade>
 			{holen}
-		</>
+		</div>
 	);
 };

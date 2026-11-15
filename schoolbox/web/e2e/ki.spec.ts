@@ -46,7 +46,7 @@ const assistent = async (page: Page, mappe: string) => {
 	return dialog;
 };
 
-/** Mit allen Empfehlungen bis „Auftrag prüfen“: Art wählen, Thema tippen, sonst nur ⏎ (132). */
+/** Mit allen Empfehlungen bis zum letzten Schritt „Deine Klasse“: Art wählen, Thema tippen, sonst nur ⏎ (132, 190-37). */
 const bisZumAuftrag = async (page: Page, dialog: Locator, thema: string) => {
 	await page.keyboard.press('Enter');
 	await dialog.locator('[data-wahl="lesetext"]').click();
@@ -57,8 +57,8 @@ const bisZumAuftrag = async (page: Page, dialog: Locator, thema: string) => {
 	await page.keyboard.type(thema);
 	await page.keyboard.press('Enter');
 	await page.keyboard.press('Enter');
-	await page.keyboard.press('Enter');
-	await expect(dialog.locator('[data-assistent="pruefen"]')).toBeVisible();
+	await expect(dialog.locator('[data-assistent="klasse"]')).toBeVisible();
+	await expect(dialog.locator('[data-hauptaktion]')).toHaveText('Aufgabenplan holen');
 };
 
 test.describe('Assistent: Mit Claude (132)', () => {
@@ -66,39 +66,22 @@ test.describe('Assistent: Mit Claude (132)', () => {
 	test.beforeEach(() => fall('gut'));
 	test.afterEach(() => fall('gut'));
 
-	test('Nur mit ⏎ zum Vorschlag; Claude bekommt genau den Auftrag aus der Vorschau', async ({ page }) => {
+	test('Nur mit ⏎ zum Vorschlag; Claude bekommt die Antworten als Auftrag', async ({ page }) => {
 		const { id: mappe } = await uhrzeit();
 		const dialog = await assistent(page, mappe);
 		await expect(dialog.locator('[data-wahl="claude"]')).toHaveAttribute('aria-pressed', 'true');
 		await bisZumAuftrag(page, dialog, 'Igel im Herbst');
-		const vorschau = (await dialog.locator('[data-auftrag] p').allInnerTexts()).join('\n');
-		expect(vorschau).toContain('Thema: „Igel im Herbst“');
 		const prompts = path.join(`${MATERIAL_DIR}-ki`, 'prompts.txt');
 		await writeFile(prompts, '');
 		await page.keyboard.press('Enter');
 		await expect(page).toHaveURL(/bearbeiten\?claude=1/);
 		await expect(leiste(page)).toHaveAttribute('data-entwurfsleiste', 'offen');
-		expect(await readFile(prompts, 'utf8')).toContain(
-			`Antworten der Lehrkraft aus dem Assistenten (sie ersetzen die Start-Abfrage):\n${vorschau}`,
-		);
+		const prompt = await readFile(prompts, 'utf8');
+		expect(prompt).toContain('Antworten der Lehrkraft aus dem Assistenten (sie ersetzen die Start-Abfrage):');
+		expect(prompt).toContain('Thema: „Igel im Herbst“');
 		await leiste(page).getByRole('button', { name: 'Übernehmen' }).click();
 		await expect(leiste(page)).toBeHidden();
 		await expect.poll(() => quelleAufPlatte(mappe, dokVon(page))).toContain('von Claude');
-	});
-
-	test('Als Text bearbeitet: Claude bekommt den Text der Lehrkraft', async ({ page }) => {
-		const { id: mappe } = await uhrzeit();
-		const dialog = await assistent(page, mappe);
-		await bisZumAuftrag(page, dialog, 'Igel');
-		await dialog.getByRole('button', { name: 'Als Text bearbeiten' }).click();
-		await dialog.getByRole('textbox', { name: 'Auftrag' }).fill('Ein Igel-Blatt mit EIGENEM Text.');
-		const prompts = path.join(`${MATERIAL_DIR}-ki`, 'prompts.txt');
-		await writeFile(prompts, '');
-		await dialog.getByRole('button', { name: 'Mit Claude erstellen' }).click();
-		await expect(leiste(page)).toBeVisible();
-		const prompt = await readFile(prompts, 'utf8');
-		expect(prompt).toContain('Ein Igel-Blatt mit EIGENEM Text.');
-		expect(prompt).not.toContain('Thema: „Igel“');
 	});
 
 	test('Ohne angemeldetes claude bleibt nur das leere Blatt', async ({ page }) => {
@@ -114,14 +97,15 @@ test.describe('Assistent: Mit Claude (132)', () => {
 		await expect(dialog.locator('[data-schritt="thema"]')).toHaveCount(0);
 	});
 
-	test('Am Limit: „Mit Claude erstellen“ ist gesperrt, das leere Blatt nie', async ({ page }) => {
+	test('Am Limit: „Aufgabenplan holen“ ist gesperrt, das leere Blatt nie', async ({ page }) => {
 		await page.route('**/api/ki/status', (r) => r.fulfill({ json: sperre }));
 		const { id: mappe } = await uhrzeit();
 		const dialog = await assistent(page, mappe);
 		await bisZumAuftrag(page, dialog, 'Igel');
 		await expect(dialog.locator('[data-ki-limit="gesperrt"]')).toContainText('Wieder möglich ab');
-		await expect(dialog.getByRole('button', { name: 'Mit Claude erstellen' })).toBeDisabled();
-		await dialog.getByRole('button', { name: 'Nur leeres Blatt anlegen' }).click();
+		await expect(dialog.locator('[data-hauptaktion]')).toBeDisabled();
+		await dialog.getByRole('button', { name: 'Doch lieber leeres Blatt' }).click();
+		await dialog.locator('[data-hauptaktion]').click();
 		await expect(page).toHaveURL(/bearbeiten\?neu=1/);
 	});
 });
@@ -156,7 +140,6 @@ test.describe('Neues Blatt im Editor (133)', () => {
 		const adresse = page.url();
 		await expect(entwurfKarte(page)).toContainText('Claude plant „Igel“');
 		await expect(entwurfKarte(page)).toContainText('Ändert das Blatt');
-		await expect(page.locator('[data-entwurf-pille]')).toContainText('Claude arbeitet');
 		// 195-02: Alle fünf bleiben an ihrem Platz, die nicht bereiten ausgegraut und ohne Wirkung.
 		await expect(page.locator('[data-schublade-knopf]')).toHaveCount(5);
 		await expect(page.locator('[data-schublade-knopf="bausteine"]')).toHaveAttribute('aria-disabled', 'true');
@@ -178,11 +161,11 @@ test.describe('Neues Blatt im Editor (133)', () => {
 		await expect(entwurfKarte(page)).toBeHidden();
 		await expect(entwurfKarte(zweite)).toBeHidden();
 		await zweite.close();
-		await expect(leiste(page)).toContainText('Abgebrochen. Das leere Blatt bleibt');
-		await expect(page.locator('[data-entwurf-pille]')).toHaveCount(0);
-		await expect(page.locator('[data-schublade-knopf="bausteine"]')).toBeVisible();
-		await page.reload();
-		await expect(leiste(page)).toHaveCount(0);
+		// Vor dem ersten Bau geht das unberührte Blatt in den Papierkorb, mit „Rückgängig“ (190-41).
+		await expect(page).not.toHaveURL(/bearbeiten/);
+		await expect(page.getByText('„Igel“ in den Papierkorb gelegt.')).toBeVisible();
+		await page.getByRole('button', { name: 'Rückgängig' }).click();
+		await expect(page.locator('[data-objekt]').filter({ hasText: 'Igel' })).toBeVisible();
 	});
 
 	test('Entwurfsleiste: Annahmen, Nachbessern im selben Gespräch, ⏎ übernimmt', async ({ page }) => {
@@ -242,6 +225,19 @@ test.describe('Neues Blatt im Editor (133)', () => {
 		const prompts = await readFile(path.join(`${MATERIAL_DIR}-ki`, 'prompts.txt'), 'utf8');
 		expect(prompts).toContain('Freigegebener Aufgabenplan:');
 		expect(prompts).toContain('Änderungswunsch der Lehrkraft: „Nur 15 Minuten.“');
+	});
+
+	test('Plan verwerfen, „Rückgängig“: Das Blatt kommt mit seinem Plan zurück (190-N02)', async ({ page }) => {
+		await fall('plan');
+		const { dok, mappe } = await neuesBlatt(page);
+		const karte = entwurfKarte(page);
+		await expect(karte).toHaveAttribute('data-entwurf-karte', 'plan');
+		await page.locator('[data-plan-verwerfen]').click();
+		await page.getByRole('button', { name: 'Rückgängig', exact: true }).click();
+		await expect(page.getByText('Rückgängig gemacht.')).toBeVisible();
+		await page.goto(`/m/${mappe}/${dok}/bearbeiten`);
+		await expect(karte).toHaveAttribute('data-entwurf-karte', 'plan');
+		await expect(karte.locator('[data-entwurf-plan]')).toContainText('Seite ● Grundlage (21 min)');
 	});
 
 	test('Verwerfen lässt das leere Blatt, die Leiste führt zum Ordner', async ({ page }) => {
@@ -309,7 +305,7 @@ test.describe('Editor: Mit Claude ändern (058, 059)', () => {
 		await expect
 			.poll(() => rahmen.locator('html').evaluate((el) => el.scrollWidth <= window.innerWidth + 1))
 			.toBe(true);
-		await page.getByRole('button', { name: 'Annehmen' }).click();
+		await page.getByRole('dialog').getByRole('button', { name: 'Übernehmen' }).click();
 		await expect(panel(page).locator('[data-ki-vorschlag]')).toBeHidden();
 		await expect.poll(() => quelleAufPlatte(mappe, dok)).toContain('von Claude');
 	});
@@ -333,7 +329,7 @@ test.describe('Editor: Mit Claude ändern (058, 059)', () => {
 		await panel(page).getByLabel('Was soll Claude ändern?').fill('Dauert');
 		await panel(page).getByRole('button', { name: 'Senden' }).click();
 		const lauf = panel(page).locator('[data-ki-lauf]');
-		await expect(lauf.getByText(/Claude ändert Seite 1/)).toBeVisible();
+		await expect(lauf.getByText(/Claude arbeitet/)).toBeVisible();
 		await lauf.getByRole('button', { name: 'Abbrechen' }).click();
 		await expect(lauf).toBeHidden();
 		await expect(panel(page).locator('[data-ki-vorschlag]')).toBeHidden();

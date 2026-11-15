@@ -58,7 +58,7 @@ const mitteVon = async (element: Locator) => {
  */
 const zieheBild = async (page: Page, ziel: Locator, text: string) => {
 	await oeffneSchublade(page, 'bilder');
-	await bilder(page).getByRole('button', { name: 'Sammlung', exact: true }).click();
+	await bilder(page).getByRole('button', { name: 'Mitgeliefert', exact: true }).click();
 	await expect(kachel(page, WACHSTUM)).toBeVisible();
 	await expect
 		.poll(() =>
@@ -124,16 +124,16 @@ const grau = (p: number[]) =>
 	Math.max(p[0] ?? 0, p[1] ?? 0, p[2] ?? 0) - Math.min(p[0] ?? 0, p[1] ?? 0, p[2] ?? 0) <= 12;
 
 test.describe('Rahmen-Stile und Bildrahmen (111)', () => {
-	test('Jeder Rahmen-Stil an einem freien Bild ist ein Schritt; schräg dreht um −3°', async ({ page }) => {
+	test('199-01/07: Ohne, Polaroid, Kontur; jeder Stil ein Schritt, keiner dreht das Bild', async ({ page }) => {
 		const vorher = blattMit({ vorne: [BILD] });
 		await oeffneMit(page, vorher);
 		const bild = material(page).locator('img.bild-frei');
 		await waehle(page, bild, 'bildfrei');
+		await expect(abschnitt(page).locator('[data-rahmenstil-knopf]')).toHaveCount(3);
+		await expect(abschnitt(page).locator('[data-rahmenstil-knopf="schraeg"], [data-rahmenstil-knopf="rund"]')).toHaveCount(0);
 		for (const [stil, titel] of [
 			['polaroid', 'Polaroid'],
-			['rund', 'Rund'],
 			['kontur', 'Kontur'],
-			['schraeg', 'Schräg'],
 		] as const) {
 			const davor = await quelle(page);
 			await abschnitt(page).getByRole('button', { name: titel, exact: true }).click();
@@ -144,7 +144,10 @@ test.describe('Rahmen-Stile und Bildrahmen (111)', () => {
 			await abschnitt(page).getByRole('button', { name: titel, exact: true }).click();
 			await expect(bild).toHaveAttribute('data-rahmenstil', stil);
 		}
-		expect(await quelle(page)).toContain('--drehen:-3deg');
+		expect(await quelle(page)).not.toContain('--drehen');
+		await abschnitt(page).getByRole('button', { name: 'Ohne', exact: true }).first().click();
+		await expect(bild).not.toHaveAttribute('data-rahmenstil', /.*/);
+		expect(await quelle(page)).not.toContain('--drehen');
 		// 204-12: Die Wahl steht nur noch im Inspektor, nicht in der Leiste am Bild.
 		await expect(page.locator('[data-leiste-rahmenstil]')).toHaveCount(0);
 		expect(vorher).not.toContain('data-rahmenstil');
@@ -278,7 +281,7 @@ test.describe('Rahmen-Stile und Bildrahmen (111)', () => {
 		await waehle(page, rahmen, 'bildrahmen');
 		await expect(abschnitt(page).locator('[data-maske-wahl="stern"]')).toBeVisible();
 		await oeffneSchublade(page, 'bilder');
-		await bilder(page).getByRole('button', { name: 'Sammlung', exact: true }).click();
+		await bilder(page).getByRole('button', { name: 'Mitgeliefert', exact: true }).click();
 		await kachel(page, WACHSTUM).click();
 		await expect
 			.poll(() => quelle(page))
@@ -316,7 +319,7 @@ test.describe('Bildrahmen füllen wie einen Platzhalter (172)', () => {
 			.toBe(true);
 		await oeffneSchublade(page, 'bilder');
 
-		await bilder(page).getByRole('button', { name: 'Sammlung', exact: true }).click();
+		await bilder(page).getByRole('button', { name: 'Mitgeliefert', exact: true }).click();
 		await kachel(page, WACHSTUM).click();
 		await expect.poll(() => quelle(page)).toMatch(/<img class="bild-frei"[^>]*data-maske="stern"/);
 		await expect(page.locator('[data-gestaltung-inspektor="bildfrei"]')).toBeVisible();
@@ -359,9 +362,10 @@ test.describe('Bildrahmen füllen wie einen Platzhalter (172)', () => {
 		});
 		expect(davor).toBe(true);
 
-		await werkzeug.getByRole('button', { name: 'Aus der Sammlung' }).click();
-		const dialog = page.getByRole('dialog', { name: 'Bild aus der Sammlung' });
+		await werkzeug.getByRole('button', { name: 'Aus Bildern wählen' }).click();
+		const dialog = page.getByRole('dialog', { name: 'Bild wählen' });
 		await expect(dialog).toBeVisible();
+		await dialog.getByRole('button', { name: 'Mitgeliefert', exact: true }).click();
 		await dialog.locator(`[data-sammlung-bild="${WACHSTUM}"]`).click();
 		await expect(dialog).toBeHidden();
 		await expect.poll(() => quelle(page)).toMatch(gefuellt);

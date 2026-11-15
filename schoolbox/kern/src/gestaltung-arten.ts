@@ -111,13 +111,34 @@ const figurName = (wert: string) => {
  * 205-03: Der Name einer Form für Schild, Inspektor und Ebenen: aus dem Formen-Register, sonst das Wort aus
  * `data-form` („kreis“ → „Kreis“). `null` ohne `data-form`.
  */
-export const formTitel = (form: string | null | undefined): string | null => {
+export const formTitel = (
+	form: string | null | undefined,
+	lies?: (attr: string) => string | null | undefined,
+): string | null => {
 	const roh = (form ?? '').trim();
 	if (!roh) {
 		return null;
 	}
 	const wort = roh.replace(/[-_]+/g, ' ');
-	return formName(roh) ?? `${wort[0]?.toUpperCase() ?? ''}${wort.slice(1)}`;
+	return formName(roh, lies) ?? `${wort[0]?.toUpperCase() ?? ''}${wort.slice(1)}`;
+};
+
+/** Wie `SCHMUCK_ARTEN` in `schmuck.ts`; hier ohne Import, damit das Register keine Schmuckschrift laden muss. */
+const SCHMUCK_NAMEN: Readonly<Record<string, string>> = { titel: 'Titel', stempel: 'Stempel', etikett: 'Etikett' };
+
+/** Wie `STREU_NAMEN` in `streuen.ts`, ohne Import aus demselben Grund. */
+const STREU_NAMEN: Readonly<Record<string, string>> = { konfetti: 'Konfetti', punkte: 'Punkte', sterne: 'Sterne' };
+
+/**
+ * 198-06: Wörter der Oberfläche je Art, wo das Register (und damit die Referenz der Skills) ein anderes führt:
+ * Schmuckschrift heißt wie ihre Kachel (Titel, Stempel, Etikett), die Streuung nach ihrer Art („Konfetti“ wie das
+ * Werkzeug, „Punkte“, „Sterne“).
+ */
+const artTitel = (art: string, wert: (name: string) => string | null): string | null => {
+	if (art === 'schmuck') {
+		return SCHMUCK_NAMEN[wert('data-schmuck') ?? ''] ?? 'Titel';
+	}
+	return art === 'streuung' ? (STREU_NAMEN[wert('data-streuung') ?? ''] ?? 'Konfetti') : null;
 };
 
 export const nameDerGestaltung = (baustein: Baustein, wert: (name: string) => string | null): string | null => {
@@ -129,7 +150,8 @@ export const nameDerGestaltung = (baustein: Baustein, wert: (name: string) => st
 		wert('data-name')?.trim() ||
 		wert('data-frei-titel')?.trim() ||
 		figurName(wert('data-figur') ?? '') ||
-		formTitel(wert('data-form')) ||
+		formTitel(wert('data-form'), wert) ||
+		artTitel(baustein.art, wert) ||
 		baustein.name
 	); // 104: Name der Form
 };

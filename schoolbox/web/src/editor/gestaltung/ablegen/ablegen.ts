@@ -1,6 +1,7 @@
 import { FLAECHE_RAND, flaecheHtml, hoeheUm, legeFlaeche } from '@schoolbox/kern/src/flaeche';
 import type { LageTeil } from '@schoolbox/kern/src/gestaltung';
-import { htmlMitLage, legeGestaltungAb } from '@schoolbox/kern/src/gestaltung';
+import { htmlMitLage, legeGestaltungAb, VERSATZ_KOPIE } from '@schoolbox/kern/src/gestaltung';
+import { GESTALTUNG_SELEKTOR } from '@schoolbox/kern/src/gestaltung-arten';
 
 import { nrVon } from '../../darstellung';
 import type { PalettenEintrag } from '../../palette-suche';
@@ -140,7 +141,26 @@ export const legeInMitte = async (teile: AblegenTeile, gut: GestaltungsGut) => {
 	const y = beste.zuSehen > 0 ? (beste.oben + beste.unten) / 2 : (r.top + r.bottom) / 2;
 	const x = beste.rechts > beste.links ? (beste.links + beste.rechts) / 2 : (r.left + r.right) / 2;
 	const ort = ortUm(doc, beste.seite, gut, x, y, hoehe ?? hoeheVon(doc, beste.seite, gut));
-	return ort ? legeAb(teile.struktur, gut, ort) : false;
+	return ort ? legeAb(teile.struktur, gut, versetztNeben(beste.seite, ort)) : false;
+};
+
+/**
+ * 198-05 (wie Canva): Liegt in einer Ebene der Seite schon ein Element mit derselben linken oberen Ecke, rückt das neue
+ * um 16 px nach rechts unten, so oft wie nötig; derselbe Versatz wie beim Duplizieren.
+ */
+export const versetztNeben = (seite: Element, ort: Ort): Ort => {
+	const ecken = new Set(
+		[...seite.querySelectorAll<HTMLElement>(`:scope > .ebene > ${GESTALTUNG_SELEKTOR}`)].map((e) => {
+			const stil = e.style;
+			return `${Math.round(parseFloat(stil.getPropertyValue('--x')) || 0)},${Math.round(parseFloat(stil.getPropertyValue('--y')) || 0)}`;
+		}),
+	);
+	let { x, y } = { x: Math.round(ort.x), y: Math.round(ort.y) };
+	while (ecken.has(`${x},${y}`)) {
+		x += VERSATZ_KOPIE;
+		y += VERSATZ_KOPIE;
+	}
+	return { ...ort, x, y };
 };
 
 /**

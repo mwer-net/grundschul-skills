@@ -11,7 +11,24 @@ export interface Vorbelegung {
 	klasse: Klasse;
 	/** `behaelter`: Der Ordner legt Fach und Klasse fest, der Server nimmt nur seine. */
 	quelle: 'behaelter' | 'ordner' | 'zuletzt' | null;
+	/** Kam es aus einem Unter- oder dem übergeordneten Ordner, dessen Name (190-22). */
+	ordnerName?: string;
 }
+
+/** Der Ordner und alle darunter. */
+const mitUnterordnern = (stand: AblageStand, ordner: string): Set<string> => {
+	const ids = new Set([ordner]);
+	for (let neu = true; neu; ) {
+		neu = false;
+		for (const o of stand.ordner) {
+			if (o.eltern !== null && ids.has(o.eltern) && !ids.has(o.id)) {
+				ids.add(o.id);
+				neu = true;
+			}
+		}
+	}
+	return ids;
+};
 
 /** Der Behälter des Ordners, sonst das jüngste Dokument im Ordner, sonst zuletzt benutzt. */
 export const vorbelegung = (stand: AblageStand | null, ordner: string | null): Vorbelegung => {
@@ -20,11 +37,24 @@ export const vorbelegung = (stand: AblageStand | null, ordner: string | null): V
 	if (behaelter) {
 		return { fach: behaelter.fach, klasse: behaelter.klasse, quelle: 'behaelter' };
 	}
-	const juengstes = (stand?.dokumente ?? [])
-		.filter((d) => d.ordner === ordner)
-		.sort((a, b) => b.meta.geaendert.localeCompare(a.meta.geaendert))[0];
+	const juengstesIn = (passt: (ort: string | null) => boolean) =>
+		(stand?.dokumente ?? [])
+			.filter((d) => passt(d.ordner))
+			.sort((a, b) => b.meta.geaendert.localeCompare(a.meta.geaendert))[0];
+	const juengstes = juengstesIn((ort) => ort === ordner);
 	if (juengstes) {
 		return { fach: juengstes.fach, klasse: juengstes.klasse, quelle: 'ordner' };
+	}
+	// Ohne eigenes Material: erst die Unterordner, dann der übergeordnete Ordner (190-22).
+	if (stand && eintrag) {
+		const unten = mitUnterordnern(stand, eintrag.id);
+		const darunter = juengstesIn((ort) => ort !== null && ort !== ordner && unten.has(ort));
+		const darueber = darunter ?? juengstesIn((ort) => ort === eintrag.eltern);
+		if (darueber) {
+			const name =
+				stand.ordner.find((o) => o.id === darueber.ordner)?.name ?? (darueber.ordner === null ? 'Mein Material' : '');
+			return { fach: darueber.fach, klasse: darueber.klasse, quelle: 'ordner', ordnerName: name };
+		}
 	}
 	try {
 		const roh = JSON.parse(localStorage.getItem(LETZTE) ?? 'null') as { fach?: Fach; klasse?: Klasse } | null;
@@ -75,3 +105,20 @@ export const wirksameAntworten = (antworten: Antworten, vorbelegt: Vorbelegung, 
 	...(vorbelegt.quelle === 'behaelter' ? { fach: vorbelegt.fach, klasse: vorbelegt.klasse } : {}),
 	titel: titelEigen ? antworten.titel : titelVorschlag(antworten),
 });
+
+const vergleichbar = (name: string) => name.trim().toLocaleLowerCase('de');
+
+/**
+ * Ein selbst geschriebener Titel, den es im Ordner schon gibt: Der Satz steht am Titelfeld, sobald der Titel feststeht
+ * (190-N01). Der Server prüft gleich (`namenIn`); ein vorgeschlagener Titel weicht dort auf „… 2“ aus.
+ */
+export const titelFehler = (stand: AblageStand | null, ordner: string | null, titel: string): string | null => {
+	const t = vergleichbar(titel);
+	if (!stand || t === '') {
+		return null;
+	}
+	const vergeben =
+		stand.ordner.some((o) => o.eltern === ordner && vergleichbar(o.name) === t) ||
+		stand.dokumente.some((d) => d.ordner === ordner && vergleichbar(d.meta.titel) === t);
+	return vergeben ? `In diesem Ordner gibt es „${titel.trim()}“ schon. Wähle bitte einen anderen Titel.` : null;
+};

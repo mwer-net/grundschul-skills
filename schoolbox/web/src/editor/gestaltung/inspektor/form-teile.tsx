@@ -1,5 +1,5 @@
 import type { FormParameter } from '@schoolbox/kern/src/formen';
-import { FORMEN, formVon } from '@schoolbox/kern/src/formen';
+import { FORMEN, formName, formVon } from '@schoolbox/kern/src/formen';
 import { leseForm, setzeFormParameter, wechsleForm } from '@schoolbox/kern/src/formen-aendern';
 import { zahl } from '@schoolbox/kern/src/formen-geometrie';
 
@@ -18,6 +18,16 @@ const zeigeParameter = (k: GestaltungKontext, attr: string, wert: number) => {
 	element.setAttribute(attr, zahl(wert));
 	const stil = element.ownerDocument.defaultView?.getComputedStyle(element);
 	zeichneFormAnzeige(element, parseFloat(stil?.width ?? '') || 1, parseFloat(stil?.height ?? '') || 1);
+};
+
+/** 198-13: Mehr als die halbe kürzere Seite rundet nichts mehr; dort endet der Regler „Eckenradius“. */
+const groesstes = (k: GestaltungKontext, p: FormParameter) => {
+	if (p.attr !== 'data-radius') {
+		return p.max;
+	}
+	const stil = k.element.ownerDocument.defaultView?.getComputedStyle(k.element);
+	const kurz = Math.min(parseFloat(stil?.width ?? '') || 0, parseFloat(stil?.height ?? '') || 0);
+	return kurz > 0 ? Math.max(p.min + p.schritt, Math.min(p.max, Math.floor(kurz / 2))) : p.max;
 };
 
 const Parameter = ({ aus, k, p, wert }: { k: GestaltungKontext; p: FormParameter; wert: number; aus: boolean }) => {
@@ -62,6 +72,7 @@ const Parameter = ({ aus, k, p, wert }: { k: GestaltungKontext; p: FormParameter
 		);
 	}
 	const faktor = p.einheit === '%' ? 100 : 1;
+	const max = groesstes(k, p);
 	return (
 		<div data-form-parameter={p.attr}>
 			<Regler
@@ -69,9 +80,9 @@ const Parameter = ({ aus, k, p, wert }: { k: GestaltungKontext; p: FormParameter
 				titel={p.name}
 				einheit={p.einheit === '%' ? ' %' : ' px'}
 				min={Math.round(p.min * faktor)}
-				max={Math.round(p.max * faktor)}
+				max={Math.round(max * faktor)}
 				schritt={Math.round(p.schritt * faktor)}
-				wert={Math.round(wert * faktor)}
+				wert={Math.round(Math.min(wert, max) * faktor)}
 				aus={aus}
 				zeige={(w) => zeigeParameter(k, p.attr, w / faktor)}
 				setze={(w) => setze(w / faktor)}
@@ -106,7 +117,7 @@ export const FormTeil = ({ aktiv, k, quelle }: InspektorTeile) => {
 					value={form.art}
 					onChange={(e) => {
 						const art = e.target.value;
-						k.fuehreAus(`Form: ${formVon(art)?.name ?? art}`, (q) => ({
+						k.fuehreAus(`Form: ${formName(art) ?? art}`, (q) => ({
 							quelle: wechsleForm(q, k.nr, art),
 							nr: k.nr,
 						}));
@@ -114,7 +125,7 @@ export const FormTeil = ({ aktiv, k, quelle }: InspektorTeile) => {
 				>
 					{auswahl.map((f) => (
 						<option key={f.art} value={f.art}>
-							{f.name}
+							{formName(f.art)}
 						</option>
 					))}
 				</select>

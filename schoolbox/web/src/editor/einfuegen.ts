@@ -2,11 +2,12 @@ import type { Einfuegbar, SchonDa } from '@schoolbox/kern/src/einfuegen';
 import { fuegeBausteinEin, schonDa } from '@schoolbox/kern/src/einfuegen';
 import { fuegeBausteinAn } from '@schoolbox/kern/src/einfuegen-ablage';
 import { legeUm } from '@schoolbox/kern/src/fluss';
-import { neueIdsInGestaltung } from '@schoolbox/kern/src/gestaltung';
+import { fuegeGestaltungKopieEin, neueIdsInGestaltung } from '@schoolbox/kern/src/gestaltung';
 import type { FuerBlatt, KatalogEintrag } from '@schoolbox/kern/src/katalog';
 import { angebotFuerBlatt, gehtImBlatt, istAngeboten } from '@schoolbox/kern/src/katalog';
 import { hatLoesung } from '@schoolbox/kern/src/loesungen';
 import type { Zerlegung } from '@schoolbox/kern/src/quelltext';
+import { quelleVon, zerlege } from '@schoolbox/kern/src/quelltext';
 import type { Ablage } from '@schoolbox/kern/src/struktur';
 import { fuegeZeileEin, naechsteZelle, teileTabelle, vorigeZelle } from '@schoolbox/kern/src/tabelle';
 import { useCallback, useEffect, useRef, useState } from 'react';
@@ -18,7 +19,7 @@ import { useLaden } from '../lib/laden';
 import { bausteinVon, nrVon } from './darstellung';
 import { blattDerSeite, istFlussblock, probelauf, seiteFliesst } from './fluss';
 import type { Struktur } from './struktur';
-import { leseAblage, mitBildern } from './zwischenablage';
+import { leseAblage, mitBildern, schreibeAblage } from './zwischenablage';
 
 export interface Posten extends KatalogEintrag {
 	einfuegbar: Einfuegbar;
@@ -138,15 +139,32 @@ export const useEinfuegen = ({ auswahl, blatt, dokument, folien, nachher, ohneAu
 			return;
 		}
 		const html = await mitBildern(dokument, { mappe: a.mappe, dok: a.dok }, a.html);
-		struktur.fuehreAus(
+		const gleichesDokument = a.mappe === dokument.mappe && a.dok === dokument.dok;
+		let gestaltung = false;
+		const e = struktur.fuehreAus(
 			`${a.name} eingefügt`,
-			// 106: Anker in der Kopie bekommen neue SVG-Ids, auch beim Einfügen ins selbe Dokument.
-			(q) =>
-				fuegeBausteinEin(q, { id: 'ablage', ort: a.ort, html: neueIdsInGestaltung(html, q) }, nr, {
-					jeSeite: folien,
-				}),
+			(q) => {
+				// 198-01: Gestaltung wie ⌘D in die Ebene der Seite, nie in eine neue Aufgabe.
+				const kopie = fuegeGestaltungKopieEin(q, html, nr, gleichesDokument ? (a.nr ?? null) : null);
+				gestaltung = kopie !== null;
+				// 106: Anker in der Kopie bekommen neue SVG-Ids, auch beim Einfügen ins selbe Dokument.
+				return (
+					kopie ??
+					fuegeBausteinEin(q, { id: 'ablage', ort: a.ort, html: neueIdsInGestaltung(html, q) }, nr, {
+						jeSeite: folien,
+					})
+				);
+			},
 			true,
 		);
+		// Das nächste ⌘V rückt von dieser Kopie aus weiter (Canva): Die Ablage zeigt jetzt auf sie.
+		if (e && gestaltung && gleichesDokument && e.nr !== null) {
+			const z = zerlege(e.quelle);
+			const k = z.knoten[e.nr];
+			if (k) {
+				schreibeAblage({ ...a, html: quelleVon(z, k), nr: e.nr });
+			}
+		}
 		nachher();
 	};
 

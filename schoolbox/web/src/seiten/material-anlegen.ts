@@ -16,7 +16,9 @@ interface NeuesMaterial {
 	vorlage?: string | null;
 	zusatz?: Record<string, boolean | undefined>;
 	/** Aus dem Assistenten (132): Claude bekommt den Auftrag, den der Server aus den Antworten baut. */
-	assistent?: { antworten: Antworten; auftragText: string | null } | null;
+	assistent?: { antworten: Antworten } | null;
+	/** Der Titel ist der Vorschlag: Ist er schon vergeben, nimmt der Server „… 2“ (190-04). */
+	vorschlag?: boolean;
 	/** Der Entwurf ist die erste Nachricht dieses Gesprächs: Nachbessern im Editor knüpft daran an (087, 133). */
 	gespraechId?: string | undefined;
 }
@@ -32,6 +34,7 @@ export const legeMaterialAn = async ({
 	ordner,
 	titel,
 	vorlage,
+	vorschlag,
 	zusatz,
 }: NeuesMaterial) => {
 	const { id, mappe } = await sende<{ id: string; mappe: string }>('/api/ordner/material', {
@@ -43,15 +46,13 @@ export const legeMaterialAn = async ({
 		klasse,
 		...(vorlage ? { vorlage } : {}),
 		zusatz: zusatz ?? {},
+		...(vorschlag ? { vorschlag: true } : {}),
 	});
 	melde({ typ: 'mappe-neu', mappe });
 	if (!assistent) {
 		return { mappe, id, ziel: `/m/${mappe}/${id}/bearbeiten?neu=1`, state: null };
 	}
-	const eingabe = {
-		antworten: assistent.antworten,
-		...(assistent.auftragText === null ? {} : { auftragText: assistent.auftragText }),
-	};
+	const eingabe = { antworten: assistent.antworten };
 	// Das Blatt steht schon: Startet Claude nicht, geht es leer weiter, mit der Meldung im Editor.
 	const state = await sende<{ auftrag: { id: string } }>(`/api/dokumente/${mappe}/${id}/ki`, {
 		aktion: 'neu-entwurf',

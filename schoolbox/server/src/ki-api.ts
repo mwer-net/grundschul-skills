@@ -5,8 +5,8 @@ import {
 	leseMappe,
 	leseMeta,
 	pruefeAntworten,
-	pruefeAuftragText,
 	schritteFuer,
+	titelVorschlag,
 } from '@schoolbox/kern';
 import type { Router as RouterTyp } from 'express';
 
@@ -16,6 +16,7 @@ import type { GelesenerVorschlag, KiNachricht } from './ki';
 import {
 	aktionWunsch,
 	ergebnisDes,
+	KI_GRENZEN,
 	KI_WARN_AB,
 	leseVorschlaege,
 	leseVorschlag,
@@ -46,8 +47,8 @@ const nachrichten = (wert: unknown): KiNachricht[] | undefined => {
 
 /**
  * Der Teil der Lehrkraft für `neu-entwurf`. Aus dem Assistenten (131) baut der Server den Auftrag selbst aus den
- * Antworten, mit Art, Fach und Klasse des Dokuments; `auftragText` ersetzt ihn, wenn die Lehrkraft ihn bearbeitet hat.
- * Einen freien Wunsch ohne Antworten gibt es seit 136 nicht mehr.
+ * Antworten, mit Art, Fach und Klasse des Dokuments. Einen freien Wunsch ohne Antworten gibt es seit 136 nicht mehr,
+ * einen selbst geschriebenen Auftrag seit 190-37 nicht mehr (das freie Umschreiben ist „Ändern …“ am Plan).
  */
 const eingabeVon = (body: Record<string, unknown>, dokument: Pick<Antworten, 'art' | 'fach' | 'klasse'>) => {
 	if (body.antworten === undefined) {
@@ -60,15 +61,15 @@ const eingabeVon = (body: Record<string, unknown>, dokument: Pick<Antworten, 'ar
 	if (antworten.weg !== 'claude') {
 		throw new HttpFehler(400, 'Ein leeres Blatt braucht Claude nicht.');
 	}
-	const fehlt = schritteFuer(antworten)
-		.filter((s) => s.id !== 'pruefen')
-		.map((s) => s.fehlt?.(antworten))
+	// Den Titel hat das Dokument schon; ohne Angabe gilt wie im Assistenten der Vorschlag.
+	const mitTitel = { ...antworten, titel: antworten.titel.trim() || titelVorschlag(antworten) };
+	const fehlt = schritteFuer(mitTitel)
+		.map((s) => s.fehlt?.(mitTitel))
 		.find(Boolean);
 	if (fehlt) {
 		throw new HttpFehler(400, fehlt);
 	}
-	const auftrag = body.auftragText === undefined ? auftragAus(antworten) : pruefeAuftragText(body.auftragText);
-	return `Antworten der Lehrkraft aus dem Assistenten (sie ersetzen die Start-Abfrage):\n${auftrag}`;
+	return `Antworten der Lehrkraft aus dem Assistenten (sie ersetzen die Start-Abfrage):\n${auftragAus(antworten)}`;
 };
 
 /** Aufträge an Claude (057). Hängt am `apiRouter`: nur mit Sitzung, nie über Teilen-Links. */
@@ -80,6 +81,8 @@ export const kiApi = (router: RouterTyp, kontext: Kontext) => {
 		verfuegbar: await ki.angemeldet(),
 		limit: ki.limit(),
 		warnAb: KI_WARN_AB,
+		/** Ab hier warnt der Assistent vor dem Start einer Einheit (190-12). */
+		einheitWarnAb: KI_GRENZEN.einheit.warnAb,
 		aktionen: KI_AKTIONEN,
 	});
 
@@ -149,6 +152,13 @@ export const kiApi = (router: RouterTyp, kontext: Kontext) => {
 		verlangeDokument(kontext, mappe, dok);
 		const wunsch = text((req.body as Record<string, unknown> | undefined)?.wunsch) ?? '';
 		res.status(202).json({ auftrag: await ki.planAendern(mappe, dok, wunsch) });
+	});
+
+	router.post('/dokumente/:mappe/:dok/ki/entwurf/antworten', async (req, res) => {
+		const { dok, mappe } = req.params;
+		verlangeDokument(kontext, mappe, dok);
+		const antwort = text((req.body as Record<string, unknown> | undefined)?.antwort) ?? '';
+		res.status(202).json({ auftrag: await ki.entwurfAntworten(mappe, dok, antwort) });
 	});
 
 	router.post('/dokumente/:mappe/:dok/ki/entwurf/vergessen', (req, res) => {

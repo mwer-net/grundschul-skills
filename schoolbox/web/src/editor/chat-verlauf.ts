@@ -5,6 +5,8 @@ export interface ChatNachricht {
 	text: string;
 	/** Worauf sich die Nachricht bezog, wie im Chip. */
 	kontext: string | null;
+	/** Die markierte Stelle, auf die sich ein Auftrag bezog (200-17). */
+	zitat?: string | null;
 	zeit: string;
 	auftragId: string | null;
 }

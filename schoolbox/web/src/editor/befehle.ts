@@ -133,6 +133,8 @@ export interface Kontext {
 	feldBehaeltUndo: () => boolean;
 	/** Das gewählte Gestaltungselement, sonst `null` (097). */
 	gestaltung: GestaltungKontext | null;
+	/** 198-03: Die Auswahl (oder ein Teil der Mehrfachauswahl) liegt in einem gesperrten Element (`data-gesperrt`). */
+	gesperrt?: boolean;
 	tu: Aktionen;
 }
 
@@ -161,6 +163,8 @@ export interface Befehl {
 	gesperrt?: (k: Kontext) => boolean;
 	/** Sagt, warum ein Kürzel gerade nichts tut, statt still zu bleiben. */
 	warumNicht?: (k: Kontext) => string | null;
+	/** Nicht verfügbar, steht aber gesperrt mit `warumNicht` in der Palette, statt zu fehlen (200-N01). */
+	gesperrtZeigen?: (k: Kontext) => boolean;
 	/** Einträge mit gleichem Wert stehen im Menü in einem Untermenü. */
 	untermenue?: string;
 	aktiv?: (k: Kontext) => boolean;
@@ -175,6 +179,8 @@ export interface Befehl {
 const gewaehlt = (k: Kontext) => k.pfad.at(-1);
 const istSeite = (k: Kontext) => gewaehlt(k)?.baustein.art === 'seite';
 /** 47: Bei Mehrfachauswahl gibt es Claude nicht. */
+/** Der Server nimmt eine Referenz je Auftrag; für mehrere Elemente gibt es die Seite. */
+export const CLAUDE_MEHRERE = 'Claude ändert immer ein Element. Für mehrere: die Seite wählen.';
 const mehrfach = (k: Kontext) => (k.gestaltung?.nrn.length ?? 0) > 1;
 const einzigeSeite = (k: Kontext) => istSeite(k) && (k.werte?.seiten ?? 0) <= 1;
 /** „Folie“ in Präsentationen, sonst „Seite“ (192-12). */
@@ -318,7 +324,42 @@ const SCHUBLADEN_BEFEHLE: Befehl[] = REIHE.map(({ id, symbol, taste, titel }): B
 	inUebersicht: () => schubladeVon(id)?.bereit(JEDE_LAGE) ?? false,
 }));
 
-export const BEFEHLE: Befehl[] = [
+/** 198-03: Was an einem gesperrten Element geht: ansehen, kopieren, wählen, aus- und einblenden, entsperren. */
+const AN_GESPERRTEM = [
+	'auswahl.kopieren',
+	'auswahl.einfuegen',
+	'auswahl.in-sammlung',
+	'auswahl.sperren',
+	'auswahl.ausblenden',
+	'auswahl.aufheben',
+	'auswahl.eltern',
+	'auswahl.vorheriger',
+	'auswahl.naechster',
+	'auswahl.zur-leiste',
+];
+
+export const GESPERRT_GRUND = 'Gesperrt. Erst entsperren.';
+
+/**
+ * 198-03: Die Sperre gilt im Befehl, nicht in der Geste. Jeder Befehl an der Auswahl, der sie ändert, verschiebt,
+ * löscht, verdoppelt, ausschneidet, kombiniert, gruppiert oder umordnet, ist bei Gesperrtem nicht verfügbar: Menüs,
+ * Leiste und ⌘K zeigen ihn nicht, die Taste sagt den Grund. In der Mehrfachauswahl genügt ein gesperrter Teil.
+ */
+const mitSperre = (b: Befehl): Befehl => {
+	const sperrbar =
+		(b.id.startsWith('auswahl.') || b.id.startsWith('tabelle.')) && !AN_GESPERRTEM.includes(b.id) &&
+		!b.id.startsWith('auswahl.sichtbarkeit.');
+	if (!sperrbar) {
+		return b;
+	}
+	return {
+		...b,
+		verfuegbar: (k) => !k.gesperrt && b.verfuegbar(k),
+		warumNicht: (k) => (k.gesperrt ? GESPERRT_GRUND : (b.warumNicht?.(k) ?? null)),
+	};
+};
+
+const REGISTER: Befehl[] = [
 	// Auswahl
 	{
 		id: 'auswahl.bearbeiten',
@@ -376,11 +417,12 @@ export const BEFEHLE: Befehl[] = [
 	}),
 	{
 		id: 'auswahl.bild-ersetzen',
-		// 204-14: ein Wort für das Austauschen, wie „Austauschen“ im Inspektor.
-		titel: 'Bild austauschen',
+		// 204-14, 199-15: ein Wort für das Austauschen, wie „Austauschen“ im Inspektor; am leeren Platz „einsetzen“.
+		titel: (k) =>
+			['platzhalter', 'bildrahmen'].includes(gewaehlt(k)?.baustein.art ?? '') ? 'Bild einsetzen' : 'Bild austauschen',
 		gruppe: 'bearbeiten',
 		symbol: 'bild',
-		suchwoerter: ['ersetzen', 'tauschen'],
+		suchwoerter: ['ersetzen', 'tauschen', 'einsetzen'],
 		orte: ['menue', 'palette', 'gestaltung'],
 		sichtbarUnter: 'inspektor',
 		verfuegbar: (k) => k.aktiv && k.hatBild,
@@ -450,7 +492,8 @@ export const BEFEHLE: Befehl[] = [
 		symbol: 'hochladen',
 		kuerzel: [{ code: 'KeyV', befehl: true }],
 		suchwoerter: ['ablage', 'zwischenablage', 'hinzufügen', 'neu'],
-		orte: ['taste', 'menue', 'palette'],
+		// 198-08: auch im Menü am Gestaltungselement, neben Kopieren.
+		orte: ['taste', 'menue', 'palette', 'gestaltung'],
 		sichtbarUnter: 'mehr',
 		verfuegbar: (k) => k.aktiv && k.hatAblage,
 		warumNicht: (k) => (k.aktiv ? 'In der Ablage liegt nichts.' : null),
@@ -533,13 +576,15 @@ export const BEFEHLE: Befehl[] = [
 		id: 'auswahl.claude',
 		titel: 'Mit Claude ändern …',
 		gruppe: 'ordnen',
-		symbol: 'sprechblase',
+		symbol: 'funken',
 		suchwoerter: ['ki', 'chat', 'frage'],
-		orte: ['menue', 'palette', 'gestaltung'],
+		// 200-14: In der Palette steht nur `ansicht.claude`, mit und ohne Auswahl.
+		orte: ['menue', 'gestaltung'],
 		sichtbarUnter: 'leiste',
-		verfuegbar: (k) => k.kiVerfuegbar && k.frei && Boolean(gewaehlt(k)) && !mehrfach(k),
-		gesperrt: (k) => k.claudeGrund !== null,
-		warumNicht: (k) => k.claudeGrund,
+		// Bei Mehrfachauswahl gesperrt mit Grund statt stumm weg (Urteil 200, Mehrere Elemente).
+		verfuegbar: (k) => k.kiVerfuegbar && k.frei && Boolean(gewaehlt(k)),
+		gesperrt: (k) => mehrfach(k) || k.claudeGrund !== null,
+		warumNicht: (k) => (mehrfach(k) ? CLAUDE_MEHRERE : k.claudeGrund),
 		aus: (k) => k.tu.claudeZurAuswahl(),
 	},
 	{
@@ -808,9 +853,9 @@ export const BEFEHLE: Befehl[] = [
 	},
 	{
 		id: 'ansicht.claude',
-		titel: 'Claude',
+		titel: 'Mit Claude ändern …',
 		gruppe: 'ansicht',
-		symbol: 'sprechblase',
+		symbol: 'funken',
 		kuerzel: [
 			{ code: 'KeyJ', befehl: true },
 			{ code: 'KeyJ', befehl: true, umschalt: true },
@@ -820,8 +865,10 @@ export const BEFEHLE: Befehl[] = [
 		suchwoerter: ['ki', 'chat', 'frage', 'fragen', 'blase'],
 		orte: ['taste', 'palette'],
 		sichtbarUnter: 'leiste',
-		verfuegbar: (k) => !mehrfach(k),
-		warumNicht: () => 'Claude ändert immer ein Element. Wähle eines davon.',
+		// Wie `auswahl.claude`: An Gesperrtem nicht, die Taste sagt den Grund aus 198-03.
+		verfuegbar: (k) => !mehrfach(k) && !k.gesperrt,
+		warumNicht: (k) => (k.gesperrt ? GESPERRT_GRUND : CLAUDE_MEHRERE),
+		gesperrtZeigen: (k) => mehrfach(k) && !k.gesperrt,
 		aus: (k) => k.tu.claude(),
 	},
 	{
@@ -1024,6 +1071,8 @@ export const BEFEHLE: Befehl[] = [
 	...GESTALTUNG_BEFEHLE,
 ];
 
+export const BEFEHLE: Befehl[] = REGISTER.map(mitSperre);
+
 export const titelVon = (b: Befehl, k: Kontext) => (typeof b.titel === 'function' ? b.titel(k) : b.titel);
 
 export const symbolVon = (b: Befehl, k: Kontext) => (typeof b.symbol === 'function' ? b.symbol(k) : b.symbol);
@@ -1172,6 +1221,8 @@ const alsEintrag = (b: Befehl, k: Kontext, fuehreAus: (id: string) => unknown): 
 		...(erstes ? { kuerzel: kuerzelText(erstes) } : {}),
 		...(b.gefahr ? { gefahr: true } : {}),
 		...(b.gesperrt?.(k) ? { aus: true } : {}),
+		// Gesperrt mit Grund: derselbe Satz wie bei der Taste, in ⋯ und Rechtsklick gleich (200-N01).
+		...(b.gesperrt?.(k) && b.warumNicht?.(k) ? { beschreibung: b.warumNicht(k) ?? '' } : {}),
 		...(b.aktiv ? { aktiv: b.aktiv(k) } : {}),
 		waehle: () => {
 			fuehreAus(b.id);
@@ -1238,7 +1289,7 @@ const OHNE_NEUEN_BAUSTEIN = ['seite', 'tabellenzelle', 'tabellenzeile', 'item', 
  */
 export const GESTALTUNG_MENUE: readonly (readonly string[])[] = [
 	['auswahl.bearbeiten', 'auswahl.bild-ersetzen'],
-	['auswahl.duplizieren', 'auswahl.ausschneiden', 'auswahl.kopieren'],
+	['auswahl.duplizieren', 'auswahl.ausschneiden', 'auswahl.kopieren', 'auswahl.einfuegen'],
 	// 100: „Ganz nach vorne/hinten“ stehen im Inspektor „Anordnen“ und auf der Taste.
 	['auswahl.nach-vorne', 'auswahl.nach-hinten'],
 	// 113: ein Untermenü „Ausrichten“, Verteilen darin.
@@ -1252,8 +1303,8 @@ export const GESTALTUNG_MENUE: readonly (readonly string[])[] = [
 		'auswahl.verteilen-waagerecht',
 		'auswahl.verteilen-senkrecht',
 	],
-	// 121
-	['auswahl.vereinen', 'auswahl.abziehen', 'auswahl.schneiden', 'auswahl.ausschliessen'],
+	// 198-08: Gruppieren an der Mehrfachauswahl, Auflösen an der Gruppe. Kombinieren steht nur im Inspektor (198-16).
+	['auswahl.gruppieren', 'auswahl.gruppe-aufloesen'],
 	// 101
 	['auswahl.sperren', 'auswahl.ausblenden'],
 	// 106, 115
@@ -1262,8 +1313,6 @@ export const GESTALTUNG_MENUE: readonly (readonly string[])[] = [
 	['auswahl.in-sammlung', 'auswahl.claude'],
 	['auswahl.loeschen'],
 ];
-/** Gruppieren und Auflösen stehen in der Leiste (204-12), nicht noch einmal im Menü. */
-const NUR_IN_DER_LEISTE = ['auswahl.gruppieren', 'auswahl.gruppe-aufloesen'];
 const AUSRICHTEN_BLOCK = 3;
 const NACH_VORNE_BLOCK = 2;
 
@@ -1283,7 +1332,6 @@ const platzIm = (id: string) => {
 /** Sortiert nach `GESTALTUNG_MENUE`; Unbekanntes behält seine Reihenfolge aus dem Register. */
 export const ordneGestaltung = (liste: readonly Befehl[]) =>
 	liste
-		.filter((befehl) => !NUR_IN_DER_LEISTE.includes(befehl.id))
 		.map((befehl, n) => ({ befehl, n, ...platzIm(befehl.id) }))
 		.sort((a, b) => a.block - b.block || a.i - b.i || a.n - b.n);
 

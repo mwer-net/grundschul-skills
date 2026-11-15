@@ -7,6 +7,7 @@ import { blattMit, FORM_VERLAUF } from '../../web/e2e/gestaltung-daten';
 import { fuegeBausteinEin } from './einfuegen';
 import {
 	dupliziereGestaltung,
+	fuegeGestaltungKopieEin,
 	fuerAlle,
 	legeGestaltungAb,
 	leseLage,
@@ -135,6 +136,35 @@ describe('legeGestaltungAb', () => {
 	});
 });
 
+describe('fuegeGestaltungKopieEin (198-01)', () => {
+	const RECHTECK = '<img class="a" data-lage="frei" style="--x:40px;--y:60px">';
+	const aufgaben = (q: string) => zerlege(q).knoten.filter((k) => klassenVon(k).includes('aufgabe')).length;
+
+	it('steht das Original noch da, ist ⌘V dasselbe wie ⌘D: gleiche Ebene, 16 px versetzt, Kopie gewählt', () => {
+		const vorher = blatt(...ebene('vorne', RECHTECK));
+		const a = nrMit(vorher, 'a');
+		const r = fuegeGestaltungKopieEin(vorher, RECHTECK, null, a);
+		assert.deepEqual(r, dupliziereGestaltung(vorher, a));
+		assert.ok(r);
+		assert.equal(aufgaben(r.quelle), 1);
+		assert.deepEqual(leseLage(r.quelle, r.nr ?? -1), { x: 56, y: 76 });
+	});
+
+	it('ohne Original frei in die Ebene der Seite an der alten Lage, ohne Anker und ohne neue Aufgabe', () => {
+		const vorher = blatt();
+		const html = '<img class="a" data-lage="frei" data-anker style="--x:40px;--y:60px">';
+		const r = fuegeGestaltungKopieEin(vorher, html, null, null);
+		assert.ok(r);
+		assert.equal(aufgaben(r.quelle), 1);
+		assert.equal(r.quelle, blatt(...ebene('vorne', RECHTECK)));
+		assert.equal(klasseAn(r.quelle, r.nr), 'a');
+	});
+
+	it('ein Baustein ist keine Gestaltung: null, dann fügt der Editor ihn wie bisher ein', () => {
+		assert.equal(fuegeGestaltungKopieEin(blatt(), '<div class="aufgabe"></div>', null, null), null);
+	});
+});
+
 describe('loescheGestaltung und raeumeEbenenAuf', () => {
 	it('die Ebene verschwindet mit dem letzten Element, gewählt ist dann die Seite', () => {
 		const vorher = blatt(...ebene('vorne', A));
@@ -143,11 +173,11 @@ describe('loescheGestaltung und raeumeEbenenAuf', () => {
 		assert.equal(klasseAn(quelle, nr), 'seite');
 	});
 
-	it('mit Nachbarn bleibt die Ebene, gewählt ist der Nachbar', () => {
+	it('mit Nachbarn bleibt die Ebene, gewählt ist die Seite statt des Nachbarn (198-07)', () => {
 		const vorher = blatt(...ebene('vorne', A, B));
 		const { nr, quelle } = loescheGestaltung(vorher, nrMit(vorher, 'a'));
 		assert.equal(quelle, blatt(...ebene('vorne', B)));
-		assert.equal(klasseAn(quelle, nr), 'b');
+		assert.equal(klasseAn(quelle, nr), 'seite');
 	});
 
 	it('neben der Seitenfläche bleibt die Ebene hinten', () => {

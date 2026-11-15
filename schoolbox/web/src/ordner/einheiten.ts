@@ -1,6 +1,6 @@
 import type { EinheitStand } from '@schoolbox/kern/src/einheit';
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useLocation, useNavigate } from 'react-router-dom';
 
 import { lade, sende } from '../api';
 import { useHinweis } from '../bausteine/hinweis';
@@ -38,9 +38,21 @@ export const fortschritt = (s: EinheitStand) => {
 export const einheitAktion = (id: string, aktion: 'abbrechen' | 'weiter' | 'verwerfen') =>
 	sende(`/api/einheiten/${id}/${aktion}`);
 
-/** Den Plan freigeben; mit `aenderung` zeigt Claude ihn stattdessen neu. */
-export const einheitFreigeben = (id: string, aenderung?: string) =>
-	sende(`/api/einheiten/${id}/freigeben`, aenderung ? { aenderung } : {});
+// Freigaben unterwegs, je Einheit: Ein zweiter Klick, auch aus einem neu gezeichneten Band, schickt nichts (190-32).
+const freigaben = new Map<string, Promise<unknown>>();
+
+/** Den Plan freigeben; mit `aenderung` zeigt Claude ihn stattdessen neu. Solange eine Freigabe unterwegs ist, gilt sie. */
+export const einheitFreigeben = (id: string, aenderung?: string) => {
+	const unterwegs = freigaben.get(id);
+	if (unterwegs) {
+		return unterwegs;
+	}
+	const neu = sende(`/api/einheiten/${id}/freigeben`, aenderung ? { aenderung } : {}).finally(() =>
+		freigaben.delete(id),
+	);
+	freigaben.set(id, neu);
+	return neu;
+};
 
 /** Die jüngste Einheit dieses Ordners, verworfene zählen nicht. */
 export const einheitFuer = (einheiten: EinheitStand[], ordner: string | undefined) =>
@@ -52,10 +64,14 @@ export const einheitFuer = (einheiten: EinheitStand[], ordner: string | undefine
 export const useEinheitFertigMeldung = (einheiten: EinheitStand[]) => {
 	const zeige = useHinweis();
 	const navigate = useNavigate();
+	const { pathname } = useLocation();
+	const ort = useRef(pathname);
+	ort.current = pathname;
 	const vorher = useRef(new Map<string, string>());
 	useEffect(() => {
 		for (const e of einheiten) {
-			if (vorher.current.get(e.id) === 'laeuft' && e.status === 'fertig') {
+			// Im Ordner der Einheit sagt das Band es schon; „Öffnen“ führte nirgends hin (190-29).
+			if (vorher.current.get(e.id) === 'laeuft' && e.status === 'fertig' && ort.current !== `/o/${e.ordner}`) {
 				zeige({
 					text: `„${e.titel}“ ist fertig: ${fertig(e)} Materialien`,
 					aktion: { titel: 'Öffnen', ausfuehren: () => void navigate(`/o/${e.ordner}`) },

@@ -39,14 +39,6 @@ const waehle = async (page: Page, a: string, b: string) => {
 	await expect(page.locator('[data-gestaltung-rahmen="mehrfach"]')).toHaveAttribute('data-mehrfach-anzahl', '2');
 };
 
-const ueberMehr = async (page: Page, befehl: string) => {
-	await page
-		.locator('[data-gestaltungsleiste="mehrfach"]')
-		.getByRole('button', { name: /^Mehr zu/ })
-		.click();
-	await page.locator(`[data-befehl="${befehl}"]`).click();
-};
-
 test.describe('Kombinieren (121)', () => {
 	test.skip(({ hasTouch }) => hasTouch || !MAUS.includes(test.info().project.name), 'mit der Maus');
 
@@ -65,23 +57,29 @@ test.describe('Kombinieren (121)', () => {
 		await expect.poll(() => quelle(page)).toBe(vorher);
 	});
 
-	test('Abziehen, Schnitt und Ausschluss über das ⋯', async ({ page }) => {
+	test('Abziehen im Inspektor; Schnitt und Ausschluss gibt es nicht, das ⋯ kombiniert nicht (198-16)', async ({ page }) => {
 		await blatt(page);
 		const vorher = await quelle(page);
-		for (const [befehl, evenodd] of [
-			['auswahl.abziehen', true],
-			['auswahl.schneiden', false],
-			['auswahl.ausschliessen', true],
-		] as const) {
-			await waehle(page, 'Rechteck', 'Kreis');
-			await ueberMehr(page, befehl);
-			await expect.poll(async () => pfade(await quelle(page))).toBe(1);
-			expect((await quelle(page)).includes('fill-rule:evenodd')).toBe(evenodd);
-			await geladen(page);
-			await page.keyboard.press('ControlOrMeta+z');
-			await expect.poll(() => quelle(page)).toBe(vorher);
-			await geladen(page);
+		await waehle(page, 'Rechteck', 'Kreis');
+		// Ein eigener Abschnitt mit zwei beschrifteten Knöpfen (198 Urteil 3).
+		const abschnitt = page.locator('[data-abschnitt="kombinieren"]');
+		await expect(abschnitt.locator('[data-befehl]')).toHaveText(['Vereinen', 'Abziehen']);
+		await page
+			.locator('[data-gestaltungsleiste="mehrfach"]')
+			.getByRole('button', { name: /^Mehr zu/ })
+			.click();
+		const menue = page.getByRole('menu');
+		await expect(menue.getByRole('menuitem', { name: /^Gruppieren/ })).toBeVisible();
+		for (const wort of ['Vereinen', 'Abziehen', 'Schnitt', 'Ausschluss']) {
+			await expect(menue.getByRole('menuitem', { name: new RegExp(`^${wort}`) })).toHaveCount(0);
 		}
+		await page.keyboard.press('Escape');
+		await abschnitt.locator('[data-befehl="auswahl.abziehen"]').click();
+		await expect.poll(async () => pfade(await quelle(page))).toBe(1);
+		expect(await quelle(page)).toContain('fill-rule:evenodd');
+		await geladen(page);
+		await page.keyboard.press('ControlOrMeta+z');
+		await expect.poll(() => quelle(page)).toBe(vorher);
 	});
 
 	test('Form mit Text: Die Knöpfe sind aus und sagen warum', async ({ page }) => {
@@ -96,11 +94,12 @@ test.describe('Kombinieren (121)', () => {
 	});
 
 	test('Leeres Ergebnis ändert nichts und sagt es', async ({ page }) => {
-		const weit = KREIS.replace('data-name="Kreis"', 'data-name="Weit"').replace('--x:200px', '--x:520px');
-		await blatt(page, { vorne: [RECHTECK, weit] });
+		// Abziehen zweier deckungsgleicher Formen lässt nichts übrig.
+		const gleich = RECHTECK.replace('data-name="Rechteck"', 'data-name="Gleich"');
+		await blatt(page, { vorne: [RECHTECK, gleich] });
 		const vorher = await quelle(page);
-		await waehle(page, 'Rechteck', 'Weit');
-		await page.locator('[data-kombinieren] [data-befehl="auswahl.schneiden"]').click();
+		await waehle(page, 'Rechteck', 'Gleich');
+		await page.locator('[data-kombinieren] [data-befehl="auswahl.abziehen"]').click();
 		await expect(page.locator('[data-kombi-hinweis]')).toHaveText('Das Ergebnis wäre leer.');
 		expect(await quelle(page)).toBe(vorher);
 	});
@@ -123,32 +122,25 @@ const SCHERE_MONDE = [
 	'<svg class="form" data-lage="frei" data-name="Rechts" data-form="pfad" viewBox="0 0 130 160" style="--x:330px;--y:300px;--b:130px;--h:160px"><path d="M1.5 18.89 C12.71 10.4 24.73 4.42 38.78 2.35 C50.19 0.67 61.89 1.5 72.93 4.82 C146.58 26.97 146.58 133.03 72.93 155.18 C61.89 158.5 50.19 159.33 38.78 157.65 C24.73 155.58 12.71 149.6 1.5 141.11 C40.17 111.82 40.17 48.18 1.5 18.89 Z" style="fill:var(--akzent);stroke:var(--dunkel);stroke-width:3px"/></svg>',
 ];
 
-/** Die Werkzeugreihe ohne Schere, in der Reihenfolge der Knöpfe. */
-const WERKZEUGE = ['auswahl', 'rechteck', 'ellipse', 'vieleck', 'linie', 'stern', 'text', 'stift', 'pfad', 'streuen'];
+/** 198-10: Im Abschnitt „Zeichnen“ stehen nur noch drei Kacheln; Rechteck, Kreis, Sechseck, Linie und Titel sind Kacheln. */
+const ZEICHNEN = ['stift', 'pfad', 'streuen'];
 
 test.describe('Ohne Formen-Schere (173)', () => {
 	test.skip(({ hasTouch }) => hasTouch || !MAUS.includes(test.info().project.name), 'mit der Maus');
 
-	const reihe = (page: Page) => page.getByRole('toolbar', { name: 'Werkzeuge' }).locator('[data-werkzeug]');
-	const aktiv = (page: Page) => page.getByRole('toolbar', { name: 'Werkzeuge' }).locator('[aria-pressed="true"]');
+	const reihe = (page: Page) => page.locator('[data-zeichnen] [data-werkzeug]');
+	const aktiv = (page: Page) => page.locator('[data-werkzeug][aria-pressed="true"]');
 
-	test('Die Schublade zeigt zehn Werkzeuge ohne Schere, am Mac in zwei Reihen', async ({ page }) => {
+	test('Die Schublade zeigt die drei Zeichenkacheln ohne Schere, in einer Reihe', async ({ page }) => {
 		await page.setViewportSize({ width: 1512, height: 982 });
 		await blatt(page);
 		await oeffneSchublade(page, 'werkzeuge');
-		// Gegenprobe: Die Reihe hat zehn Knöpfe, der Test findet sie also.
-		await expect(reihe(page)).toHaveCount(10);
+		// Gegenprobe: Die Reihe hat drei Kacheln, der Test findet sie also.
+		await expect(reihe(page)).toHaveCount(3);
 		await expect(page.locator('[data-werkzeug="schere"]')).toHaveCount(0);
 		const ids = await reihe(page).evaluateAll((knoepfe) => knoepfe.map((k) => k.getAttribute('data-werkzeug')));
-		expect(ids).toEqual(WERKZEUGE);
-		if (test.info().project.name === 'mac-safari') {
-			const oben = new Set<number>();
-			for (const knopf of await reihe(page).all()) {
-				const r = await knopf.boundingBox();
-				oben.add(Math.round(r?.y ?? -1));
-			}
-			expect(oben.size).toBeLessThanOrEqual(2);
-		}
+		expect(ids).toEqual(ZEICHNEN);
+		await expect(reihe(page)).toHaveText(['Stift', 'Form aus Punkten', 'Konfetti']);
 	});
 
 	test('⇧M tut nichts: kein Werkzeug, die Auswahl und das Blatt bleiben', async ({ page }) => {
@@ -159,7 +151,7 @@ test.describe('Ohne Formen-Schere (173)', () => {
 		await page.keyboard.press('Shift+KeyM');
 		await expect(page.locator('[data-werkzeugflaeche]')).toHaveCount(0);
 		await expect(page.locator('[data-schere-anzeige]')).toHaveCount(0);
-		await expect(aktiv(page)).toHaveAttribute('data-werkzeug', 'auswahl');
+		await expect(aktiv(page)).toHaveCount(0);
 		await expect(page.locator('[data-gestaltung-rahmen="mehrfach"]')).toHaveAttribute('data-mehrfach-anzahl', '2');
 		expect(await quelle(page)).toBe(vorher);
 

@@ -137,7 +137,8 @@ export const useBearbeitung = (mappe: string, dok: string, auswahl: RefObject<nu
 						v ? nimmAuf(v, aktuell.quelle, schritt, gewaehlt) : neuerVerlauf(aktuell.quelle),
 					);
 					setAusgang(aktuell.quelle);
-					// 193-12: Die Lehrkraft hat selbst übernommen; wie jeder Schritt mit „Rückgängig“.
+					// 193-12: Die Lehrkraft hat selbst übernommen; wie jeder Schritt mit „Rückgängig“. „Claude hat das Material
+					// geändert.“ käme doppelt (200-10).
 					zeige({
 						text: 'Vorschlag übernommen.',
 						aktion: { titel: 'Rückgängig', ausfuehren: () => zurueckNachVorschlag.current() },

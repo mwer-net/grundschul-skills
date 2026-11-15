@@ -164,6 +164,17 @@ test.describe('Befehlspalette (073)', () => {
 		await expect(page.locator('[data-claude-blase]')).toHaveCount(0);
 	});
 
+	test('„Material anlegen“ ist ein Befehl: erste Zeile, öffnet den Assistenten bei „Start“ (190-05)', async ({ page }) => {
+		await page.goto('/');
+		await page.keyboard.press('ControlOrMeta+k');
+		await feld(page).fill('mat');
+		await expect(palette(page).getByRole('option').first()).toHaveText(/Material anlegen/);
+		await feld(page).fill('Material anl');
+		await expect(palette(page).getByRole('option', { name: /Material anlegen: „/ })).toHaveCount(0);
+		await page.keyboard.press('Enter');
+		await expect(page.getByRole('dialog').locator('[data-assistent="start"]')).toBeVisible();
+	});
+
 	test('Zeilen sind auf dem iPad groß genug', async ({ page }, info) => {
 		test.skip(!info.project.name.startsWith('ipad'), 'nur mit Finger');
 		const { dok, id } = await uhrzeit();

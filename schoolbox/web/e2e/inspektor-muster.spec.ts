@@ -130,17 +130,16 @@ test.describe('Muster des Inspektors (182)', () => {
 		expect(new Set(await rund(palette, 18)).size).toBe(1);
 	});
 
-	test('Schmuckschrift: Schalter „Kontur“, danach „Stärke“ mit genau einer Beschriftung', async ({
+	test('Titel: Farbreihe „Kontur“, danach „Stärke“ mit genau einer Beschriftung (198-11)', async ({
 		druecke,
 		page,
 	}) => {
 		await blatt(page, { vorne: [SCHMUCK.replace(' data-kontur', '')] });
 		await waehle(druecke, page, material(page).locator('div.schmuck'), 'schmuck');
-		const schalter = page.getByRole('switch', { name: 'Kontur', exact: true });
-		await expect(schalter).toHaveAttribute('aria-checked', 'false');
+		const reihe = page.locator('[data-farbwahl="kontur-farbe"]');
+		await expect(reihe.locator('[data-farbe="keine"]')).toHaveAttribute('aria-pressed', 'true');
 		await expect(inspektor(page).getByText('Stärke', { exact: true })).toHaveCount(0);
-		await druecke(schalter);
-		await expect(schalter).toHaveAttribute('aria-checked', 'true');
+		await druecke(reihe.locator('[data-farbe="#ffffff"]'));
 		await expect(inspektor(page).getByText('Stärke', { exact: true })).toHaveCount(1);
 		await expect(inspektor(page).getByText('Größe', { exact: true })).toHaveCount(1);
 		await expect(page.getByRole('switch', { name: 'Bogen', exact: true })).toBeVisible();
@@ -149,16 +148,16 @@ test.describe('Muster des Inspektors (182)', () => {
 	test('Gewählte Kachel: Rand in Tinte, Grund weiß; die Figur ist nicht mehr blau', async ({ druecke, page }) => {
 		await blatt(page, { vorne: [BILDRAHMEN] });
 		await waehle(druecke, page, material(page).locator('img.bild-frei'), 'bildfrei');
-		// Ohne Rahmen-Stil und ohne bekannte Maske: „Gerade“ und „Keine“ sind gewählt.
+		// Ohne Rahmen-Stil und ohne bekannte Form: zweimal „Ohne“ gewählt.
 		for (const kachel of [
-			page.locator('[data-rahmenstil-knopf="gerade"]'),
+			page.locator('[data-rahmenstil-knopf="ohne"]'),
 			page.locator('[data-maske-knopf="keine"]'),
 		]) {
 			await expect(kachel).toHaveAttribute('aria-pressed', 'true');
 			await expect(kachel).toHaveCSS('border-top-color', TINTE);
 			await expect(kachel).toHaveCSS('background-color', WEISS);
 		}
-		await expect(page.locator('[data-rahmenstil-knopf="schraeg"]')).toHaveCSS('background-color', WEISS);
+		await expect(page.locator('[data-rahmenstil-knopf="polaroid"]')).toHaveCSS('background-color', WEISS);
 		await ohneSaetze(page);
 
 		// Kiki aus der Figurenbibliothek des Testservers (177) hat zwei Posen, also ein Raster.

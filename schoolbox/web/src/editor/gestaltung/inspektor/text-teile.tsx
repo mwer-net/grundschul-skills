@@ -19,15 +19,38 @@ const AUSRICHTUNG_WERTE: { wert: Ausrichtung; titel: string }[] = [
 const setze = (k: GestaltungKontext, beschreibung: string, teil: SchmuckTeil) =>
 	k.fuehreAus(beschreibung, (q) => ({ quelle: setzeSchmuck(q, k.nr, teil), nr: k.nr }));
 
-/** Nur ansehen, ohne Schritt: eine Variable am Element im `iframe` (`null` nimmt die Anzeige zurück). */
+/** Was vor der ersten Vorschau am Element stand, je Variable; `''` heißt: nichts. */
+const vorDerVorschau = new WeakMap<Element, Map<string, string>>();
+
+/**
+ * Nur ansehen, ohne Schritt: eine Variable am Element im `iframe`. `null` nimmt die Anzeige zurück, und zwar auf genau
+ * den Wert, der vor der Vorschau dort stand, also den aus der Quelle (198-02; vorher fiel die Variable ganz weg).
+ */
 const zeigeVariable = (k: GestaltungKontext, name: string, wert: string | null) => {
 	const stil = (k.element as HTMLElement).style;
+	const gemerkt = vorDerVorschau.get(k.element) ?? new Map<string, string>();
 	if (wert === null) {
-		stil.removeProperty(name);
-	} else {
-		stil.setProperty(name, wert);
+		const alt = gemerkt.get(name);
+		if (alt === undefined) {
+			return;
+		}
+		if (alt) {
+			stil.setProperty(name, alt);
+		} else {
+			stil.removeProperty(name);
+		}
+		gemerkt.delete(name);
+		return;
 	}
+	if (!gemerkt.has(name)) {
+		gemerkt.set(name, stil.getPropertyValue(name));
+		vorDerVorschau.set(k.element, gemerkt);
+	}
+	stil.setProperty(name, wert);
 };
+
+/** Nach dem Schreiben gilt die Quelle; die gemerkte Vorschau ist dann alt. */
+const geschrieben = (k: GestaltungKontext, name: string) => vorDerVorschau.get(k.element)?.delete(name);
 
 /** Die Größe, wie sie gerade gilt: aus `--gr`, sonst gemessen (Claude schreibt manchmal keine). */
 const groesseVon = (k: GestaltungKontext, gr: number | null) =>
@@ -70,7 +93,14 @@ export const GroesseFeld = ({ aktiv, k, quelle }: TextTeile) => {
 				wert={wert}
 				aus={!aktiv}
 				zeige={(n) => zeigeVariable(k, '--gr', n === null ? null : `${groesseIm(n)}px`)}
-				setze={(n) => setze(k, 'Schriftgröße geändert', { gr: n })}
+				setze={(n) => {
+					// Erst nach dem Schreiben gilt die Quelle; scheitert es, nimmt `zeige(null)` die Vorschau zurück.
+					const ok = setze(k, 'Schriftgröße geändert', { gr: n });
+					if (ok) {
+						geschrieben(k, '--gr');
+					}
+					return ok;
+				}}
 			/>
 		</span>
 	);
@@ -86,7 +116,14 @@ export const FarbeWahl = ({ aktiv, k, quelle }: TextTeile) => {
 			doc={k.doc}
 			aus={!aktiv}
 			wert={stand.farbe}
-			setze={(farbe) => setze(k, 'Schriftfarbe geändert', { farbe })}
+			setze={(farbe) => {
+				// Erst nach dem Schreiben gilt die Quelle; scheitert es, nimmt `zeige(null)` die Vorschau zurück.
+				const ok = setze(k, 'Schriftfarbe geändert', { farbe });
+				if (ok) {
+					geschrieben(k, '--farbe');
+				}
+				return ok;
+			}}
 			zeige={(farbe) => zeigeVariable(k, '--farbe', farbe)}
 		/>
 	) : null;
@@ -128,7 +165,14 @@ export const Text = ({ aktiv, k, quelle }: InspektorTeile) => {
 						doc={k.doc}
 						aus={!aktiv}
 						wert={stand.hg}
-						setze={(hg) => setze(k, 'Hintergrund geändert', { hg })}
+						setze={(hg) => {
+							// Erst nach dem Schreiben gilt die Quelle; scheitert es, nimmt `zeige(null)` die Vorschau zurück.
+							const ok = setze(k, 'Hintergrund geändert', { hg });
+							if (ok) {
+								geschrieben(k, '--hg');
+							}
+							return ok;
+						}}
 						zeige={(hg) => zeigeVariable(k, '--hg', hg)}
 					/>
 				</Zeile>
