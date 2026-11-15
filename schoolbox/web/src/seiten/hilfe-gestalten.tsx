@@ -1,5 +1,6 @@
+import { befehlName } from './hilfe-namen';
 import type { Abschnitt } from './hilfe-teile';
-import { befehlName, BefehlTaste } from './hilfe-teile';
+import { BefehlTaste } from './hilfe-teile';
 import { Schubladenliste } from './Schubladenliste';
 
 /**
@@ -30,24 +31,17 @@ export const GESTALTEN: Abschnitt = {
 			<p data-hilfe-einrasten>
 				Beim Ziehen rastet das Element an Seitenmitte, Rändern und anderen Elementen ein, eine rosa Linie zeigt
 				woran; mit ⌘ rastet nichts. Die Pfeiltasten schieben um 1 Pixel, mit ⇧ um 10. Solange du G hältst, zeigt
-				das Blatt seinen Aufbau: Stapel, Druckrand, Anker und Ausgeblendetes. Am iPad schaltet
-{' '}
-				{befehlName('ansicht.durchblick')}
-{' '}
-in den Befehlen das um.
+				das Blatt seinen Aufbau: Stapel, Druckrand, Anker und Ausgeblendetes.
+				{` Am iPad schaltet ${befehlName('ansicht.durchblick')} in den Befehlen das um.`}
 			</p>
 
 			<h3>Mehrere Elemente</h3>
 			<p data-hilfe-mehrfach>
 				Mit ⇧-Klick nimmst du weitere dazu, oder du ziehst auf freier Fläche ein Rechteck auf. Gemeinsam
 				verschiebst, drehst, löschst und duplizierst du sie in einem Schritt. Die Leiste zeigt dann
-				„Ausrichten“, ab drei Elementen auch mit Verteilen.
-{' '}
+				{' „Ausrichten“, ab drei Elementen auch mit Verteilen. '}
 				<span data-hilfe-gruppen>
-					{befehlName('auswahl.gruppieren')}
-{' '}
-(⌘G) macht daraus eine Gruppe, ⇧⌘G löst sie; ein Doppelklick
-					wählt ein Teil darin.
+					{`${befehlName('auswahl.gruppieren')} (⌘G) macht daraus eine Gruppe, ⇧⌘G löst sie; ein Doppelklick wählt ein Teil darin.`}
 				</span>
 			</p>
 
@@ -63,31 +57,21 @@ in den Befehlen das um.
 			</p>
 			<p data-hilfe-anker>
 				Soll ein Element bei einer Aufgabe bleiben, ziehst du den Anker ⚓ neben ihm auf die Aufgabe, oder du
-				nimmst
-{' '}
-{befehlName('auswahl.anhaengen')}
-{' '}
-im ⋯. Rutscht die Aufgabe weiter oder auf die nächste Seite,
-				geht es mit. Den Anker auf eine freie Stelle ziehen oder
-{' '}
-{befehlName('auswahl.loesen')}
-{' '}
-löst es wieder.
+				{` nimmst ${befehlName('auswahl.anhaengen')} im ⋯. `}
+				Rutscht die Aufgabe weiter oder auf die nächste Seite, geht es mit.
+				{` Den Anker auf eine freie Stelle ziehen oder ${befehlName('auswahl.loesen')} löst es wieder.`}
 			</p>
 
 			<h3>Figuren</h3>
 			<p data-hilfe-figuren>
 				In der Schublade „Figuren“ stehen Willi, Wilma und die anderen Figuren mit ihren Posen. Ein Klick legt
 				die Figur an eine freie Stelle der Seite, bei wenig Platz kleiner; gezogen liegt sie, wo du loslässt.
-{' '}
-				{befehlName('auswahl.spiegeln')}
-{' '}
-(
+				{` ${befehlName('auswahl.spiegeln')} (`}
 				<BefehlTaste id="auswahl.spiegeln" />
-) steht im ⋯ und im Inspektor, dort tauschst du auch Figur oder
-				Pose. Eigene Figuren benennst du mit einem Doppelklick auf den Namen um; „Entfernen“ im ⋯ der Kachel
-				nimmst du mit „Rückgängig“ zurück. Oben in der Schublade beschreibst du eine neue Figur oder Pose,
-				Claude malt sie in Canva, das dauert ein bis zwei Minuten.
+				{') steht im ⋯ und im Inspektor, dort tauschst du auch Figur oder Pose. '}
+				Eigene Figuren benennst du mit einem Doppelklick auf den Namen um; „Entfernen“ im ⋯ der Kachel nimmst du
+				mit „Rückgängig“ zurück. Oben in der Schublade beschreibst du eine neue Figur oder Pose, Claude malt sie
+				in Canva, das dauert ein bis zwei Minuten.
 			</p>
 
 			<h3>Bilder</h3>
@@ -99,11 +83,7 @@ löst es wieder.
 				„Austauschen“. „Foto hochladen“ nimmt mehrere Dateien auf einmal, du kannst sie auch aus dem Finder auf
 				die Schublade oder die Seite ziehen. „Entfernen“ im ⋯ einer Kachel nimmt ein Bild heraus, endgültig
 				gelöscht ist es nach 30 Tagen.
-{' '}
-{befehlName('auswahl.frei-legen')}
-{' '}
-holt ein Bild aus dem Stapel frei aufs
-				Blatt.
+				{` ${befehlName('auswahl.frei-legen')} holt ein Bild aus dem Stapel frei aufs Blatt.`}
 			</p>
 			<p data-hilfe-bild-beschreiben>
 				Oben in der Schublade „Bilder“ beschreibst du ein neues Bild, etwa „Willi und Wilma pflanzen eine
@@ -148,15 +128,8 @@ holt ein Bild aus dem Stapel frei aufs
 				ihre Punkte zum Verschieben, ⌥-Klick löscht einen.
 			</p>
 			<p data-hilfe-kombinieren>
-				Aus mehreren Formen wird eine: wählen und im Inspektor unter „Kombinieren“
-{' '}
-				{befehlName('auswahl.vereinen')}
-{' '}
-oder
-{befehlName('auswahl.abziehen')}
-{' '}
-nehmen, auch über ⌘K. Abziehen
-				nimmt die vorderen Formen aus der hintersten heraus, etwa für einen Mond.
+				{`Aus mehreren Formen wird eine: wählen und im Inspektor unter „Kombinieren“ ${befehlName('auswahl.vereinen')} oder ${befehlName('auswahl.abziehen')} nehmen, auch über ⌘K. `}
+				Abziehen nimmt die vorderen Formen aus der hintersten heraus, etwa für einen Mond.
 			</p>
 
 			<h3>Seite gestalten</h3>
@@ -167,11 +140,8 @@ nehmen, auch über ⌘K. Abziehen
 			</p>
 			<p data-hilfe-flaeche>
 				Platz zwischen den Aufgaben für eigene Gestaltung gibt die „Freie Fläche“ in der Schublade „Bausteine“
-				unter „Blatt“. Was darin liegt, rutscht mit den Aufgaben. Ein freies Element kommt mit
-{' '}
-				{befehlName('auswahl.in-stapel')}
-{' '}
-im ⋯ in eine Fläche.
+				unter „Blatt“. Was darin liegt, rutscht mit den Aufgaben.
+				{` Ein freies Element kommt mit ${befehlName('auswahl.in-stapel')} im ⋯ in eine Fläche.`}
 			</p>
 
 			<h3>Prüfung und Claude</h3>

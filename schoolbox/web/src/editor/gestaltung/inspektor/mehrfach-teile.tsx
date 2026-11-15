@@ -147,6 +147,13 @@ export const MehrfachKontur = ({ aktiv, k, quelle }: InspektorTeile) => {
 			{gemischt && <Gemischt />}
 		</span>
 	);
+	// „Keine“ nimmt jede Kontur heraus; eine neue Farbe behält die Stärke.
+	const setzeFarbe = (farbe: string | null) =>
+		setzeAlle(farbe === null ? 'Kontur entfernt' : 'Kontur geändert', (alt) =>
+			farbe === null ? null : { farbe, staerke: alt?.staerke || STRICH },
+		);
+	const setzeStaerke = (staerke: number) =>
+		setzeAlle('Stärke der Kontur', (alt) => ({ farbe: alt?.farbe || KONTUR, staerke }));
 	return (
 		<div className="flex flex-col gap-1" data-gestaltung-kontur="mehrfach">
 			<Zeile titel={titel('Kontur', !gleicheFarbe)} name="Kontur" darunter>
@@ -157,10 +164,7 @@ export const MehrfachKontur = ({ aktiv, k, quelle }: InspektorTeile) => {
 					aus={!aktiv}
 					wert={gleicheFarbe ? (farben[0] ?? null) : null}
 					gemischt={!gleicheFarbe}
-					setze={(farbe) =>
-						setzeAlle(farbe === null ? 'Kontur entfernt' : 'Kontur geändert', (alt) =>
-							farbe === null ? null : { farbe, staerke: alt?.staerke || STRICH },
-						)}
+					setze={setzeFarbe}
 					zeige={(farbe) => {
 						for (const { element } of elementeZu(k.doc, k.nrn)) {
 							(pfadDerForm(element) as SVGElement | null)?.style.setProperty('stroke', farbe);
@@ -177,8 +181,7 @@ export const MehrfachKontur = ({ aktiv, k, quelle }: InspektorTeile) => {
 							min={1}
 							max={KONTUR_MAX}
 							aus={!aktiv}
-							setze={(staerke) =>
-								setzeAlle('Stärke der Kontur', (alt) => ({ farbe: alt?.farbe || KONTUR, staerke }))}
+							setze={setzeStaerke}
 						/>
 					</span>
 				</Zeile>

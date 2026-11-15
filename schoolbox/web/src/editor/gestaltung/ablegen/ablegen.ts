@@ -149,6 +149,25 @@ const freierBereich = (doc: Document, beste: NonNullable<ReturnType<typeof sicht
 };
 
 /**
+ * 198-05 (wie Canva): Liegt in einer Ebene der Seite schon ein Element mit derselben linken oberen Ecke, rückt das neue
+ * um 16 px nach rechts unten, so oft wie nötig; derselbe Versatz wie beim Duplizieren.
+ */
+export const versetztNeben = (seite: Element, ort: Ort): Ort => {
+	const ecken = new Set(
+		[...seite.querySelectorAll<HTMLElement>(`:scope > .ebene > ${GESTALTUNG_SELEKTOR}`)].map((e) => {
+			const stil = e.style;
+			return `${Math.round(parseFloat(stil.getPropertyValue('--x')) || 0)},${Math.round(parseFloat(stil.getPropertyValue('--y')) || 0)}`;
+		}),
+	);
+	let { x, y } = { x: Math.round(ort.x), y: Math.round(ort.y) };
+	while (ecken.has(`${x},${y}`)) {
+		x += VERSATZ_KOPIE;
+		y += VERSATZ_KOPIE;
+	}
+	return { ...ort, x, y };
+};
+
+/**
  * Klick in der Schublade (und Enter in ⌘K) auf der Seite, die am meisten zu sehen ist. S-10: Ein Bild kommt an die
  * freie Stelle im sichtbaren Teil, an der es nichts verdeckt und am größten Platz hat, und wird dafür bis
  * `MINDESTBREITE` kleiner. Gibt es keine, und für alles andere: in die Mitte des sichtbaren Teils. `true`, wenn etwas abgelegt
@@ -181,25 +200,6 @@ export const legeInMitte = async (teile: AblegenTeile, gut: GestaltungsGut) => {
 	const x = beste.rechts > beste.links ? (beste.links + beste.rechts) / 2 : (r.left + r.right) / 2;
 	const ort = ortUm(doc, beste.seite, gut, x, y, h);
 	return ort ? legeAb(teile.struktur, gut, versetztNeben(beste.seite, ort)) : false;
-};
-
-/**
- * 198-05 (wie Canva): Liegt in einer Ebene der Seite schon ein Element mit derselben linken oberen Ecke, rückt das neue
- * um 16 px nach rechts unten, so oft wie nötig; derselbe Versatz wie beim Duplizieren.
- */
-export const versetztNeben = (seite: Element, ort: Ort): Ort => {
-	const ecken = new Set(
-		[...seite.querySelectorAll<HTMLElement>(`:scope > .ebene > ${GESTALTUNG_SELEKTOR}`)].map((e) => {
-			const stil = e.style;
-			return `${Math.round(parseFloat(stil.getPropertyValue('--x')) || 0)},${Math.round(parseFloat(stil.getPropertyValue('--y')) || 0)}`;
-		}),
-	);
-	let { x, y } = { x: Math.round(ort.x), y: Math.round(ort.y) };
-	while (ecken.has(`${x},${y}`)) {
-		x += VERSATZ_KOPIE;
-		y += VERSATZ_KOPIE;
-	}
-	return { ...ort, x, y };
 };
 
 /**

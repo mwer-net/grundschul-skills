@@ -94,7 +94,6 @@ const FigurTitel = ({
 					data-figur-name-feld={figur.id}
 					aria-label="Name der Figur"
 					// Das Feld erscheint erst auf Doppelklick oder „Figur umbenennen“: Dorthin gehört der Fokus.
-					// eslint-disable-next-line jsx-a11y/no-autofocus
 					autoFocus
 					maxLength={40}
 					value={name}
@@ -254,7 +253,7 @@ export const Inhalt = (t: SchubladenTeile) => {
 	const entferne = (figur: BibliotheksFigur, pose: Pose) =>
 		void sende<{ rueckweg: FigurRueckweg }>(`/api/figuren/posen/${encodeURIComponent(pose.id)}/entfernen`).then(
 			({ rueckweg }) => {
-				ladeFigurenNeu();
+				void ladeFigurenNeu();
 				zeigeHinweis({
 					text: rueckweg.art === 'figur' ? `${figur.name} entfernt.` : 'Pose entfernt.',
 					aktion: {

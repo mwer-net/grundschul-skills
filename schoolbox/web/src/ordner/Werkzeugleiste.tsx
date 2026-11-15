@@ -51,15 +51,14 @@ const AuswahlKnoepfe = ({ befehle, ids, lage }: { befehle: Befehle; ids: string[
 				if (id === 'pdf') {
 					const eintraege = pdfMenue(lage);
 					const [einzig] = eintraege;
+					const pdfText = (
+						<KnopfText symbol={pdfLaeuft ? 'laden' : 'herunterladen'} dreht={pdfLaeuft} text="PDF" />
+					);
 					// Eine Datei: Der Knopf lädt sofort (191-41); sonst das Menü.
 					if (eintraege.length === 1 && einzig?.waehle) {
 						return (
 							<Knopf key={id} art="zweit" disabled={pdfLaeuft} onClick={einzig.waehle}>
-								<KnopfText
-									symbol={pdfLaeuft ? 'laden' : 'herunterladen'}
-									dreht={pdfLaeuft}
-									text="PDF"
-								/>
+								{pdfText}
 							</Knopf>
 						);
 					}
@@ -68,13 +67,7 @@ const AuswahlKnoepfe = ({ befehle, ids, lage }: { befehle: Befehle; ids: string[
 							<Menue
 								key={id}
 								name="PDF"
-								beschriftung={(
-									<KnopfText
-										symbol={pdfLaeuft ? 'laden' : 'herunterladen'}
-										dreht={pdfLaeuft}
-										text="PDF"
-									/>
-								)}
+								beschriftung={pdfText}
 								art="zweit"
 								disabled={pdfLaeuft}
 								eintraege={eintraege}
@@ -108,6 +101,14 @@ interface Eigenschaften {
 	sortierung: Sortierung;
 	sortiere: (s: Sortierung) => void;
 }
+
+/** „Material anlegen“: eng nur das Symbol; mit Auswahl weicht das Wort in schmalen Fenstern. */
+const anlegenWortKlasse = (eng: boolean, mitAuswahl: boolean) => {
+	if (eng) {
+		return 'hidden';
+	}
+	return mitAuswahl ? '@max-6xl:hidden' : undefined;
+};
 
 const SEITEN_TITEL = { zuletzt: 'Zuletzt geändert', suche: 'Suche', papierkorb: 'Papierkorb' };
 
@@ -231,9 +232,7 @@ export const Werkzeugleiste = ({
 					</Knopf>
 					<Knopf aria-label="Material anlegen" data-material-anlegen onClick={dieseLeiste('materialAnlegen')}>
 						<Symbol name="plus" />
-						<span className={eng ? 'hidden' : gewaehlteObjekte.length > 0 ? '@max-6xl:hidden' : undefined}>
-							Material anlegen
-						</span>
+						<span className={anlegenWortKlasse(eng, gewaehlteObjekte.length > 0)}>Material anlegen</span>
 					</Knopf>
 				</>
 			)}

@@ -54,6 +54,21 @@ export const inhaltAuf = (seite: Element): Feld[] => {
 	return aus;
 };
 
+/** Raster aus `zeilen`×`spalten` Zellen über `bereich`: 1, wo ein Feld aus `inhalt` samt Abstand liegt. */
+const belegteZellen = (bereich: Feld, inhalt: readonly Feld[], spalten: number, zeilen: number) => {
+	const belegt = Array.from({ length: zeilen }, () => new Uint8Array(spalten));
+	for (const r of inhalt) {
+		const von = Math.max(0, Math.floor((r.links - ABSTAND - bereich.links) / ZELLE));
+		const bis = Math.min(spalten - 1, Math.ceil((r.rechts + ABSTAND - bereich.links) / ZELLE) - 1);
+		const oben = Math.max(0, Math.floor((r.oben - ABSTAND - bereich.oben) / ZELLE));
+		const unten = Math.min(zeilen - 1, Math.ceil((r.unten + ABSTAND - bereich.oben) / ZELLE) - 1);
+		for (let z = oben; z <= unten; z++) {
+			belegt[z]?.fill(1, von, bis + 1);
+		}
+	}
+	return belegt;
+};
+
 /**
  * S-10: Die beste freie Stelle in `bereich` für ein Element `b`×`h`, an der es nichts aus `inhalt` verdeckt: unter allen
  * freien Rechtecken das, in dem das Element am größten Platz hat (höchstens in voller Größe), bei Gleichstand das
@@ -71,16 +86,7 @@ export const freieStelle = (
 	if (spalten <= 0 || zeilen <= 0 || b <= 0 || h <= 0) {
 		return null;
 	}
-	const belegt = Array.from({ length: zeilen }, () => new Uint8Array(spalten));
-	for (const r of inhalt) {
-		const von = Math.max(0, Math.floor((r.links - ABSTAND - bereich.links) / ZELLE));
-		const bis = Math.min(spalten - 1, Math.ceil((r.rechts + ABSTAND - bereich.links) / ZELLE) - 1);
-		const oben = Math.max(0, Math.floor((r.oben - ABSTAND - bereich.oben) / ZELLE));
-		const unten = Math.min(zeilen - 1, Math.ceil((r.unten + ABSTAND - bereich.oben) / ZELLE) - 1);
-		for (let z = oben; z <= unten; z++) {
-			belegt[z]?.fill(1, von, bis + 1);
-		}
-	}
+	const belegt = belegteZellen(bereich, inhalt, spalten, zeilen);
 	const kleinste = schrumpfen ? Math.min(1, MINDESTBREITE / b) : 1;
 	let beste: { s: number; flaeche: number; x: number; y: number } | null = null;
 	const pruefe = (links: number, rechts: number, oben: number, unten: number) => {

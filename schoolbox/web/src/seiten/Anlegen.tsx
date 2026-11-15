@@ -16,6 +16,7 @@ import { useAblage } from '../ordner/kontext';
 import type { KlasseFachOffen } from './anlegen-hilfe';
 import {
 	ersterSchritt,
+	fensterWarnung,
 	klasseFachFehlt,
 	LETZTE,
 	mitWeg,
@@ -42,7 +43,6 @@ import type { GemerkterAssistent } from './assistent-gemerkt';
 import { ASSISTENT_FORTSETZEN, gemerkterAssistent, merkeAssistent } from './assistent-gemerkt';
 import {
 	EinheitVerbrauch,
-	fensterWarnung,
 	SchrittEBestandteile,
 	SchrittERahmen,
 	SchrittEThema,
@@ -380,14 +380,14 @@ export const MaterialDialog = ({
 		}
 	};
 
-	const anlegen = async (mitClaude: boolean) => {
+	const anlegen = async (ueberClaude: boolean) => {
 		const a = jetzt.current;
 		if (vorbelegt.quelle !== 'behaelter' && klasseFachFehlt(offenJetzt.current)) {
-			gehe(mitClaude ? 'fuerWen' : 'titel');
+			gehe(ueberClaude ? 'fuerWen' : 'titel');
 			klasseFachPruefen();
 			return;
 		}
-		const pruefen = mitClaude ? schritteFuer(a) : schritteFuer({ ...a, weg: 'leer' });
+		const pruefen = ueberClaude ? schritteFuer(a) : schritteFuer({ ...a, weg: 'leer' });
 		const offenerSchritt = pruefen.find((s) => s.fehlt?.(a));
 		if (offenerSchritt) {
 			gehe(offenerSchritt.id);
@@ -402,7 +402,7 @@ export const MaterialDialog = ({
 		}
 		const wahl = formatWahl(a);
 		// Der Entwurf beginnt ein eigenes Gespräch, damit Nachbessern daran anknüpft (133); der Editor übernimmt es.
-		const gespraech = mitClaude ? neueGespraechId() : undefined;
+		const gespraech = ueberClaude ? neueGespraechId() : undefined;
 		setLaeuft(true);
 		setFehler(null);
 		try {
@@ -420,7 +420,7 @@ export const MaterialDialog = ({
 				vorlage: wahl.vorlage ?? null,
 				fach: a.fach,
 				klasse: a.klasse,
-				assistent: mitClaude ? { antworten: { ...a, weg: 'claude' } } : null,
+				assistent: ueberClaude ? { antworten: { ...a, weg: 'claude' } } : null,
 				gespraechId: gespraech,
 				vorschlag: !zustand.current.titelEigen,
 			});
@@ -433,6 +433,31 @@ export const MaterialDialog = ({
 		}
 	};
 
+	/** Ein geöffnetes „Anders“-Feld ist leer: meldet es, setzt den Fokus hinein und sagt `true`. */
+	const andersFeldLeer = (id: AssistentSchrittId, a: Antworten) => {
+		const andersLeer = (ANDERS_FELDER[id] ?? []).find((f) => offen[f] === true && a[f].trim() === '');
+		if (andersLeer) {
+			setFehler(ANDERS_LEER);
+			wurzel.current?.querySelector<HTMLElement>(`[data-freitext="${andersLeer}"]`)?.focus();
+			return true;
+		}
+		if (id === 'eUmfang' && offen.umfangText === true && a.eh.dauerText.trim() === '') {
+			setFehler(ANDERS_LEER);
+			wurzel.current?.querySelector<HTMLElement>('[data-anders-feld]')?.focus();
+			return true;
+		}
+		return false;
+	};
+	/** Der letzte Schritt mit Claude: startet die Einheit oder legt das Material an, sofern nichts sperrt. */
+	const legeMitClaudeLos = (a: Antworten) => {
+		if (a.einheit) {
+			if (!gesperrt && laeuftSchon === null) {
+				void starteEinheit();
+			}
+		} else if (!gesperrt) {
+			void anlegen(true);
+		}
+	};
 	const weiter = () => {
 		const a = jetzt.current;
 		const liste = schritteFuer(a);
@@ -458,25 +483,11 @@ export const MaterialDialog = ({
 			zeigeTitelFehler(doppelt, s.id);
 			return;
 		}
-		const andersLeer = (ANDERS_FELDER[s.id] ?? []).find((f) => offen[f] === true && a[f].trim() === '');
-		if (andersLeer) {
-			setFehler(ANDERS_LEER);
-			wurzel.current?.querySelector<HTMLElement>(`[data-freitext="${andersLeer}"]`)?.focus();
-			return;
-		}
-		if (s.id === 'eUmfang' && offen.umfangText === true && a.eh.dauerText.trim() === '') {
-			setFehler(ANDERS_LEER);
-			wurzel.current?.querySelector<HTMLElement>('[data-anders-feld]')?.focus();
+		if (andersFeldLeer(s.id, a)) {
 			return;
 		}
 		if (a.weg === 'claude' && i === liste.length - 1) {
-			if (a.einheit) {
-				if (!gesperrt && laeuftSchon === null) {
-					void starteEinheit();
-				}
-			} else if (!gesperrt) {
-				void anlegen(true);
-			}
+			legeMitClaudeLos(a);
 			return;
 		}
 		if (s.id === 'titel') {
@@ -525,6 +536,32 @@ export const MaterialDialog = ({
 		setOffen((o) => ({ ...o, artText: art === 'sonstiges', umfangText: false }));
 	};
 
+	/** ⏎ geht weiter, ⇧⏎ zurück; im mehrzeiligen Feld erst ⌘⏎. */
+	const beiEnter = (e: KeyboardEvent, ziel: EventTarget | null) => {
+		const mehrzeilig = ziel instanceof HTMLTextAreaElement;
+		if (mehrzeilig && !(e.metaKey || e.ctrlKey)) {
+			return;
+		}
+		if (e.shiftKey) {
+			e.preventDefault();
+			zurueck();
+			return;
+		}
+		if (ziel instanceof HTMLButtonElement) {
+			// Im Fuß tut ein Knopf, was er sagt. Im Schritt wählt ⏎ eine Karte und geht weiter; einen Schalter oder
+			// Chip schaltet es nicht um, das tut die Leertaste (190-01).
+			if (!ziel.closest('[data-schritt-inhalt]')) {
+				return;
+			}
+			e.preventDefault();
+			if (ziel.dataset.wahl && !ziel.disabled) {
+				ziel.click();
+			}
+		} else {
+			e.preventDefault();
+		}
+		weiter();
+	};
 	// ⏎ weiter, ⇧⏎ zurück, Ziffern wählen; im mehrzeiligen Feld ist ⌘⏎ „weiter“ (A1, Fallen in 132).
 	const tasten = useRef<(e: KeyboardEvent) => void>(() => undefined);
 	tasten.current = (e: KeyboardEvent) => {
@@ -533,29 +570,7 @@ export const MaterialDialog = ({
 		}
 		const ziel = e.target;
 		if (e.key === 'Enter' && !e.isComposing) {
-			const mehrzeilig = ziel instanceof HTMLTextAreaElement;
-			if (mehrzeilig && !(e.metaKey || e.ctrlKey)) {
-				return;
-			}
-			if (e.shiftKey) {
-				e.preventDefault();
-				zurueck();
-				return;
-			}
-			if (ziel instanceof HTMLButtonElement) {
-				// Im Fuß tut ein Knopf, was er sagt. Im Schritt wählt ⏎ eine Karte und geht weiter; einen Schalter oder
-				// Chip schaltet es nicht um, das tut die Leertaste (190-01).
-				if (!ziel.closest('[data-schritt-inhalt]')) {
-					return;
-				}
-				e.preventDefault();
-				if (ziel.dataset.wahl && !ziel.disabled) {
-					ziel.click();
-				}
-			} else {
-				e.preventDefault();
-			}
-			weiter();
+			beiEnter(e, ziel);
 			return;
 		}
 		// Esc in einem Feld mit Text verlässt nur das Feld; ein Versehen kostet nicht alle Antworten (190-02).
@@ -659,24 +674,19 @@ export const MaterialDialog = ({
 		eBestandteile: () => <SchrittEBestandteile a={wirksam} setzeEh={setzeEh} />,
 		eRahmen: () => <SchrittERahmen a={wirksam} setzeEh={setzeEh} />,
 		bausteine: () => <SchrittBausteine a={wirksam} setze={setze} />,
-		klasse: () => (
-			<SchrittKlasse
-				a={wirksam}
-				setze={setze}
-				schluss={(
-					<StartHinweis
-						einheit={
-							wirksam.einheit ? (
-								<EinheitVerbrauch laeuftSchon={laeuftSchon} warnung={einheitWarnung} />
-							) : null
-						}
-						hinweis={hinweis}
-						gesperrt={gesperrt}
-						pruefeLimit={ki.pruefeLimit}
-					/>
-				)}
-			/>
-		),
+		klasse: () => {
+			const schluss = (
+				<StartHinweis
+					einheit={
+						wirksam.einheit ? <EinheitVerbrauch laeuftSchon={laeuftSchon} warnung={einheitWarnung} /> : null
+					}
+					hinweis={hinweis}
+					gesperrt={gesperrt}
+					pruefeLimit={ki.pruefeLimit}
+				/>
+			);
+			return <SchrittKlasse a={wirksam} setze={setze} schluss={schluss} />;
+		},
 		titel: () => (
 			<SchrittTitel
 				a={wirksam}

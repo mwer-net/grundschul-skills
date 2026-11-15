@@ -33,13 +33,13 @@ const ARTEN: { wert: Art; titel: string }[] = [
 
 const beschreibeElement = (el: Element) => {
 	const id = el.id ? `#${el.id}` : '';
-	const klassen = typeof el.className === 'string' ? el.className.trim().split(/\s+/).slice(0, 6) : [];
+	const klassenListe = typeof el.className === 'string' ? el.className.trim().split(/\s+/).slice(0, 6) : [];
 	const daten = [...el.attributes]
 		.filter((a) => a.name.startsWith('data-') || a.name === 'aria-label' || a.name === 'role' || a.name === 'title')
 		.map((a) => `[${a.name}="${a.value.slice(0, 60)}"]`)
 		.join('');
 	const text = (el.textContent ?? '').replace(/\s+/g, ' ').trim().slice(0, 100);
-	return `${el.tagName.toLowerCase()}${id}${klassen.length ? `.${klassen.join('.')}` : ''}${daten}${text ? ` „${text}“` : ''}`;
+	return `${el.tagName.toLowerCase()}${id}${klassenListe.length ? `.${klassenListe.join('.')}` : ''}${daten}${text ? ` „${text}“` : ''}`;
 };
 
 const elementeIm = (r: Rechteck) => {
@@ -432,6 +432,18 @@ export const Meldeknopf = () => {
 	}
 
 	const ort = imEditor ? 'bottom-8 left-[18px]' : 'bottom-3 left-3';
+	const fussZeile = (
+		<>
+			<Knopf art="leise" onClick={zurueck}>
+				Abbrechen
+			</Knopf>
+			<Tooltip text="Absenden" kuerzel={kuerzelText({ code: 'Enter', befehl: true })}>
+				<Knopf data-hauptaktion disabled={!text.trim() || laeuft} onClick={() => void absenden()}>
+					{laeuft ? 'Wird gesendet …' : 'Absenden'}
+				</Knopf>
+			</Tooltip>
+		</>
+	);
 	return (
 		<div {...{ [MELDE_UI]: '' }} className="print:hidden">
 			{phase === 'ruhe' && (
@@ -463,26 +475,7 @@ export const Meldeknopf = () => {
 				<AuswahlFlaeche abbrechen={zurueck} fertig={(r) => void ausschnittFertig(r)} />
 			)}
 			{phase === 'formular' && (
-				<Dialog
-					titel="Problem melden"
-					schliessen={zurueck}
-					fuss={(
-						<>
-							<Knopf art="leise" onClick={zurueck}>
-								Abbrechen
-							</Knopf>
-							<Tooltip text="Absenden" kuerzel={kuerzelText({ code: 'Enter', befehl: true })}>
-								<Knopf
-									data-hauptaktion
-									disabled={!text.trim() || laeuft}
-									onClick={() => void absenden()}
-								>
-									{laeuft ? 'Wird gesendet …' : 'Absenden'}
-								</Knopf>
-							</Tooltip>
-						</>
-					)}
-				>
+				<Dialog titel="Problem melden" schliessen={zurueck} fuss={fussZeile}>
 					{bild ? (
 						<img
 							src={bild}

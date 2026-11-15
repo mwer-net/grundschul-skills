@@ -20,7 +20,6 @@ import { Schalter } from '../bausteine/Schalter';
 import { Segment } from '../bausteine/Segment';
 import { Stepper } from '../bausteine/Stepper';
 import { Symbol } from '../bausteine/Symbol';
-import type { KiLimit } from '../editor/ki';
 import { Empfohlen, Etikett, TitelFeld, Zaehler } from './AnlegenSchritte';
 
 /** Die Schritte der Unterrichtseinheit im Assistenten (140, Entwurf E1). Daten aus `assistent.ts` und `einheit.ts`. */
@@ -336,14 +335,6 @@ export const SchrittERahmen = ({ a, setzeEh }: { a: Antworten; setzeEh: SetzeEh 
 		</div>
 	</>
 );
-
-/** Der Satz zum 5-Stunden-Fenster, sobald es zu `warnAb` genutzt ist (190-12). Vorher stand er nach dem Start. */
-export const fensterWarnung = (limit: KiLimit | null, warnAb: number) => {
-	const fenster = limit?.fenster.fuenfStunden.auslastung ?? null;
-	return fenster !== null && fenster >= warnAb
-		? `Dein 5-Stunden-Fenster ist schon zu ${Math.round(fenster * 100)} % genutzt. Die Einheit kann daran scheitern; „Weiterbauen“ geht danach.`
-		: null;
-};
 
 /** Im letzten Schritt der Einheit: Dauer, Verbrauch und warum es gerade nicht geht (vorher „Auftrag prüfen“, 190-37). */
 export const EinheitVerbrauch = ({ laeuftSchon, warnung }: { laeuftSchon: string | null; warnung: string | null }) => (

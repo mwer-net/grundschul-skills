@@ -74,7 +74,11 @@ const pfeilImBaum = (e: KeyboardEvent<HTMLDivElement>, dreieck: 'auf' | 'zu' | n
 			klappe?.(false);
 		} else {
 			const gruppe = zeile.parentElement?.closest('[role="group"]');
-			geheZu(gruppe ? (gruppe.previousElementSibling as HTMLElement | null) : hier > 0 ? zeilen[0] : null);
+			if (gruppe) {
+				geheZu(gruppe.previousElementSibling as HTMLElement | null);
+			} else {
+				geheZu(hier > 0 ? zeilen[0] : null);
+			}
 		}
 	} else {
 		return false;

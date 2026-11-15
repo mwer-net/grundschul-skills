@@ -48,6 +48,9 @@ interface Zug {
 	y: number;
 }
 
+/** Der Zeiger während eines erlaubten Zugs: „Kopieren“ oder die greifende Hand. */
+const zugZeiger = (kopiert: boolean) => (kopiert ? 'copy' : 'grabbing');
+
 /** Was ein Druck zieht, sobald der Zug beginnt. Ohne Quelle zieht er auf der Fläche einen Rahmen. */
 interface Quelle {
 	objekte: () => Objekt[];
@@ -100,7 +103,7 @@ export const useZiehen = (o: Optionen) => {
 		// „Verbot“ nur über einem Ziel, das den Zug ablehnt; über allem anderen bleibt die Hand (189-35).
 		// „Kopieren“ nur, wo Loslassen auch kopiert (189-N02).
 		const kopiert = z.kopiert && z.zielId !== undefined && z.zielId !== 'papierkorb';
-		document.documentElement.style.cursor = z.inSichSelbst ? 'not-allowed' : kopiert ? 'copy' : 'grabbing';
+		document.documentElement.style.cursor = z.inSichSelbst ? 'not-allowed' : zugZeiger(kopiert);
 	};
 
 	const federe = (z: Zug) => {

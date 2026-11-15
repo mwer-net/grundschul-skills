@@ -5,6 +5,7 @@ import { Navigate, useNavigate } from 'react-router-dom';
 import { Blattansicht } from '../bausteine/Blattansicht';
 import { Gekuerzt } from '../bausteine/Gekuerzt';
 import { Knopf, KnopfLink } from '../bausteine/Knopf';
+import type { SymbolName } from '../bausteine/Symbol';
 import { Symbol } from '../bausteine/Symbol';
 import { useEntwuerfe } from '../entwuerfe/laden';
 import { EntwurfStatus } from '../entwuerfe/Teile';
@@ -13,6 +14,7 @@ import { useTitel } from '../lib/titel';
 import type { Zugang } from '../lib/zugang';
 import { entwuerfeSeite, entwurfAnsichtAdresse } from '../lib/zugang';
 import { fasseZusammen } from '../pdf/gleiche';
+import type { Entwurf } from '../typen';
 import { NichtDa } from './Entwuerfe';
 import { MaterialFehlt, NICHT_GEFUNDEN } from './NichtGefunden';
 
@@ -29,6 +31,52 @@ interface Eigenschaften {
 const imFeld = (ziel: EventTarget | null) =>
 	ziel instanceof HTMLElement && (ziel.isContentEditable || ['INPUT', 'TEXTAREA', 'SELECT'].includes(ziel.tagName));
 
+/** Der Titel im Browser; ist alles da, aber der Entwurf nicht, „nicht gefunden“. */
+const entwurfTitel = (titel: string | null, geladen: unknown) => {
+	if (titel !== null) {
+		return titel;
+	}
+	return geladen ? NICHT_GEFUNDEN : undefined;
+};
+
+/** Wohin eine Taste blättert: ← zum vorigen, → zum nächsten, Esc zur Übersicht (`''`); sonst `null`. */
+const zielDerTaste = (taste: string, vorher: string | undefined, nachher: string | undefined) => {
+	if (taste === 'ArrowLeft') {
+		return vorher;
+	}
+	if (taste === 'ArrowRight') {
+		return nachher;
+	}
+	return taste === 'Escape' ? '' : null;
+};
+
+/** Ein Knopf zum Blättern; ohne `ziel` gesperrt, an seinem Platz. */
+const BlaetterKnopf = ({
+	dok,
+	symbol,
+	titel,
+	ziel,
+	zugang,
+}: {
+	zugang: Zugang;
+	dok: string;
+	ziel: Entwurf | undefined;
+	titel: string;
+	symbol: SymbolName;
+}) => (
+	<KnopfLink
+		to={ziel ? entwuerfeSeite(zugang, dok, ziel.name) : '#'}
+		art="zweit"
+		replace
+		aria-label={ziel ? `Entwurf ${ziel.name}` : titel}
+		aria-disabled={!ziel}
+		tabIndex={ziel ? undefined : -1}
+		className={ziel ? 'size-knopf px-0' : 'pointer-events-none size-knopf px-0 opacity-40'}
+	>
+		<Symbol name={symbol} />
+	</KnopfLink>
+);
+
 /**
  * Ein Entwurf groß, mit allen Seiten; eine mitlaufende Leiste wie in der Ansicht (191-47): links zurück und der
  * Name, rechts Blättern, immer an derselben Stelle. ← und → blättern, Esc führt zur Übersicht (191 Urteil 3).
@@ -43,11 +91,7 @@ export const EntwurfGross = ({ dok, name, zugang }: Eigenschaften) => {
 	const vorher = liste[nr - 1];
 	const nachher = liste[nr + 1];
 	useTitel(
-		entwurf && dokument
-			? `Entwurf ${entwurf.name}: ${dokument.meta.titel}`
-			: daten || fehler
-				? NICHT_GEFUNDEN
-				: undefined,
+		entwurfTitel(entwurf && dokument ? `Entwurf ${entwurf.name}: ${dokument.meta.titel}` : null, daten || fehler),
 	);
 
 	const da = Boolean(entwurf);
@@ -61,14 +105,7 @@ export const EntwurfGross = ({ dok, name, zugang }: Eigenschaften) => {
 			if (e.defaultPrevented || e.metaKey || e.ctrlKey || e.altKey || imFeld(e.target)) {
 				return;
 			}
-			const ziel =
-				e.key === 'ArrowLeft'
-					? vorherName
-					: e.key === 'ArrowRight'
-						? nachherName
-						: e.key === 'Escape'
-							? ''
-							: null;
+			const ziel = zielDerTaste(e.key, vorherName, nachherName);
 			if (ziel === null || ziel === undefined || document.querySelector('dialog[open], [role=menu]')) {
 				return;
 			}
@@ -125,28 +162,8 @@ export const EntwurfGross = ({ dok, name, zugang }: Eigenschaften) => {
 						)
 					)}
 					{/* Zurück und vor stehen immer an derselben Stelle; was nicht geht, ist gesperrt (191-38). */}
-					<KnopfLink
-						to={vorher ? entwuerfeSeite(zugang, dok, vorher.name) : '#'}
-						art="zweit"
-						replace
-						aria-label={vorher ? `Entwurf ${vorher.name}` : 'Voriger Entwurf'}
-						aria-disabled={!vorher}
-						tabIndex={vorher ? undefined : -1}
-						className={vorher ? 'size-knopf px-0' : 'pointer-events-none size-knopf px-0 opacity-40'}
-					>
-						<Symbol name="zurueck" />
-					</KnopfLink>
-					<KnopfLink
-						to={nachher ? entwuerfeSeite(zugang, dok, nachher.name) : '#'}
-						art="zweit"
-						replace
-						aria-label={nachher ? `Entwurf ${nachher.name}` : 'Nächster Entwurf'}
-						aria-disabled={!nachher}
-						tabIndex={nachher ? undefined : -1}
-						className={nachher ? 'size-knopf px-0' : 'pointer-events-none size-knopf px-0 opacity-40'}
-					>
-						<Symbol name="weiter" />
-					</KnopfLink>
+					<BlaetterKnopf zugang={zugang} dok={dok} ziel={vorher} titel="Voriger Entwurf" symbol="zurueck" />
+					<BlaetterKnopf zugang={zugang} dok={dok} ziel={nachher} titel="Nächster Entwurf" symbol="weiter" />
 				</div>
 			</div>
 

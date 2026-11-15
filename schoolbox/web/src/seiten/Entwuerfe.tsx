@@ -32,6 +32,17 @@ export const NichtDa = () => {
 	);
 };
 
+/** Der Auswahlrahmen des gewählten Entwurfs (191-37). */
+const GEWAEHLT_RAHMEN = 'border-tinte ring-1 ring-tinte group-hover:border-tinte';
+
+/** Der Titel im Browser; ist alles da, aber das Material nicht, „nicht gefunden“. */
+const entwuerfeTitel = (titel: string | undefined, geladen: boolean) => {
+	if (titel !== undefined) {
+		return `Entwürfe: ${titel}`;
+	}
+	return geladen ? NICHT_GEFUNDEN : undefined;
+};
+
 /**
  * Die Entwürfe eines Dokuments zum Vergleichen: am Mac und auf dem iPad quer nebeneinander und ohne zu scrollen, auf
  * dem iPad hoch zum Durchwischen. „Diesen Entwurf nehmen“ übernimmt ihn als Material (191 Urteil 7); was anders
@@ -43,7 +54,7 @@ export const Entwuerfe = ({ dok, zugang }: Eigenschaften) => {
 	const zurueckOrt = useOrdnerDesDokuments(zugang.mappe, dok);
 	const liste = useRef<HTMLUListElement>(null);
 	useRestHoehe(liste, Boolean(dokument?.meta.entwuerfe.length));
-	useTitel(dokument ? `Entwürfe: ${dokument.meta.titel}` : daten || fehler ? NICHT_GEFUNDEN : undefined);
+	useTitel(entwuerfeTitel(dokument?.meta.titel, Boolean(daten || fehler)));
 
 	if (!dokument && (daten || fehler)) {
 		return <MaterialFehlt fehler={fehler} />;
@@ -99,8 +110,7 @@ export const Entwuerfe = ({ dok, zugang }: Eigenschaften) => {
 							<Kachel
 								className={klassen(
 									'flex h-full flex-col group-hover:border-rand-feld',
-									entwurf.name === meta.gewaehlt &&
-									'border-tinte ring-1 ring-tinte group-hover:border-tinte',
+									entwurf.name === meta.gewaehlt && GEWAEHLT_RAHMEN,
 								)}
 							>
 								{/* Rechts oben liegt „Diesen Entwurf nehmen“, neben dem Link (kein Knopf im Link). */}

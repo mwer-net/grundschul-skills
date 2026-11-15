@@ -291,6 +291,20 @@ const drueckZiel = (e: PointerEvent) => {
 
 const ohneTasten = (e: PointerEvent) => e.pointerType === 'mouse' && !e.shiftKey && !e.altKey && !e.metaKey;
 
+/** 205: Das Gestaltungselement unter einem Druck, nach derselben Regel wie Klick, Rechtsklick und Hover-Rahmen. */
+const gestaltungBeimDruck = (doc: Document, e: PointerEvent, ziel: Element, gewaehlt: number | null) => {
+	const treffer = klickziel({
+		doc,
+		ziel,
+		x: e.clientX,
+		y: e.clientY,
+		alt: e.pointerType === 'mouse' && e.altKey,
+		gewaehlt,
+		luecken: false,
+	});
+	return treffer?.art === 'gestaltung' ? { element: treffer.element, nr: treffer.nr } : { element: null, nr: null };
+};
+
 /** 113: Leer heißt: kein Baustein mit Inhalt und kein Gestaltungselement unter dem Zeiger, nur Seite oder Ebene. */
 const bandAb = (e: PointerEvent, ziel: Element) => {
 	const seite = ziel.closest('.seite');
@@ -693,18 +707,7 @@ export const useGeste = (o: Optionen) => {
 			}
 			const maus = e.pointerType === 'mouse';
 			const gewaehlt = aktuell.current.pfad.at(-1)?.nr ?? null;
-			// 205: dieselbe Regel wie Klick, Rechtsklick und Hover-Rahmen.
-			const treffer = klickziel({
-				doc,
-				ziel,
-				x: e.clientX,
-				y: e.clientY,
-				alt: maus && e.altKey,
-				gewaehlt,
-				luecken: false,
-			});
-			const element = treffer?.art === 'gestaltung' ? treffer.element : null;
-			const nr = treffer?.art === 'gestaltung' ? treffer.nr : null;
+			const { element, nr } = gestaltungBeimDruck(doc, e, ziel, gewaehlt);
 			if (!element || nr === null) {
 				const neu = ohneTasten(e) && erlaubt() ? bandAb(e, ziel) : null;
 				if (neu) {

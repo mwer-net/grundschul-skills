@@ -55,6 +55,23 @@ const ordnerDarunter = (ordner: readonly AblageOrdner[], id: string): string[] =
 	return kinderVon(id);
 };
 
+const Kopf = () => {
+	const kopf = useKopfHoehe<HTMLElement>();
+	return (
+		<header ref={kopf} className="sticky top-0 z-kopf border-b border-rand bg-flaeche">
+			<div className="flex h-10 items-center px-4 text-base font-semibold text-tinte">Schoolbox</div>
+		</header>
+	);
+};
+
+/** Ordner und Fehler mit Kopfzeile; ein Material hat nur seine eigene Leiste, ganz oben wie in der Ansicht (191-13). */
+const GeteiltRahmen = ({ children, kopf = true }: { children: ReactNode; kopf?: boolean }) => (
+	<div className="flex min-h-dvh flex-col">
+		{kopf && <Kopf />}
+		<main className={`w-full flex-1 px-4 pb-16 ${kopf ? 'pt-3' : ''}`}>{children}</main>
+	</div>
+);
+
 /** Abgeschalteter oder unbekannter Link: mit Kopfzeile wie jede Seite des Links (191-32). */
 const LinkTot = ({ nachricht }: { nachricht: string }) => {
 	useTitel('Dieser Link gilt nicht mehr');
@@ -201,23 +218,6 @@ const GeteiltPraesentieren = ({ standard, token }: { token: string; standard: st
 	const ort = zugangVon(token, dok, standard);
 	return <Praesentation key={dok} zugang={ort.zugang} dok={ort.dok} />;
 };
-
-const Kopf = () => {
-	const kopf = useKopfHoehe<HTMLElement>();
-	return (
-		<header ref={kopf} className="sticky top-0 z-kopf border-b border-rand bg-flaeche">
-			<div className="flex h-10 items-center px-4 text-base font-semibold text-tinte">Schoolbox</div>
-		</header>
-	);
-};
-
-/** Ordner und Fehler mit Kopfzeile; ein Material hat nur seine eigene Leiste, ganz oben wie in der Ansicht (191-13). */
-const GeteiltRahmen = ({ children, kopf = true }: { children: ReactNode; kopf?: boolean }) => (
-	<div className="flex min-h-dvh flex-col">
-		{kopf && <Kopf />}
-		<main className={`w-full flex-1 px-4 pb-16 ${kopf ? 'pt-3' : ''}`}>{children}</main>
-	</div>
-);
 
 /**
  * Teilen-Links: ein Dokument oder einen ganzen Ordner ansehen, als PDF holen und drucken, ohne Anmeldung. Weiterteilen

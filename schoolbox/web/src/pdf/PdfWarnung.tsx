@@ -52,28 +52,25 @@ export const PdfWarnung = ({ ganzeMappe, mappe, meldungen, schliessen, weiter, w
 		}
 	};
 
+	const fussZeile = (
+		<>
+			<Knopf art="zweit" onClick={nurEins && mappeDesBlatts ? imEditor : () => void kopiere()}>
+				<Symbol name={nurEins && mappeDesBlatts ? 'funken' : 'kopieren'} />
+				Claude bitten, es zu reparieren
+			</Knopf>
+			<Knopf
+				data-hauptaktion
+				onClick={() => {
+					schliessen();
+					weiter();
+				}}
+			>
+				{weiterTitel}
+			</Knopf>
+		</>
+	);
 	return (
-		<Dialog
-			titel="Beim Prüfen ist etwas aufgefallen"
-			schliessen={schliessen}
-			fuss={(
-				<>
-					<Knopf art="zweit" onClick={nurEins && mappeDesBlatts ? imEditor : () => void kopiere()}>
-						<Symbol name={nurEins && mappeDesBlatts ? 'funken' : 'kopieren'} />
-						Claude bitten, es zu reparieren
-					</Knopf>
-					<Knopf
-						data-hauptaktion
-						onClick={() => {
-							schliessen();
-							weiter();
-						}}
-					>
-						{weiterTitel}
-					</Knopf>
-				</>
-			)}
-		>
+		<Dialog titel="Beim Prüfen ist etwas aufgefallen" schliessen={schliessen} fuss={fussZeile}>
 			<p>Du kannst das PDF trotzdem nehmen. Schau es dir aber vorher genau an:</p>
 			<div className="flex flex-col gap-3 rounded-xl bg-papier p-4">
 				{gruppen.map(({ dok, meldungen: liste, titel }) => (

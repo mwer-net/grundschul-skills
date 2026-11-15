@@ -1,4 +1,4 @@
-import { zeichenwerkzeuge } from '../../gestaltung/werkzeuge/werkzeugknoepfe';
+import { zeichenwerkzeuge } from '../../gestaltung/werkzeuge/werkzeugknoepfe-daten';
 import type { FormenAbschnitt } from './typ';
 import { LAGE } from './Werkzeuge-daten';
 import { Inhalt } from './Werkzeuge-teile';

@@ -12,6 +12,7 @@ import { PdfLaeuft } from '../pdf/PdfKnopf';
 import { AblageInhalt } from './AblageInhalt';
 import type { AuswahlStand } from './auswahl';
 import { bereinige, KEINE, klicke } from './auswahl';
+import type { Merkzettel } from './kontext';
 import { useAblage } from './kontext';
 import {
 	findeOrdner,
@@ -110,6 +111,46 @@ const Defekte = ({ defekt }: { defekt: DefektEintrag[] }) => (
 	</aside>
 );
 
+/** Der Titel im Browser: Name des Ordners, das Suchwort oder der Name der Seite. */
+const titelDerSeite = (seite: Seite, hier: AblageOrdner | null, suchwort: string) => {
+	if (seite.art === 'ordner') {
+		return hier?.name ?? (seite.ordner === null ? WURZEL_NAME : undefined);
+	}
+	return suchwort ? `„${suchwort}“ – Suche` : SEITEN_TITEL[seite.art];
+};
+
+/** Schlüssel dessen, was zum Ausschneiden gemerkt ist; es erscheint blass. */
+const ausgeschnitten = (merkzettel: Merkzettel | null) =>
+	new Set(
+		(merkzettel?.modus === 'ausschneiden' ? merkzettel.knoten : []).map((k) =>
+			'ordner' in k ? k.ordner : `${k.mappe}/${k.dok}`,
+		),
+	);
+
+/**
+ * Solange die Ablage fehlt: der Fehler mit „Noch einmal“, sonst das leere Gerüst. Eine Funktion, keine Komponente:
+ * Das Gerüst ist derselbe Knoten, den die geladene Ablage weiterverwendet.
+ */
+const ablageOhneStand = (fehler: string | null, neuLaden: () => void, leisteAn: boolean) =>
+	fehler ? (
+		<Zustand symbol="achtung" titel="Das hat gerade nicht geklappt">
+			<p className="text-leise">{fehler}</p>
+			<Knopf onClick={neuLaden}>Noch einmal versuchen</Knopf>
+		</Zustand>
+	) : (
+		// Das Gerüst steht sofort, leer; der Inhalt füllt sich, ohne dass etwas springt (188-29).
+		<div className="-mx-4 -mt-3 -mb-16 flex min-h-[calc(100dvh-var(--kopf,0px))]" data-ablage data-laedt>
+			{leisteAn && (
+				<div className="sticky top-[var(--kopf,0px)] h-[calc(100dvh-var(--kopf,0px))] w-[220px] flex-none border-r border-rand bg-flaeche" />
+			)}
+			<div className="flex min-w-0 flex-1 flex-col">
+				<div className="h-[var(--hoehe-werkzeug)] flex-none border-b border-rand bg-flaeche" />
+				<div className="flex-1" />
+				<div className="sticky bottom-0 h-6 flex-none border-t border-rand bg-flaeche" />
+			</div>
+		</div>
+	);
+
 /** Die Ablage: Baum, Pfad, Kacheln oder Liste. Bleibt beim Navigieren stehen, nur der Inhalt wechselt. */
 export const Ablage = () => {
 	const { benennen, fehler, merkzettel, neuLaden, setBenennen, stand } = useAblage();
@@ -137,13 +178,7 @@ export const Ablage = () => {
 		[gesetzt, hier],
 	);
 	const suchwort = seite.art === 'suche' ? (parameter.get('q') ?? '').trim() : '';
-	useTitel(
-		seite.art === 'ordner'
-			? (hier?.name ?? (seite.ordner === null ? WURZEL_NAME : undefined))
-			: suchwort
-				? `„${suchwort}“ – Suche`
-				: SEITEN_TITEL[seite.art],
-	);
+	useTitel(titelDerSeite(seite, hier, suchwort));
 
 	const klappeBaum = useCallback((id: string, an?: boolean) => {
 		setOffenBaum((alt) => {
@@ -508,32 +543,11 @@ export const Ablage = () => {
 	};
 
 	if (!stand) {
-		return fehler ? (
-			<Zustand symbol="achtung" titel="Das hat gerade nicht geklappt">
-				<p className="text-leise">{fehler}</p>
-				<Knopf onClick={neuLaden}>Noch einmal versuchen</Knopf>
-			</Zustand>
-		) : (
-			// Das Gerüst steht sofort, leer; der Inhalt füllt sich, ohne dass etwas springt (188-29).
-			<div className="-mx-4 -mt-3 -mb-16 flex min-h-[calc(100dvh-var(--kopf,0px))]" data-ablage data-laedt>
-				{leisteAn && (
-					<div className="sticky top-[var(--kopf,0px)] h-[calc(100dvh-var(--kopf,0px))] w-[220px] flex-none border-r border-rand bg-flaeche" />
-				)}
-				<div className="flex min-w-0 flex-1 flex-col">
-					<div className="h-[var(--hoehe-werkzeug)] flex-none border-b border-rand bg-flaeche" />
-					<div className="flex-1" />
-					<div className="sticky bottom-0 h-6 flex-none border-t border-rand bg-flaeche" />
-				</div>
-			</div>
-		);
+		return ablageOhneStand(fehler, neuLaden, leisteAn);
 	}
 
 	const fremd = seite.art !== 'ordner';
-	const blass = new Set(
-		(merkzettel?.modus === 'ausschneiden' ? merkzettel.knoten : []).map((k) =>
-			'ordner' in k ? k.ordner : `${k.mappe}/${k.dok}`,
-		),
-	);
+	const blass = ausgeschnitten(merkzettel);
 	const ortVon = (o: Objekt) => {
 		const id = o.istOrdner ? o.ordner.eltern : o.dok.ordner;
 		return fremd ? { kurz: ortKurz(stand, id), voll: ortName(stand, id) } : undefined;

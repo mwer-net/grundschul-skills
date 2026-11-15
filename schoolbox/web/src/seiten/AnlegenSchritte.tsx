@@ -500,6 +500,53 @@ const SegmentMitAnders = <T extends string>({
 	</>
 );
 
+/** Der Titel prüft sich beim Verlassen; den Fehler zeigt er am Feld, nicht erst im letzten Schritt (190-N01). */
+export interface TitelPruefung {
+	fehler: string | null;
+	pruefen: () => void;
+}
+
+export const TitelFeld = ({
+	fokus = true,
+	pruefung,
+	setzeTitel,
+	titel,
+	vorschlag,
+}: {
+	titel: string;
+	setzeTitel: (titel: string) => void;
+	vorschlag: boolean;
+	/** Das erste Feld des Schritts bekommt den Fokus; unter dem Thema ist es das Thema. */
+	fokus?: boolean;
+	pruefung?: TitelPruefung;
+}) => {
+	const fehlerId = useId();
+	const fehler = pruefung?.fehler ?? null;
+	return (
+		<label className="block min-w-0 flex-1">
+			<Etikett zusatz={vorschlag ? 'Vorschlag, änderbar' : undefined}>Titel</Etikett>
+			<input
+				className={klassen(FELD, fehler && 'border-fehler')}
+				maxLength={TITEL_ZEICHEN}
+				value={titel}
+				data-fokus={fokus ? '' : undefined}
+				data-titel
+				aria-invalid={fehler ? true : undefined}
+				aria-describedby={fehler ? fehlerId : undefined}
+				onFocus={(e) => e.target.select()}
+				onBlur={pruefung?.pruefen}
+				onChange={(e) => setzeTitel(e.target.value)}
+			/>
+			{fehler && (
+				<span id={fehlerId} role="alert" className="mt-1 block text-sm text-fehler" data-titel-fehler>
+					{fehler}
+				</span>
+			)}
+			<Zaehler wert={titel} max={TITEL_ZEICHEN} />
+		</label>
+	);
+};
+
 export const SchrittThema = ({
 	a,
 	offen,
@@ -728,53 +775,6 @@ export const OrdnerFeld = ({ name }: { name: string }) => (
 		</div>
 	</div>
 );
-
-/** Der Titel prüft sich beim Verlassen; den Fehler zeigt er am Feld, nicht erst im letzten Schritt (190-N01). */
-export interface TitelPruefung {
-	fehler: string | null;
-	pruefen: () => void;
-}
-
-export const TitelFeld = ({
-	fokus = true,
-	pruefung,
-	setzeTitel,
-	titel,
-	vorschlag,
-}: {
-	titel: string;
-	setzeTitel: (titel: string) => void;
-	vorschlag: boolean;
-	/** Das erste Feld des Schritts bekommt den Fokus; unter dem Thema ist es das Thema. */
-	fokus?: boolean;
-	pruefung?: TitelPruefung;
-}) => {
-	const fehlerId = useId();
-	const fehler = pruefung?.fehler ?? null;
-	return (
-		<label className="block min-w-0 flex-1">
-			<Etikett zusatz={vorschlag ? 'Vorschlag, änderbar' : undefined}>Titel</Etikett>
-			<input
-				className={klassen(FELD, fehler && 'border-fehler')}
-				maxLength={TITEL_ZEICHEN}
-				value={titel}
-				data-fokus={fokus ? '' : undefined}
-				data-titel
-				aria-invalid={fehler ? true : undefined}
-				aria-describedby={fehler ? fehlerId : undefined}
-				onFocus={(e) => e.target.select()}
-				onBlur={pruefung?.pruefen}
-				onChange={(e) => setzeTitel(e.target.value)}
-			/>
-			{fehler && (
-				<span id={fehlerId} role="alert" className="mt-1 block text-sm text-fehler" data-titel-fehler>
-					{fehler}
-				</span>
-			)}
-			<Zaehler wert={titel} max={TITEL_ZEICHEN} />
-		</label>
-	);
-};
 
 export const SchrittTitel = ({
 	a,

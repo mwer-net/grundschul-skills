@@ -17,6 +17,9 @@ import { elternVon, inhaltText, inhaltVon, WURZEL_NAME, zielGueltig } from './ob
 import { pfadText } from './pfad';
 import type { AblageOrdner, Objekt } from './typen';
 
+/** Der Ordner einer Baumzeile; „Mein Material“ ist `null`. */
+const ordnerDerZeile = (roh: string) => (roh === 'wurzel' ? null : roh);
+
 /** Der Weg ohne Ziehen: Ziel im Baum wählen, auf Wunsch dort einen neuen Ordner anlegen. */
 export const BewegenDialog = ({ objekte, schliessen }: { objekte: Objekt[]; schliessen: () => void }) => {
 	const { benennen, setBenennen, stand, tu } = useAblage();
@@ -71,35 +74,32 @@ export const BewegenDialog = ({ objekte, schliessen }: { objekte: Objekt[]; schl
 		}
 		const zeile = (e.target as HTMLElement).closest<HTMLElement>('[data-baum-ordner]');
 		const roh = zeile?.dataset.baumOrdner;
-		const id = roh === undefined ? ziel : roh === 'wurzel' ? null : roh;
+		const id = roh === undefined ? ziel : ordnerDerZeile(roh);
 		if (id !== undefined && !gesperrt(id)) {
 			e.preventDefault();
 			setZiel(id);
 			void bewege(id);
 		}
 	};
+	const fussZeile = (
+		<>
+			<Knopf art="zweit" className="mr-auto" onClick={() => void neuerOrdner()}>
+				<Symbol name="ordnerNeu" />
+				Neuer Ordner
+			</Knopf>
+			<Knopf art="leise" onClick={schliessen}>
+				Abbrechen
+			</Knopf>
+			<Knopf data-hauptaktion disabled={ziel === undefined || gesperrt(ziel)} onClick={() => void bewege()}>
+				Hierher bewegen
+			</Knopf>
+		</>
+	);
 	return (
 		<Dialog
 			titel={`${objekte.length === 1 && erstes ? `„${erstes.name}“` : `${objekte.length} Objekte`} bewegen nach …`}
 			schliessen={schliessen}
-			fuss={(
-				<>
-					<Knopf art="zweit" className="mr-auto" onClick={() => void neuerOrdner()}>
-						<Symbol name="ordnerNeu" />
-						Neuer Ordner
-					</Knopf>
-					<Knopf art="leise" onClick={schliessen}>
-						Abbrechen
-					</Knopf>
-					<Knopf
-						data-hauptaktion
-						disabled={ziel === undefined || gesperrt(ziel)}
-						onClick={() => void bewege()}
-					>
-						Hierher bewegen
-					</Knopf>
-				</>
-			)}
+			fuss={fussZeile}
 		>
 			{/* Feste Höhe: Aufklappen ändert Größe und Lage des Dialogs nicht (188-25). */}
 			<div
@@ -232,38 +232,34 @@ export const UebersichtDialog = ({
 		!objekt.istOrdner && objekt.dok.vorschau && !entwuerfe
 			? vorschauAdresse({ mappe: objekt.dok.mappe, token: null }, objekt.dok.id, objekt.dok.vorschau)
 			: null;
+	const fussZeile = (
+		<>
+			<span className="mr-auto flex items-center gap-1">
+				<Knopf
+					art="leise"
+					disabled={stelle === 0}
+					aria-label="Vorheriges"
+					onClick={() => setStelle(stelle - 1)}
+				>
+					<Symbol name="links" />
+				</Knopf>
+				<Knopf
+					art="leise"
+					disabled={stelle === objekte.length - 1}
+					aria-label="Nächstes"
+					onClick={() => setStelle(stelle + 1)}
+				>
+					<Symbol name="rechts" />
+				</Knopf>
+				<span className="text-sm text-leise">{`${stelle + 1} von ${objekte.length}`}</span>
+			</span>
+			<Knopf data-hauptaktion onClick={() => oeffne(objekt)}>
+				{objekt.istOrdner ? 'Öffnen' : 'Ansehen'}
+			</Knopf>
+		</>
+	);
 	return (
-		<Dialog
-			titel={objekt.name}
-			breit
-			schliessen={schliessen}
-			fuss={(
-				<>
-					<span className="mr-auto flex items-center gap-1">
-						<Knopf
-							art="leise"
-							disabled={stelle === 0}
-							aria-label="Vorheriges"
-							onClick={() => setStelle(stelle - 1)}
-						>
-							<Symbol name="links" />
-						</Knopf>
-						<Knopf
-							art="leise"
-							disabled={stelle === objekte.length - 1}
-							aria-label="Nächstes"
-							onClick={() => setStelle(stelle + 1)}
-						>
-							<Symbol name="rechts" />
-						</Knopf>
-						<span className="text-sm text-leise">{`${stelle + 1} von ${objekte.length}`}</span>
-					</span>
-					<Knopf data-hauptaktion onClick={() => oeffne(objekt)}>
-						{objekt.istOrdner ? 'Öffnen' : 'Ansehen'}
-					</Knopf>
-				</>
-			)}
-		>
+		<Dialog titel={objekt.name} breit schliessen={schliessen} fuss={fussZeile}>
 			<div
 				className="flex h-[65dvh] items-center justify-center rounded-lg bg-leinwand p-3"
 				data-uebersicht={objekt.schluessel}

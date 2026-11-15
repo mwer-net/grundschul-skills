@@ -16,9 +16,10 @@ import { dokumentSeite, inhaltAdresse } from '../lib/zugang';
 import { AblageTasten } from '../ordner/dialoge';
 import type { MappenEintrag } from '../typen';
 import { GESTALTEN } from './hilfe-gestalten';
+import { befehlName } from './hilfe-namen';
 import { WEITERE_TASTEN } from './hilfe-tasten';
 import type { Abschnitt, Bild } from './hilfe-teile';
-import { befehlName, BefehlTaste, Punkt } from './hilfe-teile';
+import { BefehlTaste, Punkt } from './hilfe-teile';
 
 /** Legt `schoolbox kurzanleitung` an; `scripts/ausrollen.sh` hält sie auf dem Stand der Vorlage. */
 const KURZANLEITUNG = { mappe: 'schoolbox-hilfe', token: null };
@@ -136,10 +137,7 @@ const ABSCHNITTE: Abschnitt[] = [
 						mit der Maus in die Lücke, dann „+ Baustein“. Es öffnet die Schnellauswahl: tippen, mit ↑ ↓
 						wählen, ⏎ fügt ein. Auf einer leeren Seite steht „Ersten Baustein einfügen“. Mit gewähltem
 						Baustein geht es über
-{' '}
-{befehlName('auswahl.einfuegen-danach')}
-{' '}
-im ⋯ oder „/“.
+						{` ${befehlName('auswahl.einfuegen-danach')} im ⋯ oder „/“.`}
 					</Punkt>
 					<Punkt titel="Schublade">
 						„Bausteine“ links (
@@ -316,11 +314,11 @@ im ⋯ oder „/“.
 					<Punkt titel="Ebenen">
 						die Schublade links (
 						<SchubladenTaste id="ebenen" />
-) zeigt alle Seiten als Baum mit allem, was du im Blatt anklicken
-						kannst. Ein Klick auf eine Zeile springt zur Stelle. Zeilen ziehst du an einen anderen Platz,
-						Aufgaben auch auf eine andere Seite. Namenszeile, Kopf und Selbsteinschätzung bleiben an ihrem
-						Platz und sind grau. Oben klappt „Alle aufklappen“ jede Zeile auf, danach macht „Alle
-						einklappen“ die Liste wieder kurz.
+						{') zeigt alle Seiten als Baum mit allem, was du im Blatt anklicken kannst. '}
+						Ein Klick auf eine Zeile springt zur Stelle. Zeilen ziehst du an einen anderen Platz, Aufgaben
+						auch auf eine andere Seite. Namenszeile, Kopf und Selbsteinschätzung bleiben an ihrem Platz und
+						sind grau. Oben klappt „Alle aufklappen“ jede Zeile auf, danach macht „Alle einklappen“ die
+						Liste wieder kurz.
 					</Punkt>
 					<Punkt titel="Einstellungen">
 						rechts im Inspektor: „Auswahl“ für das Gewählte, „Blatt“ für Klasse, Farben, Format, den Abstand
@@ -442,7 +440,8 @@ im ⋯ oder „/“.
 					<li>
 						{'Einen Teil des Blatts wählen, dann „Claude“ in seiner Leiste oder '}
 						<BefehlTaste id="auswahl.claude" />
-						. Ohne Auswahl gilt es der Seite. Claude ändert immer ein Element; für mehrere wählst du die Seite.
+						{'. Ohne Auswahl gilt es der Seite. '}
+						Claude ändert immer ein Element; für mehrere wählst du die Seite.
 					</li>
 					<li>
 						Oben in der Blase steht, worauf sich dein Auftrag bezieht. Ein Tipp darauf wählt eine Stufe

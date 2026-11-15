@@ -1,6 +1,15 @@
 import type { KeyboardEvent as ReactKeyboardEvent } from 'react';
 import { useEffect, useRef, useState } from 'react';
-import { Link, Outlet, useLocation, useMatch, useNavigate, useNavigationType, useSearchParams } from 'react-router-dom';
+import {
+	Link,
+	NavigationType,
+	Outlet,
+	useLocation,
+	useMatch,
+	useNavigate,
+	useNavigationType,
+	useSearchParams,
+} from 'react-router-dom';
 
 import { meldung, sende } from '../api';
 import { useKiZustand } from '../editor/ki';
@@ -44,7 +53,7 @@ const useKopfsuche = (ordnerId: string | undefined) => {
 
 	// Aus der Adresse nur, wenn sie sich ohne Tippen geändert hat: Zurück im Browser, Klick auf einen Ordner.
 	useEffect(() => {
-		if (navigationsArt === 'POP' || document.activeElement !== feld.current) {
+		if (navigationsArt === NavigationType.Pop || document.activeElement !== feld.current) {
 			setText(adressText);
 		}
 		if (pathname !== '/suche') {
