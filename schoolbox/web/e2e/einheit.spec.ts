@@ -2,7 +2,10 @@
  * Unterrichtseinheit im Assistenten und Warten im Ordner (140). Die Claude-Attrappe (Fälle `einheit`, `einheit-haenger`
  * aus 139) schreibt einen Plan mit zwei Fällen und baut sie nacheinander.
  */
-import { readFile, writeFile } from 'node:fs/promises';
+import { createHash } from 'node:crypto';
+import { existsSync } from 'node:fs';
+import { readdir, readFile, rm, writeFile } from 'node:fs/promises';
+import { tmpdir } from 'node:os';
 import path from 'node:path';
 
 import type { Page } from '@playwright/test';
@@ -14,7 +17,7 @@ const dialog = (page: Page) => page.getByRole('dialog');
 const schritt = (page: Page, id: string) => dialog(page).locator(`[data-assistent="${id}"]`);
 const band = (page: Page) => page.locator('[data-einheit-band]');
 
-/** Von „Material anlegen“ bis zum letzten Schritt „Deine Klasse“: nur das Thema eintippen, sonst ⏎ (190-37). */
+/** Von „Material anlegen“ bis zum letzten Schritt „Deine Klasse“: Klasse, Fach und Thema, sonst ⏎ (190-37). */
 const bisPruefen = async (page: Page, thema: string) => {
 	await page.locator('[data-werkzeugleiste] [data-material-anlegen]').click();
 	await expect(schritt(page, 'start')).toBeVisible();
@@ -22,7 +25,18 @@ const bisPruefen = async (page: Page, thema: string) => {
 	await page.keyboard.press('Enter');
 	await dialog(page).locator('[data-wahl="einheit"]').click();
 	await expect(schritt(page, 'fuerWen')).toBeVisible();
-	await page.keyboard.press('Enter');
+	// S-14: Ohne Anhaltspunkt ist nichts vorgewählt; dann Klasse und Fach wählen. Im Ordner einer Einheit legt
+	// der Ordner beides fest.
+	for (const [gruppe, wert] of [
+		['Klasse', '2'],
+		['Fach', 'Mathematik'],
+	] as const) {
+		const knoepfe = dialog(page).getByRole('group', { name: gruppe }).getByRole('button');
+		if ((await knoepfe.and(page.locator('[aria-pressed="true"]')).count()) === 0) {
+			await knoepfe.getByText(wert, { exact: true }).click();
+		}
+	}
+	await dialog(page).locator('[data-hauptaktion]').click();
 	await expect(schritt(page, 'eThema')).toBeVisible();
 	await page.keyboard.type(thema);
 	for (const id of ['eUmfang', 'eBestandteile', 'eRahmen', 'bausteine', 'klasse']) {
@@ -38,7 +52,25 @@ const gibFrei = async (page: Page) => {
 	await band(page).getByRole('button', { name: 'So bauen' }).click();
 };
 
+/**
+ * Die Einheiten legt der Server außerhalb der Ablage ab (`einheitenWurzel` in `server/src/einheit.ts`); das Leeren
+ * der Ablage lässt sie stehen. Ein Plan aus einem früheren Test zeigte sonst weiter die Pille. Laufende bleiben.
+ */
+const EINHEITEN = path.join(
+	tmpdir(),
+	`schoolbox-einheit-${createHash('sha256').update(MATERIAL_DIR).digest('hex').slice(0, 16)}`,
+);
+const leereEinheiten = async () => {
+	for (const name of await readdir(EINHEITEN).catch(() => [] as string[])) {
+		if (name.startsWith('einheit-') && !existsSync(path.join(EINHEITEN, name, 'pid'))) {
+			await rm(path.join(EINHEITEN, name), { recursive: true, force: true });
+		}
+	}
+};
+
 test.describe('Unterrichtseinheit (140)', () => {
+	test.beforeEach(leereEinheiten);
+
 	test('Mit Thema und ⏎ starten, Band und Platzhalter, fertige Kacheln, Pille, Meldung', async ({ page }) => {
 		await kiFall('einheit');
 		await page.goto('/');
@@ -130,8 +162,9 @@ test.describe('Unterrichtseinheit (140)', () => {
 		await gibFrei(page);
 		await band(page).getByRole('button', { name: 'Abbrechen' }).click();
 		await band(page).getByRole('button', { name: 'Verwerfen' }).click();
-		// Ohne Rückfrage in den Ordner darüber, mit „Rückgängig“ wie in der Ablage (190-30).
-		await expect(page).toHaveURL(/\/$/);
+		// Ohne Rückfrage in den Ordner darüber, mit „Rückgängig“ wie in der Ablage (190-30). „Wind“ entstand im Ordner
+		// der ersten Einheit, dorthin geht es zurück.
+		await expect(page).toHaveURL(ordner);
 		await expect(page.getByText('Ordner „Wind“ in den Papierkorb gelegt.')).toBeVisible();
 		await page.goto('/papierkorb');
 		await expect(page.getByText('Wind')).toBeVisible();
