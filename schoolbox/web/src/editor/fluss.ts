@@ -506,15 +506,6 @@ export const seiteFliesst = (doc: Document, z: Zerlegung, seitenNr: number) => {
 	return Boolean(blatt?.fliesst && gruppe && fliesstImBild(gruppe));
 };
 
-/** Folgt auf die Seite eine automatische Seite? Dann ist der freie Platz unten gewollt (206-05, „Platz frei“). */
-export const folgtAutomatische = (doc: Document, seitenNr: number) => {
-	const seite = [...doc.querySelectorAll('.seite')].filter((s) => !s.parentElement?.closest('.seite'))[
-		seitenNr - 1
-	];
-	const naechste = seite?.nextElementSibling;
-	return Boolean(naechste && naechste.matches('.seite') && istAuto(naechste));
-};
-
 /** Die Nummer der ersten Seite des Blatts, zu dem die Seite (1-basiert) gehört. */
 export const blattDerSeite = (doc: Document, seitenNr: number) => {
 	const seite = [...doc.querySelectorAll('.seite')].filter((s) => !s.parentElement?.closest('.seite'))[

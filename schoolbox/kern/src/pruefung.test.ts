@@ -77,6 +77,8 @@ describe('pruefung.js (mit blatt.py)', () => {
 					'aussen',
 					'verdeckt',
 					'ausgeblendet',
+					// Zahlenraum (207) prüft „pruefung.js: was die Fassung selbst so setzt“.
+					'zahlenraum',
 				].includes(c),
 		);
 		assert.deepEqual(fehlt, [], 'jede Regel kommt in den Testdaten vor');
@@ -348,5 +350,91 @@ describe('pruefung.js: Fläche im Stapel (115)', { skip: browserSkip() }, () => 
 			[{ seite: 2, code: 'abgeschnitten', stufe: 'FEHLER' }],
 		);
 		assert.match(bericht[0]?.text ?? '', /über den Rand der Fläche hinaus/);
+	});
+});
+
+/** 207: Zeilennummern, „Nur Lösung“ und automatische Folgeseiten erzeugen keine Prüfpunkte. */
+describe('pruefung.js: was die Fassung selbst so setzt (207)', { skip: browserSkip() }, () => {
+	const AUFGABE = (nr: number, extra = '') =>
+		`<div class="aufgabe${extra}"><span class="nr">${nr}</span><div class="anw"><span class="text">Rechne.</span></div>` +
+		'<div class="koerper"><div class="zelle">3 + 4 = <span class="antwort" data-l="7"></span></div></div></div>';
+	const SATZ = 'Der Igel sucht im Herbst ein warmes Nest aus Laub und Moos für den langen Winter. ';
+	const BLATT = [
+		'<!doctype html><html lang="de"><head><meta charset="utf-8"><title>207</title>',
+		'<link rel="stylesheet" href="blatt.css"><script src="abbildungen.js"></script></head>',
+		'<body class="kl2 farbe">',
+		`<section class="seite"><p data-zeilennummern="1">${SATZ.repeat(6)}</p>`,
+		AUFGABE(1),
+		AUFGABE(2, ' nur-loesung'),
+		AUFGABE(3),
+		'</section>',
+		`<section class="seite">${AUFGABE(4)}</section>`,
+		`<section class="seite" data-weiter="auto">${AUFGABE(5)}</section>`,
+		'</body></html>',
+	].join('\n');
+
+	it('Zeilennummern: kein „Rand“ und keine „Schrift zu klein“ (194-35)', async () => {
+		const tmp = await mkdtemp(path.join(tmpdir(), 'schoolbox-207-'));
+		try {
+			const datei = path.join(tmp, 'blatt.html');
+			await writeFile(datei, BLATT);
+			const meldungen = (await pruefe(datei)).filter((m) => m.seite === 1);
+			const anNummern = meldungen.filter((m) =>
+				(m.ziele ?? []).some((z) => /^\d+$/.test(z.name ?? '') && ['rand', 'ueberlauf', 'schrift-klein'].includes(m.code ?? '')),
+			);
+			assert.deepEqual(anNummern, []);
+		} finally {
+			await rm(tmp, { recursive: true, force: true });
+		}
+	});
+
+	it('„Nur Lösung“: kein Abstand zu einer Aufgabe, die auf dem Arbeitsblatt nicht steht (193-28)', async () => {
+		const tmp = await mkdtemp(path.join(tmpdir(), 'schoolbox-207-'));
+		try {
+			const datei = path.join(tmp, 'blatt.html');
+			await writeFile(datei, BLATT);
+			const abstand = (await pruefe(datei)).filter((m) => m.code === 'abstand-knapp');
+			assert.deepEqual(abstand, []);
+		} finally {
+			await rm(tmp, { recursive: true, force: true });
+		}
+	});
+
+	it('Zahlenraum: Über der Klasse wird gezeichnet und gewarnt, über einer Million nicht (197-U1)', async () => {
+		const tmp = await mkdtemp(path.join(tmpdir(), 'schoolbox-207-'));
+		try {
+			const datei = path.join(tmp, 'malkreuz.html');
+			await writeFile(
+				datei,
+				BLATT.replace(
+					/<section class="seite"><p data-zeilennummern[\s\S]*?<\/section>/,
+					'<section class="seite"><x-malkreuz a="34" b="6"></x-malkreuz><x-zahlenhaus dach="2000000" zerlegungen="1000000 1000000"></x-zahlenhaus></section>',
+				),
+			);
+			const meldungen = (await pruefe(datei)).filter((m) => m.seite === 1);
+			const warnung = meldungen.filter((m) => m.code === 'zahlenraum');
+			assert.deepEqual(
+				warnung.map(({ stufe, text }) => ({ stufe, text })),
+				[{ stufe: 'WARNUNG', text: 'Abbildung „Malkreuz“: Ein Feld wäre 204. In Klasse 2 geht es bis 100.' }],
+			);
+			const fehler = meldungen.filter((m) => m.code === 'abbildung').map((m) => m.text);
+			assert.equal(fehler.length, 1, 'nur das Zahlenhaus über einer Million');
+			assert.match(fehler[0] ?? '', /^Abbildung „Zahlenhaus“: Ein Feld wäre 2\D000\D000\. Mehr als 1\D000\D000 geht nicht\.$/);
+		} finally {
+			await rm(tmp, { recursive: true, force: true });
+		}
+	});
+
+	it('kein „Platz frei“ vor einer automatischen Seite, wohl aber auf der letzten (206)', async () => {
+		const tmp = await mkdtemp(path.join(tmpdir(), 'schoolbox-207-'));
+		try {
+			const datei = path.join(tmp, 'blatt.html');
+			await writeFile(datei, BLATT);
+			const frei = (await pruefe(datei)).filter((m) => m.code === 'platz-frei').map((m) => m.seite);
+			assert.ok(!frei.includes(2), 'Seite 2 hat eine automatische Folgeseite');
+			assert.ok(frei.includes(3), 'die letzte Seite meldet weiter');
+		} finally {
+			await rm(tmp, { recursive: true, force: true });
+		}
 	});
 });
