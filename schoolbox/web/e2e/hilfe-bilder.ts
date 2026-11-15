@@ -16,7 +16,7 @@ import {
 	schreibeMeta,
 } from '@schoolbox/kern';
 
-import { material, oeffne } from './editorhilfe';
+import { material } from './editorhilfe';
 import { dokumentOrdner, expect, legeMappeAn, oeffneMehr, test } from './hilfe';
 
 const MATERIAL_DIR = process.env.E2E_MATERIAL_DIR ?? '';
@@ -73,7 +73,7 @@ const einmaleins = async () => {
 
 /** Wartet, bis alle Vorschaubilder auf der Seite da sind; blatt.py braucht dafür einige Sekunden je Blatt. */
 const vorschauenDa = async (page: Page, anzahl: number) => {
-	await expect(page.locator('main img')).toHaveCount(anzahl, { timeout: 60_000 });
+	await expect(page.locator('main img')).toHaveCount(anzahl, { timeout: 180_000 });
 	await expect
 		.poll(() =>
 			page.locator('main img').evaluateAll((bilder) => bilder.every((b) => (b as HTMLImageElement).complete)),
@@ -84,6 +84,13 @@ const vorschauenDa = async (page: Page, anzahl: number) => {
 const foto = async (page: Page, name: string) => {
 	await page.evaluate(() => document.fonts.ready);
 	await page.screenshot({ path: path.join(ZIEL, name), type: 'jpeg', quality: 80, scale: 'css' });
+};
+
+/** Wie `oeffne` aus `editorhilfe.ts`, mit Geduld: Die Fotos laufen oft neben anderer Arbeit, das Blatt lädt dann langsam. */
+const oeffne = async (page: Page, mappe: string, dok: string) => {
+	await page.goto(`/m/${mappe}/${dok}/bearbeiten`);
+	await expect(page.locator('[data-leinwand][data-geladen]')).toBeVisible({ timeout: 60_000 });
+	await expect(page.locator('[data-speicherstand="gespeichert"]')).toBeVisible({ timeout: 30_000 });
 };
 
 const nurAuf = (geraet: 'mac' | 'ipad') => test.skip(test.info().project.name !== geraet, `nur ${geraet}`);
@@ -216,7 +223,7 @@ test.describe('Bildschirmfotos für die Hilfe', () => {
 		await writeFile(path.join(`${MATERIAL_DIR}-ki`, 'fall.txt'), 'plan');
 		await page.keyboard.press('ControlOrMeta+Enter');
 		const plan = page.locator('[data-entwurf-karte="plan"]');
-		await expect(plan.locator('[data-entwurf-plan]')).toContainText('Aufgabenplan');
+		await expect(plan.locator('[data-entwurf-plan]')).toContainText('Aufgabenplan', { timeout: 60_000 });
 		await foto(page, 'anlegen-plan-mac.jpg');
 		await plan.getByRole('button', { name: 'So bauen' }).click();
 		const leiste = page.locator('[data-entwurfsleiste="offen"]');
@@ -246,7 +253,9 @@ test.describe('Bildschirmfotos für die Hilfe', () => {
 			await expect(dialog.locator(`[data-assistent="${id}"]`)).toBeVisible();
 		}
 		await page.keyboard.press('Enter');
-		await expect(page.locator('[data-einheit-platzhalter] li')).toHaveCount(1);
+		// Zuerst steht der Plan der Einheit im Band; gebaut wird nach „So bauen“.
+		await page.locator('[data-einheit-band]').getByRole('button', { name: 'So bauen' }).click({ timeout: 60_000 });
+		await expect(page.locator('[data-einheit-platzhalter] li')).toHaveCount(1, { timeout: 60_000 });
 		await expect(page.locator('[data-objekt]')).toHaveCount(1);
 		await foto(page, 'einheit-mac.jpg');
 		await page.locator('[data-einheit-band]').getByRole('button', { name: 'Abbrechen' }).click();
